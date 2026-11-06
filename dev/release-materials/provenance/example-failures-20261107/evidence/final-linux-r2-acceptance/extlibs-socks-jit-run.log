@@ -1,0 +1,6 @@
+greeting: 05020002
+server selected method: 0
+domain frame: 050100030b6578616d706c652e636f6d01bb
+ipv4 frame:   05010001c0a8010a1f90
+status: 0 bound: 192.168.1.10 : 443
+socks example: PASS

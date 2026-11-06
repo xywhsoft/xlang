@@ -1,0 +1,7 @@
+FC3 read 2 regs from 0: 000100000006010300000002
+FC6 write 0x1234 to 100: 000700000006020600641234
+FC1 read 10 coils: 00010000000601010000000a
+registers: 4660 22136
+exception frame, code: 2
+frame bytes: 12 hex back: 000100000006010300000005
+modbus example: PASS

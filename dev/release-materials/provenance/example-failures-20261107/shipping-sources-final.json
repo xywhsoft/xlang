@@ -1,0 +1,109 @@
+{
+  "Complete": true,
+  "Profiles": [
+    {
+      "Name": "windows-runtime",
+      "Required": 918,
+      "Provided": 918,
+      "Missing": [],
+      "Duplicate": []
+    },
+    {
+      "Name": "windows-compiler",
+      "Required": 918,
+      "Provided": 918,
+      "Missing": [],
+      "Duplicate": []
+    },
+    {
+      "Name": "linux-runtime",
+      "Required": 918,
+      "Provided": 918,
+      "Missing": [],
+      "Duplicate": []
+    },
+    {
+      "Name": "linux-compiler",
+      "Required": 918,
+      "Provided": 918,
+      "Missing": [],
+      "Duplicate": []
+    }
+  ],
+  "Errors": [],
+  "NegativeControls": [
+    {
+      "Name": "missing-xl6_task_group_future",
+      "Rejected": true
+    },
+    {
+      "Name": "missing-xl6_ownership_domain_process_future",
+      "Rejected": true
+    },
+    {
+      "Name": "duplicate-explicit-provider",
+      "Rejected": true
+    },
+    {
+      "Name": "missing-linux-provider",
+      "Rejected": true
+    },
+    {
+      "Name": "reject-independent-artifact-xrt-source",
+      "Rejected": true
+    },
+    {
+      "Name": "missing-resident-placement-provider",
+      "Rejected": true
+    },
+    {
+      "Name": "unknown-native-feature",
+      "Rejected": true
+    }
+  ],
+  "Inputs": [
+    {
+      "Path": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final2-source\\build_dll.bat",
+      "Sha256": "205de48309fdc56a1e5768e36ac87138d4d31aef6f1b04c1b07a868665eeaf60"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final2-source\\build_linux.sh",
+      "Sha256": "47fc1e29bbe19ddf6a858c74f280e459120846c95fa276b16f47fd057cd9d851"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final2-source\\lib\\xrt\\xrt.h",
+      "Sha256": "41bc24579f4b3207b0434755ca23dd06481af90c05f71e9b365848cf9a7c12d1"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final2-source\\lib\\xruntime\\xruntime.h",
+      "Sha256": "e202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final2-source\\src\\api\\xl_xrt_dll.c",
+      "Sha256": "87fc5d580c2bf4d454124ce01351e0517dfcbb3ec79e973748bd84dd53294f18"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final2-source\\src\\compile\\xl6_compile_unit.c",
+      "Sha256": "e381620cfb183aa3fe7be422004542d67bb7b3f9060f27cce65a833add8cd268"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final2-source\\tools\\compiler_dll.rsp.in",
+      "Sha256": "830f93d9b7577f018ec9a9628535900faef17243cc9d2fb0ae698b790e8ce3d0"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final2-source\\tools\\runtime_dll.rsp.in",
+      "Sha256": "aa0b158a3479e454d1420d22a0e490381e963b8797d00d066cc4af6aed06897c"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final2-source\\tools\\runtime_sources.py",
+      "Sha256": "1e9fe6896c0d0ec31a00753a91812cd2a5c80f960a8375325a1dc08874a61195"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\tools\\check_stdlib_shipping_sources.py",
+      "Sha256": "0541afb99641fc2591797a28d545051ed8bf8ff3bdc755a00d3f006a9519ee25"
+    }
+  ],
+  "Scope": "Check both ordinary shipping source closures against the runtime registry.\n\nThis is a source-list guard, not binary linkage or function execution proof.\nOnly explicit source commands enter the Windows shared-object response; no\nold build-directory objects or filename glob may satisfy a required provider.\n",
+  "BinaryLinkageAcceptance": false,
+  "Full53Acceptance": false
+}

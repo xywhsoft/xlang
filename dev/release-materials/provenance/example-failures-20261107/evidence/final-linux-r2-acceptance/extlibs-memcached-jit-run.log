@@ -1,0 +1,13 @@
+set session:42 0 3600 16
+
+get session:42 session:43
+
+touch session:42 7200
+
+delete session:42
+
+set status: stored
+get: session:42 = {"user":"alice"}
+miss status: end
+stats: 1024 gets, 512 sets
+memcached example: PASS

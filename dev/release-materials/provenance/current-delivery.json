@@ -20,27 +20,27 @@
     "extensionSourceRevision": "8806c6b6f642e7e532fb16801246b2e6318a70ca"
   },
   "compiler": {
-    "sourceRevision": "5db37c83898fb6f834753d80ec57c6ccc2daf9d6",
+    "sourceRevision": "9213f2a906bd424ab31e14ac3499f5b636e5c860",
     "version": "0.6.0",
     "rebuiltThisDelivery": true,
     "entireAcceptanceRerunThisDelivery": false,
-    "reusedQualifiedProducts": false,
+    "reusedQualifiedProducts": true,
     "xrtRevision": "93347eb5ae6beba8cf7ee3558708cc4f628fdd07",
     "xrtBaseRevision": "93347eb5ae6beba8cf7ee3558708cc4f628fdd07",
     "xrtLocalPatchTip": "0a44e3f80091be178c802c231a37e4f2733fd9fb",
     "optimization": "-O2",
-    "currentBuildProvenance": "dev/release-materials/provenance/compiler-rebuild-20261106/receipt.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/example-failures-20261107/receipt.json",
     "sourceMaterials": {
-      "path": "dev/release-materials/sources/compiler-rebuild-20261106/manifest.json",
-      "sha256": "73380d8c173e02ba9298e03019bd07a5e9f02435791a8d2bbd075b2da1373042",
-      "bytes": 1790
+      "path": "dev/release-materials/sources/example-failures-20261107/manifest.json",
+      "sha256": "697de815136a985a8784d28587212d99fa14e4eeb55a0e75da9f4f7a4f72e602",
+      "bytes": 3644
     },
     "previousDelivery": {
-      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/previous-delivery.json",
-      "sha256": "9145467529342ba5c058cfc5f4fed015db119978ebc635d188e3f5b4c5542c5d",
-      "bytes": 172210
+      "path": "dev/release-materials/provenance/example-failures-20261107/previous-delivery.json",
+      "sha256": "0d682b70638c7e28396680e6e0faa0cdf649aaff7966cdf48fb8b3bb8928d8a2",
+      "bytes": 177183
     },
-    "buildScope": "Specified example failures, bounded native C header descriptors, compiler rebuild and installed regression checks; no whole-project certification.",
+    "buildScope": "Specified 44 example failures plus focused lifecycle, container, CSV, native TCP, XGE and legal-size formatting checks; concurrent semantic/IDE work excluded.",
     "cohortBaseRevision": "9ab5279c4"
   },
   "ide": {
@@ -3186,43 +3186,43 @@
       "sha256": "a5feede784f0a5cb1a829c2e362de57e9278b55cec1a11b796cf4b6e78831bbc",
       "bytes": 72704,
       "path": "release/win_x64/xl.exe",
-      "origin": "compiler-rebuild-20261106",
+      "origin": "example-failures-20261107",
       "previousSha256": "a5feede784f0a5cb1a829c2e362de57e9278b55cec1a11b796cf4b6e78831bbc"
     },
     {
-      "sha256": "ae1fe2778e9aa7e4de407c89ba4a8e05bcd248d32226806e7957a0b6acf6b394",
-      "bytes": 15182848,
+      "sha256": "215d6b3c87704c745ec609eb07e718a52708ad7c13436294f2f662a56169be13",
+      "bytes": 15184896,
       "path": "release/win_x64/xl.dll",
-      "origin": "compiler-rebuild-20261106",
-      "previousSha256": "f36c7f1c9bd3a65e3bacc1353044241097e26306c44f5cd107d56327e9e24ca5"
+      "origin": "example-failures-20261107",
+      "previousSha256": "ae1fe2778e9aa7e4de407c89ba4a8e05bcd248d32226806e7957a0b6acf6b394"
     },
     {
-      "sha256": "6b1e8d18a28791778c7c159bac431231a90ee18b695ad54cc8a8d11ed1b2d32f",
-      "bytes": 21294080,
+      "sha256": "2241fcd462980fc40cbd6c47ce9347d537bababc93225cb6d2a2d36b9b978797",
+      "bytes": 21298688,
       "path": "release/win_x64/xlc.dll",
-      "origin": "compiler-rebuild-20261106",
-      "previousSha256": "b16df309f37d4e16a8e7a7d8d876369d1f76e48a24d7f596a7c5ccfd9c550bf0"
+      "origin": "example-failures-20261107",
+      "previousSha256": "6b1e8d18a28791778c7c159bac431231a90ee18b695ad54cc8a8d11ed1b2d32f"
     },
     {
       "sha256": "faa25e49bdf8c5ce8ccdb084810075b406cc6dd499a59577664616eb2a08265b",
       "bytes": 47224,
       "path": "release/linux_x64/xl",
-      "origin": "compiler-rebuild-20261106",
+      "origin": "example-failures-20261107",
       "previousSha256": "faa25e49bdf8c5ce8ccdb084810075b406cc6dd499a59577664616eb2a08265b"
     },
     {
-      "sha256": "0b78c4942de4015190460aa0c4ef13a8e12fb3ecee16661e0df28bf646a9d2a3",
+      "sha256": "206ed56701191caa5e80db74393b2c2fdfaf0942d06a067eb0a3836671e7be64",
       "bytes": 16448016,
       "path": "release/linux_x64/libxl.so",
-      "origin": "compiler-rebuild-20261106",
-      "previousSha256": "b4a995b170e045f0af74c42ffa1bfba745060dea050a6b6fc85d70085477e93c"
+      "origin": "example-failures-20261107",
+      "previousSha256": "0b78c4942de4015190460aa0c4ef13a8e12fb3ecee16661e0df28bf646a9d2a3"
     },
     {
-      "sha256": "72ecb9983e40475a04f29f47d40f5ac20143d2f03c646a8c3b487d61bdd0e7a1",
-      "bytes": 22436624,
+      "sha256": "c95a4b367e5ee67b9def00181060d678f56e084072ddc2c6b6ed5f1a5b25528b",
+      "bytes": 22440720,
       "path": "release/linux_x64/libxlc.so",
-      "origin": "compiler-rebuild-20261106",
-      "previousSha256": "9e8eb9a9e373352e80afcdf5a19b7017cac80c08d09d1a23afd33611424f2b22"
+      "origin": "example-failures-20261107",
+      "previousSha256": "72ecb9983e40475a04f29f47d40f5ac20143d2f03c646a8c3b487d61bdd0e7a1"
     },
     {
       "sha256": "6c62d11534f0eb5ff80874477f29e0d862039df451be8e6b748a461a31dfb572",
@@ -3282,6 +3282,20 @@
       "path": "release/win_x64/mdo.exe",
       "sha256": "9219de70911e1f02d8e54eadc77c257369e4ea637e5202fcbb04854a29893044",
       "bytes": 7133938
+    },
+    {
+      "path": "release/win_x64/xl.def",
+      "sha256": "6184cb83f3cdfd9aa117d74eff3f0687d30a22a9c223030c9aee6e7bc82251ad",
+      "bytes": 244150,
+      "origin": "example-failures-20261107",
+      "previousSha256": "19eb82169cdad57ff9d5c4a54aa8542ff00255c852f79511f2610f239895ab82"
+    },
+    {
+      "path": "release/win_x64/xlc.def",
+      "sha256": "b4dd1ebdc0cabd775981db5c198687b44f805aaae4cf059ae449871f465ffa57",
+      "bytes": 245169,
+      "origin": "example-failures-20261107",
+      "previousSha256": "4485a69c41e4b4e912d1db5a6a700aa1fb65e86d2d5e88331c775ac5659ef853"
     }
   ],
   "acceptance": {
@@ -3624,5 +3638,47 @@
     "path": "dev/release-materials/provenance/compiler-rebuild-20261106/receipt.json",
     "sha256": "699c8ba12f9d500d9cba34c0f25184af14f2d12eeabfa694c6daf95957af381d",
     "bytes": 50319
+  },
+  "exampleFailureRepairs": {
+    "receipt": {
+      "path": "dev/release-materials/provenance/example-failures-20261107/receipt.json",
+      "sha256": "a42e65e14b0171434970731e2fd429e68dbd4cfb50be5169fb727a3653b50289",
+      "bytes": 4299
+    },
+    "acceptance": {
+      "path": "dev/release-materials/provenance/example-failures-20261107/summary.json",
+      "sha256": "b4c3da995972c7a6c6c778e997a51f0c6a44a5ea1e4fdd29e5287516dd0c30b6",
+      "bytes": 2331
+    },
+    "sourceMaterials": {
+      "path": "dev/release-materials/sources/example-failures-20261107/manifest.json",
+      "sha256": "697de815136a985a8784d28587212d99fa14e4eeb55a0e75da9f4f7a4f72e602",
+      "bytes": 3644
+    },
+    "previousCompilerBuild": {
+      "sourceRevision": "5db37c83898fb6f834753d80ec57c6ccc2daf9d6",
+      "version": "0.6.0",
+      "rebuiltThisDelivery": true,
+      "entireAcceptanceRerunThisDelivery": false,
+      "reusedQualifiedProducts": false,
+      "xrtRevision": "93347eb5ae6beba8cf7ee3558708cc4f628fdd07",
+      "xrtBaseRevision": "93347eb5ae6beba8cf7ee3558708cc4f628fdd07",
+      "xrtLocalPatchTip": "0a44e3f80091be178c802c231a37e4f2733fd9fb",
+      "optimization": "-O2",
+      "currentBuildProvenance": "dev/release-materials/provenance/compiler-rebuild-20261106/receipt.json",
+      "sourceMaterials": {
+        "path": "dev/release-materials/sources/compiler-rebuild-20261106/manifest.json",
+        "sha256": "73380d8c173e02ba9298e03019bd07a5e9f02435791a8d2bbd075b2da1373042",
+        "bytes": 1790
+      },
+      "previousDelivery": {
+        "path": "dev/release-materials/provenance/compiler-rebuild-20261106/previous-delivery.json",
+        "sha256": "9145467529342ba5c058cfc5f4fed015db119978ebc635d188e3f5b4c5542c5d",
+        "bytes": 172210
+      },
+      "buildScope": "Specified example failures, bounded native C header descriptors, compiler rebuild and installed regression checks; no whole-project certification.",
+      "cohortBaseRevision": "9ab5279c4"
+    },
+    "publication": "local-only"
   }
 }

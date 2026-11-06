@@ -1,0 +1,13 @@
+call order: ["gateway","auth","orders","billing","users"]
+is dag: true
+gateway -> users: ["gateway","auth","users"]
+latency from core:
+   core = 0.0 ms
+   edge-1 = 4.0 ms
+   edge-2 = 2.0 ms
+   cache = 3.0 ms
+   db = 5.0 ms
+scc groups: [["a","b","c"],["d","e"],["f"]]
+islands: [["a","b","c","d","e"],["f"]]
+circular dependency: true
+graph example: PASS

@@ -1,0 +1,2148 @@
+{
+  "schema": 1,
+  "passed": false,
+  "examples": 35,
+  "binaries": {
+    "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl": "faa25e49bdf8c5ce8ccdb084810075b406cc6dd499a59577664616eb2a08265b"
+  },
+  "redis": "excluded by user",
+  "cloud": "credentials removed; live case must exit 2 without a request",
+  "rows": [
+    {
+      "name": "extlibs/csv_basic",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/csv_basic.xl",
+      "sourceSha256": "0579d94e324a9db5f947a41b969c5064ba32f0b9d95c8a9d7cf679ba1328498a",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "check",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/csv_basic.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.135,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-csv_basic-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "build",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/csv_basic.xl",
+            "-o",
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-csv_basic"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 1.592,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-csv_basic-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-csv_basic"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.024,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-csv_basic-aot-run.log",
+          "logSha256": "c47b2370b0efc3594c1b62e1dc57a30662659f990b6dc9649b1e987054b73774"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "run",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/csv_basic.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 1.074,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-csv_basic-jit-run.log",
+          "logSha256": "c47b2370b0efc3594c1b62e1dc57a30662659f990b6dc9649b1e987054b73774"
+        }
+      ]
+    },
+    {
+      "name": "extlibs/epub",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/epub.xl",
+      "sourceSha256": "66bc05a1c104f2dbb8ffc81a1d91edd36a72d463f62264c4687b6e9e4e577f3c",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "check",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/epub.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.035,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-epub-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "build",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/epub.xl",
+            "-o",
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-epub"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.433,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-epub-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-epub"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.016,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-epub-aot-run.log",
+          "logSha256": "a2b00707b83a96fa08efca029479df15d043e8ee49438e7da4b8963722f3c8be"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "run",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/epub.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.17,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-epub-jit-run.log",
+          "logSha256": "a2b00707b83a96fa08efca029479df15d043e8ee49438e7da4b8963722f3c8be"
+        }
+      ]
+    },
+    {
+      "name": "extlibs/fix",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/fix.xl",
+      "sourceSha256": "b88cc83c05162e0aa329f7af47751860f90f5809a69af26691cea5c06cdff1a9",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "check",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/fix.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.021,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-fix-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "build",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/fix.xl",
+            "-o",
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-fix"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.282,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-fix-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-fix"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.014,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-fix-aot-run.log",
+          "logSha256": "5bb6441309aa04efbb979a75f680e2b88b190e3f7b67eb462ff2fbecc4a5efbf"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "run",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/fix.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.133,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-fix-jit-run.log",
+          "logSha256": "5bb6441309aa04efbb979a75f680e2b88b190e3f7b67eb462ff2fbecc4a5efbf"
+        }
+      ]
+    },
+    {
+      "name": "extlibs/graph",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/graph.xl",
+      "sourceSha256": "8c6e6ce646d3190311bf20dfcd3383eb2e22454e4649d840b3296b13fbe6d538",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "check",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/graph.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.016,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-graph-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "build",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/graph.xl",
+            "-o",
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-graph"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.617,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-graph-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-graph"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.02,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-graph-aot-run.log",
+          "logSha256": "99a987fc49d59e2254e63447160dce0ef3e831a3bada7967db3f3c99b1d2f93e"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "run",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/graph.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.328,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-graph-jit-run.log",
+          "logSha256": "99a987fc49d59e2254e63447160dce0ef3e831a3bada7967db3f3c99b1d2f93e"
+        }
+      ]
+    },
+    {
+      "name": "extlibs/graph_basic",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/graph_basic.xl",
+      "sourceSha256": "90ef15c3cb1cc705b25ea30abeeb85c8ab4c711f95507a8d6b416d5be76fdbf6",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "check",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/graph_basic.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.034,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-graph_basic-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "build",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/graph_basic.xl",
+            "-o",
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-graph_basic"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.462,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-graph_basic-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-graph_basic"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.017,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-graph_basic-aot-run.log",
+          "logSha256": "4023d2f9d9376f8d06cd56f244ba68f1cf21c67e25f4d38f0c35ce79014d86b1"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "run",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/graph_basic.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.254,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-graph_basic-jit-run.log",
+          "logSha256": "4023d2f9d9376f8d06cd56f244ba68f1cf21c67e25f4d38f0c35ce79014d86b1"
+        }
+      ]
+    },
+    {
+      "name": "extlibs/ical",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/ical.xl",
+      "sourceSha256": "c30668beb753445c75faa4e9c72defb6cefc6442c3f68c4f140722f1da793ad9",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "check",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/ical.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.016,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-ical-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "build",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/ical.xl",
+            "-o",
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-ical"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.315,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-ical-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-ical"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.019,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-ical-aot-run.log",
+          "logSha256": "a2f082352c1fa991bf82173a6ce502e32be90e45c5e9b12dbaecbdac94b6109f"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "run",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/ical.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.146,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-ical-jit-run.log",
+          "logSha256": "a2f082352c1fa991bf82173a6ce502e32be90e45c5e9b12dbaecbdac94b6109f"
+        }
+      ]
+    },
+    {
+      "name": "extlibs/json_patch",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/json_patch.xl",
+      "sourceSha256": "decbac12e99fe141ac337377809240438483ea0b63e35fafef7d67a9ca9a6640",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "check",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/json_patch.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.025,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-json_patch-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "build",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/json_patch.xl",
+            "-o",
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-json_patch"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.525,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-json_patch-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-json_patch"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.017,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-json_patch-aot-run.log",
+          "logSha256": "95dcaae2bba7c0b45588b708b3d5cf59a9675a7862bed7cefa8c19421d4b85bf"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "run",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/json_patch.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.34,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-json_patch-jit-run.log",
+          "logSha256": "95dcaae2bba7c0b45588b708b3d5cf59a9675a7862bed7cefa8c19421d4b85bf"
+        }
+      ]
+    },
+    {
+      "name": "extlibs/rss",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/rss.xl",
+      "sourceSha256": "a137b95a8d744086d6de02d42651e1e625cbda5cda5fc12682af0d7af99737ca",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "check",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/rss.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.025,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-rss-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "build",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/rss.xl",
+            "-o",
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-rss"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.897,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-rss-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-rss"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.026,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-rss-aot-run.log",
+          "logSha256": "eb3e385c1744916a445765048f66f9187523288e3a95960b0e39e511b59f1ad2"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "run",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/rss.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.549,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-rss-jit-run.log",
+          "logSha256": "eb3e385c1744916a445765048f66f9187523288e3a95960b0e39e511b59f1ad2"
+        }
+      ]
+    },
+    {
+      "name": "extlibs/rss_pair",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/rss_pair.xl",
+      "sourceSha256": "7a649ef1a6c1a59e25fc561b5074ed884d366fbb0f738e08f11821f2948511e3",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "check",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/rss_pair.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.017,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-rss_pair-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "build",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/rss_pair.xl",
+            "-o",
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-rss_pair"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.583,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-rss_pair-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-rss_pair"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.017,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-rss_pair-aot-run.log",
+          "logSha256": "f5e6b5b49c3836b087c71cebd471f1db24b73238bf5d43ad28ba30cd07b514cf"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "run",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/rss_pair.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.348,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-rss_pair-jit-run.log",
+          "logSha256": "f5e6b5b49c3836b087c71cebd471f1db24b73238bf5d43ad28ba30cd07b514cf"
+        }
+      ]
+    },
+    {
+      "name": "extlibs/sitemap",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/sitemap.xl",
+      "sourceSha256": "d7dc32237a812345079d050c0ae37d34b91fcc588edeb5b62ca2d9df63922c20",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "check",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/sitemap.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.024,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-sitemap-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "build",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/sitemap.xl",
+            "-o",
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-sitemap"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.494,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-sitemap-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-sitemap"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.025,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-sitemap-aot-run.log",
+          "logSha256": "9280ba13e01d2d7d5d0e71d6ee305a39b7fee5a57b74d5c141a28824f519f893"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "run",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/sitemap.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.303,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-sitemap-jit-run.log",
+          "logSha256": "9280ba13e01d2d7d5d0e71d6ee305a39b7fee5a57b74d5c141a28824f519f893"
+        }
+      ]
+    },
+    {
+      "name": "extlibs/sitemap_pair",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/sitemap_pair.xl",
+      "sourceSha256": "da04256980e2ea32bc1819b20756e4dd69b0028cf40a092788e7bff3b03e9256",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "check",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/sitemap_pair.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.017,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-sitemap_pair-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "build",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/sitemap_pair.xl",
+            "-o",
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-sitemap_pair"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.497,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-sitemap_pair-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-sitemap_pair"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.017,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-sitemap_pair-aot-run.log",
+          "logSha256": "d40978e40ac7934f3021dd89967fcd229fa58ed74a4976336c8c38282a5a87cc"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "run",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/sitemap_pair.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.293,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-sitemap_pair-jit-run.log",
+          "logSha256": "d40978e40ac7934f3021dd89967fcd229fa58ed74a4976336c8c38282a5a87cc"
+        }
+      ]
+    },
+    {
+      "name": "extlibs/socks",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/socks.xl",
+      "sourceSha256": "7cba7628e468a2ece350d6923103b5fd4c629ecaa41866b8012a8411ba013a7f",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "check",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/socks.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.057,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-socks-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "build",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/socks.xl",
+            "-o",
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-socks"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 1.683,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-socks-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-socks"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.019,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-socks-aot-run.log",
+          "logSha256": "d46c4cf762d6b08775bfdebd5e0c998d72aae065ee6a2c385fc3ed6ddd54f7d0"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "run",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/socks.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.124,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-socks-jit-run.log",
+          "logSha256": "d46c4cf762d6b08775bfdebd5e0c998d72aae065ee6a2c385fc3ed6ddd54f7d0"
+        }
+      ]
+    },
+    {
+      "name": "extlibs/srt",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/srt.xl",
+      "sourceSha256": "1af1db5f24e35fd84125131e4b47d1b72ec06cf20e36aa8a4fc43eb56e1aba6a",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "check",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/srt.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.014,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-srt-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "build",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/srt.xl",
+            "-o",
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-srt"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.308,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-srt-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-srt"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.013,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-srt-aot-run.log",
+          "logSha256": "0fb028c517b4e98f4d8da40b1658849cc230b74ce701bb02a4af60b800b44872"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "run",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/srt.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.171,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-srt-jit-run.log",
+          "logSha256": "0fb028c517b4e98f4d8da40b1658849cc230b74ce701bb02a4af60b800b44872"
+        }
+      ]
+    },
+    {
+      "name": "extlibs/statistics",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/statistics.xl",
+      "sourceSha256": "f375e7a567d531722a665241efc2a5c0c9693f667b6f460163cb4f698589e3f3",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "check",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/statistics.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.046,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-statistics-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "build",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/statistics.xl",
+            "-o",
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-statistics"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.595,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-statistics-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-statistics"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.017,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-statistics-aot-run.log",
+          "logSha256": "f4379527a17f5b4bd963d1e3f2213822e16661e60ee9f5fc79769f0bde7972f1"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "run",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/statistics.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.315,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-statistics-jit-run.log",
+          "logSha256": "f4379527a17f5b4bd963d1e3f2213822e16661e60ee9f5fc79769f0bde7972f1"
+        }
+      ]
+    },
+    {
+      "name": "extlibs/xregex",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/xregex.xl",
+      "sourceSha256": "dac08e65632bbc53e7cb9ad649be4e8834dfcbb42755cf039dd9c15168bc9cbc",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "check",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/xregex.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.152,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-xregex-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "build",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/xregex.xl",
+            "-o",
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-xregex"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 1.76,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-xregex-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-xregex"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.02,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-xregex-aot-run.log",
+          "logSha256": "e9e696479bb2f620d23615a0720476662700202a3e158fabc61ed8665791be1e"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "run",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/xregex.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 1.084,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-xregex-jit-run.log",
+          "logSha256": "e9e696479bb2f620d23615a0720476662700202a3e158fabc61ed8665791be1e"
+        }
+      ]
+    },
+    {
+      "name": "extlibs/xregex_basic",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/xregex_basic.xl",
+      "sourceSha256": "14b2d83f98b513f687a0a81608c5b875ab6477ce62427e15ec78d28ec1a1f4b6",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "check",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/xregex_basic.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.154,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-xregex_basic-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "build",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/xregex_basic.xl",
+            "-o",
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-xregex_basic"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 1.775,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-xregex_basic-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-xregex_basic"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.015,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-xregex_basic-aot-run.log",
+          "logSha256": "a1c2e47bdafd596fdf7a6cad272e664ba40a73c7f75d774f1923a1a901f8de50"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "run",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/xregex_basic.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 1.097,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-xregex_basic-jit-run.log",
+          "logSha256": "a1c2e47bdafd596fdf7a6cad272e664ba40a73c7f75d774f1923a1a901f8de50"
+        }
+      ]
+    },
+    {
+      "name": "extlibs/tar",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/tar.xl",
+      "sourceSha256": "2fb7686a91c6c60bc01d3885100999137de310e87e881ed07b063adc670259de",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "check",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/tar.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.519,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-tar-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "build",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/tar.xl",
+            "-o",
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-tar"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 7.627,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-tar-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-tar"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.019,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-tar-aot-run.log",
+          "logSha256": "87f88c7114a2efa20ab7bd029c8cedd354538ea2c05f89a32281b7cc7b798635"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "run",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/tar.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 4.814,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-tar-jit-run.log",
+          "logSha256": "87f88c7114a2efa20ab7bd029c8cedd354538ea2c05f89a32281b7cc7b798635"
+        }
+      ]
+    },
+    {
+      "name": "extlibs/memcached",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/memcached.xl",
+      "sourceSha256": "475e307f94d268e37c5bd68c69e309391c64372d0b70dcc08106a4e57ec85abd",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "check",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/memcached.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.158,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-memcached-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "build",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/memcached.xl",
+            "-o",
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-memcached"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 4.884,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-memcached-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-memcached"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.024,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-memcached-aot-run.log",
+          "logSha256": "1faa2ed09414477ee9023159dfe1c29a0e096828fef54cb59fb4d0d40604d3b5"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "run",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/memcached.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 1.957,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-memcached-jit-run.log",
+          "logSha256": "1faa2ed09414477ee9023159dfe1c29a0e096828fef54cb59fb4d0d40604d3b5"
+        }
+      ]
+    },
+    {
+      "name": "extlibs/modbus",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/modbus.xl",
+      "sourceSha256": "0a68dacae80e969a2b0b6f9bba3aeea060718c20f398f01bd7e8d72d2c1c53dd",
+      "passed": false,
+      "steps": [
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "check",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/modbus.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.16,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-modbus-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "build",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/modbus.xl",
+            "-o",
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-modbus"
+          ],
+          "exitCode": 1,
+          "expectedExitCode": 0,
+          "passed": false,
+          "seconds": 1.913,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-modbus-build.log",
+          "logSha256": "fd5819c37ea67f084b930448efd389bdf0e05e7b1dbabd2ebe3a8fec858a5b65"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "run",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/modbus.xl"
+          ],
+          "exitCode": 1,
+          "expectedExitCode": 0,
+          "passed": false,
+          "seconds": 1.166,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-modbus-jit-run.log",
+          "logSha256": "fd5819c37ea67f084b930448efd389bdf0e05e7b1dbabd2ebe3a8fec858a5b65"
+        }
+      ]
+    },
+    {
+      "name": "extlibs/mqtt",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/mqtt.xl",
+      "sourceSha256": "e1a5b161add02377324149b717d05e2be98394a1559ee55da9b19f6d0ef8633c",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "check",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/mqtt.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.141,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-mqtt-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "build",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/mqtt.xl",
+            "-o",
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-mqtt"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 2.079,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-mqtt-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-mqtt"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.017,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-mqtt-aot-run.log",
+          "logSha256": "1f5a6f298dee7e5b753034510201c1652d3ab92f822744260fa2a9afbe256d6e"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "run",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/mqtt.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 1.258,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-mqtt-jit-run.log",
+          "logSha256": "1f5a6f298dee7e5b753034510201c1652d3ab92f822744260fa2a9afbe256d6e"
+        }
+      ]
+    },
+    {
+      "name": "extlibs/mqtt_tcp",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/mqtt_tcp.xl",
+      "sourceSha256": "8242152b886808f0b97fbdc869208acc61da6b0ea123496303fc1ff10de7389c",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "check",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/mqtt_tcp.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.197,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-mqtt_tcp-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "build",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/mqtt_tcp.xl",
+            "-o",
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-mqtt_tcp"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 2.369,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-mqtt_tcp-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-mqtt_tcp"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.021,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-mqtt_tcp-aot-run.log",
+          "logSha256": "7937ad592cffa60b9da27410bf442e7f5820b11d646bb61f6077d92037067320"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "run",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/mqtt_tcp.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 1.47,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-mqtt_tcp-jit-run.log",
+          "logSha256": "7937ad592cffa60b9da27410bf442e7f5820b11d646bb61f6077d92037067320"
+        }
+      ]
+    },
+    {
+      "name": "extlibs/volc_core",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/volc_core.xl",
+      "sourceSha256": "fe8d9854a4cdca47bef93e93df8aed6752c39831890b2cd91b3978138fe04111",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "check",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/volc_core.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.06,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-volc_core-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "build",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/volc_core.xl",
+            "-o",
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-volc_core"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 2.34,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-volc_core-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-volc_core"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.014,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-volc_core-aot-run.log",
+          "logSha256": "bdba737596ec069ae84939e4dc3ea12de91d82f6463dcbe2b33d50692f2d290e"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "run",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/volc_core.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 2.285,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-volc_core-jit-run.log",
+          "logSha256": "bdba737596ec069ae84939e4dc3ea12de91d82f6463dcbe2b33d50692f2d290e"
+        }
+      ]
+    },
+    {
+      "name": "extlibs/volc_phone",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/volc_phone.xl",
+      "sourceSha256": "15acff221aa6455242220b417d88d3242c76623296cfb328cbb42e38c9e0e3fb",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "check",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/volc_phone.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.341,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-volc_phone-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "build",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/volc_phone.xl",
+            "-o",
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-volc_phone"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 7.967,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-volc_phone-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-volc_phone"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.022,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-volc_phone-aot-run.log",
+          "logSha256": "f3ebb6a8985d4208e1baa10767afda8a59b23cabd225393253f32dfe475421e5"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "run",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/volc_phone.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 5.561,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-volc_phone-jit-run.log",
+          "logSha256": "f3ebb6a8985d4208e1baa10767afda8a59b23cabd225393253f32dfe475421e5"
+        }
+      ]
+    },
+    {
+      "name": "extlibs/volc_phone_live",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/volc_phone_live.xl",
+      "sourceSha256": "dcd5eae24022416dc3da4a5d5e18841318e455e42be5e16185cc7ee20adc631b",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "check",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/volc_phone_live.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.375,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-volc_phone_live-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "build",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/volc_phone_live.xl",
+            "-o",
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-volc_phone_live"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 7.457,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-volc_phone_live-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-volc_phone_live"
+          ],
+          "exitCode": 2,
+          "expectedExitCode": 2,
+          "passed": true,
+          "seconds": 0.015,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-volc_phone_live-aot-run.log",
+          "logSha256": "d7eb8883a7c956dd17fd967301cb3ec545598c696e45203822705f4f476406c8"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "run",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/volc_phone_live.xl"
+          ],
+          "exitCode": 2,
+          "expectedExitCode": 2,
+          "passed": true,
+          "seconds": 5.367,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-volc_phone_live-jit-run.log",
+          "logSha256": "d7eb8883a7c956dd17fd967301cb3ec545598c696e45203822705f4f476406c8"
+        }
+      ]
+    },
+    {
+      "name": "extlibs/volc_sts",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/volc_sts.xl",
+      "sourceSha256": "7648d5dca2eba35cdc4cdcc6907b4648590d9fa1c50d36a02b7880080275441d",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "check",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/volc_sts.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.046,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-volc_sts-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "build",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/volc_sts.xl",
+            "-o",
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-volc_sts"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 2.585,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-volc_sts-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-volc_sts"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.02,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-volc_sts-aot-run.log",
+          "logSha256": "7a066a25d6c3aebfbf34961fac9dad3be1669a0eb5b2797258f5d19a478ef62d"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "run",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/volc_sts.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 2.256,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-volc_sts-jit-run.log",
+          "logSha256": "7a066a25d6c3aebfbf34961fac9dad3be1669a0eb5b2797258f5d19a478ef62d"
+        }
+      ]
+    },
+    {
+      "name": "extlibs/xbot_agent",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/xbot_agent.xl",
+      "sourceSha256": "cf7e8fe1e651d674cc602434bf940325585889cca04e42ee87459ffe466cd591",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "check",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/xbot_agent.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.166,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-xbot_agent-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "build",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/xbot_agent.xl",
+            "-o",
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-xbot_agent"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 3.173,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-xbot_agent-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-xbot_agent"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.021,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-xbot_agent-aot-run.log",
+          "logSha256": "765a9342c538e2ce76898962878d20d246006315149d2edc8926db70936c449f"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "run",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/xbot_agent.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 1.696,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/extlibs-xbot_agent-jit-run.log",
+          "logSha256": "765a9342c538e2ce76898962878d20d246006315149d2edc8926db70936c449f"
+        }
+      ]
+    },
+    {
+      "name": "stdlib_buffer",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/stdlib_buffer.xl",
+      "sourceSha256": "9c2216dd061ee8fc2538751411252b80685ea33696773f638193e82b3213585d",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "check",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/stdlib_buffer.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.036,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_buffer-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "build",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/stdlib_buffer.xl",
+            "-o",
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_buffer"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.271,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_buffer-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_buffer"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.011,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_buffer-aot-run.log",
+          "logSha256": "3ccf31866690ff43e5e580431c86dba49b5ffc4b3f5b0df399fc56bf444edda4"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "run",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/stdlib_buffer.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.104,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_buffer-jit-run.log",
+          "logSha256": "3ccf31866690ff43e5e580431c86dba49b5ffc4b3f5b0df399fc56bf444edda4"
+        }
+      ]
+    },
+    {
+      "name": "stdlib_time_calendar",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/stdlib_time_calendar.xl",
+      "sourceSha256": "b56873360fa06adaf7e715befe3ff6cbac6a5b728bd3daff7e3dd94c5957e271",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "check",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/stdlib_time_calendar.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.041,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_time_calendar-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "build",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/stdlib_time_calendar.xl",
+            "-o",
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_time_calendar"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.186,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_time_calendar-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_time_calendar"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.009,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_time_calendar-aot-run.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "run",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/stdlib_time_calendar.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.069,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_time_calendar-jit-run.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    },
+    {
+      "name": "stdlib_log",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/stdlib_log.xl",
+      "sourceSha256": "619ebfbafd01c189741132e36c3048b0655e087d9171a7bdfa2ce81dd5c59f7f",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "check",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/stdlib_log.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.115,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_log-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "build",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/stdlib_log.xl",
+            "-o",
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_log"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 1.067,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_log-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_log"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.017,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_log-aot-run.log",
+          "logSha256": "8e6ab9d3fd2c0c98ceda306f7dcbd8568c759dc506ca0dd6b747d3413ae2391b"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "run",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/stdlib_log.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.649,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_log-jit-run.log",
+          "logSha256": "8e6ab9d3fd2c0c98ceda306f7dcbd8568c759dc506ca0dd6b747d3413ae2391b"
+        }
+      ]
+    },
+    {
+      "name": "stdlib_log_formats",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/stdlib_log_formats.xl",
+      "sourceSha256": "c8cbd3649dd083502668ad64b58daf7ca380b9367f9595d95cc4435a4c1ac19d",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "check",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/stdlib_log_formats.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.152,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_log_formats-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "build",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/stdlib_log_formats.xl",
+            "-o",
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_log_formats"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 2.381,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_log_formats-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_log_formats"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.225,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_log_formats-aot-run.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "run",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/stdlib_log_formats.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 1.494,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_log_formats-jit-run.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    },
+    {
+      "name": "stdlib_logging",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/stdlib_logging.xl",
+      "sourceSha256": "8ed8249359e5ec520c3160a865fdd4cb0782f719442c0a5a0ed626a742aa5008",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "check",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/stdlib_logging.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.098,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_logging-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "build",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/stdlib_logging.xl",
+            "-o",
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_logging"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.877,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_logging-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_logging"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.012,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_logging-aot-run.log",
+          "logSha256": "04006f7fdb745419d6a2edeed3fd0f12ee7c0aee0e662336b2632320a1b8d94e"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "run",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/stdlib_logging.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.415,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_logging-jit-run.log",
+          "logSha256": "04006f7fdb745419d6a2edeed3fd0f12ee7c0aee0e662336b2632320a1b8d94e"
+        }
+      ]
+    },
+    {
+      "name": "stdlib_api_contracts",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/stdlib_api_contracts.xl",
+      "sourceSha256": "d25ab7ed0470ed118ce59bcd461abd94eaab3a172fcbaa8b1a7e5b2d48894844",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "check",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/stdlib_api_contracts.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 3.329,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_api_contracts-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "build",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/stdlib_api_contracts.xl",
+            "-o",
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_api_contracts"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 57.951,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_api_contracts-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_api_contracts"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.011,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_api_contracts-aot-run.log",
+          "logSha256": "087b5526d538b260865d3d331f36c54c7fe19ec92c96ec0b667277fbace4bed3"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "run",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/stdlib_api_contracts.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 30.621,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_api_contracts-jit-run.log",
+          "logSha256": "087b5526d538b260865d3d331f36c54c7fe19ec92c96ec0b667277fbace4bed3"
+        }
+      ]
+    },
+    {
+      "name": "stdlib_time_core",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/stdlib_time_core.xl",
+      "sourceSha256": "1be180bbffff1174e5d55b5d342f3ce7d337f5a3b6d9cbced555a796814b2b29",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "check",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/stdlib_time_core.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.028,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_time_core-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "build",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/stdlib_time_core.xl",
+            "-o",
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_time_core"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.141,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_time_core-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_time_core"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.007,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_time_core-aot-run.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "run",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/stdlib_time_core.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.051,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_time_core-jit-run.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    },
+    {
+      "name": "stdlib_os",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/stdlib_os.xl",
+      "sourceSha256": "42904e035ed986ce72bb9006364f582e37c88990ac852d7c25cb2831bdc71daa",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "check",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/stdlib_os.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.039,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_os-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "build",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/stdlib_os.xl",
+            "-o",
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_os"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.405,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_os-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_os"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.02,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_os-aot-run.log",
+          "logSha256": "1f387bd999c578e597db14c310d78c8bbf4efbf4c2fc50fdc570d90faed893d8"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "run",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/stdlib_os.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.181,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/stdlib_os-jit-run.log",
+          "logSha256": "a16fc231a4d131203bfd791a4fc977d4de675fefa31ea724775de81c7509ce81"
+        }
+      ]
+    },
+    {
+      "name": "tutorial/09_class_lifecycle",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/tutorial/09_class_lifecycle.xl",
+      "sourceSha256": "90be79cf8c481354c2b2b9aa789dc354d36f0804d153cc1c164ca90655e805de",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "check",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/tutorial/09_class_lifecycle.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.018,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/tutorial-09_class_lifecycle-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "build",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/tutorial/09_class_lifecycle.xl",
+            "-o",
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/tutorial-09_class_lifecycle"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.213,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/tutorial-09_class_lifecycle-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/tutorial-09_class_lifecycle"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.014,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/tutorial-09_class_lifecycle-aot-run.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "run",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/tutorial/09_class_lifecycle.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.074,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/tutorial-09_class_lifecycle-jit-run.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    }
+  ],
+  "core": [
+    {
+      "name": "xlir_destroy_receiver_borrow",
+      "sourceSha256": "8bfaaa5fac2799fb85334bfc01dfd1a2fba4ef8326368066a7d343e59bca3273",
+      "command": [
+        "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+        "run",
+        "/mnt/d/GIT/x-lang/test/cases/xlir_destroy_receiver_borrow.xl"
+      ],
+      "exitCode": 0,
+      "expectedExitCode": 0,
+      "passed": true,
+      "seconds": 0.066,
+      "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/xlir_destroy_receiver_borrow.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "xlir_nested_array_append_context",
+      "sourceSha256": "6cdb9b16a2d42bf3c638c2e1f8a59de021896dcbf920968e80d47dc440fbf923",
+      "command": [
+        "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+        "run",
+        "/mnt/d/GIT/x-lang/test/cases/xlir_nested_array_append_context.xl"
+      ],
+      "exitCode": 0,
+      "expectedExitCode": 0,
+      "passed": true,
+      "seconds": 0.072,
+      "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/xlir_nested_array_append_context.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "cgen_destroy_field_assignment",
+      "sourceSha256": "b32509ac8aa21a80ebf1444a8de68c1e35bee77b1b14d0f41292ed518de42f0c",
+      "command": [
+        "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+        "run",
+        "/mnt/d/GIT/x-lang/test/cases/cgen_destroy_field_assignment.xl"
+      ],
+      "exitCode": 0,
+      "expectedExitCode": 0,
+      "passed": true,
+      "seconds": 0.056,
+      "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/final-linux-r2-acceptance/cgen_destroy_field_assignment.log",
+      "logSha256": "97f2183efcbbaaf6d0d698e29f06d6aced0c3b650d2d8217fd85919fd3bf15ec"
+    }
+  ]
+}

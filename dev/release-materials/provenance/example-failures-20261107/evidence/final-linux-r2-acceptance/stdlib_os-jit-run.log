@@ -1,0 +1,12 @@
+platform=linux
+args_count=3
+args0=/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl
+cwd=/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64
+set_cwd=true
+missing_env=fallback
+exec=os-example
+run_success=true
+run_stdout=os-run
+start_exit=0
+start_file_exit=0
+chain_exit=0

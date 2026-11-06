@@ -1,0 +1,56 @@
+[
+  {
+    "name": "2048",
+    "exitCode": 0,
+    "seconds": 2.453,
+    "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\games\\2048-jit.log"
+  },
+  {
+    "name": "asteroids",
+    "exitCode": 0,
+    "seconds": 2.953,
+    "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\games\\asteroids-jit.log"
+  },
+  {
+    "name": "breakout",
+    "exitCode": 0,
+    "seconds": 2.625,
+    "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\games\\breakout-jit.log"
+  },
+  {
+    "name": "flappy",
+    "exitCode": 0,
+    "seconds": 2.313,
+    "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\games\\flappy-jit.log"
+  },
+  {
+    "name": "minesweeper",
+    "exitCode": 0,
+    "seconds": 2.937,
+    "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\games\\minesweeper-jit.log"
+  },
+  {
+    "name": "pong",
+    "exitCode": 0,
+    "seconds": 2.266,
+    "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\games\\pong-jit.log"
+  },
+  {
+    "name": "shooter",
+    "exitCode": 0,
+    "seconds": 2.906,
+    "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\games\\shooter-jit.log"
+  },
+  {
+    "name": "snake",
+    "exitCode": 0,
+    "seconds": 2.125,
+    "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\games\\snake-jit.log"
+  },
+  {
+    "name": "tetris",
+    "exitCode": 0,
+    "seconds": 3.25,
+    "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\games\\tetris-jit.log"
+  }
+]

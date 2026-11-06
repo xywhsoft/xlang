@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://example.test/?a=1&amp;b=2</loc>
+  </url>
+</urlset>
+parsed= https://example.test/?a=1&b=2
+<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap>
+    <loc>https://example.test/site.xml</loc>
+  </sitemap>
+</sitemapindex>
+index= https://example.test/site.xml
+false

@@ -1,0 +1,14 @@
+{
+  "executable": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-win-r2-acceptance\\games-shooter.exe",
+  "imports": [
+    "DLL Name: msvcrt.dll",
+    "DLL Name: kernel32.dll",
+    "DLL Name: USER32.dll",
+    "DLL Name: GDI32.dll",
+    "DLL Name: ole32.dll",
+    "DLL Name: OLEAUT32.dll",
+    "DLL Name: SHELL32.dll",
+    "DLL Name: IMM32.dll"
+  ],
+  "noXgeHostDll": true
+}

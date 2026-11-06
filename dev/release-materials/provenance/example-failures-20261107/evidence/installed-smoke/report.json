@@ -1,0 +1,42 @@
+{
+  "passed": false,
+  "rows": [
+    {
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\release\\win_x64\\examples\\extlibs\\csv_basic.xl"
+      ],
+      "exitCode": 0,
+      "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\installed-smoke\\extlibs-csv_basic.log"
+    },
+    {
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\release\\win_x64\\examples\\stdlib_log.xl"
+      ],
+      "exitCode": 0,
+      "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\installed-smoke\\stdlib_log.log"
+    },
+    {
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\release\\win_x64\\examples\\tutorial\\09_class_lifecycle.xl"
+      ],
+      "exitCode": 0,
+      "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\installed-smoke\\tutorial-09_class_lifecycle.log"
+    },
+    {
+      "command": [
+        "wsl.exe",
+        "-e",
+        "bash",
+        "/mnt/d/GIT/x-lang/build/example-failure-audit/installed-linux-smoke.sh"
+      ],
+      "exitCode": 1,
+      "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\installed-smoke\\linux.log"
+    }
+  ]
+}

@@ -1,0 +1,2042 @@
+[
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/build-records/final-win/build.json",
+    "sha256": "4003c864ce50cf87d0c13753de45a62fd492710ca45246b1aef845c58e1cdc6f",
+    "bytes": 176119
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/build-records/final-win/compiler.rsp",
+    "sha256": "d6dda2d0658dce8e99791c757579eb01b34e803c122e6152bb7289b233b9438a",
+    "bytes": 83870
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/build-records/final-win/objects.json",
+    "sha256": "6a49b06037a314345f4dd05aef6bbe40aa75b8b959f31cf378fa8b781d76281c",
+    "bytes": 166756
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/build-records/final-win/runtime.rsp",
+    "sha256": "eac05fe0b2ca0f13a929243c2a973edde6871e1620b85db47cdaa353e0b1067a",
+    "bytes": 82180
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/build-records/final-win-r2/build.json",
+    "sha256": "70d7ec0113a24b423c7f3afaf746b8310d7903c53ab008254d1bdbff3f97b2be",
+    "bytes": 7912
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/build-records/final-win-r2/compiler.rsp",
+    "sha256": "36bebae6c9e116313315871c93773c03424320f449fcc3ccf29f88eb59c922db",
+    "bytes": 83879
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/build-records/final-win-r2/runtime.rsp",
+    "sha256": "360fc114bedbeecb2a52b90b806a36035066696197f5499b7999e8be2986216d",
+    "bytes": 82189
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/build-records/final2-precompiled/manifest.json",
+    "sha256": "0401ddb35b8172a8373372b00e35472838807a631b2a8bbe6f4619a7319407ab",
+    "bytes": 559288
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/build-records/games/jit-results.json",
+    "sha256": "37d502f29f29355d5d6d70f30943c65353af2d2be2bab2f683e73c2a17364ba8",
+    "bytes": 1454
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/build-records/games/static-imports.json",
+    "sha256": "fcfdb239b80fdff2200ea9a5d8a4108ddfa99128d6ed1f6f393b781f20f60443",
+    "bytes": 393
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/csv-bom_values-aot.log",
+    "sha256": "99a6db50ea8daeacf14abb5977af5db50a68d21590da284bd2e01eccd313a231",
+    "bytes": 30
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/csv-bom_values-jit.log",
+    "sha256": "99a6db50ea8daeacf14abb5977af5db50a68d21590da284bd2e01eccd313a231",
+    "bytes": 30
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/csv-boundaries-aot.log",
+    "sha256": "a5a5e1fe7cf9ea6cbec8b44609d527263b60320e7f126d904c079e72e7d405e7",
+    "bytes": 30
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/csv-boundaries-jit.log",
+    "sha256": "a5a5e1fe7cf9ea6cbec8b44609d527263b60320e7f126d904c079e72e7d405e7",
+    "bytes": 30
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/csv-files-aot.log",
+    "sha256": "e237dd2c8be670dd01cf1b3ff5ba50daeaab3c2d9f8999c9cebd970744f61c2d",
+    "bytes": 25
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/csv-files-jit.log",
+    "sha256": "e237dd2c8be670dd01cf1b3ff5ba50daeaab3c2d9f8999c9cebd970744f61c2d",
+    "bytes": 25
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/csv-global_lifecycle-aot.log",
+    "sha256": "07249854c1d486a3438833b164f63b5483ad9f98354bf6f07c7d36cada3c3c15",
+    "bytes": 18
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/csv-global_lifecycle-jit.log",
+    "sha256": "07249854c1d486a3438833b164f63b5483ad9f98354bf6f07c7d36cada3c3c15",
+    "bytes": 18
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/cgen_destroy_field_assignment.log",
+    "sha256": "97f2183efcbbaaf6d0d698e29f06d6aced0c3b650d2d8217fd85919fd3bf15ec",
+    "bytes": 38
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-csv_basic-aot-run.log",
+    "sha256": "c47b2370b0efc3594c1b62e1dc57a30662659f990b6dc9649b1e987054b73774",
+    "bytes": 99
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-csv_basic-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-csv_basic-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-csv_basic-jit-run.log",
+    "sha256": "c47b2370b0efc3594c1b62e1dc57a30662659f990b6dc9649b1e987054b73774",
+    "bytes": 99
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-epub-aot-run.log",
+    "sha256": "a2b00707b83a96fa08efca029479df15d043e8ee49438e7da4b8963722f3c8be",
+    "bytes": 54
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-epub-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-epub-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-epub-jit-run.log",
+    "sha256": "a2b00707b83a96fa08efca029479df15d043e8ee49438e7da4b8963722f3c8be",
+    "bytes": 54
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-fix-aot-run.log",
+    "sha256": "5bb6441309aa04efbb979a75f680e2b88b190e3f7b67eb462ff2fbecc4a5efbf",
+    "bytes": 192
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-fix-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-fix-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-fix-jit-run.log",
+    "sha256": "5bb6441309aa04efbb979a75f680e2b88b190e3f7b67eb462ff2fbecc4a5efbf",
+    "bytes": 192
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-graph-aot-run.log",
+    "sha256": "99a987fc49d59e2254e63447160dce0ef3e831a3bada7967db3f3c99b1d2f93e",
+    "bytes": 352
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-graph-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-graph-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-graph-jit-run.log",
+    "sha256": "99a987fc49d59e2254e63447160dce0ef3e831a3bada7967db3f3c99b1d2f93e",
+    "bytes": 352
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-graph_basic-aot-run.log",
+    "sha256": "4023d2f9d9376f8d06cd56f244ba68f1cf21c67e25f4d38f0c35ce79014d86b1",
+    "bytes": 193
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-graph_basic-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-graph_basic-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-graph_basic-jit-run.log",
+    "sha256": "4023d2f9d9376f8d06cd56f244ba68f1cf21c67e25f4d38f0c35ce79014d86b1",
+    "bytes": 193
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-ical-aot-run.log",
+    "sha256": "a2f082352c1fa991bf82173a6ce502e32be90e45c5e9b12dbaecbdac94b6109f",
+    "bytes": 82
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-ical-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-ical-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-ical-jit-run.log",
+    "sha256": "a2f082352c1fa991bf82173a6ce502e32be90e45c5e9b12dbaecbdac94b6109f",
+    "bytes": 82
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-json_patch-aot-run.log",
+    "sha256": "95dcaae2bba7c0b45588b708b3d5cf59a9675a7862bed7cefa8c19421d4b85bf",
+    "bytes": 171
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-json_patch-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-json_patch-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-json_patch-jit-run.log",
+    "sha256": "95dcaae2bba7c0b45588b708b3d5cf59a9675a7862bed7cefa8c19421d4b85bf",
+    "bytes": 171
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-memcached-aot-run.log",
+    "sha256": "1faa2ed09414477ee9023159dfe1c29a0e096828fef54cb59fb4d0d40604d3b5",
+    "bytes": 221
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-memcached-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-memcached-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-memcached-jit-run.log",
+    "sha256": "1faa2ed09414477ee9023159dfe1c29a0e096828fef54cb59fb4d0d40604d3b5",
+    "bytes": 221
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-modbus-build.log",
+    "sha256": "fd5819c37ea67f084b930448efd389bdf0e05e7b1dbabd2ebe3a8fec858a5b65",
+    "bytes": 215
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-modbus-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-modbus-jit-run.log",
+    "sha256": "fd5819c37ea67f084b930448efd389bdf0e05e7b1dbabd2ebe3a8fec858a5b65",
+    "bytes": 215
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-mqtt-aot-run.log",
+    "sha256": "1f5a6f298dee7e5b753034510201c1652d3ab92f822744260fa2a9afbe256d6e",
+    "bytes": 323
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-mqtt-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-mqtt-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-mqtt-jit-run.log",
+    "sha256": "1f5a6f298dee7e5b753034510201c1652d3ab92f822744260fa2a9afbe256d6e",
+    "bytes": 323
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-mqtt_tcp-aot-run.log",
+    "sha256": "7937ad592cffa60b9da27410bf442e7f5820b11d646bb61f6077d92037067320",
+    "bytes": 76
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-mqtt_tcp-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-mqtt_tcp-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-mqtt_tcp-jit-run.log",
+    "sha256": "7937ad592cffa60b9da27410bf442e7f5820b11d646bb61f6077d92037067320",
+    "bytes": 76
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-rss-aot-run.log",
+    "sha256": "eb3e385c1744916a445765048f66f9187523288e3a95960b0e39e511b59f1ad2",
+    "bytes": 1236
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-rss-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-rss-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-rss-jit-run.log",
+    "sha256": "eb3e385c1744916a445765048f66f9187523288e3a95960b0e39e511b59f1ad2",
+    "bytes": 1236
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-rss_pair-aot-run.log",
+    "sha256": "f5e6b5b49c3836b087c71cebd471f1db24b73238bf5d43ad28ba30cd07b514cf",
+    "bytes": 19
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-rss_pair-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-rss_pair-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-rss_pair-jit-run.log",
+    "sha256": "f5e6b5b49c3836b087c71cebd471f1db24b73238bf5d43ad28ba30cd07b514cf",
+    "bytes": 19
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-sitemap-aot-run.log",
+    "sha256": "9280ba13e01d2d7d5d0e71d6ee305a39b7fee5a57b74d5c141a28824f519f893",
+    "bytes": 1000
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-sitemap-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-sitemap-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-sitemap-jit-run.log",
+    "sha256": "9280ba13e01d2d7d5d0e71d6ee305a39b7fee5a57b74d5c141a28824f519f893",
+    "bytes": 1000
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-sitemap_pair-aot-run.log",
+    "sha256": "d40978e40ac7934f3021dd89967fcd229fa58ed74a4976336c8c38282a5a87cc",
+    "bytes": 449
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-sitemap_pair-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-sitemap_pair-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-sitemap_pair-jit-run.log",
+    "sha256": "d40978e40ac7934f3021dd89967fcd229fa58ed74a4976336c8c38282a5a87cc",
+    "bytes": 449
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-socks-aot-run.log",
+    "sha256": "d46c4cf762d6b08775bfdebd5e0c998d72aae065ee6a2c385fc3ed6ddd54f7d0",
+    "bytes": 187
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-socks-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-socks-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-socks-jit-run.log",
+    "sha256": "d46c4cf762d6b08775bfdebd5e0c998d72aae065ee6a2c385fc3ed6ddd54f7d0",
+    "bytes": 187
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-srt-aot-run.log",
+    "sha256": "0fb028c517b4e98f4d8da40b1658849cc230b74ce701bb02a4af60b800b44872",
+    "bytes": 394
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-srt-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-srt-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-srt-jit-run.log",
+    "sha256": "0fb028c517b4e98f4d8da40b1658849cc230b74ce701bb02a4af60b800b44872",
+    "bytes": 394
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-statistics-aot-run.log",
+    "sha256": "f4379527a17f5b4bd963d1e3f2213822e16661e60ee9f5fc79769f0bde7972f1",
+    "bytes": 348
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-statistics-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-statistics-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-statistics-jit-run.log",
+    "sha256": "f4379527a17f5b4bd963d1e3f2213822e16661e60ee9f5fc79769f0bde7972f1",
+    "bytes": 348
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-tar-aot-run.log",
+    "sha256": "87f88c7114a2efa20ab7bd029c8cedd354538ea2c05f89a32281b7cc7b798635",
+    "bytes": 18
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-tar-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-tar-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-tar-jit-run.log",
+    "sha256": "87f88c7114a2efa20ab7bd029c8cedd354538ea2c05f89a32281b7cc7b798635",
+    "bytes": 18
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-volc_core-aot-run.log",
+    "sha256": "bdba737596ec069ae84939e4dc3ea12de91d82f6463dcbe2b33d50692f2d290e",
+    "bytes": 20
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-volc_core-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-volc_core-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-volc_core-jit-run.log",
+    "sha256": "bdba737596ec069ae84939e4dc3ea12de91d82f6463dcbe2b33d50692f2d290e",
+    "bytes": 20
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-volc_phone-aot-run.log",
+    "sha256": "f3ebb6a8985d4208e1baa10767afda8a59b23cabd225393253f32dfe475421e5",
+    "bytes": 31
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-volc_phone-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-volc_phone-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-volc_phone-jit-run.log",
+    "sha256": "f3ebb6a8985d4208e1baa10767afda8a59b23cabd225393253f32dfe475421e5",
+    "bytes": 31
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-volc_phone_live-aot-run.log",
+    "sha256": "d7eb8883a7c956dd17fd967301cb3ec545598c696e45203822705f4f476406c8",
+    "bytes": 66
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-volc_phone_live-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-volc_phone_live-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-volc_phone_live-jit-run.log",
+    "sha256": "d7eb8883a7c956dd17fd967301cb3ec545598c696e45203822705f4f476406c8",
+    "bytes": 66
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-volc_sts-aot-run.log",
+    "sha256": "7a066a25d6c3aebfbf34961fac9dad3be1669a0eb5b2797258f5d19a478ef62d",
+    "bytes": 19
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-volc_sts-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-volc_sts-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-volc_sts-jit-run.log",
+    "sha256": "7a066a25d6c3aebfbf34961fac9dad3be1669a0eb5b2797258f5d19a478ef62d",
+    "bytes": 19
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-xbot_agent-aot-run.log",
+    "sha256": "765a9342c538e2ce76898962878d20d246006315149d2edc8926db70936c449f",
+    "bytes": 442
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-xbot_agent-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-xbot_agent-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-xbot_agent-jit-run.log",
+    "sha256": "765a9342c538e2ce76898962878d20d246006315149d2edc8926db70936c449f",
+    "bytes": 442
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-xregex-aot-run.log",
+    "sha256": "e9e696479bb2f620d23615a0720476662700202a3e158fabc61ed8665791be1e",
+    "bytes": 67
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-xregex-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-xregex-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-xregex-jit-run.log",
+    "sha256": "e9e696479bb2f620d23615a0720476662700202a3e158fabc61ed8665791be1e",
+    "bytes": 67
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-xregex_basic-aot-run.log",
+    "sha256": "a1c2e47bdafd596fdf7a6cad272e664ba40a73c7f75d774f1923a1a901f8de50",
+    "bytes": 83
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-xregex_basic-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-xregex_basic-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/extlibs-xregex_basic-jit-run.log",
+    "sha256": "a1c2e47bdafd596fdf7a6cad272e664ba40a73c7f75d774f1923a1a901f8de50",
+    "bytes": 83
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/report.json",
+    "sha256": "f6fed6f0225e672c952de1769f115f1d2ee004bdcec034541c9e5b2b43c32c21",
+    "bytes": 95683
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/stdlib_api_contracts-aot-run.log",
+    "sha256": "087b5526d538b260865d3d331f36c54c7fe19ec92c96ec0b667277fbace4bed3",
+    "bytes": 36
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/stdlib_api_contracts-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/stdlib_api_contracts-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/stdlib_api_contracts-jit-run.log",
+    "sha256": "087b5526d538b260865d3d331f36c54c7fe19ec92c96ec0b667277fbace4bed3",
+    "bytes": 36
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/stdlib_buffer-aot-run.log",
+    "sha256": "3ccf31866690ff43e5e580431c86dba49b5ffc4b3f5b0df399fc56bf444edda4",
+    "bytes": 52
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/stdlib_buffer-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/stdlib_buffer-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/stdlib_buffer-jit-run.log",
+    "sha256": "3ccf31866690ff43e5e580431c86dba49b5ffc4b3f5b0df399fc56bf444edda4",
+    "bytes": 52
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/stdlib_log-aot-run.log",
+    "sha256": "8e6ab9d3fd2c0c98ceda306f7dcbd8568c759dc506ca0dd6b747d3413ae2391b",
+    "bytes": 38
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/stdlib_log-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/stdlib_log-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/stdlib_log-jit-run.log",
+    "sha256": "8e6ab9d3fd2c0c98ceda306f7dcbd8568c759dc506ca0dd6b747d3413ae2391b",
+    "bytes": 38
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/stdlib_log_formats-aot-run.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/stdlib_log_formats-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/stdlib_log_formats-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/stdlib_log_formats-jit-run.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/stdlib_logging-aot-run.log",
+    "sha256": "04006f7fdb745419d6a2edeed3fd0f12ee7c0aee0e662336b2632320a1b8d94e",
+    "bytes": 58
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/stdlib_logging-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/stdlib_logging-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/stdlib_logging-jit-run.log",
+    "sha256": "04006f7fdb745419d6a2edeed3fd0f12ee7c0aee0e662336b2632320a1b8d94e",
+    "bytes": 58
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/stdlib_os-aot-run.log",
+    "sha256": "1f387bd999c578e597db14c310d78c8bbf4efbf4c2fc50fdc570d90faed893d8",
+    "bytes": 316
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/stdlib_os-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/stdlib_os-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/stdlib_os-jit-run.log",
+    "sha256": "a16fc231a4d131203bfd791a4fc977d4de675fefa31ea724775de81c7509ce81",
+    "bytes": 304
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/stdlib_time_calendar-aot-run.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/stdlib_time_calendar-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/stdlib_time_calendar-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/stdlib_time_calendar-jit-run.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/stdlib_time_core-aot-run.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/stdlib_time_core-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/stdlib_time_core-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/stdlib_time_core-jit-run.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/tutorial-09_class_lifecycle-aot-run.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/tutorial-09_class_lifecycle-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/tutorial-09_class_lifecycle-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/tutorial-09_class_lifecycle-jit-run.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/xlir_destroy_receiver_borrow.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-linux-r2-acceptance/xlir_nested_array_append_context.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/cgen_destroy_field_assignment.log",
+    "sha256": "97f2183efcbbaaf6d0d698e29f06d6aced0c3b650d2d8217fd85919fd3bf15ec",
+    "bytes": 38
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-csv_basic-aot-run.log",
+    "sha256": "c47b2370b0efc3594c1b62e1dc57a30662659f990b6dc9649b1e987054b73774",
+    "bytes": 99
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-csv_basic-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-csv_basic-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-csv_basic-jit-run.log",
+    "sha256": "c47b2370b0efc3594c1b62e1dc57a30662659f990b6dc9649b1e987054b73774",
+    "bytes": 99
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-epub-aot-run.log",
+    "sha256": "a2b00707b83a96fa08efca029479df15d043e8ee49438e7da4b8963722f3c8be",
+    "bytes": 54
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-epub-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-epub-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-epub-jit-run.log",
+    "sha256": "a2b00707b83a96fa08efca029479df15d043e8ee49438e7da4b8963722f3c8be",
+    "bytes": 54
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-fix-aot-run.log",
+    "sha256": "5bb6441309aa04efbb979a75f680e2b88b190e3f7b67eb462ff2fbecc4a5efbf",
+    "bytes": 192
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-fix-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-fix-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-fix-jit-run.log",
+    "sha256": "5bb6441309aa04efbb979a75f680e2b88b190e3f7b67eb462ff2fbecc4a5efbf",
+    "bytes": 192
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-graph-aot-run.log",
+    "sha256": "99a987fc49d59e2254e63447160dce0ef3e831a3bada7967db3f3c99b1d2f93e",
+    "bytes": 352
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-graph-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-graph-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-graph-jit-run.log",
+    "sha256": "99a987fc49d59e2254e63447160dce0ef3e831a3bada7967db3f3c99b1d2f93e",
+    "bytes": 352
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-graph_basic-aot-run.log",
+    "sha256": "4023d2f9d9376f8d06cd56f244ba68f1cf21c67e25f4d38f0c35ce79014d86b1",
+    "bytes": 193
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-graph_basic-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-graph_basic-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-graph_basic-jit-run.log",
+    "sha256": "4023d2f9d9376f8d06cd56f244ba68f1cf21c67e25f4d38f0c35ce79014d86b1",
+    "bytes": 193
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-ical-aot-run.log",
+    "sha256": "a2f082352c1fa991bf82173a6ce502e32be90e45c5e9b12dbaecbdac94b6109f",
+    "bytes": 82
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-ical-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-ical-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-ical-jit-run.log",
+    "sha256": "a2f082352c1fa991bf82173a6ce502e32be90e45c5e9b12dbaecbdac94b6109f",
+    "bytes": 82
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-json_patch-aot-run.log",
+    "sha256": "95dcaae2bba7c0b45588b708b3d5cf59a9675a7862bed7cefa8c19421d4b85bf",
+    "bytes": 171
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-json_patch-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-json_patch-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-json_patch-jit-run.log",
+    "sha256": "95dcaae2bba7c0b45588b708b3d5cf59a9675a7862bed7cefa8c19421d4b85bf",
+    "bytes": 171
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-memcached-aot-run.log",
+    "sha256": "1faa2ed09414477ee9023159dfe1c29a0e096828fef54cb59fb4d0d40604d3b5",
+    "bytes": 221
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-memcached-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-memcached-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-memcached-jit-run.log",
+    "sha256": "1faa2ed09414477ee9023159dfe1c29a0e096828fef54cb59fb4d0d40604d3b5",
+    "bytes": 221
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-modbus-aot-run.log",
+    "sha256": "5619a4a74901b1393c650d6b780e562a75661f3f03d77d25509a38803eea117b",
+    "bytes": 262
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-modbus-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-modbus-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-modbus-jit-run.log",
+    "sha256": "5619a4a74901b1393c650d6b780e562a75661f3f03d77d25509a38803eea117b",
+    "bytes": 262
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-mqtt-aot-run.log",
+    "sha256": "1f5a6f298dee7e5b753034510201c1652d3ab92f822744260fa2a9afbe256d6e",
+    "bytes": 323
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-mqtt-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-mqtt-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-mqtt-jit-run.log",
+    "sha256": "1f5a6f298dee7e5b753034510201c1652d3ab92f822744260fa2a9afbe256d6e",
+    "bytes": 323
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-mqtt_tcp-aot-run.log",
+    "sha256": "7937ad592cffa60b9da27410bf442e7f5820b11d646bb61f6077d92037067320",
+    "bytes": 76
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-mqtt_tcp-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-mqtt_tcp-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-mqtt_tcp-jit-run.log",
+    "sha256": "7937ad592cffa60b9da27410bf442e7f5820b11d646bb61f6077d92037067320",
+    "bytes": 76
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-rss-aot-run.log",
+    "sha256": "eb3e385c1744916a445765048f66f9187523288e3a95960b0e39e511b59f1ad2",
+    "bytes": 1236
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-rss-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-rss-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-rss-jit-run.log",
+    "sha256": "eb3e385c1744916a445765048f66f9187523288e3a95960b0e39e511b59f1ad2",
+    "bytes": 1236
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-rss_pair-aot-run.log",
+    "sha256": "f5e6b5b49c3836b087c71cebd471f1db24b73238bf5d43ad28ba30cd07b514cf",
+    "bytes": 19
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-rss_pair-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-rss_pair-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-rss_pair-jit-run.log",
+    "sha256": "f5e6b5b49c3836b087c71cebd471f1db24b73238bf5d43ad28ba30cd07b514cf",
+    "bytes": 19
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-sitemap-aot-run.log",
+    "sha256": "9280ba13e01d2d7d5d0e71d6ee305a39b7fee5a57b74d5c141a28824f519f893",
+    "bytes": 1000
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-sitemap-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-sitemap-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-sitemap-jit-run.log",
+    "sha256": "9280ba13e01d2d7d5d0e71d6ee305a39b7fee5a57b74d5c141a28824f519f893",
+    "bytes": 1000
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-sitemap_pair-aot-run.log",
+    "sha256": "d40978e40ac7934f3021dd89967fcd229fa58ed74a4976336c8c38282a5a87cc",
+    "bytes": 449
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-sitemap_pair-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-sitemap_pair-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-sitemap_pair-jit-run.log",
+    "sha256": "d40978e40ac7934f3021dd89967fcd229fa58ed74a4976336c8c38282a5a87cc",
+    "bytes": 449
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-socks-aot-run.log",
+    "sha256": "d46c4cf762d6b08775bfdebd5e0c998d72aae065ee6a2c385fc3ed6ddd54f7d0",
+    "bytes": 187
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-socks-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-socks-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-socks-jit-run.log",
+    "sha256": "d46c4cf762d6b08775bfdebd5e0c998d72aae065ee6a2c385fc3ed6ddd54f7d0",
+    "bytes": 187
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-srt-aot-run.log",
+    "sha256": "0fb028c517b4e98f4d8da40b1658849cc230b74ce701bb02a4af60b800b44872",
+    "bytes": 394
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-srt-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-srt-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-srt-jit-run.log",
+    "sha256": "0fb028c517b4e98f4d8da40b1658849cc230b74ce701bb02a4af60b800b44872",
+    "bytes": 394
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-statistics-aot-run.log",
+    "sha256": "f4379527a17f5b4bd963d1e3f2213822e16661e60ee9f5fc79769f0bde7972f1",
+    "bytes": 348
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-statistics-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-statistics-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-statistics-jit-run.log",
+    "sha256": "f4379527a17f5b4bd963d1e3f2213822e16661e60ee9f5fc79769f0bde7972f1",
+    "bytes": 348
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-tar-aot-run.log",
+    "sha256": "87f88c7114a2efa20ab7bd029c8cedd354538ea2c05f89a32281b7cc7b798635",
+    "bytes": 18
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-tar-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-tar-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-tar-jit-run.log",
+    "sha256": "87f88c7114a2efa20ab7bd029c8cedd354538ea2c05f89a32281b7cc7b798635",
+    "bytes": 18
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-volc_core-aot-run.log",
+    "sha256": "bdba737596ec069ae84939e4dc3ea12de91d82f6463dcbe2b33d50692f2d290e",
+    "bytes": 20
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-volc_core-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-volc_core-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-volc_core-jit-run.log",
+    "sha256": "bdba737596ec069ae84939e4dc3ea12de91d82f6463dcbe2b33d50692f2d290e",
+    "bytes": 20
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-volc_phone-aot-run.log",
+    "sha256": "f3ebb6a8985d4208e1baa10767afda8a59b23cabd225393253f32dfe475421e5",
+    "bytes": 31
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-volc_phone-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-volc_phone-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-volc_phone-jit-run.log",
+    "sha256": "f3ebb6a8985d4208e1baa10767afda8a59b23cabd225393253f32dfe475421e5",
+    "bytes": 31
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-volc_phone_live-aot-run.log",
+    "sha256": "d7eb8883a7c956dd17fd967301cb3ec545598c696e45203822705f4f476406c8",
+    "bytes": 66
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-volc_phone_live-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-volc_phone_live-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-volc_phone_live-jit-run.log",
+    "sha256": "d7eb8883a7c956dd17fd967301cb3ec545598c696e45203822705f4f476406c8",
+    "bytes": 66
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-volc_sts-aot-run.log",
+    "sha256": "7a066a25d6c3aebfbf34961fac9dad3be1669a0eb5b2797258f5d19a478ef62d",
+    "bytes": 19
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-volc_sts-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-volc_sts-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-volc_sts-jit-run.log",
+    "sha256": "7a066a25d6c3aebfbf34961fac9dad3be1669a0eb5b2797258f5d19a478ef62d",
+    "bytes": 19
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-xbot_agent-aot-run.log",
+    "sha256": "765a9342c538e2ce76898962878d20d246006315149d2edc8926db70936c449f",
+    "bytes": 442
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-xbot_agent-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-xbot_agent-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-xbot_agent-jit-run.log",
+    "sha256": "765a9342c538e2ce76898962878d20d246006315149d2edc8926db70936c449f",
+    "bytes": 442
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-xregex-aot-run.log",
+    "sha256": "e9e696479bb2f620d23615a0720476662700202a3e158fabc61ed8665791be1e",
+    "bytes": 67
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-xregex-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-xregex-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-xregex-jit-run.log",
+    "sha256": "e9e696479bb2f620d23615a0720476662700202a3e158fabc61ed8665791be1e",
+    "bytes": 67
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-xregex_basic-aot-run.log",
+    "sha256": "a1c2e47bdafd596fdf7a6cad272e664ba40a73c7f75d774f1923a1a901f8de50",
+    "bytes": 83
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-xregex_basic-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-xregex_basic-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/extlibs-xregex_basic-jit-run.log",
+    "sha256": "a1c2e47bdafd596fdf7a6cad272e664ba40a73c7f75d774f1923a1a901f8de50",
+    "bytes": 83
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/games-2048-aot-run.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/games-2048-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/games-2048-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/games-asteroids-aot-run.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/games-asteroids-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/games-asteroids-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/games-breakout-aot-run.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/games-breakout-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/games-breakout-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/games-flappy-aot-run.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/games-flappy-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/games-flappy-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/games-minesweeper-aot-run.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/games-minesweeper-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/games-minesweeper-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/games-pong-aot-run.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/games-pong-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/games-pong-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/games-shooter-aot-run.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/games-shooter-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/games-shooter-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/games-snake-aot-run.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/games-snake-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/games-snake-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/games-tetris-aot-run.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/games-tetris-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/games-tetris-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/report.json",
+    "sha256": "fb7fbb9e6043e318da58ace12230ecd7cdc1103f6b0f80e8882cb4adb8eadbb5",
+    "bytes": 113952
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/stdlib_api_contracts-aot-run.log",
+    "sha256": "087b5526d538b260865d3d331f36c54c7fe19ec92c96ec0b667277fbace4bed3",
+    "bytes": 36
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/stdlib_api_contracts-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/stdlib_api_contracts-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/stdlib_api_contracts-jit-run.log",
+    "sha256": "087b5526d538b260865d3d331f36c54c7fe19ec92c96ec0b667277fbace4bed3",
+    "bytes": 36
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/stdlib_buffer-aot-run.log",
+    "sha256": "3ccf31866690ff43e5e580431c86dba49b5ffc4b3f5b0df399fc56bf444edda4",
+    "bytes": 52
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/stdlib_buffer-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/stdlib_buffer-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/stdlib_buffer-jit-run.log",
+    "sha256": "3ccf31866690ff43e5e580431c86dba49b5ffc4b3f5b0df399fc56bf444edda4",
+    "bytes": 52
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/stdlib_log-aot-run.log",
+    "sha256": "8e6ab9d3fd2c0c98ceda306f7dcbd8568c759dc506ca0dd6b747d3413ae2391b",
+    "bytes": 38
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/stdlib_log-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/stdlib_log-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/stdlib_log-jit-run.log",
+    "sha256": "8e6ab9d3fd2c0c98ceda306f7dcbd8568c759dc506ca0dd6b747d3413ae2391b",
+    "bytes": 38
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/stdlib_log_formats-aot-run.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/stdlib_log_formats-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/stdlib_log_formats-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/stdlib_log_formats-jit-run.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/stdlib_logging-aot-run.log",
+    "sha256": "04006f7fdb745419d6a2edeed3fd0f12ee7c0aee0e662336b2632320a1b8d94e",
+    "bytes": 58
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/stdlib_logging-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/stdlib_logging-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/stdlib_logging-jit-run.log",
+    "sha256": "04006f7fdb745419d6a2edeed3fd0f12ee7c0aee0e662336b2632320a1b8d94e",
+    "bytes": 58
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/stdlib_os-aot-run.log",
+    "sha256": "f5074cc253509351813c7c44d4fc53eaf080ebe69423dac187ee37f1fd85ea10",
+    "bytes": 279
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/stdlib_os-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/stdlib_os-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/stdlib_os-jit-run.log",
+    "sha256": "dfe7fbbf0ed7a1ead47c1a1b39325580beb65900700fcedf2f9f7acdbfad998f",
+    "bytes": 269
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/stdlib_time_calendar-aot-run.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/stdlib_time_calendar-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/stdlib_time_calendar-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/stdlib_time_calendar-jit-run.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/stdlib_time_core-aot-run.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/stdlib_time_core-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/stdlib_time_core-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/stdlib_time_core-jit-run.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/tutorial-09_class_lifecycle-aot-run.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/tutorial-09_class_lifecycle-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/tutorial-09_class_lifecycle-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/tutorial-09_class_lifecycle-jit-run.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/xlir_destroy_receiver_borrow.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-win-r2-acceptance/xlir_nested_array_append_context.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/2048-0.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/2048-1.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/2048-2.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/2048-3.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/asteroids-0.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/asteroids-1.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/asteroids-2.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/asteroids-3.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/breakout-0.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/breakout-1.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/breakout-2.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/breakout-3.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/flappy-0.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/flappy-1.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/flappy-2.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/flappy-3.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/init-0.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/init-1.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/init-2.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/minesweeper-0.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/minesweeper-1.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/minesweeper-2.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/minesweeper-3.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/pong-0.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/pong-1.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/pong-2.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/pong-3.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/report.json",
+    "sha256": "22edccb17aeeb10c1a3228fecb6e7043d6d5d73fe7b9cc6e66d427ff78a6efed",
+    "bytes": 16937
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/shooter-0.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/shooter-1.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/shooter-2.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/shooter-3.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/snake-0.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/snake-1.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/snake-2.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/snake-3.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/socks-boundary-0.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/socks-boundary-1.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/socks-boundary-2.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/tetris-0.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/tetris-1.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/tetris-2.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/final-xge-preserve-init/tetris-3.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/installed-smoke/extlibs-csv_basic.log",
+    "sha256": "c47b2370b0efc3594c1b62e1dc57a30662659f990b6dc9649b1e987054b73774",
+    "bytes": 99
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/installed-smoke/linux.log",
+    "sha256": "844e303c0864c6ca2342315455f2cc552983cb9866e0032f74dd14709df3436f",
+    "bytes": 112
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/installed-smoke/report.json",
+    "sha256": "bddf083652238292e9cd5e6ce8879c8b6878faf4580efcd2b2bf1046120e82bb",
+    "bytes": 1288
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/installed-smoke/stdlib_log.log",
+    "sha256": "8e6ab9d3fd2c0c98ceda306f7dcbd8568c759dc506ca0dd6b747d3413ae2391b",
+    "bytes": 38
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/installed-smoke/tutorial-09_class_lifecycle.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/installed-smoke-r2/linux.log",
+    "sha256": "beaec555435a57f0be23cd5a5dfdc6fad2d0aae0b44d1cc7c2bff46aad5f58ec",
+    "bytes": 166
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/installed-smoke-r2/report.json",
+    "sha256": "2d91b181f34b9e62f1577d32ac711b05c3fbe67424f3fc305dcc782fb8accfd6",
+    "bytes": 181
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/installed-smoke-r3/linux.log",
+    "sha256": "4c17cb05a1be329c229f5df32b68a02a35b1de23229577cfe9bcc1671b05adc8",
+    "bytes": 25
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/installed-smoke-r3/report.json",
+    "sha256": "44eebc028841b485a37edd0989ebe392704ae478e37e1f5055357da1a798b1cb",
+    "bytes": 180
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/linux-build-records/build/linux/ir-contract-catalog/summary.json",
+    "sha256": "b0473288a0383739d7ff971d649babbba0643969166f78894520ce0779f2fdaf",
+    "bytes": 98
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/linux-build-records/build/linux/precompiled/manifest.json",
+    "sha256": "87fc9942299bba0345699ede999d96b79bb603c36cc6968e983091307cc858b6",
+    "bytes": 553696
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/linux-build-records/build/linux/tcc_builtin_resources.c.stamp.json",
+    "sha256": "2ee8f3fc4e05b3e1653b871fbadcb5991754ea0d6d6f424f753f6190cc7eba8a",
+    "bytes": 831677
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/linux-build-records/build/linux/tcc_builtin_resources_runtime.c.stamp.json",
+    "sha256": "ccd0ea3723d45dc7c269ed770899b5f59094ffd733defba59679c0033eccf001",
+    "bytes": 142067
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/linux-build-records/source-cohort.json",
+    "sha256": "24b16b15bc9832c75ec23ff46fac8083c5aba76df78c156b7b43683e88b08e50",
+    "bytes": 2463
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/modbus-portable-linux/extlibs-modbus-aot-run.log",
+    "sha256": "5619a4a74901b1393c650d6b780e562a75661f3f03d77d25509a38803eea117b",
+    "bytes": 262
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/modbus-portable-linux/extlibs-modbus-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/modbus-portable-linux/extlibs-modbus-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/modbus-portable-linux/extlibs-modbus-jit-run.log",
+    "sha256": "5619a4a74901b1393c650d6b780e562a75661f3f03d77d25509a38803eea117b",
+    "bytes": 262
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/modbus-portable-linux/report.json",
+    "sha256": "8ccb6187fe14b23c95643e2732af4399025e244f366db1479fcf663be0a6d59b",
+    "bytes": 2991
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/modbus-portable-win/extlibs-modbus-aot-run.log",
+    "sha256": "5619a4a74901b1393c650d6b780e562a75661f3f03d77d25509a38803eea117b",
+    "bytes": 262
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/modbus-portable-win/extlibs-modbus-build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/modbus-portable-win/extlibs-modbus-check.log",
+    "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+    "bytes": 3
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/modbus-portable-win/extlibs-modbus-jit-run.log",
+    "sha256": "5619a4a74901b1393c650d6b780e562a75661f3f03d77d25509a38803eea117b",
+    "bytes": 262
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/evidence/modbus-portable-win/report.json",
+    "sha256": "9d2ee9219c613d78901c195232d7cb4c269664e7cb3b75d7c4c2b072df3d8ff8",
+    "bytes": 3289
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/installed-products.json",
+    "sha256": "1794f4c53c8ba59ce7ba4012fc4b92cb6debdbc9b28a379a8d6889c072afd93a",
+    "bytes": 2848
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/linux-build-r2.log",
+    "sha256": "d5162e0e8e0a2e1c71cdc5dc4fb6ce94d0f68686ac99eecc9a451f16ae277905",
+    "bytes": 13432
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/linux-build.log",
+    "sha256": "d182a51ae6e04392b6ff51afb97a4100a9ca3ce7fc822d2dc5ec8db83cca4272",
+    "bytes": 13429
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/owned-core.json",
+    "sha256": "a7493dd0abe13654d33a06db80bf4642747d64045e0b1e5e011db02ce767af67",
+    "bytes": 1483
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/previous-delivery.json",
+    "sha256": "0d682b70638c7e28396680e6e0faa0cdf649aaff7966cdf48fb8b3bb8928d8a2",
+    "bytes": 177183
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/reconstruction-core-check.json",
+    "sha256": "15d85777d77a52c6f5d04f5a469644a45e24d846621cef73eb070f6361a759f6",
+    "bytes": 71
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/shipping-sources-final.json",
+    "sha256": "d4bb902f63ee64dfd748c685dc1e34df39167fded5ca2c5ed8a9cd8bc9014daf",
+    "bytes": 3688
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/summary.json",
+    "sha256": "b4c3da995972c7a6c6c778e997a51f0c6a44a5ea1e4fdd29e5287516dd0c30b6",
+    "bytes": 2331
+  },
+  {
+    "path": "dev/release-materials/provenance/example-failures-20261107/wire-migration.json",
+    "sha256": "e929eb855049eaec553fb059e4a77fcffe5558ca0795e0d496482fd243771348",
+    "bytes": 1049
+  }
+]

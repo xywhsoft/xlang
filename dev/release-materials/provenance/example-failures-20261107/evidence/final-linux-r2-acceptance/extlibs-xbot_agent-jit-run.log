@@ -1,0 +1,2 @@
+[{"type":"function","function":{"name":"fs_stat","description":"获取文件/目录信息","parameters":{"type":"object","properties":{"path":{"type":"string"}},"required":["path"]}}},{"type":"function","function":{"name":"fs_list","description":"列出目录内容","parameters":{"type":"object","properties":{"path":{"type":"string","description":"目录路径"},"recursive":{"type":"boolean"}},"required":["path"]}}}]
+xbot.agent extlib ok

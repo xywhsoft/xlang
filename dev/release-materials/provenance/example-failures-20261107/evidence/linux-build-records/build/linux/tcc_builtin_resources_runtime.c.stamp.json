@@ -1,0 +1,2711 @@
+{
+  "schema": 2,
+  "format": 3,
+  "packing": "solid",
+  "packingOrder": "manifest",
+  "blockSize": 1048576,
+  "resourceCount": 537,
+  "blobCount": 12,
+  "rawBytes": 21323086,
+  "decodedBlobBytes": 10553283,
+  "packedBytes": 1841710,
+  "spanCount": 552,
+  "storedSpanCount": 536,
+  "namePoolBytes": 23269,
+  "generatedSha256": "bf902daa698dc3968d087a4b707c32123360eafcb87faa126145140d4ddc87a4",
+  "resources": [
+    {
+      "virtual": "__xl_compiler/src/runtime/xl6_host_xrt.c",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_host_xrt.c",
+      "sha256": "ce0587622fb9e0496ecf56ba15babdb32198f529b4892874bda2bf3a93bda75a"
+    },
+    {
+      "virtual": "__xl_compiler/src/runtime/xl6_host_xrt.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_host_xrt.h",
+      "sha256": "a92215d8b1c7f2b0ae550c80bbd66b52ceeea00e1ccc7b46034e4656a6cdbd8b"
+    },
+    {
+      "virtual": "__xl_compiler/src/runtime/xl6_host_xrt_symbols.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_host_xrt_symbols.h",
+      "sha256": "25190f4aee820cc205fc50b9249cd8d3a2d0518df115f9c48d6bd2d7dc6d67a0"
+    },
+    {
+      "virtual": "__xl_objects/shared-native/xrt.o",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/build/linux/precompiled/shared-native.o",
+      "sha256": "7e3a65ac14407dd483c0f3b91de70ccce60e9113ad8a4a5c8c20be5ea20feae4"
+    },
+    {
+      "virtual": "__xl_objects/static-native/xrt.o",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/build/linux/precompiled/static-native.o",
+      "sha256": "7e3a65ac14407dd483c0f3b91de70ccce60e9113ad8a4a5c8c20be5ea20feae4"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_array.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_array.h",
+      "sha256": "2a03f7d26b3202c18252ebb387f142d4ee3a110436dda3575072d2c52d226365"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_array_admission.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_array_admission.h",
+      "sha256": "7494c3cc2476f9776162af57ba79dcaebe5da550341d3596544f29f84467bfd4"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_array_admission_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_array_admission_internal.h",
+      "sha256": "c19df1319826a66b8bfcd72c82a21bd83f1dbdcef79a209b58ed8f6249160082"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_array_algebra.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_array_algebra.h",
+      "sha256": "24c56d1164e87167b0ff87c8f55c122a5513054ecffe098c5d2e2ddd2d1a6943"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_array_call_frame.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_array_call_frame.h",
+      "sha256": "48f12e4774b879e4fe42d77b3db3ca5f360d4be3739a6ac465edf7a87ddfdab4"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_array_default.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_array_default.h",
+      "sha256": "e39a5a5696a92a867bdeaa1afcbf796b735cf02b00e19021ea3200942c0003dd"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_array_entry.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_array_entry.h",
+      "sha256": "2afb12a770b4da39e8ad2f94f0f3c2cc2c1cb8a5475bed3ec28f2e1aba3f4042"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_array_erased.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_array_erased.h",
+      "sha256": "479fdc7649e43f68870e0a92d0d69f3c11a01bb7844e3ae38956d2f39f1c284e"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_array_extract.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_array_extract.h",
+      "sha256": "11176320a4b61dc56eb7e657d49afd86a8c92c275ea11212d55d8eaedddd6f41"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_array_extract_native_value_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_array_extract_native_value_abi.h",
+      "sha256": "7df90fa24e39b6243573e66d96f9d2df2f2e09700c8d54ad308aa42672270c6e"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_array_extract_view.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_array_extract_view.h",
+      "sha256": "6506a1e44fe3a58dd42c733115c1f209d32cb73d9301b4967706313b41c86e31"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_array_graph.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_array_graph.h",
+      "sha256": "1a38d23f488a29eaca21b74edcc03515e163aa7fc20e3fb930b3cf3f292841cb"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_array_import.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_array_import.h",
+      "sha256": "2531aa947129bfa90ab5e445a77c6c17920ec49e16c6728f8028e598f64fc733"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_array_import_chain.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_array_import_chain.h",
+      "sha256": "9fbc044c7dd0930624be8c9e825f0e2abf0f0c2aadbdd7589676c59acefae847"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_array_index.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_array_index.h",
+      "sha256": "60609b35b9f7bdf68e67ca0656fccf59de5ea51af14d713b3d3470b83a246197"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_array_input.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_array_input.h",
+      "sha256": "32a9eff662a4628241c381986200a20102ee656e40ad87e67ce3626b6ff5ad52"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_array_iterator.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_array_iterator.h",
+      "sha256": "8f4dd3963bba184abe8c68687e4cc4839dd36fdebfa4d3ed8639bf2d90337504"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_array_method_view.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_array_method_view.h",
+      "sha256": "ddd47ccf2c7a2152df33acef29b47fadb9a841ae96d9ec2689599f766d3f7d17"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_array_methods.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_array_methods.h",
+      "sha256": "af86d1573a15407ec3c4bc6b5f0b3fecd74f9da27db5f3d7d74abc564e6d1814"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_array_native_value_admission.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_array_native_value_admission.h",
+      "sha256": "f37cf963f0a71238f914c664c09380374962d75d940dcc609d8dcc6f71493a9a"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_array_native_value_policy.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_array_native_value_policy.h",
+      "sha256": "0d597dffc7c93875dc3ac0ba4257bf0577365e7699fb2fdcf82e68a9e328997b"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_array_os_argv.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_array_os_argv.h",
+      "sha256": "61870e3df244af17240a29413bd116fc9b5ae75a47058fdc2b3d0207497c8e90"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_array_producer.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_array_producer.h",
+      "sha256": "cd94f0161dd06ef773e8a9786ee933d99df5d2ee9461da073b7c850911ffae7d"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_array_reference_value.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_array_reference_value.h",
+      "sha256": "7587a169bb25c2b16c30846a6991ad14e6472aebc90fe4595779fe04cb9fd83c"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_array_scalar_read.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_array_scalar_read.h",
+      "sha256": "094f8bc084fde1003de337f1b28cae07f8ed425565319ed859f4ec8d204df86e"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_array_shuffle.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_array_shuffle.h",
+      "sha256": "c62b3d6926a1973694bb17d68f26bb25c7bdb37e4b62af401212c3fd5e856877"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_array_shuffle_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_array_shuffle_internal.h",
+      "sha256": "0d22c1d3c297178e26758745376f659a72f18958cab82da052b69d167f33f710"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_array_string_read.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_array_string_read.h",
+      "sha256": "02adf9df41a2ca0ece02600a40f29b05d5160d005fdedc70d13e086ebc19bcd1"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_array_value.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_array_value.h",
+      "sha256": "653bf20134bcea589274d1f3049acbe45ac233020c9d3d7830cbaecb2d20aa50"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_array_value_iterator.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_array_value_iterator.h",
+      "sha256": "41bd5260ee4f49f602b8eaaeb3d7905d1208ef38acf7270f47387b262a5c52c8"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_array_value_read.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_array_value_read.h",
+      "sha256": "c3cc08b8e244f94573246d1d50fec670b13d423f76a463a644bcb1e92714641d"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_array_value_write.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_array_value_write.h",
+      "sha256": "9644b7398e59e4ad7d8fe35428e94c0abb6cb02825053148754e1afaf67d02f0"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_asn1_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_asn1_abi.h",
+      "sha256": "0209f7ea1079ef441046939cff50301440b40175ff659255914922162621b973"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_atomic_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_atomic_abi.h",
+      "sha256": "eba037089f0e9e53f4c7a35b086e7459e6711838d1387ff32eee140fafa375c9"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_atomic_impl.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_atomic_impl.h",
+      "sha256": "e0bca0dab70e94e09f0dfdc345560b4a793a1c756a19c001b96633fb2ff38d6a"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_atomic_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_atomic_internal.h",
+      "sha256": "7e40fef21749daa5e3b793abb476a32e8fad01d4faec59f6eb7d72d227115ef6"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_buffer_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_buffer_internal.h",
+      "sha256": "1ff4e1b35d121262b434d1802f8a663957596c1ecb4cd74cedfcfe0f027aa801"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_c_owned.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_c_owned.h",
+      "sha256": "813b2f360b4326a25460e09ea09c0504870b9f329b9d5aa4d4d72cf49b8f95b3"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_c_owned_capture.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_c_owned_capture.h",
+      "sha256": "16819e874d76b692c9c734f854f592ced6b83432a0fecc9f894a7ee4004eaa88"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_c_print.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_c_print.h",
+      "sha256": "a3e3be59b17b01960fa3c61262b1bdbef4cd55fcd5e944d42222330202c12eb0"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_c_scalar_domain.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_c_scalar_domain.h",
+      "sha256": "070cba5c3b53bd62c61678d16c8f638e326f80eef50dc2cdaff7113133975335"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_call_frame_expansion.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_call_frame_expansion.h",
+      "sha256": "be2e4ce5be6313c82093980aca7245963e09ff4e8b2c6b45650e8f23639fe58e"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_call_frame_expansion_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_call_frame_expansion_internal.h",
+      "sha256": "e43b329819f1aa585e48c8e2ea478894092d4237c63f3c0079ee489326dd5cbf"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_callback_failure.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_callback_failure.h",
+      "sha256": "51f0b7bfaeac887bca9b721c7bb98ae5759799e914d1ba0768bb429edcc20351"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_cancellation.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_cancellation.h",
+      "sha256": "56b8d7c4342afc2b3c164ec93181e3514350670c1c9364c34416188c06ca58bc"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_capture.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_capture.h",
+      "sha256": "fda9501ce47cb95beb8775a2bd0a5c18f87d41f1ca8d9ae849aad334ca2c8400"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_capture_v2.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_capture_v2.h",
+      "sha256": "4fde1e5994664e64e9c100667ef8828b8e45f5a0b2846b3527bb773919bffde5"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_capture_v3.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_capture_v3.h",
+      "sha256": "43cb45a51513b043c3e9a1023fa39cf761456b30e188d9a21e70f45332eeb965"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_cell.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_cell.h",
+      "sha256": "e53bdec643fe65d01a95e0a14367268d3d775b005d1a2806068165f6962a404d"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_cell_native.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_cell_native.h",
+      "sha256": "33908de9c9ff0707466336ad7abc1e82b7060ae64be82a0cbe50805711a873c4"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_cell_native_graph.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_cell_native_graph.h",
+      "sha256": "3f8bdf0b16a38116b650821a2a620662fcf9698b01cb007429090394ce7bb48c"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_channel.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_channel.h",
+      "sha256": "1e30abfb76714deb1035052a2b40e45589335f54a7c5e709f517c7fa1c40937d"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_channel_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_channel_abi.h",
+      "sha256": "53b67a737a1cb273c9eeb95f7c8746b35bb88a966e7dff1db2665c0c0c70092a"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_channel_case.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_channel_case.h",
+      "sha256": "db189a3a3a13817f90c33fa844c14fe55a1068d26600c1e8386d07c2b8c9b5cf"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_channel_case_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_channel_case_abi.h",
+      "sha256": "11077b43afff5df3d41697443094bace9516dcc4bdbef05c185fea42ad707256"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_channel_case_array.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_channel_case_array.h",
+      "sha256": "2ed40fcfe4d54306dd2ed934b432565129c1e59da82f2f2fd71d43fd0b966eff"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_channel_case_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_channel_case_internal.h",
+      "sha256": "d614f2410048bdcd547c9660d3928a686aa60395674050c971027bf287b7146d"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_channel_deadline_language.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_channel_deadline_language.h",
+      "sha256": "a1706b0f85e51408f2714f511fbf18a8a067660a37de266504534c96cd2e1493"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_channel_direct_deadline.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_channel_direct_deadline.h",
+      "sha256": "e24dcd6541feb992707824bb25729b80cbe4c52e213b4f27616dc10fe341f752"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_channel_direct_future.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_channel_direct_future.h",
+      "sha256": "96a80c03e5840664176ea3a135af11e2a6442ae047fb26fce8f8eda14bf36c97"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_channel_future.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_channel_future.h",
+      "sha256": "bb92e5edc107e3375d35d7934215a38c6e8c0af45c7fc5b37daa2317df80af79"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_channel_future_core.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_channel_future_core.h",
+      "sha256": "440a0a171185cbefa2ab43d93233dc1e2af027b80b197d27c67a5c109fab814b"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_channel_future_deadline.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_channel_future_deadline.h",
+      "sha256": "b2b2fd7cf3858150bd6c0cd3e4b76edb204557da213c73c6b7682225a0fa7ce3"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_channel_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_channel_internal.h",
+      "sha256": "403b93fc7fe30e6c5362ee06e7802cb61ecb16bb01c6738dfb3c3a8e8392a29b"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_channel_language_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_channel_language_abi.h",
+      "sha256": "e4d708367aa889e8d588d112a6c96cdff6ffd77d8f65736d9c75831491fed08e"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_channel_select_deadline.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_channel_select_deadline.h",
+      "sha256": "c60aaff28b36da5dc79453a1e9e8439c17ee8815728a5b17ae016fc82ae58715"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_channel_slot.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_channel_slot.h",
+      "sha256": "4f045d1a1aca1738e42d2f432ad216ed8b92d3fa3da59565eaf1ec0903d87ee7"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_channel_wait_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_channel_wait_abi.h",
+      "sha256": "3d0aeba480ee8a2b65e0c587545f62482bfecb6b932038f13192b30c4d1488c9"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_channel_wait_common.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_channel_wait_common.h",
+      "sha256": "ed5179d1a4611f8346191329bbf240d3c4528ca962257cc7dce9cd674bfda6bb"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_char_checked.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_char_checked.h",
+      "sha256": "8fee30d78ae23fe6795dfe848c5a93869b37691d811870738eae53e60b345bd0"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_checked_result_closure.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_checked_result_closure.h",
+      "sha256": "4fbe01f15de292abe9c429984a1ee64340287954d9b8bed7a17936bbbd15d5cb"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_class_text.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_class_text.h",
+      "sha256": "977f90e07f42190b4e1b7e295a84eeff81e8b5317d33fb036bb86185c8609aa0"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_closure.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_closure.h",
+      "sha256": "d86e05c6f414b80769ee911993495e03e9670ab27f9b49d99c8ec09afd02411e"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_closure_capture_v3.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_closure_capture_v3.h",
+      "sha256": "d2b332edaf951fa640aa3721c6ac75d21fd4dd7469b16da20c18351a3b63641f"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_closure_capture_v4.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_closure_capture_v4.h",
+      "sha256": "17a80b6184ead38d1397421d0a9ac0ec1f7e508dc34d15c748ed8ab170063584"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_code_lease.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_code_lease.h",
+      "sha256": "f0f7eba73252c467f17683ab8b8f0c020656d390ac8fa9525b5f02e14b7ae893"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_code_owner.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_code_owner.h",
+      "sha256": "31771947ce49cb16ec196aa48faad270f8f6ca78b89d5ce0436a90cb5de64778"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_codec_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_codec_abi.h",
+      "sha256": "388a4932eceaae679ffe38b83c5b702f9c1c462ce988b2daf18d4dacb927d989"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_codec_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_codec_internal.h",
+      "sha256": "b2d58e7a4ce70de55d732cd9409f96c0cd60d134edd4a715715572d8caf2e573"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_collection_count.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_collection_count.h",
+      "sha256": "6d10c259f4540507e4e1a97192fb4ace5831e3efc175c6da62a11020fd2a204c"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_collection_count_all.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_collection_count_all.h",
+      "sha256": "c1fe1c894d870117face8dc093f05ea222bf33417d0862b384b554ca24661640"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_collection_import_chain.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_collection_import_chain.h",
+      "sha256": "d6c401533075a6c4f3b73e221280384ab8a18975b21c7c128fd332f0af70e18f"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_compress_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_compress_abi.h",
+      "sha256": "4f2538649622cd2ecf350d50e412aaf1bc8d68857dcd0789afadc17cc4b2d631"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_compress_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_compress_internal.h",
+      "sha256": "cb5b9e296a913f93b47a75b6ad6431b8405559f90f60efacdc63c78c96e952b9"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_concurrent_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_concurrent_abi.h",
+      "sha256": "803f244a78d069c5d4e17e2f7fe1defce76d3bb518e4907348573c32b72c8b7d"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_concurrent_deadline.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_concurrent_deadline.h",
+      "sha256": "4a445824b98e276e3ae72ed69d615229c039acb6e7e9991ec748695d22f57a42"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_concurrent_queue.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_concurrent_queue.h",
+      "sha256": "fbf9f7d7d8d507e77baaf8d01c463ce1a8ced2129d85895e72a5415f165be287"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_concurrent_queue_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_concurrent_queue_abi.h",
+      "sha256": "b89d0a4e5fc807e3c886db719d304efb22f87f7e5478e25b066b0d216ba5557d"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_concurrent_queue_impl.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_concurrent_queue_impl.h",
+      "sha256": "a9d2ccc66399b79a6eb48c439480c831c70667f47facd9c43ae3073603be3749"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_cond_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_cond_internal.h",
+      "sha256": "3cf0321044dbd30ee59d97f3ca8e632440ef6262ccbc50e9db012242a393d027"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_container_projection.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_container_projection.h",
+      "sha256": "1df955ab00d76062da7cbe3413f612bda9b7e28abc7b12c720398f76d040eaa0"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_continuation_executor.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_continuation_executor.h",
+      "sha256": "2656d190d70049ccf7393515ab8833eac86434fef4f6abcbb4caa726e85124f1"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_continuation_future.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_continuation_future.h",
+      "sha256": "67d451cbdceb3e39b1b25564970779a5fe79ff709f5d759d465d4e69fb34e461"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_continuation_queue.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_continuation_queue.h",
+      "sha256": "c57032354384b64912995b01b171409f4e0b8d8eac448f12d867ff832ac841df"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_crc32_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_crc32_internal.h",
+      "sha256": "35d4b6436bf7bb71ac89f353a6985dcf8e91b0ea0551f874fc8ace9bac8dc9b1"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_crypto_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_crypto_abi.h",
+      "sha256": "6d0d2a8e887dc17edce8d2e70340fc01cfb084f5ac20a885c36ebcb7ceb4bdd1"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_crypto_aes_block_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_crypto_aes_block_internal.h",
+      "sha256": "36be96f74d6ae9a90383d8631266e7ebea567fc00c7f9e5b01c43a2a6212bd74"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_crypto_ed25519_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_crypto_ed25519_internal.h",
+      "sha256": "9a137d5080f05f6ae198bbfca872a5133fbe3b9749a0c0b5ac3af1847bf1acfb"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_crypto_ed25519_verify_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_crypto_ed25519_verify_internal.h",
+      "sha256": "1c68eb97b35b6c58885b933b3fedffe66801b8dbaecf9b90dc6153f4b1b3465b"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_crypto_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_crypto_internal.h",
+      "sha256": "670e145826495faa88d37780e4c67470f5aa7eea4050d847399a32d15f4d42ba"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_crypto_key_spans.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_crypto_key_spans.h",
+      "sha256": "d4ed2c2e8a2fadc6d724635ee476badaff5ce66cfaabec8b764bf994f1ac6405"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_crypto_nist_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_crypto_nist_internal.h",
+      "sha256": "fb0783e597401368de38bd6eca4c4bbc5a36ee599c8ac25777046cd7b5c1677b"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_crypto_nist_verify_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_crypto_nist_verify_internal.h",
+      "sha256": "0c1c434a3e3c2a6dc45e1e51daea9204cc37da478b227b81f44ee11e54700515"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_crypto_poly1305_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_crypto_poly1305_internal.h",
+      "sha256": "1aabd288ce98ce923f14414b05e9d2656234641fb523980940e4195da7032f96"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_crypto_poly1305_stream_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_crypto_poly1305_stream_internal.h",
+      "sha256": "1ee4eba1f64c56176ab633de0e47c4f3431e2e4bf39a519dc7990d82ccf0cc9a"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_crypto_rsa_private_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_crypto_rsa_private_internal.h",
+      "sha256": "c1b7ae0c446b8571cc2f47a0b992dda954467a4f006fe11caf3840fc56b1b068"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_crypto_rsa_public_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_crypto_rsa_public_internal.h",
+      "sha256": "a2a2b38ed2443e081e3f3f62b04be4f115e77547a98a21aea049bc384b63622a"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_crypto_rsa_verify_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_crypto_rsa_verify_internal.h",
+      "sha256": "dca4cd40206d0e18f62b62269f2b80c1d8eb721833640cd790ace841dd68b3b1"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_crypto_xdh_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_crypto_xdh_internal.h",
+      "sha256": "2628616e2914417adef34a75134ce8c5a5d30dd58d25df15662fa39101b6ac0a"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_deadline_module_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_deadline_module_abi.h",
+      "sha256": "1f5463951f49c130853aad0dc2e20dc724b99b4aa9c649f388f8179cf096ab99"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_deadline_service.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_deadline_service.h",
+      "sha256": "caeb75162f3394e84663112be65212088824869b55b314ec8ed3fb9309a78bb9"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_deferred_cleanup.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_deferred_cleanup.h",
+      "sha256": "d6e1de091d30b6271a3c8a79a5f0e9acf6ee1c971e5ab08d87dac8e13a225b8a"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_der_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_der_internal.h",
+      "sha256": "210b17b58c1aea5b67fd77ddef39824d983b3875f28bfb2c8b40b6e00db75194"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_detached_work.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_detached_work.h",
+      "sha256": "cd6e16446667a0f9ff3972acb36f93acb45894b061daa4cb1be7bdbd31a5b918"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_dict.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_dict.h",
+      "sha256": "7a5847a78b8cc20fdc03b1079bd10d9362f4813bb493fc08aa4d6a201cffee64"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_dict_call_frame.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_dict_call_frame.h",
+      "sha256": "c75cb4bd57be9d03117b4b554737fbb1e24e3e931fb3df54f7217b52fb29f671"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_dict_graph.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_dict_graph.h",
+      "sha256": "a3fbe933d9a78f4e5dd2aece7110b71f1d8a5696983def384e004c7a22e50750"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_dict_graph_access.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_dict_graph_access.h",
+      "sha256": "9f21d723044aad32be6a00abc588e44bb106c2c5dfa1152d2f3a538bb311421e"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_dict_import_chain.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_dict_import_chain.h",
+      "sha256": "0aa75842ca14d80406cfabdc90138e54a31a5ac7176b080343b00a381f88738a"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_dict_methods.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_dict_methods.h",
+      "sha256": "673fb1e3793f04c4ed103e296864c2656a4686b1474ba5e1809578542f99ab32"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_dict_schema.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_dict_schema.h",
+      "sha256": "806f0d6a33a79afd95dfb5ef5cd92ae2ebe6bc26762366263e0f6f6df3c00028"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_dict_value_index.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_dict_value_index.h",
+      "sha256": "297228affbd98da5ddf23b1baaad78e6c52d0314598f22c516c42743b2b20b95"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_dict_value_iterator.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_dict_value_iterator.h",
+      "sha256": "e7137a179ac1ddce3bbedca1ab8f87652f37e6dfd63564f5fbe29042c27398ac"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_dynamic_collection.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_dynamic_collection.h",
+      "sha256": "e24edad49a0a1573b5fc9a2c964fdbedc91ebafaa3f6e0795fac67a9d0065209"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_dynamic_collection_vector.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_dynamic_collection_vector.h",
+      "sha256": "910e731e9af6751d3a94235f8d3192980b76de545643c2ac983143c8829add43"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_dynamic_fields.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_dynamic_fields.h",
+      "sha256": "515124082a1320c9b5ff576ae8fc7fbda851eaac8342522a91065f2c793a00b3"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_dynamic_product.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_dynamic_product.h",
+      "sha256": "5849c3dfafcb242f02e6880b064daf1792c6b7ba5b9035023d85b33666d6f864"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_error_text.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_error_text.h",
+      "sha256": "773a7531d8976c3765a6f5d14bf76885f0b7c3037d5adca16e5bb8685c38cc0f"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_error_value.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_error_value.h",
+      "sha256": "493cace3c186af4b96f2f5e456734098d3123bc33904b6d4bbc303d623bedcc5"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_execution_failures.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_execution_failures.h",
+      "sha256": "adc9cc5abfd96b6ae196d4cb9631e02528e6ad356b2c1c5bf1eeed3fcdc48ba5"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_execution_language.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_execution_language.h",
+      "sha256": "fca4d4ac36bf7d8dee2d1614cc6294e66cc278f32a7542e5207de17d8a2b088b"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_execution_module_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_execution_module_abi.h",
+      "sha256": "87ed4bb4194ecb5ae82af164080c9f5f2503749712c4147163cc8aabb4c87c78"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_execution_net_engine.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_execution_net_engine.h",
+      "sha256": "39d357bbcdf7689f5f83d8f3a402ceb674307e748212d4a0b116b80aecadd319"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_execution_net_file.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_execution_net_file.h",
+      "sha256": "032917d12679c794ddffe2d8732dce679f6bf0dfba7eda7e871a984ded7dbcaa"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_execution_net_resolver.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_execution_net_resolver.h",
+      "sha256": "dfa2167869ff24e67d7811ffca0e88212dd39303c525bc0725871aea6bffd176"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_execution_resource.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_execution_resource.h",
+      "sha256": "40f3e91559a129994b291afa84771821c7c4569ac93e21dd192d0d7abaeffe48"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_execution_resource_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_execution_resource_internal.h",
+      "sha256": "a44bb8334d09480eaee95a2ef9eda1336414620d7713073ddbeccd9b9ca370a1"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_execution_tcp.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_execution_tcp.h",
+      "sha256": "532df82657bb7eda368d4476d018335d7aada7c41c0a71ba107e1b3c42458dc9"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_execution_tcp_dial.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_execution_tcp_dial.h",
+      "sha256": "206301182cf8c5aa40e675f37ff1a4b37f46a606efadd83b9d131ee80b09972a"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_execution_tcp_dial_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_execution_tcp_dial_internal.h",
+      "sha256": "ab07234789b0cae98904d7b1995cf612775be6b04294aeda4da3508fc9065ffb"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_execution_tcp_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_execution_tcp_internal.h",
+      "sha256": "03d2adf2c465517eadead9fb444ca89f3f86aaa40077ff950f27e1cc9708cf6d"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_execution_tcp_server.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_execution_tcp_server.h",
+      "sha256": "f3244107c9bdc9b8ae8caf90a5cfe8282a752dd92e3dc596c357cdd34b130b04"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_execution_tcp_server_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_execution_tcp_server_internal.h",
+      "sha256": "494b497223fceb6463651bd210b1045c556f1a3c2a4ec47b24b21aaa84d30409"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_execution_tls.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_execution_tls.h",
+      "sha256": "4908a31b03e7b2c711087c7760790c529308ce2f2d96df272b0ebb054108f806"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_execution_tls_dial.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_execution_tls_dial.h",
+      "sha256": "3832e61147c023e68ee1f009b87c9e973e7c24685c9c424243e2e007acf53236"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_execution_tls_dial_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_execution_tls_dial_internal.h",
+      "sha256": "2821a4d3fbe650359c7052414c306b2fd6f605f1eb4550ab7aecdfcb3c94f0b5"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_execution_tls_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_execution_tls_internal.h",
+      "sha256": "f36fd71a531e53674a0d893b96c20bb2248ab826cbee4ae04e445256ccde8a74"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_execution_udp.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_execution_udp.h",
+      "sha256": "e01ced86505ab04e18ab3b053ec5da34fc5d9efede2b763be25755438d16f571"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_execution_udp_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_execution_udp_internal.h",
+      "sha256": "cc227836d8870ad1b9db9bee4eb2af235825384ba8fdfbfbbbcbe819b5a7edb6"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_execution_worker_exit.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_execution_worker_exit.h",
+      "sha256": "d4b5ea0e0a98fab5271f9ed8c827246d7a01f1a151e0c378864d302216a0728b"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_executor_jobs.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_executor_jobs.h",
+      "sha256": "a83b981562d020fa3f7a1edeb8c16e35e38297e03c27f6a5a940dd7f40dc2fb5"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_extract_error.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_extract_error.h",
+      "sha256": "fdcf2cca182aa580081994759a6fc6da84a4b7de02be82491cbcb823114c056d"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_float_convert.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_float_convert.h",
+      "sha256": "cf04435c4fda20ccf6e9f03203e8aa34ebfda23555c7baa65111c1697598a543"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_foreign_callback_scope.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_foreign_callback_scope.h",
+      "sha256": "3c719f8c8cbb71fca7f81b192e52e2951f9850c0bfcf1f97ef1d7bb718083aa7"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_foreign_context.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_foreign_context.h",
+      "sha256": "de300746df60d9464d897b96abbb65ab6812a2375bc674a6fb1f626d699da950"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_foreign_resource.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_foreign_resource.h",
+      "sha256": "d00b87e3d1994da923679ea5f3f9b831b3d7c54869818c94616ecf81d9ce092d"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_foreign_scope_value.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_foreign_scope_value.h",
+      "sha256": "9f3bc13c844888e26ccbfb2b2a3459b61d14c244777b0d6ffd366296fbd446fd"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_foreign_scope_view.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_foreign_scope_view.h",
+      "sha256": "4cf4bcbf6b135877f7aded706642c9631b301ac931a70189c8ba0fbd6fe34a2e"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_foreign_view.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_foreign_view.h",
+      "sha256": "2d57673fff75f11d3d31376272b5971a042d2d64bc6341ac1d67ef5031fac797"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_foreign_view_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_foreign_view_abi.h",
+      "sha256": "638741e6f1661104833a61301cf1cfdd1e760f1fd99c9f5f0c9c674f8d1c1955"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_foreign_view_capture.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_foreign_view_capture.h",
+      "sha256": "26e5c8448b884be080ff59241928c51d4b6c3ffef5c9c2559740f2cae2ff3991"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_foreign_view_sequence.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_foreign_view_sequence.h",
+      "sha256": "66b81bc4757b2caccfa8d4cb5be35980da9e2f22a8312ad280e6f83219f4898f"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_foreign_view_value.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_foreign_view_value.h",
+      "sha256": "5345f9d78fc066a40aed869876debe59c14d3dcccea2ee5200e6f1b8e078eb12"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_foreign_view_value_storage.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_foreign_view_value_storage.h",
+      "sha256": "0658115e4c6567bf6403294bc04c75f13e8cf41634e9cc42a063886a64414574"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_foundation_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_foundation_abi.h",
+      "sha256": "9c05fa375f38c9e0144858b108ac2a88e524fa3e29e46b9c763cf3651d951603"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_frame_storage.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_frame_storage.h",
+      "sha256": "b41818dfaddfdb491e642d6f505bdd688bb7c4fd6297510b884cec5eab53024e"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_fs_file.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_fs_file.h",
+      "sha256": "5611ba5fd097eea9754de8cc9bfd8348527df4cc891ec51ead4f5feca2f4bb34"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_fs_path_owner.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_fs_path_owner.h",
+      "sha256": "9920667c5f5735e14b919584bfe9a9c6e09e4c971bea3a26c6680b745cede6f2"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_fs_resource.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_fs_resource.h",
+      "sha256": "34cbca6dc40ccb2b1fc05bfe4eaa0bbc0357cc777ff3fe13b97c076c63c89f54"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_fs_snapshot.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_fs_snapshot.h",
+      "sha256": "b850df2bdbc5b84d064b1de4a7bd309b728b96e6a385526c6d235374a4a865f1"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_future_aggregate.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_future_aggregate.h",
+      "sha256": "42710d235e9bf35f1427dc04046844c7e432d40b384ee518e34870566cf74a7a"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_future_aggregate_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_future_aggregate_internal.h",
+      "sha256": "f3a89836067f6f91ad579d670db1a592f1c2a1ff7262128fb96ad82b77fba344"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_future_callback.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_future_callback.h",
+      "sha256": "ba7fe90c9d398c900aa97a5177cbffc26a131856183aff82d23d515ee0a2edd8"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_future_callback_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_future_callback_internal.h",
+      "sha256": "a0a313c17e71b84e691137d9c9544a53cdf6e62b717037de545e192be9610ed5"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_future_callback_interrupt.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_future_callback_interrupt.h",
+      "sha256": "ddd75fd4477bd591341004e04a6fa8f1bbab3581d976ea1aa642a0f2062394d8"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_future_metadata.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_future_metadata.h",
+      "sha256": "167918411d8aa52eca8f24c969e9fed0ef7c829e70c2471ef19c544c5c97d743"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_future_payload.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_future_payload.h",
+      "sha256": "ec56c08e01cab1db4fd237ecedc4b5732c44274a97e344875dfd973a521e08b1"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_future_value.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_future_value.h",
+      "sha256": "a03acc54c2ad29305a1ebb4a7a002a0d10f71f87ddcadfde8a17760985b339d0"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_future_wait.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_future_wait.h",
+      "sha256": "7f9f330e46f8c6f7e31dcc3e97c37fcc5f35582b91cb9dc12b792dd5fe77436c"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_generator.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_generator.h",
+      "sha256": "b0b5dc455d9732ead95750aecef0cc96b861e040a1baef94d70a6f597d77b803"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_host_xrt.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_host_xrt.h",
+      "sha256": "a92215d8b1c7f2b0ae550c80bbd66b52ceeea00e1ccc7b46034e4656a6cdbd8b"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_host_xrt_symbols.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_host_xrt_symbols.h",
+      "sha256": "25190f4aee820cc205fc50b9249cd8d3a2d0518df115f9c48d6bd2d7dc6d67a0"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_http_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_http_abi.h",
+      "sha256": "19ed1bb3bec3ed20aad0764bad6082c4223e4018c20e3b02cdbd6df67d65bd6f"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_http_body_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_http_body_internal.h",
+      "sha256": "f5a0c94688b5730a0a27b63db6a8bcc1df5ec2b1fd8742bb5f64e671e69b9ba5"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_http_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_http_internal.h",
+      "sha256": "8fd2c0b02a0414e65e4153d9265ef72d76187ec032a8100b1ec2f3fa98204021"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_http_ownership_domains.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_http_ownership_domains.h",
+      "sha256": "4403127b6a8303406684d42d4a1a485084a5490f55f3c01bd6783ffa2fe3486e"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_http_policy_declarations.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_http_policy_declarations.h",
+      "sha256": "64073d74a3922e53f3e369f3012117ca497fac1f16dc519eb5c920276158053d"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_integer_convert.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_integer_convert.h",
+      "sha256": "2c3a22db4c6f6ebf63856039fd7149fe4b0fd614a09dde17ebf61b1156c8becf"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_integer_convert_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_integer_convert_abi.h",
+      "sha256": "e892e7f6cc278907ac00190c6537e557d0d117dcab02496fd9deed633f1e4733"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_io_handle.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_io_handle.h",
+      "sha256": "7a3b522db493ad41037db49196e01be13bd53c51bb7d608b385f65d6a1a01ce3"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_json_writer.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_json_writer.h",
+      "sha256": "ef8f0b5e5aed8e012b263b0ad6be8b66bee9df3e1dc08cd5a34d839a077a402d"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_key_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_key_abi.h",
+      "sha256": "22c9c9ae5b9e1739a4c36a4e694955a20bf3abf18b0f21f1cad57f6f05f2d767"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_key_curve_codecs.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_key_curve_codecs.h",
+      "sha256": "2460f6003da064fdfc7f736695f4e9cec519f3ad2c88b3f6dc4de7d8effc5e5a"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_key_format_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_key_format_internal.h",
+      "sha256": "2806fee172497c841008339dd75487540d95afa616afc84e359a65576c03967e"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_key_object_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_key_object_internal.h",
+      "sha256": "172d4961967743a2a69c93264b2764b96715da3d3bed831a829539f531bd4caf"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_list.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_list.h",
+      "sha256": "843660bfef1b9a4db55913fd112e07fa9d9cdd5e45156345d25d64d8dde5e842"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_list_algebra.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_list_algebra.h",
+      "sha256": "0ff7026b09ed110eff9d998db9f660c2ec11fe1051f994572e29c2b7025d8717"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_list_graph.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_list_graph.h",
+      "sha256": "afe37f971764c26708fb7852590c09cab28fde5a44fdb164d1a4a432ef149fa1"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_list_graph_access.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_list_graph_access.h",
+      "sha256": "3d123974d7254a3d13a587788603030efc119cb5f274a059ef31b404a8ec9743"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_list_import_chain.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_list_import_chain.h",
+      "sha256": "fafb1153f831cd3b41353f556e2e1e4faff569131b83ef9f888fe85f5f2e108b"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_list_methods.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_list_methods.h",
+      "sha256": "836b522d436cbb579395ea5d65041cd51b14ab5ef79099dbdc9e7a6b0f8a3185"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_list_schema.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_list_schema.h",
+      "sha256": "da49ddef70e3e6b5a88614f2d021c6cd2051c0939c96f172987645e669d3e263"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_list_typed_read.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_list_typed_read.h",
+      "sha256": "0ea6117adc60bbd3af1c063954ab88713cba3fadb6828c00fe029076badfe758"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_list_typed_read_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_list_typed_read_internal.h",
+      "sha256": "e4ba954b36e295f0707b2180c75fb0b2ca4574245e1a2db103dfc308a6d075a4"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_list_value_iterator.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_list_value_iterator.h",
+      "sha256": "f0f3288d29b3c0bb7f50295fc031f53e9f616eeca85cce728143b9e637f877a4"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_list_value_read.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_list_value_read.h",
+      "sha256": "1e438ebbc824ae58bf65c8ad6eca2d7acfa3188aa14d2932b24c360a95c58f52"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_list_value_write.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_list_value_write.h",
+      "sha256": "6d820316703c05ba7671142328f921d8a8680e6e4adc880cf249bf5e8698aeb2"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_log.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_log.h",
+      "sha256": "3fcd717cb0a33a438a829614ad4741db192067c75f98b5b5c36c5bf717fa35df"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_log_file_options.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_log_file_options.h",
+      "sha256": "d3587e6f3574e641bb1e9dc05ffbba6108434a35038f67999a015fec5b23e25c"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_log_queue.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_log_queue.h",
+      "sha256": "7152ac238042dda5c52a58a134c5c7771d3ecd9ee979ca3719c43484f7f32068"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_log_record.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_log_record.h",
+      "sha256": "27e70156322df8e38c285cc08dc717be0064372c531a9ee9c10c4df2e3aca1e2"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_log_writer.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_log_writer.h",
+      "sha256": "e98ff2cdf0d25d0bfdefe62b1e0957beae69c949a0451a71df46cfe7c794d8bf"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_mutex_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_mutex_internal.h",
+      "sha256": "63e6a6781bcd486634583e8c112384cc2cb1aaa046d05fcbe5ffd0568541913d"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_native_callback.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_native_callback.h",
+      "sha256": "a9f6c9bb79597f1acabae41bb3083b957e33aa74a08fc63833bdbd7343801030"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_native_capture_graph.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_native_capture_graph.h",
+      "sha256": "29676e33bcf75510840173f9a11902238dd783849413bdabc576553f965339d2"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_native_class_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_native_class_abi.h",
+      "sha256": "573fe5a503f32870d528157a686c4b57bdfad8f5208e0425d9d291973d2893a9"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_native_class_borrow.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_native_class_borrow.h",
+      "sha256": "023918b53dd1acd505b1314c1ae28ff3bb88f95eda1e203c666c2704a5872c3a"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_native_class_callback.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_native_class_callback.h",
+      "sha256": "c535aab7b43fe44b6f912db834ce518709c213e86e4d820ae1c4b8355362fa20"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_native_class_result.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_native_class_result.h",
+      "sha256": "b1402e7c661739adfc0eb6e58592a7450be95da832d4c043185f1c380e8ec3af"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_native_collection_value.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_native_collection_value.h",
+      "sha256": "783cf0d49da3474fad074686748437b2cf7a7b0c669348feece8d9d7f1601749"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_native_com.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_native_com.h",
+      "sha256": "6c6ecb606f362cf2c03fd77e169489cef8413c213825823b5bcecd62e23888ea"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_native_com_win_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_native_com_win_abi.h",
+      "sha256": "31e7db35a21e558497e4328b51569aaad039212a7d883b60c8a5be7baedb5287"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_native_frame_graph.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_native_frame_graph.h",
+      "sha256": "dc6a0866252e7dc9d9246e15986b6a35ec9aa403649fa6f4195189cca9009831"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_native_future_payload.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_native_future_payload.h",
+      "sha256": "557923778b0d497d7f2ab46133f417aa5309e70bd585cd5afa11d5f78aaabd86"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_native_graph_future_payload.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_native_graph_future_payload.h",
+      "sha256": "db3e6e26600816475df8aa5cd45d3adb3ab87a21186f7a3a34213f6d654b5578"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_native_handle.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_native_handle.h",
+      "sha256": "00b02cb4f019dff11a0fc7174e01b976daa9ec0d6b060daab5b7aa21370337ca"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_native_leaf_value.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_native_leaf_value.h",
+      "sha256": "c8e3df36b79cddd054efe0e07f35fee429d16e41830d8ad86de738623a0554e4"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_native_scalar_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_native_scalar_abi.h",
+      "sha256": "c9f8114f7da0c8d0c7ef499115ef397321d7e2acf4146f613f9a415ae9699f11"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_native_scalar_profile.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_native_scalar_profile.h",
+      "sha256": "7cfba22eed1635ddf6ceac479e4fa26584de743c592e1dc8c50201bb17a98465"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_native_scalar_value.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_native_scalar_value.h",
+      "sha256": "a35092f6da4e245077b510ff597803d757933c47f0b8333d187b3df19fe4f98d"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_native_sequence.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_native_sequence.h",
+      "sha256": "4b1f679b0793a9793b7d3b6eab604470bac20f101aec048e07bb2b6e21bab65b"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_native_value_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_native_value_abi.h",
+      "sha256": "e0161d2fbdadb655cd31c8ff7dfb3a34c1fceecd9d41ba4d67053a0b5d6dd852"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_net_address_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_net_address_abi.h",
+      "sha256": "a2f38b9abc03efbec924eb118d7f94bee8f7ca44a537f5a5c7b5e0731cd9fa5a"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_net_backends_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_net_backends_abi.h",
+      "sha256": "88edc1518c75d276370607a21927fce222c112d7e6d804e00563a5f958cddbf4"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_net_backends_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_net_backends_internal.h",
+      "sha256": "621545b812699e69681a1d81af723b39b97eb14fab614fbfc79477d5c2ca5f45"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_net_batch_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_net_batch_abi.h",
+      "sha256": "f837bee42a8ea520a0ccb3f7054682cb6ccabfb4339e3692b555bed8342ebb5f"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_net_batch_progress_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_net_batch_progress_internal.h",
+      "sha256": "18765b2c483ce7c3274eb5220803c42e8c616754f309694af9b4dd1b746d9b5d"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_net_buffer_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_net_buffer_abi.h",
+      "sha256": "159d79c189ca4924285dbbdb90cfdd5b9378d2779e8b63ce773f77bf1cce8a63"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_net_buffer_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_net_buffer_internal.h",
+      "sha256": "fe1ee121be4ea642d075fa56331cc3f895ca272114fa279a61dd0c678d109706"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_net_bytes_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_net_bytes_abi.h",
+      "sha256": "9c211c2d3e1c7264f877ed9dfe7a175ff9ae448a21a36c353541a65ec7de00eb"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_net_bytes_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_net_bytes_internal.h",
+      "sha256": "a8ada49efe2eb514682b99918996f4154128d31526b47e459fdfa2e949156a5b"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_net_datagram_batch_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_net_datagram_batch_internal.h",
+      "sha256": "9d1e2169c262c473e3f6fb4366695637410ed3a672e7a68b66ecf4af7b0ff636"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_net_datagram_error_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_net_datagram_error_internal.h",
+      "sha256": "ec54d171e1266043c21e30410dcd2e6e8c8de3dccf72c2d97f2731f176fb2ee0"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_net_datagram_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_net_datagram_internal.h",
+      "sha256": "ebec23dd9693cd001d6df8ad1a800ff48785c6288a6a5cfbb7500519a7cf22a7"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_net_engine_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_net_engine_abi.h",
+      "sha256": "d649afbf82337f4434afaf0d2bcd3aac152bc830afab7a531ae2ce780c294fdd"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_net_engine_config_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_net_engine_config_internal.h",
+      "sha256": "81da0dd3f80681c3e000d551177d9d63b4698f5f2a39da8e79808c6ff4a27e4e"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_net_file_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_net_file_abi.h",
+      "sha256": "0bc851fff8ffe11a00a9e9964abd7aba07e5f70a992e81afdc98f31979972445"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_net_file_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_net_file_internal.h",
+      "sha256": "5c02e78528e73a703fbe59ba6eeeefeefe027627743f6f98ca9ac537296ee291"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_net_frame_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_net_frame_internal.h",
+      "sha256": "85ab431ef90ff8ac2f147b3b56175128618c62a3eddee9dfc1dee2b512047cbd"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_net_interfaces_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_net_interfaces_abi.h",
+      "sha256": "2e5fd22619035d90d5a4bee2c076b0751b97cd69bb4541d667d88bcda4b1f6a5"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_net_proxy_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_net_proxy_abi.h",
+      "sha256": "fb265f3af3d6661b3eb6915ea5ffdc06eb6b6e3b8a7e32925b5187894872fed8"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_net_proxy_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_net_proxy_internal.h",
+      "sha256": "d236a84b7d46d8d1fd0f9569b9dae43a95c2eebf6c8f5a31adf9725619283101"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_net_resolver_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_net_resolver_abi.h",
+      "sha256": "ad1f16ed7320a09e6a1d123c3f6e442cd2c016d186749468d1c002f9bad970a9"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_net_resolver_input.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_net_resolver_input.h",
+      "sha256": "8e2070790d4f33dd4d28d9ccabc409f3b1485184acafed1b5724db1bb3a41ccc"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_net_socket_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_net_socket_abi.h",
+      "sha256": "d27fa1fa04231acb79519ee1c08e1d4b1033af34d59d05b868b0cd82aecf60fa"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_net_socket_owner.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_net_socket_owner.h",
+      "sha256": "61524024ab78c372b6ede57aa6975dabe91ab2c3a766c6f09b07d5cd5f65540b"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_net_vector_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_net_vector_abi.h",
+      "sha256": "a850aa3a1f711a8f9fcdf8894ae0d1fcf09e4f73afe45b7a03dc61265e60bcf1"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_net_vector_input.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_net_vector_input.h",
+      "sha256": "34b42c9d9fad7b206e2b650d9f105053844e13183a0a97041c08f63a16e587e7"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_net_vector_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_net_vector_internal.h",
+      "sha256": "e243d27b04b1b447bf238aa3f2c6f196c6bf9d587d5e9405650b3e263c1029a1"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_network_service.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_network_service.h",
+      "sha256": "7937df3b238a32e3778224418ecb68fea5f61f3c359b931e4e480f27eb68b458"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_nominal_admission.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_nominal_admission.h",
+      "sha256": "a7f3a1711965ad5e85025300f379ff5fb06a24a310feb7e08f7cba895125c706"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_nominal_admission_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_nominal_admission_abi.h",
+      "sha256": "20ae264284e1c0e8063cb3f52c5699fa36fa526196328c90e719309e85268025"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_nullable_scalar_impl.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_nullable_scalar_impl.h",
+      "sha256": "92e674e38aff36409f7198b9010f52729d82df1f7a4cd7032f6fb28b2e37e5d5"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_nullable_scalar_value_impl.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_nullable_scalar_value_impl.h",
+      "sha256": "74dccddd03033ab17e145b8024bc2454b03fc2f5f33a2568b3a3c8893b5de18e"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_nullable_slot_map_key.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_nullable_slot_map_key.h",
+      "sha256": "55cc2c7e97a9a520599b5325b8f1bf9f71c36ece60fd921a48fe8e550ece38c5"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_nullable_slot_map_key_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_nullable_slot_map_key_abi.h",
+      "sha256": "29ba35d8643b65367162bb740da4bd3b6c4b8bcb3835e88809855e58a38a19c1"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_nullable_slot_map_key_capture.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_nullable_slot_map_key_capture.h",
+      "sha256": "d3a47b323ac5c9f0765e45c8890a9f53ef762a4cd0827b2f73fc6f26eb732fc3"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_nullable_slot_map_key_collection.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_nullable_slot_map_key_collection.h",
+      "sha256": "87a2a4891e19903b5a9526d2de13da9d80b35bf5dd9a4b38c53fe75cf8fab925"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_nullable_string.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_nullable_string.h",
+      "sha256": "a9b8c840e7de20343fa7318b78b9846e8e8da80640d9f0de4ad3b3155db7868b"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_number_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_number_internal.h",
+      "sha256": "efddf072bc7bdf03902c40b8ad7df4988ee9c86f1eb2e1d527cc3bae23740bbf"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_ownership_cancel.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_ownership_cancel.h",
+      "sha256": "2b910537a5f6c57c80ce85c989344f99631e2cea6dd719083fc4c827c4fd0ad5"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_ownership_catalog.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_ownership_catalog.h",
+      "sha256": "78c981a75c40cf24687b454e6a02e44d09dd8316dd1f603af3b01cfd42b7cb9b"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_ownership_completion.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_ownership_completion.h",
+      "sha256": "cc667bb6bedaf17bc033d54a280321d69a75ab071a0b85aa53f8dd2c71cb618f"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_ownership_domain_impl.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_ownership_domain_impl.h",
+      "sha256": "71784d3bd1cfcd6b9f9e3853743ea00ecb1c52d6912ff7192bc913f8d7872039"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_ownership_domains.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_ownership_domains.h",
+      "sha256": "b3bc32ddc991c93cbf5bdb1e6033b7339b7846e137b3c5d0f659e99d43c29086"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_ownership_finalization.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_ownership_finalization.h",
+      "sha256": "ff23abe2eac7dd3bb013d17e008c1c30aa0459705623de17fc73629e937c73ac"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_ownership_plan.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_ownership_plan.h",
+      "sha256": "40ca4d7c69596569790693cd540091ad75419e86a1c210306da082281402ca01"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_ownership_read.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_ownership_read.h",
+      "sha256": "e56f9ca799d8b6a3a9d56e4c3c95c17f526c5fe5c0b882ac2fff6139dca77509"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_ownership_read_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_ownership_read_abi.h",
+      "sha256": "9bce4255cbc56d8f1eb6f49320af175da9e7cec5aeb77e7c89303a798dcc2029"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_ownership_scope.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_ownership_scope.h",
+      "sha256": "3fa30f7d5555c591b185eb5a676356c3e3d9e525ae939d5e51d4cb6caa44d11b"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_path_build.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_path_build.h",
+      "sha256": "57e1a1985b3aeba01fcbcde3bdd16cd2c596480772ac099eac6f309571a33a28"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_pattern_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_pattern_internal.h",
+      "sha256": "ba41aa8d4f4c4aae43bca21e1676b35c7d704959f16771639ca5fe30a55bac2b"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_pem_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_pem_internal.h",
+      "sha256": "3f60a8aab5382e12626e55417366262246d23246b9e5c6fed7c869e5d7f240e7"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_persistence_project.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_persistence_project.h",
+      "sha256": "4af6387e06f8bb455cefe2a48868c8dece425e0f1eea8fd8daaa6b0e6d1d21fd"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_persistence_restore.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_persistence_restore.h",
+      "sha256": "36f5fae497cee2118239237671d692073d63335e1efa6efc8446c49df315eec8"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_persistence_restore_array.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_persistence_restore_array.h",
+      "sha256": "023bf3c3c5f32dabb654d298b20280c08d1aa12d5eaf47733a05d053b66037a3"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_persistence_restore_plan.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_persistence_restore_plan.h",
+      "sha256": "2fa9de8cdbb27976c3300fb774d552ad4adf5182f2fc3a9ea3e9dd163cf82a57"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_process_config.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_process_config.h",
+      "sha256": "bb5ddfc0f62c13d95783580c9bda67891cf78c7de8d7bca604d6a41ff8ff1015"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_process_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_process_internal.h",
+      "sha256": "720440f4c93c51c7821da4f96a8f973aa10a050e4d2b375290a1ef4b98e74cf7"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_process_live.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_process_live.h",
+      "sha256": "cce11d5eb6353be71c75c0cdcb416d2fc041c32ebd837b09dee2b490e8f145d4"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_process_pipeline_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_process_pipeline_internal.h",
+      "sha256": "379bf6130013e61c6e02b57f266c2b22a852a5e2ec0f6ea92e38b95d807bfce3"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_process_run_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_process_run_internal.h",
+      "sha256": "48a78e922100378584c2f9da30425bc133040686bf61989473c0789ffae5ee85"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_process_text.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_process_text.h",
+      "sha256": "65a05138bfdaac0e054c80674ebbece9384f826c355d80301a484619ba4be077"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_product_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_product_abi.h",
+      "sha256": "0f927fb2a783d18f8a5dd223a0894d5579b69bf6e6b4df76391b061bc387f694"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_promise.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_promise.h",
+      "sha256": "92a0e67f41ef3c1dbe6d4b9b1c24d5e2bd5bbcd3bd0937a3f4b81b67821ccc5f"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_queue_admission_impl.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_queue_admission_impl.h",
+      "sha256": "31f0d22906c7f93e2140d36068ceb9b687fd80d54fd0ec943930b1f58b6fd478"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_random_state.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_random_state.h",
+      "sha256": "e05ffa584e7926794e09924cd85f395d37ac9c2a6d8ff2345a7c9c4ade236d86"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_regex_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_regex_internal.h",
+      "sha256": "5b1c737c77a3d6b4d2f3b6d9b8d80e34e09c3103fb73585eddfbc505b46914d8"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_resident_reference_schema.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_resident_reference_schema.h",
+      "sha256": "4b03e3227151b01da71e4c1f0b3e07f5ca09230d41dd621de0289fceea53b7d3"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_resource_reference_admission.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_resource_reference_admission.h",
+      "sha256": "843f882b9b02de57936b98b216c57106008e088fa1299e6c695b9ff2546eb8b0"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_restore_class.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_restore_class.h",
+      "sha256": "ea5cf0fe7d56d8c1498a0b202d8deed2035f07a04f10489094b3192c2f3e18de"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_restore_open.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_restore_open.h",
+      "sha256": "0ca0f30d134d799a618ce9849bb9d7090fe3e7a806c0070d999f95d27f771e1e"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_runtime_export.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_runtime_export.h",
+      "sha256": "4969b23d99205c8fa7c444b73264678f4dfb787a8dd2ace93d06e8e837693a59"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_runtime_services.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_runtime_services.h",
+      "sha256": "ad20eb5920001ef6e641b628fe750517a77cd6eb156a86624e09557b6bf449d4"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_scalar_domain.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_scalar_domain.h",
+      "sha256": "26100909d2c34f080feca2c987a1884ec5ddff8b0b7f85c7a31e7d1b554db5b1"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_scalar_domain_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_scalar_domain_abi.h",
+      "sha256": "538ea26175fe6c1fd329080b2917bfb971434495bd9fe38488f1b951242d344e"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_scalar_type_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_scalar_type_abi.h",
+      "sha256": "76990a102909813a21026eb3fdff87e23046b9b734cd1d937251aad052a5fae8"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_semaphore.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_semaphore.h",
+      "sha256": "3bac34a2670a5943473abf1eb95c944c8ad4728b4ac21fb096b44f9d7b8b33e6"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_semaphore_admission.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_semaphore_admission.h",
+      "sha256": "f4a247924d7fc049bd85af35d41f7360fe9e4613267bb5abbbdff2554d6e847f"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_sequence.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_sequence.h",
+      "sha256": "7dc3d4b61a31cf3226f1c962ae3ee22eadf6791f7879f716d7f77f191fdc4cec"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_sequence_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_sequence_abi.h",
+      "sha256": "3efe62005bf374a5de6e7928dd8ad9493c883dfb9540dcd05050ab8cc798e618"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_sequence_projection.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_sequence_projection.h",
+      "sha256": "0964e58fec60e5e17dd71e5e42aa07b36967e0915160b7cf692353b0233dcdad"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_sequence_projection_schema.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_sequence_projection_schema.h",
+      "sha256": "251854e6bfecbc39fabe38e41b9cc6608feb0ec0f9999289c8b5e8ebab0e72cd"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_serialization_callback.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_serialization_callback.h",
+      "sha256": "47776e1065acba2372fa1176b9f534bc628bbbeee1fbcb9c91997812ddc23ab9"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_serialization_encode.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_serialization_encode.h",
+      "sha256": "4564ec283c5d3d841249c1f74500299198e7f0efb99dd9af1fbebc5b02c13669"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_serialization_io.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_serialization_io.h",
+      "sha256": "7f6622be52dc4301600b69aac1815baafe670c8096438e0ca73f7232fae7b195"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_serialization_options.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_serialization_options.h",
+      "sha256": "f3f9f1139042aaf35dd85cdb179a8a153c0756dbbb1796ad956dc4db3aed2386"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_serialization_read.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_serialization_read.h",
+      "sha256": "bef8f903254d0ebe503c4ca226dbad01cb2c40453e10973f6f55d5e410e99491"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_serialization_writer.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_serialization_writer.h",
+      "sha256": "bd9475bdec2b9a1210d27f7b4af3e1b607e641761203f6d551669b76b6d31f4f"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_set.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_set.h",
+      "sha256": "de68ea14719f0ee4eb12143e79469f73f94ed31dc2170940bc51693b7d4c98fd"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_set_graph.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_set_graph.h",
+      "sha256": "04008c46e124224ea287a6b3e17a3f4ad9a53acf367b07e9e5cdae65e0b08d64"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_set_graph_access.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_set_graph_access.h",
+      "sha256": "7d468d4bc8a82a0dd22653cfcbdc0981c7d12b4a55bbff694f57eb436b9ae16e"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_set_import_chain.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_set_import_chain.h",
+      "sha256": "77cf471ae873d94f3966376728d1e30644ecf5ebc2c0369d3add8b60ac478209"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_set_key_policy.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_set_key_policy.h",
+      "sha256": "a0c94d4e166f1272f0a8234bde6be8650041368b958c9935cd4a1663be3f2493"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_set_methods.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_set_methods.h",
+      "sha256": "c8fbdd1e06f2c7ca2eadb2c574f045fdfeac6d126fe5f939c7d20dca83e5de9b"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_set_schema.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_set_schema.h",
+      "sha256": "b745c5db41e403f3123f02b08b5d552ee2c03d876330d00c874f92238879943a"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_set_value_iterator.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_set_value_iterator.h",
+      "sha256": "cd4f16dddfdb28a5d504edd579cb0200b07e44e69043467a45c2bd0024c0387b"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_siphash_state.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_siphash_state.h",
+      "sha256": "01cfcb2ba39d0b89ccf276457761526487c2bfab100734000e97479eda6e54a2"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_slot.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_slot.h",
+      "sha256": "a88890ab2f60f898666242e1852fabd7620bb444436aee5cea06603a42c2405a"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_slot_map.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_slot_map.h",
+      "sha256": "70cd241fb37d38223a6369a2939b330165d64f9ee92e8b5016666768a55940e2"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_slot_map_iterator.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_slot_map_iterator.h",
+      "sha256": "c9561a60202e494e24110717f67c4ba0a0c2dc6f3b8b8522e1584b42e9f2d216"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_slot_map_iterator_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_slot_map_iterator_internal.h",
+      "sha256": "2cb534c66d2816cb6483454185e9e9d94604106f00dc4f6450279bcec19bafb4"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_slot_map_key.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_slot_map_key.h",
+      "sha256": "9bb2d9cccb979ebf0d26a73a7c2387e2b3e673c23ce232c09463cecdd2e06f6e"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_slot_map_key_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_slot_map_key_abi.h",
+      "sha256": "51ab149b55764734941b8a7cb06c8f294d9d1013dff1e5898dd46de1f6d0cafe"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_slot_map_key_capture.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_slot_map_key_capture.h",
+      "sha256": "b2eb97759ea2289782230bb90ee7bfbaf052a8904df595273ba5b4ee7343a43f"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_slot_map_key_value.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_slot_map_key_value.h",
+      "sha256": "e4dc3e5d5f9e425cf3cd65167c34e9606097ee09b79208125905b6455eabc4a2"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_stack.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_stack.h",
+      "sha256": "0b7ce218a3c6430f2801e07225e6a0b69eb80b8e53fc15c6690351e1e3ba233d"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_stack_batch.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_stack_batch.h",
+      "sha256": "16163cbcfd322a7af7bae4d342e5c803db3abaf680503b77e8d575038acb5661"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_stack_callable.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_stack_callable.h",
+      "sha256": "84feeb4aacb98c4ae369eb9eb7844fe1b2e5e8d06313ab579caff9ccef7ecbb5"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_stack_erased.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_stack_erased.h",
+      "sha256": "725fff5b20fe8e5f236ca60528fabab78ef33a6fc44d6f4bb1219b6494c25eaf"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_stack_erased_methods.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_stack_erased_methods.h",
+      "sha256": "acf223f74e812172996ea9e18aa873f7e44a9d57ea1567cb531794b14439165d"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_stack_erased_try.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_stack_erased_try.h",
+      "sha256": "af16dde2d5e39a1588020a07e67c2f3d921a2ac22478690d08616f3a3d2e6f88"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_static_module.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_static_module.h",
+      "sha256": "c7eca209f81d61583e14a727678520eea3b2e2a98b981d8ed055734f0d896b43"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_string_type.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_string_type.h",
+      "sha256": "f162f9630a0d1647f352cd55194ded2fcbacd61c940e5772a4738e77732f258c"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_sync.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_sync.h",
+      "sha256": "e601b5d28cd9c0728c56bd55c8b86a8706cc3e9ed440bfb9ff4b8ec6fd4a0e1e"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_sync_admission.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_sync_admission.h",
+      "sha256": "b3ef755f9d66ae6bdbf885826ecfd85c16daecd7d140bc1729f73cbbd2e10db1"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_sync_callback.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_sync_callback.h",
+      "sha256": "4a13242469a7cf330584e19eb3a1a2938dacbae8f04bd1060f80b2ced460c90f"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_sync_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_sync_internal.h",
+      "sha256": "24571fa5c0d33992a208474d46dfa6d7145a781844b99a00ae0eea23fb60c814"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_task.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_task.h",
+      "sha256": "36b75d116792600f8cd4dd63bb5709b0d6ab3e3c7b0341063647d992cae44fa1"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_task_frame_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_task_frame_internal.h",
+      "sha256": "f7845738700916fdae96bda43ce8028e98ded69ddeab11340f6a7ad2893431be"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_task_net.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_task_net.h",
+      "sha256": "f16c418c31a3cd3f0cbbb4b966b474575cda82388262f426b89a8a105895a6d8"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_task_net_language.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_task_net_language.h",
+      "sha256": "e55879843753d2b915902aaf76df074d12c2a3d91bcbda34aa6685380bc25367"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_task_pool_exit.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_task_pool_exit.h",
+      "sha256": "5dd8e66790a28263ff542ff07560c3125de4022e1f37c4455f2a3ea5f939db8f"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_task_pool_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_task_pool_internal.h",
+      "sha256": "db8719b615f80da777c7d08b49f06c1f46850ad0683925b6ad8315d953a237fa"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_task_pool_language.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_task_pool_language.h",
+      "sha256": "f00dbbe78ba8422dcf0a41c3677bafbf8b71862c2e7cba74808c0d508837472a"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_task_result_closure.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_task_result_closure.h",
+      "sha256": "575dac70e5c74e9a012f41278deb65aeb7f423ad94fac05d105bd9b6731fb988"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_task_submit_closure.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_task_submit_closure.h",
+      "sha256": "d24687613a2a788954249c7fbdb588865ba56bd39c1ab5ead26c24a90174f48c"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tcc_context_policy.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tcc_context_policy.h",
+      "sha256": "83da5e4aebdec37691e51796d9495ec2e4c69ad123403b66f89656e3855ac6d2"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tcp_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tcp_abi.h",
+      "sha256": "bad123911c867921a50ef06f7406630ab4bd198e12f2faca58087670e05d0159"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tcp_data_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tcp_data_abi.h",
+      "sha256": "3a65fe04bf02cd928dd81d3dc3a768db305b714b9fbbb5612613471b82676d5e"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tcp_dial_sync_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tcp_dial_sync_internal.h",
+      "sha256": "9565386f57ab7404bed7d7b09ceb094522c0587fae0ef778449c70b35fc7c8c9"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tcp_future_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tcp_future_internal.h",
+      "sha256": "45fb15e4a7c863f3eb84c8b956427a5ba613c46b7175b126e5e884c9c5f5cd1d"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tcp_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tcp_internal.h",
+      "sha256": "c04db1a218e459704a8c0708a3adebaced8a44b13876f8f8bca20e740c3e899c"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tcp_options_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tcp_options_abi.h",
+      "sha256": "5d183764da427881c6d173915b1048851f35b1a6b540500952ef3dd5daa68b67"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tcp_options_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tcp_options_internal.h",
+      "sha256": "3cd4a7045e279b0cde0e8e5178746e08051580421f2373da9520f1ce6a2ddfad"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tcp_proxy_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tcp_proxy_abi.h",
+      "sha256": "7ca3610bf4c54f07bd88a7faf0aa2893923bde7352a9c90cca6dd8101c053867"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tcp_receive_into_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tcp_receive_into_internal.h",
+      "sha256": "4a6fa200b8c185645ae6ea61b12a7b29884bafd057fe26d98b1849e9cb0a9131"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tcp_recv_owned_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tcp_recv_owned_abi.h",
+      "sha256": "75fb7473e8ab8c9aa91328532b34882812d9df25b4c75780b9a37a4a4a541126"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tcp_recv_owned_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tcp_recv_owned_internal.h",
+      "sha256": "79bae9d01b2d177e229e08705f383f04149622b3e53d22876687a529cf6c80b1"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tcp_server_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tcp_server_abi.h",
+      "sha256": "a80d0325ce4de1ab61d044253a52e6ff9dcf75610b6ef5c7016250b8555e5d62"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tcp_server_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tcp_server_internal.h",
+      "sha256": "9c0a489eac1408c66d4c6755049ff92e3e7132da15f7e1405431cb15be6a4e8c"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tcp_server_options_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tcp_server_options_internal.h",
+      "sha256": "3445f28688ac08b80df997132f23bae756ec8945f1edd27d486f4d43879596cc"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tcp_vector_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tcp_vector_internal.h",
+      "sha256": "b3fa933f18519b17f402b65725ed9165112570f5c0b489410b57e22630c0c8a9"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_template_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_template_abi.h",
+      "sha256": "6ff5ba546d4a6c4058aac99a98a84f058ba7096834e4eb3036aa2eee0067ed07"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_template_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_template_internal.h",
+      "sha256": "03f8173d9ee1ced15d98585ea06177639d4ee4ca0efd777d9164eb2d9cb68f2a"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_text_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_text_internal.h",
+      "sha256": "469d7ed44ce1d13a93417479066a4adf4dc67d5cdbd9273a73d9bcbe6d168d0f"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_text_pieces.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_text_pieces.h",
+      "sha256": "3f265a8df02373c4e745eca2b5f57349c35644312e23511bc1ad83f4c58e2cd8"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_text_thread.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_text_thread.h",
+      "sha256": "ffd525629968cf4c8cf10f10418ff5c5ff15b64051e585cbddfeea22ce6e89cc"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_text_value.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_text_value.h",
+      "sha256": "6c1cc0d465223dad46724c53f2a933a76b6a7cffced9c37d6c6316c0a151aaef"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_thread.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_thread.h",
+      "sha256": "083a723e3cc68bfd7994a94e34df2da0e85aa9f48bc8bafc5d0228d9334a11dd"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_thread_admission.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_thread_admission.h",
+      "sha256": "f3b1440e646d7d8f1635d3b186d6edfffbdfe1f517fe71b398cc59b4d3880426"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_thread_exit.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_thread_exit.h",
+      "sha256": "278babc68fa9930f29128ad28739508755aed5adc5a436d0132731920412ffeb"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_thread_local.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_thread_local.h",
+      "sha256": "4c4af5128c7a67deb8c3eb944e55a79e5e0da7621ec2530ecf87432047d97380"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_time_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_time_internal.h",
+      "sha256": "1f29fad00490137b424ed63a98d7b74518982032f0f08efb40e49d5a92123794"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_time_text_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_time_text_internal.h",
+      "sha256": "a12fb9e69153e6cbbbc2dde39157a1f6f66a1c8ff662941e9974c4d5b6813cb0"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_class_future_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_class_future_internal.h",
+      "sha256": "9fa0bb0834b7676e84da77f5ead8714c6e4d67eb8592596b35c6627993bea256"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_data_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_data_abi.h",
+      "sha256": "a90b270ff2f65094d92c1607d58ee980819c4a39c212a41d8ba2d77616d0c2dc"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_data_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_data_internal.h",
+      "sha256": "fa74dfb03c2eea6b491177328fe7fee664eb89cce278cd9d0a79edd8adcf9ad4"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_dial_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_dial_abi.h",
+      "sha256": "0affdab78859a31c963e8d18ba9cb31f7fe61416e9d8fb793023dfceed77f0c2"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_dial_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_dial_internal.h",
+      "sha256": "c902b1a10be6633f406d0ac9923e9ce93d1a7cd441e4f8af174b1b40c730ce04"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_dial_options_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_dial_options_abi.h",
+      "sha256": "6363da58563f54530b6c4d1faa169b6f63c7c4835f147dcb9c804fbaadfc2fd0"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_dial_options_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_dial_options_internal.h",
+      "sha256": "b0f9cb7238f17dbf34a3ec59d4e0a61f5615efce0d5457b72c26b18b5114de05"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_identity_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_identity_abi.h",
+      "sha256": "0edd41f510518b14885914b8c2cc4ea2b8a2da5300e8c99d2a621811a022619e"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_identity_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_identity_internal.h",
+      "sha256": "40ee3d8393d433a481192b39505cf1e17733c62f32c9385defa75e712b1623dd"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_internal.h",
+      "sha256": "afadfe69b7cc6af3b42f3c40b1adcc57b3fdc4715c6597f4c44f7bf2f62f6a49"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_io_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_io_abi.h",
+      "sha256": "7bce59bfb40cf1683705039cde44800423bb7d4eebdcc1d4d304e4cb298a0ebd"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_io_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_io_internal.h",
+      "sha256": "b20b2e035925179ae0fe96c8afeed90489df84dd7f5e7e19f290415438cd6ffc"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_metadata_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_metadata_abi.h",
+      "sha256": "646b1796be8dcc1c55dfc5e9444562b73e0e7952c5667265a6ebca5fec91b6f0"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_metadata_fields.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_metadata_fields.h",
+      "sha256": "a7865c363fdcf8cf470a7389c44a66ca4c87687fdbb727eb2bd812c057745979"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_metadata_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_metadata_internal.h",
+      "sha256": "120b971e0e960821420c69321eb9a2e5dd815d94d3054429cc5291d017a903d1"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_metadata_role.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_metadata_role.h",
+      "sha256": "fb7311f935225533def9ed5add56aa0616c8b601bf21b6fecd1fa96306a08ad2"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_parameters_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_parameters_abi.h",
+      "sha256": "f5fc34bcfb3ee71e480221ab5f705396fe5031d67c754b73f4e8c2146b2a43b7"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_parameters_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_parameters_internal.h",
+      "sha256": "20a8f9f711696c02f4433b47ff8bc2513849cf97bacdaf93e89289a35410af6f"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_peer_policy_owner.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_peer_policy_owner.h",
+      "sha256": "79ce9bce26bd7efb55563cbaf7712d404a18619e564e1eafff55768723e254b8"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_resume_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_resume_abi.h",
+      "sha256": "2c694fd8f24d5fb43b555e74187d4638c1b2ce910bd698eb5ea9d27b0aaac834"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_resume_lookup_owner.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_resume_lookup_owner.h",
+      "sha256": "1cf271037592b37ed6d6fc538083931a76e2664c2addbe960c94048e08ae4c26"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_resume_owner.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_resume_owner.h",
+      "sha256": "720026fae6a6c300b9a1d5165ea2c7f48d13337c467bac882d9103c5385a17f0"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_resume_request.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_resume_request.h",
+      "sha256": "ff3b01ad76a6a54f745e12a4dc231ef383e3b9d51ab83cdcfa8f2c9fbf165f67"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_revocation_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_revocation_abi.h",
+      "sha256": "6bf08dd5f27712fc5d1a91faf897bee297369159e8d9fd456e6419b281988cd0"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_revocation_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_revocation_internal.h",
+      "sha256": "fe90dd781c76bc31484b65f1ede36aef93a9084c04b8ac173cced6539c2c3d60"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_role_context_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_role_context_abi.h",
+      "sha256": "24df039c49f0cd8ae0d0ea01ce024c1f6b21e4d94e6d7d0546728ef183a1d75d"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_role_context_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_role_context_internal.h",
+      "sha256": "c7a37e2de78bd9709a318f6f97479fc281bb7ecd79367360f40ad91905b990ce"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_selector_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_selector_abi.h",
+      "sha256": "138dd085bdc1240374f8a623b70ca48aa2287da692e67fc453c8d7bb789e41bd"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_selector_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_selector_internal.h",
+      "sha256": "57f0d2e69acd933d66fd709daaee34728cb696cf841af1a52052f4ebe6382cee"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_selector_owner.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_selector_owner.h",
+      "sha256": "2ba9b99acce952d58c78152b00dd19989768676fc4d62e2a13daa275d334128b"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_server_request.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_server_request.h",
+      "sha256": "0057609032d2ace78b06db3a8aee2dd12c508e3f51124827c5fdde6847e341ed"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_session_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_session_abi.h",
+      "sha256": "2d73903edfd43bdb260f8ffb7839c192492544aa95a7d07fc4d197417b94ab15"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_session_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_session_internal.h",
+      "sha256": "c838e3ea1e3640ded12a795eac597f3a1c7ee03fa60bd916b5f98e8fd50f7599"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_stream_options_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_stream_options_abi.h",
+      "sha256": "f224d9922b5e51180a6454dace4cbfa8dc5c11d38445885e1522e9657f8c38bd"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_stream_options_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_stream_options_internal.h",
+      "sha256": "f57c9f9861bcf5be859c8e5e276574a95b89547afa275c204b3f736a990042a8"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_ticket_result.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_ticket_result.h",
+      "sha256": "4ef0a1dee5e9ebd45540c5b4172f0699dfcb8acdf2ce032c6029b4d8fe15c4c7"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_ticket_worker.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_ticket_worker.h",
+      "sha256": "2feb53c80abb636a158d2aa702ca710d1d46e7ba7f1f6460bf775b2d5d62dab9"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_transport_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_transport_abi.h",
+      "sha256": "b0bc072d398bb1b2bfaccd124b6bcf26235df6a2c6e981ee20d902778a9b8d7d"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_transport_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_transport_internal.h",
+      "sha256": "8ad7231b55bf1b02aff8090e3b8c744c7fbc3913449f6b0ea1aa6f6ab57ed4d0"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_verification_policy_fields.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_verification_policy_fields.h",
+      "sha256": "0e9decc71d2911c3fed98fb4f4518ade4a34cb744e55c750939821ff6a55314e"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_verified_peer_packet.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_verified_peer_packet.h",
+      "sha256": "928e2b3d84efb235481bc717214a05abd2aea8c412ea00557eaad30db3eed0f1"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_verifier_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_verifier_abi.h",
+      "sha256": "25f8a37c291cb8d760fef9ed58ea1672cb62dc05a20fc9d3910042f21de4dfbb"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_verifier_context.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_verifier_context.h",
+      "sha256": "641939f5c6ac0fe8051c89da6adbfe8b55b538b14be8f1993ebe18a1e036f71d"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tls_verifier_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tls_verifier_internal.h",
+      "sha256": "0e949e6429f1c41f48b225705cb3e2501a13e25f098b9ad759f2d467e73e7f1e"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tree.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tree.h",
+      "sha256": "f7c6aa71bffdbdfa4c6396dbdd6e202d0f43d9a805b6fd633ef00570b8a0074b"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tree_key_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tree_key_abi.h",
+      "sha256": "2b6c44b60fbe3fcd0184dfe46a37700aaa37cf57987d04425383423f844261dc"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_tree_projection.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_tree_projection.h",
+      "sha256": "9574957e471a9f1d591cc482a231c21d3a031ce85e642c09a0e58922da6d044b"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_udp_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_udp_abi.h",
+      "sha256": "f1053024ced1c2b8a3582a338acb6e09ac9b1b06572e3eb3a755b490f1f978a1"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_udp_config_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_udp_config_abi.h",
+      "sha256": "2a3960e87719cd6a14f65528fa73db597b4b09755c9d23b9ce882aa1f38de2e0"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_udp_config_fields.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_udp_config_fields.h",
+      "sha256": "802e62a47ce637bc53d1b5eee9e1557d852c567091705640b83f21b2d447f5cf"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_udp_future_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_udp_future_abi.h",
+      "sha256": "699f3c6fb3919290da0becdcdd87d98f0b2f5ef75a2850d21c45737ed5f9fe64"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_udp_future_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_udp_future_internal.h",
+      "sha256": "61b0e094dc1c710fa379016ab63de9da3fec75d27eecaa38383db44765192fa2"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_udp_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_udp_internal.h",
+      "sha256": "b32a5dac5f4c5c465718e1258943de553c6e83166f82ecf28aa89878dfa713ba"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_udp_message_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_udp_message_internal.h",
+      "sha256": "5f9e2f2c57bd7c577c5edc361c0373e4d657dca569f2f7fd35751c08ed58bfd8"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_udp_stats_fields.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_udp_stats_fields.h",
+      "sha256": "a742cf9b09bdb7c1c78986d12995513cbc83e285505439b305930ab2e6152322"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_udp_transfer_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_udp_transfer_abi.h",
+      "sha256": "98c5056b261849a30c6263c738374b7876fcc89fe0d8a7304d40a89ecb460258"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_udp_transfer_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_udp_transfer_internal.h",
+      "sha256": "804b92f9500581a05e48d3c388f31f1b191caab9146ba89948b76bd5ccecfc8d"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_udp_vector_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_udp_vector_internal.h",
+      "sha256": "ac78ca8231f108d6ceab68050b46b77c723bd6800ab2e6bbf97fd424e7d143e9"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_unicode_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_unicode_internal.h",
+      "sha256": "a5607322fba598703b241f508413bd0dd45738aedbf50c3182cb59ef5311cd17"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_value_admission.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_value_admission.h",
+      "sha256": "148fa4f96f98cf52aeff51716c883090532e0f873d6fdc33c470611d27e65d9c"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_value_admission_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_value_admission_abi.h",
+      "sha256": "aac96e7ef65c30741952545b230720338d137f510271050195ac2f41b658b922"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_value_admission_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_value_admission_internal.h",
+      "sha256": "56d4f8bc99dc839510d999a45a5ce573f20b669bf44b1981c21926c59d00cdb9"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_value_contains.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_value_contains.h",
+      "sha256": "b251d6987c6d0baf044bdd9ca000068b872d89290461a72d7c841582e44ddba5"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_value_copy.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_value_copy.h",
+      "sha256": "574a29d8fff57827dcf44fdac20f0930c36e142d747cef90db6f2a545810e38a"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_value_default_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_value_default_abi.h",
+      "sha256": "0de63f9c800a511cfff37745dbf3e0c6ac90f289854f91cb93d6d9011e770afe"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_value_domain.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_value_domain.h",
+      "sha256": "7ca0f7ba76848342f07f161bfeb6f53ddca065d06326055810056575126dd103"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_value_domain_projection.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_value_domain_projection.h",
+      "sha256": "2b1dd5238ba6e9b3f7001322c7e27fda414cb4c265e1af2b0c1868b22cede70a"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_value_format.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_value_format.h",
+      "sha256": "455a62922bf0943fafce52ab806191e0ec75c42ee1d0bf8543367c480497e676"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_value_graph_plan.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_value_graph_plan.h",
+      "sha256": "4cbd813d373dc8bc0ffaeea50b2be066eba4f2f36f5deabf12c4bd57b431eb44"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_value_index_read.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_value_index_read.h",
+      "sha256": "b522a8d27a100a030ae85e3fc9425ac616414569c16ba5a1eda5b9b580607218"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_value_index_write.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_value_index_write.h",
+      "sha256": "63ea0ccaa46c61055ebf337bf6ae7b41509a5c1994524e329a6e1e7b36448abe"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_value_iterator.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_value_iterator.h",
+      "sha256": "276268294281daea4a81721f50f56efe2c2a35e5dde06724f3dc017cd6797fda"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_value_iterator_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_value_iterator_internal.h",
+      "sha256": "108e3d0fc4d23d81bb3667d5645339afdd544f8340b661d4f6d6c24e06b92869"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_value_named_read.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_value_named_read.h",
+      "sha256": "db1aa31af6f711b569bb3a63ae909055fe079570b7244919fcfba9f591044090"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_value_named_write.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_value_named_write.h",
+      "sha256": "b320d249de572021cd41f92da49f1242d36ef40cc449c95022c8a6efcc6d4ffa"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_value_numeric.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_value_numeric.h",
+      "sha256": "18e00eda8fc4e7d114d2a93d17cf3512452726a4f8e48c59a38ca529271c0663"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_value_object_fields.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_value_object_fields.h",
+      "sha256": "782a8cae410111c4dc47d4e03ad2fd336ffa6018fca5ef39d91dde7d0ea613cb"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_value_read_view.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_value_read_view.h",
+      "sha256": "effe01e32a18ea9682a49e50fbb19c5e6595bbd31611fb924e9f2cb64010a3d2"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_vfs_private.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_vfs_private.h",
+      "sha256": "d94c5d1f5bac579143a8cc2d28ca10be34796f40b3ff74ebb099077e272fe687"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_wait_queue.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_wait_queue.h",
+      "sha256": "df4f66eb11f0cb949927275be15d74d2cd6cde6138848be32b15a47691732653"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_wait_queue_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_wait_queue_abi.h",
+      "sha256": "91eda9a7b6109f4524a90a13b55ce1b24fc0f0f1e9c62b083e9249e5dc99cbef"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_ws_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_ws_abi.h",
+      "sha256": "f8f9279eed02341d9b23b68ea06d12f09fc9abe3e4e397a1d2c2c63a7ce03725"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_ws_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_ws_internal.h",
+      "sha256": "7b62eb516980fa453d7648160275ce020385243c73bc8dc7a1f8e5750523f93c"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_ws_ownership_domains.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_ws_ownership_domains.h",
+      "sha256": "e4d9a8690b2be836f9c88d9748e1ddc95c868101b60c3f24d96bfb3d0cc292cb"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_ws_policy_declarations.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_ws_policy_declarations.h",
+      "sha256": "801f5a073c003dc5b142d92d5eaa41ed3771ec515aadc733197824b22c33d474"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_ws_stream_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_ws_stream_internal.h",
+      "sha256": "efe3289839524038b29d535bdb9e229711ff93403b26362b39815e50c74be682"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_ws_stream_send_impl.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_ws_stream_send_impl.h",
+      "sha256": "015182e4af94b12dc7e1bbfe9b65c948cc19298888512160f962dad52901e7b8"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_ws_transform_impl.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_ws_transform_impl.h",
+      "sha256": "2b43869664a49f631a97690447bdec13e6b1f92ec01c4fe6e26274ca0dd2b879"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_ws_upgrade_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_ws_upgrade_internal.h",
+      "sha256": "57e18afa69571b45b4c258a29f300ffd8618a31e186cfed7ecae6bb1fd2c0268"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_ws_wait.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_ws_wait.h",
+      "sha256": "cc77dd9b72a75e4fc2488bb7b27c23b83c77e78b27d22c7e20cb71fb2d61b29a"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_x509_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_x509_abi.h",
+      "sha256": "4dfcf1beb1234b828e8fdcd93de7fc3222f65cd0aa84af5b1e7ca2ae509dc382"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_x509_crl_critical_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_x509_crl_critical_internal.h",
+      "sha256": "30b5361bcb1a78a2b4e4d7dbb401504a34864afab1a8b2c5952ceb3eabffabb2"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_x509_crl_policy_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_x509_crl_policy_abi.h",
+      "sha256": "6b90317d44565f726d80a59cc8b0594dfb2af73bb819f2597e8e7a19b89296aa"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_x509_crl_policy_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_x509_crl_policy_internal.h",
+      "sha256": "2c67e0f25a4c306b6703c9d0bebcfd929ab8fe8465e36238be5d60add522e036"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_x509_crl_profiles_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_x509_crl_profiles_abi.h",
+      "sha256": "4428e8530ed50a5e3fdb078cab67cf3da7c64f1785c0edae35d1fca64e73ecf8"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_x509_crl_profiles_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_x509_crl_profiles_internal.h",
+      "sha256": "58da8a2fc35eac83cfb25a00731ecda28b728fd9f46ce5b059e5979c59a6577e"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_x509_identity_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_x509_identity_abi.h",
+      "sha256": "f535f57cf11b7e5d6fc4e2382191892fcf166a01143f2953e1f18d3e46436f4f"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_x509_identity_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_x509_identity_internal.h",
+      "sha256": "b4efc6180fbd7eace4cd6f96d2c18429cd78c5cc3b7e3fb046b167316be28dc0"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_x509_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_x509_internal.h",
+      "sha256": "0351081ec76cd6fa7c78a5a2a4db655da34b8d30752969250bd3ec400737e6b7"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_x509_path_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_x509_path_abi.h",
+      "sha256": "db220f3e2adb914a4cad5f5ef06591c2ba676b9872a1ed5833fe2bab87277f92"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_x509_path_array_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_x509_path_array_internal.h",
+      "sha256": "d95604fbc9dab9e1e81cb7c3648f57b72fa8327deb86f180cb2ab3faf7a16fce"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_x509_path_build_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_x509_path_build_internal.h",
+      "sha256": "14f842ba3a1bd05948bef372ba03cebedc4403c6133c122401d2198f9057878f"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_x509_path_critical_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_x509_path_critical_internal.h",
+      "sha256": "dcf232856fb1338d62867a46ff9549ad01e218398d379c13e35cd9a7bc9dfa64"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_x509_path_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_x509_path_internal.h",
+      "sha256": "970fb2488e461a5a2425b9cbedb1f93fce62afac5749177084d993901334373a"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_x509_profiles_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_x509_profiles_abi.h",
+      "sha256": "f514c9d87af8b07060449eef868498404e4902eeefe8b005b0480edca736b084"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_x509_profiles_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_x509_profiles_internal.h",
+      "sha256": "2755a7e210a898121a243456b2539cfbbe9de9382666e611d6bd8f1340b61ee1"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_x509_records_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_x509_records_abi.h",
+      "sha256": "ab73dab9360f92b4ef13c68f8750575b14bb0e5aa984d0a596f3286e1737212a"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_x509_records_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_x509_records_internal.h",
+      "sha256": "de0c82acd17310cfef1f055feb29e9a6e830c97bbe3841ee95f93d5301dac7b0"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_x509_store_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_x509_store_abi.h",
+      "sha256": "f712d994bb93ffbac74f760bdf3e9eaabc7a18a8c185919c91d091dc0b39c33d"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_x509_store_input.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_x509_store_input.h",
+      "sha256": "f8c6d83494fe24fff65879ff43d300bf5948f3e495295a1bb7555b7d1b2bd15a"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_x509_store_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_x509_store_internal.h",
+      "sha256": "c92416103f69e24478e5d68ff9c02d61c82b3e419ee8d07d86278eee6be5cdba"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_x509_verify_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_x509_verify_abi.h",
+      "sha256": "b7a266e2aa2a24bd25dcfd2eb446beec75b338bc77d045d3c60f4fb376f2fc68"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_x509_verify_internal.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_x509_verify_internal.h",
+      "sha256": "1a942ae42aac123a35fd61fc55d50d0f1ec8a6ae5f068180d9380903273677d4"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_xacme_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_xacme_abi.h",
+      "sha256": "6a1c29d6ad9a82e0e5012b20e63310701de40e1e5676b48fae9b1d473f41f795"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_xlang_handler.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_xlang_handler.h",
+      "sha256": "013377e940d1ac2737a8640ac487b1dae3e541ce341e74da192218ff82a5dae3"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl6_xlon_writer.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xl6_xlon_writer.h",
+      "sha256": "15431c6b7eb8d6c7df0e0a634302b9e3e2a934c7e67044fd496d05589b351fd1"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl_clock.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/include/xl_clock.h",
+      "sha256": "a203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl_extlib_abi.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/include/xl_extlib_abi.h",
+      "sha256": "db381846887d703ddef3fe42964c4fb3db3420db30453a6365651e1e33e0c445"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl_foreign_error.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/api/xl_foreign_error.h",
+      "sha256": "268641c937e74d96986bd66d3fca8c5d4cc87e739380322bf6193fa220525bdf"
+    },
+    {
+      "virtual": "include/__xl_runtime/xl_runtime.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/include/xl_runtime.h",
+      "sha256": "4ec038184084f4447de8519103fc6e4f26f6531079cb9a252554d5f372e9ecc2"
+    },
+    {
+      "virtual": "include/__xl_runtime/xnative_transfer.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/src/runtime/xnative_transfer.h",
+      "sha256": "620fe84af1c7c5f40006a65a4ca4435a5d62f2fd500b345514829e27c08dff6f"
+    },
+    {
+      "virtual": "include/__xl_runtime/xrt_decl.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/include/xrt_decl.h",
+      "sha256": "6874d0a5d380301ecba05112de0eb3719f667a767dedd6f1cb64c76d56d28772"
+    },
+    {
+      "virtual": "include/__xl_runtime/xruntime_decl.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/include/xruntime_decl.h",
+      "sha256": "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd"
+    },
+    {
+      "virtual": "include/float.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/build/linux/tcc-dist/include/float.h",
+      "sha256": "507ecd2dd9d26df6b084d6a1dd4a5867310fdb4edae9a3bc005338dfddba813c"
+    },
+    {
+      "virtual": "include/stdalign.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/build/linux/tcc-dist/include/stdalign.h",
+      "sha256": "1fa970a0f0b45f9469952b1960532a9a4927b27cb00c952f7fd0eb472df4b40b"
+    },
+    {
+      "virtual": "include/stdarg.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/build/linux/tcc-dist/include/stdarg.h",
+      "sha256": "834e661dc7b7811be628ec0f75d6d7c36b2aa492e98bf37f4fdf1a5f9f712fb2"
+    },
+    {
+      "virtual": "include/stdatomic.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/build/linux/tcc-dist/include/stdatomic.h",
+      "sha256": "7abfc5f7bee1c12d31a081b7c8474c4388a3e107b09343e386e9a708bec76df1"
+    },
+    {
+      "virtual": "include/stdbool.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/build/linux/tcc-dist/include/stdbool.h",
+      "sha256": "10d9d6fa8e43f8f95475584d41ff7c049e0b3017b234cd828b9814c33be5ae98"
+    },
+    {
+      "virtual": "include/stddef.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/build/linux/tcc-dist/include/stddef.h",
+      "sha256": "b14d6aa555bd23c136c519738a3cba5bd0189e72c06ac794ba72509867b91db7"
+    },
+    {
+      "virtual": "include/stdnoreturn.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/build/linux/tcc-dist/include/stdnoreturn.h",
+      "sha256": "a96966389d7b47748cfba0c2b6bf9522fcc31343e2f3647ba28fb2b9a83f352d"
+    },
+    {
+      "virtual": "include/tccdefs.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/build/linux/tcc-dist/include/tccdefs.h",
+      "sha256": "03fe4c1dc456a37fcec4ff59af5a0ccbe80a8975bb22835eb343e474856b24ed"
+    },
+    {
+      "virtual": "include/tgmath.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/build/linux/tcc-dist/include/tgmath.h",
+      "sha256": "0766abfc1515852fca929d13ee1ae75f2da665f9718e78a045427de2c1391bde"
+    },
+    {
+      "virtual": "include/varargs.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/build/linux/tcc-dist/include/varargs.h",
+      "sha256": "eabde10c768ae692f12a1737dcc21b2fae4fa07c849c9d88a94c5d2cd097e059"
+    },
+    {
+      "virtual": "include/xl.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/include/xl.h",
+      "sha256": "5acf435097adf2a5818ca50d57550d28821eb4f2007a44811d1e887b05f99060"
+    },
+    {
+      "virtual": "include/xl_cancellation_retirement.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/include/xl_cancellation_retirement.h",
+      "sha256": "ab51e4c0662e83b9947052fbd6bcef28be49d500bab6b5358b9673cc436bcaad"
+    },
+    {
+      "virtual": "include/xl_clock.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/include/xl_clock.h",
+      "sha256": "a203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18"
+    },
+    {
+      "virtual": "include/xl_foreign_graph.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/include/xl_foreign_graph.h",
+      "sha256": "8fbbfdfe3b11b683bff322773011650e531932546980b79fffce31e479e8d97f"
+    },
+    {
+      "virtual": "include/xl_foreign_net.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/include/xl_foreign_net.h",
+      "sha256": "1ff787155ea247b70cb5f2e80debcd38adfdb30db3268a7337b64b06a92db173"
+    },
+    {
+      "virtual": "include/xl_package.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/include/xl_package.h",
+      "sha256": "4bd26c321e6a0e20d800d884a0aaf4dcf41068075ef56ed1d18bb81156386bd1"
+    },
+    {
+      "virtual": "include/xl_sync_retirement.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/include/xl_sync_retirement.h",
+      "sha256": "931b5c46ad8895e4fd24a616df6048929b6a1facd6ab32fd3884856241d4971e"
+    },
+    {
+      "virtual": "include/xl_value_read.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/include/xl_value_read.h",
+      "sha256": "0903296d1123a7948c45c84cd386a6eb519b8bf798766f0e146499f923e927ef"
+    },
+    {
+      "virtual": "include/xl_version.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/include/xl_version.h",
+      "sha256": "136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992"
+    },
+    {
+      "virtual": "include/xrt_decl.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/include/xrt_decl.h",
+      "sha256": "6874d0a5d380301ecba05112de0eb3719f667a767dedd6f1cb64c76d56d28772"
+    },
+    {
+      "virtual": "include/xruntime_decl.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/include/xruntime_decl.h",
+      "sha256": "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd"
+    },
+    {
+      "virtual": "lib/libtcc1.a",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/build/linux/tcc-dist/lib/libtcc1.a",
+      "sha256": "ae6804be2d687d08498f67c6249f7d57a895457cbdf063e7aba9600e8829c135"
+    },
+    {
+      "virtual": "lib/xrt/xrt.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/include/xrt_decl.h",
+      "sha256": "6874d0a5d380301ecba05112de0eb3719f667a767dedd6f1cb64c76d56d28772"
+    },
+    {
+      "virtual": "lib/xruntime/xruntime.h",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/include/xruntime_decl.h",
+      "sha256": "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd"
+    }
+  ],
+  "serializedObjectValidation": {
+    "schema": 1,
+    "readOnlyPackaging": true,
+    "projectSourceFingerprintVerified": true,
+    "nativeSystemHeadersRequalified": false,
+    "externalNativeAbiQualificationRequired": true,
+    "scope": "Existing qualified objects only; external native ABI/system-header qualification is inherited, not recomputed by packaging."
+  }
+}

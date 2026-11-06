@@ -1,0 +1,5 @@
+FIX message: 8=FIX.4.4|9=84|35=D|49=BUY_SIDE|56=SELL_SIDE|11=client-order-42|55=XLANG|54=1|38=100|40=2|44=12.50|10=009|
+valid: true
+message type: D
+first application tag: 35
+fix example: PASS
