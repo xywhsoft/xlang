@@ -12,12 +12,19 @@ ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'ide/tools/update'))
 import update_manager as manager
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--version',type=int,default=1);args=parser.parse_args()
-    source=ROOT/'release/win_x64';store=ROOT/'ide/build/updates/win_x64'
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--version',type=int,default=1);parser.add_argument('--store',type=Path);args=parser.parse_args()
+    source=ROOT/'release/win_x64';store=(args.store or ROOT/'release/update_info/acceptance/win_x64').resolve()
     previous=manager.current(store) if (store/'.state/current.json').exists() else 0
     if args.version<=previous:raise ValueError('keep the existing store and use a new, increasing version')
     notes='新增独立 TUI 更新器\n支持签名校验、安装修复和中断恢复\nIDE 增加检查更新与修复入口\n发布工具支持 SSH 自动推送'
-    result=manager.main(['prepare' if previous else 'init','--source',str(source),'--store',str(store),'--platform','win_x64','--version',str(args.version),'--notes',notes])
+    stamp=source/'data/release.json';original=stamp.read_bytes() if stamp.exists() else None
+    try:
+        result=manager.main(['prepare' if previous else 'init','--source',str(source),'--store',str(store),'--platform','win_x64','--version',str(args.version),'--notes',notes])
+    finally:
+        # Acceptance has its own update store and must preserve the real
+        # client's prepared portable identity after collecting fixture objects.
+        if original is None:stamp.unlink(missing_ok=True)
+        else:manager.maker.write_atomic(stamp,original)
     if result:raise RuntimeError('release preparation failed')
     manifest=manager.payload(store/'update.json')
     for f in manifest['files']:

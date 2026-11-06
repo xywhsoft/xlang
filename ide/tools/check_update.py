@@ -32,7 +32,7 @@ class UpdateTests(unittest.TestCase):
         manager.write(self.source/'data/version.json',{'displayVersion':'0.6.0'})
         (self.source/'xl.exe').write_bytes(b'engine-v1' if os.name=='nt' else b'engine')
         (self.source/'extlibs').mkdir();(self.source/'extlibs/private').write_text('never ship')
-        self.prepare(1,'init');self.server=None
+        self.prepare(1,'init');self.server=None;self.state=self.base/'state';self.update('--cached-policy')
     def tearDown(self):
         if self.server:self.server.shutdown();self.server.server_close();self.thread.join()
         self.temp.cleanup()
@@ -40,7 +40,7 @@ class UpdateTests(unittest.TestCase):
         args=[command,'--platform',PLATFORM,'--source',str(self.source),'--store',str(self.store),'--version',str(version),'--key',str(self.key),'--crypto',str(CRYPTO),'--notes','更新说明\n修复和改进']
         self.assertEqual(manager.main([*args,*extra]),0)
     def update(self,*extra,expected=0,env=None,online=False,stage=True):
-        args=[str(EXE),'--root',str(self.install),'--public-key',self.public,'--no-launch','--plain']
+        args=[str(EXE),'--root',str(self.install),'--state-dir',str(self.state),'--public-key',self.public,'--no-launch','--plain']
         if stage and os.name=='nt':args.append('--staged')
         if online:
             if not self.server:
@@ -54,6 +54,44 @@ class UpdateTests(unittest.TestCase):
     def resign(self,fn):
         value=manager.payload(self.store/'update.json');fn(value);data=manager.signed(value,self.key,str(CRYPTO))
         (self.store/'update.json').write_bytes(data);(self.store/'update.lzma').write_bytes(maker.lzma_alone(data))
+    def test_first_unpublished_version_can_be_rebuilt(self):
+        args=['discard','--store',str(self.store),'--platform',PLATFORM]
+        self.assertEqual(manager.main(args),0);self.assertEqual(manager.current(self.store),0)
+        self.assertFalse((self.store/'version.txt').exists());self.prepare(1,'init')
+        self.assertEqual(manager.current(self.store),1)
+    def test_bundled_portable_identity(self):
+        self.update('--check-version',expected=2)
+        (self.install/'data').mkdir(exist_ok=True)
+        manager.write(self.install/'data/release.json',{'format':'xlang-release-1','platform':PLATFORM,'version':1,'displayVersion':'0.6.0'})
+        self.update('--check-version')
+        manager.write(self.install/'data/release.json',{'format':'xlang-release-1','platform':'other','version':1,'displayVersion':'0.6.0'})
+        self.update('--check-version',expected=2)
+        self.update()
+        manager.write(self.install/'data/release.json',{'format':'xlang-release-1','platform':PLATFORM,'version':99,'displayVersion':'0.6.0'})
+        self.update('--check-version')  # Installed receipt takes precedence.
+    def test_external_state_and_clean_client(self):
+        self.update();self.assertFalse((self.install/'.xlang-update').exists())
+        self.assertTrue((self.state/'installed.json').is_file())
+    def test_state_cannot_be_inside_installation(self):
+        self.update('--state-dir',str(self.install/'private'),expected=1)
+        self.assertFalse((self.install/'private').exists())
+    def test_state_cannot_be_shared_by_installations(self):
+        other=self.base/'other-install';other.mkdir()
+        self.update('--root',str(other),expected=1)
+        self.assertEqual(list(other.iterdir()),[])
+    def test_legacy_state_moves_with_recovery(self):
+        self.update();(self.source/'xl.exe').write_bytes(b'new');self.prepare(2)
+        self.update(expected=86,env=dict(os.environ,XLANG_UPDATE_TEST_CRASH_AFTER='1'))
+        legacy=self.install/'.xlang-update';self.state.rename(legacy)
+        self.update('--recover-only');self.assertFalse(legacy.exists())
+        self.assertEqual((self.install/'xl.exe').read_bytes(),b'engine-v1' if os.name=='nt' else b'engine')
+        self.update();self.assertEqual((self.install/'xl.exe').read_bytes(),b'new')
+    def test_default_state_is_outside_client(self):
+        result=subprocess.run([str(EXE),'--root',str(self.install),'--print-state-dir'],capture_output=True,text=True,check=True)
+        state=Path(result.stdout.strip());self.assertFalse(state.is_relative_to(self.install))
+        other=self.base/'other';other.mkdir()
+        result2=subprocess.run([str(EXE),'--root',str(other),'--print-state-dir'],capture_output=True,text=True,check=True)
+        self.assertNotEqual(str(state),result2.stdout.strip())
     def test_bootstrap_repair_and_user_state(self):
         for name in ('extlibs/private','option/settings.json','projects/user.xl','mdo-home/settings'):
             p=self.install/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(b'USER')
@@ -63,7 +101,7 @@ class UpdateTests(unittest.TestCase):
     def test_http_streaming(self):self.update(online=True)
     def test_self_staging(self):self.update(stage=False)
     def test_waits_for_parent_checker_before_lock(self):
-        lock=self.install/'.xlang-update/lock';lock.parent.mkdir()
+        lock=self.state/'lock';lock.parent.mkdir(exist_ok=True)
         script="import sys,os,time; f=open(sys.argv[1],'a+b'); exec(\"import fcntl; fcntl.flock(f,fcntl.LOCK_EX)\" if os.name!='nt' else 'pass'); print('READY',flush=True); time.sleep(1)"
         parent=subprocess.Popen([sys.executable,'-c',script,str(lock)],stdout=subprocess.PIPE,text=True)
         try:
@@ -75,12 +113,12 @@ class UpdateTests(unittest.TestCase):
     def test_running_updater_replacement(self):
         original=EXE.read_bytes();installed=self.install/'update.exe';installed.write_bytes(original+b'OLD')
         (self.source/'update.exe').write_bytes(original+b'NEW');self.prepare(2)
-        r=subprocess.run([str(installed),'--root',str(self.install),'--public-key',self.public,'--offline',str(self.store),'--plain','--no-launch'],capture_output=True,timeout=60)
+        r=subprocess.run([str(installed),'--root',str(self.install),'--state-dir',str(self.state),'--public-key',self.public,'--offline',str(self.store),'--plain','--no-launch'],capture_output=True,timeout=60)
         self.assertEqual(r.returncode,0,r.stderr.decode(errors='replace'))
         # Default Windows bootstrap releases its original process. Inherited
         # output handles keep communicate() attached until the staged worker exits.
         self.assertEqual(installed.read_bytes(),original+b'NEW')
-        self.assertFalse((self.install/'.xlang-update/txn').exists())
+        self.assertFalse((self.state/'txn').exists())
         import time
         deadline=time.monotonic()+5
         while True:
@@ -93,7 +131,7 @@ class UpdateTests(unittest.TestCase):
         p=self.install/('目录'*45)/('nested'*18)
         # Extended prefix also permits running this fixture when the host's
         # global long-path policy is disabled.
-        p=Path('\\\\?\\'+str(p.resolve()));p.mkdir(parents=True);self.install=p
+        p=Path('\\\\?\\'+str(p.resolve()));p.mkdir(parents=True);self.install=p;self.state=self.base/'long-state'
         try:self.update();self.assertEqual((p/'data/commands.json').read_bytes(),b'A'*24000)
         finally:
             absolute=str(p.resolve()).removeprefix('\\\\?\\')
@@ -130,7 +168,7 @@ class UpdateTests(unittest.TestCase):
     def test_recovery_preserves_external_modification(self):
         self.update();(self.source/'data/commands.json').write_bytes(b'B'*23000);self.prepare(2)
         self.update(expected=86,env=dict(os.environ,XLANG_UPDATE_TEST_CRASH_AFTER='1'))
-        journal=self.install/'.xlang-update/txn/journal.json'
+        journal=self.state/'txn/journal.json'
         state=json.loads(journal.read_text(encoding='utf-8'));op=state['ops'][0]
         target=self.install/op['path'];target.write_bytes(b'EXTERNAL CHANGE')
         self.update('--recover-only',expected=1)
@@ -150,28 +188,28 @@ class UpdateTests(unittest.TestCase):
         (self.store/'version.txt').write_text('1\n');self.update()
     def test_display_and_iteration_are_independent(self):
         self.update()
-        receipt=manager.read(self.install/'.xlang-update/installed.json')
+        receipt=manager.read(self.state/'installed.json')
         self.assertEqual((receipt['displayVersion'],receipt['version']),('0.6.0',1))
         # A second release with the same program version still needs an update,
         # even with no changed runtime files. Comparison never uses semver.
         self.prepare(2);self.update('--check-version',expected=2);self.update()
-        self.assertEqual(manager.read(self.install/'.xlang-update/installed.json')['version'],2)
+        self.assertEqual(manager.read(self.state/'installed.json')['version'],2)
         manager.write(self.source/'data/version.json',{'displayVersion':'0.5.9'})
         self.prepare(3);self.update('--check-version',expected=2);self.update()
-        receipt=manager.read(self.install/'.xlang-update/installed.json')
+        receipt=manager.read(self.state/'installed.json')
         self.assertEqual((receipt['displayVersion'],receipt['version']),('0.5.9',3))
         self.assertEqual(manager.read(self.store/'version.txt'),{'version':3,'displayVersion':'0.5.9','forceUpdate':False})
     def test_display_cannot_trigger_update_without_iteration(self):
         self.update();self.resign(lambda m:m.update(displayVersion='9.0.0'))
         manager.write(self.store/'version.txt',{'version':1,'displayVersion':'9.0.0','forceUpdate':False})
         self.update('--check-version')
-        self.assertEqual(manager.read(self.install/'.xlang-update/installed.json')['displayVersion'],'0.6.0')
+        self.assertEqual(manager.read(self.state/'installed.json')['displayVersion'],'0.6.0')
     def test_display_must_match_signed_manifest(self):
         for value in ('9.0.0',False,'0.6.0\nBAD','65536.0.0'):
             with self.subTest(value=value):
                 manager.write(self.store/'version.txt',{'version':1,'displayVersion':value,'forceUpdate':False})
                 self.update('--check-version',expected=1)
-        self.assertFalse((self.install/'.xlang-update/installed.json').exists())
+        self.assertFalse((self.state/'installed.json').exists())
     def test_signed_display_type_is_checked(self):
         self.resign(lambda m:m.update(displayVersion=42));self.update(expected=1)
     def test_publisher_refuses_display_source_mismatch(self):
@@ -189,7 +227,7 @@ class UpdateTests(unittest.TestCase):
         self.update();(self.source/'xl.exe').write_bytes(b'forced');self.prepare(2,'prepare','--force-update')
         self.update(expected=86,env=dict(os.environ,XLANG_UPDATE_TEST_CRASH_AFTER='1'))
         self.update('--cached-policy',expected=4);self.update('--check-version',expected=4)
-        self.assertTrue((self.install/'.xlang-update/txn/journal.json').exists())
+        self.assertTrue((self.state/'txn/journal.json').exists())
         self.update('--recover-only');self.update('--cached-policy',expected=4);self.update();self.update('--cached-policy')
     def test_new_signed_optional_policy_releases_gate(self):
         self.update();self.prepare(2,'prepare','--force-update');self.update('--check-version',expected=4)

@@ -43,11 +43,20 @@ static int verify(void* user)
 {
     if(started) return XGE_OK;
     started=1; xide_app app={0}; char** argv=user; const char* root=argv[1];
-    char* state=xidePathResolve(root,".xlang-update");char* receipt=xidePathResolve(root,".xlang-update/installed.json");
+    char* state=xideUpdateStateDirectoryAt(root);char* receipt=state?xidePathResolve(state,"installed.json"):NULL;
     char* settings=xidePathResolve(root,"settings.json");
-    CHECK(state && receipt && xideIoCreateDirectories(state));
+    char* portable=xidePathResolve(root,"portable/data"),*bundle=portable?xidePathResolve(portable,"release.json"):NULL;
+    CHECK(state && receipt && settings && xideIoCreateDirectories(state));
     CHECK(!strcmp(xideProgramVersion(),argv[2]));
     CHECK(xideInstalledIterationAt(NULL)==0 && xideInstalledIterationAt(state)==0 && !xrtGetError());
+    CHECK(portable && bundle && xideIoCreateDirectories(portable));
+    { char* install=xidePathResolve(root,"portable");
+      const char valid[]={"{\"format\":\"xlang-release-1\",\"platform\":\"win_x64\",\"version\":1}"};
+      CHECK(install && xideIoWriteAtomic(bundle,(xbytesview){(const unsigned char*)valid,sizeof(valid)-1}));
+      CHECK(xideInstalledIterationAt(install)==1 && !xrtGetError());
+      const char wrong[]={"{\"format\":\"xlang-release-1\",\"platform\":\"linux_x64\",\"version\":9}"};
+      CHECK(xideIoWriteAtomic(bundle,(xbytesview){(const unsigned char*)wrong,sizeof(wrong)-1}));
+      CHECK(xideInstalledIterationAt(install)==0 && !xrtGetError());free(install); }
     const char* invalid[]={"{broken","{\"version\":true}","{\"version\":-1}","{\"version\":2147483648}","{\"version\":1.5}"};
     for(size_t i=0;i<sizeof(invalid)/sizeof(*invalid);++i) {
         CHECK(xideIoWriteAtomic(receipt,(xbytesview){(const unsigned char*)invalid[i],strlen(invalid[i])}));
@@ -92,7 +101,7 @@ static int verify(void* user)
     xideUpdateApplyCheckResult(&app,0,0);CHECK(!xideActionsHasModal(&app));
     puts("PASS compact centered about layout: no body buttons, zero scroll range, 16/18/20/24 fonts, 640x400 viewport, maximize/restore, Escape/X, modal cleanup and required-update gate");
 cleanup:
-    xideAppDestroy(&app);xgeSetQuitRequestCallback(NULL,NULL);free(state);free(receipt);free(settings);xgeQuit();return XGE_OK;
+    xideAppDestroy(&app);xgeSetQuitRequestCallback(NULL,NULL);free(state);free(receipt);free(settings);free(portable);free(bundle);xgeQuit();return XGE_OK;
 }
 int main(int argc,char** argv)
 {

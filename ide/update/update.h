@@ -24,13 +24,14 @@ typedef struct up_ui {
     unsigned fileIndex,fileCount; char phase[128],file[2048],notes[4096],displayVersion[64]; int64_t local,version;
 } up_ui;
 typedef struct up_config {
-    char root[UP_PATH],base[2048],offline[UP_PATH],key[65],cleanupHelper[UP_PATH];
-    int check,versionOnly,cachedPolicy,recoverOnly,noLaunch,plain,staged,allowHttp,timeout; unsigned long parent,bootstrap;
+    char root[UP_PATH],state[UP_PATH],base[2048],offline[UP_PATH],key[65],cleanupHelper[UP_PATH];
+    int printState,check,versionOnly,cachedPolicy,recoverOnly,noLaunch,plain,staged,allowHttp,timeout; unsigned long parent,bootstrap;
 } up_config;
 extern volatile sig_atomic_t up_cancel;
 extern char up_last_error[2048];
 int up_error(const char* format,...);
 void up_log_start(const char* root);
+const char* up_log_path(void);
 void up_log_stop(void);
 void up_note(const char* text);
 uint64_t up_now(void);
@@ -57,6 +58,8 @@ int up_hex(const char* text,void* bytes,size_t size);
 void up_tohex(const void* bytes,size_t size,char* text);
 int up_root(char* out,size_t cap,const char* selected);
 int up_lock(const char* root);
+int up_storage_resolve(up_config* cfg);
+int up_storage_lock(up_config* cfg);
 void up_unlock(void);
 int up_wait_parent(unsigned long pid,int seconds);
 int up_self_stage(int argc,char** argv,const char* root);

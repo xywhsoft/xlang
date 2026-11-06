@@ -1,0 +1,178 @@
+{
+  "date": "2026-11-06",
+  "status": "passed-scoped-local-maintenance",
+  "externalPublishPerformed": false,
+  "completeCompilerCatalogAcceptance": false,
+  "scope": "External updater state, clean client directory, platform update stores in release/update_info, local formal iteration 1 and portable first-launch verification",
+  "products": [
+    {
+      "path": "release/win_x64/xlang_ide.exe",
+      "sha256": "cc7fb0ce36bea013c012ac21a2583fe15a2dfb6327d687dd6ae0af0e0968ebe9",
+      "bytes": 1809178,
+      "origin": "ide-release-maintenance-20261106"
+    },
+    {
+      "path": "release/win_x64/update.exe",
+      "sha256": "72ab3b3a081e192fe2253b5ca4c87c417b8142814d89d0713a678f8e722a8e10",
+      "bytes": 1482752,
+      "origin": "ide-release-maintenance-20261106"
+    },
+    {
+      "path": "release/linux_x64/update",
+      "sha256": "f941cdc7c84ea486d611029a45dc1039e7bdade3f7c2231036bdc892a1576b9b",
+      "bytes": 998472,
+      "origin": "ide-release-maintenance-20261106"
+    },
+    {
+      "path": "release/win_x64/data/release.json",
+      "sha256": "091d16c8897c6f521efc0d82a4d3da7b8587bd931460cb9f713014ba104d8432",
+      "bytes": 104,
+      "origin": "ide-release-maintenance-20261106"
+    }
+  ],
+  "prepared": {
+    "store": "release/update_info/win_x64",
+    "record": {
+      "version": 1,
+      "displayVersion": "0.6.0",
+      "forceUpdate": false,
+      "previous": 0,
+      "platform": "win_x64",
+      "created": 1793958959,
+      "published": false,
+      "catalogCompilerBindingCurrent": false,
+      "changedFiles": 2174,
+      "objects": 1635,
+      "newObjects": 1635
+    },
+    "versionMarker": {
+      "version": 1,
+      "displayVersion": "0.6.0",
+      "forceUpdate": false
+    },
+    "portable": {
+      "zip": "D:\\GIT\\x-lang\\dev\\releases\\xlang-win_x64-0.6.0-v1.zip",
+      "sha256": "b4261ab74d8e4b5ffab47080363e63e7e7bf5319a0ec0eb38bd6e7d5f04997d9",
+      "files": 6756,
+      "version": 1,
+      "displayVersion": "0.6.0"
+    }
+  },
+  "historicalTestStore": "release/update_info/test-history/win_x64",
+  "archive": {
+    "source": "D:\\GIT\\x-lang\\release\\win_x64",
+    "archive": "D:\\GIT\\x-lang\\dev\\local-state\\release-clean\\win_x64\\20261106T095404Z-42600",
+    "archivePaths": [
+      "build",
+      "build_tmp_m.json",
+      "examples_out",
+      "ide-install-receipt.json",
+      "mdo-home",
+      "option/diagnostics",
+      "option/settings.json",
+      "option/settings.json.lock",
+      "projects",
+      "tmp"
+    ],
+    "migrateUpdateState": true,
+    "archivePublisherTools": true,
+    "applied": true,
+    "updateState": "d:\\git\\x-lang\\ide\\build\\update-runtime\\win_x64-6e3555629b49a75592cf1a8d5399c8b6b3c6701aa3a82f0ea88e9a1f3471814c",
+    "moves": [
+      {
+        "source": "D:\\GIT\\x-lang\\release\\win_x64\\build",
+        "destination": "D:\\GIT\\x-lang\\dev\\local-state\\release-clean\\win_x64\\20261106T095404Z-42600\\build"
+      },
+      {
+        "source": "D:\\GIT\\x-lang\\release\\win_x64\\build_tmp_m.json",
+        "destination": "D:\\GIT\\x-lang\\dev\\local-state\\release-clean\\win_x64\\20261106T095404Z-42600\\build_tmp_m.json"
+      },
+      {
+        "source": "D:\\GIT\\x-lang\\release\\win_x64\\examples_out",
+        "destination": "D:\\GIT\\x-lang\\dev\\local-state\\release-clean\\win_x64\\20261106T095404Z-42600\\examples_out"
+      },
+      {
+        "source": "D:\\GIT\\x-lang\\release\\win_x64\\ide-install-receipt.json",
+        "destination": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\legacy-runtime\\20261106T095404Z-42600\\ide-install-receipt.json"
+      },
+      {
+        "source": "D:\\GIT\\x-lang\\release\\win_x64\\mdo-home",
+        "destination": "D:\\GIT\\x-lang\\dev\\local-state\\release-clean\\win_x64\\20261106T095404Z-42600\\mdo-home"
+      },
+      {
+        "source": "D:\\GIT\\x-lang\\release\\win_x64\\option\\diagnostics",
+        "destination": "D:\\GIT\\x-lang\\dev\\local-state\\release-clean\\win_x64\\20261106T095404Z-42600\\option\\diagnostics"
+      },
+      {
+        "source": "D:\\GIT\\x-lang\\release\\win_x64\\option\\settings.json",
+        "destination": "D:\\GIT\\x-lang\\dev\\local-state\\release-clean\\win_x64\\20261106T095404Z-42600\\option\\settings.json"
+      },
+      {
+        "source": "D:\\GIT\\x-lang\\release\\win_x64\\option\\settings.json.lock",
+        "destination": "D:\\GIT\\x-lang\\dev\\local-state\\release-clean\\win_x64\\20261106T095404Z-42600\\option\\settings.json.lock"
+      },
+      {
+        "source": "D:\\GIT\\x-lang\\release\\win_x64\\projects",
+        "destination": "D:\\GIT\\x-lang\\dev\\local-state\\release-clean\\win_x64\\20261106T095404Z-42600\\projects"
+      },
+      {
+        "source": "D:\\GIT\\x-lang\\release\\win_x64\\tmp",
+        "destination": "D:\\GIT\\x-lang\\dev\\local-state\\release-clean\\win_x64\\20261106T095404Z-42600\\tmp"
+      },
+      {
+        "source": "D:\\GIT\\x-lang\\release\\tools",
+        "destination": "D:\\GIT\\x-lang\\release\\update_info\\tools-archive\\20261106T095404Z-42600"
+      }
+    ]
+  },
+  "testInstallationState": {
+    "source": "d:\\git\\x-lang\\ide\\build\\update-runtime\\win_x64-6e3555629b49a75592cf1a8d5399c8b6b3c6701aa3a82f0ea88e9a1f3471814c",
+    "archive": "D:\\GIT\\x-lang\\release\\update_info\\test-history\\runtime-state\\win_x64-6e3555629b49a75592cf1a8d5399c8b6b3c6701aa3a82f0ea88e9a1f3471814c"
+  },
+  "runtimeCompatibility": {
+    "size": 32,
+    "api_major": 3,
+    "api_minor": 0,
+    "api_patch": 0,
+    "foundation_revision": 1,
+    "features": 1021,
+    "abi_fingerprint": 11128402771518174474
+  },
+  "acceptance": {
+    "windowsProtocolTests": 43,
+    "windowsProtocolSkipped": 2,
+    "linuxProtocolTests": 43,
+    "linuxProtocolSkipped": 5,
+    "additionalBundledIdentityTestPerPlatform": 1,
+    "nativeGuiFixtures": [
+      "about_view_test",
+      "input_test",
+      "update_client_test"
+    ],
+    "nativeBundledIdentityPassed": true,
+    "maintenanceTests": 4,
+    "loopbackSshPublishAndTestRetirementPassed": true,
+    "linuxTerminalWidths": [
+      80,
+      50
+    ],
+    "linuxDumbTerminalPassed": true,
+    "portableFreshInstall": {
+      "passed": true,
+      "freshDirectory": "D:\\GIT\\x-lang\\ide\\build\\Release\\release-maintenance-20261106\\portable-first-install",
+      "missingUserSettings": true,
+      "externalInstalledReceiptAbsent": true,
+      "initialIteration": 1,
+      "updateCheckExitCode": 0,
+      "guiExitCode": 0,
+      "legacyStateAbsent": true
+    },
+    "finalCleanPlanEmpty": true
+  },
+  "sources": "dev/release-materials/sources/ide-release-maintenance-20261106/manifest.json",
+  "limits": [
+    "No production SSH, test-channel retirement or upload performed",
+    "Existing engine/language server/XGE/catalog preserved; catalogCompilerBindingCurrent=false",
+    "ARM binaries were not rebuilt or executed in this scope"
+  ]
+}

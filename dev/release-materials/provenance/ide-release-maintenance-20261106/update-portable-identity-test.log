@@ -1,0 +1,7 @@
+test_bundled_portable_identity (__main__.UpdateTests.test_bundled_portable_identity) ... ok
+{"version": 1, "changedFiles": 4, "newObjects": 4, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-rmv3l7ii\\repository"}
+
+----------------------------------------------------------------------
+Ran 1 test in 0.482s
+
+OK

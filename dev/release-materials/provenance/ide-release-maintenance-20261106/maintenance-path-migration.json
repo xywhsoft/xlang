@@ -1,0 +1,10 @@
+[
+  {
+    "source": "D:\\GIT\\x-lang\\dev\\release-tools\\update",
+    "target": "D:\\GIT\\x-lang\\release\\update_info\\tools"
+  },
+  {
+    "source": "D:\\GIT\\x-lang\\ide\\build\\updates\\win_x64",
+    "target": "D:\\GIT\\x-lang\\release\\update_info\\test-history\\win_x64"
+  }
+]

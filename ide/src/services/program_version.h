@@ -5,5 +5,6 @@
    receipt's monotonic iteration identifies an installed update. */
 const char* xideProgramVersion(void);
 int64_t xideInstalledIteration(void);
+char* xideUpdateStateDirectoryAt(const char* root);
 int64_t xideInstalledIterationAt(const char* root);
 #endif

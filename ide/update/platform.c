@@ -1,6 +1,7 @@
 #define _POSIX_C_SOURCE 200809L
 #define _XOPEN_SOURCE 700
 #include "update.h"
+#include "platform/update_storage.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
@@ -12,7 +13,8 @@
 #include <windows.h>
 #include <shellapi.h>
 #include <io.h>
-static HANDLE install_lock=INVALID_HANDLE_VALUE;
+typedef HANDLE up_lock_handle;
+static HANDLE install_lock=INVALID_HANDLE_VALUE,legacy_lock=INVALID_HANDLE_VALUE;
 static wchar_t* wide(const char* s) {
     int n=MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,s,-1,NULL,0);
     wchar_t* w=n ? malloc((size_t)n*sizeof(*w)) : NULL;
@@ -35,14 +37,17 @@ static wchar_t* filewide(const char* s){
 #include <sys/wait.h>
 #include <fcntl.h>
 #include <dirent.h>
-static int install_lock=-1;
+typedef int up_lock_handle;
+static int install_lock=-1,legacy_lock=-1;
 #endif
 volatile sig_atomic_t up_cancel;
 char up_last_error[2048];
 static FILE* update_log;
+static char update_log_file[UP_PATH];
+const char* up_log_path(void){return update_log_file;}
 void up_note(const char* text){if(update_log){fprintf(update_log,"%s\n",text);fflush(update_log);}}
 void up_log_stop(void){if(update_log){fclose(update_log);update_log=NULL;}}
-void up_log_start(const char* root){up_log_stop();char p[UP_PATH],old[UP_PATH];if(!up_safe_target(root,".xlang-update/update.log")||!up_safe_target(root,".xlang-update/update.previous.log"))return;up_join(p,sizeof(p),root,".xlang-update/update.log");up_join(old,sizeof(old),root,".xlang-update/update.previous.log");if(up_exists(p)&&up_length(p)>1024*1024)up_move(p,old);update_log=up_open(p,"ab");up_note("--- xlang-update session ---");}
+void up_log_start(const char* root){up_log_stop();char p[UP_PATH],old[UP_PATH];if(!up_safe_target(root,"update.log")||!up_safe_target(root,"update.previous.log"))return;up_join(p,sizeof(p),root,"update.log");up_join(old,sizeof(old),root,"update.previous.log");if(up_exists(p)&&up_length(p)>1024*1024)up_move(p,old);snprintf(update_log_file,sizeof(update_log_file),"%s",p);update_log=up_open(p,"ab");up_note("--- xlang-update session ---");}
 int up_error(const char* format,...) {va_list a;va_start(a,format);vsnprintf(up_last_error,sizeof(up_last_error),format,a);va_end(a);fprintf(stderr,"\nERROR: %s\n",up_last_error);up_note(up_last_error);return 0;}
 uint64_t up_now(void) {
 #ifdef _WIN32
@@ -209,21 +214,123 @@ int up_root(char* out,size_t cap,const char* selected) {
     else{ssize_t n=readlink("/proc/self/exe",path,sizeof(path)-1);if(n<=0)return 0;path[n]=0;char* slash=strrchr(path,'/');if(!slash)return 0;*slash=0;}return snprintf(out,cap,"%s",path)<(int)cap;
 #endif
 }
-int up_lock(const char* root) {
-    char p[UP_PATH];up_join(p,sizeof(p),root,".xlang-update/lock");if(!up_safe_target(root,".xlang-update/lock")||!up_parents(p))return 0;
+static int lock_at(const char* root,up_lock_handle* handle) {
+    char p[UP_PATH];up_join(p,sizeof(p),root,"lock");if(!up_safe_target(root,"lock")||!up_parents(p))return 0;
 #ifdef _WIN32
-    wchar_t* w=filewide(p);install_lock=w?CreateFileW(w,GENERIC_READ|GENERIC_WRITE,0,NULL,OPEN_ALWAYS,FILE_ATTRIBUTE_HIDDEN,NULL):INVALID_HANDLE_VALUE;free(w);return install_lock!=INVALID_HANDLE_VALUE;
+    wchar_t* w=filewide(p);*handle=w?CreateFileW(w,GENERIC_READ|GENERIC_WRITE,FILE_SHARE_DELETE,NULL,OPEN_ALWAYS,FILE_ATTRIBUTE_HIDDEN,NULL):INVALID_HANDLE_VALUE;free(w);return *handle!=INVALID_HANDLE_VALUE;
 #else
-    install_lock=open(p,O_CREAT|O_RDWR|O_NOFOLLOW,0600);return install_lock>=0&&flock(install_lock,LOCK_EX|LOCK_NB)==0;
+    *handle=open(p,O_CREAT|O_RDWR|O_NOFOLLOW,0600);return *handle>=0&&flock(*handle,LOCK_EX|LOCK_NB)==0;
 #endif
 }
-void up_unlock(void) {
+static void unlock_at(up_lock_handle* handle) {
 #ifdef _WIN32
-    if(install_lock!=INVALID_HANDLE_VALUE){CloseHandle(install_lock);install_lock=INVALID_HANDLE_VALUE;}
+    if(*handle!=INVALID_HANDLE_VALUE){CloseHandle(*handle);*handle=INVALID_HANDLE_VALUE;}
 #else
-    if(install_lock>=0){close(install_lock);install_lock=-1;}
+    if(*handle>=0){close(*handle);*handle=-1;}
 #endif
 }
+int up_lock(const char* root){return lock_at(root,&install_lock);}
+/* State is external to the client and remains on the installation filesystem,
+   so stage/backup renames preserve the existing crash-recovery guarantees. */
+static int storage_plain(const char* path) {
+    char* copy=strdup(path);if(!copy)return 0;int ok=1;
+    for(size_t i=0;;i++)if(copy[i]=='/'||copy[i]=='\\'||!copy[i]) {
+        char c=copy[i];copy[i]=0;
+        if(i&&!(i==2&&copy[1]==':')) {int kind=up_regular(copy);if(kind<0||(c&&kind==1))ok=0;}
+        copy[i]=c;if(!c||!ok)break;
+    }
+    free(copy);return ok;
+}
+static int storage_volume(const char* install,const char* state) {
+    char* parent=strdup(state);if(!parent)return 0;
+    while(up_regular(parent)!=2) {char* slash=strrchr(parent,'/');if(!slash){free(parent);return 0;}if(slash==parent)slash[1]=0;else *slash=0;if(!*parent){free(parent);return 0;}}
+    int ok=0;
+#ifdef _WIN32
+    wchar_t* a=filewide(install),*b=filewide(parent);BY_HANDLE_FILE_INFORMATION av,bv;
+    HANDLE ah=a?CreateFileW(a,FILE_READ_ATTRIBUTES,FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,NULL,OPEN_EXISTING,FILE_FLAG_BACKUP_SEMANTICS,NULL):INVALID_HANDLE_VALUE;
+    HANDLE bh=b?CreateFileW(b,FILE_READ_ATTRIBUTES,FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,NULL,OPEN_EXISTING,FILE_FLAG_BACKUP_SEMANTICS,NULL):INVALID_HANDLE_VALUE;
+    ok=ah!=INVALID_HANDLE_VALUE&&bh!=INVALID_HANDLE_VALUE&&GetFileInformationByHandle(ah,&av)&&GetFileInformationByHandle(bh,&bv)&&av.dwVolumeSerialNumber==bv.dwVolumeSerialNumber;
+    if(ah!=INVALID_HANDLE_VALUE)CloseHandle(ah);if(bh!=INVALID_HANDLE_VALUE)CloseHandle(bh);free(a);free(b);
+#else
+    struct stat a,b;ok=!stat(install,&a)&&!stat(parent,&b)&&a.st_dev==b.st_dev;
+#endif
+    free(parent);return ok;
+}
+int up_storage_resolve(up_config* c) {
+    if(!c->state[0]&&!xlangUpdateStoragePath(c->root,UP_PLATFORM,c->state))return up_error("Cannot locate external update state");
+    char normalized[UP_PATH],install[UP_PATH];
+#ifdef _WIN32
+    char absolute[UP_PATH];if(!up_root(absolute,sizeof(absolute),c->state)||!xlangUpdateNormalizeRoot(absolute,normalized))return 0;
+#else
+    if(c->state[0]!='/'||!xlangUpdateNormalizeRoot(c->state,normalized))return up_error("--state-dir must be an absolute directory");
+#endif
+    if(!xlangUpdateNormalizeRoot(c->root,install))return 0;
+    if(strstr(normalized,"/../")||strstr(normalized,"/./")||!strcmp(normalized+strlen(normalized)-(strlen(normalized)>=3?3:0),"/.."))return up_error("State directory must not contain dot segments");
+    size_t a=strlen(install),b=strlen(normalized);
+    if((a<=b&&!memcmp(install,normalized,a)&&(a==b||normalized[a]=='/'))||(b<=a&&!memcmp(normalized,install,b)&&(a==b||install[b]=='/')))return up_error("Update state must be separate from the installation");
+    if(!storage_plain(normalized)||!storage_volume(c->root,normalized))return up_error("Update state must be a plain directory on the installation filesystem");
+    snprintf(c->state,sizeof(c->state),"%s",normalized);return 1;
+}
+static int storage_empty(const char* directory) {
+    int ok=1;
+#ifdef _WIN32
+    char pattern[UP_PATH];if(!up_join(pattern,sizeof(pattern),directory,"*"))return 0;
+    wchar_t* w=filewide(pattern);WIN32_FIND_DATAW d;HANDLE h=w?FindFirstFileW(w,&d):INVALID_HANDLE_VALUE;free(w);
+    if(h==INVALID_HANDLE_VALUE)return GetLastError()==ERROR_FILE_NOT_FOUND;
+    do{if(wcscmp(d.cFileName,L".")&&wcscmp(d.cFileName,L"..")&&wcscmp(d.cFileName,L"lock")&&wcscmp(d.cFileName,L"owner.txt")){ok=0;break;}}while(FindNextFileW(h,&d));FindClose(h);
+#else
+    DIR* d=opendir(directory);if(!d)return 0;struct dirent* item;
+    while((item=readdir(d)))if(strcmp(item->d_name,".")&&strcmp(item->d_name,"..")&&strcmp(item->d_name,"lock")&&strcmp(item->d_name,"owner.txt")){ok=0;break;}closedir(d);
+#endif
+    return ok;
+}
+static int storage_key_matches(const char* file,const char* key) {
+    size_t n=0;unsigned char* data=up_read(file,128,&n);int ok=data&&n==64&&!memcmp(data,key,64);free(data);return ok;
+}
+static int migrate_entry(const char* legacy,const char* state,const char* name) {
+    if(!strcmp(name,".")||!strcmp(name,"..")||!strcmp(name,"lock")||!strcmp(name,"owner.txt"))return 1;
+    char a[UP_PATH],b[UP_PATH];
+    return up_safe_target(legacy,name)&&up_safe_target(state,name)&&up_join(a,sizeof(a),legacy,name)&&up_join(b,sizeof(b),state,name)&&!up_exists(b)&&up_move(a,b);
+}
+static int migrate_entries(const char* legacy,const char* state) {
+    int ok=1;char** names=calloc(4096,sizeof(*names));size_t count=0;if(!names)return 0;
+#ifdef _WIN32
+    char pattern[UP_PATH];if(!up_join(pattern,sizeof(pattern),legacy,"*")){free(names);return 0;}
+    wchar_t* w=filewide(pattern);WIN32_FIND_DATAW d;HANDLE h=w?FindFirstFileW(w,&d):INVALID_HANDLE_VALUE;free(w);
+    if(h==INVALID_HANDLE_VALUE){free(names);return GetLastError()==ERROR_FILE_NOT_FOUND;}
+    do{char name[1024];if(count==4096||!utf8(d.cFileName,name,sizeof(name))||!(names[count]=strdup(name))){ok=0;break;}count++;}while(FindNextFileW(h,&d));FindClose(h);
+#else
+    DIR* d=opendir(legacy);if(!d){free(names);return 0;}struct dirent* item;
+    while((item=readdir(d))){if(count==4096||!(names[count]=strdup(item->d_name))){ok=0;break;}count++;}closedir(d);
+#endif
+    for(size_t i=0;i<count;i++){if(ok&&!migrate_entry(legacy,state,names[i]))ok=0;free(names[i]);}free(names);return ok;
+}
+int up_storage_lock(up_config* c) {
+    char legacy[UP_PATH],owner[UP_PATH],migration[UP_PATH],oldOwner[UP_PATH],key[65];
+    if(!up_join(legacy,sizeof(legacy),c->root,".xlang-update")||!xlangUpdateStorageKey(c->root,key)||!up_lock(c->state))return up_error("External update state is busy or not writable");
+    up_join(owner,sizeof(owner),c->state,"owner.txt");up_join(migration,sizeof(migration),c->state,"migration.txt");up_join(oldOwner,sizeof(oldOwner),legacy,"owner.txt");
+    if(!up_safe_target(c->state,"owner.txt")||!up_safe_target(c->state,"migration.txt"))return 0;
+    int owned=up_exists(owner),resuming=up_exists(migration);
+    if((owned&&!storage_key_matches(owner,key))||(resuming&&!storage_key_matches(migration,key)))return up_error("Update state belongs to another installation");
+    if(up_exists(legacy)) {
+        if(!storage_plain(legacy)||up_regular(legacy)!=2)return up_error("Unsafe legacy update state; preserved");
+        if(!resuming&&((owned&&!storage_empty(legacy))||(!owned&&!storage_empty(c->state))))return up_error("Both old and external states exist; preserved for review");
+        if(up_exists(oldOwner)&&!storage_key_matches(oldOwner,key))return up_error("Legacy state belongs to another installation");
+        if(!lock_at(legacy,&legacy_lock))return up_error("Legacy updater is busy; retry after it exits");
+        if(!up_write(migration,key,64)||!migrate_entries(legacy,c->state)||!up_write(owner,key,64))return up_error("Migration incomplete; all state preserved, run updater again");
+        if(!up_remove(migration)||!up_remove(oldOwner))return 0;
+        unlock_at(&legacy_lock);char oldLock[UP_PATH];up_join(oldLock,sizeof(oldLock),legacy,"lock");if(!up_remove(oldLock))return 0;
+#ifdef _WIN32
+        wchar_t* w=filewide(legacy);int removed=w&&RemoveDirectoryW(w);free(w);
+#else
+        int removed=rmdir(legacy)==0;
+#endif
+        return removed?1:up_error("Legacy directory cleanup pending; preserved, retry updater");
+    }
+    if(!owned&&!storage_empty(c->state))return up_error("Nonempty unbound state directory was preserved");
+    return (owned||up_write(owner,key,64))&&(!resuming||up_remove(migration));
+}
+void up_unlock(void) {unlock_at(&legacy_lock);unlock_at(&install_lock);}
 int up_wait_parent(unsigned long pid,int seconds) {if(!pid)return 1;
 #ifdef _WIN32
     HANDLE p=OpenProcess(SYNCHRONIZE,FALSE,(DWORD)pid);if(!p)return GetLastError()==ERROR_INVALID_PARAMETER;int ok=WaitForSingleObject(p,(DWORD)seconds*1000)==WAIT_OBJECT_0;CloseHandle(p);return ok;
