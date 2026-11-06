@@ -6,9 +6,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <math.h>
 #define TRY(call) do { int r_=(call); if(r_!=XUI_OK) return r_; } while(0)
 typedef struct about_key { xide_app* app; xui_widget_event_proc original; void* user; } about_key;
-struct xide_about_view { xui_widget window,content,version,close; xide_ui_layout layout; float scale; about_key keys[8]; int keyCount; };
+struct xide_about_view { xui_widget window,content,heading,description,names[6],values[6]; float scale; about_key keys[8]; int keyCount; };
 static const char* urls[]={"https://xcompiler.com/","https://xywhsoft.com/","https://xcompiler.com/tour.html","https://xcompiler.com/book/index.html"};
 const char* xideAboutViewLink(int index) { return index>=0 && index<4 ? urls[index] : NULL; }
 static void closeWindow(xui_widget w,void* user)
@@ -45,32 +46,63 @@ static int label(xide_app* a,const char* text,float x,float y,float width,float 
     xui_widget w=NULL; TRY(xuiLabelCreate(a->context,&w,&d)); TRY(xuiWidgetSetRect(w,(xui_rect_t){x,y,width,height}));
     TRY(xuiWidgetAddChild(a->aboutView->content,w)); if(out) *out=w; return XUI_OK;
 }
+/* Arrange inside the actual viewport, rather than a second scaled virtual
+   canvas. Fractional font/DPI scales must never create scrollable overflow. */
+static int layoutContent(xui_widget content,xui_rect_t area,void* user)
+{
+    xide_app* a=user; struct xide_about_view* v=a->aboutView;
+    float scale=xideUiFontScale(a),line=20*scale;
+    xui_font_metrics_t metrics={0};
+    if(a->proxy.fontGetMetrics(&a->proxy,a->uiFont,&metrics)==XUI_OK && metrics.fLineHeight>0) line=ceilf(metrics.fLineHeight);
+    float names=0,values=0;
+    for(int i=0;i<6;++i) {
+        xui_vec2_t size={0};
+        TRY(xideDpiTextMeasure(&a->proxy,a->uiFont,xuiLabelGetText(v->names[i]),&size)); names=fmaxf(names,ceilf(size.fX));
+        const char* text=i<2 ? xuiLabelGetText(v->values[i]) : xuiHyperlinkGetText(v->values[i]);
+        TRY(xideDpiTextMeasure(&a->proxy,a->uiFont,text,&size)); values=fmaxf(values,ceilf(size.fX));
+    }
+    float gap=20*scale,group=fminf(area.fW,names+gap+values),x=area.fX+(area.fW-group)/2;
+    float compact=fminf(1,fmaxf(0,(area.fH-9*line)/(60*scale)));
+    float row=line+6*scale*compact,heading=line+4*scale*compact,intro=2*line+4*scale*compact;
+    float height=heading+intro+16*scale*compact+6*row,y=area.fY+fmaxf(0,(area.fH-height)/2);
+    TRY(xuiLayoutArrangeChild(content,v->heading,(xui_rect_t){area.fX,y,area.fW,heading})); y+=heading+6*scale*compact;
+    TRY(xuiLayoutArrangeChild(content,v->description,(xui_rect_t){area.fX,y,area.fW,intro})); y+=intro+10*scale*compact;
+    for(int i=0;i<6;++i) {
+        TRY(xuiLayoutArrangeChild(content,v->names[i],(xui_rect_t){x,y,names,row}));
+        TRY(xuiLayoutArrangeChild(content,v->values[i],(xui_rect_t){x+names+gap,y,fmaxf(1,group-names-gap),row})); y+=row;
+    }
+    return XUI_OK;
+}
 static int create(xide_app* a)
 {
     struct xide_about_view* v=calloc(1,sizeof(*v)); if(!v) return XUI_ERROR_OUT_OF_MEMORY; a->aboutView=v;
-    TRY(xideDialogCreate(a,&v->window,"关于 xlang",580,388,22));
+    TRY(xideDialogCreate(a,&v->window,"关于 xlang",420,250,18));
     TRY(xideDialogSetCancel(v->window,closeWindow,a)); v->content=xideDialogGetContentWidget(v->window);
     TRY(xuiWidgetAddChild(a->root,v->window)); TRY(xuiWidgetSetLayoutType(v->content,XUI_LAYOUT_MANUAL));
-    TRY(label(a,"xlang",0,0,580,36,NULL));
-    TRY(label(a,"轻量、高效的集成开发环境，为 C 与 xlang 提供代码编辑、语义分析、项目管理与编译运行。",0,46,580,48,NULL));
-    TRY(label(a,"版本",0,112,112,28,NULL)); TRY(label(a,"",122,112,458,28,&v->version));
-    TRY(label(a,"作者",0,150,112,28,NULL)); TRY(label(a,"xLeaves (xywhsoft)",122,150,458,28,NULL));
+    TRY(label(a,"xlang",0,0,420,26,&v->heading));
+    TRY(label(a,"面向 C 与 xlang 的轻量集成开发环境。\n代码编辑 · 语义分析 · 项目管理 · 编译运行",0,32,420,44,&v->description));
+    TRY(xuiLabelSetTextFlags(v->heading,XUI_TEXT_ALIGN_CENTER|XUI_TEXT_ALIGN_MIDDLE));
+    TRY(xuiLabelSetTextFlags(v->description,XUI_TEXT_ALIGN_CENTER|XUI_TEXT_ALIGN_MIDDLE));
+    TRY(label(a,"版本",0,88,112,26,&v->names[0])); TRY(label(a,"",132,88,288,26,&v->values[0]));
+    TRY(label(a,"作者",0,114,112,26,&v->names[1])); TRY(label(a,"xLeaves (xywhsoft)",132,114,288,26,&v->values[1]));
     const char* names[]={"官方网站","工作室网站","xlang 语法导览","xlang 在线教程"};
     const char* texts[]={"xcompiler.com  ↗","xywhsoft.com  ↗","xcompiler.com/tour.html  ↗","xcompiler.com/book/index.html  ↗"};
     for(int i=0;i<4;++i) {
-        float y=188+36*i; TRY(label(a,names[i],0,y,118,28,NULL));
+        float y=140+26*i; TRY(label(a,names[i],0,y,112,26,&v->names[i+2]));
         xui_hyperlink_desc_t d={0}; d.iSize=sizeof(d); d.pFont=a->uiFont; d.sText=texts[i];
-        xui_widget w=NULL; TRY(xuiHyperlinkCreate(a->context,&w,&d)); TRY(xuiWidgetSetRect(w,(xui_rect_t){122,y,458,28}));
+        xui_widget w=NULL; TRY(xuiHyperlinkCreate(a->context,&w,&d)); TRY(xuiWidgetSetRect(w,(xui_rect_t){132,y,288,26})); v->values[i+2]=w;
         xuiWidgetSetUserData(w,(void*)(intptr_t)i); TRY(xuiHyperlinkSetClick(w,openLink,a));
         TRY(xuiWidgetSetAccessibleName(w,urls[i])); TRY(xuiWidgetAddChild(v->content,w));
         TRY(bindKey(a,w));
     }
-    xui_button_desc_t b={0}; b.iSize=sizeof(b); b.pFont=a->uiFont; b.sText="关闭窗口";
-    TRY(xuiButtonCreate(a->context,&v->close,&b)); TRY(xuiWidgetSetRect(v->close,(xui_rect_t){464,348,116,32}));
-    TRY(xuiButtonSetClick(v->close,closeWindow,a)); TRY(xuiWidgetAddChild(v->content,v->close));
-    TRY(bindKey(a,v->close)); TRY(bindKey(a,v->window));
+    for(int i=0;i<6;++i) {
+        TRY(xuiLabelSetTextFlags(v->names[i],XUI_TEXT_ALIGN_LEFT|XUI_TEXT_ALIGN_MIDDLE));
+        if(i<2) TRY(xuiLabelSetTextFlags(v->values[i],XUI_TEXT_ALIGN_LEFT|XUI_TEXT_ALIGN_MIDDLE));
+        else TRY(xuiHyperlinkSetTextFlags(v->values[i],XUI_TEXT_ALIGN_LEFT|XUI_TEXT_ALIGN_MIDDLE));
+    }
+    TRY(bindKey(a,v->window));
     TRY(bindKey(a,xuiWindowGetCloseButtonWidget(v->window))); TRY(bindKey(a,xuiWindowGetMaximizeButtonWidget(v->window)));
-    return xideUiLayoutCapture(&v->layout,v->content);
+    return xuiWidgetSetLayoutChildrenCallback(v->content,layoutContent,a);
 }
 int xideAboutViewOpen(xide_app* a)
 {
@@ -80,20 +112,24 @@ int xideAboutViewOpen(xide_app* a)
         xideMessageShow(a,"关于 xlang","无法创建关于窗口。",1); return 0;
     }
     char text[128]; int64_t iteration=xideInstalledIteration();
-    if(iteration) snprintf(text,sizeof(text),"%s  ·  更新迭代 %lld",xideProgramVersion(),(long long)iteration);
-    else snprintf(text,sizeof(text),"%s  ·  更新迭代 0（尚未安装更新）",xideProgramVersion());
-    xuiLabelSetText(a->aboutView->version,text); xideAboutViewLayout(a);
+    snprintf(text,sizeof(text),"%s  ·  更新迭代 %lld",xideProgramVersion(),(long long)iteration);
+    xuiLabelSetText(a->aboutView->values[0],text); xideAboutViewLayout(a);
     xideUiFontBindWidget(a,a->aboutView->window); xideDialogSetOpen(a->aboutView->window,1);
-    xuiSetFocusWidget(a->context,a->aboutView->close); xgeRenderRequest(); return 1;
+    xuiSetFocusWidget(a->context,a->aboutView->values[2]); xgeRenderRequest(); return 1;
 }
 void xideAboutViewLayout(xide_app* a)
 {
     struct xide_about_view* v=a->aboutView; if(!v) return;
     xideDialogSetMaxSize(v->window,a->viewportWidth-32,a->viewportHeight-32);
     float scale=xideUiFontScale(a);
-    if(v->scale!=scale) { xideUiLayoutApply(a,&v->layout,1); xideDialogSetContentSize(v->window,xideUiHeight(a,580),xideUiHeight(a,388)); v->scale=scale; }
+    if(v->scale!=scale) {
+        xideDialogSetContentSize(v->window,xideUiHeight(a,420),xideUiHeight(a,250));
+        /* Zero extent uses the native scroll view's viewport-filling content.
+           The layout above fits that space, so both maximum offsets stay zero. */
+        xuiScrollViewSetContentSize(xideDialogGetScrollViewWidget(v->window),0,0); v->scale=scale;
+    }
 }
 int xideAboutViewIsOpen(xide_app* a) { return a && a->aboutView && xideDialogIsOpen(a->aboutView->window); }
 xui_widget xideAboutViewWindow(xide_app* a) { return a && a->aboutView ? a->aboutView->window : NULL; }
-xui_widget xideAboutViewCloseButton(xide_app* a) { return a && a->aboutView ? a->aboutView->close : NULL; }
+xui_widget xideAboutViewLinkWidget(xide_app* a,int i) { return a && a->aboutView && i>=0 && i<4 ? a->aboutView->values[i+2] : NULL; }
 void xideAboutViewDestroy(xide_app* a) { free(a->aboutView); a->aboutView=NULL; }

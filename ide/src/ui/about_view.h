@@ -6,6 +6,6 @@ int xideAboutViewIsOpen(xide_app*);
 void xideAboutViewLayout(xide_app*);
 void xideAboutViewDestroy(xide_app*);
 xui_widget xideAboutViewWindow(xide_app*);
-xui_widget xideAboutViewCloseButton(xide_app*);
+xui_widget xideAboutViewLinkWidget(xide_app*,int);
 const char* xideAboutViewLink(int);
 #endif
