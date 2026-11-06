@@ -66,7 +66,7 @@
       "licenseUrl": "http://www.microsoft.com/typography/fonts/default.aspx"
     },
     "fontChangeSourceParent": "b16a95bbf022efcafc7b965d1bd9b5b945c0d881",
-    "currentBuildProvenance": "dev/release-materials/provenance/ide-release-maintenance-20261106.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/ide-dialog-backdrop-20261106.json",
     "cLspEnabled": false,
     "applicationIcon": {
       "source": "ide/data/xlang_ide.ico",
@@ -80,7 +80,7 @@
       "provenance": "docs/reports/release-materials-migration-20261031.json",
       "buildCommand": "pwsh -NoProfile -File ide/tools/build.ps1 -Configuration Release -GuiOnly -LanguageServerPath D:/GIT/x-lang/release/xlang-ls.exe -ReleaseDirectory D:/GIT/x-lang/release"
     },
-    "sha256": "cc7fb0ce36bea013c012ac21a2583fe15a2dfb6327d687dd6ae0af0e0968ebe9",
+    "sha256": "6c62d11534f0eb5ff80874477f29e0d862039df451be8e6b748a461a31dfb572",
     "sourceIdentity": {
       "guiQualification": {
         "path": "dev/release-materials/provenance/xge-ide-update-20261106/publication-receipt.json",
@@ -149,7 +149,9 @@
     },
     "previousBuildProvenanceBeforeAboutLayout": "dev/release-materials/provenance/ide-about-versions-20261106.json",
     "previousBuildProvenanceBeforeReleaseMaintenance": "dev/release-materials/provenance/ide-about-layout-20261106.json",
-    "updateStateDirectory": "ide/build/update-runtime/<platform>-<install-path-sha256>"
+    "updateStateDirectory": "ide/build/update-runtime/<platform>-<install-path-sha256>",
+    "previousBuildProvenanceBeforeDialogBackdrop": "dev/release-materials/provenance/ide-release-maintenance-20261106.json",
+    "dialogBackdrop": "viewport-sized absolute overlay; dialog above backdrop; child/IME-aware Escape"
   },
   "catalog": {
     "status": "passed",
@@ -3223,10 +3225,10 @@
       "previousSha256": "9e8eb9a9e373352e80afcdf5a19b7017cac80c08d09d1a23afd33611424f2b22"
     },
     {
-      "sha256": "cc7fb0ce36bea013c012ac21a2583fe15a2dfb6327d687dd6ae0af0e0968ebe9",
-      "bytes": 1809178,
+      "sha256": "6c62d11534f0eb5ff80874477f29e0d862039df451be8e6b748a461a31dfb572",
+      "bytes": 1809864,
       "path": "release/win_x64/xlang_ide.exe",
-      "origin": "ide-release-maintenance-20261106"
+      "origin": "ide-dialog-backdrop-20261106"
     },
     {
       "sha256": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
@@ -3563,6 +3565,11 @@
       "path": "dev/release-materials/provenance/ide-release-maintenance-20261106.json",
       "sha256": "b6069a2d71815dd6cb9441c295b3612e2b4457e749ab3e90ac6880f265e19522",
       "bytes": 7010
+    },
+    "ideDialogBackdrop": {
+      "path": "dev/release-materials/provenance/ide-dialog-backdrop-20261106.json",
+      "sha256": "d5365b6666f7177f12e3261f069d0037e03fbce9f983e09a9398b7fb4cc9dfe3",
+      "bytes": 1959
     }
   },
   "xuiGallery": {

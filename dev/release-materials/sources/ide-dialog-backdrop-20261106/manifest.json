@@ -1,0 +1,25 @@
+{
+  "files": [
+    {
+      "path": "ide/src/ui/dialog.c",
+      "sha256": "3185c9ba32620eec1036f95d3bc38b78cc112f9359a20ec85196686f0c473040",
+      "bytes": 9767
+    },
+    {
+      "path": "ide/src/ui/file_dialog.c",
+      "sha256": "c0d83adb32c354b9d3adb080c7abb615b7bea38526dc901cea589a40389e181c",
+      "bytes": 8791
+    },
+    {
+      "path": "ide/tests/file_dialog_test.c",
+      "sha256": "3f200b2207be5959df255df074dc01d02a5d3cf7be8384b1154ed5cc81353d70",
+      "bytes": 14541
+    },
+    {
+      "path": "ide/tests/dialog_message_test.c",
+      "sha256": "9461cdb7ecd79d48a508ef5645a58ee17f92d222a6f635cb2b0340999e34080a",
+      "bytes": 12213
+    }
+  ],
+  "archiveSha256": "1e603098c4609cd4b38ab039be2b85899356b9842a48de4f64b8f67aa6e054e4"
+}

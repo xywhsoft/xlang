@@ -1,0 +1,52 @@
+{
+  "date": "2026-11-06",
+  "status": "passed",
+  "scope": "Uniform viewport-sized modal backdrop; business/file windows share the overlay stacking tree; unhandled Escape cancels the modal after controls and IME",
+  "externalPublishPerformed": false,
+  "programVersion": "0.6.0",
+  "preparedIteration": 1,
+  "product": {
+    "path": "release/win_x64/xlang_ide.exe",
+    "sha256": "6c62d11534f0eb5ff80874477f29e0d862039df451be8e6b748a461a31dfb572",
+    "bytes": 1809864
+  },
+  "runtimeProtected": {
+    "xl.exe": "a5feede784f0a5cb1a829c2e362de57e9278b55cec1a11b796cf4b6e78831bbc",
+    "xl.dll": "ae1fe2778e9aa7e4de407c89ba4a8e05bcd248d32226806e7957a0b6acf6b394",
+    "xlc.dll": "6b1e8d18a28791778c7c159bac431231a90ee18b695ad54cc8a8d11ed1b2d32f",
+    "xge.dll": "b83417d354dc2818fb51c2d64ccf5ddd8341b1beb4eb02c01ef9f897452d2604",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "data/commands.json": "27e17cb16f25a4b1c16714736faee0e6df2098f472b0fd393166acc2e98de30a",
+    "data/catalog-sources/index.json": "2ab9cd46e0179056a0357f453465a633f7d17fa2482f3a38ee5f2fc993c18546"
+  },
+  "inputGuardPassed": true,
+  "fullGuiBuild": true,
+  "finalIncrementalUnits": [
+    "ide/src/ui/dialog.c",
+    "ide/src/ui/file_dialog.c"
+  ],
+  "publicHeadersAndAppLayoutChanged": false,
+  "acceptance": {
+    "nativeFixtures": [
+      "about_view_test",
+      "input_test",
+      "update_client_test",
+      "file_dialog_test",
+      "dialog_message_test",
+      "goto_view_test"
+    ],
+    "fileDialogChecks": 62,
+    "dialogChecks": 66,
+    "gotoChecks": 93,
+    "viewportAndLargeFontCoverage": true,
+    "nativeImeCoverage": true,
+    "dpi": [
+      1,
+      1.25,
+      1.5,
+      2
+    ]
+  },
+  "compilerCatalogAcceptance": "Existing compiler-help binding retained; this GUI acceptance does not requalify compiler/catalog matching",
+  "sourceMaterials": "dev/release-materials/sources/ide-dialog-backdrop-20261106/manifest.json"
+}

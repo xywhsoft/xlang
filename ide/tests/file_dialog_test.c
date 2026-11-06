@@ -19,6 +19,15 @@ static int settle(xide_app* a) { if(xuiDispatchPendingEvents(a->context)!=XUI_OK
 static int click(xide_app* a,xui_widget w) { xui_rect_t r=xuiWidgetGetWorldRect(w);float x=r.fX+r.fW/2,y=r.fY+r.fH/2;return xuiInputPointerMove(a->context,x,y,0)==XUI_OK && xuiInputPointerDown(a->context,x,y,XUI_POINTER_BUTTON_LEFT,XUI_POINTER_BUTTON_LEFT)==XUI_OK && xuiInputPointerUp(a->context,x,y,XUI_POINTER_BUTTON_LEFT,0)==XUI_OK && settle(a); }
 static int key(xide_app* a,int k) { return xuiInputKeyDownEx(a->context,k,0,NULL)==XUI_OK && xuiInputKeyUpEx(a->context,k,0,NULL)==XUI_OK && settle(a); }
 static int choose(xide_app* a,const char* path) { xui_file_dialog p=xideFileDialogCurrent(a);char* dir=xidePathDirectory(path);int okay=p && dir && xuiFileDialogSetDirectory(p,dir)==XUI_OK;free(dir);if(!okay) return 0;for(int i=0;i<xuiFileDialogGetEntryCount(p);++i) if(xidePathEqual(path,xuiFileDialogGetEntryPath(p,i))) return xuiFileDialogSelectIndex(p,i)==XUI_OK && settle(a) && click(a,xuiFileDialogGetOkButtonWidget(p));return 0; }
+static int backdropCovers(xide_app* a,xui_widget window) {
+    int found=0;
+    for(xui_widget w=xuiWidgetGetFirstChild(xuiOverlayRoot(a->context));w;w=xuiWidgetGetNextSibling(w)) {
+        if(!xuiWidgetGetVisible(w) || xuiWidgetGetType(w)!=xuiPanelGetType(a->context)) continue;
+        xui_rect_t r=xuiWidgetGetWorldRect(w);found=1;
+        if(r.fX!=0 || r.fY!=0 || r.fW!=a->viewportWidth || r.fH!=a->viewportHeight) return 0;
+    }
+    return found;
+}
 static int capture(xide_app* a,const char* path) { xui_rect_i_t r={0,0,a->viewportWidth,a->viewportHeight};return xuiUpdate(a->context,0)==XUI_OK && a->proxy.surfaceClear(&a->proxy,a->target,0)==XUI_OK && xuiRender(a->context,a->target,&r,1)==XUI_OK && xideAppCapture(a,path)==XGE_OK; }
 static int writeText(const char* p,const char* s) { return xrtFileWriteAtomic(p,(xbytesview){(const unsigned char*)s,strlen(s)}); }
 static char* copy(const char* s) { size_t n=strlen(s)+1;char* p=malloc(n);if(p) memcpy(p,s,n);return p; }
@@ -33,6 +42,11 @@ static int verify(void* user) {
     CHECK(xideActionExecute(&app,XIDE_ACTION_ADD_PROJECT)==XIDE_ACTION_DISPATCHED && settle(&app) && xideFileDialogBusy(&app) && xideMessagePending(&app));
     xui_file_dialog p=xideFileDialogCurrent(&app);CHECK(p && xuiWidgetIsType(xuiFileDialogGetWindowWidget(p),xuiWidgetFindType(app.context,"window")) && xuiFileDialogGetFilterCount(p)==2 && app.workspaceModel.projectCount==0);
     CHECK(!xideActionQuery(&app,XIDE_ACTION_OPEN_FILE).enabled && !xgeRequestQuit());
+    CHECK(backdropCovers(&app,xuiFileDialogGetWindowWidget(p)));
+    { int width=app.viewportWidth,height=app.viewportHeight;
+      app.viewportWidth=1000;app.viewportHeight=700;CHECK(settle(&app) && backdropCovers(&app,xuiFileDialogGetWindowWidget(p)));
+      app.viewportWidth=width;app.viewportHeight=height;CHECK(settle(&app) && backdropCovers(&app,xuiFileDialogGetWindowWidget(p))); }
+
     image=xidePathResolve(root,"open-project.png");CHECK(image && capture(&app,image));
     CHECK(choose(&app,manifest) && !xideFileDialogBusy(&app) && !xideMessageBusy(&app) && app.workspaceModel.projectCount==1 && xidePathEqual(app.workspaceModel.projects[0].manifest,manifest));
     CHECK(xideActionExecute(&app,XIDE_ACTION_ADD_PROJECT)==XIDE_ACTION_DISPATCHED && settle(&app));p=xideFileDialogCurrent(&app);CHECK(p && click(&app,xuiFileDialogGetCancelButtonWidget(p)) && !xideFileDialogBusy(&app) && !xideMessageBusy(&app) && app.workspaceModel.projectCount==1);
@@ -62,7 +76,7 @@ static int verify(void* user) {
     CHECK(!xideActionFind(XIDE_ACTION_C_SERVER) && !app.cCompletionView && !app.cLanguageView);
 #endif
     free(binary);
-    char* font=xideUiFontDefaultPath();CHECK(font && xideUiFontApply(&app,font,40,&error));free(font);CHECK(xideActionExecute(&app,XIDE_ACTION_OPEN_FILE)==XIDE_ACTION_DISPATCHED && settle(&app));p=xideFileDialogCurrent(&app);CHECK(p && xuiFileDialogSetDirectory(p,root)==XUI_OK && settle(&app));free(image);image=xidePathResolve(root,"large-font.png");CHECK(image && capture(&app,image));
+    char* font=xideUiFontDefaultPath();CHECK(font && xideUiFontApply(&app,font,40,&error));free(font);CHECK(xideActionExecute(&app,XIDE_ACTION_OPEN_FILE)==XIDE_ACTION_DISPATCHED && settle(&app));p=xideFileDialogCurrent(&app);CHECK(p && xuiFileDialogSetDirectory(p,root)==XUI_OK && settle(&app));CHECK(backdropCovers(&app,xuiFileDialogGetWindowWidget(p)));free(image);image=xidePathResolve(root,"large-font.png");CHECK(image && capture(&app,image));
     xui_widget combo=xuiFileDialogGetFilterComboWidget(p);CHECK(xuiComboBoxOpen(combo)==XUI_OK && settle(&app));xui_widget menu=xuiComboBoxGetMenuWidget(combo);xui_rect_t item=xuiMenuGetItemRect(menu,1),base=xuiWidgetGetWorldRect(menu);CHECK(xuiInputPointerMove(app.context,base.fX+item.fX+10,base.fY+item.fY+item.fH/2,0)==XUI_OK && xuiInputPointerDown(app.context,base.fX+item.fX+10,base.fY+item.fY+item.fH/2,XUI_POINTER_BUTTON_LEFT,XUI_POINTER_BUTTON_LEFT)==XUI_OK && xuiInputPointerUp(app.context,base.fX+item.fX+10,base.fY+item.fY+item.fH/2,XUI_POINTER_BUTTON_LEFT,0)==XUI_OK && settle(&app) && xuiComboBoxGetSelected(combo)==1);
     CHECK(key(&app,XUI_KEY_ESCAPE) && !xideFileDialogBusy(&app) && !xideMessageBusy(&app));
     printf("file_dialog_test passed: %d checks; real XUI add-existing-project/open/save-as/default-extension/overwrite yes-no, UTF-8 paths, cancelled and stale selection, nested font/folder draft retention, modal quit/actions, 40-DIP filter selection and two renders.\n",f->checks);
