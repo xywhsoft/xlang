@@ -13,4 +13,5 @@ XL6_CODE_LEASE_API xvalue* xl6ValueObjectFieldFindV1(const xvalue*,const char*,s
  * pinned. Preserve the first operation/cleanup failure, including silent one. */
 XL6_CODE_LEASE_API bool xl6ValueObjectFieldSetTakeV1(xvalue*,const char*,size_t,xvalue*);
 XL6_CODE_LEASE_API xvalue* xl6ValueObjectItemFindV1(const xvalue*,const char*,size_t);
+XL6_CODE_LEASE_API bool xl6ValueObjectItemSetTakeV1(xvalue*,const char*,size_t,xvalue*);
 #endif

@@ -13015,6 +13015,10 @@ static int xl6SemTypeHasImplicitDefaultInitialization(
          /* Thread has the same explicit empty-handle default as its global
           * storage and native status contract, not an uninitialized payload. */
          xl6TextEquals(concreteType->text, "thread") ||
+         /* Channel default construction creates its closed message schema,
+          * just like the explicit zero-argument constructor. */
+         (xl6TextEquals(concreteType->text, "channel") &&
+          xl6SemTypeNodeGenericArgCount(concreteType) == 1) ||
          xl6SemIsContainerBaseTypeName(concreteType->text) ||
          (xl6SemIsSpecialCollectionTypeName(concreteType->text) &&
           !xl6SemIsSpecialQueueTypeName(concreteType->text)) ||
