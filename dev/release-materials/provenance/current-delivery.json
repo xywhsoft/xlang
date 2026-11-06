@@ -27,7 +27,7 @@
     "entireAcceptanceRerunThisDelivery": false,
     "reusedQualifiedProducts": false,
     "xrtRevision": "93347eb5ae6beba8cf7ee3558708cc4f628fdd07",
-    "currentBuildProvenance": "dev/release-materials/provenance/native-static-release-20261106-r2/receipt.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/xui-gallery-20261106/receipt.json",
     "optimization": "-O2",
     "previousDeliveryCompiler": {
       "sourceRevision": "ed78373dded9bde21db313799c1db8d5111631a6",
@@ -65,9 +65,14 @@
         "path": "dev/release-materials/sources/static-support-20261106-r2/manifest.json",
         "sha256": "859c736210f2aca3699f28228232fbe0c5712f664fa9fdc012a84800ae5f3649",
         "bytes": 4759
+      },
+      {
+        "path": "dev/release-materials/sources/xui-gallery-20261106/manifest.json",
+        "sha256": "e92ce93baaebac04b19138f75882253943c29fbdd56087689d2e4a97f6b8f9c1",
+        "bytes": 23663
       }
     ],
-    "buildScope": "Windows production profiles only; source identity is the frozen core plus exact overlays. Existing Linux production products retain their earlier build evidence.",
+    "buildScope": "Two resource objects rebuilt over exact Root11 production objects; algorithms unchanged. Both earlier frozen production profiles fully recompiled with original O2 flags, 2835 translation units; only resource catalogs changed. Fresh matched hosts/static profiles with additive copied-column APIs; Windows host resumed its validated own cache after one OOM. Compiler-support artifacts unchanged.",
     "previousWindowsBuildEvidence": {
       "sourceRevision": "a1d18117b935c4e14c93b59c25b8db0e500826f9",
       "version": "0.6.0",
@@ -99,7 +104,8 @@
       },
       "xrtBaseRevision": "93347eb5ae6beba8cf7ee3558708cc4f628fdd07",
       "xrtLocalPatchTip": "7cecb354dd67aba47eb47cf9c118aea2b0195498"
-    }
+    },
+    "previousGalleryBuildEvidence": "dev/release-materials/provenance/native-static-release-20261106-r2/receipt.json"
   },
   "ide": {
     "languageServer": "Rebuilt qualified 455-pin C interop cohort; separately accepted from the prior GUI build.",
@@ -3245,16 +3251,16 @@
       "origin": "matched-xge3-xui3-local-delivery-20261105"
     },
     {
-      "sha256": "7a05d69bea0d4889735e115c2bd9bc1e74280c7a1245d7e955c97d7798310c9e",
-      "bytes": 15164928,
+      "sha256": "a70f78b7035f177dd61334be022779cd08742ae72a5cc18ece7c4bd0b73c2875",
+      "bytes": 15165952,
       "path": "release/win_x64/xl.dll",
-      "origin": "native-static-windows-qualified-20261106-r2"
+      "origin": "xui-gallery-20261106"
     },
     {
-      "sha256": "585edd3bceded526fb226cbe2f5321cc6f7ebcbae566af0da47d7315b5bba623",
-      "bytes": 21232128,
+      "sha256": "2fbb5eb05c238afabf3cb64f172aa36d1a3f23dd23ea65dbb6c48ff3c8e2a2d0",
+      "bytes": 21232640,
       "path": "release/win_x64/xlc.dll",
-      "origin": "native-static-windows-qualified-20261106-r2"
+      "origin": "xui-gallery-20261106"
     },
     {
       "sha256": "0afa441e1e3486c3e8ea2d7fbde7be5e5ea6caa850bc76a2bca1dc767b60f1d0",
@@ -3263,16 +3269,16 @@
       "origin": "matched-xge3-xui3-local-delivery-20261105"
     },
     {
-      "sha256": "82f1786ae29b4cf919bb6b1da7d88b6003cc1609e09e3e28620938486bf3d638",
-      "bytes": 16259536,
+      "sha256": "1f8b943e2822c43753044ce0ac4e37ca4648c0c788c0a58f479f0f02d08881a5",
+      "bytes": 16263632,
       "path": "release/linux_x64/libxl.so",
-      "origin": "matched-xge3-xui3-local-delivery-20261105"
+      "origin": "xui-gallery-20261106"
     },
     {
-      "sha256": "b0f5557eede29dcc7a9381a8d3796f6bc0a5c782e07a5cd22166ae407e62a56d",
+      "sha256": "4044e8dc513b91beff965c61b035193bd26505edd4f7be4b2154228820629ccc",
       "bytes": 21957328,
       "path": "release/linux_x64/libxlc.so",
-      "origin": "matched-xge3-xui3-local-delivery-20261105"
+      "origin": "xui-gallery-20261106"
     },
     {
       "sha256": "cc7fb0ce36bea013c012ac21a2583fe15a2dfb6327d687dd6ae0af0e0968ebe9",
@@ -3306,15 +3312,15 @@
     },
     {
       "path": "release/win_x64/extlibs/_xge_native/native/xge3_host.dll",
-      "sha256": "b60bab3050fb8523cc46acb769cf32b15a81896abfbb6cbe47b5e74073ee139c",
-      "bytes": 9104102,
-      "origin": "matched-host-xrt-native-image"
+      "sha256": "0229cab17ea902fe44be5758d0c0af90f930387a02efa3f8afd537d811c70d69",
+      "bytes": 9112806,
+      "origin": "xui-gallery-20261106"
     },
     {
       "path": "release/linux_x64/extlibs/_xge_native/native/libxge3_host.so",
-      "sha256": "ffa77a906c0d630613a97304fa0faeaab7e656e9dba64b74628056321ffa3723",
-      "bytes": 9898672,
-      "origin": "matched-host-xrt-native-image"
+      "sha256": "cf7cb31082edd8b2c29fc465e1c2328f74d5437c42266a8b018eb13e301c7637",
+      "bytes": 9906896,
+      "origin": "xui-gallery-20261106"
     },
     {
       "path": "release/win_x64/data/version.json",
@@ -3460,6 +3466,11 @@
       "path": "dev/release-materials/sources/xge-ide-update-20261106/source-manifest.json",
       "sha256": "85521c1a3f1bfc4675ce5e2a13dd31049f27f18bbb08e0109ee325e1a4679f65",
       "bytes": 628
+    },
+    "xuiGallery": {
+      "path": "dev/release-materials/sources/xui-gallery-20261106/manifest.json",
+      "sha256": "e92ce93baaebac04b19138f75882253943c29fbdd56087689d2e4a97f6b8f9c1",
+      "bytes": 23663
     }
   },
   "buildToolsSuccessor": {
@@ -3514,8 +3525,8 @@
     "windowsCandidateDirectory": "F:/xlang-validation/native-static-20261106/production-win-r5/release/win_x64",
     "windowsStaticPackages": "release/win_x64/static/xge3/packages",
     "staticSdk": {
-      "files": 77,
-      "bytes": 30412076,
+      "files": 128,
+      "bytes": 30531204,
       "selection": "Explicit XLANG_PACKAGE_PATH; matching _xge_native/xge/xui triple.",
       "ordinaryDynamicPackagesReplaced": false
     },
@@ -3561,6 +3572,11 @@
           "scope": "Actual TCC-produced PE standalone/TLS OS initialization and related static XGE AOT"
         }
       ]
+    },
+    "gallerySuccessor": {
+      "path": "dev/release-materials/provenance/xui-gallery-20261106/receipt.json",
+      "sha256": "893c938c12cef5712b766edfade960d4dc54d657246f2cbb92efbaff56f0627a",
+      "bytes": 350199
     }
   },
   "nativeStaticPublication": {
@@ -3584,5 +3600,26 @@
       "sha256": "b6069a2d71815dd6cb9441c295b3612e2b4457e749ab3e90ac6880f265e19522",
       "bytes": 7010
     }
+  },
+  "xuiGallery": {
+    "status": "installed-qualified",
+    "provenance": {
+      "path": "dev/release-materials/provenance/xui-gallery-20261106/receipt.json",
+      "sha256": "893c938c12cef5712b766edfade960d4dc54d657246f2cbb92efbaff56f0627a",
+      "bytes": 350199
+    },
+    "sourceMaterials": {
+      "path": "dev/release-materials/sources/xui-gallery-20261106/manifest.json",
+      "sha256": "e92ce93baaebac04b19138f75882253943c29fbdd56087689d2e4a97f6b8f9c1",
+      "bytes": 23663
+    },
+    "publicPrograms": 56,
+    "galleryEntrypoints": 48,
+    "aggregateScenes": 47,
+    "windowsBuildAndExecuteRows": 96,
+    "linuxBuilds": 48,
+    "linuxGuiRun": false,
+    "report": "docs/reports/xui-gallery-20261106.md",
+    "sourceCommit": "24e098643672c0edc3b89cfdd380c8c20c2286f2"
   }
 }
