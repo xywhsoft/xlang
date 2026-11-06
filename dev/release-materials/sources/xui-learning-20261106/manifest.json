@@ -1,0 +1,558 @@
+{
+  "schema": 1,
+  "sourceCommit": "8e5b639c1ab40a868239d8a1baf15e1164671d0b",
+  "baseCommit": "4d82d18e0",
+  "scope": "Canonical XUI teaching source, declarations, checks and preserved acceptance fixtures; runtime copies are indexed separately.",
+  "archive": {
+    "path": "dev/release-materials/sources/xui-learning-20261106/overlay.zip",
+    "sha256": "8a7334d2895539ce09daf3616d0fb2544825a4f5f14f7ff1c3efda7f1401d12f",
+    "bytes": 164793
+  },
+  "files": [
+    {
+      "path": ".gitattributes",
+      "sha256": "2562ed27957820547b0fff6be3ad2f46970e4c4a51ddb6dcb1776361a67ec53a",
+      "bytes": 7982
+    },
+    {
+      "path": "docs/reports/xui-learning-20261106.md",
+      "sha256": "f7d2a91acbcb020712ce1c5e903a67f29be7396e21e11c79bb1cc92693278816",
+      "bytes": 4465
+    },
+    {
+      "path": "docs/xge3-xui3-example-status.md",
+      "sha256": "74f7fabc96d1c106a93af592b7d9a4da318a7a09154dfdfabc8d10857d19b797",
+      "bytes": 6409
+    },
+    {
+      "path": "lib/bindings/xui/examples/_window.xl",
+      "sha256": "7f1006bfeb3f0a3bee7110992c38483de821959ad6f7227f57b761167ee6fd05",
+      "bytes": 5683
+    },
+    {
+      "path": "lib/bindings/xui/examples/accordion.xl",
+      "sha256": "0b195f8bffe24b14a43b9003e92bfc2ae55128eaf2e47bd79ff0eb9a5c151d61",
+      "bytes": 731
+    },
+    {
+      "path": "lib/bindings/xui/examples/all_controls.xl",
+      "sha256": "09b9ddf4e1b952855f792d2c559f24ebcebe81373a25bd4e8d640af547bce8f8",
+      "bytes": 30554
+    },
+    {
+      "path": "lib/bindings/xui/examples/basic.xl",
+      "sha256": "42b3453e21274031fd5f61088d8588eebf6196680327c73c703da46f9980af03",
+      "bytes": 780
+    },
+    {
+      "path": "lib/bindings/xui/examples/breadcrumb.xl",
+      "sha256": "530cec1d152534c083ee1d5f8636dac6b0bce158549bf6da092e25c0fbf3dd8e",
+      "bytes": 404
+    },
+    {
+      "path": "lib/bindings/xui/examples/button.xl",
+      "sha256": "c7052ce68dc14b64e5fd741c7591fe6f7cba1f46f2e474b55c2281c03cc32d6f",
+      "bytes": 567
+    },
+    {
+      "path": "lib/bindings/xui/examples/canvas.xl",
+      "sha256": "7f92423cd324cf356b3f3a478205a0f3c8dfaef54112f8c7ff863bba01426bb1",
+      "bytes": 528
+    },
+    {
+      "path": "lib/bindings/xui/examples/carousel.xl",
+      "sha256": "33ac05ec248cda8dce34bfa8ed8b61751d538a46e0e6dc9a47897578516752fe",
+      "bytes": 637
+    },
+    {
+      "path": "lib/bindings/xui/examples/cascader.xl",
+      "sha256": "0499b4a1c0ee5ac91a0c5904c5d369ee9c577123a24b30b4e9951d00ace04769",
+      "bytes": 671
+    },
+    {
+      "path": "lib/bindings/xui/examples/chart.xl",
+      "sha256": "2c35fb9f6996a47d1f4420b3f1a7e455d947acffa6905f8dfe80267d6bcecc12",
+      "bytes": 496
+    },
+    {
+      "path": "lib/bindings/xui/examples/checkbox.xl",
+      "sha256": "214c832ac4ba881e25c06bc0c4fff22970afce5bfd45548076d2b75b037892b4",
+      "bytes": 387
+    },
+    {
+      "path": "lib/bindings/xui/examples/checkcard.xl",
+      "sha256": "e51c4eb6e617cc56e7f8435c1f6b7d97fb422d8c6f14069c1f5e8bbeeee0ceb6",
+      "bytes": 418
+    },
+    {
+      "path": "lib/bindings/xui/examples/codeedit.xl",
+      "sha256": "050f0cfda4a8ec6f11b37c9ace5af4bf5f8baf076dc55751469610769dcffbf9",
+      "bytes": 583
+    },
+    {
+      "path": "lib/bindings/xui/examples/colorpicker.xl",
+      "sha256": "cec55e170b4d42f93f686ed1dc9f2dbbb96b5712c27ed8dcf0952a9192cef24a",
+      "bytes": 320
+    },
+    {
+      "path": "lib/bindings/xui/examples/combobox.xl",
+      "sha256": "f4ef4931d6d8f8b21b005b60b87adc09611f2afa0286d835f48a2ff64866dcf1",
+      "bytes": 346
+    },
+    {
+      "path": "lib/bindings/xui/examples/context_graph.xl",
+      "sha256": "9fd9f8bf138d594e7eea94790e111ddd6f931319a2b2ed3a5fc6887aa09da8fa",
+      "bytes": 423
+    },
+    {
+      "path": "lib/bindings/xui/examples/data_object.xl",
+      "sha256": "aeb5d7aea9b84aacbc8aa39cc5b72fefe293d84e551be169eb5beaf6e7f25bd8",
+      "bytes": 408
+    },
+    {
+      "path": "lib/bindings/xui/examples/datepicker.xl",
+      "sha256": "3d57823c782bfdcd2acda2286b851a95654852a27bfe99949779dc96a4fda862",
+      "bytes": 311
+    },
+    {
+      "path": "lib/bindings/xui/examples/dockpanel.xl",
+      "sha256": "69691b28beec0a6104de4a667a6916962ea8df00ac7800a3d4de434368a02ac3",
+      "bytes": 685
+    },
+    {
+      "path": "lib/bindings/xui/examples/document_model.xl",
+      "sha256": "389200d7c7f895cb013aefeaccc6268500781c48433a2239e2779b8ab74c04d8",
+      "bytes": 791
+    },
+    {
+      "path": "lib/bindings/xui/examples/document_ui_headless.xl",
+      "sha256": "c309d7306d9d013a3bbbef9be1c0f7aa637dc0049e448e65cc31fe4381cff447",
+      "bytes": 628
+    },
+    {
+      "path": "lib/bindings/xui/examples/documenteditor.xl",
+      "sha256": "03f575bdcaee661d5e9d656e9980ad58400fcf6d700982ce673d2ad128d9ffd0",
+      "bytes": 915
+    },
+    {
+      "path": "lib/bindings/xui/examples/filedialog.xl",
+      "sha256": "d6dcfc9d9d4308f34a01714a3b5260f71d46d3e461af7cfba4a0f34acb854966",
+      "bytes": 889
+    },
+    {
+      "path": "lib/bindings/xui/examples/gallery.json",
+      "sha256": "8cf1ad92adb99990d88704145e3faaba4bf84da9821ea8dd28ce51057d1b4d68",
+      "bytes": 14755
+    },
+    {
+      "path": "lib/bindings/xui/examples/gui_surface_draw.xl",
+      "sha256": "ebb6be42659e9642817ee4de05837fff32ca08daa472caa0f058db5b3b6f5ca2",
+      "bytes": 843
+    },
+    {
+      "path": "lib/bindings/xui/examples/headless_cell.xl",
+      "sha256": "31a25b1f3711641a1a461c3ce684c841f9669274fa1cdb0c316b51b7331bf895",
+      "bytes": 326
+    },
+    {
+      "path": "lib/bindings/xui/examples/headless_path.xl",
+      "sha256": "4dccfd0d0360ac4ee4df4c781c36fa2642776ffbae7a3ceba0ce4a9e0e224c33",
+      "bytes": 296
+    },
+    {
+      "path": "lib/bindings/xui/examples/hyperlink.xl",
+      "sha256": "1c4b5dce4a4f49949b48030398f90cf01e9b1516357458e5146f13e9b65c3115",
+      "bytes": 423
+    },
+    {
+      "path": "lib/bindings/xui/examples/image.xl",
+      "sha256": "b35ebc8819c61ce5dd8e065ec663f74efc8d9e9506aa694d8a108190201b7ffc",
+      "bytes": 664
+    },
+    {
+      "path": "lib/bindings/xui/examples/input.xl",
+      "sha256": "32c5a497eb9b55e0c73c92427c0cc0e23f1d6989b0413ecf2c1f198474803d43",
+      "bytes": 313
+    },
+    {
+      "path": "lib/bindings/xui/examples/inventorygrid.xl",
+      "sha256": "20bb74abbdc85b7d9dda435078185657b44bb91e6ae770bb51a9f7cc87074a89",
+      "bytes": 594
+    },
+    {
+      "path": "lib/bindings/xui/examples/label.xl",
+      "sha256": "817a98de5cfb8649e54897d6f6b6e60bc39ad208eb7ce5487db0b4dfec803aed",
+      "bytes": 491
+    },
+    {
+      "path": "lib/bindings/xui/examples/listview.xl",
+      "sha256": "7779b857b3367db07556a19ab36722f3b018a6a91b8de79f0446fe4d03b20c68",
+      "bytes": 391
+    },
+    {
+      "path": "lib/bindings/xui/examples/manager_lifetime.xl",
+      "sha256": "b5c21bf0fee83fc863e3ba6d72dd9b292c7a6a92230e4d957a3ff313c0422ca9",
+      "bytes": 352
+    },
+    {
+      "path": "lib/bindings/xui/examples/menu.xl",
+      "sha256": "9b97d1e128a2fb11d62f34f5b95060f1fc5477dfa1ba4c31f20ffdd9fa2769b1",
+      "bytes": 916
+    },
+    {
+      "path": "lib/bindings/xui/examples/menubar.xl",
+      "sha256": "222be9b0bc5090dbba849ce0703aa95ca872549ddddf824b9580942b0667142f",
+      "bytes": 735
+    },
+    {
+      "path": "lib/bindings/xui/examples/messagelist.xl",
+      "sha256": "9c8ace2fc8b78517d67685057a74310803749ab558f6146151d90cc2f0d486fb",
+      "bytes": 504
+    },
+    {
+      "path": "lib/bindings/xui/examples/msgbox.xl",
+      "sha256": "989a81635827e3e7e5e7ca0f9e12a239b3e0cc7c965130523c42085891e86a85",
+      "bytes": 809
+    },
+    {
+      "path": "lib/bindings/xui/examples/msgtip.xl",
+      "sha256": "d06af3616dedf6597d1e4fdf90347c066ed106f5d0ff9bbe045071fad4ffb8a5",
+      "bytes": 400
+    },
+    {
+      "path": "lib/bindings/xui/examples/numericinput.xl",
+      "sha256": "a77938ba81cda7710a76d49d58e573e8e7af5a26d56373f1a955d904baad9c39",
+      "bytes": 353
+    },
+    {
+      "path": "lib/bindings/xui/examples/page.xl",
+      "sha256": "f1eb0d0b4f814638270429d4b5f869ee08685380293dd642ce5352ab9e2bd5c5",
+      "bytes": 299
+    },
+    {
+      "path": "lib/bindings/xui/examples/panel.xl",
+      "sha256": "a05182ca06c9d21e8c640a890f3cca15715f02ab036f3b5bfcdfbf197f6df2ca",
+      "bytes": 424
+    },
+    {
+      "path": "lib/bindings/xui/examples/popup.xl",
+      "sha256": "669efcfa938ea100d232482c11fb84ecc625bdd5f7078310d809692d5a6ece31",
+      "bytes": 719
+    },
+    {
+      "path": "lib/bindings/xui/examples/progress.xl",
+      "sha256": "240396ad22b8c4fd4c105988b6348da06d816ebf072f362e871b708611bf5b08",
+      "bytes": 643
+    },
+    {
+      "path": "lib/bindings/xui/examples/propertygrid.xl",
+      "sha256": "d41d7620e37b3a650ef533688b44e147e598ca30db2c819f04ad91ca73375914",
+      "bytes": 558
+    },
+    {
+      "path": "lib/bindings/xui/examples/qrcode.xl",
+      "sha256": "5882d2c8788f1ce2d7af625ff1d7f49a48932c697cd1b423b88b6e8549b3e6db",
+      "bytes": 363
+    },
+    {
+      "path": "lib/bindings/xui/examples/radio.xl",
+      "sha256": "b05c57f9e1c97353d7d82fd0454e1db2142071589e409c2eb3003241fad5c4bf",
+      "bytes": 561
+    },
+    {
+      "path": "lib/bindings/xui/examples/radiogroup.xl",
+      "sha256": "63eb777d68ebbdb418f8ab6a7dc8cd9e541774485b664ea21bd83591110d4c21",
+      "bytes": 549
+    },
+    {
+      "path": "lib/bindings/xui/examples/rangeslider.xl",
+      "sha256": "025f9573dc1621bf19a167da68f65a7a08e321265d10c3bb8ea3811d79c0deda",
+      "bytes": 402
+    },
+    {
+      "path": "lib/bindings/xui/examples/README.md",
+      "sha256": "cdf74835ce2f477a7bd5d94e7d29c93da9a703c5e54d82ba86f846b16ebd483d",
+      "bytes": 12029
+    },
+    {
+      "path": "lib/bindings/xui/examples/richtext.xl",
+      "sha256": "b71b9211d4a0f23f1e1d479e9ca3cc8e6e16f0cffc6ea5f8b7306a47f9232421",
+      "bytes": 887
+    },
+    {
+      "path": "lib/bindings/xui/examples/run_xui_examples.bat",
+      "sha256": "4fa4f3cf1f0caa34a260895a56d8b0f9c6429bf776cb963706608b4637b4f6fc",
+      "bytes": 773
+    },
+    {
+      "path": "lib/bindings/xui/examples/scrollbar.xl",
+      "sha256": "7efdb11667ce2fd74d6844be84520e36edc4c56d0221b30c631fc49c59e6d0ca",
+      "bytes": 441
+    },
+    {
+      "path": "lib/bindings/xui/examples/scrollframe.xl",
+      "sha256": "a715edb4fdf0f839b6f24fc1728974d3699d487449718bb76e735e21a481cd32",
+      "bytes": 571
+    },
+    {
+      "path": "lib/bindings/xui/examples/scrollview.xl",
+      "sha256": "157ad802d1929378a68911d17302eb58c87d670019483a397983eae203fb93f2",
+      "bytes": 576
+    },
+    {
+      "path": "lib/bindings/xui/examples/separator.xl",
+      "sha256": "7b724179f3699e7ddef03fc94871b8e449aa84620434b4303d2a5bde5762f334",
+      "bytes": 537
+    },
+    {
+      "path": "lib/bindings/xui/examples/slider.xl",
+      "sha256": "406c9cb7c539295c4711720ffd2aab2582d4876875b267c6cafb798d73fbc7d6",
+      "bytes": 546
+    },
+    {
+      "path": "lib/bindings/xui/examples/splitlayout.xl",
+      "sha256": "22156dbd43fcb5aaa7cbae11d55fee023a0d9c23ba81e584a15efc614868d565",
+      "bytes": 728
+    },
+    {
+      "path": "lib/bindings/xui/examples/statusbar.xl",
+      "sha256": "ef68fb0f39c281a6562c3bfad7aac7b0d0ff7a864cc25c2c907e2d3f2672c3b4",
+      "bytes": 384
+    },
+    {
+      "path": "lib/bindings/xui/examples/stepbar.xl",
+      "sha256": "e265755d64a04465b149e4eb189661e954722a3bb0f334867bff32d9cad101fd",
+      "bytes": 342
+    },
+    {
+      "path": "lib/bindings/xui/examples/tablegrid.xl",
+      "sha256": "bb90175f99e86617e01fa391fac9718b14b78a235e2adaa1c1ce3c293fcc759d",
+      "bytes": 791
+    },
+    {
+      "path": "lib/bindings/xui/examples/tableview.xl",
+      "sha256": "d7b1a7e384ef2c1854cb0eba49ee56ce6f712fc59b9ddd64ee2ea5c37e56ca86",
+      "bytes": 657
+    },
+    {
+      "path": "lib/bindings/xui/examples/tabs.xl",
+      "sha256": "49ba1c19da1778ab64228cbdfc3040e15dc981f3b842021c33a9553a75f11e67",
+      "bytes": 645
+    },
+    {
+      "path": "lib/bindings/xui/examples/taginput.xl",
+      "sha256": "11a46d949b6ba9d8493d76347a9a50b703055550107e7c25b17738b972d85532",
+      "bytes": 389
+    },
+    {
+      "path": "lib/bindings/xui/examples/terminal.xl",
+      "sha256": "76d06b8054b0a1a043cff764b58b92a1fc3b89ba81edeaaeceeb74d5dc62f37f",
+      "bytes": 426
+    },
+    {
+      "path": "lib/bindings/xui/examples/textedit.xl",
+      "sha256": "eca5b790134ca4b08610cb07a0d96d0e93d10ba80851c6dac98760fa20e9c65b",
+      "bytes": 408
+    },
+    {
+      "path": "lib/bindings/xui/examples/timeline.xl",
+      "sha256": "6adaf803f1bd18e24c878032c621a25e8b594b8a8e86ce589f2cf04947db6862",
+      "bytes": 450
+    },
+    {
+      "path": "lib/bindings/xui/examples/toast.xl",
+      "sha256": "379d0bb604cc4c58f1d37386fdb8548500fe57a5cb4ee546fb99d9393f2b3467",
+      "bytes": 471
+    },
+    {
+      "path": "lib/bindings/xui/examples/toggle.xl",
+      "sha256": "0043fbabae66bfbf9e48c83a838ca7830686589feba28875677fa44e9add94f0",
+      "bytes": 316
+    },
+    {
+      "path": "lib/bindings/xui/examples/toolbar.xl",
+      "sha256": "914a87cd0f54caaaccc1b017b52cf856cb9ce3b8f245bb785a8cc7101be4a38f",
+      "bytes": 464
+    },
+    {
+      "path": "lib/bindings/xui/examples/treeview.xl",
+      "sha256": "ce92e734f8e0162f51db21eea10c62b7d32948c35e7e15ad5a5ed6d1eac036f0",
+      "bytes": 441
+    },
+    {
+      "path": "lib/bindings/xui/examples/virtualjoystick.xl",
+      "sha256": "518dcda9e388cf9ab6195e5f5ecaf8f688b06a0b6623c5101e7408440553e6f2",
+      "bytes": 601
+    },
+    {
+      "path": "lib/bindings/xui/examples/webview.xl",
+      "sha256": "371d413e3b5498e759f810b219add3ad288c10b02dfdb23c2e3df1c67a3b4e2d",
+      "bytes": 1329
+    },
+    {
+      "path": "lib/bindings/xui/examples/widget.xl",
+      "sha256": "750a6a4272edee60111977cc6bf6723c5aea8a09b1a5fda5762a9f41b95704e6",
+      "bytes": 428
+    },
+    {
+      "path": "lib/bindings/xui/examples/window.xl",
+      "sha256": "439999e6066dbe5883c7cab5d8b16fc378e957acde7fc41015c48851da39e87b",
+      "bytes": 561
+    },
+    {
+      "path": "lib/bindings/xui/README.md",
+      "sha256": "772f8f448835ad1b961cb10d93e7e132d4154ade4cf648e36c02acb08a4f8cd2",
+      "bytes": 13173
+    },
+    {
+      "path": "lib/bindings/xui/src/bootstrap.xl",
+      "sha256": "42fe4b3c2fa7d7deb10f418bb1d7c9a350d20e98dd9533d3f07e4b17988e2557",
+      "bytes": 92
+    },
+    {
+      "path": "lib/bindings/xui/src/cell.xl",
+      "sha256": "852cb65a590028fb42af45c07724e99976b915a49c5a1bdfa386e2cedeb6162b",
+      "bytes": 1875
+    },
+    {
+      "path": "lib/bindings/xui/src/constants.xl",
+      "sha256": "91b4a7b8c8dfa85b0c627604eccf2659eb193ba4acf618e8f9b464129207ea05",
+      "bytes": 74618
+    },
+    {
+      "path": "lib/bindings/xui/src/data_object.xl",
+      "sha256": "32710274d0f069fae960966e0d2d1b94c01a9d27155963fdf95bddf65a5a8774",
+      "bytes": 4654
+    },
+    {
+      "path": "lib/bindings/xui/src/document.xl",
+      "sha256": "97747c52db93cb015e0fb3d1065c10752350946bb6062d66709f6011c1a647b5",
+      "bytes": 34415
+    },
+    {
+      "path": "lib/bindings/xui/src/document_records.xl",
+      "sha256": "aa6e9d36ce9ebd07317aa616e32cfb35f19206365b345543d22f3350f5b27727",
+      "bytes": 20348
+    },
+    {
+      "path": "lib/bindings/xui/src/document_ui.xl",
+      "sha256": "aedb3c2ab8f7c81b54622d61e6e41b6fdaf4081f547e8b2102ea0bafce784bad",
+      "bytes": 32933
+    },
+    {
+      "path": "lib/bindings/xui/src/document_ui_message_methods.inc",
+      "sha256": "b274aaae51cb778920a0d7d91162a743440ac90a10bd2e3c43e53be9bb550f40",
+      "bytes": 5425
+    },
+    {
+      "path": "lib/bindings/xui/src/document_ui_records.xl",
+      "sha256": "e1733bd428c6ef3a6534f60ccb95988b502de0819ce65d3f43847e4cad4480e3",
+      "bytes": 6074
+    },
+    {
+      "path": "lib/bindings/xui/src/draw.xl",
+      "sha256": "522236365e3d98a35062a200386b62f5b89df9b6738b59679ad81050cd4eb14a",
+      "bytes": 1189
+    },
+    {
+      "path": "lib/bindings/xui/src/managed.xl",
+      "sha256": "f6f810280ad86a13d35549c4a01bd127fc8c2115def4c26e671970a11aaa6896",
+      "bytes": 324661
+    },
+    {
+      "path": "lib/bindings/xui/src/managers.xl",
+      "sha256": "cc696cc23bbffca5d5e102b6368e87af766742575b1477fd75b54b1247d6290f",
+      "bytes": 19530
+    },
+    {
+      "path": "lib/bindings/xui/src/proxy.xl",
+      "sha256": "ef323ba00bfd49431be35a927f4f4088d52620c1fbb2c7c3f6d75e06a136cec5",
+      "bytes": 38206
+    },
+    {
+      "path": "lib/bindings/xui/src/records.xl",
+      "sha256": "f42623d9961a4474cfbadd206cf66e5f24c1151bf9763084cfcd623272532779",
+      "bytes": 25611
+    },
+    {
+      "path": "lib/bindings/xui/src/text_shape.xl",
+      "sha256": "a4e463dcbe2aa1ec8bfac3f008eeda7590b7635ae519c720af142e39ff3496f7",
+      "bytes": 2132
+    },
+    {
+      "path": "lib/bindings/xui/xlang.package.json",
+      "sha256": "8ff144ff6cc2bd42ec76bdfe7e6f5fee4d1ed3567adac08989e2638810994e50",
+      "bytes": 803
+    },
+    {
+      "path": "test/fixtures/xui_learning/context_graph.xl",
+      "sha256": "4759dcf3808ee250de1bf20e182b57634036d70d9e75bbe697002349dc96d8dc",
+      "bytes": 1236
+    },
+    {
+      "path": "test/fixtures/xui_learning/data_object.xl",
+      "sha256": "cc458345eb0f06a9a5e8a044b54f7dfb4b25680cb2ed66ff0bf2f541a624d686",
+      "bytes": 901
+    },
+    {
+      "path": "test/fixtures/xui_learning/document_model.xl",
+      "sha256": "9a9f66314cd4f57e553f82c029b60056dddd9ba4dcba9d4d48aa81df38eee84e",
+      "bytes": 1006
+    },
+    {
+      "path": "test/fixtures/xui_learning/document_ui_headless.xl",
+      "sha256": "fb554b34998fef68566ac4c657b23def11c00de7d9e744228d1b37d372eae2b4",
+      "bytes": 3274
+    },
+    {
+      "path": "test/fixtures/xui_learning/gui_surface_draw.xl",
+      "sha256": "3b41d1d71674c22f31a35a169eaff3e8511ba497b45eab6b3e759d2d89829fd2",
+      "bytes": 1517
+    },
+    {
+      "path": "test/fixtures/xui_learning/headless_cell.xl",
+      "sha256": "b5097ade7fed07ca3a443a81256214d58ed1b06136b80998f2f6259516c193a9",
+      "bytes": 326
+    },
+    {
+      "path": "test/fixtures/xui_learning/headless_path.xl",
+      "sha256": "8b6fe0c944ead83b285db63efae1ec777907f6f41c396264711f0fce95a398de",
+      "bytes": 320
+    },
+    {
+      "path": "test/fixtures/xui_learning/manager_lifetime.xl",
+      "sha256": "8746f0c5394ee0a430da9a8f7b22281218435ff4133a8e727b075f193eaa65ec",
+      "bytes": 890
+    },
+    {
+      "path": "test/fixtures/xui_learning/scene_replacement.xl",
+      "sha256": "a901e3c14b27cf855c446978362086254aa6d0e186c17281755eb1c5bb40d498",
+      "bytes": 666
+    },
+    {
+      "path": "tools/check_xui_gallery.py",
+      "sha256": "bffa2a2be2f1341416f8741525790193b694d0ed15a0793981405160f83854da",
+      "bytes": 5924
+    },
+    {
+      "path": "tools/check_xui_lessons.py",
+      "sha256": "1b2c7004e26524f208d1240406de13bbe8d045c0e4ba36d16be32b4b24f90d5c",
+      "bytes": 5311
+    },
+    {
+      "path": "tools/check_xui_scene_clear.py",
+      "sha256": "212e11162bae529b64108e926400c4ec04b8c75578375121c0f915d210716709",
+      "bytes": 2904
+    },
+    {
+      "path": "tools/update_xui_gallery.py",
+      "sha256": "ee403f33d206cbb932f948ced237320802234460ce57aa2d782f494aeff93650",
+      "bytes": 3932
+    },
+    {
+      "path": "tools/xui_gallery_contracts.py",
+      "sha256": "f3828299190e7471f57da48ea27c8b76c9e4090ab46894bcb35d480cacebd55f",
+      "bytes": 6722
+    }
+  ]
+}
