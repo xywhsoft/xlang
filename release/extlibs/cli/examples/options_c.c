@@ -3,6 +3,9 @@
 #include <string.h>
 
 #ifdef __TINYC__
+#define XL_VALUE_READ_WIRE_ONLY
+#define XL_VALUE_READ_WIRE_IMPLEMENTATION
+#include "../../_common/xl_value_read_wire.h"
 #include "../cli_native.c"
 #endif
 

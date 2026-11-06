@@ -11,7 +11,11 @@
 #include <wchar.h>
 
 #include "include/clipboard.h"
+#ifdef XL_VALUE_READ_WIRE_ONLY
+#include "../_common/xl_value_read_wire.h"
+#else
 #include <xl_value_read.h>
+#endif
 
 #ifndef WC_ERR_INVALID_CHARS
 #define WC_ERR_INVALID_CHARS 0x00000080

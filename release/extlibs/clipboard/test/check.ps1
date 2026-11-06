@@ -23,7 +23,7 @@ function Run([string]$label, [string]$program, [string[]]$arguments) {
     return ($output -join "`n").Replace("`r", '').TrimEnd("`n")
 }
 
-$flags = @('-std=c11', '-O2', '-Wall', '-Wextra', '-Werror',
+$flags = @('-std=c11', '-O2', '-DXL_VALUE_READ_WIRE_ONLY', '-Irelease/include', '-Wall', '-Wextra', '-Werror',
     '-DXRT_MODULE_MEMORY_DEBUG',
     '-DXRT_MODULE_VALUE_CONTAINER', '-DXRT_MODULE_FILE_WHOLE',
     '-DXRT_MODULE_BUFFER', '-DXRT_MODULE_UNICODE',
@@ -52,7 +52,7 @@ try {
         $links + @('-o', $graphics))
     $null = Run 'isolated graphic snapshot' $graphics @()
     $runner = Join-Path $work 'isolated_runner.exe'
-    $null = Run 'isolation runner build' $gcc @('-std=c11', '-O2', '-Wall', '-Wextra', '-Werror',
+    $null = Run 'isolation runner build' $gcc @('-std=c11', '-O2', '-DXL_VALUE_READ_WIRE_ONLY', '-Irelease/include', '-Wall', '-Wextra', '-Werror',
         'release/extlibs/clipboard/test/isolated_runner.c', '-luser32', '-o', $runner)
     $snapshotC = Join-Path $work 'snapshot_c.exe'
     $null = Run 'C snapshot example build' $gcc ($flags + @('release/extlibs/clipboard/examples/snapshot_c.c', $native, $runtime) + $links + @('-o', $snapshotC))

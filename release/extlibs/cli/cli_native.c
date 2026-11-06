@@ -5,7 +5,11 @@
 #include <stdint.h>
 
 #include "include/cli_native.h"
+#ifdef XL_VALUE_READ_WIRE_ONLY
+#include "../_common/xl_value_read_wire.h"
+#else
 #include <xl_value_read.h>
+#endif
 
 #define XCLI_DOMAIN "xlang.extlib.cli"
 

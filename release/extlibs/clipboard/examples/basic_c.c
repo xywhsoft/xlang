@@ -4,6 +4,9 @@
 #pragma comment(lib, "user32")
 #pragma comment(lib, "gdi32")
 #pragma comment(lib, "shell32")
+#define XL_VALUE_READ_WIRE_ONLY
+#define XL_VALUE_READ_WIRE_IMPLEMENTATION
+#include "../../_common/xl_value_read_wire.h"
 #include "../clipboard_native.c"
 #endif
 #include <stdio.h>

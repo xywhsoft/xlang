@@ -52,7 +52,7 @@ golden() {
     sed 's/\r$//' "$1" > "$work/expected.txt"
     diff -u "$work/expected.txt" "$2"
 }
-flags=(-std=c11 -D_GNU_SOURCE -O1 -g -DNDEBUG -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/cli/include
+flags=(-std=c11 -D_GNU_SOURCE -O1 -g -DNDEBUG -DXL_VALUE_READ_WIRE_ONLY -Irelease/include -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/cli/include
        -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread)
 export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1
 export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1

@@ -3,3 +3,6 @@
 #define XRT_MODULE_MEMORY_DEBUG
 #define XRT_IMPLEMENTATION
 #include "xrt.h"
+
+#define XL_VALUE_READ_WIRE_IMPLEMENTATION
+#include "../../_common/xl_value_read_wire.h"

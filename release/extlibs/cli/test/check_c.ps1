@@ -36,7 +36,7 @@ function Golden([string]$Actual,[string]$Path){
     $expected=[IO.File]::ReadAllText((Join-Path $Root $Path)).Replace("`r`n","`n").TrimEnd("`n")
     if($Actual -cne $expected){throw "CLI golden mismatch: $Path"}
 }
-$flags=@('-std=c11','-O2','-DNDEBUG','-Wall','-Wextra','-Werror','-Ilib/xrt')
+$flags=@('-std=c11','-O2', '-DXL_VALUE_READ_WIRE_ONLY', '-Irelease/include','-DNDEBUG','-Wall','-Wextra','-Werror','-Ilib/xrt')
 $outcome='failed';$failure=''
 try {
     $null=Run compiler-info $gcc @('--version')

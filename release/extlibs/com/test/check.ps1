@@ -7,7 +7,7 @@ $work = Join-Path $workRoot ('com_guard_' + [guid]::NewGuid().ToString('N'))
 $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 [IO.Directory]::CreateDirectory($work) | Out-Null
 $xl = Join-Path $root 'release/xl.exe'
-$flags = @('-std=gnu11', '-O2', '-Wall', '-Wextra', '-Werror',
+$flags = @('-std=gnu11', '-O2', '-DXL_VALUE_READ_WIRE_ONLY', '-Irelease/include', '-Wall', '-Wextra', '-Werror',
     '-Ilib/xrt', '-Irelease/extlibs/com/include')
 $links = @('-lole32', '-loleaut32', '-lws2_32', '-ladvapi32', '-liphlpapi', '-lm')
 

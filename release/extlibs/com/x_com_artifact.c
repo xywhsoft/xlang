@@ -8,7 +8,11 @@
 #define XRT_MODULE_VALUE_CONTAINER
 #endif
 #include "xrt.h"
+#ifdef XL_VALUE_READ_WIRE_ONLY
+#include "../_common/xl_value_read_wire.h"
+#else
 #include <xl_value_read.h>
+#endif
 
 #include "internal/com_ole.h"
 

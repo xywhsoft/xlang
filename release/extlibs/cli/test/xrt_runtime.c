@@ -8,3 +8,6 @@
 #ifdef XRT_FEATURE_VALUE_GRAPH
 #error CLI tests must not require VALUE_GRAPH
 #endif
+
+#define XL_VALUE_READ_WIRE_IMPLEMENTATION
+#include "../../_common/xl_value_read_wire.h"
