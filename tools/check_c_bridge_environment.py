@@ -1,14 +1,15 @@
 """Compiler-configured operations and exact embedded TCC header byte gate."""
 import argparse,base64,datetime,hashlib,json,os,shutil,subprocess,uuid
 from pathlib import Path
+from runtime_layout import runtime_directory
 
 def sha(b):return hashlib.sha256(b).hexdigest()
 def main():
- ap=argparse.ArgumentParser();ap.add_argument('--root',type=Path,default=Path(__file__).resolve().parents[1]);ap.add_argument('--compiler',type=Path,required=True);ap.add_argument('--clangd',type=Path);ap.add_argument('--gcc',default='gcc');ap.add_argument('--output-root',type=Path);a=ap.parse_args()
+ ap=argparse.ArgumentParser();ap.add_argument('--root',type=Path,default=Path(__file__).resolve().parents[1]);ap.add_argument('--compiler',type=Path,required=True);ap.add_argument('--clangd',type=Path);ap.add_argument('--resource-stamp',type=Path);ap.add_argument('--gcc',default='gcc');ap.add_argument('--output-root',type=Path);a=ap.parse_args()
  root=a.root.resolve();exe=a.compiler.resolve();gcc=shutil.which(a.gcc);assert os.name=='nt' and gcc
  work=(a.output_root or root/'build/test').resolve()/('c-bridge-environment-'+str(uuid.uuid4()));src=work/'源码 Ω';src.mkdir(parents=True)
  protected={str(p):sha(p.read_bytes()) for p in [exe,exe.with_name('xlc.dll'),exe.with_name('xl.dll')]}
- stamp=exe.parent.parent/'build/tmp/tcc_builtin_resources.c.stamp.json';resources=json.loads(stamp.read_text())['resources']
+ stamp=a.resource_stamp or root/'build/tmp/tcc_builtin_resources.c.stamp.json';resources=json.loads(stamp.read_text())['resources']
  expected={x['virtual'].replace('\\','/').lower():x for x in resources if x['virtual'].startswith(('include/','lib/xrt/','lib/xruntime/')) and x['virtual'].endswith('.h')}
  results=[];responses=0;header_comparisons=0;status='failed';started=datetime.datetime.now(datetime.timezone.utc).isoformat();original={}
  env=dict(os.environ,PATH=str(exe.parent)+os.pathsep+os.environ.get('PATH',''))
@@ -29,7 +30,7 @@ def main():
   defines={x['text']:x['value'] for x in ops if x['kind']=='define'}
   assert ('XL6_BUILD_SHARED' in defines)==shared
   if full:assert defines['XRT_MODULE_ALL']==defines['XRUNTIME_MODULE_ALL']=='1'
-  headers=e['builtinHeaders'];assert len(headers)==len(expected)<=512;assert {h['name'] for h in headers}==set(expected)
+  headers=e['builtinHeaders'];assert len(headers)==len(expected)<=1024;assert {h['name'] for h in headers}==set(expected)
   total=0
   for h in headers:
    data=base64.b64decode(h['base64'],validate=True);row=expected[h['name']];total+=len(data);header_comparisons+=1
@@ -57,7 +58,7 @@ def main():
   for name,args in [('wrong-command',['check',source,'--json','--c-environment']),('no-json',['c-bridge',source,'--c-environment']),('value-env',['c-bridge',source,'--json','--inc-path','--c-environment']),('boundary-env',['c-bridge',source,'--json','--','--c-environment'])]:
    p=run(name,[exe,*args],1 if name in ('wrong-command','no-json') else 0)
    if p.returncode==0:assert 'nativeEnvironment' not in json.loads(p.stdout)['cBridge']
-  host=work/'environment-host.exe';run('host-build',[gcc,'-std=c11','-Wall','-Wextra','-Werror','-municode','-I',root/'release',root/'test/cases/c_bridge_environment_host.c','-o',host])
+  host=work/'environment-host.exe';run('host-build',[gcc,'-std=c11','-Wall','-Wextra','-Werror','-municode','-I',runtime_directory(root),root/'test/cases/c_bridge_environment_host.c','-o',host])
   directory=src/'native host';directory.mkdir();run('host-execute',[host,exe.with_name('xlc.dll'),directory])
   for name,shared,full in [('environment-exe',False,False),('environment-native',False,True),('environment-shared',True,True)]:validate(json.loads((directory/(name+'.json')).read_text(encoding='utf-8-sig')),shared,full)
   for name in ['environment-invalid','environment-limit']:failed(json.loads((directory/(name+'.json')).read_text(encoding='utf-8-sig')))
