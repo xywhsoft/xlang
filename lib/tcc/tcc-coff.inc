@@ -13,6 +13,13 @@ typedef struct TCCCoffSection {
     char *name, *key;
 } TCCCoffSection;
 
+static int coff_packed_pdata(const TCCCoffSection *s)
+{
+    return !(s->flags & 0x1000u) && !(s->flags & 0x80u)
+        && ((s->flags >> 20) & 15) <= 3 && !(s->size % 12)
+        && tcc_pdata_name(s->name);
+}
+
 static unsigned coff_u16(const unsigned char *p)
 { return p[0] | (unsigned)p[1] << 8; }
 static uint32_t coff_u32(const unsigned char *p)
@@ -118,7 +125,6 @@ ST_FUNC int tcc_load_coff_object(TCCState *s1, int fd, unsigned long file_offset
     section_count = coff_u16(header + 2);
     symbol_at = coff_u32(header + 8); symbol_count = coff_u32(header + 12);
     if (!section_count || coff_u16(header + 16) || symbol_count > INT_MAX ||
-        (uint64_t)s1->nb_sections + (uint64_t)section_count * 2 + 8 >= SHN_LORESERVE ||
         !coff_range(size, 20, (uint64_t)section_count * 40) ||
         !coff_range(size, symbol_at, (uint64_t)symbol_count * 18 + 4)) goto done;
     data = tcc_malloc(size);
@@ -185,7 +191,29 @@ ST_FUNC int tcc_load_coff_object(TCCState *s1, int fd, unsigned long file_offset
                 (type != 1 || at % 8)) goto done;
         }
     }
-    /* Keep every distinct input section: this is the unit of optional GC. */
+    /* Ordinary COFF sections need at most their data and one relocation
+       Section. Packed non-COMDAT pdata records share a canonical pair;
+       COMDAT identities remain independent until their original selection. */
+    {
+        unsigned budget = 0;
+        Section *pd = have_section(s1, ".pdata");
+        int pdata = pd != NULL, pdata_reloc = pd && pd->reloc;
+        for (unsigned i = 1; i <= section_count; ++i) {
+            TCCCoffSection *sec = &sections[i];
+            if (coff_ignored_section(sec->name, sec->flags) || !strcmp(sec->name, ".drectve")) continue;
+            if (coff_packed_pdata(sec)) {
+                if (!pdata) { ++budget; pdata = 1; }
+                if (sec->reloc_count && !pdata_reloc) { ++budget; pdata_reloc = 1; }
+            } else budget += 1 + (sec->reloc_count != 0);
+        }
+        if ((uint64_t)s1->nb_sections + budget + 8 >= SHN_LORESERVE) {
+            error = "COFF object exceeds 16-bit section index limit";
+            goto done;
+        }
+    }
+    /* Keep distinct code/data and COMDAT identities. Exception reachability
+       is record-level, so packed pdata need not spend two Section IDs per
+       function merely to preserve its owner relation. */
     for (unsigned pass = 0; pass < 2; ++pass) for (unsigned i = 1; i <= section_count; ++i) {
         TCCCoffSection *sec = &sections[i];
         unsigned associated = (sec->flags & 0x1000u) && sec->selection == 5;
@@ -236,6 +264,21 @@ ST_FUNC int tcc_load_coff_object(TCCState *s1, int fd, unsigned long file_offset
             unsigned char *target = section_ptr_add(sec->output, sec->size);
             for (uint32_t at = 0; at < sec->size; at += 8)
                 memcpy(target + (sec->reverse_array ? sec->size - 8 - at : at), data + sec->raw + at, 8);
+            tcc_free(section_name); ++loaded; continue;
+        }
+        if (coff_packed_pdata(sec)) {
+            Section *pd = have_section(s1, ".pdata");
+            if (!pd) {
+                pd = new_section(s1, ".pdata", SHT_PROGBITS, SHF_ALLOC);
+                pd->sh_addralign = 4;
+            }
+            if (pd->sh_type != SHT_PROGBITS || pd->data_offset % 12) {
+                tcc_free(section_name); error = "incompatible canonical COFF exception table"; goto done;
+            }
+            sec->output = pd;
+            sec->output_offset = pd->data_offset;
+            if (sec->size) memcpy(section_ptr_add(pd, sec->size), data + sec->raw, sec->size);
+            pd->sh_flags |= SHF_ALLOC;
             tcc_free(section_name); ++loaded; continue;
         }
         if (s1->nb_sections >= SHN_LORESERVE - 2) { tcc_free(section_name); goto done; }
@@ -337,7 +380,8 @@ ST_FUNC int tcc_load_coff_object(TCCState *s1, int fd, unsigned long file_offset
                 }
             }
         }
-        if (unwind_owner && !multiple_owners) sec->output->gc_owner = unwind_owner;
+        if (unwind_owner && !multiple_owners && strcmp(sec->output->name, ".pdata"))
+            sec->output->gc_owner = unwind_owner;
     }
     result = 0;
 done:

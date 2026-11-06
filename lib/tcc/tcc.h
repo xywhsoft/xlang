@@ -1589,6 +1589,7 @@ ST_FUNC Section *new_section(TCCState *s1, const char *name, int sh_type, int sh
 ST_FUNC Section *tcc_split_section(TCCState *s1, Section *base, const char *symbol);
 ST_FUNC void tcc_gc_sections(TCCState *s1, const char *entry, int keep_exports);
 ST_FUNC int tcc_gc_live_undefined(TCCState *s1, unsigned char **used, int *length);
+ST_FUNC int tcc_pdata_name(const char *name);
 ST_FUNC void section_realloc(Section *sec, unsigned long new_size);
 ST_FUNC size_t section_add(Section *sec, addr_t size, int align);
 ST_FUNC void *section_ptr_add(Section *sec, addr_t size);

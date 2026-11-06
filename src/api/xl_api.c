@@ -2489,7 +2489,10 @@ static int xlCompileUnitToExternalOutputWithC(
     if(xl6XrtTrimRequiresFull(&unit->importDeps,cSourceFiles?cSourceFiles->count:0) &&
        !xl6XrtTrimNeedsGeneratedRuntime(&unit->importDeps,&artifactRuntime)) {
         if(!xlAddNativeObject(s,outputType)) {
-            xlSetError(ctx,"cannot load shared precompiled XRT implementation");goto cleanup;
+            if (!ctx->lastError) {
+                xlSetError(ctx, "cannot load precompiled XRT implementation");
+            }
+            goto cleanup;
         }
     } else {
     if ( !xl6XrtTrimBuildImplementationSourceFromPlan(&unit->importDeps,

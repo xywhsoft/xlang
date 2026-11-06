@@ -1,0 +1,85 @@
+{
+  "schema": 1,
+  "scope": "Qualified canonical PE exception storage/record reachability and checked native-XRT diagnostic preservation. Compiler source overlay on the preserved R7 source bundle, not a new whole-source snapshot.",
+  "base": "dev/release-materials/sources/native-static-core-20261106/manifest.json",
+  "baseSha256": "5ce67c250d890cd76c53a1a955bd01659f7faec109cacffa13e4cd082a493c44",
+  "finalSourceFreezeSha256": "8605c6ad00805d3bac4a0d9052259c936c3da2eeb1650ba7b2f9c88eaf462c6c",
+  "files": [
+    {
+      "path": "lib/tcc/tcc.h",
+      "source": "D:\\GIT\\x-lang\\lib\\tcc\\tcc.h",
+      "sha256": "73c3e7b03353d356990d0615946c3c8a68543b910993d2599a7e1ecaeab52add"
+    },
+    {
+      "path": "lib/tcc/tccelf.c",
+      "source": "D:\\GIT\\x-lang\\lib\\tcc\\tccelf.c",
+      "sha256": "260328a4a5a2a5f70d97db729c2b1b1f7b9f4169ddf6b47ef300235119daa078"
+    },
+    {
+      "path": "lib/tcc/tcc-coff.inc",
+      "source": "D:\\GIT\\x-lang\\lib\\tcc\\tcc-coff.inc",
+      "sha256": "fd173b4a9a2f102631f98f61be01341f94b83d37a7d7a0006e2feb2cdf3934d8"
+    },
+    {
+      "path": "lib/tcc/tccpe.c",
+      "source": "D:\\GIT\\x-lang\\lib\\tcc\\tccpe.c",
+      "sha256": "37fb67a92b0bedadeab6fad62dd39439ff71384e563c8a4326920f124ceacdc4"
+    },
+    {
+      "path": "test/cases/tcc_windows_tls_native.c",
+      "source": "D:\\GIT\\x-lang\\test\\cases\\tcc_windows_tls_native.c",
+      "sha256": "ac45ef195618ac3ca77ffbc33ad912d6210c67edd7e4f1cdd79caae335a88128"
+    },
+    {
+      "path": "test/cases/tcc_windows_tls_client.c",
+      "source": "D:\\GIT\\x-lang\\test\\cases\\tcc_windows_tls_client.c",
+      "sha256": "e453a043c7dc301f6b72e8ae4725859980220e4760e295d904ca31f746c83da7"
+    },
+    {
+      "path": "tools/check_tcc_windows_tls_pe.py",
+      "source": "D:\\GIT\\x-lang\\tools\\check_tcc_windows_tls_pe.py",
+      "sha256": "587aa91880f528eb8583ea58f1974e6202d0acd579483ea4c18ffe4eb090791f"
+    },
+    {
+      "path": "docs/tcc-coff-tls.md",
+      "source": "D:\\GIT\\x-lang\\docs\\tcc-coff-tls.md",
+      "sha256": "baca1dba026477de57235353ae6bc4729a56eefb1ab2052e21f8de47748dee58"
+    },
+    {
+      "path": "docs/tcc-elf-section-budget.md",
+      "source": "D:\\GIT\\x-lang\\docs\\tcc-elf-section-budget.md",
+      "sha256": "e160398ee513dfc607a29d0a232d066316a52900f03e400510fbb2aae770e567"
+    },
+    {
+      "path": "docs/tcc-pe-pdata.md",
+      "source": "D:\\GIT\\x-lang\\docs\\tcc-pe-pdata.md",
+      "sha256": "004a15fc8f5f23a90eb65c0e002552db20b73a85e0d431260aafeff75450def8"
+    },
+    {
+      "path": "lib/tcc/tcc-gc.inc",
+      "source": "D:\\GIT\\x-lang\\lib\\tcc\\tcc-gc.inc",
+      "sha256": "46f4917a4722ab79b54284e29014b7cbe2792b2921cc7fa7f1061a601a8e65ce"
+    },
+    {
+      "path": "lib/tcc/tcc-gc-pdata.inc",
+      "source": "D:\\GIT\\x-lang\\lib\\tcc\\tcc-gc-pdata.inc",
+      "sha256": "778ac8bf48d226290393d6522d656ccdc39199ad0b601066e64a1ea3909535c1"
+    },
+    {
+      "path": "test/cases/tcc_pdata_gc.c",
+      "source": "D:\\GIT\\x-lang\\test\\cases\\tcc_pdata_gc.c",
+      "sha256": "fc31e5ddae9330414051bdcb00b1c0faf4704e54d9ed7cd246e3a65721b456e1"
+    },
+    {
+      "path": "tools/check_tcc_pdata_gc.py",
+      "source": "D:\\GIT\\x-lang\\tools\\check_tcc_pdata_gc.py",
+      "sha256": "184ee840ceecb74b3d8cb9105a037626208109be8ba32892c49d2fda08d7ce32"
+    },
+    {
+      "path": "src/api/xl_api.c",
+      "source": "D:\\GIT\\x-lang\\src\\api\\xl_api.c",
+      "sha256": "112215ebe02480020b54aec2b67b9c445c3e09e7f1257a51bddf5abc3c54097e"
+    }
+  ],
+  "archiveSha256": "d192fa448bfaa03da0ceb76fc4f223c0c49153b2d7687d73e691f7b37d5e51ce"
+}
