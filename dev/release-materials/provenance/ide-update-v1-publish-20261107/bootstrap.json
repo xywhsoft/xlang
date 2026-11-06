@@ -1,0 +1,11 @@
+{
+  "status": "passed",
+  "seed": "update.exe only",
+  "signedManagedFilesVerified": 2176,
+  "initialVersion": 1,
+  "displayVersion": "0.6.0",
+  "missingUserSettings": true,
+  "missingExtlibs": true,
+  "externalState": true,
+  "guiExitCode": 0
+}

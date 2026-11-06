@@ -3,7 +3,7 @@
   "date": "2026-11-06",
   "primaryDirectory": "D:/GIT/x-lang",
   "deliveryDirectory": "release",
-  "externalPublishPerformed": false,
+  "externalPublishPerformed": true,
   "primaryIntegrationRevision": "6c8c0fbd017a61d89d5b81c836db67f712a422cb",
   "integrations": {
     "tomlCalendarCommit": "65eb0f3dc",
@@ -3237,7 +3237,7 @@
       "origin": "matched-xge3-xui3-local-delivery-20261105"
     },
     {
-      "sha256": "b3dcabc7051634461f68852024a48e856bbe5b7ef66ed5693cae97c5f6dc1e3d",
+      "sha256": "b83417d354dc2818fb51c2d64ccf5ddd8341b1beb4eb02c01ef9f897452d2604",
       "bytes": 11130425,
       "path": "release/win_x64/xge.dll",
       "origin": "xge-ide-update-20261106"
@@ -3277,6 +3277,11 @@
       "sha256": "091d16c8897c6f521efc0d82a4d3da7b8587bd931460cb9f713014ba104d8432",
       "bytes": 104,
       "origin": "ide-release-maintenance-20261106"
+    },
+    {
+      "path": "release/win_x64/mdo.exe",
+      "sha256": "9219de70911e1f02d8e54eadc77c257369e4ea637e5202fcbb04854a29893044",
+      "bytes": 7133938
     }
   ],
   "acceptance": {
@@ -3350,15 +3355,15 @@
     "publisherTools": "release/update_info/tools",
     "preparedStore": "release/update_info/win_x64",
     "preparedVersion": 1,
-    "published": false,
+    "published": true,
     "privateKeyPackaged": false,
     "publicKey": "53d97e95b59ae119fe0a95d02edfe1010458e60e7b95ede3541aad1df018f6a8",
     "defaultUrl": "https://xcompiler.com/download/update_<platform>",
     "publishedPlatforms": [
       "win_x64"
     ],
-    "currentPublishProvenance": "dev/release-materials/provenance/ide-update-policy-publish-20261103.json",
-    "publishedVersion": 3,
+    "currentPublishProvenance": "dev/release-materials/provenance/ide-update-v1-publish-20261107.json",
+    "publishedVersion": 1,
     "publicUrl": "https://xcompiler.com/download/update_win_x64",
     "remoteRoot": "/opt/www/host/xlang/wwwroot/download/update_win_x64",
     "localBootstrapObservedPath": "release/win_x64/update.exe",
@@ -3368,9 +3373,11 @@
     "comparisonField": "version",
     "preparedDisplayVersion": "0.6.0",
     "historicalTestStore": "release/update_info/test-history/win_x64",
-    "publishedChannel": "pre-release test (previous iteration 3, not modified by this delivery)",
+    "publishedChannel": "production",
     "runtimeState": "external same-filesystem directory; --print-state-dir",
-    "gitIgnoredDirectory": "release/update_info"
+    "gitIgnoredDirectory": "release/update_info",
+    "publishedDisplayVersion": "0.6.0",
+    "previousTestVersionsArchived": "/opt/www/host/xlang/wwwroot/download/.xlang-publish-d2bdfe7284970358/retired-test-20261106T150355Z-0dcfe9aeb28b476f"
   },
   "runtimeLayout": {
     "windows": "release/win_x64",
@@ -3570,6 +3577,11 @@
       "path": "dev/release-materials/provenance/ide-dialog-backdrop-20261106.json",
       "sha256": "d5365b6666f7177f12e3261f069d0037e03fbce9f983e09a9398b7fb4cc9dfe3",
       "bytes": 1959
+    },
+    "ideFormalVersion1": {
+      "path": "dev/release-materials/provenance/ide-update-v1-publish-20261107.json",
+      "sha256": "c36c3a2cacd066e3f1e99bc0d5975ffc074b78785273a899761105465bcefc7f",
+      "bytes": 4834
     }
   },
   "xuiGallery": {

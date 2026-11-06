@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "displayVersion": "0.6.0",
+  "forceUpdate": false,
+  "previous": 0,
+  "platform": "win_x64",
+  "created": 1793980285,
+  "published": true,
+  "catalogCompilerBindingCurrent": false,
+  "changedFiles": 2176,
+  "objects": 1640,
+  "newObjects": 1640,
+  "publishedAt": 1793980764,
+  "host": "xs@222.186.10.53",
+  "publicUrl": "https://xcompiler.com/download/update_win_x64",
+  "publicVerificationRoute": "server-https"
+}

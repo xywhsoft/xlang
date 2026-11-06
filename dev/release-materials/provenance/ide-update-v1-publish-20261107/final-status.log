@@ -1,0 +1,12 @@
+Local current: 1
+Remote current: {
+  "version": 1,
+  "displayVersion": "0.6.0",
+  "forceUpdate": false
+}
+RETRY public 1/2 https://xcompiler.com/download/update_win_x64/version.txt: Remote end closed connection without response
+Public current: {
+  "version": 1,
+  "displayVersion": "0.6.0",
+  "forceUpdate": false
+}

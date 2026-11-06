@@ -1,0 +1,143 @@
+{
+  "date": "2026-11-07",
+  "status": "published",
+  "platform": "win_x64",
+  "externalPublishPerformed": true,
+  "publicUrl": "https://xcompiler.com/download/update_win_x64",
+  "versionMarker": {
+    "version": 1,
+    "displayVersion": "0.6.0",
+    "forceUpdate": false
+  },
+  "record": {
+    "version": 1,
+    "displayVersion": "0.6.0",
+    "forceUpdate": false,
+    "previous": 0,
+    "platform": "win_x64",
+    "created": 1793980285,
+    "published": true,
+    "catalogCompilerBindingCurrent": false,
+    "changedFiles": 2176,
+    "objects": 1640,
+    "newObjects": 1640,
+    "publishedAt": 1793980764,
+    "host": "xs@222.186.10.53",
+    "publicUrl": "https://xcompiler.com/download/update_win_x64",
+    "publicVerificationRoute": "server-https"
+  },
+  "products": [
+    {
+      "path": "release/win_x64/xl.exe",
+      "sha256": "a5feede784f0a5cb1a829c2e362de57e9278b55cec1a11b796cf4b6e78831bbc",
+      "bytes": 72704
+    },
+    {
+      "path": "release/win_x64/xl.dll",
+      "sha256": "ae1fe2778e9aa7e4de407c89ba4a8e05bcd248d32226806e7957a0b6acf6b394",
+      "bytes": 15182848
+    },
+    {
+      "path": "release/win_x64/xlc.dll",
+      "sha256": "6b1e8d18a28791778c7c159bac431231a90ee18b695ad54cc8a8d11ed1b2d32f",
+      "bytes": 21294080
+    },
+    {
+      "path": "release/win_x64/xge.dll",
+      "sha256": "b83417d354dc2818fb51c2d64ccf5ddd8341b1beb4eb02c01ef9f897452d2604",
+      "bytes": 11130425
+    },
+    {
+      "path": "release/win_x64/xlang-ls.exe",
+      "sha256": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+      "bytes": 10701410
+    },
+    {
+      "path": "release/win_x64/xlang_ide.exe",
+      "sha256": "6c62d11534f0eb5ff80874477f29e0d862039df451be8e6b748a461a31dfb572",
+      "bytes": 1809864
+    },
+    {
+      "path": "release/win_x64/update.exe",
+      "sha256": "72ab3b3a081e192fe2253b5ca4c87c417b8142814d89d0713a678f8e722a8e10",
+      "bytes": 1482752
+    },
+    {
+      "path": "release/win_x64/mdo.exe",
+      "sha256": "9219de70911e1f02d8e54eadc77c257369e4ea637e5202fcbb04854a29893044",
+      "bytes": 7133938
+    },
+    {
+      "path": "release/win_x64/data/release.json",
+      "sha256": "091d16c8897c6f521efc0d82a4d3da7b8587bd931460cb9f713014ba104d8432",
+      "bytes": 104
+    }
+  ],
+  "manifest": {
+    "managedFiles": 2176,
+    "jsonSha256": "f04acb27de2b66e0d2e378bb2af861e0bd49722fcae0ea0c2751364cb22cd47a",
+    "lzmaSha256": "2398b2fbeb813c563dce13a9e978c04e9f374ff31e610de71f363b08b6aa5b3e",
+    "signatureEnvelope": "xlang-update-signed-1",
+    "publicKey": "53d97e95b59ae119fe0a95d02edfe1010458e60e7b95ede3541aad1df018f6a8"
+  },
+  "bootstrap": {
+    "status": "passed",
+    "seed": "update.exe only",
+    "signedManagedFilesVerified": 2176,
+    "initialVersion": 1,
+    "displayVersion": "0.6.0",
+    "missingUserSettings": true,
+    "missingExtlibs": true,
+    "externalState": true,
+    "guiExitCode": 0
+  },
+  "portable": {
+    "zip": "D:\\GIT\\x-lang\\dev\\releases\\xlang-win_x64-0.6.0-v1.zip",
+    "sha256": "df4957bf88241dd9bceb345df80959aa8e8704e88c6aa244a8a3db949cfd84ca",
+    "files": 6953,
+    "version": 1,
+    "displayVersion": "0.6.0"
+  },
+  "online": {
+    "objectVerification": "HTTPS bodies fetched on publishing server, TLS certificates, exact sizes and SHA-256 for all 1640 objects",
+    "metadataVerification": "publisher direct HTTPS exact bytes, bracketed version marker",
+    "nativeClientVersionCheckExitCode": 0,
+    "nativeClientObservedVersion": 1,
+    "publishedAfterDialogFix": true
+  },
+  "cleanup": {
+    "status": "passed",
+    "unusedObjectsArchived": 16,
+    "testStagesArchived": [
+      2,
+      3
+    ],
+    "retiredTestRoot": "/opt/www/host/xlang/wwwroot/download/.xlang-publish-d2bdfe7284970358/retired-test-20261106T150355Z-0dcfe9aeb28b476f",
+    "activeObjects": 1640,
+    "publicEntries": [
+      "version.txt",
+      "update.json",
+      "update",
+      "update.lzma"
+    ]
+  },
+  "localArchives": [
+    "D:\\GIT\\x-lang\\dev\\local-state\\release-clean\\win_x64\\20261106T145753Z-22000",
+    "D:\\GIT\\x-lang\\dev\\local-state\\release-clean\\win_x64\\20261106T150150Z-10440",
+    "D:\\GIT\\x-lang\\dev\\local-state\\release-clean\\win_x64\\20261106T155040Z-34344"
+  ],
+  "workingDirectory": "release/update_info/win_x64",
+  "sdkPackagesKept": true,
+  "extlibsUploaded": false,
+  "mdoIncluded": true,
+  "guiQualification": "dev/release-materials/provenance/ide-dialog-backdrop-20261106.json",
+  "publisherQualification": "dev/release-materials/provenance/update-publisher-batching-20261106.json",
+  "limitations": [
+    "Existing command-help compiler digest binding retained (catalogCompilerBindingCurrent=false); compiler/catalog matching was not requalified by this publication",
+    "Only win_x64 was published; Linux and ARM channels were not activated"
+  ],
+  "gitChanges": [
+    "18e3054ce",
+    "989a22c4e"
+  ]
+}
