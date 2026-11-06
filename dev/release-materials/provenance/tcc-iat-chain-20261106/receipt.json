@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "date": "2026-11-06",
+  "passed": true,
+  "scope": "PE IAT symbol-chain preservation and proven zero-code-offset thunk reuse; one production body file, no ABI/field/type/layout change, default link policy unchanged. Not a shipping Core/provider/VFS or whole-XGE acceptance.",
+  "checks": 160,
+  "peExecutions": 8,
+  "jitCombinations": 8,
+  "baselineFailureReproduced": true,
+  "reports": [
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\iat-chain-fix\\frozen-r1\\manifest.json",
+      "archivePath": "qualification.json",
+      "sha256": "c5212dea933b683129af995d762353eb03c3a6d4de91cda382b529e954914809"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\iat-chain-fix\\qualified-win-r1\\results.json",
+      "archivePath": "results.json",
+      "sha256": "b3dd1498b5655a66170dedad2a2209e300ec36cdd060eee0035740bdb2c61b45"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\iat-order-pe-probe-r1\\results.json",
+      "archivePath": "original-order-probe.json",
+      "sha256": "0bcd12f6764a12bb0471cb39e1a92504ad3cd4370176e829b3175f062dcd9712"
+    }
+  ],
+  "archiveSha256": "dc2b200d728696958e00390172e9db4bcc613bb7c3a695206f7c81f04276d8da",
+  "sourceMaterials": "dev\\release-materials\\sources\\tcc-iat-chain-20261106\\manifest.json",
+  "sourceMaterialsSha256": "3d5261e87750cf1201c02bd4a88ffe0fa0eb5ff4a27fd115de63a141bded7799",
+  "shippingDelivery": false
+}

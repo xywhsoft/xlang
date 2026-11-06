@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "scope": "PE IAT symbol-chain preservation and proven zero-code-offset thunk reuse; one production body file, no ABI/field/type/layout change, default link policy unchanged. Not a shipping Core/provider/VFS or whole-XGE acceptance.",
+  "base": "dev/release-materials/sources/tcc-pdata-20261106/manifest.json",
+  "baseSha256": "c6e2ea954e3d434a7c1101eb33cacfbdcacf6edb674c77b72d1585a0e6a0cefe",
+  "sourceFreezeSha256": "17a4fa77a8a4fe0981cbbaf3c0621bce6c9522ad5eac5ec2114a9a99ae48e624",
+  "files": [
+    {
+      "path": "lib/tcc/tccpe.c",
+      "source": "F:\\xlang-validation\\native-static-20261106\\iat-chain-fix\\frozen-r1\\files\\lib\\tcc\\tccpe.c",
+      "sha256": "88a4dbf9d8f76a0a39624183bc94825a9acad3fae99966a4b16a935c79548b21",
+      "bytes": 74365
+    },
+    {
+      "path": "test/cases/tcc_pe_iat_order_native.c",
+      "source": "F:\\xlang-validation\\native-static-20261106\\iat-chain-fix\\frozen-r1\\files\\test\\cases\\tcc_pe_iat_order_native.c",
+      "sha256": "6b3b3aeb070f2d666d08b76d29ce81dd34f57acbdcb9dc671944f52b01e7262b",
+      "bytes": 221
+    },
+    {
+      "path": "test/cases/tcc_pe_iat_order.c",
+      "source": "F:\\xlang-validation\\native-static-20261106\\iat-chain-fix\\frozen-r1\\files\\test\\cases\\tcc_pe_iat_order.c",
+      "sha256": "df31ecf311ec6f6bf0754561a5bb1c0695977bac5069ba557ad664e1f1fbf39c",
+      "bytes": 5352
+    },
+    {
+      "path": "tools/check_tcc_pe_iat_order.py",
+      "source": "F:\\xlang-validation\\native-static-20261106\\iat-chain-fix\\frozen-r1\\files\\tools\\check_tcc_pe_iat_order.py",
+      "sha256": "7e5b33fda02ad760645d647c45a034577548f15242a35ac60a56e8f2a2497a8d",
+      "bytes": 5256
+    },
+    {
+      "path": "docs/tcc-pe-import-chains.md",
+      "source": "F:\\xlang-validation\\native-static-20261106\\iat-chain-fix\\frozen-r1\\files\\docs\\tcc-pe-import-chains.md",
+      "sha256": "e1086fe445e6b3a4501fa3e9f324725b8f082a2a261fa43eddc00ac6aef73fc3",
+      "bytes": 1957
+    }
+  ],
+  "archiveSha256": "b9173ec1c43e84debe0ac11134082be237e89c937cdcd1a15edd8032ab56ba2b"
+}

@@ -960,6 +960,7 @@ found_dll:
     s = tcc_mallocz(sizeof *s);
     dynarray_add(&p->symbols, &p->sym_count, s);
     s->sym_index = sym_index;
+    s->thk_offset = -1; /* code offset zero is a valid thunk */
     return s;
 }
 
@@ -1501,7 +1502,7 @@ static int pe_check_symbols(struct pe_info *pe)
                 /* symbols from assembler often have no type */
                 || (type == STT_NOTYPE && 0 == _imp_)) {
                 unsigned offset = is->thk_offset;
-                if (offset) {
+                if (is->thk_offset >= 0) {
                     /* got aliased symbol, like stricmp and _stricmp */
                 } else {
                     unsigned char *p;
@@ -1511,7 +1512,7 @@ static int pe_check_symbols(struct pe_info *pe)
                        pe_build_imports */
                     sprintf(buffer, "IAT.%s", name);
                     is->iat_index = put_elf_sym(
-                        symtab_section, 0, sizeof(DWORD),
+                        symtab_section, is->iat_index, sizeof(DWORD),
                         ELFW(ST_INFO)(STB_LOCAL, STT_OBJECT),
                         0, SHN_UNDEF, buffer);
 
