@@ -1,0 +1,5 @@
+xlang 更新器
+检查更新清单 |  | 0/0 bytes
+
+ERROR: Download version.txt failed: TLS transport ended without close_notify
+CHECK version=1 local=1 forceUpdate=0 displayVersion=0.6.0

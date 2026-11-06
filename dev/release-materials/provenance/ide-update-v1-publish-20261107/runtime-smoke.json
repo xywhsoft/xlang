@@ -1,0 +1,14 @@
+[
+  {
+    "test": "xlang-run",
+    "exitCode": 0
+  },
+  {
+    "test": "c-run",
+    "exitCode": 0
+  },
+  {
+    "test": "current-ide-missing-config",
+    "exitCode": 0
+  }
+]

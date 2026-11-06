@@ -139,7 +139,9 @@ python ide/tools/update/release_maintenance.py bundle --platform win_x64
 
 制作版本会生成并签名 `data/release.json`，便携 ZIP 解压后即能显示迭代 1，无需附带发布机的安装回执。ZIP 含运行依赖及扩展包；在线差分仍排除 `extlibs/`。`--include-mdo` 的选择保存在版本库配置中，后续继承，也可显式用 `--no-include-mdo` 取消。
 
-**当前此前的线上测试通道已经到迭代 3，直接推送 1 会被正常的防降级保护拒绝。** 第一次正式上线前，需单独归档测试通道。以下命令只用于本项目尚未正式发行的这个测试通道；不用于正常已发行版本的降级：
+**Windows 正式通道已于 2026-11-07 发布 `0.6.0 / 迭代 1`。此前迭代 3 的测试通道及其旧暂存资料已归档。后续从迭代 2 递增，不要再次初始化或重置正式通道。**
+
+以下仅保留首次上线前的测试通道归档操作，供审计和其他尚未正式发行的测试通道参考；不用于正常已发行版本的降级：
 
 ```powershell
 python ide/tools/update/retire_test_channel.py --platform win_x64 --expect-version 3

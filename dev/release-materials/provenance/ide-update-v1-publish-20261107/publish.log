@@ -1,0 +1,5 @@
+UPLOAD 128/271 (128 objects in batch)
+UPLOAD 256/271 (128 objects in batch)
+UPLOAD 271/271 (15 objects in batch)
+VERIFY PUBLIC SERVER 1640/1640
+PUBLISHED win_x64 version=1 uploaded=271 reused=1369

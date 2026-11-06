@@ -1,0 +1,6 @@
+{
+  "activated": false,
+  "pendingStateArchived": "D:\\GIT\\x-lang\\release\\update_info\\test-history\\paused-first-publish-20261106\\push.json",
+  "remoteStageArchived": "/opt/www/host/xlang/wwwroot/download/.xlang-publish-d2bdfe7284970358/v1-paused-for-dialog-fix-04801a81bab2",
+  "reason": "User-reported file dialog backdrop artifact; fix will be included before first activation"
+}

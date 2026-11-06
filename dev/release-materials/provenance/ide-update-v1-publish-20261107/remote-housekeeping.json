@@ -1,0 +1,16 @@
+{
+  "status": "passed",
+  "unusedObjectsArchived": 16,
+  "testStagesArchived": [
+    2,
+    3
+  ],
+  "retiredTestRoot": "/opt/www/host/xlang/wwwroot/download/.xlang-publish-d2bdfe7284970358/retired-test-20261106T150355Z-0dcfe9aeb28b476f",
+  "activeObjects": 1640,
+  "publicEntries": [
+    "version.txt",
+    "update.json",
+    "update",
+    "update.lzma"
+  ]
+}

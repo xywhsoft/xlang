@@ -1,0 +1,42 @@
+{
+  "source": "D:\\GIT\\x-lang\\release\\win_x64",
+  "archive": "D:\\GIT\\x-lang\\dev\\local-state\\release-clean\\win_x64\\20261106T145753Z-22000",
+  "archivePaths": [
+    "build",
+    "examples_out",
+    "option/settings.json",
+    "option/settings.json.lock",
+    "projects",
+    "tmp"
+  ],
+  "migrateUpdateState": false,
+  "archivePublisherTools": false,
+  "applied": true,
+  "updateState": "d:\\git\\x-lang\\ide\\build\\update-runtime\\win_x64-6e3555629b49a75592cf1a8d5399c8b6b3c6701aa3a82f0ea88e9a1f3471814c",
+  "moves": [
+    {
+      "source": "D:\\GIT\\x-lang\\release\\win_x64\\build",
+      "destination": "D:\\GIT\\x-lang\\dev\\local-state\\release-clean\\win_x64\\20261106T145753Z-22000\\build"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\release\\win_x64\\examples_out",
+      "destination": "D:\\GIT\\x-lang\\dev\\local-state\\release-clean\\win_x64\\20261106T145753Z-22000\\examples_out"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\release\\win_x64\\option\\settings.json",
+      "destination": "D:\\GIT\\x-lang\\dev\\local-state\\release-clean\\win_x64\\20261106T145753Z-22000\\option\\settings.json"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\release\\win_x64\\option\\settings.json.lock",
+      "destination": "D:\\GIT\\x-lang\\dev\\local-state\\release-clean\\win_x64\\20261106T145753Z-22000\\option\\settings.json.lock"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\release\\win_x64\\projects",
+      "destination": "D:\\GIT\\x-lang\\dev\\local-state\\release-clean\\win_x64\\20261106T145753Z-22000\\projects"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\release\\win_x64\\tmp",
+      "destination": "D:\\GIT\\x-lang\\dev\\local-state\\release-clean\\win_x64\\20261106T145753Z-22000\\tmp"
+    }
+  ]
+}
