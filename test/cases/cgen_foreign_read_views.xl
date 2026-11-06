@@ -1,0 +1,21 @@
+import "../fixtures/foreign_read_views" as views
+// Native C code borrows these exact slots, then attempts a reentrant write.
+array<string> viewWords = array["a\0b", "中文"]
+dict<string> viewOptions = {"name": "native", "empty": ""}
+export "read_view_mutate" func mutateReadView()
+    viewWords.push("forbidden")
+end
+assert views.probe(viewWords, viewOptions) == 1
+bool viewMutationBlocked = false
+try
+    views.reenter(viewWords)
+catch e
+    viewMutationBlocked = true
+end
+assert viewMutationBlocked
+assert viewWords.length == 2
+viewWords.push("after end")
+assert viewWords.length == 3
+println("borrowed native container views passed")
+array<point> addresses = [views.address(), null]
+assert views.pointers(addresses, addresses[0]) == 1

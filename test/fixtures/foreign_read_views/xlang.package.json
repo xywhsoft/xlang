@@ -1,0 +1,25 @@
+{
+  "format": "xlang-package-1",
+  "name": "foreign_read_views",
+  "version": "1.0.0",
+  "artifact": {
+    "kind": "source",
+    "xlSources": [
+      "api.xl"
+    ],
+    "cSources": [
+      "probe.c"
+    ],
+    "xrtModules": [
+      "XRT_MODULE_VALUE_CONTAINER"
+    ],
+    "runtimeSymbols": [
+      "xlValueBorrowV1",
+      "xlValueReadBeginV1",
+      "xlValueReadEndV1",
+      "xlValueReadAtV1",
+      "xlValueReadFindV1",
+      "xlValueBorrowCopyV1"
+    ]
+  }
+}
