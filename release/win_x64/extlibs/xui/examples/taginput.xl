@@ -1,0 +1,18 @@
+// Tag input / add and remove tags. Run from release/<platform>; Escape or close exits.
+import xui
+import "./_support.xl" as demo
+
+export class TaginputExample
+ static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
+  demo.Gallery.label(context,root,"Tag input / add and remove tags",24,16)
+  auto control=context.tagInputNative()
+  demo.Gallery.place(root,control,24,64,640,60)
+  assert control.addTag("xlang")>=0
+  assert control.addTag("native")>=0
+  assert control.addTag("UTF-8")>=0
+ end
+end
+
+func main(...) as int
+ return demo.Gallery.run("Tag input / add and remove tags",TaginputExample.build)
+end

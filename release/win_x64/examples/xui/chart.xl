@@ -1,0 +1,20 @@
+// Chart / typed data columns. Run from release/<platform>; Escape or close exits.
+import xui
+import "./_support.xl" as demo
+
+export class ChartExample
+ static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
+  demo.Gallery.label(context,root,"Chart / typed data columns",24,16)
+  auto control=context.chartNative()
+  demo.Gallery.place(root,control,24,64,640,340)
+  control.setTitle("Measured values")
+  c_int line=control.addSeries(xui.XUI_CHART_SERIES_LINE,"Samples")
+  control.setSeriesData(line,[c_double(0),c_double(1),c_double(2),c_double(3)],[c_double(2),c_double(5),c_double(3),c_double(7)])
+  control.setLegendVisible(c_int(1))
+  assert control.getSeriesCount()==c_int(1)
+ end
+end
+
+func main(...) as int
+ return demo.Gallery.run("Chart / typed data columns",ChartExample.build)
+end

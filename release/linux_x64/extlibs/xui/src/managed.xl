@@ -909,7 +909,7 @@ export extern "xui_context_t*" class Context @header("xge3_runtime.h") @lifetime
 
  extern "xuiStepBarCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackStepBar) func stepBarNative(NativeConstXuiStepBarDescTPointer? pDesc=null) as StepBar
 
- extern "xuiChartCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackChart) func chartNative(NativeConstXuiChartDescTPointer pDesc) as Chart
+ extern "xuiChartCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackChart) func chartNative(NativeConstXuiChartDescTPointer? pDesc=null) as Chart
 
  extern "xuiCodeEditCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackCodeEdit) func codeEditNative(NativeConstXuiCodeEditDescTPointer? pDesc=null) as CodeEdit
 
@@ -923,15 +923,15 @@ export extern "xui_context_t*" class Context @header("xge3_runtime.h") @lifetime
 
  extern "xuiButtonCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackButton) func buttonNative(NativeConstXuiButtonDescTPointer? pDesc=null) as Button
 
- extern "xuiCheckBoxCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackCheckBox) func checkBoxNative(NativeConstXuiCheckboxDescTPointer pDesc) as CheckBox
+ extern "xuiCheckBoxCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackCheckBox) func checkBoxNative(NativeConstXuiCheckboxDescTPointer? pDesc=null) as CheckBox
 
  extern "xuiCheckCardCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackCheckCard) func checkCardNative(NativeConstXuiCheckCardDescTPointer? pDesc=null) as CheckCard
 
- extern "xuiRadioCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackRadio) func radioNative(NativeConstXuiRadioDescTPointer pDesc) as Radio
+ extern "xuiRadioCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackRadio) func radioNative(NativeConstXuiRadioDescTPointer? pDesc=null) as Radio
 
  extern "xuiRadioGroupCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackRadioGroup) @c_ref(0) func radioGroup(RadioGroupDesc pDesc) as RadioGroup
 
- extern "xuiToggleCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackToggle) func toggleNative(NativeConstXuiToggleDescTPointer pDesc) as Toggle
+ extern "xuiToggleCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackToggle) func toggleNative(NativeConstXuiToggleDescTPointer? pDesc=null) as Toggle
 
  extern "xuiScrollBarCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackScrollBar) @c_ref(0) func scrollBar(ScrollbarDesc pDesc) as ScrollBar
 
@@ -1227,6 +1227,14 @@ export extern "xui_context_t*" class Context @header("xge3_runtime.h") @lifetime
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 
  extern "xuiBuiltinAssetGetAtlas" @no_raise @c_output_retain(1,retainSurface,"zero",rollbackSurface) @c_output(1,0) func builtinAssetGetAtlas() as Surface
+ extern "xuiRender" @no_raise @c_span(1,"const xui_rect_i_t*","int") @c_result("status",0) func render(Surface target,bytes damage=b"")
+ extern "xuiSliderCreate" @no_raise @c_null(2,"const xui_slider_desc_t*") @c_result("owner_view",0) @factory(1,0,rollbackSlider) func slider() as Slider
+ extern "xuiRangeSliderCreate" @no_raise @c_null(2,"const xui_range_slider_desc_t*") @c_result("owner_view",0) @factory(1,0,rollbackRangeSlider) func rangeSlider() as RangeSlider
+ extern "xuiScrollBarCreate" @no_raise @c_null(2,"const xui_scrollbar_desc_t*") @c_result("owner_view",0) @factory(1,0,rollbackScrollBar) func scrollBar() as ScrollBar
+ extern "xuiSplitLayoutCreate" @no_raise @c_null(2,"const xui_split_layout_desc_t*") @c_result("owner_view",0) @factory(1,0,rollbackSplitLayout) func splitLayout() as SplitLayout
+ extern "xuiScrollViewCreate" @no_raise @c_null(2,"const xui_scroll_view_desc_t*") @c_result("owner_view",0) @factory(1,0,rollbackScrollView) func scrollView() as ScrollView
+ extern "xuiCanvasCreate" @no_raise @c_null(2,"const xui_canvas_desc_t*") @c_result("owner_view",0) @factory(1,0,rollbackCanvas) func canvas() as Canvas
+ extern "xuiSeparatorCreate" @no_raise @c_null(2,"const xui_separator_desc_t*") @c_result("owner_view",0) @factory(1,0,rollbackSeparator) func separator() as Separator
 end
 
 export extern "xui_widget_t*" class Widget @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t")
@@ -2017,7 +2025,7 @@ export extern "xui_widget_t*" class StepBar @header("xge3_runtime.h") @lifetime(
  extern "xuiStepBarGetIndicatorRect" @no_raise func getIndicatorRect(c_int iIndex) as Rect
 
  extern "xuiStepBarGetChangeCount" @no_raise func getChangeCount() as c_int
-
+ extern "xuiStepBarSetSteps" @no_raise @c_result("status",0) @c_array_group(1,0,1,"int",1) @c_array_input(1,0,"const char* const*","c_string") func setSteps(array<string> titles,int size=-1)
 end
 
 export extern "xui_widget_t*" class Chart @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
@@ -2135,7 +2143,8 @@ export extern "xui_widget_t*" class Chart @header("xge3_runtime.h") @lifetime("o
  extern "xuiChartGetPlotRect" @no_raise func getPlotRect() as Rect
 
  extern "xuiChartHitTest" @no_raise @c_output(3,0) func hitTest(c_float fX,c_float fY) as ChartHit
-
+ extern "xuiChartAddSeries" @no_raise @c_cstr(1) @c_output(3,0) func addSeries(c_int type,string name) as c_int
+ extern "xuiChartSetSeriesData" @no_raise @c_result("status",0) @c_array_group(2,1,2,"int",3) @c_array_record(2,"xui_chart_point_t") @c_array_field(2,"x",0,"value") @c_array_field(2,"y",1,"value") func setSeriesData(c_int series,array<c_double> xs,array<c_double> ys,int size=-1)
 end
 
 export extern "xui_widget_t*" class CodeEdit @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
@@ -3744,7 +3753,7 @@ export extern "xui_widget_t*" class Accordion @header("xge3_runtime.h") @lifetim
  extern "xuiAccordionGetState" @no_raise func getState() as c_uint
 
  extern "xuiAccordionGetChangeCount" @no_raise func getChangeCount() as c_int
-
+ extern "xuiAccordionAddSection" @no_raise @c_cstr(0) @c_result("status",0) @c_null(4,"xui_widget*") func addSection(string title,c_int id,c_int expanded)
 end
 
 export extern "xui_widget_t*" class Window @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
@@ -3995,6 +4004,7 @@ export extern "xui_widget_t*" class DockPanel @header("xge3_runtime.h") @lifetim
 
  extern "xuiDockPanelSetWindowIcon" @no_raise @c_result("status",0) func setWindowIcon(c_int iWindow,Surface? pSurface,Rect tSrc)
  extern "xuiDockPanelGetWindowIconSurface" @no_raise @c_result("retained_view") @c_retain(retainSurface,"zero",rollbackSurface) func getWindowIconSurface(c_int iWindow) as Surface?
+ extern "xuiDockPanelAddWindow" @no_raise @c_cstr(0) @c_output(3,0) func addWindow(string title,Widget client) as c_int
 end
 
 export extern "xui_widget_t*" class ScrollFrame @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
@@ -4285,7 +4295,7 @@ export extern "xui_widget_t*" class ListView @header("xge3_runtime.h") @lifetime
  extern "xuiListViewGetSelectCount" @no_raise func getSelectCount() as c_int
 
  extern "xuiListViewGetChangeCount" @no_raise func getChangeCount() as c_int
-
+ extern "xuiListViewSetItems" @no_raise @c_result("status",0) @c_array_group(1,0,1,"int",1) @c_array_input(1,0,"const char**","c_string") func setItems(array<string> items,int size=-1)
 end
 
 export extern "xui_widget_t*" class MessageList @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
@@ -4573,7 +4583,7 @@ export extern "xui_widget_t*" class TableView @header("xge3_runtime.h") @lifetim
  extern "xuiTableViewGetColumnResizeCount" @no_raise func getColumnResizeCount() as c_int
 
  extern "xuiTableViewGetChangeCount" @no_raise func getChangeCount() as c_int
-
+ extern "xuiTableViewSetColumnsCopy" @no_raise @c_result("status",0) @c_array_group(1,0,2,"int",2) @c_array_record(1,"xui_table_view_column_t") @c_array_field(1,"sTitle",0,"c_string") @c_array_field(1,"fWidth",1,"value") func setColumns(array<string> titles,array<c_float> widths,int size=-1)
 end
 
 export extern "xui_widget_t*" class TableGrid @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
@@ -4629,7 +4639,7 @@ export extern "xui_widget_t*" class TableGrid @header("xge3_runtime.h") @lifetim
  extern "xuiTableGridGetPickerCount" @no_raise func getPickerCount() as c_int
 
  extern "xuiTableGridGetChangeCount" @no_raise func getChangeCount() as c_int
-
+ extern "xuiTableGridSetColumnsCopy" @no_raise @c_result("status",0) @c_array_group(1,0,2,"int",2) @c_array_record(1,"xui_table_view_column_t") @c_array_field(1,"sTitle",0,"c_string") @c_array_field(1,"fWidth",1,"value") func setColumns(array<string> titles,array<c_float> widths,int size=-1)
 end
 
 export extern "xui_widget_t*" class TimeLineView @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
@@ -4767,7 +4777,8 @@ export extern "xui_widget_t*" class TimeLineView @header("xge3_runtime.h") @life
  extern "xuiTimeLineViewGetSelectionChangeCount" @no_raise func getSelectionChangeCount() as c_int
 
  extern "xuiTimeLineViewGetClickCount" @no_raise func getClickCount() as c_int
-
+ extern "xuiTimeLineViewAddLayer" @no_raise @c_cstr(0) @c_output(2,0) func addLayer(string name) as c_int
+ extern "xuiTimeLineViewAddSpan" @no_raise @c_cstr(4) @c_output(6,0) func addSpan(c_int layer,c_int start,c_int stop,c_int type,string label) as c_int
 end
 
 export extern "xui_widget_t*" class PropertyGrid @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
@@ -4869,7 +4880,7 @@ export extern "xui_widget_t*" class PropertyGrid @header("xge3_runtime.h") @life
  extern "xuiPropertyGridGetSelectCount" @no_raise func getSelectCount() as c_int
 
  extern "xuiPropertyGridGetToggleCount" @no_raise func getToggleCount() as c_int
-
+ extern "xuiPropertyGridAddProperty" @no_raise @c_pack(2,"xui_property_desc_t",1,7) @c_pack_field(2,"sId",1,"c_string") @c_pack_field(2,"sName",2,"c_string") @c_pack_field(2,"sDescription",3,"c_string") @c_pack_field(2,"iType",4,"value") @c_pack_field(2,"sValue",5,"c_string") @c_pack_field(2,"sDefaultValue",6,"c_string") @c_pack_field(2,"iFlags",7,"value") func addProperty(c_int category,string id,string name,string description="",c_int type=0,string value="",string? defaultValue=null,c_int flags=0) as c_int
 end
 
 export extern "xui_widget_t*" class Popup @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
@@ -5025,7 +5036,7 @@ export extern "xui_widget_t*" class Menu @header("xge3_runtime.h") @lifetime("ow
  extern "xuiMenuGetContentWidget" @no_raise @c_result("owner_view",0) func getContentWidget() as Widget?
 
  extern "xuiMenuGetOwner" @no_raise @c_result("owner_view",0) func getOwner() as Widget?
-
+ extern "xuiMenuAddItem" @no_raise @c_result("status",0) @c_pack(1,"xui_menu_item_t",0,6) @c_pack_field(1,"sText",0,"c_string") @c_pack_field(1,"sShortcut",1,"c_string") @c_pack_field(1,"iType",2,"value") @c_pack_field(1,"iState",3,"value") @c_pack_field(1,"iValue",4,"value") @c_pack_field(1,"iIcon",5,"value") func addItem(string text,string? shortcut=null,c_int type=0,c_uint state=1,c_int value=0,c_int icon=0)
 end
 
 export extern "xui_widget_t*" class MenuBar @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
@@ -5345,6 +5356,7 @@ export extern "xui_widget_t*" class ComboBox @header("xge3_runtime.h") @lifetime
 
  extern "xuiComboBoxGetChangeCount" @no_raise func getChangeCount() as c_int
 
+ extern "xuiComboBoxSetItems" @no_raise @c_result("status",0) @c_array_group(1,0,1,"int",1) @c_array_input(1,0,"const char**","c_string") func setItems(array<string> items,int size=-1)
 end
 
 export extern "xui_widget_t*" class Cascader @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget

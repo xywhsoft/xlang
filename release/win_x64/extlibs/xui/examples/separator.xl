@@ -1,0 +1,18 @@
+// Separator / horizontal rule. Run from release/<platform>; Escape or close exits.
+import xui
+import "./_support.xl" as demo
+
+export class SeparatorExample
+ static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
+  demo.Gallery.label(context,root,"Separator / horizontal rule",24,16)
+  auto control=context.separator()
+  demo.Gallery.place(root,control,24,64,640,3)
+  control.setColor(c_uint(0xB08040FF))
+  demo.Gallery.label(context,root,"Above the separator",24,24,600)
+  demo.Gallery.label(context,root,"Below the separator",24,100,600)
+ end
+end
+
+func main(...) as int
+ return demo.Gallery.run("Separator / horizontal rule",SeparatorExample.build)
+end

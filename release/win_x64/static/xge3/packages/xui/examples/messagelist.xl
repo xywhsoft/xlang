@@ -1,0 +1,18 @@
+// Message list / structured nodes. Run from release/<platform>; Escape or close exits.
+import xui
+import "./_support.xl" as demo
+
+export class MessagelistExample
+ static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
+  demo.Gallery.label(context,root,"Message list / structured nodes",24,16)
+  auto control=context.messageListNative()
+  demo.Gallery.place(root,control,24,64,640,320)
+  control.addNode("m1","Hello from xlang",sender="Alice",time="12:00")
+  control.addNode("m2","Native XUI message rendering",sender="Bob",time="12:01")
+  control.appendNodeText("m2"," - appended text")
+ end
+end
+
+func main(...) as int
+ return demo.Gallery.run("Message list / structured nodes",MessagelistExample.build)
+end

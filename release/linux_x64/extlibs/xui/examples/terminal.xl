@@ -1,0 +1,17 @@
+// Terminal / ANSI text without a child process. Run from release/<platform>; Escape or close exits.
+import xui
+import "./_support.xl" as demo
+
+export class TerminalExample
+ static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
+  demo.Gallery.label(context,root,"Terminal / ANSI text without a child process",24,16)
+  auto control=context.terminalNative()
+  demo.Gallery.place(root,control,24,64,640,320)
+  assert control.writeText("xlang XUI terminal\r\n\u001b[32mANSI green\u001b[0m\r\nNo shell is started.\r\n")>=0
+  assert control.flush()==0
+ end
+end
+
+func main(...) as int
+ return demo.Gallery.run("Terminal / ANSI text without a child process",TerminalExample.build)
+end

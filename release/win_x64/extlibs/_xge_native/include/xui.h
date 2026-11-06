@@ -11202,6 +11202,8 @@ XUI_API xui_widget_type xuiTableViewGetType(xui_context pContext);
 XUI_API int xuiTableViewCreate(xui_context pContext, xui_widget* ppWidget, const xui_table_view_desc_t* pDesc);
 /* 批量设置列描述（宽度/对齐/可排序等）。描述会复制；其中字符串、回调及用户指针为借用资源，替换列或销毁控件前须保持有效。 */
 XUI_API int xuiTableViewSetColumns(xui_widget pWidget, const xui_table_view_column_t* arrColumns, int iCount);
+/* Copies descriptor and sId/sTitle text. Callback/user pointer lifetimes remain caller-owned. */
+XUI_API int xuiTableViewSetColumnsCopy(xui_widget pWidget, const xui_table_view_column_t* arrColumns, int iCount);
 /* 批量设置行数据（立即模式，结构内容会复制）。 */
 XUI_API int xuiTableViewSetRows(xui_widget pWidget, const xui_table_view_row_t* arrRows, int iCount);
 /* 设置虚拟化适配器（count + cell 回调，按需取值）。回调在调用线程同步执行；
@@ -11392,6 +11394,8 @@ XUI_API int xuiTableGridCreate(xui_context pContext, xui_widget* ppWidget, const
 XUI_API xui_widget xuiTableGridGetTableView(xui_widget pWidget);
 /* 批量设置列描述。 */
 XUI_API int xuiTableGridSetColumns(xui_widget pWidget, const xui_table_view_column_t* arrColumns, int iCount);
+/* Copies descriptor and sId/sTitle text. Callback/user pointer lifetimes remain caller-owned. */
+XUI_API int xuiTableGridSetColumnsCopy(xui_widget pWidget, const xui_table_view_column_t* arrColumns, int iCount);
 /* 批量设置行数据。 */
 XUI_API int xuiTableGridSetRows(xui_widget pWidget, const xui_table_view_row_t* arrRows, int iCount);
 /* 设置虚拟化适配器（行数 + 单元格取值 + 写回）。 */

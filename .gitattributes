@@ -128,3 +128,7 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 
 /dev/release-materials/sources/xge-ide-update-20261106/** -text whitespace=cr-at-eol
 /dev/release-materials/provenance/xge-ide-update-20261106/** -text whitespace=cr-at-eol
+
+# Exact gallery source snapshots and historical acceptance bytes.
+/dev/release-materials/sources/xui-gallery-20261106/** -text whitespace=cr-at-eol
+/dev/release-materials/provenance/xui-gallery-20261106/** -text whitespace=cr-at-eol

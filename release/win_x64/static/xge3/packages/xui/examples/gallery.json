@@ -1,0 +1,248 @@
+{
+  "schema": 1,
+  "examples": [
+    {
+      "name": "accordion",
+      "title": "Accordion / expand sections",
+      "className": "AccordionExample"
+    },
+    {
+      "name": "basic",
+      "title": "Basic controls / interactive state",
+      "className": "BasicExample"
+    },
+    {
+      "name": "breadcrumb",
+      "title": "Breadcrumb / navigation callbacks",
+      "className": "BreadcrumbExample"
+    },
+    {
+      "name": "button",
+      "title": "Button / click and disabled states",
+      "className": "ButtonExample"
+    },
+    {
+      "name": "canvas",
+      "title": "Canvas / persistent drawing and pen",
+      "className": "CanvasExample"
+    },
+    {
+      "name": "carousel",
+      "title": "Carousel / page navigation",
+      "className": "CarouselExample"
+    },
+    {
+      "name": "chart",
+      "title": "Chart / typed data columns",
+      "className": "ChartExample"
+    },
+    {
+      "name": "checkbox",
+      "title": "Checkbox / three-state selection",
+      "className": "CheckboxExample"
+    },
+    {
+      "name": "codeedit",
+      "title": "Code editor / minimap and syntax",
+      "className": "CodeeditExample"
+    },
+    {
+      "name": "colorpicker",
+      "title": "Color picker / RGBA popup",
+      "className": "ColorpickerExample"
+    },
+    {
+      "name": "combobox",
+      "title": "Combo box / popup selection",
+      "className": "ComboboxExample"
+    },
+    {
+      "name": "datepicker",
+      "title": "Date picker / calendar popup",
+      "className": "DatepickerExample"
+    },
+    {
+      "name": "dockpanel",
+      "title": "Dock panel / owned client windows",
+      "className": "DockpanelExample"
+    },
+    {
+      "name": "hyperlink",
+      "title": "Hyperlink / local click callback",
+      "className": "HyperlinkExample"
+    },
+    {
+      "name": "image",
+      "title": "Image / generated RGBA resource",
+      "className": "ImageExample"
+    },
+    {
+      "name": "input",
+      "title": "Input / edit UTF-8 text",
+      "className": "InputExample"
+    },
+    {
+      "name": "listview",
+      "title": "List / selection and scrolling",
+      "className": "ListviewExample"
+    },
+    {
+      "name": "menu",
+      "title": "Menu / command selection",
+      "className": "MenuExample"
+    },
+    {
+      "name": "messagelist",
+      "title": "Message list / structured nodes",
+      "className": "MessagelistExample"
+    },
+    {
+      "name": "numericinput",
+      "title": "Numeric input / limits and step",
+      "className": "NumericinputExample"
+    },
+    {
+      "name": "page",
+      "title": "Pagination / page count",
+      "className": "PageExample"
+    },
+    {
+      "name": "panel",
+      "title": "Panel / child ownership",
+      "className": "PanelExample"
+    },
+    {
+      "name": "popup",
+      "title": "Popup / explicit open and close",
+      "className": "PopupExample"
+    },
+    {
+      "name": "progress",
+      "title": "Progress / change the value",
+      "className": "ProgressExample"
+    },
+    {
+      "name": "propertygrid",
+      "title": "Property grid / editable values",
+      "className": "PropertygridExample"
+    },
+    {
+      "name": "qrcode",
+      "title": "QR code / UTF-8 content",
+      "className": "QrcodeExample"
+    },
+    {
+      "name": "radio",
+      "title": "Radio / exclusive choice",
+      "className": "RadioExample"
+    },
+    {
+      "name": "rangeslider",
+      "title": "Range slider / drag both endpoints",
+      "className": "RangesliderExample"
+    },
+    {
+      "name": "richtext",
+      "title": "Rich text / current Document View model",
+      "className": "RichtextExample"
+    },
+    {
+      "name": "scrollbar",
+      "title": "Scrollbar / page and position",
+      "className": "ScrollbarExample"
+    },
+    {
+      "name": "scrollview",
+      "title": "Scroll view / content larger than viewport",
+      "className": "ScrollviewExample"
+    },
+    {
+      "name": "separator",
+      "title": "Separator / horizontal rule",
+      "className": "SeparatorExample"
+    },
+    {
+      "name": "slider",
+      "title": "Slider / drag the knob",
+      "className": "SliderExample"
+    },
+    {
+      "name": "splitlayout",
+      "title": "Split layout / draggable divider",
+      "className": "SplitlayoutExample"
+    },
+    {
+      "name": "statusbar",
+      "title": "Status bar / text and progress",
+      "className": "StatusbarExample"
+    },
+    {
+      "name": "stepbar",
+      "title": "Step bar / workflow stages",
+      "className": "StepbarExample"
+    },
+    {
+      "name": "tablegrid",
+      "title": "Tablegrid / columns and cells",
+      "className": "TablegridExample"
+    },
+    {
+      "name": "tableview",
+      "title": "Tableview / columns and cells",
+      "className": "TableviewExample"
+    },
+    {
+      "name": "tabs",
+      "title": "Tabs / Context-owned pages",
+      "className": "TabsExample"
+    },
+    {
+      "name": "taginput",
+      "title": "Tag input / add and remove tags",
+      "className": "TaginputExample"
+    },
+    {
+      "name": "terminal",
+      "title": "Terminal / ANSI text without a child process",
+      "className": "TerminalExample"
+    },
+    {
+      "name": "textedit",
+      "title": "Text editor / multiline selection",
+      "className": "TexteditExample"
+    },
+    {
+      "name": "timeline",
+      "title": "Timeline / layers and spans",
+      "className": "TimelineExample"
+    },
+    {
+      "name": "toggle",
+      "title": "Toggle / enabled state",
+      "className": "ToggleExample"
+    },
+    {
+      "name": "toolbar",
+      "title": "Toolbar / commands and tooltips",
+      "className": "ToolbarExample"
+    },
+    {
+      "name": "treeview",
+      "title": "Tree / expand and select",
+      "className": "TreeviewExample"
+    },
+    {
+      "name": "window",
+      "title": "Window / move and resize",
+      "className": "WindowExample"
+    },
+    {
+      "name": "all_controls",
+      "title": "Complete control gallery",
+      "className": "AllControlsExample"
+    }
+  ],
+  "helper": "_support.xl",
+  "interactive": true,
+  "frameLimitEnvironment": "XUI_EXAMPLE_FRAMES"
+}

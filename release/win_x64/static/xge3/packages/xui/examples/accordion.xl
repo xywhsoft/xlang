@@ -1,0 +1,27 @@
+// Accordion / expand sections. Run from release/<platform>; Escape or close exits.
+import xui
+from xui import Widget
+import "./_support.xl" as demo
+
+export class AccordionExample
+ static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
+  demo.Gallery.label(context,root,"Accordion / expand sections",24,16)
+  auto control=context.accordionNative()
+  demo.Gallery.place(root,control,24,64,640,340)
+  control.addSection("Project",c_int(1),c_int(1))
+  auto first=control.getClientWidget(c_int(0))
+  assert first!=null
+  auto button=context.buttonNative()
+  button.setText("Build project")
+  demo.Gallery.place(first as Widget,button,16,16,200,44)
+  control.addSection("Settings",c_int(2),c_int(0))
+  auto second=control.getClientWidget(c_int(1))
+  assert second!=null
+  demo.Gallery.label(context,second as Widget,"Second section",16,16,300)
+  assert control.getSectionCount()==c_int(2)
+ end
+end
+
+func main(...) as int
+ return demo.Gallery.run("Accordion / expand sections",AccordionExample.build)
+end

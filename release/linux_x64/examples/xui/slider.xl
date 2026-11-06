@@ -1,0 +1,18 @@
+// Slider / drag the knob. Run from release/<platform>; Escape or close exits.
+import xui
+import "./_support.xl" as demo
+
+export class SliderExample
+ static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
+  demo.Gallery.label(context,root,"Slider / drag the knob",24,16)
+  auto control=context.slider()
+  demo.Gallery.place(root,control,24,64,640,44)
+  control.setRange(c_float(0),c_float(100))
+  assert control.setValue(c_float(35))==0
+  assert control.getValue()==c_float(35)
+ end
+end
+
+func main(...) as int
+ return demo.Gallery.run("Slider / drag the knob",SliderExample.build)
+end

@@ -1,0 +1,20 @@
+// Timeline / layers and spans. Run from release/<platform>; Escape or close exits.
+import xui
+import "./_support.xl" as demo
+
+export class TimelineExample
+ static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
+  demo.Gallery.label(context,root,"Timeline / layers and spans",24,16)
+  auto control=context.timeLineViewNative()
+  demo.Gallery.place(root,control,24,64,640,300)
+  assert control.setFrameCount(c_int(100))==0
+  c_int layer=control.addLayer("Animation")
+  c_int span=control.addSpan(layer,c_int(5),c_int(25),c_int(0),"Move")
+  assert control.setCurrentFrame(c_int(10))==0
+  assert control.getLayerCount()==c_int(1)
+ end
+end
+
+func main(...) as int
+ return demo.Gallery.run("Timeline / layers and spans",TimelineExample.build)
+end

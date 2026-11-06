@@ -1,0 +1,19 @@
+// Progress / change the value. Run from release/<platform>; Escape or close exits.
+import xui
+import "./_support.xl" as demo
+
+export class ProgressExample
+ static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
+  demo.Gallery.label(context,root,"Progress / change the value",24,16)
+  auto control=context.progressNative()
+  demo.Gallery.place(root,control,24,64,640,44)
+  control.setRange(c_float(0),c_float(100))
+  control.setValue(c_float(65))
+  control.setTextTemplate("{value}%")
+  assert control.getValue()==c_float(65)
+ end
+end
+
+func main(...) as int
+ return demo.Gallery.run("Progress / change the value",ProgressExample.build)
+end

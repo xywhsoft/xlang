@@ -1,0 +1,18 @@
+// Pagination / page count. Run from release/<platform>; Escape or close exits.
+import xui
+import "./_support.xl" as demo
+
+export class PageExample
+ static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
+  demo.Gallery.label(context,root,"Pagination / page count",24,16)
+  auto control=context.pageNative()
+  demo.Gallery.place(root,control,24,64,640,54)
+  assert control.setPageCount(c_int(20))==0
+  assert control.setCurrent(c_int(3),c_int(0))==0
+  assert control.getCurrent()==c_int(3)
+ end
+end
+
+func main(...) as int
+ return demo.Gallery.run("Pagination / page count",PageExample.build)
+end

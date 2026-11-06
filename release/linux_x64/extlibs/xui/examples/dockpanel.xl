@@ -1,0 +1,19 @@
+// Dock panel / owned client windows. Run from release/<platform>; Escape or close exits.
+import xui
+import "./_support.xl" as demo
+
+export class DockpanelExample
+ static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
+  demo.Gallery.label(context,root,"Dock panel / owned client windows",24,16)
+  auto control=context.dockPanelNative()
+  demo.Gallery.place(root,control,24,64,640,360)
+  auto client=context.panelNative()
+  demo.Gallery.label(context,client,"Dockable content",20,40,400)
+  c_int id=control.addWindow("Inspector",client)
+  assert control.getWindowCount()==c_int(1)
+ end
+end
+
+func main(...) as int
+ return demo.Gallery.run("Dock panel / owned client windows",DockpanelExample.build)
+end

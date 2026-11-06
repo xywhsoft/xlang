@@ -1,0 +1,17 @@
+// Input / edit UTF-8 text. Run from release/<platform>; Escape or close exits.
+import xui
+import "./_support.xl" as demo
+
+export class InputExample
+ static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
+  demo.Gallery.label(context,root,"Input / edit UTF-8 text",24,16)
+  auto control=context.inputNative()
+  demo.Gallery.place(root,control,24,64,640,44)
+  assert control.setText("Hello, xlang - edit this text") ==0
+  assert (control.getText() as string)=="Hello, xlang - edit this text"
+ end
+end
+
+func main(...) as int
+ return demo.Gallery.run("Input / edit UTF-8 text",InputExample.build)
+end

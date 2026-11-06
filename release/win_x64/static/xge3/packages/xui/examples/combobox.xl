@@ -1,0 +1,18 @@
+// Combo box / popup selection. Run from release/<platform>; Escape or close exits.
+import xui
+import "./_support.xl" as demo
+
+export class ComboboxExample
+ static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
+  demo.Gallery.label(context,root,"Combo box / popup selection",24,16)
+  auto control=context.comboBoxNative()
+  demo.Gallery.place(root,control,24,64,640,44)
+  control.setItems(["Debug","Release","Profile"])
+  assert control.setSelected(c_int(1))==0
+  assert control.getItemCount()==c_int(3)
+ end
+end
+
+func main(...) as int
+ return demo.Gallery.run("Combo box / popup selection",ComboboxExample.build)
+end

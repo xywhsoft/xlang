@@ -1,0 +1,19 @@
+// Hyperlink / local click callback. Run from release/<platform>; Escape or close exits.
+import xui
+import "./_support.xl" as demo
+
+export class HyperlinkExample
+ static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
+  demo.Gallery.label(context,root,"Hyperlink / local click callback",24,16)
+  auto control=context.hyperlinkNative()
+  demo.Gallery.place(root,control,24,64,640,40)
+  control.setText("Click to report a local action (no browser)")
+  control.setClick(func(xui.Widget source)
+   println("Hyperlink clicked")
+  end)
+ end
+end
+
+func main(...) as int
+ return demo.Gallery.run("Hyperlink / local click callback",HyperlinkExample.build)
+end

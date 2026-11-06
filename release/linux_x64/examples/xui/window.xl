@@ -1,0 +1,24 @@
+// Window / move and resize. Run from release/<platform>; Escape or close exits.
+import xui
+import "./_support.xl" as demo
+
+export class WindowExample
+ static func build(xui.Context context,xui.Widget root,xui.Proxy proxy) as xui.Widget
+  demo.Gallery.label(context,root,"Window / move and resize",24,16)
+  auto control=context.windowNative()
+  // Window opens on the Context floating layer, outside the ordinary page tree.
+  assert control.setRect(demo.Gallery.rect(24,64,640,260))==0
+  control.setTitle("Movable child window")
+  control.setDragAnywhere(c_int(1))
+  auto button=context.buttonNative()
+  button.setText("A normal child")
+  demo.Gallery.place(control,button,30,64,220,44)
+  return control
+ end
+end
+
+func main(...) as int
+ return demo.Gallery.run("Window / move and resize",func(xui.Context context,xui.Widget root,xui.Proxy proxy)
+  WindowExample.build(context,root,proxy)
+ end)
+end

@@ -1,0 +1,19 @@
+// Breadcrumb / navigation callbacks. Run from release/<platform>; Escape or close exits.
+import xui
+import "./_support.xl" as demo
+
+export class BreadcrumbExample
+ static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
+  demo.Gallery.label(context,root,"Breadcrumb / navigation callbacks",24,16)
+  auto control=context.breadcrumbNative()
+  demo.Gallery.place(root,control,24,64,640,44)
+  assert control.addItem("Home",c_int(1),c_int(1))>=0
+  assert control.addItem("Projects",c_int(1),c_int(2))>=0
+  assert control.addItem("xlang",c_int(0),c_int(3))>=0
+  assert control.getItemCount()==c_int(3)
+ end
+end
+
+func main(...) as int
+ return demo.Gallery.run("Breadcrumb / navigation callbacks",BreadcrumbExample.build)
+end

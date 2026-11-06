@@ -1,0 +1,22 @@
+// Scroll view / content larger than viewport. Run from release/<platform>; Escape or close exits.
+import xui
+from xui import Widget
+import "./_support.xl" as demo
+
+export class ScrollviewExample
+ static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
+  demo.Gallery.label(context,root,"Scroll view / content larger than viewport",24,16)
+  auto control=context.scrollView()
+  demo.Gallery.place(root,control,24,64,640,320)
+  assert control.setContentSize(c_float(1200),c_float(1000))==0
+  auto content=control.getContentWidget()
+  assert content!=null
+  for i in range(0,12)
+   demo.Gallery.label(context,content as Widget,"Scrollable row "+string(i+1),20,i*70+20,1000)
+  end
+ end
+end
+
+func main(...) as int
+ return demo.Gallery.run("Scroll view / content larger than viewport",ScrollviewExample.build)
+end

@@ -1,0 +1,18 @@
+// Toggle / enabled state. Run from release/<platform>; Escape or close exits.
+import xui
+import "./_support.xl" as demo
+
+export class ToggleExample
+ static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
+  demo.Gallery.label(context,root,"Toggle / enabled state",24,16)
+  auto control=context.toggleNative()
+  demo.Gallery.place(root,control,24,64,640,44)
+  control.setText("Enable live preview")
+  assert control.setChecked(c_int(1))==0
+  assert control.getChecked()!=0
+ end
+end
+
+func main(...) as int
+ return demo.Gallery.run("Toggle / enabled state",ToggleExample.build)
+end
