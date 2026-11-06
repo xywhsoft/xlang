@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "skipped": false,
+  "runtime": "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+  "exitCode": 0,
+  "buildExitCode": 0,
+  "aotExitCode": 0,
+  "fixture": "private authenticated Redis",
+  "port": 46559
+}

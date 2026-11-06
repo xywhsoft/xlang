@@ -4,7 +4,7 @@
   "primaryDirectory": "D:/GIT/x-lang",
   "deliveryDirectory": "release",
   "externalPublishPerformed": false,
-  "primaryIntegrationRevision": "88bd73dc2b4615b6dcda189eb896aaf028c173f1",
+  "primaryIntegrationRevision": "7e4e7f17205ba906422a0a7f8e548d808e9a9658",
   "integrations": {
     "tomlCalendarCommit": "65eb0f3dc",
     "originalOutstandingCommits": 124,
@@ -20,92 +20,27 @@
     "extensionSourceRevision": "8806c6b6f642e7e532fb16801246b2e6318a70ca"
   },
   "compiler": {
-    "sourceRevision": "0c5d524ca915bab8a71d3d5f7488875670ff7c0b",
+    "sourceRevision": "9ab5279c470b5a0757f9201f48230c6f9bc484ad",
     "version": "0.6.0",
-    "originalAcceptance": "docs/reports/prerelease-0.6.0.json",
     "rebuiltThisDelivery": true,
     "entireAcceptanceRerunThisDelivery": false,
     "reusedQualifiedProducts": false,
     "xrtRevision": "93347eb5ae6beba8cf7ee3558708cc4f628fdd07",
-    "currentBuildProvenance": "dev/release-materials/provenance/xui-gallery-20261106/receipt.json",
-    "optimization": "-O2",
-    "previousDeliveryCompiler": {
-      "sourceRevision": "ed78373dded9bde21db313799c1db8d5111631a6",
-      "version": "0.6.0",
-      "sourceDirectoriesUnchanged": [
-        "src",
-        "lib",
-        "include",
-        "release/include"
-      ],
-      "originalAcceptance": "docs/reports/prerelease-0.6.0.json",
-      "rebuiltThisDelivery": false,
-      "entireAcceptanceRerunThisDelivery": false,
-      "reusedQualifiedProducts": true
-    },
-    "sourceMaterials": {
-      "path": "dev/release-materials/sources/native-static-core-20261106/manifest.json",
-      "sha256": "5ce67c250d890cd76c53a1a955bd01659f7faec109cacffa13e4cd082a493c44",
-      "bytes": 485661
-    },
     "xrtBaseRevision": "93347eb5ae6beba8cf7ee3558708cc4f628fdd07",
-    "xrtLocalPatchTip": "7cecb354dd67aba47eb47cf9c118aea2b0195498",
-    "sourceOverlays": [
-      {
-        "path": "dev/release-materials/sources/tcc-pdata-20261106/manifest.json",
-        "sha256": "c6e2ea954e3d434a7c1101eb33cacfbdcacf6edb674c77b72d1585a0e6a0cefe",
-        "bytes": 3672
-      },
-      {
-        "path": "dev/release-materials/sources/tcc-iat-chain-20261106/manifest.json",
-        "sha256": "3d5261e87750cf1201c02bd4a88ffe0fa0eb5ff4a27fd115de63a141bded7799",
-        "bytes": 2106
-      },
-      {
-        "path": "dev/release-materials/sources/static-support-20261106-r2/manifest.json",
-        "sha256": "859c736210f2aca3699f28228232fbe0c5712f664fa9fdc012a84800ae5f3649",
-        "bytes": 4759
-      },
-      {
-        "path": "dev/release-materials/sources/xui-gallery-20261106/manifest.json",
-        "sha256": "e92ce93baaebac04b19138f75882253943c29fbdd56087689d2e4a97f6b8f9c1",
-        "bytes": 23663
-      }
-    ],
-    "buildScope": "Two resource objects rebuilt over exact Root11 production objects; algorithms unchanged. Both earlier frozen production profiles fully recompiled with original O2 flags, 2835 translation units; only resource catalogs changed. Fresh matched hosts/static profiles with additive copied-column APIs; Windows host resumed its validated own cache after one OOM. Compiler-support artifacts unchanged.",
-    "previousWindowsBuildEvidence": {
-      "sourceRevision": "a1d18117b935c4e14c93b59c25b8db0e500826f9",
-      "version": "0.6.0",
-      "originalAcceptance": "docs/reports/prerelease-0.6.0.json",
-      "rebuiltThisDelivery": true,
-      "entireAcceptanceRerunThisDelivery": false,
-      "reusedQualifiedProducts": false,
-      "xrtRevision": "93347eb5ae6beba8cf7ee3558708cc4f628fdd07",
-      "currentBuildProvenance": "dev/release-materials/provenance/xge3-production-profiles-20261105/receipt.json",
-      "optimization": "-O2",
-      "previousDeliveryCompiler": {
-        "sourceRevision": "ed78373dded9bde21db313799c1db8d5111631a6",
-        "version": "0.6.0",
-        "sourceDirectoriesUnchanged": [
-          "src",
-          "lib",
-          "include",
-          "release/include"
-        ],
-        "originalAcceptance": "docs/reports/prerelease-0.6.0.json",
-        "rebuiltThisDelivery": false,
-        "entireAcceptanceRerunThisDelivery": false,
-        "reusedQualifiedProducts": true
-      },
-      "sourceMaterials": {
-        "path": "dev/release-materials/sources/xlang-development-20261105-88bd73dc-r1.manifest.json",
-        "sha256": "26ba28940a0da86ebbe970dae419ee6b45ced38062367d392f21585a75727833",
-        "bytes": 7232398
-      },
-      "xrtBaseRevision": "93347eb5ae6beba8cf7ee3558708cc4f628fdd07",
-      "xrtLocalPatchTip": "7cecb354dd67aba47eb47cf9c118aea2b0195498"
+    "xrtLocalPatchTip": "0a44e3f80091be178c802c231a37e4f2733fd9fb",
+    "optimization": "-O2",
+    "currentBuildProvenance": "dev/release-materials/provenance/example-runtime-fixes-20261106/receipt.json",
+    "sourceMaterials": {
+      "path": "dev/release-materials/sources/example-runtime-fixes-20261106/manifest.json",
+      "sha256": "4904b2cc5e957c9613af012e8c9f43ad7bf129a4a10fe806d110910a050d9992",
+      "bytes": 1395448
     },
-    "previousGalleryBuildEvidence": "dev/release-materials/provenance/native-static-release-20261106-r2/receipt.json"
+    "previousDelivery": {
+      "path": "dev/release-materials/provenance/example-runtime-fixes-20261106/previous-delivery.json",
+      "sha256": "db87e275e9408b89d96e00903c49bf8861ad36398c242f1e41ebefef4388329e",
+      "bytes": 176940
+    },
+    "buildScope": "Windows and Linux engine kernels rebuilt; requested examples passed installed JIT/AOT acceptance. Concurrent uncommitted semantic-completion source is preserved separately from the qualified engine cohort."
   },
   "ide": {
     "languageServer": "Rebuilt qualified 455-pin C interop cohort; separately accepted from the prior GUI build.",
@@ -3248,37 +3183,37 @@
       "sha256": "6a9378f3c772b40bcd035969212fd1ee99a1b8ed22be00c30c37114e0523a2f6",
       "bytes": 71168,
       "path": "release/win_x64/xl.exe",
-      "origin": "matched-xge3-xui3-local-delivery-20261105"
+      "origin": "example-runtime-fixes-20261106"
     },
     {
-      "sha256": "a70f78b7035f177dd61334be022779cd08742ae72a5cc18ece7c4bd0b73c2875",
-      "bytes": 15165952,
+      "sha256": "8da6eefc60b6abd1ee6be0e81303104343df0fcefc413f9cc2e853da0c19f6f8",
+      "bytes": 15180800,
       "path": "release/win_x64/xl.dll",
-      "origin": "xui-gallery-20261106"
+      "origin": "example-runtime-fixes-20261106"
     },
     {
-      "sha256": "2fbb5eb05c238afabf3cb64f172aa36d1a3f23dd23ea65dbb6c48ff3c8e2a2d0",
-      "bytes": 21232640,
+      "sha256": "90a329f1ec1c2f016859d96bd4bf736d8e06b5dade461025bb3e8372d129a468",
+      "bytes": 21289472,
       "path": "release/win_x64/xlc.dll",
-      "origin": "xui-gallery-20261106"
+      "origin": "example-runtime-fixes-20261106"
     },
     {
       "sha256": "0afa441e1e3486c3e8ea2d7fbde7be5e5ea6caa850bc76a2bca1dc767b60f1d0",
       "bytes": 47224,
       "path": "release/linux_x64/xl",
-      "origin": "matched-xge3-xui3-local-delivery-20261105"
+      "origin": "example-runtime-fixes-20261106"
     },
     {
-      "sha256": "1f8b943e2822c43753044ce0ac4e37ca4648c0c788c0a58f479f0f02d08881a5",
-      "bytes": 16263632,
+      "sha256": "524d519477e3f69277b92203527c778494f667620fe09c3c17d21ed8f08cab2b",
+      "bytes": 16439824,
       "path": "release/linux_x64/libxl.so",
-      "origin": "xui-gallery-20261106"
+      "origin": "example-runtime-fixes-20261106"
     },
     {
-      "sha256": "4044e8dc513b91beff965c61b035193bd26505edd4f7be4b2154228820629ccc",
-      "bytes": 21957328,
+      "sha256": "62b63ff71173b43d7c5aba730e80019f48d548191394ec2f8158adbe10949797",
+      "bytes": 22432528,
       "path": "release/linux_x64/libxlc.so",
-      "origin": "xui-gallery-20261106"
+      "origin": "example-runtime-fixes-20261106"
     },
     {
       "sha256": "cc7fb0ce36bea013c012ac21a2583fe15a2dfb6327d687dd6ae0af0e0968ebe9",
@@ -3471,6 +3406,11 @@
       "path": "dev/release-materials/sources/xui-gallery-20261106/manifest.json",
       "sha256": "e92ce93baaebac04b19138f75882253943c29fbdd56087689d2e4a97f6b8f9c1",
       "bytes": 23663
+    },
+    "exampleRuntimeFixes": {
+      "path": "dev/release-materials/sources/example-runtime-fixes-20261106/manifest.json",
+      "sha256": "4904b2cc5e957c9613af012e8c9f43ad7bf129a4a10fe806d110910a050d9992",
+      "bytes": 1395448
     }
   },
   "buildToolsSuccessor": {
@@ -3626,5 +3566,10 @@
       "inventoryGrid": "empty-slot selection only",
       "webView": "actual initialization returned XUI_ERROR_UNSUPPORTED (-7); HTML rendering not accepted"
     }
+  },
+  "exampleRuntimeFixes": {
+    "path": "dev/release-materials/provenance/example-runtime-fixes-20261106/receipt.json",
+    "sha256": "eeb13dd9c8aacd84517b3b7d4114672e262a1f46711318bd76ccf8044d68f708",
+    "bytes": 5248
   }
 }

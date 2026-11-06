@@ -1,0 +1,5 @@
+Value post-commit OOM: 6 insertion/COW prefixes and balanced allocator ledger
+Value post-commit: 100 actual replacements; back-references, COW, order, NUL keys, consumption and callback error
+[build] E:\software\w64devkit\bin\gcc.EXE -std=c11 -Wall -Wextra -Werror -DXRT_MODULE_VALUE_CONTAINER -I C:\Users\Administrator\.codex\worktrees\xrt-value-read-views\xrt\include C:\Users\Administrator\.codex\worktrees\xrt-value-read-views\xrt\tests\single\test_single_value_object_post_commit.c -o C:\Users\Administrator\.codex\worktrees\xrt-value-read-views\xrt\out\gcc\native\value_container\test_single_value_object_post_commit.exe
+[test] out\gcc\native\value_container\test_single_value_object_post_commit.exe
+[pass] compiler=gcc arch=native platform=windows suite=value_container
