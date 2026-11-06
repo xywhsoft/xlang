@@ -56,6 +56,8 @@ typedef struct xide_app {
     struct xide_update* updater;
     xide_file_dialog* fileDialog;
     xide_actions* actions;
+    struct xide_about_view* aboutView;
+    int initialAbout;
     xide_dpi_proxy* dpiProxy; float dpiScale,dpiOverride; int highDpi;
     xide_file_sync* fileSync; xide_file_changes_view* fileChangesView;
     xide_font_view* fontView; xide_goto_view* gotoView; xide_recovery_view* recoveryView; int initialRecovery;

@@ -23,11 +23,19 @@ if ($GuiOnly) {
 } elseif ($LanguageServerPath) { throw 'LanguageServerPath is only valid with GuiOnly.' }
 [void](New-Item -ItemType Directory -Path $objectRoot -Force)
 [void](New-Item -ItemType Directory -Path $releaseRoot -Force)
+$versionPath=Join-Path $ideRoot 'data\version.json'
+$displayVersion=(Get-Content -LiteralPath $versionPath -Raw | ConvertFrom-Json).displayVersion
+if ($displayVersion -isnot [string] -or $displayVersion -notmatch '^\d{1,5}\.\d{1,5}\.\d{1,5}$') { throw 'Invalid IDE displayVersion in data/version.json.' }
+$versionParts=@($displayVersion.Split('.') | ForEach-Object { [int]$_ })
+if (@($versionParts | Where-Object { $_ -gt 65535 }).Count) { throw 'IDE version component exceeds Windows version resource limit.' }
+$versionHeader=Join-Path $objectRoot 'xide_version.h'
+[IO.File]::WriteAllText($versionHeader,"#define XIDE_VERSION `"$displayVersion`"`n#define XIDE_VERSION_RESOURCE $($versionParts -join ','),0`n",[Text.Encoding]::ASCII)
 $flags = @('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-parameter','-DXGE_DLL','-DXUI_DLL','-DXGE_XRT_PROFILE_IDE=','-DXGE_DEBUGMODE=0','-finput-charset=UTF-8','-fexec-charset=UTF-8','-I'+(Join-Path $ideRoot 'src'),'-I'+$sdkRoot,'-I'+(Join-Path $sdkRoot 'lib\xrt'))
 $sdkManifest = Get-Content -LiteralPath (Join-Path $sdkRoot 'sdk_manifest.json') -Raw | ConvertFrom-Json
 if ($sdkManifest.xrtDirectory) { $flags += '-I' + (Join-Path $sdkRoot $sdkManifest.xrtDirectory) }
 if ($sdkManifest.configurationHeader) { $flags += @('-include', (Join-Path $sdkRoot $sdkManifest.configurationHeader)) }
 $flags += ('-DXIDE_ENABLE_C_LSP='+[int][bool]$EnableCLsp)
+$flags += '-I'+$objectRoot
 if ($Configuration -eq 'Release') { $flags += '-O2' } else { $flags += @('-O0','-g') }
 $sources = @('src\app\xide_app.c','src\app\actions.c','src\ui\workbench.c','src\platform\xide_input.c','src\lang\languages.c','src\theme\theme.c','src\platform\path.c','src\model\workspace.c','src\model\resources.c','src\model\resource_text.c','src\services\resource_creation.c','src\services\resource_inputs.c','src\services\resource_rebind.c','src\ui\resource_view.c','src\ui\workspace_view.c','src\platform\text_file.c','src\platform\file_rename.c','src\editor\documents.c','src\ui\editor_view.c','src\ui\goto_view.c','src\platform\process.c','src\services\tasks.c','src\services\toolchain.c','src\protocol\lsp_wire.c','src\services\language_check.c','src\services\language_snapshot.c','src\services\semantic_definition.c','src\services\semantic_completion.c','src\services\language_client.c','src\services\c_commands.c','src\services\c_language.c','src\services\c_completion_job.c','src\services\c_input_trace.c','tools\clangd_input_trace\NativeInput.c','src\services\c_bridge.c','src\services\c_bridge_map.c','src\ui\language_view.c','src\ui\completion_view.c','src\ui\c_completion_view.c','src\ui\c_analysis_inputs.c','src\ui\c_language_view.c','src\ui\toolchain_view.c','src\services\project_templates.c','src\services\file_rebind.c','src\services\rename_journal.c','src\services\project_migration.c','src\services\legacy_import.c','src\ui\task_view.c','src\ui\configuration_view.c','src\ui\references_view.c','src\ui\template_view.c','src\ui\import_view.c','src\ui\rename_view.c','src\platform\settings.c','src\services\command_catalog.c','src\services\library_info.c','src\ui\catalog_view.c','src\ui\help_document.c','src\platform\state_file.c','src\platform\state_repair.c','src\editor\coordinates.c','src\ui\layout_state.c','src\services\session.c','src\services\editor_font.c','src\ui\font_view.c','src\platform\window_state.c','src\platform\dpi_proxy.c','src\services\ui_font.c','src\ui\reading_state.c','src\platform\recovery_store.c','src\platform\recovery_backup.c','src\services\recovery.c','src\ui\recovery_view.c','src\platform\file_watch.c','src\services\file_sync.c','src\ui\file_changes_view.c')
 $sources += 'src\editor\lsp_coordinates.c'
@@ -65,6 +73,8 @@ $sources += 'src\protocol\diagnostic_paths.c'
 $sources += 'src\services\reference_results.c'
 $sources += 'src\services\execution_target.c'
 $sources += 'src\services\update_client.c'
+$sources += 'src\services\program_version.c'
+$sources += 'src\ui\about_view.c'
 $sources += 'src\ui\main_toolbar.c'
 # C LSP implementations stay in the repository but are absent from default binaries.
 $cLspSources=@('src\services\c_commands.c','src\services\c_language.c','src\services\c_completion_job.c','src\services\c_input_trace.c','tools\clangd_input_trace\NativeInput.c','src\services\c_bridge.c','src\ui\c_completion_view.c','src\ui\c_analysis_inputs.c','src\ui\c_language_view.c')
@@ -74,6 +84,8 @@ $guardPaths=@(Get-ChildItem -LiteralPath (Join-Path $ideRoot 'src') -Recurse -Fi
 $guardPaths+=Join-Path $sdkRoot 'sdk_manifest.json'
 $guardPaths+=@($sdkManifest.files | ForEach-Object { Join-Path $sdkRoot $_.path })
 $guardPaths+=$PSCommandPath
+$guardPaths+=$versionPath
+$guardPaths+=$versionHeader
 $guardPaths+=Join-Path $ideRoot 'data\xlang_ide.rc'
 $guardPaths+=Join-Path $ideRoot 'data\xlang_ide.ico'
 foreach($guardPath in $guardPaths) { $buildInputs[$guardPath]=Get-XideSha256 $guardPath }
@@ -90,7 +102,7 @@ function Assert-XideCatalog {
 # Reject stale runtime assets before compiling or replacing any program.
 if (-not $CandidateOnly) { Assert-XideCatalog } elseif (-not $GuiOnly) { throw 'CandidateOnly requires GuiOnly; it compiles without publishing runtime files.' }
 $appResources = Join-Path $objectRoot 'xlang_ide.res.o'
-& $resourceCompiler '-I' (Join-Path $ideRoot 'data') '-i' (Join-Path $ideRoot 'data\xlang_ide.rc') '-O' 'coff' '-o' $appResources
+& $resourceCompiler '-I' (Join-Path $ideRoot 'data') '-I' $objectRoot '-i' (Join-Path $ideRoot 'data\xlang_ide.rc') '-O' 'coff' '-o' $appResources
 if ($LASTEXITCODE -ne 0) { throw 'Application icon resource compilation failed.' }
 foreach ($source in $sources) {
     $object = Join-Path $objectRoot (($source.Replace('\','_')) + '.o')
@@ -137,6 +149,7 @@ if ($CandidateOnly) {
 }
 Assert-XideCatalog
 [void](New-Item -ItemType Directory -Path (Join-Path $releaseRoot 'data') -Force)
+Copy-Item -LiteralPath $versionPath -Destination (Join-Path $releaseRoot 'data\version.json') -Force
 & python -X utf8 (Join-Path $PSScriptRoot 'catalog_publish.py') --pair (Join-Path $ideRoot 'data') --data (Join-Path $releaseRoot 'data') --work (Join-Path $objectRoot 'catalog-publications')
 if ($LASTEXITCODE -ne 0) { throw 'Verified catalog/source pair publication failed.' }
 & python -X utf8 (Join-Path $PSScriptRoot 'font_resources.py') --source (Join-Path $ideRoot 'data\fonts') --destination (Join-Path $releaseRoot 'data\fonts')

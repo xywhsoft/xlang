@@ -109,6 +109,8 @@ class PublishTests(unittest.TestCase):
             self.assertFalse(Public.disconnect_next_object)
             self.assertFalse(Public.truncate_next_object)
             self.assertEqual(manager.version_marker((remote/'version.txt').read_text())[0],1)
+            self.assertEqual(manager.read(remote/'version.txt')['displayVersion'],'0.6.0')
+            self.assertEqual(manager.payload(remote/'update.json')['displayVersion'],'0.6.0')
             # Missing remote objects must be healed even on a same-version rerun.
             removed=next((remote/'update').glob('*.lzma'));removed.unlink()
             self.assertEqual(manager.main(['push',*args]),0);self.assertTrue(removed.exists())

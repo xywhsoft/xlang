@@ -1,0 +1,88 @@
+test_bootstrap_repair_and_user_state (__main__.UpdateTests.test_bootstrap_repair_and_user_state) ... ok
+test_corrupt_object_before_commit (__main__.UpdateTests.test_corrupt_object_before_commit) ... ok
+test_crash_recovery (__main__.UpdateTests.test_crash_recovery) ... ok
+test_display_and_iteration_are_independent (__main__.UpdateTests.test_display_and_iteration_are_independent) ... ok
+test_display_cannot_trigger_update_without_iteration (__main__.UpdateTests.test_display_cannot_trigger_update_without_iteration) ... ok
+test_display_must_match_signed_manifest (__main__.UpdateTests.test_display_must_match_signed_manifest) ... ok
+test_duplicate_path (__main__.UpdateTests.test_duplicate_path) ... ok
+test_executable_permission_repair (__main__.UpdateTests.test_executable_permission_repair) ... skipped 'filesystem does not enforce Unix modes'
+test_http_streaming (__main__.UpdateTests.test_http_streaming) ... ok
+test_incremental_delete_and_discard (__main__.UpdateTests.test_incremental_delete_and_discard) ... ok
+test_invalid_json_version_types (__main__.UpdateTests.test_invalid_json_version_types) ... ok
+test_key_rotation (__main__.UpdateTests.test_key_rotation) ... ok
+test_legacy_numeric_version (__main__.UpdateTests.test_legacy_numeric_version) ... ok
+test_locked_file_rolls_back (__main__.UpdateTests.test_locked_file_rolls_back) ... skipped 'Windows sharing violation fixture'
+test_long_install_path (__main__.UpdateTests.test_long_install_path) ... skipped 'Windows extended-length path'
+test_multipart (__main__.UpdateTests.test_multipart) ... ok
+test_new_signed_optional_policy_releases_gate (__main__.UpdateTests.test_new_signed_optional_policy_releases_gate) ... ok
+test_older_signed_policy_cannot_remove_required_gate (__main__.UpdateTests.test_older_signed_policy_cannot_remove_required_gate) ... ok
+test_path_traversal (__main__.UpdateTests.test_path_traversal) ... ok
+test_platform_mismatch (__main__.UpdateTests.test_platform_mismatch) ... ok
+test_protected_deletion (__main__.UpdateTests.test_protected_deletion) ... ok
+test_protected_file (__main__.UpdateTests.test_protected_file) ... ok
+test_publisher_refuses_display_source_mismatch (__main__.UpdateTests.test_publisher_refuses_display_source_mismatch) ... ERROR: --display-version differs from source data/version.json; rebuild the IDE with the intended version first
+ok
+test_recovery_preserves_external_modification (__main__.UpdateTests.test_recovery_preserves_external_modification) ... ok
+test_required_policy_cache_and_install (__main__.UpdateTests.test_required_policy_cache_and_install) ... ok
+test_required_policy_survives_interrupted_install (__main__.UpdateTests.test_required_policy_survives_interrupted_install) ... ok
+test_running_updater_replacement (__main__.UpdateTests.test_running_updater_replacement) ... skipped 'Windows running executable self-replacement'
+test_self_staging (__main__.UpdateTests.test_self_staging) ... ok
+test_signed_display_type_is_checked (__main__.UpdateTests.test_signed_display_type_is_checked) ... ok
+test_symlink_escape (__main__.UpdateTests.test_symlink_escape) ... ok
+test_tampered_signature (__main__.UpdateTests.test_tampered_signature) ... ok
+test_unsigned_force_marker_is_rejected (__main__.UpdateTests.test_unsigned_force_marker_is_rejected) ... ok
+test_updater_cannot_be_deleted (__main__.UpdateTests.test_updater_cannot_be_deleted) ... ok
+test_version_manifest_race (__main__.UpdateTests.test_version_manifest_race) ... ok
+test_waits_for_parent_checker_before_lock (__main__.UpdateTests.test_waits_for_parent_checker_before_lock) ... ok
+test_windows_junction_escape (__main__.UpdateTests.test_windows_junction_escape) ... skipped 'Windows directory junction fixture'
+test_wrong_key (__main__.UpdateTests.test_wrong_key) ... ok
+
+----------------------------------------------------------------------
+Ran 37 tests in 34.329s
+
+OK (skipped=5)
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-mrt378ny/repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-8831vat0/repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-7mi5epp5/repository"}
+{"version": 2, "changedFiles": 2, "newObjects": 2, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-7mi5epp5/repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-48pkq7we/repository"}
+{"version": 2, "changedFiles": 0, "newObjects": 0, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-48pkq7we/repository"}
+{"version": 3, "changedFiles": 1, "newObjects": 1, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-48pkq7we/repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-76bi8blu/repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-6aq_3oiz/repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-55rlp_qb/repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-6ttuh3m8/repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-xtduklpb/repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-xxpwniqg/repository"}
+{"version": 2, "changedFiles": 1, "newObjects": 1, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-xxpwniqg/repository"}
+Restored local version 1
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-7_9uf14w/repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-8fpht8zo/repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-vvjgop8n/repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-lysucifr/repository"}
+{"version": 2, "changedFiles": 1, "newObjects": 7, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-lysucifr/repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-37r_3m3a/repository"}
+{"version": 2, "changedFiles": 0, "newObjects": 0, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-37r_3m3a/repository"}
+{"version": 3, "changedFiles": 0, "newObjects": 0, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-37r_3m3a/repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-abw2ocav/repository"}
+{"version": 2, "changedFiles": 0, "newObjects": 0, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-abw2ocav/repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-yyhur0r3/repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-1pdloejk/repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-1qvkdx2u/repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-sg46qqvw/repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-cyq86322/repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-q6zp_ixi/repository"}
+{"version": 2, "changedFiles": 1, "newObjects": 1, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-q6zp_ixi/repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-t0729ht2/repository"}
+{"version": 2, "changedFiles": 1, "newObjects": 1, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-t0729ht2/repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-t_f0k1n2/repository"}
+{"version": 2, "changedFiles": 1, "newObjects": 1, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-t_f0k1n2/repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-1j9cuzsu/repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-kqfjyjc7/repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-em43xztw/repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-qki1hx4x/repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-7ylinwu5/repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-02miu0_w/repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-9bmvrlb1/repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-yav6hqfc/repository"}
+{"version": 1, "changedFiles": 3, "newObjects": 3, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-hnusgroq/repository"}

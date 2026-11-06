@@ -55,6 +55,7 @@ static int parseArguments(xide_app* app, int argc, char** argv)
         else if (!strcmp(argv[i], "--configuration") && i + 1 < argc) app->configurationId=argv[++i];
         else if (!strcmp(argv[i], "--recovery-manager")) app->initialRecovery=1;
         else if (!strcmp(argv[i], "--ui-font-settings")) app->initialUiFontSettings=1;
+        else if (!strcmp(argv[i], "--about")) app->initialAbout=1;
         else if (!strcmp(argv[i], "--font-settings")) app->initialFontSettings=1;
         else if (!strcmp(argv[i], "--edit-configurations")) app->initialConfigurations=1;
         else if (!strcmp(argv[i], "--wait-task")) app->waitTask=1;

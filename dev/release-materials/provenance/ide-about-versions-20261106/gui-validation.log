@@ -1,0 +1,7 @@
+PASS about_view_test
+PASS input_test
+PASS update_client_test
+PASS about-dark
+PASS about-light
+PASS about-dpi2
+PASS workbench
