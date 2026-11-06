@@ -68,12 +68,31 @@ def main():
         path=build/metadata['resource'];assert sha(path)==metadata['resource_sha256'];inputs[str(path)]=sha(path);shutil.copy2(path,native_dir/path.name);links.append('native/'+path.name)
     support=metadata.get('compiler_support')
     assert support,'Static package requires audited compiler support'
+    if metadata['platform']=='win_x64':
+        combined=support.get('combinedCodeArchive')
+        assert combined and combined['membersVerified'],'Windows requires one verified compiler-code group'
+        code=[row for row in support['artifacts']if Path(row['path']).suffix=='.a']
+        assert len(code)==1 and code[0]['sha256']==combined['sha256'],'Do not ship separate cyclic CRT archives'
     if support:
         for row in support['artifacts']:
             path=Path(row['path']);assert sha(path)==row['sha256'];inputs[str(path)]=sha(path);shutil.copy2(path,native_dir/path.name);links.append('native/'+path.name)
         notices=private/'notices/compiler-support';notices.mkdir(parents=True,exist_ok=True)
         for row in support['notices']:
             path=Path(row['path']);assert sha(path)==row['sha256'];inputs[str(path)]=sha(path);shutil.copy2(path,notices/path.name)
+        if metadata['platform']=='win_x64':
+            # Dependency provenance stays with the optional SDK; detailed
+            # build logs and development-only original archives stay outside.
+            sources=combined['sourceArchives'];source_ids={row['path']:i for i,row in enumerate(sources)}
+            provenance=dict(format='xge-static-compiler-support-1',archive=Path(combined['path']).name,
+                sha256=combined['sha256'],semantics=combined['semantics'],sourceArchives=sources,
+                members=[dict(member=row['member'],source=source_ids[row['sourceCodeArchive']],
+                    originalMember=row['sourceMember'],originalArchive=row['sourceArchive'],
+                    originalArchiveSha256=row['sourceArchiveSha256'],sha256=row['sha256'],bytes=row['bytes'])
+                    for row in combined['members']],licenses=support['licenses'],
+                imports=[dict(file=Path(row['path']).name,sha256=row['sha256'],dll=row.get('dll'),
+                    sourceArchive=row.get('sourceArchive'),sourceSha256=row.get('sourceSha256'))
+                    for row in support['artifacts']if Path(row['path']).suffix=='.def'])
+            (native_dir/'compiler-support.json').write_text(json.dumps(provenance,indent=2)+'\n',encoding='utf-8',newline='\n')
     for row in metadata.get('external_link_libraries',[]):
         path=Path(row['path']);assert sha(path)==row['sha256'];inputs[str(path)]=sha(path);shutil.copy2(path,native_dir/path.name);links.append('native/'+path.name)
     for row in metadata.get('runtime_dependencies',[]):

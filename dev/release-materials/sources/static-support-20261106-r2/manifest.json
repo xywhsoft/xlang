@@ -1,0 +1,95 @@
+{
+  "schema": 1,
+  "scope": "Exact Native builder and xlang static SDK tools/test/docs overlay. Original ten-file frozen manifest is preserved in the archive. Native 145 machine-code objects are unchanged.",
+  "originalManifest": {
+    "path": "F:\\xlang-validation\\native-static-20261106\\static-support-final-candidate-r1\\manifest.json",
+    "sha256": "faa34caec53123553acc75c44e449ba194132ee40fbe7af0e66ec5254d474f4b"
+  },
+  "files": [
+    {
+      "repository": "native",
+      "path": "tools/build/static_support.py",
+      "source": "D:\\GIT\\xge\\tools\\build\\static_support.py",
+      "snapshot": "F:\\xlang-validation\\native-static-20261106\\static-support-final-candidate-r1\\native\\tools\\build\\static_support.py",
+      "sha256": "5545f7cd830d62689271f47e88aab3ea8d31467ba6612f62dba66f5e20d4b4da",
+      "bytes": 21137
+    },
+    {
+      "repository": "native",
+      "path": "tools/test/check_static.py",
+      "source": "D:\\GIT\\xge\\tools\\test\\check_static.py",
+      "snapshot": "F:\\xlang-validation\\native-static-20261106\\static-support-final-candidate-r1\\native\\tools\\test\\check_static.py",
+      "sha256": "4d6ec8c1d15d0e10c0ceb5ac92c5506aebae99e64a3776d2e309e6a13caa58b4",
+      "bytes": 9719
+    },
+    {
+      "repository": "native",
+      "path": "docs/static-build.md",
+      "source": "D:\\GIT\\xge\\docs\\static-build.md",
+      "snapshot": "F:\\xlang-validation\\native-static-20261106\\static-support-final-candidate-r1\\native\\docs\\static-build.md",
+      "sha256": "40a8259a7798fac583108d7e8e847d69bf4248fc3ab589edde97173c0d9491d8",
+      "bytes": 4662
+    },
+    {
+      "repository": "xlang",
+      "path": "tools/stage_xge3_static_packages.py",
+      "source": "D:\\GIT\\x-lang\\tools\\stage_xge3_static_packages.py",
+      "snapshot": "F:\\xlang-validation\\native-static-20261106\\static-support-final-candidate-r1\\xlang\\tools\\stage_xge3_static_packages.py",
+      "sha256": "edc2dc9383be6e90b5ba8bd72611dda13a9aff0ec066627988f57d05b4897d23",
+      "bytes": 10790
+    },
+    {
+      "repository": "xlang",
+      "path": "docs/xge3-static-packages.md",
+      "source": "D:\\GIT\\x-lang\\docs\\xge3-static-packages.md",
+      "snapshot": "F:\\xlang-validation\\native-static-20261106\\static-support-final-candidate-r1\\xlang\\docs\\xge3-static-packages.md",
+      "sha256": "ccd8511905ac82a9a55d7531f154dac15ab14869ef5252d0758a7aaeff23824d",
+      "bytes": 4607
+    },
+    {
+      "repository": "xlang",
+      "path": "tools/check_static_xge_aot_windows.py",
+      "source": "D:\\GIT\\x-lang\\tools\\check_static_xge_aot_windows.py",
+      "snapshot": "F:\\xlang-validation\\native-static-20261106\\static-support-final-candidate-r1\\xlang\\tools\\check_static_xge_aot_windows.py",
+      "sha256": "f5cac23251f0d0a941ea7707096963d42f912c48e9ebc4e36b5106aace360a1e",
+      "bytes": 6191
+    },
+    {
+      "repository": "xlang",
+      "path": "test/cases/static_xge_aot_windows.xl",
+      "source": "D:\\GIT\\x-lang\\test\\cases\\static_xge_aot_windows.xl",
+      "snapshot": "F:\\xlang-validation\\native-static-20261106\\static-support-final-candidate-r1\\xlang\\test\\cases\\static_xge_aot_windows.xl",
+      "sha256": "3184e3a22c8566970e78d4c85f064844742817b4b33942d62a204f147402e923",
+      "bytes": 645
+    },
+    {
+      "repository": "xlang",
+      "path": "test/cases/static_xge_aot_math.c",
+      "source": "D:\\GIT\\x-lang\\test\\cases\\static_xge_aot_math.c",
+      "snapshot": "F:\\xlang-validation\\native-static-20261106\\static-support-final-candidate-r1\\xlang\\test\\cases\\static_xge_aot_math.c",
+      "sha256": "26ca64ecb1a93abd5ebb17fd0a84e45a6cd3172f1dd541e486c7780af10444ad",
+      "bytes": 937
+    },
+    {
+      "repository": "xlang",
+      "path": "test/cases/static_xge_aot_math.h",
+      "source": "D:\\GIT\\x-lang\\test\\cases\\static_xge_aot_math.h",
+      "snapshot": "F:\\xlang-validation\\native-static-20261106\\static-support-final-candidate-r1\\xlang\\test\\cases\\static_xge_aot_math.h",
+      "sha256": "81346445b85a6927f0bd874253f2f619a49993b66d0bea0d2d6b0511cfa23d14",
+      "bytes": 101
+    },
+    {
+      "repository": "xlang",
+      "path": "docs/xge3-static-aot-validation.md",
+      "source": "D:\\GIT\\x-lang\\docs\\xge3-static-aot-validation.md",
+      "snapshot": "F:\\xlang-validation\\native-static-20261106\\static-support-final-candidate-r1\\xlang\\docs\\xge3-static-aot-validation.md",
+      "sha256": "7900e21bf939f9d6994b5c28b07d2107c652dd8151c480d9bd29de59ba58308a",
+      "bytes": 2428
+    }
+  ],
+  "archive": {
+    "path": "source-overlay.zip",
+    "sha256": "436c58b02f34bc557291893ad5036c29cc20cc1feecb2086327fa2fa58e11959",
+    "bytes": 26029
+  }
+}

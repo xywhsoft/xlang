@@ -1,0 +1,18 @@
+import xge
+extern "static_xge_math_probe" @header("static_xge_aot_math.h") @no_raise func mathProbe() as c_int
+func main(...) as int
+ auto color=xge.colorRGBA(c_int(1),c_int(2),c_int(3),c_int(4))
+ assert color!=c_uint(0)
+ auto data=xge.createDataObject()
+ data.set("application/test",b"a\0b")
+ assert data.readInto("application/test")==c_size(3)
+ auto output=Buffer(b"...")
+ assert data.readInto("application/test",output)==c_size(3)
+ assert output.toBytes()==b"a\0b"
+ auto shared=data.share()
+ data.close()
+ assert shared.has("application/test")==c_int(1)
+ shared.close()
+ assert mathProbe()==c_int(0), "actual CRT math imports"
+ return 0
+end
