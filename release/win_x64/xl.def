@@ -76,6 +76,7 @@ tcc_get_symbol
 tcc_list_symbols
 tcc_malloc
 tcc_mallocz
+tcc_native_link_features
 tcc_new
 tcc_output_file
 tcc_parse_args
@@ -5210,6 +5211,7 @@ xl6ValueEnumBindTakeV1
 xl6ValueIndexReadCopyV1
 xl6ValueIndexSetTakeV1
 xl6ValueIntegerSlotAdmitsV1
+xl6ValueItemNameSetTakeV1
 xl6ValueIteratorCreatePairTakeV1
 xl6ValueIteratorCreateResidentV1
 xl6ValueIteratorKeyCopyV3
@@ -5221,6 +5223,8 @@ xl6ValueNumericBinaryV1
 xl6ValueNumericUnaryV1
 xl6ValueObjectFieldFindV1
 xl6ValueObjectFieldSetTakeV1
+xl6ValueObjectItemFindV1
+xl6ValueObjectItemSetTakeV1
 xl6ValueReadF32V1
 xl6ValueReadIntegerV1
 xl6ValueReadNativeScalarV1
@@ -6123,6 +6127,12 @@ xlSyncRetirementUnlockCheckedV1
 xlTccImpdef
 xlTccRegisterContextEnvironment
 xlTccRegisterXrtEnvironment
+xlValueBorrowCopyV1
+xlValueBorrowV1
+xlValueReadAtV1
+xlValueReadBeginV1
+xlValueReadEndV1
+xlValueReadFindV1
 xrtAVLClear
 xrtAVLFind
 xrtAVLFirst
@@ -9690,6 +9700,11 @@ xrtValueTypeIdBind
 xrtValueTypeIdRebind
 xrtValueTypeName
 xrtValueUInt
+xrtValueViewAtV1
+xrtValueViewBeginV1
+xrtValueViewCountV1
+xrtValueViewEndV1
+xrtValueViewFindV1
 xrtValueWeak
 xrtValueWeakExpired
 xrtValueWeakLock
