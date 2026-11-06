@@ -73,7 +73,7 @@ if [[ -n "$TCC_CONFIGURED_TRIPLET" && ! "$TCC_CONFIGURED_TRIPLET" =~ ^[A-Za-z0-9
 fi
 
 printf 'Building Linux XRT object and VFS packer...\n'
-"$BUILD_DIR/tcc" -std=c11 -fPIC -I"$ROOT" \
+"$BUILD_DIR/tcc" -std=c11 -fPIC -I"$ROOT" -I"$SDK_DIR" \
     -c "$ROOT/tools/xrt_single_header_impl.c" \
     -o "$BUILD_DIR/xrt.o"
 

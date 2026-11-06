@@ -38,10 +38,13 @@ static int is_text(const wchar_t* expected)
 
 int main(int argc, char** argv)
 {
-    if (argc != 4 && argc != 5) return 2;
-    int binary = argc == 5 && strcmp(argv[4], "--binary") == 0;
-    int restored = argc == 5 && strcmp(argv[4], "--restored") == 0;
-    if (argc == 5 && !binary && !restored) return 2;
+    if (argc < 4 || argc > 6) return 2;
+    int binary = 0, restored = 0;
+    for (int i = 4; i < argc; ++i) {
+        if (!strcmp(argv[i], "--binary") && !binary) binary = 1;
+        else if (!strcmp(argv[i], "--restored") && !restored) restored = 1;
+        else return 2;
+    }
     wchar_t exe[512], script[256], directory[512];
     if (!wide_from_utf8(argv[1], exe, 512) ||
         !wide_from_utf8(argv[2], script, 256) ||

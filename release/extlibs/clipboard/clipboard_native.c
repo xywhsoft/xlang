@@ -11,6 +11,7 @@
 #include <wchar.h>
 
 #include "include/clipboard.h"
+#include <xl_value_read.h>
 
 #ifndef WC_ERR_INVALID_CHARS
 #define WC_ERR_INVALID_CHARS 0x00000080
@@ -405,14 +406,14 @@ static wchar_t* xclip_utf8_to_wide_alloc(const char* src)
 	return out;
 }
 
-static wchar_t* xclip_xvalue_text_to_wide_alloc(const xvalue* pValue)
+static wchar_t* xclip_borrow_text_to_wide_alloc(XL_ValueBorrowV1 value)
 {
 	xstrview Text;
 	wchar_t* out;
 	int n;
 	int size;
-	if ( xrtValueType(pValue) != XVALUE_STRING ||
-		!xrtValueGetString(pValue, &Text) ||
+	Text = value.data.text;
+	if ( value.kind != XVALUE_STRING ||
 		(Text.Size > (size_t)INT_MAX) ||
 		(Text.Size != 0u && memchr(Text.Data, '\0', Text.Size) != NULL) ) {
 		xclip_set_error("invalid file path item");
@@ -1515,34 +1516,40 @@ XL_EXPORT int64_t x_clipboard_set_files(xvalue* paths_value)
 	wchar_t** paths;
 	size_t i;
 	int ok;
-	if ( xrtValueType(paths_value) != XVALUE_ARRAY ) {
+	XL_ValueReadV1 view = {0};
+	if ( !xlValueReadBeginV1(xlValueBorrowV1(paths_value), &view) || view.kind != XVALUE_ARRAY ) {
 		xclip_set_error("invalid file list");
+		(void)xlValueReadEndV1(&view);
 		return 0;
 	}
-	count = xrtValueCount(paths_value);
+	count = view.count;
 	if ( count == 0u ) {
 		xclip_set_error("invalid file list");
+		(void)xlValueReadEndV1(&view);
 		return 0;
 	}
 	if ( count > SIZE_MAX / sizeof(*paths) ) {
 		xclip_set_error("file list size limit exceeded");
+		(void)xlValueReadEndV1(&view);
 		return 0;
 	}
 	paths = (wchar_t**)xrtCalloc((size_t)count, sizeof(wchar_t*));
 	if ( paths == NULL ) {
 		xclip_set_error("out of memory");
+		(void)xlValueReadEndV1(&view);
 		return 0;
 	}
 	for ( i = 0u; i < count; ++i ) {
-		paths[i] = xclip_xvalue_text_to_wide_alloc(
-			xrtValueArrayGet(paths_value, i));
+		paths[i] = xclip_borrow_text_to_wide_alloc(
+			xlValueReadAtV1(&view, i, NULL));
 		if ( paths[i] == NULL ) {
 			size_t j;
 			for ( j = 0u; j < count; ++j ) {
 				xrtFree(paths[j]);
 			}
 			xrtFree(paths);
-			return 0;
+			(void)xlValueReadEndV1(&view);
+		return 0;
 		}
 	}
 	ok = xclip_set_files_wide(paths, count);
@@ -1550,6 +1557,7 @@ XL_EXPORT int64_t x_clipboard_set_files(xvalue* paths_value)
 		xrtFree(paths[i]);
 	}
 	xrtFree(paths);
+	(void)xlValueReadEndV1(&view);
 	return ok;
 }
 

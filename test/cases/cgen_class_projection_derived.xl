@@ -1,0 +1,40 @@
+class ProjectionBase
+    virtual func number() as int
+        return 1
+    end
+end
+class ProjectionChild extends ProjectionBase
+    override func number() as int
+        return 7
+    end
+end
+class ProjectionLeaf extends ProjectionChild
+    override func number() as int
+        return 9
+    end
+end
+func checkProjection(var boxed, int expected)
+    assert boxed is ProjectionBase
+    ProjectionBase value = boxed as ProjectionBase
+    assert value.number() == expected
+    assert value == boxed
+    array<ProjectionBase> values = array[value]
+    assert values[0].number() == expected
+    ProjectionBase? nullable = value
+    var nullableBox = nullable
+    ProjectionBase? restored = nullableBox as ProjectionBase?
+    assert restored != null
+end
+checkProjection(ProjectionChild(), 7)
+checkProjection(ProjectionLeaf(), 9)
+var globalBox = ProjectionLeaf()
+checkProjection(globalBox, 9)
+bool rejected = false
+try
+    var wrong = 42
+    ProjectionBase invalid = wrong as ProjectionBase
+catch e
+    rejected = e.kind == "TypeError"
+end
+assert rejected
+println("class projections preserve derived identity")

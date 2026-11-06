@@ -10,7 +10,8 @@
 // Design notes:
 //   - thread is a non-copyable resource, so it cannot live in array<thread> /
 //     list<thread> ("typed container item type must be copyable"). Producers
-//     and consumers are therefore spawned fire-and-forget and tracked through
+//     and consumers therefore keep their joinable handles in reference-class
+//     owners until main observes completion. Workers are tracked through
 //     a global active-count polled under a mutex (main pre-seeds the counts
 //     before spawning, eliminating the startup race).
 //   - int is the natural payload for this bounded-queue demonstration.
@@ -25,6 +26,16 @@ int g_sentCount = 0
 int g_recvCount = 0
 int g_activeProducers = 0
 int g_activeConsumers = 0
+
+// thread is a non-copyable joinable resource. The reference-class owner
+// keeps each handle alive until main has observed all workers finish; dropping
+// a temporary thread in the launch loop would join it immediately.
+class WorkerOwner
+    thread handle
+    create(func() as int run)
+        self.handle = thread(run)
+    end
+end
 
 func makeProducer(int id) as func() as int
     return func() as int
@@ -76,7 +87,9 @@ func makeConsumer(int id) as func() as int
         int consumed = 0
         while true
             int v = 0
-            if g_ch.tryRecvInto(v) then
+            auto __chSt29, __chVal29 = g_ch.tryRecv()
+            if __chSt29 == channelStatus.ok then
+                v = __chVal29 as int
                 consumed = consumed + 1
                 g_lock.lock()
                 g_recvCount = g_recvCount + 1
@@ -171,14 +184,15 @@ func main(...) as int
     println("producers:", p, " consumers:", c, " items:", items, " buffer:", buffer)
     println("------------------------")
 
+    array<WorkerOwner> workers
     int i = 1
     while i <= p
-        thread(makeProducer(i))
+        workers.push(WorkerOwner(makeProducer(i)))
         i = i + 1
     end
     i = 1
     while i <= c
-        thread(makeConsumer(i))
+        workers.push(WorkerOwner(makeConsumer(i)))
         i = i + 1
     end
 

@@ -328,12 +328,12 @@ func testDeriveHash() as int
     c.createdAt = "2026-05-06"
 
     // __hash__ 是编译器协议，不是供用户直接调用的公开成员。
-    // 类型化 set 会同时使用 derive hash 与 derive equals 完成查找和去重。
+    // 可变 class 在 set 中按引用身份区分，内容相等不会合并两个实例。
     set<Product> products = set{a, b, c}
-    if expectInt(products.length, 2, "同值对象去重") then pass("相同字段 -> 相同 hash/equals") end
-    if expectBool(a in products, true, "查找原对象") then pass("set 可按派生 hash 查找原对象") end
-    if expectBool(b in products, true, "查找同值对象") then pass("set 可按派生 hash 查找同值对象") end
-    if expectBool(c in products, true, "查找异值对象") then pass("set 可区分不同字段对象") end
+    if expectInt(products.length, 3, "三个不同对象引用") then pass("内容相同的独立对象仍保持各自引用") end
+    if expectBool(a in products, true, "查找原对象") then pass("set 可按引用身份查找原对象") end
+    if expectBool(b in products, true, "查找同值对象") then pass("set 保留同值对象的独立引用") end
+    if expectBool(c in products, true, "查找异值对象") then pass("set 可查找第三个对象引用") end
     return 0
 end
 

@@ -29,7 +29,7 @@ bool xl6ValueIndexSetTakeV1(xvalue* source,const xvalue* key,xvalue* item)
     } else if (xrtValueType(key)==XVALUE_STRING) {
         xstrview text;
         if (xrtValueGetString(key,&text)) {
-            success=xl6ValueNameSetTakeV1(source,text.Data,text.Size,item); item=NULL;
+            success=xl6ValueItemNameSetTakeV1(source,text.Data,text.Size,item); item=NULL;
         }
     } else xrtSetErrorKind(XERR_TYPE);
     if (!success || xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);

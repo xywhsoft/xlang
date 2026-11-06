@@ -5,11 +5,36 @@
 #include <stdint.h>
 
 #include "include/cli_native.h"
+#include <xl_value_read.h>
 
 #define XCLI_DOMAIN "xlang.extlib.cli"
 
 static void xcli_error(const char *message) {
     xrtSetErrorInfo(XERR_VALUE, XCLI_DOMAIN, 0, message);
+}
+
+/* One borrowed read scope protects each input container for the whole parse.
+ * No temporary xvalue or copied string is created while inspecting input. */
+static bool xcli_present(XL_ValueBorrowV1 value) { return value.ref || value.kind != XVALUE_NULL; }
+static bool xcli_read_text(XL_ValueBorrowV1 value, xstrview* out) {
+    if (value.kind != XVALUE_STRING) return false;
+    *out = value.data.text; return true;
+}
+static bool xcli_read_has(const XL_ValueReadV1* view, xstrview key) {
+    return xcli_present(xlValueReadFindV1(view, key));
+}
+static bool xcli_optional(const XL_ValueReadV1* spec, const char* name, xvaluetype kind,
+    XL_ValueReadV1* scopes, XL_ValueReadV1* scope, XL_ValueReadV1** output) {
+    XL_ValueBorrowV1 value = xlValueReadFindV1(spec, (xstrview){name, strlen(name)});
+    *output = NULL;
+    if (!xcli_present(value)) return !xrtGetError();
+    for (size_t i = 0; i < 7; ++i)
+        if (scopes[i].self && scopes[i].source == value.ref) {
+            *output = &scopes[i]; return scopes[i].kind == kind;
+        }
+    if (!xlValueReadBeginV1(value, scope)) return false;
+    if (scope->kind != kind) return false;
+    *output = scope; return true;
 }
 
 /* ---------- 值对象辅助 ---------- */
@@ -50,24 +75,24 @@ static int xcli_set_bool_view(xvalue *obj, xstrview key, int b) {
 }
 
 /* 输入数组在解析期间存活；只借用视图，不为每个参数分配副本。 */
-static bool xcli_arg_view(xvalue *args, int64 index, xstrview *out) {
-    xvalue *value = xrtValueArrayAt(args, index);
-    return value != NULL && xrtValueGetString(value, out) &&
+static bool xcli_arg_view(XL_ValueReadV1 *args, int64 index, xstrview *out) {
+    XL_ValueBorrowV1 value = xlValueReadAtV1(args, index, NULL);
+    return xcli_present(value) && xcli_read_text(value, out) &&
         (out->Size == 0 || memchr(out->Data, '\0', out->Size) == NULL);
 }
 
 /* 查找声明的旗标。 */
-static int xcli_flags_has_view(xvalue *flags, xstrview name) {
+static int xcli_flags_has_view(XL_ValueReadV1 *flags, xstrview name) {
     int64 i;
     int64 n;
     if (flags == NULL) {
         return 0;
     }
-    n = xrtValueCount(flags);
+    n = flags->count;
     for (i = 0; i < n; ++i) {
-        xvalue *value = xrtValueArrayAt(flags, i);
+        XL_ValueBorrowV1 value = xlValueReadAtV1(flags, i, NULL);
         xstrview text;
-        if (value != NULL && xrtValueGetString(value, &text) &&
+        if (xcli_present(value) && xcli_read_text(value, &text) &&
             text.Size == name.Size &&
             memcmp(text.Data, name.Data, text.Size) == 0) {
             return 1;
@@ -77,19 +102,19 @@ static int xcli_flags_has_view(xvalue *flags, xstrview name) {
 }
 
 /* 短名映射返回借用的长名称视图，声明对象在解析期间保持存活。 */
-static int xcli_short_in(xvalue *mapping, char shortName,
+static int xcli_short_in(XL_ValueReadV1 *mapping, char shortName,
     xstrview *out) {
     int64 i;
     int64 n;
     if (mapping == NULL) {
         return 0;
     }
-    n = xrtValueCount(mapping);
+    n = mapping->count;
     for (i = 0; i < n; ++i) {
         xstrview key;
-        xvalue *value = xrtValueObjectAt(mapping, i, &key);
+        XL_ValueBorrowV1 value = xlValueReadAtV1(mapping, i, &key);
         xstrview shorts;
-        if (value == NULL || !xrtValueGetString(value, &shorts)) {
+        if (!xcli_present(value) || !xcli_read_text(value, &shorts)) {
             continue;
         }
         {
@@ -130,17 +155,17 @@ static bool xcli_name_valid(xstrview name) {
     return true;
 }
 
-static bool xcli_validate_names(xvalue *array) {
+static bool xcli_validate_names(XL_ValueReadV1 *array) {
     size_t i;
     if (array == NULL) return true;
-    for (i = 0; i < xrtValueCount(array); ++i) {
+    for (i = 0; i < array->count; ++i) {
         xstrview name;
         size_t j;
-        if (!xrtValueGetString(xrtValueArrayAt(array, (int64)i), &name) ||
+        if (!xcli_read_text(xlValueReadAtV1(array, (int64)i, NULL), &name) ||
             !xcli_name_valid(name)) return false;
         for (j = 0; j < i; ++j) {
             xstrview prior;
-            if (!xrtValueGetString(xrtValueArrayAt(array, (int64)j), &prior) ||
+            if (!xcli_read_text(xlValueReadAtV1(array, (int64)j, NULL), &prior) ||
                 (prior.Size == name.Size &&
                  memcmp(prior.Data, name.Data, name.Size) == 0)) return false;
         }
@@ -148,16 +173,16 @@ static bool xcli_validate_names(xvalue *array) {
     return true;
 }
 
-static bool xcli_validate_mapping(xvalue *mapping, bool bAliases) {
+static bool xcli_validate_mapping(XL_ValueReadV1 *mapping, bool bAliases) {
     size_t i;
     if (mapping == NULL) return true;
-    for (i = 0; i < xrtValueCount(mapping); ++i) {
+    for (i = 0; i < mapping->count; ++i) {
         xstrview name;
-        xvalue *value = xrtValueObjectAt(mapping, (int64)i, &name);
-        if (value == NULL || !xcli_name_valid(name)) return false;
+        XL_ValueBorrowV1 value = xlValueReadAtV1(mapping, (int64)i, &name);
+        if (!xcli_present(value) || !xcli_name_valid(name)) return false;
         if (bAliases) {
             xstrview aliases;
-            if (!xrtValueGetString(value, &aliases) ||
+            if (!xcli_read_text(value, &aliases) ||
                 (aliases.Size != 0 &&
                 memchr(aliases.Data, '\0', aliases.Size) != NULL)) return false;
         }
@@ -165,30 +190,30 @@ static bool xcli_validate_mapping(xvalue *mapping, bool bAliases) {
     return true;
 }
 
-static bool xcli_validate_defaults(xvalue *options, xvalue *defaults) {
+static bool xcli_validate_defaults(XL_ValueReadV1 *options, XL_ValueReadV1 *defaults) {
     size_t i;
     if (defaults == NULL) return true;
-    for (i = 0; i < xrtValueCount(defaults); ++i) {
+    for (i = 0; i < defaults->count; ++i) {
         xstrview name;
         xstrview text;
-        xvalue *value = xrtValueObjectAt(defaults, (int64)i, &name);
-        if (options == NULL || xrtValueObjectGet(options, name) == NULL ||
-            value == NULL || !xrtValueGetString(value, &text) ||
+        XL_ValueBorrowV1 value = xlValueReadAtV1(defaults, (int64)i, &name);
+        if (options == NULL || !xcli_read_has(options, name) ||
+            !xcli_present(value) || !xcli_read_text(value, &text) ||
             (text.Size > 0 && memchr(text.Data, '\0', text.Size) != NULL))
             return false;
     }
     return true;
 }
 
-static bool xcli_validate_spec_fields(xvalue *spec) {
+static bool xcli_validate_spec_fields(XL_ValueReadV1 *spec) {
     static const char *fields[] = {
         "flags", "options", "shorts", "defaults", "positional"
     };
     size_t i, j;
-    for (i = 0; i < xrtValueCount(spec); ++i) {
+    for (i = 0; i < spec->count; ++i) {
         xstrview name;
         bool known = false;
-        xrtValueObjectAt(spec, (int64)i, &name);
+        xlValueReadAtV1(spec, (int64)i, &name);
         for (j = 0; j < sizeof(fields) / sizeof(fields[0]); ++j) {
             size_t size = strlen(fields[j]);
             if (name.Size == size && memcmp(name.Data, fields[j], size) == 0) {
@@ -202,32 +227,32 @@ static bool xcli_validate_spec_fields(xvalue *spec) {
 }
 
 /* 短名必须唯一，否则解析顺序会决定命中哪个选项。 */
-static bool xcli_validate_short_aliases(xvalue *flags, xvalue *options,
-    xvalue *shorts) {
+static bool xcli_validate_short_aliases(XL_ValueReadV1 *flags, XL_ValueReadV1 *options,
+    XL_ValueReadV1 *shorts) {
     unsigned char used[128] = { 0 };
-    xvalue *mappings[2] = { options, shorts };
+    XL_ValueReadV1 *mappings[2] = { options, shorts };
     size_t group;
     size_t i;
     if (flags != NULL) {
-        for (i = 0; i < xrtValueCount(flags); ++i) {
+        for (i = 0; i < flags->count; ++i) {
             xstrview name;
-            if (xrtValueGetString(xrtValueArrayAt(flags, (int64)i), &name) &&
+            if (xcli_read_text(xlValueReadAtV1(flags, (int64)i, NULL), &name) &&
                 name.Size == 1u && (unsigned char)name.Data[0] < 128u) {
                 used[(unsigned char)name.Data[0]] = 1u;
             }
             if (options != NULL &&
-                xrtValueObjectGet(options, name) != NULL) return false;
+                xcli_read_has(options, name)) return false;
         }
     }
     for (group = 0; group < 2u; ++group) {
-        xvalue *mapping = mappings[group];
+        XL_ValueReadV1 *mapping = mappings[group];
         if (mapping == NULL) continue;
-        for (i = 0; i < xrtValueCount(mapping); ++i) {
+        for (i = 0; i < mapping->count; ++i) {
             xstrview name;
             xstrview aliases;
-            xvalue *value = xrtValueObjectAt(mapping, (int64)i, &name);
+            XL_ValueBorrowV1 value = xlValueReadAtV1(mapping, (int64)i, &name);
             size_t j;
-            if (!xrtValueGetString(value, &aliases)) return false;
+            if (!xcli_read_text(value, &aliases)) return false;
             if (group == 1u && !xcli_flags_has_view(flags, name)) return false;
             for (j = 0; j < aliases.Size; ++j) {
                 unsigned char c = (unsigned char)aliases.Data[j];
@@ -275,12 +300,14 @@ static bool xcli_fail_long_result(xvalue *result, const char *prefix,
     return text != NULL && xcli_set(result, "error", text);
 }
 
-xvalue *xcli_parse(xvalue *args, xvalue *spec) {
-    xvalue *flagsSpec;
-    xvalue *optionsSpec;
-    xvalue *shortsSpec;
-    xvalue *defaultsSpec;
-    xvalue *positionalSpec;
+xvalue *xcli_parse(xvalue *argsValue, xvalue *specValue) {
+    XL_ValueReadV1 scopes[7] = {0};
+    XL_ValueReadV1 *args = &scopes[0], *spec = &scopes[1];
+    XL_ValueReadV1 *flagsSpec = NULL;
+    XL_ValueReadV1 *optionsSpec = NULL;
+    XL_ValueReadV1 *shortsSpec = NULL;
+    XL_ValueReadV1 *defaultsSpec = NULL;
+    XL_ValueReadV1 *positionalSpec = NULL;
     xvalue *result = NULL;
     xvalue *flagsOut = NULL;
     xvalue *optionsOut = NULL;
@@ -294,42 +321,28 @@ xvalue *xcli_parse(xvalue *args, xvalue *spec) {
     xstrview longName;
 
     xrtClearError();
-    if (args == NULL || spec == NULL ||
-        xrtValueType(args) != XVALUE_ARRAY ||
-        xrtValueType(spec) != XVALUE_OBJECT) {
-        xcli_error("parse requires an args array and a spec object");
-        return NULL;
+    if (!xlValueReadBeginV1(xlValueBorrowV1(argsValue), args) ||
+        !xlValueReadBeginV1(xlValueBorrowV1(specValue), spec) ||
+        args->kind != XVALUE_ARRAY || spec->kind != XVALUE_OBJECT) {
+        xcli_error("parse requires an args array and a spec object"); goto fail;
     }
     if (!xcli_validate_spec_fields(spec)) {
-        xcli_error("spec contains an unknown field");
-        return NULL;
+        xcli_error("spec contains an unknown field"); goto fail;
     }
-
-    flagsSpec = xcli_get(spec, "flags");
-    optionsSpec = xcli_get(spec, "options");
-    shortsSpec = xcli_get(spec, "shorts");
-    defaultsSpec = xcli_get(spec, "defaults");
-    positionalSpec = xcli_get(spec, "positional");
-    if (flagsSpec != NULL && xrtValueType(flagsSpec) != XVALUE_ARRAY) {
-        xcli_error("spec flags must be an array");
-        return NULL;
+    if (!xcli_optional(spec, "flags", XVALUE_ARRAY, scopes, &scopes[2], &flagsSpec)) {
+        xcli_error("spec flags must be an array"); goto fail;
     }
-    if (optionsSpec != NULL && xrtValueType(optionsSpec) != XVALUE_OBJECT) {
-        xcli_error("spec options must be an object");
-        return NULL;
+    if (!xcli_optional(spec, "options", XVALUE_OBJECT, scopes, &scopes[3], &optionsSpec)) {
+        xcli_error("spec options must be an object"); goto fail;
     }
-    if (shortsSpec != NULL && xrtValueType(shortsSpec) != XVALUE_OBJECT) {
-        xcli_error("spec shorts must be an object");
-        return NULL;
+    if (!xcli_optional(spec, "shorts", XVALUE_OBJECT, scopes, &scopes[4], &shortsSpec)) {
+        xcli_error("spec shorts must be an object"); goto fail;
     }
-    if (defaultsSpec != NULL && xrtValueType(defaultsSpec) != XVALUE_OBJECT) {
-        xcli_error("spec defaults must be an object");
-        return NULL;
+    if (!xcli_optional(spec, "defaults", XVALUE_OBJECT, scopes, &scopes[5], &defaultsSpec)) {
+        xcli_error("spec defaults must be an object"); goto fail;
     }
-    if (positionalSpec != NULL &&
-        xrtValueType(positionalSpec) != XVALUE_ARRAY) {
-        xcli_error("spec positional must be an array");
-        return NULL;
+    if (!xcli_optional(spec, "positional", XVALUE_ARRAY, scopes, &scopes[6], &positionalSpec)) {
+        xcli_error("spec positional must be an array"); goto fail;
     }
     if (!xcli_validate_names(flagsSpec) ||
         !xcli_validate_names(positionalSpec) ||
@@ -338,11 +351,11 @@ xvalue *xcli_parse(xvalue *args, xvalue *spec) {
         !xcli_validate_mapping(defaultsSpec, false) ||
         !xcli_validate_short_aliases(flagsSpec, optionsSpec, shortsSpec)) {
         xcli_error("spec contains an invalid name or short alias");
-        return NULL;
+        goto fail;
     }
     if (!xcli_validate_defaults(optionsSpec, defaultsSpec)) {
         xcli_error("spec defaults must be NUL-free strings for declared options");
-        return NULL;
+        goto fail;
     }
 
     result = xrtValueObject();
@@ -359,13 +372,13 @@ xvalue *xcli_parse(xvalue *args, xvalue *spec) {
     /* 默认值先进入选项结果。 */
     if (defaultsSpec != NULL) {
         int64 di;
-        int64 dn = xrtValueCount(defaultsSpec);
+        int64 dn = defaultsSpec->count;
         for (di = 0; di < dn; ++di) {
             xstrview key;
-            xvalue *value = xrtValueObjectAt(defaultsSpec, di, &key);
-            if (value != NULL) {
+            XL_ValueBorrowV1 value = xlValueReadAtV1(defaultsSpec, di, &key);
+            if (xcli_present(value)) {
                 /* 默认值已校验为不可变字符串，只需标量复制，不进入图遍历。 */
-                xvalue *copy = xrtValueClone(value);
+                xvalue *copy = xlValueBorrowCopyV1(value);
                 if (!xcli_set_view(optionsOut, key, copy)) goto fail;
             }
         }
@@ -373,11 +386,11 @@ xvalue *xcli_parse(xvalue *args, xvalue *spec) {
     /* 未指定默认值的选项以空字符串初始化。 */
     if (optionsSpec != NULL) {
         int64 oi;
-        int64 on = xrtValueCount(optionsSpec);
+        int64 on = optionsSpec->count;
         for (oi = 0; oi < on; ++oi) {
             xstrview key;
-            xvalue *value = xrtValueObjectAt(optionsSpec, oi, &key);
-            if (value != NULL) {
+            XL_ValueBorrowV1 value = xlValueReadAtV1(optionsSpec, oi, &key);
+            if (xcli_present(value)) {
                 if (xrtValueObjectGet(optionsOut, key) == NULL) {
                     if (!xcli_set_str_view(optionsOut, key,
                         (xstrview){ "", 0 })) goto fail;
@@ -388,11 +401,11 @@ xvalue *xcli_parse(xvalue *args, xvalue *spec) {
     /* 所有声明的旗标先置为 false。 */
     if (flagsSpec != NULL) {
         int64 fi;
-        int64 fn = xrtValueCount(flagsSpec);
+        int64 fn = flagsSpec->count;
         for (fi = 0; fi < fn; ++fi) {
-            xvalue *value = xrtValueArrayAt(flagsSpec, fi);
+            XL_ValueBorrowV1 value = xlValueReadAtV1(flagsSpec, fi, NULL);
             xstrview text;
-            if (value != NULL && xrtValueGetString(value, &text)) {
+            if (xcli_present(value) && xcli_read_text(value, &text)) {
                 if (!xcli_set_bool_view(flagsOut, text, 0)) goto fail;
             }
         }
@@ -401,8 +414,8 @@ xvalue *xcli_parse(xvalue *args, xvalue *spec) {
     noMoreOptions = 0;
     positionalIndex = 0;
     positionalCount = positionalSpec != NULL
-        ? xrtValueCount(positionalSpec) : 0;
-    n = xrtValueCount(args);
+        ? positionalSpec->count : 0;
+    n = args->count;
 
     /* flagsOut已包含全部声明；false值也非NULL，可直接查键而不反复扫数组。 */
     for (i = 0; i < n; ++i) {
@@ -443,7 +456,7 @@ xvalue *xcli_parse(xvalue *args, xvalue *spec) {
                     name.Size - (size_t)(eq - name.Data) - 1u };
                 name.Size = (size_t)(eq - name.Data);
             }
-            if (optionsSpec != NULL && xrtValueObjectGet(optionsSpec, name)) {
+            if (optionsSpec != NULL && xcli_read_has(optionsSpec, name)) {
                 if (hasInline) {
                     if (!xcli_set_str_view(optionsOut, name, inlineValue)) goto fail;
                 } else if (i + 1 < n) {
@@ -551,13 +564,20 @@ xvalue *xcli_parse(xvalue *args, xvalue *spec) {
         if (!xcli_set_bool(result, "ok", 1) ||
             !xcli_set_str(result, "error", "")) goto fail;
     }
-    return result;
+    goto done;
 
 fail:
     xrtValueRelease(restOut);
     xrtValueRelease(positionalOut);
     xrtValueRelease(optionsOut);
     xrtValueRelease(flagsOut);
-    xrtValueRelease(result);
-    return NULL;
+    xrtValueRelease(result); result = NULL;
+done:
+    /* Scope close does not allocate or call source code. Preserve the first
+     * parse failure while unwinding every successfully opened scope. */
+    for (size_t scopeIndex = 7; scopeIndex > 0; --scopeIndex)
+        if (!xlValueReadEndV1(&scopes[scopeIndex - 1])) {
+            xrtValueRelease(result); result = NULL;
+        }
+    return result;
 }

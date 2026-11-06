@@ -11676,6 +11676,9 @@ static XL6_IrValueId xl6IrLowerDefaultClassFieldInitializer(
         instruction->payloadType = field->initializerPayloadType;
         instruction->runtimeResourcePayloadAbi =
             field->initializerRuntimeResourcePayloadAbi;
+        if (createOp == XL6_IR_RUNTIME_CHANNEL_CREATE &&
+            !xl6IrChannelConstructionRecipe(ctx->module, field->type, NULL,
+                &instruction->sequenceAdmissionIdentitySet)) return XL6_IR_VALUE_INVALID;
         instruction->runtimeResourceKeyType =
             field->initializerRuntimeResourceKeyType;
         instruction->runtimeResourceKeyPayloadAbi =
@@ -16650,6 +16653,15 @@ static int xl6IrLowerRuntimeResourceMetadataMatches(
         XL6_IrValueCollectionRecipe recipe = {0};
         return xl6IrSlotMapConstructionRecipe(module, resourceType, &recipe) &&
             payloadType == recipe.elementType && payloadAbi == recipe.transferAbi &&
+            keyType == XL6_IR_TYPE_INVALID &&
+            keyPayloadAbi == XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID &&
+            keyOrderAbi == XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_INVALID;
+    }
+    if (operation == XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_CREATE) {
+        XL6_IrTypeId expected = xl6IrLowerRuntimeChannelPayloadType(module, resourceType);
+        return expected && xl6IrChannelConstructionRecipe(module, resourceType, NULL, NULL) &&
+            payloadType == expected && payloadAbi ==
+                xl6IrRuntimeResourcePayloadAbiForOwnerType(module, resourceType, expected) &&
             keyType == XL6_IR_TYPE_INVALID &&
             keyPayloadAbi == XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID &&
             keyOrderAbi == XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_INVALID;
@@ -27640,6 +27652,9 @@ static XL6_IrValueId xl6IrLowerValueInitializer(
         instruction->payloadType = initializer->payloadType;
         instruction->runtimeResourcePayloadAbi =
             initializer->runtimeResourcePayloadAbi;
+        if (runtimeOp == XL6_IR_RUNTIME_CHANNEL_CREATE &&
+            !xl6IrChannelConstructionRecipe(ctx->module, initializer->type, NULL,
+                &instruction->sequenceAdmissionIdentitySet)) return XL6_IR_VALUE_INVALID;
         instruction->runtimeResourceKeyType =
             initializer->runtimeResourceKeyType;
         instruction->runtimeResourceKeyPayloadAbi =

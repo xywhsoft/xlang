@@ -887,132 +887,52 @@ catch e
 end
 assert defaultStringRaceState == 1, "default string task.race should reject empty array"
 
+// Non-null future arrays reject a missing owner at admission, before task.all/race.
+// Malformed native task input is covered separately by runtime contract tests.
 future<int> missingIntFuture
-array<future<int>> nullIntJobs = array[missingIntFuture]
-
-int nullIntAllState = 0
+bool rejectedIntFutureArray = false
 try
-    array<int> nullIntAll = await task.all(nullIntJobs)
-    nullIntAllState = nullIntAll.length
+    array<future<int> > invalidIntJobs = array[missingIntFuture]
 catch e
-    if e.message == "task.all source future is null" then
-        nullIntAllState = 1
-    end
+    rejectedIntFutureArray = e.kind == "TypeError"
 end
-assert nullIntAllState == 1, "null int task.all source should reject"
-
-int nullIntRaceState = 0
-try
-    int nullIntRace = await task.race(nullIntJobs)
-    nullIntRaceState = nullIntRace
-catch e
-    if e.message == "task.race source future is null" then
-        nullIntRaceState = 1
-    end
-end
-assert nullIntRaceState == 1, "null int task.race source should reject"
+assert rejectedIntFutureArray, "non-null int future array should reject missing owner"
 
 future<bool> missingBoolFuture
-array<future<bool>> nullBoolJobs = array[missingBoolFuture]
-
-int nullBoolAllState = 0
+bool rejectedBoolFutureArray = false
 try
-    array<bool> nullBoolAll = await task.all(nullBoolJobs)
-    nullBoolAllState = nullBoolAll.length
+    array<future<bool> > invalidBoolJobs = array[missingBoolFuture]
 catch e
-    if e.message == "task.all source future is null" then
-        nullBoolAllState = 1
-    end
+    rejectedBoolFutureArray = e.kind == "TypeError"
 end
-assert nullBoolAllState == 1, "null bool task.all source should reject"
-
-int nullBoolRaceState = 0
-try
-    bool nullBoolRace = await task.race(nullBoolJobs)
-    nullBoolRaceState = int(nullBoolRace)
-catch e
-    if e.message == "task.race source future is null" then
-        nullBoolRaceState = 1
-    end
-end
-assert nullBoolRaceState == 1, "null bool task.race source should reject"
+assert rejectedBoolFutureArray, "non-null bool future array should reject missing owner"
 
 future<float> missingFloatFuture
-array<future<float>> nullFloatJobs = array[missingFloatFuture]
-
-int nullFloatAllState = 0
+bool rejectedFloatFutureArray = false
 try
-    array<float> nullFloatAll = await task.all(nullFloatJobs)
-    nullFloatAllState = nullFloatAll.length
+    array<future<float> > invalidFloatJobs = array[missingFloatFuture]
 catch e
-    if e.message == "task.all source future is null" then
-        nullFloatAllState = 1
-    end
+    rejectedFloatFutureArray = e.kind == "TypeError"
 end
-assert nullFloatAllState == 1, "null float task.all source should reject"
-
-int nullFloatRaceState = 0
-try
-    float nullFloatRace = await task.race(nullFloatJobs)
-    nullFloatRaceState = int(nullFloatRace)
-catch e
-    if e.message == "task.race source future is null" then
-        nullFloatRaceState = 1
-    end
-end
-assert nullFloatRaceState == 1, "null float task.race source should reject"
+assert rejectedFloatFutureArray, "non-null float future array should reject missing owner"
 
 future<AsyncBox> missingBoxFuture
-array<future<AsyncBox>> nullBoxJobs = array[missingBoxFuture]
-
-int nullBoxAllState = 0
+bool rejectedBoxFutureArray = false
 try
-    array<AsyncBox> nullBoxAll = await task.all(nullBoxJobs)
-    nullBoxAllState = nullBoxAll.length
+    array<future<AsyncBox> > invalidBoxJobs = array[missingBoxFuture]
 catch e
-    if e.message == "task.all source future is null" then
-        nullBoxAllState = 1
-    end
+    rejectedBoxFutureArray = e.kind == "TypeError"
 end
-assert nullBoxAllState == 1, "null class task.all source should reject"
-
-int nullBoxRaceState = 0
-try
-    future<AsyncBox> nullBoxRaceFuture = task.race(nullBoxJobs)
-    AsyncBox nullBoxRace = await nullBoxRaceFuture
-    nullBoxRaceState = nullBoxRace.bias
-catch e
-    if e.message == "task.race source future is null" then
-        nullBoxRaceState = 1
-    end
-end
-assert nullBoxRaceState == 1, "null class task.race source should reject"
+assert rejectedBoxFutureArray, "non-null box future array should reject missing owner"
 
 future<func(int) as int> missingFuncFuture
-array<future<func(int) as int> > nullFuncJobs = array[missingFuncFuture]
-
-int nullFuncAllState = 0
+bool rejectedFuncFutureArray = false
 try
-    array<func(int) as int> nullFuncAll = await task.all(nullFuncJobs)
-    nullFuncAllState = nullFuncAll.length
+    array<future<func(int) as int> > invalidFuncJobs = array[missingFuncFuture]
 catch e
-    if e.message == "task.all source future is null" then
-        nullFuncAllState = 1
-    end
+    rejectedFuncFutureArray = e.kind == "TypeError"
 end
-assert nullFuncAllState == 1, "null func task.all source should reject"
-
-int nullFuncRaceState = 0
-try
-    future<func(int) as int> nullFuncRaceFuture = task.race(nullFuncJobs)
-    func(int) as int nullFuncRace = await nullFuncRaceFuture
-    nullFuncRaceState = nullFuncRace(0)
-catch e
-    if e.message == "task.race source future is null" then
-        nullFuncRaceState = 1
-    end
-end
-assert nullFuncRaceState == 1, "null func task.race source should reject"
+assert rejectedFuncFutureArray, "non-null func future array should reject missing owner"
 
 assert not task.cancel(missingIntFuture), "task.cancel null int future should return false"
 assert not task.cancel(missingBoolFuture), "task.cancel null bool future should return false"
@@ -1181,14 +1101,14 @@ int conditionalCancelRaceC = await conditionalCancelRaceSource
 assert conditionalCancelRaceC == 232, "conditional cancel owned task.race branch should not consume source"
 
 future<int> mixedNullAllSource = addAsync(205, 1)
-array<future<int>> mixedNullAllJobs = array[mixedNullAllSource, missingIntFuture]
 
 int mixedNullAllState = 0
 try
+    array<future<int>> mixedNullAllJobs = array[mixedNullAllSource, missingIntFuture]
     array<int> mixedNullAll = await task.all(mixedNullAllJobs)
     mixedNullAllState = mixedNullAll.length
 catch e
-    if e.message == "task.all source future is null" then
+    if e.kind == "TypeError" then
         mixedNullAllState = 1
     end
 end
@@ -1197,14 +1117,14 @@ int mixedNullAllSourceValue = await mixedNullAllSource
 assert mixedNullAllSourceValue == 206, "task.all mixed trailing null should keep valid source"
 
 future<int> mixedNullRaceSource = addAsync(207, 1)
-array<future<int>> mixedNullRaceJobs = array[mixedNullRaceSource, missingIntFuture]
 
 int mixedNullRaceState = 0
 try
+    array<future<int>> mixedNullRaceJobs = array[mixedNullRaceSource, missingIntFuture]
     int mixedNullRace = await task.race(mixedNullRaceJobs)
     mixedNullRaceState = mixedNullRace
 catch e
-    if e.message == "task.race source future is null" then
+    if e.kind == "TypeError" then
         mixedNullRaceState = 1
     end
 end
@@ -1213,14 +1133,14 @@ int mixedNullRaceSourceValue = await mixedNullRaceSource
 assert mixedNullRaceSourceValue == 208, "task.race mixed trailing null should keep valid source"
 
 future<bool> mixedNullBoolSource = task.spawn(flipTask, false)
-array<future<bool>> mixedNullBoolJobs = array[mixedNullBoolSource, missingBoolFuture]
 
 int mixedNullBoolState = 0
 try
+    array<future<bool>> mixedNullBoolJobs = array[mixedNullBoolSource, missingBoolFuture]
     array<bool> mixedNullBool = await task.all(mixedNullBoolJobs)
     mixedNullBoolState = mixedNullBool.length
 catch e
-    if e.message == "task.all source future is null" then
+    if e.kind == "TypeError" then
         mixedNullBoolState = 1
     end
 end
@@ -1229,14 +1149,14 @@ bool mixedNullBoolSourceValue = await mixedNullBoolSource
 assert mixedNullBoolSourceValue, "task.all mixed bool null should keep valid source"
 
 future<float> mixedNullFloatSource = task.spawn(halfTask, 1.5)
-array<future<float>> mixedNullFloatJobs = array[mixedNullFloatSource, missingFloatFuture]
 
 int mixedNullFloatState = 0
 try
+    array<future<float>> mixedNullFloatJobs = array[mixedNullFloatSource, missingFloatFuture]
     float mixedNullFloat = await task.race(mixedNullFloatJobs)
     mixedNullFloatState = int(mixedNullFloat)
 catch e
-    if e.message == "task.race source future is null" then
+    if e.kind == "TypeError" then
         mixedNullFloatState = 1
     end
 end
@@ -1245,14 +1165,14 @@ float mixedNullFloatSourceValue = await mixedNullFloatSource
 assert mixedNullFloatSourceValue == 2.0, "task.race mixed float null should keep valid source"
 
 future<int> nullFirstAllSource = addAsync(209, 1)
-array<future<int>> nullFirstAllJobs = array[missingIntFuture, nullFirstAllSource]
 
 int nullFirstAllState = 0
 try
+    array<future<int>> nullFirstAllJobs = array[missingIntFuture, nullFirstAllSource]
     array<int> nullFirstAll = await task.all(nullFirstAllJobs)
     nullFirstAllState = nullFirstAll.length
 catch e
-    if e.message == "task.all source future is null" then
+    if e.kind == "TypeError" then
         nullFirstAllState = 1
     end
 end
@@ -1261,14 +1181,14 @@ int nullFirstAllSourceValue = await nullFirstAllSource
 assert nullFirstAllSourceValue == 210, "task.all mixed leading null should keep valid source"
 
 future<int> nullFirstRaceSource = addAsync(211, 1)
-array<future<int>> nullFirstRaceJobs = array[missingIntFuture, nullFirstRaceSource]
 
 int nullFirstRaceState = 0
 try
+    array<future<int>> nullFirstRaceJobs = array[missingIntFuture, nullFirstRaceSource]
     int nullFirstRace = await task.race(nullFirstRaceJobs)
     nullFirstRaceState = nullFirstRace
 catch e
-    if e.message == "task.race source future is null" then
+    if e.kind == "TypeError" then
         nullFirstRaceState = 1
     end
 end
@@ -1277,14 +1197,14 @@ int nullFirstRaceSourceValue = await nullFirstRaceSource
 assert nullFirstRaceSourceValue == 212, "task.race mixed leading null should keep valid source"
 
 future<func(int) as int> mixedNullFuncAllSource = makeAdderAsync(213)
-array<future<func(int) as int> > mixedNullFuncAllJobs = array[mixedNullFuncAllSource, missingFuncFuture]
 
 int mixedNullFuncAllState = 0
 try
+    array<future<func(int) as int> > mixedNullFuncAllJobs = array[mixedNullFuncAllSource, missingFuncFuture]
     array<func(int) as int> mixedNullFuncAll = await task.all(mixedNullFuncAllJobs)
     mixedNullFuncAllState = mixedNullFuncAll.length
 catch e
-    if e.message == "task.all source future is null" then
+    if e.kind == "TypeError" then
         mixedNullFuncAllState = 1
     end
 end
@@ -1293,15 +1213,15 @@ func(int) as int mixedNullFuncAllAgain = await mixedNullFuncAllSource
 assert mixedNullFuncAllAgain(1) == 214, "task.all mixed func null should keep valid source"
 
 future<func(int) as int> mixedNullFuncRaceSource = makeAdderAsync(215)
-array<future<func(int) as int> > mixedNullFuncRaceJobs = array[mixedNullFuncRaceSource, missingFuncFuture]
 
 int mixedNullFuncRaceState = 0
 try
+    array<future<func(int) as int> > mixedNullFuncRaceJobs = array[mixedNullFuncRaceSource, missingFuncFuture]
     future<func(int) as int> mixedNullFuncRaceFuture = task.race(mixedNullFuncRaceJobs)
     func(int) as int mixedNullFuncRace = await mixedNullFuncRaceFuture
     mixedNullFuncRaceState = mixedNullFuncRace(0)
 catch e
-    if e.message == "task.race source future is null" then
+    if e.kind == "TypeError" then
         mixedNullFuncRaceState = 1
     end
 end
@@ -1934,8 +1854,17 @@ end
 assert multiRaceLoserBState == 2, "task.race second loser late completion should not overwrite cancel"
 
 future<int> sourceCanceledRaceWinner = slowAddAsync(145, 1)
-future<int> sourceCanceledRaceLoser = slowAddAsync(146, 2)
 assert task.cancel(sourceCanceledRaceWinner), "task.race canceled source setup should cancel winner"
+// cancel requests cancellation; wait for its terminal state before creating
+// the competing future so this fixture tests propagation, without a timing race.
+bool canceledRaceWinnerTerminal = false
+try
+    int ignoredCanceledRaceWinner = await sourceCanceledRaceWinner
+catch e
+    canceledRaceWinnerTerminal = e.kind == "CancelledError"
+end
+assert canceledRaceWinnerTerminal, "task.race canceled winner must be terminal"
+future<int> sourceCanceledRaceLoser = slowAddAsync(146, 2)
 future<int> sourceCanceledRaceGroup = task.race([sourceCanceledRaceWinner, sourceCanceledRaceLoser])
 
 int sourceCanceledRaceGroupState = 0
@@ -2046,6 +1975,13 @@ assert raceFailedBeforeCancelRightState == 1, "task.race failed-before-cancel ri
 
 future<int> raceCanceledBeforeFailLeft = slowAddAsync(149, 1)
 assert task.cancel(raceCanceledBeforeFailLeft), "task.race canceled-before-fail setup should cancel left source"
+bool raceCanceledBeforeFailLeftTerminal = false
+try
+    int ignoredraceCanceledBeforeFailLeft = await raceCanceledBeforeFailLeft
+catch e
+    raceCanceledBeforeFailLeftTerminal = e.kind == "CancelledError"
+end
+assert raceCanceledBeforeFailLeftTerminal, "canceled-before-fail source must be terminal"
 future<int> raceCanceledBeforeFailRight = failAsync()
 
 int raceCanceledBeforeFailRightState = 0
@@ -2738,6 +2674,13 @@ assert allFailedBeforeCancelRightState == 1, "task.all failed-before-cancel righ
 
 future<int> allCanceledBeforeFailLeft = slowAddAsync(280, 1)
 assert task.cancel(allCanceledBeforeFailLeft), "task.all canceled-before-fail setup should cancel left source"
+bool allCanceledBeforeFailLeftTerminal = false
+try
+    int ignoredallCanceledBeforeFailLeft = await allCanceledBeforeFailLeft
+catch e
+    allCanceledBeforeFailLeftTerminal = e.kind == "CancelledError"
+end
+assert allCanceledBeforeFailLeftTerminal, "canceled-before-fail source must be terminal"
 future<int> allCanceledBeforeFailRight = failAsync()
 
 int allCanceledBeforeFailRightState = 0
@@ -2985,7 +2928,9 @@ assert emptyGeneratorCount == 0, "empty generator failed"
 channel<int> ch = channel::<int>(2)
 assert ch.send(123), "channel send failed"
 int received = 0
-assert ch.recvInto(received), "channel recv failed"
+auto __chSt13, __chVal13 = ch.recv()
+assert __chSt13 == channelStatus.ok, "channel recv failed"
+received = __chVal13 as int
 assert received == 123, "channel value failed"
 assert ch.count() == 0, "channel count failed"
 ch.close()
@@ -2996,7 +2941,7 @@ try
     thread missingThread = thread(missingThreadWorker)
     missingThreadState = missingThread.exitCode()
 catch e
-    if e.message == "thread requires a callable func value" then
+    if e.kind == "ValueError" then
         missingThreadState = 1
     end
 end

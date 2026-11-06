@@ -6,6 +6,7 @@
     "kind": "demo6-extlib",
     "artifact": {
         "kind": "source",
+        "runtimeSymbols": ["xlValueBorrowV1", "xlValueReadBeginV1", "xlValueReadEndV1", "xlValueReadAtV1", "xlValueReadFindV1", "xlValueBorrowCopyV1"],
         "cSources": ["cli_native.c"],
         "xlSources": ["src/cli.xl"],
         "xrtModules": ["XRT_MODULE_VALUE_CONTAINER", "XRT_MODULE_UNICODE"]

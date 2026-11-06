@@ -19,7 +19,8 @@ xvalue* xl6ValueNameReadCopyV1(const xvalue* source,const char* name,size_t size
             if(xl6DictErasedReadV1(source,(xstrview){name,size},false,&result,&found) && !found)
                 result=xrtValueRetain(xrtValueNull());
         } else if(!dict && xrtValueType(source)==XVALUE_OBJECT) {
-            const xvalue* item=xl6ValueObjectFieldFindV1(source,name,size);
+            const xvalue* item=requireRecord ? xl6ValueObjectFieldFindV1(source,name,size) :
+                xl6ValueObjectItemFindV1(source,name,size);
             if(!xrtGetError() && !scope.failed) result=xrtValueRetain(item ? item : xrtValueNull());
         } else if(!dict) {
             if(requireRecord) xrtSetErrorKind(XERR_TYPE);

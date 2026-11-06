@@ -30,5 +30,6 @@ end
 Gauge gauge = Gauge(40)
 assert gaugeLocalValue(gauge) == 41, "class_c_export local value failed"
 auto current, doubled = gauge.pair()
-assert current == 40 and doubled == 80, "class_c_export pair failed"
+// localValue() called add(1), so the exported pair observes the new value.
+assert current == 41 and doubled == 82, "class_c_export pair failed"
 println("class_c_export ok")

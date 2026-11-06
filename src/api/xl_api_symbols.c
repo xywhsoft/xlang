@@ -13,6 +13,7 @@
 #include "src/runtime/xl6_native_handle.h"
 #include "src/runtime/xl6_dynamic_fields.h"
 #include "src/runtime/xl6_value_object_fields.h"
+#include "src/runtime/xl6_value_read_view.h"
 #include "src/runtime/xl6_value_named_read.h"
 #include "src/runtime/xl6_value_named_write.h"
 #include "src/runtime/xl6_closure.h"

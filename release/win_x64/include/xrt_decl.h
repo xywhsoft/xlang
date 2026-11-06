@@ -15901,6 +15901,34 @@ XRT_API uint64 xrtValueObjectReadTypeIdV1(const xvalueobjectreadv1* pView);
 /* Exact byte key, including embedded NUL. A missing field returns NULL without
  * an error; NULL data with a nonzero key size is an invalid argument. */
 XRT_API const xvalue* xrtValueObjectReadGetV1(const xvalueobjectreadv1* pView, xstrview Key);
+/* Allocation-free read scope for wire Array/Object containers. Caller owns
+ * the real receiver for the complete synchronous scope and serializes access
+ * to it. Begin borrows, never retains/clones/boxes any value or backing. The
+ * receiver is BUSY until End: mutation, retain, clone and release through that
+ * shell fail; independently owned aliases retain normal COW behavior. Children
+ * and key/text bytes are borrowed only until End; open child containers before
+ * invoking code that could change their contents. No suspend, thread transfer,
+ * copying a live scope, or accessing raw receiver APIs while it is active.
+ * Storage starts zeroed. End clears it and is idempotent on a cleared scope.
+ * Scope guards add no fields or checks to ordinary values or operations. */
+#ifndef XRT_VALUE_VIEW_V1_DEFINED
+#define XRT_VALUE_VIEW_V1_DEFINED
+typedef struct xvalueviewv1 {
+    const struct xvalueviewv1* Self;
+    const xvalue* Value;
+    const void* Backing;
+    size_t Count;
+    xvaluetype Type;
+} xvalueviewv1;
+XRT_API bool xrtValueViewBeginV1(const xvalue* pValue, xvalueviewv1* pView);
+XRT_API bool xrtValueViewEndV1(xvalueviewv1* pView);
+XRT_API size_t xrtValueViewCountV1(const xvalueviewv1* pView);
+/* At is checked, zero-based; Object keys retain insertion order. Find is
+ * Object-only, with exact byte keys. Missing Find returns NULL without error. */
+XRT_API const xvalue* xrtValueViewAtV1(const xvalueviewv1* pView, size_t iIndex, xstrview* pKey);
+XRT_API const xvalue* xrtValueViewFindV1(const xvalueviewv1* pView, xstrview Key);
+#endif
+
 /* Borrowed discovery anchors for this instance's live, explicitly certified
  * Object backings. Policy identity is exact; COW/deep-clone backings are each
  * visited once, with their shared Lifetime UserData (possibly NULL). Ordinary
