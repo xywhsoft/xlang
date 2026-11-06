@@ -1,0 +1,96 @@
+{
+  "schema": 1,
+  "date": "2026-11-06",
+  "scope": "Source implementation plus low-level Windows/Linux GC, actual COFF/TLS PE and input-budget qualification. Formal shipping/VFS/static-XGE acceptance is recorded separately.",
+  "passed": true,
+  "productionSourceFreezeSha256": "8605c6ad00805d3bac4a0d9052259c936c3da2eeb1650ba7b2f9c88eaf462c6c",
+  "sourceMaterials": "dev\\release-materials\\sources\\tcc-pdata-20261106\\manifest.json",
+  "sourceMaterialsSha256": "c6e2ea954e3d434a7c1101eb33cacfbdcacf6edb674c77b72d1585a0e6a0cefe",
+  "reports": [
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\tcc-pdata-canonical\\qualified-r1\\manifest.json",
+      "archivePath": "manifest-0.json",
+      "sha256": "f20d6b89b25cb0902d3fab255da9b42366b7b8dd5649c0ee770034ea6f1f643e"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\tcc-pdata-canonical\\budget-win-dev-r1\\results.json",
+      "archivePath": "report-1.json",
+      "sha256": "a2187f19d5892d6f3b51a0b12eea005c8e02ca6a9c18ab2e01c8de9f9bde2e37"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\pdata-gc-qualified-win-r4\\results.json",
+      "archivePath": "report-2.json",
+      "sha256": "b67639f9771cd99d94d519a568de1c0ab7fbe9ab33443eacccf0d90794edb8bb"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\pdata-original-gc-win-r1\\results.json",
+      "archivePath": "report-3.json",
+      "sha256": "9a410ad796c9240e42a97413119a5b07ae98f9f4941d81986f05968726dffcd6"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\tcc-pdata-canonical\\coff-pe-win-r1\\results.json",
+      "archivePath": "report-4.json",
+      "sha256": "20f322f680417a46b04197d961b013e876f70efa8d97e9f6209ef82f71d4fe56"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\tcc-pdata-canonical\\tls-pe-win-r1\\results.json",
+      "archivePath": "report-5.json",
+      "sha256": "0561cbffafe533599545a54ed00f320a9ed5ea9876190c0bf3bfb35218dd0a54"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\tcc-pdata-canonical\\coff-pe-r9-win-r1\\results.json",
+      "archivePath": "report-6.json",
+      "sha256": "d9f2bcf8640efdaa612b4cf7712f3b65d188fe1b71809595f1ca5801bf9ff6a0"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\tcc-pdata-canonical\\tls-pe-r9-win-r1\\results.json",
+      "archivePath": "report-7.json",
+      "sha256": "cc8b99a45b633d10891049e72232de22475b782a7e86c389f194afbf54f7bee4"
+    },
+    {
+      "originalPath": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\tcc-pdata-nonpe-linux-r3\\results.json",
+      "archivePath": "report-8.json",
+      "sha256": "87c3480761b0974ec6dd49ad437085f1843163aca9ec9c3de0fc046b213ea506"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\pdata-gc-candidate-r3\\manifest.json",
+      "archivePath": "manifest-9.json",
+      "sha256": "8557ef9f00ef629fbf2e3618660fa971388dade03e5778a80f9b1e05ede4d22b"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\pdata-gc-qualified-win-r4\\results.json",
+      "archivePath": "report-10.json",
+      "sha256": "b67639f9771cd99d94d519a568de1c0ab7fbe9ab33443eacccf0d90794edb8bb"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\pdata-original-gc-win-r1\\results.json",
+      "archivePath": "report-11.json",
+      "sha256": "9a410ad796c9240e42a97413119a5b07ae98f9f4941d81986f05968726dffcd6"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\pdata-gc-linux-r3-results.json",
+      "archivePath": "report-12.json",
+      "sha256": "87c3480761b0974ec6dd49ad437085f1843163aca9ec9c3de0fc046b213ea506"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\windows-aot-discovery-r1\\results.json",
+      "archivePath": "original-aot-discovery.json",
+      "sha256": "2947ebbc06bb6efcecffdd8da9e0265a8aa8198e90cfd9ccf9eee1525059f9f2"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\compiler-core-win-r7\\plan-equivalence.json",
+      "archivePath": "api-strict-plan-equivalence.json",
+      "sha256": "0644c3d6040bb0e12cf14c1125b3e7c5857b7279a274cc5ab1f26dbe23aa704c"
+    }
+  ],
+  "archiveSha256": "98c200608d3d42b5d6b818f7fce3c56adbfe14b43d2d16ed70acb01ee6a32f5f",
+  "checks": {
+    "focusedRecordGraph": 274,
+    "originalWindowsGc": 268,
+    "originalLinuxGc": 264,
+    "loaderBudget": 82,
+    "coffApi": 154,
+    "tlsOsLoader": 212
+  },
+  "shippingDelivery": false
+}

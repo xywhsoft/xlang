@@ -22,6 +22,20 @@ typedef struct TCCGCFrame {
     int cie, owner, active, reloc_head;
 } TCCGCFrame;
 
+/* PE exception tables share storage, not reachability. These are temporary
+   graph records: archive queries must never modify the input table. */
+typedef struct TCCGCPDataRecord {
+    unsigned long dst;
+    int owner, active, reloc_head, begin_relocs;
+} TCCGCPDataRecord;
+
+typedef struct TCCGCPData {
+    Section *section;
+    TCCGCPDataRecord *records;
+    int *reloc_next;
+    int count, width, keep_all, opaque, marked;
+} TCCGCPData;
+
 typedef struct TCCGC {
     TCCState *s;
     unsigned char *live, *used;
@@ -32,7 +46,19 @@ typedef struct TCCGC {
     TCCGCFrame *frames;
     int nframes, frame_capacity;
     int *frame_reloc_next;
+    TCCGCPData *pdata;
 } TCCGC;
+
+ST_FUNC int tcc_pdata_name(const char *name)
+{
+#if defined(TCC_TARGET_PE) && (defined(TCC_TARGET_X86_64) || defined(TCC_TARGET_ARM64))
+    return !strcmp(name, ".pdata") || !strncmp(name, ".pdata.", 7)
+        || !strncmp(name, ".pdata$", 7);
+#else
+    (void)name;
+    return 0;
+#endif
+}
 
 static void gc_mark_section(TCCGC *g, int n)
 {
@@ -52,6 +78,12 @@ static void gc_mark_symbol(TCCGC *g, unsigned n)
     }
     g->used[n] = 1;
     sym = (ElfW(Sym) *)g->s->symtab->data + n;
+    /* A real symbol/address root into metadata is distinct from the reverse
+       owner->record edge. Preserve its offsets, including section+addend and
+       boundary-symbol references, instead of attempting partial remapping. */
+    if (g->pdata && sym->st_shndx > 0 && sym->st_shndx < g->nsec
+        && g->pdata[sym->st_shndx].section)
+        g->pdata[sym->st_shndx].keep_all = 1;
     gc_mark_section(g, sym->st_shndx);
 }
 
@@ -213,10 +245,15 @@ static void gc_compact_frames(TCCGC *g)
     s->data_offset = dst;
 }
 
+#include "tcc-gc-pdata.inc"
+
 /* Reconstruct per-function exception ownership after loading a TCC ELF object
    (the in-memory gc_owner pointer itself is intentionally not serialized). */
 static int gc_section_owner(TCCGC *g, Section *s)
 {
+    /* Packed .pdata may contain many unrelated code owners, even if an old
+       input contribution supplied a whole-section gc_owner association. */
+    if (tcc_pdata_name(s->name)) return 0;
     if (s->gc_owner) return s->gc_owner->sh_num;
 #if defined(TCC_TARGET_PE) && (defined(TCC_TARGET_X86_64) || defined(TCC_TARGET_ARM64))
     Section *owner = NULL;
@@ -266,7 +303,7 @@ static int gc_collect(TCCGC *g, TCCState *s1, const char *entry, int keep_export
     g->heads = tcc_mallocz(g->nsec * sizeof(int));
     g->next = tcc_mallocz(g->nsec * sizeof(int));
     g->eh = have_section(s1, ".eh_frame");
-    if (gc_read_frames(g) < 0)
+    if (gc_read_frames(g) < 0 || gc_read_pdata(g) < 0)
         return -1;
     for (i = 1; i < g->nsec; ++i) {
         Section *s = s1->sections[i];
@@ -275,14 +312,14 @@ static int gc_collect(TCCGC *g, TCCState *s1, const char *entry, int keep_export
             g->next[i] = g->heads[n];
             g->heads[n] = i;
         }
-        if (!(s->sh_flags & SHF_ALLOC) || s == g->eh || n)
+        if (!(s->sh_flags & SHF_ALLOC) || s == g->eh || n
+            || (g->pdata && g->pdata[i].section))
             continue;
         if ((s->sh_flags & SHF_GNU_RETAIN) || s->sh_type == SHT_INIT_ARRAY
             || s->sh_type == SHT_FINI_ARRAY || s->sh_type == SHT_PREINIT_ARRAY
             || !strcmp(s->name, ".init") || !strcmp(s->name, ".fini")
             || !strncmp(s->name, ".ctors", 6) || !strncmp(s->name, ".dtors", 6)
             || !strncmp(s->name, ".debug_", 7) || !strncmp(s->name, ".stab", 5)
-            || !strncmp(s->name, ".pdata", 6)
             || !strncmp(s->name, ".CRT$", 5) || !strcmp(s->name, ".rsrc")
             || !strcmp(s->name, ".bounds") || !strcmp(s->name, ".lbounds"))
             gc_mark_section(g, i);
@@ -305,7 +342,8 @@ static int gc_collect(TCCGC *g, TCCState *s1, const char *entry, int keep_export
                     && visible
 #endif
                     )
-                || (s1->output_type == TCC_OUTPUT_MEMORY && !s1->nb_gc_roots)))
+                || (s1->output_type == TCC_OUTPUT_MEMORY && !s1->nb_gc_roots
+                    && !gc_pdata_implicit_boundary(g, sym))))
             gc_mark_symbol(g, i);
 #ifdef TCC_TARGET_PE
         if (sym->st_other & ST_PE_EXPORT)
@@ -317,10 +355,11 @@ static int gc_collect(TCCGC *g, TCCState *s1, const char *entry, int keep_export
             Section *s = s1->sections[g->queue[g->read++]];
             for (n = g->heads[s->sh_num]; n; n = g->next[n])
                 gc_mark_section(g, n);
-            if (s != g->eh && strncmp(s->name, ".debug_", 7) && strncmp(s->name, ".stab", 5))
+            if (s != g->eh && !(g->pdata && g->pdata[s->sh_num].section)
+                && strncmp(s->name, ".debug_", 7) && strncmp(s->name, ".stab", 5))
                 gc_reloc_range(g, s, 0, s->data_offset);
         }
-        if (gc_mark_frames(g))
+        if (gc_mark_frames(g) | gc_mark_pdata(g))
             continue;
 #ifdef TCC_TARGET_PE
         /* The PE loader, not a C call relocation, owns the TLS descriptor.
@@ -340,6 +379,7 @@ static int gc_collect(TCCGC *g, TCCState *s1, const char *entry, int keep_export
 }
 static void gc_release(TCCGC *g)
 {
+    gc_release_pdata(g);
     tcc_free(g->live); tcc_free(g->used); tcc_free(g->queue);
     tcc_free(g->heads); tcc_free(g->next); tcc_free(g->frames);
     tcc_free(g->frame_reloc_next); tcc_free(g->old_sizes);
@@ -379,6 +419,7 @@ ST_FUNC void tcc_gc_sections(TCCState *s1, const char *entry, int keep_exports)
         return;
     }
     gc_compact_frames(&g);
+    gc_compact_pdata(&g);
     for (i = 1; i < g.nsec; ++i) {
         Section *s = s1->sections[i];
         if (!(s->sh_flags & SHF_ALLOC) || g.live[i])

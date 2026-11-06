@@ -45,9 +45,17 @@ Real MinGW `tlssup`, `tlsthrd`, `tlsmcrt`, `tls_atexit` objects and the actual X
 MD4C object are structural inputs. Unrelated CRT/MD4C imports are inert test
 stubs in that structural test, so it is not an executable integration proof.
 A separate GCC-built Windows program validates the source fixture's OS TLS
-initialization/isolation and is inspected with GNU objdump. TinyCC-produced PE
-OS-loader execution remains unverified while Defender blocks those artifacts;
-no rename or alternate executable path is used to bypass that restriction.
+initialization/isolation and is inspected with GNU objdump. The original blocked reports remain unchanged. After the user restored
+execution authorization, `tools/check_tcc_windows_tls_pe.py --execute-pe`
+qualified fresh TinyCC-produced PE images from the exact final R7 body and
+subsequent canonical-pdata R9 body: the
+synthetic OS directory and real MinGW C static-TLS directory/thread callbacks,
+fixed and ASLR images, initialized/zero/aligned TLS, two concurrent isolated
+threads, and process/thread attach/detach ordering. A dedicated OS file handle
+records the final process-detach outcome after the C main function returns.
+C++ `tls_atexit`/UCRT registration is outside this C fixture. This source/CLI
+qualification is separate from matched shipping compiler and whole-XGE AOT
+acceptance. No security-product settings are changed by either tool.
 
 The format contract follows Microsoft's PE/COFF specification:
 https://learn.microsoft.com/en-us/windows/win32/debug/pe-format

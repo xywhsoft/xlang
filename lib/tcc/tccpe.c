@@ -1968,10 +1968,6 @@ ST_FUNC void pe_add_unwind_data(unsigned start, unsigned end, unsigned stack)
 
     d = pe_add_unwind_info(s1);
     pd = s1->uw_pdata;
-    if (s1->function_sections) {
-        pd = tcc_split_section(s1, pd, "unwind");
-        pd->gc_owner = cur_text_section;
-    }
     o = pd->data_offset;
     p = section_ptr_add(pd, sizeof *p);
 
@@ -2059,10 +2055,6 @@ ST_FUNC void pe_add_unwind_data(unsigned start, unsigned end, unsigned stack)
     while ((unsigned)(q - (xd->data + d + 4)) < code_bytes)
         *q++ = 0xE3; /* nop padding */
 
-    if (s1->function_sections) {
-        pd = tcc_split_section(s1, pd, "unwind");
-        pd->gc_owner = cur_text_section;
-    }
     o = pd->data_offset;
     p = section_ptr_add(pd, sizeof *p);
     p->BeginAddress = start;

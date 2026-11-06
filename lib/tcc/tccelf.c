@@ -3318,6 +3318,34 @@ static int tcc_independent_input_section(const char *name)
         || !strncmp(name, ".xdata.", 7);
 }
 
+/* Packed PE exception records can share storage without sharing code
+   reachability: final GC follows their individual BeginAddress owners. */
+static int tcc_elf_pdata_header(ElfW(Shdr) *headers, unsigned count,
+                              const char *names, unsigned index)
+{
+#if defined(TCC_TARGET_PE) && (defined(TCC_TARGET_X86_64) || defined(TCC_TARGET_ARM64))
+    ElfW(Shdr) *sh;
+    unsigned width =
+#ifdef TCC_TARGET_X86_64
+        12;
+#else
+        8;
+#endif
+    if (index >= count) return 0;
+    sh = headers + index;
+    if (sh->sh_type == SHT_RELX) {
+        if (sh->sh_info >= count) return 0;
+        sh = headers + sh->sh_info;
+    }
+    return sh->sh_type == SHT_PROGBITS && (sh->sh_flags & SHF_ALLOC)
+        && !(sh->sh_flags & SHF_COMPRESSED) && sh->sh_addralign <= 4
+        && sh->sh_size % width == 0 && tcc_pdata_name(names + sh->sh_name);
+#else
+    (void)headers; (void)count; (void)names; (void)index;
+    return 0;
+#endif
+}
+
 /* load an object file and merge it with current files */
 /* XXX: handle correctly stab (debug) info */
 ST_FUNC int tcc_load_object_file(TCCState *s1,
@@ -3329,6 +3357,8 @@ ST_FUNC int tcc_load_object_file(TCCState *s1,
     int i, j, nb_syms, sym_index, ret, seencompressed;
     char *strsec, *strtab;
     int stab_index, stabstr_index;
+    unsigned new_section_bound;
+    ElfW(Xword) strsec_size;
     int *old_to_new_syms;
     char *sh_name, *name;
     SectionMergeInfo *sm_table, *sm;
@@ -3360,9 +3390,9 @@ invalid:
        part of this linker's 16-bit section model. */
     if (!ehdr.e_shnum)
         return tcc_error_noabort("object has no supported 16-bit section table");
-    if (s1->nb_sections > SHN_LORESERVE - 32
-        || (unsigned)ehdr.e_shnum - 1 > (unsigned)(SHN_LORESERVE - s1->nb_sections - 32))
-        return tcc_error_noabort("object exceeds 16-bit section index limit");
+    if (ehdr.e_shnum > SHN_LORESERVE || ehdr.e_shstrndx >= ehdr.e_shnum
+        || s1->nb_sections > SHN_LORESERVE - 32)
+        return tcc_error_noabort("object exceeds supported 16-bit section index limit");
     /* read sections */
     shdr = load_data(fd, file_offset + ehdr.e_shoff,
                      sizeof(ElfW(Shdr)) * ehdr.e_shnum);
@@ -3370,6 +3400,7 @@ invalid:
 
     /* load section names */
     sh = &shdr[ehdr.e_shstrndx];
+    strsec_size = sh->sh_size;
     strsec = load_data(fd, file_offset + sh->sh_offset, sh->sh_size);
 
     /* load symtab and strtab */
@@ -3380,6 +3411,40 @@ invalid:
     seencompressed = 0;
     stab_index = stabstr_index = 0;
     ret = -1;
+
+    /* The original header count is a safe 1x bound except that packed PE
+       pdata contributions and their relocation tables share two canonical
+       sections. Compute this before publishing any input sections/symbols. */
+    new_section_bound = ehdr.e_shnum - 1;
+    {
+        int have_pdata = 0, have_pdata_reloc = 0;
+        char reloc_name[32];
+        snprintf(reloc_name, sizeof reloc_name, REL_SECTION_FMT, ".pdata");
+        for (i = 1; i < ehdr.e_shnum; ++i) {
+            sh = shdr + i;
+            if (sh->sh_name >= strsec_size
+                || !memchr(strsec + sh->sh_name, 0, strsec_size - sh->sh_name)) {
+                tcc_error_noabort("invalid object section name");
+                goto the_end;
+            }
+            if (sh->sh_type == SHT_RELX && sh->sh_info >= ehdr.e_shnum) {
+                tcc_error_noabort("invalid object relocation target");
+                goto the_end;
+            }
+        }
+        for (i = 1; i < ehdr.e_shnum; ++i)
+            if (tcc_elf_pdata_header(shdr, ehdr.e_shnum, strsec, i)) {
+                --new_section_bound;
+                if (shdr[i].sh_type == SHT_RELX) have_pdata_reloc = 1;
+                else have_pdata = 1;
+            }
+        if (have_pdata && !have_section(s1, ".pdata")) ++new_section_bound;
+        if (have_pdata_reloc && !have_section(s1, reloc_name)) ++new_section_bound;
+    }
+    if (new_section_bound > (unsigned)(SHN_LORESERVE - s1->nb_sections - 32)) {
+        tcc_error_noabort("object exceeds 16-bit section index limit");
+        goto the_end;
+    }
 
     for(i = 1; i < ehdr.e_shnum; i++) {
         sh = &shdr[i];
@@ -3441,13 +3506,23 @@ invalid:
             )
             continue;
 
-	sh = &shdr[i];
+        sh = &shdr[i];
         sh_name = strsec + sh->sh_name;
+        if (tcc_elf_pdata_header(shdr, ehdr.e_shnum, strsec, i)) {
+            if (sh->sh_type == SHT_RELX) {
+#if SHT_RELX == SHT_RELA
+                sh_name = ".rela.pdata";
+#else
+                sh_name = ".rel.pdata";
+#endif
+            } else sh_name = ".pdata";
+        }
         if (sh->sh_addralign < 1)
             sh->sh_addralign = 1;
         /* Function/data sections are independent input contributions, even
            when two translation units chose the same static symbol name. */
-        if (s1->gc_sections || s1->function_sections || s1->data_sections) {
+        if ((s1->gc_sections || s1->function_sections || s1->data_sections)
+            && !tcc_elf_pdata_header(shdr, ehdr.e_shnum, strsec, i)) {
             if (((sh->sh_flags & SHF_ALLOC) && tcc_independent_input_section(sh_name))
                 || (sh->sh_type == SHT_RELX && sh->sh_info < ehdr.e_shnum
                     && tcc_independent_input_section(strsec + shdr[sh->sh_info].sh_name)))

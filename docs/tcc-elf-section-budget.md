@@ -6,8 +6,13 @@ non-null input section header. Relocation sections have their own headers in
 map to existing sections or are skipped, and the later symbol/relocation passes
 do not create additional sections.
 
-The admission bound is therefore `e_shnum - 1`, with the existing 32-section
-headroom for later linker metadata. The former doubled estimate rejected a
+The general admission bound is therefore `e_shnum - 1`, with the existing
+32-section headroom for later linker metadata. On PE x64/ARM64, eligible input
+`.pdata` contributions and their relocation headers are counted as a single
+canonical data/relocation pair (or reuse the existing pair), rather than as
+independent sections. This reduction is applied only after bounded header/name
+validation and before publishing input sections or symbols. Other inputs keep
+the general bound. See [PE unwind records](tcc-pe-pdata.md). The former doubled estimate rejected a
 20,189-header sectioned runtime object when the state already held 25,000
 sections, although the actual combined directory remained representable.
 Zero/extended section-table counts are explicitly unsupported by the current
