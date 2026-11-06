@@ -5404,7 +5404,9 @@ static char* xlBuildNativeCEnvironment(XL_Context* ctx, const XL6_CompileUnit* u
         if (length < 3 || strcmp(name + length - 2, ".h") ||
             (strncmp(name, "include/", 8) && strncmp(name, "lib/xrt/", 8) &&
              strncmp(name, "lib/xruntime/", 13))) continue;
-        ok = count < 512 && res->size <= 16u * 1024u * 1024u &&
+        /* The matched SDK now contains more than 512 public/runtime headers.
+         * Keep count bounded independently of the unchanged byte budgets. */
+        ok = count < 1024 && res->size <= 16u * 1024u * 1024u &&
             res->size <= 32u * 1024u * 1024u - total &&
             tcc_vfs_read_builtin(name, NULL, 0, &size) && size == res->size;
         if (ok) { data = xrtMalloc(size ? size : 1); ok = data != NULL; }

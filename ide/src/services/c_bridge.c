@@ -74,7 +74,7 @@ static xvalue* cbheader(xide_c_bridge_batch* b,const char* name)
 static int cbheaders(xide_c_bridge_batch* b,const xvalue* environment,xide_model_error* e)
 {
  const xvalue* headers=cbget(environment,"builtinHeaders"); bool available=false; int64 totalReported=0; size_t total=0; int initial=xrtValueCount(b->headers)==0;
- if(!xrtValueGetBool(cbget(environment,"embeddedHeadersAvailable"),&available) || !available || !cbarray(headers,512) || !xrtValueCount(headers) || !xrtValueGetInt(cbget(environment,"builtinBytes"),&totalReported) || totalReported<0 || totalReported>32u*1024u*1024u || (!initial && xrtValueCount(headers)!=xrtValueCount(b->headers))) return cbfail(e,"Native bridge lacks a bounded exact embedded-header bundle.");
+ if(!xrtValueGetBool(cbget(environment,"embeddedHeadersAvailable"),&available) || !available || !cbarray(headers,1024) || !xrtValueCount(headers) || !xrtValueGetInt(cbget(environment,"builtinBytes"),&totalReported) || totalReported<0 || totalReported>32u*1024u*1024u || (!initial && xrtValueCount(headers)!=xrtValueCount(b->headers))) return cbfail(e,"Native bridge lacks a bounded exact embedded-header bundle.");
  for(size_t i=0;i<xrtValueCount(headers);++i) {
   if(cbstop(b)) return 0;
   const xvalue* h=xrtValueArrayGet(headers,i); const char *name=cbstr(cbget(h,"name"),512),*encoded=cbstr(cbget(h,"base64"),24u*1024u*1024u),*digest=cbstr(cbget(h,"sha256"),64); int64 size=0;
