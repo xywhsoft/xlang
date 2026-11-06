@@ -39,7 +39,7 @@ xvalue* xl6ValueObjectItemFindV1(const xvalue* source,const char* name,size_t si
     return fields ? (xvalue*)xrtDynamicFieldsGet(fields,(xstrview){name,size}) :
         xrtValueObjectGet(source,(xstrview){name,size});
 }
-bool xl6ValueObjectFieldSetTakeV1(xvalue* source,const char* name,size_t size,xvalue* item)
+static bool setTake(xvalue* source,const char* name,size_t size,xvalue* item,bool itemOnly)
 {
     xl6_error_scope scope={0};
     if (!xl6ErrorScopeBegin(&scope)) {
@@ -54,7 +54,7 @@ bool xl6ValueObjectFieldSetTakeV1(xvalue* source,const char* name,size_t size,xv
     else {
         receiverPin=xrtValueRetain(source);
         if (receiverPin) {
-            const xvalue* old=xrtValueObjectGet(source,key);
+            const xvalue* old=itemOnly ? NULL : xrtValueObjectGet(source,key);
             bool ready=!xrtGetError() && (old || open_fields(source,&fields));
             if (ready && !old && fields)
                 old=xrtDynamicFieldsGet(fields,key);
@@ -78,3 +78,8 @@ bool xl6ValueObjectFieldSetTakeV1(xvalue* source,const char* name,size_t size,xv
     if (!outcome.ok) xl6ErrorScopePropagateFailure(outcome);
     return outcome.ok;
 }
+
+bool xl6ValueObjectFieldSetTakeV1(xvalue* source,const char* name,size_t size,xvalue* item)
+{ return setTake(source,name,size,item,false); }
+bool xl6ValueObjectItemSetTakeV1(xvalue* source,const char* name,size_t size,xvalue* item)
+{ return setTake(source,name,size,item,true); }
