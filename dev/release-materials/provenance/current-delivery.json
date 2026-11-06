@@ -124,7 +124,7 @@
       "licenseUrl": "http://www.microsoft.com/typography/fonts/default.aspx"
     },
     "fontChangeSourceParent": "b16a95bbf022efcafc7b965d1bd9b5b945c0d881",
-    "currentBuildProvenance": "dev/release-materials/provenance/ide-about-versions-20261106.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/ide-about-layout-20261106.json",
     "cLspEnabled": false,
     "applicationIcon": {
       "source": "ide/data/xlang_ide.ico",
@@ -208,8 +208,10 @@
       "displayVersion": "0.6.0",
       "iterationSource": ".xlang-update/installed.json",
       "entry": "help.about",
-      "sourceVersion": "ide/data/version.json"
-    }
+      "sourceVersion": "ide/data/version.json",
+      "layout": "compact centered viewport-fitting content; title close and Escape"
+    },
+    "previousBuildProvenanceBeforeAboutLayout": "dev/release-materials/provenance/ide-about-versions-20261106.json"
   },
   "catalog": {
     "status": "passed",
@@ -3277,10 +3279,10 @@
       "origin": "matched-xge3-xui3-local-delivery-20261105"
     },
     {
-      "sha256": "9eeded9c9d9e32aa2215a985aa0c42ca8f33b5303e61119926a01a5b34e34403",
-      "bytes": 1802375,
+      "sha256": "4a14914c244a2aa8290d8d6678f28cc34b462b1133e615ed82c122afd3dee9da",
+      "bytes": 1805030,
       "path": "release/win_x64/xlang_ide.exe",
-      "origin": "ide-about-versions-20261106"
+      "origin": "ide-about-layout-20261106"
     },
     {
       "sha256": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
@@ -3564,6 +3566,11 @@
       "path": "dev/release-materials/provenance/ide-about-versions-20261106.json",
       "sha256": "13daaf363503cb570a1d4de23ea63a36cc2ba074837997e04d1a479d5dac2109",
       "bytes": 4004
+    },
+    "ideAboutLayout": {
+      "path": "dev/release-materials/provenance/ide-about-layout-20261106.json",
+      "sha256": "dd38e1ad3291a65c95edb19edef1b2d16754bfa43a83d14063796a95c725cd8b",
+      "bytes": 3080
     }
   }
 }

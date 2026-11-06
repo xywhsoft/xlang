@@ -1,0 +1,26 @@
+{
+  "base": "dev/release-materials/sources/ide-about-versions-20261106/manifest.json",
+  "files": [
+    {
+      "path": "ide/src/ui/about_view.c",
+      "sha256": "7ab56d6462d41e79691e3379a67a6f1b877332dc943f688c13f7b7f044b198f7",
+      "bytes": 8451
+    },
+    {
+      "path": "ide/src/ui/about_view.h",
+      "sha256": "2deb340566cdc7089fb95b35500c52f13ba2e707f4323e24b6e6260e827546f2",
+      "bytes": 360
+    },
+    {
+      "path": "ide/tests/about_view_test.c",
+      "sha256": "4467854320540b3a87b18095851369c253f28597e15ae9060b4062836125e0ca",
+      "bytes": 7173
+    },
+    {
+      "path": "ide/docs/actions.md",
+      "sha256": "2dd71fa312bcdbfe7e02d479d1960c34e6f8e339bba77a4dced545d501245983",
+      "bytes": 14664
+    }
+  ],
+  "archiveSha256": "eb2a919c318c2008172a3d83cb4d5603ed86aeeca620cae2b66a400c7d71aeb8"
+}

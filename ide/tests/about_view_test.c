@@ -2,11 +2,13 @@
 #include "ui/editor_view.h"
 #include "services/program_version.h"
 #include "services/update_client.h"
+#include "services/ui_font.h"
 #include "platform/file_io.h"
 #include "platform/path.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 static int failed,started;
 #define CHECK(e) do { if(!(e)) { fprintf(stderr,"about_view_test:%d %s\n",__LINE__,#e); failed=1; goto cleanup; } } while(0)
 static int settle(xide_app* a)
@@ -16,11 +18,33 @@ static int click(xide_app* a,xui_widget w)
     xui_rect_t r=xuiWidgetGetWorldRect(w); float x=r.fX+r.fW/2,y=r.fY+r.fH/2;
     return xuiInputPointerMove(a->context,x,y,0)==XUI_OK && xuiInputPointerDown(a->context,x,y,XUI_POINTER_BUTTON_LEFT,XUI_POINTER_BUTTON_LEFT)==XUI_OK && xuiInputPointerUp(a->context,x,y,XUI_POINTER_BUTTON_LEFT,0)==XUI_OK && settle(a);
 }
+static int fitted(xide_app* a)
+{
+    xui_widget window=xideAboutViewWindow(a),scroll=xideDialogGetScrollViewWidget(window);
+    xui_scroll_model_t* model=xuiScrollViewGetModel(scroll); float dx=0,dy=0;
+    if(!model || xuiScrollModelGetMaxOffset(model,&dx,&dy)!=XUI_OK || dx>.01f || dy>.01f) return 0;
+    xui_widget frame=xuiScrollViewGetFrameWidget(scroll);
+    if(xuiWidgetGetVisible(xuiScrollFrameGetHScrollBarWidget(frame)) || xuiWidgetGetVisible(xuiScrollFrameGetVScrollBarWidget(frame))) return 0;
+    xui_widget content=xideDialogGetContentWidget(window);
+    xui_rect_t bounds=xuiWidgetGetWorldRect(xuiScrollViewGetViewportWidget(scroll));
+    float top=INFINITY,bottom=0;int count=0;
+    for(xui_widget w=xuiWidgetGetFirstChild(content);w;w=xuiWidgetGetNextSibling(w)) {
+        if(xuiWidgetGetType(w)==xuiButtonGetType(a->context)) return 0;
+        xui_rect_t r=xuiWidgetGetWorldRect(w);
+        if((r.fW<0 || r.fH<0) || r.fX<bounds.fX-1 || r.fY<bounds.fY-1 || r.fX+r.fW>bounds.fX+bounds.fW+1 || r.fY+r.fH>bounds.fY+bounds.fH+1) return 0;
+        const char* text=xuiWidgetGetType(w)==xuiLabelGetType(a->context) ? xuiLabelGetText(w) : xuiHyperlinkGetText(w);
+        xui_vec2_t measured={0};
+        if(xideDpiTextMeasure(&a->proxy,a->uiFont,text,&measured)!=XUI_OK || measured.fX>r.fW+1 || measured.fY>r.fH+1) return 0;
+        top=fminf(top,r.fY);bottom=fmaxf(bottom,r.fY+r.fH);++count;
+    }
+    return count==14 && fabsf((top-bounds.fY)-(bounds.fY+bounds.fH-bottom))<=2;
+}
 static int verify(void* user)
 {
     if(started) return XGE_OK;
     started=1; xide_app app={0}; char** argv=user; const char* root=argv[1];
     char* state=xidePathResolve(root,".xlang-update");char* receipt=xidePathResolve(root,".xlang-update/installed.json");
+    char* settings=xidePathResolve(root,"settings.json");
     CHECK(state && receipt && xideIoCreateDirectories(state));
     CHECK(!strcmp(xideProgramVersion(),argv[2]));
     CHECK(xideInstalledIterationAt(NULL)==0 && xideInstalledIterationAt(state)==0 && !xrtGetError());
@@ -35,30 +59,40 @@ static int verify(void* user)
     xrtSetErrorKind(XERR_IO); const xerror* previous=xrtGetError();CHECK(previous);
     CHECK(xideInstalledIterationAt(root)==42 && xrtGetError()==previous);xrtClearError();
     app.hidden=1;app.noSession=1;app.disableAutomaticDiagnostics=1;app.viewportWidth=1280;app.viewportHeight=800;
+    app.settingsPath=settings;
     CHECK(xideAppCreate(&app)==XUI_OK && settle(&app));
     const xide_action_info* action=xideActionNamed("help.about");CHECK(action && action->id==XIDE_ACTION_ABOUT);
     CHECK(xideActionExecute(&app,XIDE_ACTION_ABOUT)==XIDE_ACTION_DISPATCHED && settle(&app));
     CHECK(xideAboutViewIsOpen(&app) && xideActionsHasModal(&app));
     CHECK(xuiWidgetGetType(xideAboutViewWindow(&app))==xuiWindowGetType(app.context));
+    CHECK(fitted(&app));
     CHECK(!xideActionQuery(&app,XIDE_ACTION_NEW_FILE).enabled);
-    CHECK(click(&app,xideAboutViewCloseButton(&app)) && !xideActionsHasModal(&app));
+    CHECK(click(&app,xuiWindowGetCloseButtonWidget(xideAboutViewWindow(&app))) && !xideActionsHasModal(&app));
     CHECK(xideActionExecute(&app,XIDE_ACTION_ABOUT)==XIDE_ACTION_DISPATCHED && settle(&app));
-    CHECK(xuiGetFocusWidget(app.context)==xideAboutViewCloseButton(&app));
+    CHECK(xuiGetFocusWidget(app.context)==xideAboutViewLinkWidget(&app,0));
     CHECK(xuiInputKeyDown(app.context,XUI_KEY_ESCAPE,0)==XUI_OK && xuiInputKeyUp(app.context,XUI_KEY_ESCAPE,0)==XUI_OK && settle(&app));
     CHECK(!xideAboutViewIsOpen(&app) && xideActionQuery(&app,XIDE_ACTION_NEW_FILE).enabled);
     CHECK(xideActionExecute(&app,XIDE_ACTION_ABOUT)==XIDE_ACTION_DISPATCHED && settle(&app));
     CHECK(click(&app,xuiWindowGetCloseButtonWidget(xideAboutViewWindow(&app))) && !xideAboutViewIsOpen(&app));
     CHECK(xideActionExecute(&app,XIDE_ACTION_ABOUT)==XIDE_ACTION_DISPATCHED && settle(&app));
+    const int sizes[]={16,18,20,24};
+    for(size_t i=0;i<sizeof(sizes)/sizeof(*sizes);++i) {
+        char* font=strdup(app.uiFontPath);xide_model_error error={0};
+        int applied=xideUiFontApply(&app,font,sizes[i],&error);free(font);CHECK(applied && settle(&app) && fitted(&app));
+    }
+    { char* font=strdup(app.uiFontPath);xide_model_error error={0};int applied=xideUiFontApply(&app,font,18,&error);free(font);CHECK(applied); }
+    app.viewportWidth=640;app.viewportHeight=400;CHECK(settle(&app) && fitted(&app));
+    CHECK(xuiWindowSetMaximized(xideAboutViewWindow(&app),1)==XUI_OK && settle(&app) && fitted(&app));
+    CHECK(xuiWindowSetMaximized(xideAboutViewWindow(&app),0)==XUI_OK && settle(&app) && fitted(&app));
     app.viewportWidth=640;app.viewportHeight=480;CHECK(settle(&app));
     xui_rect_t r=xuiWidgetGetRect(xideAboutViewWindow(&app));CHECK(r.fW<=640 && r.fH<=480);
     xideUpdateApplyCheckResult(&app,4,0);CHECK(xideUpdateIsRequired(&app));
-    /* Small viewports can scroll the content; the title close stays visible. */
     CHECK(click(&app,xuiWindowGetCloseButtonWidget(xideAboutViewWindow(&app))) && !xideAboutViewIsOpen(&app));
     CHECK(xideUpdateIsRequired(&app) && xideActionsHasModal(&app) && !xideActionQuery(&app,XIDE_ACTION_ABOUT).enabled);
     xideUpdateApplyCheckResult(&app,0,0);CHECK(!xideActionsHasModal(&app));
-    puts("PASS native XUI about action, close/Escape/X, small-window bounds, modal cleanup, required-update gate and safe installed-iteration fallback");
+    puts("PASS compact centered about layout: no body buttons, zero scroll range, 16/18/20/24 fonts, 640x400 viewport, maximize/restore, Escape/X, modal cleanup and required-update gate");
 cleanup:
-    xideAppDestroy(&app);xgeSetQuitRequestCallback(NULL,NULL);free(state);free(receipt);xgeQuit();return XGE_OK;
+    xideAppDestroy(&app);xgeSetQuitRequestCallback(NULL,NULL);free(state);free(receipt);free(settings);xgeQuit();return XGE_OK;
 }
 int main(int argc,char** argv)
 {
