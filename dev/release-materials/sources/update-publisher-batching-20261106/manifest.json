@@ -1,0 +1,20 @@
+{
+  "files": [
+    {
+      "path": "ide/tools/update/update_manager.py",
+      "sha256": "f07c88899f744d3f639ddc27955fa15a576765e20d8e6b84496de8fb8f9d6831",
+      "bytes": 38108
+    },
+    {
+      "path": "ide/tools/update/README.md",
+      "sha256": "5ff9f8dcfe991055794077e1374b9958eee146d8012481d65adc816e00a8af3f",
+      "bytes": 14625
+    },
+    {
+      "path": "ide/tools/check_update_publish.py",
+      "sha256": "e9b2eb5e7621626102a1a257c662171450e50692d102afb3d70a6bd61fcd7083",
+      "bytes": 11234
+    }
+  ],
+  "archiveSha256": "d67ba980801df640a59f5c6beb7211608a13d7902c5e66174fb5561508b834bc"
+}
