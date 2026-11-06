@@ -74,6 +74,33 @@
       "abiChanged": false,
       "protocolExtension": "xrtownershipfinalizationv1",
       "descriptorBytes": 40
+    },
+    {
+      "commit": "e2a0b36d3092bf7eb667ba565fd2bd7f6e45af4f",
+      "kind": "Permit post-commit field assignment through the authenticated finalizer borrow",
+      "modules": [
+        "include/xrt/value.h",
+        "src/value/value_container.c"
+      ],
+      "abiChanged": false
+    },
+    {
+      "commit": "0e90f84f1a7155ed1c44b715f74bb9e1266baa4b",
+      "kind": "Add allocation-free scoped Array/Object read views",
+      "modules": [
+        "include/xrt/value.h",
+        "src/value/value_container.c"
+      ],
+      "abiChanged": false
+    },
+    {
+      "commit": "0a44e3f80091be178c802c231a37e4f2733fd9fb",
+      "kind": "Refresh versioned scoped view declarations",
+      "modules": [
+        "include/xrt/value.h",
+        "src/value/value_container.c"
+      ],
+      "abiChanged": false
     }
   ]
 }

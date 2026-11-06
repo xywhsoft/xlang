@@ -14,6 +14,8 @@ file|include/__xl_runtime/xl_foreign_error.h|%XL6_ROOT%/src/api/xl_foreign_error
 # The tracked TCC include directory owns the Win32/POSIX compatibility shims;
 # the directory entry above embeds them without depending on release outputs.
 
+file|include/xl_value_read.h|%XL6_ROOT%/release/include/xl_value_read.h
+file|include/xrt_decl.h|%XL6_ROOT%/release/include/xrt_decl.h
 file|include/xl_foreign_graph.h|%XL6_ROOT%\release\include\xl_foreign_graph.h
 file|include/xl_foreign_net.h|%XL6_ROOT%\release\include\xl_foreign_net.h
 file|include/xl_version.h|%XL6_ROOT%\release\include\xl_version.h

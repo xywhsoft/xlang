@@ -398,6 +398,25 @@ static int xl6IrCgenEmitXValueProjectionInstruction(
     operand = module->operands[instruction->firstOperand];
     result = xl6IrTypeGet(&module->types, instruction->type);
     if ( result == NULL ) return 0;
+    if (xl6IrInstructionIsNominalRetainProjection(module, instruction)) {
+        XL6_IrNominalIdentitySetId setId;
+        if (!xl6IrNominalIdentitySetGet(module, instruction->payloadType, &setId)) return 0;
+        /* This is a representation projection after semantic admission (e.g.
+         * a refined name or an admitted container slot), not an unchecked `as`.
+         * Keep its invariant trap, but admit every verified derived identity. */
+        if (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_XVALUE_RETAIN)
+            xl6OutputPrintf(out,
+                "    if (v%u == NULL) abort();\n"
+                "    if (xrtValueType(v%u) != 0 && !xl6ValueAdmitsNominalV1(v%u, &xlir_nominal_set_%u, false)) abort();\n",
+                (unsigned int)operand, (unsigned int)operand, (unsigned int)operand, (unsigned int)setId);
+        else xl6OutputPrintf(out,
+            "    if (!xl6ValueAdmitsNominalV1(v%u, &xlir_nominal_set_%u, false)) abort();\n",
+            (unsigned int)operand, (unsigned int)setId);
+        xl6OutputPrintf(out,
+            "    v%u = xrtValueRetain(v%u);\n    if (v%u == NULL) abort();\n",
+            (unsigned int)instruction->result, (unsigned int)operand, (unsigned int)instruction->result);
+        return !xl6OutputHasFailed(out);
+    }
     if ( instruction->runtimeOp ==
          XL6_IR_RUNTIME_XVALUE_PROJECT_TAGGED_NULLABLE_COPY ) {
         if ( result->cName[0] == '\0' ) return 0;

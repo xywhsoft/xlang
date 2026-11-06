@@ -7568,6 +7568,7 @@ XL6_IrDynamicCallResultAbi xl6IrDynamicCallExpectedResultAbi(
 XL6_IrTypeId xl6IrDynamicCallValueType(const XL6_IrModule*,const XL6_IrDynamicCallSite*);
 int xl6IrDynamicProductType(const XL6_IrModule*,XL6_IrTypeId);
 int xl6IrNodeHasFallibleMemberWrite(const XL6_IrModule* module, XL6_IrNodeId nodeId);
+int xl6IrInstructionIsNominalRetainProjection(const XL6_IrModule* module, const XL6_IrInstruction* instruction);
 int xl6IrInstructionIsFallibleProjection(const XL6_IrModule* module, const XL6_IrInstruction* instruction);
 int xl6IrNodeRequiresThrowExitPlan(
     const XL6_IrModule* module, XL6_IrNodeId nodeId);
