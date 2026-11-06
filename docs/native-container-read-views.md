@@ -46,6 +46,18 @@ the old XRT ObjectAt API did. Find uses the container's key lookup.
 `xlValueBorrowCopyV1` explicitly creates an owning result when it must outlive
 the input scope; this may allocate/copy a native leaf. Clipboard UTF-16 and
 COM BSTR conversions remain required by the corresponding Windows APIs.
+In particular, CLI defaults copied from native string slots into the returned
+XRT result require a string copy; wire xvalue defaults can retain their existing
+owner. The read path itself does neither. Sharing that native string ownership
+with a returned XRT scalar is a separate capability, not provided by this API.
+
+Standalone C tests/examples use `_common/xl_value_read_wire.h` with
+`XL_VALUE_READ_WIRE_ONLY`; exactly one translation unit defines
+`XL_VALUE_READ_WIRE_IMPLEMENTATION`. This compile-time provider uses only XRT
+wire Array/Object values, rejects native handles, and renames its services so
+it cannot replace the resident native-container implementation. It preserves
+ordinary C builds without introducing a second XRT instance or a dependency
+on the language DLL. Language package manifests never enable this profile.
 
 Source packages must declare the functions they call in
 `artifact.runtimeSymbols`, for example:
