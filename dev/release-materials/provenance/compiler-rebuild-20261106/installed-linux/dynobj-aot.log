@@ -1,0 +1,81 @@
+=== dynobj: extends object dynamic field suite ===
+(inherit / dot / index / mixed / protocol / traversal / var)
+
+[basic]   extends object inherit + static fields
+  [PASS] static a.id == 1
+  [PASS] static a.name == 'hero'
+  [PASS] DynRecord default ctor + dynamic field
+[field.]  dynamic field via dot (a.score = ...)
+  [PASS] a.score == 100 (dot dynamic)
+  [PASS] a.score overwrite == 250
+  [PASS] a.title == 'archmage'
+  [PASS] DynRecord.kind == 'log'
+[field[]] dynamic field via index (a["level"] = ...)
+  [PASS] a[level] == 5 (index dynamic)
+  [PASS] a[tag] == 'scout'
+  [PASS] a.shared (dot reads index-written) == 7
+  [PASS] a[shared] (index reads dot-written) == 8
+[mixed]   static + dynamic field coexistence
+  [PASS] mixed: static a.id preserved
+  [PASS] mixed: static a.name preserved
+  [PASS] mixed: dynamic a.hp == 120
+  [PASS] mixed: dynamic a.mp == 30
+  [PASS] mixed: dynamic a[score] == 99
+[proto]   __field__/__setField__ on plain FieldHost
+  [PASS] h.doubled (computed) == 100
+  [PASS] h.label (computed) == 'host-50'
+  [PASS] h.custom set/get via protocol == 7
+  [PASS] h.note set/get via protocol
+  [PASS] h.nonexistent returns null
+[proto]   __field__/__setField__ on FieldHostTyped (typed field + protocol)
+  [PASS] t.computed (core+1000) == 1042
+  [PASS] t.label == 'typed-42'
+  [PASS] t.core static preserved
+  [PASS] t.extra set/get via protocol == 9
+  [PASS] t.unknown returns null
+[traverse] dynamic fields enumerated via json roundtrip
+  [PASS] json text contains 'score'
+  [PASS] json text contains 'level'
+  [PASS] json text contains 'title'
+  [PASS] traverse: dynamic score == 100
+  [PASS] traverse: dynamic level == 5
+  [PASS] traverse: dynamic title == 'knight'
+  [PASS] traverse: static id == 7
+  [PASS] traverse: static name == 'hero'
+  [PASS] traverse: found static id
+  [PASS] traverse: found static name
+  [PASS] traverse: found dynamic score
+  [PASS] traverse: found dynamic level
+  [PASS] traverse: found dynamic title
+  [PASS] traverse: dynamic field count == 3
+[var]     dynamic fields through var boxing
+  [PASS] var boxed.id (static dot) == 7
+  [PASS] var boxed.name (static dot) == 'hero'
+  [PASS] var boxed[id] follows dynamic item protocol
+  [PASS] var boxed.score (dynamic dot) == 42
+  [PASS] var boxed[level] (dynamic index) == 3
+  [PASS] var boxed.boost set/get (dot write)
+  [PASS] var boxed[rank] set/get (index write)
+  [PASS] a.boost visible after var dot write (ref)
+[types]   dynamic fields carrying int/float/string/bool/null/container
+  [PASS] dynamic int field
+  [PASS] dynamic float field
+  [PASS] dynamic string field
+  [PASS] dynamic bool field == true
+  [PASS] dynamic null field
+  [PASS] dynamic array element [0] == 1
+  [PASS] dynamic array element [2] == 3
+  [PASS] dynamic dict element [k] == 'v'
+[prec]    static field name precedence over dynamic dict
+  [PASS] static a.id updated (not dynamic) == 99
+  [PASS] static a.name updated == 'changed'
+  [PASS] dynamic a.extra still works == 7
+  [PASS] static a.id unaffected by dynamic write
+[json]    roundtrip restore of dynamic fields
+  [PASS] restored static id == 11
+  [PASS] restored static name == 'src'
+  [PASS] restored dynamic score == 77
+  [PASS] restored dynamic rank == 3
+  [PASS] restored dynamic title == 'boss'
+
+total passed=65 failed=0

@@ -1,0 +1,1096 @@
+{
+  "schema": 1,
+  "date": "2026-11-06",
+  "passed": true,
+  "scope": "Specified example failures, bounded native C header descriptors, compiler rebuild and installed regression checks; no whole-project certification.",
+  "sourceRevision": "5db37c83898fb6f834753d80ec57c6ccc2daf9d6",
+  "productRevision": "6c8c0fbd017a61d89d5b81c836db67f712a422cb",
+  "sourceMaterials": {
+    "path": "dev/release-materials/sources/compiler-rebuild-20261106/manifest.json",
+    "sha256": "73380d8c173e02ba9298e03019bd07a5e9f02435791a8d2bbd075b2da1373042",
+    "bytes": 1790
+  },
+  "parentBuildProvenance": {
+    "path": "dev/release-materials/provenance/native-linkage-default-20261106/receipt.json",
+    "sha256": "6649a600e4f421ab96d2f1036f3f5c65ba08cd0636150d814a5678b73025470c",
+    "bytes": 7739
+  },
+  "changes": [
+    "Native C header admission grows from 512 to 1024 while existing per-header, aggregate, operation and output byte limits remain enforced.",
+    "IDE optional C-LSP accepts 1024 headers and reserves 1280 file leases for headers plus two metadata files per each of 128 projects.",
+    "Generated Windows compiler exports now include xlcSetNativeLinkage in xlc.def."
+  ],
+  "compiler": {
+    "version": "0.6.0",
+    "optimization": "-O2",
+    "windows": {
+      "recompiledGccUnits": 4,
+      "reusedVerifiedGccUnits": 2625,
+      "verifiedCommonUnits": 105,
+      "rebuiltSerializedApiObjects": 4,
+      "inheritedSerializedObjects": 1563,
+      "regeneratedNestedCatalog": true,
+      "bothDllsRelinked": true,
+      "cliRecompiled": true,
+      "cliBytesIdenticalToPreviousQualifiedCli": true
+    },
+    "linux": {
+      "fullProductionBuild": true,
+      "embeddedObjects": 1565,
+      "regeneratedNestedCatalog": true
+    }
+  },
+  "validation": {
+    "installedWindowsSteps": 55,
+    "installedLinuxSteps": 48,
+    "windowsCEnvironmentResponses": 12,
+    "windowsExactHeaderComparisons": 5697,
+    "linuxCEnvironmentResponses": 3,
+    "linuxExactHeaderComparisons": 1605,
+    "declarationMapCommands": 17,
+    "declarationMapResponses": 12,
+    "nativeLinkageStepsPerPlatform": 33,
+    "syntheticBudget": {
+      "headers": 1024,
+      "projects": 128,
+      "fileLeases": 1280,
+      "overflowRejected": true
+    },
+    "redis": "Private authenticated disposable server, JIT and AOT on both platforms; no external user DB contacted.",
+    "serial": "LOOPBACK",
+    "clipboard": "Private Windows window station",
+    "installedProductsMatchQualifiedCandidates": true
+  },
+  "products": [
+    {
+      "path": "release/win_x64/xl.exe",
+      "sha256": "a5feede784f0a5cb1a829c2e362de57e9278b55cec1a11b796cf4b6e78831bbc",
+      "bytes": 72704
+    },
+    {
+      "path": "release/win_x64/xl.dll",
+      "sha256": "ae1fe2778e9aa7e4de407c89ba4a8e05bcd248d32226806e7957a0b6acf6b394",
+      "bytes": 15182848
+    },
+    {
+      "path": "release/win_x64/xlc.dll",
+      "sha256": "6b1e8d18a28791778c7c159bac431231a90ee18b695ad54cc8a8d11ed1b2d32f",
+      "bytes": 21294080
+    },
+    {
+      "path": "release/linux_x64/xl",
+      "sha256": "faa25e49bdf8c5ce8ccdb084810075b406cc6dd499a59577664616eb2a08265b",
+      "bytes": 47224
+    },
+    {
+      "path": "release/linux_x64/libxl.so",
+      "sha256": "0b78c4942de4015190460aa0c4ef13a8e12fb3ecee16661e0df28bf646a9d2a3",
+      "bytes": 16448016
+    },
+    {
+      "path": "release/linux_x64/libxlc.so",
+      "sha256": "72ecb9983e40475a04f29f47d40f5ac20143d2f03c646a8c3b487d61bdd0e7a1",
+      "bytes": 22436624
+    }
+  ],
+  "previousDelivery": {
+    "path": "dev/release-materials/provenance/compiler-rebuild-20261106/previous-delivery.json",
+    "sha256": "9145467529342ba5c058cfc5f4fed015db119978ebc635d188e3f5b4c5542c5d",
+    "bytes": 172210
+  },
+  "preservation": {
+    "unrelatedWorkAndStaging": true,
+    "oldFlatReleaseDeletions": true,
+    "historicalReportsUnmodified": true,
+    "nativeLinkageFeatureRetained": true,
+    "guiRebuilt": false,
+    "cLspEnabled": false,
+    "externalPublication": false
+  },
+  "limits": [
+    "These results cover the specified examples and related interop boundaries, not the complete project test matrix.",
+    "The C-LSP consumer source and enabled-path helper fixture were updated. The shipped GUI keeps its qualified C-LSP-disabled configuration."
+  ],
+  "evidence": [
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/c-bridge-environment.json",
+      "sha256": "4e376854d1cc6d69a28c265d6a8987109a6403f88879c395b71df8e5cf95bbbe",
+      "bytes": 2821
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/c-bridge-map.json",
+      "sha256": "ae4fa321c19469cb35722338c9e2204cbd546791c6464b9844e7135d794ce1d3",
+      "bytes": 3752
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installation.json",
+      "sha256": "35cdc37a56587e4acf0e95bbee1ccdfed1082facf49267fd141521e74c7cd272",
+      "bytes": 2466
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/cgen_class_projection_derived-aot.log",
+      "sha256": "ec9309d7e8c6fa556b06583a33a2dda4342fc448ba46c92dfb056fa5e57577fb",
+      "bytes": 44
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/cgen_class_projection_derived-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/cgen_class_projection_derived-jit.log",
+      "sha256": "ec9309d7e8c6fa556b06583a33a2dda4342fc448ba46c92dfb056fa5e57577fb",
+      "bytes": 44
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/cgen_destroy_field_assignment-aot.log",
+      "sha256": "97f2183efcbbaaf6d0d698e29f06d6aced0c3b650d2d8217fd85919fd3bf15ec",
+      "bytes": 38
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/cgen_destroy_field_assignment-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/cgen_destroy_field_assignment-jit.log",
+      "sha256": "97f2183efcbbaaf6d0d698e29f06d6aced0c3b650d2d8217fd85919fd3bf15ec",
+      "bytes": 38
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/cgen_foreign_read_views-aot.log",
+      "sha256": "5ced9c2bbba02c741bdee7d3e8882c539e7b151aeb879acffd82f61b79cd894a",
+      "bytes": 39
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/cgen_foreign_read_views-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/cgen_foreign_read_views-jit.log",
+      "sha256": "5ced9c2bbba02c741bdee7d3e8882c539e7b151aeb879acffd82f61b79cd894a",
+      "bytes": 39
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/class_c_export-aot.log",
+      "sha256": "36b74163512b786b62b652daa212110f70b319b25fbd3d9fc792f4c94304c403",
+      "bytes": 18
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/class_c_export-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/class_c_export-jit.log",
+      "sha256": "36b74163512b786b62b652daa212110f70b319b25fbd3d9fc792f4c94304c403",
+      "bytes": 18
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/cli-aot.log",
+      "sha256": "716bbffab9a10dd8d652c55cf60bcff056f23a4f805b40ff0aac121355ecea5d",
+      "bytes": 379
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/cli-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/cli-jit.log",
+      "sha256": "716bbffab9a10dd8d652c55cf60bcff056f23a4f805b40ff0aac121355ecea5d",
+      "bytes": 379
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/concurrency-aot.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/concurrency-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/concurrency-jit.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/copy_clone-aot.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/copy_clone-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/copy_clone-jit.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/deepclone-aot.log",
+      "sha256": "04b374c454b6676caf2e35e781ab9d50397d27badb856cd44b66e1757b3c0ad8",
+      "bytes": 4319
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/deepclone-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/deepclone-jit.log",
+      "sha256": "04b374c454b6676caf2e35e781ab9d50397d27badb856cd44b66e1757b3c0ad8",
+      "bytes": 4319
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/dynobj-aot.log",
+      "sha256": "51660d27a49698d050cb7454b905e2442c2768666794826e4c0c674bd70eef45",
+      "bytes": 3264
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/dynobj-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/dynobj-jit.log",
+      "sha256": "51660d27a49698d050cb7454b905e2442c2768666794826e4c0c674bd70eef45",
+      "bytes": 3264
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/fs-aot.log",
+      "sha256": "f09638fc458d9b80ad7f2072145cec80f1a6ebc2bc177b5f7ea4a1b10c97d21e",
+      "bytes": 31
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/fs-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/fs-jit.log",
+      "sha256": "f09638fc458d9b80ad7f2072145cec80f1a6ebc2bc177b5f7ea4a1b10c97d21e",
+      "bytes": 31
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/prodcon-aot.log",
+      "sha256": "e65862c23cd5941345b5bc96ea45802180a77768c5da4285e244fd2ef6a31136",
+      "bytes": 528
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/prodcon-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/prodcon-jit.log",
+      "sha256": "f1123181c8c966aa9e7136c7590babbed3af2d1e00d3f674d73c3acb2c3a498e",
+      "bytes": 528
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/results.json",
+      "sha256": "adb27981a14d8b9600a44f2c5fb9f129cbb3e341d5eda9c4b6162e1bae1a2488",
+      "bytes": 21760
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/serial-aot.log",
+      "sha256": "665b18408c18fdfe951bb1f606ce041d194ce175dbc0e167249bca00267d6eaa",
+      "bytes": 200
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/serial-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/serial-jit.log",
+      "sha256": "665b18408c18fdfe951bb1f606ce041d194ce175dbc0e167249bca00267d6eaa",
+      "bytes": 200
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/shapes-aot.log",
+      "sha256": "58cdd272f1a7122d3edd57953b17e3407104004188004ce6d3d4d44451cf9cd0",
+      "bytes": 3083
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/shapes-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/shapes-jit.log",
+      "sha256": "58cdd272f1a7122d3edd57953b17e3407104004188004ce6d3d4d44451cf9cd0",
+      "bytes": 3083
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/stdlib_channel_default_initialized-aot.log",
+      "sha256": "925eb35f1477e4e8871ad6156dba5cd2adfd808b6d4f5ad71f7ea10b54515597",
+      "bytes": 33
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/stdlib_channel_default_initialized-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/stdlib_channel_default_initialized-jit.log",
+      "sha256": "925eb35f1477e4e8871ad6156dba5cd2adfd808b6d4f5ad71f7ea10b54515597",
+      "bytes": 33
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/stdlib_object_index_context-aot.log",
+      "sha256": "1985c5a5b67a7892d41172b8a3b43c705280777ef33954cf475cc5a02062b370",
+      "bytes": 28
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/stdlib_object_index_context-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/stdlib_object_index_context-jit.log",
+      "sha256": "1985c5a5b67a7892d41172b8a3b43c705280777ef33954cf475cc5a02062b370",
+      "bytes": 28
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/xneural-aot.log",
+      "sha256": "e5749ac417edd01dab56d3e7c9e43e6cc6fd414ab7758694695600c5ed75abf9",
+      "bytes": 1364
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/xneural-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-linux/xneural-jit.log",
+      "sha256": "e5749ac417edd01dab56d3e7c9e43e6cc6fd414ab7758694695600c5ed75abf9",
+      "bytes": 1364
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-products.json",
+      "sha256": "8b221ac41c3ac58d969591ef56a69ccf2b1e0bab9cbc70d1378b9281b86d1c9b",
+      "bytes": 989
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/cgen_class_projection_derived-aot.log",
+      "sha256": "ec9309d7e8c6fa556b06583a33a2dda4342fc448ba46c92dfb056fa5e57577fb",
+      "bytes": 44
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/cgen_class_projection_derived-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/cgen_class_projection_derived-jit.log",
+      "sha256": "ec9309d7e8c6fa556b06583a33a2dda4342fc448ba46c92dfb056fa5e57577fb",
+      "bytes": 44
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/cgen_destroy_field_assignment-aot.log",
+      "sha256": "97f2183efcbbaaf6d0d698e29f06d6aced0c3b650d2d8217fd85919fd3bf15ec",
+      "bytes": 38
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/cgen_destroy_field_assignment-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/cgen_destroy_field_assignment-jit.log",
+      "sha256": "97f2183efcbbaaf6d0d698e29f06d6aced0c3b650d2d8217fd85919fd3bf15ec",
+      "bytes": 38
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/cgen_foreign_read_views-aot.log",
+      "sha256": "5ced9c2bbba02c741bdee7d3e8882c539e7b151aeb879acffd82f61b79cd894a",
+      "bytes": 39
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/cgen_foreign_read_views-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/cgen_foreign_read_views-jit.log",
+      "sha256": "5ced9c2bbba02c741bdee7d3e8882c539e7b151aeb879acffd82f61b79cd894a",
+      "bytes": 39
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/class_c_export-aot.log",
+      "sha256": "36b74163512b786b62b652daa212110f70b319b25fbd3d9fc792f4c94304c403",
+      "bytes": 18
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/class_c_export-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/class_c_export-jit.log",
+      "sha256": "36b74163512b786b62b652daa212110f70b319b25fbd3d9fc792f4c94304c403",
+      "bytes": 18
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/cli-aot.log",
+      "sha256": "716bbffab9a10dd8d652c55cf60bcff056f23a4f805b40ff0aac121355ecea5d",
+      "bytes": 379
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/cli-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/cli-jit.log",
+      "sha256": "716bbffab9a10dd8d652c55cf60bcff056f23a4f805b40ff0aac121355ecea5d",
+      "bytes": 379
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/clipboard-aot.log",
+      "sha256": "18ae16840885bd8b0fb1b58cbf52bcaf6a178264d9de8b405b5c53384a39fb5d",
+      "bytes": 32
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/clipboard-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/clipboard-jit.log",
+      "sha256": "18ae16840885bd8b0fb1b58cbf52bcaf6a178264d9de8b405b5c53384a39fb5d",
+      "bytes": 32
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/clipboard-runner-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/com-aot.log",
+      "sha256": "ace04a4bead4d8000f8f6ecda56230649f36170f0bff36b8e5dbcb136d8ffacc",
+      "bytes": 14
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/com-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/com-jit.log",
+      "sha256": "ace04a4bead4d8000f8f6ecda56230649f36170f0bff36b8e5dbcb136d8ffacc",
+      "bytes": 14
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/concurrency-aot.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/concurrency-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/concurrency-jit.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/copy_clone-aot.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/copy_clone-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/copy_clone-jit.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/deepclone-aot.log",
+      "sha256": "04b374c454b6676caf2e35e781ab9d50397d27badb856cd44b66e1757b3c0ad8",
+      "bytes": 4319
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/deepclone-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/deepclone-jit.log",
+      "sha256": "04b374c454b6676caf2e35e781ab9d50397d27badb856cd44b66e1757b3c0ad8",
+      "bytes": 4319
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/dynobj-aot.log",
+      "sha256": "51660d27a49698d050cb7454b905e2442c2768666794826e4c0c674bd70eef45",
+      "bytes": 3264
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/dynobj-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/dynobj-jit.log",
+      "sha256": "51660d27a49698d050cb7454b905e2442c2768666794826e4c0c674bd70eef45",
+      "bytes": 3264
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/fs-aot.log",
+      "sha256": "f09638fc458d9b80ad7f2072145cec80f1a6ebc2bc177b5f7ea4a1b10c97d21e",
+      "bytes": 31
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/fs-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/fs-jit.log",
+      "sha256": "f09638fc458d9b80ad7f2072145cec80f1a6ebc2bc177b5f7ea4a1b10c97d21e",
+      "bytes": 31
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/prodcon-aot.log",
+      "sha256": "1324ddb59a70de8f85027ba283ffdd5ea7ac9fb8bc53e37f02ce77fb93a674ce",
+      "bytes": 528
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/prodcon-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/prodcon-jit.log",
+      "sha256": "a82be06338aad570241a2f49848cf6124ba2b283cc835e4cfda727d8ee55286c",
+      "bytes": 528
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/results.json",
+      "sha256": "34f94d9a43de59053093b56e56fe4a6264454715ff150ed956b16120ece52e9d",
+      "bytes": 26333
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/serial-aot.log",
+      "sha256": "665b18408c18fdfe951bb1f606ce041d194ce175dbc0e167249bca00267d6eaa",
+      "bytes": 200
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/serial-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/serial-jit.log",
+      "sha256": "665b18408c18fdfe951bb1f606ce041d194ce175dbc0e167249bca00267d6eaa",
+      "bytes": 200
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/shapes-aot.log",
+      "sha256": "58cdd272f1a7122d3edd57953b17e3407104004188004ce6d3d4d44451cf9cd0",
+      "bytes": 3083
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/shapes-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/shapes-jit.log",
+      "sha256": "58cdd272f1a7122d3edd57953b17e3407104004188004ce6d3d4d44451cf9cd0",
+      "bytes": 3083
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/stdlib_channel_default_initialized-aot.log",
+      "sha256": "925eb35f1477e4e8871ad6156dba5cd2adfd808b6d4f5ad71f7ea10b54515597",
+      "bytes": 33
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/stdlib_channel_default_initialized-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/stdlib_channel_default_initialized-jit.log",
+      "sha256": "925eb35f1477e4e8871ad6156dba5cd2adfd808b6d4f5ad71f7ea10b54515597",
+      "bytes": 33
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/stdlib_object_index_context-aot.log",
+      "sha256": "1985c5a5b67a7892d41172b8a3b43c705280777ef33954cf475cc5a02062b370",
+      "bytes": 28
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/stdlib_object_index_context-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/stdlib_object_index_context-jit.log",
+      "sha256": "1985c5a5b67a7892d41172b8a3b43c705280777ef33954cf475cc5a02062b370",
+      "bytes": 28
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/xneural-aot.log",
+      "sha256": "e5749ac417edd01dab56d3e7c9e43e6cc6fd414ab7758694695600c5ed75abf9",
+      "bytes": 1364
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/xneural-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/installed-windows/xneural-jit.log",
+      "sha256": "e5749ac417edd01dab56d3e7c9e43e6cc6fd414ab7758694695600c5ed75abf9",
+      "bytes": 1364
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-build.log",
+      "sha256": "30db4ce0bc4a46deb04506d41aba1d869b4b91ec1a737eb35c846a86b5e1dc2c",
+      "bytes": 159
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-cli-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-header-budget-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-header-budget-run.log",
+      "sha256": "a268bb5d6d2f03591579b2272803f74fdcde6d95c29f4acd9446af6dea00e64c",
+      "bytes": 65
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-header-budget.json",
+      "sha256": "cb0527249b8e5d40a60e787c412886ddf5bf13c3df281e91f216e28bcb7c6fa8",
+      "bytes": 389
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-build.log",
+      "sha256": "7959ef35b16b8832415a7c6d72f69139903a0fd19b3ccdf6d3295a03499ea7ab",
+      "bytes": 15091
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-linkage/absolute-variant.log",
+      "sha256": "8c9849cde07e40400950130779159b503ce108ca6aaf9f5c09af10def74a2c37",
+      "bytes": 162
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-linkage/aot-auto-execute.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-linkage/aot-auto.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-linkage/aot-dynamic-execute.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-linkage/aot-dynamic.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-linkage/aot-static-execute.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-linkage/aot-static.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-linkage/auto-no-alternative-execute.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-linkage/auto-no-alternative.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-linkage/context-24.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-linkage/context-25.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-linkage/context-26.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-linkage/context-27.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-linkage/dependency-mismatch.log",
+      "sha256": "e7aa43ed91c884b6467f377d4a680814fcac9b228883ae6620a5cc32f1b7ebdd",
+      "bytes": 188
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-linkage/duplicate-mode.log",
+      "sha256": "185547d68acdb056cf13122ee366577064c3d924ad82a2d2f2af1cda225099a1",
+      "bytes": 63
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-linkage/explicit-unavailable.log",
+      "sha256": "3919eb8c11c076e863cc0a719bb5a5b994dc754be7688d910d200f97760aa5a0",
+      "bytes": 143
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-linkage/identity-mismatch.log",
+      "sha256": "e7aa43ed91c884b6467f377d4a680814fcac9b228883ae6620a5cc32f1b7ebdd",
+      "bytes": 188
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-linkage/invalid-mode.log",
+      "sha256": "185547d68acdb056cf13122ee366577064c3d924ad82a2d2f2af1cda225099a1",
+      "bytes": 63
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-linkage/jit-auto.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-linkage/jit-static.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-linkage/language-mismatch.log",
+      "sha256": "e7aa43ed91c884b6467f377d4a680814fcac9b228883ae6620a5cc32f1b7ebdd",
+      "bytes": 188
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-linkage/legacy-auto-execute.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-linkage/legacy-auto.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-linkage/legacy-explicit-execute.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-linkage/legacy-explicit.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-linkage/linkage-mismatch.log",
+      "sha256": "e7aa43ed91c884b6467f377d4a680814fcac9b228883ae6620a5cc32f1b7ebdd",
+      "bytes": 188
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-linkage/missing-artifact.log",
+      "sha256": "ecabe540974f2926c7e9ff811f7a8dc3b4c7c63d96241de6719066684ed8c247",
+      "bytes": 163
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-linkage/missing-mode.log",
+      "sha256": "185547d68acdb056cf13122ee366577064c3d924ad82a2d2f2af1cda225099a1",
+      "bytes": 63
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-linkage/project-dynamic-execute.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-linkage/project-dynamic.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-linkage/project-override-execute.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-linkage/project-override.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-linkage/results.json",
+      "sha256": "28549b5c1b55eae7c4fba1f471d7f48462993e48e49b9e9eefedd2e952b05b8f",
+      "bytes": 4482
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-redis/aot.log",
+      "sha256": "51cd3b8dbf74974d8ecfb4404964406d22f36f7ba739bf050e4a1879207f355b",
+      "bytes": 60
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-redis/build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-redis/example.log",
+      "sha256": "51cd3b8dbf74974d8ecfb4404964406d22f36f7ba739bf050e4a1879207f355b",
+      "bytes": 60
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-redis/redis.log",
+      "sha256": "f810000e49e12b7f9ec5ccbd2a2c65a7e5ca8e85b396fb4b01db9a1f901c8a0c",
+      "bytes": 1082
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-redis/report.json",
+      "sha256": "90550ff8ba8e1824fc62309fccb35aa84867ce018e8e1975520ecc432ca9578b",
+      "bytes": 254
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-linux-toolchain.txt",
+      "sha256": "3c0c670ea50b89a0999fe44bc3d08519a9770e144c9e7177f9d7e9cfe092e66b",
+      "bytes": 526
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-resource-runtime.log",
+      "sha256": "f134a3e6e6668f80670927a1f83fd73597a575dfad1b8f08269eadaf0e5f4362",
+      "bytes": 79
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-resource-xlc.log",
+      "sha256": "b45dfbd712d5026e15192c0ae2879a27cb1bd4b03df2fc3d4ab8336ec25b0a5e",
+      "bytes": 81
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-win-linkage/absolute-variant.log",
+      "sha256": "43d003d75008cad038a9933a0e083f04d24d93ecee629c2caad70fe9c74cfbaf",
+      "bytes": 156
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-win-linkage/aot-auto-execute.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-win-linkage/aot-auto.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-win-linkage/aot-dynamic-execute.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-win-linkage/aot-dynamic.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-win-linkage/aot-static-execute.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-win-linkage/aot-static.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-win-linkage/auto-no-alternative-execute.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-win-linkage/auto-no-alternative.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-win-linkage/context-24.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-win-linkage/context-25.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-win-linkage/context-26.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-win-linkage/context-27.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-win-linkage/dependency-mismatch.log",
+      "sha256": "c9eec09934f5e0c941c8a9ef4bf7e98e37dea935f7454916de20a2106bd439e4",
+      "bytes": 182
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-win-linkage/duplicate-mode.log",
+      "sha256": "185547d68acdb056cf13122ee366577064c3d924ad82a2d2f2af1cda225099a1",
+      "bytes": 63
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-win-linkage/explicit-unavailable.log",
+      "sha256": "49470720e1ca4e88fa8d9ca36114a3e0d5d182e891960eceb53d041965f4bd67",
+      "bytes": 137
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-win-linkage/identity-mismatch.log",
+      "sha256": "c9eec09934f5e0c941c8a9ef4bf7e98e37dea935f7454916de20a2106bd439e4",
+      "bytes": 182
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-win-linkage/invalid-mode.log",
+      "sha256": "185547d68acdb056cf13122ee366577064c3d924ad82a2d2f2af1cda225099a1",
+      "bytes": 63
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-win-linkage/jit-auto.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-win-linkage/jit-static.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-win-linkage/language-mismatch.log",
+      "sha256": "c9eec09934f5e0c941c8a9ef4bf7e98e37dea935f7454916de20a2106bd439e4",
+      "bytes": 182
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-win-linkage/legacy-auto-execute.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-win-linkage/legacy-auto.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-win-linkage/legacy-explicit-execute.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-win-linkage/legacy-explicit.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-win-linkage/linkage-mismatch.log",
+      "sha256": "c9eec09934f5e0c941c8a9ef4bf7e98e37dea935f7454916de20a2106bd439e4",
+      "bytes": 182
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-win-linkage/missing-artifact.log",
+      "sha256": "0a0276dc0ef5149a905f0d567ae6eba30ef5966a5674e9cfe8848dfec831dbb8",
+      "bytes": 157
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-win-linkage/missing-mode.log",
+      "sha256": "185547d68acdb056cf13122ee366577064c3d924ad82a2d2f2af1cda225099a1",
+      "bytes": 63
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-win-linkage/project-dynamic-execute.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-win-linkage/project-dynamic.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-win-linkage/project-override-execute.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-win-linkage/project-override.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-win-linkage/results.json",
+      "sha256": "c3e1d25d7b12792b6738940f17fa49b73f700dc0be96cdebf523d0d7bbfbff0f",
+      "bytes": 4698
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-windows-redis/aot.log",
+      "sha256": "51cd3b8dbf74974d8ecfb4404964406d22f36f7ba739bf050e4a1879207f355b",
+      "bytes": 60
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-windows-redis/build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-windows-redis/example.log",
+      "sha256": "51cd3b8dbf74974d8ecfb4404964406d22f36f7ba739bf050e4a1879207f355b",
+      "bytes": 60
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-windows-redis/redis.log",
+      "sha256": "6ea2c65e718326558058785f14eff8dcefa0a0a61926a2975f0db138194f96c3",
+      "bytes": 1104
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/latest-windows-redis/report.json",
+      "sha256": "3aeaa3812ee18e5730f054bb8ca3345bf16f4174463a2f2faef20728e877dad1",
+      "bytes": 294
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/linux-c-environment.json",
+      "sha256": "843d8a37e2362d24a2e2ee4949b649555229f6d399791e73a6132f89331e4bdd",
+      "bytes": 1306
+    },
+    {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/previous-delivery.json",
+      "sha256": "9145467529342ba5c058cfc5f4fed015db119978ebc635d188e3f5b4c5542c5d",
+      "bytes": 172210
+    }
+  ]
+}

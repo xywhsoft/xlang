@@ -1,0 +1,177 @@
+{
+  "status": "passed",
+  "startedUtc": "2026-11-06T14:07:12.019876+00:00",
+  "finishedUtc": "2026-11-06T14:10:07.396771+00:00",
+  "compiler": "D:\\GIT\\x-lang\\build\\compiler-rebuild-20261106\\latest-source\\release\\win_x64\\xl.exe",
+  "commands": 17,
+  "validated": [
+    {
+      "name": "disk-identity",
+      "records": 1,
+      "selections": [
+        "计算"
+      ]
+    },
+    {
+      "name": "draft-identity",
+      "records": 1,
+      "selections": [
+        "草稿"
+      ]
+    },
+    {
+      "name": "virtual-target",
+      "records": 1,
+      "selections": [
+        "草稿"
+      ]
+    },
+    {
+      "name": "recursive-disk",
+      "records": 2,
+      "selections": [
+        "answer",
+        "call"
+      ]
+    },
+    {
+      "name": "recursive-draft",
+      "records": 2,
+      "selections": [
+        "answer",
+        "call"
+      ]
+    },
+    {
+      "name": "global-bindings",
+      "records": 3,
+      "selections": [
+        "counter",
+        "version",
+        "read"
+      ]
+    },
+    {
+      "name": "overloaded-identities",
+      "records": 2,
+      "selections": [
+        "add",
+        "add"
+      ]
+    },
+    {
+      "name": "extern-prototype-bindings",
+      "records": 2,
+      "selections": [
+        "nativeEcho",
+        "forward"
+      ]
+    },
+    {
+      "name": "extern-draft-bindings",
+      "records": 2,
+      "selections": [
+        "draftEcho",
+        "draftForward"
+      ]
+    },
+    {
+      "name": "no-public-bindings",
+      "records": 0,
+      "selections": []
+    },
+    {
+      "name": "recovery",
+      "records": 1,
+      "selections": [
+        "计算"
+      ]
+    },
+    {
+      "name": "environment-map",
+      "records": 1,
+      "selections": [
+        "计算"
+      ]
+    }
+  ],
+  "results": [
+    {
+      "name": "disk-identity",
+      "exitCode": 0
+    },
+    {
+      "name": "ordinary-header",
+      "exitCode": 0
+    },
+    {
+      "name": "draft-identity",
+      "exitCode": 0
+    },
+    {
+      "name": "virtual-target",
+      "exitCode": 0
+    },
+    {
+      "name": "recursive-disk",
+      "exitCode": 0
+    },
+    {
+      "name": "recursive-draft",
+      "exitCode": 0
+    },
+    {
+      "name": "global-bindings",
+      "exitCode": 0
+    },
+    {
+      "name": "overloaded-identities",
+      "exitCode": 0
+    },
+    {
+      "name": "extern-prototype-bindings",
+      "exitCode": 0
+    },
+    {
+      "name": "extern-ordinary-header",
+      "exitCode": 0
+    },
+    {
+      "name": "extern-draft-bindings",
+      "exitCode": 0
+    },
+    {
+      "name": "no-public-bindings",
+      "exitCode": 0
+    },
+    {
+      "name": "failed-clears-map",
+      "exitCode": 1
+    },
+    {
+      "name": "recovery",
+      "exitCode": 0
+    },
+    {
+      "name": "environment-map",
+      "exitCode": 0
+    },
+    {
+      "name": "map-capacity-fallback",
+      "exitCode": 0
+    },
+    {
+      "name": "capacity-ordinary-header",
+      "exitCode": 0
+    }
+  ],
+  "protected": {
+    "D:\\GIT\\x-lang\\build\\compiler-rebuild-20261106\\latest-source\\release\\win_x64\\xl.exe": "a5feede784f0a5cb1a829c2e362de57e9278b55cec1a11b796cf4b6e78831bbc",
+    "D:\\GIT\\x-lang\\build\\compiler-rebuild-20261106\\latest-source\\release\\win_x64\\xlc.dll": "6b1e8d18a28791778c7c159bac431231a90ee18b695ad54cc8a8d11ed1b2d32f",
+    "D:\\GIT\\x-lang\\build\\compiler-rebuild-20261106\\latest-source\\release\\win_x64\\xl.dll": "ae1fe2778e9aa7e4de407c89ba4a8e05bcd248d32226806e7957a0b6acf6b394"
+  },
+  "preservedSources": 12,
+  "mapCapacityExports": 32769,
+  "mapCapacityHeaderBytes": 949114,
+  "guiNavigationComplete": false
+}

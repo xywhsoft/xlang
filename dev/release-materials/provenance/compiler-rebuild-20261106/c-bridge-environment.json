@@ -1,0 +1,114 @@
+{
+  "status": "passed",
+  "startedUtc": "2026-11-06T14:07:12.062394+00:00",
+  "finishedUtc": "2026-11-06T14:07:22.020871+00:00",
+  "compiler": "D:\\GIT\\x-lang\\build\\compiler-rebuild-20261106\\latest-source\\release\\win_x64\\xl.exe",
+  "commands": 16,
+  "responsesValidated": 12,
+  "headerComparisons": 5697,
+  "headerCount": 633,
+  "clangdRequested": false,
+  "results": [
+    {
+      "name": "exe",
+      "exitCode": 0,
+      "stdoutBytes": 25354375,
+      "stderrBytes": 0
+    },
+    {
+      "name": "custom",
+      "exitCode": 0,
+      "stdoutBytes": 25354566,
+      "stderrBytes": 0
+    },
+    {
+      "name": "shared",
+      "exitCode": 0,
+      "stdoutBytes": 25354451,
+      "stderrBytes": 0
+    },
+    {
+      "name": "overlay",
+      "exitCode": 0,
+      "stdoutBytes": 25353998,
+      "stderrBytes": 0
+    },
+    {
+      "name": "project-native",
+      "exitCode": 0,
+      "stdoutBytes": 25354522,
+      "stderrBytes": 0
+    },
+    {
+      "name": "project-kind-conflict",
+      "exitCode": 1,
+      "stdoutBytes": 0,
+      "stderrBytes": 155
+    },
+    {
+      "name": "project-shared",
+      "exitCode": 0,
+      "stdoutBytes": 25354598,
+      "stderrBytes": 0
+    },
+    {
+      "name": "invalid",
+      "exitCode": 1,
+      "stdoutBytes": 1395,
+      "stderrBytes": 0
+    },
+    {
+      "name": "wrong-command",
+      "exitCode": 1,
+      "stdoutBytes": 0,
+      "stderrBytes": 41
+    },
+    {
+      "name": "no-json",
+      "exitCode": 1,
+      "stdoutBytes": 0,
+      "stderrBytes": 41
+    },
+    {
+      "name": "value-env",
+      "exitCode": 0,
+      "stdoutBytes": 6812,
+      "stderrBytes": 0
+    },
+    {
+      "name": "boundary-env",
+      "exitCode": 0,
+      "stdoutBytes": 6812,
+      "stderrBytes": 0
+    },
+    {
+      "name": "host-build",
+      "exitCode": 0,
+      "stdoutBytes": 0,
+      "stderrBytes": 0
+    },
+    {
+      "name": "host-execute",
+      "exitCode": 0,
+      "stdoutBytes": 34,
+      "stderrBytes": 0
+    },
+    {
+      "name": "mixed-build",
+      "exitCode": 0,
+      "stdoutBytes": 0,
+      "stderrBytes": 131
+    },
+    {
+      "name": "mixed-execute",
+      "exitCode": 0,
+      "stdoutBytes": 0,
+      "stderrBytes": 0
+    }
+  ],
+  "protected": {
+    "D:\\GIT\\x-lang\\build\\compiler-rebuild-20261106\\latest-source\\release\\win_x64\\xl.exe": "a5feede784f0a5cb1a829c2e362de57e9278b55cec1a11b796cf4b6e78831bbc",
+    "D:\\GIT\\x-lang\\build\\compiler-rebuild-20261106\\latest-source\\release\\win_x64\\xlc.dll": "6b1e8d18a28791778c7c159bac431231a90ee18b695ad54cc8a8d11ed1b2d32f",
+    "D:\\GIT\\x-lang\\build\\compiler-rebuild-20261106\\latest-source\\release\\win_x64\\xl.dll": "ae1fe2778e9aa7e4de407c89ba4a8e05bcd248d32226806e7957a0b6acf6b394"
+  }
+}

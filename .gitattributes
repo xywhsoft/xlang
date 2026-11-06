@@ -155,3 +155,7 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 # Exact raw PE dumps and large generated inventories are evidence, not review patches.
 /dev/release-materials/provenance/native-linkage-default-20261106/**/imports.txt -diff
 /dev/release-materials/sources/native-linkage-default-20261106/manifest.json -diff
+
+# Preserve the exact compiler rebuild evidence and source overlay bytes.
+/dev/release-materials/provenance/compiler-rebuild-20261106/** -text -whitespace
+/dev/release-materials/sources/compiler-rebuild-20261106/** -text -whitespace

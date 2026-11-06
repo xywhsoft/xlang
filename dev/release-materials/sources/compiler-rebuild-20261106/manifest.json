@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "date": "2026-11-06",
+  "sourceRevision": "5db37c83898fb6f834753d80ec57c6ccc2daf9d6",
+  "parentSourceArchive": {
+    "path": "dev/release-materials/sources/native-linkage-default-20261106/sources.zip",
+    "sha256": "09935c629235a7d54ecb28371b41bad3f2ebd70cd79432d92899a04d76e2ba34",
+    "bytes": 24555110
+  },
+  "overlay": {
+    "path": "dev/release-materials/sources/compiler-rebuild-20261106/overlay.zip",
+    "sha256": "b98dfd5ed85a7d96eccf2df7a9958440e97221f29ef422799467e0c21f74fc25",
+    "bytes": 1217172
+  },
+  "ownedSources": [
+    {
+      "path": "src/api/xl_api.c",
+      "sha256": "48150767b8f8ce0263045ef2a91216fea2fab68c920a735990e79f2a209f388b",
+      "bytes": 219613
+    },
+    {
+      "path": "ide/src/services/c_bridge.c",
+      "sha256": "fb063960226a6978d241b1fc25f92a972c902bc88e47ff182661e9175c32705c",
+      "bytes": 28133
+    },
+    {
+      "path": "ide/tests/c_bridge_header_budget_test.c",
+      "sha256": "21997a6f5c76e293a0c2a8566fc8d2fcb97f2953e847d4f1d32a3b7247155f10",
+      "bytes": 3379
+    },
+    {
+      "path": "tools/check_c_bridge_environment.py",
+      "sha256": "ccc17f3eb502460f5024b8304461cfcd2e4e09a798120ec4d1a125930c838c00",
+      "bytes": 9062
+    }
+  ],
+  "reconstruction": "Extract the parent source archive, then overlay.zip over it. Build with build_dll.bat/build_linux.sh and the matched SDKs. build-records preserve the exact incremental Windows commands and the full Linux object catalogs; absolute cache paths are historical build inputs.",
+  "windowsIncremental": true,
+  "linuxFullProductionBuild": true,
+  "semanticParity": "All src files match the clean committed integration cohort after CRLF normalization; no concurrent uncommitted semantic/IDE edits were compiled."
+}

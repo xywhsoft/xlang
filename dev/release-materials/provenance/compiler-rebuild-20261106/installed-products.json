@@ -1,0 +1,32 @@
+[
+  {
+    "path": "release/win_x64/xl.exe",
+    "sha256": "a5feede784f0a5cb1a829c2e362de57e9278b55cec1a11b796cf4b6e78831bbc",
+    "matchesCandidate": true
+  },
+  {
+    "path": "release/win_x64/xl.dll",
+    "sha256": "ae1fe2778e9aa7e4de407c89ba4a8e05bcd248d32226806e7957a0b6acf6b394",
+    "matchesCandidate": true
+  },
+  {
+    "path": "release/win_x64/xlc.dll",
+    "sha256": "6b1e8d18a28791778c7c159bac431231a90ee18b695ad54cc8a8d11ed1b2d32f",
+    "matchesCandidate": true
+  },
+  {
+    "path": "release/linux_x64/xl",
+    "sha256": "faa25e49bdf8c5ce8ccdb084810075b406cc6dd499a59577664616eb2a08265b",
+    "matchesCandidate": true
+  },
+  {
+    "path": "release/linux_x64/libxl.so",
+    "sha256": "0b78c4942de4015190460aa0c4ef13a8e12fb3ecee16661e0df28bf646a9d2a3",
+    "matchesCandidate": true
+  },
+  {
+    "path": "release/linux_x64/libxlc.so",
+    "sha256": "72ecb9983e40475a04f29f47d40f5ac20143d2f03c646a8c3b487d61bdd0e7a1",
+    "matchesCandidate": true
+  }
+]

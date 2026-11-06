@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "skipped": false,
+  "runtime": "/root/.codex-builds/xlang-example-runtime-20261106-1958/release/linux_x64/xl",
+  "exitCode": 0,
+  "buildExitCode": 0,
+  "aotExitCode": 0,
+  "fixture": "private authenticated Redis",
+  "port": 53765
+}

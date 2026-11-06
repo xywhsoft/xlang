@@ -1,0 +1,64 @@
+=== shapes: inheritance hierarchy verification suite ===
+(Shape > Circle > Cylinder : public/private/protected, static, virtual/override/final, base, destroy)
+
+[1] inheritance chain + base() ctor chaining
+  [PASS] Circle base(name) -> Shape.name
+  [PASS] Cylinder base(name,r) -> Circle -> Shape.name
+  [PASS] Circle.radius default from ctor arg
+  [PASS] Cylinder inherits Circle.radius
+  [PASS] Cylinder.height default from ctor arg
+  [PASS] private id unique per instance (1 != 2)
+[2] access control: public / private / protected
+  [PASS] public field Circle.radius read/write
+  [PASS] public field Cylinder.height read/write
+  [PASS] public field Shape.tag inherited default
+  [PASS] public field Shape.tag write via subclass instance
+  [PASS] private id accessible via Shape method (idOf)
+  [PASS] protected name read in Circle method
+  [PASS] protected name read in Cylinder method (2 levels)
+[3] static field / method (via class name)
+  [PASS] static made++ on new instance
+  [PASS] static live++ on new instance
+  [PASS] Shape.total() == Shape.live
+  [PASS] static field stays consistent after class-name write
+[4] virtual / override method (direct call)
+  [PASS] Shape.area() base returns 0.0
+  [PASS] Circle.area() override = pi*r^2
+  [PASS] Cylinder.area() override = 2*pi*r*(r+h)
+[5] virtual / override property get (direct call)
+  [PASS] Shape.type virtual get base
+  [PASS] Circle.type override get
+  [PASS] Cylinder.type override get
+[6] vtable dispatch via upcast (Shape s = Circle(...))
+  [PASS] Shape.area() base (Shape s = Shape)
+  [PASS] Shape s = Circle; s.area() -> Circle override
+  [PASS] Shape s = Cylinder; s.area() -> Cylinder override (2 levels)
+  [PASS] Shape s = Shape; s.type base
+  [PASS] Shape s = Circle; s.type -> Circle override
+  [PASS] Shape s = Cylinder; s.type -> Cylinder override
+  [PASS] Shape.describe() -> base
+  [PASS] Circle via describe() internal dispatch
+  [PASS] Cylinder via describe() internal dispatch (2 levels)
+  [PASS] single base method describe() yields 3 distinct results -> vtable works
+[7] final method: inherited and callable, not overridable
+  [PASS] Circle.density() final method
+  [PASS] Cylinder inherits final density() (not re-overridden)
+  [NOTE] final non-override rule is compile-time enforced (not testable here)
+[8] destroy lifecycle
+  [PASS] 3 instances created inside scope
+  [PASS] 3 instances destroyed on scope exit
+  [PASS] live count returns to baseline after scope exit
+[9] function-param polymorphism + var-box downcast dispatch
+  [PASS] typed Circle.area() direct dispatch (control)
+  [PASS] shapeArea(Shape) -> base area
+  [PASS] shapeArea(Circle) -> override area
+  [PASS] var -> as Shape preserves Circle dispatch
+  [PASS] var roundtrip preserves object identity
+  [PASS] managed Shape survives var roundtrip with identity intact
+
+--- polymorphism paths ---
+upcast:        Shape s = Circle(...) -> s.area() dispatches to override
+func param:    func f(Shape s); f(Circle) -> dispatches to override
+var downcast:  Circle -> var -> as Shape preserves identity and override
+
+total passed=43 failed=0
