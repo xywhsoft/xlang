@@ -1,0 +1,19 @@
+// Checkbox / three-state selection. Run from release/<platform>; Escape or close exits.
+import xui
+import "./_support.xl" as demo
+
+export class CheckboxExample
+ static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
+  demo.Gallery.label(context,root,"Checkbox / three-state selection",24,16)
+  auto control=context.checkBoxNative()
+  demo.Gallery.place(root,control,24,64,640,44)
+  control.setText("Enable notifications")
+  assert control.setChecked(c_int(1))==0
+  control.setAutoThreeState(c_int(1))
+  assert control.getChecked()!=0
+ end
+end
+
+func main(...) as int
+ return demo.Gallery.run("Checkbox / three-state selection",CheckboxExample.build)
+end

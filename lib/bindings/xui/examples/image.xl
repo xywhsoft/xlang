@@ -1,0 +1,24 @@
+// Image / generated RGBA resource. Run from release/<platform>; Escape or close exits.
+import xui
+import "./_support.xl" as demo
+
+export class ImageExample
+ static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
+  demo.Gallery.label(context,root,"Image / generated RGBA resource",24,16)
+  auto surface=proxy.createSurfaceRGBA(c_int(96),c_int(96),flags=c_uint(xui.XUI_SURFACE_USAGE_TARGET))
+  try
+   proxy.clearSurface(surface,c_uint(0xE8A040FF))
+   auto control=context.imageNative()
+   control.setSurface(surface)
+   assert control.setSource(demo.Gallery.rect(0,0,96,96))==0
+   demo.Gallery.place(root,control,24,64,288,288)
+  finally
+   // The Image slot retains its real native Surface owner.
+   surface.close()
+  end
+ end
+end
+
+func main(...) as int
+ return demo.Gallery.run("Image / generated RGBA resource",ImageExample.build)
+end

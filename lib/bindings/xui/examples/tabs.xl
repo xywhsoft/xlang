@@ -1,0 +1,24 @@
+// Tabs / Context-owned pages. Run from release/<platform>; Escape or close exits.
+import xui
+import "./_support.xl" as demo
+
+export class TabsExample
+ static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
+  demo.Gallery.label(context,root,"Tabs / Context-owned pages",24,16)
+  auto control=context.tabsNative()
+  demo.Gallery.place(root,control,24,64,640,260)
+  control.setItems(["Overview","Settings"])
+  for i in range(0,2)
+   auto page=context.widget()
+   assert page.setRect(demo.Gallery.rect(0,0,600,240))==0
+   page.setSizeMode(xui.XUI_SIZE_FILL,xui.XUI_SIZE_FILL)
+   demo.Gallery.label(context,page,"Page "+string(i+1),20,24,400)
+   assert control.addPageChild(c_int(i),page)==0
+  end
+  assert control.setSelected(c_int(0))==0
+ end
+end
+
+func main(...) as int
+ return demo.Gallery.run("Tabs / Context-owned pages",TabsExample.build)
+end

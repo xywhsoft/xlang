@@ -1,6 +1,9 @@
 param(
     [string]$Root = "",
-    [string]$RuntimeDirectory = ""
+    [string]$RuntimeDirectory = "",
+    [string]$Example = "",
+    [switch]$Run,
+    [ValidateRange(0,10000)][int]$Frames = 0
 )
 
 $ErrorActionPreference = "Stop"
@@ -22,7 +25,10 @@ if ( ! (Test-Path -LiteralPath $xl -PathType Leaf) ) {
 # NOTE: keep this file ASCII-only. Windows PowerShell 5.1 reads BOM-less
 # scripts as ANSI/GBK; UTF-8 comment bytes can swallow the next newline
 # and silently merge statements into comment lines.
-$examples = @(Get-ChildItem -LiteralPath $exampleDir -File -Filter "*.xl" | Sort-Object Name)
+$examples = @(Get-ChildItem -LiteralPath $exampleDir -File -Filter "*.xl" | Where-Object { !$_.Name.StartsWith("_") } | Sort-Object Name)
+if ($Example) {
+    $examples = @($examples | Where-Object { $_.BaseName -eq $Example })
+}
 if ( $examples.Count -eq 0 ) {
     Write-Host "No XUI examples found in $exampleDir"
     exit 1
@@ -30,12 +36,25 @@ if ( $examples.Count -eq 0 ) {
 
 $checkFail = 0
 $checked = 0
-
-foreach ( $example in $examples ) {
-    Write-Host "Checking XUI example: $($example.Name)"
-    & $xl check $example.FullName
-    if ( $LASTEXITCODE -ne 0 ) { $checkFail += 1 }
-    $checked += 1
+$previousPackages = $env:XLANG_PACKAGE_PATH
+$previousFrames = $env:XUI_EXAMPLE_FRAMES
+try {
+    $env:XLANG_PACKAGE_PATH = Join-Path $runtime "extlibs"
+    if ($Frames -gt 0) { $env:XUI_EXAMPLE_FRAMES = [string]$Frames }
+    else { Remove-Item Env:XUI_EXAMPLE_FRAMES -ErrorAction SilentlyContinue }
+    Push-Location -LiteralPath $runtime
+    try {
+        foreach ( $exampleFile in $examples ) {
+            $mode = if ($Run) { "run" } else { "check" }
+            Write-Host "${mode}: $($exampleFile.Name)"
+            & $xl $mode $exampleFile.FullName
+            if ( $LASTEXITCODE -ne 0 ) { $checkFail += 1 }
+            $checked += 1
+        }
+    } finally { Pop-Location }
+} finally {
+    $env:XLANG_PACKAGE_PATH = $previousPackages
+    $env:XUI_EXAMPLE_FRAMES = $previousFrames
 }
 
 Write-Host ""

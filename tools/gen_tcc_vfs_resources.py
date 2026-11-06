@@ -399,6 +399,14 @@ def main() -> int:
             raise RuntimeError("language SDK requires precompile_builtin.py output: " + str(precompiled))
         manifest_data, serialized_validation = validate_precompiled_manifest(precompiled, root)
         resources = [r for r in resources if not (r.virtual.startswith("__xl_compiler/") and r.source.suffix in (".c", ".inc"))]
+        # This catalog is deliberately specialized inside the selected XRT TU.
+        # It cannot be replaced by an unconditional all-modules object: its
+        # address table would pin every XRT function and defeat native GC.
+        # Keep only these exact SDK inputs, also for the runtime-only catalog.
+        for name in ("xl6_host_xrt.c", "xl6_host_xrt.h", "xl6_host_xrt_symbols.h"):
+            virtual = "__xl_compiler/src/runtime/" + name
+            if not any(resource.virtual == virtual for resource in resources):
+                resources.append(Resource(virtual, root / "src/runtime" / name))
         for row in manifest_data["objects"]:
             if not compiler_catalog and row.get("product") != "xrt":continue
             source = Path(row["source"])

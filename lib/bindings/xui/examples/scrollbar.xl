@@ -1,0 +1,18 @@
+// Scrollbar / page and position. Run from release/<platform>; Escape or close exits.
+import xui
+import "./_support.xl" as demo
+
+export class ScrollbarExample
+ static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
+  demo.Gallery.label(context,root,"Scrollbar / page and position",24,16)
+  auto control=context.scrollBar()
+  demo.Gallery.place(root,control,24,64,640,28)
+  control.setRange(c_float(0),c_float(1000),c_float(100))
+  control.setValue(c_float(150))
+  assert control.getValue()==c_float(150)
+ end
+end
+
+func main(...) as int
+ return demo.Gallery.run("Scrollbar / page and position",ScrollbarExample.build)
+end

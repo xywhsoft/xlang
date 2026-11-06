@@ -1,0 +1,32 @@
+// Menu / command selection. Run from release/<platform>; Escape or close exits.
+import xui
+import "./_support.xl" as demo
+
+export class MenuExample
+ static func build(xui.Context context,xui.Widget root,xui.Proxy proxy) as xui.Widget
+  demo.Gallery.label(context,root,"Menu / command selection",24,16)
+  auto control=context.menuNative()
+  // Menu creates and owns its Popup; it is already attached to that client.
+  control.addItem("New",shortcut="Ctrl+N",value=c_int(1))
+  control.addItem("Open",shortcut="Ctrl+O",value=c_int(2))
+  assert control.addSeparator()==0
+  control.addItem("Save",shortcut="Ctrl+S",value=c_int(3))
+  auto owner=context.buttonNative()
+  owner.setText("Open menu")
+  demo.Gallery.place(root,owner,24,64,240,44)
+  owner.setClick(func(xui.Widget source)
+   control.openForOwner(source)
+  end)
+  control.setSelect(func(xui.Widget source,c_int index,c_int value)
+   println("Menu command "+string(int(value)))
+  end)
+  assert control.getItemCount()==c_int(4)
+  return control
+ end
+end
+
+func main(...) as int
+ return demo.Gallery.run("Menu / command selection",func(xui.Context context,xui.Widget root,xui.Proxy proxy)
+  MenuExample.build(context,root,proxy)
+ end)
+end

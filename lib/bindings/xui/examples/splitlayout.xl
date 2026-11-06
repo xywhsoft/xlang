@@ -1,0 +1,23 @@
+// Split layout / draggable divider. Run from release/<platform>; Escape or close exits.
+import xui
+import "./_support.xl" as demo
+
+export class SplitlayoutExample
+ static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
+  demo.Gallery.label(context,root,"Split layout / draggable divider",24,16)
+  auto control=context.splitLayout()
+  demo.Gallery.place(root,control,24,64,640,320)
+  auto left=context.widget()
+  auto right=context.widget()
+  left.setSizeMode(xui.XUI_SIZE_FILL,xui.XUI_SIZE_FILL)
+  right.setSizeMode(xui.XUI_SIZE_FILL,xui.XUI_SIZE_FILL)
+  demo.Gallery.label(context,left,"Left pane",16,24,280)
+  demo.Gallery.label(context,right,"Right pane",16,24,280)
+  assert control.addPaneChild(c_int(0),left)==0
+  assert control.addPaneChild(c_int(1),right)==0
+ end
+end
+
+func main(...) as int
+ return demo.Gallery.run("Split layout / draggable divider",SplitlayoutExample.build)
+end

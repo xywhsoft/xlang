@@ -700,6 +700,8 @@ def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_spa
                 for text in sources.values():
                     helper=re.search(r'\b\w+DescValid\s*\(\s*const\s+'+re.escape(dtype)+r'\s*\*\s*pDesc\s*\)\s*\{',text)
                     if helper and re.search(r'if\s*\(\s*pDesc\s*==\s*NULL\s*\)\s*(?:\{\s*)?return\s+1\s*;',text[helper.end():helper.end()+140]):null_default=True;break
+                # These constructors explicitly validate NULL in the upstream body/helper.
+                if f['name'] in ('xuiCheckBoxCreate','xuiRadioCreate','xuiToggleCreate','xuiChartCreate'):null_default=True
                 if null_default:typ+='?'
             params.append(typ+' '+a['name']+('=null' if typ.endswith('?') else ''));attrs+=at
         method=group[:1].lower()+group[1:]
@@ -969,6 +971,8 @@ def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_spa
         classes[owner]=[declaration for declaration in classes[owner] if 'extern "'+native+'"' not in declaration]
         classes[owner].append(' extern "'+native+'" @no_raise @c_result("status",0) '+contract+' func '+name+'('+parameters+')')
         mapped[native]='xui.'+owner+'.'+name
+    from xui_gallery_contracts import extend as extend_gallery
+    extend_gallery(context,classes,mapped)
     lines=['// Managed owner graph and direct native methods. Generated; no per-method C wrappers.']
     for c,n in sorted(raw.items()):lines+=['// Explicit C-interop-only descriptor pointer; this does not own the pointed-to data.','export extern "'+c+'" class '+n+' @header("xge3_runtime.h") @lifetime("caller")',' native point handle','end']
     lines+=callback_declarations
