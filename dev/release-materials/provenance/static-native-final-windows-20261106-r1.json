@@ -1,0 +1,313 @@
+{
+  "schema": 1,
+  "complete": true,
+  "passed": true,
+  "scope": "Final Windows static-XGE native link, normal production PE emission and isolated OS-loader execution. SourceDriver OnlyTCC/VFS qualification is separate from production DLL qualification; the exact source/object/tool/SDK provenance is preserved.",
+  "references": [
+    {
+      "role": "sourceRoot11",
+      "path": "F:\\xlang-validation\\native-static-20261106\\core-source-r11.json",
+      "sha256": "17a4fa77a8a4fe0981cbbaf3c0621bce6c9522ad5eac5ec2114a9a99ae48e624"
+    },
+    {
+      "role": "freshR9Targets",
+      "path": "F:\\xlang-validation\\native-static-20261106\\precompiled-win-r3\\validation.json",
+      "sha256": "3e680ef6100afbe3999f1ee927e24dfb1eddaefe1d197a54d136abf8ee38956b"
+    },
+    {
+      "role": "Root10Api4",
+      "path": "F:\\xlang-validation\\native-static-20261106\\precompiled-win-r4\\manifest.json",
+      "sha256": "1db3c1f6ac3ce10a8b705f206e7e18accb06fb2f674b9f4bcc164817656c4e23"
+    },
+    {
+      "role": "Root11Linker2",
+      "path": "F:\\xlang-validation\\native-static-20261106\\precompiled-win-r5\\manifest.json",
+      "sha256": "ecb8dc4464c5fc6d793e2f99b6994d43d2e05b722ce9b8ebc16b51f33a17c518"
+    },
+    {
+      "role": "provider",
+      "path": "F:\\xlang-validation\\native-static-20261106\\provider-win-r4\\provider.json",
+      "sha256": "46e2800adaba5b1d735fdd21d3304f945ef258b40448539e9e9d5f635ecb8a49"
+    },
+    {
+      "role": "providerOverlay",
+      "path": "F:\\xlang-validation\\native-static-20261106\\provider-win-r4\\overlay.json",
+      "sha256": "bf5cea47fc7bff3fadee41bedc758f2ccc166e3ff728c7101428a4cd3194d604"
+    },
+    {
+      "role": "toolInvocationOverlay",
+      "path": "F:\\xlang-validation\\native-static-20261106\\provider-tools-r4\\manifest.json",
+      "sha256": "2ff3158c9575c301648ed8e3dfd542aa9f1365691939094d157e737f8ebb7bc1"
+    },
+    {
+      "role": "resourcePair",
+      "path": "F:\\xlang-validation\\native-static-20261106\\vfs-r11-win-r1\\resources.json",
+      "sha256": "723460edcf44a95532a991799f69b554ee7dddb425dcebd4880244403827ab0c"
+    },
+    {
+      "role": "legacy41142Budget",
+      "path": "F:\\xlang-validation\\native-static-20261106\\legacy-budget-r9-win-r1\\results.json",
+      "sha256": "b0868c32f5a763c7aab00daee18153a9b811ecadcccd8e0a7645bf11a6b5bb50"
+    },
+    {
+      "role": "staticGroupNativeMetadata",
+      "path": "F:\\xlang-validation\\native-static-20261106\\xge\\win-default-r14\\build-report.json",
+      "sha256": "c1411851bd760097976e1541874427d9f081949907ec37761cd5229df14f7c4c"
+    },
+    {
+      "role": "staticGroupByteAudit",
+      "path": "F:\\xlang-validation\\native-static-20261106\\xge\\support-group-audit-win-r1\\results.json",
+      "sha256": "96fc29d077f2a635d1a5510c3c0cb392212d1487ccf1e3ccf56ea0c8a7041aca"
+    },
+    {
+      "role": "actualFullStaticAot",
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r6\\results.json",
+      "sha256": "00040c718a53ed95b05ced1dae25da2b867db73bb253f633af53518c7e2e3d50"
+    },
+    {
+      "role": "actualFiveImportMathAot",
+      "path": "F:\\xlang-validation\\native-static-20261106\\native-crt-math-aot-win-r2\\results.json",
+      "sha256": "6ab69be1df78cfd07cd1f710f8674d4ccf259de32eafd73e53a5a5c58c1563f7"
+    },
+    {
+      "role": "gccArchiveOrderReference",
+      "path": "F:\\xlang-validation\\native-static-20261106\\cosl-gcc-reference-r1\\results.json",
+      "sha256": "9ec81a61715bbf08bad54d825eb5eae55dfccfacf2803342b070682490d0a1a7"
+    },
+    {
+      "role": "sourceCandidate",
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-support-final-candidate-r1\\manifest.json",
+      "sha256": "faa34caec53123553acc75c44e449ba194132ee40fbe7af0e66ec5254d474f4b"
+    },
+    {
+      "role": "staticSdkFileMatrix",
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-sdk-delivery-plan-win-r2\\manifest.json",
+      "sha256": "8f7b07d4596b4bcd6c182b782f4cef85fdde55129ba8661020aea75833733ed9"
+    }
+  ],
+  "sourceRoot": "F:\\xlang-validation\\native-static-20261106\\core-source-r11",
+  "productionDirectory": "F:\\xlang-validation\\native-static-20261106\\production-win-r5\\release\\win_x64",
+  "productionImages": {
+    "xl.dll": "7a05d69bea0d4889735e115c2bd9bc1e74280c7a1245d7e955c97d7798310c9e",
+    "xlc.dll": "585edd3bceded526fb226cbe2f5321cc6f7ebcbae566af0da47d7315b5bba623"
+  },
+  "serializedTargetLineage": [
+    {
+      "source": "R9",
+      "compiled": 1566,
+      "inherited": 0
+    },
+    {
+      "source": "Root10 API bracing only",
+      "compiled": 4,
+      "inherited": 1562
+    },
+    {
+      "source": "Root11 PE IAT-chain linker only",
+      "compiled": 2,
+      "inherited": 1564
+    }
+  ],
+  "sourceDriverHost": {
+    "fullRebuild": false,
+    "newObjects": 2,
+    "actualSourcesAndFlagsRetained": true
+  },
+  "providerImportBinding": {
+    "requested": true,
+    "verified": true,
+    "tccImports": {
+      "_tcc_error_noabort": "xlc.dll",
+      "tcc_basename": "xlc.dll",
+      "tcc_delete": "xlc.dll",
+      "tcc_enter_state": "xlc.dll",
+      "tcc_fileextension": "xlc.dll",
+      "tcc_free": "xlc.dll",
+      "tcc_get_dllexports": "xlc.dll",
+      "tcc_malloc": "xlc.dll",
+      "tcc_realloc": "xlc.dll"
+    },
+    "provider": "F:\\xlang-validation\\native-static-20261106\\provider-win-r4\\xlc.dll",
+    "scope": "Stock SourceDriver fixes the API DLL to adjacent xlc.dll; this is not a guarantee for arbitrary custom tccDllPath/provider swapping",
+    "source": "F:\\xlang-validation\\foreign-completion-20261103\\source-module-code-owner-r1\\test\\cases\\xlir_public_source_driver.c",
+    "sourceSha256": "a47ceeb8f7976588e91fac7cb325ce3d23b61f2c260715e2fd12ead714ed4ffa",
+    "cohortSource": "F:\\xlang-validation\\native-static-20261106\\core-source-r11\\test\\cases\\xlir_public_source_driver.c",
+    "cohortSourceSha256": "fc225343c110e260dc717e612bb44ac563e96136f866132c148dac3443955b7a",
+    "canonicalLFSame": true
+  },
+  "resources": [
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\provider-win-r4\\tcc_builtin_resources.c",
+      "sha256": "4d472e658a6f3e5e0bd7c2d131222712a8125a37ebdb8b917f4ae62395534fa8",
+      "bytes": 49399495,
+      "primaryResourcePath": "F:\\xlang-validation\\native-static-20261106\\vfs-r11-win-r1\\tcc_builtin_resources.c"
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\provider-win-r4\\tcc_builtin_resources_runtime.c",
+      "sha256": "db8e6c49847e8fa086f64ec354b9df67ac41c54aef08ccd5f46577fd1768cdf6",
+      "bytes": 12789043,
+      "primaryResourcePath": "F:\\xlang-validation\\native-static-20261106\\vfs-r11-win-r1\\tcc_builtin_resources_runtime.c"
+    }
+  ],
+  "fullStaticPe": {
+    "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r6\\static-program.exe",
+    "sha256": "16a08c88225bd38d58881b18436a0c325b7bb5173f9792889be2d3ab58dfa443",
+    "bytes": 1062912
+  },
+  "relocatedStaticPe": {
+    "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r6\\relocated\\program.exe",
+    "sha256": "16a08c88225bd38d58881b18436a0c325b7bb5173f9792889be2d3ab58dfa443"
+  },
+  "actualImportedDlls": [
+    "msvcrt.dll",
+    "kernel32.dll",
+    "ole32.dll",
+    "SHELL32.dll"
+  ],
+  "fullProgramMathNumericCoverage": [
+    "sin",
+    "cos",
+    "sqrt",
+    "pow",
+    "fmod"
+  ],
+  "fullProgramActualMathImports": [],
+  "mathScope": "Genuine static MinGW compatibility definitions satisfy numeric calls in the full program. Independently, the math-only PE uses the exact corrected MSVCRT definition and verifies all five IAT names and values.",
+  "isolatedMathPe": {
+    "scope": "Independent actual PE gate for five volatile Native CRT math imports from the corrected static package definition. No XGE/core archive loaded; this does not qualify the pending full static-XGE PE admission path.",
+    "command": [
+      "F:\\xlang-validation\\native-static-20261106\\tcc-producer-win-r8\\bare-tcc.exe",
+      "-BD:/GIT/x-lang/res/tcc/win64/x86_64",
+      "-ffunction-sections",
+      "-fdata-sections",
+      "-Wl,--gc-sections",
+      "-ID:/GIT/x-lang/test/cases",
+      "D:\\GIT\\x-lang\\test\\cases\\static_xge_aot_math.c",
+      "F:\\xlang-validation\\native-static-20261106\\native-crt-math-aot-win-r2\\main.c",
+      "F:\\xlang-validation\\native-static-20261106\\xge\\packages-win-r7\\_xge_native\\native\\libmsvcrt-imports.def",
+      "-o",
+      "F:\\xlang-validation\\native-static-20261106\\native-crt-math-aot-win-r2\\math.exe"
+    ],
+    "compileExit": 0,
+    "inputs": {
+      "F:\\xlang-validation\\native-static-20261106\\tcc-producer-win-r8\\bare-tcc.exe": "95b1604c0dc6938c9499aa92603dcb5286a208120e5c24e7a8fa034324dea535",
+      "F:\\xlang-validation\\native-static-20261106\\xge\\packages-win-r7\\_xge_native\\native\\libmsvcrt-imports.def": "e94691b5d386eaf669c40feac9c5e8ee8358551bb09bc1986374f7e5b308ea09",
+      "D:\\GIT\\x-lang\\test\\cases\\static_xge_aot_math.c": "26ca64ecb1a93abd5ebb17fd0a84e45a6cd3172f1dd541e486c7780af10444ad",
+      "D:\\GIT\\x-lang\\test\\cases\\static_xge_aot_math.h": "81346445b85a6927f0bd874253f2f619a49993b66d0bea0d2d6b0511cfa23d14",
+      "F:\\xlang-validation\\native-static-20261106\\native-crt-math-aot-win-r2\\main.c": "7b8fd825553b97da44d87974fd419ac86d307e93d6376e34095aa7b4878565aa"
+    },
+    "passed": true,
+    "runExit": 0,
+    "importDlls": [
+      "msvcrt.dll",
+      "kernel32.dll"
+    ],
+    "binarySha256": "9104246dbec8885c4dbc54a90ba415a20168d3b7e6918de428e81384a860a341",
+    "binaryBytes": 4608,
+    "inputsUnchanged": true
+  },
+  "peEmitted": true,
+  "peExecuted": true,
+  "defaultDynamicPackagesModified": false,
+  "staticSdk": {
+    "source": "F:\\xlang-validation\\native-static-20261106\\xge\\packages-win-r7",
+    "proposedDestination": "release/win_x64/static/xge3/packages",
+    "files": 77,
+    "bytes": 30412076,
+    "nativeCodeUnchanged": true,
+    "nativeObjectCount": 145,
+    "compilerCodeMembers": 1096,
+    "singleCompilerCodeArchive": true
+  },
+  "sourceFiles": [
+    {
+      "repository": "native",
+      "path": "tools/build/static_support.py",
+      "source": "D:\\GIT\\xge\\tools\\build\\static_support.py",
+      "snapshot": "F:\\xlang-validation\\native-static-20261106\\static-support-final-candidate-r1\\native\\tools\\build\\static_support.py",
+      "sha256": "5545f7cd830d62689271f47e88aab3ea8d31467ba6612f62dba66f5e20d4b4da",
+      "bytes": 21137
+    },
+    {
+      "repository": "native",
+      "path": "tools/test/check_static.py",
+      "source": "D:\\GIT\\xge\\tools\\test\\check_static.py",
+      "snapshot": "F:\\xlang-validation\\native-static-20261106\\static-support-final-candidate-r1\\native\\tools\\test\\check_static.py",
+      "sha256": "4d6ec8c1d15d0e10c0ceb5ac92c5506aebae99e64a3776d2e309e6a13caa58b4",
+      "bytes": 9719
+    },
+    {
+      "repository": "native",
+      "path": "docs/static-build.md",
+      "source": "D:\\GIT\\xge\\docs\\static-build.md",
+      "snapshot": "F:\\xlang-validation\\native-static-20261106\\static-support-final-candidate-r1\\native\\docs\\static-build.md",
+      "sha256": "40a8259a7798fac583108d7e8e847d69bf4248fc3ab589edde97173c0d9491d8",
+      "bytes": 4662
+    },
+    {
+      "repository": "xlang",
+      "path": "tools/stage_xge3_static_packages.py",
+      "source": "D:\\GIT\\x-lang\\tools\\stage_xge3_static_packages.py",
+      "snapshot": "F:\\xlang-validation\\native-static-20261106\\static-support-final-candidate-r1\\xlang\\tools\\stage_xge3_static_packages.py",
+      "sha256": "edc2dc9383be6e90b5ba8bd72611dda13a9aff0ec066627988f57d05b4897d23",
+      "bytes": 10790
+    },
+    {
+      "repository": "xlang",
+      "path": "docs/xge3-static-packages.md",
+      "source": "D:\\GIT\\x-lang\\docs\\xge3-static-packages.md",
+      "snapshot": "F:\\xlang-validation\\native-static-20261106\\static-support-final-candidate-r1\\xlang\\docs\\xge3-static-packages.md",
+      "sha256": "ccd8511905ac82a9a55d7531f154dac15ab14869ef5252d0758a7aaeff23824d",
+      "bytes": 4607
+    },
+    {
+      "repository": "xlang",
+      "path": "tools/check_static_xge_aot_windows.py",
+      "source": "D:\\GIT\\x-lang\\tools\\check_static_xge_aot_windows.py",
+      "snapshot": "F:\\xlang-validation\\native-static-20261106\\static-support-final-candidate-r1\\xlang\\tools\\check_static_xge_aot_windows.py",
+      "sha256": "f5cac23251f0d0a941ea7707096963d42f912c48e9ebc4e36b5106aace360a1e",
+      "bytes": 6191
+    },
+    {
+      "repository": "xlang",
+      "path": "test/cases/static_xge_aot_windows.xl",
+      "source": "D:\\GIT\\x-lang\\test\\cases\\static_xge_aot_windows.xl",
+      "snapshot": "F:\\xlang-validation\\native-static-20261106\\static-support-final-candidate-r1\\xlang\\test\\cases\\static_xge_aot_windows.xl",
+      "sha256": "3184e3a22c8566970e78d4c85f064844742817b4b33942d62a204f147402e923",
+      "bytes": 645
+    },
+    {
+      "repository": "xlang",
+      "path": "test/cases/static_xge_aot_math.c",
+      "source": "D:\\GIT\\x-lang\\test\\cases\\static_xge_aot_math.c",
+      "snapshot": "F:\\xlang-validation\\native-static-20261106\\static-support-final-candidate-r1\\xlang\\test\\cases\\static_xge_aot_math.c",
+      "sha256": "26ca64ecb1a93abd5ebb17fd0a84e45a6cd3172f1dd541e486c7780af10444ad",
+      "bytes": 937
+    },
+    {
+      "repository": "xlang",
+      "path": "test/cases/static_xge_aot_math.h",
+      "source": "D:\\GIT\\x-lang\\test\\cases\\static_xge_aot_math.h",
+      "snapshot": "F:\\xlang-validation\\native-static-20261106\\static-support-final-candidate-r1\\xlang\\test\\cases\\static_xge_aot_math.h",
+      "sha256": "81346445b85a6927f0bd874253f2f619a49993b66d0bea0d2d6b0511cfa23d14",
+      "bytes": 101
+    },
+    {
+      "repository": "xlang",
+      "path": "docs/xge3-static-aot-validation.md",
+      "source": "D:\\GIT\\x-lang\\docs\\xge3-static-aot-validation.md",
+      "snapshot": "F:\\xlang-validation\\native-static-20261106\\static-support-final-candidate-r1\\xlang\\docs\\xge3-static-aot-validation.md",
+      "sha256": "7900e21bf939f9d6994b5c28b07d2107c652dd8151c480d9bd29de59ba58308a",
+      "bytes": 2428
+    }
+  ],
+  "historicalAttemptsPreserved": [
+    "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r1",
+    "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r2",
+    "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r3",
+    "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r4",
+    "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r5"
+  ],
+  "installationPerformed": false,
+  "shippingDelivery": false
+}

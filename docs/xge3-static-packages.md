@@ -61,3 +61,14 @@ The dated integration status, actual tested profiles and remaining release
 qualification are recorded in `docs/reports/native-static-linking-20261106.md`.
 In particular, a successful CPU JIT report does not qualify Windows PE/TLS
 loader execution or imply that the installed release compiler was replaced.
+
+Windows packages carry one byte-preserved compiler-code group archive, followed
+by the separate typed OS import definitions. The original compiler archive
+member order is retained with unique names. Ordinary archive fixed-point
+selection closes backward/cyclic CRT dependencies; no extra methods, C math
+wrappers, aliases, whole-archive policy or reduced feature profile is added.
+Do not ship the old separate code archives alongside the group. The compact
+`native/compiler-support.json` keeps the dependency member/source hashes,
+original names, import provenance and license identifiers with the SDK;
+detailed build logs and original intermediate archives remain development
+materials. The engine's 145 selected objects are unchanged by this repackage.
