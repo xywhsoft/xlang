@@ -10,11 +10,14 @@
 #include <limits.h>
 #define CB_PROJECTS 128u
 #define CB_FILES 1024u
+#define CB_HEADERS 1024u
+/* One forced header and one VFS overlay are owned per project. */
+#define CB_LEASES (CB_HEADERS + 2u * CB_PROJECTS)
 struct xide_c_bridge_batch {
  char *compiler,*cache; xvalue *projects,*headers,*paths,*directories,*maps;
  xide_language_snapshot documents[64]; size_t count,observedBytes,mapBytes;
  xide_language_check* queries[CB_PROJECTS]; size_t queryCount;
- xide_toolchains* toolchains; HANDLE leases[CB_FILES]; size_t leaseCount;
+ xide_toolchains* toolchains; HANDLE leases[CB_LEASES]; size_t leaseCount;
  int ready; int (*cancelled)(void*); void* user;
 };
 static xstrview cbsv(const char* s) { return (xstrview){s,strlen(s)}; }
@@ -51,7 +54,7 @@ static int cbcache(xide_c_bridge_batch* b)
 }
 static int cbwrite(xide_c_bridge_batch* b,const char* name,const void* bytes,size_t size,char** path)
 {
- *path=NULL; if(cbstop(b) || b->leaseCount>=CB_FILES || size>16u*1024u*1024u) return 0;
+ *path=NULL; if(cbstop(b) || b->leaseCount>=CB_LEASES || size>16u*1024u*1024u) return 0;
  char* relative=cbcopy(name); if(!relative) return 0; int okay=1;
  for(char* slash=strchr(relative,'/');okay && slash;slash=strchr(slash+1,'/')) { *slash=0; char* parent=xidePathResolveLexical(b->cache,relative); okay=parent && cbmkdir(b,parent); free(parent); *slash='/'; }
  free(relative); char* absolute=okay ? xidePathResolveLexical(b->cache,name) : NULL; wchar_t* w=cbwide(absolute);
@@ -74,7 +77,7 @@ static xvalue* cbheader(xide_c_bridge_batch* b,const char* name)
 static int cbheaders(xide_c_bridge_batch* b,const xvalue* environment,xide_model_error* e)
 {
  const xvalue* headers=cbget(environment,"builtinHeaders"); bool available=false; int64 totalReported=0; size_t total=0; int initial=xrtValueCount(b->headers)==0;
- if(!xrtValueGetBool(cbget(environment,"embeddedHeadersAvailable"),&available) || !available || !cbarray(headers,1024) || !xrtValueCount(headers) || !xrtValueGetInt(cbget(environment,"builtinBytes"),&totalReported) || totalReported<0 || totalReported>32u*1024u*1024u || (!initial && xrtValueCount(headers)!=xrtValueCount(b->headers))) return cbfail(e,"Native bridge lacks a bounded exact embedded-header bundle.");
+ if(!xrtValueGetBool(cbget(environment,"embeddedHeadersAvailable"),&available) || !available || !cbarray(headers,CB_HEADERS) || !xrtValueCount(headers) || !xrtValueGetInt(cbget(environment,"builtinBytes"),&totalReported) || totalReported<0 || totalReported>32u*1024u*1024u || (!initial && xrtValueCount(headers)!=xrtValueCount(b->headers))) return cbfail(e,"Native bridge lacks a bounded exact embedded-header bundle.");
  for(size_t i=0;i<xrtValueCount(headers);++i) {
   if(cbstop(b)) return 0;
   const xvalue* h=xrtValueArrayGet(headers,i); const char *name=cbstr(cbget(h,"name"),512),*encoded=cbstr(cbget(h,"base64"),24u*1024u*1024u),*digest=cbstr(cbget(h,"sha256"),64); int64 size=0;
