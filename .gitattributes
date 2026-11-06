@@ -142,3 +142,7 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 /lib/bindings/xui/README.md -text whitespace=cr-at-eol
 /dev/release-materials/sources/xui-learning-20261106/** -text whitespace=cr-at-eol
 /dev/release-materials/provenance/xui-learning-20261106/** -text whitespace=cr-at-eol
+
+# Preserve the exact bytes named by example/runtime acceptance hashes.
+/dev/release-materials/provenance/example-runtime-fixes-20261106/** -text whitespace=cr-at-eol
+/dev/release-materials/sources/example-runtime-fixes-20261106/** -text whitespace=cr-at-eol
