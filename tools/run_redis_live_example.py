@@ -53,7 +53,17 @@ def main():
             env = os.environ.copy(); env.update(REDIS_LIVE_PORT=str(port), REDIS_LIVE_PASSWORD=password, REDIS_LIVE_PREFIX='xlang:fixture:' + secrets.token_hex(12))
             result = subprocess.run([str(xl), 'run', str(runtime / 'examples/extlibs/redis_live.xl')], env=env, capture_output=True, timeout=30, cwd=runtime)
             (out / 'example.log').write_bytes(result.stdout + result.stderr)
-            report.update(passed=result.returncode == 0, exitCode=result.returncode, fixture='private authenticated Redis', port=port)
+            binary = out / ('redis-live.exe' if os.name == 'nt' else 'redis-live')
+            built = subprocess.run([str(xl), 'build', str(runtime / 'examples/extlibs/redis_live.xl'), '-o', str(binary)], env=env, capture_output=True, timeout=120, cwd=runtime)
+            (out / 'build.log').write_bytes(built.stdout + built.stderr)
+            aot_code = None
+            if built.returncode == 0:
+                aot = subprocess.run([str(binary)], env=env, capture_output=True, timeout=30, cwd=runtime)
+                (out / 'aot.log').write_bytes(aot.stdout + aot.stderr)
+                aot_code = aot.returncode
+            report.update(passed=result.returncode == 0 and built.returncode == 0 and aot_code == 0,
+                          exitCode=result.returncode, buildExitCode=built.returncode, aotExitCode=aot_code,
+                          fixture='private authenticated Redis', port=port)
     except (OSError, RuntimeError, subprocess.TimeoutExpired) as error:
         report['error'] = str(error)
     finally:
@@ -65,10 +75,16 @@ def main():
             except OSError: pass
             if launcher and process.poll() is None:
                 # Authenticate the exact private WSL instance if localhost forwarding failed.
-                subprocess.run([*launcher, 'redis-cli', '--no-auth-warning', '-a', password, '-p', str(port), 'SHUTDOWN', 'NOSAVE'], capture_output=True, timeout=3)
+                try:
+                    subprocess.run([*launcher, 'redis-cli', '--no-auth-warning', '-a', password, '-p', str(port), 'SHUTDOWN', 'NOSAVE'], capture_output=True, timeout=3)
+                except (OSError, subprocess.TimeoutExpired) as error:
+                    report['cleanupError'] = str(error)
             try: process.wait(timeout=5)
             except subprocess.TimeoutExpired:
-                process.terminate(); process.wait(timeout=3)
+                process.terminate()
+                try: process.wait(timeout=3)
+                except subprocess.TimeoutExpired:
+                    process.kill(); process.wait(timeout=3)
         (out / 'report.json').write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
     print('PASS: private Redis example' if report['passed'] else 'FAIL: see ' + str(out / 'report.json'))
     return 0 if report['passed'] else 1
