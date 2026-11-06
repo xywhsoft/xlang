@@ -1,0 +1,9 @@
+import com
+
+point handle = com.create("Scripting.Dictionary")
+com.invoke(handle, "Add", array["key", 42])
+var exists = com.invoke(handle, "Exists", array["key"])
+com.invoke_named(handle, "Add", array["named", 17], array["Key", "Item"])
+println(com.get_int(handle, "Count"))
+println(int(exists))
+assert com.release(handle) != 0, "release"

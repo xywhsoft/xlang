@@ -1,0 +1,8 @@
+import clipboard
+
+func main(...) as int
+    assert clipboard.available()
+    string current = clipboard.get_text()
+    assert current == current
+    return 0
+end

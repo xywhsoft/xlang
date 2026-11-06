@@ -1,0 +1,11 @@
+import clipboard
+
+func main(...) as int
+    assert clipboard.available()
+    assert clipboard.format_name(13) == "CF_UNICODETEXT"
+    assert clipboard.format_name(0) == ""
+    assert clipboard.last_error() != ""
+    assert clipboard.count_formats() >= 0
+    assert string.indexOf("a\0b", "\0", false, 3, 1) == 1
+    return 0
+end

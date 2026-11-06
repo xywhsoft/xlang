@@ -1,0 +1,14 @@
+import clipboard
+
+func main(...) as int
+    assert clipboard.get_text() == "before"
+    auto saved = clipboard.snapshot()
+    assert saved.valid()
+    assert clipboard.set_text("temporary")
+    assert saved.restore()
+    assert clipboard.get_text() == "before"
+    assert saved.release()
+    assert clipboard.set_text("after")
+    println("clipboard snapshot ok")
+    return 0
+end

@@ -1,0 +1,12 @@
+import com
+extern "x_com_test_object" func x_com_test_object() as point
+
+point handle = com.attach(x_com_test_object())
+assert com.is_null(handle) == 0, "test COM object"
+
+var result = com.invoke(handle, "Sub", array[9, 4])
+string text = com.get_text(handle, "LongText")
+println(int(result))
+println(string.byteLen(text))
+
+assert com.release(handle) != 0, "release"

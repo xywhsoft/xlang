@@ -1,0 +1,5 @@
+import serial
+
+// 不执行：原生字节写入不能接受包外任意 point 和长度。
+auto port = serial.openLoopback()
+port.writeBytesNative(null, c_size(1))

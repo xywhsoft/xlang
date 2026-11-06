@@ -1,0 +1,54 @@
+import com
+extern "x_com_test_object" func x_com_test_object() as point
+
+func require(bool condition, string message)
+    assert condition, message
+end
+
+require(com.available(), "COM should be available on Windows")
+require(com.version() == "0.1.0", "COM version mismatch")
+
+try
+    com.create("XLang.Demo6.Missing.Com.Object")
+    assert false, "missing COM object should fail"
+catch ValueError
+end
+
+try
+    com.attach(null)
+    assert false, "attach(null) should fail"
+catch ValueError
+end
+
+auto obj = com.attach(x_com_test_object())
+require(com.is_null(obj) == 0, "test COM object should be valid")
+try
+    com.get_text(obj, "missing")
+    assert false, "missing property should fail"
+catch ValueError
+end
+try
+    com.put_var(obj, "Child", com.missing())
+    assert false, "plain property put should fail for Child"
+catch ValueError
+end
+
+var subResult = com.invoke(obj, "Sub", array[9, 4])
+var optionalResult = com.invoke(obj, "OptionalAdd", array[7])
+var namedResult = com.invoke_named(obj, "Sub", array[3, 8], array["left", "right"])
+require(int(subResult) == 5, "dynamic call with positional args failed")
+require(int(optionalResult) == 17, "invoke array optional arg failed")
+require(int(namedResult) == -5, "named arg invoke failed")
+
+auto outValues = com.invoke_out(obj, "Bump", array[41], array[true])
+require(int(outValues[0]) == 42, "byref return value failed")
+require(int(outValues[1]) == 42, "byref output value failed")
+
+require(com.put_ref(obj, "Child", com.missing()) != 0, "property putref failed")
+var hasChild = com.invoke(obj, "HasChild", array[])
+require(int(hasChild) != 0, "property putref state failed")
+require(com.get_text(obj, "HasChild") != "", "text conversion failed")
+require(com.get_int(obj, "HasChild") != 0, "int conversion failed")
+require(com.release(obj) != 0, "test COM object release failed")
+
+println("com extlib ok")

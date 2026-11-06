@@ -1,0 +1,13 @@
+import serial
+
+func main(...) as int
+    try
+        serial.open("XLANG_SERIAL_NO_SUCH_DEVICE_91D783AB")
+    catch IOError error
+        println(error.kind)
+        println(error.domain)
+        println(error.operation)
+        return 0
+    end
+    return 1
+end

@@ -1,0 +1,22 @@
+import redis
+
+// 只检查已收到的帧头，不申请其声明的大块正文；畸形输入不能继续等收包。
+func inspect(string label, string header, bool invalid)
+    string state = "waiting"
+    try
+        assert not redis.isComplete(header)
+        assert not invalid
+    catch ValueError error
+        assert invalid and error.message == "RESP reply is malformed"
+        state = "rejected"
+    end
+    println(label + "=" + state)
+end
+
+func main(...) as int
+    inspect("single_pending", "*1\r\n$67108847\r\n", false)
+    inspect("siblings_pending", "*2\r\n$67108844\r\n", false)
+    inspect("siblings_overflow", "*2\r\n$67108845\r\n", true)
+    inspect("nested_overflow", "*2\r\n*2\r\n$67108838\r\n", true)
+    return 0
+end
