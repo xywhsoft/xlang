@@ -1,0 +1,4 @@
+export extern "read_view_probe" func probe(var words, var options) as int
+export extern "read_view_reenter" func reenter(var words) as int
+export extern "read_view_address" func address() as point
+export extern "read_view_pointer_probe" func pointers(var values, point expected) as int

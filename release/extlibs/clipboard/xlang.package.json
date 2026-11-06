@@ -6,6 +6,7 @@
     "kind":  "demo6-extlib",
     "artifact":  {
                      "kind":  "source",
+        "runtimeSymbols": ["xlValueBorrowV1", "xlValueReadBeginV1", "xlValueReadEndV1", "xlValueReadAtV1"],
                      "cSources":  [
                                       "clipboard_native.c"
                                   ],

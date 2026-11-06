@@ -8,6 +8,7 @@
 #define XRT_MODULE_VALUE_CONTAINER
 #endif
 #include "xrt.h"
+#include <xl_value_read.h>
 
 #include "internal/com_ole.h"
 
@@ -339,6 +340,37 @@ static int x_com_variant_from_xvalue(VARIANT* dst, const xvalue* value)
 		x_com_set_error("unsupported COM argument type");
 		return 0;
 	}
+}
+
+/* Native POD/text slots are observed inline; no intermediate xvalue exists. */
+static int x_com_variant_from_borrow(VARIANT* dst, XL_ValueBorrowV1 value)
+{
+    VariantInit(dst);
+    switch (value.kind) {
+    case XVALUE_NULL: dst->vt = VT_EMPTY; return 1;
+    case XVALUE_BOOL:
+        dst->vt = VT_BOOL; dst->boolVal = value.data.boolean ? VARIANT_TRUE : VARIANT_FALSE; return 1;
+    case XVALUE_INT:
+        if (value.data.integer >= LONG_MIN && value.data.integer <= LONG_MAX) {
+            dst->vt = VT_I4; dst->lVal = (LONG)value.data.integer;
+        } else { dst->vt = VT_I8; dst->llVal = value.data.integer; }
+        return 1;
+    case XVALUE_FLOAT: dst->vt = VT_R8; dst->dblVal = value.data.number; return 1;
+    case XVALUE_STRING:
+        if (value.data.text.Size > INT_MAX) { x_com_set_error("COM string is too long"); return 0; }
+        dst->vt = VT_BSTR;
+        dst->bstrVal = x_com_bstr_from_utf8_slice(value.data.text.Data, (int)value.data.text.Size);
+        return dst->bstrVal != NULL;
+    case XVALUE_POINTER: {
+        ptr raw = NULL;
+        raw = (ptr)(uintptr_t)value.data.unsignedInteger;
+        if (raw == (void*)&g_x_com_missing_sentinel) { dst->vt = VT_ERROR; dst->scode = DISP_E_PARAMNOTFOUND; }
+        else if (raw) { dst->vt = VT_DISPATCH; dst->pdispVal = raw; dst->pdispVal->lpVtbl->AddRef(dst->pdispVal); }
+        else dst->vt = VT_EMPTY;
+        return 1;
+    }
+    default: x_com_set_error("unsupported COM argument type"); return 0;
+    }
 }
 
 static int x_com_put_var_variant(IDispatch* dispatch, const char* name, const xvalue* value)
@@ -1005,34 +1037,20 @@ XL_EXPORT void* x_com_missing(void)
 	return (void*)&g_x_com_missing_sentinel;
 }
 
-static int x_com_value_truthy(const xvalue* pValue)
+static int x_com_value_truthy(XL_ValueBorrowV1 value)
 {
-	xvaluetype Type = xrtValueType(pValue);
-	bool bValue;
-	int64 iValue;
-	double fValue;
-	xstrview Text;
-
-	if ( Type == XVALUE_NULL ) {
-		return 0;
-	}
-	if ( Type == XVALUE_BOOL ) {
-		return xrtValueGetBool(pValue, &bValue) && bValue;
-	}
-	if ( Type == XVALUE_INT ) {
-		return xrtValueGetInt(pValue, &iValue) && iValue != 0;
-	}
-	if ( Type == XVALUE_FLOAT ) {
-		return xrtValueGetFloat(pValue, &fValue) && fValue != 0.0;
-	}
-	if ( Type == XVALUE_STRING ) {
-		return xrtValueGetString(pValue, &Text) && Text.Size != 0u;
-	}
-	return 1;
+    switch (value.kind) {
+    case XVALUE_NULL: return 0;
+    case XVALUE_BOOL: return value.data.boolean;
+    case XVALUE_INT: return value.data.integer != 0;
+    case XVALUE_FLOAT: return value.data.number != 0.0;
+    case XVALUE_STRING: return value.data.text.Size != 0;
+    default: return 1;
+    }
 }
 
 static int x_com_resolve_call_names(IDispatch* dispatch, const char* method,
-	const xvalue* names_value, size_t count, size_t* destinations,
+	const XL_ValueReadV1* names_value, size_t count, size_t* destinations,
 	DISPID* method_id, DISPID* named_ids, UINT* named_count)
 {
 	BSTR names[65] = { 0 };
@@ -1054,16 +1072,17 @@ static int x_com_resolve_call_names(IDispatch* dispatch, const char* method,
 		return 0;
 	}
 	for ( i = 0u; i < count; ++i ) {
-		const xvalue* item = names_value != NULL ? xrtValueArrayGet(names_value, i) : NULL;
+		XL_ValueBorrowV1 item = names_value != NULL ? xlValueReadAtV1(names_value, i, NULL) : (XL_ValueBorrowV1){0};
 		xstrview text;
-		if ( item == NULL || xrtValueType(item) == XVALUE_NULL ) {
+		if ( item.kind == XVALUE_NULL ) {
 			destinations[i] = SIZE_MAX;
 			continue;
 		}
-		if ( !xrtValueGetString(item, &text) ) {
+		if ( item.kind != XVALUE_STRING ) {
 			x_com_set_error("named argument must be a string or null");
 			goto done;
 		}
+		text = item.data.text;
 		if ( text.Size == 0u ) {
 			destinations[i] = SIZE_MAX;
 			continue;
@@ -1130,46 +1149,53 @@ static xvalue* x_com_invoke_array_internal(
 	UINT named_count = 0u;
 	HRESULT hr;
 	xvalue* pOutput;
+	XL_ValueReadV1 scopes[3] = {0};
+	XL_ValueReadV1 *args = NULL, *names = NULL, *byRefs = NULL;
 
 	if ( !x_com_check_handle(object) ) {
 		return xrtValueNull();
 	}
-	iCount = pArgs != NULL ? xrtValueCount(pArgs) : 0u;
-	if ( pArgs != NULL && xrtValueType(pArgs) != XVALUE_ARRAY ) {
-		x_com_set_error("arguments must be an array");
-		return xrtValueNull();
+	for (i = 0; i < 64; ++i) { VariantInit(&invoke_args[i]); VariantInit(&holders[i]); }
+	if (pArgs != NULL) {
+		if (!xlValueReadBeginV1(xlValueBorrowV1(pArgs), &scopes[0]) || scopes[0].kind != XVALUE_ARRAY) {
+			x_com_set_error("arguments must be an array"); goto fail;
+		}
+		args = &scopes[0];
 	}
-	if ( iCount > 64u ) {
-		x_com_set_error("unsupported argument count");
-		return xrtValueNull();
+	iCount = args ? args->count : 0;
+	if (iCount > 64) { x_com_set_error("unsupported argument count"); goto fail; }
+	if (pNames != NULL) {
+		if (pNames == pArgs) names = args;
+		else if (xlValueReadBeginV1(xlValueBorrowV1(pNames), &scopes[1])) names = &scopes[1];
+		if (!names || names->kind != XVALUE_ARRAY || names->count != iCount) {
+			x_com_set_error("named arguments must match argument count"); goto fail;
+		}
 	}
-	if ( pNames != NULL &&
-		(xrtValueType(pNames) != XVALUE_ARRAY || xrtValueCount(pNames) != iCount) ) {
-		x_com_set_error("named arguments must match argument count");
-		return xrtValueNull();
-	}
-	if ( pByRefs != NULL &&
-		(xrtValueType(pByRefs) != XVALUE_ARRAY || xrtValueCount(pByRefs) != iCount) ) {
-		x_com_set_error("byref flags must match argument count");
-		return xrtValueNull();
+	if (pByRefs != NULL) {
+		if (pByRefs == pArgs) byRefs = args;
+		else if (pByRefs == pNames) byRefs = names;
+		else if (xlValueReadBeginV1(xlValueBorrowV1(pByRefs), &scopes[2])) byRefs = &scopes[2];
+		if (!byRefs || byRefs->kind != XVALUE_ARRAY || byRefs->count != iCount) {
+			x_com_set_error("byref flags must match argument count"); goto fail;
+		}
 	}
 	memset(named_ids, 0, sizeof(named_ids));
 	for ( i = 0u; i < 64u; ++i ) {
 		VariantInit(&invoke_args[i]);
 		VariantInit(&holders[i]);
 	}
-	if ( !x_com_resolve_call_names(object->dispatch, name, pNames, iCount,
+	if ( !x_com_resolve_call_names(object->dispatch, name, names, iCount,
 		destinations, &dispid, named_ids, &named_count) ) {
 		goto fail;
 	}
 	for ( i = 0u; i < iCount; ++i ) {
 		size_t iDestination = destinations[i];
-		const xvalue* pItem = pArgs != NULL ? xrtValueArrayGet(pArgs, i) : NULL;
-		const xvalue* pByRef = pByRefs != NULL ? xrtValueArrayGet(pByRefs, i) : NULL;
+		XL_ValueBorrowV1 pItem = args ? xlValueReadAtV1(args, i, NULL) : (XL_ValueBorrowV1){0};
+		XL_ValueBorrowV1 pByRef = byRefs ? xlValueReadAtV1(byRefs, i, NULL) : (XL_ValueBorrowV1){0};
 		if ( iDestination == SIZE_MAX ) {
 			iDestination = iCount - 1u - positional_count++;
 		}
-		if ( !x_com_variant_from_xvalue(&holders[i], pItem) ) {
+		if ( !x_com_variant_from_borrow(&holders[i], pItem) ) {
 			goto fail;
 		}
 		if ( x_com_value_truthy(pByRef) ) {
@@ -1217,6 +1243,7 @@ static xvalue* x_com_invoke_array_internal(
 		VariantClear(&invoke_args[i]);
 		VariantClear(&holders[i]);
 	}
+	for (size_t at = 3; at > 0; --at) (void)xlValueReadEndV1(&scopes[at - 1]);
 	return pOutput;
 
 fail:
@@ -1224,6 +1251,7 @@ fail:
 		VariantClear(&invoke_args[i]);
 		VariantClear(&holders[i]);
 	}
+	for (size_t at = 3; at > 0; --at) (void)xlValueReadEndV1(&scopes[at - 1]);
 	return xrtValueNull();
 }
 
