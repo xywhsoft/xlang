@@ -1,0 +1,21 @@
+// 点击“文件”展开菜单；选择项目后，下方显示命令编号。
+import xui
+from "./_window.xl" import Window
+
+Window.show("菜单栏", func(xui.Context ui, xui.Widget root)
+ auto result = ui.labelNative()
+ result.setText("请选择文件菜单中的命令")
+ Window.place(root, result, 24, 100, 640, 32)
+
+ auto fileMenu = ui.menuNative()
+ fileMenu.addItem("新建", value = 1)
+ fileMenu.addItem("打开", value = 2)
+ fileMenu.addItem("保存", value = 3)
+
+ auto bar = ui.menuBarNative()
+ Window.place(root, bar, 24, 24, 640, 44)
+ bar.addItem("文件", fileMenu, 0)
+ bar.setSelect(func(xui.Widget sender, c_int index, c_int value)
+  result.setText("命令编号："+string(int(value)))
+ end)
+end)

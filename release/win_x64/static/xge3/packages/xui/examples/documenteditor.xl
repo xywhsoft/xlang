@@ -1,0 +1,24 @@
+// 点击文档编辑文字；事务先创建初始段落，编辑器随后持有文档。
+import xui
+from "./_window.xl" import Window
+
+Window.show("文档编辑器", func(xui.Context ui, xui.Widget root)
+ auto document = xui.createDocument()
+ try
+  auto transaction = document.beginTransaction()
+  try
+   uint64 paragraph = transaction.insertNode(uint64(1), xui.XUI_DOCUMENT_APPEND, c_uint(xui.XUI_DOC_PARAGRAPH))
+   transaction.insertNode(paragraph, xui.XUI_DOCUMENT_APPEND, c_uint(xui.XUI_DOC_TEXT), text = "在这里输入文字，试试选择、撤销和重做。")
+   auto changes = transaction.commit()
+   changes.close()
+  finally
+   transaction.close()
+  end
+
+  auto editor = xui.createDocumentEditor(ui, document)
+  Window.place(root, editor, 24, 24, 680, 360)
+ finally
+  // 编辑器保留原生文档引用；这里释放创建者自己的引用。
+  document.close()
+ end
+end)

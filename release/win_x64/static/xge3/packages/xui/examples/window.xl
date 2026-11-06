@@ -1,24 +1,14 @@
-// Window / move and resize. Run from release/<platform>; Escape or close exits.
+// 拖动子窗口标题，或调整其边缘；窗口内有一个按钮。
 import xui
-import "./_support.xl" as demo
+from "./_window.xl" import Window
 
-export class WindowExample
- static func build(xui.Context context,xui.Widget root,xui.Proxy proxy) as xui.Widget
-  demo.Gallery.label(context,root,"Window / move and resize",24,16)
-  auto control=context.windowNative()
-  // Window opens on the Context floating layer, outside the ordinary page tree.
-  assert control.setRect(demo.Gallery.rect(24,64,640,260))==0
-  control.setTitle("Movable child window")
-  control.setDragAnywhere(c_int(1))
-  auto button=context.buttonNative()
-  button.setText("A normal child")
-  demo.Gallery.place(control,button,30,64,220,44)
-  return control
- end
-end
-
-func main(...) as int
- return demo.Gallery.run("Window / move and resize",func(xui.Context context,xui.Widget root,xui.Proxy proxy)
-  WindowExample.build(context,root,proxy)
- end)
-end
+Window.show("Window / move and resize", func(xui.Context ui, xui.Widget root)
+ auto window = ui.windowNative()
+ // Window opens on the Context floating layer, outside the ordinary page tree.
+ window.setRect(Window.rect(24, 64, 640, 260))
+ window.setTitle("Movable child window")
+ window.setDragAnywhere(1)
+ auto button = ui.buttonNative()
+ button.setText("A normal child")
+ Window.place(window, button, 30, 64, 220, 44)
+end)

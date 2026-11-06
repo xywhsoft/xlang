@@ -1,0 +1,12 @@
+// Widget 是透明的布局节点；移动 group 的位置会一起移动它的子控件。
+import xui
+from "./_window.xl" import Window
+
+Window.show("基础 Widget", func(xui.Context ui, xui.Widget root)
+ auto group = ui.widget()
+ Window.place(root, group, 24, 24, 400, 160)
+
+ auto button = ui.buttonNative()
+ button.setText("我位于 group 内部的 (20, 20)")
+ Window.place(group, button, 20, 20, 340, 44)
+end)

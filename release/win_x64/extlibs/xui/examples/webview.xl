@@ -1,0 +1,34 @@
+// 只加载内存中的 HTML，不访问网站。需启用 WebView2 的 Windows 后端。
+import xui
+from "./_window.xl" import Window
+
+Window.show("本地 HTML", func(xui.Context ui, xui.Widget root)
+ auto status = ui.labelNative()
+ status.setText("正在初始化浏览器后端……")
+ Window.place(root, status, 24, 24, 700, 32)
+
+ auto browser = ui.webView()
+ Window.place(root, browser, 24, 80, 700, 360)
+ c_int result = browser.initializeAsync()
+ if result != 0 then
+  status.setText("浏览器后端不可用，错误码："+string(int(result)))
+ else
+  bool loaded = false
+  root.setUpdateCallback(func(xui.Widget sender, c_float delta) as c_int
+   if not loaded and browser.getState() == xui.XUI_WEBVIEW_FAILED then
+    loaded = true
+    status.setText("浏览器初始化失败："+string(int(browser.getNativeError())))
+   end
+   if not loaded and browser.getState() == xui.XUI_WEBVIEW_READY then
+    loaded = true
+    c_int htmlResult = browser.loadHtml("<!doctype html><meta charset='utf-8'><h1>你好，xlang！</h1><p>这段 HTML 来自示例源码。</p>")
+    if htmlResult == 0 then
+     status.setText("页面来自内存，没有网络请求")
+    else
+     status.setText("页面加载失败："+string(int(htmlResult)))
+    end
+   end
+   return c_int(0)
+  end)
+ end
+end)

@@ -3,9 +3,11 @@ import xge
 import xui
 from xui import Surface,Font
 
-export typedef Build = func(xui.Context,xui.Widget,xui.Proxy)
+export typedef Build = func(xui.Context,xui.Widget)
 
-export class Gallery
+export typedef BuildWithProxy = func(xui.Context,xui.Widget,xui.Proxy)
+
+export class Window
  static func rect(int x,int y,int width,int height) as xui.Rect
   auto result=xui.Rect()
   result.fX=c_int(x)
@@ -16,34 +18,29 @@ export class Gallery
  end
 
  static func place(xui.Widget parent,xui.Widget child,int x,int y,int width,int height)
-  assert child.setRect(Gallery.rect(x,y,width,height))==0
+  assert child.setRect(Window.rect(x,y,width,height))==0
   assert parent.addChild(child)==0
  end
 
  // Native Panel/Window insertion targets their client, not the raw Widget.
  static func place(xui.Panel parent,xui.Widget child,int x,int y,int width,int height)
-  assert child.setRect(Gallery.rect(x,y,width,height))==0
+  assert child.setRect(Window.rect(x,y,width,height))==0
   assert parent.addChild(child)==0
  end
 
  static func place(xui.Window parent,xui.Widget child,int x,int y,int width,int height)
-  assert child.setRect(Gallery.rect(x,y,width,height))==0
+  assert child.setRect(Window.rect(x,y,width,height))==0
   assert parent.addChild(child)==0
  end
 
- static func label(xui.Context context,xui.Widget parent,string text,int x,int y,int width=640)
-  auto value=context.labelNative()
-  value.setText(text)
-  Gallery.place(parent,value,x,y,width,28)
+ // The initializer runs once, after the graphics backend and font are ready.
+ static func show(string title,Build build) as int
+  return Window.showWithProxy(title,func(xui.Context ui,xui.Widget root,xui.Proxy proxy)
+   build(ui,root)
+  end)
  end
 
- static func label(xui.Context context,xui.Panel parent,string text,int x,int y,int width=640)
-  auto value=context.labelNative()
-  value.setText(text)
-  Gallery.place(parent,value,x,y,width,28)
- end
-
- static func run(string title,Build build) as int
+ static func showWithProxy(string title,BuildWithProxy build) as int
   int frameLimit=0
   auto dumpPath=env.get("XUI_EXAMPLE_DUMP")
   auto requested=env.get("XUI_EXAMPLE_FRAMES")
@@ -53,7 +50,6 @@ export class Gallery
   end
   xge.initNative()
   try
-   xge.setTitle("xlang XUI - "+title)
    auto proxy=xui.createProxy()
    try
     auto context=xui.create(proxy)
@@ -76,8 +72,9 @@ export class Gallery
         return c_int(0)
        end
        context.setViewportSize(c_int(w),c_int(h))
-       assert root.setRect(Gallery.rect(0,0,w,h))==0
+       assert root.setRect(Window.rect(0,0,w,h))==0
        if not ready then
+        xge.setTitle("xlang XUI - "+title)
         string fontPath="data/fonts/Consolas-with-Yahei_Nerd_Font.ttf"
         auto overridePath=env.get("XUI_EXAMPLE_FONT")
         if overridePath!=null then fontPath=overridePath as string end
@@ -101,8 +98,6 @@ export class Gallery
          previous.close()
         end
         target=proxy.createSurfaceRGBA(c_int(w),c_int(h),flags=c_uint(xui.XUI_SURFACE_USAGE_TARGET))
-        proxy.clearSurface(target,0xF4F6FAFF)
-        assert context.invalidateAll()==0
         width=w
         height=h
        end
@@ -110,6 +105,10 @@ export class Gallery
        assert context.dispatchPendingEvents()==0
        assert context.layout()==0
        assert context.update(xge.getDelta())==0
+       // Clear the offscreen target, then compose the full viewport from caches.
+       // invalidateAll() marks damage only; it does not invalidate widget caches.
+       proxy.clearSurface(target,0xF4F6FAFF)
+       assert context.invalidateAll()==0
        context.render(target as Surface)
        if frames==0 or frameLimit>0 then
         auto statistics=context.getRenderStats()
@@ -125,7 +124,7 @@ export class Gallery
         println("RGBA "+string(w)+" "+string(h))
        end
        xge.clear(0xF4F6FAFF)
-       proxy.drawSurface(target as Surface,Gallery.rect(0,0,w,h),Gallery.rect(0,0,w,h),0xFFFFFFFF,c_uint(xui.XUI_SURFACE_DRAW_SCREEN_SPACE))
+       proxy.drawSurface(target as Surface,Window.rect(0,0,w,h),Window.rect(0,0,w,h),0xFFFFFFFF,c_uint(xui.XUI_SURFACE_DRAW_SCREEN_SPACE))
        assert xge.nativeEnd()==0
        frames+=1
        if xge.keyPressed(xge.XGE_KEY_ESCAPE)!=0 or (frameLimit>0 and frames>=frameLimit) then

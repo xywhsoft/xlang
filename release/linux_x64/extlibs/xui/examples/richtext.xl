@@ -1,30 +1,23 @@
-// Rich text / current Document View model. Run from release/<platform>; Escape or close exits.
+// 显示并选择文档中的文字。
 import xui
-import "./_support.xl" as demo
+from "./_window.xl" import Window
 
-export class RichtextExample
- static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
-  demo.Gallery.label(context,root,"Rich text / current Document View model",24,16)
-  auto document=xui.createDocument()
+Window.show("Rich text / current Document View model", func(xui.Context ui, xui.Widget root)
+ auto document = xui.createDocument()
+ try
+  auto transaction = document.beginTransaction()
   try
-   auto transaction=document.beginTransaction()
-   try
-    uint64 paragraph=transaction.insertNode(uint64(1),xui.XUI_DOCUMENT_APPEND,c_uint(2))
-    transaction.insertNode(paragraph,xui.XUI_DOCUMENT_APPEND,c_uint(4),text="Rich text in the current Document model. Select this UTF-8 text: 你好！")
-    auto changes=transaction.commit()
-    changes.close()
-   finally
-    transaction.close()
-   end
-   auto view=xui.createDocumentView(context,document)
-   demo.Gallery.place(root,view,24,64,680,320)
+   uint64 paragraph = transaction.insertNode(uint64(1), xui.XUI_DOCUMENT_APPEND, c_uint(xui.XUI_DOC_PARAGRAPH))
+   transaction.insertNode(paragraph, xui.XUI_DOCUMENT_APPEND, c_uint(xui.XUI_DOC_TEXT), text = "Rich text in the current Document model. Select this UTF-8 text: 你好！")
+   auto changes = transaction.commit()
+   changes.close()
   finally
-   // The View retains the Document; no legacy RichText wrapper exists.
-   document.close()
+   transaction.close()
   end
+  auto view = xui.createDocumentView(ui, document)
+  Window.place(root, view, 24, 24, 680, 320)
+ finally
+  // The View retains the Document; no legacy RichText wrapper exists.
+  document.close()
  end
-end
-
-func main(...) as int
- return demo.Gallery.run("Rich text / current Document View model",RichtextExample.build)
-end
+end)

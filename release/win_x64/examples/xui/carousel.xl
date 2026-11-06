@@ -1,24 +1,19 @@
-// Carousel / page navigation. Run from release/<platform>; Escape or close exits.
+// 用左右箭头切换三张页面。
 import xui
-import "./_support.xl" as demo
+from "./_window.xl" import Window
 
-export class CarouselExample
- static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
-  demo.Gallery.label(context,root,"Carousel / page navigation",24,16)
-  auto control=context.carouselNative()
-  demo.Gallery.place(root,control,24,64,640,260)
-  assert control.setPageCount(c_int(3))==0
-  for i in range(0,3)
-   auto page=context.widget()
-   assert page.setRect(demo.Gallery.rect(0,0,600,240))==0
-   page.setSizeMode(xui.XUI_SIZE_FILL,xui.XUI_SIZE_FILL)
-   demo.Gallery.label(context,page,"Slide "+string(i+1),40,80,400)
-   assert control.addPageChild(c_int(i),page)==0
-  end
-  assert control.setCurrent(c_int(0),c_int(0))==0
+Window.show("Carousel / page navigation", func(xui.Context ui, xui.Widget root)
+ auto carousel = ui.carouselNative()
+ Window.place(root, carousel, 24, 24, 640, 260)
+ carousel.setPageCount(3)
+ for i in range(0, 3)
+  auto page = ui.widget()
+  page.setRect(Window.rect(0, 0, 600, 240))
+  page.setSizeMode(xui.XUI_SIZE_FILL, xui.XUI_SIZE_FILL)
+  auto label = ui.labelNative()
+  label.setText("Slide "+string(i+1))
+  Window.place(page, label, 40, 80, 400, 28)
+  carousel.addPageChild(c_int(i), page)
  end
-end
-
-func main(...) as int
- return demo.Gallery.run("Carousel / page navigation",CarouselExample.build)
-end
+ carousel.setCurrent(0, 0)
+end)

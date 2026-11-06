@@ -1,28 +1,21 @@
-// Basic controls / interactive state. Run from release/<platform>; Escape or close exits.
+// 按钮修改下方文字；复选框和开关可直接点击。
 import xui
-import "./_support.xl" as demo
+from "./_window.xl" import Window
 
-export class BasicExample
- static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
-  demo.Gallery.label(context,root,"Basic controls / interactive state",24,16)
-  auto button=context.buttonNative()
-  button.setText("Click to change the label")
-  demo.Gallery.place(root,button,24,64,300,44)
-  auto status=context.labelNative()
-  status.setText("Waiting for a click")
-  demo.Gallery.place(root,status,24,124,480,32)
-  button.setClick(func(xui.Widget source)
-   status.setText("The typed callback ran")
-  end)
-  auto check=context.checkBoxNative()
-  check.setText("Enable feature")
-  demo.Gallery.place(root,check,24,180,300,44)
-  auto toggle=context.toggleNative()
-  toggle.setText("Live preview")
-  demo.Gallery.place(root,toggle,24,240,300,44)
- end
-end
-
-func main(...) as int
- return demo.Gallery.run("Basic controls / interactive state",BasicExample.build)
-end
+Window.show("Basic controls / interactive state", func(xui.Context ui, xui.Widget root)
+ auto button = ui.buttonNative()
+ button.setText("Click to change the label")
+ Window.place(root, button, 24, 64, 300, 44)
+ auto status = ui.labelNative()
+ status.setText("Waiting for a click")
+ Window.place(root, status, 24, 124, 480, 32)
+ button.setClick(func(xui.Widget source)
+  status.setText("The typed callback ran")
+ end)
+ auto check = ui.checkBoxNative()
+ check.setText("Enable feature")
+ Window.place(root, check, 24, 180, 300, 44)
+ auto toggle = ui.toggleNative()
+ toggle.setText("Live preview")
+ Window.place(root, toggle, 24, 240, 300, 44)
+end)

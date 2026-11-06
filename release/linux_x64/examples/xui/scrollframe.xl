@@ -1,0 +1,17 @@
+// ScrollFrame 提供视口和滚动条；文字放在视口中，内容高度为 900。
+import xui
+from xui import Widget
+from "./_window.xl" import Window
+
+Window.show("滚动框架", func(xui.Context ui, xui.Widget root)
+ auto frame = ui.scrollFrame()
+ Window.place(root, frame, 24, 24, 640, 320)
+ frame.setContentSize(640, 900)
+ auto viewport = frame.getViewportWidget() as Widget
+
+ for row in range(0, 12)
+  auto label = ui.labelNative()
+  label.setText("第 "+string(row+1)+" 行")
+  Window.place(viewport, label, 20, 20+row*70, 560, 32)
+ end
+end)

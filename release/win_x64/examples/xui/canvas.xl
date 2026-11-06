@@ -1,20 +1,13 @@
-// Canvas / persistent drawing and pen. Run from release/<platform>; Escape or close exits.
+// 橙色矩形、绿色圆形；按住鼠标在画布中画线。
 import xui
-import "./_support.xl" as demo
+from "./_window.xl" import Window
 
-export class CanvasExample
- static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
-  demo.Gallery.label(context,root,"Canvas / persistent drawing and pen",24,16)
-  auto control=context.canvas()
-  demo.Gallery.place(root,control,24,64,640,360)
-  control.setCanvasSize(c_float(640),c_float(360))
-  assert control.clear(c_uint(0x302820FF))==0
-  assert control.drawRectFill(demo.Gallery.rect(30,30,160,90),c_uint(0xE89632FF))==0
-  assert control.drawCircleFill(c_float(320),c_float(100),c_float(55),c_uint(0x50B890FF))==0
-  control.setPen(c_int(1),c_float(3),c_uint(0xFFFFFFFF))
- end
-end
-
-func main(...) as int
- return demo.Gallery.run("Canvas / persistent drawing and pen",CanvasExample.build)
-end
+Window.show("Canvas / persistent drawing and pen", func(xui.Context ui, xui.Widget root)
+ auto canvas = ui.canvas()
+ Window.place(root, canvas, 24, 24, 640, 360)
+ canvas.setCanvasSize(640, 360)
+ canvas.clear(c_uint(0x302820FF))
+ canvas.drawRectFill(Window.rect(30, 30, 160, 90), c_uint(0xE89632FF))
+ canvas.drawCircleFill(320, 100, 55, c_uint(0x50B890FF))
+ canvas.setPen(1, 3, c_uint(0xFFFFFFFF))
+end)

@@ -1,19 +1,19 @@
-// Progress / change the value. Run from release/<platform>; Escape or close exits.
+// 点击按钮增加进度；超过 100% 后从 0 开始。
 import xui
-import "./_support.xl" as demo
+from "./_window.xl" import Window
 
-export class ProgressExample
- static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
-  demo.Gallery.label(context,root,"Progress / change the value",24,16)
-  auto control=context.progressNative()
-  demo.Gallery.place(root,control,24,64,640,44)
-  control.setRange(c_float(0),c_float(100))
-  control.setValue(c_float(65))
-  control.setTextTemplate("{value}%")
-  assert control.getValue()==c_float(65)
- end
-end
-
-func main(...) as int
- return demo.Gallery.run("Progress / change the value",ProgressExample.build)
-end
+Window.show("Progress / change the value", func(xui.Context ui, xui.Widget root)
+ auto progress = ui.progressNative()
+ Window.place(root, progress, 24, 24, 640, 44)
+ progress.setRange(0, 100)
+ progress.setValue(65)
+ progress.setTextTemplate("{value}%")
+ auto advance = ui.buttonNative()
+ advance.setText("增加 10%")
+ Window.place(root, advance, 24, 100, 220, 44)
+ advance.setClick(func(xui.Widget sender)
+  auto value = progress.getValue()+10
+  if value>100 then value = 0 end
+  progress.setValue(value)
+ end)
+end)

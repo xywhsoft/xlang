@@ -1,23 +1,20 @@
-// Split layout / draggable divider. Run from release/<platform>; Escape or close exits.
+// 拖动中间的分隔条，改变左右区域的宽度。
 import xui
-import "./_support.xl" as demo
+from "./_window.xl" import Window
 
-export class SplitlayoutExample
- static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
-  demo.Gallery.label(context,root,"Split layout / draggable divider",24,16)
-  auto control=context.splitLayout()
-  demo.Gallery.place(root,control,24,64,640,320)
-  auto left=context.widget()
-  auto right=context.widget()
-  left.setSizeMode(xui.XUI_SIZE_FILL,xui.XUI_SIZE_FILL)
-  right.setSizeMode(xui.XUI_SIZE_FILL,xui.XUI_SIZE_FILL)
-  demo.Gallery.label(context,left,"Left pane",16,24,280)
-  demo.Gallery.label(context,right,"Right pane",16,24,280)
-  assert control.addPaneChild(c_int(0),left)==0
-  assert control.addPaneChild(c_int(1),right)==0
- end
-end
-
-func main(...) as int
- return demo.Gallery.run("Split layout / draggable divider",SplitlayoutExample.build)
-end
+Window.show("Split layout / draggable divider", func(xui.Context ui, xui.Widget root)
+ auto split = ui.splitLayout()
+ Window.place(root, split, 24, 24, 640, 320)
+ auto left = ui.widget()
+ auto right = ui.widget()
+ left.setSizeMode(xui.XUI_SIZE_FILL, xui.XUI_SIZE_FILL)
+ right.setSizeMode(xui.XUI_SIZE_FILL, xui.XUI_SIZE_FILL)
+ auto label = ui.labelNative()
+ label.setText("Left pane")
+ Window.place(left, label, 16, 24, 280, 28)
+ auto label2 = ui.labelNative()
+ label2.setText("Right pane")
+ Window.place(right, label2, 16, 24, 280, 28)
+ split.addPaneChild(0, left)
+ split.addPaneChild(1, right)
+end)

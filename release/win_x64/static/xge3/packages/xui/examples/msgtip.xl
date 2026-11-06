@@ -1,0 +1,13 @@
+// 点击按钮，短提示显示两秒后自行消失。
+import xui
+from "./_window.xl" import Window
+
+Window.show("短提示", func(xui.Context ui, xui.Widget root)
+ auto tip = xui.createMsgTip(ui)
+ auto show = ui.buttonNative()
+ show.setText("显示提示")
+ Window.place(root, show, 24, 24, 220, 44)
+ show.setClick(func(xui.Widget sender)
+  tip.show(0, "操作完成", 2)
+ end)
+end)

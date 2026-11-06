@@ -1,18 +1,16 @@
-// Slider / drag the knob. Run from release/<platform>; Escape or close exits.
+// 拖动滑块，调整 0 到 100 之间的数值。
 import xui
-import "./_support.xl" as demo
+from "./_window.xl" import Window
 
-export class SliderExample
- static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
-  demo.Gallery.label(context,root,"Slider / drag the knob",24,16)
-  auto control=context.slider()
-  demo.Gallery.place(root,control,24,64,640,44)
-  control.setRange(c_float(0),c_float(100))
-  assert control.setValue(c_float(35))==0
-  assert control.getValue()==c_float(35)
- end
-end
-
-func main(...) as int
- return demo.Gallery.run("Slider / drag the knob",SliderExample.build)
-end
+Window.show("Slider / drag the knob", func(xui.Context ui, xui.Widget root)
+ auto slider = ui.slider()
+ Window.place(root, slider, 24, 24, 640, 44)
+ slider.setRange(0, 100)
+ slider.setValue(35)
+ auto value = ui.labelNative()
+ value.setText("当前值：35")
+ Window.place(root, value, 24, 100, 640, 32)
+ slider.setChange(func(xui.Widget sender, c_float selected)
+  value.setText("当前值："+string(float(selected)))
+ end)
+end)

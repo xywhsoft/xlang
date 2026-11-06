@@ -1,21 +1,16 @@
-// Radio / exclusive choice. Run from release/<platform>; Escape or close exits.
+// RadioGroup 管理互斥关系；两个 Radio 负责显示各自的文字和圆点。
 import xui
-import "./_support.xl" as demo
+from "./_window.xl" import Window
 
-export class RadioExample
- static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
-  demo.Gallery.label(context,root,"Radio / exclusive choice",24,16)
-  auto control=context.radioNative()
-  demo.Gallery.place(root,control,24,64,640,44)
-  control.setText("First option")
-  assert control.setChecked(c_int(1))==0
-  auto second=context.radioNative()
-  second.setText("Second option")
-  demo.Gallery.place(root,second,24,124,300,44)
-  assert control.getChecked()!=0
- end
-end
-
-func main(...) as int
- return demo.Gallery.run("Radio / exclusive choice",RadioExample.build)
-end
+Window.show("Radio / exclusive choice", func(xui.Context ui, xui.Widget root)
+ auto group = ui.radioGroup()
+ Window.place(root, group, 24, 24, 640, 160)
+ group.setOrientation(xui.XUI_RADIO_GROUP_VERTICAL)
+ auto radio = ui.radioNative()
+ radio.setText("First option")
+ group.addRadio(radio)
+ auto second = ui.radioNative()
+ second.setText("Second option")
+ group.addRadio(second)
+ group.setSelectedIndex(0)
+end)

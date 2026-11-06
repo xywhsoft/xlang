@@ -1,19 +1,11 @@
-// Checkbox / three-state selection. Run from release/<platform>; Escape or close exits.
+// 点击复选框，在三个选中状态之间切换。
 import xui
-import "./_support.xl" as demo
+from "./_window.xl" import Window
 
-export class CheckboxExample
- static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
-  demo.Gallery.label(context,root,"Checkbox / three-state selection",24,16)
-  auto control=context.checkBoxNative()
-  demo.Gallery.place(root,control,24,64,640,44)
-  control.setText("Enable notifications")
-  assert control.setChecked(c_int(1))==0
-  control.setAutoThreeState(c_int(1))
-  assert control.getChecked()!=0
- end
-end
-
-func main(...) as int
- return demo.Gallery.run("Checkbox / three-state selection",CheckboxExample.build)
-end
+Window.show("Checkbox / three-state selection", func(xui.Context ui, xui.Widget root)
+ auto checkbox = ui.checkBoxNative()
+ Window.place(root, checkbox, 24, 24, 640, 44)
+ checkbox.setText("Enable notifications")
+ checkbox.setChecked(1)
+ checkbox.setAutoThreeState(1)
+end)

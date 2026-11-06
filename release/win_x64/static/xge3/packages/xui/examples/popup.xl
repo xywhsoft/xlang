@@ -1,27 +1,21 @@
-// Popup / explicit open and close. Run from release/<platform>; Escape or close exits.
+// 点击按钮打开弹层；点击外部关闭。
 import xui
 from xui import Widget
-import "./_support.xl" as demo
+from "./_window.xl" import Window
 
-export class PopupExample
- static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
-  demo.Gallery.label(context,root,"Popup / explicit open and close",24,16)
-  auto control=context.popupNative()
-  demo.Gallery.place(root,control,24,64,640,1)
-  control.setContentSize(c_float(320),c_float(160))
-  auto content=control.getContentWidget()
-  assert content!=null
-  demo.Gallery.label(context,content as Widget,"Click outside or press Escape to close",12,20,300)
-  auto owner=context.buttonNative()
-  owner.setText("Open popup")
-  demo.Gallery.place(root,owner,24,64,240,44)
-  owner.setClick(func(xui.Widget source)
-   control.setOwner(source)
-   assert control.setOpen(c_int(1))==0
-  end)
- end
-end
-
-func main(...) as int
- return demo.Gallery.run("Popup / explicit open and close",PopupExample.build)
-end
+Window.show("Popup / explicit open and close", func(xui.Context ui, xui.Widget root)
+ auto popup = ui.popupNative()
+ Window.place(root, popup, 24, 24, 640, 1)
+ popup.setContentSize(320, 160)
+ auto content = popup.getContentWidget()
+ auto label = ui.labelNative()
+ label.setText("Click outside or press Escape to close")
+ Window.place(content as Widget, label, 12, 20, 300, 28)
+ auto owner = ui.buttonNative()
+ owner.setText("Open popup")
+ Window.place(root, owner, 24, 64, 240, 44)
+ owner.setClick(func(xui.Widget source)
+  popup.setOwner(source)
+  popup.setOpen(1)
+ end)
+end)

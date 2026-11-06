@@ -1,248 +1,469 @@
 {
-  "schema": 1,
+  "schema": 2,
   "examples": [
     {
       "name": "accordion",
       "title": "Accordion / expand sections",
-      "className": "AccordionExample"
+      "withProxy": false,
+      "expected": "点击标题，展开或折叠其中的按钮和文字。"
     },
     {
       "name": "basic",
       "title": "Basic controls / interactive state",
-      "className": "BasicExample"
+      "withProxy": false,
+      "expected": "按钮修改下方文字；复选框和开关可直接点击。"
     },
     {
       "name": "breadcrumb",
       "title": "Breadcrumb / navigation callbacks",
-      "className": "BreadcrumbExample"
+      "withProxy": false,
+      "expected": "依次显示 Home、Projects 和 xlang 三层路径。"
     },
     {
       "name": "button",
       "title": "Button / click and disabled states",
-      "className": "ButtonExample"
+      "withProxy": false,
+      "expected": "界面：点击按钮，按钮上的文字变为“你点击了按钮”。"
     },
     {
       "name": "canvas",
       "title": "Canvas / persistent drawing and pen",
-      "className": "CanvasExample"
+      "withProxy": false,
+      "expected": "橙色矩形、绿色圆形；按住鼠标在画布中画线。"
     },
     {
       "name": "carousel",
       "title": "Carousel / page navigation",
-      "className": "CarouselExample"
+      "withProxy": false,
+      "expected": "用左右箭头切换三张页面。"
     },
     {
       "name": "chart",
       "title": "Chart / typed data columns",
-      "className": "ChartExample"
+      "withProxy": false,
+      "expected": "折线的四个点来自下方两个数据数组。"
     },
     {
       "name": "checkbox",
       "title": "Checkbox / three-state selection",
-      "className": "CheckboxExample"
+      "withProxy": false,
+      "expected": "点击复选框，在三个选中状态之间切换。"
     },
     {
       "name": "codeedit",
       "title": "Code editor / minimap and syntax",
-      "className": "CodeeditExample"
+      "withProxy": false,
+      "expected": "编辑 C 代码，拖动右侧 minimap 滚动。"
     },
     {
       "name": "colorpicker",
       "title": "Color picker / RGBA popup",
-      "className": "ColorpickerExample"
+      "withProxy": false,
+      "expected": "点击色块，打开 RGBA 颜色面板。"
     },
     {
       "name": "combobox",
       "title": "Combo box / popup selection",
-      "className": "ComboboxExample"
+      "withProxy": false,
+      "expected": "下拉选择 Debug、Release 或 Profile。"
     },
     {
       "name": "datepicker",
       "title": "Date picker / calendar popup",
-      "className": "DatepickerExample"
+      "withProxy": false,
+      "expected": "点击日期，展开日历选择日期。"
     },
     {
       "name": "dockpanel",
       "title": "Dock panel / owned client windows",
-      "className": "DockpanelExample"
+      "withProxy": false,
+      "expected": "拖动 Inspector 标题移动或停靠内容。"
     },
     {
       "name": "hyperlink",
       "title": "Hyperlink / local click callback",
-      "className": "HyperlinkExample"
+      "withProxy": false,
+      "expected": "Hyperlink / local click callback"
     },
     {
       "name": "image",
       "title": "Image / generated RGBA resource",
-      "className": "ImageExample"
+      "withProxy": true,
+      "expected": "把一张橙色原生 Surface 放大显示为图片。"
     },
     {
       "name": "input",
       "title": "Input / edit UTF-8 text",
-      "className": "InputExample"
+      "withProxy": false,
+      "expected": "点击输入框，编辑或选择 UTF-8 文字。"
     },
     {
       "name": "listview",
       "title": "List / selection and scrolling",
-      "className": "ListviewExample"
+      "withProxy": false,
+      "expected": "点击行，改变列表的选中项。"
     },
     {
       "name": "menu",
       "title": "Menu / command selection",
-      "className": "MenuExample"
+      "withProxy": false,
+      "expected": "Menu / command selection"
     },
     {
       "name": "messagelist",
       "title": "Message list / structured nodes",
-      "className": "MessagelistExample"
+      "withProxy": false,
+      "expected": "两条聊天消息对应两个 addNode 调用。"
     },
     {
       "name": "numericinput",
       "title": "Numeric input / limits and step",
-      "className": "NumericinputExample"
+      "withProxy": false,
+      "expected": "输入数字，或用增减按钮调整数值。"
     },
     {
       "name": "page",
       "title": "Pagination / page count",
-      "className": "PageExample"
+      "withProxy": false,
+      "expected": "点击页码，在多页之间切换。"
     },
     {
       "name": "panel",
       "title": "Panel / child ownership",
-      "className": "PanelExample"
+      "withProxy": false,
+      "expected": "带标题的面板中放置一个按钮。"
     },
     {
       "name": "popup",
       "title": "Popup / explicit open and close",
-      "className": "PopupExample"
+      "withProxy": false,
+      "expected": "点击按钮打开弹层；点击外部关闭。"
     },
     {
       "name": "progress",
       "title": "Progress / change the value",
-      "className": "ProgressExample"
+      "withProxy": false,
+      "expected": "点击按钮增加进度；超过 100% 后从 0 开始。"
     },
     {
       "name": "propertygrid",
       "title": "Property grid / editable values",
-      "className": "PropertygridExample"
+      "withProxy": false,
+      "expected": "展开 General，编辑 Name 和 Mode。"
     },
     {
       "name": "qrcode",
       "title": "QR code / UTF-8 content",
-      "className": "QrcodeExample"
+      "withProxy": false,
+      "expected": "二维码内容就是 setValue 传入的字符串。"
     },
     {
       "name": "radio",
       "title": "Radio / exclusive choice",
-      "className": "RadioExample"
+      "withProxy": false,
+      "expected": "RadioGroup 管理互斥关系；两个 Radio 负责显示各自的文字和圆点。"
     },
     {
       "name": "rangeslider",
       "title": "Range slider / drag both endpoints",
-      "className": "RangesliderExample"
+      "withProxy": false,
+      "expected": "拖动两个滑块，选择 20 到 80 的初始范围。"
     },
     {
       "name": "richtext",
       "title": "Rich text / current Document View model",
-      "className": "RichtextExample"
+      "withProxy": false,
+      "expected": "显示并选择文档中的文字。"
     },
     {
       "name": "scrollbar",
       "title": "Scrollbar / page and position",
-      "className": "ScrollbarExample"
+      "withProxy": false,
+      "expected": "拖动滚动条，观察滑块位置变化。"
     },
     {
       "name": "scrollview",
       "title": "Scroll view / content larger than viewport",
-      "className": "ScrollviewExample"
+      "withProxy": false,
+      "expected": "滚动查看超出窗口的十二行文字。"
     },
     {
       "name": "separator",
       "title": "Separator / horizontal rule",
-      "className": "SeparatorExample"
+      "withProxy": false,
+      "expected": "分隔线上下各放一行文字。"
     },
     {
       "name": "slider",
       "title": "Slider / drag the knob",
-      "className": "SliderExample"
+      "withProxy": false,
+      "expected": "拖动滑块，调整 0 到 100 之间的数值。"
     },
     {
       "name": "splitlayout",
       "title": "Split layout / draggable divider",
-      "className": "SplitlayoutExample"
+      "withProxy": false,
+      "expected": "拖动中间的分隔条，改变左右区域的宽度。"
     },
     {
       "name": "statusbar",
       "title": "Status bar / text and progress",
-      "className": "StatusbarExample"
+      "withProxy": false,
+      "expected": "左侧文字和右侧进度条分别对应两个添加调用。"
     },
     {
       "name": "stepbar",
       "title": "Step bar / workflow stages",
-      "className": "StepbarExample"
+      "withProxy": false,
+      "expected": "四个步骤来自一个字符串数组。"
     },
     {
       "name": "tablegrid",
       "title": "Tablegrid / columns and cells",
-      "className": "TablegridExample"
+      "withProxy": false,
+      "expected": "双击单元格编辑；回调把新文字写回 rows。"
     },
     {
       "name": "tableview",
       "title": "Tableview / columns and cells",
-      "className": "TableviewExample"
+      "withProxy": false,
+      "expected": "每个单元格从 rows 的对应行列读取文字。"
     },
     {
       "name": "tabs",
       "title": "Tabs / Context-owned pages",
-      "className": "TabsExample"
+      "withProxy": false,
+      "expected": "切换 Overview 和 Settings，查看各页文字。"
     },
     {
       "name": "taginput",
       "title": "Tag input / add and remove tags",
-      "className": "TaginputExample"
+      "withProxy": false,
+      "expected": "输入文字并回车添加标签；点击标签上的关闭按钮删除。"
     },
     {
       "name": "terminal",
       "title": "Terminal / ANSI text without a child process",
-      "className": "TerminalExample"
+      "withProxy": false,
+      "expected": "显示两行 ANSI 文本，不启动命令行子进程。"
     },
     {
       "name": "textedit",
       "title": "Text editor / multiline selection",
-      "className": "TexteditExample"
+      "withProxy": false,
+      "expected": "多行文字编辑，支持选择、撤销和重做。"
     },
     {
       "name": "timeline",
       "title": "Timeline / layers and spans",
-      "className": "TimelineExample"
+      "withProxy": false,
+      "expected": "Animation 图层中有一个从第 5 帧到第 25 帧的片段。"
     },
     {
       "name": "toggle",
       "title": "Toggle / enabled state",
-      "className": "ToggleExample"
+      "withProxy": false,
+      "expected": "点击开关，改变启用状态。"
     },
     {
       "name": "toolbar",
       "title": "Toolbar / commands and tooltips",
-      "className": "ToolbarExample"
+      "withProxy": false,
+      "expected": "工具栏中依次放置 New、Build、分隔线和 Run。"
     },
     {
       "name": "treeview",
       "title": "Tree / expand and select",
-      "className": "TreeviewExample"
+      "withProxy": false,
+      "expected": "展开 Project 和 Sources，选择 main.xl。"
     },
     {
       "name": "window",
       "title": "Window / move and resize",
-      "className": "WindowExample"
+      "withProxy": false,
+      "expected": "拖动子窗口标题，或调整其边缘；窗口内有一个按钮。"
+    },
+    {
+      "name": "checkcard",
+      "title": "CheckCard",
+      "expected": "点击卡片选择或取消；卡片中的文字是普通 Label 子控件。",
+      "gallery": true,
+      "withProxy": false
+    },
+    {
+      "name": "radiogroup",
+      "title": "RadioGroup",
+      "expected": "RadioGroup 保证两个选项互斥；点击任一选项即可验证。",
+      "gallery": true,
+      "withProxy": false
+    },
+    {
+      "name": "virtualjoystick",
+      "title": "VirtualJoystick",
+      "expected": "拖动摇杆，右侧实时显示 X、Y；回调视图只在回调期间读取。",
+      "gallery": true,
+      "withProxy": false
+    },
+    {
+      "name": "inventorygrid",
+      "title": "InventoryGrid",
+      "expected": "创建十二个空槽；点击或用方向键切换，下面显示当前槽号。",
+      "gallery": true,
+      "withProxy": false
+    },
+    {
+      "name": "scrollframe",
+      "title": "ScrollFrame",
+      "expected": "ScrollFrame 提供视口和滚动条；文字放在视口中，内容高度为 900。",
+      "gallery": true,
+      "withProxy": false
+    },
+    {
+      "name": "menubar",
+      "title": "MenuBar",
+      "expected": "点击“文件”展开菜单；选择项目后，下方显示命令编号。",
+      "gallery": true,
+      "withProxy": false
+    },
+    {
+      "name": "cascader",
+      "title": "Cascader",
+      "expected": "parent 是父项的数组下标，-1 表示根；点击选择“开发 / 编辑器”。",
+      "gallery": true,
+      "withProxy": false
+    },
+    {
+      "name": "widget",
+      "title": "Widget",
+      "expected": "Widget 是透明的布局节点；移动 group 的位置会一起移动它的子控件。",
+      "gallery": true,
+      "withProxy": false
+    },
+    {
+      "name": "label",
+      "title": "Label",
+      "expected": "两个 Label 对应两行文字；Label 用于显示文字，不接收文本输入。",
+      "gallery": true,
+      "withProxy": false
+    },
+    {
+      "name": "documenteditor",
+      "title": "DocumentEditor",
+      "expected": "点击文档编辑文字；事务先创建初始段落，编辑器随后持有文档。",
+      "gallery": true,
+      "withProxy": false
+    },
+    {
+      "name": "msgbox",
+      "title": "MsgBox",
+      "expected": "打开确认框；点击确定或取消，结果显示在窗口中。",
+      "gallery": false,
+      "withProxy": false
+    },
+    {
+      "name": "msgtip",
+      "title": "MsgTip",
+      "expected": "点击按钮，短提示显示两秒后自行消失。",
+      "gallery": false,
+      "withProxy": false
+    },
+    {
+      "name": "toast",
+      "title": "Toast",
+      "expected": "每次点击增加一条通知；通知可以堆叠，也可点击关闭。",
+      "gallery": false,
+      "withProxy": false
+    },
+    {
+      "name": "filedialog",
+      "title": "FileDialog",
+      "expected": "只选择并显示路径，不打开、修改或删除所选文件。",
+      "gallery": false,
+      "withProxy": false
+    },
+    {
+      "name": "webview",
+      "title": "WebView",
+      "expected": "只加载内存中的 HTML，不访问网站。需启用 WebView2 的 Windows 后端。",
+      "gallery": false,
+      "withProxy": false
     },
     {
       "name": "all_controls",
-      "title": "Complete control gallery",
-      "className": "AllControlsExample"
+      "title": "Complete control gallery"
+    },
+    {
+      "name": "headless_path",
+      "title": "headless_path",
+      "kind": "cpu",
+      "gallery": false,
+      "expected": "Build a vector path without opening a window; expected counts: 2, then 0."
+    },
+    {
+      "name": "headless_cell",
+      "title": "headless_cell",
+      "kind": "cpu",
+      "gallery": false,
+      "expected": "A table cell can store display text, a tooltip and an independent value."
+    },
+    {
+      "name": "context_graph",
+      "title": "context_graph",
+      "kind": "cpu",
+      "gallery": false,
+      "expected": "Inspect a widget tree without creating a native window."
+    },
+    {
+      "name": "manager_lifetime",
+      "title": "manager_lifetime",
+      "kind": "cpu",
+      "gallery": false,
+      "expected": "Create and inspect a manager without opening its dialog."
+    },
+    {
+      "name": "data_object",
+      "title": "data_object",
+      "kind": "cpu",
+      "gallery": false,
+      "expected": "Embedded NUL bytes remain intact; expected output: 3, then 610062."
+    },
+    {
+      "name": "document_model",
+      "title": "document_model",
+      "kind": "cpu",
+      "gallery": false,
+      "expected": "Commit a paragraph, then read it from an independently owned snapshot."
+    },
+    {
+      "name": "document_ui_headless",
+      "title": "document_ui_headless",
+      "kind": "cpu",
+      "gallery": false,
+      "expected": "View and Editor can share one Document without rendering it."
+    },
+    {
+      "name": "gui_surface_draw",
+      "title": "gui_surface_draw",
+      "kind": "gui",
+      "gallery": false,
+      "expected": "Draw to a Surface once, then display it through a normal Image widget."
     }
   ],
-  "helper": "_support.xl",
+  "helper": "_window.xl",
   "interactive": true,
-  "frameLimitEnvironment": "XUI_EXAMPLE_FRAMES"
+  "frameLimitEnvironment": "XUI_EXAMPLE_FRAMES",
+  "pending": [
+    {
+      "name": "iconpicker",
+      "reason": "Requires safe IconCategory/Icon model declarations; no empty placeholder lesson."
+    },
+    {
+      "name": "flowgraph",
+      "reason": "Requires safe graph model ownership and mutation declarations; no empty canvas lesson."
+    },
+    {
+      "name": "workflow",
+      "reason": "Requires safe workflow model ownership and node library declarations; no empty canvas lesson."
+    }
+  ]
 }

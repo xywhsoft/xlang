@@ -1,19 +1,11 @@
-// Range slider / drag both endpoints. Run from release/<platform>; Escape or close exits.
+// 拖动两个滑块，选择 20 到 80 的初始范围。
 import xui
-import "./_support.xl" as demo
+from "./_window.xl" import Window
 
-export class RangesliderExample
- static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
-  demo.Gallery.label(context,root,"Range slider / drag both endpoints",24,16)
-  auto control=context.rangeSlider()
-  demo.Gallery.place(root,control,24,64,640,44)
-  control.setRange(c_float(0),c_float(100))
-  assert control.setValues(c_float(20),c_float(80))==0
-  auto first,last=control.getValues()
-  assert first==c_float(20) and last==c_float(80)
- end
-end
-
-func main(...) as int
- return demo.Gallery.run("Range slider / drag both endpoints",RangesliderExample.build)
-end
+Window.show("Range slider / drag both endpoints", func(xui.Context ui, xui.Widget root)
+ auto rangeSlider = ui.rangeSlider()
+ Window.place(root, rangeSlider, 24, 24, 640, 44)
+ rangeSlider.setRange(0, 100)
+ rangeSlider.setValues(20, 80)
+ auto first, last = rangeSlider.getValues()
+end)

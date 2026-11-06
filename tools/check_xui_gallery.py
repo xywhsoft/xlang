@@ -33,13 +33,14 @@ def main():
    native=runtime/'extlibs/_xge_native/native'
    child_env['PATH']=str(native)+os.pathsep+child_env.get('PATH','')
    if os.name!='nt':child_env['LD_LIBRARY_PATH']=str(native)+os.pathsep+child_env.get('LD_LIBRARY_PATH','')
-   if name=='all_controls':child_env.update(XUI_EXAMPLE_CYCLE='1',XUI_EXAMPLE_FRAMES=str((len(catalog['examples'])-1)*3+2))
-   if name=='button':child_env['XUI_EXAMPLE_EXERCISE']='1'
+   if name=='all_controls':
+    scenes=sum(row['name']!='all_controls'and row.get('gallery',True)for row in catalog['examples'])
+    child_env.update(XUI_EXAMPLE_CYCLE='1',XUI_EXAMPLE_FRAMES=str(scenes*3+2))
   start=time.monotonic()
   try:r=subprocess.run(args,cwd=runtime,env=child_env,capture_output=True,timeout=180);code=r.returncode;data=r.stdout+r.stderr
   except subprocess.TimeoutExpired as e:code=-1;data=(e.stdout or b'')+(e.stderr or b'')+b'\nTIMEOUT'
   except OSError as e:code=-3;data=str(e).encode('utf-8')
-  if code==0 and mode=='execute'and name=='all_controls'and sum(line.startswith(b'SCENE ')for line in data.splitlines())!=len(catalog['examples'])-1:
+  if code==0 and mode=='execute'and name=='all_controls'and sum(line.startswith(b'SCENE ')for line in data.splitlines())!=sum(row['name']!='all_controls'and row.get('gallery',True)for row in catalog['examples']):
    code=-2;data+=b'\nGallery did not execute every scene'
   log=prefix/(mode+'.log');log.write_bytes(data);artifact=prefix/('program.exe'if os.name=='nt'else'program');artifact_hash=sha(artifact)if mode in('build','execute')and artifact.is_file()else None;return dict(artifactSha256=artifact_hash,example=name,mode=mode,command=args,exitCode=code,seconds=round(time.monotonic()-start,3),logSha256=sha(log),diagnostic=data.decode(errors='replace')[-2200:]if code else'')
  for mode in modes:

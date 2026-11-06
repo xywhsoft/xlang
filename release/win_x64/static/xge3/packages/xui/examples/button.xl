@@ -1,34 +1,17 @@
-// Button / click and disabled states. Run from release/<platform>; Escape or close exits.
+// 界面：点击按钮，按钮上的文字变为“你点击了按钮”。
 import xui
-import "./_support.xl" as demo
+from "./_window.xl" import Window
 
-export class ButtonExample
- static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
-  demo.Gallery.label(context,root,"Button / click and disabled states",24,16)
-  auto control=context.buttonNative()
-  demo.Gallery.place(root,control,24,64,640,44)
-  control.setText("Click me")
-  control.setClick(func(xui.Widget source)
-   control.setText("Clicked - callback received")
-  end)
-  assert (control.getText() as string)=="Click me"
-  auto disabled=context.buttonNative()
-  disabled.setText("Disabled")
-  assert disabled.setEnabled(c_int(0))==0
-  demo.Gallery.place(root,disabled,24,132,220,44)
-  if env.get("XUI_EXAMPLE_EXERCISE")!=null then
-   assert context.layout()==0
-   auto bounds=control.getWorldRect()
-   auto px=c_int(int(bounds.fX)+10)
-   auto py=c_int(int(bounds.fY)+10)
-   assert context.inputPointerDown(px,py,c_int(xui.XUI_POINTER_BUTTON_LEFT),c_uint(xui.XUI_POINTER_BUTTON_LEFT))==0
-   assert context.inputPointerUp(px,py,c_int(xui.XUI_POINTER_BUTTON_LEFT),c_uint(0))==0
-   assert context.dispatchPendingEvents()==0
-   assert (control.getText() as string)=="Clicked - callback received"
-  end
- end
-end
+Window.show("按钮", func(xui.Context ui, xui.Widget root)
+ // 1. 创建按钮，设置它显示的文字。
+ auto button = ui.buttonNative()
+ button.setText("点我")
 
-func main(...) as int
- return demo.Gallery.run("Button / click and disabled states",ButtonExample.build)
-end
+ // 2. 放到窗口中：左、上、宽、高，单位是像素。
+ Window.place(root, button, 24, 24, 220, 44)
+
+ // 3. 点击时修改同一个按钮的文字。
+ button.setClick(func(xui.Widget sender)
+  button.setText("你点击了按钮")
+ end)
+end)

@@ -1,19 +1,16 @@
-// Dock panel / owned client windows. Run from release/<platform>; Escape or close exits.
+// 拖动 Inspector 标题移动或停靠内容。
 import xui
-import "./_support.xl" as demo
+from "./_window.xl" import Window
 
-export class DockpanelExample
- static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
-  demo.Gallery.label(context,root,"Dock panel / owned client windows",24,16)
-  auto control=context.dockPanelNative()
-  demo.Gallery.place(root,control,24,64,640,360)
-  auto client=context.panelNative()
-  demo.Gallery.label(context,client,"Dockable content",20,40,400)
-  c_int id=control.addWindow("Inspector",client)
-  assert control.getWindowCount()==c_int(1)
- end
-end
-
-func main(...) as int
- return demo.Gallery.run("Dock panel / owned client windows",DockpanelExample.build)
-end
+Window.show("Dock panel / owned client windows", func(xui.Context ui, xui.Widget root)
+ auto dock = ui.dockPanelNative()
+ dock.setFont(ui.getDefaultFont())
+ Window.place(root, dock, 24, 24, 640, 360)
+ auto client = ui.panelNative()
+ auto label = ui.labelNative()
+ label.setText("Dockable content")
+ Window.place(client, label, 20, 40, 400, 28)
+ c_int inspector = dock.addWindow("Inspector", client)
+ // 新窗口先处于隐藏状态，停靠后才会出现在界面中。
+ dock.dockWindow(inspector, xui.XUI_DOCK_PANEL_REGION_DOCUMENT, xui.XUI_DOCK_PANEL_SIDE_FILL)
+end)

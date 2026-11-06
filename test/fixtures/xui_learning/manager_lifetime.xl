@@ -1,0 +1,38 @@
+// Manager lifecycle and typed callback delivery, without opening a dialog.
+import xui
+
+class DismissCounter
+ int count=0
+end
+
+func main(...) as int
+ auto proxy=xui.createProxy()
+ try
+  auto context=xui.create(proxy)
+  try
+   auto box=xui.createMsgBox(context,"Title","Body")
+   assert (box.title() as string)=="Title"
+   assert (box.message() as string)=="Body"
+   box.setModal(0)
+   box.close()
+   auto tip=xui.createMsgTip(context,"Ready")
+   DismissCounter dismissed=DismissCounter()
+   tip.setDismissed(func(xui.CallbackMsgTip source,c_int expired)
+    assert source.isOpen()==0
+    assert expired==0
+    dismissed.count+=1
+   end)
+   tip.show(0,"Ready")
+   assert tip.isOpen()!=0
+   tip.dismiss()
+   assert dismissed.count==1
+   tip.setDismissed(null)
+   tip.close()
+  finally
+   context.close()
+  end
+ finally
+  proxy.close()
+ end
+ return 0
+end

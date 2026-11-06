@@ -1,18 +1,10 @@
-// Pagination / page count. Run from release/<platform>; Escape or close exits.
+// 点击页码，在多页之间切换。
 import xui
-import "./_support.xl" as demo
+from "./_window.xl" import Window
 
-export class PageExample
- static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
-  demo.Gallery.label(context,root,"Pagination / page count",24,16)
-  auto control=context.pageNative()
-  demo.Gallery.place(root,control,24,64,640,54)
-  assert control.setPageCount(c_int(20))==0
-  assert control.setCurrent(c_int(3),c_int(0))==0
-  assert control.getCurrent()==c_int(3)
- end
-end
-
-func main(...) as int
- return demo.Gallery.run("Pagination / page count",PageExample.build)
-end
+Window.show("Pagination / page count", func(xui.Context ui, xui.Widget root)
+ auto page = ui.pageNative()
+ Window.place(root, page, 24, 24, 640, 54)
+ page.setPageCount(20)
+ page.setCurrent(3, 0)
+end)

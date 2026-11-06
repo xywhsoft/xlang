@@ -1,18 +1,15 @@
-// Separator / horizontal rule. Run from release/<platform>; Escape or close exits.
+// 分隔线上下各放一行文字。
 import xui
-import "./_support.xl" as demo
+from "./_window.xl" import Window
 
-export class SeparatorExample
- static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
-  demo.Gallery.label(context,root,"Separator / horizontal rule",24,16)
-  auto control=context.separator()
-  demo.Gallery.place(root,control,24,64,640,3)
-  control.setColor(c_uint(0xB08040FF))
-  demo.Gallery.label(context,root,"Above the separator",24,24,600)
-  demo.Gallery.label(context,root,"Below the separator",24,100,600)
- end
-end
-
-func main(...) as int
- return demo.Gallery.run("Separator / horizontal rule",SeparatorExample.build)
-end
+Window.show("Separator / horizontal rule", func(xui.Context ui, xui.Widget root)
+ auto separator = ui.separator()
+ Window.place(root, separator, 24, 64, 640, 3)
+ separator.setColor(c_uint(0xB08040FF))
+ auto label = ui.labelNative()
+ label.setText("Above the separator")
+ Window.place(root, label, 24, 24, 600, 28)
+ auto label2 = ui.labelNative()
+ label2.setText("Below the separator")
+ Window.place(root, label2, 24, 100, 600, 28)
+end)

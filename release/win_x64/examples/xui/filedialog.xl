@@ -1,0 +1,26 @@
+// 只选择并显示路径，不打开、修改或删除所选文件。
+import xui
+from "./_window.xl" import Window
+
+Window.show("文件选择", func(xui.Context ui, xui.Widget root)
+ auto selection = ui.labelNative()
+ selection.setText("尚未选择文件")
+ Window.place(root, selection, 24, 100, 700, 32)
+
+ auto dialog = xui.createFileDialog(ui, title = "选择一个文件")
+ dialog.setResult(func(xui.CallbackFileDialog sender, c_int result, xui.CString selectedPath)
+  if result == xui.XUI_FILE_DIALOG_RESULT_OK then
+   // 回调中的 C 字符串及时复制为普通 string。
+   selection.setText(selectedPath.copy())
+  else
+   selection.setText("已取消选择")
+  end
+ end)
+
+ auto open = ui.buttonNative()
+ open.setText("选择文件")
+ Window.place(root, open, 24, 24, 220, 44)
+ open.setClick(func(xui.Widget sender)
+  dialog.setOpen(1)
+ end)
+end)
