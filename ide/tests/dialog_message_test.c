@@ -17,6 +17,15 @@ static int settle(xide_app* a) { if(xuiDispatchPendingEvents(a->context)!=XUI_OK
 static int point(xide_app* a,float x,float y) { return xuiInputPointerMove(a->context,x,y,0)==XUI_OK && xuiInputPointerDown(a->context,x,y,XUI_POINTER_BUTTON_LEFT,XUI_POINTER_BUTTON_LEFT)==XUI_OK && xuiInputPointerUp(a->context,x,y,XUI_POINTER_BUTTON_LEFT,0)==XUI_OK && settle(a); }
 static int click(xide_app* a,xui_widget w) { xui_rect_t r=xuiWidgetGetWorldRect(w);return point(a,r.fX+r.fW/2,r.fY+r.fH/2); }
 static int key(xide_app* a,int k) { return xuiInputKeyDownEx(a->context,k,0,NULL)==XUI_OK && xuiInputKeyUpEx(a->context,k,0,NULL)==XUI_OK && settle(a); }
+static int backdropCovers(xide_app* a,xui_widget window) {
+    int found=0;
+    for(xui_widget w=xuiWidgetGetFirstChild(xuiOverlayRoot(a->context));w;w=xuiWidgetGetNextSibling(w)) {
+        if(!xuiWidgetGetVisible(w) || xuiWidgetGetType(w)!=xuiPanelGetType(a->context)) continue;
+        xui_rect_t r=xuiWidgetGetWorldRect(w);found=1;
+        if(r.fX!=0 || r.fY!=0 || r.fW!=a->viewportWidth || r.fH!=a->viewportHeight) return 0;
+    }
+    return found;
+}
 static int capture(xide_app* a,const char* path) { xui_rect_i_t r={0,0,a->viewportWidth,a->viewportHeight};return xuiUpdate(a->context,0)==XUI_OK && a->proxy.surfaceClear(&a->proxy,a->target,0)==XUI_OK && xuiRender(a->context,a->target,&r,1)==XUI_OK && xideAppCapture(a,path)==XGE_OK; }
 static int writeText(const char* p,const char* s) { return xrtFileWriteAtomic(p,(xbytesview){(const unsigned char*)s,strlen(s)}); }
 static int reply(xide_app* a,int button) { xui_msgbox box=xideMessageCurrent(a);return box && settle(a) && click(a,xuiMsgBoxGetButtonWidget(box,button)); }
@@ -25,6 +34,7 @@ static int verify(void* user) {
     source=xidePathResolve(f->directory,"确认 中文.c");settings=xidePathResolve(f->directory,"settings.json");image=xidePathResolve(f->directory,"window.png");CHECK(source && image && settings && writeText(source,"int original;\n"));
     app.hidden=1;app.noSession=1;app.settingsPath=settings;CHECK(xideAppCreate(&app)==XUI_OK && xgeBegin()==XGE_OK);began=1;CHECK(settle(&app));
     CHECK(xideTemplateViewOpen(&app) && settle(&app) && !xgeRequestQuit());xui_widget window=xideTemplateViewWindow(&app);
+    CHECK(backdropCovers(&app,window));
     CHECK(xuiWidgetGetType(window)==xuiWindowGetType(app.context) && xuiWindowIsOpen(window) && !strcmp(xuiWindowGetTitle(window),"新建 xlang 项目"));
     CHECK(xuiEditSetText(xideTemplateViewControl(&app,XIDE_TEMPLATE_NAME),"窗口草稿")==XUI_OK && settle(&app));
     xui_rect_t before=xuiWidgetGetRect(window),title=xuiWindowGetTitleBarRect(window),world=xuiWidgetGetWorldRect(window);float x=world.fX+80,y=world.fY+title.fY+title.fH/2;

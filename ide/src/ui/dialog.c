@@ -21,10 +21,17 @@ static void layers(xui_widget w) {
     for(xui_widget c=xuiWidgetGetFirstChild(w);c;c=xuiWidgetGetNextSibling(c)) layers(c);
 }
 static int consume(xui_widget w,const xui_event_t* event,void* user) { return XUI_EVENT_DISPATCH_STOP; }
+static void cancel(xui_widget w,void* user);
 static int windowEvent(xui_widget w,const xui_event_t* event,void* user) {
     xide_dialog* d=user;
     int skip=event && event->iType==XUI_EVENT_POINTER_DOWN && event->iPhase==XUI_EVENT_PHASE_CAPTURE && event->pTarget!=w;
     int r=!skip && d->event ? d->event(w,event,d->eventUser) : XUI_OK;
+    /* Child controls and IME get the first chance to consume Escape. Keep
+       modal cancellation explicit when the window bubbles an unhandled key. */
+    if(d->open && r==XUI_OK && event && event->iType==XUI_EVENT_KEY_DOWN &&
+       event->iKey==XUI_KEY_ESCAPE && event->iPhase!=XUI_EVENT_PHASE_CAPTURE) {
+        cancel(w,d);return XUI_EVENT_DISPATCH_STOP;
+    }
     if(d->open) layers(w);
     return r;
 }
@@ -55,6 +62,8 @@ int xideDialogCreate(xide_app* a,xui_widget* out,const char* title,float width,f
     }
     if(r==XUI_OK) { xui_panel_desc_t panel={0}; panel.iSize=sizeof(panel); r=xuiPanelCreate(a->context,&d->backdrop,&panel); }
     if(r!=XUI_OK) { if(d->window) xuiWidgetDestroy(d->window); if(d->backdrop) xuiWidgetDestroy(d->backdrop); free(d); return r; }
+    /* The overlay root must preserve the explicit viewport-sized rectangle. */
+    xuiWidgetSetFlowMode(d->backdrop,XUI_FLOW_ABSOLUTE);
     xuiWidgetSetVisible(d->backdrop,0); xuiWidgetSetEnabled(d->backdrop,0);
     xui_style_property_t style[3]={0};
     const char* names[]={"panel.background.color","panel.client.color","panel.border.color"};
@@ -107,6 +116,7 @@ int xideDialogSetOpen(xui_widget w,int open) {
         layout(d); d->placed=1;
         xuiWidgetSetVisible(d->backdrop,1); xuiWidgetSetEnabled(d->backdrop,1);
         xuiOverlayAttach(d->app->context,w,d->backdrop,XUI_LAYER_FLOATING,DIALOG_BACKDROP_Z);
+        xuiOverlayAttach(d->app->context,NULL,w,XUI_LAYER_FLOATING,DIALOG_WINDOW_Z);
         xuiWindowSetOpen(w,1); xuiWindowBringToFront(w); layers(w);xuiOverlayBringToFront(w);
     } else {
         xuiWindowSetOpen(w,0); xuiWidgetSetVisible(d->backdrop,0); xuiWidgetSetEnabled(d->backdrop,0);

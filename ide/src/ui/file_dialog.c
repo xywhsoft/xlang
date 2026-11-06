@@ -64,8 +64,11 @@ int xideFileDialogChoose(xide_app* a,xui_widget owner,int mode,const char* title
         int end=xuiStyleEndUpdate(a->context);if(r==XUI_OK) r=end;
     }free(directory);
     if(r!=XUI_OK) { if(p->dialog) xuiFileDialogDestroy(p->dialog);if(p->backdrop) xuiWidgetDestroy(p->backdrop);free(p->extension);free(p);xideMessageShow(a,"文件选择","无法创建 XUI 文件对话框。",XUI_MSGBOX_ICON_ERROR);return 0; }
+    /* The overlay root must preserve the explicit viewport-sized rectangle. */
+    xuiWidgetSetFlowMode(p->backdrop,XUI_FLOW_ABSOLUTE);
     a->fileDialog=p;xui_widget window=xuiFileDialogGetWindowWidget(p->dialog);
-    if(!xuiWidgetGetParent(window)) xuiWidgetAddChild(a->root,window);
+    /* Keep the window and its full-screen backdrop in the same stacking tree. */
+    xuiOverlayAttach(a->context,NULL,window,XUI_LAYER_FLOATING,2003);
     scaleLayout(xuiWindowGetClientWidget(window),scale);xuiWindowSetChrome(window,32*scale,1,6*scale,24*scale);xideUiFontBindWidget(a,window);
     xui_widget lists[]={xuiFileDialogGetRootListWidget(p->dialog),xuiFileDialogGetFileListWidget(p->dialog)};
     for(size_t i=0;i<2;++i) { float h,pad,border;if(xuiListViewGetMetrics(lists[i],&h,&pad,&border)==XUI_OK) xuiListViewSetMetrics(lists[i],28*scale,pad,border); }

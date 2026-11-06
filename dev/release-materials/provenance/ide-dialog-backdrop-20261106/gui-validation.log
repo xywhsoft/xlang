@@ -1,0 +1,10 @@
+PASS about_view_test
+PASS input_test
+PASS update_client_test
+PASS file_dialog_test
+PASS dialog_message_test
+PASS about-dark-100
+PASS about-light-125
+PASS about-warm-150
+PASS about-dark-200
+PASS workbench
