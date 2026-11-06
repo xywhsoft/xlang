@@ -1,0 +1,63 @@
+{
+  "old": "d7810436877a6c91a9cd01c1cabb20bc4067f7dd",
+  "new": "6c8c0fbd017a61d89d5b81c836db67f712a422cb",
+  "applied": true,
+  "rows": [
+    {
+      "path": "ide/src/services/c_bridge.c",
+      "current": "71c6150f70e8c211a2c1044c8c4e527035f73be206607b2ab659c8f0d75c2cd1",
+      "incoming": "fb063960226a6978d241b1fc25f92a972c902bc88e47ff182661e9175c32705c",
+      "action": "write"
+    },
+    {
+      "path": "ide/tests/c_bridge_header_budget_test.c",
+      "current": null,
+      "incoming": "21997a6f5c76e293a0c2a8566fc8d2fcb97f2953e847d4f1d32a3b7247155f10",
+      "action": "write"
+    },
+    {
+      "path": "release/linux_x64/libxl.so",
+      "current": "b4a995b170e045f0af74c42ffa1bfba745060dea050a6b6fc85d70085477e93c",
+      "incoming": "0b78c4942de4015190460aa0c4ef13a8e12fb3ecee16661e0df28bf646a9d2a3",
+      "action": "write"
+    },
+    {
+      "path": "release/linux_x64/libxlc.so",
+      "current": "9e8eb9a9e373352e80afcdf5a19b7017cac80c08d09d1a23afd33611424f2b22",
+      "incoming": "72ecb9983e40475a04f29f47d40f5ac20143d2f03c646a8c3b487d61bdd0e7a1",
+      "action": "write"
+    },
+    {
+      "path": "release/win_x64/xl.dll",
+      "current": "f36c7f1c9bd3a65e3bacc1353044241097e26306c44f5cd107d56327e9e24ca5",
+      "incoming": "ae1fe2778e9aa7e4de407c89ba4a8e05bcd248d32226806e7957a0b6acf6b394",
+      "action": "write"
+    },
+    {
+      "path": "release/win_x64/xlc.def",
+      "current": "ec128aa2f86de50a44ffcae2248606f7e37715abb4d3d9c6c87986597ff9d323",
+      "incoming": "4485a69c41e4b4e912d1db5a6a700aa1fb65e86d2d5e88331c775ac5659ef853",
+      "action": "write"
+    },
+    {
+      "path": "release/win_x64/xlc.dll",
+      "current": "b16df309f37d4e16a8e7a7d8d876369d1f76e48a24d7f596a7c5ccfd9c550bf0",
+      "incoming": "6b1e8d18a28791778c7c159bac431231a90ee18b695ad54cc8a8d11ed1b2d32f",
+      "action": "write"
+    },
+    {
+      "path": "src/api/xl_api.c",
+      "current": "266a63a3f7190494c7d2fc259959ffb95eeb63c5dcd55f201e0bf35bea7f31f7",
+      "incoming": "48150767b8f8ce0263045ef2a91216fea2fab68c920a735990e79f2a209f388b",
+      "action": "write"
+    },
+    {
+      "path": "tools/check_c_bridge_environment.py",
+      "current": "7938d98aadcc8891d2b933e3fe5bc7d732f09cbba05fac26429492c052db3922",
+      "incoming": "ccc17f3eb502460f5024b8304461cfcd2e4e09a798120ec4d1a125930c838c00",
+      "action": "write"
+    }
+  ],
+  "conflicts": [],
+  "preservedStagedPaths": []
+}

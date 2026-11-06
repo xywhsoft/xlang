@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "command": [
+    "D:\\GIT\\x-lang\\build\\compiler-rebuild-20261106\\latest-header-budget.exe",
+    "D:\\GIT\\x-lang\\build\\compiler-rebuild-20261106\\latest-header-budget-cache"
+  ],
+  "compilerDllSha256": "ae1fe2778e9aa7e4de407c89ba4a8e05bcd248d32226806e7957a0b6acf6b394",
+  "stdout": "C bridge: 1024 headers, 128 projects, overflow rejection passed\r\n"
+}

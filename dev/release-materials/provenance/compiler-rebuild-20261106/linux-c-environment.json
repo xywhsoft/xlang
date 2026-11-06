@@ -1,0 +1,44 @@
+{
+  "passed": true,
+  "rows": [
+    {
+      "name": "exe",
+      "headers": 535,
+      "headerBytes": 17299146,
+      "command": [
+        "/root/.codex-builds/xlang-example-runtime-20261106-1958/release/linux_x64/xl",
+        "c-bridge",
+        "/root/.codex-builds/xlang-example-runtime-20261106-1958/build/test/rebuilt-c-environment/main.xl",
+        "--json",
+        "--c-environment"
+      ]
+    },
+    {
+      "name": "shared",
+      "headers": 535,
+      "headerBytes": 17299146,
+      "command": [
+        "/root/.codex-builds/xlang-example-runtime-20261106-1958/release/linux_x64/xl",
+        "c-bridge",
+        "/root/.codex-builds/xlang-example-runtime-20261106-1958/build/test/rebuilt-c-environment/main.xl",
+        "--json",
+        "--c-environment",
+        "-shared"
+      ]
+    },
+    {
+      "name": "native-project",
+      "headers": 535,
+      "headerBytes": 17299146,
+      "command": [
+        "/root/.codex-builds/xlang-example-runtime-20261106-1958/release/linux_x64/xl",
+        "c-bridge",
+        "/root/.codex-builds/xlang-example-runtime-20261106-1958/build/test/rebuilt-c-environment/app.xlp",
+        "--json",
+        "--c-environment"
+      ]
+    }
+  ],
+  "headerComparisons": 1605,
+  "stampSha256": "51900813462d9b2666dd0db70f7827d5e170982dc13ea10ee00fe088f035dc94"
+}

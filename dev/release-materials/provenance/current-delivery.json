@@ -4,7 +4,7 @@
   "primaryDirectory": "D:/GIT/x-lang",
   "deliveryDirectory": "release",
   "externalPublishPerformed": false,
-  "primaryIntegrationRevision": "eae309b7cf312a9477e604fd428d8abad4502dc1",
+  "primaryIntegrationRevision": "6c8c0fbd017a61d89d5b81c836db67f712a422cb",
   "integrations": {
     "tomlCalendarCommit": "65eb0f3dc",
     "originalOutstandingCommits": 124,
@@ -20,7 +20,7 @@
     "extensionSourceRevision": "8806c6b6f642e7e532fb16801246b2e6318a70ca"
   },
   "compiler": {
-    "sourceRevision": "eae309b7cf312a9477e604fd428d8abad4502dc1",
+    "sourceRevision": "5db37c83898fb6f834753d80ec57c6ccc2daf9d6",
     "version": "0.6.0",
     "rebuiltThisDelivery": true,
     "entireAcceptanceRerunThisDelivery": false,
@@ -29,18 +29,18 @@
     "xrtBaseRevision": "93347eb5ae6beba8cf7ee3558708cc4f628fdd07",
     "xrtLocalPatchTip": "0a44e3f80091be178c802c231a37e4f2733fd9fb",
     "optimization": "-O2",
-    "currentBuildProvenance": "dev/release-materials/provenance/native-linkage-default-20261106/receipt.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/compiler-rebuild-20261106/receipt.json",
     "sourceMaterials": {
-      "path": "dev/release-materials/sources/native-linkage-default-20261106/manifest.json",
-      "sha256": "51a5e259cade4698069aff75a8082c8ef7d9463f7b74997a766e6f2711c9795a",
-      "bytes": 1366929
+      "path": "dev/release-materials/sources/compiler-rebuild-20261106/manifest.json",
+      "sha256": "73380d8c173e02ba9298e03019bd07a5e9f02435791a8d2bbd075b2da1373042",
+      "bytes": 1790
     },
     "previousDelivery": {
-      "path": "dev/release-materials/provenance/example-runtime-fixes-20261106/previous-delivery.json",
-      "sha256": "db87e275e9408b89d96e00903c49bf8861ad36398c242f1e41ebefef4388329e",
-      "bytes": 176940
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/previous-delivery.json",
+      "sha256": "9145467529342ba5c058cfc5f4fed015db119978ebc635d188e3f5b4c5542c5d",
+      "bytes": 172210
     },
-    "buildScope": "Declared native artifact selection and Windows XGE/XUI default static AOT; cross-platform compiler/SDK synchronization.",
+    "buildScope": "Specified example failures, bounded native C header descriptors, compiler rebuild and installed regression checks; no whole-project certification.",
     "cohortBaseRevision": "9ab5279c4"
   },
   "ide": {
@@ -3184,43 +3184,43 @@
       "sha256": "a5feede784f0a5cb1a829c2e362de57e9278b55cec1a11b796cf4b6e78831bbc",
       "bytes": 72704,
       "path": "release/win_x64/xl.exe",
-      "origin": "native-linkage-default-20261106",
-      "previousSha256": "6a9378f3c772b40bcd035969212fd1ee99a1b8ed22be00c30c37114e0523a2f6"
+      "origin": "compiler-rebuild-20261106",
+      "previousSha256": "a5feede784f0a5cb1a829c2e362de57e9278b55cec1a11b796cf4b6e78831bbc"
     },
     {
-      "sha256": "f36c7f1c9bd3a65e3bacc1353044241097e26306c44f5cd107d56327e9e24ca5",
+      "sha256": "ae1fe2778e9aa7e4de407c89ba4a8e05bcd248d32226806e7957a0b6acf6b394",
       "bytes": 15182848,
       "path": "release/win_x64/xl.dll",
-      "origin": "native-linkage-default-20261106",
-      "previousSha256": "8da6eefc60b6abd1ee6be0e81303104343df0fcefc413f9cc2e853da0c19f6f8"
+      "origin": "compiler-rebuild-20261106",
+      "previousSha256": "f36c7f1c9bd3a65e3bacc1353044241097e26306c44f5cd107d56327e9e24ca5"
     },
     {
-      "sha256": "b16df309f37d4e16a8e7a7d8d876369d1f76e48a24d7f596a7c5ccfd9c550bf0",
+      "sha256": "6b1e8d18a28791778c7c159bac431231a90ee18b695ad54cc8a8d11ed1b2d32f",
       "bytes": 21294080,
       "path": "release/win_x64/xlc.dll",
-      "origin": "native-linkage-default-20261106",
-      "previousSha256": "90a329f1ec1c2f016859d96bd4bf736d8e06b5dade461025bb3e8372d129a468"
+      "origin": "compiler-rebuild-20261106",
+      "previousSha256": "b16df309f37d4e16a8e7a7d8d876369d1f76e48a24d7f596a7c5ccfd9c550bf0"
     },
     {
       "sha256": "faa25e49bdf8c5ce8ccdb084810075b406cc6dd499a59577664616eb2a08265b",
       "bytes": 47224,
       "path": "release/linux_x64/xl",
-      "origin": "native-linkage-default-20261106",
-      "previousSha256": "0afa441e1e3486c3e8ea2d7fbde7be5e5ea6caa850bc76a2bca1dc767b60f1d0"
+      "origin": "compiler-rebuild-20261106",
+      "previousSha256": "faa25e49bdf8c5ce8ccdb084810075b406cc6dd499a59577664616eb2a08265b"
     },
     {
-      "sha256": "b4a995b170e045f0af74c42ffa1bfba745060dea050a6b6fc85d70085477e93c",
-      "bytes": 16443920,
+      "sha256": "0b78c4942de4015190460aa0c4ef13a8e12fb3ecee16661e0df28bf646a9d2a3",
+      "bytes": 16448016,
       "path": "release/linux_x64/libxl.so",
-      "origin": "native-linkage-default-20261106",
-      "previousSha256": "524d519477e3f69277b92203527c778494f667620fe09c3c17d21ed8f08cab2b"
+      "origin": "compiler-rebuild-20261106",
+      "previousSha256": "b4a995b170e045f0af74c42ffa1bfba745060dea050a6b6fc85d70085477e93c"
     },
     {
-      "sha256": "9e8eb9a9e373352e80afcdf5a19b7017cac80c08d09d1a23afd33611424f2b22",
+      "sha256": "72ecb9983e40475a04f29f47d40f5ac20143d2f03c646a8c3b487d61bdd0e7a1",
       "bytes": 22436624,
       "path": "release/linux_x64/libxlc.so",
-      "origin": "native-linkage-default-20261106",
-      "previousSha256": "62b63ff71173b43d7c5aba730e80019f48d548191394ec2f8158adbe10949797"
+      "origin": "compiler-rebuild-20261106",
+      "previousSha256": "9e8eb9a9e373352e80afcdf5a19b7017cac80c08d09d1a23afd33611424f2b22"
     },
     {
       "sha256": "cc7fb0ce36bea013c012ac21a2583fe15a2dfb6327d687dd6ae0af0e0968ebe9",
@@ -3297,7 +3297,12 @@
       "sha256": "cb3dd03ba90452fb9a670371ed7447763a0188fdc61b57adf11d5d89851ce13b",
       "bytes": 2693
     },
-    "guiWorkbenchRenderCases": 5
+    "guiWorkbenchRenderCases": 5,
+    "compilerRebuild": {
+      "path": "dev/release-materials/provenance/compiler-rebuild-20261106/receipt.json",
+      "sha256": "699c8ba12f9d500d9cba34c0f25184af14f2d12eeabfa694c6daf95957af381d",
+      "bytes": 50319
+    }
   },
   "remaining": {
     "currentDelivery": [
@@ -3372,7 +3377,7 @@
     "historicalReportPathsPreserved": true,
     "mutableDataPathsUpdated": 600
   },
-  "currentScope": "Matched XGE3/XUI3 compiler, public SDK, native extension packages, Windows GUI and language-server local installation; developer materials are outside runtime directories.",
+  "currentScope": "Specified example failures, bounded native C header descriptors, compiler rebuild and installed regression checks; no whole-project certification.",
   "localPublication": {
     "path": "dev/release-materials/provenance/xge3-local-publication-20261105/receipt.json",
     "sha256": "d55e8e816fddbfc2d2283c9ba45b9b28ac5c5e07e0da183fbab3088f118fbad1",
@@ -3595,5 +3600,10 @@
     "path": "dev/release-materials/provenance/native-linkage-default-20261106/receipt.json",
     "sha256": "6649a600e4f421ab96d2f1036f3f5c65ba08cd0636150d814a5678b73025470c",
     "bytes": 7739
+  },
+  "compilerRebuild": {
+    "path": "dev/release-materials/provenance/compiler-rebuild-20261106/receipt.json",
+    "sha256": "699c8ba12f9d500d9cba34c0f25184af14f2d12eeabfa694c6daf95957af381d",
+    "bytes": 50319
   }
 }

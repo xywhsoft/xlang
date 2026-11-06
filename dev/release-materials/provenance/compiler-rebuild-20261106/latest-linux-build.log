@@ -1,0 +1,157 @@
+{"contracts": 3700, "parameters": 7638, "storedParameters": 3796, "detailRecords": 781}
+{"Complete": true, "Profiles": [{"Name": "windows-runtime", "Required": 917, "Provided": 917, "Missing": [], "Duplicate": []}, {"Name": "windows-compiler", "Required": 917, "Provided": 917, "Missing": [], "Duplicate": []}, {"Name": "linux-runtime", "Required": 917, "Provided": 917, "Missing": [], "Duplicate": []}, {"Name": "linux-compiler", "Required": 917, "Provided": 917, "Missing": [], "Duplicate": []}], "Errors": [], "NegativeControls": [{"Name": "missing-xl6_task_group_future", "Rejected": true}, {"Name": "missing-xl6_ownership_domain_process_future", "Rejected": true}, {"Name": "duplicate-explicit-provider", "Rejected": true}, {"Name": "missing-linux-provider", "Rejected": true}, {"Name": "reject-independent-artifact-xrt-source", "Rejected": true}, {"Name": "missing-resident-placement-provider", "Rejected": true}, {"Name": "unknown-native-feature", "Rejected": true}]}
+XRT/xruntime snapshots are current: xrt=3459 APIs, xruntime=465 APIs (465 owned)
+generated 4096 stdlib index slots for 1070 functions -> /root/.codex-builds/xlang-example-runtime-20261106-1958/src/stdlib/xl6_stdlib_func_index.inc
+generated /root/.codex-builds/xlang-example-runtime-20261106-1958/src/api/xl_xrt_symbols.inc: 3924 functions
+Preparing native Linux TCC...
+Perhaps you want ./configure --config-musl
+Binary directory    /root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-dist/bin
+TinyCC directory    /root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-dist
+Library directory   /root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-dist/lib
+Include directory   /root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-dist/include
+Manual directory    /root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-dist/share/man
+Info directory      /root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-dist/share/info
+Doc directory       /root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-dist/share/doc
+Source path         /root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source
+Build OS            Linux x86_64
+C compiler          /root/.codex-builds/xlang-example-runtime-20261106-1958/tools/parallel_gcc_linux.py (15.2)
+Target OS           Linux
+CPU                 x86_64
+Triplet             x86_64-linux-gnu
+Creating config.mak and config.h
+/root/.codex-builds/xlang-example-runtime-20261106-1958/tools/parallel_gcc_linux.py -o tcc.o -c tcc.c -I. -DONE_SOURCE=0 -Wall -O2 -Wdeclaration-after-statement -Wno-unused-result
+/root/.codex-builds/xlang-example-runtime-20261106-1958/tools/parallel_gcc_linux.py -o libtcc.o -c libtcc.c -I. -DONE_SOURCE=0 -Wall -O2 -Wdeclaration-after-statement -Wno-unused-result
+/root/.codex-builds/xlang-example-runtime-20261106-1958/tools/parallel_gcc_linux.py -DC2STR conftest.c -o c2str.exe
+/root/.codex-builds/xlang-example-runtime-20261106-1958/tools/parallel_gcc_linux.py -o tccgen.o -c tccgen.c -I. -Wall -O2 -Wdeclaration-after-statement -Wno-unused-result
+libtcc.c: In function ‘tcc_basename’:
+libtcc.c:210:15: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  210 |     char *p = strchr(name, 0);
+      |               ^~~~~~
+/root/.codex-builds/xlang-example-runtime-20261106-1958/tools/parallel_gcc_linux.py -o tccdbg.o -c tccdbg.c -I. -Wall -O2 -Wdeclaration-after-statement -Wno-unused-result
+/root/.codex-builds/xlang-example-runtime-20261106-1958/tools/parallel_gcc_linux.py -o tccelf.o -c tccelf.c -I. -Wall -O2 -Wdeclaration-after-statement -Wno-unused-result
+tccelf.c: In function ‘tcc_load_alacarte’:
+tccelf.c:3785:5: warning: ISO C90 forbids mixed declarations and code [-Wdeclaration-after-statement]
+ 3785 |     const char *ar_names, *p;
+      |     ^~~~~
+/root/.codex-builds/xlang-example-runtime-20261106-1958/tools/parallel_gcc_linux.py -o tccasm.o -c tccasm.c -I. -Wall -O2 -Wdeclaration-after-statement -Wno-unused-result
+/root/.codex-builds/xlang-example-runtime-20261106-1958/tools/parallel_gcc_linux.py -o tccrun.o -c tccrun.c -I. -Wall -O2 -Wdeclaration-after-statement -Wno-unused-result
+/root/.codex-builds/xlang-example-runtime-20261106-1958/tools/parallel_gcc_linux.py -o x86_64-gen.o -c x86_64-gen.c -I. -Wall -O2 -Wdeclaration-after-statement -Wno-unused-result
+/root/.codex-builds/xlang-example-runtime-20261106-1958/tools/parallel_gcc_linux.py -o x86_64-link.o -c x86_64-link.c -I. -Wall -O2 -Wdeclaration-after-statement -Wno-unused-result
+/root/.codex-builds/xlang-example-runtime-20261106-1958/tools/parallel_gcc_linux.py -o i386-asm.o -c i386-asm.c -I. -Wall -O2 -Wdeclaration-after-statement -Wno-unused-result
+./c2str.exe include/tccdefs.h tccdefs_.h
+/root/.codex-builds/xlang-example-runtime-20261106-1958/tools/parallel_gcc_linux.py -o tccpp.o -c tccpp.c -I. -Wall -O2 -Wdeclaration-after-statement -Wno-unused-result
+ar rcs libtcc.a libtcc.o tccpp.o tccgen.o tccdbg.o tccelf.o tccasm.o tccrun.o x86_64-gen.o x86_64-link.o i386-asm.o
+/root/.codex-builds/xlang-example-runtime-20261106-1958/tools/parallel_gcc_linux.py -o tcc tcc.o libtcc.a -lm -ldl -lpthread
+make[1]: Entering directory '/root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/lib'
+../tcc -c libtcc1.c -o libtcc1.o -B.. -I..
+../tcc -c stdatomic.c -o stdatomic.o -B.. -I..
+../tcc -c atomic.S -o atomic.o -B.. -I..
+../tcc -c builtin.c -o builtin.o -B.. -I..
+../tcc -c alloca.S -o alloca.o -B.. -I..
+../tcc -c alloca-bt.S -o alloca-bt.o -B.. -I..
+../tcc -c tcov.c -o tcov.o -B.. -I..
+../tcc -c va_list.c -o va_list.o -B.. -I..
+../tcc -c dsohandle.c -o dsohandle.o -B.. -I..
+../tcc -c runmain.c -o ../runmain.o -B.. -I..
+../tcc -c bt-exe.c -o ../bt-exe.o -B.. -I..
+../tcc -c bt-log.c -o ../bt-log.o -B.. -I..
+../tcc -c bcheck.c -o ../bcheck.o -B.. -I.. -bt
+../tcc -ar rcs ../libtcc1.a libtcc1.o stdatomic.o atomic.o builtin.o alloca.o alloca-bt.o tcov.o va_list.o dsohandle.o
+make[1]: Leaving directory '/root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/lib'
+Building Linux XRT object and VFS packer...
+static-compiler: 1421 objects
+static-runtime: 44 objects
+shared-compiler: 54 objects
+shared-runtime: 44 objects
+precompiled 1565 objects (0 unchanged)
+Generating Linux embedded TCC resources...
+generated 537 resources in 12 shared blobs: 21322656 -> 1841627 bytes (solid)
+generated 2745 resources in 60 shared blobs: 100181829 -> 7524586 bytes (solid)
+Building libxl.so...
+In file included from /root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/tcctools.c:31:
+/root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/tcc.h:24:9: warning: ‘_GNU_SOURCE’ redefined
+   24 | #define _GNU_SOURCE
+      |         ^~~~~~~~~~~
+<command-line>: note: this is the location of the previous definition
+/root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/tcctools.c: In function ‘tcc_tool_ar’:
+/root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/tcctools.c:126:9: warning: ignoring return value of ‘fread’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+  126 |         fread(stmp, 1, 8, fh);
+      |         ^~~~~~~~~~~~~~~~~~~~~
+/root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/tcctools.c:145:13: warning: ignoring return value of ‘fread’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+  145 |             fread(buf, fsize, 1, fh);
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~
+/root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/tcctools.c:212:9: warning: ignoring return value of ‘fread’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+  212 |         fread(buf, fsize, 1, fi);
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~
+/root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/tcctools.c:321:5: warning: ignoring return value of ‘fread’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+  321 |     fread(buf, fsize, 1, fo);
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/tccpp.c:22,
+                 from /root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/libtcc.c:26:
+/root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/tcc.h:24:9: warning: ‘_GNU_SOURCE’ redefined
+   24 | #define _GNU_SOURCE
+      |         ^~~~~~~~~~~
+<command-line>: note: this is the location of the previous definition
+/root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/libtcc.c: In function ‘tcc_basename’:
+/root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/libtcc.c:210:15: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  210 |     char *p = strchr(name, 0);
+      |               ^~~~~~
+In file included from /root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/libtcc.c:30:
+/root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/tccelf.c: In function ‘tcc_tcov_add_file’:
+/root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/tccelf.c:1757:9: warning: ignoring return value of ‘getcwd’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+ 1757 |         getcwd (wd, sizeof(wd));
+      |         ^~~~~~~~~~~~~~~~~~~~~~~
+In file included from /root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/libtcc.c:28:
+/root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/tccdbg.c: In function ‘tcc_tcov_block_begin’:
+/root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/tccdbg.c:2595:13: warning: ignoring return value of ‘getcwd’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+ 2595 |             getcwd (wd, sizeof(wd));
+      |             ^~~~~~~~~~~~~~~~~~~~~~~
+/root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/tccdbg.c: In function ‘tcc_debug_start’:
+/root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/tccdbg.c:1153:9: warning: ignoring return value of ‘getcwd’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+ 1153 |         getcwd(buf, sizeof(buf));
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~
+Building libxlc.so...
+In file included from /root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/tcctools.c:31:
+/root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/tcc.h:24:9: warning: ‘_GNU_SOURCE’ redefined
+   24 | #define _GNU_SOURCE
+      |         ^~~~~~~~~~~
+<command-line>: note: this is the location of the previous definition
+/root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/tcctools.c: In function ‘tcc_tool_ar’:
+/root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/tcctools.c:126:9: warning: ignoring return value of ‘fread’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+  126 |         fread(stmp, 1, 8, fh);
+      |         ^~~~~~~~~~~~~~~~~~~~~
+/root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/tcctools.c:145:13: warning: ignoring return value of ‘fread’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+  145 |             fread(buf, fsize, 1, fh);
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~
+/root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/tcctools.c:212:9: warning: ignoring return value of ‘fread’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+  212 |         fread(buf, fsize, 1, fi);
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~
+/root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/tcctools.c:321:5: warning: ignoring return value of ‘fread’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+  321 |     fread(buf, fsize, 1, fo);
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/tccpp.c:22,
+                 from /root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/libtcc.c:26:
+/root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/tcc.h:24:9: warning: ‘_GNU_SOURCE’ redefined
+   24 | #define _GNU_SOURCE
+      |         ^~~~~~~~~~~
+<command-line>: note: this is the location of the previous definition
+/root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/libtcc.c: In function ‘tcc_basename’:
+/root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/libtcc.c:210:15: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  210 |     char *p = strchr(name, 0);
+      |               ^~~~~~
+In file included from /root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/libtcc.c:30:
+/root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/tccelf.c: In function ‘tcc_tcov_add_file’:
+/root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/tccelf.c:1757:9: warning: ignoring return value of ‘getcwd’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+ 1757 |         getcwd (wd, sizeof(wd));
+      |         ^~~~~~~~~~~~~~~~~~~~~~~
+In file included from /root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/libtcc.c:28:
+/root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/tccdbg.c: In function ‘tcc_tcov_block_begin’:
+/root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/tccdbg.c:2595:13: warning: ignoring return value of ‘getcwd’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+ 2595 |             getcwd (wd, sizeof(wd));
+      |             ^~~~~~~~~~~~~~~~~~~~~~~
+/root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/tccdbg.c: In function ‘tcc_debug_start’:
+/root/.codex-builds/xlang-example-runtime-20261106-1958/build/linux/tcc-source/tccdbg.c:1153:9: warning: ignoring return value of ‘getcwd’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+ 1153 |         getcwd(buf, sizeof(buf));
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~
+Building xl command line tool...
+DEMO6 Linux build ok: /root/.codex-builds/xlang-example-runtime-20261106-1958/release/linux_x64/xl /root/.codex-builds/xlang-example-runtime-20261106-1958/release/linux_x64/libxl.so /root/.codex-builds/xlang-example-runtime-20261106-1958/release/linux_x64/libxlc.so

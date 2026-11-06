@@ -1,0 +1,205 @@
+{
+  "passed": true,
+  "complete": true,
+  "compiler": "/root/.codex-builds/xlang-example-runtime-20261106-1958/release/linux_x64/xl",
+  "compilerSha256": "faa25e49bdf8c5ce8ccdb084810075b406cc6dd499a59577664616eb2a08265b",
+  "rows": [
+    {
+      "name": "jit-auto",
+      "exitCode": 11,
+      "seconds": 0.338,
+      "log": "jit-auto.log"
+    },
+    {
+      "name": "jit-static",
+      "exitCode": 22,
+      "seconds": 0.347,
+      "log": "jit-static.log"
+    },
+    {
+      "name": "aot-auto",
+      "exitCode": 0,
+      "seconds": 1.683,
+      "log": "aot-auto.log"
+    },
+    {
+      "name": "aot-auto-execute",
+      "exitCode": 22,
+      "seconds": 0.01,
+      "log": "aot-auto-execute.log"
+    },
+    {
+      "name": "aot-dynamic",
+      "exitCode": 0,
+      "seconds": 1.552,
+      "log": "aot-dynamic.log"
+    },
+    {
+      "name": "aot-dynamic-execute",
+      "exitCode": 11,
+      "seconds": 0.011,
+      "log": "aot-dynamic-execute.log"
+    },
+    {
+      "name": "aot-static",
+      "exitCode": 0,
+      "seconds": 1.561,
+      "log": "aot-static.log"
+    },
+    {
+      "name": "aot-static-execute",
+      "exitCode": 22,
+      "seconds": 0.01,
+      "log": "aot-static-execute.log"
+    },
+    {
+      "name": "project-dynamic",
+      "exitCode": 0,
+      "seconds": 1.524,
+      "log": "project-dynamic.log"
+    },
+    {
+      "name": "project-dynamic-execute",
+      "exitCode": 11,
+      "seconds": 0.026,
+      "log": "project-dynamic-execute.log"
+    },
+    {
+      "name": "project-override",
+      "exitCode": 0,
+      "seconds": 1.523,
+      "log": "project-override.log"
+    },
+    {
+      "name": "project-override-execute",
+      "exitCode": 22,
+      "seconds": 0.017,
+      "log": "project-override-execute.log"
+    },
+    {
+      "name": "invalid-mode",
+      "exitCode": 1,
+      "seconds": 0.012,
+      "log": "invalid-mode.log"
+    },
+    {
+      "name": "missing-mode",
+      "exitCode": 1,
+      "seconds": 0.006,
+      "log": "missing-mode.log"
+    },
+    {
+      "name": "duplicate-mode",
+      "exitCode": 1,
+      "seconds": 0.006,
+      "log": "duplicate-mode.log"
+    },
+    {
+      "name": "identity-mismatch",
+      "exitCode": 1,
+      "seconds": 0.012,
+      "log": "identity-mismatch.log"
+    },
+    {
+      "name": "language-mismatch",
+      "exitCode": 1,
+      "seconds": 0.012,
+      "log": "language-mismatch.log"
+    },
+    {
+      "name": "linkage-mismatch",
+      "exitCode": 1,
+      "seconds": 0.012,
+      "log": "linkage-mismatch.log"
+    },
+    {
+      "name": "dependency-mismatch",
+      "exitCode": 1,
+      "seconds": 0.012,
+      "log": "dependency-mismatch.log"
+    },
+    {
+      "name": "missing-artifact",
+      "exitCode": 1,
+      "seconds": 0.011,
+      "log": "missing-artifact.log"
+    },
+    {
+      "name": "absolute-variant",
+      "exitCode": 1,
+      "seconds": 0.011,
+      "log": "absolute-variant.log"
+    },
+    {
+      "name": "explicit-unavailable",
+      "exitCode": 1,
+      "seconds": 0.012,
+      "log": "explicit-unavailable.log"
+    },
+    {
+      "name": "auto-no-alternative",
+      "exitCode": 0,
+      "seconds": 1.531,
+      "log": "auto-no-alternative.log"
+    },
+    {
+      "name": "auto-no-alternative-execute",
+      "exitCode": 11,
+      "seconds": 0.011,
+      "log": "auto-no-alternative-execute.log"
+    },
+    {
+      "name": "context-24",
+      "exitCode": 22,
+      "seconds": 0.01,
+      "log": "context-24.log"
+    },
+    {
+      "name": "context-25",
+      "exitCode": 11,
+      "seconds": 0.011,
+      "log": "context-25.log"
+    },
+    {
+      "name": "context-26",
+      "exitCode": 22,
+      "seconds": 0.011,
+      "log": "context-26.log"
+    },
+    {
+      "name": "context-27",
+      "exitCode": 22,
+      "seconds": 0.011,
+      "log": "context-27.log"
+    },
+    {
+      "name": "context-cache-and-invalid-mode",
+      "passed": true
+    },
+    {
+      "name": "legacy-auto",
+      "exitCode": 0,
+      "seconds": 1.555,
+      "log": "legacy-auto.log"
+    },
+    {
+      "name": "legacy-auto-execute",
+      "exitCode": 11,
+      "seconds": 0.011,
+      "log": "legacy-auto-execute.log"
+    },
+    {
+      "name": "legacy-explicit",
+      "exitCode": 0,
+      "seconds": 1.532,
+      "log": "legacy-explicit.log"
+    },
+    {
+      "name": "legacy-explicit-execute",
+      "exitCode": 11,
+      "seconds": 0.01,
+      "log": "legacy-explicit-execute.log"
+    }
+  ],
+  "scope": "Exercise declared native variants through a real compiler (no engine/UI required)."
+}
