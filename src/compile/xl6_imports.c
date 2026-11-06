@@ -531,7 +531,7 @@ static void xl6ImportsNamespaceFromTarget(char* out, size_t outSize, const char*
 
 #include "xl6_import_c_source_groups.inc"
 
-static int xl6ImportsCollectManifestDeps(
+static int xl6ImportsCollectEffectiveManifestDeps(
     XL6_ImportDeps* deps,
     const XL6_PackageManifest* manifest,
     XL6_AstNode* importNode,
@@ -609,6 +609,24 @@ static int xl6ImportsCollectManifestDeps(
         manifest->nativeInfo.version,
         importNode,
         diags);
+}
+
+static int xl6ImportsCollectManifestDeps(XL6_ImportDeps* deps,
+    const XL6_PackageManifest* manifest, XL6_AstNode* importNode, XL6_DiagList* diags)
+{
+    XL6_PackageManifest selected;
+    char error[512] = {0};
+    xl6PackageManifestInit(&selected);
+    int result = xl6PackageSelectNativeVariant(manifest, deps->nativeSelection, &selected,
+        deps->sourceOverlay ? deps->sourceOverlay->report : NULL, error, sizeof(error));
+    if (result < 0) {
+        xl6DiagAddFile(diags, xl6AstSourcePath(importNode), importNode ? importNode->line : 1,
+                      importNode ? importNode->column : 1, error);
+    }
+    int okay = result >= 0 && xl6ImportsCollectEffectiveManifestDeps(deps,
+        result ? &selected : manifest, importNode, diags);
+    xl6PackageManifestFree(&selected);
+    return okay;
 }
 
 static int xl6ImportsDependencyMatches(

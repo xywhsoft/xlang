@@ -58,6 +58,7 @@ typedef struct XL6_ImportDeps {
     size_t nativeCount;
     int hasUndeclaredCSourceModules;
     unsigned int features;
+    int nativeSelection; /* Per compilation; no process environment mutation. */
 } XL6_ImportDeps;
 
 void xl6ImportDepsInit(XL6_ImportDeps* deps);

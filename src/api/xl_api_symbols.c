@@ -856,6 +856,7 @@ static int xlVisitDefaultTccApiSymbols(XL_ApiSymbolVisit visit, void* user)
          !visit(user, "xlcSetTempDir", (const void*)xlcSetTempDir) ||
          !visit(user, "xlcSetSaveTemps", (const void*)xlcSetSaveTemps) ||
          !visit(user, "xlcSetBackend", (const void*)xlcSetBackend) ||
+         !visit(user, "xlcSetNativeLinkage", (const void*)xlcSetNativeLinkage) ||
          !visit(user, "xlcAddIncludePath", (const void*)xlcAddIncludePath) ||
          !visit(user, "xlcAddLibraryPath", (const void*)xlcAddLibraryPath) ||
          !visit(user, "xlcAddLinkLibrary", (const void*)xlcAddLinkLibrary) ||
