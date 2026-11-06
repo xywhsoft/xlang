@@ -7506,6 +7506,44 @@ typedef struct xrtownershippreparationv1 {
 	xrtownershipprepareresult (*Prepare)(const void* pData, const void* pToken);
 } xrtownershippreparationv1;
 
+/* Optional resumable semantic finalization. This is an independent exact
+ * capability, never an extension or cast of xrtownershipadapterv1. Readers
+ * validate size, tag, exact Adapter identity and both hooks before admitting
+ * it. Adapter V1's bool Finalize retains its synchronous at-most-once contract;
+ * a consumer of this capability calls Step INSTEAD of that V1 slot.
+ *
+ * CanStep runs under the ownership freeze for the actual held/claimed token.
+ * It is nonblocking, diagnostic-preserving and performs no allocation, user
+ * callback, Count/Trace, reference or owning-edge change. It certifies current
+ * creator/activity eligibility, not completion or graph readability.
+ *
+ * Step runs OUTSIDE freeze and mutation with all real pins/claims/code alive.
+ * It always writes *pComplete (callers initialize false). Its bool result is
+ * success/failure independently of completion, including without a diagnostic:
+ *   true/false: waiting; true/true: complete;
+ *   false/false: failed but still owned; false/true: consumed with failure.
+ * Waiting MAY already have executed semantic callbacks or changed real edges;
+ * it is NOT the no-side-effect BUSY of preparation/physical completion.
+ * Persist completed sub-duties in participant state across waits, failure and
+ * collector abort/recreation. Never replay a completed semantic effect.
+ *
+ * Revalidate the whole graph after every Step before a NEW duty or Clear.
+ * A started continuation may resume through a known transient read refusal
+ * only with its saved exact capability, real held claim and CanStep authority;
+ * this never admits unknown metadata, starts an independent new finalizer or
+ * grants Clear. Observe resurrection at the next complete graph proof. Each
+ * collector turn must be bounded, retaining unfinished owners through waiting.
+ * Clear requires all semantic duties complete and a fresh unreachable graph;
+ * Finish/Drop retain their existing strictly post-Clear/physical contracts. */
+#define XRT_OWNERSHIP_FINALIZATION_V1_TAG UINT64_C(0x5852544F574E5331)
+typedef struct xrtownershipfinalizationv1 {
+	size_t size;
+	uint64 AbiTag;
+	const xrtownershipadapterv1* Adapter;
+	bool (*CanStep)(const void* pData, const void* pToken);
+	bool (*Step)(const void* pData, const void* pToken, bool* pComplete);
+} xrtownershipfinalizationv1;
+
 /* Optional completion after Clear, distinct from semantic preparation.
  * Exact Adapter identity and permanent code are admitted with this descriptor.
  * Step runs outside freeze/mutation with all plan pins retained. BUSY makes
@@ -15863,6 +15901,34 @@ XRT_API uint64 xrtValueObjectReadTypeIdV1(const xvalueobjectreadv1* pView);
 /* Exact byte key, including embedded NUL. A missing field returns NULL without
  * an error; NULL data with a nonzero key size is an invalid argument. */
 XRT_API const xvalue* xrtValueObjectReadGetV1(const xvalueobjectreadv1* pView, xstrview Key);
+/* Allocation-free read scope for wire Array/Object containers. Caller owns
+ * the real receiver for the complete synchronous scope and serializes access
+ * to it. Begin borrows, never retains/clones/boxes any value or backing. The
+ * receiver is BUSY until End: mutation, retain, clone and release through that
+ * shell fail; independently owned aliases retain normal COW behavior. Children
+ * and key/text bytes are borrowed only until End; open child containers before
+ * invoking code that could change their contents. No suspend, thread transfer,
+ * copying a live scope, or accessing raw receiver APIs while it is active.
+ * Storage starts zeroed. End clears it and is idempotent on a cleared scope.
+ * Scope guards add no fields or checks to ordinary values or operations. */
+#ifndef XRT_VALUE_VIEW_V1_DEFINED
+#define XRT_VALUE_VIEW_V1_DEFINED
+typedef struct xvalueviewv1 {
+    const struct xvalueviewv1* Self;
+    const xvalue* Value;
+    const void* Backing;
+    size_t Count;
+    xvaluetype Type;
+} xvalueviewv1;
+XRT_API bool xrtValueViewBeginV1(const xvalue* pValue, xvalueviewv1* pView);
+XRT_API bool xrtValueViewEndV1(xvalueviewv1* pView);
+XRT_API size_t xrtValueViewCountV1(const xvalueviewv1* pView);
+/* At is checked, zero-based; Object keys retain insertion order. Find is
+ * Object-only, with exact byte keys. Missing Find returns NULL without error. */
+XRT_API const xvalue* xrtValueViewAtV1(const xvalueviewv1* pView, size_t iIndex, xstrview* pKey);
+XRT_API const xvalue* xrtValueViewFindV1(const xvalueviewv1* pView, xstrview Key);
+#endif
+
 /* Borrowed discovery anchors for this instance's live, explicitly certified
  * Object backings. Policy identity is exact; COW/deep-clone backings are each
  * visited once, with their shared Lifetime UserData (possibly NULL). Ordinary
