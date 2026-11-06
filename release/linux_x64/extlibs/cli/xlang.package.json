@@ -1,0 +1,19 @@
+{
+    "format": "xlang-package-1",
+    "name": "cli",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "runtimeSymbols": ["xlValueBorrowV1", "xlValueReadBeginV1", "xlValueReadEndV1", "xlValueReadAtV1", "xlValueReadFindV1", "xlValueBorrowCopyV1"],
+        "cSources": ["cli_native.c"],
+        "xlSources": ["src/cli.xl"],
+        "xrtModules": ["XRT_MODULE_VALUE_CONTAINER", "XRT_MODULE_UNICODE"]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["examples/basic.xl", "examples/options.xl", "examples/flag_selection.xl"] },
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

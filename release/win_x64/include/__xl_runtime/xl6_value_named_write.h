@@ -13,4 +13,5 @@ typedef struct xvalue xvalue;
  * routing. The first checked outcome survives item Drop, including silence.
  * A destructor can report failure after the underlying write committed. */
 XL6_VALUE_NAMED_WRITE_API bool xl6ValueNameSetTakeV1(xvalue*,const char*,size_t,xvalue*);
+XL6_VALUE_NAMED_WRITE_API bool xl6ValueItemNameSetTakeV1(xvalue*,const char*,size_t,xvalue*);
 #endif

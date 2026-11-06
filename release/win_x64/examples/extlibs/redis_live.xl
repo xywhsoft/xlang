@@ -1,0 +1,29 @@
+import redis
+
+// Use tools/run_redis_live_example.py for a private, authenticated Redis fixture.
+// Direct execution uses localhost:6379; environment variables select a private instance.
+func main(...) as int
+    int port = int(env.get("REDIS_LIVE_PORT") ?? "6379")
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
+    TcpStream stream = TcpStream(engine, NetAddress.loopback(4, port))
+    assert stream.wait(TcpWait.open, 3000) == NetStatus.ok
+    string password = env.get("REDIS_LIVE_PASSWORD") ?? ""
+    string prefix = env.get("REDIS_LIVE_PREFIX") ?? "xlang:example"
+    if password.length > 0 then
+        redis.command(stream, ["AUTH", password])
+    end
+    println("PING:", redis.command(stream, ["PING"]))
+    redis.set(stream, prefix + ":live", "hello")
+    println("GET:", redis.get(stream, prefix + ":live"))
+    redis.set(stream, prefix + ":counter", "0")
+    println("EXISTS:", redis.exists(stream, prefix + ":counter"))
+    println("INCR:", redis.incr(stream, prefix + ":counter"))
+    redis.del(stream, prefix + ":counter")
+    println("EXISTS after DEL:", redis.exists(stream, prefix + ":counter"))
+    redis.del(stream, prefix + ":live")
+    stream.close()
+    engine.close()
+    assert engine.wait(5000)
+    return 0
+end
