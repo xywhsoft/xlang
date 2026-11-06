@@ -38,7 +38,8 @@ native engine subsystem has already passed managed runtime acceptance.
 ## Example resources
 
 `init(width,height,title)` packs a stack `xge_desc_t` and calls `xgeInit` once;
-`initNative()` passes the declared typed NULL default descriptor. `Font.drawText`
+`initNative(descriptor=null)` preserves the explicit caller-owned descriptor API.
+The packed form uses a C macro alias to the same entry, without a forwarding function. `Font.drawText`
 uses `xgeTextDraw`, and `drawTexture` packs one stack draw descriptor for `xgeDrawEx`.
 `Sound` shares one native sound record through a checked owned view; its policy
 frees the native sound and its outer record once, before engine shutdown.

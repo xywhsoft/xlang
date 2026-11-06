@@ -4,9 +4,9 @@
 export extern "const xge_desc_t*" class NativeInitDescriptor @header("xge3_runtime.h") @lifetime("caller")
  native point handle
 end
-export extern "xgeInit" @header("xge3_runtime.h") @no_raise @c_result("status",0) @c_null(0,"const xge_desc_t*") func initNative()
+export extern "xgeInit" @header("xge3_runtime.h") @no_raise @c_result("status",0) func initNative(NativeInitDescriptor? descriptor=null)
 // Stack descriptor projection; one native call and no wrapper allocation.
-export extern "xgeInit" @header("xge3_runtime.h") @no_raise @c_result("status",0) @c_pack(0,"xge_desc_t",0,3) @c_pack_field(0,"iWidth",0,"value") @c_pack_field(0,"iHeight",1,"value") @c_pack_field(0,"sTitle",2,"c_string") func init(c_int width,c_int height,string title)
+export extern "xl6Xge3InitPacked" @header("xge3_init.h") @no_raise @c_result("status",0) @c_pack(0,"xge_desc_t",0,3) @c_pack_field(0,"iWidth",0,"value") @c_pack_field(0,"iHeight",1,"value") @c_pack_field(0,"sTitle",2,"c_string") func init(c_int width,c_int height,string title)
 export extern "const void*" class Pixels @header("xge3_runtime.h") @lifetime("caller")
  native point handle
 end
