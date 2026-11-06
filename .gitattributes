@@ -149,5 +149,9 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 
 # Native artifact selection receipts and matching compiler source cohort.
 /dev/release-materials/sources/native-linkage-default-20261106/** -text whitespace=cr-at-eol
-/dev/release-materials/provenance/native-linkage-default-20261106/** -text whitespace=cr-at-eol
+/dev/release-materials/provenance/native-linkage-default-20261106/** -text -whitespace
 /release/win_x64/static/xge3/README.md -text whitespace=cr-at-eol
+
+# Exact raw PE dumps and large generated inventories are evidence, not review patches.
+/dev/release-materials/provenance/native-linkage-default-20261106/**/imports.txt -diff
+/dev/release-materials/sources/native-linkage-default-20261106/manifest.json -diff
