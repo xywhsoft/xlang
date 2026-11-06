@@ -1,0 +1,19 @@
+class Actor extends object
+    int id = 7
+end
+func checkLocal()
+    Actor value = Actor()
+    value["score"] = 42
+    var boxed = value
+    assert boxed.id == 7
+    assert boxed["id"] == null
+    assert boxed["score"] == 42
+end
+checkLocal()
+Actor top = Actor()
+top["score"] = 42
+var boxedTop = top
+assert boxedTop.id == 7
+assert boxedTop["id"] == null
+assert boxedTop["score"] == 42
+println("object index contexts agree")

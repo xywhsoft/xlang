@@ -29,6 +29,16 @@ xvalue* xl6ValueObjectFieldFindV1(const xvalue* source,const char* name,size_t s
     if (!open_fields(source,&fields)) return NULL;
     return fields ? (xvalue*)xrtDynamicFieldsGet(fields,key) : NULL;
 }
+/* The built-in object index protocol addresses only its dynamic dictionary.
+ * Dot access independently prefers declared fields. Ordinary wire objects
+ * still index their own keys. Never turn a failed class discovery into a miss. */
+xvalue* xl6ValueObjectItemFindV1(const xvalue* source,const char* name,size_t size)
+{
+    xrtdynamicfields* fields=NULL;
+    if (!open_fields(source,&fields)) return NULL;
+    return fields ? (xvalue*)xrtDynamicFieldsGet(fields,(xstrview){name,size}) :
+        xrtValueObjectGet(source,(xstrview){name,size});
+}
 bool xl6ValueObjectFieldSetTakeV1(xvalue* source,const char* name,size_t size,xvalue* item)
 {
     xl6_error_scope scope={0};
