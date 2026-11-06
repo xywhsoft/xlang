@@ -18,7 +18,7 @@ try
     assert dir.create(source)
     assert file.writeBytesAtomic(item, b"a\0b")
     assert file.stat(item).size == uint64(3)
-    assert file.setTimes(item, null, 1700000001000000)
+    assert file.setTimes(item, null, int(time.fromUnixMs(1700000001000)))
     auto root = file.root(source)
     auto anchored = root.open("data.bin")
     assert anchored.readExact(3) == b"a\0b"

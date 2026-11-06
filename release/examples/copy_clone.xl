@@ -24,5 +24,6 @@ source.values[0] = 99
 
 expect(copied.id, 7)
 expect(cloned.id, 7)
-expect(int(copied.values[0]), 7)
+// copy shares the nested array; clone owns an independent deep copy.
+expect(int(copied.values[0]), 99)
 expect(int(cloned.values[0]), 7)
