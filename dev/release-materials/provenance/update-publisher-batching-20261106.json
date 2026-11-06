@@ -1,0 +1,23 @@
+{
+  "status": "passed",
+  "date": "2026-11-06",
+  "scope": "Bounded SSH tar batches for compressed immutable objects; full-batch SHA-256 before publishing individual objects",
+  "maxBatchObjects": 128,
+  "targetMaxBatchBytes": 67108864,
+  "serverDependencies": [
+    "POSIX shell",
+    "tar",
+    "GNU coreutils"
+  ],
+  "publicationOrderUnchanged": true,
+  "temporaryPartialBatchesRemainPrivate": true,
+  "acceptance": {
+    "realOpenSshLoopbackServer": true,
+    "batchOf110Objects": true,
+    "corruptBatchPublishesNoObjects": true,
+    "immutableVersionAndSameVersionRepair": true,
+    "metadataRollbackAndActivationResume": true,
+    "publicHttpTransientFailures": true
+  },
+  "sourceMaterials": "dev/release-materials/sources/update-publisher-batching-20261106/manifest.json"
+}

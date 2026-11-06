@@ -100,6 +100,17 @@ class PublishTests(unittest.TestCase):
                 (permission_dir/name).write_bytes(data);expected[name]=hashlib.sha256(data).hexdigest()
             transport.set_read_permissions(remote_path+'/permission-fixture',sorted(expected))
             self.assertEqual(transport.hashes(remote_path+'/permission-fixture',sorted(expected)),expected)
+            # A corrupt object rejects the entire private batch, so even a
+            # valid preceding object cannot become public before verification.
+            bulk=remote/'batch-fixture';stage=remote/'batch-stage';bulk.mkdir();stage.mkdir()
+            public_dir=remote_path+'/batch-fixture';stage_dir=remote_path+'/batch-stage'
+            names=sorted(expected)
+            specs={n:{'sha256':expected[n],'size':(permission_dir/n).stat().st_size} for n in names}
+            corrupt={n:dict(v) for n,v in specs.items()};corrupt[names[1]]['sha256']='0'*64
+            with self.assertRaises(RuntimeError):transport.upload_objects(permission_dir,public_dir,stage_dir,names[:2],corrupt)
+            self.assertFalse(list(bulk.iterdir()))
+            transport.upload_objects(permission_dir,public_dir,stage_dir,names,specs)
+            self.assertEqual(transport.hashes(public_dir,names),expected)
             with self.assertRaises(ValueError):transport.run('printf '+('x'*7000))
             self.assertEqual(manager.main(['push',*args,'--dry-run']),0)
             self.assertFalse((remote/'version.txt').exists())

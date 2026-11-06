@@ -5,6 +5,7 @@ import argparse
 import contextlib
 import hashlib
 import http.client
+import io
 import json
 import lzma
 import os
@@ -16,6 +17,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import tarfile
 import time
 import urllib.request
 import urllib.error
@@ -313,6 +315,45 @@ class SSH:
         return p.stdout.decode('utf-8',errors='strict')
     def upload(self,local,remote):
         with Path(local).open('rb') as f: self.run('umask 077; cat > '+shlex.quote(remote),file=f)
+    def upload_objects(self,local,directory,stage,names,specs):
+        # A bounded tar stream avoids three new SSH connections per object.
+        # Extract into a fresh private directory; validate the entire batch
+        # before any immutable public object is moved into place.
+        if not names or len(names)>128 or any(not HEX.fullmatch(n) for n in names):
+            raise ValueError('invalid object batch')
+        batch=stage+'/batch-'+secrets.token_hex(12)
+        with tempfile.TemporaryFile() as stream:
+            with tarfile.open(fileobj=stream,mode='w') as archive:
+                for name in names:
+                    path=Path(local)/name
+                    if path.is_symlink() or not path.is_file() or path.stat().st_size!=specs[name]['size']:
+                        raise ValueError('invalid batch input: '+name)
+                    info=tarfile.TarInfo(name);info.size=specs[name]['size'];info.mode=0o600
+                    with path.open('rb') as data:archive.addfile(info,data)
+                checksums=''.join(specs[n]['sha256']+'  '+n+'\n' for n in names).encode('ascii')
+                info=tarfile.TarInfo('.checksums');info.size=len(checksums);info.mode=0o600
+                archive.addfile(info,io.BytesIO(checksums))
+            stream.seek(0);q=shlex.quote
+            script=f'''set -eu
+umask 077
+batch={q(batch)}
+destination={q(directory)}
+mkdir -- "$batch"
+tar --no-same-owner --no-same-permissions -xf - -C "$batch"
+cd "$batch"
+sha256sum -c -- .checksums > .verified
+while read -r expected name; do
+  test -f "$name" && test ! -L "$name"
+  chmod 644 -- "$name"
+  mv -fT -- "$name" "$destination/$name"
+done < .checksums
+rm -f -- .checksums .verified
+cd ..
+rmdir -- "$batch"
+printf 'UPLOADED %s\\n' {len(names)}
+'''
+            if self.run(script,file=stream).strip()!=f'UPLOADED {len(names)}':
+                raise ValueError('incomplete batch upload')
     def hashes(self,directory,names):
         result={}
         for i in range(0,len(names),64):
@@ -403,12 +444,17 @@ def push(args,store):
         existing=remote.hashes(root+'/update',names);missing=[n for n in names if existing.get(n)!=specs[n]['sha256']]
         if not activated and any(n in existing for n in missing):
             raise ValueError('immutable object collision or corruption; verify existing release before overwriting objects')
-        for index,name in enumerate(missing,1):
-            print(f'UPLOAD {index}/{len(missing)} {name}',flush=True)
-            temp=stage+'/objects/'+name+'.part';remote.upload(store/'update'/name,temp)
-            output=remote.run('sha256sum -- '+q(temp)).split()[0]
-            if output!=specs[name]['sha256']: raise ValueError('remote object verification failed: '+name)
-            remote.run('chmod 644 '+q(temp)+' && mv -fT -- '+q(temp)+' '+q(root+'/update/'+name))
+        batches=[];batch=[];batch_bytes=0
+        for name in missing:
+            size=specs[name]['size']
+            if batch and (len(batch)>=128 or batch_bytes+size>64*1024*1024):
+                batches.append(batch);batch=[];batch_bytes=0
+            batch.append(name);batch_bytes+=size
+        if batch:batches.append(batch)
+        uploaded=0
+        for batch in batches:
+            remote.upload_objects(store/'update',root+'/update',stage,batch,specs)
+            uploaded+=len(batch);print(f'UPLOAD {uploaded}/{len(missing)} ({len(batch)} objects in batch)',flush=True)
         actual=remote.hashes(root+'/update',names)
         if any(actual.get(n)!=specs[n]['sha256'] for n in names): raise ValueError('remote complete-object check failed')
         remote.set_read_permissions(root+'/update',names)

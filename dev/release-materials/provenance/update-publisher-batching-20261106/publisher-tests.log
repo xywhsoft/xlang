@@ -1,0 +1,46 @@
+{"version": 1, "changedFiles": 4, "newObjects": 4, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-8q1fix4l\\repository"}
+Deployment configuration saved locally
+{
+  "host": "fixture-update",
+  "remoteRoot": "/d/GIT/x-lang/ide/build/Release/update-tests/case-8q1fix4l/remote/update_win_x64",
+  "publicUrl": "http://127.0.0.1:57767",
+  "version": 1,
+  "objects": 4,
+  "bytes": 225
+}
+UPLOAD 4/4 (4 objects in batch)
+RETRY public 1/2 http://127.0.0.1:57767/update/091d16c8897c6f521efc0d82a4d3da7b8587bd931460cb9f713014ba104d8432.lzma: Remote end closed connection without response
+RETRY public 2/2 http://127.0.0.1:57767/update/091d16c8897c6f521efc0d82a4d3da7b8587bd931460cb9f713014ba104d8432.lzma: public object response was truncated: http://127.0.0.1:57767/update/091d16c8897c6f521efc0d82a4d3da7b8587bd931460cb9f713014ba104d8432.lzma
+VERIFY PUBLIC 1/4
+VERIFY PUBLIC 4/4
+PUBLISHED win_x64 version=1 uploaded=4 reused=0
+UPLOAD 1/1 (1 objects in batch)
+VERIFY PUBLIC 1/4
+VERIFY PUBLIC 4/4
+PUBLISHED win_x64 version=1 uploaded=1 reused=3
+{"version": 2, "changedFiles": 2, "newObjects": 2, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-8q1fix4l\\repository"}
+UPLOAD 2/2 (2 objects in batch)
+VERIFY PUBLIC 1/4
+VERIFY PUBLIC 4/4
+test_publish_resume_immutable_and_rollback (__main__.PublishTests.test_publish_resume_immutable_and_rollback) ... ERROR: public download verification failed: update.json
+VERIFY PUBLIC 1/4
+VERIFY PUBLIC 4/4
+PUBLISHED win_x64 version=2 uploaded=0 reused=4
+{"version": 3, "changedFiles": 2, "newObjects": 2, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-8q1fix4l\\repository"}
+UPLOAD 2/2 (2 objects in batch)
+VERIFY PUBLIC 1/4
+VERIFY PUBLIC 4/4
+ERROR: version activated; public verification pending, rerun push
+VERIFY PUBLIC SERVER 4/4
+PUBLISHED win_x64 version=3 uploaded=0 reused=4
+{"version": 1, "changedFiles": 4, "newObjects": 4, "store": "D:\\GIT\\x-lang\\ide\\build\\Release\\update-tests\\case-8q1fix4l\\production"}
+UPLOAD 4/4 (4 objects in batch)
+VERIFY PUBLIC 1/4
+VERIFY PUBLIC 4/4
+ok
+
+----------------------------------------------------------------------
+Ran 1 test in 33.183s
+
+OK
+PUBLISHED win_x64 version=1 uploaded=4 reused=0
