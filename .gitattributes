@@ -135,3 +135,10 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 
 # The optional static SDK is the same exact-byte delivery class as extlibs.
 /release/win_x64/static/xge3/packages/** -text whitespace=cr-at-eol
+
+# Teaching sources and their installed mirrors retain identical bytes.
+/lib/bindings/xui/examples/** -text whitespace=cr-at-eol
+/lib/bindings/xui/src/managed.xl text eol=crlf whitespace=cr-at-eol
+/lib/bindings/xui/README.md -text whitespace=cr-at-eol
+/dev/release-materials/sources/xui-learning-20261106/** -text whitespace=cr-at-eol
+/dev/release-materials/provenance/xui-learning-20261106/** -text whitespace=cr-at-eol

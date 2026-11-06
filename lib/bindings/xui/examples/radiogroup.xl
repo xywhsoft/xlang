@@ -1,0 +1,19 @@
+// RadioGroup 保证两个选项互斥；点击任一选项即可验证。
+import xui
+from "./_window.xl" import Window
+
+Window.show("单选组", func(xui.Context ui, xui.Widget root)
+ auto group = ui.radioGroup()
+ Window.place(root, group, 24, 24, 420, 140)
+ group.setOrientation(xui.XUI_RADIO_GROUP_VERTICAL)
+ group.setGap(12)
+
+ auto light = ui.radioNative()
+ light.setText("浅色主题")
+ group.addRadio(light)
+
+ auto dark = ui.radioNative()
+ dark.setText("深色主题")
+ group.addRadio(dark)
+ group.setSelectedIndex(0)
+end)

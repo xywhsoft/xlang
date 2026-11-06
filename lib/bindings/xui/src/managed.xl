@@ -1005,7 +1005,6 @@ export extern "xui_context_t*" class Context @header("xge3_runtime.h") @lifetime
 
  extern "xuiWorkflowWidgetCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackWorkflowWidget) func workflowWidgetNative(NativeConstXuiWorkflowDescTPointer? pDesc=null) as WorkflowWidget
 
- extern "xuiWebViewCreate" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackWebView) func webViewNative(NativeConstXuiWebviewDescTPointer pDesc) as WebView
 
  extern "xuiDestroyChecked" @no_raise func destroyChecked() as c_int
 
@@ -1235,6 +1234,12 @@ export extern "xui_context_t*" class Context @header("xge3_runtime.h") @lifetime
  extern "xuiScrollViewCreate" @no_raise @c_null(2,"const xui_scroll_view_desc_t*") @c_result("owner_view",0) @factory(1,0,rollbackScrollView) func scrollView() as ScrollView
  extern "xuiCanvasCreate" @no_raise @c_null(2,"const xui_canvas_desc_t*") @c_result("owner_view",0) @factory(1,0,rollbackCanvas) func canvas() as Canvas
  extern "xuiSeparatorCreate" @no_raise @c_null(2,"const xui_separator_desc_t*") @c_result("owner_view",0) @factory(1,0,rollbackSeparator) func separator() as Separator
+
+ extern "xuiRadioGroupCreate" @no_raise @c_null(2,"const xui_radio_group_desc_t*") @c_result("owner_view",0) @factory(1,0,rollbackRadioGroup) func radioGroup() as RadioGroup
+
+ extern "xuiScrollFrameCreate" @no_raise @c_null(2,"const xui_scroll_frame_desc_t*") @c_result("owner_view",0) @factory(1,0,rollbackScrollFrame) func scrollFrame() as ScrollFrame
+
+ extern "xuiWebViewCreate" @no_raise @c_pack(2,"xui_webview_desc_t",0,1) @c_pack_size(2,"iSize","uint32_t") @c_pack_field(2,"sUserDataFolder",0,"c_string") @c_result("owner_view",0) @factory(1,0,rollbackWebView) func webView(string? userDataFolder=null) as WebView
 end
 
 export extern "xui_widget_t*" class Widget @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t")
@@ -4005,6 +4010,8 @@ export extern "xui_widget_t*" class DockPanel @header("xge3_runtime.h") @lifetim
  extern "xuiDockPanelSetWindowIcon" @no_raise @c_result("status",0) func setWindowIcon(c_int iWindow,Surface? pSurface,Rect tSrc)
  extern "xuiDockPanelGetWindowIconSurface" @no_raise @c_result("retained_view") @c_retain(retainSurface,"zero",rollbackSurface) func getWindowIconSurface(c_int iWindow) as Surface?
  extern "xuiDockPanelAddWindow" @no_raise @c_cstr(0) @c_output(3,0) func addWindow(string title,Widget client) as c_int
+ extern "xuiDockPanelDockWindow" @no_raise @c_output(5,0) func dockWindow(c_int window,c_int region,c_int side,c_float ratio=0) as c_int
+
 end
 
 export extern "xui_widget_t*" class ScrollFrame @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
@@ -5461,6 +5468,8 @@ export extern "xui_widget_t*" class Cascader @header("xge3_runtime.h") @lifetime
 
  extern "xuiCascaderGetChangeCount" @no_raise func getChangeCount() as c_int
 
+
+ extern "xuiCascaderSetItems" @no_raise @c_result("status",0) @c_array_group(1,0,4,"int",4) @c_array_record(1,"xui_cascader_item_t") @c_array_field(1,"sText",0,"c_string") @c_array_field(1,"iValue",1,"value") @c_array_field(1,"iParent",2,"value") @c_array_field(1,"iFlags",3,"value") func setItems(array<string> titles,array<c_int> values,array<c_int> parents,array<c_uint> flags,int size=-1)
 end
 
 export extern "xui_widget_t*" class ColorPicker @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget

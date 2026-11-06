@@ -4,6 +4,10 @@
 matching `_xge_native` SDK, the engine DLL/SO and the language's XRT. Package
 version `3.0.0`, ABI `2`, does not change the native `XUI_VERSION_*` constants.
 
+Start learning with [the examples guide](examples/README.md) and
+[button.xl](examples/button.xl). Lessons use top-level initialization callbacks;
+the shared window loop is ordinary source in `examples/_window.xl`.
+
 The default Document model has seven typed resource classes: `Document`,
 `DocumentSnapshot`, `DocumentChangeSet`, `DocumentPrepare`, `DocumentFragment`,
 `DocumentSourceIndex` and unique `DocumentTransaction`. Use `createDocument()`
@@ -30,6 +34,12 @@ no C wrappers for individual methods and no opcode dispatch. Constructors
 ending in `Native` expose caller managed descriptors. A default `null`
 descriptor is available only after checking native validation. Such an API
 does not imply safe ownership of nested font, surface or callback pointers.
+
+The zero-argument `radioGroup()` and `scrollFrame()` select native NULL
+descriptor defaults. `webView(userDataFolder)` packs a sized native descriptor
+with no raw callback/user pointers. `Cascader.setItems` projects equal-length
+columns to native items, whose texts the native control copies. `DockPanel`
+windows start hidden: `dockWindow` places them in a pane and returns its ID.
 
 `Widget.close()` calls the checked native widget
 destructor. A protected internal child refuses destruction without invalidating

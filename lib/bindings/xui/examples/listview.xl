@@ -1,18 +1,10 @@
-// List / selection and scrolling. Run from release/<platform>; Escape or close exits.
+// 点击行，改变列表的选中项。
 import xui
-import "./_support.xl" as demo
+from "./_window.xl" import Window
 
-export class ListviewExample
- static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
-  demo.Gallery.label(context,root,"List / selection and scrolling",24,16)
-  auto control=context.listViewNative()
-  demo.Gallery.place(root,control,24,64,640,260)
-  control.setItems(["First item","Second item","Third item","Fourth item","Fifth item"])
-  assert control.setSelected(c_int(1))==0
-  assert control.getItemCount()==c_int(5)
- end
-end
-
-func main(...) as int
- return demo.Gallery.run("List / selection and scrolling",ListviewExample.build)
-end
+Window.show("List / selection and scrolling", func(xui.Context ui, xui.Widget root)
+ auto listview = ui.listViewNative()
+ Window.place(root, listview, 24, 24, 640, 260)
+ listview.setItems(["First item", "Second item", "Third item", "Fourth item", "Fifth item"])
+ listview.setSelected(1)
+end)

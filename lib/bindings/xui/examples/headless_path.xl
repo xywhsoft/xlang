@@ -1,16 +1,13 @@
-// Pure native path storage: no Proxy, Context, window or graphics device.
+// Build a vector path without opening a window; expected counts: 2, then 0.
 import xui
 
-func main(...) as int
- auto path=xui.createPath()
- try
-  path.moveTo(0,0)
-  path.lineTo(30,40)
-  assert path.commandCount()==2
-  path.clear()
-  assert path.commandCount()==0
- finally
-  path.close()
- end
- return 0
+auto outline = xui.createPath()
+try
+ outline.moveTo(0, 0)
+ outline.lineTo(30, 40)
+ println(outline.commandCount())
+ outline.clear()
+ println(outline.commandCount())
+finally
+ outline.close()
 end
