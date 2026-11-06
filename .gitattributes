@@ -132,3 +132,6 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 # Exact gallery source snapshots and historical acceptance bytes.
 /dev/release-materials/sources/xui-gallery-20261106/** -text whitespace=cr-at-eol
 /dev/release-materials/provenance/xui-gallery-20261106/** -text whitespace=cr-at-eol
+
+# The optional static SDK is the same exact-byte delivery class as extlibs.
+/release/win_x64/static/xge3/packages/** -text whitespace=cr-at-eol
