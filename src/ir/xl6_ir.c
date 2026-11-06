@@ -17519,6 +17519,8 @@ static XL6_IrRuntimeResourceOp xl6IrDefaultRuntimeResourceOp(
         return XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CREATE;
     if ( xl6IrSlotMapStorageRecipe(module, typeId, NULL) )
         return XL6_IR_RUNTIME_RESOURCE_OP_SLOT_MAP_CREATE;
+    if (xl6IrChannelConstructionRecipe(module, typeId, NULL, NULL))
+        return XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_CREATE;
     if ( type->kind != XL6_IR_TYPE_BUILTIN || type->paramCount != 0 )
         return XL6_IR_RUNTIME_RESOURCE_OP_INVALID;
     switch ( type->runtimeResourceAbi ) {
@@ -17551,6 +17553,11 @@ static void xl6IrDefaultRuntimeResourcePayload(
             *payload = recipe.elementType;
             *transfer = recipe.transferAbi;
         }
+        return;
+    }
+    if (operation == XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_CREATE) {
+        *payload = xl6IrRuntimeChannelPayloadType(module, owner);
+        *transfer = xl6IrRuntimeResourcePayloadAbiForOwnerType(module, owner, *payload);
         return;
     }
     if ( operation == XL6_IR_RUNTIME_RESOURCE_OP_STACK_CREATE )
@@ -23633,6 +23640,20 @@ const XL6_IrNativeHandleProject* xl6IrNativeHandleProjectGet(
         if ( module->nativeHandleProjects[i].origin == origin )
             return &module->nativeHandleProjects[i];
     return NULL;
+}
+
+/* A static class view admits its derived identities without changing the
+ * actual object's identity or ownership. Nullable views retain the null sentinel. */
+int xl6IrInstructionIsNominalRetainProjection(
+    const XL6_IrModule* module, const XL6_IrInstruction* instruction)
+{
+    const XL6_IrType* payload;
+    if (!module || !instruction || instruction->kind != XL6_IR_INSTR_RUNTIME_CALL ||
+        (instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_PROJECT_XVALUE_RETAIN &&
+         instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_XVALUE_RETAIN)) return 0;
+    payload = xl6IrTypeGet(&module->types, instruction->payloadType);
+    return payload && payload->kind == XL6_IR_TYPE_CLASS &&
+        payload->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR;
 }
 
 int xl6IrInstructionIsFallibleProjection(
@@ -44439,6 +44460,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                 elementType->nominalSymbol !=
                                     XL6_SYMBOL_ID_INVALID)) ||
                              elementType->typeValueId == 0 ||
+                             (xl6IrInstructionIsNominalRetainProjection(module, instruction) &&
+                              !xl6IrNominalIdentitySetGet(module, instruction->payloadType, NULL)) ||
                              !xl6IrSafeClassFieldProjectionSourceMatches(
                                  module, instruction, left) )
                             return xl6IrDiag(diags,
@@ -44469,7 +44492,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                  (resultType->kind == XL6_IR_TYPE_CLASS
                                      ? instruction->type
                                      : XL6_IR_TYPE_INVALID) ||
-                             resultType->typeValueId == 0 )
+                             resultType->typeValueId == 0 ||
+                             (xl6IrInstructionIsNominalRetainProjection(module, instruction) &&
+                              !xl6IrNominalIdentitySetGet(module, instruction->payloadType, NULL)) )
                             return xl6IrDiag(diags,
                                 xl6IrNodeGet(module, instruction->origin),
                                 "XLIR xvalue non-null nominal projection has no exact source, static payload, exact-or-polymorphic runtime identity and retained ownership ABI");

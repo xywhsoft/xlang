@@ -1,0 +1,20 @@
+// Default construction uses the same closed schema and capacity as channel::<T>().
+channel<int> globalChannel
+class ChannelOwner
+    channel<int> pipe
+end
+func check(channel<int> pipe)
+    assert pipe.send(7)
+    auto status, item = pipe.tryRecv()
+    assert status == channelStatus.ok
+    assert item as int == 7
+end
+func checkLocal()
+    channel<int> local
+    check(local)
+end
+check(globalChannel)
+checkLocal()
+ChannelOwner owner = ChannelOwner()
+check(owner.pipe)
+println("default channels are initialized")

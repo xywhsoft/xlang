@@ -103,6 +103,7 @@ static int xl6IrCgenNominalIdentitySetUsed(
             }
         }
         if (instruction->payloadType != set->targetType) continue;
+        if (xl6IrInstructionIsNominalRetainProjection(module, instruction)) return 1;
         if ( instruction->runtimeOp ==
                  XL6_IR_RUNTIME_XVALUE_NOMINAL_TEST ||
              instruction->runtimeOp ==
