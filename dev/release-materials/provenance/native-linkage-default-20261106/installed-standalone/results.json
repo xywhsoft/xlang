@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "exitCode": 0,
+  "scenes": 57,
+  "frames": 190,
+  "sha256": "e5657d4a8c15f938b95d6d9292cd5fe1cf37db84b4ec9bdb80b4be078504ff4b",
+  "packagePathOverride": false,
+  "engineDllsPresent": false,
+  "ideArtifact": "release/win_x64/examples/xui/.xlang-ide/single-file/all_controls.xl/program.exe",
+  "ideArtifactSha256": "e5657d4a8c15f938b95d6d9292cd5fe1cf37db84b4ec9bdb80b4be078504ff4b",
+  "removedMatchingGeneratedDependency": {
+    "path": "release/win_x64/examples/xui/.xlang-ide/single-file/all_controls.xl/xge3_host.dll",
+    "sha256": "0229cab17ea902fe44be5758d0c0af90f930387a02efa3f8afd537d811c70d69"
+  }
+}

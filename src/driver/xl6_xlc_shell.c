@@ -22,6 +22,7 @@
 
 static char xlcShellKeptTempDir[512];
 static char xlcShellProjectKind[16];
+static int xlcShellNativeLinkageSpecified;
 
 static void xlcShellReportKeptTemps(void)
 {
@@ -45,6 +46,7 @@ static void xlcShellPrintHelp(void)
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl abi <file.xl> [--json] [--emit output.abi.txt]\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl run <file.xl|file.c|file.xlp> [helper.c ...] [--backend xlir] [--save-temps] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib library] [-- <args>...]\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl build <file.xl|file.c|file.xlp> [helper.c ...] [-o output] [-shared] [--backend xlir] [--res file.json|file.xlon] [--save-temps] [--input-report receipt.json] [--emit-header output.h] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib library]\n");
+    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  --native-linkage auto|static|dynamic selects declared native artifacts; auto prefers static for AOT, dynamic for JIT\n");
 #ifdef _WIN32
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl impdef <file.dll> -o <output.def>\n");
 #endif
@@ -460,6 +462,7 @@ typedef struct XLC_ShellProject {
     char* format;
     char* kind;
     char* entry;
+    char* nativeLinkage;
     char dir[512];
     XLC_ShellStringList cSources;
     XLC_ShellStringList resources;
@@ -534,6 +537,7 @@ static void xlcShellProjectFree(XLC_ShellProject* project)
     xrtFree(project->format);
     xrtFree(project->kind);
     xrtFree(project->entry);
+    xrtFree(project->nativeLinkage);
     xlcShellStringListFree(&project->cSources);
     xlcShellStringListFree(&project->resources);
     memset(project, 0, sizeof(*project));
@@ -783,6 +787,10 @@ static int xlcShellProjectParseRoot(XLC_ShellJson* json, XLC_ShellProject* proje
         } else if ( strcmp(key, "kind") == 0 ) {
             xrtFree(project->kind);
             project->kind = xlcShellJsonReadString(json);
+        } else if ( strcmp(key, "nativeLinkage") == 0 ) {
+            if (project->nativeLinkage) { xrtFree(key); return 0; }
+            project->nativeLinkage = xlcShellJsonReadString(json);
+            if (!project->nativeLinkage) { xrtFree(key); return 0; }
         } else if ( strcmp(key, "entry") == 0 ) {
             xrtFree(project->entry);
             project->entry = xlcShellJsonReadString(json);
@@ -1062,6 +1070,7 @@ static int xlcShellOptionTakesValue(const char* arg)
     return xlcShellTextEquals(arg, "--input-report") ||
            xlcShellTextEquals(arg, "--emit") ||
            xlcShellTextEquals(arg, "--backend") ||
+           xlcShellTextEquals(arg, "--native-linkage") ||
            xlcShellTextEquals(arg, "--emit-header") ||
            xlcShellTextEquals(arg, "--dump-dir") ||
            xlcShellTextEquals(arg, "--format") ||
@@ -1138,6 +1147,15 @@ static int xlcShellSourceRangesOptions(int argc, char** argv, int* json)
     return xlcShellJsonFlagOptions(argc, argv, "--source-ranges", json);
 }
 
+static int xlcShellParseNativeLinkage(const char* text, XLC_NativeLinkage* value)
+{
+    if (xlcShellTextEquals(text, "auto")) *value = XLC_NATIVE_LINKAGE_AUTO;
+    else if (xlcShellTextEquals(text, "static")) *value = XLC_NATIVE_LINKAGE_STATIC;
+    else if (xlcShellTextEquals(text, "dynamic")) *value = XLC_NATIVE_LINKAGE_DYNAMIC;
+    else return 0;
+    return 1;
+}
+
 static int xlcShellApplyContextOptions(XLC_Context* ctx, int argc, char** argv)
 {
     const char* backend;
@@ -1165,6 +1183,18 @@ static int xlcShellApplyContextOptions(XLC_Context* ctx, int argc, char** argv)
             break;
         }
         if (xlcShellTextEquals(argv[i], "--completion-at")) { i += 2; continue; }
+        if (xlcShellTextEquals(argv[i], "--native-linkage")) {
+            XLC_NativeLinkage linkage;
+            if (xlcShellNativeLinkageSpecified || i + 1 >= argc ||
+                !xlcShellParseNativeLinkage(argv[i + 1], &linkage)) {
+                xl6ConsolePuts(XL6_CONSOLE_STDERR, "--native-linkage requires one of auto, static, dynamic (once)\n");
+                return 0;
+            }
+            xlcShellNativeLinkageSpecified = 1;
+            if (!xlcSetNativeLinkage(ctx, linkage)) return 0;
+            ++i;
+            continue;
+        }
         if ( xlcShellTextEquals(argv[i], "--source-overlay") ) {
             char* text;
             size_t size;
@@ -1241,6 +1271,7 @@ static XLC_Context* xlcShellCreateContext(int argc, char** argv)
     char tempDir[512];
     const char* command;
 
+    xlcShellNativeLinkageSpecified = 0;
     options = xlcDefaultContextOptions();
     options.workDir = ".";
     options.tempDir = xlcShellDefaultTempDir(defaultTempDir, sizeof(defaultTempDir)) ? defaultTempDir : NULL;
@@ -1305,7 +1336,15 @@ static int xlcShellAddProject(XLC_Context* ctx, const char* file)
         xlcShellProjectFree(&project);
         return 0;
     }
-    ok = xlcShellAddFile(ctx, path);
+    ok = 1;
+    if (project.nativeLinkage) {
+        XLC_NativeLinkage linkage;
+        if (!xlcShellParseNativeLinkage(project.nativeLinkage, &linkage)) {
+            xl6ConsolePuts(XL6_CONSOLE_STDERR, "xlp nativeLinkage must be auto, static or dynamic\n");
+            ok = 0;
+        } else if (!xlcShellNativeLinkageSpecified) ok = xlcSetNativeLinkage(ctx, linkage);
+    }
+    ok = ok && xlcShellAddFile(ctx, path);
     for ( i = 0; ok && i < project.cSources.count; ++i ) {
         if ( !xlcShellProjectResolvePath(path, sizeof(path), &project, project.cSources.items[i]) ) {
             xl6ConsolePrintf(XL6_CONSOLE_STDERR, "xlp cSources path is too long: %s\n", project.cSources.items[i]);

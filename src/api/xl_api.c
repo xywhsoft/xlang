@@ -155,6 +155,7 @@ struct XL_Context {
     int destroyRequested;
     XL6_BuildInputs* buildInputs; /* Borrowed from an XLC context. */
     XL6_CompiledPackageSet compiledPackages;
+    int nativeLinkage; /* XLC_NativeLinkage; auto is target-dependent. */
 };
 
 
@@ -190,6 +191,7 @@ XL_API int xlcSetWorkDir(XLC_Context* ctx, const char* path);
 XL_API int xlcSetTempDir(XLC_Context* ctx, const char* path);
 XL_API int xlcSetSaveTemps(XLC_Context* ctx, int enabled);
 XL_API int xlcSetBackend(XLC_Context* ctx, XLC_Backend backend);
+XL_API int xlcSetNativeLinkage(XLC_Context* ctx, XLC_NativeLinkage linkage);
 XL_API int xlcAddIncludePath(XLC_Context* ctx, const char* path);
 XL_API int xlcAddLibraryPath(XLC_Context* ctx, const char* path);
 XL_API int xlcAddLinkLibrary(XLC_Context* ctx, const char* nameOrPath);
@@ -1440,9 +1442,16 @@ static int xlTccCompileGeneratedModule(XL_Context* ctx, TCCState* s, const char*
 
 #include "src/api/xl_compiled_package.inc"
 
-static int xlLoadUnitFromSource(XL_Context* ctx, XL6_CompileUnit* unit, const char* source, const char* virtualPath, const XL6_SourceOverlay* overlay)
+static int xlNativeSelection(const XL_Context* ctx, int aot)
+{
+    return ctx && ctx->nativeLinkage ? ctx->nativeLinkage :
+        aot ? XL6_NATIVE_SELECT_AUTO_AOT : XL6_NATIVE_SELECT_AUTO_JIT;
+}
+
+static int xlLoadUnitFromSource(XL_Context* ctx, XL6_CompileUnit* unit, const char* source, const char* virtualPath, const XL6_SourceOverlay* overlay, int nativeSelection)
 {
     xl6CompileUnitInit(unit);
+    unit->importDeps.nativeSelection = nativeSelection;
     unit->importDeps.sourceOverlay = overlay;
     unit->importDeps.compiledPackages = &ctx->compiledPackages;
     if ( source == NULL ) {
@@ -1456,9 +1465,10 @@ static int xlLoadUnitFromSource(XL_Context* ctx, XL6_CompileUnit* unit, const ch
     return 1;
 }
 
-static int xlLoadUnitFromFile(XL_Context* ctx, XL6_CompileUnit* unit, const char* path, const XL6_SourceOverlay* overlay)
+static int xlLoadUnitFromFile(XL_Context* ctx, XL6_CompileUnit* unit, const char* path, const XL6_SourceOverlay* overlay, int nativeSelection)
 {
     xl6CompileUnitInit(unit);
+    unit->importDeps.nativeSelection = nativeSelection;
     unit->importDeps.sourceOverlay = overlay;
     unit->importDeps.compiledPackages = &ctx->compiledPackages;
     if ( path == NULL || path[0] == '\0' ) {
@@ -4397,7 +4407,7 @@ int xlRunScriptStringArg(XL_Context* ctx, const char* source, xvalue* pArg)
         xlApiUnlock();
         return 0;
     }
-    ok = xlLoadUnitFromSource(ctx, &unit, source, "__xl_string.xl", NULL);
+    ok = xlLoadUnitFromSource(ctx, &unit, source, "__xl_string.xl", NULL, xlNativeSelection(ctx, 1));
     if ( ok ) {
         ok = xlCompileAndRunUnit(ctx, &unit, pArg);
     }
@@ -4433,7 +4443,7 @@ int xlRunScriptFileArg(XL_Context* ctx, const char* path, xvalue* pArg)
         xlApiUnlock();
         return 0;
     }
-    ok = xlLoadUnitFromFile(ctx, &unit, path, NULL);
+    ok = xlLoadUnitFromFile(ctx, &unit, path, NULL, xlNativeSelection(ctx, 1));
     if ( ok ) {
         ok = xlCompileAndRunUnit(ctx, &unit, pArg);
     }
@@ -4461,7 +4471,7 @@ XL_Module* xlCompileScriptStringToModule(XL_Context* ctx, const char* source)
         return NULL;
     }
     module = NULL;
-    ok = xlLoadUnitFromSource(ctx, &unit, source, "__xl_string.xl", NULL);
+    ok = xlLoadUnitFromSource(ctx, &unit, source, "__xl_string.xl", NULL, xlNativeSelection(ctx, 0));
     if ( ok ) {
         module = xlCompileUnitToModule(ctx, &unit);
     }
@@ -4488,7 +4498,7 @@ XL_Module* xlCompileScriptFileToModule(XL_Context* ctx, const char* path)
         return NULL;
     }
     module = NULL;
-    ok = xlLoadUnitFromFile(ctx, &unit, path, NULL);
+    ok = xlLoadUnitFromFile(ctx, &unit, path, NULL, xlNativeSelection(ctx, 0));
     if ( ok ) {
         module = xlCompileUnitToModule(ctx, &unit);
     }
@@ -4858,7 +4868,7 @@ int xlCompileScriptStringToExe(XL_Context* ctx, const char* source, const char* 
         xlApiUnlock();
         return 0;
     }
-    ok = xlLoadUnitFromSource(ctx, &unit, source, "__xl_string.xl", NULL);
+    ok = xlLoadUnitFromSource(ctx, &unit, source, "__xl_string.xl", NULL, xlNativeSelection(ctx, 1));
     if ( ok ) {
         ok = xlCompileUnitToExe(ctx, &unit, outputExe);
     }
@@ -4883,7 +4893,7 @@ int xlCompileScriptFileToExe(XL_Context* ctx, const char* path, const char* outp
         xlApiUnlock();
         return 0;
     }
-    ok = xlLoadUnitFromFile(ctx, &unit, path, NULL);
+    ok = xlLoadUnitFromFile(ctx, &unit, path, NULL, xlNativeSelection(ctx, 1));
     if ( ok ) {
         ok = xlCompileUnitToExe(ctx, &unit, outputExe);
     }
@@ -4998,20 +5008,20 @@ static void xlcClearSourceUnlocked(XLC_Context* ctx)
     ctx->sourceKind = XLC_SOURCE_NONE;
 }
 
-static int xlcCompileUnlocked(XLC_Context* ctx)
+static int xlcCompileTargetUnlocked(XLC_Context* ctx, int aot)
 {
     int ok;
 
     if ( ctx == NULL || ctx->runtime == NULL ) {
         return 0;
     }
-    if ( ctx->unitReady ) {
-        return 1;
-    }
+    int selection = xlNativeSelection(ctx->runtime, aot);
+    if (ctx->unitReady && ctx->unit.importDeps.nativeSelection != selection) xlcClearUnitUnlocked(ctx);
+    if (ctx->unitReady) return 1;
     if ( ctx->sourceKind == XLC_SOURCE_FILE ) {
-        ok = xlLoadUnitFromFile(ctx->runtime, &ctx->unit, ctx->sourcePath, &ctx->sourceOverlay);
+        ok = xlLoadUnitFromFile(ctx->runtime, &ctx->unit, ctx->sourcePath, &ctx->sourceOverlay, selection);
     } else if ( ctx->sourceKind == XLC_SOURCE_STRING ) {
-        ok = xlLoadUnitFromSource(ctx->runtime, &ctx->unit, ctx->sourceText, ctx->virtualPath, &ctx->sourceOverlay);
+        ok = xlLoadUnitFromSource(ctx->runtime, &ctx->unit, ctx->sourceText, ctx->virtualPath, &ctx->sourceOverlay, selection);
     } else {
         xlSetError(ctx->runtime, "compiler source is empty");
         return 0;
@@ -5023,6 +5033,11 @@ static int xlcCompileUnlocked(XLC_Context* ctx)
     }
     ctx->unitReady = 1;
     return 1;
+}
+
+static int xlcCompileUnlocked(XLC_Context* ctx)
+{
+    return xlcCompileTargetUnlocked(ctx, 0);
 }
 
 XL_API XLC_ContextOptions xlcDefaultContextOptions(void)
@@ -5153,6 +5168,24 @@ XL_API int xlcSetTempDir(XLC_Context* ctx, const char* path)
 XL_API int xlcSetSaveTemps(XLC_Context* ctx, int enabled)
 {
     return ctx != NULL ? xlSetSaveTemps(ctx->runtime, enabled) : 0;
+}
+
+XL_API int xlcSetNativeLinkage(XLC_Context* ctx, XLC_NativeLinkage linkage)
+{
+    if (!ctx || !ctx->runtime) return 0;
+    xlApiLock();
+    xlClearLastErrorUnlocked(ctx->runtime);
+    if (linkage < XLC_NATIVE_LINKAGE_AUTO || linkage > XLC_NATIVE_LINKAGE_DYNAMIC) {
+        xlSetError(ctx->runtime, "native linkage must be auto, static or dynamic");
+        xlApiUnlock();
+        return 0;
+    }
+    if (ctx->runtime->nativeLinkage != (int)linkage) {
+        xlcClearUnitUnlocked(ctx);
+        ctx->runtime->nativeLinkage = (int)linkage;
+    }
+    xlApiUnlock();
+    return 1;
 }
 
 XL_API int xlcSetBackend(XLC_Context* ctx, XLC_Backend backend)
@@ -5521,11 +5554,11 @@ static int xlcCheckInternal(XLC_Context* ctx, const char* outputPath, int jsonOu
     overlay.semanticIndex = withIndex || withBridge;
     xl6CompileUnitInit(&unit);
     if ( ctx->sourceKind == XLC_SOURCE_FILE ) {
-        success = xlLoadUnitFromFile(ctx->runtime, &unit, ctx->sourcePath, &overlay);
+        success = xlLoadUnitFromFile(ctx->runtime, &unit, ctx->sourcePath, &overlay, xlNativeSelection(ctx->runtime, withBridge));
     } else if ( ctx->sourceKind == XLC_SOURCE_STRING ) {
         success = (!withSources || xl6SourceReportText(&report, ctx->virtualPath,
                      ctx->sourceText, strlen(ctx->sourceText), "memory")) &&
-                  xlLoadUnitFromSource(ctx->runtime, &unit, ctx->sourceText, ctx->virtualPath, &overlay);
+                  xlLoadUnitFromSource(ctx->runtime, &unit, ctx->sourceText, ctx->virtualPath, &overlay, xlNativeSelection(ctx->runtime, withBridge));
     } else {
         xl6SourceReportFree(&report);
         xlSetError(ctx->runtime, "compiler source is empty");
@@ -5649,9 +5682,9 @@ XL_API int xlcComplete(XLC_Context* ctx,const char* queryPath,size_t byteOffset,
     absolute=xrtPathAbs(queryPath);query.path=absolute;query.offset=byteOffset;
     overlay=ctx->sourceOverlay;overlay.report=&report;overlay.semanticIndex=0;overlay.completionQuery=&query;
     if (!absolute) query.error="cannot resolve completion source";
-    else if (ctx->sourceKind==XLC_SOURCE_FILE) xlLoadUnitFromFile(ctx->runtime,&unit,ctx->sourcePath,&overlay);
+    else if (ctx->sourceKind==XLC_SOURCE_FILE) xlLoadUnitFromFile(ctx->runtime,&unit,ctx->sourcePath,&overlay,xlNativeSelection(ctx->runtime,0));
     else if (ctx->sourceKind==XLC_SOURCE_STRING) {
-        if (xl6SourceReportText(&report,ctx->virtualPath,ctx->sourceText,strlen(ctx->sourceText),"memory")) xlLoadUnitFromSource(ctx->runtime,&unit,ctx->sourceText,ctx->virtualPath,&overlay);
+        if (xl6SourceReportText(&report,ctx->virtualPath,ctx->sourceText,strlen(ctx->sourceText),"memory")) xlLoadUnitFromSource(ctx->runtime,&unit,ctx->sourceText,ctx->virtualPath,&overlay,xlNativeSelection(ctx->runtime,0));
         else query.error="cannot retain memory completion source";
     } else query.error="compiler source is empty";
     if (!xl6SourceReportValidate(&report)) query.error="completion source report is incomplete or changed";
@@ -5835,7 +5868,7 @@ XL_API int xlcEmitC(XLC_Context* ctx, const char* outputPath)
         xlApiUnlock();
         return 0;
     }
-    ok = xlcCompileUnlocked(ctx) &&
+    ok = xlcCompileTargetUnlocked(ctx, 1) &&
          xlEmitUnitCToFile(ctx->runtime, &ctx->unit, outputPath, NULL);
     xlLeaveWorkDir(&cwd);
     xlApiUnlock();
@@ -5856,7 +5889,7 @@ XL_API int xlcEmitDebugC(XLC_Context* ctx, const char* outputPath, const char* d
         xlApiUnlock();
         return 0;
     }
-    ok = xlcCompileUnlocked(ctx) && xlEmitUnitDebugCToFile(ctx->runtime, &ctx->unit, outputPath, debugSourcePath);
+    ok = xlcCompileTargetUnlocked(ctx, 1) && xlEmitUnitDebugCToFile(ctx->runtime, &ctx->unit, outputPath, debugSourcePath);
     xlLeaveWorkDir(&cwd);
     xlApiUnlock();
     return ok;
@@ -5876,7 +5909,7 @@ XL_API int xlcEmitHeader(XLC_Context* ctx, const char* outputPath, const char* g
         xlApiUnlock();
         return 0;
     }
-    ok = xlcCompileUnlocked(ctx) && xlEmitUnitHeaderToFile(
+    ok = xlcCompileTargetUnlocked(ctx, 1) && xlEmitUnitHeaderToFile(
         ctx->runtime, &ctx->unit, outputPath, guardName);
     xlLeaveWorkDir(&cwd);
     xlApiUnlock();
@@ -5928,7 +5961,7 @@ XL_API int xlcEmitExe(XLC_Context* ctx, const char* outputExe)
         return 0;
     }
     if(!xlBeginBuildInputs(ctx->runtime,&previous)) { xlLeaveWorkDir(&cwd); xlApiUnlock(); return 0; }
-    ok = xlcCompileUnlocked(ctx) &&
+    ok = xlcCompileTargetUnlocked(ctx, 1) &&
          xlCompileUnitToExternalOutputWithC(ctx->runtime, &ctx->unit,
              outputExe, TCC_OUTPUT_EXE, "exe", NULL,
              &ctx->cSourceFiles);
@@ -5952,7 +5985,7 @@ XL_API int xlcEmitDebugExe(XLC_Context* ctx, const char* outputExe, const char* 
         xlApiUnlock();
         return 0;
     }
-    if ( xlcCompileUnlocked(ctx) ) {
+    if ( xlcCompileTargetUnlocked(ctx, 1) ) {
         XL6_IrCgenOptions options;
         memset(&options, 0, sizeof(options));
         options.debugMode = 1;
@@ -5984,7 +6017,7 @@ XL_API int xlcEmitSharedLibrary(XLC_Context* ctx, const char* outputDll)
         return 0;
     }
     if(!xlBeginBuildInputs(ctx->runtime,&previous)) { xlLeaveWorkDir(&cwd); xlApiUnlock(); return 0; }
-    ok = xlcCompileUnlocked(ctx) && xlCompileUnitToSharedLibraryWithC(
+    ok = xlcCompileTargetUnlocked(ctx, 1) && xlCompileUnitToSharedLibraryWithC(
         ctx->runtime, &ctx->unit, outputDll, &ctx->cSourceFiles);
     ok=xlEndBuildInputs(ctx->runtime,previous,ok,outputDll);
     xlLeaveWorkDir(&cwd);
@@ -6070,7 +6103,7 @@ XL_API int xlcEmitXlirC(XLC_Context* ctx, const char* outputPath)
     xlApiLock();
     xlClearLastErrorUnlocked(ctx->runtime);
     if ( !xlEnterWorkDir(ctx->runtime, &cwd) ) { xlApiUnlock(); return 0; }
-    ok = xlcCompileUnlocked(ctx) && xlEmitUnitCToFile(
+    ok = xlcCompileTargetUnlocked(ctx, 1) && xlEmitUnitCToFile(
         ctx->runtime, &ctx->unit, outputPath, NULL);
     xlLeaveWorkDir(&cwd);
     xlApiUnlock();
@@ -6086,7 +6119,7 @@ XL_API int xlcEmitXlirHeader(XLC_Context* ctx, const char* outputPath, const cha
     xlApiLock();
     xlClearLastErrorUnlocked(ctx->runtime);
     if ( !xlEnterWorkDir(ctx->runtime, &cwd) ) { xlApiUnlock(); return 0; }
-    ok = xlcCompileUnlocked(ctx) && xlEnsureUnitXlirLowered(ctx->runtime, &ctx->unit);
+    ok = xlcCompileTargetUnlocked(ctx, 1) && xlEnsureUnitXlirLowered(ctx->runtime, &ctx->unit);
     if ( ok && !xl6OutputOpenFile(&out, outputPath) ) {
         xlSetError2(ctx->runtime, "cannot open XLIR C header output", outputPath);
         ok = 0;

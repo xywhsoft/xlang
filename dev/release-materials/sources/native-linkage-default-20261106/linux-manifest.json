@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "scope": "Linux platform/generated overrides to sources.zip; same task-owned compiler sources",
+  "archive": {
+    "path": "dev/release-materials/sources/native-linkage-default-20261106/linux-overrides.zip",
+    "sha256": "52013d8c00cea1a30dabb0c0987babc77b7b0a60fd47b7888c612c9f99956f2c"
+  },
+  "files": [
+    {
+      "path": "build_linux.sh",
+      "sha256": "47fc1e29bbe19ddf6a858c74f280e459120846c95fa276b16f47fd057cd9d851",
+      "bytes": 6438
+    },
+    {
+      "path": "gcc-parallel",
+      "sha256": "714e668c3ef68de9936e8b569142042de640ace99937ee5e5149ecc24e445b96",
+      "bytes": 1325
+    },
+    {
+      "path": "build/linux/tcc-source/config.h",
+      "sha256": "6329e17928cdd25276636e12990a22f65ed2a365ea6d32dabf8eba2e00a6d393",
+      "bytes": 572
+    },
+    {
+      "path": "build/linux/precompiled/manifest.json",
+      "sha256": "e7b7b94f8a4ae1ca72e161ae26984f7e2c7dd3f2b21b951de3715de49c95cf53",
+      "bytes": 554925
+    }
+  ]
+}

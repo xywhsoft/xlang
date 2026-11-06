@@ -1,0 +1,20 @@
+{
+  "passed": true,
+  "rows": [
+    {
+      "name": "jit",
+      "exitCode": 0,
+      "seconds": 0.183
+    },
+    {
+      "name": "build",
+      "exitCode": 0,
+      "seconds": 7.699
+    },
+    {
+      "name": "aot",
+      "exitCode": 0,
+      "seconds": 0.134
+    }
+  ]
+}

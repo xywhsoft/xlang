@@ -184,6 +184,8 @@ void xl6PackageManifestFree(XL6_PackageManifest* manifest)
     xrtFree(manifest->dependencies);
     xrtFree(manifest->nativeInfo.loadName);
     xrtFree(manifest->nativeInfo.version);
+    xrtFree(manifest->nativeInfo.staticManifest);
+    xrtFree(manifest->nativeInfo.dynamicManifest);
     memset(manifest, 0, sizeof(*manifest));
 }
 
@@ -452,6 +454,23 @@ static int xl6PackageValueReadNative(const xvalue* root, XL6_PackageManifest* ma
         }
         manifest->nativeInfo.singleton = value ? 1 : 0;
     }
+    if (xl6PackageValueHasField(native, "linkage")) {
+        char* linkage = NULL;
+        int okay = xl6PackageValueReadText(native, "linkage", &linkage, 1);
+        if (okay && !strcmp(linkage, "static")) manifest->nativeInfo.linkage = 1;
+        else if (okay && !strcmp(linkage, "dynamic")) manifest->nativeInfo.linkage = 2;
+        else okay = 0;
+        xrtFree(linkage);
+        if (!okay) return 0;
+    }
+    if (xl6PackageValueHasField(native, "variants")) {
+        const xvalue* variants = xl6PackageValueField(native, "variants");
+        if (xrtValueType(variants) != XVALUE_OBJECT ||
+            !xl6PackageValueReadText(variants, "static", &manifest->nativeInfo.staticManifest, 0) ||
+            !xl6PackageValueReadText(variants, "dynamic", &manifest->nativeInfo.dynamicManifest, 0)) return 0;
+        if ((manifest->nativeInfo.staticManifest && !*manifest->nativeInfo.staticManifest) ||
+            (manifest->nativeInfo.dynamicManifest && !*manifest->nativeInfo.dynamicManifest)) return 0;
+    }
     return xl6PackageValueReadText(native, "loadName", &manifest->nativeInfo.loadName, 0) &&
            xl6PackageValueReadText(native, "version", &manifest->nativeInfo.version, 0);
 }
@@ -540,6 +559,8 @@ int xl6PackageLoadManifestObserved(const char* path, XL6_PackageManifest* manife
     }
     return ok;
 }
+
+#include "xl6_package_native_variants.inc"
 
 static int xl6PackageFinalizeManifestResult(XL6_PackageResolveResult* result)
 {

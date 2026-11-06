@@ -1,0 +1,5 @@
+static-compiler: 1422 objects
+static-runtime: 44 objects
+shared-compiler: 55 objects
+shared-runtime: 44 objects
+precompiled 1567 objects (1561 unchanged)

@@ -29,6 +29,13 @@ typedef enum XLC_Backend {
     XLC_BACKEND_XLIR = 0
 } XLC_Backend;
 
+/* auto: prefer declared static artifacts for AOT, dynamic for JIT/analysis. */
+typedef enum XLC_NativeLinkage {
+    XLC_NATIVE_LINKAGE_AUTO = 0,
+    XLC_NATIVE_LINKAGE_STATIC = 1,
+    XLC_NATIVE_LINKAGE_DYNAMIC = 2
+} XLC_NativeLinkage;
+
 XLC_API XLC_ContextOptions xlcDefaultContextOptions(void);
 XLC_API XLC_Context* xlcCreateContext(const XLC_ContextOptions* options);
 XLC_API void xlcDestroyContext(XLC_Context* ctx);
@@ -37,6 +44,7 @@ XLC_API int xlcSetWorkDir(XLC_Context* ctx, const char* path);
 XLC_API int xlcSetTempDir(XLC_Context* ctx, const char* path);
 XLC_API int xlcSetSaveTemps(XLC_Context* ctx, int enabled);
 XLC_API int xlcSetBackend(XLC_Context* ctx, XLC_Backend backend);
+XLC_API int xlcSetNativeLinkage(XLC_Context* ctx, XLC_NativeLinkage linkage);
 XLC_API int xlcAddIncludePath(XLC_Context* ctx, const char* path);
 XLC_API int xlcAddLibraryPath(XLC_Context* ctx, const char* path);
 XLC_API int xlcAddLinkLibrary(XLC_Context* ctx, const char* nameOrPath);

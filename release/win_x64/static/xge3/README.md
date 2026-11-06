@@ -1,25 +1,14 @@
-# Static XGE / XUI packages
+# Static XGE / XUI SDK
 
-This optional package root embeds selected XGE/XUI native code in the generated
-program. It uses the program's single XRT implementation. Select the complete
-matching package set explicitly before compiling:
+The ordinary Windows XGE/XUI packages now declare this matching static native artifact. `xl build` and IDE build/run select it automatically. There is no need to change `XLANG_PACKAGE_PATH`.
 
 ```powershell
-$env:XLANG_PACKAGE_PATH = Join-Path $PWD 'static/xge3/packages'
 ./xl.exe build path/to/program.xl -o path/to/program.exe
+./xl.exe build path/to/program.xl --native-linkage dynamic -o path/to/program-dynamic.exe
 ```
 
-Run these commands from `release/win_x64`. The root includes `_xge_native`,
-`xge` and `xui`; keep all three together. The compiler uses function/data
-sections and relocation reachability to discard unused native code. Native
-code retains its O2 optimization. Dependencies, import definitions and notices
-are included in the packages.
+Run these commands from `release/win_x64`. Keep `static/xge3/packages` and `extlibs` together. The static archive uses the program's single XRT implementation. GCC O2, archive extraction and function/data section reachability discard unused native code. Matching headers, import definitions, compiler-support provenance and notices remain inside the SDK.
 
-Generated standalone programs need their declared Windows system DLLs but do
-not need `xge.dll`, `xl.dll` or `xlc.dll`. Resources or data explicitly required
-by the application must still be distributed. JIT execution supports the CPU
-paths tested here; reachable native OS static-TLS code requires AOT and is
-rejected by the current JIT provider.
+Standalone static programs need their Windows system DLLs and application assets, but no XGE host or xlang compiler/runtime DLL. True JIT continues to select the dynamic host. Explicit static JIT retains the provider's OS static-TLS restrictions.
 
-The ordinary dynamic packages remain available in `extlibs`. Remove this
-environment override to return to the usual package search.
+The reciprocal manifest references preserve explicit `--native-linkage dynamic` even when this package root was selected manually. See `docs/native-linkage.md` in the repository for the package and project contracts.

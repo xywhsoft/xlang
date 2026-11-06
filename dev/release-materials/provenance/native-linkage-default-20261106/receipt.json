@@ -1,0 +1,209 @@
+{
+  "schema": 1,
+  "date": "2026-11-06",
+  "passed": true,
+  "scope": "Declared native artifact selection and Windows XGE/XUI default static AOT; cross-platform compiler/SDK synchronization.",
+  "codeCommit": "eae309b7cf312a9477e604fd428d8abad4502dc1",
+  "sourceCohort": {
+    "base": "9ab5279c4",
+    "ownedChanges": [
+      "src/api/xl_api.c",
+      "src/api/xl_api_internal.h",
+      "src/api/xl_api_symbols.c",
+      "src/compile/xl6_imports.c",
+      "src/compile/xl6_imports.h",
+      "src/package/xl6_package.c",
+      "src/package/xl6_package.h",
+      "src/package/xl6_package_native_variants.inc",
+      "src/driver/xl6_xlc_shell.c",
+      "release/win_x64/include/xlc.h",
+      "release/linux_x64/include/xlc.h"
+    ],
+    "windows": {
+      "path": "dev/release-materials/sources/native-linkage-default-20261106/manifest.json",
+      "sha256": "51a5e259cade4698069aff75a8082c8ef7d9463f7b74997a766e6f2711c9795a",
+      "bytes": 1366929
+    },
+    "linuxOverrides": {
+      "path": "dev/release-materials/sources/native-linkage-default-20261106/linux-manifest.json",
+      "sha256": "93fd6c919e8eed8b424cff03735b5e1239d4990c32162573eca70ebfbc4758bd",
+      "bytes": 966
+    },
+    "concurrentUncommittedSemanticAndIdeChangesExcluded": true
+  },
+  "compiler": {
+    "optimization": "-O2",
+    "windows": {
+      "productionDirectUnits": 2629,
+      "separatelyCompiledResidentProviders": 105,
+      "sourceSnapshotVerified": true,
+      "embeddedObjects": 1567,
+      "nestedCatalogRegenerated": true
+    },
+    "linux": {
+      "fullProductionBuild": true,
+      "producer": "GCC O2 through invocation-preserving per-TU parallel scheduler",
+      "embeddedObjects": 1565,
+      "nestedCatalogRegenerated": true
+    }
+  },
+  "products": [
+    {
+      "path": "release/win_x64/xl.dll",
+      "previousSha256": "8da6eefc60b6abd1ee6be0e81303104343df0fcefc413f9cc2e853da0c19f6f8",
+      "sha256": "f36c7f1c9bd3a65e3bacc1353044241097e26306c44f5cd107d56327e9e24ca5",
+      "bytes": 15182848
+    },
+    {
+      "path": "release/win_x64/xlc.dll",
+      "previousSha256": "90a329f1ec1c2f016859d96bd4bf736d8e06b5dade461025bb3e8372d129a468",
+      "sha256": "b16df309f37d4e16a8e7a7d8d876369d1f76e48a24d7f596a7c5ccfd9c550bf0",
+      "bytes": 21294080
+    },
+    {
+      "path": "release/win_x64/xl.exe",
+      "previousSha256": "6a9378f3c772b40bcd035969212fd1ee99a1b8ed22be00c30c37114e0523a2f6",
+      "sha256": "a5feede784f0a5cb1a829c2e362de57e9278b55cec1a11b796cf4b6e78831bbc",
+      "bytes": 72704
+    },
+    {
+      "path": "release/linux_x64/libxl.so",
+      "previousSha256": "524d519477e3f69277b92203527c778494f667620fe09c3c17d21ed8f08cab2b",
+      "sha256": "b4a995b170e045f0af74c42ffa1bfba745060dea050a6b6fc85d70085477e93c",
+      "bytes": 16443920
+    },
+    {
+      "path": "release/linux_x64/libxlc.so",
+      "previousSha256": "62b63ff71173b43d7c5aba730e80019f48d548191394ec2f8158adbe10949797",
+      "sha256": "9e8eb9a9e373352e80afcdf5a19b7017cac80c08d09d1a23afd33611424f2b22",
+      "bytes": 22436624
+    },
+    {
+      "path": "release/linux_x64/xl",
+      "previousSha256": "0afa441e1e3486c3e8ea2d7fbde7be5e5ea6caa850bc76a2bca1dc767b60f1d0",
+      "sha256": "faa25e49bdf8c5ce8ccdb084810075b406cc6dd499a59577664616eb2a08265b",
+      "bytes": 47224
+    }
+  ],
+  "metadata": [
+    {
+      "path": "release/win_x64/include/xlc.h",
+      "sha256": "f9227f6310bf62d80b5bcf39fc587c829bfad4af9dd3d9564bf8672b7301a764",
+      "bytes": 6333
+    },
+    {
+      "path": "release/linux_x64/include/xlc.h",
+      "sha256": "f9227f6310bf62d80b5bcf39fc587c829bfad4af9dd3d9564bf8672b7301a764",
+      "bytes": 6333
+    },
+    {
+      "path": "release/win_x64/extlibs/_xge_native/xlang.package.json",
+      "sha256": "c64e959784a67f31ff6f79ea5748b4d7137c901c029d8f67d4a3a41739663e9a",
+      "bytes": 2404
+    },
+    {
+      "path": "release/linux_x64/extlibs/_xge_native/xlang.package.json",
+      "sha256": "f496349a0ab5b5f88c3c927fb0a94fbbd382207cbab78994f459c4d8d159d99d",
+      "bytes": 2311
+    },
+    {
+      "path": "release/win_x64/static/xge3/packages/_xge_native/xlang.package.json",
+      "sha256": "9991d3b37bc389b8bafb73feec1425948765bf0a61832139a4ac5adaf4ca96a0",
+      "bytes": 2960
+    },
+    {
+      "path": "release/win_x64/static/xge3/README.md",
+      "sha256": "31859a77d9235d37fc3d406f2e4cd139b2d659486ad749e71e49245e72db6b40",
+      "bytes": 1203
+    }
+  ],
+  "policy": {
+    "autoAot": "Prefer explicitly declared static artifact",
+    "autoJit": "Prefer explicitly declared dynamic artifact",
+    "explicit": "CLI --native-linkage auto|static|dynamic; project nativeLinkage; public xlcSetNativeLinkage",
+    "legacy": "Unmarked packages retain implementation",
+    "failure": "Declared invalid/unavailable variants and incompatible explicit choices fail",
+    "selection": "Single-hop package-relative manifests; equal package identity, language source list and dependencies",
+    "cache": "Invalidate native inputs across AOT/JIT/explicit mode changes",
+    "environment": "Compiler selector does not change process environment"
+  },
+  "acceptance": {
+    "windowsSelection": {
+      "passed": true,
+      "checks": 33,
+      "report": "installed-selection/results.json"
+    },
+    "linuxSelection": {
+      "passed": true,
+      "checks": 33,
+      "report": "linux-installed-selection/results.json"
+    },
+    "nestedSdk": {
+      "windows": "JIT/build/AOT passed",
+      "linux": "JIT/build/AOT passed"
+    },
+    "xgeContext": {
+      "passed": true,
+      "sequence": "Dynamic JIT -> static AOT -> standalone execute -> dynamic JIT in the same public API context",
+      "report": "xge-context/results.json"
+    },
+    "installedGallery": {
+      "passed": true,
+      "packagePathOverride": false,
+      "bytes": 10524160,
+      "sha256": "e5657d4a8c15f938b95d6d9292cd5fe1cf37db84b4ec9bdb80b4be078504ff4b",
+      "imports": [
+        "msvcrt.dll",
+        "kernel32.dll",
+        "USER32.dll",
+        "GDI32.dll",
+        "ole32.dll",
+        "OLEAUT32.dll",
+        "SHELL32.dll",
+        "IMM32.dll"
+      ],
+      "standaloneScenes": 57,
+      "frameLimit": 190,
+      "engineDllsPresent": false,
+      "report": "installed-standalone/results.json"
+    },
+    "minimalXge": {
+      "bytes": 536064,
+      "imports": [
+        "msvcrt.dll",
+        "kernel32.dll",
+        "SHELL32.dll"
+      ]
+    },
+    "ide": {
+      "binaryRebuildRequired": false,
+      "reason": "Existing worker calls normal CLI build; project snapshots preserve nativeLinkage",
+      "namedGeneratedArtifactUpdated": true,
+      "matchingObsoleteGeneratedHostDllRemoved": true
+    }
+  },
+  "unchangedDependencies": {
+    "staticArchive": {
+      "path": "release/win_x64/static/xge3/packages/_xge_native/native/libxge3_static.a",
+      "sha256": "b6dad8a5f489c4cb774e85ac38c1d192930cfb7e67a2a381467e13c8d44c77e4",
+      "bytes": 18568576
+    },
+    "dynamicHost": {
+      "path": "release/win_x64/extlibs/_xge_native/native/xge3_host.dll",
+      "sha256": "0229cab17ea902fe44be5758d0c0af90f930387a02efa3f8afd537d811c70d69",
+      "bytes": 9112806
+    },
+    "nativeSourcesOrEngineAlgorithmsChanged": false,
+    "privateXrtImplementationAdded": false
+  },
+  "limits": [
+    "This is focused native-link selection acceptance, not a complete project regression run",
+    "Windows full-engine static JIT is not implemented; current OS static-TLS loader restriction remains",
+    "No Linux XGE static archive is delivered by this change; its marked dynamic package keeps the dynamic implementation"
+  ],
+  "previousDelivery": {
+    "path": "dev/release-materials/provenance/native-linkage-default-20261106/previous-delivery.json",
+    "sha256": "6c328bf42bb3cb281444729c2d7fb71e1293e351b431badff51b4dd8eacfe6bc",
+    "bytes": 170952
+  }
+}
