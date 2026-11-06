@@ -74,3 +74,10 @@
 /ide/build/
 /ide/release/
 /ide/.xlang-ide/
+
+# Local release maintenance state, archives and publisher helpers
+/dev/local-state/
+/dev/releases/
+
+# Local update objects, manifests, deployment configuration and tools
+/release/update_info/

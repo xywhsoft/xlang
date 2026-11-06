@@ -20,8 +20,10 @@ static int number(xvalue* o,const char* key,int64_t n){return set(o,key,xrtValue
 static int string(xvalue* o,const char* key,const char* text){return set(o,key,xrtValueString(sv(text)));}
 static int save(const char* path,const xvalue* value){size_t n;char* json=xrtJsonStringify(value,false,&n);int ok=json&&up_write(path,json,n);xrtFree(json);return ok;}
 static xvalue* load(const char* path){size_t n;unsigned char* bytes=up_read(path,UP_META_LIMIT,&n);xvalue* value=bytes?xrtJsonParse((xstrview){(char*)bytes,n}):NULL;free(bytes);return value;}
+static int64_t installed_version(const up_config* c){char p[UP_PATH];up_join(p,sizeof(p),c->state,"installed.json");xvalue* value=load(p);if(!value){up_join(p,sizeof(p),c->root,"data/release.json");value=load(p);if(value&&(!up_text(value,"format")||strcmp(up_text(value,"format"),"xlang-release-1")||!up_text(value,"platform")||strcmp(up_text(value,"platform"),UP_PLATFORM))){xrtValueRelease(value);value=NULL;}}int64_t n=up_int(value,"version",0);xrtValueRelease(value);return n>0&&n<=2147483647?n:0;}
 static void cancel(int sig){(void)sig;up_cancel=1;}
-static int path(char out[UP_PATH],const up_config* cfg,const char* rel){return up_join(out,UP_PATH,cfg->root,rel);}
+static int path(char out[UP_PATH],const up_config* cfg,const char* rel){return !strncmp(rel,".xlang-update/",14)?up_join(out,UP_PATH,cfg->state,rel+14):!strcmp(rel,".xlang-update")?(snprintf(out,UP_PATH,"%s",cfg->state)<UP_PATH):up_join(out,UP_PATH,cfg->root,rel);}
+static int safe(const up_config* cfg,const char* rel){return !strncmp(rel,".xlang-update/",14)?up_safe_target(cfg->state,rel+14):up_safe_target(cfg->root,rel);}
 static int matches(const char* file,const char* hash){char actual[65];return hash&&up_regular(file)==1&&up_hash(file,actual)&&!strcmp(actual,hash);}
 static int valid_hash(const char* s){unsigned char b[32];return up_hex(s,b,32);}
 /* Optional only for already-created local test releases. New publishers always
@@ -80,7 +82,7 @@ static int64_t required_version(const up_config* c){
 }
 static int remember_policy(const up_config* c,int force){
     char target[UP_PATH],source[UP_PATH];path(target,c,".xlang-update/required.json");path(source,c,".xlang-update/cache/update.json");
-    if(!up_safe_target(c->root,".xlang-update/required.json"))return 0;
+    if(!safe(c,".xlang-update/required.json"))return 0;
     if(!force)return !up_exists(target)||up_remove(target);
     size_t n=0;unsigned char* data=up_read(source,UP_META_LIMIT,&n);int ok=data&&up_write(target,data,n);free(data);return ok;
 }
@@ -91,23 +93,23 @@ static int verify_manifest(const up_config* c,xvalue* m) {
     for(unsigned i=0;ok&&i<xrtValueCount(files);i++){
         xvalue* item=xrtValueArrayGet(files,i);const char* p=up_text(item,"path"),*hash=up_text(item,"sha256"),*comp=up_text(item,"compression");
         int64_t n=up_int(item,"size",-1),packed=up_int(item,"archiveSize",-1),mode=up_int(item,"mode",0644);
-        ok=up_managed(p)&&up_safe_target(c->root,p)&&valid_hash(hash)&&valid_hash(up_text(item,"archiveSha256"))&&n>=0&&(uint64_t)n<=UP_FILE_LIMIT&&packed>=0&&(uint64_t)packed<=UP_FILE_LIMIT&&comp&&(!strcmp(comp,"none")||!strcmp(comp,"lzma-alone"))&&(mode==0644||mode==0755);
+        ok=up_managed(p)&&safe(c,p)&&valid_hash(hash)&&valid_hash(up_text(item,"archiveSha256"))&&n>=0&&(uint64_t)n<=UP_FILE_LIMIT&&packed>=0&&(uint64_t)packed<=UP_FILE_LIMIT&&comp&&(!strcmp(comp,"none")||!strcmp(comp,"lzma-alone"))&&(mode==0644||mode==0755);
         if(ok){char* lower=strdup(p);if(!lower){ok=0;break;}for(char* q=lower;*q;q++)if(*q>='A'&&*q<='Z')*q+=32;
             ok=!up_get(seen,lower)&&number(seen,lower,1);free(lower);}
         xvalue* parts=up_get(item,"archiveParts");if(parts){unsigned count=xrtValueCount(parts);uint64_t sum=0;ok=ok&&xrtValueIs(parts,XVALUE_ARRAY)&&count>=2&&count<=256&&up_int(item,"archivePartCount",0)==count;
             for(unsigned j=0;ok&&j<count;j++){xvalue* part=xrtValueArrayGet(parts,j);int64_t sz=up_int(part,"size",-1);ok=sz>0&&sz<=50*1024*1024&&valid_hash(up_text(part,"sha256"));sum+=(uint64_t)(sz>0?sz:0);}ok=ok&&sum==(uint64_t)packed;
         }else ok=ok&&!up_get(item,"archivePartCount");
     }
-    for(unsigned i=0;ok&&i<xrtValueCount(deletes);i++){xstrview v;xvalue* value=xrtValueArrayGet(deletes,i);ok=xrtValueGetString(value,&v)&&!memchr(v.Data,0,v.Size)&&up_managed(v.Data)&&strcmp(v.Data,"update.exe")&&strcmp(v.Data,"update")&&up_safe_target(c->root,v.Data);
+    for(unsigned i=0;ok&&i<xrtValueCount(deletes);i++){xstrview v;xvalue* value=xrtValueArrayGet(deletes,i);ok=xrtValueGetString(value,&v)&&!memchr(v.Data,0,v.Size)&&up_managed(v.Data)&&strcmp(v.Data,"update.exe")&&strcmp(v.Data,"update")&&safe(c,v.Data);
         if(ok){char* lower=strdup(v.Data);if(!lower){ok=0;break;}for(char* q=lower;*q;q++)if(*q>='A'&&*q<='Z')*q+=32;ok=!up_get(seen,lower)&&number(seen,lower,1);free(lower);}}
     xrtValueRelease(seen);return ok?1:up_error("Manifest contains protected, duplicate, linked or invalid file paths/objects");
 }
 static int cache_object(const up_config* c,const char* name,const char* hash,uint64_t size,char out[UP_PATH],up_ui* ui) {
     uint64_t fileBefore=ui->fileDone;
-    char rel[512],temp[UP_PATH];snprintf(rel,sizeof(rel),".xlang-update/cache/%s",name);path(out,c,rel);if(!up_safe_target(c->root,rel))return 0;
+    char rel[512],temp[UP_PATH];snprintf(rel,sizeof(rel),".xlang-update/cache/%s",name);path(out,c,rel);if(!safe(c,rel))return 0;
     if(up_length(out)==size&&matches(out,hash)){ui->done+=size;ui->fileDone=fileBefore+size;return 1;}
     snprintf(temp,sizeof(temp),"%s.part",out);char remote[512];snprintf(remote,sizeof(remote),"update/%s",name);
-    char partial[600];snprintf(partial,sizeof(partial),"%s.part",rel);if(!up_safe_target(c->root,partial))return 0;
+    char partial[600];snprintf(partial,sizeof(partial),"%s.part",rel);if(!safe(c,partial))return 0;
     uint64_t before=ui->done;
     if(!up_fetch(c,remote,temp,size,ui)||up_length(temp)!=size||!matches(temp,hash)){up_remove(temp);return up_error("Object hash mismatch: %s",name);}
     ui->done=before+size;ui->fileDone=fileBefore+size;return up_move(temp,out);
@@ -116,7 +118,7 @@ static int prepare_file(const up_config* c,xvalue* item,const char* target,up_ui
     ui->fileTotal=(uint64_t)up_int(item,"archiveSize",0);ui->fileDone=0;
     const char* hash=up_text(item,"sha256");char name[256],packed[UP_PATH];xvalue* parts=up_get(item,"archiveParts");
     if(!parts){snprintf(name,sizeof(name),"%s.lzma",hash);if(!cache_object(c,name,up_text(item,"archiveSha256"),(uint64_t)up_int(item,"archiveSize",0),packed,ui))return 0;}
-    else{snprintf(name,sizeof(name),".xlang-update/cache/%s.join",hash);path(packed,c,name);if(!up_safe_target(c->root,name))return 0;FILE* out=up_open(packed,"wb");if(!out)return 0;int ok=1;
+    else{snprintf(name,sizeof(name),".xlang-update/cache/%s.join",hash);path(packed,c,name);if(!safe(c,name))return 0;FILE* out=up_open(packed,"wb");if(!out)return 0;int ok=1;
         for(unsigned j=0;ok&&j<xrtValueCount(parts);j++){char partpath[UP_PATH];xvalue* part=xrtValueArrayGet(parts,j);snprintf(name,sizeof(name),"%s-%u.lzma",hash,j+1);
             if(!cache_object(c,name,up_text(part,"sha256"),(uint64_t)up_int(part,"size",0),partpath,ui)){ok=0;break;}
             FILE* in=up_open(partpath,"rb");if(!in){ok=0;break;}unsigned char buffer[65536];size_t n;while((n=fread(buffer,1,sizeof(buffer),in))>0)if(fwrite(buffer,1,n,out)!=n){ok=0;break;}if(ferror(in))ok=0;fclose(in);}
@@ -139,7 +141,7 @@ static int recover(const up_config* c,up_ui* ui) {
     if(strcmp(phase,"applying")&&strcmp(phase,"prepared")){xrtValueRelease(state);return up_error("Unknown recovery phase");}
     snprintf(ui->phase,sizeof(ui->phase),"恢复上次未完成的安装");up_ui_draw(ui,1);
     for(unsigned n=xrtValueCount(ops);n;n--){xvalue* op=xrtValueArrayGet(ops,n-1);const char* p=up_text(op,"path");char dest[UP_PATH],backup[UP_PATH],rel[128];
-        if(!up_managed(p)||!up_safe_target(c->root,p)){xrtValueRelease(state);return up_error("Unsafe recovery path");}
+        if(!up_managed(p)||!safe(c,p)){xrtValueRelease(state);return up_error("Unsafe recovery path");}
         path(dest,c,p);snprintf(rel,sizeof(rel),".xlang-update/txn/backup/%u",n-1);path(backup,c,rel);
         if(up_exists(backup)){
             if(up_exists(dest)&&!matches(dest,up_text(op,"newHash"))){xrtValueRelease(state);return up_error("Recovery preserved an externally changed file: %s",p);}
@@ -153,21 +155,21 @@ static int recover(const up_config* c,up_ui* ui) {
 static int run(up_config* c,up_ui* ui) {
     if(c->bootstrap&&!up_wait_parent(c->bootstrap,30))return up_error("Original updater did not release its executable");
     if(!c->check&&c->parent){snprintf(ui->phase,sizeof(ui->phase),"等待 IDE 正常退出");int exited=0;for(int i=0;i<120&&!up_cancel;i++){up_ui_draw(ui,0);if(up_wait_parent(c->parent,1)){exited=1;break;}}if(!exited)return up_error("IDE did not exit; installation preserved");}
-    if(!up_lock(c->root))return up_error("Install directory is locked, linked or not writable: %s",c->root);
-    up_log_start(c->root);
+    if(!up_storage_lock(c))return 0;
+    up_log_start(c->state);
     char pendingJournal[UP_PATH];path(pendingJournal,c,".xlang-update/txn/journal.json");
     if(c->check){
-        if(!up_safe_target(c->root,".xlang-update/required.json")||!up_safe_target(c->root,".xlang-update/installed.json"))return up_error("Unsafe local update policy");
-        char local[UP_PATH];path(local,c,".xlang-update/installed.json");xvalue* receipt=load(local);int64_t installed=up_int(receipt,"version",0);xrtValueRelease(receipt);
+        if(!safe(c,".xlang-update/required.json")||!safe(c,".xlang-update/installed.json"))return up_error("Unsafe local update policy");
+        int64_t installed=installed_version(c);
         int blocked=required_version(c)>installed;
         if(c->cachedPolicy)return blocked?4:1;
         if(up_exists(pendingJournal))return blocked?4:up_error("Unfinished installation: close IDE and run updater to recover first");
     }
 
-    if(!up_safe_target(c->root,".xlang-update/cache/update.json")||!up_safe_target(c->root,".xlang-update/txn/journal.json")||!up_safe_target(c->root,".xlang-update/txn/stage/0")||!up_safe_target(c->root,".xlang-update/txn/backup/0")||!up_safe_target(c->root,".xlang-update/installed.json")||!recover(c,ui))return 0;
+    if(!safe(c,".xlang-update/cache/update.json")||!safe(c,".xlang-update/txn/journal.json")||!safe(c,".xlang-update/txn/stage/0")||!safe(c,".xlang-update/txn/backup/0")||!safe(c,".xlang-update/installed.json")||!recover(c,ui))return 0;
     if(c->recoverOnly)return 1;
-    if(!up_safe_target(c->root,".xlang-update/required.json"))return up_error("Unsafe required-update policy path");
-    char receipt[UP_PATH];path(receipt,c,".xlang-update/installed.json");xvalue* installed=load(receipt);ui->local=up_int(installed,"version",0);xrtValueRelease(installed);
+    if(!safe(c,".xlang-update/required.json"))return up_error("Unsafe required-update policy path");
+    char receipt[UP_PATH];path(receipt,c,".xlang-update/installed.json");ui->local=installed_version(c);
     int64_t required=required_version(c);
     snprintf(ui->phase,sizeof(ui->phase),"检查更新清单");up_ui_draw(ui,1);xvalue* m=manifest(c,ui);if(!m)return c->check&&required>ui->local?4:0;
     if(!verify_manifest(c,m)||ui->version<ui->local){xrtValueRelease(m);return up_error("Manifest rejected or server version is older than installed version");}
@@ -196,7 +198,7 @@ static int run(up_config* c,up_ui* ui) {
     if(ok&&!up_cancel){ui->committing=1;snprintf(ui->phase,sizeof(ui->phase),"安装更新");up_ui_draw(ui,1);ok=string(state,"phase","applying")&&save(journal,state);
         for(unsigned i=0;ok&&i<count;i++){xvalue* op=xrtValueArrayGet(ops,i);const char* p=up_text(op,"path");char dest[UP_PATH],backup[UP_PATH],stage[UP_PATH],rel[128];path(dest,c,p);
             snprintf(rel,sizeof(rel),".xlang-update/txn/backup/%u",i);path(backup,c,rel);snprintf(rel,sizeof(rel),".xlang-update/txn/stage/%u",i);path(stage,c,rel);
-            ok=up_safe_target(c->root,p)&&((up_int(op,"existed",0)&&matches(dest,up_text(op,"oldHash")))||(!up_int(op,"existed",0)&&!up_exists(dest)));
+            ok=safe(c,p)&&((up_int(op,"existed",0)&&matches(dest,up_text(op,"oldHash")))||(!up_int(op,"existed",0)&&!up_exists(dest)));
             if(ok&&up_int(op,"existed",0))ok=up_parents(backup)&&up_move(dest,backup);
             if(ok&&up_int(op,"file",-1)>=0)ok=up_parents(dest)&&up_move(stage,dest);
             if(!ok)up_error("File changed or in use: %s",p);
@@ -217,9 +219,11 @@ static int execute(int argc,char** argv) {
     up_config c={0};c.timeout=30;snprintf(c.base,sizeof(c.base),"https://xcompiler.com/download/update_%s",UP_PLATFORM);snprintf(c.key,sizeof(c.key),"%s",UP_PUBLIC_KEY);const char* selected=NULL;
     for(int i=1;i<argc;i++){
         if(!strcmp(argv[i],"--license")){puts(up_license);return 0;}
-        if(!strcmp(argv[i],"--help")){puts("update [--root DIR] [--check] [--offline DIR] [--no-launch] [--plain]\n  --check-version --cached-policy\n  --url HTTPS_BASE --public-key HEX --timeout SECONDS\n  --allow-http permits signed loopback test servers only\nexit: 0 success/up-to-date; 2 optional update; 4 required update; 1 failure; 3 cancelled");return 0;}
+        if(!strcmp(argv[i],"--help")){puts("update [--root DIR] [--check] [--offline DIR] [--no-launch] [--plain]\n  --check-version --cached-policy\n  --print-state-dir --state-dir EXTERNAL_SAME_VOLUME_DIR\n  --url HTTPS_BASE --public-key HEX --timeout SECONDS\n  --allow-http permits signed loopback test servers only\nexit: 0 success/up-to-date; 2 optional update; 4 required update; 1 failure; 3 cancelled");return 0;}
         if(!strcmp(argv[i],"--version")){printf("xlang-update 2 %s\n",UP_PLATFORM);return 0;}
         if(!strcmp(argv[i],"--root")&&i+1<argc)selected=argv[++i];
+        else if(!strcmp(argv[i],"--state-dir")&&i+1<argc)snprintf(c.state,sizeof(c.state),"%s",argv[++i]);
+        else if(!strcmp(argv[i],"--print-state-dir"))c.printState=1;
         else if(!strcmp(argv[i],"--offline")&&i+1<argc)snprintf(c.offline,sizeof(c.offline),"%s",argv[++i]);
         else if(!strcmp(argv[i],"--url")&&i+1<argc)snprintf(c.base,sizeof(c.base),"%s",argv[++i]);
         else if(!strcmp(argv[i],"--public-key")&&i+1<argc)snprintf(c.key,sizeof(c.key),"%s",argv[++i]);
@@ -240,6 +244,8 @@ static int execute(int argc,char** argv) {
     unsigned char key[32];if(c.timeout<1||c.timeout>3600||!up_hex(c.key,key,32))return 1;
     if(selected&&!up_exists(selected)&&(!up_parents(selected)||!up_mkdir(selected)))return 1;
     if(!up_root(c.root,sizeof(c.root),selected)||up_regular(c.root)!=2)return 1;
+    if(!up_storage_resolve(&c))return 1;
+    if(c.printState){puts(c.state);return 0;}
     size_t len=strlen(c.base);while(len&&c.base[len-1]=='/')c.base[--len]=0;
     if(c.offline[0]){char full[UP_PATH];if(!up_root(full,sizeof(full),c.offline))return 1;snprintf(c.offline,sizeof(c.offline),"%s",full);}
 #ifdef _WIN32

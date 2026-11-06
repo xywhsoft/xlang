@@ -16,6 +16,7 @@ import paramiko
 sys.path.insert(0,str(Path(__file__).parent))
 import check_update as fixture
 manager=fixture.manager
+import retire_test_channel as retirement
 class SSHServer(paramiko.ServerInterface):
     def __init__(self,key,shell):self.key=key;self.shell=shell
     def get_allowed_auths(self,user):return 'publickey'
@@ -132,6 +133,17 @@ class PublishTests(unittest.TestCase):
             self.assertTrue((case.store/'.state/push.json').exists())
             Public.break_version=False
             self.assertEqual(manager.main(['push',*args,'--verify-public-on-server']),0)
+            preview=retirement.retire(case.store,fixture.PLATFORM,3)
+            self.assertFalse(preview['applied']);self.assertTrue((remote/'version.txt').exists())
+            with self.assertRaises(ValueError):retirement.retire(case.store,fixture.PLATFORM,2,True)
+            retired=retirement.retire(case.store,fixture.PLATFORM,3,True)
+            self.assertTrue(retired['applied']);self.assertFalse((remote/'version.txt').exists())
+            production=case.base/'production';p_args=['--store',str(production),'--platform',fixture.PLATFORM]
+            self.assertEqual(manager.main(['init',*p_args,'--source',str(case.source),'--version','1','--key',str(case.key),'--crypto',str(fixture.CRYPTO)]),0)
+            manager.write(production/'.state/deploy.json',manager.read(case.store/'.state/deploy.json'))
+            self.assertEqual(manager.main(['push',*p_args]),0)
+            self.assertEqual(manager.version_marker((remote/'version.txt').read_text())[0],1)
+
         finally:
             Public.break_metadata=False;Public.break_version=False;Public.disconnect_next_object=False;Public.truncate_next_object=False;stop.set()
             if sock:sock.close()

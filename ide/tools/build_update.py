@@ -19,13 +19,26 @@ def publish_copy(source,target):
     target=Path(target);temp=target.with_name(target.name+'.publish-'+str(os.getpid()))
     if target.is_file() and target.read_bytes()==Path(source).read_bytes():return
     try:
-        shutil.copy2(source,temp);os.replace(temp,target)
+        shutil.copy2(source,temp)
+        try:os.replace(temp,target)
+        except PermissionError:
+            # Windows can retain an image mapping after a short diagnostic run.
+            # Retain the old image outside release, then install the candidate.
+            if os.name!='nt' or not target.is_file():raise
+            backup=ROOT/'ide/build/Release/replaced-products'/(target.name+'-'+str(os.getpid()))
+            backup.parent.mkdir(parents=True,exist_ok=True)
+            if backup.exists():raise
+            os.rename(target,backup)
+            try:os.replace(temp,target)
+            except BaseException:
+                if not target.exists():os.rename(backup,target)
+                raise
     finally:temp.unlink(missing_ok=True)
 def main():
     p=argparse.ArgumentParser();p.add_argument('--cc',default='gcc');p.add_argument('--platform',choices=('win_x64','linux_x64','linux_arm','linux_arm64'),default='win_x64' if os.name=='nt' else 'linux_x64');p.add_argument('--key',type=Path);p.add_argument('--public-key');p.add_argument('--static',action='store_true');p.add_argument('--skip-run',action='store_true',help='cross-compilation: verify architecture without running foreign code');a=p.parse_args()
     windows=a.platform.startswith('win_');suffix='.exe' if windows else '';out=ROOT/'ide/build/Release/update'/a.platform;out.mkdir(parents=True,exist_ok=True)
     release=ROOT/'release'/a.platform;release.mkdir(parents=True,exist_ok=True);src=ROOT/'ide/update'
-    flags=['-std=gnu11','-O2','-ffunction-sections','-fdata-sections','-finput-charset=UTF-8','-fexec-charset=UTF-8','-Wall','-Wextra','-Wno-unused-parameter','-Wno-misleading-indentation','-I'+str(ROOT/'lib/xrt'),'-I'+str(src),'-I'+str(ROOT/'lib/lzma'),'-I'+str(out)]
+    flags=['-std=gnu11','-O2','-ffunction-sections','-fdata-sections','-finput-charset=UTF-8','-fexec-charset=UTF-8','-Wall','-Wextra','-Wno-unused-parameter','-Wno-misleading-indentation','-I'+str(ROOT/'lib/xrt'),'-I'+str(src),'-I'+str(ROOT/'ide/src'),'-I'+str(ROOT/'lib/lzma'),'-I'+str(out)]
     if a.cc.endswith('musl-gcc'):
         flags += ['-idirafter','/usr/include','-idirafter','/usr/include/x86_64-linux-gnu']
     libs=['-lws2_32','-liphlpapi','-ladvapi32','-lbcrypt','-lcrypt32','-lshell32'] if windows else ['-pthread','-lm']
@@ -50,7 +63,7 @@ def main():
     (out/'license.h').write_text('static const char up_license[] = '+json.dumps((src/'NOTICE.txt').read_text(encoding='utf-8'))+';\n',encoding='ascii')
     objects=[];inputs={};compiler_identity=subprocess.check_output([a.cc,'--version'],text=True).splitlines()[0]
     sources=[src/n for n in ('runtime.c','platform.c','tui.c','net.c','decode.c','updater.c')]+[ROOT/'lib/lzma/LzmaDec.c']
-    for source in [*sources,src/'crypto_tool.c',*src.glob('*.h'),src/'publisher-public-key.txt',src/'NOTICE.txt',ROOT/'lib/xrt/xrt.h',*(ROOT/'lib/lzma').glob('*.h'),out/'public_key.h',out/'license.h',Path(__file__)]:
+    for source in [*sources,src/'crypto_tool.c',*src.glob('*.h'),src/'publisher-public-key.txt',src/'NOTICE.txt',ROOT/'ide/src/platform/update_storage.h',ROOT/'lib/xrt/xrt.h',*(ROOT/'lib/lzma').glob('*.h'),out/'public_key.h',out/'license.h',Path(__file__)]:
         inputs[str(source.relative_to(ROOT))]=hashlib.sha256(source.read_bytes()).hexdigest()
     for source in sources:
         obj=out/(source.stem+'.o');stamp=obj.with_suffix('.fingerprint')
@@ -75,7 +88,7 @@ def main():
         if output!='xlang-update 2 '+a.platform:raise ValueError('runtime platform identity mismatch')
         print(output)
     executable=release/candidate.name;publish_copy(candidate,executable)
-    tools=ROOT/'release/tools/update';tools.mkdir(parents=True,exist_ok=True)
+    tools=ROOT/'release/update_info/tools';tools.mkdir(parents=True,exist_ok=True)
     publish_copy(crypto,tools/crypto.name)
     for source in (ROOT/'ide/tools/update').iterdir():
         if source.is_file() and source.suffix in ('.py','.bat','.sh','.md','.json'): publish_copy(source,tools/source.name)

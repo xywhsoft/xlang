@@ -81,7 +81,7 @@ def crypto_path(selected=None):
         return str(Path(selected).resolve())
     suffix='.exe' if os.name=='nt' else ''
     host='win_x64' if os.name=='nt' else ('linux_arm64' if os.uname().machine in ('aarch64','arm64') else 'linux_arm' if os.uname().machine.startswith('arm') else 'linux_x64')
-    for path in (Path(__file__).with_name('update-crypto'+suffix), ROOT/'ide/build/Release/update'/host/('update-crypto'+suffix), ROOT/'release/tools/update'/('update-crypto'+suffix)):
+    for path in (Path(__file__).with_name('update-crypto'+suffix), ROOT/'ide/build/Release/update'/host/('update-crypto'+suffix), ROOT/'release/update_info/tools'/('update-crypto'+suffix)):
         if path.is_file(): return str(path)
     raise ValueError('update-crypto not found; run ide/tools/build_update.py first')
 
@@ -195,6 +195,7 @@ def make(args,store):
     if args.version>2147483647 or args.version<=previous: raise ValueError('version must increase')
     config=read(store/'.state/config.json') if (store/'.state/config.json').exists() else {}
     if config.get('platform') and config['platform']!=args.platform:raise ValueError('update repository belongs to another platform')
+    if args.include_mdo is None:args.include_mdo=config.get('includeMdo',False)
     source=Path(args.source or config.get('source') or ROOT/'release'/args.platform).resolve()
     if not source.is_dir() or source==store or store.is_relative_to(source): raise ValueError('source missing or output is inside source')
     if source.name in PLATFORMS and source.name!=args.platform:raise ValueError('source platform directory does not match requested platform')
@@ -210,8 +211,14 @@ def make(args,store):
     byhash={}
     for h in (store/'.state/history').glob('*/update.json'):
         for f in payload(h)['files']: byhash[f['sha256']]=f
+    stamp=source/'data/release.json';prior_stamp=stamp.read_bytes() if stamp.exists() else None
+    for part in (stamp,*stamp.parents):
+        if part.exists() and (part.is_symlink() or getattr(part.lstat(),'st_file_attributes',0)&0x400):raise ValueError('linked release metadata input')
+        if part==source:break
     staging=Path(tempfile.mkdtemp(prefix='prepare-',dir=store/'.state'))
+    stamp_data=(json.dumps({'format':'xlang-release-1','platform':args.platform,'version':args.version,'displayVersion':display},ensure_ascii=False,indent=2)+'\n').encode('utf-8');prepared=False
     try:
+        maker.write_atomic(stamp,stamp_data)
         files=[];inputs=[];folded=set();changed=0;objects=staging/'objects';objects.mkdir()
         for path in runtime_inputs(source,args.include_mdo):
             rel=path.relative_to(source).as_posix()
@@ -276,10 +283,14 @@ def make(args,store):
         history=store/'.state/history'/str(args.version);history.mkdir(parents=True)
         for name in META: maker.copy_atomic(staging/name,history/name)
         write(history/'record.json',{'version':args.version,'displayVersion':display,'forceUpdate':args.force_update,'previous':previous,'platform':args.platform,'created':int(time.time()),'published':False,'catalogCompilerBindingCurrent':binding_current,'changedFiles':changed,'objects':len(specs),'newObjects':len(list(batch.glob('*.lzma')))})
-        write(store/'.state/config.json',{'source':str(source),'platform':args.platform,'key':str(key),'displayVersion':display})
-        activate_local(store,args.version);restore_main(store,manifest)
+        write(store/'.state/config.json',{'source':str(source),'platform':args.platform,'key':str(key),'displayVersion':display,'includeMdo':args.include_mdo})
+        activate_local(store,args.version);restore_main(store,manifest);prepared=True
         print(json.dumps({'version':args.version,'changedFiles':changed,'newObjects':len(list(batch.glob('*.lzma'))),'store':str(store)},ensure_ascii=False))
-    finally: shutil.rmtree(staging)
+    finally:
+        if not prepared and stamp.exists() and stamp.read_bytes()==stamp_data:
+            if prior_stamp is None:stamp.unlink()
+            else:maker.write_atomic(stamp,prior_stamp)
+        shutil.rmtree(staging)
 
 class SSH:
     def __init__(self,config):
@@ -440,7 +451,7 @@ def push(args,store):
 def menu():
     platform=input('平台 [win_x64 / linux_x64 / linux_arm / linux_arm64，默认 win_x64]: ').strip() or 'win_x64'
     if platform not in PLATFORMS: print('平台无效');return 1
-    selected=input('更新工作目录 [默认使用 ide/build/updates 下的平台目录]: ').strip()
+    selected=input('更新工作目录 [默认使用 release/update_info 下的平台目录]: ').strip()
     shared=['--platform',platform]+(['--store',selected] if selected else [])
     choices={'1':'init','2':'prepare','3':'push','4':'status','5':'list','6':'rebuild','7':'discard','8':'configure'}
     while True:
@@ -469,12 +480,12 @@ def main(argv=None):
     parser.add_argument('--platform',choices=PLATFORMS,default='win_x64' if os.name=='nt' else 'linux_x64')
     parser.add_argument('--store',type=Path);parser.add_argument('--source');parser.add_argument('--version',type=int,default=0)
     parser.add_argument('--display-version',help='display-only program version; defaults to source data/version.json')
-    parser.add_argument('--key');parser.add_argument('--crypto');parser.add_argument('--notes');parser.add_argument('--notes-file');parser.add_argument('--include-mdo',action='store_true')
+    parser.add_argument('--key');parser.add_argument('--crypto');parser.add_argument('--notes');parser.add_argument('--notes-file');parser.add_argument('--include-mdo',action=argparse.BooleanOptionalAction,default=None)
     parser.add_argument('--force-update',action=argparse.BooleanOptionalAction,default=False,help='require older IDE installations to update; default is optional')
     parser.add_argument('--verify-public-on-server',action='store_true',help='verify public bodies over HTTPS from the SSH server (requires curl 7.71+)')
     parser.add_argument('--co-sign-key',action='append',default=[],help='additional trusted rollout key; preserves the previous signature')
     parser.add_argument('--host');parser.add_argument('--remote-root');parser.add_argument('--public-url');parser.add_argument('--ssh');parser.add_argument('--ssh-config');parser.add_argument('--dry-run',action='store_true');parser.add_argument('--remote',action='store_true')
-    args=parser.parse_args(argv);store=(args.store or ROOT/'ide/build/updates'/args.platform).resolve()
+    args=parser.parse_args(argv);store=(args.store or ROOT/'release/update_info'/args.platform).resolve()
     try:
         with lock(store):
             if args.command in ('init','prepare'): make(args,store)
@@ -497,9 +508,17 @@ def main(argv=None):
                 print('Verified version',version)
             elif args.command=='discard':
                 version=current(store);h=store/'.state/history'/str(version);record=read(h/'record.json')
-                if record['published'] or not record['previous'] or (store/'.state/push.json').exists(): raise ValueError('only the latest unpublished, unpushed version can be discarded')
-                previous=record['previous'];restore_main(store,payload(store/'.state/history'/str(previous)/'update.json'));activate_local(store,previous)
-                shutil.rmtree(store/f'ver{version}');shutil.rmtree(h);print('Restored local version',previous)
+                if record['published'] or (store/'.state/push.json').exists(): raise ValueError('only the latest unpublished, unpushed version can be discarded')
+                previous=record['previous']
+                if previous:restore_main(store,payload(store/'.state/history'/str(previous)/'update.json'));activate_local(store,previous)
+                else:
+                    restore_main(store,{'files':[]})
+                    for name in META:(store/name).unlink(missing_ok=True)
+                    write(store/'.state/current.json',{'version':0})
+                for owned in (store/f'ver{version}',h):
+                    if not owned.resolve().is_relative_to(store):raise ValueError('history path escapes store')
+                    shutil.rmtree(owned)
+                print('Restored local version',previous)
         return 0
     except (OSError,ValueError,KeyError,RuntimeError,subprocess.SubprocessError,lzma.LZMAError) as e:
         print('ERROR:',e,file=sys.stderr);return 1

@@ -1,0 +1,116 @@
+{
+  "scope": "ide-release-maintenance-20261106",
+  "files": [
+    {
+      "path": ".gitignore",
+      "sha256": "050c63bf9d3e04fb41c94f469eaddfc04f12ebaedef1599080345102ff9ec9fe",
+      "bytes": 1785
+    },
+    {
+      "path": "ide/src/platform/update_storage.h",
+      "sha256": "4f3753e9f3bc2945252c9f5a05c19067770662197961fd75e72d965ed99b8186",
+      "bytes": 3868
+    },
+    {
+      "path": "ide/src/services/program_version.c",
+      "sha256": "fc18d7a5f0d1f58409a6d5f0d0d4a9e56141492abbcb8f9808234b0680177700",
+      "bytes": 2831
+    },
+    {
+      "path": "ide/src/services/program_version.h",
+      "sha256": "50fb6bca3ef2969a49cc653739a3444ce19f9793863d85fe5c9e28a90dda764d",
+      "bytes": 411
+    },
+    {
+      "path": "ide/tests/about_view_test.c",
+      "sha256": "463f734b62a3645e3eb48ff5c7faa51c0935a2f92ea701a6e434192c8c96d349",
+      "bytes": 8127
+    },
+    {
+      "path": "ide/tools/build_update.py",
+      "sha256": "c7ad8d1325ed6ed8814eb1188ede338665b52996f5ad62df154d0cd6f98cb5e5",
+      "bytes": 7767
+    },
+    {
+      "path": "ide/tools/check_update.py",
+      "sha256": "2a34cdd8e410fbd48b25d8dbc27028aea978f272ce043435512e6f7ed5ee8893",
+      "bytes": 20935
+    },
+    {
+      "path": "ide/tools/check_update_publish.py",
+      "sha256": "b7fcaef30195fc8f06649bd5b2360b29f2a01552d213c257cd1657c3e4c25322",
+      "bytes": 10329
+    },
+    {
+      "path": "ide/tools/check_release_maintenance.py",
+      "sha256": "63f234fee76f79d113b8a8cac95ecc30ed682755d8b92139d4c43c66b20fb7a4",
+      "bytes": 3151
+    },
+    {
+      "path": "ide/tools/run_ide.ps1",
+      "sha256": "947fee59e3c7d79d91c537721723ce5ff87ae9b1e9b38b1f6e1666e8cfbbe366",
+      "bytes": 801
+    },
+    {
+      "path": "ide/tools/update/release_maintenance.py",
+      "sha256": "c3f5408334960d9e278cf23284aec46689352ac70c5b5f8aa21e16c1b0834ed8",
+      "bytes": 7726
+    },
+    {
+      "path": "ide/tools/update/retire_test_channel.py",
+      "sha256": "a65c598b4c1976a41e85a1642e8a144f86804389d3da113fcee28d0b3e6d9e72",
+      "bytes": 3272
+    },
+    {
+      "path": "ide/tools/update/update_manager.py",
+      "sha256": "a99faac0b21ba745b330eb6e14b5bf9f230318e772e3ca23f7b372b272d552d1",
+      "bytes": 36598
+    },
+    {
+      "path": "ide/tools/update/README.md",
+      "sha256": "c7388a2aa9e61d21130854138a9ae7416a54a743dc76ab3799e40d548d665f79",
+      "bytes": 14643
+    },
+    {
+      "path": "ide/update/README.md",
+      "sha256": "38847264c3b5a180786cad699a74b3e2721fe85b87efa6a588483f3b7dc28b8b",
+      "bytes": 7717
+    },
+    {
+      "path": "ide/update/platform.c",
+      "sha256": "835deb3fee6c0521887bbf17162479b79ae0ca826b78a663a72813112ba25de2",
+      "bytes": 26670
+    },
+    {
+      "path": "ide/update/tui.c",
+      "sha256": "a6aa4a1c595c85f9854c08f7be6a9bd174de304cb0115977f0189b159d146efa",
+      "bytes": 7315
+    },
+    {
+      "path": "ide/update/update.h",
+      "sha256": "77c3e74e70fcefc5f56e0414dd76c93dbb008d36d0677bce417a2028bd40da07",
+      "bytes": 3366
+    },
+    {
+      "path": "ide/update/updater.c",
+      "sha256": "2b5f8a9da5211cf32b2a63eaef0e2e8e56ddf3cbf2ce8bbd39bad68eda58c9e3",
+      "bytes": 26663
+    },
+    {
+      "path": "release/win_x64/README.md",
+      "sha256": "69ac949b1beaf131744732dfd689c1de773fc20d7e7289c3517350edf0dbcf2c",
+      "bytes": 7647
+    },
+    {
+      "path": "release/win_x64/data/release.json",
+      "sha256": "091d16c8897c6f521efc0d82a4d3da7b8587bd931460cb9f713014ba104d8432",
+      "bytes": 104
+    },
+    {
+      "path": "ide/tools/check_update_delivery.py",
+      "sha256": "b94dcc35cbfe1ffb4dfbc2c26b4ae28185fe7bf5a1b4275eb5f1464125a2f014",
+      "bytes": 4588
+    }
+  ],
+  "archiveSha256": "11e8e2c37509ee4e3b6138579f2b71aa9d14f43e70e1aeefeeb13807f4e91009"
+}

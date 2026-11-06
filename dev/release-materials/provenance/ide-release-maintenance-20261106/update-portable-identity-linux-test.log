@@ -1,0 +1,7 @@
+test_bundled_portable_identity (__main__.UpdateTests.test_bundled_portable_identity) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 1.937s
+
+OK
+{"version": 1, "changedFiles": 4, "newObjects": 4, "store": "/mnt/d/GIT/x-lang/ide/build/Release/update-tests/case-cywdrh68/repository"}

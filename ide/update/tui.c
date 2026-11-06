@@ -69,7 +69,7 @@ void up_ui_draw(up_ui* u,int force) {
     if(cols>=70)snprintf(line,sizeof(line),"当前文件 %s %3.0f%%  %.1f / %.1f MiB\n下载总计 %s %3.0f%%  %.1f / %.1f MiB\n",b1,u->fileTotal?100.0*u->fileDone/u->fileTotal:0,u->fileDone/1048576.,u->fileTotal/1048576.,b2,u->total?100.0*u->done/u->total:0,u->done/1048576.,u->total/1048576.);
     else snprintf(line,sizeof(line),"当前文件 %s %3.0f%%\n下载总计 %s %3.0f%%\n",b1,u->fileTotal?100.0*u->fileDone/u->fileTotal:0,b2,u->total?100.0*u->done/u->total:0);text(line);
     double seconds=(now-u->started)/1000.,speed=seconds>0?u->done/seconds:0;snprintf(line,sizeof(line),"\n平均速度：%.1f MiB/s  剩余：%.0f 秒\n\n%s\n",speed/1048576.,speed>0&&u->total>u->done?(u->total-u->done)/speed:0,u->failed?"R：重试  Esc / Enter：退出":u->committing?"正在提交更新，请稍候。":"Esc / Ctrl+C：取消更新");text(line);
-    if(u->failed){char safe[512];clean(safe,sizeof(safe),up_last_error,cols-1);text(safe);text("\n日志：.xlang-update/update.log\n");}xrtConsoleFlush(XCONSOLE_STDOUT);
+    if(u->failed){char safe[512];clean(safe,sizeof(safe),up_last_error,cols-1);text(safe);text("\n日志：");text(up_log_path());text("\n");}xrtConsoleFlush(XCONSOLE_STDOUT);
 }
 void up_ui_end(up_ui* u) {if(!u->interactive)return;
 #ifdef _WIN32

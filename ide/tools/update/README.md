@@ -9,10 +9,10 @@
 在仓库根目录执行，例如：
 
 ```powershell
-python release/tools/update/update_manager.py init --platform win_x64 --source release/win_x64 --store E:/xlang-updates/win_x64 --version 1 --notes "首次发布"
-python release/tools/update/update_manager.py prepare --platform win_x64 --store E:/xlang-updates/win_x64 --version 2 --notes-file update-notes.txt
-python release/tools/update/update_manager.py list --platform win_x64 --store E:/xlang-updates/win_x64
-python release/tools/update/update_manager.py verify --platform win_x64 --store E:/xlang-updates/win_x64
+python ide/tools/update/update_manager.py init --platform win_x64 --source release/win_x64 --store E:/xlang-updates/win_x64 --version 1 --notes "首次发布"
+python ide/tools/update/update_manager.py prepare --platform win_x64 --store E:/xlang-updates/win_x64 --version 2 --notes-file update-notes.txt
+python ide/tools/update/update_manager.py list --platform win_x64 --store E:/xlang-updates/win_x64
+python ide/tools/update/update_manager.py verify --platform win_x64 --store E:/xlang-updates/win_x64
 ```
 
 `update/` 保存最新版本需要的全部对象；`verN/` 保存本次新对象。三个根信息文件为 `version.txt`、`update.json` 和 `update.lzma`。`.state/history/` 只保存很小的版本清单与记录，不保存全量客户端。支持时主线和差分对象使用硬链接，因此不要直接编辑对象文件。
@@ -25,7 +25,7 @@ python release/tools/update/update_manager.py verify --platform win_x64 --store 
 {"version": 4, "displayVersion": "0.6.0", "forceUpdate": false}
 ```
 
-`displayVersion` 是显示用的程序版本，例如 `0.6.0`。IDE 构建从 `ide/data/version.json` 生成程序内版本与 Windows 文件版本资源，并在发行目录保存 `data/version.json`。关于窗口显示正在运行的程序版本，以及 `.xlang-update/installed.json` 中已安装的更新迭代号；没有安装记录时显示迭代 0，不查询网络，也不会把线上最新版本误当成本机版本。
+`displayVersion` 是显示用的程序版本，例如 `0.6.0`。IDE 构建从 `ide/data/version.json` 生成程序内版本与 Windows 文件版本资源，并在发行目录保存 `data/version.json`。关于窗口显示正在运行的程序版本，以及 外部状态目录 `installed.json` 中已安装的更新迭代号；没有安装回执时先读取随包 `data/release.json`，均缺少时显示迭代 0，不查询网络，也不会把线上最新版本误当成本机版本。
 
 `version` 是每次上线递增的整数迭代号，更新检测只比较这个字段。相同 `0.6.0` 可以连续发布多个更新；改变显示版本号本身不会触发升级。`forceUpdate` 决定发现更高迭代时是否必须更新。
 
@@ -46,13 +46,13 @@ python release/tools/update/update_manager.py verify --platform win_x64 --store 
 版本号文件仍名为 `version.txt`，内容为 JSON：
 
 ```json
-{"version": 3, "forceUpdate": true}
+{"version": 3, "displayVersion": "0.6.0", "forceUpdate": true}
 ```
 
 普通发布默认 `forceUpdate: false`；制包时加 `--force-update` 开启强更，或在菜单中选择“强制旧版本更新”。例如：
 
 ```powershell
-python release/tools/update/update_manager.py prepare --platform win_x64 --store ide/build/updates/win_x64 --version 4 --force-update --notes "必须更新的修复"
+python ide/tools/update/update_manager.py prepare --platform win_x64 --store release/update_info/win_x64 --version 4 --force-update --notes "必须更新的修复"
 ```
 
 标记同时写入签名清单。更新器核对两次版本信息及签名策略一致后，才通知 IDE；未验证的信息不能触发强更。已发布版本不可原地修改，改变强更策略应制作更大的版本号。新更新器也可读取旧数字版本号，按非强更处理；本项目首版不维护旧文件名的自动迁移链。
@@ -64,10 +64,10 @@ IDE 启动时先异步读取已验证的强更缓存，再后台查询服务器�
 先在发布机的 OpenSSH 配置中设置主机别名、用户、端口和密钥，并确认主机指纹。工具使用 BatchMode，不保存密码或私钥内容。
 
 ```powershell
-python release/tools/update/update_manager.py configure --platform win_x64 --store E:/xlang-updates/win_x64 --host xcompiler-publish --remote-root /实际网站目录/download/update_win_x64 --public-url https://xcompiler.com/download/update_win_x64
-python release/tools/update/update_manager.py push --platform win_x64 --store E:/xlang-updates/win_x64 --dry-run
-python release/tools/update/update_manager.py push --platform win_x64 --store E:/xlang-updates/win_x64
-python release/tools/update/update_manager.py status --platform win_x64 --store E:/xlang-updates/win_x64 --remote
+python ide/tools/update/update_manager.py configure --platform win_x64 --store E:/xlang-updates/win_x64 --host xcompiler-publish --remote-root /实际网站目录/download/update_win_x64 --public-url https://xcompiler.com/download/update_win_x64
+python ide/tools/update/update_manager.py push --platform win_x64 --store E:/xlang-updates/win_x64 --dry-run
+python ide/tools/update/update_manager.py push --platform win_x64 --store E:/xlang-updates/win_x64
+python ide/tools/update/update_manager.py status --platform win_x64 --store E:/xlang-updates/win_x64 --remote
 ```
 
 可通过 `--ssh` 指定 OpenSSH 可执行文件，`--ssh-config` 指定独立 SSH 配置。`remoteRoot` 是服务器文件系统路径，必须以 `/update_<platform>` 结尾；`publicUrl` 是对应网页 URL，两者不要混淆。服务器需要 POSIX shell 和 GNU coreutils（包括 `sha256sum`、`mv -T`）；无需运行 Python 发布服务。发布用户需要写入目标目录及相邻的私有发布暂存目录。公开目录使用 755、公开文件使用 644，私有暂存保持 700；网站目录应仅允许发布账号写入。端点应直接返回文件，不使用 HTTP 跳转。
@@ -89,3 +89,73 @@ python release/tools/update/update_manager.py status --platform win_x64 --store 
 各平台分别使用独立工作目录和 URL：`update_win_x64`、`update_linux_x64`、`update_linux_arm`、`update_linux_arm64`。ARM32 与 ARM64 不共用目录。
 
 当发布机的大文件网络链路不稳定时，可以加 `--verify-public-on-server`。该方式要求服务器有 curl 7.71+，从服务器访问公开 HTTPS URL，验证 TLS、每个对象的大小和 SHA-256；本机仍核对线上信息文件。它不跳过公开下载校验，也不关闭证书验证。
+
+## 本仓库的日常维护流程
+
+维护源码入口为 `ide/tools/update/`，签名助手构建在 `ide/build/Release/update/`，可直接运行的维护工具副本在 `release/update_info/tools/`。这些开发工具不进入客户端目录。
+
+目录布局（`release/update_info/` 已加入 `.gitignore`）：
+
+```text
+release/
+├─ win_x64/                    用户客户端
+├─ linux_x64/                  用户客户端
+└─ update_info/                本机维护资料，不打包给用户
+   ├─ win_x64/                 Windows 主线、差分、信息文件与 .state 配置
+   ├─ linux_x64/               Linux 独立更新库
+   ├─ tools/                   维护工具与签名助手
+   ├─ notes/                   更新说明
+   └─ test-history/            此前测试通道归档
+```
+
+目录分工：
+
+- `release/win_x64/`：用户可直接运行的发行内容。
+- `release/update_info/win_x64/`：正式更新的主线对象、版本差分、清单、部署配置和小型历史记录；不要随编译目录清理。
+- `release/update_info/test-history/win_x64/`：此前的测试版本 1–3，保留作测试历史。
+- `dev/local-state/release-clean/`：清理时归档的个人设置、项目、mdo-home、构建和临时输出；清理不永久删除这些文件。
+- `ide/build/update-runtime/`：仓库中实际运行客户端的更新缓存、日志、安装回执、强更策略和恢复事务。
+- `dev/releases/`：面向用户的便携 ZIP。
+
+先关闭使用此目录的 IDE、更新器、引擎和 mdo，然后执行：
+
+```powershell
+cd D:/GIT/x-lang
+python ide/tools/update/release_maintenance.py inspect
+python ide/tools/update/release_maintenance.py clean --apply
+```
+
+`clean` 不加 `--apply` 时仅预览。它保留程序、资源、字体、命令帮助、头文件、官方示例、许可证、`static/`、扩展库和 `option/defaults/`，其他顶层文件及个人配置归档到发布目录外。SDK/扩展包内部的来源与许可元数据会完整保留。旧更新状态由新更新器持锁迁移；发现未完成安装会要求先恢复，不会丢弃事务。
+
+日常开发启动 IDE 使用 `powershell -File ide/tools/run_ide.ps1`，个人设置、会话和诊断写到 `dev/local-state/ide/`，仍运行真实 `release/win_x64/xlang_ide.exe`。
+
+首次正式版本为迭代 1、显示版本 0.6.0：
+
+```powershell
+python ide/tools/update/update_manager.py init --platform win_x64 --source release/win_x64 --version 1 --display-version 0.6.0 --include-mdo --notes-file release/update_info/notes/0.6.0-v1.txt
+python ide/tools/update/update_manager.py verify --platform win_x64
+python ide/tools/update/release_maintenance.py bundle --platform win_x64
+```
+
+制作版本会生成并签名 `data/release.json`，便携 ZIP 解压后即能显示迭代 1，无需附带发布机的安装回执。ZIP 含运行依赖及扩展包；在线差分仍排除 `extlibs/`。`--include-mdo` 的选择保存在版本库配置中，后续继承，也可显式用 `--no-include-mdo` 取消。
+
+**当前此前的线上测试通道已经到迭代 3，直接推送 1 会被正常的防降级保护拒绝。** 第一次正式上线前，需单独归档测试通道。以下命令只用于本项目尚未正式发行的这个测试通道；不用于正常已发行版本的降级：
+
+```powershell
+python ide/tools/update/retire_test_channel.py --platform win_x64 --expect-version 3
+python ide/tools/update/retire_test_channel.py --platform win_x64 --expect-version 3 --apply
+python ide/tools/update/update_manager.py push --platform win_x64 --verify-public-on-server
+```
+
+先按前面的 `configure` 步骤配置正式工作目录的 SSH。测试通道归档工具默认仅预览，执行时持发布锁并再次核对版本标记，保留旧通道全部字节；哈希对象用硬链接复用。若归档操作失败或中断，查看 `.state/test-channel-retirement.json` 中的归档路径并确认远端状态，不能盲目重置。正式发布后只允许递增迭代。
+
+后续相同显示版本的修复仍递增迭代：
+
+```powershell
+python ide/tools/update/update_manager.py prepare --platform win_x64 --version 2 --notes-file release/update_info/notes/0.6.0-v2.txt
+python ide/tools/update/update_manager.py push --platform win_x64 --verify-public-on-server
+```
+
+需要强更时，在 `prepare` 中加 `--force-update`。修改程序显示版本时，先修改 `ide/data/version.json` 并重新构建 IDE。未发布版本需要重新采集源目录时，可先 `discard` 再 `init`（撤销首次版本后）或 `prepare`；已发布版本不能撤销覆盖。`rebuild` 只恢复已有清单/对象，不重新采集源码或运行目录。
+
+发布前还应核对编译器、IDE、语言服务、SDK、命令目录的验收记录。工具会记录命令目录与编译器摘要是否匹配；保留旧帮助资料的 GUI 验收不代表完整编译器/命令目录已经完成正式签收。

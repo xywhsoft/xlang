@@ -124,7 +124,7 @@
       "licenseUrl": "http://www.microsoft.com/typography/fonts/default.aspx"
     },
     "fontChangeSourceParent": "b16a95bbf022efcafc7b965d1bd9b5b945c0d881",
-    "currentBuildProvenance": "dev/release-materials/provenance/ide-about-layout-20261106.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/ide-release-maintenance-20261106.json",
     "cLspEnabled": false,
     "applicationIcon": {
       "source": "ide/data/xlang_ide.ico",
@@ -138,13 +138,7 @@
       "provenance": "docs/reports/release-materials-migration-20261031.json",
       "buildCommand": "pwsh -NoProfile -File ide/tools/build.ps1 -Configuration Release -GuiOnly -LanguageServerPath D:/GIT/x-lang/release/xlang-ls.exe -ReleaseDirectory D:/GIT/x-lang/release"
     },
-    "sha256": {
-      "provider": "matched XGE XRT",
-      "BCryptHashImported": false,
-      "remainingBCryptImports": [
-        "BCryptGenRandom"
-      ]
-    },
+    "sha256": "cc7fb0ce36bea013c012ac21a2583fe15a2dfb6327d687dd6ae0af0e0968ebe9",
     "sourceIdentity": {
       "guiQualification": {
         "path": "dev/release-materials/provenance/xge-ide-update-20261106/publication-receipt.json",
@@ -211,7 +205,9 @@
       "sourceVersion": "ide/data/version.json",
       "layout": "compact centered viewport-fitting content; title close and Escape"
     },
-    "previousBuildProvenanceBeforeAboutLayout": "dev/release-materials/provenance/ide-about-versions-20261106.json"
+    "previousBuildProvenanceBeforeAboutLayout": "dev/release-materials/provenance/ide-about-versions-20261106.json",
+    "previousBuildProvenanceBeforeReleaseMaintenance": "dev/release-materials/provenance/ide-about-layout-20261106.json",
+    "updateStateDirectory": "ide/build/update-runtime/<platform>-<install-path-sha256>"
   },
   "catalog": {
     "status": "passed",
@@ -3279,10 +3275,10 @@
       "origin": "matched-xge3-xui3-local-delivery-20261105"
     },
     {
-      "sha256": "4a14914c244a2aa8290d8d6678f28cc34b462b1133e615ed82c122afd3dee9da",
-      "bytes": 1805030,
+      "sha256": "cc7fb0ce36bea013c012ac21a2583fe15a2dfb6327d687dd6ae0af0e0968ebe9",
+      "bytes": 1809178,
       "path": "release/win_x64/xlang_ide.exe",
-      "origin": "ide-about-layout-20261106"
+      "origin": "ide-release-maintenance-20261106"
     },
     {
       "sha256": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
@@ -3298,15 +3294,15 @@
     },
     {
       "path": "release/win_x64/update.exe",
-      "sha256": "78589feddcb40af516863539fcb89146b01c8102ee15acccaec3074deeec3e36",
-      "bytes": 1441792,
-      "origin": "ide-about-versions-20261106"
+      "sha256": "72ab3b3a081e192fe2253b5ca4c87c417b8142814d89d0713a678f8e722a8e10",
+      "bytes": 1482752,
+      "origin": "ide-release-maintenance-20261106"
     },
     {
       "path": "release/linux_x64/update",
-      "sha256": "c61defaafafdb9fd10508a59cba17986e147df18f51da5defc8eb669fe3c72ec",
-      "bytes": 986184,
-      "origin": "ide-about-versions-20261106"
+      "sha256": "f941cdc7c84ea486d611029a45dc1039e7bdade3f7c2231036bdc892a1576b9b",
+      "bytes": 998472,
+      "origin": "ide-release-maintenance-20261106"
     },
     {
       "path": "release/win_x64/extlibs/_xge_native/native/xge3_host.dll",
@@ -3325,6 +3321,12 @@
       "sha256": "44a151ab97d67fcb4cca6e544db12f7dcce8d4944e15729f17dc00ca82873057",
       "bytes": 32,
       "origin": "ide-about-versions-20261106"
+    },
+    {
+      "path": "release/win_x64/data/release.json",
+      "sha256": "091d16c8897c6f521efc0d82a4d3da7b8587bd931460cb9f713014ba104d8432",
+      "bytes": 104,
+      "origin": "ide-release-maintenance-20261106"
     }
   ],
   "acceptance": {
@@ -3380,7 +3382,7 @@
   "developmentMaterialsDirectory": "dev/release-materials",
   "materialsMigration": "docs/reports/release-materials-migration-20261031.json",
   "updater": {
-    "currentBuildProvenance": "dev/release-materials/provenance/ide-about-versions-20261106.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/ide-release-maintenance-20261106.json",
     "implementation": "C/XRT TUI",
     "platformsBuiltAndTested": [
       "win_x64",
@@ -3390,10 +3392,10 @@
       "linux_arm",
       "linux_arm64"
     ],
-    "publisherTools": "release/tools/update",
-    "preparedStore": "ide/build/updates/win_x64",
-    "preparedVersion": 3,
-    "published": true,
+    "publisherTools": "release/update_info/tools",
+    "preparedStore": "release/update_info/win_x64",
+    "preparedVersion": 1,
+    "published": false,
     "privateKeyPackaged": false,
     "publicKey": "53d97e95b59ae119fe0a95d02edfe1010458e60e7b95ede3541aad1df018f6a8",
     "defaultUrl": "https://xcompiler.com/download/update_<platform>",
@@ -3408,12 +3410,17 @@
     "preparedForceUpdate": false,
     "publishedForceUpdate": false,
     "displayVersionSupported": true,
-    "comparisonField": "version"
+    "comparisonField": "version",
+    "preparedDisplayVersion": "0.6.0",
+    "historicalTestStore": "release/update_info/test-history/win_x64",
+    "publishedChannel": "pre-release test (previous iteration 3, not modified by this delivery)",
+    "runtimeState": "external same-filesystem directory; --print-state-dir",
+    "gitIgnoredDirectory": "release/update_info"
   },
   "runtimeLayout": {
     "windows": "release/win_x64",
     "linuxX64": "release/linux_x64",
-    "sharedPublisherTools": "release/tools/update",
+    "sharedPublisherTools": "release/update_info/tools",
     "historicalReportPathsPreserved": true,
     "mutableDataPathsUpdated": 600
   },
@@ -3571,6 +3578,11 @@
       "path": "dev/release-materials/provenance/ide-about-layout-20261106.json",
       "sha256": "dd38e1ad3291a65c95edb19edef1b2d16754bfa43a83d14063796a95c725cd8b",
       "bytes": 3080
+    },
+    "ideReleaseMaintenance": {
+      "path": "dev/release-materials/provenance/ide-release-maintenance-20261106.json",
+      "sha256": "b6069a2d71815dd6cb9441c295b3612e2b4457e749ab3e90ac6880f265e19522",
+      "bytes": 7010
     }
   }
 }

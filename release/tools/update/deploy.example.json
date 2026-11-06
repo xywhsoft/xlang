@@ -1,6 +1,0 @@
-{
-  "host": "xcompiler-publish",
-  "remoteRoot": "/REPLACE_WITH_DOCUMENT_ROOT/download/update_win_x64",
-  "publicUrl": "https://xcompiler.com/download/update_win_x64",
-  "ssh": null
-}

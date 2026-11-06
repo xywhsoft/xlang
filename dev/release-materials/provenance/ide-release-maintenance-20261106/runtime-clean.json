@@ -1,0 +1,66 @@
+{
+  "source": "D:\\GIT\\x-lang\\release\\win_x64",
+  "archive": "D:\\GIT\\x-lang\\dev\\local-state\\release-clean\\win_x64\\20261106T095404Z-42600",
+  "archivePaths": [
+    "build",
+    "build_tmp_m.json",
+    "examples_out",
+    "ide-install-receipt.json",
+    "mdo-home",
+    "option/diagnostics",
+    "option/settings.json",
+    "option/settings.json.lock",
+    "projects",
+    "tmp"
+  ],
+  "migrateUpdateState": true,
+  "archivePublisherTools": true,
+  "applied": true,
+  "updateState": "d:\\git\\x-lang\\ide\\build\\update-runtime\\win_x64-6e3555629b49a75592cf1a8d5399c8b6b3c6701aa3a82f0ea88e9a1f3471814c",
+  "moves": [
+    {
+      "source": "D:\\GIT\\x-lang\\release\\win_x64\\build",
+      "destination": "D:\\GIT\\x-lang\\dev\\local-state\\release-clean\\win_x64\\20261106T095404Z-42600\\build"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\release\\win_x64\\build_tmp_m.json",
+      "destination": "D:\\GIT\\x-lang\\dev\\local-state\\release-clean\\win_x64\\20261106T095404Z-42600\\build_tmp_m.json"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\release\\win_x64\\examples_out",
+      "destination": "D:\\GIT\\x-lang\\dev\\local-state\\release-clean\\win_x64\\20261106T095404Z-42600\\examples_out"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\release\\win_x64\\ide-install-receipt.json",
+      "destination": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\legacy-runtime\\20261106T095404Z-42600\\ide-install-receipt.json"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\release\\win_x64\\mdo-home",
+      "destination": "D:\\GIT\\x-lang\\dev\\local-state\\release-clean\\win_x64\\20261106T095404Z-42600\\mdo-home"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\release\\win_x64\\option\\diagnostics",
+      "destination": "D:\\GIT\\x-lang\\dev\\local-state\\release-clean\\win_x64\\20261106T095404Z-42600\\option\\diagnostics"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\release\\win_x64\\option\\settings.json",
+      "destination": "D:\\GIT\\x-lang\\dev\\local-state\\release-clean\\win_x64\\20261106T095404Z-42600\\option\\settings.json"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\release\\win_x64\\option\\settings.json.lock",
+      "destination": "D:\\GIT\\x-lang\\dev\\local-state\\release-clean\\win_x64\\20261106T095404Z-42600\\option\\settings.json.lock"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\release\\win_x64\\projects",
+      "destination": "D:\\GIT\\x-lang\\dev\\local-state\\release-clean\\win_x64\\20261106T095404Z-42600\\projects"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\release\\win_x64\\tmp",
+      "destination": "D:\\GIT\\x-lang\\dev\\local-state\\release-clean\\win_x64\\20261106T095404Z-42600\\tmp"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\release\\tools",
+      "destination": "D:\\GIT\\x-lang\\release\\update_info\\tools-archive\\20261106T095404Z-42600"
+    }
+  ]
+}

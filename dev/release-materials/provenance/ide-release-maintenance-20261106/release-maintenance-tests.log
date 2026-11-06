@@ -1,0 +1,9 @@
+test_archive_and_bundle (__main__.Tests.test_archive_and_bundle) ... ok
+test_archive_must_be_outside (__main__.Tests.test_archive_must_be_outside) ... ok
+test_dirty_bundle_is_rejected (__main__.Tests.test_dirty_bundle_is_rejected) ... ok
+test_failed_archive_rolls_back (__main__.Tests.test_failed_archive_rolls_back) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.070s
+
+OK
