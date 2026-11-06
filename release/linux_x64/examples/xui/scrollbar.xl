@@ -1,18 +1,12 @@
-// Scrollbar / page and position. Run from release/<platform>; Escape or close exits.
+// 拖动滚动条，观察滑块位置变化。
 import xui
-import "./_support.xl" as demo
+from "./_window.xl" import Window
 
-export class ScrollbarExample
- static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
-  demo.Gallery.label(context,root,"Scrollbar / page and position",24,16)
-  auto control=context.scrollBar()
-  demo.Gallery.place(root,control,24,64,640,28)
-  control.setRange(c_float(0),c_float(1000),c_float(100))
-  control.setValue(c_float(150))
-  assert control.getValue()==c_float(150)
- end
-end
-
-func main(...) as int
- return demo.Gallery.run("Scrollbar / page and position",ScrollbarExample.build)
-end
+Window.show("Scrollbar / page and position", func(xui.Context ui, xui.Widget root)
+ auto scrollbar = ui.scrollBar()
+ scrollbar.setOrientation(xui.XUI_ORIENTATION_HORIZONTAL)
+ scrollbar.setMode(xui.XUI_SCROLLBAR_MODE_FULL)
+ Window.place(root, scrollbar, 24, 24, 640, 28)
+ scrollbar.setRange(0, 1000, 100)
+ scrollbar.setValue(150)
+end)

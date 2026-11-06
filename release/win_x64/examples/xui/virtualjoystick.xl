@@ -1,0 +1,15 @@
+// 拖动摇杆，右侧实时显示 X、Y；回调视图只在回调期间读取。
+import xui
+from "./_window.xl" import Window
+
+Window.show("虚拟摇杆", func(xui.Context ui, xui.Widget root)
+ auto position = ui.labelNative()
+ position.setText("X: 0, Y: 0")
+ Window.place(root, position, 300, 80, 420, 32)
+
+ auto joystick = ui.virtualJoystickNative()
+ Window.place(root, joystick, 24, 24, 240, 240)
+ joystick.setChange(func(xui.Widget sender, xui.CallbackConstVirtualJoystickState state)
+  position.setText("X: "+string(float(state.fX))+", Y: "+string(float(state.fY)))
+ end)
+end)

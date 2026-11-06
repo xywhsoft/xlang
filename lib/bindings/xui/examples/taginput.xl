@@ -1,18 +1,11 @@
-// Tag input / add and remove tags. Run from release/<platform>; Escape or close exits.
+// 输入文字并回车添加标签；点击标签上的关闭按钮删除。
 import xui
-import "./_support.xl" as demo
+from "./_window.xl" import Window
 
-export class TaginputExample
- static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
-  demo.Gallery.label(context,root,"Tag input / add and remove tags",24,16)
-  auto control=context.tagInputNative()
-  demo.Gallery.place(root,control,24,64,640,60)
-  assert control.addTag("xlang")>=0
-  assert control.addTag("native")>=0
-  assert control.addTag("UTF-8")>=0
- end
-end
-
-func main(...) as int
- return demo.Gallery.run("Tag input / add and remove tags",TaginputExample.build)
-end
+Window.show("Tag input / add and remove tags", func(xui.Context ui, xui.Widget root)
+ auto taginput = ui.tagInputNative()
+ Window.place(root, taginput, 24, 24, 640, 60)
+ taginput.addTag("xlang")
+ taginput.addTag("native")
+ taginput.addTag("UTF-8")
+end)

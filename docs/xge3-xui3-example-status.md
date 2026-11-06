@@ -6,7 +6,38 @@ under `release/<platform>/examples/xge` and `examples/xui` together with the
 matching `xge`, `xui` and `_xge_native` packages. Each README gives commands,
 prerequisites, assertions and cleanup.
 
-## November 6 full XUI gallery
+## November 6 beginner tutorial successor
+
+The current XUI directory contains 71 public programs. Standalone lessons use
+top-level initialization callbacks, descriptive control names, direct native
+methods and short observable-behavior comments. Their common window loop is in
+`_window.xl`; no standalone lesson defines an Example class or embeds assertions
+and synthetic input. Original acceptance cases are in `test/fixtures/xui_learning`.
+
+Fifteen additional programs cover previously missing basic controls, visible
+DocumentEditor and composite dialogs/notifications. The generated gallery has
+57 scenes. IconPicker, FlowGraphWidget and WorkflowWidget remain without complete
+safe model bindings, so they do not get empty placeholder lessons. WebView shows
+its actual unsupported-backend result on this cohort; webpage rendering is not
+claimed as accepted.
+
+Windows validation combines the complete initial 71-program build/execution
+batch with 13 targeted successors. Both dynamic and static galleries execute
+all 57 scenes. Linux has 71 semantic checks, nine representative AOT builds and
+seven CPU executions; no Linux graphics window was run. Interaction probes are
+generated separately from the real tutorial bodies.
+
+The shared loop clears its offscreen Surface before composing the whole
+viewport. Native `invalidateAll` resets damage, not widget bitmap caches. A
+negative/positive pixel regression proves removed-scene pixels return to the
+background while the new widget still renders. This fixes scene-switch ghosts
+without rebuilding the XGE engine.
+
+See `lib/bindings/xui/examples/README.md`,
+`docs/reports/xui-learning-20261106.md` and the current delivery index's
+`xuiGallery` receipt.
+
+## November 6 initial full gallery (historical)
 
 All 48 retired XUI tutorial entrypoint names now have new declarative examples.
 Together with the retained eight programs, each published XUI examples directory

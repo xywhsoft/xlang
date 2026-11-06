@@ -1,17 +1,10 @@
-// Text editor / multiline selection. Run from release/<platform>; Escape or close exits.
+// 多行文字编辑，支持选择、撤销和重做。
 import xui
-import "./_support.xl" as demo
+from "./_window.xl" import Window
 
-export class TexteditExample
- static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
-  demo.Gallery.label(context,root,"Text editor / multiline selection",24,16)
-  auto control=context.textEditNative()
-  demo.Gallery.place(root,control,24,64,640,260)
-  assert control.setText("Multiline text editor\nSelect, edit, undo and redo.\nUTF-8: 你好，世界！")==0
-  control.setWordWrap(c_int(1))
- end
-end
-
-func main(...) as int
- return demo.Gallery.run("Text editor / multiline selection",TexteditExample.build)
-end
+Window.show("Text editor / multiline selection", func(xui.Context ui, xui.Widget root)
+ auto editor = ui.textEditNative()
+ Window.place(root, editor, 24, 24, 640, 260)
+ editor.setText("Multiline text editor\nSelect, edit, undo and redo.\nUTF-8: 你好，世界！")
+ editor.setWordWrap(1)
+end)

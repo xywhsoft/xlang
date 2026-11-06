@@ -1,20 +1,12 @@
-// Panel / child ownership. Run from release/<platform>; Escape or close exits.
+// 带标题的面板中放置一个按钮。
 import xui
-import "./_support.xl" as demo
+from "./_window.xl" import Window
 
-export class PanelExample
- static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
-  demo.Gallery.label(context,root,"Panel / child ownership",24,16)
-  auto control=context.panelNative()
-  demo.Gallery.place(root,control,24,64,640,260)
-  control.setTitle("Panel with child controls")
-  auto child=context.buttonNative()
-  child.setText("Owned by this Context")
-  demo.Gallery.place(control,child,20,48,260,44)
-  assert control.getChildCount()>0
- end
-end
-
-func main(...) as int
- return demo.Gallery.run("Panel / child ownership",PanelExample.build)
-end
+Window.show("Panel / child ownership", func(xui.Context ui, xui.Widget root)
+ auto panel = ui.panelNative()
+ Window.place(root, panel, 24, 24, 640, 260)
+ panel.setTitle("Panel with child controls")
+ auto child = ui.buttonNative()
+ child.setText("Owned by this Context")
+ Window.place(panel, child, 20, 48, 260, 44)
+end)

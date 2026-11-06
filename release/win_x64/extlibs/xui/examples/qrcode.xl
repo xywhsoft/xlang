@@ -1,18 +1,10 @@
-// QR code / UTF-8 content. Run from release/<platform>; Escape or close exits.
+// 二维码内容就是 setValue 传入的字符串。
 import xui
-import "./_support.xl" as demo
+from "./_window.xl" import Window
 
-export class QrcodeExample
- static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
-  demo.Gallery.label(context,root,"QR code / UTF-8 content",24,16)
-  auto control=context.qrCodeNative()
-  demo.Gallery.place(root,control,24,64,640,280)
-  control.setValue("xlang XUI 3")
-  control.setColors(c_uint(0x000000FF),c_uint(0xFFFFFFFF))
-  assert (control.getValue() as string)=="xlang XUI 3"
- end
-end
-
-func main(...) as int
- return demo.Gallery.run("QR code / UTF-8 content",QrcodeExample.build)
-end
+Window.show("QR code / UTF-8 content", func(xui.Context ui, xui.Widget root)
+ auto qrCode = ui.qrCodeNative()
+ Window.place(root, qrCode, 24, 24, 640, 280)
+ qrCode.setValue("xlang XUI 3")
+ qrCode.setColors(c_uint(0x000000FF), c_uint(0xFFFFFFFF))
+end)

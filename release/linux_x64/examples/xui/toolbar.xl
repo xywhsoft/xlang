@@ -1,21 +1,13 @@
-// Toolbar / commands and tooltips. Run from release/<platform>; Escape or close exits.
+// 工具栏中依次放置 New、Build、分隔线和 Run。
 import xui
-import "./_support.xl" as demo
+from "./_window.xl" import Window
 
-export class ToolbarExample
- static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
-  demo.Gallery.label(context,root,"Toolbar / commands and tooltips",24,16)
-  auto control=context.toolbarNative()
-  demo.Gallery.place(root,control,24,64,640,48)
-  assert control.addItem("New",c_int(0),c_int(1))>=0
-  assert control.addItem("Build",c_int(0),c_int(2))>=0
-  assert control.addSeparator()>=0
-  assert control.addItem("Run",c_int(0),c_int(3))>=0
-  control.setItemTooltip(c_int(1),"Build the current project")
-  assert control.getItemCount()==c_int(4)
- end
-end
-
-func main(...) as int
- return demo.Gallery.run("Toolbar / commands and tooltips",ToolbarExample.build)
-end
+Window.show("Toolbar / commands and tooltips", func(xui.Context ui, xui.Widget root)
+ auto toolbar = ui.toolbarNative()
+ Window.place(root, toolbar, 24, 24, 640, 48)
+ toolbar.addItem("New", 0, 1)
+ toolbar.addItem("Build", 0, 2)
+ toolbar.addSeparator()
+ toolbar.addItem("Run", 0, 3)
+ toolbar.setItemTooltip(1, "Build the current project")
+end)

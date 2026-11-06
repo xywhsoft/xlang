@@ -1,18 +1,10 @@
-// Status bar / text and progress. Run from release/<platform>; Escape or close exits.
+// 左侧文字和右侧进度条分别对应两个添加调用。
 import xui
-import "./_support.xl" as demo
+from "./_window.xl" import Window
 
-export class StatusbarExample
- static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
-  demo.Gallery.label(context,root,"Status bar / text and progress",24,16)
-  auto control=context.statusBarNative()
-  demo.Gallery.place(root,control,24,64,640,40)
-  assert control.addText(c_int(0),"Ready",c_float(220),c_int(0),c_int(1))>=0
-  assert control.addProgress(c_int(0),c_float(0),c_float(100),c_float(65),c_float(180))>=0
-  assert control.getItemCount()==c_int(2)
- end
-end
-
-func main(...) as int
- return demo.Gallery.run("Status bar / text and progress",StatusbarExample.build)
-end
+Window.show("Status bar / text and progress", func(xui.Context ui, xui.Widget root)
+ auto statusbar = ui.statusBarNative()
+ Window.place(root, statusbar, 24, 24, 640, 40)
+ statusbar.addText(0, "Ready", 220, 0, 1)
+ statusbar.addProgress(0, 0, 100, 65, 180)
+end)

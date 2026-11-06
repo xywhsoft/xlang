@@ -1,0 +1,16 @@
+// 创建十二个空槽；点击或用方向键切换，下面显示当前槽号。
+import xui
+from "./_window.xl" import Window
+
+Window.show("物品槽选择", func(xui.Context ui, xui.Widget root)
+ auto selected = ui.labelNative()
+ selected.setText("点击一个物品槽")
+ Window.place(root, selected, 24, 300, 600, 32)
+
+ auto inventory = ui.inventoryGridNative()
+ Window.place(root, inventory, 24, 24, 480, 240)
+ inventory.setSlotCount(12)
+ inventory.setSelectCallback(func(xui.Widget sender, c_int slot)
+  selected.setText("当前槽号："+string(int(slot)))
+ end)
+end)

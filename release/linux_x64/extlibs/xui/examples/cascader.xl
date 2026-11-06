@@ -1,0 +1,15 @@
+// parent 是父项的数组下标，-1 表示根；点击选择“开发 / 编辑器”。
+import xui
+from "./_window.xl" import Window
+
+Window.show("级联选择", func(xui.Context ui, xui.Widget root)
+ auto categories = ui.cascaderNative()
+ Window.place(root, categories, 24, 24, 480, 44)
+ categories.setPlaceholder("选择分类")
+ array<string> names = ["开发", "设计", "编辑器", "编译器", "图标"]
+ array<c_int> values = [10, 20, 11, 12, 21]
+ array<c_int> parents = [-1, -1, 0, 0, 1]
+ c_uint leaf = c_uint(xui.XUI_CASCADER_ITEM_LEAF)
+ array<c_uint> flags = [0, 0, leaf, leaf, leaf]
+ categories.setItems(names, values, parents, flags)
+end)

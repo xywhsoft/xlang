@@ -1,0 +1,13 @@
+// 每次点击增加一条通知；通知可以堆叠，也可点击关闭。
+import xui
+from "./_window.xl" import Window
+
+Window.show("通知", func(xui.Context ui, xui.Widget root)
+ auto notifications = xui.createToast(ui)
+ auto show = ui.buttonNative()
+ show.setText("添加通知")
+ Window.place(root, show, 24, 24, 220, 44)
+ show.setClick(func(xui.Widget sender)
+  notifications.show(0, "提示", "这是一条三秒后消失的通知", 3)
+ end)
+end)

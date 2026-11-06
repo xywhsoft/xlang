@@ -1,18 +1,10 @@
-// Numeric input / limits and step. Run from release/<platform>; Escape or close exits.
+// 输入数字，或用增减按钮调整数值。
 import xui
-import "./_support.xl" as demo
+from "./_window.xl" import Window
 
-export class NumericinputExample
- static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
-  demo.Gallery.label(context,root,"Numeric input / limits and step",24,16)
-  auto control=context.numericInputNative()
-  demo.Gallery.place(root,control,24,64,640,44)
-  control.setRange(c_float(-100),c_float(100))
-  assert control.setValue(c_float(12.5))==0
-  assert control.getValue()==c_float(12.5)
- end
-end
-
-func main(...) as int
- return demo.Gallery.run("Numeric input / limits and step",NumericinputExample.build)
-end
+Window.show("Numeric input / limits and step", func(xui.Context ui, xui.Widget root)
+ auto numberInput = ui.numericInputNative()
+ Window.place(root, numberInput, 24, 24, 640, 44)
+ numberInput.setRange(-100, 100)
+ numberInput.setValue(12.5)
+end)

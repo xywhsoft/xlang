@@ -1,93 +1,26 @@
-// CPU-only Document UI graph. No frame, draw, browser, file or clipboard call.
+// View and Editor can share one Document without rendering it.
 import xui
-from xui import Document,DocumentSnapshot
-DocumentSnapshot? savedSnapshot=null
-int measures=0
-func main(...) as int
- auto proxy=xui.createProxy()
- auto context=xui.create(proxy)
- auto document=xui.createDocument()
- auto transaction=document.beginTransaction()
- uint64 paragraph=transaction.insertNode(uint64(1),xui.XUI_DOCUMENT_APPEND,c_uint(2))
- uint64 math=transaction.insertNode(paragraph,xui.XUI_DOCUMENT_APPEND,c_uint(17),text="x+y")
- auto changes=transaction.commit()
- transaction.close()
- auto snapshot=document.snapshot()
- auto view=xui.createDocumentView(context,document)
- auto editor=xui.createDocumentEditor(context,document)
- auto renderer=xui.createDocumentRenderer(context)
- renderer.setSnapshot(snapshot,changes)
- renderer.setObjectMeasure(func(xui.CallbackDocumentRenderer source,xui.CallbackDocumentSnapshot input,uint64 node,c_float width,c_float zoom,xui.CallbackVec2 size,xui.CallbackDocumentFloat baseline) as c_int
-  assert node==math
-  size.fX=c_float(40)
-  size.fY=c_float(20)
-  baseline.value=c_float(15)
-  savedSnapshot=input.share()
-  measures+=1
-  return c_int(0)
- end)
- renderer.layout(c_double(320),c_double(0),c_double(240))
- auto extent,exact=renderer.size()
- assert extent.width>=c_double(40) and extent.height>=c_double(20)
- assert measures>0 and savedSnapshot!=null
- assert (savedSnapshot as DocumentSnapshot).identity()==document.identity()
- renderer.setObjectMeasure(null)
- auto shared=view.document() as Document
- assert shared.identity()==document.identity()
- shared.close()
- editor.setReadOnly(c_int(1))
- assert editor.readOnly()==c_int(1)
- editor.setReadOnly(c_int(0))
- view.clearTableSelection()
- view.clearFindScope()
- bool noFindScope=false
+from xui import Document
+
+auto proxy = xui.createProxy()
+try
+ auto ui = xui.create(proxy)
  try
-  view.findScope()
- catch error
-  noFindScope=true
+  auto document = xui.createDocument()
+  try
+   auto view = xui.createDocumentView(ui, document)
+   auto editor = xui.createDocumentEditor(ui, document)
+   editor.setReadOnly(1)
+   println(editor.readOnly())
+   auto sameDocument = view.document() as Document
+   println(sameDocument.identity() == document.identity())
+   sameDocument.close()
+  finally
+   document.close()
+  end
+ finally
+  ui.close()
  end
- assert noFindScope
- assert editor.replaceAll("not-in-this-document","replacement")==uint64(0)
- assert editor.replaceAllEx("not-in-this-document","replacement",c_uint(0))==uint64(0)
- auto work=editor.pendingWork()
- assert work.bHasInput==c_int(0)
- auto state=editor.queryCommand(xui.XUI_DOC_EDIT_UNDO)
- assert state.iSize>c_uint(0)
- editor.setError(func(xui.Widget source,c_int error)
-  assert error!=c_int(0)
- end)
- editor.setError(null)
- view.setActivate(func(xui.Widget source,uint64 node,xui.CallbackDocumentText resource)
-  auto copied=resource.text
-  assert uint64(copied.length)==uint64(resource.length)
- end)
- view.setActivate(null)
- auto list=context.messageListNative()
- list.addNode("message","placeholder")
- list.setNodeDocument("message",document)
- auto messageDocument=list.nodeDocument("message") as Document
- assert messageDocument.identity()==document.identity()
- messageDocument.close()
- list.clearDocumentTableSelection("message")
- list.clearDocument("message")
- assert list.nodeDocument("message")==null
- list.close()
- editor.close()
- view.close()
- context.close()
- bool expired=false
- try
-  renderer.stats()
- catch error
-  expired=true
- end
- assert expired
- renderer.close()
- document.close()
- snapshot.close()
- changes.close()
- (savedSnapshot as DocumentSnapshot).close()
- savedSnapshot=null
+finally
  proxy.close()
- return 0
 end

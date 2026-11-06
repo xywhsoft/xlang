@@ -1,0 +1,13 @@
+// 点击卡片选择或取消；卡片中的文字是普通 Label 子控件。
+import xui
+from "./_window.xl" import Window
+
+Window.show("选择卡片", func(xui.Context ui, xui.Widget root)
+ auto card = ui.checkCardNative()
+ Window.place(root, card, 24, 24, 320, 120)
+
+ auto title = ui.labelNative()
+ title.setText("高质量渲染")
+ Window.place(card, title, 20, 24, 260, 32)
+ card.setChecked(1)
+end)

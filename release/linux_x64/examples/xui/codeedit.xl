@@ -1,20 +1,17 @@
-// Code editor / minimap and syntax. Run from release/<platform>; Escape or close exits.
+// 编辑 C 代码，拖动右侧 minimap 滚动。
 import xui
-import "./_support.xl" as demo
+from "./_window.xl" import Window
 
-export class CodeeditExample
- static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
-  demo.Gallery.label(context,root,"Code editor / minimap and syntax",24,16)
-  auto control=context.codeEditNative()
-  demo.Gallery.place(root,control,24,64,640,360)
-  assert control.setLanguage("c")==0
-  assert control.setText("int main(void) {\n    return 0;\n}\n// Minimap line 1\n// Minimap line 2\n// Minimap line 3\n// Minimap line 4\n// Minimap line 5\n// Minimap line 6\n// Minimap line 7\n// Minimap line 8\n// Minimap line 9\n// Minimap line 10\n// Minimap line 11\n// Minimap line 12\n// Minimap line 13\n// Minimap line 14\n// Minimap line 15\n// Minimap line 16\n// Minimap line 17\n// Minimap line 18\n// Minimap line 19\n// Minimap line 20\n// Minimap line 21\n// Minimap line 22\n// Minimap line 23\n// Minimap line 24\n// Minimap line 25\n// Minimap line 26\n// Minimap line 27\n// Minimap line 28\n// Minimap line 29\n// Minimap line 30\n// Minimap line 31\n// Minimap line 32\n// Minimap line 33\n// Minimap line 34\n")==0
-  assert control.setMinimap(c_int(1),c_float(100))==0
-  assert control.setTabColumns(c_int(4))==0
-  assert control.getText()!=null
+Window.show("Code editor / minimap and syntax", func(xui.Context ui, xui.Widget root)
+ auto editor = ui.codeEditNative()
+ Window.place(root, editor, 24, 24, 640, 360)
+ editor.setLanguage("c")
+ // A short loop gives the minimap enough lines to scroll.
+ string source = "int main(void) {\n    return 0;\n}\n"
+ for line in range(1, 41)
+  source += "// Example line "+string(line)+"\n"
  end
-end
-
-func main(...) as int
- return demo.Gallery.run("Code editor / minimap and syntax",CodeeditExample.build)
-end
+ editor.setText(source)
+ editor.setMinimap(1, 100)
+ editor.setTabColumns(4)
+end)
