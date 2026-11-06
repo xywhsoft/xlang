@@ -427,7 +427,7 @@ func testVarBoxing()
 
     var boxed = a
 
-    // 读：静态字段经 var（dot / index 两种写法）
+    // 读：点号访问声明字段；[] 按 object.__item__ 只访问动态字典。
     try
         expectVarI(boxed.id, 7, "var boxed.id (static dot) == 7")
     catch e
@@ -439,7 +439,7 @@ func testVarBoxing()
         bad("var boxed.name read", e.message)
     end
     try
-        expectVarI(boxed["id"], 7, "var boxed[id] (static index) == 7")
+        expectB(boxed["id"] == null, true, "var boxed[id] follows dynamic item protocol")
     catch e
         bad("var boxed[id] read", e.message)
     end
