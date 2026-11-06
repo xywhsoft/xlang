@@ -4,6 +4,7 @@
 struct xvalue;
 struct xnetengine;
 struct xtlsclientconfig;
+struct xnetstream;
 #if defined(_WIN32) && defined(XL_BUILD_DLL)
 #define XL6_FOREIGN_NET_API __declspec(dllexport)
 #else
@@ -17,4 +18,8 @@ struct xtlsclientconfig;
 typedef bool (*XL6_ForeignNetClientVisitV1)(struct xnetengine*,const struct xtlsclientconfig*,void*);
 XL6_FOREIGN_NET_API bool xl6ForeignNetClientVisitV1(const struct xvalue*,const struct xvalue*,
     XL6_ForeignNetClientVisitV1,void*);
+/* Call-only TCP view. The owner is pinned and native retirement is excluded
+ * until the callback returns. The callback must not store the borrowed stream. */
+typedef bool (*XL6_ForeignTcpVisitV1)(struct xnetstream*,void*);
+XL6_FOREIGN_NET_API bool xl6ForeignTcpVisitV1(const struct xvalue*,XL6_ForeignTcpVisitV1,void*);
 #endif

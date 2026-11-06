@@ -20,5 +20,6 @@ XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainForeignResourc
 #include "xl6_native_class_abi.h"
 XL6_TEXT_API xvalue* xl6ForeignNetEngineOwnerV1(XL6_NativeClassFieldContextV1,const xvalue*);
 XL6_TEXT_API xvalue* xl6ForeignTlsClientOwnerV1(XL6_NativeClassFieldContextV1,const xvalue*);
+XL6_TEXT_API xvalue* xl6ForeignTcpOwnerV1(XL6_NativeClassFieldContextV1,const xvalue*);
 
 #endif
