@@ -1,0 +1,19 @@
+int destroyCount = 0
+class CleanupProbe
+    int value = 1
+    string text = "live"
+    destroy()
+        assert self.value == 1
+        self.value = 0
+        self.text = "retired"
+        assert self.value == 0
+        destroyCount = destroyCount + 1
+    end
+end
+func run()
+    CleanupProbe value = CleanupProbe()
+    var alias = value
+end
+run()
+assert destroyCount == 1
+println("destructor field writes complete once")
