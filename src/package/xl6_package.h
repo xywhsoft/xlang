@@ -58,7 +58,17 @@ typedef struct XL6_PackageNativeInfo {
     int singleton;
     char* loadName;
     char* version;
+    int linkage; /* 0 unspecified, 1 static, 2 dynamic. */
+    char* staticManifest;
+    char* dynamicManifest;
 } XL6_PackageNativeInfo;
+
+enum {
+    XL6_NATIVE_SELECT_AUTO_JIT = 0,
+    XL6_NATIVE_SELECT_STATIC = 1,
+    XL6_NATIVE_SELECT_DYNAMIC = 2,
+    XL6_NATIVE_SELECT_AUTO_AOT = 3
+};
 
 typedef struct XL6_PackageManifest {
     char* format;
@@ -100,6 +110,12 @@ const char* xl6PackageResolveKindName(XL6_PackageResolveKind kind);
 int xl6PackageResolveImport(const char* importerPath, const char* target, XL6_PackageResolveResult* result);
 int xl6PackageLoadManifestObserved(const char* path, XL6_PackageManifest* manifest,
                                    struct XL6_SourceReport* report);
+/* Native-only alternative with the same package/language/dependency identity.
+ * 1 selected, 0 keep base, -1 invalid/unavailable. Never follows variant chains. */
+int xl6PackageSelectNativeVariant(const XL6_PackageManifest* base, int selection,
+                                 XL6_PackageManifest* selected,
+                                 struct XL6_SourceReport* report,
+                                 char* error, size_t errorSize);
 int xl6PackageResolveImportObserved(const char* importerPath, const char* target,
                                     XL6_PackageResolveResult* result,
                                     struct XL6_SourceReport* report);

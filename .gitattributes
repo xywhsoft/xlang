@@ -146,3 +146,8 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 # Preserve the exact bytes named by example/runtime acceptance hashes.
 /dev/release-materials/provenance/example-runtime-fixes-20261106/** -text whitespace=cr-at-eol
 /dev/release-materials/sources/example-runtime-fixes-20261106/** -text whitespace=cr-at-eol
+
+# Native artifact selection receipts and matching compiler source cohort.
+/dev/release-materials/sources/native-linkage-default-20261106/** -text whitespace=cr-at-eol
+/dev/release-materials/provenance/native-linkage-default-20261106/** -text whitespace=cr-at-eol
+/release/win_x64/static/xge3/README.md -text whitespace=cr-at-eol
