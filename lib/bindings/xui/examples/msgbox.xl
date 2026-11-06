@@ -1,0 +1,25 @@
+// 打开确认框；点击确定或取消，结果显示在窗口中。
+import xui
+from "./_window.xl" import Window
+
+Window.show("消息框", func(xui.Context ui, xui.Widget root)
+ auto result = ui.labelNative()
+ result.setText("等待选择")
+ Window.place(root, result, 24, 100, 640, 32)
+
+ auto box = xui.createMsgBox(ui, "确认操作", "是否继续？", buttons = xui.XUI_MSGBOX_BUTTON_OK_CANCEL)
+ box.setResult(func(xui.CallbackMsgBox sender, c_int choice)
+  if choice == xui.XUI_MSGBOX_RESULT_OK then
+   result.setText("你选择了确定")
+  else
+   result.setText("你取消了操作")
+  end
+ end)
+
+ auto open = ui.buttonNative()
+ open.setText("打开消息框")
+ Window.place(root, open, 24, 24, 220, 44)
+ open.setClick(func(xui.Widget sender)
+  box.setOpen(1)
+ end)
+end)

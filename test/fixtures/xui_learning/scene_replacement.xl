@@ -1,0 +1,21 @@
+// External pixel regression: render a large scene, replace it with a small one.
+import xui
+from "../../../lib/bindings/xui/examples/_window.xl" import Window
+
+Window.show("Scene replacement regression",func(xui.Context ui,xui.Widget root)
+ auto previous=ui.canvas()
+ Window.place(root,previous,24,24,360,200)
+ previous.setCanvasSize(c_float(360),c_float(200))
+ previous.clear(c_uint(0xCC4433FF))
+ int frame=0
+ root.setUpdateCallback(func(xui.Widget sender,c_float delta) as c_int
+  frame+=1
+  if frame==4 then
+   previous.close()
+   auto next=ui.buttonNative()
+   next.setText("New scene")
+   Window.place(root,next,24,24,120,44)
+  end
+  return c_int(0)
+ end)
+end)

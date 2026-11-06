@@ -1,0 +1,60 @@
+// Interactive desktop demo: creates GPU resources only inside a ready frame.
+import xge
+import xui
+
+func main(...) as int
+ xge.initNative()
+ try
+  auto proxy=xui.createProxy()
+  try
+   try
+   xge.run(func() as c_int
+    auto surface=proxy.createSurfaceRGBA(256,160,flags=c_uint(xui.XUI_SURFACE_USAGE_TARGET))
+    try
+     auto draw=proxy.beginDraw(surface)
+     try
+      auto full=xui.Rect()
+      full.fW=c_int(256)
+      full.fH=c_int(160)
+      auto block=xui.Rect()
+      block.fX=c_int(20)
+      block.fY=c_int(20)
+      block.fW=c_int(100)
+      block.fH=c_int(60)
+      proxy.clearRect(draw,full,0xFF221914)
+      proxy.fillRect(draw,block,0xFFD28C32)
+      proxy.fillCircle(draw,184,80,40,0xFF46B4F0)
+      draw.finish()
+      assert draw.ended()
+     finally
+      draw.close()
+     end
+     assert xge.begin()==0
+     xge.clear(xge.colorRGBA(20,25,34,255))
+     auto source=xui.Rect()
+     source.fW=c_int(256)
+     source.fH=c_int(160)
+     auto destination=xui.Rect()
+     destination.fX=c_int(40)
+     destination.fY=c_int(40)
+     destination.fW=c_int(512)
+     destination.fH=c_int(320)
+     proxy.drawSurface(surface,source,destination,0xFFFFFFFF)
+     assert xge.nativeEnd()==0
+    finally
+     surface.close()
+    end
+    // One fully rendered frame is enough for the lifetime example.
+    return c_int(1)
+   end)
+   finally
+    xge.setFrameCallback(null)
+   end
+  finally
+   proxy.close()
+  end
+ finally
+  xge.unit()
+ end
+ return 0
+end

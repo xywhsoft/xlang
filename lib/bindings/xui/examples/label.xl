@@ -1,0 +1,13 @@
+// 两个 Label 对应两行文字；Label 用于显示文字，不接收文本输入。
+import xui
+from "./_window.xl" import Window
+
+Window.show("文字标签", func(xui.Context ui, xui.Widget root)
+ auto heading = ui.labelNative()
+ heading.setText("你好，xlang！")
+ Window.place(root, heading, 24, 24, 500, 32)
+
+ auto detail = ui.labelNative()
+ detail.setText("修改 setText 的参数，再运行就能看到变化。")
+ Window.place(root, detail, 24, 80, 640, 32)
+end)

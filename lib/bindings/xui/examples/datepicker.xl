@@ -1,17 +1,9 @@
-// Date picker / calendar popup. Run from release/<platform>; Escape or close exits.
+// 点击日期，展开日历选择日期。
 import xui
-import "./_support.xl" as demo
+from "./_window.xl" import Window
 
-export class DatepickerExample
- static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
-  demo.Gallery.label(context,root,"Date picker / calendar popup",24,16)
-  auto control=context.datePickerNative()
-  demo.Gallery.place(root,control,24,64,640,44)
-  control.setValue(time.now())
-  assert control.getValue()>time(0)
- end
-end
-
-func main(...) as int
- return demo.Gallery.run("Date picker / calendar popup",DatepickerExample.build)
-end
+Window.show("Date picker / calendar popup", func(xui.Context ui, xui.Widget root)
+ auto datePicker = ui.datePickerNative()
+ Window.place(root, datePicker, 24, 24, 640, 44)
+ datePicker.setValue(time.now())
+end)

@@ -1,18 +1,10 @@
-// Step bar / workflow stages. Run from release/<platform>; Escape or close exits.
+// 四个步骤来自一个字符串数组。
 import xui
-import "./_support.xl" as demo
+from "./_window.xl" import Window
 
-export class StepbarExample
- static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
-  demo.Gallery.label(context,root,"Step bar / workflow stages",24,16)
-  auto control=context.stepBarNative()
-  demo.Gallery.place(root,control,24,64,640,92)
-  control.setSteps(["Configure","Build","Run","Finish"])
-  control.setCurrent(c_int(1))
-  assert control.getStepCount()==c_int(4)
- end
-end
-
-func main(...) as int
- return demo.Gallery.run("Step bar / workflow stages",StepbarExample.build)
-end
+Window.show("Step bar / workflow stages", func(xui.Context ui, xui.Widget root)
+ auto steps = ui.stepBarNative()
+ Window.place(root, steps, 24, 24, 640, 92)
+ steps.setSteps(["Configure", "Build", "Run", "Finish"])
+ steps.setCurrent(1)
+end)

@@ -1,25 +1,28 @@
-// CPU-only default document model; no Context, window, device or filesystem.
+// Commit a paragraph, then read it from an independently owned snapshot.
 import xui
-func main(...) as int
- auto document=xui.createDocument()
- auto transaction=document.beginTransaction()
- uint64 paragraph=transaction.insertNode(uint64(1),xui.XUI_DOCUMENT_APPEND,c_uint(2))
- uint64 textNode=transaction.insertNode(paragraph,xui.XUI_DOCUMENT_APPEND,c_uint(4),text="Hello, xlang")
- auto changes=transaction.commit()
- transaction.close()
- auto snapshot=document.snapshot()
- Buffer text=Buffer()
- uint64 count=snapshot.copyText(textNode,text)
- assert count<uint64(1024)
- assert text.resize(int(count)+1)
- snapshot.copyText(textNode,text)
- // Copy returns a byte length, excluding the optional NUL terminator.
- assert text.text(int(count))=="Hello, xlang"
- println(text.text(int(count)))
+
+auto document = xui.createDocument()
+try
+ auto edit = document.beginTransaction()
+ uint64 textNode = 0
+ try
+  uint64 paragraph = edit.insertNode(uint64(1), xui.XUI_DOCUMENT_APPEND, c_uint(xui.XUI_DOC_PARAGRAPH))
+  textNode = edit.insertNode(paragraph, xui.XUI_DOCUMENT_APPEND, c_uint(xui.XUI_DOC_TEXT), text = "Hello, xlang")
+  auto changes = edit.commit()
+  changes.close()
+ finally
+  edit.close()
+ end
+ auto snapshot = document.snapshot()
+ try
+  auto text = Buffer()
+  uint64 size = snapshot.copyText(textNode, text)
+  text.resize(int(size)+1)
+  snapshot.copyText(textNode, text)
+  println(text.text(int(size)))
+ finally
+  snapshot.close()
+ end
+finally
  document.close()
- // Immutable snapshot has an independent native owner after Document closes.
- assert snapshot.copyText(textNode,text)==count
- snapshot.close()
- changes.close()
- return 0
 end

@@ -1,21 +1,14 @@
-// Tree / expand and select. Run from release/<platform>; Escape or close exits.
+// 展开 Project 和 Sources，选择 main.xl。
 import xui
-import "./_support.xl" as demo
+from "./_window.xl" import Window
 
-export class TreeviewExample
- static func build(xui.Context context,xui.Widget root,xui.Proxy proxy)
-  demo.Gallery.label(context,root,"Tree / expand and select",24,16)
-  auto control=context.treeViewNative()
-  demo.Gallery.place(root,control,24,64,640,260)
-  assert control.addNode(c_int(1),c_int(-1),"Project")>=0
-  assert control.addNode(c_int(2),c_int(1),"Sources")>=0
-  assert control.addNode(c_int(3),c_int(2),"main.xl")>=0
-  control.setNodeExpanded(c_int(1),c_int(1))
-  control.setNodeExpanded(c_int(2),c_int(1))
-  assert control.setSelected(c_int(3))==0
- end
-end
-
-func main(...) as int
- return demo.Gallery.run("Tree / expand and select",TreeviewExample.build)
-end
+Window.show("Tree / expand and select", func(xui.Context ui, xui.Widget root)
+ auto tree = ui.treeViewNative()
+ Window.place(root, tree, 24, 24, 640, 260)
+ tree.addNode(1, -1, "Project")
+ tree.addNode(2, 1, "Sources")
+ tree.addNode(3, 2, "main.xl")
+ tree.setNodeExpanded(1, 1)
+ tree.setNodeExpanded(2, 1)
+ tree.setSelected(3)
+end)
