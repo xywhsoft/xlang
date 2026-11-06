@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "sequence": [
+    "auto JIT with real host DLL",
+    "auto AOT without XGE DLL import",
+    "standalone execute",
+    "auto JIT again"
+  ],
+  "packagePathOverride": true,
+  "scope": "Explicit package root for API host; CLI/IDE default verified separately without override"
+}

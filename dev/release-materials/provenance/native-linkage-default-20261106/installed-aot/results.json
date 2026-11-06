@@ -1,0 +1,26 @@
+{
+  "passed": true,
+  "bytes": 10524160,
+  "sha256": "e5657d4a8c15f938b95d6d9292cd5fe1cf37db84b4ec9bdb80b4be078504ff4b",
+  "imports": [
+    "msvcrt.dll",
+    "kernel32.dll",
+    "USER32.dll",
+    "GDI32.dll",
+    "ole32.dll",
+    "OLEAUT32.dll",
+    "SHELL32.dll",
+    "IMM32.dll"
+  ],
+  "seconds": 81.234,
+  "command": [
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+    "build",
+    "D:\\GIT\\x-lang\\release\\win_x64\\examples\\xui\\all_controls.xl",
+    "-o",
+    "D:\\GIT\\x-lang\\build\\native-default-20261106\\installed-aot\\all_controls.exe",
+    "--input-report",
+    "D:\\GIT\\x-lang\\build\\native-default-20261106\\installed-aot\\inputs.json"
+  ],
+  "packagePathOverride": false
+}
