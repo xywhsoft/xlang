@@ -1,0 +1,230 @@
+// flappy.xl — 飞扬的小鸟（键盘经典游戏）
+// 空格/W 起飞，死亡后 R 重开。
+// 限帧图形验证：xl run flappy.xl -- 60
+import xge
+from "./_game.xl" import runGame, loadGameFont, loadGameSound, loadGameTexture, rect, pixels, vertex, keyPressed, keyDown, mouseX, mouseY, mouseLeftDown, mouseRightDown
+
+// --- 游戏参数 ---
+int WIN_W = 480
+int WIN_H = 640
+int GROUND_H = 90
+int PIPE_W = 64                       // 管道宽
+int PIPE_GAP = 150                    // 上下管开口高度
+int PIPE_STEP = 240                   // 管道水平间距
+float SPEED = 170.0                   // 管道/地面滚动速度（像素/秒）
+float GRAVITY = 1500.0                // 重力加速度
+float FLAP_V = -430.0                 // 起飞速度
+int BIRD_X = 200                      // 小鸟固定横坐标
+int BIRD_R = 14                       // 小鸟半径
+
+// --- 游戏状态 ---
+float birdY = 300.0
+float birdVel = 0.0
+array<int> pipeX = [560, 800, 1040, 1280]
+array<int> gapY = [200, 260, 220, 300] // 开口顶部纵坐标
+array<int> passed = [0, 0, 0, 0]
+int state = 0                          // 0=待开始 1=进行 2=死亡
+int score = 0
+float bobT = 0.0                       // 待开始悬浮相位
+float groundOff = 0.0                  // 地面滚动偏移
+float scrollFrac = 0.0                 // 管道亚像素累积
+xge.Font? hudFont = null
+xge.Font? bigFont = null
+Random rng = Random(uint64(2013), uint64(7))
+
+// --- 初始化 ---
+func reset()
+    birdY = 300.0
+    birdVel = 0.0
+    score = 0
+    state = 0
+    bobT = 0.0
+    groundOff = 0.0
+    scrollFrac = 0.0
+    int i = 0
+    while i < 4
+        pipeX[i] = 560 + i * PIPE_STEP
+        gapY[i] = 80 + int(rng.u32()) % 241
+        passed[i] = 0
+        i += 1
+    end
+end
+
+// --- 碰撞：小鸟 AABB vs 管道矩形 ---
+func hitPipe(int i) as bool
+    int px = pipeX[i]
+    int gy = gapY[i]
+    int bx1 = BIRD_X - 12
+    int bx2 = BIRD_X + 12
+    int by1 = int(birdY) - 12
+    int by2 = int(birdY) + 12
+    if bx2 < px or bx1 > px + PIPE_W then
+        return false
+    end
+    if by1 < gy then
+        return true
+    end
+    if by2 > gy + PIPE_GAP then
+        return true
+    end
+    return false
+end
+
+// --- 输入 ---
+func handleInput()
+    if keyPressed(xge.XGE_KEY_SPACE) or keyPressed(87) then
+        if state == 0 then
+            state = 1
+            birdVel = FLAP_V
+        elseif state == 1 then
+            birdVel = FLAP_V
+        end
+    end
+    if state == 2 and keyPressed(82) then
+        reset()
+    end
+end
+
+// --- 逻辑更新 ---
+func update()
+    float dt = float(xge.getDelta())
+
+    // 地面滚动（待开始/进行中）
+    if state != 2 then
+        groundOff += SPEED * dt
+        while groundOff >= 48.0
+            groundOff -= 48.0
+        end
+    end
+
+    if state == 0 then
+        // 待开始：小鸟上下悬浮
+        bobT += dt
+        birdY = 300.0 + math.sin(bobT * 3.0) * 10.0
+        return
+    end
+
+    if state != 1 then
+        return
+    end
+
+    // 物理
+    birdVel += GRAVITY * dt
+    birdY += birdVel * dt
+    if birdY < 16.0 then
+        birdY = 16.0
+        birdVel = 0.0
+    end
+    if birdY + 14.0 > 550.0 then
+        birdY = 550.0 - 14.0
+        state = 2
+    end
+
+    // 管道左移（亚像素累积保证速度精确）
+    scrollFrac += SPEED * dt
+    int adv = int(scrollFrac)
+    scrollFrac -= float(adv)
+    int i = 0
+    while i < 4
+        pipeX[i] -= adv
+        // 出屏回收：搬到最右侧并重随机开口
+        if pipeX[i] < -PIPE_W - 20 then
+            pipeX[i] += 4 * PIPE_STEP
+            gapY[i] = 80 + int(rng.u32()) % 241
+            passed[i] = 0
+        end
+        // 计分
+        if passed[i] == 0 and pipeX[i] + PIPE_W < BIRD_X - 12 then
+            passed[i] = 1
+            score += 1
+        end
+        // 碰撞
+        if hitPipe(i) then
+            state = 2
+        end
+        i += 1
+    end
+end
+
+// --- 绘制 ---
+func draw()
+    c_uint pipeC = xge.colorRGBA(c_int(86), c_int(168), c_int(78), c_int(255))
+    c_uint lipC = xge.colorRGBA(c_int(60), c_int(130), c_int(55), c_int(255))
+    c_uint sandC = xge.colorRGBA(c_int(222), c_int(200), c_int(130), c_int(255))
+    c_uint stripeC = xge.colorRGBA(c_int(205), c_int(180), c_int(105), c_int(255))
+    c_uint grassC = xge.colorRGBA(c_int(94), c_int(160), c_int(82), c_int(255))
+
+    // 管道
+    int i = 0
+    while i < 4
+        int px = pipeX[i]
+        int gy = gapY[i]
+        xge.shapeRectFillPixels(pixels(px, 0, PIPE_W, gy), c_uint(pipeC))
+        xge.shapeRectFillPixels(pixels(px - 4, gy - 22, PIPE_W + 8, 22), c_uint(lipC))
+        xge.shapeRectFillPixels(pixels(px, gy + PIPE_GAP, PIPE_W, 550 - gy - PIPE_GAP), c_uint(pipeC))
+        xge.shapeRectFillPixels(pixels(px - 4, gy + PIPE_GAP, PIPE_W + 8, 22), c_uint(lipC))
+        i += 1
+    end
+
+    // 地面 + 滚动条纹
+    xge.shapeRectFillPixels(pixels(0, 550, WIN_W, GROUND_H), c_uint(sandC))
+    int gx = -int(groundOff)
+    while gx < WIN_W
+        xge.shapeRectFillPixels(pixels(gx, 562, 24, 24), c_uint(stripeC))
+        gx += 48
+    end
+    xge.shapeRectFillPixels(pixels(0, 550, WIN_W, 10), c_uint(grassC))
+
+    // 小鸟（身体 + 眼睛 + 嘴）
+    xge.shapeCircleFill(c_float(float(BIRD_X)), c_float(birdY), c_float(float(BIRD_R)), c_uint(xge.colorRGBA(c_int(250), c_int(210), c_int(70), c_int(255))))
+    xge.shapeCircleFill(c_float(float(BIRD_X + 5)), c_float(birdY - 4.0), c_float(5.0), c_uint(xge.colorRGBA(c_int(255), c_int(255), c_int(255), c_int(255))))
+    xge.shapeCircleFill(c_float(float(BIRD_X + 7)), c_float(birdY - 4.0), c_float(2.0), c_uint(xge.colorRGBA(c_int(40), c_int(40), c_int(50), c_int(255))))
+    xge.shapeTriangleFill(vertex(float(BIRD_X + 10), birdY - 5.0), vertex(float(BIRD_X + 26), birdY), vertex(float(BIRD_X + 10), birdY + 5.0), c_uint(xge.colorRGBA(c_int(240), c_int(130), c_int(40), c_int(255))))
+
+    // 计分
+    if bigFont != null then
+        int sx = 216
+        if score >= 100 then
+            sx = 194
+        elseif score >= 10 then
+            sx = 205
+        end
+        bigFont.drawText(string(score), c_float(float(sx)), c_float(20.0), c_uint(xge.colorRGBA(c_int(255), c_int(255), c_int(255), c_int(255))))
+    end
+
+    // 状态提示
+    if hudFont != null then
+        if state == 0 then
+            hudFont.drawText("PRESS SPACE TO FLAP", c_float(145), c_float(420), c_uint(xge.colorRGBA(c_int(255), c_int(255), c_int(255), c_int(255))))
+        elseif state == 2 then
+            hudFont.drawText("GAME OVER - press R", c_float(150), c_float(420), c_uint(xge.colorRGBA(c_int(255), c_int(107), c_int(94), c_int(255))))
+        end
+    end
+end
+
+// --- 帧回调 ---
+func on_frame()
+    handleInput()
+    update()
+    xge.clear(xge.colorRGBA(c_int(96), c_int(168), c_int(196), c_int(255)))
+    draw()
+end
+
+func initializeGame()
+    hudFont = loadGameFont(18.0)
+    bigFont = loadGameFont(36.0)
+
+    reset()
+end
+
+func cleanupGame()
+    hudFont = null
+    bigFont = null
+end
+
+func main(...) as int
+    // An optional positive frame count provides a bounded graphical smoke run.
+    int frameLimit = 0
+    if arg.length > 1 then frameLimit = int(arg[1]) end
+    return runGame(WIN_W, WIN_H, "xlang flappy", initializeGame, on_frame, cleanupGame, frameLimit)
+end

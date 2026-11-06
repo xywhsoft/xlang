@@ -22933,6 +22933,17 @@ int xl6IrPersistenceProjectInstructionAbi(
             module, instruction->payloadType, instruction->runtimeOp)) return 0;
     for (i = 0; i < module->persistenceProjectPlanCount; ++i)
         if (module->persistenceProjectPlans[i].format == format) return 1;
+    /* The plan builder deliberately omits unreachable functions. Their
+     * instructions still carry fully checked source/result/type contracts,
+     * but cannot require an executable plan which section selection removed. */
+    for (size_t f = 0; f < module->functionCount; ++f) {
+        const XL6_IrFunction* function = &module->functions[f];
+        if (function->firstInstruction > module->instructionCount ||
+            function->instructionCount > module->instructionCount-function->firstInstruction) return 0;
+        for (size_t n = 0; n < function->instructionCount; ++n)
+            if (&module->instructions[function->firstInstruction+n] == instruction)
+                return !xl6IrPersistenceProjectFunctionUsed(module,function);
+    }
     return 0;
 }
 
@@ -36593,8 +36604,12 @@ int xl6IrCallTargetParameterCanBorrowReadOnly(
     unsigned compiled=xl6IrCompiledParameterLifetime(module,lifetime->sourceSymbol);
     if(compiled)return (compiled&2u)!=0;
     type = xl6IrTypeGet(&module->types, target->parameterTypes[parameter]);
+    const XL6_IrNode* declaration=xl6IrNodeGet(module,target->declaration);
+    bool receiver = parameter==0 && type && type->kind==XL6_IR_TYPE_CLASS && declaration &&
+        !(declaration->flags & XL6_AST_FLAG_STATIC) &&
+        xl6IrBuildEnclosingClass(module,target->declaration)!=XL6_IR_NODE_INVALID;
     if ( type == NULL ||
-         (type->cAbi != XL6_IR_C_ABI_MANAGED_STRING && !xl6IrTypeIsCOwned(type) && !xl6IrNativeValuePlanForType(type)) ||
+         (!receiver && type->cAbi != XL6_IR_C_ABI_MANAGED_STRING && !xl6IrTypeIsCOwned(type) && !xl6IrNativeValuePlanForType(type)) ||
          lifetime->sourceSymbol == 0 || lifetime->rebindable )
         return 0;
     for ( capture = 0; capture < module->closureCaptureCount; ++capture )

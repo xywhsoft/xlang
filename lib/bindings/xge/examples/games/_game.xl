@@ -1,0 +1,101 @@
+// Small example-only helpers. Drawing and resources call XGE3 directly.
+import xge
+
+export func rect(float x,float y,float w,float h) as xge.Rect
+ auto result=xge.Rect()
+ result.fX=c_float(x)
+ result.fY=c_float(y)
+ result.fW=c_float(w)
+ result.fH=c_float(h)
+ return result
+end
+export func pixels(int x,int y,int w,int h) as xge.RectI
+ auto result=xge.RectI()
+ result.iX=c_int(x)
+ result.iY=c_int(y)
+ result.iW=c_int(w)
+ result.iH=c_int(h)
+ return result
+end
+export func vertex(float x,float y) as xge.Vec2
+ auto result=xge.Vec2()
+ result.fX=c_float(x)
+ result.fY=c_float(y)
+ return result
+end
+export func keyPressed(int key) as bool
+ return xge.keyPressed(c_int(key))!=0
+end
+export func keyDown(int key) as bool
+ return xge.keyDown(c_int(key))!=0
+end
+export func mouseX() as float
+ auto x,y=xge.mouseGet()
+ return float(x)
+end
+export func mouseY() as float
+ auto x,y=xge.mouseGet()
+ return float(y)
+end
+export func mouseLeftDown() as bool
+ return xge.mouseDown(0)!=0
+end
+export func mouseRightDown() as bool
+ return xge.mouseDown(1)!=0
+end
+
+export func loadGameFont(float size) as xge.Font?
+ array<string> paths=["data/fonts/Consolas-with-Yahei_Nerd_Font.ttf", "C:/Windows/Fonts/msyh.ttc", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"]
+ for name in paths
+  if file.exists(name) then return xge.loadFont(path.abs(name),c_float(size)) end
+ end
+ return null
+end
+func assetPath(string name) as string
+ if file.exists(path.join("assets",name)) then return path.join("assets",name) end
+ return path.join("examples/games/assets",name)
+end
+export func loadGameTexture(string name) as Texture?
+ string asset=assetPath(name)
+ if not file.exists(asset) then return null end
+ return xge.loadTexture(file.readBytes(asset))
+end
+export func loadGameSound(string name) as xge.Sound?
+ string asset=assetPath(name)
+ if not file.exists(asset) then return null end
+ // Audio is optional on machines without an output device.
+ if xge.audioInit()!=0 then return null end
+ return xge.loadSound(path.abs(asset))
+end
+
+export func runGame(int width,int height,string title,func() initialize,func() draw,func() cleanup,int frameLimit=0) as int
+ if frameLimit<0 then throw RangeError "frame count must be nonnegative" end
+ xge.init(c_int(width),c_int(height),title)
+ bool initialized=false
+ int frames=0
+ try
+  xge.run(func() as c_int
+   assert xge.begin()==0
+   try
+    if not initialized then
+     initialize()
+     initialized=true
+    end
+    draw()
+   finally
+    assert xge.nativeEnd()==0
+   end
+   frames+=1
+   if frameLimit>0 and frames>=frameLimit then xge.quit() end
+   return c_int(0)
+  end)
+ finally
+  xge.setFrameCallback(null)
+  try
+   cleanup()
+  finally
+   xge.unit()
+  end
+ end
+ return 0
+end

@@ -1,0 +1,17 @@
+array<array<string>> rows = array[]
+rows.append(array["a", "你", "a\0b"])
+rows.append(array<string>["last"])
+assert rows.length == 2
+assert rows[0][1] == "你" and string.byteLen(rows[0][2]) == 3
+array<array<uint64>> numbers = array[]
+numbers.append(array<uint64>[uint64(18446744073709551615)])
+assert numbers[0][0] == uint64(18446744073709551615)
+// Admission still checks erased inputs before they enter a typed nested array.
+bool rejected = false
+try
+    var invalid = array[1]
+    rows.append(invalid as array<string>)
+catch TypeError e
+    rejected = true
+end
+assert rejected

@@ -79,3 +79,7 @@ verifier profile及生成实现；公开工厂、字节操作和查询只消费�
 direct合同与resident plan。`check_stdlib_buffer_core.ps1`/`.sh` 验证
 owner/field/u8宽度、按需查询裁剪、错误与分配失败事务。旧file/network
 转换帮助函数仍是独立待迁移范围，不得重新用于实现公共Buffer核心。
+
+2026-11-07：类实例方法的接收者绑定借用、集合插入的目标元素类型、不可达函数的
+持久化计划和日志准备错误均由 XLIR 明确决定。Cgen 只消费这些合同。共享错误结果
+声明遵守 `XL6_ERROR_RESULT_ABI_DEFINED`，见 `docs/reports/example-failures-20261107.md`。

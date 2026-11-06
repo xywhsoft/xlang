@@ -5305,8 +5305,8 @@ static int xl6IrLowerIntrinsicCollectionInsert(
     operands[0] = xl6IrLowerNode(ctx, intrinsic->receiver);
     operands[0] = xl6IrLowerProtectOwnedBorrow(ctx, origin, operands[0]);
     if (operands[0] == XL6_IR_VALUE_INVALID) return -1;
-    operands[1] = xl6IrLowerCollectionItemAsRuntimeXValue(
-        ctx, origin, itemId, item);
+    operands[1] = xl6IrLowerContextualCollectionItemAsRuntimeXValue(
+        ctx, origin, itemId, item, intrinsic->receiverType);
     boolType = xl6IrLowerFindTypeByCAbi(ctx->module, XL6_IR_C_ABI_BOOL);
     if ( operands[0] == XL6_IR_VALUE_INVALID || operands[1] == XL6_IR_VALUE_INVALID ||
          boolType == XL6_IR_TYPE_INVALID || itemType->cAbi == XL6_IR_C_ABI_UNSUPPORTED ) return -1;
@@ -31828,7 +31828,21 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
                 const XL6_IrNode* receiverNode =
                     xl6IrNodeGet(ctx->module, receiverId);
                 const XL6_IrNativeHandleBind* receiverBind;
-                operands[0] = xl6IrLowerNodeAsType(
+                const XL6_IrFunction* active=&ctx->module->functions[ctx->functionIndex];
+                bool activeReceiver=receiverNode && receiverNode->kind==XL6_IR_NODE_NAME &&
+                    active->parameterCount && target->parameterAbis[0]==XL6_IR_PARAMETER_ABI_BORROW &&
+                    (receiverNode->targetSymbol==ctx->module->functionParameters[active->firstParameter] ||
+                     receiverNode->implicitNameAbi==XL6_IR_IMPLICIT_NAME_BASE_RECEIVER_VIEW) &&
+                    xl6IrLowerTypeIsClassReceiver(ctx->module,receiverNode->storageType) &&
+                    xl6IrLowerEnclosingClass(ctx->module,active->declaration)!=XL6_IR_NODE_INVALID;
+                if (activeReceiver) {
+                    /* The enclosing synchronous activation already borrows self.
+                     * A finalizer's receiver cannot acquire a shell owner. */
+                    operands[0]=xl6IrLowerNode(ctx,receiverId);
+                    if (operands[0] && receiverNode->storageType!=target->parameterTypes[0] &&
+                        !xl6IrLowerEmit(ctx,XL6_IR_INSTR_VALUE,id,target->parameterTypes[0],
+                            0,&operands[0],1,&operands[0])) operands[0]=XL6_IR_VALUE_INVALID;
+                } else operands[0] = xl6IrLowerNodeAsType(
                     ctx, id, receiverId, receiverNode,
                     target->parameterTypes[0]);
                 operands[0] = xl6IrLowerAnchorResolvedCallBorrow(

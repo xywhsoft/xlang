@@ -1,69 +1,24 @@
-param(
-    [string]$Root = "",
-    [switch]$FullCheck
-)
-
+param([string]$Root = "", [switch]$Run, [int]$Frames = 3)
 $ErrorActionPreference = "Stop"
-
-if ( $Root -eq "" ) {
-    $Root = Split-Path -Parent $PSScriptRoot
-}
-
-$xl = Join-Path $Root "release\xl.exe"
-$gameDir = Join-Path $Root "release\examples\games"
-
-if ( ! (Test-Path -LiteralPath $xl -PathType Leaf) ) {
-    Write-Host "xl executable missing: $xl"
-    exit 1
-}
-
-# NOTE: keep this file ASCII-only. Windows PowerShell 5.1 reads BOM-less
-# scripts as ANSI/GBK; UTF-8 comment bytes can swallow the next newline
-# and silently merge statements into comment lines.
-$games = @(Get-ChildItem -LiteralPath $gameDir -File -Filter "*.xl" | Sort-Object Name)
-if ( $games.Count -eq 0 ) {
-    Write-Host "No game examples found in $gameDir"
-    exit 1
-}
-
-# snake.xl exercises the full game stack (Input/Font/Shape/pixel APIs/
-# setMaxFrames) and is fully semantic-checked with native compile.
-$fullCheckSet = @("snake.xl")
-if ( $FullCheck ) {
-    # With -FullCheck every game runs a full `xl check`; each import of xge
-    # triggers a native compile, so this is slow.
-    $fullCheckSet = @($games | ForEach-Object { $_.Name })
-}
-
-$parseFail = 0
-$checkFail = 0
-$checked = 0
-
-foreach ( $game in $games ) {
-    if ( $fullCheckSet -contains $game.Name ) {
-        Write-Host "Checking game (full): $($game.Name)"
-        & $xl check $game.FullName
-        if ( $LASTEXITCODE -ne 0 ) {
-            $checkFail += 1
-        }
-        $checked += 1
-    } else {
-        # Other games get a parse-only syntax gate; semantic coverage of the
-        # game stack is carried by snake.xl above.
-        & $xl parse $game.FullName *> $null
-        if ( $LASTEXITCODE -ne 0 ) {
-            Write-Host "FAIL (parse): $($game.Name)"
-            & $xl parse $game.FullName
-            $parseFail += 1
-        }
-    }
-}
-
-Write-Host ""
-Write-Host "Game examples: $($games.Count) files, full-checked: $checked, parse failures: $parseFail, check failures: $checkFail"
-
-if ( $parseFail -gt 0 -or $checkFail -gt 0 ) {
-    exit 1
-}
-Write-Host "Game examples check ok."
-exit 0
+if ($Root -eq "") { $Root = Split-Path -Parent $PSScriptRoot }
+$runtime = Join-Path $Root "release\win_x64"
+$xl = Join-Path $runtime "xl.exe"
+$games = @(Get-ChildItem -LiteralPath (Join-Path $runtime "examples\games") -Filter "*.xl" -File | Where-Object { !$_.Name.StartsWith("_") } | Sort-Object Name)
+if (!(Test-Path -LiteralPath $xl) -or $games.Count -ne 9 -or $Frames -le 0) { throw "Missing runtime/games or invalid frame count" }
+$out = Join-Path $Root "build\game-examples"
+if ($Run) { New-Item -ItemType Directory -Path $out -Force | Out-Null }
+Push-Location $runtime
+try {
+ foreach ($game in $games) {
+  & $xl check $game.FullName
+  if ($LASTEXITCODE -ne 0) { throw "Semantic check failed: $($game.Name)" }
+  if ($Run) {
+   $exe = Join-Path $out ($game.BaseName + ".exe")
+   & $xl build $game.FullName -o $exe
+   if ($LASTEXITCODE -ne 0) { throw "Build failed: $($game.Name)" }
+   & $exe $Frames
+   if ($LASTEXITCODE -ne 0) { throw "Game failed: $($game.Name)" }
+  }
+ }
+} finally { Pop-Location }
+Write-Host "All nine game examples passed."

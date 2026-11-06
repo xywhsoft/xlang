@@ -1,0 +1,41 @@
+int destroyed = 0
+int observed = 0
+class BaseProbe
+    int value = 7
+    func read() as int
+        return self.value
+    end
+    func change(int value)
+        self.value = value
+    end
+    destroy()
+        self.change(self.read() + 1)
+        observed = self.read()
+        destroyed += 1
+    end
+end
+class DerivedProbe extends BaseProbe
+    func inherited() as int
+        return base.read()
+    end
+end
+func releaseProbe()
+    DerivedProbe value = DerivedProbe()
+    assert value.inherited() == 7
+end
+releaseProbe()
+assert destroyed == 1 and observed == 8
+// The ordinary caller still owns a receiver when its global slot is rebound.
+class RebindingProbe
+    int value = 19
+    func keepReceiver(int other) as int
+        return self.value + other
+    end
+end
+RebindingProbe? shared = RebindingProbe()
+func replaceShared() as int
+    shared = null
+    return 23
+end
+if shared == null then throw "receiver is absent" end
+assert shared.keepReceiver(replaceShared()) == 42

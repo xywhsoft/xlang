@@ -17,6 +17,7 @@
     src\runtime\xl6_code_lease.c
     src\runtime\xl6_foreign_resource.c
     src\runtime\xl6_foreign_net.c
+    src\runtime\xl6_foreign_tcp.c
     src\runtime\xl6_xacme.c
     src\runtime\xl6_native_handle.c
     src\runtime\xl6_native_handle_access.c

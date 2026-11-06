@@ -1,0 +1,10 @@
+// Sound playback methods call the authoritative C functions directly.
+export extern "xge_sound" class Sound @header("xge3_audio_resources.h") @lifetime("owned") @policy("xl6Xge3SoundPolicy")
+ native point handle
+ extern "xgeSoundPlay" @no_raise @c_result("status",0) func play()
+ extern "xgeSoundStop" @no_raise @c_result("status",0) func stop()
+ extern "xgeSoundSetVolume" func setVolume(c_float volume)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xgeSoundFree" @header("xge3_audio_resources.h") @no_raise func freeSound(Sound sound)
+export extern "xgeSoundLoad" @header("xge3_audio_resources.h") @no_raise @c_cstr(0) @c_result("owned_view") @factory(0,0,freeSound) @c_inplace("xge_sound_t") func loadSound(string path) as Sound

@@ -219,6 +219,7 @@ static const XL6_IrDirectBridgeDeclaration xl6IrDirectBridgeDeclarations[] = {
     {"xl6ForeignResourcePointerV1",T,XL6_IR_C_ABI_RAW_POINTER,1,{V},.parameterDynamicBorrows={1}},
     {"xl6ForeignNetEngineOwnerV1",T,V,1,{V},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1,.nativeClassParameter=1,.nativeClassOwner="xl6NetEngineDestroyV1"},
     {"xl6ForeignTlsClientOwnerV1",T,V,1,{V},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1,.nativeClassParameter=1,.nativeClassOwner="xl6TlsClientContextDestroyV1"},
+    {"xl6ForeignTcpOwnerV1",T,V,1,{V},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1,.nativeClassParameter=1,.nativeClassOwner="xl6TcpStreamDestroyV1"},
     {"xl6ForeignGraphDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6ForeignGraphDestroyV1"},.nativeHandlePolicy="xl6ForeignGraphHandlePolicyV1Get",.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
 #include "xl6_ir_xacme_bridge.inc"
     {"xl6BufferCreateV1",T,V,0,{0},.resultOwner="xl6BufferDestroyV1"},

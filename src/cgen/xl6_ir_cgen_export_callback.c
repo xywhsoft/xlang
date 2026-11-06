@@ -7,9 +7,10 @@ static void xl6IrCgenEmitForeignErrorDeclarations(XL6_Output* out, int publicLin
         "#ifndef XL6_FOREIGN_ERROR_ABI\n#define XL6_FOREIGN_ERROR_ABI\n"
         "typedef struct xerror xerror;\n"
         "typedef struct xl6_foreign_error_scope { struct xl6_foreign_error_scope* previous; xerror* pending; xerror* previous_diagnostic; bool failed; } xl6_foreign_error_scope;\n"
+        "#ifndef XL6_ERROR_RESULT_ABI_DEFINED\n#define XL6_ERROR_RESULT_ABI_DEFINED\n"
         "typedef struct xl6_foreign_error_result { bool ok; xerror* error; } xl6_foreign_error_result;\n"
-        "typedef xl6_foreign_error_scope xl6_error_scope;\n"
-        "typedef xl6_foreign_error_result xl6_error_result;\n#endif\n", out);
+        "typedef xl6_foreign_error_result xl6_error_result;\n#endif\n"
+        "typedef xl6_foreign_error_scope xl6_error_scope;\n#endif\n", out);
     /* 类型可由运行时头先声明，但共享库仍须导出公共头承诺的同一套错误接口。 */
     xl6OutputPrintf(out,
         "%sextern bool xl6ErrorScopeBegin(xl6_error_scope*);\n"

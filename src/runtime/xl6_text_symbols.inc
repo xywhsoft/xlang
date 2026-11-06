@@ -1509,6 +1509,8 @@ XL6_TEXT_EXPORT(xl6SequenceErrorCreateV1, ARRAY_ERROR_ADMISSION)
 
 XL6_TEXT_EXPORT(xl6ForeignNetEngineOwnerV1, FOREIGN_NET)
 XL6_TEXT_EXPORT(xl6ForeignTlsClientOwnerV1, FOREIGN_NET)
+XL6_TEXT_EXPORT(xl6ForeignTcpOwnerV1, FOREIGN_TCP)
+XL6_TEXT_EXPORT(xl6ForeignTcpVisitV1, FOREIGN_TCP)
 
 XL6_TEXT_EXPORT(xl6_xrt_fs_path_parts_create, FS_PATH_PARTS)
 XL6_TEXT_EXPORT(xl6_xrt_fs_path_parts_destroy, FS_PATH_PARTS)

@@ -34,3 +34,12 @@ The inventory, remaining ownership contracts, measured costs and acceptance
 boundaries are described in `docs/xge3-xui3-api-map.md` in the source repository.
 The source package is under active completion and is not an assertion that every
 native engine subsystem has already passed managed runtime acceptance.
+
+## Example resources
+
+`init(width,height,title)` packs a stack `xge_desc_t` and calls `xgeInit` once;
+`initNative()` passes the declared typed NULL default descriptor. `Font.drawText`
+uses `xgeTextDraw`, and `drawTexture` packs one stack draw descriptor for `xgeDrawEx`.
+`Sound` shares one native sound record through a checked owned view; its policy
+frees the native sound and its outer record once, before engine shutdown.
+`examples/games/` contains nine bounded, static-AOT game examples.
