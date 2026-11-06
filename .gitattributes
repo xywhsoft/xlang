@@ -159,3 +159,7 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 # Preserve the exact compiler rebuild evidence and source overlay bytes.
 /dev/release-materials/provenance/compiler-rebuild-20261106/** -text -whitespace
 /dev/release-materials/sources/compiler-rebuild-20261106/** -text -whitespace
+
+# Exact-byte example repair evidence, package snapshots and product receipts.
+/dev/release-materials/provenance/example-failures-20261107/** -text -whitespace
+/dev/release-materials/sources/example-failures-20261107/** -text -whitespace

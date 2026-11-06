@@ -1,0 +1,476 @@
+{
+  "passed": true,
+  "rows": [
+    {
+      "name": "2048",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "check",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\games\\2048.xl"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\2048-0.log"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "build",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\games\\2048.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\2048.exe"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\2048-1.log"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\2048.exe",
+            "3"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\2048-2.log"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "run",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\games\\2048.xl",
+            "--",
+            "3"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\2048-3.log"
+        }
+      ]
+    },
+    {
+      "name": "asteroids",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "check",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\games\\asteroids.xl"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\asteroids-0.log"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "build",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\games\\asteroids.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\asteroids.exe"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\asteroids-1.log"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\asteroids.exe",
+            "3"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\asteroids-2.log"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "run",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\games\\asteroids.xl",
+            "--",
+            "3"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\asteroids-3.log"
+        }
+      ]
+    },
+    {
+      "name": "breakout",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "check",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\games\\breakout.xl"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\breakout-0.log"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "build",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\games\\breakout.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\breakout.exe"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\breakout-1.log"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\breakout.exe",
+            "3"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\breakout-2.log"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "run",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\games\\breakout.xl",
+            "--",
+            "3"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\breakout-3.log"
+        }
+      ]
+    },
+    {
+      "name": "flappy",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "check",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\games\\flappy.xl"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\flappy-0.log"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "build",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\games\\flappy.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\flappy.exe"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\flappy-1.log"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\flappy.exe",
+            "3"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\flappy-2.log"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "run",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\games\\flappy.xl",
+            "--",
+            "3"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\flappy-3.log"
+        }
+      ]
+    },
+    {
+      "name": "minesweeper",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "check",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\games\\minesweeper.xl"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\minesweeper-0.log"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "build",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\games\\minesweeper.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\minesweeper.exe"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\minesweeper-1.log"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\minesweeper.exe",
+            "3"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\minesweeper-2.log"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "run",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\games\\minesweeper.xl",
+            "--",
+            "3"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\minesweeper-3.log"
+        }
+      ]
+    },
+    {
+      "name": "pong",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "check",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\games\\pong.xl"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\pong-0.log"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "build",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\games\\pong.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\pong.exe"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\pong-1.log"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\pong.exe",
+            "3"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\pong-2.log"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "run",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\games\\pong.xl",
+            "--",
+            "3"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\pong-3.log"
+        }
+      ]
+    },
+    {
+      "name": "shooter",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "check",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\games\\shooter.xl"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\shooter-0.log"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "build",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\games\\shooter.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\shooter.exe"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\shooter-1.log"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\shooter.exe",
+            "3"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\shooter-2.log"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "run",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\games\\shooter.xl",
+            "--",
+            "3"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\shooter-3.log"
+        }
+      ]
+    },
+    {
+      "name": "snake",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "check",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\games\\snake.xl"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\snake-0.log"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "build",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\games\\snake.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\snake.exe"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\snake-1.log"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\snake.exe",
+            "3"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\snake-2.log"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "run",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\games\\snake.xl",
+            "--",
+            "3"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\snake-3.log"
+        }
+      ]
+    },
+    {
+      "name": "tetris",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "check",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\games\\tetris.xl"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\tetris-0.log"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "build",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\games\\tetris.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\tetris.exe"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\tetris-1.log"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\tetris.exe",
+            "3"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\tetris-2.log"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "run",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\games\\tetris.xl",
+            "--",
+            "3"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\tetris-3.log"
+        }
+      ]
+    },
+    {
+      "name": "init",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "run",
+            "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\init.xl"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\init-0.log"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "build",
+            "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\init.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\init.exe"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\init-1.log"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\init.exe"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\init-2.log"
+        }
+      ]
+    },
+    {
+      "name": "socks-boundary",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "run",
+            "D:\\GIT\\x-lang\\build\\example-failure-audit\\socks-boundary.xl"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\socks-boundary-0.log"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "build",
+            "D:\\GIT\\x-lang\\build\\example-failure-audit\\socks-boundary.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\socks-boundary.exe"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\socks-boundary-1.log"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\socks-boundary.exe"
+          ],
+          "exitCode": 0,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-xge-preserve-init\\socks-boundary-2.log"
+        }
+      ]
+    }
+  ]
+}

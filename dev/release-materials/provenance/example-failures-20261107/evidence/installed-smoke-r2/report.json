@@ -1,0 +1,10 @@
+{
+  "passed": false,
+  "command": [
+    "wsl.exe",
+    "-e",
+    "bash",
+    "/mnt/d/GIT/x-lang/build/example-failure-audit/installed-linux-smoke.sh"
+  ],
+  "exitCode": 1
+}

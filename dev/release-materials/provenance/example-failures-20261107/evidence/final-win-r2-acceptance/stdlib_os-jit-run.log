@@ -1,0 +1,12 @@
+platform=windows
+args_count=3
+args0=D:\GIT\x-lang\build\example-failure-audit\final-win-r2\runtime\xl.exe
+cwd=D:\GIT\x-lang\release\win_x64
+set_cwd=true
+missing_env=fallback
+exec=os-example
+run_success=true
+run_stdout=os-run
+start_exit=0
+start_file_exit=0
+chain_exit=0

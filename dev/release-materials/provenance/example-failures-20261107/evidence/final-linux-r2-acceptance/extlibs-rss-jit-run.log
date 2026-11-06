@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+  <title>xlang release notes</title>
+  <link>https://xlang.dev</link>
+  <description>compiler, stdlib and ecosystem updates</description>
+  <lastBuildDate>Wed, 12 Aug 2026 08:00:00 GMT</lastBuildDate>
+  <item>
+    <title>semver extension library</title>
+    <link>https://xlang.dev/blog/semver</link>
+    <description>semantic versioning ranges for the package manager</description>
+    <guid>post-12</guid>
+  </item>
+  <item>
+    <title>statistics extension library</title>
+    <link>https://xlang.dev/blog/statistics</link>
+    <description>descriptive statistics over numeric arrays</description>
+    <guid>post-11</guid>
+  </item>
+  <item>
+    <title>json.patch extension library</title>
+    <link>https://xlang.dev/blog/jsonpatch</link>
+    <description>RFC 6902 patching for config hot reload</description>
+    <guid>post-10</guid>
+  </item>
+</channel>
+</rss>
+
+---
+parsed type: rss
+channel title: xlang release notes
+- semver extension library -> https://xlang.dev/blog/semver
+- statistics extension library -> https://xlang.dev/blog/statistics
+- json.patch extension library -> https://xlang.dev/blog/jsonpatch
+---
+atom round trip entries: 3
+rss example: PASS

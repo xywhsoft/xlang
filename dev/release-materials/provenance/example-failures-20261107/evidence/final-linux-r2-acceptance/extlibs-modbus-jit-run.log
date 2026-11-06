@@ -1,0 +1,2 @@
+tcc: In file included from __xlvfs__/csrc_0.c:106:
+/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/extlibs/modbus/modbus_native.c:71: error: incompatible types for redefinition of 'xm_build_read'

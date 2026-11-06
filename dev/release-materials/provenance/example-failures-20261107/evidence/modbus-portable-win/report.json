@@ -1,0 +1,75 @@
+{
+  "schema": 1,
+  "passed": true,
+  "examples": 1,
+  "binaries": {
+    "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-win-r2\\runtime\\xl.exe": "a5feede784f0a5cb1a829c2e362de57e9278b55cec1a11b796cf4b6e78831bbc",
+    "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-win-r2\\runtime\\xlc.dll": "2241fcd462980fc40cbd6c47ce9347d537bababc93225cb6d2a2d36b9b978797",
+    "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-win-r2\\runtime\\xl.dll": "215d6b3c87704c745ec609eb07e718a52708ad7c13436294f2f662a56169be13"
+  },
+  "redis": "excluded by user",
+  "cloud": "credentials removed; live case must exit 2 without a request",
+  "rows": [
+    {
+      "name": "extlibs/modbus",
+      "source": "D:\\GIT\\x-lang\\release\\win_x64\\examples\\extlibs\\modbus.xl",
+      "sourceSha256": "0a68dacae80e969a2b0b6f9bba3aeea060718c20f398f01bd7e8d72d2c1c53dd",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-win-r2\\runtime\\xl.exe",
+            "check",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\extlibs\\modbus.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.109,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\modbus-portable-win\\extlibs-modbus-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-win-r2\\runtime\\xl.exe",
+            "build",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\extlibs\\modbus.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\example-failure-audit\\modbus-portable-win\\extlibs-modbus.exe"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 4.469,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\modbus-portable-win\\extlibs-modbus-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\build\\example-failure-audit\\modbus-portable-win\\extlibs-modbus.exe"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.016,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\modbus-portable-win\\extlibs-modbus-aot-run.log",
+          "logSha256": "5619a4a74901b1393c650d6b780e562a75661f3f03d77d25509a38803eea117b"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\build\\example-failure-audit\\final-win-r2\\runtime\\xl.exe",
+            "run",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\extlibs\\modbus.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 1.125,
+          "log": "D:\\GIT\\x-lang\\build\\example-failure-audit\\modbus-portable-win\\extlibs-modbus-jit-run.log",
+          "logSha256": "5619a4a74901b1393c650d6b780e562a75661f3f03d77d25509a38803eea117b"
+        }
+      ]
+    }
+  ],
+  "core": []
+}

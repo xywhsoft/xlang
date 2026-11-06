@@ -1,0 +1,4 @@
+events: 1
+summary: 团队例会
+rrule: FREQ=WEEKLY;BYDAY=MO,WE
+ical example: PASS

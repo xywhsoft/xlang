@@ -1,0 +1,15 @@
+connect: 101400044d51545404020000000873656e736f722d31
+keepalive: 0
+publish: 32110009686f6d652f74656d70002a32322e35
+topic: home/temp
+payload: 22.5
+packetId: 42
+subscribe: 82100007000b686f6d652f2b2f74656d7001
+granted: 1
+puback: 4002002a
+ping: c000
+disconnect: e000
+binary: 00ff61
+frameSize: 131
+connack: 0
+mqtt example: PASS

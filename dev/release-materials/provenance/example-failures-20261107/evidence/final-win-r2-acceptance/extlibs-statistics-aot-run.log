@@ -1,0 +1,14 @@
+count: 15
+sum: 309.0
+mean: 20.6
+median: 14.0
+mode: 12.0
+min/max: 11.0 / 88.0
+stdev(sample): 19.371554993266365
+quartiles: 12.5 14.0 17.5 iqr: 5.0
+p95: 47.399999999999935
+histogram(4):  14  0  0  1 total: 15
+correlation: 0.9962460869003001
+fit: latency = 1.9899999999999998 * load + 1.300000000000007
+predicted at 60: 120.7
+statistics example: PASS

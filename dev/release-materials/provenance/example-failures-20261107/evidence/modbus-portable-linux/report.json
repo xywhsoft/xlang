@@ -1,0 +1,73 @@
+{
+  "schema": 1,
+  "passed": true,
+  "examples": 1,
+  "binaries": {
+    "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl": "faa25e49bdf8c5ce8ccdb084810075b406cc6dd499a59577664616eb2a08265b"
+  },
+  "redis": "excluded by user",
+  "cloud": "credentials removed; live case must exit 2 without a request",
+  "rows": [
+    {
+      "name": "extlibs/modbus",
+      "source": "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/modbus.xl",
+      "sourceSha256": "0a68dacae80e969a2b0b6f9bba3aeea060718c20f398f01bd7e8d72d2c1c53dd",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "check",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/modbus.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.138,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/modbus-portable-linux/extlibs-modbus-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "build",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/modbus.xl",
+            "-o",
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/modbus-portable-linux/extlibs-modbus"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 3.4,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/modbus-portable-linux/extlibs-modbus-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/mnt/d/GIT/x-lang/build/example-failure-audit/modbus-portable-linux/extlibs-modbus"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.019,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/modbus-portable-linux/extlibs-modbus-aot-run.log",
+          "logSha256": "5619a4a74901b1393c650d6b780e562a75661f3f03d77d25509a38803eea117b"
+        },
+        {
+          "command": [
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/xl",
+            "run",
+            "/root/.codex-builds/xlang-example-audit-20261107/release/linux_x64/examples/extlibs/modbus.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 1.288,
+          "log": "/mnt/d/GIT/x-lang/build/example-failure-audit/modbus-portable-linux/extlibs-modbus-jit-run.log",
+          "logSha256": "5619a4a74901b1393c650d6b780e562a75661f3f03d77d25509a38803eea117b"
+        }
+      ]
+    }
+  ],
+  "core": []
+}

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://blog.xlang.dev/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://blog.xlang.dev/post/semver</loc>
+    <lastmod>2026-08-10</lastmod>
+  </url>
+  <url>
+    <loc>https://blog.xlang.dev/post/statistics</loc>
+    <lastmod>2026-08-11</lastmod>
+  </url>
+  <url>
+    <loc>https://blog.xlang.dev/about</loc>
+    <priority>0.5</priority>
+  </url>
+</urlset>
+
+---
+parsed entries: 4
+<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap>
+    <loc>https://blog.xlang.dev/sitemap-posts.xml</loc>
+    <lastmod>2026-08-14</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://blog.xlang.dev/sitemap-pages.xml</loc>
+  </sitemap>
+</sitemapindex>
+
+---
+[ allow ] /
+[ block  ] /admin/settings
+[ block  ] /draft/123
+[ allow ] /draft/public/x
+[ allow ] /posts/1
+sitemap example: PASS

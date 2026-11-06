@@ -1,0 +1,50 @@
+[
+  {
+    "path": "release/win_x64/extlibs/epub/src/epub.xl",
+    "calls": 2
+  },
+  {
+    "path": "release/win_x64/extlibs/fix/src/fix.xl",
+    "calls": 1
+  },
+  {
+    "path": "release/win_x64/extlibs/graph/src/graph.xl",
+    "calls": 9
+  },
+  {
+    "path": "release/win_x64/extlibs/ical/src/ical.xl",
+    "calls": 1
+  },
+  {
+    "path": "release/win_x64/extlibs/json.patch/src/json_patch.xl",
+    "calls": 14
+  },
+  {
+    "path": "release/win_x64/extlibs/rss/src/rss.xl",
+    "calls": 4
+  },
+  {
+    "path": "release/win_x64/extlibs/sitemap/src/sitemap.xl",
+    "calls": 3
+  },
+  {
+    "path": "release/win_x64/extlibs/socks/src/socks.xl",
+    "calls": 1
+  },
+  {
+    "path": "release/win_x64/extlibs/srt/src/srt.xl",
+    "calls": 2
+  },
+  {
+    "path": "release/win_x64/extlibs/statistics/src/statistics.xl",
+    "calls": 27
+  },
+  {
+    "path": "release/win_x64/extlibs/xregex/src/xlang/xregex.xl",
+    "calls": 1
+  },
+  {
+    "path": "release/win_x64/extlibs/tar/src/tar.xl",
+    "calls": 1
+  }
+]

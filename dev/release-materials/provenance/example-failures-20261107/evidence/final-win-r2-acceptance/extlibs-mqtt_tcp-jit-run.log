@@ -1,0 +1,4 @@
+connect: sensor-1
+publish: home/temp=22.5
+puback: 42
+mqtt TCP example: PASS
