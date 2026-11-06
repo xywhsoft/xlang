@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "skipped": false,
+  "runtime": "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+  "exitCode": 0,
+  "buildExitCode": 0,
+  "aotExitCode": 0,
+  "fixture": "private authenticated Redis",
+  "port": 63030
+}

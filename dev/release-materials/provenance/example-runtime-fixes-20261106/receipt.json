@@ -1,0 +1,139 @@
+{
+  "schema": 1,
+  "date": "2026-11-06",
+  "passed": true,
+  "scope": "Requested example repairs and native container read interface; installed JIT/AOT acceptance, not the entire project acceptance matrix.",
+  "integrationRevision": "7e4e7f17205ba906422a0a7f8e548d808e9a9658",
+  "engineSourceRevision": "9ab5279c470b5a0757f9201f48230c6f9bc484ad",
+  "sourceMaterials": {
+    "path": "dev/release-materials/sources/example-runtime-fixes-20261106/manifest.json",
+    "sha256": "4904b2cc5e957c9613af012e8c9f43ad7bf129a4a10fe806d110910a050d9992",
+    "bytes": 1395448
+  },
+  "products": [
+    {
+      "path": "release/win_x64/xl.exe",
+      "sha256": "6a9378f3c772b40bcd035969212fd1ee99a1b8ed22be00c30c37114e0523a2f6",
+      "bytes": 71168
+    },
+    {
+      "path": "release/win_x64/xl.dll",
+      "sha256": "8da6eefc60b6abd1ee6be0e81303104343df0fcefc413f9cc2e853da0c19f6f8",
+      "bytes": 15180800
+    },
+    {
+      "path": "release/win_x64/xlc.dll",
+      "sha256": "90a329f1ec1c2f016859d96bd4bf736d8e06b5dade461025bb3e8372d129a468",
+      "bytes": 21289472
+    },
+    {
+      "path": "release/linux_x64/xl",
+      "sha256": "0afa441e1e3486c3e8ea2d7fbde7be5e5ea6caa850bc76a2bca1dc767b60f1d0",
+      "bytes": 47224
+    },
+    {
+      "path": "release/linux_x64/libxl.so",
+      "sha256": "524d519477e3f69277b92203527c778494f667620fe09c3c17d21ed8f08cab2b",
+      "bytes": 16439824
+    },
+    {
+      "path": "release/linux_x64/libxlc.so",
+      "sha256": "62b63ff71173b43d7c5aba730e80019f48d548191394ec2f8158adbe10949797",
+      "bytes": 22432528
+    }
+  ],
+  "upstream": {
+    "repository": "D:/GIT/xrt",
+    "base": "93347eb5ae6beba8cf7ee3558708cc4f628fdd07",
+    "commits": [
+      "e2a0b36d3092bf7eb667ba565fd2bd7f6e45af4f",
+      "0e90f84f1a7155ed1c44b715f74bb9e1266baa4b",
+      "0a44e3f80091be178c802c231a37e4f2733fd9fb"
+    ]
+  },
+  "builds": {
+    "windows": {
+      "productionBuildCompleted": true,
+      "nativeUnits": 2629,
+      "nativeLinks": [
+        {
+          "profile": "runtime",
+          "exitCode": 0,
+          "responseSha256": "758df050b0205f0120aec9396499accbbb0f7ce7186071c0dee269844dedcdac"
+        },
+        {
+          "profile": "compiler",
+          "exitCode": 0,
+          "responseSha256": "a7a0ef3feee722b18cea98f014ea17c95dfcb57a502f1642b399e3b1cb4298f4"
+        }
+      ],
+      "seconds": 309.719,
+      "compiler": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "compilerSha256": "9a52de3e3af8f4896e963c4b68ed159f049954775decb20e421cd75d51aab6ed",
+      "record": "build-records/windows-native-build.json",
+      "resourceCatalogIncludesConcurrentHostCatalogFix": true
+    },
+    "linux": {
+      "productionBuildCompleted": true,
+      "producer": "GCC through an invocation-preserving per-TU parallel scheduler",
+      "precompiledObjects": 1565,
+      "record": "build-records/linux-precompiled.json"
+    }
+  },
+  "acceptance": {
+    "windows": {
+      "passed": true,
+      "steps": 55,
+      "report": "example-runtime-fixes-20261106/installed-windows/results.json"
+    },
+    "linux": {
+      "passed": true,
+      "steps": 48,
+      "excluded": [
+        "Windows COM",
+        "Windows clipboard"
+      ],
+      "report": "example-runtime-fixes-20261106/installed-linux/results.json"
+    },
+    "redis": {
+      "windows": "JIT/build/AOT passed on authenticated disposable server",
+      "linux": "JIT/build/AOT passed on authenticated disposable server"
+    },
+    "nativeC": "CLI/defaults, COM and isolated clipboard guards passed; standalone CLI/clipboard C JIT/AOT passed; CLI flag lookup: 48 cases, 83 allocation faults, 0 failures."
+  },
+  "performance": {
+    "nativeContainerSnapshots": 0,
+    "readStringCopies": 0,
+    "readAllocations": "Begin and 2000 successful native reads passed with next allocation forced to fail",
+    "scopeBytes": 136,
+    "borrowDescriptorBytes": 32,
+    "nonzeroCosts": [
+      "Native scope authentication, pin/unpin, mutation gate and per-slot type checks",
+      "Small scalar/borrow-descriptor copies",
+      "Native CLI default strings copied into independently owned returned XRT results; wire defaults retain existing ownership",
+      "COM BSTR and clipboard UTF-16/CF_HDROP conversions required by Windows"
+    ],
+    "totalZeroOverheadClaim": false
+  },
+  "constraints": [
+    "Read scopes are synchronous and exclusive for the same receiver; no suspend, thread transfer or copying active scopes",
+    "Unknown policies/unsupported native slot layouts fail closed without snapshot fallback"
+  ],
+  "knownUnrelatedIssue": {
+    "command": "xl c-bridge --json --c-environment",
+    "baselineAndCandidateBothFail": true,
+    "diagnostic": "cannot collect bounded native C configuration and builtin headers",
+    "scope": "Not changed by these example fixes; retained baseline/candidate evidence"
+  },
+  "concurrentWork": {
+    "mergedThrough": "16d8c8049830c922ea2b4e581fa101921a511c87",
+    "unstagedSemanticCompletionChangesPreserved": true,
+    "legacyReleaseDeletionsPreserved": true,
+    "ideRebuilt": false
+  },
+  "previousDelivery": {
+    "path": "dev/release-materials/provenance/example-runtime-fixes-20261106/previous-delivery.json",
+    "sha256": "db87e275e9408b89d96e00903c49bf8861ad36398c242f1e41ebefef4388329e",
+    "bytes": 176940
+  }
+}

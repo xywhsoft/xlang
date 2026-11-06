@@ -1,0 +1,158 @@
+[
+  {
+    "name": "cli-test_cli-build",
+    "exitCode": 1,
+    "command": [
+      "gcc",
+      "-std=c11",
+      "-O2",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-DXL_VALUE_READ_WIRE_ONLY",
+      "-Ilib/xrt",
+      "-IC:\\Users\\Administrator\\.codex\\worktrees\\example-runtime-fixes\\x-lang\\release\\win_x64\\extlibs\\cli\\include",
+      "C:\\Users\\Administrator\\.codex\\worktrees\\example-runtime-fixes\\x-lang\\release\\win_x64\\extlibs\\cli\\cli_native.c",
+      "C:\\Users\\Administrator\\.codex\\worktrees\\example-runtime-fixes\\x-lang\\release\\win_x64\\extlibs\\cli\\test\\test_cli.c",
+      "C:\\Users\\Administrator\\.codex\\worktrees\\example-runtime-fixes\\x-lang\\release\\win_x64\\extlibs\\cli\\test\\xrt_runtime.c",
+      "-lws2_32",
+      "-liphlpapi",
+      "-ladvapi32",
+      "-o",
+      "D:\\GIT\\x-lang\\build\\example-runtime-fixes-20261106\\c-wire-accepted\\cli-test_cli.exe"
+    ]
+  },
+  {
+    "name": "cli-test_defaults-build",
+    "exitCode": 1,
+    "command": [
+      "gcc",
+      "-std=c11",
+      "-O2",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-DXL_VALUE_READ_WIRE_ONLY",
+      "-Ilib/xrt",
+      "-IC:\\Users\\Administrator\\.codex\\worktrees\\example-runtime-fixes\\x-lang\\release\\win_x64\\extlibs\\cli\\include",
+      "C:\\Users\\Administrator\\.codex\\worktrees\\example-runtime-fixes\\x-lang\\release\\win_x64\\extlibs\\cli\\cli_native.c",
+      "C:\\Users\\Administrator\\.codex\\worktrees\\example-runtime-fixes\\x-lang\\release\\win_x64\\extlibs\\cli\\test\\test_defaults.c",
+      "C:\\Users\\Administrator\\.codex\\worktrees\\example-runtime-fixes\\x-lang\\release\\win_x64\\extlibs\\cli\\test\\xrt_runtime.c",
+      "-lws2_32",
+      "-liphlpapi",
+      "-ladvapi32",
+      "-o",
+      "D:\\GIT\\x-lang\\build\\example-runtime-fixes-20261106\\c-wire-accepted\\cli-test_defaults.exe"
+    ]
+  },
+  {
+    "name": "com-test_com-build",
+    "exitCode": 1,
+    "command": [
+      "gcc",
+      "-std=c11",
+      "-O2",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-DXL_VALUE_READ_WIRE_ONLY",
+      "-Ilib/xrt",
+      "-IC:\\Users\\Administrator\\.codex\\worktrees\\example-runtime-fixes\\x-lang\\release\\win_x64\\extlibs\\com\\include",
+      "C:\\Users\\Administrator\\.codex\\worktrees\\example-runtime-fixes\\x-lang\\release\\win_x64\\extlibs\\com\\x_com_artifact.c",
+      "C:\\Users\\Administrator\\.codex\\worktrees\\example-runtime-fixes\\x-lang\\release\\win_x64\\extlibs\\com\\test\\test_com.c",
+      "C:\\Users\\Administrator\\.codex\\worktrees\\example-runtime-fixes\\x-lang\\release\\win_x64\\extlibs\\com\\test\\xrt_runtime.c",
+      "-lws2_32",
+      "-liphlpapi",
+      "-ladvapi32",
+      "-lole32",
+      "-loleaut32",
+      "-o",
+      "D:\\GIT\\x-lang\\build\\example-runtime-fixes-20261106\\c-wire-accepted\\com-test_com.exe"
+    ]
+  },
+  {
+    "name": "clipboard-test_clipboard-build",
+    "exitCode": 1,
+    "command": [
+      "gcc",
+      "-std=c11",
+      "-O2",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-DXL_VALUE_READ_WIRE_ONLY",
+      "-Ilib/xrt",
+      "-DXRT_MODULE_MEMORY_DEBUG",
+      "-DXRT_MODULE_VALUE_CONTAINER",
+      "-DXRT_MODULE_FILE_WHOLE",
+      "-DXRT_MODULE_BUFFER",
+      "-DXRT_MODULE_UNICODE",
+      "-IC:\\Users\\Administrator\\.codex\\worktrees\\example-runtime-fixes\\x-lang\\release\\win_x64\\extlibs\\clipboard\\include",
+      "C:\\Users\\Administrator\\.codex\\worktrees\\example-runtime-fixes\\x-lang\\release\\win_x64\\extlibs\\clipboard\\clipboard_native.c",
+      "C:\\Users\\Administrator\\.codex\\worktrees\\example-runtime-fixes\\x-lang\\release\\win_x64\\extlibs\\clipboard\\test\\test_clipboard.c",
+      "C:\\Users\\Administrator\\.codex\\worktrees\\example-runtime-fixes\\x-lang\\release\\win_x64\\extlibs\\clipboard\\test\\runtime.c",
+      "-lws2_32",
+      "-liphlpapi",
+      "-ladvapi32",
+      "-luser32",
+      "-lgdi32",
+      "-lshell32",
+      "-o",
+      "D:\\GIT\\x-lang\\build\\example-runtime-fixes-20261106\\c-wire-accepted\\clipboard-test_clipboard.exe"
+    ]
+  },
+  {
+    "name": "cli-c-jit",
+    "exitCode": 0,
+    "command": [
+      "C:\\Users\\Administrator\\.codex\\worktrees\\example-runtime-fixes\\x-lang\\release\\win_x64\\xl.exe",
+      "run",
+      "C:\\Users\\Administrator\\.codex\\worktrees\\example-runtime-fixes\\x-lang\\release\\win_x64\\extlibs\\cli\\examples\\basic_c.c"
+    ]
+  },
+  {
+    "name": "cli-c-build",
+    "exitCode": 0,
+    "command": [
+      "C:\\Users\\Administrator\\.codex\\worktrees\\example-runtime-fixes\\x-lang\\release\\win_x64\\xl.exe",
+      "build",
+      "C:\\Users\\Administrator\\.codex\\worktrees\\example-runtime-fixes\\x-lang\\release\\win_x64\\extlibs\\cli\\examples\\basic_c.c",
+      "-o",
+      "D:\\GIT\\x-lang\\build\\example-runtime-fixes-20261106\\c-wire-accepted\\cli-c.exe"
+    ]
+  },
+  {
+    "name": "cli-c-aot",
+    "exitCode": 0,
+    "command": [
+      "D:\\GIT\\x-lang\\build\\example-runtime-fixes-20261106\\c-wire-accepted\\cli-c.exe"
+    ]
+  },
+  {
+    "name": "clipboard-c-jit",
+    "exitCode": 0,
+    "command": [
+      "C:\\Users\\Administrator\\.codex\\worktrees\\example-runtime-fixes\\x-lang\\release\\win_x64\\xl.exe",
+      "run",
+      "C:\\Users\\Administrator\\.codex\\worktrees\\example-runtime-fixes\\x-lang\\release\\win_x64\\extlibs\\clipboard\\examples\\basic_c.c"
+    ]
+  },
+  {
+    "name": "clipboard-c-build",
+    "exitCode": 0,
+    "command": [
+      "C:\\Users\\Administrator\\.codex\\worktrees\\example-runtime-fixes\\x-lang\\release\\win_x64\\xl.exe",
+      "build",
+      "C:\\Users\\Administrator\\.codex\\worktrees\\example-runtime-fixes\\x-lang\\release\\win_x64\\extlibs\\clipboard\\examples\\basic_c.c",
+      "-o",
+      "D:\\GIT\\x-lang\\build\\example-runtime-fixes-20261106\\c-wire-accepted\\clipboard-c.exe"
+    ]
+  },
+  {
+    "name": "clipboard-c-aot",
+    "exitCode": 0,
+    "command": [
+      "D:\\GIT\\x-lang\\build\\example-runtime-fixes-20261106\\c-wire-accepted\\clipboard-c.exe"
+    ]
+  }
+]

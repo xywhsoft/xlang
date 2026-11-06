@@ -1,0 +1,12 @@
+In file included from C:/Users/Administrator/.codex/worktrees/example-runtime-fixes/x-lang/release/win_x64/extlibs/_common/xl_value_read_wire.h:13,
+                 from C:\Users\Administrator\.codex\worktrees\example-runtime-fixes\x-lang\release\win_x64\extlibs\cli\cli_native.c:9:
+C:/Users/Administrator/.codex/worktrees/example-runtime-fixes/x-lang/release/win_x64/include/xl_value_read.h:6:10: fatal error: xrt_decl.h: No such file or directory
+    6 | #include <xrt_decl.h>
+      |          ^~~~~~~~~~~~
+compilation terminated.
+In file included from C:/Users/Administrator/.codex/worktrees/example-runtime-fixes/x-lang/release/win_x64/extlibs/_common/xl_value_read_wire.h:13,
+                 from C:\Users\Administrator\.codex\worktrees\example-runtime-fixes\x-lang\release\win_x64\extlibs\cli\test\xrt_runtime.c:13:
+C:/Users/Administrator/.codex/worktrees/example-runtime-fixes/x-lang/release/win_x64/include/xl_value_read.h:6:10: fatal error: xrt_decl.h: No such file or directory
+    6 | #include <xrt_decl.h>
+      |          ^~~~~~~~~~~~
+compilation terminated.

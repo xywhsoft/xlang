@@ -1,0 +1,5 @@
+PING: PONG
+GET: hello
+EXISTS: 1
+INCR: 1
+EXISTS after DEL: 0
