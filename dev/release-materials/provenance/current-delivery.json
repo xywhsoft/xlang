@@ -3574,9 +3574,9 @@
       ]
     },
     "gallerySuccessor": {
-      "path": "dev/release-materials/provenance/xui-gallery-20261106/receipt.json",
-      "sha256": "893c938c12cef5712b766edfade960d4dc54d657246f2cbb92efbaff56f0627a",
-      "bytes": 350199
+      "path": "dev/release-materials/provenance/xui-learning-20261106/receipt.json",
+      "sha256": "abd2047c3376d8f2de405960ffb4f745440dbe1b1f5ef7bb132fbfefb360c6a3",
+      "bytes": 204704
     }
   },
   "nativeStaticPublication": {
@@ -3602,24 +3602,29 @@
     }
   },
   "xuiGallery": {
-    "status": "installed-qualified",
+    "status": "installed-qualified-with-explicit-coverage-boundaries",
     "provenance": {
-      "path": "dev/release-materials/provenance/xui-gallery-20261106/receipt.json",
-      "sha256": "893c938c12cef5712b766edfade960d4dc54d657246f2cbb92efbaff56f0627a",
-      "bytes": 350199
+      "path": "dev/release-materials/provenance/xui-learning-20261106/receipt.json",
+      "sha256": "abd2047c3376d8f2de405960ffb4f745440dbe1b1f5ef7bb132fbfefb360c6a3",
+      "bytes": 204704
     },
     "sourceMaterials": {
-      "path": "dev/release-materials/sources/xui-gallery-20261106/manifest.json",
-      "sha256": "e92ce93baaebac04b19138f75882253943c29fbdd56087689d2e4a97f6b8f9c1",
-      "bytes": 23663
+      "path": "dev/release-materials/sources/xui-learning-20261106/manifest.json",
+      "sha256": "3b8736f05a6146c1acc2a3d13343f6ff4b7aedcb2c735d302318bd2dd447c1d8",
+      "bytes": 19714
     },
-    "publicPrograms": 56,
-    "galleryEntrypoints": 48,
-    "aggregateScenes": 47,
-    "windowsBuildAndExecuteRows": 96,
-    "linuxBuilds": 48,
-    "linuxGuiRun": false,
-    "report": "docs/reports/xui-gallery-20261106.md",
-    "sourceCommit": "24e098643672c0edc3b89cfdd380c8c20c2286f2"
+    "sourceCommit": "8e5b639c1ab40a868239d8a1baf15e1164671d0b",
+    "publicPrograms": 71,
+    "aggregateScenes": 57,
+    "report": "docs/reports/xui-learning-20261106.md",
+    "coverageBoundaries": {
+      "noCompleteModelExample": [
+        "IconPicker",
+        "FlowGraphWidget",
+        "WorkflowWidget"
+      ],
+      "inventoryGrid": "empty-slot selection only",
+      "webView": "actual initialization returned XUI_ERROR_UNSUPPORTED (-7); HTML rendering not accepted"
+    }
   }
 }
