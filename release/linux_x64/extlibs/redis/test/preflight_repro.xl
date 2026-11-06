@@ -1,0 +1,46 @@
+import redis
+
+func main(...) as int
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
+    auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+    auto client = TcpStream(engine, listener.localAddress())
+    assert client.wait(TcpWait.open, 5000) == NetStatus.ok
+    auto peer = listener.accept(5000)
+
+    bool caught = false
+    try
+        redis.command(client, ["PING"], 0)
+    catch ValueError error
+        caught = error.message == "redis: timeout must be 1..2147483647 ms"
+    end
+    assert caught
+
+    caught = false
+    try
+        redis.command(client, ["PING"], 5000, 0)
+    catch ValueError error
+        caught = error.message == "redis: reply limit must be 1..67108864 bytes"
+    end
+    assert caught
+
+    caught = false
+    try
+        redis.command(client, [])
+    catch RangeError error
+        caught = error.message == "RESP command argument count is out of range"
+    end
+    assert caught
+
+    // 参数校验必须发生在写入前，失败后仍可继续使用同一连接。
+    assert peer.available == 0
+    assert client.state == TcpStreamState.open
+
+    client.close()
+    peer.close()
+    listener.close()
+    engine.close()
+    assert engine.wait(5000)
+    println("redis preflight: ok")
+    return 0
+end

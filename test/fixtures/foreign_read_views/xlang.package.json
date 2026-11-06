@@ -11,7 +11,8 @@
       "probe.c"
     ],
     "xrtModules": [
-      "XRT_MODULE_VALUE_CONTAINER"
+      "XRT_MODULE_VALUE_CONTAINER",
+      "XRT_MODULE_MEMORY_DEBUG"
     ],
     "runtimeSymbols": [
       "xlValueBorrowV1",

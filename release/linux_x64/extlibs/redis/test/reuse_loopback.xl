@@ -1,0 +1,63 @@
+import redis
+import concurrent
+
+// 测试服务器只负责 RESP 往返，不模拟 Redis 的存储语义。
+func serveMany(TcpStream peer, int count) as int
+    bytes pending = b""
+    for index in range(count)
+        while not redis.isCompleteBytes(pending)
+            bytes chunk = peer.recv(65536, 5000)
+            assert chunk.length != 0
+            pending = pending + chunk
+        end
+        var request = redis.decodeBytes(pending)
+        assert request["rest"] == "", "one request per round"
+        pending = b""
+        assert request["value"]["type"] == "array"
+        assert request["value"]["value"].length == 1
+        assert request["value"]["value"][0]["value"] == "PING"
+        if index % 17 == 0 then
+            assert peer.send("-ERR test\r\n") == NetStatus.ok
+        else
+            assert peer.send(":" + string(index) + "\r\n") == NetStatus.ok
+        end
+        assert peer.wait(TcpWait.drain, 5000) == NetStatus.ok
+    end
+    peer.close()
+    return count
+end
+
+func main(...) as int
+    int count = 500
+    if arg.length > 1 then
+        count = int(arg[1])
+    end
+    assert count > 0 and count <= 100_000
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
+    auto server = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+    TcpStream client = TcpStream(engine, server.localAddress())
+    TcpStream peer = server.accept(5000)
+    assert client.wait(TcpWait.open, 5000) == NetStatus.ok
+    future<int> job = task.spawn(serveMany, peer, count)
+    for index in range(count)
+        if index % 17 == 0 then
+            bool rejected = false
+            try
+                redis.command(client, ["PING"])
+            catch ValueError error
+                rejected = error.message == "redis: ERR test"
+            end
+            assert rejected
+        else
+            assert redis.command(client, ["PING"]) == index
+        end
+    end
+    assert job.wait()
+    client.close()
+    server.close()
+    engine.close()
+    assert engine.wait(5000)
+    println("redis reuse loopback: " + string(count))
+    return 0
+end

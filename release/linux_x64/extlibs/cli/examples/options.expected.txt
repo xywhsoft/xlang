@@ -1,0 +1,6 @@
+flags: verbose=true force=true
+output: 报告.csv
+level: 5
+source: -input
+rest: --literal
+first-error: unknown short option -z

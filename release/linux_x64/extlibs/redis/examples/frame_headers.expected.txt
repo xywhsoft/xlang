@@ -1,0 +1,4 @@
+integer signs: true
+empty and null: true
+invalid lengths: 8
+recovery: true

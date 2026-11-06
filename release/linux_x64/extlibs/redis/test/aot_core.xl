@@ -1,0 +1,11 @@
+import redis
+
+func main(...) as int
+    if not redis.isComplete("+PONG\r\n")
+        return 1
+    end
+    if redis.isComplete("$3\r\nab")
+        return 2
+    end
+    return 0
+end

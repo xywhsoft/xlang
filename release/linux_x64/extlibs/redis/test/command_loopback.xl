@@ -1,0 +1,286 @@
+import redis
+import concurrent
+
+func receiveRequest(TcpStream peer) as bytes
+    bytes request = b""
+    while not redis.isCompleteBytes(request)
+        bytes chunk = peer.recv(65536, 5000)
+        assert chunk.length != 0
+        request = request + chunk
+    end
+    return request
+end
+
+func serve(TcpStream peer, string response) as int
+    var command = redis.decodeBytes(receiveRequest(peer))
+    assert command["value"]["type"] == "array"
+    assert command["value"]["value"].length == 1
+    assert command["value"]["value"][0]["value"] == "PING"
+    if response == "+PONG\r\n" then
+        assert peer.send("+PO") == NetStatus.ok
+        assert peer.wait(TcpWait.drain, 5000) == NetStatus.ok
+        time.sleep(20)
+        assert peer.send("NG\r\n") == NetStatus.ok
+    else
+        assert peer.send(response) == NetStatus.ok
+    end
+    assert peer.wait(TcpWait.drain, 5000) == NetStatus.ok
+    peer.close()
+    return 1
+end
+
+// 分段跨越 bulk、数组头和整数行，检验增量帧状态与最终解码一致。
+func serveArray(TcpStream peer) as int
+    receiveRequest(peer)
+    var parts = ["*3\r\n$3\r\nab", "c\r\n*2\r\n", ":1\r\n$-1\r\n", "+OK\r\n"]
+    for part in parts
+        assert peer.send(string(part)) == NetStatus.ok
+        assert peer.wait(TcpWait.drain, 5000) == NetStatus.ok
+        time.sleep(10)
+    end
+    peer.close()
+    return 1
+end
+
+// 持续滴送不完整 bulk；单次读取都能及时返回，但整条命令必须按总期限失败。
+func serveSlow(TcpStream peer) as int
+    receiveRequest(peer)
+    assert peer.send("$10\r\n") == NetStatus.ok
+    assert peer.wait(TcpWait.drain, 5000) == NetStatus.ok
+    for i in range(7)
+        time.sleep(900)
+        try
+            if peer.send("x") != NetStatus.ok then break end
+            if peer.wait(TcpWait.drain, 5000) != NetStatus.ok then break end
+        catch ValueError error
+            break
+        catch RuntimeError error
+            break
+        end
+    end
+    peer.close()
+    return 1
+end
+
+// 畸形回复后保持服务端连接，验证客户端主动终止失同步的流。
+func serveMalformed(TcpStream peer, string response) as int
+    receiveRequest(peer)
+    assert peer.send(response) == NetStatus.ok, "malformed server send failed"
+    assert peer.wait(TcpWait.drain, 5000) == NetStatus.ok, "malformed server drain failed"
+    time.sleep(1000)
+    peer.close()
+    return 1
+end
+
+// 完整命令收到半截 bulk 后断线，客户端必须丢弃失同步连接。
+func servePartial(TcpStream peer) as int
+    receiveRequest(peer)
+    assert peer.send("$5\r\nab") == NetStatus.ok, "partial server send failed"
+    assert peer.wait(TcpWait.drain, 5000) == NetStatus.ok, "partial server drain failed"
+    peer.close()
+    return 1
+end
+
+func serveBinaryError(TcpStream peer) as int
+    receiveRequest(peer)
+    Buffer response = Buffer.fromHex("2d45525220ff0d0a")
+    assert peer.send(response) == NetStatus.ok
+    assert peer.wait(TcpWait.drain, 5000) == NetStatus.ok
+    assert redis.decodeBytes(receiveRequest(peer))["value"]["value"][0]["value"] == "PING"
+    assert peer.send("+PONG\r\n") == NetStatus.ok
+    assert peer.wait(TcpWait.drain, 5000) == NetStatus.ok
+    peer.close()
+    return 1
+end
+
+func serveStalled(TcpStream peer) as int
+    receiveRequest(peer)
+    time.sleep(250)
+    peer.close()
+    return 1
+end
+
+func assertAborted(TcpStream stream, string reason)
+    for index in range(200)
+        if stream.state != TcpStreamState.open then return end
+        time.sleep(5)
+    end
+    assert false, reason
+end
+
+func main(...) as int
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
+    auto server = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+    TcpStream client = TcpStream(engine, server.localAddress())
+    assert client.wait(TcpWait.open, 5000) == NetStatus.ok
+    TcpStream peer = server.accept(5000)
+    future<int> job = task.spawn(serve, peer, "+PONG\r\n")
+    assert redis.command(client, ["PING"], 5000) == "PONG"
+    assert job.wait()
+    client.close()
+
+    TcpStream arrayClient = TcpStream(engine, server.localAddress())
+    assert arrayClient.wait(TcpWait.open, 5000) == NetStatus.ok
+    TcpStream arrayPeer = server.accept(5000)
+    future<int> arrayJob = task.spawn(serveArray, arrayPeer)
+    var arrayReply = redis.command(arrayClient, ["PING"])
+    assert arrayReply.length == 3
+    assert arrayReply[0]["value"] == "abc"
+    assert arrayReply[1]["value"][0]["value"] == 1
+    assert arrayReply[1]["value"][1]["value"] == null
+    assert arrayReply[2]["value"] == "OK"
+    assert arrayJob.wait(), "fragmented array server failed"
+    arrayClient.close()
+
+    TcpStream client2 = TcpStream(engine, server.localAddress())
+    assert client2.wait(TcpWait.open, 5000) == NetStatus.ok
+    TcpStream peer2 = server.accept(5000)
+    future<int> job2 = task.spawn(serve, peer2, "-ERR denied\r\n")
+    bool rejected = false
+    try
+        redis.command(client2, ["PING"])
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected
+    assert job2.wait()
+    client2.close()
+
+    TcpStream binaryErrorClient = TcpStream(engine, server.localAddress())
+    assert binaryErrorClient.wait(TcpWait.open, 5000) == NetStatus.ok
+    TcpStream binaryErrorPeer = server.accept(5000)
+    future<int> binaryErrorJob = task.spawn(serveBinaryError, binaryErrorPeer)
+    bool binaryErrorRejected = false
+    try
+        redis.command(binaryErrorClient, ["PING"])
+    catch ValueError error
+        binaryErrorRejected = string.indexOf(error.message, "redis:", false,
+            string.byteLen(error.message), 1) == 0
+    end
+    assert binaryErrorRejected, "binary server error must become ValueError"
+    assert redis.command(binaryErrorClient, ["PING"]) == "PONG", "complete binary error must leave the connection synchronized"
+    assert binaryErrorJob.wait(), "binary error server task failed"
+    binaryErrorClient.close()
+
+    TcpStream malformedClient = TcpStream(engine, server.localAddress())
+    assert malformedClient.wait(TcpWait.open, 5000) == NetStatus.ok
+    TcpStream malformedPeer = server.accept(5000)
+    future<int> malformedJob = task.spawn(serveMalformed, malformedPeer, "?bad\r\n")
+    bool malformedRejected = false
+    try
+        redis.command(malformedClient, ["PING"])
+    catch ValueError error
+        malformedRejected = error.message == "RESP reply is malformed"
+    end
+    assert malformedRejected, "malformed reply must report a protocol error"
+    assertAborted(malformedClient, "malformed reply must abort the stream")
+    assert malformedJob.wait(), "malformed server task failed"
+    malformedClient.close()
+
+    // 服务端只发送已经越界的帧头，客户端应报格式错误而非等到超时。
+    string deep = ""
+    for i in range(64)
+        deep = deep + "*1\r\n"
+    end
+    for header in [deep, "*100000\r\n", "*99999\r\n*1\r\n", "$67108852\r\n",
+        "*1\r\n$67108848\r\n", "*2\r\n$67108845\r\n", "*2\r\n*2\r\n$67108838\r\n",
+        "$+1\r\n", "*+0\r\n", "$-0\r\n", "*-01\r\n", "*1\r\n$-01\r\n"]
+        auto budgetClient = TcpStream(engine, server.localAddress())
+        assert budgetClient.wait(TcpWait.open, 5000) == NetStatus.ok
+        auto budgetPeer = server.accept(5000)
+        auto budgetJob = task.spawn(serveMalformed, budgetPeer, header)
+        bool budgetRejected = false
+        try
+            redis.command(budgetClient, ["PING"], 5000)
+        catch ValueError error
+            budgetRejected = error.message == "RESP reply is malformed"
+        end
+        assert budgetRejected, "impossible header must fail without waiting for its body"
+        assertAborted(budgetClient, "impossible header must abort the stream")
+        assert budgetJob.wait()
+        budgetClient.close()
+    end
+
+    TcpStream partialClient = TcpStream(engine, server.localAddress())
+    assert partialClient.wait(TcpWait.open, 5000) == NetStatus.ok
+    TcpStream partialPeer = server.accept(5000)
+    future<int> partialJob = task.spawn(servePartial, partialPeer)
+    bool partialRejected = false
+    try
+        redis.command(partialClient, ["PING"])
+    catch ValueError error
+        partialRejected = true
+    end
+    assert partialRejected, "partial reply must fail when the peer closes"
+    assertAborted(partialClient, "partial reply must abort the stream")
+    assert partialJob.wait(), "partial server task failed"
+    partialClient.close()
+
+    TcpStream limitedClient = TcpStream(engine, server.localAddress())
+    assert limitedClient.wait(TcpWait.open, 5000) == NetStatus.ok
+    TcpStream limitedPeer = server.accept(5000)
+    future<int> limitedJob = task.spawn(serve, limitedPeer, "$10\r\nabcdefghij\r\n")
+    bool limitRejected = false
+    try
+        redis.command(limitedClient, ["PING"], 5000, 8)
+    catch ValueError error
+        limitRejected = error.message == "redis: reply exceeds configured limit"
+    end
+    assert limitRejected, "configured reply limit was not enforced"
+    assertAborted(limitedClient, "reply limit must abort the stream")
+    assert limitedJob.wait()
+    limitedClient.close()
+
+    TcpStream stalledClient = TcpStream(engine, server.localAddress())
+    assert stalledClient.wait(TcpWait.open, 5000) == NetStatus.ok
+    TcpStream stalledPeer = server.accept(5000)
+    future<int> stalledJob = task.spawn(serveStalled, stalledPeer)
+    uint64 shortStarted = time.monotonic()
+    bool shortTimedOut = false
+    try
+        redis.command(stalledClient, ["PING"], 80)
+    catch ValueError error
+        shortTimedOut = error.message == "redis: command timed out"
+    end
+    assert shortTimedOut, "configured deadline was not enforced"
+    // 当前单调时钟与 timeoutMs 均按毫秒计，不沿用旧微秒断言。
+    uint64 shortElapsed = time.monotonic() - shortStarted
+    assert shortElapsed >= 60 and shortElapsed < 1000
+    assertAborted(stalledClient, "deadline must abort the stream")
+    assert stalledJob.wait()
+    stalledClient.close()
+
+    TcpStream client3 = TcpStream(engine, server.localAddress())
+    assert client3.wait(TcpWait.open, 5000) == NetStatus.ok
+    TcpStream peer3 = server.accept(5000)
+    future<int> job3 = task.spawn(serve, peer3, "$3\r\na\0b\r\n")
+    var binary = redis.command(client3, ["PING"])
+    assert string.byteLen(string(binary)) == 3
+    assert string(binary) == "a\0b"
+    assert job3.wait()
+    client3.close()
+
+    TcpStream slowClient = TcpStream(engine, server.localAddress())
+    assert slowClient.wait(TcpWait.open, 5000) == NetStatus.ok
+    TcpStream slowPeer = server.accept(5000)
+    future<int> slowJob = task.spawn(serveSlow, slowPeer)
+    uint64 started = time.monotonic()
+    bool timedOut = false
+    try
+        redis.command(slowClient, ["PING"])
+    catch ValueError error
+        timedOut = error.message == "redis: command timed out"
+    end
+    uint64 elapsed = time.monotonic() - started
+    assert timedOut, "slow RESP reply must hit the total deadline"
+    assert elapsed >= 4000 and elapsed < 6000, "redis deadline is not bounded"
+    assertAborted(slowClient, "timed out command must abort the stream")
+    assert slowJob.wait(), "slow server task failed"
+    slowClient.close()
+    server.close()
+    engine.close()
+    assert engine.wait(5000)
+    println("redis command loopback: ok")
+    return 0
+end

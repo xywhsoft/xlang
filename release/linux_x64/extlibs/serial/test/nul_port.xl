@@ -1,0 +1,39 @@
+import serial
+from serial import Serial
+
+func main(...) as int
+    bool factoryRejected = false
+    try
+        serial.open("LOOPBACK\0other")
+    catch error
+        factoryRejected = error.kind == "ValueError"
+    end
+    assert factoryRejected, "factory must reject embedded NUL"
+
+    bool constructorRejected = false
+    try
+        Serial("LOOPBACK\0other", 9600, 8, 1, 0)
+    catch error
+        constructorRejected = error.kind == "ValueError"
+    end
+    assert constructorRejected, "constructor must reject embedded NUL"
+
+    bool missingDeviceRejected = false
+    try
+        Serial("XLANG_SERIAL_NO_SUCH_DEVICE_91D783AB", 9600, 8, 1, 0)
+    catch error
+        missingDeviceRejected = error.kind == "FileError"
+    end
+    assert missingDeviceRejected, "direct constructor must report device failure"
+
+    Serial port = serial.openLoopback()
+    assert port.write("A\0B") == 3, "text write keeps embedded NUL"
+    Buffer received = port.readBytes(3)
+    assert received.len() == 3
+    assert received.byteAt(0) == 65 and received.byteAt(1) == 0
+    assert received.byteAt(2) == 66
+    assert port.write("A\0B") == 3
+    string text = port.read(3)
+    assert string.byteLen(text) == 3 and text == "A\0B"
+    return 0
+end

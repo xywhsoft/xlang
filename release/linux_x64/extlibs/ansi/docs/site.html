@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ansi - 扩展库 - xlang</title>
+  <meta name="description" content="ansi 构造终端样式与光标序列，并提供转义剥离和显示宽度估算。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / ansi</p><h1>ansi</h1>
+    <p class="extlib-lead">ANSI 样式、颜色和光标序列的纯文本构件。</p>
+    <p>使用 XRT 分配独立结果，不会写终端，也不会截断长文本。2026-10-26 重建发布物后，Windows/Linux x64 包级门禁均通过严格 C、线程隔离、Linux ASan/UBSan、XLang 边界和双语固定输出；两平台的完整范例、边界及 C 单文件范例也分别通过独立 EXE AOT。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>bold / dim / italic / underline / blink / inverse / hidden / strike</code></td><td>文本样式</td></tr>
+      <tr><td><code>fg / bg / fg256 / bg256 / fgTrue / bgTrue</code></td><td>16 色、256 色和 RGB 颜色</td></tr>
+      <tr><td><code>up / down / left / right / nextLine / prevLine / column</code></td><td>光标移动</td></tr>
+      <tr><td><code>clearScreen / clearLine / clearToEnd / hideCursor / showCursor</code></td><td>终端控制序列</td></tr>
+      <tr><td><code>title / strip / displayWidth</code></td><td>安全标题、CSI/OSC 剥离与单行列宽估算</td></tr>
+    </tbody></table>
+    <h2 id="example">xlang</h2>
+    <pre><code>import ansi
+string styled = ansi.fg("中文", 32)
+println(ansi.strip(styled))
+println(ansi.displayWidth(styled))</code></pre>
+    <p><code>displayWidth</code> 将常见零宽字符计为零列，但只是终端列宽估算，不承诺 ZWJ 复合 emoji 等所有 Unicode 字素簇精确；U+00AD 软连字符的宽度依赖换行，现明确拒绝。文本入口拒绝内嵌 NUL，C 样式与颜色入口拒绝无效 UTF-8；标题和 OSC 载荷拒绝双向控制符，畸形 ANSI、OSC 载荷中的 DEL/C1 控制字符和非法颜色参数报错。旧共享快照缺符号阻断在 2026-10-26 两平台默认门禁不再复现；本次签收不代表终端实际渲染、其他架构或全产品准入。完整合同、C 所有权及验证命令见包内 README。</p>
+    <p>2026-10-27：29 个原生文本入口明确返回 XRT 分配的 <code>char*</code>，由 XLang <code>@owned string</code> 直接接管，不再经过 <code>point</code> 转发。Windows 默认门禁和 Linux C ASan/UBSan、XLang JIT/AOT 门禁通过，包含无效 UTF-8 与分配故障恢复；输入校验和结果长度扫描仍有成本。</p>
+    <p>2026-10-29：17 条文本入口不再通过校验函数返回输入，去掉一次整段正文复制，公开 API 与原生 ABI 不变。完整输入/返回夹具无正文复制赋值，29 条结果仍直接接管，30 条实际生成原型与 C 头严格核对。包含调用处参数构造的 67 项语言分配预算由 17 项失败降为零；C 同输入 33 项预算也通过，但其借用常量的成本与语言参数构造不同，不宣称全链零开销。</p>
+    <p>两平台最新默认门禁覆盖严格 C、线程、Linux ASan/UBSan、OOM 恢复、17 条 NUL 负例、C/XLang 八行固定输出及各九条独立 AOT；有子进程超时与输入指纹，失败保留现场。仍仅签收纯文本序列和有限单行宽度合同，不代表终端渲染或完整 Unicode 排版；验证命令、分配成本及范围见 README。</p>
+  </section>
+</main>
+</body>
+</html>

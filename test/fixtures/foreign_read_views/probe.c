@@ -1,4 +1,5 @@
 #define XRT_MODULE_VALUE_CONTAINER
+#define XRT_MODULE_MEMORY_DEBUG
 #include "xrt.h"
 #include <xl_value_read.h>
 #include <string.h>
@@ -8,6 +9,7 @@ int64 read_view_probe(xvalue* words, xvalue* options)
 {
     XL_ValueReadV1 array = {0}, dict = {0};
     int64 result = 0;
+    if (!xrtMemDebugFailAfter(0)) return 0;
     if (!xlValueReadBeginV1(xlValueBorrowV1(words), &array)) goto done;
     if (!xlValueReadBeginV1(xlValueBorrowV1(options), &dict)) goto done;
     if (array.kind != XVALUE_ARRAY || array.count != 2 || dict.kind != XVALUE_OBJECT) goto done;
@@ -21,6 +23,8 @@ int64 read_view_probe(xvalue* words, xvalue* options)
     XL_ValueBorrowV1 name = xlValueReadFindV1(&dict, (xstrview){"name", 4});
     if (name.kind != XVALUE_STRING || name.ref || name.data.text.Size != 6 ||
         memcmp(name.data.text.Data, "native", 6)) goto done;
+    if (xrtMemDebugFailTriggered()) goto done;
+    xrtMemDebugFailClear();
     XL_ValueBorrowV1 absent = xlValueReadFindV1(&dict, (xstrview){"absent", 6});
     if (absent.ref || absent.kind != XVALUE_NULL || xrtGetError()) goto done;
     /* Reentrant mutation failure is checked by a separate call below. */
@@ -43,6 +47,7 @@ int64 read_view_probe(xvalue* words, xvalue* options)
     if (accepted || !diagnosed) goto done;
     result = 1;
 done:
+    xrtMemDebugFailClear();
     if (!xlValueReadEndV1(&dict)) result = 0;
     if (!xlValueReadEndV1(&array)) result = 0;
     if (!xlValueReadEndV1(&array)) result = 0;

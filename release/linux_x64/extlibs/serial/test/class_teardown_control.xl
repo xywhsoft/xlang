@@ -1,0 +1,12 @@
+class CleanupProbe
+    int value = 1
+
+    destroy()
+        self.value = 0
+    end
+end
+
+func main(...) as int
+    CleanupProbe probe = CleanupProbe()
+    return 0
+end
