@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "date": "2026-11-06",
+  "scope": "Matched Root10 real O2 Windows production runtime/compiler images, full header-only JIT/module/AOT and relocated standalone acceptance; matched OnlyTCC VFS independently PE-smoked. Static-XGE/installed-release evidence follows separately.",
+  "passed": true,
+  "sourceFreezeSha256": "8605c6ad00805d3bac4a0d9052259c936c3da2eeb1650ba7b2f9c88eaf462c6c",
+  "optimization": "O2",
+  "formalRows": 46,
+  "standaloneAotQualified": true,
+  "images": [
+    {
+      "profile": "runtime",
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-win-r4\\release\\win_x64\\xl.dll",
+      "sha256": "83ac6351ce1c011046b426173030b66cda3ba90c7b3f48b63c420ea7b908ed7f",
+      "bytes": 15164928
+    },
+    {
+      "profile": "compiler",
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-win-r4\\release\\win_x64\\xlc.dll",
+      "sha256": "f281860ab728dd8ea02097e8fd7a9f11226cfa717ef64f02075a37561c2865f2",
+      "bytes": 21232640
+    }
+  ],
+  "targetObjects": {
+    "freshRoot9": 1566,
+    "inheritedFreshRoot9": 0,
+    "root10ApiRebuilt": 4,
+    "root10Inherited": 1562
+  },
+  "productionObjects": {
+    "changed": 8,
+    "inheritedProfile": 2619,
+    "inheritedShared": 105,
+    "memoryFailuresRetried": 3
+  },
+  "providerRows": 9,
+  "reports": [
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\production-win-r4\\production-build.json",
+      "archivePath": "production.json",
+      "sha256": "19e81296eb09f5124312b60be72db02881d4e9043b262d4359f6f591c94d62b7"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\production-win-r4\\initial-memory-failure.json",
+      "archivePath": "initial-memory-failure.json",
+      "sha256": "50d7a5ca9be11333cd4634892a82387b3c097ab6e924dad715bb26aa6ac23d5f"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r2\\results.json",
+      "archivePath": "aot-results.json",
+      "sha256": "2302e3bf38ff3e81c62aae6215d36bb5e853a42ffde69031d0db067db5881a27"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\provider-win-r3\\provider.json",
+      "archivePath": "provider.json",
+      "sha256": "94e90eb7022233edbfa8a7f83fbf7c923f5a1068a7e70ada1306e66e7219555f"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\precompiled-win-r3\\manifest.json",
+      "archivePath": "fresh-1566.json",
+      "sha256": "1749d575bcb0cd8d36c27b9c9e244e134784f9b8efdacaeb240a99f9ec812e40"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\precompiled-win-r4\\manifest.json",
+      "archivePath": "api-format-successor.json",
+      "sha256": "1db3c1f6ac3ce10a8b705f206e7e18accb06fb2f674b9f4bcc164817656c4e23"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\vfs-r10-win-r1\\resources.json",
+      "archivePath": "resources.json",
+      "sha256": "e6f372e88a6b17d16a21875bc9905a90e75bce5c7e9dae03335f0f808ebc6853"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\compiler-core-win-r7\\plan-equivalence.json",
+      "archivePath": "source-driver-dependency-proof.json",
+      "sha256": "0644c3d6040bb0e12cf14c1125b3e7c5857b7279a274cc5ab1f26dbe23aa704c"
+    }
+  ],
+  "archiveSha256": "fb4736dc1dedfef43322e00b8bf29de8824704610b64e609d165aafd1cf0ed15",
+  "shippingDelivery": false
+}

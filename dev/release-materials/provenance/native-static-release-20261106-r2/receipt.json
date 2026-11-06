@@ -1,0 +1,1059 @@
+{
+  "schema": 1,
+  "complete": true,
+  "passed": true,
+  "date": "2026-11-06",
+  "scope": "Windows O2 compiler/runtime installation, optional static-XGE SDK, actual installed CLI JIT/AOT and OS-loader standalone execution. Linux frozen source/provider qualification is development-only; installed Linux production images remain unchanged.",
+  "externalPublishPerformed": false,
+  "archive": {
+    "path": "acceptance.zip",
+    "sha256": "a86bd0a397abac69fa2674c440f2d6132197604c03fc5a35163c99c4722ddb87",
+    "bytes": 54532578
+  },
+  "originalRecords": [
+    {
+      "path": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\static-native-final-windows-20261106-r1.json",
+      "archivedAs": "static-native-final-windows-20261106-r1.json",
+      "sha256": "4f044e9862b54ce720e40c1c8fb86c0408e8821c43b2ebbb84b36948d034e125",
+      "bytes": 14879
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\core-source-r11.json",
+      "archivedAs": "windows/core-source-r11.json",
+      "sha256": "17a4fa77a8a4fe0981cbbaf3c0621bce6c9522ad5eac5ec2114a9a99ae48e624",
+      "bytes": 1365210
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\precompiled-win-r3\\validation.json",
+      "archivedAs": "windows/precompiled-win-r3/validation.json",
+      "sha256": "3e680ef6100afbe3999f1ee927e24dfb1eddaefe1d197a54d136abf8ee38956b",
+      "bytes": 2275
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\precompiled-win-r4\\manifest.json",
+      "archivedAs": "windows/precompiled-win-r4/manifest.json",
+      "sha256": "1db3c1f6ac3ce10a8b705f206e7e18accb06fb2f674b9f4bcc164817656c4e23",
+      "bytes": 3323147
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\precompiled-win-r5\\manifest.json",
+      "archivedAs": "windows/precompiled-win-r5/manifest.json",
+      "sha256": "ecb8dc4464c5fc6d793e2f99b6994d43d2e05b722ce9b8ebc16b51f33a17c518",
+      "bytes": 3320932
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\provider-win-r4\\provider.json",
+      "archivedAs": "windows/provider-win-r4/provider.json",
+      "sha256": "46e2800adaba5b1d735fdd21d3304f945ef258b40448539e9e9d5f635ecb8a49",
+      "bytes": 3682603
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\provider-win-r4\\overlay.json",
+      "archivedAs": "windows/provider-win-r4/overlay.json",
+      "sha256": "bf5cea47fc7bff3fadee41bedc758f2ccc166e3ff728c7101428a4cd3194d604",
+      "bytes": 4671287
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\provider-tools-r4\\manifest.json",
+      "archivedAs": "windows/provider-tools-r4/manifest.json",
+      "sha256": "2ff3158c9575c301648ed8e3dfd542aa9f1365691939094d157e737f8ebb7bc1",
+      "bytes": 3890
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\vfs-r11-win-r1\\resources.json",
+      "archivedAs": "windows/vfs-r11-win-r1/resources.json",
+      "sha256": "723460edcf44a95532a991799f69b554ee7dddb425dcebd4880244403827ab0c",
+      "bytes": 4513
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\legacy-budget-r9-win-r1\\results.json",
+      "archivedAs": "windows/legacy-budget-r9-win-r1/results.json",
+      "sha256": "b0868c32f5a763c7aab00daee18153a9b811ecadcccd8e0a7645bf11a6b5bb50",
+      "bytes": 19761
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\xge\\win-default-r14\\build-report.json",
+      "archivedAs": "windows/xge/win-default-r14/build-report.json",
+      "sha256": "c1411851bd760097976e1541874427d9f081949907ec37761cd5229df14f7c4c",
+      "bytes": 9931049
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\xge\\support-group-audit-win-r1\\results.json",
+      "archivedAs": "windows/xge/support-group-audit-win-r1/results.json",
+      "sha256": "96fc29d077f2a635d1a5510c3c0cb392212d1487ccf1e3ccf56ea0c8a7041aca",
+      "bytes": 2801
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r6\\results.json",
+      "archivedAs": "windows/static-xge-aot-win-r6/results.json",
+      "sha256": "00040c718a53ed95b05ced1dae25da2b867db73bb253f633af53518c7e2e3d50",
+      "bytes": 342742
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\native-crt-math-aot-win-r2\\results.json",
+      "archivedAs": "windows/native-crt-math-aot-win-r2/results.json",
+      "sha256": "6ab69be1df78cfd07cd1f710f8674d4ccf259de32eafd73e53a5a5c58c1563f7",
+      "bytes": 1905
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\cosl-gcc-reference-r1\\results.json",
+      "archivedAs": "windows/cosl-gcc-reference-r1/results.json",
+      "sha256": "9ec81a61715bbf08bad54d825eb5eae55dfccfacf2803342b070682490d0a1a7",
+      "bytes": 3018
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-support-final-candidate-r1\\manifest.json",
+      "archivedAs": "windows/static-support-final-candidate-r1/manifest.json",
+      "sha256": "faa34caec53123553acc75c44e449ba194132ee40fbe7af0e66ec5254d474f4b",
+      "bytes": 4379
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-sdk-delivery-plan-win-r2\\manifest.json",
+      "archivedAs": "windows/static-sdk-delivery-plan-win-r2/manifest.json",
+      "sha256": "8f7b07d4596b4bcd6c182b782f4cef85fdde55129ba8661020aea75833733ed9",
+      "bytes": 40210
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-win-r5\\production-build.json",
+      "archivedAs": "production-win-r5/production-build.json",
+      "sha256": "4d1dffbfcb2d102f4be29f7bd214fa8f7f92c3858ce580ab4c338bbf80b65427",
+      "bytes": 3354072
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-win-r5\\build-tcc.py",
+      "archivedAs": "production-win-r5/build-tcc.py",
+      "sha256": "17847efaa1fdba4febc93b014351c7ae464162faeb4649a6d2a6084061e96428",
+      "bytes": 2424
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-win-r5\\finish.py",
+      "archivedAs": "production-win-r5/finish.py",
+      "sha256": "c5c79684a7960ce1b3f975d5bf98b00f5314ee217f4a60fd0b60cf5c1853d9f0",
+      "bytes": 3293
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\results.json",
+      "archivedAs": "production-aot-win-r3/results.json",
+      "sha256": "4787d705159b7292b4688ddff08856d61247faa32f8ffaa9a2af544530572301",
+      "bytes": 352596
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\native-static-install-win-r1\\publication.json",
+      "archivedAs": "native-static-install-win-r1/publication.json",
+      "sha256": "cb8bbaa607e0d54756f6ae38d6f9b67099c3a9c56f0d9cfe45550a27edef3509",
+      "bytes": 10728
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\installed-cli-win-r2\\results.json",
+      "archivedAs": "installed-cli-win-r2/results.json",
+      "sha256": "4ce6f6b4ffd67378c084937989b3a28d85dcc7ceca00adf22bdb709f1e560384",
+      "bytes": 3597
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\install-native-static-win.py",
+      "archivedAs": "install-native-static-win.py",
+      "sha256": "5a6142b705eba94938907e300e6dab0e42d0f679034c0d873ff32b963fef805f",
+      "bytes": 3491
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\check-installed-cli.py",
+      "archivedAs": "check-installed-cli.py",
+      "sha256": "2aa24e99ee3c3cf6295faca24bba40005fe0ae3a3c65be1c6d1fd66f2525a9a8",
+      "bytes": 2770
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\linux-r11-equivalence-r1\\receipt.json",
+      "archivedAs": "linux-r11-equivalence-r1/receipt.json",
+      "sha256": "e9eeccf1cb8c969dc81c1eec4fd9ccb567021d4ee74e5d13a471ddab42324ee7",
+      "bytes": 5349
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\compiler-host-build.log",
+      "archivedAs": "production-aot-win-r3/compiler-host-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\compiler-host-imports.log",
+      "archivedAs": "production-aot-win-r3/compiler-host-imports.log",
+      "sha256": "73bf9af4534d35c1893f8a79c4512b3332d0cc879ff744f38044ef5e5d1db822",
+      "bytes": 39624
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\double-nested-compiler-dependencies.log",
+      "archivedAs": "production-aot-win-r3/double-nested-compiler-dependencies.log",
+      "sha256": "b01ae8c576d77c124d38e2f471a2c6aea73cf2465492a5e8438031d7bee72e94",
+      "bytes": 48569606
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\double-nested-compiler-exe.log",
+      "archivedAs": "production-aot-win-r3/double-nested-compiler-exe.log",
+      "sha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31",
+      "bytes": 28
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\double-nested-compiler-module.log",
+      "archivedAs": "production-aot-win-r3/double-nested-compiler-module.log",
+      "sha256": "1e707a82a3e0bb0352b5b2c05cb58c0373dedb34eda49443f6b6dcda11fbeb5f",
+      "bytes": 31
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\double-nested-compiler-relocated.log",
+      "archivedAs": "production-aot-win-r3/double-nested-compiler-relocated.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\double-nested-compiler-run.log",
+      "archivedAs": "production-aot-win-r3/double-nested-compiler-run.log",
+      "sha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9",
+      "bytes": 28
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\foreign_output_record_size-dependencies.log",
+      "archivedAs": "production-aot-win-r3/foreign_output_record_size-dependencies.log",
+      "sha256": "b4b6348caad68ac247ba8c62fc4aff0dc0d7daf793c45f6f1477681bbdb6965e",
+      "bytes": 15700583
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\foreign_output_record_size-exe.log",
+      "archivedAs": "production-aot-win-r3/foreign_output_record_size-exe.log",
+      "sha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31",
+      "bytes": 28
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\foreign_output_record_size-module.log",
+      "archivedAs": "production-aot-win-r3/foreign_output_record_size-module.log",
+      "sha256": "1e707a82a3e0bb0352b5b2c05cb58c0373dedb34eda49443f6b6dcda11fbeb5f",
+      "bytes": 31
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\foreign_output_record_size-relocated.log",
+      "archivedAs": "production-aot-win-r3/foreign_output_record_size-relocated.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\foreign_output_record_size-run.log",
+      "archivedAs": "production-aot-win-r3/foreign_output_record_size-run.log",
+      "sha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9",
+      "bytes": 28
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\native_sequence-dependencies.log",
+      "archivedAs": "production-aot-win-r3/native_sequence-dependencies.log",
+      "sha256": "71392fddaf0c3d9242868d238086af87d41b2485692bab8d4dc2b9a355280476",
+      "bytes": 4413711
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\native_sequence-exe.log",
+      "archivedAs": "production-aot-win-r3/native_sequence-exe.log",
+      "sha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31",
+      "bytes": 28
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\native_sequence-module.log",
+      "archivedAs": "production-aot-win-r3/native_sequence-module.log",
+      "sha256": "1e707a82a3e0bb0352b5b2c05cb58c0373dedb34eda49443f6b6dcda11fbeb5f",
+      "bytes": 31
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\native_sequence-relocated.log",
+      "archivedAs": "production-aot-win-r3/native_sequence-relocated.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\native_sequence-run.log",
+      "archivedAs": "production-aot-win-r3/native_sequence-run.log",
+      "sha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9",
+      "bytes": 28
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\nested-native-sequence-dependencies.log",
+      "archivedAs": "production-aot-win-r3/nested-native-sequence-dependencies.log",
+      "sha256": "9d915c87beb361b977d33102589e24e12a174f4c12e9dfce3677cd62ae9ac10c",
+      "bytes": 48565962
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\nested-native-sequence-exe.log",
+      "archivedAs": "production-aot-win-r3/nested-native-sequence-exe.log",
+      "sha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31",
+      "bytes": 28
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\nested-native-sequence-module.log",
+      "archivedAs": "production-aot-win-r3/nested-native-sequence-module.log",
+      "sha256": "1e707a82a3e0bb0352b5b2c05cb58c0373dedb34eda49443f6b6dcda11fbeb5f",
+      "bytes": 31
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\nested-native-sequence-relocated.log",
+      "archivedAs": "production-aot-win-r3/nested-native-sequence-relocated.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\nested-native-sequence-run.log",
+      "archivedAs": "production-aot-win-r3/nested-native-sequence-run.log",
+      "sha256": "be3e690d76aaccc513eb2eedb289109767e20bb0d4f27fb195dc766d3e3908b9",
+      "bytes": 28
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\runtime-O0-build.log",
+      "archivedAs": "production-aot-win-r3/runtime-O0-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\runtime-O0-run.log",
+      "archivedAs": "production-aot-win-r3/runtime-O0-run.log",
+      "sha256": "5d823395ca3143437dc62a74cebaaf49e85afeddc576ec0be27b7209331ec21a",
+      "bytes": 26
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\runtime-O2-build.log",
+      "archivedAs": "production-aot-win-r3/runtime-O2-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\runtime-O2-run.log",
+      "archivedAs": "production-aot-win-r3/runtime-O2-run.log",
+      "sha256": "5d823395ca3143437dc62a74cebaaf49e85afeddc576ec0be27b7209331ec21a",
+      "bytes": 26
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\stdlib_nested_aot-dependencies.log",
+      "archivedAs": "production-aot-win-r3/stdlib_nested_aot-dependencies.log",
+      "sha256": "a04ea29467f3bb49a8e071a5ee5321f5c7a36c87a9f8cc461ce8ce5cc845faf6",
+      "bytes": 48670634
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\stdlib_nested_aot-exe.log",
+      "archivedAs": "production-aot-win-r3/stdlib_nested_aot-exe.log",
+      "sha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31",
+      "bytes": 28
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\stdlib_nested_aot-module.log",
+      "archivedAs": "production-aot-win-r3/stdlib_nested_aot-module.log",
+      "sha256": "cd0bf3bcef90008c9e9c8ff821a40466bd58c9b82d2f18e9a3a9fc90ae55d3b7",
+      "bytes": 58
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\stdlib_nested_aot-relocated.log",
+      "archivedAs": "production-aot-win-r3/stdlib_nested_aot-relocated.log",
+      "sha256": "92167226bce0fd07259e77a2202c3cfc052faaa987ed695c940dbff9e0275878",
+      "bytes": 27
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\stdlib_nested_aot-run.log",
+      "archivedAs": "production-aot-win-r3/stdlib_nested_aot-run.log",
+      "sha256": "93be8856428ad80a6b2698101fcc10da5d93a5fc9ba50b4cc49cd51189661f63",
+      "bytes": 55
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\stdlib_nested_sdk-dependencies.log",
+      "archivedAs": "production-aot-win-r3/stdlib_nested_sdk-dependencies.log",
+      "sha256": "56f93dd6fbe881dc7c502bd8e97249cb856becdbeea84e2cad3dbfc510c33291",
+      "bytes": 48689627
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\stdlib_nested_sdk-exe.log",
+      "archivedAs": "production-aot-win-r3/stdlib_nested_sdk-exe.log",
+      "sha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31",
+      "bytes": 28
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\stdlib_nested_sdk-module.log",
+      "archivedAs": "production-aot-win-r3/stdlib_nested_sdk-module.log",
+      "sha256": "ae3b1a89b955b133c21e2ff8de52451afe713d15f583fd2dd4e297e4095779af",
+      "bytes": 48
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\stdlib_nested_sdk-relocated.log",
+      "archivedAs": "production-aot-win-r3/stdlib_nested_sdk-relocated.log",
+      "sha256": "9d802bb85f52aad30183659f313764decbf81c5a5fc842b0afdfb648a54cb51a",
+      "bytes": 17
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\stdlib_nested_sdk-run.log",
+      "archivedAs": "production-aot-win-r3/stdlib_nested_sdk-run.log",
+      "sha256": "019cb3ce169ba86e759277154b60911d1ac55a08a5d7c0604c6429d0b5b00853",
+      "bytes": 45
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\stdlib_string_bridge_boundaries-dependencies.log",
+      "archivedAs": "production-aot-win-r3/stdlib_string_bridge_boundaries-dependencies.log",
+      "sha256": "89779fdd5ad2e36000a555fb550211a6570e71d88fd042e739e87510d1444451",
+      "bytes": 48804353
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\stdlib_string_bridge_boundaries-exe.log",
+      "archivedAs": "production-aot-win-r3/stdlib_string_bridge_boundaries-exe.log",
+      "sha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31",
+      "bytes": 28
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\stdlib_string_bridge_boundaries-module.log",
+      "archivedAs": "production-aot-win-r3/stdlib_string_bridge_boundaries-module.log",
+      "sha256": "bf53dfb6a7e8cdff5361b9dc1f45e8c7c0a221a38ea5c788830f022fbddc47b1",
+      "bytes": 62
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\stdlib_string_bridge_boundaries-relocated.log",
+      "archivedAs": "production-aot-win-r3/stdlib_string_bridge_boundaries-relocated.log",
+      "sha256": "ab6a4367f9993c6e8edded4ed972b3442def664bdfa7a95d51025a0f8dd18938",
+      "bytes": 31
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\stdlib_string_bridge_boundaries-run.log",
+      "archivedAs": "production-aot-win-r3/stdlib_string_bridge_boundaries-run.log",
+      "sha256": "88c8b5a1051155122abb06d012cfe21871bc42ed834d4cf80f5ea3538878fbd2",
+      "bytes": 59
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\stdlib_tcc_embed-dependencies.log",
+      "archivedAs": "production-aot-win-r3/stdlib_tcc_embed-dependencies.log",
+      "sha256": "cd575d3e16f05ad05659f6491c46885cfb88f0685635e1619b36426cb8ea0ca7",
+      "bytes": 16663375
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\stdlib_tcc_embed-exe.log",
+      "archivedAs": "production-aot-win-r3/stdlib_tcc_embed-exe.log",
+      "sha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31",
+      "bytes": 28
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\stdlib_tcc_embed-module.log",
+      "archivedAs": "production-aot-win-r3/stdlib_tcc_embed-module.log",
+      "sha256": "2c2f3bc5eecaf4df736716fa255da66749b300a46fc865bd1ce002302c3954ad",
+      "bytes": 179
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\stdlib_tcc_embed-relocated.log",
+      "archivedAs": "production-aot-win-r3/stdlib_tcc_embed-relocated.log",
+      "sha256": "e158f5001458ed540112de205184f1af0f41e66af2ebbcb7b1185a2e88323d5c",
+      "bytes": 148
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\stdlib_tcc_embed-run.log",
+      "archivedAs": "production-aot-win-r3/stdlib_tcc_embed-run.log",
+      "sha256": "1cdd5e2c13d324de624aec0a38b371d0ae4a5e77249ec0a83045c90d55a380af",
+      "bytes": 176
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r6\\public-host-build.log",
+      "archivedAs": "static-xge-aot-win-r6/public-host-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r6\\public-host-imports.log",
+      "archivedAs": "static-xge-aot-win-r6/public-host-imports.log",
+      "sha256": "703d2b09474d5149625268d70f152baa0c7409e7d83defde9b1934198ade1a3e",
+      "bytes": 39629
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r6\\relocated-standalone.log",
+      "archivedAs": "static-xge-aot-win-r6/relocated-standalone.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r6\\static-emit.log",
+      "archivedAs": "static-xge-aot-win-r6/static-emit.log",
+      "sha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74",
+      "bytes": 29
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r6\\static-exe.log",
+      "archivedAs": "static-xge-aot-win-r6/static-exe.log",
+      "sha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31",
+      "bytes": 28
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r6\\static-imports.log",
+      "archivedAs": "static-xge-aot-win-r6/static-imports.log",
+      "sha256": "472eb75a7a11a15db901a8cfdb6e2d51547213e67e311a28dc678c673e368a00",
+      "bytes": 2878975
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r6\\static-program.json",
+      "archivedAs": "static-xge-aot-win-r6/static-program.json",
+      "sha256": "7a7890533d111e4f5aa7887891a200251167a4bdfca7899d9520bf1c2b4b2282",
+      "bytes": 28201866
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r6\\static-sections.log",
+      "archivedAs": "static-xge-aot-win-r6/static-sections.log",
+      "sha256": "61526e460df160c5116a06bae33cbf1a00560843d05919338613a74ca24151f1",
+      "bytes": 1003
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\native-crt-math-aot-win-r2\\build.log",
+      "archivedAs": "native-crt-math-aot-win-r2/build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\native-crt-math-aot-win-r2\\imports.log",
+      "archivedAs": "native-crt-math-aot-win-r2/imports.log",
+      "sha256": "41ff9ea6d20409959d004367b8c8b76a21e3920b11c24094cc208455a52422d5",
+      "bytes": 9383
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\native-crt-math-aot-win-r2\\main.c",
+      "archivedAs": "native-crt-math-aot-win-r2/main.c",
+      "sha256": "7b8fd825553b97da44d87974fd419ac86d307e93d6376e34095aa7b4878565aa",
+      "bytes": 83
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\native-crt-math-aot-win-r2\\run.log",
+      "archivedAs": "native-crt-math-aot-win-r2/run.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\installed-cli-win-r1\\cgen.log",
+      "archivedAs": "installed-cli-win-r1/cgen.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\installed-cli-win-r1\\check.log",
+      "archivedAs": "installed-cli-win-r1/check.log",
+      "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+      "bytes": 3
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\installed-cli-win-r1\\jit-run.log",
+      "archivedAs": "installed-cli-win-r1/jit-run.log",
+      "sha256": "4f40d0aac23d54e27ba236d95530e47a19446efcfabfe63fa3436d0f27d41aa9",
+      "bytes": 83
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\installed-cli-win-r1\\results.json",
+      "archivedAs": "installed-cli-win-r1/results.json",
+      "sha256": "f3dda90a66a239bf3eadc1ed173d516c59595d5b1d90207753165b9fa354ce69",
+      "bytes": 1972
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\installed-cli-win-r1\\version.log",
+      "archivedAs": "installed-cli-win-r1/version.log",
+      "sha256": "acc9c5f5f0229c7575b6fdd018988eab725485e8a42531ed18c5826aa988c3b7",
+      "bytes": 69
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\installed-cli-win-r2\\cgen.log",
+      "archivedAs": "installed-cli-win-r2/cgen.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\installed-cli-win-r2\\check.log",
+      "archivedAs": "installed-cli-win-r2/check.log",
+      "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+      "bytes": 3
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\installed-cli-win-r2\\full-build.log",
+      "archivedAs": "installed-cli-win-r2/full-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\installed-cli-win-r2\\imports.log",
+      "archivedAs": "installed-cli-win-r2/imports.log",
+      "sha256": "20615d9f6b35703af28ebc3fe3d3f3ec0a00724198871345632578b4f6602f9b",
+      "bytes": 2878967
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\installed-cli-win-r2\\jit-run.log",
+      "archivedAs": "installed-cli-win-r2/jit-run.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\installed-cli-win-r2\\relocated-execute.log",
+      "archivedAs": "installed-cli-win-r2/relocated-execute.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\installed-cli-win-r2\\version.log",
+      "archivedAs": "installed-cli-win-r2/version.log",
+      "sha256": "acc9c5f5f0229c7575b6fdd018988eab725485e8a42531ed18c5826aa988c3b7",
+      "bytes": 69
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\linux-r11-equivalence-r1\\results.json",
+      "archivedAs": "linux-r11-equivalence-r1/results.json",
+      "sha256": "7629b82c0ab0ebabdc853480204fa12e41c262453ff08e8e683db17fe3501e02",
+      "bytes": 21249
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\linux-final-vfs-r2\\fullProvider.json",
+      "archivedAs": "linux-final-vfs-r2/fullProvider.json",
+      "sha256": "cfb75e18edf1ab12177fd04d24c28551eddf4ac7a011b85e076630f4483f45fb",
+      "bytes": 2686976
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\linux-final-vfs-r2\\precompiled-manifest.json",
+      "archivedAs": "linux-final-vfs-r2/precompiled-manifest.json",
+      "sha256": "11b9e42aa313418818972dd141e5e43d62a344c1d93cf12651ee52f1b972979f",
+      "bytes": 574977
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\linux-final-vfs-r2\\receipt.json",
+      "archivedAs": "linux-final-vfs-r2/receipt.json",
+      "sha256": "97db315e7a7ae5a9be8d133033b278d5ee9cf57ca46b471580b53ca90f37bba8",
+      "bytes": 8660
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\linux-final-vfs-r2\\sourcefree40.json",
+      "archivedAs": "linux-final-vfs-r2/sourcefree40.json",
+      "sha256": "8ecc0c6283a2a1dbffab62e0752308a040ff8c6271fda5286ee6214c0436416f",
+      "bytes": 579917
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\linux-final-vfs-r2\\sourcePreparation.json",
+      "archivedAs": "linux-final-vfs-r2/sourcePreparation.json",
+      "sha256": "7008e3fa76d7e75d7b336c7700963eebd42bb7d9fbe78ca6920499c83183ede2",
+      "bytes": 158802
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\linux-final-vfs-r2\\staticXge6.json",
+      "archivedAs": "linux-final-vfs-r2/staticXge6.json",
+      "sha256": "3d5408fc1a5b2e30f36f1e1a62a22699dd5983b16e279d0c01ef9d6d4cfbe591",
+      "bytes": 324637
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r1\\public-host-build.log",
+      "archivedAs": "historical/static-xge-aot-win-r1/public-host-build.log",
+      "sha256": "e50c62fed409d6e05c53824aa8aa848e20d32a3f6d1ed2a19418ba3657d9f888",
+      "bytes": 248
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r1\\results.json",
+      "archivedAs": "historical/static-xge-aot-win-r1/results.json",
+      "sha256": "37e19e832b7f7eacc0c1f71d8a9adca0c8c0c5f06539226ceb684414aa4b527b",
+      "bytes": 356960
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r2\\public-host-build.log",
+      "archivedAs": "historical/static-xge-aot-win-r2/public-host-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r2\\public-host-imports.log",
+      "archivedAs": "historical/static-xge-aot-win-r2/public-host-imports.log",
+      "sha256": "fbe1ac50bcd1979f1a94059fb89765cfa266bf29099e9a265b9daa39a2b81374",
+      "bytes": 39629
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r2\\results.json",
+      "archivedAs": "historical/static-xge-aot-win-r2/results.json",
+      "sha256": "4a17fb4d1bd848ada4e0dd9400510f4a81ef5e22701fc26b8bde11c4ccf80a99",
+      "bytes": 361252
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r2\\static-emit.log",
+      "archivedAs": "historical/static-xge-aot-win-r2/static-emit.log",
+      "sha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74",
+      "bytes": 29
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r2\\static-exe.log",
+      "archivedAs": "historical/static-xge-aot-win-r2/static-exe.log",
+      "sha256": "6520d35d0b74d2dcec6c2e8e783d9ef8ac62746140c6ef8ddaed836bdac9a779",
+      "bytes": 82
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r2\\static-program.json",
+      "archivedAs": "historical/static-xge-aot-win-r2/static-program.json",
+      "sha256": "7a7890533d111e4f5aa7887891a200251167a4bdfca7899d9520bf1c2b4b2282",
+      "bytes": 28201866
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r3\\public-host-build.log",
+      "archivedAs": "historical/static-xge-aot-win-r3/public-host-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r3\\public-host-imports.log",
+      "archivedAs": "historical/static-xge-aot-win-r3/public-host-imports.log",
+      "sha256": "8a087615238a20bbf80bf583c982e3bb286a4f48eacc5b2621b9ffda8d590f95",
+      "bytes": 39629
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r3\\results.json",
+      "archivedAs": "historical/static-xge-aot-win-r3/results.json",
+      "sha256": "ddd6f42127677fff746c78578d000068ac4da0369e7e0bb024df18cf66314d4d",
+      "bytes": 349321
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r3\\static-emit.log",
+      "archivedAs": "historical/static-xge-aot-win-r3/static-emit.log",
+      "sha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74",
+      "bytes": 29
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r3\\static-exe.log",
+      "archivedAs": "historical/static-xge-aot-win-r3/static-exe.log",
+      "sha256": "b96ae41f59feaed837a089a7ccfcbaf7283775ab2e8f5b835735f794248741c1",
+      "bytes": 91
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r3\\static-program.json",
+      "archivedAs": "historical/static-xge-aot-win-r3/static-program.json",
+      "sha256": "7a7890533d111e4f5aa7887891a200251167a4bdfca7899d9520bf1c2b4b2282",
+      "bytes": 28201866
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r4\\public-host-build.log",
+      "archivedAs": "historical/static-xge-aot-win-r4/public-host-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r4\\public-host-imports.log",
+      "archivedAs": "historical/static-xge-aot-win-r4/public-host-imports.log",
+      "sha256": "8b85faa373076f0ace0111aa1f668d5af7398af8baf7a97d4728e40dd01a5bbf",
+      "bytes": 39629
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r4\\results.json",
+      "archivedAs": "historical/static-xge-aot-win-r4/results.json",
+      "sha256": "23d171c3952e7c435f85b446dd5f355a9814240a4381390bd3d5ba6fa1ceef2c",
+      "bytes": 348051
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r4\\static-emit.log",
+      "archivedAs": "historical/static-xge-aot-win-r4/static-emit.log",
+      "sha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74",
+      "bytes": 29
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r4\\static-exe.log",
+      "archivedAs": "historical/static-xge-aot-win-r4/static-exe.log",
+      "sha256": "025ba6f4f715835e12d2938012546a7de9078ad61610d10a9db6266796ee2413",
+      "bytes": 93
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r4\\static-program.json",
+      "archivedAs": "historical/static-xge-aot-win-r4/static-program.json",
+      "sha256": "7a7890533d111e4f5aa7887891a200251167a4bdfca7899d9520bf1c2b4b2282",
+      "bytes": 28201866
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r5\\public-host-build.log",
+      "archivedAs": "historical/static-xge-aot-win-r5/public-host-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r5\\public-host-imports.log",
+      "archivedAs": "historical/static-xge-aot-win-r5/public-host-imports.log",
+      "sha256": "af0c68bd32a0c689e481d3555306f4fd99d108f60e80e139284e8add94bb7425",
+      "bytes": 39629
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r5\\relocated-numeric-run.log",
+      "archivedAs": "historical/static-xge-aot-win-r5/relocated-numeric-run.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r5\\results.json",
+      "archivedAs": "historical/static-xge-aot-win-r5/results.json",
+      "sha256": "3c3c34de0fc2f21573725e7d784c44c795b17b38a71e502aa56585fb8d23a0f4",
+      "bytes": 340993
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r5\\static-emit.log",
+      "archivedAs": "historical/static-xge-aot-win-r5/static-emit.log",
+      "sha256": "4bb8e0bf7e7e60bc36de6a10d68ccacd301c426092c834d910f232958c83ef74",
+      "bytes": 29
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r5\\static-exe.log",
+      "archivedAs": "historical/static-xge-aot-win-r5/static-exe.log",
+      "sha256": "3b8f7954ec9f2bfe0e981cf6f1c405e75653eed399973a310e40a1c5d29d6c31",
+      "bytes": 28
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r5\\static-imports.log",
+      "archivedAs": "historical/static-xge-aot-win-r5/static-imports.log",
+      "sha256": "30ad406ba1c0c81e296262b777230645d0f4acdd97d3bf203182622966442bc7",
+      "bytes": 2878975
+    },
+    {
+      "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r5\\static-program.json",
+      "archivedAs": "historical/static-xge-aot-win-r5/static-program.json",
+      "sha256": "7a7890533d111e4f5aa7887891a200251167a4bdfca7899d9520bf1c2b4b2282",
+      "bytes": 28201866
+    }
+  ],
+  "sourceMaterial": "dev/release-materials/sources/native-static-core-20261106/manifest.json",
+  "sourceOverlays": [
+    "dev/release-materials/sources/tcc-pdata-20261106/manifest.json",
+    "dev/release-materials/sources/tcc-iat-chain-20261106/manifest.json",
+    "dev/release-materials/sources/static-support-20261106-r2/manifest.json"
+  ],
+  "sourceRoot11ManifestSha256": "17a4fa77a8a4fe0981cbbaf3c0621bce6c9522ad5eac5ec2114a9a99ae48e624",
+  "productionImages": {
+    "xl.dll": "7a05d69bea0d4889735e115c2bd9bc1e74280c7a1245d7e955c97d7798310c9e",
+    "xlc.dll": "585edd3bceded526fb226cbe2f5321cc6f7ebcbae566af0da47d7315b5bba623"
+  },
+  "publication": {
+    "complete": true,
+    "passed": true,
+    "scope": "Install the independently qualified O2 Windows compiler/runtime, additive public TCC header and optional complete static SDK. Existing dynamic packages and user configuration remain in place.",
+    "inputs": {
+      "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r6\\results.json": "00040c718a53ed95b05ced1dae25da2b867db73bb253f633af53518c7e2e3d50",
+      "F:\\xlang-validation\\native-static-20261106\\production-aot-win-r3\\results.json": "4787d705159b7292b4688ddff08856d61247faa32f8ffaa9a2af544530572301"
+    },
+    "replaced": [
+      {
+        "path": "D:\\GIT\\x-lang\\release\\win_x64\\xl.dll",
+        "beforeSha256": "6ee80b3d2370289c1077b924d700985226c8df8aef17779b87c5c3e38a425835",
+        "beforeBytes": 14828544,
+        "source": "F:\\xlang-validation\\native-static-20261106\\production-win-r5\\release\\win_x64\\xl.dll",
+        "afterSha256": "7a05d69bea0d4889735e115c2bd9bc1e74280c7a1245d7e955c97d7798310c9e",
+        "afterBytes": 15164928,
+        "rollback": "F:\\xlang-validation\\native-static-20261106\\native-static-install-win-r1\\rollback\\0-xl.dll"
+      },
+      {
+        "path": "D:\\GIT\\x-lang\\release\\win_x64\\xlc.dll",
+        "beforeSha256": "e4ab39f8137fd91781bcc57dfd20d9904aa6bc2e74f422073d6015de3c489642",
+        "beforeBytes": 20278272,
+        "source": "F:\\xlang-validation\\native-static-20261106\\production-win-r5\\release\\win_x64\\xlc.dll",
+        "afterSha256": "585edd3bceded526fb226cbe2f5321cc6f7ebcbae566af0da47d7315b5bba623",
+        "afterBytes": 21232128,
+        "rollback": "F:\\xlang-validation\\native-static-20261106\\native-static-install-win-r1\\rollback\\1-xlc.dll"
+      },
+      {
+        "path": "D:\\GIT\\x-lang\\release\\win_x64\\include\\libtcc.h",
+        "beforeSha256": "fc77217b1e8ab783d512df2b0a8249c801bdd8b5a4d2c5643169bd2c61ece3ab",
+        "beforeBytes": 4240,
+        "source": "F:\\xlang-validation\\native-static-20261106\\core-source-r11\\release\\win_x64\\include\\libtcc.h",
+        "afterSha256": "99f08eef70ec87cd07099f9586459083187b577b10a84e80c0d006bd379ff754",
+        "afterBytes": 5290,
+        "rollback": "F:\\xlang-validation\\native-static-20261106\\native-static-install-win-r1\\rollback\\2-libtcc.h"
+      }
+    ],
+    "staticSdkRoot": "D:\\GIT\\x-lang\\release\\win_x64\\static\\xge3\\packages",
+    "staticSdkFiles": {
+      "xge/README.md": "32c43bf79f231ff846d6fafd45c9c91f0b5d4afe5337cff4e08bc17519dcf6e6",
+      "xge/xlang.package.json": "df1520f5f3e532a892f470775e9efbc0309042c345533fe1b555ac95772da891",
+      "xui/README.md": "4771e5536a864f644b262510e92f6d122d291a2938408e5e032106042d07b2c8",
+      "xui/xlang.package.json": "8ff144ff6cc2bd42ec76bdfe7e6f5fee4d1ed3567adac08989e2638810994e50",
+      "_xge_native/xlang.package.json": "f5b23528ecbb94739f6a03df02a6bd99d02677c2e6dd844f8f70537e9adf562b",
+      "xge/examples/gui_shapes.xl": "33ecf635b267e67ccb59e8c0852e41d1ed97f8bed4cd4e50fe5fa94271c7079f",
+      "xge/examples/headless_frame.xl": "f609b4f2e45cd4c571f2ee83c0e11b000afdd46b8c6123e5fe758115dfb77ef9",
+      "xge/examples/headless_shape.xl": "604881d4b0ebe27fe57de79387a7aba33c6dd6d15d3d1096774d3d02c67a053b",
+      "xge/examples/README.md": "59e85ec519654b0521c314eb5000b007b3069da4bb5c29a374a1f5e645a4ae44",
+      "xge/src/bootstrap.xl": "865bce317090021d060362a468a10423048e190026c5df15d3384670b57209f0",
+      "xge/src/callbacks.xl": "2d74e1a1ecec9850d658478af08086e5708186c407add0c988b371e22d89cd45",
+      "xge/src/constants.xl": "66747ce132d8d6de00014685f1c3bc3eb00787ce5f789724bd8a8e3d9510c04a",
+      "xge/src/data_object.xl": "f30dd0685a04afeb806aa4f83c82ccd697424d9b1e991c17a0f8f7d5870deaad",
+      "xge/src/functions.xl": "ed8049b4192f78d197dbcef34ec10792f64bce0e6852d6a52c44921d3585c8ad",
+      "xge/src/records.xl": "f051715ee4986cbcff6724f7da1ff37cb4690dfc488b2d17fc3bb169ff7196aa",
+      "xge/src/resources.xl": "713befbe383c90fec25a4bcbe7f01fc05c3fa6fdb7ae60ec93db82f018f36af2",
+      "xge/src/shapes.xl": "e1ac7792b0e9aaa8abca5191c11ecfaafa9de606218c70fbbfed161fd7d30c26",
+      "xui/examples/context_graph.xl": "3dd88afa57f700c7c6266904c5115e4dd247da3ae5a2370b8d6f7e0d6b8ce868",
+      "xui/examples/data_object.xl": "74bd0f37a2708d116c685b98b1329ea4d5acf915836d7becfec935ab7791e96d",
+      "xui/examples/document_model.xl": "e7ba015920c83034b5d1cd8dca7d1282644c079524e36f4f552b63b52e65fadf",
+      "xui/examples/document_ui_headless.xl": "c5a04ef4742b0136cf89c1322ed5745e216f55f7e250f25eedbf3093eb25ad1d",
+      "xui/examples/gui_surface_draw.xl": "6151f8e006865593b65f30660ccf3062e17402fecc5f6bf8e97c37f323e45126",
+      "xui/examples/headless_cell.xl": "8120e63db03bf332ab9515ecb0229cffa909a73322d79a3a949ce9295109dfc0",
+      "xui/examples/headless_path.xl": "b2bad5446a434dbcff574ad37321ce230afc2c76e44dc7e4b025d3fcc0cc0c0f",
+      "xui/examples/manager_lifetime.xl": "52fd66469509a4317e992fe4b2d76922a18345766c8e28518f288d159565cd32",
+      "xui/examples/README.md": "8c5c3f38b9bffe3b26ea83bd71fd71fcdd9775bc9ade87dcfe16df0b086e13c0",
+      "xui/src/bootstrap.xl": "865bce317090021d060362a468a10423048e190026c5df15d3384670b57209f0",
+      "xui/src/cell.xl": "852cb65a590028fb42af45c07724e99976b915a49c5a1bdfa386e2cedeb6162b",
+      "xui/src/constants.xl": "175d2083c63cf40971511954c44483fd8ebc93be69c48a12055209a191a436d9",
+      "xui/src/data_object.xl": "32710274d0f069fae960966e0d2d1b94c01a9d27155963fdf95bddf65a5a8774",
+      "xui/src/document.xl": "97747c52db93cb015e0fb3d1065c10752350946bb6062d66709f6011c1a647b5",
+      "xui/src/document_records.xl": "aa6e9d36ce9ebd07317aa616e32cfb35f19206365b345543d22f3350f5b27727",
+      "xui/src/document_ui.xl": "7254a76898532646296b62a7614f3ff661a950a66155ad11ef98d984340d6f5c",
+      "xui/src/document_ui_message_methods.inc": "7c2318a47677164d28d5370a7b125b0adf3df17e7c6124e30860d6746107aa98",
+      "xui/src/document_ui_records.xl": "f67a4626e751660b30ca57dc4082f48e9c3e9d7f830547ae47b7f4e27fd48d13",
+      "xui/src/draw.xl": "522236365e3d98a35062a200386b62f5b89df9b6738b59679ad81050cd4eb14a",
+      "xui/src/managed.xl": "e44acea852f0a8928bedb403cb04d231b41e45962df1cb21ea67b72deddf3ecd",
+      "xui/src/managers.xl": "3a6d827c4985fbb14895a90e0967c5a30a6a6b7e78ea76374b15ef8b270968db",
+      "xui/src/proxy.xl": "e55417b4b749ec9dd7dfc2e7c26a60d0e363e45686119c2fbed915fe9d69932a",
+      "xui/src/records.xl": "292fb590d6b293eea4ec8a56fb38c08e890f84bc2f2ae3abf48cdc380b708839",
+      "xui/src/text_shape.xl": "a4e463dcbe2aa1ec8bfac3f008eeda7590b7635ae519c720af142e39ff3496f7",
+      "_xge_native/include/xge.h": "f3b467786f5faedd225d9c17fb3569d5ca88b5e23e17b5c3a53c03b12e28b79e",
+      "_xge_native/include/xge3_runtime.h": "603723af0fef2d749d3093ff1b12c516cd3d1600bdae9914add404e4db967483",
+      "_xge_native/include/xge_build_config.h": "f8ed27a307ec0642d06715712ca5c2aeea0c7a7c62b1dbbf78c075ac41c3c685",
+      "_xge_native/include/xge_config.h": "5d960786a736321b22d1b88cbe2d3aaac807e8afaa8a7bd0a4e509b06f7b76bf",
+      "_xge_native/include/xge_host_xrt.h": "5e43dc2cff98741941c1be6d02832d6cf34256521c94975e4fe96fd411e7b60f",
+      "_xge_native/include/xge_static_xrt_contract.h": "2a75d40a8e1cceae6dc14c89d42d0be61ba92020a30fc99e361b4cb2de6fcfcb",
+      "_xge_native/include/xnative_transfer.h": "620fe84af1c7c5f40006a65a4ca4435a5d62f2fd500b345514829e27c08dff6f",
+      "_xge_native/include/xui.h": "b10940d61965e0d85e4481d9e6a157410bc6a308a0d7e69f49c0a500d3da56c0",
+      "_xge_native/include/xui_config.h": "01448ede1da13af8e8ef81ef7574f15edc88f5fa8c2312d9d8a5ede91e17f193",
+      "_xge_native/include/xui_document.h": "7062c587237e6486c9efb84ba8e5023b9346ac90e4ab6afe780ad00aa5bd6fe2",
+      "_xge_native/include/xui_document_ui.h": "e343a8600039805be3c5e481fe1d15dbcd426490ce2ad2b5dca65f78b6574bb2",
+      "_xge_native/native/compiler-support.json": "e699bf093fdbe2f145fff8e3972df5e9bc30fe23e96d8819555d81360b86b2c5",
+      "_xge_native/native/libadvapi32-imports.def": "4da4b30d3ec4cadedb9d7ba8ab8a9ed8cf7f1b969048c00db89d834044b78023",
+      "_xge_native/native/libavrt-imports.def": "e2f5f3e82cf038c5160212fbeca8f2f5bb32949bd2c8a4573d441b8ea445499b",
+      "_xge_native/native/libgcc-mingw-code.a": "02687edfb387e593a2a7fd942630e61324b72d9bf78a4f71a07e196a2cb3e33d",
+      "_xge_native/native/libgdi32-imports.def": "9443e8716bdffebc049995d5f97064b4a16f1612ab120519f9a7fc207ecfb3cd",
+      "_xge_native/native/libimm32-imports.def": "f9c113a82e69afe3eb9275da53128d6884372490ab8b61d04786048a651759a2",
+      "_xge_native/native/libiphlpapi-imports.def": "2bf0a7943c6971890fc540ec8dac408efa81d5eb3574b7e5d1e07351197a7104",
+      "_xge_native/native/libkernel32-imports.def": "82da5473fd4327f6eb32a28ee571a36a9ad025225da319ab5b2b71c85c2f4761",
+      "_xge_native/native/libmsvcrt-imports.def": "e94691b5d386eaf669c40feac9c5e8ee8358551bb09bc1986374f7e5b308ea09",
+      "_xge_native/native/libole32-imports.def": "f8f519ea63c4c304b8268339dc231d7b5d1d10720e94cdc151401605a782e2fe",
+      "_xge_native/native/liboleaut32-imports.def": "36c29d3cc0002de558bb924b0688685299ec7974cf2243bbc9bee779d1dd83bc",
+      "_xge_native/native/libshell32-imports.def": "6872b345451a308542454d15e126af519abaa99da7a5be5d05681ac47f0e6f1b",
+      "_xge_native/native/libuser32-imports.def": "41cd16a422de3a5da44a15b3d764467ea934c4060501aa7b0d6be8d9e40fcc9a",
+      "_xge_native/native/libwinmm-imports.def": "076b4cfa09ccdd6aacc71c1600aea8d35644eaf868a6ea65736775b4ace35d2a",
+      "_xge_native/native/libws2_32-imports.def": "b8fe9ff87005cedc25a822d53c597eb3b711952fa325cb10f032d895fd40ad27",
+      "_xge_native/native/libxge3_static.a": "91942fad856432e4ade157cea671305c8b78df2b10b13f4ed422306ba94288fa",
+      "_xge_native/src/bootstrap.xl": "54d74fc4d81f9bade0f3fa358178073d885425e59bda9fd64cd79073c8bc19f0",
+      "_xge_native/src/runtime.c": "946b3b483fcbbb0aa12b7347da5891f0cd4626ea949e4747e0dc6af4dd19c3c7",
+      "_xge_native/src/transfer.c": "20f0b5820b6d46c77364935724575a9d885965c3e636c1138019384d289a4eb7",
+      "_xge_native/include/extlibs/xrt/xrt.h": "963890acf073a7ec9b318c415fd0d8669a63acc88d83a367fd7bcba11e35438a",
+      "_xge_native/include/extlibs/xrt/xrt_config.h": "0aa49016ab725145a8043619b860f780d0b81cbb2184084aaf1c485fa57bf314",
+      "_xge_native/notices/compiler-support/COPYING.MinGW-w64-runtime.txt": "ecff91ddb5799c8b79a4bdb576921b9c3e2989783fd1944527e8eb9b41a5ff5f",
+      "_xge_native/notices/compiler-support/COPYING.RUNTIME": "28e85c5aa4af9b4f1dfe6b4817aa3eefb3eaaee7fd735045016f29ccf50276a1",
+      "_xge_native/notices/compiler-support/COPYING3": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "_xge_native/notices/compiler-support/README.md": "a52579d119af5d0213f75f94e931bc82d50dda5cf1b2ba039970f9b1af239832"
+    },
+    "externalPublishPerformed": false,
+    "productsVerified": true,
+    "staticSdkVerified": true
+  },
+  "installedCli": {
+    "complete": true,
+    "passed": true,
+    "scope": "Installed Windows CLI CPU-only static XGE acceptance; actual public release directory and optional SDK.",
+    "installedImages": {
+      "xl.exe": "6a9378f3c772b40bcd035969212fd1ee99a1b8ed22be00c30c37114e0523a2f6",
+      "xl.dll": "7a05d69bea0d4889735e115c2bd9bc1e74280c7a1245d7e955c97d7798310c9e",
+      "xlc.dll": "585edd3bceded526fb226cbe2f5321cc6f7ebcbae566af0da47d7315b5bba623"
+    },
+    "rows": [
+      {
+        "name": "version",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+          "--version",
+          "--json"
+        ],
+        "exitCode": 0,
+        "seconds": 0.016,
+        "logSha256": "acc9c5f5f0229c7575b6fdd018988eab725485e8a42531ed18c5826aa988c3b7"
+      },
+      {
+        "name": "check",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+          "check",
+          "F:\\xlang-validation\\native-static-20261106\\installed-cli-win-r2\\owned-nul.xl"
+        ],
+        "exitCode": 0,
+        "seconds": 0.203,
+        "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+      },
+      {
+        "name": "cgen",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+          "cgen",
+          "F:\\xlang-validation\\native-static-20261106\\installed-cli-win-r2\\owned-nul.xl",
+          "--emit",
+          "F:\\xlang-validation\\native-static-20261106\\installed-cli-win-r2\\emitted-owned-nul.c"
+        ],
+        "exitCode": 0,
+        "seconds": 0.531,
+        "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "jit-run",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+          "run",
+          "F:\\xlang-validation\\native-static-20261106\\installed-cli-win-r2\\owned-nul.xl"
+        ],
+        "exitCode": 0,
+        "seconds": 0.828,
+        "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "full-build",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+          "build",
+          "F:\\xlang-validation\\native-static-20261106\\installed-cli-win-r2\\static_xge_aot_windows.xl",
+          "F:\\xlang-validation\\native-static-20261106\\installed-cli-win-r2\\static_xge_aot_math.c",
+          "--inc-path",
+          "F:\\xlang-validation\\native-static-20261106\\installed-cli-win-r2",
+          "-o",
+          "F:\\xlang-validation\\native-static-20261106\\installed-cli-win-r2\\program.exe"
+        ],
+        "exitCode": 0,
+        "seconds": 1.797,
+        "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "imports",
+        "command": [
+          "E:\\software\\w64devkit\\bin\\objdump.EXE",
+          "-p",
+          "F:\\xlang-validation\\native-static-20261106\\installed-cli-win-r2\\program.exe"
+        ],
+        "exitCode": 0,
+        "seconds": 0.094,
+        "logSha256": "20615d9f6b35703af28ebc3fe3d3f3ec0a00724198871345632578b4f6602f9b"
+      },
+      {
+        "name": "relocated-execute",
+        "command": [
+          "F:\\xlang-validation\\native-static-20261106\\installed-cli-win-r2\\relocated\\program.exe"
+        ],
+        "exitCode": 0,
+        "seconds": 0.015,
+        "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "importDlls": [
+      "msvcrt.dll",
+      "kernel32.dll",
+      "ole32.dll",
+      "SHELL32.dll"
+    ],
+    "programBytes": 1062912,
+    "programSha256": "16a08c88225bd38d58881b18436a0c325b7bb5173f9792889be2d3ab58dfa443",
+    "peExecuted": true
+  },
+  "windowsProductionAcceptance": {
+    "path": "production-aot-win-r3/results.json",
+    "sha256": "4787d705159b7292b4688ddff08856d61247faa32f8ffaa9a2af544530572301",
+    "passedRows": 46
+  },
+  "fullStaticPe": {
+    "path": "F:\\xlang-validation\\native-static-20261106\\static-xge-aot-win-r6\\static-program.exe",
+    "sha256": "16a08c88225bd38d58881b18436a0c325b7bb5173f9792889be2d3ab58dfa443",
+    "bytes": 1062912
+  },
+  "linuxQualification": {
+    "freshTargetObjects": 1564,
+    "inheritedTargetObjects": 0,
+    "sourcefreePassedRows": 40,
+    "staticXgePassedRows": 6,
+    "root11Equivalence": "All three Linux compilation profiles have byte-identical preprocessed source to qualified Root10. The PE-only change is not selected. Original Root10 binary paths/hashes are retained."
+  },
+  "scopeLimits": [
+    "CPU-only; no GUI, GPU, clipboard, network or network-security tests.",
+    "Windows JIT rejects reachable OS static-TLS code; qualified PE AOT includes TLS template/loader verification.",
+    "Only the specified frozen source overlays and incremental production dependency closure were built; unrelated live workspace changes are excluded.",
+    "The earlier installed CLI probe accidentally emitted a matching-name C sidecar next to its XL input; corrected fixture placement passed without changing compiler code. Original failure record is preserved."
+  ]
+}

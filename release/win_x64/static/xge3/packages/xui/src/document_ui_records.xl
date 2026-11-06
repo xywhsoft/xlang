@@ -1,0 +1,174 @@
+// Pointer-free exact Document UI C records. Owning descriptors and callback outputs are excluded.
+export extern "xui_doc_rect_t" struct DocumentRect @header("xge3_runtime.h")
+ c_double x
+ c_double y
+ c_double width
+ c_double height
+end
+
+export extern "xui_doc_renderer_stats_t" struct DocumentRendererStats @header("xge3_runtime.h")
+ c_uint iSize
+ uint64 iBlocks
+ uint64 iMeasuredBlocks
+ uint64 iShapedBytes
+ uint64 iFragments
+ uint64 iLayoutPasses
+ uint64 iSourceBlocks
+ c_int bLiveSourceFallback
+ uint64 iSourceBytesScanned
+ uint64 iSourceIncrementalUpdates
+ uint64 iSourceReusedBlocks
+ uint64 iSourceRowsCreated
+ uint64 iLayoutCacheBytes
+ uint64 iLayoutCacheBudgetBytes
+ uint64 iLayoutCacheEvictions
+ uint64 iDrawFragmentsExamined
+ uint64 iHitFragmentsExamined
+ uint64 iCaretFragmentsExamined
+ uint64 iTextRunBytes
+end
+
+export extern "xui_doc_image_load_limits_t" struct DocumentImageLoadLimits @header("xge3_runtime.h")
+ c_uint iSize
+ uint64 iMaxEncodedBytes
+ uint64 iMaxPixels
+end
+
+export extern "xui_doc_image_async_stats_t" struct DocumentImageAsyncStats @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iRunning
+ c_uint iQueued
+ c_uint iOutstanding
+ uint64 iCopiedBytes
+end
+
+export extern "xui_doc_cell_hit_t" struct DocumentCellHit @header("xge3_runtime.h")
+ c_uint iSize
+ uint64 iTableId
+ uint64 iCellId
+ c_uint iRow
+ c_uint iColumn
+ c_uint iRowSpan
+ c_uint iColumnSpan
+ DocumentRect tBounds
+end
+
+export extern "xui_doc_table_selection_t" struct DocumentTableSelection @header("xge3_runtime.h")
+ c_uint iSize
+ uint64 iTableId
+ c_uint iRow
+ c_uint iColumn
+ c_uint iRows
+ c_uint iColumns
+end
+
+export extern "xui_doc_web_provider_stats_t" struct DocumentWebProviderStats @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iQueued
+ c_uint iReady
+ c_uint iFailed
+ c_uint iDrawn
+ uint64 iDrawCalls
+ uint64 iCacheBytes
+ uint64 iPaletteGeneration
+ c_uint bWorkerFailed
+ c_char sWorkerError[128]
+ c_uint bRestartPending
+ c_uint bRecovering
+ c_uint iRestartAttempts
+end
+
+export extern "xui_doc_command_state_t" struct DocumentCommandState @header("xge3_runtime.h")
+ c_uint iSize
+ c_int bEnabled
+ c_int bActive
+ c_int bMixed
+ c_int iDisabledReason
+end
+
+export extern "xui_doc_paragraph_spacing_state_t" struct DocumentParagraphSpacingState @header("xge3_runtime.h")
+ c_uint iSize
+ c_int bEnabled
+ c_int bMixed
+ c_int bUseDefault
+ c_float fValue
+ c_int iDisabledReason
+end
+
+export extern "xui_doc_editor_text_style_state_t" struct DocumentEditorTextStyleState @header("xge3_runtime.h")
+ c_uint iSize
+ c_int bEnabled
+ c_int iDisabledReason
+ DocumentTextStyleQuery tQuery
+end
+
+export extern "xui_doc_editor_pending_work_t" struct DocumentEditorPendingWork @header("xge3_runtime.h")
+ c_uint iSize
+ c_int bHasInput
+ uint64 iQueuedEvents
+ c_int iResult
+end
+
+export const c_uint XUI_DOC_VISUAL = 1
+export const c_uint XUI_DOC_SOURCE_TEXT = 2
+export const c_uint XUI_DOC_LIVE_MARKDOWN = 3
+export const c_uint XUI_DOC_EDIT_UNDO = 1
+export const c_uint XUI_DOC_EDIT_REDO = 2
+export const c_uint XUI_DOC_EDIT_SELECT_ALL = 3
+export const c_uint XUI_DOC_EDIT_COPY = 4
+export const c_uint XUI_DOC_EDIT_CUT = 5
+export const c_uint XUI_DOC_EDIT_PASTE = 6
+export const c_uint XUI_DOC_EDIT_BACKSPACE = 7
+export const c_uint XUI_DOC_EDIT_DELETE = 8
+export const c_uint XUI_DOC_EDIT_ENTER = 9
+export const c_uint XUI_DOC_EDIT_BOLD = 10
+export const c_uint XUI_DOC_EDIT_ITALIC = 11
+export const c_uint XUI_DOC_EDIT_UNDERLINE = 12
+export const c_uint XUI_DOC_EDIT_STRIKE = 13
+export const c_uint XUI_DOC_EDIT_INDENT_LIST = 14
+export const c_uint XUI_DOC_EDIT_OUTDENT_LIST = 15
+export const c_uint XUI_DOC_EDIT_PARAGRAPH = 16
+export const c_uint XUI_DOC_EDIT_HEADING_1 = 17
+export const c_uint XUI_DOC_EDIT_HEADING_2 = 18
+export const c_uint XUI_DOC_EDIT_HEADING_3 = 19
+export const c_uint XUI_DOC_EDIT_HEADING_4 = 20
+export const c_uint XUI_DOC_EDIT_HEADING_5 = 21
+export const c_uint XUI_DOC_EDIT_HEADING_6 = 22
+export const c_uint XUI_DOC_EDIT_ALIGN_LEFT = 23
+export const c_uint XUI_DOC_EDIT_ALIGN_CENTER = 24
+export const c_uint XUI_DOC_EDIT_ALIGN_RIGHT = 25
+export const c_uint XUI_DOC_EDIT_ALIGN_JUSTIFY = 26
+export const c_uint XUI_DOC_EDIT_CODE = 27
+export const c_uint XUI_DOC_EDIT_SUBSCRIPT = 28
+export const c_uint XUI_DOC_EDIT_SUPERSCRIPT = 29
+export const c_uint XUI_DOC_EDIT_HIGHLIGHT = 30
+export const c_uint XUI_DOC_EDIT_TABLE_NEXT_CELL = 31
+export const c_uint XUI_DOC_EDIT_TABLE_PREVIOUS_CELL = 32
+export const c_uint XUI_DOC_EDIT_TABLE_INSERT_ROW_BEFORE = 33
+export const c_uint XUI_DOC_EDIT_TABLE_INSERT_ROW_AFTER = 34
+export const c_uint XUI_DOC_EDIT_TABLE_DELETE_ROW = 35
+export const c_uint XUI_DOC_EDIT_TABLE_INSERT_COLUMN_BEFORE = 36
+export const c_uint XUI_DOC_EDIT_TABLE_INSERT_COLUMN_AFTER = 37
+export const c_uint XUI_DOC_EDIT_TABLE_DELETE_COLUMN = 38
+export const c_uint XUI_DOC_EDIT_TABLE_SPLIT_CELL = 39
+export const c_uint XUI_DOC_EDIT_TABLE_MERGE_CELLS = 40
+export const c_uint XUI_DOC_EDIT_TABLE_COLUMN_NARROWER = 41
+export const c_uint XUI_DOC_EDIT_TABLE_COLUMN_WIDER = 42
+export const c_uint XUI_DOC_EDIT_TABLE_COLUMN_AUTO = 43
+export const c_uint XUI_DOC_EDIT_CLEAR_FORMATTING = 44
+export const c_uint XUI_DOC_EDIT_BULLET_LIST = 45
+export const c_uint XUI_DOC_EDIT_NUMBER_LIST = 46
+export const c_uint XUI_DOC_EDIT_TASK_LIST = 47
+export const c_uint XUI_DOC_EDIT_MOVE_BLOCK_UP = 48
+export const c_uint XUI_DOC_EDIT_MOVE_BLOCK_DOWN = 49
+export const c_uint XUI_DOC_EDIT_BLOCK_QUOTE = 50
+export const c_uint XUI_DOC_EDIT_INSERT_RULE = 51
+export const c_uint XUI_DOC_EDIT_INSERT_CODE_BLOCK = 52
+export const c_uint XUI_DOC_EDIT_TOGGLE_TASK = 53
+export const c_uint XUI_DOC_TOOLBAR_HISTORY = 1
+export const c_uint XUI_DOC_TOOLBAR_CLIPBOARD = 2
+export const c_uint XUI_DOC_TOOLBAR_INLINE_FORMAT = 4
+export const c_uint XUI_DOC_TOOLBAR_ALIGNMENT = 8
+export const c_uint XUI_DOC_TOOLBAR_BLOCKS = 16
+export const c_uint XUI_DOC_TOOLBAR_LISTS = 32
+export const c_uint XUI_DOC_TOOLBAR_DEFAULT = 31

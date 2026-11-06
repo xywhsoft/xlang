@@ -1,0 +1,27 @@
+// Interactive desktop demo. This file is not run by the compile-only gate.
+import xge
+
+func main(...) as int
+ // NULL selects the native engine defaults; no caller-owned descriptor exists.
+ xge.initNative()
+ try
+  xge.run(func() as c_int
+   assert xge.begin()==0
+   xge.clear(xge.colorRGBA(20,25,34,255))
+   auto rectangle=xge.Rect()
+   rectangle.fX=c_float(40)
+   rectangle.fY=c_float(40)
+   rectangle.fW=c_float(240)
+   rectangle.fH=c_float(120)
+   xge.shapeRectFill(rectangle,xge.colorRGBA(50,140,210,255))
+   xge.shapeCircleFill(360,100,60,xge.colorRGBA(240,180,70,255))
+   assert xge.nativeEnd()==0
+   return c_int(0)
+  end)
+ finally
+  // Clear the persistent closure before shutting down its engine.
+  xge.setFrameCallback(null)
+  xge.unit()
+ end
+ return 0
+end

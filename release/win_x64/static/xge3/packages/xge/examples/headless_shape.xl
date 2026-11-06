@@ -1,0 +1,23 @@
+// CPU geometry only: no initNative(), window, draw or device operation.
+import xge
+
+func main(...) as int
+ auto shape=xge.createShape()
+ try
+  shape.id(7)
+  shape.moveTo(0,0)
+  shape.lineTo(30,40)
+  assert shape.idGet()==c_uint(7)
+  auto copy=shape.clone()
+  try
+   copy.id(9)
+   assert copy.idGet()==c_uint(9)
+   assert shape.idGet()==c_uint(7)
+  finally
+   copy.close()
+  end
+ finally
+  shape.close()
+ end
+ return 0
+end

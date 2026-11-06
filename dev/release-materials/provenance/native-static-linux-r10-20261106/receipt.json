@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "date": "2026-11-06",
+  "scope": "Final R10 Linux SourceDriver + matching Only-TCC/full-VFS integration. Fresh1564 GCC O2 sectioned ELF targets with zero inherited objects, one Core API host TU successor, platform test-driver rebuild. No Linux production-profile DLL/CLI rebuild or release publication claimed.",
+  "passed": true,
+  "reports": [
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\linux-final-vfs-r2\\fullProvider.json",
+      "archivePath": "fullProvider.json",
+      "sha256": "cfb75e18edf1ab12177fd04d24c28551eddf4ac7a011b85e076630f4483f45fb"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\linux-final-vfs-r2\\precompiled-manifest.json",
+      "archivePath": "precompiled-manifest.json",
+      "sha256": "11b9e42aa313418818972dd141e5e43d62a344c1d93cf12651ee52f1b972979f"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\linux-final-vfs-r2\\receipt.json",
+      "archivePath": "receipt.json",
+      "sha256": "97db315e7a7ae5a9be8d133033b278d5ee9cf57ca46b471580b53ca90f37bba8"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\linux-final-vfs-r2\\sourcefree40.json",
+      "archivePath": "sourcefree40.json",
+      "sha256": "8ecc0c6283a2a1dbffab62e0752308a040ff8c6271fda5286ee6214c0436416f"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\linux-final-vfs-r2\\sourcePreparation.json",
+      "archivePath": "sourcePreparation.json",
+      "sha256": "7008e3fa76d7e75d7b336c7700963eebd42bb7d9fbe78ca6920499c83183ede2"
+    },
+    {
+      "originalPath": "F:\\xlang-validation\\native-static-20261106\\linux-final-vfs-r2\\staticXge6.json",
+      "archivePath": "staticXge6.json",
+      "sha256": "3d5408fc1a5b2e30f36f1e1a62a22699dd5983b16e279d0c01ef9d6d4cfbe591"
+    }
+  ],
+  "archiveSha256": "7869e7b7ee2bf61ae3c5d5bddae2d4b51b18058ea69d3af82bb104fe2ac3f43c",
+  "sourceFreeze": "F:/xlang-validation/native-static-20261106/core-source-r10.json",
+  "sourceFreezeSha256": "8605c6ad00805d3bac4a0d9052259c936c3da2eeb1650ba7b2f9c88eaf462c6c",
+  "freshTargetObjects": 1564,
+  "inheritedTargetObjects": 0,
+  "sourceFreeRows": 40,
+  "staticXgeSteps": 6,
+  "shippingDelivery": false,
+  "productionLinuxDllRebuilt": false
+}

@@ -1,0 +1,2 @@
+// Normal module import executes the shared native initializer once.
+import "_xge_native"

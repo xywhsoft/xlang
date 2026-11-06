@@ -1,0 +1,28 @@
+{
+  "complete": true,
+  "passed": true,
+  "previousSha256": "88c74986b35eff228de648c8bec102c38f65cdb3048eceeed676f4dd64d5a2e0",
+  "currentSha256": "c4c7208b6eba5fcf81bf038d02eec7a8364abb19ca3490187600b3084fc71e00",
+  "changedWindowsImages": [
+    {
+      "sha256": "7a05d69bea0d4889735e115c2bd9bc1e74280c7a1245d7e955c97d7798310c9e",
+      "bytes": 15164928,
+      "path": "release/win_x64/xl.dll",
+      "origin": "native-static-windows-qualified-20261106-r2"
+    },
+    {
+      "sha256": "585edd3bceded526fb226cbe2f5321cc6f7ebcbae566af0da47d7315b5bba623",
+      "bytes": 21232128,
+      "path": "release/win_x64/xlc.dll",
+      "origin": "native-static-windows-qualified-20261106-r2"
+    }
+  ],
+  "scope": "Mutable delivery index update only; prior compiler/static qualification records retained. IDE, engine, Linux products and their metadata unchanged.",
+  "archive": {
+    "path": "index-history.zip",
+    "sha256": "cb25318085b3598e69b72a6706de34f3cda497f0752fdb3c9e5bbb6d5042cb61",
+    "bytes": 77557
+  },
+  "nativeBuilderRevision": "64a43fcf86b6ac1ecee56264af3fb4d220aa0a60",
+  "compilerIntegrationRevision": "5a236c9b92569054d541cfc9b020f0df2c10cc13"
+}
