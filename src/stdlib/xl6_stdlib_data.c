@@ -2374,7 +2374,7 @@ static const char xl6StdOsStartFileBody[] =
 
 static const char xl6StdOsChainBody[] =
     "func __xl_std_os_chain(string command) as int\n"
-    "    return process.exitCode(command)\n"
+    "    return ProcessCommand(command).run().exitCode\n"
     "end\n";
 
 static const char xl6StdPathHomeBody[] =

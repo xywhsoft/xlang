@@ -28,7 +28,7 @@ int xl6IrCgenEmitCEx(XL6_Output* out, const XL6_IrModule* module,
         for(size_t t=0;t<module->callTargetCount;++t) {
             XL6_ArtifactRuntimeId owner=module->callTargets[t].foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_CALL ?
                 xl6ArtifactRuntimeSymbolOwner(module->callTargets[t].cName) : XL6_ARTIFACT_RUNTIME_COUNT;
-            foreign |= owner==XL6_ARTIFACT_FOREIGN_RESOURCE;
+            foreign |= owner==XL6_ARTIFACT_FOREIGN_RESOURCE || owner==XL6_ARTIFACT_FOREIGN_NET || owner==XL6_ARTIFACT_FOREIGN_TCP;
             copy |= owner==XL6_ARTIFACT_VALUE_COPY_COLLECTIONS;
         }
         if(foreign)xl6OutputPuts("#include <__xl_runtime/xl6_foreign_resource.h>\n",out);

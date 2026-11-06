@@ -1,0 +1,337 @@
+// 2048.xl — 2048 数字合并（键盘经典游戏）
+// 方向键/WASD 移动合并，死亡后 R 重开。
+// 限帧图形验证：xl run 2048.xl -- 60
+import xge
+from "./_game.xl" import runGame, loadGameFont, loadGameSound, loadGameTexture, rect, pixels, vertex, keyPressed, keyDown, mouseX, mouseY, mouseLeftDown, mouseRightDown
+
+// --- 游戏参数 ---
+int CELL = 110                       // 格子边长
+int GAP = 12                         // 格间距
+int PAD = 16                         // 棋盘外边距
+int HUD_H = 48                       // 顶部 HUD 高度
+
+// --- 游戏状态 ---
+array<int> tiles = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+array<int> lineBuf = [0, 0, 0, 0]    // 行/列提取缓冲
+int score = 0
+bool dead = false
+bool won = false
+xge.Font? hudFont = null
+xge.Font? bigFont = null
+Random rng = Random(uint64(2048), uint64(7))
+
+// --- 布局 ---
+func cellX(int c) as int
+    return PAD + c * (CELL + GAP)
+end
+
+func cellY(int r) as int
+    return HUD_H + PAD + r * (CELL + GAP)
+end
+
+func boardW() as int
+    return 4 * CELL + 3 * GAP
+end
+
+// --- 初始化 ---
+func reset()
+    int i = 0
+    while i < 16
+        tiles[i] = 0
+        i += 1
+    end
+    score = 0
+    dead = false
+    won = false
+    spawnTile()
+    spawnTile()
+end
+
+// 在随机空位生成 2（90%）或 4（10%）
+func spawnTile()
+    int count = 0
+    int i = 0
+    while i < 16
+        if tiles[i] == 0 then
+            count += 1
+        end
+        i += 1
+    end
+    if count == 0 then
+        return
+    end
+    int pick = int(rng.u32()) % count
+    int seen = 0
+    int j = 0
+    while j < 16
+        if tiles[j] == 0 then
+            if seen == pick then
+                if int(rng.u32()) % 10 == 0 then
+                    tiles[j] = 4
+                else
+                    tiles[j] = 2
+                end
+                return
+            end
+            seen += 1
+        end
+        j += 1
+    end
+end
+
+// --- 行/列索引映射（dir: 0=左 1=右 2=上 3=下）---
+func lineIndex(int base, int k, int dir) as int
+    if dir == 0 then
+        return base * 4 + k
+    end
+    if dir == 1 then
+        return base * 4 + 3 - k
+    end
+    if dir == 2 then
+        return k * 4 + base
+    end
+    return (3 - k) * 4 + base
+end
+
+// 压缩并合并 lineBuf（朝下标 0 方向），返回合并得分
+func slideLine() as int
+    // 压缩：非零前移
+    int n = 0
+    int i = 0
+    while i < 4
+        if lineBuf[i] != 0 then
+            lineBuf[n] = lineBuf[i]
+            n += 1
+        end
+        i += 1
+    end
+    while n < 4
+        lineBuf[n] = 0
+        n += 1
+    end
+    // 相邻同值各合并一次
+    int gained = 0
+    int j = 0
+    while j < 3
+        if lineBuf[j] != 0 and lineBuf[j] == lineBuf[j + 1] then
+            lineBuf[j] = lineBuf[j] * 2
+            gained += lineBuf[j]
+            int k = j + 1
+            while k < 3
+                lineBuf[k] = lineBuf[k + 1]
+                k += 1
+            end
+            lineBuf[3] = 0
+        end
+        j += 1
+    end
+    return gained
+end
+
+func anyMoves() as bool
+    int i = 0
+    while i < 16
+        if tiles[i] == 0 then
+            return true
+        end
+        i += 1
+    end
+    int r = 0
+    while r < 4
+        int c = 0
+        while c < 4
+            int v = tiles[r * 4 + c]
+            if c < 3 then
+                if v == tiles[r * 4 + c + 1] then
+                    return true
+                end
+            end
+            if r < 3 then
+                if v == tiles[(r + 1) * 4 + c] then
+                    return true
+                end
+            end
+            c += 1
+        end
+        r += 1
+    end
+    return false
+end
+
+func doMove(int dir)
+    bool moved = false
+    int base = 0
+    while base < 4
+        // 提取一行/列
+        int k = 0
+        while k < 4
+            lineBuf[k] = tiles[lineIndex(base, k, dir)]
+            k += 1
+        end
+        // 压缩合并并写回
+        int gained = slideLine()
+        int m = 0
+        while m < 4
+            if tiles[lineIndex(base, m, dir)] != lineBuf[m] then
+                moved = true
+            end
+            tiles[lineIndex(base, m, dir)] = lineBuf[m]
+            m += 1
+        end
+        score += gained
+        base += 1
+    end
+    if moved then
+        spawnTile()
+        if not won then
+            int i = 0
+            while i < 16
+                if tiles[i] == 2048 then
+                    won = true
+                end
+                i += 1
+            end
+        end
+        if not anyMoves() then
+            dead = true
+        end
+    end
+end
+
+// --- 输入 ---
+func handleInput()
+    if dead then
+        if keyPressed(82) then
+            reset()
+        end
+        return
+    end
+    if keyPressed(xge.XGE_KEY_LEFT) or keyPressed(65) then
+        doMove(0)
+    end
+    if keyPressed(xge.XGE_KEY_RIGHT) or keyPressed(68) then
+        doMove(1)
+    end
+    if keyPressed(xge.XGE_KEY_UP) or keyPressed(87) then
+        doMove(2)
+    end
+    if keyPressed(xge.XGE_KEY_DOWN) or keyPressed(83) then
+        doMove(3)
+    end
+end
+
+// --- 绘制 ---
+func tileColor(int v) as c_uint
+    if v == 0 then
+        return xge.colorRGBA(c_int(30), c_int(36), c_int(46), c_int(255))
+    end
+    if v == 2 then
+        return xge.colorRGBA(c_int(238), c_int(228), c_int(218), c_int(255))
+    end
+    if v == 4 then
+        return xge.colorRGBA(c_int(237), c_int(224), c_int(200), c_int(255))
+    end
+    if v == 8 then
+        return xge.colorRGBA(c_int(242), c_int(177), c_int(121), c_int(255))
+    end
+    if v == 16 then
+        return xge.colorRGBA(c_int(245), c_int(149), c_int(99), c_int(255))
+    end
+    if v == 32 then
+        return xge.colorRGBA(c_int(246), c_int(124), c_int(95), c_int(255))
+    end
+    if v == 64 then
+        return xge.colorRGBA(c_int(246), c_int(94), c_int(59), c_int(255))
+    end
+    if v == 128 then
+        return xge.colorRGBA(c_int(237), c_int(207), c_int(114), c_int(255))
+    end
+    if v == 256 then
+        return xge.colorRGBA(c_int(237), c_int(204), c_int(97), c_int(255))
+    end
+    if v == 512 then
+        return xge.colorRGBA(c_int(237), c_int(200), c_int(80), c_int(255))
+    end
+    if v == 1024 then
+        return xge.colorRGBA(c_int(237), c_int(197), c_int(63), c_int(255))
+    end
+    return xge.colorRGBA(c_int(255), c_int(215), c_int(0), c_int(255))    // 2048+ 金色
+end
+
+// 数字在格内的水平居中偏移（按位数）
+func textOff(int v) as int
+    if v < 10 then
+        return 45
+    end
+    if v < 100 then
+        return 35
+    end
+    if v < 1000 then
+        return 24
+    end
+    return 13
+end
+
+func draw()
+    // HUD
+    xge.shapeRectFillPixels(pixels(0, 0, 2 * PAD + boardW(), HUD_H), c_uint(xge.colorRGBA(c_int(18), c_int(24), c_int(32), c_int(255))))
+    if hudFont != null then
+        hudFont.drawText("SCORE " + string(score), c_float(12), c_float(12), c_uint(xge.colorRGBA(c_int(79), c_int(216), c_int(194), c_int(255))))
+        hudFont.drawText(won ? "2048! KEEP GOING" : "JOIN 2048", c_float(300), c_float(12), c_uint(xge.colorRGBA(c_int(237), c_int(204), c_int(97), c_int(255))))
+    end
+
+    // 棋盘底
+    xge.shapeRectFillPixels(pixels(PAD, HUD_H + PAD, boardW(), boardW()), c_uint(xge.colorRGBA(c_int(22), c_int(28), c_int(38), c_int(255))))
+
+    // 格子
+    int r = 0
+    while r < 4
+        int c = 0
+        while c < 4
+            int v = tiles[r * 4 + c]
+            int x = cellX(c)
+            int y = cellY(r)
+            xge.shapeRoundRectFill(rect(float(x), float(y), float(CELL), float(CELL)), c_float(8.0), c_uint(tileColor(v)))
+            if v != 0 and bigFont != null then
+                c_uint tc = v <= 4 ? xge.colorRGBA(c_int(60), c_int(56), c_int(50), c_int(255)) : xge.colorRGBA(c_int(250), c_int(246), c_int(240), c_int(255))
+                bigFont.drawText(string(v), c_float(float(x + textOff(v))), c_float(float(y + 36)), c_uint(tc))
+            end
+            c += 1
+        end
+        r += 1
+    end
+
+    // 死亡遮罩
+    if dead then
+        xge.shapeRectFillPixels(pixels(0, HUD_H, 2 * PAD + boardW(), PAD + boardW() + PAD), c_uint(xge.colorRGBA(c_int(10), c_int(12), c_int(16), c_int(190))))
+        if hudFont != null then
+            hudFont.drawText("GAME OVER - press R", c_float(150), c_float(HUD_H + PAD + boardW() / 2 - 10), c_uint(xge.colorRGBA(c_int(255), c_int(107), c_int(94), c_int(255))))
+        end
+    end
+end
+
+// --- 帧回调 ---
+func on_frame()
+    handleInput()
+    xge.clear(xge.colorRGBA(c_int(13), c_int(17), c_int(22), c_int(255)))
+    draw()
+end
+
+func initializeGame()
+    hudFont = loadGameFont(18.0)
+    bigFont = loadGameFont(36.0)
+
+    reset()
+end
+
+func cleanupGame()
+    hudFont = null
+    bigFont = null
+end
+
+func main(...) as int
+    // An optional positive frame count provides a bounded graphical smoke run.
+    int frameLimit = 0
+    if arg.length > 1 then frameLimit = int(arg[1]) end
+    return runGame(2 * PAD + boardW(), HUD_H + 2 * PAD + boardW(), "xlang 2048", initializeGame, on_frame, cleanupGame, frameLimit)
+end

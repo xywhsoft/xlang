@@ -166,7 +166,11 @@ int xl6IrRuntimeLogBridgeTargetMatches(const XL6_IrModule* m, const XL6_IrCallTa
         const char* owner=xl6LogOwner(c->parameters[i]);
         if (!xl6LogShapeMatches(m,t->parameterTypes[i],c->parameters[i]) ||
             t->parameterAbis[i] != (owner || c->parameters[i] == LOG_STRING || c->parameters[i] == LOG_VALUE || c->parameters[i] == LOG_ERROR ? XL6_IR_PARAMETER_ABI_BORROW : XL6_IR_PARAMETER_ABI_VALUE) ||
-            t->parameterPhysicalAbis[i] != (owner ? XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW : XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) ||
+            (owner ?
+                (t->parameterPhysicalAbis[i] != XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW &&
+                 !(t->parameterPhysicalAbis[i] == XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_HANDLE_ACCESS_BORROW &&
+                   xl6IrNativeHandleAccessParameter(m,t,i))) :
+                t->parameterPhysicalAbis[i] != XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) ||
             t->parameterConstraintAbis[i] != XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE ||
             (owner ? t->parameterPhysicalFieldDeclarations[i] == XL6_IR_NODE_INVALID : t->parameterPhysicalFieldDeclarations[i] != XL6_IR_NODE_INVALID)) return 0;
         if (owner && m->stage == XL6_IR_STAGE_LOWERED) {
@@ -185,9 +189,12 @@ int xl6IrRuntimeLogBridgeTargetMatches(const XL6_IrModule* m, const XL6_IrCallTa
             if (!destroy || !destroy->cName || strcmp(destroy->cName,xl6LogOwner(c->result))) return 0;
         }
     } else if (t->resultPhysicalFieldDeclaration != XL6_IR_NODE_INVALID || t->resultPhysicalDestroySymbol) return 0;
-    if (t->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID && t->errorPhysicalAbi !=
-        (c->result == LOG_VOID ? XL6_IR_CALL_ERROR_PHYSICAL_NONE : c->printf
-            ? XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE : XL6_IR_CALL_ERROR_PHYSICAL_XRT_THREAD_ERROR)) return 0;
+    XL6_IrCallErrorPhysicalAbi producer = c->result == LOG_VOID ? XL6_IR_CALL_ERROR_PHYSICAL_NONE : c->printf
+        ? XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE : XL6_IR_CALL_ERROR_PHYSICAL_XRT_THREAD_ERROR;
+    if ((t->producerErrorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID &&
+         t->producerErrorPhysicalAbi != producer) ||
+        (t->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID && t->errorPhysicalAbi !=
+         (xl6IrForeignCallAdmissionMayRaise(m,t) ? XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE : producer))) return 0;
     return 1;
 }
 

@@ -329,3 +329,7 @@ pop/take、动态分派和全部 Array source carrier 切换仍需后续完成�
 `extlib_xmail_native_abi` 是编译期 ABI 探针，与 XMail 迁移守门共同检查声明和拥有图；不连接邮件服务器。两项 `stdlib_runtime_*_pending` 历史命名正例由 `check_xlir_runtime_callable_value_abi.ps1` 执行 JIT 与 AOT。
 
 `stdlib_os_args.xl` 与 `stdlib_os_args_native_host.c` 由 `check_release_runtime.py` 覆盖进程参数、独立拥有、空参数和真实 OOM 前缀；`tcc_c99_vsnprintf.c` 验证完整的长度／截断合同。
+
+2026-11-07 范例修复回归：`xlir_destroy_receiver_borrow.xl` 验证析构接收者借用与
+普通调用接收者保护；`xlir_nested_array_append_context.xl` 验证嵌套数组按目标类型
+物化及非法元素拒绝。批量范例门禁为 `tools/check_example_failure_regressions.py`。

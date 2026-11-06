@@ -1377,3 +1377,11 @@ receiver, another output/descriptor, or one half of a span/callback group.
 Duplicate, unreachable, malformed and nonpointer slots are rejected. It does
 not make native dereferencing of NULL safe, erase an output ownership duty,
 or relax compatibility between different logical declarations of one symbol.
+
+## 扩展中的受管 TCP 同步调用
+
+语言声明 `xl6ForeignTcpOwnerV1(TcpStream) as var` 取得真实拥有令牌。
+C 提供方包含 `xl_foreign_net.h`，使用 `xl6ForeignTcpVisitV1(owner,visit,data)`。
+运行时检查精确策略，固定拥有者并进入原生调用作用域；回调只能在本次同步调用内
+使用 xnetstream 指针，不能保存它。包的 `artifact.runtimeSymbols` 显式登记 C 使用的
+驻留入口。普通原生错误继续走现有 checked 边界；额外调用、引用和作用域成本应计入评估。

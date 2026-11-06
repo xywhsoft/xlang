@@ -15,7 +15,11 @@
       "src/resources.xl",
       "src/callbacks.xl",
       "src/shapes.xl",
-      "src/data_object.xl"
+      "src/data_object.xl",
+      "src/audio_resources.xl"
+    ],
+    "includeDirs": [
+      "include"
     ]
   },
   "links": [],
