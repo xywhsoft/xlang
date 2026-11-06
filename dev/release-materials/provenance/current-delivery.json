@@ -20,14 +20,14 @@
     "extensionSourceRevision": "8806c6b6f642e7e532fb16801246b2e6318a70ca"
   },
   "compiler": {
-    "sourceRevision": "a1d18117b935c4e14c93b59c25b8db0e500826f9",
+    "sourceRevision": "0c5d524ca915bab8a71d3d5f7488875670ff7c0b",
     "version": "0.6.0",
     "originalAcceptance": "docs/reports/prerelease-0.6.0.json",
     "rebuiltThisDelivery": true,
     "entireAcceptanceRerunThisDelivery": false,
     "reusedQualifiedProducts": false,
     "xrtRevision": "93347eb5ae6beba8cf7ee3558708cc4f628fdd07",
-    "currentBuildProvenance": "dev/release-materials/provenance/xge3-production-profiles-20261105/receipt.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/native-static-release-20261106-r2/receipt.json",
     "optimization": "-O2",
     "previousDeliveryCompiler": {
       "sourceRevision": "ed78373dded9bde21db313799c1db8d5111631a6",
@@ -44,12 +44,62 @@
       "reusedQualifiedProducts": true
     },
     "sourceMaterials": {
-      "path": "dev/release-materials/sources/xlang-development-20261105-88bd73dc-r1.manifest.json",
-      "sha256": "26ba28940a0da86ebbe970dae419ee6b45ced38062367d392f21585a75727833",
-      "bytes": 7232398
+      "path": "dev/release-materials/sources/native-static-core-20261106/manifest.json",
+      "sha256": "5ce67c250d890cd76c53a1a955bd01659f7faec109cacffa13e4cd082a493c44",
+      "bytes": 485661
     },
     "xrtBaseRevision": "93347eb5ae6beba8cf7ee3558708cc4f628fdd07",
-    "xrtLocalPatchTip": "7cecb354dd67aba47eb47cf9c118aea2b0195498"
+    "xrtLocalPatchTip": "7cecb354dd67aba47eb47cf9c118aea2b0195498",
+    "sourceOverlays": [
+      {
+        "path": "dev/release-materials/sources/tcc-pdata-20261106/manifest.json",
+        "sha256": "c6e2ea954e3d434a7c1101eb33cacfbdcacf6edb674c77b72d1585a0e6a0cefe",
+        "bytes": 3672
+      },
+      {
+        "path": "dev/release-materials/sources/tcc-iat-chain-20261106/manifest.json",
+        "sha256": "3d5261e87750cf1201c02bd4a88ffe0fa0eb5ff4a27fd115de63a141bded7799",
+        "bytes": 2106
+      },
+      {
+        "path": "dev/release-materials/sources/static-support-20261106-r2/manifest.json",
+        "sha256": "859c736210f2aca3699f28228232fbe0c5712f664fa9fdc012a84800ae5f3649",
+        "bytes": 4759
+      }
+    ],
+    "buildScope": "Windows production profiles only; source identity is the frozen core plus exact overlays. Existing Linux production products retain their earlier build evidence.",
+    "previousWindowsBuildEvidence": {
+      "sourceRevision": "a1d18117b935c4e14c93b59c25b8db0e500826f9",
+      "version": "0.6.0",
+      "originalAcceptance": "docs/reports/prerelease-0.6.0.json",
+      "rebuiltThisDelivery": true,
+      "entireAcceptanceRerunThisDelivery": false,
+      "reusedQualifiedProducts": false,
+      "xrtRevision": "93347eb5ae6beba8cf7ee3558708cc4f628fdd07",
+      "currentBuildProvenance": "dev/release-materials/provenance/xge3-production-profiles-20261105/receipt.json",
+      "optimization": "-O2",
+      "previousDeliveryCompiler": {
+        "sourceRevision": "ed78373dded9bde21db313799c1db8d5111631a6",
+        "version": "0.6.0",
+        "sourceDirectoriesUnchanged": [
+          "src",
+          "lib",
+          "include",
+          "release/include"
+        ],
+        "originalAcceptance": "docs/reports/prerelease-0.6.0.json",
+        "rebuiltThisDelivery": false,
+        "entireAcceptanceRerunThisDelivery": false,
+        "reusedQualifiedProducts": true
+      },
+      "sourceMaterials": {
+        "path": "dev/release-materials/sources/xlang-development-20261105-88bd73dc-r1.manifest.json",
+        "sha256": "26ba28940a0da86ebbe970dae419ee6b45ced38062367d392f21585a75727833",
+        "bytes": 7232398
+      },
+      "xrtBaseRevision": "93347eb5ae6beba8cf7ee3558708cc4f628fdd07",
+      "xrtLocalPatchTip": "7cecb354dd67aba47eb47cf9c118aea2b0195498"
+    }
   },
   "ide": {
     "languageServer": "Rebuilt qualified 455-pin C interop cohort; separately accepted from the prior GUI build.",
@@ -3170,6 +3220,16 @@
       "bytes": 3072,
       "path": "release/win_x64/data/fonts/source.json",
       "sha256": "f946dbf95a26ff9b57def3c1bf78c7f594c80a7844325f266d5f9e2b28c72e5f"
+    },
+    {
+      "path": "release/win_x64/include/libtcc.h",
+      "sha256": "99f08eef70ec87cd07099f9586459083187b577b10a84e80c0d006bd379ff754",
+      "bytes": 5290
+    },
+    {
+      "path": "release/win_x64/static/xge3/README.md",
+      "sha256": "5a648c451362fba566659dcb3f68ccd87c51fc4306caf87510871a2822361015",
+      "bytes": 1195
     }
   ],
   "products": [
@@ -3180,16 +3240,16 @@
       "origin": "matched-xge3-xui3-local-delivery-20261105"
     },
     {
-      "sha256": "6ee80b3d2370289c1077b924d700985226c8df8aef17779b87c5c3e38a425835",
-      "bytes": 14828544,
+      "sha256": "7a05d69bea0d4889735e115c2bd9bc1e74280c7a1245d7e955c97d7798310c9e",
+      "bytes": 15164928,
       "path": "release/win_x64/xl.dll",
-      "origin": "matched-xge3-xui3-local-delivery-20261105"
+      "origin": "native-static-windows-qualified-20261106-r2"
     },
     {
-      "sha256": "e4ab39f8137fd91781bcc57dfd20d9904aa6bc2e74f422073d6015de3c489642",
-      "bytes": 20278272,
+      "sha256": "585edd3bceded526fb226cbe2f5321cc6f7ebcbae566af0da47d7315b5bba623",
+      "bytes": 21232128,
       "path": "release/win_x64/xlc.dll",
-      "origin": "matched-xge3-xui3-local-delivery-20261105"
+      "origin": "native-static-windows-qualified-20261106-r2"
     },
     {
       "sha256": "0afa441e1e3486c3e8ea2d7fbde7be5e5ea6caa850bc76a2bca1dc767b60f1d0",
@@ -3394,28 +3454,94 @@
     "bytes": 4379
   },
   "nativeStaticIntegration": {
-    "status": "source-integrated-windows-pe-qualification-pending",
-    "provenance": "dev/release-materials/provenance/native-static-integration-20261106/receipt.json",
-    "provenanceSha256": "08ec7577148442a2b491c3b011da7d2716c542612a8af15e2fbc30d00dc7029d",
-    "report": "docs/reports/native-static-linking-20261106.md",
+    "status": "windows-production-installed-pe-qualified",
+    "provenance": "dev/release-materials/provenance/native-static-release-20261106-r2/receipt.json",
+    "provenanceSha256": "083fdff2160fd8ae6e0021f0ede35d6bac44fbcad205afa772773a19982ff12f",
+    "report": "docs/reports/native-static-release-20261106-r2.md",
     "optimization": "O2",
-    "releaseImagesReplaced": false,
+    "integrationRevision": "5a236c9b92569054d541cfc9b020f0df2c10cc13",
+    "nativeBuilderRevision": "64a43fcf86b6ac1ecee56264af3fb4d220aa0a60",
+    "releaseImagesReplaced": true,
     "sourceIdentity": {
-      "freezeSha256": "0b66c60929627eb755cc74561a1071a801be80f2ebd664cd7dd674d777b68aee",
-      "sourceMaterials": "dev/release-materials/sources/native-static-core-20261106/manifest.json",
-      "sourceMaterialsSha256": "5ce67c250d890cd76c53a1a955bd01659f7faec109cacffa13e4cd082a493c44"
+      "freezeSha256": "17a4fa77a8a4fe0981cbbaf3c0621bce6c9522ad5eac5ec2114a9a99ae48e624",
+      "sourceMaterials": {
+        "path": "dev/release-materials/sources/native-static-core-20261106/manifest.json",
+        "sha256": "5ce67c250d890cd76c53a1a955bd01659f7faec109cacffa13e4cd082a493c44",
+        "bytes": 485661
+      },
+      "overlays": [
+        {
+          "path": "dev/release-materials/sources/tcc-pdata-20261106/manifest.json",
+          "sha256": "c6e2ea954e3d434a7c1101eb33cacfbdcacf6edb674c77b72d1585a0e6a0cefe",
+          "bytes": 3672
+        },
+        {
+          "path": "dev/release-materials/sources/tcc-iat-chain-20261106/manifest.json",
+          "sha256": "3d5261e87750cf1201c02bd4a88ffe0fa0eb5ff4a27fd115de63a141bded7799",
+          "bytes": 2106
+        },
+        {
+          "path": "dev/release-materials/sources/static-support-20261106-r2/manifest.json",
+          "sha256": "859c736210f2aca3699f28228232fbe0c5712f664fa9fdc012a84800ae5f3649",
+          "bytes": 4759
+        }
+      ]
     },
-    "windowsCandidateDirectory": "F:/xlang-validation/native-static-20261106/production-win-r3/release/win_x64",
-    "windowsStaticPackages": "F:/xlang-validation/native-static-20261106/xge/packages-win-r5",
-    "windowsPeAotQualified": false,
+    "windowsCandidateDirectory": "F:/xlang-validation/native-static-20261106/production-win-r5/release/win_x64",
+    "windowsStaticPackages": "release/win_x64/static/xge3/packages",
+    "staticSdk": {
+      "files": 77,
+      "bytes": 30412076,
+      "selection": "Explicit XLANG_PACKAGE_PATH; matching _xge_native/xge/xui triple.",
+      "ordinaryDynamicPackagesReplaced": false
+    },
+    "windowsPeAotQualified": true,
+    "windowsProductionPassedRows": 46,
+    "installedCliPassedRows": 7,
+    "fullStaticProgramBytes": 1062912,
     "linuxProductionDllRebuilt": false,
-    "pending": [
-      {
-        "id": "windows-pe-os-loader",
-        "status": "awaiting-restoration-of-defender-blocked-test-file",
-        "path": "F:/xlang-validation/native-static-20261106/coff/gate-r3/tinycc.exe",
-        "scope": "Actual TCC-produced PE standalone/TLS OS initialization and related static XGE AOT"
-      }
-    ]
+    "linuxDevelopmentQualification": {
+      "freshTargetObjects": 1564,
+      "inheritedTargetObjects": 0,
+      "sourcefreePassedRows": 40,
+      "staticXgePassedRows": 6,
+      "root11Equivalence": "All three Linux compilation profiles have byte-identical preprocessed source to qualified Root10. The PE-only change is not selected. Original Root10 binary paths/hashes are retained."
+    },
+    "pending": [],
+    "scopeLimits": [
+      "CPU-only; no GUI, GPU, clipboard, network or network-security tests.",
+      "Windows JIT rejects reachable OS static-TLS code; qualified PE AOT includes TLS template/loader verification.",
+      "Only the specified frozen source overlays and incremental production dependency closure were built; unrelated live workspace changes are excluded."
+    ],
+    "previousQualification": {
+      "status": "source-integrated-windows-pe-qualification-pending",
+      "provenance": "dev/release-materials/provenance/native-static-integration-20261106/receipt.json",
+      "provenanceSha256": "08ec7577148442a2b491c3b011da7d2716c542612a8af15e2fbc30d00dc7029d",
+      "report": "docs/reports/native-static-linking-20261106.md",
+      "optimization": "O2",
+      "releaseImagesReplaced": false,
+      "sourceIdentity": {
+        "freezeSha256": "0b66c60929627eb755cc74561a1071a801be80f2ebd664cd7dd674d777b68aee",
+        "sourceMaterials": "dev/release-materials/sources/native-static-core-20261106/manifest.json",
+        "sourceMaterialsSha256": "5ce67c250d890cd76c53a1a955bd01659f7faec109cacffa13e4cd082a493c44"
+      },
+      "windowsCandidateDirectory": "F:/xlang-validation/native-static-20261106/production-win-r3/release/win_x64",
+      "windowsStaticPackages": "F:/xlang-validation/native-static-20261106/xge/packages-win-r5",
+      "windowsPeAotQualified": false,
+      "linuxProductionDllRebuilt": false,
+      "pending": [
+        {
+          "id": "windows-pe-os-loader",
+          "status": "awaiting-restoration-of-defender-blocked-test-file",
+          "path": "F:/xlang-validation/native-static-20261106/coff/gate-r3/tinycc.exe",
+          "scope": "Actual TCC-produced PE standalone/TLS OS initialization and related static XGE AOT"
+        }
+      ]
+    }
+  },
+  "nativeStaticPublication": {
+    "path": "dev/release-materials/provenance/native-static-release-20261106-r2/receipt.json",
+    "sha256": "083fdff2160fd8ae6e0021f0ede35d6bac44fbcad205afa772773a19982ff12f",
+    "bytes": 56690
   }
 }
