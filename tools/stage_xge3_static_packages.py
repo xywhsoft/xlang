@@ -14,6 +14,7 @@ def main():
     for name in ('root','engine-root','engine-build','out','report'):p.add_argument('--'+name,type=Path,required=True)
     p.add_argument('--bootstrap-only',action='store_true')
     p.add_argument('--include-shell-resource',action='store_true',help='Opt in to the XGE DLL-shell icon, not required engine data')
+    p.add_argument('--dynamic-variant',help='Installed manifest path relative to _xge_native; optional reciprocal JIT artifact')
     a=p.parse_args();root,native,build,out,report=[v.resolve()for v in(a.root,a.engine_root,a.engine_build,a.out,a.report)]
     assert not out.exists()and not report.exists()and not report.is_relative_to(out)
     assert not out.is_relative_to(root/'release')and not report.is_relative_to(root/'release')
@@ -103,6 +104,8 @@ def main():
     assert set(manifest['artifact']['runtimeSymbols'])=={'xl6ErrorScopeTryPropagateFailureV1','xl6CallbackFailureRecordV1','xl6ForeignStatusFailureV1'}
     manifest['artifact']['nativeLink']=dict(gcSections=True,functionSections=True,dataSections=True)
     manifest['native'].update(loadName='xge-static-api3',platform=metadata['platform'],linkage='static',sha256=sha(archive))
+    manifest['native'].pop('variants',None)
+    if a.dynamic_variant:manifest['native']['variants']={'dynamic':a.dynamic_variant}
     manifest_path.write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8',newline='\n')
     assert all(sha(path)==digest for path,digest in inputs.items()),'A staging input changed'
     outputs={str(path.relative_to(out)):sha(path)for path in sorted(out.rglob('*'))if path.is_file()}

@@ -32,6 +32,7 @@ def main():
         parser.add_argument("--" + name, type=Path)
     parser.add_argument("--bootstrap-only", action="store_true",
                         help="Stage only _xge_native while the public declarations are being generated")
+    parser.add_argument("--static-variant", help="Installed manifest path relative to _xge_native; declare only when delivering that SDK")
     args = parser.parse_args()
     if args.update_host_catalog:
         target=args.root.resolve()/'src/runtime/xl6_host_xrt_symbols.h'
@@ -154,6 +155,10 @@ def main():
     manifest["links"] = [link]
     manifest["loadlibs"] = [link]
     manifest["artifact"]["xrtModules"] = modules
+    manifest["native"]["linkage"] = "dynamic"
+    manifest["native"].pop("variants", None)
+    if args.static_variant:
+        manifest["native"]["variants"] = {"static": args.static_variant}
     manifest["native"]["loadName"] = binary.name
     manifest["native"]["platform"] = platform
     manifest["native"]["sha256"] = sha(binary)
