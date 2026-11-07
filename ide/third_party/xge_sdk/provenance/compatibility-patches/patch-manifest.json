@@ -1,6 +1,6 @@
 {
   "format": "xlang-ide-xge-source-patches-1",
-  "baseCommit": "347429c8cf71a20a304085038531b366abe5a28b",
+  "baseCommit": "e33e3d3050f00b3137d1cc20daad232574dbf739",
   "purpose": "Preserve the accepted IDE GL3.3/WGL checked startup while syncing tab navigation and scoped passes.",
   "files": [
     {

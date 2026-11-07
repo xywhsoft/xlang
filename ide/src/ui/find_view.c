@@ -7,7 +7,7 @@ void xideFindViewPoll(xide_app* app)
 {
     if(!app || !app->editorFindScope) return;
     xui_widget focus=xuiGetFocusWidget(app->context);
-    if(focus && xuiWidgetGetType(focus)==xuiCodeEditGetType(app->context)) {
+    if(focus && (!app->activeDocument || app->activeDocument->editor!=focus) && xuiWidgetGetType(focus)==xuiCodeEditGetType(app->context)) {
         for(size_t i=0;i<app->documents.count;++i) {
             xide_document* d=app->documents.items[i];
             if(d->open && d->editor==focus && app->activeDocument!=d) {

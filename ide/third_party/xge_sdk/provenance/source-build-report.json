@@ -4,9 +4,9 @@
   "profile": "ide",
   "version": "3.0.0",
   "source": "F:\\xlang-validation\\ide-native-find-20261108\\xge",
-  "sourceCommit": "347429c8cf71a20a304085038531b366abe5a28b",
+  "sourceCommit": "e33e3d3050f00b3137d1cc20daad232574dbf739",
   "sourceUnchanged": true,
-  "sourceArchiveSha256": "4f43e062834ae9965b6aabbafca0cda167e39e720bb02dcd5f97b5d26ad81ebe",
+  "sourceArchiveSha256": "4fa8a3162d16aed081c58865d2f1e4373ec46fc77a209ee529805a9cf113d793",
   "wholeSdkWerror": false,
   "compiler": "gcc.EXE (GCC) 16.2.0",
   "upstreamBuild": {
@@ -506,13 +506,13 @@
     ],
     "linked": true,
     "runtime_dependencies": [],
-    "seconds": 4.148292300000321,
+    "seconds": 4.807097099997918,
     "runtime_bytes": 11155513,
     "unstripped_bytes": 13427419
   },
   "compatibilityPatches": {
     "format": "xlang-ide-xge-source-patches-1",
-    "baseCommit": "347429c8cf71a20a304085038531b366abe5a28b",
+    "baseCommit": "e33e3d3050f00b3137d1cc20daad232574dbf739",
     "purpose": "Preserve the accepted IDE GL3.3/WGL checked startup while syncing tab navigation and scoped passes.",
     "files": [
       {
@@ -547,11 +547,11 @@
   "outputs": [
     {
       "path": "F:\\xlang-validation\\ide-native-find-20261108\\xge\\build\\ide\\xge.dll",
-      "sha256": "b681c909317d7b1a6ed15ce67a53df6679c3a9d9968f0a12871c207271702f56"
+      "sha256": "acdc0e86fd27d30ca0d96b578e832315766a39b9f1af5a442babb7a8902c1d53"
     },
     {
       "path": "F:\\xlang-validation\\ide-native-find-20261108\\xge\\build\\ide\\xge.lib",
-      "sha256": "97d772cf9d3635a375f51fbcb955065cc1ab8b179c81a2c7bd757d54bdab622c"
+      "sha256": "802497e35145e73ab151e389dddad417d079ba9211ebfb93cfbc7f754b43ab76"
     },
     {
       "path": "F:\\xlang-validation\\ide-native-find-20261108\\xge\\build\\ide\\xge_build_config.h",

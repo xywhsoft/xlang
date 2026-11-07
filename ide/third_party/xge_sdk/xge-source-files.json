@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "root": "F:\\xlang-validation\\ide-native-find-20261108\\xge",
-  "sourceCommit": "347429c8cf71a20a304085038531b366abe5a28b",
+  "sourceCommit": "e33e3d3050f00b3137d1cc20daad232574dbf739",
   "sourceFileCount": 790,
   "files": [
     {
@@ -3001,8 +3001,8 @@
     },
     {
       "path": "src/xui/code/xui_code_find_window.inc",
-      "sha256": "7834a264b94c8cd78a84b0ba88a8c6cc754514f1ccca972f16a0f2144e556854",
-      "size": 40837
+      "sha256": "3e5407045c59da2522dbb82ac3756f424cfd2d474e5d11558d160ce7c309061c",
+      "size": 40785
     },
     {
       "path": "src/xui/code/xui_code_fold.c",
@@ -3958,7 +3958,7 @@
   "fullSourceTreeNotIncludedInConsumerSdk": true,
   "compatibilityPatches": {
     "format": "xlang-ide-xge-source-patches-1",
-    "baseCommit": "347429c8cf71a20a304085038531b366abe5a28b",
+    "baseCommit": "e33e3d3050f00b3137d1cc20daad232574dbf739",
     "purpose": "Preserve the accepted IDE GL3.3/WGL checked startup while syncing tab navigation and scoped passes.",
     "files": [
       {
