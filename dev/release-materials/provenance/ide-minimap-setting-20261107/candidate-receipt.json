@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "date": "2026-11-07",
+  "sourceComplete": true,
+  "acceptancePassed": true,
+  "publication": "pending-ide-close",
+  "candidate": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\minimap-setting-20261107\\xlang_ide.link.exe",
+    "sha256": "b6da9773184e41665640b3906423f74c2427b1598a6074af5e607a4c16cab8b5",
+    "bytes": 1854801
+  },
+  "sourceMaterials": {
+    "path": "dev/release-materials/sources/ide-minimap-setting-20261107/manifest.json",
+    "sha256": "72044e122aaa5cb3fa3bbf7b888ea8417f069bc098ea6d84b7030f8fd1637187",
+    "bytes": 1411
+  },
+  "build": {
+    "path": "dev/release-materials/provenance/ide-minimap-setting-20261107/build.json",
+    "sha256": "067ea8b1cc136ce5f01b402e99556c630784b45220fc0a184a8345cf46446355",
+    "bytes": 142056
+  },
+  "acceptance": {
+    "path": "dev/release-materials/provenance/ide-minimap-setting-20261107/acceptance.json",
+    "sha256": "be6535501acb2ee004771c05b68c222fc884c053995b7e084ac30942bc47992f",
+    "bytes": 56331
+  },
+  "supersedesCandidateReceipt": {
+    "path": "dev/release-materials/provenance/ide-dock-view-20261107/candidate-receipt.json",
+    "sha256": "6374b94c01ffa5c1289ebf87d0a202e8804b51f802ee0b52e54df25d210bbc61",
+    "bytes": 2811
+  },
+  "settingPath": "\u8bbe\u7f6e / \u7f16\u8f91\u5668\u8bbe\u7f6e / Minimap \u6eda\u52a8\u6761\uff08\u5173\u95ed\u540e\u663e\u793a\u4f20\u7edf\u6eda\u52a8\u6761\uff09",
+  "persistedKey": "editor.minimap",
+  "default": true,
+  "behavior": [
+    "Applied changes affect existing, new and demo source editors.",
+    "Disabled uses the native traditional vertical scrollbar when content exceeds the viewport.",
+    "Re-enabled uses Minimap and hides the traditional vertical scrollbar.",
+    "Apply persists; uncommitted drafts and cancellation do not change the applied mode or document text."
+  ],
+  "checks": [
+    "Existing/new C/xlang editors switch both modes through settings and retain document versions.",
+    "315 native Minimap checks, four themes, 100/125/200 percent DPI, drag/capture and selection preservation.",
+    "169 Dock View checks, native menu and close clicks, all-hidden recovery.",
+    "Unicode/IME, C/xlang text input, deletion, undo and click-to-focus regression.",
+    "Four-frame hidden production GUI smoke with the real release XGE."
+  ],
+  "fixtureFix": "The old Minimap fixture destroyed the same xide_app in run() and again in worker(). The unchanged parent reproduces 0xC0000374 after all 315 checks. Cleanup now has a single owner in run(); the fixed fixture exits 0.",
+  "temporaryRootExecutablesRemoved": true,
+  "currentProductionGui": {
+    "path": "release/win_x64/xlang_ide.exe",
+    "sha256": "a70520fa97a6b6faab084cecb23f7c24229e6be6361ed902282c522a1bbf7c5e",
+    "bytes": 1851121
+  }
+}

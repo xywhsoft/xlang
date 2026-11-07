@@ -3753,5 +3753,22 @@
     },
     "xgeRevision": "1312f03546d8def9e4ddf169881f7ba44a1438e2",
     "publication": "local-only"
+  },
+  "pendingIdeUpdate": {
+    "publication": "pending-ide-close",
+    "candidateReceipt": {
+      "path": "dev/release-materials/provenance/ide-minimap-setting-20261107/candidate-receipt.json",
+      "sha256": "f973149d6c9eb4442fbce69c51c8b8121a3310d325bef3cb708d6fe487a8f8ea",
+      "bytes": 2811
+    },
+    "sourceMaterials": {
+      "path": "dev/release-materials/sources/ide-minimap-setting-20261107/manifest.json",
+      "sha256": "72044e122aaa5cb3fa3bbf7b888ea8417f069bc098ea6d84b7030f8fd1637187",
+      "bytes": 1411
+    },
+    "features": [
+      "All fixed Dock windows in View",
+      "Minimap preference explanation and traditional-scrollbar verification"
+    ]
   }
 }

@@ -20,7 +20,7 @@ static const setting_field fields[]={
  {0,TEXT,"代码字体文件","字体 font 编辑器"},{0,NUMBER,"代码字号（8–40 DIP）","字体 font size"},
  {0,NUMBER,"Tab 宽度（1–16）","制表符 tab"},{0,NUMBER,"缩进宽度（1–16）","缩进 indent"},
  {0,CHECK,"使用空格缩进","tab 空格"},{0,CHECK,"显示行号","line 行号"},{0,CHECK,"显示代码折叠边栏","fold 折叠"},
- {0,CHECK,"显示 Minimap 缩略图滚动条","minimap 滚动条"},{0,CHECK,"自动换行","wrap 换行"},
+ {0,CHECK,"Minimap 滚动条（关闭后显示传统滚动条）","minimap scrollbar 缩略图 传统滚动条 开启 关闭"},{0,CHECK,"自动换行","wrap 换行"},
  {1,TEXT,"文档正文字体文件","文档 帮助 font 字体"},{1,NUMBER,"文档字号（8–40 DIP）","文档 字体 size"},
  {1,NUMBER,"文档行间距（0–24 DIP）","文档 行距 gap"},{1,CHECK,"文档正文自动换行","文档 wrap"},
  {2,TEXT,"xlang 编译器文件","compiler 工具链 xl.exe"},
