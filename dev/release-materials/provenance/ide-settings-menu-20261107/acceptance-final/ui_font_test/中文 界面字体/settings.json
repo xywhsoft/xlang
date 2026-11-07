@@ -1,0 +1,18 @@
+{
+  "format": "xlang-ide-settings-1",
+  "future": 7,
+  "ui": {
+    "futureUi": true,
+    "font": {
+      "futureFont": 11,
+      "path": "D:/GIT/x-lang/ide/build/Release/settings-menu-20261107/acceptance-final/ui_font_test/中文 界面字体/界面 字体.ttc",
+      "size": 24
+    }
+  },
+  "editor": {
+    "font": {
+      "path": "C:/Windows/Fonts/consola.ttf",
+      "size": 20
+    }
+  }
+}

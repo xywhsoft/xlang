@@ -1,0 +1,18 @@
+session: 无法恢复文件 D:/GIT/x-lang/release/examples/xs2/xs2.xl：Unable to read text file.；会话引用和恢复文件已保留。
+session: 无法恢复文件 D:/GIT/x-lang/release/examples/xui/button.xl：Unable to read text file.；会话引用和恢复文件已保留。
+phase=1 ret=0 xrt=
+phase=2 ret=0 xrt=
+phase=3 ret=0 xrt=
+phase=4 ret=0 xrt=
+menu=1
+phase=5 ret=0 xrt=
+phase=6 ret=0 xrt=
+phase=7 ret=0 xrt=
+phase=8 ret=0 xrt=
+phase=9 ret=0 xrt=
+opened=1
+phase=10 ret=0 xrt=
+phase=11 ret=0 xrt=
+phase=12 ret=0 xrt=
+phase=13 ret=0 xrt=
+run=0 frameerror=0 xrt=

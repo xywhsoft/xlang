@@ -1,0 +1,15 @@
+{
+  "files": [
+    "language_view.c",
+    "automatic_diagnostics.inc",
+    "language_references.inc"
+  ],
+  "mapping": {
+    "xrtValueGetString(": "xideMetaString(",
+    "xrtValueGetBool(": "xideMetaBool(",
+    "xrtValueGetInt(": "xideMetaInt(",
+    "xrtValueGetUInt(": "xideMetaUInt(",
+    "xrtValueGetFloat(": "xideMetaFloat(",
+    "xrtValueCount(": "xideMetaCount("
+  }
+}

@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "date": "2026-11-06",
+  "date": "2026-11-07",
   "primaryDirectory": "D:/GIT/x-lang",
   "deliveryDirectory": "release",
   "externalPublishPerformed": true,
@@ -45,7 +45,7 @@
   },
   "ide": {
     "languageServer": "Rebuilt qualified 455-pin C interop cohort; separately accepted from the prior GUI build.",
-    "guiTranslationUnits": 103,
+    "guiTranslationUnits": 106,
     "compiler": "GCC 16.2.0",
     "warnings": [
       "-Wall",
@@ -66,7 +66,7 @@
       "licenseUrl": "http://www.microsoft.com/typography/fonts/default.aspx"
     },
     "fontChangeSourceParent": "b16a95bbf022efcafc7b965d1bd9b5b945c0d881",
-    "currentBuildProvenance": "dev/release-materials/provenance/ide-settings-20261107/receipt.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/ide-settings-menu-20261107/receipt.json",
     "cLspEnabled": false,
     "applicationIcon": {
       "source": "ide/data/xlang_ide.ico",
@@ -80,8 +80,66 @@
       "provenance": "docs/reports/release-materials-migration-20261031.json",
       "buildCommand": "pwsh -NoProfile -File ide/tools/build.ps1 -Configuration Release -GuiOnly -LanguageServerPath D:/GIT/x-lang/release/xlang-ls.exe -ReleaseDirectory D:/GIT/x-lang/release"
     },
-    "sha256": "6c62d11534f0eb5ff80874477f29e0d862039df451be8e6b748a461a31dfb572",
+    "sha256": "1a3715ca11ae415a7a27f08b43a25dcaae5eedcac8476b86e64d3f9e468d6a09",
     "sourceIdentity": {
+      "settingsMenuRepair": {
+        "path": "dev/release-materials/sources/ide-settings-menu-20261107/manifest.json",
+        "sha256": "8be6a3ecc2ae26275ef548f88800980e2f9aafd3a1b3da11991cc72db95993e2",
+        "bytes": 1733
+      }
+    },
+    "previousMatchedGuiProvenance": "dev/release-materials/provenance/ide-updater-20261103.json",
+    "openglStartupCompatibility": {
+      "request": "3.3 core",
+      "targetedValidation": "Passed with current matched SDK: real hidden window/workbench rendering and 1.25/2.0 DPI",
+      "physicalWin7Hd4200Tested": false,
+      "matchedSdkManifestSha256": "33479cc0e24c0ecfdbfecbb2258b29d963d24cd3d71fc61a70195b7e14f0d606"
+    },
+    "updateClient": {
+      "backgroundVersionCheck": true,
+      "manualCheckAndRepair": true,
+      "networkOnUiThread": false,
+      "startupPreference": "update.enabled",
+      "saveAndCancelBeforeHandoff": true,
+      "updater": "update.exe",
+      "forceUpdateSupported": true,
+      "cachedMandatoryPolicy": true,
+      "saveCancelCannotBypassRequiredUpdate": true
+    },
+    "guiStartupCorrection": {
+      "path": "dev/release-materials/provenance/ide-startup-fix-20261106/publication-receipt.json",
+      "sha256": "cb3dd03ba90452fb9a670371ed7447763a0188fdc61b57adf11d5d89851ce13b",
+      "bytes": 2693
+    },
+    "buildScope": "Committed GUI baseline plus optional-metadata probe fix; latest XGE IDE profile with recorded focus-resolver prerequisites and preserved GL3.3/WGL startup behavior; matched O2 GUI/SDK/runtime. Compiler and LS retained.",
+    "currentEngine": {
+      "sourceMaterials": {
+        "path": "dev/release-materials/sources/ide-settings-menu-20261107/manifest.json",
+        "sha256": "8be6a3ecc2ae26275ef548f88800980e2f9aafd3a1b3da11991cc72db95993e2",
+        "bytes": 1733
+      },
+      "sourceCommit": "4d402c08428dd412e50b172979bc370547a52f9b",
+      "publicAbiFingerprint": "46f4b0944aeb5565",
+      "profile": "ide",
+      "xrtMode": "embedded",
+      "runtime": "release/win_x64/xge.dll"
+    },
+    "previousBuildProvenanceBeforeAbout": "dev/release-materials/provenance/xge-ide-update-20261106/publication-receipt.json",
+    "aboutWindow": {
+      "displayVersion": "0.6.0",
+      "iterationSource": ".xlang-update/installed.json",
+      "entry": "help.about",
+      "sourceVersion": "ide/data/version.json",
+      "layout": "compact centered viewport-fitting content; title close and Escape"
+    },
+    "previousBuildProvenanceBeforeAboutLayout": "dev/release-materials/provenance/ide-about-versions-20261106.json",
+    "previousBuildProvenanceBeforeReleaseMaintenance": "dev/release-materials/provenance/ide-about-layout-20261106.json",
+    "updateStateDirectory": "ide/build/update-runtime/<platform>-<install-path-sha256>",
+    "previousBuildProvenanceBeforeDialogBackdrop": "dev/release-materials/provenance/ide-release-maintenance-20261106.json",
+    "dialogBackdrop": "viewport-sized absolute overlay; dialog above backdrop; child/IME-aware Escape",
+    "previousBuildProvenance": "dev/release-materials/provenance/ide-settings-20261107/receipt.json",
+    "sourceRevision": "c099978dff8086f2d9bc054c3a8220537dcad556",
+    "previousSourceIdentity": {
       "guiQualification": {
         "path": "dev/release-materials/provenance/xge-ide-update-20261106/publication-receipt.json",
         "sha256": "5846a963f9bfde550bd561fd44fd36edeb668e292caf669399e799f66d6ad976",
@@ -103,57 +161,7 @@
         "sha256": "85521c1a3f1bfc4675ce5e2a13dd31049f27f18bbb08e0109ee325e1a4679f65",
         "bytes": 628
       }
-    },
-    "previousMatchedGuiProvenance": "dev/release-materials/provenance/ide-updater-20261103.json",
-    "openglStartupCompatibility": {
-      "request": "3.3 core",
-      "targetedValidation": "Passed with current matched SDK: real hidden window/workbench rendering and 1.25/2.0 DPI",
-      "physicalWin7Hd4200Tested": false,
-      "matchedSdkManifestSha256": "371be1c1d14e71cbdd95b5f8b9169324acbe1df1e7415e50507902d6cc3cb411"
-    },
-    "updateClient": {
-      "backgroundVersionCheck": true,
-      "manualCheckAndRepair": true,
-      "networkOnUiThread": false,
-      "startupPreference": "update.enabled",
-      "saveAndCancelBeforeHandoff": true,
-      "updater": "update.exe",
-      "forceUpdateSupported": true,
-      "cachedMandatoryPolicy": true,
-      "saveCancelCannotBypassRequiredUpdate": true
-    },
-    "guiStartupCorrection": {
-      "path": "dev/release-materials/provenance/ide-startup-fix-20261106/publication-receipt.json",
-      "sha256": "cb3dd03ba90452fb9a670371ed7447763a0188fdc61b57adf11d5d89851ce13b",
-      "bytes": 2693
-    },
-    "buildScope": "Current XGE/XUI IDE profile plus matched SDK and full qualified GUI rebuild; startup correction source overlay retained",
-    "currentEngine": {
-      "sourceMaterials": {
-        "path": "dev/release-materials/sources/xge-ide-update-20261106/source-manifest.json",
-        "sha256": "85521c1a3f1bfc4675ce5e2a13dd31049f27f18bbb08e0109ee325e1a4679f65",
-        "bytes": 628
-      },
-      "publicAbiFingerprint": "9a70075c21d0350a",
-      "profile": "ide",
-      "xrtMode": "embedded",
-      "runtime": "release/win_x64/xge.dll"
-    },
-    "previousBuildProvenanceBeforeAbout": "dev/release-materials/provenance/xge-ide-update-20261106/publication-receipt.json",
-    "aboutWindow": {
-      "displayVersion": "0.6.0",
-      "iterationSource": ".xlang-update/installed.json",
-      "entry": "help.about",
-      "sourceVersion": "ide/data/version.json",
-      "layout": "compact centered viewport-fitting content; title close and Escape"
-    },
-    "previousBuildProvenanceBeforeAboutLayout": "dev/release-materials/provenance/ide-about-versions-20261106.json",
-    "previousBuildProvenanceBeforeReleaseMaintenance": "dev/release-materials/provenance/ide-about-layout-20261106.json",
-    "updateStateDirectory": "ide/build/update-runtime/<platform>-<install-path-sha256>",
-    "previousBuildProvenanceBeforeDialogBackdrop": "dev/release-materials/provenance/ide-release-maintenance-20261106.json",
-    "dialogBackdrop": "viewport-sized absolute overlay; dialog above backdrop; child/IME-aware Escape",
-    "previousBuildProvenance": "dev/release-materials/provenance/ide-dialog-backdrop-20261106.json",
-    "sourceRevision": "cf98641a480e6fdfa093ed2a45b3fa19b68c1322"
+    }
   },
   "catalog": {
     "status": "passed",
@@ -3227,10 +3235,10 @@
       "previousSha256": "72ecb9983e40475a04f29f47d40f5ac20143d2f03c646a8c3b487d61bdd0e7a1"
     },
     {
-      "sha256": "f42e2f54af38f11f9a4269055a54eb562bfa79896148bc3c65fbf5e40d76083b",
-      "bytes": 1848672,
+      "sha256": "1a3715ca11ae415a7a27f08b43a25dcaae5eedcac8476b86e64d3f9e468d6a09",
+      "bytes": 1850911,
       "path": "release/win_x64/xlang_ide.exe",
-      "origin": "ide-settings-20261107"
+      "origin": "ide-settings-menu-20261107"
     },
     {
       "sha256": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
@@ -3239,10 +3247,10 @@
       "origin": "matched-xge3-xui3-local-delivery-20261105"
     },
     {
-      "sha256": "b83417d354dc2818fb51c2d64ccf5ddd8341b1beb4eb02c01ef9f897452d2604",
-      "bytes": 11130425,
+      "sha256": "0b13c30fa82345c608e549cfe3b1a7f9176c764cc3dd6a0c79cecbfd3903032e",
+      "bytes": 11128377,
       "path": "release/win_x64/xge.dll",
-      "origin": "xge-ide-update-20261106"
+      "origin": "ide-settings-menu-20261107"
     },
     {
       "path": "release/win_x64/update.exe",
@@ -3714,6 +3722,19 @@
       "path": "dev/release-materials/sources/ide-settings-20261107/manifest.json",
       "sha256": "7b46592ed5501ad22ac69e6c28321859fe581a3e3288e73b124b4d60fcbde5b1",
       "bytes": 1201
+    },
+    "publication": "local-only"
+  },
+  "ideSettingsMenuRepair": {
+    "receipt": {
+      "path": "dev/release-materials/provenance/ide-settings-menu-20261107/receipt.json",
+      "sha256": "942402bbd1af5c511dda1e1623c03fbd0a8ce0be5a745dbcf4b30c3b6aa03b5d",
+      "bytes": 5388
+    },
+    "sourceMaterials": {
+      "path": "dev/release-materials/sources/ide-settings-menu-20261107/manifest.json",
+      "sha256": "8be6a3ecc2ae26275ef548f88800980e2f9aafd3a1b3da11991cc72db95993e2",
+      "bytes": 1733
     },
     "publication": "local-only"
   }

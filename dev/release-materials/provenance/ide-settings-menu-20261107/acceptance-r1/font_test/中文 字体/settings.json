@@ -1,0 +1,10 @@
+{
+  "format": "xlang-ide-settings-1",
+  "external": true,
+  "editor": {
+    "font": {
+      "path": "D:/GIT/x-lang/ide/build/Release/settings-menu-20261107/acceptance-r1/font_test/中文 字体/等宽 字体.ttf",
+      "size": 24
+    }
+  }
+}

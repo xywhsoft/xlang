@@ -1,0 +1,20 @@
+{
+  "passed": true,
+  "files": 44,
+  "requiredExports": 34,
+  "buildInfo": {
+    "size": 32,
+    "api_major": 3,
+    "api_minor": 0,
+    "api_patch": 0,
+    "foundation_revision": 1,
+    "features": 1021,
+    "abi_fingerprint": 5112905627930940773
+  },
+  "sourceCommit": "4d402c08428dd412e50b172979bc370547a52f9b",
+  "runtime": {
+    "path": "release/win_x64/xge.dll",
+    "sha256": "0b13c30fa82345c608e549cfe3b1a7f9176c764cc3dd6a0c79cecbfd3903032e",
+    "bytes": 11128377
+  }
+}

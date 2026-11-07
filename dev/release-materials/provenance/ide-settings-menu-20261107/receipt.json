@@ -1,0 +1,121 @@
+{
+  "schema": 1,
+  "date": "2026-11-07",
+  "status": "passed",
+  "sourceRevision": "c099978dff8086f2d9bc054c3a8220537dcad556",
+  "cause": "Menu-state queries used checked XRT scalar/container getters on absent or differently typed optional automatic-diagnostic metadata. This left an ambient invalid-argument error; XGE correctly terminated the frame loop with -15.",
+  "repair": "Use the existing type-checked, absence-safe metadata probes throughout the language view and included capability readers. No clearing of ambient errors was added.",
+  "xge": {
+    "sourceCommit": "4d402c08428dd412e50b172979bc370547a52f9b",
+    "profile": "ide",
+    "apiVersion": "3.0.0",
+    "buildInfo": {
+      "size": 32,
+      "api_major": 3,
+      "api_minor": 0,
+      "api_patch": 0,
+      "foundation_revision": 1,
+      "features": 1021,
+      "abi_fingerprint": 5112905627930940773
+    },
+    "sdkManifest": {
+      "path": "ide/third_party/xge_sdk/sdk_manifest.json",
+      "sha256": "33479cc0e24c0ecfdbfecbb2258b29d963d24cd3d71fc61a70195b7e14f0d606",
+      "bytes": 12603
+    },
+    "sourcePrerequisite": "Two pending upstream focus-resolver declaration/implementation files plus three existing IDE OpenGL/WGL compatibility files, all explicitly pinned in SDK provenance. Upstream workspace unchanged.",
+    "declarations": "Derived from the exact compiled xrt.h, with matching profile selection; the upstream declaration snapshot lacked current ownership protocol types.",
+    "historicalDependencyMetadataRetained": true,
+    "preservedOpenGLStartup": "Existing IDE OpenGL 3.3 request, bounded WGL cleanup and returning-logger error propagation retained; callback-loop failure is recorded using the current first-outcome protocol."
+  },
+  "build": {
+    "translationUnits": 106,
+    "optimization": "-O2",
+    "record": {
+      "path": "dev/release-materials/provenance/ide-settings-menu-20261107/build.json",
+      "sha256": "21a165581c420353ebcd39b09a9a0b76806ed715c89d0093e6fa7c5018e4d1e1",
+      "bytes": 277655
+    }
+  },
+  "acceptance": {
+    "native": {
+      "path": "dev/release-materials/provenance/ide-settings-menu-20261107/acceptance-final/report.json",
+      "sha256": "e3b1b8bae2444e6d92935744ab06fa7355cbe8fe4ebdef4ef25eb4a47366ecfe",
+      "bytes": 98641
+    },
+    "fixtures": [
+      "settings_test",
+      "settings_view_test",
+      "settings_menu_frame_test",
+      "input_test",
+      "font_test",
+      "ui_font_test",
+      "actions_test"
+    ],
+    "restoredSession": "Same copied session: original GUI failed immediately after menu down; fixed GUI passed with both prior and updated XGE. Automatic diagnostics remained enabled.",
+    "before": {
+      "path": "dev/release-materials/provenance/ide-settings-menu-20261107/old-menu-session.log",
+      "sha256": "f805a7c3612df52004d7e43bd6372ad10d50175b11346fcc4624c79a7120bd19",
+      "bytes": 384
+    },
+    "after": {
+      "path": "dev/release-materials/provenance/ide-settings-menu-20261107/new-xge-final-session.log",
+      "sha256": "c82d6bf406379d3ea9abf0b543046428c90badf66f5b667fcc4ebeb35132ae77",
+      "bytes": 592
+    },
+    "actualInstalledGui": {
+      "path": "dev/release-materials/provenance/ide-settings-menu-20261107/published-wgl/report.json",
+      "sha256": "99091d41f27e90b637d4add15237bafe2ce0f2163cdc208b3e04ecd2f19f832a",
+      "bytes": 2331
+    },
+    "sdkVerification": {
+      "path": "dev/release-materials/provenance/ide-settings-menu-20261107/sdk-verification.json",
+      "sha256": "2157808267e9ac4137b020cae0b0a7ec9b9ea94dd5e542420da90d8f35e37230",
+      "bytes": 479
+    },
+    "dpiRender": [
+      1,
+      1.25,
+      2
+    ],
+    "scope": "Targeted IDE integration acceptance; not a complete compiler or all-XGE-feature acceptance.",
+    "preCompatibilityNative": {
+      "path": "dev/release-materials/provenance/ide-settings-menu-20261107/acceptance-r1/report.json",
+      "sha256": "7a2b973e3fe8cfee45747d190cba6c427738ceda57aefb5f2f4b15b5cf5a7e68",
+      "bytes": 98578
+    }
+  },
+  "sourceMaterials": {
+    "path": "dev/release-materials/sources/ide-settings-menu-20261107/manifest.json",
+    "sha256": "8be6a3ecc2ae26275ef548f88800980e2f9aafd3a1b3da11991cc72db95993e2",
+    "bytes": 1733
+  },
+  "products": [
+    {
+      "path": "release/win_x64/xlang_ide.exe",
+      "sha256": "1a3715ca11ae415a7a27f08b43a25dcaae5eedcac8476b86e64d3f9e468d6a09",
+      "bytes": 1850911
+    },
+    {
+      "path": "release/win_x64/xge.dll",
+      "sha256": "0b13c30fa82345c608e549cfe3b1a7f9176c764cc3dd6a0c79cecbfd3903032e",
+      "bytes": 11128377
+    }
+  ],
+  "protected": {
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "a5feede784f0a5cb1a829c2e362de57e9278b55cec1a11b796cf4b6e78831bbc",
+    "xl.dll": "215d6b3c87704c745ec609eb07e718a52708ad7c13436294f2f662a56169be13",
+    "xlc.dll": "2241fcd462980fc40cbd6c47ce9347d537bababc93225cb6d2a2d36b9b978797",
+    "data/commands.json": "6079cecd10c3f2713622a2af7c030834524f3f502f804806e3f6210a34e4a1ae",
+    "data/catalog-sources/index.json": "4c2447f3d201d59c8cf77a96a9fc4ed99711d111bcda6280b5031431ef74d57f",
+    "option/settings.json": "bfd76ef743b6a205d1f8e600cd32bd2d048d63b2f7f1fb670a45e04824fa9a6f"
+  },
+  "userSettingsPreserved": true,
+  "userSessionValidatedViaCopy": true,
+  "externalPublishPerformed": false,
+  "implementationCommits": [
+    "c399f3690",
+    "c099978df"
+  ]
+}
