@@ -155,6 +155,7 @@ void xideSettingsViewLayout(xide_app* a)
   else {xuiWidgetSetRect(v->labels[i],(xui_rect_t){0,y,w-20*s,24*s});y+=26*s;float iw=fields[i].kind==TEXT ? w-108*s : 180*s;xuiWidgetSetRect(v->controls[i],(xui_rect_t){0,y,iw,32*s});if(v->browse[i])xuiWidgetSetRect(v->browse[i],(xui_rect_t){iw+8*s,y,80*s,32*s});y+=46*s;}
  }
  xuiWidgetSetPreferredSize(v->body,(xui_vec2_t){w-20*s,y});
+ xuiScrollViewSetContentSize(v->scroll,w-20*s,y);
  xuiWidgetSetRect(v->preview,(xui_rect_t){x,424*s,w-124*s,40*s});xuiWidgetSetRect(v->previewButton,(xui_rect_t){width-116*s,424*s,116*s,34*s});
  xuiWidgetSetVisible(v->preview,!*q && v->selected!=2 && v->selected!=4);xuiWidgetSetVisible(v->previewButton,!*q && v->selected!=2 && v->selected!=4);xuiWidgetSetEnabled(v->defaults,!*q);
  xuiWidgetSetRect(v->query,(xui_rect_t){x,424*s,156*s,34*s});xuiWidgetSetVisible(v->query,v->selected==2);xuiWidgetSetEnabled(v->query,v->request==NULL);
