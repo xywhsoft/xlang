@@ -1,0 +1,73 @@
+{
+  "schema": 1,
+  "date": "2026-11-08",
+  "publication": "local-only",
+  "complete": true,
+  "passed": true,
+  "sourceRevision": "60b9b5d1341d6eb2ec964462e8768e10827f482c",
+  "sourceMaterials": {
+    "path": "dev/release-materials/sources/ide-dialog-layout-20261108/manifest.json",
+    "sha256": "f3bd0a03a32125153dd6e82351c0a428d6332ba79fd0c2deed5c88c363805f8c",
+    "bytes": 5968
+  },
+  "buildInputs": {
+    "path": "dev/release-materials/provenance/ide-dialog-layout-20261108/build-inputs.json.gz",
+    "sha256": "16be65d99a1c0380ba3d61da718ba4db89c55e091176e3a92c7766a7ce010f3a",
+    "bytes": 23952
+  },
+  "acceptance": {
+    "path": "dev/release-materials/provenance/ide-dialog-layout-20261108/acceptance.json",
+    "sha256": "6f8d0a1580ba44738795d48d1a346ef12387e287a53f3e31bc9dfdb7d59150c4",
+    "bytes": 14843
+  },
+  "previousGUI": {
+    "path": "release/win_x64/xlang_ide.exe",
+    "sha256": "b6da9773184e41665640b3906423f74c2427b1598a6074af5e607a4c16cab8b5",
+    "bytes": 1854801
+  },
+  "publishedGUI": {
+    "path": "release/win_x64/xlang_ide.exe",
+    "sha256": "9ab1a1415f91469e70b66a71dd68155915998987a74f3288de8ae31001f1f4b0",
+    "bytes": 1872972
+  },
+  "retainedRuntimeIdentities": {
+    "xge.dll": "b415e78d21f8c8b0d8fcb86924169dd35d595d29951391c102892b00399718ff",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "a5feede784f0a5cb1a829c2e362de57e9278b55cec1a11b796cf4b6e78831bbc",
+    "xl.dll": "215d6b3c87704c745ec609eb07e718a52708ad7c13436294f2f662a56169be13",
+    "xlc.dll": "2241fcd462980fc40cbd6c47ce9347d537bababc93225cb6d2a2d36b9b978797"
+  },
+  "guiTranslationUnits": 106,
+  "optimization": "-O2",
+  "unrelatedWorkspaceChangesExcluded": true,
+  "installedSmoke": {
+    "command": [
+      "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide.exe",
+      "--hidden",
+      "--frames",
+      "4",
+      "--no-session",
+      "--no-auto-diagnostics",
+      "--settings",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\dialog-layout-20261107\\installed-smoke-323b2cd9\\settings.json",
+      "--session-root",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\dialog-layout-20261107\\installed-smoke-323b2cd9\\session",
+      "--diagnostic-root",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\dialog-layout-20261107\\installed-smoke-323b2cd9\\diagnostics",
+      "--screenshot",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\dialog-layout-20261107\\installed-smoke-323b2cd9\\installed-smoke.png"
+    ],
+    "exitCode": 0,
+    "seconds": 7.688,
+    "log": {
+      "path": "dev/release-materials/provenance/ide-dialog-layout-20261108/installed-smoke.log",
+      "sha256": "3f7ac451278dc2465961a367c5aaf60eb7ed25cf0c81179e939bc91b2f5012db",
+      "bytes": 74
+    },
+    "screenshot": {
+      "path": "dev/release-materials/provenance/ide-dialog-layout-20261108/installed-smoke.png",
+      "sha256": "c71de2c67510d64d2b746d38f7f0892d114c09330dc0881f04d0bfdc8fd9585f",
+      "bytes": 148503
+    }
+  }
+}

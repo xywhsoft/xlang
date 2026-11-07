@@ -191,3 +191,7 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 # Exact-byte Minimap preference source and acceptance materials.
 /dev/release-materials/sources/ide-minimap-setting-20261107/** -text -whitespace
 /dev/release-materials/provenance/ide-minimap-setting-20261107/** -text -whitespace
+
+# Exact-byte responsive dialog source and acceptance materials.
+/dev/release-materials/sources/ide-dialog-layout-20261108/** -text -whitespace
+/dev/release-materials/provenance/ide-dialog-layout-20261108/** -text -whitespace

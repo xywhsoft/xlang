@@ -1,0 +1,2 @@
+recovery_view_test passed: native protected-state manager, real row/button input, read-only preview, invalid UTF-8 rejection, C/xlang untitled recovery, modal isolation, large UI font scrolling, locked repair preservation, complete backup/rebuild, active editor version/dirty state and source bytes, archived preview and actual screenshots
+session: State is unreadable or unsupported; the original file is preserved.

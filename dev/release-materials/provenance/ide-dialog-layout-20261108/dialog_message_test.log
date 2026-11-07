@@ -1,0 +1,1 @@
+dialog_message_test passed: 66 checks; actual XUI window drag/resize/maximize/restore/close/Esc, draft retention, cancel/no/yes, deferred action, document/disk approval baselines, quit sequence, reload and large-font error msgbox; three screenshots.

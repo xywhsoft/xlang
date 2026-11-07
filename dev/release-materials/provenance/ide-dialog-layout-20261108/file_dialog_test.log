@@ -1,0 +1,1 @@
+file_dialog_test passed: 64 checks; real XUI add-existing-project/open/save-as/default-extension/overwrite yes-no, UTF-8 paths, cancelled and stale selection, nested font/folder draft retention, modal quit/actions, 40-DIP filter selection and two renders.

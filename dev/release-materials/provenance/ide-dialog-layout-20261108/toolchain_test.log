@@ -1,0 +1,3 @@
+UI call failed at line 242: xideWorkspaceViewCreate(app) -> -16
+workbench call failed at F:\xlang-validation\ide-dialog-layout-20261107\source\ide\src\app\xide_app.c:114: xideWorkbenchCreate(app) -> -16
+toolchain_test:109: xideAppCreate(&app)==XUI_OK && xgeBegin()==XGE_OK; ; 

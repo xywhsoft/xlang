@@ -1,0 +1,327 @@
+{
+  "schema": 1,
+  "date": "2026-11-08",
+  "complete": true,
+  "passed": true,
+  "scope": "Dialog/layout and affected editing regression; not the entire IDE/compiler suite",
+  "tests": [
+    {
+      "test": "dialog_layout_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\dialog-layout-20261107\\dialog_layout_test-4190ec45",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-dialog-layout-20261108/dialog_layout_test.log",
+        "sha256": "2b789cfb7bf7e093e98fed903d32b919493ea928318ca9b5e47222336d16120f",
+        "bytes": 206
+      },
+      "testSourceSha256": "b44d3f40ee313e0fafdb0b865aa8f97b56b10a72b2ecfc06dbb543ad39996185"
+    },
+    {
+      "test": "dialog_message_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\dialog-layout-20261107\\dialog_message_test-378ff0f9",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-dialog-layout-20261108/dialog_message_test.log",
+        "sha256": "f97cf5aca5e0166bd8f7570a27e28ec8b2b67ae4d56605bd7d4b63247f9cc6b5",
+        "bytes": 251
+      },
+      "testSourceSha256": "9d441f6e398a8fb8146de9eb1c3265b4815a63c93381536869761cce7581733c"
+    },
+    {
+      "test": "settings_view_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\dialog-layout-20261107\\settings_view_test-51154c90",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-dialog-layout-20261108/settings_view_test.log",
+        "sha256": "1adcd571bc7bc94957328b66ea55a4b4dbace37be5734132c9e3790d3e78f507",
+        "bytes": 302
+      },
+      "testSourceSha256": "8e7978a3ab6e7e5e12f7208f5601c5ff0b7ab72bc850caca6fbbacbf52452a22"
+    },
+    {
+      "test": "template_view_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\dialog-layout-20261107\\template_view_test-d877f68f",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-dialog-layout-20261108/template_view_test.log",
+        "sha256": "396226b9cdb7229db9bd181834ff014fa2e398d4a2a42647d7cab5d7416e25bf",
+        "bytes": 493
+      },
+      "testSourceSha256": "175b3c6dea7ed60c24d9ac650d55100f6a87bd3d1551d8b35d998a9feb082058"
+    },
+    {
+      "test": "import_view_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\dialog-layout-20261107\\import_view_test-fc4c6030",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-dialog-layout-20261108/import_view_test.log",
+        "sha256": "4d52f474d0ddd63eca79b4c0222cfb4683d4d024dd6429d065ec903460329dc6",
+        "bytes": 514
+      },
+      "testSourceSha256": "c3233b75eac0903bd7ea5cb7173269b5f0710865ca07f0abf108aad3350baf2f"
+    },
+    {
+      "test": "references_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\dialog-layout-20261107\\references_test-3164f53b",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-dialog-layout-20261108/references_test.log",
+        "sha256": "b8fe02a18e4031a319f073898314f8ff74f9c2d212f7943cdbde19b8152526f3",
+        "bytes": 523
+      },
+      "testSourceSha256": "a575e35f1bafe410ac6c9d5ad7dbf2f538ca90860c6997abbc8cfb711dfecb34"
+    },
+    {
+      "test": "file_changes_view_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\dialog-layout-20261107\\file_changes_view_test-bb6caa7d",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-dialog-layout-20261108/file_changes_view_test.log",
+        "sha256": "6e90776277cb0dcb19b0bf6b110bc277287ce5d76cbb0d2c27a566536f8bb05e",
+        "bytes": 376
+      },
+      "testSourceSha256": "654f4af2773ca755d76a64f71d66c3f20b5660b1281c10b89755f1f16fc54c29"
+    },
+    {
+      "test": "recovery_view_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\dialog-layout-20261107\\recovery_view_test-5ea2a32a",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-dialog-layout-20261108/recovery_view_test.log",
+        "sha256": "7ff87043b90df389018e6e6c08f22f292b7ece95ddf911f2567d7fa5a4fe1ba3",
+        "bytes": 419
+      },
+      "testSourceSha256": "11aa2f1b378d2d08181d24344cb358d3e0ae40d2529d74db43f823ef471bdab9"
+    },
+    {
+      "test": "file_dialog_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\dialog-layout-20261107\\file_dialog_test-f3962c77",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-dialog-layout-20261108/file_dialog_test.log",
+        "sha256": "0576562563c893e9c883975dcb56dc9f4c7f5488c1ee49e3ef2a5d7f6badbb24",
+        "bytes": 257
+      },
+      "testSourceSha256": "6a2ecee687368769b37f8d469b7eacdc62f7f617ea13218c9e01fad383f1c1af"
+    },
+    {
+      "test": "goto_view_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\dialog-layout-20261107\\goto_view_test-44a4c629",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-dialog-layout-20261108/goto_view_test.log",
+        "sha256": "4cb3a018d3d17085f63fcb2326c10b1916a2f278115784dd785a64ab4513c210",
+        "bytes": 475
+      },
+      "testSourceSha256": "038d4aba078e9445a292b14586b6ea7e2ae69b2c79ec40afae1b4282c692e327"
+    },
+    {
+      "test": "ui_font_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\dialog-layout-20261107\\ui_font_test-5d48f8d7",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-dialog-layout-20261108/ui_font_test.log",
+        "sha256": "1a9e6907c8f5598d657a1af0efaa6fa4ccde813e08e9a595a8a68ac46ba0075f",
+        "bytes": 454
+      },
+      "testSourceSha256": "cf3b95d2321bb2e4d48cff86eab734794312ce13e5f04351ed14946751611f9a"
+    },
+    {
+      "test": "resource_creation_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\dialog-layout-20261107\\resource_creation_test-1ea48d6d",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-dialog-layout-20261108/resource_creation_test.log",
+        "sha256": "7df755822afd7e86107fb5cbc10ba566241668b8764e7b417f9c1075b6501d45",
+        "bytes": 468
+      },
+      "testSourceSha256": "a569c5253dc85f04a775f3619c3d23021f8bb25f067439f38b34cbe5f87a231f"
+    },
+    {
+      "test": "catalog_source_view_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\dialog-layout-20261107\\catalog_source_view_test-6b8fd8f2",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-dialog-layout-20261108/catalog_source_view_test.log",
+        "sha256": "2e2010bc3c5bd7122dafced3601734ca2cce3968b4d61046022e1212225a39be",
+        "bytes": 259
+      },
+      "testSourceSha256": "52c292aab652968d1714b1338d975bf78768a25428ca6c4975b4d9ba6dadd629"
+    },
+    {
+      "test": "about_view_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\dialog-layout-20261107\\about_view_test-6f5b9e6d",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-dialog-layout-20261108/about_view_test.log",
+        "sha256": "c610b9d12e00c8f8044d4c9a01002ccc89c54b5e8f4ab368cd2beee841a3f884",
+        "bytes": 177
+      },
+      "testSourceSha256": "463f734b62a3645e3eb48ff5c7faa51c0935a2f92ea701a6e434192c8c96d349"
+    },
+    {
+      "test": "input_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\dialog-layout-20261107\\input_test-801e44a5",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-dialog-layout-20261108/input_test.log",
+        "sha256": "d992b451c3b31e7ddd85ed2d1da08c97c7ed3e8c1b7fb3bf5ca8fbd44164c9c0",
+        "bytes": 302
+      },
+      "testSourceSha256": "5d806b950497f3574bf0143d33a046eafe2be64d1591c6f1bef177abc5de57c3"
+    },
+    {
+      "test": "editor_minimap_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\dialog-layout-20261107\\editor_minimap_test-1ec7e214",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-dialog-layout-20261108/editor_minimap_test.log",
+        "sha256": "5d3a1be96f932b3187a6469ec8b2ecc494ec8752c4f1dc7eca029efe4dfd3e97",
+        "bytes": 201
+      },
+      "testSourceSha256": "968a03fae69d413bbd0196261b8a51cc52123b31b4e8ef4ee444c7c664c69d69"
+    },
+    {
+      "test": "dock_windows_view_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\dialog-layout-20261107\\dock_windows_view_test-60bbaa9e",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-dialog-layout-20261108/dock_windows_view_test.log",
+        "sha256": "9c2cfd00bebaad5c893b3dc035c6c01fd7065e2a7ac01f7f35f3259bf38a2c25",
+        "bytes": 187
+      },
+      "testSourceSha256": "95e001739b2421de7c35689d0c59ff89b0d2dc1ffd7f6818631b958bd7afbb3a"
+    },
+    {
+      "test": "project_migration_view_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\dialog-layout-20261107\\project_migration_view_test-fc81ef37",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-dialog-layout-20261108/project_migration_view_test.log",
+        "sha256": "cadb4421ac3df59a44e19f824e57d73bcbde4f1bd4348a99b217dd91ad3f4b5e",
+        "bytes": 599
+      },
+      "testSourceSha256": "aa63f4e4d0579efb9d029fa090f06c73fa65d72faa6fd8611fbd902c13cf8b03"
+    },
+    {
+      "test": "project_test_view_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\dialog-layout-20261107\\project_test_view_test-2fd1ecb6",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-dialog-layout-20261108/project_test_view_test.log",
+        "sha256": "791b41fda96d47337366143c59cd903409be72bf10fe3466db034dcbc588bfec",
+        "bytes": 331
+      },
+      "testSourceSha256": "3102101ec9fef48de41395b7b2fc6a3325daf91a7205f1e1b8624836862bc731"
+    },
+    {
+      "test": "resource_rebind_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\dialog-layout-20261107\\resource_rebind_test-eac9128f",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-dialog-layout-20261108/resource_rebind_test.log",
+        "sha256": "f7f1f54f3bd25be67535bec1ea755bea0eaa45fc846f8768f1f8b6fa482c91a6",
+        "bytes": 369
+      },
+      "testSourceSha256": "2325f20455fcbbef955ea154c89259876cbe61947a4f17b9a2d337275c0a245f"
+    },
+    {
+      "test": "migration_checkpoint_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\dialog-layout-20261107\\migration_checkpoint_test-e30d63fe",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-dialog-layout-20261108/migration_checkpoint_test.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "testSourceSha256": "813ce1e0bd7b4db48e937eef7bc9989461b3e45eb76b679f5ce305e1335a4708"
+    },
+    {
+      "test": "actions_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\dialog-layout-20261107\\actions_test-9006b619",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-dialog-layout-20261108/actions_test.log",
+        "sha256": "8c3fc3a3eab5ed1bd52228bd076a0dd3ad26ad5c5d94841630b62ca336c5dc7d",
+        "bytes": 773
+      },
+      "testSourceSha256": "4d50d776f44809b253341fbfa59082ded97489469a93e994edab086db4214f68"
+    }
+  ],
+  "candidateSmoke": {
+    "command": [
+      "D:\\GIT\\x-lang\\release\\win_x64\\xide-verify-07c5dfcc32f7413cb72b75aa4fb34a3b.exe",
+      "--hidden",
+      "--frames",
+      "4",
+      "--no-session",
+      "--no-auto-diagnostics",
+      "--settings",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\dialog-layout-20261107\\candidate-smoke-dabd2128\\settings.json",
+      "--session-root",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\dialog-layout-20261107\\candidate-smoke-dabd2128\\session",
+      "--diagnostic-root",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\dialog-layout-20261107\\candidate-smoke-dabd2128\\diagnostics",
+      "--screenshot",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\dialog-layout-20261107\\candidate-smoke-dabd2128\\candidate-smoke.png"
+    ],
+    "exitCode": 0,
+    "seconds": 7.766,
+    "log": {
+      "path": "dev/release-materials/provenance/ide-dialog-layout-20261108/candidate-smoke.log",
+      "sha256": "3f7ac451278dc2465961a367c5aaf60eb7ed25cf0c81179e939bc91b2f5012db",
+      "bytes": 74
+    },
+    "screenshot": {
+      "path": "dev/release-materials/provenance/ide-dialog-layout-20261108/candidate-smoke.png",
+      "sha256": "c71de2c67510d64d2b746d38f7f0892d114c09330dc0881f04d0bfdc8fd9585f",
+      "bytes": 148503
+    }
+  },
+  "installedSmoke": {
+    "command": [
+      "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide.exe",
+      "--hidden",
+      "--frames",
+      "4",
+      "--no-session",
+      "--no-auto-diagnostics",
+      "--settings",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\dialog-layout-20261107\\installed-smoke-323b2cd9\\settings.json",
+      "--session-root",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\dialog-layout-20261107\\installed-smoke-323b2cd9\\session",
+      "--diagnostic-root",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\dialog-layout-20261107\\installed-smoke-323b2cd9\\diagnostics",
+      "--screenshot",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\dialog-layout-20261107\\installed-smoke-323b2cd9\\installed-smoke.png"
+    ],
+    "exitCode": 0,
+    "seconds": 7.688,
+    "log": {
+      "path": "dev/release-materials/provenance/ide-dialog-layout-20261108/installed-smoke.log",
+      "sha256": "3f7ac451278dc2465961a367c5aaf60eb7ed25cf0c81179e939bc91b2f5012db",
+      "bytes": 74
+    },
+    "screenshot": {
+      "path": "dev/release-materials/provenance/ide-dialog-layout-20261108/installed-smoke.png",
+      "sha256": "c71de2c67510d64d2b746d38f7f0892d114c09330dc0881f04d0bfdc8fd9585f",
+      "bytes": 148503
+    }
+  },
+  "inputsUnchanged": true,
+  "temporaryRuntimeFixturesRemoved": true,
+  "baselineComparisons": [
+    {
+      "test": "global_recovery_view_test",
+      "result": "Same pre-layout startup preference/session-index assertion fails on both original and new GUI objects; recorded separately, no recovery implementation changed."
+    },
+    {
+      "test": "resource_view_test",
+      "result": "Same resource invalid-document/message assertion fails on both original and new GUI objects. Resource creation, editing, layouts and lifetime coverage passed in the focused fixtures."
+    },
+    {
+      "test": "toolchain_test",
+      "result": "Both original and new objects return XUI_ERROR_CALLBACK_FAILED while creating the workspace, before the toolchain dialog is created."
+    }
+  ]
+}
