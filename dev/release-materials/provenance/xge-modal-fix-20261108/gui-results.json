@@ -1,0 +1,98 @@
+[
+  {
+    "test": "modal_open_latency_test",
+    "exit": 0,
+    "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\modal-fix-20261108\\modal_open_latency_test-aad9f42f",
+    "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\gui-source\\ide\\tests\\modal_open_latency_test.c"
+  },
+  {
+    "test": "about_view_test",
+    "exit": 0,
+    "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\modal-fix-20261108\\about_view_test-0c3536da",
+    "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\gui-source\\ide\\tests\\about_view_test.c"
+  },
+  {
+    "test": "dialog_message_test",
+    "exit": 0,
+    "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\modal-fix-20261108\\dialog_message_test-96924bac",
+    "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\gui-source\\ide\\tests\\dialog_message_test.c"
+  },
+  {
+    "test": "find_follow_view_test",
+    "exit": 0,
+    "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\modal-fix-20261108\\find_follow_view_test-9eef5681",
+    "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\gui-source\\ide\\tests\\find_follow_view_test.c"
+  },
+  {
+    "test": "input_test",
+    "exit": 0,
+    "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\modal-fix-20261108\\input_test-213f44c6",
+    "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\gui-source\\ide\\tests\\input_test.c"
+  },
+  {
+    "test": "font_test",
+    "exit": 0,
+    "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\modal-fix-20261108\\font_test-5a9d38a4",
+    "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\gui-source\\ide\\tests\\font_test.c"
+  },
+  {
+    "test": "ui_font_test",
+    "exit": 0,
+    "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\modal-fix-20261108\\ui_font_test-2b2e89c7",
+    "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\gui-source\\ide\\tests\\ui_font_test.c"
+  },
+  {
+    "test": "settings_menu_frame_test",
+    "exit": 0,
+    "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\modal-fix-20261108\\settings_menu_frame_test-d3a3e521",
+    "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\gui-source\\ide\\tests\\settings_menu_frame_test.c"
+  },
+  {
+    "test": "settings_view_test",
+    "exit": 0,
+    "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\modal-fix-20261108\\settings_view_test-7a9dfd25",
+    "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\gui-source\\ide\\tests\\settings_view_test.c"
+  },
+  {
+    "test": "dialog_layout_test",
+    "exit": 0,
+    "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\modal-fix-20261108\\dialog_layout_test-fffe6df5",
+    "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\gui-source\\ide\\tests\\dialog_layout_test.c"
+  },
+  {
+    "test": "dock_tabs_view_test",
+    "exit": 0,
+    "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\modal-fix-20261108\\dock_tabs_view_test-0b6f181e",
+    "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\gui-source\\ide\\tests\\dock_tabs_view_test.c"
+  },
+  {
+    "test": "dock_windows_view_test",
+    "exit": 0,
+    "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\modal-fix-20261108\\dock_windows_view_test-52d8ee18",
+    "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\gui-source\\ide\\tests\\dock_windows_view_test.c"
+  },
+  {
+    "test": "catalog_follow_test",
+    "exit": 0,
+    "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\modal-fix-20261108\\catalog_follow_test-35bfa68e",
+    "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\gui-source\\ide\\tests\\catalog_follow_test.c"
+  },
+  {
+    "test": "catalog_view_test",
+    "exit": 0,
+    "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\modal-fix-20261108\\catalog_view_test-e8ea23bc",
+    "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\gui-source\\ide\\tests\\catalog_view_test.c"
+  },
+  {
+    "test": "editor_minimap_test",
+    "exit": 0,
+    "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\modal-fix-20261108\\editor_minimap_test-2eda443a",
+    "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\gui-source\\ide\\tests\\editor_minimap_test.c"
+  },
+  {
+    "test": "actions_test",
+    "exit": 0,
+    "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\modal-fix-20261108\\actions_test-4caad0e9",
+    "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\gui-source\\ide\\tests\\actions_test.c"
+  }
+]

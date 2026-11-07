@@ -66,7 +66,7 @@
       "licenseUrl": "http://www.microsoft.com/typography/fonts/default.aspx"
     },
     "fontChangeSourceParent": "b16a95bbf022efcafc7b965d1bd9b5b945c0d881",
-    "currentBuildProvenance": "dev/release-materials/provenance/xge-sync-20261108/receipt.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/xge-modal-fix-20261108/receipt.json",
     "cLspEnabled": false,
     "applicationIcon": {
       "source": "ide/data/xlang_ide.ico",
@@ -80,12 +80,16 @@
       "provenance": "docs/reports/release-materials-migration-20261031.json",
       "buildCommand": "pwsh -NoProfile -File ide/tools/build.ps1 -Configuration Release -GuiOnly -LanguageServerPath D:/GIT/x-lang/release/xlang-ls.exe -ReleaseDirectory D:/GIT/x-lang/release"
     },
-    "sha256": "f8d38ffdea249a0ae211103c0d8e300aa71f3a39da8bf1b81c01109deaa43f03",
+    "sha256": "fba0dee475ecc0ea330bfb20e2281b0c253e48452bfc5855d46ec33e57e493cd",
     "sourceIdentity": {
-      "guiSourceRevision": "041700426749982147ebb26b3374c862a9e296d7",
-      "build": "dev/release-materials/provenance/xge-sync-20261108/evidence.zip",
-      "sourceCommit": "041700426749982147ebb26b3374c862a9e296d7",
-      "matchedSdkManifestSha256": "25181855e5402f25b24cb51cedff76eba08160413682f4c3feac91f601d8ec5a"
+      "guiSourceRevision": "203566e9350dd48d4088576367d9b609fe1cf1fc",
+      "sourceCommit": "203566e9350dd48d4088576367d9b609fe1cf1fc",
+      "build": {
+        "path": "dev/release-materials/provenance/xge-modal-fix-20261108/evidence.zip",
+        "sha256": "a84b9cde579e2d65a5b3b38e1d2f9a0371cb658b4797b5ec3e735d0be21979bb",
+        "bytes": 7332054
+      },
+      "matchedSdkManifestSha256": "e35eda1f6f8f28437204fa565d5ee7949b35feeb639b7e6d36db4cb559e3b30f"
     },
     "previousMatchedGuiProvenance": "dev/release-materials/provenance/ide-updater-20261103.json",
     "openglStartupCompatibility": {
@@ -110,19 +114,19 @@
       "sha256": "cb3dd03ba90452fb9a670371ed7447763a0188fdc61b57adf11d5d89851ce13b",
       "bytes": 2693
     },
-    "buildScope": "Full 108-TU matched GUI rebuild for XGE font/proxy/rendering ABI; current compiler/LS preserved.",
+    "buildScope": "Full 108-TU matched GUI rebuild for native style-registration correction; concurrent IDE/LS/semantic changes excluded.",
     "currentEngine": {
       "sourceMaterials": {
-        "path": "dev/release-materials/sources/xge-sync-20261108/manifest.json",
-        "sha256": "d634beadbb49cd647b61a1d53581bf3cee7b705a9b606524731928e017c20912",
-        "bytes": 246573
+        "path": "dev/release-materials/sources/xge-modal-fix-20261108/manifest.json",
+        "sha256": "11d2957d727dc6375033f5b09cd2d01b53eca51d298cfd1d5341ee25590c14b3",
+        "bytes": 275062
       },
-      "sourceCommit": "45797364a4060c04d08b3328e263a798c98715c1",
+      "sourceCommit": "2e8ee6d203fe96684b32d2a2a3606ec03fef7465",
       "publicAbiFingerprint": "0x9de44f119936afd7",
       "profile": "ide",
       "xrtMode": "embedded",
       "runtime": "release/win_x64/xge.dll",
-      "mainlineCommit": "45797364a4060c04d08b3328e263a798c98715c1"
+      "mainlineCommit": "2e8ee6d203fe96684b32d2a2a3606ec03fef7465"
     },
     "previousBuildProvenanceBeforeAbout": "dev/release-materials/provenance/xge-ide-update-20261106/publication-receipt.json",
     "aboutWindow": {
@@ -137,8 +141,8 @@
     "updateStateDirectory": "ide/build/update-runtime/<platform>-<install-path-sha256>",
     "previousBuildProvenanceBeforeDialogBackdrop": "dev/release-materials/provenance/ide-release-maintenance-20261106.json",
     "dialogBackdrop": "viewport-sized absolute overlay; dialog above backdrop; child/IME-aware Escape",
-    "previousBuildProvenance": "dev/release-materials/provenance/ide-find-follow-20261108/publication-receipt.json",
-    "sourceRevision": "041700426749982147ebb26b3374c862a9e296d7",
+    "previousBuildProvenance": "dev/release-materials/provenance/xge-sync-20261108/receipt.json",
+    "sourceRevision": "203566e9350dd48d4088576367d9b609fe1cf1fc",
     "previousSourceIdentity": {
       "dockTabNavigation": {
         "path": "dev/release-materials/sources/ide-dock-tabs-20261107/manifest.json",
@@ -166,6 +170,11 @@
       "path": "dev/release-materials/provenance/ide-native-find-20261108/publication-receipt.json",
       "sha256": "a389fcfa82b9b745cb543569aba87dc7316619af35fc628690ca77583aca25b4",
       "bytes": 2813
+    },
+    "modalLatencyRepair": {
+      "path": "dev/release-materials/provenance/xge-modal-fix-20261108/receipt.json",
+      "sha256": "280857c3e5c2c39368f4e2a67ff50f6ae38f2f604b29893cd7e03c7c5da56988",
+      "bytes": 21469
     }
   },
   "catalog": {
@@ -179,13 +188,13 @@
       "members": 3830
     },
     "availableSources": 591,
-    "catalogSha256": "9cf36e1eac5500fa0f0aa01d1bf7e24d9249e7013c687f83ecd41824d2f03196",
+    "catalogSha256": "f856744a2623b01f8492a055a0279b94e0a2a042c7bbba99d5463ba79d3ad6ae",
     "sourceRevision": "ed78373dded9bde21db313799c1db8d5111631a6",
-    "currentDeliveryAction": "Regenerated extension declarations from current formal parser; builtin/stdlib snapshot retained. XGE/XUI members, C records and fixed arrays covered; other 5660 extension APIs preserved.",
+    "currentDeliveryAction": "Public entries/documents unchanged; refreshed private native artifact manifests and paired sources after XGE modal fix.",
     "extensionRefreshReceipt": {
-      "path": "dev/release-materials/provenance/xge-sync-20261108/receipt.json",
-      "sha256": "014c04e69019b554d332d3c30fdfe5c32e3ee227a3c7358c54aee4c1950449a9",
-      "bytes": 144848
+      "path": "dev/release-materials/provenance/xge-modal-fix-20261108/receipt.json",
+      "sha256": "280857c3e5c2c39368f4e2a67ff50f6ae38f2f604b29893cd7e03c7c5da56988",
+      "bytes": 21469
     }
   },
   "publicExtensionModules": 207,
@@ -3156,14 +3165,14 @@
       "sha256": "ffd8dcfb27db08af35418ee33b8cd73f7d2138fb900fb1e7d9266dd9ab4c247e"
     },
     {
-      "bytes": 106714,
+      "bytes": 110882,
       "path": "release/win_x64/data/catalog-sources/index.json",
-      "sha256": "4c2447f3d201d59c8cf77a96a9fc4ed99711d111bcda6280b5031431ef74d57f"
+      "sha256": "26582bc4fdc8b4137f66c82157bcdb26ad2131bac1f86f58de638d914cf2ad0d"
     },
     {
       "bytes": 18434061,
       "path": "release/win_x64/data/commands.json",
-      "sha256": "9cf36e1eac5500fa0f0aa01d1bf7e24d9249e7013c687f83ecd41824d2f03196"
+      "sha256": "f856744a2623b01f8492a055a0279b94e0a2a042c7bbba99d5463ba79d3ad6ae"
     },
     {
       "bytes": 9210776,
@@ -3245,11 +3254,11 @@
       "previousSha256": "72ecb9983e40475a04f29f47d40f5ac20143d2f03c646a8c3b487d61bdd0e7a1"
     },
     {
-      "sha256": "f8d38ffdea249a0ae211103c0d8e300aa71f3a39da8bf1b81c01109deaa43f03",
+      "sha256": "fba0dee475ecc0ea330bfb20e2281b0c253e48452bfc5855d46ec33e57e493cd",
       "bytes": 1897286,
       "path": "release/win_x64/xlang_ide.exe",
-      "origin": "xge-sync-20261108",
-      "previousSha256": "35863315f555c51c0ef7ac563147caebf2f6640d7f3e9eaecf2daef5cff8f40a"
+      "origin": "xge-modal-fix-20261108",
+      "previousSha256": "f8d38ffdea249a0ae211103c0d8e300aa71f3a39da8bf1b81c01109deaa43f03"
     },
     {
       "sha256": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
@@ -3258,11 +3267,11 @@
       "origin": "matched-xge3-xui3-local-delivery-20261105"
     },
     {
-      "sha256": "c2d9a9bc1ccfd607f15580d8ff7c56a5c830008e0ae0223fe3680371b7739491",
-      "bytes": 11170056,
+      "sha256": "f165f5b01576b67b56ecb0f7f7f35e4bb82c33f54a1d697fc40ff7443d18a4e7",
+      "bytes": 11170568,
       "path": "release/win_x64/xge.dll",
-      "origin": "xge-sync-20261108",
-      "previousSha256": "acdc0e86fd27d30ca0d96b578e832315766a39b9f1af5a442babb7a8902c1d53"
+      "origin": "xge-modal-fix-20261108",
+      "previousSha256": "c2d9a9bc1ccfd607f15580d8ff7c56a5c830008e0ae0223fe3680371b7739491"
     },
     {
       "path": "release/win_x64/update.exe",
@@ -3278,15 +3287,17 @@
     },
     {
       "path": "release/win_x64/extlibs/_xge_native/native/xge3_host.dll",
-      "sha256": "4049265f017789b0b4a0436b14f11c9f61d086d12482561f8bb3f19d9868d0db",
-      "bytes": 9147829,
-      "origin": "xge-sync-20261108"
+      "sha256": "d1d3f66827bcbb59a69ebb37d1051a39c32687967ecf8171be52ec3999abbbfd",
+      "bytes": 9148341,
+      "origin": "xge-modal-fix-20261108",
+      "previousSha256": "4049265f017789b0b4a0436b14f11c9f61d086d12482561f8bb3f19d9868d0db"
     },
     {
       "path": "release/linux_x64/extlibs/_xge_native/native/libxge3_host.so",
-      "sha256": "4ec8fafa37e0a3e46e87d1a21ab7b953e9991798fbb390b81542a0fad00be88d",
-      "bytes": 9944016,
-      "origin": "xge-sync-20261108"
+      "sha256": "6d889338cb2514ae8873c4001631a8d287721c9069771dfc1a59f87ccca63f20",
+      "bytes": 9948112,
+      "origin": "xge-modal-fix-20261108",
+      "previousSha256": "4ec8fafa37e0a3e46e87d1a21ab7b953e9991798fbb390b81542a0fad00be88d"
     },
     {
       "path": "release/win_x64/data/version.json",
@@ -3422,7 +3433,7 @@
     "historicalReportPathsPreserved": true,
     "mutableDataPathsUpdated": 600
   },
-  "currentScope": "Accepted XGE worktree, matched Windows GUI SDK, Windows/Linux dynamic and static xge/xui packages and paired command-source catalog. Unrelated workspace changes excluded.",
+  "currentScope": "Native XGE style-registration latency correction; matched SDK/108-TU GUI and Windows/Linux dynamic/static engines. Unrelated compiler, LS, UI and release-layout work excluded.",
   "localPublication": {
     "path": "dev/release-materials/provenance/xge3-local-publication-20261105/receipt.json",
     "sha256": "d55e8e816fddbfc2d2283c9ba45b9b28ac5c5e07e0da183fbab3088f118fbad1",
@@ -3494,17 +3505,17 @@
   },
   "xgeIdeUpdate": {
     "receipt": {
-      "path": "dev/release-materials/provenance/xge-sync-20261108/receipt.json",
-      "sha256": "014c04e69019b554d332d3c30fdfe5c32e3ee227a3c7358c54aee4c1950449a9",
-      "bytes": 144848
+      "path": "dev/release-materials/provenance/xge-modal-fix-20261108/receipt.json",
+      "sha256": "280857c3e5c2c39368f4e2a67ff50f6ae38f2f604b29893cd7e03c7c5da56988",
+      "bytes": 21469
     },
     "sourceMaterials": {
-      "path": "dev/release-materials/sources/xge-sync-20261108/manifest.json",
-      "sha256": "d634beadbb49cd647b61a1d53581bf3cee7b705a9b606524731928e017c20912",
-      "bytes": 246573
+      "path": "dev/release-materials/sources/xge-modal-fix-20261108/manifest.json",
+      "sha256": "11d2957d727dc6375033f5b09cd2d01b53eca51d298cfd1d5341ee25590c14b3",
+      "bytes": 275062
     },
-    "mainlineCommit": "45797364a4060c04d08b3328e263a798c98715c1",
-    "includesApprovedWorktree": true
+    "mainlineCommit": "2e8ee6d203fe96684b32d2a2a3606ec03fef7465",
+    "publication": "local-only"
   },
   "nativeStaticIntegration": {
     "status": "windows-production-installed-pe-qualified",
@@ -3627,6 +3638,11 @@
       "path": "dev/release-materials/provenance/ide-update-v1-publish-20261107.json",
       "sha256": "c36c3a2cacd066e3f1e99bc0d5975ffc074b78785273a899761105465bcefc7f",
       "bytes": 4834
+    },
+    "xgeModalLatencyRepair": {
+      "path": "dev/release-materials/provenance/xge-modal-fix-20261108/receipt.json",
+      "sha256": "280857c3e5c2c39368f4e2a67ff50f6ae38f2f604b29893cd7e03c7c5da56988",
+      "bytes": 21469
     }
   },
   "xuiGallery": {
@@ -3774,16 +3790,16 @@
   },
   "xgeExtensionRefresh": {
     "receipt": {
-      "path": "dev/release-materials/provenance/xge-sync-20261108/receipt.json",
-      "sha256": "014c04e69019b554d332d3c30fdfe5c32e3ee227a3c7358c54aee4c1950449a9",
-      "bytes": 144848
+      "path": "dev/release-materials/provenance/xge-modal-fix-20261108/receipt.json",
+      "sha256": "280857c3e5c2c39368f4e2a67ff50f6ae38f2f604b29893cd7e03c7c5da56988",
+      "bytes": 21469
     },
     "sourceMaterials": {
-      "path": "dev/release-materials/sources/xge-sync-20261108/manifest.json",
-      "sha256": "d634beadbb49cd647b61a1d53581bf3cee7b705a9b606524731928e017c20912",
-      "bytes": 246573
+      "path": "dev/release-materials/sources/xge-modal-fix-20261108/manifest.json",
+      "sha256": "11d2957d727dc6375033f5b09cd2d01b53eca51d298cfd1d5341ee25590c14b3",
+      "bytes": 275062
     },
-    "xgeRevision": "45797364a4060c04d08b3328e263a798c98715c1",
+    "xgeRevision": "2e8ee6d203fe96684b32d2a2a3606ec03fef7465",
     "publication": "local-only",
     "platforms": [
       "win_x64",

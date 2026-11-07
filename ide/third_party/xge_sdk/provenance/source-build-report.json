@@ -3,10 +3,10 @@
   "exitCode": 0,
   "profile": "ide",
   "version": "3.0.0",
-  "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\source",
-  "sourceCommit": "ed2048fb08bb2e559e0ce4b5c5bdabf4a80ce6bb",
+  "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\source",
+  "sourceCommit": "2e8ee6d203fe96684b32d2a2a3606ec03fef7465",
   "sourceUnchanged": true,
-  "sourceArchiveSha256": "5da024d604f614a1aaf45763044b8a566c403de216d30363a3e6f0fc35602362",
+  "sourceArchiveSha256": "0370cc7f771e57351757ae36780c5376008e2205de968084754fc7170a08dd97",
   "wholeSdkWerror": false,
   "compiler": "gcc.EXE (GCC) 16.2.0",
   "upstreamBuild": {
@@ -67,7 +67,7 @@
       "-DXGE_ENABLE_HARFBUZZ=1",
       "-DXGE_BUILD_ABI_FINGERPRINT=0x9de44f119936afd7ULL"
     ],
-    "source_root": "F:\\xlang-validation\\xge-sync-20261108-r2\\source",
+    "source_root": "F:\\xlang-validation\\xge-modal-fix-20261108\\source",
     "runtime_image": "xge.dll",
     "unstripped_image": "xge.unstripped.dll",
     "import_library": "xge.lib",
@@ -328,9 +328,7 @@
       "extlibs/xrt/extlibs/xwork/src/work/xwork_python.c"
     ],
     "compiled": [
-      "single/xge.c"
-    ],
-    "reused": [
+      "single/xge.c",
       "modules/xlayout/xlayout.c",
       "src/xui/core/xui_core.c",
       "src/xui/accessibility/xui_native_accessibility.c",
@@ -501,18 +499,20 @@
       "extlibs/xrt/extlibs/xwork/src/work/xwork_executor.c",
       "extlibs/xrt/extlibs/xwork/src/work/xwork_subagent.c",
       "extlibs/xrt/extlibs/xwork/src/work/xwork_explore.c",
-      "extlibs/xrt/extlibs/xwork/src/work/xwork_python.c",
+      "extlibs/xrt/extlibs/xwork/src/work/xwork_python.c"
+    ],
+    "reused": [
       "extlibs/harfbuzz/src/harfbuzz.cc"
     ],
     "linked": true,
     "runtime_dependencies": [],
-    "seconds": 84.07122789999994,
-    "runtime_bytes": 11170056,
-    "unstripped_bytes": 13444820
+    "seconds": 230.83798509999906,
+    "runtime_bytes": 11170568,
+    "unstripped_bytes": 13445274
   },
   "compatibilityPatches": {
     "format": "xlang-ide-xge-source-patches-1",
-    "baseCommit": "ed2048fb08bb2e559e0ce4b5c5bdabf4a80ce6bb",
+    "baseCommit": "2e8ee6d203fe96684b32d2a2a3606ec03fef7465",
     "purpose": "User-approved upstream worktree plus qualified GL startup, native part cleanup and canonical sole-host XRT.",
     "files": [
       {
@@ -534,7 +534,7 @@
       {
         "path": "include/xge.h",
         "upstreamExists": true,
-        "upstreamSha256": "b7b315ddfca9add6074a1e414f1da2188e4a0ece037e8ce3927c9ffa8e7f5d79",
+        "upstreamSha256": "27eaa40c0ddc92cd9fa7c0479ac0a3c96f3620c61613135f2beaf2db792bacf1",
         "sha256": "a6fa53373b0671f1342500c17d4f66ef86a21169014f665ebf03714418aadf14",
         "payload": "payload/include/xge.h",
         "diff": "diff/include/xge.h.diff"
@@ -542,7 +542,7 @@
       {
         "path": "include/xui.h",
         "upstreamExists": true,
-        "upstreamSha256": "45f9edce5711407e2cb9a7f272685ec044cc496f2b039174b361447dbdc64087",
+        "upstreamSha256": "d27185c0fc2d7f4a469718232823029f4b612dc5a82313afa890e940a3c814c3",
         "sha256": "7277659690681a8221370b9ce4b50ec7932ee1d45f597df9c6d285544b2b3a90",
         "payload": "payload/include/xui.h",
         "diff": "diff/include/xui.h.diff"
@@ -558,71 +558,15 @@
       {
         "path": "src/xge/core/xge_impl.c",
         "upstreamExists": true,
-        "upstreamSha256": "7741c6e8ebc355991b06409f9d3e1f6576c1b451d38ad4455df609879f5f1dae",
+        "upstreamSha256": "6e006fb034a1d071c5284e8b614fa1ef6d239fad5519942cdb594c25f12406ff",
         "sha256": "07fb8b684e7d2d48cb24da2dca23b9038e998e95f7e72da15b095ea9036fbcee",
         "payload": "payload/src/xge/core/xge_impl.c",
         "diff": "diff/src/xge/core/xge_impl.c.diff"
       },
       {
-        "path": "src/xge/input/xge_data_object.c",
-        "upstreamExists": true,
-        "upstreamSha256": "e9a321adb713b29402c8edef213c0e76b9e99fb8faa9998bb2f897321e054c28",
-        "sha256": "be4c725faff9d5c2c5b2d533bb3d06ed0b02e2587f5e297d85013a820927586a",
-        "payload": "payload/src/xge/input/xge_data_object.c",
-        "diff": "diff/src/xge/input/xge_data_object.c.diff"
-      },
-      {
-        "path": "src/xge/text/xge_system_font.c",
-        "upstreamExists": false,
-        "upstreamSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "sha256": "12e0c3fe224b5f5bd6a0f88d578c7415c25f74572e359659156c531195e358cc",
-        "payload": "payload/src/xge/text/xge_system_font.c",
-        "diff": "diff/src/xge/text/xge_system_font.c.diff"
-      },
-      {
-        "path": "src/xui/core/xui_core.c",
-        "upstreamExists": true,
-        "upstreamSha256": "155f06359dbd67baa01f15a1037265c470803ee325585a9eef7b08b0b7b77f79",
-        "sha256": "fcf6ec3137ec6fe7722f434a8fdc1a0c21e918c8aecec5e1bb158cb61230ebe7",
-        "payload": "payload/src/xui/core/xui_core.c",
-        "diff": "diff/src/xui/core/xui_core.c.diff"
-      },
-      {
-        "path": "src/xui/core/xui_internal.h",
-        "upstreamExists": true,
-        "upstreamSha256": "893d1126cd2d091748fa03c768fb02fb70f15ccb96b6bb0303f9db759ee27981",
-        "sha256": "3864af59ebaa9d2c5e773190831335955fc57fa096bc1df521825c6395567709",
-        "payload": "payload/src/xui/core/xui_internal.h",
-        "diff": "diff/src/xui/core/xui_internal.h.diff"
-      },
-      {
-        "path": "src/xui/core/xui_owned_resource_slots.c",
-        "upstreamExists": true,
-        "upstreamSha256": "5c2c300e432d924c10a66cffa91ad7a619287895d7d6b707982f46f700626572",
-        "sha256": "beeb92ae8b7cd719297f83868d6454ce21fdd3f566368f2fad988efd891287ba",
-        "payload": "payload/src/xui/core/xui_owned_resource_slots.c",
-        "diff": "diff/src/xui/core/xui_owned_resource_slots.c.diff"
-      },
-      {
-        "path": "src/xui/core/xui_proxy_xge.c",
-        "upstreamExists": true,
-        "upstreamSha256": "b0443b56f558ae5eb79fba7d04a6003008e111c620bfac1578e8aa190fba5cfd",
-        "sha256": "ff980ed8bdaab15940de653fbb3c76a3eda03d3fa5863dffd1373b32d17cfb13",
-        "payload": "payload/src/xui/core/xui_proxy_xge.c",
-        "diff": "diff/src/xui/core/xui_proxy_xge.c.diff"
-      },
-      {
-        "path": "src/xui/core/xui_widget.c",
-        "upstreamExists": true,
-        "upstreamSha256": "2bf8f47de26b18bf67e3dacf7d3505bb233fbb49193ae2407e13b84bfe28ab3c",
-        "sha256": "b5ba15633c03615f95e614b3b80795921cfc053c0cab99d8f4910a830253e6f9",
-        "payload": "payload/src/xui/core/xui_widget.c",
-        "diff": "diff/src/xui/core/xui_widget.c.diff"
-      },
-      {
         "path": "tools/build/build.py",
         "upstreamExists": true,
-        "upstreamSha256": "fedfcac8068f7e0106bdc924b3877dbe04c8ee39b2cfaa5a4b302c56cd152ad6",
+        "upstreamSha256": "15f60f70709dceea1b2e35eda959834378f699ef8cf34d9a9360a46503783d7e",
         "sha256": "754840e4a884f5d24e73cfa1e2b16a111ecd906d3354a207dd77b9a00dfe41dd",
         "payload": "payload/tools/build/build.py",
         "diff": "diff/tools/build/build.py.diff"
@@ -632,15 +576,15 @@
   "initialCleanBuild": null,
   "outputs": [
     {
-      "path": "F:\\xlang-validation\\xge-sync-20261108-r2\\ide-win\\xge.dll",
-      "sha256": "c2d9a9bc1ccfd607f15580d8ff7c56a5c830008e0ae0223fe3680371b7739491"
+      "path": "F:\\xlang-validation\\xge-modal-fix-20261108\\ide-win\\xge.dll",
+      "sha256": "f165f5b01576b67b56ecb0f7f7f35e4bb82c33f54a1d697fc40ff7443d18a4e7"
     },
     {
-      "path": "F:\\xlang-validation\\xge-sync-20261108-r2\\ide-win\\xge.lib",
-      "sha256": "77dcf16a778a2997c063ad12363733a21fcae5899d29e89fad1bc17f7f9bb192"
+      "path": "F:\\xlang-validation\\xge-modal-fix-20261108\\ide-win\\xge.lib",
+      "sha256": "d976e46d8e36c284071c0329a91ade2db73c71be442178bdefa55c554c55c43a"
     },
     {
-      "path": "F:\\xlang-validation\\xge-sync-20261108-r2\\ide-win\\xge_build_config.h",
+      "path": "F:\\xlang-validation\\xge-modal-fix-20261108\\ide-win\\xge_build_config.h",
       "sha256": "ac11c9bdf8b2ec0dab9b1e2b9e302a4642b6bc16458d35b1c113a1310f42bf84"
     }
   ]

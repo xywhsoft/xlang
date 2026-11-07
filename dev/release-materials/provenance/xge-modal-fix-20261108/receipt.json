@@ -1,0 +1,458 @@
+{
+  "schema": 1,
+  "date": "2026-11-08",
+  "complete": true,
+  "passed": true,
+  "publication": "local-only",
+  "upstreamCommit": "2e8ee6d203fe96684b32d2a2a3606ec03fef7465",
+  "guiSourceRevision": "203566e9350dd48d4088576367d9b609fe1cf1fc",
+  "sourceMaterials": {
+    "path": "dev/release-materials/sources/xge-modal-fix-20261108/manifest.json",
+    "sha256": "11d2957d727dc6375033f5b09cd2d01b53eca51d298cfd1d5341ee25590c14b3",
+    "bytes": 275062
+  },
+  "evidence": {
+    "path": "dev/release-materials/provenance/xge-modal-fix-20261108/evidence.zip",
+    "sha256": "a84b9cde579e2d65a5b3b38e1d2f9a0371cb658b4797b5ec3e735d0be21979bb",
+    "bytes": 7332054
+  },
+  "timings": {
+    "path": "dev/release-materials/provenance/xge-modal-fix-20261108/timings.json",
+    "sha256": "77fbb5670fe378da06f8fa1fb7e7fa3c24a7e9ca4918733c2ae94830f2f27244",
+    "bytes": 16472
+  },
+  "nativeTests": [
+    {
+      "test": "xui_style_registration_test",
+      "exit": 0
+    },
+    {
+      "test": "xui_style_test",
+      "exit": 0
+    },
+    {
+      "test": "xui_incremental_render_test",
+      "exit": 0
+    },
+    {
+      "test": "xui_code_find_session_test",
+      "exit": 0
+    },
+    {
+      "test": "xui_system_font_policy_test",
+      "exit": 0
+    }
+  ],
+  "guiTests": [
+    {
+      "test": "modal_open_latency_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\modal-fix-20261108\\modal_open_latency_test-aad9f42f",
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\gui-source\\ide\\tests\\modal_open_latency_test.c",
+      "sourceSha256": "ad1a0620c12ec1725a56d8a3634e4802d59166af01714e0b43567693aa8ccf7a",
+      "logSha256": "aef5b0a6d8f7a2e8448eb5a43ef69add17ae317cb3536b322cc16c9491a8706a"
+    },
+    {
+      "test": "about_view_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\modal-fix-20261108\\about_view_test-0c3536da",
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\gui-source\\ide\\tests\\about_view_test.c",
+      "sourceSha256": "463f734b62a3645e3eb48ff5c7faa51c0935a2f92ea701a6e434192c8c96d349",
+      "logSha256": "c610b9d12e00c8f8044d4c9a01002ccc89c54b5e8f4ab368cd2beee841a3f884"
+    },
+    {
+      "test": "dialog_message_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\modal-fix-20261108\\dialog_message_test-96924bac",
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\gui-source\\ide\\tests\\dialog_message_test.c",
+      "sourceSha256": "2e26e3f331569a82cf562e022a38593a51a8a9c3a4eaa97a3fc65954a36879c3",
+      "logSha256": "f97cf5aca5e0166bd8f7570a27e28ec8b2b67ae4d56605bd7d4b63247f9cc6b5"
+    },
+    {
+      "test": "find_follow_view_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\modal-fix-20261108\\find_follow_view_test-9eef5681",
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\gui-source\\ide\\tests\\find_follow_view_test.c",
+      "sourceSha256": "57f31d4f99fffece30d9a5e657c991aea72a7ed901c34fe1da49b2919c8304c9",
+      "logSha256": "afbd224c896629f2347c13bfbbc286ff7615b3079d84a1623c436898be88d77b"
+    },
+    {
+      "test": "input_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\modal-fix-20261108\\input_test-213f44c6",
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\gui-source\\ide\\tests\\input_test.c",
+      "sourceSha256": "5d806b950497f3574bf0143d33a046eafe2be64d1591c6f1bef177abc5de57c3",
+      "logSha256": "d992b451c3b31e7ddd85ed2d1da08c97c7ed3e8c1b7fb3bf5ca8fbd44164c9c0"
+    },
+    {
+      "test": "font_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\modal-fix-20261108\\font_test-5a9d38a4",
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\gui-source\\ide\\tests\\font_test.c",
+      "sourceSha256": "e9745f1c657316ee95d0fbdfd8fb5ddd96d47f5a472effe2d7ef6b7e0ba33b1e",
+      "logSha256": "f6fa94e2588ac5601141fead1aec8b3e2672c00bf7df4449bf941ea3fd4f1315"
+    },
+    {
+      "test": "ui_font_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\modal-fix-20261108\\ui_font_test-2b2e89c7",
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\gui-source\\ide\\tests\\ui_font_test.c",
+      "sourceSha256": "df6eeb947ec845d16e34b72883da112220b8a833bec88b499ae5abee1d3f42f4",
+      "logSha256": "1a9e6907c8f5598d657a1af0efaa6fa4ccde813e08e9a595a8a68ac46ba0075f"
+    },
+    {
+      "test": "settings_menu_frame_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\modal-fix-20261108\\settings_menu_frame_test-d3a3e521",
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\gui-source\\ide\\tests\\settings_menu_frame_test.c",
+      "sourceSha256": "1b3ed104a70c61cdc051a7f8ea985d23441f5ea317b8295bd030116984481f19",
+      "logSha256": "c9c1ccd683154d918cfbc534e511bcddc1f4418c29f2c6a3d52dfddfbca99351"
+    },
+    {
+      "test": "settings_view_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\modal-fix-20261108\\settings_view_test-7a9dfd25",
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\gui-source\\ide\\tests\\settings_view_test.c",
+      "sourceSha256": "1a09b8f399fca72e2bd060d9c3ac3f54c820cb3db5367932f2607fae093a70f3",
+      "logSha256": "1adcd571bc7bc94957328b66ea55a4b4dbace37be5734132c9e3790d3e78f507"
+    },
+    {
+      "test": "dialog_layout_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\modal-fix-20261108\\dialog_layout_test-fffe6df5",
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\gui-source\\ide\\tests\\dialog_layout_test.c",
+      "sourceSha256": "70a0e91feb961d7ff69e40316218881d72aabbfc8a3a2859f0b096d2567312a4",
+      "logSha256": "2b789cfb7bf7e093e98fed903d32b919493ea928318ca9b5e47222336d16120f"
+    },
+    {
+      "test": "dock_tabs_view_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\modal-fix-20261108\\dock_tabs_view_test-0b6f181e",
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\gui-source\\ide\\tests\\dock_tabs_view_test.c",
+      "sourceSha256": "b0450183e387a934f831992ec1dda0994e819e809cec2fdfdfe532205b505568",
+      "logSha256": "b741d58a6f9055f76d1131cedcd293bc3a5c7786d8247b60291f6c39a4085c74"
+    },
+    {
+      "test": "dock_windows_view_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\modal-fix-20261108\\dock_windows_view_test-52d8ee18",
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\gui-source\\ide\\tests\\dock_windows_view_test.c",
+      "sourceSha256": "95e001739b2421de7c35689d0c59ff89b0d2dc1ffd7f6818631b958bd7afbb3a",
+      "logSha256": "9c2cfd00bebaad5c893b3dc035c6c01fd7065e2a7ac01f7f35f3259bf38a2c25"
+    },
+    {
+      "test": "catalog_follow_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\modal-fix-20261108\\catalog_follow_test-35bfa68e",
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\gui-source\\ide\\tests\\catalog_follow_test.c",
+      "sourceSha256": "2c3fe2c4693103584490254dcd4f8e772c31023fe618b920b17628865dd63462",
+      "logSha256": "2adbe6f761a984cfd6373841f5e57b3aeab24e12dc10a453c496115bd8202879"
+    },
+    {
+      "test": "catalog_view_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\modal-fix-20261108\\catalog_view_test-e8ea23bc",
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\gui-source\\ide\\tests\\catalog_view_test.c",
+      "sourceSha256": "081247e296b1f2a8bf07b816170046711592a0383b478372e4eacbe563cfccdc",
+      "logSha256": "a660696a11146c447db9bdb37d6c60ab7bfda95f5cc80652870655298783635d"
+    },
+    {
+      "test": "editor_minimap_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\modal-fix-20261108\\editor_minimap_test-2eda443a",
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\gui-source\\ide\\tests\\editor_minimap_test.c",
+      "sourceSha256": "968a03fae69d413bbd0196261b8a51cc52123b31b4e8ef4ee444c7c664c69d69",
+      "logSha256": "5d3a1be96f932b3187a6469ec8b2ecc494ec8752c4f1dc7eca029efe4dfd3e97"
+    },
+    {
+      "test": "actions_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\modal-fix-20261108\\actions_test-4caad0e9",
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\gui-source\\ide\\tests\\actions_test.c",
+      "sourceSha256": "5aa6fb73f6eb4827f328346b4733bab10c7e72e39e4c130e94bb335021e78136",
+      "logSha256": "8c3fc3a3eab5ed1bd52228bd076a0dd3ad26ad5c5d94841630b62ca336c5dc7d"
+    }
+  ],
+  "compilerTests": [
+    {
+      "platform": "win",
+      "passed": true,
+      "rows": [
+        {
+          "name": "cgen",
+          "exitCode": 0,
+          "seconds": 16.766
+        },
+        {
+          "name": "jit",
+          "exitCode": 0,
+          "seconds": 21.765
+        },
+        {
+          "name": "example-system_font",
+          "exitCode": 0,
+          "seconds": 0.828
+        },
+        {
+          "name": "example-shared_find",
+          "exitCode": 0,
+          "seconds": 13.859
+        },
+        {
+          "name": "static-build",
+          "exitCode": 0,
+          "seconds": 32.125
+        },
+        {
+          "name": "static-imports",
+          "exitCode": 0,
+          "seconds": 0.563
+        },
+        {
+          "name": "static-relocated",
+          "exitCode": 0,
+          "seconds": 0.343
+        }
+      ]
+    },
+    {
+      "platform": "linux",
+      "passed": true,
+      "rows": [
+        {
+          "name": "cgen",
+          "exitCode": 0,
+          "seconds": 24.031
+        },
+        {
+          "name": "jit",
+          "exitCode": 0,
+          "seconds": 36.159
+        },
+        {
+          "name": "example-system_font",
+          "exitCode": 0,
+          "seconds": 3.625
+        },
+        {
+          "name": "example-shared_find",
+          "exitCode": 0,
+          "seconds": 23.575
+        },
+        {
+          "name": "static-build",
+          "exitCode": 0,
+          "seconds": 53.44
+        },
+        {
+          "name": "static-imports",
+          "exitCode": 0,
+          "seconds": 0.041
+        },
+        {
+          "name": "static-relocated",
+          "exitCode": 0,
+          "seconds": 0.166
+        }
+      ]
+    }
+  ],
+  "catalog": {
+    "entries": 19970,
+    "documents": 147,
+    "publicEntriesExactlyUnchanged": true,
+    "privateNativeManifestSourcesUpdated": true,
+    "availableSources": 591
+  },
+  "guiTranslationUnits": 108,
+  "optimization": "-O2",
+  "nativeFixes": [
+    "Cached Window/IconPicker type queries no longer re-register properties.",
+    "Identical property registration is an allocation-free, generation-preserving no-op.",
+    "Nestable native transactions cover full first-use MsgBox construction and close on every exit.",
+    "Intrusive ID/name indexes preserve ownership, iteration and collision semantics; changed definitions still eagerly cascade."
+  ],
+  "costs": {
+    "contextIndexBytes64Bit": 4096,
+    "propertyIndexPointers": 2,
+    "additionalIndexAllocations": 0,
+    "existingGlobalRefreshSemantics": "preserved",
+    "publicApiChanges": false
+  },
+  "deliveredFiles": [
+    {
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\packages-win-dynamic\\_xge_native\\native\\xge3_host.dll",
+      "path": "release/win_x64/extlibs/_xge_native/native/xge3_host.dll",
+      "beforeSha256": "4049265f017789b0b4a0436b14f11c9f61d086d12482561f8bb3f19d9868d0db",
+      "sha256": "d1d3f66827bcbb59a69ebb37d1051a39c32687967ecf8171be52ec3999abbbfd",
+      "bytes": 9148341
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\packages-win-dynamic\\_xge_native\\xlang.package.json",
+      "path": "release/win_x64/extlibs/_xge_native/xlang.package.json",
+      "beforeSha256": "89608873b3d2150c690739fc241523879cc9656a0aa05994f41fe8086389c9d0",
+      "sha256": "e22d3cc093ca44faa90b2cc8bc2794d5e3d2244abab69df6ed0d03d86da21cf3",
+      "bytes": 2500
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\packages-win-static\\_xge_native\\native\\compiler-support.json",
+      "path": "release/win_x64/static/xge3/packages/_xge_native/native/compiler-support.json",
+      "beforeSha256": "ff3505e6b6e0f597a908175059754048f42b55470cb1f0a6cced157ee50c40f4",
+      "sha256": "638f0ab81b222102f5d9063d3a4cf02a456d2d3d79488504d2202d4bc6f84e2e",
+      "bytes": 457616
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\packages-win-static\\_xge_native\\native\\libxge3_static.a",
+      "path": "release/win_x64/static/xge3/packages/_xge_native/native/libxge3_static.a",
+      "beforeSha256": "cc58c74a5ba7b54778527ace1481864a4b9b988c7eaa2b3a9c4ef0b24c911f05",
+      "sha256": "a2f12b20bcafcc74a1e40a07b96f01cb73af09bb2271135f2ddbb7203c622e9e",
+      "bytes": 18644792
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\packages-win-static\\_xge_native\\xlang.package.json",
+      "path": "release/win_x64/static/xge3/packages/_xge_native/xlang.package.json",
+      "beforeSha256": "3fe7c4e150b93b5f5f8cda332841b06293bb6d04e9669e529a1635db45682a34",
+      "sha256": "bd713e35463c1078e967eeee3f13419579c0af4e0882d3b3f6e277d975a36f07",
+      "bytes": 2996
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\packages-linux-dynamic\\_xge_native\\native\\libxge3_host.so",
+      "path": "release/linux_x64/extlibs/_xge_native/native/libxge3_host.so",
+      "beforeSha256": "4ec8fafa37e0a3e46e87d1a21ab7b953e9991798fbb390b81542a0fad00be88d",
+      "sha256": "6d889338cb2514ae8873c4001631a8d287721c9069771dfc1a59f87ccca63f20",
+      "bytes": 9948112
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\packages-linux-dynamic\\_xge_native\\xlang.package.json",
+      "path": "release/linux_x64/extlibs/_xge_native/xlang.package.json",
+      "beforeSha256": "2eaee30fe0f519ace6de78e4415fa405d5e15c1010d9cb6902274c658ca566b2",
+      "sha256": "c8fb01f2e3d59b755766b4436aa56034562503d2d1104d0ce8012e1a6aa1de47",
+      "bytes": 2412
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\packages-linux-static\\_xge_native\\native\\libxge3_static.a",
+      "path": "release/linux_x64/static/xge3/packages/_xge_native/native/libxge3_static.a",
+      "beforeSha256": "2dafc4e55e85e39b01b28dbded4b0b6bf703bf17d535061d8b96ab6a34a3b951",
+      "sha256": "25bc5096074adc393f61124add12162d732e2dc177fb3c94393e8446900e4950",
+      "bytes": 16913668
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\packages-linux-static\\_xge_native\\xlang.package.json",
+      "path": "release/linux_x64/static/xge3/packages/_xge_native/xlang.package.json",
+      "beforeSha256": "dc2fc504d8333d7f6bcfcb5c5bd241e2791ba7c3e73cb88404d303035bcb3a2a",
+      "sha256": "618cdd80829759f1a0e3d37d50212655703b3ac67c67ca62e0f1ae5517aef615",
+      "bytes": 2560
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\sdk-stage\\sdk\\sdk_manifest.json",
+      "path": "ide/third_party/xge_sdk/sdk_manifest.json",
+      "beforeSha256": "25181855e5402f25b24cb51cedff76eba08160413682f4c3feac91f601d8ec5a",
+      "sha256": "e35eda1f6f8f28437204fa565d5ee7949b35feeb639b7e6d36db4cb559e3b30f",
+      "bytes": 30023
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\sdk-stage\\sdk\\xge-source-files.json",
+      "path": "ide/third_party/xge_sdk/xge-source-files.json",
+      "beforeSha256": "ea3e75c48ab3b7b5b7438c675071754736b0be1b2b95e471b79e7a8092999954",
+      "sha256": "825c141c98f1af18d47a9cfbb0b48fa14932f78f0abcf82594057f161b3858e5",
+      "bytes": 144257
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\sdk-stage\\sdk\\xge.dll",
+      "path": "ide/third_party/xge_sdk/xge.dll",
+      "beforeSha256": "c2d9a9bc1ccfd607f15580d8ff7c56a5c830008e0ae0223fe3680371b7739491",
+      "sha256": "f165f5b01576b67b56ecb0f7f7f35e4bb82c33f54a1d697fc40ff7443d18a4e7",
+      "bytes": 11170568
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\sdk-stage\\sdk\\xge.lib",
+      "path": "ide/third_party/xge_sdk/xge.lib",
+      "beforeSha256": "77dcf16a778a2997c063ad12363733a21fcae5899d29e89fad1bc17f7f9bb192",
+      "sha256": "d976e46d8e36c284071c0329a91ade2db73c71be442178bdefa55c554c55c43a",
+      "bytes": 4696574
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\sdk-stage\\sdk\\provenance\\parent-sdk-manifest.json",
+      "path": "ide/third_party/xge_sdk/provenance/parent-sdk-manifest.json",
+      "beforeSha256": "84635776d9c684b9c0c20c3b1658c565a1fda3084836ba339a6386dbc846cf30",
+      "sha256": "25181855e5402f25b24cb51cedff76eba08160413682f4c3feac91f601d8ec5a",
+      "bytes": 28525
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\sdk-stage\\sdk\\provenance\\source-build-manifest.json",
+      "path": "ide/third_party/xge_sdk/provenance/source-build-manifest.json",
+      "beforeSha256": "ea3e75c48ab3b7b5b7438c675071754736b0be1b2b95e471b79e7a8092999954",
+      "sha256": "825c141c98f1af18d47a9cfbb0b48fa14932f78f0abcf82594057f161b3858e5",
+      "bytes": 144257
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\sdk-stage\\sdk\\provenance\\source-build-report.json",
+      "path": "ide/third_party/xge_sdk/provenance/source-build-report.json",
+      "beforeSha256": "09cf02e72b672039db235134fa94ccadee830217a72212bfeec46357517007a7",
+      "sha256": "11a11938d3535d810bbeb77e51251c68b71674c7347f72fbcdf44efd41651e88",
+      "bytes": 24955
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\sdk-stage\\sdk\\provenance\\compatibility-patches\\patch-manifest.json",
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/patch-manifest.json",
+      "beforeSha256": "b19bd70b17115d340d5aa886b04713750f8ec88f7cc4694de0e500ef93ad9f1f",
+      "sha256": "40bc4e15d59e66a640a5929dea48d861dbe63ac51da3a042ddb0d7c569cd9f77",
+      "bytes": 2874
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\sdk-stage\\sdk\\provenance\\compatibility-patches\\diff\\include\\xge.h.diff",
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/diff/include/xge.h.diff",
+      "beforeSha256": "e119f5e8c3dcb8041569f0f7661cd075c8fa8945c023541d4fcc148d2de94745",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\sdk-stage\\sdk\\provenance\\compatibility-patches\\diff\\include\\xui.h.diff",
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/diff/include/xui.h.diff",
+      "beforeSha256": "0ce193d79920f72faf15b3b509032b73da7e73acc0ed44987a25aa0e2161427d",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\sdk-stage\\sdk\\provenance\\compatibility-patches\\diff\\src\\xge\\core\\xge_impl.c.diff",
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/diff/src/xge/core/xge_impl.c.diff",
+      "beforeSha256": "17022d31185e4e27a10f23d49a5fc9115f2c344b71fdb4007761b586c107fa56",
+      "sha256": "88db7f6fbd2c32b722e1037606f89fe24b0eeeef47aa27ce0204e07328254420",
+      "bytes": 2437
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\sdk-stage\\sdk\\provenance\\compatibility-patches\\diff\\tools\\build\\build.py.diff",
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/diff/tools/build/build.py.diff",
+      "beforeSha256": "94a83c5118cfdfcc6d852440dc53c789b97e6461d461a8307d21a1bbe858d0e5",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\ide-win\\xge.dll",
+      "path": "release/win_x64/xge.dll",
+      "beforeSha256": "c2d9a9bc1ccfd607f15580d8ff7c56a5c830008e0ae0223fe3680371b7739491",
+      "sha256": "f165f5b01576b67b56ecb0f7f7f35e4bb82c33f54a1d697fc40ff7443d18a4e7",
+      "bytes": 11170568
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\ide\\build\\Release\\modal-fix-20261108\\objects\\xlang_ide.link.exe",
+      "path": "release/win_x64/xlang_ide.exe",
+      "beforeSha256": "f8d38ffdea249a0ae211103c0d8e300aa71f3a39da8bf1b81c01109deaa43f03",
+      "sha256": "fba0dee475ecc0ea330bfb20e2281b0c253e48452bfc5855d46ec33e57e493cd",
+      "bytes": 1897286
+    }
+  ],
+  "preservedCompilerAndLanguageServer": {
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe": "a5feede784f0a5cb1a829c2e362de57e9278b55cec1a11b796cf4b6e78831bbc",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.dll": "215d6b3c87704c745ec609eb07e718a52708ad7c13436294f2f662a56169be13",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlc.dll": "2241fcd462980fc40cbd6c47ce9347d537bababc93225cb6d2a2d36b9b978797",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232"
+  },
+  "limits": [
+    "Focused native/UI/linkage acceptance; not a whole-project test pass.",
+    "First-use MsgBox still commits one global style refresh; measured 84 ms construction plus 19 ms first frame.",
+    "Wall-clock timings vary with host load; regression assertions use invalidation counts.",
+    "Inherited qualified GL/WGL startup and shared-XRT overlays retained."
+  ],
+  "regressionHarness": "modal_open_latency_test added to ide/tools/build.ps1 and test.ps1"
+}

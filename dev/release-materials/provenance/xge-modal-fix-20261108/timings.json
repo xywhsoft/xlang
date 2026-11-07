@@ -1,0 +1,825 @@
+{
+  "baseline": [
+    {
+      "dialog": "about",
+      "round": 0,
+      "milliseconds": 6748.641,
+      "success": 1,
+      "styleGenerations": 23
+    },
+    {
+      "dialog": "msgbox",
+      "round": 0,
+      "milliseconds": 9604.9238,
+      "success": 1,
+      "styleGenerations": 35
+    },
+    {
+      "dialog": "file",
+      "round": 0,
+      "milliseconds": 219.9219,
+      "success": 1,
+      "styleGenerations": 1
+    },
+    {
+      "dialog": "about",
+      "round": 1,
+      "milliseconds": 3.4695,
+      "success": 1,
+      "styleGenerations": 0
+    },
+    {
+      "dialog": "msgbox",
+      "round": 1,
+      "milliseconds": 6.1988,
+      "success": 1,
+      "styleGenerations": 0
+    },
+    {
+      "dialog": "file",
+      "round": 1,
+      "milliseconds": 188.3506,
+      "success": 1,
+      "styleGenerations": 1
+    },
+    {
+      "dialog": "about",
+      "round": 2,
+      "milliseconds": 1.9986,
+      "success": 1,
+      "styleGenerations": 0
+    },
+    {
+      "dialog": "msgbox",
+      "round": 2,
+      "milliseconds": 4.1063,
+      "success": 1,
+      "styleGenerations": 0
+    },
+    {
+      "dialog": "file",
+      "round": 2,
+      "milliseconds": 180.4203,
+      "success": 1,
+      "styleGenerations": 1
+    }
+  ],
+  "installed": {
+    "opens": [
+      {
+        "dialog": "about",
+        "round": 0,
+        "milliseconds": 2.295,
+        "success": 1,
+        "styleGenerationChanges": 0
+      },
+      {
+        "dialog": "msgbox",
+        "round": 0,
+        "milliseconds": 84.3833,
+        "success": 1,
+        "styleGenerationChanges": 1
+      },
+      {
+        "dialog": "file",
+        "round": 0,
+        "milliseconds": 106.9472,
+        "success": 1,
+        "styleGenerationChanges": 1
+      },
+      {
+        "dialog": "about",
+        "round": 1,
+        "milliseconds": 1.1613,
+        "success": 1,
+        "styleGenerationChanges": 0
+      },
+      {
+        "dialog": "msgbox",
+        "round": 1,
+        "milliseconds": 2.7486,
+        "success": 1,
+        "styleGenerationChanges": 0
+      },
+      {
+        "dialog": "file",
+        "round": 1,
+        "milliseconds": 85.2233,
+        "success": 1,
+        "styleGenerationChanges": 1
+      },
+      {
+        "dialog": "about",
+        "round": 2,
+        "milliseconds": 0.8833,
+        "success": 1,
+        "styleGenerationChanges": 0
+      },
+      {
+        "dialog": "msgbox",
+        "round": 2,
+        "milliseconds": 1.9499,
+        "success": 1,
+        "styleGenerationChanges": 0
+      },
+      {
+        "dialog": "file",
+        "round": 2,
+        "milliseconds": 62.7191,
+        "success": 1,
+        "styleGenerationChanges": 1
+      }
+    ],
+    "frames": [
+      {
+        "dialog": "baseline",
+        "index": 0,
+        "milliseconds": 1237.6468
+      },
+      {
+        "dialog": "baseline",
+        "index": 1,
+        "milliseconds": 1.9699
+      },
+      {
+        "dialog": "baseline",
+        "index": 2,
+        "milliseconds": 0.7054
+      },
+      {
+        "dialog": "baseline",
+        "index": 3,
+        "milliseconds": 0.6998
+      },
+      {
+        "dialog": "baseline",
+        "index": 4,
+        "milliseconds": 0.6405
+      },
+      {
+        "dialog": "about",
+        "index": 0,
+        "milliseconds": 25.4633
+      },
+      {
+        "dialog": "about",
+        "index": 1,
+        "milliseconds": 1.991
+      },
+      {
+        "dialog": "about",
+        "index": 2,
+        "milliseconds": 1.5993
+      },
+      {
+        "dialog": "about",
+        "index": 3,
+        "milliseconds": 1.4259
+      },
+      {
+        "dialog": "about",
+        "index": 4,
+        "milliseconds": 1.3771
+      },
+      {
+        "dialog": "closed-about",
+        "index": 0,
+        "milliseconds": 8.8897
+      },
+      {
+        "dialog": "msgbox",
+        "index": 0,
+        "milliseconds": 18.903
+      },
+      {
+        "dialog": "msgbox",
+        "index": 1,
+        "milliseconds": 1.0767
+      },
+      {
+        "dialog": "msgbox",
+        "index": 2,
+        "milliseconds": 0.7021
+      },
+      {
+        "dialog": "msgbox",
+        "index": 3,
+        "milliseconds": 0.6617
+      },
+      {
+        "dialog": "msgbox",
+        "index": 4,
+        "milliseconds": 0.6481
+      },
+      {
+        "dialog": "closed-msgbox",
+        "index": 0,
+        "milliseconds": 5.7397
+      },
+      {
+        "dialog": "file",
+        "index": 0,
+        "milliseconds": 19.8087
+      },
+      {
+        "dialog": "file",
+        "index": 1,
+        "milliseconds": 1.1251
+      },
+      {
+        "dialog": "file",
+        "index": 2,
+        "milliseconds": 0.8977
+      },
+      {
+        "dialog": "file",
+        "index": 3,
+        "milliseconds": 1.3641
+      },
+      {
+        "dialog": "file",
+        "index": 4,
+        "milliseconds": 1.1758
+      },
+      {
+        "dialog": "closed-file",
+        "index": 0,
+        "milliseconds": 8.3889
+      },
+      {
+        "dialog": "about",
+        "index": 5,
+        "milliseconds": 11.418
+      },
+      {
+        "dialog": "about",
+        "index": 6,
+        "milliseconds": 1.2907
+      },
+      {
+        "dialog": "about",
+        "index": 7,
+        "milliseconds": 1.0934
+      },
+      {
+        "dialog": "about",
+        "index": 8,
+        "milliseconds": 1.2701
+      },
+      {
+        "dialog": "about",
+        "index": 9,
+        "milliseconds": 1.0383
+      },
+      {
+        "dialog": "closed-about",
+        "index": 1,
+        "milliseconds": 9.2839
+      },
+      {
+        "dialog": "msgbox",
+        "index": 5,
+        "milliseconds": 12.4497
+      },
+      {
+        "dialog": "msgbox",
+        "index": 6,
+        "milliseconds": 1.4214
+      },
+      {
+        "dialog": "msgbox",
+        "index": 7,
+        "milliseconds": 1.3283
+      },
+      {
+        "dialog": "msgbox",
+        "index": 8,
+        "milliseconds": 1.1997
+      },
+      {
+        "dialog": "msgbox",
+        "index": 9,
+        "milliseconds": 1.1809
+      },
+      {
+        "dialog": "closed-msgbox",
+        "index": 1,
+        "milliseconds": 7.313
+      },
+      {
+        "dialog": "file",
+        "index": 5,
+        "milliseconds": 20.2711
+      },
+      {
+        "dialog": "file",
+        "index": 6,
+        "milliseconds": 2.2663
+      },
+      {
+        "dialog": "file",
+        "index": 7,
+        "milliseconds": 1.6757
+      },
+      {
+        "dialog": "file",
+        "index": 8,
+        "milliseconds": 2.2857
+      },
+      {
+        "dialog": "file",
+        "index": 9,
+        "milliseconds": 1.0338
+      },
+      {
+        "dialog": "closed-file",
+        "index": 1,
+        "milliseconds": 8.4444
+      },
+      {
+        "dialog": "about",
+        "index": 10,
+        "milliseconds": 8.547
+      },
+      {
+        "dialog": "about",
+        "index": 11,
+        "milliseconds": 1.3211
+      },
+      {
+        "dialog": "about",
+        "index": 12,
+        "milliseconds": 1.0347
+      },
+      {
+        "dialog": "about",
+        "index": 13,
+        "milliseconds": 0.9571
+      },
+      {
+        "dialog": "about",
+        "index": 14,
+        "milliseconds": 0.9295
+      },
+      {
+        "dialog": "closed-about",
+        "index": 2,
+        "milliseconds": 6.789
+      },
+      {
+        "dialog": "msgbox",
+        "index": 10,
+        "milliseconds": 8.1676
+      },
+      {
+        "dialog": "msgbox",
+        "index": 11,
+        "milliseconds": 0.8779
+      },
+      {
+        "dialog": "msgbox",
+        "index": 12,
+        "milliseconds": 0.6836
+      },
+      {
+        "dialog": "msgbox",
+        "index": 13,
+        "milliseconds": 0.6912
+      },
+      {
+        "dialog": "msgbox",
+        "index": 14,
+        "milliseconds": 0.6582
+      },
+      {
+        "dialog": "closed-msgbox",
+        "index": 2,
+        "milliseconds": 4.8706
+      },
+      {
+        "dialog": "file",
+        "index": 10,
+        "milliseconds": 17.1252
+      },
+      {
+        "dialog": "file",
+        "index": 11,
+        "milliseconds": 1.9338
+      },
+      {
+        "dialog": "file",
+        "index": 12,
+        "milliseconds": 1.8766
+      },
+      {
+        "dialog": "file",
+        "index": 13,
+        "milliseconds": 1.6097
+      },
+      {
+        "dialog": "file",
+        "index": 14,
+        "milliseconds": 1.59
+      },
+      {
+        "dialog": "closed-file",
+        "index": 2,
+        "milliseconds": 8.335
+      }
+    ],
+    "probes": [
+      {
+        "operation": "find-existing-type",
+        "milliseconds": 0.0007,
+        "styleGenerationChanges": 0,
+        "success": 1
+      },
+      {
+        "operation": "get-existing-type",
+        "milliseconds": 0.0005,
+        "styleGenerationChanges": 0,
+        "success": 1
+      }
+    ]
+  },
+  "candidate": {
+    "opens": [
+      {
+        "dialog": "about",
+        "round": 0,
+        "milliseconds": 1.9268,
+        "success": 1,
+        "styleGenerationChanges": 0
+      },
+      {
+        "dialog": "msgbox",
+        "round": 0,
+        "milliseconds": 75.5717,
+        "success": 1,
+        "styleGenerationChanges": 1
+      },
+      {
+        "dialog": "file",
+        "round": 0,
+        "milliseconds": 78.9875,
+        "success": 1,
+        "styleGenerationChanges": 1
+      },
+      {
+        "dialog": "about",
+        "round": 1,
+        "milliseconds": 0.8816,
+        "success": 1,
+        "styleGenerationChanges": 0
+      },
+      {
+        "dialog": "msgbox",
+        "round": 1,
+        "milliseconds": 1.7055,
+        "success": 1,
+        "styleGenerationChanges": 0
+      },
+      {
+        "dialog": "file",
+        "round": 1,
+        "milliseconds": 64.2715,
+        "success": 1,
+        "styleGenerationChanges": 1
+      },
+      {
+        "dialog": "about",
+        "round": 2,
+        "milliseconds": 0.8505,
+        "success": 1,
+        "styleGenerationChanges": 0
+      },
+      {
+        "dialog": "msgbox",
+        "round": 2,
+        "milliseconds": 1.4513,
+        "success": 1,
+        "styleGenerationChanges": 0
+      },
+      {
+        "dialog": "file",
+        "round": 2,
+        "milliseconds": 52.0488,
+        "success": 1,
+        "styleGenerationChanges": 1
+      }
+    ],
+    "frames": [
+      {
+        "dialog": "baseline",
+        "index": 0,
+        "milliseconds": 180.6199
+      },
+      {
+        "dialog": "baseline",
+        "index": 1,
+        "milliseconds": 1.7655
+      },
+      {
+        "dialog": "baseline",
+        "index": 2,
+        "milliseconds": 0.8368
+      },
+      {
+        "dialog": "baseline",
+        "index": 3,
+        "milliseconds": 0.6433
+      },
+      {
+        "dialog": "baseline",
+        "index": 4,
+        "milliseconds": 0.6454
+      },
+      {
+        "dialog": "about",
+        "index": 0,
+        "milliseconds": 18.7284
+      },
+      {
+        "dialog": "about",
+        "index": 1,
+        "milliseconds": 1.3295
+      },
+      {
+        "dialog": "about",
+        "index": 2,
+        "milliseconds": 1.0143
+      },
+      {
+        "dialog": "about",
+        "index": 3,
+        "milliseconds": 0.8662
+      },
+      {
+        "dialog": "about",
+        "index": 4,
+        "milliseconds": 0.8357
+      },
+      {
+        "dialog": "closed-about",
+        "index": 0,
+        "milliseconds": 6.1943
+      },
+      {
+        "dialog": "msgbox",
+        "index": 0,
+        "milliseconds": 18.6895
+      },
+      {
+        "dialog": "msgbox",
+        "index": 1,
+        "milliseconds": 1.0546
+      },
+      {
+        "dialog": "msgbox",
+        "index": 2,
+        "milliseconds": 0.6538
+      },
+      {
+        "dialog": "msgbox",
+        "index": 3,
+        "milliseconds": 0.6195
+      },
+      {
+        "dialog": "msgbox",
+        "index": 4,
+        "milliseconds": 0.9801
+      },
+      {
+        "dialog": "closed-msgbox",
+        "index": 0,
+        "milliseconds": 8.1911
+      },
+      {
+        "dialog": "file",
+        "index": 0,
+        "milliseconds": 17.1198
+      },
+      {
+        "dialog": "file",
+        "index": 1,
+        "milliseconds": 1.1225
+      },
+      {
+        "dialog": "file",
+        "index": 2,
+        "milliseconds": 0.7875
+      },
+      {
+        "dialog": "file",
+        "index": 3,
+        "milliseconds": 0.6963
+      },
+      {
+        "dialog": "file",
+        "index": 4,
+        "milliseconds": 0.6955
+      },
+      {
+        "dialog": "closed-file",
+        "index": 0,
+        "milliseconds": 4.7768
+      },
+      {
+        "dialog": "about",
+        "index": 5,
+        "milliseconds": 7.7357
+      },
+      {
+        "dialog": "about",
+        "index": 6,
+        "milliseconds": 0.8182
+      },
+      {
+        "dialog": "about",
+        "index": 7,
+        "milliseconds": 0.6799
+      },
+      {
+        "dialog": "about",
+        "index": 8,
+        "milliseconds": 0.7315
+      },
+      {
+        "dialog": "about",
+        "index": 9,
+        "milliseconds": 0.6889
+      },
+      {
+        "dialog": "closed-about",
+        "index": 1,
+        "milliseconds": 5.9478
+      },
+      {
+        "dialog": "msgbox",
+        "index": 5,
+        "milliseconds": 8.5383
+      },
+      {
+        "dialog": "msgbox",
+        "index": 6,
+        "milliseconds": 0.8641
+      },
+      {
+        "dialog": "msgbox",
+        "index": 7,
+        "milliseconds": 0.6576
+      },
+      {
+        "dialog": "msgbox",
+        "index": 8,
+        "milliseconds": 0.7236
+      },
+      {
+        "dialog": "msgbox",
+        "index": 9,
+        "milliseconds": 0.8006
+      },
+      {
+        "dialog": "closed-msgbox",
+        "index": 1,
+        "milliseconds": 4.6942
+      },
+      {
+        "dialog": "file",
+        "index": 5,
+        "milliseconds": 16.7129
+      },
+      {
+        "dialog": "file",
+        "index": 6,
+        "milliseconds": 1.5075
+      },
+      {
+        "dialog": "file",
+        "index": 7,
+        "milliseconds": 0.9655
+      },
+      {
+        "dialog": "file",
+        "index": 8,
+        "milliseconds": 0.8842
+      },
+      {
+        "dialog": "file",
+        "index": 9,
+        "milliseconds": 0.7634
+      },
+      {
+        "dialog": "closed-file",
+        "index": 1,
+        "milliseconds": 5.553
+      },
+      {
+        "dialog": "about",
+        "index": 10,
+        "milliseconds": 6.1023
+      },
+      {
+        "dialog": "about",
+        "index": 11,
+        "milliseconds": 0.7855
+      },
+      {
+        "dialog": "about",
+        "index": 12,
+        "milliseconds": 0.7608
+      },
+      {
+        "dialog": "about",
+        "index": 13,
+        "milliseconds": 0.6705
+      },
+      {
+        "dialog": "about",
+        "index": 14,
+        "milliseconds": 0.7038
+      },
+      {
+        "dialog": "closed-about",
+        "index": 2,
+        "milliseconds": 5.8716
+      },
+      {
+        "dialog": "msgbox",
+        "index": 10,
+        "milliseconds": 7.7572
+      },
+      {
+        "dialog": "msgbox",
+        "index": 11,
+        "milliseconds": 0.9711
+      },
+      {
+        "dialog": "msgbox",
+        "index": 12,
+        "milliseconds": 0.7187
+      },
+      {
+        "dialog": "msgbox",
+        "index": 13,
+        "milliseconds": 0.6786
+      },
+      {
+        "dialog": "msgbox",
+        "index": 14,
+        "milliseconds": 0.7742
+      },
+      {
+        "dialog": "closed-msgbox",
+        "index": 2,
+        "milliseconds": 5.7001
+      },
+      {
+        "dialog": "file",
+        "index": 10,
+        "milliseconds": 13.7032
+      },
+      {
+        "dialog": "file",
+        "index": 11,
+        "milliseconds": 1.16
+      },
+      {
+        "dialog": "file",
+        "index": 12,
+        "milliseconds": 0.7253
+      },
+      {
+        "dialog": "file",
+        "index": 13,
+        "milliseconds": 0.721
+      },
+      {
+        "dialog": "file",
+        "index": 14,
+        "milliseconds": 0.6887
+      },
+      {
+        "dialog": "closed-file",
+        "index": 2,
+        "milliseconds": 4.7984
+      }
+    ],
+    "probes": [
+      {
+        "operation": "find-existing-type",
+        "milliseconds": 0.0004,
+        "styleGenerationChanges": 0,
+        "success": 1
+      },
+      {
+        "operation": "get-existing-type",
+        "milliseconds": 0.0006,
+        "styleGenerationChanges": 0,
+        "success": 1
+      }
+    ]
+  },
+  "baselineSource": "dev/release-materials/provenance/ide-modal-latency-20261108/report.json",
+  "scope": "OPEN measures UI-thread factory/open work; FRAME measures subsequent real rendering separately. Same host and full workbench; timings are observations, not portable SLAs."
+}

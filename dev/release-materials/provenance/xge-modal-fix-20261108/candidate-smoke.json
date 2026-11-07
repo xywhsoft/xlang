@@ -1,0 +1,19 @@
+{
+  "exit": 0,
+  "command": [
+    "F:\\xlang-validation\\xge-modal-fix-20261108\\candidate-runtime\\xlang_ide.exe",
+    "--frames",
+    "5",
+    "--hidden",
+    "--no-session",
+    "--no-auto-diagnostics",
+    "--settings",
+    "D:\\GIT\\x-lang\\ide\\build\\Release\\modal-fix-20261108\\candidate-smoke\\settings.json",
+    "--session-root",
+    "D:\\GIT\\x-lang\\ide\\build\\Release\\modal-fix-20261108\\candidate-smoke\\session",
+    "--diagnostic-root",
+    "D:\\GIT\\x-lang\\ide\\build\\Release\\modal-fix-20261108\\candidate-smoke\\diagnostics"
+  ],
+  "guiSha256": "fba0dee475ecc0ea330bfb20e2281b0c253e48452bfc5855d46ec33e57e493cd",
+  "engineSha256": "f165f5b01576b67b56ecb0f7f7f35e4bb82c33f54a1d697fc40ff7443d18a4e7"
+}
