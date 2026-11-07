@@ -1,5 +1,6 @@
 #include "platform/receipt_time.h"
 #include "ui/language_view.h"
+#include "model/metadata_read.h"
 #include "services/analysis_configuration.h"
 #include "services/execution_target.h"
 #include "editor/lsp_coordinates.h"
@@ -62,12 +63,12 @@ struct xide_language_view {
 };
 static xstrview sv(const char* s) { return (xstrview){s,strlen(s)}; }
 static xvalue* get(const xvalue* o,const char* key) { return o && xrtValueType(o)==XVALUE_OBJECT ? xrtValueObjectGet(o,sv(key)) : NULL; }
-static const char* string(const xvalue* v) { xstrview s={0}; return v && xrtValueGetString(v,&s) && !memchr(s.Data,0,s.Size) && s.Size<=INT_MAX && (!s.Size || MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,s.Data,(int)s.Size,NULL,0)) ? s.Data : NULL; }
+static const char* string(const xvalue* v) { xstrview s={0}; return v && xideMetaString(v,&s) && !memchr(s.Data,0,s.Size) && s.Size<=INT_MAX && (!s.Size || MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,s.Data,(int)s.Size,NULL,0)) ? s.Data : NULL; }
 static const char* boundedString(const xvalue* value,size_t limit)
-{xstrview text={0};return xrtValueGetString(value,&text) && text.Size<=limit ? string(value) : NULL;}
+{xstrview text={0};return xideMetaString(value,&text) && text.Size<=limit ? string(value) : NULL;}
 static int put(xvalue* o,const char* key,xvalue* v) { return v && xrtValueObjectSetNew(o,sv(key),v); }
 static char* copy(const char* s) { size_t n=strlen(s)+1; char* p=malloc(n); if(p) memcpy(p,s,n); return p; }
-static int number(const xvalue* value,int* n) { int64 x=0; if(!value || !xrtValueGetInt(value,&x) || x<0 || x>INT_MAX) return 0; *n=(int)x; return 1; }
+static int number(const xvalue* value,int* n) { int64 x=0; if(!value || !xideMetaInt(value,&x) || x<0 || x>INT_MAX) return 0; *n=(int)x; return 1; }
 static int eligible(xide_document* d) { return d && d->open && d->path && !d->dirty && !d->externalState && !strcmp(d->language,"xlang") && xidePathHasExtension(d->path,".xl") && xuiCodeDocumentGetLength(xuiCodeEditGetDocument(d->editor))>=0 && xuiCodeDocumentGetLength(xuiCodeEditGetDocument(d->editor))<=8*1024*1024; }
 static int namedXlang(xide_document* d) { return d && d->open && d->path && xidePathHasExtension(d->path,".xl"); }
 static int snapshotConflict(xide_document* d) { return d->externalState && d->externalState!=XIDE_WATCH_MISSING; }
@@ -227,7 +228,7 @@ static int captureInput(xide_document* d,document_binding* b)
  const char* text=xuiCodeEditGetText(d->editor);b->length=strlen(text);
  if(b->length!=(size_t)xuiCodeDocumentGetLength(xuiCodeEditGetDocument(d->editor))) return 0;
  b->textValue=xrtValueString((xstrview){text,b->length});xstrview value={0};
- if(!b->textValue || !xrtValueGetString(b->textValue,&value)) return 0;
+ if(!b->textValue || !xideMetaString(b->textValue,&value)) return 0;
  b->text=value.Data ? value.Data : "";return b->path && b->uri && b->language && b->key;
 }
 static int captureInputs(xide_app* app)
@@ -286,7 +287,7 @@ static int connectClient(xide_app* app,xide_document* d)
   xvalue* configuration=xideExecutionAnalysisPacket(app,v->packagePath,1,&e);
   if(!configuration) {snprintf(v->message,sizeof(v->message),"%s",*e.message ? e.message : "无法准备工程分析配置。");reset(app);free(directory);return 0;}
   v->analysisCatalog=xrtValueRetain(get(configuration,"catalog"));
-  v->analysisRequired=xrtValueCount(get(get(configuration,"catalog"),"projects"))>0;
+  v->analysisRequired=xideMetaCount(get(get(configuration,"catalog"),"projects"))>0;
   xvalue *p=xrtValueObject(),*options=xrtValueObject(),*capabilities=xrtValueObject(),*experimental=xrtValueObject();
   if(!p || !options || !capabilities || !experimental) {xrtValueRelease(configuration);xrtValueRelease(p);xrtValueRelease(options);xrtValueRelease(capabilities);xrtValueRelease(experimental);reset(app);free(directory);return 0;}
   put(options,"analysisConfiguration",configuration);
@@ -402,7 +403,7 @@ static int prepareSymbolsDocument(xide_app* app,xide_document* d)
  if(v->snapshotMode && current(v)) {
   bool indexed=false;
   if((v->onDemandMode && (v->receiptReady || v->receiptRequest || v->waitingInitialize)) ||
-     v->syncMode || (!v->onDemandMode && xrtValueGetBool(get(v->snapshotResult,"semanticDefinitions"),&indexed) && indexed)) return 1;
+     v->syncMode || (!v->onDemandMode && xideMetaBool(get(v->snapshotResult,"semanticDefinitions"),&indexed) && indexed)) return 1;
  }
  if(v->automatic) return 0;
  if(!connectClient(app,d)) return 0;
@@ -442,7 +443,7 @@ int xideLanguageViewCanDefine(xide_app* app)
 
  xide_language_view* v=app ? app->languageView : NULL; xide_document* d=app ? app->activeDocument : NULL; bool indexed=false;
  if(!v || !d || !d->open || !d->path || strcmp(d->language,"xlang") || v->busy || v->definitionRequest || v->definitionPending) return 0;
- if(v->definitionSupported && v->snapshotMode && current(v) && xrtValueGetBool(get(v->snapshotResult,"semanticDefinitions"),&indexed) && indexed)
+ if(v->definitionSupported && v->snapshotMode && current(v) && xideMetaBool(get(v->snapshotResult,"semanticDefinitions"),&indexed) && indexed)
   for(size_t i=0;i<v->inputCount;++i) if(v->inputs[i].document==d && v->inputs[i].id==d->id) return 1;
  return !v->automatic && (!v->initialized || (v->onDemandSupported && v->definitionSupported && v->definitionProofSupported)) && canSnapshot(app,d) && xideTaskViewCompiler(app);
 }
@@ -527,8 +528,8 @@ static int apply(xide_app* app,const xvalue* params)
 {
  xide_language_view* v=app->languageView; const char* uri=string(get(params,"uri")); int version=0; const xvalue* list=get(params,"diagnostics");
  if(!current(v) || !uri || !v->uri || strcmp(uri,v->uri) || !number(get(params,"version"),&version) || version!=v->wireVersion) return 1;
- if(!list || xrtValueType(list)!=XVALUE_ARRAY || xrtValueCount(list)>4096) return 0;
- size_t n=xrtValueCount(list); xui_code_diagnostic_t* annotations=calloc(n+1,sizeof(*annotations)); char** titles=calloc(n+1,sizeof(*titles)); xide_lsp_position* positions=calloc(n*2+1,sizeof(*positions)); xvalue* owned=xrtValueDeepClone(list); int okay=annotations && titles && positions && owned; const char* text=xuiCodeEditGetText(v->document->editor);
+ if(!list || xrtValueType(list)!=XVALUE_ARRAY || xideMetaCount(list)>4096) return 0;
+ size_t n=xideMetaCount(list); xui_code_diagnostic_t* annotations=calloc(n+1,sizeof(*annotations)); char** titles=calloc(n+1,sizeof(*titles)); xide_lsp_position* positions=calloc(n*2+1,sizeof(*positions)); xvalue* owned=xrtValueDeepClone(list); int okay=annotations && titles && positions && owned; const char* text=xuiCodeEditGetText(v->document->editor);
  for(size_t i=0;okay && i<n;++i) {
   const xvalue* d=xrtValueArrayGet(owned,i),*range=get(d,"range"); const char* message=string(get(d,"message")); int sl=0,sc=0,el=0,ec=0,severity=0;
   okay=message && strlen(message)<=65535 && number(get(d,"severity"),&severity) && severity==1 && number(get(get(range,"start"),"line"),&sl) && number(get(get(range,"start"),"character"),&sc) && number(get(get(range,"end"),"line"),&el) && number(get(get(range,"end"),"character"),&ec);
@@ -556,14 +557,14 @@ static int textMatches(const xvalue* group,xide_document* d)
 static xide_document* openPath(xide_app* app,const char* path)
 { for(size_t i=0;i<app->documents.count;++i) { xide_document* d=app->documents.items[i]; if(d->open && d->path && xidePathLexicalEqual(path,d->path)) return d; } return NULL; }
 static const xvalue* snapshotGroup(xide_language_view* v,const char* path)
-{ const xvalue* groups=get(v->snapshotResult,"documents"); for(size_t i=0;i<xrtValueCount(groups);++i) { const xvalue* g=xrtValueArrayGet(groups,i); if(xidePathLexicalEqual(path,string(get(g,"path")))) return g; } return NULL; }
+{ const xvalue* groups=get(v->snapshotResult,"documents"); for(size_t i=0;i<xideMetaCount(groups);++i) { const xvalue* g=xrtValueArrayGet(groups,i); if(xidePathLexicalEqual(path,string(get(g,"path")))) return g; } return NULL; }
 static document_binding* inputPath(xide_language_view* v,const char* path)
 { for(size_t i=0;i<v->inputCount;++i) if(xidePathLexicalEqual(path,v->inputs[i].path)) return &v->inputs[i]; return NULL; }
 static int formatted(const xvalue* value,const char* text) { const char* s=string(value); return s && !strcmp(s,text); }
 static int diskIdentity(const char* path,const xvalue* group)
 {
  const xvalue* input=get(group,"input"),*m=get(input,"metadata"); xfileinfo info={0}; int size=0; int64 available=0,attributes=0; char text[32];
- if(!xideIoReceiptStat(path,&info) || info.Type!=XFILE_TYPE_FILE || !number(get(input,"rawSize"),&size) || (uint64)size!=info.Size || !xrtValueGetInt(get(m,"available"),&available) || available!=info.Available || !xrtValueGetInt(get(m,"attributes"),&attributes) || attributes!=info.Attributes) return 0;
+ if(!xideIoReceiptStat(path,&info) || info.Type!=XFILE_TYPE_FILE || !number(get(input,"rawSize"),&size) || (uint64)size!=info.Size || !xideMetaInt(get(m,"available"),&available) || available!=info.Available || !xideMetaInt(get(m,"attributes"),&attributes) || attributes!=info.Attributes) return 0;
  snprintf(text,sizeof(text),"%016llx",(unsigned long long)info.Device); if(!formatted(get(m,"device"),text)) return 0;
  snprintf(text,sizeof(text),"%016llx",(unsigned long long)info.Identity); if(!formatted(get(m,"identity"),text)) return 0;
  return xideReceiptMetadataTimesMatch(m,&info);
@@ -579,26 +580,26 @@ static int applySnapshots(xide_app* app,const xvalue* result)
 {
  xide_language_view* v=app->languageView; if(!current(v)) return 1;
  const xvalue* incoming=get(result,"documents"); int count=0,version=0; document_binding* root=inputPath(v,v->path);
- if(!root || !number(get(result,"version"),&version) || version!=root->wireVersion || !formatted(get(result,"scope"),"entry-with-open-overlays") || !formatted(get(result,"guardScope"),"background-poll") || !number(get(result,"count"),&count) || count>4096 || !incoming || xrtValueType(incoming)!=XVALUE_ARRAY || xrtValueCount(incoming)<v->inputCount || xrtValueCount(incoming)>SNAPSHOT_GROUPS) return 0;
+ if(!root || !number(get(result,"version"),&version) || version!=root->wireVersion || !formatted(get(result,"scope"),"entry-with-open-overlays") || !formatted(get(result,"guardScope"),"background-poll") || !number(get(result,"count"),&count) || count>4096 || !incoming || xrtValueType(incoming)!=XVALUE_ARRAY || xideMetaCount(incoming)<v->inputCount || xideMetaCount(incoming)>SNAPSHOT_GROUPS) return 0;
  int checkId=0; if(!number(get(result,"checkId"),&checkId) || checkId!=v->lastSnapshotId) return 0;
- size_t groupsCount=xrtValueCount(incoming),at=0,overlayCount=0; xvalue* owned=xrtValueDeepClone(result),*flat=xrtValueArray();
+ size_t groupsCount=xideMetaCount(incoming),at=0,overlayCount=0; xvalue* owned=xrtValueDeepClone(result),*flat=xrtValueArray();
  annotation_batch* batches=calloc(groupsCount,sizeof(*batches)); char** titles=calloc((size_t)count+1,sizeof(*titles)); int okay=owned && flat && batches && titles;
  const xvalue* groups=get(owned,"documents");
  for(size_t i=0;okay && i<groupsCount;++i) {
   const xvalue* g=xrtValueArrayGet(groups,i); const char *path=string(get(g,"path")),*origin=string(get(g,"origin")); const xvalue* list=get(g,"diagnostics"); int size=0;
   char* uri=path ? xideLspPathToUri(path,NULL) : NULL;
-  okay=uri && origin && number(get(g,"normalizedSize"),&size) && (size_t)size<=TEXT_LIMIT && hexDigest(get(g,"normalizedSha256")) && list && xrtValueType(list)==XVALUE_ARRAY && at<=(size_t)count && xrtValueCount(list)<=(size_t)count-at; free(uri);
+  okay=uri && origin && number(get(g,"normalizedSize"),&size) && (size_t)size<=TEXT_LIMIT && hexDigest(get(g,"normalizedSha256")) && list && xrtValueType(list)==XVALUE_ARRAY && at<=(size_t)count && xideMetaCount(list)<=(size_t)count-at; free(uri);
   for(size_t j=0;okay && j<i;++j) if(xidePathLexicalEqual(path,string(get(xrtValueArrayGet(groups,j),"path")))) okay=0;
   if(!okay) break;
   document_binding* b=inputPath(v,path); xide_document* d=openPath(app,path);
   if(b) { int wire=0; okay=!strcmp(origin,"overlay") && number(get(g,"version"),&wire) && wire==b->wireVersion && d==b->document && d->id==b->id && textMatches(g,d); ++overlayCount; }
   else {
    const xvalue* input=get(g,"input"),*m=get(input,"metadata"); int rawSize=0; int64 available=0,attributes=0;
-   okay=!strcmp(origin,"disk") && !get(g,"version") && formatted(get(input,"origin"),"disk") && xidePathLexicalEqual(path,string(get(input,"path"))) && number(get(input,"rawSize"),&rawSize) && (size_t)rawSize<=TEXT_LIMIT && hexDigest(get(input,"rawSha256")) && xrtValueGetInt(get(m,"available"),&available) && xrtValueGetInt(get(m,"attributes"),&attributes) && string(get(m,"device")) && string(get(m,"identity")) && xideReceiptMetadataSchema(m)!=0;
+   okay=!strcmp(origin,"disk") && !get(g,"version") && formatted(get(input,"origin"),"disk") && xidePathLexicalEqual(path,string(get(input,"path"))) && number(get(input,"rawSize"),&rawSize) && (size_t)rawSize<=TEXT_LIMIT && hexDigest(get(input,"rawSha256")) && xideMetaInt(get(m,"available"),&available) && xideMetaInt(get(m,"attributes"),&attributes) && string(get(m,"device")) && string(get(m,"identity")) && xideReceiptMetadataSchema(m)!=0;
    if(okay && d) okay=!d->externalState && textMatches(g,d) && matchesHash(d->baseline.raw,d->baseline.rawLength,get(input,"rawSha256")) && diskIdentity(path,g);
   }
   if(!okay) break;
-  size_t n=xrtValueCount(list); xide_lsp_position* positions=calloc(n*2+1,sizeof(*positions)); batches[i].document=d; batches[i].count=n;
+  size_t n=xideMetaCount(list); xide_lsp_position* positions=calloc(n*2+1,sizeof(*positions)); batches[i].document=d; batches[i].count=n;
   if(d && n) batches[i].diagnostics=calloc(n,sizeof(*batches[i].diagnostics));
   okay=positions && (!d || !n || batches[i].diagnostics);
   for(size_t j=0;okay && j<n;++j) { const xvalue* diag=xrtValueArrayGet(list,j); okay=xidePathLexicalEqual(path,string(get(diag,"file"))) && diagnosticPositions(diag,positions+j*2); }
@@ -713,7 +714,7 @@ static void applyInputState(xide_app* app,const xvalue* result,const xvalue* err
 static int deferPreemptedCheck(xide_language_view* v,const xvalue* error)
 {
  int64 code=0;
- if(!v->preemptDeadline || GetTickCount64()>=v->preemptDeadline || !current(v) || !xrtValueGetInt(get(error,"code"),&code) || code!=-32001) return 0;
+ if(!v->preemptDeadline || GetTickCount64()>=v->preemptDeadline || !current(v) || !xideMetaInt(get(error,"code"),&code) || code!=-32001) return 0;
  ++v->checkRetries; v->busy=1; v->checkRetryAt=GetTickCount64()+25;
  snprintf(v->message,sizeof(v->message),"正在切换到源码检查…"); return 1;
 }
@@ -757,31 +758,31 @@ void xideLanguageViewPoll(xide_app* app)
    const xvalue* result=get(m,"result"),*error=get(m,"error"); const char* reason=boundedString(get(error,"message"),4096);
    if(id==1 && !v->initialized) {
     const xvalue* cap=get(result,"capabilities"); const char* encoding=string(get(cap,"positionEncoding")); bool supported=false;int configurationSchema=0;
-    if(error || !encoding || strcmp(encoding,"utf-16") || !xrtValueGetBool(get(get(cap,"experimental"),"savedEntryDiagnostics"),&supported) || !supported) { snprintf(v->message,sizeof(v->message),"语言服务初始化失败：%s",reason ? reason : "诊断能力不兼容"); reset(app); }
+    if(error || !encoding || strcmp(encoding,"utf-16") || !xideMetaBool(get(get(cap,"experimental"),"savedEntryDiagnostics"),&supported) || !supported) { snprintf(v->message,sizeof(v->message),"语言服务初始化失败：%s",reason ? reason : "诊断能力不兼容"); reset(app); }
     else if(v->analysisRequired && (!number(get(get(cap,"experimental"),"analysisConfiguration"),&configurationSchema) || configurationSchema!=1)) {
      automaticFault(v,"当前语言服务不支持工程分析配置，请更新语言服务。");
     }
     else {
      int64 kind=1; const xvalue* sync=get(cap,"textDocumentSync");
      if(xrtValueType(sync)==XVALUE_OBJECT) sync=get(sync,"change");
-     if(sync && !xrtValueGetInt(sync,&kind)) kind=0;
+     if(sync && !xideMetaInt(sync,&kind)) kind=0;
      if(kind!=1 && kind!=2) kind=0;
      bool automatic=false,overlayProof=false,dependencyProof=false,inputProof=false;
      const xvalue* experimental=get(cap,"experimental");v->autoProbed=1;
-     v->autoEnabled=v->autoView && xrtValueGetBool(get(experimental,"automaticDiagnostics"),&automatic) && automatic &&
-      xrtValueGetBool(get(experimental,"diagnosticOverlayProof"),&overlayProof) && overlayProof &&
-      xrtValueGetBool(get(experimental,"diagnosticDependencyProof"),&dependencyProof) && dependencyProof && xrtValueGetBool(get(experimental,"diagnosticInputProof"),&inputProof) && inputProof;
+     v->autoEnabled=v->autoView && xideMetaBool(get(experimental,"automaticDiagnostics"),&automatic) && automatic &&
+      xideMetaBool(get(experimental,"diagnosticOverlayProof"),&overlayProof) && overlayProof &&
+      xideMetaBool(get(experimental,"diagnosticDependencyProof"),&dependencyProof) && dependencyProof && xideMetaBool(get(experimental,"diagnosticInputProof"),&inputProof) && inputProof;
      v->syncKind=(int)kind; v->sync=v->autoEnabled ? xlsSyncCreateMonotonic((int)kind) : xlsSyncCreate((int)kind);
      if(!v->sync) { snprintf(v->message,sizeof(v->message),"语言服务初始化失败：文档同步能力不兼容。"); reset(app); }
      else {
-      bool snapshots=false,fingerprint=false; v->snapshotSupported=xrtValueGetBool(get(get(cap,"experimental"),"snapshotDiagnostics"),&snapshots) && snapshots && xrtValueGetBool(get(get(cap,"experimental"),"snapshotDocumentFingerprint"),&fingerprint) && fingerprint;
-      bool native=false; v->nativeBackend=xrtValueGetBool(get(get(cap,"experimental"),"nativeSnapshotDiagnostics"),&native) && native;
-      bool definition=false; v->definitionSupported=xrtValueGetBool(get(get(cap,"experimental"),"snapshotDefinition"),&definition) && definition;
-      bool definitionProof=false; v->definitionProofSupported=xrtValueGetBool(get(get(cap,"experimental"),"definitionInputProof"),&definitionProof) && definitionProof;
-      bool hover=false,outline=false; v->hoverSupported=xrtValueGetBool(get(get(cap,"experimental"),"snapshotHover"),&hover) && hover; v->outlineSupported=xrtValueGetBool(get(get(cap,"experimental"),"snapshotDocumentSymbols"),&outline) && outline;
-      bool onDemand=false,inputState=false; v->onDemandSupported=xrtValueGetBool(get(get(cap,"experimental"),"automaticSemanticQueries"),&onDemand) && onDemand && xrtValueGetBool(get(get(cap,"experimental"),"inputState"),&inputState) && inputState;
+      bool snapshots=false,fingerprint=false; v->snapshotSupported=xideMetaBool(get(get(cap,"experimental"),"snapshotDiagnostics"),&snapshots) && snapshots && xideMetaBool(get(get(cap,"experimental"),"snapshotDocumentFingerprint"),&fingerprint) && fingerprint;
+      bool native=false; v->nativeBackend=xideMetaBool(get(get(cap,"experimental"),"nativeSnapshotDiagnostics"),&native) && native;
+      bool definition=false; v->definitionSupported=xideMetaBool(get(get(cap,"experimental"),"snapshotDefinition"),&definition) && definition;
+      bool definitionProof=false; v->definitionProofSupported=xideMetaBool(get(get(cap,"experimental"),"definitionInputProof"),&definitionProof) && definitionProof;
+      bool hover=false,outline=false; v->hoverSupported=xideMetaBool(get(get(cap,"experimental"),"snapshotHover"),&hover) && hover; v->outlineSupported=xideMetaBool(get(get(cap,"experimental"),"snapshotDocumentSymbols"),&outline) && outline;
+      bool onDemand=false,inputState=false; v->onDemandSupported=xideMetaBool(get(get(cap,"experimental"),"automaticSemanticQueries"),&onDemand) && onDemand && xideMetaBool(get(get(cap,"experimental"),"inputState"),&inputState) && inputState;
       bool highlights=false; const xvalue* highlight=get(cap,"documentHighlightProvider");
-      v->highlightSupported=(xrtValueGetBool(highlight,&highlights) && highlights) || xrtValueType(highlight)==XVALUE_OBJECT;
+      v->highlightSupported=(xideMetaBool(highlight,&highlights) && highlights) || xrtValueType(highlight)==XVALUE_OBJECT;
       referencesCapabilities(v,cap);v->initialized=1;
       if(!v->busy && v->highlightPreparing && !v->highlightSupported) { v->onDemandMode=0; v->invalidated=1; v->highlightPreparing=0; }
       int manual=v->busy ? (v->snapshotMode ? 1 : 2) : 0;
@@ -863,10 +864,10 @@ static int jumpRange(xide_app* app,const char* path,const xvalue* range)
 int xideLanguageViewJump(xide_app* app,size_t index)
 {
  int routed=automaticJump(app,index);if(routed>=0) return routed;
- xide_language_view* v=app->languageView; if(!v || !v->diagnostics || index>=xrtValueCount(v->diagnostics)) return 0;
+ xide_language_view* v=app->languageView; if(!v || !v->diagnostics || index>=xideMetaCount(v->diagnostics)) return 0;
  const xvalue* d=xrtValueArrayGet(v->diagnostics,index); return jumpRange(app,string(get(d,"file")),get(d,"range"));
 }
-size_t xideLanguageViewDiagnosticCount(xide_app* app) { return app && app->languageView ? app->languageView->autoEnabled ? automaticCount(app->languageView) : app->languageView->diagnostics ? xrtValueCount(app->languageView->diagnostics) : 0 : 0; }
+size_t xideLanguageViewDiagnosticCount(xide_app* app) { return app && app->languageView ? app->languageView->autoEnabled ? automaticCount(app->languageView) : app->languageView->diagnostics ? xideMetaCount(app->languageView->diagnostics) : 0 : 0; }
 const char* xideLanguageViewMessage(xide_app* app) { return app && app->languageView ? app->languageView->message : ""; }
 
 /* The symbol pane belongs to the central bottom Dock. It never changes the
@@ -891,7 +892,7 @@ static int readySymbols(xide_app* app)
 {
  xide_language_view* v=app->languageView; xide_document* d=app->activeDocument; bool indexed=false;
  return v && d && d->open && d->path && !strcmp(d->language,"xlang") && !v->busy && !v->syncMode && v->snapshotMode && current(v) &&
-  (v->onDemandMode ? (v->initialized && v->onDemandSupported && v->receiptReady) : (xrtValueGetBool(get(v->snapshotResult,"semanticDefinitions"),&indexed) && indexed)) && inputPath(v,d->path)!=NULL;
+  (v->onDemandMode ? (v->initialized && v->onDemandSupported && v->receiptReady) : (xideMetaBool(get(v->snapshotResult,"semanticDefinitions"),&indexed) && indexed)) && inputPath(v,d->path)!=NULL;
 }
 int xideLanguageViewCanHover(xide_app* app)
 {
@@ -994,8 +995,8 @@ static int readPosition(const xvalue* value,xide_lsp_position* p)
 { return number(get(value,"line"),&p->line) && number(get(value,"character"),&p->character); }
 static int flattenSymbols(const xvalue* array,outline_item* items,xide_lsp_position* positions,size_t* count,int parent,int depth)
 {
- if(!array || xrtValueType(array)!=XVALUE_ARRAY || depth>64 || xrtValueCount(array)>4096-*count) return 0;
- for(size_t i=0;i<xrtValueCount(array);++i) {
+ if(!array || xrtValueType(array)!=XVALUE_ARRAY || depth>64 || xideMetaCount(array)>4096-*count) return 0;
+ for(size_t i=0;i<xideMetaCount(array);++i) {
   if(*count>=4096) return 0;
   size_t at=(*count)++; const xvalue *v=xrtValueArrayGet(array,i),*range=get(v,"range"),*selection=get(v,"selectionRange"); const char *name=string(get(v,"name")),*detail=string(get(v,"detail")); int kind=0;
   if(!name || !*name || strlen(name)>512 || (detail && strlen(detail)>2048) || !number(get(v,"kind"),&kind) || kind<1 || kind>26 || !readPosition(get(range,"start"),positions+at*4) || !readPosition(get(range,"end"),positions+at*4+1) || !readPosition(get(selection,"start"),positions+at*4+2) || !readPosition(get(selection,"end"),positions+at*4+3)) return 0;

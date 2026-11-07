@@ -89,7 +89,23 @@ try {
             throw 'SDK consumers must import, not implement, the shared XRT runtime.'
         }
         $upstream = Get-Content -LiteralPath (Join-Path $resolvedRoot ($xrtDirectory + '/upstream.json')) -Raw | ConvertFrom-Json
-        if ((Get-Sha256Hex -Path $headerPath) -ne $upstream.declaration_header_sha256) {
+        $declarationRecord = Join-Path $resolvedRoot 'provenance/xrt-declarations.json'
+        $expectedDeclaration = [string]$upstream.declaration_header_sha256
+        if (Test-Path -LiteralPath $declarationRecord -PathType Leaf) {
+            $derived = Get-Content -LiteralPath $declarationRecord -Raw | ConvertFrom-Json
+            $inventory = Get-Content -LiteralPath (Join-Path $resolvedRoot 'xge-source-files.json') -Raw | ConvertFrom-Json
+            $sourceHeader = @($inventory.files | Where-Object { $_.path -eq 'extlibs/xrt/xrt.h' })
+            $sourceDeclaration = @($inventory.files | Where-Object { $_.path -eq 'extlibs/xrt/xrt_decl.h' })
+            if ($derived.schemaVersion -ne 1 -or $derived.source -ne 'extlibs/xrt/xrt.h' -or
+                $derived.output -ne 'extlibs/xrt/xrt.h' -or $sourceHeader.Count -ne 1 -or $sourceDeclaration.Count -ne 1 -or
+                $derived.sourceSha256 -ne $sourceHeader[0].sha256 -or
+                $derived.upstreamDeclarationSha256 -ne $sourceDeclaration[0].sha256 -or
+                $derived.outputBytes -ne (Get-Item -LiteralPath $headerPath).Length) {
+                throw 'SDK XRT declaration derivation does not match its pinned runtime source.'
+            }
+            $expectedDeclaration = [string]$derived.outputSha256
+        }
+        if ((Get-Sha256Hex -Path $headerPath) -ne $expectedDeclaration) {
             throw 'SDK XRT declarations do not match the recorded generated source snapshot.'
         }
     }

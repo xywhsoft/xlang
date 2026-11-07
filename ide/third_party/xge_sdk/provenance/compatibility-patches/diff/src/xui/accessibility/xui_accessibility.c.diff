@@ -1,0 +1,60 @@
+--- a/src/xui/accessibility/xui_accessibility.c
++++ b/src/xui/accessibility/xui_accessibility.c
+@@ -94,9 +94,57 @@
+ 	pWidget->onAccessibleCount = onCount;
+ 	pWidget->onAccessibleGet = onGet;
+ 	pWidget->onAccessibleAction = onAction;
++	pWidget->onAccessibleFocus = NULL;
+ 	pWidget->pAccessibleUser = (onCount != NULL || onAction != NULL) ? pUser : NULL;
+ 	pWidget->iAccessibleProviderGeneration++;
+ 	return xuiWidgetNotifyAccessibility(pWidget, XUI_ACCESSIBLE_EVENT_TREE_CHANGED, 0);
++}
++
++XUI_API int xuiInternalAccessibilitySetFocusResolver(xui_widget pWidget,
++	xui_internal_accessible_focus_proc onFocus)
++{
++	if ( !__xuiAccessibleValid(pWidget) ||
++	     (onFocus != NULL && pWidget->onAccessibleGet == NULL) ) {
++		return XUI_ERROR_INVALID_ARGUMENT;
++	}
++	pWidget->onAccessibleFocus = onFocus;
++	pWidget->iAccessibleProviderGeneration++;
++	return XUI_OK;
++}
++
++XUI_API int xuiInternalAccessibilityGetFocusedNode(xui_widget pWidget,
++	uint64_t* pNodeId)
++{
++	xui_context pContext;
++	uint32_t iGeneration;
++	uint32_t iMutation;
++	int iRet;
++
++	if ( pNodeId == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
++	*pNodeId = 0;
++	if ( !__xuiAccessibleValid(pWidget) || pWidget->bAccessibleQueryActive ) {
++		return XUI_ERROR_INVALID_ARGUMENT;
++	}
++	if ( pWidget->onAccessibleFocus == NULL ) return XUI_ERROR_UNSUPPORTED;
++	pContext = pWidget->pContext;
++	xuiInternalOperationEnter(pContext);
++	pWidget->bAccessibleQueryActive = 1;
++	__xuiAccessibleDrain(pContext);
++	iGeneration = pWidget->iAccessibleProviderGeneration;
++	iMutation = pWidget->iAccessibleMutationGeneration;
++	iRet = __xuiAccessibleValid(pWidget) && pWidget->onAccessibleFocus != NULL ?
++		pWidget->onAccessibleFocus(pWidget, pNodeId, pWidget->pAccessibleUser) :
++		XUI_ERROR_INVALID_ARGUMENT;
++	__xuiAccessibleDrain(pContext);
++	if ( !__xuiAccessibleValid(pWidget) ||
++	     iGeneration != pWidget->iAccessibleProviderGeneration ||
++	     iMutation != pWidget->iAccessibleMutationGeneration ) {
++		iRet = XUI_ERROR_INVALID_ARGUMENT;
++	}
++	if ( iRet != XUI_OK ) *pNodeId = 0;
++	pWidget->bAccessibleQueryActive = 0;
++	xuiInternalOperationLeave(pContext);
++	return iRet;
+ }
+ 
+ static int __xuiAccessibleSetText(xui_widget pWidget, char** psTarget, const char* sText)

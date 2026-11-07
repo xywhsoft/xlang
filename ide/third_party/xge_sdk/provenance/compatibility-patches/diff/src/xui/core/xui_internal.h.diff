@@ -1,0 +1,30 @@
+--- a/src/xui/core/xui_internal.h
++++ b/src/xui/core/xui_internal.h
+@@ -614,6 +614,8 @@
+ 		const struct xui_internal_accessible_text_request*,
+ 		struct xui_internal_accessible_text_range**);
+ } xui_internal_accessibility_adapter_t;
++typedef int (*xui_internal_accessible_focus_proc)(xui_widget pWidget,
++	uint64_t* pNodeId, void* pUser);
+ 
+ typedef int (*xui_internal_prepare_paint_proc)(xui_widget pWidget);
+ typedef void (*xui_internal_parent_changed_proc)(xui_widget pWidget,
+@@ -804,6 +806,7 @@
+ 	xui_accessible_count_proc onAccessibleCount;
+ 	xui_accessible_get_proc onAccessibleGet;
+ 	xui_accessible_action_proc onAccessibleAction;
++	xui_internal_accessible_focus_proc onAccessibleFocus;
+ 	void* pAccessibleUser;
+ 	char* sAccessibleName;
+ 	char* sAccessibleDescription;
+@@ -1029,6 +1032,10 @@
+ void xuiInternalAccessibilityQueue(xui_widget pWidget, int iEventType);
+ void xuiInternalAccessibilityFlush(xui_context pContext);
+ void xuiInternalAccessibilityDetach(xui_widget pWidget);
++XUI_API int xuiInternalAccessibilitySetFocusResolver(xui_widget pWidget,
++	xui_internal_accessible_focus_proc onFocus);
++XUI_API int xuiInternalAccessibilityGetFocusedNode(xui_widget pWidget,
++	uint64_t* pNodeId);
+ int xuiInternalAccessibilityEditNode(xui_widget pWidget, xui_accessible_node_t* pNode);
+ int xuiInternalAccessibilityEditAction(xui_widget pWidget, int iAction, const void* pData);
+ xui_widget xuiInternalInputModalRoot(xui_context pContext);
