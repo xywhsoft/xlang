@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "date": "2026-11-07",
+  "sourceRevision": "cf98641a480e6fdfa093ed2a45b3fa19b68c1322",
+  "implementationCommits": [
+    "0235c1eb6",
+    "cf98641a4"
+  ],
+  "archive": {
+    "path": "dev/release-materials/sources/ide-settings-20261107/sources.zip",
+    "sha256": "cd5991fe8bd00c797ea2f743d5dfcac09e2df7e137033501c0dae1e763981702",
+    "bytes": 1187051
+  },
+  "files": {
+    "path": "dev/release-materials/sources/ide-settings-20261107/files.json",
+    "sha256": "b6102f5bed50d5c8ba156ceddee232f1635adaa2d9579d025e8d91825186a0c9",
+    "bytes": 67920
+  },
+  "sdkManifest": {
+    "path": "ide/third_party/xge_sdk/sdk_manifest.json",
+    "sha256": "371be1c1d14e71cbdd95b5f8b9169324acbe1df1e7415e50507902d6cc3cb411",
+    "bytes": 14590
+  },
+  "sourceScope": "Committed IDE baseline plus owned settings changes; other uncommitted analysis/language-service changes excluded.",
+  "optimization": "-O2",
+  "reconstruction": "Overlay sources.zip on repository sourceRevision with its matched XGE SDK. build-records retains historical absolute source/object paths; build.ps1 can rebuild all GUI consumers. No language-server rebuild or compiler change is included."
+}

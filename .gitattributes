@@ -163,3 +163,7 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 # Exact-byte example repair evidence, package snapshots and product receipts.
 /dev/release-materials/provenance/example-failures-20261107/** -text -whitespace
 /dev/release-materials/sources/example-failures-20261107/** -text -whitespace
+
+# Exact-byte unified IDE settings sources and acceptance records.
+/dev/release-materials/sources/ide-settings-20261107/** -text -whitespace
+/dev/release-materials/provenance/ide-settings-20261107/** -text -whitespace

@@ -1,0 +1,157 @@
+{
+  "schema": 1,
+  "date": "2026-11-07",
+  "status": "passed",
+  "scope": "Unified IDE settings menu/window and atomic user preferences; Windows GUI only.",
+  "sourceRevision": "cf98641a480e6fdfa093ed2a45b3fa19b68c1322",
+  "implementationCommits": [
+    "0235c1eb6",
+    "cf98641a4"
+  ],
+  "sourceMaterials": {
+    "path": "dev/release-materials/sources/ide-settings-20261107/manifest.json",
+    "sha256": "7b46592ed5501ad22ac69e6c28321859fe581a3e3288e73b124b4d60fcbde5b1",
+    "bytes": 1201
+  },
+  "guiBuild": {
+    "existingCatalogRetained": true,
+    "allAppLayoutConsumersRebuilt": true,
+    "translationUnits": 106,
+    "optimization": "-O2",
+    "sourceScope": "Committed IDE baseline plus owned settings changes; other uncommitted analysis/language-service changes excluded.",
+    "record": {
+      "path": "dev/release-materials/provenance/ide-settings-20261107/build.json",
+      "sha256": "b0066a496a13471c45c34ddd367421430ced34b21cba986dbf8176b55edf136a",
+      "bytes": 140873
+    }
+  },
+  "acceptance": {
+    "nativeFixtures": [
+      "settings_test",
+      "settings_view_test",
+      "input_test",
+      "font_test",
+      "ui_font_test",
+      "actions_test"
+    ],
+    "base": {
+      "path": "dev/release-materials/provenance/ide-settings-20261107/acceptance-final/report.json",
+      "sha256": "e1a6d1034844948320c1e10da3884c027c06f7c137aae61b9f4a10126937fd3c",
+      "bytes": 80272
+    },
+    "finalLayoutDelta": {
+      "path": "dev/release-materials/provenance/ide-settings-20261107/scroll-fix/report.json",
+      "sha256": "1c7378386d3a6ec9e9f81ab0473bb6890922b578758a2cd72608bf1946a531fd",
+      "bytes": 27363
+    },
+    "installedGui": {
+      "path": "dev/release-materials/provenance/ide-settings-20261107/published-final/report.json",
+      "sha256": "105a617cb9def536cfe769b8b614f266d326f202dd1261cac9a6e2a51dad1935",
+      "bytes": 2958
+    },
+    "dpiRenderSmoke": [
+      1,
+      1.25,
+      2
+    ],
+    "visualReview": [
+      "default editor settings",
+      "appearance settings",
+      "200 percent DPI",
+      "normal workbench and visible top-level Settings menu"
+    ],
+    "scopeNotes": [
+      "Final scrolling delta repeated settings_view_test and input_test; the other four native groups passed the base acceptance.",
+      "Language-service settings use existing service capabilities; LS binary was retained.",
+      "No whole-project/compiler/catalog freshness or full hardware certification claim."
+    ],
+    "workbenchScreenshot": {
+      "path": "dev/release-materials/provenance/ide-settings-20261107/published-final/workbench.png",
+      "sha256": "5bf37a5653da8dfa46bc3b3d18ecc83e38042b5c71e2f0a83c7952347399d063",
+      "bytes": 169863
+    }
+  },
+  "functionality": {
+    "categories": [
+      "editor",
+      "documents",
+      "compiler",
+      "appearance",
+      "languageService"
+    ],
+    "search": true,
+    "shortcut": "Ctrl+,",
+    "fontRoles": [
+      "code",
+      "document",
+      "ui"
+    ],
+    "atomicApply": true,
+    "discardUnapplied": true,
+    "pageDefaults": true,
+    "preview": true,
+    "compilerQuery": "background",
+    "projectSettingsKeptSeparate": true,
+    "jsonManualChanges": "load on restart"
+  },
+  "runtimeCompatibility": {
+    "passed": true,
+    "rows": [
+      {
+        "path": "D:\\GIT\\x-lang\\release\\win_x64\\xge.dll",
+        "sha256": "b83417d354dc2818fb51c2d64ccf5ddd8341b1beb4eb02c01ef9f897452d2604",
+        "info": {
+          "size": 32,
+          "api_major": 3,
+          "api_minor": 0,
+          "api_patch": 0,
+          "foundation_revision": 1,
+          "features": 1021,
+          "abi_fingerprint": 11128402771518174474
+        }
+      },
+      {
+        "path": "D:\\GIT\\x-lang\\ide\\third_party\\xge_sdk\\xge.dll",
+        "sha256": "b3dcabc7051634461f68852024a48e856bbe5b7ef66ed5693cae97c5f6dc1e3d",
+        "info": {
+          "size": 32,
+          "api_major": 3,
+          "api_minor": 0,
+          "api_patch": 0,
+          "foundation_revision": 1,
+          "features": 1021,
+          "abi_fingerprint": 11128402771518174474
+        }
+      }
+    ],
+    "basis": "Exact public ABI fingerprint, API version, foundation revision and feature bits; preserve the previously qualified runtime."
+  },
+  "publication": {
+    "products": [
+      {
+        "path": "release/win_x64/xlang_ide.exe",
+        "sha256": "f42e2f54af38f11f9a4269055a54eb562bfa79896148bc3c65fbf5e40d76083b",
+        "bytes": 1848672
+      },
+      {
+        "path": "release/win_x64/xge.dll",
+        "sha256": "b83417d354dc2818fb51c2d64ccf5ddd8341b1beb4eb02c01ef9f897452d2604",
+        "bytes": 11130425
+      }
+    ],
+    "previousGui": "6c62d11534f0eb5ff80874477f29e0d862039df451be8e6b748a461a31dfb572",
+    "protectedRuntime": {
+      "D:\\GIT\\x-lang\\release\\win_x64\\xge.dll": "b83417d354dc2818fb51c2d64ccf5ddd8341b1beb4eb02c01ef9f897452d2604",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe": "a5feede784f0a5cb1a829c2e362de57e9278b55cec1a11b796cf4b6e78831bbc",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xl.dll": "215d6b3c87704c745ec609eb07e718a52708ad7c13436294f2f662a56169be13",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xlc.dll": "2241fcd462980fc40cbd6c47ce9347d537bababc93225cb6d2a2d36b9b978797",
+      "D:\\GIT\\x-lang\\release\\win_x64\\data\\commands.json": "6079cecd10c3f2713622a2af7c030834524f3f502f804806e3f6210a34e4a1ae",
+      "D:\\GIT\\x-lang\\release\\win_x64\\data\\catalog-sources\\index.json": "4c2447f3d201d59c8cf77a96a9fc4ed99711d111bcda6280b5031431ef74d57f",
+      "D:\\GIT\\x-lang\\release\\win_x64\\option\\settings.json": "bfd76ef743b6a205d1f8e600cd32bd2d048d63b2f7f1fb670a45e04824fa9a6f"
+    }
+  },
+  "userSettingsPreserved": true,
+  "externalPublishPerformed": false,
+  "completeCompilerCatalogAcceptance": false
+}
