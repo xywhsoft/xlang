@@ -18,8 +18,13 @@ def build(root, output, gcc=None):
     gcc = Path(gcc or shutil.which('gcc') or '').resolve(strict=True)
     output.mkdir(parents=True)
     windows = sys.platform == 'win32'
-    runtime = root / ('release/xlc.dll' if windows else 'release/libxlc.so')
+    platform = 'win_x64' if windows else 'linux_x64'
+    release = root / 'release' / platform
+    if not release.is_dir():
+        release = root / 'release'
+    runtime = release / ('xlc.dll' if windows else 'libxlc.so')
     inputs = [root / p for p in SOURCES] + list((root / 'src').rglob('*.h'))
+    inputs += list((release / 'include').glob('*.h'))
     inputs += [root / 'lib/xrt/xrt.h', root / 'lib/xruntime/xruntime.h', runtime,
                Path(__file__), Path(__file__).with_name('dump_extension_catalog.c'), gcc]
     before = {str(p): sha(p) for p in inputs}
@@ -35,7 +40,8 @@ def build(root, output, gcc=None):
         if result.returncode:
             raise ValueError('Catalog frontend build failed: ' + calls[-1]['stderr'])
 
-    flags = ['-std=c11', '-O2', '-ffunction-sections', '-fdata-sections', '-I' + str(root), '-I' + str(root / 'lib/xrt')]
+    flags = ['-std=c11', '-O2', '-ffunction-sections', '-fdata-sections',
+             '-I' + str(root), '-I' + str(release), '-I' + str(root / 'lib/xrt')]
     objects = []
     for i, source in enumerate([root / p for p in SOURCES] + [Path(__file__).with_name('dump_extension_catalog.c')]):
         target = output / (str(i) + '.o')

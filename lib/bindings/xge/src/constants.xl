@@ -490,3 +490,7 @@ export const c_int XGE3D_REQUEST_UPLOADING = 3
 export const c_int XGE3D_REQUEST_READY = 4
 export const c_int XGE3D_REQUEST_FAILED = 5
 export const c_int XGE3D_REQUEST_CANCELLED = 6
+
+export const c_int XGE_SYSTEM_FONT_UI = 0
+export const c_int XGE_SYSTEM_FONT_DOCUMENT = 1
+export const c_int XGE_SYSTEM_FONT_MONOSPACE = 2

@@ -287,6 +287,12 @@ typedef struct xui_language_text_t {
 #define XUI_FONT_FORMAT_TTF		0x0001
 #define XUI_FONT_FORMAT_XRF		0x0002
 
+/* Default-font policy for xui_context_desc_t. AUTO loads on first use only;
+ * setting an application font before that point performs no system load. */
+#define XUI_SYSTEM_FONT_AUTO		0
+#define XUI_SYSTEM_FONT_DISABLED	1
+#define XUI_SYSTEM_FONT_EAGER		2
+
 #define XUI_TEXT_ALIGN_LEFT		0x0000
 #define XUI_TEXT_ALIGN_CENTER		0x0001
 #define XUI_TEXT_ALIGN_RIGHT		0x0002
@@ -345,6 +351,8 @@ typedef struct xui_language_text_t {
 #define XUI_WIDGET_TYPE_DEFAULT_CACHE_POLICY	0x00000002u
 /* Runs onUpdate once when this widget's tree is hidden or detached. */
 #define XUI_WIDGET_TYPE_UPDATE_ON_INACTIVE	0x00000004u
+/* Runs onPreparePaint every frame even when the widget subtree is otherwise clean. */
+#define XUI_WIDGET_TYPE_PREPARE_FRAME_DEPENDENT	0x00000008u
 
 #define XUI_RESOURCE_SURFACE		1
 #define XUI_RESOURCE_FONT		2
@@ -5520,6 +5528,16 @@ typedef struct xui_render_stats_t {
 	int iDrawnCaches;
 	int iSkippedWidgets;
 	int iRecoveredErrors;
+	int iPrepareVisitedWidgets;
+	int iPrepareSkippedSubtrees;
+	uint64_t iDirtyPropagationSteps;
+	uint64_t iEventMaskPropagationSteps;
+	int iRenderNodesReused;
+	int iRenderNodesUpdated;
+	int iRenderNodesInserted;
+	int iRenderNodesRemoved;
+	uint32_t iRootStructureRevision;
+	uint32_t iOverlayStructureRevision;
 } xui_render_stats_t;
 
 typedef struct xui_layout_stats_t {
@@ -6014,6 +6032,7 @@ typedef struct xui_debug_widget_info_t {
 	uint64_t iSubtreeEventMask;
 	xui_rect_t tRect;
 	xui_rect_t tWorldRect;
+	uint32_t iSubtreeDirtyFlags;
 } xui_debug_widget_info_t;
 
 typedef int (*xui_widget_type_init_proc)(xui_widget pWidget, void* pTypeData, const void* pCreateData, void* pUser);
@@ -6104,6 +6123,12 @@ typedef int (*xui_shape_circle_fill_proc)(xui_proxy pProxy, xui_surface pTarget,
 typedef int (*xui_shape_circle_stroke_proc)(xui_proxy pProxy, xui_surface pTarget, float fX, float fY, float fRadius, float fWidth, uint32_t iColor);
 typedef int (*xui_font_load_file_proc)(xui_proxy pProxy, xui_font* ppFont, const char* sPath, float fSize, uint32_t iFlags);
 typedef int (*xui_font_load_memory_proc)(xui_proxy pProxy, xui_font* ppFont, const void* pData, int iSize, float fSize, uint32_t iFlags);
+typedef struct xui_system_font_desc_t {
+	uint32_t iSize;
+	float fSize; /* Zero selects the platform-configured UI font size. */
+	uint32_t iFlags; /* Reserved; must be zero. */
+} xui_system_font_desc_t;
+typedef int (*xui_font_load_system_proc)(xui_proxy pProxy, xui_font* ppFont, const xui_system_font_desc_t* pDesc);
 typedef int (*xui_font_get_metrics_proc)(xui_proxy pProxy, xui_font pFont, xui_font_metrics_t* pMetrics);
 typedef void (*xui_font_destroy_proc)(xui_proxy pProxy, xui_font pFont);
 typedef int (*xui_font_create_sized_proc)(xui_proxy pProxy, xui_font* ppFont, xui_font pSource, float fSize);
@@ -6234,11 +6259,26 @@ struct xui_proxy_t {
     struct xui_proxy_capability_t* _pCapability; /* Private immutable owned backend capability. */
     /* Optional cold capability; all earlier Proxy field offsets are preserved. */
     xui_clipboard_set_items_with_transfer_proc clipboardSetItemsWithTransfer;
+    /* Optional platform UI font resolver. Appended for source/ABI prefix compatibility. */
+    xui_font_load_system_proc fontLoadSystem;
 };
+
+typedef struct xui_context_desc_t {
+	uint32_t iSize;
+	/* XUI_SYSTEM_FONT_AUTO, XUI_SYSTEM_FONT_DISABLED or XUI_SYSTEM_FONT_EAGER. */
+	int iSystemFontPolicy;
+	/* Optional pixel size override. Zero uses the platform UI default. */
+	float fSystemFontSize;
+	uint32_t iFlags; /* Reserved; must be zero. */
+} xui_context_desc_t;
 
 /* 创建 XUI 上下文（根与覆盖根就绪；渲染前需 xuiSetProxy 绑定后端）。 */
 #if XGE_ENABLE_XUI
+XUI_API void xuiContextDescDefault(xui_context_desc_t* pDesc);
 XUI_API int xuiCreate(xui_context* ppContext);
+/* Extended constructor. The legacy constructor is equivalent to a default
+ * descriptor (AUTO system font, loaded lazily after a proxy is bound). */
+XUI_API int xuiCreateEx(const xui_context_desc_t* pDesc, xui_context* ppContext);
 /* Managed contexts require and retain an owned Proxy before publication.
  * The backend binding is immutable. Font/Surface slots retain actual native
  * references and reject resources from another backend; replacement/teardown
@@ -6247,6 +6287,8 @@ XUI_API int xuiCreate(xui_context* ppContext);
  * Raw userdata/array/provider pointers and raw callbacks are not made owning
  * by this constructor; use their documented Owned registrations where present. */
 XUI_API int xuiCreateOwned(xui_proxy pProxy, xui_context* ppContext);
+/* Managed-context variant with an explicit system-font policy descriptor. */
+XUI_API int xuiCreateOwnedEx(xui_proxy pProxy, const xui_context_desc_t* pDesc, xui_context* ppContext);
 XUI_API xui_proxy xuiGetProxyOwned(xui_context pContext);
 /* Request is logical only; the caller still owns the Context until its
  * checked destructor consumes it after active calls and retained data end. */
@@ -6559,6 +6601,9 @@ XUI_API int xuiGetChromeStyle(xui_context pContext, xui_chrome_style_t* pChrome)
 XUI_API int xuiSetDefaultFont(xui_context pContext, xui_font pFont);
 /* 取上下文默认字体。 */
 XUI_API xui_font xuiGetDefaultFont(xui_context pContext);
+/* Resolve the configured system default now. AUTO also calls this lazily from
+ * xuiGetDefaultFont(); DISABLED returns XUI_ERROR_UNSUPPORTED. */
+XUI_API int xuiEnsureDefaultFont(xui_context pContext);
 /* 按名注册字体到上下文（FindFont 可查）。 */
 XUI_API int xuiRegisterFont(xui_context pContext, const char* sName, xui_font pFont);
 /* 按名查找已注册字体；未注册返回 NULL。 */
@@ -10317,6 +10362,9 @@ XUI_API int xuiDockPanelGetWindowChangeCount(xui_widget pWidget);
 /* 创建消息框（模态对话框，内建四态图标）；失败时总会清空 *ppBox。 */
 #if XUI_ENABLE_MSGBOX
 XUI_API int xuiMsgBoxCreate(xui_context pContext, xui_msgbox* ppBox, const xui_msgbox_desc_t* pDesc);
+/* 创建或复用已关闭的消息框并显示。*ppBox 为 NULL 时创建；非 NULL 时必须属于
+ * pContext。复用时仅更新描述中明确提供的文本、样式和模态字段，字体不可变。 */
+XUI_API int xuiMsgBoxShow(xui_context pContext, xui_msgbox* ppBox, const xui_msgbox_desc_t* pDesc);
 /* 释放消息框。 */
 XUI_API void xuiMsgBoxDestroy(xui_msgbox pBox);
 XUI_API int xuiMsgBoxDestroyOwnerChecked(xui_msgbox pBox, bool* pConsumed);
@@ -10399,6 +10447,9 @@ XUI_API int xuiMsgBoxGetChangeCount(xui_msgbox pBox);
 /* 创建文件对话框（浏览/过滤/保存，组合式控件）。 */
 #if XUI_ENABLE_FILE_DIALOG
 XUI_API int xuiFileDialogCreate(xui_context pContext, xui_file_dialog* ppDialog, const xui_file_dialog_desc_t* pDesc);
+/* 创建或复用已关闭的文件对话框并显示。*ppDialog 为 NULL 时创建；复用时模式和
+ * 字体必须与首次创建一致，其他非空描述字段会更新后再打开。 */
+XUI_API int xuiFileDialogShow(xui_context pContext, xui_file_dialog* ppDialog, const xui_file_dialog_desc_t* pDesc);
 /* 释放文件对话框。 */
 XUI_API void xuiFileDialogDestroy(xui_file_dialog pDialog);
 XUI_API int xuiFileDialogDestroyOwnerChecked(xui_file_dialog pDialog, bool* pConsumed);

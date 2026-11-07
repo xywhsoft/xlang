@@ -1,0 +1,16 @@
+// Run: xl run system_font.xl
+// Resolves the platform monospace font without starting a graphics window.
+import xge
+
+xge.init(32, 32, "System font", runMode=xge.XGE_RUN_MANUAL)
+try
+ auto font = xge.loadSystemFont(xge.XGE_SYSTEM_FONT_MONOSPACE, 16)
+ try
+  assert font.size == 16
+  println("Loaded a 16 pixel system monospace font")
+ finally
+  font.close()
+ end
+finally
+ xge.unit()
+end

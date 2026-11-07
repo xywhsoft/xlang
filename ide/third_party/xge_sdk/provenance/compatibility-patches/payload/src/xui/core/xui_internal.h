@@ -448,6 +448,7 @@ struct xui_context_t {
 	xui_widget pHoverWidget;
 	xui_widget pActiveWidget;
 	xui_widget pFocusWidget;
+	xui_widget pActiveWindow;
 	/* MenuBar menu-mode focus is context-owned so widget detachment can clear
 	 * both borrowed handles before deferred destruction releases memory. */
 	xui_widget pMenuBarModeOwner;
@@ -553,6 +554,16 @@ struct xui_context_t {
 	int iRenderNodeCount;
 	int iRenderNodeCapacity;
 	uint32_t iRenderTreeGeneration;
+	xui_widget pRenderHead;
+	xui_widget pRenderTail;
+	int iRenderLinkedNodeCount;
+	int bRenderIndexDirty;
+	uint32_t iRootStructureRevision;
+	uint32_t iOverlayStructureRevision;
+	uint64_t iDirtyPropagationTotal;
+	uint64_t iEventMaskPropagationTotal;
+	uint64_t iDirtyPropagationSnapshot;
+	uint64_t iEventMaskPropagationSnapshot;
 	size_t iCacheBudgetBytes;
 	uint32_t iCacheGeneration;
 	xui_widget_type pWidgetTypes;
@@ -583,6 +594,10 @@ struct xui_context_t {
 	xui_theme_t tTheme;
 	xui_chrome_style_t tChromeStyle;
 	xui_font pDefaultFont;
+	xui_font pSystemFont; /* Context-owned lazy platform font, separate from the active default slot. */
+	xui_context_desc_t tCreateDesc;
+	int iSystemFontStatus; /* 0 not attempted, XUI_OK loaded, or a stable negative result. */
+	int bSystemFontLoading;
     xui_proxy pOwnedProxy; /* one real capability owner; tProxy is a borrowed table copy */
     xui_owned_manager_t* pOwnedManagers;
     xui_owned_manager_t* pPendingManagers;
@@ -751,6 +766,17 @@ struct xui_widget_t {
 	uint64_t iEventInterestMask;
 	uint64_t iEventHandlerMask;
 	uint64_t iSubtreeEventMask;
+	xui_render_node_t tRenderNode;
+	xui_widget pRenderPrev;
+	xui_widget pRenderNext;
+	xui_widget pRenderSubtreeLast;
+	int bRenderNodeLinked;
+	int bRenderGeometryDirty;
+	int bRenderStructureDirty;
+	int bSubtreeRenderStructureDirty;
+	int bSubtreePrepareFrameDependent;
+	int bSubtreeHasUpdate;
+	int bSubtreeHasInactiveUpdate;
 	uint32_t iStateId;
 	uint32_t iGeneration;
 	uint32_t iLayoutVersion;
@@ -1005,6 +1031,7 @@ void xuiInternalLayoutInvalidate(xui_widget pWidget, int bMeasure);
 void xuiInternalWidgetSyncDpi(xui_widget pWidget);
 int xuiInternalWidgetInvalidateArrange(xui_widget pWidget, uint32_t iPaintFlags);
 int xuiInternalWidgetInvalidatePaintIfNeeded(xui_widget pWidget);
+void xuiInternalWidgetMarkDirtyFlags(xui_widget pWidget, uint32_t iFlags);
 int xuiInternalListViewSetVirtualItemsResetSelection(xui_widget pWidget, int iCount,
 	xui_list_view_text_proc onText, void* pUser);
 int xuiInternalLayoutMeasure(xui_widget pWidget, xui_vec2_t tConstraint, xui_vec2_t* pMeasured);
@@ -1099,6 +1126,8 @@ int xuiInternalColorPickerCommitPendingEdit(xui_widget pWidget);
 void xuiInternalContextPressCancel(xui_context pContext);
 int xuiInternalContextPressUpdate(xui_context pContext, float fDelta);
 int xuiInternalDrawPath(xui_proxy pProxy, xui_draw_context pDraw, xui_path pPath, const xui_path_style_t* pStyle, float fTolerance);
+int xuiInternalDrawDisclosureChevron(xui_proxy pProxy, xui_draw_context pDraw,
+	xui_rect_t tRect, int bExpanded, uint32_t iColor);
 int xuiInternalTooltipPointerMove(xui_context pContext, xui_widget pHitWidget);
 void xuiInternalTooltipCancel(xui_context pContext);
 void xuiInternalTooltipDetachWidget(xui_context pContext, xui_widget pWidget);

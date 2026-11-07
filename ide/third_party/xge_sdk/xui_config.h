@@ -2,6 +2,11 @@
 #define XUI_CONFIG_H
 #include "xge_config.h"
 
+/* Expensive migration oracle for incremental dirty/event/render-tree state. */
+#ifndef XUI_ENABLE_INCREMENTAL_VERIFY
+#define XUI_ENABLE_INCREMENTAL_VERIFY 0
+#endif
+
 /* Per-control switches. Dependencies are listed in config/modules.json. */
 #ifndef XUI_ENABLE_ACCORDION
 #define XUI_ENABLE_ACCORDION (XGE_ENABLE_XUI && XGE_BUILD_PROFILE != XGE_PROFILE_UI_MIN)

@@ -21,7 +21,8 @@
       "src/document.xl",
       "src/document_ui_records.xl",
       "src/document_ui.xl",
-      "src/data_object.xl"
+      "src/data_object.xl",
+      "src/find.xl"
     ]
   },
   "links": [],

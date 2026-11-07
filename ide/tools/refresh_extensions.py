@@ -13,9 +13,20 @@ from catalog_sources import create, plain, sha, verify
 IDE = Path(__file__).resolve().parents[1]
 
 
+def package_root(root):
+    platform = 'win_x64' if sys.platform == 'win32' else 'linux_x64'
+    release = root / 'release' / platform
+    return (release if release.is_dir() else root / 'release') / 'extlibs'
+
+
+def extension_source(path):
+    return any(path.startswith(prefix) or ('/' + prefix) in path for prefix in
+               ('release/extlibs/', 'release/win_x64/extlibs/', 'release/linux_x64/extlibs/'))
+
+
 def input_files(root):
     files = set()
-    for manifest in sorted((root / 'release/extlibs').glob('*/xlang.package.json')):
+    for manifest in sorted(package_root(root).glob('*/xlang.package.json')):
         files.add(manifest)
         data = json.loads(manifest.read_text(encoding='utf-8-sig'))
         if data.get('kind') == 'demo6-private-extlib' or data['name'].startswith('_'):
@@ -80,7 +91,7 @@ def generate(root, data, output, gcc=None):
     compiler_hash = sha(compiler)
     retained = [e for e in base['entries'] if e['category'] != 'extension']
     documents = [d for d in base['documents'] if not d['id'].startswith('package:')]
-    declared = {s['path']: s for s in base['sources'] if '/release/extlibs/' not in s['path'] and not s['path'].startswith('release/extlibs/')}
+    declared = {s['path']: s for s in base['sources'] if not extension_source(s['path'])}
     materials = {}
     for row in json.loads((data / 'catalog-sources/index.json').read_text(encoding='utf-8'))['entries']:
         if row['path'] in declared:
@@ -102,7 +113,7 @@ def generate(root, data, output, gcc=None):
             declared[key] = dict(path=key, sha256=before[key])
         return key, materials[key]
 
-    entries, extra_docs, coverage = extract(root / 'release/extlibs', compiler, scratch / 'declarations', capture)
+    entries, extra_docs, coverage = extract(package_root(root), compiler, scratch / 'declarations', capture)
     runtime_copy = compiler.parent / ('xlc.dll' if sys.platform == 'win32' else 'libxlc.so')
     if fingerprint(root) != before or sha(compiler) != compiler_hash or sha(runtime_copy) != frontend['runtimeSha256'] or tools() != tool_hashes or any(sha(Path(p)) != value for p, value in frontend['inputs'].items()):
         raise ValueError('Extension inputs, compiler or extraction tools changed during generation')
@@ -115,7 +126,7 @@ def generate(root, data, output, gcc=None):
                                categories=dict(Counter(e['category'] for e in catalog['entries'])), issues=[])
     frontend_inputs = {Path(p).relative_to(root).as_posix(): value for p, value in frontend['inputs'].items() if Path(p).is_relative_to(root)}
     stable_base = dict(entries=retained, documents=documents,
-                       sources=[s for s in base['sources'] if '/release/extlibs/' not in s['path'] and not s['path'].startswith('release/extlibs/')])
+                       sources=[s for s in base['sources'] if not extension_source(s['path'])])
     catalog['extensionCatalog'] = dict(format='xlang-ide-extension-snapshot-1', exporterSha256=compiler_hash,
         baseNonExtensionSha256=hashlib.sha256(json.dumps(stable_base, ensure_ascii=False, sort_keys=True).encode()).hexdigest(), tools=tool_hashes, inputs=before,
         frontendInputs=frontend_inputs, runtimeSha256=frontend['runtimeSha256'], **coverage)

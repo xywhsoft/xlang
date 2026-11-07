@@ -1051,6 +1051,16 @@ export extern "xui_render_stats_t" struct RenderStats @header("xge3_runtime.h")
  c_int iDrawnCaches
  c_int iSkippedWidgets
  c_int iRecoveredErrors
+ c_int iPrepareVisitedWidgets
+ c_int iPrepareSkippedSubtrees
+ uint64 iDirtyPropagationSteps
+ uint64 iEventMaskPropagationSteps
+ c_int iRenderNodesReused
+ c_int iRenderNodesUpdated
+ c_int iRenderNodesInserted
+ c_int iRenderNodesRemoved
+ c_uint iRootStructureRevision
+ c_uint iOverlayStructureRevision
 end
 
 export extern "xui_layout_stats_t" struct LayoutStats @header("xge3_runtime.h")
@@ -1121,4 +1131,16 @@ export extern "xui_chrome_style_t" struct ChromeStyle @header("xge3_runtime.h")
  c_uint iModalOverlayColor
  c_float fBorderWidth
  c_float fShadowSize
+end
+
+export extern "xui_context_desc_t" struct ContextDesc @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iSystemFontPolicy
+ c_float fSystemFontSize
+ c_uint iFlags
+end
+export extern "xui_system_font_desc_t" struct SystemFontDesc @header("xge3_runtime.h")
+ c_uint iSize
+ c_float fSize
+ c_uint iFlags
 end

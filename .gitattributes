@@ -203,3 +203,12 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 # Exact-byte shared find source and acceptance materials.
 /dev/release-materials/sources/ide-find-follow-20261108/** -text -whitespace
 /dev/release-materials/provenance/ide-find-follow-20261108/** -text -whitespace
+
+# Platform runtime catalogs and their content-addressed source payloads.
+/release/win_x64/data/** -text
+/release/linux_x64/data/** -text
+/release/win_x64/data/catalog-sources/*.source -whitespace
+/release/linux_x64/data/catalog-sources/*.source -whitespace
+# Exact-byte XGE update source and acceptance materials.
+/dev/release-materials/sources/xge-sync-20261108/** -text -whitespace
+/dev/release-materials/provenance/xge-sync-20261108/** -text -whitespace

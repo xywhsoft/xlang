@@ -51,3 +51,11 @@
  	objDesc.sample_count = 1;
  	objDesc.swap_interval = ((g_xge.objDesc.iFlags & XGE_INIT_VSYNC) != 0) ? 1 : 0;
  	objDesc.enable_clipboard = true;
+@@ -2333,6 +2338,7 @@
+ #endif
+ #if XGE_ENABLE_TEXT
+ #include "xge_font.c"
++#include "xge_system_font.c"
+ #endif
+ #include "xge_texture.c"
+ #if XGE_ENABLE_2D

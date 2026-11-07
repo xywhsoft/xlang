@@ -10,11 +10,19 @@ import textwrap
 PUBLIC, PRIVATE, PROTECTED, STATIC, NATIVE = 1, 2, 4, 8, 128
 FUNCTIONS = {'func', 'async_func', 'extern_func', 'export_func',
              'native_extern_func', 'native_extern_special', 'create', 'get', 'let'}
-TYPES = {'class', 'protocol', 'enum', 'union', 'type_alias', 'extern_type_alias'}
+TYPES = {'class', 'protocol', 'enum', 'union', 'C record', 'type_alias', 'extern_type_alias'}
 
 
 def child(node, kind):
     return next((n for n in node.get('children', []) if n['kind'] == kind), None)
+
+
+def member_body(node):
+    index = {'class': 1, 'enum': 1, 'protocol': 0, 'union': 0, 'C record': 0}[node['kind']]
+    children = node.get('children', [])
+    if len(children) <= index or children[index]['kind'] != 'list':
+        raise ValueError('Compiler declaration member-body contract changed: ' + node['kind'])
+    return children[index]
 
 
 def name_of(node):
@@ -109,14 +117,22 @@ class DeclarationText:
         name = child(node, 'name') or node
         region = name['tokenRange']
         type_node = child(node, 'type')
-        begin = type_node['range']['startOffset'] if type_node else region['startOffset']
+        # A fixed C array's outer TYPE is anchored at its trailing dimension;
+        # the element TYPE keeps the prefix before the field name. Use the
+        # compiler's nested ranges to retain the complete original spelling.
+        def type_begin(value):
+            starts = [value['range']['startOffset']] if value.get('range') else []
+            starts.extend(type_begin(item) for item in value.get('children', []))
+            return min(starts) if starts else region['startOffset']
+        begin = type_begin(type_node) if type_node else region['startOffset']
         return self.slice(begin, region['startOffset']) + (' ' if type_node else '') + qualified + self.raw[region['endOffset']:node['range']['endOffset']].decode('utf-8').rstrip()
 
     def type_declaration(self, node, label):
         kind = node['kind']
         if kind in ('type_alias', 'extern_type_alias'):
             return 'typedef ' + label + ' = ' + self.span(child(node, 'type'))
-        signature = kind + ' ' + label + self.span(child(node, 'type_params'))
+        display_kind = 'struct' if kind == 'C record' else kind
+        signature = display_kind + ' ' + label + self.span(child(node, 'type_params'))
         if kind == 'class':
             # The grammar stores an explicit base as NAME; LIST is the empty
             # default base or the member body. Never render member source here.
@@ -205,8 +221,7 @@ def extract(root, compiler, scratch, capture):
                     parsed.append(node)
                 elif isinstance(parent, int) and 0 <= parent < len(parents):
                     owner = parents[parent]
-                    lists = [n for n in owner.get('children', []) if n['kind'] == 'list']
-                    members = lists[-1]
+                    members = member_body(owner)
                     members['children'].append(node)
                 else:
                     raise ValueError('Invalid declaration parent identity')
@@ -246,8 +261,7 @@ def extract(root, compiler, scratch, capture):
                             walk((child(node, 'list') or {}).get('children', []), prefix, False)
                             continue
                         add(qualified, name, 'type', spelling.type_declaration(node, qualified), origin, line, version, doc=node)
-                        lists = [n for n in node.get('children', []) if n['kind'] == 'list']
-                        members = lists[-1] if lists else {}
+                        members = member_body(node) if kind not in ('type_alias', 'extern_type_alias') else {}
                         walk(members.get('children', []), qualified + '.', False)
                     elif kind in FUNCTIONS:
                         signature, params, returns = spelling.callable(node, qualified)

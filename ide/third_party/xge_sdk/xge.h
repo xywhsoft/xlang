@@ -372,6 +372,11 @@ typedef struct xge_texture_storage_info_t {
 #define XGE_FONT_SLANT_ITALIC	1
 #define XGE_FONT_SLANT_OBLIQUE	2
 
+/* Platform font roles used by xgeFontLoadSystem(). */
+#define XGE_SYSTEM_FONT_UI		0
+#define XGE_SYSTEM_FONT_DOCUMENT	1
+#define XGE_SYSTEM_FONT_MONOSPACE	2
+
 #define XGE_FONT_STRETCH_NORMAL	100
 
 #define XGE_TEXT_SHAPE_KERNING		0x0001
@@ -1324,6 +1329,23 @@ typedef struct xge_font_instance_desc_t {
 /* 缩放/渲染标志位。 */
 	uint32_t iFlags;
 } xge_font_instance_desc_t;
+
+typedef struct xge_system_font_desc_t {
+/* Structure size (sizeof, for ABI validation). */
+	uint32_t iSize;
+/* XGE_SYSTEM_FONT_* role. */
+	int iRole;
+/* Pixel size. Zero asks the platform for its configured default size. */
+	float fPixelSize;
+/* OpenType weight (100..900). Zero selects the platform default. */
+	int iWeight;
+/* XGE_FONT_SLANT_* value. Zero selects normal/platform default. */
+	int iSlant;
+/* Optional borrowed BCP-47 language tag; NULL uses the current locale. */
+	const char* sLanguage;
+/* Reserved for future matching options; must be zero. */
+	uint32_t iFlags;
+} xge_system_font_desc_t;
 
 typedef struct xge_font_face_info_t {
 	uint32_t iSize;
@@ -2302,6 +2324,10 @@ XGE_API int xgeFontCreate(xge_font pFont, xge_font_face pFace, const xge_font_in
 XGE_API int xgeFontCreateSized(xge_font pFont, xge_font pSource, float fPixelSize);
 /* 一步加载 TTF/TTC 文件为指定像素尺寸的字体实例。 */
 XGE_API int xgeFontLoad(xge_font pFont, const char* sPath, float fSize);
+/* Resolve and load a platform-configured font. This function never runs
+ * implicitly from xgeInit(); callers retain complete control over memory use.
+ * Web builds return XGE_ERROR_UNSUPPORTED and require an application font. */
+XGE_API int xgeFontLoadSystem(xge_font pFont, const xge_system_font_desc_t* pDesc);
 /* 从内存一步加载字体实例。 */
 XGE_API int xgeFontLoadMemory(xge_font pFont, const void* pData, int iSize, float fSize);
 /* 加载自研 XRF 位图字体文件。 */

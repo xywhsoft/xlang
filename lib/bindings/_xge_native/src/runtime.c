@@ -484,6 +484,15 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3TextShapePolicyGet(void)
     return &value;
 }
 static bool destroy_path(void* raw){xuiPathDestroy(raw);return true;}
+/* Scope members are native borrowed editors. XGE removes destroyed editors
+ * and detaches all remaining members when the scope closes. No language
+ * callback is installed here, so this independent root has no owning edges. */
+static bool destroy_find_scope(void* raw){xuiCodeFindScopeDestroy(raw);return true;}
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeFindScopePolicyGet(void)
+{
+    static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui.codeFindScope",
+        0,1,NULL,NULL,destroy_find_scope,0,1,NULL,NULL,NULL,NULL,0,NULL,NULL};return &value;
+}
 const XL6_ForeignViewDescriptorV1* xl6Xui3PathPolicyGet(void)
 {
     static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui.path",

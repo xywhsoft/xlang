@@ -158,3 +158,7 @@ WebView 范例只加载源码中的本地 HTML。它需要启用 WebView2 的 Wi
 `_window.xl` 保留 `XUI_EXAMPLE_FRAMES` 和 `XUI_EXAMPLE_DUMP`，供外部验收控制运行时长和读取画面；正常学习无需设置。默认字体由辅助文件加载，发布包已附带。可用 `XUI_EXAMPLE_FONT` 指定替代字体。
 
 可选静态 SDK 的使用方法见运行目录的 `static/xge3/README.md`。维护综合画廊时运行 `python tools/update_xui_gallery.py`；独立范例是源码依据，综合文件由工具生成。
+
+`shared_find.xl` demonstrates the native multi-document search scope without a
+graphics window. Interactive find/replace uses the same scope in an initialized
+window loop. System fonts are demonstrated in the xge package's `examples/system_font.xl`.

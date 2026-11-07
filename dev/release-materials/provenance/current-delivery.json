@@ -66,7 +66,7 @@
       "licenseUrl": "http://www.microsoft.com/typography/fonts/default.aspx"
     },
     "fontChangeSourceParent": "b16a95bbf022efcafc7b965d1bd9b5b945c0d881",
-    "currentBuildProvenance": "dev/release-materials/provenance/ide-find-follow-20261108/publication-receipt.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/xge-sync-20261108/receipt.json",
     "cLspEnabled": false,
     "applicationIcon": {
       "source": "ide/data/xlang_ide.ico",
@@ -80,33 +80,12 @@
       "provenance": "docs/reports/release-materials-migration-20261031.json",
       "buildCommand": "pwsh -NoProfile -File ide/tools/build.ps1 -Configuration Release -GuiOnly -LanguageServerPath D:/GIT/x-lang/release/xlang-ls.exe -ReleaseDirectory D:/GIT/x-lang/release"
     },
-    "sha256": "a521715be107eee60a4f9e8bdc238bdc06637e149d318c2b9588bee8cde930a2",
+    "sha256": "f8d38ffdea249a0ae211103c0d8e300aa71f3a39da8bf1b81c01109deaa43f03",
     "sourceIdentity": {
-      "dockWindows": {
-        "path": "dev/release-materials/sources/ide-dock-view-20261107/manifest.json",
-        "sha256": "82e05110f18afefebad4b641d896e7e7eff3b5cef41b0b37bd6c73a5fb4e6aeb",
-        "bytes": 1395
-      },
-      "minimapSetting": {
-        "path": "dev/release-materials/sources/ide-minimap-setting-20261107/manifest.json",
-        "sha256": "72044e122aaa5cb3fa3bbf7b888ea8417f069bc098ea6d84b7030f8fd1637187",
-        "bytes": 1411
-      },
-      "dialogLayout": {
-        "path": "dev/release-materials/sources/ide-dialog-layout-20261108/manifest.json",
-        "sha256": "f3bd0a03a32125153dd6e82351c0a428d6332ba79fd0c2deed5c88c363805f8c",
-        "bytes": 5968
-      },
-      "selectionHelp": {
-        "path": "dev/release-materials/sources/ide-selection-help-20261108/manifest.json",
-        "sha256": "961d44a6cd1ade989593c825d79a1c5e86325ef72a9e6f6aecef10f86bd37b6b",
-        "bytes": 4288
-      },
-      "sharedFind": {
-        "path": "dev/release-materials/sources/ide-find-follow-20261108/manifest.json",
-        "sha256": "76b3b78fd450f5cff3647ebadd05e7df8ac99cff4b9905a97fc7fb135b8674d0",
-        "bytes": 2986
-      }
+      "guiSourceRevision": "041700426749982147ebb26b3374c862a9e296d7",
+      "build": "dev/release-materials/provenance/xge-sync-20261108/evidence.zip",
+      "sourceCommit": "041700426749982147ebb26b3374c862a9e296d7",
+      "matchedSdkManifestSha256": "25181855e5402f25b24cb51cedff76eba08160413682f4c3feac91f601d8ec5a"
     },
     "previousMatchedGuiProvenance": "dev/release-materials/provenance/ide-updater-20261103.json",
     "openglStartupCompatibility": {
@@ -131,19 +110,19 @@
       "sha256": "cb3dd03ba90452fb9a670371ed7447763a0188fdc61b57adf11d5d89851ce13b",
       "bytes": 2693
     },
-    "buildScope": "Shared modeless find/replace, automatic editor target tracking, all-open-document native find scope, explicit current-document replacement, responsive footer and overlay font lifetime. Full O2 GUI cohort and targeted private corrections; existing qualified XGE and language server retained; unrelated WIP excluded.",
+    "buildScope": "Full 108-TU matched GUI rebuild for XGE font/proxy/rendering ABI; current compiler/LS preserved.",
     "currentEngine": {
       "sourceMaterials": {
-        "path": "dev/release-materials/sources/ide-native-find-20261108/manifest.json",
-        "sha256": "e4fbd371609a1efeccade9299f6393c165efce800b1dc5d3187a0267b73a7aeb",
-        "bytes": 4224
+        "path": "dev/release-materials/sources/xge-sync-20261108/manifest.json",
+        "sha256": "d634beadbb49cd647b61a1d53581bf3cee7b705a9b606524731928e017c20912",
+        "bytes": 246573
       },
-      "sourceCommit": "e33e3d3050f00b3137d1cc20daad232574dbf739",
-      "publicAbiFingerprint": "0x85b8ac8ac68489ba",
+      "sourceCommit": "45797364a4060c04d08b3328e263a798c98715c1",
+      "publicAbiFingerprint": "0x9de44f119936afd7",
       "profile": "ide",
       "xrtMode": "embedded",
       "runtime": "release/win_x64/xge.dll",
-      "mainlineCommit": "ed2048fb08bb2e559e0ce4b5c5bdabf4a80ce6bb"
+      "mainlineCommit": "45797364a4060c04d08b3328e263a798c98715c1"
     },
     "previousBuildProvenanceBeforeAbout": "dev/release-materials/provenance/xge-ide-update-20261106/publication-receipt.json",
     "aboutWindow": {
@@ -158,8 +137,8 @@
     "updateStateDirectory": "ide/build/update-runtime/<platform>-<install-path-sha256>",
     "previousBuildProvenanceBeforeDialogBackdrop": "dev/release-materials/provenance/ide-release-maintenance-20261106.json",
     "dialogBackdrop": "viewport-sized absolute overlay; dialog above backdrop; child/IME-aware Escape",
-    "previousBuildProvenance": "dev/release-materials/provenance/ide-dock-tabs-20261107/receipt.json",
-    "sourceRevision": "7b96d450c",
+    "previousBuildProvenance": "dev/release-materials/provenance/ide-find-follow-20261108/publication-receipt.json",
+    "sourceRevision": "041700426749982147ebb26b3374c862a9e296d7",
     "previousSourceIdentity": {
       "dockTabNavigation": {
         "path": "dev/release-materials/sources/ide-dock-tabs-20261107/manifest.json",
@@ -191,18 +170,23 @@
   },
   "catalog": {
     "status": "passed",
-    "entries": 17598,
-    "documents": 145,
+    "entries": 19970,
+    "documents": 147,
     "publicApi": {
       "functions": 823,
       "constants": 202,
       "types": 406,
       "members": 3830
     },
-    "availableSources": 593,
-    "catalogSha256": "6079cecd10c3f2713622a2af7c030834524f3f502f804806e3f6210a34e4a1ae",
+    "availableSources": 591,
+    "catalogSha256": "9cf36e1eac5500fa0f0aa01d1bf7e24d9249e7013c687f83ecd41824d2f03196",
     "sourceRevision": "ed78373dded9bde21db313799c1db8d5111631a6",
-    "currentDeliveryAction": "Repaired 17 captured extension declaration headers/names using the original pinned exporter; source payloads and compiler binding retained; no current workspace catalog freshness claim."
+    "currentDeliveryAction": "Regenerated extension declarations from current formal parser; builtin/stdlib snapshot retained. XGE/XUI members, C records and fixed arrays covered; other 5660 extension APIs preserved.",
+    "extensionRefreshReceipt": {
+      "path": "dev/release-materials/provenance/xge-sync-20261108/receipt.json",
+      "sha256": "014c04e69019b554d332d3c30fdfe5c32e3ee227a3c7358c54aee4c1950449a9",
+      "bytes": 144848
+    }
   },
   "publicExtensionModules": 207,
   "dataFiles": [
@@ -3177,9 +3161,9 @@
       "sha256": "4c2447f3d201d59c8cf77a96a9fc4ed99711d111bcda6280b5031431ef74d57f"
     },
     {
-      "bytes": 17478856,
+      "bytes": 18434061,
       "path": "release/win_x64/data/commands.json",
-      "sha256": "6079cecd10c3f2713622a2af7c030834524f3f502f804806e3f6210a34e4a1ae"
+      "sha256": "9cf36e1eac5500fa0f0aa01d1bf7e24d9249e7013c687f83ecd41824d2f03196"
     },
     {
       "bytes": 9210776,
@@ -3261,10 +3245,11 @@
       "previousSha256": "72ecb9983e40475a04f29f47d40f5ac20143d2f03c646a8c3b487d61bdd0e7a1"
     },
     {
-      "sha256": "35863315f555c51c0ef7ac563147caebf2f6640d7f3e9eaecf2daef5cff8f40a",
+      "sha256": "f8d38ffdea249a0ae211103c0d8e300aa71f3a39da8bf1b81c01109deaa43f03",
       "bytes": 1897286,
       "path": "release/win_x64/xlang_ide.exe",
-      "origin": "ide-minimap-setting-20261107"
+      "origin": "xge-sync-20261108",
+      "previousSha256": "35863315f555c51c0ef7ac563147caebf2f6640d7f3e9eaecf2daef5cff8f40a"
     },
     {
       "sha256": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
@@ -3273,10 +3258,11 @@
       "origin": "matched-xge3-xui3-local-delivery-20261105"
     },
     {
-      "sha256": "acdc0e86fd27d30ca0d96b578e832315766a39b9f1af5a442babb7a8902c1d53",
-      "bytes": 11155513,
+      "sha256": "c2d9a9bc1ccfd607f15580d8ff7c56a5c830008e0ae0223fe3680371b7739491",
+      "bytes": 11170056,
       "path": "release/win_x64/xge.dll",
-      "origin": "ide-dock-tabs-20261107"
+      "origin": "xge-sync-20261108",
+      "previousSha256": "acdc0e86fd27d30ca0d96b578e832315766a39b9f1af5a442babb7a8902c1d53"
     },
     {
       "path": "release/win_x64/update.exe",
@@ -3292,15 +3278,15 @@
     },
     {
       "path": "release/win_x64/extlibs/_xge_native/native/xge3_host.dll",
-      "sha256": "0229cab17ea902fe44be5758d0c0af90f930387a02efa3f8afd537d811c70d69",
-      "bytes": 9112806,
-      "origin": "xui-gallery-20261106"
+      "sha256": "4049265f017789b0b4a0436b14f11c9f61d086d12482561f8bb3f19d9868d0db",
+      "bytes": 9147829,
+      "origin": "xge-sync-20261108"
     },
     {
       "path": "release/linux_x64/extlibs/_xge_native/native/libxge3_host.so",
-      "sha256": "cf7cb31082edd8b2c29fc465e1c2328f74d5437c42266a8b018eb13e301c7637",
-      "bytes": 9906896,
-      "origin": "xui-gallery-20261106"
+      "sha256": "4ec8fafa37e0a3e46e87d1a21ab7b953e9991798fbb390b81542a0fad00be88d",
+      "bytes": 9944016,
+      "origin": "xge-sync-20261108"
     },
     {
       "path": "release/win_x64/data/version.json",
@@ -3436,7 +3422,7 @@
     "historicalReportPathsPreserved": true,
     "mutableDataPathsUpdated": 600
   },
-  "currentScope": "Specified example failures, bounded native C header descriptors, compiler rebuild and installed regression checks; no whole-project certification.",
+  "currentScope": "Accepted XGE worktree, matched Windows GUI SDK, Windows/Linux dynamic and static xge/xui packages and paired command-source catalog. Unrelated workspace changes excluded.",
   "localPublication": {
     "path": "dev/release-materials/provenance/xge3-local-publication-20261105/receipt.json",
     "sha256": "d55e8e816fddbfc2d2283c9ba45b9b28ac5c5e07e0da183fbab3088f118fbad1",
@@ -3507,9 +3493,18 @@
     "bytes": 2693
   },
   "xgeIdeUpdate": {
-    "path": "dev/release-materials/provenance/xge-ide-update-20261106/publication-receipt.json",
-    "sha256": "5846a963f9bfde550bd561fd44fd36edeb668e292caf669399e799f66d6ad976",
-    "bytes": 4379
+    "receipt": {
+      "path": "dev/release-materials/provenance/xge-sync-20261108/receipt.json",
+      "sha256": "014c04e69019b554d332d3c30fdfe5c32e3ee227a3c7358c54aee4c1950449a9",
+      "bytes": 144848
+    },
+    "sourceMaterials": {
+      "path": "dev/release-materials/sources/xge-sync-20261108/manifest.json",
+      "sha256": "d634beadbb49cd647b61a1d53581bf3cee7b705a9b606524731928e017c20912",
+      "bytes": 246573
+    },
+    "mainlineCommit": "45797364a4060c04d08b3328e263a798c98715c1",
+    "includesApprovedWorktree": true
   },
   "nativeStaticIntegration": {
     "status": "windows-production-installed-pe-qualified",
@@ -3779,17 +3774,25 @@
   },
   "xgeExtensionRefresh": {
     "receipt": {
-      "path": "dev/release-materials/provenance/xge-extension-sync-20261107/receipt.json",
-      "sha256": "ff1598d647594549c7b02e20eed992baa9a8c47fde97854b42dba30996fe76a1",
-      "bytes": 19269
+      "path": "dev/release-materials/provenance/xge-sync-20261108/receipt.json",
+      "sha256": "014c04e69019b554d332d3c30fdfe5c32e3ee227a3c7358c54aee4c1950449a9",
+      "bytes": 144848
     },
     "sourceMaterials": {
-      "path": "dev/release-materials/sources/xge-extension-sync-20261107/manifest.json",
-      "sha256": "7d1c09d5570a9e705ddb6a91e5d4821030a19e480f7a9b5e105d216362dcb940",
-      "bytes": 3083
+      "path": "dev/release-materials/sources/xge-sync-20261108/manifest.json",
+      "sha256": "d634beadbb49cd647b61a1d53581bf3cee7b705a9b606524731928e017c20912",
+      "bytes": 246573
     },
-    "xgeRevision": "1312f03546d8def9e4ddf169881f7ba44a1438e2",
-    "publication": "local-only"
+    "xgeRevision": "45797364a4060c04d08b3328e263a798c98715c1",
+    "publication": "local-only",
+    "platforms": [
+      "win_x64",
+      "linux_x64"
+    ],
+    "linkages": [
+      "dynamic",
+      "static"
+    ]
   },
   "ideDockWindowsAndMinimap": {
     "receipt": {

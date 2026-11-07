@@ -1,0 +1,11 @@
+--- a/src/xge/input/xge_data_object.c
++++ b/src/xge/input/xge_data_object.c
+@@ -54,7 +54,7 @@
+ #define DO_FN(name) __xgeDataOwned##name
+ #define DO_PUBLIC(name) xgeDataObject##name
+ #define DO_STATUS(name) XGE_##name
+-#define DO_API
++#define DO_API 
+ #define DO_ROOT(object) __xgeDataObjectRoot(object)
+ #define DO_HANDLE xge_data_object
+ #define DO_OBJECT_TYPE __xgeDataObjectType

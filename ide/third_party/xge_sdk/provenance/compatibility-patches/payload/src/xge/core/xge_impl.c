@@ -2338,6 +2338,7 @@ static void __xgeWin32ClipboardOwnerRelease(void);
 #endif
 #if XGE_ENABLE_TEXT
 #include "xge_font.c"
+#include "xge_system_font.c"
 #endif
 #include "xge_texture.c"
 #if XGE_ENABLE_2D

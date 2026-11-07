@@ -124,7 +124,14 @@ def stage(args):
             raise ValueError('Compatibility patch is outside the actual source closure')
         for name in sorted(selected):
             path = source / name
-            original = archive.read(name)
+            if name in archive.namelist():
+                original = archive.read(name)
+                if name in patches and patches[name].get('upstreamExists') is False:
+                    raise ValueError('Added source already exists in archive: ' + name)
+            else:
+                if name not in patches or patches[name].get('upstreamExists') is not False:
+                    raise ValueError('Unrecorded source addition: ' + name)
+                original = b''
             digest = hashlib.sha256(original).hexdigest()
             actual = sha(path)
             if name in patches:
@@ -181,7 +188,8 @@ def stage(args):
                       sourceArchiveSha256=sha(args.archive), wholeSdkWerror=False,
                       compiler=report['compiler'][2].splitlines()[0], upstreamBuild=report,
                       compatibilityPatches=patch_info,
-                      initialCleanBuild=read(build / 'build-report-upstream-clean.json') if patches else None,
+                      initialCleanBuild=(read(build / 'build-report-upstream-clean.json')
+                                         if patches and (build / 'build-report-upstream-clean.json').is_file() else None),
                       outputs=[dict(path=str(build / n), sha256=sha(build / n))
                                for n in ('xge.dll', 'xge.lib', 'xge_build_config.h')])
     write(sdk / 'provenance/source-build-report.json', build_info)

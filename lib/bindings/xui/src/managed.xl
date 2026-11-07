@@ -1240,6 +1240,8 @@ export extern "xui_context_t*" class Context @header("xge3_runtime.h") @lifetime
  extern "xuiScrollFrameCreate" @no_raise @c_null(2,"const xui_scroll_frame_desc_t*") @c_result("owner_view",0) @factory(1,0,rollbackScrollFrame) func scrollFrame() as ScrollFrame
 
  extern "xuiWebViewCreate" @no_raise @c_pack(2,"xui_webview_desc_t",0,1) @c_pack_size(2,"iSize","uint32_t") @c_pack_field(2,"sUserDataFolder",0,"c_string") @c_result("owner_view",0) @factory(1,0,rollbackWebView) func webView(string? userDataFolder=null) as WebView
+ extern "xuiEnsureDefaultFont" @no_raise @c_result("status",0) func ensureDefaultFont()
+
 end
 
 export extern "xui_widget_t*" class Widget @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t")
@@ -5993,6 +5995,8 @@ extern "xuiWidgetDestroyChecked" @no_raise @c_result("status",0) func rollbackWo
 extern "xuiWidgetDestroyChecked" @no_raise @c_result("status",0) func rollbackWebView(WebView value)
 
 export extern "xuiCreateOwned" @no_raise @c_result("owned_view") @factory(1,0,rollback) func create(Proxy proxy) as Context
+export extern "xuiCreateOwnedEx" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(2,0,rollback) @c_pack(1,"xui_context_desc_t",1,2) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"iSystemFontPolicy",1,"value") @c_pack_field(1,"fSystemFontSize",2,"value") func create(Proxy proxy,c_int systemFontPolicy,c_float systemFontSize=0) as Context
+export extern "xuiContextDescDefault" @header("xge3_runtime.h") @no_raise @c_output(0) func contextDescDefault() as ContextDesc
 
 export extern "xuiSetDefaultLanguage" @header("xge3_runtime.h") @no_raise func setDefaultLanguage(c_int iLanguageId) as c_int
 

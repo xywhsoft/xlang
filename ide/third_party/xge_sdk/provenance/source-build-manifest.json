@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "root": "F:\\xlang-validation\\ide-native-find-20261108\\xge",
-  "sourceCommit": "e33e3d3050f00b3137d1cc20daad232574dbf739",
-  "sourceFileCount": 790,
+  "root": "F:\\xlang-validation\\xge-sync-20261108-r2\\source",
+  "sourceCommit": "ed2048fb08bb2e559e0ce4b5c5bdabf4a80ce6bb",
+  "sourceFileCount": 791,
   "files": [
     {
       "path": "build.bat",
@@ -2491,8 +2491,8 @@
     },
     {
       "path": "extlibs/xrt/xrt.h",
-      "sha256": "4c02cd11accbd06c4e5de725b1f19bacbf44a92e4791a3819ba45540bc6e4f5d",
-      "size": 9113263
+      "sha256": "41bc24579f4b3207b0434755ca23dd06481af90c05f71e9b365848cf9a7c12d1",
+      "size": 9119295
     },
     {
       "path": "extlibs/xrt/xrt_config.h",
@@ -2516,8 +2516,8 @@
     },
     {
       "path": "include/xge.h",
-      "sha256": "b7b315ddfca9add6074a1e414f1da2188e4a0ece037e8ce3927c9ffa8e7f5d79",
-      "size": 232153
+      "sha256": "a6fa53373b0671f1342500c17d4f66ef86a21169014f665ebf03714418aadf14",
+      "size": 238006
     },
     {
       "path": "include/xge_config.h",
@@ -2536,13 +2536,13 @@
     },
     {
       "path": "include/xui.h",
-      "sha256": "f4c30a59203d3ce61d4995ffff296f1413c3ba322ea6d362f198a8c0317cd168",
-      "size": 693487
+      "sha256": "7277659690681a8221370b9ce4b50ec7932ee1d45f597df9c6d285544b2b3a90",
+      "size": 709988
     },
     {
       "path": "include/xui_config.h",
-      "sha256": "01448ede1da13af8e8ef81ef7574f15edc88f5fa8c2312d9d8a5ede91e17f193",
-      "size": 22798
+      "sha256": "735eb9adf7a85f28902454478f96984f91b2b3971d00deefa28dc8df06ecbfad",
+      "size": 22964
     },
     {
       "path": "include/xui_document.h",
@@ -2646,8 +2646,8 @@
     },
     {
       "path": "src/xge/core/xge_impl.c",
-      "sha256": "f223007e204a7f9994f4b114344aa487fd373abc8c99737c922cafe1afab1402",
-      "size": 74933
+      "sha256": "07fb8b684e7d2d48cb24da2dca23b9038e998e95f7e72da15b095ea9036fbcee",
+      "size": 74963
     },
     {
       "path": "src/xge/core/xge_input_actions.c",
@@ -2666,8 +2666,8 @@
     },
     {
       "path": "src/xge/input/xge_data_object.c",
-      "sha256": "e9a321adb713b29402c8edef213c0e76b9e99fb8faa9998bb2f897321e054c28",
-      "size": 23551
+      "sha256": "be4c725faff9d5c2c5b2d533bb3d06ed0b02e2587f5e297d85013a820927586a",
+      "size": 23552
     },
     {
       "path": "src/xge/input/xge_drag_drop.c",
@@ -2833,6 +2833,11 @@
       "path": "src/xge/text/xge_ime_win32_tsf.c",
       "sha256": "be8e54b425c77580522f6e67359a6e04653cdae9e59771717ba1a4010a484626",
       "size": 86997
+    },
+    {
+      "path": "src/xge/text/xge_system_font.c",
+      "sha256": "12e0c3fe224b5f5bd6a0f88d578c7415c25f74572e359659156c531195e358cc",
+      "size": 15933
     },
     {
       "path": "src/xge/text/xge_text_context.h",
@@ -3146,8 +3151,8 @@
     },
     {
       "path": "src/xui/controls/xui_file_dialog.c",
-      "sha256": "d29b0aa4fa2f01c911e46a28829bbd92a1d8e71cd7d7921df862a3dbf524db2d",
-      "size": 148739
+      "sha256": "dfa0e95839444473dee7a75b2a69013e35ddcd9ad2ab7e4a3c3ca4d2b368ee04",
+      "size": 151414
     },
     {
       "path": "src/xui/controls/xui_find.c",
@@ -3181,8 +3186,8 @@
     },
     {
       "path": "src/xui/controls/xui_menu.c",
-      "sha256": "b88468e62b7752de472781a217a4588d65646572f25eab393c199e7147cfb7d9",
-      "size": 97298
+      "sha256": "9683775b84e691c0058f6d390cc45c9e333cd54a104ff11894d455a03c5de864",
+      "size": 97326
     },
     {
       "path": "src/xui/controls/xui_menubar.c",
@@ -3196,8 +3201,8 @@
     },
     {
       "path": "src/xui/controls/xui_msgbox.c",
-      "sha256": "5b83e891c4f93120cee51e314cfed915a9a89cb6217c8097ef9ce63c6fb5719d",
-      "size": 92512
+      "sha256": "6e8b51e10badb4b302e6cf1045207855095079d5f548cd69f44e9adcaaa46464",
+      "size": 94926
     },
     {
       "path": "src/xui/controls/xui_msgtip.c",
@@ -3366,8 +3371,8 @@
     },
     {
       "path": "src/xui/controls/xui_window.c",
-      "sha256": "263a6c2fa4697b076af0edd24074ea94e8d580e772a6941511ae0ef7a093a924",
-      "size": 107874
+      "sha256": "e2565989b0310e347557f59b9778f114327294f7e10d8ebcc3c9d15ce3d84f5d",
+      "size": 108815
     },
     {
       "path": "src/xui/controls/xui_window_frame.c",
@@ -3406,8 +3411,8 @@
     },
     {
       "path": "src/xui/core/xui_core.c",
-      "sha256": "81574635b9c27582521e82d01226561a5cb6e14c1c8319e89099bccd19926e60",
-      "size": 150276
+      "sha256": "fcf6ec3137ec6fe7722f434a8fdc1a0c21e918c8aecec5e1bb158cb61230ebe7",
+      "size": 156197
     },
     {
       "path": "src/xui/core/xui_data_object.c",
@@ -3446,13 +3451,13 @@
     },
     {
       "path": "src/xui/core/xui_internal.h",
-      "sha256": "2594f163e9f46d9dd52a7dd67e8e83411a73eccb4884f0a539dc1980e0a0cc43",
-      "size": 59301
+      "sha256": "3864af59ebaa9d2c5e773190831335955fc57fa096bc1df521825c6395567709",
+      "size": 60298
     },
     {
       "path": "src/xui/core/xui_layout.c",
-      "sha256": "5b249723ba4b03ea045fdb26c8e05179e9f9704851a2c809bbb01d24f5abb69f",
-      "size": 26918
+      "sha256": "83ee1b5b68c381f80b1a9a71cca0a4f3ac6807ad45a74c66e155a7b8209ef8eb",
+      "size": 27170
     },
     {
       "path": "src/xui/core/xui_owned_manager.c",
@@ -3466,8 +3471,8 @@
     },
     {
       "path": "src/xui/core/xui_owned_resource_slots.c",
-      "sha256": "5c2c300e432d924c10a66cffa91ad7a619287895d7d6b707982f46f700626572",
-      "size": 14573
+      "sha256": "beeb92ae8b7cd719297f83868d6454ce21fdd3f566368f2fad988efd891287ba",
+      "size": 14670
     },
     {
       "path": "src/xui/core/xui_pointer_press_internal.h",
@@ -3486,8 +3491,8 @@
     },
     {
       "path": "src/xui/core/xui_proxy_xge.c",
-      "sha256": "b0443b56f558ae5eb79fba7d04a6003008e111c620bfac1578e8aa190fba5cfd",
-      "size": 123857
+      "sha256": "ff980ed8bdaab15940de653fbb3c76a3eda03d3fa5863dffd1373b32d17cfb13",
+      "size": 124763
     },
     {
       "path": "src/xui/core/xui_proxy_xge_shape_paint.inl",
@@ -3576,8 +3581,8 @@
     },
     {
       "path": "src/xui/core/xui_widget.c",
-      "sha256": "bdf7614b246ac6b6f367e98ea5414d1c622f601dd88178c1dca74e97e9bf8a26",
-      "size": 294659
+      "sha256": "b5ba15633c03615f95e614b3b80795921cfc053c0cab99d8f4910a830253e6f9",
+      "size": 324771
     },
     {
       "path": "src/xui/core/xui_xrt_port.h",
@@ -3936,8 +3941,8 @@
     },
     {
       "path": "tools/build/build.py",
-      "sha256": "fedfcac8068f7e0106bdc924b3877dbe04c8ee39b2cfaa5a4b302c56cd152ad6",
-      "size": 16887
+      "sha256": "754840e4a884f5d24e73cfa1e2b16a111ecd906d3354a207dd77b9a00dfe41dd",
+      "size": 17200
     },
     {
       "path": "tools/build/build_dll.bat",
@@ -3958,31 +3963,121 @@
   "fullSourceTreeNotIncludedInConsumerSdk": true,
   "compatibilityPatches": {
     "format": "xlang-ide-xge-source-patches-1",
-    "baseCommit": "e33e3d3050f00b3137d1cc20daad232574dbf739",
-    "purpose": "Preserve the accepted IDE GL3.3/WGL checked startup while syncing tab navigation and scoped passes.",
+    "baseCommit": "ed2048fb08bb2e559e0ce4b5c5bdabf4a80ce6bb",
+    "purpose": "User-approved upstream worktree plus qualified GL startup, native part cleanup and canonical sole-host XRT.",
     "files": [
       {
-        "path": "src/xge/core/xge_impl.c",
-        "upstreamSha256": "7741c6e8ebc355991b06409f9d3e1f6576c1b451d38ad4455df609879f5f1dae",
-        "sha256": "f223007e204a7f9994f4b114344aa487fd373abc8c99737c922cafe1afab1402",
-        "payload": "payload/src/xge/core/xge_impl.c",
-        "diff": "diff/src/xge/core/xge_impl.c.diff"
+        "path": "extlibs/sokol/sokol_app.h",
+        "upstreamExists": true,
+        "upstreamSha256": "42228272007c06ae5e7b256d536fb28a9bfd5ce4d16b94f74acf74fd7a948ee7",
+        "sha256": "7d725c8f3b5eb52a9dba4f5ba1c9d6cbc603a2f5c5dc712a8f0fa3b4dd5378e2",
+        "payload": "payload/extlibs/sokol/sokol_app.h",
+        "diff": "diff/extlibs/sokol/sokol_app.h.diff"
+      },
+      {
+        "path": "extlibs/xrt/xrt.h",
+        "upstreamExists": true,
+        "upstreamSha256": "4c02cd11accbd06c4e5de725b1f19bacbf44a92e4791a3819ba45540bc6e4f5d",
+        "sha256": "41bc24579f4b3207b0434755ca23dd06481af90c05f71e9b365848cf9a7c12d1",
+        "payload": "payload/extlibs/xrt/xrt.h",
+        "diff": "diff/extlibs/xrt/xrt.h.diff"
+      },
+      {
+        "path": "include/xge.h",
+        "upstreamExists": true,
+        "upstreamSha256": "b7b315ddfca9add6074a1e414f1da2188e4a0ece037e8ce3927c9ffa8e7f5d79",
+        "sha256": "a6fa53373b0671f1342500c17d4f66ef86a21169014f665ebf03714418aadf14",
+        "payload": "payload/include/xge.h",
+        "diff": "diff/include/xge.h.diff"
+      },
+      {
+        "path": "include/xui.h",
+        "upstreamExists": true,
+        "upstreamSha256": "45f9edce5711407e2cb9a7f272685ec044cc496f2b039174b361447dbdc64087",
+        "sha256": "7277659690681a8221370b9ce4b50ec7932ee1d45f597df9c6d285544b2b3a90",
+        "payload": "payload/include/xui.h",
+        "diff": "diff/include/xui.h.diff"
       },
       {
         "path": "src/xge/core/xge_core.c",
+        "upstreamExists": true,
         "upstreamSha256": "7d80172a6bcff23cff1d055b83509a7fcb5e6af160767ac420816638823763d0",
         "sha256": "b87d72adc887352629ccba72bbfb642276fc68e64d283eb77391c0cc23acdf0b",
         "payload": "payload/src/xge/core/xge_core.c",
         "diff": "diff/src/xge/core/xge_core.c.diff"
       },
       {
-        "path": "extlibs/sokol/sokol_app.h",
-        "upstreamSha256": "42228272007c06ae5e7b256d536fb28a9bfd5ce4d16b94f74acf74fd7a948ee7",
-        "sha256": "7d725c8f3b5eb52a9dba4f5ba1c9d6cbc603a2f5c5dc712a8f0fa3b4dd5378e2",
-        "payload": "payload/extlibs/sokol/sokol_app.h",
-        "diff": "diff/extlibs/sokol/sokol_app.h.diff"
+        "path": "src/xge/core/xge_impl.c",
+        "upstreamExists": true,
+        "upstreamSha256": "7741c6e8ebc355991b06409f9d3e1f6576c1b451d38ad4455df609879f5f1dae",
+        "sha256": "07fb8b684e7d2d48cb24da2dca23b9038e998e95f7e72da15b095ea9036fbcee",
+        "payload": "payload/src/xge/core/xge_impl.c",
+        "diff": "diff/src/xge/core/xge_impl.c.diff"
+      },
+      {
+        "path": "src/xge/input/xge_data_object.c",
+        "upstreamExists": true,
+        "upstreamSha256": "e9a321adb713b29402c8edef213c0e76b9e99fb8faa9998bb2f897321e054c28",
+        "sha256": "be4c725faff9d5c2c5b2d533bb3d06ed0b02e2587f5e297d85013a820927586a",
+        "payload": "payload/src/xge/input/xge_data_object.c",
+        "diff": "diff/src/xge/input/xge_data_object.c.diff"
+      },
+      {
+        "path": "src/xge/text/xge_system_font.c",
+        "upstreamExists": false,
+        "upstreamSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sha256": "12e0c3fe224b5f5bd6a0f88d578c7415c25f74572e359659156c531195e358cc",
+        "payload": "payload/src/xge/text/xge_system_font.c",
+        "diff": "diff/src/xge/text/xge_system_font.c.diff"
+      },
+      {
+        "path": "src/xui/core/xui_core.c",
+        "upstreamExists": true,
+        "upstreamSha256": "155f06359dbd67baa01f15a1037265c470803ee325585a9eef7b08b0b7b77f79",
+        "sha256": "fcf6ec3137ec6fe7722f434a8fdc1a0c21e918c8aecec5e1bb158cb61230ebe7",
+        "payload": "payload/src/xui/core/xui_core.c",
+        "diff": "diff/src/xui/core/xui_core.c.diff"
+      },
+      {
+        "path": "src/xui/core/xui_internal.h",
+        "upstreamExists": true,
+        "upstreamSha256": "893d1126cd2d091748fa03c768fb02fb70f15ccb96b6bb0303f9db759ee27981",
+        "sha256": "3864af59ebaa9d2c5e773190831335955fc57fa096bc1df521825c6395567709",
+        "payload": "payload/src/xui/core/xui_internal.h",
+        "diff": "diff/src/xui/core/xui_internal.h.diff"
+      },
+      {
+        "path": "src/xui/core/xui_owned_resource_slots.c",
+        "upstreamExists": true,
+        "upstreamSha256": "5c2c300e432d924c10a66cffa91ad7a619287895d7d6b707982f46f700626572",
+        "sha256": "beeb92ae8b7cd719297f83868d6454ce21fdd3f566368f2fad988efd891287ba",
+        "payload": "payload/src/xui/core/xui_owned_resource_slots.c",
+        "diff": "diff/src/xui/core/xui_owned_resource_slots.c.diff"
+      },
+      {
+        "path": "src/xui/core/xui_proxy_xge.c",
+        "upstreamExists": true,
+        "upstreamSha256": "b0443b56f558ae5eb79fba7d04a6003008e111c620bfac1578e8aa190fba5cfd",
+        "sha256": "ff980ed8bdaab15940de653fbb3c76a3eda03d3fa5863dffd1373b32d17cfb13",
+        "payload": "payload/src/xui/core/xui_proxy_xge.c",
+        "diff": "diff/src/xui/core/xui_proxy_xge.c.diff"
+      },
+      {
+        "path": "src/xui/core/xui_widget.c",
+        "upstreamExists": true,
+        "upstreamSha256": "2bf8f47de26b18bf67e3dacf7d3505bb233fbb49193ae2407e13b84bfe28ab3c",
+        "sha256": "b5ba15633c03615f95e614b3b80795921cfc053c0cab99d8f4910a830253e6f9",
+        "payload": "payload/src/xui/core/xui_widget.c",
+        "diff": "diff/src/xui/core/xui_widget.c.diff"
+      },
+      {
+        "path": "tools/build/build.py",
+        "upstreamExists": true,
+        "upstreamSha256": "fedfcac8068f7e0106bdc924b3877dbe04c8ee39b2cfaa5a4b302c56cd152ad6",
+        "sha256": "754840e4a884f5d24e73cfa1e2b16a111ecd906d3354a207dd77b9a00dfe41dd",
+        "payload": "payload/tools/build/build.py",
+        "diff": "diff/tools/build/build.py.diff"
       }
-    ],
-    "diffNormalization": "Review diffs normalize CRLF/LF; payload files and SHA256 records preserve exact compiled source bytes."
+    ]
   }
 }

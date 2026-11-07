@@ -60,6 +60,7 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3FontPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3SurfacePolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3DrawPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3PathPolicyGet(void);
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeFindScopePolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3TextShapePolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xge3FontPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xge3TexturePolicyGet(void);
@@ -76,6 +77,7 @@ const XL6_ForeignViewDescriptorV1* xl6Xge3AudioClipPolicyGet(void);
  * importing a data symbol through a function-only registry is not portable. */
 #define xl6Xui3ContextPolicy (*xl6Xui3ContextPolicyGet())
 #define xl6Xui3WidgetPolicy (*xl6Xui3WidgetPolicyGet())
+#define xl6Xui3CodeFindScopePolicy (*xl6Xui3CodeFindScopePolicyGet())
 #define xl6Xui3MsgBoxPolicy (*xl6Xui3MsgBoxPolicyGet())
 #define xl6Xui3ToastPolicy (*xl6Xui3ToastPolicyGet())
 #define xl6Xui3FileDialogPolicy (*xl6Xui3FileDialogPolicyGet())

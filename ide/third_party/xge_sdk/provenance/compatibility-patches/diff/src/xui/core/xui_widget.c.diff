@@ -1,0 +1,66 @@
+--- a/src/xui/core/xui_widget.c
++++ b/src/xui/core/xui_widget.c
+@@ -4300,7 +4300,7 @@
+ 	pContext->pDeferredDestroyHead = pWidget;
+ }
+ 
+-static void __xuiWidgetDestroyNow(xui_widget pWidget)
++static void __xuiWidgetDestroyNow(xui_widget pWidget, bool bVisualDetached)
+ {
+ 	xui_widget pChild;
+ 
+@@ -4313,13 +4313,21 @@
+     if(nativeOwner && nativeOwner->bDestroyPending &&
+        (nativeOwner->iDestroyVisitEpoch&XUI_DESTROY_MEMBER) &&
+        !(nativeOwner->iDestroyVisitEpoch&XUI_DESTROY_EXECUTING)){
+-        __xuiWidgetDestroyNow(nativeOwner);return;
++        __xuiWidgetDestroyNow(nativeOwner, false);return;
+     }
+     pWidget->iDestroyVisitEpoch|=XUI_DESTROY_EXECUTING;
+ 	if ( !pWidget->bDestroyPending ) {
+ 		__xuiWidgetMarkDestroyPending(pWidget);
+ 		__xuiWidgetInvalidateLifetimes(pWidget);
+ 	}
++	/* Native-owned parts can live outside their owner's visual subtree. The
++	 * owner's logical detach cannot clear interaction records for those parts.
++	 * Retire each part's context references while its visual ancestry is still
++	 * intact, before unlinking or freeing anything. Pending widgets do not
++	 * dispatch new cancellation callbacks from ContextDetachWidget. Visual
++	 * children share their parent's sweep; only a separate native-owned visual
++	 * subtree needs another sweep. */
++	if (!bVisualDetached) xuiInternalContextDetachWidget(pWidget->pContext, pWidget);
+ 	/* Disarm the exact owner slot before parent TypeData can be released. */
+     __xuiWidgetClearPartSlot(pWidget);
+     __xuiWidgetUnlinkPart(pWidget);
+@@ -4367,11 +4375,11 @@
+ 		pChild->pParent = NULL;
+ 		pChild->pPrevSibling = NULL;
+ 		pChild->pNextSibling = NULL;
+-		__xuiWidgetDestroyNow(pChild);
++		__xuiWidgetDestroyNow(pChild, true);
+ 	}
+     /* All native-owned parts are physically retired while their owner's data
+      * and callback targets are still alive, even outside its visual subtree. */
+-    while(pWidget->pFirstOwnedPart)__xuiWidgetDestroyNow(pWidget->pFirstOwnedPart);
++    while(pWidget->pFirstOwnedPart)__xuiWidgetDestroyNow(pWidget->pFirstOwnedPart, false);
+ 	__xuiWidgetEndActiveUpdate(pWidget);
+     if(pWidget->pInitializedType)__xuiWidgetTypeDestroyChain(pWidget,pWidget->pInitializedType);
+ 	/* Empty the physical slots before arbitrary consuming cleanup reenters. */
+@@ -4453,7 +4461,7 @@
+                 else link=&pending->pDeferredDestroyNext;
+             }
+         }
+-        __xuiWidgetDestroyNow(widget);progressed=true;
++        __xuiWidgetDestroyNow(widget, false);progressed=true;
+     }
+     --context->iDestroyFlushDepth;return progressed;
+ }
+@@ -4467,7 +4475,7 @@
+     if(pWidget->pInternalOwner && pWidget->pInternalOwner!=pAuthority)return XUI_ERROR_INVALID_STATE;
+ 	pContext = pWidget->pContext;
+ 	if ( !xuiInternalContextIsValid(pContext) ) {
+-		__xuiWidgetDestroyNow(pWidget);
++		__xuiWidgetDestroyNow(pWidget, false);
+ 		return XUI_OK;
+ 	}
+ 	xuiInternalOperationEnter(pContext);

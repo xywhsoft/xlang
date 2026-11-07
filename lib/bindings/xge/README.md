@@ -44,3 +44,16 @@ uses `xgeTextDraw`, and `drawTexture` packs one stack draw descriptor for `xgeDr
 `Sound` shares one native sound record through a checked owned view; its policy
 frees the native sound and its outer record once, before engine shutdown.
 `examples/games/` contains nine bounded, static-AOT game examples.
+
+## System fonts
+
+`loadSystemFont(role=..., size=..., weight=..., slant=..., language=null)`
+loads the native platform font as an owned `Font`. Roles are `XGE_SYSTEM_FONT_UI`,
+`XGE_SYSTEM_FONT_DOCUMENT` and `XGE_SYSTEM_FONT_MONOSPACE`; size 0 requests the
+platform default. Reserved flags remain zero. Loading resolves a system font
+and creates a native font resource; it is not a per-frame operation.
+See `examples/system_font.xl`.
+
+`init(width,height,title,flags=0,runMode=0)` now also projects flags and run mode
+into the same stack descriptor. Manual mode initializes engine state without
+creating a native window; interactive controls require the normal `run` loop.

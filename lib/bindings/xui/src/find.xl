@@ -1,0 +1,31 @@
+// Explicit C-interop pointer identity; no ownership or dereference methods.
+export extern "xui_widget_t*" class NativeWidgetPointer @header("xge3_runtime.h") @lifetime("caller")
+ native point handle
+end
+// Independent native scope. Editors remain owned by their Context; XGE removes
+// them on native destruction and detaches them when this scope closes.
+export extern "xui_code_find_scope_t*" class CodeFindScope @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3CodeFindScopePolicy")
+ native point handle
+ extern "xuiCodeFindScopeClearEditors" @no_raise @c_result("status",0) func clearEditors()
+ extern "xuiCodeFindScopeAddEditor" @no_raise @c_result("status",0) func addEditor(CodeEdit editor)
+ extern "xuiCodeFindScopeAddEditorNamed" @no_raise @c_cstr(1) @c_result("status",0) func addEditorNamed(CodeEdit editor,string name)
+ extern "xuiCodeFindScopeSetEditorName" @no_raise @c_cstr(1) @c_result("status",0) func setEditorName(CodeEdit editor,string name)
+ extern "xuiCodeFindScopeRemoveEditor" @no_raise @c_result("status",0) func removeEditor(CodeEdit editor)
+ extern "xuiCodeFindScopeGetEditorCount" @no_raise func editorCount() as c_int
+ extern "xuiCodeFindScopeGetEditorName" @no_raise func editorName(c_int index) as string?
+ // Native identity only, never a new independently owned Widget. Use the
+ // original editor's getFindWindow() for a checked Context-owned window view.
+ extern "xuiCodeFindScopeGetEditor" @no_raise func getEditorNative(c_int index) as NativeWidgetPointer?
+ extern "xuiCodeFindScopeGetActiveEditor" @no_raise func getActiveEditorNative() as NativeWidgetPointer?
+ extern "xuiCodeFindScopeGetFindWindow" @no_raise func getFindWindowNative() as NativeWidgetPointer?
+ extern "xuiCodeFindScopeSetActiveEditor" @no_raise @c_result("status",0) func setActiveEditor(CodeEdit? editor)
+ extern "xuiCodeFindScopeFindNext" @no_raise @c_result("status",0) func findNext(c_int previous=0)
+ extern "xuiCodeFindScopeRefresh" @no_raise @c_result("status",0) func refresh()
+ extern "xuiCodeFindScopeActivateResult" @no_raise @c_result("status",0) func activateResult(c_int index)
+ extern "xuiCodeFindScopeGetResultCount" @no_raise func resultCount() as c_int
+ extern "xuiCodeFindScopeGetResultEditorName" @no_raise func resultEditorName(c_int index) as string?
+ extern "xuiCodeFindScopeFindAll" @no_raise @c_output(2,0) @c_pack(1,"xui_find_options_t",0,6) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sPattern",0,"c_string") @c_pack_field(1,"iFlags",1,"value") @c_pack_field(1,"iStartOffset",2,"value") @c_pack_field(1,"iRangeStart",3,"value") @c_pack_field(1,"iRangeEnd",4,"value") @c_pack_field(1,"iMaxResults",5,"value") func findAll(string query,c_uint flags=0,c_int start=-1,c_int rangeStart=0,c_int rangeEnd=-1,c_int maxResults=0) as c_int
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+export extern "xuiCodeFindScopeCreate" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(0,0,rollbackCodeFindScope) func createCodeFindScope() as CodeFindScope
+extern "xuiCodeFindScopeDestroy" @header("xge3_runtime.h") @no_raise func rollbackCodeFindScope(CodeFindScope scope)

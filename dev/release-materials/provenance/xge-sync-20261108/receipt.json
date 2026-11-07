@@ -1,0 +1,2914 @@
+{
+  "schema": 1,
+  "date": "2026-11-08",
+  "complete": true,
+  "passed": true,
+  "publication": "local-only",
+  "upstreamCommit": "45797364a4060c04d08b3328e263a798c98715c1",
+  "includesUserApprovedWorktree": true,
+  "sourceMaterials": {
+    "path": "dev/release-materials/sources/xge-sync-20261108/manifest.json",
+    "sha256": "d634beadbb49cd647b61a1d53581bf3cee7b705a9b606524731928e017c20912",
+    "bytes": 246573
+  },
+  "evidence": {
+    "path": "dev/release-materials/provenance/xge-sync-20261108/evidence.zip",
+    "sha256": "0fe534d6bc1a287705cd0161bcca213ac4ab12247d5a939d4c6e602c1846790f",
+    "bytes": 12829546
+  },
+  "apiDelta": {
+    "xge.h": {
+      "addedFunctions": [
+        "xgeFontLoadSystem"
+      ],
+      "removedFunctions": [],
+      "constants": {
+        "XGE_SYSTEM_FONT_UI": "0",
+        "XGE_SYSTEM_FONT_DOCUMENT": "1",
+        "XGE_SYSTEM_FONT_MONOSPACE": "2"
+      }
+    },
+    "xui.h": {
+      "addedFunctions": [
+        "xuiCodeFindScopeFindNext",
+        "xuiCodeFindScopeGetActiveEditor",
+        "xuiCodeFindScopeGetFindWindow",
+        "xuiCodeFindScopeRefresh",
+        "xuiCodeFindScopeSetActiveEditor",
+        "xuiContextDescDefault",
+        "xuiCreateEx",
+        "xuiCreateOwnedEx",
+        "xuiEnsureDefaultFont",
+        "xuiFileDialogShow",
+        "xuiMsgBoxShow"
+      ],
+      "removedFunctions": [],
+      "constants": {
+        "XUI_SYSTEM_FONT_AUTO": "0",
+        "XUI_SYSTEM_FONT_DISABLED": "1",
+        "XUI_SYSTEM_FONT_EAGER": "2",
+        "XUI_WIDGET_TYPE_PREPARE_FRAME_DEPENDENT": "0x00000008u"
+      }
+    }
+  },
+  "mapping": "Direct native calls, stack descriptor packs, direct Proxy function-pointer calls; existing checked lifetime policy. xuiCreateEx is covered by the safe proxy-owned constructor, not a new unowned Context.",
+  "nativeFixes": [
+    "Retire context interaction references for native-owned visual subtrees before physical free; visual descendants reuse the same sweep.",
+    "Reject non-finite system-font sizes; preserve failure status after successful Windows family lookup.",
+    "Add DirectWrite to the static Windows system import closure."
+  ],
+  "nativeTests": [
+    {
+      "test": "xui_system_font_policy_test",
+      "exit": 0
+    },
+    {
+      "test": "xui_incremental_render_test",
+      "exit": 0
+    },
+    {
+      "test": "xui_code_find_session_test",
+      "exit": 0
+    },
+    {
+      "test": "xge_system_font_test",
+      "exit": 0
+    }
+  ],
+  "guiTests": [
+    {
+      "test": "find_follow_view_test",
+      "passed": true,
+      "log": {
+        "path": "dev/release-materials/provenance/xge-sync-20261108/find_follow_view_test.log",
+        "sha256": "afbd224c896629f2347c13bfbbc286ff7615b3079d84a1623c436898be88d77b",
+        "bytes": 267
+      },
+      "sourceSha256": "57f31d4f99fffece30d9a5e657c991aea72a7ed901c34fe1da49b2919c8304c9"
+    },
+    {
+      "test": "find_view_test",
+      "passed": true,
+      "log": {
+        "path": "dev/release-materials/provenance/xge-sync-20261108/find_view_test.log",
+        "sha256": "0b98728c3d9fcabe76a7713630d049903ec909861730304895d358ef1a5ca068",
+        "bytes": 360
+      },
+      "sourceSha256": "59d9d4899e13920f0343ff83c2eee19c618e6e4f8b3c5ce1d83c7261da795417"
+    },
+    {
+      "test": "find_options_view_test",
+      "passed": true,
+      "log": {
+        "path": "dev/release-materials/provenance/xge-sync-20261108/find_options_view_test.log",
+        "sha256": "91e0bcbd8a92051858259a08ce7b5e32be39ccab5d9fcba67d34dc28d568a6c7",
+        "bytes": 476
+      },
+      "sourceSha256": "d63ae07741c280d841067f891cf5f7666010a516a26db60024bdadf1e685fb1f"
+    },
+    {
+      "test": "find_boundary_view_test",
+      "passed": true,
+      "log": {
+        "path": "dev/release-materials/provenance/xge-sync-20261108/find_boundary_view_test.log",
+        "sha256": "3c58490dd612271c22c1366766893a727d06d91eaacd44d9dc6700d863eff0b6",
+        "bytes": 280
+      },
+      "sourceSha256": "1247171600310faaeb37092a5e3cfa871a7e0a2ad0f5a77cc6ae3e197a01e0d7"
+    },
+    {
+      "test": "input_test",
+      "passed": true,
+      "log": {
+        "path": "dev/release-materials/provenance/xge-sync-20261108/input_test.log",
+        "sha256": "d992b451c3b31e7ddd85ed2d1da08c97c7ed3e8c1b7fb3bf5ca8fbd44164c9c0",
+        "bytes": 302
+      },
+      "sourceSha256": "5d806b950497f3574bf0143d33a046eafe2be64d1591c6f1bef177abc5de57c3"
+    },
+    {
+      "test": "font_test",
+      "passed": true,
+      "log": {
+        "path": "dev/release-materials/provenance/xge-sync-20261108/font_test.log",
+        "sha256": "f6fa94e2588ac5601141fead1aec8b3e2672c00bf7df4449bf941ea3fd4f1315",
+        "bytes": 272
+      },
+      "sourceSha256": "e9745f1c657316ee95d0fbdfd8fb5ddd96d47f5a472effe2d7ef6b7e0ba33b1e"
+    },
+    {
+      "test": "ui_font_test",
+      "passed": true,
+      "log": {
+        "path": "dev/release-materials/provenance/xge-sync-20261108/ui_font_test.log",
+        "sha256": "1a9e6907c8f5598d657a1af0efaa6fa4ccde813e08e9a595a8a68ac46ba0075f",
+        "bytes": 454
+      },
+      "sourceSha256": "df6eeb947ec845d16e34b72883da112220b8a833bec88b499ae5abee1d3f42f4"
+    },
+    {
+      "test": "reading_test",
+      "passed": true,
+      "log": {
+        "path": "dev/release-materials/provenance/xge-sync-20261108/reading_test.log",
+        "sha256": "6cb964cbb96c91c45bd4d73f94d15dbc198dfafd1df657633ecb29fe4a96ed51",
+        "bytes": 552
+      },
+      "sourceSha256": "0b9d5dcc78d65914f5a1dd43e6cf4127a4b1815de31fb3802dd30cd7467690ea"
+    },
+    {
+      "test": "actions_test",
+      "passed": true,
+      "log": {
+        "path": "dev/release-materials/provenance/xge-sync-20261108/actions_test.log",
+        "sha256": "8c3fc3a3eab5ed1bd52228bd076a0dd3ad26ad5c5d94841630b62ca336c5dc7d",
+        "bytes": 773
+      },
+      "sourceSha256": "5aa6fb73f6eb4827f328346b4733bab10c7e72e39e4c130e94bb335021e78136"
+    },
+    {
+      "test": "editor_minimap_test",
+      "passed": true,
+      "log": {
+        "path": "dev/release-materials/provenance/xge-sync-20261108/editor_minimap_test.log",
+        "sha256": "5d3a1be96f932b3187a6469ec8b2ecc494ec8752c4f1dc7eca029efe4dfd3e97",
+        "bytes": 201
+      },
+      "sourceSha256": "968a03fae69d413bbd0196261b8a51cc52123b31b4e8ef4ee444c7c664c69d69"
+    },
+    {
+      "test": "settings_menu_frame_test",
+      "passed": true,
+      "log": {
+        "path": "dev/release-materials/provenance/xge-sync-20261108/settings_menu_frame_test.log",
+        "sha256": "c9c1ccd683154d918cfbc534e511bcddc1f4418c29f2c6a3d52dfddfbca99351",
+        "bytes": 188
+      },
+      "sourceSha256": "1b3ed104a70c61cdc051a7f8ea985d23441f5ea317b8295bd030116984481f19"
+    },
+    {
+      "test": "dialog_layout_test",
+      "passed": true,
+      "log": {
+        "path": "dev/release-materials/provenance/xge-sync-20261108/dialog_layout_test.log",
+        "sha256": "2b789cfb7bf7e093e98fed903d32b919493ea928318ca9b5e47222336d16120f",
+        "bytes": 206
+      },
+      "sourceSha256": "70a0e91feb961d7ff69e40316218881d72aabbfc8a3a2859f0b096d2567312a4"
+    },
+    {
+      "test": "help_viewport_test",
+      "passed": true,
+      "log": {
+        "path": "dev/release-materials/provenance/xge-sync-20261108/help_viewport_test.log",
+        "sha256": "bc54c9a1d3a0807cebd71f2a201d38dd5f6c45798b02625fa1d622fdf3805052",
+        "bytes": 1422
+      },
+      "sourceSha256": "534439c3a6089ce84de672ec42795c5328a69fdafc386acc6b68451259ff2dde"
+    },
+    {
+      "test": "dock_tabs_view_test",
+      "passed": true,
+      "log": {
+        "path": "dev/release-materials/provenance/xge-sync-20261108/dock_tabs_view_test.log",
+        "sha256": "b741d58a6f9055f76d1131cedcd293bc3a5c7786d8247b60291f6c39a4085c74",
+        "bytes": 172
+      },
+      "sourceSha256": "b0450183e387a934f831992ec1dda0994e819e809cec2fdfdfe532205b505568"
+    },
+    {
+      "test": "settings_view_test",
+      "passed": true,
+      "log": {
+        "path": "dev/release-materials/provenance/xge-sync-20261108/settings_view_test.log",
+        "sha256": "1adcd571bc7bc94957328b66ea55a4b4dbace37be5734132c9e3790d3e78f507",
+        "bytes": 302
+      },
+      "sourceSha256": "1a09b8f399fca72e2bd060d9c3ac3f54c820cb3db5367932f2607fae093a70f3"
+    },
+    {
+      "test": "catalog_view_test",
+      "passed": true,
+      "log": {
+        "path": "dev/release-materials/provenance/xge-sync-20261108/catalog_view_test.log",
+        "sha256": "a660696a11146c447db9bdb37d6c60ab7bfda95f5cc80652870655298783635d",
+        "bytes": 197
+      },
+      "sourceSha256": "081247e296b1f2a8bf07b816170046711592a0383b478372e4eacbe563cfccdc"
+    },
+    {
+      "test": "dock_windows_view_test",
+      "passed": true,
+      "log": {
+        "path": "dev/release-materials/provenance/xge-sync-20261108/dock_windows_view_test.log",
+        "sha256": "9c2cfd00bebaad5c893b3dc035c6c01fd7065e2a7ac01f7f35f3259bf38a2c25",
+        "bytes": 187
+      },
+      "sourceSha256": "95e001739b2421de7c35689d0c59ff89b0d2dc1ffd7f6818631b958bd7afbb3a"
+    },
+    {
+      "test": "catalog_follow_test",
+      "passed": true,
+      "log": {
+        "path": "dev/release-materials/provenance/xge-sync-20261108/catalog_follow_test.log",
+        "sha256": "2adbe6f761a984cfd6373841f5e57b3aeab24e12dc10a453c496115bd8202879",
+        "bytes": 261
+      },
+      "sourceSha256": "2c3fe2c4693103584490254dcd4f8e772c31023fe618b920b17628865dd63462"
+    }
+  ],
+  "compilerTests": [
+    {
+      "name": "update-win-r3",
+      "rows": 7,
+      "passed": true,
+      "standalone": {
+        "sha256": "6dc88be283c34d28e2a184a222c793766229518df0578f3114c7af826311795d",
+        "bytes": 7787008
+      },
+      "staticImports": [
+        "msvcrt.dll",
+        "kernel32.dll",
+        "USER32.dll",
+        "GDI32.dll",
+        "ole32.dll",
+        "OLEAUT32.dll",
+        "SHELL32.dll",
+        "IMM32.dll",
+        "DWrite.dll"
+      ]
+    },
+    {
+      "name": "navigation-win",
+      "rows": 13,
+      "passed": true,
+      "standalone": {
+        "sha256": "22ae23269670838b4ebfe4d84782bb9eb4eae10c8a1674e2747f8cb23888006e",
+        "bytes": 7270400
+      },
+      "staticImports": [
+        "msvcrt.dll",
+        "kernel32.dll",
+        "USER32.dll",
+        "ole32.dll",
+        "OLEAUT32.dll",
+        "SHELL32.dll",
+        "GDI32.dll",
+        "IMM32.dll",
+        "DWrite.dll"
+      ]
+    },
+    {
+      "name": "update-linux",
+      "rows": 7,
+      "passed": true,
+      "standalone": {
+        "sha256": "06ba89d945428a5f402db12e47ea415c8048d6271cccd672e717423ac0f53af9",
+        "bytes": 7240348
+      },
+      "staticImports": [
+        "libm.so.6",
+        "libmvec.so.1",
+        "libX11.so.6",
+        "libXi.so.6",
+        "libXcursor.so.1",
+        "libGL.so.1",
+        "libc.so.6",
+        "ld-linux-x86-64.so.2"
+      ]
+    },
+    {
+      "name": "navigation-linux",
+      "rows": 13,
+      "passed": true,
+      "standalone": {
+        "sha256": "5b8d36a91b231ba38171c3d2a672efb1f9c9e9731819d9d382be71d45209abcf",
+        "bytes": 6427067
+      },
+      "staticImports": [
+        "libm.so.6",
+        "libmvec.so.1",
+        "libX11.so.6",
+        "libXi.so.6",
+        "libXcursor.so.1",
+        "libGL.so.1",
+        "libc.so.6",
+        "ld-linux-x86-64.so.2"
+      ]
+    }
+  ],
+  "guiTranslationUnits": 108,
+  "optimization": "-O2",
+  "catalog": {
+    "entries": 19970,
+    "publicPackages": 207,
+    "otherExtensionApisUnchanged": 5660,
+    "newSourceSnapshots": 591,
+    "toolFixes": [
+      "platform release paths",
+      "formal AST member-body slots",
+      "C record declarations",
+      "nested fixed-array type ranges"
+    ],
+    "catalogSha256": "9cf36e1eac5500fa0f0aa01d1bf7e24d9249e7013c687f83ecd41824d2f03196"
+  },
+  "deliveredFiles": [
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\_xge_native\\include\\xge.h",
+      "path": "release/win_x64/extlibs/_xge_native/include/xge.h",
+      "beforeSha256": "b7b315ddfca9add6074a1e414f1da2188e4a0ece037e8ce3927c9ffa8e7f5d79",
+      "sha256": "a6fa53373b0671f1342500c17d4f66ef86a21169014f665ebf03714418aadf14",
+      "bytes": 238006
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\_xge_native\\include\\xge3_runtime.h",
+      "path": "release/win_x64/extlibs/_xge_native/include/xge3_runtime.h",
+      "beforeSha256": "603723af0fef2d749d3093ff1b12c516cd3d1600bdae9914add404e4db967483",
+      "sha256": "109a256cd392f82543314601ebd0dad85dea7308471e3477b68c79fdb3d8a478",
+      "bytes": 6445
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\_xge_native\\include\\xge_build_config.h",
+      "path": "release/win_x64/extlibs/_xge_native/include/xge_build_config.h",
+      "beforeSha256": "a1f09a4dc2c715382bbf6570631618da2b6887b227cd92f6f2e4d83a27a8b2fc",
+      "sha256": "9aacb2473d0c86cf781543f360a66323626f620ae61b4b4ba12b4d3b0bc0e7cb",
+      "bytes": 3323
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\_xge_native\\include\\xui.h",
+      "path": "release/win_x64/extlibs/_xge_native/include/xui.h",
+      "beforeSha256": "f31173fbd4af53d10e1a8c7a84eaee3b7547f0d6465bbe9a8fe5b5b48fcba5a4",
+      "sha256": "7277659690681a8221370b9ce4b50ec7932ee1d45f597df9c6d285544b2b3a90",
+      "bytes": 709988
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\_xge_native\\include\\xui_config.h",
+      "path": "release/win_x64/extlibs/_xge_native/include/xui_config.h",
+      "beforeSha256": "01448ede1da13af8e8ef81ef7574f15edc88f5fa8c2312d9d8a5ede91e17f193",
+      "sha256": "735eb9adf7a85f28902454478f96984f91b2b3971d00deefa28dc8df06ecbfad",
+      "bytes": 22964
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\_xge_native\\native\\xge3_host.dll",
+      "path": "release/win_x64/extlibs/_xge_native/native/xge3_host.dll",
+      "beforeSha256": "ad961bd48bfaa040174248eb0b3ca8cc840c71bf7b83518b61581cd62a38f18d",
+      "sha256": "4049265f017789b0b4a0436b14f11c9f61d086d12482561f8bb3f19d9868d0db",
+      "bytes": 9147829
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\_xge_native\\src\\runtime.c",
+      "path": "release/win_x64/extlibs/_xge_native/src/runtime.c",
+      "beforeSha256": "946b3b483fcbbb0aa12b7347da5891f0cd4626ea949e4747e0dc6af4dd19c3c7",
+      "sha256": "599cb5e7d8543a63542db569059c2c6e061fcd7dd6d00eed08858a2527fd954b",
+      "bytes": 33198
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\_xge_native\\xlang.package.json",
+      "path": "release/win_x64/extlibs/_xge_native/xlang.package.json",
+      "beforeSha256": "8f63057bcedaa98e396207e25cb6d94563c9bd842b93549d7ff14b037b446a11",
+      "sha256": "89608873b3d2150c690739fc241523879cc9656a0aa05994f41fe8086389c9d0",
+      "bytes": 2500
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\examples\\games\\2048.xl",
+      "path": "release/win_x64/extlibs/xge/examples/games/2048.xl",
+      "beforeSha256": null,
+      "sha256": "fa304a8dff29703203bd373f5a2d8f006ec000b0fab700d1d38e54d950a8965d",
+      "bytes": 9351
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\examples\\games\\_game.xl",
+      "path": "release/win_x64/extlibs/xge/examples/games/_game.xl",
+      "beforeSha256": null,
+      "sha256": "a8ee5cbc704f9a5a80393d6e49bdfb0878f70b804105ddf4ce240b504af1600f",
+      "bytes": 2788
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\examples\\games\\assets\\beep.wav",
+      "path": "release/win_x64/extlibs/xge/examples/games/assets/beep.wav",
+      "beforeSha256": null,
+      "sha256": "0b65db53cde150433db8db4f91c269314356cc303f760e0d1fa29f685294c136",
+      "bytes": 926
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\examples\\games\\assets\\boom.wav",
+      "path": "release/win_x64/extlibs/xge/examples/games/assets/boom.wav",
+      "beforeSha256": null,
+      "sha256": "2c5dcb6cfa9742cbb2d495af9d6263d2c38de885d32dd39648216bb5af3c9931",
+      "bytes": 3903
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\examples\\games\\assets\\coin.wav",
+      "path": "release/win_x64/extlibs/xge/examples/games/assets/coin.wav",
+      "beforeSha256": null,
+      "sha256": "bad1366f989145798790f082cccce7fe787483cd58521f92a95f9ec2f50b27fa",
+      "bytes": 1146
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\examples\\games\\assets\\laser.wav",
+      "path": "release/win_x64/extlibs/xge/examples/games/assets/laser.wav",
+      "beforeSha256": null,
+      "sha256": "11bbcb2ec0f5ef933ad1eab98519044e8502552c0264b6d0b5551eb2d63e8b7b",
+      "bytes": 1367
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\examples\\games\\assets\\player.png",
+      "path": "release/win_x64/extlibs/xge/examples/games/assets/player.png",
+      "beforeSha256": null,
+      "sha256": "c827984ecaff2b810b92e5e16f52c9843fdca1fb1dd458e040e10cd62653b014",
+      "bytes": 946
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\examples\\games\\asteroids.xl",
+      "path": "release/win_x64/extlibs/xge/examples/games/asteroids.xl",
+      "beforeSha256": null,
+      "sha256": "4af3f3bc7311a66bbf320e406c9c9bc2d7403ae773f797c85406b9e58914d8c6",
+      "bytes": 10602
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\examples\\games\\breakout.xl",
+      "path": "release/win_x64/extlibs/xge/examples/games/breakout.xl",
+      "beforeSha256": null,
+      "sha256": "5b44274a92e79bce17c96a4f319905dd14b748ba38428533c0dfc63825bda2ea",
+      "bytes": 10226
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\examples\\games\\flappy.xl",
+      "path": "release/win_x64/extlibs/xge/examples/games/flappy.xl",
+      "beforeSha256": null,
+      "sha256": "a53dadf91ada70d9c101fcd7322cda4121153f2ef702b67802cd16dc6822aa5a",
+      "bytes": 7485
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\examples\\games\\minesweeper.xl",
+      "path": "release/win_x64/extlibs/xge/examples/games/minesweeper.xl",
+      "beforeSha256": null,
+      "sha256": "9b2f83ab70c76262aafbb089762a27b83d063081abb8c3cf1abbdbca9d0f41c1",
+      "bytes": 10786
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\examples\\games\\pong.xl",
+      "path": "release/win_x64/extlibs/xge/examples/games/pong.xl",
+      "beforeSha256": null,
+      "sha256": "e2dc4beb3cdedc0777d6e15f91ae81b5f339eec33200bce07187795b592f49b7",
+      "bytes": 7665
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\examples\\games\\README.md",
+      "path": "release/win_x64/extlibs/xge/examples/games/README.md",
+      "beforeSha256": null,
+      "sha256": "2e18b6690921c27c67b42cde3f89c689627997c7582a9808e3e40b78ea1b76e8",
+      "bytes": 1626
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\examples\\games\\run_games.bat",
+      "path": "release/win_x64/extlibs/xge/examples/games/run_games.bat",
+      "beforeSha256": null,
+      "sha256": "ef7c1dba2d29000d787c9315781dd0c1bd2ed49eb525e6cb76f9de25202c1b14",
+      "bytes": 464
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\examples\\games\\shooter.xl",
+      "path": "release/win_x64/extlibs/xge/examples/games/shooter.xl",
+      "beforeSha256": null,
+      "sha256": "913d0d01ddac8d96130547336adde67771e788bf1892a569ef708d4ecd3e528e",
+      "bytes": 11455
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\examples\\games\\snake.xl",
+      "path": "release/win_x64/extlibs/xge/examples/games/snake.xl",
+      "beforeSha256": null,
+      "sha256": "4fe57484af05a3fccccaa5e635b129354cc9cb906a642616527be1175dccdf90",
+      "bytes": 6072
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\examples\\games\\tetris.xl",
+      "path": "release/win_x64/extlibs/xge/examples/games/tetris.xl",
+      "beforeSha256": null,
+      "sha256": "79243f51b72aea72ed9a786b730291ebd6626bc941dae6afa2ea9824da8039b1",
+      "bytes": 12749
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\examples\\system_font.xl",
+      "path": "release/win_x64/extlibs/xge/examples/system_font.xl",
+      "beforeSha256": null,
+      "sha256": "2623233c366b1d2f6b4996086e3837eebbf98bd5af8861dccd0688c346f70444",
+      "bytes": 385
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\README.md",
+      "path": "release/win_x64/extlibs/xge/README.md",
+      "beforeSha256": "32c43bf79f231ff846d6fafd45c9c91f0b5d4afe5337cff4e08bc17519dcf6e6",
+      "sha256": "ce31cbd89d5c4baf3700b1675c08036d0cf0688922a6e3a512bce61788070eab",
+      "bytes": 3314
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\src\\constants.xl",
+      "path": "release/win_x64/extlibs/xge/src/constants.xl",
+      "beforeSha256": "8f65b793351547d449cde57ca88ad66e132d2fe45595a199e88afd6c01faae71",
+      "sha256": "4ef4c86e9f544c1f2ab6f51a94f05512f23ac8a8a7f994619a8b0f97e12e0540",
+      "bytes": 22431
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\src\\resources.xl",
+      "path": "release/win_x64/extlibs/xge/src/resources.xl",
+      "beforeSha256": "c3cb5d5c65ae0dfe39bbf5c8ebf67b6a350ba9282d54f6bf9f49ff0fea38e0fb",
+      "sha256": "cbc2f2face8e62c0be870b12cbdf9d09887d376921523f6b6eb6284150547087",
+      "bytes": 5939
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xui\\examples\\README.md",
+      "path": "release/win_x64/extlibs/xui/examples/README.md",
+      "beforeSha256": "cdf74835ce2f477a7bd5d94e7d29c93da9a703c5e54d82ba86f846b16ebd483d",
+      "sha256": "101811dd6d85568d91716a2a0573fcd70ea25e56f216604a5a54c28dc128959f",
+      "bytes": 12120
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xui\\examples\\shared_find.xl",
+      "path": "release/win_x64/extlibs/xui/examples/shared_find.xl",
+      "beforeSha256": null,
+      "sha256": "d2388f9f02847d8d0dbe1f598fbd53a84841cf9eee030e56bc7a6fb279a24f07",
+      "bytes": 706
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xui\\README.md",
+      "path": "release/win_x64/extlibs/xui/README.md",
+      "beforeSha256": "786701e1fc9094f743c89d04530eea3750d2b30c1c737480f839de2dbe5fdb7f",
+      "sha256": "615bf63941a040f098bdcb5cba15d2747381cbc75eff00cedd5d2d784ab97d8e",
+      "bytes": 15840
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xui\\src\\constants.xl",
+      "path": "release/win_x64/extlibs/xui/src/constants.xl",
+      "beforeSha256": "f0d61a167dd8ea9fece030353c715795f340285a830c0fcc5a75a72ad83b1476",
+      "sha256": "cc9c25ce1fb50f3516e36b7a7978129a5245ff7add9e5a4d93d08b026a8db121",
+      "bytes": 73515
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xui\\src\\find.xl",
+      "path": "release/win_x64/extlibs/xui/src/find.xl",
+      "beforeSha256": null,
+      "sha256": "620bcbb4d21adfc31cd9c19f0c8a8e0a1fe9084fc8e105cafee2043a7425317b",
+      "bytes": 3178
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xui\\src\\managed.xl",
+      "path": "release/win_x64/extlibs/xui/src/managed.xl",
+      "beforeSha256": "90450541c0abe9f2dc53950154ea40a44915e68b1fd502ff6462c5b37072c7fc",
+      "sha256": "bbfcd3f600af21fbb3f21276eb2db640a7eea4b880cd72fac78e1e0a488b8b52",
+      "bytes": 320391
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xui\\src\\managers.xl",
+      "path": "release/win_x64/extlibs/xui/src/managers.xl",
+      "beforeSha256": "cc696cc23bbffca5d5e102b6368e87af766742575b1477fd75b54b1247d6290f",
+      "sha256": "f76d15ca17b70af1e5c14d65b01252e6f17a72ec8a185b530cb96c108b1927ef",
+      "bytes": 20818
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xui\\src\\proxy.xl",
+      "path": "release/win_x64/extlibs/xui/src/proxy.xl",
+      "beforeSha256": "ef323ba00bfd49431be35a927f4f4088d52620c1fbb2c7c3f6d75e06a136cec5",
+      "sha256": "d0696614130440193cd09369e0c9cf3f7039652281154bbd2a75b475c866f76e",
+      "bytes": 38370
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xui\\src\\records.xl",
+      "path": "release/win_x64/extlibs/xui/src/records.xl",
+      "beforeSha256": "f42623d9961a4474cfbadd206cf66e5f24c1151bf9763084cfcd623272532779",
+      "sha256": "fef21eec3dfc19166afcebda44baddff90b440d6cd06a7155496fb5f262120a1",
+      "bytes": 25086
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xui\\xlang.package.json",
+      "path": "release/win_x64/extlibs/xui/xlang.package.json",
+      "beforeSha256": "8ff144ff6cc2bd42ec76bdfe7e6f5fee4d1ed3567adac08989e2638810994e50",
+      "sha256": "7f9188c845d159984c083d7f1194da4c06c5e323b56bf5c3942523dbcee0cd31",
+      "bytes": 866
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\examples\\system_font.xl",
+      "path": "release/win_x64/examples/xge/system_font.xl",
+      "beforeSha256": null,
+      "sha256": "2623233c366b1d2f6b4996086e3837eebbf98bd5af8861dccd0688c346f70444",
+      "bytes": 385
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\examples\\games\\2048.xl",
+      "path": "release/win_x64/examples/xge/games/2048.xl",
+      "beforeSha256": null,
+      "sha256": "fa304a8dff29703203bd373f5a2d8f006ec000b0fab700d1d38e54d950a8965d",
+      "bytes": 9351
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\examples\\games\\asteroids.xl",
+      "path": "release/win_x64/examples/xge/games/asteroids.xl",
+      "beforeSha256": null,
+      "sha256": "4af3f3bc7311a66bbf320e406c9c9bc2d7403ae773f797c85406b9e58914d8c6",
+      "bytes": 10602
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\examples\\games\\breakout.xl",
+      "path": "release/win_x64/examples/xge/games/breakout.xl",
+      "beforeSha256": null,
+      "sha256": "5b44274a92e79bce17c96a4f319905dd14b748ba38428533c0dfc63825bda2ea",
+      "bytes": 10226
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\examples\\games\\flappy.xl",
+      "path": "release/win_x64/examples/xge/games/flappy.xl",
+      "beforeSha256": null,
+      "sha256": "a53dadf91ada70d9c101fcd7322cda4121153f2ef702b67802cd16dc6822aa5a",
+      "bytes": 7485
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\examples\\games\\minesweeper.xl",
+      "path": "release/win_x64/examples/xge/games/minesweeper.xl",
+      "beforeSha256": null,
+      "sha256": "9b2f83ab70c76262aafbb089762a27b83d063081abb8c3cf1abbdbca9d0f41c1",
+      "bytes": 10786
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\examples\\games\\pong.xl",
+      "path": "release/win_x64/examples/xge/games/pong.xl",
+      "beforeSha256": null,
+      "sha256": "e2dc4beb3cdedc0777d6e15f91ae81b5f339eec33200bce07187795b592f49b7",
+      "bytes": 7665
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\examples\\games\\README.md",
+      "path": "release/win_x64/examples/xge/games/README.md",
+      "beforeSha256": null,
+      "sha256": "2e18b6690921c27c67b42cde3f89c689627997c7582a9808e3e40b78ea1b76e8",
+      "bytes": 1626
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\examples\\games\\run_games.bat",
+      "path": "release/win_x64/examples/xge/games/run_games.bat",
+      "beforeSha256": null,
+      "sha256": "ef7c1dba2d29000d787c9315781dd0c1bd2ed49eb525e6cb76f9de25202c1b14",
+      "bytes": 464
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\examples\\games\\shooter.xl",
+      "path": "release/win_x64/examples/xge/games/shooter.xl",
+      "beforeSha256": null,
+      "sha256": "913d0d01ddac8d96130547336adde67771e788bf1892a569ef708d4ecd3e528e",
+      "bytes": 11455
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\examples\\games\\snake.xl",
+      "path": "release/win_x64/examples/xge/games/snake.xl",
+      "beforeSha256": null,
+      "sha256": "4fe57484af05a3fccccaa5e635b129354cc9cb906a642616527be1175dccdf90",
+      "bytes": 6072
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\examples\\games\\tetris.xl",
+      "path": "release/win_x64/examples/xge/games/tetris.xl",
+      "beforeSha256": null,
+      "sha256": "79243f51b72aea72ed9a786b730291ebd6626bc941dae6afa2ea9824da8039b1",
+      "bytes": 12749
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\examples\\games\\_game.xl",
+      "path": "release/win_x64/examples/xge/games/_game.xl",
+      "beforeSha256": null,
+      "sha256": "a8ee5cbc704f9a5a80393d6e49bdfb0878f70b804105ddf4ce240b504af1600f",
+      "bytes": 2788
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\examples\\games\\assets\\beep.wav",
+      "path": "release/win_x64/examples/xge/games/assets/beep.wav",
+      "beforeSha256": null,
+      "sha256": "0b65db53cde150433db8db4f91c269314356cc303f760e0d1fa29f685294c136",
+      "bytes": 926
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\examples\\games\\assets\\boom.wav",
+      "path": "release/win_x64/examples/xge/games/assets/boom.wav",
+      "beforeSha256": null,
+      "sha256": "2c5dcb6cfa9742cbb2d495af9d6263d2c38de885d32dd39648216bb5af3c9931",
+      "bytes": 3903
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\examples\\games\\assets\\coin.wav",
+      "path": "release/win_x64/examples/xge/games/assets/coin.wav",
+      "beforeSha256": null,
+      "sha256": "bad1366f989145798790f082cccce7fe787483cd58521f92a95f9ec2f50b27fa",
+      "bytes": 1146
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\examples\\games\\assets\\laser.wav",
+      "path": "release/win_x64/examples/xge/games/assets/laser.wav",
+      "beforeSha256": null,
+      "sha256": "11bbcb2ec0f5ef933ad1eab98519044e8502552c0264b6d0b5551eb2d63e8b7b",
+      "bytes": 1367
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xge\\examples\\games\\assets\\player.png",
+      "path": "release/win_x64/examples/xge/games/assets/player.png",
+      "beforeSha256": null,
+      "sha256": "c827984ecaff2b810b92e5e16f52c9843fdca1fb1dd458e040e10cd62653b014",
+      "bytes": 946
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xui\\examples\\README.md",
+      "path": "release/win_x64/examples/xui/README.md",
+      "beforeSha256": "cdf74835ce2f477a7bd5d94e7d29c93da9a703c5e54d82ba86f846b16ebd483d",
+      "sha256": "101811dd6d85568d91716a2a0573fcd70ea25e56f216604a5a54c28dc128959f",
+      "bytes": 12120
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-dynamic\\xui\\examples\\shared_find.xl",
+      "path": "release/win_x64/examples/xui/shared_find.xl",
+      "beforeSha256": null,
+      "sha256": "d2388f9f02847d8d0dbe1f598fbd53a84841cf9eee030e56bc7a6fb279a24f07",
+      "bytes": 706
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\_xge_native\\include\\xge.h",
+      "path": "release/win_x64/static/xge3/packages/_xge_native/include/xge.h",
+      "beforeSha256": "b7b315ddfca9add6074a1e414f1da2188e4a0ece037e8ce3927c9ffa8e7f5d79",
+      "sha256": "a6fa53373b0671f1342500c17d4f66ef86a21169014f665ebf03714418aadf14",
+      "bytes": 238006
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\_xge_native\\include\\xge3_runtime.h",
+      "path": "release/win_x64/static/xge3/packages/_xge_native/include/xge3_runtime.h",
+      "beforeSha256": "603723af0fef2d749d3093ff1b12c516cd3d1600bdae9914add404e4db967483",
+      "sha256": "109a256cd392f82543314601ebd0dad85dea7308471e3477b68c79fdb3d8a478",
+      "bytes": 6445
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\_xge_native\\include\\xge_build_config.h",
+      "path": "release/win_x64/static/xge3/packages/_xge_native/include/xge_build_config.h",
+      "beforeSha256": "d2e0c577daa44ecfb51f5691d6953af1fd1dbc7af4980b3978a610e8a2057e3f",
+      "sha256": "bf32562c36d767ffdbbdfc14d5e49880a15d641610be53c3bb7819e5b9a54a2e",
+      "bytes": 3412
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\_xge_native\\include\\xui.h",
+      "path": "release/win_x64/static/xge3/packages/_xge_native/include/xui.h",
+      "beforeSha256": "f31173fbd4af53d10e1a8c7a84eaee3b7547f0d6465bbe9a8fe5b5b48fcba5a4",
+      "sha256": "7277659690681a8221370b9ce4b50ec7932ee1d45f597df9c6d285544b2b3a90",
+      "bytes": 709988
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\_xge_native\\include\\xui_config.h",
+      "path": "release/win_x64/static/xge3/packages/_xge_native/include/xui_config.h",
+      "beforeSha256": "01448ede1da13af8e8ef81ef7574f15edc88f5fa8c2312d9d8a5ede91e17f193",
+      "sha256": "735eb9adf7a85f28902454478f96984f91b2b3971d00deefa28dc8df06ecbfad",
+      "bytes": 22964
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\_xge_native\\native\\compiler-support.json",
+      "path": "release/win_x64/static/xge3/packages/_xge_native/native/compiler-support.json",
+      "beforeSha256": "7d3c9e147736b558615a59325fad8aa87eda7bca21033a30672b1a1f2fdacc3d",
+      "sha256": "ff3505e6b6e0f597a908175059754048f42b55470cb1f0a6cced157ee50c40f4",
+      "bytes": 457608
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\_xge_native\\native\\libdwrite-imports.def",
+      "path": "release/win_x64/static/xge3/packages/_xge_native/native/libdwrite-imports.def",
+      "beforeSha256": null,
+      "sha256": "56199f9ea467adeac0e22b3330d00ead9aabd21cc499d0f8eabcaf3edd6e9a6d",
+      "bytes": 50
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\_xge_native\\native\\libxge3_static.a",
+      "path": "release/win_x64/static/xge3/packages/_xge_native/native/libxge3_static.a",
+      "beforeSha256": "e710edc6380e26632b952af15d667a6d2bc091f154c60310791b698c27868044",
+      "sha256": "cc58c74a5ba7b54778527ace1481864a4b9b988c7eaa2b3a9c4ef0b24c911f05",
+      "bytes": 18644792
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\_xge_native\\src\\runtime.c",
+      "path": "release/win_x64/static/xge3/packages/_xge_native/src/runtime.c",
+      "beforeSha256": "946b3b483fcbbb0aa12b7347da5891f0cd4626ea949e4747e0dc6af4dd19c3c7",
+      "sha256": "599cb5e7d8543a63542db569059c2c6e061fcd7dd6d00eed08858a2527fd954b",
+      "bytes": 33198
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\_xge_native\\xlang.package.json",
+      "path": "release/win_x64/static/xge3/packages/_xge_native/xlang.package.json",
+      "beforeSha256": "6ff0aba04c9a40b70f881574b5c08cde16c9b2528627c4e2cc25bd48f3eef7d2",
+      "sha256": "3fe7c4e150b93b5f5f8cda332841b06293bb6d04e9669e529a1635db45682a34",
+      "bytes": 2996
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xge\\examples\\games\\2048.xl",
+      "path": "release/win_x64/static/xge3/packages/xge/examples/games/2048.xl",
+      "beforeSha256": null,
+      "sha256": "fa304a8dff29703203bd373f5a2d8f006ec000b0fab700d1d38e54d950a8965d",
+      "bytes": 9351
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xge\\examples\\games\\_game.xl",
+      "path": "release/win_x64/static/xge3/packages/xge/examples/games/_game.xl",
+      "beforeSha256": null,
+      "sha256": "a8ee5cbc704f9a5a80393d6e49bdfb0878f70b804105ddf4ce240b504af1600f",
+      "bytes": 2788
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xge\\examples\\games\\assets\\beep.wav",
+      "path": "release/win_x64/static/xge3/packages/xge/examples/games/assets/beep.wav",
+      "beforeSha256": null,
+      "sha256": "0b65db53cde150433db8db4f91c269314356cc303f760e0d1fa29f685294c136",
+      "bytes": 926
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xge\\examples\\games\\assets\\boom.wav",
+      "path": "release/win_x64/static/xge3/packages/xge/examples/games/assets/boom.wav",
+      "beforeSha256": null,
+      "sha256": "2c5dcb6cfa9742cbb2d495af9d6263d2c38de885d32dd39648216bb5af3c9931",
+      "bytes": 3903
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xge\\examples\\games\\assets\\coin.wav",
+      "path": "release/win_x64/static/xge3/packages/xge/examples/games/assets/coin.wav",
+      "beforeSha256": null,
+      "sha256": "bad1366f989145798790f082cccce7fe787483cd58521f92a95f9ec2f50b27fa",
+      "bytes": 1146
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xge\\examples\\games\\assets\\laser.wav",
+      "path": "release/win_x64/static/xge3/packages/xge/examples/games/assets/laser.wav",
+      "beforeSha256": null,
+      "sha256": "11bbcb2ec0f5ef933ad1eab98519044e8502552c0264b6d0b5551eb2d63e8b7b",
+      "bytes": 1367
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xge\\examples\\games\\assets\\player.png",
+      "path": "release/win_x64/static/xge3/packages/xge/examples/games/assets/player.png",
+      "beforeSha256": null,
+      "sha256": "c827984ecaff2b810b92e5e16f52c9843fdca1fb1dd458e040e10cd62653b014",
+      "bytes": 946
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xge\\examples\\games\\asteroids.xl",
+      "path": "release/win_x64/static/xge3/packages/xge/examples/games/asteroids.xl",
+      "beforeSha256": null,
+      "sha256": "4af3f3bc7311a66bbf320e406c9c9bc2d7403ae773f797c85406b9e58914d8c6",
+      "bytes": 10602
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xge\\examples\\games\\breakout.xl",
+      "path": "release/win_x64/static/xge3/packages/xge/examples/games/breakout.xl",
+      "beforeSha256": null,
+      "sha256": "5b44274a92e79bce17c96a4f319905dd14b748ba38428533c0dfc63825bda2ea",
+      "bytes": 10226
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xge\\examples\\games\\flappy.xl",
+      "path": "release/win_x64/static/xge3/packages/xge/examples/games/flappy.xl",
+      "beforeSha256": null,
+      "sha256": "a53dadf91ada70d9c101fcd7322cda4121153f2ef702b67802cd16dc6822aa5a",
+      "bytes": 7485
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xge\\examples\\games\\minesweeper.xl",
+      "path": "release/win_x64/static/xge3/packages/xge/examples/games/minesweeper.xl",
+      "beforeSha256": null,
+      "sha256": "9b2f83ab70c76262aafbb089762a27b83d063081abb8c3cf1abbdbca9d0f41c1",
+      "bytes": 10786
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xge\\examples\\games\\pong.xl",
+      "path": "release/win_x64/static/xge3/packages/xge/examples/games/pong.xl",
+      "beforeSha256": null,
+      "sha256": "e2dc4beb3cdedc0777d6e15f91ae81b5f339eec33200bce07187795b592f49b7",
+      "bytes": 7665
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xge\\examples\\games\\README.md",
+      "path": "release/win_x64/static/xge3/packages/xge/examples/games/README.md",
+      "beforeSha256": null,
+      "sha256": "2e18b6690921c27c67b42cde3f89c689627997c7582a9808e3e40b78ea1b76e8",
+      "bytes": 1626
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xge\\examples\\games\\run_games.bat",
+      "path": "release/win_x64/static/xge3/packages/xge/examples/games/run_games.bat",
+      "beforeSha256": null,
+      "sha256": "ef7c1dba2d29000d787c9315781dd0c1bd2ed49eb525e6cb76f9de25202c1b14",
+      "bytes": 464
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xge\\examples\\games\\shooter.xl",
+      "path": "release/win_x64/static/xge3/packages/xge/examples/games/shooter.xl",
+      "beforeSha256": null,
+      "sha256": "913d0d01ddac8d96130547336adde67771e788bf1892a569ef708d4ecd3e528e",
+      "bytes": 11455
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xge\\examples\\games\\snake.xl",
+      "path": "release/win_x64/static/xge3/packages/xge/examples/games/snake.xl",
+      "beforeSha256": null,
+      "sha256": "4fe57484af05a3fccccaa5e635b129354cc9cb906a642616527be1175dccdf90",
+      "bytes": 6072
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xge\\examples\\games\\tetris.xl",
+      "path": "release/win_x64/static/xge3/packages/xge/examples/games/tetris.xl",
+      "beforeSha256": null,
+      "sha256": "79243f51b72aea72ed9a786b730291ebd6626bc941dae6afa2ea9824da8039b1",
+      "bytes": 12749
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xge\\examples\\system_font.xl",
+      "path": "release/win_x64/static/xge3/packages/xge/examples/system_font.xl",
+      "beforeSha256": null,
+      "sha256": "2623233c366b1d2f6b4996086e3837eebbf98bd5af8861dccd0688c346f70444",
+      "bytes": 385
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xge\\include\\xge3_audio_resources.h",
+      "path": "release/win_x64/static/xge3/packages/xge/include/xge3_audio_resources.h",
+      "beforeSha256": null,
+      "sha256": "2130421e55959f2806bfa978d9a40547b848d949cf985efabbe585e45c2ae533",
+      "bytes": 713
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xge\\include\\xge3_init.h",
+      "path": "release/win_x64/static/xge3/packages/xge/include/xge3_init.h",
+      "beforeSha256": null,
+      "sha256": "8d54b3283309d6924b2cdc78d50d363be84b65b11c4830b680b2c9b2875d291e",
+      "bytes": 279
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xge\\README.md",
+      "path": "release/win_x64/static/xge3/packages/xge/README.md",
+      "beforeSha256": "32c43bf79f231ff846d6fafd45c9c91f0b5d4afe5337cff4e08bc17519dcf6e6",
+      "sha256": "ce31cbd89d5c4baf3700b1675c08036d0cf0688922a6e3a512bce61788070eab",
+      "bytes": 3314
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xge\\src\\audio_resources.xl",
+      "path": "release/win_x64/static/xge3/packages/xge/src/audio_resources.xl",
+      "beforeSha256": null,
+      "sha256": "547ccc19a52260978984381283016621ff4d84d41921105ffa7bd7ead73f813d",
+      "bytes": 803
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xge\\src\\bootstrap.xl",
+      "path": "release/win_x64/static/xge3/packages/xge/src/bootstrap.xl",
+      "beforeSha256": "865bce317090021d060362a468a10423048e190026c5df15d3384670b57209f0",
+      "sha256": "42fe4b3c2fa7d7deb10f418bb1d7c9a350d20e98dd9533d3f07e4b17988e2557",
+      "bytes": 92
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xge\\src\\constants.xl",
+      "path": "release/win_x64/static/xge3/packages/xge/src/constants.xl",
+      "beforeSha256": "66747ce132d8d6de00014685f1c3bc3eb00787ce5f789724bd8a8e3d9510c04a",
+      "sha256": "4ef4c86e9f544c1f2ab6f51a94f05512f23ac8a8a7f994619a8b0f97e12e0540",
+      "bytes": 22431
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xge\\src\\functions.xl",
+      "path": "release/win_x64/static/xge3/packages/xge/src/functions.xl",
+      "beforeSha256": "ed8049b4192f78d197dbcef34ec10792f64bce0e6852d6a52c44921d3585c8ad",
+      "sha256": "f73d8e37a57c4c566a18da0b03de8ea7953a9cee025bf83ea93345b17e7fbb48",
+      "bytes": 22852
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xge\\src\\records.xl",
+      "path": "release/win_x64/static/xge3/packages/xge/src/records.xl",
+      "beforeSha256": "f051715ee4986cbcff6724f7da1ff37cb4690dfc488b2d17fc3bb169ff7196aa",
+      "sha256": "75f43f39f0aeb5bff6c3aab420dd6ac2b1eca47dcadb05d78deeacce8287a521",
+      "bytes": 13255
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xge\\src\\resources.xl",
+      "path": "release/win_x64/static/xge3/packages/xge/src/resources.xl",
+      "beforeSha256": "713befbe383c90fec25a4bcbe7f01fc05c3fa6fdb7ae60ec93db82f018f36af2",
+      "sha256": "cbc2f2face8e62c0be870b12cbdf9d09887d376921523f6b6eb6284150547087",
+      "bytes": 5939
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xge\\src\\shapes.xl",
+      "path": "release/win_x64/static/xge3/packages/xge/src/shapes.xl",
+      "beforeSha256": "e1ac7792b0e9aaa8abca5191c11ecfaafa9de606218c70fbbfed161fd7d30c26",
+      "sha256": "a20456775c010ebd2f6a15ea7c5b8faaa5dadd27bf68ff8e5c299953ccdd893e",
+      "bytes": 20754
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xge\\xlang.package.json",
+      "path": "release/win_x64/static/xge3/packages/xge/xlang.package.json",
+      "beforeSha256": "df1520f5f3e532a892f470775e9efbc0309042c345533fe1b555ac95772da891",
+      "sha256": "0852aeb3f740ec81621ca11ffff96301e8ab3e364f61ad0fc5ed86151ee9846b",
+      "bytes": 757
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xui\\examples\\README.md",
+      "path": "release/win_x64/static/xge3/packages/xui/examples/README.md",
+      "beforeSha256": "cdf74835ce2f477a7bd5d94e7d29c93da9a703c5e54d82ba86f846b16ebd483d",
+      "sha256": "101811dd6d85568d91716a2a0573fcd70ea25e56f216604a5a54c28dc128959f",
+      "bytes": 12120
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xui\\examples\\shared_find.xl",
+      "path": "release/win_x64/static/xge3/packages/xui/examples/shared_find.xl",
+      "beforeSha256": null,
+      "sha256": "d2388f9f02847d8d0dbe1f598fbd53a84841cf9eee030e56bc7a6fb279a24f07",
+      "bytes": 706
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xui\\README.md",
+      "path": "release/win_x64/static/xge3/packages/xui/README.md",
+      "beforeSha256": "786701e1fc9094f743c89d04530eea3750d2b30c1c737480f839de2dbe5fdb7f",
+      "sha256": "615bf63941a040f098bdcb5cba15d2747381cbc75eff00cedd5d2d784ab97d8e",
+      "bytes": 15840
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xui\\src\\bootstrap.xl",
+      "path": "release/win_x64/static/xge3/packages/xui/src/bootstrap.xl",
+      "beforeSha256": "865bce317090021d060362a468a10423048e190026c5df15d3384670b57209f0",
+      "sha256": "42fe4b3c2fa7d7deb10f418bb1d7c9a350d20e98dd9533d3f07e4b17988e2557",
+      "bytes": 92
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xui\\src\\constants.xl",
+      "path": "release/win_x64/static/xge3/packages/xui/src/constants.xl",
+      "beforeSha256": "f0d61a167dd8ea9fece030353c715795f340285a830c0fcc5a75a72ad83b1476",
+      "sha256": "cc9c25ce1fb50f3516e36b7a7978129a5245ff7add9e5a4d93d08b026a8db121",
+      "bytes": 73515
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xui\\src\\document_ui.xl",
+      "path": "release/win_x64/static/xge3/packages/xui/src/document_ui.xl",
+      "beforeSha256": "7254a76898532646296b62a7614f3ff661a950a66155ad11ef98d984340d6f5c",
+      "sha256": "aedb3c2ab8f7c81b54622d61e6e41b6fdaf4081f547e8b2102ea0bafce784bad",
+      "bytes": 32933
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xui\\src\\document_ui_message_methods.inc",
+      "path": "release/win_x64/static/xge3/packages/xui/src/document_ui_message_methods.inc",
+      "beforeSha256": "7c2318a47677164d28d5370a7b125b0adf3df17e7c6124e30860d6746107aa98",
+      "sha256": "b274aaae51cb778920a0d7d91162a743440ac90a10bd2e3c43e53be9bb550f40",
+      "bytes": 5425
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xui\\src\\document_ui_records.xl",
+      "path": "release/win_x64/static/xge3/packages/xui/src/document_ui_records.xl",
+      "beforeSha256": "f67a4626e751660b30ca57dc4082f48e9c3e9d7f830547ae47b7f4e27fd48d13",
+      "sha256": "e1733bd428c6ef3a6534f60ccb95988b502de0819ce65d3f43847e4cad4480e3",
+      "bytes": 6074
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xui\\src\\find.xl",
+      "path": "release/win_x64/static/xge3/packages/xui/src/find.xl",
+      "beforeSha256": null,
+      "sha256": "620bcbb4d21adfc31cd9c19f0c8a8e0a1fe9084fc8e105cafee2043a7425317b",
+      "bytes": 3178
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xui\\src\\managed.xl",
+      "path": "release/win_x64/static/xge3/packages/xui/src/managed.xl",
+      "beforeSha256": "90450541c0abe9f2dc53950154ea40a44915e68b1fd502ff6462c5b37072c7fc",
+      "sha256": "bbfcd3f600af21fbb3f21276eb2db640a7eea4b880cd72fac78e1e0a488b8b52",
+      "bytes": 320391
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xui\\src\\managers.xl",
+      "path": "release/win_x64/static/xge3/packages/xui/src/managers.xl",
+      "beforeSha256": "3a6d827c4985fbb14895a90e0967c5a30a6a6b7e78ea76374b15ef8b270968db",
+      "sha256": "f76d15ca17b70af1e5c14d65b01252e6f17a72ec8a185b530cb96c108b1927ef",
+      "bytes": 20818
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xui\\src\\proxy.xl",
+      "path": "release/win_x64/static/xge3/packages/xui/src/proxy.xl",
+      "beforeSha256": "e55417b4b749ec9dd7dfc2e7c26a60d0e363e45686119c2fbed915fe9d69932a",
+      "sha256": "d0696614130440193cd09369e0c9cf3f7039652281154bbd2a75b475c866f76e",
+      "bytes": 38370
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xui\\src\\records.xl",
+      "path": "release/win_x64/static/xge3/packages/xui/src/records.xl",
+      "beforeSha256": "292fb590d6b293eea4ec8a56fb38c08e890f84bc2f2ae3abf48cdc380b708839",
+      "sha256": "fef21eec3dfc19166afcebda44baddff90b440d6cd06a7155496fb5f262120a1",
+      "bytes": 25086
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-win-static\\xui\\xlang.package.json",
+      "path": "release/win_x64/static/xge3/packages/xui/xlang.package.json",
+      "beforeSha256": "8ff144ff6cc2bd42ec76bdfe7e6f5fee4d1ed3567adac08989e2638810994e50",
+      "sha256": "7f9188c845d159984c083d7f1194da4c06c5e323b56bf5c3942523dbcee0cd31",
+      "bytes": 866
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\_xge_native\\include\\xge.h",
+      "path": "release/linux_x64/extlibs/_xge_native/include/xge.h",
+      "beforeSha256": "b7b315ddfca9add6074a1e414f1da2188e4a0ece037e8ce3927c9ffa8e7f5d79",
+      "sha256": "a6fa53373b0671f1342500c17d4f66ef86a21169014f665ebf03714418aadf14",
+      "bytes": 238006
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\_xge_native\\include\\xge3_runtime.h",
+      "path": "release/linux_x64/extlibs/_xge_native/include/xge3_runtime.h",
+      "beforeSha256": "603723af0fef2d749d3093ff1b12c516cd3d1600bdae9914add404e4db967483",
+      "sha256": "109a256cd392f82543314601ebd0dad85dea7308471e3477b68c79fdb3d8a478",
+      "bytes": 6445
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\_xge_native\\include\\xge_build_config.h",
+      "path": "release/linux_x64/extlibs/_xge_native/include/xge_build_config.h",
+      "beforeSha256": "8840fdab7ccc0d350926ee16aee2183cb3256ee5807fb1f92ecc24264d59f52b",
+      "sha256": "2331fef36acf404f17efe0617a7587987104ec0137fd3adbfe05d8e457e7f2ff",
+      "bytes": 3217
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\_xge_native\\include\\xui.h",
+      "path": "release/linux_x64/extlibs/_xge_native/include/xui.h",
+      "beforeSha256": "f31173fbd4af53d10e1a8c7a84eaee3b7547f0d6465bbe9a8fe5b5b48fcba5a4",
+      "sha256": "7277659690681a8221370b9ce4b50ec7932ee1d45f597df9c6d285544b2b3a90",
+      "bytes": 709988
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\_xge_native\\include\\xui_config.h",
+      "path": "release/linux_x64/extlibs/_xge_native/include/xui_config.h",
+      "beforeSha256": "01448ede1da13af8e8ef81ef7574f15edc88f5fa8c2312d9d8a5ede91e17f193",
+      "sha256": "735eb9adf7a85f28902454478f96984f91b2b3971d00deefa28dc8df06ecbfad",
+      "bytes": 22964
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\_xge_native\\native\\libxge3_host.so",
+      "path": "release/linux_x64/extlibs/_xge_native/native/libxge3_host.so",
+      "beforeSha256": "a6979ddcc37fb8a4ed1605e7669991b6047c991fafa59c62e30c85278871ff04",
+      "sha256": "4ec8fafa37e0a3e46e87d1a21ab7b953e9991798fbb390b81542a0fad00be88d",
+      "bytes": 9944016
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\_xge_native\\src\\runtime.c",
+      "path": "release/linux_x64/extlibs/_xge_native/src/runtime.c",
+      "beforeSha256": "946b3b483fcbbb0aa12b7347da5891f0cd4626ea949e4747e0dc6af4dd19c3c7",
+      "sha256": "599cb5e7d8543a63542db569059c2c6e061fcd7dd6d00eed08858a2527fd954b",
+      "bytes": 33198
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\_xge_native\\xlang.package.json",
+      "path": "release/linux_x64/extlibs/_xge_native/xlang.package.json",
+      "beforeSha256": "c445c17c5906c58a74959ca5eae4fafe2ce89c953c13590c04d30e256838a6e3",
+      "sha256": "2eaee30fe0f519ace6de78e4415fa405d5e15c1010d9cb6902274c658ca566b2",
+      "bytes": 2412
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\examples\\games\\2048.xl",
+      "path": "release/linux_x64/extlibs/xge/examples/games/2048.xl",
+      "beforeSha256": null,
+      "sha256": "fa304a8dff29703203bd373f5a2d8f006ec000b0fab700d1d38e54d950a8965d",
+      "bytes": 9351
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\examples\\games\\_game.xl",
+      "path": "release/linux_x64/extlibs/xge/examples/games/_game.xl",
+      "beforeSha256": null,
+      "sha256": "a8ee5cbc704f9a5a80393d6e49bdfb0878f70b804105ddf4ce240b504af1600f",
+      "bytes": 2788
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\examples\\games\\assets\\beep.wav",
+      "path": "release/linux_x64/extlibs/xge/examples/games/assets/beep.wav",
+      "beforeSha256": null,
+      "sha256": "0b65db53cde150433db8db4f91c269314356cc303f760e0d1fa29f685294c136",
+      "bytes": 926
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\examples\\games\\assets\\boom.wav",
+      "path": "release/linux_x64/extlibs/xge/examples/games/assets/boom.wav",
+      "beforeSha256": null,
+      "sha256": "2c5dcb6cfa9742cbb2d495af9d6263d2c38de885d32dd39648216bb5af3c9931",
+      "bytes": 3903
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\examples\\games\\assets\\coin.wav",
+      "path": "release/linux_x64/extlibs/xge/examples/games/assets/coin.wav",
+      "beforeSha256": null,
+      "sha256": "bad1366f989145798790f082cccce7fe787483cd58521f92a95f9ec2f50b27fa",
+      "bytes": 1146
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\examples\\games\\assets\\laser.wav",
+      "path": "release/linux_x64/extlibs/xge/examples/games/assets/laser.wav",
+      "beforeSha256": null,
+      "sha256": "11bbcb2ec0f5ef933ad1eab98519044e8502552c0264b6d0b5551eb2d63e8b7b",
+      "bytes": 1367
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\examples\\games\\assets\\player.png",
+      "path": "release/linux_x64/extlibs/xge/examples/games/assets/player.png",
+      "beforeSha256": null,
+      "sha256": "c827984ecaff2b810b92e5e16f52c9843fdca1fb1dd458e040e10cd62653b014",
+      "bytes": 946
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\examples\\games\\asteroids.xl",
+      "path": "release/linux_x64/extlibs/xge/examples/games/asteroids.xl",
+      "beforeSha256": null,
+      "sha256": "4af3f3bc7311a66bbf320e406c9c9bc2d7403ae773f797c85406b9e58914d8c6",
+      "bytes": 10602
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\examples\\games\\breakout.xl",
+      "path": "release/linux_x64/extlibs/xge/examples/games/breakout.xl",
+      "beforeSha256": null,
+      "sha256": "5b44274a92e79bce17c96a4f319905dd14b748ba38428533c0dfc63825bda2ea",
+      "bytes": 10226
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\examples\\games\\flappy.xl",
+      "path": "release/linux_x64/extlibs/xge/examples/games/flappy.xl",
+      "beforeSha256": null,
+      "sha256": "a53dadf91ada70d9c101fcd7322cda4121153f2ef702b67802cd16dc6822aa5a",
+      "bytes": 7485
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\examples\\games\\minesweeper.xl",
+      "path": "release/linux_x64/extlibs/xge/examples/games/minesweeper.xl",
+      "beforeSha256": null,
+      "sha256": "9b2f83ab70c76262aafbb089762a27b83d063081abb8c3cf1abbdbca9d0f41c1",
+      "bytes": 10786
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\examples\\games\\pong.xl",
+      "path": "release/linux_x64/extlibs/xge/examples/games/pong.xl",
+      "beforeSha256": null,
+      "sha256": "e2dc4beb3cdedc0777d6e15f91ae81b5f339eec33200bce07187795b592f49b7",
+      "bytes": 7665
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\examples\\games\\README.md",
+      "path": "release/linux_x64/extlibs/xge/examples/games/README.md",
+      "beforeSha256": null,
+      "sha256": "2e18b6690921c27c67b42cde3f89c689627997c7582a9808e3e40b78ea1b76e8",
+      "bytes": 1626
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\examples\\games\\run_games.bat",
+      "path": "release/linux_x64/extlibs/xge/examples/games/run_games.bat",
+      "beforeSha256": null,
+      "sha256": "ef7c1dba2d29000d787c9315781dd0c1bd2ed49eb525e6cb76f9de25202c1b14",
+      "bytes": 464
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\examples\\games\\shooter.xl",
+      "path": "release/linux_x64/extlibs/xge/examples/games/shooter.xl",
+      "beforeSha256": null,
+      "sha256": "913d0d01ddac8d96130547336adde67771e788bf1892a569ef708d4ecd3e528e",
+      "bytes": 11455
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\examples\\games\\snake.xl",
+      "path": "release/linux_x64/extlibs/xge/examples/games/snake.xl",
+      "beforeSha256": null,
+      "sha256": "4fe57484af05a3fccccaa5e635b129354cc9cb906a642616527be1175dccdf90",
+      "bytes": 6072
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\examples\\games\\tetris.xl",
+      "path": "release/linux_x64/extlibs/xge/examples/games/tetris.xl",
+      "beforeSha256": null,
+      "sha256": "79243f51b72aea72ed9a786b730291ebd6626bc941dae6afa2ea9824da8039b1",
+      "bytes": 12749
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\examples\\system_font.xl",
+      "path": "release/linux_x64/extlibs/xge/examples/system_font.xl",
+      "beforeSha256": null,
+      "sha256": "2623233c366b1d2f6b4996086e3837eebbf98bd5af8861dccd0688c346f70444",
+      "bytes": 385
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\README.md",
+      "path": "release/linux_x64/extlibs/xge/README.md",
+      "beforeSha256": "32c43bf79f231ff846d6fafd45c9c91f0b5d4afe5337cff4e08bc17519dcf6e6",
+      "sha256": "ce31cbd89d5c4baf3700b1675c08036d0cf0688922a6e3a512bce61788070eab",
+      "bytes": 3314
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\src\\constants.xl",
+      "path": "release/linux_x64/extlibs/xge/src/constants.xl",
+      "beforeSha256": "8f65b793351547d449cde57ca88ad66e132d2fe45595a199e88afd6c01faae71",
+      "sha256": "4ef4c86e9f544c1f2ab6f51a94f05512f23ac8a8a7f994619a8b0f97e12e0540",
+      "bytes": 22431
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\src\\resources.xl",
+      "path": "release/linux_x64/extlibs/xge/src/resources.xl",
+      "beforeSha256": "c3cb5d5c65ae0dfe39bbf5c8ebf67b6a350ba9282d54f6bf9f49ff0fea38e0fb",
+      "sha256": "cbc2f2face8e62c0be870b12cbdf9d09887d376921523f6b6eb6284150547087",
+      "bytes": 5939
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xui\\examples\\README.md",
+      "path": "release/linux_x64/extlibs/xui/examples/README.md",
+      "beforeSha256": "cdf74835ce2f477a7bd5d94e7d29c93da9a703c5e54d82ba86f846b16ebd483d",
+      "sha256": "101811dd6d85568d91716a2a0573fcd70ea25e56f216604a5a54c28dc128959f",
+      "bytes": 12120
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xui\\examples\\shared_find.xl",
+      "path": "release/linux_x64/extlibs/xui/examples/shared_find.xl",
+      "beforeSha256": null,
+      "sha256": "d2388f9f02847d8d0dbe1f598fbd53a84841cf9eee030e56bc7a6fb279a24f07",
+      "bytes": 706
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xui\\README.md",
+      "path": "release/linux_x64/extlibs/xui/README.md",
+      "beforeSha256": "786701e1fc9094f743c89d04530eea3750d2b30c1c737480f839de2dbe5fdb7f",
+      "sha256": "615bf63941a040f098bdcb5cba15d2747381cbc75eff00cedd5d2d784ab97d8e",
+      "bytes": 15840
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xui\\src\\constants.xl",
+      "path": "release/linux_x64/extlibs/xui/src/constants.xl",
+      "beforeSha256": "f0d61a167dd8ea9fece030353c715795f340285a830c0fcc5a75a72ad83b1476",
+      "sha256": "cc9c25ce1fb50f3516e36b7a7978129a5245ff7add9e5a4d93d08b026a8db121",
+      "bytes": 73515
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xui\\src\\find.xl",
+      "path": "release/linux_x64/extlibs/xui/src/find.xl",
+      "beforeSha256": null,
+      "sha256": "620bcbb4d21adfc31cd9c19f0c8a8e0a1fe9084fc8e105cafee2043a7425317b",
+      "bytes": 3178
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xui\\src\\managed.xl",
+      "path": "release/linux_x64/extlibs/xui/src/managed.xl",
+      "beforeSha256": "90450541c0abe9f2dc53950154ea40a44915e68b1fd502ff6462c5b37072c7fc",
+      "sha256": "bbfcd3f600af21fbb3f21276eb2db640a7eea4b880cd72fac78e1e0a488b8b52",
+      "bytes": 320391
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xui\\src\\managers.xl",
+      "path": "release/linux_x64/extlibs/xui/src/managers.xl",
+      "beforeSha256": "cc696cc23bbffca5d5e102b6368e87af766742575b1477fd75b54b1247d6290f",
+      "sha256": "f76d15ca17b70af1e5c14d65b01252e6f17a72ec8a185b530cb96c108b1927ef",
+      "bytes": 20818
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xui\\src\\proxy.xl",
+      "path": "release/linux_x64/extlibs/xui/src/proxy.xl",
+      "beforeSha256": "ef323ba00bfd49431be35a927f4f4088d52620c1fbb2c7c3f6d75e06a136cec5",
+      "sha256": "d0696614130440193cd09369e0c9cf3f7039652281154bbd2a75b475c866f76e",
+      "bytes": 38370
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xui\\src\\records.xl",
+      "path": "release/linux_x64/extlibs/xui/src/records.xl",
+      "beforeSha256": "f42623d9961a4474cfbadd206cf66e5f24c1151bf9763084cfcd623272532779",
+      "sha256": "fef21eec3dfc19166afcebda44baddff90b440d6cd06a7155496fb5f262120a1",
+      "bytes": 25086
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xui\\xlang.package.json",
+      "path": "release/linux_x64/extlibs/xui/xlang.package.json",
+      "beforeSha256": "8ff144ff6cc2bd42ec76bdfe7e6f5fee4d1ed3567adac08989e2638810994e50",
+      "sha256": "7f9188c845d159984c083d7f1194da4c06c5e323b56bf5c3942523dbcee0cd31",
+      "bytes": 866
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\examples\\system_font.xl",
+      "path": "release/linux_x64/examples/xge/system_font.xl",
+      "beforeSha256": null,
+      "sha256": "2623233c366b1d2f6b4996086e3837eebbf98bd5af8861dccd0688c346f70444",
+      "bytes": 385
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\examples\\games\\2048.xl",
+      "path": "release/linux_x64/examples/xge/games/2048.xl",
+      "beforeSha256": null,
+      "sha256": "fa304a8dff29703203bd373f5a2d8f006ec000b0fab700d1d38e54d950a8965d",
+      "bytes": 9351
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\examples\\games\\asteroids.xl",
+      "path": "release/linux_x64/examples/xge/games/asteroids.xl",
+      "beforeSha256": null,
+      "sha256": "4af3f3bc7311a66bbf320e406c9c9bc2d7403ae773f797c85406b9e58914d8c6",
+      "bytes": 10602
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\examples\\games\\breakout.xl",
+      "path": "release/linux_x64/examples/xge/games/breakout.xl",
+      "beforeSha256": null,
+      "sha256": "5b44274a92e79bce17c96a4f319905dd14b748ba38428533c0dfc63825bda2ea",
+      "bytes": 10226
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\examples\\games\\flappy.xl",
+      "path": "release/linux_x64/examples/xge/games/flappy.xl",
+      "beforeSha256": null,
+      "sha256": "a53dadf91ada70d9c101fcd7322cda4121153f2ef702b67802cd16dc6822aa5a",
+      "bytes": 7485
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\examples\\games\\minesweeper.xl",
+      "path": "release/linux_x64/examples/xge/games/minesweeper.xl",
+      "beforeSha256": null,
+      "sha256": "9b2f83ab70c76262aafbb089762a27b83d063081abb8c3cf1abbdbca9d0f41c1",
+      "bytes": 10786
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\examples\\games\\pong.xl",
+      "path": "release/linux_x64/examples/xge/games/pong.xl",
+      "beforeSha256": null,
+      "sha256": "e2dc4beb3cdedc0777d6e15f91ae81b5f339eec33200bce07187795b592f49b7",
+      "bytes": 7665
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\examples\\games\\README.md",
+      "path": "release/linux_x64/examples/xge/games/README.md",
+      "beforeSha256": null,
+      "sha256": "2e18b6690921c27c67b42cde3f89c689627997c7582a9808e3e40b78ea1b76e8",
+      "bytes": 1626
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\examples\\games\\run_games.bat",
+      "path": "release/linux_x64/examples/xge/games/run_games.bat",
+      "beforeSha256": null,
+      "sha256": "ef7c1dba2d29000d787c9315781dd0c1bd2ed49eb525e6cb76f9de25202c1b14",
+      "bytes": 464
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\examples\\games\\shooter.xl",
+      "path": "release/linux_x64/examples/xge/games/shooter.xl",
+      "beforeSha256": null,
+      "sha256": "913d0d01ddac8d96130547336adde67771e788bf1892a569ef708d4ecd3e528e",
+      "bytes": 11455
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\examples\\games\\snake.xl",
+      "path": "release/linux_x64/examples/xge/games/snake.xl",
+      "beforeSha256": null,
+      "sha256": "4fe57484af05a3fccccaa5e635b129354cc9cb906a642616527be1175dccdf90",
+      "bytes": 6072
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\examples\\games\\tetris.xl",
+      "path": "release/linux_x64/examples/xge/games/tetris.xl",
+      "beforeSha256": null,
+      "sha256": "79243f51b72aea72ed9a786b730291ebd6626bc941dae6afa2ea9824da8039b1",
+      "bytes": 12749
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\examples\\games\\_game.xl",
+      "path": "release/linux_x64/examples/xge/games/_game.xl",
+      "beforeSha256": null,
+      "sha256": "a8ee5cbc704f9a5a80393d6e49bdfb0878f70b804105ddf4ce240b504af1600f",
+      "bytes": 2788
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\examples\\games\\assets\\beep.wav",
+      "path": "release/linux_x64/examples/xge/games/assets/beep.wav",
+      "beforeSha256": null,
+      "sha256": "0b65db53cde150433db8db4f91c269314356cc303f760e0d1fa29f685294c136",
+      "bytes": 926
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\examples\\games\\assets\\boom.wav",
+      "path": "release/linux_x64/examples/xge/games/assets/boom.wav",
+      "beforeSha256": null,
+      "sha256": "2c5dcb6cfa9742cbb2d495af9d6263d2c38de885d32dd39648216bb5af3c9931",
+      "bytes": 3903
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\examples\\games\\assets\\coin.wav",
+      "path": "release/linux_x64/examples/xge/games/assets/coin.wav",
+      "beforeSha256": null,
+      "sha256": "bad1366f989145798790f082cccce7fe787483cd58521f92a95f9ec2f50b27fa",
+      "bytes": 1146
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\examples\\games\\assets\\laser.wav",
+      "path": "release/linux_x64/examples/xge/games/assets/laser.wav",
+      "beforeSha256": null,
+      "sha256": "11bbcb2ec0f5ef933ad1eab98519044e8502552c0264b6d0b5551eb2d63e8b7b",
+      "bytes": 1367
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xge\\examples\\games\\assets\\player.png",
+      "path": "release/linux_x64/examples/xge/games/assets/player.png",
+      "beforeSha256": null,
+      "sha256": "c827984ecaff2b810b92e5e16f52c9843fdca1fb1dd458e040e10cd62653b014",
+      "bytes": 946
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xui\\examples\\README.md",
+      "path": "release/linux_x64/examples/xui/README.md",
+      "beforeSha256": "cdf74835ce2f477a7bd5d94e7d29c93da9a703c5e54d82ba86f846b16ebd483d",
+      "sha256": "101811dd6d85568d91716a2a0573fcd70ea25e56f216604a5a54c28dc128959f",
+      "bytes": 12120
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-dynamic\\xui\\examples\\shared_find.xl",
+      "path": "release/linux_x64/examples/xui/shared_find.xl",
+      "beforeSha256": null,
+      "sha256": "d2388f9f02847d8d0dbe1f598fbd53a84841cf9eee030e56bc7a6fb279a24f07",
+      "bytes": 706
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\_xge_native\\include\\extlibs\\xrt\\xrt.h",
+      "path": "release/linux_x64/static/xge3/packages/_xge_native/include/extlibs/xrt/xrt.h",
+      "beforeSha256": null,
+      "sha256": "963890acf073a7ec9b318c415fd0d8669a63acc88d83a367fd7bcba11e35438a",
+      "bytes": 86
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\_xge_native\\include\\extlibs\\xrt\\xrt_config.h",
+      "path": "release/linux_x64/static/xge3/packages/_xge_native/include/extlibs/xrt/xrt_config.h",
+      "beforeSha256": null,
+      "sha256": "0aa49016ab725145a8043619b860f780d0b81cbb2184084aaf1c485fa57bf314",
+      "bytes": 2812
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\_xge_native\\include\\xge.h",
+      "path": "release/linux_x64/static/xge3/packages/_xge_native/include/xge.h",
+      "beforeSha256": null,
+      "sha256": "a6fa53373b0671f1342500c17d4f66ef86a21169014f665ebf03714418aadf14",
+      "bytes": 238006
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\_xge_native\\include\\xge3_runtime.h",
+      "path": "release/linux_x64/static/xge3/packages/_xge_native/include/xge3_runtime.h",
+      "beforeSha256": null,
+      "sha256": "109a256cd392f82543314601ebd0dad85dea7308471e3477b68c79fdb3d8a478",
+      "bytes": 6445
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\_xge_native\\include\\xge_build_config.h",
+      "path": "release/linux_x64/static/xge3/packages/_xge_native/include/xge_build_config.h",
+      "beforeSha256": null,
+      "sha256": "3d3942cc7d050a19ff3496074f7f326ddc8ddc4890281606860e39eb922b684d",
+      "bytes": 3412
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\_xge_native\\include\\xge_config.h",
+      "path": "release/linux_x64/static/xge3/packages/_xge_native/include/xge_config.h",
+      "beforeSha256": null,
+      "sha256": "5d960786a736321b22d1b88cbe2d3aaac807e8afaa8a7bd0a4e509b06f7b76bf",
+      "bytes": 8855
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\_xge_native\\include\\xge_host_xrt.h",
+      "path": "release/linux_x64/static/xge3/packages/_xge_native/include/xge_host_xrt.h",
+      "beforeSha256": null,
+      "sha256": "5e43dc2cff98741941c1be6d02832d6cf34256521c94975e4fe96fd411e7b60f",
+      "bytes": 1905
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\_xge_native\\include\\xge_static_xrt_contract.h",
+      "path": "release/linux_x64/static/xge3/packages/_xge_native/include/xge_static_xrt_contract.h",
+      "beforeSha256": null,
+      "sha256": "feb6256e5830b19d3abb766616d4f4ef341869df89f33bb3c63be8af6e298b4f",
+      "bytes": 1216
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\_xge_native\\include\\xnative_transfer.h",
+      "path": "release/linux_x64/static/xge3/packages/_xge_native/include/xnative_transfer.h",
+      "beforeSha256": null,
+      "sha256": "620fe84af1c7c5f40006a65a4ca4435a5d62f2fd500b345514829e27c08dff6f",
+      "bytes": 4183
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\_xge_native\\include\\xui.h",
+      "path": "release/linux_x64/static/xge3/packages/_xge_native/include/xui.h",
+      "beforeSha256": null,
+      "sha256": "7277659690681a8221370b9ce4b50ec7932ee1d45f597df9c6d285544b2b3a90",
+      "bytes": 709988
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\_xge_native\\include\\xui_config.h",
+      "path": "release/linux_x64/static/xge3/packages/_xge_native/include/xui_config.h",
+      "beforeSha256": null,
+      "sha256": "735eb9adf7a85f28902454478f96984f91b2b3971d00deefa28dc8df06ecbfad",
+      "bytes": 22964
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\_xge_native\\include\\xui_document.h",
+      "path": "release/linux_x64/static/xge3/packages/_xge_native/include/xui_document.h",
+      "beforeSha256": null,
+      "sha256": "7062c587237e6486c9efb84ba8e5023b9346ac90e4ab6afe780ad00aa5bd6fe2",
+      "bytes": 93662
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\_xge_native\\include\\xui_document_ui.h",
+      "path": "release/linux_x64/static/xge3/packages/_xge_native/include/xui_document_ui.h",
+      "beforeSha256": null,
+      "sha256": "e343a8600039805be3c5e481fe1d15dbcd426490ce2ad2b5dca65f78b6574bb2",
+      "bytes": 50657
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\_xge_native\\native\\libgcc.a",
+      "path": "release/linux_x64/static/xge3/packages/_xge_native/native/libgcc.a",
+      "beforeSha256": null,
+      "sha256": "d9c2e7a0c0f3dbfc0ff2dec153b0d044cf49d66d64d736b5d1db8ae25ca9c75e",
+      "bytes": 3237076
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\_xge_native\\native\\libxge3_static.a",
+      "path": "release/linux_x64/static/xge3/packages/_xge_native/native/libxge3_static.a",
+      "beforeSha256": null,
+      "sha256": "2dafc4e55e85e39b01b28dbded4b0b6bf703bf17d535061d8b96ab6a34a3b951",
+      "bytes": 16912980
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\_xge_native\\src\\bootstrap.xl",
+      "path": "release/linux_x64/static/xge3/packages/_xge_native/src/bootstrap.xl",
+      "beforeSha256": null,
+      "sha256": "54d74fc4d81f9bade0f3fa358178073d885425e59bda9fd64cd79073c8bc19f0",
+      "bytes": 265
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\_xge_native\\src\\runtime.c",
+      "path": "release/linux_x64/static/xge3/packages/_xge_native/src/runtime.c",
+      "beforeSha256": null,
+      "sha256": "599cb5e7d8543a63542db569059c2c6e061fcd7dd6d00eed08858a2527fd954b",
+      "bytes": 33198
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\_xge_native\\src\\transfer.c",
+      "path": "release/linux_x64/static/xge3/packages/_xge_native/src/transfer.c",
+      "beforeSha256": null,
+      "sha256": "20f0b5820b6d46c77364935724575a9d885965c3e636c1138019384d289a4eb7",
+      "bytes": 2914
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\_xge_native\\xlang.package.json",
+      "path": "release/linux_x64/static/xge3/packages/_xge_native/xlang.package.json",
+      "beforeSha256": null,
+      "sha256": "dc2fc504d8333d7f6bcfcb5c5bd241e2791ba7c3e73cb88404d303035bcb3a2a",
+      "bytes": 2560
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xge\\examples\\games\\2048.xl",
+      "path": "release/linux_x64/static/xge3/packages/xge/examples/games/2048.xl",
+      "beforeSha256": null,
+      "sha256": "fa304a8dff29703203bd373f5a2d8f006ec000b0fab700d1d38e54d950a8965d",
+      "bytes": 9351
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xge\\examples\\games\\_game.xl",
+      "path": "release/linux_x64/static/xge3/packages/xge/examples/games/_game.xl",
+      "beforeSha256": null,
+      "sha256": "a8ee5cbc704f9a5a80393d6e49bdfb0878f70b804105ddf4ce240b504af1600f",
+      "bytes": 2788
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xge\\examples\\games\\assets\\beep.wav",
+      "path": "release/linux_x64/static/xge3/packages/xge/examples/games/assets/beep.wav",
+      "beforeSha256": null,
+      "sha256": "0b65db53cde150433db8db4f91c269314356cc303f760e0d1fa29f685294c136",
+      "bytes": 926
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xge\\examples\\games\\assets\\boom.wav",
+      "path": "release/linux_x64/static/xge3/packages/xge/examples/games/assets/boom.wav",
+      "beforeSha256": null,
+      "sha256": "2c5dcb6cfa9742cbb2d495af9d6263d2c38de885d32dd39648216bb5af3c9931",
+      "bytes": 3903
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xge\\examples\\games\\assets\\coin.wav",
+      "path": "release/linux_x64/static/xge3/packages/xge/examples/games/assets/coin.wav",
+      "beforeSha256": null,
+      "sha256": "bad1366f989145798790f082cccce7fe787483cd58521f92a95f9ec2f50b27fa",
+      "bytes": 1146
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xge\\examples\\games\\assets\\laser.wav",
+      "path": "release/linux_x64/static/xge3/packages/xge/examples/games/assets/laser.wav",
+      "beforeSha256": null,
+      "sha256": "11bbcb2ec0f5ef933ad1eab98519044e8502552c0264b6d0b5551eb2d63e8b7b",
+      "bytes": 1367
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xge\\examples\\games\\assets\\player.png",
+      "path": "release/linux_x64/static/xge3/packages/xge/examples/games/assets/player.png",
+      "beforeSha256": null,
+      "sha256": "c827984ecaff2b810b92e5e16f52c9843fdca1fb1dd458e040e10cd62653b014",
+      "bytes": 946
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xge\\examples\\games\\asteroids.xl",
+      "path": "release/linux_x64/static/xge3/packages/xge/examples/games/asteroids.xl",
+      "beforeSha256": null,
+      "sha256": "4af3f3bc7311a66bbf320e406c9c9bc2d7403ae773f797c85406b9e58914d8c6",
+      "bytes": 10602
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xge\\examples\\games\\breakout.xl",
+      "path": "release/linux_x64/static/xge3/packages/xge/examples/games/breakout.xl",
+      "beforeSha256": null,
+      "sha256": "5b44274a92e79bce17c96a4f319905dd14b748ba38428533c0dfc63825bda2ea",
+      "bytes": 10226
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xge\\examples\\games\\flappy.xl",
+      "path": "release/linux_x64/static/xge3/packages/xge/examples/games/flappy.xl",
+      "beforeSha256": null,
+      "sha256": "a53dadf91ada70d9c101fcd7322cda4121153f2ef702b67802cd16dc6822aa5a",
+      "bytes": 7485
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xge\\examples\\games\\minesweeper.xl",
+      "path": "release/linux_x64/static/xge3/packages/xge/examples/games/minesweeper.xl",
+      "beforeSha256": null,
+      "sha256": "9b2f83ab70c76262aafbb089762a27b83d063081abb8c3cf1abbdbca9d0f41c1",
+      "bytes": 10786
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xge\\examples\\games\\pong.xl",
+      "path": "release/linux_x64/static/xge3/packages/xge/examples/games/pong.xl",
+      "beforeSha256": null,
+      "sha256": "e2dc4beb3cdedc0777d6e15f91ae81b5f339eec33200bce07187795b592f49b7",
+      "bytes": 7665
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xge\\examples\\games\\README.md",
+      "path": "release/linux_x64/static/xge3/packages/xge/examples/games/README.md",
+      "beforeSha256": null,
+      "sha256": "2e18b6690921c27c67b42cde3f89c689627997c7582a9808e3e40b78ea1b76e8",
+      "bytes": 1626
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xge\\examples\\games\\run_games.bat",
+      "path": "release/linux_x64/static/xge3/packages/xge/examples/games/run_games.bat",
+      "beforeSha256": null,
+      "sha256": "ef7c1dba2d29000d787c9315781dd0c1bd2ed49eb525e6cb76f9de25202c1b14",
+      "bytes": 464
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xge\\examples\\games\\shooter.xl",
+      "path": "release/linux_x64/static/xge3/packages/xge/examples/games/shooter.xl",
+      "beforeSha256": null,
+      "sha256": "913d0d01ddac8d96130547336adde67771e788bf1892a569ef708d4ecd3e528e",
+      "bytes": 11455
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xge\\examples\\games\\snake.xl",
+      "path": "release/linux_x64/static/xge3/packages/xge/examples/games/snake.xl",
+      "beforeSha256": null,
+      "sha256": "4fe57484af05a3fccccaa5e635b129354cc9cb906a642616527be1175dccdf90",
+      "bytes": 6072
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xge\\examples\\games\\tetris.xl",
+      "path": "release/linux_x64/static/xge3/packages/xge/examples/games/tetris.xl",
+      "beforeSha256": null,
+      "sha256": "79243f51b72aea72ed9a786b730291ebd6626bc941dae6afa2ea9824da8039b1",
+      "bytes": 12749
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xge\\examples\\gui_shapes.xl",
+      "path": "release/linux_x64/static/xge3/packages/xge/examples/gui_shapes.xl",
+      "beforeSha256": null,
+      "sha256": "33ecf635b267e67ccb59e8c0852e41d1ed97f8bed4cd4e50fe5fa94271c7079f",
+      "bytes": 768
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xge\\examples\\headless_frame.xl",
+      "path": "release/linux_x64/static/xge3/packages/xge/examples/headless_frame.xl",
+      "beforeSha256": null,
+      "sha256": "f609b4f2e45cd4c571f2ee83c0e11b000afdd46b8c6123e5fe758115dfb77ef9",
+      "bytes": 335
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xge\\examples\\headless_shape.xl",
+      "path": "release/linux_x64/static/xge3/packages/xge/examples/headless_shape.xl",
+      "beforeSha256": null,
+      "sha256": "604881d4b0ebe27fe57de79387a7aba33c6dd6d15d3d1096774d3d02c67a053b",
+      "bytes": 423
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xge\\examples\\README.md",
+      "path": "release/linux_x64/static/xge3/packages/xge/examples/README.md",
+      "beforeSha256": null,
+      "sha256": "59e85ec519654b0521c314eb5000b007b3069da4bb5c29a374a1f5e645a4ae44",
+      "bytes": 2075
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xge\\examples\\system_font.xl",
+      "path": "release/linux_x64/static/xge3/packages/xge/examples/system_font.xl",
+      "beforeSha256": null,
+      "sha256": "2623233c366b1d2f6b4996086e3837eebbf98bd5af8861dccd0688c346f70444",
+      "bytes": 385
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xge\\include\\xge3_audio_resources.h",
+      "path": "release/linux_x64/static/xge3/packages/xge/include/xge3_audio_resources.h",
+      "beforeSha256": null,
+      "sha256": "2130421e55959f2806bfa978d9a40547b848d949cf985efabbe585e45c2ae533",
+      "bytes": 713
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xge\\include\\xge3_init.h",
+      "path": "release/linux_x64/static/xge3/packages/xge/include/xge3_init.h",
+      "beforeSha256": null,
+      "sha256": "8d54b3283309d6924b2cdc78d50d363be84b65b11c4830b680b2c9b2875d291e",
+      "bytes": 279
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xge\\README.md",
+      "path": "release/linux_x64/static/xge3/packages/xge/README.md",
+      "beforeSha256": null,
+      "sha256": "ce31cbd89d5c4baf3700b1675c08036d0cf0688922a6e3a512bce61788070eab",
+      "bytes": 3314
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xge\\src\\audio_resources.xl",
+      "path": "release/linux_x64/static/xge3/packages/xge/src/audio_resources.xl",
+      "beforeSha256": null,
+      "sha256": "547ccc19a52260978984381283016621ff4d84d41921105ffa7bd7ead73f813d",
+      "bytes": 803
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xge\\src\\bootstrap.xl",
+      "path": "release/linux_x64/static/xge3/packages/xge/src/bootstrap.xl",
+      "beforeSha256": null,
+      "sha256": "42fe4b3c2fa7d7deb10f418bb1d7c9a350d20e98dd9533d3f07e4b17988e2557",
+      "bytes": 92
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xge\\src\\callbacks.xl",
+      "path": "release/linux_x64/static/xge3/packages/xge/src/callbacks.xl",
+      "beforeSha256": null,
+      "sha256": "2d74e1a1ecec9850d658478af08086e5708186c407add0c988b371e22d89cd45",
+      "bytes": 3691
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xge\\src\\constants.xl",
+      "path": "release/linux_x64/static/xge3/packages/xge/src/constants.xl",
+      "beforeSha256": null,
+      "sha256": "4ef4c86e9f544c1f2ab6f51a94f05512f23ac8a8a7f994619a8b0f97e12e0540",
+      "bytes": 22431
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xge\\src\\data_object.xl",
+      "path": "release/linux_x64/static/xge3/packages/xge/src/data_object.xl",
+      "beforeSha256": null,
+      "sha256": "f30dd0685a04afeb806aa4f83c82ccd697424d9b1e991c17a0f8f7d5870deaad",
+      "bytes": 4431
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xge\\src\\functions.xl",
+      "path": "release/linux_x64/static/xge3/packages/xge/src/functions.xl",
+      "beforeSha256": null,
+      "sha256": "f73d8e37a57c4c566a18da0b03de8ea7953a9cee025bf83ea93345b17e7fbb48",
+      "bytes": 22852
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xge\\src\\records.xl",
+      "path": "release/linux_x64/static/xge3/packages/xge/src/records.xl",
+      "beforeSha256": null,
+      "sha256": "75f43f39f0aeb5bff6c3aab420dd6ac2b1eca47dcadb05d78deeacce8287a521",
+      "bytes": 13255
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xge\\src\\resources.xl",
+      "path": "release/linux_x64/static/xge3/packages/xge/src/resources.xl",
+      "beforeSha256": null,
+      "sha256": "cbc2f2face8e62c0be870b12cbdf9d09887d376921523f6b6eb6284150547087",
+      "bytes": 5939
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xge\\src\\shapes.xl",
+      "path": "release/linux_x64/static/xge3/packages/xge/src/shapes.xl",
+      "beforeSha256": null,
+      "sha256": "a20456775c010ebd2f6a15ea7c5b8faaa5dadd27bf68ff8e5c299953ccdd893e",
+      "bytes": 20754
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xge\\xlang.package.json",
+      "path": "release/linux_x64/static/xge3/packages/xge/xlang.package.json",
+      "beforeSha256": null,
+      "sha256": "0852aeb3f740ec81621ca11ffff96301e8ab3e364f61ad0fc5ed86151ee9846b",
+      "bytes": 757
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\_window.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/_window.xl",
+      "beforeSha256": null,
+      "sha256": "7f1006bfeb3f0a3bee7110992c38483de821959ad6f7227f57b761167ee6fd05",
+      "bytes": 5683
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\accordion.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/accordion.xl",
+      "beforeSha256": null,
+      "sha256": "0b195f8bffe24b14a43b9003e92bfc2ae55128eaf2e47bd79ff0eb9a5c151d61",
+      "bytes": 731
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\all_controls.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/all_controls.xl",
+      "beforeSha256": null,
+      "sha256": "09b9ddf4e1b952855f792d2c559f24ebcebe81373a25bd4e8d640af547bce8f8",
+      "bytes": 30554
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\basic.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/basic.xl",
+      "beforeSha256": null,
+      "sha256": "42b3453e21274031fd5f61088d8588eebf6196680327c73c703da46f9980af03",
+      "bytes": 780
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\breadcrumb.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/breadcrumb.xl",
+      "beforeSha256": null,
+      "sha256": "530cec1d152534c083ee1d5f8636dac6b0bce158549bf6da092e25c0fbf3dd8e",
+      "bytes": 404
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\button.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/button.xl",
+      "beforeSha256": null,
+      "sha256": "c7052ce68dc14b64e5fd741c7591fe6f7cba1f46f2e474b55c2281c03cc32d6f",
+      "bytes": 567
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\canvas.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/canvas.xl",
+      "beforeSha256": null,
+      "sha256": "7f92423cd324cf356b3f3a478205a0f3c8dfaef54112f8c7ff863bba01426bb1",
+      "bytes": 528
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\carousel.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/carousel.xl",
+      "beforeSha256": null,
+      "sha256": "33ac05ec248cda8dce34bfa8ed8b61751d538a46e0e6dc9a47897578516752fe",
+      "bytes": 637
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\cascader.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/cascader.xl",
+      "beforeSha256": null,
+      "sha256": "0499b4a1c0ee5ac91a0c5904c5d369ee9c577123a24b30b4e9951d00ace04769",
+      "bytes": 671
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\chart.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/chart.xl",
+      "beforeSha256": null,
+      "sha256": "2c35fb9f6996a47d1f4420b3f1a7e455d947acffa6905f8dfe80267d6bcecc12",
+      "bytes": 496
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\checkbox.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/checkbox.xl",
+      "beforeSha256": null,
+      "sha256": "214c832ac4ba881e25c06bc0c4fff22970afce5bfd45548076d2b75b037892b4",
+      "bytes": 387
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\checkcard.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/checkcard.xl",
+      "beforeSha256": null,
+      "sha256": "e51c4eb6e617cc56e7f8435c1f6b7d97fb422d8c6f14069c1f5e8bbeeee0ceb6",
+      "bytes": 418
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\codeedit.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/codeedit.xl",
+      "beforeSha256": null,
+      "sha256": "2fffc2d753ee05719f9591721c6c3449fe48220c465f72f24f9a3ffbaaccd72d",
+      "bytes": 653
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\colorpicker.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/colorpicker.xl",
+      "beforeSha256": null,
+      "sha256": "cec55e170b4d42f93f686ed1dc9f2dbbb96b5712c27ed8dcf0952a9192cef24a",
+      "bytes": 320
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\combobox.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/combobox.xl",
+      "beforeSha256": null,
+      "sha256": "f4ef4931d6d8f8b21b005b60b87adc09611f2afa0286d835f48a2ff64866dcf1",
+      "bytes": 346
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\context_graph.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/context_graph.xl",
+      "beforeSha256": null,
+      "sha256": "9fd9f8bf138d594e7eea94790e111ddd6f931319a2b2ed3a5fc6887aa09da8fa",
+      "bytes": 423
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\data_object.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/data_object.xl",
+      "beforeSha256": null,
+      "sha256": "aeb5d7aea9b84aacbc8aa39cc5b72fefe293d84e551be169eb5beaf6e7f25bd8",
+      "bytes": 408
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\datepicker.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/datepicker.xl",
+      "beforeSha256": null,
+      "sha256": "3d57823c782bfdcd2acda2286b851a95654852a27bfe99949779dc96a4fda862",
+      "bytes": 311
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\dockpanel.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/dockpanel.xl",
+      "beforeSha256": null,
+      "sha256": "2847e35a12687ac83c27846e234abbfa7d587d70208cf14c6ae36386e8879a7d",
+      "bytes": 802
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\document_model.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/document_model.xl",
+      "beforeSha256": null,
+      "sha256": "389200d7c7f895cb013aefeaccc6268500781c48433a2239e2779b8ab74c04d8",
+      "bytes": 791
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\document_ui_headless.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/document_ui_headless.xl",
+      "beforeSha256": null,
+      "sha256": "c309d7306d9d013a3bbbef9be1c0f7aa637dc0049e448e65cc31fe4381cff447",
+      "bytes": 628
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\documenteditor.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/documenteditor.xl",
+      "beforeSha256": null,
+      "sha256": "03f575bdcaee661d5e9d656e9980ad58400fcf6d700982ce673d2ad128d9ffd0",
+      "bytes": 915
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\filedialog.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/filedialog.xl",
+      "beforeSha256": null,
+      "sha256": "d6dcfc9d9d4308f34a01714a3b5260f71d46d3e461af7cfba4a0f34acb854966",
+      "bytes": 889
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\gallery.json",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/gallery.json",
+      "beforeSha256": null,
+      "sha256": "8cf1ad92adb99990d88704145e3faaba4bf84da9821ea8dd28ce51057d1b4d68",
+      "bytes": 14755
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\gui_surface_draw.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/gui_surface_draw.xl",
+      "beforeSha256": null,
+      "sha256": "ebb6be42659e9642817ee4de05837fff32ca08daa472caa0f058db5b3b6f5ca2",
+      "bytes": 843
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\headless_cell.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/headless_cell.xl",
+      "beforeSha256": null,
+      "sha256": "31a25b1f3711641a1a461c3ce684c841f9669274fa1cdb0c316b51b7331bf895",
+      "bytes": 326
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\headless_path.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/headless_path.xl",
+      "beforeSha256": null,
+      "sha256": "4dccfd0d0360ac4ee4df4c781c36fa2642776ffbae7a3ceba0ce4a9e0e224c33",
+      "bytes": 296
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\hyperlink.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/hyperlink.xl",
+      "beforeSha256": null,
+      "sha256": "1c4b5dce4a4f49949b48030398f90cf01e9b1516357458e5146f13e9b65c3115",
+      "bytes": 423
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\image.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/image.xl",
+      "beforeSha256": null,
+      "sha256": "b35ebc8819c61ce5dd8e065ec663f74efc8d9e9506aa694d8a108190201b7ffc",
+      "bytes": 664
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\input.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/input.xl",
+      "beforeSha256": null,
+      "sha256": "32c5a497eb9b55e0c73c92427c0cc0e23f1d6989b0413ecf2c1f198474803d43",
+      "bytes": 313
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\inventorygrid.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/inventorygrid.xl",
+      "beforeSha256": null,
+      "sha256": "20bb74abbdc85b7d9dda435078185657b44bb91e6ae770bb51a9f7cc87074a89",
+      "bytes": 594
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\label.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/label.xl",
+      "beforeSha256": null,
+      "sha256": "817a98de5cfb8649e54897d6f6b6e60bc39ad208eb7ce5487db0b4dfec803aed",
+      "bytes": 491
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\listview.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/listview.xl",
+      "beforeSha256": null,
+      "sha256": "7779b857b3367db07556a19ab36722f3b018a6a91b8de79f0446fe4d03b20c68",
+      "bytes": 391
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\manager_lifetime.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/manager_lifetime.xl",
+      "beforeSha256": null,
+      "sha256": "b5c21bf0fee83fc863e3ba6d72dd9b292c7a6a92230e4d957a3ff313c0422ca9",
+      "bytes": 352
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\menu.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/menu.xl",
+      "beforeSha256": null,
+      "sha256": "9b97d1e128a2fb11d62f34f5b95060f1fc5477dfa1ba4c31f20ffdd9fa2769b1",
+      "bytes": 916
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\menubar.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/menubar.xl",
+      "beforeSha256": null,
+      "sha256": "222be9b0bc5090dbba849ce0703aa95ca872549ddddf824b9580942b0667142f",
+      "bytes": 735
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\messagelist.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/messagelist.xl",
+      "beforeSha256": null,
+      "sha256": "9c8ace2fc8b78517d67685057a74310803749ab558f6146151d90cc2f0d486fb",
+      "bytes": 504
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\msgbox.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/msgbox.xl",
+      "beforeSha256": null,
+      "sha256": "989a81635827e3e7e5e7ca0f9e12a239b3e0cc7c965130523c42085891e86a85",
+      "bytes": 809
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\msgtip.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/msgtip.xl",
+      "beforeSha256": null,
+      "sha256": "d06af3616dedf6597d1e4fdf90347c066ed106f5d0ff9bbe045071fad4ffb8a5",
+      "bytes": 400
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\numericinput.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/numericinput.xl",
+      "beforeSha256": null,
+      "sha256": "a77938ba81cda7710a76d49d58e573e8e7af5a26d56373f1a955d904baad9c39",
+      "bytes": 353
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\page.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/page.xl",
+      "beforeSha256": null,
+      "sha256": "f1eb0d0b4f814638270429d4b5f869ee08685380293dd642ce5352ab9e2bd5c5",
+      "bytes": 299
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\panel.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/panel.xl",
+      "beforeSha256": null,
+      "sha256": "a05182ca06c9d21e8c640a890f3cca15715f02ab036f3b5bfcdfbf197f6df2ca",
+      "bytes": 424
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\popup.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/popup.xl",
+      "beforeSha256": null,
+      "sha256": "669efcfa938ea100d232482c11fb84ecc625bdd5f7078310d809692d5a6ece31",
+      "bytes": 719
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\progress.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/progress.xl",
+      "beforeSha256": null,
+      "sha256": "240396ad22b8c4fd4c105988b6348da06d816ebf072f362e871b708611bf5b08",
+      "bytes": 643
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\propertygrid.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/propertygrid.xl",
+      "beforeSha256": null,
+      "sha256": "d41d7620e37b3a650ef533688b44e147e598ca30db2c819f04ad91ca73375914",
+      "bytes": 558
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\qrcode.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/qrcode.xl",
+      "beforeSha256": null,
+      "sha256": "5882d2c8788f1ce2d7af625ff1d7f49a48932c697cd1b423b88b6e8549b3e6db",
+      "bytes": 363
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\radio.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/radio.xl",
+      "beforeSha256": null,
+      "sha256": "b05c57f9e1c97353d7d82fd0454e1db2142071589e409c2eb3003241fad5c4bf",
+      "bytes": 561
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\radiogroup.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/radiogroup.xl",
+      "beforeSha256": null,
+      "sha256": "63eb777d68ebbdb418f8ab6a7dc8cd9e541774485b664ea21bd83591110d4c21",
+      "bytes": 549
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\rangeslider.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/rangeslider.xl",
+      "beforeSha256": null,
+      "sha256": "025f9573dc1621bf19a167da68f65a7a08e321265d10c3bb8ea3811d79c0deda",
+      "bytes": 402
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\README.md",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/README.md",
+      "beforeSha256": null,
+      "sha256": "101811dd6d85568d91716a2a0573fcd70ea25e56f216604a5a54c28dc128959f",
+      "bytes": 12120
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\richtext.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/richtext.xl",
+      "beforeSha256": null,
+      "sha256": "b71b9211d4a0f23f1e1d479e9ca3cc8e6e16f0cffc6ea5f8b7306a47f9232421",
+      "bytes": 887
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\run_xui_examples.bat",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/run_xui_examples.bat",
+      "beforeSha256": null,
+      "sha256": "4fa4f3cf1f0caa34a260895a56d8b0f9c6429bf776cb963706608b4637b4f6fc",
+      "bytes": 773
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\scrollbar.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/scrollbar.xl",
+      "beforeSha256": null,
+      "sha256": "7efdb11667ce2fd74d6844be84520e36edc4c56d0221b30c631fc49c59e6d0ca",
+      "bytes": 441
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\scrollframe.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/scrollframe.xl",
+      "beforeSha256": null,
+      "sha256": "a715edb4fdf0f839b6f24fc1728974d3699d487449718bb76e735e21a481cd32",
+      "bytes": 571
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\scrollview.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/scrollview.xl",
+      "beforeSha256": null,
+      "sha256": "157ad802d1929378a68911d17302eb58c87d670019483a397983eae203fb93f2",
+      "bytes": 576
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\separator.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/separator.xl",
+      "beforeSha256": null,
+      "sha256": "7b724179f3699e7ddef03fc94871b8e449aa84620434b4303d2a5bde5762f334",
+      "bytes": 537
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\shared_find.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/shared_find.xl",
+      "beforeSha256": null,
+      "sha256": "d2388f9f02847d8d0dbe1f598fbd53a84841cf9eee030e56bc7a6fb279a24f07",
+      "bytes": 706
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\slider.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/slider.xl",
+      "beforeSha256": null,
+      "sha256": "406c9cb7c539295c4711720ffd2aab2582d4876875b267c6cafb798d73fbc7d6",
+      "bytes": 546
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\splitlayout.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/splitlayout.xl",
+      "beforeSha256": null,
+      "sha256": "22156dbd43fcb5aaa7cbae11d55fee023a0d9c23ba81e584a15efc614868d565",
+      "bytes": 728
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\statusbar.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/statusbar.xl",
+      "beforeSha256": null,
+      "sha256": "ef68fb0f39c281a6562c3bfad7aac7b0d0ff7a864cc25c2c907e2d3f2672c3b4",
+      "bytes": 384
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\stepbar.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/stepbar.xl",
+      "beforeSha256": null,
+      "sha256": "e265755d64a04465b149e4eb189661e954722a3bb0f334867bff32d9cad101fd",
+      "bytes": 342
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\tablegrid.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/tablegrid.xl",
+      "beforeSha256": null,
+      "sha256": "bb90175f99e86617e01fa391fac9718b14b78a235e2adaa1c1ce3c293fcc759d",
+      "bytes": 791
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\tableview.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/tableview.xl",
+      "beforeSha256": null,
+      "sha256": "d7b1a7e384ef2c1854cb0eba49ee56ce6f712fc59b9ddd64ee2ea5c37e56ca86",
+      "bytes": 657
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\tabs.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/tabs.xl",
+      "beforeSha256": null,
+      "sha256": "b96fb256353db09734fa33f120d079a3a4b8cd9428b7cfa0b2211415713816c9",
+      "bytes": 859
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\taginput.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/taginput.xl",
+      "beforeSha256": null,
+      "sha256": "11a46d949b6ba9d8493d76347a9a50b703055550107e7c25b17738b972d85532",
+      "bytes": 389
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\terminal.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/terminal.xl",
+      "beforeSha256": null,
+      "sha256": "76d06b8054b0a1a043cff764b58b92a1fc3b89ba81edeaaeceeb74d5dc62f37f",
+      "bytes": 426
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\textedit.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/textedit.xl",
+      "beforeSha256": null,
+      "sha256": "eca5b790134ca4b08610cb07a0d96d0e93d10ba80851c6dac98760fa20e9c65b",
+      "bytes": 408
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\timeline.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/timeline.xl",
+      "beforeSha256": null,
+      "sha256": "6adaf803f1bd18e24c878032c621a25e8b594b8a8e86ce589f2cf04947db6862",
+      "bytes": 450
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\toast.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/toast.xl",
+      "beforeSha256": null,
+      "sha256": "379d0bb604cc4c58f1d37386fdb8548500fe57a5cb4ee546fb99d9393f2b3467",
+      "bytes": 471
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\toggle.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/toggle.xl",
+      "beforeSha256": null,
+      "sha256": "0043fbabae66bfbf9e48c83a838ca7830686589feba28875677fa44e9add94f0",
+      "bytes": 316
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\toolbar.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/toolbar.xl",
+      "beforeSha256": null,
+      "sha256": "914a87cd0f54caaaccc1b017b52cf856cb9ce3b8f245bb785a8cc7101be4a38f",
+      "bytes": 464
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\treeview.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/treeview.xl",
+      "beforeSha256": null,
+      "sha256": "ce92e734f8e0162f51db21eea10c62b7d32948c35e7e15ad5a5ed6d1eac036f0",
+      "bytes": 441
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\virtualjoystick.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/virtualjoystick.xl",
+      "beforeSha256": null,
+      "sha256": "518dcda9e388cf9ab6195e5f5ecaf8f688b06a0b6623c5101e7408440553e6f2",
+      "bytes": 601
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\webview.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/webview.xl",
+      "beforeSha256": null,
+      "sha256": "371d413e3b5498e759f810b219add3ad288c10b02dfdb23c2e3df1c67a3b4e2d",
+      "bytes": 1329
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\widget.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/widget.xl",
+      "beforeSha256": null,
+      "sha256": "750a6a4272edee60111977cc6bf6723c5aea8a09b1a5fda5762a9f41b95704e6",
+      "bytes": 428
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\examples\\window.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/examples/window.xl",
+      "beforeSha256": null,
+      "sha256": "439999e6066dbe5883c7cab5d8b16fc378e957acde7fc41015c48851da39e87b",
+      "bytes": 561
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\README.md",
+      "path": "release/linux_x64/static/xge3/packages/xui/README.md",
+      "beforeSha256": null,
+      "sha256": "615bf63941a040f098bdcb5cba15d2747381cbc75eff00cedd5d2d784ab97d8e",
+      "bytes": 15840
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\src\\bootstrap.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/src/bootstrap.xl",
+      "beforeSha256": null,
+      "sha256": "42fe4b3c2fa7d7deb10f418bb1d7c9a350d20e98dd9533d3f07e4b17988e2557",
+      "bytes": 92
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\src\\cell.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/src/cell.xl",
+      "beforeSha256": null,
+      "sha256": "852cb65a590028fb42af45c07724e99976b915a49c5a1bdfa386e2cedeb6162b",
+      "bytes": 1875
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\src\\constants.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/src/constants.xl",
+      "beforeSha256": null,
+      "sha256": "cc9c25ce1fb50f3516e36b7a7978129a5245ff7add9e5a4d93d08b026a8db121",
+      "bytes": 73515
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\src\\data_object.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/src/data_object.xl",
+      "beforeSha256": null,
+      "sha256": "32710274d0f069fae960966e0d2d1b94c01a9d27155963fdf95bddf65a5a8774",
+      "bytes": 4654
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\src\\document.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/src/document.xl",
+      "beforeSha256": null,
+      "sha256": "97747c52db93cb015e0fb3d1065c10752350946bb6062d66709f6011c1a647b5",
+      "bytes": 34415
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\src\\document_records.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/src/document_records.xl",
+      "beforeSha256": null,
+      "sha256": "aa6e9d36ce9ebd07317aa616e32cfb35f19206365b345543d22f3350f5b27727",
+      "bytes": 20348
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\src\\document_ui.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/src/document_ui.xl",
+      "beforeSha256": null,
+      "sha256": "aedb3c2ab8f7c81b54622d61e6e41b6fdaf4081f547e8b2102ea0bafce784bad",
+      "bytes": 32933
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\src\\document_ui_message_methods.inc",
+      "path": "release/linux_x64/static/xge3/packages/xui/src/document_ui_message_methods.inc",
+      "beforeSha256": null,
+      "sha256": "b274aaae51cb778920a0d7d91162a743440ac90a10bd2e3c43e53be9bb550f40",
+      "bytes": 5425
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\src\\document_ui_records.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/src/document_ui_records.xl",
+      "beforeSha256": null,
+      "sha256": "e1733bd428c6ef3a6534f60ccb95988b502de0819ce65d3f43847e4cad4480e3",
+      "bytes": 6074
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\src\\draw.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/src/draw.xl",
+      "beforeSha256": null,
+      "sha256": "522236365e3d98a35062a200386b62f5b89df9b6738b59679ad81050cd4eb14a",
+      "bytes": 1189
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\src\\find.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/src/find.xl",
+      "beforeSha256": null,
+      "sha256": "620bcbb4d21adfc31cd9c19f0c8a8e0a1fe9084fc8e105cafee2043a7425317b",
+      "bytes": 3178
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\src\\managed.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/src/managed.xl",
+      "beforeSha256": null,
+      "sha256": "bbfcd3f600af21fbb3f21276eb2db640a7eea4b880cd72fac78e1e0a488b8b52",
+      "bytes": 320391
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\src\\managers.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/src/managers.xl",
+      "beforeSha256": null,
+      "sha256": "f76d15ca17b70af1e5c14d65b01252e6f17a72ec8a185b530cb96c108b1927ef",
+      "bytes": 20818
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\src\\proxy.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/src/proxy.xl",
+      "beforeSha256": null,
+      "sha256": "d0696614130440193cd09369e0c9cf3f7039652281154bbd2a75b475c866f76e",
+      "bytes": 38370
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\src\\records.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/src/records.xl",
+      "beforeSha256": null,
+      "sha256": "fef21eec3dfc19166afcebda44baddff90b440d6cd06a7155496fb5f262120a1",
+      "bytes": 25086
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\src\\text_shape.xl",
+      "path": "release/linux_x64/static/xge3/packages/xui/src/text_shape.xl",
+      "beforeSha256": null,
+      "sha256": "a4e463dcbe2aa1ec8bfac3f008eeda7590b7635ae519c720af142e39ff3496f7",
+      "bytes": 2132
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\accepted-linux-static\\xui\\xlang.package.json",
+      "path": "release/linux_x64/static/xge3/packages/xui/xlang.package.json",
+      "beforeSha256": null,
+      "sha256": "7f9188c845d159984c083d7f1194da4c06c5e323b56bf5c3942523dbcee0cd31",
+      "bytes": 866
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\sdk_manifest.json",
+      "path": "ide/third_party/xge_sdk/sdk_manifest.json",
+      "beforeSha256": "84635776d9c684b9c0c20c3b1658c565a1fda3084836ba339a6386dbc846cf30",
+      "sha256": "25181855e5402f25b24cb51cedff76eba08160413682f4c3feac91f601d8ec5a",
+      "bytes": 28525
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\xge-source-files.json",
+      "path": "ide/third_party/xge_sdk/xge-source-files.json",
+      "beforeSha256": "7804a974cbb32e9a4e9b13dd700db7ff3b2675ddc914e78c12d0f52c1b6f534a",
+      "sha256": "ea3e75c48ab3b7b5b7438c675071754736b0be1b2b95e471b79e7a8092999954",
+      "bytes": 147084
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\xge.dll",
+      "path": "ide/third_party/xge_sdk/xge.dll",
+      "beforeSha256": "acdc0e86fd27d30ca0d96b578e832315766a39b9f1af5a442babb7a8902c1d53",
+      "sha256": "c2d9a9bc1ccfd607f15580d8ff7c56a5c830008e0ae0223fe3680371b7739491",
+      "bytes": 11170056
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\xge.h",
+      "path": "ide/third_party/xge_sdk/xge.h",
+      "beforeSha256": "b7b315ddfca9add6074a1e414f1da2188e4a0ece037e8ce3927c9ffa8e7f5d79",
+      "sha256": "a6fa53373b0671f1342500c17d4f66ef86a21169014f665ebf03714418aadf14",
+      "bytes": 238006
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\xge.lib",
+      "path": "ide/third_party/xge_sdk/xge.lib",
+      "beforeSha256": "802497e35145e73ab151e389dddad417d079ba9211ebfb93cfbc7f754b43ab76",
+      "sha256": "77dcf16a778a2997c063ad12363733a21fcae5899d29e89fad1bc17f7f9bb192",
+      "bytes": 4696574
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\xge_build_config.h",
+      "path": "ide/third_party/xge_sdk/xge_build_config.h",
+      "beforeSha256": "645e1220e4483db2d455a33d08048747042ab670ab58398e28ace65ec6e64c1f",
+      "sha256": "ac11c9bdf8b2ec0dab9b1e2b9e302a4642b6bc16458d35b1c113a1310f42bf84",
+      "bytes": 3328
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\xui.h",
+      "path": "ide/third_party/xge_sdk/xui.h",
+      "beforeSha256": "f4c30a59203d3ce61d4995ffff296f1413c3ba322ea6d362f198a8c0317cd168",
+      "sha256": "7277659690681a8221370b9ce4b50ec7932ee1d45f597df9c6d285544b2b3a90",
+      "bytes": 709988
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\xui_config.h",
+      "path": "ide/third_party/xge_sdk/xui_config.h",
+      "beforeSha256": "01448ede1da13af8e8ef81ef7574f15edc88f5fa8c2312d9d8a5ede91e17f193",
+      "sha256": "735eb9adf7a85f28902454478f96984f91b2b3971d00deefa28dc8df06ecbfad",
+      "bytes": 22964
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\provenance\\parent-sdk-manifest.json",
+      "path": "ide/third_party/xge_sdk/provenance/parent-sdk-manifest.json",
+      "beforeSha256": "cd4d11b87a184e38fe499e6e79b0dc97772b76cf0ff4a2f1cde3556afeece5f0",
+      "sha256": "84635776d9c684b9c0c20c3b1658c565a1fda3084836ba339a6386dbc846cf30",
+      "bytes": 23448
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\provenance\\source-build-manifest.json",
+      "path": "ide/third_party/xge_sdk/provenance/source-build-manifest.json",
+      "beforeSha256": "7804a974cbb32e9a4e9b13dd700db7ff3b2675ddc914e78c12d0f52c1b6f534a",
+      "sha256": "ea3e75c48ab3b7b5b7438c675071754736b0be1b2b95e471b79e7a8092999954",
+      "bytes": 147084
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\provenance\\source-build-report.json",
+      "path": "ide/third_party/xge_sdk/provenance/source-build-report.json",
+      "beforeSha256": "0ddf996571e8ed4b8addd902cd190c05021b8d25c2e484532170a49246d7d563",
+      "sha256": "09cf02e72b672039db235134fa94ccadee830217a72212bfeec46357517007a7",
+      "bytes": 27773
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\provenance\\xrt-declarations.json",
+      "path": "ide/third_party/xge_sdk/provenance/xrt-declarations.json",
+      "beforeSha256": "c21590e26deb90201c9a4a2faef1f94993ab5e8049a725b41757e1c28bb79808",
+      "sha256": "76835d98e81b4f56507ca2845ba782c0ba147c9bbe00543578aabb534a6a141e",
+      "bytes": 517
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\extlibs\\xrt\\xrt.h",
+      "path": "ide/third_party/xge_sdk/extlibs/xrt/xrt.h",
+      "beforeSha256": "34013bc0e69f7dad34f4f8a5269e20ad84f0a5c1963dc717a8cd98fc3611a9e3",
+      "sha256": "fcca8e92dc4f04384ec39ce35dfdbfbe676c21e363c4b311ecd12165fc6ef5fc",
+      "bytes": 1155153
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\provenance\\compatibility-patches\\patch-manifest.json",
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/patch-manifest.json",
+      "beforeSha256": "acc44e589cae6108d6e9ebffa75c68b77b441f2de0b957c51312389c5d46d4c3",
+      "sha256": "b19bd70b17115d340d5aa886b04713750f8ec88f7cc4694de0e500ef93ad9f1f",
+      "bytes": 5607
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\provenance\\compatibility-patches\\diff\\include\\xge.h.diff",
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/diff/include/xge.h.diff",
+      "beforeSha256": null,
+      "sha256": "e119f5e8c3dcb8041569f0f7661cd075c8fa8945c023541d4fcc148d2de94745",
+      "bytes": 1916
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\provenance\\compatibility-patches\\diff\\include\\xui.h.diff",
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/diff/include/xui.h.diff",
+      "beforeSha256": null,
+      "sha256": "0ce193d79920f72faf15b3b509032b73da7e73acc0ed44987a25aa0e2161427d",
+      "bytes": 4247
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\provenance\\compatibility-patches\\diff\\extlibs\\sokol\\sokol_app.h.diff",
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/diff/extlibs/sokol/sokol_app.h.diff",
+      "beforeSha256": "652f6b352350dfefe4ca732602ebdb32ae9a41c0cd729509cf190610dd4023ec",
+      "sha256": "652f6b352350dfefe4ca732602ebdb32ae9a41c0cd729509cf190610dd4023ec",
+      "bytes": 8730
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\provenance\\compatibility-patches\\diff\\extlibs\\xrt\\xrt.h.diff",
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/diff/extlibs/xrt/xrt.h.diff",
+      "beforeSha256": null,
+      "sha256": "5489edbe8dbdb1bcc715e069fbe034842e7a7e3c0b8c4b3e15c6d5e94077bb4d",
+      "bytes": 7502
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\provenance\\compatibility-patches\\diff\\src\\xge\\core\\xge_core.c.diff",
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/diff/src/xge/core/xge_core.c.diff",
+      "beforeSha256": "50a939cc2efbe8bd9c57488b054f68517d0d79c9ce5a07fcf687922f43b89fc4",
+      "sha256": "50a939cc2efbe8bd9c57488b054f68517d0d79c9ce5a07fcf687922f43b89fc4",
+      "bytes": 480
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\provenance\\compatibility-patches\\diff\\src\\xge\\core\\xge_impl.c.diff",
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/diff/src/xge/core/xge_impl.c.diff",
+      "beforeSha256": "88db7f6fbd2c32b722e1037606f89fe24b0eeeef47aa27ce0204e07328254420",
+      "sha256": "17022d31185e4e27a10f23d49a5fc9115f2c344b71fdb4007761b586c107fa56",
+      "bytes": 2594
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\provenance\\compatibility-patches\\diff\\src\\xge\\input\\xge_data_object.c.diff",
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/diff/src/xge/input/xge_data_object.c.diff",
+      "beforeSha256": null,
+      "sha256": "afd500d516f143581d66b87678a8549e7c66d946a874e823b880fd2177ace98c",
+      "bytes": 382
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\provenance\\compatibility-patches\\diff\\src\\xge\\text\\xge_system_font.c.diff",
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/diff/src/xge/text/xge_system_font.c.diff",
+      "beforeSha256": null,
+      "sha256": "360bb89341e788c38a72e4bef5436d4a6bcc10e03326675405cc998e559c9ced",
+      "bytes": 16420
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\provenance\\compatibility-patches\\diff\\src\\xui\\core\\xui_core.c.diff",
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/diff/src/xui/core/xui_core.c.diff",
+      "beforeSha256": null,
+      "sha256": "7ec96ac2bfb5c87edb99c593c0bdd15883e3f0314ecba612dc2c4836b49c67b9",
+      "bytes": 10787
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\provenance\\compatibility-patches\\diff\\src\\xui\\core\\xui_internal.h.diff",
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/diff/src/xui/core/xui_internal.h.diff",
+      "beforeSha256": "738ae75bd2a3ded6643d3d4118506a9f9db1963259f38e620af5b08a1d748778",
+      "sha256": "72059860e7f6012c1b870e8557657333420edb98fd16266130bde059df090b59",
+      "bytes": 605
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\provenance\\compatibility-patches\\diff\\src\\xui\\core\\xui_owned_resource_slots.c.diff",
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/diff/src/xui/core/xui_owned_resource_slots.c.diff",
+      "beforeSha256": null,
+      "sha256": "32eb9aad1e08f66bc13f0b9cb2569894bf4d6c41e3ba3985a9fde7d20b407928",
+      "bytes": 747
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\provenance\\compatibility-patches\\diff\\src\\xui\\core\\xui_proxy_xge.c.diff",
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/diff/src/xui/core/xui_proxy_xge.c.diff",
+      "beforeSha256": null,
+      "sha256": "1f41627e5df33f055b5eb936eed7bcd67793accafd607abd70b6a23495f44875",
+      "bytes": 1478
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\provenance\\compatibility-patches\\diff\\src\\xui\\core\\xui_widget.c.diff",
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/diff/src/xui/core/xui_widget.c.diff",
+      "beforeSha256": null,
+      "sha256": "e67170b06093980f1a8ba463c479a9e443d2599e77fb358fe986ca7484e997fa",
+      "bytes": 2916
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\provenance\\compatibility-patches\\diff\\tools\\build\\build.py.diff",
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/diff/tools/build/build.py.diff",
+      "beforeSha256": null,
+      "sha256": "94a83c5118cfdfcc6d852440dc53c789b97e6461d461a8307d21a1bbe858d0e5",
+      "bytes": 639
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\provenance\\compatibility-patches\\payload\\include\\xge.h",
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/payload/include/xge.h",
+      "beforeSha256": null,
+      "sha256": "a6fa53373b0671f1342500c17d4f66ef86a21169014f665ebf03714418aadf14",
+      "bytes": 238006
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\provenance\\compatibility-patches\\payload\\include\\xui.h",
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/payload/include/xui.h",
+      "beforeSha256": null,
+      "sha256": "7277659690681a8221370b9ce4b50ec7932ee1d45f597df9c6d285544b2b3a90",
+      "bytes": 709988
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\provenance\\compatibility-patches\\payload\\extlibs\\xrt\\xrt.h",
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/payload/extlibs/xrt/xrt.h",
+      "beforeSha256": null,
+      "sha256": "41bc24579f4b3207b0434755ca23dd06481af90c05f71e9b365848cf9a7c12d1",
+      "bytes": 9119295
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\provenance\\compatibility-patches\\payload\\src\\xge\\core\\xge_impl.c",
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/payload/src/xge/core/xge_impl.c",
+      "beforeSha256": "f223007e204a7f9994f4b114344aa487fd373abc8c99737c922cafe1afab1402",
+      "sha256": "07fb8b684e7d2d48cb24da2dca23b9038e998e95f7e72da15b095ea9036fbcee",
+      "bytes": 74963
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\provenance\\compatibility-patches\\payload\\src\\xge\\input\\xge_data_object.c",
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/payload/src/xge/input/xge_data_object.c",
+      "beforeSha256": null,
+      "sha256": "be4c725faff9d5c2c5b2d533bb3d06ed0b02e2587f5e297d85013a820927586a",
+      "bytes": 23552
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\provenance\\compatibility-patches\\payload\\src\\xge\\text\\xge_system_font.c",
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/payload/src/xge/text/xge_system_font.c",
+      "beforeSha256": null,
+      "sha256": "12e0c3fe224b5f5bd6a0f88d578c7415c25f74572e359659156c531195e358cc",
+      "bytes": 15933
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\provenance\\compatibility-patches\\payload\\src\\xui\\core\\xui_core.c",
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/payload/src/xui/core/xui_core.c",
+      "beforeSha256": null,
+      "sha256": "fcf6ec3137ec6fe7722f434a8fdc1a0c21e918c8aecec5e1bb158cb61230ebe7",
+      "bytes": 156197
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\provenance\\compatibility-patches\\payload\\src\\xui\\core\\xui_internal.h",
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/payload/src/xui/core/xui_internal.h",
+      "beforeSha256": "3b2a1a730a1d8d536759b6d919baf8a484fc42ac38cf255d4f783f6f885ab40f",
+      "sha256": "3864af59ebaa9d2c5e773190831335955fc57fa096bc1df521825c6395567709",
+      "bytes": 60298
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\provenance\\compatibility-patches\\payload\\src\\xui\\core\\xui_owned_resource_slots.c",
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/payload/src/xui/core/xui_owned_resource_slots.c",
+      "beforeSha256": null,
+      "sha256": "beeb92ae8b7cd719297f83868d6454ce21fdd3f566368f2fad988efd891287ba",
+      "bytes": 14670
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\provenance\\compatibility-patches\\payload\\src\\xui\\core\\xui_proxy_xge.c",
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/payload/src/xui/core/xui_proxy_xge.c",
+      "beforeSha256": null,
+      "sha256": "ff980ed8bdaab15940de653fbb3c76a3eda03d3fa5863dffd1373b32d17cfb13",
+      "bytes": 124763
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\provenance\\compatibility-patches\\payload\\src\\xui\\core\\xui_widget.c",
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/payload/src/xui/core/xui_widget.c",
+      "beforeSha256": null,
+      "sha256": "b5ba15633c03615f95e614b3b80795921cfc053c0cab99d8f4910a830253e6f9",
+      "bytes": 324771
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\sdk-stage\\sdk\\provenance\\compatibility-patches\\payload\\tools\\build\\build.py",
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/payload/tools/build/build.py",
+      "beforeSha256": null,
+      "sha256": "754840e4a884f5d24e73cfa1e2b16a111ecd906d3354a207dd77b9a00dfe41dd",
+      "bytes": 17200
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-sync-20261108-r2\\ide-win\\xge.dll",
+      "path": "release/win_x64/xge.dll",
+      "beforeSha256": "acdc0e86fd27d30ca0d96b578e832315766a39b9f1af5a442babb7a8902c1d53",
+      "sha256": "c2d9a9bc1ccfd607f15580d8ff7c56a5c830008e0ae0223fe3680371b7739491",
+      "bytes": 11170056
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\ide\\build\\Release\\xge-sync-20261108\\objects\\xlang_ide.link.exe",
+      "path": "release/win_x64/xlang_ide.exe",
+      "beforeSha256": "35863315f555c51c0ef7ac563147caebf2f6640d7f3e9eaecf2daef5cff8f40a",
+      "sha256": "f8d38ffdea249a0ae211103c0d8e300aa71f3a39da8bf1b81c01109deaa43f03",
+      "bytes": 1897286
+    }
+  ],
+  "limits": [
+    "Targeted update acceptance, not a whole-project test pass.",
+    "Native activation callback registration and raw reusable output-slot dialog APIs remain explicit C interoperability.",
+    "The compiler and language-server binaries were not rebuilt by this update."
+  ],
+  "compilerAndLanguageServerUnchanged": true,
+  "finalInstalledCatalogSmoke": {
+    "exit": 0,
+    "command": [
+      "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide.exe",
+      "--hidden",
+      "--frames",
+      "5",
+      "--no-session",
+      "--no-auto-diagnostics",
+      "--settings",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\xge-sync-20261108\\installed-catalog-smoke\\settings.json",
+      "--session-root",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\xge-sync-20261108\\installed-catalog-smoke\\sessions",
+      "--diagnostic-root",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\xge-sync-20261108\\installed-catalog-smoke\\diagnostics"
+    ]
+  },
+  "postAcceptanceFormatting": {
+    "path": "xlang/test/cases/foreign_xge3_update_20261108.xl",
+    "acceptedSha256": "6531f7a26020d4265190ac82a394edb68e8b085b8fd4a1c5984cfda19f9f77d0",
+    "finalSha256": "6e0fdd6265e6ae57a71c8fd13869e7ab7b644083e2d9a282674f9c8f99a85cf9",
+    "change": "Only trailing whitespace on empty lines and at EOF; no source tokens changed."
+  },
+  "postAcceptanceMetadata": "Review diffs normalized for CRLF/LF; compiled headers, payloads, libraries and application binaries unchanged."
+}

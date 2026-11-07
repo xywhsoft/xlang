@@ -42,6 +42,7 @@ export extern "xui_proxy_t*" class Proxy @header("xge3_runtime.h") @lifetime("ow
  extern "shapeCircleFill" @c_field_call @no_raise @c_result("status",0) func fillCircle(Surface? target,c_float x,c_float y,c_float radius,c_uint color)
  extern "shapeCircleStroke" @c_field_call @no_raise @c_result("status",0) func strokeCircle(Surface? target,c_float x,c_float y,c_float radius,c_float width,c_uint color)
  extern "fontLoadFile" @c_field_call @no_raise @c_cstr(0) @c_result("owned_view") @factory(1,0,rollbackFont) func loadFont(string path,c_float size,c_uint flags=0) as Font
+ extern "fontLoadSystem" @c_field_call @no_raise @c_result("owned_view") @factory(1,0,rollbackFont) @c_pack(2,"xui_system_font_desc_t",0,2) @c_pack_size(2,"iSize","uint32_t") @c_pack_field(2,"fSize",0,"value") @c_pack_field(2,"iFlags",1,"value") func loadSystemFont(c_float size=0,c_uint flags=0) as Font
  extern "fontLoadMemory" @c_field_call @no_raise @c_span(0,"const void*","int") @c_result("owned_view") @factory(1,0,rollbackFont) func loadFontMemory(bytes data,c_float size,c_uint flags=0) as Font
  extern "fontCreateSized" @c_field_call @no_raise @c_result("owned_view") @factory(1,0,rollbackFont) func sizedFont(Font source,c_float size) as Font
  extern "fontGetMetrics" @c_field_call @no_raise @c_output(2,0) func fontMetrics(Font font) as FontMetrics

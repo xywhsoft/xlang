@@ -1,0 +1,28 @@
+// Run: xl run shared_find.xl
+// Searches two documents without creating a graphics window.
+import xui
+
+auto proxy = xui.createProxy()
+try
+ auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+ try
+  auto first = ui.codeEditNative()
+  auto second = ui.codeEditNative()
+  first.setText("alpha alpha")
+  second.setText("alpha beta")
+  auto search = xui.createCodeFindScope()
+  try
+   search.addEditorNamed(first, "first.xl")
+   search.addEditorNamed(second, "second.xl")
+   assert search.findAll("alpha") == 3
+   assert (search.resultEditorName(2) ?? "") == "second.xl"
+   println("Found 3 matches in 2 documents")
+  finally
+   search.close()
+  end
+ finally
+  ui.close()
+ end
+finally
+ proxy.close()
+end

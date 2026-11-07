@@ -1,0 +1,253 @@
+--- a/src/xui/core/xui_core.c
++++ b/src/xui/core/xui_core.c
+@@ -1643,7 +1643,9 @@
+ 	if ( (pProxy == NULL) || (pCaps == NULL) ) {
+ 		return XUI_ERROR_INVALID_ARGUMENT;
+ 	}
+-	if ( (pProxy->iSize < sizeof(*pProxy)) || (pProxy->iVersion != XUI_PROXY_VERSION) ) {
++	/* New optional callbacks are appended. Accept the previous complete prefix
++	 * and zero-fill fields which are absent from an older provider. */
++	if ( (pProxy->iSize < offsetof(xui_proxy_t,fontLoadSystem)) || (pProxy->iVersion != XUI_PROXY_VERSION) ) {
+ 		return XUI_ERROR_UNSUPPORTED;
+ 	}
+ 	if ( !__xuiProxyRequiredCallbacks(pProxy) ) {
+@@ -1681,6 +1683,13 @@
+ 		return XUI_ERROR_UNSUPPORTED;
+ 	}
+ 	return XUI_OK;
++}
++
++static void __xuiContextCopyProxy(xui_proxy_t* output,const xui_proxy_t* input)
++{
++	size_t size=input->iSize<sizeof(*output) ? input->iSize:sizeof(*output);
++	memset(output,0,sizeof(*output));
++	memcpy(output,input,size);
+ }
+ 
+ XUI_API void xuiInteractionPolicyDefault(xui_interaction_policy_t* pPolicy)
+@@ -1808,12 +1817,30 @@
+ 	return XUI_OK;
+ }
+ 
+-static int __xuiCreateContext(xui_context* ppContext)
++XUI_API void xuiContextDescDefault(xui_context_desc_t* pDesc)
++{
++	if(!pDesc)return;
++	memset(pDesc,0,sizeof(*pDesc));
++	pDesc->iSize=sizeof(*pDesc);
++	pDesc->iSystemFontPolicy=XUI_SYSTEM_FONT_AUTO;
++}
++
++static int __xuiCreateContext(const xui_context_desc_t* pDesc,xui_context* ppContext)
+ {
+ 	xui_context pContext;
++	xui_context_desc_t tDesc;
+ 
+ 	if ( ppContext == NULL ) {
+ 		return XUI_ERROR_INVALID_ARGUMENT;
++	}
++	xuiContextDescDefault(&tDesc);
++	if(pDesc!=NULL){
++		if(pDesc->iSize<sizeof(*pDesc) || pDesc->iFlags!=0 ||
++		   pDesc->iSystemFontPolicy<XUI_SYSTEM_FONT_AUTO ||
++		   pDesc->iSystemFontPolicy>XUI_SYSTEM_FONT_EAGER ||
++		   pDesc->fSystemFontSize<0.0f)return XUI_ERROR_INVALID_ARGUMENT;
++		tDesc=*pDesc;
++		tDesc.iSize=sizeof(tDesc);
+ 	}
+ 	*ppContext = NULL;
+ 	pContext = (xui_context)xrtMalloc(sizeof(*pContext));
+@@ -1822,6 +1849,7 @@
+ 	}
+ 	memset(pContext, 0, sizeof(*pContext));
+ 	pContext->iMagic = XUI_CONTEXT_MAGIC;
++	pContext->tCreateDesc=tDesc;
+ 	pContext->pLayoutContext = xLayoutContextCreate(NULL);
+ 	if ( pContext->pLayoutContext == NULL ) {
+ 		pContext->iMagic = 0;
+@@ -1867,9 +1895,15 @@
+ }
+ 
+ XUI_API int xuiCreate(xui_context* ppContext)
+-{return __xuiCreateContext(ppContext);}
++{return __xuiCreateContext(NULL,ppContext);}
++
++XUI_API int xuiCreateEx(const xui_context_desc_t* pDesc,xui_context* ppContext)
++{return __xuiCreateContext(pDesc,ppContext);}
+ 
+ XUI_API int xuiCreateOwned(xui_proxy pProxy,xui_context* ppContext)
++{return xuiCreateOwnedEx(pProxy,NULL,ppContext);}
++
++XUI_API int xuiCreateOwnedEx(xui_proxy pProxy,const xui_context_desc_t* pDesc,xui_context* ppContext)
+ {
+     if(!ppContext)return XUI_ERROR_INVALID_ARGUMENT;
+     *ppContext=NULL;
+@@ -1878,7 +1912,7 @@
+      * Each real graph publication uses its own mutation gate; do not keep a
+      * global mutation interval open across an arbitrary backend callback. */
+     xui_context context=NULL;
+-    int status=xuiInternalProxyReady(pProxy) ? __xuiCreateContext(&context):XUI_ERROR_BUSY;
++    int status=xuiInternalProxyReady(pProxy) ? __xuiCreateContext(pDesc,&context):XUI_ERROR_BUSY;
+     if(status==XUI_OK)status=xuiSetProxyOwned(context,pProxy);
+     if(status==XUI_OK)*ppContext=context;
+     else if(context){
+@@ -1914,9 +1948,12 @@
+     xui_font_entry_t* fonts=pContext->pFonts;int count=pContext->iFontCount;
+     bool dynamic=fonts!=pContext->arrInlineFonts;
+     if(!dynamic){memcpy(inlineFonts,fonts,sizeof(inlineFonts));fonts=inlineFonts;}
+-    xui_font defaultFont=pContext->pDefaultFont;bool owned=pContext->pOwnedProxy!=NULL;
++    xui_font defaultFont=pContext->pDefaultFont;
++    xui_font systemFont=pContext->pSystemFont;
++    bool owned=pContext->pOwnedProxy!=NULL;
+     pContext->pFonts=pContext->arrInlineFonts;pContext->iFontCount=0;
+-    pContext->iFontCapacity=XUI_CONTEXT_FONT_INLINE;pContext->pDefaultFont=NULL;pContext->tTheme.pFont=NULL;
++    pContext->iFontCapacity=XUI_CONTEXT_FONT_INLINE;pContext->pDefaultFont=NULL;
++    pContext->pSystemFont=NULL;pContext->tTheme.pFont=NULL;
+     memset(pContext->arrInlineFonts,0,sizeof(pContext->arrInlineFonts));
+     xerror* first=xrtTakeError();int result=first ? XUI_ERROR_CALLBACK_FAILED:XUI_OK;
+     for(int i=0;i<count;++i){
+@@ -1932,6 +1969,18 @@
+         int status=xuiFontReleaseChecked(defaultFont);xerror* error=xrtTakeError();
+         if(result==XUI_OK && (status!=XUI_OK || error)){result=status!=XUI_OK ? status:XUI_ERROR_CALLBACK_FAILED;first=error;}
+         else xrtErrorFree(error);
++    }
++    if(systemFont){
++        if(owned){
++            int status=xuiFontReleaseChecked(systemFont);xerror* error=xrtTakeError();
++            if(result==XUI_OK && (status!=XUI_OK || error)){result=status!=XUI_OK ? status:XUI_ERROR_CALLBACK_FAILED;first=error;}
++            else xrtErrorFree(error);
++        }else if(pContext->bHasProxy && pContext->tProxy.fontDestroy){
++            pContext->tProxy.fontDestroy(&pContext->tProxy,systemFont);
++            xerror* error=xrtTakeError();
++            if(result==XUI_OK && error){result=XUI_ERROR_CALLBACK_FAILED;first=error;}
++            else xrtErrorFree(error);
++        }
+     }
+     xuiInternalContextRecordOutcome(pContext,result,first);xrtSetErrorTake(first);
+ }
+@@ -2095,10 +2144,21 @@
+ 	if ( iRet != XUI_OK ) {
+ 		return iRet;
+ 	}
+-	pContext->tProxy = *pProxy;
++	__xuiContextCopyProxy(&pContext->tProxy,pProxy);
+ 	pContext->tProxyCaps = tCaps;
+ 	pContext->bHasProxy = 1;
+ 	__xuiContextBumpGeneration(pContext);
++	if(pContext->tCreateDesc.iSystemFontPolicy==XUI_SYSTEM_FONT_EAGER){
++		iRet=xuiEnsureDefaultFont(pContext);
++		if(iRet!=XUI_OK){
++			memset(&pContext->tProxy,0,sizeof(pContext->tProxy));
++			memset(&pContext->tProxyCaps,0,sizeof(pContext->tProxyCaps));
++			pContext->bHasProxy=0;
++			pContext->iSystemFontStatus=0;
++			__xuiContextBumpGeneration(pContext);
++			return iRet;
++		}
++	}
+ 	return XUI_OK;
+ }
+ 
+@@ -2112,7 +2172,7 @@
+     if(pContext->bHasProxy)return XUI_ERROR_ALREADY_INITIALIZED;
+     /* Legacy backend-less contexts may bind only before they acquire slots
+      * whose old contract was borrowed. Safe language factories bind first. */
+-    if(pContext->pAllWidgets || pContext->pResources || pContext->pDefaultFont || pContext->iFontCount)
++    if(pContext->pAllWidgets || pContext->pResources || pContext->pDefaultFont || pContext->pSystemFont || pContext->iFontCount)
+         return XUI_ERROR_INVALID_STATE;
+     xui_call_scope_t scope={0};int result=xuiCallScopeBegin(pContext,&scope);if(result!=XUI_OK)return result;
+     result=xuiProxyAddRef(pProxy);bool retained=result==XUI_OK;
+@@ -2123,8 +2183,20 @@
+         xrtownershipscope mutation={0};
+         if(!xrtOwnershipMutationBegin(&mutation))result=XUI_ERROR_INVALID_STATE;
+         else{
+-            pContext->tProxy=*pProxy;pContext->tProxyCaps=caps;pContext->pOwnedProxy=pProxy;
++            __xuiContextCopyProxy(&pContext->tProxy,pProxy);pContext->tProxyCaps=caps;pContext->pOwnedProxy=pProxy;
+             pContext->bHasProxy=1;retained=false;__xuiContextBumpGeneration(pContext);
++            if(!xrtOwnershipScopeEnd(&mutation))abort();
++        }
++    }
++    if(result==XUI_OK && pContext->tCreateDesc.iSystemFontPolicy==XUI_SYSTEM_FONT_EAGER)
++        result=xuiEnsureDefaultFont(pContext);
++    if(result!=XUI_OK && pContext->pOwnedProxy==pProxy && !pContext->pSystemFont && !pContext->pDefaultFont){
++        xrtownershipscope mutation={0};
++        if(xrtOwnershipMutationBegin(&mutation)){
++            memset(&pContext->tProxy,0,sizeof(pContext->tProxy));
++            memset(&pContext->tProxyCaps,0,sizeof(pContext->tProxyCaps));
++            pContext->pOwnedProxy=NULL;pContext->bHasProxy=0;pContext->iSystemFontStatus=0;
++            retained=true;__xuiContextBumpGeneration(pContext);
+             if(!xrtOwnershipScopeEnd(&mutation))abort();
+         }
+     }
+@@ -2393,7 +2465,70 @@
+ 
+ XUI_API xui_font xuiGetDefaultFont(xui_context pContext)
+ {
+-	return __xuiContextValid(pContext) ? pContext->pDefaultFont : NULL;
++	if(!__xuiContextValid(pContext))return NULL;
++	if(!pContext->pDefaultFont && pContext->tCreateDesc.iSystemFontPolicy!=XUI_SYSTEM_FONT_DISABLED)
++		(void)xuiEnsureDefaultFont(pContext);
++	return pContext->pDefaultFont;
++}
++
++static void __xuiSystemFontDiscard(xui_context pContext,xui_font pFont)
++{
++	if(!pFont)return;
++	if(pContext->pOwnedProxy){
++		bool consumed=false;
++		int status=xuiFontReleaseOwnerChecked(pFont,&consumed);
++		if(status!=XUI_OK)xuiInternalContextRecordFailure(pContext,status);
++	}else if(pContext->tProxy.fontDestroy)pContext->tProxy.fontDestroy(&pContext->tProxy,pFont);
++}
++
++XUI_API int xuiEnsureDefaultFont(xui_context pContext)
++{
++	xui_system_font_desc_t desc={0};
++	xui_font font=NULL;
++	int result;
++	if(!__xuiContextValid(pContext))return XUI_ERROR_INVALID_ARGUMENT;
++	if(pContext->pDefaultFont)return XUI_OK;
++	if(pContext->tCreateDesc.iSystemFontPolicy==XUI_SYSTEM_FONT_DISABLED)return XUI_ERROR_UNSUPPORTED;
++	if(pContext->pSystemFont)return xuiSetDefaultFont(pContext,pContext->pSystemFont);
++	if(!pContext->bHasProxy)return XUI_ERROR_NOT_INITIALIZED;
++	if(pContext->iSystemFontStatus<0)return pContext->iSystemFontStatus;
++	if(pContext->bSystemFontLoading)return XUI_ERROR_BUSY;
++	if(!pContext->tProxy.fontLoadSystem){
++		pContext->iSystemFontStatus=XUI_ERROR_UNSUPPORTED;
++		return pContext->iSystemFontStatus;
++	}
++	pContext->bSystemFontLoading=1;
++	desc.iSize=sizeof(desc);
++	desc.fSize=pContext->tCreateDesc.fSystemFontSize;
++	result=pContext->tProxy.fontLoadSystem(&pContext->tProxy,&font,&desc);
++	if(result==XUI_OK && !font)result=XUI_ERROR_BACKEND_FAILED;
++	if(result!=XUI_OK){
++		__xuiSystemFontDiscard(pContext,font);
++		pContext->bSystemFontLoading=0;
++		pContext->iSystemFontStatus=result;
++		return result;
++	}
++	if(pContext->pOwnedProxy){
++		xui_font_slot_update_t systemUpdate={0};
++		result=xuiInternalFontSlotBegin(pContext,&pContext->pSystemFont,font,true,&systemUpdate);
++		if(result==XUI_OK)result=xuiInternalFontSlotEnd(&systemUpdate,true,xuiSetDefaultFont(pContext,font));
++		if(result!=XUI_OK && pContext->pSystemFont==font){
++			xui_font_slot_update_t clearUpdate={0};
++			int cleanup=xuiInternalFontSlotBegin(pContext,&pContext->pSystemFont,NULL,true,&clearUpdate);
++			(void)xuiInternalFontSlotEnd(&clearUpdate,true,cleanup);
++		}
++		__xuiSystemFontDiscard(pContext,font);
++	}else{
++		pContext->pSystemFont=font;
++		result=xuiSetDefaultFont(pContext,font);
++		if(result!=XUI_OK){
++			pContext->pSystemFont=NULL;
++			__xuiSystemFontDiscard(pContext,font);
++		}
++	}
++	pContext->bSystemFontLoading=0;
++	pContext->iSystemFontStatus=result==XUI_OK ? XUI_OK:result;
++	return result;
+ }
+ 
+ static int __xuiCoreReserveFonts(xui_context pContext, int iCapacity)

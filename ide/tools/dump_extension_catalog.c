@@ -16,14 +16,16 @@ static void discard_bodies(XL6_AstNode* node)
 
 static XL6_AstNode* members(XL6_AstNode* node)
 {
-    XL6_AstNode* result = NULL;
-    if (node->kind != XL6_AST_CLASS && node->kind != XL6_AST_PROTOCOL &&
-        node->kind != XL6_AST_UNION && node->kind != XL6_AST_ENUM) return NULL;
-    for (size_t i = 0; i < node->childCount; ++i) {
-        if (node->children[i]->kind == XL6_AST_LIST) result = node->children[i];
+    size_t index;
+    /* Match the formal parser's child contract. The last LIST can be the
+     * generic-parameter list, including for a nongeneric external class. */
+    switch (node->kind) {
+    case XL6_AST_CLASS: case XL6_AST_ENUM: index = 1; break;
+    case XL6_AST_PROTOCOL: case XL6_AST_UNION: case XL6_AST_C_RECORD: index = 0; break;
+    default: return NULL;
     }
-    /* class/protocol 和带载荷 enum 的首个列表不是成员，成员始终为末个列表。 */
-    return result;
+    return node->childCount > index && node->children[index]->kind == XL6_AST_LIST
+        ? node->children[index] : NULL;
 }
 
 static int emit(XL6_Output* out, XL6_AstNode* node, long parent, long* count)

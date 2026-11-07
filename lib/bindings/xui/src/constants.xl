@@ -95,6 +95,7 @@ export const c_int XUI_CACHE_PINNED = 4
 export const c_int XUI_WIDGET_TYPE_DEFAULT_LAYOUT = 1
 export const c_int XUI_WIDGET_TYPE_DEFAULT_CACHE_POLICY = 2
 export const c_int XUI_WIDGET_TYPE_UPDATE_ON_INACTIVE = 4
+export const c_int XUI_WIDGET_TYPE_PREPARE_FRAME_DEPENDENT = 8
 export const c_int XUI_RESOURCE_SURFACE = 1
 export const c_int XUI_RESOURCE_FONT = 2
 export const c_int XUI_RESOURCE_STYLE = 3
@@ -1492,3 +1493,7 @@ export const c_int XUI_WEBVIEW_EVENT_CLOSED = 5
 export const c_int XUI_WEB_LOCAL_ACCESS_SAME_ORIGIN = 0
 export const c_int XUI_WEB_LOCAL_ACCESS_SUBRESOURCE = 1
 export const c_int XUI_WEB_LOCAL_ACCESS_ALL = 2
+
+export const c_int XUI_SYSTEM_FONT_AUTO = 0
+export const c_int XUI_SYSTEM_FONT_DISABLED = 1
+export const c_int XUI_SYSTEM_FONT_EAGER = 2

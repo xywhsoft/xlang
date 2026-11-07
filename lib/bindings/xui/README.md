@@ -212,3 +212,35 @@ adapters separately. `clearTableSelection`, `clearFindScope`, MessageList
 selection, and Editor `replaceAll` / `replaceAllEx` without a scope use the
 Native NULL branches directly. Ordinary View selection and Renderer active
 position still require real positions: their Native APIs reject NULL.
+
+## Shared native find and current engine capabilities
+
+`createCodeFindScope()` creates an independent native search scope. Add existing
+CodeEdit instances with `addEditorNamed`, select the current target with
+`setActiveEditor`, and use `findAll`, `findNext` and `refresh`. The editors share
+one native find/replace window; the Context still owns every editor and window.
+Closing a scope detaches its editors, and native editor/Context destruction
+removes entries automatically. No language activation callback is registered;
+results can be inspected and explicitly activated. Native identity getters end
+in `Native` and return an opaque C-interop identity, not a new Widget owner.
+Use the original editor's `getFindWindow()` for a checked Context-owned view.
+See `examples/shared_find.xl` for a minimal headless search.
+
+`create(proxy, systemFontPolicy, size=0)` uses the sized native owned-Context
+constructor. `XUI_SYSTEM_FONT_AUTO` loads the system font on demand;
+`XUI_SYSTEM_FONT_EAGER` loads it during creation; `XUI_SYSTEM_FONT_DISABLED`
+requires an application font. `contextDescDefault()` exposes the native defaults,
+`Context.ensureDefaultFont()` checks the selected policy, and
+`Proxy.loadSystemFont(size=0,flags=0)` creates a shared native font resource.
+Reserved flags must be zero. Existing `create(proxy)` follows native AUTO policy.
+
+`showMsgBox` and `showFileDialog` create and open a new managed dialog in one
+native call. Reopen a retained instance with `setOpen(1)`, rather than introducing
+a second owner through the raw C output-slot reuse API. `RenderStats` includes
+all ten new prepare/propagation/render-node/structure counters, and custom widget
+types can declare `XUI_WIDGET_TYPE_PREPARE_FRAME_DEPENDENT`.
+
+These APIs use direct native calls, stack descriptor projection or a direct
+Proxy function-pointer call. Resource creation, scope storage, text conversion
+and the existing checked resource lifetime bookkeeping still have their normal
+cost; no per-method forwarding C implementation is added.
