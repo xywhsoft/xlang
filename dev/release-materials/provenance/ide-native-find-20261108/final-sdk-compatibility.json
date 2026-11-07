@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "compiledSdkHeadersChecked": 28,
+  "compiledHeaderBytesUnchanged": true,
+  "finalImportSymbolsUnchanged": true,
+  "guiLinkedAgainstFinalImportLibrary": true,
+  "matchedManifest": {
+    "path": "ide/third_party/xge_sdk/sdk_manifest.json",
+    "sha256": "84635776d9c684b9c0c20c3b1658c565a1fda3084836ba339a6386dbc846cf30",
+    "bytes": 23448
+  },
+  "runtime": {
+    "path": "release/win_x64/xge.dll",
+    "sha256": "acdc0e86fd27d30ca0d96b578e832315766a39b9f1af5a442babb7a8902c1d53",
+    "bytes": 11155513
+  },
+  "previousStageRecord": {
+    "path": "dev/release-materials/provenance/ide-native-find-20261108/sdk-header-compatibility.json",
+    "sha256": "863de008881e9815fb27cdb7000e3c27e115b83c7d09d4492d83cb01a282a73b",
+    "bytes": 363
+  },
+  "note": "Previous stage record is retained unchanged; this record qualifies the final installed pair."
+}

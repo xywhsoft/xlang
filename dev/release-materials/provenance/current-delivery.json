@@ -3866,6 +3866,11 @@
       "knownNativeBoundaryFailures": 4,
       "installed": true
     },
-    "installed": true
+    "installed": true,
+    "finalSdkCompatibility": {
+      "path": "dev/release-materials/provenance/ide-native-find-20261108/final-sdk-compatibility.json",
+      "sha256": "fcce82c27d6a2c6f2b8df0f3de92e8c0d1ef962e57d2d26c5babc41ca10df395",
+      "bytes": 890
+    }
   }
 }
