@@ -1,0 +1,76 @@
+{
+  "schema": 1,
+  "date": "2026-11-07",
+  "publication": "local-only",
+  "complete": true,
+  "passed": true,
+  "sourceRevision": "7b96d450c",
+  "candidateReceipt": {
+    "path": "dev/release-materials/provenance/ide-minimap-setting-20261107/candidate-receipt.json",
+    "sha256": "f973149d6c9eb4442fbce69c51c8b8121a3310d325bef3cb708d6fe487a8f8ea",
+    "bytes": 2811
+  },
+  "sourceMaterials": {
+    "path": "dev/release-materials/sources/ide-minimap-setting-20261107/manifest.json",
+    "sha256": "72044e122aaa5cb3fa3bbf7b888ea8417f069bc098ea6d84b7030f8fd1637187",
+    "bytes": 1411
+  },
+  "previousGUI": {
+    "path": "release/win_x64/xlang_ide.exe",
+    "sha256": "a70520fa97a6b6faab084cecb23f7c24229e6be6361ed902282c522a1bbf7c5e",
+    "bytes": 1851121
+  },
+  "publishedGUI": {
+    "path": "release/win_x64/xlang_ide.exe",
+    "sha256": "b6da9773184e41665640b3906423f74c2427b1598a6074af5e607a4c16cab8b5",
+    "bytes": 1854801
+  },
+  "retainedRuntimeIdentities": {
+    "xge.dll": "b415e78d21f8c8b0d8fcb86924169dd35d595d29951391c102892b00399718ff",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "a5feede784f0a5cb1a829c2e362de57e9278b55cec1a11b796cf4b6e78831bbc",
+    "xl.dll": "215d6b3c87704c745ec609eb07e718a52708ad7c13436294f2f662a56169be13",
+    "xlc.dll": "2241fcd462980fc40cbd6c47ce9347d537bababc93225cb6d2a2d36b9b978797"
+  },
+  "validation": {
+    "command": [
+      "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide.exe",
+      "--hidden",
+      "--frames",
+      "4",
+      "--no-session",
+      "--no-auto-diagnostics",
+      "--settings",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\minimap-setting-20261107\\publication-a46e50ebeeb24b0abd64a6b9c4be14a1\\settings.json",
+      "--session-root",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\minimap-setting-20261107\\publication-a46e50ebeeb24b0abd64a6b9c4be14a1\\session",
+      "--diagnostic-root",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\minimap-setting-20261107\\publication-a46e50ebeeb24b0abd64a6b9c4be14a1\\diagnostics",
+      "--screenshot",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\minimap-setting-20261107\\publication-a46e50ebeeb24b0abd64a6b9c4be14a1\\installed.png"
+    ],
+    "exitCode": 0,
+    "seconds": 7.484,
+    "log": {
+      "path": "dev/release-materials/provenance/ide-minimap-setting-20261107/installed-smoke.log",
+      "sha256": "3f7ac451278dc2465961a367c5aaf60eb7ed25cf0c81179e939bc91b2f5012db",
+      "bytes": 74
+    },
+    "screenshot": {
+      "path": "dev/release-materials/provenance/ide-minimap-setting-20261107/installed.png",
+      "sha256": "c71de2c67510d64d2b746d38f7f0892d114c09330dc0881f04d0bfdc8fd9585f",
+      "bytes": 148503
+    }
+  },
+  "features": [
+    "Twelve fixed Dock windows have checkable View actions and can reopen after native close.",
+    "Editor settings explain the persisted Minimap/traditional-scrollbar switch."
+  ],
+  "previousAcceptance": [
+    "169 Dock checks",
+    "315 native Minimap checks and settings switching",
+    "C/xlang input, Unicode/IME, deletion, undo and focus regression"
+  ],
+  "settingsAndSessionPreserved": true,
+  "extraRuntimeExecutablesPackaged": false
+}
