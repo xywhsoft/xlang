@@ -36,6 +36,7 @@ export const c_int XGE_KEY_COUNT = 512
 export const c_int XGE_KEY_SPACE = 32
 export const c_int XGE_KEY_ESCAPE = 256
 export const c_int XGE_KEY_ENTER = 257
+export const c_int XGE_KEY_KP_ENTER = 335
 export const c_int XGE_KEY_TAB = 258
 export const c_int XGE_KEY_BACKSPACE = 259
 export const c_int XGE_KEY_INSERT = 260

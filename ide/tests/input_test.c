@@ -94,6 +94,11 @@ static int verify(void* user)
               post(XGE_EVENT_TEXT,0,0,'z',NULL,0) && pump(&app));
         CHECK(xuiGetFocusWidget(app.context)==target->editor && !strcmp(xuiCodeEditGetText(target->editor),"z") && xuiCodeDocumentGetVersion(targetCore)>before);
         CHECK(chord('Z',XGE_KEY_MOD_CTRL) && pump(&app) && !*xuiCodeEditGetText(target->editor));
+        const int enterKeys[]={XGE_KEY_ENTER,XGE_KEY_KP_ENTER};
+        for(size_t k=0;k<sizeof(enterKeys)/sizeof(enterKeys[0]);++k) {
+            CHECK(chord(enterKeys[k],0) && pump(&app) && !strcmp(xuiCodeEditGetText(target->editor),"\n"));
+            CHECK(chord('Z',XGE_KEY_MOD_CTRL) && pump(&app) && !*xuiCodeEditGetText(target->editor));
+        }
     }
     xide_document* doc=newDocument(&app,"xlang",&error); CHECK(doc);
     xui_code_document core=xuiCodeEditGetDocument(doc->editor);
@@ -113,7 +118,7 @@ static int verify(void* user)
     CHECK(post(XGE_EVENT_TEXT,0,0,'r',NULL,0) && post(XGE_EVENT_TEXT,0,0,'e',NULL,0) && post(XGE_EVENT_TEXT,0,0,'t',NULL,0) && chord(XGE_KEY_SPACE,XGE_KEY_MOD_CTRL) && pump(&app));
     CHECK(xuiCodeEditIsCompletionOpen(doc->editor) && xuiCodeEditGetCompletionCount(doc->editor)>0);
     CHECK(chord(XGE_KEY_SPACE,XGE_KEY_MOD_CTRL) && pump(&app) && xuiCodeEditIsCompletionOpen(doc->editor));
-    CHECK(chord(XGE_KEY_ENTER,0) && pump(&app) && !strcmp(xuiCodeEditGetText(doc->editor),"return"));
+    CHECK(chord(XGE_KEY_KP_ENTER,0) && pump(&app) && !strcmp(xuiCodeEditGetText(doc->editor),"return"));
     CHECK(chord('Z',XGE_KEY_MOD_CTRL) && pump(&app) && !strcmp(xuiCodeEditGetText(doc->editor),"ret"));
     CHECK(xideEditorShow(&app,doc)==XUI_OK && pump(&app)); /* Rebinding is idempotent. */
     uint32_t cVersion=xuiCodeDocumentGetVersion(core);

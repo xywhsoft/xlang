@@ -3,10 +3,10 @@
   "exitCode": 0,
   "profile": "ide",
   "version": "3.0.0",
-  "source": "F:\\xlang-validation\\xge-modal-fix-20261108\\source",
-  "sourceCommit": "2e8ee6d203fe96684b32d2a2a3606ec03fef7465",
+  "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\source",
+  "sourceCommit": "faf1a089c0496c44b6f6a4a7c09e63180edb97c4",
   "sourceUnchanged": true,
-  "sourceArchiveSha256": "0370cc7f771e57351757ae36780c5376008e2205de968084754fc7170a08dd97",
+  "sourceArchiveSha256": "698b3ced6ad736f03e1002729215d607fafb2516825e4a8ffc64aa3fd54a9875",
   "wholeSdkWerror": false,
   "compiler": "gcc.EXE (GCC) 16.2.0",
   "upstreamBuild": {
@@ -65,9 +65,9 @@
       "-Iextlibs/xrt/extlibs/xllm-session/include",
       "-Iextlibs/xrt/extlibs/xwork/include",
       "-DXGE_ENABLE_HARFBUZZ=1",
-      "-DXGE_BUILD_ABI_FINGERPRINT=0x9de44f119936afd7ULL"
+      "-DXGE_BUILD_ABI_FINGERPRINT=0x855403eb2a86473cULL"
     ],
-    "source_root": "F:\\xlang-validation\\xge-modal-fix-20261108\\source",
+    "source_root": "F:\\xlang-validation\\xge-keypad-enter-20261108\\source",
     "runtime_image": "xge.dll",
     "unstripped_image": "xge.unstripped.dll",
     "import_library": "xge.lib",
@@ -499,21 +499,20 @@
       "extlibs/xrt/extlibs/xwork/src/work/xwork_executor.c",
       "extlibs/xrt/extlibs/xwork/src/work/xwork_subagent.c",
       "extlibs/xrt/extlibs/xwork/src/work/xwork_explore.c",
-      "extlibs/xrt/extlibs/xwork/src/work/xwork_python.c"
-    ],
-    "reused": [
+      "extlibs/xrt/extlibs/xwork/src/work/xwork_python.c",
       "extlibs/harfbuzz/src/harfbuzz.cc"
     ],
+    "reused": [],
     "linked": true,
     "runtime_dependencies": [],
-    "seconds": 230.83798509999906,
+    "seconds": 268.4936937999955,
     "runtime_bytes": 11170568,
     "unstripped_bytes": 13445274
   },
   "compatibilityPatches": {
     "format": "xlang-ide-xge-source-patches-1",
-    "baseCommit": "2e8ee6d203fe96684b32d2a2a3606ec03fef7465",
-    "purpose": "User-approved upstream worktree plus qualified GL startup, native part cleanup and canonical sole-host XRT.",
+    "baseCommit": "faf1a089c0496c44b6f6a4a7c09e63180edb97c4",
+    "purpose": "Qualified GL startup and canonical sole-host XRT overlays; keypad Enter fix committed upstream.",
     "files": [
       {
         "path": "extlibs/sokol/sokol_app.h",
@@ -534,8 +533,8 @@
       {
         "path": "include/xge.h",
         "upstreamExists": true,
-        "upstreamSha256": "27eaa40c0ddc92cd9fa7c0479ac0a3c96f3620c61613135f2beaf2db792bacf1",
-        "sha256": "a6fa53373b0671f1342500c17d4f66ef86a21169014f665ebf03714418aadf14",
+        "upstreamSha256": "580b50807a69ec568352cd0d54b59a73387287ba758d76b15334d97086159db8",
+        "sha256": "1821696314a82530f0fb06290a9ef4483083881444ebf1d00fc362a4426c68a5",
         "payload": "payload/include/xge.h",
         "diff": "diff/include/xge.h.diff"
       },
@@ -576,16 +575,16 @@
   "initialCleanBuild": null,
   "outputs": [
     {
-      "path": "F:\\xlang-validation\\xge-modal-fix-20261108\\ide-win\\xge.dll",
-      "sha256": "f165f5b01576b67b56ecb0f7f7f35e4bb82c33f54a1d697fc40ff7443d18a4e7"
+      "path": "F:\\xlang-validation\\xge-keypad-enter-20261108\\ide-win\\xge.dll",
+      "sha256": "3faa3f92a935c1ee2b3fa106de55a72eaceb0cfb6bf00e3e573c2d564eada869"
     },
     {
-      "path": "F:\\xlang-validation\\xge-modal-fix-20261108\\ide-win\\xge.lib",
-      "sha256": "d976e46d8e36c284071c0329a91ade2db73c71be442178bdefa55c554c55c43a"
+      "path": "F:\\xlang-validation\\xge-keypad-enter-20261108\\ide-win\\xge.lib",
+      "sha256": "a2e08effd374f335829e771a531e12d89ae1eb76820ea3294c965527e9bb4875"
     },
     {
-      "path": "F:\\xlang-validation\\xge-modal-fix-20261108\\ide-win\\xge_build_config.h",
-      "sha256": "ac11c9bdf8b2ec0dab9b1e2b9e302a4642b6bc16458d35b1c113a1310f42bf84"
+      "path": "F:\\xlang-validation\\xge-keypad-enter-20261108\\ide-win\\xge_build_config.h",
+      "sha256": "c1efcc7e75619d499633bf009d2db7d12f8bfad826d046f833aed8c2991a18fd"
     }
   ]
 }

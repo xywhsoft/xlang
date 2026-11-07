@@ -75,9 +75,9 @@
   "privateCandidate": true,
   "formalRelease": false,
   "provenance": {
-    "builtAtUtc": "2026-11-07T21:34:02.981886+00:00",
+    "builtAtUtc": "2026-11-07T22:57:08.551279+00:00",
     "sourceRepository": "https://gitee.com/xywhsoft/xge",
-    "sourceCommit": "ed2048fb08bb2e559e0ce4b5c5bdabf4a80ce6bb",
+    "sourceCommit": "2e8ee6d203fe96684b32d2a2a3606ec03fef7465",
     "sourceWorktreeDirty": true,
     "upstreamArchiveClean": true,
     "version": "3.0.0",
@@ -96,20 +96,6 @@
       "provenance/compatibility-patches/diff/src/xge/core/xge_core.c.diff",
       "provenance/compatibility-patches/payload/src/xge/core/xge_impl.c",
       "provenance/compatibility-patches/diff/src/xge/core/xge_impl.c.diff",
-      "provenance/compatibility-patches/payload/src/xge/input/xge_data_object.c",
-      "provenance/compatibility-patches/diff/src/xge/input/xge_data_object.c.diff",
-      "provenance/compatibility-patches/payload/src/xge/text/xge_system_font.c",
-      "provenance/compatibility-patches/diff/src/xge/text/xge_system_font.c.diff",
-      "provenance/compatibility-patches/payload/src/xui/core/xui_core.c",
-      "provenance/compatibility-patches/diff/src/xui/core/xui_core.c.diff",
-      "provenance/compatibility-patches/payload/src/xui/core/xui_internal.h",
-      "provenance/compatibility-patches/diff/src/xui/core/xui_internal.h.diff",
-      "provenance/compatibility-patches/payload/src/xui/core/xui_owned_resource_slots.c",
-      "provenance/compatibility-patches/diff/src/xui/core/xui_owned_resource_slots.c.diff",
-      "provenance/compatibility-patches/payload/src/xui/core/xui_proxy_xge.c",
-      "provenance/compatibility-patches/diff/src/xui/core/xui_proxy_xge.c.diff",
-      "provenance/compatibility-patches/payload/src/xui/core/xui_widget.c",
-      "provenance/compatibility-patches/diff/src/xui/core/xui_widget.c.diff",
       "provenance/compatibility-patches/payload/tools/build/build.py",
       "provenance/compatibility-patches/diff/tools/build/build.py.diff"
     ],
@@ -174,9 +160,9 @@
         }
       ]
     },
-    "sourceBuildReportSha256": "09cf02e72b672039db235134fa94ccadee830217a72212bfeec46357517007a7",
-    "sourceBuildManifestSha256": "ea3e75c48ab3b7b5b7438c675071754736b0be1b2b95e471b79e7a8092999954",
-    "acceptedUpstreamCommit": "45797364a4060c04d08b3328e263a798c98715c1"
+    "sourceBuildReportSha256": "11a11938d3535d810bbeb77e51251c68b71674c7347f72fbcdf44efd41651e88",
+    "sourceBuildManifestSha256": "825c141c98f1af18d47a9cfbb0b48fa14932f78f0abcf82594057f161b3858e5",
+    "acceptedUpstreamCommit": "2e8ee6d203fe96684b32d2a2a3606ec03fef7465"
   },
   "files": [
     {
@@ -257,11 +243,11 @@
     },
     {
       "path": "provenance/compatibility-patches/diff/include/xge.h.diff",
-      "sha256": "e119f5e8c3dcb8041569f0f7661cd075c8fa8945c023541d4fcc148d2de94745"
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
       "path": "provenance/compatibility-patches/diff/include/xui.h.diff",
-      "sha256": "0ce193d79920f72faf15b3b509032b73da7e73acc0ed44987a25aa0e2161427d"
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
       "path": "provenance/compatibility-patches/diff/src/xge/core/xge_core.c.diff",
@@ -269,7 +255,7 @@
     },
     {
       "path": "provenance/compatibility-patches/diff/src/xge/core/xge_impl.c.diff",
-      "sha256": "17022d31185e4e27a10f23d49a5fc9115f2c344b71fdb4007761b586c107fa56"
+      "sha256": "88db7f6fbd2c32b722e1037606f89fe24b0eeeef47aa27ce0204e07328254420"
     },
     {
       "path": "provenance/compatibility-patches/diff/src/xge/input/xge_data_object.c.diff",
@@ -305,11 +291,11 @@
     },
     {
       "path": "provenance/compatibility-patches/diff/tools/build/build.py.diff",
-      "sha256": "94a83c5118cfdfcc6d852440dc53c789b97e6461d461a8307d21a1bbe858d0e5"
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
       "path": "provenance/compatibility-patches/patch-manifest.json",
-      "sha256": "b19bd70b17115d340d5aa886b04713750f8ec88f7cc4694de0e500ef93ad9f1f"
+      "sha256": "40bc4e15d59e66a640a5929dea48d861dbe63ac51da3a042ddb0d7c569cd9f77"
     },
     {
       "path": "provenance/compatibility-patches/payload/extlibs/sokol/sokol_app.h",
@@ -413,15 +399,15 @@
     },
     {
       "path": "provenance/parent-sdk-manifest.json",
-      "sha256": "84635776d9c684b9c0c20c3b1658c565a1fda3084836ba339a6386dbc846cf30"
+      "sha256": "25181855e5402f25b24cb51cedff76eba08160413682f4c3feac91f601d8ec5a"
     },
     {
       "path": "provenance/source-build-manifest.json",
-      "sha256": "ea3e75c48ab3b7b5b7438c675071754736b0be1b2b95e471b79e7a8092999954"
+      "sha256": "825c141c98f1af18d47a9cfbb0b48fa14932f78f0abcf82594057f161b3858e5"
     },
     {
       "path": "provenance/source-build-report.json",
-      "sha256": "09cf02e72b672039db235134fa94ccadee830217a72212bfeec46357517007a7"
+      "sha256": "11a11938d3535d810bbeb77e51251c68b71674c7347f72fbcdf44efd41651e88"
     },
     {
       "path": "provenance/wgl-context-v1/overlay.json",
@@ -505,11 +491,11 @@
     },
     {
       "path": "xge-source-files.json",
-      "sha256": "ea3e75c48ab3b7b5b7438c675071754736b0be1b2b95e471b79e7a8092999954"
+      "sha256": "825c141c98f1af18d47a9cfbb0b48fa14932f78f0abcf82594057f161b3858e5"
     },
     {
       "path": "xge.dll",
-      "sha256": "c2d9a9bc1ccfd607f15580d8ff7c56a5c830008e0ae0223fe3680371b7739491"
+      "sha256": "f165f5b01576b67b56ecb0f7f7f35e4bb82c33f54a1d697fc40ff7443d18a4e7"
     },
     {
       "path": "xge.h",
@@ -517,7 +503,7 @@
     },
     {
       "path": "xge.lib",
-      "sha256": "77dcf16a778a2997c063ad12363733a21fcae5899d29e89fad1bc17f7f9bb192"
+      "sha256": "d976e46d8e36c284071c0329a91ade2db73c71be442178bdefa55c554c55c43a"
     },
     {
       "path": "xge_build_config.h",
@@ -670,12 +656,68 @@
       "sha256": "4fe557426d33594969aff5075bfe6a588855045da44e213977b75d139f18aec9"
     },
     {
+      "path": "provenance/compatibility-patches/diff/src/xge/input/xge_data_object.c.diff",
+      "sha256": "afd500d516f143581d66b87678a8549e7c66d946a874e823b880fd2177ace98c"
+    },
+    {
+      "path": "provenance/compatibility-patches/diff/src/xge/text/xge_system_font.c.diff",
+      "sha256": "360bb89341e788c38a72e4bef5436d4a6bcc10e03326675405cc998e559c9ced"
+    },
+    {
       "path": "provenance/compatibility-patches/diff/src/xui/accessibility/xui_accessibility.c.diff",
       "sha256": "acd38e6d07033c3dc9cc9b445e79f64c9aa2927d0fbfe80357493fb111e4e067"
     },
     {
+      "path": "provenance/compatibility-patches/diff/src/xui/core/xui_core.c.diff",
+      "sha256": "7ec96ac2bfb5c87edb99c593c0bdd15883e3f0314ecba612dc2c4836b49c67b9"
+    },
+    {
+      "path": "provenance/compatibility-patches/diff/src/xui/core/xui_internal.h.diff",
+      "sha256": "72059860e7f6012c1b870e8557657333420edb98fd16266130bde059df090b59"
+    },
+    {
+      "path": "provenance/compatibility-patches/diff/src/xui/core/xui_owned_resource_slots.c.diff",
+      "sha256": "32eb9aad1e08f66bc13f0b9cb2569894bf4d6c41e3ba3985a9fde7d20b407928"
+    },
+    {
+      "path": "provenance/compatibility-patches/diff/src/xui/core/xui_proxy_xge.c.diff",
+      "sha256": "1f41627e5df33f055b5eb936eed7bcd67793accafd607abd70b6a23495f44875"
+    },
+    {
+      "path": "provenance/compatibility-patches/diff/src/xui/core/xui_widget.c.diff",
+      "sha256": "e67170b06093980f1a8ba463c479a9e443d2599e77fb358fe986ca7484e997fa"
+    },
+    {
+      "path": "provenance/compatibility-patches/payload/src/xge/input/xge_data_object.c",
+      "sha256": "be4c725faff9d5c2c5b2d533bb3d06ed0b02e2587f5e297d85013a820927586a"
+    },
+    {
+      "path": "provenance/compatibility-patches/payload/src/xge/text/xge_system_font.c",
+      "sha256": "12e0c3fe224b5f5bd6a0f88d578c7415c25f74572e359659156c531195e358cc"
+    },
+    {
       "path": "provenance/compatibility-patches/payload/src/xui/accessibility/xui_accessibility.c",
       "sha256": "fda385249bc2ca9d6fb1141059c4eb203ec13dfc417014bcfbff2c3620156737"
+    },
+    {
+      "path": "provenance/compatibility-patches/payload/src/xui/core/xui_core.c",
+      "sha256": "fcf6ec3137ec6fe7722f434a8fdc1a0c21e918c8aecec5e1bb158cb61230ebe7"
+    },
+    {
+      "path": "provenance/compatibility-patches/payload/src/xui/core/xui_internal.h",
+      "sha256": "3864af59ebaa9d2c5e773190831335955fc57fa096bc1df521825c6395567709"
+    },
+    {
+      "path": "provenance/compatibility-patches/payload/src/xui/core/xui_owned_resource_slots.c",
+      "sha256": "beeb92ae8b7cd719297f83868d6454ce21fdd3f566368f2fad988efd891287ba"
+    },
+    {
+      "path": "provenance/compatibility-patches/payload/src/xui/core/xui_proxy_xge.c",
+      "sha256": "ff980ed8bdaab15940de653fbb3c76a3eda03d3fa5863dffd1373b32d17cfb13"
+    },
+    {
+      "path": "provenance/compatibility-patches/payload/src/xui/core/xui_widget.c",
+      "sha256": "b5ba15633c03615f95e614b3b80795921cfc053c0cab99d8f4910a830253e6f9"
     }
   ]
 }

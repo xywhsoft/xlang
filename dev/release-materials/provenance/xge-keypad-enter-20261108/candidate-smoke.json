@@ -1,0 +1,19 @@
+{
+  "exit": 0,
+  "command": [
+    "F:\\xlang-validation\\xge-keypad-enter-20261108\\candidate-runtime\\xlang_ide.exe",
+    "--frames",
+    "5",
+    "--hidden",
+    "--no-session",
+    "--no-auto-diagnostics",
+    "--settings",
+    "D:\\GIT\\x-lang\\ide\\build\\Release\\keypad-enter-20261108\\candidate-smoke\\settings.json",
+    "--session-root",
+    "D:\\GIT\\x-lang\\ide\\build\\Release\\keypad-enter-20261108\\candidate-smoke\\session",
+    "--diagnostic-root",
+    "D:\\GIT\\x-lang\\ide\\build\\Release\\keypad-enter-20261108\\candidate-smoke\\diagnostics"
+  ],
+  "guiSha256": "8a4d9e633fea3baad66e2cf05c0aa6d7f335b2e87ac655cc6f11d29f0685d8e5",
+  "engineSha256": "3faa3f92a935c1ee2b3fa106de55a72eaceb0cfb6bf00e3e573c2d564eada869"
+}

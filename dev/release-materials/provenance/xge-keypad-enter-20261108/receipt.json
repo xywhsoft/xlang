@@ -1,0 +1,426 @@
+{
+  "schema": 1,
+  "date": "2026-11-08",
+  "complete": true,
+  "passed": true,
+  "publication": "local-only",
+  "upstreamCommit": "faf1a089c0496c44b6f6a4a7c09e63180edb97c4",
+  "guiSourceRevision": "4bb83a1027fc42cf7f63d990187fa95fbf05978e",
+  "sourceMaterials": {
+    "path": "dev/release-materials/sources/xge-keypad-enter-20261108/manifest.json",
+    "sha256": "4a064a0062467b3282b751c4063331903bfe1eaa0cbe33fe2a30448b2d808b71",
+    "bytes": 141801
+  },
+  "evidence": {
+    "path": "dev/release-materials/provenance/xge-keypad-enter-20261108/evidence.zip",
+    "sha256": "34a3b6b796e613565c2412adc38a7430d5822ec2b3804957825a3be3b768fb81",
+    "bytes": 7332447
+  },
+  "rootCause": "Sokol sends keypad Enter as 335; XGE preserves it, but XUI adapter mapped it to zero and dropped both down/up events.",
+  "fix": "Expose XGE_KEY_KP_ENTER=335, preserve physical engine key identity, map both Enter keys to XUI_KEY_ENTER at the shared adapter.",
+  "nativeTests": [
+    {
+      "test": "xui_keypad_enter_test",
+      "exit": 0
+    },
+    {
+      "test": "xui_input_test",
+      "exit": 0
+    },
+    {
+      "test": "xui_code_find_session_test",
+      "exit": 0
+    },
+    {
+      "test": "test_input_event_queue",
+      "exit": 0
+    }
+  ],
+  "guiTests": [
+    {
+      "test": "find_follow_view_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\keypad-enter-20261108\\find_follow_view_test-459c8921",
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\gui-source\\ide\\tests\\find_follow_view_test.c",
+      "sourceSha256": "57f31d4f99fffece30d9a5e657c991aea72a7ed901c34fe1da49b2919c8304c9",
+      "logSha256": "afbd224c896629f2347c13bfbbc286ff7615b3079d84a1623c436898be88d77b"
+    },
+    {
+      "test": "dialog_message_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\keypad-enter-20261108\\dialog_message_test-90acb4c8",
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\gui-source\\ide\\tests\\dialog_message_test.c",
+      "sourceSha256": "2e26e3f331569a82cf562e022a38593a51a8a9c3a4eaa97a3fc65954a36879c3",
+      "logSha256": "f97cf5aca5e0166bd8f7570a27e28ec8b2b67ae4d56605bd7d4b63247f9cc6b5"
+    },
+    {
+      "test": "settings_menu_frame_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\keypad-enter-20261108\\settings_menu_frame_test-580b9ca5",
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\gui-source\\ide\\tests\\settings_menu_frame_test.c",
+      "sourceSha256": "1b3ed104a70c61cdc051a7f8ea985d23441f5ea317b8295bd030116984481f19",
+      "logSha256": "c9c1ccd683154d918cfbc534e511bcddc1f4418c29f2c6a3d52dfddfbca99351"
+    },
+    {
+      "test": "modal_open_latency_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\keypad-enter-20261108\\modal_open_latency_test-9cc8449d",
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\gui-source\\ide\\tests\\modal_open_latency_test.c",
+      "sourceSha256": "ad1a0620c12ec1725a56d8a3634e4802d59166af01714e0b43567693aa8ccf7a",
+      "logSha256": "687ee2aaf1169f5306f938e31892598a919d6fa236aec9ff5261b91b5cff41aa"
+    },
+    {
+      "test": "input_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\keypad-enter-20261108\\input_test-307494a6",
+      "source": "D:\\GIT\\x-lang\\ide\\tests\\input_test.c",
+      "sourceSha256": "4ae2121dc9183bb4318f3e91b46dd20d05d729d80e70ab86aee64a7901e48355",
+      "logSha256": "d992b451c3b31e7ddd85ed2d1da08c97c7ed3e8c1b7fb3bf5ca8fbd44164c9c0"
+    }
+  ],
+  "compilerTests": [
+    {
+      "platform": "win",
+      "passed": true,
+      "rows": [
+        {
+          "name": "cgen",
+          "exitCode": 0,
+          "seconds": 15.765
+        },
+        {
+          "name": "jit",
+          "exitCode": 0,
+          "seconds": 20.688
+        },
+        {
+          "name": "example-system_font",
+          "exitCode": 0,
+          "seconds": 0.641
+        },
+        {
+          "name": "example-shared_find",
+          "exitCode": 0,
+          "seconds": 13.046
+        },
+        {
+          "name": "static-build",
+          "exitCode": 0,
+          "seconds": 30.891
+        },
+        {
+          "name": "static-imports",
+          "exitCode": 0,
+          "seconds": 0.516
+        },
+        {
+          "name": "static-relocated",
+          "exitCode": 0,
+          "seconds": 0.312
+        }
+      ]
+    },
+    {
+      "platform": "linux",
+      "passed": true,
+      "rows": [
+        {
+          "name": "cgen",
+          "exitCode": 0,
+          "seconds": 25.739
+        },
+        {
+          "name": "jit",
+          "exitCode": 0,
+          "seconds": 37.868
+        },
+        {
+          "name": "example-system_font",
+          "exitCode": 0,
+          "seconds": 3.776
+        },
+        {
+          "name": "example-shared_find",
+          "exitCode": 0,
+          "seconds": 23.977
+        },
+        {
+          "name": "static-build",
+          "exitCode": 0,
+          "seconds": 57.115
+        },
+        {
+          "name": "static-imports",
+          "exitCode": 0,
+          "seconds": 0.051
+        },
+        {
+          "name": "static-relocated",
+          "exitCode": 0,
+          "seconds": 0.167
+        }
+      ]
+    }
+  ],
+  "catalog": {
+    "entries": 19971,
+    "added": [
+      "xge.XGE_KEY_KP_ENTER"
+    ],
+    "removed": 0,
+    "otherEntriesUnchangedExceptSourceLine": true
+  },
+  "guiTranslationUnits": 108,
+  "optimization": "-O2",
+  "deliveredFiles": [
+    {
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\packages-win-dynamic\\_xge_native\\include\\xge.h",
+      "path": "release/win_x64/extlibs/_xge_native/include/xge.h",
+      "beforeSha256": "a6fa53373b0671f1342500c17d4f66ef86a21169014f665ebf03714418aadf14",
+      "sha256": "1821696314a82530f0fb06290a9ef4483083881444ebf1d00fc362a4426c68a5",
+      "bytes": 238037
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\packages-win-dynamic\\_xge_native\\include\\xge_build_config.h",
+      "path": "release/win_x64/extlibs/_xge_native/include/xge_build_config.h",
+      "beforeSha256": "9aacb2473d0c86cf781543f360a66323626f620ae61b4b4ba12b4d3b0bc0e7cb",
+      "sha256": "717e024635dbdede55c6f249137465400605419c1b214dfe81dd153abda3450a",
+      "bytes": 3323
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\packages-win-dynamic\\_xge_native\\native\\xge3_host.dll",
+      "path": "release/win_x64/extlibs/_xge_native/native/xge3_host.dll",
+      "beforeSha256": "d1d3f66827bcbb59a69ebb37d1051a39c32687967ecf8171be52ec3999abbbfd",
+      "sha256": "cdea6031be243e9d73263d16dd9e7990e91d78016e80513a641d9714d2ee8a68",
+      "bytes": 9148341
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\packages-win-dynamic\\_xge_native\\xlang.package.json",
+      "path": "release/win_x64/extlibs/_xge_native/xlang.package.json",
+      "beforeSha256": "e22d3cc093ca44faa90b2cc8bc2794d5e3d2244abab69df6ed0d03d86da21cf3",
+      "sha256": "881d00cd5b46850fb8ca679debb108c83cad29043147c42c94a6cc0b604cbbd3",
+      "bytes": 2500
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\packages-win-dynamic\\xge\\src\\constants.xl",
+      "path": "release/win_x64/extlibs/xge/src/constants.xl",
+      "beforeSha256": "4ef4c86e9f544c1f2ab6f51a94f05512f23ac8a8a7f994619a8b0f97e12e0540",
+      "sha256": "306c0e4809e4faa4264d43fcaebf77b0fb22658811fb0a2d4c16a7024d7177fa",
+      "bytes": 22473
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\packages-win-static\\_xge_native\\include\\xge.h",
+      "path": "release/win_x64/static/xge3/packages/_xge_native/include/xge.h",
+      "beforeSha256": "a6fa53373b0671f1342500c17d4f66ef86a21169014f665ebf03714418aadf14",
+      "sha256": "1821696314a82530f0fb06290a9ef4483083881444ebf1d00fc362a4426c68a5",
+      "bytes": 238037
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\packages-win-static\\_xge_native\\include\\xge_build_config.h",
+      "path": "release/win_x64/static/xge3/packages/_xge_native/include/xge_build_config.h",
+      "beforeSha256": "bf32562c36d767ffdbbdfc14d5e49880a15d641610be53c3bb7819e5b9a54a2e",
+      "sha256": "cbc659d380cd9cced7b920e4c5a6b671ee8b03af0e5234c095fc5a60c0e007f7",
+      "bytes": 3412
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\packages-win-static\\_xge_native\\native\\compiler-support.json",
+      "path": "release/win_x64/static/xge3/packages/_xge_native/native/compiler-support.json",
+      "beforeSha256": "638f0ab81b222102f5d9063d3a4cf02a456d2d3d79488504d2202d4bc6f84e2e",
+      "sha256": "30570fddcce861370ca383a6d5ffeb469845f2db431087bad3cd348a28f99eb7",
+      "bytes": 457624
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\packages-win-static\\_xge_native\\native\\libxge3_static.a",
+      "path": "release/win_x64/static/xge3/packages/_xge_native/native/libxge3_static.a",
+      "beforeSha256": "a2f12b20bcafcc74a1e40a07b96f01cb73af09bb2271135f2ddbb7203c622e9e",
+      "sha256": "042b2f11f56b56f34fde4298eb38f6e5becad30729875c52ebaa5c087ee6b658",
+      "bytes": 18645322
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\packages-win-static\\_xge_native\\xlang.package.json",
+      "path": "release/win_x64/static/xge3/packages/_xge_native/xlang.package.json",
+      "beforeSha256": "bd713e35463c1078e967eeee3f13419579c0af4e0882d3b3f6e277d975a36f07",
+      "sha256": "f2654902048f2b5eb30608f1382ce546c38f2390e467ccce73d59f3f671ea115",
+      "bytes": 2996
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\packages-win-static\\xge\\src\\constants.xl",
+      "path": "release/win_x64/static/xge3/packages/xge/src/constants.xl",
+      "beforeSha256": "4ef4c86e9f544c1f2ab6f51a94f05512f23ac8a8a7f994619a8b0f97e12e0540",
+      "sha256": "306c0e4809e4faa4264d43fcaebf77b0fb22658811fb0a2d4c16a7024d7177fa",
+      "bytes": 22473
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\packages-linux-dynamic\\_xge_native\\include\\xge.h",
+      "path": "release/linux_x64/extlibs/_xge_native/include/xge.h",
+      "beforeSha256": "a6fa53373b0671f1342500c17d4f66ef86a21169014f665ebf03714418aadf14",
+      "sha256": "1821696314a82530f0fb06290a9ef4483083881444ebf1d00fc362a4426c68a5",
+      "bytes": 238037
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\packages-linux-dynamic\\_xge_native\\include\\xge_build_config.h",
+      "path": "release/linux_x64/extlibs/_xge_native/include/xge_build_config.h",
+      "beforeSha256": "2331fef36acf404f17efe0617a7587987104ec0137fd3adbfe05d8e457e7f2ff",
+      "sha256": "4c7c64705d45c136c4d102a170463100f82e0001c5789e17b163c35365a3290c",
+      "bytes": 3217
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\packages-linux-dynamic\\_xge_native\\native\\libxge3_host.so",
+      "path": "release/linux_x64/extlibs/_xge_native/native/libxge3_host.so",
+      "beforeSha256": "6d889338cb2514ae8873c4001631a8d287721c9069771dfc1a59f87ccca63f20",
+      "sha256": "fbdef24647aa7d8c495dab3781274135aad4c478d64f5b1ba132d2794da84de4",
+      "bytes": 9948112
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\packages-linux-dynamic\\_xge_native\\xlang.package.json",
+      "path": "release/linux_x64/extlibs/_xge_native/xlang.package.json",
+      "beforeSha256": "c8fb01f2e3d59b755766b4436aa56034562503d2d1104d0ce8012e1a6aa1de47",
+      "sha256": "b8e71a450cc4869f59d41015cccfee5aa1a05705621b6f4ae46af06c9dbb666c",
+      "bytes": 2412
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\packages-linux-dynamic\\xge\\src\\constants.xl",
+      "path": "release/linux_x64/extlibs/xge/src/constants.xl",
+      "beforeSha256": "4ef4c86e9f544c1f2ab6f51a94f05512f23ac8a8a7f994619a8b0f97e12e0540",
+      "sha256": "306c0e4809e4faa4264d43fcaebf77b0fb22658811fb0a2d4c16a7024d7177fa",
+      "bytes": 22473
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\packages-linux-static\\_xge_native\\include\\xge.h",
+      "path": "release/linux_x64/static/xge3/packages/_xge_native/include/xge.h",
+      "beforeSha256": "a6fa53373b0671f1342500c17d4f66ef86a21169014f665ebf03714418aadf14",
+      "sha256": "1821696314a82530f0fb06290a9ef4483083881444ebf1d00fc362a4426c68a5",
+      "bytes": 238037
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\packages-linux-static\\_xge_native\\include\\xge_build_config.h",
+      "path": "release/linux_x64/static/xge3/packages/_xge_native/include/xge_build_config.h",
+      "beforeSha256": "3d3942cc7d050a19ff3496074f7f326ddc8ddc4890281606860e39eb922b684d",
+      "sha256": "d2d99aedbaf8d70f4c7c191aba1598712f5233192b25ca6617aa414c5538b54c",
+      "bytes": 3412
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\packages-linux-static\\_xge_native\\native\\libxge3_static.a",
+      "path": "release/linux_x64/static/xge3/packages/_xge_native/native/libxge3_static.a",
+      "beforeSha256": "25bc5096074adc393f61124add12162d732e2dc177fb3c94393e8446900e4950",
+      "sha256": "f6a9b282076b20fa8b1486999a0e9ef3abb8f75cf3931774828db2a20235a74a",
+      "bytes": 16913668
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\packages-linux-static\\_xge_native\\xlang.package.json",
+      "path": "release/linux_x64/static/xge3/packages/_xge_native/xlang.package.json",
+      "beforeSha256": "618cdd80829759f1a0e3d37d50212655703b3ac67c67ca62e0f1ae5517aef615",
+      "sha256": "75b75d0dccd48028574f279dd5624d3064feffef0d185b7e284a53bbb5d9970f",
+      "bytes": 2560
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\packages-linux-static\\xge\\src\\constants.xl",
+      "path": "release/linux_x64/static/xge3/packages/xge/src/constants.xl",
+      "beforeSha256": "4ef4c86e9f544c1f2ab6f51a94f05512f23ac8a8a7f994619a8b0f97e12e0540",
+      "sha256": "306c0e4809e4faa4264d43fcaebf77b0fb22658811fb0a2d4c16a7024d7177fa",
+      "bytes": 22473
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\sdk-stage\\sdk\\sdk_manifest.json",
+      "path": "ide/third_party/xge_sdk/sdk_manifest.json",
+      "beforeSha256": "e35eda1f6f8f28437204fa565d5ee7949b35feeb639b7e6d36db4cb559e3b30f",
+      "sha256": "5dbc812cb3f4bdcdd563aa1f3ce6832b47f650aac931590d2ab1e70d56d889b9",
+      "bytes": 30023
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\sdk-stage\\sdk\\xge-source-files.json",
+      "path": "ide/third_party/xge_sdk/xge-source-files.json",
+      "beforeSha256": "825c141c98f1af18d47a9cfbb0b48fa14932f78f0abcf82594057f161b3858e5",
+      "sha256": "5d12ce228878a9f990297d665143e2d84745ab9df22710fbf5a94708ea232d24",
+      "bytes": 144248
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\sdk-stage\\sdk\\xge.dll",
+      "path": "ide/third_party/xge_sdk/xge.dll",
+      "beforeSha256": "f165f5b01576b67b56ecb0f7f7f35e4bb82c33f54a1d697fc40ff7443d18a4e7",
+      "sha256": "3faa3f92a935c1ee2b3fa106de55a72eaceb0cfb6bf00e3e573c2d564eada869",
+      "bytes": 11170568
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\sdk-stage\\sdk\\xge.h",
+      "path": "ide/third_party/xge_sdk/xge.h",
+      "beforeSha256": "a6fa53373b0671f1342500c17d4f66ef86a21169014f665ebf03714418aadf14",
+      "sha256": "1821696314a82530f0fb06290a9ef4483083881444ebf1d00fc362a4426c68a5",
+      "bytes": 238037
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\sdk-stage\\sdk\\xge.lib",
+      "path": "ide/third_party/xge_sdk/xge.lib",
+      "beforeSha256": "d976e46d8e36c284071c0329a91ade2db73c71be442178bdefa55c554c55c43a",
+      "sha256": "a2e08effd374f335829e771a531e12d89ae1eb76820ea3294c965527e9bb4875",
+      "bytes": 4696574
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\sdk-stage\\sdk\\xge_build_config.h",
+      "path": "ide/third_party/xge_sdk/xge_build_config.h",
+      "beforeSha256": "ac11c9bdf8b2ec0dab9b1e2b9e302a4642b6bc16458d35b1c113a1310f42bf84",
+      "sha256": "c1efcc7e75619d499633bf009d2db7d12f8bfad826d046f833aed8c2991a18fd",
+      "bytes": 3328
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\sdk-stage\\sdk\\provenance\\parent-sdk-manifest.json",
+      "path": "ide/third_party/xge_sdk/provenance/parent-sdk-manifest.json",
+      "beforeSha256": "25181855e5402f25b24cb51cedff76eba08160413682f4c3feac91f601d8ec5a",
+      "sha256": "e35eda1f6f8f28437204fa565d5ee7949b35feeb639b7e6d36db4cb559e3b30f",
+      "bytes": 30023
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\sdk-stage\\sdk\\provenance\\source-build-manifest.json",
+      "path": "ide/third_party/xge_sdk/provenance/source-build-manifest.json",
+      "beforeSha256": "825c141c98f1af18d47a9cfbb0b48fa14932f78f0abcf82594057f161b3858e5",
+      "sha256": "5d12ce228878a9f990297d665143e2d84745ab9df22710fbf5a94708ea232d24",
+      "bytes": 144248
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\sdk-stage\\sdk\\provenance\\source-build-report.json",
+      "path": "ide/third_party/xge_sdk/provenance/source-build-report.json",
+      "beforeSha256": "11a11938d3535d810bbeb77e51251c68b71674c7347f72fbcdf44efd41651e88",
+      "sha256": "5dfb404668a8337e9708830d82c4c14403b9871bbe5bddce68394a2395dc3825",
+      "bytes": 24952
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\sdk-stage\\sdk\\provenance\\compatibility-patches\\patch-manifest.json",
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/patch-manifest.json",
+      "beforeSha256": "40bc4e15d59e66a640a5929dea48d861dbe63ac51da3a042ddb0d7c569cd9f77",
+      "sha256": "0bd32e3bdf09fef54395d878798be434d982f96be910f79a69d9f8fa785fc234",
+      "bytes": 2754
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\sdk-stage\\sdk\\provenance\\compatibility-patches\\payload\\include\\xge.h",
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/payload/include/xge.h",
+      "beforeSha256": "a6fa53373b0671f1342500c17d4f66ef86a21169014f665ebf03714418aadf14",
+      "sha256": "1821696314a82530f0fb06290a9ef4483083881444ebf1d00fc362a4426c68a5",
+      "bytes": 238037
+    },
+    {
+      "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\ide-win\\xge.dll",
+      "path": "release/win_x64/xge.dll",
+      "beforeSha256": "f165f5b01576b67b56ecb0f7f7f35e4bb82c33f54a1d697fc40ff7443d18a4e7",
+      "sha256": "3faa3f92a935c1ee2b3fa106de55a72eaceb0cfb6bf00e3e573c2d564eada869",
+      "bytes": 11170568
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\ide\\build\\Release\\keypad-enter-20261108\\objects\\xlang_ide.link.exe",
+      "path": "release/win_x64/xlang_ide.exe",
+      "beforeSha256": "fba0dee475ecc0ea330bfb20e2281b0c253e48452bfc5855d46ec33e57e493cd",
+      "sha256": "8a4d9e633fea3baad66e2cf05c0aa6d7f335b2e87ac655cc6f11d29f0685d8e5",
+      "bytes": 1897286
+    }
+  ],
+  "preservedCompilerAndLanguageServer": {
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe": "a5feede784f0a5cb1a829c2e362de57e9278b55cec1a11b796cf4b6e78831bbc",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.dll": "215d6b3c87704c745ec609eb07e718a52708ad7c13436294f2f662a56169be13",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlc.dll": "2241fcd462980fc40cbd6c47ce9347d537bababc93225cb6d2a2d36b9b978797",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232"
+  },
+  "limits": [
+    "Synthetic native engine events and real IDE widgets, not a physical keyboard test.",
+    "Focused acceptance, not a full repository test pass.",
+    "No additional runtime wrapper or allocation; only one key mapping branch and a compile-time constant."
+  ]
+}

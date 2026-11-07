@@ -1,7 +1,7 @@
 {
   "format": "xlang-ide-xge-source-patches-1",
-  "baseCommit": "2e8ee6d203fe96684b32d2a2a3606ec03fef7465",
-  "purpose": "User-approved upstream worktree plus qualified GL startup, native part cleanup and canonical sole-host XRT.",
+  "baseCommit": "faf1a089c0496c44b6f6a4a7c09e63180edb97c4",
+  "purpose": "Qualified GL startup and canonical sole-host XRT overlays; keypad Enter fix committed upstream.",
   "files": [
     {
       "path": "extlibs/sokol/sokol_app.h",
@@ -22,8 +22,8 @@
     {
       "path": "include/xge.h",
       "upstreamExists": true,
-      "upstreamSha256": "27eaa40c0ddc92cd9fa7c0479ac0a3c96f3620c61613135f2beaf2db792bacf1",
-      "sha256": "a6fa53373b0671f1342500c17d4f66ef86a21169014f665ebf03714418aadf14",
+      "upstreamSha256": "580b50807a69ec568352cd0d54b59a73387287ba758d76b15334d97086159db8",
+      "sha256": "1821696314a82530f0fb06290a9ef4483083881444ebf1d00fc362a4426c68a5",
       "payload": "payload/include/xge.h",
       "diff": "diff/include/xge.h.diff"
     },
@@ -59,6 +59,5 @@
       "payload": "payload/tools/build/build.py",
       "diff": "diff/tools/build/build.py.diff"
     }
-  ],
-  "diffNormalization": "Review diffs normalize CRLF/LF; payloads and hashes retain exact compiled bytes."
+  ]
 }

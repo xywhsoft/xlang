@@ -1,0 +1,32 @@
+[
+  {
+    "test": "find_follow_view_test",
+    "exit": 0,
+    "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\keypad-enter-20261108\\find_follow_view_test-459c8921",
+    "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\gui-source\\ide\\tests\\find_follow_view_test.c"
+  },
+  {
+    "test": "dialog_message_test",
+    "exit": 0,
+    "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\keypad-enter-20261108\\dialog_message_test-90acb4c8",
+    "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\gui-source\\ide\\tests\\dialog_message_test.c"
+  },
+  {
+    "test": "settings_menu_frame_test",
+    "exit": 0,
+    "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\keypad-enter-20261108\\settings_menu_frame_test-580b9ca5",
+    "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\gui-source\\ide\\tests\\settings_menu_frame_test.c"
+  },
+  {
+    "test": "modal_open_latency_test",
+    "exit": 0,
+    "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\keypad-enter-20261108\\modal_open_latency_test-9cc8449d",
+    "source": "F:\\xlang-validation\\xge-keypad-enter-20261108\\gui-source\\ide\\tests\\modal_open_latency_test.c"
+  },
+  {
+    "test": "input_test",
+    "exit": 0,
+    "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\keypad-enter-20261108\\input_test-307494a6",
+    "source": "D:\\GIT\\x-lang\\ide\\tests\\input_test.c"
+  }
+]

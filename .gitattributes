@@ -216,3 +216,11 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 # Exact-byte native modal latency repair inputs and acceptance records.
 /dev/release-materials/sources/xge-modal-fix-20261108/** -text -whitespace
 /dev/release-materials/provenance/xge-modal-fix-20261108/** -text -whitespace
+
+# Exact-byte keypad Enter repair sources and acceptance evidence.
+/dev/release-materials/sources/xge-keypad-enter-20261108/** -text -whitespace
+/dev/release-materials/provenance/xge-keypad-enter-20261108/** -text -whitespace
+
+# Pinned static-native public headers retain their captured bytes.
+/release/win_x64/static/xge3/packages/_xge_native/include/xge.h -text whitespace=cr-at-eol
+/release/linux_x64/static/xge3/packages/_xge_native/include/xge.h -text whitespace=cr-at-eol

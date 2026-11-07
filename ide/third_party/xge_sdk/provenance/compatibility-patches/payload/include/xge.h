@@ -143,6 +143,7 @@ typedef struct xge_build_info_t {
 #define XGE_KEY_F23			312
 #define XGE_KEY_F24			313
 #define XGE_KEY_F25			314
+#define XGE_KEY_KP_ENTER		335
 #define XGE_KEY_MENU		348
 #define XGE_KEY_LEFT_SHIFT	340
 #define XGE_KEY_LEFT_CONTROL	341

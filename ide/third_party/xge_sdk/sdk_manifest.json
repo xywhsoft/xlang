@@ -75,9 +75,9 @@
   "privateCandidate": true,
   "formalRelease": false,
   "provenance": {
-    "builtAtUtc": "2026-11-07T22:57:08.551279+00:00",
+    "builtAtUtc": "2026-11-07T23:26:43.211756+00:00",
     "sourceRepository": "https://gitee.com/xywhsoft/xge",
-    "sourceCommit": "2e8ee6d203fe96684b32d2a2a3606ec03fef7465",
+    "sourceCommit": "faf1a089c0496c44b6f6a4a7c09e63180edb97c4",
     "sourceWorktreeDirty": true,
     "upstreamArchiveClean": true,
     "version": "3.0.0",
@@ -160,9 +160,9 @@
         }
       ]
     },
-    "sourceBuildReportSha256": "11a11938d3535d810bbeb77e51251c68b71674c7347f72fbcdf44efd41651e88",
-    "sourceBuildManifestSha256": "825c141c98f1af18d47a9cfbb0b48fa14932f78f0abcf82594057f161b3858e5",
-    "acceptedUpstreamCommit": "2e8ee6d203fe96684b32d2a2a3606ec03fef7465"
+    "sourceBuildReportSha256": "5dfb404668a8337e9708830d82c4c14403b9871bbe5bddce68394a2395dc3825",
+    "sourceBuildManifestSha256": "5d12ce228878a9f990297d665143e2d84745ab9df22710fbf5a94708ea232d24",
+    "acceptedUpstreamCommit": "faf1a089c0496c44b6f6a4a7c09e63180edb97c4"
   },
   "files": [
     {
@@ -295,7 +295,7 @@
     },
     {
       "path": "provenance/compatibility-patches/patch-manifest.json",
-      "sha256": "40bc4e15d59e66a640a5929dea48d861dbe63ac51da3a042ddb0d7c569cd9f77"
+      "sha256": "0bd32e3bdf09fef54395d878798be434d982f96be910f79a69d9f8fa785fc234"
     },
     {
       "path": "provenance/compatibility-patches/payload/extlibs/sokol/sokol_app.h",
@@ -307,7 +307,7 @@
     },
     {
       "path": "provenance/compatibility-patches/payload/include/xge.h",
-      "sha256": "a6fa53373b0671f1342500c17d4f66ef86a21169014f665ebf03714418aadf14"
+      "sha256": "1821696314a82530f0fb06290a9ef4483083881444ebf1d00fc362a4426c68a5"
     },
     {
       "path": "provenance/compatibility-patches/payload/include/xui.h",
@@ -399,15 +399,15 @@
     },
     {
       "path": "provenance/parent-sdk-manifest.json",
-      "sha256": "25181855e5402f25b24cb51cedff76eba08160413682f4c3feac91f601d8ec5a"
+      "sha256": "e35eda1f6f8f28437204fa565d5ee7949b35feeb639b7e6d36db4cb559e3b30f"
     },
     {
       "path": "provenance/source-build-manifest.json",
-      "sha256": "825c141c98f1af18d47a9cfbb0b48fa14932f78f0abcf82594057f161b3858e5"
+      "sha256": "5d12ce228878a9f990297d665143e2d84745ab9df22710fbf5a94708ea232d24"
     },
     {
       "path": "provenance/source-build-report.json",
-      "sha256": "11a11938d3535d810bbeb77e51251c68b71674c7347f72fbcdf44efd41651e88"
+      "sha256": "5dfb404668a8337e9708830d82c4c14403b9871bbe5bddce68394a2395dc3825"
     },
     {
       "path": "provenance/wgl-context-v1/overlay.json",
@@ -491,23 +491,23 @@
     },
     {
       "path": "xge-source-files.json",
-      "sha256": "825c141c98f1af18d47a9cfbb0b48fa14932f78f0abcf82594057f161b3858e5"
+      "sha256": "5d12ce228878a9f990297d665143e2d84745ab9df22710fbf5a94708ea232d24"
     },
     {
       "path": "xge.dll",
-      "sha256": "f165f5b01576b67b56ecb0f7f7f35e4bb82c33f54a1d697fc40ff7443d18a4e7"
+      "sha256": "3faa3f92a935c1ee2b3fa106de55a72eaceb0cfb6bf00e3e573c2d564eada869"
     },
     {
       "path": "xge.h",
-      "sha256": "a6fa53373b0671f1342500c17d4f66ef86a21169014f665ebf03714418aadf14"
+      "sha256": "1821696314a82530f0fb06290a9ef4483083881444ebf1d00fc362a4426c68a5"
     },
     {
       "path": "xge.lib",
-      "sha256": "d976e46d8e36c284071c0329a91ade2db73c71be442178bdefa55c554c55c43a"
+      "sha256": "a2e08effd374f335829e771a531e12d89ae1eb76820ea3294c965527e9bb4875"
     },
     {
       "path": "xge_build_config.h",
-      "sha256": "ac11c9bdf8b2ec0dab9b1e2b9e302a4642b6bc16458d35b1c113a1310f42bf84"
+      "sha256": "c1efcc7e75619d499633bf009d2db7d12f8bfad826d046f833aed8c2991a18fd"
     },
     {
       "path": "xge_config.h",

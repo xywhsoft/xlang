@@ -66,7 +66,7 @@
       "licenseUrl": "http://www.microsoft.com/typography/fonts/default.aspx"
     },
     "fontChangeSourceParent": "b16a95bbf022efcafc7b965d1bd9b5b945c0d881",
-    "currentBuildProvenance": "dev/release-materials/provenance/xge-modal-fix-20261108/receipt.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/xge-keypad-enter-20261108/receipt.json",
     "cLspEnabled": false,
     "applicationIcon": {
       "source": "ide/data/xlang_ide.ico",
@@ -80,16 +80,16 @@
       "provenance": "docs/reports/release-materials-migration-20261031.json",
       "buildCommand": "pwsh -NoProfile -File ide/tools/build.ps1 -Configuration Release -GuiOnly -LanguageServerPath D:/GIT/x-lang/release/xlang-ls.exe -ReleaseDirectory D:/GIT/x-lang/release"
     },
-    "sha256": "fba0dee475ecc0ea330bfb20e2281b0c253e48452bfc5855d46ec33e57e493cd",
+    "sha256": "8a4d9e633fea3baad66e2cf05c0aa6d7f335b2e87ac655cc6f11d29f0685d8e5",
     "sourceIdentity": {
-      "guiSourceRevision": "203566e9350dd48d4088576367d9b609fe1cf1fc",
-      "sourceCommit": "203566e9350dd48d4088576367d9b609fe1cf1fc",
+      "guiSourceRevision": "4bb83a1027fc42cf7f63d990187fa95fbf05978e",
+      "sourceCommit": "4bb83a1027fc42cf7f63d990187fa95fbf05978e",
       "build": {
-        "path": "dev/release-materials/provenance/xge-modal-fix-20261108/evidence.zip",
-        "sha256": "a84b9cde579e2d65a5b3b38e1d2f9a0371cb658b4797b5ec3e735d0be21979bb",
-        "bytes": 7332054
+        "path": "dev/release-materials/provenance/xge-keypad-enter-20261108/evidence.zip",
+        "sha256": "34a3b6b796e613565c2412adc38a7430d5822ec2b3804957825a3be3b768fb81",
+        "bytes": 7332447
       },
-      "matchedSdkManifestSha256": "e35eda1f6f8f28437204fa565d5ee7949b35feeb639b7e6d36db4cb559e3b30f"
+      "matchedSdkManifestSha256": "5dbc812cb3f4bdcdd563aa1f3ce6832b47f650aac931590d2ab1e70d56d889b9"
     },
     "previousMatchedGuiProvenance": "dev/release-materials/provenance/ide-updater-20261103.json",
     "openglStartupCompatibility": {
@@ -114,19 +114,19 @@
       "sha256": "cb3dd03ba90452fb9a670371ed7447763a0188fdc61b57adf11d5d89851ce13b",
       "bytes": 2693
     },
-    "buildScope": "Full 108-TU matched GUI rebuild for native style-registration correction; concurrent IDE/LS/semantic changes excluded.",
+    "buildScope": "Full matched 108-TU GUI rebuild for keypad Enter; current concurrent compiler/LS/IDE edits excluded.",
     "currentEngine": {
       "sourceMaterials": {
-        "path": "dev/release-materials/sources/xge-modal-fix-20261108/manifest.json",
-        "sha256": "11d2957d727dc6375033f5b09cd2d01b53eca51d298cfd1d5341ee25590c14b3",
-        "bytes": 275062
+        "path": "dev/release-materials/sources/xge-keypad-enter-20261108/manifest.json",
+        "sha256": "4a064a0062467b3282b751c4063331903bfe1eaa0cbe33fe2a30448b2d808b71",
+        "bytes": 141801
       },
-      "sourceCommit": "2e8ee6d203fe96684b32d2a2a3606ec03fef7465",
-      "publicAbiFingerprint": "0x9de44f119936afd7",
+      "sourceCommit": "faf1a089c0496c44b6f6a4a7c09e63180edb97c4",
+      "publicAbiFingerprint": "0x855403eb2a86473c",
       "profile": "ide",
       "xrtMode": "embedded",
       "runtime": "release/win_x64/xge.dll",
-      "mainlineCommit": "2e8ee6d203fe96684b32d2a2a3606ec03fef7465"
+      "mainlineCommit": "faf1a089c0496c44b6f6a4a7c09e63180edb97c4"
     },
     "previousBuildProvenanceBeforeAbout": "dev/release-materials/provenance/xge-ide-update-20261106/publication-receipt.json",
     "aboutWindow": {
@@ -141,8 +141,8 @@
     "updateStateDirectory": "ide/build/update-runtime/<platform>-<install-path-sha256>",
     "previousBuildProvenanceBeforeDialogBackdrop": "dev/release-materials/provenance/ide-release-maintenance-20261106.json",
     "dialogBackdrop": "viewport-sized absolute overlay; dialog above backdrop; child/IME-aware Escape",
-    "previousBuildProvenance": "dev/release-materials/provenance/xge-sync-20261108/receipt.json",
-    "sourceRevision": "203566e9350dd48d4088576367d9b609fe1cf1fc",
+    "previousBuildProvenance": "dev/release-materials/provenance/xge-modal-fix-20261108/receipt.json",
+    "sourceRevision": "4bb83a1027fc42cf7f63d990187fa95fbf05978e",
     "previousSourceIdentity": {
       "dockTabNavigation": {
         "path": "dev/release-materials/sources/ide-dock-tabs-20261107/manifest.json",
@@ -175,11 +175,16 @@
       "path": "dev/release-materials/provenance/xge-modal-fix-20261108/receipt.json",
       "sha256": "280857c3e5c2c39368f4e2a67ff50f6ae38f2f604b29893cd7e03c7c5da56988",
       "bytes": 21469
+    },
+    "keypadEnterRepair": {
+      "path": "dev/release-materials/provenance/xge-keypad-enter-20261108/receipt.json",
+      "sha256": "3b86d5c3e21f9cf58b6a610a36cfd696335928add90338a4313e1b9a23901867",
+      "bytes": 19908
     }
   },
   "catalog": {
     "status": "passed",
-    "entries": 19970,
+    "entries": 19971,
     "documents": 147,
     "publicApi": {
       "functions": 823,
@@ -188,13 +193,13 @@
       "members": 3830
     },
     "availableSources": 591,
-    "catalogSha256": "f856744a2623b01f8492a055a0279b94e0a2a042c7bbba99d5463ba79d3ad6ae",
+    "catalogSha256": "fb44feb65df22e53699dfb970699dad020ec4f096e36a021adf1016b76794980",
     "sourceRevision": "ed78373dded9bde21db313799c1db8d5111631a6",
-    "currentDeliveryAction": "Public entries/documents unchanged; refreshed private native artifact manifests and paired sources after XGE modal fix.",
+    "currentDeliveryAction": "Added xge.XGE_KEY_KP_ENTER and refreshed matched native artifact/source fingerprints.",
     "extensionRefreshReceipt": {
-      "path": "dev/release-materials/provenance/xge-modal-fix-20261108/receipt.json",
-      "sha256": "280857c3e5c2c39368f4e2a67ff50f6ae38f2f604b29893cd7e03c7c5da56988",
-      "bytes": 21469
+      "path": "dev/release-materials/provenance/xge-keypad-enter-20261108/receipt.json",
+      "sha256": "3b86d5c3e21f9cf58b6a610a36cfd696335928add90338a4313e1b9a23901867",
+      "bytes": 19908
     }
   },
   "publicExtensionModules": 207,
@@ -3167,12 +3172,12 @@
     {
       "bytes": 110882,
       "path": "release/win_x64/data/catalog-sources/index.json",
-      "sha256": "26582bc4fdc8b4137f66c82157bcdb26ad2131bac1f86f58de638d914cf2ad0d"
+      "sha256": "950bba3b57aeedcf2c363f46b101318a345c2c32e0386ff18c6fec54e9966bcd"
     },
     {
-      "bytes": 18434061,
+      "bytes": 18434670,
       "path": "release/win_x64/data/commands.json",
-      "sha256": "f856744a2623b01f8492a055a0279b94e0a2a042c7bbba99d5463ba79d3ad6ae"
+      "sha256": "fb44feb65df22e53699dfb970699dad020ec4f096e36a021adf1016b76794980"
     },
     {
       "bytes": 9210776,
@@ -3208,6 +3213,11 @@
       "path": "release/win_x64/static/xge3/README.md",
       "sha256": "5a648c451362fba566659dcb3f68ccd87c51fc4306caf87510871a2822361015",
       "bytes": 1195
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/306c0e4809e4faa4264d43fcaebf77b0fb22658811fb0a2d4c16a7024d7177fa.source",
+      "sha256": "306c0e4809e4faa4264d43fcaebf77b0fb22658811fb0a2d4c16a7024d7177fa",
+      "bytes": 22473
     }
   ],
   "products": [
@@ -3254,11 +3264,11 @@
       "previousSha256": "72ecb9983e40475a04f29f47d40f5ac20143d2f03c646a8c3b487d61bdd0e7a1"
     },
     {
-      "sha256": "fba0dee475ecc0ea330bfb20e2281b0c253e48452bfc5855d46ec33e57e493cd",
+      "sha256": "8a4d9e633fea3baad66e2cf05c0aa6d7f335b2e87ac655cc6f11d29f0685d8e5",
       "bytes": 1897286,
       "path": "release/win_x64/xlang_ide.exe",
-      "origin": "xge-modal-fix-20261108",
-      "previousSha256": "f8d38ffdea249a0ae211103c0d8e300aa71f3a39da8bf1b81c01109deaa43f03"
+      "origin": "xge-keypad-enter-20261108",
+      "previousSha256": "fba0dee475ecc0ea330bfb20e2281b0c253e48452bfc5855d46ec33e57e493cd"
     },
     {
       "sha256": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
@@ -3267,11 +3277,11 @@
       "origin": "matched-xge3-xui3-local-delivery-20261105"
     },
     {
-      "sha256": "f165f5b01576b67b56ecb0f7f7f35e4bb82c33f54a1d697fc40ff7443d18a4e7",
+      "sha256": "3faa3f92a935c1ee2b3fa106de55a72eaceb0cfb6bf00e3e573c2d564eada869",
       "bytes": 11170568,
       "path": "release/win_x64/xge.dll",
-      "origin": "xge-modal-fix-20261108",
-      "previousSha256": "c2d9a9bc1ccfd607f15580d8ff7c56a5c830008e0ae0223fe3680371b7739491"
+      "origin": "xge-keypad-enter-20261108",
+      "previousSha256": "f165f5b01576b67b56ecb0f7f7f35e4bb82c33f54a1d697fc40ff7443d18a4e7"
     },
     {
       "path": "release/win_x64/update.exe",
@@ -3287,17 +3297,17 @@
     },
     {
       "path": "release/win_x64/extlibs/_xge_native/native/xge3_host.dll",
-      "sha256": "d1d3f66827bcbb59a69ebb37d1051a39c32687967ecf8171be52ec3999abbbfd",
+      "sha256": "cdea6031be243e9d73263d16dd9e7990e91d78016e80513a641d9714d2ee8a68",
       "bytes": 9148341,
-      "origin": "xge-modal-fix-20261108",
-      "previousSha256": "4049265f017789b0b4a0436b14f11c9f61d086d12482561f8bb3f19d9868d0db"
+      "origin": "xge-keypad-enter-20261108",
+      "previousSha256": "d1d3f66827bcbb59a69ebb37d1051a39c32687967ecf8171be52ec3999abbbfd"
     },
     {
       "path": "release/linux_x64/extlibs/_xge_native/native/libxge3_host.so",
-      "sha256": "6d889338cb2514ae8873c4001631a8d287721c9069771dfc1a59f87ccca63f20",
+      "sha256": "fbdef24647aa7d8c495dab3781274135aad4c478d64f5b1ba132d2794da84de4",
       "bytes": 9948112,
-      "origin": "xge-modal-fix-20261108",
-      "previousSha256": "4ec8fafa37e0a3e46e87d1a21ab7b953e9991798fbb390b81542a0fad00be88d"
+      "origin": "xge-keypad-enter-20261108",
+      "previousSha256": "6d889338cb2514ae8873c4001631a8d287721c9069771dfc1a59f87ccca63f20"
     },
     {
       "path": "release/win_x64/data/version.json",
@@ -3433,7 +3443,7 @@
     "historicalReportPathsPreserved": true,
     "mutableDataPathsUpdated": 600
   },
-  "currentScope": "Native XGE style-registration latency correction; matched SDK/108-TU GUI and Windows/Linux dynamic/static engines. Unrelated compiler, LS, UI and release-layout work excluded.",
+  "currentScope": "Native XGE keypad Enter correction and matched SDK/GUI/Windows/Linux dynamic/static packages; unrelated workspace changes excluded.",
   "localPublication": {
     "path": "dev/release-materials/provenance/xge3-local-publication-20261105/receipt.json",
     "sha256": "d55e8e816fddbfc2d2283c9ba45b9b28ac5c5e07e0da183fbab3088f118fbad1",
@@ -3505,16 +3515,16 @@
   },
   "xgeIdeUpdate": {
     "receipt": {
-      "path": "dev/release-materials/provenance/xge-modal-fix-20261108/receipt.json",
-      "sha256": "280857c3e5c2c39368f4e2a67ff50f6ae38f2f604b29893cd7e03c7c5da56988",
-      "bytes": 21469
+      "path": "dev/release-materials/provenance/xge-keypad-enter-20261108/receipt.json",
+      "sha256": "3b86d5c3e21f9cf58b6a610a36cfd696335928add90338a4313e1b9a23901867",
+      "bytes": 19908
     },
     "sourceMaterials": {
-      "path": "dev/release-materials/sources/xge-modal-fix-20261108/manifest.json",
-      "sha256": "11d2957d727dc6375033f5b09cd2d01b53eca51d298cfd1d5341ee25590c14b3",
-      "bytes": 275062
+      "path": "dev/release-materials/sources/xge-keypad-enter-20261108/manifest.json",
+      "sha256": "4a064a0062467b3282b751c4063331903bfe1eaa0cbe33fe2a30448b2d808b71",
+      "bytes": 141801
     },
-    "mainlineCommit": "2e8ee6d203fe96684b32d2a2a3606ec03fef7465",
+    "mainlineCommit": "faf1a089c0496c44b6f6a4a7c09e63180edb97c4",
     "publication": "local-only"
   },
   "nativeStaticIntegration": {
@@ -3643,6 +3653,11 @@
       "path": "dev/release-materials/provenance/xge-modal-fix-20261108/receipt.json",
       "sha256": "280857c3e5c2c39368f4e2a67ff50f6ae38f2f604b29893cd7e03c7c5da56988",
       "bytes": 21469
+    },
+    "xgeKeypadEnter": {
+      "path": "dev/release-materials/provenance/xge-keypad-enter-20261108/receipt.json",
+      "sha256": "3b86d5c3e21f9cf58b6a610a36cfd696335928add90338a4313e1b9a23901867",
+      "bytes": 19908
     }
   },
   "xuiGallery": {
@@ -3790,16 +3805,16 @@
   },
   "xgeExtensionRefresh": {
     "receipt": {
-      "path": "dev/release-materials/provenance/xge-modal-fix-20261108/receipt.json",
-      "sha256": "280857c3e5c2c39368f4e2a67ff50f6ae38f2f604b29893cd7e03c7c5da56988",
-      "bytes": 21469
+      "path": "dev/release-materials/provenance/xge-keypad-enter-20261108/receipt.json",
+      "sha256": "3b86d5c3e21f9cf58b6a610a36cfd696335928add90338a4313e1b9a23901867",
+      "bytes": 19908
     },
     "sourceMaterials": {
-      "path": "dev/release-materials/sources/xge-modal-fix-20261108/manifest.json",
-      "sha256": "11d2957d727dc6375033f5b09cd2d01b53eca51d298cfd1d5341ee25590c14b3",
-      "bytes": 275062
+      "path": "dev/release-materials/sources/xge-keypad-enter-20261108/manifest.json",
+      "sha256": "4a064a0062467b3282b751c4063331903bfe1eaa0cbe33fe2a30448b2d808b71",
+      "bytes": 141801
     },
-    "xgeRevision": "2e8ee6d203fe96684b32d2a2a3606ec03fef7465",
+    "xgeRevision": "faf1a089c0496c44b6f6a4a7c09e63180edb97c4",
     "publication": "local-only",
     "platforms": [
       "win_x64",

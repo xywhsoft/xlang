@@ -2,6 +2,8 @@
 import xui
 import xge
 
+assert xge.XGE_KEY_KP_ENTER == 335
+
 xge.init(32,32,"XGE package verification",c_int(xge.XGE_INIT_OFFSCREEN),xge.XGE_RUN_GAME_LOOP)
 xge.run(func() as c_int
  auto directFont = xge.loadSystemFont(xge.XGE_SYSTEM_FONT_MONOSPACE,16)
