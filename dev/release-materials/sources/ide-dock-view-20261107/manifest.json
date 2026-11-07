@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "baseRevision": "0a38c6006",
+  "sourceScope": "Committed IDE baseline plus Dock View actions. Unrelated uncommitted frontend and language-service work is excluded. Same qualified shipping XGE and language-server images.",
+  "guiSource": {
+    "path": "dev/release-materials/sources/ide-dock-view-20261107/ide-source.zip",
+    "sha256": "008c49f06557657cb0bc931079290b89ec621ff85d89ff1fadbf6dff9e06b7a3",
+    "bytes": 1192217
+  },
+  "guiFiles": {
+    "path": "dev/release-materials/sources/ide-dock-view-20261107/ide-source-files.json",
+    "sha256": "e1534521242f16fd4252a12f11b3c0e466248c91981e085cf96a97cc8d8f4d2f",
+    "bytes": 45132
+  },
+  "buildDriver": {
+    "path": "dev/release-materials/sources/ide-dock-view-20261107/build-driver-used.ps1",
+    "sha256": "a767f160f6cd9c8a95e9d6b360433f80a32de59ae2b577779387bb986cda6fd1",
+    "bytes": 27248
+  },
+  "sdkManifest": {
+    "path": "ide/third_party/xge_sdk/sdk_manifest.json",
+    "sha256": "87e83148e6d058471cab302416096916a622ea829aff98b332f076d5fe3bb752",
+    "bytes": 11615
+  },
+  "optimization": "-O2",
+  "rebuild": "Extract ide-source.zip over baseRevision and retain its matched SDK. Build GuiOnly against the qualified shipping language server. The exact build driver records an object-output path override for the frozen source build; no GUI semantics differ from tools/build.ps1."
+}

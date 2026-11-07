@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "date": "2026-11-07",
+  "sourceComplete": true,
+  "acceptancePassed": true,
+  "publication": "pending-ide-close",
+  "sourceMaterials": {
+    "path": "dev/release-materials/sources/ide-dock-view-20261107/manifest.json",
+    "sha256": "82e05110f18afefebad4b641d896e7e7eff3b5cef41b0b37bd6c73a5fb4e6aeb",
+    "bytes": 1395
+  },
+  "candidate": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\dock-view-20261107\\objects\\xlang_ide.link.exe",
+    "sha256": "5c1bdf59b6f09209a8349e8821a542024484a6db431afb2fefdd968666223f42",
+    "bytes": 1854801
+  },
+  "currentProductionGui": {
+    "path": "release/win_x64/xlang_ide.exe",
+    "sha256": "a70520fa97a6b6faab084cecb23f7c24229e6be6361ed902282c522a1bbf7c5e",
+    "bytes": 1851121
+  },
+  "runtimeIdentities": {
+    "xge.dll": "b415e78d21f8c8b0d8fcb86924169dd35d595d29951391c102892b00399718ff",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "a5feede784f0a5cb1a829c2e362de57e9278b55cec1a11b796cf4b6e78831bbc",
+    "xlc.dll": "2241fcd462980fc40cbd6c47ce9347d537bababc93225cb6d2a2d36b9b978797"
+  },
+  "fixedWindows": 12,
+  "dockChecks": 169,
+  "behavior": [
+    "Each fixed Dock window has a checkable View action with its native title.",
+    "Menu state follows docking, floating, auto-hide, closing and loaded layout state.",
+    "Hiding/closing preserves the same client; View reopens it.",
+    "Recovery works after every window is hidden, and in a C-only editor layout.",
+    "View retains session/recovery, disk changes and reset-layout entries."
+  ],
+  "acceptance": {
+    "path": "dev/release-materials/provenance/ide-dock-view-20261107/acceptance.json",
+    "sha256": "f45cd733c3ba2c4622aaeddf55ae1f3d017103d7955f12908676e86bf06f2054",
+    "bytes": 56756
+  },
+  "buildInputs": {
+    "path": "dev/release-materials/provenance/ide-dock-view-20261107/build-inputs.json",
+    "sha256": "c6226a7b7299416ef0545ad6be799c5e625515bad499292d0be0dd9f17632ef6",
+    "bytes": 99839
+  },
+  "nativeMenusScreenshot": {
+    "path": "dev/release-materials/provenance/ide-dock-view-20261107/view-menu.png",
+    "sha256": "44d97ad5e4b28dd9770869a39a15cca8024ccf34032a77719cebab232044df6a",
+    "bytes": 178257
+  },
+  "guiSmokeScreenshot": {
+    "path": "dev/release-materials/provenance/ide-dock-view-20261107/smoke.png",
+    "sha256": "c71de2c67510d64d2b746d38f7f0892d114c09330dc0881f04d0bfdc8fd9585f",
+    "bytes": 148503
+  },
+  "verification": "169 native Dock/menu checks, 42 tab-navigation checks, C/xlang typing, deletion, undo, Unicode/IME and focus input regression, settings regression, four-frame hidden GUI smoke. Tests run with actual root release libraries and remove their temporary executables.",
+  "unrelatedWorkPreserved": true
+}

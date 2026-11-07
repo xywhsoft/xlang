@@ -25,13 +25,14 @@
 #include "ui/file_changes_view.h"
 #include "ui/goto_view.h"
 #include "ui/catalog_view.h"
+#include "ui/workbench_windows.h"
 #include "services/update_client.h"
 #include "ui/about_view.h"
 #include <stdlib.h>
 #include <string.h>
 enum requirement { WORKBENCH, WORKSPACE_VIEW, WORKSPACE, NEW_PROJECT, IMPORT_VIEW, PROJECT, AVAILABLE_PROJECT, REFERENCES, RESOURCES, NEW_RESOURCE, ADD_FILE, REMOVE_FILE, RENAME_SELECTED_FILE, MIGRATE_PROJECT, PROPERTIES,
     DOCUMENTS, DOCUMENT, NAMED_DOCUMENT, RENAME_DOCUMENT, DIRTY_DOCUMENTS, UNDO, REDO, WRITABLE_DOCUMENT, SELECTED_TEXT, WRITABLE_SELECTION, NONEMPTY_DOCUMENT, LINE_COMMENT, COMPLETION, SIGNATURE, GOTO_VIEW, BUILD, RUN, BUILD_FILE, TEST, STOP, INPUT, TASK_VIEW, FONT_VIEW, RECOVERY_VIEW, CHANGES_VIEW, TOOLCHAIN_VIEW, SAVED_CHECK, CURRENT_CHECK, CANCEL_CHECK, DEFINITION, HOVER, SOURCE_DECLARATION, SOURCE_DOCUMENT, FIND_REFERENCES };
-enum check_kind { NO_CHECK, THEME_CHECK, LANGUAGE_CHECK, STARTUP_CHECK };
+enum check_kind { NO_CHECK, THEME_CHECK, LANGUAGE_CHECK, STARTUP_CHECK, WINDOW_CHECK };
 typedef struct action_def { xide_action_info info; enum requirement need; enum check_kind check; int (*execute)(xide_app*,int); } action_def;
 static int fontAction(xide_app* a,int id) { return xideSettingsViewAction(a,id); }
 static int recoveryAction(xide_app* a,int id) { (void)id; return xideRecoveryViewOpen(a); }
@@ -47,6 +48,7 @@ static int sourceAction(xide_app* a,int id) { return xideCatalogSourceOpen(a,id=
 #define A(id,name,title,shorttitle,chord,key,mods,scope,cmd,need,check,proc) {{id,name,title,shorttitle,chord,key,mods,scope,cmd},need,check,proc}
 #define W(id,name,title,need) A(id,name,title,NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,need,NO_CHECK,xideWorkspaceAction)
 #define E(id,name,title,chord,key,mods,need,scope,cmd) A(id,name,title,NULL,chord,key,mods,scope,cmd,need,NO_CHECK,xideEditorAction)
+#define V(id,name,title) A(id,name,title,NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,WINDOW_CHECK,xideWorkbenchAction)
 static const action_def definitions[]={
     A(XIDE_ACTION_SETTINGS,"settings.open","全部设置…",NULL,"Ctrl+,",188,XUI_MOD_CTRL,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideSettingsViewAction),
     A(XIDE_ACTION_SETTINGS_EDITOR,"settings.editor","编辑器设置…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideSettingsViewAction),
@@ -61,6 +63,18 @@ static const action_def definitions[]={
     A(XIDE_ACTION_RESET,"view.resetLayout","恢复默认布局","恢复布局",NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideWorkbenchAction),
     A(XIDE_ACTION_XLANG,"view.xlangDemo","查看 xlang 语法演示","xlang",NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideWorkbenchAction),
     A(XIDE_ACTION_C,"view.cDemo","查看 C 语法演示","C",NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideWorkbenchAction),
+    V(XIDE_ACTION_VIEW_COMMANDS,"view.commands","命令列表"),
+    V(XIDE_ACTION_VIEW_WORKSPACE,"view.workspace","工作空间"),
+    V(XIDE_ACTION_VIEW_PROPERTIES,"view.properties","项目属性"),
+    V(XIDE_ACTION_VIEW_XLANG,"view.xlangWindow","xlang 语法演示"),
+    V(XIDE_ACTION_VIEW_C,"view.cWindow","C 语法演示"),
+    V(XIDE_ACTION_VIEW_HELP,"view.commandHelp","命令集成帮助"),
+    V(XIDE_ACTION_VIEW_PROBLEMS,"view.problems","问题"),
+    V(XIDE_ACTION_VIEW_OUTPUT,"view.output","构建输出"),
+    V(XIDE_ACTION_VIEW_TERMINAL,"view.terminal","终端"),
+    V(XIDE_ACTION_VIEW_TASKS,"view.tasks","任务"),
+    V(XIDE_ACTION_VIEW_OUTLINE,"view.outline","文档大纲"),
+    V(XIDE_ACTION_VIEW_USAGES,"view.references","引用"),
     A(XIDE_ACTION_THEME_CLASSIC,"view.theme.classic","经典浅色",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,THEME_CHECK,xideWorkbenchAction),
     A(XIDE_ACTION_THEME_GRAPHITE,"view.theme.graphite","石墨深色",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,THEME_CHECK,xideWorkbenchAction),
     A(XIDE_ACTION_THEME_PAPER,"view.theme.paper","暖纸白",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,THEME_CHECK,xideWorkbenchAction),
@@ -158,12 +172,14 @@ xide_action_state xideActionQuery(xide_app* a,int id)
 {
     const action_def* d=definition(id); xide_action_state state={0,0,"未知动作或工作台尚未就绪"};
     if(!a || !a->actions || !d || !a->context) return state;
+    int windowState=d->check==WINDOW_CHECK ? xideWorkbenchWindowVisible(a,id-XIDE_ACTION_VIEW_COMMANDS):-1;
     xide_document* doc=a->activeDocument && a->activeDocument->open ? a->activeDocument : NULL;
     xide_project* project=xideWorkspaceFindProject(&a->workspaceModel,a->selectedProject);
     xide_project* startup=xideWorkspaceFindProject(&a->workspaceModel,a->workspaceModel.startupProject);
     if(d->check==THEME_CHECK) state.checked=a->theme==id-XIDE_ACTION_THEME_CLASSIC;
     else if(d->check==LANGUAGE_CHECK && doc) { const char* modes[]={"c","xlang","text"}; state.checked=!strcmp(doc->language,modes[id-XIDE_ACTION_LANGUAGE_C]); }
     else if(d->check==STARTUP_CHECK) state.checked=project && startup==project;
+    else if(d->check==WINDOW_CHECK) state.checked=windowState>0;
     if(id!=XIDE_ACTION_STOP && id!=XIDE_ACTION_STOP_ALL && xideActionsHasModal(a)) { state.reason="请先完成或关闭当前设置窗口"; return state; }
     int loaded=a->workspaceView && a->workspaceModel.source,available=project && project->available;
     if(id==XIDE_ACTION_TARGET_CONFIGURATIONS) {
@@ -175,7 +191,7 @@ xide_action_state xideActionQuery(xide_app* a,int id)
     switch(d->need) {
     case SOURCE_DECLARATION: state.enabled=xideCatalogSourceAvailable(a,0); state.reason="请先选择命令"; break;
     case SOURCE_DOCUMENT: state.enabled=xideCatalogSourceAvailable(a,1); state.reason="当前命令没有选中的帮助文档"; break;
-    case WORKBENCH: state.enabled=a->dock!=NULL; break;
+    case WORKBENCH: state.enabled=a->dock!=NULL && (d->check!=WINDOW_CHECK || windowState>=0); break;
     case WORKSPACE_VIEW: state.enabled=a->workspaceView!=NULL; break;
     case NEW_PROJECT: state.enabled=a->templateView && a->workspaceView && !xideWorkspaceViewHasDraft(a); state.reason="请先应用或取消项目属性修改"; break;
     case WORKSPACE: state.enabled=loaded; state.reason="请先打开或新建工作空间"; break;
@@ -292,7 +308,7 @@ int xideActionsMenu(xide_app* app,xui_widget menu,const int* ids,size_t count)
         if(!ids[i]) { items[i].iType=XUI_MENU_ITEM_SEPARATOR; continue; }
         const action_def* d=definition(ids[i]); if(!d) return XUI_ERROR_INVALID_ARGUMENT;
         items[i].sText=d->info.title; items[i].sShortcut=d->info.shortcut; items[i].iValue=ids[i];
-        items[i].iType=d->check==NO_CHECK ? XUI_MENU_ITEM_NORMAL : d->check==STARTUP_CHECK ? XUI_MENU_ITEM_CHECK : XUI_MENU_ITEM_RADIO;
+        items[i].iType=d->check==NO_CHECK ? XUI_MENU_ITEM_NORMAL : (d->check==STARTUP_CHECK || d->check==WINDOW_CHECK) ? XUI_MENU_ITEM_CHECK : XUI_MENU_ITEM_RADIO;
     }
     int ret=xuiMenuSetItems(menu,items,(int)count);
     if(ret==XUI_OK) ret=xuiMenuSetSelect(menu,selected,app);
