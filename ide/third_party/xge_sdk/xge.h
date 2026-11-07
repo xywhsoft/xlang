@@ -1102,6 +1102,7 @@ struct xge_pass_t {
 	int bPrevClipEnabled;
 	xge_rect_t tPrevClipRect;
 	int bActive;
+    struct xge_pass_t* _pPrevious; /* Native LIFO identity; private while live. */
 };
 
 typedef struct xge_image_t {
@@ -2527,6 +2528,9 @@ XGE_API void xgePassInit(xge_pass pPass, xge_render_target pTarget, uint32_t iCl
 XGE_API int xgePassBegin(xge_pass pPass);
 /* 退出 pass：恢复进入前的帧缓冲/视口/裁剪现场。 */
 XGE_API int xgePassEnd(xge_pass pPass);
+/* Pure nonblocking metadata queries. Busy admission preserves diagnostics. */
+XGE_API bool xgePassIsIdle(void);
+XGE_API bool xgePassIsCurrent(const xge_pass_t* pPass);
 /* 编译顶点+片段着色器对。 */
 XGE_API int xgeShaderCreate(xge_shader pShader, const char* sVertexSource, const char* sFragmentSource);
 /* 着色器引用计数加一。 */

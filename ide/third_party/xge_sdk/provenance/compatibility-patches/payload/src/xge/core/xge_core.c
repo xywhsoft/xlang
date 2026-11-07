@@ -113,7 +113,7 @@ int xgeUnitChecked(void)
 	bool shutdown=!busyFrame && xrtAtomic32CompareExchange(&g_xgeCallbackShutdown,&expected,1,XMEMORY_ACQ_REL,XMEMORY_ACQUIRE);
 	(void)xrtSpinUnlock(&g_xgeFrameSpin);
 	if(!shutdown)return XGE_ERROR_INVALID_STATE;
-	if(xrtAtomic64Load(&g_xgeCallbackActivity,XMEMORY_ACQUIRE)){
+	if(xrtAtomic64Load(&g_xgeCallbackActivity,XMEMORY_ACQUIRE) || !xgePassIsIdle()){
 		xrtAtomic32Store(&g_xgeCallbackShutdown,0,XMEMORY_RELEASE);return XGE_ERROR_INVALID_STATE;
 	}
 	bool initialized=g_xge.bInitialized!=0;

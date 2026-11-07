@@ -189,11 +189,17 @@ def stage(args):
     # These were private SDK67 APIs; XGE 3 supplies retained public text items.
     retired = {'xuiCodeEditSetTextShapeVisitor', 'xuiCodeEditSetTextShapeCursorVisitor',
                'xuiProxyXgeVisitTextShape', 'xuiProxyXgeTextShapeCursorFree', 'xuiProxyXgeVisitTextShapeCached'}
+    required_exports = [n for n in baseline['requiredExports'] if n not in retired]
+    xui_header = (source / 'include/xui.h').read_text(encoding='utf8')
+    for name in ('xuiDockPanelSetTabScrollButtonsVisible',
+                 'xuiDockPanelGetTabScrollButtonsVisible', 'xuiDockPanelGetPaneTabScrollRects'):
+        if re.search(r'\b' + name + r'\s*\(', xui_header) and name not in required_exports:
+            required_exports.append(name)
     manifest = dict(schemaVersion=2, profile='xlang-ide-xge3-matched-set', version=version,
                     policy=baseline['policy'], buildDefines=['XGE_XRT_PROFILE_IDE'],
                     xrtDirectory='extlibs/xrt', configurationHeader='xge_build_config.h',
                     requiredXrtModules=baseline['requiredXrtModules'],
-                    requiredExports=[n for n in baseline['requiredExports'] if n not in retired],
+                    requiredExports=required_exports,
                     privateCandidate=True, formalRelease=False,
                     provenance=dict(builtAtUtc=datetime.now(timezone.utc).isoformat(),
                         sourceRepository='https://gitee.com/xywhsoft/xge', sourceCommit=args.commit,

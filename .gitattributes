@@ -172,6 +172,10 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 /dev/release-materials/sources/ide-settings-menu-20261107/** -text -whitespace
 /dev/release-materials/provenance/ide-settings-menu-20261107/** -text -whitespace
 /ide/third_party/xge_sdk/provenance/compatibility-patches/diff/** -text -whitespace
-/ide/third_party/xge_sdk/provenance/compatibility-patches/payload/** -text -whitespace
+/ide/third_party/xge_sdk/provenance/compatibility-patches/payload/** -text -whitespace -diff
 /ide/data/xge-sdk-materials.json -text -whitespace
 /ide/third_party/xge_sdk/extlibs/xrt/xrt.h -text -whitespace
+
+# Exact-byte IDE dock-tab navigation source and acceptance materials.
+/dev/release-materials/sources/ide-dock-tabs-20261107/** -text -whitespace
+/dev/release-materials/provenance/ide-dock-tabs-20261107/** -text -whitespace
