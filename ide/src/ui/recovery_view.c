@@ -146,7 +146,7 @@ int xideRecoveryViewCreate(xide_app* app)
     TRY(xuiWidgetAddChild(app->root,v->window)); TRY(xuiWidgetSetLayoutType(v->content,XUI_LAYOUT_MANUAL));
     TRY(label(app,"会话与恢复",(xui_rect_t){0,0,740,28},&v->title));
     TRY(readonlyPath(app,"当前会话作用域",(xui_rect_t){0,34,740,28},&v->scope)); TRY(label(app,"",(xui_rect_t){0,72,740,56},&v->message));
-    TRY(button(app,XIDE_RECOVERY_REFRESH,"刷新正文列表",(xui_rect_t){0,134,148,32})); TRY(button(app,XIDE_RECOVERY_CLEAN,"清理过期快照",(xui_rect_t){160,134,164,32})); TRY(button(app,XIDE_RECOVERY_REPAIR,"备份并重建会话…",(xui_rect_t){338,134,224,32}));
+    TRY(button(app,XIDE_RECOVERY_REFRESH,"刷新",(xui_rect_t){0,134,148,32})); TRY(button(app,XIDE_RECOVERY_CLEAN,"清理快照",(xui_rect_t){160,134,164,32})); TRY(button(app,XIDE_RECOVERY_REPAIR,"重建会话…",(xui_rect_t){338,134,224,32}));
     xui_list_view_desc_t list={0}; list.iSize=sizeof(list); list.pFont=app->uiFont; list.fItemHeight=28; list.iSelected=-1;
     TRY(xuiListViewCreate(app->context,&v->controls[XIDE_RECOVERY_LIST],&list)); TRY(xuiWidgetSetRect(v->controls[XIDE_RECOVERY_LIST],(xui_rect_t){0,180,740,112})); TRY(xuiListViewSetSelect(v->controls[XIDE_RECOVERY_LIST],selectItem,app)); TRY(xuiWidgetAddChild(v->content,v->controls[XIDE_RECOVERY_LIST]));
     TRY(readonlyPath(app,"所选恢复正文",(xui_rect_t){0,304,740,28},&v->path));
@@ -155,13 +155,13 @@ int xideRecoveryViewCreate(xide_app* app)
     TRY(xuiWidgetSetRect(v->controls[XIDE_RECOVERY_CODE],(xui_rect_t){0,344,740,172})); TRY(xuiWidgetAddChild(v->content,v->controls[XIDE_RECOVERY_CODE]));
     TRY(label(app,"取回语法",(xui_rect_t){0,534,88,28},NULL)); const char* choices[]={"C","xlang","纯文本"}; xui_combobox_desc_t combo={0}; combo.iSize=sizeof(combo); combo.pFont=app->uiFont; combo.arrItems=choices; combo.iItemCount=3; combo.iSelected=1;
     TRY(xuiComboBoxCreate(app->context,&v->controls[XIDE_RECOVERY_LANGUAGE],&combo)); TRY(xuiComboBoxSetSelect(v->controls[XIDE_RECOVERY_LANGUAGE],chooseLanguage,app)); TRY(xuiWidgetSetRect(v->controls[XIDE_RECOVERY_LANGUAGE],(xui_rect_t){96,532,170,32})); TRY(xuiWidgetAddChild(v->content,v->controls[XIDE_RECOVERY_LANGUAGE]));
-    TRY(button(app,XIDE_RECOVERY_RESTORE,"取回为未命名文件",(xui_rect_t){420,532,202,32})); TRY(button(app,XIDE_RECOVERY_CLOSE,"关闭",(xui_rect_t){636,532,104,32}));
+    TRY(button(app,XIDE_RECOVERY_RESTORE,"取回正文",(xui_rect_t){420,532,202,32})); TRY(button(app,XIDE_RECOVERY_CLOSE,"关闭",(xui_rect_t){636,532,104,32}));
     TRY(label(app,"全局文件",(xui_rect_t){0,584,88,28},NULL)); const char* globals[]={"最近工程索引","主窗口位置","程序偏好"}; combo.arrItems=globals; combo.iSelected=0;
     TRY(xuiComboBoxCreate(app->context,&v->controls[XIDE_RECOVERY_GLOBAL_KIND],&combo)); TRY(xuiComboBoxSetSelect(v->controls[XIDE_RECOVERY_GLOBAL_KIND],chooseGlobal,app)); TRY(xuiWidgetSetRect(v->controls[XIDE_RECOVERY_GLOBAL_KIND],(xui_rect_t){96,580,248,32})); TRY(xuiWidgetAddChild(v->content,v->controls[XIDE_RECOVERY_GLOBAL_KIND]));
-    TRY(button(app,XIDE_RECOVERY_GLOBAL_REPAIR,"备份并重建所选文件…",(xui_rect_t){396,580,344,32}));
+    TRY(button(app,XIDE_RECOVERY_GLOBAL_REPAIR,"重建全局…",(xui_rect_t){396,580,344,32}));
     TRY(readonlyPath(app,"所选全局文件实际路径",(xui_rect_t){0,628,740,28},&v->globalPath));
     TRY(label(app,"",(xui_rect_t){0,680,740,116},&v->confirmText));
-    TRY(button(app,XIDE_RECOVERY_CONFIRM,"确认备份并重建",(xui_rect_t){394,810,226,32})); TRY(button(app,XIDE_RECOVERY_CANCEL_REPAIR,"取消修复",(xui_rect_t){634,810,106,32}));
+    TRY(button(app,XIDE_RECOVERY_CONFIRM,"确认重建",(xui_rect_t){394,810,226,32})); TRY(button(app,XIDE_RECOVERY_CANCEL_REPAIR,"取消修复",(xui_rect_t){634,810,106,32}));
     TRY(xideDialogFormBegin(v->window,600,420));
  TRY(xideDialogFormBlock(v->window,v->title,0,0));TRY(xideDialogFormField(v->window,"当前会话",v->scope,NULL,NULL));TRY(xideDialogFormBlock(v->window,v->message,0,0));
  TRY(xideDialogFormBlock(v->window,v->controls[XIDE_RECOVERY_LIST],112,0));TRY(xideDialogFormField(v->window,"恢复正文",v->path,NULL,NULL));TRY(xideDialogFormBlock(v->window,v->controls[XIDE_RECOVERY_CODE],200,1));

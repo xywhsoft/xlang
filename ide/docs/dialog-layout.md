@@ -6,8 +6,8 @@ scrolling, hit testing, and native window resizing. No XGE ABI change is needed.
 Resizable forms use a column with two siblings:
 
 1. A growing vertical ScrollView containing the form.
-2. A fixed footer containing a separator and right-aligned action rows. Actions
-   wrap when the available width cannot fit one row.
+2. A fixed footer containing a separator and a right-aligned action strip.
+   Declaration groups share spare width and wrap together when necessary.
 
 Fields have a fixed label column and a growing input column. Narrow forms place
 the label above the input. Browse buttons stay next to their field; primary
@@ -50,7 +50,7 @@ the native result/default-action contracts. Overwrite, updater, and failure
 prompts use the same presentation policy.
 
 `dialog_layout_test` checks twelve form families at 16/20/24/40 DIP and three
-window size targets, including minima, footer containment, content-only
+window size targets plus a 700 × 460 host at 40 DIP, including minima, footer containment, content-only
 scrolling, long input/dropdown paths, and long native messages. Existing
 functional fixtures exercise the actual buttons, menus, drafts, modal guards,
 input/IME, font/DPI changes, and resource operations. Their shared test helper

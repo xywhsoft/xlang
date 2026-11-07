@@ -93,6 +93,17 @@ static int verify(void* user) {
    CHECK(xideDialogSetOpen(active,0)==XUI_OK);
   }
  }
+ /* Even a host smaller than the preferred logical minima must retain the
+  * actions. This is the 40-DIP/small-window case from the resizing regressions. */
+ a.viewportWidth=700;a.viewportHeight=460;CHECK(xuiInputViewport(a.context,700,460)==XUI_OK);
+ for(size_t i=0;i<sizeof(windows)/sizeof(*windows);++i) {
+  active=windows[i];CHECK(xideDialogSetOpen(active,1)==XUI_OK && settle(&a));
+  xui_widget footer=xideDialogGetFooterWidget(active);xui_rect_t client=xuiWidgetGetWorldRect(xuiWindowGetClientWidget(active));
+  CHECK(within(xuiWidgetGetWorldRect(footer),client) && footerFits(a.context,footer,client));
+  CHECK(xuiWidgetGetRect(xideDialogGetScrollViewWidget(active)).fH>0);
+  CHECK(xideDialogSetOpen(active,0)==XUI_OK);
+ }
+ a.viewportWidth=1600;a.viewportHeight=1000;CHECK(xuiInputViewport(a.context,1600,1000)==XUI_OK && settle(&a));
  char message[12000];message[0]=0;for(int i=0;i<120;++i)strcat(message,"Long diagnostic message / selectable scrolling content.\n");
  a.hidden=0;xideMessageShow(&a,"Long message",message,XUI_MSGBOX_ICON_INFO);CHECK(settle(&a));
  xui_msgbox box=xideMessageCurrent(&a);CHECK(box && xuiWindowGetResizeEdges(xuiMsgBoxGetWindowWidget(box))==0);

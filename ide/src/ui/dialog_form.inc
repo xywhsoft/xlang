@@ -99,6 +99,13 @@ int xideDialogFormRow(xui_widget w,const xui_widget* children,size_t count,float
 int xideDialogFormActions(xui_widget w,const xui_widget* children,size_t count)
 {
     xide_dialog* d=dialog(w);if(!d || !d->form)return XUI_ERROR_INVALID_ARGUMENT;
+    /* One wrapping action strip uses spare width across action groups. A
+     * separate forced row per declaration wastes scarce vertical space. */
+    for(dialog_row* old=d->rows;old;old=old->next)if(old->footer) {
+        if(!children || !count || old->count+count>12)return XUI_ERROR_INVALID_ARGUMENT;
+        for(size_t i=0;i<count;++i){if(!children[i])return XUI_ERROR_INVALID_ARGUMENT;FORM_TRY(moveFormWidget(old->row,children[i]));old->children[old->count++]=children[i];}
+        return XUI_OK;
+    }
     dialog_row* r=formRow(d,1);if(!r)return XUI_ERROR_OUT_OF_MEMORY;r->height=32;
     FORM_TRY(xuiWidgetCreate(d->app->context,&r->spacer));
     FORM_TRY(adoptFormWidget(r->row,&r->spacer));
@@ -139,14 +146,14 @@ static int rowLayout(xide_dialog* d,dialog_row* r,float available,float scale,in
     for(size_t i=0;i<r->count;++i)if(xuiWidgetGetVisible(r->children[i])) {visible=1;++shown;}
     if(r->field)visible=xuiWidgetGetVisible(r->children[0]);
     FORM_TRY(xuiWidgetSetVisible(r->row,visible));if(!visible)return XUI_OK;
-    float gap=8*scale,height=r->height*scale;
+    float gap=(r->footer ? 6:8)*scale,height=r->height*scale;
     int compact=r->field && available<500*scale;
     for(size_t i=0;i<r->count;++i)if(xuiWidgetGetType(r->children[i])==xuiButtonGetType(d->app->context)) {
         const char* text=xuiButtonGetText(r->children[i]);uint64_t hash=1;
         for(const unsigned char* p=(const unsigned char*)text;*p;++p)hash=hash*131+*p;
         if(r->measureScale!=scale || r->measureFont!=d->app->uiFont || r->textHash[i]!=hash) {
             xui_vec2_t size={0};FORM_TRY(xideDpiTextMeasure(&d->app->proxy,d->app->uiFont,text,&size));
-            r->measured[i]=fmaxf(80*scale,ceilf(size.fX)+32*scale);r->textHash[i]=hash;
+            r->measured[i]=fmaxf((r->footer ? 48:80)*scale,ceilf(size.fX)+(r->footer ? 16:32)*scale);r->textHash[i]=hash;
         }
     }
     r->measureScale=scale;r->measureFont=d->app->uiFont;
@@ -208,10 +215,11 @@ static int layoutForm(xide_dialog* d,float width,float height,float scale)
         FORM_TRY(rowLayout(d,r,fmaxf(1,(r->footer ? width:bodyWidth)-2*pad),scale,&lines));
         if(r->footer && xuiWidgetGetVisible(r->row)){++groups;actionsHeight+=xuiWidgetGetPreferredSize(r->row).fY;}
     }
-    float footer=lines ? scale+pad+groups*pad+actionsHeight:0;
+    float footerPad=fminf(d->padding,8)*scale;
+    float footer=lines ? scale+footerPad+groups*footerPad+actionsHeight:0;
     FORM_TRY(xuiWidgetSetVisible(d->footer,lines>0));
-    FORM_TRY(xuiWidgetSetPadding(d->footer,(xui_thickness_t){0,0,0,pad}));
-    FORM_TRY(xuiWidgetSetGap(d->footer,pad));
+    FORM_TRY(xuiWidgetSetPadding(d->footer,(xui_thickness_t){0,0,0,footerPad}));
+    FORM_TRY(xuiWidgetSetGap(d->footer,footerPad));
     FORM_TRY(xuiWidgetSetPreferredSize(d->divider,(xui_vec2_t){0,scale}));
     FORM_TRY(xuiSeparatorSetColor(d->divider,ideThemeColor(d->app->theme,IDE_BORDER)));
     FORM_TRY(xuiWidgetSetPreferredSize(d->footer,(xui_vec2_t){0,footer}));
