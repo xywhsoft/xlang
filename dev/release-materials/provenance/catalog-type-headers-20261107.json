@@ -1,0 +1,357 @@
+{
+  "schema": 1,
+  "date": "2026-11-07",
+  "status": "passed",
+  "publication": "local-only",
+  "rootCause": "The extension catalog used the class member LIST as a base list and its base NAME child as the declared class name. Tab-indented implementation source was rendered by the signature Label, producing placeholder squares.",
+  "scope": "Repair frozen extension declaration headers using the original hash-matched AST exporter/runtime; no font, renderer, compiler or package upgrade.",
+  "extraction": {
+    "status": "passed",
+    "entries": 17598,
+    "extensionEntries": 11442,
+    "auditedTypeHeaders": 281,
+    "changedEntries": 17,
+    "changes": [
+      {
+        "before": "com.object",
+        "after": "com.ComObject",
+        "fields": [
+          "id",
+          "insert",
+          "name",
+          "signature"
+        ],
+        "beforeSignature": "class com.object extends point handle, create(string progid)\r\n\t\t__com_c_string(progid)\r\n\t\tself.handle = x_com_create(progid)\r\n\tend, create(point handle)\r\n\t\tself.handle = handle\r\n\tend, func close() as bool\r\n\t\tif x_com_is_null(self.handle) == 0 then\r\n\t\t\tif x_com_release(self.handle) == 0 then\r\n\t\t\t\treturn false\r\n\t\t\tend\r\n\t\t\tself.handle = null\r\n\t\t\treturn true\r\n\t\tend\r\n\t\treturn false\r\n\tend, destroy()\r\n\t\tif x_com_is_null(self.handle) == 0 then\r\n\t\t\t// 析构只释放句柄，不能写回正在退役的对象。\r\n\t\t\tx_com_release(self.handle)\r\n\t\tend\r\n\tend, func valid() as bool\r\n\t\treturn x_com_is_null(self.handle) == 0\r\n\tend, func last_error() as string\r\n\t\treturn x_com_last_error()\r\n\tend, func text(string name) as string\r\n\t\t__com_c_string(name)\r\n\t\treturn __xl_runtime.takeCstr(x_com_get_text(self.handle, name))\r\n\tend, func int(string name) as int\r\n\t\t__com_c_string(name)\r\n\t\treturn x_com_get_int(self.handle, name)\r\n\tend, func set(string name, var value) as bool\r\n\t\t__com_c_string(name)\r\n\t\treturn x_com_put_var(self.handle, name, value) != 0\r\n\tend, func set_ref(string name, var value) as bool\r\n\t\t__com_c_string(name)\r\n\t\treturn x_com_put_ref(self.handle, name, value) != 0\r\n\tend, func invoke(string name, array args) as var\r\n\t\t__com_c_string(name)\r\n\t\treturn x_com_invoke_array(self.handle, name, args)\r\n\tend, func invoke_out(string name, array args, array byrefs) as var\r\n\t\t__com_c_string(name)\r\n\t\treturn x_com_invoke_out(self.handle, name, args, byrefs)\r\n\tend, func invoke_named(string name, array args, array names) as var\r\n\t\t__com_c_string(name)\r\n\t\treturn x_com_invoke_named(self.handle, name, args, names)\r\n\tend",
+        "afterSignature": "class com.ComObject extends object"
+      },
+      {
+        "before": "com.object.handle",
+        "after": "com.ComObject.handle",
+        "fields": [
+          "id",
+          "insert",
+          "name",
+          "signature"
+        ],
+        "beforeSignature": "point com.object.handle",
+        "afterSignature": "point com.ComObject.handle"
+      },
+      {
+        "before": "com.object.create",
+        "after": "com.ComObject.create",
+        "fields": [
+          "id",
+          "insert",
+          "name",
+          "signature"
+        ],
+        "beforeSignature": "com.object.create(string progid)",
+        "afterSignature": "com.ComObject.create(string progid)"
+      },
+      {
+        "before": "com.object.create",
+        "after": "com.ComObject.create",
+        "fields": [
+          "id",
+          "insert",
+          "name",
+          "signature"
+        ],
+        "beforeSignature": "com.object.create(point handle)",
+        "afterSignature": "com.ComObject.create(point handle)"
+      },
+      {
+        "before": "com.object.close",
+        "after": "com.ComObject.close",
+        "fields": [
+          "id",
+          "insert",
+          "name",
+          "signature"
+        ],
+        "beforeSignature": "com.object.close() as bool",
+        "afterSignature": "com.ComObject.close() as bool"
+      },
+      {
+        "before": "com.object.valid",
+        "after": "com.ComObject.valid",
+        "fields": [
+          "id",
+          "insert",
+          "name",
+          "signature"
+        ],
+        "beforeSignature": "com.object.valid() as bool",
+        "afterSignature": "com.ComObject.valid() as bool"
+      },
+      {
+        "before": "com.object.last_error",
+        "after": "com.ComObject.last_error",
+        "fields": [
+          "id",
+          "insert",
+          "name",
+          "signature"
+        ],
+        "beforeSignature": "com.object.last_error() as string",
+        "afterSignature": "com.ComObject.last_error() as string"
+      },
+      {
+        "before": "com.object.text",
+        "after": "com.ComObject.text",
+        "fields": [
+          "id",
+          "insert",
+          "name",
+          "signature"
+        ],
+        "beforeSignature": "com.object.text(string name) as string",
+        "afterSignature": "com.ComObject.text(string name) as string"
+      },
+      {
+        "before": "com.object.int",
+        "after": "com.ComObject.int",
+        "fields": [
+          "id",
+          "insert",
+          "name",
+          "signature"
+        ],
+        "beforeSignature": "com.object.int(string name) as int",
+        "afterSignature": "com.ComObject.int(string name) as int"
+      },
+      {
+        "before": "com.object.set",
+        "after": "com.ComObject.set",
+        "fields": [
+          "id",
+          "insert",
+          "name",
+          "signature"
+        ],
+        "beforeSignature": "com.object.set(string name, var value) as bool",
+        "afterSignature": "com.ComObject.set(string name, var value) as bool"
+      },
+      {
+        "before": "com.object.set_ref",
+        "after": "com.ComObject.set_ref",
+        "fields": [
+          "id",
+          "insert",
+          "name",
+          "signature"
+        ],
+        "beforeSignature": "com.object.set_ref(string name, var value) as bool",
+        "afterSignature": "com.ComObject.set_ref(string name, var value) as bool"
+      },
+      {
+        "before": "com.object.invoke",
+        "after": "com.ComObject.invoke",
+        "fields": [
+          "id",
+          "insert",
+          "name",
+          "signature"
+        ],
+        "beforeSignature": "com.object.invoke(string name, array args) as var",
+        "afterSignature": "com.ComObject.invoke(string name, array args) as var"
+      },
+      {
+        "before": "com.object.invoke_out",
+        "after": "com.ComObject.invoke_out",
+        "fields": [
+          "id",
+          "insert",
+          "name",
+          "signature"
+        ],
+        "beforeSignature": "com.object.invoke_out(string name, array args, array byrefs) as var",
+        "afterSignature": "com.ComObject.invoke_out(string name, array args, array byrefs) as var"
+      },
+      {
+        "before": "com.object.invoke_named",
+        "after": "com.ComObject.invoke_named",
+        "fields": [
+          "id",
+          "insert",
+          "name",
+          "signature"
+        ],
+        "beforeSignature": "com.object.invoke_named(string name, array args, array names) as var",
+        "afterSignature": "com.ComObject.invoke_named(string name, array args, array names) as var"
+      },
+      {
+        "before": "xacme.ClientConfig",
+        "after": "xacme.ObtainConfig",
+        "fields": [
+          "id",
+          "insert",
+          "name",
+          "signature"
+        ],
+        "beforeSignature": "class xacme.ClientConfig extends string StoreRoot = \"\", int RenewalDays = 0",
+        "afterSignature": "class xacme.ObtainConfig extends ClientConfig"
+      },
+      {
+        "before": "xacme.ClientConfig.StoreRoot",
+        "after": "xacme.ObtainConfig.StoreRoot",
+        "fields": [
+          "id",
+          "insert",
+          "name",
+          "signature"
+        ],
+        "beforeSignature": "string xacme.ClientConfig.StoreRoot = \"\"",
+        "afterSignature": "string xacme.ObtainConfig.StoreRoot = \"\""
+      },
+      {
+        "before": "xacme.ClientConfig.RenewalDays",
+        "after": "xacme.ObtainConfig.RenewalDays",
+        "fields": [
+          "id",
+          "insert",
+          "name",
+          "signature"
+        ],
+        "beforeSignature": "int xacme.ClientConfig.RenewalDays = 0",
+        "afterSignature": "int xacme.ObtainConfig.RenewalDays = 0"
+      }
+    ],
+    "availableSources": 593,
+    "sourcePayloadsUnchanged": true,
+    "nonExtensionEntriesUnchanged": true,
+    "documentsUnchanged": true,
+    "originalCompilerBindingRetained": true,
+    "catalogSha256": "6079cecd10c3f2713622a2af7c030834524f3f502f804806e3f6210a34e4a1ae",
+    "sourceIndexSha256": "4c2447f3d201d59c8cf77a96a9fc4ed99711d111bcda6280b5031431ef74d57f"
+  },
+  "sourcePayloadsUnchanged": true,
+  "compilerBindingRetained": true,
+  "fullCurrentWorkspaceCatalogFreshnessClaimed": false,
+  "unitTests": {
+    "status": "passed",
+    "tests": 12,
+    "skipped": 2,
+    "failures": [],
+    "errors": [],
+    "exporterSha256": "d7d3869c2baae94f35f694c097458a4f303f6977d45caa92c77b2b2000aa3315"
+  },
+  "nativeReaderRegression": {
+    "passed": true,
+    "steps": [
+      {
+        "command": [
+          "E:/software/w64devkit/bin/gcc.exe",
+          "-std=c11",
+          "-O2",
+          "-DXLS_COMPILER_XRT",
+          "-DXRT_MODULE_ALL",
+          "-I.",
+          "-Iide/src",
+          "-Ilib/xrt",
+          "-Irelease/win_x64/include",
+          "D:\\GIT\\x-lang\\build\\catalog-type-headers-20261107\\reader\\host.c",
+          "ide/src/services/command_catalog.c",
+          "ide/src/services/catalog_sources.c",
+          "ide/src/platform/path.c",
+          "ide/src/platform/file_io.c",
+          "ide/src/platform/text_file.c",
+          "release/win_x64/xl.dll",
+          "-lbcrypt",
+          "-lole32",
+          "-o",
+          "D:\\GIT\\x-lang\\build\\catalog-type-headers-20261107\\reader\\catalog-reader.exe"
+        ],
+        "exitCode": 0
+      },
+      {
+        "command": [
+          "D:\\GIT\\x-lang\\build\\catalog-type-headers-20261107\\reader\\catalog-reader.exe",
+          "D:\\GIT\\x-lang\\build\\catalog-type-headers-20261107\\reader",
+          "D:\\GIT\\x-lang\\build\\catalog-type-headers-20261107\\repair\\pair\\commands.json"
+        ],
+        "exitCode": 0
+      }
+    ]
+  },
+  "nativeReaderLog": "catalog_test passed: real builtin types/shared document refs, signatures/defaults, current package metadata, C isolation, member exclusions, UTF-8, duplicate IDs and transactional failures without a UI context\n",
+  "visualGuiRebuilt": false,
+  "installation": {
+    "passed": true,
+    "installations": [
+      {
+        "destination": "D:\\GIT\\x-lang\\ide\\data",
+        "previous": {
+          "catalogSha256": "27e17cb16f25a4b1c16714736faee0e6df2098f472b0fd393166acc2e98de30a",
+          "sourceIndexSha256": "2ab9cd46e0179056a0357f453465a633f7d17fa2482f3a38ee5f2fc993c18546",
+          "available": 593,
+          "unavailable": 0
+        },
+        "current": {
+          "catalogSha256": "6079cecd10c3f2713622a2af7c030834524f3f502f804806e3f6210a34e4a1ae",
+          "sourceIndexSha256": "4c2447f3d201d59c8cf77a96a9fc4ed99711d111bcda6280b5031431ef74d57f",
+          "available": 593,
+          "unavailable": 0
+        },
+        "transaction": "\\\\?\\D:\\GIT\\x-lang\\build\\catalog-type-headers-20261107\\publications\\fe14f52d6e887d70e00d5092b0db001efc615e536d16f5b430bdc93a56b0f1fc\\transaction-114f53fa76e64c9abff7567ac522ff55"
+      },
+      {
+        "destination": "D:\\GIT\\x-lang\\release\\win_x64\\data",
+        "previous": {
+          "catalogSha256": "27e17cb16f25a4b1c16714736faee0e6df2098f472b0fd393166acc2e98de30a",
+          "sourceIndexSha256": "2ab9cd46e0179056a0357f453465a633f7d17fa2482f3a38ee5f2fc993c18546",
+          "available": 593,
+          "unavailable": 0
+        },
+        "current": {
+          "catalogSha256": "6079cecd10c3f2713622a2af7c030834524f3f502f804806e3f6210a34e4a1ae",
+          "sourceIndexSha256": "4c2447f3d201d59c8cf77a96a9fc4ed99711d111bcda6280b5031431ef74d57f",
+          "available": 593,
+          "unavailable": 0
+        },
+        "transaction": "\\\\?\\D:\\GIT\\x-lang\\build\\catalog-type-headers-20261107\\publications\\53d21068f2d13196361f92f8c9b972f44142e50d3d8c6599de2d2e73445df6da\\transaction-19273e4a22c24831a84b959ff06a1734"
+      }
+    ]
+  },
+  "products": [
+    {
+      "path": "ide/data/commands.json",
+      "sha256": "6079cecd10c3f2713622a2af7c030834524f3f502f804806e3f6210a34e4a1ae",
+      "bytes": 17478856
+    },
+    {
+      "path": "ide/data/catalog-sources/index.json",
+      "sha256": "4c2447f3d201d59c8cf77a96a9fc4ed99711d111bcda6280b5031431ef74d57f",
+      "bytes": 106714
+    },
+    {
+      "path": "release/win_x64/data/commands.json",
+      "sha256": "6079cecd10c3f2713622a2af7c030834524f3f502f804806e3f6210a34e4a1ae",
+      "bytes": 17478856
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/index.json",
+      "sha256": "4c2447f3d201d59c8cf77a96a9fc4ed99711d111bcda6280b5031431ef74d57f",
+      "bytes": 106714
+    }
+  ],
+  "tools": [
+    {
+      "path": "ide/tools/catalog_extensions.py",
+      "sha256": "13f6efe29d6ef021d70e098072321d158d485ef97b542de56ce690653f7b92dc"
+    },
+    {
+      "path": "ide/tools/check_extension_catalog.py",
+      "sha256": "fd20ed3bf58c083b2573e013224f8c9c688b35716fde004d147f7e71e6081da4"
+    },
+    {
+      "path": "ide/tools/repair_catalog_headers.py",
+      "sha256": "2ca07fdae66db7c1cb11d2a101c90f484451735bd1b4269d256a06a2787eb6c9"
+    },
+    {
+      "path": "ide/tests/catalog_test.c",
+      "sha256": "9179b317d053710aebabc90d316771eb32a516b46e90a282ec9a58a68aa69bdf"
+    }
+  ],
+  "nativeReaderRuntimeSha256": "215d6b3c87704c745ec609eb07e718a52708ad7c13436294f2f662a56169be13"
+}

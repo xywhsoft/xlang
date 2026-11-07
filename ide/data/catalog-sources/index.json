@@ -1,6 +1,6 @@
 {
   "format": "xlang-catalog-sources-1",
-  "catalogSha256": "27e17cb16f25a4b1c16714736faee0e6df2098f472b0fd393166acc2e98de30a",
+  "catalogSha256": "6079cecd10c3f2713622a2af7c030834524f3f502f804806e3f6210a34e4a1ae",
   "entries": [
     {
       "path": "docs/HTTP标准库实施与验收.md",

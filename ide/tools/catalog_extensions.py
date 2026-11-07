@@ -18,6 +18,10 @@ def child(node, kind):
 
 
 def name_of(node):
+    # Type declarations own their name. A class's NAME child is its base,
+    # whereas callable/field declarations use a NAME child for their own name.
+    if node['kind'] in TYPES:
+        return node.get('text', '')
     name = child(node, 'name')
     return name.get('text', '') if name else node.get('text', '')
 
@@ -31,8 +35,9 @@ def type_references(node):
     if node.get('flags', 0) & (PRIVATE | PROTECTED):
         return set()
     result = set(re.findall(r'[^\W\d]\w*', node.get('text', ''), re.UNICODE)) if node['kind'] == 'type' else set()
-    if node['kind'] in ('class', 'protocol'):
-        for base in (child(node, 'list') or {}).get('children', []):
+    if node['kind'] == 'class':
+        base = child(node, 'name')
+        if base:
             result.update(re.findall(r'[^\W\d]\w*', base.get('text', ''), re.UNICODE))
     for item in node.get('children', []):
         result.update(type_references(item))
@@ -112,10 +117,14 @@ class DeclarationText:
         if kind in ('type_alias', 'extern_type_alias'):
             return 'typedef ' + label + ' = ' + self.span(child(node, 'type'))
         signature = kind + ' ' + label + self.span(child(node, 'type_params'))
-        if kind in ('class', 'protocol'):
-            bases = (child(node, 'list') or {}).get('children', [])
-            if bases:
-                signature += ' extends ' + ', '.join(self.span(n) for n in bases)
+        if kind == 'class':
+            # The grammar stores an explicit base as NAME; LIST is the empty
+            # default base or the member body. Never render member source here.
+            base = child(node, 'name')
+            if base:
+                # The reduced base range includes KW_EXTENDS, while its token
+                # starts at the base name (also for qualified names).
+                signature += ' extends ' + self.slice(base['tokenRange']['startOffset'], base['range']['endOffset'])
         elif kind == 'enum' and child(node, 'type'):
             signature += ' as ' + self.span(child(node, 'type'))
         return signature
@@ -230,7 +239,7 @@ def extract(root, compiler, scratch, capture):
                         continue
                     qualified = prefix + label
                     start = len(entries)
-                    line = (child(node, 'name') or node).get('line', 1)
+                    line = (node if kind in TYPES else child(node, 'name') or node).get('line', 1)
                     nodes[kind] += 1
                     if kind in TYPES:
                         if not label and kind == 'union':

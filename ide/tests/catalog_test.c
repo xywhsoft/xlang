@@ -37,6 +37,10 @@ int main(int argc,char** argv)
     const xide_command* module=findName(&catalog,"csv"); CHECK(module && !strcmp(module->requiredImport,"csv") && !strcmp(module->version,"1.0.0") && !xideCatalogCanComplete(module,"xlang"));
     const xide_command* reader=findName(&catalog,"csv.Reader"); CHECK(reader && !strcmp(reader->kind,"type"));
     CHECK(findName(&catalog,"xacme") && !findName(&catalog,"acme") && !findName(&catalog,"_bzip2"));
+    const xide_command* comObject=findName(&catalog,"com.ComObject"),*obtainConfig=findName(&catalog,"xacme.ObtainConfig");
+    CHECK(comObject && !strcmp(comObject->signature,"class com.ComObject extends object"));
+    CHECK(findName(&catalog,"com.ComObject.close") && !findName(&catalog,"com.object"));
+    CHECK(obtainConfig && !strcmp(obtainConfig->signature,"class xacme.ObtainConfig extends ClientConfig"));
     const xide_command* level=findName(&catalog,"zstd.ZSTD_DEFAULT_LEVEL");
     CHECK(level && !strcmp(level->kind,"constant") && strstr(level->signature,"= 3"));
     const xide_command* bloom=findName(&catalog,"bloom.BloomFilter");

@@ -130,7 +130,32 @@ class ExtensionCatalogTests(unittest.TestCase):
         self.source.write_text('export class Large\n' + methods + '\nend\n', encoding='utf-8')
         entries, _, _ = self.read()
         self.assertEqual(1802, len(entries))  # module + class + all overload-independent members
+        self.assertEqual('class sample.Large', self.named(entries, 'Large')[0]['signature'])
         self.assertTrue(self.named(entries, 'Large.read1799'))
+
+    def test_class_headers_do_not_expose_members_as_bases(self):
+        self.source.write_text(
+            'class HiddenBase\n\tfunc inherited() as int\n\t\treturn 1\n\tend\nend\n'
+            'export class Derived<T> extends HiddenBase\n\tT value\n'
+            '\tfunc read() as T\n\t\treturn self.value\n\tend\nend\n'
+            'export class Qualified extends other.Parent\n\tint count\nend\n'
+            'export class Plain\n\tint field\nend\n'
+            'export protocol Contract\n\tfunc run()\nend\n', encoding='utf-8')
+        entries, _, _ = self.read()
+        expected = {'Derived': 'class sample.Derived<T> extends HiddenBase',
+                    'Qualified': 'class sample.Qualified extends other.Parent',
+                    'Plain': 'class sample.Plain', 'Contract': 'protocol sample.Contract'}
+        for name, signature in expected.items():
+            self.assertEqual(signature, self.named(entries, name)[0]['signature'])
+        self.assertTrue(self.named(entries, 'Derived.read'))
+        self.assertTrue(self.named(entries, 'HiddenBase.inherited'))
+        self.assertFalse(self.named(entries, 'HiddenBase.read'))
+        self.assertFalse(self.named(entries, 'Parent'))
+        self.assertFalse(self.named(entries, 'other.Parent'))
+        for entry in entries:
+            if entry['kind'] == 'type':
+                self.assertNotIn('\t', entry['signature'])
+                self.assertNotIn('\n', entry['signature'])
 
     def test_installed_pair_coverage_and_preservation(self):
         if PAIR is None:

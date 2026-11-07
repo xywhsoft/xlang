@@ -164,9 +164,9 @@
       "members": 3830
     },
     "availableSources": 593,
-    "catalogSha256": "27e17cb16f25a4b1c16714736faee0e6df2098f472b0fd393166acc2e98de30a",
+    "catalogSha256": "6079cecd10c3f2713622a2af7c030834524f3f502f804806e3f6210a34e4a1ae",
     "sourceRevision": "ed78373dded9bde21db313799c1db8d5111631a6",
-    "currentDeliveryAction": "retained exact prior 600-file static snapshot; no new XGE3 API documentation coverage claim"
+    "currentDeliveryAction": "Repaired 17 captured extension declaration headers/names using the original pinned exporter; source payloads and compiler binding retained; no current workspace catalog freshness claim."
   },
   "publicExtensionModules": 207,
   "dataFiles": [
@@ -3138,12 +3138,12 @@
     {
       "bytes": 106714,
       "path": "release/win_x64/data/catalog-sources/index.json",
-      "sha256": "2ab9cd46e0179056a0357f453465a633f7d17fa2482f3a38ee5f2fc993c18546"
+      "sha256": "4c2447f3d201d59c8cf77a96a9fc4ed99711d111bcda6280b5031431ef74d57f"
     },
     {
-      "bytes": 17479812,
+      "bytes": 17478856,
       "path": "release/win_x64/data/commands.json",
-      "sha256": "27e17cb16f25a4b1c16714736faee0e6df2098f472b0fd393166acc2e98de30a"
+      "sha256": "6079cecd10c3f2713622a2af7c030834524f3f502f804806e3f6210a34e4a1ae"
     },
     {
       "bytes": 9210776,
@@ -3678,6 +3678,27 @@
       },
       "buildScope": "Specified example failures, bounded native C header descriptors, compiler rebuild and installed regression checks; no whole-project certification.",
       "cohortBaseRevision": "9ab5279c4"
+    },
+    "publication": "local-only"
+  },
+  "catalogHeaderRepair": {
+    "path": "dev/release-materials/provenance/catalog-type-headers-20261107.json",
+    "sha256": "0587e381ab09348d07eb658c839aa72f4721d2e2a1ec213138afa0cca5781186",
+    "bytes": 14108,
+    "previousCatalog": {
+      "status": "passed",
+      "entries": 17598,
+      "documents": 145,
+      "publicApi": {
+        "functions": 823,
+        "constants": 202,
+        "types": 406,
+        "members": 3830
+      },
+      "availableSources": 593,
+      "catalogSha256": "27e17cb16f25a4b1c16714736faee0e6df2098f472b0fd393166acc2e98de30a",
+      "sourceRevision": "ed78373dded9bde21db313799c1db8d5111631a6",
+      "currentDeliveryAction": "retained exact prior 600-file static snapshot; no new XGE3 API documentation coverage claim"
     },
     "publication": "local-only"
   }
