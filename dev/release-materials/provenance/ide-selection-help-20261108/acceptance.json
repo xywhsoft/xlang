@@ -1,0 +1,344 @@
+{
+  "schema": 1,
+  "date": "2026-11-08",
+  "passed": true,
+  "complete": true,
+  "scope": "Affected IDE feature/regression gates, not the entire IDE/compiler suite.",
+  "tests": [
+    {
+      "test": "catalog_follow_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\help-follow-20261108\\catalog_follow_test-d8c49534",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-selection-help-20261108/catalog_follow_test.log",
+        "sha256": "2adbe6f761a984cfd6373841f5e57b3aeab24e12dc10a453c496115bd8202879",
+        "bytes": 261
+      },
+      "testSourceSha256": "2c3fe2c4693103584490254dcd4f8e772c31023fe618b920b17628865dd63462",
+      "validationStage": "after-private-layout-adjustment"
+    },
+    {
+      "test": "settings_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\help-follow-20261108\\settings_test-d07f922b",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-selection-help-20261108/settings_test.log",
+        "sha256": "3e6b962bd0820463dd4bf4f6fe1c47420733ff596942f0c4a28697e6d237d96e",
+        "bytes": 209
+      },
+      "testSourceSha256": "775d00a4c492254478cbc2ad3b1f8c38b83a85d29ea7c91026a3d90a6ae58107",
+      "validationStage": "full-cohort-before-private-layout-adjustment"
+    },
+    {
+      "test": "settings_view_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\help-follow-20261108\\settings_view_test-a6b0feef",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-selection-help-20261108/settings_view_test.log",
+        "sha256": "1adcd571bc7bc94957328b66ea55a4b4dbace37be5734132c9e3790d3e78f507",
+        "bytes": 302
+      },
+      "testSourceSha256": "1a09b8f399fca72e2bd060d9c3ac3f54c820cb3db5367932f2607fae093a70f3",
+      "validationStage": "after-private-layout-adjustment"
+    },
+    {
+      "test": "settings_menu_frame_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\help-follow-20261108\\settings_menu_frame_test-bd0cb632",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-selection-help-20261108/settings_menu_frame_test.log",
+        "sha256": "c9c1ccd683154d918cfbc534e511bcddc1f4418c29f2c6a3d52dfddfbca99351",
+        "bytes": 188
+      },
+      "testSourceSha256": "1b3ed104a70c61cdc051a7f8ea985d23441f5ea317b8295bd030116984481f19",
+      "validationStage": "full-cohort-before-private-layout-adjustment"
+    },
+    {
+      "test": "catalog_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\help-follow-20261108\\catalog_test-7ee4d07f",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-selection-help-20261108/catalog_test.log",
+        "sha256": "fe36bc98aa7b55d8e5e68b832339cb050f0fbad68aeb87eec249d5328b854ae9",
+        "bytes": 211
+      },
+      "testSourceSha256": "c0b4147d4fe3d671fac73ae2c9dee372005efd738dd30f5247c054c43616a5ac",
+      "validationStage": "after-private-layout-adjustment"
+    },
+    {
+      "test": "catalog_view_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\help-follow-20261108\\catalog_view_test-be690211",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-selection-help-20261108/catalog_view_test.log",
+        "sha256": "a660696a11146c447db9bdb37d6c60ab7bfda95f5cc80652870655298783635d",
+        "bytes": 197
+      },
+      "testSourceSha256": "081247e296b1f2a8bf07b816170046711592a0383b478372e4eacbe563cfccdc",
+      "validationStage": "after-private-layout-adjustment"
+    },
+    {
+      "test": "help_document_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\help-follow-20261108\\help_document_test-f5a6f6b9",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-selection-help-20261108/help_document_test.log",
+        "sha256": "d02b8684561da8049ea8d98df4644035cd80556ff82a0a1dcb8fb6f6c2f10406",
+        "bytes": 209
+      },
+      "testSourceSha256": "d67c4af9e3d0bd00d161963dcec0b968a2b8be7872ef6d1684abf667571f42c4",
+      "validationStage": "after-private-layout-adjustment"
+    },
+    {
+      "test": "help_render_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\help-follow-20261108\\help_render_test-b5e9182d",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-selection-help-20261108/help_render_test.log",
+        "sha256": "5573178a55bd3a14571193c28581a9ff85a0b933e773d8b501faace980be811b",
+        "bytes": 11354
+      },
+      "testSourceSha256": "5f0cfe74708416ea234da6177aac41fae1f32c54908ee90b83b4bcfb38b5bd55",
+      "validationStage": "after-private-layout-adjustment"
+    },
+    {
+      "test": "help_viewport_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\help-follow-20261108\\help_viewport_test-eaa28c00",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-selection-help-20261108/help_viewport_test.log",
+        "sha256": "bc54c9a1d3a0807cebd71f2a201d38dd5f6c45798b02625fa1d622fdf3805052",
+        "bytes": 1422
+      },
+      "testSourceSha256": "534439c3a6089ce84de672ec42795c5328a69fdafc386acc6b68451259ff2dde",
+      "validationStage": "after-private-layout-adjustment"
+    },
+    {
+      "test": "input_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\help-follow-20261108\\input_test-c6596176",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-selection-help-20261108/input_test.log",
+        "sha256": "d992b451c3b31e7ddd85ed2d1da08c97c7ed3e8c1b7fb3bf5ca8fbd44164c9c0",
+        "bytes": 302
+      },
+      "testSourceSha256": "5d806b950497f3574bf0143d33a046eafe2be64d1591c6f1bef177abc5de57c3",
+      "validationStage": "full-cohort-before-private-layout-adjustment"
+    },
+    {
+      "test": "editor_minimap_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\help-follow-20261108\\editor_minimap_test-65c723de",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-selection-help-20261108/editor_minimap_test.log",
+        "sha256": "5d3a1be96f932b3187a6469ec8b2ecc494ec8752c4f1dc7eca029efe4dfd3e97",
+        "bytes": 201
+      },
+      "testSourceSha256": "968a03fae69d413bbd0196261b8a51cc52123b31b4e8ef4ee444c7c664c69d69",
+      "validationStage": "full-cohort-before-private-layout-adjustment"
+    },
+    {
+      "test": "dock_windows_view_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\help-follow-20261108\\dock_windows_view_test-77f9758b",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-selection-help-20261108/dock_windows_view_test.log",
+        "sha256": "9c2cfd00bebaad5c893b3dc035c6c01fd7065e2a7ac01f7f35f3259bf38a2c25",
+        "bytes": 187
+      },
+      "testSourceSha256": "95e001739b2421de7c35689d0c59ff89b0d2dc1ffd7f6818631b958bd7afbb3a",
+      "validationStage": "after-private-layout-adjustment"
+    },
+    {
+      "test": "dock_tabs_view_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\help-follow-20261108\\dock_tabs_view_test-99206aee",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-selection-help-20261108/dock_tabs_view_test.log",
+        "sha256": "b741d58a6f9055f76d1131cedcd293bc3a5c7786d8247b60291f6c39a4085c74",
+        "bytes": 172
+      },
+      "testSourceSha256": "b0450183e387a934f831992ec1dda0994e819e809cec2fdfdfe532205b505568",
+      "validationStage": "full-cohort-before-private-layout-adjustment"
+    },
+    {
+      "test": "reading_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\help-follow-20261108\\reading_test-a2b9a2c7",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-selection-help-20261108/reading_test.log",
+        "sha256": "6cb964cbb96c91c45bd4d73f94d15dbc198dfafd1df657633ecb29fe4a96ed51",
+        "bytes": 552
+      },
+      "testSourceSha256": "0b9d5dcc78d65914f5a1dd43e6cf4127a4b1815de31fb3802dd30cd7467690ea",
+      "validationStage": "after-private-layout-adjustment"
+    },
+    {
+      "test": "dialog_layout_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\help-follow-20261108\\dialog_layout_test-143a0a70",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-selection-help-20261108/dialog_layout_test.log",
+        "sha256": "2b789cfb7bf7e093e98fed903d32b919493ea928318ca9b5e47222336d16120f",
+        "bytes": 206
+      },
+      "testSourceSha256": "70a0e91feb961d7ff69e40316218881d72aabbfc8a3a2859f0b096d2567312a4",
+      "validationStage": "full-cohort-before-private-layout-adjustment"
+    },
+    {
+      "test": "actions_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\help-follow-20261108\\actions_test-b076553f",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-selection-help-20261108/actions_test.log",
+        "sha256": "8c3fc3a3eab5ed1bd52228bd076a0dd3ad26ad5c5d94841630b62ca336c5dc7d",
+        "bytes": 773
+      },
+      "testSourceSha256": "ad7caabd963b36ac767c88b0035754f71605a18f959c69cab24fc37737410b9b",
+      "validationStage": "full-cohort-before-private-layout-adjustment"
+    },
+    {
+      "test": "catalog_source_view_test",
+      "exit": 0,
+      "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\help-follow-20261108\\catalog_source_view_test-82201cb0",
+      "log": {
+        "path": "dev/release-materials/provenance/ide-selection-help-20261108/catalog_source_view_test.log",
+        "sha256": "2e2010bc3c5bd7122dafced3601734ca2cce3968b4d61046022e1212225a39be",
+        "bytes": 259
+      },
+      "testSourceSha256": "52c292aab652968d1714b1338d975bf78768a25428ca6c4975b4d9ba6dadd629",
+      "validationStage": "after-private-layout-adjustment"
+    }
+  ],
+  "selectionChecks": 79,
+  "performance": {
+    "samples": 600,
+    "documentBytes": 1048576,
+    "observerOffP95Us": 0.1,
+    "observerOffP99Us": 0.1,
+    "observerOnP95Us": 0.8,
+    "observerOnP99Us": 0.8,
+    "lookupPublishP95Us": 753.3,
+    "lookupPublishP99Us": 847.3,
+    "interactionSamples": 80,
+    "inputOffP95Us": 211858.8,
+    "inputOffP99Us": 253288.9,
+    "inputOnP95Us": 213686.6,
+    "inputOnP99Us": 221713.2,
+    "scrollOffP95Us": 534.9,
+    "scrollOffP99Us": 565.7,
+    "scrollOnP95Us": 565.8,
+    "scrollOnP99Us": 616.4,
+    "interactionScope": "native dispatch, follow observer, UI layout; excludes paint/presentation"
+  },
+  "candidateSmoke": {
+    "command": [
+      "D:\\GIT\\x-lang\\release\\win_x64\\xide-verify-9060fa061f424ee7aba3c2cc1fd3c16f.exe",
+      "--hidden",
+      "--frames",
+      "4",
+      "--no-session",
+      "--no-auto-diagnostics",
+      "--settings",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\help-follow-20261108\\candidate-smoke-449c9980\\settings.json",
+      "--session-root",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\help-follow-20261108\\candidate-smoke-449c9980\\session",
+      "--diagnostic-root",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\help-follow-20261108\\candidate-smoke-449c9980\\diagnostics",
+      "--screenshot",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\help-follow-20261108\\candidate-smoke-449c9980\\candidate-smoke.png"
+    ],
+    "exitCode": 0,
+    "seconds": 8.203,
+    "log": {
+      "path": "dev/release-materials/provenance/ide-selection-help-20261108/candidate-smoke.log",
+      "sha256": "3f7ac451278dc2465961a367c5aaf60eb7ed25cf0c81179e939bc91b2f5012db",
+      "bytes": 74
+    },
+    "screenshot": {
+      "path": "dev/release-materials/provenance/ide-selection-help-20261108/candidate-smoke.png",
+      "sha256": "564e6a6944bad09076bba6600476b9132f83f9b7a93856c3d14949a9fcf408fe",
+      "bytes": 151164
+    }
+  },
+  "missingCatalogSmoke": {
+    "command": [
+      "D:\\GIT\\x-lang\\release\\win_x64\\xide-verify-9060fa061f424ee7aba3c2cc1fd3c16f.exe",
+      "--hidden",
+      "--frames",
+      "4",
+      "--no-session",
+      "--no-auto-diagnostics",
+      "--settings",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\help-follow-20261108\\missing-catalog-smoke-4da10d17\\settings.json",
+      "--session-root",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\help-follow-20261108\\missing-catalog-smoke-4da10d17\\session",
+      "--diagnostic-root",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\help-follow-20261108\\missing-catalog-smoke-4da10d17\\diagnostics",
+      "--screenshot",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\help-follow-20261108\\missing-catalog-smoke-4da10d17\\missing-catalog-smoke.png",
+      "--catalog",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\help-follow-20261108\\missing-catalog-smoke-4da10d17\\absent-commands.json"
+    ],
+    "exitCode": 0,
+    "seconds": 4.625,
+    "log": {
+      "path": "dev/release-materials/provenance/ide-selection-help-20261108/missing-catalog-smoke.log",
+      "sha256": "3f7ac451278dc2465961a367c5aaf60eb7ed25cf0c81179e939bc91b2f5012db",
+      "bytes": 74
+    },
+    "screenshot": {
+      "path": "dev/release-materials/provenance/ide-selection-help-20261108/missing-catalog-smoke.png",
+      "sha256": "ae0626f9a01ced1697d79259c93ce38d388dcdf45b8add983e89fcdf734e709d",
+      "bytes": 168775
+    }
+  },
+  "installedSmoke": {
+    "command": [
+      "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide.exe",
+      "--hidden",
+      "--frames",
+      "4",
+      "--no-session",
+      "--no-auto-diagnostics",
+      "--settings",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\help-follow-20261108\\installed-smoke-b59a4bc8\\settings.json",
+      "--session-root",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\help-follow-20261108\\installed-smoke-b59a4bc8\\session",
+      "--diagnostic-root",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\help-follow-20261108\\installed-smoke-b59a4bc8\\diagnostics",
+      "--screenshot",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\help-follow-20261108\\installed-smoke-b59a4bc8\\installed-smoke.png"
+    ],
+    "exitCode": 0,
+    "seconds": 7.766,
+    "log": {
+      "path": "dev/release-materials/provenance/ide-selection-help-20261108/installed-smoke.log",
+      "sha256": "3f7ac451278dc2465961a367c5aaf60eb7ed25cf0c81179e939bc91b2f5012db",
+      "bytes": 74
+    },
+    "screenshot": {
+      "path": "dev/release-materials/provenance/ide-selection-help-20261108/installed-smoke.png",
+      "sha256": "9fa15f0c19ea184a72aeb15758a64253ac8fbf667267d8a62aa942fb0344b3bf",
+      "bytes": 151162
+    }
+  },
+  "sourceGuard": {
+    "path": "dev/release-materials/provenance/ide-selection-help-20261108/committed-source-guard.json",
+    "sha256": "1a9e27e87fd3abd9896097d322b7caa8f8895d5c7e5a8f710f5d97c0668862c2",
+    "bytes": 116178
+  },
+  "resolvedAcceptanceFindings": [
+    "Updated help tree walkers to retain glyph/table/list coverage under the new page root; removed duplicate fixture teardown.",
+    "Existing qualified-prefix completion assertions incorrectly expected unrelated names; the original published objects failed the same assertions. They now check the actual single bounded match.",
+    "Missing-catalog startup previously left a native file error in the thread slot, causing the next UI callback to fail. Catalog load now isolates its model errors and preserves the caller error; API identity checks and real missing-catalog GUI startup pass.",
+    "New fixed follow controls consumed too much of a short high-DPI pane. They now scroll with help; native source-view click, 200% DPI and lifetime regression passes."
+  ],
+  "limits": [
+    "Candidates are explicitly spelling matches; no verified compiler SymbolId-to-catalog-ID mapping exists. Receiver types and overloads are not claimed as semantically confirmed.",
+    "One native control creation cannot be preempted; rendering budget is cooperative, not a hard realtime bound.",
+    "Interaction timing excludes paint/presentation. The 1MiB native editing path itself remains costly with following both off and on; this delivery does not claim to fix that existing cost."
+  ],
+  "runtimeSettingsPreserved": true,
+  "unrelatedWorkspaceChangesExcluded": true
+}

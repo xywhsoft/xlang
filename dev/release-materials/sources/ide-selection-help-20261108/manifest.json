@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "sourceRevision": "7be7076f388f570709a5d47e01aad9bd52e26c21",
+  "baseRevision": "27098344c",
+  "parentSourceMaterials": {
+    "path": "dev/release-materials/sources/ide-dialog-layout-20261108/manifest.json",
+    "sha256": "f3bd0a03a32125153dd6e82351c0a428d6332ba79fd0c2deed5c88c363805f8c",
+    "bytes": 5968
+  },
+  "overlay": {
+    "path": "dev/release-materials/sources/ide-selection-help-20261108/source-overlay.zip",
+    "sha256": "546e3a9790e98839e8cdb5e4b4b75e0572b3d60031163076073ea9d8c16c9a22",
+    "bytes": 109005
+  },
+  "files": {
+    "ide/src/services/command_catalog.c": "55873e78ebc28f612b98d3d5b1d21b3bbd100b9b59bee52a7d257c8872110419",
+    "ide/src/services/command_catalog.h": "0be1ab686cbb3378e7ed09aad071041b88caaed96a488a3b659fac642f6ef6f1",
+    "ide/src/services/catalog_lookup.c": "a13e6cf08279436f3bff6afcb3cdb66a12bc297406b4c10c570e623c10b3dd2a",
+    "ide/src/services/catalog_lookup.h": "c7c1eb5d14d7735837ce625c19f18dc2eb6141aeaf5e002104ec1e47e9d561a0",
+    "ide/src/ui/catalog_view.c": "66d69f5ff3bf5887f7427fb8da01a55e3a64c51d297a459223248e683f421d31",
+    "ide/src/ui/catalog_view.h": "95cbc8a2ed976cc241d5fa75c5acf50427eee3a2530d1af88bebeab217c5f742",
+    "ide/src/ui/catalog_follow.inc": "85e4ce69d66013f83f03d4ff875c82f56a19e87ed07636a9aa0a579de55c5bb9",
+    "ide/src/ui/help_document.c": "2e8dea5d37dbe49ae8459036c349c42f344c3c3a1176363551dc9aa9880a3780",
+    "ide/src/ui/help_document.h": "b3481e0c8e2659c993a495b12572bdb931ab62a19840dc213f69c6642d9058a8",
+    "ide/src/ui/help_prepare.inc": "1afc3b2def757e641a6e763590bfd571de74d260599a6e7dcd4660b7828028ca",
+    "ide/src/ui/settings_view.c": "c96488a41beef0e33c8dcc6c783f8e029824a2c55b8a959ea778ff8d84917b08",
+    "ide/src/ui/settings_view.h": "6f2fd92e3377c075302b391e8269ee75075e7feaceb3364007cc97893a9349c7",
+    "ide/src/platform/settings.h": "6ba5b6d1be72d9973172564465621ee779946ec2efd2f0b74f1769bbf3ee3bff",
+    "ide/src/platform/settings_options.inc": "9bef8533040b3fb30f07f1964fb492d19425c12b4dd61f394cd725c284e56422",
+    "ide/src/app/actions.c": "1d529a38b58c55e1e467ead1d5b782de928fa70c99eb69b66a4e37784f22e9c9",
+    "ide/src/app/actions.h": "d84cd1792049279dda7f2b898a41245832bd67303c4de15e5b09b7489550d41a",
+    "ide/src/ui/workbench.c": "955668d10edee35900b8354882b52af3b063b423d36cf7fcfb2bac440723f063",
+    "ide/src/ui/workbench_windows.h": "a0e571aecaeb9dcb74ad762c6922780ff872a2e4862e3ea53cd73714ca0b583b",
+    "ide/tools/build.ps1": "0d98561979e19b243e02ffc25bae1dd7565b48e330e025e42db9304ab7aaf5e3",
+    "ide/tests/catalog_follow_test.c": "a9a151715432f7c1ddc1ca2792cacfb84d33e78256f99b0b441550dd93f54c84",
+    "ide/tools/test.ps1": "be848c2ab0833ebadd4f2ff77973cc27ce65d626154f5964d2a14614f1ceb844",
+    "ide/tests/settings_view_test.c": "ba68f40d1994f1789e852fdb9fff0279d7837720156f2ca10ead21cd5f4ef79b",
+    "ide/tests/help_viewport_test.c": "bcd39a371ce49ccf20ae9d2983bb2786c1ebcb20df7f48112ecf99e4e609f6de",
+    "ide/tests/help_document_test.c": "94726b53e7e2efde9587deea1f9add62b4f6b07d6de24988318f8d5742111950",
+    "ide/tests/catalog_view_test.c": "0ca6e3a498cdbf285d1d842dc1e6ccef57dd94689e71b89731b23a08048d7624",
+    "ide/tests/help_render_test.c": "963e91e29bfc093ef33ab069805d675cb6e551d1ea7cb1ed12c90fff31cab8c5",
+    "ide/docs/selection-help.md": "098fafcab831b97c632cab1877f4a197e75654e381c224d891218793b9d9c1da",
+    "ide/tests/catalog_test.c": "31d54a0eacce45bb5b9b2c50cd7cabbca446bd7abb6f162b983b99f0f0f39f8a"
+  },
+  "sdkManifest": {
+    "path": "ide/third_party/xge_sdk/sdk_manifest.json",
+    "sha256": "87e83148e6d058471cab302416096916a622ea829aff98b332f076d5fe3bb752",
+    "bytes": 11615
+  },
+  "optimization": "-O2",
+  "scope": "IDE selection-follow help, indexed spelling candidates, persisted setting/pin, F1, immutable catalog leases, background bounded Markdown models and visible-block rendering.",
+  "rebuild": "Restore parent materials and apply overlay. Build GuiOnly using the qualified shipping language server and matched XGE SDK. The supplied build driver only changes private object output location. Full 107-object cohort plus GUI entry was rebuilt; private catalog_view.c layout and command_catalog.c error isolation adjustments were recompiled and relinked afterward."
+}

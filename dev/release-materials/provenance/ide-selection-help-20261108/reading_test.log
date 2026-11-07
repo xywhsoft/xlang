@@ -1,0 +1,2 @@
+reading_test passed: native stable tree identities and selection after node reorder, collapsed branches, row anchors across UI font changes, long-help block/chapter anchors across reflow and restart, workspace isolation and property owner, Unicode paths, unknown fields, tree-only autosave, missing identities, explicit chapter override, document end, malformed/duplicate protection without partial restore, legacy session-1 compatibility, C/xlang state and real screenshots.
+session: Session document metadata is invalid; the original is preserved.

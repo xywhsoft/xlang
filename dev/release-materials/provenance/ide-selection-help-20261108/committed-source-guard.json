@@ -1,0 +1,2323 @@
+{
+  "sourceRevision": "7be7076f388f570709a5d47e01aad9bd52e26c21",
+  "exactInputsUnchanged": true,
+  "checked": [
+    {
+      "path": "ide/src/platform/path.h",
+      "rawSha256": "8b99466e765a7e41e5d56716c8dfe9499fc0c30cddbd841864997a956360562e",
+      "normalizedSha256": "97b53dd65bb840a46ca14b3780ec5fbd742d6e0c5118ea2133f1456b5b6fcf96"
+    },
+    {
+      "path": "ide/src/app/xide_app.c",
+      "rawSha256": "f31f572b0af76cf8501a1ce3479085b494922b0ecd18778d5b5e17cfe4a72723",
+      "normalizedSha256": "6a3d97b97d67f4e2306b7bf764588167704c6c9556077e78398e345ce3bb15b9"
+    },
+    {
+      "path": "ide/src/analysis/frontend_cancel.c",
+      "rawSha256": "b20051bbb649e283306a16e2cf1ee8b8151a8bcdd29f82cee7194320d20eb183",
+      "normalizedSha256": "e64f489dd7cf0e437780f52d98430724a995881498973b3376290ce33f0619c9"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/xnative_transfer.h",
+      "rawSha256": "620fe84af1c7c5f40006a65a4ca4435a5d62f2fd500b345514829e27c08dff6f",
+      "normalizedSha256": "620fe84af1c7c5f40006a65a4ca4435a5d62f2fd500b345514829e27c08dff6f"
+    },
+    {
+      "path": "ide/src/ui/configuration_view.c",
+      "rawSha256": "493dea59d5db46a864970ffab68798a0a6a4ad8d4d9f00eff9983bf0adc65365",
+      "normalizedSha256": "22a5cafdb7f3baa933f37f78b657be1f563674fc8d4183d848270844cd9ae854"
+    },
+    {
+      "path": "ide/src/analysis/frontend_completion_path.h",
+      "rawSha256": "43b21b77118f89690b947bb0787b698f708018cda96fe4eb6155688cf5bf20d5",
+      "normalizedSha256": "1686d91e2ce1cdba0178fe2a1c5ebe192194a960e336f881f12e4caddf9e6924"
+    },
+    {
+      "path": "ide/src/analysis/call_context.h",
+      "rawSha256": "d8feb59fbbe870cc9d7b5d6ac87f8e4f60f35b907023ef8a37e428957e194a47",
+      "normalizedSha256": "56b6d412a84c30c59b8440cbcbfbf3eab7f5904e82622cddc21cac0c8a950f4e"
+    },
+    {
+      "path": "ide/src/analysis/input_topology.h",
+      "rawSha256": "bdeee137a113aaaf51583d2da8ce0ea01e6bdf08cf84db691fbdcdf2e6755035",
+      "normalizedSha256": "6a758e8e93d2534b831e4a6919c912c4e00c061e021f40fa395f218002ac7771"
+    },
+    {
+      "path": "ide/src/analysis/syntax_node_storage.h",
+      "rawSha256": "614ae46c6963f0e2ab39a3c942bd1edd9864444fe00a85802b9f6e5b391bfb39",
+      "normalizedSha256": "014df09b9d6bc65bb1dcfd464e92dac007698cdf0018a966b049aa157fff9d2a"
+    },
+    {
+      "path": "ide/src/analysis/ast_materialize.c",
+      "rawSha256": "fedfc2f7e09c79700edaca3611691625a807c812c1b1f68afac39ff0df312317",
+      "normalizedSha256": "a55d78d80c957be3edf52390fe39df0c2be8ca825407fec55e4c4ab434aff309"
+    },
+    {
+      "path": "ide/src/analysis/module_graph.c",
+      "rawSha256": "04c183df4906a42a077838ebce1f9f80d5ecb4f6b278ad16b02e712ee9c23730",
+      "normalizedSha256": "1a1aa5f75a8791f3794d4b04037881a62e3f9c6a2b10c1a32c966569c3b635d6"
+    },
+    {
+      "path": "ide/src/platform/startup_alias.h",
+      "rawSha256": "b11df94961bd080b8366c70c276dcb87fd09463d1a9d3eabdfe63387b4880cf6",
+      "normalizedSha256": "538d988638d5ef97c503f5364c144b297fa17d2e59e894e4b979fce1569d8fc4"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/xge.h",
+      "rawSha256": "b7b315ddfca9add6074a1e414f1da2188e4a0ece037e8ce3927c9ffa8e7f5d79",
+      "normalizedSha256": "b7b315ddfca9add6074a1e414f1da2188e4a0ece037e8ce3927c9ffa8e7f5d79"
+    },
+    {
+      "path": "ide/src/services/c_language.h",
+      "rawSha256": "d7c31e7768f0b116cc8fdf2cc528e9f511080967c27b04f99ee2d77f803e8bb7",
+      "normalizedSha256": "471c6c686ae8754d4bf2aeb5b0c46b2398a92098c5cab4b01116b742806f1aca"
+    },
+    {
+      "path": "ide/src/services/catalog_lookup.h",
+      "rawSha256": "c7c1eb5d14d7735837ce625c19f18dc2eb6141aeaf5e002104ec1e47e9d561a0",
+      "normalizedSha256": "c7c1eb5d14d7735837ce625c19f18dc2eb6141aeaf5e002104ec1e47e9d561a0"
+    },
+    {
+      "path": "ide/src/analysis/frontend_entity_versions.inc",
+      "rawSha256": "6a75d34034ec83ebcf26e9d2d55b86501cbfaf42e1aceccc8ba9b50c73b552f1",
+      "normalizedSha256": "c824374787ba90ee5e3642a4181631684c3c640b5c522dc746729d639acfd6a4"
+    },
+    {
+      "path": "ide/src/analysis/cursor_word_view.h",
+      "rawSha256": "c8b8976fac9ff2e3ea0830200236c5c567d3c5ca82b3ec8d979020421fd1447e",
+      "normalizedSha256": "ae49565224df727813a8e2a58f2a4c8e8d76a4ea7c8c4b029c5bfd2f9c8bbba3"
+    },
+    {
+      "path": "ide/src/ui/catalog_view.c",
+      "rawSha256": "3fe7a469435e20b9388c42004c1c2d531399d18cae02fb163b82d33a514d829a",
+      "normalizedSha256": "66d69f5ff3bf5887f7427fb8da01a55e3a64c51d297a459223248e683f421d31"
+    },
+    {
+      "path": "ide/src/protocol/lsp_wire.c",
+      "rawSha256": "a2763dd05541cb246e5b42a56585cd6c4905a810c24b4c2d00c0f4ed2bafc152",
+      "normalizedSha256": "d826bb8b268f29666e4c98a16ba1da774893e268387bb33d7b1b5898e2d1d39e"
+    },
+    {
+      "path": "ide/src/analysis/entity_store.h",
+      "rawSha256": "d37b01296e4e93a6ea70ec2732a417e8f57507389e4c863c4796c3a762788099",
+      "normalizedSha256": "7de2fa493008ddc7c74f23ade0c4297775059e5faeb5cc2a093af17b330693f7"
+    },
+    {
+      "path": "ide/src/platform/startup_cache.c",
+      "rawSha256": "5d65f085b1b87c8cac4b31ba9c7c2c1b4333158b9143d2ee77b293f1464bdb26",
+      "normalizedSha256": "7b4cf7413c21e0cc6be6674030fbf5720df1d8df8321c5728cc57ace046a7e4b"
+    },
+    {
+      "path": "ide/src/analysis/frontend_function_index.h",
+      "rawSha256": "ec784edabdf4dcd4de76fd856cca459e8ae993983a27a91cb23406d1ae0b3714",
+      "normalizedSha256": "61ba3ccd05668539d8735ca0095564ded46c24d99edc83e038329d3094258b1e"
+    },
+    {
+      "path": "ide/src/analysis/context.h",
+      "rawSha256": "016ce558727f9afc0631b5c2013581b2bb7f02e44692b170b41e6adf0a57a4ff",
+      "normalizedSha256": "900ef085da0c4fc61f66fdae1e2874788946930cf85020cf1ab7159776339313"
+    },
+    {
+      "path": "ide/src/model/workspace.c",
+      "rawSha256": "8387a85b2e069f7ec2977a40aff69966083ef65ce175915bdc80965d1d06853d",
+      "normalizedSha256": "012511c81991282b9a4c52df4d47764bb6db2f8384511731e424ca8f29f929f1"
+    },
+    {
+      "path": "ide/src/analysis/frontend_internal.h",
+      "rawSha256": "a55f5514aeadb088385f4a2ae7d5226e641e86eeb56386e5cb97a06b77f986dc",
+      "normalizedSha256": "d2b02faed522afc8897a610d387ae47af68130e981ce87168bd313920e5d7b7e"
+    },
+    {
+      "path": "ide/src/analysis/session.h",
+      "rawSha256": "ce9402beecf77130d13c8b3e0152f65bcb85d43e32a856375b46f55fff3c857b",
+      "normalizedSha256": "b2e596d70495c9aa7e8e86dc068b4e19a8eee044bfe4d0326b1cf517602f5fbe"
+    },
+    {
+      "path": "ide/src/analysis/ast_storage.c",
+      "rawSha256": "e66c0586a068b9d137dc11525dba819d44eb933b62f085317c467978fce996ec",
+      "normalizedSha256": "276d337114d7714b1ca5dd320104549e8364d342fc29d138ed7755b0afe85d63"
+    },
+    {
+      "path": "ide/src/analysis/syntax_cursor_word.inc",
+      "rawSha256": "08e494856e292cb2b912f47c43363905d6a6b38306bf8a2787aab152ace2d6db",
+      "normalizedSha256": "ea5728cd3c7353930c11c8cae34995aeefbad18f62d0b4450e36db41a977ace1"
+    },
+    {
+      "path": "ide/src/platform/startup_cache.h",
+      "rawSha256": "e830a88b90648db2aaefdbbeae471b710ee31f003547cbe1c30a0005fd415376",
+      "normalizedSha256": "15fe9d14637fc09b77b8c1a272d89854341fbb3e7309369f02b7ad02431b9d5c"
+    },
+    {
+      "path": "ide/src/analysis/frontend_ir_derived.inc",
+      "rawSha256": "ff70410bb8080da92559297637a87552a5a5959ae0a030a866b767ac528f9ced",
+      "normalizedSha256": "469a6fdcfef985c013165ff78ebd751c5669d47564b1c207af0f3c4f71df4acc"
+    },
+    {
+      "path": "ide/src/services/signature_result.c",
+      "rawSha256": "9d147a927e03f57b688d8c707d944ee99d45089e1ab76ccf081349a244b77121",
+      "normalizedSha256": "a3fc5745698d0a0e7472b80e015d659627811ae6324a2b00b0c5ed5e403bf7fc"
+    },
+    {
+      "path": "ide/src/analysis/frontend_ir_owner.inc",
+      "rawSha256": "00ea76bf6a4dae4d09fda6d5c99cb92a8bedb466f2f54ff381eb9d2d4a057083",
+      "normalizedSha256": "8440e59a13552c81995436e318c3a37a60ad30df2948f64010dc5fb564f592c9"
+    },
+    {
+      "path": "ide/src/ui/font_view.c",
+      "rawSha256": "a465eb92bf8e8b0f0c40b1591f3bfebc199f23b107ef8436855bedba520a6656",
+      "normalizedSha256": "ad0b0ed742ce4e5568eb725725c0e8bf209549b2d7ab3cce85658dfa4c4544c3"
+    },
+    {
+      "path": "ide/src/analysis/frontend_call_context.inc",
+      "rawSha256": "5aeeda93faa9f607913519493e7e44af42bbb2b975c4d5a5b085cbdbbf8988ad",
+      "normalizedSha256": "f23bbe650111d3a326cabca7dea6dcf1e43af3a34a853f06e71991cc73518456"
+    },
+    {
+      "path": "ide/src/analysis/frontend_sem_tail.inc",
+      "rawSha256": "43c8fabb6b0258a8ba69f97ad0d20be32526c612f1361cad4e8be8fed7b8fbc2",
+      "normalizedSha256": "642700e984f2c207e9c91f86cc477a491c5192e03c3502fcd44fe28e5f797a69"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xllm-session/include/xllm-session.h",
+      "rawSha256": "df6bc5bdee305d163e38874252f6d58d4542c67bcb24384c89a56a59a88cda97",
+      "normalizedSha256": "df6bc5bdee305d163e38874252f6d58d4542c67bcb24384c89a56a59a88cda97"
+    },
+    {
+      "path": "ide/src/services/library_info.h",
+      "rawSha256": "66585edf86a8e1181475da2f49e6975c06e9b06ed7fcd223f3428c18bd3acb15",
+      "normalizedSha256": "d22d2e27e4f9113349b3197cac42958b474d99ebd69f72d6f4b6a69fbd111ad2"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/xge_host_xrt.h",
+      "rawSha256": "5e43dc2cff98741941c1be6d02832d6cf34256521c94975e4fe96fd411e7b60f",
+      "normalizedSha256": "5e43dc2cff98741941c1be6d02832d6cf34256521c94975e4fe96fd411e7b60f"
+    },
+    {
+      "path": "ide/src/services/editor_font.c",
+      "rawSha256": "1ed8201beda735f317f7008741f96e072fd01426b65d022de6a1fe18617d9c44",
+      "normalizedSha256": "416fdb68009c93447bc3f635ac1fcb2adf7107539f5e36baf91ff97065994bd5"
+    },
+    {
+      "path": "ide/src/services/language_client.h",
+      "rawSha256": "5cc794252364a2163e564a0bdb1527fa3889efaf1064ef7bf04081a84e1eb904",
+      "normalizedSha256": "f7080003a03d5ba982f0e0037a439f585cabe18a0ba76808dcb6ebe9553a35ac"
+    },
+    {
+      "path": "ide/src/editor/coordinates.h",
+      "rawSha256": "b46c87363e88eb8360053549375a7ebc70120278b0b7fdbba79bfe04cb9952f3",
+      "normalizedSha256": "cd1ebd404aa15f503ec432b5527502dde44e0e98acb176e8f3a84268dd09eb75"
+    },
+    {
+      "path": "ide/src/services/command_catalog.h",
+      "rawSha256": "0be1ab686cbb3378e7ed09aad071041b88caaed96a488a3b659fac642f6ef6f1",
+      "normalizedSha256": "0be1ab686cbb3378e7ed09aad071041b88caaed96a488a3b659fac642f6ef6f1"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/xge-source-files.json",
+      "rawSha256": "13dd76256e050a8d1c7f31e09a08869cabed18ef4068991d3e68c1caac111150",
+      "normalizedSha256": "e02616f8597267834b975e316079d48525ccec90816a6bced023e71f53f6a4c3"
+    },
+    {
+      "path": "ide/src/analysis/ast_intern.c",
+      "rawSha256": "1f5f38524c02dd5dad6c326302ced7ab953e7807cd7910a7109ee4f5c5a63018",
+      "normalizedSha256": "12bee097deda9c82c37207b89a9329dcb9b1eafd553233cc51f470646c0874bc"
+    },
+    {
+      "path": "ide/src/analysis/frontend_stdlib_scope.inc",
+      "rawSha256": "77ec7b80b701cb395f26ab0e750ac422f0e418cdabda8ab0d3b6f0662cefa0fb",
+      "normalizedSha256": "f3aa3a2adde3b888f51e4ecbc1d9af9f31f38148298993198f0c8a62e584e57f"
+    },
+    {
+      "path": "ide/src/ui/rename_view.h",
+      "rawSha256": "2bc38f0a998bc0f726b9735475de8264d845150edec5db8ba432d33811d90339",
+      "normalizedSha256": "95373f57233e9bfe13300950d05608057487d65bbccbf6a158eaf40a09f6bbc6"
+    },
+    {
+      "path": "ide/src/analysis/frontend_sem_package.inc",
+      "rawSha256": "e4c586cd0fa6d9909b8b8723d70636c03c8e5ece895e11a0ef6e085a474771eb",
+      "normalizedSha256": "f04eddbae99348bfff3d00bdacdfa7f8d53bcdf4ddd48f3ea9e47c64d6c6ad7d"
+    },
+    {
+      "path": "ide/src/services/update_client.h",
+      "rawSha256": "28c34f20087f83ac418186e471d7e2de0c241a7766c3d05049213e2e28a1073d",
+      "normalizedSha256": "3e4a30bd0eee2b64ff7ab5d2ea126746ace81e1f6221b57e811d4c638d6c85ed"
+    },
+    {
+      "path": "ide/src/protocol/analysis_context_wire.h",
+      "rawSha256": "7e856bab74edc1ca267fadb60cfd6bb9863d5ef5700be3fb2bbab9fcdb48eea8",
+      "normalizedSha256": "8b76e1a0b972c0af2c525bcb738ed1f0f7d0b570a19861ebb260d2cd9ba2267b"
+    },
+    {
+      "path": "ide/src/analysis/input_view.h",
+      "rawSha256": "0d84b361940b664f2f4fc0d28b847fa035c1ca3cdfa7de9bc2c8d74fe7fb776c",
+      "normalizedSha256": "fef015dc9e0454c6d4f968e624b533f668c072127bda3daa0958f1141f36ab35"
+    },
+    {
+      "path": "ide/src/services/sync_plan.c",
+      "rawSha256": "40d8547f574eff388331e5753da0f19a6b3eae8510e4b89be588a4e45f7aba2f",
+      "normalizedSha256": "53ef06bb7f4a6d108b59b2feec6ed62f33a6f64827c02e7a1f8e5544bd178b57"
+    },
+    {
+      "path": "ide/src/analysis/frontend_overlay.h",
+      "rawSha256": "51d7c5355046716da23145d69a8a14ec6a6d798748b1ba38332fa2ae8d2d1192",
+      "normalizedSha256": "1ad1bf94a0b6a96b1b45dc390b939516f27beb7bd80c8ae5268615795e0bb1b8"
+    },
+    {
+      "path": "ide/src/ui/language_view.c",
+      "rawSha256": "ddf25909e6a48dfef19b49025539d770d04a65ccd1dfbf54fe41c63613b65040",
+      "normalizedSha256": "eca68c79e8e1d3d8beb755831d3123e9eb7835b9aad4bd6867997f9e3db9ca09"
+    },
+    {
+      "path": "ide/src/analysis/check.c",
+      "rawSha256": "567af44ea01801aebe9ccbad892879f3ab7fd310226b9a27b5459dda1b05bd9f",
+      "normalizedSha256": "012399ada528b7b12d2364ba5ec181fd5384cb8967f7e573587914e5a9c3efac"
+    },
+    {
+      "path": "ide/src/app/features.h",
+      "rawSha256": "ee4ace9910d4c9f559cd9d643ce5e7c42225a1a70a8db7bcf7a6386ea5bf0748",
+      "normalizedSha256": "c1057243d2ed9594e986a30c8a92c25ded5477b77be3d74db232fa2a36ad1e01"
+    },
+    {
+      "path": "ide/src/analysis/session_state.h",
+      "rawSha256": "b545d6abff2fc21f26d4921f1ada58cb4696796ef1dd5d222db23e3032295eb3",
+      "normalizedSha256": "a23998fe18050b0c25b55a50681de0b1b4567f1230e76fd44efd23985c5a432b"
+    },
+    {
+      "path": "ide/src/services/c_commands.c",
+      "rawSha256": "d7332b801668ad2e1fcf4c21f5b4c156cbd6a4f4d83bded6cc20b3181f2c13a8",
+      "normalizedSha256": "e55055d75508cb6d23ea160eef23595c93b258a0c7676dca6f0dd41924cd962d"
+    },
+    {
+      "path": "ide/src/analysis/ast_package_fields.h",
+      "rawSha256": "9301e8904b00f82b54bc0e831a9372090f59a8bdff0228e831746d20539c4c52",
+      "normalizedSha256": "54e6422b0074bdd97328c439e40b6214a7769292efc2b8512b8f75921489d0ca"
+    },
+    {
+      "path": "ide/src/ui/c_language_view.h",
+      "rawSha256": "d067960bbf12fa0d036fc8d876ef8ff97137ef42fe51d02ca851878eabfab24c",
+      "normalizedSha256": "1964462c8737908c6b46d882e41473e7b1aa03f0ef92759f26dd8543645d7c02"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xllm-session/include/xllm-session/api.h",
+      "rawSha256": "737969514039b3d072b231dfdfe9925e0478b403ebe95489761e0b08503aeb2b",
+      "normalizedSha256": "737969514039b3d072b231dfdfe9925e0478b403ebe95489761e0b08503aeb2b"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xwork/src/internal/xwork_internal.h",
+      "rawSha256": "a899e654a4aa31ff7f0c250be83a42c604beb4b7869903dc881b13f743ac7920",
+      "normalizedSha256": "a899e654a4aa31ff7f0c250be83a42c604beb4b7869903dc881b13f743ac7920"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xwork/include/xwork/api.h",
+      "rawSha256": "e3e05ee6f950d879ed03c63c66d6c7a7108c5aa20bcfabcf69505e6667b41ece",
+      "normalizedSha256": "e3e05ee6f950d879ed03c63c66d6c7a7108c5aa20bcfabcf69505e6667b41ece"
+    },
+    {
+      "path": "ide/src/services/c_bridge.c",
+      "rawSha256": "a3dd85edb02f749b5063ad09f674beb6a273d5ac27fec3386cb8c0f948d0efe0",
+      "normalizedSha256": "fb063960226a6978d241b1fc25f92a972c902bc88e47ff182661e9175c32705c"
+    },
+    {
+      "path": "ide/src/services/update_client.c",
+      "rawSha256": "a2fc8d8797d36963dc81d4fce740e7c5d5c507f76706ec5298ad4ca102cd75a7",
+      "normalizedSha256": "8a6ff4986718772a437c1cfe2353aa16c75d1ef03e1137406884fb3b48102fd2"
+    },
+    {
+      "path": "ide/src/ui/layout_state.h",
+      "rawSha256": "89efc1a722371df04d44eba4e229b919e197eb50147fdc3f0840a8026fc1e3b7",
+      "normalizedSha256": "baff065f0d383d0257d3147fdb1be423f2d92b1df31c522c765429c786bbecd6"
+    },
+    {
+      "path": "ide/src/platform/text_utf.h",
+      "rawSha256": "540b4deeb8c61e3545dc731f792f130bf455226bac3d896c5368ede8b7e76035",
+      "normalizedSha256": "4c39fcfac470b1a3ac509d7701faada5ed40bf8349be5d02a2d5dab3ac2b301b"
+    },
+    {
+      "path": "ide/src/platform/dpi_text_paint.h",
+      "rawSha256": "619ca951d9a0114425057caf8ab30a2c37769a99ba025bded251b4e92bd1eef9",
+      "normalizedSha256": "e4cd694d94cc96ad937f020d1f22fed02498234eefb29545fe1ef4106cf03e83"
+    },
+    {
+      "path": "ide/src/platform/file_io.h",
+      "rawSha256": "60a094c5427a847d36666116c380af808a71103013af1b24489b04bcb1419a43",
+      "normalizedSha256": "4806438af205d1dd2f0e78fde27d0ca18ac8dadb2d7060902a67923d219c4e16"
+    },
+    {
+      "path": "ide/src/ui/reading_state.c",
+      "rawSha256": "442589e2410e3327ef83edb6250f5bb3efc7752e111a8b478439ca312bdba9c5",
+      "normalizedSha256": "d6c8eba1dec1597138141155306f946adf4dbea5203994319eda90591956e0a3"
+    },
+    {
+      "path": "ide/src/platform/file_io.c",
+      "rawSha256": "56d6ec4e9abaa26997ada948722b3fb8af952764065a1b3b95aebb8869c35729",
+      "normalizedSha256": "550854c5b43a2d47dd0f77d94e0b1273b09b600ff501fcc6acbcb50b4f82713d"
+    },
+    {
+      "path": "ide/src/ui/font_view.h",
+      "rawSha256": "ceccdd8328751d457147789e5d2df9616d591215fb2166b4c7d43198433e3ec0",
+      "normalizedSha256": "552c9048e17188a1c3cde6fda6108c6264e2d507f198b8958bad335c11f49f6c"
+    },
+    {
+      "path": "ide/src/analysis/function_unit_internal.h",
+      "rawSha256": "39ba0b40688f9d0b553fe6b17ce98edd3d5c1b08711cbb29dd2beb587fab9ce6",
+      "normalizedSha256": "b7a1d5f43c9ab19cb3f1f24cb841d6f231ed74d542a09b50776889fd08a02676"
+    },
+    {
+      "path": "ide/src/ui/editor_view.h",
+      "rawSha256": "ad9c259508c4deaae9c1b22d0904388fe4fd3b1f130f73beb0b4644f4225f34a",
+      "normalizedSha256": "d5df8a5961ffcef042e58796d20763d1bf1c28b0beb0f23df80925e1c93f675b"
+    },
+    {
+      "path": "ide/src/ui/rename_view.c",
+      "rawSha256": "3d39a020de8c89bc37974ac89b0af2805a27daf2c5001e97ee38698fb6b3861d",
+      "normalizedSha256": "2572892b009fd985c2e3d3e045a174f973190a3ae90a1f2503a80016a6beb82c"
+    },
+    {
+      "path": "ide/src/services/language_snapshot.c",
+      "rawSha256": "1120131d7785438d6a0d1144adbff6458536378edcf60aa058f685ba887397ad",
+      "normalizedSha256": "77ace4e920058b16bb503a51a851063437105b29dc9ab9281f2aa788f4660b7a"
+    },
+    {
+      "path": "ide/src/analysis/ast_clone.c",
+      "rawSha256": "3d8ab1e3140875152d4d39555ea79753cbd61824b5592c12b7cf717553902294",
+      "normalizedSha256": "50f4488e7f03480bc033c39b5f70fedd54e74732433daad9347dc3598a770a80"
+    },
+    {
+      "path": "ide/src/model/workspace.h",
+      "rawSha256": "30b6a9eff581b113f17f6075165c7c1045cd07322d186ef8e01650f8b67f4d58",
+      "normalizedSha256": "e5a70e759d1bd99f0115d8db7e711d090244da4b0698d750f0df8584fb226463"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/diff/src/xge/core/xge_core.c.diff",
+      "rawSha256": "50a939cc2efbe8bd9c57488b054f68517d0d79c9ce5a07fcf687922f43b89fc4",
+      "normalizedSha256": "50a939cc2efbe8bd9c57488b054f68517d0d79c9ce5a07fcf687922f43b89fc4"
+    },
+    {
+      "path": "ide/src/analysis/session.c",
+      "rawSha256": "2c4e2ac9013a248d1536aa1823345aba4823ca70606f1710b70aabfe969adc64",
+      "normalizedSha256": "c17232f454943453aabfc820d4582d2060fbdb08b52d6047967e6c0423124db3"
+    },
+    {
+      "path": "ide/src/editor/coordinates.c",
+      "rawSha256": "69c1f0312c0f549e1ab53ee2a01da2d68059d6ef8b4dbde6a70100a526584373",
+      "normalizedSha256": "d65e4e91ef8b9aa4ef0155f0501806b8845c4e57a0f1dcd2acb88b3b4de57202"
+    },
+    {
+      "path": "ide/src/analysis/frontend_sem.h",
+      "rawSha256": "839287df3fab9f91ad759006912ae1a1b5c2b146f34a16b17efe51b2dfdafb49",
+      "normalizedSha256": "1fbd60555effb31eff0f62ba295cb60da12152f2a2861fadb3ed91ecb5989263"
+    },
+    {
+      "path": "ide/src/services/legacy_import.h",
+      "rawSha256": "584cda03a9362265506bf4855926fb14ecd14819eee56c8945910a607e7009a3",
+      "normalizedSha256": "391f9946495d13b7e96b8fd7906c01126b50ecd83fa880304db99e477d5504d2"
+    },
+    {
+      "path": "ide/src/ui/about_view.h",
+      "rawSha256": "5011e7d5362390270283ab2beafb45908c0508de31d53694bc302bd12ce91b06",
+      "normalizedSha256": "2deb340566cdc7089fb95b35500c52f13ba2e707f4323e24b6e6260e827546f2"
+    },
+    {
+      "path": "ide/src/analysis/check_session.h",
+      "rawSha256": "07b239ce1c8344c43812df2c2fc2be5f10b6d7d11fd2b17d1f655d21de19b9fb",
+      "normalizedSha256": "4b494e2a548500d4cdd16fc7e80ca29fb244ed3da4c4e83a0a109987da6be224"
+    },
+    {
+      "path": "ide/src/analysis/ast_intern.h",
+      "rawSha256": "3ee5260d546a495f92f64938d49c802f1b94b79ffdbc8d7cbee3b4a5079e7dfd",
+      "normalizedSha256": "995a249674f02d4cb28fa2066b096efef1f5558c4d243a49851d0e4b6eadb54c"
+    },
+    {
+      "path": "ide/src/services/diagnostic_notice.c",
+      "rawSha256": "2467e702169a9e05e04ed3faeaca8fded64039ca8f27dcd92dacd24e4d0b9c19",
+      "normalizedSha256": "a7bbffffedd59891a4f61e6b2619143b0a354fcf31bee876f89b47fdb5579485"
+    },
+    {
+      "path": "ide/src/services/rename_journal.c",
+      "rawSha256": "b60aebd3ba3c570be01fd8a29800b76d2a86b95d2525fa0befcbd09ace5053db",
+      "normalizedSha256": "da04fc25dcffb8b8dae38cdf7de02c98c1a4158701d754767d2615148041c8e3"
+    },
+    {
+      "path": "ide/src/analysis/frontend_namespace.inc",
+      "rawSha256": "3e94012007593604cb3262e893ed94b59744e508e37ac1d29921803c4fb32358",
+      "normalizedSha256": "79f6ed24a74a0f44aba9274205ac8cca348ae2b3d422c2940612293b810bec42"
+    },
+    {
+      "path": "ide/src/protocol/diagnostic_paths.h",
+      "rawSha256": "25ab9f526236fae01b4b398194609e591f8f49596cb0dd837fc7526bfa1f79f2",
+      "normalizedSha256": "711704ae04452b52626ac0b2fbb898e99987e281d0344b54fbbff6c25bbd56e2"
+    },
+    {
+      "path": "ide/src/analysis/signature_session.c",
+      "rawSha256": "e3690d61a5a6bb458a12a8d8ce671624cd7db7a176ae9591d2e79ce3a5af9bda",
+      "normalizedSha256": "dc677d1e89af09e90a62e6cfd8e8473276e3eab3a42b09508ed931a3a218c6e3"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/payload/src/xge/core/xge_impl.c",
+      "rawSha256": "f223007e204a7f9994f4b114344aa487fd373abc8c99737c922cafe1afab1402",
+      "normalizedSha256": "668bf8f5409ac25e5f271eb0951f2b3f0b64ee456b0c52bbcfb1f9b0d578be6f"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xllm/include/xllm/api.h",
+      "rawSha256": "0182c8e567ea936444666e58be148ef20b6fe693f85db193e3895af5ab436c6d",
+      "normalizedSha256": "0182c8e567ea936444666e58be148ef20b6fe693f85db193e3895af5ab436c6d"
+    },
+    {
+      "path": "ide/src/analysis/dependency_session.h",
+      "rawSha256": "c8c6eccb2fef38cdc8307af4ddce92b2f1561739b67e15efc7f4c1f63d477e00",
+      "normalizedSha256": "8020e2656df03bec255a91c9bbdfda057be92d5a1f890a0145f2588e7133caed"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xllm/src/internal/xllm_internal.h",
+      "rawSha256": "36c04e2f6bcb6588fb5f82bf7f1e5c907f2ea4446fe340421babdedb3319a14e",
+      "normalizedSha256": "36c04e2f6bcb6588fb5f82bf7f1e5c907f2ea4446fe340421babdedb3319a14e"
+    },
+    {
+      "path": "ide/src/platform/receipt_time.h",
+      "rawSha256": "2392c8f5be15f8969f708b0ca1407de37b1ddfc683ec068d9a92289c24838253",
+      "normalizedSha256": "72137178d98062d4e657668327a0423671240e554730f038bbf9543e9c5177ce"
+    },
+    {
+      "path": "ide/src/lang/xlang_literal_span.h",
+      "rawSha256": "4d082dc3e0672dc34e76c17db1511262d15f344f47e5356ab697e823cb2d8f49",
+      "normalizedSha256": "3d1b3f3a71adaeb8d76910ece765f433e899190b2f153990feb9c7c6529e0db7"
+    },
+    {
+      "path": "ide/src/platform/task_stage.h",
+      "rawSha256": "38faa06aa2b2a97848b388b6da200104bfe13b1a12df0ea4984b92e4aba638b9",
+      "normalizedSha256": "2b7d12a101b4a6241e99f39f47d85ddb28e9cf5a39ab48e3b8c1edb489fc73e8"
+    },
+    {
+      "path": "ide/src/platform/text_file.c",
+      "rawSha256": "bc0286e7201f8d912587b152e9889b99e6553ef50ef3afb6e70ac3e32c212415",
+      "normalizedSha256": "bf8f08feb30e1fbea4bb1dd5b652f2b77e01063cf7758c174b1c01a2eacd9668"
+    },
+    {
+      "path": "ide/src/model/resource_text.h",
+      "rawSha256": "cf4a9d664db1f93f64628756327a3274b0574e457b67dc470ea28f351cddfe7d",
+      "normalizedSha256": "827e4c1fd426d992c549cf2d3b7aad967ee4d602d52143c281330e54fc0791cd"
+    },
+    {
+      "path": "ide/src/analysis/frontend_overlay_lookup.h",
+      "rawSha256": "f6c595e37db4612d589cddd5b585d03e4968e881c66496f8cf28693356154368",
+      "normalizedSha256": "3c7b322451559bc3179189e81b3c80bb5baa9c988df137d2b1e495924234ef49"
+    },
+    {
+      "path": "ide/src/analysis/input_batch.h",
+      "rawSha256": "25775e69699e6f93a54f4642932cf81b8deb0378ba1e1e09ad89a559f7e4403c",
+      "normalizedSha256": "18d24b47afe94f87f1b622f860f15fe680a60649b1f82434b3c0b509c8460340"
+    },
+    {
+      "path": "ide/src/services/highlight_result.h",
+      "rawSha256": "d5af21e11ef97ccb2fc3dd692b8b30bccea8880f9775e288ab0522254b0353fd",
+      "normalizedSha256": "780a283c6cec2a290cdf1b91c81efe0c9d0d6e51f772fa8015afb172513dca47"
+    },
+    {
+      "path": "ide/src/services/resource_inputs.c",
+      "rawSha256": "8bb1c139d36080f93f65a716ac01223e6253829a17a7afefdd885ad24eb55f32",
+      "normalizedSha256": "bbb86b2b63c507e5aeff88e2ec24683b1ae4fdf36b0a75f00c4a632f0e6ec03d"
+    },
+    {
+      "path": "ide/src/services/reference_results.h",
+      "rawSha256": "c918da123bfca691922bfe687f0f1ebae6df351df73257aea24858e4ca6104c6",
+      "normalizedSha256": "001960142c4d88587dcdf4c0fcfef5a495dd83932e7102925c4a599c04241e1e"
+    },
+    {
+      "path": "ide/src/analysis/module_store.h",
+      "rawSha256": "2e26c00d40dba2778e93e206090d20b270140c2665a1303fcf7edf88261a2a39",
+      "normalizedSha256": "2d94da47e67b6f1e64f34645233f668af84672a042b75df5e2f5bf7dadf8016e"
+    },
+    {
+      "path": "ide/src/editor/lsp_coordinates.h",
+      "rawSha256": "27e38438fe7b419e86923f2f8b28576c780b1c81acae6cadf1669c09df505f07",
+      "normalizedSha256": "b758fdc98aebeb57bff68d363ed1d098f75a38ece9c745c8cfe592e6e64545f0"
+    },
+    {
+      "path": "ide/src/protocol/input_state.c",
+      "rawSha256": "a1710ab6c3f8bb6dee07ffbc1bd4a2b618a6a2a4b73046788e56b35fb0465bc0",
+      "normalizedSha256": "efffa17dddffd808ff56f6b5aef2c2e3b469664e36cbb1790f70246b7f3edf3b"
+    },
+    {
+      "path": "ide/src/app/actions.h",
+      "rawSha256": "d84cd1792049279dda7f2b898a41245832bd67303c4de15e5b09b7489550d41a",
+      "normalizedSha256": "d84cd1792049279dda7f2b898a41245832bd67303c4de15e5b09b7489550d41a"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/provenance/parent-sdk-manifest.json",
+      "rawSha256": "33479cc0e24c0ecfdbfecbb2258b29d963d24cd3d71fc61a70195b7e14f0d606",
+      "normalizedSha256": "df493c8363277e36006f685e69c7db09b95bca298226b999fc09073bb596c635"
+    },
+    {
+      "path": "ide/src/ui/catalog_follow.inc",
+      "rawSha256": "3a2d2c39c5174c0ca5eca06948a658501774704370e03e5b5f329ad2f20831c2",
+      "normalizedSha256": "85e4ce69d66013f83f03d4ff875c82f56a19e87ed07636a9aa0a579de55c5bb9"
+    },
+    {
+      "path": "ide/src/ui/message_box.c",
+      "rawSha256": "9a4421902a1655681eeaf822bc1fdd0a9d246ad9485b2257385fec48b0c8f301",
+      "normalizedSha256": "770495b276d5f050c7e3a04d9029cd0e8a47db5a60fb09048d15518a4baa4833"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/extlibs/xrt/upstream.json",
+      "rawSha256": "13bbabde78aa12ad00b6546f7d464f41403095cd2010fb8c4b154825a2cad89c",
+      "normalizedSha256": "13bbabde78aa12ad00b6546f7d464f41403095cd2010fb8c4b154825a2cad89c"
+    },
+    {
+      "path": "ide/src/analysis/context.c",
+      "rawSha256": "7a8be830655d1c799f21c90743ceb55536421148fcff2684725efe73ada8ff18",
+      "normalizedSha256": "75a39c90e97cf4064bc53ac75118825350495f7ef0cdf0330a299ca7f64aa7da"
+    },
+    {
+      "path": "ide/src/platform/file_watch.h",
+      "rawSha256": "fde944985a2dd26cd3641176d60d84f2af9fe130f94b83f606b5dbab80ee16a6",
+      "normalizedSha256": "bed60e59940ac1650cdf6f8f28ab2add128b6216ca011dc0882f60cabadbab00"
+    },
+    {
+      "path": "ide/src/platform/state_file.c",
+      "rawSha256": "34ea566f979273a3846565f319f8e79a335271a20a76836ad9788c030b01de1a",
+      "normalizedSha256": "849a7d919ee2000d66b6914ff615b17ec06387d5987f5c7073ca0330c92682dc"
+    },
+    {
+      "path": "ide/src/analysis/input_topology.c",
+      "rawSha256": "7381a1c8133425a8d3f64c75c44d4dbd1cbe53419ad5fa630f62dafacdc8b913",
+      "normalizedSha256": "f1e8ecc833c21919130cc7c322feb1ef260af3ba1d7e1a49bbe7120451c091da"
+    },
+    {
+      "path": "ide/src/analysis/syntax.c",
+      "rawSha256": "4f534633dc8742cf828305ce22aa01cbb11a83ff753a3c5aa3a0bae4abc34427",
+      "normalizedSha256": "82a5cd9868572a3673fe5b8e4a4e19331377d13c79493a43463d94419e065241"
+    },
+    {
+      "path": "ide/src/platform/settings_options.inc",
+      "rawSha256": "fedfab91af1a3d7dd3c2346172d933449565f48324865d2788aac79f8ec5fdb3",
+      "normalizedSha256": "9bef8533040b3fb30f07f1964fb492d19425c12b4dd61f394cd725c284e56422"
+    },
+    {
+      "path": "ide/src/services/diagnostic_notice.h",
+      "rawSha256": "76a138d29405fedad4d72cd9babd32f7d99a8ba8064940b70ec617d7a54db508",
+      "normalizedSha256": "3dfc92e241082520d16052873365d4eaa266e4158e03eda4ea5cbaea87378d34"
+    },
+    {
+      "path": "ide/src/services/semantic_native_points.inc",
+      "rawSha256": "d0f25eb76852e0c1e5cf9ecb35b1aef352fd8ad1e2f5c5fc1a865df28bcd7967",
+      "normalizedSha256": "676456bd080c85589aff80ecfb149af5ddddd729178ccae61aa183d4f2a07f6b"
+    },
+    {
+      "path": "ide/src/services/semantic_definition.c",
+      "rawSha256": "1d918a601c9b473aa251fc47902083a45b11579370a3f214171e764448b2d12c",
+      "normalizedSha256": "bba605f39ed494aee11b54c0ca42c228434e727c8411e9d255428f0ce9a46e85"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/extlibs/xrt/xrt.h",
+      "rawSha256": "34013bc0e69f7dad34f4f8a5269e20ad84f0a5c1963dc717a8cd98fc3611a9e3",
+      "normalizedSha256": "34013bc0e69f7dad34f4f8a5269e20ad84f0a5c1963dc717a8cd98fc3611a9e3"
+    },
+    {
+      "path": "ide/src/analysis/frontend_symbols.h",
+      "rawSha256": "599d0c3bfb2fb8a19a86b88cc53a88b31e4ddda3717cbdaccd3d22404c51b5e6",
+      "normalizedSha256": "892acbe237a2d5567947024800570ac1d3fb40f6eba8e0a6daa5c57219a922b5"
+    },
+    {
+      "path": "ide/src/analysis/frontend_sem_headers.inc",
+      "rawSha256": "a217a667d9dc9bb26040efefd0af0508fc9912e3d7f69519a53af6e314253b34",
+      "normalizedSha256": "8a54a290742305909368844067ef80fe5a35f8a446675169fa4c5153680618fd"
+    },
+    {
+      "path": "ide/src/ui/references_view.h",
+      "rawSha256": "ec4199e81532656a34a20ccf7b7f02767cff8394e65b9f8054cc1c920c3dceb1",
+      "normalizedSha256": "1a8ca66c658d9dbb3d617e28f984e3b8eae3986da85b0648f8110d4b7410981e"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/extlibs/xrt/include/xrt/detail/wait.h",
+      "rawSha256": "5bb75cbad71ec10ccbbc1278bf2458dfc58948c7a33cf4daf11404bf84ed59cd",
+      "normalizedSha256": "5bb75cbad71ec10ccbbc1278bf2458dfc58948c7a33cf4daf11404bf84ed59cd"
+    },
+    {
+      "path": "ide/src/analysis/signature_internal.h",
+      "rawSha256": "15e6f74a0efb6e8f01a0ac07cf62e422676a8dc25a8562d98f839d0f80500cac",
+      "normalizedSha256": "a099c56c6dabce53ac1cc1dbd75f2ec29344a386d95ed7eadead9d4338299557"
+    },
+    {
+      "path": "ide/src/ui/c_completion_view.h",
+      "rawSha256": "8d441009a19edb728f0a03659e3105127b821afa162b9cd31991d6cd9e11194e",
+      "normalizedSha256": "e6e1f7e35358263b63fe3b6ce3a6aee64d5c9da3af33fc2833f442244b70ae7c"
+    },
+    {
+      "path": "ide/src/analysis/index_kind.h",
+      "rawSha256": "8eb943e8c1e7137159fd3977766295f7ede37cd33a2f866d6d1a81e8b1d7e3f2",
+      "normalizedSha256": "135b225f3b721ffb1f6d9166a457d76006e868b227a8dc99b86544028989452f"
+    },
+    {
+      "path": "ide/src/ui/recovery_view.h",
+      "rawSha256": "e68dad0cf2563834003fbc56e12bcc3ca85284466927d0914acf101a175fff9c",
+      "normalizedSha256": "5635afafc72c994fc8ab21d72a3a2dc7ddb8afe01194d5afce802693edc20832"
+    },
+    {
+      "path": "ide/src/ui/about_view.c",
+      "rawSha256": "b4ec4e0828325d123771a7f253af7bf64facff91ed0d10cb761ff3cd90ac878d",
+      "normalizedSha256": "eb9431a92f1b2db1e33055b8796347bba877c8cf56df2d9d15941d56f9ca268b"
+    },
+    {
+      "path": "ide/src/analysis/frontend_sem_native.inc",
+      "rawSha256": "30e796e19d8d28147444da14fca2b6af1ebde58501cdcdba9b7040cca7870417",
+      "normalizedSha256": "2d0cb2866353576db5859233a9adecaf470a862c0b58a7c515449d41daef8f2d"
+    },
+    {
+      "path": "ide/src/server/xlang_ls.c",
+      "rawSha256": "20afef61b36edb417d69c9cf1b79ddb69519f333bb3bd21a6dc2e94cbefa53ca",
+      "normalizedSha256": "fa86de82380d001da386ecb18d9e3ae73c38971716ba2a83f4f0919c415b4dad"
+    },
+    {
+      "path": "ide/src/analysis/signature_data.inc",
+      "rawSha256": "4f1514222877465ce880d17d3ce814734eb5cecf2bde567b20e371cdbcf70a44",
+      "normalizedSha256": "45fd9f1e2b5ebb0af9a00dcc2cf6023bb0a94741e9d5eefef2473cc5a3ac9d96"
+    },
+    {
+      "path": "ide/src/analysis/frontend_completion_pool.h",
+      "rawSha256": "54fd8e0c11fb90c1cc15b966e078bde9011fe9e218591f25293ca8f3a197a813",
+      "normalizedSha256": "f2c53e66b44acd660de792a18d94910fdab776fd94c1db48b7216f06534f5c43"
+    },
+    {
+      "path": "ide/src/services/signature_result.h",
+      "rawSha256": "41d02fffe696526adeab76580db23a6cacf66dc1265f6496bdf25044b4f8c428",
+      "normalizedSha256": "de484d9a3cda2f0fd8501944d4849d26bd6db87020633a0676ef30615a53b664"
+    },
+    {
+      "path": "ide/src/model/resource_text.c",
+      "rawSha256": "23903cecffcf50da4afeebc70ff3c4c2c2645c16a4265238dedc0e8c419dd517",
+      "normalizedSha256": "f3de4e104b7a9a609aee2115381b6e28c71e986b983e5a14d117ba5c16aa14d3"
+    },
+    {
+      "path": "ide/src/platform/app_resources.h",
+      "rawSha256": "311006f58c40b66638db4ae0e0c02787de992270c3b0aa55f499c0ebc4a7bea0",
+      "normalizedSha256": "157185f5822c52f9c0e2a1f980534d17a0a4d87fd6628b3b12fa0e74d5f1512d"
+    },
+    {
+      "path": "ide/src/platform/window_state.c",
+      "rawSha256": "ba0bcac26424981b1b240f5dfbfb5bb042ecfca9b108993eeceb68aaeda8678a",
+      "normalizedSha256": "6e847f9ae8c1c3468bbed7b8364107d05f826568a6feca620f5bde15e467e3b4"
+    },
+    {
+      "path": "ide/src/services/c_input_trace.h",
+      "rawSha256": "846e5c6bbbd0fe2f4c77b01a3b85d0ea3317eeeeecb3cc213525e6912fcf2d70",
+      "normalizedSha256": "985cd7fa63e0c4e60814d600ee9123815647cf7b04d5b094c17018c8d857cd81"
+    },
+    {
+      "path": "ide/src/services/library_info.c",
+      "rawSha256": "f5f93bf6dd77d9b9d6693e444e16afa69447d1e664e993fbf75a50583bfb34e4",
+      "normalizedSha256": "9db1d8dce5667a43fc2749f3d109768fe64a1dda37b2d656b32a230c28cd9019"
+    },
+    {
+      "path": "ide/src/app/actions.c",
+      "rawSha256": "1d529a38b58c55e1e467ead1d5b782de928fa70c99eb69b66a4e37784f22e9c9",
+      "normalizedSha256": "1d529a38b58c55e1e467ead1d5b782de928fa70c99eb69b66a4e37784f22e9c9"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xwork/include/xwork/features.h",
+      "rawSha256": "91996f1fc399ed139543929d919af4a48b2e044979866650f0414ff822fd2be3",
+      "normalizedSha256": "91996f1fc399ed139543929d919af4a48b2e044979866650f0414ff822fd2be3"
+    },
+    {
+      "path": "ide/src/app_xrt.h",
+      "rawSha256": "6f8102e05fdea31942c244d19c64c51bc02c14807c6612e427cdb67caef52cc7",
+      "normalizedSha256": "636a47bf97bcc7e48c45665ec77639f5702a08e32f488effd0de2097bc059aa2"
+    },
+    {
+      "path": "ide/src/services/catalog_sources.c",
+      "rawSha256": "f58401471f739eb59df1eff4d7b9212bfd627b4d63c8a240bc2aef02d25efd41",
+      "normalizedSha256": "9966dcfd1370adc42bfc5d62b94c2bdf3a7b92b7e95c39ac7c561667fa42164c"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/patch-manifest.json",
+      "rawSha256": "8027af57d8f19c3270fd8e4e4f485d2ee826f90184d962d9e09dbb65bf204887",
+      "normalizedSha256": "8027af57d8f19c3270fd8e4e4f485d2ee826f90184d962d9e09dbb65bf204887"
+    },
+    {
+      "path": "ide/src/analysis/entity_store.c",
+      "rawSha256": "2aa3de74630d602c683d6c0fc3883506bf2f220e13eb24bac53990e742b65f22",
+      "normalizedSha256": "733e527f3193b2e6861c4095b4a05781e82a88274eed06d0e7b085d3597270f1"
+    },
+    {
+      "path": "ide/src/services/ui_font.h",
+      "rawSha256": "6445f70a3fd3aaadaa21f4977542ece641db2cbe39e0512f05b9199daba94153",
+      "normalizedSha256": "59e7574b5aef198b3994f18b995a444411ce264e23ae7a11448cb8e0462af30a"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/payload/src/xge/core/xge_core.c",
+      "rawSha256": "b87d72adc887352629ccba72bbfb642276fc68e64d283eb77391c0cc23acdf0b",
+      "normalizedSha256": "1dc82ab09144604707751a3e2755167c4a05355f9d13f7ba5baf5b55649dab2f"
+    },
+    {
+      "path": "ide/src/analysis/frontend_module_graph.h",
+      "rawSha256": "c6f094e07cd716386c081b05376b38f902e82440c581e91196c9606703063528",
+      "normalizedSha256": "8615acc6a688676f34c74a0fe6d4adcb8aadddfb1620a3c5c0be60a9bf971e06"
+    },
+    {
+      "path": "ide/src/ui/toolchain_view.c",
+      "rawSha256": "a1a8f59d6e5b636ef132ff448d86d07a42b9492b40a265830ea170d2aa820446",
+      "normalizedSha256": "3fb6eda2b1fe9ccc27ff75b5cbe8a4323e645c6c21a1d268d24a4120f8500d7e"
+    },
+    {
+      "path": "ide/src/platform/xide_input.c",
+      "rawSha256": "5eeda7979ac3cec09fdc52f7b34991988bc280597c9a7c69c6b1b6b853b45bbc",
+      "normalizedSha256": "c895bedfe362d94b47a4c0c81489134d00b23626cfecee13f5feabb50969d487"
+    },
+    {
+      "path": "ide/src/analysis/frontend_entry_cache.c",
+      "rawSha256": "b2590e9425b31d4617a7a72524d52520508f86482371e85f08e6557adbeecc5d",
+      "normalizedSha256": "31672404d9144f3337ac61722a973ca97090f5d8e5dada4f1416b3c1e084359a"
+    },
+    {
+      "path": "ide/src/analysis/frontend_symbols.c",
+      "rawSha256": "cd74e44dffa7e68b7380adf1ed5dbc118100d848ff4adeb024b941e6ac4ce6ea",
+      "normalizedSha256": "4017085e7d1f7f4240ddb64cf085922bb65be3dfa7b162cb99cc055169679dd0"
+    },
+    {
+      "path": "ide/src/analysis/frontend_raw_preprocess.inc",
+      "rawSha256": "f3658a28d5432095b975ff7951a6fb6579eeb9e7dee2beb69ecdd700813223ef",
+      "normalizedSha256": "5db10f43dc0b0a6b7d5cef506935c2450fbbbe013b33185af28073105dbe309e"
+    },
+    {
+      "path": "ide/src/analysis/frontend_raw_domains.inc",
+      "rawSha256": "349d1056a65a1d63825e3af6bf7f897d2e3a7394e4a3b5d62aba34b7f01b595e",
+      "normalizedSha256": "5202d0bb9bd660d2aa0375c48c211860b0cb1815243c6a6625bb04fa746feed7"
+    },
+    {
+      "path": "ide/src/analysis/function_unit.c",
+      "rawSha256": "87121e55246fa18e4b3344249f2230ccdc5c87d056986bf5c1147455f8edb45f",
+      "normalizedSha256": "7d8eb09cd9c2465af42b77a5723d63ab76b4037ad9f62c5248470cb5e7832aff"
+    },
+    {
+      "path": "ide/src/app/xide_app.h",
+      "rawSha256": "95eda9c79bcd55fd740d1c180404528a99f2e4519f4d7d54fffa9fe88f4b68ca",
+      "normalizedSha256": "0323af630fa753147512e2160714995da8ccd67bf3e4a748159c1eebbfa158c9"
+    },
+    {
+      "path": "ide/src/services/preferences.h",
+      "rawSha256": "91c8cc542461a894b465c780fe62f468403f65fa10469190dc43cde46694189f",
+      "normalizedSha256": "bb5e72a5b28315a2b5caea092f869f3bb82b718184977b71d393f32ef583fb83"
+    },
+    {
+      "path": "ide/src/ui/settings_view.c",
+      "rawSha256": "26276b5c2039140a8f5610d8504c8b412a29d5c3939a36c4b7b3c2f24a5d44ac",
+      "normalizedSha256": "c96488a41beef0e33c8dcc6c783f8e029824a2c55b8a959ea778ff8d84917b08"
+    },
+    {
+      "path": "ide/src/analysis/frontend_raw_environment.inc",
+      "rawSha256": "bb43bd97c6f17bdf070194ed05882507be0cc723545e45d099369a01a76d1d77",
+      "normalizedSha256": "99e30f8105485d150d6894df9971223044ee7b01a905e5e1c943809da3798fa0"
+    },
+    {
+      "path": "ide/src/services/editor_font.h",
+      "rawSha256": "59c2f9fb1770fe63775ec49aca9e14d7dbb1252230d4223bf534fb6eb9115395",
+      "normalizedSha256": "ce51ac4d96a1721db2834fb0ece9a51c063e3d83a959578c7d6b670736ccfeaa"
+    },
+    {
+      "path": "ide/src/ui/language_view.h",
+      "rawSha256": "f96c3db02d4bb0acd51e5596dc38209249fdf2d6c5bd909f548cb2d958d6d898",
+      "normalizedSha256": "5c5fa9c4ead28c5eb110a28d556ae0f49f3ff62a257548e6af8b80fe09f95810"
+    },
+    {
+      "path": "ide/src/platform/dpi_text_paint.c",
+      "rawSha256": "d4d0bf14c8903928ff9bd79cd3d9118f13065d59466f5225f13fa84b5ef3c195",
+      "normalizedSha256": "6f7d86bc022abc54455e50b1df7e643e40a169f30639e2f332d8717175a39c27"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/sdk_manifest.json",
+      "rawSha256": "87e83148e6d058471cab302416096916a622ea829aff98b332f076d5fe3bb752",
+      "normalizedSha256": "824de535d3394965e8a66973497aac8c15857967ff9f8b7b1e06e0edbb4d8e69"
+    },
+    {
+      "path": "ide/src/services/analysis_catalog.h",
+      "rawSha256": "09a42486524a6aa40eea7b5655a29cc47c33592317d6c5d2bb397a7983ea76b3",
+      "normalizedSha256": "06715c5b960c9ad2fed7e808995e01798b527dcf3970595ad50dbfb2405b4d56"
+    },
+    {
+      "path": "ide/src/services/program_version.c",
+      "rawSha256": "48b6fa5b6186d2ada3b63186e23e0469df4f661ee5154a4c42c68b55639aba09",
+      "normalizedSha256": "fc18d7a5f0d1f58409a6d5f0d0d4a9e56141492abbcb8f9808234b0680177700"
+    },
+    {
+      "path": "ide/src/protocol/diagnostic_paths.c",
+      "rawSha256": "36410f745568bca753d7e50c022b306e699bc9ed058ae5173e4540112c9ce6b7",
+      "normalizedSha256": "fbdea17c0e064cd493adc100a6a4f464a0a9ddc111e0439bc6e23a55feb2efe2"
+    },
+    {
+      "path": "ide/src/analysis/frontend_stdlib.inc",
+      "rawSha256": "81ab1c1122190a81cb6f5a7b21fac09cd33732860c04c0ba94523afb85859225",
+      "normalizedSha256": "6951f804c3c74b6ef8ca339b2b824927409c9b480e321cff38fe8b375bafede0"
+    },
+    {
+      "path": "ide/src/ui/c_analysis_inputs.c",
+      "rawSha256": "97b68f772082d605bf8b4801951e0fb15b8d7bb172d62fd4e6fcc6d55338d070",
+      "normalizedSha256": "9023db303cd3da56c3a2892cbd36fbbf2f1a2a1c85e529ab5e4c3beabb88c468"
+    },
+    {
+      "path": "ide/src/services/semantic_completion.h",
+      "rawSha256": "0b762973f2dc170a8253c089895b93373dc4467fd0c1616e935ad3bfa1ed23d2",
+      "normalizedSha256": "e6eea6aaa92293fd7cd3a94027622c9b462d5e68a97b564a663a6d3477fe07f4"
+    },
+    {
+      "path": "ide/src/ui/layout_state.c",
+      "rawSha256": "66dc5335f507d3439e25566dd250fefc69f3521cb9ab7cdad3a0413cc10cb032",
+      "normalizedSha256": "c1480835f52e4c8b2b506796cdf95de3457e499dcdd6a4461c17614a59cfc2af"
+    },
+    {
+      "path": "ide/src/lang/languages.h",
+      "rawSha256": "9265b8956549667ebf33344a04b070386236c9c2a99a224ce69f69e9c0abd36f",
+      "normalizedSha256": "627c38fd388560b97ff1fba1b44ee6b1e1bcf596fc776706c534af78398ded5b"
+    },
+    {
+      "path": "ide/src/analysis/frontend_input_view.h",
+      "rawSha256": "ad6b4104a6d8e2dcd6130b5964a0718b301db29250e09187a4f8c9d50a184539",
+      "normalizedSha256": "c02bb1707664a9ecbfa2d76aaf8f90d4f412e2d8bef0c7d8c78bec7eebe24926"
+    },
+    {
+      "path": "ide/src/analysis/frontend_sem_names.inc",
+      "rawSha256": "a7e3327e69dd99eb4eb14598b636fa10a646401dce75dc03e4222370b05dc6da",
+      "normalizedSha256": "d744c7ad6790400f3aeaab24bc6bf4246f8c269eb6e4bc8c986dfb801f82bafb"
+    },
+    {
+      "path": "ide/src/ui/goto_view.h",
+      "rawSha256": "00d12bb28b52b47d17e355e86716f1da5b2f859db5310ce54c88d37cbfddad4f",
+      "normalizedSha256": "70d3f8dc46849a1ed0e26aac579e50243a983a0734c4d32ac5a19a00b6377dd1"
+    },
+    {
+      "path": "ide/src/analysis/semantic.h",
+      "rawSha256": "faabb7a331e6d300025f27b4b55d49db8f9c095bbcd7b57fcfb9c99b73c2c269",
+      "normalizedSha256": "e0f2bd80eeb62bc7cb796e8ddce4ea8fbe0d60f31b55d5ca9eaefc0d68af543b"
+    },
+    {
+      "path": "ide/src/services/c_language.c",
+      "rawSha256": "1664fab9fbdbbb0896323f4880ad20d7013df300322deeae2ea18d414912837d",
+      "normalizedSha256": "c7db24ea85ad4294db5bc4b08a501d97ee48a8b50932845133ce138a5f893ae6"
+    },
+    {
+      "path": "ide/src/analysis/frontend_sem_ir.inc",
+      "rawSha256": "30ae0a9afe82fb1aeb47e4a87b439eb49cd47598a27bae200252039c1055eeba",
+      "normalizedSha256": "3f764636b2c0933669c1842bbb6537ea721dbadd2b8614172acf311bea50fa55"
+    },
+    {
+      "path": "ide/src/analysis/dependency_capture.h",
+      "rawSha256": "622c18deb7b217539a01c62466698de599382a830a2b60af1a5cca0ea9de5186",
+      "normalizedSha256": "5af2548dd4bb4cf3c2d7da8ae327832cef9fbdc0865484b135358c1683ef68b2"
+    },
+    {
+      "path": "ide/src/services/toolchain.c",
+      "rawSha256": "5206ae01a6c56ca94a20a93e5425e8fe4258f89c4e44a20c498bf009371a4efb",
+      "normalizedSha256": "62016650d0eaa624db56fa4a98bf881a8b13fe770f326fdec31d732feb66205b"
+    },
+    {
+      "path": "ide/src/analysis/syntax_raw_body.inc",
+      "rawSha256": "23faf29c0badaf2a557cea30730d8acd8e396c7c7d52a542504a79015355324c",
+      "normalizedSha256": "c2b268101e477b6aeeca48c3988488965b5a6f0a114cc5c0f3aa7d253cd59b1e"
+    },
+    {
+      "path": "ide/src/services/language_client.c",
+      "rawSha256": "e7987af5714d05e77a697539bb3502203b91874bd63dd4aa447fcfc0f050e5b0",
+      "normalizedSha256": "77760224267921bbdb5ff2a413b459f109b10e8e316c101ed77d59007e07d6f6"
+    },
+    {
+      "path": "ide/src/analysis/signature.h",
+      "rawSha256": "937786cf723ee508a6e246154231f62b9ceef2b49f0657dd14f14d90c5943a94",
+      "normalizedSha256": "81c46df3126a0930fe09e7ee16027a4d162e75a29d11fab49931f9ab975589c3"
+    },
+    {
+      "path": "ide/src/services/diagnostic_dependencies.inc",
+      "rawSha256": "f754e9707958d3d1bfa0a086878c0bc3ce64540398789b3532597eb285dfe122",
+      "normalizedSha256": "c7515e5f618f0bb3e302efe1b00d6708b479e58e4d39848fc9dd4504a0d18a33"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/provenance/source-build-report.json",
+      "rawSha256": "e044ad0b3a8ef3c2837e40bf7b0e93b3cd4fec96618cea0076600895d96a3e6f",
+      "normalizedSha256": "b43485518294b032a7d6795e9ee7c67ffcb1ba2b7e43bffd9962d914a76c5dc9"
+    },
+    {
+      "path": "ide/src/services/semantic_coordinate_sorted.inc",
+      "rawSha256": "289dd642b2d97def87eacc801823af8f08d65c06cb5fcb1a4de26f56402e2d37",
+      "normalizedSha256": "f2fec2a0ebdb214a6f8954549f1a752e31b227ac06985c23025bc2f603c00f81"
+    },
+    {
+      "path": "ide/src/platform/task_stage.c",
+      "rawSha256": "2305bb8328421535b60fd0504b9c12efa2d4ab964f597f96c5f51a2c8260a2ca",
+      "normalizedSha256": "6ffc267e3d75547604661cca5527f377f60865533a70f372f710c2d9f3b287ba"
+    },
+    {
+      "path": "ide/src/analysis/frontend_sem_overload.inc",
+      "rawSha256": "b7db613a0191b3ece8c2e5b9bb7191938053321dba4e79f32a1847b983e5239c",
+      "normalizedSha256": "0f7f777c4647ce07bea7a38872be3a9701ae3511715f45d44d831d03c4088162"
+    },
+    {
+      "path": "ide/data/xlang_ide.rc",
+      "rawSha256": "5bd73443444cdbe8af74b35e0f90cb7c112a775e08cdff212f6c7ad71550f003",
+      "normalizedSha256": "5bd73443444cdbe8af74b35e0f90cb7c112a775e08cdff212f6c7ad71550f003"
+    },
+    {
+      "path": "ide/src/platform/recovery_backup.h",
+      "rawSha256": "d0527ad82d189561b5590f0e0d02525aee9bb09ac3db1b7b2b642ae829021465",
+      "normalizedSha256": "a351d72e26a33b5db1008b1f106fcb9e56a674e206409de5632bb454feade434"
+    },
+    {
+      "path": "ide/src/ui/dialog_form.inc",
+      "rawSha256": "7d64904b30c0ce1231cb633b44c29ab112fa8fe3deb7fc770b82d98e6f36467d",
+      "normalizedSha256": "561f8185b8636bd8f75c110caaad7dca6f0294d558e1f04b87e634cc960714f6"
+    },
+    {
+      "path": "ide/src/ui/workspace_view.h",
+      "rawSha256": "10ce6e59cf1d79e7bfe80711ee3ca934f346505ee6c95f83b338afd9ca1c4b88",
+      "normalizedSha256": "a3e3141840d00fe166989c63626124895f9593089f67512859abf21cb528b274"
+    },
+    {
+      "path": "ide/src/analysis/folding.h",
+      "rawSha256": "84c48ef1664bfd7c7ef6317541ac369b88060a9ca07a9b7be5a3b59ce40868b4",
+      "normalizedSha256": "4d7ad22f66222c697bb01bdb22cef14805ac803daa0800dbdfd695efe1a9b087"
+    },
+    {
+      "path": "ide/src/ui/c_completion_view.c",
+      "rawSha256": "98526432d56eeef9120170deb19ad5cf3b0d4eb96876e17466099056a17cc696",
+      "normalizedSha256": "b3d676127411e7372498a27351ad3bfe990f5d20e172ec6dcbffeedae01d2d47"
+    },
+    {
+      "path": "ide/src/ui/workbench.c",
+      "rawSha256": "160fc56c17d06445a6be7e0d27a967a87879c427c20876870851fb8a54c39159",
+      "normalizedSha256": "955668d10edee35900b8354882b52af3b063b423d36cf7fcfb2bac440723f063"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/payload/extlibs/sokol/sokol_app.h",
+      "rawSha256": "7d725c8f3b5eb52a9dba4f5ba1c9d6cbc603a2f5c5dc712a8f0fa3b4dd5378e2",
+      "normalizedSha256": "8a7960e2e3c31eed3b9c30594319c64cc32ec80102f7f81ce543477fcf58e2ba"
+    },
+    {
+      "path": "ide/src/services/c_bridge_map.h",
+      "rawSha256": "8953d0cd760b97a0263090aab43d4d570f67a85c294dfeecf7e77f9c088eb94d",
+      "normalizedSha256": "a79d83b4aafbb826e064b6b412b380c2a72a75ed80ae01b6ba00db973f1bbf4f"
+    },
+    {
+      "path": "ide/src/services/diagnostic_stream.h",
+      "rawSha256": "b5da694b80f3c1a11f9cf8a2e3d9e19ecc46fe1e8f568378d2aa475435313d7d",
+      "normalizedSha256": "6450a2e6678dbc2a1cdf7dd033d0a4e1b1bce25af0f0263bda874f43d74b5a5a"
+    },
+    {
+      "path": "ide/src/services/rename_journal.h",
+      "rawSha256": "cba1df51ed33961bfc6c85e990a5b78ec55b4a860459516a53a773fd3499918b",
+      "normalizedSha256": "f87b61146779614ee3c115900fee1677293a3c2de70f7eb9093d1df756fe0662"
+    },
+    {
+      "path": "ide/src/services/completion_result.c",
+      "rawSha256": "d095e1c432ed05338fc9f9ff3f5be029c33de85bf4d1e89098004ca5c3abbb5e",
+      "normalizedSha256": "a29a2f53389bf73bff8c12a33be3b6eda53235f5582845491a7bb00f02a0972e"
+    },
+    {
+      "path": "ide/src/analysis/frontend_import_names.h",
+      "rawSha256": "8572bc671e045bd34f833fa7be104a32c562b21d1d7ac375155540e2e84bcf9d",
+      "normalizedSha256": "eabe5f57bed5bfe11f76ab664cfbaf5510140d6d6f5d69cf8b498d76abbad30e"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xllm/include/xllm/features.h",
+      "rawSha256": "1865a3cca266bb8035d6c313e1dbd18cb6a1f93be72059ef0e4b1619a6c874e8",
+      "normalizedSha256": "1865a3cca266bb8035d6c313e1dbd18cb6a1f93be72059ef0e4b1619a6c874e8"
+    },
+    {
+      "path": "ide/src/platform/failure_window.c",
+      "rawSha256": "fdbfd4887cad81abe963b4b5a2d6a13d87ab9e3e407b1b5eccbae22271dbe3b3",
+      "normalizedSha256": "6903fad3eae2dbb51212677a6da422533895246f25b45736a414ac6db94714bd"
+    },
+    {
+      "path": "ide/src/ui/completion_view.c",
+      "rawSha256": "00059dbc6fafb38f202f3e828d9e47b5179df28b587abbb7d0a924363b3b7636",
+      "normalizedSha256": "7a266832eb7b623d4db6968c297bac1563a2c5d25d113cb1412204aaca3283a5"
+    },
+    {
+      "path": "ide/src/analysis/module_store.c",
+      "rawSha256": "fd48a80338cdfc1026618f3cb6cb8c607e760e94d7885d80854f18c85835b671",
+      "normalizedSha256": "7e02d6a6e58fc3d28b40319c99faba5c19ef3271750cda0f5302e619837028cb"
+    },
+    {
+      "path": "ide/src/services/recovery.c",
+      "rawSha256": "ad9d4cad5b72690d597aa110e9786364f591b2bdca39ebdc7caa28383098377d",
+      "normalizedSha256": "7bd6183ff87220590c470c8463098246f76d01a65315f41384044a2d1732e4c2"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xwork/include/xwork.h",
+      "rawSha256": "b5683a0fac630c60f51d95bf728b9031aa99a4d05fcc81ba642e2110bcc82c02",
+      "normalizedSha256": "b5683a0fac630c60f51d95bf728b9031aa99a4d05fcc81ba642e2110bcc82c02"
+    },
+    {
+      "path": "ide/src/analysis/text.h",
+      "rawSha256": "62001371f13361de6ea2d63dacf822bd3f74f4b30aa99931a73bb919b9bd01c2",
+      "normalizedSha256": "63795c4ef8a728ee071119ce77f1f20e6c334323fd47ef911bde4d66e54b0f30"
+    },
+    {
+      "path": "ide/src/ui/task_view.h",
+      "rawSha256": "158cbdbfcf1572cf4e6898ed3b62dceb95e2337c05ec70b0fc0ed511dd6f499f",
+      "normalizedSha256": "696144149d4dac1d60668f5a819e8322b7ce41c1edc74c1deec5ec29e9b55f5e"
+    },
+    {
+      "path": "ide/src/analysis/frontend_import_decls.inc",
+      "rawSha256": "ffd299013f172664c9c4e56bb76a081a59ce40f37e1ffc21b4dab91781d97393",
+      "normalizedSha256": "95932153d2104fab36f03a3b0a368724bc29d41bf2b057283bb2f2be3ca287e9"
+    },
+    {
+      "path": "ide/src/platform/startup_stage.c",
+      "rawSha256": "8aaa76732fafbedc42ebb1f4ffb2be56e63ca34f24f0d47fda5be67b0c6c365c",
+      "normalizedSha256": "7be159e5297e82554b2da2acab269b5748dc5c704b90d8fd78875caf59cefe2b"
+    },
+    {
+      "path": "ide/src/platform/update_storage.h",
+      "rawSha256": "1f7602aa843c99b7d2bf7a89f87f06d0684a1360816f93f82c17ca8e3bd20d7f",
+      "normalizedSha256": "4f3753e9f3bc2945252c9f5a05c19067770662197961fd75e72d965ed99b8186"
+    },
+    {
+      "path": "ide/src/analysis/index_modules.h",
+      "rawSha256": "5e85a4f6963fb970dde0a46893d3c3de92826833d302358cadf9660466b2fdcc",
+      "normalizedSha256": "8ed13645adac5be54067398b63f56a31a2b3e0c1386f7ce9f7e40cf933cdc506"
+    },
+    {
+      "path": "ide/src/ui/editor_view.c",
+      "rawSha256": "40b56fcba6c6467b60c46f352da226042bf2092236468099fb98df561e67d2ab",
+      "normalizedSha256": "6828c53834aabe24e70fde0e007b7136b01d3e559cfddfc4bed6dff1f920d43b"
+    },
+    {
+      "path": "ide/src/analysis/index_entities.h",
+      "rawSha256": "cb11de8efdd063c50d9eb2e4519de76d8f7e0a5481d4344eb3a43e2e98ae3337",
+      "normalizedSha256": "78983f367f42250645434fafba303547c20fda2d70ce977408e12fb474cfb8aa"
+    },
+    {
+      "path": "ide/src/ui/workspace_view.c",
+      "rawSha256": "9f3e2d24b9a18b4c87b70ee42110972287e7f6b859ddbacaf48b80e8588fa038",
+      "normalizedSha256": "5c0f8eac1b5953bb9b5a2ca81363d8c0454ba070c0a093d9c31c096d9f78cdea"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/diff/src/xge/core/xge_impl.c.diff",
+      "rawSha256": "88db7f6fbd2c32b722e1037606f89fe24b0eeeef47aa27ce0204e07328254420",
+      "normalizedSha256": "88db7f6fbd2c32b722e1037606f89fe24b0eeeef47aa27ce0204e07328254420"
+    },
+    {
+      "path": "ide/src/services/analysis_context.h",
+      "rawSha256": "cda5800c7b1b6813ee20cbc2498eed1fe3e3295bda1b9d5c6455da4eb066c29b",
+      "normalizedSha256": "ea1484861a53a96f767a98badf95ed58eca024f2cbfd247b69c16a2f6e6be32c"
+    },
+    {
+      "path": "ide/src/services/project_templates.c",
+      "rawSha256": "d2a231cfafc5bee52d2e9982dc8036135db1d177fb0fc1e15c39da4e37597031",
+      "normalizedSha256": "aea50d9f565c513a562e7ef099c16f289896a9fd0c94d57760457d598124a5ed"
+    },
+    {
+      "path": "ide/src/platform/recovery_store.c",
+      "rawSha256": "3638a0ef8cb48aa537507394c78f1d84b78fbdddd5d2a02243978d1ea4dafecf",
+      "normalizedSha256": "8d5aae1b6e25806972f0bc504e5b735da8f1f3835455d0e53663a868310ccb4e"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/provenance/source-build-manifest.json",
+      "rawSha256": "13dd76256e050a8d1c7f31e09a08869cabed18ef4068991d3e68c1caac111150",
+      "normalizedSha256": "e02616f8597267834b975e316079d48525ccec90816a6bced023e71f53f6a4c3"
+    },
+    {
+      "path": "ide/src/services/analysis_catalog.c",
+      "rawSha256": "ec0a8cff6932333cbb1e0c7300d8b2cf8ebef76da408ab01e40282b7376866d4",
+      "normalizedSha256": "049fcfc03025fd188f6d0945f36278b1fb7e0bd3b13c7219586d946679b14df7"
+    },
+    {
+      "path": "ide/src/analysis/frontend_index_canonical.inc",
+      "rawSha256": "5d5f7ae4f73f61fe8b455bbd46cb1912834ebcd8f3597fdf873819d464c4a051",
+      "normalizedSha256": "57239f56fef2e73211b0fa82e83e4ab0845626f2a28c9ac4fb1f482931f3758c"
+    },
+    {
+      "path": "ide/src/theme/theme.h",
+      "rawSha256": "53e8d76e0a8454ada9c12799914842ef2733e21361ad6e2f54eebdbeb11fb553",
+      "normalizedSha256": "5023a48b06c56562c408d31cdee461ca1e39e00350091e12e33f3f821cdc25ec"
+    },
+    {
+      "path": "ide/src/platform/settings.c",
+      "rawSha256": "19495a992887503b824cee696279ad10fe4ed752fd7676eda1246bdce5270bc7",
+      "normalizedSha256": "08a324d77b637278e08f80131740c9a5cb52643960ec98bf5ac5961f6d1a9469"
+    },
+    {
+      "path": "ide/src/ui/automatic_diagnostics.inc",
+      "rawSha256": "771120d627ec49f8d7ec7a2c84e5f9e117d60d57b9c9bac009fb0636354bb9c5",
+      "normalizedSha256": "0b06674c7aef1226d4b1bca7f711506b85765976fa8fcac447d21bc795fc9eb5"
+    },
+    {
+      "path": "ide/src/services/reference_results.c",
+      "rawSha256": "62e9cfbec4b53fcc14bdcfa5d53de1214499a0135b7b87b38a137d235517327e",
+      "normalizedSha256": "f35d856e973c4171c6787f931af7fd4d04f53eac21b3ac52df008e54d3313d4c"
+    },
+    {
+      "path": "ide/src/analysis/frontend_sem_proof.inc",
+      "rawSha256": "0bb3f86443f4a54e14faaaf653ba07b5c516e19ac7418484c36fd115c5730085",
+      "normalizedSha256": "88d9c4f83f50fe056d2b25715418464b4005bd78b42e9c4df105b93e132b7415"
+    },
+    {
+      "path": "ide/src/ui/recovery_view.c",
+      "rawSha256": "7841171f38e3c01754acc5c068c6067d59a003a815339525314710177d74985f",
+      "normalizedSha256": "b7f5e52f7b6606c2a6731d81ac13d0adc58f40cf6606d2786c99849dcb4a5445"
+    },
+    {
+      "path": "ide/src/analysis/frontend_signature_parser.inc",
+      "rawSha256": "427bbf3ff7ac56ca290d7aec752d1f5746afd7641e8f06497af51b73faddcb43",
+      "normalizedSha256": "08c8e0e05de8bae7dda4afbb74597ba61f39dd8fb3547a6be033883bbeba5a25"
+    },
+    {
+      "path": "ide/src/ui/dialog.h",
+      "rawSha256": "c1a56e1fc7df16bc4680308437c3249165eb2ef0960be917bdb38946e0e5eed4",
+      "normalizedSha256": "d13e759ed41cbc016e58c2cb2dd4e5312b16977dff0361e4d7cf255a85b156dc"
+    },
+    {
+      "path": "ide/src/services/project_migration.c",
+      "rawSha256": "4338bea306568ca090e12472fb796e83dead2e9d65370a667c03cb7a640a73e4",
+      "normalizedSha256": "7fafa25b3bc59d48880f2bbb4a32fb7dbd9bf8a25d0317abaa4d54a4bfd3af8b"
+    },
+    {
+      "path": "ide/src/ui/message_box.h",
+      "rawSha256": "6132ece89e4e993796a48e0b6d45fe1b73f90ea4dc601f11399b88fa66970b68",
+      "normalizedSha256": "51287f71998f2107fc819ca62e1c4170dd300b5577ef3eaaeb8f4ddfb4c73067"
+    },
+    {
+      "path": "ide/src/ui/import_view.c",
+      "rawSha256": "d53b2d2e809bafd872f26d60bbc90f51789594cd314c05439633b72919669cad",
+      "normalizedSha256": "2290b4e74c4355b92a5ece6c8aea166a65ef69d36a9cf3467e267fc3446aa986"
+    },
+    {
+      "path": "ide/src/analysis/frontend_sem_symbols.inc",
+      "rawSha256": "a01780be540cb226776e978f45c22d796e39bfaefff041fef47602644f2c523d",
+      "normalizedSha256": "81ec3c9be08e3506316477e6259b2e35def883c42d7ecb8f191ebc1d0706084c"
+    },
+    {
+      "path": "ide/src/analysis/frontend_ir_persistent.inc",
+      "rawSha256": "c7d0927c0156a638dba593c458b782a7b8e2e1943b331be992b70bff9343f1de",
+      "normalizedSha256": "56355b18ddd7beab928931eee1b981b38a6972fac4be05a4b57360344eb3fa8f"
+    },
+    {
+      "path": "ide/src/services/file_rebind.h",
+      "rawSha256": "8236cc40eef25b162d48dd81aee2d08283a69de8c304f74d212bfeaa5f295df3",
+      "normalizedSha256": "692086758c2f29699aa47618df66c72d235de921b2c95f9687a0291f7512bbe3"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/xui_document_ui.h",
+      "rawSha256": "e343a8600039805be3c5e481fe1d15dbcd426490ce2ad2b5dca65f78b6574bb2",
+      "normalizedSha256": "e343a8600039805be3c5e481fe1d15dbcd426490ce2ad2b5dca65f78b6574bb2"
+    },
+    {
+      "path": "ide/src/services/diagnostic_store.c",
+      "rawSha256": "e7877435715bd3076dfc4b68ad03f665b85e8a314797adc71154bdb0cc805335",
+      "normalizedSha256": "bde59d31fdc8e6fa4fb8e475f712c9b16b28bcfdd271e72ded7f8dff3a785532"
+    },
+    {
+      "path": "ide/src/analysis/syntax_multifunction.inc",
+      "rawSha256": "265e54c95f66992934b89c6d5501b2d49201349e7b34f0e30f751cb9642d7603",
+      "normalizedSha256": "0908afc6ee53606a5f5d00a696655d2a688bbdce6b0b93be7c42d2723f757321"
+    },
+    {
+      "path": "ide/src/ui/file_changes_view.c",
+      "rawSha256": "d374f71d150b3be71bde54d85a463b6a6c7a07152b27526ff609d3d950fa0988",
+      "normalizedSha256": "b317e1705e096d8ba8795561c9cbc73eae01651d83109c6482494a9841feb88c"
+    },
+    {
+      "path": "ide/src/model/resources.h",
+      "rawSha256": "f56e5de5ff0ed55f9e12de5bc83df6f1b638c00dca144c17898dc7e89ca94496",
+      "normalizedSha256": "02d9fad681c8955dd760e6f8a78681c3a1005223fb84ce85145464cec0877e23"
+    },
+    {
+      "path": "ide/src/services/c_bridge_map.c",
+      "rawSha256": "8a7b626400e9a02c910e2a8c961ae108c3affee4e4f4f31cb034f3cb3b995bfc",
+      "normalizedSha256": "e6eceb06700f71da41eab539520308991b8709878aa4427821a6965276e9fa69"
+    },
+    {
+      "path": "ide/src/analysis/raw_body_projection.h",
+      "rawSha256": "186e9fb1ebac55add942237fc6f8430f873954a254890ebdaa427f3cd5a2b375",
+      "normalizedSha256": "8d7d30298a01f6f589b28308f9fe9652bb07f6117db2f08f45ccb04c8cf2af14"
+    },
+    {
+      "path": "ide/src/analysis/worker_cache.inc",
+      "rawSha256": "36ba43efc10989fdc030aabcec43dc7b5229b13838191361e0df4b1498344978",
+      "normalizedSha256": "ae34933d4b0e79a6efa16afecaf30443901831030a9d86d4935c8e9d713536f5"
+    },
+    {
+      "path": "ide/src/services/c_bridge.h",
+      "rawSha256": "68e17a19df8e072c2474ce092c1631ba4582daa48bccd87dd3327aa5a7797ed5",
+      "normalizedSha256": "f6e9990bf7e80b38a56915257b41ba47b55fab9a0b79cad5887be53a9283a830"
+    },
+    {
+      "path": "ide/src/analysis/frontend_completion_pool.inc",
+      "rawSha256": "1bd6d635bb7e4c82ee57bc788b4f0129b846f603db9db8e69f5c194758f912d8",
+      "normalizedSha256": "1c7d43577f639e8ee8e54d37c8c2c56bdf9635e94971156f9605943a9a66578f"
+    },
+    {
+      "path": "ide/src/analysis/frontend_overlay.c",
+      "rawSha256": "35b21e4213e99c87c38901328ca6461f3735c560e148171740ed5d4d995c7bf3",
+      "normalizedSha256": "5bd3908cde02b13912ca09a03671798db080731b2b290006499e0ad82bf978ff"
+    },
+    {
+      "path": "ide/src/platform/startup_stage.h",
+      "rawSha256": "688f202c289314a06e65b2a0cae597bd60aa30ece8be0bbfadf791cdb1d33a57",
+      "normalizedSha256": "4de696ca308eff505f6834391419ba2d09a09e417856ece9b1e655ab432f7ed2"
+    },
+    {
+      "path": "ide/src/ui/template_view.h",
+      "rawSha256": "512c79944ec0f91f7662f799ed867fc75a1e4f13692fd0cb91c7a09e26c29a12",
+      "normalizedSha256": "fd98334f94856f552549ee877a7443562392131b9eaaf59e1a0e3b51418fbe0c"
+    },
+    {
+      "path": "ide/src/services/ui_font.c",
+      "rawSha256": "980d60e168fe485363014104ef47b60924c71664cd1320f954c065f9d248ccbe",
+      "normalizedSha256": "b953630bdd05098f9e2a5cf76f68f4b3e00619839ed9ca661a7d6c04ab8e3831"
+    },
+    {
+      "path": "ide/src/analysis/frontend_context.h",
+      "rawSha256": "08fb7942e8dba4f7ad90f668b052dbc6eaefa7d88e23e407cfa05f2fa79c5418",
+      "normalizedSha256": "f1b4333de95bcd9f52e5842c416f969e7182d27757387f02827aee7cbc47124d"
+    },
+    {
+      "path": "ide/src/analysis/completion_session.c",
+      "rawSha256": "d60e78eec10b689081b1504db2dfe035c8a26aacad10d05ab8ef4cf7e0343cc3",
+      "normalizedSha256": "4e949b9c13605998a644755b421c6d914d89253498dcdfe311349382e4fdc25a"
+    },
+    {
+      "path": "ide/src/platform/runtime_failure.h",
+      "rawSha256": "47b1c33d58f47c033ef5ec91fb2eb81795eaf40e14a4f71bd9f60a4d129f331f",
+      "normalizedSha256": "8b2a98d2ec5af585c3652e38ce4a0a91bd2034042c6bd7f4d8722ea305145d58"
+    },
+    {
+      "path": "ide/src/ui/workbench_windows.h",
+      "rawSha256": "a0e571aecaeb9dcb74ad762c6922780ff872a2e4862e3ea53cd73714ca0b583b",
+      "normalizedSha256": "a0e571aecaeb9dcb74ad762c6922780ff872a2e4862e3ea53cd73714ca0b583b"
+    },
+    {
+      "path": "ide/src/analysis/worker.c",
+      "rawSha256": "c1666fae225bc5348b3457080d09c337bd9b5da87004c36931ab8ed43bcb8e66",
+      "normalizedSha256": "198b8148ab508c19429998f1e2af888969886807b7983b30aa65652c476923f9"
+    },
+    {
+      "path": "ide/src/ui/toolchain_view.h",
+      "rawSha256": "dd0ebb231f56b460cdadf78e148f1e99a7c3c31bdd5be5608bd88a667996f764",
+      "normalizedSha256": "631d2dc528c582e6db43fd910ea6c01451da12d81c6e19829329169c3f1a482f"
+    },
+    {
+      "path": "ide/src/analysis/frontend_import_names.inc",
+      "rawSha256": "7f1b6d4cd98cd719416dee5e4be0c6d856f7b1d6166ad2d7a715581dca3fae54",
+      "normalizedSha256": "e625a40349b1f1b62b2ca0b2e8d557e5e8eda9dad2aa6d088145799b405488f5"
+    },
+    {
+      "path": "ide/tools/build.ps1",
+      "rawSha256": "471bbdc6a891f19e309cb161a557780c002dc66375149ba6125739a08c48a9ca",
+      "normalizedSha256": "176c0278562f3ea83e51fe75fc34e10d021b381db96314015e6e36e1c8707c82"
+    },
+    {
+      "path": "ide/src/analysis/frontend_sem_alias_reads.inc",
+      "rawSha256": "935828556b0049f6befdfe4d237e4846abdec227bd8759991aebc3877e21e21c",
+      "normalizedSha256": "ab1e920b4813f905577f3b4ca10343ad8e08f24ec3a6cb0c544cc7b929b1fc7d"
+    },
+    {
+      "path": "ide/src/analysis/selection.c",
+      "rawSha256": "7513c9ca1bcbef2f53d19d613f5f414cef0aaabfd7399620cbbe7477aff63824",
+      "normalizedSha256": "0c2837a5d48405717ed4d28b8c86184c76b9b89693462a115fe45008ff59e2ec"
+    },
+    {
+      "path": "ide/src/services/legacy_import.c",
+      "rawSha256": "1fe439f8a1b2da37f5ec55dcb9f854a24ede9a9af252984b1e871047886046b7",
+      "normalizedSha256": "392d50859facb6c6987b8b027d22642ec681300407e58bd903ebf6f8904a7761"
+    },
+    {
+      "path": "ide/src/analysis/frontend_ir_plan_direct.h",
+      "rawSha256": "cecd59f3943d8e7b4a96ae551fadaeec4a24fb2ba4dfedb09cda6353b5fd18b7",
+      "normalizedSha256": "42118add73396e444c5829d04300c2bf59751092276f03becd9d16c2e457c0df"
+    },
+    {
+      "path": "ide/src/analysis/check.h",
+      "rawSha256": "921a39ce4cb4d9e025ca234ebe2260e7aac7ba858eb503be7a169aea36f53fb7",
+      "normalizedSha256": "6354cbe7d5f87aba3b87b05ae4d63b4bc3bb3eb876116d92e465906156381ba5"
+    },
+    {
+      "path": "ide/src/services/c_input_trace.c",
+      "rawSha256": "5e36f54ac468582f17745c1ef537be53864785e706323995206c1df0bd352b98",
+      "normalizedSha256": "f112c70f206926fc535f436b755d980b10c2695c5d6da01c66f3c3bf0b49e455"
+    },
+    {
+      "path": "ide/src/analysis/frontend_sem.inc",
+      "rawSha256": "84b2a6e9972b1eaba685e4d87676279c606f8ac3a3967f859737cb307d1b058d",
+      "normalizedSha256": "cfad3d1c55000f6eb893bc96b5367c4dfe43e0132b62a74f7a1bb37f5ee7644f"
+    },
+    {
+      "path": "ide/src/ui/catalog_view.h",
+      "rawSha256": "95cbc8a2ed976cc241d5fa75c5acf50427eee3a2530d1af88bebeab217c5f742",
+      "normalizedSha256": "95cbc8a2ed976cc241d5fa75c5acf50427eee3a2530d1af88bebeab217c5f742"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xllm/include/xllm.h",
+      "rawSha256": "53921f2b7888eaea36a91cb014c482de2260b2f21c98c299138783b21fcd4ab1",
+      "normalizedSha256": "53921f2b7888eaea36a91cb014c482de2260b2f21c98c299138783b21fcd4ab1"
+    },
+    {
+      "path": "ide/src/analysis/signature_session.h",
+      "rawSha256": "7cae6188889917f9b10506df0e97a37befb2c1469c1312e9404dd61ccb71f271",
+      "normalizedSha256": "5858f1ae138e6ccfe88abd7adfc8aea87512256802cc101fa8fe02f546cac62b"
+    },
+    {
+      "path": "ide/src/ui/c_analysis_inputs.h",
+      "rawSha256": "bedd548aa64655ddefffca14fd780427726b7447babc76b72abfb1ed3675cd22",
+      "normalizedSha256": "9c83e96319ead7efd1c9f7468bc46207a9ba8d25a8baf623eb78538fc7bfbfce"
+    },
+    {
+      "path": "ide/src/editor/documents.h",
+      "rawSha256": "69233695907ec95efb99f180418b6c05ea06c9b8133e294add98fffcdb243756",
+      "normalizedSha256": "84f52d065fb63d17a733e9639c8d82c9beeb8b2ffdc1a0e3065d31dfc4c41143"
+    },
+    {
+      "path": "ide/src/model/metadata_read.h",
+      "rawSha256": "565d17c05014194532f310c40ad742e88364b4e97c99542dfdcd7d8bb411f941",
+      "normalizedSha256": "421071d0845d2ba02bf218da2e25f2606b9d326d22ebd38fb551278ae32cf530"
+    },
+    {
+      "path": "ide/src/analysis/frontend_sem_reads.inc",
+      "rawSha256": "bd777c00afe80c11d3c1854b86b66c3f026d2049c0807887ed0d04d35dee3cbc",
+      "normalizedSha256": "d734dd8a97eb6468062124c8ac2eb45b261aaf4c2d90a7018c22a41e921738c0"
+    },
+    {
+      "path": "ide/src/ui/template_view.c",
+      "rawSha256": "2e041126065742dc324b2b3347fe0af44a03045742f3a3f44c4961f5910895b0",
+      "normalizedSha256": "bcc07ccc150fa762f08a68b4f8622dfe8244ece0c73d44c66d2b44c291f203df"
+    },
+    {
+      "path": "ide/src/analysis/signature_parse.inc",
+      "rawSha256": "8dd9602696dd9f5a0cc5b2c81b2240203197ef9fa298eceb5cb11d970944e172",
+      "normalizedSha256": "7edf13471e83e6a08043705f4669f73c0918cceddec0209daec4c7211d258d04"
+    },
+    {
+      "path": "ide/src/analysis/projection.c",
+      "rawSha256": "4e915e3e4b9aaa947d8dd43b5838e3b8e2ac2b12e3d5862328ce44d67a4246fb",
+      "normalizedSha256": "547cf56bdcfe78756e005496e01b2b230c6f234050730fa3d848b606b82eaaae"
+    },
+    {
+      "path": "ide/src/analysis/frontend_sem_read_values.h",
+      "rawSha256": "7d58d540d6344ade17bdf1b23653a907d81b5d33e89d9d28cb78a01410884051",
+      "normalizedSha256": "6674dbf86ecd1921be11acc4f73a50095af9985763b954217017c91d92322e55"
+    },
+    {
+      "path": "ide/src/services/resource_creation.c",
+      "rawSha256": "8adb554649fdd41fcc6211f527856c37cc4fb6ae961d67067fdcb7ef3ff5457e",
+      "normalizedSha256": "36cf34b84cf2525c0aea5a61351cc39f6ccd2f6ef8a071b06e9c036b1d733a7a"
+    },
+    {
+      "path": "ide/src/analysis/semantic.c",
+      "rawSha256": "785c1531e3c0b911e0a2510313aaede646aa117b1b6be69a8e1f1fc0819f8dca",
+      "normalizedSha256": "0e155eaaee0f1a2d0d354cfe91f60d60569bbada5b7c9d517f1c630542b49a20"
+    },
+    {
+      "path": "ide/src/services/highlight_result.c",
+      "rawSha256": "83a5dce315073691c11e81fb71e1fcfb2c81bf5e68c37f34cdd124d33943fcb4",
+      "normalizedSha256": "fa82574ab4e93a61083f2a3ab6a79d9cf0061b356a26e7ddc9f4cb78a3cf3a1b"
+    },
+    {
+      "path": "ide/src/services/language_check.c",
+      "rawSha256": "9de8973d3846734395a5b196b2cc7cc6908280a76cdedbea1a3e59f45b34a7a5",
+      "normalizedSha256": "d92992a1d89f67351b1aa8862ef7330bb1895482e83d719190a387371ca95c6a"
+    },
+    {
+      "path": "ide/src/platform/dpi_proxy.c",
+      "rawSha256": "ed55030b570be27c1050f0d7b26846c631d0d693bc194bf4b65732657fc3e866",
+      "normalizedSha256": "8e0e4489c1fb32ddcb2809faeabe219a47ea112d200a3a06a7897b0ce69e520d"
+    },
+    {
+      "path": "ide/src/services/tasks.c",
+      "rawSha256": "f74179f7a79921ce8578a8640d317e9dab7cd1d159160d031917b4b91ae70074",
+      "normalizedSha256": "cf62a7dd17fba39cc6875d8931ed034bbce374b955004870a78fffd5542b26fd"
+    },
+    {
+      "path": "ide/src/analysis/typed_module.h",
+      "rawSha256": "46539627a31b3bc73c678b35c9f3804ab9e6ffffb07fc209bd3bd5cc55367be7",
+      "normalizedSha256": "e59bc6b446ca5c744e121196853921129ee6d5c0df57ae4cc0ad06d3d2553b53"
+    },
+    {
+      "path": "ide/src/analysis/frontend_raw_domains_current.inc",
+      "rawSha256": "268b4cd811af2e9021f6609367633ccfe495f8e1192c90aefe4e3d94577a1453",
+      "normalizedSha256": "3a5e47dffe73a21c39ffb8f79382a92fceb017abf1858ca325eb8fa40aaabc14"
+    },
+    {
+      "path": "ide/src/analysis/frontend_sem_signature.inc",
+      "rawSha256": "1cb6eb25e4b358234acfbb4546cda02f3ebc6c0a401afc15550a8ab2fa7e0ab3",
+      "normalizedSha256": "e43bf971f4f0018c22d7df5de8227bd94b2267cf0ccfa3a1c57d410a59efa3fb"
+    },
+    {
+      "path": "ide/src/analysis/frontend_signature_lexer.inc",
+      "rawSha256": "6cd96e2203f4504649fdcac83f0272891e329e5276076973559b65f6429e1e3c",
+      "normalizedSha256": "887775f125bb3f8cdaecc7c8291f6ed2d0ec94c91037e497d7ac8447e3e256fe"
+    },
+    {
+      "path": "ide/src/services/catalog_lookup.c",
+      "rawSha256": "04de56d867c016a7b008909fb5ada2ac506522b68f60781dd03069fa3f9670cc",
+      "normalizedSha256": "a13e6cf08279436f3bff6afcb3cdb66a12bc297406b4c10c570e623c10b3dd2a"
+    },
+    {
+      "path": "ide/src/ui/c_language_view.c",
+      "rawSha256": "21c87606fff6d464327aa1335d22072e4abe9ac7a47ed9c5f9cb803bfc5258ee",
+      "normalizedSha256": "5dbcd75ebfd25de91a1456e90a391ef6c9629902925112d93183c74eacfcc466"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xllm-session/src/internal/xllm_session_internal.h",
+      "rawSha256": "1df1879ff315d72f370058c19526076732404b9b1070c9eaad4dbf2821ef22f5",
+      "normalizedSha256": "1df1879ff315d72f370058c19526076732404b9b1070c9eaad4dbf2821ef22f5"
+    },
+    {
+      "path": "ide/src/platform/path.c",
+      "rawSha256": "68e3b8edf871249f68debbd2427cc8fd4c4bd1400c782e60c78cf1e7a0642a25",
+      "normalizedSha256": "2007c9d147122af39709b29ca58e7ba25c9bb0713fe81f899fae66753270be45"
+    },
+    {
+      "path": "ide/src/analysis/frontend_ir_input.inc",
+      "rawSha256": "72e33a3488888f126e8be9a588359d323b29cb2dcf3231de08e0db3931ffc123",
+      "normalizedSha256": "16c9e888999239029633524588ae312bfbdf61305182bbeababf45d66a070068"
+    },
+    {
+      "path": "ide/src/services/semantic_reference_shard.inc",
+      "rawSha256": "5bb5607ad22a9f84d2334ad5178ba22586014a53545e66e699907f8c60bb40a4",
+      "normalizedSha256": "97dac2b7beaa07a502302f10b9469990b91742ffadec622b1e3b2a1dfd65d698"
+    },
+    {
+      "path": "ide/src/ui/references_view.c",
+      "rawSha256": "3e65e6378cafc96045b6a36ad7c1faee4874776972e0ab63d6fc0a1b4a9cc9be",
+      "normalizedSha256": "1f536a827f102ccd8d77ba3593ff72c78a0d539580eb892bad4b16c6545750f6"
+    },
+    {
+      "path": "ide/src/analysis/module_graph.h",
+      "rawSha256": "d6847d3b706ee519284f0bba165e25c8c51ddb96d0f1696b61848f580d7d6028",
+      "normalizedSha256": "3aec149870fe21b76a9b3246c75dd84a40ebaf65a2c66d6e2c347d574cb483fc"
+    },
+    {
+      "path": "ide/src/services/sync_plan.h",
+      "rawSha256": "447a166b67500007fe16786378946525b2441a67408394ea45821dd332e57605",
+      "normalizedSha256": "f4a534b37dd322d55fa3d30e06dc3d9ead1acea0d422cfb83a5bcd73cf665ff9"
+    },
+    {
+      "path": "ide/src/analysis/frontend_types.h",
+      "rawSha256": "8a656a6937bf1450560ea0f28fed782a9170cefdb11e45f60cbace02576fcd37",
+      "normalizedSha256": "d43596c1407540bed05240f48e41e092c452c06bacd2a7aa417ff31c8dc8896e"
+    },
+    {
+      "path": "ide/src/editor/lsp_coordinates.c",
+      "rawSha256": "2d30641314254da8e9cf3f1837cac1f685da023b5bbf75385a51208d6a6ee2cb",
+      "normalizedSha256": "2df088644b31a2e90f8c29eabe7c958724625c7cae1d06aaafcef82be39b6b44"
+    },
+    {
+      "path": "ide/src/analysis/ast_materialize.h",
+      "rawSha256": "3ba2fb66bea75e5a60cbae8f01d990bc1d4b15cabd6814d18a6feeb64eeed4d8",
+      "normalizedSha256": "8620e25676ed046fe1677204b7e990710830127767f78d45eb14bea1a2ec4c4a"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/xui.h",
+      "rawSha256": "f31173fbd4af53d10e1a8c7a84eaee3b7547f0d6465bbe9a8fe5b5b48fcba5a4",
+      "normalizedSha256": "f31173fbd4af53d10e1a8c7a84eaee3b7547f0d6465bbe9a8fe5b5b48fcba5a4"
+    },
+    {
+      "path": "ide/src/analysis/frontend_raw_body.h",
+      "rawSha256": "362d688c1bc567c680f44af0f79e39f86c337537a8d185bfb2d2b4b1603dc888",
+      "normalizedSha256": "e4493f8de1982271186e1aa2b592f395c6ed0f3459f3ac33ec869376ca8e427f"
+    },
+    {
+      "path": "ide/src/services/c_commands.h",
+      "rawSha256": "35f1103c87a14103f17d4ab920a3ad78d8737f0580b6debb43c3d1caa3fde744",
+      "normalizedSha256": "97a83ad107edbac34daf55697d6931023f6393c2ed5a24b2baa4f99e6ee96096"
+    },
+    {
+      "path": "ide/src/main.c",
+      "rawSha256": "9b07fe54a294bbdfaff6a2e3cee81ae60728a434ebfc593e82ed885ff294d4cc",
+      "normalizedSha256": "0c748b051b8e8a1e41d6aa260472fc90001eb3a23485c8ef34658a23420a3d23"
+    },
+    {
+      "path": "ide/src/theme/theme.c",
+      "rawSha256": "3173a55ee722adeb71c0eac6a07e374914da3e8c268c228e0dea083cdd5f4668",
+      "normalizedSha256": "8d3512d21aaaf0ee5c1b5dedce8663e8de006f81236171c5652aac2da7ef19ab"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/xge_config.h",
+      "rawSha256": "5d960786a736321b22d1b88cbe2d3aaac807e8afaa8a7bd0a4e509b06f7b76bf",
+      "normalizedSha256": "5d960786a736321b22d1b88cbe2d3aaac807e8afaa8a7bd0a4e509b06f7b76bf"
+    },
+    {
+      "path": "ide/src/services/execution_target.c",
+      "rawSha256": "e1ed9b6b48295848a2d2bc314062b35b4d8c87e1ae1e37c23912a046265232a7",
+      "normalizedSha256": "35bb99d2fb58fcec93b8a87fe74165f288d56b8655349c433b0041e1d0abc7ad"
+    },
+    {
+      "path": "ide/src/analysis/syntax_storage.inc",
+      "rawSha256": "c0f030b43ff4c91e893d58134608c6933362176126ab7496a8b5d417469d6a99",
+      "normalizedSha256": "e617d045646066b434508ef696d1669868e5fc4dd248e673b503bdf2b589dc48"
+    },
+    {
+      "path": "ide/src/analysis/worker.h",
+      "rawSha256": "84926dfb6931b157da3e716dba120c407d05aeded1cdd819b4273aabf1c4c13b",
+      "normalizedSha256": "a761f2d659659f8c131582dee07cebb974cdaac114b4795f8edeb2fced58ae0e"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/xui_document.h",
+      "rawSha256": "7062c587237e6486c9efb84ba8e5023b9346ac90e4ab6afe780ad00aa5bd6fe2",
+      "normalizedSha256": "7062c587237e6486c9efb84ba8e5023b9346ac90e4ab6afe780ad00aa5bd6fe2"
+    },
+    {
+      "path": "ide/src/services/resource_creation.h",
+      "rawSha256": "ce7df0312e069afd3516632e534cf36010ef73c83a61f86dcd413811faa7bbc5",
+      "normalizedSha256": "48010eb669687da6b8c6cf418ff2f43c2a1795302593f3910e6a3632f74ea546"
+    },
+    {
+      "path": "ide/src/services/file_rebind.c",
+      "rawSha256": "d5b48dbf3053e8917981ff6d20bba8307c0cd7ffd15f6727c94fe3af74015ff8",
+      "normalizedSha256": "d2a755f429dcd71dbb5643b07b3d852d9646a98fb5e8aa36118f12e18fe3659a"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/extlibs/xrt/xrt_config.h",
+      "rawSha256": "0aa49016ab725145a8043619b860f780d0b81cbb2184084aaf1c485fa57bf314",
+      "normalizedSha256": "0aa49016ab725145a8043619b860f780d0b81cbb2184084aaf1c485fa57bf314"
+    },
+    {
+      "path": "ide/src/services/diagnostic_store.h",
+      "rawSha256": "97720a2028c98a2d6f4851193ce422fcac1c9eddb33fa59991b856ed44ec5cd8",
+      "normalizedSha256": "51a1e3982bebc799674ee946ff80ef461daeccc10d6fd7df02fa2a786e1d6de7"
+    },
+    {
+      "path": "ide/src/analysis/check_session.c",
+      "rawSha256": "31a234da2f995a65afe8a49500e6dc273373080dadd6c7a9fd426871bb3f40c8",
+      "normalizedSha256": "3536b093c4c0ab6ece0d5773f15ae24d7e7884de876bd695cde1581409b68e94"
+    },
+    {
+      "path": "ide/src/services/diagnostic_stream.c",
+      "rawSha256": "e9567c21f3863d9e39b9a58acd37e2b6b7bf8e2a23f1bc89d6c72c98d88b9949",
+      "normalizedSha256": "c42099b3d93839651c54e8617ca8aba22d35fe2c920fc41ef304a8854a34d1b0"
+    },
+    {
+      "path": "ide/src/ui/import_view.h",
+      "rawSha256": "2be3a96b81c8381dd487e1b80cd9d22dae98cc20a4ea7f0754473f4c83fbdc84",
+      "normalizedSha256": "d925acb395a820d4ee740abcd939ccc42d47aebe2cc8303a8cb95bfebb606494"
+    },
+    {
+      "path": "ide/src/analysis/frontend_ir_memo.h",
+      "rawSha256": "4aa31c91b3ec67f2e48b0bb74cdf6f14aebc41243abdb190829b39f054c9a9d5",
+      "normalizedSha256": "dc3b93ff96b2e07d8d268059c703c4e379148e4250e18295b7d9ba08867d8e85"
+    },
+    {
+      "path": "ide/src/analysis/frontend_sem_geometry.inc",
+      "rawSha256": "a42b3e6e348c0bc2bc7329d97bfec93d3b504e1d34b6caeade51a49f3871561d",
+      "normalizedSha256": "47c849f9322e791f7ae9b53989194cbaf774c05e66b5d9eb6b6c0a1cb57388cc"
+    },
+    {
+      "path": "ide/src/analysis/check_ir.h",
+      "rawSha256": "f479d675045ce31e23e3d19fd8d53742f850daac3e6a84c6b6a6a58a690a8278",
+      "normalizedSha256": "285db966d40727d8db2f904b173fb5212ad105172c2de5d6762ddb2c89e2bf9f"
+    },
+    {
+      "path": "ide/src/services/project_templates.h",
+      "rawSha256": "eb7530f049c450fd7a9fdd8c516cfbc799e565e378e4b58668734a11b9281fbd",
+      "normalizedSha256": "73a85517d9c886f73752d4143a535f1b96c43f3ed69b348b7c8925b84900f007"
+    },
+    {
+      "path": "ide/src/platform/window_state.h",
+      "rawSha256": "0deea4280180bf869f35ce8de7979efeab26c36852725d60652c6d3be3944b81",
+      "normalizedSha256": "13b39e63f10cf95ea1a9591fc873b65b193bebfcdf216b16ee629fd78793282a"
+    },
+    {
+      "path": "ide/src/analysis/frontend_index_budget.inc",
+      "rawSha256": "a9913e28164d79168c388bf5d3cd704e5685194ad4cff7fb53e5ae1207f5c05f",
+      "normalizedSha256": "038366e640265161e13e66b9b6282d0b0ba8091a9d56bf3c8ae41a6c2d6cbba4"
+    },
+    {
+      "path": "ide/src/services/diagnostic_dependencies.c",
+      "rawSha256": "fb86939f31074bec8499f446c5f9795f9fed748ef88eda0197acf0db25307232",
+      "normalizedSha256": "d73e6cfe3e0175dc02a88e2fae20906917025103cbed94b91facfc84d00be664"
+    },
+    {
+      "path": "ide/src/editor/documents.c",
+      "rawSha256": "d27703552b6e7785a58b75f17342ce28c1d6256ac9d3e52151d7efd11ee2e45c",
+      "normalizedSha256": "bf12a0ee0ca2340d0e06dabef2ee684afe6eb11200f80a7135e29592b8c7d8d9"
+    },
+    {
+      "path": "ide/src/analysis/completion_session.h",
+      "rawSha256": "31dae01fcf5316d558b47b1cf8b6b85d5f2f37d7de8355f32e1d132dd20f84bd",
+      "normalizedSha256": "ce4e115fda5a9bc670b57a5478e23f85d5a8d77760e143aac39b7da22a8bf8ff"
+    },
+    {
+      "path": "ide/src/services/analysis_configuration.c",
+      "rawSha256": "f97ea520fb2eab3809b9534fa5db51c2ab832e166b2fdc02cda740cf251bc92c",
+      "normalizedSha256": "7c69da607ba6f25e421c9b9c0a56c68f019c070aa69e059b80c23fc095a41f82"
+    },
+    {
+      "path": "ide/src/services/preferences.c",
+      "rawSha256": "c784ecc4e92afa285634979328ed5f3ae5d893a9db6fd96d051a978f09a4ddbc",
+      "normalizedSha256": "e58a2cc3ed5b1ccad6dea4349dc8da3a323369daefa968ee9a86241867adb9e1"
+    },
+    {
+      "path": "ide/src/services/diagnostic_reverse.inc",
+      "rawSha256": "1a2e5737dd630adb723038c5f16e3a10a559517c9ee42a093133c2f4cfc58e13",
+      "normalizedSha256": "8544a17c10aa4ae341d3a89f615c9e43b951f0329626e8bf4c852d1ed4091b16"
+    },
+    {
+      "path": "ide/src/analysis/worker_modules.h",
+      "rawSha256": "cc787732f5848702c3a2b7fad17cf1bc31dd00374217b56a1e4f53b91cf2097b",
+      "normalizedSha256": "02afef4d638a0f56a192fb9855ad4c43b5163719942a6ce92ac62e1631ae6939"
+    },
+    {
+      "path": "ide/src/services/c_completion_job.h",
+      "rawSha256": "2a8deb22c5ed1ec70fd4cb54564f4fe20ade418ea14decad28cec0b9d7c73970",
+      "normalizedSha256": "929ae5aba1f1f12c83bb3aeb726aa94cec04ba115681716f8f7f9e5657c3d2a9"
+    },
+    {
+      "path": "ide/src/services/build_inputs.c",
+      "rawSha256": "8142a5daf355617de911084f9f2cdba639cbc238ceb4bbac921e2d0d6e9ae113",
+      "normalizedSha256": "d98b1f4c2750184d151eea2384684131690c9e203a687bff32a785d2596b8d6d"
+    },
+    {
+      "path": "ide/src/services/execution_target.h",
+      "rawSha256": "ee7db26f1df64fb2850c0015496ca553406151afd981d63f1892d7ce1f592a1c",
+      "normalizedSha256": "b755939ff338d2a024526e83d9753228168cd1e81409426c45d7af8b00ee4f3f"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/xge.lib",
+      "rawSha256": "67686cf04b03576a9cbc1bb53f9dfb161029e312d36e40ec8072c03290d05797",
+      "normalizedSha256": "3eeacfa4a946c7aa44187dd1d8f849c74f9ac0817f32b74dd5547c1a773922a6"
+    },
+    {
+      "path": "ide/src/platform/state_repair.h",
+      "rawSha256": "ce89151ebd2302949738884ffec2fa46fe0ca88da6f5af55a3ab260052e7c752",
+      "normalizedSha256": "160bdf9e4bfbe3e9ea42262540b2453cfc0970e39148a1cdb5830dbaebed8774"
+    },
+    {
+      "path": "ide/src/analysis/frontend_input_usage.h",
+      "rawSha256": "9f8e59bd929f674e2a7c9cc8f6630ac8bc0c302fea48944d2fd91aa0b743693e",
+      "normalizedSha256": "14a3ea7422e4848328e0432bf64318d479699acbf50afd6501e121201b16b7c9"
+    },
+    {
+      "path": "ide/src/services/recovery.h",
+      "rawSha256": "efa505a8e74b244cec85fece27b363473b6192fc05723fc9a13efb049ab9fe4b",
+      "normalizedSha256": "f1dd2711aa4bbb102d52a37bce727cd3c249e9bd13730463a8b680d996ab608b"
+    },
+    {
+      "path": "ide/src/services/semantic_reference_shard.h",
+      "rawSha256": "fc8f116102d2ebb9e01d8ce7e12646a924173cc334594a71bcc6846b4da6fc0a",
+      "normalizedSha256": "53170bd1e8deabd1863ece35f71cb1426c1f9afcad241f48811bd771401e9d66"
+    },
+    {
+      "path": "ide/src/analysis/index.h",
+      "rawSha256": "b8960cb223c14f445e3cc12e8b53e3e9e2094b46b6d3c7192f4b61b6d8a02813",
+      "normalizedSha256": "72bcc49176a0ce2b5305703938c6c8fce5ee7a4e7e6898a1317d822ce11fb7c9"
+    },
+    {
+      "path": "ide/src/analysis/frontend_types.inc",
+      "rawSha256": "cecd878a4f18d2f7a3e8639449cb58311ea2cd3009f7c73929f3cf2559f77330",
+      "normalizedSha256": "df2dab4340bfb83008fa22c1a6266da3f6f1cc4e33f84058a32ac16e882b5e8c"
+    },
+    {
+      "path": "ide/src/services/tasks.h",
+      "rawSha256": "40115244812574a0df6bc0faa3d9b4387bd854908bf6cc6869520c9904611ef3",
+      "normalizedSha256": "6f92ccd16b1d71a6575d64812a9c205d177ac6a634865630bf8b2d328b4b3046"
+    },
+    {
+      "path": "ide/src/services/session.h",
+      "rawSha256": "cdb676b0de2a23a8344416db14bb409388dbca3b91d00dffdf4d3e50e6940582",
+      "normalizedSha256": "6db7232387ddae7371baf3ffe7603ee57c6ea42f602ab83bac976c435b4520d0"
+    },
+    {
+      "path": "ide/src/analysis/typed_module.c",
+      "rawSha256": "a805bb4e346eeaafb3014a7d3b64cc675278578c7b81532d8feb3318e1a67d69",
+      "normalizedSha256": "3300b559d4cf5375f827dc3a7d26197ca51a475eff815e26b305e2e5db9ab0db"
+    },
+    {
+      "path": "ide/src/services/program_version.h",
+      "rawSha256": "c58b5c81f4b3161c2963d25b618572c445e8792e080ec6d514cf576d0165692f",
+      "normalizedSha256": "50fb6bca3ef2969a49cc653739a3444ce19f9793863d85fe5c9e28a90dda764d"
+    },
+    {
+      "path": "ide/src/protocol/document_sync.c",
+      "rawSha256": "fb639238e91119947e2987c5cad75f796f58ebcb013e084e165c4324714912b0",
+      "normalizedSha256": "7efa726612c58d1cd874256b1eef2bda5802fdffb9bedcdd6d3052e517c56b25"
+    },
+    {
+      "path": "ide/src/services/catalog_sources.h",
+      "rawSha256": "131732cb849476011779e2f0668815e18b971d53e1510bed5d251400b746c1fa",
+      "normalizedSha256": "9a4877bd32cc5884243f313985d5b2db3787b4d97f33efa38e77e2ced09b76b5"
+    },
+    {
+      "path": "ide/src/protocol/analysis_context_wire.c",
+      "rawSha256": "7da75b6bf8ea312bd623d89564c7c632dc957edaf18f8b35459d2be618f1d7b2",
+      "normalizedSha256": "525efd867c9cf26570dc928145c72f5724cfc62064dd4dbcc87fd6d9eeff10d8"
+    },
+    {
+      "path": "ide/src/model/resources.c",
+      "rawSha256": "da801d2fe5a2ca8d6764540e0f4cd6a4076ae8f8d4a724e99afef580624567bf",
+      "normalizedSha256": "4384cf4535bd427abb3332643d376b582332bfbaf3eb0f2d94314eb45d33d023"
+    },
+    {
+      "path": "ide/src/platform/settings.h",
+      "rawSha256": "19ad58e89a381ce9be41aea6767c31c638c577d305b23bfb2a12c2864f18dfbe",
+      "normalizedSha256": "6ba5b6d1be72d9973172564465621ee779946ec2efd2f0b74f1769bbf3ee3bff"
+    },
+    {
+      "path": "ide/src/analysis/frontend_index.inc",
+      "rawSha256": "8d084d0506e750d5c24cce1324e3cc2bdce487c53795123893e9053ac50d312b",
+      "normalizedSha256": "97ae5ea6eda182f1045b1dcff4784860d6cecf4e26f4fa64bedab8f746667b7c"
+    },
+    {
+      "path": "ide/src/analysis/ast_clone.h",
+      "rawSha256": "021ee77be3b199b8e0c24aac86f366111e39b8ef39a514bbf422f8e9a12419b1",
+      "normalizedSha256": "8e37bd5243497528570ee4b02cebfecf2feeece958c13b14aa02e05a8d358b5e"
+    },
+    {
+      "path": "ide/src/analysis/frontend_entry_cache.h",
+      "rawSha256": "d3839d1a4a87bd9357d327093fad417a863525ab3ad20373dd8b098f76932d13",
+      "normalizedSha256": "b28f9bf958e1c393c29745f9bc72a50f210e77f0cbbff4385c3b75ac0e2effdc"
+    },
+    {
+      "path": "ide/src/platform/text_file.h",
+      "rawSha256": "368b5bef2b5e12df8579e434950d54c02ed6f5c4b25f4b73e5d244ece4102bde",
+      "normalizedSha256": "738306c4c782b57960eac8e1b75fef0743563d5869f7ae92f15efd8f220fc361"
+    },
+    {
+      "path": "ide/src/services/completion_result.h",
+      "rawSha256": "6db34bf7d05142c0320f089c29469dc6f38c64391b025c0a852646da2a8fa414",
+      "normalizedSha256": "354c3ce777dc90e6456b10f32dbdfa5f208319e97793fa20e4290fea71fc49c8"
+    },
+    {
+      "path": "ide/src/lang/languages.c",
+      "rawSha256": "b7f0fbbd318db46bc842304dafee30d5feb411d3fa81c6efc56bbc25ced01fe3",
+      "normalizedSha256": "3951d5d73270ae9c7b3501e7c1feb9e18352e2d68275ecc346fed8557246cc91"
+    },
+    {
+      "path": "ide/src/analysis/frontend_context.c",
+      "rawSha256": "76bc4804e455e3a882244bdd7ef36971745fb595d618522b589d08d1222733da",
+      "normalizedSha256": "a39b15297960072f4ec54db1511bba785ce7c3f509feae5df8902f4c073863bd"
+    },
+    {
+      "path": "ide/src/analysis/frontend_sem_effects.inc",
+      "rawSha256": "1137e9cf98547ead2c7349de6fc2753c8f5a297d883ed9f19a665c0c1ed0a1bd",
+      "normalizedSha256": "28a804393e08040659f2bf701fe1f5c16143bc077b22267bff01ad1f1efa6781"
+    },
+    {
+      "path": "ide/src/analysis/completion_unit.h",
+      "rawSha256": "af0608453efb7370592a577ea21d338db5cc76102728c10158df34a617f2a0d9",
+      "normalizedSha256": "3269611e5d7ea54f7d168eabdd62ac7fe5fd15d337cceb849fce890eb098e36a"
+    },
+    {
+      "path": "ide/src/services/semantic_definition.h",
+      "rawSha256": "96b19a979c961946e15363166f21880017b44c8a14b330248ec4b9b840bbd6a1",
+      "normalizedSha256": "a6a3882c02dc4946e07b13edbb38dd2683f5ea2d8512f7d5aeb487ec79788744"
+    },
+    {
+      "path": "ide/src/services/analysis_configuration.h",
+      "rawSha256": "1f11ea0bd33fcee32d44f955c4f9e24fb3002e93777ecf734a15f41304ac8ba9",
+      "normalizedSha256": "ed260d80944cfa1c708bbd347f17121e0f6679aaff9fb796c34f539312175a2b"
+    },
+    {
+      "path": "ide/src/services/language_check.h",
+      "rawSha256": "de1d4a599d688c1e4e4b7c03f8b7cc7f040e3d08d64502c8c37befce2a31c73c",
+      "normalizedSha256": "9cea04ac8baf3709aecd9bea500fe7986b1ba6c7714ae3a3cb97173b411c4d76"
+    },
+    {
+      "path": "ide/src/ui/file_dialog.h",
+      "rawSha256": "32a182ff8d3e9d7c93663b2d953f0186c81fdc3e080943768dbd820fc071f374",
+      "normalizedSha256": "07f0aa65d60544e4ea415f066379119c1a3c676ec523095751b01cbaf1f34c38"
+    },
+    {
+      "path": "ide/src/analysis/frontend_sem_calls.inc",
+      "rawSha256": "763cdc542c2f20b6ad925fb0b69bd8bcae96472fb7ef6e973227d0397fdfd2a6",
+      "normalizedSha256": "129f14953fe949200c210624f20487dfb5c2c03ee0f9b6e35d66983208d3bf05"
+    },
+    {
+      "path": "ide/src/analysis/selection.h",
+      "rawSha256": "862a4a42ec2a64a67bdc5413d43cad1139755152efff8140168e35cf547f78db",
+      "normalizedSha256": "02bf3d94bf93dbb47982ed8881c10ee402b705670681c1d02467fd2f50308d84"
+    },
+    {
+      "path": "ide/src/ui/file_dialog.c",
+      "rawSha256": "b9278c59e5d36deddfbca39d1c441460e2212c2f62af8a7f445d73d46db01026",
+      "normalizedSha256": "1cc0770672f48d858cbd9a90a1b5ef57cc6058c93cb4116d959bda3626e2ccd8"
+    },
+    {
+      "path": "ide/src/services/c_completion_job.c",
+      "rawSha256": "6f8941cc43ac085995bb550a1ece082a09e4f6285668aa3c80e5a859a90c74c8",
+      "normalizedSha256": "b6f383978b4c5141f1e12ce6d3cb504d50d95b70822c00ecdedc861397356656"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/provenance/xrt-declarations.json",
+      "rawSha256": "c21590e26deb90201c9a4a2faef1f94993ab5e8049a725b41757e1c28bb79808",
+      "normalizedSha256": "d25727a98064888c91bfcf144f3a7e5cc78b8a48d6c7449b8b6db947b30de16a"
+    },
+    {
+      "path": "ide/src/protocol/signature_help.h",
+      "rawSha256": "65f9a4e7b66443c4ec5517f5b126fca5428a0a41a4afee1c8a16466b28e079fe",
+      "normalizedSha256": "2e0cf6caa2744de2ca58c32c1b65a8946f2901e36cc6850bb3cc75e53f639be2"
+    },
+    {
+      "path": "ide/src/ui/configuration_view.h",
+      "rawSha256": "d7fa5b741a75805d31cd7274e09811b9091a0940985d746a8055534c8aec402d",
+      "normalizedSha256": "10ad62d8b873b8582918717523f713c948a5d37929b1bc5ae1e91dee8798aad5"
+    },
+    {
+      "path": "ide/src/services/migration_journal.h",
+      "rawSha256": "a5730912867b36b9951e0b3c3ae6d133f3a21d47615c6d17418479575e8e6537",
+      "normalizedSha256": "fc50618f66fdd73e5c6af8812066bf612ba588bb131d3620a8b04551e2ec6707"
+    },
+    {
+      "path": "ide/src/ui/main_toolbar.h",
+      "rawSha256": "d0834381350cd13aa7470f69d0e11d7b3613d9eb0353f77eaf28a3dc2189a8ff",
+      "normalizedSha256": "16a9394caf79109866032e383234e4bbab3cfa08928988e23976aade334564a0"
+    },
+    {
+      "path": "ide/src/platform/startup_alias.c",
+      "rawSha256": "b2c5511b0556a779b3189908b917ada2e924ec906438a69f2f55bd41d9872e96",
+      "normalizedSha256": "2e22437a653854e97e51f06b505de7ff589df08bbbee01ef3c76f6c7b71dad95"
+    },
+    {
+      "path": "ide/src/analysis/runtime.c",
+      "rawSha256": "54df32e1bac6aaa899d6bd22e751c26090913d5ff77845ce5724640862316f1b",
+      "normalizedSha256": "f5d98db10a528cce981c1ab61bb8d5757498f164bdbf5d091fa87e306308ce99"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/diff/extlibs/sokol/sokol_app.h.diff",
+      "rawSha256": "652f6b352350dfefe4ca732602ebdb32ae9a41c0cd729509cf190610dd4023ec",
+      "normalizedSha256": "652f6b352350dfefe4ca732602ebdb32ae9a41c0cd729509cf190610dd4023ec"
+    },
+    {
+      "path": "ide/src/services/semantic_coordinate_dense.inc",
+      "rawSha256": "830614b9ac10afdb472a0a996366188b8b1a3c5276a4cef1d06fac9ccb1612b8",
+      "normalizedSha256": "450c6abde37167c04231c4506e569c1b56202c3669924a720f44d26195b84acf"
+    },
+    {
+      "path": "ide/src/platform/recovery_backup.c",
+      "rawSha256": "7cb39fcc6a5b29ede55614af94a2c7071c23c8fdc31e47f094a00f5443554e43",
+      "normalizedSha256": "48c9dd567ef7f6a9e48bce51ce8fa959745996ffa0285ba32d43f965a0fcefce"
+    },
+    {
+      "path": "ide/src/services/semantic_completion.c",
+      "rawSha256": "cccef0cd9c4c9f1a7ee590fb2aab5c6c9177df0749793575d4f3a2fa097f3a9f",
+      "normalizedSha256": "4655100764b6326d2110ffbc9656f65008d5e3fda66379c74078fdc401f253c4"
+    },
+    {
+      "path": "ide/src/services/diagnostic_dependencies.h",
+      "rawSha256": "d3c46b4375001b1049eb9eeea56bbb6786144d6351feb39809faea933631c883",
+      "normalizedSha256": "384c702d426e9f4fec87140eacbe6906072266ea820db0a452f21b5d5abbb283"
+    },
+    {
+      "path": "ide/src/platform/runtime_failure.c",
+      "rawSha256": "31a7a2d99a829550507e93bc65cf93bac086890ac4a18e9856f580aea2f08670",
+      "normalizedSha256": "fbc44b62be0ca544dccc23462488083e3c6b873b3497bc32daebfc2b75fbc816"
+    },
+    {
+      "path": "ide/src/services/resource_rebind.c",
+      "rawSha256": "3c9e2c4cdddea965d021a2e73b946d92c0e9dc177d47d44f51201d7d697fd813",
+      "normalizedSha256": "6d95afbaeff6448c981d27e4b8fe59f2da4511e91f3b0b40e2b6bc9e64c1bc98"
+    },
+    {
+      "path": "ide/src/analysis/projection.h",
+      "rawSha256": "e0f4a82d624d38aa6ae9c4d6139e379861884eb0c13757bdcc7ff739b8a6d073",
+      "normalizedSha256": "1f59926e18c1ad9e227e39baddc92d57d613ac3c24194e9a90977db60a3e3cec"
+    },
+    {
+      "path": "ide/src/analysis/frontend_index.h",
+      "rawSha256": "82e418e3aeff5b7cc98161c2ff423505a40ba341011d2d41d36364c7294a6a6b",
+      "normalizedSha256": "988122e7017f55c392e4c534955b0bede7e3598379d37245de75f66f8a2172ec"
+    },
+    {
+      "path": "ide/src/analysis/frontend_ir_initializers.inc",
+      "rawSha256": "5ea7052d2bb660bb0f8d1080cd06145fa9664063862f0ef87d6b10c354cde168",
+      "normalizedSha256": "f56dbbed970270d24d19ce726d7aff20ca9f35043ce4d5624c11daf7b3c3c3b8"
+    },
+    {
+      "path": "ide/src/platform/state_file.h",
+      "rawSha256": "a052591123b60cf59fa4a925e4db4f46cc5d015f8d45c1401ffa8dbc994e2684",
+      "normalizedSha256": "7fd4f191b46be062ad1cae21ce3e2a94ff901305489a68186ddbd58d3d84b076"
+    },
+    {
+      "path": "ide/src/ui/goto_view.c",
+      "rawSha256": "33944402d2182aa1bb5c7f16caacb2b6347a4e2d57d4300b03a325d48a5d4426",
+      "normalizedSha256": "ffe3130c3ecc083afb5001a8d26623bf3515afd69014e841489ce766de452bab"
+    },
+    {
+      "path": "ide/src/analysis/frontend_ir_regions.c",
+      "rawSha256": "d6c438ba5b9265f6c4c436861bbcd65cdb5c72f2fc44f321a5b57a8bff9416a9",
+      "normalizedSha256": "8aaa937da3d193d6aa10f5fafdbb4dbab10582bfd312694306964d3988d58a62"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xllm/include/xllm/executor.h",
+      "rawSha256": "07c29f7190a909c6266f807cf1a675a4b764bfb133db4dd47c0a1a58e9b812cf",
+      "normalizedSha256": "07c29f7190a909c6266f807cf1a675a4b764bfb133db4dd47c0a1a58e9b812cf"
+    },
+    {
+      "path": "ide/data/xlang_ide.ico",
+      "rawSha256": "ac6e594e8f009733760afb658b1ee5536dc0df6828d40b17e9098189486743d9",
+      "normalizedSha256": "b287333e5c4a06c282ee1c02bc687a3ca4ba1bc3e0ca6a21e20796dd1fa21d6c"
+    },
+    {
+      "path": "ide/src/services/file_sync.h",
+      "rawSha256": "edeed209265a40a5c593978f380e6bd9e918d7b92a0399b7610f218a1260a356",
+      "normalizedSha256": "ee52d67da4470fa0095f03cf0103b2c210d5c5ab22a2e49907830c3fb6246f53"
+    },
+    {
+      "path": "ide/src/ui/dialog.c",
+      "rawSha256": "7615b0750db1d4b8b8c2b1b3184699ec4a920727ba86f87d02b21a52e4457222",
+      "normalizedSha256": "f999354853fbe5a560a3ddd1b6a81d6e708a231298df0f072fa16027b96a0570"
+    },
+    {
+      "path": "ide/src/ui/task_view.c",
+      "rawSha256": "6d79188b26a7395b3b1917184cff8c223adba59dd22ed8565dc37702b8a7b8b2",
+      "normalizedSha256": "e959da7366a41ecf8e21032b9752b48d7faa7fb34921d428f44881b6b689bf6b"
+    },
+    {
+      "path": "ide/src/analysis/function_unit.h",
+      "rawSha256": "fb29328902126935e414caeda8bbeaf95f50046156c9c93317ced6d9ec3111a2",
+      "normalizedSha256": "0478a355d627815c43377d654ae4a00b485333e01a84a183c2bdacb54c5e3322"
+    },
+    {
+      "path": "ide/src/analysis/frontend_stdlib.h",
+      "rawSha256": "0c368abb96ebcc13f1d723a9d489e13d2820fc331c4ddda68ca9e065f43c14d0",
+      "normalizedSha256": "44e5e38b6e67a6c5f55bc8f944324ad4afa0380976fb39247e52f10b03a1fca1"
+    },
+    {
+      "path": "ide/src/ui/settings_view.h",
+      "rawSha256": "6afd6ae42e2d59cccfe3e72fb1063004b673696260bdbe3cb550ec871d9c4c8b",
+      "normalizedSha256": "6f2fd92e3377c075302b391e8269ee75075e7feaceb3364007cc97893a9349c7"
+    },
+    {
+      "path": "ide/src/services/session.c",
+      "rawSha256": "91114696ddf0430efd67feb3d8281b15dbd6078457d45639d565118eec099d06",
+      "normalizedSha256": "bb370143a2355488a45d06607d3b83184e891a09adae5b1807ef45baf908fe87"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/xge.dll",
+      "rawSha256": "b415e78d21f8c8b0d8fcb86924169dd35d595d29951391c102892b00399718ff",
+      "normalizedSha256": "b3ade39334ef7c7394d820f524d570225e9363eb71f270f99bd91e765a355236"
+    },
+    {
+      "path": "ide/src/ui/help_prepare.inc",
+      "rawSha256": "240bddb81c5045c836e37ce7b0b4d555d4cc125d0aaea79afc107233104b9fc2",
+      "normalizedSha256": "1afc3b2def757e641a6e763590bfd571de74d260599a6e7dcd4660b7828028ca"
+    },
+    {
+      "path": "ide/src/services/toolchain.h",
+      "rawSha256": "962ebbee24b4015bbd4f39b70ee7a64f38e2a9de7b00ba7d7cd2a1a6121947d8",
+      "normalizedSha256": "41c6fe726afbf6a978abd33d809e84f97ef40559aaae63ec614f042d9464d87c"
+    },
+    {
+      "path": "ide/src/ui/language_references.inc",
+      "rawSha256": "2b10ec816c782fdf71e8ba70663ecc92f76f83ebc8311cf2f93eb57f1d265b49",
+      "normalizedSha256": "27ef5654c91326ec0f17ffd58edf2b7639a4d75693a4f3c87eeb6069bcb65761"
+    },
+    {
+      "path": "ide/src/platform/file_rename.c",
+      "rawSha256": "8d0a14df8d91ef155f0bab2e41f75944bf021b3e785032aac9a327c7944f2460",
+      "normalizedSha256": "6db3ea483dd45f3069c48604bd18b760db2b949c44d9a2e6700c02bb946deb6e"
+    },
+    {
+      "path": "ide/src/ui/help_document.c",
+      "rawSha256": "4d5e58c4be70732216ff0c20cfb21d7674028a3ac910de8a5552e0405e442b23",
+      "normalizedSha256": "2e8dea5d37dbe49ae8459036c349c42f344c3c3a1176363551dc9aa9880a3780"
+    },
+    {
+      "path": "ide/src/ui/completion_view.h",
+      "rawSha256": "bdf73f1636fdb30ccc16a4dc82f1894c4b72a318318bea672426d319bfbc8f4c",
+      "normalizedSha256": "c2c556d5def36251e1b30a72123a80461818268d4284ba4d91484df4290b6a8d"
+    },
+    {
+      "path": "ide/src/platform/file_rename.h",
+      "rawSha256": "4104ce0723b9a9f3a5d32da2cbc34c18d82752179ae211da4d3ddd9cc84770f9",
+      "normalizedSha256": "67953ecc30cf34af65b3da1e71a404754e4ad1bcafce09134feb3327252792db"
+    },
+    {
+      "path": "ide/src/platform/failure_window.h",
+      "rawSha256": "8733a5d5560d9d9f881ce43c6c8aa7ae7c2ff9704b7e48c9056e955c1f571a8b",
+      "normalizedSha256": "7844b64f534a0c0d69877b626e806a26b81652c116409d665685b1ecfac051f5"
+    },
+    {
+      "path": "ide/src/platform/state_repair.c",
+      "rawSha256": "57cb13e520bf58346e645b5daf6cf83e618c9ca605400ab086b40b5e51e1f69f",
+      "normalizedSha256": "60ad25bac3886477964e4e8672e2398545c5b02e5f4bfdb797ca85cd15db6d33"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/xge_build_config.h",
+      "rawSha256": "98a4406657a507cdfe677468a9e8ba64acd7d4ac14cb70d35e1a9b48076930eb",
+      "normalizedSha256": "32b415ca7e7935bdb470d76c7073ae28fb5cc8583568bcb3cf25b83f85ea5b15"
+    },
+    {
+      "path": "ide/src/platform/recovery_store.h",
+      "rawSha256": "27a15a74900fc8c5750a56bffb8c59f98c91be1b8dcaf875ee0b41d5c58d2df3",
+      "normalizedSha256": "2de12924ba8014da1490df10f30607f0af0303495a06489b0925f1cb91cf4f28"
+    },
+    {
+      "path": "ide/src/protocol/signature_help.c",
+      "rawSha256": "6b7902a0b32696a08ddbc447d8d723f9081f2e2865771ca6882ff2364d4deec8",
+      "normalizedSha256": "873093b72f68ead14e23c5ee1f663b51ab1060026d4021cfc06b6d50a2a487b3"
+    },
+    {
+      "path": "ide/src/analysis/dependency_graph.h",
+      "rawSha256": "b4973637771c8d7991c71292c6ee49431a5d878e232b6000b18e20b697219750",
+      "normalizedSha256": "f6f973cdb793732928875a84615d9c566acf37b9c41f262d91f1f1d03bbfc149"
+    },
+    {
+      "path": "ide/src/platform/text_utf.c",
+      "rawSha256": "5e4d4a43d1b1940784382ec56afe12320af0fcb429470ec6406e466f2ebcda2d",
+      "normalizedSha256": "9cd2f044e18d0599f112f6cab779ac7577303865c55faeec6dba2d2cc7ca67f6"
+    },
+    {
+      "path": "ide/src/analysis/text.c",
+      "rawSha256": "d43bc8647e024b0f1b6427ded51376ecd1ed1faa8b82e197a97936b86cdf0167",
+      "normalizedSha256": "2efb4ce5e4bf2292205ada1b35fd4904666e48c72443283b94567498cae3e0ff"
+    },
+    {
+      "path": "ide/src/services/project_references.c",
+      "rawSha256": "c233c2a7dadf4599d002d96d8857cf89973a9de3757645e48c7d8437957ef5ac",
+      "normalizedSha256": "ecbdbc15b50fd29896b292e2ef2cf1360c2117283466b3b7050bebc19691d980"
+    },
+    {
+      "path": "ide/src/analysis/frontend_sem_body.inc",
+      "rawSha256": "83324034d148a57ac25f1e34804203bea65ec427b07c1679c854332753354b2e",
+      "normalizedSha256": "2298dc0827d4a5ee48abd28a0235519e5b64b6f007472376a344bfdc5fbc891e"
+    },
+    {
+      "path": "ide/src/services/project_references.h",
+      "rawSha256": "46594467f66fd440886c7de78afa16edb0851fbb8e65a4ee57545d90889b049c",
+      "normalizedSha256": "052b53da845e73d76de2ae577eccf800e44ee04ce0fc110073b8bfa08ca1f17f"
+    },
+    {
+      "path": "ide/src/analysis/typed_module_internal.h",
+      "rawSha256": "8d79a56076b24d3bed13bd5605871fb994e3d966c8cbbaacd46699a534ab24b3",
+      "normalizedSha256": "0f7b2de00869f3dde72eb1798167c77df31ac07e921f75ad4cb4cf4b87132177"
+    },
+    {
+      "path": "ide/src/ui/main_toolbar.c",
+      "rawSha256": "4e56a9e52f66e0fb40de8ad1cec95c5560fa2b0418282507d1763214a75d2339",
+      "normalizedSha256": "145f0a0215d5d29b5cd7f4ac967a677beba55a5fb39f04f7758ecbcd4d354356"
+    },
+    {
+      "path": "ide/src/analysis/dependency_graph.c",
+      "rawSha256": "4de577b0efaadc81a5580403fa9fbee8b0e6807fdfff0059eeaf196cb0fbb87d",
+      "normalizedSha256": "037fb822babc22380cd7ba1358efac5596a9d43f68f56e038c6603e1810d0bee"
+    },
+    {
+      "path": "ide/src/platform/file_watch.c",
+      "rawSha256": "85e49d5f3002b2ddb2f346ed760ec6d43559c264aee05710ea5e72c62b01bc6e",
+      "normalizedSha256": "b1ab11117379e5e6d1a6cbe010ff3acf7f5ce170c8c83572170b91292b082cad"
+    },
+    {
+      "path": "ide/src/analysis/frontend_cancel.h",
+      "rawSha256": "8327bf606c2620e4cbc2432776b40f5b0f37bbcd794ce82fd5ce230aea258129",
+      "normalizedSha256": "39f984117bf4fae3a0b2c96e8a561e7c402d7aa9c0d80a51098949e47c20a310"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/extlibs/xrt/extlibs/xllm-session/include/xllm-session/features.h",
+      "rawSha256": "a0fefc50260d09e1e8d00a1487169d8e9402f6edc61e775f20695d33e3ec2624",
+      "normalizedSha256": "a0fefc50260d09e1e8d00a1487169d8e9402f6edc61e775f20695d33e3ec2624"
+    },
+    {
+      "path": "ide/src/analysis/frontend_sem_raw.inc",
+      "rawSha256": "5e7ed33e11bb5f34e9d64f8fcc159bbeac4000368ea7bc06cc405bb13cf645ea",
+      "normalizedSha256": "b32da2266b4418ca5981aadadf7be77f48fbdd1aa4b67d2668637a1ca84e211c"
+    },
+    {
+      "path": "ide/src/analysis/ast_size.c",
+      "rawSha256": "e50f29130700f928eeb611f57876f71033c76ef53c775758231b6b7238dc3a2c",
+      "normalizedSha256": "be542682a89c66819a17f88395190913665027c4d4c2a19d9e41cff53ebf94f1"
+    },
+    {
+      "path": "ide/src/services/project_migration.h",
+      "rawSha256": "8e8028498f7e958a2a7aad6290abdaed04a4e12cc6a1b420e34b4b51a82f416f",
+      "normalizedSha256": "df5f5415444ef912e1c164ec3538d5b8f2444bb9151213a1bebf1123e01fa179"
+    },
+    {
+      "path": "ide/src/platform/dpi_proxy.h",
+      "rawSha256": "f5082ac44e98d9dd130fb8e0659976e056c8d784497c96ab0fd302bfd9cf067d",
+      "normalizedSha256": "743946273770e04fdaa44078e5b60bececee4f60cfebb58bce49dd8625a41340"
+    },
+    {
+      "path": "ide/src/protocol/input_state.h",
+      "rawSha256": "2d2dae440b3f7396968661367dbc4f27124cbc0ccbe14725c8696048083fd1ad",
+      "normalizedSha256": "ae3d19709490b889066c1cce6ac928db55a12fda76d2283d22f36a5b110cffb5"
+    },
+    {
+      "path": "ide/src/analysis/frontend_entities.inc",
+      "rawSha256": "3523512cff054accf1d59725ca86606e5c0498d1fa8a49ed6f8d63b7980d9b02",
+      "normalizedSha256": "27179400b5474f2bcd61c573d17b9f8e33378566a96667d629c6583f7fd643e8"
+    },
+    {
+      "path": "ide/src/server/automatic_diagnostics.inc",
+      "rawSha256": "26c5bdc99e2c39bea2788d2a7bc4d02f977bb1f576de0830d991b7367a6dd9fb",
+      "normalizedSha256": "4c624379f83b7e1bd45845cee008add7b448806974c6d625ba31907a4f166bed"
+    },
+    {
+      "path": "ide/src/analysis/input_batch.c",
+      "rawSha256": "b575c26788eadb25f9a916eb832f4b24a9b05ca3b8492aba77979b5786845287",
+      "normalizedSha256": "90bcedcfa5aebbfd9e692bcfe093adaa2091d1281e5809e17b0755568893422e"
+    },
+    {
+      "path": "ide/src/analysis/frontend_raw_body.c",
+      "rawSha256": "147fd4828621702e25395f1943269325df4b0893c0bc654da0abcad67d48af7d",
+      "normalizedSha256": "f946973f9a1368467503eb40e71e0410ffd0fbc9017ed42a11ba463732a5899e"
+    },
+    {
+      "path": "ide/src/analysis/frontend_ir_regions.h",
+      "rawSha256": "0af23f3a6861499a212fdcfbb847a70caf0d2a81454a0c3cbb4aca4ce17b97af",
+      "normalizedSha256": "4c63978b2186f74371efda68dc262613d1d5e37f48cf715ca0866c0d06e67643"
+    },
+    {
+      "path": "ide/src/services/resource_rebind.h",
+      "rawSha256": "04687c5981c8f8b207040beebb0d426601cd540d10755a9419d75b716b4f9fe6",
+      "normalizedSha256": "4f995f9a4536f563fc849810367d0e13b055d7ef95db97d4114891319ce985ba"
+    },
+    {
+      "path": "ide/src/ui/reading_state.h",
+      "rawSha256": "1ee0324877ae5527cb94ddc992c8ca0789a25ee53cc1cc826d9cddd182328373",
+      "normalizedSha256": "8f9fb6150820e499d412ed82e99442f5aa92f5e99056e30c51a795682830ff14"
+    },
+    {
+      "path": "ide/src/analysis/frontend_ir_memo.inc",
+      "rawSha256": "338dffc4f061eba9349bded976e78bf72daf226d66cd3ae480531ad29d33d81b",
+      "normalizedSha256": "9fe05b4cb15516298f06993fb6b6ce858c7602272924d746c0af0432be3d5c5a"
+    },
+    {
+      "path": "ide/src/analysis/ast_storage.h",
+      "rawSha256": "a930405c91289d728e084b985bdedbf7b9a2bbe81b19e55eb57d5c4bb1843a46",
+      "normalizedSha256": "641fddf298085baec7d0419e9e21c23d4edf2f61edee229d1324d3d79bb52180"
+    },
+    {
+      "path": "ide/src/analysis/frontend_ir.inc",
+      "rawSha256": "b12fc9fe8fed5f0e6147658c4361199cdae78d9d968879f23aa97a632decb4a4",
+      "normalizedSha256": "c07642672f53206aed84eaa228c06290677298bc306d26c0ef4c3a5029e193c4"
+    },
+    {
+      "path": "ide/src/ui/resource_view.h",
+      "rawSha256": "f8a6f49e467f182a788db81fd5855fdacd1f4b454ffabc6a1fa7061cf17ae513",
+      "normalizedSha256": "53db51a7612cd1b30a14ac968975f644b4b0b9c9443123edba70e8bd467650a1"
+    },
+    {
+      "path": "ide/src/ui/signature_view.inc",
+      "rawSha256": "557e90607e7d8dc84fda8df07373b84a96376cc0b5214145bdd2dc0968ce88b1",
+      "normalizedSha256": "5ea01b997df505e69961434551c5a9c5ca422e637021f16885112f24cfd81a7f"
+    },
+    {
+      "path": "ide/src/analysis/frontend_sem_final.inc",
+      "rawSha256": "dbb327c3fdc59c125f4a5855fac1d10d8d38ee1b45a6eaba413c740092cc41fe",
+      "normalizedSha256": "286556de3248cfd59a785d239039f9925bf163af884c22bb2eefb1b108827866"
+    },
+    {
+      "path": "ide/src/analysis/frontend_function_index.inc",
+      "rawSha256": "11ec9db1b51e8ffb0b615985b71ab04779fc5e36296b5befe5456054b357fc94",
+      "normalizedSha256": "efa539a687bb62b10fdc18cc9a9460c980f6dd6c46631dcda71763ab3fb5d371"
+    },
+    {
+      "path": "ide/src/services/build_inputs.h",
+      "rawSha256": "5b190a86e2342d2a3a4bb8819988b85d98902b9b603bf64009e33f6e4f6b6f94",
+      "normalizedSha256": "847a6eb7796fc0a9ef805e859d03097fdf1d64d7688b36ddf9157d48c3f9b723"
+    },
+    {
+      "path": "ide/src/analysis/input_view.c",
+      "rawSha256": "30ce54eabaed000768b3e2f4b2551fa1c3921765f4043c17928c3dc06b1c6b23",
+      "normalizedSha256": "53ea4591c2479976a4795e5be8869bedf5b395ed9308f17970d853201d06fa45"
+    },
+    {
+      "path": "ide/src/analysis/dependency_session.c",
+      "rawSha256": "72b534a9d95c78416f99aba5a77c639083756d7253a2469ba70edb5eb7c920af",
+      "normalizedSha256": "4356931b13dbca59bfdedb62d8fad181e20175c09b427477a8607cc675464a58"
+    },
+    {
+      "path": "ide/src/ui/resource_view.c",
+      "rawSha256": "0e72d2e84d1b905d94e38c6c2f000aeec4cf18a149560d7385cd53c799013e26",
+      "normalizedSha256": "9b8e8591f164e624b30e7c9f3104321be0c8aabc60dac31a745ea61654708f0c"
+    },
+    {
+      "path": "ide/src/protocol/document_sync.h",
+      "rawSha256": "4419776b3359f881b74f964876dddc5fb97e72c0b7458ce8401da346a16c9ba8",
+      "normalizedSha256": "118bc48072916ba8e93e7638259eb43dcf65db1c9512de03d84ed85bc228e450"
+    },
+    {
+      "path": "ide/src/services/language_check_internal.h",
+      "rawSha256": "01beb86a92967d93d95b6fd396c3ec5a78a19436be9f4c3b2d2f3063faddc3c5",
+      "normalizedSha256": "5d546b767b8e7e63d2e8155764b1873fe475cac71ec0097da69f622b799d684b"
+    },
+    {
+      "path": "ide/src/protocol/lsp_wire.h",
+      "rawSha256": "4a83acb05f5ca2a2bdff5ed24101219b6760534075db0c85c49ea893a7e4cea1",
+      "normalizedSha256": "d56f125898bccc7a72262bec2503ccbaec3bdaf4db59ddbf56cd52ea1d8d3e88"
+    },
+    {
+      "path": "ide/src/analysis/folding.c",
+      "rawSha256": "cdfcb1cd6802d1f1a2fd869cf916d2e6e689ea32cd760608cdfce7c0f7bf0f45",
+      "normalizedSha256": "d2fcd4305e4075f47327bfad3229c6079cd4f70c9274e01b3236cc02bd1de808"
+    },
+    {
+      "path": "ide/src/platform/process.c",
+      "rawSha256": "fe47b5b34d325d2f1c62b0758b4624d12e7ed2d57fb5d428e4abb0136e9f21e7",
+      "normalizedSha256": "364d05db3ec33be16fc83f38db42708ae11acba57db1345cee832189aef164ee"
+    },
+    {
+      "path": "ide/src/services/command_catalog.c",
+      "rawSha256": "dfab8e3d21daefb86d4ce71978e56ce823ec11528762de6ad495c677527f6d5a",
+      "normalizedSha256": "55873e78ebc28f612b98d3d5b1d21b3bbd100b9b59bee52a7d257c8872110419"
+    },
+    {
+      "path": "ide/data/version.json",
+      "rawSha256": "44a151ab97d67fcb4cca6e544db12f7dcce8d4944e15729f17dc00ca82873057",
+      "normalizedSha256": "44a151ab97d67fcb4cca6e544db12f7dcce8d4944e15729f17dc00ca82873057"
+    },
+    {
+      "path": "ide/src/analysis/signature.c",
+      "rawSha256": "45ca9fce7e6bb18fa82adcedc5bf135d50cc07f0324f01275fa530c77a1ca724",
+      "normalizedSha256": "8efc596c83dc2ee952b2b14b3bc18992f732a1b989de92d3faca62d491fefecd"
+    },
+    {
+      "path": "ide/src/services/file_sync.c",
+      "rawSha256": "e701f04918fe347cd31b4d255bad348a857cc14a55bf247773444c290dcb3863",
+      "normalizedSha256": "918f1ae2b7296c768a882e53b36f7f9beba6cf602decdbab23b19fe83c992b14"
+    },
+    {
+      "path": "ide/src/analysis/ast_size.h",
+      "rawSha256": "ba680643f42c224754e99f2ade3a04f9d006ca8a5eebc2522e67eb447c60536e",
+      "normalizedSha256": "53c4e54cd2cd841950319e7f5f858832485edb66edf81f093e0117558171e473"
+    },
+    {
+      "path": "ide/src/analysis/frontend_ir.h",
+      "rawSha256": "50ab5505e59d20eaf1a0a25681db394172bec3f61bbde3b59f9dba0103a198af",
+      "normalizedSha256": "d482430bfa6887795029a821eb995c1a2d19135edd69d80bbe895e0e88db7d22"
+    },
+    {
+      "path": "ide/src/analysis/semantic_word_unit.inc",
+      "rawSha256": "01df2c461034fdfc73212113f1502ac04f8bb33ddee3abcf34b71713b44ba81d",
+      "normalizedSha256": "f381cfe9b2717e477f7a3cb37d5ed5268f527e26d4ebfccfe02d142545978755"
+    },
+    {
+      "path": "ide/src/services/analysis_context.c",
+      "rawSha256": "d2fd29bfddf539234494c3043b3eb60ff51b1b4543acd2ce874dd070e0ebcf9a",
+      "normalizedSha256": "822a6b7a6e921b67f5093bb868ec4fb39f0992ec5c3d24ee9a431d816600b97f"
+    },
+    {
+      "path": "ide/src/services/resource_inputs.h",
+      "rawSha256": "c56c16f0c231465916c674918af821730cb830b4758b23e2994c934f9de8a6b3",
+      "normalizedSha256": "0a02684584295e6d9b795331465f32b56a22925eddc19590418be5b599f18f3a"
+    },
+    {
+      "path": "ide/src/ui/help_document.h",
+      "rawSha256": "14819bdfdc4285f82ac6d1a2fc10ed70ecaf65217908b2ee7a5dec17076cc948",
+      "normalizedSha256": "b3481e0c8e2659c993a495b12572bdb931ab62a19840dc213f69c6642d9058a8"
+    },
+    {
+      "path": "ide/src/ui/file_changes_view.h",
+      "rawSha256": "d9ed8c08cb7a341fcf12fea32c6e1dba374c8f378af167f243f66b97818ea9ab",
+      "normalizedSha256": "0485bbdcf789d33859973ad31a987d90497d2488fc9ce5a7b5ab2af778f48e32"
+    },
+    {
+      "path": "ide/src/platform/process.h",
+      "rawSha256": "c73c4faf161991091a0fc357ab3b56d66240069cb12524838376e8de89efe94f",
+      "normalizedSha256": "7bc443ed23467db2c33dccb7741223b29eaab649320342b391a900abd9325894"
+    },
+    {
+      "path": "ide/third_party/xge_sdk/xui_config.h",
+      "rawSha256": "01448ede1da13af8e8ef81ef7574f15edc88f5fa8c2312d9d8a5ede91e17f193",
+      "normalizedSha256": "01448ede1da13af8e8ef81ef7574f15edc88f5fa8c2312d9d8a5ede91e17f193"
+    },
+    {
+      "path": "ide/src/analysis/frontend_sem_view.inc",
+      "rawSha256": "98300e131976c1435c3f79589b99ff05aa2a1d2b21ccfa8de476634f583ec707",
+      "normalizedSha256": "43e4df4fbb300c816b2fdc045e845678b72c77f771269e25ea7af88e282286c6"
+    }
+  ],
+  "externalOrGeneratedInputs": [
+    {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\help-follow-20261108\\objects\\xide_version.h",
+      "reason": "external runtime or build input",
+      "sha256": "14c1181834b4eb3e6942dd197403e68e1b8e00237cc671ef001c7d7cbd3a5b44"
+    }
+  ]
+}
