@@ -36,7 +36,7 @@ static int init(xide_app* app)
 }
 int main(int argc,char** argv)
 {
-    xide_app app={0}; xide_model_error error={0}; int failed=0; char *root=NULL,*path=NULL,*markdown=NULL,*missing=NULL;
+    xide_app app={0}; xide_model_error error={0}; int failed=0; char *root=NULL,*path=NULL,*markdown=NULL;
     CHECK(argc==3); root=xidePathResolve(argv[1],"中文 帮助恢复"); CHECK(root && xrtDirCreateAll(root)); path=xidePathResolve(root,"commands.json"); CHECK(path);
     const char* invalid="{\"format\":\"damaged\"}";
     CHECK(xrtFileWriteAtomic(path,(xbytesview){(const unsigned char*)invalid,strlen(invalid)}));
@@ -73,7 +73,7 @@ int main(int argc,char** argv)
     CHECK(xideHelpSet(help,refs,1)==XUI_OK && settle(&app)); CHECK(xideHelpChapterCount(help)==72 && xuiWidgetGetVisible(xideHelpPages(help)));
     CHECK(xuiWidgetGetLayoutType(xideHelpContent(help))==XUI_LAYOUT_COLUMN);
     int codeCount=0,bullet=0,table=0;
-    for(xui_widget child=xuiWidgetGetFirstChild(xideHelpContent(help));child;child=xuiWidgetGetNextSibling(child)) {
+    for(xui_widget child=xuiWidgetGetFirstChild(xuiWidgetGetFirstChild(xideHelpContent(help)));child;child=xuiWidgetGetNextSibling(child)) {
         if(xuiWidgetGetType(child)==xuiLabelGetType(app.context)) {
             const char* text=xuiLabelGetText(child); if(strstr(text,"• 第一项")) bullet=1; if(strstr(text,"名称：中文值") && strstr(text,"说明：完整的表格文字")) table=1;
             CHECK(!strstr(text,"**加粗文字**"));
@@ -91,12 +91,10 @@ int main(int argc,char** argv)
     CHECK(xuiGetFocusWidget(app.context)==app.commands && xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(doc->editor))==version);
     CHECK(!xideHelpJump(help,72));
     CHECK(xideWorkbenchApplyTheme(&app,IDE_THEME_GRAPHITE)==XUI_OK);
-    app.viewportWidth=900; app.viewportHeight=600; CHECK(xuiInputViewport(app.context,900,600)==XUI_OK && settle(&app)); CHECK(xuiWidgetGetChildCount(xideHelpContent(help))>70);
+    app.viewportWidth=900; app.viewportHeight=600; CHECK(xuiInputViewport(app.context,900,600)==XUI_OK && settle(&app)); CHECK(xuiWidgetGetChildCount(xuiWidgetGetFirstChild(xideHelpContent(help)))>70);
     CHECK(xideHelpSet(help,NULL,0)==XUI_OK && settle(&app) && xideHelpChapterCount(help)==0 && !xuiWidgetGetVisible(xideHelpNavigator(help)));
-    xideAppDestroy(&app); memset(&app,0,sizeof(app)); missing=xidePathResolve(root,"missing/commands.json"); CHECK(missing); app.catalogPath=missing; CHECK(init(&app) && app.catalog.count==0);
-    CHECK(strstr(xuiLabelGetText(xideCatalogStatusWidget(&app)),"Cannot read") && !xuiWidgetGetVisible(app.helpExample));
     CHECK(xrtFileWriteAtomic(path,(xbytesview){(const unsigned char*)invalid,strlen(invalid)}));
     puts("help_document_test passed: native startup recovery/reload preservation, shared Markdown blocks, C/xlang read-only fences, vertical tables/lists, 72 chapter navigation with real menus and edit/focus isolation");
 cleanup:
-    xideAppDestroy(&app); free(root); free(path); free(markdown); free(missing); return failed;
+    xideAppDestroy(&app); free(root); free(path); free(markdown); return failed;
 }

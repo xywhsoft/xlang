@@ -105,6 +105,7 @@ void xideWorkbenchShowHelp(xide_app* app,int command)
     if(!app || command<0 || !xideCatalogViewSelect(app,(size_t)command)) return;
     showHelp(app);
 }
+int xideWorkbenchRevealHelp(xide_app* app) {return app && app->dock ? showHelp(app):XUI_ERROR_INVALID_ARGUMENT;}
 int xideWorkbenchWindowVisible(xide_app* app,int id)
 {
     if(!app || !app->dock || id<0 || id>=XIDE_WINDOW_COUNT || !app->panels[id]) return -1;
@@ -185,7 +186,7 @@ static int createChrome(xide_app* app)
 XIDE_ACTION_C_SERVER,
 #endif
 XIDE_ACTION_CHECK_CURRENT,XIDE_ACTION_CHECK_SAVED,XIDE_ACTION_CANCEL_CHECK};
-    const int help[]={XIDE_ACTION_UPDATE_CHECK,XIDE_ACTION_UPDATE_REPAIR,0,XIDE_ACTION_XLANG,XIDE_ACTION_C,0,XIDE_ACTION_ABOUT};
+    const int help[]={XIDE_ACTION_UPDATE_CHECK,XIDE_ACTION_UPDATE_REPAIR,0,XIDE_ACTION_CONTEXT_HELP,0,XIDE_ACTION_XLANG,XIDE_ACTION_C,0,XIDE_ACTION_ABOUT};
     TRY(addMenu(app, "文件", file, sizeof(file)/sizeof(*file)));
     TRY(addMenu(app, "项目", project, sizeof(project)/sizeof(*project)));
     const int edit[]={XIDE_ACTION_EDITOR_UNDO,XIDE_ACTION_EDITOR_REDO,0,XIDE_ACTION_EDITOR_CUT,XIDE_ACTION_EDITOR_COPY,XIDE_ACTION_EDITOR_PASTE,XIDE_ACTION_EDITOR_SELECT_ALL,0,XIDE_ACTION_EDITOR_INDENT,XIDE_ACTION_EDITOR_OUTDENT,XIDE_ACTION_EDITOR_COMMENT,0,XIDE_ACTION_EDITOR_FIND,XIDE_ACTION_EDITOR_REPLACE,XIDE_ACTION_EDITOR_GOTO,XIDE_ACTION_EDITOR_COMPLETE,XIDE_ACTION_SIGNATURE,0,XIDE_ACTION_DEFINITION,XIDE_ACTION_FIND_REFERENCES,XIDE_ACTION_HOVER};

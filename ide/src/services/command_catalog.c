@@ -19,13 +19,14 @@ static int fail(xide_model_error* error,int code,const char* text)
 {
     if(error) { error->code=code; snprintf(error->message,sizeof(error->message),"%s",text); } return 0;
 }
+struct xide_catalog_lease { volatile LONG references; xide_command_catalog catalog; };
 static void clearCommand(xide_command* command)
 {
     free(command->id); free(command->name); free(command->language); free(command->category); free(command->module); free(command->kind); free(command->signature); free(command->description); free(command->returns); free(command->example); free(command->insert); free(command->version); free(command->requiredImport); free(command->source);
     if(command->parameters) for(size_t i=0;i<command->parameterCount;++i) { xide_command_parameter* p=&command->parameters[i]; free(p->name); free(p->type); free(p->defaultValue); free(p->description); }
     free(command->parameters); free(command->documents);
 }
-void xideCatalogClear(xide_command_catalog* catalog)
+static void clearCatalog(xide_command_catalog* catalog)
 {
     if(!catalog) return;
     for(size_t i=0;i<catalog->count;++i) clearCommand(&catalog->entries[i]);
@@ -33,6 +34,9 @@ void xideCatalogClear(xide_command_catalog* catalog)
     free(catalog->documents);
     free(catalog->entries); free(catalog->path); xrtValueRelease(catalog->source); memset(catalog,0,sizeof(*catalog));
 }
+xide_catalog_lease* xideCatalogRetain(const xide_command_catalog* c) {if(!c || !c->lease)return NULL;InterlockedIncrement(&c->lease->references);return c->lease;}
+void xideCatalogRelease(xide_catalog_lease* lease) {if(lease && !InterlockedDecrement(&lease->references)){clearCatalog(&lease->catalog);free(lease);}}
+void xideCatalogClear(xide_command_catalog* c) {if(!c)return;if(c->lease){xide_catalog_lease* lease=c->lease;memset(c,0,sizeof(*c));xideCatalogRelease(lease);}else clearCatalog(c);}
 static int readCommand(xide_command* item,const xvalue* root)
 {
     if(!root || !xrtValueIs(root,XVALUE_OBJECT)) return 0;
@@ -119,7 +123,10 @@ int xideCatalogLoad(xide_command_catalog* catalog,const char* path,xide_model_er
     }
     qsort(sorted,fresh.count,sizeof(*sorted),compare);
     for(size_t i=1;i<fresh.count;++i) if(!strcmp(sorted[i-1]->id,sorted[i]->id)) { free(sorted); xideCatalogClear(&fresh); return fail(error,XIDE_MODEL_CONFLICT,"Duplicate stable command ID."); }
-    free(sorted); xideCatalogClear(catalog); *catalog=fresh; return 1;
+    free(sorted);fresh.lease=calloc(1,sizeof(*fresh.lease));
+    if(!fresh.lease){xideCatalogClear(&fresh);return fail(error,XIDE_MODEL_MEMORY,"Cannot retain command catalog snapshot.");}
+    fresh.lease->references=1;fresh.lease->catalog=fresh;fresh.lease->catalog.lease=NULL;
+    xideCatalogClear(catalog); *catalog=fresh; return 1;
 }
 const xide_command* xideCatalogFind(const xide_command_catalog* catalog,const char* id)
 {

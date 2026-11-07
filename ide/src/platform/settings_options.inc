@@ -1,5 +1,5 @@
 /* All pages share one validated draft and one conflict-checked atomic write. */
-static const xide_settings_options optionDefaults={4,4,0,1,1,1,0,4,1,-1,1,75,1,1};
+static const xide_settings_options optionDefaults={4,4,0,1,1,1,0,4,1,-1,1,75,1,1,1};
 static const char* optionThemes[]={"classic-light","graphite-dark","warm-white","ocean"};
 const xide_settings_options* xideSettingsOptions(const xide_settings* s)
 {return s && s->optionsReady ? &s->options : &optionDefaults;}
@@ -20,7 +20,7 @@ static int loadOptions(xide_settings* s)
     if(!optionInt(editor,"tabColumns",&o->tabColumns,1,16) || !optionInt(editor,"indentColumns",&o->indentColumns,1,16) ||
        !optionBool(editor,"expandTabs",&o->expandTabs) || !optionBool(editor,"lineNumbers",&o->lineNumbers) ||
        !optionBool(editor,"foldMargin",&o->foldMargin) || !optionBool(editor,"minimap",&o->minimap) || !optionBool(editor,"wordWrap",&o->wordWrap) ||
-       !optionInt(doc,"lineGap",&o->documentLineGap,0,24) || !optionBool(doc,"wordWrap",&o->documentWrap) ||
+       !optionInt(doc,"lineGap",&o->documentLineGap,0,24) || !optionBool(doc,"wordWrap",&o->documentWrap) || !optionBool(doc,"followSelection",&o->helpFollow) ||
        !optionBool(ls,"automaticDiagnostics",&o->automaticDiagnostics) || !optionInt(ls,"diagnosticDelay",&o->diagnosticDelay,0,2000) ||
        !optionBool(ls,"completion",&o->completion) || !optionBool(ls,"signatureHelp",&o->signatureHelp))return 0;
     if(get(ui,"theme")) {
@@ -60,7 +60,7 @@ int xideSettingsSaveDraft(xide_settings* s,const xide_settings_draft* d,xide_mod
        o->tabColumns<1 || o->tabColumns>16 || o->indentColumns<1 || o->indentColumns>16 || o->documentLineGap<0 || o->documentLineGap>24 ||
        o->theme<0 || o->theme>3 || o->diagnosticDelay<0 || o->diagnosticDelay>2000)
         return fail(error,XIDE_MODEL_INVALID,"字号、缩进、行距、主题或诊断延迟超出允许范围。");
-    const int flags[]={o->expandTabs,o->lineNumbers,o->foldMargin,o->minimap,o->wordWrap,o->documentWrap,o->automaticDiagnostics,o->completion,o->signatureHelp};
+    const int flags[]={o->expandTabs,o->lineNumbers,o->foldMargin,o->minimap,o->wordWrap,o->documentWrap,o->automaticDiagnostics,o->completion,o->signatureHelp,o->helpFollow};
     for(size_t i=0;i<sizeof(flags)/sizeof(*flags);++i)if(flags[i]!=0 && flags[i]!=1)return fail(error,XIDE_MODEL_INVALID,"设置开关必须为布尔值。");
     char *paths[4]={0};const char* inputs[]={d->compiler,d->editorFont,d->uiFont,d->documentFont};
     for(int i=0;i<4;++i)if(inputs[i] && *inputs[i]) {
@@ -79,7 +79,7 @@ int xideSettingsSaveDraft(xide_settings* s,const xide_settings_draft* d,xide_mod
         draftFont(root,s,"editor",paths[1],d->editorSize) && draftFont(root,s,"ui",paths[2],d->uiSize) && draftFont(root,s,"documents",paths[3],d->documentSize) &&
         optionSet(editor,"tabColumns",o->tabColumns,0) && optionSet(editor,"indentColumns",o->indentColumns,0) && optionSet(editor,"expandTabs",o->expandTabs,1) &&
         optionSet(editor,"lineNumbers",o->lineNumbers,1) && optionSet(editor,"foldMargin",o->foldMargin,1) && optionSet(editor,"minimap",o->minimap,1) && optionSet(editor,"wordWrap",o->wordWrap,1) &&
-        optionSet(doc,"lineGap",o->documentLineGap,0) && optionSet(doc,"wordWrap",o->documentWrap,1) &&
+        optionSet(doc,"lineGap",o->documentLineGap,0) && optionSet(doc,"wordWrap",o->documentWrap,1) && optionSet(doc,"followSelection",o->helpFollow,1) &&
         xrtValueObjectSetNew(ui,sv("theme"),xrtValueString(sv(optionThemes[o->theme]))) &&
         optionSet(ls,"automaticDiagnostics",o->automaticDiagnostics,1) && optionSet(ls,"diagnosticDelay",o->diagnosticDelay,0) && optionSet(ls,"completion",o->completion,1) && optionSet(ls,"signatureHelp",o->signatureHelp,1);
     free(compiler);

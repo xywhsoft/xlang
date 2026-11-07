@@ -45,6 +45,7 @@ static int changesAction(xide_app* a,int id) { (void)id; return xideFileChangesV
 static int gotoAction(xide_app* a,int id) { (void)id; return xideGotoViewOpen(a); }
 static int aboutAction(xide_app* a,int id) { (void)id; return xideAboutViewOpen(a); }
 static int sourceAction(xide_app* a,int id) { return xideCatalogSourceOpen(a,id==XIDE_ACTION_SOURCE_DOCUMENT); }
+static int contextHelp(xide_app* a,int id) {(void)id;return xideCatalogFollowNow(a,1);}
 #define A(id,name,title,shorttitle,chord,key,mods,scope,cmd,need,check,proc) {{id,name,title,shorttitle,chord,key,mods,scope,cmd},need,check,proc}
 #define W(id,name,title,need) A(id,name,title,NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,need,NO_CHECK,xideWorkspaceAction)
 #define E(id,name,title,chord,key,mods,need,scope,cmd) A(id,name,title,NULL,chord,key,mods,scope,cmd,need,NO_CHECK,xideEditorAction)
@@ -143,6 +144,7 @@ static const action_def definitions[]={
     A(XIDE_ACTION_CHECK_CURRENT,"language.check","检查当前文档（含未保存依赖）",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,CURRENT_CHECK,NO_CHECK,xideLanguageViewAction),
     A(XIDE_ACTION_OUTLINE,"language.outline","文档大纲",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideLanguageViewAction),
     A(XIDE_ACTION_HOVER,"language.hover","符号信息",NULL,"Ctrl+I",'I',XUI_MOD_CTRL,XIDE_SHORTCUT_EDITOR,0,HOVER,NO_CHECK,xideLanguageViewAction),
+    A(XIDE_ACTION_CONTEXT_HELP,"help.selection","当前符号帮助",NULL,"F1",XUI_KEY_F1,0,XIDE_SHORTCUT_EDITOR,0,DOCUMENT,NO_CHECK,contextHelp),
     A(XIDE_ACTION_DEFINITION,"language.definition","转到定义",NULL,"F12",XUI_KEY_F12,0,XIDE_SHORTCUT_EDITOR,0,DEFINITION,NO_CHECK,xideLanguageViewAction),
     A(XIDE_ACTION_FIND_REFERENCES,"language.findReferences","查找引用",NULL,"Shift+F12",XUI_KEY_F12,XUI_MOD_SHIFT,XIDE_SHORTCUT_EDITOR,0,FIND_REFERENCES,NO_CHECK,xideLanguageViewAction),
     A(XIDE_ACTION_CHECK_SAVED,"language.checkSaved","检查已保存的 xlang 源码",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,SAVED_CHECK,NO_CHECK,xideLanguageViewAction),

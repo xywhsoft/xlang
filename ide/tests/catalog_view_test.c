@@ -48,14 +48,14 @@ int main(void)
     xideWorkbenchShowHelp(&app,1); CHECK(xideCatalogViewInsertExample(&app) && settle(&app)); CHECK(doc->dirty && strstr(xuiCodeEditGetText(doc->editor),"class Counter"));
     CHECK(key(&app,'Z',XUI_MOD_CTRL) && !strcmp(xuiCodeEditGetText(doc->editor),"") && !doc->dirty);
     CHECK(key(&app,'Y',XUI_MOD_CTRL) && strstr(xuiCodeEditGetText(doc->editor),"class Counter"));
-    CHECK(probe(doc->editor,"math.sq",items,512,&count) && count>10 && contains(items,count,"sqrt"));
+    CHECK(probe(doc->editor,"math.sq",items,512,&count) && count==1 && contains(items,count,"sqrt"));
     CHECK(xuiSetFocusWidget(app.context,doc->editor)==XUI_OK && settle(&app)); CHECK(xuiCodeEditShowCompletion(doc->editor)==XUI_OK && settle(&app) && xuiCodeEditIsCompletionOpen(doc->editor));
     CHECK(xuiCodeEditGetCompletionCount(doc->editor)==1 && key(&app,XUI_KEY_ENTER,0)); CHECK(!strcmp(xuiCodeEditGetText(doc->editor),"math.sqrt"));
     CHECK(key(&app,'Z',XUI_MOD_CTRL) && !strcmp(xuiCodeEditGetText(doc->editor),"math.sq"));
     CHECK(probe(doc->editor,"// math.sq",items,512,&count) && count==0);
     CHECK(probe(doc->editor,"/* math.sq",items,512,&count) && count==0);
     CHECK(probe(doc->editor,"\"math.sq",items,512,&count) && count==0);
-    CHECK(probe(doc->editor,"int 变量 = math.sq",items,512,&count) && count>10 && contains(items,count,"sqrt"));
+    CHECK(probe(doc->editor,"int 变量 = math.sq",items,512,&count) && count==1 && contains(items,count,"sqrt"));
     CHECK(probe(doc->editor,"math",items,512,&count) && xuiSetFocusWidget(app.context,doc->editor)==XUI_OK && settle(&app));
     CHECK(xuiInputSetModifiers(app.context,0)==XUI_OK);
     CHECK(xuiInputTextEx(app.context,'.',NULL)==XUI_OK && settle(&app) && xuiCodeEditIsCompletionOpen(doc->editor));
@@ -67,7 +67,7 @@ int main(void)
     CHECK(probe(doc->editor,"",NULL,0,&count) && count==0);
     CHECK(probe(doc->editor,"",items,512,&count) && count>100 && count<=512);
     CHECK(xideDocumentSetLanguage(doc,"c",&error)); CHECK(probe(doc->editor,"math.sq",items,512,&count) && count==0);
-    CHECK(probe(doc->editor,"ret",items,512,&count) && count>=40 && contains(items,count,"return"));
+    CHECK(probe(doc->editor,"ret",items,512,&count) && count==1 && contains(items,count,"return"));
     CHECK(xuiSetFocusWidget(app.context,doc->editor)==XUI_OK && settle(&app));
     /* The IDE hotkey uses explicit completion after unbinding the SDK route. */
     CHECK(xuiInputKeyDownEx(app.context,XUI_KEY_SPACE,XUI_MOD_CTRL,NULL)==XUI_OK);
@@ -82,7 +82,7 @@ int main(void)
     xideWorkbenchShowHelp(&app,(int)indexOf(&app,"log.printf")); CHECK(settle(&app) && strstr(xuiLabelGetText(app.helpParameters),"c_vararg · 变参"));
     size_t method=indexOf(&app,"csv.Reader.read"); if(method<app.catalog.count) CHECK(!xideCatalogCanComplete(&app.catalog.entries[method],"xlang"));
     CHECK(xideEditorClose(&app,doc,1,&error) && settle(&app)); CHECK(xuiCodeProviderRequestCompletion(xuiCodeEditGetProviders(doc->editor),doc->editor,0,"",items,512,&count)==XUI_OK && count==0);
-    xide_document* reopened=xideDocumentNew(&app.documents,"c",&error); CHECK(reopened==doc && xideEditorShow(&app,reopened)==XUI_OK && settle(&app)); CHECK(probe(reopened->editor,"ret",items,512,&count) && count>=40 && contains(items,count,"return"));
+    xide_document* reopened=xideDocumentNew(&app.documents,"c",&error); CHECK(reopened==doc && xideEditorShow(&app,reopened)==XUI_OK && settle(&app)); CHECK(probe(reopened->editor,"ret",items,512,&count) && count==1 && contains(items,count,"return"));
     puts("catalog_view_test passed: native search/help, focus and document isolation, atomic example/qualified completion undo, Ctrl+Space, C/xlang separation, strings/comments, UTF-8 and closed-slot reuse");
 cleanup:
     xideAppDestroy(&app); return failed;
