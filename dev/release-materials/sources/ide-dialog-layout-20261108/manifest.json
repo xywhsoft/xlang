@@ -1,0 +1,73 @@
+{
+  "schema": 1,
+  "sourceRevision": "60b9b5d1341d6eb2ec964462e8768e10827f482c",
+  "baseRevision": "3335690ba",
+  "parentSourceMaterials": {
+    "path": "dev/release-materials/sources/ide-minimap-setting-20261107/manifest.json",
+    "sha256": "72044e122aaa5cb3fa3bbf7b888ea8417f069bc098ea6d84b7030f8fd1637187",
+    "bytes": 1411
+  },
+  "overlay": {
+    "path": "dev/release-materials/sources/ide-dialog-layout-20261108/source-overlay.zip",
+    "sha256": "c7c52d2c87dc119e0f6c118d4356c519972180ec0bff700bdcce4206fc4a89fc",
+    "bytes": 232308
+  },
+  "files": {
+    "ide/src/ui/about_view.c": "eb9431a92f1b2db1e33055b8796347bba877c8cf56df2d9d15941d56f9ca268b",
+    "ide/src/ui/catalog_view.c": "901e45c59c14857bf113afe5478d4200c573e11e5afdbaea51b3c4648e41bee2",
+    "ide/src/ui/configuration_view.c": "22a5cafdb7f3baa933f37f78b657be1f563674fc8d4183d848270844cd9ae854",
+    "ide/src/ui/dialog.c": "f999354853fbe5a560a3ddd1b6a81d6e708a231298df0f072fa16027b96a0570",
+    "ide/src/ui/dialog.h": "d13e759ed41cbc016e58c2cb2dd4e5312b16977dff0361e4d7cf255a85b156dc",
+    "ide/src/ui/dialog_form.inc": "561f8185b8636bd8f75c110caaad7dca6f0294d558e1f04b87e634cc960714f6",
+    "ide/src/ui/file_changes_view.c": "b317e1705e096d8ba8795561c9cbc73eae01651d83109c6482494a9841feb88c",
+    "ide/src/ui/file_dialog.c": "1cc0770672f48d858cbd9a90a1b5ef57cc6058c93cb4116d959bda3626e2ccd8",
+    "ide/src/ui/font_view.c": "ad0b0ed742ce4e5568eb725725c0e8bf209549b2d7ab3cce85658dfa4c4544c3",
+    "ide/src/ui/goto_view.c": "ffe3130c3ecc083afb5001a8d26623bf3515afd69014e841489ce766de452bab",
+    "ide/src/ui/import_view.c": "2290b4e74c4355b92a5ece6c8aea166a65ef69d36a9cf3467e267fc3446aa986",
+    "ide/src/ui/message_box.c": "770495b276d5f050c7e3a04d9029cd0e8a47db5a60fb09048d15518a4baa4833",
+    "ide/src/ui/recovery_view.c": "b7f5e52f7b6606c2a6731d81ac13d0adc58f40cf6606d2786c99849dcb4a5445",
+    "ide/src/ui/references_view.c": "1f536a827f102ccd8d77ba3593ff72c78a0d539580eb892bad4b16c6545750f6",
+    "ide/src/ui/rename_view.c": "2572892b009fd985c2e3d3e045a174f973190a3ae90a1f2503a80016a6beb82c",
+    "ide/src/ui/resource_view.c": "9b8e8591f164e624b30e7c9f3104321be0c8aabc60dac31a745ea61654708f0c",
+    "ide/src/ui/settings_view.c": "807443ba03e4fc57394f4cb1c5974232ab11c7c6e86c3b6a682c60fc723b1d2c",
+    "ide/src/ui/template_view.c": "bcc07ccc150fa762f08a68b4f8622dfe8244ece0c73d44c66d2b44c291f203df",
+    "ide/src/ui/toolchain_view.c": "3fb6eda2b1fe9ccc27ff75b5cbe8a4323e645c6c21a1d268d24a4120f8500d7e",
+    "ide/src/services/update_client.c": "8a6ff4986718772a437c1cfe2353aa16c75d1ef03e1137406884fb3b48102fd2",
+    "ide/src/platform/failure_window.c": "6903fad3eae2dbb51212677a6da422533895246f25b45736a414ac6db94714bd",
+    "ide/tests/actions_test.c": "4d50d776f44809b253341fbfa59082ded97489469a93e994edab086db4214f68",
+    "ide/tests/dialog_message_test.c": "9d441f6e398a8fb8146de9eb1c3265b4815a63c93381536869761cce7581733c",
+    "ide/tests/dialog_layout_test.c": "b44d3f40ee313e0fafdb0b865aa8f97b56b10a72b2ecfc06dbb543ad39996185",
+    "ide/tests/file_changes_view_test.c": "654f4af2773ca755d76a64f71d66c3f20b5660b1281c10b89755f1f16fc54c29",
+    "ide/tests/file_dialog_test.c": "6a2ecee687368769b37f8d469b7eacdc62f7f617ea13218c9e01fad383f1c1af",
+    "ide/tests/global_recovery_view_test.c": "2be03748360cbd1c084e1e24d3d6d9de409e752925cc150754bf0a87d48b345b",
+    "ide/tests/goto_view_test.c": "038d4aba078e9445a292b14586b6ea7e2ae69b2c79ec40afae1b4282c692e327",
+    "ide/tests/import_view_test.c": "c3233b75eac0903bd7ea5cb7173269b5f0710865ca07f0abf108aad3350baf2f",
+    "ide/tests/migration_checkpoint_test.c": "813ce1e0bd7b4db48e937eef7bc9989461b3e45eb76b679f5ce305e1335a4708",
+    "ide/tests/project_migration_view_test.c": "aa63f4e4d0579efb9d029fa090f06c73fa65d72faa6fd8611fbd902c13cf8b03",
+    "ide/tests/project_test_view_test.c": "3102101ec9fef48de41395b7b2fc6a3325daf91a7205f1e1b8624836862bc731",
+    "ide/tests/recovery_view_test.c": "11aa2f1b378d2d08181d24344cb358d3e0ae40d2529d74db43f823ef471bdab9",
+    "ide/tests/references_test.c": "a575e35f1bafe410ac6c9d5ad7dbf2f538ca90860c6997abbc8cfb711dfecb34",
+    "ide/tests/resource_creation_test.c": "a569c5253dc85f04a775f3619c3d23021f8bb25f067439f38b34cbe5f87a231f",
+    "ide/tests/resource_rebind_test.c": "2325f20455fcbbef955ea154c89259876cbe61947a4f17b9a2d337275c0a245f",
+    "ide/tests/resource_view_test.c": "b74da53c976f2978004e96bba0f6293a0c2869d8f76b6da508875072f3ecf761",
+    "ide/tests/template_view_test.c": "175b3c6dea7ed60c24d9ac650d55100f6a87bd3d1551d8b35d998a9feb082058",
+    "ide/tests/ui_font_test.c": "cf3b95d2321bb2e4d48cff86eab734794312ce13e5f04351ed14946751611f9a",
+    "ide/tests/dialog_test_helpers.h": "5efb6d375f8291180dda805e075e083708e873a9266599ece8d971daa39be7a1",
+    "ide/tools/build.ps1": "1ef8cfa2625455919cc15e11145a2f847718ef55fb034238480a5af3720db484",
+    "ide/tools/test.ps1": "eec060036fec7f9644540c9d65b38979cceeac89f472563681e93d4ff667e78e",
+    "ide/docs/dialog-layout.md": "aeade742c5e6a4b6daecb253e33881ba648f35c7cd4b8292383aad863d27fb71"
+  },
+  "optimization": "-O2",
+  "sdkManifest": {
+    "path": "ide/third_party/xge_sdk/sdk_manifest.json",
+    "sha256": "87e83148e6d058471cab302416096916a622ea829aff98b332f076d5fe3bb752",
+    "bytes": 11615
+  },
+  "scope": "Responsive native IDE dialog composition, fixed separated action footers, minimum sizes, content scrolling, bounded menus, native file/message presentation; no language-server or engine ABI changes.",
+  "rebuild": "Restore parent source materials, overlay source-overlay.zip, retain the matched SDK/runtime fonts, then build GuiOnly against the qualified shipping xlang-ls.exe. The validation driver changes only object output location.",
+  "buildDriver": {
+    "path": "dev/release-materials/sources/ide-dialog-layout-20261108/build-driver-used.ps1",
+    "sha256": "2e50e4434eac70ca10b2d8eed095038473110c8229a2bfef469ebc346d239111",
+    "bytes": 27298
+  }
+}

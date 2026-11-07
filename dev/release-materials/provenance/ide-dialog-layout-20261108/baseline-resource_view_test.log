@@ -1,0 +1,1 @@
+resource_view_test:154: !xideResourceViewOpen(&app) && !xideResourceViewIsOpen(&app) && strstr(xideResourceViewMessage(&app),"无法按") && d->dirty && xuiCodeDocumentGetVersion(resourceCore)==badVersion && !strcmp(xuiCodeEditGetText(d->editor),"{") && xuiCodeDocumentUndo(resourceCore)==XUI_OK && !d->dirty; ; 应用生成一次可撤销的正文编辑，随后 Ctrl+S 保存。素材路径相对于此配置；取消不打开文档。

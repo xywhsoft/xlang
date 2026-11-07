@@ -1,0 +1,2 @@
+import_view_test passed: native menu/buttons, explicit analysis and entry/kind/startup review, unsupported references, read-only wrapped preview, stale documents/dirty switch/session lock guards, generate-only isolation, deduplicated C/xlang syntax and missing-file session recovery, tree state/raw extensions/restart, file watch, 125 percent and 40 DIP two-axis popup, three fresh native captures.
+session: 无法恢复文件 ../missing.txt：Unable to read text file.；会话引用和恢复文件已保留。

@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "date": "2026-11-07",
+  "date": "2026-11-08",
   "primaryDirectory": "D:/GIT/x-lang",
   "deliveryDirectory": "release",
   "externalPublishPerformed": true,
@@ -66,7 +66,7 @@
       "licenseUrl": "http://www.microsoft.com/typography/fonts/default.aspx"
     },
     "fontChangeSourceParent": "b16a95bbf022efcafc7b965d1bd9b5b945c0d881",
-    "currentBuildProvenance": "dev/release-materials/provenance/ide-minimap-setting-20261107/publication-receipt.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/ide-dialog-layout-20261108/publication-receipt.json",
     "cLspEnabled": false,
     "applicationIcon": {
       "source": "ide/data/xlang_ide.ico",
@@ -80,7 +80,7 @@
       "provenance": "docs/reports/release-materials-migration-20261031.json",
       "buildCommand": "pwsh -NoProfile -File ide/tools/build.ps1 -Configuration Release -GuiOnly -LanguageServerPath D:/GIT/x-lang/release/xlang-ls.exe -ReleaseDirectory D:/GIT/x-lang/release"
     },
-    "sha256": "b6da9773184e41665640b3906423f74c2427b1598a6074af5e607a4c16cab8b5",
+    "sha256": "9ab1a1415f91469e70b66a71dd68155915998987a74f3288de8ae31001f1f4b0",
     "sourceIdentity": {
       "dockWindows": {
         "path": "dev/release-materials/sources/ide-dock-view-20261107/manifest.json",
@@ -91,6 +91,11 @@
         "path": "dev/release-materials/sources/ide-minimap-setting-20261107/manifest.json",
         "sha256": "72044e122aaa5cb3fa3bbf7b888ea8417f069bc098ea6d84b7030f8fd1637187",
         "bytes": 1411
+      },
+      "dialogLayout": {
+        "path": "dev/release-materials/sources/ide-dialog-layout-20261108/manifest.json",
+        "sha256": "f3bd0a03a32125153dd6e82351c0a428d6332ba79fd0c2deed5c88c363805f8c",
+        "bytes": 5968
       }
     },
     "previousMatchedGuiProvenance": "dev/release-materials/provenance/ide-updater-20261103.json",
@@ -116,7 +121,7 @@
       "sha256": "cb3dd03ba90452fb9a670371ed7447763a0188fdc61b57adf11d5d89851ce13b",
       "bytes": 2693
     },
-    "buildScope": "Committed GUI and Dock View menu update, with the Minimap preference explanation; O2, same matched XGE SDK/runtime and language server. Unrelated uncommitted frontend changes excluded.",
+    "buildScope": "Responsive native IDE forms, minimum sizes and fixed separated footers; full 106-unit O2 GUI rebuild, same qualified engine and language server; unrelated frontend WIP excluded.",
     "currentEngine": {
       "sourceMaterials": {
         "path": "dev/release-materials/sources/ide-dock-tabs-20261107/manifest.json",
@@ -3781,5 +3786,20 @@
       "bytes": 1411
     },
     "publication": "local-only"
+  },
+  "ideDialogLayout": {
+    "publicationReceipt": {
+      "path": "dev/release-materials/provenance/ide-dialog-layout-20261108/publication-receipt.json",
+      "sha256": "79ef78c146509b660daf7ddf0396293ce2d5ec1f1ee9a3d4872a26d720166e82",
+      "bytes": 3030
+    },
+    "sourceMaterials": {
+      "path": "dev/release-materials/sources/ide-dialog-layout-20261108/manifest.json",
+      "sha256": "f3bd0a03a32125153dd6e82351c0a428d6332ba79fd0c2deed5c88c363805f8c",
+      "bytes": 5968
+    },
+    "regressionFixtures": 22,
+    "layoutChecks": 2789,
+    "installed": true
   }
 }

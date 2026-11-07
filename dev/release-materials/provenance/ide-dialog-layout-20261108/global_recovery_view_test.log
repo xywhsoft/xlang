@@ -1,0 +1,3 @@
+session: State is unreadable or unsupported; the original file is preserved.
+session: Recent-project index is invalid; the original is preserved.
+global_recovery_view_test:51: !app.preferences.source && strstr(xideSessionIssue(&app),"index"); ; 

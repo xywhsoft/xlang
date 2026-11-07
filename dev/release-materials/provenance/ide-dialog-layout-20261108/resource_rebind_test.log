@@ -1,0 +1,1 @@
+resource_rebind_test passed: 49 checks; shared/dirty/unopened modern XLON and JSON references, identity/version/readonly/source-lock guards, hardlink aliases, case-only/Unicode spelling, preserved inactive fields/extensions/selection/C undo, one-step resource undo/redo, no implicit disk save, physical-commit edit failure/retry/modal barrier; two native screenshots.
