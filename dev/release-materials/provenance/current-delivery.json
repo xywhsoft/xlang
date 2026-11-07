@@ -45,7 +45,7 @@
   },
   "ide": {
     "languageServer": "Rebuilt qualified 455-pin C interop cohort; separately accepted from the prior GUI build.",
-    "guiTranslationUnits": 107,
+    "guiTranslationUnits": 108,
     "compiler": "GCC 16.2.0",
     "warnings": [
       "-Wall",
@@ -66,7 +66,7 @@
       "licenseUrl": "http://www.microsoft.com/typography/fonts/default.aspx"
     },
     "fontChangeSourceParent": "b16a95bbf022efcafc7b965d1bd9b5b945c0d881",
-    "currentBuildProvenance": "dev/release-materials/provenance/ide-selection-help-20261108/publication-receipt.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/ide-find-follow-20261108/publication-receipt.json",
     "cLspEnabled": false,
     "applicationIcon": {
       "source": "ide/data/xlang_ide.ico",
@@ -80,7 +80,7 @@
       "provenance": "docs/reports/release-materials-migration-20261031.json",
       "buildCommand": "pwsh -NoProfile -File ide/tools/build.ps1 -Configuration Release -GuiOnly -LanguageServerPath D:/GIT/x-lang/release/xlang-ls.exe -ReleaseDirectory D:/GIT/x-lang/release"
     },
-    "sha256": "2f60d20aedddec387f23ecd660b1f3e069692e0b29aa582afa263adf67ebc8b6",
+    "sha256": "a521715be107eee60a4f9e8bdc238bdc06637e149d318c2b9588bee8cde930a2",
     "sourceIdentity": {
       "dockWindows": {
         "path": "dev/release-materials/sources/ide-dock-view-20261107/manifest.json",
@@ -101,6 +101,11 @@
         "path": "dev/release-materials/sources/ide-selection-help-20261108/manifest.json",
         "sha256": "961d44a6cd1ade989593c825d79a1c5e86325ef72a9e6f6aecef10f86bd37b6b",
         "bytes": 4288
+      },
+      "sharedFind": {
+        "path": "dev/release-materials/sources/ide-find-follow-20261108/manifest.json",
+        "sha256": "76b3b78fd450f5cff3647ebadd05e7df8ac99cff4b9905a97fc7fb135b8674d0",
+        "bytes": 2986
       }
     },
     "previousMatchedGuiProvenance": "dev/release-materials/provenance/ide-updater-20261103.json",
@@ -126,7 +131,7 @@
       "sha256": "cb3dd03ba90452fb9a670371ed7447763a0188fdc61b57adf11d5d89851ce13b",
       "bytes": 2693
     },
-    "buildScope": "Indexed editor-selection help, pin/settings/F1, background document preparation and bounded visible rendering. Full coherent O2 GUI cohort; focused revalidation after private scrolling-layout adjustment. Existing qualified engine and language server retained; unrelated frontend work excluded.",
+    "buildScope": "Shared modeless find/replace, automatic editor target tracking, all-open-document native find scope, explicit current-document replacement, responsive footer and overlay font lifetime. Full O2 GUI cohort and targeted private corrections; existing qualified XGE and language server retained; unrelated WIP excluded.",
     "currentEngine": {
       "sourceMaterials": {
         "path": "dev/release-materials/sources/ide-dock-tabs-20261107/manifest.json",
@@ -3821,6 +3826,22 @@
     },
     "regressionFixtures": 17,
     "selectionChecks": 79,
+    "installed": true
+  },
+  "ideSharedFind": {
+    "publicationReceipt": {
+      "path": "dev/release-materials/provenance/ide-find-follow-20261108/publication-receipt.json",
+      "sha256": "d9114ea59c19f7567e8c4ffc218dd8129f9a1e9a1b9d7257d82d92ce15e7273f",
+      "bytes": 3069
+    },
+    "sourceMaterials": {
+      "path": "dev/release-materials/sources/ide-find-follow-20261108/manifest.json",
+      "sha256": "76b3b78fd450f5cff3647ebadd05e7df8ac99cff4b9905a97fc7fb135b8674d0",
+      "bytes": 2986
+    },
+    "regressionFixtures": 17,
+    "sharedFindChecks": 70,
+    "knownNativeBoundaryFailures": 4,
     "installed": true
   }
 }

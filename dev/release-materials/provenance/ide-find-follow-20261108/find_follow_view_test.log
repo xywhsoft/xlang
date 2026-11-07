@@ -1,0 +1,1 @@
+find_follow_view_test passed: 70 checks; shared modeless find/replace, native shortcuts, Dock/programmatic target switch, Unicode, all open C/xlang/text editors, navigation wrap, readonly, regex errors, stale ranges, close/reuse, one-step undo and retained session.

@@ -1,0 +1,28 @@
+replacement \0tail flags=0: ret=-2 length=0 count=0 error=nul escape is unsupported
+replacement \0tail flags=64: ret=0 length=23 count=1 error=
+replacement \x00tail flags=0: ret=-2 length=0 count=0 error=nul escape is unsupported
+replacement \u0000tail flags=0: ret=-2 length=0 count=0 error=nul escape is unsupported
+replacement \uD800 flags=0: ret=-2 length=0 count=0 error=invalid unicode surrogate pair
+replacement \uDC00 flags=0: ret=-2 length=0 count=0 error=invalid unicode surrogate pair
+replacement \uD83D\u0041 flags=0: ret=-2 length=0 count=0 error=invalid unicode surrogate pair
+replacement \uD83D flags=0: ret=-2 length=0 count=0 error=invalid unicode surrogate pair
+replacement \uD83D\uDE00 flags=0: ret=0 length=17 count=1 error=
+replacement \uD800\uDC00 flags=0: ret=0 length=17 count=1 error=
+replacement \uDBFF\uDFFF flags=0: ret=0 length=17 count=1 error=
+replacement \u4E2D\u6587 flags=0: ret=0 length=19 count=1 error=
+replacement \xC3\xA9 flags=0: ret=0 length=15 count=1 error=
+replacement \t\n\r\\ flags=0: ret=0 length=17 count=1 error=
+replacement \x00tail flags=64: ret=-2 length=0 count=0 error=nul escape is unsupported
+replacement \u0000tail flags=64: ret=-2 length=0 count=0 error=nul escape is unsupported
+replacement \uD800 flags=64: ret=-2 length=0 count=0 error=invalid unicode surrogate pair
+replacement \uDC00 flags=64: ret=-2 length=0 count=0 error=invalid unicode surrogate pair
+replacement \uD83D\u0041 flags=64: ret=-2 length=0 count=0 error=invalid unicode surrogate pair
+replacement \uD83D flags=64: ret=-2 length=0 count=0 error=invalid unicode surrogate pair
+replacement \uD83D\uDE00 flags=64: ret=0 length=17 count=1 error=
+replacement \uD800\uDC00 flags=64: ret=0 length=17 count=1 error=
+replacement \uDBFF\uDFFF flags=64: ret=0 length=17 count=1 error=
+replacement \u4E2D\u6587 flags=64: ret=0 length=19 count=1 error=
+replacement \xC3\xA9 flags=64: ret=0 length=15 count=1 error=
+replacement \t\n\r\\ flags=64: ret=0 length=17 count=1 error=
+find_escape_test: 49 assertions, 1 failures
+find_escape_test:84: xuiFindReplaceAllText("no match",-1,"target","\\uD800",0,-1,XUI_FIND_REGEX|XUI_FIND_ESCAPE, &output,&length,&count,error,sizeof(error))==XUI_ERROR_INVALID_ARGUMENT && !output && length==0 && count==0 && error[0]

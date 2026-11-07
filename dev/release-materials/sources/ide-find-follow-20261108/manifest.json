@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "sourceRevision": "bf9b18127e1eea100448ebff0199743ff462046c",
+  "baseRevision": "596cab8f6",
+  "parentSourceMaterials": {
+    "path": "dev/release-materials/sources/ide-selection-help-20261108/manifest.json",
+    "sha256": "961d44a6cd1ade989593c825d79a1c5e86325ef72a9e6f6aecef10f86bd37b6b",
+    "bytes": 4288
+  },
+  "overlay": {
+    "path": "dev/release-materials/sources/ide-find-follow-20261108/source-overlay.zip",
+    "sha256": "a38a4f71bbdb66c01ed26a9a76cac67883d40c913d5e96eb14e8092cff81c35f",
+    "bytes": 80951
+  },
+  "files": {
+    "ide/src/ui/find_view.c": "3ef5d66845b0a838f0f63bce729742c0c40de78e36e9a51a9263392a58ea36d1",
+    "ide/src/ui/find_view.h": "de73212fbbb7374ae8321db4cf48eda18b8b02eef3f0eb19bff6fe52343c44eb",
+    "ide/src/ui/editor_view.c": "67d3408935fd2ba7d43f3d8bcc1e8f3c54812013a6f1d75b7b57363b9d1b3c8c",
+    "ide/src/ui/workbench.c": "5a88811dfe6e030672688f4fc8f8325eb815a7c5187eb75b76a8bc56e9a0f1e1",
+    "ide/src/app/xide_app.h": "6a49328aa7e367efc4f7dcd9339aba266067d4774340d2c9c5e514c05a4862cf",
+    "ide/src/app/xide_app.c": "b68b839b949d966f63c5c813c2f9daa7db6521b1a278f666cf0b7b1f449773e6",
+    "ide/tools/build.ps1": "4f2599cf62fadf22cbda955e83694fd4a696dd88e1b2912f8af354a7d72a654d",
+    "ide/tests/find_follow_view_test.c": "73f30a1ea7c97dc61bf1297f5199e1105a56225c377ec1f2a1eedadae9725c8b",
+    "ide/tools/test.ps1": "a214a7c5ad5843d9c97f5333b434a879c0777068d0bbd2a5e5fb88ac88456869",
+    "ide/tests/find_view_test.c": "bf4a7da77ade1a4e9039d46cbfb92d61b7152a2f8ec0d47c8e37cb92bc2c7091",
+    "ide/tests/find_options_view_test.c": "94d9bbc4a0fb213deb4d8eff953ca6402a7dc8a709d11f4db173016cc9002ed9",
+    "ide/tests/find_boundary_view_test.c": "a04bcaab5a067a845b5ed6e2379c541b931f0f14bd6a7455b82938103df2e3d7",
+    "ide/src/app/actions.c": "097ade052852127481dbbfedb2e34846aef90c9dd0dbbd8e23c716a0ff4912af",
+    "ide/docs/shared-find.md": "30351087afb1dfcf79640b303f8d76252cf6efadb5156699a1d0bba8267c7e3d",
+    "ide/src/services/ui_font.c": "1ce0ab57f19d1365f16bc4aea51a76364a10b3ecf2a64bc9d56b3a5862b502f7",
+    "ide/tests/actions_test.c": "e43fab678a2b9fa24ba5c07b6660554293d570ed11a763afb01d4a20b8bf73ae"
+  },
+  "sdkManifest": {
+    "path": "ide/third_party/xge_sdk/sdk_manifest.json",
+    "sha256": "87e83148e6d058471cab302416096916a622ea829aff98b332f076d5fe3bb752",
+    "bytes": 11615
+  },
+  "optimization": "-O2",
+  "scope": "Shared modeless IDE find/replace session with automatic active editor tracking, all-open-document native find scope, native navigation/replacement, responsive fixed footer and explicit overlay font lifetime integration.",
+  "rebuild": "Restore parent materials and overlay. Build GuiOnly against the qualified shipping language server and matched SDK. The supplied driver changes private object output only. Full 108-object cohort plus GUI entry rebuilt; final find_view.c and ui_font.c corrections recompiled and relinked with unchanged public layouts."
+}

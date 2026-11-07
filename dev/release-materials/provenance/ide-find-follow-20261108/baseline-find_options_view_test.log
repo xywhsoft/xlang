@@ -1,0 +1,1 @@
+find_options_view_test:71: field(&app,d,1,invalid[bad]) && button(&app,d,XUI_TR_REPLACE_ALL) && !strcmp(xuiCodeEditGetText(d->editor),original) && !d->dirty && get(&app,d,"label",XUI_TR_FIND_INVALID_PATTERN,0); 

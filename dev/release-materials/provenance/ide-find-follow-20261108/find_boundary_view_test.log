@@ -1,0 +1,1 @@
+find_boundary_view_test:73: field(&app,d,1,invalid[bad]) && button(&app,d,XUI_TR_REPLACE_ALL) && get(&app,d,"label",XUI_TR_FIND_INVALID_PATTERN,0); 

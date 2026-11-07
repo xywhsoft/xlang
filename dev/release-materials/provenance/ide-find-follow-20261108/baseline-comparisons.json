@@ -1,0 +1,22 @@
+[
+  {
+    "test": "find_options_view_test",
+    "exit": 1,
+    "log": "D:\\GIT\\x-lang\\ide\\build\\Release\\find-follow-20261108\\baseline-find_options_view_test.log"
+  },
+  {
+    "test": "find_boundary_view_test",
+    "exit": 1,
+    "log": "D:\\GIT\\x-lang\\ide\\build\\Release\\find-follow-20261108\\baseline-find_boundary_view_test.log"
+  },
+  {
+    "test": "find_escape_test",
+    "exit": 1,
+    "log": "D:\\GIT\\x-lang\\ide\\build\\Release\\find-follow-20261108\\baseline-find_escape_test.log"
+  },
+  {
+    "test": "find_boundaries_test",
+    "exit": 1,
+    "log": "D:\\GIT\\x-lang\\ide\\build\\Release\\find-follow-20261108\\baseline-find_boundaries_test.log"
+  }
+]
