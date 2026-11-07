@@ -1,0 +1,40 @@
+{
+  "rows": [
+    {
+      "name": "codeedit",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "F:\\xlang-validation\\xge-extension-sync-20261107\\packages-win\\xui\\examples\\codeedit.xl"
+      ],
+      "exitCode": 0,
+      "seconds": 20.891,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "tabs",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "F:\\xlang-validation\\xge-extension-sync-20261107\\packages-win\\xui\\examples\\tabs.xl"
+      ],
+      "exitCode": 0,
+      "seconds": 21.5,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "dockpanel",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "F:\\xlang-validation\\xge-extension-sync-20261107\\packages-win\\xui\\examples\\dockpanel.xl"
+      ],
+      "exitCode": 0,
+      "seconds": 20.781,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "frameLimit": 3,
+  "complete": true,
+  "passed": true
+}

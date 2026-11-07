@@ -1,4 +1,4 @@
-// 拖动 Inspector 标题移动或停靠内容。
+// 多个窗口共享一个窗格，溢出时用标签栏两侧箭头滚动。
 import xui
 from "./_window.xl" import Window
 
@@ -6,11 +6,14 @@ Window.show("Dock panel / owned client windows", func(xui.Context ui, xui.Widget
  auto dock = ui.dockPanelNative()
  dock.setFont(ui.getDefaultFont())
  Window.place(root, dock, 24, 24, 640, 360)
- auto client = ui.panelNative()
- auto label = ui.labelNative()
- label.setText("Dockable content")
- Window.place(client, label, 20, 40, 400, 28)
- c_int inspector = dock.addWindow("Inspector", client)
- // 新窗口先处于隐藏状态，停靠后才会出现在界面中。
- dock.dockWindow(inspector, xui.XUI_DOCK_PANEL_REGION_DOCUMENT, xui.XUI_DOCK_PANEL_SIDE_FILL)
+ dock.setTabScrollButtonsVisible(1)
+ for i in range(1, 11)
+  auto client = ui.panelNative()
+  auto label = ui.labelNative()
+  label.setText("Inspector "+string(i))
+  Window.place(client, label, 20, 40, 400, 28)
+  c_int inspector = dock.addWindow("Inspector "+string(i), client)
+  // 新窗口先处于隐藏状态，停靠后才会出现在界面中。
+  dock.dockWindow(inspector, xui.XUI_DOCK_PANEL_REGION_DOCUMENT, xui.XUI_DOCK_PANEL_SIDE_FILL)
+ end
 end)

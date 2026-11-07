@@ -1,16 +1,22 @@
 /* Shared runtime binding and resource policies only. Drawing/UI methods are
  * declared directly against native symbols, without per-method adapters. */
 #include <xge3_runtime.h>
+#if defined(XL6_XGE_STATIC)
+#include <xge_static_xrt_contract.h>
+#else
 #include <xge_host_xrt_contract.h>
 #include <__xl_runtime/xl6_host_xrt.h>
+#endif
 #include <__xl_runtime/xl_foreign_error.h>
 #include <__xl_runtime/xl6_callback_failure.h>
 static void report_resource_failure(int status,const char* operation);
 
+#if !defined(XL6_XGE_STATIC)
 static xge_host_xrt_proc resolve(void* unused,const char* name)
 {
     (void)unused;return (xge_host_xrt_proc)xl6HostXrtResolveV1(name);
 }
+#endif
 static int bind_failure(int result,const char* operation,const char* reason)
 {
     xerrordesc description={0};description.Kind=XERR_STATE;description.Code=result;
@@ -21,6 +27,15 @@ int xl6Xge3RuntimeBindV1(void)
 {
     if(!XGE_BUILD_ABI_FINGERPRINT || xgeCheckBuildCompatibility(XGE_BUILD_ABI_FINGERPRINT,XGE_FEATURES)!=XGE_OK)
         return bind_failure(XGE_ERROR_UNSUPPORTED,"native-abi","XGE and the declarative SDK ABI do not match");
+#if defined(XL6_XGE_STATIC)
+    static const xge_host_xrt_contract_t contract=XGE_STATIC_XRT_LOCAL_CONTRACT_INIT;
+    const xge_host_xrt_contract_t* expected=&xgeStaticXrtContractV1;
+    if(expected->size!=contract.size||expected->revision!=contract.revision||
+        expected->dataModel!=contract.dataModel||expected->coreLayout!=contract.coreLayout||
+        !expected->headerSha256||strcmp(expected->headerSha256,contract.headerSha256))
+        return bind_failure(XGE_HOST_XRT_INVALID_CONTRACT,"static-xrt-abi","Static XGE and program XRT ABI do not match");
+    return 0;
+#else
     static const xge_host_xrt_contract_t contract=XGE_HOST_XRT_LOCAL_CONTRACT_INIT;
     const char* missing=NULL;int result=xgeHostXrtBind(&contract,resolve,NULL,&missing);
     if(result==XGE_HOST_XRT_OK)return 0;
@@ -28,6 +43,7 @@ int xl6Xge3RuntimeBindV1(void)
         result==XGE_HOST_XRT_DIFFERENT_RUNTIME ? "XGE is bound to a different XRT runtime" :
         result==XGE_HOST_XRT_BUSY ? "XGE runtime binding is already active" : "XGE and the host XRT ABI do not match";
     return bind_failure(result,missing?missing:"bind",reason);
+#endif
 }
 static bool watch_context(void* raw,void* storage,void(*invalidate)(void*),void* user)
 {

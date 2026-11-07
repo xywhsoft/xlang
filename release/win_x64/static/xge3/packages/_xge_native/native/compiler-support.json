@@ -5,43 +5,43 @@
   "semantics": "Original member bytes/order retained; one archive index supplies cross-CRT fixed-point selection. No whole-archive, wrapper, guessed alias or import fragments.",
   "sourceArchives": [
     {
-      "path": "F:\\xlang-validation\\native-static-20261106\\xge\\win-default-r12\\compiler-support\\libgcc-code.a",
-      "sha256": "83cd2fd6341a5cba464d9d8c2e768253bb3cbac3487a3046e08e582ca30b3621",
+      "path": "F:\\xlang-validation\\xge-extension-sync-20261107\\static-win\\compiler-support\\libgcc-code.a",
+      "sha256": "28f092e7718fdb3e5ecaff6aac63b5b4d8e2ad77a33f6052d8da41b631357e57",
       "members": 289
     },
     {
-      "path": "F:\\xlang-validation\\native-static-20261106\\xge\\win-default-r12\\compiler-support\\libmingw32-code.a",
-      "sha256": "5383f547fc5692f351dc5edaa30ceb83d755f1813b000bd9cf559c9a755e143d",
+      "path": "F:\\xlang-validation\\xge-extension-sync-20261107\\static-win\\compiler-support\\libmingw32-code.a",
+      "sha256": "a942418e53d5002f75260365133716142cd6dfc29f3debfda869c9a3fe7d2e45",
       "members": 31
     },
     {
-      "path": "F:\\xlang-validation\\native-static-20261106\\xge\\win-default-r12\\compiler-support\\libmingwex-code.a",
-      "sha256": "51d4860f155a3748d8cc79f016a923640e68aaa24e6ecbf4aac028b59d1e106c",
+      "path": "F:\\xlang-validation\\xge-extension-sync-20261107\\static-win\\compiler-support\\libmingwex-code.a",
+      "sha256": "c1c2261a01e7bdebece6a97baf23109dc2115b028bb469b3766044c2684c4536",
       "members": 317
     },
     {
-      "path": "F:\\xlang-validation\\native-static-20261106\\xge\\win-default-r12\\compiler-support\\libmsvcrt-code.a",
-      "sha256": "fbfcfbb57ee34aec17a62b1d92fc8575323dccf6a9364b82660531771bc56be7",
+      "path": "F:\\xlang-validation\\xge-extension-sync-20261107\\static-win\\compiler-support\\libmsvcrt-code.a",
+      "sha256": "c65482107e3ba0303d8065a66b151db3b17e94d37b38aeb23df32c515280ae06",
       "members": 281
     },
     {
-      "path": "F:\\xlang-validation\\native-static-20261106\\xge\\win-default-r12\\compiler-support\\libkernel32-code.a",
-      "sha256": "7da9ac911244e2f4f49e33178aeb9f8028b9edd04825563052bf37c88c0040ed",
+      "path": "F:\\xlang-validation\\xge-extension-sync-20261107\\static-win\\compiler-support\\libkernel32-code.a",
+      "sha256": "364a43c021ea461ca562948ed9aa8fb3988084354a6905982a759a986c798b83",
       "members": 95
     },
     {
-      "path": "F:\\xlang-validation\\native-static-20261106\\xge\\win-default-r12\\compiler-support\\libws2_32-code.a",
-      "sha256": "dbd436f97356157bc27ba0cf1d281398ab78bca7d9480d0f5a3145207507dff7",
+      "path": "F:\\xlang-validation\\xge-extension-sync-20261107\\static-win\\compiler-support\\libws2_32-code.a",
+      "sha256": "4d973f0265b18fbc6ef68f3c9f57a62c48918c59bd813922751be051097a1b06",
       "members": 35
     },
     {
-      "path": "F:\\xlang-validation\\native-static-20261106\\xge\\win-default-r12\\compiler-support\\libshell32-code.a",
-      "sha256": "478d89182dd5b156000c5c6ed1068882f6c871fcea775c5869557088c4ad92bf",
+      "path": "F:\\xlang-validation\\xge-extension-sync-20261107\\static-win\\compiler-support\\libshell32-code.a",
+      "sha256": "fedb08efaf8d74ec0c1ae39eeecbe4c26bb9a29dec6c023bc63a31ce34a65d39",
       "members": 1
     },
     {
-      "path": "F:\\xlang-validation\\native-static-20261106\\xge\\win-default-r12\\compiler-support\\libuuid-code.a",
-      "sha256": "769da709ff8223e214a674ba580ba0e902937c951ebda5bb5841087d7105be13",
+      "path": "F:\\xlang-validation\\xge-extension-sync-20261107\\static-win\\compiler-support\\libuuid-code.a",
+      "sha256": "602602a790ac8c242b704f5f57a775c64a5a737df37cb05403677600ab4bc521",
       "members": 47
     }
   ],

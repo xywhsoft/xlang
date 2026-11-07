@@ -86,8 +86,8 @@
     "singleton": true,
     "loadName": "libxge3_host.so",
     "version": "3.0.0",
+    "linkage": "dynamic",
     "platform": "linux_x64",
-    "sha256": "cf7cb31082edd8b2c29fc465e1c2328f74d5437c42266a8b018eb13e301c7637",
-    "linkage": "dynamic"
+    "sha256": "a6979ddcc37fb8a4ed1605e7669991b6047c991fafa59c62e30c85278871ff04"
   }
 }

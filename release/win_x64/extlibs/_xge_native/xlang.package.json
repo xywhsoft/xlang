@@ -86,11 +86,11 @@
     "singleton": true,
     "loadName": "xge3_host.dll",
     "version": "3.0.0",
-    "platform": "win_x64",
-    "sha256": "0229cab17ea902fe44be5758d0c0af90f930387a02efa3f8afd537d811c70d69",
     "linkage": "dynamic",
     "variants": {
       "static": "../../static/xge3/packages/_xge_native/xlang.package.json"
-    }
+    },
+    "platform": "win_x64",
+    "sha256": "ad961bd48bfaa040174248eb0b3ca8cc840c71bf7b83518b61581cd62a38f18d"
   }
 }

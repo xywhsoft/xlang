@@ -1,4 +1,4 @@
-// 编辑 C 代码，拖动右侧 minimap 滚动。
+// 编辑 C 代码，将光标移到括号旁查看匹配；拖动右侧 minimap 滚动。
 import xui
 from "./_window.xl" import Window
 
@@ -14,4 +14,5 @@ Window.show("Code editor / minimap and syntax", func(xui.Context ui, xui.Widget 
  editor.setText(source)
  editor.setMinimap(1, 100)
  editor.setTabColumns(4)
+ editor.setBracketMatching(1)
 end)

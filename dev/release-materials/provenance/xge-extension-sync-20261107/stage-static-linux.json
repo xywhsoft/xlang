@@ -1,0 +1,1114 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Prepare a separate XGE/XUI package with a direct-XRT static native archive.\n\nExisting direct methods and policies are copied, not wrapped. Selected XRT\nmodules come from actual archive undefined symbols and the compiler's exact\ncatalog; multiple module witnesses for one symbol are a conjunction.\n",
+  "packages": [
+    "_xge_native",
+    "xge",
+    "xui"
+  ],
+  "platform": "linux_x64",
+  "engineBuild": "/home/ubuntu/xlang-validation/xge-extension-sync-20261107/static-linux/build-report.json",
+  "archive": "/home/ubuntu/xlang-validation/xge-extension-sync-20261107/static-linux/libxge3_static.a",
+  "archiveSha256": "e817ba7c72066aab0f9f6192d5983209a97e02d1b02047cc0288ee3ba20f63d5",
+  "directXrtSymbols": [
+    "xrtArrayAdd",
+    "xrtArrayAppend",
+    "xrtArrayClear",
+    "xrtArrayGet",
+    "xrtArrayInit",
+    "xrtArrayPush",
+    "xrtArrayRemove",
+    "xrtArrayRemoveSwap",
+    "xrtArrayReserve",
+    "xrtArrayResize",
+    "xrtArraySort",
+    "xrtArrayUnit",
+    "xrtAtomic32CompareExchange",
+    "xrtAtomic32Exchange",
+    "xrtAtomic32FetchSub",
+    "xrtAtomic32Init",
+    "xrtAtomic32Load",
+    "xrtAtomic32Store",
+    "xrtAtomic64CompareExchange",
+    "xrtAtomic64FetchSub",
+    "xrtAtomic64Init",
+    "xrtAtomic64Load",
+    "xrtAtomic64Store",
+    "xrtBase64Decode",
+    "xrtBase64DecodeNew",
+    "xrtBase64EncodeNew",
+    "xrtCalloc",
+    "xrtClearError",
+    "xrtCondInit",
+    "xrtCondSignal",
+    "xrtCondUnit",
+    "xrtCondWait",
+    "xrtDate",
+    "xrtDatePart",
+    "xrtDirClose",
+    "xrtDirEntryPath",
+    "xrtDirExists",
+    "xrtDirNext",
+    "xrtDirOpen",
+    "xrtDirRoots",
+    "xrtDirRootsFree",
+    "xrtErrorBuild",
+    "xrtErrorFind",
+    "xrtErrorFree",
+    "xrtErrorIs",
+    "xrtErrorKind",
+    "xrtErrorOwnership",
+    "xrtErrorRef",
+    "xrtFileExists",
+    "xrtFileReadAll",
+    "xrtFileReadAllLimit",
+    "xrtFileReadText",
+    "xrtFileWriteAtomic",
+    "xrtFileWriteText",
+    "xrtFree",
+    "xrtGetError",
+    "xrtJsonParse",
+    "xrtJsonRead",
+    "xrtJsonReadConfigInit",
+    "xrtJsonStringify",
+    "xrtJsonWriteConfigInit",
+    "xrtJsonWriterArray",
+    "xrtJsonWriterBool",
+    "xrtJsonWriterCreate",
+    "xrtJsonWriterEnd",
+    "xrtJsonWriterFinish",
+    "xrtJsonWriterFloat",
+    "xrtJsonWriterFree",
+    "xrtJsonWriterName",
+    "xrtJsonWriterObject",
+    "xrtJsonWriterString",
+    "xrtJsonWriterTake",
+    "xrtJsonWriterUInt",
+    "xrtMalloc",
+    "xrtMapClear",
+    "xrtMapConstGet",
+    "xrtMapGet",
+    "xrtMapGetOrAdd",
+    "xrtMapGetPtr",
+    "xrtMapInit",
+    "xrtMapIterBegin",
+    "xrtMapIterEnd",
+    "xrtMapIterNext",
+    "xrtMapRemove",
+    "xrtMapSet",
+    "xrtMapSetPtr",
+    "xrtMapUnit",
+    "xrtMutexCreate",
+    "xrtMutexDestroy",
+    "xrtMutexInit",
+    "xrtMutexLock",
+    "xrtMutexUnit",
+    "xrtMutexUnlock",
+    "xrtNow",
+    "xrtNumFormatTo",
+    "xrtNumParse",
+    "xrtNumWrite",
+    "xrtOwnershipMutationBegin",
+    "xrtOwnershipScopeEnd",
+    "xrtPathAppDir",
+    "xrtPathIsAbs",
+    "xrtPathJoin",
+    "xrtPathStat",
+    "xrtPoolAlloc",
+    "xrtPoolCalloc",
+    "xrtPoolCreate",
+    "xrtPoolDestroy",
+    "xrtPoolFree",
+    "xrtPoolInit",
+    "xrtPoolUnit",
+    "xrtRealloc",
+    "xrtRefRelease",
+    "xrtRefRetain",
+    "xrtRegexCaptureCount",
+    "xrtRegexCaptureIndex",
+    "xrtRegexCompileConfig",
+    "xrtRegexConfigInit",
+    "xrtRegexEscape",
+    "xrtRegexMatcherCapture",
+    "xrtRegexMatcherCreate",
+    "xrtRegexMatcherFind",
+    "xrtRegexMatcherFree",
+    "xrtRegexMatcherNext",
+    "xrtRegexRelease",
+    "xrtRngReal",
+    "xrtRngSeed",
+    "xrtSetErrorInfo",
+    "xrtSetErrorKind",
+    "xrtSetErrorTake",
+    "xrtSleep",
+    "xrtSlotMapGet",
+    "xrtSlotMapInit",
+    "xrtSlotMapInsert",
+    "xrtSlotMapRemove",
+    "xrtSlotMapReserve",
+    "xrtSlotMapUnit",
+    "xrtSpinLock",
+    "xrtSpinUnlock",
+    "xrtStrCaseCompare",
+    "xrtStrCaseFind",
+    "xrtStrCaseRFind",
+    "xrtStrDup",
+    "xrtStrDupN",
+    "xrtStrFind",
+    "xrtStrGlob",
+    "xrtStrRFind",
+    "xrtTakeError",
+    "xrtThreadCreate",
+    "xrtThreadCurrentId",
+    "xrtThreadDestroy",
+    "xrtThreadState",
+    "xrtThreadStateTry",
+    "xrtThreadWait",
+    "xrtThreadWaitFor",
+    "xrtTimeAdd",
+    "xrtTimeParse",
+    "xrtTimePart",
+    "xrtTimeSplit",
+    "xrtTimer",
+    "xrtUtf8Decode",
+    "xrtUtf8Valid",
+    "xrtValueArray",
+    "xrtValueArrayAppendNew",
+    "xrtValueArrayAppendTake",
+    "xrtValueArrayGet",
+    "xrtValueBool",
+    "xrtValueClone",
+    "xrtValueCount",
+    "xrtValueDeepClone",
+    "xrtValueFloat",
+    "xrtValueGetBool",
+    "xrtValueGetFloat",
+    "xrtValueGetInt",
+    "xrtValueGetString",
+    "xrtValueGetUInt",
+    "xrtValueInt",
+    "xrtValueIs",
+    "xrtValueNull",
+    "xrtValueObject",
+    "xrtValueObjectAt",
+    "xrtValueObjectGet",
+    "xrtValueObjectSetNew",
+    "xrtValueObjectSetTake",
+    "xrtValueOwnership",
+    "xrtValueRelease",
+    "xrtValueString",
+    "xrtValueType",
+    "xrtValueUInt",
+    "xrtXlonParse",
+    "xrtXlonParseFile",
+    "xrtXlonStringify",
+    "xrtXlonStringifyFile"
+  ],
+  "xrtModules": [
+    "XRT_MODULE_ARRAY",
+    "XRT_MODULE_ATOMIC",
+    "XRT_MODULE_CODEC_BASE64",
+    "XRT_MODULE_COND",
+    "XRT_MODULE_DIR",
+    "XRT_MODULE_FILE",
+    "XRT_MODULE_FILE_TEXT",
+    "XRT_MODULE_FILE_WHOLE",
+    "XRT_MODULE_JSON_READ",
+    "XRT_MODULE_JSON_WRITE",
+    "XRT_MODULE_MAP",
+    "XRT_MODULE_MUTEX",
+    "XRT_MODULE_NUMBER_FLOAT",
+    "XRT_MODULE_NUMBER_FORMAT",
+    "XRT_MODULE_PATH",
+    "XRT_MODULE_PATH_SYSTEM",
+    "XRT_MODULE_POOL",
+    "XRT_MODULE_RANDOM",
+    "XRT_MODULE_REGEX_CORE",
+    "XRT_MODULE_REGEX_MATCH",
+    "XRT_MODULE_SLOT_MAP",
+    "XRT_MODULE_SPIN",
+    "XRT_MODULE_STRING",
+    "XRT_MODULE_STRING_GLOB",
+    "XRT_MODULE_THREAD",
+    "XRT_MODULE_TIME",
+    "XRT_MODULE_TIME_TEXT",
+    "XRT_MODULE_UNICODE",
+    "XRT_MODULE_VALUE",
+    "XRT_MODULE_VALUE_CONTAINER",
+    "XRT_MODULE_VALUE_GRAPH",
+    "XRT_MODULE_XLON_FILE",
+    "XRT_MODULE_XLON_READ",
+    "XRT_MODULE_XLON_WRITE"
+  ],
+  "xrtModuleWitnesses": {
+    "xrtArrayAdd": [
+      "XRT_MODULE_ARRAY"
+    ],
+    "xrtArrayAppend": [
+      "XRT_MODULE_ARRAY"
+    ],
+    "xrtArrayClear": [
+      "XRT_MODULE_ARRAY"
+    ],
+    "xrtArrayGet": [
+      "XRT_MODULE_ARRAY"
+    ],
+    "xrtArrayInit": [
+      "XRT_MODULE_ARRAY"
+    ],
+    "xrtArrayPush": [
+      "XRT_MODULE_ARRAY"
+    ],
+    "xrtArrayRemove": [
+      "XRT_MODULE_ARRAY"
+    ],
+    "xrtArrayRemoveSwap": [
+      "XRT_MODULE_ARRAY"
+    ],
+    "xrtArrayReserve": [
+      "XRT_MODULE_ARRAY"
+    ],
+    "xrtArrayResize": [
+      "XRT_MODULE_ARRAY"
+    ],
+    "xrtArraySort": [
+      "XRT_MODULE_ARRAY"
+    ],
+    "xrtArrayUnit": [
+      "XRT_MODULE_ARRAY"
+    ],
+    "xrtAtomic32CompareExchange": [
+      "XRT_MODULE_ATOMIC"
+    ],
+    "xrtAtomic32Exchange": [
+      "XRT_MODULE_ATOMIC"
+    ],
+    "xrtAtomic32FetchSub": [
+      "XRT_MODULE_ATOMIC"
+    ],
+    "xrtAtomic32Init": [
+      "XRT_MODULE_ATOMIC"
+    ],
+    "xrtAtomic32Load": [
+      "XRT_MODULE_ATOMIC"
+    ],
+    "xrtAtomic32Store": [
+      "XRT_MODULE_ATOMIC"
+    ],
+    "xrtAtomic64CompareExchange": [
+      "XRT_MODULE_ATOMIC"
+    ],
+    "xrtAtomic64FetchSub": [
+      "XRT_MODULE_ATOMIC"
+    ],
+    "xrtAtomic64Init": [
+      "XRT_MODULE_ATOMIC"
+    ],
+    "xrtAtomic64Load": [
+      "XRT_MODULE_ATOMIC"
+    ],
+    "xrtAtomic64Store": [
+      "XRT_MODULE_ATOMIC"
+    ],
+    "xrtBase64Decode": [
+      "XRT_MODULE_CODEC_BASE64"
+    ],
+    "xrtBase64DecodeNew": [
+      "XRT_MODULE_CODEC_BASE64"
+    ],
+    "xrtBase64EncodeNew": [
+      "XRT_MODULE_CODEC_BASE64"
+    ],
+    "xrtCalloc": [],
+    "xrtClearError": [],
+    "xrtCondInit": [
+      "XRT_MODULE_COND"
+    ],
+    "xrtCondSignal": [
+      "XRT_MODULE_COND"
+    ],
+    "xrtCondUnit": [
+      "XRT_MODULE_COND"
+    ],
+    "xrtCondWait": [
+      "XRT_MODULE_COND"
+    ],
+    "xrtDate": [
+      "XRT_MODULE_TIME"
+    ],
+    "xrtDatePart": [
+      "XRT_MODULE_TIME"
+    ],
+    "xrtDirClose": [
+      "XRT_MODULE_DIR"
+    ],
+    "xrtDirEntryPath": [
+      "XRT_MODULE_DIR"
+    ],
+    "xrtDirExists": [
+      "XRT_MODULE_FILE"
+    ],
+    "xrtDirNext": [
+      "XRT_MODULE_DIR"
+    ],
+    "xrtDirOpen": [
+      "XRT_MODULE_DIR"
+    ],
+    "xrtDirRoots": [
+      "XRT_MODULE_DIR"
+    ],
+    "xrtDirRootsFree": [
+      "XRT_MODULE_DIR"
+    ],
+    "xrtErrorBuild": [],
+    "xrtErrorFind": [],
+    "xrtErrorFree": [],
+    "xrtErrorIs": [],
+    "xrtErrorKind": [],
+    "xrtErrorOwnership": [],
+    "xrtErrorRef": [],
+    "xrtFileExists": [
+      "XRT_MODULE_FILE"
+    ],
+    "xrtFileReadAll": [
+      "XRT_MODULE_FILE_WHOLE"
+    ],
+    "xrtFileReadAllLimit": [
+      "XRT_MODULE_FILE_WHOLE"
+    ],
+    "xrtFileReadText": [
+      "XRT_MODULE_FILE_TEXT"
+    ],
+    "xrtFileWriteAtomic": [
+      "XRT_MODULE_FILE_WHOLE"
+    ],
+    "xrtFileWriteText": [
+      "XRT_MODULE_FILE_TEXT"
+    ],
+    "xrtFree": [],
+    "xrtGetError": [],
+    "xrtJsonParse": [
+      "XRT_MODULE_JSON_READ"
+    ],
+    "xrtJsonRead": [
+      "XRT_MODULE_JSON_READ"
+    ],
+    "xrtJsonReadConfigInit": [
+      "XRT_MODULE_JSON_READ"
+    ],
+    "xrtJsonStringify": [
+      "XRT_MODULE_JSON_WRITE"
+    ],
+    "xrtJsonWriteConfigInit": [
+      "XRT_MODULE_JSON_WRITE"
+    ],
+    "xrtJsonWriterArray": [
+      "XRT_MODULE_JSON_WRITE"
+    ],
+    "xrtJsonWriterBool": [
+      "XRT_MODULE_JSON_WRITE"
+    ],
+    "xrtJsonWriterCreate": [
+      "XRT_MODULE_JSON_WRITE"
+    ],
+    "xrtJsonWriterEnd": [
+      "XRT_MODULE_JSON_WRITE"
+    ],
+    "xrtJsonWriterFinish": [
+      "XRT_MODULE_JSON_WRITE"
+    ],
+    "xrtJsonWriterFloat": [
+      "XRT_MODULE_JSON_WRITE"
+    ],
+    "xrtJsonWriterFree": [
+      "XRT_MODULE_JSON_WRITE"
+    ],
+    "xrtJsonWriterName": [
+      "XRT_MODULE_JSON_WRITE"
+    ],
+    "xrtJsonWriterObject": [
+      "XRT_MODULE_JSON_WRITE"
+    ],
+    "xrtJsonWriterString": [
+      "XRT_MODULE_JSON_WRITE"
+    ],
+    "xrtJsonWriterTake": [
+      "XRT_MODULE_JSON_WRITE"
+    ],
+    "xrtJsonWriterUInt": [
+      "XRT_MODULE_JSON_WRITE"
+    ],
+    "xrtMalloc": [],
+    "xrtMapClear": [
+      "XRT_MODULE_MAP"
+    ],
+    "xrtMapConstGet": [
+      "XRT_MODULE_MAP"
+    ],
+    "xrtMapGet": [
+      "XRT_MODULE_MAP"
+    ],
+    "xrtMapGetOrAdd": [
+      "XRT_MODULE_MAP"
+    ],
+    "xrtMapGetPtr": [
+      "XRT_MODULE_MAP"
+    ],
+    "xrtMapInit": [
+      "XRT_MODULE_MAP"
+    ],
+    "xrtMapIterBegin": [
+      "XRT_MODULE_MAP"
+    ],
+    "xrtMapIterEnd": [
+      "XRT_MODULE_MAP"
+    ],
+    "xrtMapIterNext": [
+      "XRT_MODULE_MAP"
+    ],
+    "xrtMapRemove": [
+      "XRT_MODULE_MAP"
+    ],
+    "xrtMapSet": [
+      "XRT_MODULE_MAP"
+    ],
+    "xrtMapSetPtr": [
+      "XRT_MODULE_MAP"
+    ],
+    "xrtMapUnit": [
+      "XRT_MODULE_MAP"
+    ],
+    "xrtMutexCreate": [
+      "XRT_MODULE_MUTEX"
+    ],
+    "xrtMutexDestroy": [
+      "XRT_MODULE_MUTEX"
+    ],
+    "xrtMutexInit": [
+      "XRT_MODULE_MUTEX"
+    ],
+    "xrtMutexLock": [
+      "XRT_MODULE_MUTEX"
+    ],
+    "xrtMutexUnit": [
+      "XRT_MODULE_MUTEX"
+    ],
+    "xrtMutexUnlock": [
+      "XRT_MODULE_MUTEX"
+    ],
+    "xrtNow": [
+      "XRT_MODULE_TIME"
+    ],
+    "xrtNumFormatTo": [
+      "XRT_MODULE_NUMBER_FORMAT"
+    ],
+    "xrtNumParse": [
+      "XRT_MODULE_NUMBER_FLOAT"
+    ],
+    "xrtNumWrite": [
+      "XRT_MODULE_NUMBER_FLOAT"
+    ],
+    "xrtOwnershipMutationBegin": [],
+    "xrtOwnershipScopeEnd": [],
+    "xrtPathAppDir": [
+      "XRT_MODULE_PATH_SYSTEM"
+    ],
+    "xrtPathIsAbs": [
+      "XRT_MODULE_PATH"
+    ],
+    "xrtPathJoin": [
+      "XRT_MODULE_PATH"
+    ],
+    "xrtPathStat": [
+      "XRT_MODULE_FILE"
+    ],
+    "xrtPoolAlloc": [
+      "XRT_MODULE_POOL"
+    ],
+    "xrtPoolCalloc": [
+      "XRT_MODULE_POOL"
+    ],
+    "xrtPoolCreate": [
+      "XRT_MODULE_POOL"
+    ],
+    "xrtPoolDestroy": [
+      "XRT_MODULE_POOL"
+    ],
+    "xrtPoolFree": [
+      "XRT_MODULE_POOL"
+    ],
+    "xrtPoolInit": [
+      "XRT_MODULE_POOL"
+    ],
+    "xrtPoolUnit": [
+      "XRT_MODULE_POOL"
+    ],
+    "xrtRealloc": [],
+    "xrtRefRelease": [],
+    "xrtRefRetain": [],
+    "xrtRegexCaptureCount": [
+      "XRT_MODULE_REGEX_CORE"
+    ],
+    "xrtRegexCaptureIndex": [
+      "XRT_MODULE_REGEX_CORE"
+    ],
+    "xrtRegexCompileConfig": [
+      "XRT_MODULE_REGEX_CORE"
+    ],
+    "xrtRegexConfigInit": [
+      "XRT_MODULE_REGEX_CORE"
+    ],
+    "xrtRegexEscape": [
+      "XRT_MODULE_REGEX_CORE"
+    ],
+    "xrtRegexMatcherCapture": [
+      "XRT_MODULE_REGEX_MATCH"
+    ],
+    "xrtRegexMatcherCreate": [
+      "XRT_MODULE_REGEX_MATCH"
+    ],
+    "xrtRegexMatcherFind": [
+      "XRT_MODULE_REGEX_MATCH"
+    ],
+    "xrtRegexMatcherFree": [
+      "XRT_MODULE_REGEX_MATCH"
+    ],
+    "xrtRegexMatcherNext": [
+      "XRT_MODULE_REGEX_MATCH"
+    ],
+    "xrtRegexRelease": [
+      "XRT_MODULE_REGEX_CORE"
+    ],
+    "xrtRngReal": [
+      "XRT_MODULE_RANDOM"
+    ],
+    "xrtRngSeed": [
+      "XRT_MODULE_RANDOM"
+    ],
+    "xrtSetErrorInfo": [],
+    "xrtSetErrorKind": [],
+    "xrtSetErrorTake": [],
+    "xrtSleep": [
+      "XRT_MODULE_TIME"
+    ],
+    "xrtSlotMapGet": [
+      "XRT_MODULE_SLOT_MAP"
+    ],
+    "xrtSlotMapInit": [
+      "XRT_MODULE_SLOT_MAP"
+    ],
+    "xrtSlotMapInsert": [
+      "XRT_MODULE_SLOT_MAP"
+    ],
+    "xrtSlotMapRemove": [
+      "XRT_MODULE_SLOT_MAP"
+    ],
+    "xrtSlotMapReserve": [
+      "XRT_MODULE_SLOT_MAP"
+    ],
+    "xrtSlotMapUnit": [
+      "XRT_MODULE_SLOT_MAP"
+    ],
+    "xrtSpinLock": [
+      "XRT_MODULE_SPIN"
+    ],
+    "xrtSpinUnlock": [
+      "XRT_MODULE_SPIN"
+    ],
+    "xrtStrCaseCompare": [
+      "XRT_MODULE_STRING"
+    ],
+    "xrtStrCaseFind": [
+      "XRT_MODULE_STRING"
+    ],
+    "xrtStrCaseRFind": [
+      "XRT_MODULE_STRING"
+    ],
+    "xrtStrDup": [
+      "XRT_MODULE_STRING"
+    ],
+    "xrtStrDupN": [
+      "XRT_MODULE_STRING"
+    ],
+    "xrtStrFind": [
+      "XRT_MODULE_STRING"
+    ],
+    "xrtStrGlob": [
+      "XRT_MODULE_STRING_GLOB"
+    ],
+    "xrtStrRFind": [
+      "XRT_MODULE_STRING"
+    ],
+    "xrtTakeError": [],
+    "xrtThreadCreate": [
+      "XRT_MODULE_THREAD"
+    ],
+    "xrtThreadCurrentId": [
+      "XRT_MODULE_THREAD"
+    ],
+    "xrtThreadDestroy": [
+      "XRT_MODULE_THREAD"
+    ],
+    "xrtThreadState": [
+      "XRT_MODULE_THREAD"
+    ],
+    "xrtThreadStateTry": [
+      "XRT_MODULE_THREAD"
+    ],
+    "xrtThreadWait": [
+      "XRT_MODULE_THREAD"
+    ],
+    "xrtThreadWaitFor": [
+      "XRT_MODULE_THREAD"
+    ],
+    "xrtTimeAdd": [
+      "XRT_MODULE_TIME"
+    ],
+    "xrtTimeParse": [
+      "XRT_MODULE_TIME_TEXT"
+    ],
+    "xrtTimePart": [
+      "XRT_MODULE_TIME"
+    ],
+    "xrtTimeSplit": [
+      "XRT_MODULE_TIME"
+    ],
+    "xrtTimer": [
+      "XRT_MODULE_TIME"
+    ],
+    "xrtUtf8Decode": [
+      "XRT_MODULE_UNICODE"
+    ],
+    "xrtUtf8Valid": [
+      "XRT_MODULE_UNICODE"
+    ],
+    "xrtValueArray": [
+      "XRT_MODULE_VALUE_CONTAINER"
+    ],
+    "xrtValueArrayAppendNew": [
+      "XRT_MODULE_VALUE_CONTAINER"
+    ],
+    "xrtValueArrayAppendTake": [
+      "XRT_MODULE_VALUE_CONTAINER"
+    ],
+    "xrtValueArrayGet": [
+      "XRT_MODULE_VALUE_CONTAINER"
+    ],
+    "xrtValueBool": [
+      "XRT_MODULE_VALUE"
+    ],
+    "xrtValueClone": [
+      "XRT_MODULE_VALUE"
+    ],
+    "xrtValueCount": [
+      "XRT_MODULE_VALUE_CONTAINER"
+    ],
+    "xrtValueDeepClone": [
+      "XRT_MODULE_VALUE_GRAPH"
+    ],
+    "xrtValueFloat": [
+      "XRT_MODULE_VALUE"
+    ],
+    "xrtValueGetBool": [
+      "XRT_MODULE_VALUE"
+    ],
+    "xrtValueGetFloat": [
+      "XRT_MODULE_VALUE"
+    ],
+    "xrtValueGetInt": [
+      "XRT_MODULE_VALUE"
+    ],
+    "xrtValueGetString": [
+      "XRT_MODULE_VALUE"
+    ],
+    "xrtValueGetUInt": [
+      "XRT_MODULE_VALUE"
+    ],
+    "xrtValueInt": [
+      "XRT_MODULE_VALUE"
+    ],
+    "xrtValueIs": [
+      "XRT_MODULE_VALUE"
+    ],
+    "xrtValueNull": [
+      "XRT_MODULE_VALUE"
+    ],
+    "xrtValueObject": [
+      "XRT_MODULE_VALUE_CONTAINER"
+    ],
+    "xrtValueObjectAt": [
+      "XRT_MODULE_VALUE_CONTAINER"
+    ],
+    "xrtValueObjectGet": [
+      "XRT_MODULE_VALUE_CONTAINER"
+    ],
+    "xrtValueObjectSetNew": [
+      "XRT_MODULE_VALUE_CONTAINER"
+    ],
+    "xrtValueObjectSetTake": [
+      "XRT_MODULE_VALUE_CONTAINER"
+    ],
+    "xrtValueOwnership": [
+      "XRT_MODULE_VALUE"
+    ],
+    "xrtValueRelease": [
+      "XRT_MODULE_VALUE"
+    ],
+    "xrtValueString": [
+      "XRT_MODULE_VALUE"
+    ],
+    "xrtValueType": [
+      "XRT_MODULE_VALUE"
+    ],
+    "xrtValueUInt": [
+      "XRT_MODULE_VALUE"
+    ],
+    "xrtXlonParse": [
+      "XRT_MODULE_XLON_READ"
+    ],
+    "xrtXlonParseFile": [
+      "XRT_MODULE_XLON_FILE"
+    ],
+    "xrtXlonStringify": [
+      "XRT_MODULE_XLON_WRITE"
+    ],
+    "xrtXlonStringifyFile": [
+      "XRT_MODULE_XLON_FILE"
+    ]
+  },
+  "inputs": {
+    "/mnt/d/GIT/x-lang/tools/stage_xge3_static_packages.py": "24a8e513dd995838b2469e2c243164ff66bc3848435892b1ed3906b38a06fdb6",
+    "/mnt/d/GIT/x-lang/src/compile/xl6_artifact_native_symbols.inc": "664b7987e130c578cf1817f66f0133bf5ad5de9a42d741ac87f90621b4950c4b",
+    "/mnt/d/GIT/x-lang/lib/xrt/xrt.h": "41bc24579f4b3207b0434755ca23dd06481af90c05f71e9b365848cf9a7c12d1",
+    "/home/ubuntu/xlang-validation/xge-extension-sync-20261107/static-linux/build-report.json": "d62ff671f6a93ee71fd345a061645bd84f4ba0e48e6b50313dfda86019d3d2bd",
+    "/home/ubuntu/xlang-validation/xge-extension-sync-20261107/static-linux/libxge3_static.a": "e817ba7c72066aab0f9f6192d5983209a97e02d1b02047cc0288ee3ba20f63d5",
+    "/mnt/f/xlang-validation/xge-extension-sync-20261107/source/include/xge.h": "b7b315ddfca9add6074a1e414f1da2188e4a0ece037e8ce3927c9ffa8e7f5d79",
+    "/mnt/f/xlang-validation/xge-extension-sync-20261107/source/include/xge_config.h": "5d960786a736321b22d1b88cbe2d3aaac807e8afaa8a7bd0a4e509b06f7b76bf",
+    "/mnt/f/xlang-validation/xge-extension-sync-20261107/source/include/xge_host_xrt.h": "5e43dc2cff98741941c1be6d02832d6cf34256521c94975e4fe96fd411e7b60f",
+    "/mnt/f/xlang-validation/xge-extension-sync-20261107/source/include/xnative_transfer.h": "620fe84af1c7c5f40006a65a4ca4435a5d62f2fd500b345514829e27c08dff6f",
+    "/mnt/f/xlang-validation/xge-extension-sync-20261107/source/include/xui.h": "f31173fbd4af53d10e1a8c7a84eaee3b7547f0d6465bbe9a8fe5b5b48fcba5a4",
+    "/mnt/f/xlang-validation/xge-extension-sync-20261107/source/include/xui_config.h": "01448ede1da13af8e8ef81ef7574f15edc88f5fa8c2312d9d8a5ede91e17f193",
+    "/mnt/f/xlang-validation/xge-extension-sync-20261107/source/include/xui_document.h": "7062c587237e6486c9efb84ba8e5023b9346ac90e4ab6afe780ad00aa5bd6fe2",
+    "/mnt/f/xlang-validation/xge-extension-sync-20261107/source/include/xui_document_ui.h": "e343a8600039805be3c5e481fe1d15dbcd426490ce2ad2b5dca65f78b6574bb2",
+    "/mnt/f/xlang-validation/xge-extension-sync-20261107/source/extlibs/xrt/xrt_config.h": "0aa49016ab725145a8043619b860f780d0b81cbb2184084aaf1c485fa57bf314",
+    "/home/ubuntu/xlang-validation/xge-extension-sync-20261107/static-linux/xge_build_config.h": "fb9c7ce7c60324e93faa16ec31cfca6e08e04287117963b949e5128ac66f7227",
+    "/home/ubuntu/xlang-validation/xge-extension-sync-20261107/static-linux/xge_static_xrt_contract.h": "feb6256e5830b19d3abb766616d4f4ef341869df89f33bb3c63be8af6e298b4f",
+    "/mnt/d/GIT/x-lang/lib/bindings/_xge_native/xlang.package.json": "f1c09a2dcec2fbe658da1cedf86bc88457c64a1979917921e88946525701904d",
+    "/mnt/d/GIT/x-lang/lib/bindings/_xge_native/include/xge3_runtime.h": "603723af0fef2d749d3093ff1b12c516cd3d1600bdae9914add404e4db967483",
+    "/mnt/d/GIT/x-lang/lib/bindings/_xge_native/src/bootstrap.xl": "54d74fc4d81f9bade0f3fa358178073d885425e59bda9fd64cd79073c8bc19f0",
+    "/mnt/d/GIT/x-lang/lib/bindings/_xge_native/src/runtime.c": "946b3b483fcbbb0aa12b7347da5891f0cd4626ea949e4747e0dc6af4dd19c3c7",
+    "/mnt/d/GIT/x-lang/lib/bindings/_xge_native/src/transfer.c": "20f0b5820b6d46c77364935724575a9d885965c3e636c1138019384d289a4eb7",
+    "/mnt/d/GIT/x-lang/lib/bindings/xge/README.md": "06aee0877de62a7b1d8cb4ffc3f0ab2dacdab2cea345cf48dd27be9b0f56b11e",
+    "/mnt/d/GIT/x-lang/lib/bindings/xge/xlang.package.json": "0852aeb3f740ec81621ca11ffff96301e8ab3e364f61ad0fc5ed86151ee9846b",
+    "/mnt/d/GIT/x-lang/lib/bindings/xge/examples/gui_shapes.xl": "33ecf635b267e67ccb59e8c0852e41d1ed97f8bed4cd4e50fe5fa94271c7079f",
+    "/mnt/d/GIT/x-lang/lib/bindings/xge/examples/headless_frame.xl": "f609b4f2e45cd4c571f2ee83c0e11b000afdd46b8c6123e5fe758115dfb77ef9",
+    "/mnt/d/GIT/x-lang/lib/bindings/xge/examples/headless_shape.xl": "604881d4b0ebe27fe57de79387a7aba33c6dd6d15d3d1096774d3d02c67a053b",
+    "/mnt/d/GIT/x-lang/lib/bindings/xge/examples/README.md": "59e85ec519654b0521c314eb5000b007b3069da4bb5c29a374a1f5e645a4ae44",
+    "/mnt/d/GIT/x-lang/lib/bindings/xge/include/xge3_audio_resources.h": "2130421e55959f2806bfa978d9a40547b848d949cf985efabbe585e45c2ae533",
+    "/mnt/d/GIT/x-lang/lib/bindings/xge/include/xge3_init.h": "8d54b3283309d6924b2cdc78d50d363be84b65b11c4830b680b2c9b2875d291e",
+    "/mnt/d/GIT/x-lang/lib/bindings/xge/src/audio_resources.xl": "547ccc19a52260978984381283016621ff4d84d41921105ffa7bd7ead73f813d",
+    "/mnt/d/GIT/x-lang/lib/bindings/xge/src/bootstrap.xl": "42fe4b3c2fa7d7deb10f418bb1d7c9a350d20e98dd9533d3f07e4b17988e2557",
+    "/mnt/d/GIT/x-lang/lib/bindings/xge/src/callbacks.xl": "2d74e1a1ecec9850d658478af08086e5708186c407add0c988b371e22d89cd45",
+    "/mnt/d/GIT/x-lang/lib/bindings/xge/src/constants.xl": "8f65b793351547d449cde57ca88ad66e132d2fe45595a199e88afd6c01faae71",
+    "/mnt/d/GIT/x-lang/lib/bindings/xge/src/data_object.xl": "f30dd0685a04afeb806aa4f83c82ccd697424d9b1e991c17a0f8f7d5870deaad",
+    "/mnt/d/GIT/x-lang/lib/bindings/xge/src/functions.xl": "f73d8e37a57c4c566a18da0b03de8ea7953a9cee025bf83ea93345b17e7fbb48",
+    "/mnt/d/GIT/x-lang/lib/bindings/xge/src/records.xl": "75f43f39f0aeb5bff6c3aab420dd6ac2b1eca47dcadb05d78deeacce8287a521",
+    "/mnt/d/GIT/x-lang/lib/bindings/xge/src/resources.xl": "c3cb5d5c65ae0dfe39bbf5c8ebf67b6a350ba9282d54f6bf9f49ff0fea38e0fb",
+    "/mnt/d/GIT/x-lang/lib/bindings/xge/src/shapes.xl": "a20456775c010ebd2f6a15ea7c5b8faaa5dadd27bf68ff8e5c299953ccdd893e",
+    "/mnt/d/GIT/x-lang/lib/bindings/xge/examples/games/2048.xl": "fa304a8dff29703203bd373f5a2d8f006ec000b0fab700d1d38e54d950a8965d",
+    "/mnt/d/GIT/x-lang/lib/bindings/xge/examples/games/asteroids.xl": "4af3f3bc7311a66bbf320e406c9c9bc2d7403ae773f797c85406b9e58914d8c6",
+    "/mnt/d/GIT/x-lang/lib/bindings/xge/examples/games/breakout.xl": "5b44274a92e79bce17c96a4f319905dd14b748ba38428533c0dfc63825bda2ea",
+    "/mnt/d/GIT/x-lang/lib/bindings/xge/examples/games/flappy.xl": "a53dadf91ada70d9c101fcd7322cda4121153f2ef702b67802cd16dc6822aa5a",
+    "/mnt/d/GIT/x-lang/lib/bindings/xge/examples/games/minesweeper.xl": "9b2f83ab70c76262aafbb089762a27b83d063081abb8c3cf1abbdbca9d0f41c1",
+    "/mnt/d/GIT/x-lang/lib/bindings/xge/examples/games/pong.xl": "e2dc4beb3cdedc0777d6e15f91ae81b5f339eec33200bce07187795b592f49b7",
+    "/mnt/d/GIT/x-lang/lib/bindings/xge/examples/games/README.md": "2e18b6690921c27c67b42cde3f89c689627997c7582a9808e3e40b78ea1b76e8",
+    "/mnt/d/GIT/x-lang/lib/bindings/xge/examples/games/run_games.bat": "ef7c1dba2d29000d787c9315781dd0c1bd2ed49eb525e6cb76f9de25202c1b14",
+    "/mnt/d/GIT/x-lang/lib/bindings/xge/examples/games/shooter.xl": "913d0d01ddac8d96130547336adde67771e788bf1892a569ef708d4ecd3e528e",
+    "/mnt/d/GIT/x-lang/lib/bindings/xge/examples/games/snake.xl": "4fe57484af05a3fccccaa5e635b129354cc9cb906a642616527be1175dccdf90",
+    "/mnt/d/GIT/x-lang/lib/bindings/xge/examples/games/tetris.xl": "79243f51b72aea72ed9a786b730291ebd6626bc941dae6afa2ea9824da8039b1",
+    "/mnt/d/GIT/x-lang/lib/bindings/xge/examples/games/_game.xl": "a8ee5cbc704f9a5a80393d6e49bdfb0878f70b804105ddf4ce240b504af1600f",
+    "/mnt/d/GIT/x-lang/lib/bindings/xge/examples/games/assets/beep.wav": "0b65db53cde150433db8db4f91c269314356cc303f760e0d1fa29f685294c136",
+    "/mnt/d/GIT/x-lang/lib/bindings/xge/examples/games/assets/boom.wav": "2c5dcb6cfa9742cbb2d495af9d6263d2c38de885d32dd39648216bb5af3c9931",
+    "/mnt/d/GIT/x-lang/lib/bindings/xge/examples/games/assets/coin.wav": "bad1366f989145798790f082cccce7fe787483cd58521f92a95f9ec2f50b27fa",
+    "/mnt/d/GIT/x-lang/lib/bindings/xge/examples/games/assets/laser.wav": "11bbcb2ec0f5ef933ad1eab98519044e8502552c0264b6d0b5551eb2d63e8b7b",
+    "/mnt/d/GIT/x-lang/lib/bindings/xge/examples/games/assets/player.png": "c827984ecaff2b810b92e5e16f52c9843fdca1fb1dd458e040e10cd62653b014",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/README.md": "786701e1fc9094f743c89d04530eea3750d2b30c1c737480f839de2dbe5fdb7f",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/xlang.package.json": "8ff144ff6cc2bd42ec76bdfe7e6f5fee4d1ed3567adac08989e2638810994e50",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/accordion.xl": "0b195f8bffe24b14a43b9003e92bfc2ae55128eaf2e47bd79ff0eb9a5c151d61",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/all_controls.xl": "09b9ddf4e1b952855f792d2c559f24ebcebe81373a25bd4e8d640af547bce8f8",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/basic.xl": "42b3453e21274031fd5f61088d8588eebf6196680327c73c703da46f9980af03",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/breadcrumb.xl": "530cec1d152534c083ee1d5f8636dac6b0bce158549bf6da092e25c0fbf3dd8e",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/button.xl": "c7052ce68dc14b64e5fd741c7591fe6f7cba1f46f2e474b55c2281c03cc32d6f",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/canvas.xl": "7f92423cd324cf356b3f3a478205a0f3c8dfaef54112f8c7ff863bba01426bb1",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/carousel.xl": "33ac05ec248cda8dce34bfa8ed8b61751d538a46e0e6dc9a47897578516752fe",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/cascader.xl": "0499b4a1c0ee5ac91a0c5904c5d369ee9c577123a24b30b4e9951d00ace04769",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/chart.xl": "2c35fb9f6996a47d1f4420b3f1a7e455d947acffa6905f8dfe80267d6bcecc12",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/checkbox.xl": "214c832ac4ba881e25c06bc0c4fff22970afce5bfd45548076d2b75b037892b4",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/checkcard.xl": "e51c4eb6e617cc56e7f8435c1f6b7d97fb422d8c6f14069c1f5e8bbeeee0ceb6",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/codeedit.xl": "2fffc2d753ee05719f9591721c6c3449fe48220c465f72f24f9a3ffbaaccd72d",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/colorpicker.xl": "cec55e170b4d42f93f686ed1dc9f2dbbb96b5712c27ed8dcf0952a9192cef24a",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/combobox.xl": "f4ef4931d6d8f8b21b005b60b87adc09611f2afa0286d835f48a2ff64866dcf1",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/context_graph.xl": "9fd9f8bf138d594e7eea94790e111ddd6f931319a2b2ed3a5fc6887aa09da8fa",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/data_object.xl": "aeb5d7aea9b84aacbc8aa39cc5b72fefe293d84e551be169eb5beaf6e7f25bd8",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/datepicker.xl": "3d57823c782bfdcd2acda2286b851a95654852a27bfe99949779dc96a4fda862",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/dockpanel.xl": "2847e35a12687ac83c27846e234abbfa7d587d70208cf14c6ae36386e8879a7d",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/documenteditor.xl": "03f575bdcaee661d5e9d656e9980ad58400fcf6d700982ce673d2ad128d9ffd0",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/document_model.xl": "389200d7c7f895cb013aefeaccc6268500781c48433a2239e2779b8ab74c04d8",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/document_ui_headless.xl": "c309d7306d9d013a3bbbef9be1c0f7aa637dc0049e448e65cc31fe4381cff447",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/filedialog.xl": "d6dcfc9d9d4308f34a01714a3b5260f71d46d3e461af7cfba4a0f34acb854966",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/gallery.json": "8cf1ad92adb99990d88704145e3faaba4bf84da9821ea8dd28ce51057d1b4d68",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/gui_surface_draw.xl": "ebb6be42659e9642817ee4de05837fff32ca08daa472caa0f058db5b3b6f5ca2",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/headless_cell.xl": "31a25b1f3711641a1a461c3ce684c841f9669274fa1cdb0c316b51b7331bf895",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/headless_path.xl": "4dccfd0d0360ac4ee4df4c781c36fa2642776ffbae7a3ceba0ce4a9e0e224c33",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/hyperlink.xl": "1c4b5dce4a4f49949b48030398f90cf01e9b1516357458e5146f13e9b65c3115",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/image.xl": "b35ebc8819c61ce5dd8e065ec663f74efc8d9e9506aa694d8a108190201b7ffc",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/input.xl": "32c5a497eb9b55e0c73c92427c0cc0e23f1d6989b0413ecf2c1f198474803d43",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/inventorygrid.xl": "20bb74abbdc85b7d9dda435078185657b44bb91e6ae770bb51a9f7cc87074a89",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/label.xl": "817a98de5cfb8649e54897d6f6b6e60bc39ad208eb7ce5487db0b4dfec803aed",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/listview.xl": "7779b857b3367db07556a19ab36722f3b018a6a91b8de79f0446fe4d03b20c68",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/manager_lifetime.xl": "b5c21bf0fee83fc863e3ba6d72dd9b292c7a6a92230e4d957a3ff313c0422ca9",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/menu.xl": "9b97d1e128a2fb11d62f34f5b95060f1fc5477dfa1ba4c31f20ffdd9fa2769b1",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/menubar.xl": "222be9b0bc5090dbba849ce0703aa95ca872549ddddf824b9580942b0667142f",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/messagelist.xl": "9c8ace2fc8b78517d67685057a74310803749ab558f6146151d90cc2f0d486fb",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/msgbox.xl": "989a81635827e3e7e5e7ca0f9e12a239b3e0cc7c965130523c42085891e86a85",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/msgtip.xl": "d06af3616dedf6597d1e4fdf90347c066ed106f5d0ff9bbe045071fad4ffb8a5",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/numericinput.xl": "a77938ba81cda7710a76d49d58e573e8e7af5a26d56373f1a955d904baad9c39",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/page.xl": "f1eb0d0b4f814638270429d4b5f869ee08685380293dd642ce5352ab9e2bd5c5",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/panel.xl": "a05182ca06c9d21e8c640a890f3cca15715f02ab036f3b5bfcdfbf197f6df2ca",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/popup.xl": "669efcfa938ea100d232482c11fb84ecc625bdd5f7078310d809692d5a6ece31",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/progress.xl": "240396ad22b8c4fd4c105988b6348da06d816ebf072f362e871b708611bf5b08",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/propertygrid.xl": "d41d7620e37b3a650ef533688b44e147e598ca30db2c819f04ad91ca73375914",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/qrcode.xl": "5882d2c8788f1ce2d7af625ff1d7f49a48932c697cd1b423b88b6e8549b3e6db",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/radio.xl": "b05c57f9e1c97353d7d82fd0454e1db2142071589e409c2eb3003241fad5c4bf",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/radiogroup.xl": "63eb777d68ebbdb418f8ab6a7dc8cd9e541774485b664ea21bd83591110d4c21",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/rangeslider.xl": "025f9573dc1621bf19a167da68f65a7a08e321265d10c3bb8ea3811d79c0deda",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/README.md": "cdf74835ce2f477a7bd5d94e7d29c93da9a703c5e54d82ba86f846b16ebd483d",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/richtext.xl": "b71b9211d4a0f23f1e1d479e9ca3cc8e6e16f0cffc6ea5f8b7306a47f9232421",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/run_xui_examples.bat": "4fa4f3cf1f0caa34a260895a56d8b0f9c6429bf776cb963706608b4637b4f6fc",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/scrollbar.xl": "7efdb11667ce2fd74d6844be84520e36edc4c56d0221b30c631fc49c59e6d0ca",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/scrollframe.xl": "a715edb4fdf0f839b6f24fc1728974d3699d487449718bb76e735e21a481cd32",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/scrollview.xl": "157ad802d1929378a68911d17302eb58c87d670019483a397983eae203fb93f2",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/separator.xl": "7b724179f3699e7ddef03fc94871b8e449aa84620434b4303d2a5bde5762f334",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/slider.xl": "406c9cb7c539295c4711720ffd2aab2582d4876875b267c6cafb798d73fbc7d6",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/splitlayout.xl": "22156dbd43fcb5aaa7cbae11d55fee023a0d9c23ba81e584a15efc614868d565",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/statusbar.xl": "ef68fb0f39c281a6562c3bfad7aac7b0d0ff7a864cc25c2c907e2d3f2672c3b4",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/stepbar.xl": "e265755d64a04465b149e4eb189661e954722a3bb0f334867bff32d9cad101fd",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/tablegrid.xl": "bb90175f99e86617e01fa391fac9718b14b78a235e2adaa1c1ce3c293fcc759d",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/tableview.xl": "d7b1a7e384ef2c1854cb0eba49ee56ce6f712fc59b9ddd64ee2ea5c37e56ca86",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/tabs.xl": "b96fb256353db09734fa33f120d079a3a4b8cd9428b7cfa0b2211415713816c9",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/taginput.xl": "11a46d949b6ba9d8493d76347a9a50b703055550107e7c25b17738b972d85532",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/terminal.xl": "76d06b8054b0a1a043cff764b58b92a1fc3b89ba81edeaaeceeb74d5dc62f37f",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/textedit.xl": "eca5b790134ca4b08610cb07a0d96d0e93d10ba80851c6dac98760fa20e9c65b",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/timeline.xl": "6adaf803f1bd18e24c878032c621a25e8b594b8a8e86ce589f2cf04947db6862",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/toast.xl": "379d0bb604cc4c58f1d37386fdb8548500fe57a5cb4ee546fb99d9393f2b3467",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/toggle.xl": "0043fbabae66bfbf9e48c83a838ca7830686589feba28875677fa44e9add94f0",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/toolbar.xl": "914a87cd0f54caaaccc1b017b52cf856cb9ce3b8f245bb785a8cc7101be4a38f",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/treeview.xl": "ce92e734f8e0162f51db21eea10c62b7d32948c35e7e15ad5a5ed6d1eac036f0",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/virtualjoystick.xl": "518dcda9e388cf9ab6195e5f5ecaf8f688b06a0b6623c5101e7408440553e6f2",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/webview.xl": "371d413e3b5498e759f810b219add3ad288c10b02dfdb23c2e3df1c67a3b4e2d",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/widget.xl": "750a6a4272edee60111977cc6bf6723c5aea8a09b1a5fda5762a9f41b95704e6",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/window.xl": "439999e6066dbe5883c7cab5d8b16fc378e957acde7fc41015c48851da39e87b",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/examples/_window.xl": "7f1006bfeb3f0a3bee7110992c38483de821959ad6f7227f57b761167ee6fd05",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/src/bootstrap.xl": "42fe4b3c2fa7d7deb10f418bb1d7c9a350d20e98dd9533d3f07e4b17988e2557",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/src/cell.xl": "852cb65a590028fb42af45c07724e99976b915a49c5a1bdfa386e2cedeb6162b",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/src/constants.xl": "f0d61a167dd8ea9fece030353c715795f340285a830c0fcc5a75a72ad83b1476",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/src/data_object.xl": "32710274d0f069fae960966e0d2d1b94c01a9d27155963fdf95bddf65a5a8774",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/src/document.xl": "97747c52db93cb015e0fb3d1065c10752350946bb6062d66709f6011c1a647b5",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/src/document_records.xl": "aa6e9d36ce9ebd07317aa616e32cfb35f19206365b345543d22f3350f5b27727",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/src/document_ui.xl": "aedb3c2ab8f7c81b54622d61e6e41b6fdaf4081f547e8b2102ea0bafce784bad",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/src/document_ui_message_methods.inc": "b274aaae51cb778920a0d7d91162a743440ac90a10bd2e3c43e53be9bb550f40",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/src/document_ui_records.xl": "e1733bd428c6ef3a6534f60ccb95988b502de0819ce65d3f43847e4cad4480e3",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/src/draw.xl": "522236365e3d98a35062a200386b62f5b89df9b6738b59679ad81050cd4eb14a",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/src/managed.xl": "90450541c0abe9f2dc53950154ea40a44915e68b1fd502ff6462c5b37072c7fc",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/src/managers.xl": "cc696cc23bbffca5d5e102b6368e87af766742575b1477fd75b54b1247d6290f",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/src/proxy.xl": "ef323ba00bfd49431be35a927f4f4088d52620c1fbb2c7c3f6d75e06a136cec5",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/src/records.xl": "f42623d9961a4474cfbadd206cf66e5f24c1151bf9763084cfcd623272532779",
+    "/mnt/d/GIT/x-lang/lib/bindings/xui/src/text_shape.xl": "a4e463dcbe2aa1ec8bfac3f008eeda7590b7635ae519c720af142e39ff3496f7",
+    "/usr/lib/gcc/x86_64-linux-gnu/15/libgcc.a": "d9c2e7a0c0f3dbfc0ff2dec153b0d044cf49d66d64d736b5d1db8ae25ca9c75e"
+  },
+  "outputs": {
+    "_xge_native/include/extlibs/xrt/xrt.h": "963890acf073a7ec9b318c415fd0d8669a63acc88d83a367fd7bcba11e35438a",
+    "_xge_native/include/extlibs/xrt/xrt_config.h": "0aa49016ab725145a8043619b860f780d0b81cbb2184084aaf1c485fa57bf314",
+    "_xge_native/include/xge.h": "b7b315ddfca9add6074a1e414f1da2188e4a0ece037e8ce3927c9ffa8e7f5d79",
+    "_xge_native/include/xge3_runtime.h": "603723af0fef2d749d3093ff1b12c516cd3d1600bdae9914add404e4db967483",
+    "_xge_native/include/xge_build_config.h": "b9a14ab1e96486d64c0d38e264b8d565acd840701ba3339c0bea222f4b13e227",
+    "_xge_native/include/xge_config.h": "5d960786a736321b22d1b88cbe2d3aaac807e8afaa8a7bd0a4e509b06f7b76bf",
+    "_xge_native/include/xge_host_xrt.h": "5e43dc2cff98741941c1be6d02832d6cf34256521c94975e4fe96fd411e7b60f",
+    "_xge_native/include/xge_static_xrt_contract.h": "feb6256e5830b19d3abb766616d4f4ef341869df89f33bb3c63be8af6e298b4f",
+    "_xge_native/include/xnative_transfer.h": "620fe84af1c7c5f40006a65a4ca4435a5d62f2fd500b345514829e27c08dff6f",
+    "_xge_native/include/xui.h": "f31173fbd4af53d10e1a8c7a84eaee3b7547f0d6465bbe9a8fe5b5b48fcba5a4",
+    "_xge_native/include/xui_config.h": "01448ede1da13af8e8ef81ef7574f15edc88f5fa8c2312d9d8a5ede91e17f193",
+    "_xge_native/include/xui_document.h": "7062c587237e6486c9efb84ba8e5023b9346ac90e4ab6afe780ad00aa5bd6fe2",
+    "_xge_native/include/xui_document_ui.h": "e343a8600039805be3c5e481fe1d15dbcd426490ce2ad2b5dca65f78b6574bb2",
+    "_xge_native/native/libgcc.a": "d9c2e7a0c0f3dbfc0ff2dec153b0d044cf49d66d64d736b5d1db8ae25ca9c75e",
+    "_xge_native/native/libxge3_static.a": "e817ba7c72066aab0f9f6192d5983209a97e02d1b02047cc0288ee3ba20f63d5",
+    "_xge_native/src/bootstrap.xl": "54d74fc4d81f9bade0f3fa358178073d885425e59bda9fd64cd79073c8bc19f0",
+    "_xge_native/src/runtime.c": "946b3b483fcbbb0aa12b7347da5891f0cd4626ea949e4747e0dc6af4dd19c3c7",
+    "_xge_native/src/transfer.c": "20f0b5820b6d46c77364935724575a9d885965c3e636c1138019384d289a4eb7",
+    "_xge_native/xlang.package.json": "1eaeb234fabc1925e8d9b0544ea51a43f6aed601fa5462c3beb7b37857153876",
+    "xge/README.md": "06aee0877de62a7b1d8cb4ffc3f0ab2dacdab2cea345cf48dd27be9b0f56b11e",
+    "xge/examples/README.md": "59e85ec519654b0521c314eb5000b007b3069da4bb5c29a374a1f5e645a4ae44",
+    "xge/examples/games/2048.xl": "fa304a8dff29703203bd373f5a2d8f006ec000b0fab700d1d38e54d950a8965d",
+    "xge/examples/games/README.md": "2e18b6690921c27c67b42cde3f89c689627997c7582a9808e3e40b78ea1b76e8",
+    "xge/examples/games/_game.xl": "a8ee5cbc704f9a5a80393d6e49bdfb0878f70b804105ddf4ce240b504af1600f",
+    "xge/examples/games/assets/beep.wav": "0b65db53cde150433db8db4f91c269314356cc303f760e0d1fa29f685294c136",
+    "xge/examples/games/assets/boom.wav": "2c5dcb6cfa9742cbb2d495af9d6263d2c38de885d32dd39648216bb5af3c9931",
+    "xge/examples/games/assets/coin.wav": "bad1366f989145798790f082cccce7fe787483cd58521f92a95f9ec2f50b27fa",
+    "xge/examples/games/assets/laser.wav": "11bbcb2ec0f5ef933ad1eab98519044e8502552c0264b6d0b5551eb2d63e8b7b",
+    "xge/examples/games/assets/player.png": "c827984ecaff2b810b92e5e16f52c9843fdca1fb1dd458e040e10cd62653b014",
+    "xge/examples/games/asteroids.xl": "4af3f3bc7311a66bbf320e406c9c9bc2d7403ae773f797c85406b9e58914d8c6",
+    "xge/examples/games/breakout.xl": "5b44274a92e79bce17c96a4f319905dd14b748ba38428533c0dfc63825bda2ea",
+    "xge/examples/games/flappy.xl": "a53dadf91ada70d9c101fcd7322cda4121153f2ef702b67802cd16dc6822aa5a",
+    "xge/examples/games/minesweeper.xl": "9b2f83ab70c76262aafbb089762a27b83d063081abb8c3cf1abbdbca9d0f41c1",
+    "xge/examples/games/pong.xl": "e2dc4beb3cdedc0777d6e15f91ae81b5f339eec33200bce07187795b592f49b7",
+    "xge/examples/games/run_games.bat": "ef7c1dba2d29000d787c9315781dd0c1bd2ed49eb525e6cb76f9de25202c1b14",
+    "xge/examples/games/shooter.xl": "913d0d01ddac8d96130547336adde67771e788bf1892a569ef708d4ecd3e528e",
+    "xge/examples/games/snake.xl": "4fe57484af05a3fccccaa5e635b129354cc9cb906a642616527be1175dccdf90",
+    "xge/examples/games/tetris.xl": "79243f51b72aea72ed9a786b730291ebd6626bc941dae6afa2ea9824da8039b1",
+    "xge/examples/gui_shapes.xl": "33ecf635b267e67ccb59e8c0852e41d1ed97f8bed4cd4e50fe5fa94271c7079f",
+    "xge/examples/headless_frame.xl": "f609b4f2e45cd4c571f2ee83c0e11b000afdd46b8c6123e5fe758115dfb77ef9",
+    "xge/examples/headless_shape.xl": "604881d4b0ebe27fe57de79387a7aba33c6dd6d15d3d1096774d3d02c67a053b",
+    "xge/include/xge3_audio_resources.h": "2130421e55959f2806bfa978d9a40547b848d949cf985efabbe585e45c2ae533",
+    "xge/include/xge3_init.h": "8d54b3283309d6924b2cdc78d50d363be84b65b11c4830b680b2c9b2875d291e",
+    "xge/src/audio_resources.xl": "547ccc19a52260978984381283016621ff4d84d41921105ffa7bd7ead73f813d",
+    "xge/src/bootstrap.xl": "42fe4b3c2fa7d7deb10f418bb1d7c9a350d20e98dd9533d3f07e4b17988e2557",
+    "xge/src/callbacks.xl": "2d74e1a1ecec9850d658478af08086e5708186c407add0c988b371e22d89cd45",
+    "xge/src/constants.xl": "8f65b793351547d449cde57ca88ad66e132d2fe45595a199e88afd6c01faae71",
+    "xge/src/data_object.xl": "f30dd0685a04afeb806aa4f83c82ccd697424d9b1e991c17a0f8f7d5870deaad",
+    "xge/src/functions.xl": "f73d8e37a57c4c566a18da0b03de8ea7953a9cee025bf83ea93345b17e7fbb48",
+    "xge/src/records.xl": "75f43f39f0aeb5bff6c3aab420dd6ac2b1eca47dcadb05d78deeacce8287a521",
+    "xge/src/resources.xl": "c3cb5d5c65ae0dfe39bbf5c8ebf67b6a350ba9282d54f6bf9f49ff0fea38e0fb",
+    "xge/src/shapes.xl": "a20456775c010ebd2f6a15ea7c5b8faaa5dadd27bf68ff8e5c299953ccdd893e",
+    "xge/xlang.package.json": "0852aeb3f740ec81621ca11ffff96301e8ab3e364f61ad0fc5ed86151ee9846b",
+    "xui/README.md": "786701e1fc9094f743c89d04530eea3750d2b30c1c737480f839de2dbe5fdb7f",
+    "xui/examples/README.md": "cdf74835ce2f477a7bd5d94e7d29c93da9a703c5e54d82ba86f846b16ebd483d",
+    "xui/examples/_window.xl": "7f1006bfeb3f0a3bee7110992c38483de821959ad6f7227f57b761167ee6fd05",
+    "xui/examples/accordion.xl": "0b195f8bffe24b14a43b9003e92bfc2ae55128eaf2e47bd79ff0eb9a5c151d61",
+    "xui/examples/all_controls.xl": "09b9ddf4e1b952855f792d2c559f24ebcebe81373a25bd4e8d640af547bce8f8",
+    "xui/examples/basic.xl": "42b3453e21274031fd5f61088d8588eebf6196680327c73c703da46f9980af03",
+    "xui/examples/breadcrumb.xl": "530cec1d152534c083ee1d5f8636dac6b0bce158549bf6da092e25c0fbf3dd8e",
+    "xui/examples/button.xl": "c7052ce68dc14b64e5fd741c7591fe6f7cba1f46f2e474b55c2281c03cc32d6f",
+    "xui/examples/canvas.xl": "7f92423cd324cf356b3f3a478205a0f3c8dfaef54112f8c7ff863bba01426bb1",
+    "xui/examples/carousel.xl": "33ac05ec248cda8dce34bfa8ed8b61751d538a46e0e6dc9a47897578516752fe",
+    "xui/examples/cascader.xl": "0499b4a1c0ee5ac91a0c5904c5d369ee9c577123a24b30b4e9951d00ace04769",
+    "xui/examples/chart.xl": "2c35fb9f6996a47d1f4420b3f1a7e455d947acffa6905f8dfe80267d6bcecc12",
+    "xui/examples/checkbox.xl": "214c832ac4ba881e25c06bc0c4fff22970afce5bfd45548076d2b75b037892b4",
+    "xui/examples/checkcard.xl": "e51c4eb6e617cc56e7f8435c1f6b7d97fb422d8c6f14069c1f5e8bbeeee0ceb6",
+    "xui/examples/codeedit.xl": "2fffc2d753ee05719f9591721c6c3449fe48220c465f72f24f9a3ffbaaccd72d",
+    "xui/examples/colorpicker.xl": "cec55e170b4d42f93f686ed1dc9f2dbbb96b5712c27ed8dcf0952a9192cef24a",
+    "xui/examples/combobox.xl": "f4ef4931d6d8f8b21b005b60b87adc09611f2afa0286d835f48a2ff64866dcf1",
+    "xui/examples/context_graph.xl": "9fd9f8bf138d594e7eea94790e111ddd6f931319a2b2ed3a5fc6887aa09da8fa",
+    "xui/examples/data_object.xl": "aeb5d7aea9b84aacbc8aa39cc5b72fefe293d84e551be169eb5beaf6e7f25bd8",
+    "xui/examples/datepicker.xl": "3d57823c782bfdcd2acda2286b851a95654852a27bfe99949779dc96a4fda862",
+    "xui/examples/dockpanel.xl": "2847e35a12687ac83c27846e234abbfa7d587d70208cf14c6ae36386e8879a7d",
+    "xui/examples/document_model.xl": "389200d7c7f895cb013aefeaccc6268500781c48433a2239e2779b8ab74c04d8",
+    "xui/examples/document_ui_headless.xl": "c309d7306d9d013a3bbbef9be1c0f7aa637dc0049e448e65cc31fe4381cff447",
+    "xui/examples/documenteditor.xl": "03f575bdcaee661d5e9d656e9980ad58400fcf6d700982ce673d2ad128d9ffd0",
+    "xui/examples/filedialog.xl": "d6dcfc9d9d4308f34a01714a3b5260f71d46d3e461af7cfba4a0f34acb854966",
+    "xui/examples/gallery.json": "8cf1ad92adb99990d88704145e3faaba4bf84da9821ea8dd28ce51057d1b4d68",
+    "xui/examples/gui_surface_draw.xl": "ebb6be42659e9642817ee4de05837fff32ca08daa472caa0f058db5b3b6f5ca2",
+    "xui/examples/headless_cell.xl": "31a25b1f3711641a1a461c3ce684c841f9669274fa1cdb0c316b51b7331bf895",
+    "xui/examples/headless_path.xl": "4dccfd0d0360ac4ee4df4c781c36fa2642776ffbae7a3ceba0ce4a9e0e224c33",
+    "xui/examples/hyperlink.xl": "1c4b5dce4a4f49949b48030398f90cf01e9b1516357458e5146f13e9b65c3115",
+    "xui/examples/image.xl": "b35ebc8819c61ce5dd8e065ec663f74efc8d9e9506aa694d8a108190201b7ffc",
+    "xui/examples/input.xl": "32c5a497eb9b55e0c73c92427c0cc0e23f1d6989b0413ecf2c1f198474803d43",
+    "xui/examples/inventorygrid.xl": "20bb74abbdc85b7d9dda435078185657b44bb91e6ae770bb51a9f7cc87074a89",
+    "xui/examples/label.xl": "817a98de5cfb8649e54897d6f6b6e60bc39ad208eb7ce5487db0b4dfec803aed",
+    "xui/examples/listview.xl": "7779b857b3367db07556a19ab36722f3b018a6a91b8de79f0446fe4d03b20c68",
+    "xui/examples/manager_lifetime.xl": "b5c21bf0fee83fc863e3ba6d72dd9b292c7a6a92230e4d957a3ff313c0422ca9",
+    "xui/examples/menu.xl": "9b97d1e128a2fb11d62f34f5b95060f1fc5477dfa1ba4c31f20ffdd9fa2769b1",
+    "xui/examples/menubar.xl": "222be9b0bc5090dbba849ce0703aa95ca872549ddddf824b9580942b0667142f",
+    "xui/examples/messagelist.xl": "9c8ace2fc8b78517d67685057a74310803749ab558f6146151d90cc2f0d486fb",
+    "xui/examples/msgbox.xl": "989a81635827e3e7e5e7ca0f9e12a239b3e0cc7c965130523c42085891e86a85",
+    "xui/examples/msgtip.xl": "d06af3616dedf6597d1e4fdf90347c066ed106f5d0ff9bbe045071fad4ffb8a5",
+    "xui/examples/numericinput.xl": "a77938ba81cda7710a76d49d58e573e8e7af5a26d56373f1a955d904baad9c39",
+    "xui/examples/page.xl": "f1eb0d0b4f814638270429d4b5f869ee08685380293dd642ce5352ab9e2bd5c5",
+    "xui/examples/panel.xl": "a05182ca06c9d21e8c640a890f3cca15715f02ab036f3b5bfcdfbf197f6df2ca",
+    "xui/examples/popup.xl": "669efcfa938ea100d232482c11fb84ecc625bdd5f7078310d809692d5a6ece31",
+    "xui/examples/progress.xl": "240396ad22b8c4fd4c105988b6348da06d816ebf072f362e871b708611bf5b08",
+    "xui/examples/propertygrid.xl": "d41d7620e37b3a650ef533688b44e147e598ca30db2c819f04ad91ca73375914",
+    "xui/examples/qrcode.xl": "5882d2c8788f1ce2d7af625ff1d7f49a48932c697cd1b423b88b6e8549b3e6db",
+    "xui/examples/radio.xl": "b05c57f9e1c97353d7d82fd0454e1db2142071589e409c2eb3003241fad5c4bf",
+    "xui/examples/radiogroup.xl": "63eb777d68ebbdb418f8ab6a7dc8cd9e541774485b664ea21bd83591110d4c21",
+    "xui/examples/rangeslider.xl": "025f9573dc1621bf19a167da68f65a7a08e321265d10c3bb8ea3811d79c0deda",
+    "xui/examples/richtext.xl": "b71b9211d4a0f23f1e1d479e9ca3cc8e6e16f0cffc6ea5f8b7306a47f9232421",
+    "xui/examples/run_xui_examples.bat": "4fa4f3cf1f0caa34a260895a56d8b0f9c6429bf776cb963706608b4637b4f6fc",
+    "xui/examples/scrollbar.xl": "7efdb11667ce2fd74d6844be84520e36edc4c56d0221b30c631fc49c59e6d0ca",
+    "xui/examples/scrollframe.xl": "a715edb4fdf0f839b6f24fc1728974d3699d487449718bb76e735e21a481cd32",
+    "xui/examples/scrollview.xl": "157ad802d1929378a68911d17302eb58c87d670019483a397983eae203fb93f2",
+    "xui/examples/separator.xl": "7b724179f3699e7ddef03fc94871b8e449aa84620434b4303d2a5bde5762f334",
+    "xui/examples/slider.xl": "406c9cb7c539295c4711720ffd2aab2582d4876875b267c6cafb798d73fbc7d6",
+    "xui/examples/splitlayout.xl": "22156dbd43fcb5aaa7cbae11d55fee023a0d9c23ba81e584a15efc614868d565",
+    "xui/examples/statusbar.xl": "ef68fb0f39c281a6562c3bfad7aac7b0d0ff7a864cc25c2c907e2d3f2672c3b4",
+    "xui/examples/stepbar.xl": "e265755d64a04465b149e4eb189661e954722a3bb0f334867bff32d9cad101fd",
+    "xui/examples/tablegrid.xl": "bb90175f99e86617e01fa391fac9718b14b78a235e2adaa1c1ce3c293fcc759d",
+    "xui/examples/tableview.xl": "d7b1a7e384ef2c1854cb0eba49ee56ce6f712fc59b9ddd64ee2ea5c37e56ca86",
+    "xui/examples/tabs.xl": "b96fb256353db09734fa33f120d079a3a4b8cd9428b7cfa0b2211415713816c9",
+    "xui/examples/taginput.xl": "11a46d949b6ba9d8493d76347a9a50b703055550107e7c25b17738b972d85532",
+    "xui/examples/terminal.xl": "76d06b8054b0a1a043cff764b58b92a1fc3b89ba81edeaaeceeb74d5dc62f37f",
+    "xui/examples/textedit.xl": "eca5b790134ca4b08610cb07a0d96d0e93d10ba80851c6dac98760fa20e9c65b",
+    "xui/examples/timeline.xl": "6adaf803f1bd18e24c878032c621a25e8b594b8a8e86ce589f2cf04947db6862",
+    "xui/examples/toast.xl": "379d0bb604cc4c58f1d37386fdb8548500fe57a5cb4ee546fb99d9393f2b3467",
+    "xui/examples/toggle.xl": "0043fbabae66bfbf9e48c83a838ca7830686589feba28875677fa44e9add94f0",
+    "xui/examples/toolbar.xl": "914a87cd0f54caaaccc1b017b52cf856cb9ce3b8f245bb785a8cc7101be4a38f",
+    "xui/examples/treeview.xl": "ce92e734f8e0162f51db21eea10c62b7d32948c35e7e15ad5a5ed6d1eac036f0",
+    "xui/examples/virtualjoystick.xl": "518dcda9e388cf9ab6195e5f5ecaf8f688b06a0b6623c5101e7408440553e6f2",
+    "xui/examples/webview.xl": "371d413e3b5498e759f810b219add3ad288c10b02dfdb23c2e3df1c67a3b4e2d",
+    "xui/examples/widget.xl": "750a6a4272edee60111977cc6bf6723c5aea8a09b1a5fda5762a9f41b95704e6",
+    "xui/examples/window.xl": "439999e6066dbe5883c7cab5d8b16fc378e957acde7fc41015c48851da39e87b",
+    "xui/src/bootstrap.xl": "42fe4b3c2fa7d7deb10f418bb1d7c9a350d20e98dd9533d3f07e4b17988e2557",
+    "xui/src/cell.xl": "852cb65a590028fb42af45c07724e99976b915a49c5a1bdfa386e2cedeb6162b",
+    "xui/src/constants.xl": "f0d61a167dd8ea9fece030353c715795f340285a830c0fcc5a75a72ad83b1476",
+    "xui/src/data_object.xl": "32710274d0f069fae960966e0d2d1b94c01a9d27155963fdf95bddf65a5a8774",
+    "xui/src/document.xl": "97747c52db93cb015e0fb3d1065c10752350946bb6062d66709f6011c1a647b5",
+    "xui/src/document_records.xl": "aa6e9d36ce9ebd07317aa616e32cfb35f19206365b345543d22f3350f5b27727",
+    "xui/src/document_ui.xl": "aedb3c2ab8f7c81b54622d61e6e41b6fdaf4081f547e8b2102ea0bafce784bad",
+    "xui/src/document_ui_message_methods.inc": "b274aaae51cb778920a0d7d91162a743440ac90a10bd2e3c43e53be9bb550f40",
+    "xui/src/document_ui_records.xl": "e1733bd428c6ef3a6534f60ccb95988b502de0819ce65d3f43847e4cad4480e3",
+    "xui/src/draw.xl": "522236365e3d98a35062a200386b62f5b89df9b6738b59679ad81050cd4eb14a",
+    "xui/src/managed.xl": "90450541c0abe9f2dc53950154ea40a44915e68b1fd502ff6462c5b37072c7fc",
+    "xui/src/managers.xl": "cc696cc23bbffca5d5e102b6368e87af766742575b1477fd75b54b1247d6290f",
+    "xui/src/proxy.xl": "ef323ba00bfd49431be35a927f4f4088d52620c1fbb2c7c3f6d75e06a136cec5",
+    "xui/src/records.xl": "f42623d9961a4474cfbadd206cf66e5f24c1151bf9763084cfcd623272532779",
+    "xui/src/text_shape.xl": "a4e463dcbe2aa1ec8bfac3f008eeda7590b7635ae519c720af142e39ff3496f7",
+    "xui/xlang.package.json": "8ff144ff6cc2bd42ec76bdfe7e6f5fee4d1ed3567adac08989e2638810994e50"
+  },
+  "loadlibs": [],
+  "runtimeSymbols": [
+    "xl6ErrorScopeTryPropagateFailureV1",
+    "xl6CallbackFailureRecordV1",
+    "xl6ForeignStatusFailureV1"
+  ],
+  "resourceCost": null,
+  "compilerSupport": {
+    "artifacts": [
+      {
+        "path": "/usr/lib/gcc/x86_64-linux-gnu/15/libgcc.a",
+        "sha256": "d9c2e7a0c0f3dbfc0ff2dec153b0d044cf49d66d64d736b5d1db8ae25ca9c75e",
+        "role": "compiler-runtime-ELF-archive"
+      }
+    ],
+    "archives": [],
+    "notices": [],
+    "crt": "glibc",
+    "glibcHeaders": [
+      2,
+      43
+    ],
+    "licenses": {
+      "libgcc": "GPL-3.0-or-later WITH GCC-exception-3.1"
+    },
+    "upstream": {
+      "gcc": "https://gcc.gnu.org/releases.html"
+    },
+    "boundary": "Archive is built against the recorded glibc headers, including actual __isoc23_* and fortified *_chk symbol dependencies. Older libc availability is not implied."
+  },
+  "runtimeDependencies": [],
+  "shippingDelivery": false,
+  "limitations": [
+    "single/xge.c remains an aggregate; final reachability is per compiler section.",
+    "No selected feature is removed; staging runs no GPU/window/browser/OS clipboard action.",
+    "Three common resident error/callback requirements remain explicit; per-policy source splitting is a separate optimization."
+  ]
+}

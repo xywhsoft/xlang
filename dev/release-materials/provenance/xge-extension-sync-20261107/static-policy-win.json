@@ -1,0 +1,143 @@
+{
+  "passed": true,
+  "scope": "Compile the real private policy in static mode; reject old compiler schema.",
+  "results": [
+    {
+      "name": "old-schema-rejected",
+      "command": [
+        "gcc",
+        "-std=c11",
+        "-O2",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-IF:\\xlang-validation\\xge-extension-sync-20261107\\packages-static-win\\_xge_native\\include",
+        "-ID:\\GIT\\x-lang\\release\\win_x64\\include",
+        "-ID:\\GIT\\x-lang\\src\\runtime",
+        "-fsyntax-only",
+        "F:\\xlang-validation\\xge-extension-sync-20261107\\static-policy-win\\header.c"
+      ],
+      "exitCode": 1,
+      "passed": true,
+      "logSha256": "0fa53c8605de27cc69a7108849248c178daf977e3dfbffe6c617ec77eac3fda5"
+    },
+    {
+      "name": "header-c11",
+      "command": [
+        "gcc",
+        "-x",
+        "c",
+        "-std=c11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-DXL6_NATIVE_LINK_SCHEMA=1",
+        "-O2",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-IF:\\xlang-validation\\xge-extension-sync-20261107\\packages-static-win\\_xge_native\\include",
+        "-ID:\\GIT\\x-lang\\release\\win_x64\\include",
+        "-ID:\\GIT\\x-lang\\src\\runtime",
+        "-fsyntax-only",
+        "F:\\xlang-validation\\xge-extension-sync-20261107\\static-policy-win\\header.c"
+      ],
+      "exitCode": 0,
+      "passed": true,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "header-c++11",
+      "command": [
+        "g++",
+        "-x",
+        "c++",
+        "-std=c++11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-DXL6_NATIVE_LINK_SCHEMA=1",
+        "-O2",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-IF:\\xlang-validation\\xge-extension-sync-20261107\\packages-static-win\\_xge_native\\include",
+        "-ID:\\GIT\\x-lang\\release\\win_x64\\include",
+        "-ID:\\GIT\\x-lang\\src\\runtime",
+        "-fsyntax-only",
+        "F:\\xlang-validation\\xge-extension-sync-20261107\\static-policy-win\\header.c"
+      ],
+      "exitCode": 0,
+      "passed": true,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "header-c++17",
+      "command": [
+        "g++",
+        "-x",
+        "c++",
+        "-std=c++17",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-DXL6_NATIVE_LINK_SCHEMA=1",
+        "-O2",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-IF:\\xlang-validation\\xge-extension-sync-20261107\\packages-static-win\\_xge_native\\include",
+        "-ID:\\GIT\\x-lang\\release\\win_x64\\include",
+        "-ID:\\GIT\\x-lang\\src\\runtime",
+        "-fsyntax-only",
+        "F:\\xlang-validation\\xge-extension-sync-20261107\\static-policy-win\\header.c"
+      ],
+      "exitCode": 0,
+      "passed": true,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "real-policy",
+      "command": [
+        "gcc",
+        "-std=c11",
+        "-DXL6_NATIVE_LINK_SCHEMA=1",
+        "-O2",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-IF:\\xlang-validation\\xge-extension-sync-20261107\\packages-static-win\\_xge_native\\include",
+        "-ID:\\GIT\\x-lang\\release\\win_x64\\include",
+        "-ID:\\GIT\\x-lang\\src\\runtime",
+        "-c",
+        "F:\\xlang-validation\\xge-extension-sync-20261107\\packages-static-win\\_xge_native\\src\\runtime.c",
+        "-o",
+        "F:\\xlang-validation\\xge-extension-sync-20261107\\static-policy-win\\runtime.o"
+      ],
+      "exitCode": 0,
+      "passed": true,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "policy-undefined",
+      "command": [
+        "nm",
+        "-u",
+        "F:\\xlang-validation\\xge-extension-sync-20261107\\static-policy-win\\runtime.o"
+      ],
+      "exitCode": 0,
+      "passed": true,
+      "logSha256": "083867beb456336460381c6d42b5a7b4b1a09dde8232eb96f3c73c6f3284053b"
+    }
+  ],
+  "inputs": {
+    "D:\\GIT\\x-lang\\tools\\check_xge3_static_packages.py": "9b941c5bf1b9ccb9cfba5777612d5091ae53c0e50850a11dda7f9259227c8742",
+    "F:\\xlang-validation\\xge-extension-sync-20261107\\packages-static-win\\_xge_native\\xlang.package.json": "6ff0aba04c9a40b70f881574b5c08cde16c9b2528627c4e2cc25bd48f3eef7d2",
+    "F:\\xlang-validation\\xge-extension-sync-20261107\\packages-static-win\\_xge_native\\src\\runtime.c": "946b3b483fcbbb0aa12b7347da5891f0cd4626ea949e4747e0dc6af4dd19c3c7",
+    "F:\\xlang-validation\\xge-extension-sync-20261107\\packages-static-win\\_xge_native\\include\\xge3_runtime.h": "603723af0fef2d749d3093ff1b12c516cd3d1600bdae9914add404e4db967483"
+  },
+  "residentSymbols": [
+    "xl6CallbackFailureRecordV1",
+    "xl6ErrorScopeTryPropagateFailureV1",
+    "xl6ForeignStatusFailureV1"
+  ],
+  "notes": [
+    "No linked XGE DLL or generated host-XRT slot is used by this static policy object.",
+    "This compile/header audit is separate from actual compiler/TCC link qualification."
+  ]
+}

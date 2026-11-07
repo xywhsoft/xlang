@@ -2,7 +2,7 @@
 #define XGE_STATIC_XRT_CONTRACT_H
 #include "xge_host_xrt.h"
 #include <wchar.h>
-#define XGE_STATIC_XRT_HEADER_SHA256 "4c02cd11accbd06c4e5de725b1f19bacbf44a92e4791a3819ba45540bc6e4f5d"
+#define XGE_STATIC_XRT_HEADER_SHA256 "41bc24579f4b3207b0434755ca23dd06481af90c05f71e9b365848cf9a7c12d1"
 struct XgeStaticScalarAlignment {char c;void*p;double d;};
 struct XgeStaticViewAlignment {char c;xstrview v;};
 #if defined(_WIN64) && defined(__x86_64__)

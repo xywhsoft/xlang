@@ -1,0 +1,21 @@
+{
+  "rows": [
+    {
+      "name": "jit",
+      "exitCode": 0,
+      "logSha256": "05cd23a86dc28fcf5a761ccbd759744f6bd98bec2bd7fb7dc18ea53c8815a15d"
+    },
+    {
+      "name": "auto-aot",
+      "exitCode": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "auto-aot-run",
+      "exitCode": 0,
+      "logSha256": "05cd23a86dc28fcf5a761ccbd759744f6bd98bec2bd7fb7dc18ea53c8815a15d"
+    }
+  ],
+  "complete": true,
+  "passed": true
+}

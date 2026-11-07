@@ -1,3 +1,6 @@
+#if !defined(XL6_NATIVE_LINK_SCHEMA) || XL6_NATIVE_LINK_SCHEMA != 1
+#error "Static XGE requires matching native-link compiler schema 1"
+#endif
 #ifndef XGE_BUILD_CONFIG_H
 #define XGE_BUILD_CONFIG_H
 #define XGE_BUILD_API_MAJOR 3
@@ -103,5 +106,5 @@
 #define XGE_XRT_HOST 1
 #define XGE_STATIC_BUILD 1
 #define XL6_XGE_STATIC 1
-#define XGE_BUILD_ABI_FINGERPRINT UINT64_C(0xd4709be3ccc2a262)
+#define XGE_BUILD_ABI_FINGERPRINT UINT64_C(0x0b52af9f1ca54ad8)
 #endif

@@ -104,7 +104,7 @@
     "version": "3.0.0",
     "platform": "win_x64",
     "linkage": "static",
-    "sha256": "b6dad8a5f489c4cb774e85ac38c1d192930cfb7e67a2a381467e13c8d44c77e4",
+    "sha256": "e710edc6380e26632b952af15d667a6d2bc091f154c60310791b698c27868044",
     "variants": {
       "dynamic": "../../../../extlibs/_xge_native/xlang.package.json"
     }
