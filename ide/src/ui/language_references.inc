@@ -57,7 +57,7 @@ static void destroyReferences(xide_language_view* v)
 static int referencesBusy(xide_language_view* v)
 {struct xide_reference_view* r=v ? v->references : NULL;return r && (r->pending || r->request || r->decoding || r->usable);}
 static void referencesCapabilities(xide_language_view* v,const xvalue* cap)
-{bool supported=false,proof=false;const xvalue* provider=get(cap,"referencesProvider");v->references->supported=((xrtValueGetBool(provider,&supported) && supported) || xrtValueType(provider)==XVALUE_OBJECT) && xrtValueGetBool(get(get(cap,"experimental"),"referenceInputProof"),&proof) && proof;}
+{bool supported=false,proof=false;const xvalue* provider=get(cap,"referencesProvider");v->references->supported=((xideMetaBool(provider,&supported) && supported) || xrtValueType(provider)==XVALUE_OBJECT) && xideMetaBool(get(get(cap,"experimental"),"referenceInputProof"),&proof) && proof;}
 int xideLanguageViewCanFindReferences(xide_app* app)
 {xide_language_view* v=app ? app->languageView : NULL;return v && v->references && !v->busy && canSnapshot(app,app->activeDocument) && xideTaskViewCompiler(app) && (!v->initialized || (v->onDemandSupported && v->references->supported));}
 static int referenceShow(xide_app* app)

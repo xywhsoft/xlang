@@ -167,3 +167,11 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 # Exact-byte unified IDE settings sources and acceptance records.
 /dev/release-materials/sources/ide-settings-20261107/** -text -whitespace
 /dev/release-materials/provenance/ide-settings-20261107/** -text -whitespace
+
+# Exact-byte IDE settings-menu repair sources and acceptance.
+/dev/release-materials/sources/ide-settings-menu-20261107/** -text -whitespace
+/dev/release-materials/provenance/ide-settings-menu-20261107/** -text -whitespace
+/ide/third_party/xge_sdk/provenance/compatibility-patches/diff/** -text -whitespace
+/ide/third_party/xge_sdk/provenance/compatibility-patches/payload/** -text -whitespace
+/ide/data/xge-sdk-materials.json -text -whitespace
+/ide/third_party/xge_sdk/extlibs/xrt/xrt.h -text -whitespace

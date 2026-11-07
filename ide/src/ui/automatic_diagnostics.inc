@@ -29,7 +29,7 @@ struct xide_automatic_diagnostics {
  double maxOwnerMs;
 };
 static const char* automaticText(const xvalue* value)
-{xstrview s={0};return xrtValueGetString(value,&s) ? s.Data : NULL;}
+{xstrview s={0};return xideMetaString(value,&s) ? s.Data : NULL;}
 static void automaticRelease(void* value)
 {
  automatic_cleanup* c=value;

@@ -201,6 +201,9 @@ XRT_API xfuture* __xrtTaskGroupSubmitUntilCancel(
 );
 #endif
 #if (defined(XRT_FEATURE_TASK_NET))
+XRT_API xfuture* __xrtTaskNetUntilDataPolicyV1(xnetengine* pEngine, uint64 iAffinity,
+    ptr pData, xcancel* pCancel, const xtasknetdataownershipv1* pDataPolicy,
+    const xfuturepayloadownershipv1* pResultPolicy, double iDeadline);
 XRT_API xfuture* __xrtTaskNetUntil(
 	xnetengine* pEngine,
 	uint64 iAffinity,

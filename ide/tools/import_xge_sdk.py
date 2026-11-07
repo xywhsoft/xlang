@@ -27,6 +27,33 @@ def write(path, value):
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + '\n', encoding='utf8')
 
 
+def runtime_declarations(source):
+    """Use the declarations from the exact single header compiled into XGE.
+
+    An upstream xrt_decl.h can lag behind local native ownership additions.
+    The single header closes all declaration guards before its implementation;
+    do not mix that runtime with a declaration snapshot from another revision.
+    """
+    raw = (source / 'extlibs/xrt/xrt.h').read_bytes()
+    marker = b'#if defined(XRT_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION_ONCE)'
+    if raw.count(marker) != 1:
+        raise ValueError('Unrecognized XRT single-header implementation boundary')
+    prefix = raw.split(marker, 1)[0]
+    depth = 0
+    for line in prefix.decode('utf8').splitlines():
+        if re.match(r'^\s*#\s*(if|ifdef|ifndef)\b', line):
+            depth += 1
+        elif re.match(r'^\s*#\s*endif\b', line):
+            depth -= 1
+        if depth < 0:
+            raise ValueError('Invalid XRT declaration guards')
+    if depth:
+        raise ValueError('XRT declaration boundary has unclosed guards')
+    # Public IDE headers also include <xrt.h> directly. Select the same runtime
+    # profile before the single-header guards can freeze feature selection.
+    return b'#include "xrt_config.h"\n' + prefix
+
+
 def stage(args):
     source, build, output = args.source.resolve(), args.build.resolve(), args.output.absolute()
     if output.exists() or output.is_relative_to(source):
@@ -48,6 +75,7 @@ def stage(args):
         if not (build / name).is_file():
             raise ValueError('Missing SDK output: ' + name)
     entrypoints = ['build.bat', 'tools/build/build.py', 'tools/build/build_dll.bat',
+                   'tools/build/host_xrt.py', 'tools/build/relink.py',
                    'config/profiles.json', 'config/modules.json', 'config/includes.rsp',
                    'platform/windows/xge.rc', 'res/xge/icons/xx_dll.ico']
     entrypoints += [f'extlibs/xrt/extlibs/{p}/config/modules.json'
@@ -119,7 +147,15 @@ def stage(args):
         copy(source / name, Path(name).name)
     for name in ('xge.dll', 'xge.lib', 'xge_build_config.h'):
         copy(build / name, name)
-    for original, target in [('xrt_decl.h', 'xrt.h'), ('xrt_config.h', 'xrt_config.h'), ('upstream.json', 'upstream.json')]:
+    declarations = runtime_declarations(source)
+    (sdk / 'extlibs/xrt').mkdir(parents=True, exist_ok=True)
+    (sdk / 'extlibs/xrt/xrt.h').write_bytes(declarations)
+    write(sdk / 'provenance/xrt-declarations.json', dict(
+        schemaVersion=1, source='extlibs/xrt/xrt.h', sourceSha256=sha(source / 'extlibs/xrt/xrt.h'),
+        operation='matched xrt_config.h include followed by exact byte prefix before the single implementation boundary',
+        output='extlibs/xrt/xrt.h', outputSha256=hashlib.sha256(declarations).hexdigest(),
+        outputBytes=len(declarations), upstreamDeclarationSha256=sha(source / 'extlibs/xrt/xrt_decl.h')))
+    for original, target in [('xrt_config.h', 'xrt_config.h'), ('upstream.json', 'upstream.json')]:
         copy(source / 'extlibs/xrt' / original, 'extlibs/xrt/' + target)
     for name in sorted(dependencies):
         if name.startswith('extlibs/xrt/') and name.endswith('.h') and name not in (

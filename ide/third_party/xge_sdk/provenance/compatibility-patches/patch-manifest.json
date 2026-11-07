@@ -1,43 +1,21 @@
 {
   "format": "xlang-ide-xge-source-patches-1",
-  "baseCommit": "6176f6f8d6ce36c9253f0fb5b8459a65b7a985d1",
-  "reason": "Retain IDE Unicode escape validation, indexed background indicators, stable wrapped scrolling/caret and XRT process-tree cleanup; rebased on current upstream transactional annotation semantics",
-  "publicHeadersChanged": false,
+  "baseCommit": "4d402c08428dd412e50b172979bc370547a52f9b",
+  "purpose": "Latest committed table-view source requires the upstream pending focus-resolver declaration and implementation. Applied only the necessary two-file prerequisite; upstream worktree is untouched.",
   "files": [
     {
-      "path": "src/xui/controls/xui_find.c",
-      "upstreamSha256": "69fbc6f26789dc76bd9e7452c900bfcb71b09088b683b65b10b940dbbb6afd22",
-      "sha256": "119950af38e3d0d1617d1b666d2d046b7b2d8d360e0cf60b99b8b7aa91983832",
-      "payload": "xui_find.c",
-      "diff": "xui_find.patch"
+      "path": "src/xui/core/xui_internal.h",
+      "upstreamSha256": "7abd07b91f6232cc10704ba006f945b279228d6e581c0157cab5426713890832",
+      "sha256": "3b2a1a730a1d8d536759b6d919baf8a484fc42ac38cf255d4f783f6f885ab40f",
+      "payload": "payload/src/xui/core/xui_internal.h",
+      "diff": "diff/src/xui/core/xui_internal.h.diff"
     },
     {
-      "path": "src/xui/code/xui_code_edit.c",
-      "upstreamSha256": "f5de6bd0d5c1ddbe80d8a71fd80f49a3cf0e999da4375bf0b0b1016139f39db1",
-      "sha256": "943ae32753216072fc348b4eae6deb52c1441f8b1da85e0b977fa68c4b57d401",
-      "payload": "xui_code_edit.c",
-      "diff": "xui_code_edit.patch"
-    },
-    {
-      "path": "src/xui/code/xui_code_annotation.c",
-      "upstreamSha256": "b0568d9d2a99261244b4e50253fa483ab70f62f348af240fabd1fea85193a25f",
-      "sha256": "3bd2b3e67c77d6915aa2df0b5df62451e88ca1d025cb7dddc42eaf619d3f4105",
-      "payload": "xui_code_annotation.c",
-      "diff": "xui_code_annotation.patch"
-    },
-    {
-      "path": "extlibs/xrt/xrt.h",
-      "upstreamSha256": "a222542a4abe652ee92cd28f6de21d6fa7a76398d04c03c6b24b45329c57d1a3",
-      "sha256": "095a852f390a83e7adef52e8e456634298f40245b7a36ec1e55b138e91143e16",
-      "payload": "xrt.h",
-      "diff": "xrt.h.patch"
-    },
-    {
-      "path": "extlibs/xrt/upstream.json",
-      "upstreamSha256": "024b84f195ac98a5bbb71fbdfb60492bf20cc239e38fbcd96065e46268cd36df",
-      "sha256": "31451c4e78a4359dcd809394873231369108208b23e63f93e21df9bfa960de6a",
-      "payload": "upstream.json",
-      "diff": "upstream.json.patch"
+      "path": "src/xui/accessibility/xui_accessibility.c",
+      "upstreamSha256": "cae1c01a327f9b391de40b78d5f292b26836ab94d98b2827989a95ee9cbb4a35",
+      "sha256": "fda385249bc2ca9d6fb1141059c4eb203ec13dfc417014bcfbff2c3620156737",
+      "payload": "payload/src/xui/accessibility/xui_accessibility.c",
+      "diff": "diff/src/xui/accessibility/xui_accessibility.c.diff"
     }
   ]
 }

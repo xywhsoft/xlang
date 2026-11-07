@@ -2,21 +2,25 @@
   "status": "sdk-build-finished",
   "exitCode": 0,
   "profile": "ide",
-  "source": "D:\\GIT\\x-lang\\ide\\build\\Release\\wgl-compat-20261102\\source",
-  "sourceCommit": "6176f6f8d6ce36c9253f0fb5b8459a65b7a985d1",
+  "version": "3.0.0",
+  "source": "F:\\xlang-validation\\ide-settings-menu-20261107\\xge",
+  "sourceCommit": "4d402c08428dd412e50b172979bc370547a52f9b",
   "sourceUnchanged": true,
+  "sourceArchiveSha256": "622750bb1856faba892d423d615a9fbee3191464d83f4168f523775c91fc7f02",
   "wholeSdkWerror": false,
+  "compiler": "gcc.exe (GCC) 16.2.0",
   "upstreamBuild": {
     "api_major": 3,
+    "public_abi_schema": 2,
     "profile": "ide",
     "defines": [],
     "compiler": [
-      "E:\\software\\w64devkit\\bin\\gcc.EXE",
+      "E:\\software\\w64devkit\\bin\\gcc.exe",
       [
         1790597177093716600,
         2378896
       ],
-      "gcc.EXE (GCC) 16.2.0\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
+      "gcc.exe (GCC) 16.2.0\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
     ],
     "flags": [
       "-O2",
@@ -61,13 +65,23 @@
       "-Iextlibs/xrt/extlibs/xllm-session/include",
       "-Iextlibs/xrt/extlibs/xwork/include",
       "-DXGE_ENABLE_HARFBUZZ=1",
-      "-DXGE_BUILD_ABI_FINGERPRINT=0x6e3c8d1a2377f111ULL"
+      "-DXGE_BUILD_ABI_FINGERPRINT=0x46f4b0944aeb5565ULL"
     ],
+    "source_root": "F:\\xlang-validation\\ide-settings-menu-20261107\\xge",
+    "runtime_image": "xge.dll",
+    "unstripped_image": "xge.unstripped.dll",
+    "import_library": "xge.lib",
+    "runtime_soname": null,
+    "qualified_object_build": null,
+    "xrt_mode": "embedded",
+    "xrt_host_imports": [],
+    "xrt_host_header_sha256": null,
     "features": [
       "XGE_ENABLE_2D",
       "XGE_ENABLE_AUDIO",
       "XGE_ENABLE_EMOJI",
       "XGE_ENABLE_HARFBUZZ",
+      "XGE_ENABLE_INPUT_ACTIONS",
       "XGE_ENABLE_PARTICLES",
       "XGE_ENABLE_SHAPE_EX",
       "XGE_ENABLE_SVG",
@@ -145,6 +159,7 @@
       "src/xui/core/xui_core.c",
       "src/xui/accessibility/xui_native_accessibility.c",
       "src/xui/core/xui_widget.c",
+      "src/xui/core/xui_callback_owned.c",
       "src/xui/core/xui_layout.c",
       "src/xui/core/xui_input.c",
       "src/xui/core/xui_icon.c",
@@ -185,7 +200,9 @@
       "src/xui/controls/xui_statusbar.c",
       "src/xui/controls/xui_accordion.c",
       "src/xui/controls/xui_list_view.c",
+      "src/xui/controls/xui_table_cell_output.c",
       "src/xui/controls/xui_table_view.c",
+      "src/xui/controls/xui_table_grid_config_output.c",
       "src/xui/controls/xui_table_grid.c",
       "src/xui/controls/xui_tree_view.c",
       "src/xui/controls/xui_tabs.c",
@@ -231,6 +248,9 @@
       "src/xui/code/xui_code_search.c",
       "src/xui/code/xui_code_layout.c",
       "src/xui/code/xui_code_edit.c",
+      "src/xui/core/xui_proxy_resource.c",
+      "src/xui/core/xui_owned_resource_slots.c",
+      "src/xui/core/xui_owned_manager.c",
       "src/xui/core/xui_proxy_xge.c",
       "src/xui/core/xui_edit.c",
       "src/xui/core/xui_drag_drop.c",
@@ -250,6 +270,7 @@
       "src/xui/document/xui_webview.c",
       "src/xui/document/xui_document_store.c",
       "src/xui/document/xui_document.c",
+      "src/xui/document/xui_document_owned.c",
       "src/xui/document/xui_document_schema.c",
       "src/xui/document/xui_document_position.c",
       "src/xui/document/xui_document_range.c",
@@ -306,16 +327,14 @@
       "extlibs/xrt/extlibs/xwork/src/work/xwork_python.c"
     ],
     "compiled": [
-      "single/xge.c",
-      "modules/xlayout/xlayout.c",
       "src/xui/core/xui_core.c",
       "src/xui/accessibility/xui_native_accessibility.c",
       "src/xui/core/xui_widget.c",
+      "src/xui/core/xui_callback_owned.c",
       "src/xui/core/xui_layout.c",
       "src/xui/core/xui_input.c",
       "src/xui/core/xui_icon.c",
       "src/xui/core/xui_assets.c",
-      "src/xui/core/xui_builtin_atlas.c",
       "src/xui/core/xui_text.c",
       "src/xui/controls/xui_label.c",
       "src/xui/controls/xui_hyperlink.c",
@@ -351,7 +370,9 @@
       "src/xui/controls/xui_statusbar.c",
       "src/xui/controls/xui_accordion.c",
       "src/xui/controls/xui_list_view.c",
+      "src/xui/controls/xui_table_cell_output.c",
       "src/xui/controls/xui_table_view.c",
+      "src/xui/controls/xui_table_grid_config_output.c",
       "src/xui/controls/xui_table_grid.c",
       "src/xui/controls/xui_tree_view.c",
       "src/xui/controls/xui_tabs.c",
@@ -397,6 +418,9 @@
       "src/xui/code/xui_code_search.c",
       "src/xui/code/xui_code_layout.c",
       "src/xui/code/xui_code_edit.c",
+      "src/xui/core/xui_proxy_resource.c",
+      "src/xui/core/xui_owned_resource_slots.c",
+      "src/xui/core/xui_owned_manager.c",
       "src/xui/core/xui_proxy_xge.c",
       "src/xui/core/xui_edit.c",
       "src/xui/core/xui_drag_drop.c",
@@ -416,6 +440,7 @@
       "src/xui/document/xui_webview.c",
       "src/xui/document/xui_document_store.c",
       "src/xui/document/xui_document.c",
+      "src/xui/document/xui_document_owned.c",
       "src/xui/document/xui_document_schema.c",
       "src/xui/document/xui_document_position.c",
       "src/xui/document/xui_document_range.c",
@@ -472,26 +497,55 @@
       "extlibs/xrt/extlibs/xwork/src/work/xwork_python.c",
       "extlibs/harfbuzz/src/harfbuzz.cc"
     ],
-    "reused": [],
+    "reused": [
+      "single/xge.c",
+      "modules/xlayout/xlayout.c",
+      "src/xui/core/xui_builtin_atlas.c"
+    ],
     "linked": true,
     "runtime_dependencies": [],
-    "seconds": 261.06148749997374,
-    "runtime_bytes": 10559422,
-    "unstripped_bytes": 12699219
+    "seconds": 172.06437809999989,
+    "runtime_bytes": 11128377,
+    "unstripped_bytes": 13397001
   },
-  "overlay": "provenance/wgl-context-v1/overlay.json",
+  "compatibilityPatches": {
+    "format": "xlang-ide-xge-source-patches-1",
+    "baseCommit": "4d402c08428dd412e50b172979bc370547a52f9b",
+    "purpose": "Latest committed table-view source requires the upstream pending focus-resolver declaration and implementation. Applied only the necessary two-file prerequisite; upstream worktree is untouched.",
+    "files": [
+      {
+        "path": "src/xui/core/xui_internal.h",
+        "upstreamSha256": "7abd07b91f6232cc10704ba006f945b279228d6e581c0157cab5426713890832",
+        "sha256": "3b2a1a730a1d8d536759b6d919baf8a484fc42ac38cf255d4f783f6f885ab40f",
+        "payload": "payload/src/xui/core/xui_internal.h",
+        "diff": "diff/src/xui/core/xui_internal.h.diff"
+      },
+      {
+        "path": "src/xui/accessibility/xui_accessibility.c",
+        "upstreamSha256": "cae1c01a327f9b391de40b78d5f292b26836ab94d98b2827989a95ee9cbb4a35",
+        "sha256": "fda385249bc2ca9d6fb1141059c4eb203ec13dfc417014bcfbff2c3620156737",
+        "payload": "payload/src/xui/accessibility/xui_accessibility.c",
+        "diff": "diff/src/xui/accessibility/xui_accessibility.c.diff"
+      }
+    ]
+  },
+  "initialCleanBuild": {
+    "status": "failed",
+    "sourceCommit": "4d402c08428dd412e50b172979bc370547a52f9b",
+    "reason": "xui_table_view.c refers to xuiInternalAccessibilitySetFocusResolver which was absent from this commit. Both declaration and implementation exist in the upstream worktree; necessary prerequisite recorded as explicit two-file patch."
+  },
   "outputs": [
     {
-      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\wgl-compat-20261102\\source\\build\\ide\\xge.dll",
-      "sha256": "2ff1ed234bd2e7e7b756700da1de550d39935be0cbb9e5af886138090ae65ec6"
+      "path": "F:\\xlang-validation\\ide-settings-menu-20261107\\xge\\build\\ide\\xge.dll",
+      "sha256": "2192273f1345a84c124ab8faabb5f96e361ec0bb0ca2086c35d3068fd0a2346f"
     },
     {
-      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\wgl-compat-20261102\\source\\build\\ide\\xge.lib",
-      "sha256": "855690a42f50fbb282371e2ac053da5ac1ffebd58ace50e19790450fc6b2672a"
+      "path": "F:\\xlang-validation\\ide-settings-menu-20261107\\xge\\build\\ide\\xge.lib",
+      "sha256": "0b40663a9c4f8ba807998d1c74973c03489e7cf1760a1a1d272a955f444a0726"
     },
     {
-      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\wgl-compat-20261102\\source\\build\\ide\\xge_build_config.h",
-      "sha256": "2e9714db7f7d61dadb56eaf2c5535409acda3eca5c1312e1e3834cb9e4c19fce"
+      "path": "F:\\xlang-validation\\ide-settings-menu-20261107\\xge\\build\\ide\\xge_build_config.h",
+      "sha256": "58d7afa38b950159fc111d4acc9b108940987b687498d086bb251b86510e7b02"
     }
   ]
 }
