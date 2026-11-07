@@ -41,7 +41,7 @@ static void svqueue(xide_completion_view* v,xide_document* d,int offset,int kind
 void xideSignatureViewRequest(xide_app* app,xui_widget editor,int offset,int force)
 {
  xide_completion_view* v=app ? app->completionView : NULL;xide_document* d=app ? app->activeDocument : NULL;
- if(!v || !d || d->editor!=editor || !cveligible(app,d) || xuiGetFocusWidget(app->context)!=editor)return;
+ if(!v || !d || (!force && !xideSettingsOptions(&app->preferences)->signatureHelp) || d->editor!=editor || !cveligible(app,d) || xuiGetFocusWidget(app->context)!=editor)return;
  xui_code_selection_t selection={0};if(xuiCodeSelectionGetState(xuiCodeEditGetSelection(editor),&selection)!=XUI_OK || selection.iCaretOffset!=offset || selection.iAnchorOffset!=offset)return;
  signature_view* s=&v->signature;if(!force && s->wanted && s->document==d && s->version==xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(editor)) && s->offset==offset)return;
  svqueue(v,d,offset,force ? 1 : 3,0,s->wanted);
@@ -176,7 +176,7 @@ static void svinput(xide_completion_view* v,xui_widget editor,const xui_code_inp
  signature_view* s=&v->signature;xide_document* d=v->app->activeDocument;if(!d || d->editor!=editor || !cvnamed(d) || strcmp(d->language,"xlang"))return;
  int active=(s->wanted || s->resumeIme) && s->document==d && s->id==d->id;char last=event->sText && event->iTextSize>0 ? event->sText[event->iTextSize-1] : 0;
  int trigger=event->iTextSize==1 && (last=='(' || last==',') && (event->iSource==XUI_CODE_INPUT_SOURCE_KEYBOARD || event->iSource==XUI_CODE_INPUT_SOURCE_IME);
- if(!active && !trigger)return;
+ if(!active && (!trigger || !xideSettingsOptions(&v->app->preferences)->signatureHelp))return;
  int offset=event->tSelectionAfter.iCaretOffset;
 
  svqueue(v,d,offset,trigger ? 2 : 3,trigger ? last : 0,active);

@@ -13,6 +13,7 @@ int xideTaskViewSelect(xide_app* app,xide_task* task);
 int xideTaskViewShow(xide_app* app);
 int xideTaskViewJump(xide_app* app,size_t diagnostic);
 const char* xideTaskViewCompiler(xide_app* app);
+void xideTaskViewAdoptCompiler(xide_app*,char*);
 int xideTaskViewShowLanguageProblems(xide_app* app,const char* const* titles,size_t count,int activate);
 int xideTaskViewShowLanguageProblemsScoped(xide_app* app,const char* scope,const char* const* titles,size_t count,int activate);
 void xideTaskViewClearLanguageProblems(xide_app* app);

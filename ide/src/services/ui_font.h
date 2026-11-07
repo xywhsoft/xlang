@@ -4,6 +4,7 @@
 typedef struct xide_ui_layout { xui_widget widgets[64]; xui_rect_t rectangles[64]; xui_vec2_t preferred[64]; size_t count; } xide_ui_layout;
 char* xideUiFontDefaultPath(void);
 int xideUiFontStart(xide_app* app);
+int xideUiFontInstall(xide_app*,xui_font,xui_font,int);
 int xideUiFontInitialize(xide_app* app);
 int xideUiFontBindWidget(xide_app* app,xui_widget widget);
 int xideUiFontBindMenu(xide_app* app,xui_widget menu);

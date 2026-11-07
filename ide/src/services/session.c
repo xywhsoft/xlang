@@ -690,7 +690,7 @@ static void restore(xide_app* app)
     for(size_t i=0;i<xideMetaCount(configs);++i) { xide_project* p=findProject(app,xrtValueArrayGet(configs,i)); const char* config=string(xrtValueArrayGet(configs,i),"configuration",""); if(p && xideProjectFindConfiguration(p,config)) { char* value=copy(config); if(value) { free(p->activeConfiguration); p->activeConfiguration=value; } } }
     if(*project && !xideWorkspaceFindProject(&app->workspaceModel,project) && xideMetaCount(configs)) { xide_project* p=findProject(app,xrtValueArrayGet(configs,0)); if(p) xideWorkspaceViewSelectProject(app,p->id); }
     xideWorkspaceViewRefresh(app);
-    if(!app->themeExplicit) { int theme=ideThemeFind(string(root,"theme","")); if(theme>=0) xideWorkbenchApplyTheme(app,theme); }
+    if(!app->themeExplicit && xideSettingsOptions(&app->preferences)->theme<0) { int theme=ideThemeFind(string(root,"theme","")); if(theme>=0) xideWorkbenchApplyTheme(app,theme); }
     const char* query=string(root,"commandSearch",""); xideCatalogViewSearch(app,query);
     const xide_command* command=xideCatalogFind(&app->catalog,string(root,"selectedCommand","")); if(command) xideWorkbenchShowHelp(app,(int)(command-app->catalog.entries));
     xideReadingRestore(app,get(root,"reading"),0);

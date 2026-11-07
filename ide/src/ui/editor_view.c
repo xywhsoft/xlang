@@ -1,4 +1,5 @@
 #include "ui/editor_view.h"
+#include "services/preferences.h"
 #include "ui/language_view.h"
 #if XIDE_ENABLE_C_LSP
 #include "ui/c_language_view.h"
@@ -179,6 +180,7 @@ int xideEditorApplyTheme(xide_app* app)
 int xideEditorShow(xide_app* app,xide_document* document)
 {
     if(!document || !document->open) return XUI_ERROR_INVALID_ARGUMENT;
+    TRY(xidePreferencesEditor(app,document->editor,xideSettingsOptions(&app->preferences)));
     TRY(xideCatalogBindEditor(app,document->editor)); TRY(xideActionsBindEditor(app,document->editor)); TRY(xideLanguageViewBindEditor(app,document->editor)); TRY(xideCompletionViewBindEditor(app,document->editor));
 #if XIDE_ENABLE_C_LSP
  TRY(xideCCompletionViewBindEditor(app,document->editor)); TRY(xideCLanguageViewBindEditor(app,document->editor));

@@ -296,6 +296,7 @@ static int connectClient(xide_app* app,xide_document* d)
    put(options,"automaticDiagnosticsIfSupported",xrtValueBool(true));
   }
   put(experimental,"definitionInputProof",xrtValueBool(true));put(experimental,"referenceInputProof",xrtValueBool(true)); put(capabilities,"experimental",experimental); put(p,"capabilities",capabilities);
+  put(options,"diagnosticDelay",xrtValueInt(xideSettingsOptions(&app->preferences)->diagnosticDelay));
   put(options,"checkOnSave",xrtValueBool(false)); put(options,"automaticDiagnostics",xrtValueBool(false)); put(p,"initializationOptions",options);
   if(!sendMessage(v,"initialize",p,1)) { free(directory); return 0; } v->waitingInitialize=1;
  }
@@ -421,6 +422,8 @@ int xideLanguageViewCreate(xide_app* app)
  if(!v->highlightDecoder || !v->syncPlanner || !automaticCreate(v) || !QueryPerformanceFrequency(&v->highlightClock)) return XUI_ERROR_OUT_OF_MEMORY;
  int created=createOutline(app);return created==XUI_OK ? createReferences(app) : created;
 }
+void xideLanguageViewSettingsChanged(xide_app* app)
+{if(app && app->languageView){reset(app);automaticResume(app->languageView);xgeRenderRequest();}}
 void xideLanguageViewStop(xide_app* app) { if(app->languageView) {automaticPause(app->languageView); suppressHighlights(app->languageView); reset(app); } }
 void xideLanguageViewDestroy(xide_app* app)
 { xide_language_view* v=app->languageView; if(v) { xideLanguageClientStop(v->client);automaticDestroy(v); xideSyncPlannerDestroy(v->syncPlanner);xideSyncResultRelease(v->syncReady);destroyReferences(v);xideHighlightDecoderDestroy(v->highlightDecoder); xrtValueRelease(v->deferredMessage); xideHighlightResultRelease(v->highlightResult); xlsSyncDestroy(v->sync); free(v->compiler); free(v->directory); free(v->uri); free(v->path); free(v->packagePath); xrtValueRelease(v->diagnostics); xrtValueRelease(v->snapshotResult);xrtValueRelease(v->analysisCatalog); freeInputs(v); while(v->bindings) { semantic_editor_binding* next=v->bindings->next; free(v->bindings); v->bindings=next; } free(v); app->languageView=NULL; } }

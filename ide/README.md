@@ -1,5 +1,7 @@
 # xlang IDE
 
+2026-11-07：新增顶层“设置”菜单，`Ctrl+,` 打开统一设置窗口。编辑器、文档与帮助、编译器、外观、语言服务共用一份草稿；支持分类搜索、字体预览、应用／确定／取消和本页默认值。代码字体、文档字体与界面字体独立，主题和编辑器选项保存到 `release/win_x64/option/settings.json`，项目构建参数继续保存在项目配置。手工编辑 JSON 后需重启 IDE 载入；无效或冲突的配置保留原文件。源码设置与本轮原生回归记录见 `dev/release-materials/provenance/ide-settings-20261107/`。
+
 运行目录的 `sources` 与 `provenance` 已迁到仓库 [dev/release-materials](../dev/release-materials/README.md)。源码与历史记录完整保留，IDE 和引擎仍从根 `release` 运行；默认便携包将开发材料单独保存，不再装入运行 ZIP。
 
 IDE 已接入 xserver 的 `xx_exe.ico`，图标嵌入图形程序并用于窗口，构建不依赖外部路径，见 [应用图标](docs/application-icon.md)。发行只提供 `xlang_ide.exe`；图形程序仍支持有界诊断参数。字体设置页显示解析后的绝对路径，随包字体实际以相对路径保存，完整发布目录可以迁移，见 [字体与迁移](docs/font-fallback.md)。

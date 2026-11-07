@@ -29,6 +29,8 @@
 #include "services/editor_font.h"
 #include "services/ui_font.h"
 #include "ui/font_view.h"
+#include "ui/settings_view.h"
+#include "services/preferences.h"
 #include "ui/goto_view.h"
 #include "ui/recovery_view.h"
 #include "platform/path.h"
@@ -91,6 +93,9 @@ static float effectiveScale(xide_app* app)
 int xideAppCreate(xide_app* app)
 {
     xideAppLoadSettings(app);
+    const xide_settings_options* options=xideSettingsOptions(&app->preferences);
+    if(!app->themeExplicit && options->theme>=0)app->theme=options->theme;
+    if(!options->automaticDiagnostics)app->disableAutomaticDiagnostics=1;
     if (app->hidden) ShowWindow((HWND)xgePlatformNativeHandle(), SW_HIDE);
     app->dpiScale=effectiveScale(app);
     app->viewportWidth=(int)lroundf(xgeGetWidth()/app->dpiScale); app->viewportHeight=(int)lroundf(xgeGetHeight()/app->dpiScale);
@@ -104,8 +109,11 @@ int xideAppCreate(xide_app* app)
     TRY(createTarget(app, app->viewportWidth, app->viewportHeight));
     TRY(xideUiFontStart(app));
     TRY(xideEditorFontStart(app));
+    TRY(xidePreferencesStartDocument(app));
     TRY(xuiSetDefaultFont(app->context, app->uiFont));
     TRY(xideWorkbenchCreate(app)); TRY(xideUiFontInitialize(app));
+    TRY(xideCatalogViewDocumentFont(app));
+    for(int i=0;i<2;++i)TRY(xidePreferencesEditor(app,app->editors[i],options));
     /* Draw composition inline; the operating system retains candidate UI. */
     int result=xgeImeSetMode(XGE_IME_MODE_COMPOSITION);
     if(result==XGE_ERROR_UNSUPPORTED) result=xgeImeSetMode(XGE_IME_MODE_NATIVE);
@@ -135,6 +143,7 @@ int xideAppCreate(xide_app* app)
     if(app->initialRecovery && !xideRecoveryViewOpen(app)) return XUI_ERROR;
     if(app->initialUiFontSettings && !xideFontViewOpenUi(app)) return XUI_ERROR;
     if(app->initialAbout && !xideAboutViewOpen(app)) return XUI_ERROR;
+    if(app->initialSettings && !xideSettingsViewOpen(app,app->initialSettings-1))return XUI_ERROR;
     xide_model_error syncError={0}; if(!xideFileSyncStart(app,&syncError)) { xideFailureSet(&app->failure,XIDE_FAILURE_STARTUP,"model",syncError.code,syncError.message,"xideFileSyncStart"); fprintf(stderr,"file monitor startup: %s\n",syncError.message); return XUI_ERROR; }
     return xideWorkbenchApplyTheme(app, app->theme);
 }
@@ -151,12 +160,15 @@ void xideAppDestroy(xide_app* app)
     xideFileSyncStop(app);
     xideFileRebindDestroy(app->fileRebind); app->fileRebind=NULL; xrtValueRelease(app->fileRebindReading); app->fileRebindReading=NULL;
     xideRecoveryViewStop(app);
+    xideSettingsViewStop(app);
+    free(app->documentFontPath);app->documentFontPath=NULL;
     xideSettingsClear(&app->preferences); free(app->codeFontPath); app->codeFontPath=NULL; free(app->uiFontPath); app->uiFontPath=NULL;
     xideSessionDestroy(app); free(app->projectSessionPath); app->projectSessionPath=NULL;
     xideTasksDestroy(app->tasks); app->tasks=NULL;
     xideImportViewDestroy(app);
     xuiCodeFindScopeDestroy(app->editorFindScope); app->editorFindScope=NULL;
     if (app->context) { xideMessageDestroy(app); xideDialogDestroyAll(app); xideDocumentsClear(&app->documents); xuiDestroy(app->context); }
+    xideSettingsViewDestroy(app);
     xideActionsDestroy(app);
     xideAboutViewDestroy(app);
     xideMainToolbarDestroy(app);xideExecutionReset(app);
@@ -167,6 +179,7 @@ void xideAppDestroy(xide_app* app)
 #endif
  xideCompletionViewDestroy(app); xideLanguageViewDestroy(app); xideToolchainViewDestroy(app); xideFileChangesViewDestroy(app); xideRecoveryViewDestroy(app); xideFontViewDestroy(app); xideGotoViewDestroy(app); xideTemplateViewDestroy(app); xideRenameViewDestroy(app); xideResourceViewDestroy(app); xideReferencesViewDestroy(app); xideConfigurationViewDestroy(app); xideTaskViewDestroy(app); xideWorkspaceViewDestroy(app); xideWorkspaceClear(&app->workspaceModel); free(app->selectedProject); app->selectedProject=NULL;
     if (app->codeFont && app->codeFont != app->uiFont) app->proxy.fontDestroy(&app->proxy, app->codeFont);
+    if (app->documentFont && app->documentFont!=app->uiFont && app->documentFont!=app->codeFont) app->proxy.fontDestroy(&app->proxy,app->documentFont);
     if (app->uiFont) app->proxy.fontDestroy(&app->proxy, app->uiFont);
     if (app->target) app->proxy.surfaceDestroy(&app->proxy, app->target);
     xideDpiProxyDestroy(app->dpiProxy); app->dpiProxy=NULL;
@@ -205,7 +218,7 @@ static int frame(void* user)
         TRY(xuiInputViewport(app->context, (float)width, (float)height));
     }
     xideUpdatePoll(app);
-    TRY(xidePlatformHandleInput(app)); TRY(xuiDispatchPendingEvents(app->context)); xideFileDialogPoll(app); xideMessagePoll(app); xideEditorPoll(app); xideFileSyncPoll(app); xideFileChangesViewPoll(app); xideTaskViewPoll(app); xideLanguageViewPoll(app);
+    TRY(xidePlatformHandleInput(app)); TRY(xuiDispatchPendingEvents(app->context)); xideFileDialogPoll(app); xideMessagePoll(app); xideSettingsViewPoll(app); xideEditorPoll(app); xideFileSyncPoll(app); xideFileChangesViewPoll(app); xideTaskViewPoll(app); xideLanguageViewPoll(app);
 #if XIDE_ENABLE_C_LSP
  xideCLanguageViewPoll(app);
 #endif

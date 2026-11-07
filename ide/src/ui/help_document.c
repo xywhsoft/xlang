@@ -26,7 +26,7 @@ struct xide_help_view {
     help_block** blocks; size_t blockCount;
     help_chapter* chapters; size_t chapterCount;
     char** pageTitles; size_t pageCount;
-    int width,height,page,updating; size_t pendingChapter;
+    int width,height,page,updating,naturalWidth; size_t pendingChapter;
     const xide_help_document** documents; size_t documentCount;
 };
 typedef struct text_buffer { char* data; size_t size,capacity; } text_buffer;
@@ -67,7 +67,7 @@ static void clear(xide_help_view* view,int destroyWidgets)
     if(view->pageTitles) for(size_t i=0;i<view->pageCount;++i) free(view->pageTitles[i]);
     free(view->blocks); free(view->chapters); free(view->pageTitles); free(view->documents); view->documents=NULL; view->documentCount=0;
     view->blocks=NULL; view->chapters=NULL; view->pageTitles=NULL; view->blockCount=0; view->chapterCount=0; view->pageCount=0;
-    view->width=0; view->height=0; view->page=0; view->pendingChapter=SIZE_MAX;
+    view->width=0; view->height=0; view->naturalWidth=0; view->page=0; view->pendingChapter=SIZE_MAX;
 }
 static int codeWheel(xui_widget widget,const xui_event_t* event,void* user)
 {
@@ -122,8 +122,9 @@ static int addBlock(xide_help_view* view,const char* text,int heading,const char
         TRY(xuiWidgetGetEventHandler(block->editor,XUI_EVENT_POINTER_MOVE,&block->moveHandler,&block->moveUser));
         TRY(xuiWidgetSetEventHandler(block->editor,XUI_EVENT_POINTER_MOVE,codeInput,block));
     } else {
-        xui_label_desc_t label={0}; label.iSize=sizeof(label); label.pFont=view->app->uiFont; label.sText=text; label.iWrapMode=XUI_TEXT_WRAP_WORD;
-        label.iTextFlags=XUI_TEXT_ALIGN_LEFT|XUI_TEXT_ALIGN_TOP|XUI_TEXT_CLIP; label.fLineGap=4;
+        xui_label_desc_t label={0}; label.iSize=sizeof(label); label.pFont=view->app->documentFont ? view->app->documentFont : view->app->uiFont; label.sText=text; label.iWrapMode=XUI_TEXT_WRAP_WORD;
+        label.iTextFlags=XUI_TEXT_ALIGN_LEFT|XUI_TEXT_ALIGN_TOP|XUI_TEXT_CLIP; label.fLineGap=(float)xideSettingsOptions(&view->app->preferences)->documentLineGap;
+        label.iWrapMode=xideSettingsOptions(&view->app->preferences)->documentWrap ? XUI_TEXT_WRAP_WORD : XUI_TEXT_WRAP_NONE;
         TRY(xuiLabelCreate(view->app->context,&block->widget,&label)); TRY(ideThemeSetTextRole(block->widget,heading ? IDE_ACCENT : IDE_TEXT));
     }
     /* Both Label and CodeEdit paint text through the SDK cache callback.
@@ -367,6 +368,8 @@ void xideHelpApplyJump(xide_help_view* view)
     xui_rect_t target=xuiWidgetGetWorldRect(widget),content=xuiWidgetGetWorldRect(view->app->helpContent);
     xuiScrollViewSetOffset(view->app->help,0,target.fY-content.fY-12);
 }
+int xideHelpDocumentFont(xide_help_view* view)
+{if(!view)return XUI_OK;view->width=-1;view->naturalWidth=0;for(size_t i=0;i<view->blockCount;++i)if(!view->blocks[i]->code){TRY(xuiLabelSetFont(view->blocks[i]->widget,view->app->documentFont));TRY(xuiLabelSetLineGap(view->blocks[i]->widget,(float)xideSettingsOptions(&view->app->preferences)->documentLineGap));TRY(xuiLabelSetWrapMode(view->blocks[i]->widget,xideSettingsOptions(&view->app->preferences)->documentWrap ? XUI_TEXT_WRAP_WORD : XUI_TEXT_WRAP_NONE));}return XUI_OK;}
 int xideHelpUiFont(xide_help_view* view) { if(view) view->width=-1; return XUI_OK; }
 
 static xstrview readingString(const char* text) { return (xstrview){text,strlen(text)}; }
@@ -433,4 +436,11 @@ void xideHelpResetReading(xide_help_view* view)
     if(!view) return;
     view->updating=1; xuiComboBoxSetSelected(view->pages,0); if(view->page!=0 && view->chapterCount) pageItems(view,0);
     view->updating=1; xuiComboBoxSetSelected(view->navigator,-1); view->updating=0; view->pendingChapter=SIZE_MAX;
+}
+
+int xideHelpDocumentWidth(xide_help_view* view,int minimum)
+{
+ if(!view)return minimum;
+ if(!view->naturalWidth){view->naturalWidth=1;for(size_t i=0;i<view->blockCount;++i)if(!view->blocks[i]->code){xui_vec2_t size={0};if(xuiWidgetMeasureContent(view->blocks[i]->widget,(xui_vec2_t){XUI_LAYOUT_UNBOUNDED,XUI_LAYOUT_UNBOUNDED},&size)==XUI_OK && size.fX>view->naturalWidth)view->naturalWidth=(int)ceilf(size.fX);}}
+ return view->naturalWidth>minimum ? view->naturalWidth : minimum;
 }

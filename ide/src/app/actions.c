@@ -20,6 +20,7 @@
 #include "ui/toolchain_view.h"
 #include "ui/language_view.h"
 #include "ui/font_view.h"
+#include "ui/settings_view.h"
 #include "ui/recovery_view.h"
 #include "ui/file_changes_view.h"
 #include "ui/goto_view.h"
@@ -32,7 +33,7 @@ enum requirement { WORKBENCH, WORKSPACE_VIEW, WORKSPACE, NEW_PROJECT, IMPORT_VIE
     DOCUMENTS, DOCUMENT, NAMED_DOCUMENT, RENAME_DOCUMENT, DIRTY_DOCUMENTS, UNDO, REDO, WRITABLE_DOCUMENT, SELECTED_TEXT, WRITABLE_SELECTION, NONEMPTY_DOCUMENT, LINE_COMMENT, COMPLETION, SIGNATURE, GOTO_VIEW, BUILD, RUN, BUILD_FILE, TEST, STOP, INPUT, TASK_VIEW, FONT_VIEW, RECOVERY_VIEW, CHANGES_VIEW, TOOLCHAIN_VIEW, SAVED_CHECK, CURRENT_CHECK, CANCEL_CHECK, DEFINITION, HOVER, SOURCE_DECLARATION, SOURCE_DOCUMENT, FIND_REFERENCES };
 enum check_kind { NO_CHECK, THEME_CHECK, LANGUAGE_CHECK, STARTUP_CHECK };
 typedef struct action_def { xide_action_info info; enum requirement need; enum check_kind check; int (*execute)(xide_app*,int); } action_def;
-static int fontAction(xide_app* a,int id) { return id==XIDE_ACTION_UI_FONT ? xideFontViewOpenUi(a) : xideFontViewOpen(a); }
+static int fontAction(xide_app* a,int id) { return xideSettingsViewAction(a,id); }
 static int recoveryAction(xide_app* a,int id) { (void)id; return xideRecoveryViewOpen(a); }
 static int toolchainAction(xide_app* a,int id) { (void)id; return xideToolchainViewOpen(a); }
 static int resourceAction(xide_app* a,int id) { return id==XIDE_ACTION_NEW_RESOURCE ? xideResourceViewOpenNew(a) : xideResourceViewOpen(a); }
@@ -47,6 +48,13 @@ static int sourceAction(xide_app* a,int id) { return xideCatalogSourceOpen(a,id=
 #define W(id,name,title,need) A(id,name,title,NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,need,NO_CHECK,xideWorkspaceAction)
 #define E(id,name,title,chord,key,mods,need,scope,cmd) A(id,name,title,NULL,chord,key,mods,scope,cmd,need,NO_CHECK,xideEditorAction)
 static const action_def definitions[]={
+    A(XIDE_ACTION_SETTINGS,"settings.open","全部设置…",NULL,"Ctrl+,",188,XUI_MOD_CTRL,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideSettingsViewAction),
+    A(XIDE_ACTION_SETTINGS_EDITOR,"settings.editor","编辑器设置…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideSettingsViewAction),
+    A(XIDE_ACTION_SETTINGS_DOCUMENTS,"settings.documents","文档与帮助设置…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideSettingsViewAction),
+    A(XIDE_ACTION_SETTINGS_COMPILER,"settings.compiler","编译器设置…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideSettingsViewAction),
+    A(XIDE_ACTION_SETTINGS_APPEARANCE,"settings.appearance","外观设置…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideSettingsViewAction),
+    A(XIDE_ACTION_SETTINGS_LANGUAGE,"settings.language","语言服务设置…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideSettingsViewAction),
+    A(XIDE_ACTION_SETTINGS_FILE,"settings.file","打开设置文件",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideSettingsViewAction),
     A(XIDE_ACTION_ABOUT,"help.about","关于 xlang…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,aboutAction),
     A(XIDE_ACTION_UPDATE_CHECK,"help.checkUpdates","检查更新…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideUpdateAction),
     A(XIDE_ACTION_UPDATE_REPAIR,"help.repairInstallation","更新／修复安装…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideUpdateAction),
@@ -115,7 +123,7 @@ static const action_def definitions[]={
 #if XIDE_ENABLE_C_LSP
     A(XIDE_ACTION_C_SERVER,"language.cServer","选择 C 语言服务器…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideCCompletionViewAction),
 #endif
-    A(XIDE_ACTION_COMPILER,"task.compiler","选择 xlang 编译器…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,TASK_VIEW,NO_CHECK,xideTaskViewAction),
+    A(XIDE_ACTION_COMPILER,"task.compiler","选择 xlang 编译器…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,TASK_VIEW,NO_CHECK,xideSettingsViewAction),
     A(XIDE_ACTION_CLOSE_INPUT,"task.closeInput","关闭会话输入",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,INPUT,NO_CHECK,xideTaskViewAction),
     A(XIDE_ACTION_TOOLCHAIN_INFO,"task.toolchainInfo","工具链信息…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,TOOLCHAIN_VIEW,NO_CHECK,toolchainAction),
     A(XIDE_ACTION_CHECK_CURRENT,"language.check","检查当前文档（含未保存依赖）",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,CURRENT_CHECK,NO_CHECK,xideLanguageViewAction),
@@ -143,7 +151,7 @@ static const action_def* definition(int id) { for(size_t i=0;i<xideActionCount()
 const xide_action_info* xideActionFind(int id) { const action_def* d=definition(id); return d ? &d->info : NULL; }
 const xide_action_info* xideActionNamed(const char* name) { if(name) for(size_t i=0;i<xideActionCount();++i) if(!strcmp(name,definitions[i].info.name)) return &definitions[i].info; return NULL; }
 int xideActionsHasOtherModal(xide_app* a)
-{ return a && ( xideAboutViewIsOpen(a) || xideFileDialogBusy(a) || xideMessageBusy(a) || xideCatalogSourceIsOpen(a) || xideGotoViewIsOpen(a) || xideToolchainViewIsOpen(a) || xideResourceViewIsOpen(a) || xideImportViewIsOpen(a) || xideRenameViewIsOpen(a) || xideRenameViewHasPending(a) || xideTemplateViewIsOpen(a) || xideReferencesViewIsOpen(a) || xideConfigurationViewIsOpen(a) || xideFontViewIsOpen(a) || xideRecoveryViewIsOpen(a) || xideFileChangesViewIsOpen(a)); }
+{ return a && ( xideSettingsViewIsOpen(a) || xideAboutViewIsOpen(a) || xideFileDialogBusy(a) || xideMessageBusy(a) || xideCatalogSourceIsOpen(a) || xideGotoViewIsOpen(a) || xideToolchainViewIsOpen(a) || xideResourceViewIsOpen(a) || xideImportViewIsOpen(a) || xideRenameViewIsOpen(a) || xideRenameViewHasPending(a) || xideTemplateViewIsOpen(a) || xideReferencesViewIsOpen(a) || xideConfigurationViewIsOpen(a) || xideFontViewIsOpen(a) || xideRecoveryViewIsOpen(a) || xideFileChangesViewIsOpen(a)); }
 int xideActionsHasModal(xide_app* a)
 { return a && (xideUpdateIsModal(a) || xideActionsHasOtherModal(a)); }
 xide_action_state xideActionQuery(xide_app* a,int id)

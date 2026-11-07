@@ -25,6 +25,7 @@
 #include "ui/c_completion_view.h"
 #endif
 #include "ui/font_view.h"
+#include "ui/settings_view.h"
 #include "ui/goto_view.h"
 #include "ui/about_view.h"
 #include "ui/recovery_view.h"
@@ -124,14 +125,14 @@ static int createChrome(xide_app* app)
     TRY(xuiMenuBarCreate(app->context, &app->menuBar, &menu)); TRY(xuiWidgetAddChild(app->root, app->menuBar));
     const int file[]={XIDE_ACTION_NEW_FILE,XIDE_ACTION_OPEN_FILE,XIDE_ACTION_SAVE_FILE,XIDE_ACTION_SAVE_FILE_AS,XIDE_ACTION_SAVE_ALL_FILES,0,XIDE_ACTION_RENAME_FILE,XIDE_ACTION_CLOSE_FILE,XIDE_ACTION_RELOAD_FILE,0,XIDE_ACTION_NEW_WORKSPACE,XIDE_ACTION_OPEN_WORKSPACE,XIDE_ACTION_OPEN_PROJECT,XIDE_ACTION_SAVE_WORKSPACE,XIDE_ACTION_SAVE_WORKSPACE_AS};
     const int project[]={XIDE_ACTION_IMPORT_LEGACY,XIDE_ACTION_ADD_PROJECT,XIDE_ACTION_NEW_PROJECT,XIDE_ACTION_REMOVE_PROJECT,XIDE_ACTION_SET_STARTUP,XIDE_ACTION_ADD_FILE,XIDE_ACTION_REMOVE_FILE,XIDE_ACTION_RENAME_SELECTED_FILE,XIDE_ACTION_MIGRATE_PROJECT_MANIFEST,XIDE_ACTION_MIGRATE_PROJECT_DIRECTORY,XIDE_ACTION_CONFIGURATIONS,XIDE_ACTION_REFERENCES,XIDE_ACTION_RESOURCES,XIDE_ACTION_NEW_RESOURCE,0,XIDE_ACTION_BUILD_FILE,XIDE_ACTION_RUN_FILE};
-    const int view[]={XIDE_ACTION_OUTLINE,XIDE_ACTION_EDITOR_FONT,XIDE_ACTION_UI_FONT,XIDE_ACTION_RECOVERY,XIDE_ACTION_FILE_CHANGES,XIDE_ACTION_RESET,0,XIDE_ACTION_THEME_CLASSIC,XIDE_ACTION_THEME_GRAPHITE,XIDE_ACTION_THEME_PAPER,XIDE_ACTION_THEME_OCEAN};
+    const int view[]={XIDE_ACTION_OUTLINE,XIDE_ACTION_RECOVERY,XIDE_ACTION_FILE_CHANGES,XIDE_ACTION_RESET};
     const int language[]={XIDE_ACTION_LANGUAGE_C,XIDE_ACTION_LANGUAGE_XLANG,XIDE_ACTION_LANGUAGE_TEXT};
     const int build[]={XIDE_ACTION_BUILD,XIDE_ACTION_RUN,XIDE_ACTION_TEST,0,XIDE_ACTION_STOP,XIDE_ACTION_STOP_ALL,XIDE_ACTION_SHOW_TASKS,0,XIDE_ACTION_TARGET_CONFIGURATIONS,XIDE_ACTION_BUILD_FILE,XIDE_ACTION_RUN_FILE,XIDE_ACTION_CLOSE_INPUT};
-    const int tools[]={XIDE_ACTION_COMPILER,
+    const int tools[]={
 #if XIDE_ENABLE_C_LSP
 XIDE_ACTION_C_SERVER,
 #endif
-XIDE_ACTION_TOOLCHAIN_INFO,0,XIDE_ACTION_CHECK_CURRENT,XIDE_ACTION_CHECK_SAVED,XIDE_ACTION_CANCEL_CHECK};
+XIDE_ACTION_CHECK_CURRENT,XIDE_ACTION_CHECK_SAVED,XIDE_ACTION_CANCEL_CHECK};
     const int help[]={XIDE_ACTION_UPDATE_CHECK,XIDE_ACTION_UPDATE_REPAIR,0,XIDE_ACTION_XLANG,XIDE_ACTION_C,0,XIDE_ACTION_ABOUT};
     TRY(addMenu(app, "文件", file, sizeof(file)/sizeof(*file)));
     TRY(addMenu(app, "项目", project, sizeof(project)/sizeof(*project)));
@@ -139,8 +140,13 @@ XIDE_ACTION_TOOLCHAIN_INFO,0,XIDE_ACTION_CHECK_CURRENT,XIDE_ACTION_CHECK_SAVED,X
     TRY(addMenu(app,"编辑",edit,sizeof(edit)/sizeof(*edit)));
     TRY(addMenu(app,"构建",build,sizeof(build)/sizeof(*build)));
     TRY(addMenu(app, "视图", view, sizeof(view)/sizeof(*view)));
-    TRY(addMenu(app, "编辑器", language, sizeof(language)/sizeof(*language)));
+    xui_menu_desc_t modes={0};modes.iSize=sizeof(modes);modes.pFont=app->uiFont;modes.pOwner=app->editMenu;
+    TRY(xuiMenuCreate(app->context,&app->languageMenu,&modes));TRY(xideActionsMenu(app,app->languageMenu,language,sizeof(language)/sizeof(*language)));
+    xui_menu_item_t modeItem={0};modeItem.sText="语言模式";modeItem.iType=XUI_MENU_ITEM_SUBMENU;modeItem.pSubmenu=app->languageMenu;
+    if(xuiMenuAddItem(app->editMenu,&modeItem)<0)return XUI_ERROR;
     TRY(addMenu(app,"工具",tools,sizeof(tools)/sizeof(*tools)));
+    const int settings[]={XIDE_ACTION_SETTINGS,0,XIDE_ACTION_SETTINGS_EDITOR,XIDE_ACTION_SETTINGS_DOCUMENTS,XIDE_ACTION_SETTINGS_COMPILER,XIDE_ACTION_SETTINGS_APPEARANCE,XIDE_ACTION_SETTINGS_LANGUAGE,0,XIDE_ACTION_SETTINGS_FILE};
+    TRY(addMenu(app,"设置",settings,sizeof(settings)/sizeof(*settings)));
     TRY(addMenu(app,"帮助",help,sizeof(help)/sizeof(*help)));
     xui_toolbar_desc_t toolbar = {0}; toolbar.iSize = sizeof(toolbar); toolbar.pFont = app->uiFont;
     TRY(xuiToolbarCreate(app->context, &app->toolbar, &toolbar)); TRY(xuiWidgetAddChild(app->root, app->toolbar));
@@ -191,7 +197,7 @@ static int createWorkbench(xide_app* app)
 #if XIDE_ENABLE_C_LSP
  TRY(xideCCompletionViewCreate(app)); TRY(xideCLanguageViewCreate(app));
 #endif
- TRY(xideTemplateViewCreate(app)); TRY(xideImportViewCreate(app)); TRY(xideRenameViewCreate(app)); TRY(xideFontViewCreate(app)); TRY(xideRecoveryViewCreate(app)); TRY(xideFileChangesViewCreate(app)); TRY(xideGotoViewCreate(app));
+ TRY(xideTemplateViewCreate(app)); TRY(xideImportViewCreate(app)); TRY(xideRenameViewCreate(app)); TRY(xideFontViewCreate(app)); TRY(xideSettingsViewCreate(app)); TRY(xideRecoveryViewCreate(app)); TRY(xideFileChangesViewCreate(app)); TRY(xideGotoViewCreate(app));
     for (int i = 0; i < XIDE_WINDOW_COUNT; ++i) {
         TRY(xuiDockPanelAddWindow(app->dock, titles[i], app->panels[i], &app->windows[i]));
         TRY(xuiDockPanelSetWindowFlags(app->dock, app->windows[i], 1, 1));
@@ -227,7 +233,7 @@ void xideWorkbenchLayout(xide_app* app)
     xuiStatusBarSetItemWidth(app->statusBar,2,fminf((float)xideUiHeight(app,165),width*0.42f));
     xuiWidgetSetRect(app->dock, (xui_rect_t){0,menu+toolbar,width,height-menu-toolbar-status});
     xideCatalogViewLayout(app);
-    xideWorkspaceViewLayout(app); xideConfigurationViewLayout(app); xideReferencesViewLayout(app); xideResourceViewLayout(app); xideToolchainViewLayout(app); xideTemplateViewLayout(app); xideImportViewLayout(app); xideRenameViewLayout(app); xideFontViewLayout(app); xideRecoveryViewLayout(app); xideFileChangesViewLayout(app); xideGotoViewLayout(app); xideAboutViewLayout(app); xideDialogLayoutAll(app); xideFileDialogLayout(app);
+    xideWorkspaceViewLayout(app); xideConfigurationViewLayout(app); xideReferencesViewLayout(app); xideResourceViewLayout(app); xideToolchainViewLayout(app); xideTemplateViewLayout(app); xideImportViewLayout(app); xideRenameViewLayout(app); xideFontViewLayout(app); xideSettingsViewLayout(app); xideRecoveryViewLayout(app); xideFileChangesViewLayout(app); xideGotoViewLayout(app); xideAboutViewLayout(app); xideDialogLayoutAll(app); xideFileDialogLayout(app);
 }
 int xideWorkbenchApplyTheme(xide_app* app, int theme)
 {

@@ -6,6 +6,7 @@
 #include "services/editor_font.h"
 #include "ui/catalog_view.h"
 #include "ui/font_view.h"
+#include "ui/settings_view.h"
 #include "ui/goto_view.h"
 #include "ui/about_view.h"
 #include "ui/recovery_view.h"
@@ -121,6 +122,7 @@ static int bind(xide_app* app,xui_widget widget,xui_font previous,xui_font repla
         int result=metrics(app,widget,type); if(result==XUI_OK) result=setter(widget,replacement); if(result!=XUI_OK) return result;
     }
     if(type==xuiWidgetFindType(app->context,"menubar")) for(int i=0;i<xuiMenuBarGetItemCount(widget);++i) { const xui_menubar_item_t* item=xuiMenuBarGetItem(widget,i); int result=item ? bind(app,item->pMenu,previous,replacement,scan) : XUI_OK; if(result!=XUI_OK) return result; }
+    if(type==xuiWidgetFindType(app->context,"menu"))for(int i=0;i<xuiMenuGetItemCount(widget);++i){const xui_menu_item_t* item=xuiMenuGetItem(widget,i);int r=item ? bind(app,item->pSubmenu,previous,replacement,scan) : XUI_OK;if(r!=XUI_OK)return r;}
     if(type==xuiWidgetFindType(app->context,"combobox")) { int result=bind(app,xuiComboBoxGetMenuWidget(widget),previous,replacement,scan); if(result!=XUI_OK) return result; }
     xui_widget owned[3]={0};
     if(type==xuiWidgetFindType(app->context,"popup")) { owned[0]=xuiPopupGetContentWidget(widget); owned[1]=xuiPopupGetScrollViewWidget(widget); }
@@ -137,7 +139,7 @@ int xideUiFontBindWidget(xide_app* app,xui_widget widget)
     widget_scan scan={0}; int result=bind(app,widget,app->uiFont,app->uiFont,&scan);
     free(scan.items); return result;
 }
-static int install(xide_app* app,xui_font previous,xui_font replacement,int size)
+int xideUiFontInstall(xide_app* app,xui_font previous,xui_font replacement,int size)
 {
     app->uiFont=replacement; app->uiFontSize=size; int result=xuiSetDefaultFont(app->context,replacement);
     widget_scan scan={0};
@@ -145,6 +147,7 @@ static int install(xide_app* app,xui_font previous,xui_font replacement,int size
     for(int i=0;i<XIDE_WINDOW_COUNT && result==XUI_OK;++i) result=bind(app,app->panels[i],previous,replacement,&scan);
     if(result==XUI_OK) result=bind(app,xideGotoViewWindow(app),previous,replacement,&scan);
     if(result==XUI_OK) result=bind(app,xideFontViewWindow(app),previous,replacement,&scan);
+    if(result==XUI_OK) result=bind(app,xideSettingsViewWindow(app),previous,replacement,&scan);
     if(result==XUI_OK) result=bind(app,xideAboutViewWindow(app),previous,replacement,&scan);
     if(result==XUI_OK) result=bind(app,xideReferencesViewWindow(app),previous,replacement,&scan);
     if(result==XUI_OK) result=bind(app,xideResourceViewWindow(app),previous,replacement,&scan);
@@ -163,7 +166,7 @@ static int install(xide_app* app,xui_font previous,xui_font replacement,int size
     if(result==XUI_OK) { xideCatalogViewLayout(app); xideWorkspaceViewLayout(app); result=xuiLayout(app->context); }
     return result;
 }
-int xideUiFontInitialize(xide_app* app) { return install(app,app->uiFont,app->uiFont,app->uiFontSize); }
+int xideUiFontInitialize(xide_app* app) { return xideUiFontInstall(app,app->uiFont,app->uiFont,app->uiFontSize); }
 typedef struct ui_scroll { xui_widget widget; int kind; float x,y; } ui_scroll;
 typedef struct ui_scrolls { ui_scroll* items; size_t count,capacity; widget_scan scan; } ui_scrolls;
 static int retainScroll(xide_app* app,xui_widget widget,ui_scrolls* list)
@@ -220,9 +223,9 @@ int xideUiFontApply(xide_app* app,const char* path,int size,xide_model_error* er
     xvalue* reading=retained ? xideReadingCapture(app,NULL) : NULL;
     if(!retained || !reading) { xrtValueRelease(reading); free(scroll.items); free(scroll.scan.items); app->proxy.fontDestroy(&app->proxy,replacement); free(resolved); return fail(error,XIDE_MODEL_IO,"Cannot retain reading positions while changing fonts."); }
     xui_font previous=app->uiFont; int previousSize=app->uiFontSize;
-    int result=install(app,previous,replacement,size); int saved=result==XUI_OK && xideSettingsSetUiFont(&app->preferences,resolved,size,error);
+    int result=xideUiFontInstall(app,previous,replacement,size); int saved=result==XUI_OK && xideSettingsSetUiFont(&app->preferences,resolved,size,error);
     if(!saved) {
-        int restored=install(app,replacement,previous,previousSize); if(restored!=XUI_OK) app->frameError=restored;
+        int restored=xideUiFontInstall(app,replacement,previous,previousSize); if(restored!=XUI_OK) app->frameError=restored;
         restoreScroll(&scroll); xideReadingRestore(app,reading,1); xrtValueRelease(reading); free(scroll.items); free(scroll.scan.items);
         app->proxy.fontDestroy(&app->proxy,replacement); free(resolved);
         if(result!=XUI_OK) return fail(error,XIDE_MODEL_INVALID,"Cannot bind the new interface font to the workbench.");

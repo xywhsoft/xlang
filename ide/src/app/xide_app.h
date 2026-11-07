@@ -32,6 +32,7 @@ typedef struct xide_rename_view xide_rename_view;
 typedef struct xide_catalog_view xide_catalog_view;
 typedef struct xide_session xide_session;
 typedef struct xide_font_view xide_font_view;
+typedef struct xide_settings_view xide_settings_view;
 typedef struct xide_goto_view xide_goto_view;
 typedef struct xide_recovery_view xide_recovery_view;
 typedef struct xide_file_sync xide_file_sync;
@@ -60,9 +61,10 @@ typedef struct xide_app {
     int initialAbout;
     xide_dpi_proxy* dpiProxy; float dpiScale,dpiOverride; int highDpi;
     xide_file_sync* fileSync; xide_file_changes_view* fileChangesView;
+    xide_settings_view* settingsView;
     xide_font_view* fontView; xide_goto_view* gotoView; xide_recovery_view* recoveryView; int initialRecovery;
     xide_settings preferences; int preferencesInitialized;
-    char *codeFontPath,*uiFontPath; int codeFontSize,uiFontSize,initialFontSettings,initialUiFontSettings;
+    char *codeFontPath,*uiFontPath,*documentFontPath; int codeFontSize,uiFontSize,documentFontSize,initialFontSettings,initialUiFontSettings,initialSettings;
     xide_session* session;
     const char* sessionRoot; char* projectSessionPath;
     int noSession,themeExplicit,sessionSwitchConfirmed,windowSizeExplicit;
@@ -98,7 +100,7 @@ typedef struct xide_app {
     xui_context context;
     xui_proxy_t proxy;
     xui_surface target;
-    xui_font uiFont, codeFont;
+    xui_font uiFont, codeFont, documentFont;
     xui_widget root, menuBar, toolbar, statusBar, dock;
     xui_widget commands, workspace, properties, editors[2], help, helpContent;
     xui_widget helpTitle, helpDescription, helpSignature, helpParameters, helpReturn, helpExample;
