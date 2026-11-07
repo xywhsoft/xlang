@@ -1,0 +1,17 @@
+{
+  "format": "xlang-ide-build-invocation-1",
+  "compiler": "D:/GIT/x-lang/ide/build/Release/dock-tabs-20261107/runtime/.settings-task-helper.exe",
+  "directory": "D:/GIT/x-lang/ide/build/Release/dock-tabs-20261107/native-r1/actions_test/actions-69b58d4c-17d2-41fa-beb8-461024035923",
+  "artifact": "D:/GIT/x-lang/ide/build/Release/dock-tabs-20261107/native-r1/actions_test/actions-69b58d4c-17d2-41fa-beb8-461024035923/build/.xlang-ide-build/4394d2cf-4807-44e8-a905-f0df966bf98b/program.exe",
+  "receipt": "D:/GIT/x-lang/ide/build/Release/dock-tabs-20261107/native-r1/actions_test/actions-69b58d4c-17d2-41fa-beb8-461024035923/build/.xlang-ide-build/4394d2cf-4807-44e8-a905-f0df966bf98b/inputs.json",
+  "arguments": [
+    "build",
+    "D:/GIT/x-lang/ide/build/Release/dock-tabs-20261107/native-r1/actions_test/actions-69b58d4c-17d2-41fa-beb8-461024035923/build/.xlang-ide-build/4394d2cf-4807-44e8-a905-f0df966bf98b/request.xlp",
+    "-o",
+    "D:/GIT/x-lang/ide/build/Release/dock-tabs-20261107/native-r1/actions_test/actions-69b58d4c-17d2-41fa-beb8-461024035923/build/.xlang-ide-build/4394d2cf-4807-44e8-a905-f0df966bf98b/program.exe"
+  ],
+  "XLANG_PACKAGE_PATH": null,
+  "compilerSha256": "e6b6402ede92cad87eb6cce51a3c667338dd359db63f848dc9bda48ea3b63f7f",
+  "frontendSha256": "2241fcd462980fc40cbd6c47ce9347d537bababc93225cb6d2a2d36b9b978797",
+  "runtimeSha256": "215d6b3c87704c745ec609eb07e718a52708ad7c13436294f2f662a56169be13"
+}

@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "sourceRevision": "117d152e5d72db3d8191c5ed1d6cccd0276bb152",
+  "gui": {
+    "path": "dev/release-materials/sources/ide-dock-tabs-20261107/ide-source.zip",
+    "sha256": "07e4466afb2ab270779d7c5d5b80672d1d3930788353a43b0f529c94b57af7f3",
+    "bytes": 1157541
+  },
+  "guiFiles": {
+    "path": "dev/release-materials/sources/ide-dock-tabs-20261107/ide-files.json",
+    "sha256": "92c5f38a68b7405f41c232fc4597a263d3e51b5c923a1bef2c194b43cf6bebdf",
+    "bytes": 65236
+  },
+  "xge": {
+    "path": "dev/release-materials/sources/ide-dock-tabs-20261107/xge-source-closure.zip",
+    "sha256": "c2f167b43b3fd572063a7173171d76ddc023b739425bb682176a0fd8b91a39aa",
+    "bytes": 10285816
+  },
+  "xgeFiles": {
+    "path": "dev/release-materials/sources/ide-dock-tabs-20261107/xge-source-files.json",
+    "sha256": "33003d88d1de2f5719159a28db756274c1041d9eaca35569c477f18b46575e65",
+    "bytes": 183534
+  },
+  "sdkManifest": {
+    "path": "ide/third_party/xge_sdk/sdk_manifest.json",
+    "sha256": "87e83148e6d058471cab302416096916a622ea829aff98b332f076d5fe3bb752",
+    "bytes": 11615
+  },
+  "sourceScope": "Committed GUI baseline with native Dock tab navigation enabled; concurrent language-server/frontend work excluded. Exact XGE IDE-profile source closure at 1312f035 plus the three existing GL3.3/WGL startup compatibility files.",
+  "optimization": "-O2",
+  "rebuild": "Overlay ide-source.zip on sourceRevision and use its matched SDK. Extract the XGE closure separately and build the IDE profile. Historical build scripts retain absolute validation paths."
+}

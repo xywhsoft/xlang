@@ -1,0 +1,8 @@
+D:\GIT\x-lang\ide\build\Release\dock-tabs-20261107\source\ide\tests\dock_tabs_view_test.c: In function 'main':
+D:\GIT\x-lang\ide\build\Release\dock-tabs-20261107\source\ide\tests\dock_tabs_view_test.c:75:5: error: this 'if' clause does not guard... [-Werror=misleading-indentation]
+   75 |     if(argc!=2)return 2;dock_fixture f={0};f.directory=argv[1];
+      |     ^~
+D:\GIT\x-lang\ide\build\Release\dock-tabs-20261107\source\ide\tests\dock_tabs_view_test.c:75:25: note: ...this statement, but the latter is misleadingly indented as if it were guarded by the 'if'
+   75 |     if(argc!=2)return 2;dock_fixture f={0};f.directory=argv[1];
+      |                         ^~~~~~~~~~~~
+cc1.exe: all warnings being treated as errors

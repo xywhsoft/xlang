@@ -1,0 +1,43 @@
+{
+  "format": "xlang-ide-settings-1",
+  "future": 7,
+  "documents": {
+    "futureDocument": 11,
+    "font": {
+      "path": "D:/GIT/x-lang/ide/build/Release/dock-tabs-20261107/runtime/data/fonts/Consolas-with-Yahei_Nerd_Font.ttf",
+      "size": 20
+    },
+    "lineGap": 4,
+    "wordWrap": true
+  },
+  "editor": {
+    "font": {
+      "futureFont": 9,
+      "path": "D:/GIT/x-lang/ide/build/Release/dock-tabs-20261107/runtime/data/fonts/Consolas-with-Yahei_Nerd_Font.ttf",
+      "size": 16
+    },
+    "tabColumns": 4,
+    "indentColumns": 4,
+    "expandTabs": false,
+    "lineNumbers": true,
+    "foldMargin": true,
+    "minimap": true,
+    "wordWrap": false
+  },
+  "ui": {
+    "font": {
+      "path": "D:/GIT/x-lang/ide/build/Release/dock-tabs-20261107/runtime/data/fonts/Consolas-with-Yahei_Nerd_Font.ttf",
+      "size": 16
+    },
+    "theme": "warm-white"
+  },
+  "languageService": {
+    "automaticDiagnostics": false,
+    "diagnosticDelay": 75,
+    "completion": false,
+    "signatureHelp": false
+  },
+  "toolchain": {
+    "compiler": "D:/GIT/x-lang/ide/build/Release/dock-tabs-20261107/runtime/xl.exe"
+  }
+}

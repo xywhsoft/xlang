@@ -1,0 +1,99 @@
+{
+  "schema": 1,
+  "date": "2026-11-07",
+  "status": "passed",
+  "sourceRevision": "117d152e5d72db3d8191c5ed1d6cccd0276bb152",
+  "previousEngineCommit": "4d402c08428dd412e50b172979bc370547a52f9b",
+  "engineCommit": "1312f03546d8def9e4ddf169881f7ba44a1438e2",
+  "cause": "Previously delivered XGE baseline preceded the upstream tab overflow navigation commit.",
+  "change": "Refresh matched XGE DLL/SDK and explicitly enable xuiDockPanelSetTabScrollButtonsVisible when creating the IDE Dock.",
+  "behavior": {
+    "arrows": "Only needed directions appear when tabs overflow; scrolling does not switch the active document.",
+    "list": "Existing pane option menu exposes the complete window list.",
+    "stateReload": "Enabled navigation survives Dock state reload."
+  },
+  "engineBuild": {
+    "translationUnits": 173,
+    "sourceFiles": 789,
+    "optimization": "-O2",
+    "preservedStartupCompatibility": "OpenGL 3.3/WGL checked startup",
+    "buildInfo": {
+      "size": 32,
+      "api_major": 3,
+      "api_minor": 0,
+      "api_patch": 0,
+      "foundation_revision": 1,
+      "features": 1021,
+      "abi_fingerprint": 11640390866017095177
+    },
+    "sdkManifest": {
+      "path": "ide/third_party/xge_sdk/sdk_manifest.json",
+      "sha256": "87e83148e6d058471cab302416096916a622ea829aff98b332f076d5fe3bb752",
+      "bytes": 11615
+    }
+  },
+  "guiBuild": {
+    "translationUnits": 106,
+    "optimization": "-O2",
+    "record": {
+      "path": "dev/release-materials/provenance/ide-dock-tabs-20261107/build.json",
+      "sha256": "0d7cf5a90431456a0876f4e77998346499c0f357067981f363826505021ea0c3",
+      "bytes": 141534
+    },
+    "sourceScope": "Committed baseline plus owned Dock initialization change; unrelated frontend/LS work excluded."
+  },
+  "acceptance": {
+    "path": "dev/release-materials/provenance/ide-dock-tabs-20261107/acceptance.json",
+    "sha256": "2d886506a8a1c2f93054c8f20f8271a043217b787d98afc4ec30a08150540312",
+    "bytes": 2467
+  },
+  "publishedNative": {
+    "path": "dev/release-materials/provenance/ide-dock-tabs-20261107/published-native/report.json",
+    "sha256": "bdf5fd28cddad9da4756fa58d309cd648658ca01f0de90bcd3fdb0fb5c516615",
+    "bytes": 41429
+  },
+  "publishedFont": {
+    "path": "dev/release-materials/provenance/ide-dock-tabs-20261107/published-font/report.json",
+    "sha256": "3f43abcc10fbb823d3f5af27619c0e70e440f36039768ab3341f6cd3a40030fe",
+    "bytes": 14375
+  },
+  "publishedGui": {
+    "path": "dev/release-materials/provenance/ide-dock-tabs-20261107/published-gui/report.json",
+    "sha256": "12c7ffc604f341054602066569e3ab46738fe57400927438ad88212e5559d542",
+    "bytes": 2566
+  },
+  "sdkVerification": {
+    "path": "dev/release-materials/provenance/ide-dock-tabs-20261107/sdk-verification.log",
+    "sha256": "2e70d45bcfb3263b49d172f5045a3088024820c058628a1cbf9186dcfc4d6180",
+    "bytes": 111
+  },
+  "sourceMaterials": {
+    "path": "dev/release-materials/sources/ide-dock-tabs-20261107/manifest.json",
+    "sha256": "7412cabd244298961fac8844035fda77276e8a46f9bd462161de026a59d5a691",
+    "bytes": 1570
+  },
+  "products": [
+    {
+      "path": "release/win_x64/xlang_ide.exe",
+      "sha256": "a70520fa97a6b6faab084cecb23f7c24229e6be6361ed902282c522a1bbf7c5e",
+      "bytes": 1851121
+    },
+    {
+      "path": "release/win_x64/xge.dll",
+      "sha256": "b415e78d21f8c8b0d8fcb86924169dd35d595d29951391c102892b00399718ff",
+      "bytes": 11149369
+    }
+  ],
+  "protected": {
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "a5feede784f0a5cb1a829c2e362de57e9278b55cec1a11b796cf4b6e78831bbc",
+    "xl.dll": "215d6b3c87704c745ec609eb07e718a52708ad7c13436294f2f662a56169be13",
+    "xlc.dll": "2241fcd462980fc40cbd6c47ce9347d537bababc93225cb6d2a2d36b9b978797",
+    "data/commands.json": "6079cecd10c3f2713622a2af7c030834524f3f502f804806e3f6210a34e4a1ae",
+    "data/catalog-sources/index.json": "4c2447f3d201d59c8cf77a96a9fc4ed99711d111bcda6280b5031431ef74d57f",
+    "option/settings.json": "bfd76ef743b6a205d1f8e600cd32bd2d048d63b2f7f1fb670a45e04824fa9a6f"
+  },
+  "userSettingsPreserved": true,
+  "userSessionValidatedViaCopy": true,
+  "externalPublishPerformed": false
+}

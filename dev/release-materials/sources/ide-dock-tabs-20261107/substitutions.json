@@ -1,0 +1,177 @@
+[
+  {
+    "path": "src/platform/settings_options.inc",
+    "old": "\"paper\",\"ocean\"",
+    "new": "\"warm-white\",\"ocean\""
+  },
+  {
+    "path": "src/app/xide_app.h",
+    "old": "typedef struct xide_font_view xide_font_view;",
+    "new": "typedef struct xide_font_view xide_font_view;\ntypedef struct xide_settings_view xide_settings_view;"
+  },
+  {
+    "path": "src/app/xide_app.h",
+    "old": "xide_font_view* fontView;",
+    "new": "xide_settings_view* settingsView;\n    xide_font_view* fontView;"
+  },
+  {
+    "path": "src/app/xide_app.h",
+    "old": "char *codeFontPath,*uiFontPath; int codeFontSize,uiFontSize,initialFontSettings,initialUiFontSettings;",
+    "new": "char *codeFontPath,*uiFontPath,*documentFontPath; int codeFontSize,uiFontSize,documentFontSize,initialFontSettings,initialUiFontSettings,initialSettings;"
+  },
+  {
+    "path": "src/app/xide_app.h",
+    "old": "xui_font uiFont, codeFont;",
+    "new": "xui_font uiFont, codeFont, documentFont;"
+  },
+  {
+    "path": "src/services/editor_font.c",
+    "old": "static int install(xide_app* app,xui_font font)",
+    "new": "int xideEditorFontInstall(xide_app* app,xui_font font)"
+  },
+  {
+    "path": "src/services/editor_font.c",
+    "old": "int result=install(app,font);",
+    "new": "int result=xideEditorFontInstall(app,font);"
+  },
+  {
+    "path": "src/services/editor_font.c",
+    "old": "int restored=install(app,previous);",
+    "new": "int restored=xideEditorFontInstall(app,previous);"
+  },
+  {
+    "path": "src/services/editor_font.h",
+    "old": "int xideEditorFontStart(xide_app* app);",
+    "new": "int xideEditorFontStart(xide_app* app);\nint xideEditorFontInstall(xide_app*,xui_font);"
+  },
+  {
+    "path": "src/services/ui_font.c",
+    "old": "static int install(xide_app* app,xui_font previous,xui_font replacement,int size)",
+    "new": "int xideUiFontInstall(xide_app* app,xui_font previous,xui_font replacement,int size)"
+  },
+  {
+    "path": "src/services/ui_font.h",
+    "old": "int xideUiFontStart(xide_app* app);",
+    "new": "int xideUiFontStart(xide_app* app);\nint xideUiFontInstall(xide_app*,xui_font,xui_font,int);"
+  },
+  {
+    "path": "src/ui/task_view.h",
+    "old": "const char* xideTaskViewCompiler(xide_app* app);",
+    "new": "const char* xideTaskViewCompiler(xide_app* app);\nvoid xideTaskViewAdoptCompiler(xide_app*,char*);"
+  },
+  {
+    "path": "src/ui/task_view.c",
+    "old": "const char* xideTaskViewCompiler(xide_app* app)",
+    "new": "void xideTaskViewAdoptCompiler(xide_app* app,char* compiler)\n{if(app->taskView){free(app->taskView->compiler);app->taskView->compiler=compiler;}else free(compiler);}\nconst char* xideTaskViewCompiler(xide_app* app)"
+  },
+  {
+    "path": "src/services/session.c",
+    "old": "if(!app->themeExplicit) { int theme=",
+    "new": "if(!app->themeExplicit && xideSettingsOptions(&app->preferences)->theme<0) { int theme="
+  },
+  {
+    "path": "src/ui/editor_view.c",
+    "old": "#include \"ui/editor_view.h\"",
+    "new": "#include \"ui/editor_view.h\"\n#include \"services/preferences.h\""
+  },
+  {
+    "path": "src/ui/editor_view.c",
+    "old": "    TRY(xideCatalogBindEditor(app,document->editor));",
+    "new": "    TRY(xidePreferencesEditor(app,document->editor,xideSettingsOptions(&app->preferences)));\n    TRY(xideCatalogBindEditor(app,document->editor));"
+  },
+  {
+    "path": "src/ui/completion_view.c",
+    "old": " if(!v || !d || d->editor!=editor || !cveligible(app,d) || xuiGetFocusWidget(app->context)!=editor) return;",
+    "new": " if(!v || !d || (!force && !xideSettingsOptions(&app->preferences)->completion) || d->editor!=editor || !cveligible(app,d) || xuiGetFocusWidget(app->context)!=editor) return;"
+  },
+  {
+    "path": "src/ui/signature_view.inc",
+    "old": " if(!v || !d || d->editor!=editor || !cveligible(app,d) || xuiGetFocusWidget(app->context)!=editor)return;",
+    "new": " if(!v || !d || (!force && !xideSettingsOptions(&app->preferences)->signatureHelp) || d->editor!=editor || !cveligible(app,d) || xuiGetFocusWidget(app->context)!=editor)return;"
+  },
+  {
+    "path": "src/ui/language_view.c",
+    "old": "  put(options,\"checkOnSave\",xrtValueBool(false));",
+    "new": "  put(options,\"diagnosticDelay\",xrtValueInt(xideSettingsOptions(&app->preferences)->diagnosticDelay));\n  put(options,\"checkOnSave\",xrtValueBool(false));"
+  },
+  {
+    "path": "src/ui/language_view.c",
+    "old": "void xideLanguageViewStop(xide_app* app)",
+    "new": "void xideLanguageViewSettingsChanged(xide_app* app)\n{if(app && app->languageView){reset(app);automaticResume(app->languageView);xgeRenderRequest();}}\nvoid xideLanguageViewStop(xide_app* app)"
+  },
+  {
+    "path": "src/ui/language_view.h",
+    "old": "void xideLanguageViewStop(xide_app* app);",
+    "new": "void xideLanguageViewSettingsChanged(xide_app* app);\nvoid xideLanguageViewStop(xide_app* app);"
+  },
+  {
+    "path": "src/ui/automatic_diagnostics.inc",
+    "old": " if(v->app->disableAutomaticDiagnostics) return 1;\n",
+    "new": ""
+  },
+  {
+    "path": "src/ui/automatic_diagnostics.inc",
+    "old": "static void automaticPoll(xide_app* app)\n{",
+    "new": "static void automaticPoll(xide_app* app)\n{\n if(app->disableAutomaticDiagnostics)return;"
+  },
+  {
+    "path": "src/app/actions.c",
+    "old": "    A(XIDE_ACTION_COMPILER,\"task.compiler\",\"选择 xlang 编译器…\",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,TASK_VIEW,NO_CHECK,xideTaskViewAction),",
+    "new": "    A(XIDE_ACTION_COMPILER,\"task.compiler\",\"选择 xlang 编译器…\",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,TASK_VIEW,NO_CHECK,xideSettingsViewAction),"
+  },
+  {
+    "path": "src/app/actions.c",
+    "old": "return a && ( xideAboutViewIsOpen(a)",
+    "new": "return a && ( xideSettingsViewIsOpen(a) || xideAboutViewIsOpen(a)"
+  },
+  {
+    "path": "src/services/ui_font.c",
+    "old": "#include \"ui/font_view.h\"",
+    "new": "#include \"ui/font_view.h\"\n#include \"ui/settings_view.h\""
+  },
+  {
+    "path": "src/services/ui_font.c",
+    "old": "    if(result==XUI_OK) result=bind(app,xideFontViewWindow(app),previous,replacement,&scan);",
+    "new": "    if(result==XUI_OK) result=bind(app,xideFontViewWindow(app),previous,replacement,&scan);\n    if(result==XUI_OK) result=bind(app,xideSettingsViewWindow(app),previous,replacement,&scan);"
+  },
+  {
+    "path": "src/ui/help_document.c",
+    "old": "label.pFont=view->app->uiFont;",
+    "new": "label.pFont=view->app->documentFont ? view->app->documentFont : view->app->uiFont;"
+  },
+  {
+    "path": "src/ui/help_document.c",
+    "old": "label.fLineGap=4;",
+    "new": "label.fLineGap=(float)xideSettingsOptions(&view->app->preferences)->documentLineGap;\n        label.iWrapMode=xideSettingsOptions(&view->app->preferences)->documentWrap ? XUI_TEXT_WRAP_WORD : XUI_TEXT_WRAP_NONE;"
+  },
+  {
+    "path": "src/ui/help_document.c",
+    "old": "int xideHelpUiFont(xide_help_view* view) { if(view) view->width=-1; return XUI_OK; }",
+    "new": "int xideHelpDocumentFont(xide_help_view* view)\n{if(!view)return XUI_OK;view->width=-1;for(size_t i=0;i<view->blockCount;++i)if(!view->blocks[i]->code){TRY(xuiLabelSetFont(view->blocks[i]->widget,view->app->documentFont));TRY(xuiLabelSetLineGap(view->blocks[i]->widget,(float)xideSettingsOptions(&view->app->preferences)->documentLineGap));TRY(xuiLabelSetWrapMode(view->blocks[i]->widget,xideSettingsOptions(&view->app->preferences)->documentWrap ? XUI_TEXT_WRAP_WORD : XUI_TEXT_WRAP_NONE));}return XUI_OK;}\nint xideHelpUiFont(xide_help_view* view) { if(view) view->width=-1; return XUI_OK; }"
+  },
+  {
+    "path": "src/ui/help_document.h",
+    "old": "int xideHelpUiFont(xide_help_view* view);",
+    "new": "int xideHelpUiFont(xide_help_view* view);\nint xideHelpDocumentFont(xide_help_view* view);"
+  },
+  {
+    "path": "src/ui/catalog_view.h",
+    "old": "int xideCatalogViewUiFont(xide_app* app);",
+    "new": "int xideCatalogViewUiFont(xide_app* app);\nint xideCatalogViewDocumentFont(xide_app*);"
+  },
+  {
+    "path": "src/ui/catalog_view.c",
+    "old": "int xideCatalogViewCodeFont(xide_app* app)\n{",
+    "new": "int xideCatalogViewCodeFont(xide_app* app)\n{\n    if(app->helpSignature)TRY(xuiLabelSetFont(app->helpSignature,app->codeFont));"
+  },
+  {
+    "path": "tools/build.ps1",
+    "old": "$sources += 'src\\ui\\main_toolbar.c'",
+    "new": "$sources += 'src\\ui\\main_toolbar.c'\n$sources += 'src\\services\\preferences.c'\n$sources += 'src\\ui\\settings_view.c'"
+  },
+  {
+    "path": "src/main.c",
+    "old": "else if (!strcmp(argv[i], \"--about\")) app->initialAbout=1;",
+    "new": "else if (!strcmp(argv[i], \"--about\")) app->initialAbout=1;\n        else if (!strcmp(argv[i], \"--show-settings\")) app->initialSettings=1;"
+  }
+]
