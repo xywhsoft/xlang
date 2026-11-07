@@ -1,0 +1,32 @@
+{
+  "passed": true,
+  "rows": [
+    {
+      "path": "D:\\GIT\\x-lang\\release\\win_x64\\xge.dll",
+      "sha256": "b83417d354dc2818fb51c2d64ccf5ddd8341b1beb4eb02c01ef9f897452d2604",
+      "info": {
+        "size": 32,
+        "api_major": 3,
+        "api_minor": 0,
+        "api_patch": 0,
+        "foundation_revision": 1,
+        "features": 1021,
+        "abi_fingerprint": 11128402771518174474
+      }
+    },
+    {
+      "path": "D:\\GIT\\x-lang\\ide\\third_party\\xge_sdk\\xge.dll",
+      "sha256": "b3dcabc7051634461f68852024a48e856bbe5b7ef66ed5693cae97c5f6dc1e3d",
+      "info": {
+        "size": 32,
+        "api_major": 3,
+        "api_minor": 0,
+        "api_patch": 0,
+        "foundation_revision": 1,
+        "features": 1021,
+        "abi_fingerprint": 11128402771518174474
+      }
+    }
+  ],
+  "basis": "Exact public ABI fingerprint, API version, foundation revision and feature bits; preserve the previously qualified runtime."
+}

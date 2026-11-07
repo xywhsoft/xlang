@@ -1,0 +1,1 @@
+settings_view_test:47: click(&a,XIDE_PREF_MINIMAP) && !xuiCheckBoxGetChecked(minimap); 修改先进入草稿；点击应用后统一保存。项目构建参数仍在项目菜单中设置。

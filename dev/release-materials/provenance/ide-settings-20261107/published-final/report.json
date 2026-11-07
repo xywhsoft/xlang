@@ -1,0 +1,79 @@
+{
+  "passed": true,
+  "previousGui": "605f5abe696a4262f65fe1e939d936db7cabe05b7539c7fa8c3a45ec24bdcef5",
+  "currentGui": "f42e2f54af38f11f9a4269055a54eb562bfa79896148bc3c65fbf5e40d76083b",
+  "bytes": 1848672,
+  "checks": [
+    {
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide.exe",
+        "--hidden",
+        "--frames",
+        "4",
+        "--size",
+        "1400",
+        "1000",
+        "--no-session",
+        "--no-auto-diagnostics",
+        "--settings",
+        "D:\\GIT\\x-lang\\release\\win_x64\\option\\settings.json",
+        "--show-settings",
+        "--screenshot",
+        "D:\\GIT\\x-lang\\ide\\build\\Release\\settings-20261107\\published-final\\normal.png"
+      ],
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide.exe",
+        "--hidden",
+        "--frames",
+        "4",
+        "--size",
+        "1400",
+        "1000",
+        "--no-session",
+        "--no-auto-diagnostics",
+        "--settings",
+        "D:\\GIT\\x-lang\\release\\win_x64\\option\\settings.json",
+        "--show-settings",
+        "--screenshot",
+        "D:\\GIT\\x-lang\\ide\\build\\Release\\settings-20261107\\published-final\\dpi125.png",
+        "--dpi-scale",
+        "1.25"
+      ],
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide.exe",
+        "--hidden",
+        "--frames",
+        "4",
+        "--size",
+        "1400",
+        "1000",
+        "--no-session",
+        "--no-auto-diagnostics",
+        "--settings",
+        "D:\\GIT\\x-lang\\release\\win_x64\\option\\settings.json",
+        "--show-settings",
+        "--screenshot",
+        "D:\\GIT\\x-lang\\ide\\build\\Release\\settings-20261107\\published-final\\dpi200.png",
+        "--dpi-scale",
+        "2"
+      ],
+      "exitCode": 0
+    }
+  ],
+  "protectedRuntime": {
+    "D:\\GIT\\x-lang\\release\\win_x64\\xge.dll": "b83417d354dc2818fb51c2d64ccf5ddd8341b1beb4eb02c01ef9f897452d2604",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe": "a5feede784f0a5cb1a829c2e362de57e9278b55cec1a11b796cf4b6e78831bbc",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.dll": "215d6b3c87704c745ec609eb07e718a52708ad7c13436294f2f662a56169be13",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlc.dll": "2241fcd462980fc40cbd6c47ce9347d537bababc93225cb6d2a2d36b9b978797",
+    "D:\\GIT\\x-lang\\release\\win_x64\\data\\commands.json": "6079cecd10c3f2713622a2af7c030834524f3f502f804806e3f6210a34e4a1ae",
+    "D:\\GIT\\x-lang\\release\\win_x64\\data\\catalog-sources\\index.json": "4c2447f3d201d59c8cf77a96a9fc4ed99711d111bcda6280b5031431ef74d57f",
+    "D:\\GIT\\x-lang\\release\\win_x64\\option\\settings.json": "bfd76ef743b6a205d1f8e600cd32bd2d048d63b2f7f1fb670a45e04824fa9a6f"
+  }
+}

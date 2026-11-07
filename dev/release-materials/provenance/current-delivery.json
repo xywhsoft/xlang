@@ -66,7 +66,7 @@
       "licenseUrl": "http://www.microsoft.com/typography/fonts/default.aspx"
     },
     "fontChangeSourceParent": "b16a95bbf022efcafc7b965d1bd9b5b945c0d881",
-    "currentBuildProvenance": "dev/release-materials/provenance/ide-dialog-backdrop-20261106.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/ide-settings-20261107/receipt.json",
     "cLspEnabled": false,
     "applicationIcon": {
       "source": "ide/data/xlang_ide.ico",
@@ -151,7 +151,9 @@
     "previousBuildProvenanceBeforeReleaseMaintenance": "dev/release-materials/provenance/ide-about-layout-20261106.json",
     "updateStateDirectory": "ide/build/update-runtime/<platform>-<install-path-sha256>",
     "previousBuildProvenanceBeforeDialogBackdrop": "dev/release-materials/provenance/ide-release-maintenance-20261106.json",
-    "dialogBackdrop": "viewport-sized absolute overlay; dialog above backdrop; child/IME-aware Escape"
+    "dialogBackdrop": "viewport-sized absolute overlay; dialog above backdrop; child/IME-aware Escape",
+    "previousBuildProvenance": "dev/release-materials/provenance/ide-dialog-backdrop-20261106.json",
+    "sourceRevision": "cf98641a480e6fdfa093ed2a45b3fa19b68c1322"
   },
   "catalog": {
     "status": "passed",
@@ -3225,10 +3227,10 @@
       "previousSha256": "72ecb9983e40475a04f29f47d40f5ac20143d2f03c646a8c3b487d61bdd0e7a1"
     },
     {
-      "sha256": "6c62d11534f0eb5ff80874477f29e0d862039df451be8e6b748a461a31dfb572",
-      "bytes": 1809864,
+      "sha256": "f42e2f54af38f11f9a4269055a54eb562bfa79896148bc3c65fbf5e40d76083b",
+      "bytes": 1848672,
       "path": "release/win_x64/xlang_ide.exe",
-      "origin": "ide-dialog-backdrop-20261106"
+      "origin": "ide-settings-20261107"
     },
     {
       "sha256": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
@@ -3699,6 +3701,19 @@
       "catalogSha256": "27e17cb16f25a4b1c16714736faee0e6df2098f472b0fd393166acc2e98de30a",
       "sourceRevision": "ed78373dded9bde21db313799c1db8d5111631a6",
       "currentDeliveryAction": "retained exact prior 600-file static snapshot; no new XGE3 API documentation coverage claim"
+    },
+    "publication": "local-only"
+  },
+  "ideSettings": {
+    "receipt": {
+      "path": "dev/release-materials/provenance/ide-settings-20261107/receipt.json",
+      "sha256": "93516f10dd4f9550f1b57a349a17557bb608da78f4e5f321cd59f7490321db25",
+      "bytes": 5871
+    },
+    "sourceMaterials": {
+      "path": "dev/release-materials/sources/ide-settings-20261107/manifest.json",
+      "sha256": "7b46592ed5501ad22ac69e6c28321859fe581a3e3288e73b124b4d60fcbde5b1",
+      "bytes": 1201
     },
     "publication": "local-only"
   }
