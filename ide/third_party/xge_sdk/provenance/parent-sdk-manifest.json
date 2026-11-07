@@ -62,24 +62,23 @@
     "xrtTlsVerifierCreate",
     "xrtX509StoreSystem",
     "xrtHttp1BodyRead",
-    "xrtSha256Init"
+    "xrtSha256Init",
+    "xuiDockPanelSetTabScrollButtonsVisible",
+    "xuiDockPanelGetTabScrollButtonsVisible",
+    "xuiDockPanelGetPaneTabScrollRects"
   ],
   "privateCandidate": true,
   "formalRelease": false,
   "provenance": {
-    "builtAtUtc": "2026-11-07T12:21:13.873936+00:00",
+    "builtAtUtc": "2026-11-07T12:50:26.485406+00:00",
     "sourceRepository": "https://gitee.com/xywhsoft/xge",
-    "sourceCommit": "4d402c08428dd412e50b172979bc370547a52f9b",
+    "sourceCommit": "1312f03546d8def9e4ddf169881f7ba44a1438e2",
     "sourceWorktreeDirty": true,
     "upstreamArchiveClean": true,
     "version": "3.0.0",
     "proxyVersion": 18,
     "compatibilityPatchFiles": [
       "provenance/compatibility-patches/patch-manifest.json",
-      "provenance/compatibility-patches/payload/src/xui/core/xui_internal.h",
-      "provenance/compatibility-patches/diff/src/xui/core/xui_internal.h.diff",
-      "provenance/compatibility-patches/payload/src/xui/accessibility/xui_accessibility.c",
-      "provenance/compatibility-patches/diff/src/xui/accessibility/xui_accessibility.c.diff",
       "provenance/compatibility-patches/payload/src/xge/core/xge_impl.c",
       "provenance/compatibility-patches/diff/src/xge/core/xge_impl.c.diff",
       "provenance/compatibility-patches/payload/src/xge/core/xge_core.c",
@@ -148,8 +147,8 @@
         }
       ]
     },
-    "sourceBuildReportSha256": "5fe7874944f1f8ef43c7f6bc29e2f778815f4d4671cca01db22a8d1825645421",
-    "sourceBuildManifestSha256": "bd468c06a1855022636655958cfbaa52e186d4c5b8b0375898e4a86493ace920"
+    "sourceBuildReportSha256": "e044ad0b3a8ef3c2837e40bf7b0e93b3cd4fec96618cea0076600895d96a3e6f",
+    "sourceBuildManifestSha256": "13dd76256e050a8d1c7f31e09a08869cabed18ef4068991d3e68c1caac111150"
   },
   "files": [
     {
@@ -222,59 +221,43 @@
     },
     {
       "path": "provenance/compatibility-patches/diff/extlibs/sokol/sokol_app.h.diff",
-      "sha256": "098d66ee4a6d90f714e686122f34af611ae16a7ba28ff469a166d95a4354d9a5"
+      "sha256": "652f6b352350dfefe4ca732602ebdb32ae9a41c0cd729509cf190610dd4023ec"
     },
     {
       "path": "provenance/compatibility-patches/diff/src/xge/core/xge_core.c.diff",
-      "sha256": "cfd3f4ecfdfb6b94efa4e93207afa1d8799400cfafb708c731063e57ba0ed8de"
+      "sha256": "50a939cc2efbe8bd9c57488b054f68517d0d79c9ce5a07fcf687922f43b89fc4"
     },
     {
       "path": "provenance/compatibility-patches/diff/src/xge/core/xge_impl.c.diff",
-      "sha256": "2254caa4e72bc9ac4aa41de56d74410909bb8e6c7ea06238acb659b91c898d58"
-    },
-    {
-      "path": "provenance/compatibility-patches/diff/src/xui/accessibility/xui_accessibility.c.diff",
-      "sha256": "acd38e6d07033c3dc9cc9b445e79f64c9aa2927d0fbfe80357493fb111e4e067"
-    },
-    {
-      "path": "provenance/compatibility-patches/diff/src/xui/core/xui_internal.h.diff",
-      "sha256": "738ae75bd2a3ded6643d3d4118506a9f9db1963259f38e620af5b08a1d748778"
+      "sha256": "88db7f6fbd2c32b722e1037606f89fe24b0eeeef47aa27ce0204e07328254420"
     },
     {
       "path": "provenance/compatibility-patches/patch-manifest.json",
-      "sha256": "477fa60f813fddc3c68170cf7b2114f04aebec27f8210ade9d85c4a4b908414c"
+      "sha256": "8027af57d8f19c3270fd8e4e4f485d2ee826f90184d962d9e09dbb65bf204887"
     },
     {
       "path": "provenance/compatibility-patches/payload/extlibs/sokol/sokol_app.h",
-      "sha256": "8a7960e2e3c31eed3b9c30594319c64cc32ec80102f7f81ce543477fcf58e2ba"
+      "sha256": "7d725c8f3b5eb52a9dba4f5ba1c9d6cbc603a2f5c5dc712a8f0fa3b4dd5378e2"
     },
     {
       "path": "provenance/compatibility-patches/payload/src/xge/core/xge_core.c",
-      "sha256": "0526c1511b5908937c10d68c74d085c1018cbedb9dd8e89c38d38c29514227d0"
+      "sha256": "b87d72adc887352629ccba72bbfb642276fc68e64d283eb77391c0cc23acdf0b"
     },
     {
       "path": "provenance/compatibility-patches/payload/src/xge/core/xge_impl.c",
-      "sha256": "668bf8f5409ac25e5f271eb0951f2b3f0b64ee456b0c52bbcfb1f9b0d578be6f"
-    },
-    {
-      "path": "provenance/compatibility-patches/payload/src/xui/accessibility/xui_accessibility.c",
-      "sha256": "fda385249bc2ca9d6fb1141059c4eb203ec13dfc417014bcfbff2c3620156737"
-    },
-    {
-      "path": "provenance/compatibility-patches/payload/src/xui/core/xui_internal.h",
-      "sha256": "3b2a1a730a1d8d536759b6d919baf8a484fc42ac38cf255d4f783f6f885ab40f"
+      "sha256": "f223007e204a7f9994f4b114344aa487fd373abc8c99737c922cafe1afab1402"
     },
     {
       "path": "provenance/parent-sdk-manifest.json",
-      "sha256": "0d225701659a3703a1aad1173294dea69b978e027e6b9c34ac5c48215d910f10"
+      "sha256": "33479cc0e24c0ecfdbfecbb2258b29d963d24cd3d71fc61a70195b7e14f0d606"
     },
     {
       "path": "provenance/source-build-manifest.json",
-      "sha256": "bd468c06a1855022636655958cfbaa52e186d4c5b8b0375898e4a86493ace920"
+      "sha256": "13dd76256e050a8d1c7f31e09a08869cabed18ef4068991d3e68c1caac111150"
     },
     {
       "path": "provenance/source-build-report.json",
-      "sha256": "5fe7874944f1f8ef43c7f6bc29e2f778815f4d4671cca01db22a8d1825645421"
+      "sha256": "e044ad0b3a8ef3c2837e40bf7b0e93b3cd4fec96618cea0076600895d96a3e6f"
     },
     {
       "path": "provenance/xrt-declarations.json",
@@ -282,23 +265,23 @@
     },
     {
       "path": "xge-source-files.json",
-      "sha256": "bd468c06a1855022636655958cfbaa52e186d4c5b8b0375898e4a86493ace920"
+      "sha256": "13dd76256e050a8d1c7f31e09a08869cabed18ef4068991d3e68c1caac111150"
     },
     {
       "path": "xge.dll",
-      "sha256": "0b13c30fa82345c608e549cfe3b1a7f9176c764cc3dd6a0c79cecbfd3903032e"
+      "sha256": "b415e78d21f8c8b0d8fcb86924169dd35d595d29951391c102892b00399718ff"
     },
     {
       "path": "xge.h",
-      "sha256": "c64dcc31d83634631697a316f4cae0d211041f51770629128474cc384c4d299b"
+      "sha256": "b7b315ddfca9add6074a1e414f1da2188e4a0ece037e8ce3927c9ffa8e7f5d79"
     },
     {
       "path": "xge.lib",
-      "sha256": "f19657f711d2bbb4c5111e10ed089e30d703ccaca406b46ceb40976cec5c007e"
+      "sha256": "67686cf04b03576a9cbc1bb53f9dfb161029e312d36e40ec8072c03290d05797"
     },
     {
       "path": "xge_build_config.h",
-      "sha256": "58d7afa38b950159fc111d4acc9b108940987b687498d086bb251b86510e7b02"
+      "sha256": "98a4406657a507cdfe677468a9e8ba64acd7d4ac14cb70d35e1a9b48076930eb"
     },
     {
       "path": "xge_config.h",
@@ -314,7 +297,7 @@
     },
     {
       "path": "xui.h",
-      "sha256": "4c94ed1e31bc9525b7fa9297ea918dd902a009427ae1d35f0f78446c42219b9c"
+      "sha256": "f31173fbd4af53d10e1a8c7a84eaee3b7547f0d6465bbe9a8fe5b5b48fcba5a4"
     },
     {
       "path": "xui_config.h",

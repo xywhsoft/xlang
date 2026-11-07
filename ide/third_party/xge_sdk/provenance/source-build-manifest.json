@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "root": "F:\\xlang-validation\\ide-dock-tabs-20261107\\xge",
-  "sourceCommit": "1312f03546d8def9e4ddf169881f7ba44a1438e2",
-  "sourceFileCount": 789,
+  "root": "F:\\xlang-validation\\ide-native-find-20261108\\xge",
+  "sourceCommit": "347429c8cf71a20a304085038531b366abe5a28b",
+  "sourceFileCount": 790,
   "files": [
     {
       "path": "build.bat",
@@ -2536,8 +2536,8 @@
     },
     {
       "path": "include/xui.h",
-      "sha256": "f31173fbd4af53d10e1a8c7a84eaee3b7547f0d6465bbe9a8fe5b5b48fcba5a4",
-      "size": 692767
+      "sha256": "f4c30a59203d3ce61d4995ffff296f1413c3ba322ea6d362f198a8c0317cd168",
+      "size": 693487
     },
     {
       "path": "include/xui_config.h",
@@ -2991,13 +2991,18 @@
     },
     {
       "path": "src/xui/code/xui_code_edit.c",
-      "sha256": "e18cbd6d1318e5fcb74c3d64c6b0585a155002cd2722e6e6a68d8a44bc063e07",
-      "size": 398244
+      "sha256": "446a4c3e0799693b01bd27d926ed5c68c25843f29047e7253646e7b7a3b8445f",
+      "size": 370488
     },
     {
       "path": "src/xui/code/xui_code_editing.c",
       "sha256": "bd5eeec434ede0d2a7c9d79537b740c07c35f26dddb099d517e6d34b37af5001",
       "size": 16531
+    },
+    {
+      "path": "src/xui/code/xui_code_find_window.inc",
+      "sha256": "7834a264b94c8cd78a84b0ba88a8c6cc754514f1ccca972f16a0f2144e556854",
+      "size": 40837
     },
     {
       "path": "src/xui/code/xui_code_fold.c",
@@ -3953,7 +3958,7 @@
   "fullSourceTreeNotIncludedInConsumerSdk": true,
   "compatibilityPatches": {
     "format": "xlang-ide-xge-source-patches-1",
-    "baseCommit": "1312f03546d8def9e4ddf169881f7ba44a1438e2",
+    "baseCommit": "347429c8cf71a20a304085038531b366abe5a28b",
     "purpose": "Preserve the accepted IDE GL3.3/WGL checked startup while syncing tab navigation and scoped passes.",
     "files": [
       {

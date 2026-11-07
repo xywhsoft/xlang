@@ -7726,6 +7726,15 @@ XUI_API int xuiCodeFindScopeGetResult(xui_code_find_scope pScope, int iIndex, xu
 XUI_API const char* xuiCodeFindScopeGetResultEditorName(xui_code_find_scope pScope, int iIndex);
 /* 激活（跳转到）指定结果。 */
 XUI_API int xuiCodeFindScopeActivateResult(xui_code_find_scope pScope, int iIndex);
+/* Shared native find UI. Active editor must be a member (or NULL); changing
+ * it never opens the window, changes the query, or moves input focus. */
+XUI_API int xuiCodeFindScopeSetActiveEditor(xui_code_find_scope pScope, xui_widget pEditor);
+XUI_API xui_widget xuiCodeFindScopeGetActiveEditor(xui_code_find_scope pScope);
+XUI_API xui_widget xuiCodeFindScopeGetFindWindow(xui_code_find_scope pScope);
+/* Navigate the open shared window; replace operations remain current-editor only. */
+XUI_API int xuiCodeFindScopeFindNext(xui_code_find_scope pScope, int bPrevious);
+/* Rebuild current native results after host-side membership/name changes. */
+XUI_API int xuiCodeFindScopeRefresh(xui_code_find_scope pScope);
 /* 纯文本正向查找（自 iStartOffset 起）。 */
 XUI_API int xuiCodeSearchFindPlain(xui_code_document pDocument, const char* sPattern, int iStartOffset, uint32_t iFlags, xui_code_range_t* pRange);
 /* 纯文本在限定区间内查找。 */

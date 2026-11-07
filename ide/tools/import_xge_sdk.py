@@ -192,7 +192,10 @@ def stage(args):
     required_exports = [n for n in baseline['requiredExports'] if n not in retired]
     xui_header = (source / 'include/xui.h').read_text(encoding='utf8')
     for name in ('xuiDockPanelSetTabScrollButtonsVisible',
-                 'xuiDockPanelGetTabScrollButtonsVisible', 'xuiDockPanelGetPaneTabScrollRects'):
+                 'xuiDockPanelGetTabScrollButtonsVisible', 'xuiDockPanelGetPaneTabScrollRects',
+                 'xuiCodeFindScopeSetActiveEditor', 'xuiCodeFindScopeGetActiveEditor',
+                 'xuiCodeFindScopeGetFindWindow', 'xuiCodeFindScopeFindNext',
+                 'xuiCodeFindScopeRefresh'):
         if re.search(r'\b' + name + r'\s*\(', xui_header) and name not in required_exports:
             required_exports.append(name)
     manifest = dict(schemaVersion=2, profile='xlang-ide-xge3-matched-set', version=version,

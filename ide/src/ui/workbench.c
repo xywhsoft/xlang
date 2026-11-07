@@ -1,4 +1,3 @@
-#include "ui/find_view.h"
 #include "ui/import_view.h"
 #include "platform/dpi_proxy.h"
 #include "ui/template_view.h"
@@ -288,7 +287,7 @@ void xideWorkbenchLayout(xide_app* app)
     xuiStatusBarSetItemWidth(app->statusBar,2,fminf((float)xideUiHeight(app,165),width*0.42f));
     xuiWidgetSetRect(app->dock, (xui_rect_t){0,menu+toolbar,width,height-menu-toolbar-status});
     xideCatalogViewLayout(app);
-    xideWorkspaceViewLayout(app); xideConfigurationViewLayout(app); xideReferencesViewLayout(app); xideResourceViewLayout(app); xideToolchainViewLayout(app); xideTemplateViewLayout(app); xideImportViewLayout(app); xideRenameViewLayout(app); xideFontViewLayout(app); xideSettingsViewLayout(app); xideRecoveryViewLayout(app); xideFileChangesViewLayout(app); xideGotoViewLayout(app); xideAboutViewLayout(app); xideDialogLayoutAll(app); xideFileDialogLayout(app); xideFindViewLayout(app);
+    xideWorkspaceViewLayout(app); xideConfigurationViewLayout(app); xideReferencesViewLayout(app); xideResourceViewLayout(app); xideToolchainViewLayout(app); xideTemplateViewLayout(app); xideImportViewLayout(app); xideRenameViewLayout(app); xideFontViewLayout(app); xideSettingsViewLayout(app); xideRecoveryViewLayout(app); xideFileChangesViewLayout(app); xideGotoViewLayout(app); xideAboutViewLayout(app); xideDialogLayoutAll(app); xideFileDialogLayout(app);
 }
 int xideWorkbenchApplyTheme(xide_app* app, int theme)
 {

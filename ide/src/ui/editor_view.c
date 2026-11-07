@@ -97,8 +97,6 @@ static int syncFindScope(xide_app* app,xide_document* d)
     int member=xuiCodeEditGetFindScope(d->editor)==app->editorFindScope;
     if(!d->open) {
         if(member) TRY(resetFindScope(app));
-        xui_widget window=xuiCodeEditGetFindWindow(d->editor);
-        if(window) TRY(xuiWidgetSetVisible(window,0));
         return XUI_OK;
     }
     if(d->window<0) return XUI_OK;

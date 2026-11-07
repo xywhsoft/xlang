@@ -9,11 +9,30 @@
 #include <string.h>
 typedef struct fixture {HDESK desktop;const char* directory;int started,failed,checks;} fixture;
 #define CHECK(e) do {++f->checks;if(!(e)){fprintf(stderr,"find_follow_view_test:%d: %s; %s\n",__LINE__,#e,error.message);f->failed=1;goto cleanup;}}while(0)
-static int settle(xide_app* a){if(xuiDispatchPendingEvents(a->context)!=XUI_OK)return 0;xideEditorPoll(a);xideWorkbenchLayout(a);return xuiLayout(a->context)==XUI_OK && !a->frameError;}
+static int settle(xide_app* a){if(xuiDispatchPendingEvents(a->context)!=XUI_OK)return 0;xideEditorPoll(a);xideWorkbenchLayout(a);return xuiUpdate(a->context,0.02f)==XUI_OK && xuiLayout(a->context)==XUI_OK && !a->frameError;}
 static int key(xide_app* a,int k,uint32_t m){return xuiInputKeyDownEx(a->context,k,m,NULL)==XUI_OK && xuiInputKeyUpEx(a->context,k,0,NULL)==XUI_OK && settle(a);}
-static xui_widget control(xide_app* a,int i){return xideFindViewControl(a,i);}
+
+/* Inspect actual XGE native controls; the IDE has no control catalogue/UI. */
+enum {XIDE_FIND_QUERY,XIDE_FIND_REPLACEMENT,XIDE_FIND_CASE,XIDE_FIND_WORD,XIDE_FIND_REGEX,XIDE_FIND_ESCAPE,XIDE_FIND_SELECTION,XIDE_FIND_ALL_EDITORS,XIDE_FIND_PREVIOUS,XIDE_FIND_NEXT,XIDE_FIND_ALL,XIDE_FIND_REPLACE,XIDE_FIND_REPLACE_ALL,XIDE_FIND_CLOSE,XIDE_FIND_RESULTS,XIDE_FIND_STATUS};
+static xui_widget findControl(xide_app* a,xui_widget w,const char* type,const char* text,int* index){
+ if(!w)return NULL;
+ if(xuiWidgetGetType(w)==xuiWidgetFindType(a->context,type)){
+  const char* label=!strcmp(type,"button") ? xuiButtonGetText(w):!strcmp(type,"checkbox") ? xuiCheckBoxGetText(w):"";
+  if((!text || !strcmp(label,text)) && (*index)--==0)return w;
+ }
+ for(xui_widget c=xuiWidgetGetFirstChild(w);c;c=xuiWidgetGetNextSibling(c)){xui_widget found=findControl(a,c,type,text,index);if(found)return found;}
+ return NULL;
+}
+static xui_widget control(xide_app* a,int i){
+ const int labels[]={XUI_TR_FIND_CASE,XUI_TR_FIND_WORD,XUI_TR_FIND_REGEX,XUI_TR_FIND_ESCAPE,XUI_TR_FIND_SELECTION,XUI_TR_FIND_SCOPE,XUI_TR_FIND_PREVIOUS,XUI_TR_FIND_NEXT,XUI_TR_FIND_ALL,XUI_TR_REPLACE_CURRENT,XUI_TR_REPLACE_ALL,XUI_TR_DOCK_CLOSE};
+ const char* type=i<2 ? "input":i<=XIDE_FIND_ALL_EDITORS ? "checkbox":i<=XIDE_FIND_CLOSE ? "button":i==XIDE_FIND_RESULTS ? "tableview":"label";
+ int index=i==XIDE_FIND_REPLACEMENT ? 1:0;
+ return findControl(a,xideFindViewWindow(a),type,i>=2 && i<=XIDE_FIND_CLOSE ? xuiTranslate(a->context,labels[i-2]):NULL,&index);
+}
+static int refresh(xide_app* a){return xuiCodeFindScopeRefresh(a->editorFindScope);}
+
 static int click(xide_app* a,int i){xui_rect_t r=xuiWidgetGetWorldRect(control(a,i));return r.fW>0 && r.fH>0 && xuiInputPointerMove(a->context,r.fX+r.fW/2,r.fY+r.fH/2,0)==XUI_OK && xuiInputPointerDown(a->context,r.fX+r.fW/2,r.fY+r.fH/2,XUI_POINTER_BUTTON_LEFT,XUI_POINTER_BUTTON_LEFT)==XUI_OK && xuiInputPointerUp(a->context,r.fX+r.fW/2,r.fY+r.fH/2,XUI_POINTER_BUTTON_LEFT,0)==XUI_OK && settle(a);}
-static int query(xide_app* a,const char* s){return xuiInputSetText(control(a,XIDE_FIND_QUERY),s)==XUI_OK && xideFindViewRefresh(a)==XUI_OK && settle(a);}
+static int query(xide_app* a,const char* s){return xuiInputSetText(control(a,XIDE_FIND_QUERY),s)==XUI_OK && refresh(a)==XUI_OK && settle(a);}
 static int matches(xide_app* a){return xuiTableViewGetRowCount(control(a,XIDE_FIND_RESULTS));}
 static int waitMatches(xide_app* a,int n){uint64_t until=GetTickCount64()+1500;do{if(!settle(a))return 0;if(matches(a)==n)return 1;Sleep(5);}while(GetTickCount64()<until);return 0;}
 static int run(void* user){
@@ -23,22 +42,22 @@ static int run(void* user){
  xide_document* c=xideDocumentNew(&a.documents,"c",&error);CHECK(c && xideEditorShow(&a,c)==XUI_OK && xuiCodeEditSetText(c->editor,"alpha alpha 中😀\n")==XUI_OK);
  xide_document* xl=xideDocumentNew(&a.documents,"xlang",&error);CHECK(xl && xideEditorShow(&a,xl)==XUI_OK && xuiCodeEditSetText(xl->editor,"alpha beta 中😀\n")==XUI_OK && settle(&a));
  CHECK(xuiSetFocusWidget(a.context,xl->editor)==XUI_OK && key(&a,'F',XUI_MOD_CTRL));xui_widget window=xideFindViewWindow(&a);
- CHECK(window && xuiWindowIsOpen(window) && !xideActionsHasModal(&a) && query(&a,"alpha") && matches(&a)==1);
+ CHECK(window==xuiCodeFindScopeGetFindWindow(a.editorFindScope) && window==xuiCodeEditGetFindWindow(c->editor) && window==xuiCodeEditGetFindWindow(xl->editor) && xuiWindowIsOpen(window) && !xideActionsHasModal(&a) && query(&a,"alpha") && matches(&a)==1);
  CHECK(xideEditorShow(&a,c)==XUI_OK && settle(&a));CHECK(waitMatches(&a,2) && !strcmp(xuiInputGetText(control(&a,XIDE_FIND_QUERY)),"alpha") && window==xideFindViewWindow(&a) && xuiGetFocusWidget(a.context)==c->editor);
  CHECK(xuiDockPanelSetPaneActiveWindow(a.dock,a.documentPane,xl->window)==XUI_OK && settle(&a));CHECK(waitMatches(&a,1) && a.activeDocument==xl);
  CHECK(xuiSetFocusWidget(a.context,xl->editor)==XUI_OK && key(&a,'H',XUI_MOD_CTRL) && xuiWidgetGetVisible(control(&a,XIDE_FIND_REPLACEMENT)));
  CHECK(xuiInputSetText(control(&a,XIDE_FIND_REPLACEMENT),"result")==XUI_OK && click(&a,XIDE_FIND_REPLACE_ALL));
  CHECK(!strcmp(xuiCodeEditGetText(xl->editor),"result beta 中😀\n") && !strcmp(xuiCodeEditGetText(c->editor),"alpha alpha 中😀\n"));
- CHECK(click(&a,XIDE_FIND_ESCAPE) && xuiInputSetText(control(&a,XIDE_FIND_REPLACEMENT),"\\u0000tail")==XUI_OK && click(&a,XIDE_FIND_REPLACE_ALL) && !strcmp(xuiCodeEditGetText(xl->editor),"result beta 中😀\n") && !xrtGetError() && strstr(xuiLabelGetText(control(&a,XIDE_FIND_STATUS)),"无效转义"));
+ CHECK(click(&a,XIDE_FIND_ESCAPE) && xuiInputSetText(control(&a,XIDE_FIND_REPLACEMENT),"\\u0000tail")==XUI_OK && click(&a,XIDE_FIND_REPLACE_ALL) && !strcmp(xuiCodeEditGetText(xl->editor),"result beta 中😀\n") && !xrtGetError() && !strcmp(xuiLabelGetText(control(&a,XIDE_FIND_STATUS)),xuiTranslate(a.context,XUI_TR_FIND_INVALID_PATTERN)));
  CHECK(click(&a,XIDE_FIND_ESCAPE));
  CHECK(xuiCodeDocumentUndo(xuiCodeEditGetDocument(xl->editor))==XUI_OK && settle(&a) && !strcmp(xuiCodeEditGetText(xl->editor),"alpha beta 中😀\n"));
  CHECK(xuiInputSetText(control(&a,XIDE_FIND_QUERY),"alpha")==XUI_OK && xuiInputSetText(control(&a,XIDE_FIND_QUERY),"beta")==XUI_OK && waitMatches(&a,1));xui_code_find_result_t found={.iSize=sizeof(found)};CHECK(xuiCodeEditGetFindResult(xl->editor,0,&found)==XUI_OK && found.iStart==6 && query(&a,"alpha"));
  CHECK(click(&a,XIDE_FIND_ESCAPE));
  const char* invalid[]={"\\0tail","\\x00tail","\\u0000tail","\\uD800","\\uDC00","\\uD83D\\u0041","\\x","\\u123"};
  uint32_t guardedVersion=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(xl->editor));
- for(size_t i=0;i<sizeof(invalid)/sizeof(*invalid);++i)CHECK(xuiInputSetText(control(&a,XIDE_FIND_REPLACEMENT),invalid[i])==XUI_OK && click(&a,XIDE_FIND_REPLACE_ALL) && strstr(xuiLabelGetText(control(&a,XIDE_FIND_STATUS)),"无效转义") && xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(xl->editor))==guardedVersion && !xrtGetError());
+ for(size_t i=0;i<sizeof(invalid)/sizeof(*invalid);++i)CHECK(xuiInputSetText(control(&a,XIDE_FIND_REPLACEMENT),invalid[i])==XUI_OK && click(&a,XIDE_FIND_REPLACE_ALL) && !strcmp(xuiLabelGetText(control(&a,XIDE_FIND_STATUS)),xuiTranslate(a.context,XUI_TR_FIND_INVALID_PATTERN)) && xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(xl->editor))==guardedVersion && !xrtGetError());
  CHECK(click(&a,XIDE_FIND_REGEX) && query(&a,"not_present") && matches(&a)==0);
- CHECK(xuiInputSetText(control(&a,XIDE_FIND_REPLACEMENT),"\\uD800")==XUI_OK && click(&a,XIDE_FIND_REPLACE_ALL) && strstr(xuiLabelGetText(control(&a,XIDE_FIND_STATUS)),"无效转义") && xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(xl->editor))==guardedVersion && !xrtGetError());
+ CHECK(xuiInputSetText(control(&a,XIDE_FIND_REPLACEMENT),"\\uD800")==XUI_OK && click(&a,XIDE_FIND_REPLACE_ALL) && !strcmp(xuiLabelGetText(control(&a,XIDE_FIND_STATUS)),xuiTranslate(a.context,XUI_TR_FIND_INVALID_PATTERN)) && xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(xl->editor))==guardedVersion && !xrtGetError());
  CHECK(click(&a,XIDE_FIND_REGEX) && query(&a,"alpha"));
  CHECK(xuiInputSetText(control(&a,XIDE_FIND_REPLACEMENT),"\\uD83D\\uDE00")==XUI_OK && click(&a,XIDE_FIND_REPLACE_ALL) && !strcmp(xuiCodeEditGetText(xl->editor),"😀 beta 中😀\n") && xuiCodeDocumentUndo(xuiCodeEditGetDocument(xl->editor))==XUI_OK);
  CHECK(click(&a,XIDE_FIND_ESCAPE));
@@ -49,7 +68,7 @@ static int run(void* user){
  CHECK(!strcmp(xuiInputGetText(control(&a,XIDE_FIND_QUERY)),"alpha") && query(&a,"中😀") && matches(&a)==2);
  CHECK(xuiCodeEditSetReadonly(c->editor,1)==XUI_OK && settle(&a) && !xuiWidgetGetEnabled(control(&a,XIDE_FIND_REPLACE_ALL)));
  CHECK(query(&a,"alpha") && matches(&a)==3 && click(&a,XIDE_FIND_REGEX));
- CHECK(xuiInputSetText(control(&a,XIDE_FIND_QUERY),"[")==XUI_OK && xideFindViewRefresh(&a)!=XUI_OK && !xrtGetError() && matches(&a)==0);
+ CHECK(xuiInputSetText(control(&a,XIDE_FIND_QUERY),"[")==XUI_OK && refresh(&a)==XUI_OK && !xrtGetError() && matches(&a)==0);
  CHECK(click(&a,XIDE_FIND_REGEX) && query(&a,"alpha") && matches(&a)==3);
  CHECK(xuiCodeDocumentInsert(xuiCodeEditGetDocument(xl->editor),0,"alpha ")==XUI_OK && matches(&a)==0);CHECK(waitMatches(&a,4));
  CHECK(xideEditorClose(&a,xl,1,&error) && settle(&a));CHECK(waitMatches(&a,2));

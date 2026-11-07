@@ -3,24 +3,24 @@
   "exitCode": 0,
   "profile": "ide",
   "version": "3.0.0",
-  "source": "F:\\xlang-validation\\ide-dock-tabs-20261107\\xge",
-  "sourceCommit": "1312f03546d8def9e4ddf169881f7ba44a1438e2",
+  "source": "F:\\xlang-validation\\ide-native-find-20261108\\xge",
+  "sourceCommit": "347429c8cf71a20a304085038531b366abe5a28b",
   "sourceUnchanged": true,
-  "sourceArchiveSha256": "17aabf67e4ef8929aafaffd940558871a4e476fd60fb4a369076efd46a0a066c",
+  "sourceArchiveSha256": "4f43e062834ae9965b6aabbafca0cda167e39e720bb02dcd5f97b5d26ad81ebe",
   "wholeSdkWerror": false,
-  "compiler": "gcc.exe (GCC) 16.2.0",
+  "compiler": "gcc.EXE (GCC) 16.2.0",
   "upstreamBuild": {
     "api_major": 3,
     "public_abi_schema": 2,
     "profile": "ide",
     "defines": [],
     "compiler": [
-      "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "E:/software/w64devkit/bin\\gcc.EXE",
       [
         1790597177093716600,
         2378896
       ],
-      "gcc.exe (GCC) 16.2.0\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
+      "gcc.EXE (GCC) 16.2.0\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
     ],
     "flags": [
       "-O2",
@@ -65,9 +65,9 @@
       "-Iextlibs/xrt/extlibs/xllm-session/include",
       "-Iextlibs/xrt/extlibs/xwork/include",
       "-DXGE_ENABLE_HARFBUZZ=1",
-      "-DXGE_BUILD_ABI_FINGERPRINT=0xa18af9d1b7a68e09ULL"
+      "-DXGE_BUILD_ABI_FINGERPRINT=0x85b8ac8ac68489baULL"
     ],
-    "source_root": "F:\\xlang-validation\\ide-dock-tabs-20261107\\xge",
+    "source_root": "F:\\xlang-validation\\ide-native-find-20261108\\xge",
     "runtime_image": "xge.dll",
     "unstripped_image": "xge.unstripped.dll",
     "import_library": "xge.lib",
@@ -328,6 +328,9 @@
       "extlibs/xrt/extlibs/xwork/src/work/xwork_python.c"
     ],
     "compiled": [
+      "src/xui/code/xui_code_edit.c"
+    ],
+    "reused": [
       "single/xge.c",
       "modules/xlayout/xlayout.c",
       "src/xui/core/xui_core.c",
@@ -422,7 +425,6 @@
       "src/xui/code/xui_code_search.c",
       "src/xui/code/xui_code_layout.c",
       "src/xui/code/xui_code_bracket.c",
-      "src/xui/code/xui_code_edit.c",
       "src/xui/core/xui_proxy_resource.c",
       "src/xui/core/xui_owned_resource_slots.c",
       "src/xui/core/xui_owned_manager.c",
@@ -502,16 +504,15 @@
       "extlibs/xrt/extlibs/xwork/src/work/xwork_python.c",
       "extlibs/harfbuzz/src/harfbuzz.cc"
     ],
-    "reused": [],
     "linked": true,
     "runtime_dependencies": [],
-    "seconds": 247.93521299999884,
-    "runtime_bytes": 11149369,
-    "unstripped_bytes": 13420629
+    "seconds": 4.148292300000321,
+    "runtime_bytes": 11155513,
+    "unstripped_bytes": 13427419
   },
   "compatibilityPatches": {
     "format": "xlang-ide-xge-source-patches-1",
-    "baseCommit": "1312f03546d8def9e4ddf169881f7ba44a1438e2",
+    "baseCommit": "347429c8cf71a20a304085038531b366abe5a28b",
     "purpose": "Preserve the accepted IDE GL3.3/WGL checked startup while syncing tab navigation and scoped passes.",
     "files": [
       {
@@ -545,16 +546,16 @@
   },
   "outputs": [
     {
-      "path": "F:\\xlang-validation\\ide-dock-tabs-20261107\\xge\\build\\ide\\xge.dll",
-      "sha256": "b415e78d21f8c8b0d8fcb86924169dd35d595d29951391c102892b00399718ff"
+      "path": "F:\\xlang-validation\\ide-native-find-20261108\\xge\\build\\ide\\xge.dll",
+      "sha256": "b681c909317d7b1a6ed15ce67a53df6679c3a9d9968f0a12871c207271702f56"
     },
     {
-      "path": "F:\\xlang-validation\\ide-dock-tabs-20261107\\xge\\build\\ide\\xge.lib",
-      "sha256": "67686cf04b03576a9cbc1bb53f9dfb161029e312d36e40ec8072c03290d05797"
+      "path": "F:\\xlang-validation\\ide-native-find-20261108\\xge\\build\\ide\\xge.lib",
+      "sha256": "97d772cf9d3635a375f51fbcb955065cc1ab8b179c81a2c7bd757d54bdab622c"
     },
     {
-      "path": "F:\\xlang-validation\\ide-dock-tabs-20261107\\xge\\build\\ide\\xge_build_config.h",
-      "sha256": "98a4406657a507cdfe677468a9e8ba64acd7d4ac14cb70d35e1a9b48076930eb"
+      "path": "F:\\xlang-validation\\ide-native-find-20261108\\xge\\build\\ide\\xge_build_config.h",
+      "sha256": "645e1220e4483db2d455a33d08048747042ab670ab58398e28ace65ec6e64c1f"
     }
   ]
 }
