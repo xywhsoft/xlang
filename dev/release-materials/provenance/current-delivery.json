@@ -66,7 +66,7 @@
       "licenseUrl": "http://www.microsoft.com/typography/fonts/default.aspx"
     },
     "fontChangeSourceParent": "b16a95bbf022efcafc7b965d1bd9b5b945c0d881",
-    "currentBuildProvenance": "dev/release-materials/provenance/ide-dock-tabs-20261107/receipt.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/ide-minimap-setting-20261107/publication-receipt.json",
     "cLspEnabled": false,
     "applicationIcon": {
       "source": "ide/data/xlang_ide.ico",
@@ -80,12 +80,17 @@
       "provenance": "docs/reports/release-materials-migration-20261031.json",
       "buildCommand": "pwsh -NoProfile -File ide/tools/build.ps1 -Configuration Release -GuiOnly -LanguageServerPath D:/GIT/x-lang/release/xlang-ls.exe -ReleaseDirectory D:/GIT/x-lang/release"
     },
-    "sha256": "a70520fa97a6b6faab084cecb23f7c24229e6be6361ed902282c522a1bbf7c5e",
+    "sha256": "b6da9773184e41665640b3906423f74c2427b1598a6074af5e607a4c16cab8b5",
     "sourceIdentity": {
-      "dockTabNavigation": {
-        "path": "dev/release-materials/sources/ide-dock-tabs-20261107/manifest.json",
-        "sha256": "7412cabd244298961fac8844035fda77276e8a46f9bd462161de026a59d5a691",
-        "bytes": 1570
+      "dockWindows": {
+        "path": "dev/release-materials/sources/ide-dock-view-20261107/manifest.json",
+        "sha256": "82e05110f18afefebad4b641d896e7e7eff3b5cef41b0b37bd6c73a5fb4e6aeb",
+        "bytes": 1395
+      },
+      "minimapSetting": {
+        "path": "dev/release-materials/sources/ide-minimap-setting-20261107/manifest.json",
+        "sha256": "72044e122aaa5cb3fa3bbf7b888ea8417f069bc098ea6d84b7030f8fd1637187",
+        "bytes": 1411
       }
     },
     "previousMatchedGuiProvenance": "dev/release-materials/provenance/ide-updater-20261103.json",
@@ -111,7 +116,7 @@
       "sha256": "cb3dd03ba90452fb9a670371ed7447763a0188fdc61b57adf11d5d89851ce13b",
       "bytes": 2693
     },
-    "buildScope": "Committed GUI plus explicit native Dock tab navigation; XGE 1312f035 matched IDE SDK/runtime with preserved GL3.3/WGL startup; O2; compiler/LS retained.",
+    "buildScope": "Committed GUI and Dock View menu update, with the Minimap preference explanation; O2, same matched XGE SDK/runtime and language server. Unrelated uncommitted frontend changes excluded.",
     "currentEngine": {
       "sourceMaterials": {
         "path": "dev/release-materials/sources/ide-dock-tabs-20261107/manifest.json",
@@ -137,19 +142,29 @@
     "updateStateDirectory": "ide/build/update-runtime/<platform>-<install-path-sha256>",
     "previousBuildProvenanceBeforeDialogBackdrop": "dev/release-materials/provenance/ide-release-maintenance-20261106.json",
     "dialogBackdrop": "viewport-sized absolute overlay; dialog above backdrop; child/IME-aware Escape",
-    "previousBuildProvenance": "dev/release-materials/provenance/ide-settings-menu-20261107/receipt.json",
-    "sourceRevision": "117d152e5d72db3d8191c5ed1d6cccd0276bb152",
+    "previousBuildProvenance": "dev/release-materials/provenance/ide-dock-tabs-20261107/receipt.json",
+    "sourceRevision": "7b96d450c",
     "previousSourceIdentity": {
-      "settingsMenuRepair": {
-        "path": "dev/release-materials/sources/ide-settings-menu-20261107/manifest.json",
-        "sha256": "8be6a3ecc2ae26275ef548f88800980e2f9aafd3a1b3da11991cc72db95993e2",
-        "bytes": 1733
+      "dockTabNavigation": {
+        "path": "dev/release-materials/sources/ide-dock-tabs-20261107/manifest.json",
+        "sha256": "7412cabd244298961fac8844035fda77276e8a46f9bd462161de026a59d5a691",
+        "bytes": 1570
       }
     },
     "dockTabNavigation": {
       "enabled": true,
       "arrows": "show only needed directions when overflowing",
       "windowList": "pane option menu"
+    },
+    "dockWindowMenu": {
+      "fixedWindows": 12,
+      "checkable": true,
+      "closedWindowsReopen": true
+    },
+    "minimapPreference": {
+      "path": "settings.editor",
+      "key": "editor.minimap",
+      "disabledMode": "traditional-scrollbar"
     }
   },
   "catalog": {
@@ -3224,10 +3239,10 @@
       "previousSha256": "72ecb9983e40475a04f29f47d40f5ac20143d2f03c646a8c3b487d61bdd0e7a1"
     },
     {
-      "sha256": "a70520fa97a6b6faab084cecb23f7c24229e6be6361ed902282c522a1bbf7c5e",
-      "bytes": 1851121,
+      "sha256": "b6da9773184e41665640b3906423f74c2427b1598a6074af5e607a4c16cab8b5",
+      "bytes": 1854801,
       "path": "release/win_x64/xlang_ide.exe",
-      "origin": "ide-dock-tabs-20261107"
+      "origin": "ide-minimap-setting-20261107"
     },
     {
       "sha256": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
@@ -3754,21 +3769,17 @@
     "xgeRevision": "1312f03546d8def9e4ddf169881f7ba44a1438e2",
     "publication": "local-only"
   },
-  "pendingIdeUpdate": {
-    "publication": "pending-ide-close",
-    "candidateReceipt": {
-      "path": "dev/release-materials/provenance/ide-minimap-setting-20261107/candidate-receipt.json",
-      "sha256": "f973149d6c9eb4442fbce69c51c8b8121a3310d325bef3cb708d6fe487a8f8ea",
-      "bytes": 2811
+  "ideDockWindowsAndMinimap": {
+    "receipt": {
+      "path": "dev/release-materials/provenance/ide-minimap-setting-20261107/publication-receipt.json",
+      "sha256": "cf671732eefdc5d05f89cb9cf088bbaf2fd2685b25992ea69435236daaf8c6cf",
+      "bytes": 3235
     },
     "sourceMaterials": {
       "path": "dev/release-materials/sources/ide-minimap-setting-20261107/manifest.json",
       "sha256": "72044e122aaa5cb3fa3bbf7b888ea8417f069bc098ea6d84b7030f8fd1637187",
       "bytes": 1411
     },
-    "features": [
-      "All fixed Dock windows in View",
-      "Minimap preference explanation and traditional-scrollbar verification"
-    ]
+    "publication": "local-only"
   }
 }
