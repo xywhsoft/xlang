@@ -6,18 +6,20 @@
 #include "lang/languages.h"
 #include "theme/theme.h"
 #include "services/editor_font.h"
+#include "services/ui_font.h"
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <limits.h>
+#include <windows.h>
 #define TRY(call) do { int r_=(call); if(r_!=XUI_OK) return r_; } while(0)
 #define MAX_BLOCKS 4096
 typedef struct help_block {
     xui_widget widget,editor; char* text; int code,heading,height;
     xui_cache_policy_t renderCache; xide_help_view* view;
     xui_widget_event_proc keyHandler,moveHandler; void *keyUser,*moveUser;
-    int viewport;
+    int viewport,top,lines;size_t characters;
     const xide_help_document* source;
 } help_block;
 typedef struct help_chapter { char* title; size_t block; } help_chapter;
@@ -28,6 +30,13 @@ struct xide_help_view {
     char** pageTitles; size_t pageCount;
     int width,height,page,updating,naturalWidth; size_t pendingChapter;
     const xide_help_document** documents; size_t documentCount;
+    int modelOnly,virtualized,borrowed;
+    volatile LONG references; xide_catalog_lease* lease;
+    xui_widget pageRoot;help_block* storage;
+    struct help_preparer* preparer;
+    xide_help_view *activeModel,*retired[2];size_t retiredAt[2];
+    LONG requestedGeneration,adoptedGeneration;
+    const xide_help_document** targetDocuments;size_t targetCount,targetCapacity;xide_catalog_lease* targetLease;
 };
 typedef struct text_buffer { char* data; size_t size,capacity; } text_buffer;
 static int append(text_buffer* text,const char* data,size_t bytes)
@@ -61,13 +70,17 @@ static int nodeText(xui_document_snapshot snapshot,xui_doc_node_id id,text_buffe
 }
 static void clear(xide_help_view* view,int destroyWidgets)
 {
-    if(destroyWidgets) { xuiComboBoxSetItems(view->navigator,NULL,0); xuiComboBoxSetItems(view->pages,NULL,0); }
-    for(size_t i=0;i<view->blockCount;++i) { help_block* block=view->blocks[i]; if(destroyWidgets) xuiWidgetDestroy(block->widget); free(block->text); free(block); }
-    for(size_t i=0;i<view->chapterCount;++i) free(view->chapters[i].title);
+    if(destroyWidgets) { if(view->navigator)xuiComboBoxSetItems(view->navigator,NULL,0); if(view->pages)xuiComboBoxSetItems(view->pages,NULL,0); }
+    for(size_t i=0;i<view->blockCount;++i) { help_block* block=view->blocks[i]; if(destroyWidgets && block->widget) xuiWidgetDestroy(block->widget); if(!view->borrowed)free(block->text);if(!view->storage)free(block); }
+    if(destroyWidgets && view->pageRoot)xuiWidgetDestroy(view->pageRoot);
+    view->pageRoot=NULL;
+    if(!view->borrowed)for(size_t i=0;i<view->chapterCount;++i) free(view->chapters[i].title);
     if(view->pageTitles) for(size_t i=0;i<view->pageCount;++i) free(view->pageTitles[i]);
-    free(view->blocks); free(view->chapters); free(view->pageTitles); free(view->documents); view->documents=NULL; view->documentCount=0;
+    free(view->storage);view->storage=NULL;
+    free(view->blocks); if(!view->borrowed)free(view->chapters); free(view->pageTitles); free(view->documents); view->documents=NULL; view->documentCount=0;
     view->blocks=NULL; view->chapters=NULL; view->pageTitles=NULL; view->blockCount=0; view->chapterCount=0; view->pageCount=0;
     view->width=0; view->height=0; view->naturalWidth=0; view->page=0; view->pendingChapter=SIZE_MAX;
+    view->borrowed=0;view->virtualized=0;
 }
 static int codeWheel(xui_widget widget,const xui_event_t* event,void* user)
 {
@@ -102,18 +115,16 @@ static int codeInput(xui_widget widget,const xui_event_t* event,void* user)
     }
     return result;
 }
-static int addBlock(xide_help_view* view,const char* text,int heading,const char* language)
+static int realizeBlock(xide_help_view* view,help_block* block)
 {
-    if(view->blockCount>=MAX_BLOCKS) return XUI_DOC_ERROR_LIMIT;
-    help_block** fresh=realloc(view->blocks,(view->blockCount+1)*sizeof(*fresh)); if(!fresh) return XUI_ERROR_OUT_OF_MEMORY; view->blocks=fresh;
-    help_block* block=calloc(1,sizeof(*block)); if(!block) return XUI_ERROR_OUT_OF_MEMORY;
-    view->blocks[view->blockCount++]=block; block->view=view; block->heading=heading; block->text=malloc(strlen(text)+1); if(!block->text) return XUI_ERROR_OUT_OF_MEMORY; strcpy(block->text,text);
+    const char* text=block->text;int heading=block->heading;
+    const char* language=block->code==1 ? "xlang":block->code==2 ? "c":block->code ? "text":NULL;
     if(language) {
         TRY(xuiWidgetCreate(view->app->context,&block->widget));
         TRY(xuiWidgetSetLayoutType(block->widget,XUI_LAYOUT_MANUAL));
         TRY(xuiWidgetSetOverflow(block->widget,XUI_OVERFLOW_HIDDEN));
         xui_code_edit_desc_t code={0}; code.iSize=sizeof(code); code.pFont=view->app->codeFont; code.sText=text; code.bReadonly=1; code.bShowLineNumbers=1; code.iTabColumns=4; code.iIndentColumns=4;
-        TRY(xideDpiCodeEditCreate(view->app->context,&block->editor,&code)); block->code=1;
+        TRY(xideDpiCodeEditCreate(view->app->context,&block->editor,&code));
         TRY(xuiWidgetAddChild(block->widget,block->editor));
         TRY(xideRegisterLanguages(xuiCodeEditGetLanguageRegistry(block->editor))); TRY(xideConfigureEditorLanguage(block->editor,language));
         TRY(xuiWidgetSetEventHandler(block->widget,XUI_EVENT_POINTER_WHEEL,codeWheel,block));
@@ -135,8 +146,18 @@ static int addBlock(xide_help_view* view,const char* text,int heading,const char
         xui_cache_policy_t direct={0}; direct.iSize=sizeof(direct); direct.iPolicy=XUI_CACHE_POLICY_NONE;
         TRY(xuiWidgetSetCachePolicy(block->widget,&direct));
     }
-    TRY(xuiWidgetSetSizeMode(block->widget,XUI_SIZE_FILL,XUI_SIZE_FIXED)); TRY(xuiWidgetAddChild(view->content,block->widget));
+    TRY(xuiWidgetSetSizeMode(block->widget,XUI_SIZE_FILL,XUI_SIZE_FIXED)); TRY(xuiWidgetAddChild(view->pageRoot ? view->pageRoot:view->content,block->widget));
     return XUI_OK;
+}
+static int addBlock(xide_help_view* view,const char* text,int heading,const char* language)
+{
+    if(view->blockCount>=MAX_BLOCKS)return XUI_DOC_ERROR_LIMIT;
+    help_block** fresh=realloc(view->blocks,(view->blockCount+1)*sizeof(*fresh));if(!fresh)return XUI_ERROR_OUT_OF_MEMORY;view->blocks=fresh;
+    help_block* block=calloc(1,sizeof(*block));if(!block)return XUI_ERROR_OUT_OF_MEMORY;
+    block->text=malloc(strlen(text)+1);if(!block->text){free(block);return XUI_ERROR_OUT_OF_MEMORY;}strcpy(block->text,text);
+    view->blocks[view->blockCount++]=block;block->view=view;block->heading=heading;block->code=language ? !strcmp(language,"xlang") ? 1:!strcmp(language,"c") ? 2:3:0;
+    block->lines=1;for(const unsigned char* p=(const unsigned char*)text;*p;++p){if(*p=='\n')++block->lines;if((*p&0xc0)!=0x80)++block->characters;}
+    return view->modelOnly ? XUI_OK:realizeBlock(view,block);
 }
 static int chapter(xide_help_view* view,const char* title,size_t block)
 {
@@ -200,6 +221,7 @@ static int pageItems(xide_help_view* view,int page)
     view->updating=1; int result=xuiComboBoxSetItems(view->navigator,titles,(int)count); xuiComboBoxSetSelected(view->navigator,count ? 0 : -1); view->page=page; view->updating=0;
     return result;
 }
+#include "ui/help_prepare.inc"
 static void selected(xui_widget widget,int index,int value,void* user)
 {
     (void)widget; (void)value; xide_help_view* view=user;
@@ -222,8 +244,10 @@ int xideHelpCreate(xide_app* app,xide_help_view** out)
 int xideHelpSet(xide_help_view* view,const xide_help_document* const* documents,size_t count)
 {
     if(!view || (count && !documents)) return XUI_ERROR_INVALID_ARGUMENT;
-    if(count && count==view->documentCount) { size_t i=0; for(;i<count && view->documents[i]==documents[i];++i) {} if(i==count) return XUI_OK; }
-    view->updating=1; clear(view,1); int result=XUI_OK;
+    cancelPrepared(view);view->requestedGeneration=view->adoptedGeneration=0;view->targetCount=0;view->targetLease=NULL;
+    if(count && count==view->documentCount) { size_t i=0; for(;i<count && view->documents[i]==documents[i];++i) {} if(i==count) {xuiWidgetSetVisible(view->content,view->blockCount>0);xuiWidgetSetVisible(view->navigator,view->chapterCount>0);xuiWidgetSetVisible(view->pages,view->pageCount>1);return XUI_OK;} }
+    view->updating=1; clear(view,1);modelRelease(view->activeModel);view->activeModel=NULL;int result=XUI_OK;
+    TRY(xuiWidgetCreate(view->app->context,&view->pageRoot));TRY(xuiWidgetSetLayoutType(view->pageRoot,XUI_LAYOUT_COLUMN));TRY(xuiWidgetSetGap(view->pageRoot,10));TRY(xuiWidgetSetSizeMode(view->pageRoot,XUI_SIZE_FILL,XUI_SIZE_FIXED));TRY(xuiWidgetAddChild(view->content,view->pageRoot));
     for(size_t i=0;i<count && result==XUI_OK;++i) {
         const xide_help_document* source=documents[i]; size_t first=view->blockCount;
         char navigation[1024]; snprintf(navigation,sizeof(navigation),"章节导航 · %s",source->title); result=chapter(view,navigation,first);
@@ -258,18 +282,23 @@ int xideHelpLayout(xide_help_view* view,int width)
     view->width=width; view->height=0;
     for(size_t i=0;i<view->blockCount;++i) {
         help_block* block=view->blocks[i]; int height=28;
-        if(block->code) { int lines=1; for(const char* p=block->text;*p;++p) if(*p=='\n') ++lines; height=(int)ceilf(lines*xideEditorLineHeight(view->app))+24; if(height<75) height=75; }
-        else { xui_vec2_t measured={0}; xuiWidgetMeasureContent(block->widget,(xui_vec2_t){width,XUI_LAYOUT_UNBOUNDED},&measured); height=measured.fY+10; if(height<28) height=28; if(block->heading) height+=10; }
-        block->height=height; xuiWidgetSetPreferredSize(block->widget,(xui_vec2_t){0,height}); view->height+=height+10;
+        if(block->code) { height=(int)ceilf(block->lines*xideEditorLineHeight(view->app))+24;if(height<75)height=75; }
+        else if(block->widget) {xui_vec2_t measured={0};xuiWidgetMeasureContent(block->widget,(xui_vec2_t){width,XUI_LAYOUT_UNBOUNDED},&measured);height=measured.fY+10;if(height<28)height=28;if(block->heading)height+=10;}
+        else {float line=xideUiFontScale(view->app)*20;size_t lines=(size_t)ceil((double)block->characters*line*.55/fmaxf(1,width));if(lines<(size_t)block->lines)lines=(size_t)block->lines;height=(int)fmin((double)INT_MAX/2,lines*line+10+(block->heading ? 10:0));if(height<28)height=28;}
+        block->top=view->height;block->height=height;
+        if(block->widget){xuiWidgetSetPreferredSize(block->widget,(xui_vec2_t){0,height});if(view->virtualized)xuiWidgetSetRect(block->widget,(xui_rect_t){0,block->top,width,height});}
+        if(view->height>INT_MAX-height-10)return view->height;
+        view->height+=height+10;
     }
     if(view->height) view->height-=10;
+    if(view->pageRoot)xuiWidgetSetPreferredSize(view->pageRoot,(xui_vec2_t){0,view->height});
     xuiWidgetSetPreferredSize(view->content,(xui_vec2_t){0,view->height}); return view->height;
 }
 int xideHelpCodeFont(xide_help_view* view)
 {
     if(!view) return XUI_OK;
     view->width=-1;
-    for(size_t i=0;i<view->blockCount;++i) if(view->blocks[i]->code) { int result=xideCodeWidgetSetFont(view->app,view->blocks[i]->editor,view->app->codeFont); if(result!=XUI_OK) return result; }
+    for(size_t i=0;i<view->blockCount;++i) if(view->blocks[i]->editor) { int result=xideCodeWidgetSetFont(view->app,view->blocks[i]->editor,view->app->codeFont); if(result!=XUI_OK) return result; }
     return XUI_OK;
 }
 static int intersects(xui_rect_t a,xui_rect_t b)
@@ -294,9 +323,20 @@ int xideHelpPrepareRender(xide_help_view* view)
     xui_rect_t clip=xuiWidgetGetWorldRect(xuiScrollViewGetViewportWidget(app->help));
     xui_rect_t screen={0,0,app->viewportWidth,app->viewportHeight};
     int shown=xuiWidgetGetEffectiveVisible(view->content) && intersects(clip,screen);
+    xui_rect_t root=view->pageRoot ? xuiWidgetGetWorldRect(view->pageRoot):xuiWidgetGetWorldRect(view->content);
+    int created=0;LARGE_INTEGER began,frequency;QueryPerformanceCounter(&began);QueryPerformanceFrequency(&frequency);
     for(size_t i=0;i<view->blockCount;++i) {
-        help_block* block=view->blocks[i]; xui_rect_t rect=xuiWidgetGetWorldRect(block->widget);
+        help_block* block=view->blocks[i];
+        xui_rect_t rect=block->widget ? xuiWidgetGetWorldRect(block->widget):(xui_rect_t){root.fX,root.fY+block->top,view->width,block->height};
         int visible=shown && intersects(rect,clip) && intersects(rect,screen);
+        if(!block->widget) {
+            if(!visible || created>=2)continue;
+            LARGE_INTEGER now;QueryPerformanceCounter(&now);
+            if(created && (now.QuadPart-began.QuadPart)*1000000/frequency.QuadPart>=500)continue;
+            TRY(realizeBlock(view,block));++created;view->width=-1;
+            TRY(xuiWidgetSetRect(block->widget,(xui_rect_t){0,block->top,rect.fW,block->height}));TRY(xuiWidgetArrangeChild(view->pageRoot,block->widget,(xui_rect_t){0,block->top,rect.fW,block->height}));
+            xgeRenderRequest();
+        }
         if(!block->code) { TRY(prepareCache(block,visible)); continue; }
         /* Keep full-height blocks for document layout and reading anchors, but
            give CodeEdit only a viewport-sized bitmap and the original text.
@@ -322,6 +362,7 @@ int xideHelpPrepareRender(xide_help_view* view)
         if(y!=top) TRY(xuiCodeEditSetScroll(block->editor,x,top));
         TRY(prepareCache(block,visible));
     }
+    if(created)TRY(xideHelpTheme(view));
     return XUI_OK;
 }
 int xideHelpTheme(xide_help_view* view)
@@ -329,18 +370,18 @@ int xideHelpTheme(xide_help_view* view)
     if(!view) return XUI_OK;
     int styles[]={XUI_CODE_STYLE_DEFAULT,XUI_CODE_STYLE_KEYWORD,XUI_CODE_STYLE_TYPE,XUI_CODE_STYLE_NUMBER,XUI_CODE_STYLE_STRING,XUI_CODE_STYLE_CHAR,XUI_CODE_STYLE_COMMENT};
     ide_color_role roles[]={IDE_TEXT,IDE_KEYWORD,IDE_TYPE,IDE_NUMBER,IDE_STRING,IDE_STRING,IDE_COMMENT};
-    for(size_t i=0;i<view->blockCount;++i) if(view->blocks[i]->code) for(size_t j=0;j<sizeof(styles)/sizeof(*styles);++j) {
+    for(size_t i=0;i<view->blockCount;++i) if(view->blocks[i]->editor) for(size_t j=0;j<sizeof(styles)/sizeof(*styles);++j) {
         xui_code_style_t style={sizeof(style),ideThemeColor(view->app->theme,roles[j]),ideThemeColor(view->app->theme,IDE_FIELD),0}; TRY(xuiCodeEditSetStyle(view->blocks[i]->editor,styles[j],&style));
     }
     return XUI_OK;
 }
-void xideHelpDestroy(xide_help_view* view) { if(view) { clear(view,0); free(view); } }
+void xideHelpDestroy(xide_help_view* view) {if(view){clear(view,0);modelRelease(view->activeModel);for(int i=0;i<2;++i)if(view->retired[i]){clear(view->retired[i],0);modelRelease(view->retired[i]->activeModel);free(view->retired[i]);}destroyPreparer(view);free(view->targetDocuments);free(view);}}
 xui_widget xideHelpNavigator(xide_help_view* view) { return view ? view->navigator : NULL; }
 xui_widget xideHelpPages(xide_help_view* view) { return view ? view->pages : NULL; }
 xui_widget xideHelpContent(xide_help_view* view) { return view ? view->content : NULL; }
 const xide_help_document* xideHelpSourceDocument(xide_help_view* view)
 {
-    if(!view || !view->documentCount) return NULL;
+    if(!view || !view->documentCount || xideHelpPending(view)) return NULL;
     int selected=xuiComboBoxGetSelected(view->navigator);
     size_t chapter=selected>=0 ? (size_t)view->page*XUI_COMBOBOX_ITEM_CAPACITY+(size_t)selected : SIZE_MAX;
     if(chapter<view->chapterCount && view->chapters[chapter].block<view->blockCount) return view->blocks[view->chapters[chapter].block]->source;
@@ -364,12 +405,13 @@ void xideHelpApplyJump(xide_help_view* view)
     if(!view || view->pendingChapter==SIZE_MAX) return;
     size_t chapter=view->pendingChapter; view->pendingChapter=SIZE_MAX;
     if(chapter>=view->chapterCount) return;
-    xui_widget widget=view->blocks[view->chapters[chapter].block]->widget;
-    xui_rect_t target=xuiWidgetGetWorldRect(widget),content=xuiWidgetGetWorldRect(view->app->helpContent);
+    help_block* block=view->blocks[view->chapters[chapter].block];xui_widget widget=block->widget;
+    xui_rect_t target=widget ? xuiWidgetGetWorldRect(widget):xuiWidgetGetWorldRect(view->pageRoot),content=xuiWidgetGetWorldRect(view->app->helpContent);
+    if(!widget)target.fY+=block->top;
     xuiScrollViewSetOffset(view->app->help,0,target.fY-content.fY-12);
 }
 int xideHelpDocumentFont(xide_help_view* view)
-{if(!view)return XUI_OK;view->width=-1;view->naturalWidth=0;for(size_t i=0;i<view->blockCount;++i)if(!view->blocks[i]->code){TRY(xuiLabelSetFont(view->blocks[i]->widget,view->app->documentFont));TRY(xuiLabelSetLineGap(view->blocks[i]->widget,(float)xideSettingsOptions(&view->app->preferences)->documentLineGap));TRY(xuiLabelSetWrapMode(view->blocks[i]->widget,xideSettingsOptions(&view->app->preferences)->documentWrap ? XUI_TEXT_WRAP_WORD : XUI_TEXT_WRAP_NONE));}return XUI_OK;}
+{if(!view)return XUI_OK;view->width=-1;view->naturalWidth=0;for(size_t i=0;i<view->blockCount;++i)if(!view->blocks[i]->code && view->blocks[i]->widget){TRY(xuiLabelSetFont(view->blocks[i]->widget,view->app->documentFont));TRY(xuiLabelSetLineGap(view->blocks[i]->widget,(float)xideSettingsOptions(&view->app->preferences)->documentLineGap));TRY(xuiLabelSetWrapMode(view->blocks[i]->widget,xideSettingsOptions(&view->app->preferences)->documentWrap ? XUI_TEXT_WRAP_WORD : XUI_TEXT_WRAP_NONE));}return XUI_OK;}
 int xideHelpUiFont(xide_help_view* view) { if(view) view->width=-1; return XUI_OK; }
 
 static xstrview readingString(const char* text) { return (xstrview){text,strlen(text)}; }
@@ -384,7 +426,7 @@ static void blockIdentity(const help_block* block,char identity[100])
     snprintf(identity,100,"%d-%d-%zu-%016llx",block->code,block->heading,strlen(block->text),(unsigned long long)hash);
 }
 static float blockTop(xide_help_view* view,size_t block)
-{ return (float)(xuiWidgetGetWorldRect(view->blocks[block]->widget).fY-xuiWidgetGetWorldRect(view->app->helpContent).fY); }
+{ xui_rect_t r=xuiWidgetGetWorldRect(view->blocks[block]->widget ? view->blocks[block]->widget:view->pageRoot);return (float)(r.fY+(view->blocks[block]->widget ? 0:view->blocks[block]->top)-xuiWidgetGetWorldRect(view->app->helpContent).fY); }
 xvalue* xideHelpCaptureReading(xide_help_view* view,const xvalue* previous)
 {
     xvalue* root=readingObject(previous); if(!root) return NULL;
@@ -441,6 +483,6 @@ void xideHelpResetReading(xide_help_view* view)
 int xideHelpDocumentWidth(xide_help_view* view,int minimum)
 {
  if(!view)return minimum;
- if(!view->naturalWidth){view->naturalWidth=1;for(size_t i=0;i<view->blockCount;++i)if(!view->blocks[i]->code){xui_vec2_t size={0};if(xuiWidgetMeasureContent(view->blocks[i]->widget,(xui_vec2_t){XUI_LAYOUT_UNBOUNDED,XUI_LAYOUT_UNBOUNDED},&size)==XUI_OK && size.fX>view->naturalWidth)view->naturalWidth=(int)ceilf(size.fX);}}
+ if(!view->naturalWidth){view->naturalWidth=1;for(size_t i=0;i<view->blockCount;++i)if(!view->blocks[i]->code && view->blocks[i]->widget){xui_vec2_t size={0};if(xuiWidgetMeasureContent(view->blocks[i]->widget,(xui_vec2_t){XUI_LAYOUT_UNBOUNDED,XUI_LAYOUT_UNBOUNDED},&size)==XUI_OK && size.fX>view->naturalWidth)view->naturalWidth=(int)ceilf(size.fX);}}
  return view->naturalWidth>minimum ? view->naturalWidth : minimum;
 }

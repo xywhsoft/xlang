@@ -69,7 +69,7 @@ static int bounded(fixture* f,const char* stage)
     printf("Help cache stage=%s blocks=%d cached=%d offscreen=%d logicalBytes=%llu offscreenBytes=%llu\n",stage,codes,cached,outside,(unsigned long long)bytes,(unsigned long long)offscreen);fflush(stdout);
     if(!strcmp(stage,"default"))f->initialOffscreenBytes=offscreen;
     size_t labelBytes=0,labelOffscreen=0;int labels=0,labelCached=0;
-    for(xui_widget child=xuiWidgetGetFirstChild(xideHelpContent(view));child;child=xuiWidgetGetNextSibling(child)) {
+    for(xui_widget child=xuiWidgetGetFirstChild(xuiWidgetGetFirstChild(xideHelpContent(view)));child;child=xuiWidgetGetNextSibling(child)) {
         if(xuiWidgetGetType(child)!=xuiLabelGetType(app->context))continue;
         ++labels;size_t n=cacheBytes(app,child);labelBytes+=n;if(n)++labelCached;
         if(!xuiWidgetGetEffectiveVisible(child) || !intersection(xuiWidgetGetWorldRect(child),clip))labelOffscreen+=n;
@@ -110,7 +110,7 @@ static int textVisible(fixture* f,const char* text,ide_color_role role)
     /* The explicit historical bitmap-retention mode predates body drawing. */
     if(f->baseline)return 1;
     xide_app* app=&f->app;
-    for(xui_widget child=xuiWidgetGetFirstChild(xideHelpContent(xideCatalogHelpDocument(app)));child;child=xuiWidgetGetNextSibling(child)) {
+    for(xui_widget child=xuiWidgetGetFirstChild(xuiWidgetGetFirstChild(xideHelpContent(xideCatalogHelpDocument(app))));child;child=xuiWidgetGetNextSibling(child)) {
         if(xuiWidgetGetType(child)==xuiLabelGetType(app->context) && !strcmp(xuiLabelGetText(child),text))
             return reveal(app,child) && coloredRole(app,child,role) && bounded(f,"visible-text") && preserve(f);
     }
@@ -172,7 +172,7 @@ static int run(void* user)
     if(f->baseline)CHECK(f->initialOffscreenBytes>1024*1024);
     printf("help_render_test passed: %d native checks; default offscreen bytes=%llu; baseline=%d; visible heading/paragraph/list/table and C/xlang glyph pixels, offscreen text/code retirement, forty block scrolls, chapter jump, hidden/show, theme, 125/200%% DPI, UI font and draft selection/version/undo preservation\n",f->checks,(unsigned long long)f->initialOffscreenBytes,f->baseline);fflush(stdout);
 cleanup:
-    xideAppDestroy(app);xgeSetQuitRequestCallback(NULL,NULL);xgeQuit();return XGE_OK;
+    xgeSetQuitRequestCallback(NULL,NULL);xgeQuit();return XGE_OK;
 }
 static DWORD WINAPI worker(void* user)
 {

@@ -26,7 +26,8 @@ static const setting_field fields[]={
  {2,TEXT,"xlang 编译器文件","compiler 工具链 xl.exe"},
  {3,TEXT,"界面字体文件","界面 font 字体"},{3,NUMBER,"界面字号（8–40 DIP）","界面 size 字体"},{3,THEME,"配色主题","theme 主题 颜色"},
  {4,CHECK,"启用 xlang 自动诊断","automatic 诊断 检查"},{4,NUMBER,"输入后诊断等待时间（0–2000 ms）","诊断 delay 延迟"},
- {4,CHECK,"自动显示代码补全","completion 补全"},{4,CHECK,"自动显示参数提示","signature 参数"}};
+ {4,CHECK,"自动显示代码补全","completion 补全"},{4,CHECK,"自动显示参数提示","signature 参数"},
+ {1,CHECK,"集成帮助跟随编辑器选择","help 帮助 选择 单词 跟随 follow selection"}};
 _Static_assert(sizeof(fields)/sizeof(*fields)==XIDE_PREF_COUNT,"Settings field IDs must match their descriptors");
 struct xide_settings_view {
  xui_widget window,content,search,page,scroll,body,title,message,preview,previewButton,query,defaults,apply,okay,cancel;
@@ -51,9 +52,9 @@ static int draft(xide_app* a,xide_settings_draft* d)
  int* values[]={&d->editorSize,&d->options.tabColumns,&d->options.indentColumns,&d->documentSize,&d->options.documentLineGap,&d->uiSize,&d->options.diagnosticDelay};
  const int ids[]={XIDE_PREF_CODE_SIZE,XIDE_PREF_TAB,XIDE_PREF_INDENT,XIDE_PREF_DOC_SIZE,XIDE_PREF_DOC_GAP,XIDE_PREF_UI_SIZE,XIDE_PREF_DELAY};
  for(int i=0;i<7;++i)if(!integer(v->controls[ids[i]],values[i])){message(v,"请输入有效的整数；已保留设置草稿。");return 0;}
- int* flags[]={&d->options.expandTabs,&d->options.lineNumbers,&d->options.foldMargin,&d->options.minimap,&d->options.wordWrap,&d->options.documentWrap,&d->options.automaticDiagnostics,&d->options.completion,&d->options.signatureHelp};
- const int boolIds[]={XIDE_PREF_EXPAND,XIDE_PREF_LINES,XIDE_PREF_FOLD,XIDE_PREF_MINIMAP,XIDE_PREF_WRAP,XIDE_PREF_DOC_WRAP,XIDE_PREF_AUTO,XIDE_PREF_COMPLETION,XIDE_PREF_SIGNATURE};
- for(int i=0;i<9;++i)*flags[i]=xuiCheckBoxGetChecked(v->controls[boolIds[i]]);
+ int* flags[]={&d->options.expandTabs,&d->options.lineNumbers,&d->options.foldMargin,&d->options.minimap,&d->options.wordWrap,&d->options.documentWrap,&d->options.automaticDiagnostics,&d->options.completion,&d->options.signatureHelp,&d->options.helpFollow};
+ const int boolIds[]={XIDE_PREF_EXPAND,XIDE_PREF_LINES,XIDE_PREF_FOLD,XIDE_PREF_MINIMAP,XIDE_PREF_WRAP,XIDE_PREF_DOC_WRAP,XIDE_PREF_AUTO,XIDE_PREF_COMPLETION,XIDE_PREF_SIGNATURE,XIDE_PREF_HELP_FOLLOW};
+ for(int i=0;i<10;++i)*flags[i]=xuiCheckBoxGetChecked(v->controls[boolIds[i]]);
  d->options.theme=xuiComboBoxGetSelected(v->controls[XIDE_PREF_THEME]);return 1;
 }
 static void populate(xide_app* a)
@@ -64,7 +65,7 @@ static void populate(xide_app* a)
  xuiEditSetText(v->controls[XIDE_PREF_DOC_PATH],a->documentFontPath ? a->documentFontPath : "");number(v->controls[XIDE_PREF_DOC_SIZE],a->documentFontSize);
  xuiEditSetText(v->controls[XIDE_PREF_COMPILER],xideTaskViewCompiler(a) ? xideTaskViewCompiler(a) : "");
  const int ns[]={o->tabColumns,o->indentColumns,o->documentLineGap,o->diagnosticDelay};const int ni[]={XIDE_PREF_TAB,XIDE_PREF_INDENT,XIDE_PREF_DOC_GAP,XIDE_PREF_DELAY};for(int i=0;i<4;++i)number(v->controls[ni[i]],ns[i]);
- const int bs[]={o->expandTabs,o->lineNumbers,o->foldMargin,o->minimap,o->wordWrap,o->documentWrap,!a->disableAutomaticDiagnostics,o->completion,o->signatureHelp};const int bi[]={XIDE_PREF_EXPAND,XIDE_PREF_LINES,XIDE_PREF_FOLD,XIDE_PREF_MINIMAP,XIDE_PREF_WRAP,XIDE_PREF_DOC_WRAP,XIDE_PREF_AUTO,XIDE_PREF_COMPLETION,XIDE_PREF_SIGNATURE};for(int i=0;i<9;++i)xuiCheckBoxSetChecked(v->controls[bi[i]],bs[i]);
+ const int bs[]={o->expandTabs,o->lineNumbers,o->foldMargin,o->minimap,o->wordWrap,o->documentWrap,!a->disableAutomaticDiagnostics,o->completion,o->signatureHelp,o->helpFollow};const int bi[]={XIDE_PREF_EXPAND,XIDE_PREF_LINES,XIDE_PREF_FOLD,XIDE_PREF_MINIMAP,XIDE_PREF_WRAP,XIDE_PREF_DOC_WRAP,XIDE_PREF_AUTO,XIDE_PREF_COMPLETION,XIDE_PREF_SIGNATURE,XIDE_PREF_HELP_FOLLOW};for(int i=0;i<10;++i)xuiCheckBoxSetChecked(v->controls[bi[i]],bs[i]);
  xuiComboBoxSetSelected(v->controls[XIDE_PREF_THEME],a->theme);v->loading=0;
 }
 int xideSettingsViewApply(xide_app* a)
@@ -85,7 +86,7 @@ static void defaults(xide_app* a)
  xide_settings_view* v=a->settingsView;int p=v->selected;
  if(p==0 || p==1 || p==3){int pathId=p==0 ? XIDE_PREF_CODE_PATH : p==1 ? XIDE_PREF_DOC_PATH : XIDE_PREF_UI_PATH;char* path=xideEditorFontDefaultPath();if(path){xuiEditSetText(v->controls[pathId],path);free(path);}number(v->controls[pathId+1],16);}
  if(p==0){number(v->controls[XIDE_PREF_TAB],4);number(v->controls[XIDE_PREF_INDENT],4);for(int i=XIDE_PREF_EXPAND;i<=XIDE_PREF_MINIMAP;++i)xuiCheckBoxSetChecked(v->controls[i],i!=XIDE_PREF_EXPAND);xuiCheckBoxSetChecked(v->controls[XIDE_PREF_WRAP],0);}
- if(p==1){number(v->controls[XIDE_PREF_DOC_GAP],4);xuiCheckBoxSetChecked(v->controls[XIDE_PREF_DOC_WRAP],1);}
+ if(p==1){xuiCheckBoxSetChecked(v->controls[XIDE_PREF_HELP_FOLLOW],1);number(v->controls[XIDE_PREF_DOC_GAP],4);xuiCheckBoxSetChecked(v->controls[XIDE_PREF_DOC_WRAP],1);}
  if(p==2){char* path=bundledCompiler();if(path){xuiEditSetText(v->controls[XIDE_PREF_COMPILER],path);free(path);}}
  if(p==3)xuiComboBoxSetSelected(v->controls[XIDE_PREF_THEME],0);
  if(p==4){for(int i=XIDE_PREF_AUTO;i<=XIDE_PREF_SIGNATURE;++i)if(i!=XIDE_PREF_DELAY)xuiCheckBoxSetChecked(v->controls[i],1);number(v->controls[XIDE_PREF_DELAY],75);}

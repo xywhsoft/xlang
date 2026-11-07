@@ -14,6 +14,13 @@ const xide_help_document* xideHelpSourceDocument(xide_help_view* view);
 size_t xideHelpCodeCount(xide_help_view* view);
 xui_widget xideHelpCode(xide_help_view* view,size_t index);
 int xideHelpSet(xide_help_view* view,const xide_help_document* const* documents,size_t count);
+/* UI-thread admission only. Documents must belong to the supplied loaded
+ * catalog. Parsing owns a lease and never accesses widgets; Poll publishes
+ * only the newest generation on the UI thread. Retry a declined admission. */
+int xideHelpSetDeferred(xide_help_view*,const xide_help_document* const*,size_t,const xide_command_catalog*);
+int xideHelpPoll(xide_help_view*);
+int xideHelpPending(xide_help_view*);
+void xideHelpPreparationCounts(xide_help_view*,unsigned*,unsigned*);
 int xideHelpLayout(xide_help_view* view,int width);
 int xideHelpDocumentWidth(xide_help_view*,int);
 int xideHelpUiFont(xide_help_view* view);

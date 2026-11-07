@@ -15,6 +15,8 @@
 #include "platform/startup_alias.h"
 #include "services/editor_font.h"
 #include "services/catalog_sources.h"
+#include "services/catalog_lookup.h"
+#include "ui/workbench_windows.h"
 #include <math.h>
 #include <windows.h>
 #include <stdlib.h>
@@ -22,6 +24,7 @@
 #include <string.h>
 #include <ctype.h>
 #define TRY(call) do { int result_=(call); if(result_!=XUI_OK) return result_; } while(0)
+typedef struct follow_binding follow_binding;
 struct xide_catalog_view {
     xui_widget helpPanel,panel,search,count,metadata,parameters,exampleHeading,insert,status,reload,returnReferences;
     xide_help_view* helpDocument;
@@ -33,7 +36,15 @@ struct xide_catalog_view {
     xui_widget pendingEditor; uint64_t pendingDocument; uint32_t pendingVersion; int pendingOffset; char pendingLanguage[16];
     xui_widget sourceButtons[2],sourceWindow,sourceContent,sourceTitle,sourceStatus,sourceEditor,sourceClose;
     char sourceMessage[600];
+    xide_catalog_lookup* lookup;
+    xui_widget followBar,followNotice,followPin,followChoices,composingEditor;
+    follow_binding* followBindings;
+    xui_widget observedEditor; xui_code_document observedCore;
+    uint32_t observedVersion;int observedStart,observedEnd,pinned,followPending,followUpdating,helpRetry;
+    uint64_t followAt,followRevision,observedDocument;char observedLanguage[16];uint32_t choices[64];size_t choiceCount,choiceTotal;
 };
+static int selectCommand(xide_app*,size_t,int);
+#include "ui/catalog_follow.inc"
 static int label(xide_app* app,xui_widget* widget,const char* text,int muted);
 static void sourceLayout(xide_app* app)
 {
@@ -168,12 +179,13 @@ static char* parametersText(const xide_command* command)
     }
     return result;
 }
-int xideCatalogViewSelect(xide_app* app,size_t index)
+static int selectCommand(xide_app* app,size_t index,int automatic)
 {
     if(!app || !app->catalogView || index>=app->catalog.count) return 0;
     xide_catalog_view* view=app->catalogView; const xide_command* command=&app->catalog.entries[index]; int changed=view->selected!=command;
-    view->selected=command; if(changed) view->tableMode=-1; app->selectedCommand=(int)index;
-    if(xuiTreeViewGetSelected(app->commands)!=100+(int)index && xideCatalogMatches(command,view->query ? view->query : "")) xuiTreeViewSetSelected(app->commands,100+(int)index);
+    if(!changed)return 1;
+    view->selected=command; view->tableMode=-1; app->selectedCommand=(int)index;
+    if(!automatic && xuiTreeViewGetSelected(app->commands)!=100+(int)index && xideCatalogMatches(command,view->query ? view->query : "")) xuiTreeViewSetSelected(app->commands,100+(int)index);
     xuiLabelSetText(app->helpTitle,command->name);
     xuiLabelSetText(app->helpDescription,*command->description ? command->description : "当前来源尚未提供功能说明；请结合签名与源文件查阅。");
     xuiLabelSetText(app->helpSignature,command->signature);
@@ -187,11 +199,14 @@ int xideCatalogViewSelect(xide_app* app,size_t index)
     char* metadata=malloc(size); if(!metadata) return 0;
     snprintf(metadata,size,"模块：%s · 版本：%s\n导入要求：%s\n来源：%s:%d\n这是随程序提供的静态目录；实际可用 API 由所选编译器与项目决定。",command->module,command->version,*command->requiredImport ? command->requiredImport : "内置 / 语言结构",command->source,command->sourceLine);
     xuiLabelSetText(view->metadata,metadata); free(metadata); xuiTableViewRefreshAdapter(view->parameters);
-    if(changed) xideHelpSet(view->helpDocument,command->documents,command->documentCount);
+    view->helpRetry=0;
+    if(automatic){if(xideHelpSetDeferred(view->helpDocument,command->documents,command->documentCount,&app->catalog)!=XUI_OK){view->helpRetry=1;xuiWidgetSetVisible(xideHelpContent(view->helpDocument),0);}}
+    else xideHelpSet(view->helpDocument,command->documents,command->documentCount);
     xideCatalogViewLayout(app);
     if(changed) xuiScrollViewSetOffset(app->help,0,0);
     xgeRenderRequest(); return 1;
 }
+int xideCatalogViewSelect(xide_app* app,size_t index) {return selectCommand(app,index,0);}
 static void selected(xui_widget widget,int node,void* user)
 {
     (void)widget; xide_app* app=user;
@@ -268,15 +283,18 @@ int xideCatalogViewReload(xide_app* app)
         xideCatalogClear(&fresh); snprintf(view->loadError,sizeof(view->loadError),"目录重新加载失败：%s%s",error.message,app->catalog.count ? "；继续使用上一份有效目录。" : "");
         xuiLabelSetText(view->status,view->loadError); xuiWidgetSetVisible(view->status,1); if(!app->catalog.count) emptyHelp(app); xgeRenderRequest(); return 0;
     }
+    xide_catalog_lookup* lookup=xideCatalogLookupCreate(&fresh);if(!lookup){for(size_t i=0;i<fresh.count;++i)free(details[i]);free(details);xideCatalogClear(&fresh);return 0;}
     char* selectedId=NULL;
     if(view->selected) { selectedId=malloc(strlen(view->selected->id)+1); if(selectedId) strcpy(selectedId,view->selected->id); }
     for(size_t i=0;i<app->documents.count;++i) if(app->documents.items[i]->editor) xuiCodeEditCancelCompletion(app->documents.items[i]->editor);
     view->pendingEditor=NULL; view->selected=NULL; xideHelpSet(view->helpDocument,NULL,0);
     for(size_t i=0;i<view->detailCount;++i) free(view->details[i]);
+    xideCatalogLookupDestroy(view->lookup);view->lookup=NULL;followReset(app);
     free(view->details); view->details=details; view->detailCount=fresh.count; xideCatalogClear(&app->catalog); app->catalog=fresh;
+    view->lookup=lookup;
     view->loadError[0]=0; xuiLabelSetText(view->status,""); xuiWidgetSetVisible(view->status,0);
     char* query=view->query; view->query=NULL; xideCatalogViewSearch(app,query ? query : ""); free(query);
-    const xide_command* command=selectedId ? xideCatalogFind(&app->catalog,selectedId) : NULL; free(selectedId);
+    const xide_command* command=selectedId ? xideCatalogLookupId(view->lookup,selectedId) : NULL; free(selectedId);
     xideCatalogViewSelect(app,command ? (size_t)(command-app->catalog.entries) : 0);
     for(size_t i=0;i<app->documents.count;++i) if(app->documents.items[i]->open) xideCatalogBindEditor(app,app->documents.items[i]->editor);
     xgeRenderRequest(); return 1;
@@ -295,6 +313,7 @@ int xideCatalogViewCreate(xide_app* app)
     xide_model_error error={0};
     if(!app->catalog.count && !xideCatalogLoad(&app->catalog,view->catalogFile,&error)) snprintf(view->loadError,sizeof(view->loadError),"命令目录不可用：%s",error.message);
     TRY(makeDetails(&app->catalog,&view->details)); view->detailCount=app->catalog.count;
+    view->lookup=xideCatalogLookupCreate(&app->catalog);if(!view->lookup)return XUI_ERROR_OUT_OF_MEMORY;
     TRY(xuiWidgetCreate(app->context,&view->panel)); TRY(xuiWidgetSetLayoutType(view->panel,XUI_LAYOUT_COLUMN)); TRY(xuiWidgetSetPadding(view->panel,(xui_thickness_t){5,5,5,5})); TRY(xuiWidgetSetGap(view->panel,4));
     xui_input_desc_t edit={0}; edit.iSize=sizeof(edit); edit.pFont=app->uiFont; edit.sText="";
     TRY(xuiInputCreate(app->context,&view->search,&edit)); TRY(xuiEditSetEvent(view->search,searchEvent,app)); TRY(xuiInputSetPlaceholder(view->search,"搜索命令…"));
@@ -322,10 +341,13 @@ int xideCatalogViewCreate(xide_app* app)
     button.sText="返回引用编辑（草稿已保留）"; TRY(xuiButtonCreate(app->context,&view->returnReferences,&button)); TRY(xuiButtonSetClick(view->returnReferences,returnReferencesClicked,app));
     TRY(xuiWidgetSetVisible(view->returnReferences,0)); TRY(xideHelpCreate(app,&view->helpDocument));
     TRY(xuiWidgetCreate(app->context,&view->helpPanel)); TRY(xuiWidgetSetLayoutType(view->helpPanel,XUI_LAYOUT_COLUMN)); TRY(xuiWidgetSetGap(view->helpPanel,4));
+    TRY(followCreate(app));
     xui_widget helpChildren[]={view->returnReferences,xideHelpPages(view->helpDocument),xideHelpNavigator(view->helpDocument),app->help};
     for(int i=0;i<4;++i) { TRY(xuiWidgetSetSizeMode(helpChildren[i],XUI_SIZE_FILL,i==3 ? XUI_SIZE_FILL : XUI_SIZE_FIXED)); if(i<3) TRY(xuiWidgetSetPreferredSize(helpChildren[i],(xui_vec2_t){0,30})); TRY(xuiWidgetAddChild(view->helpPanel,helpChildren[i])); }
     app->panels[XIDE_HELP]=view->helpPanel;
-    xui_widget children[]={app->helpTitle,app->helpDescription,app->helpSignature,app->helpParameters,view->parameters,app->helpReturn,view->exampleHeading,app->helpExample,view->insert,xideHelpContent(view->helpDocument),view->metadata,view->sourceButtons[0],view->sourceButtons[1]};
+    /* Keep the new controls in the reading viewport: fixed tool rows can
+       otherwise consume an entire short Dock pane at high DPI. */
+    xui_widget children[]={view->followBar,view->followChoices,app->helpTitle,app->helpDescription,app->helpSignature,app->helpParameters,view->parameters,app->helpReturn,view->exampleHeading,app->helpExample,view->insert,xideHelpContent(view->helpDocument),view->metadata,view->sourceButtons[0],view->sourceButtons[1]};
     for(size_t i=0;i<sizeof(children)/sizeof(*children);++i) { TRY(xuiWidgetSetSizeMode(children[i],XUI_SIZE_FILL,XUI_SIZE_FIXED)); TRY(xuiWidgetAddChild(app->helpContent,children[i])); }
     xuiWidgetSetVisible(view->status,*view->loadError!=0);
     if(!app->catalog.count) emptyHelp(app);
@@ -342,6 +364,11 @@ void xideCatalogViewLayout(xide_app* app)
 {
     xide_catalog_view* view=app->catalogView; if(!view) return;
     sourceLayout(app);
+    xuiWidgetSetPreferredSize(view->followBar,(xui_vec2_t){0,xideUiHeight(app,28)});
+    xuiWidgetSetPreferredSize(view->followChoices,(xui_vec2_t){0,xideUiHeight(app,30)});
+    xuiWidgetSetPreferredSize(view->followPin,(xui_vec2_t){xideUiHeight(app,156),xideUiHeight(app,28)});
+    xui_widget choicesPopup=xuiMenuGetPopupWidget(xuiComboBoxGetMenuWidget(view->followChoices));
+    if(choicesPopup)xuiPopupSetMaxSize(choicesPopup,fmaxf(1,app->viewportWidth-32),fmaxf(1,app->viewportHeight-32));
     for(int i=0;i<2;++i) { xuiWidgetSetVisible(view->sourceButtons[i],view->selected!=NULL && (i==0 || view->selected->documentCount>0)); xuiWidgetSetPreferredSize(view->sourceButtons[i],(xui_vec2_t){0,xideUiHeight(app,32)}); }
     xuiWidgetSetVisible(view->returnReferences,xideReferencesViewSuspended(app));
     xuiWidgetSetPreferredSize(view->returnReferences,(xui_vec2_t){0,(float)xideUiHeight(app,32)});
@@ -353,7 +380,7 @@ void xideCatalogViewLayout(xide_app* app)
     xuiWidgetSetPreferredSize(xideHelpNavigator(view->helpDocument),(xui_vec2_t){0,(float)xideUiHeight(app,30)});
     if(xuiWidgetGetVisible(view->status)) { xui_vec2_t measured={0}; xuiWidgetMeasureContent(view->status,(xui_vec2_t){leftRect.fW-10,XUI_LAYOUT_UNBOUNDED},&measured); xuiWidgetSetPreferredSize(view->status,(xui_vec2_t){0,measured.fY>24 ? measured.fY+8 : 32}); }
     if(!view->selected) {
-        xui_rect_t rect=xuiWidgetGetContentRect(app->help); int width=rect.fW>180 ? rect.fW-14 : 180,total=24;
+        xui_rect_t rect=xuiWidgetGetContentRect(app->help); int width=rect.fW>180 ? rect.fW-14 : 180,total=24+xideUiHeight(app,28)+8+(xuiWidgetGetVisible(view->followChoices) ? xideUiHeight(app,30)+8:0);
         xui_widget labels[]={app->helpTitle,app->helpDescription,view->metadata};
         for(size_t i=0;i<3;++i) { xui_vec2_t measured={0}; xuiWidgetMeasureContent(labels[i],(xui_vec2_t){width-24,XUI_LAYOUT_UNBOUNDED},&measured); int height=measured.fY+8; if(height<28) height=28; xuiWidgetSetPreferredSize(labels[i],(xui_vec2_t){0,height}); total+=height+8; }
         xuiScrollViewSetContentSize(app->help,width,total>rect.fH ? total : rect.fH); return;
@@ -379,7 +406,7 @@ void xideCatalogViewLayout(xide_app* app)
     } else if(command->parameterCount && view->tableMode!=table) { char* params=parametersText(command); if(params) { xuiLabelSetText(app->helpParameters,params); free(params); } }
     view->tableMode=table;
     xui_widget labels[]={app->helpTitle,app->helpDescription,app->helpSignature,app->helpParameters,app->helpReturn,view->exampleHeading,view->metadata};
-    int total=24;
+    int total=24+xideUiHeight(app,28)+8+(xuiWidgetGetVisible(view->followChoices) ? xideUiHeight(app,30)+8:0);
     for(size_t i=0;i<sizeof(labels)/sizeof(*labels);++i) if(xuiWidgetGetVisible(labels[i])) {
         xui_vec2_t measured={0}; xuiWidgetMeasureContent(labels[i],(xui_vec2_t){width-24,XUI_LAYOUT_UNBOUNDED},&measured);
         int height=(int)measured.fY+8; if(height<28) height=28; xuiWidgetSetPreferredSize(labels[i],(xui_vec2_t){0,height}); total+=height+8;
@@ -398,6 +425,7 @@ void xideCatalogViewDestroy(xide_app* app)
 {
     xide_catalog_view* view=app->catalogView; if(!view) return;
     if(view->details) for(size_t i=0;i<view->detailCount;++i) free(view->details[i]);
+    followDestroy(view);xideCatalogLookupDestroy(view->lookup);
     xideHelpDestroy(view->helpDocument); free(view->catalogFile); free(view->details); free(view->query); free(view); app->catalogView=NULL;
 }
 xui_widget xideCatalogSearchWidget(xide_app* app) { return app && app->catalogView ? app->catalogView->search : NULL; }
@@ -470,7 +498,9 @@ static int input(xui_widget editor,const xui_code_input_event_t* event,xui_code_
 }
 void xideCatalogViewPoll(xide_app* app)
 {
-    xide_catalog_view* view=app->catalogView; if(!view || !view->pendingEditor) return;
+    xide_catalog_view* view=app->catalogView;if(!view)return;
+    followPoll(app,GetTickCount64(),0);if(helpVisible(app)){if(view->helpRetry && view->selected && xideHelpSetDeferred(view->helpDocument,view->selected->documents,view->selected->documentCount,&app->catalog)==XUI_OK)view->helpRetry=0;xideHelpPoll(view->helpDocument);}
+    if(!view->pendingEditor)return;
     if(!xideSettingsOptions(&app->preferences)->completion){view->pendingEditor=NULL;return;}
     xui_widget editor=view->pendingEditor; view->pendingEditor=NULL;
     xide_document* document=app->activeDocument;
@@ -481,6 +511,7 @@ void xideCatalogViewPoll(xide_app* app)
 }
 int xideCatalogBindEditor(xide_app* app,xui_widget editor)
 {
+    TRY(followBind(app,editor));
     /* SHOW_COMPLETION is followed by generic command cancellation in this
        SDK. The registered IDE hotkey calls ShowCompletion exactly once. */
     int ret=xuiCodeCommandMapUnbind(xuiCodeEditGetCommandMap(editor),XUI_KEY_SPACE,XUI_MOD_CTRL);

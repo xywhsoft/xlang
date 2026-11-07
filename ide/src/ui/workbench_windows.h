@@ -5,4 +5,5 @@
  * -1 = not yet registered. Querying menus during startup must be harmless. */
 int xideWorkbenchWindowVisible(xide_app* app,int window);
 int xideWorkbenchToggleWindow(xide_app* app,int window);
+int xideWorkbenchRevealHelp(xide_app*);
 #endif

@@ -55,6 +55,7 @@ static int run(void* user)
  CHECK(scroll && xuiScrollViewEnsureChildVisible(scroll,minimap)==XUI_OK && settle(&a));
  CHECK(click(&a,XIDE_PREF_MINIMAP) && !xuiCheckBoxGetChecked(minimap));
  CHECK(xuiCheckBoxSetChecked(xideSettingsViewControl(&a,XIDE_PREF_AUTO),0)==XUI_OK);
+ CHECK(xuiCheckBoxGetChecked(xideSettingsViewControl(&a,XIDE_PREF_HELP_FOLLOW)) && xuiCheckBoxSetChecked(xideSettingsViewControl(&a,XIDE_PREF_HELP_FOLLOW),0)==XUI_OK);
  CHECK(xuiCheckBoxSetChecked(xideSettingsViewControl(&a,XIDE_PREF_COMPLETION),0)==XUI_OK);
  CHECK(xuiCheckBoxSetChecked(xideSettingsViewControl(&a,XIDE_PREF_SIGNATURE),0)==XUI_OK);
  CHECK(xuiCheckBoxSetChecked(xideSettingsViewControl(&a,XIDE_PREF_WRAP),1)==XUI_OK);
@@ -68,6 +69,7 @@ static int run(void* user)
  int autoShow=1,minPrefix=0,maxItems=0;float completionDelay=0;CHECK(xuiCodeEditGetCompletionOptions(c->editor,&autoShow,&minPrefix,&maxItems,&completionDelay)==XUI_OK && !autoShow);
  int visible=1;float width=0;CHECK(xuiCodeEditGetMinimap(xl->editor,&visible,&width)==XUI_OK && !visible);
  CHECK(xideSettingsLoad(&loaded,settings,&error) && loaded.documentFontSize==20 && xideSettingsOptions(&loaded)->theme==2);
+ CHECK(!xideSettingsOptions(&loaded)->helpFollow);
  CHECK(xrtValueObjectGet(loaded.source,(xstrview){"future",6}));
  before=xrtFileReadAllLimit(settings,256*1024,&bytes);CHECK(before);
  xui_font original=a.documentFont;
@@ -75,9 +77,12 @@ static int run(void* user)
  CHECK(!xideSettingsViewApply(&a) && a.documentFont==original && a.documentFontSize==20 && !a.frameError);
  CHECK(click(&a,XIDE_PREF_CANCEL) && !xideSettingsViewIsOpen(&a));
  CHECK(xideSettingsViewOpen(&a,XIDE_SETTINGS_DOCUMENTS));
+ CHECK(!xuiCheckBoxGetChecked(xideSettingsViewControl(&a,XIDE_PREF_HELP_FOLLOW)) && xuiCheckBoxSetChecked(xideSettingsViewControl(&a,XIDE_PREF_HELP_FOLLOW),1)==XUI_OK);
  CHECK(xuiEditSetText(xideSettingsViewControl(&a,XIDE_PREF_DOC_SIZE),"24")==XUI_OK && click(&a,XIDE_PREF_CANCEL));
- CHECK(a.documentFontSize==20);
+ CHECK(a.documentFontSize==20 && !xideSettingsOptions(&a.preferences)->helpFollow);
  CHECK(xideSettingsViewOpen(&a,XIDE_SETTINGS_DOCUMENTS));
+ CHECK(click(&a,XIDE_PREF_DEFAULTS) && xuiCheckBoxGetChecked(xideSettingsViewControl(&a,XIDE_PREF_HELP_FOLLOW)) && !xideSettingsOptions(&a.preferences)->helpFollow);
+ CHECK(click(&a,XIDE_PREF_CANCEL) && xideSettingsViewOpen(&a,XIDE_SETTINGS_DOCUMENTS));
  const char external[]="{\"format\":\"xlang-ide-settings-1\",\"external\":true}";
  CHECK(xrtFileWriteAtomic(settings,(xbytesview){(const unsigned char*)external,sizeof(external)-1}));
  CHECK(xuiEditSetText(xideSettingsViewControl(&a,XIDE_PREF_DOC_SIZE),"22")==XUI_OK && !xideSettingsViewApply(&a));

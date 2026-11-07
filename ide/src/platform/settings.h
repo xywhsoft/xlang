@@ -4,7 +4,7 @@
 #include "model/workspace.h"
 typedef struct xide_settings_options {
     int tabColumns,indentColumns,expandTabs,lineNumbers,foldMargin,minimap,wordWrap;
-    int documentLineGap,documentWrap,theme,automaticDiagnostics,diagnosticDelay,completion,signatureHelp;
+    int documentLineGap,documentWrap,theme,automaticDiagnostics,diagnosticDelay,completion,signatureHelp,helpFollow;
 } xide_settings_options;
 typedef struct xide_settings { char *path,*compiler,*cServer,*editorFont,*uiFont,*documentFont; int editorFontSize,uiFontSize,documentFontSize,optionsReady; xide_settings_options options; xvalue* source; int existed; } xide_settings;
 typedef struct xide_settings_draft {
