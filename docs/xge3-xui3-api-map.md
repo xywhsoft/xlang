@@ -1,7 +1,7 @@
 # XGE 3 / XUI 3 declaration inventory
 
 The current [machine-readable inventory](xge3-xui3-api-map.json) uses the
-transfer-r3 frozen public headers, public ABI schema 2 and Proxy version 18.
+XGE `1312f035` frozen public headers, public ABI schema 2 and Proxy version 18.
 It records declarations, types, fields, callbacks, conditional macros and
 callable fields. It also pins the current language declaration files. This is
 an inventory of source contracts, not a claim that every native function needs
@@ -9,19 +9,19 @@ a managed method or has been executed.
 
 | Surface | Native functions | Types | Callable fields |
 | --- | ---: | ---: | ---: |
-| `xge.h` | 1,035 | 281 | 0 |
-| `xui.h` | 3,548 | 583 | 162 |
+| `xge.h` | 1,037 | 281 | 0 |
+| `xui.h` | 3,561 | 583 | 162 |
 | Separate Document headers | 383 | 85 | 12 |
-| Combined | 4,966 | 949 | 174 |
+| Combined | 4,981 | 949 | 174 |
 
-There are zero parse errors. The primary headers contain 1,820 object macro
+There are zero parse errors. The primary headers contain 1,823 object macro
 definitions and seven function macros; the separate headers additionally
 contain 40 standalone enums and 316 enum constants. Enum typedefs are also
 represented in the type inventory. The independent portable
 `xnative_transfer.h` is recorded as a dependency rather than counted twice.
 Its actual type declarations seed parsing; unknown type names are not guessed.
 
-The current declaration annotation finds 405 XGE functions, 2,582 XUI functions
+The current declaration annotation finds 411 XGE functions, 2,609 XUI functions
 and 65 callable fields in the primary headers. Supplementary managed APIs,
 lifecycle controls and multiple logical overloads have different counts. The
 [Document](xge3-xui3-document-api-map.json),
@@ -31,6 +31,15 @@ lifecycle controls and multiple logical overloads have different counts. The
 contracts individually. The complete [supplementary header
 inventory](xge3-xui3-api-map-documents.json) preserves native APIs that remain
 explicit C interoperability.
+
+The 2026-11-07 refresh adds eleven direct managed declarations for CodeEdit
+bracket matching, Tabs scroll/list controls and DockPanel pane scroll buttons,
+plus their three constants. Table column-copy declarations were already
+present. The Pass current/idle queries remain in the explicit C surface, as
+does the existing Pass resource API. Native focus/chrome and render-pass
+ordering fixes ship in the matched hosted image and static archive. The CPU
+package regression is `test/cases/foreign_xge3_navigation.xl`; run
+`tools/check_xge3_navigation.py` against a staged or installed package tree.
 
 ## Mapping and ownership
 

@@ -1,0 +1,79 @@
+{
+  "schema": 1,
+  "xlangBaseRevision": "21fc65d0d449c64bb34e414cd8d7bbdd78cada38",
+  "xgeRevision": "1312f03546d8def9e4ddf169881f7ba44a1438e2",
+  "nativeSourceClosure": {
+    "path": "dev/release-materials/sources/xge-extension-sync-20261107/xge-source-closure.zip",
+    "sha256": "f6b529e7439e0cd2836294d0938621ba71639f7dd4735257c30a1c49d7129dbb",
+    "bytes": 10588129
+  },
+  "nativeSourceFiles": {
+    "path": "dev/release-materials/sources/xge-extension-sync-20261107/xge-source-files.json",
+    "sha256": "e57460ff0c82f17612cd73853b461e146461b4bd498b450d2368c287a67ab34a",
+    "bytes": 112719
+  },
+  "nativeOverlays": {
+    "path": "dev/release-materials/sources/xge-extension-sync-20261107/upstream-and-overlays.json",
+    "sha256": "e522aca5bf24d8d6f8e5e56fff161ee74e0958ad114dd34bee90bd6e2d4ceac3",
+    "bytes": 743
+  },
+  "xlangFiles": [
+    {
+      "path": "lib/bindings/xui/README.md",
+      "sha256": "786701e1fc9094f743c89d04530eea3750d2b30c1c737480f839de2dbe5fdb7f",
+      "bytes": 13813
+    },
+    {
+      "path": "lib/bindings/xui/src/managed.xl",
+      "sha256": "90450541c0abe9f2dc53950154ea40a44915e68b1fd502ff6462c5b37072c7fc",
+      "bytes": 325848
+    },
+    {
+      "path": "lib/bindings/xui/src/constants.xl",
+      "sha256": "f0d61a167dd8ea9fece030353c715795f340285a830c0fcc5a75a72ad83b1476",
+      "bytes": 74808
+    },
+    {
+      "path": "lib/bindings/xui/examples/codeedit.xl",
+      "sha256": "2fffc2d753ee05719f9591721c6c3449fe48220c465f72f24f9a3ffbaaccd72d",
+      "bytes": 653
+    },
+    {
+      "path": "lib/bindings/xui/examples/tabs.xl",
+      "sha256": "b96fb256353db09734fa33f120d079a3a4b8cd9428b7cfa0b2211415713816c9",
+      "bytes": 859
+    },
+    {
+      "path": "lib/bindings/xui/examples/dockpanel.xl",
+      "sha256": "2847e35a12687ac83c27846e234abbfa7d587d70208cf14c6ae36386e8879a7d",
+      "bytes": 802
+    },
+    {
+      "path": "tools/check_xge3_navigation.py",
+      "sha256": "f641180f9188652034978b1b002bd15fc41fe1f0982af35d894d59bd0ade100a",
+      "bytes": 5720
+    },
+    {
+      "path": "test/cases/foreign_xge3_navigation.xl",
+      "sha256": "df7615b4e28cf1044eb650c84706c27d477a34a1503947604aed634324314140",
+      "bytes": 3459
+    },
+    {
+      "path": "src/runtime/xl6_host_xrt_symbols.h",
+      "sha256": "0847c3a2d6d68fd2663eb5ccf19b2954968086f5d8fe772b63feaa156eb7d95c",
+      "bytes": 204703
+    },
+    {
+      "path": "lib/xrt/xrt.h",
+      "sha256": "41bc24579f4b3207b0434755ca23dd06481af90c05f71e9b365848cf9a7c12d1",
+      "bytes": 9119295
+    }
+  ],
+  "optimization": "-O2",
+  "scope": "Committed XGE snapshot excluding upstream uncommitted changes; matched language XRT and preserved qualified GL3.3/WGL startup files. Native dependency closure covers default Windows/Linux shared and static builds.",
+  "xlangInputOverlay": {
+    "path": "dev/release-materials/sources/xge-extension-sync-20261107/xlang-input-overlay.zip",
+    "sha256": "547d68cf3a185ca56eb2f34355635870377d1681e4f1b44746afb11b904823d2",
+    "bytes": 1992410
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "fullEngineRebuild": false,
+  "scope": "Check complete native SDK ABI inputs without building or loading an engine.",
+  "inputs": {
+    "F:\\xlang-validation\\xge-extension-sync-20261107\\source\\tools\\build\\build.py": "fedfcac8068f7e0106bdc924b3877dbe04c8ee39b2cfaa5a4b302c56cd152ad6",
+    "D:\\GIT\\x-lang\\tools\\stage_xge3_packages.py": "1820b005fe66a8ef3db50ad9199be098d11ff4c56d2b99e2ed2a990f130f9b97",
+    "D:\\GIT\\x-lang\\tools\\check_xge3_sdk_fingerprint.py": "3388fc2933d445eb34f7ea1d87139cc305b9663e0dd7efb6673e588d1ec0962a",
+    "F:\\xlang-validation\\xge-extension-sync-20261107\\source\\include\\xge.h": "b7b315ddfca9add6074a1e414f1da2188e4a0ece037e8ce3927c9ffa8e7f5d79",
+    "F:\\xlang-validation\\xge-extension-sync-20261107\\source\\include\\xge_config.h": "5d960786a736321b22d1b88cbe2d3aaac807e8afaa8a7bd0a4e509b06f7b76bf",
+    "F:\\xlang-validation\\xge-extension-sync-20261107\\source\\include\\xge_host_xrt.h": "5e43dc2cff98741941c1be6d02832d6cf34256521c94975e4fe96fd411e7b60f",
+    "F:\\xlang-validation\\xge-extension-sync-20261107\\source\\include\\xnative_transfer.h": "620fe84af1c7c5f40006a65a4ca4435a5d62f2fd500b345514829e27c08dff6f",
+    "F:\\xlang-validation\\xge-extension-sync-20261107\\source\\include\\xui.h": "f31173fbd4af53d10e1a8c7a84eaee3b7547f0d6465bbe9a8fe5b5b48fcba5a4",
+    "F:\\xlang-validation\\xge-extension-sync-20261107\\source\\include\\xui_config.h": "01448ede1da13af8e8ef81ef7574f15edc88f5fa8c2312d9d8a5ede91e17f193",
+    "F:\\xlang-validation\\xge-extension-sync-20261107\\source\\include\\xui_document.h": "7062c587237e6486c9efb84ba8e5023b9346ac90e4ab6afe780ad00aa5bd6fe2",
+    "F:\\xlang-validation\\xge-extension-sync-20261107\\source\\include\\xui_document_ui.h": "e343a8600039805be3c5e481fe1d15dbcd426490ce2ad2b5dca65f78b6574bb2",
+    "F:\\xlang-validation\\xge-extension-sync-20261107\\source\\extlibs\\xrt\\xrt.h": "41bc24579f4b3207b0434755ca23dd06481af90c05f71e9b365848cf9a7c12d1"
+  },
+  "inputsUnchanged": true,
+  "headerCount": 8,
+  "rows": [
+    {
+      "name": "builder-and-stager-identical",
+      "passed": true
+    },
+    {
+      "name": "mutation:include/xge.h",
+      "passed": true
+    },
+    {
+      "name": "mutation:include/xge_config.h",
+      "passed": true
+    },
+    {
+      "name": "mutation:include/xge_host_xrt.h",
+      "passed": true
+    },
+    {
+      "name": "mutation:include/xnative_transfer.h",
+      "passed": true
+    },
+    {
+      "name": "mutation:include/xui.h",
+      "passed": true
+    },
+    {
+      "name": "mutation:include/xui_config.h",
+      "passed": true
+    },
+    {
+      "name": "mutation:include/xui_document.h",
+      "passed": true
+    },
+    {
+      "name": "mutation:include/xui_document_ui.h",
+      "passed": true
+    },
+    {
+      "name": "mutation:extlibs/xrt/xrt.h",
+      "passed": true
+    },
+    {
+      "name": "new-empty-header-included",
+      "passed": true
+    },
+    {
+      "name": "line-endings-normalized",
+      "passed": true
+    },
+    {
+      "name": "old-sdk-rejected-before-output",
+      "passed": true
+    }
+  ]
+}

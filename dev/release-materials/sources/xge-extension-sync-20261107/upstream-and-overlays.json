@@ -1,0 +1,22 @@
+{
+  "revision": "1312f03546d8def9e4ddf169881f7ba44a1438e2",
+  "archiveSha256": "17aabf67e4ef8929aafaffd940558871a4e476fd60fb4a369076efd46a0a066c",
+  "overlays": [
+    {
+      "path": "src/xge/core/xge_impl.c",
+      "reason": "Preserve qualified OpenGL 3.3 / checked WGL startup behavior"
+    },
+    {
+      "path": "src/xge/core/xge_core.c",
+      "reason": "Preserve qualified OpenGL 3.3 / checked WGL startup behavior"
+    },
+    {
+      "path": "extlibs/sokol/sokol_app.h",
+      "reason": "Preserve qualified OpenGL 3.3 / checked WGL startup behavior"
+    },
+    {
+      "path": "extlibs/xrt/xrt.h",
+      "reason": "Match the language shared XRT snapshot, including additive value read-scope backports"
+    }
+  ]
+}

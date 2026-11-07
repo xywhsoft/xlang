@@ -41,6 +41,16 @@ with no raw callback/user pointers. `Cascader.setItems` projects equal-length
 columns to native items, whose texts the native control copies. `DockPanel`
 windows start hidden: `dockWindow` places them in a pane and returns its ID.
 
+CodeEdit bracket matching is enabled by default; `setBracketMatching(0)`
+disables it without changing other display options. Tabs expose independent
+`setScrollButtonsVisible` and `setTabListButtonVisible` switches. Directional
+buttons appear only when scrolling in that direction is possible; their rect
+queries return empty rects otherwise. DockPanel uses
+`setTabScrollButtonsVisible(1)` and `getPaneTabScrollRects(pane)` returns
+`(backward, forward)` from one native call. See the CodeEdit, Tabs and DockPanel
+examples for these controls. All eleven new methods are direct native
+declarations with the existing resource lifetime checks.
+
 `Widget.close()` calls the checked native widget
 destructor. A protected internal child refuses destruction without invalidating
 its live view. Ordinary interaction actions are named `closeMenu`, `closePopup`

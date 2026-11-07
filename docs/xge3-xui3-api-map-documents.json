@@ -1,10 +1,10 @@
 {
   "schema": 1,
   "scope": "Supplementary public Document and Document UI header inventory. Managed contracts and acceptance are indexed separately; inventory presence is not execution coverage.",
-  "inputInventorySha256": "53544add751f72cf46dea2b70b969e7dc920eec73243efe8482ed43aae4abb00",
+  "inputInventorySha256": "c7373ab8b03cd73c161822f7286179d442dab6569bfe50fb3ce0312fd591c98d",
   "headers": [
     {
-      "header": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\include\\xui_document.h",
+      "header": "F:\\xlang-validation\\xge-extension-sync-20261107\\source\\include\\xui_document.h",
       "sha256": "7062c587237e6486c9efb84ba8e5023b9346ac90e4ab6afe780ad00aa5bd6fe2",
       "functions": [
         {
@@ -20573,7 +20573,7 @@
       "parseErrors": []
     },
     {
-      "header": "F:\\xlang-validation\\foreign-completion-20261103\\native-transfer-source-r3\\include\\xui_document_ui.h",
+      "header": "F:\\xlang-validation\\xge-extension-sync-20261107\\source\\include\\xui_document_ui.h",
       "sha256": "e343a8600039805be3c5e481fe1d15dbcd426490ce2ad2b5dca65f78b6574bb2",
       "functions": [
         {

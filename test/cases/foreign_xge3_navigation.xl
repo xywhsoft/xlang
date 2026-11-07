@@ -1,0 +1,98 @@
+// CPU-only package regression: no window, GPU, network or clipboard operations.
+import xui
+
+func rectangle(int width, int height) as xui.Rect
+ auto result = xui.Rect()
+ result.fW = c_int(width)
+ result.fH = c_int(height)
+ return result
+end
+
+auto proxy = xui.createProxy()
+auto ui = xui.create(proxy)
+auto root = ui.widget()
+root.setRect(rectangle(600, 400))
+ui.setRootWidget(root)
+ui.setViewportSize(600, 400)
+
+auto editor = ui.codeEditNative()
+assert editor.getBracketMatching() == 1, "bracket matching defaults on"
+editor.setDisplayOptions(c_uint(xui.XUI_CODE_EDIT_SHOW_WHITESPACE))
+editor.setBracketMatching(0)
+assert editor.getBracketMatching() == 0, "disable bracket matching"
+assert editor.getDisplayOptions() == c_uint(xui.XUI_CODE_EDIT_SHOW_WHITESPACE), "creation flag is separate from display options"
+editor.setBracketMatching(1)
+assert editor.getBracketMatching() == 1, "enable bracket matching"
+assert editor.getDisplayOptions() == c_uint(xui.XUI_CODE_EDIT_SHOW_WHITESPACE), "other options preserved"
+
+auto tabs = ui.tabsNative()
+tabs.setRect(rectangle(260, 120))
+root.addChild(tabs)
+tabs.setItems(["First", "Second", "Third", "Fourth", "Fifth"])
+tabs.setTabSize(120, 30)
+tabs.setScrollable(1)
+tabs.setScrollButtonsVisible(1)
+tabs.setTabListButtonVisible(1)
+assert tabs.getScrollButtonsVisible() == 1
+assert tabs.getTabListButtonVisible() == 1
+assert ui.layout() == 0, "Tabs layout"
+assert ui.update(0) == 0, "Tabs update"
+tabs.setScroll(0)
+ui.layout()
+assert tabs.getScrollBackwardRect().fW <= 0
+assert tabs.getScrollForwardRect().fW > 0, "forward arrow on overflowing tabs"
+tabs.setScroll(tabs.getMaxScroll())
+ui.layout()
+assert tabs.getScrollBackwardRect().fW > 0
+assert tabs.getScrollForwardRect().fW <= 0
+tabs.setScrollButtonsVisible(0)
+ui.layout()
+assert tabs.getScrollButtonsVisible() == 0
+assert tabs.getScrollBackwardRect().fW <= 0
+assert tabs.getScrollForwardRect().fW <= 0
+assert tabs.getOverflowRect().fW > 0, "tab list is independent"
+tabs.setTabListButtonVisible(0)
+ui.layout()
+assert tabs.getTabListButtonVisible() == 0
+assert tabs.getOverflowRect().fW <= 0
+
+auto dock = ui.dockPanelNative()
+dock.setRect(rectangle(260, 200))
+root.addChild(dock)
+dock.setTabScrollButtonsVisible(1)
+assert dock.getTabScrollButtonsVisible() == 1
+c_int pane = 0
+for i in range(0, 8)
+ auto client = ui.panelNative()
+ c_int window = dock.addWindow("Inspector "+string(i), client)
+ pane = dock.dockWindow(window, xui.XUI_DOCK_PANEL_REGION_DOCUMENT, xui.XUI_DOCK_PANEL_SIDE_FILL)
+end
+assert ui.layout() == 0, "Dock layout"
+assert ui.update(0) == 0, "Dock update"
+auto backward, forward = dock.getPaneTabScrollRects(pane)
+assert backward.fW > 0 or forward.fW > 0, "Dock tuple contains overflow navigation"
+dock.setTabScrollButtonsVisible(0)
+ui.layout()
+assert dock.getTabScrollButtonsVisible() == 0
+auto hiddenBackward, hiddenForward = dock.getPaneTabScrollRects(pane)
+assert hiddenBackward.fW <= 0 and hiddenForward.fW <= 0
+bool invalidPane = false
+try
+ auto badBackward, badForward = dock.getPaneTabScrollRects(-1)
+catch error
+ invalidPane = true
+end
+assert invalidPane, "native output failure becomes checked error"
+assert xui.XUI_DOCK_PANEL_HIT_PANE_SCROLL_BACKWARD == 15
+assert xui.XUI_DOCK_PANEL_HIT_PANE_SCROLL_FORWARD == 16
+
+ui.close()
+bool expired = false
+try
+ editor.setBracketMatching(0)
+catch error
+ expired = true
+end
+assert expired, "new methods preserve expired view checks"
+proxy.close()
+println("XGE navigation package regression passed")

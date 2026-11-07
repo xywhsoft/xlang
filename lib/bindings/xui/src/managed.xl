@@ -2260,6 +2260,10 @@ export extern "xui_widget_t*" class CodeEdit @header("xge3_runtime.h") @lifetime
 
  extern "xuiCodeEditGetDisplayOptions" @no_raise func getDisplayOptions() as c_uint
 
+ extern "xuiCodeEditSetBracketMatching" @no_raise @c_result("status",0) func setBracketMatching(c_int bEnabled)
+
+ extern "xuiCodeEditGetBracketMatching" @no_raise func getBracketMatching() as c_int
+
  extern "xuiCodeEditSetMinimap" @no_raise func setMinimap(c_int bVisible,c_float fWidth) as c_int
 
  extern "xuiCodeEditGetMinimap" @no_raise @c_outputs(1,2) @c_status(0) func getMinimap() as (c_int,c_float)
@@ -3635,6 +3639,14 @@ export extern "xui_widget_t*" class Tabs @header("xge3_runtime.h") @lifetime("ow
 
  extern "xuiTabsIsScrollable" @no_raise func isScrollable() as c_int
 
+ extern "xuiTabsSetScrollButtonsVisible" @no_raise @c_result("status",0) func setScrollButtonsVisible(c_int bVisible)
+
+ extern "xuiTabsGetScrollButtonsVisible" @no_raise func getScrollButtonsVisible() as c_int
+
+ extern "xuiTabsSetTabListButtonVisible" @no_raise @c_result("status",0) func setTabListButtonVisible(c_int bVisible)
+
+ extern "xuiTabsGetTabListButtonVisible" @no_raise func getTabListButtonVisible() as c_int
+
  extern "xuiTabsSetScroll" @no_raise @c_result("status",0) func setScroll(c_float fScrollX)
 
  extern "xuiTabsGetScroll" @no_raise func getScroll() as c_float
@@ -3668,6 +3680,10 @@ export extern "xui_widget_t*" class Tabs @header("xge3_runtime.h") @lifetime("ow
  extern "xuiTabsIsOverflow" @no_raise func isOverflow() as c_int
 
  extern "xuiTabsGetOverflowRect" @no_raise func getOverflowRect() as Rect
+
+ extern "xuiTabsGetScrollBackwardRect" @no_raise func getScrollBackwardRect() as Rect
+
+ extern "xuiTabsGetScrollForwardRect" @no_raise func getScrollForwardRect() as Rect
 
  extern "xuiTabsGetOverflowMenu" @no_raise @c_result("owner_view",0) func getOverflowMenu() as Widget?
 
@@ -3956,6 +3972,12 @@ export extern "xui_widget_t*" class DockPanel @header("xge3_runtime.h") @lifetim
  extern "xuiDockPanelGetPaneCount" @no_raise func getPaneCount() as c_int
 
  extern "xuiDockPanelGetPaneInfo" @no_raise @c_output(2,0) func getPaneInfo(c_int iPane) as DockPaneInfo
+
+ extern "xuiDockPanelSetTabScrollButtonsVisible" @no_raise @c_result("status",0) func setTabScrollButtonsVisible(c_int bVisible)
+
+ extern "xuiDockPanelGetTabScrollButtonsVisible" @no_raise func getTabScrollButtonsVisible() as c_int
+
+ extern "xuiDockPanelGetPaneTabScrollRects" @no_raise @c_outputs(2,3) @c_status(0) func getPaneTabScrollRects(c_int iPane) as (Rect,Rect)
 
  extern "xuiDockPanelSetRegionSize" @no_raise @c_result("status",0) func setRegionSize(c_int iRegion,c_int iSizeMode,c_float fValue)
 

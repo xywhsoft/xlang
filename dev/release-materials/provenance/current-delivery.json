@@ -3739,5 +3739,19 @@
       "bytes": 1570
     },
     "publication": "local-only"
+  },
+  "xgeExtensionRefresh": {
+    "receipt": {
+      "path": "dev/release-materials/provenance/xge-extension-sync-20261107/receipt.json",
+      "sha256": "ff1598d647594549c7b02e20eed992baa9a8c47fde97854b42dba30996fe76a1",
+      "bytes": 19269
+    },
+    "sourceMaterials": {
+      "path": "dev/release-materials/sources/xge-extension-sync-20261107/manifest.json",
+      "sha256": "7d1c09d5570a9e705ddb6a91e5d4821030a19e480f7a9b5e105d216362dcb940",
+      "bytes": 3083
+    },
+    "xgeRevision": "1312f03546d8def9e4ddf169881f7ba44a1438e2",
+    "publication": "local-only"
   }
 }

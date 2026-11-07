@@ -179,3 +179,7 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 # Exact-byte IDE dock-tab navigation source and acceptance materials.
 /dev/release-materials/sources/ide-dock-tabs-20261107/** -text -whitespace
 /dev/release-materials/provenance/ide-dock-tabs-20261107/** -text -whitespace
+
+# Exact-byte extension SDK refresh inputs and acceptance records.
+/dev/release-materials/sources/xge-extension-sync-20261107/** -text -whitespace
+/dev/release-materials/provenance/xge-extension-sync-20261107/** -text -whitespace

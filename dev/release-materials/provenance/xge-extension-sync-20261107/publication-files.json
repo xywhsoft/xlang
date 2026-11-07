@@ -1,0 +1,284 @@
+[
+  {
+    "path": "release/win_x64/extlibs/_xge_native/xlang.package.json",
+    "beforeSha256": "c64e959784a67f31ff6f79ea5748b4d7137c901c029d8f67d4a3a41739663e9a",
+    "sha256": "8f63057bcedaa98e396207e25cb6d94563c9bd842b93549d7ff14b037b446a11",
+    "bytes": 2500
+  },
+  {
+    "path": "release/win_x64/extlibs/_xge_native/include/xge.h",
+    "beforeSha256": "f3b467786f5faedd225d9c17fb3569d5ca88b5e23e17b5c3a53c03b12e28b79e",
+    "sha256": "b7b315ddfca9add6074a1e414f1da2188e4a0ece037e8ce3927c9ffa8e7f5d79",
+    "bytes": 232153
+  },
+  {
+    "path": "release/win_x64/extlibs/_xge_native/include/xge3_runtime.h",
+    "beforeSha256": "d22aff119f3736b1afbce13c1d4248ddec2189c5af5b24a48e685fc3b3fc2779",
+    "sha256": "603723af0fef2d749d3093ff1b12c516cd3d1600bdae9914add404e4db967483",
+    "bytes": 6303
+  },
+  {
+    "path": "release/win_x64/extlibs/_xge_native/include/xge_build_config.h",
+    "beforeSha256": "293ff2f0cbfd34358a1ff65263a1d609b03c398ec274e08167ca7c754209a689",
+    "sha256": "a1f09a4dc2c715382bbf6570631618da2b6887b227cd92f6f2e4d83a27a8b2fc",
+    "bytes": 3282
+  },
+  {
+    "path": "release/win_x64/extlibs/_xge_native/include/xge_host_xrt_fingerprint.h",
+    "beforeSha256": "3f5744ec0d8273cb30b3e32dbf40aa70f3564f3fd19b5eb1d330038283f326c5",
+    "sha256": "4d10a05e21c175f0195a0fc9be1a371400395a1ebfd2da7d847f9cec7b70fcc3",
+    "bytes": 179
+  },
+  {
+    "path": "release/win_x64/extlibs/_xge_native/include/xui.h",
+    "beforeSha256": "8f9c9ee71d5d9e7a18c5144ccadd012861929358b6e6226723dbd67920435fca",
+    "sha256": "f31173fbd4af53d10e1a8c7a84eaee3b7547f0d6465bbe9a8fe5b5b48fcba5a4",
+    "bytes": 692767
+  },
+  {
+    "path": "release/win_x64/extlibs/_xge_native/native/xge3_host.dll",
+    "beforeSha256": "0229cab17ea902fe44be5758d0c0af90f930387a02efa3f8afd537d811c70d69",
+    "sha256": "ad961bd48bfaa040174248eb0b3ca8cc840c71bf7b83518b61581cd62a38f18d",
+    "bytes": 9129190
+  },
+  {
+    "path": "release/win_x64/extlibs/_xge_native/src/runtime.c",
+    "beforeSha256": "c85138389db8cca57cd560fd24323b127dd5d4aa9f0d8401928eb6ac614cba4e",
+    "sha256": "946b3b483fcbbb0aa12b7347da5891f0cd4626ea949e4747e0dc6af4dd19c3c7",
+    "bytes": 32605
+  },
+  {
+    "path": "release/win_x64/extlibs/xui/README.md",
+    "beforeSha256": "772f8f448835ad1b961cb10d93e7e132d4154ade4cf648e36c02acb08a4f8cd2",
+    "sha256": "786701e1fc9094f743c89d04530eea3750d2b30c1c737480f839de2dbe5fdb7f",
+    "bytes": 13813
+  },
+  {
+    "path": "release/win_x64/extlibs/xui/src/managed.xl",
+    "beforeSha256": "f6f810280ad86a13d35549c4a01bd127fc8c2115def4c26e671970a11aaa6896",
+    "sha256": "90450541c0abe9f2dc53950154ea40a44915e68b1fd502ff6462c5b37072c7fc",
+    "bytes": 325848
+  },
+  {
+    "path": "release/win_x64/extlibs/xui/src/constants.xl",
+    "beforeSha256": "91b4a7b8c8dfa85b0c627604eccf2659eb193ba4acf618e8f9b464129207ea05",
+    "sha256": "f0d61a167dd8ea9fece030353c715795f340285a830c0fcc5a75a72ad83b1476",
+    "bytes": 74808
+  },
+  {
+    "path": "release/win_x64/extlibs/xui/examples/codeedit.xl",
+    "beforeSha256": "050f0cfda4a8ec6f11b37c9ace5af4bf5f8baf076dc55751469610769dcffbf9",
+    "sha256": "2fffc2d753ee05719f9591721c6c3449fe48220c465f72f24f9a3ffbaaccd72d",
+    "bytes": 653
+  },
+  {
+    "path": "release/win_x64/extlibs/xui/examples/tabs.xl",
+    "beforeSha256": "49ba1c19da1778ab64228cbdfc3040e15dc981f3b842021c33a9553a75f11e67",
+    "sha256": "b96fb256353db09734fa33f120d079a3a4b8cd9428b7cfa0b2211415713816c9",
+    "bytes": 859
+  },
+  {
+    "path": "release/win_x64/extlibs/xui/examples/dockpanel.xl",
+    "beforeSha256": "69691b28beec0a6104de4a667a6916962ea8df00ac7800a3d4de434368a02ac3",
+    "sha256": "2847e35a12687ac83c27846e234abbfa7d587d70208cf14c6ae36386e8879a7d",
+    "bytes": 802
+  },
+  {
+    "path": "release/win_x64/static/xge3/packages/_xge_native/xlang.package.json",
+    "beforeSha256": "9991d3b37bc389b8bafb73feec1425948765bf0a61832139a4ac5adaf4ca96a0",
+    "sha256": "6ff0aba04c9a40b70f881574b5c08cde16c9b2528627c4e2cc25bd48f3eef7d2",
+    "bytes": 2960
+  },
+  {
+    "path": "release/win_x64/static/xge3/packages/_xge_native/include/xge.h",
+    "beforeSha256": "f3b467786f5faedd225d9c17fb3569d5ca88b5e23e17b5c3a53c03b12e28b79e",
+    "sha256": "b7b315ddfca9add6074a1e414f1da2188e4a0ece037e8ce3927c9ffa8e7f5d79",
+    "bytes": 232153
+  },
+  {
+    "path": "release/win_x64/static/xge3/packages/_xge_native/include/xge_build_config.h",
+    "beforeSha256": "e9e108106f51cf5a5089ba0704a8ac43581919d9cc6fa1af167e31b479c44491",
+    "sha256": "d2e0c577daa44ecfb51f5691d6953af1fd1dbc7af4980b3978a610e8a2057e3f",
+    "bytes": 3372
+  },
+  {
+    "path": "release/win_x64/static/xge3/packages/_xge_native/include/xge_static_xrt_contract.h",
+    "beforeSha256": "2a75d40a8e1cceae6dc14c89d42d0be61ba92020a30fc99e361b4cb2de6fcfcb",
+    "sha256": "feb6256e5830b19d3abb766616d4f4ef341869df89f33bb3c63be8af6e298b4f",
+    "bytes": 1216
+  },
+  {
+    "path": "release/win_x64/static/xge3/packages/_xge_native/include/xui.h",
+    "beforeSha256": "8f9c9ee71d5d9e7a18c5144ccadd012861929358b6e6226723dbd67920435fca",
+    "sha256": "f31173fbd4af53d10e1a8c7a84eaee3b7547f0d6465bbe9a8fe5b5b48fcba5a4",
+    "bytes": 692767
+  },
+  {
+    "path": "release/win_x64/static/xge3/packages/_xge_native/native/compiler-support.json",
+    "beforeSha256": "e699bf093fdbe2f145fff8e3972df5e9bc30fe23e96d8819555d81360b86b2c5",
+    "sha256": "7d3c9e147736b558615a59325fad8aa87eda7bca21033a30672b1a1f2fdacc3d",
+    "bytes": 457320
+  },
+  {
+    "path": "release/win_x64/static/xge3/packages/_xge_native/native/libxge3_static.a",
+    "beforeSha256": "b6dad8a5f489c4cb774e85ac38c1d192930cfb7e67a2a381467e13c8d44c77e4",
+    "sha256": "e710edc6380e26632b952af15d667a6d2bc091f154c60310791b698c27868044",
+    "bytes": 18604536
+  },
+  {
+    "path": "release/win_x64/static/xge3/packages/xui/README.md",
+    "beforeSha256": "772f8f448835ad1b961cb10d93e7e132d4154ade4cf648e36c02acb08a4f8cd2",
+    "sha256": "786701e1fc9094f743c89d04530eea3750d2b30c1c737480f839de2dbe5fdb7f",
+    "bytes": 13813
+  },
+  {
+    "path": "release/win_x64/static/xge3/packages/xui/src/managed.xl",
+    "beforeSha256": "f6f810280ad86a13d35549c4a01bd127fc8c2115def4c26e671970a11aaa6896",
+    "sha256": "90450541c0abe9f2dc53950154ea40a44915e68b1fd502ff6462c5b37072c7fc",
+    "bytes": 325848
+  },
+  {
+    "path": "release/win_x64/static/xge3/packages/xui/src/constants.xl",
+    "beforeSha256": "175d2083c63cf40971511954c44483fd8ebc93be69c48a12055209a191a436d9",
+    "sha256": "f0d61a167dd8ea9fece030353c715795f340285a830c0fcc5a75a72ad83b1476",
+    "bytes": 74808
+  },
+  {
+    "path": "release/win_x64/static/xge3/packages/xui/examples/codeedit.xl",
+    "beforeSha256": "050f0cfda4a8ec6f11b37c9ace5af4bf5f8baf076dc55751469610769dcffbf9",
+    "sha256": "2fffc2d753ee05719f9591721c6c3449fe48220c465f72f24f9a3ffbaaccd72d",
+    "bytes": 653
+  },
+  {
+    "path": "release/win_x64/static/xge3/packages/xui/examples/tabs.xl",
+    "beforeSha256": "49ba1c19da1778ab64228cbdfc3040e15dc981f3b842021c33a9553a75f11e67",
+    "sha256": "b96fb256353db09734fa33f120d079a3a4b8cd9428b7cfa0b2211415713816c9",
+    "bytes": 859
+  },
+  {
+    "path": "release/win_x64/static/xge3/packages/xui/examples/dockpanel.xl",
+    "beforeSha256": "69691b28beec0a6104de4a667a6916962ea8df00ac7800a3d4de434368a02ac3",
+    "sha256": "2847e35a12687ac83c27846e234abbfa7d587d70208cf14c6ae36386e8879a7d",
+    "bytes": 802
+  },
+  {
+    "path": "release/linux_x64/extlibs/_xge_native/xlang.package.json",
+    "beforeSha256": "f496349a0ab5b5f88c3c927fb0a94fbbd382207cbab78994f459c4d8d159d99d",
+    "sha256": "c445c17c5906c58a74959ca5eae4fafe2ce89c953c13590c04d30e256838a6e3",
+    "bytes": 2311
+  },
+  {
+    "path": "release/linux_x64/extlibs/_xge_native/include/xge.h",
+    "beforeSha256": "f3b467786f5faedd225d9c17fb3569d5ca88b5e23e17b5c3a53c03b12e28b79e",
+    "sha256": "b7b315ddfca9add6074a1e414f1da2188e4a0ece037e8ce3927c9ffa8e7f5d79",
+    "bytes": 232153
+  },
+  {
+    "path": "release/linux_x64/extlibs/_xge_native/include/xge3_runtime.h",
+    "beforeSha256": "d22aff119f3736b1afbce13c1d4248ddec2189c5af5b24a48e685fc3b3fc2779",
+    "sha256": "603723af0fef2d749d3093ff1b12c516cd3d1600bdae9914add404e4db967483",
+    "bytes": 6303
+  },
+  {
+    "path": "release/linux_x64/extlibs/_xge_native/include/xge_build_config.h",
+    "beforeSha256": "db22827ad18a92cdc58570359306146f3268faf40eb0addc70616468f4ced33c",
+    "sha256": "8840fdab7ccc0d350926ee16aee2183cb3256ee5807fb1f92ecc24264d59f52b",
+    "bytes": 3177
+  },
+  {
+    "path": "release/linux_x64/extlibs/_xge_native/include/xge_host_xrt_fingerprint.h",
+    "beforeSha256": "3f5744ec0d8273cb30b3e32dbf40aa70f3564f3fd19b5eb1d330038283f326c5",
+    "sha256": "4d10a05e21c175f0195a0fc9be1a371400395a1ebfd2da7d847f9cec7b70fcc3",
+    "bytes": 179
+  },
+  {
+    "path": "release/linux_x64/extlibs/_xge_native/include/xui.h",
+    "beforeSha256": "8f9c9ee71d5d9e7a18c5144ccadd012861929358b6e6226723dbd67920435fca",
+    "sha256": "f31173fbd4af53d10e1a8c7a84eaee3b7547f0d6465bbe9a8fe5b5b48fcba5a4",
+    "bytes": 692767
+  },
+  {
+    "path": "release/linux_x64/extlibs/_xge_native/native/libxge3_host.so",
+    "beforeSha256": "cf7cb31082edd8b2c29fc465e1c2328f74d5437c42266a8b018eb13e301c7637",
+    "sha256": "a6979ddcc37fb8a4ed1605e7669991b6047c991fafa59c62e30c85278871ff04",
+    "bytes": 9927376
+  },
+  {
+    "path": "release/linux_x64/extlibs/_xge_native/src/runtime.c",
+    "beforeSha256": "c85138389db8cca57cd560fd24323b127dd5d4aa9f0d8401928eb6ac614cba4e",
+    "sha256": "946b3b483fcbbb0aa12b7347da5891f0cd4626ea949e4747e0dc6af4dd19c3c7",
+    "bytes": 32605
+  },
+  {
+    "path": "release/linux_x64/extlibs/xui/README.md",
+    "beforeSha256": "772f8f448835ad1b961cb10d93e7e132d4154ade4cf648e36c02acb08a4f8cd2",
+    "sha256": "786701e1fc9094f743c89d04530eea3750d2b30c1c737480f839de2dbe5fdb7f",
+    "bytes": 13813
+  },
+  {
+    "path": "release/linux_x64/extlibs/xui/src/managed.xl",
+    "beforeSha256": "f6f810280ad86a13d35549c4a01bd127fc8c2115def4c26e671970a11aaa6896",
+    "sha256": "90450541c0abe9f2dc53950154ea40a44915e68b1fd502ff6462c5b37072c7fc",
+    "bytes": 325848
+  },
+  {
+    "path": "release/linux_x64/extlibs/xui/src/constants.xl",
+    "beforeSha256": "91b4a7b8c8dfa85b0c627604eccf2659eb193ba4acf618e8f9b464129207ea05",
+    "sha256": "f0d61a167dd8ea9fece030353c715795f340285a830c0fcc5a75a72ad83b1476",
+    "bytes": 74808
+  },
+  {
+    "path": "release/linux_x64/extlibs/xui/examples/codeedit.xl",
+    "beforeSha256": "050f0cfda4a8ec6f11b37c9ace5af4bf5f8baf076dc55751469610769dcffbf9",
+    "sha256": "2fffc2d753ee05719f9591721c6c3449fe48220c465f72f24f9a3ffbaaccd72d",
+    "bytes": 653
+  },
+  {
+    "path": "release/linux_x64/extlibs/xui/examples/tabs.xl",
+    "beforeSha256": "49ba1c19da1778ab64228cbdfc3040e15dc981f3b842021c33a9553a75f11e67",
+    "sha256": "b96fb256353db09734fa33f120d079a3a4b8cd9428b7cfa0b2211415713816c9",
+    "bytes": 859
+  },
+  {
+    "path": "release/linux_x64/extlibs/xui/examples/dockpanel.xl",
+    "beforeSha256": "69691b28beec0a6104de4a667a6916962ea8df00ac7800a3d4de434368a02ac3",
+    "sha256": "2847e35a12687ac83c27846e234abbfa7d587d70208cf14c6ae36386e8879a7d",
+    "bytes": 802
+  },
+  {
+    "path": "release/win_x64/examples/xui/codeedit.xl",
+    "beforeSha256": "050f0cfda4a8ec6f11b37c9ace5af4bf5f8baf076dc55751469610769dcffbf9",
+    "sha256": "2fffc2d753ee05719f9591721c6c3449fe48220c465f72f24f9a3ffbaaccd72d",
+    "bytes": 653
+  },
+  {
+    "path": "release/win_x64/examples/xui/tabs.xl",
+    "beforeSha256": "49ba1c19da1778ab64228cbdfc3040e15dc981f3b842021c33a9553a75f11e67",
+    "sha256": "b96fb256353db09734fa33f120d079a3a4b8cd9428b7cfa0b2211415713816c9",
+    "bytes": 859
+  },
+  {
+    "path": "release/win_x64/examples/xui/dockpanel.xl",
+    "beforeSha256": "69691b28beec0a6104de4a667a6916962ea8df00ac7800a3d4de434368a02ac3",
+    "sha256": "2847e35a12687ac83c27846e234abbfa7d587d70208cf14c6ae36386e8879a7d",
+    "bytes": 802
+  },
+  {
+    "path": "release/linux_x64/examples/xui/codeedit.xl",
+    "beforeSha256": "050f0cfda4a8ec6f11b37c9ace5af4bf5f8baf076dc55751469610769dcffbf9",
+    "sha256": "2fffc2d753ee05719f9591721c6c3449fe48220c465f72f24f9a3ffbaaccd72d",
+    "bytes": 653
+  },
+  {
+    "path": "release/linux_x64/examples/xui/tabs.xl",
+    "beforeSha256": "49ba1c19da1778ab64228cbdfc3040e15dc981f3b842021c33a9553a75f11e67",
+    "sha256": "b96fb256353db09734fa33f120d079a3a4b8cd9428b7cfa0b2211415713816c9",
+    "bytes": 859
+  },
+  {
+    "path": "release/linux_x64/examples/xui/dockpanel.xl",
+    "beforeSha256": "69691b28beec0a6104de4a667a6916962ea8df00ac7800a3d4de434368a02ac3",
+    "sha256": "2847e35a12687ac83c27846e234abbfa7d587d70208cf14c6ae36386e8879a7d",
+    "bytes": 802
+  }
+]
