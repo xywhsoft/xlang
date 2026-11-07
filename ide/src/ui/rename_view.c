@@ -264,7 +264,13 @@ int xideRenameViewCreate(xide_app* a)
  TRY(label(a,&v->nameLabel,"新文件名",(xui_rect_t){0,96,100,28})); TRY(input(a,XIDE_RENAME_NAME,"同一目录内的新文件名",(xui_rect_t){108,90,572,32},0));
  TRY(label(a,&v->targetLabel,"新路径",(xui_rect_t){0,148,100,28})); TRY(input(a,XIDE_RENAME_TARGET,"重命名后的完整路径",(xui_rect_t){108,142,572,32},1));
  TRY(label(a,&v->message,"",(xui_rect_t){0,198,680,96})); TRY(button(a,XIDE_RENAME_APPLY,"重命名",(xui_rect_t){460,318,104,32})); TRY(button(a,XIDE_RENAME_CANCEL,"取消",(xui_rect_t){580,318,100,32}));
- return xideUiLayoutCapture(&v->layout,v->content);
+ TRY(xideDialogFormBegin(v->window,500,300));
+ TRY(xideDialogFormBlock(v->window,v->title,0,0));
+ TRY(xideDialogFormNamedField(v->window,v->originalLabel,v->controls[XIDE_RENAME_ORIGINAL],NULL,NULL));
+ TRY(xideDialogFormNamedField(v->window,v->nameLabel,v->controls[XIDE_RENAME_NAME],NULL,NULL));
+ TRY(xideDialogFormNamedField(v->window,v->targetLabel,v->controls[XIDE_RENAME_TARGET],NULL,NULL));TRY(xideDialogFormBlock(v->window,v->message,0,0));
+ { const xui_widget actions[]={v->controls[XIDE_RENAME_APPLY],v->controls[XIDE_RENAME_CANCEL]};TRY(xideDialogFormActions(v->window,actions,sizeof(actions)/sizeof(*actions))); }
+ return xideDialogFormEnd(v->window);
 }
 static int openFile(xide_app* a,const char* source,xide_document* d,int fromTree,xide_model_error* e)
 {
@@ -320,11 +326,9 @@ int xideRenameViewIsOpen(xide_app* a) { return a && a->renameView && xideDialogI
 int xideRenameViewHasPending(xide_app* a) { return a && a->renameView && a->renameView->pendingResources; }
 void xideRenameViewLayout(xide_app* a)
 {
- xide_rename_view* v=a->renameView; if(!v) return; int width=a->viewportWidth-48,height=a->viewportHeight-48; if(width<200) width=200; if(height<200) height=200;
- if(v->pendingResources && !xideDialogIsOpen(v->window)) xideDialogSetOpen(v->window,1);
- xideDialogSetMaxSize(v->window,(float)width,(float)height); float scale=xideUiFontScale(a);
- if(v->scale!=scale) { xideUiLayoutApply(a,&v->layout,1); xideDialogSetContentSize(v->window,xideUiHeight(a,680),xideUiHeight(a,356)); v->scale=scale; }
- 
+ if(!a->renameView)return;
+ xide_rename_view* v=a->renameView;if(v->pendingResources && !xideDialogIsOpen(v->window))xideDialogSetOpen(v->window,1);
+ xideDialogSetMaxSize(a->renameView->window,a->viewportWidth-32,a->viewportHeight-32);
 }
 void xideRenameViewDestroy(xide_app* a) { if(a->renameView) { clear(a->renameView); free(a->renameView); a->renameView=NULL; } }
 xui_widget xideRenameViewWindow(xide_app* a) { return a->renameView ? a->renameView->window : NULL; }

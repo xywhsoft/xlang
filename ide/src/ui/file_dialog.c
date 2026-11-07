@@ -1,13 +1,14 @@
 #include "app/xide_app.h"
 #include "ui/file_dialog.h"
 #include "services/ui_font.h"
+#include "theme/theme.h"
 #include "platform/path.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
 struct xide_file_dialog {
-    xide_app* app; xui_file_dialog dialog; xui_widget backdrop,restore,owner;
+    xide_app* app; xui_file_dialog dialog; xui_widget backdrop,restore,owner,divider;
     xui_widget_event_proc event; void* eventUser;
     xide_path_selected_proc selected; void* user;
     char *path,*extension; int ready,mode; xui_msgbox styledOverwrite;
@@ -70,6 +71,12 @@ int xideFileDialogChoose(xide_app* a,xui_widget owner,int mode,const char* title
     /* Keep the window and its full-screen backdrop in the same stacking tree. */
     xuiOverlayAttach(a->context,NULL,window,XUI_LAYER_FLOATING,2003);
     scaleLayout(xuiWindowGetClientWidget(window),scale);xuiWindowSetChrome(window,32*scale,1,6*scale,24*scale);xideUiFontBindWidget(a,window);
+    xui_widget buttons=xuiWidgetGetParent(xuiFileDialogGetOkButtonWidget(p->dialog));
+    xui_separator_desc_t line={0};line.iSize=sizeof(line);line.fThickness=1;line.iOrientation=XUI_ORIENTATION_HORIZONTAL;
+    if(xuiSeparatorCreate(a->context,&p->divider,&line)==XUI_OK) {
+        if(xuiWidgetAddChild(buttons,p->divider)!=XUI_OK){xuiWidgetDestroy(p->divider);p->divider=NULL;}
+        else {xuiWidgetSetFlowMode(p->divider,XUI_FLOW_ABSOLUTE);xuiWidgetSetPadding(buttons,(xui_thickness_t){0,12*scale,0,0});}
+    }
     xui_widget lists[]={xuiFileDialogGetRootListWidget(p->dialog),xuiFileDialogGetFileListWidget(p->dialog)};
     for(size_t i=0;i<2;++i) { float h,pad,border;if(xuiListViewGetMetrics(lists[i],&h,&pad,&border)==XUI_OK) xuiListViewSetMetrics(lists[i],28*scale,pad,border); }
     xuiWidgetSetDefaultAction(window,commit,p);xuiWidgetSetDefaultAction(xuiFileDialogGetNameInputWidget(p->dialog),commit,p);xuiButtonSetClick(xuiFileDialogGetOkButtonWidget(p->dialog),commit,p);
@@ -84,12 +91,24 @@ int xideFileDialogChoose(xide_app* a,xui_widget owner,int mode,const char* title
 int xideFileDialogBusy(xide_app* a) { return a && a->fileDialog; }
 void xideFileDialogLayout(xide_app* a) {
     xide_file_dialog* p=a->fileDialog;if(!p) return;
+    float scale=xideUiFontScale(a);xui_widget window=xuiFileDialogGetWindowWidget(p->dialog);
+    xuiWindowSetMinSize(window,fminf(560*scale,fmaxf(1,a->viewportWidth-32)),fminf(400*scale,fmaxf(1,a->viewportHeight-32)));
+    if(!xuiWindowIsMaximized(window)) {
+        xui_rect_t rect=xuiWidgetGetRect(window);float mw=fmaxf(1,a->viewportWidth-32),mh=fmaxf(1,a->viewportHeight-32);
+        rect.fW=fminf(rect.fW,mw);rect.fH=fminf(rect.fH,mh);
+        rect.fX=fmaxf(0,fminf(rect.fX,a->viewportWidth-rect.fW));rect.fY=fmaxf(0,fminf(rect.fY,a->viewportHeight-rect.fH));
+        xuiWidgetSetRect(window,rect);
+    }
+    if(p->divider) {
+        xui_rect_t row=xuiWidgetGetRect(xuiWidgetGetParent(p->divider));
+        xuiWidgetSetRect(p->divider,(xui_rect_t){0,0,row.fW,1});xuiSeparatorSetColor(p->divider,ideThemeColor(a->theme,IDE_BORDER));
+    }
     xuiWidgetSetRect(p->backdrop,(xui_rect_t){0,0,a->viewportWidth,a->viewportHeight});layers(xuiFileDialogGetWindowWidget(p->dialog));
     xui_msgbox box=xuiFileDialogGetOverwriteMsgBox(p->dialog);
     if(box && box!=p->styledOverwrite) {
         float s=xideUiFontScale(a);xui_msgbox_metrics_t m={0};m.iSize=sizeof(m);xuiMsgBoxGetMetrics(box,&m);
         m.fPaddingX*=s;m.fPaddingY*=s;m.fIconSize*=s;m.fIconGap*=s;m.fButtonWidth*=s;m.fButtonHeight*=s;m.fButtonGap*=s;m.fFooterHeight*=s;m.fMinMessageHeight*=s;m.fMinWidth*=s;m.fMaxWidth*=s;
-        xuiMsgBoxSetMetrics(box,&m);xuiWindowSetChrome(xuiMsgBoxGetWindowWidget(box),32*s,1,6*s,24*s);xideUiFontBindWidget(a,xuiMsgBoxGetWindowWidget(box));p->styledOverwrite=box;
+        xuiMsgBoxSetMetrics(box,&m);xuiWindowSetChrome(xuiMsgBoxGetWindowWidget(box),32*s,1,6*s,24*s);xideUiFontBindWidget(a,xuiMsgBoxGetWindowWidget(box));xideDialogStyleMessage(a,box);p->styledOverwrite=box;
     }
 }
 void xideFileDialogDestroy(xide_app* a) { xide_file_dialog* p=a->fileDialog;if(!p) return;a->fileDialog=NULL;xuiFileDialogDestroy(p->dialog);xuiWidgetDestroy(p->backdrop);free(p->extension);free(p->path);free(p); }

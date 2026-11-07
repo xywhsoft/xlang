@@ -7,6 +7,7 @@
 #include "ui/references_view.h"
 #include "ui/import_view.h"
 #include "ui/resource_view.h"
+#include "ui/settings_view.h"
 #include "services/ui_font.h"
 #include "platform/path.h"
 #include <windows.h>
@@ -69,7 +70,10 @@ static int verify(void* user) {
     CHECK(click(&app,xideImportViewControl(&app,XIDE_IMPORT_BROWSE_DESTINATION)));p=xideFileDialogCurrent(&app);CHECK(p && xuiFileDialogSetDirectory(p,root)==XUI_OK && settle(&app) && click(&app,xuiFileDialogGetOkButtonWidget(p)));char* importPath=xidePathResolve(root,"legacy-import");CHECK(importPath && xidePathEqual(importPath,xuiEditGetText(xideImportViewControl(&app,XIDE_IMPORT_DESTINATION))) && !xidePathExists(importPath));CHECK(key(&app,XUI_KEY_ESCAPE) && !xideImportViewIsOpen(&app));free(importPath);
     CHECK(xideResourceViewOpenNew(&app) && settle(&app) && click(&app,xideResourceViewControl(&app,XIDE_RES_NEW_BROWSE)));p=xideFileDialogCurrent(&app);const char* resourceName=p && strstr(xuiFileDialogGetFilterPattern(p,0),"xlon") ? "新资源.xlon" : "新资源.json";CHECK(p && xuiFileDialogSetDirectory(p,root)==XUI_OK && xuiInputSetText(xuiFileDialogGetNameInputWidget(p),"新资源")==XUI_OK && settle(&app) && click(&app,xuiFileDialogGetOkButtonWidget(p)));char* resourcePath=xidePathResolve(root,resourceName);CHECK(resourcePath && xidePathEqual(resourcePath,xuiEditGetText(xideResourceViewControl(&app,XIDE_RES_NEW_PATH))) && !xidePathExists(resourcePath) && key(&app,XUI_KEY_ESCAPE) && !xideResourceViewIsOpen(&app));free(resourcePath);
     wchar_t executable[32768];CHECK(GetModuleFileNameW(NULL,executable,32768)>0);int n=WideCharToMultiByte(CP_UTF8,0,executable,-1,NULL,0,NULL,NULL);char* binary=n ? malloc((size_t)n) : NULL;CHECK(binary && WideCharToMultiByte(CP_UTF8,0,executable,-1,binary,n,NULL,NULL));
-    CHECK(xideActionExecute(&app,XIDE_ACTION_COMPILER)==XIDE_ACTION_DISPATCHED && settle(&app) && choose(&app,binary) && app.preferences.compiler && xidePathEqual(app.preferences.compiler,binary));
+    CHECK(xideActionExecute(&app,XIDE_ACTION_COMPILER)==XIDE_ACTION_DISPATCHED && settle(&app) && xideSettingsViewIsOpen(&app));
+    xui_widget compilerPath=xideSettingsViewControl(&app,XIDE_PREF_COMPILER),browse=xuiWidgetGetNextSibling(compilerPath);
+    CHECK(browse && xuiWidgetGetType(browse)==xuiButtonGetType(app.context) && click(&app,browse) && choose(&app,binary) && xidePathEqual(xuiEditGetText(compilerPath),binary));
+    CHECK(click(&app,xideSettingsViewControl(&app,XIDE_PREF_CANCEL)) && !xideSettingsViewIsOpen(&app));
 #if XIDE_ENABLE_C_LSP
     CHECK(xideActionExecute(&app,XIDE_ACTION_C_SERVER)==XIDE_ACTION_DISPATCHED && settle(&app) && choose(&app,binary) && app.preferences.cServer && xidePathEqual(app.preferences.cServer,binary));
 #else

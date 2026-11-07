@@ -1,4 +1,5 @@
 #define _WIN32_WINNT 0x0601
+#include "dialog_test_helpers.h"
 #include "app/xide_app.h"
 #include "ui/rename_view.h"
 #include "ui/workspace_view.h"
@@ -42,8 +43,8 @@ static size_t opened(xide_app* a) { size_t n=0; for(size_t i=0;i<a->documents.co
 static int capture(xide_app* a,const char* path) { if(!settle(a) || xuiUpdate(a->context,0)!=XUI_OK) return 0; xui_rect_i_t r={0,0,a->viewportWidth,a->viewportHeight}; return a->proxy.surfaceClear(&a->proxy,a->target,0xffeeeeeeu)==XUI_OK && xuiRender(a->context,a->target,&r,1)==XUI_OK && xideAppCapture(a,path)==XGE_OK && !a->frameError; }
 static int pointer(xide_app* a,xui_rect_t r) { float x=r.fX+r.fW/2,y=r.fY+r.fH/2; return xuiInputPointerMove(a->context,x,y,0)==XUI_OK && xuiInputPointerDown(a->context,x,y,XUI_POINTER_BUTTON_LEFT,XUI_POINTER_BUTTON_LEFT)==XUI_OK && xuiInputPointerUp(a->context,x,y,XUI_POINTER_BUTTON_LEFT,0)==XUI_OK && settle(a); }
 static int click(xide_app* a,int id) {
- xui_widget w=xideRenameViewControl(a,id),scroll=xideDialogGetScrollViewWidget(xideRenameViewWindow(a)); if(xuiScrollViewEnsureChildVisible(scroll,w)!=XUI_OK || !settle(a)) return 0;
- xui_rect_t r=xuiWidgetGetWorldRect(w),v=xuiWidgetGetWorldRect(scroll); float right=r.fX+r.fW,bottom=r.fY+r.fH;
+ xui_widget w=xideRenameViewControl(a,id),scroll=xideDialogGetScrollViewWidget(xideRenameViewWindow(a)); if(xideTestReveal(scroll,w)!=XUI_OK || !settle(a)) return 0;
+ xui_rect_t r=xuiWidgetGetWorldRect(w),v=xuiWidgetGetWorldRect(xideTestViewport(scroll,w)); float right=r.fX+r.fW,bottom=r.fY+r.fH;
  if(r.fX<v.fX) r.fX=v.fX;
  if(r.fY<v.fY) r.fY=v.fY;
  if(right>v.fX+v.fW) right=v.fX+v.fW;

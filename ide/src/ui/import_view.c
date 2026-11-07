@@ -299,7 +299,21 @@ int xideImportViewCreate(xide_app* a)
  TRY(check(a,XIDE_IMPORT_OPEN_AFTER,"导入后打开工作空间",(xui_rect_t){0,750,850,32})); TRY(check(a,XIDE_IMPORT_RESTORE_STATE,"应用旧打开文件和树展开状态（已有会话受保护）",(xui_rect_t){0,786,850,32}));
  TRY(label(a,&v->message,"",(xui_rect_t){0,828,850,68})); TRY(button(a,XIDE_IMPORT_APPLY,"导入",(xui_rect_t){602,906,120,32})); TRY(button(a,XIDE_IMPORT_CANCEL,"关闭",(xui_rect_t){734,906,116,32}));
  TRY(xuiComboBoxSetSelected(v->controls[XIDE_IMPORT_PREVIEW_KIND],0)); TRY(xuiCheckBoxSetChecked(v->controls[XIDE_IMPORT_OPEN_AFTER],1)); TRY(xuiCheckBoxSetChecked(v->controls[XIDE_IMPORT_RESTORE_STATE],1)); state(v);
- return xideUiLayoutCapture(&v->layout,v->content);
+ TRY(xideDialogFormBegin(v->window,600,420));
+ TRY(xideDialogFormField(v->window,"旧清单",v->controls[XIDE_IMPORT_SOURCE],v->controls[XIDE_IMPORT_BROWSE_SOURCE],NULL));
+ TRY(xideDialogFormField(v->window,"新目录",v->controls[XIDE_IMPORT_DESTINATION],v->controls[XIDE_IMPORT_BROWSE_DESTINATION],NULL));
+ TRY(xideDialogFormText(v->window,"生成新工程清单，源文件仍引用原位置。选择不存在的新目录。"));
+ { const xui_widget row[]={v->controls[XIDE_IMPORT_ANALYZE]};TRY(xideDialogFormRow(v->window,row,sizeof(row)/sizeof(*row),32,0)); }
+ TRY(xideDialogFormField(v->window,"项目",v->controls[XIDE_IMPORT_SELECTED_PROJECT],NULL,NULL));
+ TRY(xideDialogFormField(v->window,"入口候选",v->controls[XIDE_IMPORT_CANDIDATES],NULL,NULL));
+ TRY(xideDialogFormField(v->window,"指定入口",v->controls[XIDE_IMPORT_ENTRY],v->controls[XIDE_IMPORT_BROWSE_ENTRY],v->controls[XIDE_IMPORT_SET_ENTRY]));
+ TRY(xideDialogFormField(v->window,"输出类型",v->controls[XIDE_IMPORT_KIND],NULL,NULL));
+ TRY(xideDialogFormField(v->window,"启动项目",v->controls[XIDE_IMPORT_STARTUP],NULL,NULL));
+ TRY(xideDialogFormField(v->window,"预览内容",v->controls[XIDE_IMPORT_PREVIEW_KIND],NULL,NULL));
+ TRY(xideDialogFormBlock(v->window,v->controls[XIDE_IMPORT_PREVIEW],220,1));TRY(xideDialogFormBlock(v->window,v->controls[XIDE_IMPORT_REVIEWED],32,0));
+ TRY(xideDialogFormBlock(v->window,v->controls[XIDE_IMPORT_OPEN_AFTER],32,0));TRY(xideDialogFormBlock(v->window,v->controls[XIDE_IMPORT_RESTORE_STATE],32,0));TRY(xideDialogFormBlock(v->window,v->message,0,0));
+ { const xui_widget actions[]={v->controls[XIDE_IMPORT_APPLY],v->controls[XIDE_IMPORT_CANCEL]};TRY(xideDialogFormActions(v->window,actions,sizeof(actions)/sizeof(*actions))); }
+ return xideDialogFormEnd(v->window);
 }
 int xideImportViewOpen(xide_app* a)
 {
@@ -311,10 +325,8 @@ int xideImportViewOpen(xide_app* a)
 int xideImportViewIsOpen(xide_app* a) { return a && a->importView && xideDialogIsOpen(a->importView->window); }
 void xideImportViewLayout(xide_app* a)
 {
- xide_import_view* v=a->importView; if(!v) return; int width=a->viewportWidth-48,height=a->viewportHeight-48; if(width<200) width=200; if(height<200) height=200;
- xideDialogSetMaxSize(v->window,(float)width,(float)height); float scale=xideUiFontScale(a);
- if(v->scale!=scale) { xideUiLayoutApply(a,&v->layout,1); xideDialogSetContentSize(v->window,xideUiHeight(a,864),xideUiHeight(a,940)); v->scale=scale; }
- 
+ if(!a->importView)return;
+ xideDialogSetMaxSize(a->importView->window,a->viewportWidth-32,a->viewportHeight-32);
 }
 void xideImportViewDestroy(xide_app* a) { if(a->importView) { clear(a->importView); free(a->importView); a->importView=NULL; } }
 xui_widget xideImportViewWindow(xide_app* a) { return a && a->importView ? a->importView->window : NULL; }

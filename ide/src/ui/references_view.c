@@ -211,7 +211,13 @@ int xideReferencesViewCreate(xide_app* a)
     TRY(button(a,XIDE_REF_INSPECT,"检查库信息",(xui_rect_t){0,434,180,32})); TRY(button(a,XIDE_REF_DOCUMENTATION,"查看包命令与文档…",(xui_rect_t){194,434,250,32}));
     TRY(label(a,&v->libraryDetails,"",(xui_rect_t){0,478,736,244}));
     TRY(label(a,&v->message,"",(xui_rect_t){0,734,736,28})); TRY(button(a,XIDE_REF_APPLY,"应用",(xui_rect_t){520,774,100,32})); TRY(button(a,XIDE_REF_CANCEL,"取消",(xui_rect_t){636,774,100,32}));
-    return xideUiLayoutCapture(&v->layout,v->content);
+    TRY(xideDialogFormBegin(v->window,600,420));
+ TRY(xideDialogFormField(v->window,"引用分类",v->controls[XIDE_REF_CATEGORY],NULL,NULL));TRY(xideDialogFormText(v->window,"取消保留原模型；应用后需保存项目。"));
+ TRY(xideDialogFormBlock(v->window,v->controls[XIDE_REF_LIST],190,1));TRY(xideDialogFormField(v->window,"引用类型",v->controls[XIDE_REF_KIND],NULL,NULL));TRY(xideDialogFormBlock(v->window,v->identity,0,0));
+ TRY(xideDialogFormField(v->window,"路径或名称",v->controls[XIDE_REF_VALUE],v->controls[XIDE_REF_BROWSE],NULL));TRY(xideDialogFormBlock(v->window,v->libraryDetails,0,0));TRY(xideDialogFormBlock(v->window,v->message,0,0));
+ { const xui_widget actions[]={v->controls[XIDE_REF_ADD],v->controls[XIDE_REF_UPDATE],v->controls[XIDE_REF_REMOVE],v->controls[XIDE_REF_UP],v->controls[XIDE_REF_DOWN]};TRY(xideDialogFormActions(v->window,actions,sizeof(actions)/sizeof(*actions))); }
+ { const xui_widget actions[]={v->controls[XIDE_REF_INSPECT],v->controls[XIDE_REF_DOCUMENTATION],v->controls[XIDE_REF_APPLY],v->controls[XIDE_REF_CANCEL]};TRY(xideDialogFormActions(v->window,actions,sizeof(actions)/sizeof(*actions))); }
+ return xideDialogFormEnd(v->window);
 }
 int xideReferencesViewOpen(xide_app* a)
 {
@@ -232,24 +238,8 @@ int xideReferencesViewOpen(xide_app* a)
 int xideReferencesViewIsOpen(xide_app* a) { return a && a->referencesView && xideDialogIsOpen(a->referencesView->window); }
 void xideReferencesViewLayout(xide_app* a)
 {
-    xide_references_view* v=a->referencesView; if(!v) return;
-    int width=a->viewportWidth-48,height=a->viewportHeight-48; if(width<200) width=200; if(height<200) height=200;
-    xideDialogSetMaxSize(v->window,(float)width,(float)height); float scale=xideUiFontScale(a);
-    if(v->scale!=scale) { xideUiLayoutApply(a,&v->layout,1); xideDialogSetContentSize(v->window,xideUiHeight(a,736),xideUiHeight(a,814)); v->scale=scale; }
-    float contentHeight=(float)xideUiHeight(a,554),messageY=(float)xideUiHeight(a,434);
-    if(v->category) {
-        xui_vec2_t measured={0}; xuiWidgetMeasureContent(v->libraryDetails,(xui_vec2_t){xideUiHeight(a,736),XUI_LAYOUT_UNBOUNDED},&measured);
-        float detailsHeight=measured.fY+12; if(detailsHeight<xideUiHeight(a,140)) detailsHeight=(float)xideUiHeight(a,140);
-        xuiWidgetSetRect(v->libraryDetails,(xui_rect_t){0,xideUiHeight(a,478),xideUiHeight(a,736),detailsHeight}); messageY=xideUiHeight(a,478)+detailsHeight+12;
-    }
-    xui_vec2_t notice={0}; xuiWidgetMeasureContent(v->message,(xui_vec2_t){xideUiHeight(a,736),XUI_LAYOUT_UNBOUNDED},&notice);
-    float noticeHeight=notice.fY+8; if(noticeHeight<xideUiHeight(a,60)) noticeHeight=(float)xideUiHeight(a,60);
-    float footer=messageY+noticeHeight+12; contentHeight=footer+xideUiHeight(a,40);
-    xuiWidgetSetRect(v->message,(xui_rect_t){0,messageY,xideUiHeight(a,736),noticeHeight});
-    xuiWidgetSetRect(v->controls[XIDE_REF_APPLY],(xui_rect_t){xideUiHeight(a,520),footer,xideUiHeight(a,100),xideUiHeight(a,32)});
-    xuiWidgetSetRect(v->controls[XIDE_REF_CANCEL],(xui_rect_t){xideUiHeight(a,636),footer,xideUiHeight(a,100),xideUiHeight(a,32)});
-    xideDialogSetContentSize(v->window,xideUiHeight(a,736),contentHeight);
-
+ if(!a->referencesView)return;
+ xideDialogSetMaxSize(a->referencesView->window,a->viewportWidth-32,a->viewportHeight-32);
 }
 void xideReferencesViewDestroy(xide_app* a) { xide_references_view* v=a->referencesView; if(!v) return; clearRows(v); xrtValueRelease(v->draft); xrtValueRelease(v->baseline); free(v->project); free(v->manifest); free(v->libraryText); free(v); a->referencesView=NULL; }
 xui_widget xideReferencesViewWindow(xide_app* a) { return a->referencesView ? a->referencesView->window : NULL; }

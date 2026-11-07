@@ -1,4 +1,5 @@
 #define _WIN32_WINNT 0x0601
+#include "dialog_test_helpers.h"
 #include "app/xide_app.h"
 #include "ui/resource_view.h"
 #include "ui/workspace_view.h"
@@ -31,8 +32,8 @@ static int settle(xide_app* a) { if(xuiDispatchPendingEvents(a->context)!=XUI_OK
 static int pointer(xide_app* a,xui_rect_t r) { float x=r.fX+r.fW/2,y=r.fY+r.fH/2; return xuiInputPointerMove(a->context,x,y,0)==XUI_OK && xuiInputPointerDown(a->context,x,y,XUI_POINTER_BUTTON_LEFT,XUI_POINTER_BUTTON_LEFT)==XUI_OK && xuiInputPointerUp(a->context,x,y,XUI_POINTER_BUTTON_LEFT,0)==XUI_OK && settle(a); }
 static int click(xide_app* a,int id)
 {
- xui_widget w=xideResourceViewControl(a,id),scroll=xideDialogGetScrollViewWidget(xideResourceViewWindow(a)); if(xuiScrollViewEnsureChildVisible(scroll,w)!=XUI_OK || !settle(a)) return 0;
- xui_rect_t r=xuiWidgetGetWorldRect(w),visible=xuiWidgetGetWorldRect(scroll); float right=r.fX+r.fW,bottom=r.fY+r.fH;
+ xui_widget w=xideResourceViewControl(a,id),scroll=xideDialogGetScrollViewWidget(xideResourceViewWindow(a)); if(xideTestReveal(scroll,w)!=XUI_OK || !settle(a)) return 0;
+ xui_rect_t r=xuiWidgetGetWorldRect(w),visible=xuiWidgetGetWorldRect(xideTestViewport(scroll,w)); float right=r.fX+r.fW,bottom=r.fY+r.fH;
  if(r.fX<visible.fX) r.fX=visible.fX;
  if(r.fY<visible.fY) r.fY=visible.fY;
  if(right>visible.fX+visible.fW) right=visible.fX+visible.fW;
@@ -41,7 +42,7 @@ static int click(xide_app* a,int id)
 }
 static int choose(xide_app* a,int id,int index)
 {
- xui_widget w=xideResourceViewControl(a,id); if(xuiScrollViewEnsureChildVisible(xideDialogGetScrollViewWidget(xideResourceViewWindow(a)),w)!=XUI_OK || !settle(a) || xuiComboBoxOpen(w)!=XUI_OK || !settle(a)) return 0;
+ xui_widget w=xideResourceViewControl(a,id); if(xideTestReveal(xideDialogGetScrollViewWidget(xideResourceViewWindow(a)),w)!=XUI_OK || !settle(a) || xuiComboBoxOpen(w)!=XUI_OK || !settle(a)) return 0;
  xui_widget m=xuiComboBoxGetMenuWidget(w); xui_rect_t r=xuiMenuGetItemRect(m,index),world=xuiWidgetGetWorldRect(m); r.fX+=world.fX; r.fY+=world.fY; return pointer(a,r) && xuiComboBoxGetSelected(w)==index;
 }
 static xui_widget findButton(xui_context c,xui_widget w,const char* name)
@@ -149,10 +150,10 @@ static int verify(void* user)
  CHECK(menuOpen(&app,XIDE_ACTION_NEW_RESOURCE) && xideResourceViewIsOpen(&app) && xuiWidgetGetVisible(xideResourceViewControl(&app,XIDE_RES_NEW_PATH)) && capture(&app,image));
  CHECK(xideActionExecute(&app,XIDE_ACTION_NEW_FILE)==XIDE_ACTION_DISABLED && !xideResourceViewOpenNew(&app) && !xideReferencesViewOpen(&app) && click(&app,XIDE_RES_CANCEL) && app.activeDocument==c && !exists(resource) && !p->dirty);
  xui_widget property=findButton(app.context,app.properties,"新建 Windows 资源配置…");
- CHECK(property && xuiScrollViewEnsureChildVisible(app.properties,property)==XUI_OK && settle(&app) && pointer(&app,xuiWidgetGetWorldRect(property)) && xideResourceViewIsOpen(&app));
+ CHECK(property && xideTestReveal(app.properties,property)==XUI_OK && settle(&app) && pointer(&app,xuiWidgetGetWorldRect(property)) && xideResourceViewIsOpen(&app));
  CHECK(xuiEditSetText(xideResourceViewControl(&app,XIDE_RES_NEW_PATH),resource)==XUI_OK && choose(&app,XIDE_RES_CONFIG,1) && !strcmp(xuiEditGetText(xideResourceViewControl(&app,XIDE_RES_NEW_PATH)),typed) && choose(&app,XIDE_RES_CONFIG,0));
  CHECK(xuiEditSetText(xideResourceViewControl(&app,XIDE_RES_FILE_VERSION),"9.8.7.6")==XUI_OK && xuiEditSetText(xideResourceViewControl(&app,XIDE_RES_PRODUCT_VERSION),"9.8.7.6")==XUI_OK && choose(&app,XIDE_RES_ICON_MODE,1) && xuiTextEditSetText(xideResourceViewControl(&app,XIDE_RES_ICON),"app.ico")==XUI_OK && choose(&app,XIDE_RES_MANIFEST_MODE,3) && xuiTextEditSetText(xideResourceViewControl(&app,XIDE_RES_MANIFEST),xml)==XUI_OK);
- CHECK(click(&app,XIDE_RES_VALIDATE) && !exists(resource) && !p->resources.count && strstr(xuiTextEditGetText(xideResourceViewControl(&app,XIDE_RES_PREVIEW)),"9.8.7.6") && xuiScrollViewEnsureChildVisible(xideDialogGetScrollViewWidget(xideResourceViewWindow(&app)),xideResourceViewControl(&app,XIDE_RES_PREVIEW))==XUI_OK && capture(&app,imagePreview));
+ CHECK(click(&app,XIDE_RES_VALIDATE) && !exists(resource) && !p->resources.count && strstr(xuiTextEditGetText(xideResourceViewControl(&app,XIDE_RES_PREVIEW)),"9.8.7.6") && xideTestReveal(xideDialogGetScrollViewWidget(xideResourceViewWindow(&app)),xideResourceViewControl(&app,XIDE_RES_PREVIEW))==XUI_OK && capture(&app,imagePreview));
  previewBytes=_strdup(xuiTextEditGetText(xideResourceViewControl(&app,XIDE_RES_PREVIEW))); CHECK(previewBytes && click(&app,XIDE_RES_APPLY) && !xideResourceViewIsOpen(&app) && p->resources.count==1 && p->dirty && xidePathEqual(p->resources.items[0],resource) && app.activeDocument==c && c->dirty && xl->dirty && !strcmp(app.workspaceModel.startupProject,"beta"));
  text=(char*)xrtFileReadAll(resource,&size); CHECK(text && size==strlen(previewBytes) && !memcmp(text,previewBytes,size) && xideResourceParse(&parsed,text,&error) && get(parsed.root,"format")); xrtFree(text); free(previewBytes); previewBytes=NULL;
  int first=0,last=0; CHECK(xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(c->editor))==cv && xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(xl->editor))==xv && xuiCodeSelectionGetRange(xuiCodeEditGetSelection(c->editor),&first,&last)==XUI_OK && first==1 && last==8);
@@ -163,7 +164,7 @@ static int verify(void* user)
  CHECK(xideResourceViewOpenNew(&app) && xideProjectSetMetadata(p,p->name,"stale UI",p->kind,&error) && !xideResourceViewApply(&app,&error) && error.code==XIDE_MODEL_CONFLICT && click(&app,XIDE_RES_CANCEL) && xideProjectSetMetadata(p,p->name,"",p->kind,&error));
  CHECK(xideResourceViewOpenNew(&app) && xrtFileWriteAtomic(manifest,(xbytesview){(const unsigned char*)manifestBytes,manifestLength}) && !xideResourceViewApply(&app,&error) && error.code==XIDE_MODEL_CONFLICT && click(&app,XIDE_RES_CANCEL));
  CHECK(xideResourceViewOpenNew(&app) && choose(&app,XIDE_RES_CONFIG,1) && xuiEditSetText(xideResourceViewControl(&app,XIDE_RES_NEW_PATH),typed)==XUI_OK && xuiEditSetText(xideResourceViewControl(&app,XIDE_RES_FILE_VERSION),"9.8.7.6")==XUI_OK && choose(&app,XIDE_RES_ICON_MODE,1) && xuiTextEditSetText(xideResourceViewControl(&app,XIDE_RES_ICON),"app.ico")==XUI_OK && choose(&app,XIDE_RES_MANIFEST_MODE,3) && xuiTextEditSetText(xideResourceViewControl(&app,XIDE_RES_MANIFEST),xml)==XUI_OK);
- CHECK(xideUiFontApply(&app,app.uiFontPath,40,&error) && resize(&app,700,460) && xuiInputGetFont(xideResourceViewControl(&app,XIDE_RES_NEW_PATH))==app.uiFont && xuiScrollViewEnsureChildVisible(xideDialogGetScrollViewWidget(xideResourceViewWindow(&app)),xideResourceViewControl(&app,XIDE_RES_APPLY))==XUI_OK && capture(&app,imageLarge) && click(&app,XIDE_RES_APPLY) && p->resources.count==2 && exists(typed) && xideUiFontApply(&app,app.uiFontPath,16,&error) && resize(&app,1280,800));
+ CHECK(xideUiFontApply(&app,app.uiFontPath,40,&error) && resize(&app,700,460) && xuiInputGetFont(xideResourceViewControl(&app,XIDE_RES_NEW_PATH))==app.uiFont && xideTestReveal(xideDialogGetScrollViewWidget(xideResourceViewWindow(&app)),xideResourceViewControl(&app,XIDE_RES_APPLY))==XUI_OK && capture(&app,imageLarge) && click(&app,XIDE_RES_APPLY) && p->resources.count==2 && exists(typed) && xideUiFontApply(&app,app.uiFontPath,16,&error) && resize(&app,1280,800));
  CHECK(xuiCodeDocumentUndo(xuiCodeEditGetDocument(c->editor))==XUI_OK && !c->dirty && xuiCodeDocumentUndo(xuiCodeEditGetDocument(xl->editor))==XUI_OK && !xl->dirty && xideWorkspaceSaveAll(&app,NULL,&error));
  if(f->compiler) {
   /* Compile each newly generated format in a separate real C/xlang project. */

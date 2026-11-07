@@ -1,4 +1,5 @@
 #define _WIN32_WINNT 0x0601
+#include "dialog_test_helpers.h"
 #include "app/xide_app.h"
 #include "ui/import_view.h"
 #include "ui/template_view.h"
@@ -32,8 +33,8 @@ static int pointer(xide_app* a,xui_rect_t r)
 static int click(xide_app* a,int id)
 {
  xui_widget w=xideImportViewControl(a,id),scroll=xideDialogGetScrollViewWidget(xideImportViewWindow(a));
- if(xuiScrollViewEnsureChildVisible(scroll,w)!=XUI_OK || !settle(a)) return 0;
- xui_rect_t r=xuiWidgetGetWorldRect(w),visible=xuiWidgetGetWorldRect(scroll); float right=r.fX+r.fW,bottom=r.fY+r.fH;
+ if(xideTestReveal(scroll,w)!=XUI_OK || !settle(a)) return 0;
+ xui_rect_t r=xuiWidgetGetWorldRect(w),visible=xuiWidgetGetWorldRect(xideTestViewport(scroll,w)); float right=r.fX+r.fW,bottom=r.fY+r.fH;
  if(r.fX<visible.fX) { r.fX=visible.fX; } if(r.fY<visible.fY) { r.fY=visible.fY; }
  if(right>visible.fX+visible.fW) { right=visible.fX+visible.fW; } if(bottom>visible.fY+visible.fH) { bottom=visible.fY+visible.fH; }
  r.fW=right-r.fX; r.fH=bottom-r.fY; return r.fW>0 && r.fH>0 && pointer(a,r);
@@ -47,8 +48,8 @@ static int menuNew(xide_app* a)
 }
 static int choose(xide_app* a,int id,int index)
 {
- xui_widget w=xideImportViewControl(a,id); if(xuiScrollViewEnsureChildVisible(xideDialogGetScrollViewWidget(xideImportViewWindow(a)),w)!=XUI_OK || !settle(a) || xuiComboBoxOpen(w)!=XUI_OK || !settle(a)) return 0;
- xui_widget menu=xuiComboBoxGetMenuWidget(w); xui_rect_t r=xuiMenuGetItemRect(menu,index),world=xuiWidgetGetWorldRect(menu); r.fX+=world.fX; r.fY+=world.fY; return pointer(a,r) && xuiComboBoxGetSelected(w)==index;
+ xui_widget w=xideImportViewControl(a,id); if(xideTestReveal(xideDialogGetScrollViewWidget(xideImportViewWindow(a)),w)!=XUI_OK || !settle(a) || xuiComboBoxOpen(w)!=XUI_OK || !settle(a)) return 0;
+ xui_widget menu=xuiComboBoxGetMenuWidget(w); xui_rect_t r=xideTestMenuItem(menu,index);return pointer(a,r) && xuiComboBoxGetSelected(w)==index;
 }
 static int syntaxToken(xui_widget editor,const char* spelling,int kind)
 {
@@ -107,7 +108,7 @@ static int verify(void* user)
  CHECK(xuiCodeDocumentUndo(xuiCodeEditGetDocument(previous->editor))==XUI_OK && !previous->dirty && xideImportViewOpen(&app) && fields(&app,source,target2) && choices(&app));
  /* Session publication failure happens before bundle publication or editor close. */
  CHECK(xideSessionSave(&app,0,&error)); lock=lockFile(previousSession); CHECK(lock!=INVALID_HANDLE_VALUE && !xideImportViewApply(&app,&error) && !xidePathExists(target2) && previous->open && opened(&app)==1); CloseHandle(lock); lock=INVALID_HANDLE_VALUE;
- CHECK(xideUiFontApply(&app,app.uiFontPath,40,&error) && resize(&app,700,460) && xuiTextEditGetFont(preview)==app.uiFont && xuiInputGetFont(xideImportViewControl(&app,XIDE_IMPORT_ENTRY))==app.uiFont && xuiScrollViewEnsureChildVisible(xideDialogGetScrollViewWidget(xideImportViewWindow(&app)),xideImportViewControl(&app,XIDE_IMPORT_APPLY))==XUI_OK && capture(&app,imageLarge));
+ CHECK(xideUiFontApply(&app,app.uiFontPath,40,&error) && resize(&app,700,460) && xuiTextEditGetFont(preview)==app.uiFont && xuiInputGetFont(xideImportViewControl(&app,XIDE_IMPORT_ENTRY))==app.uiFont && xideTestReveal(xideDialogGetScrollViewWidget(xideImportViewWindow(&app)),xideImportViewControl(&app,XIDE_IMPORT_APPLY))==XUI_OK && capture(&app,imageLarge));
  CHECK(click(&app,XIDE_IMPORT_APPLY) && !xideImportViewIsOpen(&app) && xidePathExists(target2) && !xideDocumentsFind(&app.documents,outside) && opened(&app)==2 && app.workspaceModel.projectCount==2 && capture(&app,imageOpened));
  xide_document *xl=xideDocumentsFind(&app.documents,xlPath),*c=xideDocumentsFind(&app.documents,cPath); CHECK(xl && c && !strcmp(xl->language,"xlang") && !strcmp(c->language,"c") && !xl->dirty && !c->dirty && syntaxToken(xl->editor,"func main",XUI_CODE_TOKEN_KEYWORD) && syntaxToken(c->editor,"native_answer",XUI_CODE_TOKEN_IDENTIFIER));
  char *nativeWorkspace=KEEP(copy(app.workspaceModel.manifest)),*projectId=KEEP(copy(app.workspaceModel.projects[0].id)),*xlSession=KEEP(copy(xl->sessionId)),*cSession=KEEP(copy(c->sessionId)),*hintsPath=KEEP(xidePathResolve(target2,"session-hints.json")),*nativeSession=KEEP(xidePathResolve(xideSessionDirectory(&app),"session.json")); CHECK(nativeWorkspace && projectId && xlSession && cSession && hintsPath && nativeSession);
@@ -123,7 +124,7 @@ static int verify(void* user)
  /* A generated-only scope has no native state. Tampered hints must have zero effects. */
  char* generatedWorkspace=KEEP(xidePathResolve(target,"workspace.xlw")); CHECK(generatedWorkspace && xideWorkspaceOpen(&app,generatedWorkspace,0,&error)); xvalue* reading=xideReadingCapture(&app,NULL); CHECK(reading && opened(&app)==0);
  char* generatedHints=KEEP(xidePathResolve(target,"session-hints.json")); bad=xrtJsonParseFile(generatedHints); CHECK(bad && put(xrtValueArrayGet(get(xrtValueArrayGet(get(bad,"projects"),0),"files"),0),"id","tampered") && !xideSessionApplyLegacyHints(&app,bad,&result,&error) && opened(&app)==0 && !result.applied); xvalue* currentReading=xideReadingCapture(&app,NULL); CHECK(currentReading && xrtValueEqual(reading,currentReading)); xrtValueRelease(reading); xrtValueRelease(currentReading); xrtValueRelease(bad); bad=NULL;
- CHECK(xideImportViewOpen(&app) && fields(&app,project,target3) && choose(&app,XIDE_IMPORT_CANDIDATES,0) && choose(&app,XIDE_IMPORT_KIND,1) && reviewed(&app));
+ CHECK(xideImportViewOpen(&app));CHECK(fields(&app,project,target3));CHECK(choose(&app,XIDE_IMPORT_CANDIDATES,0));CHECK(choose(&app,XIDE_IMPORT_KIND,1));CHECK(reviewed(&app));
  CHECK(xuiEditSetText(xideImportViewControl(&app,XIDE_IMPORT_ENTRY),otherXl)==XUI_OK && !xideImportViewApply(&app,&error) && !xidePathExists(target3) && click(&app,XIDE_IMPORT_SET_ENTRY) && !xuiCheckBoxGetChecked(xideImportViewControl(&app,XIDE_IMPORT_REVIEWED)) && reviewed(&app));
  CHECK(xuiEditSetText(xideImportViewControl(&app,XIDE_IMPORT_DESTINATION),target)==XUI_OK && settle(&app) && !xuiWidgetGetEnabled(xideImportViewControl(&app,XIDE_IMPORT_APPLY)) && click(&app,XIDE_IMPORT_CANCEL) && !xidePathExists(target3));
  after=(char*)xrtFileReadAll(source,&afterLength); CHECK(after && afterLength==oldLength && !memcmp(after,oldBytes,oldLength)); xrtFree(after); after=(char*)xrtFileReadAll(project,&afterLength); CHECK(after && afterLength==oldProjectLength && !memcmp(after,oldProjectBytes,oldProjectLength)); xrtFree(after);

@@ -1,4 +1,5 @@
 #define _WIN32_WINNT 0x0601
+#include "dialog_test_helpers.h"
 #include "app/xide_app.h"
 #include "ui/references_view.h"
 #include "ui/workspace_view.h"
@@ -42,20 +43,18 @@ static int pointer(xide_app* a,xui_rect_t r)
 static int click(xide_app* a,int id)
 {
     xui_widget w=xideReferencesViewControl(a,id),scroll=xideDialogGetScrollViewWidget(xideReferencesViewWindow(a));
-    return xuiScrollViewEnsureChildVisible(scroll,w)==XUI_OK && settle(a) && pointer(a,xuiWidgetGetWorldRect(w));
+    return xideTestReveal(scroll,w)==XUI_OK && settle(a) && pointer(a,xuiWidgetGetWorldRect(w));
 }
 static int choose(xide_app* a,int id,int index)
 {
-    xui_widget combo=xideReferencesViewControl(a,id); if(xuiScrollViewEnsureChildVisible(xideDialogGetScrollViewWidget(xideReferencesViewWindow(a)),combo)!=XUI_OK || !settle(a) || xuiComboBoxOpen(combo)!=XUI_OK || !settle(a)) return 0;
-    xui_widget menu=xuiComboBoxGetMenuWidget(combo); xui_rect_t r=xuiMenuGetItemRect(menu,index),world=xuiWidgetGetWorldRect(menu); r.fX+=world.fX; r.fY+=world.fY;
+    xui_widget combo=xideReferencesViewControl(a,id); if(xideTestReveal(xideDialogGetScrollViewWidget(xideReferencesViewWindow(a)),combo)!=XUI_OK || !settle(a) || xuiComboBoxOpen(combo)!=XUI_OK || !settle(a)) return 0;
+    xui_widget menu=xuiComboBoxGetMenuWidget(combo); xui_rect_t r=xideTestMenuItem(menu,index);
     return pointer(a,r) && xuiComboBoxGetSelected(combo)==index;
 }
 static int selectRow(xide_app* a,int index)
 {
     xui_widget list=xideReferencesViewControl(a,XIDE_REF_LIST); if(xuiListViewEnsureVisible(list,index)!=XUI_OK || !settle(a)) return 0;
-    xui_rect_t item=xuiListViewGetItemRect(list,index),local=xuiWidgetGetRect(list);
-    item.fX+=local.fX; item.fY+=local.fY;
-    if(xuiScrollViewEnsureRectVisible(xideDialogGetScrollViewWidget(xideReferencesViewWindow(a)),item)!=XUI_OK || !settle(a)) return 0;
+    if(xideTestReveal(xideDialogGetScrollViewWidget(xideReferencesViewWindow(a)),list)!=XUI_OK || !settle(a))return 0;
     xui_rect_t r=xuiListViewGetItemRect(list,index),world=xuiWidgetGetWorldRect(list); r.fX+=world.fX; r.fY+=world.fY;
     xui_rect_t visible=xuiWidgetGetWorldRect(xideDialogGetScrollViewWidget(xideReferencesViewWindow(a)));
     float right=r.fX+r.fW,bottom=r.fY+r.fH;
@@ -147,7 +146,7 @@ static int verify(void* user)
     CHECK(xideWorkspaceCreate(&app.workspaceModel,"引用工作空间",&error) && xideWorkspaceAddProject(&app.workspaceModel,manifest,"alpha",&error) && xideWorkspaceSetStartup(&app.workspaceModel,"alpha",&error) && xideWorkspaceViewRefresh(&app)==XUI_OK && xideWorkspaceViewSelectProject(&app,"alpha") && settle(&app));
     xide_project* p=xideWorkspaceFindProject(&app.workspaceModel,"alpha"); CHECK(p && xideActionQuery(&app,XIDE_ACTION_REFERENCES).enabled && xideActionExecute(&app,XIDE_ACTION_REFERENCES)==XIDE_ACTION_DISPATCHED && xideReferencesViewIsOpen(&app) && settle(&app));
     CHECK(click(&app,XIDE_REF_CANCEL)); xui_widget referenceButton=findButton(app.context,xuiScrollViewGetContentWidget(app.properties),"项目文件、资源与库…");
-    CHECK(referenceButton && xuiScrollViewEnsureChildVisible(app.properties,referenceButton)==XUI_OK && settle(&app) && pointer(&app,xuiWidgetGetWorldRect(referenceButton)) && xideReferencesViewIsOpen(&app));
+    CHECK(referenceButton && xideTestReveal(app.properties,referenceButton)==XUI_OK && settle(&app) && pointer(&app,xuiWidgetGetWorldRect(referenceButton)) && xideReferencesViewIsOpen(&app));
     CHECK(xuiListViewGetItemCount(xideReferencesViewControl(&app,XIDE_REF_LIST))==324 && selectRow(&app,0) && click(&app,XIDE_REF_REMOVE) && strstr(xideReferencesViewMessage(&app),"入口"));
     CHECK(selectRow(&app,3)); xuiEditSetText(xideReferencesViewControl(&app,XIDE_REF_VALUE),"更改的 数据.json");
     CHECK(!xideReferencesViewApply(&app,&error) && error.code==XIDE_MODEL_CONFLICT && xideReferencesViewIsOpen(&app) && !p->dirty && !strcmp(xuiEditGetText(xideReferencesViewControl(&app,XIDE_REF_VALUE)),"更改的 数据.json"));
@@ -195,7 +194,7 @@ static int verify(void* user)
     CHECK(xideUiFontApply(&app,app.uiFontPath,40,&error) && resizeTarget(&app,900,600));
     CHECK(settle(&app) && click(&app,XIDE_REF_CANCEL) && !xideReferencesViewIsOpen(&app) && xideReferencesViewOpen(&app) && click(&app,XIDE_REF_APPLY));
     CHECK(xideReferencesViewOpen(&app)); CHECK(choose(&app,XIDE_REF_CATEGORY,1)); CHECK(selectRow(&app,1) && click(&app,XIDE_REF_INSPECT));
-    CHECK(xuiScrollViewEnsureChildVisible(xideDialogGetScrollViewWidget(xideReferencesViewWindow(&app)),xideReferencesViewControl(&app,XIDE_REF_APPLY))==XUI_OK && capture(&app,largeImage));
+    CHECK(xideTestReveal(xideDialogGetScrollViewWidget(xideReferencesViewWindow(&app)),xideReferencesViewControl(&app,XIDE_REF_APPLY))==XUI_OK && capture(&app,largeImage));
     CHECK(click(&app,XIDE_REF_CANCEL) && xideUiFontApply(&app,app.uiFontPath,16,&error) && resizeTarget(&app,1280,800));
     CHECK(xideReferencesViewOpen(&app) && selectRow(&app,1) && click(&app,XIDE_REF_REMOVE) && click(&app,XIDE_REF_APPLY) && p->cSources.count==0 && xrtFileExists(native) && doc->open && xideWorkspaceSaveAll(&app,NULL,&error));
     CHECK(xideProjectAddFile(p,native,"c",&error) && xideWorkspaceSaveAll(&app,NULL,&error));

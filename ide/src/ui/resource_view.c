@@ -13,7 +13,7 @@
 #include <limits.h>
 #define TRY(call) do { int r_=(call); if(r_!=XUI_OK) return r_; } while(0)
 struct xide_resource_view {
- xui_widget window,content,controls[XIDE_RES_CONTROL_COUNT],message,title,notice,footnote,pathLabel,backgrounds[3],placeholders[3];
+ xui_widget window,content,controls[XIDE_RES_CONTROL_COUNT],message,title,notice,footnote,pathLabel,backgrounds[3],placeholders[3],multilineHosts[3];
  xide_ui_layout layout; float scale; int sync,selected,backgroundTheme,creating,layoutCreating,controlsAttempted,controlsResult;
  char *project,*manifest,*path,**paths,*original; size_t count;
  xvalue* projectBaseline; xide_resource_config config;
@@ -217,7 +217,11 @@ static int multiline(xide_app* a,int id,int readonly,const char* name,xui_rect_t
  TRY(xuiPanelCreate(a->context,&v->backgrounds[index],&panel)); TRY(child(a,v->backgrounds[index],r));
  TRY(label(a,&v->placeholders[index],readonly ? "点击检查素材并预览" : "在此输入路径、Base64 或清单文本",(xui_rect_t){r.fX+10,r.fY+8,r.fW-20,r.fH-16})); TRY(ideThemeSetTextRole(v->placeholders[index],IDE_MUTED));
  xui_text_edit_desc_t d={0}; d.iSize=sizeof(d); d.pFont=a->uiFont; d.bReadonly=readonly; d.bWordWrap=1; d.iMaxLength=16*1024*1024; xui_widget* w=&v->controls[id];
- TRY(xuiTextEditCreate(a->context,w,&d)); xui_cache_policy_t c=xuiWidgetGetCachePolicy(*w); c.iSize=sizeof(c); c.iPolicy=XUI_CACHE_POLICY_NONE; TRY(xuiWidgetSetCachePolicy(*w,&c)); TRY(xuiTextEditSetChange(*w,multilineChanged,a)); TRY(xuiWidgetSetAccessibleName(*w,name)); return child(a,*w,r);
+ TRY(xuiTextEditCreate(a->context,w,&d)); xui_cache_policy_t c=xuiWidgetGetCachePolicy(*w); c.iSize=sizeof(c); c.iPolicy=XUI_CACHE_POLICY_NONE; TRY(xuiWidgetSetCachePolicy(*w,&c)); TRY(xuiTextEditSetChange(*w,multilineChanged,a)); TRY(xuiWidgetSetAccessibleName(*w,name));TRY(child(a,*w,r));
+ TRY(xuiWidgetCreate(a->context,&v->multilineHosts[index]));TRY(xuiWidgetSetLayoutType(v->multilineHosts[index],XUI_LAYOUT_OVERLAY));TRY(xuiWidgetAddChild(v->content,v->multilineHosts[index]));
+ xui_widget layers[]={v->backgrounds[index],v->placeholders[index],*w};
+ for(int i=0;i<3;++i){TRY(xuiWidgetRemoveFromParent(layers[i]));TRY(xuiWidgetAddChild(v->multilineHosts[index],layers[i]));TRY(xuiWidgetSetSizeMode(layers[i],XUI_SIZE_FILL,XUI_SIZE_FILL));}
+ return XUI_OK;
 }
 static void windowClosed(xui_widget widget,void* user) { xide_app* a=user; clicked(a->resourceView->controls[XIDE_RES_CANCEL],a); }
 int xideResourceViewCreate(xide_app* a)
@@ -241,7 +245,16 @@ static int createControls(xide_app* a)
  TRY(label(a,NULL,"应用清单",(xui_rect_t){0,688,130,28})); TRY(combo(a,XIDE_RES_MANIFEST_MODE,manifestModes,4,(xui_rect_t){146,684,548,32},modeChanged)); TRY(button(a,XIDE_RES_MANIFEST_BROWSE,"选择文件…",(xui_rect_t){708,684,142,32})); TRY(multiline(a,XIDE_RES_MANIFEST,0,"清单路径、Base64 或文本",(xui_rect_t){0,726,850,138}));
  TRY(button(a,XIDE_RES_VALIDATE,"检查素材并预览",(xui_rect_t){0,880,240,32})); TRY(label(a,&v->footnote,"应用后正文会成为未保存编辑；Ctrl+S 后参与构建。",(xui_rect_t){256,880,594,32})); TRY(multiline(a,XIDE_RES_PREVIEW,1,"无损资源配置预览，只读",(xui_rect_t){0,924,850,180}));
  TRY(label(a,&v->message,"",(xui_rect_t){0,1114,850,60})); TRY(button(a,XIDE_RES_APPLY,"应用到文档",(xui_rect_t){506,1186,194,32})); TRY(button(a,XIDE_RES_CANCEL,"取消",(xui_rect_t){714,1186,136,32}));
- TRY(label(a,&v->pathLabel,"新配置路径",(xui_rect_t){0,138,130,28})); TRY(input(a,XIDE_RES_NEW_PATH,"新资源配置路径",(xui_rect_t){146,134,548,32})); TRY(button(a,XIDE_RES_NEW_BROWSE,"选择位置…",(xui_rect_t){708,134,142,32})); v->layoutCreating=-1; return xideUiLayoutCapture(&v->layout,v->content);
+ TRY(label(a,&v->pathLabel,"新配置路径",(xui_rect_t){0,138,130,28})); TRY(input(a,XIDE_RES_NEW_PATH,"新资源配置路径",(xui_rect_t){146,134,548,32})); TRY(button(a,XIDE_RES_NEW_BROWSE,"选择位置…",(xui_rect_t){708,134,142,32})); v->layoutCreating=-1; TRY(xideDialogFormBegin(v->window,600,460));
+ TRY(xideDialogFormBlock(v->window,v->title,0,0));TRY(xideDialogFormField(v->window,"资源配置",v->controls[XIDE_RES_CONFIG],NULL,NULL));TRY(xideDialogFormBlock(v->window,v->notice,0,0));
+ TRY(xideDialogFormNamedField(v->window,v->pathLabel,v->controls[XIDE_RES_NEW_PATH],v->controls[XIDE_RES_NEW_BROWSE],NULL));
+ TRY(xideDialogFormBlock(v->window,v->controls[XIDE_RES_VERSION_ENABLED],32,0));TRY(xideDialogFormField(v->window,"language",v->controls[XIDE_RES_LANGUAGE],NULL,NULL));TRY(xideDialogFormField(v->window,"codepage",v->controls[XIDE_RES_CODEPAGE],NULL,NULL));
+ for(int i=0;i<9;++i) TRY(xideDialogFormField(v->window,titles[i],v->controls[XIDE_RES_COMMENTS+i],NULL,NULL));
+ TRY(xideDialogFormField(v->window,"应用图标",v->controls[XIDE_RES_ICON_MODE],v->controls[XIDE_RES_ICON_BROWSE],NULL));TRY(xideDialogFormBlock(v->window,v->multilineHosts[0],100,0));
+ TRY(xideDialogFormField(v->window,"应用清单",v->controls[XIDE_RES_MANIFEST_MODE],v->controls[XIDE_RES_MANIFEST_BROWSE],NULL));TRY(xideDialogFormBlock(v->window,v->multilineHosts[1],160,0));
+ TRY(xideDialogFormBlock(v->window,v->footnote,0,0));TRY(xideDialogFormBlock(v->window,v->multilineHosts[2],200,1));TRY(xideDialogFormBlock(v->window,v->message,0,0));
+ { const xui_widget actions[]={v->controls[XIDE_RES_VALIDATE],v->controls[XIDE_RES_APPLY],v->controls[XIDE_RES_CANCEL]};TRY(xideDialogFormActions(v->window,actions,sizeof(actions)/sizeof(*actions))); }
+ return xideDialogFormEnd(v->window);
 }
 static int ensureControls(xide_app* a)
 {
@@ -303,13 +316,8 @@ void xideResourceViewLayout(xide_app* a)
  const int ids[]={XIDE_RES_ICON,XIDE_RES_MANIFEST,XIDE_RES_PREVIEW};
  for(int i=0;i<3;++i) if(v->controls[ids[i]]) multilineChanged(v->controls[ids[i]],xuiTextEditGetText(v->controls[ids[i]]),a);
  if(v->backgroundTheme!=a->theme) { for(int i=0;i<3;++i) if(v->backgrounds[i]) { xuiPanelSetBackgroundColor(v->backgrounds[i],ideThemeColor(a->theme,IDE_FIELD)); xuiPanelSetClientColor(v->backgrounds[i],ideThemeColor(a->theme,IDE_FIELD)); xuiPanelSetBorder(v->backgrounds[i],1,ideThemeColor(a->theme,IDE_BORDER)); } v->backgroundTheme=a->theme; }
- int width=a->viewportWidth-48,height=a->viewportHeight-48; if(width<200) width=200; if(height<200) height=200; xideDialogSetMaxSize(v->window,(float)width,(float)height); float scale=xideUiFontScale(a);
- int contentHeight=v->creating ? 1272 : 1220;
- if(v->scale!=scale || v->layoutCreating!=v->creating) {
-  for(size_t i=0;i<v->layout.count;++i) { xui_widget w=v->layout.widgets[i]; xui_rect_t r=v->layout.rectangles[i]; if(v->creating && r.fY>=134 && w!=v->pathLabel && w!=v->controls[XIDE_RES_NEW_PATH] && w!=v->controls[XIDE_RES_NEW_BROWSE]) r.fY+=52; if(w==v->controls[XIDE_RES_APPLY] && !v->creating) { r.fX=550; r.fW=150; } xuiWidgetSetRect(w,xideUiRect(a,r)); }
-  xideDialogSetContentSize(v->window,xideUiHeight(a,864),xideUiHeight(a,contentHeight)); v->scale=scale; v->layoutCreating=v->creating;
- }
- 
+
+ xideDialogSetMaxSize(a->resourceView->window,a->viewportWidth-32,a->viewportHeight-32);
 }
 void xideResourceViewDestroy(xide_app* a) { if(a->resourceView) { clear(a->resourceView); free(a->resourceView); a->resourceView=NULL; } }
 xui_widget xideResourceViewWindow(xide_app* a) { return a->resourceView ? a->resourceView->window : NULL; }

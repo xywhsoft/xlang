@@ -1,4 +1,5 @@
 #define _WIN32_WINNT 0x0601
+#include "dialog_test_helpers.h"
 #include "app/xide_app.h"
 #include "ui/rename_view.h"
 #include "ui/editor_view.h"
@@ -33,7 +34,7 @@ static int openName(xide_app* a,const char* path,const char* leaf,xide_model_err
  for(size_t i=0;i<a->workspaceModel.files.count;++i) if(xidePathEqual(a->workspaceModel.files.items[i].path,path)) selected=&a->workspaceModel.files.items[i];
  return selected && xideWorkspaceViewSelectFile(a,NULL,selected->id) && xideRenameViewOpenFile(a,path,e) && name(a,leaf);
 }
-static void cancel(xide_app* a) { xui_widget w=xideRenameViewControl(a,XIDE_RENAME_CANCEL); xuiScrollViewEnsureChildVisible(xideDialogGetScrollViewWidget(xideRenameViewWindow(a)),w); settle(a); xui_rect_t r=xuiWidgetGetWorldRect(w); float x=r.fX+r.fW/2,y=r.fY+r.fH/2; xuiInputPointerMove(a->context,x,y,0); xuiInputPointerDown(a->context,x,y,XUI_POINTER_BUTTON_LEFT,XUI_POINTER_BUTTON_LEFT); xuiInputPointerUp(a->context,x,y,XUI_POINTER_BUTTON_LEFT,0); settle(a); }
+static void cancel(xide_app* a) { xui_widget w=xideRenameViewControl(a,XIDE_RENAME_CANCEL); xideTestReveal(xideDialogGetScrollViewWidget(xideRenameViewWindow(a)),w); settle(a); xui_rect_t r=xuiWidgetGetWorldRect(w); float x=r.fX+r.fW/2,y=r.fY+r.fH/2; xuiInputPointerMove(a->context,x,y,0); xuiInputPointerDown(a->context,x,y,XUI_POINTER_BUTTON_LEFT,XUI_POINTER_BUTTON_LEFT); xuiInputPointerUp(a->context,x,y,XUI_POINTER_BUTTON_LEFT,0); settle(a); }
 static int rawSame(const char* path,const char* text) { xide_text_file file={0}; int okay=xideTextFileRead(path,&file,NULL) && !strcmp(file.text,text); xideTextFileClear(&file); return okay; }
 static int pe(const char* path) {
  wchar_t w[32768]; if(!MultiByteToWideChar(CP_UTF8,0,path,-1,w,32768)) return 0;

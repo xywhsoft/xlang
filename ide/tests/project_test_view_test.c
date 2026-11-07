@@ -1,3 +1,4 @@
+#include "dialog_test_helpers.h"
 #include "app/xide_app.h"
 #include "services/execution_target.h"
 #include "ui/configuration_view.h"
@@ -18,14 +19,14 @@ static int pointer(xide_app* a,xui_rect_t r) { float x=r.fX+r.fW/2,y=r.fY+r.fH/2
 static int click(xide_app* a,int id)
 {
     xui_widget w=xideConfigurationViewControl(a,id),scroll=xideDialogGetScrollViewWidget(xideConfigurationViewWindow(a));
-    if(xuiScrollViewEnsureChildVisible(scroll,w)!=XUI_OK || !settle(a)) return 0;
+    if(xideTestReveal(scroll,w)!=XUI_OK || !settle(a)) return 0;
     return pointer(a,xuiWidgetGetWorldRect(w));
 }
 static int choose(xide_app* a,int index)
 {
     xui_widget w=xideConfigurationViewControl(a,XIDE_CONFIG_CATEGORY);
-    if(xuiScrollViewEnsureChildVisible(xideDialogGetScrollViewWidget(xideConfigurationViewWindow(a)),w)!=XUI_OK || !settle(a) || xuiComboBoxOpen(w)!=XUI_OK || !settle(a)) return 0;
-    xui_widget menu=xuiComboBoxGetMenuWidget(w); xui_rect_t r=xuiMenuGetItemRect(menu,index),world=xuiWidgetGetWorldRect(menu); r.fX+=world.fX; r.fY+=world.fY;
+    if(xideTestReveal(xideDialogGetScrollViewWidget(xideConfigurationViewWindow(a)),w)!=XUI_OK || !settle(a) || xuiComboBoxOpen(w)!=XUI_OK || !settle(a)) return 0;
+    xui_widget menu=xuiComboBoxGetMenuWidget(w); xui_rect_t r=xideTestMenuItem(menu,index);
     return pointer(a,r) && xuiComboBoxGetSelected(w)==index;
 }
 static int capture(xide_app* a,const char* p)
@@ -88,7 +89,7 @@ static int verify(void* data)
     CHECK(xideExecutionSelect(&app,XIDE_TARGET_PROJECT,"beta") && !xideActionQuery(&app,XIDE_ACTION_TEST).enabled && xideExecutionSelect(&app,XIDE_TARGET_PROJECT,"alpha") && xideWorkspaceViewSelectProject(&app,"alpha"));
     CHECK(xideConfigurationViewOpen(&app) && choose(&app,XIDE_ENABLE_C_LSP ? 9 : 5) && xuiEditSetText(xideConfigurationViewControl(&app,XIDE_CONFIG_TEST_PROGRAM),"")==XUI_OK && click(&app,XIDE_CONFIG_APPLY) && !xideActionQuery(&app,XIDE_ACTION_TEST).enabled && xideTasksCount(app.tasks)==1);
     CHECK(largeImage && xideConfigurationViewOpen(&app) && choose(&app,XIDE_ENABLE_C_LSP ? 9 : 5) && xuiEditSetText(xideConfigurationViewControl(&app,XIDE_CONFIG_TEST_PROGRAM),"测试 程序.exe")==XUI_OK && xideUiFontApply(&app,app.uiFontPath,40,&error) && resize(&app,700,460));
-    CHECK(xuiInputGetFont(xideConfigurationViewControl(&app,XIDE_CONFIG_TEST_PROGRAM))==app.uiFont && xuiWidgetGetRect(xideConfigurationViewControl(&app,XIDE_CONFIG_TEST_PROGRAM)).fH==xideUiHeight(&app,32) && xuiScrollViewEnsureChildVisible(xideDialogGetScrollViewWidget(xideConfigurationViewWindow(&app)),xideConfigurationViewControl(&app,XIDE_CONFIG_APPLY))==XUI_OK && capture(&app,largeImage) && click(&app,XIDE_CONFIG_APPLY) && xideActionQuery(&app,XIDE_ACTION_TEST).enabled && xideTasksCount(app.tasks)==1);
+    CHECK(xuiInputGetFont(xideConfigurationViewControl(&app,XIDE_CONFIG_TEST_PROGRAM))==app.uiFont && xuiWidgetGetRect(xideConfigurationViewControl(&app,XIDE_CONFIG_TEST_PROGRAM)).fH==xideUiHeight(&app,32) && xideTestReveal(xideDialogGetScrollViewWidget(xideConfigurationViewWindow(&app)),xideConfigurationViewControl(&app,XIDE_CONFIG_APPLY))==XUI_OK && capture(&app,largeImage) && click(&app,XIDE_CONFIG_APPLY) && xideActionQuery(&app,XIDE_ACTION_TEST).enabled && xideTasksCount(app.tasks)==1);
     printf("project_test_view_test passed: %d checks; native configuration categories, cancelled draft no writes/execution, ordered/empty arguments and environment, independent startup, Ctrl+F7, save C/xlang before test, terminal input/close, test history/output, disable test and 3 native screenshots at 125%% DPI and 40 DIP popup scrolling.\n",f->checks);
 cleanup:
     if(began) { xgeEnd(); } xideAppDestroy(&app); xideProjectClear(&project); xrtValueRelease(before); xrtValueRelease(after);

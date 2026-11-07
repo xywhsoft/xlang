@@ -14,6 +14,22 @@ xui_widget xideDialogGetScrollViewWidget(xui_widget);
 int xideDialogSetContentSize(xui_widget,float,float);
 int xideDialogGetContentSize(xui_widget,float*,float*);
 int xideDialogSetMaxSize(xui_widget,float,float);
+/* Logical DIP constraints and native flow-layout building blocks. Content
+ * alone scrolls; actions belong to the separate, wrapping bottom bar. */
+int xideDialogSetMinSize(xui_widget,float,float);
+int xideDialogFormBegin(xui_widget,float,float);
+int xideDialogFormField(xui_widget,const char*,xui_widget,xui_widget,xui_widget);
+int xideDialogFormNamedField(xui_widget,xui_widget,xui_widget,xui_widget,xui_widget);
+int xideDialogFormBlock(xui_widget,xui_widget,float,int);
+int xideDialogFormText(xui_widget,const char*);
+int xideDialogFormRow(xui_widget,const xui_widget*,size_t,float,int);
+int xideDialogFormActions(xui_widget,const xui_widget*,size_t);
+int xideDialogFormEnd(xui_widget);
+int xideDialogSetFixedBody(xui_widget,int);
+xui_widget xideDialogGetFooterWidget(xui_widget);
+xui_widget xideDialogGetDividerWidget(xui_widget);
+int xideDialogGetBodySize(xui_widget,float*,float*);
+int xideDialogStyleMessage(xide_app*,xui_msgbox);
 int xideDialogSetFocusRestore(xui_widget,xui_widget);
 int xideDialogSetScroll(xui_widget,float,float);
 int xideDialogGetScroll(xui_widget,float*,float*);

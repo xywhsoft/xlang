@@ -77,6 +77,7 @@ static int create(xide_app* a)
 {
     struct xide_about_view* v=calloc(1,sizeof(*v)); if(!v) return XUI_ERROR_OUT_OF_MEMORY; a->aboutView=v;
     TRY(xideDialogCreate(a,&v->window,"关于 xlang",420,250,18));
+    TRY(xideDialogSetMinSize(v->window,400,320));
     TRY(xideDialogSetCancel(v->window,closeWindow,a)); v->content=xideDialogGetContentWidget(v->window);
     TRY(xuiWidgetAddChild(a->root,v->window)); TRY(xuiWidgetSetLayoutType(v->content,XUI_LAYOUT_MANUAL));
     TRY(label(a,"xlang",0,0,420,26,&v->heading));

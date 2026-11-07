@@ -1,4 +1,5 @@
 #define _WIN32_WINNT 0x0601
+#include "dialog_test_helpers.h"
 #include "app/xide_app.h"
 #include "ui/goto_view.h"
 #include "ui/editor_view.h"
@@ -16,7 +17,7 @@ static int writeText(const char* p,const char* s) { return xrtFileWriteAtomic(p,
 static int settle(xide_app* a) { if(xuiDispatchPendingEvents(a->context)!=XUI_OK) return 0; xideEditorPoll(a); xideWorkbenchLayout(a); return xuiLayout(a->context)==XUI_OK && !a->frameError; }
 static int key(xide_app* a,int k,uint32_t mods) { return xuiInputKeyDownEx(a->context,k,mods,NULL)==XUI_OK && xuiInputKeyUpEx(a->context,k,0,NULL)==XUI_OK && settle(a); }
 static int pointer(xide_app* a,xui_rect_t r) { int x=r.fX+r.fW/2,y=r.fY+r.fH/2; return xuiInputPointerMove(a->context,x,y,0)==XUI_OK && xuiInputPointerDown(a->context,x,y,XUI_POINTER_BUTTON_LEFT,XUI_POINTER_BUTTON_LEFT)==XUI_OK && xuiInputPointerUp(a->context,x,y,XUI_POINTER_BUTTON_LEFT,0)==XUI_OK && settle(a); }
-static int click(xide_app* a,int id) { xui_widget w=xideGotoViewControl(a,id); return xuiScrollViewEnsureChildVisible(xideDialogGetScrollViewWidget(xideGotoViewWindow(a)),w)==XUI_OK && settle(a) && pointer(a,xuiWidgetGetWorldRect(w)); }
+static int click(xide_app* a,int id) { xui_widget w=xideGotoViewControl(a,id); return xideTestReveal(xideDialogGetScrollViewWidget(xideGotoViewWindow(a)),w)==XUI_OK && settle(a) && pointer(a,xuiWidgetGetWorldRect(w)); }
 static int position(xide_app* a,const char* s) { return xuiEditSetText(xideGotoViewControl(a,XIDE_GOTO_POSITION),s)==XUI_OK && settle(a); }
 static int caret(xide_document* d) { xui_code_selection_t s={0}; return xuiCodeSelectionGetState(xuiCodeEditGetSelection(d->editor),&s)==XUI_OK ? s.iCaretOffset : -1; }
 static int gotoAt(xide_app* a,const char* value,int offset) {
@@ -111,8 +112,8 @@ static int verify(void* user) {
  CHECK(xgeEnd()==XGE_OK);began=0;app.dpiOverride=2;CHECK(xideAppFrame(&app)==XGE_OK && xgeBegin()==XGE_OK);began=1;
  CHECK(settle(&app) && app.dpiScale==2 && app.viewportWidth==800);
  CHECK(xideEditorShow(&app,c)==XUI_OK && settle(&app) && key(&app,'G',XUI_MOD_CTRL) && xuiInputGetFont(xideGotoViewControl(&app,XIDE_GOTO_POSITION))==app.uiFont);
- float cw=0,ch=0;CHECK(xideDialogGetContentSize(xideGotoViewWindow(&app),&cw,&ch)==XUI_OK && cw>app.viewportWidth && ch>app.viewportHeight);
- CHECK(xuiScrollViewEnsureChildVisible(xideDialogGetScrollViewWidget(xideGotoViewWindow(&app)),xideGotoViewControl(&app,XIDE_GOTO_APPLY))==XUI_OK && settle(&app) && capture(&app,images[3]));
+ float cw=0,ch=0;CHECK(xideDialogGetContentSize(xideGotoViewWindow(&app),&cw,&ch)==XUI_OK && cw>0 && ch>0);
+ CHECK(xideTestReveal(xideDialogGetScrollViewWidget(xideGotoViewWindow(&app)),xideGotoViewControl(&app,XIDE_GOTO_APPLY))==XUI_OK && settle(&app) && capture(&app,images[3]));
  CHECK(position(&app,"1:1") && click(&app,XIDE_GOTO_APPLY) && !xideGotoViewIsOpen(&app) && caret(c)==0);
  CHECK(xideUiFontApply(&app,app.uiFontPath,16,&error) && settle(&app) && key(&app,'G',XUI_MOD_CTRL));
  wchar_t lockedPath[32768];CHECK(MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,settings,-1,lockedPath,32768));

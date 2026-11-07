@@ -130,7 +130,12 @@ int xideFileChangesViewCreate(xide_app* app)
     TRY(button(app,XIDE_CHANGES_REFRESH,"刷新",(xui_rect_t){0,558,100,32})); TRY(button(app,XIDE_CHANGES_KEEP,"保留当前内容",(xui_rect_t){114,558,170,32})); TRY(button(app,XIDE_CHANGES_RELOAD,"重载磁盘内容…",(xui_rect_t){298,558,200,32})); TRY(button(app,XIDE_CHANGES_CLOSE,"关闭",(xui_rect_t){650,558,110,32}));
     TRY(label(app,"确认重载会放弃所选文件及对应工程清单/属性的未保存修改。删除或改绑的项目引用也会更新；已打开源文档继续保留。",(xui_rect_t){0,612,760,80},&v->warning));
     TRY(button(app,XIDE_CHANGES_CONFIRM,"确认重载",(xui_rect_t){478,704,168,32})); TRY(button(app,XIDE_CHANGES_CANCEL,"取消",(xui_rect_t){660,704,100,32}));
-    TRY(xideUiLayoutCapture(&v->layout,v->content)); preview(app); return XUI_OK;
+    TRY(xideDialogFormBegin(v->window,600,400));
+ TRY(xideDialogFormBlock(v->window,v->message,0,0));TRY(xideDialogFormBlock(v->window,v->controls[XIDE_CHANGES_LIST],112,0));TRY(xideDialogFormField(v->window,"文件路径",v->path,NULL,NULL));
+ TRY(xideDialogFormText(v->window,"当前内容（左）与磁盘快照（右）"));{ const xui_widget row[]={v->controls[XIDE_CHANGES_LOCAL],v->controls[XIDE_CHANGES_DISK]};TRY(xideDialogFormRow(v->window,row,sizeof(row)/sizeof(*row),230,1)); }
+ TRY(xideDialogFormBlock(v->window,v->warning,0,0));
+ { const xui_widget actions[]={v->controls[XIDE_CHANGES_REFRESH],v->controls[XIDE_CHANGES_KEEP],v->controls[XIDE_CHANGES_RELOAD],v->controls[XIDE_CHANGES_CONFIRM],v->controls[XIDE_CHANGES_CANCEL],v->controls[XIDE_CHANGES_CLOSE]};TRY(xideDialogFormActions(v->window,actions,sizeof(actions)/sizeof(*actions))); }
+ TRY(xideDialogFormEnd(v->window));preview(app);return XUI_OK;
 }
 int xideFileChangesViewOpen(xide_app* app)
 { if(!app->fileChangesView || xideToolchainViewIsOpen(app) || xideResourceViewIsOpen(app) || xideImportViewIsOpen(app) || xideRenameViewIsOpen(app) || xideTemplateViewIsOpen(app) || xideReferencesViewIsOpen(app) || xideFontViewIsOpen(app) || xideConfigurationViewIsOpen(app) || xideRecoveryViewIsOpen(app)) return 0; xide_file_changes_view* v=app->fileChangesView; v->token=0; v->sequence=0; v->confirm=0; rebuild(app); preview(app); xideFileChangesViewLayout(app); xideDialogSetOpen(v->window,1); xgeRenderRequest(); return 1; }
@@ -139,10 +144,8 @@ void xideFileChangesViewPoll(xide_app* app)
 { if(xideFileChangesViewIsOpen(app)) { if(app->fileChangesView->revision!=xideFileSyncRevision(app)) rebuild(app); xideFileChangesViewLayout(app); } }
 void xideFileChangesViewLayout(xide_app* app)
 {
-    xide_file_changes_view* v=app->fileChangesView; if(!v) return; int w=app->viewportWidth-48,h=app->viewportHeight-48; if(w<200) w=200; if(h<200) h=200; xideDialogSetMaxSize(v->window,w,h);
-    float scale=xideUiFontScale(app); if(v->scale!=scale) { xideUiLayoutApply(app,&v->layout,1); v->scale=scale; }
-    int cw=xideUiHeight(app,760),ch=xideUiHeight(app,v->confirm ? 752 : 604); if(cw!=v->cw || ch!=v->ch) { xideDialogSetContentSize(v->window,cw,ch); v->cw=cw; v->ch=ch; }
-    
+ if(!app->fileChangesView)return;
+ xideDialogSetMaxSize(app->fileChangesView->window,app->viewportWidth-32,app->viewportHeight-32);
 }
 int xideFileChangesViewCodeFont(xide_app* app)
 { if(app->fileChangesView) for(int i=XIDE_CHANGES_LOCAL;i<=XIDE_CHANGES_DISK;++i) TRY(xideCodeWidgetSetFont(app,app->fileChangesView->controls[i],app->codeFont)); return XUI_OK; }

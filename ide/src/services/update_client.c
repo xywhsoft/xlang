@@ -49,7 +49,7 @@ static void prompt(xide_app* app) {
     if(!u->box){xui_msgbox_desc_t d={0};d.iSize=sizeof(d);d.sTitle=u->mandatory?"xlang IDE 必须更新":"xlang IDE 更新";d.sMessage=u->mandatory?"当前版本需要更新后才能继续使用。可先保存未保存的文件，再由独立更新器安装。":"发现可用更新。保存并关闭 IDE 后，将由独立更新器显示更新说明并安装。";d.pFont=app->uiFont;d.iType=XUI_MSGBOX_ICON_INFO;d.iButtons=XUI_MSGBOX_BUTTON_CUSTOM;d.pCustomButtons=u->mandatory?required:optional;d.iCustomButtonCount=2;d.bModal=1;d.bHasModal=1;
         if(xuiMsgBoxCreate(app->context,&u->box,&d)!=XUI_OK)return;
         xuiMsgBoxSetResult(u->box,promptResult,app);xideUiFontBindWidget(app,xuiMsgBoxGetWindowWidget(u->box));}
-    xuiMsgBoxSetOpen(u->box,1);u->ready=0;
+    xuiMsgBoxSetOpen(u->box,1);xideDialogStyleMessage(app,u->box);u->ready=0;
 }
 /* The caller accepts exit codes only from the authenticated local checker. */
 void xideUpdateApplyCheckResult(xide_app* app,int code,int manual) {

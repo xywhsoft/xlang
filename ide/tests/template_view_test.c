@@ -1,4 +1,5 @@
 #define _WIN32_WINNT 0x0601
+#include "dialog_test_helpers.h"
 #include "app/xide_app.h"
 #include "ui/template_view.h"
 #include "ui/workspace_view.h"
@@ -25,8 +26,8 @@ static int pointer(xide_app* a,xui_rect_t r)
 static int click(xide_app* a,int id)
 {
  xui_widget w=xideTemplateViewControl(a,id),scroll=xideDialogGetScrollViewWidget(xideTemplateViewWindow(a));
- if(xuiScrollViewEnsureChildVisible(scroll,w)!=XUI_OK || !settle(a)) return 0;
- xui_rect_t r=xuiWidgetGetWorldRect(w),visible=xuiWidgetGetWorldRect(scroll); float right=r.fX+r.fW,bottom=r.fY+r.fH;
+ if(xideTestReveal(scroll,w)!=XUI_OK || !settle(a)) return 0;
+ xui_rect_t r=xuiWidgetGetWorldRect(w),visible=xuiWidgetGetWorldRect(xideTestViewport(scroll,w)); float right=r.fX+r.fW,bottom=r.fY+r.fH;
  if(r.fX<visible.fX) { r.fX=visible.fX; } if(r.fY<visible.fY) { r.fY=visible.fY; }
  if(right>visible.fX+visible.fW) { right=visible.fX+visible.fW; } if(bottom>visible.fY+visible.fH) { bottom=visible.fY+visible.fH; }
  r.fW=right-r.fX; r.fH=bottom-r.fY; return r.fW>0 && r.fH>0 && pointer(a,r);
@@ -40,8 +41,8 @@ static int menuNew(xide_app* a)
 }
 static int choose(xide_app* a,int id,int index)
 {
- xui_widget w=xideTemplateViewControl(a,id); if(xuiScrollViewEnsureChildVisible(xideDialogGetScrollViewWidget(xideTemplateViewWindow(a)),w)!=XUI_OK || !settle(a) || xuiComboBoxOpen(w)!=XUI_OK || !settle(a)) return 0;
- xui_widget menu=xuiComboBoxGetMenuWidget(w); xui_rect_t r=xuiMenuGetItemRect(menu,index),world=xuiWidgetGetWorldRect(menu); r.fX+=world.fX; r.fY+=world.fY; return pointer(a,r) && xuiComboBoxGetSelected(w)==index;
+ xui_widget w=xideTemplateViewControl(a,id); if(xideTestReveal(xideDialogGetScrollViewWidget(xideTemplateViewWindow(a)),w)!=XUI_OK || !settle(a) || xuiComboBoxOpen(w)!=XUI_OK || !settle(a)) return 0;
+ xui_widget menu=xuiComboBoxGetMenuWidget(w); xui_rect_t r=xideTestMenuItem(menu,index); return pointer(a,r) && xuiComboBoxGetSelected(w)==index;
 }
 static int fields(xide_app* a,const char* root,const char* name)
 { return xuiEditSetText(xideTemplateViewControl(a,XIDE_TEMPLATE_PARENT),root)==XUI_OK && xuiEditSetText(xideTemplateViewControl(a,XIDE_TEMPLATE_NAME),name)==XUI_OK && xideTemplateViewRefresh(a) && settle(a); }
@@ -101,7 +102,7 @@ static int verify(void* user)
  CHECK(xuiInputGetFont(xideTemplateViewControl(&app,XIDE_TEMPLATE_NAME))==app.uiFont && xuiCheckBoxGetFont(xideTemplateViewControl(&app,XIDE_TEMPLATE_STARTUP))==app.uiFont && xuiCheckBoxGetIndicatorSize(xideTemplateViewControl(&app,XIDE_TEMPLATE_STARTUP))==45 && xuiCodeEditGetFont(preview)==app.codeFont);
  n=0; settingsBytes=xrtJsonStringify(app.preferences.source,1,&n); CHECK(settingsBytes && writeText(settings,"{\"format\":\"xlang-ide-settings-1\",\"external\":true}")); xui_font old=app.uiFont;
  CHECK(!xideUiFontApply(&app,app.uiFontPath,18,&error) && app.uiFont==old && app.uiFontSize==40 && xuiCheckBoxGetFont(xideTemplateViewControl(&app,XIDE_TEMPLATE_STARTUP))==old && !strcmp(xuiEditGetText(xideTemplateViewControl(&app,XIDE_TEMPLATE_NAME)),"大字体工程")); CHECK(writeText(settings,settingsBytes)); xrtFree(settingsBytes); settingsBytes=NULL;
- CHECK(click(&app,XIDE_TEMPLATE_STARTUP) && xuiCheckBoxGetChecked(xideTemplateViewControl(&app,XIDE_TEMPLATE_STARTUP)) && xuiScrollViewEnsureChildVisible(xideDialogGetScrollViewWidget(xideTemplateViewWindow(&app)),xideTemplateViewControl(&app,XIDE_TEMPLATE_CREATE))==XUI_OK && capture(&app,imageLarge));
+ CHECK(click(&app,XIDE_TEMPLATE_STARTUP) && xuiCheckBoxGetChecked(xideTemplateViewControl(&app,XIDE_TEMPLATE_STARTUP)) && xideTestReveal(xideDialogGetScrollViewWidget(xideTemplateViewWindow(&app)),xideTemplateViewControl(&app,XIDE_TEMPLATE_CREATE))==XUI_OK && capture(&app,imageLarge));
  CHECK(click(&app,XIDE_TEMPLATE_CREATE) && !xideTemplateViewIsOpen(&app) && app.workspaceModel.projectCount==3 && !strcmp(app.workspaceModel.startupProject,app.selectedProject) && app.activeDocument && !strcmp(app.activeDocument->language,"xlang") && !app.activeDocument->dirty && c->open && xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(c->editor))==version);
  CHECK(xideUiFontApply(&app,app.uiFontPath,16,&error) && xideEditorFontApply(&app,app.codeFontPath,16,&error) && resize(&app,1280,800) && xideWorkspaceSaveAll(&app,NULL,&error));
  puts("template_view_test passed: empty-workbench and registered action creation, native template/file selection, readonly C/xlang/manifest previews, exact draft/cancel, auto entry and tree selection, startup default/preservation/explicit checkbox, document/plain-field/modal isolation, independent stale model and dirty manifest/property protection, collision/invalid-name states, actual file-sync deferral/resume, code/UI fonts/rollback, 125% and 40 DIP two-axis native create, three screenshots.");

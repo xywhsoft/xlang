@@ -49,7 +49,7 @@ static int verify(void* user) {
     CHECK(xuiInputPointerMove(app.context,x-100,y-70,XUI_POINTER_BUTTON_LEFT)==XUI_OK && settle(&app));
     CHECK(xuiInputPointerUp(app.context,x-100,y-70,XUI_POINTER_BUTTON_LEFT,0)==XUI_OK && settle(&app));
     xui_rect_t resized=xuiWidgetGetRect(window);CHECK(resized.fW<moved.fW-40 && resized.fH<moved.fH-30 && settle(&app) && abs(xuiWidgetGetRect(window).fW-resized.fW)<1);
-    xui_rect_t scroll=xuiWidgetGetRect(xideDialogGetScrollViewWidget(window));CHECK(scroll.fW>resized.fW-50 && scroll.fH>resized.fH-80);
+    xui_rect_t scroll=xuiWidgetGetRect(xideDialogGetScrollViewWidget(window));CHECK(scroll.fW>resized.fW-50 && scroll.fH>resized.fH-150 && xuiWidgetGetWorldRect(xideDialogGetFooterWidget(window)).fY>=xuiWidgetGetWorldRect(xideDialogGetScrollViewWidget(window)).fY+scroll.fH);
     CHECK(click(&app,xuiWindowGetMaximizeButtonWidget(window)) && xuiWindowIsMaximized(window) && settle(&app));
     CHECK(xuiWidgetGetRect(window).fW==app.viewportWidth && xuiWidgetGetRect(xideDialogGetScrollViewWidget(window)).fW>app.viewportWidth-50);
     CHECK(click(&app,xuiWindowGetMaximizeButtonWidget(window)) && !xuiWindowIsMaximized(window) && abs(xuiWidgetGetRect(window).fW-resized.fW)<1);

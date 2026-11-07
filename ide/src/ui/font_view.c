@@ -69,7 +69,13 @@ int xideFontViewCreate(xide_app* app)
     TRY(xideDpiCodeEditCreate(app->context,&view->controls[XIDE_FONT_PREVIEW],&code)); TRY(xideRegisterLanguages(xuiCodeEditGetLanguageRegistry(view->controls[XIDE_FONT_PREVIEW])));
     TRY(xideConfigureEditorLanguage(view->controls[XIDE_FONT_PREVIEW],"xlang")); TRY(xuiWidgetSetRect(view->controls[XIDE_FONT_PREVIEW],(xui_rect_t){0,184,576,114})); TRY(xuiWidgetAddChild(view->content,view->controls[XIDE_FONT_PREVIEW]));
     TRY(label(app,"",(xui_rect_t){0,308,576,44},&view->message));
-    TRY(button(app,XIDE_FONT_APPLY,"应用并保存",(xui_rect_t){332,360,128,32})); TRY(button(app,XIDE_FONT_CANCEL,"取消",(xui_rect_t){476,360,100,32})); return xideUiLayoutCapture(&view->layout,view->content);
+    TRY(button(app,XIDE_FONT_APPLY,"应用并保存",(xui_rect_t){332,360,128,32})); TRY(button(app,XIDE_FONT_CANCEL,"取消",(xui_rect_t){476,360,100,32})); TRY(xideDialogFormBegin(view->window,480,340));
+ TRY(xideDialogFormBlock(view->window,view->title,0,0)); TRY(xideDialogFormBlock(view->window,view->detail,0,0));
+ TRY(xideDialogFormField(view->window,"字体文件",view->controls[XIDE_FONT_PATH],view->controls[XIDE_FONT_BROWSE],NULL));
+ TRY(xideDialogFormField(view->window,"字号（DIP，8–40）",view->controls[XIDE_FONT_SIZE],NULL,NULL));
+ TRY(xideDialogFormBlock(view->window,view->hint,0,0));TRY(xideDialogFormBlock(view->window,view->controls[XIDE_FONT_PREVIEW],140,1));TRY(xideDialogFormBlock(view->window,view->message,0,0));
+ { const xui_widget actions[]={view->controls[XIDE_FONT_RESET],view->controls[XIDE_FONT_APPLY],view->controls[XIDE_FONT_CANCEL]};TRY(xideDialogFormActions(view->window,actions,sizeof(actions)/sizeof(*actions))); }
+ return xideDialogFormEnd(view->window);
 }
 static int openFont(xide_app* app,int ui)
 {
@@ -93,13 +99,8 @@ int xideFontViewOpenUi(xide_app* app) { return openFont(app,1); }
 int xideFontViewIsOpen(xide_app* app) { return app->fontView && xideDialogIsOpen(app->fontView->window); }
 void xideFontViewLayout(xide_app* app)
 {
-    if(!app->fontView) return;
-    int width=app->viewportWidth-48,height=app->viewportHeight-48; if(width<200) width=200; if(height<200) height=200;
-    xideDialogSetMaxSize(app->fontView->window,width,height);
-    int contentWidth=xideUiHeight(app,576),contentHeight=xideUiHeight(app,400);
-    float scale=xideUiFontScale(app);
-    if(app->fontView->scale!=scale) { xideUiLayoutApply(app,&app->fontView->layout,1); xideDialogSetContentSize(app->fontView->window,contentWidth,contentHeight); app->fontView->scale=scale; }
-
+ if(!app->fontView)return;
+ xideDialogSetMaxSize(app->fontView->window,app->viewportWidth-32,app->viewportHeight-32);
 }
 int xideFontViewCodeFont(xide_app* app) { return app->fontView ? xideCodeWidgetSetFont(app,app->fontView->controls[XIDE_FONT_PREVIEW],app->fontView->ui ? app->uiFont : app->codeFont) : XUI_OK; }
 int xideFontViewUiFont(xide_app* app) { return app->fontView && app->fontView->ui ? xideCodeWidgetSetFont(app,app->fontView->controls[XIDE_FONT_PREVIEW],app->uiFont) : XUI_OK; }

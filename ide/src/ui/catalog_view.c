@@ -38,12 +38,7 @@ static int label(xide_app* app,xui_widget* widget,const char* text,int muted);
 static void sourceLayout(xide_app* app)
 {
     xide_catalog_view* view=app->catalogView; if(!view || !view->sourceWindow) return;
-    int w=app->viewportWidth-48,h=app->viewportHeight-48; if(w<200) w=200; if(h<240) h=240;
-    int cw=xideUiHeight(app,920),ch=xideUiHeight(app,680); if(cw>w-28) cw=w-28; if(ch>h-28) ch=h-28;
-    xideDialogSetMaxSize(view->sourceWindow,w,h); xideDialogSetContentSize(view->sourceWindow,cw,ch);
-    xui_widget labels[]={view->sourceTitle,view->sourceStatus};
-    for(int i=0;i<2;++i) { xui_vec2_t measured={0}; xuiWidgetMeasureContent(labels[i],(xui_vec2_t){cw,XUI_LAYOUT_UNBOUNDED},&measured); float height=measured.fY+8; if(height<xideUiHeight(app,28)) height=xideUiHeight(app,28); if(height>ch/3) height=ch/3; xuiWidgetSetPreferredSize(labels[i],(xui_vec2_t){0,height}); }
-    xuiWidgetSetPreferredSize(view->sourceClose,(xui_vec2_t){0,xideUiHeight(app,32)});
+    xideDialogSetMaxSize(view->sourceWindow,app->viewportWidth-32,app->viewportHeight-32);
 }
 static int sourceTheme(xide_app* app)
 {
@@ -77,7 +72,11 @@ static int sourceCreate(xide_app* app)
     TRY(xuiWidgetAddChild(view->sourceContent,view->sourceClose));
     TRY(xideDialogSetCancel(view->sourceWindow,sourceClosed,app)); TRY(xuiWidgetSetCancelAction(editor,sourceClosed,app));
     TRY(xideDialogSetChange(view->sourceWindow,sourceChanged,app)); TRY(xideUiFontBindWidget(app,view->sourceWindow));
-    view->sourceEditor=editor; TRY(sourceTheme(app)); return XUI_OK;
+    view->sourceEditor=editor;TRY(xideDialogFormBegin(view->sourceWindow,560,380));
+    TRY(xideDialogFormBlock(view->sourceWindow,view->sourceTitle,0,0));TRY(xideDialogFormBlock(view->sourceWindow,view->sourceStatus,0,0));
+    TRY(xideDialogFormBlock(view->sourceWindow,editor,280,1));
+    TRY(xideDialogFormActions(view->sourceWindow,&view->sourceClose,1));TRY(xideDialogFormEnd(view->sourceWindow));
+    TRY(sourceTheme(app)); return XUI_OK;
 }
 static const char* selectedSource(xide_app* app,int document,int* line)
 {
