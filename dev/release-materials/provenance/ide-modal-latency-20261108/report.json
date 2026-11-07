@@ -1,0 +1,448 @@
+{
+  "schema": 1,
+  "date": "2026-11-08",
+  "task": "Find the cause of IDE About/MsgBox opening latency",
+  "findingConfirmed": true,
+  "productionCodeChanged": false,
+  "productionArtifactsChanged": false,
+  "scope": "Exact released engine with the accepted 108-TU GUI cohort. One private diagnostic app translation unit adds phase timers; UI entry calls and native DLL remain original.",
+  "isolation": "Owned private desktops; temporary uniquely named diagnostic executable runs from release/win_x64 and is removed after exit. Settings and file picker target the diagnostic directory.",
+  "timer": "QueryPerformanceCounter wall-clock milliseconds",
+  "optimization": "-O2",
+  "artifacts": {
+    "release/win_x64/xlang_ide.exe": {
+      "sha256": "f8d38ffdea249a0ae211103c0d8e300aa71f3a39da8bf1b81c01109deaa43f03",
+      "bytes": 1897286
+    },
+    "release/win_x64/xge.dll": {
+      "sha256": "c2d9a9bc1ccfd607f15580d8ff7c56a5c830008e0ae0223fe3680371b7739491",
+      "bytes": 11170056
+    },
+    "release/win_x64/xl.exe": {
+      "sha256": "a5feede784f0a5cb1a829c2e362de57e9278b55cec1a11b796cf4b6e78831bbc",
+      "bytes": 72704
+    },
+    "release/win_x64/xl.dll": {
+      "sha256": "215d6b3c87704c745ec609eb07e718a52708ad7c13436294f2f662a56169be13",
+      "bytes": 15184896
+    },
+    "release/win_x64/xlc.dll": {
+      "sha256": "2241fcd462980fc40cbd6c47ce9347d537bababc93225cb6d2a2d36b9b978797",
+      "bytes": 21298688
+    },
+    "release/win_x64/xlang-ls.exe": {
+      "sha256": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+      "bytes": 10701410
+    }
+  },
+  "sources": {
+    "ide/src/ui/about_view.c": "eb9431a92f1b2db1e33055b8796347bba877c8cf56df2d9d15941d56f9ca268b",
+    "ide/src/ui/dialog.c": "f999354853fbe5a560a3ddd1b6a81d6e708a231298df0f072fa16027b96a0570",
+    "ide/src/ui/message_box.c": "dd939046ec3ad2a32a20d06e87d3278b8a6e250f78219c4763e0628c006aab84",
+    "ide/src/ui/file_dialog.c": "1cc0770672f48d858cbd9a90a1b5ef57cc6058c93cb4116d959bda3626e2ccd8",
+    "ide/src/services/ui_font.c": "a366234745e411116ba2a90aa8f922d1b64e2f6d6d3b034286c73f4a7d295ea1",
+    "ide/src/app/xide_app.c": "6a3d97b97d67f4e2306b7bf764588167704c6c9556077e78398e345ce3bb15b9",
+    "D:/GIT/xge/src/xui/controls/xui_window.c": "e2565989b0310e347557f59b9778f114327294f7e10d8ebcc3c9d15ce3d84f5d",
+    "D:/GIT/xge/src/xui/controls/xui_msgbox.c": "6e8b51e10badb4b302e6cf1045207855095079d5f548cd69f44e9adcaaa46464",
+    "D:/GIT/xge/src/xui/core/xui_widget.c": "b5ba15633c03615f95e614b3b80795921cfc053c0cab99d8f4910a830253e6f9",
+    "D:/GIT/xge/src/xui/controls/xui_button.c": "b6ce9d00f842fcd45b3f8519df3ff68940f07b74bdc314eef4d0315656cbfe81",
+    "D:/GIT/xge/src/xui/core/xui_icon_picker.c": "0c061a41ae2a5aad46d4ee73207d996328caa1c8552928b88d633f11f0702b69"
+  },
+  "xgeCommit": "45797364a4060c04d08b3328e263a798c98715c1",
+  "xlangCommit": "ba78dda2aae42a5c673bd4fdbae0143cd8780b9c",
+  "measurements": {
+    "baseline": {
+      "opens": [
+        {
+          "dialog": "about",
+          "round": 0,
+          "milliseconds": 6748.641,
+          "success": 1,
+          "styleGenerations": 23
+        },
+        {
+          "dialog": "msgbox",
+          "round": 0,
+          "milliseconds": 9604.9238,
+          "success": 1,
+          "styleGenerations": 35
+        },
+        {
+          "dialog": "file",
+          "round": 0,
+          "milliseconds": 219.9219,
+          "success": 1,
+          "styleGenerations": 1
+        },
+        {
+          "dialog": "about",
+          "round": 1,
+          "milliseconds": 3.4695,
+          "success": 1,
+          "styleGenerations": 0
+        },
+        {
+          "dialog": "msgbox",
+          "round": 1,
+          "milliseconds": 6.1988,
+          "success": 1,
+          "styleGenerations": 0
+        },
+        {
+          "dialog": "file",
+          "round": 1,
+          "milliseconds": 188.3506,
+          "success": 1,
+          "styleGenerations": 1
+        },
+        {
+          "dialog": "about",
+          "round": 2,
+          "milliseconds": 1.9986,
+          "success": 1,
+          "styleGenerations": 0
+        },
+        {
+          "dialog": "msgbox",
+          "round": 2,
+          "milliseconds": 4.1063,
+          "success": 1,
+          "styleGenerations": 0
+        },
+        {
+          "dialog": "file",
+          "round": 2,
+          "milliseconds": 180.4203,
+          "success": 1,
+          "styleGenerations": 1
+        }
+      ],
+      "probes": [],
+      "steadyFrames": {
+        "about": {
+          "medianMs": 1.3982,
+          "maxMs": 5.5255,
+          "samples": 12
+        },
+        "msgbox": {
+          "medianMs": 1.0598,
+          "maxMs": 1.6043,
+          "samples": 12
+        },
+        "file": {
+          "medianMs": 1.0572,
+          "maxMs": 2.0837,
+          "samples": 12
+        }
+      }
+    },
+    "batch": {
+      "opens": [
+        {
+          "dialog": "about",
+          "round": 0,
+          "milliseconds": 270.463,
+          "success": 1,
+          "styleGenerations": 1
+        },
+        {
+          "dialog": "msgbox",
+          "round": 0,
+          "milliseconds": 258.7289,
+          "success": 1,
+          "styleGenerations": 1
+        },
+        {
+          "dialog": "file",
+          "round": 0,
+          "milliseconds": 207.5775,
+          "success": 1,
+          "styleGenerations": 1
+        },
+        {
+          "dialog": "about",
+          "round": 1,
+          "milliseconds": 1.9205,
+          "success": 1,
+          "styleGenerations": 0
+        },
+        {
+          "dialog": "msgbox",
+          "round": 1,
+          "milliseconds": 3.818,
+          "success": 1,
+          "styleGenerations": 0
+        },
+        {
+          "dialog": "file",
+          "round": 1,
+          "milliseconds": 189.8648,
+          "success": 1,
+          "styleGenerations": 1
+        },
+        {
+          "dialog": "about",
+          "round": 2,
+          "milliseconds": 1.8991,
+          "success": 1,
+          "styleGenerations": 0
+        },
+        {
+          "dialog": "msgbox",
+          "round": 2,
+          "milliseconds": 3.8377,
+          "success": 1,
+          "styleGenerations": 0
+        },
+        {
+          "dialog": "file",
+          "round": 2,
+          "milliseconds": 180.0322,
+          "success": 1,
+          "styleGenerations": 1
+        }
+      ],
+      "probes": [],
+      "steadyFrames": {
+        "about": {
+          "medianMs": 1.1507999999999998,
+          "maxMs": 1.9705,
+          "samples": 12
+        },
+        "msgbox": {
+          "medianMs": 0.788,
+          "maxMs": 1.0394,
+          "samples": 12
+        },
+        "file": {
+          "medianMs": 0.80375,
+          "maxMs": 1.2635,
+          "samples": 12
+        }
+      }
+    },
+    "probe-baseline": {
+      "opens": [
+        {
+          "dialog": "about",
+          "round": 0,
+          "milliseconds": 7077.7177,
+          "success": 1,
+          "styleGenerations": 23
+        },
+        {
+          "dialog": "msgbox",
+          "round": 0,
+          "milliseconds": 9853.2816,
+          "success": 1,
+          "styleGenerations": 35
+        },
+        {
+          "dialog": "file",
+          "round": 0,
+          "milliseconds": 213.6327,
+          "success": 1,
+          "styleGenerations": 1
+        },
+        {
+          "dialog": "about",
+          "round": 1,
+          "milliseconds": 1.95,
+          "success": 1,
+          "styleGenerations": 0
+        },
+        {
+          "dialog": "msgbox",
+          "round": 1,
+          "milliseconds": 3.8747,
+          "success": 1,
+          "styleGenerations": 0
+        },
+        {
+          "dialog": "file",
+          "round": 1,
+          "milliseconds": 196.5724,
+          "success": 1,
+          "styleGenerations": 1
+        },
+        {
+          "dialog": "about",
+          "round": 2,
+          "milliseconds": 1.9816,
+          "success": 1,
+          "styleGenerations": 0
+        },
+        {
+          "dialog": "msgbox",
+          "round": 2,
+          "milliseconds": 4.0245,
+          "success": 1,
+          "styleGenerations": 0
+        },
+        {
+          "dialog": "file",
+          "round": 2,
+          "milliseconds": 180.2202,
+          "success": 1,
+          "styleGenerations": 1
+        }
+      ],
+      "probes": [
+        {
+          "operation": "find-existing-type",
+          "milliseconds": 0.0004,
+          "styleGenerations": 0,
+          "success": 1
+        },
+        {
+          "operation": "get-existing-type",
+          "milliseconds": 4069.9664,
+          "styleGenerations": 23,
+          "success": 1
+        }
+      ],
+      "steadyFrames": {
+        "about": {
+          "medianMs": 0.726,
+          "maxMs": 5.3608,
+          "samples": 12
+        },
+        "msgbox": {
+          "medianMs": 0.79095,
+          "maxMs": 1.929,
+          "samples": 12
+        },
+        "file": {
+          "medianMs": 0.9472,
+          "maxMs": 2.5805,
+          "samples": 12
+        }
+      }
+    },
+    "probe-batch": {
+      "opens": [
+        {
+          "dialog": "about",
+          "round": 0,
+          "milliseconds": 282.1603,
+          "success": 1,
+          "styleGenerations": 1
+        },
+        {
+          "dialog": "msgbox",
+          "round": 0,
+          "milliseconds": 258.7578,
+          "success": 1,
+          "styleGenerations": 1
+        },
+        {
+          "dialog": "file",
+          "round": 0,
+          "milliseconds": 208.9519,
+          "success": 1,
+          "styleGenerations": 1
+        },
+        {
+          "dialog": "about",
+          "round": 1,
+          "milliseconds": 2.1723,
+          "success": 1,
+          "styleGenerations": 0
+        },
+        {
+          "dialog": "msgbox",
+          "round": 1,
+          "milliseconds": 3.8949,
+          "success": 1,
+          "styleGenerations": 0
+        },
+        {
+          "dialog": "file",
+          "round": 1,
+          "milliseconds": 181.304,
+          "success": 1,
+          "styleGenerations": 1
+        },
+        {
+          "dialog": "about",
+          "round": 2,
+          "milliseconds": 2.6737,
+          "success": 1,
+          "styleGenerations": 0
+        },
+        {
+          "dialog": "msgbox",
+          "round": 2,
+          "milliseconds": 3.8292,
+          "success": 1,
+          "styleGenerations": 0
+        },
+        {
+          "dialog": "file",
+          "round": 2,
+          "milliseconds": 183.1135,
+          "success": 1,
+          "styleGenerations": 1
+        }
+      ],
+      "probes": [
+        {
+          "operation": "find-existing-type",
+          "milliseconds": 0.0004,
+          "styleGenerations": 0,
+          "success": 1
+        },
+        {
+          "operation": "get-existing-type",
+          "milliseconds": 171.2245,
+          "styleGenerations": 1,
+          "success": 1
+        }
+      ],
+      "steadyFrames": {
+        "about": {
+          "medianMs": 0.8229,
+          "maxMs": 1.4039,
+          "samples": 12
+        },
+        "msgbox": {
+          "medianMs": 0.7703,
+          "maxMs": 1.387,
+          "samples": 12
+        },
+        "file": {
+          "medianMs": 0.8743,
+          "maxMs": 1.463,
+          "samples": 12
+        }
+      }
+    }
+  },
+  "causalChain": [
+    "xuiWindowGetType re-registers 23 existing properties on the already-registered branch.",
+    "Each xuiStyleRegisterProperty commits a generation even when the definition is unchanged.",
+    "Outside a style transaction each commit synchronously calls xuiStyleRefresh over the root and overlay trees.",
+    "xuiWidgetResolveStyle rebuilds, copies, compares and replaces resolved style arrays.",
+    "About creation causes 23 commits. First MsgBox creation adds 12 MsgBox-specific properties, totaling 35.",
+    "IDE About and message construction do not open a style transaction. The file dialog does."
+  ],
+  "candidateAudit": {
+    "existingTypeRegistrationCallSites": 41,
+    "sitesWithPropertyExistenceGuard": 39,
+    "unguardedSites": [
+      "xuiWindowGetType",
+      "xuiIconPickerGetType"
+    ],
+    "note": "Window measured directly. IconPicker is a source-audit finding, not a measured IDE trigger."
+  },
+  "evidence": {
+    "path": "dev/release-materials/provenance/ide-modal-latency-20261108/evidence.zip",
+    "sha256": "f6d3fe027fd2695747c606b2969c401559aadf0c41de0ddac477d228c183e7c7",
+    "bytes": 196079
+  },
+  "limits": [
+    "Measurements are from this machine and controlled windows, not a universal latency SLA.",
+    "The observed seconds-long stall is in opening/registration. Steady rendering in this workload is around 1ms.",
+    "Batching alone still leaves roughly 0.2-0.3 seconds for one global style pass; it is diagnostic proof, not the final production fix."
+  ]
+}
