@@ -39,8 +39,9 @@ int main(int argc,char** argv)
     xide_app app={0}; xide_model_error error={0}; int failed=0; char *root=NULL,*path=NULL,*markdown=NULL;
     CHECK(argc==3); root=xidePathResolve(argv[1],"中文 帮助恢复"); CHECK(root && xrtDirCreateAll(root)); path=xidePathResolve(root,"commands.json"); CHECK(path);
     const char* invalid="{\"format\":\"damaged\"}";
-    CHECK(xrtFileWriteAtomic(path,(xbytesview){(const unsigned char*)invalid,strlen(invalid)}));
     app.catalogPath=path; CHECK(init(&app)); CHECK(app.catalog.count==0 && strstr(xuiLabelGetText(app.helpTitle),"不可用"));
+    CHECK(strstr(xuiLabelGetText(xideCatalogStatusWidget(&app)),"Cannot read"));
+    CHECK(xrtFileWriteAtomic(path,(xbytesview){(const unsigned char*)invalid,strlen(invalid)}) && click(&app,xideCatalogReloadWidget(&app)) && app.catalog.count==0);
     CHECK(xuiWidgetGetVisible(xideCatalogStatusWidget(&app)) && !xuiWidgetGetVisible(app.helpExample));
     xide_document* doc=xideDocumentNew(&app.documents,"xlang",&error); CHECK(doc && xideEditorShow(&app,doc)==XUI_OK && settle(&app));
     CHECK(xuiCodeEditSetText(doc->editor,"保留的编辑内容") == XUI_OK && settle(&app));
