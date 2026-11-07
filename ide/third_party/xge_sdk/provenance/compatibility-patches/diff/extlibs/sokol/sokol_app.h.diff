@@ -1,0 +1,192 @@
+--- a/extlibs/sokol/sokol_app.h
++++ b/extlibs/sokol/sokol_app.h
+@@ -8769,7 +8769,7 @@
+ #endif /* SOKOL_D3D11 */
+ 
+ #if defined(SOKOL_GLCORE)
+-_SOKOL_PRIVATE void _sapp_wgl_init(void) {
++_SOKOL_PRIVATE bool _sapp_wgl_init(void) {
+     UINT _sapp_wgl_old_error_mode = SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOOPENFILEERRORBOX | SEM_NOGPFAULTERRORBOX);
+     SetErrorMode(_sapp_wgl_old_error_mode | SEM_FAILCRITICALERRORS | SEM_NOOPENFILEERRORBOX | SEM_NOGPFAULTERRORBOX);
+     #if defined(LOAD_LIBRARY_SEARCH_SYSTEM32)
+@@ -8783,20 +8783,21 @@
+     SetErrorMode(_sapp_wgl_old_error_mode);
+     if (!_sapp.wgl.opengl32) {
+         _SAPP_PANIC(WIN32_LOAD_OPENGL32_DLL_FAILED);
+-    }
+-    SOKOL_ASSERT(_sapp.wgl.opengl32);
++        return false;
++    }
++    if (!_sapp.wgl.opengl32) { _SAPP_PANIC_MSG(WIN32_LOAD_OPENGL32_DLL_FAILED, "Required OpenGL/WGL resource unavailable"); return false; }
+     _sapp.wgl.CreateContext = (PFN_wglCreateContext)(void*) GetProcAddress(_sapp.wgl.opengl32, "wglCreateContext");
+-    SOKOL_ASSERT(_sapp.wgl.CreateContext);
++    if (!_sapp.wgl.CreateContext) { _SAPP_PANIC_MSG(WIN32_LOAD_OPENGL32_DLL_FAILED, "Required OpenGL/WGL resource unavailable"); return false; }
+     _sapp.wgl.DeleteContext = (PFN_wglDeleteContext)(void*) GetProcAddress(_sapp.wgl.opengl32, "wglDeleteContext");
+-    SOKOL_ASSERT(_sapp.wgl.DeleteContext);
++    if (!_sapp.wgl.DeleteContext) { _SAPP_PANIC_MSG(WIN32_LOAD_OPENGL32_DLL_FAILED, "Required OpenGL/WGL resource unavailable"); return false; }
+     _sapp.wgl.GetProcAddress = (PFN_wglGetProcAddress)(void*) GetProcAddress(_sapp.wgl.opengl32, "wglGetProcAddress");
+-    SOKOL_ASSERT(_sapp.wgl.GetProcAddress);
++    if (!_sapp.wgl.GetProcAddress) { _SAPP_PANIC_MSG(WIN32_LOAD_OPENGL32_DLL_FAILED, "Required OpenGL/WGL resource unavailable"); return false; }
+     _sapp.wgl.GetCurrentDC = (PFN_wglGetCurrentDC)(void*) GetProcAddress(_sapp.wgl.opengl32, "wglGetCurrentDC");
+-    SOKOL_ASSERT(_sapp.wgl.GetCurrentDC);
++    if (!_sapp.wgl.GetCurrentDC) { _SAPP_PANIC_MSG(WIN32_LOAD_OPENGL32_DLL_FAILED, "Required OpenGL/WGL resource unavailable"); return false; }
+     _sapp.wgl.MakeCurrent = (PFN_wglMakeCurrent)(void*) GetProcAddress(_sapp.wgl.opengl32, "wglMakeCurrent");
+-    SOKOL_ASSERT(_sapp.wgl.MakeCurrent);
++    if (!_sapp.wgl.MakeCurrent) { _SAPP_PANIC_MSG(WIN32_LOAD_OPENGL32_DLL_FAILED, "Required OpenGL/WGL resource unavailable"); return false; }
+     _sapp.wgl.GetIntegerv = (void(WINAPI*)(uint32_t, int32_t*)) GetProcAddress(_sapp.wgl.opengl32, "glGetIntegerv");
+-    SOKOL_ASSERT(_sapp.wgl.GetIntegerv);
++    if (!_sapp.wgl.GetIntegerv) { _SAPP_PANIC_MSG(WIN32_LOAD_OPENGL32_DLL_FAILED, "Required OpenGL/WGL resource unavailable"); return false; }
+ 
+     _sapp.wgl.msg_hwnd = CreateWindowExW(WS_EX_OVERLAPPEDWINDOW,
+         L"SOKOLAPP",
+@@ -8808,8 +8809,9 @@
+         NULL);
+     if (!_sapp.wgl.msg_hwnd) {
+         _SAPP_PANIC(WIN32_CREATE_HELPER_WINDOW_FAILED);
+-    }
+-    SOKOL_ASSERT(_sapp.wgl.msg_hwnd);
++        return false;
++    }
++    if (!_sapp.wgl.msg_hwnd) { _SAPP_PANIC_MSG(WIN32_LOAD_OPENGL32_DLL_FAILED, "Required OpenGL/WGL resource unavailable"); return false; }
+     ShowWindow(_sapp.wgl.msg_hwnd, SW_HIDE);
+     MSG msg;
+     while (PeekMessageW(&msg, _sapp.wgl.msg_hwnd, 0, 0, PM_REMOVE)) {
+@@ -8819,13 +8821,15 @@
+     _sapp.wgl.msg_dc = GetDC(_sapp.wgl.msg_hwnd);
+     if (!_sapp.wgl.msg_dc) {
+         _SAPP_PANIC(WIN32_HELPER_WINDOW_GETDC_FAILED);
+-    }
++        return false;
++    }
++    return true;
+ }
+ 
+ _SOKOL_PRIVATE void _sapp_wgl_shutdown(void) {
+-    SOKOL_ASSERT(_sapp.wgl.opengl32 && _sapp.wgl.msg_hwnd);
+-    DestroyWindow(_sapp.wgl.msg_hwnd); _sapp.wgl.msg_hwnd = 0;
+-    FreeLibrary(_sapp.wgl.opengl32); _sapp.wgl.opengl32 = 0;
++    if (_sapp.wgl.msg_dc && _sapp.wgl.msg_hwnd) { ReleaseDC(_sapp.wgl.msg_hwnd, _sapp.wgl.msg_dc); _sapp.wgl.msg_dc = 0; }
++    if (_sapp.wgl.msg_hwnd) { DestroyWindow(_sapp.wgl.msg_hwnd); _sapp.wgl.msg_hwnd = 0; }
++    if (_sapp.wgl.opengl32) { FreeLibrary(_sapp.wgl.opengl32); _sapp.wgl.opengl32 = 0; }
+ }
+ 
+ _SOKOL_PRIVATE bool _sapp_wgl_has_ext(const char* ext, const char* extensions) {
+@@ -8868,7 +8872,7 @@
+     return false;
+ }
+ 
+-_SOKOL_PRIVATE void _sapp_wgl_load_extensions(void) {
++_SOKOL_PRIVATE bool _sapp_wgl_load_extensions(void) {
+     SOKOL_ASSERT(_sapp.wgl.msg_dc);
+     _SAPP_STRUCT(PIXELFORMATDESCRIPTOR, pfd);
+     pfd.nSize = sizeof(pfd);
+@@ -8878,13 +8882,17 @@
+     pfd.cColorBits = 24;
+     if (!SetPixelFormat(_sapp.wgl.msg_dc, ChoosePixelFormat(_sapp.wgl.msg_dc, &pfd), &pfd)) {
+         _SAPP_PANIC(WIN32_DUMMY_CONTEXT_SET_PIXELFORMAT_FAILED);
++        return false;
+     }
+     HGLRC rc = _sapp.wgl.CreateContext(_sapp.wgl.msg_dc);
+     if (!rc) {
+         _SAPP_PANIC(WIN32_CREATE_DUMMY_CONTEXT_FAILED);
++        return false;
+     }
+     if (!_sapp.wgl.MakeCurrent(_sapp.wgl.msg_dc, rc)) {
+         _SAPP_PANIC(WIN32_DUMMY_CONTEXT_MAKE_CURRENT_FAILED);
++        _sapp.wgl.DeleteContext(rc);
++        return false;
+     }
+     _sapp.wgl.GetExtensionsStringEXT = (PFNWGLGETEXTENSIONSSTRINGEXTPROC)(void*) _sapp.wgl.GetProcAddress("wglGetExtensionsStringEXT");
+     _sapp.wgl.GetExtensionsStringARB = (PFNWGLGETEXTENSIONSSTRINGARBPROC)(void*) _sapp.wgl.GetProcAddress("wglGetExtensionsStringARB");
+@@ -8898,6 +8906,7 @@
+     _sapp.wgl.arb_pixel_format = _sapp_wgl_ext_supported("WGL_ARB_pixel_format");
+     _sapp.wgl.MakeCurrent(_sapp.wgl.msg_dc, 0);
+     _sapp.wgl.DeleteContext(rc);
++    return true;
+ }
+ 
+ _SOKOL_PRIVATE int _sapp_wgl_attrib(int pixel_format, int attrib) {
+@@ -9009,23 +9018,28 @@
+     return pixel_format;
+ }
+ 
+-_SOKOL_PRIVATE void _sapp_wgl_create_context(void) {
++_SOKOL_PRIVATE bool _sapp_wgl_create_context(void) {
+     int pixel_format = _sapp_wgl_find_pixel_format();
+     if (0 == pixel_format) {
+         _SAPP_PANIC(WIN32_WGL_FIND_PIXELFORMAT_FAILED);
++        return false;
+     }
+     PIXELFORMATDESCRIPTOR pfd;
+     if (!DescribePixelFormat(_sapp.win32.dc, pixel_format, sizeof(pfd), &pfd)) {
+         _SAPP_PANIC(WIN32_WGL_DESCRIBE_PIXELFORMAT_FAILED);
++        return false;
+     }
+     if (!SetPixelFormat(_sapp.win32.dc, pixel_format, &pfd)) {
+         _SAPP_PANIC(WIN32_WGL_SET_PIXELFORMAT_FAILED);
+-    }
+-    if (!_sapp.wgl.arb_create_context) {
++        return false;
++    }
++    if (!_sapp.wgl.arb_create_context || !_sapp.wgl.CreateContextAttribsARB) {
+         _SAPP_PANIC(WIN32_WGL_ARB_CREATE_CONTEXT_REQUIRED);
++        return false;
+     }
+     if (!_sapp.wgl.arb_create_context_profile) {
+         _SAPP_PANIC(WIN32_WGL_ARB_CREATE_CONTEXT_PROFILE_REQUIRED);
++        return false;
+     }
+     const int attrs[] = {
+         WGL_CONTEXT_MAJOR_VERSION_ARB, _sapp.desc.gl.major_version,
+@@ -9051,19 +9065,26 @@
+             _SAPP_PANIC(WIN32_WGL_CREATE_CONTEXT_ATTRIBS_FAILED_OTHER);
+         }
+     }
+-    _sapp.wgl.MakeCurrent(_sapp.win32.dc, _sapp.wgl.gl_ctx);
++    if (!_sapp.wgl.gl_ctx) { return false; }
++    if (!_sapp.wgl.MakeCurrent(_sapp.win32.dc, _sapp.wgl.gl_ctx)) {
++        _SAPP_PANIC_MSG(WIN32_WGL_CREATE_CONTEXT_ATTRIBS_FAILED_OTHER, "wglMakeCurrent failed for OpenGL 3.3 context");
++        return false;
++    }
+     if (_sapp.wgl.ext_swap_control) {
+         /* FIXME: DwmIsCompositionEnabled() (see GLFW) */
+         _sapp.wgl.SwapIntervalEXT(_sapp.swap_interval);
+     }
+     const uint32_t gl_framebuffer_binding = 0x8CA6;
+     _sapp.wgl.GetIntegerv(gl_framebuffer_binding, (int32_t*)&_sapp.gl.framebuffer);
++    return true;
+ }
+ 
+ _SOKOL_PRIVATE void _sapp_wgl_destroy_context(void) {
+-    SOKOL_ASSERT(_sapp.wgl.gl_ctx);
+-    _sapp.wgl.DeleteContext(_sapp.wgl.gl_ctx);
+-    _sapp.wgl.gl_ctx = 0;
++    if (_sapp.wgl.gl_ctx) {
++        _sapp.wgl.MakeCurrent(_sapp.win32.dc, 0);
++        _sapp.wgl.DeleteContext(_sapp.wgl.gl_ctx);
++        _sapp.wgl.gl_ctx = 0;
++    }
+ }
+ 
+ _SOKOL_PRIVATE void _sapp_wgl_swap_buffers(void) {
+@@ -10185,9 +10206,17 @@
+         _sapp_d3d11_create_device_and_swapchain();
+         _sapp_d3d11_create_default_render_target();
+     #elif defined(SOKOL_GLCORE)
+-        _sapp_wgl_init();
+-        _sapp_wgl_load_extensions();
+-        _sapp_wgl_create_context();
++        if (!_sapp_wgl_init() || !_sapp_wgl_load_extensions() || !_sapp_wgl_create_context()) {
++            /* No init/frame callbacks ran. Dispose only acquired platform resources. */
++            _sapp_wgl_destroy_context();
++            _sapp_wgl_shutdown();
++            _sapp_win32_destroy_window();
++            _sapp_win32_destroy_icons();
++            _sapp_win32_restore_console();
++            _sapp_win32_free_raw_input_data();
++            _sapp_discard_state();
++            return;
++        }
+     #elif defined(SOKOL_WGPU)
+         _sapp_wgpu_init();
+     #elif defined(SOKOL_VULKAN)
