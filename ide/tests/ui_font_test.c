@@ -64,7 +64,7 @@ static int bound(xide_app* app)
 {
     if(xuiGetDefaultFont(app->context)!=app->uiFont || xuiMenuBarGetFont(app->menuBar)!=app->uiFont || xuiToolbarGetFont(app->toolbar)!=app->uiFont ||
        xuiStatusBarGetFont(app->statusBar)!=app->uiFont || xuiDockPanelGetFont(app->dock)!=app->uiFont || xuiTreeViewGetFont(app->commands)!=app->uiFont ||
-       xuiTreeViewGetFont(app->workspace)!=app->uiFont || xuiLabelGetFont(app->helpTitle)!=app->uiFont || xuiCodeEditGetFont(app->helpExample)!=app->codeFont ||
+       xuiTreeViewGetFont(app->workspace)!=app->uiFont || xuiLabelGetFont(app->helpTitle)!=app->documentFont || xuiCodeEditGetFont(app->helpExample)!=app->codeFont ||
        xuiCodeEditGetFont(app->panels[XIDE_OUTPUT])!=app->codeFont || xuiTerminalGetFont(app->panels[XIDE_TERMINAL])!=app->codeFont) return 0;
     for(int i=0;i<xuiMenuBarGetItemCount(app->menuBar);++i) { const xui_menubar_item_t* item=xuiMenuBarGetItem(app->menuBar,i); if(item && item->pMenu && xuiMenuGetFont(item->pMenu)!=app->uiFont) return 0; }
     float row=0; if(xuiTreeViewGetMetrics(app->commands,&row,NULL,NULL,NULL)!=XUI_OK || row<xideUiHeight(app,26)-0.01f) return 0;
@@ -105,7 +105,7 @@ static int verify(void* user)
     CHECK(xideEditorShow(&app,xl)==XUI_OK && xideEditorShow(&app,c)==XUI_OK && settle(&app));
     xui_code_selection_t selected={0}; selected.iSize=sizeof(selected); CHECK(xuiCodeSelectionGetState(xuiCodeEditGetSelection(c->editor),&selected)==XUI_OK);
     uint32_t cv=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(c->editor)),xv=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(xl->editor));
-    xideDispatchAction(&app,XIDE_ACTION_UI_FONT); CHECK(xideFontViewIsOpen(&app));
+    CHECK(xideFontViewOpenUi(&app));
     CHECK(xuiEditSetText(xideFontViewControl(&app,XIDE_FONT_PATH),font)==XUI_OK && xuiEditSetText(xideFontViewControl(&app,XIDE_FONT_SIZE),"32")==XUI_OK && click(&app,XIDE_FONT_APPLY));
     CHECK(!xideFontViewIsOpen(&app) && app.uiFontSize==32 && bound(&app) && documents(&app,c,xl,cv,xv,selected,code));
     CHECK(xuiMenuBarGetFont(app.menuBar)==app.uiFont && xuiWidgetGetRect(app.menuBar).fH>=56 && app.codeFontSize==20);

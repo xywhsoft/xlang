@@ -76,6 +76,14 @@ int main(int argc,char** argv)
     CHECK(writeText(path,"{broken") && !xideSettingsSetCompiler(&loaded,compiler,&error));
     content=xrtFileReadAllLimit(path,256,&length); CHECK(content && length==7 && !memcmp(content,"{broken",7)); xrtFree(content);
 #endif
+    CHECK(writeText(path,"{\"format\":\"xlang-ide-settings-1\",\"future\":7,\"documents\":{\"futureDocument\":11},\"languageService\":{\"futureService\":true}}") && xideSettingsLoad(&settings,path,&error));
+    xide_settings_draft draft={.compiler=compiler,.editorFont=font,.uiFont=font,.documentFont=font,.editorSize=18,.uiSize=16,.documentSize=20,.options=*xideSettingsOptions(&settings)};
+    draft.options.theme=2;draft.options.tabColumns=8;draft.options.indentColumns=2;draft.options.documentLineGap=10;draft.options.automaticDiagnostics=0;draft.options.diagnosticDelay=240;
+    CHECK(xideSettingsSaveDraft(&settings,&draft,&error) && xideSettingsLoad(&loaded,path,&error));
+    CHECK(loaded.documentFontSize==20 && loaded.editorFontSize==18 && xideSettingsOptions(&loaded)->theme==2 && xideSettingsOptions(&loaded)->tabColumns==8 && xideSettingsOptions(&loaded)->diagnosticDelay==240);
+    CHECK(xrtValueObjectGet(xrtValueObjectGet(loaded.source,(xstrview){"documents",9}),(xstrview){"futureDocument",14}));
+    draft.options.tabColumns=17;CHECK(!xideSettingsSaveDraft(&settings,&draft,&error) && error.code==XIDE_MODEL_INVALID);draft.options.tabColumns=8;
+    CHECK(writeText(path,"{\"format\":\"xlang-ide-settings-1\",\"documents\":{\"lineGap\":-1}}") && xideSettingsLoad(&settings,path,&error) && error.code==XIDE_MODEL_INVALID);
     puts("settings_test passed: Unicode compiler/font preferences, nested unknown fields, sequential updates, restart, range/paths, external conflict and malformed preservation; feature-dependent C-server preferences.");
 cleanup:
     xideSettingsClear(&settings); xideSettingsClear(&loaded); free(root); free(path); free(compiler); free(defaultPath); free(font); return failed;

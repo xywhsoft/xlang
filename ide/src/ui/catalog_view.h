@@ -11,6 +11,7 @@ xide_help_view* xideCatalogHelpDocument(xide_app* app);
 void xideCatalogViewAfterLayout(xide_app* app);
 int xideCatalogViewPrepareRender(xide_app* app);
 int xideCatalogViewUiFont(xide_app* app);
+int xideCatalogViewDocumentFont(xide_app*);
 int xideCatalogViewCodeFont(xide_app* app);
 int xideCatalogViewTheme(xide_app* app);
 int xideCatalogViewCreate(xide_app* app);

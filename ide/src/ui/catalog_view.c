@@ -333,6 +333,12 @@ int xideCatalogViewCreate(xide_app* app)
     xideHelpSet(view->helpDocument,NULL,0);
     return xideCatalogViewSearch(app,"");
 }
+static int documentRow(xide_app* app)
+{
+ xui_font_metrics_t m={0};float row=28;
+ if(app->documentFont && app->proxy.fontGetMetrics(&app->proxy,app->documentFont,&m)==XUI_OK)row=ceilf(m.fLineHeight)+xideSettingsOptions(&app->preferences)->documentLineGap+8;
+ return row<28 ? 28 : (int)row;
+}
 void xideCatalogViewLayout(xide_app* app)
 {
     xide_catalog_view* view=app->catalogView; if(!view) return;
@@ -354,7 +360,13 @@ void xideCatalogViewLayout(xide_app* app)
         xuiScrollViewSetContentSize(app->help,width,total>rect.fH ? total : rect.fH); return;
     }
     const xide_command* command=view->selected; xui_rect_t rect=xuiWidgetGetContentRect(app->help);
-    int width=rect.fW-14; if(width<160) width=160; int table=width>=600 && command->parameterCount>0;
+    int width=rect.fW-14; if(width<160) width=160;
+    if(!xideSettingsOptions(&app->preferences)->documentWrap){
+        xui_widget text[]={app->helpTitle,app->helpDescription,app->helpParameters,app->helpReturn};
+        for(size_t i=0;i<sizeof(text)/sizeof(*text);++i){xui_vec2_t size={0};if(xuiWidgetMeasureContent(text[i],(xui_vec2_t){XUI_LAYOUT_UNBOUNDED,XUI_LAYOUT_UNBOUNDED},&size)==XUI_OK && size.fX+24>width)width=(int)ceilf(size.fX)+24;}
+        width=xideHelpDocumentWidth(view->helpDocument,width-24)+24;
+    }
+    int table=width>=600 && command->parameterCount>0;
     xuiWidgetSetVisible(view->parameters,table); xuiWidgetSetVisible(app->helpParameters,command->parameterCount>0);
     xuiWidgetSetVisible(app->helpReturn,*command->returns!=0); xuiWidgetSetVisible(app->helpExample,*command->example!=0); xuiWidgetSetVisible(view->insert,*command->example!=0); xuiWidgetSetEnabled(view->insert,validTarget(app));
     xuiWidgetSetVisible(app->helpSignature,1); xuiWidgetSetVisible(view->exampleHeading,1);
@@ -373,7 +385,7 @@ void xideCatalogViewLayout(xide_app* app)
         xui_vec2_t measured={0}; xuiWidgetMeasureContent(labels[i],(xui_vec2_t){width-24,XUI_LAYOUT_UNBOUNDED},&measured);
         int height=(int)measured.fY+8; if(height<28) height=28; xuiWidgetSetPreferredSize(labels[i],(xui_vec2_t){0,height}); total+=height+8;
     }
-    if(table) { int height=xideUiHeight(app,28)*(1+(int)command->parameterCount)+4; xuiWidgetSetPreferredSize(view->parameters,(xui_vec2_t){0,height}); total+=height+8; }
+    if(table) { int height=documentRow(app)*(1+(int)command->parameterCount)+4; xuiWidgetSetPreferredSize(view->parameters,(xui_vec2_t){0,height}); total+=height+8; }
     if(*command->example) {
         int lines=1; for(const char* p=command->example;*p;++p) if(*p=='\n') ++lines;
         int height=(int)ceilf(lines*xideEditorLineHeight(app))+24; if(height<100) height=100;
@@ -446,7 +458,7 @@ static int input(xui_widget editor,const xui_code_input_event_t* event,xui_code_
  xideCCompletionViewInput(app,editor,event,action);
 #endif
 
-    if(!event || !app->catalogView || event->iPhase!=XUI_CODE_INPUT_COMMITTED || event->iSource==XUI_CODE_INPUT_SOURCE_PASTE || event->iSource==XUI_CODE_INPUT_SOURCE_COMPLETION || event->iTextSize!=1 || !event->sText) return XUI_OK;
+    if(!event || !xideSettingsOptions(&app->preferences)->completion || !app->catalogView || event->iPhase!=XUI_CODE_INPUT_COMMITTED || event->iSource==XUI_CODE_INPUT_SOURCE_PASTE || event->iSource==XUI_CODE_INPUT_SOURCE_COMPLETION || event->iTextSize!=1 || !event->sText) return XUI_OK;
     int offset=event->tSelectionAfter.iCaretOffset;
     const char* text=xuiCodeEditGetText(editor);
     if(event->sText[0]!='.' && !(event->sText[0]=='>' && !strcmp(xuiCodeEditGetLanguage(editor),"c") && offset>=2 && text[offset-2]=='-')) return XUI_OK;
@@ -460,6 +472,7 @@ static int input(xui_widget editor,const xui_code_input_event_t* event,xui_code_
 void xideCatalogViewPoll(xide_app* app)
 {
     xide_catalog_view* view=app->catalogView; if(!view || !view->pendingEditor) return;
+    if(!xideSettingsOptions(&app->preferences)->completion){view->pendingEditor=NULL;return;}
     xui_widget editor=view->pendingEditor; view->pendingEditor=NULL;
     xide_document* document=app->activeDocument;
     if(!document || !document->open || document->editor!=editor || document->id!=view->pendingDocument || xuiGetFocusWidget(app->context)!=editor || strcmp(view->pendingLanguage,xuiCodeEditGetLanguage(editor))) return;
@@ -476,7 +489,7 @@ int xideCatalogBindEditor(xide_app* app,xui_widget editor)
     ret=xuiCodeCommandMapUnbind(xuiCodeEditGetCommandMap(editor),XUI_KEY_SPACE,XUI_MOD_CTRL|XUI_MOD_SHIFT);
     if(ret!=XUI_OK && ret!=XUI_ERROR_UNSUPPORTED)return ret;
     TRY(xuiCodeProviderSetCompletion(xuiCodeEditGetProviders(editor),complete,app));
-    TRY(xuiCodeEditSetInputHandler(editor,input,app)); return xuiCodeEditSetCompletionOptions(editor,1,1,app->catalog.count+4096<16384 ? (int)app->catalog.count+4096 : 16384,0.08f);
+    TRY(xuiCodeEditSetInputHandler(editor,input,app)); return xuiCodeEditSetCompletionOptions(editor,xideSettingsOptions(&app->preferences)->completion,1,app->catalog.count+4096<16384 ? (int)app->catalog.count+4096 : 16384,0.08f);
 }
 xide_help_view* xideCatalogHelpDocument(xide_app* app) { return app && app->catalogView ? app->catalogView->helpDocument : NULL; }
 void xideCatalogViewAfterLayout(xide_app* app) { if(app && app->catalogView) xideHelpApplyJump(app->catalogView->helpDocument); }
@@ -488,6 +501,7 @@ int xideCatalogViewPrepareRender(xide_app* app)
 }
 int xideCatalogViewCodeFont(xide_app* app)
 {
+    if(app->helpSignature)TRY(xuiLabelSetFont(app->helpSignature,app->codeFont));
     if(!app || !app->catalogView) return XUI_OK;
     TRY(xideCodeWidgetSetFont(app,app->helpExample,app->codeFont));
     if(app->catalogView->sourceEditor) TRY(xideCodeWidgetSetFont(app,app->catalogView->sourceEditor,app->codeFont));
@@ -521,3 +535,14 @@ int xideCatalogResetReading(xide_app* app)
 }
 
 xui_widget xideCatalogReturnReferencesWidget(xide_app* app) { return app && app->catalogView ? app->catalogView->returnReferences : NULL; }
+
+int xideCatalogViewDocumentFont(xide_app* app)
+{
+ if(!app->catalogView || !app->documentFont)return XUI_OK;
+ xui_widget labels[]={app->helpTitle,app->helpDescription,app->helpParameters,app->helpReturn};
+ const xide_settings_options* o=xideSettingsOptions(&app->preferences);
+ for(size_t i=0;i<sizeof(labels)/sizeof(*labels);++i){TRY(xuiLabelSetFont(labels[i],app->documentFont));TRY(xuiLabelSetLineGap(labels[i],(float)o->documentLineGap));TRY(xuiLabelSetWrapMode(labels[i],o->documentWrap ? XUI_TEXT_WRAP_WORD : XUI_TEXT_WRAP_NONE));}
+ TRY(xuiLabelSetFont(app->helpSignature,app->codeFont));TRY(xuiTableViewSetFont(app->catalogView->parameters,app->documentFont));
+ float width=0,row=0,header=0;TRY(xuiTableViewGetDefaultMetrics(app->catalogView->parameters,&width,&row,&header));TRY(xuiTableViewSetDefaultMetrics(app->catalogView->parameters,width,(float)documentRow(app),(float)documentRow(app)));
+ return xideHelpDocumentFont(app->catalogView->helpDocument);
+}

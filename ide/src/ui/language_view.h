@@ -4,6 +4,7 @@
 int xideLanguageViewCreate(xide_app* app);
 /* A model/selection change revokes results before another frame can use them. */
 void xideLanguageViewConfigurationChanged(xide_app* app);
+void xideLanguageViewSettingsChanged(xide_app* app);
 void xideLanguageViewStop(xide_app* app);
 void xideLanguageViewDestroy(xide_app* app);
 void xideLanguageViewPoll(xide_app* app);

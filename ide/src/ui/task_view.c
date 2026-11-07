@@ -357,6 +357,8 @@ int xideTaskViewAction(xide_app* app,int action)
     xideTaskViewSelect(app,task); view->automatic=task; view->autoTerminal=0; view->autoInputProblems=0; app->taskExit=0; show(app,XIDE_OUTPUT); xgeRenderRequest(); return 1;
 }
 
+void xideTaskViewAdoptCompiler(xide_app* app,char* compiler)
+{if(app->taskView){free(app->taskView->compiler);app->taskView->compiler=compiler;}else free(compiler);}
 const char* xideTaskViewCompiler(xide_app* app) { return app->taskView ? app->taskView->compiler : NULL; }
 
 int xideTaskViewShowLanguageProblemsRouted(xide_app* app,const char* scope,const char* const* titles,size_t count,int activate,void* owner,int (*jump)(xide_app*,size_t,void*))

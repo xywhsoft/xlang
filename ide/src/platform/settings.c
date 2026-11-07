@@ -19,6 +19,7 @@ static char* string(const xvalue* root)
     xstrview value; if(!root || !xideMetaString(root,&value) || memchr(value.Data,0,value.Size)) return NULL;
     char* text=malloc(value.Size+1); if(text) { memcpy(text,value.Data,value.Size); text[value.Size]=0; } return text;
 }
+static int loadOptions(xide_settings* settings);
 static xvalue* read(const char* path)
 {
     /* Handled settings failures use xide_model_error, not the next UI callback.
@@ -43,7 +44,7 @@ char* xideSettingsDefaultPath(void)
 void xideSettingsClear(xide_settings* settings)
 {
     if(!settings) return;
-    free(settings->path); free(settings->compiler); free(settings->cServer); free(settings->editorFont); free(settings->uiFont); xrtValueRelease(settings->source); memset(settings,0,sizeof(*settings));
+    free(settings->path); free(settings->compiler); free(settings->cServer); free(settings->editorFont); free(settings->uiFont); free(settings->documentFont); xrtValueRelease(settings->source); memset(settings,0,sizeof(*settings));
 }
 int xideSettingsLoad(xide_settings* settings,const char* path,xide_model_error* error)
 {
@@ -97,6 +98,7 @@ int xideSettingsLoad(xide_settings* settings,const char* path,xide_model_error* 
         if(okay) temporary.uiFontSize=(int)size;
     }
     }
+    if(okay) okay=loadOptions(&temporary);
     if(!okay) {
         char* originalPath=temporary.path;int existed=temporary.existed;temporary.path=NULL;xideSettingsClear(&temporary);
         temporary.path=originalPath;temporary.existed=existed;temporary.editorFontSize=16;temporary.uiFontSize=16;temporary.source=xrtValueObject();
@@ -252,3 +254,5 @@ int xideSettingsSetEditorFont(xide_settings* settings,const char* path,int size,
 { return setFont(settings,path,size,"editor",error); }
 int xideSettingsSetUiFont(xide_settings* settings,const char* path,int size,xide_model_error* error)
 { return setFont(settings,path,size,"ui",error); }
+
+#include "platform/settings_options.inc"

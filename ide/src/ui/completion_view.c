@@ -284,7 +284,7 @@ static int cvprefixAllowed(xui_code_document document,int offset)
 void xideCompletionViewRequest(xide_app* app,xui_widget editor,int offset,int force)
 {
  xide_completion_view* v=app ? app->completionView : NULL; xide_document* d=app ? app->activeDocument : NULL;
- if(!v || !d || d->editor!=editor || !cveligible(app,d) || xuiGetFocusWidget(app->context)!=editor) return;
+ if(!v || !d || (!force && !xideSettingsOptions(&app->preferences)->completion) || d->editor!=editor || !cveligible(app,d) || xuiGetFocusWidget(app->context)!=editor) return;
  xui_code_selection_t s={0}; if(xuiCodeSelectionGetState(xuiCodeEditGetSelection(editor),&s)!=XUI_OK || s.iCaretOffset!=offset || s.iCaretOffset!=s.iAnchorOffset) return;
  uint32_t version=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(editor));
  /* Pending capture still describes the previous batch. A provider refresh

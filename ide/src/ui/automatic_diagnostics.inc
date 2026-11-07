@@ -88,7 +88,6 @@ static void automaticFault(xide_language_view* v,const char* reason)
 }
 static int automaticCreate(xide_language_view* v)
 {
- if(v->app->disableAutomaticDiagnostics) return 1;
  xide_automatic_diagnostics* a=calloc(1,sizeof(*a));if(!a) return 0;v->autoView=a;
  a->groups=calloc(AUTO_GROUPS,sizeof(*a->groups));a->session=1;a->epoch=1;
  a->stream=xideDiagnosticStreamCreate(languageWake,v->app);
@@ -413,6 +412,7 @@ static int automaticConfiguration(xide_language_view* v)
 }
 static void automaticPoll(xide_app* app)
 {
+ if(app->disableAutomaticDiagnostics)return;
  xide_language_view* v=app->languageView;xide_automatic_diagnostics* a=v->autoView;if(!a) return;
  LARGE_INTEGER began,now;QueryPerformanceCounter(&began);
  if(!automaticModels(v) || !automaticConfiguration(v)) return;

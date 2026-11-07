@@ -132,7 +132,7 @@ int xideEditorFontStart(xide_app* app)
     }
     app->codeFontPath=path; app->codeFontSize=size; return XUI_OK;
 }
-static int install(xide_app* app,xui_font font)
+int xideEditorFontInstall(xide_app* app,xui_font font)
 {
     app->codeFont=font; app->documents.font=font;
     int result=XUI_OK;
@@ -169,10 +169,10 @@ int xideEditorFontApply(xide_app* app,const char* path,int size,xide_model_error
     scroll[count-2].widget=xideFileChangesViewControl(app,XIDE_CHANGES_LOCAL); scroll[count-1].widget=xideFileChangesViewControl(app,XIDE_CHANGES_DISK);
     for(size_t i=0;i<count;++i) if(scroll[i].widget) xuiCodeEditGetScroll(scroll[i].widget,&scroll[i].x,&scroll[i].y);
     xui_font previous=app->codeFont;
-    int result=install(app,font);
+    int result=xideEditorFontInstall(app,font);
     int saved=result==XUI_OK && xideSettingsSetEditorFont(&app->preferences,resolved,size,error);
     if(!saved) {
-        int restored=install(app,previous);
+        int restored=xideEditorFontInstall(app,previous);
         if(restored!=XUI_OK) app->frameError=restored;
         for(size_t i=0;i<count;++i) if(scroll[i].widget) xuiCodeEditSetScroll(scroll[i].widget,scroll[i].x,scroll[i].y);
         free(scroll);
