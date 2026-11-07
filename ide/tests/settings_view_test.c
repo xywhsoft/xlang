@@ -41,7 +41,10 @@ static int run(void* user)
  CHECK(xuiEditSetText(xideSettingsViewControl(&a,XIDE_PREF_DOC_SIZE),"20")==XUI_OK);
  CHECK(xuiEditSetText(xideSettingsViewControl(&a,XIDE_PREF_TAB),"8")==XUI_OK);
  CHECK(xuiEditSetText(xideSettingsViewControl(&a,XIDE_PREF_INDENT),"2")==XUI_OK);
- CHECK(xuiCheckBoxSetChecked(xideSettingsViewControl(&a,XIDE_PREF_MINIMAP),0)==XUI_OK);
+ xui_widget minimap=xideSettingsViewControl(&a,XIDE_PREF_MINIMAP),scroll=xuiWidgetGetParent(minimap);
+ while(scroll && xuiWidgetGetType(scroll)!=xuiWidgetFindType(a.context,"scrollview"))scroll=xuiWidgetGetParent(scroll);
+ CHECK(scroll && xuiScrollViewEnsureChildVisible(scroll,minimap)==XUI_OK && settle(&a));
+ CHECK(click(&a,XIDE_PREF_MINIMAP) && !xuiCheckBoxGetChecked(minimap));
  CHECK(xuiCheckBoxSetChecked(xideSettingsViewControl(&a,XIDE_PREF_AUTO),0)==XUI_OK);
  CHECK(xuiCheckBoxSetChecked(xideSettingsViewControl(&a,XIDE_PREF_COMPLETION),0)==XUI_OK);
  CHECK(xuiCheckBoxSetChecked(xideSettingsViewControl(&a,XIDE_PREF_SIGNATURE),0)==XUI_OK);
