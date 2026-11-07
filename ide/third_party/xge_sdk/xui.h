@@ -1161,6 +1161,8 @@ typedef struct xui_language_text_t {
 #define XUI_DOCK_PANEL_HIT_AUTO_HIDE_PIN	12
 #define XUI_DOCK_PANEL_HIT_AUTO_HIDE_CLOSE	13
 #define XUI_DOCK_PANEL_HIT_PANE_TAB_CLOSE	14
+#define XUI_DOCK_PANEL_HIT_PANE_SCROLL_BACKWARD	15
+#define XUI_DOCK_PANEL_HIT_PANE_SCROLL_FORWARD	16
 #define XUI_DOCK_PANEL_MENU_FLOAT		1
 #define XUI_DOCK_PANEL_MENU_AUTO_HIDE	2
 #define XUI_DOCK_PANEL_MENU_CLOSE		3
@@ -1404,6 +1406,8 @@ typedef struct xui_language_text_t {
 #define XUI_CODE_EDIT_SHOW_MINIMAP	0x00000008u
 #define XUI_CODE_EDIT_INDENT_WITH_TABS	0x00000008u
 #define XUI_CODE_EDIT_EXPAND_TABS	0x00000010u
+/* Disable caret-adjacent (), [], and {} matching. Matching is enabled by default. */
+#define XUI_CODE_EDIT_DISABLE_BRACKET_MATCH 0x00000020u
 
 #define XUI_CODE_TOKEN_TEXT		0
 #define XUI_CODE_TOKEN_KEYWORD		1
@@ -8179,6 +8183,10 @@ XUI_API int xuiCodeEditEnsureCaretVisible(xui_widget pWidget);
 XUI_API int xuiCodeEditSetDisplayOptions(xui_widget pWidget, uint32_t iOptions);
 /* 输出显示选项。 */
 XUI_API uint32_t xuiCodeEditGetDisplayOptions(xui_widget pWidget);
+/* Enable or disable caret-adjacent bracket matching. */
+XUI_API int xuiCodeEditSetBracketMatching(xui_widget pWidget, int bEnabled);
+/* Return nonzero when caret-adjacent bracket matching is enabled. */
+XUI_API int xuiCodeEditGetBracketMatching(xui_widget pWidget);
 /* 设置缩略图（开关/宽度）。 */
 XUI_API int xuiCodeEditSetMinimap(xui_widget pWidget, int bVisible, float fWidth);
 /* 输出缩略图设置。 */
@@ -9851,6 +9859,14 @@ XUI_API int xuiTabsGetPlacement(xui_widget pWidget);
 XUI_API int xuiTabsSetScrollable(xui_widget pWidget, int bScrollable);
 /* 读取可滚动开关。 */
 XUI_API int xuiTabsIsScrollable(xui_widget pWidget);
+/* 设置按需显示的前后滚动按钮。关闭后仍可通过滚轮和滚动 API 移动标签窗口。 */
+XUI_API int xuiTabsSetScrollButtonsVisible(xui_widget pWidget, int bVisible);
+/* 读取前后滚动按钮配置。 */
+XUI_API int xuiTabsGetScrollButtonsVisible(xui_widget pWidget);
+/* 设置固定在标签条末端的标签列表按钮。 */
+XUI_API int xuiTabsSetTabListButtonVisible(xui_widget pWidget, int bVisible);
+/* 读取标签列表按钮配置。 */
+XUI_API int xuiTabsGetTabListButtonVisible(xui_widget pWidget);
 /* 设置页签条滚动偏移。 */
 XUI_API int xuiTabsSetScroll(xui_widget pWidget, float fScrollX);
 /* 读取页签条滚动。 */
@@ -9881,10 +9897,14 @@ XUI_API xui_rect_t xuiTabsGetIconRect(xui_widget pWidget, int iIndex);
 XUI_API xui_rect_t xuiTabsGetDirtyRect(xui_widget pWidget, int iIndex);
 /* 读取页签关闭钮矩形。 */
 XUI_API xui_rect_t xuiTabsGetCloseRect(xui_widget pWidget, int iIndex);
-/* 页签条是否溢出（出现溢出菜单钮）。 */
+/* 页签条是否存在未显示的页签。 */
 XUI_API int xuiTabsIsOverflow(xui_widget pWidget);
-/* 读取溢出菜单钮矩形。 */
+/* 读取固定标签列表按钮矩形。 */
 XUI_API xui_rect_t xuiTabsGetOverflowRect(xui_widget pWidget);
+/* 读取向前滚动按钮矩形；当前不需要该方向滚动时为空。 */
+XUI_API xui_rect_t xuiTabsGetScrollBackwardRect(xui_widget pWidget);
+/* 读取向后滚动按钮矩形；当前不需要该方向滚动时为空。 */
+XUI_API xui_rect_t xuiTabsGetScrollForwardRect(xui_widget pWidget);
 /* 取溢出菜单控件。 */
 XUI_API xui_widget xuiTabsGetOverflowMenu(xui_widget pWidget);
 /* 读取悬停页签（无则 -1）。 */
@@ -10212,6 +10232,13 @@ XUI_API int xuiDockPanelGetPaneCount(xui_widget pWidget);
 XUI_API int xuiDockPanelGetWindowInfo(xui_widget pWidget, int iWindow, xui_dock_window_info_t* pInfo);
 /* 输出窗格信息。 */
 XUI_API int xuiDockPanelGetPaneInfo(xui_widget pWidget, int iPane, xui_dock_pane_info_t* pInfo);
+/* 设置按需显示的窗格标签前后滚动按钮；现有窗格选项菜单不受影响。 */
+XUI_API int xuiDockPanelSetTabScrollButtonsVisible(xui_widget pWidget, int bVisible);
+/* 读取窗格标签滚动按钮配置。 */
+XUI_API int xuiDockPanelGetTabScrollButtonsVisible(xui_widget pWidget);
+/* 输出指定窗格当前可见的前后滚动按钮矩形；不需要某方向时对应矩形为空。 */
+XUI_API int xuiDockPanelGetPaneTabScrollRects(xui_widget pWidget, int iPane,
+	xui_rect_t* pBackward, xui_rect_t* pForward);
 /* 设置区域尺寸权重。 */
 XUI_API int xuiDockPanelSetRegionSize(xui_widget pWidget, int iRegion, int iSizeMode, float fValue);
 /* 输出区域尺寸。 */

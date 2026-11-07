@@ -185,6 +185,7 @@ static int createWorkbench(xide_app* app)
     TRY(xuiSetRootWidget(app->context, app->root)); TRY(xideActionsInit(app)); TRY(createChrome(app));
     xui_dock_panel_desc_t dock = {0}; dock.iSize = sizeof(dock); dock.pFont = app->uiFont;
     TRY(xuiDockPanelCreate(app->context, &app->dock, &dock)); TRY(xuiWidgetAddChild(app->root, app->dock));
+    TRY(xuiDockPanelSetTabScrollButtonsVisible(app->dock,1));
     TRY(xideCatalogViewCreate(app));
     TRY(xideWorkspaceViewCreate(app));
     TRY(codeEditor(app, &app->editors[0], xlangSample, "xlang")); TRY(codeEditor(app, &app->editors[1], cSample, "c"));
