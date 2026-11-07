@@ -104,7 +104,8 @@ static DWORD WINAPI worker(void* user)
 {
     fixture* f=user;if(!SetThreadDesktop(f->desktop))return 1;
     xge_desc_t d={0};d.iWidth=1600;d.iHeight=1000;d.sTitle="xlang IDE private minimap verification";d.iFlags=XGE_INIT_WINDOW;d.iRunMode=XGE_RUN_GAME_LOOP;
-    int result=xgeInit(&d);if(result==XGE_OK)result=xgeRun(run,f);xideAppDestroy(&f->app);xgeUnit();return result==XGE_OK && f->started && !f->failed?0:1;
+    /* run() owns app cleanup on success and failure; do not destroy it twice. */
+    int result=xgeInit(&d);if(result==XGE_OK)result=xgeRun(run,f);xgeUnit();return result==XGE_OK && f->started && !f->failed?0:1;
 }
 int main(int argc,char** argv)
 {

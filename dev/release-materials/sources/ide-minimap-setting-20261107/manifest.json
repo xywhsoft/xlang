@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "baseRevision": "87e8a3016",
+  "parentSourceMaterials": {
+    "path": "dev/release-materials/sources/ide-dock-view-20261107/manifest.json",
+    "sha256": "82e05110f18afefebad4b641d896e7e7eff3b5cef41b0b37bd6c73a5fb4e6aeb",
+    "bytes": 1395
+  },
+  "overlay": {
+    "path": "dev/release-materials/sources/ide-minimap-setting-20261107/source-overlay.zip",
+    "sha256": "fcf791fffcedd9850e5c5ac46e546ed4018cf38d6ff3413f3dd2d7b4a18add7a",
+    "bytes": 12936
+  },
+  "files": {
+    "ide/src/ui/settings_view.c": "0edef35c0ce2568677ff3e5aaff4bcc561502ef681e651beb881d574b72f24fe",
+    "ide/tests/settings_view_test.c": "8e7978a3ab6e7e5e12f7208f5601c5ff0b7ab72bc850caca6fbbacbf52452a22",
+    "ide/tests/editor_minimap_test.c": "a77bf5567c324acca097b930d932a53ce61baa15e7537fb8189455b236056f14"
+  },
+  "optimization": "-O2",
+  "scope": "Clarify the existing persisted Minimap preference and verify traditional scrollbars. Fix double app cleanup in the existing Minimap regression. No production runtime/native API changes. This GUI retains the pending Dock View menu update.",
+  "rebuild": "Extract the parent IDE source snapshot, overlay source-overlay.zip, retain its matched SDK and rebuild GuiOnly with the qualified shipping language server. The actual incremental build replaces only settings_view.c; no header changes and 105 exact previously qualified objects reused."
+}

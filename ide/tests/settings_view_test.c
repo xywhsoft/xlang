@@ -17,6 +17,15 @@ static int click(xide_app* a,int id)
  xui_rect_t r=xuiWidgetGetWorldRect(xideSettingsViewControl(a,id));int x=r.fX+r.fW/2,y=r.fY+r.fH/2;
  return xuiInputPointerMove(a->context,x,y,0)==XUI_OK && xuiInputPointerDown(a->context,x,y,XUI_POINTER_BUTTON_LEFT,XUI_POINTER_BUTTON_LEFT)==XUI_OK && xuiInputPointerUp(a->context,x,y,XUI_POINTER_BUTTON_LEFT,0)==XUI_OK && settle(a);
 }
+static int scrollMode(xide_app* a,xide_document* document,int enabled)
+{
+ if(xideEditorShow(a,document)!=XUI_OK || !settle(a))return 0;
+ int visible=-1;float width=0;
+ if(xuiCodeEditGetMinimap(document->editor,&visible,&width)!=XUI_OK || visible!=enabled)return 0;
+ xui_rect_t map=xuiCodeEditGetMinimapRect(document->editor);
+ xui_widget bar=xuiCodeEditGetVScrollBarWidget(document->editor);
+ return bar && (enabled ? map.fW>0 && !xuiWidgetGetVisible(bar) : map.fW==0 && xuiWidgetGetVisible(bar));
+}
 static int run(void* user)
 {
  const char* directory=user;xide_app a={0};xide_settings loaded={0};xide_model_error error={0};char *settings=NULL,*image=NULL;unsigned char* before=NULL;size_t bytes=0;int began=0;started=1;
@@ -81,9 +90,32 @@ static int run(void* user)
  CHECK(xideSettingsViewApply(&a) && a.codeFontSize==16 && a.documentFontSize==20);
  CHECK(click(&a,XIDE_PREF_CANCEL));
  xide_document* next=xideDocumentNew(&a.documents,"xlang",&error);CHECK(next && xideEditorShow(&a,next)==XUI_OK && xuiCodeEditGetTabColumns(next->editor)==4);
+ // Long documents require a real vertical scrollbar when Minimap is off.
+ char longText[8192];size_t used=0;
+ for(int i=0;i<180;++i){int n=snprintf(longText+used,sizeof(longText)-used,"// line %d: 中文\n",i);CHECK(n>0 && (size_t)n<sizeof(longText)-used);used+=(size_t)n;}
+ CHECK(xuiCodeEditSetText(c->editor,longText)==XUI_OK && xuiCodeEditSetText(next->editor,longText)==XUI_OK);
+ uint32_t cVersion=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(c->editor)),nextVersion=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(next->editor));
+ CHECK(scrollMode(&a,c,1) && scrollMode(&a,next,1));
+ CHECK(xideSettingsViewOpen(&a,XIDE_SETTINGS_EDITOR));
+ CHECK(xuiEditSetText(xideSettingsViewControl(&a,XIDE_PREF_SEARCH),"传统滚动条")==XUI_OK && settle(&a));
+ CHECK(xuiWidgetGetVisible(minimap) && click(&a,XIDE_PREF_MINIMAP) && !xuiCheckBoxGetChecked(minimap));
+ CHECK(xuiCodeEditGetMinimap(next->editor,&visible,&width)==XUI_OK && visible); // draft only
+ CHECK(click(&a,XIDE_PREF_APPLY) && click(&a,XIDE_PREF_CANCEL));
+ CHECK(scrollMode(&a,c,0) && scrollMode(&a,next,0));
+ xideSettingsClear(&loaded);CHECK(xideSettingsLoad(&loaded,settings,&error) && !xideSettingsOptions(&loaded)->minimap);
+ xide_document* traditional=xideDocumentNew(&a.documents,"c",&error);CHECK(traditional);
+ CHECK(xuiCodeEditSetText(traditional->editor,longText)==XUI_OK && scrollMode(&a,traditional,0));
+ CHECK(xideSettingsViewOpen(&a,XIDE_SETTINGS_EDITOR));
+ CHECK(xuiEditSetText(xideSettingsViewControl(&a,XIDE_PREF_SEARCH),"minimap")==XUI_OK && settle(&a));
+ CHECK(click(&a,XIDE_PREF_MINIMAP) && click(&a,XIDE_PREF_CANCEL));
+ CHECK(scrollMode(&a,c,0) && scrollMode(&a,next,0)); // Cancel preserves the applied mode.
+ CHECK(xideSettingsViewOpen(&a,XIDE_SETTINGS_EDITOR) && !xuiCheckBoxGetChecked(minimap));
+ CHECK(xuiCheckBoxSetChecked(minimap,1)==XUI_OK && xideSettingsViewApply(&a) && click(&a,XIDE_PREF_CANCEL));
+ CHECK(scrollMode(&a,c,1) && scrollMode(&a,next,1) && scrollMode(&a,traditional,1));
+ CHECK(xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(c->editor))==cVersion && xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(next->editor))==nextVersion);
  CHECK(xideSettingsViewOpen(&a,XIDE_SETTINGS_APPEARANCE) && settle(&a));
  xui_rect_i_t rect={0,0,a.viewportWidth,a.viewportHeight};CHECK(xuiUpdate(a.context,0)==XUI_OK && a.proxy.surfaceClear(&a.proxy,a.target,0xffffffff)==XUI_OK && xuiRender(a.context,a.target,&rect,1)==XUI_OK && xideAppCapture(&a,image)==XUI_OK);
- puts("settings_view_test passed: top-level menu/shortcut, search, atomic apply/cancel/conflict, three font roles, theme, options in existing/new C/xlang editors, per-page defaults, native rendering; original documents preserved.");
+ puts("settings_view_test passed: top-level menu/shortcut, search, atomic apply/cancel/conflict, three font roles, theme, existing/new C/xlang editors, persisted Minimap/traditional scrollbar switching and cancellation without text changes, per-page defaults, native rendering; original documents preserved.");
 cleanup:
  xrtFree(before);xideSettingsClear(&loaded);if(began)xgeEnd();xideAppDestroy(&a);free(settings);free(image);xgeQuit();return XGE_OK;
 }
