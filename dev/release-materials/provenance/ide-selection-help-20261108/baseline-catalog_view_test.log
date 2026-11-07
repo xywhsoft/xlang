@@ -1,0 +1,1 @@
+catalog_view_test:51: probe(doc->editor,"math.sq",items,512,&count) && count>10 && contains(items,count,"sqrt"); 

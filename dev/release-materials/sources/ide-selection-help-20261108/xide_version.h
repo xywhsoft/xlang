@@ -1,0 +1,2 @@
+#define XIDE_VERSION "0.6.0"
+#define XIDE_VERSION_RESOURCE 0,6,0,0

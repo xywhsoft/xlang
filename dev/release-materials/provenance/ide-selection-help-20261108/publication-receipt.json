@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "date": "2026-11-08",
+  "publication": "local-only",
+  "passed": true,
+  "complete": true,
+  "sourceRevision": "7be7076f388f570709a5d47e01aad9bd52e26c21",
+  "sourceMaterials": {
+    "path": "dev/release-materials/sources/ide-selection-help-20261108/manifest.json",
+    "sha256": "961d44a6cd1ade989593c825d79a1c5e86325ef72a9e6f6aecef10f86bd37b6b",
+    "bytes": 4288
+  },
+  "buildInputs": {
+    "path": "dev/release-materials/provenance/ide-selection-help-20261108/gui-candidate-build-inputs.json.gz",
+    "sha256": "dfeba7b487201932f64b3981e68d6c0b90c7dcf2ffb4441e1ffacd86ead10ba3",
+    "bytes": 24562
+  },
+  "acceptance": {
+    "path": "dev/release-materials/provenance/ide-selection-help-20261108/acceptance.json",
+    "sha256": "20cf049e878459427a63cf142a431ab254d3a726e6c3c68163b5777887e3e99f",
+    "bytes": 16302
+  },
+  "previousGUI": {
+    "path": "release/win_x64/xlang_ide.exe",
+    "sha256": "9ab1a1415f91469e70b66a71dd68155915998987a74f3288de8ae31001f1f4b0",
+    "bytes": 1872972
+  },
+  "publishedGUI": {
+    "path": "release/win_x64/xlang_ide.exe",
+    "sha256": "2f60d20aedddec387f23ecd660b1f3e069692e0b29aa582afa263adf67ebc8b6",
+    "bytes": 1894756
+  },
+  "retainedRuntimeIdentities": {
+    "xge.dll": "b415e78d21f8c8b0d8fcb86924169dd35d595d29951391c102892b00399718ff",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "a5feede784f0a5cb1a829c2e362de57e9278b55cec1a11b796cf4b6e78831bbc",
+    "xl.dll": "215d6b3c87704c745ec609eb07e718a52708ad7c13436294f2f662a56169be13",
+    "xlc.dll": "2241fcd462980fc40cbd6c47ce9347d537bababc93225cb6d2a2d36b9b978797"
+  },
+  "guiObjectTranslationUnits": 107,
+  "guiEntryTranslationUnits": 1,
+  "optimization": "-O2",
+  "installedSmoke": {
+    "command": [
+      "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide.exe",
+      "--hidden",
+      "--frames",
+      "4",
+      "--no-session",
+      "--no-auto-diagnostics",
+      "--settings",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\help-follow-20261108\\installed-smoke-b59a4bc8\\settings.json",
+      "--session-root",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\help-follow-20261108\\installed-smoke-b59a4bc8\\session",
+      "--diagnostic-root",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\help-follow-20261108\\installed-smoke-b59a4bc8\\diagnostics",
+      "--screenshot",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\help-follow-20261108\\installed-smoke-b59a4bc8\\installed-smoke.png"
+    ],
+    "exitCode": 0,
+    "seconds": 7.766,
+    "log": {
+      "path": "dev/release-materials/provenance/ide-selection-help-20261108/installed-smoke.log",
+      "sha256": "3f7ac451278dc2465961a367c5aaf60eb7ed25cf0c81179e939bc91b2f5012db",
+      "bytes": 74
+    },
+    "screenshot": {
+      "path": "dev/release-materials/provenance/ide-selection-help-20261108/installed-smoke.png",
+      "sha256": "9fa15f0c19ea184a72aeb15758a64253ac8fbf667267d8a62aa942fb0344b3bf",
+      "bytes": 151162
+    }
+  },
+  "temporaryOwnedRuntimeFixturesRemoved": true
+}

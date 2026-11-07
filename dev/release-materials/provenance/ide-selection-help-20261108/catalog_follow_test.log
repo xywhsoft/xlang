@@ -1,0 +1,1 @@
+catalog_follow_test passed: 79 checks; bounded/indexed qualified selection, debounce, overload preservation, pin/setting, hidden/inactive panes, F1, drag/IME exclusions, no focus stealing, worker/cache/reload ownership, Unicode and 1MiB selection performance.

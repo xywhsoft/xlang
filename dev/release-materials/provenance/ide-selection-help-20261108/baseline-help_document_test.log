@@ -1,0 +1,2 @@
+UI call failed at line 242: xideWorkspaceViewCreate(app) -> -16
+help_document_test:96: init(&app) && app.catalog.count==0; 
