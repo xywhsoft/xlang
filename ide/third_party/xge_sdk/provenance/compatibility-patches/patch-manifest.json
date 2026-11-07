@@ -1,7 +1,7 @@
 {
   "format": "xlang-ide-xge-source-patches-1",
   "baseCommit": "4d402c08428dd412e50b172979bc370547a52f9b",
-  "purpose": "Latest committed table-view source requires the upstream pending focus-resolver declaration and implementation. Applied only the necessary two-file prerequisite; upstream worktree is untouched.",
+  "purpose": "Latest committed table-view source requires the upstream pending focus-resolver declaration and implementation. Applied only the necessary two-file prerequisite; upstream worktree is untouched. Preserve the previously accepted IDE GL3.3/returning-logger/WGL checked startup behavior, adapted to the current owned-callback outcome.",
   "files": [
     {
       "path": "src/xui/core/xui_internal.h",
@@ -16,6 +16,27 @@
       "sha256": "fda385249bc2ca9d6fb1141059c4eb203ec13dfc417014bcfbff2c3620156737",
       "payload": "payload/src/xui/accessibility/xui_accessibility.c",
       "diff": "diff/src/xui/accessibility/xui_accessibility.c.diff"
+    },
+    {
+      "path": "src/xge/core/xge_impl.c",
+      "upstreamSha256": "7741c6e8ebc355991b06409f9d3e1f6576c1b451d38ad4455df609879f5f1dae",
+      "sha256": "668bf8f5409ac25e5f271eb0951f2b3f0b64ee456b0c52bbcfb1f9b0d578be6f",
+      "payload": "payload/src/xge/core/xge_impl.c",
+      "diff": "diff/src/xge/core/xge_impl.c.diff"
+    },
+    {
+      "path": "src/xge/core/xge_core.c",
+      "upstreamSha256": "ede40c358da881943b2fc07281429eaa92dfe81f3dfce60687cf63e1ff7226f4",
+      "sha256": "0526c1511b5908937c10d68c74d085c1018cbedb9dd8e89c38d38c29514227d0",
+      "payload": "payload/src/xge/core/xge_core.c",
+      "diff": "diff/src/xge/core/xge_core.c.diff"
+    },
+    {
+      "path": "extlibs/sokol/sokol_app.h",
+      "upstreamSha256": "42228272007c06ae5e7b256d536fb28a9bfd5ce4d16b94f74acf74fd7a948ee7",
+      "sha256": "8a7960e2e3c31eed3b9c30594319c64cc32ec80102f7f81ce543477fcf58e2ba",
+      "payload": "payload/extlibs/sokol/sokol_app.h",
+      "diff": "diff/extlibs/sokol/sokol_app.h.diff"
     }
   ]
 }
