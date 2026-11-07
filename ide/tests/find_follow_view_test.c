@@ -43,6 +43,7 @@ static int run(void* user){
  CHECK(xuiInputSetText(control(&a,XIDE_FIND_REPLACEMENT),"\\uD83D\\uDE00")==XUI_OK && click(&a,XIDE_FIND_REPLACE_ALL) && !strcmp(xuiCodeEditGetText(xl->editor),"😀 beta 中😀\n") && xuiCodeDocumentUndo(xuiCodeEditGetDocument(xl->editor))==XUI_OK);
  CHECK(click(&a,XIDE_FIND_ESCAPE));
  CHECK(click(&a,XIDE_FIND_ALL_EDITORS) && xuiCheckBoxGetChecked(control(&a,XIDE_FIND_ALL_EDITORS)) && query(&a,"alpha") && matches(&a)==3);
+ CHECK(xuiSetFocusWidget(a.context,control(&a,XIDE_FIND_QUERY))==XUI_OK);a.activeDocument=NULL;CHECK(settle(&a) && query(&a,"alpha") && matches(&a)==3 && !xuiWidgetGetEnabled(control(&a,XIDE_FIND_REPLACE_ALL)));
  CHECK(click(&a,XIDE_FIND_NEXT) && a.activeDocument==c && xuiGetFocusWidget(a.context)==c->editor && matches(&a)==3);
  CHECK(key(&a,XUI_KEY_F3,0) && a.activeDocument==c && key(&a,XUI_KEY_F3,0) && a.activeDocument==xl && key(&a,XUI_KEY_F3,0) && a.activeDocument==c);
  CHECK(!strcmp(xuiInputGetText(control(&a,XIDE_FIND_QUERY)),"alpha") && query(&a,"中😀") && matches(&a)==2);

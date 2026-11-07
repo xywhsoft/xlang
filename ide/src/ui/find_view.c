@@ -88,7 +88,7 @@ static void selected(xui_widget w,int row,int col,int mode,void* user) {(void)w;
 int xideFindViewRefresh(xide_app* a) {
  struct xide_find_view* v=a ? a->findView:NULL;if(!v)return XUI_ERROR_INVALID_ARGUMENT;
  v->pending=0;v->valid=0;v->count=0;v->active=-1;xui_find_options_t o;options(v,&o);int r=XUI_OK;
- if(!v->target || !*o.sPattern){clearMarks(v);xuiTableViewRefreshAdapter(v->controls[XIDE_FIND_RESULTS]);status(v,v->target ? "请输入查找内容。":"没有活动编辑器；打开文档后自动继续。");return XUI_OK;}
+ if((!v->target && !all(v)) || !*o.sPattern || (all(v) && !xuiCodeFindScopeGetEditorCount(a->editorFindScope))){clearMarks(v);xuiTableViewRefreshAdapter(v->controls[XIDE_FIND_RESULTS]);status(v,*o.sPattern ? "没有可查找的编辑器；打开文档后自动继续。":"请输入查找内容。");return XUI_OK;}
  if((o.iFlags&XUI_FIND_ESCAPE) && !escapes(o.sPattern)){clearMarks(v);status(v,"无效转义：不支持 NUL、截断的转义或孤立的代理项。");xuiTableViewRefreshAdapter(v->controls[XIDE_FIND_RESULTS]);return XUI_ERROR_INVALID_ARGUMENT;}
  xerror* previous=xrtTakeError();
  if(all(v)){o.iFlags&=~XUI_FIND_SELECTION;o.iRangeStart=0;o.iRangeEnd=-1;r=xuiCodeFindScopeFindAll(a->editorFindScope,&o,&v->count);}
@@ -96,7 +96,7 @@ int xideFindViewRefresh(xide_app* a) {
  else r=xuiCodeEditFindAll(v->target->editor,&o,&v->count);
  xrtErrorFree(xrtTakeError());xrtSetErrorTake(previous);
  v->valid=r==XUI_OK;
- v->targetVersion=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(v->target->editor));
+ v->targetVersion=v->target ? xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(v->target->editor)):0;
  if(r!=XUI_OK){clearMarks(v);status(v,r==XUI_ERROR_OUT_OF_MEMORY ? "内存不足；请缩小查找范围后重试。":"查找表达式无效；请检查正则表达式或转义。");}
  else {char text[160];snprintf(text,sizeof(text),"找到 %d 处 · %s；替换作用于当前文档。",v->count,all(v) ? "所有已打开文档":"当前文档");status(v,text);}
  xuiTableViewRefreshAdapter(v->controls[XIDE_FIND_RESULTS]);xgeRenderRequest();return r;
@@ -112,11 +112,11 @@ static void closeButton(xui_widget w,void* user) {(void)w;struct xide_find_view*
 static void closed(xui_widget w,void* user) {closeButton(w,user);}
 static void command(xui_widget w,void* user) {
  struct xide_find_view* v=user;xide_app* a=v->app;int id=-1;for(int i=XIDE_FIND_PREVIOUS;i<=XIDE_FIND_REPLACE_ALL;++i)if(w==v->controls[i])id=i;
- xideFindViewPoll(a);if(!v->target)return;
+ xideFindViewPoll(a);if(!v->target && !all(v))return;
  if(id==XIDE_FIND_ALL){xideFindViewRefresh(a);return;}
  if(v->pending && xideFindViewRefresh(a)!=XUI_OK)return;
  if(id==XIDE_FIND_NEXT || id==XIDE_FIND_PREVIOUS){if(v->valid && v->count){int i=v->active;if(i<0)i=id==XIDE_FIND_PREVIOUS ? 0:-1;i=(i+(id==XIDE_FIND_PREVIOUS ? v->count-1:1))%v->count;activate(v,i);}return;}
- if(xuiCodeEditIsReadonly(v->target->editor)){status(v,"当前文档只读，不能替换。");return;}
+ if(!v->target || xuiCodeEditIsReadonly(v->target->editor)){status(v,"当前没有可写文档，不能替换。");return;}
  xui_find_options_t o;options(v,&o);int n=0,r;
  if(!*o.sPattern){status(v,"请输入查找内容。");return;}
  if((o.iFlags&XUI_FIND_ESCAPE) && (!escapes(o.sPattern) || !escapes(o.sReplacement))){status(v,"无效转义：不支持 NUL、截断的转义或孤立的代理项。");return;}
