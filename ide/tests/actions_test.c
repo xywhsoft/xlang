@@ -1,4 +1,5 @@
 #define _WIN32_WINNT 0x0601
+#include "dialog_test_helpers.h"
 #include "app/xide_app.h"
 #include "ui/editor_view.h"
 #include "ui/workspace_view.h"
@@ -226,7 +227,7 @@ static int verify(void* user)
     CHECK(xuiSetFocusWidget(app.context,name)==XUI_OK && key(&app,'A',XUI_MOD_CTRL) && xuiInputText(app.context,'Q')==XUI_OK && settle(&app) && strcmp(xuiEditGetText(name),original));
     CHECK(key(&app,'Z',XUI_MOD_CTRL) && !strcmp(xuiEditGetText(name),original) && xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(xd->editor))==version);
     CHECK(xuiEditSetText(name,"Beta 属性动作")==XUI_OK && settle(&app) && xideActionQuery(&app,XIDE_ACTION_APPLY_PROPERTIES).enabled && xuiWidgetGetEnabled(apply));
-    CHECK(xuiScrollViewEnsureChildVisible(app.properties,apply)==XUI_OK && settle(&app) && pointer(&app,xuiWidgetGetWorldRect(apply)) && !strcmp(xideWorkspaceFindProject(&app.workspaceModel,"beta")->name,"Beta 属性动作") && !xideActionQuery(&app,XIDE_ACTION_APPLY_PROPERTIES).enabled && (xuiWidgetGetStateId(apply)&XUI_WIDGET_STATE_DISABLED) && !strcmp(app.workspaceModel.startupProject,"alpha"));
+    CHECK(xideTestReveal(app.properties,apply)==XUI_OK && settle(&app) && pointer(&app,xuiWidgetGetWorldRect(apply)) && !strcmp(xideWorkspaceFindProject(&app.workspaceModel,"beta")->name,"Beta 属性动作") && !xideActionQuery(&app,XIDE_ACTION_APPLY_PROPERTIES).enabled && (xuiWidgetGetStateId(apply)&XUI_WIDGET_STATE_DISABLED) && !strcmp(app.workspaceModel.startupProject,"alpha"));
     CHECK(xideEditorShow(&app,xd)==XUI_OK && key(&app,XUI_KEY_F5,0)); xide_task* task=xideTaskViewSelected(&app);
     CHECK(task);
     CHECK(!strcmp(xideTaskProjectId(task),"alpha"));
@@ -236,10 +237,10 @@ static int verify(void* user)
     CHECK(xuiTerminalInputText(app.panels[XIDE_TERMINAL],"动作输入\n")==XUI_OK && menuAction(&app,xuiMenuBarGetItem(app.menuBar,3)->pMenu,XIDE_ACTION_CLOSE_INPUT) && !xideTaskInputOpen(task) && !xideActionQuery(&app,XIDE_ACTION_CLOSE_INPUT).enabled && !xideTaskWrite(task,"late",4) && waitPhase(&app,task,0));
     xide_task_info info={0}; xideTaskInfo(task,&info); CHECK(info.state==XIDE_TASK_SUCCEEDED && info.built && info.ran && !xideActionQuery(&app,XIDE_ACTION_STOP).enabled);
     CHECK(key(&app,XUI_KEY_F5,0)); task=xideTaskViewSelected(&app); CHECK(task && waitPhase(&app,task,1) && xideActionQuery(&app,XIDE_ACTION_STOP).enabled);
-    CHECK(xuiScrollViewEnsureChildVisible(app.properties,configure)==XUI_OK && settle(&app) && pointer(&app,xuiWidgetGetWorldRect(configure)) && xideConfigurationViewIsOpen(&app) && !xideActionQuery(&app,XIDE_ACTION_BUILD).enabled && xideActionQuery(&app,XIDE_ACTION_STOP).enabled && allStates(&app));
+    CHECK(xideTestReveal(app.properties,configure)==XUI_OK && settle(&app) && pointer(&app,xuiWidgetGetWorldRect(configure)) && xideConfigurationViewIsOpen(&app) && !xideActionQuery(&app,XIDE_ACTION_BUILD).enabled && xideActionQuery(&app,XIDE_ACTION_STOP).enabled && allStates(&app));
     tasks=xideTasksCount(app.tasks); version=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(xd->editor)); CHECK(xideActionExecute(&app,XIDE_ACTION_NEW_FILE)==XIDE_ACTION_DISABLED && xideActionExecute(&app,XIDE_ACTION_THEME_CLASSIC)==XIDE_ACTION_DISABLED && key(&app,XUI_KEY_F7,0) && xideTasksCount(app.tasks)==tasks && xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(xd->editor))==version);
     CHECK(key(&app,XUI_KEY_F5,XUI_MOD_SHIFT) && waitPhase(&app,task,0)); xideTaskInfo(task,&info); CHECK(info.state==XIDE_TASK_CANCELLED && xideConfigurationViewIsOpen(&app));
-    xui_widget cancel=xideConfigurationViewControl(&app,XIDE_CONFIG_CANCEL); CHECK(xuiScrollViewEnsureChildVisible(xideDialogGetScrollViewWidget(xideConfigurationViewWindow(&app)),cancel)==XUI_OK && settle(&app) && pointer(&app,xuiWidgetGetWorldRect(cancel)) && !xideConfigurationViewIsOpen(&app) && allStates(&app));
+    xui_widget cancel=xideConfigurationViewControl(&app,XIDE_CONFIG_CANCEL); CHECK(xideTestReveal(xideDialogGetScrollViewWidget(xideConfigurationViewWindow(&app)),cancel)==XUI_OK && settle(&app) && pointer(&app,xuiWidgetGetWorldRect(cancel)) && !xideConfigurationViewIsOpen(&app) && allStates(&app));
     CHECK(!xideActionQuery(&app,XIDE_ACTION_REMOVE_FILE).enabled);
     xide_project* owner=xideWorkspaceFindProject(&app.workspaceModel,"beta"); CHECK(owner); size_t fileCount=owner->files.count; CHECK(xideProjectAddFile(owner,cPath,NULL,&error));
     CHECK(xideWorkspaceViewRefresh(&app)==XUI_OK && xideWorkspaceViewSelectFile(&app,"beta",owner->files.items[owner->files.count-1].id) && settle(&app) && xideActionQuery(&app,XIDE_ACTION_REMOVE_FILE).enabled);

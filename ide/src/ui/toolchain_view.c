@@ -86,7 +86,11 @@ int xideToolchainViewCreate(xide_app* a)
  TRY(label(a,"原始 --help 输出",(xui_rect_t){0,352,850,28},NULL)); TRY(text(a,XIDE_TOOL_HELP,"原始编译器帮助，只读",(xui_rect_t){0,390,850,280}));
  TRY(label(a,"尚未查询。",(xui_rect_t){0,682,850,80},&v->message));
  TRY(button(a,XIDE_TOOL_REFRESH,"重新查询",(xui_rect_t){414,780,140,32})); TRY(button(a,XIDE_TOOL_CANCEL,"取消查询",(xui_rect_t){566,780,140,32})); TRY(button(a,XIDE_TOOL_CLOSE,"关闭",(xui_rect_t){718,780,132,32}));
- buttons(v); return xideUiLayoutCapture(&v->layout,v->content);
+ buttons(v); TRY(xideDialogFormBegin(v->window,560,400));
+ TRY(xideDialogFormText(v->window,"工具链版本、能力和文件指纹"));TRY(xideDialogFormBlock(v->window,v->controls[XIDE_TOOL_INFO],200,1));
+ TRY(xideDialogFormText(v->window,"原始 --help 输出"));TRY(xideDialogFormBlock(v->window,v->controls[XIDE_TOOL_HELP],180,1));TRY(xideDialogFormBlock(v->window,v->message,0,0));
+ { const xui_widget actions[]={v->controls[XIDE_TOOL_REFRESH],v->controls[XIDE_TOOL_CANCEL],v->controls[XIDE_TOOL_CLOSE]};TRY(xideDialogFormActions(v->window,actions,sizeof(actions)/sizeof(*actions))); }
+ return xideDialogFormEnd(v->window);
 }
 int xideToolchainViewCanOpen(xide_app* a)
 { const char* compiler=a ? xideTaskViewCompiler(a) : NULL; return a && a->toolchainView && a->tasks && !a->toolchainView->request && compiler && *compiler; }
@@ -115,10 +119,8 @@ int xideToolchainViewIsOpen(xide_app* a) { return a && a->toolchainView && xideD
 int xideToolchainViewBusy(xide_app* a) { return a && a->toolchainView && a->toolchainView->request; }
 void xideToolchainViewLayout(xide_app* a)
 {
- xide_toolchain_view* v=a->toolchainView; if(!v) return; int width=a->viewportWidth-48,height=a->viewportHeight-48; if(width<200) width=200; if(height<200) height=200;
- xideDialogSetMaxSize(v->window,width,height); float scale=xideUiFontScale(a);
- if(v->scale!=scale) { xideUiLayoutApply(a,&v->layout,1); xideDialogSetContentSize(v->window,xideUiHeight(a,850),xideUiHeight(a,820)); v->scale=scale; }
- 
+ if(!a->toolchainView)return;
+ xideDialogSetMaxSize(a->toolchainView->window,a->viewportWidth-32,a->viewportHeight-32);
 }
 void xideToolchainViewStop(xide_app* a) { if(a->toolchainView) { xideToolchainRequestDestroy(a->toolchainView->request); a->toolchainView->request=NULL; } }
 void xideToolchainViewDestroy(xide_app* a) { xide_toolchain_view* v=a->toolchainView; if(v) { xideToolchainViewStop(a); xideToolchainProfileClear(&v->profile); free(v->compiler); free(v->directory); free(v); a->toolchainView=NULL; } }

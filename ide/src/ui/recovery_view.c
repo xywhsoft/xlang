@@ -162,7 +162,13 @@ int xideRecoveryViewCreate(xide_app* app)
     TRY(readonlyPath(app,"所选全局文件实际路径",(xui_rect_t){0,628,740,28},&v->globalPath));
     TRY(label(app,"",(xui_rect_t){0,680,740,116},&v->confirmText));
     TRY(button(app,XIDE_RECOVERY_CONFIRM,"确认备份并重建",(xui_rect_t){394,810,226,32})); TRY(button(app,XIDE_RECOVERY_CANCEL_REPAIR,"取消修复",(xui_rect_t){634,810,106,32}));
-    TRY(xideUiLayoutCapture(&v->layout,v->content)); enabled(app); return XUI_OK;
+    TRY(xideDialogFormBegin(v->window,600,420));
+ TRY(xideDialogFormBlock(v->window,v->title,0,0));TRY(xideDialogFormField(v->window,"当前会话",v->scope,NULL,NULL));TRY(xideDialogFormBlock(v->window,v->message,0,0));
+ TRY(xideDialogFormBlock(v->window,v->controls[XIDE_RECOVERY_LIST],112,0));TRY(xideDialogFormField(v->window,"恢复正文",v->path,NULL,NULL));TRY(xideDialogFormBlock(v->window,v->controls[XIDE_RECOVERY_CODE],200,1));
+ TRY(xideDialogFormField(v->window,"取回语法",v->controls[XIDE_RECOVERY_LANGUAGE],NULL,NULL));
+ TRY(xideDialogFormField(v->window,"全局文件",v->controls[XIDE_RECOVERY_GLOBAL_KIND],NULL,NULL));TRY(xideDialogFormField(v->window,"全局文件路径",v->globalPath,NULL,NULL));TRY(xideDialogFormBlock(v->window,v->confirmText,0,0));
+ { const xui_widget actions[]={v->controls[XIDE_RECOVERY_REFRESH],v->controls[XIDE_RECOVERY_CLEAN],v->controls[XIDE_RECOVERY_REPAIR],v->controls[XIDE_RECOVERY_RESTORE],v->controls[XIDE_RECOVERY_GLOBAL_REPAIR],v->controls[XIDE_RECOVERY_CONFIRM],v->controls[XIDE_RECOVERY_CANCEL_REPAIR],v->controls[XIDE_RECOVERY_CLOSE]};TRY(xideDialogFormActions(v->window,actions,sizeof(actions)/sizeof(*actions))); }
+ TRY(xideDialogFormEnd(v->window));enabled(app);return XUI_OK;
 }
 int xideRecoveryViewOpen(xide_app* app)
 {
@@ -235,11 +241,8 @@ void xideRecoveryViewPoll(xide_app* app)
 }
 void xideRecoveryViewLayout(xide_app* app)
 {
-    xide_recovery_view* v=app->recoveryView; if(!v) return; int width=app->viewportWidth-48,height=app->viewportHeight-48; if(width<200) width=200; if(height<200) height=200;
-    xideDialogSetMaxSize(v->window,width,height); float scale=xideUiFontScale(app); if(v->scale!=scale) { xideUiLayoutApply(app,&v->layout,1); v->scale=scale; }
-    int cw=xideUiHeight(app,740),ch=xideUiHeight(app,v->confirm ? 860 : 676);
-    if(cw!=v->contentWidth || ch!=v->contentHeight) { xideDialogSetContentSize(v->window,cw,ch); v->contentWidth=cw; v->contentHeight=ch; }
-
+ if(!app->recoveryView)return;
+ xideDialogSetMaxSize(app->recoveryView->window,app->viewportWidth-32,app->viewportHeight-32);
 }
 int xideRecoveryViewCodeFont(xide_app* app) { return app->recoveryView ? xideCodeWidgetSetFont(app,app->recoveryView->controls[XIDE_RECOVERY_CODE],app->codeFont) : XUI_OK; }
 int xideRecoveryViewTheme(xide_app* app)

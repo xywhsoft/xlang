@@ -116,7 +116,10 @@ int xideGotoViewCreate(xide_app* a)
  TRY(label(a,"",(xui_rect_t){0,136,480,44},&v->message));
  for(int i=XIDE_GOTO_APPLY;i<=XIDE_GOTO_CANCEL;++i) {
   xui_button_desc_t button={0};button.iSize=sizeof(button);button.pFont=a->uiFont;button.sText=i==XIDE_GOTO_APPLY ? "跳转" : "取消";TRY(xuiButtonCreate(a->context,&v->controls[i],&button));TRY(xuiWidgetSetRect(v->controls[i],(xui_rect_t){i==XIDE_GOTO_APPLY ? 264 : 378,192,102,32}));TRY(xuiButtonSetClick(v->controls[i],clicked,a));TRY(xuiWidgetAddChild(v->content,v->controls[i]));
- } return xideUiLayoutCapture(&v->layout,v->content);
+ } TRY(xideDialogFormBegin(v->window,380,250));
+ TRY(xideDialogFormBlock(v->window,v->detail,0,0));TRY(xideDialogFormField(v->window,"行号或行:列",v->controls[XIDE_GOTO_POSITION],NULL,NULL));TRY(xideDialogFormBlock(v->window,v->message,0,0));
+ { const xui_widget actions[]={v->controls[XIDE_GOTO_APPLY],v->controls[XIDE_GOTO_CANCEL]};TRY(xideDialogFormActions(v->window,actions,sizeof(actions)/sizeof(*actions))); }
+ return xideDialogFormEnd(v->window);
 }
 int xideGotoViewOpen(xide_app* a)
 {
@@ -129,11 +132,8 @@ int xideGotoViewOpen(xide_app* a)
 int xideGotoViewIsOpen(xide_app* a) { return a && a->gotoView && xideDialogIsOpen(a->gotoView->window); }
 void xideGotoViewLayout(xide_app* a)
 {
- if(!a->gotoView) return;
- xide_goto_view* v=a->gotoView;int width=a->viewportWidth-48,height=a->viewportHeight-48;if(width<200) width=200;if(height<200) height=200;xideDialogSetMaxSize(v->window,width,height);
- int cw=xideUiHeight(a,480),ch=xideUiHeight(a,226);float scale=xideUiFontScale(a);
- if(v->scale!=scale) { xideUiLayoutApply(a,&v->layout,1);xideDialogSetContentSize(v->window,cw,ch);v->scale=scale; }
- 
+ if(!a->gotoView)return;
+ xideDialogSetMaxSize(a->gotoView->window,a->viewportWidth-32,a->viewportHeight-32);
 }
 void xideGotoViewDestroy(xide_app* a) { free(a->gotoView);a->gotoView=NULL; }
 xui_widget xideGotoViewWindow(xide_app* a) { return a->gotoView ? a->gotoView->window : NULL; }

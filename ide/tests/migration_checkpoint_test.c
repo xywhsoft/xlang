@@ -1,4 +1,5 @@
 #define _WIN32_WINNT 0x0601
+#include "dialog_test_helpers.h"
 #include "app/xide_app.h"
 #include "ui/rename_view.h"
 #include "ui/editor_view.h"
@@ -126,7 +127,7 @@ static int run(void* user)
     VERIFY(!xideRecoveryViewBusy(&app));
     xui_widget clean=xideRecoveryViewControl(&app,XIDE_RECOVERY_CLEAN);
     VERIFY(clean && xuiDispatchPendingEvents(app.context)==XUI_OK && xuiLayout(app.context)==XUI_OK);
-    VERIFY(xuiScrollViewEnsureChildVisible(xideDialogGetScrollViewWidget(xideRecoveryViewWindow(&app)),clean)==XUI_OK && xuiLayout(app.context)==XUI_OK);
+    VERIFY(xideTestReveal(xideDialogGetScrollViewWidget(xideRecoveryViewWindow(&app)),clean)==XUI_OK && xuiLayout(app.context)==XUI_OK);
     xui_rect_t rect=xuiWidgetGetWorldRect(clean);
     int px=(int)(rect.fX+rect.fW/2),py=(int)(rect.fY+rect.fH/2);
     VERIFY(xuiInputPointerMove(app.context,px,py,0)==XUI_OK && xuiInputPointerDown(app.context,px,py,XUI_POINTER_BUTTON_LEFT,XUI_POINTER_BUTTON_LEFT)==XUI_OK && xuiInputPointerUp(app.context,px,py,XUI_POINTER_BUTTON_LEFT,0)==XUI_OK && xuiDispatchPendingEvents(app.context)==XUI_OK);

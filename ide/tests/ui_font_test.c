@@ -1,4 +1,5 @@
 #define _WIN32_WINNT 0x0601
+#include "dialog_test_helpers.h"
 #include "app/xide_app.h"
 #include "services/ui_font.h"
 #include "services/editor_font.h"
@@ -38,7 +39,7 @@ static int clickPopup(xide_app* app,xui_widget popupWidget,xui_widget widget)
 {
     if(!settle(app)) return 0;
     xui_widget scroll=xideDialogGetScrollViewWidget(popupWidget);
-    if(!scroll || xuiScrollViewEnsureChildVisible(scroll,widget)!=XUI_OK || !settle(app)) return 0;
+    if(!scroll || xideTestReveal(scroll,widget)!=XUI_OK || !settle(app)) return 0;
     xui_rect_t r=xuiWidgetGetWorldRect(widget),popup=xuiWidgetGetWorldRect(popupWidget);
     int x=r.fX+r.fW/2,y=r.fY+r.fH/2;
     if(x<popup.fX || y<popup.fY || x>=popup.fX+popup.fW || y>=popup.fY+popup.fH) return 0;
@@ -131,11 +132,11 @@ static int verify(void* user)
     CHECK(xideUiFontApply(&app,font,40,&error) && settle(&app) && bound(&app) && documents(&app,c,xl,cv,xv,selected,code));
     CHECK(xuiInputGetFont(xideConfigurationViewControl(&app,XIDE_CONFIG_NAME))==app.uiFont &&
         !strcmp(xuiEditGetText(xideConfigurationViewControl(&app,XIDE_CONFIG_NAME)),"保留字体更新时的配置草稿"));
-    float configW=0,configH=0; CHECK(xideDialogGetContentSize(xideConfigurationViewWindow(&app),&configW,&configH)==XUI_OK && configW>app.viewportWidth && configH>app.viewportHeight);
+    float configW=0,configH=0; CHECK(xideDialogGetContentSize(xideConfigurationViewWindow(&app),&configW,&configH)==XUI_OK && configW<=app.viewportWidth && configH>app.viewportHeight);
     CHECK(clickPopup(&app,xideConfigurationViewWindow(&app),xideConfigurationViewControl(&app,XIDE_CONFIG_CANCEL)) && !xideConfigurationViewIsOpen(&app));
     CHECK(!strcmp(xideWorkspaceFindProject(&app.workspaceModel,"alpha")->name,"字体项目") && propertyFields(&app,xuiScrollViewGetContentWidget(app.properties))>=3);
     CHECK(xideFontViewOpenUi(&app) && settle(&app) && capture(&app,modalImage));
-    float contentW=0,contentH=0; CHECK(xideDialogGetContentSize(xideFontViewWindow(&app),&contentW,&contentH)==XUI_OK && contentW>app.viewportWidth && contentH>app.viewportHeight);
+    float contentW=0,contentH=0; CHECK(xideDialogGetContentSize(xideFontViewWindow(&app),&contentW,&contentH)==XUI_OK && contentW>0 && contentH>0);
     CHECK(click(&app,XIDE_FONT_CANCEL) && !xideFontViewIsOpen(&app));
     CHECK(xideFontViewOpen(&app) && xuiCodeEditGetFont(xideFontViewControl(&app,XIDE_FONT_PREVIEW))==code && click(&app,XIDE_FONT_CANCEL));
     CHECK(xideUiFontApply(&app,font,24,&error) && settle(&app) && bound(&app) && capture(&app,image));

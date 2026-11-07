@@ -142,7 +142,13 @@ int xideTemplateViewCreate(xide_app* a)
  xui_code_edit_desc_t code={0}; code.iSize=sizeof(code); code.pFont=a->codeFont; code.bReadonly=1; code.bShowLineNumbers=1; code.sText="";
  TRY(xideDpiCodeEditCreate(a->context,&v->controls[XIDE_TEMPLATE_PREVIEW],&code)); TRY(xideRegisterLanguages(xuiCodeEditGetLanguageRegistry(v->controls[XIDE_TEMPLATE_PREVIEW]))); TRY(xideConfigureEditorLanguage(v->controls[XIDE_TEMPLATE_PREVIEW],"text")); TRY(xuiWidgetSetRect(v->controls[XIDE_TEMPLATE_PREVIEW],(xui_rect_t){0,338,736,230})); TRY(xuiWidgetAddChild(v->content,v->controls[XIDE_TEMPLATE_PREVIEW]));
  TRY(label(a,&v->message,"",(xui_rect_t){0,580,736,48})); TRY(button(a,XIDE_TEMPLATE_CREATE,"创建项目",(xui_rect_t){510,636,110,32})); TRY(button(a,XIDE_TEMPLATE_CANCEL,"取消",(xui_rect_t){636,636,100,32}));
- return xideUiLayoutCapture(&v->layout,v->content);
+ TRY(xideDialogFormBegin(v->window,560,400));
+ TRY(xideDialogFormField(v->window,"项目模板",v->controls[XIDE_TEMPLATE_KIND],NULL,NULL));TRY(xideDialogFormBlock(v->window,v->description,0,0));
+ TRY(xideDialogFormField(v->window,"项目名称",v->controls[XIDE_TEMPLATE_NAME],NULL,NULL));TRY(xideDialogFormField(v->window,"创建位置",v->controls[XIDE_TEMPLATE_PARENT],v->controls[XIDE_TEMPLATE_BROWSE],NULL));
+ TRY(xideDialogFormField(v->window,"项目目录",v->destination,NULL,NULL));TRY(xideDialogFormBlock(v->window,v->controls[XIDE_TEMPLATE_STARTUP],32,0));
+ TRY(xideDialogFormField(v->window,"生成文件",v->controls[XIDE_TEMPLATE_FILES],NULL,NULL));TRY(xideDialogFormBlock(v->window,v->controls[XIDE_TEMPLATE_PREVIEW],200,1));TRY(xideDialogFormBlock(v->window,v->message,0,0));
+ { const xui_widget actions[]={v->controls[XIDE_TEMPLATE_CREATE],v->controls[XIDE_TEMPLATE_CANCEL]};TRY(xideDialogFormActions(v->window,actions,sizeof(actions)/sizeof(*actions))); }
+ return xideDialogFormEnd(v->window);
 }
 int xideTemplateViewOpen(xide_app* a)
 {
@@ -155,10 +161,8 @@ int xideTemplateViewOpen(xide_app* a)
 int xideTemplateViewIsOpen(xide_app* a) { return a && a->templateView && xideDialogIsOpen(a->templateView->window); }
 void xideTemplateViewLayout(xide_app* a)
 {
- xide_template_view* v=a->templateView; if(!v) { return; } int width=a->viewportWidth-48,height=a->viewportHeight-48; if(width<200) width=200; if(height<200) height=200;
- xideDialogSetMaxSize(v->window,(float)width,(float)height); float scale=xideUiFontScale(a);
- if(v->scale!=scale) { xideUiLayoutApply(a,&v->layout,1); xideDialogSetContentSize(v->window,xideUiHeight(a,736),xideUiHeight(a,672)); v->scale=scale; }
- 
+ if(!a->templateView)return;
+ xideDialogSetMaxSize(a->templateView->window,a->viewportWidth-32,a->viewportHeight-32);
 }
 int xideTemplateViewCodeFont(xide_app* a) { return a->templateView ? xideCodeWidgetSetFont(a,a->templateView->controls[XIDE_TEMPLATE_PREVIEW],a->codeFont) : XUI_OK; }
 void xideTemplateViewDestroy(xide_app* a) { xide_template_view* v=a->templateView; if(v) { xideTemplatePlanDestroy(v->plan); xrtValueRelease(v->baseline); free(v); a->templateView=NULL; } }

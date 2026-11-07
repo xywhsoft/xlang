@@ -280,7 +280,16 @@ int xideConfigurationViewCreate(xide_app* app)
     for(int i=0;i<5;++i) TRY(button(app,XIDE_CONFIG_ADD+i,actions[i],(xui_rect_t){i*149,484,140,32}));
     TRY(label(app,&view->message,"",(xui_rect_t){0,526,736,44}));
     TRY(button(app,XIDE_CONFIG_APPLY,"应用",(xui_rect_t){520,580,100,32})); TRY(button(app,XIDE_CONFIG_CANCEL,"取消",(xui_rect_t){636,580,100,32}));
-    return xideUiLayoutCapture(&view->layout,view->content);
+    TRY(xideDialogFormBegin(view->window,600,420));
+ TRY(xideDialogFormField(view->window,"配置",view->controls[XIDE_CONFIG_PICKER],view->controls[XIDE_CONFIG_NEW],view->controls[XIDE_CONFIG_CLONE]));{ const xui_widget row[]={view->controls[XIDE_CONFIG_DELETE]};TRY(xideDialogFormRow(view->window,row,sizeof(row)/sizeof(*row),32,0)); }
+ TRY(xideDialogFormField(view->window,"配置名称",view->controls[XIDE_CONFIG_NAME],NULL,NULL));TRY(xideDialogFormBlock(view->window,view->identity,0,0));
+ TRY(xideDialogFormNamedField(view->window,view->outputLabel,view->controls[XIDE_CONFIG_OUTPUT],NULL,NULL));TRY(xideDialogFormNamedField(view->window,view->directoryLabel,view->controls[XIDE_CONFIG_DIRECTORY],NULL,NULL));
+ TRY(xideDialogFormField(view->window,"测试程序",view->controls[XIDE_CONFIG_TEST_PROGRAM],NULL,NULL));TRY(xideDialogFormField(view->window,"测试工作目录",view->controls[XIDE_CONFIG_TEST_DIRECTORY],NULL,NULL));
+ TRY(xideDialogFormField(view->window,"配置分类",view->controls[XIDE_CONFIG_CATEGORY],NULL,NULL));TRY(xideDialogFormText(view->window,"参数保持原文，不需要手动添加 shell 引号。"));
+ TRY(xideDialogFormBlock(view->window,view->controls[XIDE_CONFIG_LIST],160,1));TRY(xideDialogFormField(view->window,"变量名称",view->controls[XIDE_CONFIG_KEY],NULL,NULL));TRY(xideDialogFormField(view->window,"列表项值",view->controls[XIDE_CONFIG_VALUE],NULL,NULL));TRY(xideDialogFormBlock(view->window,view->message,0,0));
+ { const xui_widget actions[]={view->controls[XIDE_CONFIG_ADD],view->controls[XIDE_CONFIG_UPDATE],view->controls[XIDE_CONFIG_REMOVE],view->controls[XIDE_CONFIG_UP],view->controls[XIDE_CONFIG_DOWN]};TRY(xideDialogFormActions(view->window,actions,sizeof(actions)/sizeof(*actions))); }
+ { const xui_widget actions[]={view->controls[XIDE_CONFIG_APPLY],view->controls[XIDE_CONFIG_CANCEL]};TRY(xideDialogFormActions(view->window,actions,sizeof(actions)/sizeof(*actions))); }
+ return xideDialogFormEnd(view->window);
 }
 int xideConfigurationViewOpen(xide_app* app) { return xideConfigurationViewOpenProject(app,app->selectedProject); }
 int xideConfigurationViewOpenProject(xide_app* app,const char* projectId)
@@ -299,17 +308,9 @@ int xideConfigurationViewOpenProject(xide_app* app,const char* projectId)
 int xideConfigurationViewIsOpen(xide_app* app) { return app->configurationView && xideDialogIsOpen(app->configurationView->window); }
 void xideConfigurationViewLayout(xide_app* app)
 {
-    if(!app->configurationView) return;
-    xide_configuration_view* view=app->configurationView; int width=app->viewportWidth-48,height=app->viewportHeight-48;
-    if(width<200) width=200;
-    if(height<200) height=200;
-    xideDialogSetMaxSize(view->window,(float)width,(float)height);
-    float scale=xideUiFontScale(app);
-    xuiComboBoxSetPopupHeight(view->controls[XIDE_CONFIG_CATEGORY],(float)xideUiHeight(app,360));
-    xuiComboBoxSetPopupMaxHeight(view->controls[XIDE_CONFIG_CATEGORY],(float)height);
-    if(view->scale!=scale) { xideUiLayoutApply(app,&view->layout,1); xideDialogSetContentSize(view->window,xideUiHeight(app,736),xideUiHeight(app,624)); view->scale=scale; }
-    xuiWidgetSetRect(view->controls[XIDE_CONFIG_VALUE],xideUiRect(app,(xui_rect_t){isEnvironment(view) ? 188 : 0,444,isEnvironment(view) ? 548 : 736,32}));
-
+ if(!app->configurationView)return;
+ xideDialogSetMaxSize(app->configurationView->window,app->viewportWidth-32,app->viewportHeight-32);
+ xuiComboBoxSetPopupHeight(app->configurationView->controls[XIDE_CONFIG_CATEGORY],xideUiHeight(app,360));
 }
 xui_widget xideConfigurationViewControl(xide_app* app,int control) { return app->configurationView && control>=0 && control<XIDE_CONFIG_CONTROL_COUNT ? app->configurationView->controls[control] : NULL; }
 xui_widget xideConfigurationViewWindow(xide_app* app) { return app->configurationView ? app->configurationView->window : NULL; }

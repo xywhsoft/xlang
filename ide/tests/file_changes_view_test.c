@@ -1,4 +1,5 @@
 #define _WIN32_WINNT 0x0601
+#include "dialog_test_helpers.h"
 #include "app/xide_app.h"
 #include "ui/file_changes_view.h"
 #include "services/file_sync.h"
@@ -28,9 +29,9 @@ static int pending(xide_app* app,size_t count)
 static int pointer(xide_app* app,xui_rect_t r)
 { int x=r.fX+(r.fW>240 ? 100 : r.fW/2),y=r.fY+r.fH/2; return xuiInputPointerMove(app->context,x,y,0)==XUI_OK && xuiInputPointerDown(app->context,x,y,XUI_POINTER_BUTTON_LEFT,XUI_POINTER_BUTTON_LEFT)==XUI_OK && xuiInputPointerUp(app->context,x,y,XUI_POINTER_BUTTON_LEFT,0)==XUI_OK && settle(app); }
 static int click(xide_app* app,int id)
-{ xui_widget w=xideFileChangesViewControl(app,id),scroll=xideDialogGetScrollViewWidget(xideFileChangesViewWindow(app)); return settle(app) && xuiScrollViewEnsureChildVisible(scroll,w)==XUI_OK && settle(app) && pointer(app,xuiWidgetGetWorldRect(w)); }
+{ xui_widget w=xideFileChangesViewControl(app,id),scroll=xideDialogGetScrollViewWidget(xideFileChangesViewWindow(app)); return settle(app) && xideTestReveal(scroll,w)==XUI_OK && settle(app) && pointer(app,xuiWidgetGetWorldRect(w)); }
 static int choose(xide_app* app,const char* name)
-{ xui_widget list=xideFileChangesViewControl(app,XIDE_CHANGES_LIST); int index=-1; for(int i=0;i<xuiListViewGetItemCount(list);++i) if(strstr(xuiListViewGetItemText(list,i),name)) { index=i; break; } if(index<0) return 0; if(xuiScrollViewEnsureChildVisible(xideDialogGetScrollViewWidget(xideFileChangesViewWindow(app)),list)!=XUI_OK || xuiListViewEnsureVisible(list,index)!=XUI_OK || !settle(app)) return 0; xui_rect_t r=xuiListViewGetItemRect(list,index),world=xuiWidgetGetWorldRect(list); r.fX+=world.fX; r.fY+=world.fY; return pointer(app,r) && xuiListViewGetSelected(list)==index; }
+{ xui_widget list=xideFileChangesViewControl(app,XIDE_CHANGES_LIST); int index=-1; for(int i=0;i<xuiListViewGetItemCount(list);++i) if(strstr(xuiListViewGetItemText(list,i),name)) { index=i; break; } if(index<0) return 0; if(xideTestReveal(xideDialogGetScrollViewWidget(xideFileChangesViewWindow(app)),list)!=XUI_OK || xuiListViewEnsureVisible(list,index)!=XUI_OK || !settle(app)) return 0; xui_rect_t r=xuiListViewGetItemRect(list,index),world=xuiWidgetGetWorldRect(list); r.fX+=world.fX; r.fY+=world.fY; return pointer(app,r) && xuiListViewGetSelected(list)==index; }
 static int capture(xide_app* app,const char* path)
 { xui_rect_i_t r={0,0,app->viewportWidth,app->viewportHeight}; return settle(app) && xuiUpdate(app->context,0)==XUI_OK && app->proxy.surfaceClear(&app->proxy,app->target,0xffeeeeeeu)==XUI_OK && xuiRender(app->context,app->target,&r,1)==XUI_OK && xideAppCapture(app,path)==XUI_OK; }
 static int verify(void* data)
@@ -61,8 +62,8 @@ static int verify(void* data)
     CHECK(xuiCodeDocumentUndo(core)==XUI_OK && cd->dirty && strstr(xuiCodeEditGetText(cd->editor),"local unsaved C")); CHECK(xuiCodeDocumentRedo(core)==XUI_OK && !cd->dirty);
     CHECK(choose(&app,"main.xl") && !strcmp(xuiCodeEditGetLanguage(preview),"xlang") && xideWorkbenchApplyTheme(&app,1)==XUI_OK && capture(&app,dark));
     CHECK(xideUiFontApply(&app,app.uiFontPath,40,&error) && settle(&app) && xuiListViewGetFont(xideFileChangesViewControl(&app,XIDE_CHANGES_LIST))==app.uiFont && xuiCodeEditGetFont(preview)==app.codeFont);
-    float cw=0,ch=0; CHECK(!xideDialogGetContentSize(xideFileChangesViewWindow(&app),&cw,&ch) && cw>app.viewportWidth && ch>app.viewportHeight);
-    CHECK(click(&app,XIDE_CHANGES_RELOAD) && (xuiWidgetGetStateId(xideFileChangesViewControl(&app,XIDE_CHANGES_RELOAD))&XUI_WIDGET_STATE_DISABLED) && !xuiScrollViewEnsureChildVisible(xideDialogGetScrollViewWidget(xideFileChangesViewWindow(&app)),xideFileChangesViewControl(&app,XIDE_CHANGES_CONFIRM)) && capture(&app,large) && click(&app,XIDE_CHANGES_CANCEL));
+    float cw=0,ch=0; CHECK(!xideDialogGetContentSize(xideFileChangesViewWindow(&app),&cw,&ch) && cw<=app.viewportWidth && ch>app.viewportHeight);
+    CHECK(click(&app,XIDE_CHANGES_RELOAD) && (xuiWidgetGetStateId(xideFileChangesViewControl(&app,XIDE_CHANGES_RELOAD))&XUI_WIDGET_STATE_DISABLED) && !xideTestReveal(xideDialogGetScrollViewWidget(xideFileChangesViewWindow(&app)),xideFileChangesViewControl(&app,XIDE_CHANGES_CONFIRM)) && capture(&app,large) && click(&app,XIDE_CHANGES_CANCEL));
     CHECK(!(xuiWidgetGetStateId(xideFileChangesViewControl(&app,XIDE_CHANGES_RELOAD))&XUI_WIDGET_STATE_DISABLED));
     CHECK(xideUiFontApply(&app,app.uiFontPath,20,&error) && xideEditorFontApply(&app,app.codeFontPath,22,&error) && xuiCodeEditGetFont(preview)==app.codeFont && xuiCodeEditGetFont(xideFileChangesViewControl(&app,XIDE_CHANGES_LOCAL))==app.codeFont && xd->dirty);
     CHECK(click(&app,XIDE_CHANGES_CLOSE) && !xideFileChangesViewIsOpen(&app) && xd->dirty && equals(b,"func external(...) as int\n    return 99\nend\n"));

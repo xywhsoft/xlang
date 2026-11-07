@@ -1,4 +1,5 @@
 #define _WIN32_WINNT 0x0601
+#include "dialog_test_helpers.h"
 #include "app/xide_app.h"
 #include "ui/recovery_view.h"
 #include "ui/editor_view.h"
@@ -24,14 +25,14 @@ static int idle(xide_app* app)
 static int pointer(xide_app* app,xui_rect_t r)
 { int x=r.fX+(r.fW>240 ? 100 : r.fW/2),y=r.fY+r.fH/2; return xuiInputPointerMove(app->context,x,y,0)==XUI_OK && xuiInputPointerDown(app->context,x,y,XUI_POINTER_BUTTON_LEFT,XUI_POINTER_BUTTON_LEFT)==XUI_OK && xuiInputPointerUp(app->context,x,y,XUI_POINTER_BUTTON_LEFT,0)==XUI_OK && settle(app); }
 static int click(xide_app* app,int control)
-{ xui_widget w=xideRecoveryViewControl(app,control),scroll=xideDialogGetScrollViewWidget(xideRecoveryViewWindow(app)); return settle(app) && xuiScrollViewEnsureChildVisible(scroll,w)==XUI_OK && settle(app) && pointer(app,xuiWidgetGetWorldRect(w)); }
+{ xui_widget w=xideRecoveryViewControl(app,control),scroll=xideDialogGetScrollViewWidget(xideRecoveryViewWindow(app)); return settle(app) && xideTestReveal(scroll,w)==XUI_OK && settle(app) && pointer(app,xuiWidgetGetWorldRect(w)); }
 static int choose(xide_app* app,const char* part,int archived)
 {
     xui_widget list=xideRecoveryViewControl(app,XIDE_RECOVERY_LIST); int index=-1;
     for(int i=0;i<xuiListViewGetItemCount(list);++i) { const char* s=xuiListViewGetItemText(list,i); if(s && strstr(s,part) && (!!strstr(s,"备份")==archived)) { index=i; break; } }
     if(index<0) return 0;
     xui_widget scroll=xideDialogGetScrollViewWidget(xideRecoveryViewWindow(app));
-    if(xuiScrollViewEnsureChildVisible(scroll,list)!=XUI_OK || xuiListViewEnsureVisible(list,index)!=XUI_OK || !settle(app)) return 0;
+    if(xideTestReveal(scroll,list)!=XUI_OK || xuiListViewEnsureVisible(list,index)!=XUI_OK || !settle(app)) return 0;
     xui_rect_t row=xuiListViewGetItemRect(list,index),world=xuiWidgetGetWorldRect(list); row.fX+=world.fX; row.fY+=world.fY;
     return pointer(app,row) && idle(app) && xuiListViewGetSelected(list)==index;
 }
@@ -71,8 +72,8 @@ static int verify(void* data)
     CHECK(!app.activeDocument->path && !strcmp(app.activeDocument->language,"xlang") && !strcmp(xuiCodeEditGetText(app.activeDocument->editor),recoveredX));
     CHECK(xideRecoveryViewOpen(&app) && idle(&app) && choose(&app,"1111111111111111.text",0));
     CHECK(xideUiFontApply(&app,app.uiFontPath,40,&error) && settle(&app) && xuiListViewGetFont(xideRecoveryViewControl(&app,XIDE_RECOVERY_LIST))==app.uiFont && xuiCodeEditGetFont(preview)==app.codeFont);
-    float pw=0,ph=0; CHECK(!xideDialogGetContentSize(xideRecoveryViewWindow(&app),&pw,&ph) && pw>app.viewportWidth && ph>app.viewportHeight);
-    CHECK(click(&app,XIDE_RECOVERY_REPAIR) && (xuiWidgetGetStateId(xideRecoveryViewControl(&app,XIDE_RECOVERY_REPAIR))&XUI_WIDGET_STATE_DISABLED) && !xuiScrollViewEnsureChildVisible(xideDialogGetScrollViewWidget(xideRecoveryViewWindow(&app)),xideRecoveryViewControl(&app,XIDE_RECOVERY_CONFIRM)) && capture(&app,largeImage) && click(&app,XIDE_RECOVERY_CANCEL_REPAIR));
+    float pw=0,ph=0; CHECK(!xideDialogGetContentSize(xideRecoveryViewWindow(&app),&pw,&ph) && pw<=app.viewportWidth && ph>app.viewportHeight);
+    CHECK(click(&app,XIDE_RECOVERY_REPAIR) && (xuiWidgetGetStateId(xideRecoveryViewControl(&app,XIDE_RECOVERY_REPAIR))&XUI_WIDGET_STATE_DISABLED) && !xideTestReveal(xideDialogGetScrollViewWidget(xideRecoveryViewWindow(&app)),xideRecoveryViewControl(&app,XIDE_RECOVERY_CONFIRM)) && capture(&app,largeImage) && click(&app,XIDE_RECOVERY_CANCEL_REPAIR));
     float sx=0,sy=0; CHECK(!xideDialogGetScroll(xideRecoveryViewWindow(&app),&sx,&sy) && sx==0 && sy==0);
     CHECK(!(xuiWidgetGetStateId(xideRecoveryViewControl(&app,XIDE_RECOVERY_REPAIR))&XUI_WIDGET_STATE_DISABLED));
     CHECK(xideUiFontApply(&app,app.uiFontPath,24,&error) && settle(&app));

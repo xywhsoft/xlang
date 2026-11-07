@@ -30,6 +30,7 @@ static int frame(void* user) {
         r=xuiTextEditCreate(a->context,&f->details,&details);free(text);if(r!=XUI_OK) return r;
         xuiWidgetSetAccessibleName(f->details,"错误原因、恢复状态与诊断文件");xuiWidgetAddChild(xuiMsgBoxGetContentWidget(f->box),f->details);
         xuiMsgBoxSetPresetButtonTitle(f->box,XUI_MSGBOX_BUTTON_TITLE_OK,"关闭");xuiMsgBoxSetResult(f->box,dismissed,f);xuiMsgBoxSetOpen(f->box,1);
+        xideDialogStyleMessage(a,f->box);
         /* A bounded, read-only diagnostic inspection point for owned native
            launch tests. Rendering and interaction remain entirely XUI. */
         f->initialized=1;

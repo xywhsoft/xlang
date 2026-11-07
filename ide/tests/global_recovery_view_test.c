@@ -1,4 +1,5 @@
 #define _WIN32_WINNT 0x0601
+#include "dialog_test_helpers.h"
 #include "app/xide_app.h"
 #include "ui/recovery_view.h"
 #include "ui/editor_view.h"
@@ -24,7 +25,7 @@ static int idle(xide_app* app)
 static int pointer(xide_app* app,xui_rect_t r)
 { int x=r.fX+(r.fW>240 ? 100 : r.fW/2),y=r.fY+r.fH/2; return xuiInputPointerMove(app->context,x,y,0)==XUI_OK && xuiInputPointerDown(app->context,x,y,XUI_POINTER_BUTTON_LEFT,XUI_POINTER_BUTTON_LEFT)==XUI_OK && xuiInputPointerUp(app->context,x,y,XUI_POINTER_BUTTON_LEFT,0)==XUI_OK && settle(app); }
 static int click(xide_app* app,int control)
-{ xui_widget w=xideRecoveryViewControl(app,control),scroll=xideDialogGetScrollViewWidget(xideRecoveryViewWindow(app)); return settle(app) && xuiScrollViewEnsureChildVisible(scroll,w)==XUI_OK && settle(app) && pointer(app,xuiWidgetGetWorldRect(w)); }
+{ xui_widget w=xideRecoveryViewControl(app,control),scroll=xideDialogGetScrollViewWidget(xideRecoveryViewWindow(app)); return settle(app) && xideTestReveal(scroll,w)==XUI_OK && settle(app) && pointer(app,xuiWidgetGetWorldRect(w)); }
 static int capture(xide_app* app,const char* path)
 { xui_rect_i_t r={0,0,app->viewportWidth,app->viewportHeight}; return settle(app) && xuiUpdate(app->context,0)==XUI_OK && app->proxy.surfaceClear(&app->proxy,app->target,0xffeeeeeeu)==XUI_OK && xuiRender(app->context,app->target,&r,1)==XUI_OK && xideAppCapture(app,path)==XUI_OK; }
 #include "platform/window_state.h"
@@ -56,7 +57,7 @@ static int verify(void* data)
     xide_window_geometry before={0},after={0}; CHECK(xideWindowCapture(xgePlatformNativeHandle(),&before,&error));
     CHECK(chooseGlobal(&app,XIDE_GLOBAL_INDEX) && click(&app,XIDE_RECOVERY_GLOBAL_REPAIR) && click(&app,XIDE_RECOVERY_CANCEL_REPAIR) && equals(index,badIndex));
     CHECK(click(&app,XIDE_RECOVERY_GLOBAL_REPAIR)); image=xidePathResolve(root,"native-global-index-confirm.png");
-    CHECK(image && !xuiScrollViewEnsureChildVisible(xideDialogGetScrollViewWidget(xideRecoveryViewWindow(&app)),xideRecoveryViewControl(&app,XIDE_RECOVERY_CONFIRM)) && capture(&app,image)); free(image); image=NULL;
+    CHECK(image && !xideTestReveal(xideDialogGetScrollViewWidget(xideRecoveryViewWindow(&app)),xideRecoveryViewControl(&app,XIDE_RECOVERY_CONFIRM)) && capture(&app,image)); free(image); image=NULL;
     CHECK(click(&app,XIDE_RECOVERY_CONFIRM) && idle(&app) && strstr(xideRecoveryViewMessage(&app),"最近工程索引已重建"));
     backup=copy(xideRecoveryViewBackupPath(&app)); path=backup ? xidePathResolve(backup,"original.bin") : NULL; CHECK(path && equals(path,badIndex)); free(path); path=NULL; free(backup); backup=NULL;
     CHECK(xideStateOpen(&state,index,"xlang-ide-session-index-1",&error)); xstrview kind={0}; CHECK(xrtValueGetString(xrtValueObjectGet(state.source,(xstrview){"kind",4}),&kind) && kind.Size==4 && !memcmp(kind.Data,"none",4)); xideStateClear(&state);
@@ -83,7 +84,7 @@ static int verify(void* data)
     tool=xidePathResolve(root,"tool.exe"); transient=xidePathResolve(root,"transient.exe"); CHECK(tool && transient && writeText(tool,"fixture") && writeText(transient,"temporary override")); app.compilerPath=transient; app.cServerPath=transient;
     CHECK(writeText(settings,"{\"format\":\"xlang-ide-settings-1\",\"future\":77,\"toolchain\":{\"compiler\":\"../tool.exe\",\"cServer\":\"../tool.exe\"},\"editor\":{\"futureEditor\":true},\"ui\":{\"font\":{\"futureFont\":88}}}") && xideSettingsLoad(&app.preferences,settings,&error));
     CHECK(xideUiFontApply(&app,app.uiFontPath,40,&error) && chooseGlobal(&app,XIDE_GLOBAL_SETTINGS) && click(&app,XIDE_RECOVERY_GLOBAL_REPAIR));
-    image=xidePathResolve(root,"native-global-large-confirm.png"); CHECK(image && !xuiScrollViewEnsureChildVisible(xideDialogGetScrollViewWidget(xideRecoveryViewWindow(&app)),xideRecoveryViewControl(&app,XIDE_RECOVERY_CONFIRM)) && capture(&app,image)); free(image); image=NULL;
+    image=xidePathResolve(root,"native-global-large-confirm.png"); CHECK(image && !xideTestReveal(xideDialogGetScrollViewWidget(xideRecoveryViewWindow(&app)),xideRecoveryViewControl(&app,XIDE_RECOVERY_CONFIRM)) && capture(&app,image)); free(image); image=NULL;
     CHECK(click(&app,XIDE_RECOVERY_CONFIRM) && idle(&app) && xrtValueObjectGet(app.preferences.source,(xstrview){"future",6}));
     xvalue* ui=xrtValueObjectGet(app.preferences.source,(xstrview){"ui",2}),*font=xrtValueObjectGet(ui,(xstrview){"font",4}); CHECK(xrtValueObjectGet(font,(xstrview){"futureFont",10}) && app.preferences.uiFontSize==40);
     CHECK(xidePathEqual(app.preferences.compiler,tool) && (XIDE_ENABLE_C_LSP ? xidePathEqual(app.preferences.cServer,tool) : !app.preferences.cServer) && app.compilerPath==transient && app.cServerPath==transient);

@@ -72,6 +72,7 @@ static int show(xide_app* a,const char* title,const char* text,int icon,int butt
     for(size_t i=0;i<4;++i) xuiMsgBoxSetPresetButtonTitle(m->box,ids[i],labels[i]);
     m->restore=xuiGetFocusWidget(a->context);m->buttons=buttons;m->ready=0;
     xuiMsgBoxSetResult(m->box,result,a);xuiMsgBoxSetOpen(m->box,1);
+    xideDialogStyleMessage(a,m->box);
     xideUiFontBindWidget(a,xuiMsgBoxGetWindowWidget(m->box));xideActionsRefresh(a);xgeRenderRequest();return 1;
 }
 void xideMessageShow(xide_app* a,const char* title,const char* text,int icon) {

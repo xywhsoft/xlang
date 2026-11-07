@@ -30,7 +30,7 @@ static const setting_field fields[]={
 _Static_assert(sizeof(fields)/sizeof(*fields)==XIDE_PREF_COUNT,"Settings field IDs must match their descriptors");
 struct xide_settings_view {
  xui_widget window,content,search,page,scroll,body,title,message,preview,previewButton,query,defaults,apply,okay,cancel;
- xui_widget nav[5],labels[XIDE_PREF_COUNT],controls[XIDE_PREF_COUNT],browse[XIDE_PREF_COUNT];
+ xui_widget navigation,navigationBody,nav[5],labels[XIDE_PREF_COUNT],controls[XIDE_PREF_COUNT],browse[XIDE_PREF_COUNT];
  xui_font previewFont;int selected,loading,dirtyNotice;char text[1024];
  xide_toolchain_request* request;xide_toolchain_profile profile;
 };
@@ -116,13 +116,17 @@ static void fieldChanged(xui_widget widget,const char* text,void* user)
 {(void)widget;(void)text;xide_app* a=user;if(a->settingsView && !a->settingsView->loading)a->settingsView->dirtyNotice=1;xgeRenderRequest();}
 static void checkChanged(xui_widget widget,int state,void* user) {(void)state;fieldChanged(widget,NULL,user);}
 static void selectChanged(xui_widget widget,int index,int value,void* user) {(void)index;(void)value;fieldChanged(widget,NULL,user);}
+static int layoutSettingsContent(xui_widget,xui_rect_t,void*);
 int xideSettingsViewCreate(xide_app* a)
 {
  xide_settings_view* v=calloc(1,sizeof(*v));if(!v)return XUI_ERROR_OUT_OF_MEMORY;a->settingsView=v;
  TRY(xideDialogCreate(a,&v->window,"设置",940,590,14));TRY(xideDialogSetCancel(v->window,closed,a));v->content=xideDialogGetContentWidget(v->window);TRY(xuiWidgetAddChild(a->root,v->window));TRY(xuiWidgetSetLayoutType(v->content,XUI_LAYOUT_MANUAL));
  xui_input_desc_t input={0};input.iSize=sizeof(input);input.pFont=a->uiFont;input.sText="";input.sPlaceholder="搜索设置：字体、缩进、编译器、诊断…";
  TRY(xuiInputCreate(a->context,&v->search,&input));TRY(xuiWidgetAddChild(v->content,v->search));TRY(xuiInputSetChange(v->search,changed,a));
- for(int i=0;i<5;++i)TRY(button(a,v->content,&v->nav[i],pageNames[i]));
+ xui_scroll_view_desc_t navigation={0};navigation.iSize=sizeof(navigation);navigation.iPolicyX=XUI_SCROLLBAR_POLICY_HIDDEN;navigation.iPolicyY=XUI_SCROLLBAR_POLICY_AUTO;
+ TRY(xuiScrollViewCreate(a->context,&v->navigation,&navigation));TRY(xuiWidgetAddChild(v->content,v->navigation));v->navigationBody=xuiScrollViewGetContentWidget(v->navigation);
+ TRY(xuiWidgetSetLayoutType(v->navigationBody,XUI_LAYOUT_MANUAL));
+ for(int i=0;i<5;++i)TRY(button(a,v->navigationBody,&v->nav[i],pageNames[i]));
  TRY(label(a,v->content,&v->title,"编辑器设置"));
  xui_scroll_view_desc_t scroll={0};scroll.iSize=sizeof(scroll);scroll.iPolicyX=XUI_SCROLLBAR_POLICY_HIDDEN;scroll.iPolicyY=XUI_SCROLLBAR_POLICY_AUTO;TRY(xuiScrollViewCreate(a->context,&v->scroll,&scroll));TRY(xuiWidgetAddChild(v->content,v->scroll));v->body=xuiScrollViewGetContentWidget(v->scroll);TRY(xuiWidgetSetLayoutType(v->body,XUI_LAYOUT_MANUAL));
  for(int i=0;i<XIDE_PREF_COUNT;++i){
@@ -134,34 +138,49 @@ int xideSettingsViewCreate(xide_app* a)
   TRY(xuiWidgetSetAccessibleName(v->controls[i],fields[i].title));TRY(xuiWidgetAddChild(v->body,v->controls[i]));
   if(fields[i].kind==TEXT)TRY(button(a,v->body,&v->browse[i],"浏览…"));
  }
- TRY(label(a,v->content,&v->preview,"中文字体预览 / ABC 0123456789 · func main() as int"));
- TRY(button(a,v->content,&v->previewButton,"预览字体"));TRY(button(a,v->content,&v->query,"查询工具链"));
- TRY(label(a,v->content,&v->message,""));TRY(button(a,v->content,&v->defaults,"恢复本页默认值"));TRY(button(a,v->content,&v->apply,"应用"));TRY(button(a,v->content,&v->okay,"确定"));TRY(button(a,v->content,&v->cancel,"取消"));
+ TRY(label(a,v->body,&v->preview,"中文字体预览 / ABC 0123456789 · func main() as int"));
+ TRY(button(a,v->body,&v->previewButton,"预览字体"));TRY(button(a,v->body,&v->query,"查询工具链"));
+ TRY(label(a,v->body,&v->message,""));TRY(button(a,v->content,&v->defaults,"恢复本页默认值"));TRY(button(a,v->content,&v->apply,"应用"));TRY(button(a,v->content,&v->okay,"确定"));TRY(button(a,v->content,&v->cancel,"取消"));
+ TRY(xideDialogFormBegin(v->window,640,440));TRY(xideDialogSetFixedBody(v->window,1));
+ TRY(xuiWidgetSetLayoutType(v->content,XUI_LAYOUT_MANUAL));
+ const xui_widget actions[]={v->defaults,v->okay,v->apply,v->cancel};
+ TRY(xideDialogFormActions(v->window,actions,sizeof(actions)/sizeof(*actions)));
+ TRY(xuiWidgetSetLayoutChildrenCallback(v->content,layoutSettingsContent,a));
  return XUI_OK;
 }
 static int matches(const char* value,const char* query)
 {if(strstr(value,query))return 1;size_t n=strlen(query);for(;*value;++value)if(!_strnicmp(value,query,n))return 1;return !n;}
-void xideSettingsViewLayout(xide_app* a)
+static int layoutSettingsContent(xui_widget content,xui_rect_t area,void* user)
 {
- xide_settings_view* v=a->settingsView;if(!v)return;float s=xideUiFontScale(a),width=940*s,height=590*s;
- float maxW=a->viewportWidth-72,maxH=a->viewportHeight-72;if(maxW<280)maxW=280;if(maxH<240)maxH=240;
- xideDialogSetMaxSize(v->window,maxW,maxH);if(width>maxW-32)width=maxW-32;if(width<580*s)width=580*s;
- xideDialogSetContentSize(v->window,width,height);float nav=174*s,x=nav+18*s,w=width-x,y=0;
- xuiWidgetSetRect(v->search,(xui_rect_t){0,0,width,32*s});for(int i=0;i<5;++i)xuiWidgetSetRect(v->nav[i],(xui_rect_t){0,(48+i*43)*s,nav,36*s});
- const char* q=xuiEditGetText(v->search);const char* title=*q ? "搜索结果（所有分类）" : pageNames[v->selected];if(strcmp(xuiLabelGetText(v->title),title))xuiLabelSetText(v->title,title);xuiWidgetSetRect(v->title,(xui_rect_t){x,44*s,w,30*s});xuiWidgetSetRect(v->scroll,(xui_rect_t){x,82*s,w,330*s});
+ (void)content;xide_app* a=user;xide_settings_view* v=a->settingsView;if(!v)return XUI_OK;
+ float s=xideUiFontScale(a),width=area.fW,height=area.fH,nav=fminf(174*s,width*.28f),x=nav+18*s,w=fmaxf(1,width-x),y=0;
+ float top=82*s,scrollHeight=fmaxf(1,height-top);
+ xuiLayoutArrangeChild(content,v->search,(xui_rect_t){area.fX,area.fY,width,32*s});
+ xuiLayoutArrangeChild(content,v->navigation,(xui_rect_t){area.fX,area.fY+48*s,nav,fmaxf(1,height-48*s)});
+ for(int i=0;i<5;++i)xuiWidgetSetRect(v->nav[i],(xui_rect_t){0,i*43*s,fmaxf(1,nav-12*s),36*s});
+ xuiScrollViewSetContentSize(v->navigation,fmaxf(1,nav-12*s),5*43*s);
+ const char* q=xuiEditGetText(v->search);const char* title=*q ? "搜索结果（所有分类）" : pageNames[v->selected];if(strcmp(xuiLabelGetText(v->title),title))xuiLabelSetText(v->title,title);xuiLayoutArrangeChild(xuiWidgetGetParent(v->title),v->title,(xui_rect_t){area.fX+x,area.fY+44*s,w,30*s});xuiLayoutArrangeChild(xuiWidgetGetParent(v->scroll),v->scroll,(xui_rect_t){area.fX+x,area.fY+top,w,scrollHeight});
  for(int i=0;i<XIDE_PREF_COUNT;++i){int show=*q ? matches(fields[i].title,q) || matches(fields[i].keywords,q) || matches(pageNames[fields[i].page],q) : fields[i].page==v->selected;
   xuiWidgetSetVisible(v->labels[i],show && fields[i].kind!=CHECK);xuiWidgetSetVisible(v->controls[i],show);if(v->browse[i])xuiWidgetSetVisible(v->browse[i],show);if(!show)continue;
   if(fields[i].kind==CHECK){xuiWidgetSetRect(v->controls[i],(xui_rect_t){0,y,w-20*s,32*s});y+=40*s;}
-  else {xuiWidgetSetRect(v->labels[i],(xui_rect_t){0,y,w-20*s,24*s});y+=26*s;float iw=fields[i].kind==TEXT ? w-108*s : 180*s;xuiWidgetSetRect(v->controls[i],(xui_rect_t){0,y,iw,32*s});if(v->browse[i])xuiWidgetSetRect(v->browse[i],(xui_rect_t){iw+8*s,y,80*s,32*s});y+=46*s;}
+  else {xuiWidgetSetRect(v->labels[i],(xui_rect_t){0,y,w-20*s,24*s});y+=26*s;float iw=fields[i].kind==TEXT ? fmaxf(40*s,w-108*s) : fminf(180*s,w-20*s);xuiWidgetSetRect(v->controls[i],(xui_rect_t){0,y,iw,32*s});if(v->browse[i])xuiWidgetSetRect(v->browse[i],(xui_rect_t){iw+8*s,y,80*s,32*s});y+=46*s;}
  }
- xuiWidgetSetPreferredSize(v->body,(xui_vec2_t){w-20*s,y});
- xuiScrollViewSetContentSize(v->scroll,w-20*s,y);
- xuiWidgetSetRect(v->preview,(xui_rect_t){x,424*s,w-124*s,40*s});xuiWidgetSetRect(v->previewButton,(xui_rect_t){width-116*s,424*s,116*s,34*s});
+ float previewY=y+8*s,bodyWidth=fmaxf(1,w-20*s);
+ int stacked=bodyWidth<340*s;
+ xuiWidgetSetRect(v->preview,(xui_rect_t){0,previewY,stacked ? bodyWidth:fmaxf(1,bodyWidth-124*s),40*s});
+ xuiWidgetSetRect(v->previewButton,(xui_rect_t){stacked ? 0:bodyWidth-116*s,previewY+(stacked ? 44*s:0),fminf(bodyWidth,116*s),34*s});
  xuiWidgetSetVisible(v->preview,!*q && v->selected!=2 && v->selected!=4);xuiWidgetSetVisible(v->previewButton,!*q && v->selected!=2 && v->selected!=4);xuiWidgetSetEnabled(v->defaults,!*q);
- xuiWidgetSetRect(v->query,(xui_rect_t){x,424*s,156*s,34*s});xuiWidgetSetVisible(v->query,v->selected==2);xuiWidgetSetEnabled(v->query,v->request==NULL);
+ xuiWidgetSetRect(v->query,(xui_rect_t){0,previewY,fminf(bodyWidth,156*s),34*s});xuiWidgetSetVisible(v->query,v->selected==2);xuiWidgetSetEnabled(v->query,v->request==NULL);
  const char* defaultTitle=v->selected==2 ? "使用内置编译器" : "恢复本页默认值";if(strcmp(xuiButtonGetText(v->defaults),defaultTitle))xuiButtonSetText(v->defaults,defaultTitle);
- xuiWidgetSetRect(v->message,(xui_rect_t){x,470*s,w,64*s});xuiWidgetSetRect(v->defaults,(xui_rect_t){0,546*s,174*s,34*s});
- xuiWidgetSetRect(v->okay,(xui_rect_t){width-276*s,546*s,84*s,34*s});xuiWidgetSetRect(v->apply,(xui_rect_t){width-184*s,546*s,84*s,34*s});xuiWidgetSetRect(v->cancel,(xui_rect_t){width-92*s,546*s,92*s,34*s});
+ float messageY=previewY+(!*q && v->selected!=4 ? (stacked && v->selected!=2 ? 86:46)*s:0);
+ xuiWidgetSetRect(v->message,(xui_rect_t){0,messageY,bodyWidth,64*s});
+ xuiWidgetSetPreferredSize(v->body,(xui_vec2_t){bodyWidth,messageY+64*s});
+ xuiScrollViewSetContentSize(v->scroll,bodyWidth,messageY+64*s);return XUI_OK;
+}
+void xideSettingsViewLayout(xide_app* a)
+{
+ xide_settings_view* v=a->settingsView;if(!v)return;
+ xideDialogSetMaxSize(v->window,a->viewportWidth-32,a->viewportHeight-32);
 }
 int xideSettingsViewOpen(xide_app* a,int page)
 {
