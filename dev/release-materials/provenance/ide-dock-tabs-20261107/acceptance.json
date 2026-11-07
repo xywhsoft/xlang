@@ -1,0 +1,55 @@
+{
+  "passed": true,
+  "groups": {
+    "dock_tabs_view_test": {
+      "report": {
+        "path": "dev/release-materials/provenance/ide-dock-tabs-20261107/published-native/report.json",
+        "sha256": "bdf5fd28cddad9da4756fa58d309cd648658ca01f0de90bcd3fdb0fb5c516615",
+        "bytes": 41429
+      },
+      "sourceSha256": "2ef8ea046183d492ef69469c52992b0061c01ce9fc644ca734af11eabe74ed07"
+    },
+    "input_test": {
+      "report": {
+        "path": "dev/release-materials/provenance/ide-dock-tabs-20261107/published-native/report.json",
+        "sha256": "bdf5fd28cddad9da4756fa58d309cd648658ca01f0de90bcd3fdb0fb5c516615",
+        "bytes": 41429
+      },
+      "sourceSha256": "5d806b950497f3574bf0143d33a046eafe2be64d1591c6f1bef177abc5de57c3"
+    },
+    "settings_view_test": {
+      "report": {
+        "path": "dev/release-materials/provenance/ide-dock-tabs-20261107/native-r1/report.json",
+        "sha256": "516d9583bd6661d7312801c796dda51fe117e3c89d9cf29be0b92720a4fddac7",
+        "bytes": 68182
+      },
+      "sourceSha256": "f86c3144d304ef160169042c62824f6c4176402796662095dfdb4d1bed8ab334"
+    },
+    "settings_menu_frame_test": {
+      "report": {
+        "path": "dev/release-materials/provenance/ide-dock-tabs-20261107/published-native/report.json",
+        "sha256": "bdf5fd28cddad9da4756fa58d309cd648658ca01f0de90bcd3fdb0fb5c516615",
+        "bytes": 41429
+      },
+      "sourceSha256": "4a7f94054d15240a273caf9e41836c1cd790e6abd8784433f4f446e0721a2cd0"
+    },
+    "actions_test": {
+      "report": {
+        "path": "dev/release-materials/provenance/ide-dock-tabs-20261107/native-r1/report.json",
+        "sha256": "516d9583bd6661d7312801c796dda51fe117e3c89d9cf29be0b92720a4fddac7",
+        "bytes": 68182
+      },
+      "sourceSha256": "3d5c8d07e9213e0bc6f5afbd0a36708a0218ce55cb642af3e799c1613ca9995c"
+    },
+    "ui_font_test": {
+      "report": {
+        "path": "dev/release-materials/provenance/ide-dock-tabs-20261107/published-font/report.json",
+        "sha256": "3f43abcc10fbb823d3f5af27619c0e70e440f36039768ab3341f6cd3a40030fe",
+        "bytes": 14375
+      },
+      "sourceSha256": "ec3ecf14ecaf3f15c66ad6ef18c5f6dbb92df2c48f4e56d4970ea9a0e8971cd4"
+    }
+  },
+  "dockChecks": 42,
+  "scope": "Candidate isolation protected the running user IDE; Dock/input/automatic-settings and UI-font checks repeated in the real root release after installation. The initial fixture-only compilation warning was fixed; its raw report is retained."
+}

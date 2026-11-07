@@ -1,0 +1,15 @@
+{
+  "root": "D:\\GIT\\x-lang\\release\\win_x64",
+  "products": {
+    "xlang_ide.exe": "1a3715ca11ae415a7a27f08b43a25dcaae5eedcac8476b86e64d3f9e468d6a09",
+    "xge.dll": "0b13c30fa82345c608e549cfe3b1a7f9176c764cc3dd6a0c79cecbfd3903032e",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "a5feede784f0a5cb1a829c2e362de57e9278b55cec1a11b796cf4b6e78831bbc",
+    "xl.dll": "215d6b3c87704c745ec609eb07e718a52708ad7c13436294f2f662a56169be13",
+    "xlc.dll": "2241fcd462980fc40cbd6c47ce9347d537bababc93225cb6d2a2d36b9b978797",
+    "data/commands.json": "6079cecd10c3f2713622a2af7c030834524f3f502f804806e3f6210a34e4a1ae",
+    "data/catalog-sources/index.json": "4c2447f3d201d59c8cf77a96a9fc4ed99711d111bcda6280b5031431ef74d57f",
+    "option/settings.json": "bfd76ef743b6a205d1f8e600cd32bd2d048d63b2f7f1fb670a45e04824fa9a6f"
+  },
+  "reason": "Protect the running user IDE while validating a newer matched engine and GUI."
+}
