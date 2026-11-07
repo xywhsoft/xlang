@@ -1,0 +1,238 @@
+{
+  "schema": 1,
+  "date": "2026-11-08",
+  "passed": true,
+  "complete": true,
+  "scope": "Requested native shared find UI and affected IDE regressions; not a clean pass of every low-level SDK text API.",
+  "tests": [
+    {
+      "test": "find_follow_view_test",
+      "exit": 0,
+      "log": {
+        "path": "dev/release-materials/provenance/ide-native-find-20261108/find_follow_view_test.log",
+        "sha256": "afbd224c896629f2347c13bfbbc286ff7615b3079d84a1623c436898be88d77b",
+        "bytes": 267
+      },
+      "testSourceSha256": "c8a343ec29b5353373e910a30e783d7509a42f56ea4d7846f6e620f07f5611f6"
+    },
+    {
+      "test": "find_view_test",
+      "exit": 0,
+      "log": {
+        "path": "dev/release-materials/provenance/ide-native-find-20261108/find_view_test.log",
+        "sha256": "0b98728c3d9fcabe76a7713630d049903ec909861730304895d358ef1a5ca068",
+        "bytes": 360
+      },
+      "testSourceSha256": "59d9d4899e13920f0343ff83c2eee19c618e6e4f8b3c5ce1d83c7261da795417"
+    },
+    {
+      "test": "find_options_view_test",
+      "exit": 0,
+      "log": {
+        "path": "dev/release-materials/provenance/ide-native-find-20261108/find_options_view_test.log",
+        "sha256": "91e0bcbd8a92051858259a08ce7b5e32be39ccab5d9fcba67d34dc28d568a6c7",
+        "bytes": 476
+      },
+      "testSourceSha256": "d63ae07741c280d841067f891cf5f7666010a516a26db60024bdadf1e685fb1f"
+    },
+    {
+      "test": "find_boundary_view_test",
+      "exit": 0,
+      "log": {
+        "path": "dev/release-materials/provenance/ide-native-find-20261108/find_boundary_view_test.log",
+        "sha256": "3c58490dd612271c22c1366766893a727d06d91eaacd44d9dc6700d863eff0b6",
+        "bytes": 280
+      },
+      "testSourceSha256": "1247171600310faaeb37092a5e3cfa871a7e0a2ad0f5a77cc6ae3e197a01e0d7"
+    },
+    {
+      "test": "input_test",
+      "exit": 0,
+      "log": {
+        "path": "dev/release-materials/provenance/ide-native-find-20261108/input_test.log",
+        "sha256": "d992b451c3b31e7ddd85ed2d1da08c97c7ed3e8c1b7fb3bf5ca8fbd44164c9c0",
+        "bytes": 302
+      },
+      "testSourceSha256": "5d806b950497f3574bf0143d33a046eafe2be64d1591c6f1bef177abc5de57c3"
+    },
+    {
+      "test": "font_test",
+      "exit": 0,
+      "log": {
+        "path": "dev/release-materials/provenance/ide-native-find-20261108/font_test.log",
+        "sha256": "f6fa94e2588ac5601141fead1aec8b3e2672c00bf7df4449bf941ea3fd4f1315",
+        "bytes": 272
+      },
+      "testSourceSha256": "e9745f1c657316ee95d0fbdfd8fb5ddd96d47f5a472effe2d7ef6b7e0ba33b1e"
+    },
+    {
+      "test": "ui_font_test",
+      "exit": 0,
+      "log": {
+        "path": "dev/release-materials/provenance/ide-native-find-20261108/ui_font_test.log",
+        "sha256": "1a9e6907c8f5598d657a1af0efaa6fa4ccde813e08e9a595a8a68ac46ba0075f",
+        "bytes": 454
+      },
+      "testSourceSha256": "df6eeb947ec845d16e34b72883da112220b8a833bec88b499ae5abee1d3f42f4"
+    },
+    {
+      "test": "reading_test",
+      "exit": 0,
+      "log": {
+        "path": "dev/release-materials/provenance/ide-native-find-20261108/reading_test.log",
+        "sha256": "6cb964cbb96c91c45bd4d73f94d15dbc198dfafd1df657633ecb29fe4a96ed51",
+        "bytes": 552
+      },
+      "testSourceSha256": "0b9d5dcc78d65914f5a1dd43e6cf4127a4b1815de31fb3802dd30cd7467690ea"
+    },
+    {
+      "test": "actions_test",
+      "exit": 0,
+      "log": {
+        "path": "dev/release-materials/provenance/ide-native-find-20261108/actions_test.log",
+        "sha256": "8c3fc3a3eab5ed1bd52228bd076a0dd3ad26ad5c5d94841630b62ca336c5dc7d",
+        "bytes": 773
+      },
+      "testSourceSha256": "5aa6fb73f6eb4827f328346b4733bab10c7e72e39e4c130e94bb335021e78136"
+    },
+    {
+      "test": "editor_minimap_test",
+      "exit": 0,
+      "log": {
+        "path": "dev/release-materials/provenance/ide-native-find-20261108/editor_minimap_test.log",
+        "sha256": "5d3a1be96f932b3187a6469ec8b2ecc494ec8752c4f1dc7eca029efe4dfd3e97",
+        "bytes": 201
+      },
+      "testSourceSha256": "a77bf5567c324acca097b930d932a53ce61baa15e7537fb8189455b236056f14"
+    },
+    {
+      "test": "dock_tabs_view_test",
+      "exit": 0,
+      "log": {
+        "path": "dev/release-materials/provenance/ide-native-find-20261108/dock_tabs_view_test.log",
+        "sha256": "b741d58a6f9055f76d1131cedcd293bc3a5c7786d8247b60291f6c39a4085c74",
+        "bytes": 172
+      },
+      "testSourceSha256": "2ef8ea046183d492ef69469c52992b0061c01ce9fc644ca734af11eabe74ed07"
+    },
+    {
+      "test": "settings_view_test",
+      "exit": 0,
+      "log": {
+        "path": "dev/release-materials/provenance/ide-native-find-20261108/settings_view_test.log",
+        "sha256": "1adcd571bc7bc94957328b66ea55a4b4dbace37be5734132c9e3790d3e78f507",
+        "bytes": 302
+      },
+      "testSourceSha256": "1a09b8f399fca72e2bd060d9c3ac3f54c820cb3db5367932f2607fae093a70f3"
+    },
+    {
+      "test": "settings_menu_frame_test",
+      "exit": 0,
+      "log": {
+        "path": "dev/release-materials/provenance/ide-native-find-20261108/settings_menu_frame_test.log",
+        "sha256": "c9c1ccd683154d918cfbc534e511bcddc1f4418c29f2c6a3d52dfddfbca99351",
+        "bytes": 188
+      },
+      "testSourceSha256": "4a7f94054d15240a273caf9e41836c1cd790e6abd8784433f4f446e0721a2cd0"
+    },
+    {
+      "test": "help_viewport_test",
+      "exit": 0,
+      "log": {
+        "path": "dev/release-materials/provenance/ide-native-find-20261108/help_viewport_test.log",
+        "sha256": "bc54c9a1d3a0807cebd71f2a201d38dd5f6c45798b02625fa1d622fdf3805052",
+        "bytes": 1422
+      },
+      "testSourceSha256": "534439c3a6089ce84de672ec42795c5328a69fdafc386acc6b68451259ff2dde"
+    },
+    {
+      "test": "catalog_view_test",
+      "exit": 0,
+      "log": {
+        "path": "dev/release-materials/provenance/ide-native-find-20261108/catalog_view_test.log",
+        "sha256": "a660696a11146c447db9bdb37d6c60ab7bfda95f5cc80652870655298783635d",
+        "bytes": 197
+      },
+      "testSourceSha256": "081247e296b1f2a8bf07b816170046711592a0383b478372e4eacbe563cfccdc"
+    },
+    {
+      "test": "dock_windows_view_test",
+      "exit": 0,
+      "log": {
+        "path": "dev/release-materials/provenance/ide-native-find-20261108/dock_windows_view_test.log",
+        "sha256": "9c2cfd00bebaad5c893b3dc035c6c01fd7065e2a7ac01f7f35f3259bf38a2c25",
+        "bytes": 187
+      },
+      "testSourceSha256": "c640ed3d77963764f45f09d96657b58e12d63eec6bf8a17490da2d5f287d0b0e"
+    },
+    {
+      "test": "dialog_layout_test",
+      "exit": 0,
+      "log": {
+        "path": "dev/release-materials/provenance/ide-native-find-20261108/dialog_layout_test.log",
+        "sha256": "2b789cfb7bf7e093e98fed903d32b919493ea928318ca9b5e47222336d16120f",
+        "bytes": 206
+      },
+      "testSourceSha256": "70a0e91feb961d7ff69e40316218881d72aabbfc8a3a2859f0b096d2567312a4"
+    }
+  ],
+  "regressionFixtures": 17,
+  "sharedFindChecks": 71,
+  "nativeSessionChecks": 29,
+  "nativeSessionLog": {
+    "path": "dev/release-materials/provenance/ide-native-find-20261108/native_session.log",
+    "sha256": "6a921f58d185fa9d50a4a36a0bf216e2c5cc9eacdccbf90ce4062138cb4090f1",
+    "bytes": 203
+  },
+  "knownUnchangedLowLevelFailures": [
+    {
+      "test": "find_escape_test",
+      "exit": 1,
+      "sameFailedAssertions": true,
+      "baseline": {
+        "path": "dev/release-materials/provenance/ide-native-find-20261108/baseline-find_escape_test.log",
+        "sha256": "366f32a6b8edeef582adb9662f66c6329d826c423df6f396f85da36bfcfe1174",
+        "bytes": 2297
+      },
+      "current": {
+        "path": "dev/release-materials/provenance/ide-native-find-20261108/find_escape_test.log",
+        "sha256": "366f32a6b8edeef582adb9662f66c6329d826c423df6f396f85da36bfcfe1174",
+        "bytes": 2297
+      }
+    },
+    {
+      "test": "find_boundaries_test",
+      "exit": 1,
+      "sameFailedAssertions": true,
+      "baseline": {
+        "path": "dev/release-materials/provenance/ide-native-find-20261108/baseline-find_boundaries_test.log",
+        "sha256": "3b757c1af3e1ae05b0c03b7aa4e9a6e657e22b45a51fc832e176a88b8e3b6186",
+        "bytes": 4567
+      },
+      "current": {
+        "path": "dev/release-materials/provenance/ide-native-find-20261108/find_boundaries_test.log",
+        "sha256": "3b757c1af3e1ae05b0c03b7aa4e9a6e657e22b45a51fc832e176a88b8e3b6186",
+        "bytes": 4567
+      }
+    }
+  ],
+  "previousNativeUiFailuresNowPass": [
+    "find_options_view_test",
+    "find_boundary_view_test"
+  ],
+  "sourceMaterials": {
+    "path": "dev/release-materials/sources/ide-native-find-20261108/manifest.json",
+    "sha256": "e4fbd371609a1efeccade9299f6393c165efce800b1dc5d3187a0267b73a7aeb",
+    "bytes": 4224
+  },
+  "sourceRevision": "cc96a4fd2dae758da8237ed9115f7b9ae5e4190d",
+  "xge": {
+    "mainline": "ed2048fb08bb2e559e0ce4b5c5bdabf4a80ce6bb",
+    "sdkPin": "e33e3d3050f00b3137d1cc20daad232574dbf739",
+    "qualifiedBase": "1312f03546d8def9e4ddf169881f7ba44a1438e2"
+  },
+  "guiOptimization": "-O2",
+  "xgeOptimization": "-O2",
+  "qualifiedBaseline": "Pinned prior IDE XGE profile plus this change; newer unrelated incremental rendering and uncommitted LS development are not included.",
+  "externalPublicationPerformed": false
+}

@@ -1,0 +1,30 @@
+pattern=$ count=1 ret=0 length=13
+pattern=^ count=1 ret=0 length=13
+pattern=^|$ count=2 ret=0 length=9
+pattern=() count=3 ret=0 length=10
+pattern=() count=5 ret=0 length=16
+pattern=() count=3 ret=0 length=16
+pattern=$ count=1 ret=0 length=7
+pattern=$ count=1 ret=0 length=1
+pattern=() count=1 ret=0 length=1
+find_boundaries_test: 53 assertions, 20 failures
+find_boundaries_test:10: ret==XUI_OK && output && count==expectedCount && length==(int)strlen(expected)
+find_boundaries_test:11: output && !strcmp(output,expected) && xrtUtf8Valid((xstrview){output,(size_t)length},NULL)
+find_boundaries_test:38: xuiFindReplaceAllText("target",-1,"target",invalid[i],0,-1,XUI_FIND_ESCAPE|(regex?XUI_FIND_REGEX:0),&output,&length,&count,error,sizeof(error))==XUI_ERROR_INVALID_ARGUMENT && !output && !length && !count && error[0]
+find_boundaries_test:40: xuiFindText("中😀",-1,invalid[i],0,0,-1,XUI_FIND_ESCAPE|(regex?XUI_FIND_REGEX:0),&result,error,sizeof(error))==XUI_ERROR_INVALID_ARGUMENT && error[0]
+find_boundaries_test:38: xuiFindReplaceAllText("target",-1,"target",invalid[i],0,-1,XUI_FIND_ESCAPE|(regex?XUI_FIND_REGEX:0),&output,&length,&count,error,sizeof(error))==XUI_ERROR_INVALID_ARGUMENT && !output && !length && !count && error[0]
+find_boundaries_test:40: xuiFindText("中😀",-1,invalid[i],0,0,-1,XUI_FIND_ESCAPE|(regex?XUI_FIND_REGEX:0),&result,error,sizeof(error))==XUI_ERROR_INVALID_ARGUMENT && error[0]
+find_boundaries_test:38: xuiFindReplaceAllText("target",-1,"target",invalid[i],0,-1,XUI_FIND_ESCAPE|(regex?XUI_FIND_REGEX:0),&output,&length,&count,error,sizeof(error))==XUI_ERROR_INVALID_ARGUMENT && !output && !length && !count && error[0]
+find_boundaries_test:40: xuiFindText("中😀",-1,invalid[i],0,0,-1,XUI_FIND_ESCAPE|(regex?XUI_FIND_REGEX:0),&result,error,sizeof(error))==XUI_ERROR_INVALID_ARGUMENT && error[0]
+find_boundaries_test:38: xuiFindReplaceAllText("target",-1,"target",invalid[i],0,-1,XUI_FIND_ESCAPE|(regex?XUI_FIND_REGEX:0),&output,&length,&count,error,sizeof(error))==XUI_ERROR_INVALID_ARGUMENT && !output && !length && !count && error[0]
+find_boundaries_test:40: xuiFindText("中😀",-1,invalid[i],0,0,-1,XUI_FIND_ESCAPE|(regex?XUI_FIND_REGEX:0),&result,error,sizeof(error))==XUI_ERROR_INVALID_ARGUMENT && error[0]
+find_boundaries_test:38: xuiFindReplaceAllText("target",-1,"target",invalid[i],0,-1,XUI_FIND_ESCAPE|(regex?XUI_FIND_REGEX:0),&output,&length,&count,error,sizeof(error))==XUI_ERROR_INVALID_ARGUMENT && !output && !length && !count && error[0]
+find_boundaries_test:40: xuiFindText("中😀",-1,invalid[i],0,0,-1,XUI_FIND_ESCAPE|(regex?XUI_FIND_REGEX:0),&result,error,sizeof(error))==XUI_ERROR_INVALID_ARGUMENT && error[0]
+find_boundaries_test:38: xuiFindReplaceAllText("target",-1,"target",invalid[i],0,-1,XUI_FIND_ESCAPE|(regex?XUI_FIND_REGEX:0),&output,&length,&count,error,sizeof(error))==XUI_ERROR_INVALID_ARGUMENT && !output && !length && !count && error[0]
+find_boundaries_test:40: xuiFindText("中😀",-1,invalid[i],0,0,-1,XUI_FIND_ESCAPE|(regex?XUI_FIND_REGEX:0),&result,error,sizeof(error))==XUI_ERROR_INVALID_ARGUMENT && error[0]
+find_boundaries_test:38: xuiFindReplaceAllText("target",-1,"target",invalid[i],0,-1,XUI_FIND_ESCAPE|(regex?XUI_FIND_REGEX:0),&output,&length,&count,error,sizeof(error))==XUI_ERROR_INVALID_ARGUMENT && !output && !length && !count && error[0]
+find_boundaries_test:38: xuiFindReplaceAllText("target",-1,"target",invalid[i],0,-1,XUI_FIND_ESCAPE|(regex?XUI_FIND_REGEX:0),&output,&length,&count,error,sizeof(error))==XUI_ERROR_INVALID_ARGUMENT && !output && !length && !count && error[0]
+find_boundaries_test:38: xuiFindReplaceAllText("target",-1,"target",invalid[i],0,-1,XUI_FIND_ESCAPE|(regex?XUI_FIND_REGEX:0),&output,&length,&count,error,sizeof(error))==XUI_ERROR_INVALID_ARGUMENT && !output && !length && !count && error[0]
+find_boundaries_test:38: xuiFindReplaceAllText("target",-1,"target",invalid[i],0,-1,XUI_FIND_ESCAPE|(regex?XUI_FIND_REGEX:0),&output,&length,&count,error,sizeof(error))==XUI_ERROR_INVALID_ARGUMENT && !output && !length && !count && error[0]
+find_boundaries_test:38: xuiFindReplaceAllText("target",-1,"target",invalid[i],0,-1,XUI_FIND_ESCAPE|(regex?XUI_FIND_REGEX:0),&output,&length,&count,error,sizeof(error))==XUI_ERROR_INVALID_ARGUMENT && !output && !length && !count && error[0]
+find_boundaries_test:38: xuiFindReplaceAllText("target",-1,"target",invalid[i],0,-1,XUI_FIND_ESCAPE|(regex?XUI_FIND_REGEX:0),&output,&length,&count,error,sizeof(error))==XUI_ERROR_INVALID_ARGUMENT && !output && !length && !count && error[0]

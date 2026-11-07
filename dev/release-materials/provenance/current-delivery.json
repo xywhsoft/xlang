@@ -134,15 +134,16 @@
     "buildScope": "Shared modeless find/replace, automatic editor target tracking, all-open-document native find scope, explicit current-document replacement, responsive footer and overlay font lifetime. Full O2 GUI cohort and targeted private corrections; existing qualified XGE and language server retained; unrelated WIP excluded.",
     "currentEngine": {
       "sourceMaterials": {
-        "path": "dev/release-materials/sources/ide-dock-tabs-20261107/manifest.json",
-        "sha256": "7412cabd244298961fac8844035fda77276e8a46f9bd462161de026a59d5a691",
-        "bytes": 1570
+        "path": "dev/release-materials/sources/ide-native-find-20261108/manifest.json",
+        "sha256": "e4fbd371609a1efeccade9299f6393c165efce800b1dc5d3187a0267b73a7aeb",
+        "bytes": 4224
       },
-      "sourceCommit": "1312f03546d8def9e4ddf169881f7ba44a1438e2",
-      "publicAbiFingerprint": "a18af9d1b7a68e09",
+      "sourceCommit": "e33e3d3050f00b3137d1cc20daad232574dbf739",
+      "publicAbiFingerprint": "0x85b8ac8ac68489ba",
       "profile": "ide",
       "xrtMode": "embedded",
-      "runtime": "release/win_x64/xge.dll"
+      "runtime": "release/win_x64/xge.dll",
+      "mainlineCommit": "ed2048fb08bb2e559e0ce4b5c5bdabf4a80ce6bb"
     },
     "previousBuildProvenanceBeforeAbout": "dev/release-materials/provenance/xge-ide-update-20261106/publication-receipt.json",
     "aboutWindow": {
@@ -181,7 +182,12 @@
       "key": "editor.minimap",
       "disabledMode": "traditional-scrollbar"
     },
-    "guiEntryTranslationUnits": 1
+    "guiEntryTranslationUnits": 1,
+    "nativeSharedFind": {
+      "path": "dev/release-materials/provenance/ide-native-find-20261108/publication-receipt.json",
+      "sha256": "a389fcfa82b9b745cb543569aba87dc7316619af35fc628690ca77583aca25b4",
+      "bytes": 2813
+    }
   },
   "catalog": {
     "status": "passed",
@@ -3255,8 +3261,8 @@
       "previousSha256": "72ecb9983e40475a04f29f47d40f5ac20143d2f03c646a8c3b487d61bdd0e7a1"
     },
     {
-      "sha256": "b6da9773184e41665640b3906423f74c2427b1598a6074af5e607a4c16cab8b5",
-      "bytes": 1854801,
+      "sha256": "35863315f555c51c0ef7ac563147caebf2f6640d7f3e9eaecf2daef5cff8f40a",
+      "bytes": 1897286,
       "path": "release/win_x64/xlang_ide.exe",
       "origin": "ide-minimap-setting-20261107"
     },
@@ -3267,8 +3273,8 @@
       "origin": "matched-xge3-xui3-local-delivery-20261105"
     },
     {
-      "sha256": "b415e78d21f8c8b0d8fcb86924169dd35d595d29951391c102892b00399718ff",
-      "bytes": 11149369,
+      "sha256": "acdc0e86fd27d30ca0d96b578e832315766a39b9f1af5a442babb7a8902c1d53",
+      "bytes": 11155513,
       "path": "release/win_x64/xge.dll",
       "origin": "ide-dock-tabs-20261107"
     },
@@ -3830,18 +3836,36 @@
   },
   "ideSharedFind": {
     "publicationReceipt": {
-      "path": "dev/release-materials/provenance/ide-find-follow-20261108/publication-receipt.json",
-      "sha256": "d9114ea59c19f7567e8c4ffc218dd8129f9a1e9a1b9d7257d82d92ce15e7273f",
-      "bytes": 3069
+      "path": "dev/release-materials/provenance/ide-native-find-20261108/publication-receipt.json",
+      "sha256": "a389fcfa82b9b745cb543569aba87dc7316619af35fc628690ca77583aca25b4",
+      "bytes": 2813
     },
     "sourceMaterials": {
-      "path": "dev/release-materials/sources/ide-find-follow-20261108/manifest.json",
-      "sha256": "76b3b78fd450f5cff3647ebadd05e7df8ac99cff4b9905a97fc7fb135b8674d0",
-      "bytes": 2986
+      "path": "dev/release-materials/sources/ide-native-find-20261108/manifest.json",
+      "sha256": "e4fbd371609a1efeccade9299f6393c165efce800b1dc5d3187a0267b73a7aeb",
+      "bytes": 4224
     },
     "regressionFixtures": 17,
-    "sharedFindChecks": 70,
-    "knownNativeBoundaryFailures": 4,
+    "sharedFindChecks": 71,
+    "nativeSessionChecks": 29,
+    "knownNativeBoundaryFailures": 2,
+    "implementation": "XGE built-in shared scope window; IDE only supplies document/activation integration",
+    "previous": {
+      "publicationReceipt": {
+        "path": "dev/release-materials/provenance/ide-find-follow-20261108/publication-receipt.json",
+        "sha256": "d9114ea59c19f7567e8c4ffc218dd8129f9a1e9a1b9d7257d82d92ce15e7273f",
+        "bytes": 3069
+      },
+      "sourceMaterials": {
+        "path": "dev/release-materials/sources/ide-find-follow-20261108/manifest.json",
+        "sha256": "76b3b78fd450f5cff3647ebadd05e7df8ac99cff4b9905a97fc7fb135b8674d0",
+        "bytes": 2986
+      },
+      "regressionFixtures": 17,
+      "sharedFindChecks": 70,
+      "knownNativeBoundaryFailures": 4,
+      "installed": true
+    },
     "installed": true
   }
 }

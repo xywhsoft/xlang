@@ -1,0 +1,1 @@
+find_view_test passed: 53 native assertions; C/xlang/open-document search, actual table activation and Dock focus, Unicode replacement and single undo/redo, readonly actions, whole-word, language override, Save As names, stale-result removal, dirty-close refusal, direct close, slot reuse, untitled/plain and reset; four native images; source files preserved

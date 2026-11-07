@@ -1,0 +1,3 @@
+[compile] src/xui/code/xui_code_edit.c
+[link] build\ide\xge.dll
+[XGE ide] 1 compiled, 172 reused, 4.81s, 11155513 runtime bytes

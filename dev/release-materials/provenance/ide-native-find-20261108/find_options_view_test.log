@@ -1,0 +1,3 @@
+invalid regex c: count=0 dirty=0 invalidStatus=1 notFoundStatus=0
+invalid regex xlang: count=0 dirty=0 invalidStatus=1 notFoundStatus=0
+find_options_view_test passed: 164 native assertions; real C/xlang find/replace controls, case/whole-word, regex captures, literal tab and scalar UTF-8 escapes, invalid-input document/version/undo preservation, malformed regex status, reverse selected-range replacement, single undo/redo; eight images; disk and peer documents preserved

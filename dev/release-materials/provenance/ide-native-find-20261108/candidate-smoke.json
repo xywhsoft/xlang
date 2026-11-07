@@ -1,0 +1,17 @@
+{
+  "command": [
+    "F:\\xlang-validation\\ide-native-find-20261108\\candidate-runtime\\xlang_ide.exe",
+    "--hidden",
+    "--frames",
+    "5",
+    "--no-session",
+    "--no-auto-diagnostics",
+    "--settings",
+    "D:\\GIT\\x-lang\\ide\\build\\Release\\native-find-20261108\\candidate-smoke\\settings.json",
+    "--session-root",
+    "D:\\GIT\\x-lang\\ide\\build\\Release\\native-find-20261108\\candidate-smoke\\sessions",
+    "--diagnostic-root",
+    "D:\\GIT\\x-lang\\ide\\build\\Release\\native-find-20261108\\candidate-smoke\\diagnostics"
+  ],
+  "exit": 0
+}

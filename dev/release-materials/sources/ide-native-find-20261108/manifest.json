@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "sourceRevision": "cc96a4fd2dae758da8237ed9115f7b9ae5e4190d",
+  "baseRevision": "5cb09971f",
+  "parentSourceMaterials": {
+    "path": "dev/release-materials/sources/ide-find-follow-20261108/manifest.json",
+    "sha256": "76b3b78fd450f5cff3647ebadd05e7df8ac99cff4b9905a97fc7fb135b8674d0",
+    "bytes": 2986
+  },
+  "overlay": {
+    "path": "dev/release-materials/sources/ide-native-find-20261108/source-overlay.zip",
+    "sha256": "9834fc05e4af22ecb5b216ec5815951241f9bbeb5d40b56c5b2a3510da8f5b49",
+    "bytes": 267822
+  },
+  "files": {
+    "ide/docs/shared-find.md": "4ec1d9d31e733376168ff7a77d40983acc7d92796aef6b1372f87a607a9ddbad",
+    "ide/src/app/xide_app.c": "6a3d97b97d67f4e2306b7bf764588167704c6c9556077e78398e345ce3bb15b9",
+    "ide/src/app/xide_app.h": "0323af630fa753147512e2160714995da8ccd67bf3e4a748159c1eebbfa158c9",
+    "ide/src/ui/editor_view.c": "3c426a7b4a78faec2a8e89faab013843ef39670df396cdedf40b75619c54d312",
+    "ide/src/ui/find_view.c": "07b6afae853ee0cc15e64cbbd1a16fbacfab4d9e9e3faa83ebc1ff5e4c0941b9",
+    "ide/src/ui/find_view.h": "dd7aa7380a5d487ba8ed288d09359043d7e014ff96bd6715f9e794c65933fc63",
+    "ide/src/ui/workbench.c": "955668d10edee35900b8354882b52af3b063b423d36cf7fcfb2bac440723f063",
+    "ide/tests/find_follow_view_test.c": "c8a343ec29b5353373e910a30e783d7509a42f56ea4d7846f6e620f07f5611f6",
+    "ide/third_party/xge_sdk/provenance/compatibility-patches/patch-manifest.json": "acc44e589cae6108d6e9ebffa75c68b77b441f2de0b957c51312389c5d46d4c3",
+    "ide/third_party/xge_sdk/provenance/parent-sdk-manifest.json": "cd4d11b87a184e38fe499e6e79b0dc97772b76cf0ff4a2f1cde3556afeece5f0",
+    "ide/third_party/xge_sdk/provenance/source-build-manifest.json": "7804a974cbb32e9a4e9b13dd700db7ff3b2675ddc914e78c12d0f52c1b6f534a",
+    "ide/third_party/xge_sdk/provenance/source-build-report.json": "0ddf996571e8ed4b8addd902cd190c05021b8d25c2e484532170a49246d7d563",
+    "ide/third_party/xge_sdk/sdk_manifest.json": "84635776d9c684b9c0c20c3b1658c565a1fda3084836ba339a6386dbc846cf30",
+    "ide/third_party/xge_sdk/xge-source-files.json": "7804a974cbb32e9a4e9b13dd700db7ff3b2675ddc914e78c12d0f52c1b6f534a",
+    "ide/third_party/xge_sdk/xge_build_config.h": "645e1220e4483db2d455a33d08048747042ab670ab58398e28ace65ec6e64c1f",
+    "ide/third_party/xge_sdk/xui.h": "f4c30a59203d3ce61d4995ffff296f1413c3ba322ea6d362f198a8c0317cd168",
+    "ide/tools/import_xge_sdk.py": "3f9b63ffc24733694dee0b1ce8fdc9d6084c36f4ad5de98bbaa09893908717d0"
+  },
+  "sdkManifest": {
+    "path": "ide/third_party/xge_sdk/sdk_manifest.json",
+    "sha256": "84635776d9c684b9c0c20c3b1658c565a1fda3084836ba339a6386dbc846cf30",
+    "bytes": 23448
+  },
+  "xge": {
+    "mainline": "ed2048fb08bb2e559e0ce4b5c5bdabf4a80ce6bb",
+    "sdkPin": "e33e3d3050f00b3137d1cc20daad232574dbf739",
+    "qualifiedBase": "1312f03546d8def9e4ddf169881f7ba44a1438e2",
+    "sourceArchive": {
+      "path": "dev/release-materials/sources/ide-native-find-20261108/xge-source.zip",
+      "sha256": "77309062602c49d20c87c63d7076be44137caa5de572df1ffe330f4cd6d29eb3",
+      "bytes": 10059305
+    },
+    "dependencyFiles": 790,
+    "compatibilityOverlays": "Retain three previously accepted checked OpenGL/WGL startup patches; clean-baseline build receipt reused from prior delivery, final SDK built and tested."
+  },
+  "verificationSources": {
+    "path": "dev/release-materials/sources/ide-native-find-20261108/verification-sources.zip",
+    "sha256": "a0fee2f97d7601adf612d477e91203b4de7956d2df5ff8068cd81042df86d3ef",
+    "bytes": 80868
+  },
+  "optimization": "-O2",
+  "build": "Full 108-object GUI cohort plus GUI entry. Final private find_view.c polish recompiled; every compiled public header remained byte-identical, GUI relinked against final matched SDK. Qualified language service implementation from previous delivery; unrelated uncommitted LS work left untouched.",
+  "rebuild": "Restore parent source materials, apply overlay, install matched SDK from the recorded source revision, and build GuiOnly against the unchanged qualified language server. XGE source archive includes the exact compiler dependency closure with recorded compatibility patches already applied."
+}

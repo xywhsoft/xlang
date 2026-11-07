@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "status": "installed-and-smoke-verified",
+  "date": "2026-11-08",
+  "sourceRevision": "cc96a4fd2dae758da8237ed9115f7b9ae5e4190d",
+  "xge": {
+    "mainline": "ed2048fb08bb2e559e0ce4b5c5bdabf4a80ce6bb",
+    "sdkPin": "e33e3d3050f00b3137d1cc20daad232574dbf739",
+    "qualifiedBase": "1312f03546d8def9e4ddf169881f7ba44a1438e2"
+  },
+  "previous": {
+    "xlang_ide.exe": {
+      "path": "release/win_x64/xlang_ide.exe",
+      "sha256": "a521715be107eee60a4f9e8bdc238bdc06637e149d318c2b9588bee8cde930a2",
+      "bytes": 1912028
+    },
+    "xge.dll": {
+      "path": "release/win_x64/xge.dll",
+      "sha256": "b415e78d21f8c8b0d8fcb86924169dd35d595d29951391c102892b00399718ff",
+      "bytes": 11149369
+    }
+  },
+  "installed": {
+    "xlang_ide.exe": {
+      "path": "release/win_x64/xlang_ide.exe",
+      "sha256": "35863315f555c51c0ef7ac563147caebf2f6640d7f3e9eaecf2daef5cff8f40a",
+      "bytes": 1897286
+    },
+    "xge.dll": {
+      "path": "release/win_x64/xge.dll",
+      "sha256": "acdc0e86fd27d30ca0d96b578e832315766a39b9f1af5a442babb7a8902c1d53",
+      "bytes": 11155513
+    }
+  },
+  "retainedRuntimeHashes": {
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "a5feede784f0a5cb1a829c2e362de57e9278b55cec1a11b796cf4b6e78831bbc",
+    "xl.dll": "215d6b3c87704c745ec609eb07e718a52708ad7c13436294f2f662a56169be13",
+    "xlc.dll": "2241fcd462980fc40cbd6c47ce9347d537bababc93225cb6d2a2d36b9b978797"
+  },
+  "acceptance": {
+    "path": "dev/release-materials/provenance/ide-native-find-20261108/acceptance.json",
+    "sha256": "b5a412325a8ec74aacfe92ace4576fe7f2b3c4fbe502617662030346940faf81",
+    "bytes": 9406
+  },
+  "sourceMaterials": {
+    "path": "dev/release-materials/sources/ide-native-find-20261108/manifest.json",
+    "sha256": "e4fbd371609a1efeccade9299f6393c165efce800b1dc5d3187a0267b73a7aeb",
+    "bytes": 4224
+  },
+  "installedSmoke": {
+    "command": [
+      "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide.exe",
+      "--hidden",
+      "--frames",
+      "5",
+      "--no-session",
+      "--no-auto-diagnostics",
+      "--settings",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\native-find-20261108\\installed-smoke\\settings.json",
+      "--session-root",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\native-find-20261108\\installed-smoke\\sessions",
+      "--diagnostic-root",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\native-find-20261108\\installed-smoke\\diagnostics"
+    ],
+    "exit": 0,
+    "log": {
+      "path": "dev/release-materials/provenance/ide-native-find-20261108/installed-smoke.log",
+      "sha256": "9e49ba2cc2476f98f58ba2f7e9cce9397dc1a3825dff0047f247a4f42df27956",
+      "bytes": 74
+    }
+  },
+  "externalPublicationPerformed": false
+}

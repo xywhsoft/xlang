@@ -1,0 +1,1 @@
+dock_windows_view_test passed: 169 checks; 12 checkable windows, actual View and native close clicks, floating/auto-hide, all-hidden recovery, unchanged clients and loaded layout state.

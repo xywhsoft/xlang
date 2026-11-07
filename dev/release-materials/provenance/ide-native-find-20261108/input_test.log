@@ -1,0 +1,1 @@
+input_test passed: native ordered text/key/focus, event modifiers, repeat, C completion once, Unicode IME preedit/commit/cancel/replacement/undo/read-only, input field/floating editor composition and candidate anchor, middle button, touch cancel, blur capture, modal shortcuts and ordered save/close.
