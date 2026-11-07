@@ -1,4 +1,5 @@
 #include "ui/editor_view.h"
+#include "ui/find_view.h"
 #include "services/preferences.h"
 #include "ui/language_view.h"
 #if XIDE_ENABLE_C_LSP
@@ -122,6 +123,7 @@ static void documentChanged(xide_document* document,void* user)
     xide_app* app=user;
     if(!document->open && app->activeDocument==document) app->activeDocument=NULL;
     int findResult=syncFindScope(app,document); if(findResult!=XUI_OK) app->frameError=findResult;
+    xideFindViewChanged(app);
     if(document->window>=0 && document->open) {
         size_t length=strlen(document->title)+3; char* title=malloc(length);
         if(title) { snprintf(title,length,"%s%s",document->title,document->dirty ? " *" : ""); xuiDockPanelSetWindowTitle(app->dock,document->window,title); free(title); }
@@ -352,6 +354,7 @@ static void statusPosition(xide_app* app,xide_document* document,int* line,int* 
 }
 void xideEditorPoll(xide_app* app)
 {
+    xideFindViewPoll(app);
     xideCatalogViewPoll(app); xideCompletionViewPoll(app);
 #if XIDE_ENABLE_C_LSP
  xideCCompletionViewPoll(app);
@@ -392,6 +395,8 @@ int xideEditorAction(xide_app* app,int action)
             if(!document->dirty || xideMessageConfirm(app,"重新加载文件","重新加载将放弃此文件未保存的修改。是否继续？",XUI_MSGBOX_BUTTON_YES_NO,xideMessageDocumentKey(document,3,0))==XUI_MSGBOX_RESULT_YES) ok=xideDocumentReload(document,1,&error);
         } else if(action>=XIDE_ACTION_LANGUAGE_C && action<=XIDE_ACTION_LANGUAGE_TEXT) {
             const char* modes[]={"c","xlang","text"}; ok=xideDocumentSetLanguage(document,modes[action-XIDE_ACTION_LANGUAGE_C],&error);
+        } else if(action==XIDE_ACTION_EDITOR_FIND || action==XIDE_ACTION_EDITOR_REPLACE) {
+            ok=xideFindViewOpen(app,action==XIDE_ACTION_EDITOR_REPLACE);
         } else if(action==XIDE_ACTION_EDITOR_COMPLETE) {
             xuiSetFocusWidget(app->context,document->editor);
             xui_code_selection_t selection={0}; xuiCodeSelectionGetState(xuiCodeEditGetSelection(document->editor),&selection);

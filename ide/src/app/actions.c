@@ -8,6 +8,7 @@
 #include "ui/completion_view.h"
 #include "app/xide_app.h"
 #include "ui/editor_view.h"
+#include "ui/find_view.h"
 #include "services/ui_font.h"
 #include "ui/workspace_view.h"
 #include "ui/task_view.h"
@@ -398,6 +399,10 @@ static int editorKey(xui_widget widget,const xui_event_t* event,void* user)
     for(binding* item=app->actions->bindings;item;item=item->next) if(item->widget==widget && item->kind==3) { b=item; break; }
     if(event->iPhase==XUI_EVENT_PHASE_TARGET) {
         int key=event->iKey; if(key>='a' && key<='z') key-=('a'-'A');
+        if(key==XUI_KEY_F3 && !(event->iModifiers&~XUI_MOD_SHIFT) && !xideActionsHasModal(app)) {
+            xide_document* doc=documentFor(app,widget);if(doc)app->activeDocument=doc;
+            if(xideFindViewNavigate(app,!!(event->iModifiers&XUI_MOD_SHIFT)))return XUI_EVENT_DISPATCH_STOP;
+        }
         for(size_t i=0;i<xideActionCount();++i) {
             const xide_action_info* action=&definitions[i].info;
             if(action->shortcutScope!=XIDE_SHORTCUT_EDITOR || !action->key || key!=action->key || event->iModifiers!=action->modifiers) continue;

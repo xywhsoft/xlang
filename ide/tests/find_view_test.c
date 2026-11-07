@@ -26,7 +26,8 @@ static xui_widget control(xide_app* a,xui_widget parent,const char* type,const c
 static xui_widget get(xide_app* a,xide_document* d,const char* type,int text,int index) { return control(a,xuiCodeEditGetFindWindow(d->editor),type,text ? xuiTranslate(a->context,text) : NULL,&index); }
 static int button(xide_app* a,xide_document* d,int text) { xui_widget w=get(a,d,"button",text,0); return w && pointer(a,xuiWidgetGetWorldRect(w)); }
 static int field(xide_app* a,xide_document* d,int index,const char* text) { xui_widget w=get(a,d,"input",0,index); return w && xuiInputSetText(w,text)==XUI_OK && settle(a); }
-static int openSearch(xide_app* a,xide_document* d,int replace) { return xideEditorShow(a,d)==XUI_OK && settle(a) && key(a,replace ? 'H' : 'F',XUI_MOD_CTRL) && xuiWidgetGetVisible(xuiCodeEditGetFindWindow(d->editor)); }
+/* Native SDK contracts; the shared IDE session is covered by find_follow_view_test. */
+static int openSearch(xide_app* a,xide_document* d,int replace) { return xideEditorShow(a,d)==XUI_OK && settle(a) && (replace ? xuiCodeEditOpenReplace(d->editor):xuiCodeEditOpenFind(d->editor))==XUI_OK && settle(a) && xuiWidgetGetVisible(xuiCodeEditGetFindWindow(d->editor)); }
 static int dismiss(xide_app* a,xide_document* d) { xui_widget input=get(a,d,"input",0,0);return input && xuiSetFocusWidget(a->context,input)==XUI_OK && settle(a) && key(a,XUI_KEY_ESCAPE,0) && !xuiWidgetGetVisible(xuiCodeEditGetFindWindow(d->editor)); }
 static int capture(xide_app* a,const char* p) { xui_rect_i_t r={0,0,a->viewportWidth,a->viewportHeight}; return xuiUpdate(a->context,0)==XUI_OK && a->proxy.surfaceClear(&a->proxy,a->target,0xffeeeeeeu)==XUI_OK && xuiRender(a->context,a->target,&r,1)==XUI_OK && xideAppCapture(a,p)==XGE_OK; }
 static int sameFile(const char* p,const char* text) { size_t n=0;unsigned char* raw=xrtFileReadAllLimit(p,4096,&n);int same=raw && n==strlen(text) && !memcmp(raw,text,n);xrtFree(raw);return same; }

@@ -1,3 +1,4 @@
+#include "ui/find_view.h"
 #include "ui/import_view.h"
 #include "ui/template_view.h"
 #include "ui/rename_view.h"
@@ -159,6 +160,7 @@ int xideUiFontInstall(xide_app* app,xui_font previous,xui_font replacement,int s
     if(result==XUI_OK) result=bind(app,xideRecoveryViewWindow(app),previous,replacement,&scan);
     if(result==XUI_OK) result=bind(app,xideFileChangesViewWindow(app),previous,replacement,&scan);
     if(result==XUI_OK) result=bind(app,xideCatalogSourceWindow(app),previous,replacement,&scan);
+    if(result==XUI_OK) result=bind(app,xideFindViewWindow(app),previous,replacement,&scan);
     free(scan.items);
     if(result==XUI_OK) result=xideFontViewUiFont(app);
     if(result==XUI_OK) result=xideCatalogViewUiFont(app);
@@ -220,6 +222,7 @@ int xideUiFontApply(xide_app* app,const char* path,int size,xide_model_error* er
     if(retained) retained=retainScroll(app,xideConfigurationViewWindow(app),&scroll);
     if(retained) retained=retainScroll(app,xideRecoveryViewWindow(app),&scroll);
     if(retained) retained=retainScroll(app,xideFileChangesViewWindow(app),&scroll);
+    if(retained) retained=retainScroll(app,xideFindViewWindow(app),&scroll);
     xvalue* reading=retained ? xideReadingCapture(app,NULL) : NULL;
     if(!retained || !reading) { xrtValueRelease(reading); free(scroll.items); free(scroll.scan.items); app->proxy.fontDestroy(&app->proxy,replacement); free(resolved); return fail(error,XIDE_MODEL_IO,"Cannot retain reading positions while changing fonts."); }
     xui_font previous=app->uiFont; int previousSize=app->uiFontSize;

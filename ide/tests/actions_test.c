@@ -1,4 +1,5 @@
 #define _WIN32_WINNT 0x0601
+#include "ui/find_view.h"
 #include "dialog_test_helpers.h"
 #include "app/xide_app.h"
 #include "ui/editor_view.h"
@@ -199,7 +200,7 @@ static int verify(void* user)
     CHECK(command(&app,cd,XUI_CODE_COMMAND_UNDO));
     CHECK(xuiCodeDocumentGetVersion(core)==version && contextAction(&app,cd,XIDE_ACTION_EDITOR_UNDO,1) && xuiCodeEditSetReadonly(cd->editor,0)==XUI_OK);
     CHECK(contextAction(&app,cd,XIDE_ACTION_EDITOR_UNDO,0) && !cd->dirty && key(&app,'Y',XUI_MOD_CTRL) && cd->dirty);
-    CHECK(contextAction(&app,cd,XIDE_ACTION_EDITOR_FIND,0) && xuiCodeEditGetFindWindow(cd->editor) && xuiWidgetGetVisible(xuiCodeEditGetFindWindow(cd->editor)) && key(&app,XUI_KEY_ESCAPE,0) && !xuiWidgetGetVisible(xuiCodeEditGetFindWindow(cd->editor)));
+    CHECK(contextAction(&app,cd,XIDE_ACTION_EDITOR_FIND,0) && xideFindViewWindow(&app) && xuiWindowIsOpen(xideFindViewWindow(&app)) && key(&app,XUI_KEY_ESCAPE,0) && !xuiWindowIsOpen(xideFindViewWindow(&app)));
     xui_widget nativeMenu=xuiCodeEditGetMenuWidget(cd->editor); CHECK(xuiWidgetGetType(cd->editor)==xuiWidgetFindType(app.context,"codeedit") && xuiMenuGetFont(nativeMenu)==app.uiFont);
     CHECK(xideUiFontApply(&app,app.uiFontPath,24,&error) && settle(&app) && xuiMenuGetFont(nativeMenu)==app.uiFont && xideUiFontApply(&app,app.uiFontPath,16,&error) && settle(&app) && xuiMenuGetFont(nativeMenu)==app.uiFont);
     wchar_t lockedPath[32768]; CHECK(MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,settings,-1,lockedPath,32768));

@@ -1,3 +1,4 @@
+#include "ui/find_view.h"
 #include "ui/about_view.h"
 #include "ui/import_view.h"
 #include "ui/template_view.h"
@@ -169,6 +170,7 @@ void xideAppDestroy(xide_app* app)
     xuiCodeFindScopeDestroy(app->editorFindScope); app->editorFindScope=NULL;
     if (app->context) { xideMessageDestroy(app); xideDialogDestroyAll(app); xideDocumentsClear(&app->documents); xuiDestroy(app->context); }
     xideSettingsViewDestroy(app);
+    xideFindViewDestroy(app);
     xideActionsDestroy(app);
     xideAboutViewDestroy(app);
     xideMainToolbarDestroy(app);xideExecutionReset(app);

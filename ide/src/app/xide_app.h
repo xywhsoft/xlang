@@ -111,6 +111,7 @@ typedef struct xide_app {
     xide_runtime_failure failure;
     const char* diagnosticRoot;
     const char* screenshot;
+    struct xide_find_view* findView;
 } xide_app;
 int xideWorkbenchCreate(xide_app* app);
 void xideWorkbenchLayout(xide_app* app);
