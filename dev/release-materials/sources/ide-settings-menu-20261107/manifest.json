@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "sourceRevision": "c099978dff8086f2d9bc054c3a8220537dcad556",
+  "gui": {
+    "path": "dev/release-materials/sources/ide-settings-menu-20261107/ide-source.zip",
+    "sha256": "55fb9112d3b21c069274681f4f90ff971ec0d5e4d83992740972ee2b96c01300",
+    "bytes": 1159778
+  },
+  "guiFiles": {
+    "path": "dev/release-materials/sources/ide-settings-menu-20261107/ide-files.json",
+    "sha256": "1598c60ae926a3cc8459ea608d7852f28d8f212a14c4df6ab4bbb888b592fc4b",
+    "bytes": 65394
+  },
+  "xge": {
+    "path": "dev/release-materials/sources/ide-settings-menu-20261107/xge-source-closure.zip",
+    "sha256": "d7858d595dd1cf92af718aae213e54750e5e0823ffe621068f0cca597a5f3de7",
+    "bytes": 10273762
+  },
+  "xgeFiles": {
+    "path": "dev/release-materials/sources/ide-settings-menu-20261107/xge-source-files.json",
+    "sha256": "f127f4d6de230b04bb95a4e36278415ea4053a31f0eaf4b980630b610ffaf02a",
+    "bytes": 182453
+  },
+  "xgeSourceCommit": "4d402c08428dd412e50b172979bc370547a52f9b",
+  "sdkManifest": {
+    "path": "ide/third_party/xge_sdk/sdk_manifest.json",
+    "sha256": "33479cc0e24c0ecfdbfecbb2258b29d963d24cd3d71fc61a70195b7e14f0d606",
+    "bytes": 12603
+  },
+  "sourceScope": "Committed GUI baseline plus isolated optional-metadata probe fix; concurrent language-server/frontend changes excluded. Exact XGE IDE-profile source closure, with two required focus-resolver prerequisites and three preserved GL3.3/WGL startup compatibility files recorded in the matched SDK.",
+  "rebuild": "Overlay ide-source.zip on sourceRevision. Extract xge-source-closure.zip as a separate XGE source root, then build its IDE profile. SDK import derives declarations from that exact compiled single header. GUI -O2, C LSP disabled."
+}

@@ -1,0 +1,17 @@
+{
+  "format": "xlang-ide-build-invocation-1",
+  "compiler": "D:/GIT/x-lang/release/win_x64/.settings-task-helper.exe",
+  "directory": "D:/GIT/x-lang/ide/build/Release/settings-menu-20261107/acceptance-r1/actions_test/actions-67ee8b35-d8f9-4f42-a6ea-92203b345674",
+  "artifact": "D:/GIT/x-lang/ide/build/Release/settings-menu-20261107/acceptance-r1/actions_test/actions-67ee8b35-d8f9-4f42-a6ea-92203b345674/build/.xlang-ide-build/53d3e2f3-7226-46f6-a208-ca46a4315039/program.exe",
+  "receipt": "D:/GIT/x-lang/ide/build/Release/settings-menu-20261107/acceptance-r1/actions_test/actions-67ee8b35-d8f9-4f42-a6ea-92203b345674/build/.xlang-ide-build/53d3e2f3-7226-46f6-a208-ca46a4315039/inputs.json",
+  "arguments": [
+    "build",
+    "D:/GIT/x-lang/ide/build/Release/settings-menu-20261107/acceptance-r1/actions_test/actions-67ee8b35-d8f9-4f42-a6ea-92203b345674/build/.xlang-ide-build/53d3e2f3-7226-46f6-a208-ca46a4315039/request.xlp",
+    "-o",
+    "D:/GIT/x-lang/ide/build/Release/settings-menu-20261107/acceptance-r1/actions_test/actions-67ee8b35-d8f9-4f42-a6ea-92203b345674/build/.xlang-ide-build/53d3e2f3-7226-46f6-a208-ca46a4315039/program.exe"
+  ],
+  "XLANG_PACKAGE_PATH": null,
+  "compilerSha256": "8de894ed6a6fac9db1732763ab82b30ae10c534609c4863e2f5f4e720f721608",
+  "frontendSha256": "2241fcd462980fc40cbd6c47ce9347d537bababc93225cb6d2a2d36b9b978797",
+  "runtimeSha256": "215d6b3c87704c745ec609eb07e718a52708ad7c13436294f2f662a56169be13"
+}

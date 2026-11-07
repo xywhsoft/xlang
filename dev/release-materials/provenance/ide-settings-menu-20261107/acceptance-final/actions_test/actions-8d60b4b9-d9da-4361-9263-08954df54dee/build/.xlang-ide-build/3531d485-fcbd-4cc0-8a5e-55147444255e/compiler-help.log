@@ -1,0 +1,1 @@
+xl build <file.xlp> -o <output> --inc-path --lib-path --link

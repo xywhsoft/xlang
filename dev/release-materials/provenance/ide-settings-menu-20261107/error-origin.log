@@ -1,0 +1,67 @@
+Temporary breakpoint 1 at 0x140120a30: file D:\GIT\x-lang\ide\build\Release\settings-menu-20261107\menu_session_test.c, line 20.
+[New Thread 24188.0x58c8]
+[New Thread 24188.0x58ac]
+[New Thread 24188.0x45c8]
+
+Thread 1 hit Temporary breakpoint 1, main () at D:\GIT\x-lang\ide\build\Release\settings-menu-20261107\menu_session_test.c:20
+20	int main(void) {
+Breakpoint 2 at 0x7ffefa555c50
+[New Thread 24188.0x8e8]
+[New Thread 24188.0x59a0]
+[New Thread 24188.0x5c0c]
+[New Thread 24188.0x5b24]
+[New Thread 24188.0x1ddc]
+[Thread 24188.0x5b24 exited with code 0]
+[New Thread 24188.0x5904]
+[Thread 24188.0x5c0c exited with code 0]
+[New Thread 24188.0x2cfc]
+[New Thread 24188.0x5b80]
+[New Thread 24188.0x5e2c]
+[New Thread 24188.0x5834]
+[New Thread 24188.0x5cc0]
+[New Thread 24188.0x5bac]
+[New Thread 24188.0x58e8]
+[New Thread 24188.0x36e4]
+[New Thread 24188.0x148c]
+[New Thread 24188.0x608]
+[New Thread 24188.0x4524]
+[New Thread 24188.0x4b4c]
+[New Thread 24188.0x433c]
+[New Thread 24188.0x5c50]
+[New Thread 24188.0x5438]
+[New Thread 24188.0x598c]
+[New Thread 24188.0x5e38]
+[New Thread 24188.0x3504]
+[New Thread 24188.0x93c]
+[New Thread 24188.0x33dc]
+[New Thread 24188.0x5d6c]
+[New Thread 24188.0x5114]
+[New Thread 24188.0x5a28]
+[New Thread 24188.0x1f38]
+[New Thread 24188.0x5560]
+[Thread 24188.0x5560 exited with code 0]
+[New Thread 24188.0x58bc]
+[New Thread 24188.0x22c4]
+[New Thread 24188.0x1d2c]
+[New Thread 24188.0x16dc]
+
+Thread 1 hit Breakpoint 2, 0x00007ffefa555c50 in ?? () from D:\GIT\x-lang\release\win_x64\xge.dll
+#0  0x00007ffefa555c50 in ?? () from D:\GIT\x-lang\release\win_x64\xge.dll
+#1  0x00007ffefa5c26ec in ?? () from D:\GIT\x-lang\release\win_x64\xge.dll
+#2  0x00007ff73e70227f in xideLanguageViewCanDefine ()
+#3  0x00007ff73e6a4ebd in xideActionQuery ()
+#4  0x00007ff73e6a587e in xideActionsRefresh ()
+#5  0x00007ff73e72e297 in xideTaskViewPoll ()
+#6  0x00007ff73e6a37a8 in frame ()
+#7  0x00007ff73e6a40cf in xideAppFrame ()
+#8  0x00007ff73e6a154a in step (unused=<optimized out>) at D:\GIT\x-lang\ide\build\Release\settings-menu-20261107\menu_session_test.c:17
+#9  step (unused=<optimized out>) at D:\GIT\x-lang\ide\build\Release\settings-menu-20261107\menu_session_test.c:6
+#10 0x00007ffefa5ee50a in ?? () from D:\GIT\x-lang\release\win_x64\xge.dll
+#11 0x00007ffefa774d5d in ?? () from D:\GIT\x-lang\release\win_x64\xge.dll
+#12 0x00007ffefa4e48bb in ?? () from D:\GIT\x-lang\release\win_x64\xge.dll
+#13 0x00007ffefa72de2d in ?? () from D:\GIT\x-lang\release\win_x64\xge.dll
+#14 0x00007ffefa72ece6 in ?? () from D:\GIT\x-lang\release\win_x64\xge.dll
+#15 0x00007ff73e7c0b0d in main () at D:\GIT\x-lang\ide\build\Release\settings-menu-20261107\menu_session_test.c:22
+session: 无法恢复文件 D:/GIT/x-lang/release/examples/xs2/xs2.xl：Unable to read text file.；会话引用和恢复文件已保留。
+session: 无法恢复文件 D:/GIT/x-lang/release/examples/xui/button.xl：Unable to read text file.；会话引用和恢复文件已保留。
+phase=1 ret=0 xrt=
