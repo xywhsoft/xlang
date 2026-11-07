@@ -97,7 +97,7 @@ static int readSections(xide_command_catalog* catalog,xide_command* command,cons
     return 1;
 }
 static int compare(const void* a,const void* b) { return strcmp((*(const xide_command* const*)a)->id,(*(const xide_command* const*)b)->id); }
-int xideCatalogLoad(xide_command_catalog* catalog,const char* path,xide_model_error* error)
+static int loadCatalog(xide_command_catalog* catalog,const char* path,xide_model_error* error)
 {
     if(error) memset(error,0,sizeof(*error));
     if(!catalog || !path) return fail(error,XIDE_MODEL_INVALID,"Invalid catalog arguments.");
@@ -127,6 +127,15 @@ int xideCatalogLoad(xide_command_catalog* catalog,const char* path,xide_model_er
     if(!fresh.lease){xideCatalogClear(&fresh);return fail(error,XIDE_MODEL_MEMORY,"Cannot retain command catalog snapshot.");}
     fresh.lease->references=1;fresh.lease->catalog=fresh;fresh.lease->catalog.lease=NULL;
     xideCatalogClear(catalog); *catalog=fresh; return 1;
+}
+int xideCatalogLoad(xide_command_catalog* catalog,const char* path,xide_model_error* error)
+{
+    /* Catalog failures are returned through model_error. Do not leave a file/
+       JSON error in the native thread slot for the next unrelated UI callback,
+       and do not consume a caller's pre-existing error. */
+    xerror* previous=xrtTakeError();
+    int result=loadCatalog(catalog,path,error);
+    xrtErrorFree(xrtTakeError());xrtSetErrorTake(previous);return result;
 }
 const xide_command* xideCatalogFind(const xide_command_catalog* catalog,const char* id)
 {

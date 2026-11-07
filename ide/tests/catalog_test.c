@@ -18,7 +18,11 @@ int main(int argc,char** argv)
 {
     int failed=0; xide_model_error error={0}; xide_command_catalog catalog={0}; char *root=NULL,*path=NULL; xvalue* bad=NULL;
     CHECK(argc==3); root=xidePathResolve(argv[1],"中文 命令目录"); CHECK(root && xrtDirCreateAll(root)); path=xidePathResolve(root,"invalid.json"); CHECK(path);
+    CHECK(!xideCatalogLoad(&catalog,path,&error) && !xrtGetError());
+    size_t ignored=0;xrtFree(xrtFileReadAllLimit(path,16,&ignored));const xerror* previous=xrtGetError();CHECK(previous);
+    CHECK(!xideCatalogLoad(&catalog,path,&error) && xrtGetError()==previous);
     CHECK(xideCatalogLoad(&catalog,argv[2],&error)); CHECK(catalog.count>4400 && catalog.documentCount>=6);
+    CHECK(xrtGetError()==previous);xrtErrorFree(xrtTakeError());
     const xide_command* jsonFinish=findName(&catalog,"JsonWriter.finish"),*xlonFinish=findName(&catalog,"XlonWriter.finish"),*fixedStack=findName(&catalog,"FixedStack.tryPop"),*genericXlon=xideCatalogFind(&catalog,"standard:xlon.stringify:9b21a2969175e238");
     CHECK(jsonFinish && !strcmp(jsonFinish->signature,"JsonWriter.finish() as string") && xlonFinish && !strcmp(xlonFinish->signature,"XlonWriter.finish() as string"));
     CHECK(fixedStack && strstr(fixedStack->signature,"(bool, T?)") && genericXlon && strstr(genericXlon->signature,"<T>"));
@@ -75,5 +79,6 @@ int main(int argc,char** argv)
     CHECK(xrtFileWriteAtomic(path,(xbytesview){invalidJson,sizeof(invalidJson)})); CHECK(!xideCatalogLoad(&catalog,path,&error) && catalog.entries==original);
     puts("catalog_test passed: real builtin types/shared document refs, signatures/defaults, current package metadata, C isolation, member exclusions, UTF-8, duplicate IDs and transactional failures without a UI context");
 cleanup:
+    xrtErrorFree(xrtTakeError());
     xrtValueRelease(bad); xideCatalogClear(&catalog); free(path); free(root); return failed;
 }
