@@ -131,16 +131,16 @@
     "buildScope": "108 matched GUI objects rebuilt from committed source plus task_view.c overlay, then relinked against the final native implementation with identical public headers; unrelated semantic/LS development excluded.",
     "currentEngine": {
       "sourceMaterials": {
-        "path": "dev/release-materials/sources/xge-terminal-newline-20261108/manifest.json",
-        "sha256": "b20a36fa3cdc964060fba5c396a9e5dc63554877f46e9100c0ba02d7cc753695",
-        "bytes": 142885
+        "path": "dev/release-materials/sources/xge-code-wrap-20261108/manifest.json",
+        "sha256": "e7b1018ca706a47a71c6ae77caae14145d82c68e532fb6404e06fdfed97d5a3a",
+        "bytes": 3038
       },
-      "sourceCommit": "67d124505aa99a8d66f9f04bd416dc6d1f557cd2",
+      "sourceCommit": "2174bf5b8e68a9069bd9788bd2f73444b9a0d722",
       "publicAbiFingerprint": "0x9e6e84f348182bf8",
       "profile": "ide",
       "xrtMode": "embedded",
       "runtime": "release/win_x64/xge.dll",
-      "mainlineCommit": "67d124505aa99a8d66f9f04bd416dc6d1f557cd2"
+      "mainlineCommit": "42c42f79815763bc869a2683550cbb3a2a9223e5"
     },
     "previousBuildProvenanceBeforeAbout": "dev/release-materials/provenance/xge-ide-update-20261106/publication-receipt.json",
     "aboutWindow": {
@@ -216,6 +216,11 @@
       "path": "dev/release-materials/provenance/xge-terminal-newline-20261108/receipt.json",
       "sha256": "46fe4ee184afed40521671aa634c969cf10caa2439b9d6fcc0c1a242085801d3",
       "bytes": 29326
+    },
+    "codeWrapRepair": {
+      "path": "dev/release-materials/provenance/xge-code-wrap-20261108/receipt.json",
+      "sha256": "9a1c215a34b59046d139783d1cd6328ed407d1048f5592033b165d9856833802",
+      "bytes": 19284
     }
   },
   "catalog": {
@@ -6228,8 +6233,8 @@
       "origin": "matched-xge3-xui3-local-delivery-20261105"
     },
     {
-      "sha256": "de19abfe3f2f0066cb489417769110ebe813c36f36787445d3ad0895d3538aeb",
-      "bytes": 11170568,
+      "sha256": "f6eaa3961017f79cd06d18568bab8fb60274c4935e1a83ab8fb37da21acc607b",
+      "bytes": 11171080,
       "path": "release/win_x64/xge.dll",
       "origin": "xge-keypad-enter-20261108",
       "previousSha256": "f165f5b01576b67b56ecb0f7f7f35e4bb82c33f54a1d697fc40ff7443d18a4e7"
@@ -6248,14 +6253,14 @@
     },
     {
       "path": "release/win_x64/extlibs/_xge_native/native/xge3_host.dll",
-      "sha256": "0dfd25bde15863f4d827a48d5463be6dbd7b48d0710e8ece28d2b872d0dc1fa2",
-      "bytes": 9148341,
+      "sha256": "b38d02e78b57d765ef898eb91f64e5d4ad84ade0ecaa74a74218f5299ecaba5c",
+      "bytes": 9148853,
       "origin": "xge-keypad-enter-20261108",
       "previousSha256": "d1d3f66827bcbb59a69ebb37d1051a39c32687967ecf8171be52ec3999abbbfd"
     },
     {
       "path": "release/linux_x64/extlibs/_xge_native/native/libxge3_host.so",
-      "sha256": "03fc72e0e75640126ecf786b877069904ab4cb63f9cc2605a2f7722ba81ee298",
+      "sha256": "6e4e89b1b994a7da925e606704027aaeb9bc61de4ffee574fd65a3e3b2084cb2",
       "bytes": 9948112,
       "origin": "xge-keypad-enter-20261108",
       "previousSha256": "6d889338cb2514ae8873c4001631a8d287721c9069771dfc1a59f87ccca63f20"
@@ -6396,7 +6401,7 @@
     "historicalReportPathsPreserved": true,
     "mutableDataPathsUpdated": 600
   },
-  "currentScope": "Local XGE terminal TEXT/VT newline API and matched IDE/SDK/dynamic/static package synchronization; online ver2 remains unchanged. Runtime bytes stay outside Git.",
+  "currentScope": "Local XGE CodeEdit wrap fix, matched SDK and Windows/Linux dynamic/static packages. IDE executable, compiler and language server unchanged; online ver2 unchanged.",
   "localPublication": {
     "path": "dev/release-materials/provenance/xge3-local-publication-20261105/receipt.json",
     "sha256": "d55e8e816fddbfc2d2283c9ba45b9b28ac5c5e07e0da183fbab3088f118fbad1",
@@ -6626,6 +6631,11 @@
       "path": "dev/release-materials/provenance/xge-terminal-newline-20261108/receipt.json",
       "sha256": "46fe4ee184afed40521671aa634c969cf10caa2439b9d6fcc0c1a242085801d3",
       "bytes": 29326
+    },
+    "codeWrapRepair": {
+      "path": "dev/release-materials/provenance/xge-code-wrap-20261108/receipt.json",
+      "sha256": "9a1c215a34b59046d139783d1cd6328ed407d1048f5592033b165d9856833802",
+      "bytes": 19284
     }
   },
   "xuiGallery": {
@@ -6922,5 +6932,10 @@
     "path": "dev/release-materials/provenance/xge-terminal-newline-20261108/receipt.json",
     "sha256": "46fe4ee184afed40521671aa634c969cf10caa2439b9d6fcc0c1a242085801d3",
     "bytes": 29326
+  },
+  "xgeCodeWrapRepair": {
+    "path": "dev/release-materials/provenance/xge-code-wrap-20261108/receipt.json",
+    "sha256": "9a1c215a34b59046d139783d1cd6328ed407d1048f5592033b165d9856833802",
+    "bytes": 19284
   }
 }

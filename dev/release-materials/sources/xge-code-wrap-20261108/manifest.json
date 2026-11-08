@@ -1,0 +1,92 @@
+{
+  "schema": 1,
+  "upstreamCommit": "2174bf5b8e68a9069bd9788bd2f73444b9a0d722",
+  "buildToolFixCommit": "42c42f79815763bc869a2683550cbb3a2a9223e5",
+  "base": {
+    "path": "dev/release-materials/sources/xge-terminal-newline-20261108/manifest.json",
+    "sha256": "b20a36fa3cdc964060fba5c396a9e5dc63554877f46e9100c0ba02d7cc753695",
+    "bytes": 142885
+  },
+  "archive": {
+    "path": "dev/release-materials/sources/xge-code-wrap-20261108/source-delta.zip",
+    "sha256": "b4d3e8b1823d1e3e5512f2d0fba7f5b4ee68bbed856664ae5e98ea59cab5ed87",
+    "bytes": 89894
+  },
+  "files": [
+    {
+      "path": "reproduction/build.py",
+      "sha256": "bcfe202013cccec17c9b3d104e4ddbfd421bb8e3ff97e703a7064c9eb02c8c00",
+      "bytes": 1495
+    },
+    {
+      "path": "reproduction/gui.py",
+      "sha256": "92498f2de7cd7c15c4b896d85a45bede31b7d8bb0192db38d97cae89773dc55b",
+      "bytes": 2854
+    },
+    {
+      "path": "reproduction/installed.py",
+      "sha256": "e2e099a01985c5271e4c575272d15e4e70767572889765653e89638c3649591f",
+      "bytes": 2576
+    },
+    {
+      "path": "reproduction/native.py",
+      "sha256": "a2abaa7fd281a12e26c650bab2e98fb954125cf2a800d46fe61e739b5802c86e",
+      "bytes": 1883
+    },
+    {
+      "path": "reproduction/publish.py",
+      "sha256": "b3c394aa74df41530099e248b568843cafb3885f47f93fd4e84051770f25ef37",
+      "bytes": 3117
+    },
+    {
+      "path": "reproduction/record.py",
+      "sha256": "d3c549628bd59e78e605d28db8eb813b603e19e57648a8177b56bd032a393ab1",
+      "bytes": 7186
+    },
+    {
+      "path": "reproduction/sdk.py",
+      "sha256": "7f0bb3c2b3806c4d79022ee2f6c0686db6f0d1f7ac4e3ff0ac91f56acf47ba43",
+      "bytes": 3090
+    },
+    {
+      "path": "reproduction/stage.py",
+      "sha256": "c0850250c2d93a02b2b67562b0b4abfceb962ee67620e8031c9bae78c0de9cca",
+      "bytes": 948
+    },
+    {
+      "path": "xge/src/xui/code/xui_code_edit.c",
+      "sha256": "fa86a2be94150c73b0e2ea377ab75cb7c95338c3f97b9755c10d03b7994942a2",
+      "bytes": 371381
+    },
+    {
+      "path": "xge/tests/xui/build_code_wrap_paint_test.bat",
+      "sha256": "5fbe60e6d3184457e7204bf4f956f658542b434e4f5779d3b99c73ffc6287cd8",
+      "bytes": 511
+    },
+    {
+      "path": "xge/tests/xui/xui_code_wrap_paint_test.c",
+      "sha256": "5c879a47b7f7c6bd59949fe42af37806a56e660b17cd850222cd4df5a9c8d7f7",
+      "bytes": 6609
+    },
+    {
+      "path": "xge/tools/build/static.py",
+      "sha256": "0d476ab54491984f5f81b43c04bfddd293f44ae5c78299cd13bd52a72f402dff",
+      "bytes": 18219
+    },
+    {
+      "path": "xge/tools/build/test_static_reuse.py",
+      "sha256": "8d52f8546833c46b915a60d7487575579184a9632ffd06b7badf5ef06473297f",
+      "bytes": 1290
+    },
+    {
+      "path": "xlang/ide/tests/build_output_wrap_test.c",
+      "sha256": "d8802b1df2e02c1bd377de3731b75a7b70b366cc67c59ee70294f62ea0f6e1a9",
+      "bytes": 4115
+    },
+    {
+      "path": "xlang/test/cases/foreign_xge3_code_wrap.xl",
+      "sha256": "aff96cd7cc7711ede2f4e322f3bb7db93e6f9f2555d13430e0be6e7d8405e728",
+      "bytes": 5650
+    }
+  ]
+}

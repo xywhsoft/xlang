@@ -1,0 +1,12 @@
+--- a/src/xge/core/xge_core.c
++++ b/src/xge/core/xge_core.c
+@@ -288,7 +288,9 @@
+ 	iOldErrorMode = SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOOPENFILEERRORBOX | SEM_NOGPFAULTERRORBOX);
+ 	SetErrorMode(iOldErrorMode | SEM_FAILCRITICALERRORS | SEM_NOOPENFILEERRORBOX | SEM_NOGPFAULTERRORBOX);
+ #endif
++	g_xgeSokolFailure = 0;
+ 	sapp_run(&objDesc);
++	__xgeCallbackRunRemember(&outcome,g_xgeSokolFailure);
+ #if defined(_WIN32) || defined(_WIN64)
+ 	SetErrorMode(iOldErrorMode);
+ #endif

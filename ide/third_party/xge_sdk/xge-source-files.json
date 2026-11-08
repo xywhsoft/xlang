@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "root": "F:\\xlang-validation\\xge-terminal-newline-20261108\\source",
-  "sourceCommit": "67d124505aa99a8d66f9f04bd416dc6d1f557cd2",
+  "root": "F:\\xlang-validation\\xge-code-wrap-20261108\\source",
+  "sourceCommit": "2174bf5b8e68a9069bd9788bd2f73444b9a0d722",
   "sourceFileCount": 791,
   "files": [
     {
@@ -2996,8 +2996,8 @@
     },
     {
       "path": "src/xui/code/xui_code_edit.c",
-      "sha256": "446a4c3e0799693b01bd27d926ed5c68c25843f29047e7253646e7b7a3b8445f",
-      "size": 370488
+      "sha256": "fa86a2be94150c73b0e2ea377ab75cb7c95338c3f97b9755c10d03b7994942a2",
+      "size": 371381
     },
     {
       "path": "src/xui/code/xui_code_editing.c",
@@ -3963,8 +3963,8 @@
   "fullSourceTreeNotIncludedInConsumerSdk": true,
   "compatibilityPatches": {
     "format": "xlang-ide-xge-source-patches-1",
-    "baseCommit": "67d124505aa99a8d66f9f04bd416dc6d1f557cd2",
-    "purpose": "Qualified GL startup and canonical sole-host XRT overlays; terminal newline modes committed upstream.",
+    "baseCommit": "2174bf5b8e68a9069bd9788bd2f73444b9a0d722",
+    "purpose": "Qualified GL startup and canonical sole-host XRT overlays; CodeEdit wrap fix committed upstream.",
     "files": [
       {
         "path": "extlibs/sokol/sokol_app.h",
@@ -4024,5 +4024,5 @@
       }
     ]
   },
-  "compatibilityPatchRoot": "provenance/source-67d124505aa9-3cd9d0a16b0b/compatibility-patches"
+  "compatibilityPatchRoot": "provenance/source-2174bf5b8e68-f199ab3e43c3/compatibility-patches"
 }

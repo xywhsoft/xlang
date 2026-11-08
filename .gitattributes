@@ -253,3 +253,8 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 
 # Captured SDK patch payloads and diffs retain their exact source bytes.
 /ide/third_party/xge_sdk/provenance/source-67d124505aa9-3cd9d0a16b0b/** -text -whitespace
+
+# Exact-byte CodeEdit wrap repair sources, SDK capture and acceptance materials.
+/dev/release-materials/sources/xge-code-wrap-20261108/** -text -whitespace
+/dev/release-materials/provenance/xge-code-wrap-20261108/** -text -whitespace
+/ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f199ab3e43c3/** -text -whitespace

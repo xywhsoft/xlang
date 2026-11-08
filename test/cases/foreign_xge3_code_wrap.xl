@@ -1,0 +1,146 @@
+// Bounded local UI validation on an owned hidden desktop; no network/clipboard.
+import xui
+import xge
+
+assert xge.XGE_KEY_KP_ENTER == 335
+
+xge.init(32,32,"XGE package verification",c_int(xge.XGE_INIT_OFFSCREEN),xge.XGE_RUN_GAME_LOOP)
+xge.run(func() as c_int
+ auto directFont = xge.loadSystemFont(xge.XGE_SYSTEM_FONT_MONOSPACE,16)
+ assert directFont.size == 16
+ directFont.close()
+
+ auto proxy = xui.createProxy()
+ auto ui = xui.create(proxy, xui.XUI_SYSTEM_FONT_DISABLED)
+ bool disabled = false
+ try
+  ui.ensureDefaultFont()
+ catch error
+  disabled = true
+ end
+ assert disabled, "disabled policy never loads a system font"
+ auto defaultDesc = xui.contextDescDefault()
+ assert defaultDesc.iSystemFontPolicy == xui.XUI_SYSTEM_FONT_AUTO, "update assertion at line 61"
+
+ auto applicationFont = proxy.loadSystemFont(14)
+ ui.setDefaultFont(applicationFont)
+ auto root = ui.widget()
+ auto bounds = xui.Rect()
+ bounds.fW = 800
+ bounds.fH = 600
+ root.setRect(bounds)
+ ui.setRootWidget(root)
+ ui.setViewportSize(800, 600)
+
+ auto left = ui.codeEditNative()
+ auto right = ui.codeEditNative()
+ root.addChild(left)
+ root.addChild(right)
+ left.setText("alpha alpha 中😀\n")
+ right.setText("alpha beta 中😀\n")
+ // Short logical lines must not gain an extra row at their final word.
+ auto editorBounds = xui.Rect()
+ editorBounds.fW = 800
+ editorBounds.fH = 240
+ left.setRect(editorBounds)
+ left.setWordWrap(1)
+ left.setText("[Task 2] main.xl / single-file\nCompiler: xl.exe\n")
+ ui.layout()
+ auto first = left.getOffsetRect(0)
+ auto last = left.getOffsetRect(30)
+ assert first.fY == last.fY, "short build log line stays on one visual row"
+ editorBounds.fW = 110
+ left.setRect(editorBounds)
+ ui.layout()
+ auto wrapped = left.getOffsetRect(30)
+ assert wrapped.fY > first.fY, "narrow editor wraps the line"
+ left.setWordWrap(0)
+ left.setText("alpha alpha 中😀\n")
+
+ auto search = xui.createCodeFindScope()
+ search.addEditorNamed(left, "left.c")
+ search.addEditorNamed(right, "right.xl")
+ assert search.editorCount() == 2, "update assertion at line 24"
+ assert (search.editorName(1) ?? "") == "right.xl", "update assertion at line 25"
+ search.setActiveEditor(left)
+ assert search.findAll("alpha") == 3, "update assertion at line 27"
+ assert search.resultCount() == 3, "update assertion at line 28"
+ assert (search.resultEditorName(2) ?? "") == "right.xl", "update assertion at line 29"
+ c_int openResult = left.openFind()
+ assert openResult == 0, "native find open status"
+ assert search.getFindWindowNative() != null, "update assertion at line 31"
+ search.setActiveEditor(right)
+ search.refresh()
+ assert search.getActiveEditorNative() == search.getEditorNative(1), "update assertion at line 34"
+ assert right.openReplace() == 0, "update assertion at line 35"
+ // Both editors expose the same Context-owned native window, never a new owner.
+ auto window = right.getFindWindow()
+ assert window != null, "update assertion at line 38"
+ search.setActiveEditor(null)
+ search.removeEditor(left)
+ assert search.editorCount() == 1, "update assertion at line 41"
+ search.clearEditors()
+ assert search.editorCount() == 0, "update assertion at line 43"
+ search.close()
+ var expired = false
+ try
+  search.editorCount()
+ catch error
+  expired = true
+ end
+ assert expired, "closed scope is checked"
+
+ auto terminal = ui.terminalNative()
+ assert terminal.getNewlineMode() == xui.XUI_TERMINAL_NEWLINE_TEXT
+ assert terminal.writeText("abc\ndef") == 0
+ assert terminal.flush() == 0
+ auto textColumn, textRow = terminal.getCursor()
+ assert textColumn == 3 and textRow == 1
+ terminal.clear()
+ terminal.setNewlineMode(xui.XUI_TERMINAL_NEWLINE_VT)
+ assert terminal.getNewlineMode() == xui.XUI_TERMINAL_NEWLINE_VT
+ assert terminal.writeText("abc\ndef") == 0
+ assert terminal.flush() == 0
+ auto vtColumn, vtRow = terminal.getCursor()
+ assert vtColumn == 6 and vtRow == 1
+ terminal.clear()
+ terminal.setNewlineMode(xui.XUI_TERMINAL_NEWLINE_TEXT)
+ assert terminal.writeText("Hello, World!xlang 6 true\n程序启动") == 0
+ assert terminal.flush() == 0
+ auto unicodeColumn, unicodeRow = terminal.getCursor()
+ assert unicodeColumn == 8 and unicodeRow == 1
+ var invalidModeRejected = false
+ try
+  terminal.setNewlineMode(99)
+ catch error
+  invalidModeRejected = true
+ end
+ assert invalidModeRejected
+ assert terminal.getNewlineMode() == xui.XUI_TERMINAL_NEWLINE_TEXT
+
+ auto stats = ui.getRenderStats()
+ assert stats.iPrepareVisitedWidgets >= 0, "update assertion at line 64"
+ assert stats.iPrepareSkippedSubtrees >= 0, "update assertion at line 65"
+ assert stats.iDirtyPropagationSteps >= 0, "update assertion at line 66"
+ assert stats.iEventMaskPropagationSteps >= 0, "update assertion at line 67"
+ assert stats.iRenderNodesReused >= 0, "update assertion at line 68"
+ assert stats.iRenderNodesUpdated >= 0, "update assertion at line 69"
+ assert stats.iRenderNodesInserted >= 0, "update assertion at line 70"
+ assert stats.iRenderNodesRemoved >= 0, "update assertion at line 71"
+ assert stats.iRootStructureRevision >= 0, "update assertion at line 72"
+ assert stats.iOverlayStructureRevision >= 0, "update assertion at line 73"
+ assert xui.XUI_WIDGET_TYPE_PREPARE_FRAME_DEPENDENT == 8, "update assertion at line 74"
+
+ auto box = xui.showMsgBox(ui, "Native show", "Created and opened by one native call")
+ assert box.isOpen() == 1, "update assertion at line 77"
+ box.close()
+ auto dialog = xui.showFileDialog(ui, ".", "Native file dialog")
+ assert dialog.isOpen() == 1, "update assertion at line 80"
+ dialog.close()
+ ui.close()
+ applicationFont.close()
+ proxy.close()
+ return c_int(1)
+end)
+xge.unit()
+println("xge update: shared search, incremental records, native show factories passed")
