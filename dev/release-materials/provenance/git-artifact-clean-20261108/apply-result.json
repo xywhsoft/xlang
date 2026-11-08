@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "newObjectsCopied": 5,
+  "refs": 25,
+  "symbolicRefs": {
+    "refs/remotes/origin/HEAD": "refs/remotes/origin/master"
+  },
+  "worktreeIndexesPreservedExceptExcludedPaths": true,
+  "dirtySourceFilesUnchanged": true
+}

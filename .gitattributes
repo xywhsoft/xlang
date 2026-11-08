@@ -243,3 +243,6 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 # Exact-byte Windows formal updater iteration 2 publication evidence.
 /dev/release-materials/sources/ide-update-v2-publish-20261108/** -text -whitespace
 /dev/release-materials/provenance/ide-update-v2-publish-20261108/** -text -whitespace
+
+# Preserve original history-rewrite maps and verification bytes.
+/dev/release-materials/provenance/git-artifact-clean-20261108/** -text -whitespace

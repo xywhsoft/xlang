@@ -1,4 +1,4 @@
-"""Audit exact committed delivery bytes; independent of offline runtime tests."""
+"""Audit local delivery hashes and ensure runtime artifacts stay outside Git."""
 import argparse
 import hashlib
 import json
@@ -24,35 +24,19 @@ def check(root):
         if path.stat().st_size != row['bytes'] or digest.hexdigest() != row['sha256']:
             raise ValueError('Delivery bytes changed: ' + row['path'])
 
-    # 同时验证 Git 中的原始字节，防止忽略规则或换行转换遗漏运行成果。
+    # Runtime bytes are verified against the delivery receipt, not stored in Git.
     tracked = subprocess.check_output(
-        ['git', 'ls-tree', '-r', '-z', 'HEAD', '--',
-         'release/win_x64/data', 'release/linux_x64/data',
-         *[row['path'] for row in data['products']]], cwd=root)
-    blobs = {}
-    modes = {}
-    for record in tracked.split(b'\0'):
-        if not record:
-            continue
-        metadata, path = record.split(b'\t', 1)
-        mode, kind, oid = metadata.decode('ascii').split()
-        if kind != 'blob':
-            raise ValueError('Non-file delivery entry: ' + path.decode('utf-8'))
-        name = path.decode('utf-8')
-        blobs[name], modes[name] = oid, mode
-    actual = subprocess.check_output(
-        ['git', 'hash-object', '--no-filters', '--stdin-paths'],
-        input=''.join(path + '\n' for path in paths).encode('utf-8'), cwd=root)
-    hashes = actual.decode('ascii').splitlines()
-    if len(hashes) != len(paths):
-        raise ValueError('Incomplete Git byte audit')
-    for path, oid in zip(paths, hashes):
-        if blobs.get(path) != oid:
-            raise ValueError('Uncommitted or transformed runtime file: ' + path)
-    if modes.get('release/linux_x64/xl') != '100755':
-        raise ValueError('Linux release/linux_x64/xl lacks its committed executable bit')
-    return dict(status='passed',products=len(data['products']),
-                dataFiles=len(data['dataFiles']),committedExactFiles=len(paths))
+        ['git', 'ls-files', '-z', '--', 'release'], cwd=root)
+    if tracked:
+        raise ValueError('Runtime artifacts must not be tracked; remove release/ from the index')
+    ignored = subprocess.check_output(
+        ['git', 'check-ignore', '--no-index', '-z', '--stdin'],
+        input=b''.join(path.encode('utf-8') + b'\0' for path in paths), cwd=root)
+    if set(ignored.decode('utf-8').split('\0')) - {''} != set(paths):
+        raise ValueError('Runtime artifacts are not completely covered by .gitignore')
+    return dict(status='passed', products=len(data['products']),
+                dataFiles=len(data['dataFiles']), verifiedRuntimeFiles=len(paths),
+                trackedRuntimeFiles=0)
 
 
 def main():

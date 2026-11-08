@@ -1,0 +1,41 @@
+{
+  "paths": [
+    "release/",
+    "demo/release/",
+    "demo4/release/",
+    "demo5/release/",
+    "demo6/release/",
+    "dev/demo/release/",
+    "dev/demo4/release/",
+    "demo6/dev/xapi_legacy/demo6/release/",
+    "ide/release/",
+    "dev/release-materials/sources/xlang-development-20261105-88bd73dc-r1.zip"
+  ],
+  "refs": [
+    "refs/codex/turn-diffs/checkpoints/0d159dbf270a5a463fc95dc16915c04c/c817be05751b54b3fcd9c46ac648def0/1793699914054/c81a8d3f-a2a1-47a4-b706-d0fedc2c3b05",
+    "refs/codex/turn-diffs/checkpoints/32293a40b5b70a504578e852a728571d/97f393dd7d9476f4ba60c1b710e16373/1793600913542/84bf325a-43e4-41d7-a2ed-0b7ae77d268a",
+    "refs/codex/turn-diffs/checkpoints/5758c6a86244f7eb3ff7647cbf0500e3/81b62d6ba03b03d7b92315aec3a80185/1794098441797/e6dfa01e-40bf-4207-997b-7ab73846728a",
+    "refs/codex/turn-diffs/checkpoints/8a26e99303e8fd2d978b186182c809fd/81081619a8a5083a00bb9d62b7a4bc57/1793632153563/c0eda22f-c841-46bd-b38a-b6aebbbc98df",
+    "refs/heads/codex/c-owned-audit-fixes",
+    "refs/heads/codex/c-owned-call-boundaries",
+    "refs/heads/codex/c-owned-compiler",
+    "refs/heads/codex/c-owned-complete",
+    "refs/heads/codex/c-owned-completion",
+    "refs/heads/codex/c-owned-export-results",
+    "refs/heads/codex/c-owned-mainline",
+    "refs/heads/codex/c-owned-string-bytes",
+    "refs/heads/codex/c-owned-variadic-adapters",
+    "refs/heads/codex/demo6-import-companion",
+    "refs/heads/codex/example-runtime-fixes-20261106",
+    "refs/heads/codex/example-runtime-integration-20261106",
+    "refs/heads/codex/extlib-c-span-optimization",
+    "refs/heads/codex/extlib-shared-bridges",
+    "refs/heads/codex/extlib-tabulate-owned-return",
+    "refs/heads/codex/extlibs-release-sync",
+    "refs/heads/codex/foreign-bridge-hardening",
+    "refs/heads/master",
+    "refs/remotes/origin/HEAD",
+    "refs/remotes/origin/master",
+    "refs/tags/0.6.0-Preview"
+  ]
+}

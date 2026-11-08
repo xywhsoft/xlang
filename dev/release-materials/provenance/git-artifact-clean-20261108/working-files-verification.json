@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "releaseFiles": 14471,
+  "releaseBytes": 661280605,
+  "releaseFilesUnchanged": true,
+  "archive": {
+    "path": "dev/release-materials/sources/xlang-development-20261105-88bd73dc-r1.zip",
+    "bytes": 103448219,
+    "sha256": "d6152ffbe21499ecf74ee64d7266661d31af42d285c36291c2a6c41f35e49787",
+    "unchanged": true
+  },
+  "artifactAuditTests": [
+    "ignored bytes pass",
+    "changed bytes rejected",
+    "forced tracking rejected"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "allExcludedPathsAbsent": true,
+  "blobCount": 55838,
+  "blobBytes": 7280518221,
+  "large": [
+    {
+      "oid": "eb1e64e091f3eff8520532a0a43a620e39597121",
+      "bytes": 54532578,
+      "path": "dev/release-materials/provenance/native-static-release-20261106-r2/acceptance.zip"
+    }
+  ],
+  "countObjects": "count: 0\nsize: 0 bytes\nin-pack: 80127\npacks: 1\nsize-pack: 728.94 MiB\nprune-packable: 0\ngarbage: 0\nsize-garbage: 0 bytes\n"
+}

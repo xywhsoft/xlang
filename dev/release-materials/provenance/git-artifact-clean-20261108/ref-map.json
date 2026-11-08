@@ -1,0 +1,127 @@
+[
+  {
+    "ref": "refs/codex/turn-diffs/checkpoints/0d159dbf270a5a463fc95dc16915c04c/c817be05751b54b3fcd9c46ac648def0/1793699914054/c81a8d3f-a2a1-47a4-b706-d0fedc2c3b05",
+    "old": "66db6aff28e797e5324efa5acca3aae9c090d8f3",
+    "new": "92c3b9d2e8dde9573023804480f17dd50a7dc23f"
+  },
+  {
+    "ref": "refs/codex/turn-diffs/checkpoints/32293a40b5b70a504578e852a728571d/97f393dd7d9476f4ba60c1b710e16373/1793600913542/84bf325a-43e4-41d7-a2ed-0b7ae77d268a",
+    "old": "2807ae7ddd20df6fbca54eb84f4398983d9a0fc5",
+    "new": "48c3984f89c3e6ac31a1e786f52348e57b4db38d"
+  },
+  {
+    "ref": "refs/codex/turn-diffs/checkpoints/5758c6a86244f7eb3ff7647cbf0500e3/81b62d6ba03b03d7b92315aec3a80185/1794098441797/e6dfa01e-40bf-4207-997b-7ab73846728a",
+    "old": "3a77b5783186e5d124a6e93f77991dd4453559e9",
+    "new": "b3c018d50487048bc27635f791e194a6d952ba21"
+  },
+  {
+    "ref": "refs/codex/turn-diffs/checkpoints/8a26e99303e8fd2d978b186182c809fd/81081619a8a5083a00bb9d62b7a4bc57/1793632153563/c0eda22f-c841-46bd-b38a-b6aebbbc98df",
+    "old": "20f2c9e19a2ed0dee100e749c7ba0e28cef29c33",
+    "new": "f5ffc6ea5a15445b795307e1a944178bfd1a81f2"
+  },
+  {
+    "ref": "refs/heads/codex/c-owned-audit-fixes",
+    "old": "9dd0065184689a421917acd5d7a2850c5b1d1dcc",
+    "new": "a738ec75d24b42ca007539f600f39da14cbc61b5"
+  },
+  {
+    "ref": "refs/heads/codex/c-owned-call-boundaries",
+    "old": "20fdc575aeeb9284d4e2ac8b3522f58fe4303203",
+    "new": "aa8afd2742e073be2aa32bd3385c90b49aa31008"
+  },
+  {
+    "ref": "refs/heads/codex/c-owned-compiler",
+    "old": "d00f6a4fd95da1d8c06f69bd846a4748375c9abc",
+    "new": "c1dc7bc656fe8963da79c428d3a658bf651fbb21"
+  },
+  {
+    "ref": "refs/heads/codex/c-owned-complete",
+    "old": "5f8ecffa30aa29f21ffaab50be8fde7416c56784",
+    "new": "a83ffc79d84a46e36bcf22b8ff2344663ff1fb17"
+  },
+  {
+    "ref": "refs/heads/codex/c-owned-completion",
+    "old": "7ec98ead80107637c8ca3c06c55112d92ca7b47f",
+    "new": "692c7d10423b1292e0223e35634b7594a97a22c2"
+  },
+  {
+    "ref": "refs/heads/codex/c-owned-export-results",
+    "old": "7486b4aad6ac62e9b2523c324657f880ebdd6db9",
+    "new": "2fe63039450c42024bb6fd7932292b62fd96a051"
+  },
+  {
+    "ref": "refs/heads/codex/c-owned-mainline",
+    "old": "b4c472ac78211914a2d992cfa19563583c510288",
+    "new": "056454f07ec06c823d7a8abb04b01c0a2f3a3f90"
+  },
+  {
+    "ref": "refs/heads/codex/c-owned-string-bytes",
+    "old": "132f6683cfe6dee79f36ced4bdc34a1456ff3108",
+    "new": "4a36ee1cbce43726f9219cd703b83cb40712540e"
+  },
+  {
+    "ref": "refs/heads/codex/c-owned-variadic-adapters",
+    "old": "d3f015f6401bc6c768bbbf986600df67f169cc2b",
+    "new": "48d02ce33390441ca413c5c8f675cc41e5f185e1"
+  },
+  {
+    "ref": "refs/heads/codex/demo6-import-companion",
+    "old": "ef31b4dd403c827efb03f30626f6f59c5eb49b0e",
+    "new": "5f9047bce9d6b637b2d89a201c2572b04ccab6bf"
+  },
+  {
+    "ref": "refs/heads/codex/example-runtime-fixes-20261106",
+    "old": "9b31c934b436b0459b9bd7c9b5ebcab1bc1d780b",
+    "new": "8f6bec1cd54f0cf7728db27b023fded6641dc44c"
+  },
+  {
+    "ref": "refs/heads/codex/example-runtime-integration-20261106",
+    "old": "31648781a04211135fcb77db4bd3ff896a34595c",
+    "new": "26abb189f604d413182d5f635ed640a824990371"
+  },
+  {
+    "ref": "refs/heads/codex/extlib-c-span-optimization",
+    "old": "9cf4e87ad23fe1b730319dbcf5b5f4068d427ac6",
+    "new": "1a95be9b2eaaddd0cd7112a49b929fac79dc6b94"
+  },
+  {
+    "ref": "refs/heads/codex/extlib-shared-bridges",
+    "old": "5710d07cbb0318f80b9665833c5a0781d756c9eb",
+    "new": "1446c602a6f1a744a839bfbe1e0ab45a3f5d50b9"
+  },
+  {
+    "ref": "refs/heads/codex/extlib-tabulate-owned-return",
+    "old": "28f3053a8b1599c8d4702c28394ed21d86b46e7e",
+    "new": "d76fc22372cbbcb52cfae29029ec9b8a8b0fa0dc"
+  },
+  {
+    "ref": "refs/heads/codex/extlibs-release-sync",
+    "old": "6c93191069943c56d173dba9bd3ad1c4fc6c2dd7",
+    "new": "7b988e4062730ed564bc9a6d3d060bb5ac7e5d8f"
+  },
+  {
+    "ref": "refs/heads/codex/foreign-bridge-hardening",
+    "old": "498e243855c95015c69d648b0ab263ad7cd1717a",
+    "new": "1befa8e7d1ccaad22ed42e65b442af343e029dfa"
+  },
+  {
+    "ref": "refs/heads/master",
+    "old": "74c9d2cebd4303ce73bdcf5f45385fbf65673a2d",
+    "new": "5c4730d2d00b9a595a06bd62573b116abdae0e65"
+  },
+  {
+    "ref": "refs/remotes/origin/HEAD",
+    "old": "596cab8f6b015c2d193e72c8dd39e3587c0178cc",
+    "new": "4df439289f197503a6c0c06428b3cd660fd31db4"
+  },
+  {
+    "ref": "refs/remotes/origin/master",
+    "old": "596cab8f6b015c2d193e72c8dd39e3587c0178cc",
+    "new": "4df439289f197503a6c0c06428b3cd660fd31db4"
+  },
+  {
+    "ref": "refs/tags/0.6.0-Preview",
+    "old": "0e30a18a9fd756f19824100b1f187840fbd4a0c1",
+    "new": "b43f7965918b5bc583da54aad468f25c6f1491c8"
+  }
+]

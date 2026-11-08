@@ -1,31 +1,18 @@
 # repository-local build output
 
-# xlang generated output
-/release/*
-!/release/xl.exe
-!/release/xl.dll
-!/release/xlc.dll
-!/release/xl
-!/release/libxl.so
-!/release/libxlc.so
-!/release/xlang_ide.exe
-!/release/xlang_ide_console.exe
-!/release/xlang-ls.exe
-!/release/xge.dll
-!/release/data/
-!/release/data/**
-!/release/README.md
-!/release/include/
-!/release/include/**
-!/release/examples/
-!/release/examples/**
-!/release/extlibs/
-!/release/extlibs/**
-!/release/projects/
-!/release/projects/xs/
-!/release/projects/xs/**
-/release/projects/dev/**/*.exe
-/release/examples/**/*.exe
+# Runtime distributions stay on disk and are delivered outside Git.
+# Never force-add these paths; publish evidence under dev/release-materials/.
+/release/
+/demo/release/
+/demo4/release/
+/demo5/release/
+/demo6/release/
+/dev/demo/release/
+/dev/demo4/release/
+/demo6/dev/xapi_legacy/demo6/release/
+/ide/release/
+
+# Generated compiler outputs
 /*.exe
 /*.dll
 /*.obj
@@ -59,8 +46,6 @@
 /dev/**/*.pdb
 /dev/**/*.ilk
 /dev/deferred/xhttp/projects/procmgr/logs/*.log
-/release/projects/function_interop/build/
-/release/projects/xs/projects/
 
 # xlang parser trace output
 /src/parser/xl6_parser.out
@@ -72,12 +57,8 @@
 /www_build
 # xlang IDE generated output and local session state
 /ide/build/
-/ide/release/
 /ide/.xlang-ide/
 
 # Local release maintenance state, archives and publisher helpers
 /dev/local-state/
 /dev/releases/
-
-# Local update objects, manifests, deployment configuration and tools
-/release/update_info/

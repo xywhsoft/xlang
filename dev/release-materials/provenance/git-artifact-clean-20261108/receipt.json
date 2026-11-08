@@ -1,0 +1,49 @@
+{
+  "schema": 1,
+  "date": "2026-11-08",
+  "passed": true,
+  "oldHead": "74c9d2cebd4303ce73bdcf5f45385fbf65673a2d",
+  "rewrittenHead": "5c4730d2d00b9a595a06bd62573b116abdae0e65",
+  "commits": 2837,
+  "refs": 25,
+  "worktrees": 6,
+  "excludedPaths": [
+    "release/",
+    "demo/release/",
+    "demo4/release/",
+    "demo5/release/",
+    "demo6/release/",
+    "dev/demo/release/",
+    "dev/demo4/release/",
+    "demo6/dev/xapi_legacy/demo6/release/",
+    "ide/release/",
+    "dev/release-materials/sources/xlang-development-20261105-88bd73dc-r1.zip"
+  ],
+  "releaseFilesPreserved": 14471,
+  "sourceContentAndModesUnchanged": true,
+  "uncommittedAndStagedSourcePreserved": true,
+  "beforeObjectStorageRounded": "4.48 GiB loose + 1.53 GiB packed",
+  "afterObjectStorage": "728.94 MiB",
+  "largestRemainingBlobBytes": 54532578,
+  "backup": {
+    "path": "F:\\xlang-validation\\release-history-clean-20261108\\before.bundle",
+    "bytes": 1183497583,
+    "verifiedComplete": true,
+    "worktreeIndexesAndDirtyFiles": "F:\\xlang-validation\\release-history-clean-20261108\\worktrees"
+  },
+  "gitRemoteUpdated": false,
+  "remoteLeases": {
+    "master": "596cab8f6b015c2d193e72c8dd39e3587c0178cc",
+    "tag_0_6_0_Preview": "0e30a18a9fd756f19824100b1f187840fbd4a0c1"
+  },
+  "checks": [
+    "all 2837 commit trees match exact path-only transformation",
+    "all 25 refs including tree checkpoints filtered",
+    "all 6 indexes unchanged except removed artifact entries",
+    "14471 local release files and 103448219-byte archive unchanged",
+    "excluded paths absent from all reachable history",
+    "git fsck --full --no-reflogs passed",
+    "delivery receipt verifies 1203 ignored runtime files",
+    "audit rejects corrupted bytes and force-added artifacts"
+  ]
+}

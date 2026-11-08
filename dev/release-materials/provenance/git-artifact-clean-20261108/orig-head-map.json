@@ -1,0 +1,32 @@
+[
+  {
+    "path": "D:\\GIT\\x-lang\\.git\\ORIG_HEAD",
+    "old": "66865539d7595193a485664313e859c8a08225a0",
+    "new": "78646adb323efa2677a47387f008257c4d19ec7e"
+  },
+  {
+    "path": "D:\\GIT\\x-lang\\.git\\worktrees\\x-lang\\ORIG_HEAD",
+    "old": "ee126000fc938d95ff313c3053794c3f1fe20c3b",
+    "new": "c746465644882c3d4d7cef50b51fa9d720dff83c"
+  },
+  {
+    "path": "D:\\GIT\\x-lang\\.git\\worktrees\\x-lang3\\ORIG_HEAD",
+    "old": "fc3ca43fa9f2d95cf43befe7ee1f7b6bdb891b14",
+    "new": "e349d326fb84edc916590a81712cc0f3e3df3f22"
+  },
+  {
+    "path": "D:\\GIT\\x-lang\\.git\\worktrees\\x-lang4\\ORIG_HEAD",
+    "old": "2509240e5da9f60cd488b9b5d04a4b5bc35c5842",
+    "new": "637729b89a1d79eecf96d32e51dbb37fd34fcb8b"
+  },
+  {
+    "path": "D:\\GIT\\x-lang\\.git\\worktrees\\x-lang2\\ORIG_HEAD",
+    "old": "d646729034ba9f95c64c4a95cf2e73443b0eeaf0",
+    "new": "76bd5f1f9b20718a3d031d078147f37573433ff6"
+  },
+  {
+    "path": "D:\\GIT\\x-lang\\.git\\worktrees\\x-lang1\\ORIG_HEAD",
+    "old": "f715e057ed4427003b49cc2cafd53f4db0602430",
+    "new": "4294d0b8cc24aee2fcce5ecf84cd6d7ef65d6189"
+  }
+]

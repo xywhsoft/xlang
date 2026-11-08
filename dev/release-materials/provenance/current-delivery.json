@@ -6887,5 +6887,17 @@
     "path": "dev/release-materials/provenance/ide-update-v2-publish-20261108/receipt.json",
     "sha256": "aca347fe45d76a2d7d4ac37276e406bf4f7bbba695a52d07e07f73f94ce86b07",
     "bytes": 3160
+  },
+  "repositoryHistoryCleanup": {
+    "path": "dev/release-materials/provenance/git-artifact-clean-20261108/receipt.json",
+    "sha256": "14383e4eedba7fae2749b95c1ccf38430379c27119a8a842755e5731737621ad",
+    "bytes": 1806
+  },
+  "repositoryArtifactPolicy": {
+    "runtimeRoot": "release/",
+    "tracked": false,
+    "localRuntimeBytesVerifiedBy": "tools/check_release_committed.py",
+    "historyIdMap": "dev/release-materials/provenance/git-artifact-clean-20261108/commit-map.tsv",
+    "gitRemoteUpdated": false
   }
 }
