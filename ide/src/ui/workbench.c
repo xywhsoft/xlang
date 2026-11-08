@@ -249,7 +249,7 @@ static int createWorkbench(xide_app* app)
     for (int i = 0; i < XIDE_WINDOW_COUNT; ++i) {
         const xide_action_info* action=xideActionFind(xideWorkbenchWindowAction(i));
         TRY(xuiDockPanelAddWindow(app->dock, action->title, app->panels[i], &app->windows[i]));
-        TRY(xuiDockPanelSetWindowFlags(app->dock, app->windows[i], i!=XIDE_HOME, 1));
+        TRY(xuiDockPanelSetWindowFlags(app->dock, app->windows[i], 1, 1));
     }
     TRY(xideWorkbenchReset(app)); TRY(xideEditorViewInit(app)); xideWorkbenchShowHelp(app, 0);
     if(app->catalog.count) xuiTreeViewSetSelected(app->commands, 100);

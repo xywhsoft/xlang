@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "base": {
+    "path": "dev/release-materials/sources/ide-home-layout-20261108/manifest.json",
+    "sha256": "327a1e2d584ef1ba16c2ad98519af9e121147cdc5faa593c94825176ba3924f4",
+    "bytes": 2771
+  },
+  "baseSourceCommit": "c23590b1594d0772dda7f2091e38c8842df0a530",
+  "overlayBaseCommit": "cea3cb135f92a378a70cab30f222057de6a434cd",
+  "archive": {
+    "path": "dev/release-materials/sources/ide-home-tabs-20261108/source-delta.zip",
+    "sha256": "97039c21a634704595d9fe2f940d458502ece88c844663b12c9ac43889214d6c",
+    "bytes": 62772
+  },
+  "files": [
+    {
+      "path": "ide/README.md",
+      "sha256": "fe78ec818e5deadc999f60cbbc62fab4f9f4d29b2f86bb3a4bc8e1136a258179",
+      "bytes": 34256
+    },
+    {
+      "path": "ide/docs/home.md",
+      "sha256": "2fe7fa0fa1f9499191490b005577f6b1d0f0e8dca7e65cbe6022059fa2f6883f",
+      "bytes": 3876
+    },
+    {
+      "path": "ide/src/services/session.c",
+      "sha256": "b45742fb9bf1f8928e92d750e4126d9657b6a3b68b49cd6b66eb2619ae2db031",
+      "bytes": 61150
+    },
+    {
+      "path": "ide/src/ui/editor_view.c",
+      "sha256": "55f410dada9314de2c5dc79e926805df2f1c2a246aa27676e7cbf93f5fb45312",
+      "bytes": 25214
+    },
+    {
+      "path": "ide/src/ui/home_view.inc",
+      "sha256": "26400e514e6a4100d1bc0117bbce84ac03240530214158818f5416f13add40a6",
+      "bytes": 12628
+    },
+    {
+      "path": "ide/src/ui/workbench.c",
+      "sha256": "ad8298be7ca1093f97a05d19c05f0e2038ba10e15954c215dab88855234e5b3a",
+      "bytes": 20562
+    },
+    {
+      "path": "ide/tests/home_view_test.c",
+      "sha256": "6c1b07cf4bd1265fb753072e145fc089d17b7f9ba0fd58eaca0c3d9fcfc7ef57",
+      "bytes": 21448
+    },
+    {
+      "path": "reproduction/build.py",
+      "sha256": "0d96da715bba425f96e713bbd93295c2a5f84796aeb2e41e8af0d3db0a95dcfe",
+      "bytes": 2806
+    },
+    {
+      "path": "reproduction/publish.py",
+      "sha256": "e10fc25c3e510801cff38fbee89dcf5097a23a8bec6247b6b8c948c1995a92f6",
+      "bytes": 3412
+    },
+    {
+      "path": "reproduction/record.py",
+      "sha256": "fbb1d3b8664e0ce3630351e9b96b5c31e5bde8035a20e082b412732cf950b718",
+      "bytes": 8015
+    },
+    {
+      "path": "reproduction/test.py",
+      "sha256": "a9a0eb32a7d960eda0c4a9da6b3502e2be1cf0f2f386cc73b65baf2c60b332e8",
+      "bytes": 6061
+    }
+  ]
+}

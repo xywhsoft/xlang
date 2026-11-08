@@ -1,4 +1,5 @@
 #include "ui/home_view.h"
+#include "ui/workbench_windows.h"
 #include "model/metadata_read.h"
 #include "services/session.h"
 #include "services/rename_journal.h"
@@ -704,8 +705,11 @@ static void restore(xide_app* app)
         app->activeDocument=active; xui_dock_window_info_t info={0}; info.iSize=sizeof(info); xuiDockPanelGetWindowInfo(app->dock,active->window,&info);
         if(info.iState==XUI_DOCK_PANEL_WINDOW_HIDDEN) xideEditorShow(app,active);
         else xuiSetFocusWidget(app->context,active->editor);
-    } else if(!app->activeDocument) {
-        xideWorkbenchShowHome(app);
+    } else if(xideWorkbenchWindowVisible(app,XIDE_HOME)>0) {
+        xui_dock_window_info_t home={0};home.iSize=sizeof(home);
+        int selected=xuiDockPanelGetWindowInfo(app->dock,app->windows[XIDE_HOME],&home)==XUI_OK &&
+            home.iState==XUI_DOCK_PANEL_WINDOW_DOCKED && xuiDockPanelGetPaneActiveWindow(app->dock,home.iPane)==app->windows[XIDE_HOME];
+        if(!app->activeDocument || selected)xideWorkbenchShowHome(app);
     }
     s->scrollPending=1; s->restoring=0; xrtValueRelease(recovered);
 }
@@ -738,6 +742,7 @@ int xideSessionCanAttemptCheckpoint(xide_app* app)
 int xideSessionBeforeWorkspace(xide_app* app,xide_model_error* error)
 {
     xide_session* s=app->session; if((!s && !app->sessionSwitchConfirmed) || (s && s->restoring)) return 1;
+    int homeVisible=xideWorkbenchWindowVisible(app,XIDE_HOME);
     if(s && !xideSessionSave(app,app->sessionSwitchConfirmed,error)) {
         report(app,error ? error->message : "Cannot checkpoint session."); if(xideDocumentsDirty(&app->documents) && !app->sessionSwitchConfirmed) return 0;
     }
@@ -745,7 +750,9 @@ int xideSessionBeforeWorkspace(xide_app* app,xide_model_error* error)
     for(size_t i=0;i<app->documents.count;++i) if(app->documents.items[i]->open) {
         if(!xideEditorClose(app,app->documents.items[i],1,error)) { if(s) s->restoring=0; return 0; }
     }
-    xideWorkbenchReset(app); xideReadingReset(app);
+    xideWorkbenchReset(app);
+    if(homeVisible==0)xuiDockPanelHideWindow(app->dock,app->windows[XIDE_HOME]);
+    xideReadingReset(app);
     if(s) s->restoring=0;
     return 1;
 }

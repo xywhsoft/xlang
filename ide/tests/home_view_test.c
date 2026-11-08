@@ -2,6 +2,7 @@
 #include "ui/home_view.h"
 #include "ui/editor_view.h"
 #include "ui/workbench_windows.h"
+#include "ui/workspace_view.h"
 #include "ui/layout_state.h"
 #include "ui/template_view.h"
 #include "services/session.h"
@@ -12,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 static int checks,started,failed;
 #define CHECK(e) do{++checks;if(!(e)){fprintf(stderr,"home_view_test:%d: %s (%s)\n",__LINE__,#e,error.message);failed=1;goto cleanup;}}while(0)
 static int settle(xide_app* a) {
@@ -39,6 +41,30 @@ static int pickTemplate(xide_app* a,int index) {
     float x=world.fX+r.fX+30,y=world.fY+r.fY+r.fH/2;
     return xuiInputPointerMove(a->context,x,y,0)==XUI_OK && xuiInputPointerDown(a->context,x,y,XUI_POINTER_BUTTON_LEFT,XUI_POINTER_BUTTON_LEFT)==XUI_OK &&
         xuiInputPointerUp(a->context,x,y,XUI_POINTER_BUTTON_LEFT,0)==XUI_OK && settle(a) && xuiListViewGetSelected(list)==index;
+}
+static int closeHomeTab(xide_app* a) {
+    xui_dock_window_info_t info={.iSize=sizeof(info)};xui_dock_panel_metrics_t metrics={.iSize=sizeof(metrics)};
+    if(xuiDockPanelGetWindowInfo(a->dock,a->windows[XIDE_HOME],&info)!=XUI_OK || !info.bClosable ||
+       xuiDockPanelGetMetrics(a->dock,&metrics)!=XUI_OK)return 0;
+    float x=0,y=0;xui_dock_hit_t hit={.iSize=sizeof(hit)};
+    if(info.tTabRect.fW>0) {
+        float button=fminf(metrics.fButtonSize,fmaxf(0,info.tTabRect.fH-6));
+        x=info.tTabRect.fX+info.tTabRect.fW-5-button/2;y=info.tTabRect.fY+info.tTabRect.fH/2;
+        if(xuiDockPanelHitTest(a->dock,x,y,&hit)!=XUI_OK || hit.iType!=XUI_DOCK_PANEL_HIT_PANE_TAB_CLOSE || hit.iWindow!=a->windows[XIDE_HOME])return 0;
+    } else {
+        /* XUI uses caption chrome for a pane with one document. Locate its
+           real close hit rather than assuming an unrendered tab rectangle. */
+        xui_dock_pane_info_t pane={.iSize=sizeof(pane)};int found=0;
+        if(xuiDockPanelGetPaneInfo(a->dock,info.iPane,&pane)!=XUI_OK)return 0;
+        y=pane.tCaptionRect.fY+pane.tCaptionRect.fH/2;
+        for(int px=pane.tCaptionRect.fX+pane.tCaptionRect.fW-1;px>=pane.tCaptionRect.fX;--px) {
+            if(xuiDockPanelHitTest(a->dock,(float)px,y,&hit)==XUI_OK && hit.iType==XUI_DOCK_PANEL_HIT_PANE_CLOSE) {x=(float)px;found=1;break;}
+        }
+        if(!found)return 0;
+    }
+    xui_rect_t dock=xuiWidgetGetWorldRect(a->dock);x+=dock.fX;y+=dock.fY;
+    return xuiInputPointerMove(a->context,x,y,0)==XUI_OK && xuiInputPointerDown(a->context,x,y,XUI_POINTER_BUTTON_LEFT,XUI_POINTER_BUTTON_LEFT)==XUI_OK &&
+        xuiInputPointerUp(a->context,x,y,XUI_POINTER_BUTTON_LEFT,0)==XUI_OK && settle(a) && xideWorkbenchWindowVisible(a,XIDE_HOME)==0;
 }
 static int shot(xide_app* a,const char* root,const char* name) {
     char* path=xidePathResolve(root,name);xui_rect_i_t rect={0,0,a->viewportWidth,a->viewportHeight};
@@ -76,7 +102,7 @@ static int run(void* raw) {
     for(int language=0;language<2;++language) {
         CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_NEW)) && pickTemplate(&a,language));
         if(language==1)CHECK(shot(&a,raw,"new-template-c.png"));
-        CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_CREATE)) && a.activeDocument && a.activeDocument->open && !a.activeDocument->path && !strcmp(a.activeDocument->language,language==0?"xlang":"c") && !*xuiCodeEditGetText(a.activeDocument->editor) && xideWorkbenchWindowVisible(&a,XIDE_HOME)==0 && !xideDialogIsOpen(xideHomeNewWindow(&a)));
+        CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_CREATE)) && a.activeDocument && a.activeDocument->open && !a.activeDocument->path && !strcmp(a.activeDocument->language,language==0?"xlang":"c") && !*xuiCodeEditGetText(a.activeDocument->editor) && xideWorkbenchWindowVisible(&a,XIDE_HOME)==1 && !xideDialogIsOpen(xideHomeNewWindow(&a)));
         CHECK(xideEditorClose(&a,a.activeDocument,1,&error) && settle(&a) && !a.activeDocument && xideWorkbenchWindowVisible(&a,XIDE_HOME)==1);
     }
     /* Keyboard activation creates only the selected independent document. */
@@ -84,6 +110,10 @@ static int run(void* raw) {
     CHECK(xuiInputKeyDownEx(a.context,XUI_KEY_ENTER,0,NULL)==XUI_OK && xuiInputKeyUpEx(a.context,XUI_KEY_ENTER,0,NULL)==XUI_OK && settle(&a) && a.activeDocument && !strcmp(a.activeDocument->language,"xlang"));
     CHECK(xideEditorClose(&a,a.activeDocument,1,&error) && settle(&a));
     xide_workspace prepared={0};int preparedOkay=xideWorkspaceCreate(&prepared,"首页打开测试",&error) && xideWorkspaceSave(&prepared,workspace,&error);xideWorkspaceClear(&prepared);CHECK(preparedOkay);
+    CHECK(closeHomeTab(&a));
+    a.sessionSwitchConfirmed=1;int switched=xideWorkspaceOpen(&a,workspace,0,&error);a.sessionSwitchConfirmed=0;
+    CHECK(switched && settle(&a) && xideWorkbenchWindowVisible(&a,XIDE_HOME)==0);
+    CHECK(xideActionExecute(&a,XIDE_ACTION_VIEW_HOME)==XIDE_ACTION_DISPATCHED && settle(&a));
     CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_OPEN)) && xideFileDialogCurrent(&a));
     CHECK(!strcmp(xuiFileDialogGetFilterPattern(xideFileDialogCurrent(&a),0),"*.xlw;*.xlp;*.xl;*.c") && choose(&a,workspace));
     CHECK(a.workspaceModel.manifest && xidePathEqual(a.workspaceModel.manifest,workspace) && xideSettingsRecentCount(&a.preferences)==1);
@@ -115,6 +145,8 @@ static int run(void* raw) {
     CHECK(xideEditorClose(&a,a.activeDocument,1,&error) && settle(&a));
     for(int theme=0;theme<IDE_THEME_COUNT;++theme) {
         CHECK(xideWorkbenchApplyTheme(&a,theme)==XUI_OK && settle(&a));
+        xui_widget outer=xuiWidgetGetParent(xuiWidgetGetParent(table));xui_style_property_t border={0};
+        CHECK(xuiWidgetGetResolvedStyleProperty(outer,"panel.border.color",&border)==XUI_OK && border.tValue.iColor==ideThemeColor(theme,IDE_BORDER));
         char name[64];snprintf(name,sizeof(name),"home-theme-%d.png",theme);CHECK(shot(&a,raw,name));
     }
     /* Home layout follows pane width and does not create stacked demo editors. */
@@ -152,6 +184,42 @@ static int run(void* raw) {
     a.hidden=1;a.disableAutomaticDiagnostics=1;a.settingsPath=settings;a.sessionRoot=sessions;
     CHECK(xideAppCreate(&a)==XUI_OK && xgeBegin()==XGE_OK);began=1;
     CHECK(xideTestCatalogReady(&a) && settle(&a) && !a.activeDocument && xideWorkbenchWindowVisible(&a,XIDE_HOME)==1);
+    /* Home is an ordinary closable tab, sharing a pane with source files. */
+    CHECK(xideEditorOpen(&a,script,&error) && settle(&a) && xideWorkbenchWindowVisible(&a,XIDE_HOME)==1);
+    xide_document* coexist=a.activeDocument;xui_dock_window_info_t home={.iSize=sizeof(home)},file={.iSize=sizeof(file)};
+    CHECK(xuiDockPanelGetWindowInfo(a.dock,a.windows[XIDE_HOME],&home)==XUI_OK && home.bClosable && xuiDockPanelGetWindowInfo(a.dock,coexist->window,&file)==XUI_OK && home.iPane==file.iPane);
+    CHECK(shot(&a,raw,"home-with-file.png"));
+    CHECK(closeHomeTab(&a) && a.activeDocument==coexist && coexist->open);
+    xide_document* other=xideDocumentNew(&a.documents,"c",&error);CHECK(other && xideEditorShow(&a,other)==XUI_OK && settle(&a) && xideWorkbenchWindowVisible(&a,XIDE_HOME)==0);
+    CHECK(xideEditorClose(&a,other,1,&error) && xideEditorClose(&a,coexist,1,&error) && settle(&a) && !a.activeDocument && xideWorkbenchWindowVisible(&a,XIDE_HOME)==0);
+    CHECK(xideActionExecute(&a,XIDE_ACTION_VIEW_HOME)==XIDE_ACTION_DISPATCHED && settle(&a) && xideWorkbenchWindowVisible(&a,XIDE_HOME)==1);
+    CHECK(xideEditorOpen(&a,script,&error) && settle(&a));coexist=a.activeDocument;
+    CHECK(xideWorkbenchShowHome(&a)==XUI_OK && settle(&a) && !a.activeDocument && coexist->open);
+    CHECK(shot(&a,raw,"home-with-file-selected.png"));
+    CHECK(xideEditorClose(&a,coexist,1,&error) && settle(&a) && !a.activeDocument && xideWorkbenchWindowVisible(&a,XIDE_HOME)==1);
+    CHECK(xideEditorOpen(&a,script,&error) && xideWorkbenchShowHome(&a)==XUI_OK && settle(&a));coexist=xideDocumentsFind(&a.documents,script);
+    CHECK(coexist && closeHomeTab(&a) && a.activeDocument==coexist && xuiGetFocusWidget(a.context)==coexist->editor);
+    CHECK(xideSessionSave(&a,0,&error));
+    xgeEnd();began=0;xideAppDestroy(&a);memset(&a,0,sizeof(a));
+    a.hidden=1;a.disableAutomaticDiagnostics=1;a.settingsPath=settings;a.sessionRoot=sessions;
+    CHECK(xideAppCreate(&a)==XUI_OK && xgeBegin()==XGE_OK);began=1;
+    CHECK(xideTestCatalogReady(&a) && settle(&a) && a.activeDocument && xideWorkbenchWindowVisible(&a,XIDE_HOME)==0);
+    CHECK(xideEditorClose(&a,a.activeDocument,1,&error) && settle(&a) && !a.activeDocument && xideWorkbenchWindowVisible(&a,XIDE_HOME)==0 && xideSessionSave(&a,0,&error));
+    xgeEnd();began=0;xideAppDestroy(&a);memset(&a,0,sizeof(a));
+    a.hidden=1;a.disableAutomaticDiagnostics=1;a.settingsPath=settings;a.sessionRoot=sessions;
+    CHECK(xideAppCreate(&a)==XUI_OK && xgeBegin()==XGE_OK);began=1;
+    CHECK(xideTestCatalogReady(&a) && settle(&a) && !a.activeDocument && xideWorkbenchWindowVisible(&a,XIDE_HOME)==0);
+    CHECK(xideWorkbenchShowHome(&a)==XUI_OK && xideEditorOpen(&a,script,&error) && settle(&a) && xideSessionSave(&a,0,&error));
+    xgeEnd();began=0;xideAppDestroy(&a);memset(&a,0,sizeof(a));
+    a.hidden=1;a.disableAutomaticDiagnostics=1;a.settingsPath=settings;a.sessionRoot=sessions;
+    CHECK(xideAppCreate(&a)==XUI_OK && xgeBegin()==XGE_OK);began=1;
+    CHECK(xideTestCatalogReady(&a) && settle(&a) && a.activeDocument && xideWorkbenchWindowVisible(&a,XIDE_HOME)==1);
+    CHECK(xideWorkbenchShowHome(&a)==XUI_OK && settle(&a) && !a.activeDocument && xideSessionSave(&a,0,&error));
+    xgeEnd();began=0;xideAppDestroy(&a);memset(&a,0,sizeof(a));
+    a.hidden=1;a.disableAutomaticDiagnostics=1;a.settingsPath=settings;a.sessionRoot=sessions;
+    CHECK(xideAppCreate(&a)==XUI_OK && xgeBegin()==XGE_OK);began=1;
+    CHECK(xideTestCatalogReady(&a) && settle(&a) && !a.activeDocument && xideDocumentsFind(&a.documents,script) && xideWorkbenchWindowVisible(&a,XIDE_HOME)==1);
+    CHECK(xuiDockPanelGetPaneActiveWindow(a.dock,a.documentPane)==a.windows[XIDE_HOME]);
     puts("home_view_test: compact Home, 2 source templates, modal cancel/create/Enter, combined open filter and file/project/workspace routes, flat row-selection styling, Enter/double-click history, 4 themes, 3 pane sizes and persistent clear");
 cleanup:
     xrtValueRelease(layout);if(began)xgeEnd();xideAppDestroy(&a);xideProjectClear(&project);free(directory);free(settings);free(script);free(workspace);free(sessions);free(manifest);xgeQuit();

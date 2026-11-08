@@ -1,4 +1,5 @@
 #include "ui/home_view.h"
+#include "ui/workbench_windows.h"
 #include "ui/editor_view.h"
 #include "ui/find_view.h"
 #include "services/preferences.h"
@@ -209,7 +210,6 @@ int xideEditorShow(xide_app* app,xide_document* document)
         }
     }
     app->documentPane=pane; TRY(xuiDockPanelSetPaneActiveWindow(app->dock,pane,document->window));
-    TRY(xuiDockPanelHideWindow(app->dock,app->windows[XIDE_HOME]));
     app->activeDocument=document; TRY(applyTheme(app,document->editor)); TRY(xuiLayout(app->context)); TRY(xuiSetFocusWidget(app->context,document->editor));
     documentChanged(document,app); return XUI_OK;
 }
@@ -227,13 +227,17 @@ int xideEditorOpen(xide_app* app,const char* path,xide_model_error* error)
 int xideEditorClose(xide_app* app,xide_document* document,int discardChanges,xide_model_error* error)
 {
     if(!document || !document->open) return 1;
+    int homeActive=!app->activeDocument && xideWorkbenchWindowVisible(app,XIDE_HOME)>0;
+    xide_document* previous=app->activeDocument;
     int window=document->window;
     if(!xideDocumentClose(document,discardChanges,error)) return 0;
     xide_document* next=NULL;
-    for(size_t i=0;i<app->documents.count;++i) if(app->documents.items[i]->open) { next=app->documents.items[i]; break; }
-    if(app->activeDocument==document) app->activeDocument=next;
-    if(next) xideEditorShow(app,next);
-    else { int result=xideWorkbenchShowHome(app);if(result!=XUI_OK)app->frameError=result; }
+    if(previous && previous!=document && previous->open) next=previous;
+    for(size_t i=0;!next && i<app->documents.count;++i) if(app->documents.items[i]->open) { next=app->documents.items[i]; break; }
+    if(homeActive || (!next && xideWorkbenchWindowVisible(app,XIDE_HOME)>0)) {
+        int result=xideWorkbenchShowHome(app);if(result!=XUI_OK)app->frameError=result;
+    } else if(next) xideEditorShow(app,next);
+    else app->activeDocument=NULL;
     if(window>=0) xuiDockPanelHideWindow(app->dock,window);
     xideActionsRefresh(app); return 1;
 }
@@ -254,7 +258,17 @@ int xideEditorConfirmAll(xide_app* app)
 static void closeRequested(xui_widget widget,int window,void* user)
 {
     (void)widget; xide_app* app=user; xide_document* document=byWindow(app,window);
-    if(!document) { xuiDockPanelHideWindow(app->dock,window); return; }
+    if(!document) {
+        int homeActive=window==app->windows[XIDE_HOME] && !app->activeDocument;
+        xuiDockPanelHideWindow(app->dock,window);
+        if(homeActive) {
+            xide_document* next=NULL;
+            for(size_t i=0;i<app->documents.count;++i)if(app->documents.items[i]->open) {next=app->documents.items[i];break;}
+            if(next) {int result=xideEditorShow(app,next);if(result!=XUI_OK)app->frameError=result;}
+            else xuiSetFocusWidget(app->context,NULL);
+        }
+        return;
+    }
     if(xideActionsHasModal(app)) { app->reopenDocument=document;return; }
     xideMessageBeginClose(app,document);
     if(!confirmDocument(app,document)) { app->reopenDocument=document; xideMessageEndOperation(app);return; }
@@ -324,7 +338,6 @@ int xideEditorReset(xide_app* app)
         TRY(xuiDockPanelDockWindowToPane(app->dock,document->window,app->documentPane)); any=1;
     }
     if(any) {
-        TRY(xuiDockPanelHideWindow(app->dock,app->windows[XIDE_HOME]));
         if(!active || !active->open) for(size_t i=0;i<app->documents.count;++i) if(app->documents.items[i]->open) { active=app->documents.items[i]; break; }
         app->activeDocument=active; TRY(xuiDockPanelSetPaneActiveWindow(app->dock,app->documentPane,active->window));
     }

@@ -1,0 +1,131 @@
+{
+  "schema": 1,
+  "date": "2026-11-09",
+  "passed": true,
+  "complete": true,
+  "publication": "local-only",
+  "scope": "Restore original history outline color and keep Home as a closable document tab.",
+  "sourceMaterials": {
+    "path": "dev/release-materials/sources/ide-home-tabs-20261108/manifest.json",
+    "sha256": "7f18295914ac6377b10ad6159b5cdb242a913a0890fbe1dd9a59ceb64c90c9f5",
+    "bytes": 2303
+  },
+  "evidence": {
+    "path": "dev/release-materials/provenance/ide-home-tabs-20261108/evidence.zip",
+    "sha256": "05b38b972af5b530cde95843af670ad91d64988d0646ca8997447eccfc6c817b",
+    "bytes": 2326720
+  },
+  "installed": {
+    "passed": true,
+    "installedPath": "release/win_x64/xlang_ide.exe",
+    "previousSha256": "ae52fa4a76aaf160ca6f002e575149b47f4668ba07790060824cd890386c8b8a",
+    "sha256": "23381a7f7adabe972e5f48ddd97ac6e9fce33110b0748181508befb73518d35b",
+    "bytes": 2061823,
+    "installedSmokeExit": 0,
+    "preserved": {
+      "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe": "e5f4719890814a3f7b5422ffb1f293ffc944c527de62217d32e9a3a4c287dfad",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xl.dll": "e783d6a15c946945d4186084cff9006839cbc1d31a0ae387396dc6f500aaac6c",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xlc.dll": "b4563a13448e2f550b00c0504cac481cdefd2b61ee961276049f936243f125a1",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xge.dll": "f6eaa3961017f79cd06d18568bab8fb60274c4935e1a83ab8fb37da21acc607b",
+      "D:\\GIT\\x-lang\\ide\\third_party\\xge_sdk\\sdk_manifest.json": "c0fbd47f95fafe863fae241ece7d4654d3908f5efb6b3ab2a1b678cb59b79f93"
+    }
+  },
+  "tests": [
+    {
+      "test": "input_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-home-tabs-20261108\\gui-source\\ide\\tests\\input_test.c",
+      "sourceSha256": "2804e8842d91a338ac4dcb3788d9133f597303b435b55038168e0669645d40f5"
+    },
+    {
+      "test": "dock_windows_view_test",
+      "exit": 0,
+      "source": "D:\\GIT\\x-lang\\ide\\tests\\dock_windows_view_test.c",
+      "sourceSha256": "a4fb137d21d8619b7141d607bf773dcc858546138fe42fc31e6e49c268fed91a"
+    },
+    {
+      "test": "find_follow_view_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-home-tabs-20261108\\gui-source\\ide\\tests\\find_follow_view_test.c",
+      "sourceSha256": "57f31d4f99fffece30d9a5e657c991aea72a7ed901c34fe1da49b2919c8304c9"
+    },
+    {
+      "test": "actions_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-home-tabs-20261108\\gui-source\\ide\\tests\\actions_test.c",
+      "sourceSha256": "5aa6fb73f6eb4827f328346b4733bab10c7e72e39e4c130e94bb335021e78136"
+    },
+    {
+      "test": "settings_view_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-home-tabs-20261108\\gui-source\\ide\\tests\\settings_view_test.c",
+      "sourceSha256": "1a09b8f399fca72e2bd060d9c3ac3f54c820cb3db5367932f2607fae093a70f3"
+    },
+    {
+      "test": "home_view_test",
+      "exit": 0,
+      "source": "D:\\GIT\\x-lang\\ide\\tests\\home_view_test.c",
+      "sourceSha256": "6c1b07cf4bd1265fb753072e145fc089d17b7f9ba0fd58eaca0c3d9fcfc7ef57"
+    },
+    {
+      "test": "session_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-home-tabs-20261108\\gui-source\\ide\\tests\\session_test.c",
+      "sourceSha256": "b8559524305cc9881aba3f76d4e5f040ce94cdf0d0db250bbfce296219dcc340"
+    },
+    {
+      "test": "workbench_test",
+      "exit": 0,
+      "source": "D:\\GIT\\x-lang\\ide\\tests\\workbench_test.c",
+      "sourceSha256": "ecfe77bf82799012ea9317e8f3e791e84de5ed1ed451a069af408cc436d6bf92"
+    }
+  ],
+  "assertions": {
+    "home": 123,
+    "dock": 149
+  },
+  "behavior": {
+    "homeCoexistsWithFiles": true,
+    "homeClosable": true,
+    "homeReopensOnlyExplicitlyAfterClose": true,
+    "homeClosedStatePersisted": true,
+    "activeHomeWithOpenFilePersisted": true,
+    "workspaceResetPreservesClosedHome": true,
+    "outerBorder": "original theme IDE_BORDER color",
+    "internalGrid": "unchanged low contrast"
+  },
+  "coverage": [
+    "real native Home caption/tab close hit",
+    "new and opened source files coexist with Home",
+    "closing inactive Home preserves active file and focus",
+    "closing active Home selects an open file",
+    "closing background source does not switch away from Home",
+    "closed Home stays closed after later opens and last-file close",
+    "View/Home reopens existing page",
+    "fresh workspace automatic reset preserves Home closure",
+    "restart: closed Home with and without files, active source and active Home with source",
+    "four theme colors and screenshots",
+    "C/xlang input, deletion, undo, Unicode IME, focus, shared find, settings, menus, Dock and session regression"
+  ],
+  "build": {
+    "guiObjects": 111,
+    "optimization": "-O2",
+    "rebuiltUnits": [
+      "src/ui/workbench.c",
+      "src/ui/editor_view.c",
+      "src/services/session.c"
+    ],
+    "unchangedReusedObjects": 108,
+    "publicHeadersUnchanged": true,
+    "allInputsUnchanged": true,
+    "baseBuildMetadata": "D:\\GIT\\x-lang\\ide\\build\\Release\\home-layout-20261108\\objects\\gui-build-inputs.json",
+    "baseSourceCommit": "c23590b1594d0772dda7f2091e38c8842df0a530",
+    "overlayBaseCommit": "cea3cb135f92a378a70cab30f222057de6a434cd"
+  },
+  "limits": [
+    "Windows targeted acceptance, not a full repository suite.",
+    "Explicit reset-default-layout command still restores the default Home.",
+    "Compiler, language server, XGE and SDK preserved; independent ongoing source changes excluded."
+  ]
+}

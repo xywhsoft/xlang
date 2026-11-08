@@ -135,7 +135,7 @@ static int homeTheme(xide_app* a) {
     styles[0].tValue.iColor=line;styles[1].tValue.iColor=0;styles[2].tValue.fFloat=0;
     TRY(xuiWidgetSetInlineStyle(v->controls[XIDE_HOME_HISTORY],styles,3));
     xui_style_property_t border={0};border.iSize=sizeof(border);border.sName="panel.border.color";
-    border.tValue.iSize=sizeof(border.tValue);border.tValue.iType=XUI_STYLE_VALUE_COLOR;border.tValue.iColor=line;
+    border.tValue.iSize=sizeof(border.tValue);border.tValue.iType=XUI_STYLE_VALUE_COLOR;border.tValue.iColor=ideThemeColor(a->theme,IDE_BORDER);
     return xuiWidgetSetInlineStyle(v->frame,&border,1);
 }
 static int homeCreate(xide_app* a) {
