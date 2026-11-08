@@ -679,6 +679,8 @@ def main() -> None:
     except ValueError as error:
         parser.error(str(error))
     c_interop = c_interop_selected(frontend)
+    current_core = frontend_materials.get('sourceRevision')=='current-core-20261108'
+    if current_core and not args.skip_tests:tests=('analysis_current_core_test',*tests)
     unified = c_interop or ((frontend/'src/sem/xl6_sem.c').is_file() and sha(frontend/'src/sem/xl6_sem.c')==UNIFIED_PINS['src/sem/xl6_sem.c'])
     if completion_facts(frontend) and not args.skip_tests:tests=('analysis_completion_visibility_test',*tests)
     if unified and not args.skip_tests:tests=('analysis_unified_semantic_test',*tests)
@@ -787,6 +789,7 @@ def main() -> None:
     if ir_overlay.get('irDependencyCohort') in (C_INTEROP_COHORT,FINAL_COHORT):common+=['-DXLS_NATIVE_IR_FOREIGN_FIELDS=1']
     if async_corpus(frontend):common+=['-DXLS_NATIVE_ASYNC_RESULTS=1']
     if frontend_materials.get('cohort')==FINAL_COHORT:common+=['-DXLS_NATIVE_FINAL_INTEROP=1']
+    if current_core:common+=['-DXLS_NATIVE_CURRENT_CORE=1']
     index_budget_flag = "-DXL6_INDEX_BYTES=" + str(NATIVE_INDEX_BYTES) + "u"
     common += [index_budget_flag]
     common += args.cflag

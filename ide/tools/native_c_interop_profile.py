@@ -421,7 +421,7 @@ def pins_for(frontend: Path):
 
 def revision(frontend: Path):
     if final_profile.selected(frontend):
-        return 'final-completion-facts-20261108' if final_profile.completion_facts(frontend) else final_profile.COHORT
+        return final_profile.source_revision(frontend) if final_profile.completion_facts(frontend) else final_profile.COHORT
     selected=pins_for(frontend)
     return next(name for name,pins in _REVISIONS if pins is selected)
 

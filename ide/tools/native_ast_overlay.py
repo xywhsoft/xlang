@@ -5,7 +5,7 @@ semantic and IR guards must be rebased separately before a current server build.
 Every consumer of a selected layout must be rebuilt with its generated header.
 """
 from pathlib import Path
-from native_final_c_interop_profile import PINS as FINAL_PINS
+from native_final_c_interop_profile import PINS as FINAL_PINS, CURRENT_PINS
 import hashlib
 from native_current_unified_profile import PINS as UNIFIED_PINS
 from native_c_interop_profile import PINS as C_INTEROP_PINS
@@ -31,7 +31,7 @@ PROFILES = {
 
 
 PROFILES[(C_INTEROP_PINS['src/ast/xl6_ast.c'],C_INTEROP_PINS['src/ast/xl6_ast.h'])]=dict(runtime=C_INTEROP_PINS['lib/xrt/xrt.h'],packageFields=True,cRecords=True)
-PROFILES[(FINAL_PINS['src/ast/xl6_ast.c'],FINAL_PINS['src/ast/xl6_ast.h'])]=dict(runtime=FINAL_PINS['lib/xrt/xrt.h'],packageFields=True,cRecords=True)
+PROFILES[(FINAL_PINS['src/ast/xl6_ast.c'],FINAL_PINS['src/ast/xl6_ast.h'])]=dict(runtime=(FINAL_PINS['lib/xrt/xrt.h'],CURRENT_PINS['lib/xrt/xrt.h']),packageFields=True,cRecords=True)
 
 def derive(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     """Private node-owner ABI; every native AST consumer must be rebuilt."""

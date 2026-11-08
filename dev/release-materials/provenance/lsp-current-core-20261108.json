@@ -1,0 +1,228 @@
+{
+  "format": "xlang-current-core-acceptance-1",
+  "date": "2026-11-08",
+  "phaseStatus": "default-check-source-alignment-complete-performance-not-qualified",
+  "fullGoalComplete": false,
+  "shippingDelivery": false,
+  "correctnessPassed": true,
+  "performanceQualified": false,
+  "scope": "Exact current compiler frontend and default-check package selection in external LSP. No DAP or runtime/debug completion. Explicit native selection in project contexts and complete LSP/IDE performance remain incomplete.",
+  "baseGitCommit": "6e177576c3c5103486bedb67b2f245b235e230f2",
+  "implementationInputs": {
+    "ide/tools/build_lsp_core.py": "27c02cbf91cf5b6fda107a0803603dc66cd274c69616af5c1110b01f6870af35",
+    "ide/tools/native_ast_overlay.py": "5b2f2ac756a489f2f9c2b01098df3fd06cc4f377bd1d7f8f2f2315ab751700f5",
+    "ide/tools/native_c_interop_profile.py": "1afbba0e76414251747bb971a08b27871a8814ca51dd8184c127e27aa8d9c5eb",
+    "ide/tools/native_current_ir_overlay.py": "1e1e82a2c6faf7dad6da7bcb1476b6cd9b5902378c037771bbc0c484a371b993",
+    "ide/tools/native_final_c_interop_profile.py": "5d28c0f2caa33ff1b8935bf6c6943080d5761b01b0e37c30210edf4f97c22c3f",
+    "ide/tools/native_signature_overlay.py": "e6c4153a7d6863d4998549b5a91d7099ab9287298102d80136b508b8029d2f8f",
+    "ide/tools/xrt_process_tree_overlay.py": "b16520a0c5f577abfdcfc2816190947cdff3377e79c76bad0cd2d588196a55b6",
+    "ide/tools/native_current_core_pins_20261108.json": "00c891d000b68b86f1d18bd51234284b2c14c538328a3c4fd178babcfb5dab99",
+    "ide/tests/analysis_current_core_test.c": "4f478e8fe57559d9a4d3cc82c6f85edb7eb002469d0d875af102f5fd2ec7b8d2",
+    "ide/tools/check_current_core_inputs.py": "e9f4c5c25a276fecac6aa0105f7c13ad3d9edb7a17a4b46c03156df3af683115",
+    "ide/tools/check_lsp_current_core.py": "6bbdf38f29366e7e2a4f06855fb4faad99460805d6147f0db1e1be4579590163",
+    "ide/docs/lsp-current-core.md": "f9582643081f1872f83d49d9bd397b9fec4f6217796fb6b1b42070e0a4b684e1",
+    "ide/docs/lsp-development.md": "254af3ae4136a9d411a269ba927a074c12d3631cab5dce0691c2f50ca47fbffb"
+  },
+  "frontend": {
+    "abiFamily": "final-c-interop-20261105",
+    "sourceRevision": "current-core-20261108",
+    "pins": 457,
+    "contentChanges": 19,
+    "newDependencies": [
+      "src/package/xl6_package_native_link.inc",
+      "src/package/xl6_package_native_variants.inc"
+    ],
+    "currentCheckoutPreparedAndHashVerified": true,
+    "old455PinInventoryUnchanged": true,
+    "sourceManifest": "dev/release-materials/sources/lsp-current-core-20261108/manifest.json",
+    "sourceManifestSha256": "cbd410e3c2e702d0bb2f9993a59ef1e08c923c6b41c6c874e36a74927242748d",
+    "archiveSha256": "dd03e620fc8d7ed0fb038b150bfe065f4f42c97d9c3dd1813ba77f79d08f6df9",
+    "newAdmissionCases": 11,
+    "previousAdmissionCases": 8,
+    "bridgeContractsChecked": 3701,
+    "originalCompleteIrDerivedPassesRetained": true
+  },
+  "native": {
+    "normalBuildSha256": "0002eb2700c44555efb48cdaacbf03882fb0d4d58265e1203a5f84068a77ec7f",
+    "compileInvocations": 235,
+    "tests": 137,
+    "privateAstConsumers": 142,
+    "inputs": 1394,
+    "outputs": 139,
+    "newAssertions": 146,
+    "completionAssertions": 1412,
+    "actualProducerCases": 7,
+    "actualProducerCommands": 19,
+    "serverSha256": "5f1e5c2f1b8984069f933208ce23af85d8103a19ffce865735a044e28ff2835b",
+    "imports": [
+      "IPHLPAPI.DLL",
+      "KERNEL32.dll",
+      "msvcrt.dll",
+      "ole32.dll",
+      "SHELL32.dll",
+      "VERSION.dll",
+      "WS2_32.dll"
+    ]
+  },
+  "protocol": {
+    "allFinalCommandsPassed": true,
+    "newCurrentCoreCases": 9,
+    "newCurrentCoreProcesses": 2,
+    "legacyDefects": "Used default local channel incorrectly rejected; selected native variant metadata ignored, so invalid selected identity incorrectly accepted.",
+    "completionProcesses": 45,
+    "completionGenerations": 36,
+    "automaticCases": 24,
+    "finalInteropCases": 16,
+    "serializerAssertions": 127836,
+    "frontendRows": 9
+  },
+  "installedCompilerParity": {
+    "status": "passed",
+    "inputs": {
+      "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe": "e5f4719890814a3f7b5422ffb1f293ffc944c527de62217d32e9a3a4c287dfad",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xl.dll": "e783d6a15c946945d4186084cff9006839cbc1d31a0ae387396dc6f500aaac6c",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xlc.dll": "b4563a13448e2f550b00c0504cac481cdefd2b61ee961276049f936243f125a1"
+    },
+    "cases": [
+      {
+        "name": "channel",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+          "check",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-current-frontend-20261108\\compiler-parity\\channel.xl",
+          "--json"
+        ],
+        "exit": 0,
+        "expectedAccepted": true,
+        "actualAccepted": true
+      },
+      {
+        "name": "variant-invalid",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+          "check",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-current-frontend-20261108\\compiler-parity\\main.xl",
+          "--json"
+        ],
+        "exit": 1,
+        "expectedAccepted": false,
+        "actualAccepted": false
+      }
+    ]
+  },
+  "gui": {
+    "passedForFixedSources": true,
+    "sourceScope": {
+      "baseCommit": "6e177576c3c5103486bedb67b2f245b235e230f2",
+      "overlays": {
+        "ide/src/ui/language_view.c": "c825190b6bcf2cf16d46717288e91821f6f78cfbb15309074c9db0a6165dc6dc",
+        "ide/src/ui/automatic_diagnostics.inc": "48064a7dcea3b456d32f48f2459ac091d5ddb27eeb1e502c595bb3d7d0ccd92a",
+        "ide/src/ui/language_references.inc": "5e52f530414881637a95174f9609479da6b73f3d9aafa753cd6f7491cc3bc780"
+      },
+      "reason": "Concurrent app layout and catalog job development made working-tree GUI compilation fail; source isolation only, real root runtime unchanged."
+    },
+    "tests": [
+      {
+        "fixture": "input_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-current-frontend-20261108\\gui-qa-1794139085451158000\\input_test"
+        ]
+      },
+      {
+        "fixture": "completion_view_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-current-frontend-20261108\\gui-qa-1794139085451158000\\completion_view_test",
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-current-frontend-20261108\\absent-compiler.exe"
+        ]
+      },
+      {
+        "fixture": "automatic_diagnostics_view_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-current-frontend-20261108\\gui-qa-1794139085451158000\\automatic_diagnostics_view_test",
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe"
+        ]
+      },
+      {
+        "fixture": "settings_menu_frame_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-current-frontend-20261108\\gui-qa-1794139085451158000\\settings_menu_frame_test",
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe"
+        ]
+      }
+    ],
+    "pairedServerSha256": "5f1e5c2f1b8984069f933208ce23af85d8103a19ffce865735a044e28ff2835b",
+    "receiptSha256": "bae186ddfeba67fd586e523ec7c8ba82beb0849673ae27806f0496c24ace0c9b",
+    "candidateSha256": "a7baf960e6bab560bd423d91b9a235405e521307611874df2a409c5c2e491660",
+    "currentMutableAppLayoutQualified": false,
+    "runtimeDirectory": "release/win_x64",
+    "sourceIsolationReason": "Concurrent app layout/catalog work caused working-tree GUI compilation to fail. Fixed committed source with three captured pre-existing LSP reader guards rebuilt and validated; no other task edits were committed or overwritten."
+  },
+  "performance": {
+    "calibration": {
+      "status": "passed",
+      "queries": 960,
+      "processes": 64,
+      "gates": 64,
+      "failedGates": 0
+    },
+    "comparison": {
+      "status": "gates-failed",
+      "queries": 1920,
+      "processes": 128,
+      "gates": 64,
+      "failedGates": 2,
+      "failures": [
+        {
+          "name": "32-imported-literal/cold/wireP50",
+          "actual": 49.9972,
+          "limit": 49.257600000000004,
+          "passed": false,
+          "baseline": 46.912,
+          "ratio": 1.05
+        },
+        {
+          "name": "32-imported-declaration/hot/wireP95",
+          "actual": 30.5116,
+          "limit": 30.160935,
+          "passed": false,
+          "baseline": 28.7247
+        }
+      ]
+    },
+    "thresholdsChanged": false,
+    "retries": 0,
+    "previousStageFailuresPreserved": true,
+    "scope": "New current-core image against installed service. Synthetic native analysis only; not complete edit completion, GUI latency or whole-workspace qualification."
+  },
+  "historicalHarnessFailures": [
+    "Initial unused-local channel fixture was accepted by the old service, contradicting the assumed rejection. Corrected fixture actually reads the local channel; server code unchanged. Both transcripts retained.",
+    "First native fixture used main() instead of language-required main(...); corrected before full build.",
+    "Initial current worktree GUI build failed during concurrent settings/app layout changes; fixed-source build used instead.",
+    "Component build used skip-tests and was not promoted as a full normal build."
+  ],
+  "evidence": {
+    "directory": "dev/release-materials/provenance/lsp-current-core-20261108",
+    "fileCount": 755,
+    "manifestSha256": "0ec4ac2c7ada857170d1b39b91ca353836c2d1fff2c1cf72fcf251b17d01ac73",
+    "archiveSha256": "4b67adc915aa8ba9cc711b0a6042264410bc58843cbc0ee8fdb680980cde52b1",
+    "historicalBytesAndPathsPreserved": true
+  },
+  "runtime": {
+    "languageServerReplaced": false,
+    "ideReplaced": false,
+    "preservedLanguageServerSha256": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "temporaryCleanupPending": false,
+    "temporaryFixturesRemoved": true
+  },
+  "remaining": [
+    "Performance comparison failed two wall-time gates; no waiver or retry to obtain a pass.",
+    "Actual current application layout/catalog/icon work needs integration after its independent changes stabilize.",
+    "Explicit static/dynamic selection options still need analysis-context propagation.",
+    "Final IR locality, global budget, scale/concurrency/endurance, remaining applicable LSP and full performance goals remain incomplete."
+  ]
+}

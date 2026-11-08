@@ -46,6 +46,8 @@ PROFILES[UNIFIED_COHORT] = {**PROFILES['current-ed78373d'],
     'lib/xrt/xrt.h': UNIFIED_PINS['lib/xrt/xrt.h']}
 PROFILES[C_INTEROP_COHORT] = {key:C_INTEROP_PINS[key] for key in PROFILES['current-9192a99f']}
 PROFILES[FINAL_COHORT] = {key:FINAL_PINS[key] for key in PROFILES['current-9192a99f']}
+from native_final_c_interop_profile import CURRENT_PINS
+PROFILES['current-core-20261108'] = {key:CURRENT_PINS[key] for key in PROFILES['current-9192a99f']}
 
 
 def profile(frontend: Path) -> dict[str, str]:
