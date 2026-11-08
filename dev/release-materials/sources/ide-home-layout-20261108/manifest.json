@@ -1,0 +1,87 @@
+{
+  "schema": 1,
+  "base": {
+    "path": "dev/release-materials/sources/ide-home-20261108/manifest.json",
+    "sha256": "85ee398d3b0535a9f0ab695b45069055274ee8ff5ae53df3ac2903e4f4fc2479",
+    "bytes": 7637
+  },
+  "baseSourceCommit": "3765e71ff0983e77f15479e074a000fbf4340484",
+  "overlayBaseCommit": "c23590b1594d0772dda7f2091e38c8842df0a530",
+  "archive": {
+    "path": "dev/release-materials/sources/ide-home-layout-20261108/source-delta.zip",
+    "sha256": "cb3cd4342f259541b015b4f3152b1b2f4350617c2fec26db4762bf564ca2434f",
+    "bytes": 59020
+  },
+  "files": [
+    {
+      "path": "ide/README.md",
+      "sha256": "7338e7c45d53b8a20930960d6e34b809d0b6b2d45c8eb411fc56815063d4cf2d",
+      "bytes": 34121
+    },
+    {
+      "path": "ide/docs/home.md",
+      "sha256": "09b63d63d32d1642eac0e18fd9fc3ae678af0a29a9433dfd17b25f8d06fd1549",
+      "bytes": 3294
+    },
+    {
+      "path": "ide/src/app/actions.c",
+      "sha256": "d0ba7165d82fc5fe0a7908563114da6851570fb84b46861daf2d538aef9307ef",
+      "bytes": 45019
+    },
+    {
+      "path": "ide/src/app/actions.h",
+      "sha256": "7a86f4e8368af3080a5b3c0ecc2e6b0a55d33548a18f7ce2c37674d451eccb1a",
+      "bytes": 4829
+    },
+    {
+      "path": "ide/src/services/ui_font.c",
+      "sha256": "5144320dc226d9a43560913830b67b67d2d4c3c6005252a9e1b03904f6496c52",
+      "bytes": 19679
+    },
+    {
+      "path": "ide/src/ui/home_templates.inc",
+      "sha256": "e66c5a54f7704876056ddcc4b8ccb4c507f57f506f57c8124e1bfe1f77296896",
+      "bytes": 5838
+    },
+    {
+      "path": "ide/src/ui/home_view.h",
+      "sha256": "3a325f6b034ebbf1b73883e6ecc97f920d38238e0f3ca430555f1883419fb80c",
+      "bytes": 715
+    },
+    {
+      "path": "ide/src/ui/home_view.inc",
+      "sha256": "ebd00101a6283229d38aeb7d8695295d6e17630a0bd254befb59540fd501e980",
+      "bytes": 12598
+    },
+    {
+      "path": "ide/src/ui/workbench.c",
+      "sha256": "ae34998a5d69cf21394dd732cd538d2754cdd2c42602c03b6d7a74a8605ec4fd",
+      "bytes": 20573
+    },
+    {
+      "path": "ide/tests/home_view_test.c",
+      "sha256": "7a1790021e950e03c6071a3dec3303423c05175f586f9a07474259d79c175796",
+      "bytes": 15305
+    },
+    {
+      "path": "reproduction/build.py",
+      "sha256": "de28042637befdd67d63a52848ce52d897975ebb15052e11e9f45e102a2092d8",
+      "bytes": 2995
+    },
+    {
+      "path": "reproduction/publish.py",
+      "sha256": "41f1ffe6afd86ca0539615d684c6820aee6245d1c4649824dbb1986276172ff3",
+      "bytes": 3414
+    },
+    {
+      "path": "reproduction/record.py",
+      "sha256": "a7d2353b8f3fe15e225864b2718b9bb925ff06774e69d338052ccaca16f22987",
+      "bytes": 8093
+    },
+    {
+      "path": "reproduction/test.py",
+      "sha256": "a9a0eb32a7d960eda0c4a9da6b3502e2be1cf0f2f386cc73b65baf2c60b332e8",
+      "bytes": 6061
+    }
+  ]
+}

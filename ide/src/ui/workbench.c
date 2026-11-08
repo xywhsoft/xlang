@@ -281,7 +281,7 @@ void xideWorkbenchLayout(xide_app* app)
     xuiStatusBarSetItemWidth(app->statusBar,0,fminf((float)xideUiHeight(app,310),width*0.58f));
     xuiStatusBarSetItemWidth(app->statusBar,2,fminf((float)xideUiHeight(app,165),width*0.42f));
     xuiWidgetSetRect(app->dock, (xui_rect_t){0,menu+toolbar,width,height-menu-toolbar-status});
-    xideCatalogViewLayout(app);
+    xideCatalogViewLayout(app); homeNewLayout(app);
     xideWorkspaceViewLayout(app); xideConfigurationViewLayout(app); xideReferencesViewLayout(app); xideResourceViewLayout(app); xideToolchainViewLayout(app); xideTemplateViewLayout(app); xideImportViewLayout(app); xideRenameViewLayout(app); xideFontViewLayout(app); xideSettingsViewLayout(app); xideRecoveryViewLayout(app); xideFileChangesViewLayout(app); xideGotoViewLayout(app); xideAboutViewLayout(app); xideDialogLayoutAll(app); xideFileDialogLayout(app);
 }
 int xideWorkbenchApplyTheme(xide_app* app, int theme)
@@ -296,7 +296,7 @@ int xideWorkbenchApplyTheme(xide_app* app, int theme)
             TRY(xuiCodeEditSetStyle(editor, styles[j], &style));
         }
     }
-    TRY(xideRecoveryViewTheme(app)); TRY(xideFileChangesViewTheme(app)); TRY(xideTaskViewTheme(app)); TRY(xideCatalogViewTheme(app));
+    TRY(homeTheme(app)); TRY(xideRecoveryViewTheme(app)); TRY(xideFileChangesViewTheme(app)); TRY(xideTaskViewTheme(app)); TRY(xideCatalogViewTheme(app));
     return xideEditorApplyTheme(app);
 }
 int xideWorkbenchAction(xide_app* app,int action)

@@ -68,6 +68,8 @@ static const action_def definitions[]={
     A(XIDE_ACTION_RESET,"view.resetLayout","恢复默认布局","恢复布局",NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideWorkbenchAction),
     A(XIDE_ACTION_ONLINE_TUTORIAL,"help.tutorial","在线教程",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideHomeAction),
     A(XIDE_ACTION_HOME_OPEN_RECENT,"home.openRecent","打开历史记录",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideHomeAction),
+    A(XIDE_ACTION_HOME_NEW,"home.new","新建",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideHomeAction),
+    A(XIDE_ACTION_HOME_OPEN,"home.open","打开",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideHomeAction),
     V(XIDE_ACTION_VIEW_COMMANDS,"view.commands","命令列表"),
     V(XIDE_ACTION_VIEW_WORKSPACE,"view.workspace","工作空间"),
     V(XIDE_ACTION_VIEW_PROPERTIES,"view.properties","项目属性"),
@@ -174,7 +176,7 @@ static const action_def* definition(int id) { for(size_t i=0;i<xideActionCount()
 const xide_action_info* xideActionFind(int id) { const action_def* d=definition(id); return d ? &d->info : NULL; }
 const xide_action_info* xideActionNamed(const char* name) { if(name) for(size_t i=0;i<xideActionCount();++i) if(!strcmp(name,definitions[i].info.name)) return &definitions[i].info; return NULL; }
 int xideActionsHasOtherModal(xide_app* a)
-{ return a && ( xideAssociationViewIsOpen(a) || xideSettingsViewIsOpen(a) || xideAboutViewIsOpen(a) || xideFileDialogBusy(a) || xideMessageBusy(a) || xideCatalogSourceIsOpen(a) || xideGotoViewIsOpen(a) || xideToolchainViewIsOpen(a) || xideResourceViewIsOpen(a) || xideImportViewIsOpen(a) || xideRenameViewIsOpen(a) || xideRenameViewHasPending(a) || xideTemplateViewIsOpen(a) || xideReferencesViewIsOpen(a) || xideConfigurationViewIsOpen(a) || xideFontViewIsOpen(a) || xideRecoveryViewIsOpen(a) || xideFileChangesViewIsOpen(a)); }
+{ return a && ( xideDialogIsOpen(xideHomeNewWindow(a)) || xideAssociationViewIsOpen(a) || xideSettingsViewIsOpen(a) || xideAboutViewIsOpen(a) || xideFileDialogBusy(a) || xideMessageBusy(a) || xideCatalogSourceIsOpen(a) || xideGotoViewIsOpen(a) || xideToolchainViewIsOpen(a) || xideResourceViewIsOpen(a) || xideImportViewIsOpen(a) || xideRenameViewIsOpen(a) || xideRenameViewHasPending(a) || xideTemplateViewIsOpen(a) || xideReferencesViewIsOpen(a) || xideConfigurationViewIsOpen(a) || xideFontViewIsOpen(a) || xideRecoveryViewIsOpen(a) || xideFileChangesViewIsOpen(a)); }
 int xideActionsHasModal(xide_app* a)
 { return a && (xideUpdateIsModal(a) || xideActionsHasOtherModal(a)); }
 const char* xideActionLanguage(int id)

@@ -11,6 +11,7 @@
 #include "ui/settings_view.h"
 #include "ui/goto_view.h"
 #include "ui/about_view.h"
+#include "ui/home_view.h"
 #include "ui/recovery_view.h"
 #include "ui/workspace_view.h"
 #include "ui/configuration_view.h"
@@ -152,6 +153,7 @@ int xideUiFontInstall(xide_app* app,xui_font previous,xui_font replacement,int s
     if(result==XUI_OK) result=bind(app,xideSettingsViewWindow(app),previous,replacement,&scan);
     if(result==XUI_OK) result=bind(app,xideAssociationViewWindow(app),previous,replacement,&scan);
     if(result==XUI_OK) result=bind(app,xideAboutViewWindow(app),previous,replacement,&scan);
+    if(result==XUI_OK) result=bind(app,xideHomeNewWindow(app),previous,replacement,&scan);
     if(result==XUI_OK) result=bind(app,xideReferencesViewWindow(app),previous,replacement,&scan);
     if(result==XUI_OK) result=bind(app,xideResourceViewWindow(app),previous,replacement,&scan);
     if(result==XUI_OK) result=bind(app,xideToolchainViewWindow(app),previous,replacement,&scan);
@@ -220,6 +222,7 @@ int xideUiFontApply(xide_app* app,const char* path,int size,xide_model_error* er
     if(retained) retained=retainScroll(app,xideResourceViewWindow(app),&scroll);
     if(retained) retained=retainScroll(app,xideToolchainViewWindow(app),&scroll);
     if(retained) retained=retainScroll(app,xideTemplateViewWindow(app),&scroll);
+    if(retained) retained=retainScroll(app,xideHomeNewWindow(app),&scroll);
     if(retained) retained=retainScroll(app,xideImportViewWindow(app),&scroll);
     if(retained) retained=retainScroll(app,xideRenameViewWindow(app),&scroll);
     if(retained) retained=retainScroll(app,xideConfigurationViewWindow(app),&scroll);

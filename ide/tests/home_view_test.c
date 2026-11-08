@@ -5,6 +5,7 @@
 #include "ui/layout_state.h"
 #include "ui/template_view.h"
 #include "services/session.h"
+#include "services/ui_font.h"
 #include "platform/path.h"
 #include "theme/theme.h"
 #include "catalog_ready.h"
@@ -33,6 +34,12 @@ static int choose(xide_app* a,const char* path) {
         xuiInputSetText(xuiFileDialogGetNameInputWidget(d),xidePathFilename(path))==XUI_OK;
     free(dir);return okay && settle(a) && click(a,xuiFileDialogGetOkButtonWidget(d));
 }
+static int pickTemplate(xide_app* a,int index) {
+    xui_widget list=xideHomeControl(a,XIDE_HOME_TEMPLATES);xui_rect_t r=xuiListViewGetItemRect(list,index),world=xuiWidgetGetWorldRect(list);
+    float x=world.fX+r.fX+30,y=world.fY+r.fY+r.fH/2;
+    return xuiInputPointerMove(a->context,x,y,0)==XUI_OK && xuiInputPointerDown(a->context,x,y,XUI_POINTER_BUTTON_LEFT,XUI_POINTER_BUTTON_LEFT)==XUI_OK &&
+        xuiInputPointerUp(a->context,x,y,XUI_POINTER_BUTTON_LEFT,0)==XUI_OK && settle(a) && xuiListViewGetSelected(list)==index;
+}
 static int shot(xide_app* a,const char* root,const char* name) {
     char* path=xidePathResolve(root,name);xui_rect_i_t rect={0,0,a->viewportWidth,a->viewportHeight};
     int okay=path && xuiUpdate(a->context,0)==XUI_OK && a->proxy.surfaceClear(&a->proxy,a->target,0xffffffff)==XUI_OK &&
@@ -60,19 +67,36 @@ static int run(void* raw) {
     CHECK(!xideActionNamed("view.xlangDemo") && !xideActionNamed("view.cDemo") && !strcmp(xideHomeTutorialUrl(),"https://xcompiler.com/book/index.html"));
     xui_widget table=xideHomeControl(&a,XIDE_HOME_HISTORY);CHECK(table && xuiTableViewGetColumnCount(table)==3 && xuiTableViewGetRowCount(table)==0);
     CHECK(shot(&a,raw,"home-empty.png"));
-    CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_NEW_FILE)) && a.activeDocument && a.activeDocument->open && xideWorkbenchWindowVisible(&a,XIDE_HOME)==0);
-    CHECK(xideEditorClose(&a,a.activeDocument,1,&error) && settle(&a) && !a.activeDocument && xideWorkbenchWindowVisible(&a,XIDE_HOME)==1);
-    CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_NEW_PROJECT)) && xideTemplateViewIsOpen(&a));
-    CHECK(click(&a,xideTemplateViewControl(&a,XIDE_TEMPLATE_CANCEL)) && !xideTemplateViewIsOpen(&a));
-    CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_NEW_WORKSPACE)) && xideFileDialogCurrent(&a) && choose(&a,workspace));
+    CHECK(xuiWidgetGetType(xideHomeControl(&a,XIDE_HOME_CLEAR))==xuiWidgetFindType(a.context,"hyperlink") && xuiWidgetGetType(xideHomeControl(&a,XIDE_HOME_TUTORIAL))==xuiButtonGetType(a.context));
+    xui_rect_t openRect=xuiWidgetGetWorldRect(xideHomeControl(&a,XIDE_HOME_OPEN)),tutorial=xuiWidgetGetWorldRect(xideHomeControl(&a,XIDE_HOME_TUTORIAL));
+    CHECK(tutorial.fX>openRect.fX+openRect.fW && tutorial.fY==openRect.fY && tutorial.fH==openRect.fH);
+    CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_NEW)) && xideDialogIsOpen(xideHomeNewWindow(&a)) && !xideActionQuery(&a,XIDE_ACTION_HOME_OPEN).enabled);
+    CHECK(xuiListViewGetItemCount(xideHomeControl(&a,XIDE_HOME_TEMPLATES))==2 && shot(&a,raw,"new-template-xlang.png"));
+    CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_CANCEL)) && !xideDialogIsOpen(xideHomeNewWindow(&a)) && !a.activeDocument);
+    for(int language=0;language<2;++language) {
+        CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_NEW)) && pickTemplate(&a,language));
+        if(language==1)CHECK(shot(&a,raw,"new-template-c.png"));
+        CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_CREATE)) && a.activeDocument && a.activeDocument->open && !a.activeDocument->path && !strcmp(a.activeDocument->language,language==0?"xlang":"c") && !*xuiCodeEditGetText(a.activeDocument->editor) && xideWorkbenchWindowVisible(&a,XIDE_HOME)==0 && !xideDialogIsOpen(xideHomeNewWindow(&a)));
+        CHECK(xideEditorClose(&a,a.activeDocument,1,&error) && settle(&a) && !a.activeDocument && xideWorkbenchWindowVisible(&a,XIDE_HOME)==1);
+    }
+    /* Keyboard activation creates only the selected independent document. */
+    CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_NEW)) && xuiListViewSetSelected(xideHomeControl(&a,XIDE_HOME_TEMPLATES),0)==XUI_OK && xuiSetFocusWidget(a.context,xideHomeControl(&a,XIDE_HOME_TEMPLATES))==XUI_OK);
+    CHECK(xuiInputKeyDownEx(a.context,XUI_KEY_ENTER,0,NULL)==XUI_OK && xuiInputKeyUpEx(a.context,XUI_KEY_ENTER,0,NULL)==XUI_OK && settle(&a) && a.activeDocument && !strcmp(a.activeDocument->language,"xlang"));
+    CHECK(xideEditorClose(&a,a.activeDocument,1,&error) && settle(&a));
+    xide_workspace prepared={0};int preparedOkay=xideWorkspaceCreate(&prepared,"首页打开测试",&error) && xideWorkspaceSave(&prepared,workspace,&error);xideWorkspaceClear(&prepared);CHECK(preparedOkay);
+    CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_OPEN)) && xideFileDialogCurrent(&a));
+    CHECK(!strcmp(xuiFileDialogGetFilterPattern(xideFileDialogCurrent(&a),0),"*.xlw;*.xlp;*.xl;*.c") && choose(&a,workspace));
     CHECK(a.workspaceModel.manifest && xidePathEqual(a.workspaceModel.manifest,workspace) && xideSettingsRecentCount(&a.preferences)==1);
-    CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_OPEN_FILE)) && choose(&a,script) && a.activeDocument && xidePathEqual(a.activeDocument->path,script));
+    CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_OPEN)) && choose(&a,script) && a.activeDocument && xidePathEqual(a.activeDocument->path,script));
     CHECK(xideSettingsRecentCount(&a.preferences)==2 && xideEditorClose(&a,a.activeDocument,1,&error) && settle(&a) && xuiTableViewGetRowCount(table)==2);
-    CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_OPEN_WORKSPACE)) && choose(&a,workspace) && !a.activeDocument);
-    CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_OPEN_PROJECT)) && xideFileDialogCurrent(&a));
+    CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_OPEN)) && choose(&a,workspace) && !a.activeDocument);
+    CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_OPEN)) && xideFileDialogCurrent(&a));
     CHECK(xuiFileDialogCancel(xideFileDialogCurrent(&a))==XUI_OK && settle(&a) && !xideFileDialogCurrent(&a));
-    CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_OPEN_PROJECT)) && choose(&a,manifest) && a.projectSessionPath && xidePathEqual(a.projectSessionPath,manifest) && a.workspaceModel.projectCount==1);
-    CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_OPEN_WORKSPACE)) && choose(&a,workspace) && !a.projectSessionPath);
+    CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_OPEN)) && choose(&a,manifest) && a.projectSessionPath && xidePathEqual(a.projectSessionPath,manifest) && a.workspaceModel.projectCount==1);
+    CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_OPEN)) && choose(&a,workspace) && !a.projectSessionPath);
+    CHECK(xuiTableViewGetSelectionMode(table)==XUI_TABLE_VIEW_SELECTION_ROW);
+    xui_style_property_t property={0};CHECK(xuiWidgetGetResolvedStyleProperty(table,"tableview.border.width",&property)==XUI_OK && property.tValue.fFloat==0);
+    CHECK(xuiWidgetGetResolvedStyleProperty(table,"tableview.focus.color",&property)==XUI_OK && property.tValue.iColor==0);
     /* A suspended recent-open command must survive a dirty-workspace prompt. */
     a.workspaceModel.dirty=1;xideHomeRemember(&a,workspace);
     CHECK(settle(&a) && xuiTableViewSetSelectedRow(table,0)==XUI_OK && xuiSetFocusWidget(a.context,table)==XUI_OK);
@@ -100,7 +124,24 @@ static int run(void* raw) {
         xui_rect_t page=xuiWidgetGetWorldRect(a.panels[XIDE_HOME]),history=xuiWidgetGetWorldRect(table);
         CHECK(history.fW>0 && history.fH>0 && history.fX>=page.fX && history.fX+history.fW<=page.fX+page.fW+1 && history.fY+history.fH<=page.fY+page.fH+1);
     }
-    CHECK(shot(&a,raw,"home-history.png"));
+    CHECK(xuiTableViewSetSelectedRow(table,1)==XUI_OK && xuiSetFocusWidget(a.context,table)==XUI_OK && settle(&a) && shot(&a,raw,"home-history.png"));
+    CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_NEW)) && xideDialogIsOpen(xideHomeNewWindow(&a)));
+    CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_CANCEL)) && xuiListViewSetSelected(xideHomeControl(&a,XIDE_HOME_TEMPLATES),-1)==XUI_OK);
+    CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_NEW)) && !xuiWidgetGetEnabled(xideHomeControl(&a,XIDE_HOME_CREATE)));
+    CHECK(pickTemplate(&a,1) && xuiWidgetGetEnabled(xideHomeControl(&a,XIDE_HOME_CREATE)) && strstr(xuiLabelGetText(xideHomeControl(&a,XIDE_HOME_TEMPLATE_DESCRIPTION)),"C 文件"));
+    /* The template shell uses the shared dialog layout: a real minimum size,
+       a fixed, separated action bar and a body that can scroll independently. */
+    char* font=xidePathResolve(NULL,a.uiFontPath);CHECK(font);
+    for(int i=0;i<3;++i) {
+        int size=i==0?16:i==1?24:40;
+        int changed=xideUiFontApply(&a,font,size,&error);CHECK(changed && settle(&a));
+        xui_widget window=xideHomeNewWindow(&a),footer=xideDialogGetFooterWidget(window),scroll=xideDialogGetScrollViewWidget(window);
+        xui_rect_t bottom=xuiWidgetGetWorldRect(footer),body=xuiWidgetGetWorldRect(scroll),button=xuiWidgetGetWorldRect(xideHomeControl(&a,XIDE_HOME_CREATE));
+        CHECK(footer && xideDialogGetDividerWidget(window) && bottom.fY>=body.fY+body.fH-1 && button.fY>=bottom.fY && button.fY+button.fH<=bottom.fY+bottom.fH+1);
+        CHECK(xuiListViewGetFont(xideHomeControl(&a,XIDE_HOME_TEMPLATES))==a.uiFont);
+    }
+    int restoredFont=xideUiFontApply(&a,font,16,&error);free(font);CHECK(restoredFont && settle(&a) && shot(&a,raw,"new-template-dark.png"));
+    CHECK(xuiInputKeyDownEx(a.context,XUI_KEY_ESCAPE,0,NULL)==XUI_OK && xuiInputKeyUpEx(a.context,XUI_KEY_ESCAPE,0,NULL)==XUI_OK && settle(&a) && !xideDialogIsOpen(xideHomeNewWindow(&a)) && !a.activeDocument);
     layout=xideLayoutCapture(&a,&error);CHECK(layout);xvalue* old=legacyLayout(layout);CHECK(old);
     int restored=xideLayoutRestore(&a,old,&error);xrtValueRelease(old);
     CHECK(restored && xideWorkbenchShowHome(&a)==XUI_OK && settle(&a) && xideWorkbenchWindowVisible(&a,XIDE_HOME)==1);
@@ -111,7 +152,7 @@ static int run(void* raw) {
     a.hidden=1;a.disableAutomaticDiagnostics=1;a.settingsPath=settings;a.sessionRoot=sessions;
     CHECK(xideAppCreate(&a)==XUI_OK && xgeBegin()==XGE_OK);began=1;
     CHECK(xideTestCatalogReady(&a) && settle(&a) && !a.activeDocument && xideWorkbenchWindowVisible(&a,XIDE_HOME)==1);
-    puts("home_view_test: native Home actions, workspace create/open, file open, project dialog, Enter/double-click history, 4 themes, 3 pane sizes and persistent clear");
+    puts("home_view_test: compact Home, 2 source templates, modal cancel/create/Enter, combined open filter and file/project/workspace routes, flat row-selection styling, Enter/double-click history, 4 themes, 3 pane sizes and persistent clear");
 cleanup:
     xrtValueRelease(layout);if(began)xgeEnd();xideAppDestroy(&a);xideProjectClear(&project);free(directory);free(settings);free(script);free(workspace);free(sessions);free(manifest);xgeQuit();
     if(!failed)printf("home_view_test passed: %d checks\n",checks);
