@@ -33,7 +33,7 @@
 #include "ui/home_view.h"
 #include <stdlib.h>
 #include <string.h>
-enum requirement { WORKBENCH, WORKSPACE_VIEW, WORKSPACE, NEW_PROJECT, IMPORT_VIEW, PROJECT, AVAILABLE_PROJECT, REFERENCES, RESOURCES, NEW_RESOURCE, ADD_FILE, REMOVE_FILE, RENAME_SELECTED_FILE, MIGRATE_PROJECT, PROPERTIES,
+enum requirement { WORKBENCH, WORKSPACE_VIEW, WORKSPACE, RECENT, IMPORT_VIEW, PROJECT, AVAILABLE_PROJECT, REFERENCES, RESOURCES, NEW_RESOURCE, ADD_FILE, REMOVE_FILE, RENAME_SELECTED_FILE, MIGRATE_PROJECT, PROPERTIES,
     DOCUMENTS, DOCUMENT, NAMED_DOCUMENT, RENAME_DOCUMENT, DIRTY_DOCUMENTS, UNDO, REDO, WRITABLE_DOCUMENT, SELECTED_TEXT, WRITABLE_SELECTION, NONEMPTY_DOCUMENT, LINE_COMMENT, COMPLETION, SIGNATURE, GOTO_VIEW, BUILD, RUN, BUILD_FILE, TEST, STOP, INPUT, TASK_VIEW, FONT_VIEW, RECOVERY_VIEW, CHANGES_VIEW, TOOLCHAIN_VIEW, SAVED_CHECK, CURRENT_CHECK, CANCEL_CHECK, DEFINITION, HOVER, SOURCE_DECLARATION, SOURCE_DOCUMENT, FIND_REFERENCES };
 enum check_kind { NO_CHECK, THEME_CHECK, LANGUAGE_CHECK, STARTUP_CHECK, WINDOW_CHECK };
 typedef struct action_def { xide_action_info info; enum requirement need; enum check_kind check; int (*execute)(xide_app*,int); } action_def;
@@ -48,12 +48,15 @@ static int changesAction(xide_app* a,int id) { (void)id; return xideFileChangesV
 static int gotoAction(xide_app* a,int id) { (void)id; return xideGotoViewOpen(a); }
 static int aboutAction(xide_app* a,int id) { (void)id; return xideAboutViewOpen(a); }
 static int sourceAction(xide_app* a,int id) { return xideCatalogSourceOpen(a,id==XIDE_ACTION_SOURCE_DOCUMENT); }
+static int recentAction(xide_app*,int);
 static int contextHelp(xide_app* a,int id) {(void)id;return xideCatalogFollowNow(a,1);}
 #define A(id,name,title,shorttitle,chord,key,mods,scope,cmd,need,check,proc) {{id,name,title,shorttitle,chord,key,mods,scope,cmd},need,check,proc}
 #define W(id,name,title,need) A(id,name,title,NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,need,NO_CHECK,xideWorkspaceAction)
 #define E(id,name,title,chord,key,mods,need,scope,cmd) A(id,name,title,NULL,chord,key,mods,scope,cmd,need,NO_CHECK,xideEditorAction)
 #define V(id,name,title) A(id,name,title,NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,WINDOW_CHECK,xideWorkbenchAction)
 static const action_def definitions[]={
+    A(XIDE_ACTION_NEW,"file.new","新建…","新建","Ctrl+N",'N',XUI_MOD_CTRL,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideNewOpenAction),
+    A(XIDE_ACTION_OPEN,"file.open","打开…","打开","Ctrl+O",'O',XUI_MOD_CTRL,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideNewOpenAction),
     A(XIDE_ACTION_SETTINGS_ASSOCIATIONS,"settings.associations","文件关联…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideAssociationViewAction),
     A(XIDE_ACTION_SETTINGS,"settings.open","全部设置…",NULL,"Ctrl+,",188,XUI_MOD_CTRL,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideSettingsViewAction),
     A(XIDE_ACTION_SETTINGS_EDITOR,"settings.editor","编辑器设置…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideSettingsViewAction),
@@ -68,8 +71,6 @@ static const action_def definitions[]={
     A(XIDE_ACTION_RESET,"view.resetLayout","恢复默认布局","恢复布局",NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideWorkbenchAction),
     A(XIDE_ACTION_ONLINE_TUTORIAL,"help.tutorial","在线教程",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideHomeAction),
     A(XIDE_ACTION_HOME_OPEN_RECENT,"home.openRecent","打开历史记录",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideHomeAction),
-    A(XIDE_ACTION_HOME_NEW,"home.new","新建",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideHomeAction),
-    A(XIDE_ACTION_HOME_OPEN,"home.open","打开",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideHomeAction),
     A(XIDE_ACTION_HOME_CLEAR,"home.clearRecent","清空历史记录",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideHomeAction),
     A(XIDE_ACTION_TEMPLATE_CREATE,"template.create","创建模板",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideTemplateViewAction),
     V(XIDE_ACTION_VIEW_COMMANDS,"view.commands","命令列表"),
@@ -87,11 +88,8 @@ static const action_def definitions[]={
     A(XIDE_ACTION_THEME_GRAPHITE,"view.theme.graphite","石墨深色",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,THEME_CHECK,xideWorkbenchAction),
     A(XIDE_ACTION_THEME_PAPER,"view.theme.paper","暖纸白",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,THEME_CHECK,xideWorkbenchAction),
     A(XIDE_ACTION_THEME_OCEAN,"view.theme.ocean","海洋蓝",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,THEME_CHECK,xideWorkbenchAction),
-    A(XIDE_ACTION_NEW_WORKSPACE,"workspace.new","新建工作空间…",NULL,"Ctrl+Shift+N",'N',XUI_MOD_CTRL|XUI_MOD_SHIFT,XIDE_SHORTCUT_GLOBAL,0,WORKSPACE_VIEW,NO_CHECK,xideWorkspaceAction),
-    A(XIDE_ACTION_OPEN_WORKSPACE,"workspace.open","打开工作空间…",NULL,"Ctrl+Alt+O",'O',XUI_MOD_CTRL|XUI_MOD_ALT,XIDE_SHORTCUT_GLOBAL,0,WORKSPACE_VIEW,NO_CHECK,xideWorkspaceAction),
     A(XIDE_ACTION_SAVE_WORKSPACE,"workspace.save","保存工作空间和项目",NULL,"Ctrl+Alt+S",'S',XUI_MOD_CTRL|XUI_MOD_ALT,XIDE_SHORTCUT_GLOBAL,0,WORKSPACE,NO_CHECK,xideWorkspaceAction),
     W(XIDE_ACTION_SAVE_WORKSPACE_AS,"workspace.saveAs","工作空间另存为…",WORKSPACE),
-    A(XIDE_ACTION_OPEN_PROJECT,"project.open","打开项目…",NULL,"Ctrl+Shift+O",'O',XUI_MOD_CTRL|XUI_MOD_SHIFT,XIDE_SHORTCUT_GLOBAL,0,WORKSPACE_VIEW,NO_CHECK,xideWorkspaceAction),
     W(XIDE_ACTION_ADD_PROJECT,"project.add","添加已有项目…",WORKSPACE),
     W(XIDE_ACTION_REMOVE_PROJECT,"project.remove","从工作空间移除项目",PROJECT),
     A(XIDE_ACTION_SET_STARTUP,"project.setStartup","设为启动项目",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,AVAILABLE_PROJECT,STARTUP_CHECK,xideWorkspaceAction),
@@ -101,14 +99,11 @@ static const action_def definitions[]={
     W(XIDE_ACTION_MIGRATE_PROJECT_MANIFEST,"project.moveManifest","迁移项目清单…",MIGRATE_PROJECT),
     W(XIDE_ACTION_MIGRATE_PROJECT_DIRECTORY,"project.moveDirectory","迁移项目目录…",MIGRATE_PROJECT),
     A(XIDE_ACTION_IMPORT_LEGACY,"project.importLegacy","导入旧工作空间或项目…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,IMPORT_VIEW,NO_CHECK,importAction),
-    W(XIDE_ACTION_NEW_PROJECT,"project.new","从模板新建项目…",NEW_PROJECT),
     W(XIDE_ACTION_CONFIGURATIONS,"project.configurations","构建、运行与测试配置…",AVAILABLE_PROJECT),
     W(XIDE_ACTION_APPLY_PROPERTIES,"project.applyProperties","应用项目属性",PROPERTIES),
     A(XIDE_ACTION_REFERENCES,"project.references","项目文件、资源与库引用…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,REFERENCES,NO_CHECK,referencesAction),
     A(XIDE_ACTION_RESOURCES,"project.resources","Windows 资源属性…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,RESOURCES,NO_CHECK,resourceAction),
     A(XIDE_ACTION_NEW_RESOURCE,"project.newResource","新建 Windows 资源配置…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,NEW_RESOURCE,NO_CHECK,resourceAction),
-    E(XIDE_ACTION_NEW_FILE,"file.new","新建源文件","Ctrl+N",'N',XUI_MOD_CTRL,DOCUMENTS,XIDE_SHORTCUT_GLOBAL,0),
-    A(XIDE_ACTION_OPEN_FILE,"file.open","打开文件…","打开","Ctrl+O",'O',XUI_MOD_CTRL,XIDE_SHORTCUT_GLOBAL,0,DOCUMENTS,NO_CHECK,xideEditorAction),
     A(XIDE_ACTION_SAVE_FILE,"file.save","保存文件","保存","Ctrl+S",'S',XUI_MOD_CTRL,XIDE_SHORTCUT_GLOBAL,0,DOCUMENT,NO_CHECK,xideEditorAction),
     E(XIDE_ACTION_SAVE_FILE_AS,"file.saveAs","文件另存为…","Ctrl+Shift+S",'S',XUI_MOD_CTRL|XUI_MOD_SHIFT,DOCUMENT,XIDE_SHORTCUT_GLOBAL,0),
     E(XIDE_ACTION_SAVE_ALL_FILES,"file.saveAll","保存所有文件","Ctrl+Shift+Alt+S",'S',XUI_MOD_CTRL|XUI_MOD_SHIFT|XUI_MOD_ALT,DIRTY_DOCUMENTS,XIDE_SHORTCUT_GLOBAL,0),
@@ -145,7 +140,7 @@ static const action_def definitions[]={
     A(XIDE_ACTION_STOP_ALL,"task.stopAll","停止全部任务",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,STOP,NO_CHECK,xideTaskViewAction),
     A(XIDE_ACTION_TARGET_CONFIGURATIONS,"task.configurations","编辑目标配置…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,TASK_VIEW,NO_CHECK,xideMainToolbarAction),
     A(XIDE_ACTION_SHOW_TASKS,"task.show","查看任务与输出",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,TASK_VIEW,NO_CHECK,xideMainToolbarAction),
-    A(XIDE_ACTION_OPEN_RECENT,"file.openRecent","打开最近项目或文件",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,DOCUMENTS,NO_CHECK,xideMainToolbarAction),
+    A(XIDE_ACTION_OPEN_RECENT,"file.openRecent","最近打开",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,RECENT,NO_CHECK,recentAction),
 #if XIDE_ENABLE_C_LSP
     A(XIDE_ACTION_C_SERVER,"language.cServer","选择 C 语言服务器…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideCCompletionViewAction),
 #endif
@@ -171,7 +166,18 @@ static const action_def definitions[]={
 #undef E
 #undef W
 typedef struct binding { struct binding* next; xui_widget widget; int kind,action; xui_widget_event_proc keyHandler,contextHandler,pointerHandler; void *keyUser,*contextUser,*pointerUser; } binding;
-struct xide_actions { binding* bindings; int depth; xui_widget_event_proc commandHandler; void* commandUser; };
+struct xide_actions { xui_widget recentMenu;xvalue* recentSource;binding* bindings; int depth; xui_widget_event_proc commandHandler; void* commandUser; };
+static void recentSelected(xui_widget w,int index,int value,void* user){(void)w;(void)index;xide_app* a=user;xide_settings snapshot={0};snapshot.source=a->actions->recentSource;const char* path=value>0 ? xideSettingsRecentPath(&snapshot,(size_t)value-1):NULL;if(value<0)xideActionExecute(a,XIDE_ACTION_VIEW_HOME);else if(path)xideHomeOpenPath(a,path);}
+static void recentRefresh(xide_app* a){
+    xide_actions* actions=a->actions;if(actions->recentMenu&&xuiMenuGetFont(actions->recentMenu)!=a->uiFont)xuiMenuSetFont(actions->recentMenu,a->uiFont);if(!actions->recentMenu||(actions->recentSource==a->preferences.source&&xuiMenuGetItemCount(actions->recentMenu)))return;
+    xide_settings snapshot={0};snapshot.source=a->preferences.source;xui_menu_item_t items[XIDE_RECENT_LIMIT]={0};size_t total=xideSettingsRecentCount(&snapshot),count=total<12 ? total:12;
+    for(size_t i=0;i<count;++i){items[i].sText=xideSettingsRecentPath(&snapshot,i);items[i].iValue=(int)i+1;items[i].iState=XUI_MENU_ITEM_ENABLED;}
+    if(total>count){items[count].sText="查看全部历史记录…";items[count].iValue=-1;items[count++].iState=XUI_MENU_ITEM_ENABLED;}
+    if(!count){items[0].sText="暂无历史记录";}
+    int result=xuiMenuSetItems(actions->recentMenu,items,count ? (int)count:1);if(result!=XUI_OK){a->frameError=result;return;}
+    xvalue* source=a->preferences.source ? xrtValueRetain(a->preferences.source):NULL;xrtValueRelease(actions->recentSource);actions->recentSource=source;
+}
+static int recentAction(xide_app* a,int id){(void)id;recentRefresh(a);xui_rect_t r=xuiWidgetGetWorldRect(a->menuBar);return xuiMenuOpenAt(a->actions->recentMenu,a->menuBar,r.fX,r.fY+r.fH)==XUI_OK;}
 size_t xideActionCount(void) { return sizeof(definitions)/sizeof(*definitions); }
 const xide_action_info* xideActionAt(size_t index) { return index<xideActionCount() ? &definitions[index].info : NULL; }
 static const action_def* definition(int id) { for(size_t i=0;i<xideActionCount();++i) if(definitions[i].info.id==id) return &definitions[i]; return NULL; }
@@ -220,7 +226,7 @@ xide_action_state xideActionQuery(xide_app* a,int id)
     case SOURCE_DOCUMENT: state.enabled=xideCatalogSourceAvailable(a,1); state.reason="当前命令没有选中的帮助文档"; break;
     case WORKBENCH: state.enabled=a->dock!=NULL && (d->check!=WINDOW_CHECK || windowState>=0); break;
     case WORKSPACE_VIEW: state.enabled=a->workspaceView!=NULL; break;
-    case NEW_PROJECT: state.enabled=a->templateView && a->workspaceView && !xideWorkspaceViewHasDraft(a); state.reason="请先应用或取消项目属性修改"; break;
+    case RECENT: state.enabled=xideSettingsRecentCount(&a->preferences)>0;state.reason="暂无历史记录";break;
     case WORKSPACE: state.enabled=loaded; state.reason="请先打开或新建工作空间"; break;
     case PROJECT: state.enabled=a->workspaceView && project; state.reason="请选择项目"; break;
     case AVAILABLE_PROJECT: state.enabled=a->workspaceView && available; state.reason="请选择可用项目"; break;
@@ -314,7 +320,7 @@ void xideActionsDestroy(xide_app* app)
 {
     if(!app || !app->actions) return;
     binding* b=app->actions->bindings; while(b) { binding* next=b->next; free(b); b=next; }
-    free(app->actions); app->actions=NULL;
+    xrtValueRelease(app->actions->recentSource);free(app->actions); app->actions=NULL;
 }
 static int bind(xide_app* app,xui_widget widget,int kind,int id)
 {
@@ -335,7 +341,9 @@ int xideActionsMenu(xide_app* app,xui_widget menu,const int* ids,size_t count)
         if(!ids[i]) { items[i].iType=XUI_MENU_ITEM_SEPARATOR; continue; }
         const action_def* d=definition(ids[i]); if(!d) return XUI_ERROR_INVALID_ARGUMENT;
         items[i].sText=d->info.title; items[i].sShortcut=d->info.shortcut; items[i].iValue=ids[i];
+        if(ids[i]==XIDE_ACTION_OPEN_RECENT){if(!app->actions->recentMenu){xui_menu_desc_t desc={0};desc.iSize=sizeof(desc);desc.pFont=app->uiFont;desc.pOwner=menu;int result=xuiMenuCreate(app->context,&app->actions->recentMenu,&desc);if(result!=XUI_OK)return result;result=xuiMenuSetSelect(app->actions->recentMenu,recentSelected,app);if(result!=XUI_OK)return result;}items[i].pSubmenu=app->actions->recentMenu;recentRefresh(app);}
         items[i].iType=d->check==NO_CHECK ? XUI_MENU_ITEM_NORMAL : (d->check==STARTUP_CHECK || d->check==WINDOW_CHECK) ? XUI_MENU_ITEM_CHECK : XUI_MENU_ITEM_RADIO;
+        if(items[i].pSubmenu)items[i].iType=XUI_MENU_ITEM_SUBMENU;
     }
     int ret=xuiMenuSetItems(menu,items,(int)count);
     if(ret==XUI_OK) ret=xuiMenuSetSelect(menu,selected,app);
@@ -482,6 +490,7 @@ int xideActionsBindEditor(xide_app* app,xui_widget editor)
 }
 void xideActionsRefresh(xide_app* app)
 {
+    if(app&&app->actions)recentRefresh(app);
     if(!app || !app->actions || !app->context) return;
     for(binding* b=app->actions->bindings;b;b=b->next) {
         if(b->kind==3) { int ret=bindNativeMenu(app,b->widget); if(ret!=XUI_OK) app->frameError=ret; continue; }

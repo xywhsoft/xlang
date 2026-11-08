@@ -13,19 +13,19 @@
 #include <stdlib.h>
 #include <string.h>
 #define TRY(call) do { int r_=(call);if(r_!=XUI_OK)return r_; } while(0)
-enum menu_kind { MENU_NEW,MENU_OPEN,MENU_SAVE,MENU_TARGET,MENU_CONFIG,MENU_CONTEXT,MENU_STOP,MENU_TASKS,MENU_MORE,MENU_LANGUAGE };
-typedef struct choice { int action,mode;char *project,*configuration,*path;uint64_t task; } choice;
+enum menu_kind { MENU_SAVE,MENU_TARGET,MENU_CONFIG,MENU_CONTEXT,MENU_STOP,MENU_TASKS,MENU_MORE,MENU_LANGUAGE };
+typedef struct choice { int action,mode;char *project,*configuration;uint64_t task; } choice;
 struct xide_main_toolbar {
     xui_widget controls[XIDE_TB_COUNT],menu;
     xui_surface icons[9];float iconScale;
     choice* choices;size_t count,capacity;
     int layoutMode;
     int iconEnabled[XIDE_TB_COUNT];
-    char tips[XIDE_TB_COUNT][2048];char* recentPath;
+    char tips[XIDE_TB_COUNT][2048];
     char captions[XIDE_TB_COUNT][1600];float captionWidth[XIDE_TB_COUNT];xui_font captionFont[XIDE_TB_COUNT];
 };
-static const int actions[XIDE_TB_COUNT]={XIDE_ACTION_NEW_FILE,0,XIDE_ACTION_OPEN_FILE,0,XIDE_ACTION_SAVE_FILE,0,0,0,0,XIDE_ACTION_BUILD,XIDE_ACTION_RUN,XIDE_ACTION_TEST,XIDE_ACTION_STOP,0,0,0};
-static const char* names[XIDE_TB_COUNT]={"新建文件","新建菜单","打开文件","打开菜单","保存文件","保存菜单","执行目标","执行配置","目标与配置","构建","运行","测试","停止当前任务","停止菜单","任务与输出","更多操作"};
+static const int actions[XIDE_TB_COUNT]={XIDE_ACTION_NEW,XIDE_ACTION_OPEN,XIDE_ACTION_SAVE_FILE,0,0,0,0,XIDE_ACTION_BUILD,XIDE_ACTION_RUN,XIDE_ACTION_TEST,XIDE_ACTION_STOP,0,0,0};
+static const char* names[XIDE_TB_COUNT]={"新建","打开","保存文件","保存菜单","执行目标","执行配置","目标与配置","构建","运行","测试","停止当前任务","停止菜单","任务与输出","更多操作"};
 /* Shared monochrome paths are rendered once per DPI generation by XUI, and
    tinted by the native Button. No emoji/font glyph substitutes or per-frame SVG. */
 static const char* paths[]={
@@ -42,7 +42,7 @@ static const char* paths[]={
 static char* copy(const char* text) { if(!text)text="";size_t n=strlen(text)+1;char* p=malloc(n);if(p)memcpy(p,text,n);return p; }
 static void clearChoices(xide_main_toolbar* v)
 {
-    for(size_t i=0;i<v->count;++i) { free(v->choices[i].project);free(v->choices[i].configuration);free(v->choices[i].path); }
+    for(size_t i=0;i<v->count;++i) { free(v->choices[i].project);free(v->choices[i].configuration); }
     v->count=0;
 }
 static void label(xui_widget widget,const char* text) { if(strcmp(xuiButtonGetText(widget),text))xuiButtonSetText(widget,text); }
@@ -86,7 +86,7 @@ static int renderIcons(xide_app* app)
         if(painter) { int end=xuiPainterEnd(painter);if(result==XUI_OK)result=end; }
     }
     if(result!=XUI_OK) { for(int i=0;i<9;++i)if(fresh[i])app->proxy.surfaceDestroy(&app->proxy,fresh[i]);return result; }
-    const int iconIndex[XIDE_TB_COUNT]={0,7,1,7,2,7,-1,-1,-1,3,4,5,6,7,-1,8};
+    const int iconIndex[XIDE_TB_COUNT]={0,1,2,7,-1,-1,-1,3,4,5,6,7,-1,8};
     for(int i=0;i<XIDE_TB_COUNT;++i)if(iconIndex[i]>=0) {
         result=xuiButtonSetIcon(v->controls[i],fresh[iconIndex[i]],(xui_rect_t){0,0,20,20});
         if(result!=XUI_OK) {
@@ -105,12 +105,12 @@ static int addChoice(xide_app* app,const char* title,int type,int enabled,int ch
         size_t capacity=v->capacity ? v->capacity*2 : 32;if(capacity>INT_MAX/sizeof(choice))return XUI_ERROR_OUT_OF_MEMORY;
         choice* values=realloc(v->choices,capacity*sizeof(*values));if(!values)return XUI_ERROR_OUT_OF_MEMORY;v->choices=values;v->capacity=capacity;
     }
-    choice owned=item;owned.project=item.project ? copy(item.project) : NULL;owned.configuration=item.configuration ? copy(item.configuration) : NULL;owned.path=item.path ? copy(item.path) : NULL;
-    if((item.project && !owned.project) || (item.configuration && !owned.configuration) || (item.path && !owned.path)) { free(owned.project);free(owned.configuration);free(owned.path);return XUI_ERROR_OUT_OF_MEMORY; }
+    choice owned=item;owned.project=item.project ? copy(item.project) : NULL;owned.configuration=item.configuration ? copy(item.configuration) : NULL;
+    if((item.project && !owned.project) || (item.configuration && !owned.configuration)) { free(owned.project);free(owned.configuration);return XUI_ERROR_OUT_OF_MEMORY; }
     xui_menu_item_t row={0};row.sText=title;row.iType=type;row.iValue=(int)v->count+1;row.iState=(enabled?XUI_MENU_ITEM_ENABLED:0)|(checked?XUI_MENU_ITEM_CHECKED:0);
     const xide_action_info* action=xideActionFind(item.action);if(action)row.sShortcut=action->shortcut;
     int result=xuiMenuAddItem(v->menu,&row);
-    if(result<0) { free(owned.project);free(owned.configuration);free(owned.path);return result; }
+    if(result<0) { free(owned.project);free(owned.configuration);return result; }
     v->choices[v->count++]=owned;return XUI_OK;
 }
 static int addAction(xide_app* app,int action)
@@ -166,22 +166,8 @@ static int openMenu(xide_app* app,int kind,xui_widget owner)
 {
     xide_main_toolbar* v=app->mainToolbar;if(!v)return XUI_ERROR_INVALID_STATE;
     TRY(xuiMenuClose(v->menu));TRY(xuiMenuClear(v->menu));clearChoices(v);TRY(xideUiFontBindMenu(app,v->menu));
-    const int newActions[]={XIDE_ACTION_NEW_FILE,XIDE_ACTION_NEW_PROJECT,XIDE_ACTION_NEW_WORKSPACE};
-    const int openActions[]={XIDE_ACTION_OPEN_FILE,XIDE_ACTION_OPEN_PROJECT,XIDE_ACTION_OPEN_WORKSPACE};
     const int saveActions[]={XIDE_ACTION_SAVE_FILE,XIDE_ACTION_SAVE_ALL_FILES,XIDE_ACTION_SAVE_FILE_AS};
-    if(kind==MENU_NEW || kind==MENU_OPEN || kind==MENU_SAVE) {
-        const int* items=kind==MENU_NEW ? newActions : kind==MENU_OPEN ? openActions : saveActions;
-        for(int i=0;i<3;++i)TRY(addAction(app,items[i]));
-        if(kind==MENU_OPEN) {
-            size_t count=xideSettingsRecentCount(&app->preferences);
-            if(count) {
-                TRY(addAction(app,0));TRY(addChoice(app,"最近打开",XUI_MENU_ITEM_NORMAL,0,0,(choice){0}));
-                for(size_t i=0;i<count && i<12;++i) {
-                    const char* path=xideSettingsRecentPath(&app->preferences,i);if(!path)continue;
-                    TRY(addChoice(app,path,XUI_MENU_ITEM_NORMAL,xidePathExists(path),0,(choice){.path=(char*)path}));
-                }
-            }
-        }
+    if(kind==MENU_SAVE) {for(int i=0;i<3;++i)TRY(addAction(app,saveActions[i]));
     } else if(kind==MENU_TARGET)TRY(targetChoices(app));
     else if(kind==MENU_CONFIG)TRY(configChoices(app));
     else if(kind==MENU_CONTEXT) { TRY(targetChoices(app));TRY(addAction(app,0));TRY(configChoices(app)); }
@@ -206,18 +192,15 @@ static void selected(xui_widget widget,int index,int value,void* user)
     else if(c.project)okay=xideExecutionSelect(app,c.mode,c.project);
     else if(c.task) {
         for(size_t i=0;i<xideTasksCount(app->tasks);++i) { xide_task* t=xideTasksAt(app->tasks,i);xide_task_info info={0};xideTaskInfo(t,&info);if(info.id==c.task) { xideTaskViewSelect(app,t);xideMainToolbarAction(app,XIDE_ACTION_SHOW_TASKS);break; } }
-    } else if(c.path) {
-        char* path=copy(c.path);if(path) { free(v->recentPath);v->recentPath=path;xideActionExecute(app,XIDE_ACTION_OPEN_RECENT); }
-        else okay=0;
     }
-    if(!okay && !c.path)xideMessageShow(app,"执行上下文已变化","目标或配置已不存在，请重新选择。",XUI_MSGBOX_ICON_ERROR);
+    if(!okay)xideMessageShow(app,"执行上下文已变化","目标或配置已不存在，请重新选择。",XUI_MSGBOX_ICON_ERROR);
     xideMainToolbarRefresh(app);xideActionsRefresh(app);xgeRenderRequest();
 }
 static void clicked(xui_widget widget,void* user)
 {
     xide_app* app=user;xide_main_toolbar* v=app->mainToolbar;int i=0;while(i<XIDE_TB_COUNT && widget!=v->controls[i])++i;if(i==XIDE_TB_COUNT)return;
     if(i==XIDE_TB_TASKS && !xideTaskViewCompiler(app)) { xideActionExecute(app,XIDE_ACTION_COMPILER);return; }
-    const int menus[XIDE_TB_COUNT]={-1,MENU_NEW,-1,MENU_OPEN,-1,MENU_SAVE,MENU_TARGET,MENU_CONFIG,MENU_CONTEXT,-1,-1,-1,-1,MENU_STOP,MENU_TASKS,MENU_MORE};
+    const int menus[XIDE_TB_COUNT]={-1,-1,-1,MENU_SAVE,MENU_TARGET,MENU_CONFIG,MENU_CONTEXT,-1,-1,-1,-1,MENU_STOP,MENU_TASKS,MENU_MORE};
     if(menus[i]>=0) { int result=openMenu(app,menus[i],widget);if(result!=XUI_OK)app->frameError=result; }
 }
 static int tokenStyle(xui_widget widget,const char* icon,const char* fill)
@@ -305,8 +288,8 @@ void xideMainToolbarLayout(xide_app* app)
         if(xuiWidgetGetVisible(v->controls[i])!=visible)xuiWidgetSetVisible(v->controls[i],visible);
     }
     float x=8*scale,gap=4*scale,h=32*scale,y=(height-h)/2,icon=16*scale;
-    const int fileButtons[]={XIDE_TB_NEW,XIDE_TB_NEW_MENU,XIDE_TB_OPEN,XIDE_TB_OPEN_MENU,XIDE_TB_SAVE,XIDE_TB_SAVE_MENU};
-    for(int n=0;n<6;++n)if(xuiWidgetGetVisible(v->controls[fileButtons[n]])) { int i=fileButtons[n];label(v->controls[i],v->icons[0] ? "" : n%2 ? "▾" : i==XIDE_TB_NEW ? "新" : i==XIDE_TB_OPEN ? "开" : "存");place(v->controls[i],&x,y,(n%2?18:32)*scale,h,n%2?gap:0); }
+    const int fileButtons[]={XIDE_TB_NEW,XIDE_TB_OPEN,XIDE_TB_SAVE,XIDE_TB_SAVE_MENU};
+    for(int n=0;n<4;++n)if(xuiWidgetGetVisible(v->controls[fileButtons[n]])) { int i=fileButtons[n],arrow=i==XIDE_TB_SAVE_MENU;label(v->controls[i],v->icons[0] ? "" : arrow ? "▾" : i==XIDE_TB_NEW ? "新" : i==XIDE_TB_OPEN ? "开" : "存");place(v->controls[i],&x,y,(arrow?18:32)*scale,h,i==XIDE_TB_SAVE ? 0:gap); }
     if(mode!=2)x+=12*scale;
     if(mode==0) { place(v->controls[XIDE_TB_TARGET],&x,y,220*scale,h,gap);place(v->controls[XIDE_TB_CONFIGURATION],&x,y,156*scale,h,12*scale); }
     else if(mode==1) { place(v->controls[XIDE_TB_TARGET],&x,y,190*scale,h,gap);place(v->controls[XIDE_TB_CONFIGURATION],&x,y,126*scale,h,12*scale); }
@@ -324,17 +307,12 @@ void xideMainToolbarLayout(xide_app* app)
     float moreWidth=32*scale,taskWidth=fmaxf(44*scale,fminf(180*scale,width-x-moreWidth-20*scale));
     float right=width-8*scale-moreWidth-taskWidth-gap;
     place(v->controls[XIDE_TB_TASKS],&right,y,taskWidth,h,gap);place(v->controls[XIDE_TB_MORE],&right,y,moreWidth,h,0);label(v->controls[XIDE_TB_MORE],v->icons[0] ? "" : "⋯");
-    for(int i=0;i<XIDE_TB_COUNT;++i)xuiButtonSetIconLayout(v->controls[i],XUI_BUTTON_ICON_LEFT,i==XIDE_TB_NEW_MENU || i==XIDE_TB_OPEN_MENU || i==XIDE_TB_SAVE_MENU || i==XIDE_TB_STOP_MENU ? icon*0.65f:icon,5*scale);
+    for(int i=0;i<XIDE_TB_COUNT;++i)xuiButtonSetIconLayout(v->controls[i],XUI_BUTTON_ICON_LEFT,i==XIDE_TB_SAVE_MENU || i==XIDE_TB_STOP_MENU ? icon*0.65f:icon,5*scale);
     const int captions[]={XIDE_TB_TARGET,XIDE_TB_CONFIGURATION,XIDE_TB_CONTEXT,XIDE_TB_TASKS};
     for(int n=0;n<4;++n)fitted(app,captions[n],v->captions[captions[n]]);
 }
 int xideMainToolbarAction(xide_app* app,int action)
 {
-    if(action==XIDE_ACTION_OPEN_RECENT) {
-        xide_main_toolbar* v=app->mainToolbar;if(!v || !v->recentPath)return 0;
-        xideHomeOpenPath(app,v->recentPath);
-        return 1;
-    }
     if(action==XIDE_ACTION_TARGET_CONFIGURATIONS) {
         xide_execution_context context;xideExecutionResolve(app,0,&context);
         return context.project && xideConfigurationViewOpenProject(app,context.project->id);
@@ -350,5 +328,5 @@ xui_widget xideMainToolbarMenu(xide_app* app) { return app->mainToolbar ? app->m
 void xideMainToolbarDestroy(xide_app* app)
 {
     xide_main_toolbar* v=app->mainToolbar;if(!v)return;
-    clearChoices(v);free(v->choices);free(v->recentPath);for(int i=0;i<9;++i)if(v->icons[i])app->proxy.surfaceDestroy(&app->proxy,v->icons[i]);free(v);app->mainToolbar=NULL;
+    clearChoices(v);free(v->choices);for(int i=0;i<9;++i)if(v->icons[i])app->proxy.surfaceDestroy(&app->proxy,v->icons[i]);free(v);app->mainToolbar=NULL;
 }

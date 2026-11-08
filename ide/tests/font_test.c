@@ -74,7 +74,7 @@ static int verify(void* user)
     xideWorkbenchShowHelp(&app,(int)(helpCommand-app.catalog.entries)); CHECK(settle(&app));
     int oldHelpHeight=xideHelpLayout(xideCatalogHelpDocument(&app),400);
     xui_font original=app.codeFont; CHECK(xideFontViewOpen(&app) && settle(&app));
-    size_t count=app.documents.count; xideDispatchAction(&app,XIDE_ACTION_NEW_FILE); CHECK(app.documents.count==count);
+    size_t count=app.documents.count; xideDispatchAction(&app,XIDE_ACTION_NEW); CHECK(app.documents.count==count);
     CHECK(xuiEditSetText(xideFontViewControl(&app,XIDE_FONT_PATH),font)==XUI_OK && xuiEditSetText(xideFontViewControl(&app,XIDE_FONT_SIZE),"24")==XUI_OK);
     CHECK(click(&app,XIDE_FONT_CANCEL) && !xideFontViewIsOpen(&app) && app.codeFont==original && app.codeFontSize==16);
     CHECK(xideFontViewOpen(&app) && xuiEditSetText(xideFontViewControl(&app,XIDE_FONT_PATH),badFont)==XUI_OK && click(&app,XIDE_FONT_APPLY));

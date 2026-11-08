@@ -89,7 +89,7 @@ int main(int argc,char** argv)
     CHECK(editorPane.tRect.fX==helpPane.tRect.fX && editorPane.tRect.fW==helpPane.tRect.fW && app.activeDocument==first);
     CHECK(clickClose(&app,first) && !first->open && second->open && app.activeDocument==second);
     int windows=xuiDockPanelGetWindowCount(app.dock);
-    xideDispatchAction(&app,XIDE_ACTION_NEW_FILE); CHECK(settle(&app));
+    {xide_document* created=xideDocumentNew(&app.documents,"xlang",&error);CHECK(created && xideEditorShow(&app,created)==XUI_OK);}CHECK(settle(&app));
     CHECK(app.activeDocument==first && first->open && !first->path && !xuiCodeDocumentCanUndo(xuiCodeEditGetDocument(first->editor)) && xuiDockPanelGetWindowCount(app.dock)==windows);
     CHECK(statusIs(&app,"xlang · UTF-8 · LF · 1:1"));
     core=xuiCodeEditGetDocument(first->editor);

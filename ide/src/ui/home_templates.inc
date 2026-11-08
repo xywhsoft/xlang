@@ -49,9 +49,11 @@ static int homeTemplateRow(xui_widget w,int index,xui_draw_context draw,xui_rect
     if(state&XUI_LIST_ITEM_FOCUS)TRY(a->proxy.drawRectStroke(&a->proxy,draw,(xui_rect_t){r.fX+1,r.fY+1,r.fW-2,r.fH-2},1,ideThemeColor(a->theme,IDE_BORDER)));
     return 1;
 }
+static int homeTemplateCategory(enum xide_template_kind kind){return kind==XIDE_TEMPLATE_WORKSPACE ? 4:kind==XIDE_TEMPLATE_PROJECT ? 2:3;}
 static int homeCategoryIcon(xui_widget w,int id,xui_draw_context draw,xui_rect_t r,int state,void* user) {
-    (void)w;(void)state;xide_app* a=user;struct xide_home_view* v=a->homeView;int kind=id==1 ? 0:id==3 ? 2:id>=100&&id-100<v->categoryCount&&!v->templates.items[v->categoryDefinition[id-100]].project ? 2:1;
-    xui_surface icon=v->categoryIcons[kind];if(!icon)return 0;
+    (void)w;(void)state;xide_app* a=user;struct xide_home_view* v=a->homeView;
+    if(id>=100&&id-100<v->categoryCount)id=homeTemplateCategory(v->templates.items[v->categoryDefinition[id-100]].kind);
+    int kind=id==1 ? 0:id==4 ? 3:id==3 ? 2:1;xui_surface icon=v->categoryIcons[kind];if(!icon)return 0;
     xui_surface_desc_t desc={0};TRY(a->proxy.surfaceGetDesc(&a->proxy,icon,&desc));
     TRY(a->proxy.drawSurface(&a->proxy,draw,icon,(xui_rect_t){0,0,desc.iWidth,desc.iHeight},(xui_rect_t){r.fX,r.fY+(r.fH-16)/2,16,16},XUI_COLOR_WHITE,0));return 1;
 }
@@ -78,20 +80,20 @@ static int homeTemplatePointer(xui_widget w,const xui_event_t* e,void* user) {
 static void homeNewSelected(xui_widget w,int index,void* user) {
     (void)w;xide_app* a=user;const xide_template_definition* d=homeTemplate(a,index);
     xuiLabelSetText(xideHomeControl(a,XIDE_HOME_TEMPLATE_DESCRIPTION),d ? d->description:"请选择模板。");
-    xuiButtonSetText(xideHomeControl(a,XIDE_HOME_CREATE),d&&d->project ? "创建工程…":"创建文件");xuiWidgetSetEnabled(xideHomeControl(a,XIDE_HOME_CREATE),d!=NULL);
+    xuiButtonSetText(xideHomeControl(a,XIDE_HOME_CREATE),d&&d->kind==XIDE_TEMPLATE_WORKSPACE ? "创建工作空间…":d&&d->kind==XIDE_TEMPLATE_PROJECT ? "创建工程…":"创建文件");xuiWidgetSetEnabled(xideHomeControl(a,XIDE_HOME_CREATE),d!=NULL);
 }
 static void homeCategorySelected(xui_widget w,int category,void* user) {
     (void)w;xide_app* a=user;struct xide_home_view* v=a->homeView;homeTemplateCancelLink(a);v->category=category;v->visibleCount=0;const xide_template_definition* sub=category>=100&&category-100<v->categoryCount ? &v->templates.items[v->categoryDefinition[category-100]]:NULL;
     /* Console first; stable catalog IDs do not depend on visual ordering. */
-    if(category==1||category==2){for(size_t i=0;i<v->templates.count;++i)if(v->templates.items[i].project&&!strcmp(v->templates.items[i].id,"console"))v->visible[v->visibleCount++]=(int)i;}
-    for(size_t i=0;i<v->templates.count;++i){const xide_template_definition* d=&v->templates.items[i];if((category==1)||(category==2&&d->project)||(category==3&&!d->project)||(sub&&d->project==sub->project&&!strcmp(d->category,sub->category))){if((category==1||category==2)&&d->project&&!strcmp(d->id,"console"))continue;v->visible[v->visibleCount++]=(int)i;}}
+    if(category==1||category==2){for(size_t i=0;i<v->templates.count;++i)if(v->templates.items[i].kind==XIDE_TEMPLATE_PROJECT&&!strcmp(v->templates.items[i].id,"console"))v->visible[v->visibleCount++]=(int)i;}
+    for(size_t i=0;i<v->templates.count;++i){const xide_template_definition* d=&v->templates.items[i];if((category==1)||(category==homeTemplateCategory(d->kind))||(sub&&d->kind==sub->kind&&!strcmp(d->category,sub->category))){if((category==1||category==2)&&d->kind==XIDE_TEMPLATE_PROJECT&&!strcmp(d->id,"console"))continue;v->visible[v->visibleCount++]=(int)i;}}
     xuiListViewSetVirtualItems(v->controls[XIDE_HOME_TEMPLATES],v->visibleCount,homeTemplateText,a);xuiListViewSetSelected(v->controls[XIDE_HOME_TEMPLATES],v->visibleCount ? 0:-1);xuiListViewSetScroll(v->controls[XIDE_HOME_TEMPLATES],0);homeNewSelected(NULL,v->visibleCount ? 0:-1,a);xgeRenderRequest();
 }
 static void homeNewClose(xui_widget w,void* user) {(void)w;xide_app* a=user;homeTemplateCancelLink(a);xideDialogSetOpen(xideHomeNewWindow(a),0);xideActionsRefresh(a);xgeRenderRequest();}
 static void homeNewCreate(xui_widget w,void* user) {
     (void)w;xide_app* a=user;if(!xideDialogIsOpen(xideHomeNewWindow(a)))return;
     const xide_template_definition* d=homeTemplate(a,xuiListViewGetSelected(xideHomeControl(a,XIDE_HOME_TEMPLATES)));if(!d)return;
-    if(d->project||!d->builtin){if(xideTemplateViewOpenDefinition(a,d))xideDialogSetOpen(xideHomeNewWindow(a),0);else xuiLabelSetText(xideHomeControl(a,XIDE_HOME_TEMPLATE_DESCRIPTION),"无法打开创建表单；请先应用／取消工程属性草稿，或重新打开新建窗口。");return;}
+    if(d->kind!=XIDE_TEMPLATE_FILE||!d->builtin){if(xideTemplateViewOpenDefinition(a,d))xideDialogSetOpen(xideHomeNewWindow(a),0);else xuiLabelSetText(xideHomeControl(a,XIDE_HOME_TEMPLATE_DESCRIPTION),"无法打开创建表单；请先应用／取消工程属性草稿，或重新打开新建窗口。");return;}
     xide_model_error error={0};xide_document* doc=xideDocumentNew(&a->documents,d->language,&error);
     if(!doc){xideMessageShow(a,"新建文件",error.message,XUI_MSGBOX_ICON_ERROR);return;}
     xideDialogSetOpen(xideHomeNewWindow(a),0);if(xideEditorShow(a,doc)!=XUI_OK){xideDocumentClose(doc,1,NULL);xideDialogSetOpen(xideHomeNewWindow(a),1);}
@@ -110,10 +112,10 @@ static int homeTemplatesLoad(xide_app* a) {
     int okay=xideTemplateRegistryLoad(&v->templates,root,&error);free(root);free(settings);if(!okay)return XUI_ERROR;
     v->descriptions=calloc(v->templates.count,sizeof(*v->descriptions));if(!v->descriptions)return XUI_ERROR_OUT_OF_MEMORY;
     wchar_t binary[32768];char utf8[32768*3];DWORD got=GetModuleFileNameW(NULL,binary,32768);char* exe=NULL;if(got&&WideCharToMultiByte(CP_UTF8,0,binary,-1,utf8,sizeof(utf8),NULL,NULL))exe=xidePathDirectory(utf8);
-    for(size_t i=0;i<v->templates.count;++i){xide_template_definition* d=&v->templates.items[i];char name[256];snprintf(name,sizeof(name),"data/template-icons/%s.png",d->builtin ? d->icon:d->project ? "blank":"script");char* path=d->builtin||!*d->icon ? (exe ? xidePathResolve(exe,name):NULL):xidePathResolve(d->root,d->icon);
+    for(size_t i=0;i<v->templates.count;++i){xide_template_definition* d=&v->templates.items[i];char name[256];snprintf(name,sizeof(name),"data/template-icons/%s.png",d->builtin ? d->icon:d->kind==XIDE_TEMPLATE_PROJECT ? "blank":"script");char* path=d->builtin||!*d->icon ? (exe ? xidePathResolve(exe,name):NULL):xidePathResolve(d->root,d->icon);
         if(path){int result=xidePathHasExtension(path,".svg") ? a->proxy.surfaceLoadSvgFile(&a->proxy,&v->icons[i],path,384,288,0):a->proxy.surfaceLoadFile(&a->proxy,&v->icons[i],path,0);if(result!=XUI_OK)v->icons[i]=NULL;if(v->icons[i]){xui_surface_desc_t desc={0};if(a->proxy.surfaceGetDesc(&a->proxy,v->icons[i],&desc)==XUI_OK&&desc.iWidth>0&&desc.iHeight>0)v->iconSources[i]=(xui_rect_t){0,0,(float)desc.iWidth,(float)desc.iHeight};else{a->proxy.surfaceDestroy(&a->proxy,v->icons[i]);v->icons[i]=NULL;}}free(path);}
     }
-    const char* categoryNames[]={"tree-local","tree-project","tree-file"};for(int i=0;i<3;++i){char name[128];snprintf(name,sizeof(name),"data/template-icons/%s%s.png",categoryNames[i],a->dpiScale>1 ? "@2x":"");char* path=exe ? xidePathResolve(exe,name):NULL;if(path){int result=a->proxy.surfaceLoadFile(&a->proxy,&v->categoryIcons[i],path,0);if(result!=XUI_OK)v->categoryIcons[i]=NULL;free(path);}}
+    const char* categoryNames[]={"tree-local","tree-project","tree-file","tree-workspace"};for(int i=0;i<4;++i){char name[128];snprintf(name,sizeof(name),"data/template-icons/%s%s.png",categoryNames[i],a->dpiScale>1 ? "@2x":"");char* path=exe ? xidePathResolve(exe,name):NULL;if(path){int result=a->proxy.surfaceLoadFile(&a->proxy,&v->categoryIcons[i],path,0);if(result!=XUI_OK)v->categoryIcons[i]=NULL;free(path);}}
     free(exe);v->templatesLoaded=1;return XUI_OK;
 }
 static int homeNewBuild(xide_app* a) {
@@ -121,9 +123,10 @@ static int homeNewBuild(xide_app* a) {
     TRY(xideDialogCreate(a,&v->newWindow,"新建",900,600,14));TRY(xuiWidgetAddChild(a->root,v->newWindow));TRY(xideDialogSetCancel(v->newWindow,homeNewClose,a));TRY(xideDialogFormBegin(v->newWindow,760,480));
     TRY(xuiWidgetCreate(a->context,&v->picker));TRY(xuiWidgetSetLayoutType(v->picker,XUI_LAYOUT_MANUAL));
     TRY(xuiWidgetSetEventCallback(v->picker,homeTemplatePointer,a));TRY(xuiWidgetSetCursorQueryCallback(v->picker,homeTemplateCursor,a));
-    v->categoryCount=0;xui_tree_view_node_t nodes[259]={0};nodes[0]=(xui_tree_view_node_t){.iId=1,.iParent=-1,.sText="本地模板",.bExpanded=1,.bEnabled=1,.bHasChildren=1,.bIconReserved=1};nodes[1]=(xui_tree_view_node_t){.iId=2,.iParent=1,.sText="工程",.bExpanded=1,.bEnabled=1,.bIconReserved=1};nodes[2]=(xui_tree_view_node_t){.iId=3,.iParent=1,.sText="独立文件",.bExpanded=1,.bEnabled=1,.bIconReserved=1};
-    for(size_t i=6;i<v->templates.count;++i){const xide_template_definition* d=&v->templates.items[i];if(!*d->category)continue;int duplicate=0;for(int j=0;j<v->categoryCount;++j){const xide_template_definition* old=&v->templates.items[v->categoryDefinition[j]];if(old->project==d->project&&!strcmp(old->category,d->category))duplicate=1;}if(duplicate)continue;int n=v->categoryCount++;v->categoryDefinition[n]=(int)i;nodes[n+3]=(xui_tree_view_node_t){.iId=100+n,.iParent=d->project ? 2:3,.sText=d->category,.bEnabled=1,.bIconReserved=1};nodes[d->project ? 1:2].bHasChildren=1;}
-    xui_tree_view_desc_t tree={0};tree.iSize=sizeof(tree);tree.pFont=a->uiFont;tree.arrNodes=nodes;tree.iNodeCount=3+v->categoryCount;tree.iSelectedId=2;tree.fItemHeight=28*xideUiFontScale(a);
+    v->categoryCount=0;xui_tree_view_node_t nodes[260]={0};nodes[0]=(xui_tree_view_node_t){.iId=1,.iParent=-1,.sText="本地模板",.bExpanded=1,.bEnabled=1,.bHasChildren=1,.bIconReserved=1};nodes[1]=(xui_tree_view_node_t){.iId=2,.iParent=1,.sText="工程",.bExpanded=1,.bEnabled=1,.bIconReserved=1};nodes[2]=(xui_tree_view_node_t){.iId=3,.iParent=1,.sText="独立文件",.bExpanded=1,.bEnabled=1,.bIconReserved=1};
+    nodes[3]=(xui_tree_view_node_t){.iId=4,.iParent=1,.sText="工作空间",.bExpanded=1,.bEnabled=1,.bIconReserved=1};
+    for(size_t i=XIDE_TEMPLATE_BUILTIN_COUNT;i<v->templates.count;++i){const xide_template_definition* d=&v->templates.items[i];if(!*d->category)continue;int duplicate=0;for(int j=0;j<v->categoryCount;++j){const xide_template_definition* old=&v->templates.items[v->categoryDefinition[j]];if(old->kind==d->kind&&!strcmp(old->category,d->category))duplicate=1;}if(duplicate)continue;int n=v->categoryCount++;v->categoryDefinition[n]=(int)i;nodes[n+4]=(xui_tree_view_node_t){.iId=100+n,.iParent=homeTemplateCategory(d->kind),.sText=d->category,.bEnabled=1,.bIconReserved=1};nodes[homeTemplateCategory(d->kind)-1].bHasChildren=1;}
+    xui_tree_view_desc_t tree={0};tree.iSize=sizeof(tree);tree.pFont=a->uiFont;tree.arrNodes=nodes;tree.iNodeCount=4+v->categoryCount;tree.iSelectedId=2;tree.fItemHeight=28*xideUiFontScale(a);
     TRY(xuiTreeViewCreate(a->context,&v->controls[XIDE_HOME_CATEGORY],&tree));TRY(xuiWidgetAddChild(v->picker,v->controls[XIDE_HOME_CATEGORY]));TRY(xuiTreeViewSetSelect(v->controls[XIDE_HOME_CATEGORY],homeCategorySelected,a));TRY(xuiTreeViewSetIconRenderer(v->controls[XIDE_HOME_CATEGORY],homeCategoryIcon,a));
     xui_list_view_desc_t list={0};list.iSize=sizeof(list);list.pFont=a->uiFont;list.fItemHeight=96*xideUiFontScale(a);
     TRY(xuiListViewCreate(a->context,&v->controls[XIDE_HOME_TEMPLATES],&list));TRY(xuiWidgetAddChild(v->picker,v->controls[XIDE_HOME_TEMPLATES]));TRY(xuiListViewSetSelect(v->controls[XIDE_HOME_TEMPLATES],homeNewSelected,a));TRY(xuiListViewSetActivate(v->controls[XIDE_HOME_TEMPLATES],homeNewActivate,a));TRY(xuiListViewSetItemRenderer(v->controls[XIDE_HOME_TEMPLATES],homeTemplateRow,a));TRY(xuiWidgetSetLayoutChildrenCallback(v->picker,homeNewPickerLayout,a));TRY(xuiWidgetSetCursorQueryCallback(xuiListViewGetViewportWidget(v->controls[XIDE_HOME_TEMPLATES]),homeTemplateCursor,a));

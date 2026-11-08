@@ -15,7 +15,7 @@ struct xide_home_view {
     xide_template_registry templates;
     int templatesLoaded,category,visible[256],visibleCount,categoryDefinition[256],categoryCount;
     xui_surface icons[256];xui_rect_t iconSources[256];
-    xui_surface categoryIcons[3];
+    xui_surface categoryIcons[4];
     struct {float title,metadata,link;} headers[256];
     int linkPressed;uint64_t linkPointer;int linkPointerType;
     char (*descriptions)[2][1024];float descriptionWidth,templateScale;xui_font templateFont;
@@ -95,6 +95,16 @@ static int homeEvent(xui_widget w,const xui_event_t* e,void* user) {
 static void homeClear(xui_widget w,void* user) {
     (void)w;xideActionExecute(user,XIDE_ACTION_HOME_CLEAR);
 }
+int xideNewOpenAction(xide_app* a,int action) {
+    if(action==XIDE_ACTION_NEW)return homeNewOpen(a);
+    if(action==XIDE_ACTION_OPEN) {
+        char* path=xideMessageChoosePath(a,XUI_FILE_DIALOG_MODE_OPEN_FILE,"打开文件、工程或工作空间",
+            "xlang 文件、工程和工作空间|*.xlw;*.xlp;*.xl;*.c|所有文件|*.*",NULL,NULL,UINT64_C(716),0);
+        if(path) {xideHomeOpenPath(a,path);free(path);}
+        return 1;
+    }
+    return 0;
+}
 int xideHomeAction(xide_app* a,int action) {
     if(action==XIDE_ACTION_HOME_CLEAR) {
         if(!xideSettingsRecentCount(&a->preferences))return 1;
@@ -104,13 +114,6 @@ int xideHomeAction(xide_app* a,int action) {
         if(answer!=XUI_MSGBOX_RESULT_OK)return 1;
         xide_model_error error={0};if(!xideSettingsClearRecent(&a->preferences,&error))xideMessageShow(a,"清空历史记录",error.message,XUI_MSGBOX_ICON_ERROR);
         int result=xideHomeRefresh(a);if(result!=XUI_OK)a->frameError=result;return 1;
-    }
-    if(action==XIDE_ACTION_HOME_NEW)return homeNewOpen(a);
-    if(action==XIDE_ACTION_HOME_OPEN) {
-        char* path=xideMessageChoosePath(a,XUI_FILE_DIALOG_MODE_OPEN_FILE,"打开文件、工程或工作空间",
-            "xlang 文件、工程和工作空间|*.xlw;*.xlp;*.xl;*.c|所有文件|*.*",NULL,NULL,UINT64_C(716),0);
-        if(path) {xideHomeOpenPath(a,path);free(path);}
-        return 1;
     }
     if(action==XIDE_ACTION_HOME_OPEN_RECENT)return a->homeView && a->homeView->recentPath ? xideHomeOpenPath(a,a->homeView->recentPath):0;
     if(action==XIDE_ACTION_VIEW_HOME) {int r=xideWorkbenchShowHome(a);if(r!=XUI_OK)a->frameError=r;return r==XUI_OK;}
@@ -155,7 +158,7 @@ static int homeTheme(xide_app* a) {
 static int homeCreate(xide_app* a) {
     struct xide_home_view* v=calloc(1,sizeof(*v));if(!v)return XUI_ERROR_OUT_OF_MEMORY;a->homeView=v;
     TRY(xuiWidgetCreate(a->context,&v->root));TRY(xuiWidgetSetLayoutType(v->root,XUI_LAYOUT_MANUAL));a->panels[XIDE_HOME]=v->root;
-    const int actions[]={XIDE_ACTION_HOME_NEW,XIDE_ACTION_HOME_OPEN,XIDE_ACTION_ONLINE_TUTORIAL};const char* titles[]={"新建","打开","在线教程"};
+    const int actions[]={XIDE_ACTION_NEW,XIDE_ACTION_OPEN,XIDE_ACTION_ONLINE_TUTORIAL};const char* titles[]={"新建","打开","在线教程"};
     for(int i=0;i<3;++i) {
         xui_button_desc_t d={0};d.iSize=sizeof(d);d.pFont=a->uiFont;d.sText=titles[i];
         TRY(xuiButtonCreate(a->context,&v->controls[i],&d));TRY(xuiWidgetAddChild(v->root,v->controls[i]));
@@ -190,7 +193,7 @@ static int homeCreate(xide_app* a) {
 void xideHomeDestroy(xide_app* a) {
     if(!a || !a->homeView)return;
     for(size_t i=0;i<a->homeView->templates.count;++i)if(a->homeView->icons[i])a->proxy.surfaceDestroy(&a->proxy,a->homeView->icons[i]);
-    for(int i=0;i<3;++i)if(a->homeView->categoryIcons[i])a->proxy.surfaceDestroy(&a->proxy,a->homeView->categoryIcons[i]);
+    for(int i=0;i<4;++i)if(a->homeView->categoryIcons[i])a->proxy.surfaceDestroy(&a->proxy,a->homeView->categoryIcons[i]);
     free(a->homeView->descriptions);xideTemplateRegistryClear(&a->homeView->templates);
     xrtValueRelease(a->homeView->snapshot.source);free(a->homeView->recentPath);free(a->homeView);a->homeView=NULL;
 }

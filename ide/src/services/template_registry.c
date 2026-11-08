@@ -48,7 +48,7 @@ int xideTemplateDefinitionCopy(xide_template_definition* d,const xide_template_d
 #define COPY(k) do {d->k=duplicate(s->k ? s->k:"");if(!d->k)goto failed;}while(0)
     COPY(id);COPY(title);COPY(description);COPY(author);COPY(version);COPY(website);COPY(icon);COPY(category);COPY(root);COPY(module);COPY(validate);COPY(create);COPY(language);
 #undef COPY
-    d->project=s->project;d->builtin=s->builtin;d->fields=s->fields ? xrtValueDeepClone(s->fields):xrtValueArray();d->files=s->files ? xrtValueDeepClone(s->files):xrtValueArray();
+    d->kind=s->kind;d->builtin=s->builtin;d->fields=s->fields ? xrtValueDeepClone(s->fields):xrtValueArray();d->files=s->files ? xrtValueDeepClone(s->files):xrtValueArray();
     if(d->fields && d->files)return 1;
 failed:xideTemplateDefinitionClear(d);return 0;
 }
@@ -100,7 +100,7 @@ static int loadOne(xide_template_registry* r,const char* root,xide_model_error* 
     char* path=xidePathResolve(root,"template.json");size_t n=0;unsigned char* data=path ? xideIoReadAllLimit(path,1024*1024,&n):NULL;free(path);if(!data)return fail(e,"无法读取 template.json。");
     xvalue* json=xrtJsonParse((xstrview){(const char*)data,n});xrtFree(data);if(!json)return fail(e,"模板 JSON 无效。");
     xide_template_definition d={0};d.id=(char*)xideTemplateString(json,"id","");d.title=(char*)xideTemplateString(json,"title","");d.description=(char*)xideTemplateString(json,"description","");d.author=(char*)xideTemplateString(json,"author","");d.version=(char*)xideTemplateString(json,"version","");d.icon=(char*)xideTemplateString(json,"icon","");d.category=(char*)xideTemplateString(json,"category","");d.root=(char*)root;d.language=(char*)xideTemplateString(json,"language","xlang");
-    const char* kind=xideTemplateString(json,"kind","");d.project=!strcmp(kind,"project");xvalue* gen=get(json,"generator"),*form=get(json,"form");d.module=(char*)xideTemplateString(gen,"module","");d.validate=(char*)xideTemplateString(gen,"validate","");d.create=(char*)xideTemplateString(gen,"create","");d.fields=get(form,"fields");d.files=get(json,"files");
+    const char* kind=xideTemplateString(json,"kind","");d.kind=!strcmp(kind,"project") ? XIDE_TEMPLATE_PROJECT:XIDE_TEMPLATE_FILE;xvalue* gen=get(json,"generator"),*form=get(json,"form");d.module=(char*)xideTemplateString(gen,"module","");d.validate=(char*)xideTemplateString(gen,"validate","");d.create=(char*)xideTemplateString(gen,"create","");d.fields=get(form,"fields");d.files=get(json,"files");
     xvalue* empty=xrtValueArray();if(!d.fields)d.fields=empty;if(!d.files)d.files=empty;
     d.website=(char*)xideTemplateString(json,"website","");xstrview website={0};xvalue* websiteValue=get(json,"website");
     int okay=empty&&(!websiteValue||(xrtValueIs(websiteValue,XVALUE_STRING)&&xrtValueGetString(websiteValue,&website)&&!memchr(website.Data,0,website.Size)))&&websiteValid(d.website)&&!strcmp(xideTemplateString(json,"format",""),"xlang-ide-template-1")&&identifier(d.id)&&strncmp(d.id,"builtin.",8)&&*d.title&&(!strcmp(kind,"project")||!strcmp(kind,"file"))&&(!*d.icon||relative(d.icon))&&fieldsValid(d.fields,e);
@@ -112,8 +112,9 @@ static int compare(const void* aa,const void* bb){const xide_template_definition
 static int loadRegistry(xide_template_registry* r,const char* userRoot,xide_model_error* e) {
     memset(r,0,sizeof(*r));if(e)memset(e,0,sizeof(*e));
     const char* icons[]={"blank","console","mixed","dll"};
-    for(size_t i=0;i<xideProjectTemplateCount();++i){const xide_project_template* p=xideProjectTemplateAt(i);xide_template_definition d={0};d.id=(char*)p->id;d.title=(char*)p->title;d.description=(char*)p->description;d.author="xlang";d.version="1.0.0";d.website="https://xcompiler.com/book/index.html";d.icon=(char*)icons[i];d.builtin=1;d.project=1;if(!append(r,&d))goto memory;}
+    for(size_t i=0;i<xideProjectTemplateCount();++i){const xide_project_template* p=xideProjectTemplateAt(i);xide_template_definition d={0};d.id=(char*)p->id;d.title=(char*)p->title;d.description=(char*)p->description;d.author="xlang";d.version="1.0.0";d.website="https://xcompiler.com/book/index.html";d.icon=(char*)icons[i];d.builtin=1;d.kind=XIDE_TEMPLATE_PROJECT;if(!append(r,&d))goto memory;}
     for(int i=0;i<2;++i){xide_template_definition d={0};d.id=i ? "builtin.file.c":"builtin.file.xlang";d.title=i ? "C 文件（.c）":"xlang 文件（.xl）";d.description=i ? "创建独立的 C 文件（.c）；保存时选择文件名与位置。":"创建独立的 xlang 文件（.xl）；保存时选择文件名与位置。";d.author="xlang";d.version="1.0.0";d.website="https://xcompiler.com/book/index.html";d.icon=i ? "c-source":"script";d.language=i ? "c":"xlang";d.builtin=1;if(!append(r,&d))goto memory;}
+    {xide_template_definition d={0};d.id="builtin.workspace.blank";d.kind=XIDE_TEMPLATE_WORKSPACE;d.builtin=1;d.title="空白工作空间";d.description="创建用于组织多个工程的空白工作空间，不附带工程。";d.author="xlang";d.version="1.0.0";d.website="https://xcompiler.com/book/index.html";d.icon="workspace";if(!append(r,&d))goto memory;}
     if(!userRoot||!xidePathExists(userRoot))return 1;
     char* mask=xidePathResolve(userRoot,"*");wchar_t* wide=mask ? xidePathNativeWide(mask):NULL;free(mask);WIN32_FIND_DATAW entry={0};HANDLE find=wide ? FindFirstFileW(wide,&entry):INVALID_HANDLE_VALUE;free(wide);
     if(find==INVALID_HANDLE_VALUE){snprintf(r->issues,sizeof(r->issues),"无法枚举用户模板目录；内置模板仍可使用。");return 1;}
@@ -121,7 +122,7 @@ static int loadRegistry(xide_template_registry* r,const char* userRoot,xide_mode
         char name[1024];if(!WideCharToMultiByte(CP_UTF8,WC_ERR_INVALID_CHARS,entry.cFileName,-1,name,sizeof(name),NULL,NULL))continue;
         char* dir=xidePathResolve(userRoot,name);xide_model_error issue={0};if(dir&&!loadOne(r,dir,&issue)){size_t used=strlen(r->issues);snprintf(r->issues+used,sizeof(r->issues)-used,"%s%s：%s",used ? "\n":"",name,issue.message);}free(dir);
     }while(FindNextFileW(find,&entry));DWORD last=GetLastError();FindClose(find);if(last!=ERROR_NO_MORE_FILES)return fail(e,"枚举模板目录失败。");
-    if(r->count>6){qsort(r->items+6,r->count-6,sizeof(*r->items),compare);}return 1;
+    if(r->count>XIDE_TEMPLATE_BUILTIN_COUNT){qsort(r->items+XIDE_TEMPLATE_BUILTIN_COUNT,r->count-XIDE_TEMPLATE_BUILTIN_COUNT,sizeof(*r->items),compare);}return 1;
 memory:xideTemplateRegistryClear(r);return fail(e,"无法加载模板目录。");
 }
 

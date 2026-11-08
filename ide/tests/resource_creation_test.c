@@ -148,7 +148,7 @@ static int verify(void* user)
  CHECK(xideResourceViewIsOpen(&app) && xuiInputGetFont(xideResourceViewControl(&app,XIDE_RES_NEW_PATH))==app.uiFont);
  CHECK(xuiWidgetGetRect(xideResourceViewControl(&app,XIDE_RES_NEW_PATH)).fH==xideUiHeight(&app,32) && click(&app,XIDE_RES_CANCEL) && xideUiFontApply(&app,app.uiFontPath,16,&error));
  CHECK(menuOpen(&app,XIDE_ACTION_NEW_RESOURCE) && xideResourceViewIsOpen(&app) && xuiWidgetGetVisible(xideResourceViewControl(&app,XIDE_RES_NEW_PATH)) && capture(&app,image));
- CHECK(xideActionExecute(&app,XIDE_ACTION_NEW_FILE)==XIDE_ACTION_DISABLED && !xideResourceViewOpenNew(&app) && !xideReferencesViewOpen(&app) && click(&app,XIDE_RES_CANCEL) && app.activeDocument==c && !exists(resource) && !p->dirty);
+ CHECK(xideActionExecute(&app,XIDE_ACTION_NEW)==XIDE_ACTION_DISABLED && !xideResourceViewOpenNew(&app) && !xideReferencesViewOpen(&app) && click(&app,XIDE_RES_CANCEL) && app.activeDocument==c && !exists(resource) && !p->dirty);
  xui_widget property=findButton(app.context,app.properties,"新建 Windows 资源配置…");
  CHECK(property && xideTestReveal(app.properties,property)==XUI_OK && settle(&app) && pointer(&app,xuiWidgetGetWorldRect(property)) && xideResourceViewIsOpen(&app));
  CHECK(xuiEditSetText(xideResourceViewControl(&app,XIDE_RES_NEW_PATH),resource)==XUI_OK && choose(&app,XIDE_RES_CONFIG,1) && !strcmp(xuiEditGetText(xideResourceViewControl(&app,XIDE_RES_NEW_PATH)),typed) && choose(&app,XIDE_RES_CONFIG,0));

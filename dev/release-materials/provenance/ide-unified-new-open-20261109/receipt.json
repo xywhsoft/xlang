@@ -1,0 +1,264 @@
+{
+  "schema": 1,
+  "date": "2026-11-09",
+  "passed": true,
+  "fullRegressionPassed": false,
+  "publication": "local-only",
+  "scope": "Unified new/open commands across Home/menu/toolbar/shortcuts, workspace category and safe empty-workspace creation.",
+  "sourceMaterials": {
+    "path": "dev/release-materials/sources/ide-unified-new-open-20261109/manifest.json",
+    "sha256": "fbc461c4142890238bb360db83281debb00183ac083827b5d908e240bb374002",
+    "bytes": 8646
+  },
+  "evidence": {
+    "path": "dev/release-materials/provenance/ide-unified-new-open-20261109/evidence.zip",
+    "sha256": "1421d74dfd36fcdb9f1a723afaa9eef3f91620a51e61cdf78f82471612f44a7d",
+    "bytes": 4901344
+  },
+  "installed": {
+    "passed": true,
+    "installedSmokeExit": 0,
+    "installedPath": "release/win_x64/xlang_ide.exe",
+    "sha256": "a8de3f567398f6499b9b5bfd9cbc500ff137a308299fdebdea292a819745ed3f",
+    "bytes": 2128075,
+    "preserved": {
+      "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe": "e5f4719890814a3f7b5422ffb1f293ffc944c527de62217d32e9a3a4c287dfad",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xl.dll": "e783d6a15c946945d4186084cff9006839cbc1d31a0ae387396dc6f500aaac6c",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xlc.dll": "b4563a13448e2f550b00c0504cac481cdefd2b61ee961276049f936243f125a1",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+    },
+    "changes": [
+      {
+        "path": "release/win_x64/xlang_ide.exe",
+        "before": "44a9de13956fdcf2a2e1abe21cd73833415e04cc04fd34c08312fc413ebfca12",
+        "after": "a8de3f567398f6499b9b5bfd9cbc500ff137a308299fdebdea292a819745ed3f"
+      },
+      {
+        "path": "release/win_x64/data/template-icons/workspace.png",
+        "before": null,
+        "after": "52a4b68a2d13310a701b386ea3c7958244de6f43562019b08db04f940db7744a"
+      },
+      {
+        "path": "release/win_x64/data/template-icons/tree-workspace.png",
+        "before": null,
+        "after": "d04010ff889c628e0d872c233bce6502b1820a32d8ca82b25bc9d4aad2b5894c"
+      },
+      {
+        "path": "release/win_x64/data/template-icons/tree-workspace@2x.png",
+        "before": null,
+        "after": "d2f27b45b729cd12b0e8df4f23b85964ff318c2906d2d0e9e49203271208662c"
+      }
+    ]
+  },
+  "tests": [
+    {
+      "test": "template_registry_test",
+      "exit": 0,
+      "source": "D:\\GIT\\x-lang\\ide\\tests\\template_registry_test.c",
+      "sourceSha256": "2665399c176d44aa9006f85c976382dfeaa1fed3bf61628f63441f73c6d9b38f"
+    },
+    {
+      "test": "home_view_test",
+      "exit": 0,
+      "source": "D:\\GIT\\x-lang\\ide\\tests\\home_view_test.c",
+      "sourceSha256": "923aa19df68a5affb5c936cb317e05999a65057fd4d9ef73bae158e939f4b2fc"
+    },
+    {
+      "test": "settings_view_test",
+      "exit": 0,
+      "source": "D:\\GIT\\x-lang\\ide\\tests\\settings_view_test.c",
+      "sourceSha256": "1a09b8f399fca72e2bd060d9c3ac3f54c820cb3db5367932f2607fae093a70f3"
+    },
+    {
+      "test": "find_follow_view_test",
+      "exit": 0,
+      "source": "D:\\GIT\\x-lang\\ide\\tests\\find_follow_view_test.c",
+      "sourceSha256": "c8a343ec29b5353373e910a30e783d7509a42f56ea4d7846f6e620f07f5611f6"
+    },
+    {
+      "test": "toolbar_test",
+      "exit": 0,
+      "source": "D:\\GIT\\x-lang\\ide\\tests\\toolbar_test.c",
+      "sourceSha256": "e75c41eef4042fdb08d13254e9fac3eae16fc5fc90ef25cb10054493f8fabc19"
+    },
+    {
+      "test": "input_test",
+      "exit": 0,
+      "source": "D:\\GIT\\x-lang\\ide\\tests\\input_test.c",
+      "sourceSha256": "3ba449dd1abc04c8f2591e744a159052e8291a02c3e0a5318916d2e0e537e5b0"
+    },
+    {
+      "test": "template_view_test",
+      "exit": 0,
+      "source": "D:\\GIT\\x-lang\\ide\\tests\\template_view_test.c",
+      "sourceSha256": "da9c36f1a34edc64a1a6d04136fa1f6694e8ad5dde5a5fd5158576c255329a0f"
+    },
+    {
+      "test": "file_dialog_test",
+      "exit": 0,
+      "source": "D:\\GIT\\x-lang\\ide\\tests\\file_dialog_test.c",
+      "sourceSha256": "8fa55bd3e434a64f1d4b26b277e23e415b69ed94bea80145d5122392cef0ce03"
+    },
+    {
+      "test": "actions_test",
+      "exit": 0,
+      "source": "D:\\GIT\\x-lang\\ide\\tests\\actions_test.c",
+      "sourceSha256": "f320daaaf28a545d4eed333f3542da5b7500602ef7ae1a4352d84ffa47d7359c"
+    },
+    {
+      "test": "editor_view_test",
+      "exit": 0,
+      "source": "D:\\GIT\\x-lang\\ide\\tests\\editor_view_test.c",
+      "sourceSha256": "0656d636dd5977e0b65bc533156fc30b2ccb739c876c985c5aa666a6306d3e08"
+    }
+  ],
+  "checks": {
+    "templateView": 110,
+    "home": 126,
+    "toolbar": 91,
+    "fileDialogs": 64,
+    "passingSuites": 10,
+    "workspaceNestedAndFlat": true,
+    "workspaceConflictRejected": true,
+    "emptyWorkspaceHasNoProjectsOrFiles": true,
+    "homeClosedStillAllowsNew": true,
+    "recentMenuVisibleItems": 12,
+    "recentOverflowRoutesHome": true,
+    "oldGlobalActionVariantsRetired": true
+  },
+  "build": {
+    "guiObjects": 113,
+    "fullMatchedGuiRebuild": true,
+    "optimization": "-O2",
+    "warnings": [
+      "-Wall",
+      "-Wextra",
+      "-Werror"
+    ],
+    "cLspEnabled": false,
+    "rebuiltUnits": [
+      "src/app/xide_app.c",
+      "src/app/actions.c",
+      "src/ui/workbench.c",
+      "src/platform/xide_input.c",
+      "src/lang/languages.c",
+      "src/theme/theme.c",
+      "src/platform/path.c",
+      "src/model/workspace.c",
+      "src/model/resources.c",
+      "src/model/resource_text.c",
+      "src/services/resource_creation.c",
+      "src/services/resource_inputs.c",
+      "src/services/resource_rebind.c",
+      "src/ui/resource_view.c",
+      "src/ui/workspace_view.c",
+      "src/platform/text_file.c",
+      "src/platform/file_rename.c",
+      "src/editor/documents.c",
+      "src/ui/editor_view.c",
+      "src/ui/find_view.c",
+      "src/ui/goto_view.c",
+      "src/platform/process.c",
+      "src/services/tasks.c",
+      "src/services/toolchain.c",
+      "src/protocol/lsp_wire.c",
+      "src/services/language_check.c",
+      "src/services/language_snapshot.c",
+      "src/services/semantic_definition.c",
+      "src/services/semantic_completion.c",
+      "src/services/language_client.c",
+      "src/services/c_bridge_map.c",
+      "src/ui/language_view.c",
+      "src/ui/completion_view.c",
+      "src/ui/toolchain_view.c",
+      "src/services/project_templates.c",
+      "src/services/file_rebind.c",
+      "src/services/rename_journal.c",
+      "src/services/project_migration.c",
+      "src/services/legacy_import.c",
+      "src/ui/task_view.c",
+      "src/ui/configuration_view.c",
+      "src/ui/references_view.c",
+      "src/ui/template_view.c",
+      "src/ui/import_view.c",
+      "src/ui/rename_view.c",
+      "src/platform/settings.c",
+      "src/services/command_catalog.c",
+      "src/services/catalog_lookup.c",
+      "src/services/library_info.c",
+      "src/ui/catalog_view.c",
+      "src/ui/help_document.c",
+      "src/platform/state_file.c",
+      "src/platform/state_repair.c",
+      "src/editor/coordinates.c",
+      "src/ui/layout_state.c",
+      "src/services/session.c",
+      "src/services/editor_font.c",
+      "src/ui/font_view.c",
+      "src/platform/window_state.c",
+      "src/platform/dpi_proxy.c",
+      "src/services/ui_font.c",
+      "src/ui/reading_state.c",
+      "src/platform/recovery_store.c",
+      "src/platform/recovery_backup.c",
+      "src/services/recovery.c",
+      "src/ui/recovery_view.c",
+      "src/platform/file_watch.c",
+      "src/services/file_sync.c",
+      "src/ui/file_changes_view.c",
+      "src/editor/lsp_coordinates.c",
+      "src/platform/text_utf.c",
+      "src/services/highlight_result.c",
+      "src/services/completion_result.c",
+      "src/services/signature_result.c",
+      "src/services/sync_plan.c",
+      "src/services/diagnostic_dependencies.c",
+      "src/services/diagnostic_notice.c",
+      "src/services/diagnostic_stream.c",
+      "src/platform/startup_alias.c",
+      "src/platform/startup_stage.c",
+      "src/platform/startup_cache.c",
+      "src/services/build_inputs.c",
+      "src/platform/file_io.c",
+      "src/platform/task_stage.c",
+      "src/platform/runtime_failure.c",
+      "src/platform/dpi_text_paint.c",
+      "src/services/catalog_sources.c",
+      "src/ui/dialog.c",
+      "src/ui/message_box.c",
+      "src/ui/file_dialog.c",
+      "src/platform/failure_window.c",
+      "src/analysis/text.c",
+      "src/analysis/context.c",
+      "src/services/analysis_context.c",
+      "src/protocol/analysis_context_wire.c",
+      "src/services/analysis_catalog.c",
+      "src/services/analysis_configuration.c",
+      "src/protocol/document_sync.c",
+      "src/protocol/input_state.c",
+      "src/protocol/diagnostic_paths.c",
+      "src/services/reference_results.c",
+      "src/services/execution_target.c",
+      "src/services/update_client.c",
+      "src/services/program_version.c",
+      "src/ui/about_view.c",
+      "src/ui/main_toolbar.c",
+      "src/services/preferences.c",
+      "src/ui/settings_view.c",
+      "src/services/catalog_job.c",
+      "src/platform/file_association.c",
+      "src/ui/association_view.c",
+      "src/services/template_registry.c",
+      "src/services/template_generation.c"
+    ],
+    "sourceAndObjectHashesVerified": true,
+    "xgeSdkChanged": false
+  },
+  "limits": [
+    "Targeted Windows acceptance only, not a full repository or Linux regression.",
+    "The inherited 40-DIP / 700x460 resource-dialog footer boundary in the parent receipt remains unresolved; that extended suite was not rerun or claimed to pass.",
+    "Custom workspace generators are not added: the new empty workspace is a built-in template, while custom project/file generators retain their existing format.",
+    "No native XGE modifications, compiler/LSP replacement or online update-channel publication in this delivery."
+  ]
+}

@@ -60,7 +60,7 @@ static int verify(void* user) {
  CHECK(!strcmp(xuiEditGetText(xideGotoViewControl(&app,XIDE_GOTO_POSITION)),"1:4"));int first=0,last=0;
  CHECK(xuiEditGetSelection(xideGotoViewControl(&app,XIDE_GOTO_POSITION),&first,&last)==XUI_OK && first==0 && last==3);
  CHECK(xuiInputGetFont(xideGotoViewControl(&app,XIDE_GOTO_POSITION))==app.uiFont && capture(&app,images[0]));
- CHECK(xideActionsHasModal(&app) && xideActionExecute(&app,XIDE_ACTION_NEW_FILE)==XIDE_ACTION_DISABLED && xideActionExecute(&app,XIDE_ACTION_THEME_GRAPHITE)==XIDE_ACTION_DISABLED && !xideFontViewOpen(&app));
+ CHECK(xideActionsHasModal(&app) && xideActionExecute(&app,XIDE_ACTION_NEW)==XIDE_ACTION_DISABLED && xideActionExecute(&app,XIDE_ACTION_THEME_GRAPHITE)==XIDE_ACTION_DISABLED && !xideFontViewOpen(&app));
  CHECK(position(&app,"2") && key(&app,XUI_KEY_ESCAPE,0) && !xideGotoViewIsOpen(&app) && caret(c)==8);
  CHECK(xuiCodeSelectionGetRange(xuiCodeEditGetSelection(c->editor),&first,&last)==XUI_OK && first==1 && last==8 && xuiCodeSelectionGetCount(xuiCodeEditGetSelection(c->editor))==2 && xuiGetFocusWidget(app.context)==c->editor);
  CHECK(key(&app,'G',XUI_MOD_CTRL) && position(&app,"3") && click(&app,XIDE_GOTO_CANCEL) && caret(c)==8 && !xideGotoViewIsOpen(&app));

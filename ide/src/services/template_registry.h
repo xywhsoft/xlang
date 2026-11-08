@@ -2,10 +2,12 @@
 #define XIDE_TEMPLATE_REGISTRY_H
 #include "services/project_templates.h"
 
+enum xide_template_kind { XIDE_TEMPLATE_FILE, XIDE_TEMPLATE_PROJECT, XIDE_TEMPLATE_WORKSPACE };
+enum { XIDE_TEMPLATE_BUILTIN_COUNT=7 };
 typedef struct xide_template_definition {
     char *id,*title,*description,*author,*version,*website,*icon,*category,*root;
     char *module,*validate,*create,*language;
-    int project,builtin;
+    enum xide_template_kind kind;int builtin;
     xvalue *fields,*files;
 } xide_template_definition;
 typedef struct xide_template_registry {

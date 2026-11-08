@@ -1,6 +1,8 @@
 #include "app/xide_app.h"
+#include "new_file_test_helpers.h"
 #include "catalog_ready.h"
 #include "ui/editor_view.h"
+#include "ui/dialog.h"
 #include "ui/workspace_view.h"
 #include "ui/configuration_view.h"
 #include "ui/catalog_view.h"
@@ -115,7 +117,9 @@ static int verify(void* user)
     CHECK(chord('Z',XGE_KEY_MOD_CTRL) && pump(&app)); CHECK(strcmp(xuiCodeEditGetText(doc->editor),"B"));
     CHECK(chord('Y',XGE_KEY_MOD_CTRL) && pump(&app)); CHECK(!strcmp(xuiCodeEditGetText(doc->editor),"B"));
     CHECK(chord('N',XGE_KEY_MOD_CTRL) && post(XGE_EVENT_TEXT,0,0,0x4e2d,NULL,0) && pump(&app));
-    CHECK(app.activeDocument!=doc && !strcmp(xuiCodeEditGetText(app.activeDocument->editor),"中") && !strcmp(xuiCodeEditGetText(doc->editor),"B"));
+    CHECK(app.activeDocument==doc && xideDialogIsOpen(xideHomeNewWindow(&app)) && !strcmp(xuiCodeEditGetText(doc->editor),"B"));
+    CHECK(xideTestPickNewFile(&app,0) && post(XGE_EVENT_TEXT,0,0,0x4e2d,NULL,0) && pump(&app));
+    CHECK(app.activeDocument!=doc && !strcmp(xuiCodeEditGetText(app.activeDocument->editor),"中"));
     doc=newDocument(&app,"c",&error); CHECK(doc); core=xuiCodeEditGetDocument(doc->editor);
     CHECK(post(XGE_EVENT_TEXT,0,0,'r',NULL,0) && post(XGE_EVENT_TEXT,0,0,'e',NULL,0) && post(XGE_EVENT_TEXT,0,0,'t',NULL,0) && chord(XGE_KEY_SPACE,XGE_KEY_MOD_CTRL) && pump(&app));
     CHECK(xuiCodeEditIsCompletionOpen(doc->editor) && xuiCodeEditGetCompletionCount(doc->editor)>0);

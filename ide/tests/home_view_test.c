@@ -98,7 +98,7 @@ static int run(void* raw) {
     CHECK(xuiWidgetGetType(xideHomeControl(&a,XIDE_HOME_CLEAR))==xuiWidgetFindType(a.context,"hyperlink") && xuiWidgetGetType(xideHomeControl(&a,XIDE_HOME_TUTORIAL))==xuiButtonGetType(a.context));
     xui_rect_t openRect=xuiWidgetGetWorldRect(xideHomeControl(&a,XIDE_HOME_OPEN)),tutorial=xuiWidgetGetWorldRect(xideHomeControl(&a,XIDE_HOME_TUTORIAL));
     CHECK(tutorial.fX>openRect.fX+openRect.fW && tutorial.fY==openRect.fY && tutorial.fH==openRect.fH);
-    CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_NEW)) && xideDialogIsOpen(xideHomeNewWindow(&a)) && !xideActionQuery(&a,XIDE_ACTION_HOME_OPEN).enabled);
+    CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_NEW)) && xideDialogIsOpen(xideHomeNewWindow(&a)) && !xideActionQuery(&a,XIDE_ACTION_OPEN).enabled);
     CHECK(xuiListViewGetItemCount(xideHomeControl(&a,XIDE_HOME_TEMPLATES))==4 && shot(&a,raw,"new-template-projects.png"));
     CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_CANCEL)) && !xideDialogIsOpen(xideHomeNewWindow(&a)) && !a.activeDocument);
     for(int language=0;language<2;++language) {

@@ -75,7 +75,7 @@
       "licenseUrl": "http://www.microsoft.com/typography/fonts/default.aspx"
     },
     "fontChangeSourceParent": "b16a95bbf022efcafc7b965d1bd9b5b945c0d881",
-    "currentBuildProvenance": "dev/release-materials/provenance/ide-template-form-layout-20261109/receipt.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/ide-unified-new-open-20261109/receipt.json",
     "cLspEnabled": false,
     "applicationIcon": {
       "source": "ide/data/xlang_ide.ico",
@@ -89,19 +89,19 @@
       "provenance": "docs/reports/release-materials-migration-20261031.json",
       "buildCommand": "pwsh -NoProfile -File ide/tools/build.ps1 -Configuration Release -GuiOnly -LanguageServerPath D:/GIT/x-lang/release/xlang-ls.exe -ReleaseDirectory D:/GIT/x-lang/release"
     },
-    "sha256": "44a9de13956fdcf2a2e1abe21cd73833415e04cc04fd34c08312fc413ebfca12",
+    "sha256": "a8de3f567398f6499b9b5bfd9cbc500ff137a308299fdebdea292a819745ed3f",
     "sourceIdentity": {
-      "guiBaseSourceRevision": "7b2b33c5e7b179b35d80883da47ffc49a813ded3",
-      "overlayBaseRevision": "7770cae084bc51a79934796be13a24f95e62ec3e",
+      "guiBaseSourceRevision": "7770cae084bc51a79934796be13a24f95e62ec3e",
+      "overlayBaseRevision": "ea2eb7b406d6e5f8cd2ab7e300b9615ee5b6e001",
       "sourceOverlay": {
-        "path": "dev/release-materials/sources/ide-template-form-layout-20261109/manifest.json",
-        "sha256": "20d092953495898853f7c1c3264c8a21fb53f11bf9705e2618581096eed4063f",
-        "bytes": 2693
+        "path": "dev/release-materials/sources/ide-unified-new-open-20261109/manifest.json",
+        "sha256": "fbc461c4142890238bb360db83281debb00183ac083827b5d908e240bb374002",
+        "bytes": 8646
       },
       "build": {
-        "path": "dev/release-materials/provenance/ide-template-form-layout-20261109/evidence.zip",
-        "sha256": "f0a7724f2967eecae696c1a3ca99d8cbd8a371ca3d94c824b7027f17b927c8c8",
-        "bytes": 3220570
+        "path": "dev/release-materials/provenance/ide-unified-new-open-20261109/evidence.zip",
+        "sha256": "1421d74dfd36fcdb9f1a723afaa9eef3f91620a51e61cdf78f82471612f44a7d",
+        "bytes": 4901344
       },
       "matchedSdkManifestSha256": "223a64f59ef77701f4729e87b328bd4509300df1e46bf015f2487e5803ab926c"
     },
@@ -128,7 +128,7 @@
       "sha256": "cb3dd03ba90452fb9a670371ed7447763a0188fdc61b57adf11d5d89851ce13b",
       "bytes": 2693
     },
-    "buildScope": "Full matched 113-object GUI rebuild with qualified baseline and template form overlay; -O2, -Wall -Wextra -Werror, C LSP disabled. Native SDK unchanged.",
+    "buildScope": "Full matched 113-object GUI rebuild after action/template-kind/toolbar header changes; qualified baseline plus new/open overlay, -O2 -Wall -Wextra -Werror, C LSP disabled. Independent concurrent work excluded.",
     "currentEngine": {
       "sourceMaterials": {
         "path": "dev/release-materials/sources/ide-templates-20261109/manifest.json",
@@ -161,20 +161,20 @@
     "updateStateDirectory": "ide/build/update-runtime/<platform>-<install-path-sha256>",
     "previousBuildProvenanceBeforeDialogBackdrop": "dev/release-materials/provenance/ide-release-maintenance-20261106.json",
     "dialogBackdrop": "viewport-sized absolute overlay; dialog above backdrop; child/IME-aware Escape",
-    "previousBuildProvenance": "dev/release-materials/provenance/ide-template-details-20261109/receipt.json",
-    "sourceRevision": "7770cae084bc51a79934796be13a24f95e62ec3e",
+    "previousBuildProvenance": "dev/release-materials/provenance/ide-template-form-layout-20261109/receipt.json",
+    "sourceRevision": "ea2eb7b406d6e5f8cd2ab7e300b9615ee5b6e001",
     "previousSourceIdentity": {
-      "guiBaseSourceRevision": "9a81d2470d24dfbe1cc0a991dd96c2094c0393c7",
-      "overlayBaseRevision": "7b2b33c5e7b179b35d80883da47ffc49a813ded3",
+      "guiBaseSourceRevision": "7b2b33c5e7b179b35d80883da47ffc49a813ded3",
+      "overlayBaseRevision": "7770cae084bc51a79934796be13a24f95e62ec3e",
       "sourceOverlay": {
-        "path": "dev/release-materials/sources/ide-template-details-20261109/manifest.json",
-        "sha256": "04c91207a6f45317ffbe98ace8b04ca34b100f56242c10bf62e889638949c7e3",
-        "bytes": 4787
+        "path": "dev/release-materials/sources/ide-template-form-layout-20261109/manifest.json",
+        "sha256": "20d092953495898853f7c1c3264c8a21fb53f11bf9705e2618581096eed4063f",
+        "bytes": 2693
       },
       "build": {
-        "path": "dev/release-materials/provenance/ide-template-details-20261109/evidence.zip",
-        "sha256": "c98aa3fd64327fafd7af50abcb39e6c32b6791a5c76fbd5936f21ff1ce090882",
-        "bytes": 2694986
+        "path": "dev/release-materials/provenance/ide-template-form-layout-20261109/evidence.zip",
+        "sha256": "f0a7724f2967eecae696c1a3ca99d8cbd8a371ca3d94c824b7027f17b927c8c8",
+        "bytes": 3220570
       },
       "matchedSdkManifestSha256": "223a64f59ef77701f4729e87b328bd4509300df1e46bf015f2487e5803ab926c"
     },
@@ -344,6 +344,11 @@
       "path": "dev/release-materials/provenance/ide-template-form-layout-20261109/receipt.json",
       "sha256": "a7034bbedd93bf8ccbfc096ef0a5d5b98f73f65f89bb7571ed5c184bce1ac605",
       "bytes": 8657
+    },
+    "unifiedNewOpen": {
+      "path": "dev/release-materials/provenance/ide-unified-new-open-20261109/receipt.json",
+      "sha256": "89f590e785ac51cc7c27619d3e453cdb0ce330144050a40364f275f44e788042",
+      "bytes": 9891
     }
   },
   "catalog": {
@@ -6343,8 +6348,8 @@
       "previousSha256": "c95a4b367e5ee67b9def00181060d678f56e084072ddc2c6b6ed5f1a5b25528b"
     },
     {
-      "sha256": "44a9de13956fdcf2a2e1abe21cd73833415e04cc04fd34c08312fc413ebfca12",
-      "bytes": 2126923,
+      "sha256": "a8de3f567398f6499b9b5bfd9cbc500ff137a308299fdebdea292a819745ed3f",
+      "bytes": 2128075,
       "path": "release/win_x64/xlang_ide.exe",
       "origin": "release-0.6.1-20261108",
       "previousSha256": "8a4d9e633fea3baad66e2cf05c0aa6d7f335b2e87ac655cc6f11d29f0685d8e5"
@@ -6490,6 +6495,21 @@
       "path": "release/win_x64/data/template-icons/tree-project@2x.png",
       "sha256": "786884a6606c4cffa3e9cc8bedae92bee260045051ec98e1dc412a593913ce4f",
       "bytes": 209
+    },
+    {
+      "path": "release/win_x64/data/template-icons/workspace.png",
+      "sha256": "52a4b68a2d13310a701b386ea3c7958244de6f43562019b08db04f940db7744a",
+      "bytes": 1681
+    },
+    {
+      "path": "release/win_x64/data/template-icons/tree-workspace.png",
+      "sha256": "d04010ff889c628e0d872c233bce6502b1820a32d8ca82b25bc9d4aad2b5894c",
+      "bytes": 199
+    },
+    {
+      "path": "release/win_x64/data/template-icons/tree-workspace@2x.png",
+      "sha256": "d2f27b45b729cd12b0e8df4f23b85964ff318c2906d2d0e9e49203271208662c",
+      "bytes": 249
     }
   ],
   "acceptance": {
@@ -6599,7 +6619,7 @@
     "historicalReportPathsPreserved": true,
     "mutableDataPathsUpdated": 600
   },
-  "currentScope": "Local template form layout: inline directory checkboxes, workspace-only startup and centered labels. Five suites and official-path startup passed. Expanded dialog suite retains the identical baseline extreme-font/small-viewport footer failure.",
+  "currentScope": "Local unified new/open workflow and empty-workspace category. Ten focused suites and official-path hidden startup passed; full regression and inherited extreme-font boundary resolution not claimed.",
   "localPublication": {
     "path": "dev/release-materials/provenance/xge3-local-publication-20261105/receipt.json",
     "sha256": "d55e8e816fddbfc2d2283c9ba45b9b28ac5c5e07e0da183fbab3088f118fbad1",
@@ -6884,6 +6904,11 @@
       "path": "dev/release-materials/provenance/ide-template-form-layout-20261109/receipt.json",
       "sha256": "a7034bbedd93bf8ccbfc096ef0a5d5b98f73f65f89bb7571ed5c184bce1ac605",
       "bytes": 8657
+    },
+    "unifiedNewOpen": {
+      "path": "dev/release-materials/provenance/ide-unified-new-open-20261109/receipt.json",
+      "sha256": "89f590e785ac51cc7c27619d3e453cdb0ce330144050a40364f275f44e788042",
+      "bytes": 9891
     }
   },
   "xuiGallery": {
@@ -7205,5 +7230,10 @@
     "path": "dev/release-materials/provenance/ide-template-form-layout-20261109/receipt.json",
     "sha256": "a7034bbedd93bf8ccbfc096ef0a5d5b98f73f65f89bb7571ed5c184bce1ac605",
     "bytes": 8657
+  },
+  "ideUnifiedNewOpen": {
+    "path": "dev/release-materials/provenance/ide-unified-new-open-20261109/receipt.json",
+    "sha256": "89f590e785ac51cc7c27619d3e453cdb0ce330144050a40364f275f44e788042",
+    "bytes": 9891
   }
 }

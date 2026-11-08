@@ -49,7 +49,7 @@ static int verify(void* data)
     CHECK(xuiCodeDocumentInsert(core,0,"// local unsaved C\n")==XUI_OK && xideEditorOpen(&app,b,&error)); xide_document* xd=app.activeDocument;
     CHECK(xuiCodeDocumentInsert(xuiCodeEditGetDocument(xd->editor),0,"// local xlang\n")==XUI_OK && pending(&app,0) && writeText(a,disk) && writeText(b,"func external(...) as int\n    return 99\nend\n") && pending(&app,2));
     xideDispatchAction(&app,XIDE_ACTION_FILE_CHANGES); CHECK(xideFileChangesViewIsOpen(&app) && !xideFontViewOpen(&app) && !xideRecoveryViewOpen(&app));
-    xideDispatchAction(&app,XIDE_ACTION_NEW_FILE); CHECK(app.activeDocument==xd);
+    xideDispatchAction(&app,XIDE_ACTION_NEW); CHECK(app.activeDocument==xd);
     CHECK(choose(&app,"source.c") && strstr(xuiCodeEditGetText(xideFileChangesViewControl(&app,XIDE_CHANGES_LOCAL)),"local unsaved C") && !strcmp(xuiCodeEditGetText(xideFileChangesViewControl(&app,XIDE_CHANGES_DISK)),disk));
     xui_widget preview=xideFileChangesViewControl(&app,XIDE_CHANGES_DISK); CHECK(xuiCodeEditIsReadonly(preview) && !strcmp(xuiCodeEditGetLanguage(preview),"c") && !xuiSetFocusWidget(app.context,preview) && !xuiInputText(app.context,'Q') && settle(&app) && !strcmp(xuiCodeEditGetText(preview),disk));
     CHECK(capture(&app,image)); uint32_t version=xuiCodeDocumentGetVersion(core);

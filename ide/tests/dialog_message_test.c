@@ -57,7 +57,7 @@ static int verify(void* user) {
     CHECK(xideEditorOpen(&app,source,&error) && settle(&app));xide_document* d=app.activeDocument;
     CHECK(xuiCodeEditSetText(d->editor,"int edited;\n")==XUI_OK && settle(&app) && d->dirty);app.hidden=0;
     CHECK(xideActionExecute(&app,XIDE_ACTION_CLOSE_FILE)==XIDE_ACTION_DISPATCHED && settle(&app) && xideMessagePending(&app) && d->open);
-    CHECK(xuiWidgetIsType(xuiMsgBoxGetWindowWidget(xideMessageCurrent(&app)),xuiWindowGetType(app.context)) && xideActionExecute(&app,XIDE_ACTION_NEW_FILE)==XIDE_ACTION_DISABLED);
+    CHECK(xuiWidgetIsType(xuiMsgBoxGetWindowWidget(xideMessageCurrent(&app)),xuiWindowGetType(app.context)) && xideActionExecute(&app,XIDE_ACTION_NEW)==XIDE_ACTION_DISABLED);
     CHECK(reply(&app,2) && !xideMessageBusy(&app) && d->open && d->dirty); /* cancel */
     CHECK(xideActionExecute(&app,XIDE_ACTION_CLOSE_FILE)==XIDE_ACTION_DISPATCHED && settle(&app));
     CHECK(xuiCodeEditSetText(d->editor,"int changed_while_waiting;\n")==XUI_OK && reply(&app,1) && d->open && xideMessagePending(&app));

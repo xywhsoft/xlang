@@ -186,7 +186,7 @@ static int verify(void* user)
     CHECK(click(&app,XIDE_REF_ADD) && selectRow(&app,2) && capture(&app,filesImage) && click(&app,XIDE_REF_APPLY) && p->files.count==325 && xideWorkspaceSaveAll(&app,workspace,&error));
     CHECK(xideEditorOpen(&app,native,&error) && settle(&app)); xide_document* doc=app.activeDocument; uint32_t version=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(doc->editor));
     CHECK(xideReferencesViewOpen(&app) && choose(&app,XIDE_REF_KIND,0)); xuiEditSetText(xideReferencesViewControl(&app,XIDE_REF_VALUE),"library-field"); CHECK(xuiSetFocusWidget(app.context,xideReferencesViewControl(&app,XIDE_REF_VALUE))==XUI_OK && xuiInputKeyDownEx(app.context,'Z',XUI_MOD_CTRL,NULL)==XUI_OK && xuiInputKeyUpEx(app.context,'Z',0,NULL)==XUI_OK && settle(&app) && xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(doc->editor))==version);
-    CHECK(xideActionExecute(&app,XIDE_ACTION_NEW_FILE)==XIDE_ACTION_DISABLED && !xideConfigurationViewOpen(&app) && !xideFontViewOpen(&app));
+    CHECK(xideActionExecute(&app,XIDE_ACTION_NEW)==XIDE_ACTION_DISABLED && !xideConfigurationViewOpen(&app) && !xideFontViewOpen(&app));
     CHECK(xideProjectSetMetadata(p,p->name,"外部模型变化",p->kind,&error) && !xideReferencesViewApply(&app,&error) && error.code==XIDE_MODEL_CONFLICT && click(&app,XIDE_REF_CANCEL));
     CHECK(xideWorkspaceSaveAll(&app,NULL,&error) && xideEditorOpen(&app,manifest,&error)); xide_document* md=app.activeDocument;
     CHECK(xuiCodeEditSetText(md->editor,"{\n")==XUI_OK && settle(&app) && md->dirty && xideReferencesViewOpen(&app) && !xideReferencesViewApply(&app,&error) && error.code==XIDE_MODEL_CONFLICT && click(&app,XIDE_REF_CANCEL));

@@ -2,6 +2,7 @@
 #include "ui/find_view.h"
 #include "dialog_test_helpers.h"
 #include "app/xide_app.h"
+#include "new_file_test_helpers.h"
 #include "ui/editor_view.h"
 #include "ui/workspace_view.h"
 #include "ui/task_view.h"
@@ -183,7 +184,7 @@ static int verify(void* user)
     CHECK(settle(&app) && allStates(&app) && xideActionNamed("task.stopAll") && xideActionNamed("task.configurations") && !xideActionAt(xideActionCount()) && !xideActionNamed(NULL) && !xideActionNamed("missing.action") && xideActionExecute(&app,999)==XIDE_ACTION_UNKNOWN);
     for(size_t i=0;i<xideActionCount();++i) { const xide_action_info* a=xideActionAt(i); CHECK(a && a->name && a->title && xideActionNamed(a->name)==a && xideActionFind(a->id)==a); for(size_t j=i+1;j<xideActionCount();++j) { const xide_action_info* b=xideActionAt(j); CHECK(a->id!=b->id && strcmp(a->name,b->name) && (!a->key || a->key!=b->key || a->modifiers!=b->modifiers || (a->shortcutScope!=b->shortcutScope && a->shortcutScope!=XIDE_SHORTCUT_GLOBAL && b->shortcutScope!=XIDE_SHORTCUT_GLOBAL))); } }
     CHECK(!xideActionQuery(&app,XIDE_ACTION_SAVE_FILE).enabled && !xideActionQuery(&app,XIDE_ACTION_STOP).enabled && xideActionExecute(&app,XIDE_ACTION_RELOAD_FILE)==XIDE_ACTION_DISABLED && captureMenu(&app,0,emptyImage));
-    CHECK(key(&app,'N',XUI_MOD_CTRL) && app.activeDocument && !app.activeDocument->path && !xideActionQuery(&app,XIDE_ACTION_RELOAD_FILE).enabled && xideActionQuery(&app,XIDE_ACTION_SAVE_FILE).enabled && !xideActionQuery(&app,XIDE_ACTION_EDITOR_UNDO).enabled);
+    CHECK(key(&app,'N',XUI_MOD_CTRL) && xideTestPickNewFile(&app,0) && app.activeDocument && !app.activeDocument->path && !xideActionQuery(&app,XIDE_ACTION_RELOAD_FILE).enabled && xideActionQuery(&app,XIDE_ACTION_SAVE_FILE).enabled && !xideActionQuery(&app,XIDE_ACTION_EDITOR_UNDO).enabled);
     xide_document* unnamed=app.activeDocument; CHECK(xideEditorClose(&app,unnamed,1,&error) && xideEditorOpen(&app,cPath,&error) && settle(&app));
     xide_document* cd=app.activeDocument; xui_code_document core=xuiCodeEditGetDocument(cd->editor); uint32_t version=xuiCodeDocumentGetVersion(core);
     CHECK(xuiGetFocusWidget(app.context)==cd->editor);
@@ -239,7 +240,7 @@ static int verify(void* user)
     xide_task_info info={0}; xideTaskInfo(task,&info); CHECK(info.state==XIDE_TASK_SUCCEEDED && info.built && info.ran && !xideActionQuery(&app,XIDE_ACTION_STOP).enabled);
     CHECK(key(&app,XUI_KEY_F5,0)); task=xideTaskViewSelected(&app); CHECK(task && waitPhase(&app,task,1) && xideActionQuery(&app,XIDE_ACTION_STOP).enabled);
     CHECK(xideTestReveal(app.properties,configure)==XUI_OK && settle(&app) && pointer(&app,xuiWidgetGetWorldRect(configure)) && xideConfigurationViewIsOpen(&app) && !xideActionQuery(&app,XIDE_ACTION_BUILD).enabled && xideActionQuery(&app,XIDE_ACTION_STOP).enabled && allStates(&app));
-    tasks=xideTasksCount(app.tasks); version=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(xd->editor)); CHECK(xideActionExecute(&app,XIDE_ACTION_NEW_FILE)==XIDE_ACTION_DISABLED && xideActionExecute(&app,XIDE_ACTION_THEME_CLASSIC)==XIDE_ACTION_DISABLED && key(&app,XUI_KEY_F7,0) && xideTasksCount(app.tasks)==tasks && xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(xd->editor))==version);
+    tasks=xideTasksCount(app.tasks); version=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(xd->editor)); CHECK(xideActionExecute(&app,XIDE_ACTION_NEW)==XIDE_ACTION_DISABLED && xideActionExecute(&app,XIDE_ACTION_THEME_CLASSIC)==XIDE_ACTION_DISABLED && key(&app,XUI_KEY_F7,0) && xideTasksCount(app.tasks)==tasks && xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(xd->editor))==version);
     CHECK(key(&app,XUI_KEY_F5,XUI_MOD_SHIFT) && waitPhase(&app,task,0)); xideTaskInfo(task,&info); CHECK(info.state==XIDE_TASK_CANCELLED && xideConfigurationViewIsOpen(&app));
     xui_widget cancel=xideConfigurationViewControl(&app,XIDE_CONFIG_CANCEL); CHECK(xideTestReveal(xideDialogGetScrollViewWidget(xideConfigurationViewWindow(&app)),cancel)==XUI_OK && settle(&app) && pointer(&app,xuiWidgetGetWorldRect(cancel)) && !xideConfigurationViewIsOpen(&app) && allStates(&app));
     CHECK(!xideActionQuery(&app,XIDE_ACTION_REMOVE_FILE).enabled);

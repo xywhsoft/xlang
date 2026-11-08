@@ -10,6 +10,7 @@ int xideHomeRefresh(xide_app*);
 void xideHomeDestroy(xide_app*);
 void xideHomeRemember(xide_app*,const char* path);
 int xideHomeOpenPath(xide_app*,const char* path);
+int xideNewOpenAction(xide_app*,int);
 int xideHomeAction(xide_app*,int);
 int xideWorkbenchShowHome(xide_app*);
 xui_widget xideHomeControl(xide_app*,int);

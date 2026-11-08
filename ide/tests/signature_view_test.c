@@ -92,7 +92,7 @@ static int verify(void* user)
  CHECK(xuiSetFocusWidget(app.context,app.workspace)==XUI_OK && idle(&app,60) && !s->wanted && !xideSignatureViewIsOpen(&app));
  /* A modal business window withdraws hints and keeps keyboard ownership. */
  CHECK(position(&app,d,(int)(strstr(body,"plus(7,")-body)+7) && xideSignatureViewAction(&app,XIDE_ACTION_SIGNATURE) && waitHint(&app));
- CHECK(xideActionExecute(&app,XIDE_ACTION_NEW_PROJECT)==XIDE_ACTION_DISPATCHED && idle(&app,60));
+ CHECK(xideActionExecute(&app,XIDE_ACTION_NEW)==XIDE_ACTION_DISPATCHED && idle(&app,60));
  CHECK(!s->wanted && !xideSignatureViewIsOpen(&app) && xideActionsHasModal(&app) && !xideActionQuery(&app,XIDE_ACTION_SIGNATURE).enabled);
  CHECK(click(&app,xuiWindowGetCloseButtonWidget(xideTemplateViewWindow(&app))));
  CHECK(position(&app,d,(int)(strstr(body,"plus(7,")-body)+7) && xideSignatureViewAction(&app,XIDE_ACTION_SIGNATURE) && waitHint(&app));

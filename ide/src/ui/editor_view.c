@@ -390,15 +390,9 @@ void xideEditorPoll(xide_app* app)
 int xideEditorAction(xide_app* app,int action)
 {
     const xide_action_info* definition=xideActionFind(action);
-    if(!xideActionLanguage(action) && (action<XIDE_ACTION_NEW_FILE || action>XIDE_ACTION_EDITOR_COMPLETE) && (action<XIDE_ACTION_EDITOR_CUT || action>XIDE_ACTION_EDITOR_COMMENT)) return 0;
+    if(!xideActionLanguage(action) && (action<XIDE_ACTION_SAVE_FILE || action>XIDE_ACTION_EDITOR_COMPLETE) && (action<XIDE_ACTION_EDITOR_CUT || action>XIDE_ACTION_EDITOR_COMMENT)) return 0;
     xide_model_error error={0}; xide_document* document=app->activeDocument; char* path=NULL; int ok=1;
-    if(action==XIDE_ACTION_NEW_FILE) {
-        document=xideDocumentNew(&app->documents,"xlang",&error); ok=document && xideEditorShow(app,document)==XUI_OK;
-    } else if(action==XIDE_ACTION_OPEN_FILE) {
-        path=choosePath(app,0,NULL); if(path) {
-            ok=xideEditorOpen(app,path,&error);
-        }
-    } else if(action==XIDE_ACTION_SAVE_ALL_FILES) {
+    if(action==XIDE_ACTION_SAVE_ALL_FILES) {
         for(size_t i=0;i<app->documents.count;++i) if(app->documents.items[i]->open && app->documents.items[i]->dirty && !saveDocument(app,app->documents.items[i],0)) break;
     } else if(document && document->open) {
         if(action==XIDE_ACTION_SAVE_FILE || action==XIDE_ACTION_SAVE_FILE_AS) saveDocument(app,document,action==XIDE_ACTION_SAVE_FILE_AS);

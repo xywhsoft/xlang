@@ -59,7 +59,7 @@ static int verify(void* data)
     CHECK(xideEditorOpen(&app,b,&error)); xide_document* xd=app.activeDocument; CHECK(!xuiCodeDocumentInsert(xuiCodeEditGetDocument(xd->editor),0,"// current unsaved xlang\n"));
     uint32_t cv=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(cd->editor)),xv=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(xd->editor));
     xideDispatchAction(&app,XIDE_ACTION_RECOVERY); CHECK(xideRecoveryViewIsOpen(&app) && idle(&app) && xuiListViewGetItemCount(xideRecoveryViewControl(&app,XIDE_RECOVERY_LIST))>=4);
-    CHECK(!xideFontViewOpen(&app)); xideDispatchAction(&app,XIDE_ACTION_NEW_FILE); CHECK(app.activeDocument==xd);
+    CHECK(!xideFontViewOpen(&app)); xideDispatchAction(&app,XIDE_ACTION_NEW); CHECK(app.activeDocument==xd);
     CHECK(click(&app,XIDE_RECOVERY_REPAIR) && click(&app,XIDE_RECOVERY_CANCEL_REPAIR) && equals(metadata,"{damaged current session"));
     CHECK(choose(&app,"broken.text",0) && !xuiWidgetGetEnabled(xideRecoveryViewControl(&app,XIDE_RECOVERY_RESTORE)) && strstr(xideRecoveryViewMessage(&app),"UTF-8"));
     CHECK(choose(&app,"1111111111111111.text",0) && !strcmp(xuiCodeEditGetText(xideRecoveryViewControl(&app,XIDE_RECOVERY_CODE)),recoveredC));

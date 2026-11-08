@@ -466,34 +466,17 @@ int xideWorkspaceQuitRequest(void* user)
 }
 int xideWorkspaceAction(xide_app* app,int action)
 {
-    if(action<XIDE_ACTION_NEW_WORKSPACE || action>XIDE_ACTION_MIGRATE_PROJECT_DIRECTORY) return 0;
+    if(action<XIDE_ACTION_SAVE_WORKSPACE || action>XIDE_ACTION_MIGRATE_PROJECT_DIRECTORY) return 0;
     xide_model_error error={0}; char* path=NULL; int ok=1;
     xide_project* project=selectedProject(app); workspace_node* node=nodeAt(app->workspaceView,app->workspaceView->selectedNode);
     if(action==XIDE_ACTION_RENAME_SELECTED_FILE) { const xide_file* file=xideWorkspaceViewSelectedFile(app); if(file && !xideRenameViewOpenFile(app,file->path,&error)) report(app,error.message); return 1; }
     if(action==XIDE_ACTION_MIGRATE_PROJECT_MANIFEST || action==XIDE_ACTION_MIGRATE_PROJECT_DIRECTORY) { if(!xideRenameViewOpenProject(app,action==XIDE_ACTION_MIGRATE_PROJECT_DIRECTORY ? XIDE_MIGRATE_DIRECTORY : XIDE_MIGRATE_MANIFEST,&error)) report(app,error.message); return 1; }
     if(action==XIDE_ACTION_APPLY_PROPERTIES) { applyProperties(NULL,app); return 1; }
     if(action==XIDE_ACTION_CONFIGURATIONS) { xideConfigurationViewOpen(app); return 1; }
-    if(action==XIDE_ACTION_NEW_WORKSPACE) {
-        if(!xideWorkspaceQuitRequest(app)) return 1;
-        path=chooseFile(app,1,0); if(!path) return 1;
-        xide_workspace model={0}; ok=xideWorkspaceCreate(&model,xidePathFilename(path),&error) && xideWorkspaceSave(&model,path,&error);
-        app->sessionSwitchConfirmed=1;
-        if(ok) ok=xideSessionBeforeWorkspace(app,&error);
-        if(ok) { xideWorkspaceClear(&app->workspaceModel); app->workspaceModel=model; free(app->projectSessionPath); app->projectSessionPath=NULL; free(app->selectedProject); app->selectedProject=duplicate(""); app->workspaceView->selectedNode=0; xideSessionAfterWorkspace(app); xideHomeRemember(app,path); }
-        else xideWorkspaceClear(&model);
-        app->sessionSwitchConfirmed=0;
-    } else if(action==XIDE_ACTION_OPEN_WORKSPACE || action==XIDE_ACTION_OPEN_PROJECT) {
-        if(!xideWorkspaceQuitRequest(app)) return 1;
-        path=chooseFile(app,0,action==XIDE_ACTION_OPEN_PROJECT ? 1 : 0);
-        app->sessionSwitchConfirmed=1;
-        if(path) ok=xideWorkspaceOpen(app,path,action==XIDE_ACTION_OPEN_PROJECT,&error);
-        app->sessionSwitchConfirmed=0;
-    } else if(action==XIDE_ACTION_SAVE_WORKSPACE || action==XIDE_ACTION_SAVE_WORKSPACE_AS) {
+    if(action==XIDE_ACTION_SAVE_WORKSPACE || action==XIDE_ACTION_SAVE_WORKSPACE_AS) {
         saveWithDialog(app,action==XIDE_ACTION_SAVE_WORKSPACE_AS); return 1;
     } else if(action==XIDE_ACTION_ADD_PROJECT) {
         path=chooseFile(app,0,1); if(path) ok=xideWorkspaceAddProject(&app->workspaceModel,path,NULL,&error);
-    } else if(action==XIDE_ACTION_NEW_PROJECT) {
-        xideTemplateViewOpen(app); return 1;
     } else if(action==XIDE_ACTION_REMOVE_PROJECT && project) {
         if(project->dirty && app->hidden) return 1;
         if(project->dirty && xideMessageConfirm(app,"移除项目引用","此项目有未保存修改。移除引用将放弃这些修改，是否继续？",XUI_MSGBOX_BUTTON_OK_CANCEL,xideMessageWorkspaceKey(app,5))!=XUI_MSGBOX_RESULT_OK) return 1;

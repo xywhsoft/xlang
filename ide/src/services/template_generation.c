@@ -67,7 +67,7 @@ static int addOutput(template_output** files,size_t* count,const char* path,cons
     void* next=realloc(*files,(*count+1)*sizeof(**files));if(!next){free(f.path);free(f.kind);free(f.data);return 0;}*files=next;(*files)[(*count)++]=f;return 1;
 }
 static int collect(xide_template_job* j,xvalue* plan,template_output** files,size_t* count){
-    const xide_project_template* builtin=j->definition.builtin&&j->definition.project ? xideProjectTemplateFind(j->definition.id):NULL;
+    const xide_project_template* builtin=j->definition.builtin&&j->definition.kind==XIDE_TEMPLATE_PROJECT ? xideProjectTemplateFind(j->definition.id):NULL;
     if(builtin){for(size_t i=0;i<builtin->fileCount;++i)if(!addOutput(files,count,builtin->files[i].path,(const unsigned char*)builtin->files[i].content,strlen(builtin->files[i].content),builtin->files[i].kind))return failure(j,"无法准备内置文件：%s",builtin->files[i].path);return 1;}
     xvalue* list=plan ? get(plan,"files"):j->definition.files;if(!list||!xrtValueIs(list,XVALUE_ARRAY)||!xrtValueCount(list))return failure(j,"生成计划必须包含 files 数组。");
     size_t total=0;
@@ -92,8 +92,8 @@ static void rollbackFile(const char* path,const template_output* f){
     if(!f->written){return;}wchar_t* wide=xidePathNativeWide(path);HANDLE h=wide ? CreateFileW(wide,DELETE|FILE_READ_ATTRIBUTES,FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,NULL,OPEN_EXISTING,FILE_FLAG_OPEN_REPARSE_POINT,NULL):INVALID_HANDLE_VALUE;free(wide);if(h==INVALID_HANDLE_VALUE)return;
     BY_HANDLE_FILE_INFORMATION now={0};FILE_DISPOSITION_INFO remove={TRUE};if(GetFileInformationByHandle(h,&now)&&now.dwVolumeSerialNumber==f->identity.dwVolumeSerialNumber&&now.nFileIndexHigh==f->identity.nFileIndexHigh&&now.nFileIndexLow==f->identity.nFileIndexLow&&now.nNumberOfLinks==1&&!(now.dwFileAttributes&(FILE_ATTRIBUTE_DIRECTORY|FILE_ATTRIBUTE_REPARSE_POINT)))SetFileInformationByHandle(h,FileDispositionInfo,&remove,sizeof(remove));CloseHandle(h);
 }
-static int publish(xide_template_job* j,const char* directory,template_output* files,size_t count){
-    char* parent=xidePathDirectory(directory),*id=xideCreateId(".xide-template"),*stage=parent&&id ? xidePathResolve(parent,id):NULL;free(id);int nested=j->projectDirectory;
+static int publish(xide_template_job* j,const char* directory,template_output* files,size_t count,int nested){
+    char* parent=xidePathDirectory(directory),*id=xideCreateId(".xide-template"),*stage=parent&&id ? xidePathResolve(parent,id):NULL;free(id);
     if(!parent||!stage||!xidePathExists(parent)){free(parent);free(stage);return failure(j,"工程父目录不存在。");}
     if(nested&&xidePathExists(directory)){free(parent);free(stage);return failure(j,"工程目录已存在，请更换名称。");}
     wchar_t* w=xidePathNativeWide(stage);int okay=w&&CreateDirectoryW(w,NULL);HANDLE stageHandle=okay ? CreateFileW(w,DELETE|FILE_READ_ATTRIBUTES,FILE_SHARE_READ|FILE_SHARE_WRITE,NULL,OPEN_EXISTING,FILE_FLAG_BACKUP_SEMANTICS|FILE_FLAG_OPEN_REPARSE_POINT,NULL):INVALID_HANDLE_VALUE;okay=okay&&stageHandle!=INVALID_HANDLE_VALUE;free(w);size_t written=0;
@@ -111,13 +111,25 @@ static int publish(xide_template_job* j,const char* directory,template_output* f
     /* Empty directory cleanup only; nonempty staging evidence is retained. */
     if(stageHandle!=INVALID_HANDLE_VALUE){CloseHandle(stageHandle);}w=xidePathNativeWide(stage);if(w){RemoveDirectoryW(w);free(w);}if(!okay&&xidePathExists(stage)){size_t used=strlen(j->error);snprintf(j->error+used,sizeof(j->error)-used,"\n暂存资料：%s",stage);}free(parent);free(stage);return okay;
 }
+static int generateWorkspace(xide_template_job* j){
+    xide_workspace model={0};xide_model_error error={0};template_output* files=NULL;size_t count=0;char *directory=NULL,*path=NULL,*name=NULL,*json=NULL;xvalue* exported=NULL;int okay=0;
+    if(!xideTemplateNameValid(j->workspaceName)||!xidePathIsDirectory(j->location))return failure(j,"工作空间名称无效，或存放位置不是已有目录。");
+    directory=j->workspaceDirectory ? xidePathResolve(j->location,j->workspaceName):xidePathResolve(NULL,j->location);
+    size_t size=strlen(j->workspaceName)+5;name=malloc(size);if(name)snprintf(name,size,"%s.xlw",j->workspaceName);path=directory&&name ? xidePathResolve(directory,name):NULL;
+    if(path&&xideWorkspaceCreate(&model,j->workspaceName,&error)){model.manifest=copy(path);if(model.manifest)exported=xideWorkspaceExport(&model,&error);}
+    size_t length=0;if(exported)json=xrtJsonStringify(exported,1,&length);
+    okay=json&&addOutput(&files,&count,name,(const unsigned char*)json,length,"workspace")&&!cancelled(j)&&publish(j,directory,files,count,j->workspaceDirectory);
+    if(okay){j->workspace=path;path=NULL;}else if(!*j->error)failure(j,"创建工作空间失败：%s",*error.message ? error.message:"目标已存在或无法写入。");
+    xrtValueRelease(exported);xrtFree(json);outputsClear(files,count);xideWorkspaceClear(&model);free(directory);free(path);free(name);return okay;
+}
 static DWORD WINAPI generate(void* user){
     xide_template_job* j=user;template_output* files=NULL;size_t count=0;xvalue *context=NULL,*plan=NULL;xide_project project={0};xide_workspace workspace={0};char *base=NULL,*directory=NULL,*entry=NULL;int okay=1;
-    if(j->definition.project&&(!xideTemplateNameValid(j->name)||(j->workspaceMode==1&&!xideTemplateNameValid(j->workspaceName)))){failure(j,"工程／工作空间名称无效。");goto done;}
-    if(j->definition.project&&!xidePathIsDirectory(j->location)){failure(j,"存放位置必须是已有、可访问的目录。");goto done;}
+    if(j->definition.kind==XIDE_TEMPLATE_WORKSPACE){j->success=generateWorkspace(j);goto done;}
+    if((j->definition.kind==XIDE_TEMPLATE_PROJECT)&&(!xideTemplateNameValid(j->name)||(j->workspaceMode==1&&!xideTemplateNameValid(j->workspaceName)))){failure(j,"工程／工作空间名称无效。");goto done;}
+    if((j->definition.kind==XIDE_TEMPLATE_PROJECT)&&!xidePathIsDirectory(j->location)){failure(j,"存放位置必须是已有、可访问的目录。");goto done;}
     base=xidePathResolve(NULL,j->location);
     if(j->workspaceMode==1&&j->workspaceDirectory){char* next=base ? xidePathResolve(base,j->workspaceName):NULL;free(base);base=next;}
-    if(j->definition.project&&j->workspaceMode==1&&j->workspaceDirectory&&base&&xidePathExists(base)){failure(j,"工作空间目录已存在，请更换名称或取消创建子目录。");goto done;}
+    if((j->definition.kind==XIDE_TEMPLATE_PROJECT)&&j->workspaceMode==1&&j->workspaceDirectory&&base&&xidePathExists(base)){failure(j,"工作空间目录已存在，请更换名称或取消创建子目录。");goto done;}
     directory=base ? (j->projectDirectory ? xidePathResolve(base,j->name):copy(base)):NULL;
     if(!directory){failure(j,"目标位置无效。");goto done;}
     put(j->values,"project.name",j->name);put(j->values,"project.directory",directory);put(j->values,"workspace.name",j->workspaceName);
@@ -126,7 +138,7 @@ static DWORD WINAPI generate(void* user){
     if(!okay){failure(j,"无法准备模板上下文。");goto done;}
     if(*j->definition.module){plan=callback(j,context);if(!plan)goto done;if(get(plan,"errors")){j->fieldErrors=xrtValueDeepClone(get(plan,"errors"));size_t size=0;char* text=xrtJsonStringify(get(plan,"errors"),0,&size);failure(j,"模板校验失败：%s",text ? text:"");xrtFree(text);goto done;}}
     if(!collect(j,plan,&files,&count))goto done;
-    if(!j->definition.project){if(count!=1||memchr(files[0].data,0,files[0].size)){failure(j,"独立文件模板必须生成一个文本文件。");goto done;}j->text=copy((char*)files[0].data);j->success=j->text!=NULL;goto done;}
+    if(!(j->definition.kind==XIDE_TEMPLATE_PROJECT)){if(count!=1||memchr(files[0].data,0,files[0].size)){failure(j,"独立文件模板必须生成一个文本文件。");goto done;}j->text=copy((char*)files[0].data);j->success=j->text!=NULL;goto done;}
     entry=copy(plan ? xideTemplateString(plan,"entry",files[0].path):files[0].path);if(!entry||!safeRelative(entry)){failure(j,"模板入口路径无效。");goto done;}int entryFound=0;for(size_t i=0;i<count;++i)if(!strcmp(entry,files[i].path))entryFound=1;
     if(!entryFound){failure(j,"模板入口未包含在生成文件中。");goto done;}
     char* manifest=xidePathResolve(directory,"project.xlp");xide_model_error error={0};const xide_project_template* builtin=j->definition.builtin ? xideProjectTemplateFind(j->definition.id):NULL;const char* kind=builtin ? builtin->kind:plan ? xideTemplateString(plan,"kind","exe"):"exe";
@@ -136,7 +148,7 @@ static DWORD WINAPI generate(void* user){
     xvalue* exported=okay ? xideProjectExport(&project,&error):NULL;size_t length=0;char* json=exported ? xrtJsonStringify(exported,1,&length):NULL;xrtValueRelease(exported);
     okay=okay&&json&&addOutput(&files,&count,"project.xlp",(unsigned char*)json,length,"project");xrtFree(json);
     if(okay&&j->workspaceMode==1&&j->workspaceDirectory&&!xidePathExists(base))okay=xideIoCreateDirectories(base);
-    if(okay)okay=!cancelled(j)&&publish(j,directory,files,count);
+    if(okay)okay=!cancelled(j)&&publish(j,directory,files,count,j->projectDirectory);
     if(okay){j->project=manifest;manifest=NULL;}
     free(manifest);if(!okay){if(!j->error[0])failure(j,"%s",error.message[0] ? error.message:"工程生成失败。");goto done;}
     if(j->workspaceMode==1){size_t n=strlen(j->workspaceName)+5;char* name=malloc(n);if(name)snprintf(name,n,"%s.xlw",j->workspaceName);char* path=name ? xidePathResolve(base,name):NULL;free(name);

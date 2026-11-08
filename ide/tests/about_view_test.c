@@ -75,12 +75,12 @@ static int verify(void* user)
     CHECK(xideAboutViewIsOpen(&app) && xideActionsHasModal(&app));
     CHECK(xuiWidgetGetType(xideAboutViewWindow(&app))==xuiWindowGetType(app.context));
     CHECK(fitted(&app));
-    CHECK(!xideActionQuery(&app,XIDE_ACTION_NEW_FILE).enabled);
+    CHECK(!xideActionQuery(&app,XIDE_ACTION_NEW).enabled);
     CHECK(click(&app,xuiWindowGetCloseButtonWidget(xideAboutViewWindow(&app))) && !xideActionsHasModal(&app));
     CHECK(xideActionExecute(&app,XIDE_ACTION_ABOUT)==XIDE_ACTION_DISPATCHED && settle(&app));
     CHECK(xuiGetFocusWidget(app.context)==xideAboutViewLinkWidget(&app,0));
     CHECK(xuiInputKeyDown(app.context,XUI_KEY_ESCAPE,0)==XUI_OK && xuiInputKeyUp(app.context,XUI_KEY_ESCAPE,0)==XUI_OK && settle(&app));
-    CHECK(!xideAboutViewIsOpen(&app) && xideActionQuery(&app,XIDE_ACTION_NEW_FILE).enabled);
+    CHECK(!xideAboutViewIsOpen(&app) && xideActionQuery(&app,XIDE_ACTION_NEW).enabled);
     CHECK(xideActionExecute(&app,XIDE_ACTION_ABOUT)==XIDE_ACTION_DISPATCHED && settle(&app));
     CHECK(click(&app,xuiWindowGetCloseButtonWidget(xideAboutViewWindow(&app))) && !xideAboutViewIsOpen(&app));
     CHECK(xideActionExecute(&app,XIDE_ACTION_ABOUT)==XIDE_ACTION_DISPATCHED && settle(&app));
