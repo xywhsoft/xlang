@@ -1,0 +1,20 @@
+// validate 返回 null 表示通过，或返回以字段 ID 为键的错误对象。
+export func validate(var context) as var
+    if string(context["fields"]["custom.greeting"]) == "" then
+        return {"custom.greeting": "请填写欢迎文字。"}
+    end
+    return null
+end
+
+// create 只返回生成计划。IDE 使用自己的工程模型创建清单并提交文件。
+export func create(var context) as var
+    string greeting = string(context["fields"]["custom.greeting"])
+    // JSON 的字符串编码同时提供这里所需的 xlang 字符串字面量转义。
+    string literal = json.stringify(greeting)
+    string source = "func main(...) as int\n    println(" + literal + ")\n    return 0\nend\n"
+    var files = [{"path": "main.xl", "kind": "xlang", "content": source}]
+    if bool(context["fields"]["custom.readme"]) then
+        files.append({"path": "README.md", "kind": "text", "content": "# " + string(context["project"]["name"]) + "\n"})
+    end
+    return {"entry": "main.xl", "kind": "exe", "files": files}
+end

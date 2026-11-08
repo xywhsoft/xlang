@@ -54,7 +54,7 @@
   },
   "ide": {
     "languageServer": "Rebuilt qualified 455-pin C interop cohort; separately accepted from the prior GUI build.",
-    "guiTranslationUnits": 111,
+    "guiTranslationUnits": 113,
     "compiler": "GCC 16.2.0",
     "warnings": [
       "-Wall",
@@ -75,7 +75,7 @@
       "licenseUrl": "http://www.microsoft.com/typography/fonts/default.aspx"
     },
     "fontChangeSourceParent": "b16a95bbf022efcafc7b965d1bd9b5b945c0d881",
-    "currentBuildProvenance": "dev/release-materials/provenance/ide-table-grid-20261109/receipt.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/ide-templates-20261109/receipt.json",
     "cLspEnabled": false,
     "applicationIcon": {
       "source": "ide/data/xlang_ide.ico",
@@ -89,21 +89,21 @@
       "provenance": "docs/reports/release-materials-migration-20261031.json",
       "buildCommand": "pwsh -NoProfile -File ide/tools/build.ps1 -Configuration Release -GuiOnly -LanguageServerPath D:/GIT/x-lang/release/xlang-ls.exe -ReleaseDirectory D:/GIT/x-lang/release"
     },
-    "sha256": "d335281a9d2b11f92b027752e9a6529d947b82506ba1721617e53f012aa0aee3",
+    "sha256": "59dcd027f1f51ce7b9d5446959a878487e786a1c238f3506760db9afe2195944",
     "sourceIdentity": {
-      "guiBaseSourceRevision": "cea3cb135f92a378a70cab30f222057de6a434cd",
-      "overlayBaseRevision": "6186e26e10b8f00acf9f15f241600be8d4b0e58b",
+      "guiBaseSourceRevision": "6186e26e10b8f00acf9f15f241600be8d4b0e58b",
+      "overlayBaseRevision": "9a81d2470d24dfbe1cc0a991dd96c2094c0393c7",
       "sourceOverlay": {
-        "path": "dev/release-materials/sources/ide-table-grid-20261109/manifest.json",
-        "sha256": "e266f724ef5ad9140058d84b0abc1faf5c358af1ec08d537f18dd888d5cc7917",
-        "bytes": 3617
+        "path": "dev/release-materials/sources/ide-templates-20261109/manifest.json",
+        "sha256": "8f5b2b6a76e245e19eb49b792346e251d368229d75f5f05bea23ba228585ae7b",
+        "bytes": 54415
       },
       "build": {
-        "path": "dev/release-materials/provenance/ide-table-grid-20261109/evidence.zip",
-        "sha256": "eb2fa96bdb696f9fa03b4bba620d84c827e0554f9614f5ce6281e821799df7a5",
-        "bytes": 4031469
+        "path": "dev/release-materials/provenance/ide-templates-20261109/evidence.zip",
+        "sha256": "d062b36f62c324c9ec6b2fec3f8866bc8e993806981c92756c082fbac9bddd91",
+        "bytes": 2728351
       },
-      "matchedSdkManifestSha256": "e675c7b210511c91b6c150f08e2ef71f3fb73dc296a33091f550c2906f43cc11"
+      "matchedSdkManifestSha256": "223a64f59ef77701f4729e87b328bd4509300df1e46bf015f2487e5803ab926c"
     },
     "previousMatchedGuiProvenance": "dev/release-materials/provenance/ide-updater-20261103.json",
     "openglStartupCompatibility": {
@@ -128,25 +128,25 @@
       "sha256": "cb3dd03ba90452fb9a670371ed7447763a0188fdc61b57adf11d5d89851ce13b",
       "bytes": 2693
     },
-    "buildScope": "Matched 111 GUI objects: DPI proxy implementation rebuilt with unchanged public headers; 110 qualified objects reused with recorded identities. C LSP disabled, -O2; independent concurrent work excluded.",
+    "buildScope": "Full matched 113-object GUI rebuild after action/public-header updates; qualified baseline plus template overlay, C LSP disabled, -O2, -Wall -Wextra -Werror. Independent concurrent work excluded.",
     "currentEngine": {
       "sourceMaterials": {
-        "path": "dev/release-materials/sources/ide-table-grid-20261109/manifest.json",
-        "sha256": "e266f724ef5ad9140058d84b0abc1faf5c358af1ec08d537f18dd888d5cc7917",
-        "bytes": 3617
+        "path": "dev/release-materials/sources/ide-templates-20261109/manifest.json",
+        "sha256": "8f5b2b6a76e245e19eb49b792346e251d368229d75f5f05bea23ba228585ae7b",
+        "bytes": 54415
       },
       "sourceCommit": "2174bf5b8e68a9069bd9788bd2f73444b9a0d722",
       "publicAbiFingerprint": "0x9e6e84f348182bf8",
       "profile": "ide",
       "xrtMode": "embedded",
       "runtime": "release/win_x64/xge.dll",
-      "mainlineCommit": "381cd2273d6ba8f70255beb0142312c42c3ac9b1",
+      "mainlineCommit": "ad064dc3ebcf6a1b673f14b290e6076ddd6c4800",
       "previousSourceMaterials": {
-        "path": "dev/release-materials/sources/xge-code-wrap-20261108/manifest.json",
-        "sha256": "e7b1018ca706a47a71c6ae77caae14145d82c68e532fb6404e06fdfed97d5a3a",
-        "bytes": 3038
+        "path": "dev/release-materials/sources/ide-table-grid-20261109/manifest.json",
+        "sha256": "e266f724ef5ad9140058d84b0abc1faf5c358af1ec08d537f18dd888d5cc7917",
+        "bytes": 3617
       },
-      "sha256": "40d6bfa25cc881d45e4a8ac12e0dc4ff6c5115bad93f8e0f1ffdbc1d0a67c4e2"
+      "sha256": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
     },
     "previousBuildProvenanceBeforeAbout": "dev/release-materials/provenance/xge-ide-update-20261106/publication-receipt.json",
     "aboutWindow": {
@@ -161,22 +161,22 @@
     "updateStateDirectory": "ide/build/update-runtime/<platform>-<install-path-sha256>",
     "previousBuildProvenanceBeforeDialogBackdrop": "dev/release-materials/provenance/ide-release-maintenance-20261106.json",
     "dialogBackdrop": "viewport-sized absolute overlay; dialog above backdrop; child/IME-aware Escape",
-    "previousBuildProvenance": "dev/release-materials/provenance/ide-home-tabs-20261108/receipt.json",
-    "sourceRevision": "6186e26e10b8f00acf9f15f241600be8d4b0e58b",
+    "previousBuildProvenance": "dev/release-materials/provenance/ide-table-grid-20261109/receipt.json",
+    "sourceRevision": "9a81d2470d24dfbe1cc0a991dd96c2094c0393c7",
     "previousSourceIdentity": {
-      "guiBaseSourceRevision": "c23590b1594d0772dda7f2091e38c8842df0a530",
-      "overlayBaseRevision": "cea3cb135f92a378a70cab30f222057de6a434cd",
+      "guiBaseSourceRevision": "cea3cb135f92a378a70cab30f222057de6a434cd",
+      "overlayBaseRevision": "6186e26e10b8f00acf9f15f241600be8d4b0e58b",
       "sourceOverlay": {
-        "path": "dev/release-materials/sources/ide-home-tabs-20261108/manifest.json",
-        "sha256": "7f18295914ac6377b10ad6159b5cdb242a913a0890fbe1dd9a59ceb64c90c9f5",
-        "bytes": 2303
+        "path": "dev/release-materials/sources/ide-table-grid-20261109/manifest.json",
+        "sha256": "e266f724ef5ad9140058d84b0abc1faf5c358af1ec08d537f18dd888d5cc7917",
+        "bytes": 3617
       },
       "build": {
-        "path": "dev/release-materials/provenance/ide-home-tabs-20261108/evidence.zip",
-        "sha256": "05b38b972af5b530cde95843af670ad91d64988d0646ca8997447eccfc6c817b",
-        "bytes": 2326720
+        "path": "dev/release-materials/provenance/ide-table-grid-20261109/evidence.zip",
+        "sha256": "eb2fa96bdb696f9fa03b4bba620d84c827e0554f9614f5ce6281e821799df7a5",
+        "bytes": 4031469
       },
-      "matchedSdkManifestSha256": "c0fbd47f95fafe863fae241ece7d4654d3908f5efb6b3ab2a1b678cb59b79f93"
+      "matchedSdkManifestSha256": "e675c7b210511c91b6c150f08e2ef71f3fb73dc296a33091f550c2906f43cc11"
     },
     "dockTabNavigation": {
       "enabled": true,
@@ -329,6 +329,11 @@
       "path": "dev/release-materials/provenance/ide-table-grid-20261109/receipt.json",
       "sha256": "3ed9b6c0eb5e8d27545fa081bb5f8c9658fe167743f3f58b2ef2a81b3371a832",
       "bytes": 14191
+    },
+    "templates": {
+      "path": "dev/release-materials/provenance/ide-templates-20261109/receipt.json",
+      "sha256": "d9a254b1f4d0378b7dd2d3a7ae19f74ec9df0d34d8c3ec3544430f5ddd69cebe",
+      "bytes": 20243
     }
   },
   "catalog": {
@@ -6328,8 +6333,8 @@
       "previousSha256": "c95a4b367e5ee67b9def00181060d678f56e084072ddc2c6b6ed5f1a5b25528b"
     },
     {
-      "sha256": "d335281a9d2b11f92b027752e9a6529d947b82506ba1721617e53f012aa0aee3",
-      "bytes": 2061823,
+      "sha256": "59dcd027f1f51ce7b9d5446959a878487e786a1c238f3506760db9afe2195944",
+      "bytes": 2118987,
       "path": "release/win_x64/xlang_ide.exe",
       "origin": "release-0.6.1-20261108",
       "previousSha256": "8a4d9e633fea3baad66e2cf05c0aa6d7f335b2e87ac655cc6f11d29f0685d8e5"
@@ -6341,8 +6346,8 @@
       "origin": "matched-xge3-xui3-local-delivery-20261105"
     },
     {
-      "sha256": "40d6bfa25cc881d45e4a8ac12e0dc4ff6c5115bad93f8e0f1ffdbc1d0a67c4e2",
-      "bytes": 11172104,
+      "sha256": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3",
+      "bytes": 11173128,
       "path": "release/win_x64/xge.dll",
       "origin": "xge-keypad-enter-20261108",
       "previousSha256": "f165f5b01576b67b56ecb0f7f7f35e4bb82c33f54a1d697fc40ff7443d18a4e7"
@@ -6400,6 +6405,51 @@
       "bytes": 245169,
       "origin": "example-failures-20261107",
       "previousSha256": "4485a69c41e4b4e912d1db5a6a700aa1fb65e86d2d5e88331c775ac5659ef853"
+    },
+    {
+      "path": "release/win_x64/data/template-icons/blank.png",
+      "sha256": "3aadf670f8a34863061ac29f4617d57bfeebe8d54dff3cf5633c91379b753dbc",
+      "bytes": 1514
+    },
+    {
+      "path": "release/win_x64/data/template-icons/c-source.png",
+      "sha256": "c201ced9bf4110ef313d0b4ecd5a1c963bee411a440174de8415300538124fe9",
+      "bytes": 3423
+    },
+    {
+      "path": "release/win_x64/data/template-icons/console.png",
+      "sha256": "e71c66640edf1e254c67ce05db632ee576309b0d76be3fac94e0635c934ebe9c",
+      "bytes": 4485
+    },
+    {
+      "path": "release/win_x64/data/template-icons/dll.png",
+      "sha256": "95a08b858d41a78661084f69d60d68366ece230dd692c42ffde1659e222563a5",
+      "bytes": 2778
+    },
+    {
+      "path": "release/win_x64/data/template-icons/mixed.png",
+      "sha256": "7df3a1dd519e935916d7f00ca7307b82eddd14c07977986998ac3f8d9002251a",
+      "bytes": 5049
+    },
+    {
+      "path": "release/win_x64/data/template-icons/script.png",
+      "sha256": "d54d5c2590d0d8ce5bb6bf9329c6e749be4f7d39c6118dae5126f368738de1ba",
+      "bytes": 3749
+    },
+    {
+      "path": "release/win_x64/examples/templates/hello/generator.xl",
+      "sha256": "3ace7207d82c1a1ba0fdf5225fc2e300eefcb4cdd890e8f01a0e6f19a83d4668",
+      "bytes": 1040
+    },
+    {
+      "path": "release/win_x64/examples/templates/hello/README.md",
+      "sha256": "23d1f8a7d432ede0623d4a105d05d58538550617e3e4d1bdc0c5a8939c41f2f7",
+      "bytes": 907
+    },
+    {
+      "path": "release/win_x64/examples/templates/hello/template.json",
+      "sha256": "e0dafb143258910402d32cb4a8ea2e0f24580a3c7a2bbb2d08ca7dfe6aaa0e4e",
+      "bytes": 647
     }
   ],
   "acceptance": {
@@ -6509,7 +6559,7 @@
     "historicalReportPathsPreserved": true,
     "mutableDataPathsUpdated": 600
   },
-  "currentScope": "Local IDE/XGE table grid raster correction with exact unchanged color checks. Extended DPI cleanup failure also reproduced on baseline and recorded as unresolved; targeted Home/input/settings/find and mesh tests passed.",
+  "currentScope": "Local IDE template chooser/form/generation delivery; six icons, typed custom fields, background callbacks, confirmed history clear. Seven IDE suites, two native suites and 18 SDK material checks passed; full repository regression not claimed.",
   "localPublication": {
     "path": "dev/release-materials/provenance/xge3-local-publication-20261105/receipt.json",
     "sha256": "d55e8e816fddbfc2d2283c9ba45b9b28ac5c5e07e0da183fbab3088f118fbad1",
@@ -6779,6 +6829,11 @@
       "path": "dev/release-materials/provenance/ide-table-grid-20261109/receipt.json",
       "sha256": "3ed9b6c0eb5e8d27545fa081bb5f8c9658fe167743f3f58b2ef2a81b3371a832",
       "bytes": 14191
+    },
+    "templates": {
+      "path": "dev/release-materials/provenance/ide-templates-20261109/receipt.json",
+      "sha256": "d9a254b1f4d0378b7dd2d3a7ae19f74ec9df0d34d8c3ec3544430f5ddd69cebe",
+      "bytes": 20243
     }
   },
   "xuiGallery": {
@@ -7085,5 +7140,10 @@
     "path": "dev/release-materials/provenance/ide-table-grid-20261109/receipt.json",
     "sha256": "3ed9b6c0eb5e8d27545fa081bb5f8c9658fe167743f3f58b2ef2a81b3371a832",
     "bytes": 14191
+  },
+  "ideTemplates": {
+    "path": "dev/release-materials/provenance/ide-templates-20261109/receipt.json",
+    "sha256": "d9a254b1f4d0378b7dd2d3a7ae19f74ec9df0d34d8c3ec3544430f5ddd69cebe",
+    "bytes": 20243
   }
 }

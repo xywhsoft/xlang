@@ -4,6 +4,7 @@
 typedef struct xide_template_file { const char *path,*kind,*content; } xide_template_file;
 typedef struct xide_project_template { const char *id,*title,*description,*kind; const xide_template_file* files; size_t fileCount; } xide_project_template;
 typedef struct xide_template_plan xide_template_plan;
+int xideProjectTemplateNameValid(const char* name,xide_model_error* error);
 size_t xideProjectTemplateCount(void);
 const xide_project_template* xideProjectTemplateAt(size_t index);
 const xide_project_template* xideProjectTemplateFind(const char* id);

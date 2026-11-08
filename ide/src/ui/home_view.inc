@@ -3,6 +3,7 @@
 #include <shellapi.h>
 #include <stdlib.h>
 #include "platform/path.h"
+#include "services/template_registry.h"
 struct xide_home_view {
     xui_widget root,caption,frame,newWindow,picker,controls[XIDE_HOME_CONTROL_COUNT];
     xide_settings snapshot;
@@ -11,6 +12,10 @@ struct xide_home_view {
     float scale;
     char times[XIDE_RECENT_LIMIT][40];
     xui_widget_event_proc keyHandler; void* keyUser;
+    xide_template_registry templates;
+    int templatesLoaded,category,visible[256],visibleCount,categoryDefinition[256],categoryCount;
+    xui_surface icons[256];xui_rect_t iconSources[256];
+    char (*descriptions)[2][1024];float descriptionWidth,templateScale;
 };
 #include "ui/home_templates.inc"
 const char* xideHomeTutorialUrl(void) { return "https://xcompiler.com/book/index.html"; }
@@ -85,12 +90,18 @@ static int homeEvent(xui_widget w,const xui_event_t* e,void* user) {
     return e->iType==XUI_EVENT_KEY_DOWN && v->keyHandler ? v->keyHandler(w,e,v->keyUser):XUI_OK;
 }
 static void homeClear(xui_widget w,void* user) {
-    (void)w;xide_app* a=user;if(xideActionsHasModal(a))return;
-    xide_model_error error={0};
-    if(!xideSettingsClearRecent(&a->preferences,&error))xideMessageShow(a,"清空历史记录",error.message,XUI_MSGBOX_ICON_ERROR);
-    int result=xideHomeRefresh(a);if(result!=XUI_OK)a->frameError=result;
+    (void)w;xideActionExecute(user,XIDE_ACTION_HOME_CLEAR);
 }
 int xideHomeAction(xide_app* a,int action) {
+    if(action==XIDE_ACTION_HOME_CLEAR) {
+        if(!xideSettingsRecentCount(&a->preferences))return 1;
+        int answer=xideMessageConfirm(a,"清空历史记录？","将清除最近访问记录，不会删除文件、工程或工作空间。",XUI_MSGBOX_BUTTON_OK_CANCEL,UINT64_C(719));
+        xui_msgbox box=xideMessageCurrent(a);
+        if(box){static const xui_msgbox_button_t buttons[]={{"关闭",XUI_MSGBOX_RESULT_CANCEL,XUI_BUTTON_SEMANTIC_DEFAULT},{"清空",XUI_MSGBOX_RESULT_OK,XUI_BUTTON_SEMANTIC_DEFAULT}};xuiMsgBoxSetCustomButtons(box,buttons,2);xuiSetFocusWidget(a->context,xuiMsgBoxGetButtonWidget(box,0));}
+        if(answer!=XUI_MSGBOX_RESULT_OK)return 1;
+        xide_model_error error={0};if(!xideSettingsClearRecent(&a->preferences,&error))xideMessageShow(a,"清空历史记录",error.message,XUI_MSGBOX_ICON_ERROR);
+        int result=xideHomeRefresh(a);if(result!=XUI_OK)a->frameError=result;return 1;
+    }
     if(action==XIDE_ACTION_HOME_NEW)return homeNewOpen(a);
     if(action==XIDE_ACTION_HOME_OPEN) {
         char* path=xideMessageChoosePath(a,XUI_FILE_DIALOG_MODE_OPEN_FILE,"打开文件、工程或工作空间",
@@ -175,5 +186,7 @@ static int homeCreate(xide_app* a) {
 }
 void xideHomeDestroy(xide_app* a) {
     if(!a || !a->homeView)return;
+    for(size_t i=0;i<a->homeView->templates.count;++i)if(a->homeView->icons[i])a->proxy.surfaceDestroy(&a->proxy,a->homeView->icons[i]);
+    free(a->homeView->descriptions);xideTemplateRegistryClear(&a->homeView->templates);
     xrtValueRelease(a->homeView->snapshot.source);free(a->homeView->recentPath);free(a->homeView);a->homeView=NULL;
 }

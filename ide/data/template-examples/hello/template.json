@@ -1,0 +1,17 @@
+{
+  "format": "xlang-ide-template-1",
+  "id": "example.hello",
+  "title": "自定义欢迎工程",
+  "description": "演示通用工程表单、自定义字段及后台 xlang 生成回调。",
+  "author": "xlang",
+  "version": "1.0.0",
+  "kind": "project",
+  "category": "示例模板",
+  "form": {
+    "fields": [
+      {"id": "custom.greeting", "type": "text", "label": "欢迎文字", "default": "你好，xlang！", "required": true},
+      {"id": "custom.readme", "type": "boolean", "label": "生成 README", "default": true}
+    ]
+  },
+  "generator": {"kind": "xlang", "module": "generator.xl", "validate": "validate", "create": "create"}
+}

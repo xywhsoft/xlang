@@ -1,0 +1,481 @@
+{
+  "schema": 1,
+  "date": "2026-11-09",
+  "passed": true,
+  "scopeComplete": true,
+  "fullRegressionPassed": false,
+  "publication": "local-only",
+  "scope": "Two-stage icon template chooser, registered-field project creation, local custom templates with background exported xlang callbacks, confirmed history clearing.",
+  "sourceMaterials": {
+    "path": "dev/release-materials/sources/ide-templates-20261109/manifest.json",
+    "sha256": "8f5b2b6a76e245e19eb49b792346e251d368229d75f5f05bea23ba228585ae7b",
+    "bytes": 54415
+  },
+  "evidence": {
+    "path": "dev/release-materials/provenance/ide-templates-20261109/evidence.zip",
+    "sha256": "d062b36f62c324c9ec6b2fec3f8866bc8e993806981c92756c082fbac9bddd91",
+    "bytes": 2728351
+  },
+  "installed": {
+    "passed": true,
+    "installedSmokeExit": 0,
+    "installedPath": "release/win_x64/xlang_ide.exe",
+    "sha256": "59dcd027f1f51ce7b9d5446959a878487e786a1c238f3506760db9afe2195944",
+    "bytes": 2118987,
+    "xge": {
+      "path": "release/win_x64/xge.dll",
+      "sha256": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3",
+      "bytes": 11173128
+    },
+    "preserved": {
+      "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe": "e5f4719890814a3f7b5422ffb1f293ffc944c527de62217d32e9a3a4c287dfad",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xl.dll": "e783d6a15c946945d4186084cff9006839cbc1d31a0ae387396dc6f500aaac6c",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xlc.dll": "b4563a13448e2f550b00c0504cac481cdefd2b61ee961276049f936243f125a1",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232"
+    },
+    "changes": [
+      {
+        "path": "ide/third_party/xge_sdk/sdk_manifest.json",
+        "before": "e675c7b210511c91b6c150f08e2ef71f3fb73dc296a33091f550c2906f43cc11",
+        "after": "223a64f59ef77701f4729e87b328bd4509300df1e46bf015f2487e5803ab926c"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/xge-source-files.json",
+        "before": "43e9be5eaec1a31415833a006ca1370fd034f2c37feb682f8ff37e477db93e45",
+        "after": "8b0e92db1fa95dae2c472335d7fed882b62a39b63501ff81dc445594fbe66ca9"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/xge.dll",
+        "before": "40d6bfa25cc881d45e4a8ac12e0dc4ff6c5115bad93f8e0f1ffdbc1d0a67c4e2",
+        "after": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/xge.lib",
+        "before": "ee977b55040e321a3fe5eaa59a9a3a1f40c292835e2231720c515b8ca5ed3e69",
+        "after": "8be9340043d64175c62dfdc26049d955cc99b28302dcadfeb65f086bc94141c2"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/xui.h",
+        "before": "1cbae03fcb6ee4d6d4a74da941a42bb9e05e73ffc3f76fad4f79574fe34069b3",
+        "after": "b0f048522b1e2c19d65bfa68f04c4ce066f3c4762f4ab54c1df3341732537893"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-431e42320088/parent-sdk-manifest.json",
+        "before": null,
+        "after": "e675c7b210511c91b6c150f08e2ef71f3fb73dc296a33091f550c2906f43cc11"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-431e42320088/source-build-manifest.json",
+        "before": null,
+        "after": "48e5a225aef28a0c48497b22539cfcc1ddf526ccc8770b76da3ebb4460aee0f7"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-431e42320088/source-build-report.json",
+        "before": null,
+        "after": "8953cb6c58f98b9bcf35deda5d2aa46c76b52e1f88f20405cc77169511cc307d"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-431e42320088/xrt-declarations.json",
+        "before": null,
+        "after": "76835d98e81b4f56507ca2845ba782c0ba147c9bbe00543578aabb534a6a141e"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/diff/src/xui/controls/xui_tree_view.c.diff",
+        "before": null,
+        "after": "62f4a4ca816939544cc003d84c14f299e89005ebd9b6ea24ee7bd232b1b3719c"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/payload/src/xui/controls/xui_tree_view.c",
+        "before": null,
+        "after": "8fbe4f9172772e6af043e59926c47f32f2748d9d24ee0c58775270072d0b1272"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/patch-manifest.json",
+        "before": null,
+        "after": "f3c876a56dc4197af3eb24e28fd61b2a0bab10fea7013734b3e75dc873fd89c2"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/diff/include/xge.h.diff",
+        "before": null,
+        "after": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/diff/include/xui.h.diff",
+        "before": null,
+        "after": "bc85472483a8d052c40d597cd212947338bc9041dcefcd4a745a21017df800f1"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/diff/extlibs/sokol/sokol_app.h.diff",
+        "before": null,
+        "after": "652f6b352350dfefe4ca732602ebdb32ae9a41c0cd729509cf190610dd4023ec"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/diff/extlibs/xrt/xrt.h.diff",
+        "before": null,
+        "after": "5489edbe8dbdb1bcc715e069fbe034842e7a7e3c0b8c4b3e15c6d5e94077bb4d"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/diff/src/xge/core/xge_core.c.diff",
+        "before": null,
+        "after": "50a939cc2efbe8bd9c57488b054f68517d0d79c9ce5a07fcf687922f43b89fc4"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/diff/src/xge/core/xge_impl.c.diff",
+        "before": null,
+        "after": "88db7f6fbd2c32b722e1037606f89fe24b0eeeef47aa27ce0204e07328254420"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/diff/src/xui/controls/xui_table_view.c.diff",
+        "before": null,
+        "after": "7dd557156c4ae31427744db36329230f96f74bfebb4766da94eed1d46f2f0bdb"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/diff/src/xui/controls/xui_tree_view.c.diff",
+        "before": null,
+        "after": "62f4a4ca816939544cc003d84c14f299e89005ebd9b6ea24ee7bd232b1b3719c"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/diff/tools/build/build.py.diff",
+        "before": null,
+        "after": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/payload/include/xge.h",
+        "before": null,
+        "after": "1821696314a82530f0fb06290a9ef4483083881444ebf1d00fc362a4426c68a5"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/payload/include/xui.h",
+        "before": null,
+        "after": "b0f048522b1e2c19d65bfa68f04c4ce066f3c4762f4ab54c1df3341732537893"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/payload/extlibs/sokol/sokol_app.h",
+        "before": null,
+        "after": "7d725c8f3b5eb52a9dba4f5ba1c9d6cbc603a2f5c5dc712a8f0fa3b4dd5378e2"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/payload/extlibs/xrt/xrt.h",
+        "before": null,
+        "after": "41bc24579f4b3207b0434755ca23dd06481af90c05f71e9b365848cf9a7c12d1"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/payload/src/xge/core/xge_core.c",
+        "before": null,
+        "after": "b87d72adc887352629ccba72bbfb642276fc68e64d283eb77391c0cc23acdf0b"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/payload/src/xge/core/xge_impl.c",
+        "before": null,
+        "after": "07fb8b684e7d2d48cb24da2dca23b9038e998e95f7e72da15b095ea9036fbcee"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/payload/src/xui/controls/xui_table_view.c",
+        "before": null,
+        "after": "2eca10781dac61e8b8bd3c54ac5919868183f643269c874f7e3276bb5c64caef"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/payload/src/xui/controls/xui_tree_view.c",
+        "before": null,
+        "after": "8fbe4f9172772e6af043e59926c47f32f2748d9d24ee0c58775270072d0b1272"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/payload/tools/build/build.py",
+        "before": null,
+        "after": "754840e4a884f5d24e73cfa1e2b16a111ecd906d3354a207dd77b9a00dfe41dd"
+      },
+      {
+        "path": "ide/data/xge-sdk-materials.json",
+        "before": "de6cec639b19ec4795d3a286323e1156ec9cdbaab0d54b901bd60ad311999cb0",
+        "after": "3e8b4f79cb8550737e0d6375d0b4f2b7fc74ab69e4b11a7fb52dc5b445b69c04"
+      },
+      {
+        "path": "release/win_x64/xge.dll",
+        "before": "40d6bfa25cc881d45e4a8ac12e0dc4ff6c5115bad93f8e0f1ffdbc1d0a67c4e2",
+        "after": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+      },
+      {
+        "path": "release/win_x64/xlang_ide.exe",
+        "before": "d335281a9d2b11f92b027752e9a6529d947b82506ba1721617e53f012aa0aee3",
+        "after": "59dcd027f1f51ce7b9d5446959a878487e786a1c238f3506760db9afe2195944"
+      },
+      {
+        "path": "release/win_x64/data/template-icons/blank.png",
+        "before": null,
+        "after": "3aadf670f8a34863061ac29f4617d57bfeebe8d54dff3cf5633c91379b753dbc"
+      },
+      {
+        "path": "release/win_x64/data/template-icons/c-source.png",
+        "before": null,
+        "after": "c201ced9bf4110ef313d0b4ecd5a1c963bee411a440174de8415300538124fe9"
+      },
+      {
+        "path": "release/win_x64/data/template-icons/console.png",
+        "before": null,
+        "after": "e71c66640edf1e254c67ce05db632ee576309b0d76be3fac94e0635c934ebe9c"
+      },
+      {
+        "path": "release/win_x64/data/template-icons/dll.png",
+        "before": null,
+        "after": "95a08b858d41a78661084f69d60d68366ece230dd692c42ffde1659e222563a5"
+      },
+      {
+        "path": "release/win_x64/data/template-icons/mixed.png",
+        "before": null,
+        "after": "7df3a1dd519e935916d7f00ca7307b82eddd14c07977986998ac3f8d9002251a"
+      },
+      {
+        "path": "release/win_x64/data/template-icons/script.png",
+        "before": null,
+        "after": "d54d5c2590d0d8ce5bb6bf9329c6e749be4f7d39c6118dae5126f368738de1ba"
+      },
+      {
+        "path": "release/win_x64/examples/templates/hello/generator.xl",
+        "before": null,
+        "after": "3ace7207d82c1a1ba0fdf5225fc2e300eefcb4cdd890e8f01a0e6f19a83d4668"
+      },
+      {
+        "path": "release/win_x64/examples/templates/hello/README.md",
+        "before": null,
+        "after": "23d1f8a7d432ede0623d4a105d05d58538550617e3e4d1bdc0c5a8939c41f2f7"
+      },
+      {
+        "path": "release/win_x64/examples/templates/hello/template.json",
+        "before": null,
+        "after": "e0dafb143258910402d32cb4a8ea2e0f24580a3c7a2bbb2d08ca7dfe6aaa0e4e"
+      }
+    ]
+  },
+  "nativeTests": [
+    {
+      "test": "xui_tree_icon_test",
+      "exit": 0
+    },
+    {
+      "test": "xui_tree_view_test",
+      "exit": 0
+    }
+  ],
+  "ideTests": [
+    {
+      "test": "template_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-templates-20261109\\gui-source\\ide\\tests\\template_test.c",
+      "sourceSha256": "b8b330d33ec628445bbd7d6da0338adbcb6b1a2ce1836ef89e5e3679d9039b94"
+    },
+    {
+      "test": "input_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-templates-20261109\\gui-source\\ide\\tests\\input_test.c",
+      "sourceSha256": "2804e8842d91a338ac4dcb3788d9133f597303b435b55038168e0669645d40f5"
+    },
+    {
+      "test": "settings_view_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-templates-20261109\\gui-source\\ide\\tests\\settings_view_test.c",
+      "sourceSha256": "1a09b8f399fca72e2bd060d9c3ac3f54c820cb3db5367932f2607fae093a70f3"
+    },
+    {
+      "test": "find_follow_view_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-templates-20261109\\gui-source\\ide\\tests\\find_follow_view_test.c",
+      "sourceSha256": "57f31d4f99fffece30d9a5e657c991aea72a7ed901c34fe1da49b2919c8304c9"
+    },
+    {
+      "test": "template_view_test",
+      "exit": 0,
+      "source": "D:\\GIT\\x-lang\\ide\\tests\\template_view_test.c",
+      "sourceSha256": "dd8b6ec047fde3796ebaec63722e9be3ec32d3741c6b9559259483ffae09cdc7"
+    },
+    {
+      "test": "home_view_test",
+      "exit": 0,
+      "source": "D:\\GIT\\x-lang\\ide\\tests\\home_view_test.c",
+      "sourceSha256": "3ea237efe8acc93be5be785a9f6ded4a304baf9f6fec3bdef555badbe339f18b"
+    },
+    {
+      "test": "template_registry_test",
+      "exit": 0,
+      "source": "D:\\GIT\\x-lang\\ide\\tests\\template_registry_test.c",
+      "sourceSha256": "6f16aad62ef90eed35adc0b4720095c504fba6e2b1fc5c77ddf148785f2ea032"
+    }
+  ],
+  "sdkMaterialsChecks": 18,
+  "behavior": {
+    "fixedCategories": [
+      "project",
+      "file"
+    ],
+    "defaultTemplate": "console",
+    "explicitWorkspaceDefault": "current",
+    "otherwiseDefault": "none",
+    "icons": 6,
+    "iconAspectRatio": "4:3",
+    "displayIconDip": [
+      96,
+      72
+    ],
+    "minimumRowDip": 96,
+    "descriptionLines": 2,
+    "registeredFieldTypes": [
+      "text",
+      "multiline",
+      "boolean",
+      "choice",
+      "integer",
+      "directory",
+      "file"
+    ],
+    "callbackTransport": "background xl.exe run with JSON request/result and exported validate/create",
+    "callbackTimeoutSeconds": 120,
+    "historyClearConfirmation": true,
+    "homeChecks": 126,
+    "templateViewChecks": 55,
+    "visualCorrections": [
+      "Floating-point contain scaling preserves small tree icons.",
+      "Keep native TextEdit cache policy for actual multiline painting."
+    ]
+  },
+  "build": {
+    "guiObjects": 113,
+    "optimization": "-O2",
+    "warnings": [
+      "-Wall",
+      "-Wextra",
+      "-Werror"
+    ],
+    "rebuiltUnits": [
+      "src/app/xide_app.c",
+      "src/app/actions.c",
+      "src/ui/workbench.c",
+      "src/platform/xide_input.c",
+      "src/lang/languages.c",
+      "src/theme/theme.c",
+      "src/platform/path.c",
+      "src/model/workspace.c",
+      "src/model/resources.c",
+      "src/model/resource_text.c",
+      "src/services/resource_creation.c",
+      "src/services/resource_inputs.c",
+      "src/services/resource_rebind.c",
+      "src/ui/resource_view.c",
+      "src/ui/workspace_view.c",
+      "src/platform/text_file.c",
+      "src/platform/file_rename.c",
+      "src/editor/documents.c",
+      "src/ui/editor_view.c",
+      "src/ui/find_view.c",
+      "src/ui/goto_view.c",
+      "src/platform/process.c",
+      "src/services/tasks.c",
+      "src/services/toolchain.c",
+      "src/protocol/lsp_wire.c",
+      "src/services/language_check.c",
+      "src/services/language_snapshot.c",
+      "src/services/semantic_definition.c",
+      "src/services/semantic_completion.c",
+      "src/services/language_client.c",
+      "src/services/c_bridge_map.c",
+      "src/ui/language_view.c",
+      "src/ui/completion_view.c",
+      "src/ui/toolchain_view.c",
+      "src/services/project_templates.c",
+      "src/services/file_rebind.c",
+      "src/services/rename_journal.c",
+      "src/services/project_migration.c",
+      "src/services/legacy_import.c",
+      "src/ui/task_view.c",
+      "src/ui/configuration_view.c",
+      "src/ui/references_view.c",
+      "src/ui/template_view.c",
+      "src/ui/import_view.c",
+      "src/ui/rename_view.c",
+      "src/platform/settings.c",
+      "src/services/command_catalog.c",
+      "src/services/catalog_lookup.c",
+      "src/services/library_info.c",
+      "src/ui/catalog_view.c",
+      "src/ui/help_document.c",
+      "src/platform/state_file.c",
+      "src/platform/state_repair.c",
+      "src/editor/coordinates.c",
+      "src/ui/layout_state.c",
+      "src/services/session.c",
+      "src/services/editor_font.c",
+      "src/ui/font_view.c",
+      "src/platform/window_state.c",
+      "src/platform/dpi_proxy.c",
+      "src/services/ui_font.c",
+      "src/ui/reading_state.c",
+      "src/platform/recovery_store.c",
+      "src/platform/recovery_backup.c",
+      "src/services/recovery.c",
+      "src/ui/recovery_view.c",
+      "src/platform/file_watch.c",
+      "src/services/file_sync.c",
+      "src/ui/file_changes_view.c",
+      "src/editor/lsp_coordinates.c",
+      "src/platform/text_utf.c",
+      "src/services/highlight_result.c",
+      "src/services/completion_result.c",
+      "src/services/signature_result.c",
+      "src/services/sync_plan.c",
+      "src/services/diagnostic_dependencies.c",
+      "src/services/diagnostic_notice.c",
+      "src/services/diagnostic_stream.c",
+      "src/platform/startup_alias.c",
+      "src/platform/startup_stage.c",
+      "src/platform/startup_cache.c",
+      "src/services/build_inputs.c",
+      "src/platform/file_io.c",
+      "src/platform/task_stage.c",
+      "src/platform/runtime_failure.c",
+      "src/platform/dpi_text_paint.c",
+      "src/services/catalog_sources.c",
+      "src/ui/dialog.c",
+      "src/ui/message_box.c",
+      "src/ui/file_dialog.c",
+      "src/platform/failure_window.c",
+      "src/analysis/text.c",
+      "src/analysis/context.c",
+      "src/services/analysis_context.c",
+      "src/protocol/analysis_context_wire.c",
+      "src/services/analysis_catalog.c",
+      "src/services/analysis_configuration.c",
+      "src/protocol/document_sync.c",
+      "src/protocol/input_state.c",
+      "src/protocol/diagnostic_paths.c",
+      "src/services/reference_results.c",
+      "src/services/execution_target.c",
+      "src/services/update_client.c",
+      "src/services/program_version.c",
+      "src/ui/about_view.c",
+      "src/ui/main_toolbar.c",
+      "src/services/preferences.c",
+      "src/ui/settings_view.c",
+      "src/services/catalog_job.c",
+      "src/platform/file_association.c",
+      "src/ui/association_view.c",
+      "src/services/template_registry.c",
+      "src/services/template_generation.c"
+    ],
+    "fullMatchedGuiRebuild": true,
+    "publicHeadersChanged": true,
+    "cLspEnabled": false,
+    "sourceAndObjectHashesVerified": true,
+    "baseBuildMetadata": "D:\\GIT\\x-lang\\ide\\build\\Release\\table-grid-20261109\\objects\\gui-build-inputs.json",
+    "xgeSourceFixCommit": "ad064dc3ebcf6a1b673f14b290e6076ddd6c4800",
+    "xgeBaseCommit": "2174bf5b8e68a9069bd9788bd2f73444b9a0d722",
+    "nativeBaseObjectsReused": true
+  },
+  "limits": [
+    "Targeted Windows acceptance only; not a full repository or Linux regression.",
+    "The pre-existing extended DPI cleanup failure remains documented in the parent delivery; no new claim that it passed.",
+    "Custom catalog is discovered on the first New dialog after IDE restart; no live package watcher or online gallery.",
+    "Generator callbacks are ordinary local native programs, not a sandbox; request/result files and cancellation isolate UI state, not arbitrary callback side effects.",
+    "Projects without their own directory use checked per-file publication; multiple files and workspace updates are not one atomic filesystem transaction.",
+    "Generation request/result/log records are retained under the settings template-jobs directory.",
+    "Only the icon-renderer hook was backported to the qualified IDE SDK cohort; unrelated XGE changes and concurrent compiler/LSP edits are excluded.",
+    "Local runtime only; no update-channel or remote publication performed."
+  ]
+}

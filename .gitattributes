@@ -268,3 +268,9 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 /dev/release-materials/provenance/ide-table-grid-20261109/** -text -whitespace
 /ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-2c4a203361ee/** -text -whitespace
 /ide/third_party/xge_sdk/provenance/compatibility-patches/diff/src/xui/controls/xui_table_view.c.diff -text -whitespace
+
+# Exact-byte template SDK/source/evidence bytes used by delivery hashes.
+/dev/release-materials/sources/ide-templates-20261109/** -text -whitespace
+/dev/release-materials/provenance/ide-templates-20261109/** -text -whitespace
+/ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-431e42320088/** -text -whitespace
+/ide/third_party/xge_sdk/provenance/compatibility-patches/diff/src/xui/controls/xui_tree_view.c.diff -text -whitespace

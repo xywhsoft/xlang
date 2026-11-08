@@ -1,7 +1,7 @@
 {
   "format": "xlang-ide-sdk-materials-1",
-  "sourceManifestSha256": "43e9be5eaec1a31415833a006ca1370fd034f2c37feb682f8ff37e477db93e45",
-  "sdkDllSha256": "40d6bfa25cc881d45e4a8ac12e0dc4ff6c5115bad93f8e0f1ffdbc1d0a67c4e2",
+  "sourceManifestSha256": "8b0e92db1fa95dae2c472335d7fed882b62a39b63501ff81dc445594fbe66ca9",
+  "sdkDllSha256": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3",
   "sourceScope": "XGE 3.0.0 IDE-profile compiler dependency closure, build inputs, public headers and notices; explicit compatibility patches recorded in provenance",
   "translationUnits": [
     "single/xge.c",
@@ -3571,8 +3571,8 @@
     },
     {
       "path": "include/xui.h",
-      "sha256": "1cbae03fcb6ee4d6d4a74da941a42bb9e05e73ffc3f76fad4f79574fe34069b3",
-      "size": 710460
+      "sha256": "b0f048522b1e2c19d65bfa68f04c4ce066f3c4762f4ab54c1df3341732537893",
+      "size": 697263
     },
     {
       "path": "include/xui_config.h",
@@ -4396,8 +4396,8 @@
     },
     {
       "path": "src/xui/controls/xui_tree_view.c",
-      "sha256": "83d133ff2ef4ac14df5bf7fda431990a92eee8e21d9a00d8f032da71e45b6650",
-      "size": 141284
+      "sha256": "8fbe4f9172772e6af043e59926c47f32f2748d9d24ee0c58775270072d0b1272",
+      "size": 142593
     },
     {
       "path": "src/xui/controls/xui_virtual_joystick.c",

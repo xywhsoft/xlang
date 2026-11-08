@@ -395,6 +395,12 @@ def assemble(args):
     require(verify_catalog_sources(release / 'data/catalog-sources', release / 'data/commands.json') == catalog_sources, 'Release catalog sources are stale')
     for name, digest in catalog_sources['files'].items():
         add(ide / 'data/catalog-sources' / name, 'data/catalog-sources/' + name, digest)
+    for icon in sorted((ide / 'data/template-icons').glob('*.png')):
+        relative = 'data/template-icons/' + icon.name
+        require(sha(release / relative) == sha(icon), 'Release template icon is stale: ' + icon.name)
+        add(icon, relative)
+    for example in tree(ide / 'data/template-examples'):
+        add(example, 'examples/templates/' + example.relative_to(ide / 'data/template-examples').as_posix())
     font_materials = verify_font_resources(ide / "data/fonts")
     require(verify_font_resources(release / "data/fonts") == font_materials, "Release offline fonts are stale")
     for row in font_materials["files"]:

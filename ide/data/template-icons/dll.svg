@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="72" viewBox="0 0 96 72">
+  <rect x="42" y="13" width="12" height="44" rx="2" fill="#8ba2bd"/>
+  <rect x="19" y="30" width="58" height="10" rx="2" fill="#8ba2bd"/>
+  <rect x="5" y="19" width="27" height="31" rx="4" fill="#265ba8"/>
+  <rect x="35" y="5" width="27" height="25" rx="4" fill="#277762"/>
+  <rect x="64" y="19" width="27" height="31" rx="4" fill="#76549b"/>
+  <rect x="27" y="46" width="43" height="21" rx="4" fill="#253246"/>
+  <text x="48" y="57" font-size="18" fill="#ffffff">DLL</text>
+</svg>

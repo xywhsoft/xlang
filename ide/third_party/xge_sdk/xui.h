@@ -11174,6 +11174,11 @@ XUI_API int xuiTreeViewSetContextMenu(xui_widget pWidget, xui_tree_view_context_
 XUI_API int xuiTreeViewSetContextMenuOwned(xui_widget pWidget, xui_tree_view_context_proc onContext, void* pUser, const xui_callback_owner_t* pOwner);
 /* 注册行自绘回调。 */
 XUI_API int xuiTreeViewSetItemRenderer(xui_widget pWidget, xui_tree_view_item_proc onRender, void* pUser);
+/* Optional icon-only painter: the native tree retains row, disclosure, text and
+ * focus rendering and hit testing. Return 1 when painted, 0 for the default icon,
+ * or a negative XUI error. The callback/user must remain alive until unbound. */
+typedef int (*xui_tree_view_icon_proc)(xui_widget pWidget, int iNodeId, xui_draw_context pDraw, xui_rect_t tRect, int iState, void* pUser);
+XUI_API int xuiTreeViewSetIconRenderer(xui_widget pWidget, xui_tree_view_icon_proc onRender, void* pUser);
 /* 设置数据适配器（总节点数 + 按索引读取节点描述）。回调绑定成功后立即刷新；
  * 刷新失败时保留绑定，调用方可修正数据后重试 xuiTreeViewRefreshAdapter。 */
 XUI_API int xuiTreeViewSetAdapter(xui_widget pWidget, xui_tree_view_count_proc onCount, xui_tree_view_node_proc onNode, void* pUser);

@@ -37,6 +37,8 @@ static int choose(xide_app* a,const char* path) {
     free(dir);return okay && settle(a) && click(a,xuiFileDialogGetOkButtonWidget(d));
 }
 static int pickTemplate(xide_app* a,int index) {
+    xui_widget tree=xideHomeControl(a,XIDE_HOME_CATEGORY);int node=xuiTreeViewGetVisibleIndexOfId(tree,3);xui_rect_t item=xuiTreeViewGetItemRect(tree,node),tw=xuiWidgetGetWorldRect(tree);float tx=tw.fX+item.fX+item.fW/2,ty=tw.fY+item.fY+item.fH/2;
+    if(xuiInputPointerMove(a->context,tx,ty,0)!=XUI_OK || xuiInputPointerDown(a->context,tx,ty,XUI_POINTER_BUTTON_LEFT,XUI_POINTER_BUTTON_LEFT)!=XUI_OK || xuiInputPointerUp(a->context,tx,ty,XUI_POINTER_BUTTON_LEFT,0)!=XUI_OK || !settle(a))return 0;
     xui_widget list=xideHomeControl(a,XIDE_HOME_TEMPLATES);xui_rect_t r=xuiListViewGetItemRect(list,index),world=xuiWidgetGetWorldRect(list);
     float x=world.fX+r.fX+30,y=world.fY+r.fY+r.fH/2;
     return xuiInputPointerMove(a->context,x,y,0)==XUI_OK && xuiInputPointerDown(a->context,x,y,XUI_POINTER_BUTTON_LEFT,XUI_POINTER_BUTTON_LEFT)==XUI_OK &&
@@ -97,7 +99,7 @@ static int run(void* raw) {
     xui_rect_t openRect=xuiWidgetGetWorldRect(xideHomeControl(&a,XIDE_HOME_OPEN)),tutorial=xuiWidgetGetWorldRect(xideHomeControl(&a,XIDE_HOME_TUTORIAL));
     CHECK(tutorial.fX>openRect.fX+openRect.fW && tutorial.fY==openRect.fY && tutorial.fH==openRect.fH);
     CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_NEW)) && xideDialogIsOpen(xideHomeNewWindow(&a)) && !xideActionQuery(&a,XIDE_ACTION_HOME_OPEN).enabled);
-    CHECK(xuiListViewGetItemCount(xideHomeControl(&a,XIDE_HOME_TEMPLATES))==2 && shot(&a,raw,"new-template-xlang.png"));
+    CHECK(xuiListViewGetItemCount(xideHomeControl(&a,XIDE_HOME_TEMPLATES))==4 && shot(&a,raw,"new-template-projects.png"));
     CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_CANCEL)) && !xideDialogIsOpen(xideHomeNewWindow(&a)) && !a.activeDocument);
     for(int language=0;language<2;++language) {
         CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_NEW)) && pickTemplate(&a,language));
@@ -106,7 +108,7 @@ static int run(void* raw) {
         CHECK(xideEditorClose(&a,a.activeDocument,1,&error) && settle(&a) && !a.activeDocument && xideWorkbenchWindowVisible(&a,XIDE_HOME)==1);
     }
     /* Keyboard activation creates only the selected independent document. */
-    CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_NEW)) && xuiListViewSetSelected(xideHomeControl(&a,XIDE_HOME_TEMPLATES),0)==XUI_OK && xuiSetFocusWidget(a.context,xideHomeControl(&a,XIDE_HOME_TEMPLATES))==XUI_OK);
+    CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_NEW)) && pickTemplate(&a,0) && xuiSetFocusWidget(a.context,xideHomeControl(&a,XIDE_HOME_TEMPLATES))==XUI_OK);
     CHECK(xuiInputKeyDownEx(a.context,XUI_KEY_ENTER,0,NULL)==XUI_OK && xuiInputKeyUpEx(a.context,XUI_KEY_ENTER,0,NULL)==XUI_OK && settle(&a) && a.activeDocument && !strcmp(a.activeDocument->language,"xlang"));
     CHECK(xideEditorClose(&a,a.activeDocument,1,&error) && settle(&a));
     xide_workspace prepared={0};int preparedOkay=xideWorkspaceCreate(&prepared,"首页打开测试",&error) && xideWorkspaceSave(&prepared,workspace,&error);xideWorkspaceClear(&prepared);CHECK(preparedOkay);
@@ -159,7 +161,7 @@ static int run(void* raw) {
     CHECK(xuiTableViewSetSelectedRow(table,1)==XUI_OK && xuiSetFocusWidget(a.context,table)==XUI_OK && settle(&a) && shot(&a,raw,"home-history.png"));
     CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_NEW)) && xideDialogIsOpen(xideHomeNewWindow(&a)));
     CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_CANCEL)) && xuiListViewSetSelected(xideHomeControl(&a,XIDE_HOME_TEMPLATES),-1)==XUI_OK);
-    CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_NEW)) && !xuiWidgetGetEnabled(xideHomeControl(&a,XIDE_HOME_CREATE)));
+    CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_NEW)) && xuiWidgetGetEnabled(xideHomeControl(&a,XIDE_HOME_CREATE)));
     CHECK(pickTemplate(&a,1) && xuiWidgetGetEnabled(xideHomeControl(&a,XIDE_HOME_CREATE)) && strstr(xuiLabelGetText(xideHomeControl(&a,XIDE_HOME_TEMPLATE_DESCRIPTION)),"C 文件"));
     /* The template shell uses the shared dialog layout: a real minimum size,
        a fixed, separated action bar and a body that can scroll independently. */
@@ -177,7 +179,10 @@ static int run(void* raw) {
     layout=xideLayoutCapture(&a,&error);CHECK(layout);xvalue* old=legacyLayout(layout);CHECK(old);
     int restored=xideLayoutRestore(&a,old,&error);xrtValueRelease(old);
     CHECK(restored && xideWorkbenchShowHome(&a)==XUI_OK && settle(&a) && xideWorkbenchWindowVisible(&a,XIDE_HOME)==1);
-    CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_CLEAR)) && xideSettingsRecentCount(&a.preferences)==0 && xuiTableViewGetRowCount(table)==0);
+    CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_CLEAR)) && xideMessageCurrent(&a) && xideSettingsRecentCount(&a.preferences)>0);
+    CHECK(click(&a,xuiMsgBoxGetButtonWidget(xideMessageCurrent(&a),0)) && xideSettingsRecentCount(&a.preferences)>0);
+    CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_CLEAR)) && xideMessageCurrent(&a));
+    CHECK(click(&a,xuiMsgBoxGetButtonWidget(xideMessageCurrent(&a),1)) && xideSettingsRecentCount(&a.preferences)==0 && xuiTableViewGetRowCount(table)==0);
     CHECK(xideSettingsLoad(&a.preferences,settings,&error) && xideSettingsRecentCount(&a.preferences)==0);
     a.noSession=0;CHECK(xideSessionStart(&a) && settle(&a) && xideSessionSave(&a,0,&error));
     xgeEnd();began=0;xideAppDestroy(&a);memset(&a,0,sizeof(a));

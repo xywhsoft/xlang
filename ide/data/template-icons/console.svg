@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="72" viewBox="0 0 96 72">
+  <rect x="4" y="7" width="88" height="58" rx="5" fill="#265ba8"/>
+  <rect x="7" y="10" width="82" height="12" rx="2" fill="#b2cef5"/>
+  <rect x="7" y="23" width="82" height="39" rx="2" fill="#253246"/>
+  <text x="30" y="42" font-size="26" fill="#ffffff">&gt;_</text>
+  <rect x="63" y="45" width="27" height="20" rx="3" fill="#265ba8"/>
+  <text x="77" y="55" font-size="16" fill="#ffffff">XL</text>
+</svg>

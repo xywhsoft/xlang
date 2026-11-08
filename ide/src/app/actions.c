@@ -70,6 +70,8 @@ static const action_def definitions[]={
     A(XIDE_ACTION_HOME_OPEN_RECENT,"home.openRecent","打开历史记录",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideHomeAction),
     A(XIDE_ACTION_HOME_NEW,"home.new","新建",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideHomeAction),
     A(XIDE_ACTION_HOME_OPEN,"home.open","打开",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideHomeAction),
+    A(XIDE_ACTION_HOME_CLEAR,"home.clearRecent","清空历史记录",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideHomeAction),
+    A(XIDE_ACTION_TEMPLATE_CREATE,"template.create","创建模板",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideTemplateViewAction),
     V(XIDE_ACTION_VIEW_COMMANDS,"view.commands","命令列表"),
     V(XIDE_ACTION_VIEW_WORKSPACE,"view.workspace","工作空间"),
     V(XIDE_ACTION_VIEW_PROPERTIES,"view.properties","项目属性"),
@@ -204,7 +206,8 @@ xide_action_state xideActionQuery(xide_app* a,int id)
     else if(d->check==LANGUAGE_CHECK && doc) { const char* mode=xideActionLanguage(id);state.checked=mode && !strcmp(doc->language,mode); }
     else if(d->check==STARTUP_CHECK) state.checked=project && startup==project;
     else if(d->check==WINDOW_CHECK) state.checked=windowState>0;
-    if(id!=XIDE_ACTION_STOP && id!=XIDE_ACTION_STOP_ALL && xideActionsHasModal(a)) { state.reason="请先完成或关闭当前设置窗口"; return state; }
+    int templateCreate=id==XIDE_ACTION_TEMPLATE_CREATE && xideTemplateViewIsOpen(a) && !xideMessageBusy(a) && !xideFileDialogBusy(a);
+    if(id!=XIDE_ACTION_STOP && id!=XIDE_ACTION_STOP_ALL && !templateCreate && xideActionsHasModal(a)) { state.reason="请先完成或关闭当前设置窗口"; return state; }
     int loaded=a->workspaceView && a->workspaceModel.source,available=project && project->available;
     if(id==XIDE_ACTION_TARGET_CONFIGURATIONS) {
         xide_execution_context target;xideExecutionResolve(a,0,&target);

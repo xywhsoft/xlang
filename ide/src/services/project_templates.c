@@ -52,7 +52,7 @@ static wchar_t* native(const char* s)
  size_t a=wcslen(prefix),b=unc ? 2 : 0; wchar_t* result=malloc((a+n-b+1)*sizeof(*result));
  if(result) { memcpy(result,prefix,a*sizeof(*result)); memcpy(result+a,w+b,(n-b+1)*sizeof(*result)); } free(w); return result;
 }
-static int validName(const char* name,xide_model_error* e)
+int xideProjectTemplateNameValid(const char* name,xide_model_error* e)
 {
  wchar_t* w=wide(name); if(!w) return fail(e,XIDE_MODEL_INVALID,"项目名称须为有效 UTF-8。适用于新目录名称。");
  size_t n=wcslen(w); int okay=n>0 && n<=120 && w[0]!=L' ' && w[n-1]!=L' ' && w[n-1]!=L'.';
@@ -81,7 +81,7 @@ const xide_project_template* xideTemplatePlanDefinition(const xide_template_plan
 xide_template_plan* xideTemplatePlanPrepare(const char* parent,const char* name,const char* templateId,xide_model_error* e)
 {
  if(e) { memset(e,0,sizeof(*e)); } const xide_project_template* d=xideProjectTemplateFind(templateId);
- if(!d || !parent || !*parent || !validName(name,e)) { if(e && !e->code) fail(e,XIDE_MODEL_INVALID,"选择模板并填写父目录与项目名称。"); return NULL; }
+ if(!d || !parent || !*parent || !xideProjectTemplateNameValid(name,e)) { if(e && !e->code) fail(e,XIDE_MODEL_INVALID,"选择模板并填写父目录与项目名称。"); return NULL; }
  xide_template_plan* p=calloc(1,sizeof(*p)); if(!p) { fail(e,XIDE_MODEL_MEMORY,"无法准备新项目。"); return NULL; } p->definition=d;
  p->parent=xidePathResolve(NULL,parent); wchar_t* w=p->parent ? native(p->parent) : NULL;
  DWORD a=w ? GetFileAttributesW(w) : INVALID_FILE_ATTRIBUTES; free(w);

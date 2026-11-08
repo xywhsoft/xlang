@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "root": "F:\\xlang-validation\\xge-table-grid-20261109\\source",
+  "root": "F:\\xlang-validation\\ide-templates-20261109\\source",
   "sourceCommit": "2174bf5b8e68a9069bd9788bd2f73444b9a0d722",
   "sourceFileCount": 791,
   "files": [
@@ -2536,8 +2536,8 @@
     },
     {
       "path": "include/xui.h",
-      "sha256": "1cbae03fcb6ee4d6d4a74da941a42bb9e05e73ffc3f76fad4f79574fe34069b3",
-      "size": 710460
+      "sha256": "b0f048522b1e2c19d65bfa68f04c4ce066f3c4762f4ab54c1df3341732537893",
+      "size": 697263
     },
     {
       "path": "include/xui_config.h",
@@ -3361,8 +3361,8 @@
     },
     {
       "path": "src/xui/controls/xui_tree_view.c",
-      "sha256": "83d133ff2ef4ac14df5bf7fda431990a92eee8e21d9a00d8f032da71e45b6650",
-      "size": 141284
+      "sha256": "8fbe4f9172772e6af043e59926c47f32f2748d9d24ee0c58775270072d0b1272",
+      "size": 142593
     },
     {
       "path": "src/xui/controls/xui_virtual_joystick.c",
@@ -3991,14 +3991,6 @@
         "diff": "diff/include/xge.h.diff"
       },
       {
-        "path": "include/xui.h",
-        "upstreamExists": true,
-        "upstreamSha256": "14e17b65e684d407bd0969e7838972a8a414c1078472295c63ca9cc20a19b0c7",
-        "sha256": "1cbae03fcb6ee4d6d4a74da941a42bb9e05e73ffc3f76fad4f79574fe34069b3",
-        "payload": "payload/include/xui.h",
-        "diff": "diff/include/xui.h.diff"
-      },
-      {
         "path": "src/xge/core/xge_core.c",
         "upstreamExists": true,
         "upstreamSha256": "7d80172a6bcff23cff1d055b83509a7fcb5e6af160767ac420816638823763d0",
@@ -4029,9 +4021,26 @@
         "sha256": "2eca10781dac61e8b8bd3c54ac5919868183f643269c874f7e3276bb5c64caef",
         "payload": "payload/src/xui/controls/xui_table_view.c",
         "diff": "diff/src/xui/controls/xui_table_view.c.diff"
+      },
+      {
+        "path": "include/xui.h",
+        "upstreamExists": true,
+        "upstreamSha256": "14e17b65e684d407bd0969e7838972a8a414c1078472295c63ca9cc20a19b0c7",
+        "sha256": "b0f048522b1e2c19d65bfa68f04c4ce066f3c4762f4ab54c1df3341732537893",
+        "payload": "payload/include/xui.h",
+        "diff": "diff/include/xui.h.diff"
+      },
+      {
+        "path": "src/xui/controls/xui_tree_view.c",
+        "upstreamExists": true,
+        "upstreamSha256": "83d133ff2ef4ac14df5bf7fda431990a92eee8e21d9a00d8f032da71e45b6650",
+        "sha256": "8fbe4f9172772e6af043e59926c47f32f2748d9d24ee0c58775270072d0b1272",
+        "payload": "payload/src/xui/controls/xui_tree_view.c",
+        "diff": "diff/src/xui/controls/xui_tree_view.c.diff"
       }
     ],
-    "gridFixCommit": "381cd2273d6ba8f70255beb0142312c42c3ac9b1"
+    "gridFixCommit": "381cd2273d6ba8f70255beb0142312c42c3ac9b1",
+    "treeIconHook": true
   },
-  "compatibilityPatchRoot": "provenance/source-2174bf5b8e68-2c4a203361ee/compatibility-patches"
+  "compatibilityPatchRoot": "provenance/source-2174bf5b8e68-431e42320088/compatibility-patches"
 }
