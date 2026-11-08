@@ -12,7 +12,8 @@ typedef struct xls_ast_materialize_scope {
 } xls_ast_materialize_scope;
 /* Private compiler trees only. Never use for retained syntax units or views:
  * those have a different completed-cache accounting/lifetime contract. Scopes
- * own distinct pools; nested scopes consume the parent's remaining allowance.
+ * use separate backing for large function/body copies and amortize small
+ * declarations in a shared pool. Nested scopes consume the parent's allowance.
  * Output fields/sources remain ordinary XRT and may mutate normally. */
 void xlsAstMaterializeBegin(xls_ast_materialize_scope* scope,size_t bytes);
 void xlsAstMaterializeEnd(xls_ast_materialize_scope* scope,xls_ast_materialize_work* work);

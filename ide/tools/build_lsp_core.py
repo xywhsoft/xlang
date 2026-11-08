@@ -109,6 +109,7 @@ CORE_TESTS = ("analysis_multifunction_syntax_test", "analysis_multifunction_faul
 CORE_TESTS = ("analysis_type_constructor_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_derived_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_parameters_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_function_pool_test", *CORE_TESTS)
 HOST_TESTS += ("navigation_cache_test", "semantic_reference_shard_test", "project_references_test", "project_reference_budget_test", "reference_path_index_test")
 HOST_TESTS += ("path_identity_batch_test", "reference_capture_test")
 HOST_TESTS += ("project_reference_parallel_test",)
@@ -937,6 +938,7 @@ def main() -> None:
             if name=='analysis_current_loader_test' and loader_references:
                 extra += [str(objects[p.stem]) for p in loader_references]+['-Wl,--wrap=xrtMalloc']
             if name=='analysis_ir_callsite_test':extra+=['-Wl,--wrap=xrtArrayReserve','-Wl,--wrap=xrtArrayResize']
+            if name=='analysis_function_pool_test':extra+=['-Wl,--wrap='+function for function in ('xlsAstStorageCreate','xlsAstStorageNode','xlsAstCloneInStorage')]
             if name=='analysis_type_constructor_test':
                 extra += ['-Wl,--wrap='+function for function in ('xrtCalloc','xrtStrDupN','xrtStrDup')]
             if name=='analysis_ir_derived_test' and '#define XLS_NATIVE_IR_DERIVED_PHASES 1' in (output/'frontend/xl6_ir.c').read_text(encoding='utf-8'):extra+=['-Wl,--wrap='+function for function in ('xrtCalloc','xrtArrayInit','xrtArrayResize','xrtArrayPush','xrtStrBufReserve')]

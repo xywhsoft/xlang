@@ -1,0 +1,3381 @@
+{
+  "format": "xlang-native-function-pool-acceptance-1",
+  "date": "2026-11-09",
+  "phaseStatus": "independent-function-pools-complete-candidate-not-delivered",
+  "fullGoalComplete": false,
+  "shippingDelivery": false,
+  "correctnessPassed": true,
+  "performanceQualified": false,
+  "baseGitCommit": "9a81d2470d24dfbe1cc0a991dd96c2094c0393c7",
+  "implementationInputs": {
+    "ide/src/analysis/ast_materialize.c": "569f533d617d70a409c6f68a4eb8c8dc1fb239c1083a37b2e226854a9a9aefda",
+    "ide/src/analysis/ast_materialize.h": "4807627b9f6d8b6ff1b9d779620c6d251212f849ae558ba0252656a2a5bffb87",
+    "ide/tools/build_lsp_core.py": "e01b6e041ae6462ed21773d9258926947dcc713e9eb5f72778c55629931f1f3d",
+    "ide/tests/analysis_function_pool_test.c": "209821813a7475194bd530943f2f5e5414c58190094babd0267b2b2cd6f16120",
+    "ide/tools/check_function_pools.py": "7650b7d9249712c2a84b1abda198713579464d7d334b2b37af7c4cca3d227e4c",
+    "ide/docs/lsp-function-pool-ownership.md": "b0e2c433687586fe3fd624495aba10f683d112d3415a3c054967f695b3c90b22",
+    "ide/docs/lsp-development.md": "c86b7639f4ee900e7f44cd4cb4b38b7be15ccb0ef69e18209dbe2a8c3dc39194"
+  },
+  "scope": "Split large function/body materializations into existing independently owned XRT pools; small trees remain amortized. Existing scopes, full reachable backing, native certificates, retry and quotas preserved; no new runtime dependency or structure layout.",
+  "native": {
+    "buildReceiptSha256": "b73b4133eb52604c5e869461f08106aaffcb539aacee04da46c94e333c180bba",
+    "compileInvocations": 238,
+    "tests": 140,
+    "privateAstConsumers": 145,
+    "inputs": 1402,
+    "outputs": 142,
+    "newAssertions": 851,
+    "baseMaterializeAssertions": 1377,
+    "nativeParityAssertions": 1224006,
+    "producerCases": 5,
+    "producerCommands": 17,
+    "borrowCases": 9,
+    "borrowCommands": 29,
+    "allocationRefusalPoints": [
+      1,
+      177,
+      1
+    ],
+    "serverSha256": "d9b7e73fbcf57c5ee25a0c4c4d5577b0bf1652348f088abbf30de1774b282c00",
+    "imports": [
+      "IPHLPAPI.DLL",
+      "KERNEL32.dll",
+      "msvcrt.dll",
+      "ole32.dll",
+      "SHELL32.dll",
+      "VERSION.dll",
+      "WS2_32.dll"
+    ],
+    "retentionFixture": {
+      "functions": 512,
+      "retainedBefore": 85,
+      "retainedAfter": 279,
+      "copiedCold": 97820,
+      "copiedHotBefore": 82398,
+      "copiedHotAfter": 47090,
+      "retentionLimitBytes": 33554432
+    }
+  },
+  "protocol": {
+    "suites": [
+      {
+        "name": "selection-full",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_native_selection.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-function-pools-candidate.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\selection-full"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "configuration-full",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_analysis_configuration.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-function-pools-candidate.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\configuration-full"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "derived-wire-full",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_ir_derived.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-function-pools-candidate.exe",
+          "--reference",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-function-pools-reference.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\derived-wire-full"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "current-wire-full",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_current_core.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-function-pools-candidate.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\current-wire-full"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "completion-full",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_completion_facts.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-function-pools-candidate.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\completion-full"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "automatic-full",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_automatic_diagnostics.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-function-pools-candidate.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\automatic-full"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "final-wire-full",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_final_lsp_stdio.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-function-pools-candidate.exe",
+          "--core",
+          "D:\\GIT\\x-lang",
+          "--packages",
+          "D:\\GIT\\x-lang\\lib\\bindings",
+          "--out",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\final-wire-full"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "serializer-full",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_final_lsp_serializer.py",
+          "--build",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\full",
+          "--out",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\serializer-full"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "final-frontend-full",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_final_lsp_frontend.py",
+          "--build",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\full",
+          "--core",
+          "D:\\GIT\\x-lang",
+          "--out",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\final-frontend-full"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "module-semantics",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_module_semantics.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-function-pools-candidate.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\module-semantics"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "native-analysis",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_native_analysis.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-function-pools-candidate.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\native-analysis"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "native-completion",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_native_completion.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-function-pools-candidate.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\native-completion"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "references",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_references.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-function-pools-candidate.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\references"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "reference-proofs",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_reference_proofs.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-function-pools-candidate.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\reference-proofs"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "folding",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_folding.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-function-pools-candidate.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\folding"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "selection",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_selection.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-function-pools-candidate.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\selection"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "signature",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_signature_help.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-function-pools-candidate.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\signature"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "semantic-reads",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_semantic_reads.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-function-pools-candidate.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\semantic-reads"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "incremental",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_incremental.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-function-pools-candidate.exe",
+          "--compiler",
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\incremental"
+        ],
+        "exit": 0
+      }
+    ]
+  },
+  "gui": {
+    "sourceScope": {
+      "baseCommit": "9a81d2470d24dfbe1cc0a991dd96c2094c0393c7",
+      "overlays": {
+        "ide/src/analysis/ast_materialize.c": "569f533d617d70a409c6f68a4eb8c8dc1fb239c1083a37b2e226854a9a9aefda",
+        "ide/src/analysis/ast_materialize.h": "4807627b9f6d8b6ff1b9d779620c6d251212f849ae558ba0252656a2a5bffb87",
+        "ide/tools/build_lsp_core.py": "e01b6e041ae6462ed21773d9258926947dcc713e9eb5f72778c55629931f1f3d",
+        "ide/tests/analysis_function_pool_test.c": "209821813a7475194bd530943f2f5e5414c58190094babd0267b2b2cd6f16120",
+        "ide/tools/check_function_pools.py": "7650b7d9249712c2a84b1abda198713579464d7d334b2b37af7c4cca3d227e4c"
+      },
+      "snapshotRoot": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\gui-source-current-sdk",
+      "objectRoot": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\gui-objects-current-sdk",
+      "sdkJunction": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\gui-source-current-sdk\\ide\\third_party\\xge_sdk",
+      "sdkTarget": "D:\\GIT\\x-lang\\ide\\third_party\\xge_sdk",
+      "buildScriptOnlyChange": "Move compiler objects to task-owned directory; no source behavior change",
+      "reason": "Immutable current committed IDE plus this slice; preserve concurrent unrelated frontend work. Executables still use actual repository release/win_x64 runtime."
+    },
+    "tests": [
+      {
+        "fixture": "language_optional_fields_test",
+        "exit": 0,
+        "arguments": [
+          "all"
+        ]
+      },
+      {
+        "fixture": "input_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\gui-alias-1794164075885961500\\input_test"
+        ]
+      },
+      {
+        "fixture": "completion_view_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\gui-alias-1794164075885961500\\completion_view_test",
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\absent-compiler.exe"
+        ]
+      },
+      {
+        "fixture": "automatic_diagnostics_view_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\gui-alias-1794164075885961500\\automatic_diagnostics_view_test",
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe"
+        ]
+      },
+      {
+        "fixture": "settings_menu_frame_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\gui-alias-1794164075885961500\\settings_menu_frame_test",
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe"
+        ]
+      },
+      {
+        "fixture": "analysis_configuration_view_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\gui-alias-1794164075885961500\\analysis_configuration_view_test",
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe"
+        ]
+      },
+      {
+        "fixture": "analysis_project_context_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\gui-alias-1794164075885961500\\analysis_project_context_test"
+        ]
+      },
+      {
+        "fixture": "analysis_catalog_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\gui-alias-1794164075885961500\\analysis_catalog_test"
+        ]
+      }
+    ],
+    "objects": 111,
+    "pairedServerSha256": "d9b7e73fbcf57c5ee25a0c4c4d5577b0bf1652348f088abbf30de1774b282c00",
+    "guiCandidateSha256": "a7c70f0dd618bfd263be0ea089cc5098783272970d6e8e9d90b876f5d3881da7",
+    "receiptSha256": "13e6fe2e87c4b964a1aa69f843602cedeb35f2277e3ef916bd1eaeffb35f2d2b",
+    "runtimeDirectory": "release/win_x64",
+    "beforeSdkChange": {
+      "tests": [
+        {
+          "fixture": "language_optional_fields_test",
+          "exit": 0,
+          "arguments": [
+            "all"
+          ]
+        },
+        {
+          "fixture": "input_test",
+          "exit": 0,
+          "arguments": [
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\gui-alias-1794162905774112100\\input_test"
+          ]
+        },
+        {
+          "fixture": "completion_view_test",
+          "exit": 0,
+          "arguments": [
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\gui-alias-1794162905774112100\\completion_view_test",
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\absent-compiler.exe"
+          ]
+        },
+        {
+          "fixture": "automatic_diagnostics_view_test",
+          "exit": 0,
+          "arguments": [
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\gui-alias-1794162905774112100\\automatic_diagnostics_view_test",
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe"
+          ]
+        },
+        {
+          "fixture": "settings_menu_frame_test",
+          "exit": 0,
+          "arguments": [
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\gui-alias-1794162905774112100\\settings_menu_frame_test",
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe"
+          ]
+        },
+        {
+          "fixture": "analysis_configuration_view_test",
+          "exit": 0,
+          "arguments": [
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\gui-alias-1794162905774112100\\analysis_configuration_view_test",
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe"
+          ]
+        },
+        {
+          "fixture": "analysis_project_context_test",
+          "exit": 0,
+          "arguments": [
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\gui-alias-1794162905774112100\\analysis_project_context_test"
+          ]
+        },
+        {
+          "fixture": "analysis_catalog_test",
+          "exit": 0,
+          "arguments": [
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-pools-20261109\\gui-alias-1794162905774112100\\analysis_catalog_test"
+          ]
+        }
+      ],
+      "guiCandidateSha256": "c9f680db2dc9d86bd6929ef6c5327fdca6caf78acabefafa72dda40f1ee166dc",
+      "protectedRuntime": {
+        "xlang_ide.exe": "d335281a9d2b11f92b027752e9a6529d947b82506ba1721617e53f012aa0aee3",
+        "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+        "xl.exe": "e5f4719890814a3f7b5422ffb1f293ffc944c527de62217d32e9a3a4c287dfad",
+        "xl.dll": "e783d6a15c946945d4186084cff9006839cbc1d31a0ae387396dc6f500aaac6c",
+        "xlc.dll": "b4563a13448e2f550b00c0504cac481cdefd2b61ee961276049f936243f125a1",
+        "xge.dll": "40d6bfa25cc881d45e4a8ac12e0dc4ff6c5115bad93f8e0f1ffdbc1d0a67c4e2"
+      },
+      "originalReceiptSha256": "6b0bd77c91a957366cf46a80d480efa339504b285a0771f44b7d644467fe6f73",
+      "reboundReceiptSha256": "ef5ae75523c6fbdb95b2df0a3ba9ba4c393315065bdfbdfe80c024453917f07b",
+      "originalInputBytesVerified": true,
+      "notCurrentSdkQualification": true
+    },
+    "currentSdkRecompiledAndValidated": true
+  },
+  "performance": {
+    "qualified": false,
+    "syntheticGatesPassed": false,
+    "runs": {
+      "performance-aa": {
+        "status": "calibration-failed",
+        "validMeasuredResult": true,
+        "error": null,
+        "queries": 960,
+        "processes": 64,
+        "gates": 64,
+        "failed": 1,
+        "failures": [
+          {
+            "name": "32-single-literal/first/wireP50",
+            "actual": 12.0273,
+            "limit": 11.923695,
+            "passed": false,
+            "baseline": 11.3559,
+            "ratio": 1.05
+          }
+        ],
+        "summary": {
+          "32-single-literal": {
+            "cold": {
+              "baseline": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 41.3726,
+                  "p95": 44.0439,
+                  "maximum": 44.0439
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 31.25,
+                  "p95": 46.875,
+                  "maximum": 46.875
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 143548685,
+                  "p95": 152789595,
+                  "maximum": 152789595
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 41.3853,
+                  "p95": 43.4957,
+                  "maximum": 43.4957
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 46.875,
+                  "p95": 46.875,
+                  "maximum": 46.875
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 143563000,
+                  "p95": 151028430,
+                  "maximum": 151028430
+                }
+              }
+            },
+            "first": {
+              "baseline": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 11.3559,
+                  "p95": 12.4627,
+                  "maximum": 12.4627
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 15.625,
+                  "p95": 15.625,
+                  "maximum": 15.625
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 38918880,
+                  "p95": 43056230,
+                  "maximum": 43056230
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 12.0273,
+                  "p95": 12.6193,
+                  "maximum": 12.6193
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 15.625,
+                  "p95": 15.625,
+                  "maximum": 15.625
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 41329435,
+                  "p95": 43582560,
+                  "maximum": 43582560
+                }
+              }
+            },
+            "hot": {
+              "baseline": {
+                "ms": {
+                  "samples": 48,
+                  "p50": 11.5458,
+                  "p95": 13.0239,
+                  "maximum": 13.3793
+                },
+                "cpuMs": {
+                  "samples": 48,
+                  "p50": 15.625,
+                  "p95": 15.625,
+                  "maximum": 31.25
+                },
+                "cycles": {
+                  "samples": 48,
+                  "p50": 39895310,
+                  "p95": 44253580,
+                  "maximum": 45955665
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 48,
+                  "p50": 11.4954,
+                  "p95": 12.4855,
+                  "maximum": 12.7763
+                },
+                "cpuMs": {
+                  "samples": 48,
+                  "p50": 15.625,
+                  "p95": 31.25,
+                  "maximum": 31.25
+                },
+                "cycles": {
+                  "samples": 48,
+                  "p50": 39475660,
+                  "p95": 42991270,
+                  "maximum": 43906765
+                }
+              }
+            },
+            "exact": {
+              "baseline": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 0.7611,
+                  "p95": 0.8607,
+                  "maximum": 0.8607
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 0.0,
+                  "p95": 31.25,
+                  "maximum": 31.25
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 2754745,
+                  "p95": 2971395,
+                  "maximum": 2971395
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 0.6793,
+                  "p95": 0.7474,
+                  "maximum": 0.7474
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 0.0,
+                  "p95": 0.0,
+                  "maximum": 0.0
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 2514470,
+                  "p95": 2681910,
+                  "maximum": 2681910
+                }
+              }
+            }
+          },
+          "32-single-declaration": {
+            "cold": {
+              "baseline": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 40.8453,
+                  "p95": 42.2794,
+                  "maximum": 42.2794
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 46.875,
+                  "p95": 46.875,
+                  "maximum": 46.875
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 141836520,
+                  "p95": 146759795,
+                  "maximum": 146759795
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 41.2452,
+                  "p95": 42.0143,
+                  "maximum": 42.0143
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 31.25,
+                  "p95": 46.875,
+                  "maximum": 46.875
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 142883335,
+                  "p95": 145443340,
+                  "maximum": 145443340
+                }
+              }
+            },
+            "first": {
+              "baseline": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 20.745,
+                  "p95": 25.54,
+                  "maximum": 25.54
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 15.625,
+                  "p95": 31.25,
+                  "maximum": 31.25
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 72065840,
+                  "p95": 88596235,
+                  "maximum": 88596235
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 20.8015,
+                  "p95": 21.2558,
+                  "maximum": 21.2558
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 15.625,
+                  "p95": 31.25,
+                  "maximum": 31.25
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 72252985,
+                  "p95": 73548580,
+                  "maximum": 73548580
+                }
+              }
+            },
+            "hot": {
+              "baseline": {
+                "ms": {
+                  "samples": 48,
+                  "p50": 12.8787,
+                  "p95": 18.9283,
+                  "maximum": 18.9924
+                },
+                "cpuMs": {
+                  "samples": 48,
+                  "p50": 15.625,
+                  "p95": 31.25,
+                  "maximum": 31.25
+                },
+                "cycles": {
+                  "samples": 48,
+                  "p50": 44317000,
+                  "p95": 65593290,
+                  "maximum": 65971640
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 48,
+                  "p50": 12.9869,
+                  "p95": 18.2025,
+                  "maximum": 18.6108
+                },
+                "cpuMs": {
+                  "samples": 48,
+                  "p50": 15.625,
+                  "p95": 31.25,
+                  "maximum": 31.25
+                },
+                "cycles": {
+                  "samples": 48,
+                  "p50": 44811760,
+                  "p95": 62679820,
+                  "maximum": 64679965
+                }
+              }
+            },
+            "exact": {
+              "baseline": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 0.7335,
+                  "p95": 0.7682,
+                  "maximum": 0.7682
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 0.0,
+                  "p95": 0.0,
+                  "maximum": 0.0
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 2543835,
+                  "p95": 2829960,
+                  "maximum": 2829960
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 0.6691,
+                  "p95": 0.8155,
+                  "maximum": 0.8155
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 0.0,
+                  "p95": 15.625,
+                  "maximum": 15.625
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 2405375,
+                  "p95": 2812075,
+                  "maximum": 2812075
+                }
+              }
+            }
+          },
+          "32-imported-literal": {
+            "cold": {
+              "baseline": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 44.532,
+                  "p95": 45.1127,
+                  "maximum": 45.1127
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 46.875,
+                  "p95": 62.5,
+                  "maximum": 62.5
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 154607670,
+                  "p95": 156415805,
+                  "maximum": 156415805
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 44.3058,
+                  "p95": 60.0102,
+                  "maximum": 60.0102
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 31.25,
+                  "p95": 62.5,
+                  "maximum": 62.5
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 153995695,
+                  "p95": 208552120,
+                  "maximum": 208552120
+                }
+              }
+            },
+            "first": {
+              "baseline": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 12.371,
+                  "p95": 13.182,
+                  "maximum": 13.182
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 0.0,
+                  "p95": 15.625,
+                  "maximum": 15.625
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 42583415,
+                  "p95": 45571925,
+                  "maximum": 45571925
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 12.454,
+                  "p95": 13.9171,
+                  "maximum": 13.9171
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 15.625,
+                  "p95": 15.625,
+                  "maximum": 15.625
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 42957880,
+                  "p95": 48012965,
+                  "maximum": 48012965
+                }
+              }
+            },
+            "hot": {
+              "baseline": {
+                "ms": {
+                  "samples": 48,
+                  "p50": 12.8296,
+                  "p95": 14.1262,
+                  "maximum": 15.9856
+                },
+                "cpuMs": {
+                  "samples": 48,
+                  "p50": 15.625,
+                  "p95": 15.625,
+                  "maximum": 31.25
+                },
+                "cycles": {
+                  "samples": 48,
+                  "p50": 44455495,
+                  "p95": 49071260,
+                  "maximum": 55496805
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 48,
+                  "p50": 13.1098,
+                  "p95": 13.7763,
+                  "maximum": 14.2079
+                },
+                "cpuMs": {
+                  "samples": 48,
+                  "p50": 15.625,
+                  "p95": 15.625,
+                  "maximum": 31.25
+                },
+                "cycles": {
+                  "samples": 48,
+                  "p50": 45371235,
+                  "p95": 47801390,
+                  "maximum": 49351085
+                }
+              }
+            },
+            "exact": {
+              "baseline": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 1.2523,
+                  "p95": 1.5401,
+                  "maximum": 1.5401
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 0.0,
+                  "p95": 0.0,
+                  "maximum": 0.0
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 4432435,
+                  "p95": 5378100,
+                  "maximum": 5378100
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 1.2466,
+                  "p95": 1.5278,
+                  "maximum": 1.5278
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 0.0,
+                  "p95": 0.0,
+                  "maximum": 0.0
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 4432225,
+                  "p95": 5574730,
+                  "maximum": 5574730
+                }
+              }
+            }
+          },
+          "32-imported-declaration": {
+            "cold": {
+              "baseline": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 45.9604,
+                  "p95": 48.6834,
+                  "maximum": 48.6834
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 46.875,
+                  "p95": 62.5,
+                  "maximum": 62.5
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 159237015,
+                  "p95": 169035020,
+                  "maximum": 169035020
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 44.217,
+                  "p95": 51.497,
+                  "maximum": 51.497
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 31.25,
+                  "p95": 46.875,
+                  "maximum": 46.875
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 153484415,
+                  "p95": 178986325,
+                  "maximum": 178986325
+                }
+              }
+            },
+            "first": {
+              "baseline": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 29.3819,
+                  "p95": 29.5218,
+                  "maximum": 29.5218
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 31.25,
+                  "p95": 46.875,
+                  "maximum": 46.875
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 101671535,
+                  "p95": 102616990,
+                  "maximum": 102616990
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 29.1993,
+                  "p95": 30.1168,
+                  "maximum": 30.1168
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 15.625,
+                  "p95": 31.25,
+                  "maximum": 31.25
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 101177230,
+                  "p95": 104668235,
+                  "maximum": 104668235
+                }
+              }
+            },
+            "hot": {
+              "baseline": {
+                "ms": {
+                  "samples": 48,
+                  "p50": 14.5894,
+                  "p95": 27.3588,
+                  "maximum": 28.4833
+                },
+                "cpuMs": {
+                  "samples": 48,
+                  "p50": 15.625,
+                  "p95": 31.25,
+                  "maximum": 31.25
+                },
+                "cycles": {
+                  "samples": 48,
+                  "p50": 50567160,
+                  "p95": 95257925,
+                  "maximum": 99114960
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 48,
+                  "p50": 14.6842,
+                  "p95": 27.0941,
+                  "maximum": 29.1524
+                },
+                "cpuMs": {
+                  "samples": 48,
+                  "p50": 15.625,
+                  "p95": 31.25,
+                  "maximum": 31.25
+                },
+                "cycles": {
+                  "samples": 48,
+                  "p50": 50826300,
+                  "p95": 93904895,
+                  "maximum": 101369660
+                }
+              }
+            },
+            "exact": {
+              "baseline": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 1.2654,
+                  "p95": 1.3584,
+                  "maximum": 1.3584
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 0.0,
+                  "p95": 15.625,
+                  "maximum": 15.625
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 4420325,
+                  "p95": 4843405,
+                  "maximum": 4843405
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 1.2585,
+                  "p95": 1.3005,
+                  "maximum": 1.3005
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 0.0,
+                  "p95": 0.0,
+                  "maximum": 0.0
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 4463935,
+                  "p95": 4570055,
+                  "maximum": 4570055
+                }
+              }
+            }
+          },
+          "512-single-literal": {
+            "cold": {
+              "baseline": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 732.5446,
+                  "p95": 869.5966,
+                  "maximum": 869.5966
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 734.375,
+                  "p95": 859.375,
+                  "maximum": 859.375
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 2550410345,
+                  "p95": 3026369080,
+                  "maximum": 3026369080
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 741.7702,
+                  "p95": 868.1467,
+                  "maximum": 868.1467
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 750.0,
+                  "p95": 859.375,
+                  "maximum": 859.375
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 2582482174,
+                  "p95": 3014242596,
+                  "maximum": 3014242596
+                }
+              }
+            },
+            "first": {
+              "baseline": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 244.1639,
+                  "p95": 294.8569,
+                  "maximum": 294.8569
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 234.375,
+                  "p95": 296.875,
+                  "maximum": 296.875
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 845595170,
+                  "p95": 1015486465,
+                  "maximum": 1015486465
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 241.3348,
+                  "p95": 280.2542,
+                  "maximum": 280.2542
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 250.0,
+                  "p95": 265.625,
+                  "maximum": 265.625
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 836023020,
+                  "p95": 968416050,
+                  "maximum": 968416050
+                }
+              }
+            },
+            "hot": {
+              "baseline": {
+                "ms": {
+                  "samples": 48,
+                  "p50": 250.7896,
+                  "p95": 294.5515,
+                  "maximum": 328.2071
+                },
+                "cpuMs": {
+                  "samples": 48,
+                  "p50": 250.0,
+                  "p95": 281.25,
+                  "maximum": 312.5
+                },
+                "cycles": {
+                  "samples": 48,
+                  "p50": 867198045,
+                  "p95": 1020445020,
+                  "maximum": 1128305115
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 48,
+                  "p50": 246.59,
+                  "p95": 279.301,
+                  "maximum": 308.5169
+                },
+                "cpuMs": {
+                  "samples": 48,
+                  "p50": 250.0,
+                  "p95": 296.875,
+                  "maximum": 296.875
+                },
+                "cycles": {
+                  "samples": 48,
+                  "p50": 853497750,
+                  "p95": 964776365,
+                  "maximum": 1046540460
+                }
+              }
+            },
+            "exact": {
+              "baseline": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 2.2823,
+                  "p95": 2.7441,
+                  "maximum": 2.7441
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 0.0,
+                  "p95": 0.0,
+                  "maximum": 0.0
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 8288385,
+                  "p95": 9888725,
+                  "maximum": 9888725
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 2.5149,
+                  "p95": 2.7965,
+                  "maximum": 2.7965
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 0.0,
+                  "p95": 15.625,
+                  "maximum": 15.625
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 8909495,
+                  "p95": 9813475,
+                  "maximum": 9813475
+                }
+              }
+            }
+          },
+          "512-single-declaration": {
+            "cold": {
+              "baseline": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 748.9032,
+                  "p95": 752.0803,
+                  "maximum": 752.0803
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 750.0,
+                  "p95": 750.0,
+                  "maximum": 750.0
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 2607482605,
+                  "p95": 2619104040,
+                  "maximum": 2619104040
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 741.8424,
+                  "p95": 767.1578,
+                  "maximum": 767.1578
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 734.375,
+                  "p95": 765.625,
+                  "maximum": 765.625
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 2581754175,
+                  "p95": 2670548405,
+                  "maximum": 2670548405
+                }
+              }
+            },
+            "first": {
+              "baseline": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 350.3222,
+                  "p95": 359.2885,
+                  "maximum": 359.2885
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 343.75,
+                  "p95": 359.375,
+                  "maximum": 359.375
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 1215856285,
+                  "p95": 1246244055,
+                  "maximum": 1246244055
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 350.6928,
+                  "p95": 354.3617,
+                  "maximum": 354.3617
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 343.75,
+                  "p95": 359.375,
+                  "maximum": 359.375
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 1216581065,
+                  "p95": 1229071445,
+                  "maximum": 1229071445
+                }
+              }
+            },
+            "hot": {
+              "baseline": {
+                "ms": {
+                  "samples": 48,
+                  "p50": 264.5265,
+                  "p95": 341.1665,
+                  "maximum": 377.1226
+                },
+                "cpuMs": {
+                  "samples": 48,
+                  "p50": 265.625,
+                  "p95": 343.75,
+                  "maximum": 375.0
+                },
+                "cycles": {
+                  "samples": 48,
+                  "p50": 916361075,
+                  "p95": 1184904000,
+                  "maximum": 1308106800
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 48,
+                  "p50": 264.1804,
+                  "p95": 353.7627,
+                  "maximum": 384.1247
+                },
+                "cpuMs": {
+                  "samples": 48,
+                  "p50": 265.625,
+                  "p95": 375.0,
+                  "maximum": 390.625
+                },
+                "cycles": {
+                  "samples": 48,
+                  "p50": 915158825,
+                  "p95": 1225950110,
+                  "maximum": 1333358950
+                }
+              }
+            },
+            "exact": {
+              "baseline": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 2.269,
+                  "p95": 2.7074,
+                  "maximum": 2.7074
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 0.0,
+                  "p95": 0.0,
+                  "maximum": 0.0
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 8168860,
+                  "p95": 9633575,
+                  "maximum": 9633575
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 2.2673,
+                  "p95": 2.699,
+                  "maximum": 2.699
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 0.0,
+                  "p95": 0.0,
+                  "maximum": 0.0
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 8178800,
+                  "p95": 9515345,
+                  "maximum": 9515345
+                }
+              }
+            }
+          },
+          "512-imported-literal": {
+            "cold": {
+              "baseline": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 834.5267,
+                  "p95": 852.6951,
+                  "maximum": 852.6951
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 843.75,
+                  "p95": 843.75,
+                  "maximum": 843.75
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 2906482950,
+                  "p95": 2968797335,
+                  "maximum": 2968797335
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 829.3782,
+                  "p95": 840.4357,
+                  "maximum": 840.4357
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 828.125,
+                  "p95": 843.75,
+                  "maximum": 843.75
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 2888756010,
+                  "p95": 2926783650,
+                  "maximum": 2926783650
+                }
+              }
+            },
+            "first": {
+              "baseline": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 263.297,
+                  "p95": 287.4843,
+                  "maximum": 287.4843
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 265.625,
+                  "p95": 296.875,
+                  "maximum": 296.875
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 912042460,
+                  "p95": 995595194,
+                  "maximum": 995595194
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 257.2117,
+                  "p95": 278.4175,
+                  "maximum": 278.4175
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 265.625,
+                  "p95": 265.625,
+                  "maximum": 265.625
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 890876665,
+                  "p95": 963672990,
+                  "maximum": 963672990
+                }
+              }
+            },
+            "hot": {
+              "baseline": {
+                "ms": {
+                  "samples": 48,
+                  "p50": 269.6622,
+                  "p95": 293.1069,
+                  "maximum": 304.7632
+                },
+                "cpuMs": {
+                  "samples": 48,
+                  "p50": 265.625,
+                  "p95": 296.875,
+                  "maximum": 296.875
+                },
+                "cycles": {
+                  "samples": 48,
+                  "p50": 934412605,
+                  "p95": 1014984740,
+                  "maximum": 1055081265
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 48,
+                  "p50": 270.6234,
+                  "p95": 304.9207,
+                  "maximum": 342.8732
+                },
+                "cpuMs": {
+                  "samples": 48,
+                  "p50": 265.625,
+                  "p95": 296.875,
+                  "maximum": 343.75
+                },
+                "cycles": {
+                  "samples": 48,
+                  "p50": 937471570,
+                  "p95": 1033399465,
+                  "maximum": 1182865879
+                }
+              }
+            },
+            "exact": {
+              "baseline": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 3.065,
+                  "p95": 3.3525,
+                  "maximum": 3.3525
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 0.0,
+                  "p95": 15.625,
+                  "maximum": 15.625
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 10755710,
+                  "p95": 11978575,
+                  "maximum": 11978575
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 2.9357,
+                  "p95": 3.0504,
+                  "maximum": 3.0504
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 0.0,
+                  "p95": 15.625,
+                  "maximum": 15.625
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 10353560,
+                  "p95": 10882060,
+                  "maximum": 10882060
+                }
+              }
+            }
+          },
+          "512-imported-declaration": {
+            "cold": {
+              "baseline": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 834.8893,
+                  "p95": 922.2699,
+                  "maximum": 922.2699
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 843.75,
+                  "p95": 921.875,
+                  "maximum": 921.875
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 2906329475,
+                  "p95": 3212765955,
+                  "maximum": 3212765955
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 846.69,
+                  "p95": 870.1011,
+                  "maximum": 870.1011
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 843.75,
+                  "p95": 859.375,
+                  "maximum": 859.375
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 2948693370,
+                  "p95": 3030604571,
+                  "maximum": 3030604571
+                }
+              }
+            },
+            "first": {
+              "baseline": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 358.9157,
+                  "p95": 380.1501,
+                  "maximum": 380.1501
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 359.375,
+                  "p95": 375.0,
+                  "maximum": 375.0
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 1246156135,
+                  "p95": 1319437735,
+                  "maximum": 1319437735
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 362.1985,
+                  "p95": 391.3043,
+                  "maximum": 391.3043
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 359.375,
+                  "p95": 390.625,
+                  "maximum": 390.625
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 1256086580,
+                  "p95": 1359856365,
+                  "maximum": 1359856365
+                }
+              }
+            },
+            "hot": {
+              "baseline": {
+                "ms": {
+                  "samples": 48,
+                  "p50": 277.3421,
+                  "p95": 364.3312,
+                  "maximum": 377.1336
+                },
+                "cpuMs": {
+                  "samples": 48,
+                  "p50": 281.25,
+                  "p95": 359.375,
+                  "maximum": 375.0
+                },
+                "cycles": {
+                  "samples": 48,
+                  "p50": 960188390,
+                  "p95": 1262459380,
+                  "maximum": 1309642320
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 48,
+                  "p50": 272.6095,
+                  "p95": 358.0113,
+                  "maximum": 364.8065
+                },
+                "cpuMs": {
+                  "samples": 48,
+                  "p50": 265.625,
+                  "p95": 359.375,
+                  "maximum": 359.375
+                },
+                "cycles": {
+                  "samples": 48,
+                  "p50": 943453490,
+                  "p95": 1241516780,
+                  "maximum": 1264646986
+                }
+              }
+            },
+            "exact": {
+              "baseline": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 3.1317,
+                  "p95": 3.4577,
+                  "maximum": 3.4577
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 0.0,
+                  "p95": 0.0,
+                  "maximum": 0.0
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 10940195,
+                  "p95": 12107410,
+                  "maximum": 12107410
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 4,
+                  "p50": 2.9772,
+                  "p95": 3.5022,
+                  "maximum": 3.5022
+                },
+                "cpuMs": {
+                  "samples": 4,
+                  "p50": 0.0,
+                  "p95": 0.0,
+                  "maximum": 0.0
+                },
+                "cycles": {
+                  "samples": 4,
+                  "p50": 10640280,
+                  "p95": 12492480,
+                  "maximum": 12492480
+                }
+              }
+            }
+          }
+        },
+        "minimumAvailableCommitGiB": 14.534175872802734
+      },
+      "performance-ab": {
+        "status": "passed",
+        "validMeasuredResult": true,
+        "error": null,
+        "queries": 1920,
+        "processes": 128,
+        "gates": 64,
+        "failed": 0,
+        "failures": [],
+        "summary": {
+          "32-single-literal": {
+            "cold": {
+              "baseline": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 41.6718,
+                  "p95": 52.0154,
+                  "maximum": 52.0154
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 46.875,
+                  "p95": 62.5,
+                  "maximum": 62.5
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 144678205,
+                  "p95": 180818960,
+                  "maximum": 180818960
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 41.3197,
+                  "p95": 42.6113,
+                  "maximum": 42.6113
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 31.25,
+                  "p95": 46.875,
+                  "maximum": 46.875
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 143429930,
+                  "p95": 147670495,
+                  "maximum": 147670495
+                }
+              }
+            },
+            "first": {
+              "baseline": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 11.6344,
+                  "p95": 12.484,
+                  "maximum": 12.484
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 15.625,
+                  "p95": 31.25,
+                  "maximum": 31.25
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 40039440,
+                  "p95": 43144640,
+                  "maximum": 43144640
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 11.3543,
+                  "p95": 12.6553,
+                  "maximum": 12.6553
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 15.625,
+                  "p95": 15.625,
+                  "maximum": 15.625
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 39001025,
+                  "p95": 43720810,
+                  "maximum": 43720810
+                }
+              }
+            },
+            "hot": {
+              "baseline": {
+                "ms": {
+                  "samples": 96,
+                  "p50": 11.2868,
+                  "p95": 12.4185,
+                  "maximum": 13.0127
+                },
+                "cpuMs": {
+                  "samples": 96,
+                  "p50": 15.625,
+                  "p95": 31.25,
+                  "maximum": 31.25
+                },
+                "cycles": {
+                  "samples": 96,
+                  "p50": 39083660,
+                  "p95": 42654605,
+                  "maximum": 45070410
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 96,
+                  "p50": 11.3591,
+                  "p95": 12.494,
+                  "maximum": 16.6977
+                },
+                "cpuMs": {
+                  "samples": 96,
+                  "p50": 15.625,
+                  "p95": 15.625,
+                  "maximum": 31.25
+                },
+                "cycles": {
+                  "samples": 96,
+                  "p50": 39210640,
+                  "p95": 43277185,
+                  "maximum": 57655115
+                }
+              }
+            },
+            "exact": {
+              "baseline": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 0.7038,
+                  "p95": 0.7879,
+                  "maximum": 0.7879
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 0.0,
+                  "p95": 15.625,
+                  "maximum": 15.625
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 2512860,
+                  "p95": 2826005,
+                  "maximum": 2826005
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 0.6829,
+                  "p95": 0.8627,
+                  "maximum": 0.8627
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 0.0,
+                  "p95": 0.0,
+                  "maximum": 0.0
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 2402470,
+                  "p95": 3139325,
+                  "maximum": 3139325
+                }
+              }
+            }
+          },
+          "32-single-declaration": {
+            "cold": {
+              "baseline": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 41.1431,
+                  "p95": 48.8936,
+                  "maximum": 48.8936
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 46.875,
+                  "p95": 46.875,
+                  "maximum": 46.875
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 142753940,
+                  "p95": 169677305,
+                  "maximum": 169677305
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 40.9492,
+                  "p95": 56.6534,
+                  "maximum": 56.6534
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 46.875,
+                  "p95": 62.5,
+                  "maximum": 62.5
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 141832810,
+                  "p95": 196747110,
+                  "maximum": 196747110
+                }
+              }
+            },
+            "first": {
+              "baseline": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 20.6173,
+                  "p95": 24.8928,
+                  "maximum": 24.8928
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 31.25,
+                  "p95": 46.875,
+                  "maximum": 46.875
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 71637685,
+                  "p95": 86442895,
+                  "maximum": 86442895
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 20.8941,
+                  "p95": 21.4224,
+                  "maximum": 21.4224
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 15.625,
+                  "p95": 31.25,
+                  "maximum": 31.25
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 72520140,
+                  "p95": 74169200,
+                  "maximum": 74169200
+                }
+              }
+            },
+            "hot": {
+              "baseline": {
+                "ms": {
+                  "samples": 96,
+                  "p50": 13.0675,
+                  "p95": 19.136,
+                  "maximum": 20.3083
+                },
+                "cpuMs": {
+                  "samples": 96,
+                  "p50": 15.625,
+                  "p95": 31.25,
+                  "maximum": 31.25
+                },
+                "cycles": {
+                  "samples": 96,
+                  "p50": 45228785,
+                  "p95": 66483340,
+                  "maximum": 70202230
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 96,
+                  "p50": 13.0972,
+                  "p95": 18.8128,
+                  "maximum": 20.7708
+                },
+                "cpuMs": {
+                  "samples": 96,
+                  "p50": 15.625,
+                  "p95": 31.25,
+                  "maximum": 31.25
+                },
+                "cycles": {
+                  "samples": 96,
+                  "p50": 45364585,
+                  "p95": 65362150,
+                  "maximum": 72128490
+                }
+              }
+            },
+            "exact": {
+              "baseline": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 0.6794,
+                  "p95": 0.7594,
+                  "maximum": 0.7594
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 0.0,
+                  "p95": 0.0,
+                  "maximum": 0.0
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 2414615,
+                  "p95": 2871470,
+                  "maximum": 2871470
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 0.6808,
+                  "p95": 0.7458,
+                  "maximum": 0.7458
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 0.0,
+                  "p95": 0.0,
+                  "maximum": 0.0
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 2409260,
+                  "p95": 2594445,
+                  "maximum": 2594445
+                }
+              }
+            }
+          },
+          "32-imported-literal": {
+            "cold": {
+              "baseline": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 43.8699,
+                  "p95": 44.051,
+                  "maximum": 44.051
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 46.875,
+                  "p95": 46.875,
+                  "maximum": 46.875
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 152391260,
+                  "p95": 152761805,
+                  "maximum": 152761805
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 43.9477,
+                  "p95": 44.1684,
+                  "maximum": 44.1684
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 46.875,
+                  "p95": 46.875,
+                  "maximum": 46.875
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 152541375,
+                  "p95": 153365555,
+                  "maximum": 153365555
+                }
+              }
+            },
+            "first": {
+              "baseline": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 13.0031,
+                  "p95": 13.5804,
+                  "maximum": 13.5804
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 15.625,
+                  "p95": 15.625,
+                  "maximum": 15.625
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 44914835,
+                  "p95": 46774385,
+                  "maximum": 46774385
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 13.0033,
+                  "p95": 14.6664,
+                  "maximum": 14.6664
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 15.625,
+                  "p95": 15.625,
+                  "maximum": 15.625
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 44968490,
+                  "p95": 50658300,
+                  "maximum": 50658300
+                }
+              }
+            },
+            "hot": {
+              "baseline": {
+                "ms": {
+                  "samples": 96,
+                  "p50": 12.7711,
+                  "p95": 13.9911,
+                  "maximum": 16.5559
+                },
+                "cpuMs": {
+                  "samples": 96,
+                  "p50": 15.625,
+                  "p95": 31.25,
+                  "maximum": 31.25
+                },
+                "cycles": {
+                  "samples": 96,
+                  "p50": 44213190,
+                  "p95": 48489700,
+                  "maximum": 56752465
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 96,
+                  "p50": 12.6671,
+                  "p95": 13.7515,
+                  "maximum": 14.3082
+                },
+                "cpuMs": {
+                  "samples": 96,
+                  "p50": 15.625,
+                  "p95": 31.25,
+                  "maximum": 31.25
+                },
+                "cycles": {
+                  "samples": 96,
+                  "p50": 43759730,
+                  "p95": 47290460,
+                  "maximum": 49286195
+                }
+              }
+            },
+            "exact": {
+              "baseline": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 1.2574,
+                  "p95": 1.4803,
+                  "maximum": 1.4803
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 0.0,
+                  "p95": 0.0,
+                  "maximum": 0.0
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 4548740,
+                  "p95": 5121690,
+                  "maximum": 5121690
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 1.2692,
+                  "p95": 1.5478,
+                  "maximum": 1.5478
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 0.0,
+                  "p95": 0.0,
+                  "maximum": 0.0
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 4475870,
+                  "p95": 5400360,
+                  "maximum": 5400360
+                }
+              }
+            }
+          },
+          "32-imported-declaration": {
+            "cold": {
+              "baseline": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 43.9734,
+                  "p95": 47.9292,
+                  "maximum": 47.9292
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 31.25,
+                  "p95": 46.875,
+                  "maximum": 46.875
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 152178530,
+                  "p95": 166266660,
+                  "maximum": 166266660
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 44.1719,
+                  "p95": 44.4574,
+                  "maximum": 44.4574
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 46.875,
+                  "p95": 62.5,
+                  "maximum": 62.5
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 153170325,
+                  "p95": 154173145,
+                  "maximum": 154173145
+                }
+              }
+            },
+            "first": {
+              "baseline": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 29.2304,
+                  "p95": 30.3217,
+                  "maximum": 30.3217
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 31.25,
+                  "p95": 31.25,
+                  "maximum": 31.25
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 101479840,
+                  "p95": 105192150,
+                  "maximum": 105192150
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 29.4843,
+                  "p95": 31.4027,
+                  "maximum": 31.4027
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 31.25,
+                  "p95": 46.875,
+                  "maximum": 46.875
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 102349030,
+                  "p95": 108634225,
+                  "maximum": 108634225
+                }
+              }
+            },
+            "hot": {
+              "baseline": {
+                "ms": {
+                  "samples": 96,
+                  "p50": 14.3954,
+                  "p95": 26.9468,
+                  "maximum": 27.8392
+                },
+                "cpuMs": {
+                  "samples": 96,
+                  "p50": 15.625,
+                  "p95": 31.25,
+                  "maximum": 31.25
+                },
+                "cycles": {
+                  "samples": 96,
+                  "p50": 49803635,
+                  "p95": 93502325,
+                  "maximum": 96600385
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 96,
+                  "p50": 14.4588,
+                  "p95": 26.7791,
+                  "maximum": 27.8999
+                },
+                "cpuMs": {
+                  "samples": 96,
+                  "p50": 15.625,
+                  "p95": 31.25,
+                  "maximum": 31.25
+                },
+                "cycles": {
+                  "samples": 96,
+                  "p50": 50089375,
+                  "p95": 93312800,
+                  "maximum": 96789245
+                }
+              }
+            },
+            "exact": {
+              "baseline": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 1.2797,
+                  "p95": 1.3858,
+                  "maximum": 1.3858
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 0.0,
+                  "p95": 0.0,
+                  "maximum": 0.0
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 4507790,
+                  "p95": 5151755,
+                  "maximum": 5151755
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 1.25,
+                  "p95": 1.3051,
+                  "maximum": 1.3051
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 0.0,
+                  "p95": 0.0,
+                  "maximum": 0.0
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 4402965,
+                  "p95": 4615065,
+                  "maximum": 4615065
+                }
+              }
+            }
+          },
+          "512-single-literal": {
+            "cold": {
+              "baseline": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 724.4601,
+                  "p95": 807.7011,
+                  "maximum": 807.7011
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 734.375,
+                  "p95": 796.875,
+                  "maximum": 796.875
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 2522729755,
+                  "p95": 2808836240,
+                  "maximum": 2808836240
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 734.1145,
+                  "p95": 811.1268,
+                  "maximum": 811.1268
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 734.375,
+                  "p95": 812.5,
+                  "maximum": 812.5
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 2556913520,
+                  "p95": 2821994805,
+                  "maximum": 2821994805
+                }
+              }
+            },
+            "first": {
+              "baseline": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 284.62,
+                  "p95": 341.2466,
+                  "maximum": 341.2466
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 281.25,
+                  "p95": 328.125,
+                  "maximum": 328.125
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 986628755,
+                  "p95": 1183501970,
+                  "maximum": 1183501970
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 247.8362,
+                  "p95": 267.1655,
+                  "maximum": 267.1655
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 234.375,
+                  "p95": 281.25,
+                  "maximum": 281.25
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 856697380,
+                  "p95": 925058820,
+                  "maximum": 925058820
+                }
+              }
+            },
+            "hot": {
+              "baseline": {
+                "ms": {
+                  "samples": 96,
+                  "p50": 309.6877,
+                  "p95": 381.111,
+                  "maximum": 432.5163
+                },
+                "cpuMs": {
+                  "samples": 96,
+                  "p50": 312.5,
+                  "p95": 375.0,
+                  "maximum": 421.875
+                },
+                "cycles": {
+                  "samples": 96,
+                  "p50": 1073814980,
+                  "p95": 1318069060,
+                  "maximum": 1465603440
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 96,
+                  "p50": 251.6618,
+                  "p95": 300.4721,
+                  "maximum": 308.0441
+                },
+                "cpuMs": {
+                  "samples": 96,
+                  "p50": 250.0,
+                  "p95": 296.875,
+                  "maximum": 312.5
+                },
+                "cycles": {
+                  "samples": 96,
+                  "p50": 871178700,
+                  "p95": 1039702545,
+                  "maximum": 1066918685
+                }
+              }
+            },
+            "exact": {
+              "baseline": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 2.6256,
+                  "p95": 2.7685,
+                  "maximum": 2.7685
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 0.0,
+                  "p95": 15.625,
+                  "maximum": 15.625
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 9471245,
+                  "p95": 9851065,
+                  "maximum": 9851065
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 2.3825,
+                  "p95": 2.5406,
+                  "maximum": 2.5406
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 0.0,
+                  "p95": 15.625,
+                  "maximum": 15.625
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 8470735,
+                  "p95": 9178715,
+                  "maximum": 9178715
+                }
+              }
+            }
+          },
+          "512-single-declaration": {
+            "cold": {
+              "baseline": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 753.4095,
+                  "p95": 836.5181,
+                  "maximum": 836.5181
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 750.0,
+                  "p95": 828.125,
+                  "maximum": 828.125
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 2621351320,
+                  "p95": 2912992775,
+                  "maximum": 2912992775
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 760.9358,
+                  "p95": 772.7091,
+                  "maximum": 772.7091
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 750.0,
+                  "p95": 781.25,
+                  "maximum": 781.25
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 2647234660,
+                  "p95": 2690049845,
+                  "maximum": 2690049845
+                }
+              }
+            },
+            "first": {
+              "baseline": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 356.2873,
+                  "p95": 368.2053,
+                  "maximum": 368.2053
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 343.75,
+                  "p95": 375.0,
+                  "maximum": 375.0
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 1235201835,
+                  "p95": 1277766139,
+                  "maximum": 1277766139
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 369.123,
+                  "p95": 381.1612,
+                  "maximum": 381.1612
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 375.0,
+                  "p95": 375.0,
+                  "maximum": 375.0
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 1280169625,
+                  "p95": 1322319390,
+                  "maximum": 1322319390
+                }
+              }
+            },
+            "hot": {
+              "baseline": {
+                "ms": {
+                  "samples": 96,
+                  "p50": 325.4614,
+                  "p95": 368.8254,
+                  "maximum": 447.3817
+                },
+                "cpuMs": {
+                  "samples": 96,
+                  "p50": 328.125,
+                  "p95": 375.0,
+                  "maximum": 406.25
+                },
+                "cycles": {
+                  "samples": 96,
+                  "p50": 1128310715,
+                  "p95": 1278664311,
+                  "maximum": 1502797660
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 96,
+                  "p50": 272.2513,
+                  "p95": 367.0316,
+                  "maximum": 436.5535
+                },
+                "cpuMs": {
+                  "samples": 96,
+                  "p50": 265.625,
+                  "p95": 359.375,
+                  "maximum": 437.5
+                },
+                "cycles": {
+                  "samples": 96,
+                  "p50": 941878910,
+                  "p95": 1269135350,
+                  "maximum": 1506955380
+                }
+              }
+            },
+            "exact": {
+              "baseline": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 2.491,
+                  "p95": 2.7243,
+                  "maximum": 2.7243
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 0.0,
+                  "p95": 0.0,
+                  "maximum": 0.0
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 8743980,
+                  "p95": 9503095,
+                  "maximum": 9503095
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 2.3201,
+                  "p95": 2.8033,
+                  "maximum": 2.8033
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 0.0,
+                  "p95": 15.625,
+                  "maximum": 15.625
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 8410745,
+                  "p95": 9847530,
+                  "maximum": 9847530
+                }
+              }
+            }
+          },
+          "512-imported-literal": {
+            "cold": {
+              "baseline": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 860.2106,
+                  "p95": 918.0748,
+                  "maximum": 918.0748
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 859.375,
+                  "p95": 906.25,
+                  "maximum": 906.25
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 2991676801,
+                  "p95": 3197367985,
+                  "maximum": 3197367985
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 861.9289,
+                  "p95": 954.7558,
+                  "maximum": 954.7558
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 875.0,
+                  "p95": 953.125,
+                  "maximum": 953.125
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 2999393391,
+                  "p95": 3327503025,
+                  "maximum": 3327503025
+                }
+              }
+            },
+            "first": {
+              "baseline": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 262.7993,
+                  "p95": 292.9389,
+                  "maximum": 292.9389
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 265.625,
+                  "p95": 296.875,
+                  "maximum": 296.875
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 910146265,
+                  "p95": 1014399400,
+                  "maximum": 1014399400
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 266.9317,
+                  "p95": 273.9442,
+                  "maximum": 273.9442
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 265.625,
+                  "p95": 296.875,
+                  "maximum": 296.875
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 923137285,
+                  "p95": 949720380,
+                  "maximum": 949720380
+                }
+              }
+            },
+            "hot": {
+              "baseline": {
+                "ms": {
+                  "samples": 96,
+                  "p50": 274.8191,
+                  "p95": 304.5661,
+                  "maximum": 318.8086
+                },
+                "cpuMs": {
+                  "samples": 96,
+                  "p50": 265.625,
+                  "p95": 296.875,
+                  "maximum": 312.5
+                },
+                "cycles": {
+                  "samples": 96,
+                  "p50": 951528375,
+                  "p95": 1049716115,
+                  "maximum": 1105281380
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 96,
+                  "p50": 273.2281,
+                  "p95": 306.3404,
+                  "maximum": 390.9338
+                },
+                "cpuMs": {
+                  "samples": 96,
+                  "p50": 265.625,
+                  "p95": 296.875,
+                  "maximum": 375.0
+                },
+                "cycles": {
+                  "samples": 96,
+                  "p50": 946764210,
+                  "p95": 1060026625,
+                  "maximum": 1345628234
+                }
+              }
+            },
+            "exact": {
+              "baseline": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 3.0452,
+                  "p95": 3.5661,
+                  "maximum": 3.5661
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 0.0,
+                  "p95": 15.625,
+                  "maximum": 15.625
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 10731490,
+                  "p95": 12860015,
+                  "maximum": 12860015
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 3.069,
+                  "p95": 3.4163,
+                  "maximum": 3.4163
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 0.0,
+                  "p95": 15.625,
+                  "maximum": 15.625
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 10993500,
+                  "p95": 12321890,
+                  "maximum": 12321890
+                }
+              }
+            }
+          },
+          "512-imported-declaration": {
+            "cold": {
+              "baseline": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 885.5356,
+                  "p95": 1022.3515,
+                  "maximum": 1022.3515
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 890.625,
+                  "p95": 1015.625,
+                  "maximum": 1015.625
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 3083370780,
+                  "p95": 3560385360,
+                  "maximum": 3560385360
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 869.1586,
+                  "p95": 931.7032,
+                  "maximum": 931.7032
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 859.375,
+                  "p95": 921.875,
+                  "maximum": 921.875
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 3028775329,
+                  "p95": 3244319540,
+                  "maximum": 3244319540
+                }
+              }
+            },
+            "first": {
+              "baseline": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 380.5361,
+                  "p95": 509.7498,
+                  "maximum": 509.7498
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 375.0,
+                  "p95": 468.75,
+                  "maximum": 468.75
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 1319401405,
+                  "p95": 1728657840,
+                  "maximum": 1728657840
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 374.7699,
+                  "p95": 461.6099,
+                  "maximum": 461.6099
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 375.0,
+                  "p95": 468.75,
+                  "maximum": 468.75
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 1300236175,
+                  "p95": 1595675445,
+                  "maximum": 1595675445
+                }
+              }
+            },
+            "hot": {
+              "baseline": {
+                "ms": {
+                  "samples": 96,
+                  "p50": 348.002,
+                  "p95": 436.2004,
+                  "maximum": 522.9163
+                },
+                "cpuMs": {
+                  "samples": 96,
+                  "p50": 343.75,
+                  "p95": 421.875,
+                  "maximum": 484.375
+                },
+                "cycles": {
+                  "samples": 96,
+                  "p50": 1207566150,
+                  "p95": 1512900445,
+                  "maximum": 1781927035
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 96,
+                  "p50": 288.513,
+                  "p95": 382.1303,
+                  "maximum": 418.909
+                },
+                "cpuMs": {
+                  "samples": 96,
+                  "p50": 281.25,
+                  "p95": 375.0,
+                  "maximum": 406.25
+                },
+                "cycles": {
+                  "samples": 96,
+                  "p50": 1000414800,
+                  "p95": 1314346845,
+                  "maximum": 1452177055
+                }
+              }
+            },
+            "exact": {
+              "baseline": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 2.9411,
+                  "p95": 3.2259,
+                  "maximum": 3.2259
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 0.0,
+                  "p95": 15.625,
+                  "maximum": 15.625
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 10234560,
+                  "p95": 11327855,
+                  "maximum": 11327855
+                }
+              },
+              "candidate": {
+                "ms": {
+                  "samples": 8,
+                  "p50": 3.182,
+                  "p95": 3.6001,
+                  "maximum": 3.6001
+                },
+                "cpuMs": {
+                  "samples": 8,
+                  "p50": 0.0,
+                  "p95": 0.0,
+                  "maximum": 0.0
+                },
+                "cycles": {
+                  "samples": 8,
+                  "p50": 11414025,
+                  "p95": 12519150,
+                  "maximum": 12519150
+                }
+              }
+            }
+          }
+        },
+        "minimumAvailableCommitGiB": 14.473247528076172
+      },
+      "performance-cumulative": {
+        "status": "failed",
+        "validMeasuredResult": false,
+        "error": "RuntimeError('protected source, executable, fixture or plan changed')",
+        "queries": 1920,
+        "processes": 128,
+        "gates": null,
+        "failed": null,
+        "failures": [],
+        "summary": null,
+        "minimumAvailableCommitGiB": 14.412235260009766
+      }
+    },
+    "registrationSha256": "14de1b076cad0e6bc01502d6c22bcaa724fe135f6e4abe6641daea5bda7e95ad",
+    "thresholdsChanged": false,
+    "rerunForBetterSamples": false,
+    "scope": "One fixed A/A, exact M123 normal-image A/B and installed cumulative comparison; not full IDE/scale/endurance/all-LSP qualification.",
+    "invalidatedRuntimeChanges": [
+      {
+        "path": "D:\\GIT\\x-lang\\release\\win_x64\\xge.dll",
+        "before": "40d6bfa25cc881d45e4a8ac12e0dc4ff6c5115bad93f8e0f1ffdbc1d0a67c4e2",
+        "after": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+      }
+    ]
+  },
+  "evidence": {
+    "directory": "dev/release-materials/provenance/lsp-function-pools-20261109",
+    "files": 1378,
+    "manifestSha256": "12fbeeb78ad041325d18169b93446bd930ddf3c182f06e716d8f134849e501b2",
+    "archiveSha256": "afbadb61c5a6daa97a9396b02d21e501b5f1b5296ed9d7d023789a6f5cdb0219",
+    "sourceDirectory": "dev/release-materials/sources/lsp-function-pools-20261109",
+    "sourceFiles": 4023,
+    "sourceManifestSha256": "09c51c098580eb1057c7775d8d6de126617d86aeb3ada57f108ca860333f4be0",
+    "sourceArchiveSha256": "69cb62c48157b163c749946ab58bed7fae3f3cf3249cb8901fe4ea3d39a7bc31",
+    "streamVerification": {
+      "status": "passed",
+      "sourceMembers": 4023,
+      "evidenceMembers": 1378,
+      "runtimeLibrariesAndServiceProtected": true,
+      "pairedGuiInputsProtected": true,
+      "normalAndFrozenBuildVerified": true,
+      "verifierSha256": "4d793e7d506c8e04dbc354cb9aed0c4b6236b770e7c4246dccdc3236bc895f99",
+      "externalDefaultGuiChanges": {
+        "xlang_ide.exe": {
+          "atArchiveCreation": "46da3035ab2ecbc527afa79e79e927ba336438e38db6c57fd26e7077babacf11",
+          "afterArchive": "59dcd027f1f51ce7b9d5446959a878487e786a1c238f3506760db9afe2195944",
+          "scope": "External default GUI is preserved and is not our paired candidate; no GUI delivery qualification claimed for it."
+        }
+      },
+      "receiptSha256": "94bae5295d0fcfea98dcfca0cba1ea38ac58bbb713c45b1e9ed102ed0387d5ae"
+    },
+    "previousArchiveVerification": {
+      "status": "failed",
+      "reason": "External default GUI was updated after archive creation; paired candidate sources, SDK and runtime libraries did not change.",
+      "logSha256": "c633337f086462525906337872685808667f56b8297dce790c405d865c248194",
+      "verifierSha256": "ca90273c6de0964daa578a950ddedd90d08e38d4231ac33d03d0d390dd6fa8c3"
+    }
+  },
+  "runtime": {
+    "status": "passed",
+    "removed": [
+      ".xlang-ls-function-pools-candidate.exe"
+    ],
+    "defaults": {
+      "xlang_ide.exe": "46da3035ab2ecbc527afa79e79e927ba336438e38db6c57fd26e7077babacf11",
+      "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+      "xl.exe": "e5f4719890814a3f7b5422ffb1f293ffc944c527de62217d32e9a3a4c287dfad",
+      "xl.dll": "e783d6a15c946945d4186084cff9006839cbc1d31a0ae387396dc6f500aaac6c",
+      "xlc.dll": "b4563a13448e2f550b00c0504cac481cdefd2b61ee961276049f936243f125a1",
+      "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+    },
+    "postValidationExternalChanges": {},
+    "deliveryIndexSha256": "56e251610677eb419b7697dd7b235f3b5419620475f26f00e98f3083d0a6e7c2",
+    "programsPublished": false,
+    "updateChannelPushed": false,
+    "externalChangesDuringPerformance": {
+      "xlang_ide.exe": {
+        "before": "d335281a9d2b11f92b027752e9a6529d947b82506ba1721617e53f012aa0aee3",
+        "after": "46da3035ab2ecbc527afa79e79e927ba336438e38db6c57fd26e7077babacf11"
+      },
+      "xge.dll": {
+        "before": "40d6bfa25cc881d45e4a8ac12e0dc4ff6c5115bad93f8e0f1ffdbc1d0a67c4e2",
+        "after": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+      }
+    },
+    "postArchiveExternalChanges": {
+      "xlang_ide.exe": {
+        "atArchiveCreation": "46da3035ab2ecbc527afa79e79e927ba336438e38db6c57fd26e7077babacf11",
+        "afterArchive": "59dcd027f1f51ce7b9d5446959a878487e786a1c238f3506760db9afe2195944",
+        "scope": "External default GUI is preserved and is not our paired candidate; no GUI delivery qualification claimed for it."
+      }
+    }
+  },
+  "remaining": [
+    "Whole latency/performance qualification and small-edit tails remain incomplete.",
+    "Complete module/import pool ownership, native AST materialization and final IR repetition remain.",
+    "Remaining project options, global budgets, scale/concurrency/endurance, applicable LSP and complete IDE delivery remain incomplete.",
+    "DAP and runtime/debug completion remain excluded."
+  ]
+}
