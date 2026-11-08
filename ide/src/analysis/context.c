@@ -5,7 +5,7 @@
 #define CONTEXT_BYTES (16u*1024u*1024u)
 #define CONTEXT_ITEMS 65536u
 #define CONTEXT_STRING 262144u
-enum { SCALARS=7, HEADER_WORDS=2+XLS_CONTEXT_LIST_COUNT };
+enum { SCALARS=7, HEADER_WORDS=3+XLS_CONTEXT_LIST_COUNT };
 struct xls_context {
     xatomic32 references;
     xls_context_spec spec;
@@ -38,6 +38,7 @@ xls_context* xlsContextCreate(const xls_context_spec* spec,size_t limit,enum xls
 {
     contextError(error,XLS_CONTEXT_ARGUMENT);
     if(!spec || spec->kind<XLS_CONTEXT_XLANG || spec->kind>XLS_CONTEXT_PROJECT ||
+        spec->nativeSelection<XLS_NATIVE_AUTO_JIT || spec->nativeSelection>XLS_NATIVE_AUTO_AOT ||
         !spec->entry || !*spec->entry || !spec->directory || !*spec->directory ||
         !spec->analysisProfile || !*spec->analysisProfile || !spec->targetKind || !*spec->targetKind ||
         (spec->kind==XLS_CONTEXT_PROJECT ? !spec->project || !*spec->project :
@@ -67,9 +68,11 @@ xls_context* xlsContextCreate(const xls_context_spec* spec,size_t limit,enum xls
     /* The canonical header is copied bytewise, without an alignment assumption. */
     unsigned char* canonical=(unsigned char*)(pointers+items);
     uint64_t header[HEADER_WORDS]={0}; header[0]=(uint64_t)spec->kind; header[1]=spec->packagePath!=NULL;
-    for(size_t i=0;i<XLS_CONTEXT_LIST_COUNT;++i) header[2+i]=(uint64_t)spec->lists[i].count;
+    header[2]=(uint64_t)spec->nativeSelection;
+    for(size_t i=0;i<XLS_CONTEXT_LIST_COUNT;++i) header[3+i]=(uint64_t)spec->lists[i].count;
     memcpy(canonical,header,sizeof(header)); char* cursor=(char*)canonical+sizeof(header);
     result->spec.kind=spec->kind;
+    result->spec.nativeSelection=spec->nativeSelection;
     const char** fields[]={&result->spec.project,&result->spec.configuration,&result->spec.entry,
         &result->spec.directory,&result->spec.analysisProfile,&result->spec.targetKind,&result->spec.packagePath};
     for(size_t i=0;i<SCALARS;++i) *fields[i]=store(&cursor,values[i]);

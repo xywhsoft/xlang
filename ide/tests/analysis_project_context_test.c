@@ -33,6 +33,20 @@ int main(int argc,char** argv)
     CHECK(!strcmp(v->lists[XLS_CONTEXT_C_DEFINES].items[0],"ANSWER=42") && !strcmp(v->lists[XLS_CONTEXT_C_UNDEFINES].items[0],"OLD"));
     CHECK(v->lists[XLS_CONTEXT_INCLUDES].count==2 && !strcmp(v->lists[XLS_CONTEXT_INCLUDES].items[0],project.configurations[0].includePaths.items[0]));
     xls_context* b=xideAnalysisProjectContext(&project,"dev","native-profile-sha","captured-build-package",&error); CHECK(b && xlsContextEqual(a,b));
+    CHECK(v->nativeSelection==XLS_NATIVE_AUTO_JIT);
+    xvalue* original=project.source;project.source=xrtValueClone(original);CHECK(project.source);
+    const char* linkages[]={"static","dynamic","auto"};
+    const enum xls_native_selection selections[]={XLS_NATIVE_STATIC,XLS_NATIVE_DYNAMIC,XLS_NATIVE_AUTO_JIT};
+    for(size_t i=0;i<3;++i) {
+        CHECK(xrtValueObjectSetNew(project.source,(xstrview){"nativeLinkage",13},xrtValueString((xstrview){linkages[i],strlen(linkages[i])})));
+        xls_context* selected=xideAnalysisProjectContext(&project,"dev","native-profile-sha","captured-build-package",&error);
+        CHECK(selected && xlsContextSpec(selected)->nativeSelection==selections[i] && xlsContextEqual(a,selected)==(i==2));xlsContextRelease(selected);
+    }
+    CHECK(xrtValueObjectSetNew(project.source,(xstrview){"nativeLinkage",13},xrtValueString((xstrview){"STATIC",6})));
+    CHECK(!xideAnalysisProjectContext(&project,"dev","native-profile-sha","captured-build-package",&error) && error.code==XIDE_MODEL_INVALID);
+    CHECK(xrtValueObjectSetNew(project.source,(xstrview){"nativeLinkage",13},xrtValueNull()));
+    CHECK(!xideAnalysisProjectContext(&project,"dev","native-profile-sha","captured-build-package",&error));
+    xrtValueRelease(project.source);project.source=original;
     xls_context* c=xideAnalysisProjectContext(&project,"release","native-profile-sha","captured-build-package",&error); CHECK(c && !xlsContextEqual(a,c)); xlsContextRelease(c);
     CHECK(!xideAnalysisProjectContext(&project,"missing","native-profile-sha",NULL,&error) && error.code==XIDE_MODEL_INVALID);
     CHECK(!xideAnalysisProjectContext(&project,"","native-profile-sha",NULL,&error));

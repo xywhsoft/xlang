@@ -25,6 +25,7 @@ static bool fixtureArrayPush(xarray* array,const void* value) {return fixtureOp(
 #define xlsFrontendContextBegin privateContextBegin
 #define xlsFrontendContextEnd privateContextEnd
 #define xlsFrontendContextCurrent privateContextCurrent
+#define xlsFrontendContextNativeSelection privateContextNativeSelection
 #define xlsFrontendContextPackagePath privateContextPackagePath
 #define xlsFrontendContextAbsolute privateContextAbsolute
 #define xlsFrontendNamespaceReady privateNamespaceReady

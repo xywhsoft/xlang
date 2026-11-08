@@ -65,6 +65,11 @@ int main(void)
         changed.lists[field]=(xls_context_strings){value,1}; c=xlsContextCreate(&changed,CAP,&error);
         CHECK(c && !xlsContextEqual(a,c)); xlsContextRelease(c);
     }
+    for(int mode=XLS_NATIVE_STATIC;mode<=XLS_NATIVE_AUTO_AOT;++mode) {
+        xls_context_spec selected=*v;selected.nativeSelection=(enum xls_native_selection)mode;
+        c=xlsContextCreate(&selected,CAP,&error);CHECK(c && xlsContextSpec(c)->nativeSelection==(enum xls_native_selection)mode && !xlsContextEqual(a,c));
+        c->hash=a->hash;CHECK(!xlsContextEqual(a,c));xlsContextRelease(c);
+    }
     xls_context_spec changed=*v; const char* reversed[]={"/work/inc2","/work/inc","/work/inc"};
     changed.lists[XLS_CONTEXT_INCLUDES]=(xls_context_strings){reversed,3};
     c=xlsContextCreate(&changed,CAP,&error); CHECK(c && !xlsContextEqual(a,c)); xlsContextRelease(c);
@@ -84,6 +89,8 @@ int main(void)
     before=allocations;
     CHECK(!xlsContextCreate(NULL,CAP,&error) && error==XLS_CONTEXT_ARGUMENT);
     changed=example(); changed.kind=0; CHECK(!xlsContextCreate(&changed,CAP,&error) && error==XLS_CONTEXT_ARGUMENT);
+    changed=example();changed.nativeSelection=(enum xls_native_selection)-1;CHECK(!xlsContextCreate(&changed,CAP,&error) && error==XLS_CONTEXT_ARGUMENT);
+    changed=example();changed.nativeSelection=(enum xls_native_selection)4;CHECK(!xlsContextCreate(&changed,CAP,&error) && error==XLS_CONTEXT_ARGUMENT);
     changed=example(); changed.project=""; CHECK(!xlsContextCreate(&changed,CAP,&error) && error==XLS_CONTEXT_ARGUMENT);
     changed=example(); changed.analysisProfile=""; CHECK(!xlsContextCreate(&changed,CAP,&error) && error==XLS_CONTEXT_ARGUMENT);
     changed=example(); changed.entry="\xc0\x80"; CHECK(!xlsContextCreate(&changed,CAP,&error) && error==XLS_CONTEXT_ENCODING);

@@ -5,7 +5,7 @@
 /* Current in-process compiler-XRT analysis family, never the selected execution
    compiler. Contexts do not persist across server/binary lifetimes. */
 #define XIDE_ANALYSIS_PROFILE "xlang-ls/compiler-xrt-v1"
-/* Strict schema1 wire representation of the existing immutable context, not
+/* Strict schema1 default / schema2 explicit-native-selection representation, not
    another project manifest parser. Read copies into the core's bounded XRT
    allocation; write returns an owned DOM. Both perform no filesystem I/O. */
 xls_context* xideAnalysisContextRead(const xvalue* value,char* error,size_t capacity);

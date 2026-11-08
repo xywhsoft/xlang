@@ -76,6 +76,13 @@ def derive(frontend: Path, output: Path) -> list[dict]:
         from native_current_context_profile import profile
         audited=profile(frontend)
         sources={rel:audited[str(frontend/rel)] for rel in sources}
+    selection_pins={
+        'src/compile/xl6_imports.c':'02d6f58939a471565822acb020b01ef60bd30586a06561d62aeaad40a0d82c98',
+        'src/compile/xl6_imports.h':'ff69d92ec4e144468cbe258e1c242d386639545fa7e7df342f758d2be7ceeaf5',
+        'src/package/xl6_package.h':'19683527d8e14a43eabcdda9d89d52c602ad7eff51f6b644222799ccb156c24f',
+        'src/package/xl6_package_native_variants.inc':'c1e153ba3d60a4cdc6ebc64599d065e9414f0af34355c11fb21b7ee2ecb5a941',
+    }
+    native_selection=all(audited.get(str(frontend/p))==h for p,h in selection_pins.items())
     rows = []
     for relative, expected in sources.items():
         original = frontend / relative
@@ -137,6 +144,13 @@ def derive(frontend: Path, output: Path) -> list[dict]:
                 source=source.replace(fail,fail+'\n    xlsFrontendInputUsageReportFailure(report);')
             seams = 8 if current else 7
         elif original.stem == "xl6_package":
+            if native_selection:
+                variant=frontend/'src/package/xl6_package_native_variants.inc'
+                body=variant.read_text(encoding='utf-8');old='        !xl6PackageLoadManifestObserved(path, selected, report)) {'
+                if body.count(old)!=1:raise ValueError('native variant manifest-read seam changed')
+                body=body.replace(old,'        (report && !xl6SourceReportExists(report, path)) ||\n'+old,1)
+                private=output/'frontend/xl6_package_native_variants.inc';private.parent.mkdir(parents=True,exist_ok=True);private.write_text(body,encoding='utf-8',newline='\n')
+                rows.append(dict(source=str(variant),sourceSha256=audited[str(variant)],compiledSource=str(private),compiledSha256=hashlib.sha256(private.read_bytes()).hexdigest(),auditedDependencies=audited,auditedSeams=1,change='Observe selected manifest regular-file predicate through the native negative-input report; preserve selection, identity checks and complete-report failure guards'))
             old = "static int xl6PackageTryManifest(XL6_PackageResolveResult* result, const char* path, XL6_PackageResolveKind kind)\n{"
             marker = "static int xl6PackageLooksLikePath(const char* target)\n{"
             if source.count(old) != 1 or source.count(marker) != 1:
@@ -155,6 +169,18 @@ def derive(frontend: Path, output: Path) -> list[dict]:
             source = source.replace(marker, wrapper + marker, 1)
             seams = 3
         elif original.stem == "xl6_imports":
+            # Only the reviewed package-selection ABI has this field. Earlier
+            # cohorts keep their original initialization and report no support.
+            if native_selection:
+                old='    memset(deps, 0, sizeof(*deps));\n    xl6PackageStringListInit(&deps->cSources);'
+                if source.count(old)!=1:raise ValueError('native import initialization seam changed')
+                source=source.replace(old,old.replace('\n    xl6PackageStringListInit', '\n    deps->nativeSelection = xlsFrontendContextNativeSelection();\n    xl6PackageStringListInit'),1)
+                marker='void xl6ImportDepsInit(XL6_ImportDeps* deps)'
+                proof=''.join('_Static_assert((int)XLS_NATIVE_'+a+'==(int)XL6_NATIVE_SELECT_'+b+',"native selection ABI changed");\n' for a,b in
+                    [('AUTO_JIT','AUTO_JIT'),('STATIC','STATIC'),('DYNAMIC','DYNAMIC'),('AUTO_AOT','AUTO_AOT')])
+                if source.count(marker)!=1:raise ValueError('native import initializer declaration changed')
+                source=source.replace(marker,proof+marker,1)
+            source+='\nint xlsFrontendNativeSelectionAvailable(void) { return '+str(int(native_selection))+'; }\n'
             source = '#include "analysis/frontend_module_graph.h"\n' + source
             for old, new in {
                 '        activeSourcePushed = 1;':
@@ -213,7 +239,7 @@ def derive(frontend: Path, output: Path) -> list[dict]:
                 after='    if (boundPackage) {\n        xlsRawBodyEnvironmentMissing();\n        xlsFrontendInputUsageFailure(deps->sourceOverlay);\n        xlsModuleGraphDecline();\n        XL6_AstNode* interfaceRoot;'
                 if source.count(before)!=1:raise ValueError('current compiled interface dependency seam changed')
                 source=source.replace(before,after)
-            seams = 20 if current else 19
+            seams = (20 if current else 19)+(2 if native_selection else 0)
         else:
             source = _completion_namespace(source)
             seams = 3
@@ -224,4 +250,5 @@ def derive(frontend: Path, output: Path) -> list[dict]:
                          compiledSource=str(compiled), compiledSha256=hashlib.sha256(compiled.read_bytes()).hexdigest(),
                          contextCohort='current-2084f8ac' if current else 'legacy',auditedDependencies=audited,
                          auditedSeams=seams, change=("bounded pre-import entry AST reuse,allocation-free usedmask andoptional persistent original hit/miss overlay topology;failed matching disablesproof;source reporting,path rules and parser fallback retained" if original.stem == "xl6_source_overlay" else "request-owned directory/package inputs; original resolution/validation rules retained; default calls unchanged")))
+        if original.stem=="xl6_imports":rows[-1]['nativePackageSelection']=native_selection
     return rows

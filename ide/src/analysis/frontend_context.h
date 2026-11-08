@@ -18,6 +18,10 @@ int xlsFrontendContextsEqual(const xls_context* a,const xls_context* b);
 void xlsFrontendContextBegin(xls_frontend_context_scope* scope,const xls_context* context);
 int xlsFrontendContextEnd(xls_frontend_context_scope* scope);
 const xls_context* xlsFrontendContextCurrent(void);
+/* Actual selected compiler adapter reports support; unsupported versions reject
+ * explicit choices before analysis. Initialization reads the existing TLS scope. */
+int xlsFrontendNativeSelectionAvailable(void);
+int xlsFrontendContextNativeSelection(void);
 /* Private optional producer slot. Shares the existing call-scope TLS;no
  * additional thread-local lookup domain or heap sidecar is introduced. */
 struct xls_completion_pool_scope** xlsFrontendCompletionPoolSlot(void);

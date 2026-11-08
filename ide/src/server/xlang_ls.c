@@ -8,6 +8,7 @@
 #include "analysis/worker.h"
 #ifdef XLS_COMPILER_XRT
 #include "analysis/worker_modules.h"
+#include "analysis/frontend_context.h"
 #include "analysis/entity_store.h"
 #include "services/project_references.h"
 #endif
@@ -813,6 +814,9 @@ static void dispatch(server* s,const xvalue* message)
   put(cap,"foldingRangeProvider",xrtValueBool(true));put(cap,"selectionRangeProvider",xrtValueBool(true)); put(scope,"residentSyntax",xrtValueBool(true)); put(scope,"analysisRuntime",xrtValueString(sv("compiler-xrt")));
   put(scope,"nativeCursorCompletion",xrtValueBool(!s->cliCompletion)); put(scope,"completionBackend",xrtValueString(sv(s->cliCompletion ? "cli" : "native")));
   put(scope,"analysisConfiguration",xrtValueInt(!s->cliCompletion && !s->cliDiagnostics ? 1 : 0));put(scope,"analysisProfile",xrtValueString(sv(XIDE_ANALYSIS_PROFILE)));
+#ifdef XLS_COMPILER_XRT
+  put(scope,"nativePackageSelection",xrtValueBool(!s->cliCompletion && !s->cliDiagnostics && xlsFrontendNativeSelectionAvailable()));
+#endif
   put(scope,"retainedDiskEntry",xrtValueInt(!s->cliCompletion && !s->cliDiagnostics ? 1 : 0));
   put(scope,"retainedEntryParse",xrtValueInt(!s->cliCompletion ? 1 : 0));
   put(scope,"retainedModuleParse",xrtValueInt(!s->cliCompletion ? 1 : 0));

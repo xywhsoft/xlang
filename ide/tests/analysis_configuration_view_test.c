@@ -5,6 +5,7 @@
 #include "ui/workspace_view.h"
 #include "services/analysis_configuration.h"
 #include "platform/path.h"
+#include "catalog_ready.h"
 #include <windows.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,17 +53,22 @@ static int verify(void* user)
  const char* cursor="import context_package as cp\nexport func value() as int\n cp.\n return 0\nend\n";
  CHECK(root && entry && helper && image && xrtDirCreateAll(root));CHECK(writeText(entry,"\xef\xbb\xbf" "import helper\r\nfunc main(...) as int\r\n return helper.value()\r\nend\r\n") && writeText(helper,saved));
  CHECK(old<32768 && SetEnvironmentVariableW(L"XLANG_PACKAGE_PATH",L"packages"));touched=1;
- app.hidden=1;app.noSession=1;app.compilerPath=f->compiler;CHECK(xideAppCreate(&app)==XUI_OK && xgeBegin()==XGE_OK);began=1;
+ app.hidden=1;app.noSession=1;app.compilerPath=f->compiler;CHECK(xideAppCreate(&app)==XUI_OK && xgeBegin()==XGE_OK);began=1;CHECK(xideTestCatalogReady(&app));
  CHECK(xideWorkspaceCreate(&app.workspaceModel,"配置验证",&error));app.workspaceModel.projects=calloc(2,sizeof(xide_project));CHECK(app.workspaceModel.projects);app.workspaceModel.projectCount=app.workspaceModel.projectCapacity=2;
  for(size_t i=0;i<2;++i) {
   char* directory=xidePathResolve(root,i ? "B" : "A");char* package=directory ? xidePathResolve(directory,"packages/context_package") : NULL;
   char* manifest=directory ? xidePathResolve(directory,"project.xlp") : NULL;char* pm=package ? xidePathResolve(package,"xlang.package.json") : NULL;char* api=package ? xidePathResolve(package,"api.xl") : NULL;
   CHECK(directory && package && manifest && pm && api && xrtDirCreateAll(package));
-  CHECK(writeText(pm,"{\"format\":\"xlang-package-1\",\"name\":\"context_package\",\"version\":\"1.0.0\",\"abiVersion\":\"1\",\"kind\":\"source\",\"artifact\":{\"kind\":\"source\",\"xlSources\":[\"api.xl\"]},\"dependencies\":[],\"links\":[],\"loadlibs\":[]}"));
+  CHECK(writeText(pm,"{\"format\":\"xlang-package-1\",\"name\":\"context_package\",\"version\":\"1.0.0\",\"abiVersion\":\"1\",\"kind\":\"source\",\"artifact\":{\"kind\":\"source\",\"xlSources\":[\"api.xl\"]},\"native\":{\"linkage\":\"static\",\"variants\":{\"dynamic\":\"dynamic.json\"}},\"dependencies\":[],\"links\":[],\"loadlibs\":[]}"));
+  char* dynamic=xidePathResolve(package,"dynamic.json");CHECK(dynamic);
+  CHECK(writeText(dynamic,i ? "{\"format\":\"xlang-package-1\",\"name\":\"context_package\",\"version\":\"1.0.0\",\"abiVersion\":\"1\",\"kind\":\"source\",\"artifact\":{\"kind\":\"source\",\"xlSources\":[\"api.xl\"]},\"native\":{\"linkage\":\"dynamic\"},\"dependencies\":[],\"links\":[],\"loadlibs\":[]}" : "{}"));free(dynamic);
   CHECK(writeText(api,i ? "export func value() as string\n return \"B\"\nend\nexport func beta() as int\n return 2\nend\n" : "export func value() as int\n return 7\nend\nexport func alpha() as int\n return 1\nend\n"));
-  xvalue* json=model(entry,helper);CHECK(json && xideProjectDecode(app.workspaceModel.projects+i,manifest,json,&error));xrtValueRelease(json);
+  xvalue* json=model(entry,helper);CHECK(json && cvput(json,"nativeLinkage",xrtValueString(cvsv(i ? "dynamic":"static"))) && xideProjectDecode(app.workspaceModel.projects+i,manifest,json,&error));xrtValueRelease(json);
   app.workspaceModel.projects[i].id=cvcopy(i ? "B" : "A");CHECK(app.workspaceModel.projects[i].id);free(directory);free(package);free(manifest);free(pm);free(api);
  }
+ xvalue* prepared=xideAnalysisConfigurationPacket(&app.workspaceModel,"A",NULL,"packages",1,&error);CHECK(prepared);
+ const xvalue* projects=cvget(cvget(prepared,"catalog"),"projects");
+ CHECK(textIs(cvget(xrtValueArrayGet(projects,0),"nativeSelection"),"static") && textIs(cvget(xrtValueArrayGet(projects,1),"nativeSelection"),"dynamic"));xrtValueRelease(prepared);
  CHECK(xideWorkspaceViewRefresh(&app)==XUI_OK && xideWorkspaceViewSelectProject(&app,"A") && pump(&app));
  CHECK(xideEditorOpen(&app,helper,&error) && app.documents.count==1 && pump(&app));xide_document* doc=app.activeDocument;xide_completion_view* v=app.completionView;
  CHECK(query(&app,doc,cursor,"cp.") && v->nativeBackend && has(v,"alpha") && !has(v,"beta"));

@@ -21,6 +21,7 @@ static bool fixtureMapRemove(xmap* map,xbytesview key) {return operation() && xr
 #define xl6CompiledPackageDecode privateInterfaceDecode
 #define xlsFrontendImportNamesBegin privateBegin
 #define xlsFrontendImportNamesEnd privateEnd
+#define xlsFrontendNativeSelectionAvailable privateNativeSelectionAvailable
 /* The included upstream TU contains its existing unused helpers/local. Keep
  * the fixture itself strict; use the shared source's established allowances. */
 #ifdef __GNUC__
@@ -39,6 +40,7 @@ static bool fixtureMapRemove(xmap* map,xbytesview key) {return operation() && xr
 #undef xl6ImportDepsInit
 #undef xl6ImportDepsFree
 #undef xl6ImportsExpandModule
+#undef xlsFrontendNativeSelectionAvailable
 #undef xl6CompiledPackageInterfaceValid
 #undef xl6CompiledPackageDecode
 #undef xlsFrontendImportNamesBegin

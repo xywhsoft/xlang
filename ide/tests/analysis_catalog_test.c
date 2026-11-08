@@ -35,6 +35,16 @@ static int run(void)
  wire=xideAnalysisContextWrite(a);CHECK(put(wire,"entry",xrtValueString((xstrview){"x\0y",3})) && !xideAnalysisContextRead(wire,error,sizeof(error)));xrtValueRelease(wire);
  wire=xideAnalysisContextWrite(b);copy=xideAnalysisContextRead(wire,error,sizeof(error));CHECK(copy && xlsContextSpec(copy)->packagePath && !*xlsContextSpec(copy)->packagePath);xlsContextRelease(copy);xrtValueRelease(wire);
  CHECK(!xideAnalysisContextRead(NULL,error,sizeof(error)) && !xideAnalysisContextWrite(NULL));
+ for(int mode=XLS_NATIVE_AUTO_JIT;mode<=XLS_NATIVE_AUTO_AOT;++mode) {
+  xls_context_spec spec=*xlsContextSpec(a);spec.nativeSelection=(enum xls_native_selection)mode;
+  xls_context* chosen=xlsContextCreate(&spec,4096,NULL);CHECK(chosen);wire=xideAnalysisContextWrite(chosen);int64 schema=0;
+  CHECK(wire && xrtValueGetInt(get(wire,"schema"),&schema) && schema==(mode ? 2 : 1) && xrtValueCount(wire)==(mode ? 11u : 10u));
+  copy=xideAnalysisContextRead(wire,error,sizeof(error));CHECK(copy && xlsContextEqual(chosen,copy));xlsContextRelease(copy);
+  CHECK(put(wire,"nativeSelection",xrtValueString(sv("unknown"))) && !xideAnalysisContextRead(wire,error,sizeof(error)));
+  xrtValueRelease(wire);wire=xideAnalysisContextWrite(chosen);
+  CHECK(put(wire,"schema",xrtValueInt(mode ? 1 : 2)) && !xideAnalysisContextRead(wire,error,sizeof(error)));
+  xrtValueRelease(wire);xlsContextRelease(chosen);
+ }
  xls_context* contexts[]={a,b,c};wire=catalog(contexts,3,"",NULL);CHECK(wire);
  xide_analysis_catalog* prepared=xideAnalysisCatalogCreate(wire,error,sizeof(error));CHECK(prepared && xideAnalysisCatalogCount(prepared)==3 && !xideAnalysisCatalogPackagePath(prepared));
  const xls_context* found=(const xls_context*)1;

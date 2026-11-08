@@ -19,6 +19,8 @@ int xlsFrontendContextValid(const xls_context* context,const char* entry,char* e
 {
     if(!context) return 1;
     const xls_context_spec* spec=xlsContextSpec(context);
+    if(spec->nativeSelection!=XLS_NATIVE_AUTO_JIT && !xlsFrontendNativeSelectionAvailable())
+        return fail(error,capacity,"selected native frontend does not support explicit package selection");
     if(spec->kind==XLS_CONTEXT_C || !xrtPathIsAbs(spec->directory) || !xrtPathIsAbs(spec->entry) ||
         !entry || strcmp(spec->entry,entry) || (spec->packagePath && strlen(spec->packagePath)>32767))
         return fail(error,capacity,"native context requires an absolute xlang entry/build directory and bounded package environment");
@@ -44,6 +46,8 @@ int xlsFrontendContextEnd(xls_frontend_context_scope* scope)
     scope->namespaceNames=NULL; current=scope->previous; return okay;
 }
 const xls_context* xlsFrontendContextCurrent(void) { return current ? current->context : NULL; }
+int xlsFrontendContextNativeSelection(void)
+{ return current && current->context ? (int)xlsContextSpec(current->context)->nativeSelection : XLS_NATIVE_AUTO_JIT; }
 struct xls_completion_pool_scope** xlsFrontendCompletionPoolSlot(void)
 {return current ? &current->completionPool : NULL;}
 struct xls_raw_scope** xlsFrontendRawBodySlot(void)

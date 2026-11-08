@@ -38,6 +38,16 @@ xls_context* xideAnalysisProjectContext(const xide_project* project,const char* 
     for(size_t i=0;i<project->files.count;++i) members[i]=project->files.items[i].path;
     xls_context_spec spec={.kind=XLS_CONTEXT_PROJECT,.project=project->manifest,.configuration=chosen ? chosen->id : "",
         .entry=project->entry,.directory=directory,.analysisProfile=profile,.targetKind=project->kind,.packagePath=packagePath};
+    /* Reuse the retained project snapshot; nativeLinkage is a compiler-level
+     * project field, independent of IDE run environment and configuration UI. */
+    const xvalue* linkage=project->source ? xrtValueObjectGet(project->source,(xstrview){"nativeLinkage",13}) : NULL;
+    if(linkage) {
+        xstrview value={0};int valid=xrtValueGetString(linkage,&value);
+        if(valid && value.Size==4 && !memcmp(value.Data,"auto",4)) spec.nativeSelection=XLS_NATIVE_AUTO_JIT;
+        else if(valid && value.Size==6 && !memcmp(value.Data,"static",6)) spec.nativeSelection=XLS_NATIVE_STATIC;
+        else if(valid && value.Size==7 && !memcmp(value.Data,"dynamic",7)) spec.nativeSelection=XLS_NATIVE_DYNAMIC;
+        else {xrtFree(members);free(directory);return contextFail(error,XIDE_MODEL_INVALID,"Expected project nativeLinkage auto, static or dynamic.");}
+    }
     spec.lists[XLS_CONTEXT_MEMBERS]=(xls_context_strings){members,project->files.count};
     spec.lists[XLS_CONTEXT_C_SOURCES]=strings(&project->cSources);
     spec.lists[XLS_CONTEXT_RESOURCES]=strings(&project->resources);

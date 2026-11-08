@@ -680,7 +680,7 @@ def main() -> None:
         parser.error(str(error))
     c_interop = c_interop_selected(frontend)
     current_core = frontend_materials.get('sourceRevision')=='current-core-20261108'
-    if current_core and not args.skip_tests:tests=('analysis_current_core_test',*tests)
+    if current_core and not args.skip_tests:tests=('analysis_native_selection_test','analysis_current_core_test',*tests)
     unified = c_interop or ((frontend/'src/sem/xl6_sem.c').is_file() and sha(frontend/'src/sem/xl6_sem.c')==UNIFIED_PINS['src/sem/xl6_sem.c'])
     if completion_facts(frontend) and not args.skip_tests:tests=('analysis_completion_visibility_test',*tests)
     if unified and not args.skip_tests:tests=('analysis_unified_semantic_test',*tests)

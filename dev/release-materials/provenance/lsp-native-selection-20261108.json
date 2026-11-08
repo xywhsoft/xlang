@@ -1,0 +1,367 @@
+{
+  "format": "xlang-native-selection-acceptance-1",
+  "date": "2026-11-08",
+  "phaseStatus": "native-selection-context-and-input-proof-complete-candidate-not-delivered",
+  "fullGoalComplete": false,
+  "shippingDelivery": false,
+  "correctnessPassed": true,
+  "performanceQualified": false,
+  "scope": "Project nativeLinkage through immutable context, strict wire, original native selector, checks/cursors/dependency-only loading and real IDE model. No DAP or runtime/debug completion.",
+  "baseGitCommit": "c23590b1594d0772dda7f2091e38c8842df0a530",
+  "implementationInputs": {
+    "ide/src/analysis/context.h": "01474011361fbea88da65c4b0f6174429cf053ff7e4adcc163db8493690f02ff",
+    "ide/src/analysis/context.c": "2e81a6a976d7c9e0ec5617077988ad2a3d99334411f9f0d3fbcbf940977548bd",
+    "ide/src/analysis/frontend_context.h": "87574e77f8324e3dcd2ee15ba136217c966eb1aaee0a28c26c43f9fbfeb797a5",
+    "ide/src/analysis/frontend_context.c": "990dad80779a8901f9d61c6f486c74c56b63eeae47de07f7119ccfe93702e904",
+    "ide/src/protocol/analysis_context_wire.c": "017db8b9eaa135657715f9084995954274bd59571dbf8b73f86452da76b8bfca",
+    "ide/src/protocol/analysis_context_wire.h": "d5d021bbf495b98865cdce71e4848cba6c05bed1f2c0c2e31644d50dbaaa76e8",
+    "ide/src/services/analysis_context.c": "657e358c2f8c7560c189211d8f1aacdf8688ae04c03878f0a32bb72376d3e576",
+    "ide/src/server/xlang_ls.c": "2503d8f42851eec344731b20d1d656e2048f3dcfcd3ff2aa69204900d1804a19",
+    "ide/tools/native_context_overlay.py": "73bc8d89a20c66dbf19c457776c998632f4de851fc2580afc9823d20e1536e61",
+    "ide/tools/build_lsp_core.py": "5d9bbba67adcddda8052ee8db15519d3b1b01c6f8275ce9d31b842f58a99aa69",
+    "ide/tools/check_lsp_native_selection.py": "03d7adabf4ee25e498712d32eec669f598ac430fd9e95812922d0ad4456c7506",
+    "ide/tools/check_native_selection_safety.py": "9b63638eea04bca4d9f8efb37bd69105da73fdd35877ca0866810ae4d9bd27fa",
+    "ide/tests/analysis_context_test.c": "1719a5789d62d5cae431c643f5752fdfb937048b40b9f7196a2046a0d8b6e791",
+    "ide/tests/analysis_project_context_test.c": "8005ac2eb7ea4f3602115ff73aa4c6285ef4492094d8bd5aef8a5457ea3b81dd",
+    "ide/tests/analysis_catalog_test.c": "a2422b3525acc6e384b4fb4938d4f86933320318ffbfa3724a8253194c36142a",
+    "ide/tests/analysis_configuration_view_test.c": "7872315eceb335c339824b7e2ec9ab477d40f5809491329a90ec663c9750c313",
+    "ide/tests/analysis_native_selection_test.c": "27ff83aee16540b40d95133175a8c813931682531a116d724e22acb3a47e6600",
+    "ide/tests/analysis_import_names_test.c": "205fbc760891347009f6c3921147677fdef4ddb1a07cd1a54754fb99a543809f",
+    "ide/tests/analysis_context_fault_test.c": "b97b2e268dd6f2a1b5b94154ed6e55a02572fce6197b59ce8a431f03baf689e1",
+    "ide/docs/lsp-native-package-selection.md": "4f85df6304200aa1b8f46562f704648ded628354dd6ba672c831ab20b0406445",
+    "ide/docs/lsp-development.md": "2571bc8e6ba4c858d37f111a312e88109dedce7d4be731678347d303dc327137"
+  },
+  "frontend": {
+    "revision": "current-core-20261108",
+    "pinnedDependencies": 457,
+    "selectionABIPins": 4,
+    "enumStaticAssertions": 4,
+    "originalSelectionRulesRetained": true,
+    "requestScope": "Existing TLS only; independent nested/concurrent contexts",
+    "originalCompilerSourceFilesModified": false,
+    "defaultContextWireSchema": 1,
+    "explicitSelectionWireSchema": 2,
+    "defaultPolicy": "Ordinary check AUTO_JIT; AUTO_AOT requires explicit wire policy",
+    "contextAllocationCount": 1,
+    "canonicalHeaderAdditionalBytes": 8,
+    "missingVariant": "Existing native regular-file observation produces a negative proof, while complete-report/read/allocation guards remain intact"
+  },
+  "native": {
+    "normalBuildSha256": "f9ae40f89eb18db4a42ee914557b842bac3d80ef53b38eed86bb064710c001f3",
+    "compileInvocations": 236,
+    "tests": 138,
+    "privateAstConsumers": 143,
+    "inputs": 1398,
+    "outputs": 140,
+    "newSelectionAssertions": 170,
+    "contextAssertions": 79,
+    "contextFaultAssertions": 42,
+    "serverSha256": "6e4097a53a63f4f39a0a72c039a07719926ebbfcd523ebf5677f089feeadfad2",
+    "imports": [
+      "IPHLPAPI.DLL",
+      "KERNEL32.dll",
+      "msvcrt.dll",
+      "ole32.dll",
+      "SHELL32.dll",
+      "VERSION.dll",
+      "WS2_32.dll"
+    ]
+  },
+  "protocol": {
+    "allTenSuitesPassed": true,
+    "newSelectionCases": 28,
+    "newSelectionProcesses": 2,
+    "automaticSelectionCases": 5,
+    "existingConfigurationCases": 37,
+    "actualProducerControlCases": 1,
+    "actualProducerOmissionsRejected": 3,
+    "actualProducerCommands": 10,
+    "completionProcesses": 45,
+    "completionGenerations": 36,
+    "automaticCases": 24,
+    "finalInteropCases": 16,
+    "serializerAssertions": 127836,
+    "frontendRows": 9,
+    "derivedCases": 8,
+    "derivedQueries": 80,
+    "derivedProcesses": 16,
+    "legacyGap": "baseline-gap-reproduced"
+  },
+  "installedCompilerParity": {
+    "status": "passed",
+    "scope": "Installed compiler check of actual .xlp nativeLinkage; check only, no execution; selected static manifest is absent",
+    "protected": {
+      "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe": "e5f4719890814a3f7b5422ffb1f293ffc944c527de62217d32e9a3a4c287dfad",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xl.dll": "e783d6a15c946945d4186084cff9006839cbc1d31a0ae387396dc6f500aaac6c",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xlc.dll": "b4563a13448e2f550b00c0504cac481cdefd2b61ee961276049f936243f125a1"
+    },
+    "rows": [
+      {
+        "mode": "static",
+        "expected": false,
+        "accepted": false,
+        "command": [
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+          "check",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-selection-20261108\\selection-wire-v3\\cli-static.xlp",
+          "--json"
+        ],
+        "exit": 1
+      },
+      {
+        "mode": "dynamic",
+        "expected": true,
+        "accepted": true,
+        "command": [
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+          "check",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-selection-20261108\\selection-wire-v3\\cli-dynamic.xlp",
+          "--json"
+        ],
+        "exit": 0
+      },
+      {
+        "mode": "auto",
+        "expected": true,
+        "accepted": true,
+        "command": [
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+          "check",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-selection-20261108\\selection-wire-v3\\cli-auto.xlp",
+          "--json"
+        ],
+        "exit": 0
+      }
+    ]
+  },
+  "gui": {
+    "passedForCapturedCommittedHomeSources": true,
+    "sourceScope": {
+      "baseCommit": "c23590b1594d0772dda7f2091e38c8842df0a530",
+      "overlays": {
+        "ide/src/analysis/context.h": "01474011361fbea88da65c4b0f6174429cf053ff7e4adcc163db8493690f02ff",
+        "ide/src/analysis/context.c": "2e81a6a976d7c9e0ec5617077988ad2a3d99334411f9f0d3fbcbf940977548bd",
+        "ide/src/analysis/frontend_context.h": "87574e77f8324e3dcd2ee15ba136217c966eb1aaee0a28c26c43f9fbfeb797a5",
+        "ide/src/analysis/frontend_context.c": "990dad80779a8901f9d61c6f486c74c56b63eeae47de07f7119ccfe93702e904",
+        "ide/src/protocol/analysis_context_wire.c": "017db8b9eaa135657715f9084995954274bd59571dbf8b73f86452da76b8bfca",
+        "ide/src/protocol/analysis_context_wire.h": "d5d021bbf495b98865cdce71e4848cba6c05bed1f2c0c2e31644d50dbaaa76e8",
+        "ide/src/services/analysis_context.c": "657e358c2f8c7560c189211d8f1aacdf8688ae04c03878f0a32bb72376d3e576",
+        "ide/src/server/xlang_ls.c": "2503d8f42851eec344731b20d1d656e2048f3dcfcd3ff2aa69204900d1804a19",
+        "ide/tools/native_context_overlay.py": "73bc8d89a20c66dbf19c457776c998632f4de851fc2580afc9823d20e1536e61",
+        "ide/tools/build_lsp_core.py": "5d9bbba67adcddda8052ee8db15519d3b1b01c6f8275ce9d31b842f58a99aa69",
+        "ide/tools/check_lsp_native_selection.py": "03d7adabf4ee25e498712d32eec669f598ac430fd9e95812922d0ad4456c7506",
+        "ide/tools/check_native_selection_safety.py": "9b63638eea04bca4d9f8efb37bd69105da73fdd35877ca0866810ae4d9bd27fa",
+        "ide/tests/analysis_context_test.c": "1719a5789d62d5cae431c643f5752fdfb937048b40b9f7196a2046a0d8b6e791",
+        "ide/tests/analysis_project_context_test.c": "8005ac2eb7ea4f3602115ff73aa4c6285ef4492094d8bd5aef8a5457ea3b81dd",
+        "ide/tests/analysis_catalog_test.c": "a2422b3525acc6e384b4fb4938d4f86933320318ffbfa3724a8253194c36142a",
+        "ide/tests/analysis_configuration_view_test.c": "7872315eceb335c339824b7e2ec9ab477d40f5809491329a90ec663c9750c313",
+        "ide/tests/analysis_native_selection_test.c": "27ff83aee16540b40d95133175a8c813931682531a116d724e22acb3a47e6600",
+        "ide/tests/analysis_import_names_test.c": "205fbc760891347009f6c3921147677fdef4ddb1a07cd1a54754fb99a543809f",
+        "ide/tests/analysis_context_fault_test.c": "b97b2e268dd6f2a1b5b94154ed6e55a02572fce6197b59ce8a431f03baf689e1",
+        "ide/src/ui/language_view.c": "60cbe7b12d251d9b85ea6e9b90bd2057d8a10094b4de9231e852ad161374ebd2",
+        "ide/src/ui/automatic_diagnostics.inc": "48064a7dcea3b456d32f48f2459ac091d5ddb27eeb1e502c595bb3d7d0ccd92a",
+        "ide/src/ui/language_references.inc": "898767d738118e58551707c9545cc1fe0da9a6e0d4b0909b2ee4571958106a33",
+        "ide/tests/language_view_test.c": "691f8aa47e21b58fb56b485de73624eb72209f8a477e4f39d07c9a7a9c89f654"
+      },
+      "snapshotRoot": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-selection-20261108\\gui-source",
+      "objectRoot": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-selection-20261108\\gui-fixed-objects",
+      "sdkJunction": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-selection-20261108\\gui-source\\ide\\third_party\\xge_sdk",
+      "sdkTarget": "D:\\GIT\\x-lang\\ide\\third_party\\xge_sdk",
+      "buildScriptOnlyChange": "Move objectRoot to the task build directory; GUI/source behavior unchanged",
+      "reason": "Concurrent ui_font/workbench changes after GUI compilation invalidated its receipt. Use committed Home sources plus this LSP slice and captured pre-existing reader guards; actual root runtime remains shared and unchanged."
+    },
+    "tests": [
+      {
+        "fixture": "input_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-selection-20261108\\gui-alias-1794151974563627400\\input_test"
+        ]
+      },
+      {
+        "fixture": "completion_view_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-selection-20261108\\gui-alias-1794151974563627400\\completion_view_test",
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-selection-20261108\\absent-compiler.exe"
+        ]
+      },
+      {
+        "fixture": "automatic_diagnostics_view_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-selection-20261108\\gui-alias-1794151974563627400\\automatic_diagnostics_view_test",
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe"
+        ]
+      },
+      {
+        "fixture": "settings_menu_frame_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-selection-20261108\\gui-alias-1794151974563627400\\settings_menu_frame_test",
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe"
+        ]
+      },
+      {
+        "fixture": "analysis_configuration_view_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-selection-20261108\\gui-alias-1794151974563627400\\analysis_configuration_view_test",
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe"
+        ]
+      },
+      {
+        "fixture": "analysis_project_context_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-selection-20261108\\gui-alias-1794151974563627400\\analysis_project_context_test"
+        ]
+      },
+      {
+        "fixture": "analysis_catalog_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-selection-20261108\\gui-alias-1794151974563627400\\analysis_catalog_test"
+        ]
+      }
+    ],
+    "serviceLaunchMode": "private test objects changing only executable basename to protect active user session; all executables use actual root runtime",
+    "pairedServerSha256": "6e4097a53a63f4f39a0a72c039a07719926ebbfcd523ebf5677f089feeadfad2",
+    "guiCandidateSha256": "195d3317174675ed4cf7265c9a3d92657ab01c1d380543bd01423d2ee0c9732f",
+    "receiptSha256": "1b3b2df6dae8696a4f9548b4b3caad9c354a8869c5741101899ac49ac28d7e81",
+    "privateSources": {
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-selection-20261108\\gui-source\\ide\\src\\ui\\completion_view.c": {
+        "originalSha256": "00059dbc6fafb38f202f3e828d9e47b5179df28b587abbb7d0a924363b3b7636",
+        "privateSource": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-selection-20261108\\gui-alias-1794151974563627400\\fixture-src\\src\\ui\\completion_view.c",
+        "privateSha256": "89db477759afb5101220bad61f383104ca91a61299d772b792ec194776b74921",
+        "change": "Only literal service executable basename; original adapter bodies preserved"
+      },
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-selection-20261108\\gui-source\\ide\\src\\ui\\language_view.c": {
+        "originalSha256": "60cbe7b12d251d9b85ea6e9b90bd2057d8a10094b4de9231e852ad161374ebd2",
+        "privateSource": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-selection-20261108\\gui-alias-1794151974563627400\\fixture-src\\src\\ui\\language_view.c",
+        "privateSha256": "a302526d59357ff89dd3bb7756d53cb67e2c5625efe2f11f33fab6033594d833",
+        "change": "Only literal service executable basename; original adapter bodies preserved"
+      },
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-selection-20261108\\gui-source\\ide\\tests\\input_test.c": {
+        "originalSha256": "2804e8842d91a338ac4dcb3788d9133f597303b435b55038168e0669645d40f5",
+        "privateSource": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-selection-20261108\\gui-alias-1794151974563627400\\fixture-src\\tests\\input_test.c",
+        "privateSha256": "2804e8842d91a338ac4dcb3788d9133f597303b435b55038168e0669645d40f5",
+        "change": "Unchanged fixture copy to include private service-basename adapter"
+      },
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-selection-20261108\\gui-source\\ide\\tests\\completion_view_test.c": {
+        "originalSha256": "575a01bb6db96ee618bc1d2380b6c945ab9b19f26e575c07fcbe9f2498bc03b3",
+        "privateSource": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-selection-20261108\\gui-alias-1794151974563627400\\fixture-src\\tests\\completion_view_test.c",
+        "privateSha256": "575a01bb6db96ee618bc1d2380b6c945ab9b19f26e575c07fcbe9f2498bc03b3",
+        "change": "Unchanged fixture copy to include private service-basename adapter"
+      },
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-selection-20261108\\gui-source\\ide\\tests\\automatic_diagnostics_view_test.c": {
+        "originalSha256": "e2edc7c5514d4f932529ec2da1ce4636e722f4afc3707b2e659b7085eff80fce",
+        "privateSource": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-selection-20261108\\gui-alias-1794151974563627400\\fixture-src\\tests\\automatic_diagnostics_view_test.c",
+        "privateSha256": "e2edc7c5514d4f932529ec2da1ce4636e722f4afc3707b2e659b7085eff80fce",
+        "change": "Unchanged fixture copy to include private service-basename adapter"
+      },
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-selection-20261108\\gui-source\\ide\\tests\\settings_menu_frame_test.c": {
+        "originalSha256": "1b3ed104a70c61cdc051a7f8ea985d23441f5ea317b8295bd030116984481f19",
+        "privateSource": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-selection-20261108\\gui-alias-1794151974563627400\\fixture-src\\tests\\settings_menu_frame_test.c",
+        "privateSha256": "1b3ed104a70c61cdc051a7f8ea985d23441f5ea317b8295bd030116984481f19",
+        "change": "Unchanged fixture copy to include private service-basename adapter"
+      },
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-selection-20261108\\gui-source\\ide\\tests\\analysis_configuration_view_test.c": {
+        "originalSha256": "7872315eceb335c339824b7e2ec9ab477d40f5809491329a90ec663c9750c313",
+        "privateSource": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-selection-20261108\\gui-alias-1794151974563627400\\fixture-src\\tests\\analysis_configuration_view_test.c",
+        "privateSha256": "7872315eceb335c339824b7e2ec9ab477d40f5809491329a90ec663c9750c313",
+        "change": "Unchanged fixture copy to include private service-basename adapter"
+      },
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-selection-20261108\\gui-source\\ide\\tests\\analysis_project_context_test.c": {
+        "originalSha256": "8005ac2eb7ea4f3602115ff73aa4c6285ef4492094d8bd5aef8a5457ea3b81dd",
+        "privateSource": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-selection-20261108\\gui-alias-1794151974563627400\\fixture-src\\tests\\analysis_project_context_test.c",
+        "privateSha256": "8005ac2eb7ea4f3602115ff73aa4c6285ef4492094d8bd5aef8a5457ea3b81dd",
+        "change": "Unchanged fixture copy to include private service-basename adapter"
+      },
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-selection-20261108\\gui-source\\ide\\tests\\analysis_catalog_test.c": {
+        "originalSha256": "a2422b3525acc6e384b4fb4938d4f86933320318ffbfa3724a8253194c36142a",
+        "privateSource": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-selection-20261108\\gui-alias-1794151974563627400\\fixture-src\\tests\\analysis_catalog_test.c",
+        "privateSha256": "a2422b3525acc6e384b4fb4938d4f86933320318ffbfa3724a8253194c36142a",
+        "change": "Unchanged fixture copy to include private service-basename adapter"
+      }
+    },
+    "currentConcurrentUnfinishedNewWindowChangesQualified": false,
+    "runtimeDirectory": "release/win_x64"
+  },
+  "performance": {
+    "newFormalMatrixRun": false,
+    "qualified": false,
+    "priorReport": "dev/release-materials/provenance/lsp-current-derived-20261108.json",
+    "priorReportSha256": "8586d1d693d373a5dad9d03ef9771ac448fe6693db5dd313154989fac7655572",
+    "priorUnchangedFailures": {
+      "aa": 1,
+      "delta": 2,
+      "cumulative": 1
+    },
+    "thresholdsChanged": false,
+    "scope": "Correctness/configuration slice only. No no-regression, zero-overhead or overall performance claim. Added request-domain read and selected-variant existence observation remain for later measurement."
+  },
+  "historicalFailures": [
+    "Late archive guard observed external default IDE replacement after passed GUI validation. Validation identities remain immutable; archive records current IDE separately and preserves it.",
+    "Initial initializer seam matched both init/free memsets; narrowed to the original init sequence before compilation.",
+    "First full build actively stopped before adding missing-variant negative proof; partial build not qualified.",
+    "Full-v2 stopped after 72 native tests on duplicate exported availability symbol in the including imports fixture; fixture namespaced and targeted control passed.",
+    "Full-v3 stopped after 89 native tests on duplicate request-mode getter in the including context fixture; all including fixtures audited, namespaced and targeted control passed.",
+    "Provisional protocol image reproduced selected missing manifest as -32603 incomplete-input failure; original rejection and later fixed checks retained.",
+    "Initial concurrent worktree GUI compile lacked unfinished home_view.inc. Later successful GUI compile was invalidated by post-build ui_font/workbench edits; immutable committed-Home source snapshot used instead."
+  ],
+  "evidence": {
+    "directory": "dev/release-materials/provenance/lsp-native-selection-20261108",
+    "files": 570,
+    "manifestSha256": "3bafb0ef7003a9d0a00d8aef65ba82d5d47f433210fbd6499a4504d78b7d921e",
+    "archiveSha256": "7e67f095398cf02bbea6a3d261ef3f3a9868d546e32c0ab6272fb70131be7852",
+    "sourceDirectory": "dev/release-materials/sources/lsp-native-selection-20261108",
+    "sourceManifestSha256": "d03066ab7bfe91bf80a9719f5faf5898b71b91e739093a06917027b6a092ebbe",
+    "sourceArchiveSha256": "01ea01f3154d7f03faada11fe7311f94dd4acf776f85a75ec39b2e0fee10b998",
+    "sourceFiles": 2011,
+    "historicalBytesAndPathsPreserved": true
+  },
+  "runtime": {
+    "languageServerReplaced": false,
+    "ideReplaced": false,
+    "updateChannelPushed": false,
+    "cleanup": {
+      "status": "passed",
+      "removed": [
+        ".xlang-ls-selection-candidate.exe",
+        ".xlang-ls-selection-reference.exe"
+      ],
+      "validatedRuntime": {
+        "xlang_ide.exe": "f1e5eccd762e65299247a5f8a4f89ce4e87e218c6a2c6f0cb359934e944c8c2c",
+        "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+        "xl.exe": "e5f4719890814a3f7b5422ffb1f293ffc944c527de62217d32e9a3a4c287dfad",
+        "xl.dll": "e783d6a15c946945d4186084cff9006839cbc1d31a0ae387396dc6f500aaac6c",
+        "xlc.dll": "b4563a13448e2f550b00c0504cac481cdefd2b61ee961276049f936243f125a1",
+        "xge.dll": "f6eaa3961017f79cd06d18568bab8fb60274c4935e1a83ab8fb37da21acc607b"
+      },
+      "currentRuntime": {
+        "xlang_ide.exe": "ae52fa4a76aaf160ca6f002e575149b47f4668ba07790060824cd890386c8b8a",
+        "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+        "xl.exe": "e5f4719890814a3f7b5422ffb1f293ffc944c527de62217d32e9a3a4c287dfad",
+        "xl.dll": "e783d6a15c946945d4186084cff9006839cbc1d31a0ae387396dc6f500aaac6c",
+        "xlc.dll": "b4563a13448e2f550b00c0504cac481cdefd2b61ee961276049f936243f125a1",
+        "xge.dll": "f6eaa3961017f79cd06d18568bab8fb60274c4935e1a83ab8fb37da21acc607b"
+      },
+      "postValidationExternalChanges": {
+        "xlang_ide.exe": {
+          "validatedSha256": "f1e5eccd762e65299247a5f8a4f89ce4e87e218c6a2c6f0cb359934e944c8c2c",
+          "currentSha256": "ae52fa4a76aaf160ca6f002e575149b47f4668ba07790060824cd890386c8b8a"
+        }
+      },
+      "runtimeProgramPublication": false
+    }
+  },
+  "remaining": [
+    "Whole latency/performance qualification remains incomplete; previous failures retained without waiver.",
+    "Continue small-edit P95 and whole-module/final-IR repetition work.",
+    "Other native frontend project build lists (C/resources/include/link settings) remain explicitly unsupported.",
+    "Reconcile the three existing optional-field UI readers and their test in a separate reviewed slice.",
+    "Global budgets, scale/concurrency/endurance, remaining applicable LSP and final current-IDE delivery/integration remain incomplete."
+  ]
+}

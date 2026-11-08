@@ -5,6 +5,9 @@
 
 typedef struct xls_context xls_context;
 enum xls_context_kind { XLS_CONTEXT_XLANG=1, XLS_CONTEXT_C, XLS_CONTEXT_PROJECT };
+/* Check defaults to JIT selection; AOT auto is explicit rather than inferred
+ * from targetKind. Values are independent of a particular compiler ABI. */
+enum xls_native_selection { XLS_NATIVE_AUTO_JIT, XLS_NATIVE_STATIC, XLS_NATIVE_DYNAMIC, XLS_NATIVE_AUTO_AOT };
 enum xls_context_list {
     XLS_CONTEXT_MEMBERS, XLS_CONTEXT_C_SOURCES, XLS_CONTEXT_RESOURCES,
     XLS_CONTEXT_INCLUDES, XLS_CONTEXT_LIBRARY_PATHS, XLS_CONTEXT_LINK_LIBRARIES,
@@ -14,6 +17,7 @@ enum xls_context_list {
 typedef struct xls_context_strings { const char* const* items; size_t count; } xls_context_strings;
 typedef struct xls_context_spec {
     enum xls_context_kind kind;
+    enum xls_native_selection nativeSelection;
     const char *project,*configuration,*entry,*directory,*analysisProfile,*targetKind;
     /* NULL means absent; an explicit empty environment value remains distinct. */
     const char* packagePath;
