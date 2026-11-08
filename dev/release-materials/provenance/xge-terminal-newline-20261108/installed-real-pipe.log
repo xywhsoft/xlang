@@ -1,0 +1,1 @@
+terminal_newline_view_test passed: 17 checks; actual xlang build/run, raw LF pipe preserved, Chinese starts at column 0, cursor=(8,1).

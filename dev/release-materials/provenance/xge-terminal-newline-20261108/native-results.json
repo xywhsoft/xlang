@@ -1,0 +1,26 @@
+[
+  {
+    "test": "xui_terminal_newline_test",
+    "exit": 0
+  },
+  {
+    "test": "xui_terminal_parser_test",
+    "exit": 0
+  },
+  {
+    "test": "xui_keypad_enter_test",
+    "exit": 0
+  },
+  {
+    "test": "xui_input_test",
+    "exit": 0
+  },
+  {
+    "test": "xui_code_find_session_test",
+    "exit": 0
+  },
+  {
+    "test": "test_input_event_queue",
+    "exit": 0
+  }
+]

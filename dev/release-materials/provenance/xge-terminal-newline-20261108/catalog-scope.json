@@ -1,0 +1,13 @@
+{
+  "entries": 19975,
+  "added": [
+    "xui.Terminal.getNewlineMode",
+    "xui.Terminal.setNewlineMode",
+    "xui.XUI_TERMINAL_NEWLINE_TEXT",
+    "xui.XUI_TERMINAL_NEWLINE_VT"
+  ],
+  "removed": 0,
+  "otherEntriesUnchangedExceptSourceLine": true,
+  "catalogSha256": "f71d5ab77ed0b1e89247cdbfca94031a3d14c6abdc525e91696fdeb23c3535d7",
+  "sourceIndexSha256": "a606dbf80db13a3d2b5975c8f9e909bfd6f74fd2d0774724dd5d0387094dec6a"
+}

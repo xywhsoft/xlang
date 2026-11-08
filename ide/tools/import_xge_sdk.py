@@ -199,13 +199,34 @@ def stage(args):
                'xuiProxyXgeVisitTextShape', 'xuiProxyXgeTextShapeCursorFree', 'xuiProxyXgeVisitTextShapeCached'}
     required_exports = [n for n in baseline['requiredExports'] if n not in retired]
     xui_header = (source / 'include/xui.h').read_text(encoding='utf8')
-    for name in ('xuiDockPanelSetTabScrollButtonsVisible',
+    for name in ('xuiTerminalSetNewlineMode', 'xuiTerminalGetNewlineMode',
+                 'xuiDockPanelSetTabScrollButtonsVisible',
                  'xuiDockPanelGetTabScrollButtonsVisible', 'xuiDockPanelGetPaneTabScrollRects',
                  'xuiCodeFindScopeSetActiveEditor', 'xuiCodeFindScopeGetActiveEditor',
                  'xuiCodeFindScopeGetFindWindow', 'xuiCodeFindScopeFindNext',
                  'xuiCodeFindScopeRefresh'):
         if re.search(r'\b' + name + r'\s*\(', xui_header) and name not in required_exports:
             required_exports.append(name)
+    # Historical dependency reports keep their original paths and bytes. Give
+    # this import a separate tree so relative patch payload references still work.
+    evidence_root = 'provenance/source-' + args.commit[:12] + '-' + sha(build / 'build-report.json')[:12]
+    generated = [(p.relative_to(sdk / 'provenance').as_posix(), p.read_bytes())
+                 for p in sorted((sdk / 'provenance').rglob('*')) if p.is_file()]
+    for name, raw in generated:
+        target = sdk / evidence_root / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(raw)
+    historical = args.baseline / 'provenance'
+    if historical.is_dir():
+        for origin in sorted(historical.rglob('*')):
+            if origin.is_file():
+                target = sdk / 'provenance' / origin.relative_to(historical)
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(origin, target)
+    patch_materials = [evidence_root + '/' + name.removeprefix('provenance/')
+                       for name in patch_materials]
+    source_info['compatibilityPatchRoot'] = evidence_root + '/compatibility-patches'
+    write(sdk / 'xge-source-files.json', source_info)
     manifest = dict(schemaVersion=2, profile='xlang-ide-xge3-matched-set', version=version,
                     policy=baseline['policy'], buildDefines=['XGE_XRT_PROFILE_IDE'],
                     xrtDirectory='extlibs/xrt', configurationHeader='xge_build_config.h',
@@ -213,12 +234,15 @@ def stage(args):
                     requiredExports=required_exports,
                     privateCandidate=True, formalRelease=False,
                     provenance=dict(builtAtUtc=datetime.now(timezone.utc).isoformat(),
+                        materialsRoot=evidence_root,
+                        sourceBuildReport=evidence_root + '/source-build-report.json',
+                        sourceBuildManifest=evidence_root + '/source-build-manifest.json',
                         sourceRepository='https://gitee.com/xywhsoft/xge', sourceCommit=args.commit,
                         sourceWorktreeDirty=bool(patches), upstreamArchiveClean=True,
                         version=version, proxyVersion=proxy_version, compatibilityPatchFiles=patch_materials,
                         compiler=build_info['compiler'], xrt=read(source / 'extlibs/xrt/upstream.json'),
-                        sourceBuildReportSha256=sha(sdk / 'provenance/source-build-report.json'),
-                        sourceBuildManifestSha256=sha(sdk / 'provenance/source-build-manifest.json')))
+                        sourceBuildReportSha256=sha(sdk / evidence_root / 'source-build-report.json'),
+                        sourceBuildManifestSha256=sha(sdk / evidence_root / 'source-build-manifest.json')))
     manifest['files'] = [dict(path=p.relative_to(sdk).as_posix(), sha256=sha(p))
                          for p in sorted(sdk.rglob('*')) if p.is_file()]
     write(sdk / 'sdk_manifest.json', manifest)

@@ -1,0 +1,63 @@
+{
+  "format": "xlang-ide-xge-source-patches-1",
+  "baseCommit": "67d124505aa99a8d66f9f04bd416dc6d1f557cd2",
+  "purpose": "Qualified GL startup and canonical sole-host XRT overlays; terminal newline modes committed upstream.",
+  "files": [
+    {
+      "path": "extlibs/sokol/sokol_app.h",
+      "upstreamExists": true,
+      "upstreamSha256": "42228272007c06ae5e7b256d536fb28a9bfd5ce4d16b94f74acf74fd7a948ee7",
+      "sha256": "7d725c8f3b5eb52a9dba4f5ba1c9d6cbc603a2f5c5dc712a8f0fa3b4dd5378e2",
+      "payload": "payload/extlibs/sokol/sokol_app.h",
+      "diff": "diff/extlibs/sokol/sokol_app.h.diff"
+    },
+    {
+      "path": "extlibs/xrt/xrt.h",
+      "upstreamExists": true,
+      "upstreamSha256": "4c02cd11accbd06c4e5de725b1f19bacbf44a92e4791a3819ba45540bc6e4f5d",
+      "sha256": "41bc24579f4b3207b0434755ca23dd06481af90c05f71e9b365848cf9a7c12d1",
+      "payload": "payload/extlibs/xrt/xrt.h",
+      "diff": "diff/extlibs/xrt/xrt.h.diff"
+    },
+    {
+      "path": "include/xge.h",
+      "upstreamExists": true,
+      "upstreamSha256": "580b50807a69ec568352cd0d54b59a73387287ba758d76b15334d97086159db8",
+      "sha256": "1821696314a82530f0fb06290a9ef4483083881444ebf1d00fc362a4426c68a5",
+      "payload": "payload/include/xge.h",
+      "diff": "diff/include/xge.h.diff"
+    },
+    {
+      "path": "include/xui.h",
+      "upstreamExists": true,
+      "upstreamSha256": "14e17b65e684d407bd0969e7838972a8a414c1078472295c63ca9cc20a19b0c7",
+      "sha256": "1cbae03fcb6ee4d6d4a74da941a42bb9e05e73ffc3f76fad4f79574fe34069b3",
+      "payload": "payload/include/xui.h",
+      "diff": "diff/include/xui.h.diff"
+    },
+    {
+      "path": "src/xge/core/xge_core.c",
+      "upstreamExists": true,
+      "upstreamSha256": "7d80172a6bcff23cff1d055b83509a7fcb5e6af160767ac420816638823763d0",
+      "sha256": "b87d72adc887352629ccba72bbfb642276fc68e64d283eb77391c0cc23acdf0b",
+      "payload": "payload/src/xge/core/xge_core.c",
+      "diff": "diff/src/xge/core/xge_core.c.diff"
+    },
+    {
+      "path": "src/xge/core/xge_impl.c",
+      "upstreamExists": true,
+      "upstreamSha256": "6e006fb034a1d071c5284e8b614fa1ef6d239fad5519942cdb594c25f12406ff",
+      "sha256": "07fb8b684e7d2d48cb24da2dca23b9038e998e95f7e72da15b095ea9036fbcee",
+      "payload": "payload/src/xge/core/xge_impl.c",
+      "diff": "diff/src/xge/core/xge_impl.c.diff"
+    },
+    {
+      "path": "tools/build/build.py",
+      "upstreamExists": true,
+      "upstreamSha256": "15f60f70709dceea1b2e35eda959834378f699ef8cf34d9a9360a46503783d7e",
+      "sha256": "754840e4a884f5d24e73cfa1e2b16a111ecd906d3354a207dd77b9a00dfe41dd",
+      "payload": "payload/tools/build/build.py",
+      "diff": "diff/tools/build/build.py.diff"
+    }
+  ]
+}

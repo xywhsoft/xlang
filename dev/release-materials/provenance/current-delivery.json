@@ -75,7 +75,7 @@
       "licenseUrl": "http://www.microsoft.com/typography/fonts/default.aspx"
     },
     "fontChangeSourceParent": "b16a95bbf022efcafc7b965d1bd9b5b945c0d881",
-    "currentBuildProvenance": "dev/release-materials/provenance/release-0.6.1-20261108/receipt.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/xge-terminal-newline-20261108/receipt.json",
     "cLspEnabled": false,
     "applicationIcon": {
       "source": "ide/data/xlang_ide.ico",
@@ -89,16 +89,21 @@
       "provenance": "docs/reports/release-materials-migration-20261031.json",
       "buildCommand": "pwsh -NoProfile -File ide/tools/build.ps1 -Configuration Release -GuiOnly -LanguageServerPath D:/GIT/x-lang/release/xlang-ls.exe -ReleaseDirectory D:/GIT/x-lang/release"
     },
-    "sha256": "1bf9f13ccda46c3cba39975d13df76474371236f72df04f10cb2ed92654ec88f",
+    "sha256": "a3b2faae7572013492ccf303a750d9ce54155b031231f1f9427f7fecbf7fbb8f",
     "sourceIdentity": {
-      "guiSourceRevision": "4bb83a1027fc42cf7f63d990187fa95fbf05978e",
-      "sourceCommit": "4bb83a1027fc42cf7f63d990187fa95fbf05978e",
-      "build": {
-        "path": "dev/release-materials/provenance/xge-keypad-enter-20261108/evidence.zip",
-        "sha256": "34a3b6b796e613565c2412adc38a7430d5822ec2b3804957825a3be3b768fb81",
-        "bytes": 7332447
+      "guiSourceRevision": "b7d924d3d24742a429180821a39535c29e528edc",
+      "sourceCommit": "b7d924d3d24742a429180821a39535c29e528edc",
+      "sourceOverlay": {
+        "path": "dev/release-materials/sources/xge-terminal-newline-20261108/manifest.json",
+        "sha256": "b20a36fa3cdc964060fba5c396a9e5dc63554877f46e9100c0ba02d7cc753695",
+        "bytes": 142885
       },
-      "matchedSdkManifestSha256": "5dbc812cb3f4bdcdd563aa1f3ce6832b47f650aac931590d2ab1e70d56d889b9"
+      "build": {
+        "path": "dev/release-materials/provenance/xge-terminal-newline-20261108/evidence.zip",
+        "sha256": "16b9b18fa66587b59fad40774ff9e8fb797e001301f3f2471d9e6bfb4352cb54",
+        "bytes": 7503420
+      },
+      "matchedSdkManifestSha256": "5b00307ed19f288b7ca1d084ee4c4fd5aa5f5ac7819c7d7e0ea3c51c0b505e6f"
     },
     "previousMatchedGuiProvenance": "dev/release-materials/provenance/ide-updater-20261103.json",
     "openglStartupCompatibility": {
@@ -123,19 +128,19 @@
       "sha256": "cb3dd03ba90452fb9a670371ed7447763a0188fdc61b57adf11d5d89851ce13b",
       "bytes": 2693
     },
-    "buildScope": "One version TU and PE resource rebuilt; 107 qualified GUI objects reused. Language server/XGE unchanged.",
+    "buildScope": "108 matched GUI objects rebuilt from committed source plus task_view.c overlay, then relinked against the final native implementation with identical public headers; unrelated semantic/LS development excluded.",
     "currentEngine": {
       "sourceMaterials": {
-        "path": "dev/release-materials/sources/xge-keypad-enter-20261108/manifest.json",
-        "sha256": "4a064a0062467b3282b751c4063331903bfe1eaa0cbe33fe2a30448b2d808b71",
-        "bytes": 141801
+        "path": "dev/release-materials/sources/xge-terminal-newline-20261108/manifest.json",
+        "sha256": "b20a36fa3cdc964060fba5c396a9e5dc63554877f46e9100c0ba02d7cc753695",
+        "bytes": 142885
       },
-      "sourceCommit": "faf1a089c0496c44b6f6a4a7c09e63180edb97c4",
-      "publicAbiFingerprint": "0x855403eb2a86473c",
+      "sourceCommit": "67d124505aa99a8d66f9f04bd416dc6d1f557cd2",
+      "publicAbiFingerprint": "0x9e6e84f348182bf8",
       "profile": "ide",
       "xrtMode": "embedded",
       "runtime": "release/win_x64/xge.dll",
-      "mainlineCommit": "faf1a089c0496c44b6f6a4a7c09e63180edb97c4"
+      "mainlineCommit": "67d124505aa99a8d66f9f04bd416dc6d1f557cd2"
     },
     "previousBuildProvenanceBeforeAbout": "dev/release-materials/provenance/xge-ide-update-20261106/publication-receipt.json",
     "aboutWindow": {
@@ -150,14 +155,17 @@
     "updateStateDirectory": "ide/build/update-runtime/<platform>-<install-path-sha256>",
     "previousBuildProvenanceBeforeDialogBackdrop": "dev/release-materials/provenance/ide-release-maintenance-20261106.json",
     "dialogBackdrop": "viewport-sized absolute overlay; dialog above backdrop; child/IME-aware Escape",
-    "previousBuildProvenance": "dev/release-materials/provenance/xge-keypad-enter-20261108/receipt.json",
-    "sourceRevision": "4bb83a1027fc42cf7f63d990187fa95fbf05978e",
+    "previousBuildProvenance": "dev/release-materials/provenance/xge-terminal-newline-20261108/receipt.json",
+    "sourceRevision": "b7d924d3d24742a429180821a39535c29e528edc",
     "previousSourceIdentity": {
-      "dockTabNavigation": {
-        "path": "dev/release-materials/sources/ide-dock-tabs-20261107/manifest.json",
-        "sha256": "7412cabd244298961fac8844035fda77276e8a46f9bd462161de026a59d5a691",
-        "bytes": 1570
-      }
+      "guiSourceRevision": "4bb83a1027fc42cf7f63d990187fa95fbf05978e",
+      "sourceCommit": "4bb83a1027fc42cf7f63d990187fa95fbf05978e",
+      "build": {
+        "path": "dev/release-materials/provenance/xge-keypad-enter-20261108/evidence.zip",
+        "sha256": "34a3b6b796e613565c2412adc38a7430d5822ec2b3804957825a3be3b768fb81",
+        "bytes": 7332447
+      },
+      "matchedSdkManifestSha256": "5dbc812cb3f4bdcdd563aa1f3ce6832b47f650aac931590d2ab1e70d56d889b9"
     },
     "dockTabNavigation": {
       "enabled": true,
@@ -203,11 +211,16 @@
         "sha256": "260d480911e442a2e37e851eeffd0b79bed50425973538f93d9c575cf52258b1",
         "bytes": 9340
       }
+    },
+    "terminalNewline": {
+      "path": "dev/release-materials/provenance/xge-terminal-newline-20261108/receipt.json",
+      "sha256": "46fe4ee184afed40521671aa634c969cf10caa2439b9d6fcc0c1a242085801d3",
+      "bytes": 29326
     }
   },
   "catalog": {
     "status": "passed",
-    "entries": 19971,
+    "entries": 19975,
     "documents": 147,
     "publicApi": {
       "functions": 823,
@@ -216,13 +229,13 @@
       "members": 3830
     },
     "availableSources": 591,
-    "catalogSha256": "f8c2e554cf9e6d0dd4a29725437dc8e66c22227d6bf1896152c27d45ad3b6acd",
+    "catalogSha256": "f71d5ab77ed0b1e89247cdbfca94031a3d14c6abdc525e91696fdeb23c3535d7",
     "sourceRevision": "ed78373dded9bde21db313799c1db8d5111631a6",
     "currentDeliveryAction": "Product-version-only runtime fingerprint refresh; public entries/documents unchanged.",
     "extensionRefreshReceipt": {
-      "path": "dev/release-materials/provenance/release-0.6.1-20261108/receipt.json",
-      "sha256": "260d480911e442a2e37e851eeffd0b79bed50425973538f93d9c575cf52258b1",
-      "bytes": 9340
+      "path": "dev/release-materials/provenance/xge-terminal-newline-20261108/receipt.json",
+      "sha256": "46fe4ee184afed40521671aa634c969cf10caa2439b9d6fcc0c1a242085801d3",
+      "bytes": 29326
     }
   },
   "publicExtensionModules": 207,
@@ -1463,6 +1476,11 @@
       "bytes": 769
     },
     {
+      "path": "release/linux_x64/data/catalog-sources/6991d2141b4404f773c08ecfdf40acc1ac0ea3f3e887dbdc18d6181a76ccb054.source",
+      "sha256": "6991d2141b4404f773c08ecfdf40acc1ac0ea3f3e887dbdc18d6181a76ccb054",
+      "bytes": 320571
+    },
+    {
       "path": "release/linux_x64/data/catalog-sources/69d539aadf1ded49f49a7860b0ca6ee2d941fcb068382779c1c628bcfa03a4d9.source",
       "sha256": "69d539aadf1ded49f49a7860b0ca6ee2d941fcb068382779c1c628bcfa03a4d9",
       "bytes": 2049
@@ -1851,6 +1869,11 @@
       "path": "release/linux_x64/data/catalog-sources/861bbc9bf197c9b03617248e13625eafdd0d8e9e57cdef826c36070746bd728f.source",
       "sha256": "861bbc9bf197c9b03617248e13625eafdd0d8e9e57cdef826c36070746bd728f",
       "bytes": 9701
+    },
+    {
+      "path": "release/linux_x64/data/catalog-sources/866d5e1b19f109bf934cb321451ee8ce8ba86699db9a047f84f773b39447cf09.source",
+      "sha256": "866d5e1b19f109bf934cb321451ee8ce8ba86699db9a047f84f773b39447cf09",
+      "bytes": 73611
     },
     {
       "path": "release/linux_x64/data/catalog-sources/86d72e5dba4de8f672942c7f410ada8eac9e4fe67bb4321556f1e86222685cf4.source",
@@ -2443,11 +2466,6 @@
       "bytes": 1020
     },
     {
-      "path": "release/linux_x64/data/catalog-sources/bbfcd3f600af21fbb3f21276eb2db640a7eea4b880cd72fac78e1e0a488b8b52.source",
-      "sha256": "bbfcd3f600af21fbb3f21276eb2db640a7eea4b880cd72fac78e1e0a488b8b52",
-      "bytes": 320391
-    },
-    {
       "path": "release/linux_x64/data/catalog-sources/bd187ea5290de173fe04aa83f6c92afe4fe3be14516c6930829dc3b5effc7217.source",
       "sha256": "bd187ea5290de173fe04aa83f6c92afe4fe3be14516c6930829dc3b5effc7217",
       "bytes": 17650
@@ -2631,11 +2649,6 @@
       "path": "release/linux_x64/data/catalog-sources/cc54564d61a61f48fb7f515b2e0feeecadfc6f3a13b820451cccda6bb88ac5a4.source",
       "sha256": "cc54564d61a61f48fb7f515b2e0feeecadfc6f3a13b820451cccda6bb88ac5a4",
       "bytes": 17843
-    },
-    {
-      "path": "release/linux_x64/data/catalog-sources/cc9c25ce1fb50f3516e36b7a7978129a5245ff7add9e5a4d93d08b026a8db121.source",
-      "sha256": "cc9c25ce1fb50f3516e36b7a7978129a5245ff7add9e5a4d93d08b026a8db121",
-      "bytes": 73515
     },
     {
       "path": "release/linux_x64/data/catalog-sources/cd0ee756c7a64257fc2e10a657094857dc3b230186199b4554914bd94054c2a5.source",
@@ -3184,13 +3197,13 @@
     },
     {
       "path": "release/linux_x64/data/catalog-sources/index.json",
-      "sha256": "8e78a18ea15d34f8d4f5cd69e2377807b97168798200ca67f4a324ed02e5226e",
+      "sha256": "a606dbf80db13a3d2b5975c8f9e909bfd6f74fd2d0774724dd5d0387094dec6a",
       "bytes": 110882
     },
     {
       "path": "release/linux_x64/data/commands.json",
-      "sha256": "f8c2e554cf9e6d0dd4a29725437dc8e66c22227d6bf1896152c27d45ad3b6acd",
-      "bytes": 18434670
+      "sha256": "f71d5ab77ed0b1e89247cdbfca94031a3d14c6abdc525e91696fdeb23c3535d7",
+      "bytes": 18437374
     },
     {
       "path": "release/win_x64/data/catalog-sources/00c3b2b80c619d99c4e90ce0bbb32ac0ed0dbd26a1e28cd592bc384de0957b25.source",
@@ -4428,6 +4441,11 @@
       "bytes": 769
     },
     {
+      "path": "release/win_x64/data/catalog-sources/6991d2141b4404f773c08ecfdf40acc1ac0ea3f3e887dbdc18d6181a76ccb054.source",
+      "sha256": "6991d2141b4404f773c08ecfdf40acc1ac0ea3f3e887dbdc18d6181a76ccb054",
+      "bytes": 320571
+    },
+    {
       "path": "release/win_x64/data/catalog-sources/69d539aadf1ded49f49a7860b0ca6ee2d941fcb068382779c1c628bcfa03a4d9.source",
       "sha256": "69d539aadf1ded49f49a7860b0ca6ee2d941fcb068382779c1c628bcfa03a4d9",
       "bytes": 2049
@@ -4816,6 +4834,11 @@
       "path": "release/win_x64/data/catalog-sources/861bbc9bf197c9b03617248e13625eafdd0d8e9e57cdef826c36070746bd728f.source",
       "sha256": "861bbc9bf197c9b03617248e13625eafdd0d8e9e57cdef826c36070746bd728f",
       "bytes": 9701
+    },
+    {
+      "path": "release/win_x64/data/catalog-sources/866d5e1b19f109bf934cb321451ee8ce8ba86699db9a047f84f773b39447cf09.source",
+      "sha256": "866d5e1b19f109bf934cb321451ee8ce8ba86699db9a047f84f773b39447cf09",
+      "bytes": 73611
     },
     {
       "path": "release/win_x64/data/catalog-sources/86d72e5dba4de8f672942c7f410ada8eac9e4fe67bb4321556f1e86222685cf4.source",
@@ -5408,11 +5431,6 @@
       "bytes": 1020
     },
     {
-      "path": "release/win_x64/data/catalog-sources/bbfcd3f600af21fbb3f21276eb2db640a7eea4b880cd72fac78e1e0a488b8b52.source",
-      "sha256": "bbfcd3f600af21fbb3f21276eb2db640a7eea4b880cd72fac78e1e0a488b8b52",
-      "bytes": 320391
-    },
-    {
       "path": "release/win_x64/data/catalog-sources/bd187ea5290de173fe04aa83f6c92afe4fe3be14516c6930829dc3b5effc7217.source",
       "sha256": "bd187ea5290de173fe04aa83f6c92afe4fe3be14516c6930829dc3b5effc7217",
       "bytes": 17650
@@ -5596,11 +5614,6 @@
       "path": "release/win_x64/data/catalog-sources/cc54564d61a61f48fb7f515b2e0feeecadfc6f3a13b820451cccda6bb88ac5a4.source",
       "sha256": "cc54564d61a61f48fb7f515b2e0feeecadfc6f3a13b820451cccda6bb88ac5a4",
       "bytes": 17843
-    },
-    {
-      "path": "release/win_x64/data/catalog-sources/cc9c25ce1fb50f3516e36b7a7978129a5245ff7add9e5a4d93d08b026a8db121.source",
-      "sha256": "cc9c25ce1fb50f3516e36b7a7978129a5245ff7add9e5a4d93d08b026a8db121",
-      "bytes": 73515
     },
     {
       "path": "release/win_x64/data/catalog-sources/cd0ee756c7a64257fc2e10a657094857dc3b230186199b4554914bd94054c2a5.source",
@@ -6149,13 +6162,13 @@
     },
     {
       "path": "release/win_x64/data/catalog-sources/index.json",
-      "sha256": "8e78a18ea15d34f8d4f5cd69e2377807b97168798200ca67f4a324ed02e5226e",
+      "sha256": "a606dbf80db13a3d2b5975c8f9e909bfd6f74fd2d0774724dd5d0387094dec6a",
       "bytes": 110882
     },
     {
       "path": "release/win_x64/data/commands.json",
-      "sha256": "f8c2e554cf9e6d0dd4a29725437dc8e66c22227d6bf1896152c27d45ad3b6acd",
-      "bytes": 18434670
+      "sha256": "f71d5ab77ed0b1e89247cdbfca94031a3d14c6abdc525e91696fdeb23c3535d7",
+      "bytes": 18437374
     }
   ],
   "products": [
@@ -6202,8 +6215,8 @@
       "previousSha256": "c95a4b367e5ee67b9def00181060d678f56e084072ddc2c6b6ed5f1a5b25528b"
     },
     {
-      "sha256": "1bf9f13ccda46c3cba39975d13df76474371236f72df04f10cb2ed92654ec88f",
-      "bytes": 1897286,
+      "sha256": "a3b2faae7572013492ccf303a750d9ce54155b031231f1f9427f7fecbf7fbb8f",
+      "bytes": 1897470,
       "path": "release/win_x64/xlang_ide.exe",
       "origin": "release-0.6.1-20261108",
       "previousSha256": "8a4d9e633fea3baad66e2cf05c0aa6d7f335b2e87ac655cc6f11d29f0685d8e5"
@@ -6215,7 +6228,7 @@
       "origin": "matched-xge3-xui3-local-delivery-20261105"
     },
     {
-      "sha256": "3faa3f92a935c1ee2b3fa106de55a72eaceb0cfb6bf00e3e573c2d564eada869",
+      "sha256": "de19abfe3f2f0066cb489417769110ebe813c36f36787445d3ad0895d3538aeb",
       "bytes": 11170568,
       "path": "release/win_x64/xge.dll",
       "origin": "xge-keypad-enter-20261108",
@@ -6235,14 +6248,14 @@
     },
     {
       "path": "release/win_x64/extlibs/_xge_native/native/xge3_host.dll",
-      "sha256": "cdea6031be243e9d73263d16dd9e7990e91d78016e80513a641d9714d2ee8a68",
+      "sha256": "0dfd25bde15863f4d827a48d5463be6dbd7b48d0710e8ece28d2b872d0dc1fa2",
       "bytes": 9148341,
       "origin": "xge-keypad-enter-20261108",
       "previousSha256": "d1d3f66827bcbb59a69ebb37d1051a39c32687967ecf8171be52ec3999abbbfd"
     },
     {
       "path": "release/linux_x64/extlibs/_xge_native/native/libxge3_host.so",
-      "sha256": "fbdef24647aa7d8c495dab3781274135aad4c478d64f5b1ba132d2794da84de4",
+      "sha256": "03fc72e0e75640126ecf786b877069904ab4cb63f9cc2605a2f7722ba81ee298",
       "bytes": 9948112,
       "origin": "xge-keypad-enter-20261108",
       "previousSha256": "6d889338cb2514ae8873c4001631a8d287721c9069771dfc1a59f87ccca63f20"
@@ -6383,7 +6396,7 @@
     "historicalReportPathsPreserved": true,
     "mutableDataPathsUpdated": 600
   },
-  "currentScope": "Windows formal updater publication 0.6.1 / iteration 2, based on the qualified 25959debc local release; Linux remains a local delivery. Unrelated semantic/LS and flat-layout changes excluded.",
+  "currentScope": "Local XGE terminal TEXT/VT newline API and matched IDE/SDK/dynamic/static package synchronization; online ver2 remains unchanged. Runtime bytes stay outside Git.",
   "localPublication": {
     "path": "dev/release-materials/provenance/xge3-local-publication-20261105/receipt.json",
     "sha256": "d55e8e816fddbfc2d2283c9ba45b9b28ac5c5e07e0da183fbab3088f118fbad1",
@@ -6608,6 +6621,11 @@
       "path": "dev/release-materials/provenance/ide-update-v2-publish-20261108/receipt.json",
       "sha256": "aca347fe45d76a2d7d4ac37276e406bf4f7bbba695a52d07e07f73f94ce86b07",
       "bytes": 3160
+    },
+    "terminalNewline": {
+      "path": "dev/release-materials/provenance/xge-terminal-newline-20261108/receipt.json",
+      "sha256": "46fe4ee184afed40521671aa634c969cf10caa2439b9d6fcc0c1a242085801d3",
+      "bytes": 29326
     }
   },
   "xuiGallery": {
@@ -6899,5 +6917,10 @@
     "localRuntimeBytesVerifiedBy": "tools/check_release_committed.py",
     "historyIdMap": "dev/release-materials/provenance/git-artifact-clean-20261108/commit-map.tsv",
     "gitRemoteUpdated": false
+  },
+  "xgeTerminalNewline": {
+    "path": "dev/release-materials/provenance/xge-terminal-newline-20261108/receipt.json",
+    "sha256": "46fe4ee184afed40521671aa634c969cf10caa2439b9d6fcc0c1a242085801d3",
+    "bytes": 29326
   }
 }

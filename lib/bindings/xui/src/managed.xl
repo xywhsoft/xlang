@@ -3423,6 +3423,10 @@ export extern "xui_widget_t*" class Terminal @header("xge3_runtime.h") @lifetime
 
  extern "xuiTerminalWriteText" @no_raise @c_cstr(0) func writeText(string sText) as c_int
 
+ extern "xuiTerminalSetNewlineMode" @no_raise @c_result("status",0) func setNewlineMode(c_int iMode)
+
+ extern "xuiTerminalGetNewlineMode" @no_raise func getNewlineMode() as c_int
+
  extern "xuiTerminalFlush" @no_raise func flush() as c_int
 
  extern "xuiTerminalClear" @no_raise @c_result("status",0) func clear()

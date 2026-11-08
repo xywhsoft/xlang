@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "root": "F:\\xlang-validation\\xge-keypad-enter-20261108\\source",
-  "sourceCommit": "faf1a089c0496c44b6f6a4a7c09e63180edb97c4",
+  "root": "F:\\xlang-validation\\xge-terminal-newline-20261108\\source",
+  "sourceCommit": "67d124505aa99a8d66f9f04bd416dc6d1f557cd2",
   "sourceFileCount": 791,
   "files": [
     {
@@ -2536,8 +2536,8 @@
     },
     {
       "path": "include/xui.h",
-      "sha256": "7277659690681a8221370b9ce4b50ec7932ee1d45f597df9c6d285544b2b3a90",
-      "size": 709988
+      "sha256": "1cbae03fcb6ee4d6d4a74da941a42bb9e05e73ffc3f76fad4f79574fe34069b3",
+      "size": 710460
     },
     {
       "path": "include/xui_config.h",
@@ -3336,8 +3336,8 @@
     },
     {
       "path": "src/xui/controls/xui_terminal.c",
-      "sha256": "9800e03a00a6f62c6bb115cae5ed66bad13e7f072effca13e64932baaad1bdef",
-      "size": 304290
+      "sha256": "cf849d3173c7a5bc33ecde549cb2e97dc3432b13e7b7b9bef38235201ff512fc",
+      "size": 305606
     },
     {
       "path": "src/xui/controls/xui_timeline_view.c",
@@ -3963,8 +3963,8 @@
   "fullSourceTreeNotIncludedInConsumerSdk": true,
   "compatibilityPatches": {
     "format": "xlang-ide-xge-source-patches-1",
-    "baseCommit": "faf1a089c0496c44b6f6a4a7c09e63180edb97c4",
-    "purpose": "Qualified GL startup and canonical sole-host XRT overlays; keypad Enter fix committed upstream.",
+    "baseCommit": "67d124505aa99a8d66f9f04bd416dc6d1f557cd2",
+    "purpose": "Qualified GL startup and canonical sole-host XRT overlays; terminal newline modes committed upstream.",
     "files": [
       {
         "path": "extlibs/sokol/sokol_app.h",
@@ -3993,8 +3993,8 @@
       {
         "path": "include/xui.h",
         "upstreamExists": true,
-        "upstreamSha256": "d27185c0fc2d7f4a469718232823029f4b612dc5a82313afa890e940a3c814c3",
-        "sha256": "7277659690681a8221370b9ce4b50ec7932ee1d45f597df9c6d285544b2b3a90",
+        "upstreamSha256": "14e17b65e684d407bd0969e7838972a8a414c1078472295c63ca9cc20a19b0c7",
+        "sha256": "1cbae03fcb6ee4d6d4a74da941a42bb9e05e73ffc3f76fad4f79574fe34069b3",
         "payload": "payload/include/xui.h",
         "diff": "diff/include/xui.h.diff"
       },
@@ -4023,5 +4023,6 @@
         "diff": "diff/tools/build/build.py.diff"
       }
     ]
-  }
+  },
+  "compatibilityPatchRoot": "provenance/source-67d124505aa9-3cd9d0a16b0b/compatibility-patches"
 }

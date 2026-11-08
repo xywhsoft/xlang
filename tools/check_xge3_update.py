@@ -26,13 +26,15 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('root', 'production', 'packages', 'static-packages', 'out'):
         parser.add_argument('--' + name, type=Path, required=True)
+    parser.add_argument("--fixture", type=Path)
+    parser.add_argument("--require-call", action="append", default=[])
     args = parser.parse_args()
     root, production, packages, static, out = [p.resolve() for p in
         (args.root, args.production, args.packages, args.static_packages, args.out)]
     out.mkdir(parents=True, exist_ok=False)
     windows = os.name == 'nt'
     cli = production / ('xl.exe' if windows else 'xl')
-    fixture = root / 'test/cases/foreign_xge3_update_20261108.xl'
+    fixture = (args.fixture or root / 'test/cases/foreign_xge3_update_20261108.xl').resolve()
     inputs = {str(p): sha(p) for p in [Path(__file__).resolve(), fixture, cli,
         *[p for folder in (packages, static) for p in folder.rglob('*') if p.is_file()]]}
     environment = {k: v for k, v in os.environ.items() if not k.startswith('XL6_')
@@ -91,7 +93,7 @@ def main():
     symbols = ['xgeFontLoadSystem', 'xuiCreateOwnedEx', 'xuiContextDescDefault',
         'xuiEnsureDefaultFont', 'xuiCodeFindScopeSetActiveEditor', 'xuiCodeFindScopeRefresh',
         'xuiCodeFindScopeGetActiveEditor', 'xuiCodeFindScopeGetFindWindow',
-        'xuiMsgBoxShow', 'xuiFileDialogShow']
+        'xuiMsgBoxShow', 'xuiFileDialogShow', *args.require_call]
     assert all(re.search(r'\b' + name + r'\s*\(', text) for name in symbols)
     assert re.search(r'->fontLoadSystem\s*:\s*NULL', text)
     assert re.search(r'\bnative_callee\s*\(', text)

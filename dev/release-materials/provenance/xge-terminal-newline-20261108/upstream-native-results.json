@@ -1,0 +1,22 @@
+[
+  {
+    "test": "xui_terminal_newline_test",
+    "exit": 0
+  },
+  {
+    "test": "xui_terminal_parser_test",
+    "exit": 0
+  },
+  {
+    "test": "xui_terminal_test",
+    "exit": 0
+  },
+  {
+    "test": "xui_terminal_theme_test",
+    "exit": 0
+  },
+  {
+    "test": "xui_terminal_large_perf_test",
+    "exit": 0
+  }
+]

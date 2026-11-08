@@ -1,0 +1,38 @@
+[
+  {
+    "test": "input_test",
+    "exit": 0,
+    "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\terminal-newline-20261108\\input_test-4b3f94a8",
+    "source": "D:\\GIT\\x-lang\\ide\\tests\\input_test.c"
+  },
+  {
+    "test": "find_follow_view_test",
+    "exit": 0,
+    "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\terminal-newline-20261108\\find_follow_view_test-06eaba02",
+    "source": "F:\\xlang-validation\\xge-terminal-newline-20261108\\gui-source\\ide\\tests\\find_follow_view_test.c"
+  },
+  {
+    "test": "dialog_message_test",
+    "exit": 0,
+    "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\terminal-newline-20261108\\dialog_message_test-c1fca7e9",
+    "source": "F:\\xlang-validation\\xge-terminal-newline-20261108\\gui-source\\ide\\tests\\dialog_message_test.c"
+  },
+  {
+    "test": "settings_menu_frame_test",
+    "exit": 0,
+    "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\terminal-newline-20261108\\settings_menu_frame_test-c9dcaca9",
+    "source": "F:\\xlang-validation\\xge-terminal-newline-20261108\\gui-source\\ide\\tests\\settings_menu_frame_test.c"
+  },
+  {
+    "test": "modal_open_latency_test",
+    "exit": 0,
+    "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\terminal-newline-20261108\\modal_open_latency_test-1789883c",
+    "source": "F:\\xlang-validation\\xge-terminal-newline-20261108\\gui-source\\ide\\tests\\modal_open_latency_test.c"
+  },
+  {
+    "test": "terminal_newline_view_test",
+    "exit": 0,
+    "output": "D:\\GIT\\x-lang\\ide\\build\\Release\\terminal-newline-20261108\\terminal_newline_view_test-9ec6bffc",
+    "source": "F:\\xlang-validation\\xge-terminal-newline-20261108\\gui-source\\ide\\tests\\terminal_newline_view_test.c"
+  }
+]

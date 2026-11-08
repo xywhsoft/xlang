@@ -185,7 +185,7 @@ int xideTaskViewCreate(xide_app* app)
     TRY(xuiCodeEditCreate(app->context,&view->output,&output)); app->panels[XIDE_OUTPUT]=view->output;
     TRY(xideRegisterLanguages(xuiCodeEditGetLanguageRegistry(view->output))); TRY(xideConfigureEditorLanguage(view->output,"text"));
     xui_terminal_desc_t terminal={0}; terminal.iSize=sizeof(terminal); terminal.pFont=app->codeFont; terminal.iColumns=80; terminal.iRows=24; terminal.iScrollbackLimit=2000; terminal.iParseBudgetBytes=65536; xui_vec2_t cell={9,20}; if(app->codeFont && app->proxy.textMeasure) xideDpiTextMeasure(&app->proxy,app->codeFont," ",&cell); terminal.fCellWidth=cell.fX; terminal.fCellHeight=xideEditorLineHeight(app); terminal.fPadding=4;
-    TRY(xuiTerminalCreate(app->context,&view->terminal,&terminal)); TRY(xuiTerminalSetInputCallback(view->terminal,terminalInput,app));
+    TRY(xuiTerminalCreate(app->context,&view->terminal,&terminal)); TRY(xuiTerminalSetNewlineMode(view->terminal,XUI_TERMINAL_NEWLINE_TEXT)); TRY(xuiTerminalSetInputCallback(view->terminal,terminalInput,app));
     TRY(xuiTerminalWriteText(view->terminal,"运行程序的管道会话：支持输入、输出与停止；Ctrl+D 关闭输入。\r\n")); app->panels[XIDE_TERMINAL]=view->terminal;
     xui_tree_view_desc_t tree={0}; tree.iSize=sizeof(tree); tree.pFont=app->uiFont; tree.fItemHeight=26; tree.fPadding=6; tree.fIndent=12;
     TRY(xuiTreeViewCreate(app->context,&view->list,&tree)); TRY(xuiTreeViewSetSelect(view->list,taskSelected,app)); app->panels[XIDE_TASKS]=view->list;

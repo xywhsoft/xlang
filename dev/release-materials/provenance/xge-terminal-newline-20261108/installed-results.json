@@ -1,0 +1,16 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "name": "installed-real-pipe",
+      "exit": 0
+    },
+    {
+      "name": "installed-smoke",
+      "exit": 0
+    }
+  ],
+  "guiSha256": "a3b2faae7572013492ccf303a750d9ce54155b031231f1f9427f7fecbf7fbb8f",
+  "engineSha256": "de19abfe3f2f0066cb489417769110ebe813c36f36787445d3ad0895d3538aeb",
+  "sourceSha256": "7ff72ae9611e23f93c1457f31df2aebc41723ff733bd6b3263a6a752b96e09c2"
+}

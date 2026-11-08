@@ -246,3 +246,10 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 
 # Preserve original history-rewrite maps and verification bytes.
 /dev/release-materials/provenance/git-artifact-clean-20261108/** -text -whitespace
+
+# Exact-byte terminal newline synchronization sources and acceptance materials.
+/dev/release-materials/sources/xge-terminal-newline-20261108/** -text -whitespace
+/dev/release-materials/provenance/xge-terminal-newline-20261108/** -text -whitespace
+
+# Captured SDK patch payloads and diffs retain their exact source bytes.
+/ide/third_party/xge_sdk/provenance/source-67d124505aa9-3cd9d0a16b0b/** -text -whitespace

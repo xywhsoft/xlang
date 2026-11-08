@@ -863,6 +863,10 @@ typedef struct xui_language_text_t {
 #define XUI_INVENTORY_GAMEPAD_SELECT_ON_MOVE	0x00000008u
 #define XUI_INVENTORY_GAMEPAD_MULTI_SELECT_MODIFIERS	0x00000010u
 
+/* LF 处理策略：默认文本模式同时回到行首；VT 模式只下移。 */
+#define XUI_TERMINAL_NEWLINE_TEXT 0
+#define XUI_TERMINAL_NEWLINE_VT   1
+
 #define XUI_TERMINAL_CELL_BOLD		0x00000001u
 #define XUI_TERMINAL_CELL_DIM		0x00000002u
 #define XUI_TERMINAL_CELL_UNDERLINE	0x00000004u
@@ -9629,6 +9633,10 @@ XUI_API int xuiTerminalCreate(xui_context pContext, xui_widget* ppWidget, const 
 XUI_API int xuiTerminalWrite(xui_widget pWidget, const void* pData, int iSize);
 /* 写入输出文本（等价 Write 字节流）。 */
 XUI_API int xuiTerminalWriteText(xui_widget pWidget, const char* sText);
+/* 设置 LF 策略；默认 TEXT。切换前处理已排队输出，Clear/RIS 保留该配置。 */
+XUI_API int xuiTerminalSetNewlineMode(xui_widget pWidget, int iMode);
+/* 返回当前策略；无效控件返回 XUI_ERROR_INVALID_ARGUMENT。 */
+XUI_API int xuiTerminalGetNewlineMode(xui_widget pWidget);
 /* 立即完成待解析缓冲（不等帧预算）。 */
 XUI_API int xuiTerminalFlush(xui_widget pWidget);
 /* 清屏并复位光标。 */
