@@ -75,7 +75,7 @@
       "licenseUrl": "http://www.microsoft.com/typography/fonts/default.aspx"
     },
     "fontChangeSourceParent": "b16a95bbf022efcafc7b965d1bd9b5b945c0d881",
-    "currentBuildProvenance": "dev/release-materials/provenance/ide-association-inline-20261108/receipt.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/ide-data-highlight-20261108/receipt.json",
     "cLspEnabled": false,
     "applicationIcon": {
       "source": "ide/data/xlang_ide.ico",
@@ -89,19 +89,19 @@
       "provenance": "docs/reports/release-materials-migration-20261031.json",
       "buildCommand": "pwsh -NoProfile -File ide/tools/build.ps1 -Configuration Release -GuiOnly -LanguageServerPath D:/GIT/x-lang/release/xlang-ls.exe -ReleaseDirectory D:/GIT/x-lang/release"
     },
-    "sha256": "810c4b45494a809156fad78897b006db5b5440e1ae9bf3de44ecb1ef21831b93",
+    "sha256": "b4ccf69dbccf08af44f316ee9d881a546588a2214b048b0287505633c78115cc",
     "sourceIdentity": {
-      "guiBaseSourceRevision": "365cc650eee3325807a43f6fdad7bb2a37d10e47",
-      "overlayBaseRevision": "ec6d088b8f302d78d3e96b17cdb0dbb31cf3f9db",
+      "guiBaseSourceRevision": "ec6d088b8f302d78d3e96b17cdb0dbb31cf3f9db",
+      "overlayBaseRevision": "7d40f05c106c9057b9ee3bf2607ad334c1134771",
       "sourceOverlay": {
-        "path": "dev/release-materials/sources/ide-association-inline-20261108/manifest.json",
-        "sha256": "95a5b210dff1b2417b0250d6c49b63a5f82e83f2fc3e5624087890ec4bde0dea",
-        "bytes": 1873
+        "path": "dev/release-materials/sources/ide-data-highlight-20261108/manifest.json",
+        "sha256": "5d78fa4da30ff6197f171e637a144d7331717fcdb10cf851c576b3d490ce6a87",
+        "bytes": 3966
       },
       "build": {
-        "path": "dev/release-materials/provenance/ide-association-inline-20261108/evidence.zip",
-        "sha256": "07e64bf7e90fee49acbefe35a8ce29ba8a3554e77b49a9c866b9770597d69184",
-        "bytes": 801025
+        "path": "dev/release-materials/provenance/ide-data-highlight-20261108/evidence.zip",
+        "sha256": "1fd5895bc484b3dfd0a1e4c3c1dc15c5cfa51024a379222b837139b34d6cb077",
+        "bytes": 1210016
       },
       "matchedSdkManifestSha256": "c0fbd47f95fafe863fae241ece7d4654d3908f5efb6b3ab2a1b678cb59b79f93"
     },
@@ -128,7 +128,7 @@
       "sha256": "cb3dd03ba90452fb9a670371ed7447763a0188fdc61b57adf11d5d89851ce13b",
       "bytes": 2693
     },
-    "buildScope": "Recompiled association view and theme units; reused 109 hash-verified objects from the accepted GUI cohort with unchanged public headers. C LSP stays disabled; unrelated ongoing work remains excluded.",
+    "buildScope": "All 111 GUI units rebuilt with consistent language/action headers; final lexical implementation refinement rebuilt in its owning language unit. C LSP remains disabled and unrelated work remains excluded.",
     "currentEngine": {
       "sourceMaterials": {
         "path": "dev/release-materials/sources/xge-code-wrap-20261108/manifest.json",
@@ -155,20 +155,20 @@
     "updateStateDirectory": "ide/build/update-runtime/<platform>-<install-path-sha256>",
     "previousBuildProvenanceBeforeDialogBackdrop": "dev/release-materials/provenance/ide-release-maintenance-20261106.json",
     "dialogBackdrop": "viewport-sized absolute overlay; dialog above backdrop; child/IME-aware Escape",
-    "previousBuildProvenance": "dev/release-materials/provenance/ide-association-confirm-20261108/receipt.json",
-    "sourceRevision": "ec6d088b8f302d78d3e96b17cdb0dbb31cf3f9db",
+    "previousBuildProvenance": "dev/release-materials/provenance/ide-association-inline-20261108/receipt.json",
+    "sourceRevision": "7d40f05c106c9057b9ee3bf2607ad334c1134771",
     "previousSourceIdentity": {
-      "guiBaseSourceRevision": "6e177576c3c5103486bedb67b2f245b235e230f2",
-      "overlayBaseRevision": "365cc650eee3325807a43f6fdad7bb2a37d10e47",
+      "guiBaseSourceRevision": "365cc650eee3325807a43f6fdad7bb2a37d10e47",
+      "overlayBaseRevision": "ec6d088b8f302d78d3e96b17cdb0dbb31cf3f9db",
       "sourceOverlay": {
-        "path": "dev/release-materials/sources/ide-association-confirm-20261108/manifest.json",
-        "sha256": "9b21256b98822b87e056784678abde91b1b07e131fdf752c5ed11608d9559178",
-        "bytes": 3023
+        "path": "dev/release-materials/sources/ide-association-inline-20261108/manifest.json",
+        "sha256": "95a5b210dff1b2417b0250d6c49b63a5f82e83f2fc3e5624087890ec4bde0dea",
+        "bytes": 1873
       },
       "build": {
-        "path": "dev/release-materials/provenance/ide-association-confirm-20261108/evidence.zip",
-        "sha256": "1617509ac0676159709dbec04397c37bc3ad0472c56712dce9323f02446076c9",
-        "bytes": 349573
+        "path": "dev/release-materials/provenance/ide-association-inline-20261108/evidence.zip",
+        "sha256": "07e64bf7e90fee49acbefe35a8ce29ba8a3554e77b49a9c866b9770597d69184",
+        "bytes": 801025
       },
       "matchedSdkManifestSha256": "c0fbd47f95fafe863fae241ece7d4654d3908f5efb6b3ab2a1b678cb59b79f93"
     },
@@ -308,6 +308,11 @@
       "path": "dev/release-materials/provenance/ide-association-inline-20261108/receipt.json",
       "sha256": "a167dcf94b6cbd99171dd7ee4f0b482f6c8eadd498dde6958c4125239cfb4606",
       "bytes": 4307
+    },
+    "dataHighlighting": {
+      "path": "dev/release-materials/provenance/ide-data-highlight-20261108/receipt.json",
+      "sha256": "b2c74f4d4347bba33da88eab6ac5f0cca5e985aa0d7cb1932769d8aa9b1ab0b5",
+      "bytes": 6011
     }
   },
   "catalog": {
@@ -6307,8 +6312,8 @@
       "previousSha256": "c95a4b367e5ee67b9def00181060d678f56e084072ddc2c6b6ed5f1a5b25528b"
     },
     {
-      "sha256": "810c4b45494a809156fad78897b006db5b5440e1ae9bf3de44ecb1ef21831b93",
-      "bytes": 2034204,
+      "sha256": "b4ccf69dbccf08af44f316ee9d881a546588a2214b048b0287505633c78115cc",
+      "bytes": 2040387,
       "path": "release/win_x64/xlang_ide.exe",
       "origin": "release-0.6.1-20261108",
       "previousSha256": "8a4d9e633fea3baad66e2cf05c0aa6d7f335b2e87ac655cc6f11d29f0685d8e5"
@@ -6488,7 +6493,7 @@
     "historicalReportPathsPreserved": true,
     "mutableDataPathsUpdated": 600
   },
-  "currentScope": "Local IDE inline association state, smaller dialog and contrasting checkbox marks across four themes; other runtime products and online ver2 unchanged.",
+  "currentScope": "Local IDE association-window resize/maximize lock and four data-language highlighters with file/menu/session integration; other runtime products and online ver2 unchanged.",
   "localPublication": {
     "path": "dev/release-materials/provenance/xge3-local-publication-20261105/receipt.json",
     "sha256": "d55e8e816fddbfc2d2283c9ba45b9b28ac5c5e07e0da183fbab3088f118fbad1",
@@ -6743,6 +6748,11 @@
       "path": "dev/release-materials/provenance/ide-association-inline-20261108/receipt.json",
       "sha256": "a167dcf94b6cbd99171dd7ee4f0b482f6c8eadd498dde6958c4125239cfb4606",
       "bytes": 4307
+    },
+    "dataHighlighting": {
+      "path": "dev/release-materials/provenance/ide-data-highlight-20261108/receipt.json",
+      "sha256": "b2c74f4d4347bba33da88eab6ac5f0cca5e985aa0d7cb1932769d8aa9b1ab0b5",
+      "bytes": 6011
     }
   },
   "xuiGallery": {

@@ -1,0 +1,122 @@
+{
+  "schema": 1,
+  "base": {
+    "path": "dev/release-materials/sources/ide-association-inline-20261108/manifest.json",
+    "sha256": "95a5b210dff1b2417b0250d6c49b63a5f82e83f2fc3e5624087890ec4bde0dea",
+    "bytes": 1873
+  },
+  "baseSourceCommit": "ec6d088b8f302d78d3e96b17cdb0dbb31cf3f9db",
+  "overlayBaseCommit": "7d40f05c106c9057b9ee3bf2607ad334c1134771",
+  "archive": {
+    "path": "dev/release-materials/sources/ide-data-highlight-20261108/source-delta.zip",
+    "sha256": "2cdb02ca786a5d7daa5e00e21c86a6dd3089c7d6be610b9405c9894fde979a22",
+    "bytes": 95285
+  },
+  "files": [
+    {
+      "path": "ide/docs/data-highlighting.md",
+      "sha256": "03a9d6a5d7741b6e6a43051e06784746a834d7a3f24d8a30f4011da3ce30157c",
+      "bytes": 2138
+    },
+    {
+      "path": "ide/docs/file-associations.md",
+      "sha256": "3de707d3759aaef288953725e5c41e47dde2cae92afcfdc32064c2a9b0d07f01",
+      "bytes": 5011
+    },
+    {
+      "path": "ide/src/app/actions.c",
+      "sha256": "047936f73d4f207ec4d88025ff71f363ca21db0ac47387ac03f3c92fd219877a",
+      "bytes": 44204
+    },
+    {
+      "path": "ide/src/app/actions.h",
+      "sha256": "15554572349e3ca4fa7442f3accf219f79af343aaae429e3b04591e6f0f68659",
+      "bytes": 4770
+    },
+    {
+      "path": "ide/src/editor/documents.c",
+      "sha256": "2422782716c24544d2c112c51b6cea7b2e92bb9e0475921ece15c021122d59a4",
+      "bytes": 27995
+    },
+    {
+      "path": "ide/src/lang/languages.c",
+      "sha256": "40be46ada65a26e1f529d4baa9c7d3d73594a7cff4356a6fbac6d78de527230e",
+      "bytes": 21786
+    },
+    {
+      "path": "ide/src/lang/languages.h",
+      "sha256": "1b034069d85e08204b7ab512ddcac2d1a5b3fd0145fb7bcbf9a6abda0c71f7b5",
+      "bytes": 524
+    },
+    {
+      "path": "ide/src/lang/structured_data.inc",
+      "sha256": "405e68cd01ac71d62c267fe5936b2e63b1506162264384e1faa4e105951e4d0c",
+      "bytes": 7283
+    },
+    {
+      "path": "ide/src/services/session.c",
+      "sha256": "c6d2987b643fafab3d7cde1a0c14b37f65d7dee8337b31be675765fe44128df9",
+      "bytes": 60930
+    },
+    {
+      "path": "ide/src/ui/association_view.c",
+      "sha256": "1ad677c65d3d8dbab00e0e9571ddbf2350c4d43e2d9dcdacbb3739b94d870178",
+      "bytes": 10936
+    },
+    {
+      "path": "ide/src/ui/editor_view.c",
+      "sha256": "feccd41241e3c502b0d3b404e1534dc938c5f1d5a637aba6c057e6a6525db2dc",
+      "bytes": 24893
+    },
+    {
+      "path": "ide/src/ui/main_toolbar.c",
+      "sha256": "24c90d7e241a268310e559786f561956edbc32fe26b1f36af664c870394dba16",
+      "bytes": 26506
+    },
+    {
+      "path": "ide/src/ui/workbench.c",
+      "sha256": "7cc3efea88936ed9e419cecfdedee55a0b7303e8f3eea112e925fe6d2fe82add",
+      "bytes": 20988
+    },
+    {
+      "path": "ide/tests/association_view_test.c",
+      "sha256": "345718c6862951bc3edd5c722573f1eb0077fb36ef4cf05922f8b588f8c26722",
+      "bytes": 14111
+    },
+    {
+      "path": "ide/tests/data_language_test.c",
+      "sha256": "2c9e1b5dac17028e59b73792aa73fdfa8e9951443e50e12dcdd30ae16a10a47d",
+      "bytes": 6865
+    },
+    {
+      "path": "ide/tests/data_language_view_test.c",
+      "sha256": "94892f637b0f54784ccd2c5c8352f67b42ec35c56a9d8c24583fae5f818c46e3",
+      "bytes": 6697
+    },
+    {
+      "path": "ide/tools/build.ps1",
+      "sha256": "67513245088e5291d46d4a09a03d1066543e3ecd1e9063da0921376a4dac1409",
+      "bytes": 28422
+    },
+    {
+      "path": "reproduction/build.py",
+      "sha256": "c73a4473cc3c54b71ef804c555eccbb488a721bd390a25b4937a0c24665787e6",
+      "bytes": 3121
+    },
+    {
+      "path": "reproduction/publish.py",
+      "sha256": "505d7e600972497c2528475145eecd0569c78aaec34888f1001004bd9c543b18",
+      "bytes": 3417
+    },
+    {
+      "path": "reproduction/record.py",
+      "sha256": "52a1fc6530375d27e9933f1d417a861148e1b502af5b8cfa7f1cfe618fc341f0",
+      "bytes": 7852
+    },
+    {
+      "path": "reproduction/test.py",
+      "sha256": "e3b56d42caf8065be485c206ab46264810aa65479a2c3f13278fa574866df89e",
+      "bytes": 4630
+    }
+  ]
+}

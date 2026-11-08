@@ -129,7 +129,7 @@ static int validSession(const xvalue* root)
     if(docs && (!xrtValueIs(docs,XVALUE_ARRAY) || xideMetaCount(docs)>10000)) return 0;
     for(size_t i=0;i<xideMetaCount(docs);++i) {
         xvalue* d=xrtValueArrayGet(docs,i); const char* path=text(get(d,"path")); const char* language=string(d,"language","text"); const char* id=text(get(d,"id"));
-        if(!xrtValueIs(d,XVALUE_OBJECT) || !path || (id && !safeId(id)) || (strcmp(language,"c") && strcmp(language,"xlang") && strcmp(language,"text")) || integer(get(d,"line"),1)<1 || integer(get(d,"column"),1)<1) return 0;
+        if(!xrtValueIs(d,XVALUE_OBJECT) || !path || (id && !safeId(id)) || !xideLanguageSupported(language) || integer(get(d,"line"),1)<1 || integer(get(d,"column"),1)<1) return 0;
         const char* positions[]={"line","column","anchorLine","anchorColumn"};
         for(int k=0;k<4;++k) if(get(d,positions[k]) && integer(get(d,positions[k]),-1)<1) return 0;
         if(get(d,"id") && !safeId(text(get(d,"id")))) return 0;

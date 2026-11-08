@@ -1,0 +1,145 @@
+{
+  "schema": 1,
+  "date": "2026-11-08",
+  "passed": true,
+  "complete": true,
+  "publication": "local-only",
+  "scope": "Non-resizable association window and complete JSON/XLON/JSONL/XLONL editor language integration.",
+  "sourceMaterials": {
+    "path": "dev/release-materials/sources/ide-data-highlight-20261108/manifest.json",
+    "sha256": "5d78fa4da30ff6197f171e637a144d7331717fcdb10cf851c576b3d490ce6a87",
+    "bytes": 3966
+  },
+  "evidence": {
+    "path": "dev/release-materials/provenance/ide-data-highlight-20261108/evidence.zip",
+    "sha256": "1fd5895bc484b3dfd0a1e4c3c1dc15c5cfa51024a379222b837139b34d6cb077",
+    "bytes": 1210016
+  },
+  "installed": {
+    "passed": true,
+    "installedPath": "release/win_x64/xlang_ide.exe",
+    "previousSha256": "810c4b45494a809156fad78897b006db5b5440e1ae9bf3de44ecb1ef21831b93",
+    "sha256": "b4ccf69dbccf08af44f316ee9d881a546588a2214b048b0287505633c78115cc",
+    "bytes": 2040387,
+    "installedSmokeExit": 0,
+    "preserved": {
+      "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe": "e5f4719890814a3f7b5422ffb1f293ffc944c527de62217d32e9a3a4c287dfad",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xl.dll": "e783d6a15c946945d4186084cff9006839cbc1d31a0ae387396dc6f500aaac6c",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xlc.dll": "b4563a13448e2f550b00c0504cac481cdefd2b61ee961276049f936243f125a1",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xge.dll": "f6eaa3961017f79cd06d18568bab8fb60274c4935e1a83ab8fb37da21acc607b",
+      "D:\\GIT\\x-lang\\ide\\third_party\\xge_sdk\\sdk_manifest.json": "c0fbd47f95fafe863fae241ece7d4654d3908f5efb6b3ab2a1b678cb59b79f93"
+    }
+  },
+  "tests": [
+    {
+      "test": "association_view_test",
+      "exit": 0,
+      "source": "D:\\GIT\\x-lang\\ide\\tests\\association_view_test.c",
+      "sourceSha256": "345718c6862951bc3edd5c722573f1eb0077fb36ef4cf05922f8b588f8c26722"
+    },
+    {
+      "test": "language_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-data-highlight-20261108\\gui-source\\ide\\tests\\language_test.c",
+      "sourceSha256": "d6f36fcb1badc84965f7b45d303624dba08f7b372b4e6fb3187b326452bee073"
+    },
+    {
+      "test": "input_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-data-highlight-20261108\\gui-source\\ide\\tests\\input_test.c",
+      "sourceSha256": "2804e8842d91a338ac4dcb3788d9133f597303b435b55038168e0669645d40f5"
+    },
+    {
+      "test": "data_language_test",
+      "exit": 0,
+      "source": "D:\\GIT\\x-lang\\ide\\tests\\data_language_test.c",
+      "sourceSha256": "2c9e1b5dac17028e59b73792aa73fdfa8e9951443e50e12dcdd30ae16a10a47d"
+    },
+    {
+      "test": "data_language_view_test",
+      "exit": 0,
+      "source": "D:\\GIT\\x-lang\\ide\\tests\\data_language_view_test.c",
+      "sourceSha256": "94892f637b0f54784ccd2c5c8352f67b42ec35c56a9d8c24583fae5f818c46e3"
+    },
+    {
+      "test": "document_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-data-highlight-20261108\\gui-source\\ide\\tests\\document_test.c",
+      "sourceSha256": "70f8b5513171581f751ed687f6b3b60b1cfd376d8eb687bc95fbf0191bddfb77"
+    },
+    {
+      "test": "session_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-data-highlight-20261108\\gui-source\\ide\\tests\\session_test.c",
+      "sourceSha256": "b8559524305cc9881aba3f76d4e5f040ce94cdf0d0db250bbfce296219dcc340"
+    },
+    {
+      "test": "find_follow_view_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-data-highlight-20261108\\gui-source\\ide\\tests\\find_follow_view_test.c",
+      "sourceSha256": "57f31d4f99fffece30d9a5e657c991aea72a7ed901c34fe1da49b2919c8304c9"
+    },
+    {
+      "test": "settings_view_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-data-highlight-20261108\\gui-source\\ide\\tests\\settings_view_test.c",
+      "sourceSha256": "1a09b8f399fca72e2bd060d9c3ac3f54c820cb3db5367932f2607fae093a70f3"
+    },
+    {
+      "test": "dialog_layout_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-data-highlight-20261108\\gui-source\\ide\\tests\\dialog_layout_test.c",
+      "sourceSha256": "70a0e91feb961d7ff69e40316218881d72aabbfc8a3a2859f0b096d2567312a4"
+    },
+    {
+      "test": "task_pending_input_view_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-data-highlight-20261108\\gui-source\\ide\\tests\\task_pending_input_view_test.c",
+      "sourceSha256": "c7b1774736805fa85e7b416734e8ae4dbbc8806c0780f01a3a70a6967597c411"
+    }
+  ],
+  "assertions": {
+    "dataLexer": 128,
+    "dataView": 63,
+    "associationView": 155
+  },
+  "dialog": {
+    "resizable": false,
+    "maximizeButton": false,
+    "titleDoubleClickMaximize": false,
+    "nativeResizeGestureAccepted": false,
+    "fontAndViewportAdaptation": true
+  },
+  "languages": [
+    "json",
+    "xlon",
+    "jsonl",
+    "xlonl"
+  ],
+  "coverage": [
+    "case-insensitive file extension detection",
+    "seven-mode menus and explicit override",
+    "JSON numbers, strings, escapes and literals",
+    "XLON built-in/custom tags and optional comments",
+    "line-local recovery for JSONL/XLONL",
+    "brace/comment folding for single-document formats",
+    "shared token and fold refresh",
+    "real editing and undo caches",
+    "Save As extension and file filters",
+    "clean/dirty session restart and typed recovery",
+    "four native format screenshots"
+  ],
+  "build": {
+    "guiObjects": 111,
+    "optimization": "-O2",
+    "allInputsUnchanged": true,
+    "baseSourceCommit": "ec6d088b8f302d78d3e96b17cdb0dbb31cf3f9db",
+    "overlayBaseCommit": "7d40f05c106c9057b9ee3bf2607ad334c1134771"
+  },
+  "limits": [
+    "Lexical highlighting only; not full syntax/schema validation or a format reader.",
+    "Targeted Windows acceptance; no full repository test-suite claim.",
+    "Compiler, language server and XGE products unchanged; unrelated concurrent source work excluded from the qualified GUI snapshot."
+  ]
+}

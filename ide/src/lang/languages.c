@@ -212,6 +212,14 @@ static int xlangFold(xui_code_document_t* document, xui_code_fold_range_t* range
     if(result==XUI_OK) result=xlangFoldTokens(document,(const xui_code_token_t*)tokens.Data,tokenCount,ranges,capacity,count,NULL);
     xrtArrayUnit(&tokens);return result;
 }
+#include "lang/structured_data.inc"
+int xideLanguageSupported(const char* language)
+{
+    static const char* const names[]={"c","xlang","text","json","xlon","jsonl","xlonl"};
+    if(!language)return 0;
+    for(size_t i=0;i<sizeof(names)/sizeof(*names);++i)if(!strcmp(language,names[i]))return 1;
+    return 0;
+}
 const char* xideLanguageForPath(const char* path)
 {
     if (!path) return "text";
@@ -224,6 +232,10 @@ const char* xideLanguageForPath(const char* path)
     for (size_t i = 0; i <= size; ++i) extension[i] = (char)tolower((unsigned char)dot[i]);
     if (strcmp(extension, ".xl") == 0) return "xlang";
     if (strcmp(extension, ".c") == 0 || strcmp(extension, ".h") == 0) return "c";
+    if (!strcmp(extension,".json")) return "json";
+    if (!strcmp(extension,".xlon")) return "xlon";
+    if (!strcmp(extension,".jsonl")) return "jsonl";
+    if (!strcmp(extension,".xlonl")) return "xlonl";
     return "text";
 }
 static int plainLex(xui_code_document_t* document, int startLine, int endLine,
@@ -256,7 +268,18 @@ int xideRegisterLanguages(xui_code_language_registry registry)
     if (result != XUI_OK) return result;
     memset(&language, 0, sizeof(language)); language.iSize = sizeof(language);
     language.sId = "text"; language.sName = "Plain text"; language.iLexerType = XUI_CODE_LEXER_CALLBACK; language.onLex = plainLex;
-    return xuiCodeLanguageRegistryRegister(registry, &language);
+    result=xuiCodeLanguageRegistryRegister(registry, &language);
+    static const char* const names[]={"json","xlon","jsonl","xlonl"};
+    static const char* const titles[]={"JSON","XLON","JSON Lines","XLON Lines"};
+    static const unsigned flags[]={0,DATA_XLON,DATA_LINES,DATA_XLON|DATA_LINES};
+    for(int i=0;i<4 && result==XUI_OK;++i){
+        memset(&language,0,sizeof(language));language.iSize=sizeof(language);language.sId=names[i];language.sName=titles[i];
+        language.arrExtensions=names+i;language.iExtensionCount=1;language.iLexerType=XUI_CODE_LEXER_CALLBACK;
+        language.onLex=dataLex;language.onFold=dataFold;language.pUser=(void*)(flags+i);
+        if(flags[i]&DATA_XLON){language.sLineComment="//";language.sBlockCommentStart="/*";language.sBlockCommentEnd="*/";}
+        result=xuiCodeLanguageRegistryRegister(registry,&language);
+    }
+    return result;
 }
 static int compareFold(const void* left,const void* right)
 {
@@ -286,6 +309,12 @@ static int rebuildEditorFolds(xui_widget editor,const xui_code_token_t* lexical,
             if(result==XUI_OK) result=xuiCodeFoldStateSetRanges(state,(const xui_code_fold_range_t*)folds.Data,count);
             xrtArrayUnit(&folds);
         }
+    } else if(shared && language.onLex==dataLex && language.onFold==dataFold){
+        xarray folds;
+        if(!xrtArrayInit(&folds,sizeof(xui_code_fold_range_t)))result=XUI_ERROR_OUT_OF_MEMORY;
+        else {int count=0;result=dataFoldTokens(xuiCodeEditGetDocument(editor),lexical,lexicalCount,NULL,0,&count,language.pUser,&folds);
+            if(result==XUI_OK)result=xuiCodeFoldStateSetRanges(state,(const xui_code_fold_range_t*)folds.Data,count);
+            xrtArrayUnit(&folds);}
     } else if(language.onFold) result=xuiCodeFoldStateBuildFromProvider(state,xuiCodeEditGetDocument(editor),language.onFold,language.pUser);
     int count=xuiCodeFoldStateGetCount(state);
     xui_code_fold_range_t* ranges=count ? malloc((size_t)count*sizeof(*ranges)) : NULL;
@@ -315,10 +344,10 @@ int xideRefreshEditorSyntax(xui_widget editor)
     int count = 0;
     int result = xuiCodeLanguageRegistryFind(xuiCodeEditGetLanguageRegistry(editor), xuiCodeEditGetLanguage(editor), &language);
     if (result != XUI_OK) return result;
-    if(language.onLex==xlangLex) {
+    if(language.onLex==xlangLex || language.onLex==dataLex) {
         xarray tokens;
         if(!xrtArrayInit(&tokens,sizeof(xui_code_token_t))) return XUI_ERROR_OUT_OF_MEMORY;
-        result=xlangLexInto(document,0,-1,NULL,0,&count,NULL,&tokens);
+        result=language.onLex==xlangLex?xlangLexInto(document,0,-1,NULL,0,&count,NULL,&tokens):dataLexInto(document,0,-1,NULL,0,&count,language.pUser,&tokens);
         if(result==XUI_OK) result=xuiCodeTokenBufferSetRange(xuiCodeEditGetTokenBuffer(editor),(const xui_code_token_t*)tokens.Data,count,
                                   xuiCodeDocumentGetVersion(document),0,xuiCodeDocumentGetLength(document));
         if(result==XUI_OK) result=rebuildEditorFolds(editor,(const xui_code_token_t*)tokens.Data,count,1);

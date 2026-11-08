@@ -186,7 +186,7 @@ static int openMenu(xide_app* app,int kind,xui_widget owner)
     else if(kind==MENU_CONTEXT) { TRY(targetChoices(app));TRY(addAction(app,0));TRY(configChoices(app)); }
     else if(kind==MENU_STOP || kind==MENU_TASKS)TRY(taskChoices(app,kind==MENU_STOP));
     else if(kind==MENU_LANGUAGE) {
-        const int items[]={XIDE_ACTION_LANGUAGE_C,XIDE_ACTION_LANGUAGE_XLANG,XIDE_ACTION_LANGUAGE_TEXT};for(int i=0;i<3;++i)TRY(addAction(app,items[i]));
+        const int items[]={XIDE_ACTION_LANGUAGE_C,XIDE_ACTION_LANGUAGE_XLANG,XIDE_ACTION_LANGUAGE_JSON,XIDE_ACTION_LANGUAGE_XLON,XIDE_ACTION_LANGUAGE_JSONL,XIDE_ACTION_LANGUAGE_XLONL,XIDE_ACTION_LANGUAGE_TEXT};for(size_t i=0;i<sizeof(items)/sizeof(*items);++i)TRY(addAction(app,items[i]));
     } else {
         const int hidden[]={XIDE_TB_NEW,XIDE_TB_OPEN,XIDE_TB_SAVE,XIDE_TB_BUILD,XIDE_TB_TEST};int added=0;
         for(int i=0;i<5;++i)if(!xuiWidgetGetVisible(v->controls[hidden[i]])) { TRY(addAction(app,actions[hidden[i]]));if(hidden[i]==XIDE_TB_SAVE)TRY(addAction(app,XIDE_ACTION_SAVE_ALL_FILES));++added; }

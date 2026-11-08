@@ -103,6 +103,14 @@ static int run(void* raw)
     CHECK(!xuiWidgetGetVisible(v->status));
     for(int i=0;i<4;++i){CHECK(!strcmp(xuiLabelGetText(v->states[i]),"当前未关联") && color(v->states[i],"text.color")==ideThemeColor(a.theme,IDE_TEXT));CHECK(xuiWidgetGetParent(v->types[i])==xuiWidgetGetParent(v->states[i]));}
     CHECK(!strcmp(xuiButtonGetText(v->close),"关闭") && !strcmp(xuiButtonGetText(v->confirm),"确定"));
+    CHECK(!xuiWindowIsResizable(v->window) && !xuiWindowGetShowMaximize(v->window) && !xuiWindowIsMaximized(v->window));
+    /* Native pointer gestures must not resize/maximize; programmatic layout
+       remains available for font/viewport adaptation below. */
+    xui_rect_t fixed=xuiWidgetGetWorldRect(v->window);int right=fixed.fX+fixed.fW-1,bottom=fixed.fY+fixed.fH-1;
+    CHECK(xuiInputPointerMove(a.context,right,bottom,0)==XUI_OK && xuiInputPointerDown(a.context,right,bottom,XUI_POINTER_BUTTON_LEFT,XUI_POINTER_BUTTON_LEFT)==XUI_OK && xuiInputPointerMove(a.context,right+80,bottom+60,XUI_POINTER_BUTTON_LEFT)==XUI_OK && xuiInputPointerUp(a.context,right+80,bottom+60,XUI_POINTER_BUTTON_LEFT,0)==XUI_OK && settle(&a));
+    xui_rect_t afterDrag=xuiWidgetGetWorldRect(v->window);CHECK(afterDrag.fW==fixed.fW && afterDrag.fH==fixed.fH);
+    for(int i=0;i<2;++i){int x=fixed.fX+80,y=fixed.fY+14;CHECK(xuiInputPointerDown(a.context,x,y,XUI_POINTER_BUTTON_LEFT,XUI_POINTER_BUTTON_LEFT)==XUI_OK && xuiInputPointerUp(a.context,x,y,XUI_POINTER_BUTTON_LEFT,0)==XUI_OK && settle(&a));}
+    CHECK(!xuiWindowIsMaximized(v->window));
     /* Close discards all drafts, including skip; it does not even rewrite settings. */
     choose(v,15,1);CHECK(click(&a,v->close) && !xideAssociationViewIsOpen(&a) && !applies && !opens);
     char unchanged[sizeof(seed)+10]={0};f=fopen(settings,"rb");CHECK(f);size_t n=fread(unchanged,1,sizeof(unchanged)-1,f);fclose(f);CHECK(n==strlen(seed) && !strcmp(unchanged,seed));

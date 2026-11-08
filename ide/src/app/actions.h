@@ -27,7 +27,8 @@ enum xide_action_id {
     XIDE_ACTION_VIEW_XLANG, XIDE_ACTION_VIEW_C, XIDE_ACTION_VIEW_HELP, XIDE_ACTION_VIEW_PROBLEMS,
     XIDE_ACTION_VIEW_OUTPUT, XIDE_ACTION_VIEW_TERMINAL, XIDE_ACTION_VIEW_TASKS,
     XIDE_ACTION_VIEW_OUTLINE, XIDE_ACTION_VIEW_USAGES,
-    XIDE_ACTION_CONTEXT_HELP=160
+    XIDE_ACTION_CONTEXT_HELP=160,
+    XIDE_ACTION_LANGUAGE_JSON=170,XIDE_ACTION_LANGUAGE_XLON,XIDE_ACTION_LANGUAGE_JSONL,XIDE_ACTION_LANGUAGE_XLONL
 };
 enum xide_action_result { XIDE_ACTION_UNKNOWN=-1, XIDE_ACTION_DISABLED=0, XIDE_ACTION_DISPATCHED=1 };
 enum xide_shortcut_scope { XIDE_SHORTCUT_GLOBAL, XIDE_SHORTCUT_EDITOR, XIDE_SHORTCUT_WORKSPACE };
@@ -45,6 +46,7 @@ size_t xideActionCount(void);
 const xide_action_info* xideActionAt(size_t index);
 const xide_action_info* xideActionFind(int id);
 const xide_action_info* xideActionNamed(const char* name);
+const char* xideActionLanguage(int id);
 int xideActionsHasModal(xide_app* app);
 int xideActionsHasOtherModal(xide_app* app);
 xide_action_state xideActionQuery(xide_app* app,int action);

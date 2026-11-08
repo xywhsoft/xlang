@@ -14,6 +14,7 @@
 #include "ui/c_completion_view.h"
 #endif
 #include "platform/path.h"
+#include "lang/languages.h"
 #include "theme/theme.h"
 #include "ui/workspace_view.h"
 #include <stdlib.h>
@@ -26,9 +27,9 @@ static void report(xide_app* app,const char* text)
 }
 static char* choosePath(xide_app* app,int save,xide_document* document)
 {
-    const char* extension=document && !strcmp(document->language,"xlang") ? "xl" : document && !strcmp(document->language,"c") ? "c" : "txt";
+    const char* extension=!document || !strcmp(document->language,"text")?"txt":!strcmp(document->language,"xlang")?"xl":document->language;
     return xideMessageChoosePath(app,save ? XUI_FILE_DIALOG_MODE_SAVE_FILE : XUI_FILE_DIALOG_MODE_OPEN_FILE,
-        save ? "保存文件" : "打开文件","源代码和文本|*.xl;*.c;*.h;*.txt|所有文件|*.*",
+        save ? "保存文件" : "打开文件","源代码和文本|*.xl;*.c;*.h;*.txt;*.json;*.xlon;*.jsonl;*.xlonl|结构化数据|*.json;*.xlon;*.jsonl;*.xlonl|所有文件|*.*",
         document ? document->path : NULL,save ? extension : NULL,
         document ? xideMessageDocumentKey(document,70,0) : UINT64_C(700),document ? document->id : 0);
 }
@@ -375,7 +376,7 @@ void xideEditorPoll(xide_app* app)
 int xideEditorAction(xide_app* app,int action)
 {
     const xide_action_info* definition=xideActionFind(action);
-    if((action<XIDE_ACTION_NEW_FILE || action>XIDE_ACTION_EDITOR_COMPLETE) && (action<XIDE_ACTION_EDITOR_CUT || action>XIDE_ACTION_EDITOR_COMMENT)) return 0;
+    if(!xideActionLanguage(action) && (action<XIDE_ACTION_NEW_FILE || action>XIDE_ACTION_EDITOR_COMPLETE) && (action<XIDE_ACTION_EDITOR_CUT || action>XIDE_ACTION_EDITOR_COMMENT)) return 0;
     xide_model_error error={0}; xide_document* document=app->activeDocument; char* path=NULL; int ok=1;
     if(action==XIDE_ACTION_NEW_FILE) {
         document=xideDocumentNew(&app->documents,"xlang",&error); ok=document && xideEditorShow(app,document)==XUI_OK;
@@ -391,8 +392,8 @@ int xideEditorAction(xide_app* app,int action)
         else if(action==XIDE_ACTION_CLOSE_FILE) { if(confirmDocument(app,document)) ok=xideEditorClose(app,document,1,&error); }
         else if(action==XIDE_ACTION_RELOAD_FILE) {
             if(!document->dirty || xideMessageConfirm(app,"重新加载文件","重新加载将放弃此文件未保存的修改。是否继续？",XUI_MSGBOX_BUTTON_YES_NO,xideMessageDocumentKey(document,3,0))==XUI_MSGBOX_RESULT_YES) ok=xideDocumentReload(document,1,&error);
-        } else if(action>=XIDE_ACTION_LANGUAGE_C && action<=XIDE_ACTION_LANGUAGE_TEXT) {
-            const char* modes[]={"c","xlang","text"}; ok=xideDocumentSetLanguage(document,modes[action-XIDE_ACTION_LANGUAGE_C],&error);
+        } else if(xideActionLanguage(action)) {
+            ok=xideDocumentSetLanguage(document,xideActionLanguage(action),&error);
         } else if(action==XIDE_ACTION_EDITOR_FIND || action==XIDE_ACTION_EDITOR_REPLACE) {
             ok=xideFindViewOpen(app,action==XIDE_ACTION_EDITOR_REPLACE);
         } else if(action==XIDE_ACTION_EDITOR_COMPLETE) {

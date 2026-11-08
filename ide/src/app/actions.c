@@ -114,6 +114,10 @@ static const action_def definitions[]={
     A(XIDE_ACTION_LANGUAGE_C,"editor.language.c","当前文件使用 C 语法",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,DOCUMENT,LANGUAGE_CHECK,xideEditorAction),
     A(XIDE_ACTION_LANGUAGE_XLANG,"editor.language.xlang","当前文件使用 xlang 语法",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,DOCUMENT,LANGUAGE_CHECK,xideEditorAction),
     A(XIDE_ACTION_LANGUAGE_TEXT,"editor.language.text","当前文件使用纯文本",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,DOCUMENT,LANGUAGE_CHECK,xideEditorAction),
+    A(XIDE_ACTION_LANGUAGE_JSON,"editor.language.json","当前文件使用 JSON 语法",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,DOCUMENT,LANGUAGE_CHECK,xideEditorAction),
+    A(XIDE_ACTION_LANGUAGE_XLON,"editor.language.xlon","当前文件使用 XLON 语法",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,DOCUMENT,LANGUAGE_CHECK,xideEditorAction),
+    A(XIDE_ACTION_LANGUAGE_JSONL,"editor.language.jsonl","当前文件使用 JSONL 语法",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,DOCUMENT,LANGUAGE_CHECK,xideEditorAction),
+    A(XIDE_ACTION_LANGUAGE_XLONL,"editor.language.xlonl","当前文件使用 XLONL 语法",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,DOCUMENT,LANGUAGE_CHECK,xideEditorAction),
     E(XIDE_ACTION_EDITOR_UNDO,"editor.undo","撤销","Ctrl+Z",'Z',XUI_MOD_CTRL,UNDO,XIDE_SHORTCUT_EDITOR,XUI_CODE_COMMAND_UNDO),
     E(XIDE_ACTION_EDITOR_REDO,"editor.redo","重做","Ctrl+Y",'Y',XUI_MOD_CTRL,REDO,XIDE_SHORTCUT_EDITOR,XUI_CODE_COMMAND_REDO),
     E(XIDE_ACTION_EDITOR_CUT,"editor.cut","剪切","Ctrl+X",'X',XUI_MOD_CTRL,WRITABLE_SELECTION,XIDE_SHORTCUT_EDITOR,XUI_CODE_COMMAND_CUT),
@@ -173,6 +177,19 @@ int xideActionsHasOtherModal(xide_app* a)
 { return a && ( xideAssociationViewIsOpen(a) || xideSettingsViewIsOpen(a) || xideAboutViewIsOpen(a) || xideFileDialogBusy(a) || xideMessageBusy(a) || xideCatalogSourceIsOpen(a) || xideGotoViewIsOpen(a) || xideToolchainViewIsOpen(a) || xideResourceViewIsOpen(a) || xideImportViewIsOpen(a) || xideRenameViewIsOpen(a) || xideRenameViewHasPending(a) || xideTemplateViewIsOpen(a) || xideReferencesViewIsOpen(a) || xideConfigurationViewIsOpen(a) || xideFontViewIsOpen(a) || xideRecoveryViewIsOpen(a) || xideFileChangesViewIsOpen(a)); }
 int xideActionsHasModal(xide_app* a)
 { return a && (xideUpdateIsModal(a) || xideActionsHasOtherModal(a)); }
+const char* xideActionLanguage(int id)
+{
+    switch(id){
+    case XIDE_ACTION_LANGUAGE_C:return "c";
+    case XIDE_ACTION_LANGUAGE_XLANG:return "xlang";
+    case XIDE_ACTION_LANGUAGE_TEXT:return "text";
+    case XIDE_ACTION_LANGUAGE_JSON:return "json";
+    case XIDE_ACTION_LANGUAGE_XLON:return "xlon";
+    case XIDE_ACTION_LANGUAGE_JSONL:return "jsonl";
+    case XIDE_ACTION_LANGUAGE_XLONL:return "xlonl";
+    default:return NULL;
+    }
+}
 xide_action_state xideActionQuery(xide_app* a,int id)
 {
     const action_def* d=definition(id); xide_action_state state={0,0,"未知动作或工作台尚未就绪"};
@@ -182,7 +199,7 @@ xide_action_state xideActionQuery(xide_app* a,int id)
     xide_project* project=xideWorkspaceFindProject(&a->workspaceModel,a->selectedProject);
     xide_project* startup=xideWorkspaceFindProject(&a->workspaceModel,a->workspaceModel.startupProject);
     if(d->check==THEME_CHECK) state.checked=a->theme==id-XIDE_ACTION_THEME_CLASSIC;
-    else if(d->check==LANGUAGE_CHECK && doc) { const char* modes[]={"c","xlang","text"}; state.checked=!strcmp(doc->language,modes[id-XIDE_ACTION_LANGUAGE_C]); }
+    else if(d->check==LANGUAGE_CHECK && doc) { const char* mode=xideActionLanguage(id);state.checked=mode && !strcmp(doc->language,mode); }
     else if(d->check==STARTUP_CHECK) state.checked=project && startup==project;
     else if(d->check==WINDOW_CHECK) state.checked=windowState>0;
     if(id!=XIDE_ACTION_STOP && id!=XIDE_ACTION_STOP_ALL && xideActionsHasModal(a)) { state.reason="请先完成或关闭当前设置窗口"; return state; }
@@ -229,7 +246,7 @@ xide_action_state xideActionQuery(xide_app* a,int id)
         state.reason="当前文档只读或当前语法没有行注释"; break;
     }
     case SIGNATURE: state.enabled=writable && doc->path && !strcmp(doc->language,"xlang") && a->completionView && xideTaskViewCompiler(a);state.reason="请打开 xlang 源文件并选择编译器";break;
-    case COMPLETION: state.enabled=writable && strcmp(doc->language,"text") && a->catalogView; state.reason="当前文档没有目录补全"; break;
+    case COMPLETION: state.enabled=writable && (!strcmp(doc->language,"xlang") || !strcmp(doc->language,"c")) && a->catalogView; state.reason="当前文档没有目录补全"; break;
     case BUILD: case RUN: case BUILD_FILE: case TEST: state=xideExecutionQuery(a,id); break;
     case STOP: {
         xide_task* task=xideTaskViewSelected(a);xide_task_info info={0};xideTaskInfo(task,&info);

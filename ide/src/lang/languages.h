@@ -4,6 +4,7 @@
 #include "xui.h"
 /* Unknown extensions use plain text; a per-document explicit override is allowed. */
 const char* xideLanguageForPath(const char* path);
+int xideLanguageSupported(const char* language);
 int xideRegisterLanguages(xui_code_language_registry registry);
 int xideConfigureEditorLanguage(xui_widget editor, const char* language);
 int xideRebuildEditorFolds(xui_widget editor);

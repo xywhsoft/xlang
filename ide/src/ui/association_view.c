@@ -123,6 +123,7 @@ static int openView(xide_app* a,int refresh)
     struct xide_association_view* v=state(a);if(!v)return 0;
     if(!v->window){
         TRY(xideDialogCreate(a,&v->window,"文件关联",460,240,12));
+        TRY(xuiWindowSetResizable(v->window,0));TRY(xuiWindowSetShowMaximize(v->window,0));
         TRY(xuiWidgetAddChild(a->root,v->window));TRY(xideDialogFormBegin(v->window,380,230));
         TRY(xideDialogFormText(v->window,"勾选要关联的文件类型；取消勾选会取消本程序的关联。\n默认应用需要时请在 Windows 设置中确认。"));
         const char* labels[]={"工作空间 .xlw","工程 .xlp","xlang 脚本 .xl","C 源文件 .c（独立选项）"};

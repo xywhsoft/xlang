@@ -135,7 +135,7 @@ xide_document* xideDocumentOpen(xide_document_store* store,const char* path,xide
 }
 xide_document* xideDocumentNew(xide_document_store* store,const char* language,xide_model_error* error)
 {
-    if(!language || (strcmp(language,"c") && strcmp(language,"xlang") && strcmp(language,"text"))) {
+    if(!xideLanguageSupported(language)) {
         failure(error,XIDE_MODEL_INVALID,"Unsupported document language."); return NULL;
     }
     xide_document* document=acquire(store,error); xide_text_file file={0}; char title[64];
@@ -266,7 +266,7 @@ int xideDocumentClose(xide_document* document,int discardChanges,xide_model_erro
 }
 int xideDocumentSetLanguage(xide_document* document,const char* language,xide_model_error* error)
 {
-    if(!document || !document->open || !language || (strcmp(language,"c") && strcmp(language,"xlang") && strcmp(language,"text"))) return failure(error,XIDE_MODEL_INVALID,"Unsupported document language.");
+    if(!document || !document->open || !xideLanguageSupported(language)) return failure(error,XIDE_MODEL_INVALID,"Unsupported document language.");
     char* mode=copy(language); if(!mode) return failure(error,XIDE_MODEL_MEMORY,"Language allocation failed.");
     if(xideConfigureEditorLanguage(document->editor,language)!=XUI_OK) { free(mode); return failure(error,XIDE_MODEL_INVALID,"Unable to set document language."); }
     free(document->language); document->language=mode; document->languageOverride=1;
@@ -280,7 +280,7 @@ int xideDocumentsDirty(const xide_document_store* store)
 }
 xide_document* xideDocumentRecover(xide_document_store* store,const char* path,const char* title,const char* language,xide_text_file* baseline,const char* recovered,xide_model_error* error)
 {
-    if(!store || !title || !language || !baseline || !baseline->text || !recovered || (strcmp(language,"c") && strcmp(language,"xlang") && strcmp(language,"text"))) { failure(error,XIDE_MODEL_INVALID,"Invalid recovery document."); return NULL; }
+    if(!store || !title || !xideLanguageSupported(language) || !baseline || !baseline->text || !recovered) { failure(error,XIDE_MODEL_INVALID,"Invalid recovery document."); return NULL; }
     char* resolved=path && *path ? xidePathResolve(NULL,path) : NULL;
     if(path && *path && !resolved) { failure(error,XIDE_MODEL_INVALID,"Invalid recovery path."); return NULL; }
     if(resolved && xideDocumentsFind(store,resolved)) { free(resolved); failure(error,XIDE_MODEL_CONFLICT,"Recovered physical file is already open."); return NULL; }
