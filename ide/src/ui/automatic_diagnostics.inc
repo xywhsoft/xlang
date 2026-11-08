@@ -397,7 +397,8 @@ static int automaticJump(xide_app* app,size_t token)
   xide_model_error error={0};if(!target && !xideEditorOpen(app,n->path,&error)) return 0;if(!target) target=app->activeDocument;
   if(!target || snapshotConflict(target) || !textMatches(proof,target) || !matchesHash(target->baseline.raw,target->baseline.rawLength,get(n->input,"rawSha256")) || !diskIdentity(n->path,proof)) {automaticFence(v,n->path,0,1,2);return 0;}
  }
- return target && selectRange(app,target,get(xrtValueArrayGet(get(n->params,"diagnostics"),item),"range"));
+ const xvalue* diagnostics=get(n->params,"diagnostics");
+ return target && diagnostics && xrtValueType(diagnostics)==XVALUE_ARRAY && item<xideMetaCount(diagnostics) && selectRange(app,target,get(xrtValueArrayGet(diagnostics,item),"range"));
 }
 static int automaticConfiguration(xide_language_view* v)
 {

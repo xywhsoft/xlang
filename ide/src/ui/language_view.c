@@ -557,7 +557,7 @@ static int textMatches(const xvalue* group,xide_document* d)
 static xide_document* openPath(xide_app* app,const char* path)
 { for(size_t i=0;i<app->documents.count;++i) { xide_document* d=app->documents.items[i]; if(d->open && d->path && xidePathLexicalEqual(path,d->path)) return d; } return NULL; }
 static const xvalue* snapshotGroup(xide_language_view* v,const char* path)
-{ const xvalue* groups=get(v->snapshotResult,"documents"); for(size_t i=0;i<xideMetaCount(groups);++i) { const xvalue* g=xrtValueArrayGet(groups,i); if(xidePathLexicalEqual(path,string(get(g,"path")))) return g; } return NULL; }
+{ const xvalue* groups=get(v->snapshotResult,"documents"); if(!groups || xrtValueType(groups)!=XVALUE_ARRAY) return NULL; for(size_t i=0;i<xideMetaCount(groups);++i) { const xvalue* g=xrtValueArrayGet(groups,i); if(xidePathLexicalEqual(path,string(get(g,"path")))) return g; } return NULL; }
 static document_binding* inputPath(xide_language_view* v,const char* path)
 { for(size_t i=0;i<v->inputCount;++i) if(xidePathLexicalEqual(path,v->inputs[i].path)) return &v->inputs[i]; return NULL; }
 static int formatted(const xvalue* value,const char* text) { const char* s=string(value); return s && !strcmp(s,text); }

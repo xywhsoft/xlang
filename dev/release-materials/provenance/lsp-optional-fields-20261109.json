@@ -1,0 +1,752 @@
+{
+  "format": "xlang-lsp-metadata-acceptance-1",
+  "date": "2026-11-09",
+  "phaseStatus": "metadata-probe-correctness-complete-defaults-preserved",
+  "fullGoalComplete": false,
+  "shippingDelivery": false,
+  "correctnessPassed": true,
+  "performanceQualified": false,
+  "baseGitCommit": "6186e26e10b8f00acf9f15f241600be8d4b0e58b",
+  "implementationInputs": {
+    "ide/src/platform/receipt_time.h": "ebd75e598890dd5bc97f45ae7e7736cbe61d7d418429e0a291a10ce1f9f69dd3",
+    "ide/src/ui/automatic_diagnostics.inc": "8381f8d0dce0c00579fab98208e052c02080b16eb4f34cc2d8d782b263be66cd",
+    "ide/src/ui/language_view.c": "b03985962c0f30732b17a3480f692172201d2c81cda4f4ff098b1c33bdf4e728",
+    "ide/tests/automatic_diagnostics_view_test.c": "2c7994981a9356ebbc5a9fb9b63e3e3e3bb01171231fc8db8c956fa3009e39b4",
+    "ide/tests/language_optional_fields_test.c": "c03ac60295e1cd060f9d4916111a467cb071df0cd528c6d0ebd46002780e911d",
+    "ide/tools/build.ps1": "2d6e45efd6eb7de28ceea5775f2b8b52fc31f3a7949345fc681ddba8eda157b6",
+    "ide/tools/test.ps1": "959ae81cf3ccf5e9a07a46d35253d07769dd5c85d59522c974583def5be04828",
+    "ide/docs/lsp-metadata-probes.md": "dc7d7f50c16d04fc24470838173b393a28551d93f4f67c4b8b5f771b3e82f343",
+    "ide/docs/lsp-development.md": "97b11d11de797c95d7f2cb4a73c2af373d8412240a0a3117d648e155a8d28762"
+  },
+  "scope": "Reuse existing XRT optional metadata probes; validate snapshot/diagnostic arrays and receipt timestamp types without clearing product errors. Existing optional capability behavior preserved.",
+  "native": {
+    "buildReceiptSha256": "f6e29fd61efac0e8a5c72eebd870a1745da6f5f747705b797012665a69a19f9a",
+    "compileInvocations": 236,
+    "tests": 138,
+    "privateAstConsumers": 143,
+    "inputs": 1399,
+    "outputs": 140,
+    "serverSha256": "de7b1d814f04e1b2722df674123d39ca18fcf9618e98a31ed79615955e1ce9d2",
+    "imports": [
+      "IPHLPAPI.DLL",
+      "KERNEL32.dll",
+      "msvcrt.dll",
+      "ole32.dll",
+      "SHELL32.dll",
+      "VERSION.dll",
+      "WS2_32.dll"
+    ]
+  },
+  "protocol": {
+    "suites": [
+      {
+        "name": "selection-full",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_native_selection.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-optional-candidate.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\selection-full"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "configuration-full",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_analysis_configuration.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-optional-candidate.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\configuration-full"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "derived-wire-full",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_ir_derived.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-optional-candidate.exe",
+          "--reference",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-optional-reference.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\derived-wire-full"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "current-wire-full",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_current_core.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-optional-candidate.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\current-wire-full"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "completion-full",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_completion_facts.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-optional-candidate.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\completion-full"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "automatic-full",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_automatic_diagnostics.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-optional-candidate.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\automatic-full"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "final-wire-full",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_final_lsp_stdio.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-optional-candidate.exe",
+          "--core",
+          "D:\\GIT\\x-lang",
+          "--packages",
+          "D:\\GIT\\x-lang\\lib\\bindings",
+          "--out",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\final-wire-full"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "serializer-full",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_final_lsp_serializer.py",
+          "--build",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\full",
+          "--out",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\serializer-full"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "final-frontend-full",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_final_lsp_frontend.py",
+          "--build",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\full",
+          "--core",
+          "D:\\GIT\\x-lang",
+          "--out",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\final-frontend-full"
+        ],
+        "exit": 0
+      }
+    ],
+    "completionProcesses": 45,
+    "automaticCases": 24,
+    "finalInteropCases": 16,
+    "serializerAssertions": 127836
+  },
+  "gui": {
+    "sourceScope": {
+      "baseCommit": "6186e26e10b8f00acf9f15f241600be8d4b0e58b",
+      "overlays": {
+        "ide/src/platform/receipt_time.h": "ebd75e598890dd5bc97f45ae7e7736cbe61d7d418429e0a291a10ce1f9f69dd3",
+        "ide/src/ui/automatic_diagnostics.inc": "8381f8d0dce0c00579fab98208e052c02080b16eb4f34cc2d8d782b263be66cd",
+        "ide/src/ui/language_view.c": "b03985962c0f30732b17a3480f692172201d2c81cda4f4ff098b1c33bdf4e728",
+        "ide/tests/automatic_diagnostics_view_test.c": "2c7994981a9356ebbc5a9fb9b63e3e3e3bb01171231fc8db8c956fa3009e39b4",
+        "ide/tests/language_optional_fields_test.c": "c03ac60295e1cd060f9d4916111a467cb071df0cd528c6d0ebd46002780e911d",
+        "ide/tools/build.ps1": "2d6e45efd6eb7de28ceea5775f2b8b52fc31f3a7949345fc681ddba8eda157b6",
+        "ide/tools/test.ps1": "959ae81cf3ccf5e9a07a46d35253d07769dd5c85d59522c974583def5be04828"
+      },
+      "snapshotRoot": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-source",
+      "objectRoot": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects",
+      "sdkJunction": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-source\\ide\\third_party\\xge_sdk",
+      "sdkTarget": "D:\\GIT\\x-lang\\ide\\third_party\\xge_sdk",
+      "buildScriptOnlyChange": "Move compiler objects to task-owned directory; no source behavior change",
+      "reason": "Immutable current committed IDE plus this slice; preserve concurrent unrelated frontend work. Executables still use actual repository release/win_x64 runtime."
+    },
+    "tests": [
+      {
+        "fixture": "language_optional_fields_test",
+        "exit": 0,
+        "arguments": [
+          "all"
+        ]
+      },
+      {
+        "fixture": "input_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-alias-1794155715873861900\\input_test"
+        ]
+      },
+      {
+        "fixture": "completion_view_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-alias-1794155715873861900\\completion_view_test",
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\absent-compiler.exe"
+        ]
+      },
+      {
+        "fixture": "automatic_diagnostics_view_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-alias-1794155715873861900\\automatic_diagnostics_view_test",
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe"
+        ]
+      },
+      {
+        "fixture": "settings_menu_frame_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-alias-1794155715873861900\\settings_menu_frame_test",
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe"
+        ]
+      },
+      {
+        "fixture": "analysis_configuration_view_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-alias-1794155715873861900\\analysis_configuration_view_test",
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe"
+        ]
+      },
+      {
+        "fixture": "analysis_project_context_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-alias-1794155715873861900\\analysis_project_context_test"
+        ]
+      },
+      {
+        "fixture": "analysis_catalog_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-alias-1794155715873861900\\analysis_catalog_test"
+        ]
+      }
+    ],
+    "guiCandidateSha256": "95babf19301806189b2836faf24c36a89d3be26d75468e704271734eca45417b",
+    "pairedServerSha256": "de7b1d814f04e1b2722df674123d39ca18fcf9618e98a31ed79615955e1ce9d2",
+    "receiptSha256": "aef44117db8fa62a192bfd84fe0c3058989ec3b7593bf9559ad561da6ee99f67",
+    "objects": 111,
+    "optionalProbeAssertions": 151,
+    "actualBeforeFixControls": {
+      "status": "passed",
+      "scope": "Actual before-fix C readers compiled against all current qualified GUI objects, actual SDK and root runtime; three old access paths rejected and unchanged capabilities pass",
+      "commands": [
+        {
+          "name": "reader-baseline-compile",
+          "command": [
+            "E:\\software\\w64devkit\\bin\\gcc.exe",
+            "-ID:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\final-controls\\reader-baseline\\src",
+            "-ID:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\final-controls\\reader-baseline\\src\\ui",
+            "-ID:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-source\\ide\\tests",
+            "-std=c11",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Wno-unused-parameter",
+            "-DXGE_DLL",
+            "-DXUI_DLL",
+            "-DXGE_XRT_PROFILE_IDE=",
+            "-DXGE_DEBUGMODE=0",
+            "-finput-charset=UTF-8",
+            "-fexec-charset=UTF-8",
+            "-I",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-source\\ide\\src",
+            "-I",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-source\\ide\\third_party\\xge_sdk",
+            "-I",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-source\\ide\\third_party\\xge_sdk\\lib\\xrt",
+            "-ID:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-source\\ide\\third_party\\xge_sdk\\extlibs\\xrt",
+            "-include",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-source\\ide\\third_party\\xge_sdk\\xge_build_config.h",
+            "-DXIDE_ENABLE_C_LSP=0",
+            "-ID:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects",
+            "-O2",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\final-controls\\reader-baseline\\tests\\language_optional_fields_test.c",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_app_xide_app.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_app_actions.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_workbench.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_xide_input.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_lang_languages.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_theme_theme.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_path.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_model_workspace.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_model_resources.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_model_resource_text.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_resource_creation.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_resource_inputs.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_resource_rebind.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_resource_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_workspace_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_text_file.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_file_rename.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_editor_documents.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_editor_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_find_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_goto_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_process.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_tasks.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_toolchain.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_protocol_lsp_wire.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_language_check.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_language_snapshot.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_semantic_definition.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_semantic_completion.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_language_client.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_c_bridge_map.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_completion_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_toolchain_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_project_templates.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_file_rebind.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_rename_journal.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_project_migration.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_legacy_import.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_task_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_configuration_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_references_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_template_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_import_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_rename_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_settings.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_command_catalog.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_catalog_lookup.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_library_info.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_catalog_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_help_document.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_state_file.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_state_repair.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_editor_coordinates.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_layout_state.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_session.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_editor_font.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_font_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_window_state.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_dpi_proxy.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_ui_font.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_reading_state.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_recovery_store.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_recovery_backup.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_recovery.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_recovery_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_file_watch.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_file_sync.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_file_changes_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_editor_lsp_coordinates.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_text_utf.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_highlight_result.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_completion_result.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_signature_result.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_sync_plan.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_diagnostic_dependencies.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_diagnostic_notice.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_diagnostic_stream.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_startup_alias.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_startup_stage.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_startup_cache.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_build_inputs.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_file_io.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_task_stage.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_runtime_failure.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_dpi_text_paint.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_catalog_sources.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_dialog.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_message_box.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_file_dialog.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_failure_window.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_analysis_text.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_analysis_context.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_analysis_context.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_protocol_analysis_context_wire.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_analysis_catalog.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_analysis_configuration.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_protocol_document_sync.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_protocol_input_state.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_protocol_diagnostic_paths.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_reference_results.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_execution_target.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_update_client.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_catalog_job.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_file_association.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_association_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_program_version.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_about_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_main_toolbar.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_preferences.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_settings_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\xlang_ide.res.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-source\\ide\\third_party\\xge_sdk\\xge.lib",
+            "-lm",
+            "-lws2_32",
+            "-lwinhttp",
+            "-liphlpapi",
+            "-lgdi32",
+            "-luser32",
+            "-lshell32",
+            "-lopengl32",
+            "-lole32",
+            "-lwinmm",
+            "-lavrt",
+            "-lversion",
+            "-lbcrypt",
+            "-ladvapi32",
+            "-o",
+            "D:\\GIT\\x-lang\\release\\win_x64\\.lsp-optional-control-reader-baseline.exe"
+          ],
+          "exit": 0,
+          "expectedExit": 0
+        },
+        {
+          "name": "snapshot-reader-rejected",
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\.lsp-optional-control-reader-baseline.exe",
+            "probes"
+          ],
+          "exit": 1,
+          "expectedExit": 1
+        },
+        {
+          "name": "timestamp-reader-rejected",
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\.lsp-optional-control-reader-baseline.exe",
+            "receipts"
+          ],
+          "exit": 1,
+          "expectedExit": 1
+        },
+        {
+          "name": "unchanged-capabilities-pass",
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\.lsp-optional-control-reader-baseline.exe",
+            "polls"
+          ],
+          "exit": 0,
+          "expectedExit": 0
+        },
+        {
+          "name": "jump-baseline-compile",
+          "command": [
+            "E:\\software\\w64devkit\\bin\\gcc.exe",
+            "-ID:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\final-controls\\jump-baseline\\src",
+            "-ID:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\final-controls\\jump-baseline\\src\\ui",
+            "-ID:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-source\\ide\\tests",
+            "-std=c11",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Wno-unused-parameter",
+            "-DXGE_DLL",
+            "-DXUI_DLL",
+            "-DXGE_XRT_PROFILE_IDE=",
+            "-DXGE_DEBUGMODE=0",
+            "-finput-charset=UTF-8",
+            "-fexec-charset=UTF-8",
+            "-I",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-source\\ide\\src",
+            "-I",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-source\\ide\\third_party\\xge_sdk",
+            "-I",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-source\\ide\\third_party\\xge_sdk\\lib\\xrt",
+            "-ID:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-source\\ide\\third_party\\xge_sdk\\extlibs\\xrt",
+            "-include",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-source\\ide\\third_party\\xge_sdk\\xge_build_config.h",
+            "-DXIDE_ENABLE_C_LSP=0",
+            "-ID:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects",
+            "-O2",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\final-controls\\jump-baseline\\tests\\automatic_diagnostics_view_test.c",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_app_xide_app.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_app_actions.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_workbench.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_xide_input.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_lang_languages.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_theme_theme.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_path.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_model_workspace.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_model_resources.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_model_resource_text.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_resource_creation.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_resource_inputs.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_resource_rebind.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_resource_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_workspace_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_text_file.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_file_rename.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_editor_documents.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_editor_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_find_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_goto_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_process.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_tasks.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_toolchain.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_protocol_lsp_wire.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_language_check.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_language_snapshot.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_semantic_definition.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_semantic_completion.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_language_client.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_c_bridge_map.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_completion_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_toolchain_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_project_templates.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_file_rebind.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_rename_journal.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_project_migration.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_legacy_import.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_task_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_configuration_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_references_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_template_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_import_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_rename_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_settings.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_command_catalog.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_catalog_lookup.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_library_info.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_catalog_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_help_document.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_state_file.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_state_repair.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_editor_coordinates.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_layout_state.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_session.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_editor_font.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_font_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_window_state.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_dpi_proxy.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_ui_font.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_reading_state.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_recovery_store.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_recovery_backup.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_recovery.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_recovery_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_file_watch.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_file_sync.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_file_changes_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_editor_lsp_coordinates.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_text_utf.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_highlight_result.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_completion_result.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_signature_result.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_sync_plan.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_diagnostic_dependencies.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_diagnostic_notice.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_diagnostic_stream.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_startup_alias.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_startup_stage.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_startup_cache.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_build_inputs.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_file_io.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_task_stage.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_runtime_failure.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_dpi_text_paint.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_catalog_sources.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_dialog.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_message_box.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_file_dialog.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_failure_window.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_analysis_text.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_analysis_context.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_analysis_context.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_protocol_analysis_context_wire.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_analysis_catalog.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_analysis_configuration.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_protocol_document_sync.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_protocol_input_state.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_protocol_diagnostic_paths.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_reference_results.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_execution_target.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_update_client.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_catalog_job.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_platform_file_association.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_association_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_program_version.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_about_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_main_toolbar.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_services_preferences.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\src_ui_settings_view.c.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-objects\\xlang_ide.res.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\gui-source\\ide\\third_party\\xge_sdk\\xge.lib",
+            "-lm",
+            "-lws2_32",
+            "-lwinhttp",
+            "-liphlpapi",
+            "-lgdi32",
+            "-luser32",
+            "-lshell32",
+            "-lopengl32",
+            "-lole32",
+            "-lwinmm",
+            "-lavrt",
+            "-lversion",
+            "-lbcrypt",
+            "-ladvapi32",
+            "-o",
+            "D:\\GIT\\x-lang\\release\\win_x64\\.lsp-optional-control-jump-baseline.exe"
+          ],
+          "exit": 0,
+          "expectedExit": 0
+        },
+        {
+          "name": "jump-reader-rejected",
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\.lsp-optional-control-jump-baseline.exe",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\final-controls\\jump-baseline\\data",
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe"
+          ],
+          "exit": 1,
+          "expectedExit": 1
+        }
+      ],
+      "sources": {
+        "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\final-controls\\reader-baseline\\src\\ui\\language_view.c": {
+          "sha256": "5cc59bbca4caede85fee45c2530fb382c0992cff3fe8ad7b1991ff7f91453dac",
+          "change": "Original committed reader before this slice"
+        },
+        "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\final-controls\\reader-baseline\\src\\ui\\automatic_diagnostics.inc": {
+          "sha256": "8381f8d0dce0c00579fab98208e052c02080b16eb4f34cc2d8d782b263be66cd",
+          "change": "Current immutable qualified source"
+        },
+        "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\final-controls\\reader-baseline\\src\\ui\\language_references.inc": {
+          "sha256": "36f2a544f63dce9e7c290902020f470487c02af81144de5ea3756abcf1c50119",
+          "change": "Current immutable qualified source"
+        },
+        "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\final-controls\\reader-baseline\\src\\platform\\receipt_time.h": {
+          "sha256": "72137178d98062d4e657668327a0423671240e554730f038bbf9543e9c5177ce",
+          "change": "Original committed reader before this slice"
+        },
+        "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\final-controls\\reader-baseline\\src\\model\\metadata_read.h": {
+          "sha256": "565d17c05014194532f310c40ad742e88364b4e97c99542dfdcd7d8bb411f941",
+          "change": "Current immutable qualified source"
+        },
+        "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\final-controls\\jump-baseline\\src\\ui\\language_view.c": {
+          "sha256": "b126785a3372dd91e306623c88fdf8e14dae7e0e920554fd1a158b326c419c2f",
+          "change": "Current immutable qualified source"
+        },
+        "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\final-controls\\jump-baseline\\src\\ui\\automatic_diagnostics.inc": {
+          "sha256": "0b06674c7aef1226d4b1bca7f711506b85765976fa8fcac447d21bc795fc9eb5",
+          "change": "Only the original diagnostic-array jump access restored"
+        },
+        "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\final-controls\\jump-baseline\\src\\ui\\language_references.inc": {
+          "sha256": "36f2a544f63dce9e7c290902020f470487c02af81144de5ea3756abcf1c50119",
+          "change": "Current immutable qualified source"
+        },
+        "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\final-controls\\jump-baseline\\src\\platform\\receipt_time.h": {
+          "sha256": "ebd75e598890dd5bc97f45ae7e7736cbe61d7d418429e0a291a10ce1f9f69dd3",
+          "change": "Current immutable qualified source"
+        },
+        "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-optional-fields-20261109\\final-controls\\jump-baseline\\src\\model\\metadata_read.h": {
+          "sha256": "565d17c05014194532f310c40ad742e88364b4e97c99542dfdcd7d8bb411f941",
+          "change": "Current immutable qualified source"
+        }
+      },
+      "runtime": {
+        "xlang_ide.exe": "23381a7f7adabe972e5f48ddd97ac6e9fce33110b0748181508befb73518d35b",
+        "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+        "xl.exe": "e5f4719890814a3f7b5422ffb1f293ffc944c527de62217d32e9a3a4c287dfad",
+        "xl.dll": "e783d6a15c946945d4186084cff9006839cbc1d31a0ae387396dc6f500aaac6c",
+        "xlc.dll": "b4563a13448e2f550b00c0504cac481cdefd2b61ee961276049f936243f125a1",
+        "xge.dll": "f6eaa3961017f79cd06d18568bab8fb60274c4935e1a83ab8fb37da21acc607b",
+        ".xlang-ls-optional-candidate.exe": "de7b1d814f04e1b2722df674123d39ca18fcf9618e98a31ed79615955e1ce9d2"
+      }
+    },
+    "scope": "Eight bounded current-IDE fixtures; not a claim that every legacy CLI-driven GUI oracle was rerun.",
+    "runtimeDirectory": "release/win_x64"
+  },
+  "performance": {
+    "newFormalMatrixRun": false,
+    "qualified": false,
+    "priorReport": "dev/release-materials/provenance/lsp-current-derived-20261108.json",
+    "priorReportSha256": "8586d1d693d373a5dad9d03ef9771ac448fe6693db5dd313154989fac7655572",
+    "priorUnchangedFailures": {
+      "aa": 1,
+      "delta": 2,
+      "cumulative": 1
+    },
+    "thresholdsChanged": false,
+    "noNoRegressionClaim": true
+  },
+  "historicalFailures": [
+    "First private notice test compilation rejected misleading indentation under -Werror; fixture corrected without changing production behavior.",
+    "First SDK preflight incorrectly expected old missing-capability handling to fail; actual unchanged old capability poll passes and is retained as a positive control.",
+    "Second SDK preflight valid-time fixture omitted file-info availability bits; fixed the fixture, preserving original timestamp conversion rules."
+  ],
+  "evidence": {
+    "directory": "dev/release-materials/provenance/lsp-optional-fields-20261109",
+    "files": 510,
+    "manifestSha256": "dabb971b4ac7c465c62eb442ad4a1b6d9940e5897c89467416a41c11a766f69b",
+    "archiveSha256": "7cb8531079212e9b54b58c0441409d31c64ff276e045471c1dc01c17e2dae63d",
+    "sourceDirectory": "dev/release-materials/sources/lsp-optional-fields-20261109",
+    "sourceFiles": 2061,
+    "sourceManifestSha256": "afbea379cff98ff5e78f75a1dc0a7a80123479fcc8238f9cee06943247581013",
+    "sourceArchiveSha256": "ffea3a18e3da2d5ff916bbd53def93671be582649a9ad0af349be22ce27bf5d8"
+  },
+  "runtime": {
+    "status": "passed",
+    "removed": [
+      ".xlang-ls-optional-candidate.exe"
+    ],
+    "defaults": {
+      "xlang_ide.exe": "23381a7f7adabe972e5f48ddd97ac6e9fce33110b0748181508befb73518d35b",
+      "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+      "xl.exe": "e5f4719890814a3f7b5422ffb1f293ffc944c527de62217d32e9a3a4c287dfad",
+      "xl.dll": "e783d6a15c946945d4186084cff9006839cbc1d31a0ae387396dc6f500aaac6c",
+      "xlc.dll": "b4563a13448e2f550b00c0504cac481cdefd2b61ee961276049f936243f125a1",
+      "xge.dll": "f6eaa3961017f79cd06d18568bab8fb60274c4935e1a83ab8fb37da21acc607b"
+    },
+    "deliveryIndexSha256": "b7bbe0952e8d9be103d07857d8e24bb46d942c42552a50f817754d948f23594d",
+    "programsPublished": false,
+    "updateChannelPushed": false
+  },
+  "remaining": [
+    "Whole performance qualification and small-edit P95 remain incomplete; prior failures preserved.",
+    "Continue final IR repetition and current compiler alignment.",
+    "Remaining project options, global budgets, scale/concurrency/endurance, applicable LSP and complete IDE delivery remain incomplete.",
+    "DAP, runtime/debug completion remain out of scope."
+  ]
+}

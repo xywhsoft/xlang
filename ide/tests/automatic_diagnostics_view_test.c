@@ -13,9 +13,30 @@ typedef struct fixture {const char *root,*compiler;HDESK desktop;int started,fai
 #define CHECK(e) do{++f->checks;if(!(e)){fprintf(stderr,"automatic_view:%d %s; %s; enabled=%d sync=%d receipt=%d\n",__LINE__,#e,xideLanguageViewMessage(&app),app.languageView ? app.languageView->autoEnabled : 0,app.languageView ? app.languageView->syncMode : 0,app.languageView ? app.languageView->receiptReady : 0);f->failed=1;goto cleanup;}}while(0)
 static int writeText(const char* path,const char* text) {return xrtFileWriteAtomic(path,(xbytesview){(const unsigned char*)text,strlen(text)});}
 static int settle(xide_app* app)
-{if(xuiDispatchPendingEvents(app->context)!=XUI_OK) return 0;xideEditorPoll(app);xideFileSyncPoll(app);xideTaskViewPoll(app);xideLanguageViewPoll(app);xideWorkbenchLayout(app);return xuiLayout(app->context)==XUI_OK && !app->frameError;}
+{/* Isolate this owner poll; direct probe cases separately preserve a prior error. */
+ if(xuiDispatchPendingEvents(app->context)!=XUI_OK) return 0;
+ xideEditorPoll(app);xideFileSyncPoll(app);xideTaskViewPoll(app);xrtClearError();xideLanguageViewPoll(app);
+ if(xrtGetError()){fprintf(stderr,"automatic view left an XRT error: %s\n",xrtErrorMessage(xrtGetError()));return 0;}
+ xideWorkbenchLayout(app);return xuiLayout(app->context)==XUI_OK && !app->frameError;}
 static automatic_group* group(xide_app* app,const char* path)
 {xide_automatic_diagnostics* a=app->languageView->autoView;wchar_t* key=xidePathNativeWide(path);if(!a || !key) {free(key);return NULL;}size_t at=automaticFind(a,key);int found=at<a->groupCount && !xidePathNativeKeyCompare(key,a->groups[at].notice->key);free(key);return found ? a->groups+at : NULL;}
+static int malformedNoticeLists(fixture* f,xide_app* app,const char* path)
+{
+ automatic_group* g=group(app,path);if(!g || !g->notice || g->notice->count!=1)return 0;
+ size_t token=AUTO_ROUTE_BASE+g->token*4096u;xrtClearError();++f->checks;
+ if(automaticJump(app,token)!=1 || xrtGetError())return 0;
+ for(int sentinel=0;sentinel<2;++sentinel)for(int kind=0;kind<3;++kind){
+  xide_diagnostic_notice* original=g->notice;xide_diagnostic_notice fake=*original;fake.params=xrtValueDeepClone(original->params);
+  xvalue* list=kind==0 ? xrtValueNull():kind==1 ? xrtValueObject():xrtValueArray();
+  if(!fake.params || !list || !xrtValueObjectSetNew(fake.params,sv("diagnostics"),list)){xrtValueRelease(fake.params);return 0;}
+  g->notice=&fake;xrtClearError();if(sentinel)xrtSetErrorInfo(XERR_STATE,"xlang-lsp-test",122,"notice sentinel");
+  int jumped=automaticJump(app,token);const xerror* error=xrtGetError();
+  int preserved=sentinel ? error && xrtErrorCode(error)==122 && !strcmp(xrtErrorMessage(error),"notice sentinel"):error==NULL;
+  g->notice=original;xrtValueRelease(fake.params);xrtClearError();++f->checks;
+  if(jumped || !preserved){fprintf(stderr,"automatic notice list %d sentinel %d: jumped=%d preserved=%d\n",kind,sentinel,jumped,preserved);return 0;}
+ }
+ ++f->checks;return automaticJump(app,token)==1 && !xrtGetError();
+}
 static int waitGroup(xide_app* app,const char* path,size_t count)
 {
  uint64_t until=GetTickCount64()+15000;
@@ -51,6 +72,7 @@ static int run(void* user)
   printf("automatic_diagnostics_view_test passed: %d checks; unsupported conditional auto capability stays OFF, actual explicit manual diagnostic fallback and dirty recheck remain usable.\n",f->checks);goto cleanup;
  }
  CHECK(waitGroup(&app,entry,1) && app.languageView->autoEnabled && marks(a)==1 && xideLanguageViewDiagnosticCount(&app)==1);
+ CHECK(malformedNoticeLists(f,&app,entry));
  CHECK(group(&app,entry)->notice->hasSerial && group(&app,entry)->notice->overlaysMatched && capture(&app,f->root,"automatic-open.png"));
  CHECK(xideEditorOpen(&app,side,&error));xide_document* b=app.activeDocument;CHECK(waitGroup(&app,side,0) && waitGroup(&app,entry,1));
  uint64_t independent=group(&app,entry)->token;

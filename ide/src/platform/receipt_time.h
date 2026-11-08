@@ -1,6 +1,6 @@
 #ifndef XLANG_IDE_RECEIPT_TIME_H
 #define XLANG_IDE_RECEIPT_TIME_H
-#include "app_xrt.h"
+#include "model/metadata_read.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -24,17 +24,17 @@ static inline xfileinfo xideReceiptInfo(const xfileinfo* info,int schema)
 }
 static inline const xvalue* xideReceiptField(const xvalue* value,const char* key)
 {
- return xrtValueType(value)==XVALUE_OBJECT ? xrtValueObjectGet(value,(xstrview){key,strlen(key)}) : NULL;
+ return xideMetaField(value,(xstrview){key,strlen(key)});
 }
 static inline int xideReceiptMetadataSchema(const xvalue* metadata)
 {
- if(xrtValueType(metadata)!=XVALUE_OBJECT || xrtValueCount(metadata)!=6) return 0;
+ if(!metadata || !xrtValueIs(metadata,XVALUE_OBJECT) || xrtValueCount(metadata)!=6) return 0;
  int us=xideReceiptField(metadata,"modifiedUs") && xideReceiptField(metadata,"changedUs");
  int ms=xideReceiptField(metadata,"modifiedMs") && xideReceiptField(metadata,"changedMs");
  int schema=us && !ms ? 1 : ms && !us ? 2 : 0;
  xstrview modified={0},changed={0};
- return schema && xrtValueGetString(xideReceiptField(metadata,schema==1 ? "modifiedUs" : "modifiedMs"),&modified) &&
-  xrtValueGetString(xideReceiptField(metadata,schema==1 ? "changedUs" : "changedMs"),&changed) ? schema : 0;
+ return schema && xideMetaString(xideReceiptField(metadata,schema==1 ? "modifiedUs" : "modifiedMs"),&modified) &&
+  xideMetaString(xideReceiptField(metadata,schema==1 ? "changedUs" : "changedMs"),&changed) ? schema : 0;
 }
 static inline int xideReceiptMetadataTimesMatch(const xvalue* metadata,const xfileinfo* info)
 {
@@ -42,8 +42,8 @@ static inline int xideReceiptMetadataTimesMatch(const xvalue* metadata,const xfi
  if(!schema) return 0;
  xfileinfo wire=xideReceiptInfo(info,schema); char text[32]; xstrview value={0};
  snprintf(text,sizeof(text),"%lld",(long long)wire.Modified);
- if(!xrtValueGetString(xideReceiptField(metadata,schema==1 ? "modifiedUs" : "modifiedMs"),&value) || value.Size!=strlen(text) || memcmp(value.Data,text,value.Size)) return 0;
+ if(!xideMetaString(xideReceiptField(metadata,schema==1 ? "modifiedUs" : "modifiedMs"),&value) || value.Size!=strlen(text) || memcmp(value.Data,text,value.Size)) return 0;
  snprintf(text,sizeof(text),"%lld",(long long)wire.Changed);
- return xrtValueGetString(xideReceiptField(metadata,schema==1 ? "changedUs" : "changedMs"),&value) && value.Size==strlen(text) && !memcmp(value.Data,text,value.Size);
+ return xideMetaString(xideReceiptField(metadata,schema==1 ? "changedUs" : "changedMs"),&value) && value.Size==strlen(text) && !memcmp(value.Data,text,value.Size);
 }
 #endif
