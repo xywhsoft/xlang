@@ -110,6 +110,7 @@ CORE_TESTS = ("analysis_type_constructor_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_derived_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_parameters_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_function_pool_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_ir_capacity_test", *CORE_TESTS)
 HOST_TESTS += ("navigation_cache_test", "semantic_reference_shard_test", "project_references_test", "project_reference_budget_test", "reference_path_index_test")
 HOST_TESTS += ("path_identity_batch_test", "reference_capture_test")
 HOST_TESTS += ("project_reference_parallel_test",)
@@ -698,7 +699,7 @@ def main() -> None:
         # These private fixtures include the exact generated native TUs; use
         # their native warning profile. Their objects never enter core/server.
         sources += [(ide / "tests" / (name + ".c"), name not in
-                     ("analysis_semantic_read_front_test", "analysis_ir_sparse_decode_test",
+                     ("analysis_semantic_read_front_test", "analysis_ir_sparse_decode_test", "analysis_ir_capacity_test",
                       "analysis_semantic_final_input_test", "analysis_ir_input_test", "analysis_final_environment_test", "analysis_index_canonical_guards_test",
                       "analysis_semantic_alias_reads_test", "analysis_type_constructor_test", "analysis_ir_derived_test", "analysis_ir_parameters_test")) for name in tests]
     if args.server:
@@ -939,6 +940,7 @@ def main() -> None:
                 extra += [str(objects[p.stem]) for p in loader_references]+['-Wl,--wrap=xrtMalloc']
             if name=='analysis_ir_callsite_test':extra+=['-Wl,--wrap=xrtArrayReserve','-Wl,--wrap=xrtArrayResize']
             if name=='analysis_function_pool_test':extra+=['-Wl,--wrap='+function for function in ('xlsAstStorageCreate','xlsAstStorageNode','xlsAstCloneInStorage')]
+            if name=='analysis_ir_capacity_test':extra+=['-Wl,--wrap=xrtRealloc']
             if name=='analysis_type_constructor_test':
                 extra += ['-Wl,--wrap='+function for function in ('xrtCalloc','xrtStrDupN','xrtStrDup')]
             if name=='analysis_ir_derived_test' and '#define XLS_NATIVE_IR_DERIVED_PHASES 1' in (output/'frontend/xl6_ir.c').read_text(encoding='utf-8'):extra+=['-Wl,--wrap='+function for function in ('xrtCalloc','xrtArrayInit','xrtArrayResize','xrtArrayPush','xrtStrBufReserve')]

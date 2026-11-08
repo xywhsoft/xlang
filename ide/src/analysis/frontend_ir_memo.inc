@@ -631,11 +631,15 @@ static int xlsIrMemoCapture(xls_ir_capture* capture,const XL6_IrModule* module,s
 }
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
 #include "analysis/frontend_ir_input.inc"
+#include "analysis/frontend_ir_capacity.inc"
 #endif
 static XL6_IrNodeId xl6IrBuildAstNode(XL6_IrModule* module,const XL6_AstNode* root,const XL6_AstNode* source,
     const XL6_AstNode* parent,size_t childIndex,XL6_DiagList* diags,int* okay)
 {
     xls_ir_memo_build* build=xlsActiveIrMemo;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    if(source==root && !parent)xlsIrCapacityForest(build,module,source,parent);
+#endif
     int function=source && (source->kind==XL6_AST_FUNC || source->kind==XL6_AST_ASYNC_FUNC || source->kind==XL6_AST_EXPORT_FUNC);
     if(!build || build->module!=module || build->root!=root || parent!=root || !function || build->capture ||
        !*okay || (diags && diags->count) || childIndex>=build->memo->entries.Count)
