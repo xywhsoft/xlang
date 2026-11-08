@@ -1,0 +1,125 @@
+{
+  "schema": 1,
+  "date": "2026-11-08",
+  "complete": true,
+  "passed": true,
+  "publication": "local-only",
+  "scope": "Integrated-help title and IDE save/watch/task race; targeted validation, not a full test-suite pass.",
+  "sourceMaterials": {
+    "path": "dev/release-materials/sources/ide-save-task-race-20261108/manifest.json",
+    "sha256": "adb614df39c2366b76963a6cd48b408b4803a07fe9c62682db070edf495972d4",
+    "bytes": 2863
+  },
+  "evidence": {
+    "path": "dev/release-materials/provenance/ide-save-task-race-20261108/evidence.zip",
+    "sha256": "fdcd8fac107891f8464f66e47f3726302b194c2d78ec44e5529e85ba4dfee594",
+    "bytes": 1719238
+  },
+  "installed": {
+    "passed": true,
+    "installedPath": "release/win_x64/xlang_ide.exe",
+    "previousSha256": "a3b2faae7572013492ccf303a750d9ce54155b031231f1f9427f7fecbf7fbb8f",
+    "sha256": "6aaa255b00da1ee63f7d4854cb29125cee34f67b885c04456161bc3d68887d5d",
+    "bytes": 1898092,
+    "installedSmokeExit": 0,
+    "preserved": {
+      "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe": "e5f4719890814a3f7b5422ffb1f293ffc944c527de62217d32e9a3a4c287dfad",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xl.dll": "e783d6a15c946945d4186084cff9006839cbc1d31a0ae387396dc6f500aaac6c",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xlc.dll": "b4563a13448e2f550b00c0504cac481cdefd2b61ee961276049f936243f125a1",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xge.dll": "f6eaa3961017f79cd06d18568bab8fb60274c4935e1a83ab8fb37da21acc607b",
+      "D:\\GIT\\x-lang\\ide\\third_party\\xge_sdk\\sdk_manifest.json": "c0fbd47f95fafe863fae241ece7d4654d3908f5efb6b3ab2a1b678cb59b79f93"
+    }
+  },
+  "before": {
+    "exitCode": 1,
+    "sourceSha256": "e740471a0a06ab9534b5bd80ade1ba7b9d76d904888ed20b4e075d9221d9ea2a"
+  },
+  "after": {
+    "exitCode": 0,
+    "sourceSha256": "e740471a0a06ab9534b5bd80ade1ba7b9d76d904888ed20b4e075d9221d9ea2a"
+  },
+  "stress": [
+    {
+      "round": 1,
+      "exit": 0
+    },
+    {
+      "round": 2,
+      "exit": 0
+    },
+    {
+      "round": 3,
+      "exit": 0
+    }
+  ],
+  "taskChecksPerRun": 156,
+  "successfulStressBuildRounds": 24,
+  "regressions": [
+    {
+      "test": "file_sync_test",
+      "exit": 1,
+      "source": "F:\\xlang-validation\\ide-save-task-race-20261108\\gui-source\\ide\\tests\\file_sync_test.c",
+      "baselineIdenticalFailure": true
+    },
+    {
+      "test": "input_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-save-task-race-20261108\\gui-source\\ide\\tests\\input_test.c"
+    },
+    {
+      "test": "find_follow_view_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-save-task-race-20261108\\gui-source\\ide\\tests\\find_follow_view_test.c"
+    },
+    {
+      "test": "task_pending_input_view_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-save-task-race-20261108\\gui-source\\ide\\tests\\task_pending_input_view_test.c"
+    },
+    {
+      "test": "standalone_task_test",
+      "exit": 1,
+      "source": "F:\\xlang-validation\\ide-save-task-race-20261108\\gui-source\\ide\\tests\\standalone_task_test.c",
+      "baselineIdenticalFailure": true
+    },
+    {
+      "test": "terminal_newline_view_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-save-task-race-20261108\\gui-source\\ide\\tests\\terminal_newline_view_test.c"
+    },
+    {
+      "test": "build_output_wrap_test",
+      "exit": 0,
+      "source": "D:\\GIT\\x-lang\\ide\\tests\\build_output_wrap_test.c"
+    },
+    {
+      "test": "file_watch_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-save-task-race-20261108\\gui-source\\ide\\tests\\file_watch_test.c"
+    }
+  ],
+  "knownBaselineFailures": [
+    {
+      "test": "file_sync_test",
+      "exit": 1,
+      "source": "F:\\xlang-validation\\ide-save-task-race-20261108\\gui-source\\ide\\tests\\file_sync_test.c",
+      "baselineIdenticalFailure": true
+    },
+    {
+      "test": "standalone_task_test",
+      "exit": 1,
+      "source": "F:\\xlang-validation\\ide-save-task-race-20261108\\gui-source\\ide\\tests\\standalone_task_test.c",
+      "baselineIdenticalFailure": true
+    }
+  ],
+  "gui": {
+    "compiledObjects": 108,
+    "cLspEnabled": false,
+    "optimization": "-O2",
+    "baseSourceCommit": "b7d924d3d24742a429180821a39535c29e528edc",
+    "overlayBaseCommit": "865d0e54b3fbba24674f50da5fb349a5c50ef83b",
+    "allInputsUnchanged": true
+  },
+  "retryBudgetMsPerScan": 35
+}

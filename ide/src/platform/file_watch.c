@@ -30,6 +30,7 @@ static int current(xide_file_watch* w,uint64_t epoch)
 { EnterCriticalSection(&w->mutex); int okay=w->stats.epoch==epoch; LeaveCriticalSection(&w->mutex); return okay && !InterlockedCompareExchange(&w->stop,0,0); }
 static void readTarget(xide_file_watch* w,const target* t,xide_watch_event* e)
 {
+    e->observedAt=GetTickCount64();
     e->token=t->spec.token; wchar_t* name=wide(t->path);
     HANDLE h=name ? CreateFileW(name,t->spec.limit ? GENERIC_READ : FILE_READ_ATTRIBUTES,FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,NULL,OPEN_EXISTING,FILE_FLAG_BACKUP_SEMANTICS,NULL) : INVALID_HANDLE_VALUE;
     DWORD error=GetLastError(); free(name);
@@ -73,9 +74,18 @@ done:
 }
 static void scan(xide_file_watch* w,batch* b,int dir,int force)
 {
+    unsigned retryBudgetMs=35; /* Shared by the scan, not paid per watched file. */
     for(size_t i=0;i<b->count && current(w,b->epoch);++i) {
         target* t=&b->items[i]; if(dir>=0 && t->directory!=dir) continue;
         xide_watch_event e={.epoch=b->epoch}; readTarget(w,t,&e);
+        /* Atomic replacement can briefly deny opens or hide the old name.
+           Retry on the worker; never sleep or reread file bodies on the UI. */
+        for(unsigned retry=0;retry<3 && current(w,b->epoch);++retry) {
+            int transient=(e.state==XIDE_WATCH_MISSING && t->known && t->last.state!=XIDE_WATCH_MISSING) || e.state==XIDE_WATCH_UNSTABLE ||
+                (e.state==XIDE_WATCH_UNREADABLE && (e.error==ERROR_SHARING_VIOLATION || e.error==ERROR_LOCK_VIOLATION || e.error==ERROR_DELETE_PENDING));
+            unsigned delay=5u<<retry;if(!transient || delay>retryBudgetMs) break;
+            xideFileWatchEventClear(&e);Sleep(delay);retryBudgetMs-=delay;e.epoch=b->epoch;readTarget(w,t,&e);
+        }
         if(force || !t->known || !same(&t->last,&e)) {
             e.path=copy(t->path); xide_watch_event last=e; last.path=NULL; last.bytes=NULL;
             if(e.path && enqueue(w,&e)) { t->last=last; t->known=1; }

@@ -7,6 +7,7 @@ typedef struct xide_watch_target { uint64_t token; const char* path; size_t limi
 enum { XIDE_WATCH_READY=1,XIDE_WATCH_MISSING,XIDE_WATCH_UNREADABLE,XIDE_WATCH_TOO_LARGE,XIDE_WATCH_DIRECTORY,XIDE_WATCH_UNSTABLE };
 typedef struct xide_watch_event {
     uint64_t epoch,token,sequence,size,hash,writeTime,fileId;
+    uint64_t observedAt; /* Monotonic read-start time, not filesystem time. */
     unsigned volume,error; int state;
     char* path; unsigned char* bytes; size_t length;
 } xide_watch_event;

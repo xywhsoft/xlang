@@ -329,7 +329,7 @@ int xideCatalogViewCreate(xide_app* app)
     xui_scroll_view_desc_t scroll={0}; scroll.iSize=sizeof(scroll); scroll.fContentWidth=400; scroll.fContentHeight=500; scroll.iPolicyX=XUI_SCROLLBAR_POLICY_HIDDEN; scroll.iPolicyY=XUI_SCROLLBAR_POLICY_AUTO; scroll.iScrollbarMode=XUI_SCROLLBAR_MODE_COMPACT; scroll.fScrollbarSize=10; scroll.fWheelStep=42;
     TRY(xuiScrollViewCreate(app->context,&app->help,&scroll)); app->helpContent=xuiScrollViewGetContentWidget(app->help);
     TRY(xuiWidgetSetLayoutType(app->helpContent,XUI_LAYOUT_COLUMN)); TRY(xuiWidgetSetPadding(app->helpContent,(xui_thickness_t){12,12,12,12})); TRY(xuiWidgetSetGap(app->helpContent,8));
-    TRY(label(app,&app->helpTitle,"命令集成帮助",0)); TRY(label(app,&app->helpDescription,"",0)); TRY(label(app,&app->helpSignature,"",1)); TRY(label(app,&app->helpParameters,"",1)); TRY(label(app,&app->helpReturn,"",1)); TRY(label(app,&view->exampleHeading,"范例",0)); TRY(label(app,&view->metadata,"",1));
+    TRY(label(app,&app->helpTitle,"集成帮助",0)); TRY(label(app,&app->helpDescription,"",0)); TRY(label(app,&app->helpSignature,"",1)); TRY(label(app,&app->helpParameters,"",1)); TRY(label(app,&app->helpReturn,"",1)); TRY(label(app,&view->exampleHeading,"范例",0)); TRY(label(app,&view->metadata,"",1));
     xui_table_view_desc_t table={0}; table.iSize=sizeof(table); table.pFont=app->uiFont; table.fDefaultRowHeight=28; table.fHeaderHeight=28; table.onCount=parameterCount; table.onCell=parameterCell; table.pAdapterUser=view;
     TRY(xuiTableViewCreate(app->context,&view->parameters,&table));
     xui_code_edit_desc_t code={0}; code.iSize=sizeof(code); code.pFont=app->codeFont; code.sText=""; code.bReadonly=1; code.bShowLineNumbers=1; code.bShowFoldMargin=1; code.iTabColumns=4; code.iIndentColumns=4;

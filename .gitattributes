@@ -258,3 +258,7 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 /dev/release-materials/sources/xge-code-wrap-20261108/** -text -whitespace
 /dev/release-materials/provenance/xge-code-wrap-20261108/** -text -whitespace
 /ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f199ab3e43c3/** -text -whitespace
+
+# Exact-byte IDE save/watch race comparison and matched GUI build evidence.
+/dev/release-materials/sources/ide-save-task-race-20261108/** -text -whitespace
+/dev/release-materials/provenance/ide-save-task-race-20261108/** -text -whitespace

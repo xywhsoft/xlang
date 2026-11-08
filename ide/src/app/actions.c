@@ -70,7 +70,7 @@ static const action_def definitions[]={
     V(XIDE_ACTION_VIEW_PROPERTIES,"view.properties","项目属性"),
     V(XIDE_ACTION_VIEW_XLANG,"view.xlangWindow","xlang 语法演示"),
     V(XIDE_ACTION_VIEW_C,"view.cWindow","C 语法演示"),
-    V(XIDE_ACTION_VIEW_HELP,"view.commandHelp","命令集成帮助"),
+    V(XIDE_ACTION_VIEW_HELP,"view.commandHelp","集成帮助"),
     V(XIDE_ACTION_VIEW_PROBLEMS,"view.problems","问题"),
     V(XIDE_ACTION_VIEW_OUTPUT,"view.output","构建输出"),
     V(XIDE_ACTION_VIEW_TERMINAL,"view.terminal","终端"),

@@ -1,0 +1,87 @@
+{
+  "schema": 1,
+  "base": {
+    "path": "dev/release-materials/sources/xge-code-wrap-20261108/manifest.json",
+    "sha256": "e7b1018ca706a47a71c6ae77caae14145d82c68e532fb6404e06fdfed97d5a3a",
+    "bytes": 3038
+  },
+  "guiBase": {
+    "path": "dev/release-materials/sources/xge-terminal-newline-20261108/manifest.json",
+    "sha256": "b20a36fa3cdc964060fba5c396a9e5dc63554877f46e9100c0ba02d7cc753695",
+    "bytes": 142885
+  },
+  "baseSourceCommit": "b7d924d3d24742a429180821a39535c29e528edc",
+  "overlayBaseCommit": "865d0e54b3fbba24674f50da5fb349a5c50ef83b",
+  "archive": {
+    "path": "dev/release-materials/sources/ide-save-task-race-20261108/source-delta.zip",
+    "sha256": "b9446c8eddc4ff1b376dc15954878bb81b35aad31c5953240bd05df675eb56da",
+    "bytes": 53992
+  },
+  "files": [
+    {
+      "path": "ide/src/app/actions.c",
+      "sha256": "b56c1ac906767e9467647ad245fa233a1386ed72a076382aa8349b977bb4efdd",
+      "bytes": 42843
+    },
+    {
+      "path": "ide/src/platform/file_watch.c",
+      "sha256": "570bbe4ccb8b478752400bc535f157cf051f124ff6d3ad8326c7c7050587187a",
+      "bytes": 14959
+    },
+    {
+      "path": "ide/src/platform/file_watch.h",
+      "sha256": "faeff8754eb0c2ce0cb758af39b76c27f7eb99aef685a3f74c0e079fa363aa97",
+      "bytes": 1488
+    },
+    {
+      "path": "ide/src/services/file_sync.c",
+      "sha256": "884cba01b966af02ab0f9a40061319c0acd92589dee3a217bfda6998f1a297a8",
+      "bytes": 23431
+    },
+    {
+      "path": "ide/src/ui/catalog_view.c",
+      "sha256": "72e34906a8f924cebd43c0b22d726c296d114b53d2d0cc5c3d00a4bf85215edd",
+      "bytes": 46720
+    },
+    {
+      "path": "ide/tests/task_save_watch_test.c",
+      "sha256": "e740471a0a06ab9534b5bd80ade1ba7b9d76d904888ed20b4e075d9221d9ea2a",
+      "bytes": 8570
+    },
+    {
+      "path": "ide/tools/build.ps1",
+      "sha256": "573dbec68d8ddb22e1249930980343465a9ecc2bedca045771eb7797d6c2fc69",
+      "bytes": 27311
+    },
+    {
+      "path": "reproduction/build.py",
+      "sha256": "2c166bc7234424a7148fbccd2f4f4502e00182ef0c03066bb5b30f51592c2413",
+      "bytes": 2651
+    },
+    {
+      "path": "reproduction/check.py",
+      "sha256": "4048973572eb9443970fea5d41c57260a666519f337ce6908be44ebe68bf5c0e",
+      "bytes": 2287
+    },
+    {
+      "path": "reproduction/publish.py",
+      "sha256": "62a469bca5de981d0d0418c5b326cd960dbe93c679df5753da4238feaca95afd",
+      "bytes": 3157
+    },
+    {
+      "path": "reproduction/record.py",
+      "sha256": "a855bfb012e61a954d506d2ede07b1f74d2ff913641401bb7aa140779643ecf9",
+      "bytes": 7510
+    },
+    {
+      "path": "reproduction/relink.py",
+      "sha256": "e9f8beaf81411e3b0e273ddfa8c9e0021c81910cb8282d2c48f02fb0605cc86e",
+      "bytes": 1164
+    },
+    {
+      "path": "reproduction/verify.py",
+      "sha256": "337dc6c65b33866c113ec6b6e7b0370fdff1c43985890cf2230ed28b456b4ec8",
+      "bytes": 3570
+    }
+  ]
+}

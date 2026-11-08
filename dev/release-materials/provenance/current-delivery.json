@@ -75,7 +75,7 @@
       "licenseUrl": "http://www.microsoft.com/typography/fonts/default.aspx"
     },
     "fontChangeSourceParent": "b16a95bbf022efcafc7b965d1bd9b5b945c0d881",
-    "currentBuildProvenance": "dev/release-materials/provenance/xge-terminal-newline-20261108/receipt.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/ide-save-task-race-20261108/receipt.json",
     "cLspEnabled": false,
     "applicationIcon": {
       "source": "ide/data/xlang_ide.ico",
@@ -89,21 +89,21 @@
       "provenance": "docs/reports/release-materials-migration-20261031.json",
       "buildCommand": "pwsh -NoProfile -File ide/tools/build.ps1 -Configuration Release -GuiOnly -LanguageServerPath D:/GIT/x-lang/release/xlang-ls.exe -ReleaseDirectory D:/GIT/x-lang/release"
     },
-    "sha256": "a3b2faae7572013492ccf303a750d9ce54155b031231f1f9427f7fecbf7fbb8f",
+    "sha256": "6aaa255b00da1ee63f7d4854cb29125cee34f67b885c04456161bc3d68887d5d",
     "sourceIdentity": {
-      "guiSourceRevision": "b7d924d3d24742a429180821a39535c29e528edc",
-      "sourceCommit": "b7d924d3d24742a429180821a39535c29e528edc",
+      "guiBaseSourceRevision": "b7d924d3d24742a429180821a39535c29e528edc",
+      "overlayBaseRevision": "865d0e54b3fbba24674f50da5fb349a5c50ef83b",
       "sourceOverlay": {
-        "path": "dev/release-materials/sources/xge-terminal-newline-20261108/manifest.json",
-        "sha256": "b20a36fa3cdc964060fba5c396a9e5dc63554877f46e9100c0ba02d7cc753695",
-        "bytes": 142885
+        "path": "dev/release-materials/sources/ide-save-task-race-20261108/manifest.json",
+        "sha256": "adb614df39c2366b76963a6cd48b408b4803a07fe9c62682db070edf495972d4",
+        "bytes": 2863
       },
       "build": {
-        "path": "dev/release-materials/provenance/xge-terminal-newline-20261108/evidence.zip",
-        "sha256": "16b9b18fa66587b59fad40774ff9e8fb797e001301f3f2471d9e6bfb4352cb54",
-        "bytes": 7503420
+        "path": "dev/release-materials/provenance/ide-save-task-race-20261108/evidence.zip",
+        "sha256": "fdcd8fac107891f8464f66e47f3726302b194c2d78ec44e5529e85ba4dfee594",
+        "bytes": 1719238
       },
-      "matchedSdkManifestSha256": "5b00307ed19f288b7ca1d084ee4c4fd5aa5f5ac7819c7d7e0ea3c51c0b505e6f"
+      "matchedSdkManifestSha256": "c0fbd47f95fafe863fae241ece7d4654d3908f5efb6b3ab2a1b678cb59b79f93"
     },
     "previousMatchedGuiProvenance": "dev/release-materials/provenance/ide-updater-20261103.json",
     "openglStartupCompatibility": {
@@ -128,7 +128,7 @@
       "sha256": "cb3dd03ba90452fb9a670371ed7447763a0188fdc61b57adf11d5d89851ce13b",
       "bytes": 2693
     },
-    "buildScope": "108 matched GUI objects rebuilt from committed source plus task_view.c overlay, then relinked against the final native implementation with identical public headers; unrelated semantic/LS development excluded.",
+    "buildScope": "All 108 GUI objects rebuilt from the qualified GUI source baseline plus the five scoped source/header changes; final watcher-only refinement relinked with unchanged remaining objects. Unrelated semantic/LSP workspace development excluded.",
     "currentEngine": {
       "sourceMaterials": {
         "path": "dev/release-materials/sources/xge-code-wrap-20261108/manifest.json",
@@ -156,16 +156,21 @@
     "previousBuildProvenanceBeforeDialogBackdrop": "dev/release-materials/provenance/ide-release-maintenance-20261106.json",
     "dialogBackdrop": "viewport-sized absolute overlay; dialog above backdrop; child/IME-aware Escape",
     "previousBuildProvenance": "dev/release-materials/provenance/xge-terminal-newline-20261108/receipt.json",
-    "sourceRevision": "b7d924d3d24742a429180821a39535c29e528edc",
+    "sourceRevision": "865d0e54b3fbba24674f50da5fb349a5c50ef83b",
     "previousSourceIdentity": {
-      "guiSourceRevision": "4bb83a1027fc42cf7f63d990187fa95fbf05978e",
-      "sourceCommit": "4bb83a1027fc42cf7f63d990187fa95fbf05978e",
-      "build": {
-        "path": "dev/release-materials/provenance/xge-keypad-enter-20261108/evidence.zip",
-        "sha256": "34a3b6b796e613565c2412adc38a7430d5822ec2b3804957825a3be3b768fb81",
-        "bytes": 7332447
+      "guiSourceRevision": "b7d924d3d24742a429180821a39535c29e528edc",
+      "sourceCommit": "b7d924d3d24742a429180821a39535c29e528edc",
+      "sourceOverlay": {
+        "path": "dev/release-materials/sources/xge-terminal-newline-20261108/manifest.json",
+        "sha256": "b20a36fa3cdc964060fba5c396a9e5dc63554877f46e9100c0ba02d7cc753695",
+        "bytes": 142885
       },
-      "matchedSdkManifestSha256": "5dbc812cb3f4bdcdd563aa1f3ce6832b47f650aac931590d2ab1e70d56d889b9"
+      "build": {
+        "path": "dev/release-materials/provenance/xge-terminal-newline-20261108/evidence.zip",
+        "sha256": "16b9b18fa66587b59fad40774ff9e8fb797e001301f3f2471d9e6bfb4352cb54",
+        "bytes": 7503420
+      },
+      "matchedSdkManifestSha256": "5b00307ed19f288b7ca1d084ee4c4fd5aa5f5ac7819c7d7e0ea3c51c0b505e6f"
     },
     "dockTabNavigation": {
       "enabled": true,
@@ -221,6 +226,11 @@
       "path": "dev/release-materials/provenance/xge-code-wrap-20261108/receipt.json",
       "sha256": "9a1c215a34b59046d139783d1cd6328ed407d1048f5592033b165d9856833802",
       "bytes": 19284
+    },
+    "saveWatchRace": {
+      "path": "dev/release-materials/provenance/ide-save-task-race-20261108/receipt.json",
+      "sha256": "9d09e11f0df99880bc6ef054230f90436495078bfe9acdf3cb495be47138f01c",
+      "bytes": 4496
     }
   },
   "catalog": {
@@ -6220,8 +6230,8 @@
       "previousSha256": "c95a4b367e5ee67b9def00181060d678f56e084072ddc2c6b6ed5f1a5b25528b"
     },
     {
-      "sha256": "a3b2faae7572013492ccf303a750d9ce54155b031231f1f9427f7fecbf7fbb8f",
-      "bytes": 1897470,
+      "sha256": "6aaa255b00da1ee63f7d4854cb29125cee34f67b885c04456161bc3d68887d5d",
+      "bytes": 1898092,
       "path": "release/win_x64/xlang_ide.exe",
       "origin": "release-0.6.1-20261108",
       "previousSha256": "8a4d9e633fea3baad66e2cf05c0aa6d7f335b2e87ac655cc6f11d29f0685d8e5"
@@ -6401,7 +6411,7 @@
     "historicalReportPathsPreserved": true,
     "mutableDataPathsUpdated": 600
   },
-  "currentScope": "Local XGE CodeEdit wrap fix, matched SDK and Windows/Linux dynamic/static packages. IDE executable, compiler and language server unchanged; online ver2 unchanged.",
+  "currentScope": "Local IDE integrated-help title and save/watch/task race fix; XGE, compiler, language server, packages and online ver2 unchanged.",
   "localPublication": {
     "path": "dev/release-materials/provenance/xge3-local-publication-20261105/receipt.json",
     "sha256": "d55e8e816fddbfc2d2283c9ba45b9b28ac5c5e07e0da183fbab3088f118fbad1",
@@ -6636,6 +6646,11 @@
       "path": "dev/release-materials/provenance/xge-code-wrap-20261108/receipt.json",
       "sha256": "9a1c215a34b59046d139783d1cd6328ed407d1048f5592033b165d9856833802",
       "bytes": 19284
+    },
+    "saveWatchRace": {
+      "path": "dev/release-materials/provenance/ide-save-task-race-20261108/receipt.json",
+      "sha256": "9d09e11f0df99880bc6ef054230f90436495078bfe9acdf3cb495be47138f01c",
+      "bytes": 4496
     }
   },
   "xuiGallery": {

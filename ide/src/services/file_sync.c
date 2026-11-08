@@ -17,7 +17,7 @@
 #define PENDING_BYTES (128u*1024u*1024u)
 #define PENDING_COUNT 4096u
 enum { DOCUMENT=1,WORKSPACE=2,PROJECT=4,FILE_ENTRY=8 };
-typedef struct subscription { xide_watch_target target; char* path; uint64_t documentId; int roles,seen; xide_watch_event last; } subscription;
+typedef struct subscription { xide_watch_target target; char* path; uint64_t documentId,savedAt; int roles,seen; xide_watch_event last; } subscription;
 struct xide_file_sync {
     xide_file_watch* watch; subscription* targets; size_t count,capacity;
     uint64_t epoch,nextToken,fingerprint,revision,dropped; xide_file_change* changes; size_t changeCount,changeCapacity,bytes;
@@ -194,8 +194,18 @@ void xideFileSyncPoll(xide_app* app)
     while(count++<16 && bytes<4u*1024u*1024u && xideFileWatchTake(s->watch,&event)) {
         bytes+=event.length; subscription* t=event.epoch==s->epoch ? targetByToken(s,event.token) : NULL;
         if(t) {
+            /* A snapshot begun before our successful save cannot describe the
+               new baseline. Discard it rather than reloading or cancelling. */
+            if(t->savedAt && event.observedAt<=t->savedAt) {
+                xideFileWatchEventClear(&event);xideFileWatchRescan(s->watch);continue;
+            }
             int changed=t->seen && !sameStamp(&t->last,&event); t->last=event; t->last.bytes=NULL; t->last.path=NULL; t->seen=1;
-            if(changed) xideTasksInvalidateInput(app->tasks,event.path);
+            /* Atomic saves change file identity/time before their delayed
+               watch event reaches the UI. The saved document/model is already
+               the new baseline; only unknown contents invalidate a new task. */
+            int transient=event.state==XIDE_WATCH_UNSTABLE || (event.state==XIDE_WATCH_UNREADABLE &&
+                (event.error==ERROR_SHARING_VIOLATION || event.error==ERROR_LOCK_VIOLATION || event.error==ERROR_DELETE_PENDING));
+            if(changed && !transient && !alreadyKnown(app,t,&event)) xideTasksInvalidateInput(app->tasks,event.path);
             if(t->roles&(DOCUMENT|WORKSPACE|PROJECT)) {
                 int kept=0; for(size_t i=0;i<s->changeCount;++i) if(s->changes[i].acknowledged && s->changes[i].snapshot.token==event.token && sameStamp(&s->changes[i].snapshot,&event)) { kept=1; break; }
                 if(kept) { xideFileWatchEventClear(&event); continue; }
@@ -257,7 +267,16 @@ int xideFileSyncBeforeSave(xide_document* document,const char* target,xide_model
 }
 void xideFileSyncAfterSave(xide_document* document,void* user)
 {
-    xide_app* app=user; if(!isManifest(app,document->path)) return;
+    xide_app* app=user;xide_file_sync* s=app->fileSync;
+    if(s) for(size_t i=0;i<s->count;++i) {
+        subscription* t=&s->targets[i];if(t->documentId!=document->id || strcmp(t->path,document->path))continue;
+        t->savedAt=GetTickCount64();
+        for(size_t j=0;j<s->changeCount;) {
+            if(s->changes[j].snapshot.token==t->target.token && s->changes[j].snapshot.observedAt<=t->savedAt)removeChange(s,j);
+            else ++j;
+        }
+    }
+    if(!isManifest(app,document->path)) return;
     xide_model_error e={0}; xvalue* root=json(document->baseline.raw,document->baseline.rawLength,&e);
     int okay=root && coordinate(app,document->path,root,0,1,&e); xrtValueRelease(root);
     if(!okay) { fprintf(stderr,"saved manifest synchronization: %s\n",e.message); xideFileSyncRefresh(app); }
