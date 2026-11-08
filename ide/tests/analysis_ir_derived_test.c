@@ -56,6 +56,12 @@ static int dirtyRaw(xls_ir_unit* unit,const XL6_AstNode* source,xstrbuf* output)
 }
 static int allocationFailures(void)
 {
+#ifdef XLS_NATIVE_FINAL_INTEROP
+    XL6_IrModule sparse={0};uint64_t sparseLive=derivedLive();
+    xls_ir_derived_context* empty=xlsIrDerivedContextBuild(&sparse,1024u*1024u);CHECK(empty);xlsIrDerivedContextRelease(empty);
+    sparse.foreignParameterCount=1;
+    CHECK(!xlsIrDerivedContextBuild(&sparse,1024u*1024u) && derivedLive()==sparseLive);
+#endif
     for(unsigned kind=1;kind<=3;++kind){
         size_t visits=0;
         for(size_t at=0;at<=visits+1;++at){

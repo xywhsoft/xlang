@@ -9,6 +9,7 @@ from pathlib import Path
 import hashlib
 from check_native_bridge_catalog import function
 from native_c_interop_profile import PINS as C_INTEROP_PINS
+import json
 
 # The reviewed current retirement cohort,including its exact LF checkout.
 # Other already-supported compiler cohorts keep their original pure passes.
@@ -18,8 +19,22 @@ COHORTS={
     ('10ebdce6803d96609ea7aac51e9b395b0d04a15fb8190d39b8d285295c2975d4','1e77f92bffbd498d676077921a872444b934f78cf1b6f1a8ee33b33982ff40c0'),
 }
 
-def derive(source: str, output: Path, source_digest: str, header_digest: str):
-    if (source_digest,header_digest) not in COHORTS:
+CURRENT_PAIR=('efea885b3dbd41264f9104679d438d59666bd84ce0f0f00a7aa0381ed446e29a', '938d45bdace241c83d566b4e165f467b7b3b8f5802c09e4952538ac17923c62a')
+CURRENT_CONTRACT_SHA256='4c5759ffbabc7b01ef0d49d3e27e81b5cce63f4c00a034c28d5e7d567b0c7f15'
+
+
+def current_contract(pins):
+    return hashlib.sha256(json.dumps(pins,sort_keys=True,separators=(',',':')).encode()).hexdigest()==CURRENT_CONTRACT_SHA256
+
+
+def derive(source: str, output: Path, source_digest: str, header_digest: str, *, frontend=None):
+    current=(source_digest,header_digest)==CURRENT_PAIR
+    if current:
+        from native_c_interop_profile import pins_for,profile
+        if frontend is None or not current_contract(pins_for(frontend)):
+            return source,dict(enabled=False,scope='Current pure phases require their complete reviewed dependency contract')
+        profile(frontend)
+    if not current and (source_digest,header_digest) not in COHORTS:
         return source,dict(enabled=False,scope='Unreviewed derived-phase compiler pair;retain original native pure passes')
     references=[];bodies={}
     for name,renamed,phase,loops in (
@@ -35,7 +50,7 @@ def derive(source: str, output: Path, source_digest: str, header_digest: str):
         body=body.replace(signature,'static int '+renamed+'(XL6_IrModule* module)',1)
         body=body.replace(loop,'for ( i = xlsIrDerivedNext(module,XLS_IR_DERIVED_'+phase+',0); i < module->nodeCount && (XLS_IR_DERIVED_BODY_HIT(XLS_IR_DERIVED_'+phase+'),1); i = xlsIrDerivedNext(module,XLS_IR_DERIVED_'+phase+',i+1) )')
         source=source.replace(original,body,1);bodies[name]=hashlib.sha256(original.encode()).hexdigest()
-    foreign=source_digest==C_INTEROP_PINS['src/ir/xl6_ir.c']
+    foreign=source_digest==C_INTEROP_PINS['src/ir/xl6_ir.c'] or current
     point=('    if ( xlsFrontendCancelPoint(XLS_CANCEL_IR_PHASE,1) || !xl6IrBuildForeignClassBases(module) )' if foreign else
            '    if ( xlsFrontendCancelPoint(XLS_CANCEL_IR_PHASE,1) || !xl6IrInternAsyncInvocationTypes(module, root, root) )')
     if source.count(point)!=1:raise ValueError('native complete raw-module fence changed')
@@ -53,5 +68,5 @@ def derive(source: str, output: Path, source_digest: str, header_digest: str):
     reference.parent.mkdir(parents=True,exist_ok=True)
     reference.write_text('\n'.join(references),encoding='utf8',newline='\n')
     source='#define XLS_NATIVE_IR_DERIVED_PHASES 1\n#ifndef XLS_IR_DERIVED_BODY_HIT\n#define XLS_IR_DERIVED_BODY_HIT(phase) ((void)0)\n#endif\n'+source
-    return source,dict(enabled=True,sourceSha256=source_digest,headerSha256=header_digest,originalBodies=bodies,reference=str(reference),referenceSha256=hashlib.sha256(reference.read_bytes()).hexdigest(),
+    return source,dict(enabled=True,dependencyContractSha256=CURRENT_CONTRACT_SHA256 if current else None,sourceSha256=source_digest,headerSha256=header_digest,originalBodies=bodies,reference=str(reference),referenceSha256=hashlib.sha256(reference.read_bytes()).hexdigest(),
         scope='Pure operator/index ABI outputs only;immutable per-function assets;exact type/runtime/union context and actual raw cleanliness;original bodies on misses;full original verifier retained')

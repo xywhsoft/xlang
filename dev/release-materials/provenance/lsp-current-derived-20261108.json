@@ -1,0 +1,391 @@
+{
+  "format": "xlang-current-derived-acceptance-1",
+  "date": "2026-11-08",
+  "phaseStatus": "audited-current-pure-phase-reuse-complete-performance-not-qualified",
+  "fullGoalComplete": false,
+  "shippingDelivery": false,
+  "correctnessPassed": true,
+  "performanceQualified": false,
+  "scope": "Pure operator/index derived-result reuse for exact current 457-input compiler cohort; no DAP, runtime or debug completion. Complete LSP and interaction/performance goals remain active.",
+  "baseGitCommit": "e2aeafc7bdf257c50a027a409545e40253ee0b3d",
+  "implementationInputs": {
+    "ide/tools/native_ir_derived_overlay.py": "ddb42d64ced2452051a7e426eb3799079743f3dce63738b065038f2fbe42c4b0",
+    "ide/tools/native_current_ir_overlay.py": "3033225ad0a8f3329d01563d90e8d922ae97b6fecd379b141fc5f5697028b1f5",
+    "ide/src/analysis/frontend_ir_derived.inc": "b95494efb73e81940b72bf9f0a8eea36935805a004c6a452b7a3c88cb7c78bdf",
+    "ide/tests/analysis_ir_derived_test.c": "6ae21523d7c8e6727734807e9b874b98921cbedfab130361f87aa27fdaa549b6",
+    "ide/tests/completion_view_test.c": "c7177626766d2af3c0b961badcda2e948bc09f20c276cd38fa0f3cad7570efed",
+    "ide/tools/check_ir_derived_contract.py": "63190816d131a25b230054420ef6751b03910ab9d68b3a8bb1d36c6f1b27aaff",
+    "ide/tools/check_current_ir_derived.py": "113a27c4917627c1d0c6060a26799bb24828b78f9453fe97980d3be60c2e3f82",
+    "ide/docs/lsp-current-derived-phases.md": "7e472e0b93c2e8fcd7d7947a847585e0d8c4f6dba9849b417e2fbe51636a286f",
+    "ide/docs/lsp-development.md": "c3b74aca10c82f5ad8e28a578971a1508dfd971d034b9c0a07a1148f53dfb485"
+  },
+  "frontend": {
+    "revision": "current-core-20261108",
+    "dependencyCount": 457,
+    "dependencyContractSha256": "4c5759ffbabc7b01ef0d49d3e27e81b5cce63f4c00a034c28d5e7d567b0c7f15",
+    "oldCohortsUnchanged": true,
+    "originalCompleteVerifierRetained": true,
+    "completeSparseForeignTableGate": 23,
+    "derivedLimitMiB": 32
+  },
+  "native": {
+    "normalBuildSha256": "4cb50b25c03030135aea1915c0cd157152b040f049249e18c9bc391ebd371307",
+    "compileInvocations": 235,
+    "tests": 137,
+    "privateAstConsumers": 142,
+    "inputs": 1396,
+    "outputs": 139,
+    "derivedAssertions": 5306,
+    "actualAllocationFailureSites": {
+      "xrtCalloc": 4,
+      "xrtArrayInit": 4,
+      "xrtArrayResize": 2,
+      "xrtArrayPush": 1,
+      "xrtStrBufReserve": 18
+    },
+    "producerControlCases": 1,
+    "producerOmissionsRejected": 4,
+    "producerCommands": 13,
+    "contractCases": 6,
+    "independentDependencyMutations": 457,
+    "serverSha256": "1ca0cb561d05090b8ca4e91b0083654332e6da7bc996767d7a9220d12870f856",
+    "imports": [
+      "IPHLPAPI.DLL",
+      "KERNEL32.dll",
+      "msvcrt.dll",
+      "ole32.dll",
+      "SHELL32.dll",
+      "VERSION.dll",
+      "WS2_32.dll"
+    ]
+  },
+  "protocol": {
+    "allSevenCommandsPassed": true,
+    "derivedCases": 8,
+    "derivedQueries": 80,
+    "derivedProcesses": 16,
+    "currentCoreCases": 9,
+    "completionProcesses": 45,
+    "completionGenerations": 36,
+    "automaticCases": 24,
+    "finalInteropCases": 16,
+    "serializerAssertions": 127836,
+    "frontendRows": 9
+  },
+  "gui": {
+    "firstCanonicalPairPassed": true,
+    "finalCurrentPairPassed": true,
+    "finalServiceLaunchMode": "private test objects changing only executable basename to protect active user session; all executables use actual root runtime",
+    "tests": [
+      {
+        "fixture": "input_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-derived-current-20261108\\gui-alias-1794146433168218500\\input_test"
+        ]
+      },
+      {
+        "fixture": "completion_view_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-derived-current-20261108\\gui-alias-1794146433168218500\\completion_view_test",
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-derived-current-20261108\\absent-compiler.exe"
+        ]
+      },
+      {
+        "fixture": "automatic_diagnostics_view_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-derived-current-20261108\\gui-alias-1794146433168218500\\automatic_diagnostics_view_test",
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe"
+        ]
+      },
+      {
+        "fixture": "settings_menu_frame_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-derived-current-20261108\\gui-alias-1794146433168218500\\settings_menu_frame_test",
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe"
+        ]
+      }
+    ],
+    "pairedServerSha256": "1ca0cb561d05090b8ca4e91b0083654332e6da7bc996767d7a9220d12870f856",
+    "guiCandidateSha256": "eea3cf0b3a38fb1d479092ee2c95eba848f28987dbc1c82d09691e4322b8bdf7",
+    "receiptSha256": "0e8478fb3719a0f5a68af222f2a0eea6dfb20ccbb89fe453e481ee0c68cac800",
+    "privateSources": {
+      "D:\\GIT\\x-lang\\ide\\src\\ui\\completion_view.c": {
+        "originalSha256": "7a266832eb7b623d4db6968c297bac1563a2c5d25d113cb1412204aaca3283a5",
+        "privateSource": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-derived-current-20261108\\gui-alias-1794146433168218500\\fixture-src\\src\\ui\\completion_view.c",
+        "privateSha256": "ab81714509b9b0a00d966bf4e0e7c802dcae00abeb1482c3b30032b690df30ff",
+        "change": "Only literal service executable basename; original adapter bodies preserved"
+      },
+      "D:\\GIT\\x-lang\\ide\\src\\ui\\language_view.c": {
+        "originalSha256": "c825190b6bcf2cf16d46717288e91821f6f78cfbb15309074c9db0a6165dc6dc",
+        "privateSource": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-derived-current-20261108\\gui-alias-1794146433168218500\\fixture-src\\src\\ui\\language_view.c",
+        "privateSha256": "db086572c80d360c5f3534b9d1b5f0d044e576fa5a09c0d8899c8a6eefd83e96",
+        "change": "Only literal service executable basename; original adapter bodies preserved"
+      },
+      "D:\\GIT\\x-lang\\ide\\tests\\input_test.c": {
+        "originalSha256": "2804e8842d91a338ac4dcb3788d9133f597303b435b55038168e0669645d40f5",
+        "privateSource": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-derived-current-20261108\\gui-alias-1794146433168218500\\fixture-src\\tests\\input_test.c",
+        "privateSha256": "2804e8842d91a338ac4dcb3788d9133f597303b435b55038168e0669645d40f5",
+        "change": "Unchanged fixture copy to include private service-basename adapter"
+      },
+      "D:\\GIT\\x-lang\\ide\\tests\\completion_view_test.c": {
+        "originalSha256": "c7177626766d2af3c0b961badcda2e948bc09f20c276cd38fa0f3cad7570efed",
+        "privateSource": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-derived-current-20261108\\gui-alias-1794146433168218500\\fixture-src\\tests\\completion_view_test.c",
+        "privateSha256": "c7177626766d2af3c0b961badcda2e948bc09f20c276cd38fa0f3cad7570efed",
+        "change": "Unchanged fixture copy to include private service-basename adapter"
+      },
+      "D:\\GIT\\x-lang\\ide\\tests\\automatic_diagnostics_view_test.c": {
+        "originalSha256": "8effa0c2f862222a032b1f921c6f9cae0c421e137582a2f4e72f8ba7e38c68e9",
+        "privateSource": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-derived-current-20261108\\gui-alias-1794146433168218500\\fixture-src\\tests\\automatic_diagnostics_view_test.c",
+        "privateSha256": "8effa0c2f862222a032b1f921c6f9cae0c421e137582a2f4e72f8ba7e38c68e9",
+        "change": "Unchanged fixture copy to include private service-basename adapter"
+      },
+      "D:\\GIT\\x-lang\\ide\\tests\\settings_menu_frame_test.c": {
+        "originalSha256": "4a7f94054d15240a273caf9e41836c1cd790e6abd8784433f4f446e0721a2cd0",
+        "privateSource": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-derived-current-20261108\\gui-alias-1794146433168218500\\fixture-src\\tests\\settings_menu_frame_test.c",
+        "privateSha256": "4a7f94054d15240a273caf9e41836c1cd790e6abd8784433f4f446e0721a2cd0",
+        "change": "Unchanged fixture copy to include private service-basename adapter"
+      }
+    },
+    "startupCatalogChecks": 21,
+    "unrelatedExistingLanguageReaderGuardsPreserved": true,
+    "runtimeDirectory": "release/win_x64"
+  },
+  "performance": {
+    "runs": {
+      "aa": {
+        "status": "calibration-failed",
+        "queries": 960,
+        "processes": 64,
+        "gates": 64,
+        "failures": [
+          {
+            "name": "512-single-declaration/hot/wireP95",
+            "actual": 460.4346,
+            "limit": 456.17260500000003,
+            "passed": false,
+            "baseline": 434.4501
+          }
+        ],
+        "hotP50": {
+          "32-single-literal": {
+            "before": 11.5957,
+            "after": 11.5133,
+            "percent": -0.7106082427106752
+          },
+          "32-single-declaration": {
+            "before": 13.5576,
+            "after": 13.4846,
+            "percent": -0.5384433823095613
+          },
+          "32-imported-literal": {
+            "before": 13.3938,
+            "after": 13.6535,
+            "percent": 1.9389568307724314
+          },
+          "32-imported-declaration": {
+            "before": 15.3657,
+            "after": 15.1851,
+            "percent": -1.1753450867841964
+          },
+          "512-single-literal": {
+            "before": 316.1336,
+            "after": 318.218,
+            "percent": 0.6593414935963882
+          },
+          "512-single-declaration": {
+            "before": 346.8496,
+            "after": 351.861,
+            "percent": 1.4448337262029431
+          },
+          "512-imported-literal": {
+            "before": 293.4796,
+            "after": 293.4383,
+            "percent": -0.014072528380160154
+          },
+          "512-imported-declaration": {
+            "before": 347.2326,
+            "after": 347.8176,
+            "percent": 0.16847496462026879
+          }
+        }
+      },
+      "delta": {
+        "status": "gates-failed",
+        "queries": 1920,
+        "processes": 128,
+        "gates": 64,
+        "failures": [
+          {
+            "name": "32-single-literal/hot/wireP95",
+            "actual": 15.3217,
+            "limit": 14.21742,
+            "passed": false,
+            "baseline": 13.5404
+          },
+          {
+            "name": "32-imported-literal/hot/wireP95",
+            "actual": 17.1609,
+            "limit": 16.345455,
+            "passed": false,
+            "baseline": 15.5671
+          }
+        ],
+        "hotP50": {
+          "32-single-literal": {
+            "before": 12.3192,
+            "after": 12.0863,
+            "percent": -1.890544840574071
+          },
+          "32-single-declaration": {
+            "before": 14.224,
+            "after": 14.3822,
+            "percent": 1.112204724409449
+          },
+          "32-imported-literal": {
+            "before": 14.1748,
+            "after": 14.3209,
+            "percent": 1.0307023732257337
+          },
+          "32-imported-declaration": {
+            "before": 15.9517,
+            "after": 16.091,
+            "percent": 0.8732611571180549
+          },
+          "512-single-literal": {
+            "before": 343.7363,
+            "after": 337.2426,
+            "percent": -1.8891516549168763
+          },
+          "512-single-declaration": {
+            "before": 340.0986,
+            "after": 338.8608,
+            "percent": -0.36395327707905434
+          },
+          "512-imported-literal": {
+            "before": 283.6653,
+            "after": 280.3088,
+            "percent": -1.183260694910515
+          },
+          "512-imported-declaration": {
+            "before": 362.3176,
+            "after": 356.4124,
+            "percent": -1.6298407805748427
+          }
+        }
+      },
+      "cumulative": {
+        "status": "gates-failed",
+        "queries": 1920,
+        "processes": 128,
+        "gates": 64,
+        "failures": [
+          {
+            "name": "32-imported-literal/hot/wireP95",
+            "actual": 16.9982,
+            "limit": 16.44258,
+            "passed": false,
+            "baseline": 15.6596
+          }
+        ],
+        "hotP50": {
+          "32-single-literal": {
+            "before": 11.7088,
+            "after": 11.6542,
+            "percent": -0.4663159333151201
+          },
+          "32-single-declaration": {
+            "before": 13.8211,
+            "after": 13.9418,
+            "percent": 0.8733024144243373
+          },
+          "32-imported-literal": {
+            "before": 13.7494,
+            "after": 13.7642,
+            "percent": 0.10764106070084711
+          },
+          "32-imported-declaration": {
+            "before": 15.3274,
+            "after": 15.5737,
+            "percent": 1.6069261583830263
+          },
+          "512-single-literal": {
+            "before": 340.9519,
+            "after": 341.6781,
+            "percent": 0.21299192056121186
+          },
+          "512-single-declaration": {
+            "before": 352.3377,
+            "after": 348.9087,
+            "percent": -0.9732140500434583
+          },
+          "512-imported-literal": {
+            "before": 283.4008,
+            "after": 279.1486,
+            "percent": -1.5004191943000955
+          },
+          "512-imported-declaration": {
+            "before": 356.9535,
+            "after": 352.6271,
+            "percent": -1.2120346207559307
+          }
+        }
+      }
+    },
+    "thresholdsChanged": false,
+    "retries": 0,
+    "allSuccessfulSlowSamplesRetained": true,
+    "ownBuildsQAHashingDuringRequests": false,
+    "scope": "Synthetic real-stdio analysis pairs only; A/A failure remains, comparison is not full LSP, IDE-latency or overall causal qualification."
+  },
+  "historicalFailures": [
+    "Initial including-native-IR test compiled with stricter check-program flags instead of actual fixture flags; corrected using the including fixture compile command, all linked objects from candidate.",
+    "First GUI completion test did not publish the new background command catalog; original C static completion assertion failed, fixed using existing bounded readiness helper at both app creations.",
+    "Additional startup validation refused after association source drift; full GUI rebuilt from current sources.",
+    "Final canonical service replacement was refused while the user had reopened IDE; old service untouched, private test-only basename adapters used instead."
+  ],
+  "evidence": {
+    "directory": "dev/release-materials/provenance/lsp-current-derived-20261108",
+    "files": 1036,
+    "manifestSha256": "da663951dc4fc9cdf998c7878b0e458e349aabbcdfb3499f2d82a0db8d19e1e7",
+    "archiveSha256": "e3eeac14507c0a5ab52c10ae47298ab1ce6a1948d66765dc6165b4689432c572",
+    "cleanupReportIsSeparateFromEarlierImmutableArchive": true,
+    "sourceDirectory": "dev/release-materials/sources/lsp-current-derived-20261108",
+    "sourceManifestSha256": "7a5e2322aa13430af0a9b06abad2beabe713d8694532b63ba35d0d429c4a6d0c",
+    "sourceArchiveSha256": "a3855132ae42d50f2ca1c4f4f9f12df9293ecfc159baf719a269a2b16c20ae54",
+    "sourceFiles": 1753,
+    "historicalPathsAndBytesPreserved": true
+  },
+  "runtime": {
+    "languageServerReplaced": false,
+    "ideReplaced": false,
+    "updateChannelPushed": false,
+    "cleanup": {
+      "status": "passed",
+      "removed": [
+        ".xlang-ls-derived-candidate.exe",
+        ".xlang-ls-current-reference.exe",
+        ".lsp-test.new"
+      ],
+      "defaultRuntimePreserved": {
+        "xlang_ide.exe": "b4ccf69dbccf08af44f316ee9d881a546588a2214b048b0287505633c78115cc",
+        "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+        "xl.exe": "e5f4719890814a3f7b5422ffb1f293ffc944c527de62217d32e9a3a4c287dfad",
+        "xl.dll": "e783d6a15c946945d4186084cff9006839cbc1d31a0ae387396dc6f500aaac6c",
+        "xlc.dll": "b4563a13448e2f550b00c0504cac481cdefd2b61ee961276049f936243f125a1",
+        "xge.dll": "f6eaa3961017f79cd06d18568bab8fb60274c4935e1a83ab8fb37da21acc607b"
+      },
+      "activeUserSessionPreserved": true
+    }
+  },
+  "remaining": [
+    "One A/A, two delta and one cumulative P95 gates failed; no threshold waiver or retry.",
+    "Continue small-edit tail attribution and whole-module verification/final-IR locality.",
+    "Explicit native package selection in project contexts remains incomplete.",
+    "Global budgets, scale/concurrency/endurance, remaining applicable protocols and full IDE performance/integration remain incomplete."
+  ]
+}

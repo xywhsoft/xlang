@@ -147,6 +147,11 @@ static void xlsIrDerivedInputPatch(const XL6_IrModule* module,size_t at)
 }
 static xls_ir_derived_context* xlsIrDerivedContextBuild(const XL6_IrModule* module,size_t limit)
 {
+#ifdef XLS_NATIVE_FINAL_INTEROP
+    /* Sparse foreign tables are not part of this context. Reuse the complete
+     * existing schema gate; execute native passes when any table is present. */
+    if(!xlsFinalIrTablesEmpty(module))return NULL;
+#endif
 #ifdef XLS_NATIVE_IR_FOREIGN_FIELDS
     size_t layoutCount=module->aggregateLayoutCount,layoutCapacity=module->aggregateLayoutCapacity;
     const XL6_IrAggregateLayout* layouts=module->aggregateLayouts;

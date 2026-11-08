@@ -5,6 +5,7 @@
 #include "ui/catalog_view.h"
 #include "ui/font_view.h"
 #include "platform/path.h"
+#include "catalog_ready.h"
 #include <windows.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -112,7 +113,7 @@ static int verify(void* user)
  char unique[80]; snprintf(unique,sizeof(unique),"completion-%lu-%llu",GetCurrentProcessId(),(unsigned long long)GetTickCount64()); root=xidePathResolve(f->directory,unique); entry=xidePathResolve(root,"入口😀.xl"); dep=xidePathResolve(root,"dep.xl"); disk=xidePathResolve(root,"disk.xl"); native=xidePathResolve(root,"helper.c"); light=xidePathResolve(root,"completion-light.png"); dark=xidePathResolve(root,"completion-dark.png");
  const char *saved="func main(...) as int\n    return 0\nend\n",*local="func main(...) as int\n    int zzResult = 7\n    return zzROther\nend\n",*chinese="\xef\xbb\xbf" "func main(...) as int\r\n    string 文本 = \"😀\"; int 结果 = 7\r\n    return 结后缀\r\nend\r\n",*klass="class Box\n    int value\n    func getValue() as int\n        return self.value\n    end\nend\nfunc main(...) as int\n    auto box = Box()\n    return box\nend\n",*imported="import dep\nfunc main(...) as int\n    auto box = dep.Box()\n    return box.\nend\n",*helper="export class Box\n    int value\nend\n";
  CHECK(root && entry && dep && disk && native && light && dark && xrtDirCreateAll(root) && writeText(entry,saved) && writeText(dep,helper) && writeText(disk,helper) && writeText(native,"int helper(void) { return 1; }\n"));
- app.hidden=1; app.noSession=1; app.compilerPath=f->compiler; CHECK(xideAppCreate(&app)==XUI_OK && xgeBegin()==XGE_OK); began=1;
+ app.hidden=1; app.noSession=1; app.compilerPath=f->compiler; CHECK(xideAppCreate(&app)==XUI_OK && xgeBegin()==XGE_OK); began=1; CHECK(xideTestCatalogReady(&app));
  CHECK(xideEditorOpen(&app,entry,&error) && settle(&app)); xide_document* xl=app.activeDocument; xide_completion_view* v=app.completionView;
  CHECK(prepare(&app,xl,local,"zzROther",3) && invoke(&app) && v->count==1 && has(v,"zzResult") && !strcmp(v->items[0].sDetail,"int") && xuiCodeEditIsCompletionOpen(xl->editor));
  CHECK(v->start==(int)(strstr(local,"zzROther")-local) && v->end==v->start+8 && capture(&app,light));
@@ -304,7 +305,7 @@ static int verify(void* user)
  /* Native analysis is independent of the selected execution compiler. An
     older external LS still keeps its existing catalog fallback behavior. */
  xgeEnd(); began=0; xideAppDestroy(&app); memset(&app,0,sizeof(app)); app.hidden=1; app.noSession=1; app.compilerPath=f->legacy;
- CHECK(xideAppCreate(&app)==XUI_OK && xgeBegin()==XGE_OK); began=1; CHECK(xideEditorOpen(&app,entry,&error) && settle(&app)); xl=app.activeDocument; v=app.completionView;
+ CHECK(xideAppCreate(&app)==XUI_OK && xgeBegin()==XGE_OK); began=1; CHECK(xideTestCatalogReady(&app)); CHECK(xideEditorOpen(&app,entry,&error) && settle(&app)); xl=app.activeDocument; v=app.completionView;
  CHECK(prepare(&app,xl,local,"zzROther",3) && invoke(&app));
  if(v->nativeBackend) { CHECK(has(v,"zzResult") && v->count==1); }
  else { CHECK(!v->count); }

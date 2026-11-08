@@ -74,7 +74,7 @@ def derive(frontend:Path,output:Path,*,phases=False,ir_source=None):
         from native_final_c_interop_profile import selected as final_selected
         source=ir_cancellation(source,current=True,foreign=c_interop_selected(frontend),final=final_selected(frontend))
         source=initializers(source)
-        source,derived_overlay=derived(source,output,hashlib.sha256(selected.read_bytes()).hexdigest(),audited[str(frontend/'src/ir/xl6_ir.h')])
+        source,derived_overlay=derived(source,output,hashlib.sha256(selected.read_bytes()).hexdigest(),audited[str(frontend/'src/ir/xl6_ir.h')],frontend=frontend)
         for name in ('native_ir_derived_overlay.py','check_native_bridge_catalog.py'):
             dependency=Path(__file__).with_name(name)
             audited[str(dependency)]=hashlib.sha256(dependency.read_bytes()).hexdigest()
