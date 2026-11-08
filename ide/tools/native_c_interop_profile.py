@@ -391,6 +391,14 @@ ASYNC_RESULT_CORPUS = (
     ('bad_extern_owned_bound_async_constraint_cast',0),
 )
 ASYNC_RESULT_PRIVATE_CORPUS = (('async_reused_worker',1),)
+COMPLETION_FACT_PINS = {
+    'src/sem/xl6_sem.c':'ed1206ca2def46329d146923f4402a316d5668317743164caeaa9ad6a60fce97',
+}
+_ASYNC_INPUTS={**PINS,**ASYNC_RESULT_PINS}
+_COMPLETION_INPUTS={**_ASYNC_INPUTS,**COMPLETION_FACT_PINS}
+_REVISIONS=(('foreign-calls-20261102',PINS),
+            ('async-results-20261103',_ASYNC_INPUTS),
+            ('completion-facts-20261103',_COMPLETION_INPUTS))
 
 
 def sha(path):
@@ -399,24 +407,32 @@ def sha(path):
 
 
 def pins_for(frontend: Path):
-    if final_profile.selected(frontend):return final_profile.PINS
+    if final_profile.selected(frontend):return final_profile.pins_for(frontend)
     # EOL counterparts select a candidate only. Preparation/profile admission
     # still requires EVERY file to reproduce its exact registered digest.
     path=frontend/'src/sem/xl6_sem.c'
     if path.is_file():
         raw=path.read_bytes();lf=raw.replace(b'\r\n',b'\n')
-        if any(hashlib.sha256(data).hexdigest()==ASYNC_RESULT_PINS['src/sem/xl6_sem.c']
-               for data in (raw,lf,lf.replace(b'\n',b'\r\n'))):
-            return {**PINS,**ASYNC_RESULT_PINS}
+        digests={hashlib.sha256(data).hexdigest() for data in (raw,lf,lf.replace(b'\n',b'\r\n'))}
+        for _,pins in reversed(_REVISIONS):
+            if pins['src/sem/xl6_sem.c'] in digests:return pins
     return PINS
 
 
 def revision(frontend: Path):
-    return final_profile.COHORT if final_profile.selected(frontend) else 'async-results-20261103' if pins_for(frontend) is not PINS else 'foreign-calls-20261102'
+    if final_profile.selected(frontend):
+        return 'final-completion-facts-20261108' if final_profile.completion_facts(frontend) else final_profile.COHORT
+    selected=pins_for(frontend)
+    return next(name for name,pins in _REVISIONS if pins is selected)
 
 
 def async_corpus(frontend: Path):
-    return ASYNC_RESULT_CORPUS if revision(frontend) in ('async-results-20261103',final_profile.COHORT) else ()
+    return ASYNC_RESULT_CORPUS if pins_for(frontend) is not PINS else ()
+
+
+def completion_facts(frontend: Path):
+    return final_profile.completion_facts(frontend) if final_profile.selected(frontend) else pins_for(frontend) is _COMPLETION_INPUTS
+
 
 
 def selected(frontend: Path):

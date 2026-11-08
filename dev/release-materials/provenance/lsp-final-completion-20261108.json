@@ -1,0 +1,658 @@
+{
+  "format": "xlang-lsp-completion-facts-acceptance-1",
+  "date": "2026-11-08",
+  "phaseStatus": "correctness-complete-performance-not-qualified",
+  "fullGoalComplete": false,
+  "shippingDelivery": false,
+  "correctnessPassed": true,
+  "performanceQualified": false,
+  "scope": "User-visible completion worker filtering and async callable signatures over the delivered final C interop cohort. Current engine alignment and overall LSP/IDE performance remain incomplete.",
+  "baseGitCommit": "67689feb7f24a1b2c11f3f0bea89973a9cc3c514",
+  "implementationInputs": {
+    "src/sem/xl6_sem.c": "9a209388a7705762bf57a6316c57b0b545adc27736ba5fea1c5512f5fa65ad8e",
+    "ide/tools/build_lsp_core.py": "520a7a2566aca11226b6d07f872e9d2b62eb35c4410d4e0699631e968f31d487",
+    "ide/tools/native_c_interop_profile.py": "e88d8f09fbc687ab5fd13dc09e364b3eafbe056249e72f6511dea1d8ba0a3bfd",
+    "ide/tools/native_final_c_interop_profile.py": "4ed22fc0e53c06dcdda3b27c68de9e5b3caa2b333a4c96e46f7f53057cc3c680",
+    "ide/tools/native_semantic_effects_overlay.py": "70de884ce80e3889bfc0b0ca7dd6c9b59a5de2a27d0c658d1fafdc26a9992fd7",
+    "ide/tools/check_frontend_inputs.py": "acd524eea23bcabeaab34d9479cfaca5ccf8f2d80acd3a972699e63a90404157",
+    "ide/tools/check_final_lsp_serializer.py": "9ebe69ca84d7bcf51b60bd588e7c9ea2f76bf4ebd038ac42247dcf162a07af00",
+    "ide/tools/check_completion_frontend_inputs.py": "9b1ecc756140a99c96e2d0542c3cf2672da9da00338335e655628aad48416198",
+    "ide/tools/check_completion_visibility.py": "1ca303960bbfb26d276e88f232f098597a2ce4458ae3c2e465491154087a2d1d",
+    "ide/tools/check_lsp_completion_facts.py": "87da6697ba91e2c2a54ae45445d93e4d5ae32c311600b8279ffa2cc3c5a007f4",
+    "ide/tests/analysis_completion_visibility_test.c": "23c0d2cc42e97222a8074001f74154ed94ddcf2834948d588e8e40adbfd788f6",
+    "ide/tests/completion_view_test.c": "50cfe0b8a1bb6c7dd51b90883fe91473b7afe2f71ad5e7b8f675bac922193861",
+    "ide/docs/lsp-completion-facts.md": "1b214109f31f98ebb5397d0b1d91c5a8a73a932f77a33fcbe04c85a7ae3d1b80",
+    "ide/docs/lsp-development.md": "4bb909a4bd6314fc3f4c0b9d9bc1dbbc066393d34be06d07434227634920563b"
+  },
+  "frontend": {
+    "cohort": "final-c-interop-20261105",
+    "revision": "final-completion-facts-20261108",
+    "pinCount": 455,
+    "changedFromDeliveredBaseline": [
+      "src/sem/xl6_sem.c"
+    ],
+    "manifest": "dev/release-materials/sources/lsp-final-completion-20261108/manifest.json",
+    "manifestSha256": "ccedc0cb8c477446a1ae4659ebd5e25320350bee3055dd747e34944d8925268e",
+    "archiveSha256": "3e29955014e2c75fde2e93d4d8c27ad9e9b3520ab75edc31635c007ad6b57a18",
+    "currentEngineDifferencesFromOriginalPins": [
+      {
+        "logicalPath": "lib/xrt/xrt.h",
+        "currentPath": "lib/xrt/xrt.h",
+        "previousSha256": "4c02cd11accbd06c4e5de725b1f19bacbf44a92e4791a3819ba45540bc6e4f5d",
+        "currentSha256": "41bc24579f4b3207b0434755ca23dd06481af90c05f71e9b365848cf9a7c12d1",
+        "eolOnly": false
+      },
+      {
+        "logicalPath": "release/include/xl_version.h",
+        "currentPath": "release/win_x64/include/xl_version.h",
+        "previousSha256": "136fb1796ca1e39bbd3924604e6f10718b331a2eec3a4a181779127df893c992",
+        "currentSha256": "14e91f9dff12eeac85afa0db43737226158f9f8b4e884846f7d8f5066df99f87",
+        "eolOnly": false
+      },
+      {
+        "logicalPath": "release/include/xrt_decl.h",
+        "currentPath": "release/win_x64/include/xrt_decl.h",
+        "previousSha256": "3508abef61bd9b48e8b13bd4acca02e789cc3b770aa7c7fa70fe752f380a2726",
+        "currentSha256": "6874d0a5d380301ecba05112de0eb3719f667a767dedd6f1cb64c76d56d28772",
+        "eolOnly": false
+      },
+      {
+        "logicalPath": "src/abi/xl6_abi_dump.c",
+        "currentPath": "src/abi/xl6_abi_dump.c",
+        "previousSha256": "988f2f43729968ff4684c1e7d159462314526a15688337207d0b1b8b45861b22",
+        "currentSha256": "59a54c16238512cd66de2e79c2fee1d165cdb761842f8c38b20157d321dda2ed",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/cgen/xl6_ir_cgen.h",
+        "currentPath": "src/cgen/xl6_ir_cgen.h",
+        "previousSha256": "7b9b89568684cab49cbf7f8eee0be63ffc039cbb3c696b667973232345450e41",
+        "currentSha256": "b6d530eaf8245b7bf7076a7c7095a6b4b63242ca63a897a0f827142228f1fb86",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/compile/xl6_artifact_native_symbols.inc",
+        "currentPath": "src/compile/xl6_artifact_native_symbols.inc",
+        "previousSha256": "7d0e848210fd4d1ac32f03b578b34d8823812fec02e0b05bd28bd09e381b298c",
+        "currentSha256": "664b7987e130c578cf1817f66f0133bf5ad5de9a42d741ac87f90621b4950c4b",
+        "eolOnly": false
+      },
+      {
+        "logicalPath": "src/compile/xl6_artifact_runtime.h",
+        "currentPath": "src/compile/xl6_artifact_runtime.h",
+        "previousSha256": "711444a7a6010c3a38326768e47939f6c3bef5167f13268a5a8a6c5a9f1ffe19",
+        "currentSha256": "541bf5015ef7a350faba96c4fd859ebbf7ec426476ca3f170866528f1f027759",
+        "eolOnly": false
+      },
+      {
+        "logicalPath": "src/compile/xl6_artifact_runtime_symbols.inc",
+        "currentPath": "src/compile/xl6_artifact_runtime_symbols.inc",
+        "previousSha256": "7e570e4490fb2eb12f0bc4581c5e2ec751699ef6ba6691b18e6cdd4abcd37c85",
+        "currentSha256": "66618ebae60ca48cca06b34ddf8fa092fdd541b950318c8742de04e7c6530257",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/compile/xl6_build_inputs.h",
+        "currentPath": "src/compile/xl6_build_inputs.h",
+        "previousSha256": "07e5f74bf1a8adada0a925630b6a83658eeb7c1eda229e04749a361a68c291dc",
+        "currentSha256": "b6efbfdc156ef862c52b5a1db12b488afc2869a8bedadb57ebda198f8198e1f6",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/compile/xl6_compile_unit.c",
+        "currentPath": "src/compile/xl6_compile_unit.c",
+        "previousSha256": "7f3e88ba36522fae03762b6836f9c7c511737fbf91f3d60891e7844052de0fc5",
+        "currentSha256": "e381620cfb183aa3fe7be422004542d67bb7b3f9060f27cce65a833add8cd268",
+        "eolOnly": false
+      },
+      {
+        "logicalPath": "src/compile/xl6_imports.c",
+        "currentPath": "src/compile/xl6_imports.c",
+        "previousSha256": "ab2e152814ebe198b9c43fbc1a0ec2e3a556ef25c54c6a602779cf29ff63f88d",
+        "currentSha256": "02d6f58939a471565822acb020b01ef60bd30586a06561d62aeaad40a0d82c98",
+        "eolOnly": false
+      },
+      {
+        "logicalPath": "src/compile/xl6_imports.h",
+        "currentPath": "src/compile/xl6_imports.h",
+        "previousSha256": "bcfe1b2f37d3dc8997ccd67896f2a37b4f33e1f594560d4efcca48674ed04cae",
+        "currentSha256": "ff69d92ec4e144468cbe258e1c242d386639545fa7e7df342f758d2be7ceeaf5",
+        "eolOnly": false
+      },
+      {
+        "logicalPath": "src/compile/xl6_source_overlay.c",
+        "currentPath": "src/compile/xl6_source_overlay.c",
+        "previousSha256": "82375c3969ab2095d32a403fb7e59775944fde85053c943a8e62aaabe3a7924c",
+        "currentSha256": "7e2e3c2335dd8e785d4f6205ee677272777c20472f9c36458c5b618cccde52c9",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/compile/xl6_source_overlay.h",
+        "currentPath": "src/compile/xl6_source_overlay.h",
+        "previousSha256": "da2c6484b62066647df569e63df6923598ea25275e90b2004dc81be168591b15",
+        "currentSha256": "5cd34f6e72cd0a848fc774dfa0e74658b280ff36bd9ad667100f7305ba8285e0",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/compile/xl6_source_report.c",
+        "currentPath": "src/compile/xl6_source_report.c",
+        "previousSha256": "e3e538479edf6b10f80d5d8a5fefa4548f28d2a3585e7d67478b545288cc9075",
+        "currentSha256": "5fa20cfe1b687f3fb2834bc4417e064e52e6714bce394c69a2a3a3a868d16b66",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/compile/xl6_source_report.h",
+        "currentPath": "src/compile/xl6_source_report.h",
+        "previousSha256": "0b863b4d963f6989dfd26af5535d51dbc9c8ee4048caef547fab63395a0f2ddb",
+        "currentSha256": "a5b27b170bc665467831a52960dce64787eec68549ff9b0c4d7012b5f5702bd9",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/diag/xl6_diag.h",
+        "currentPath": "src/diag/xl6_diag.h",
+        "previousSha256": "fc5d50e3e7abcebefbdf62efd1001dcd3785453c2bbeb24304bc744a636f987e",
+        "currentSha256": "1f4965ca10c15e62b18750da9330206d5c5ae2f877cb25e66d0b748af5fdc947",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/ir/xl6_ir.c",
+        "currentPath": "src/ir/xl6_ir.c",
+        "previousSha256": "f18cba280d8439243b43db7f8ccaa3412b4e9f6fe8cf1dfe989bab65af310fa7",
+        "currentSha256": "d12a7be9764ee3d86894afa1ed57742e61d968d1163b2654a6fc0c59731d552e",
+        "eolOnly": false
+      },
+      {
+        "logicalPath": "src/ir/xl6_ir.h",
+        "currentPath": "src/ir/xl6_ir.h",
+        "previousSha256": "05cedaa99ccec7ad8ed4b2be4f41782d52bd90edc8a5dd6838c1e7d9a7ad46b5",
+        "currentSha256": "938d45bdace241c83d566b4e165f467b7b3b8f5802c09e4952538ac17923c62a",
+        "eolOnly": false
+      },
+      {
+        "logicalPath": "src/ir/xl6_ir_c_owned.c",
+        "currentPath": "src/ir/xl6_ir_c_owned.c",
+        "previousSha256": "5c112769e33d8a3f16196f29cb9e6cca9bbbf4d9ef37d07144198be320d32917",
+        "currentSha256": "9f1e5b92ebc0e9bbe0ea0a931f7ab0ba6b15f255a70bb54a5113e3aa7635b087",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/ir/xl6_ir_callable_bridge.c",
+        "currentPath": "src/ir/xl6_ir_callable_bridge.c",
+        "previousSha256": "c034a23e51058ef6c073e81405742efe94e2520dfafd73b6e1bc92f5caccec7f",
+        "currentSha256": "486bc1afc1cdecc78e2c8cefe8d6224d7229c78619eff8926fe6e2a5a4475ec4",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/ir/xl6_ir_callable_result.c",
+        "currentPath": "src/ir/xl6_ir_callable_result.c",
+        "previousSha256": "d05475c3e83ee4acabbf1f6a2e57aab0fbf9d2eef9d8cd10d30502727a19692c",
+        "currentSha256": "2d6fc5ad9ef8fe83e23bfac63ce0cb38e42f5b2c149dee74f0b56ebd77bf5e7e",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/ir/xl6_ir_compress_contracts.inc",
+        "currentPath": "src/ir/xl6_ir_compress_contracts.inc",
+        "previousSha256": "a7e29038719a2e995b65f8c24f31bbe330d613af3626fb527472556cb5e1f7e0",
+        "currentSha256": "8f774d85ea16489fabd6d2051d49deb405fa801a2f766ad74cd945c0820e0cb7",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/ir/xl6_ir_crypto_contracts.inc",
+        "currentPath": "src/ir/xl6_ir_crypto_contracts.inc",
+        "previousSha256": "06d90c4dd83d875d8be75b69bb44f85204f0a9db7cc18dbcbd305f4324ba7bb2",
+        "currentSha256": "b147320693547ce7fb7f4cf734c2f06473aad8876afcbf8d7058e16761caf1c2",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/ir/xl6_ir_direct_bridge.c",
+        "currentPath": "src/ir/xl6_ir_direct_bridge.c",
+        "previousSha256": "7e070fd9d72dcda1c1f750ab84b57a97cfb3dc2468aff5c3f5eec8a29d4c7901",
+        "currentSha256": "8b05a013ec9e578d2720bf6c18c0d10b0246c2a56c0e4aa32c0adcd0319c18d6",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/ir/xl6_ir_direct_bridge_data.inc",
+        "currentPath": "src/ir/xl6_ir_direct_bridge_data.inc",
+        "previousSha256": "7582e0ee3baf744de659ff1a4b2f487d0d0225f371033488352ed2bb4ad2fb73",
+        "currentSha256": "4572d0b3e1b17bb42f7c4257b2a75db575c2feb12aded7c432b92eac3a7ef421",
+        "eolOnly": false
+      },
+      {
+        "logicalPath": "src/ir/xl6_ir_direct_bridge_declarations.inc",
+        "currentPath": "src/ir/xl6_ir_direct_bridge_declarations.inc",
+        "previousSha256": "f90d82f1115bdc1d78f93fbb7c88d5b12094259d7db38778e6c18695d1b996cc",
+        "currentSha256": "e361e1f790a5f766b2d3c6f495d0b2bfdba370f2dc2fb3c672b96360735317ea",
+        "eolOnly": false
+      },
+      {
+        "logicalPath": "src/ir/xl6_ir_export_result.c",
+        "currentPath": "src/ir/xl6_ir_export_result.c",
+        "previousSha256": "917f27b680819d5150fae7b6503a9e63260b55989c11f3a28aa858993f30e090",
+        "currentSha256": "f4ebce0d6a5e7bb92630eef74e2fc2aee8f1b823c5b1ae55933c288e2e761ab0",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/ir/xl6_ir_foreign_call.c",
+        "currentPath": "src/ir/xl6_ir_foreign_call.c",
+        "previousSha256": "7b939ba5997e9ace216c5781d29d5198ad62470de0b3dffd3486ca9a6679ec7e",
+        "currentSha256": "212090364baf8652167255b636ae85c2a53790eac00ad7ca46257984d920db55",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/ir/xl6_ir_foreign_compat.c",
+        "currentPath": "src/ir/xl6_ir_foreign_compat.c",
+        "previousSha256": "184e95a613f34035fd1be9528142cdc143ea36807a862283dfb109e525f417c9",
+        "currentSha256": "e094f79c59a2a5093079864a2ac128de60554964770f25557c4d1b5df45e304f",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/ir/xl6_ir_foreign_native_sequence.c",
+        "currentPath": "src/ir/xl6_ir_foreign_native_sequence.c",
+        "previousSha256": "d40d099df7a0a7a52beb6fceed49a33409b36637eba7d2823e4520b03eefeec5",
+        "currentSha256": "5ec4ea120d5ec35b34b7dfc7e71ac0bf73d904881b9cf804e1d821adc4c92e72",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/ir/xl6_ir_foreign_pack.c",
+        "currentPath": "src/ir/xl6_ir_foreign_pack.c",
+        "previousSha256": "54a032b8f8e1caf391baca0c83ded0b4afa2060928bd5811c94974ddab4110f5",
+        "currentSha256": "cfedf2386db86148f4886af46fc3c5a65cfc6c831e707d74ee630a1ca091fb33",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/ir/xl6_ir_foreign_parameter.c",
+        "currentPath": "src/ir/xl6_ir_foreign_parameter.c",
+        "previousSha256": "c9f9513548d0839223ea96e5af210adfd1d1084c1c3beb4b5b81aedbc5ad2592",
+        "currentSha256": "162d6e40291ea718fa3c4b6b53a6744becaa8534a36d1518f82a52809caa984b",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/ir/xl6_ir_lifetime.c",
+        "currentPath": "src/ir/xl6_ir_lifetime.c",
+        "previousSha256": "8cd3d592de988f2cc2fd777db6e0180fc4b5f1edea455f6d17732ccbe3644646",
+        "currentSha256": "be3c0a8b21325878dcb95b0435af161b54b6ad2ae622d379d612561781ce1933",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/ir/xl6_ir_log_bridge.c",
+        "currentPath": "src/ir/xl6_ir_log_bridge.c",
+        "previousSha256": "61bd5f936a83a604bd8d65afe69cf8112a9413f666d781408ec092218379e964",
+        "currentSha256": "2c9bd596994be605bb92388ac987158b471e1d2933f7a95e6524514dce9e2af8",
+        "eolOnly": false
+      },
+      {
+        "logicalPath": "src/ir/xl6_ir_lower.c",
+        "currentPath": "src/ir/xl6_ir_lower.c",
+        "previousSha256": "c93238aaa2b54eb8f8c4acead15111a4f4eeacf71b004c2b9c44e5c326d4d171",
+        "currentSha256": "e4202b3d5b695dcc7d26411eb4654b96b3846d0f0fe63d8873828d9e5bd3c21a",
+        "eolOnly": false
+      },
+      {
+        "logicalPath": "src/ir/xl6_ir_lower_native_sequence.c",
+        "currentPath": "src/ir/xl6_ir_lower_native_sequence.c",
+        "previousSha256": "39a652cb4797547b876bba6eb20de7ebe6333309bea3e803e4bda9b850ab2948",
+        "currentSha256": "7bbb954b2364bf75e6547fac3c0125cda444671521d2bfc0a1f387bf20a5548a",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/ir/xl6_ir_native_value.c",
+        "currentPath": "src/ir/xl6_ir_native_value.c",
+        "previousSha256": "5e047f3b1ea51c5fb9935f292b0cecd4c1ea08ef844b67795bb7ebdc40e644c8",
+        "currentSha256": "3dd368abd5f60b3f4665d48ed8c9a02e5cc65ba1512b02f93f6dc3a9da442b9b",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/ir/xl6_ir_ownership.c",
+        "currentPath": "src/ir/xl6_ir_ownership.c",
+        "previousSha256": "ed58415664dd794466a6903c532d7b10db172457d44ed4fe6beda3513c4275d4",
+        "currentSha256": "f0ad279abaf17883417e342e1b43b0b380a9fc8f4337a7691035981bad1c2aef",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/ir/xl6_ir_xacme_bridge.inc",
+        "currentPath": "src/ir/xl6_ir_xacme_bridge.inc",
+        "previousSha256": "ad78fc3ed30478e6b72cd3362287a192940236fddc2d80fe6426642c2a299fb3",
+        "currentSha256": "bd864f3645bc5b2ed2de82ffc8878f5cf2c8a6c3dba2517ead5d1f66d81938cb",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/ir/xl6_ir_xlang_bridge.c",
+        "currentPath": "src/ir/xl6_ir_xlang_bridge.c",
+        "previousSha256": "601118245c886693a7725ab23247f581331019dece02782a8743a8c3093ab9f6",
+        "currentSha256": "8fc647f77cbff891e92fd12ef8f7da531babbf439177190bb5c7af8ef679e263",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/package/xl6_package.c",
+        "currentPath": "src/package/xl6_package.c",
+        "previousSha256": "7c29b22487a8fc79635ad5dd6b478bec0aa27f3ed377650b12065304d18f66ab",
+        "currentSha256": "fea9f3273c4820664af77e805cea0d382070d4b35472aaf0849985ad207fee43",
+        "eolOnly": false
+      },
+      {
+        "logicalPath": "src/package/xl6_package.h",
+        "currentPath": "src/package/xl6_package.h",
+        "previousSha256": "59bc9f99a2e97b1363784da90b046ff1abd5eeaebdf61200d8a2825babbbe0e4",
+        "currentSha256": "19683527d8e14a43eabcdda9d89d52c602ad7eff51f6b644222799ccb156c24f",
+        "eolOnly": false
+      },
+      {
+        "logicalPath": "src/parser/xl6_parser.c",
+        "currentPath": "src/parser/xl6_parser.c",
+        "previousSha256": "c7b712e966b5cb8b9081c2874f724c03644c4fee68d3d7ff49671146ad48887f",
+        "currentSha256": "1cdb89bbe80dd4e963d5aff239c04e24ef9dfb094fd8fa39e6c2141b3390f4de",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/parser/xl6_parser.y",
+        "currentPath": "src/parser/xl6_parser.y",
+        "previousSha256": "3717985e85803a030880c09fb5aa921fa0f5a108a6296fbdb354ccbaa77a4fe8",
+        "currentSha256": "c03c30d1f97d22c5e8c3084b8f19e6d54623b4dd137f517df2097f9bd0fab58b",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/runtime/xl6_native_resource_policies.inc",
+        "currentPath": "src/runtime/xl6_native_resource_policies.inc",
+        "previousSha256": "98e15ba85b718056eea41b42b7e6844cb1d42d08dbd6a9c2612bcb8977ae5873",
+        "currentSha256": "6c4dd001936876357c2e19cd7ea0857b2ea7f402a72b6f48c8f19950d82e7dd1",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/runtime/xl6_text_symbols.inc",
+        "currentPath": "src/runtime/xl6_text_symbols.inc",
+        "previousSha256": "966005d2955629b0f8170e4f13c748b05cb16d33ea33b19f52a3d299abd65ffd",
+        "currentSha256": "5282278a1eb0b4c3bd3e7dc35308e548ab7c11b205659a86b2501147fa468ff3",
+        "eolOnly": false
+      },
+      {
+        "logicalPath": "src/sem/xl6_sem.c",
+        "currentPath": "src/sem/xl6_sem.c",
+        "previousSha256": "9f4307d50cc295cf61fc73127f5ab6604eb8554cf8ed01631fb83e27ec326d8a",
+        "currentSha256": "9a209388a7705762bf57a6316c57b0b545adc27736ba5fea1c5512f5fa65ad8e",
+        "eolOnly": false
+      },
+      {
+        "logicalPath": "src/sem/xl6_sem_c_owned.c",
+        "currentPath": "src/sem/xl6_sem_c_owned.c",
+        "previousSha256": "d2d9f95b0ea3200d47ef49c56b7abe3c04de7bd40a23ee2ba49fcd6e6e0448b7",
+        "currentSha256": "c61cb12925f77cb38722d072530d9cd090d48561011cfaec5e80efd2e71dc921",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/sem/xl6_sem_foreign_native_sequence.c",
+        "currentPath": "src/sem/xl6_sem_foreign_native_sequence.c",
+        "previousSha256": "fbba344e2ebecaf40700854c514db01e772f649e0ba54a24727d79e252c383c7",
+        "currentSha256": "d9637b1364c263e791e31a576dc777e0078ea886bdc2daa073f36479a46bcc67",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/sem/xl6_sem_index.h",
+        "currentPath": "src/sem/xl6_sem_index.h",
+        "previousSha256": "211f67740a5fa33fac0c7f81f26c441e640988a8b482ad7c7294c92549387001",
+        "currentSha256": "04b26faa3b6a9bc4ff1c9b986c2af3b91d9c0e9a0c9b69cec70a342e2ba0740b",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/sem/xl6_sem_native_sequence.c",
+        "currentPath": "src/sem/xl6_sem_native_sequence.c",
+        "previousSha256": "8dd4b9d10b6b26da10c63a82d83cbcfd7ede8bf2d5d44696b6627e53780966b9",
+        "currentSha256": "37264011818fed0d99c0cba01ada9256665db137dd57af2af3db726fdbe620b6",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/sem/xl6_sem_special_collection.c",
+        "currentPath": "src/sem/xl6_sem_special_collection.c",
+        "previousSha256": "82b2abfbf4ddb200e55cbdef13952f69fe327eef284f8f84851e25701711fccd",
+        "currentSha256": "46df03c8b61a504b81f172a7465a782ef556110cf2a879c8c24667dcc3b695e8",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/sem/xl6_type_registry.c",
+        "currentPath": "src/sem/xl6_type_registry.c",
+        "previousSha256": "ce0728006470dd793f2170083e8bfe79d8c03e01e75baf88f3c244d8d89b9bfd",
+        "currentSha256": "4a50f37e9ecaedf6955a50fe0a503bbfa619bde4f3cebc3246363f95937b25f9",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/stdlib/xl6_stdlib_codec.inc",
+        "currentPath": "src/stdlib/xl6_stdlib_codec.inc",
+        "previousSha256": "e2aa6ab8c4b4ad636b6cf8b1d07e478d60463bc699e0be7c14ea8ba73012e883",
+        "currentSha256": "69cd5fd7f3e85568ce84bfe63f42b88dddb1efb818bcf3933bed20673d517de8",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/stdlib/xl6_stdlib_compress.inc",
+        "currentPath": "src/stdlib/xl6_stdlib_compress.inc",
+        "previousSha256": "785c68bb253a3f3ff467a30b26bb89c17268235e1b82c2ed050c7dee5dbb5c61",
+        "currentSha256": "a38fac03e11a858525a6f5594f211cb02b2b93fb6daecda4622786cd8a473d7b",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/stdlib/xl6_stdlib_crypto.inc",
+        "currentPath": "src/stdlib/xl6_stdlib_crypto.inc",
+        "previousSha256": "dc240e66f75b7a75d6f2803be99d3e944c8c69386e6679798435da12fed2cb38",
+        "currentSha256": "368944abc5bfb0a982d352a84815ad7ad54c78a01c84b51b3923cf87c71da05c",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/stdlib/xl6_stdlib_data.c",
+        "currentPath": "src/stdlib/xl6_stdlib_data.c",
+        "previousSha256": "c7ca2a93b5dd487a2a440e83aebbbf07cc30da854966e09b9020183bc0fe7da1",
+        "currentSha256": "46f5cedf5c50278814caf7cb00e7a080815da35ed276f67cca286e829658d7c8",
+        "eolOnly": false
+      },
+      {
+        "logicalPath": "src/stdlib/xl6_stdlib_data.h",
+        "currentPath": "src/stdlib/xl6_stdlib_data.h",
+        "previousSha256": "8457b6459e04cd09513c1bc9ea1cba5ae47d1659714556c248bd9bdebaffc57a",
+        "currentSha256": "7d4018e94a594aeeaa117cf41f7576806cbe9337c85ec7a0adf1f82c1f81c6e7",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/stdlib/xl6_stdlib_ed25519.inc",
+        "currentPath": "src/stdlib/xl6_stdlib_ed25519.inc",
+        "previousSha256": "9d5fd31065c570544ef684f7b161283158b1a2737bdf50198385c847cd125b8f",
+        "currentSha256": "10e26ec4bc0ffe916d8923327b5c1d1819b04696cb955c1f841149fd360b56b3",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/stdlib/xl6_stdlib_encoding.inc",
+        "currentPath": "src/stdlib/xl6_stdlib_encoding.inc",
+        "previousSha256": "30e036617c4256f5aaabc106509c4a24cfcf33364fae9a691e4e39cbd9256b4e",
+        "currentSha256": "807cdf2325c3470492fe271e218200f4e0c333cf9778d908759db71b48122b73",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/stdlib/xl6_stdlib_unicode.inc",
+        "currentPath": "src/stdlib/xl6_stdlib_unicode.inc",
+        "previousSha256": "c49485f24d6d11da8966d91dcfc051c49a66d8218d7bdd6e2f7d1dcdbda93b70",
+        "currentSha256": "4eb5def31a4aa231c195f302e10f4220525fdc485702abb78d39677e3f405ec8",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/type/xl6_c_owned_type.h",
+        "currentPath": "src/type/xl6_c_owned_type.h",
+        "previousSha256": "dc3b794c9d28e9cc905c0b367137929e7ad5ca4607a14c8d4f98ac59345c3a44",
+        "currentSha256": "e6c0bbf48b39718d9c989bf9f2f83b28359704eba1df80f4a10829d33679c92b",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/type/xl6_call_rank.h",
+        "currentPath": "src/type/xl6_call_rank.h",
+        "previousSha256": "53020723cf022cbd9f7436830fd4ebb94062b0f27d7703dbe67483d0df8122dd",
+        "currentSha256": "7606776e31446d5f01389e721aff9f811acd9d2aca29e412892c75d29e0658f2",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/type/xl6_foreign_native_sequence_contract.h",
+        "currentPath": "src/type/xl6_foreign_native_sequence_contract.h",
+        "previousSha256": "3b1679cf0d8aa3870c04c8d85941bf2a362704457acb63921f98699963b6a2fc",
+        "currentSha256": "ba1877ab3b6a9550b0d98fa0ab95cb0d425f2f95e3e3390dfd880208ca06c055",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/type/xl6_foreign_pack_decl.h",
+        "currentPath": "src/type/xl6_foreign_pack_decl.h",
+        "previousSha256": "7db39f141cf6f8e426d8422a5af377948c879e74589825f2c473923718ab7849",
+        "currentSha256": "1fac4114dc0f68ee70e02be7d3e83785534814b896bd892362e5bd823700c2a0",
+        "eolOnly": true
+      },
+      {
+        "logicalPath": "src/type/xl6_semantic_plan.h",
+        "currentPath": "src/type/xl6_semantic_plan.h",
+        "previousSha256": "13d3b9c4821675f8673e110966b07b97846a60de330a21c43a2607775833d459",
+        "currentSha256": "7801f6fabcb0a018bee169ebb0d151c1fb469e5374f6d283986776bf6ee93c49",
+        "eolOnly": true
+      }
+    ],
+    "currentEngineAlignmentComplete": false,
+    "currentEngineDifferenceCounts": {
+      "eolOnly": 48,
+      "contentOrMissing": 19
+    }
+  },
+  "native": {
+    "buildReport": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-resume-20261108\\full-v5\\build-result.json",
+    "buildReportSha256": "fb453f5e7daa422b7ac5ab4b540c1022b0cad2b3ea080c80bc2cac387ad572de",
+    "compileInvocations": 234,
+    "passedRuns": 136,
+    "privateAstConsumers": 141,
+    "inputs": 1388,
+    "outputs": 138,
+    "completionAssertions": 1412,
+    "actualProducerCases": 7,
+    "actualProducerCommands": 19,
+    "standaloneImports": [
+      "IPHLPAPI.DLL",
+      "KERNEL32.dll",
+      "msvcrt.dll",
+      "ole32.dll",
+      "SHELL32.dll",
+      "VERSION.dll",
+      "WS2_32.dll"
+    ]
+  },
+  "protocol": {
+    "exactCandidateSha256": "5404521f45a1f98a56bc6c417f8f6707ceb6b7b1353932cccbb5b9e64a8f254c",
+    "completionProcesses": 45,
+    "completionGenerations": 36,
+    "automaticCases": 24,
+    "finalInteropChecks": 16,
+    "serializerAssertions": 127836,
+    "finalFrontendRows": 9,
+    "allFinalCommandsPassed": true
+  },
+  "gui": {
+    "passedForRecordedInputs": true,
+    "tests": [
+      {
+        "fixture": "input_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-resume-20261108\\gui-qa-1794135340199111900\\input_test"
+        ]
+      },
+      {
+        "fixture": "completion_view_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-resume-20261108\\gui-qa-1794135340199111900\\completion_view_test",
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-resume-20261108\\absent-compiler.exe"
+        ]
+      },
+      {
+        "fixture": "automatic_diagnostics_view_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-resume-20261108\\gui-qa-1794135340199111900\\automatic_diagnostics_view_test",
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe"
+        ]
+      },
+      {
+        "fixture": "settings_menu_frame_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-resume-20261108\\gui-qa-1794135340199111900\\settings_menu_frame_test",
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe"
+        ]
+      }
+    ],
+    "pairedServerSha256": "5404521f45a1f98a56bc6c417f8f6707ceb6b7b1353932cccbb5b9e64a8f254c",
+    "buildReceiptSha256": "2298ed2f29172619f8ddf8fd754805149b66956d12233f7c3c4481a6c51066d0",
+    "candidateSha256": "b705ba142587585dfa1e651109cfd429ecabe9f3e1eeb2acbf94ffaef95e25ac",
+    "laterInputDrift": [
+      "D:\\GIT\\x-lang\\ide\\tools\\build.ps1",
+      "D:\\GIT\\x-lang\\ide\\src\\platform\\file_watch.c"
+    ],
+    "publishAllowed": false,
+    "legacyFixture": "language_view_test remains failed/incompatible: old File-menu location and compiler-stub message differ from the native checker. Failures preserved; not counted as passed."
+  },
+  "performance": {
+    "calibration": {
+      "status": "passed",
+      "queries": 960,
+      "processes": 64,
+      "gates": 64,
+      "failedGates": 0
+    },
+    "comparison": {
+      "status": "gates-failed",
+      "queries": 1920,
+      "processes": 128,
+      "gates": 64,
+      "failedGates": 3,
+      "failures": [
+        {
+          "name": "32-single-literal/hot/wireP95",
+          "actual": 14.6402,
+          "limit": 13.86798,
+          "passed": false,
+          "baseline": 13.2076
+        },
+        {
+          "name": "32-imported-literal/cold/wireP50",
+          "actual": 47.5754,
+          "limit": 47.558805,
+          "passed": false,
+          "baseline": 45.2941,
+          "ratio": 1.05
+        },
+        {
+          "name": "32-imported-declaration/hot/wireP95",
+          "actual": 29.8963,
+          "limit": 29.345925,
+          "passed": false,
+          "baseline": 27.9485
+        }
+      ]
+    },
+    "retries": 0,
+    "thresholdsChanged": false,
+    "scope": "Fixed synthetic native analysis nonregression; not complete LSP, edit-time async-completion latency or UI performance qualification."
+  },
+  "runtime": {
+    "directory": "release/win_x64",
+    "languageServerReplacedByThisStage": false,
+    "ideReplacedByThisStage": false,
+    "preservedLanguageServerSha256": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "candidateSha256": "5404521f45a1f98a56bc6c417f8f6707ceb6b7b1353932cccbb5b9e64a8f254c",
+    "temporaryFixtureCleanupPending": false,
+    "otherTaskMayReplaceIde": true,
+    "temporaryFixturesRemoved": true,
+    "finalLanguageServerSha256": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232"
+  },
+  "evidence": {
+    "directory": "dev/release-materials/provenance/lsp-final-completion-20261108",
+    "fileCount": 810,
+    "manifestSha256": "553b549f2d5583118e8621a9c27063a85e71547eba5589c5e26c2d780294438c",
+    "archiveSha256": "4589df0175c83c5924f31ca20fcc8873991baa40f12f4c93a0cf2ad177340ae1",
+    "historicalReportBytesAndPathsPreserved": true
+  },
+  "limits": [
+    "Performance comparison failed three wall-time gates; do not waive or retry to obtain a pass.",
+    "Later engine inputs are not automatically accepted by this exact cohort.",
+    "GUI tests passed only for their recorded input set; later file-watcher/build-script changes prevent publication of that candidate.",
+    "No root runtime or online update publication is performed by this stage."
+  ]
+}

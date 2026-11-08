@@ -6,6 +6,13 @@ p.add_argument('--build',type=Path,required=True);p.add_argument('--out',type=Pa
 a=p.parse_args();build=a.build.resolve();out=a.out.resolve();out.mkdir(exist_ok=False);ide=Path(__file__).resolve().parents[1]
 data=json.loads((build/'build-result.json').read_text());assert data['status']=='passed'
 compile=next(c for c in data['commands'] if '-c' in c and any(Path(v).name=='xl6_ir.c' for v in c));flags=['-O0' if v=='-O2' else v for v in compile[1:compile.index('-c')]]
+# This is an including fixture, not the relocated IR TU itself. Retaining
+# that TU's -iquote directory would shadow the generated source selected by -I.
+filtered=[];index=0
+while index<len(flags):
+ if flags[index]=='-iquote':index+=2
+ else:filtered.append(flags[index]);index+=1
+flags=filtered
 link=next(c for c in data['commands'] if '-o' in c and Path(c[-1]).name=='xlang-ls.exe');libs=[v for v in link if v.startswith('-l')]
 fixture=ide/'tests/analysis_ir_sparse_decode_test.c';exe=out/'serializer.exe';sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest()
 pins=[Path(__file__).resolve(),fixture,build/'frontend/xl6_ir.c',build/'xlang-analysis-core.a',build/'build-result.json',ide/'src/analysis/frontend_ir_memo.inc',ide/'src/analysis/frontend_ir_persistent.inc']

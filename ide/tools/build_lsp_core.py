@@ -18,7 +18,7 @@ import subprocess
 import time
 from xrt_process_tree_overlay import derive as derive_process_runtime
 from native_current_unified_profile import COHORT as UNIFIED_COHORT, PINS as UNIFIED_PINS, CORPUS as UNIFIED_CORPUS
-from native_c_interop_profile import COHORT as C_INTEROP_COHORT, PINS as C_INTEROP_PINS, pins_for as c_interop_pins, selected as c_interop_selected, CORPUS as C_INTEROP_CORPUS, NEGATIVE_CORPUS as C_INTEROP_NEGATIVE, async_corpus, ASYNC_RESULT_PRIVATE_CORPUS
+from native_c_interop_profile import COHORT as C_INTEROP_COHORT, PINS as C_INTEROP_PINS, pins_for as c_interop_pins, selected as c_interop_selected, CORPUS as C_INTEROP_CORPUS, NEGATIVE_CORPUS as C_INTEROP_NEGATIVE, async_corpus, ASYNC_RESULT_PRIVATE_CORPUS, completion_facts
 from native_context_overlay import derive as derive_context_runtime
 from native_cancellation_overlay import ir_cancellation, semantic_cancellation
 from native_ir_memo_overlay import derive as derive_ir_memo
@@ -616,7 +616,7 @@ def prepare_native_ast(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
 
 def prepare_current_loader_oracles(frontend: Path, output: Path):
     """Namespace independent unmodified loader/report/package reference units."""
-    if sha(frontend/'src/compile/xl6_source_overlay.c')!='7e2e3c2335dd8e785d4f6205ee677272777c20472f9c36458c5b618cccde52c9':return [],None
+    if sha(frontend/'src/compile/xl6_source_overlay.c')!='7e2e3c2335dd8e785d4f6205ee677272777c20472f9c36458c5b618cccde52c9' and not c_interop_selected(frontend):return [],None
     import re
     from native_current_context_profile import profile
     profile(frontend)
@@ -680,6 +680,7 @@ def main() -> None:
         parser.error(str(error))
     c_interop = c_interop_selected(frontend)
     unified = c_interop or ((frontend/'src/sem/xl6_sem.c').is_file() and sha(frontend/'src/sem/xl6_sem.c')==UNIFIED_PINS['src/sem/xl6_sem.c'])
+    if completion_facts(frontend) and not args.skip_tests:tests=('analysis_completion_visibility_test',*tests)
     if unified and not args.skip_tests:tests=('analysis_unified_semantic_test',*tests)
     sources = [(frontend / source, False) for source in FRONTEND_SOURCES]
     sources += [(ide / "src/analysis/runtime.c", False)]
@@ -859,9 +860,17 @@ def main() -> None:
         for row in source_overlays:
             if row.get('compiledSource')==str(source) and row.get('source'):
                 flags += ['-iquote',str(Path(row['source']).parent)]
+        # Fixtures include generated native TUs through -I(frontend). Their
+        # nested .inc files still need the original directories as fallbacks;
+        # -iquote here would incorrectly select an uninstrumented original TU.
+        if source.parent == ide/'tests':
+            for directory in sorted({str(Path(row['source']).parent) for row in source_overlays if row.get('source')}):
+                flags += ['-I'+directory]
         if source==ide/'tests/analysis_unified_semantic_test.c':
             flags+=['-DXLS_UNIFIED_CASES_DIRECTORY="'+(output/'unified-fixtures').as_posix()+'"','-I'+str(output/'unified-fixtures')]
-        if source in loader_references:flags+=['-include',str(loader_aliases)]
+        if source in loader_references:
+            original_dir=frontend/('src/package' if source.name=='reference_xl6_package.c' else 'src/compile')
+            flags+=['-include',str(loader_aliases),'-iquote',str(original_dir)]
         if source==ide/'tests/analysis_current_loader_test.c':flags+=['-DXLS_CURRENT_LOADER_DIRECTORY="'+(output/'loader-fixtures').as_posix()+'"']
         if source == ide / 'tests/project_reference_owner_fault_test.c':
             if not owner_coordinator:
@@ -926,7 +935,7 @@ def main() -> None:
             if name=='analysis_ir_callsite_test':extra+=['-Wl,--wrap=xrtArrayReserve','-Wl,--wrap=xrtArrayResize']
             if name=='analysis_type_constructor_test':
                 extra += ['-Wl,--wrap='+function for function in ('xrtCalloc','xrtStrDupN','xrtStrDup')]
-            if name=='analysis_ir_derived_test':extra+=['-Wl,--wrap='+function for function in ('xrtCalloc','xrtArrayInit','xrtArrayResize','xrtArrayPush','xrtStrBufReserve')]
+            if name=='analysis_ir_derived_test' and '#define XLS_NATIVE_IR_DERIVED_PHASES 1' in (output/'frontend/xl6_ir.c').read_text(encoding='utf-8'):extra+=['-Wl,--wrap='+function for function in ('xrtCalloc','xrtArrayInit','xrtArrayResize','xrtArrayPush','xrtStrBufReserve')]
             if name=='navigation_cache_test':extra+=['-Wl,--wrap='+function for function in ('xrtCalloc','xrtStrDup','xlsSemanticCheckRetain','malloc','calloc','free','xrtMalloc','xrtRealloc','xrtArrayInit','xrtArrayReserve','xrtArrayResize','xrtStrBufAppend','xlsTextCreate','xlsSemanticIndexPointFact')]
             if name=='analysis_selection_test':extra+=['-Wl,--wrap=xrtCalloc','-Wl,--wrap=xrtArrayInit','-Wl,--wrap=xrtArrayPush']
             if name == "analysis_index_limit_test":

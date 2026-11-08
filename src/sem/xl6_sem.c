@@ -27047,7 +27047,9 @@ static void xl6SemCompletionNames(XL6_SemContext* ctx)
     for (j=0;j<ctx->root->childCount&&!q->error;++j) {
      XL6_AstNode* func=ctx->root->children[j];XL6_AstNode* type;
      if (!xl6SemIsFuncDecl(func)||!xl6TextEquals(xl6SemFuncName(func),sym->name)) continue;
-     type=xl6SemFunctionTypeFromCallableParts(func->childCount>1?func->children[1]:NULL,func->childCount>2?func->children[2]:NULL,func);
+     if (func->flags & XL6_AST_FLAG_C_OWNED_SPECIALIZATION) continue;
+     type=func->kind==XL6_AST_ASYNC_FUNC ? xl6SemFunctionTypeFromInvocation(ctx,func,func) :
+      xl6SemFunctionTypeFromCallableParts(func->childCount>1?func->children[1]:NULL,func->childCount>2?func->children[2]:NULL,func);
      if (!type) {q->error="cannot capture callable signature";break;}
      xl6CompletionAdd(q,sym->name,"function",func->semanticSymbolId,func->childCount?func->children[0]:NULL,xl6SemCompletionType(ctx,type));xl6AstFree(type);
     }
@@ -27086,6 +27088,7 @@ static void xl6SemCompletionMembers(XL6_SemContext* ctx,XL6_AstNode* queryNode)
    const XL6_AstNode* member=body->children[i];const char* name;XL6_AstNode* type=NULL;const XL6_AstNode* selection;
    int field=member&&member->kind==XL6_AST_FIELD;
    int callable=member&&(member->kind==XL6_AST_FUNC||member->kind==XL6_AST_ASYNC_FUNC||member->kind==XL6_AST_EXPORT_FUNC||member->kind==XL6_AST_NATIVE_EXTERN_FUNC);
+   if (callable && xl6SemAstHasFlag(member,XL6_AST_FLAG_C_OWNED_SPECIALIZATION)) continue;
    if ((!field&&!callable)||xl6SemAstHasFlag(member,XL6_AST_FLAG_STATIC)!=(staticClass!=NULL)||!xl6SemCanAccessClassMember(ctx,owner,member)) continue;
    name=field?member->text:xl6SemMemberName(member);if (!name) continue;
    if (field) {
@@ -27098,7 +27101,8 @@ static void xl6SemCompletionMembers(XL6_SemContext* ctx,XL6_AstNode* queryNode)
     size_t k;int sameOwner=0;
     for (k=0;body&&k<body->childCount;++k) if (body->children[k]==nearest) sameOwner=1;
     if (!sameOwner) continue;
-    type=xl6SemFunctionTypeFromCallableParts(member->childCount>1?member->children[1]:NULL,member->childCount>2?member->children[2]:NULL,member);
+    type=member->kind==XL6_AST_ASYNC_FUNC ? xl6SemFunctionTypeFromInvocation(ctx,member,member) :
+     xl6SemFunctionTypeFromCallableParts(member->childCount>1?member->children[1]:NULL,member->childCount>2?member->children[2]:NULL,member);
     if (type&&args&&xl6SemClassHasTypeParams(owner)) {XL6_AstNode* replaced=xl6SemSubstituteClassType(owner,args,type);xl6AstFree(type);type=replaced;}
     selection=member->childCount?member->children[0]:NULL;
    }

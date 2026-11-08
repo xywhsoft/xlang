@@ -309,6 +309,23 @@ static int verify(void* user)
  if(v->nativeBackend) { CHECK(has(v,"zzResult") && v->count==1); }
  else { CHECK(!v->count); }
  CHECK(prepare(&app,xl,"math.sq","math.sq",7) && invoke(&app) && !v->count && xuiCodeEditIsCompletionOpen(xl->editor) && key(&app,XUI_KEY_ENTER,0) && !strcmp(xuiCodeEditGetText(xl->editor),"math.sqrt"));
+ if(v->nativeBackend) {
+  const char* asyncMember=
+   "extern \"native_text\" @no_raise func nativeText() as point\n"
+   "extern \"native_free\" @no_raise func nativeFree(point value)\n"
+   "func text() as cstring\n return cstring.take(nativeText(),nativeFree)\nend\n"
+   "class Reader\n func Read<T>(T value) as cstring\n  return text()\n end\n"
+   " async func Factory<T>(T value) as func(T) as cstring\n  return self.Read\n end\n"
+   " func __xl_c_owned_async_user() as int\n  return 7\n end\nend\n"
+   "func bind(Reader reader) as func(c_int) as future<func(c_int) as string>\n return reader.Factory\nend\n"
+   "func query(Reader reader) as int\n return reader.\nend\n";
+  CHECK(prepare(&app,xl,asyncMember,"return reader.\n",14) && invoke(&app));
+  CHECK(v->count==3 && has(v,"Read") && has(v,"Factory") && has(v,"__xl_c_owned_async_user"));
+  for(int i=0;i<v->count;++i) {
+   CHECK(strncmp(v->items[i].sLabel,"__xl_c_owned_async_",19) || !strcmp(v->items[i].sLabel,"__xl_c_owned_async_user"));
+   if(!strcmp(v->items[i].sLabel,"Factory")) CHECK(!strcmp(v->items[i].sDetail,"func(T) as future<func(T) as cstring>"));
+  }
+ }
  printf("completion_view_test passed: %d native assertions; native-backend=%d; whole-token Enter/Tab and undo, BOM/CRLF/Unicode, dot trigger, real overloads and shadowing, unsaved dependencies, malformed responses, typing refresh, Esc/caret/focus/tab/edit/close/reuse/C rejection, modal/environment, static-name deduplication, concurrent diagnostics, source guard, restart and old-compiler compatibility; renders in %s.\n",f->checks,v->nativeBackend,root);
 cleanup:
  if(handoffBlocker.release) SetEvent(handoffBlocker.release);
