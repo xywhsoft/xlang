@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "declaration_symbols_source.h"
 /* Real view included only to assert late-response acceptance decisions. */
 #include "../src/ui/language_view.c"
 typedef struct fixture { const char *directory,*compiler; HDESK desktop; int started,failed,legacy; } fixture;
@@ -48,7 +49,7 @@ static int legacyRemove(xvalue* v)
 static int verify(void* user)
 {
  fixture* f=user; if(f->started) return XGE_OK; f->started=1; xide_app app={0}; xide_model_error error={0}; int began=0;
- char *root=NULL,*entry=NULL,*dep=NULL,*native=NULL,*light=NULL,*dark=NULL,*large=NULL,*cold=NULL,*symbolLimit=NULL; xvalue *state=NULL,*fake=NULL;
+ char *root=NULL,*entry=NULL,*dep=NULL,*native=NULL,*light=NULL,*dark=NULL,*large=NULL,*cold=NULL,*symbolLimit=NULL,*declarationBody=NULL; xvalue *state=NULL,*fake=NULL;
  char unique[60]; snprintf(unique,sizeof(unique),"symbols-%lu-%llu",GetCurrentProcessId(),(unsigned long long)GetTickCount64()); root=xidePathResolve(f->directory,unique); entry=xidePathResolve(root,"入口😀.xl"); dep=xidePathResolve(root,"helper.xl"); native=xidePathResolve(root,"helper.c"); light=xidePathResolve(root,"outline-hover-light.png"); dark=xidePathResolve(root,"outline-hover-dark.png");
  const char *saved="func main(...) as int\n    return 0\nend\n",*overload="func pick(int value) as int\n    return value\nend\nfunc pick(string value) as int\n    return 2\nend\nfunc main(...) as int\n    string 中文 = \"😀\"; auto second = pick(\"x\")\n    return second - 2\nend\n",*helper="export func answer() as int\n    return 42\nend\n",*overlay="\n\nexport func answer() as int\n    return 42\nend\n",*imported="import helper\nfunc main(...) as int\n    return helper.answer() - 42\nend\n";
  CHECK(root && entry && dep && native && light && dark && xrtDirCreateAll(root) && writeText(entry,saved) && writeText(dep,helper) && writeText(native,"int helper(void) { return 1; }\n"));
@@ -105,6 +106,14 @@ static int verify(void* user)
  xvalue* asyncMethods=get(xrtValueArrayGet(asyncOutline,0),"children");
  CHECK(xrtValueCount(asyncMethods)==1 && formatted(get(xrtValueArrayGet(asyncMethods,0),"name"),"fetch") && !xrtValueCount(get(xrtValueArrayGet(asyncMethods,0),"children")));
  CHECK(xuiTreeViewSetSelected(app.languageView->outline,3)==XUI_OK && xuiSetFocusWidget(app.context,app.languageView->outline)==XUI_OK && xuiInputKeyDown(app.context,XUI_KEY_ENTER,0)==XUI_OK && xuiInputKeyUp(app.context,XUI_KEY_ENTER,0)==XUI_OK && settle(&app) && caret(xl)==(int)(strstr(strstr(asynchronous,"async func fetch")+1,"async func fetch")+11-asynchronous));
+ declarationBody=malloc(strlen(declarationSymbolsBody)+1);CHECK(declarationBody);size_t declarationBytes=0;
+ for(const char* text=declarationSymbolsBody;*text;++text)if(*text!='\r')declarationBody[declarationBytes++]=*text;
+ declarationBody[declarationBytes]=0;
+ CHECK(replace(xl,declarationBody) && settle(&app) && waitOutline(&app) && app.languageView->outlineCount==34 && xrtValueCount(app.languageView->outlineResult)==13);
+ size_t field=SIZE_MAX;
+ for(size_t i=0;i<app.languageView->outlineCount;++i)if(formatted(get(app.languageView->outlineItems[i].symbol,"name"),"count"))field=i;
+ CHECK(field!=SIZE_MAX && xuiTreeViewSetSelected(app.languageView->outline,(int)field+1)==XUI_OK && xuiSetFocusWidget(app.context,app.languageView->outline)==XUI_OK && xuiInputKeyDown(app.context,XUI_KEY_ENTER,0)==XUI_OK && xuiInputKeyUp(app.context,XUI_KEY_ENTER,0)==XUI_OK && settle(&app) && caret(xl)==(int)(strstr(declarationBody,"count=0")-declarationBody));
+ free(declarationBody);declarationBody=NULL;
  symbolLimit=malloc(512000);CHECK(symbolLimit);size_t symbolBytes=0;
  for(unsigned i=0;i<4097;++i){int n=snprintf(symbolLimit+symbolBytes,512000-symbolBytes,"func limit_%u() as int\n return %u\nend\n",i,i);CHECK(n>0 && (size_t)n<512000-symbolBytes);symbolBytes+=(size_t)n;}
  CHECK(symbolBytes+strlen(saved)+1<512000);memcpy(symbolLimit+symbolBytes,saved,strlen(saved)+1);
@@ -171,6 +180,7 @@ static int verify(void* user)
  xide_text_file file={0}; CHECK(xideTextFileRead(entry,&file,&error) && !strcmp(file.text,saved)); xideTextFileClear(&file); CHECK(xideTextFileRead(dep,&file,&error) && !strcmp(file.text,helper)); xideTextFileClear(&file);
  printf("symbol_view_test passed: cold-path=%d; standard hover/outline or explicit legacy fallback, receipt/current-input guards, mouse hover, Ctrl+I, overload, central outline jump, batch/range/caret/tab/edit/C guards and preserved source bytes; renders in %s.\n",!f->legacy,root);
 cleanup:
+ free(declarationBody);
  free(symbolLimit);
  xrtValueRelease(fake); xrtValueRelease(state); if(began) xgeEnd(); xideAppDestroy(&app); free(root); free(entry); free(dep); free(native); free(light); free(dark); free(large); free(cold); xgeQuit(); return XGE_OK;
 }

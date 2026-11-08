@@ -2,6 +2,7 @@
    Native projection uses bounded coordinate buckets with the complete ordered
    converter as fallback;all scalar columns and UTF16 positions stay verified. */
 #include "services/semantic_definition.h"
+#include "services/semantic_symbols.h"
 #include "protocol/lsp_wire.h"
 #include "platform/path.h"
 #include <stdlib.h>
@@ -54,6 +55,15 @@ static int typedCapacity(size_t nodes,const xide_semantic_source* sources,size_t
  *coordinateBudget=TYPED_DEFINITION_BYTES-used;
  if(*coordinateBudget>8u*1024u*1024u)*coordinateBudget=8u*1024u*1024u;
  return 1;
+}
+static int symbolNativeName(const xls_semantic_index* index,const xls_declaration_fact* fact,xls_index_fact* token);
+static int nativeDeclarationName(const xls_semantic_index* index,size_t at,unsigned* ordinal)
+{
+ *ordinal=0;xls_declaration_fact fact={0};xls_index_fact token={0};
+ if(!xlsSemanticIndexDeclarationFact(index,at,&fact))return 0;
+ if(!fact.nameNode || !fact.nameRange.known)return 1;
+ if(!symbolNativeName(index,&fact,&token))return 0;
+ *ordinal=fact.nameNode;return 1;
 }
 #endif
 static int buildLookup(xide_semantic_definitions* d);
@@ -263,6 +273,22 @@ static xide_semantic_definitions* definitionsCreate(const xvalue* index,
   if(okay && n->declaredType) d->typeDeclarations[d->typeCount++]=(declaration){n->declaredType,i};
  }
  if(okay){int fast=coordinateBudget ? convertDense(ends,used,sources,count,coordinateBudget) : -1;okay=fast<0 ? convert(ends,used,sources) : fast;}
+ /* Complete source selections for checked callable declarations whose shared
+    serializer only supplied a token/name child. Executable IDs remain intact. */
+ for(size_t i=0;okay && i<d->count;++i){
+  node* n=d->nodes+i;if(n->selection.source || (!n->declared && !n->declaredType))continue;
+  unsigned name=0;
+#ifdef XLS_COMPILER_XRT
+  if(typed){if(!nativeDeclarationName(typed,i,&name)){okay=0;break;}}
+  else
+#endif
+  {
+   const xvalue* row=xrtValueArrayGet(rows,i);xls_declaration_shape shape=xlsDeclarationShapeFromText(string(get(row,"kind")));
+   if(shape.name==XLS_DECL_NAME_TOKEN)name=(unsigned)i+1;
+   else if(shape.name==XLS_DECL_NAME_CHILD && i+1<d->count && d->nodes[i+1].parent==i+1 && d->nodes[i+1].nameSyntax)name=(unsigned)i+2;
+  }
+  if(name){if(name>d->count){okay=0;break;}n->selection=d->nodes[name-1].token;}
+ }
  for(size_t i=0;okay && i<d->count;++i) {
   node* n=&d->nodes[i];
   xstrview name,header;okay=nodeTextSlices(n,sources,&name,&header);
@@ -297,16 +323,18 @@ xide_semantic_definitions* xideSemanticDefinitionsCreate(const xvalue* index,con
  NULL,
 #endif
  sources,count,error); }
-#ifdef XLS_COMPILER_XRT
-xide_semantic_definitions* xideSemanticDefinitionsCreateTyped(const xls_semantic_index* index,const xide_semantic_source* sources,size_t count,xide_model_error* error)
-{ return definitionsCreate(NULL,index,sources,count,error); }
 static size_t navigationBytes(const xide_semantic_definitions* d)
 {
+#ifdef XLS_COMPILER_XRT
  if(d->native)return nativePointsBytes(d);
+#endif
  size_t bytes=sizeof(*d)+d->sourceCount*sizeof(char*)+(d->count+1)*(sizeof(node)+2*sizeof(declaration))+d->textBytes;
  for(size_t i=0;i<d->sourceCount;++i)bytes+=strlen(d->paths[i])+1;
  return bytes+d->cursors.Capacity*sizeof(cursor_row)+d->references.Capacity*sizeof(reference_row);
 }
+#ifdef XLS_COMPILER_XRT
+xide_semantic_definitions* xideSemanticDefinitionsCreateTyped(const xls_semantic_index* index,const xide_semantic_source* sources,size_t count,xide_model_error* error)
+{ return definitionsCreate(NULL,index,sources,count,error); }
 static void destroyNavigation(void* value){xideSemanticDefinitionsDestroy(value);}
 static int navigationAppend(xstrbuf* key,const void* data,size_t bytes)
 {return key->Size<=XLS_PROJECTION_KEY_BYTES && bytes<=XLS_PROJECTION_KEY_BYTES-key->Size && xrtStrBufAppend(key,(xstrview){data,bytes});}
@@ -331,6 +359,7 @@ static int navigationKey(xls_semantic_check* check,const xide_semantic_source* s
  return navigationOwnedKey(sources,count,key,wanted);
 }
 struct xide_navigation_snapshot {
+ xatomic32 references;
  xls_semantic_check* owner;xls_projection_store* cache;uint64_t revision;int bound;
  xide_semantic_definitions* points;xls_projection* pointLease;xide_navigation_work pointWork;
  size_t count,bytes;xide_semantic_source sources[];
@@ -339,11 +368,13 @@ typedef struct navigation_admission {xls_semantic_check* owner;xls_projection_st
 static _Thread_local navigation_admission activeNavigationAdmission;
 void xideSemanticNavigationDestroy(xide_navigation_snapshot* snapshot)
 {
- if(!snapshot)return;
+ if(!snapshot || xrtAtomic32FetchSub(&snapshot->references,1,XMEMORY_ACQ_REL)!=1)return;
  xideSemanticDefinitionsReleaseTyped(snapshot->points,snapshot->pointLease);
  for(size_t i=0;i<snapshot->count;++i)xrtFree((void*)snapshot->sources[i].path);
  xlsSemanticCheckDestroy(snapshot->owner);xrtFree(snapshot);
 }
+xide_navigation_snapshot* xideSemanticNavigationRetain(xide_navigation_snapshot* snapshot)
+{if(snapshot)xrtAtomic32FetchAdd(&snapshot->references,1,XMEMORY_RELAXED);return snapshot;}
 xide_navigation_snapshot* xideSemanticNavigationCapture(xls_semantic_check* check,
  const xide_semantic_source* sources,size_t count,xide_model_error* error)
 {
@@ -362,6 +393,7 @@ xide_navigation_snapshot* xideSemanticNavigationCapture(xls_semantic_check* chec
  if(bytes>XLS_PROJECTION_KEY_BYTES)return NULL;
  for(size_t i=0;i<count;++i){size_t n=strlen(sources[i].path);if(n>=XLS_PROJECTION_KEY_BYTES-bytes)return NULL;bytes+=n+1;}
  xide_navigation_snapshot* snapshot=xrtCalloc(1,sizeof(*snapshot)+count*sizeof(*sources));if(!snapshot)return NULL;
+ xrtAtomic32Init(&snapshot->references,1);
  snapshot->owner=xlsSemanticCheckRetain(check);snapshot->count=count;snapshot->bytes=bytes;
  for(size_t i=0;i<count;++i){
   xls_input_source row;
@@ -729,3 +761,4 @@ xvalue* xideSemanticDocumentSymbols(xide_semantic_definitions* d,const char* pat
 #include "services/semantic_reference_shard.inc"
 #include "services/semantic_native_points.inc"
 #endif
+#include "services/semantic_symbols.inc"

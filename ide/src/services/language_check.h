@@ -40,6 +40,9 @@ int xideLanguageCheckPrepareNavigation(xide_language_check* check,const char* pa
  * If optional preparation declined,this queues the original background view. */
 int xideLanguageCheckPreparePointNavigation(xide_language_check* check,const char* path,
     int version,char* message,size_t capacity);
+/* Independent declaration demand; reuses exact point validation when ready. */
+int xideLanguageCheckPrepareSymbols(xide_language_check* check,const char* path,
+    int version,char* message,size_t capacity);
 /* Standalone native host only. Captures immutable text references, labels and
    wire versions without copying/revalidating entire bodies or doing physical
    alias I/O on the caller. target is the entry's document key. A static check

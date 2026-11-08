@@ -54,6 +54,7 @@ xvalue* xideSemanticNavigationPointHover(const xide_navigation_snapshot* snapsho
 xide_navigation_snapshot* xideSemanticNavigationCapture(xls_semantic_check* check,
     const xide_semantic_source* sources,size_t count,xide_model_error* error);
 void xideSemanticNavigationDestroy(xide_navigation_snapshot* snapshot);
+xide_navigation_snapshot* xideSemanticNavigationRetain(xide_navigation_snapshot* snapshot);
 /* Bind once, before concurrent resolution/publication. Retires an obsolete
  * resident and captures this bank's publication revision. The borrowed bank
  * must outlive PreparePoints/Resolve calls that use it;Destroy does not use it.

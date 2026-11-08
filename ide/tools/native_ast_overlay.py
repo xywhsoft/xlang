@@ -65,6 +65,8 @@ def derive(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
         text = text.replace('#define XLS_NATIVE_AST_STORAGE 1', '#define XLS_NATIVE_AST_STORAGE 1\n#define XLS_NATIVE_AST_PACKAGE_FIELDS 1')
     if profile.get('cRecords'):
         text = text.replace('#define XLS_NATIVE_AST_STORAGE 1','#define XLS_NATIVE_AST_STORAGE 1\n#define XLS_NATIVE_AST_C_RECORD 1')
+    if 'XL6_AST_NATIVE_EXTERN_FUNC,' in text and 'XL6_AST_NATIVE_EXTERN_SPECIAL,' in text:
+        text = text.replace('#define XLS_NATIVE_AST_STORAGE 1','#define XLS_NATIVE_AST_STORAGE 1\n#define XLS_NATIVE_AST_EXTERNAL_MEMBER_DECLS 1')
     identity = '    uint32 semanticTypeId;\n    uint64 semanticTypeAbiId;'
     if text.count(identity) != 1:
         raise ValueError('shared AST private leaf-reference seam changed')

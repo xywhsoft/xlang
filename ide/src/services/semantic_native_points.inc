@@ -48,6 +48,11 @@ static node* nativePointNode(xide_semantic_definitions* d,size_t at,node* out)
  *out=(node){0};xls_index_fact f;
  if(!nativeShape(d,at,&f,out) || !nativePointRange(d,f.range,f.source,&out->full) ||
     !nativePointRange(d,f.tokenRange,f.source,&out->token) || !nativePointRange(d,f.selectionRange,f.selectionSource,&out->selection))return NULL;
+ if(!out->selection.source && (out->declared || out->declaredType)){
+  unsigned ordinal=0;xls_index_fact token={0};
+  if(!nativeDeclarationName(d->native->index,at,&ordinal))return NULL;
+  if(ordinal && (!xlsSemanticIndexFact(d->native->index,(size_t)ordinal-1,&token) || !nativePointRange(d,token.tokenRange,token.source,&out->selection)))return NULL;
+ }
  out->type=(char*)f.canonical;return out;
 }
 static int nativePointText(xide_semantic_definitions* d,node* n,char* name,char* header)
@@ -112,6 +117,10 @@ static xide_semantic_definitions* nativePointsCreate(const xls_semantic_index* i
  d->lookupReady=1;if(!xrtArrayReserve(&d->cursors,nodes*2) || d->cursors.Capacity>nodes*4+8)goto done;
  for(size_t i=0;i<nodes;++i){
   node n={0};xstrview name,header;n.full=spans[i].full;n.token=spans[i].token;n.selection=spans[i].selection;
+  if(!n.selection.source && selections[i]){
+   unsigned ordinal=0;if(!nativeDeclarationName(index,i,&ordinal) || ordinal>nodes){invalid=1;goto done;}
+   if(ordinal)n.selection=spans[ordinal-1].token;
+  }
   if(!nodeTextSlices(&n,sources,&name,&header) || (name.Data && !nativeTextCharge(&textCharge,name.Size,512)) || (header.Data && !nativeTextCharge(&textCharge,header.Size,2048))){invalid=1;goto done;}
   int selection=selections[i];
   if(!appendCursor(d,&n.token,(uint32_t)i|(selection && sameSelection(&n.selection,&n.token) ? CURSOR_SELECTION : 0)) ||

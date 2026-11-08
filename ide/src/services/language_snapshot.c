@@ -39,6 +39,7 @@ static const char* string(const xvalue* v) { xstrview s={0}; return v && xrtValu
 static int put(xvalue* o,const char* key,xvalue* value) { return value && xrtValueObjectSetNew(o,sv(key),value); }
 static int fail(xide_model_error* e,const char* message) { e->code=XIDE_MODEL_INVALID; snprintf(e->message,sizeof(e->message),"%s",message); return 0; }
 static int cancelled(xide_language_check* q) { return InterlockedCompareExchange(&q->cancel,0,0)!=0 || (q->externalCancel && q->externalCancel(q->externalUser)); }
+static int symbolsCancelled(void* user){return cancelled(user);}
 #ifdef XLS_COMPILER_XRT
 static int nativeCancelled(void* user) { return cancelled(user); }
 static void nativeQueryWake(void* user) { SetEvent((HANDLE)user); }
@@ -742,11 +743,27 @@ analysed:
      xideSemanticNavigationBind(q->deferredNavigation,xlsWorkerProjectionStore(q->semanticActor));
      xide_model_error pointError={0};
      if(xideSemanticNavigationPreparePoints(q->deferredNavigation,&pointError)<0){*e=pointError;goto done;}
+     if(!q->queryPath && !q->nativeBridge)q->symbolNavigation=xideSemanticNavigationRetain(q->deferredNavigation);
     }else q->definitions=xideSemanticDefinitionsAcquireTyped(xlsWorkerProjectionStore(q->semanticActor),nativeCheck,sources,graph.count,&q->navigationProjection,&q->navigationWork,e);
    } else if(nativeCheck) q->definitions=xideSemanticDefinitionsAcquireTyped(xlsWorkerProjectionStore(q->semanticActor),nativeCheck,sources,graph.count,&q->navigationProjection,&q->navigationWork,e);
    else
 #endif
    q->definitions=xideSemanticDefinitionsCreate(index,sources,graph.count,e);
+   if(q->definitions && !q->queryPath && !q->nativeBridge
+#ifdef XLS_COMPILER_XRT
+      && !q->referenceMode
+#endif
+   ){
+    xide_model_error symbolError={0};
+#ifdef XLS_COMPILER_XRT
+    if(nativeCheck)q->symbols=xideSemanticSymbolsCreateTyped(xlsSemanticCheckTypedIndex(nativeCheck),sources,graph.count,symbolsCancelled,q,&q->symbolWork,&symbolError);
+    else
+#endif
+    q->symbols=xideSemanticSymbolsCreate(index,sources,graph.count,symbolsCancelled,q,&q->symbolWork,&symbolError);
+#ifdef XLS_COMPILER_XRT
+    q->symbolState=q->symbols ? 3 : -1;snprintf(q->symbolError,sizeof(q->symbolError),"%s",symbolError.message);
+#endif
+   }
    if(!q->definitions
 #ifdef XLS_COMPILER_XRT
       && !q->deferredNavigation

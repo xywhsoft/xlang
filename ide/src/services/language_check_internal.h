@@ -2,6 +2,7 @@
 #define XIDE_LANGUAGE_CHECK_INTERNAL_H
 #include "services/language_check.h"
 #include "services/semantic_definition.h"
+#include "services/semantic_symbols.h"
 #include <windows.h>
 struct xide_language_check {
  CRITICAL_SECTION lock; HANDLE worker; volatile LONG cancel;
@@ -16,11 +17,13 @@ struct xide_language_check {
  HANDLE stopEvent; enum xide_guard_state guardState; char guardError[512];
  xvalue *guardFiles,*guardResolution; xide_toolchain_stamp guardToolchain;
  xide_semantic_definitions* definitions;
+ xide_semantic_symbols* symbols;xide_symbol_work symbolWork;
 #ifdef XLS_COMPILER_XRT
  char* referencePath;int referenceLine,referenceCharacter,referenceMode;
  struct xide_reference_shard* referenceShard;struct xide_reference_key* referenceKey;
  xls_projection* navigationProjection;xide_navigation_work navigationWork;
  xide_navigation_snapshot* deferredNavigation;
+ xide_navigation_snapshot* symbolNavigation;int symbolState;char symbolError[512];
  HANDLE navigationEvent;int navigationState;char navigationError[512];
  xls_context* context;
  int signatureMode; unsigned signatureFlags; xls_signature_stats signatureStats;

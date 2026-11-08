@@ -1,0 +1,1052 @@
+{
+  "format": "xlang-declaration-projection-acceptance-1",
+  "date": "2026-11-09",
+  "phase": "M7a2b126b",
+  "phaseStatus": "correctness-and-declaration-slice-complete-candidate-not-delivered",
+  "fullGoalComplete": false,
+  "shippingDelivery": false,
+  "externalPublishPerformedByThisStage": false,
+  "correctnessPassed": true,
+  "performanceQualified": false,
+  "baseGitCommit": "49e48b8a918d54eb090d0da11068b9425b496dbb",
+  "implementationInputs": {
+    "ide/src/analysis/declaration.h": "9d9ef20602a6c5984d7f4a0cc05bdaec6637bbda22779e7be0b6ea22141b5145",
+    "ide/src/analysis/frontend_declarations.inc": "65211332521108faea2c9c774149476e33252a2b36a5535641090a9ba1a5da50",
+    "ide/src/services/semantic_symbols.h": "90648a7ed12d71cf50fad8f7b691529c8e0d2fdfd25d9050d6c241464238f8f9",
+    "ide/src/services/semantic_symbols.inc": "1e1e2a2996eb29ca7de4780a917f7b8940af082ec3bee433f7204cb86df090ca",
+    "ide/tests/declaration_symbols_source.h": "d71d6a06080ec72d08847422caa4da03506358371996662592946a29a40280c6",
+    "ide/tests/declaration_symbols_test.c": "cf79778162540070aee426dd57ce9e5b062834cbb708d305f0ecd056d4531a50",
+    "ide/tools/check_lsp_declarations.py": "9d5248cd102a6b09af1effaec5c02e953d7037e19a13c4389ae6c1e8a1c1c3b6",
+    "ide/src/analysis/frontend_index.inc": "73ab0aa0917167e90d7e6c0b1eb41d31a5791ad03d8e57765dce84a87e81efe3",
+    "ide/src/server/xlang_ls.c": "00b1a235c316030e2e928ac630adb8684b3ec56362981f94f471404565258be5",
+    "ide/src/services/language_check.c": "1d2511e3d376927219f546aed9ee239b38364b576e8d6085589751a9dbf404d5",
+    "ide/src/services/language_check.h": "c5c8b1be14d7cfebb2957e12efb4c25386e2a9d60870419a8d791f4b9a33ad8d",
+    "ide/src/services/language_check_internal.h": "fd3ee180b1a25286badb7de339c443a1416c0136f4b00f952440c12cec5a11a0",
+    "ide/src/services/language_snapshot.c": "8062fe3a67d39177c452a73f92963d7a87d5bf60c07856871fa938f209333060",
+    "ide/src/services/semantic_definition.c": "7ab8066594c00c54c01117f61707ed8400d904b3da5ac7142aeb29ce46ac5c06",
+    "ide/src/services/semantic_definition.h": "02e9ed9eae42af86913ae9e3cfe339d37245e24ced11b5dce8103f8284c9d3e9",
+    "ide/src/services/semantic_native_points.inc": "ef8175877b2b1c0814286ce98a141d8469437f11d2f3c2cc3f8e7b5713f19113",
+    "ide/tests/symbol_view_test.c": "5aaf4a517aa3ee57fc5d65c0aaf8cb532e612274d6db2d4f2aa12bdb1e0329b4",
+    "ide/tools/build_lsp_core.py": "bdc72820246ce0cacaff657ea434597766bcac0bbf44080afd9b33db0be1ab05",
+    "ide/tools/native_ast_overlay.py": "e27f638d2b34815243a84ce5d234acdaeb5c90fbd03c8f1cdbc57f31dd55a240"
+  },
+  "scope": "Shared original checked declaration facade; independently owned compact declarations over retained validated point view; all source roles, callable boundaries, lexical ordering and batched declaration coordinates; asynchronous guarded document-symbol demand; preserve original navigation admission and executable identities.",
+  "native": {
+    "buildReceiptSha256": "01d84dd9639b98a08dc36fbcf568f17815cde6b652cb2297e3248917b79fb2e0",
+    "compileInvocations": 240,
+    "tests": 142,
+    "privateAstConsumers": 146,
+    "inputs": 1410,
+    "outputs": 144,
+    "serverSha256": "447775c9d33cd260787901a63761cc581ee0623ac3f5509fffe90785264a780f",
+    "imports": [
+      "IPHLPAPI.DLL",
+      "KERNEL32.dll",
+      "msvcrt.dll",
+      "ole32.dll",
+      "SHELL32.dll",
+      "VERSION.dll",
+      "WS2_32.dll"
+    ],
+    "declarationFixture": {
+      "name": "declaration_symbols_test",
+      "stdout": "declaration refusal points: 115; verified point view remains unchanged; no repeated CRT node/type/reference table allocations.\r\nMinified declarations: 513; batch endpoints: 2052; per-offset line scans: 0; owned bytes: 118470.\r\ndeclaration_symbols_test passed: 4355 checks; source roles, stable raw facts, typed/JSON/proof parity, callable locals, sorted parents, refusals, cancellation, shared certificate and detached ownership.\r\n"
+    }
+  },
+  "protocol": {
+    "suites": [
+      {
+        "name": "selection-full",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_native_selection.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-symbols-candidate.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\selection-full"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "configuration-full",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_analysis_configuration.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-symbols-candidate.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\configuration-full"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "derived-wire-full",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_ir_derived.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-symbols-candidate.exe",
+          "--reference",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-symbols-reference.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\derived-wire-full"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "current-wire-full",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_current_core.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-symbols-candidate.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\current-wire-full"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "completion-full",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_completion_facts.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-symbols-candidate.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\completion-full"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "automatic-full",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_automatic_diagnostics.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-symbols-candidate.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\automatic-full"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "final-wire-full",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_final_lsp_stdio.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-symbols-candidate.exe",
+          "--core",
+          "D:\\GIT\\x-lang",
+          "--packages",
+          "D:\\GIT\\x-lang\\lib\\bindings",
+          "--out",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\final-wire-full"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "serializer-full",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_final_lsp_serializer.py",
+          "--build",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2",
+          "--out",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\serializer-full"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "final-frontend-full",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_final_lsp_frontend.py",
+          "--build",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2",
+          "--core",
+          "D:\\GIT\\x-lang",
+          "--out",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\final-frontend-full"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "module-semantics",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_module_semantics.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-symbols-candidate.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\module-semantics"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "native-analysis",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_native_analysis.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-symbols-candidate.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\native-analysis"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "native-completion",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_native_completion.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-symbols-candidate.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\native-completion"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "references",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_references.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-symbols-candidate.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\references"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "reference-proofs",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_reference_proofs.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-symbols-candidate.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\reference-proofs"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "folding",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_folding.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-symbols-candidate.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\folding"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "selection",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_selection.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-symbols-candidate.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\selection"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "signature",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_signature_help.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-symbols-candidate.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\signature"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "semantic-reads",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_semantic_reads.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-symbols-candidate.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\semantic-reads"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "document-symbols",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_document_symbols.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-symbols-candidate.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\document-symbols"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "automatic-semantics",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_automatic_semantics.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-symbols-candidate.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\automatic-semantics"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "incremental",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_incremental.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-symbols-candidate.exe",
+          "--compiler",
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\incremental"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "declarations",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_declarations.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-symbols-candidate.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\declarations"
+        ],
+        "exit": 0
+      }
+    ],
+    "declarationCases": [
+      {
+        "name": "complete-source-declaration-roles-and-lexical-hierarchy",
+        "passed": true,
+        "symbols": 34
+      },
+      {
+        "name": "standard-cold-flat-query-preserves-all-roles-and-containers",
+        "passed": true
+      },
+      {
+        "name": "property-and-special-member-targets-match-before-and-after-full-navigation",
+        "passed": true
+      },
+      {
+        "name": "edited-declaration-projection-replaces-source-names-and-ranges",
+        "passed": true
+      }
+    ]
+  },
+  "gui": {
+    "sourceScope": {
+      "baseCommit": "49e48b8a918d54eb090d0da11068b9425b496dbb",
+      "overlays": {
+        "ide/src/analysis/declaration.h": "9d9ef20602a6c5984d7f4a0cc05bdaec6637bbda22779e7be0b6ea22141b5145",
+        "ide/src/analysis/frontend_declarations.inc": "65211332521108faea2c9c774149476e33252a2b36a5535641090a9ba1a5da50",
+        "ide/src/services/semantic_symbols.h": "90648a7ed12d71cf50fad8f7b691529c8e0d2fdfd25d9050d6c241464238f8f9",
+        "ide/src/services/semantic_symbols.inc": "1e1e2a2996eb29ca7de4780a917f7b8940af082ec3bee433f7204cb86df090ca",
+        "ide/tests/declaration_symbols_source.h": "d71d6a06080ec72d08847422caa4da03506358371996662592946a29a40280c6",
+        "ide/tests/declaration_symbols_test.c": "cf79778162540070aee426dd57ce9e5b062834cbb708d305f0ecd056d4531a50",
+        "ide/tools/check_lsp_declarations.py": "9d5248cd102a6b09af1effaec5c02e953d7037e19a13c4389ae6c1e8a1c1c3b6",
+        "ide/src/analysis/frontend_index.inc": "73ab0aa0917167e90d7e6c0b1eb41d31a5791ad03d8e57765dce84a87e81efe3",
+        "ide/src/server/xlang_ls.c": "00b1a235c316030e2e928ac630adb8684b3ec56362981f94f471404565258be5",
+        "ide/src/services/language_check.c": "1d2511e3d376927219f546aed9ee239b38364b576e8d6085589751a9dbf404d5",
+        "ide/src/services/language_check.h": "c5c8b1be14d7cfebb2957e12efb4c25386e2a9d60870419a8d791f4b9a33ad8d",
+        "ide/src/services/language_check_internal.h": "fd3ee180b1a25286badb7de339c443a1416c0136f4b00f952440c12cec5a11a0",
+        "ide/src/services/language_snapshot.c": "8062fe3a67d39177c452a73f92963d7a87d5bf60c07856871fa938f209333060",
+        "ide/src/services/semantic_definition.c": "7ab8066594c00c54c01117f61707ed8400d904b3da5ac7142aeb29ce46ac5c06",
+        "ide/src/services/semantic_definition.h": "02e9ed9eae42af86913ae9e3cfe339d37245e24ced11b5dce8103f8284c9d3e9",
+        "ide/src/services/semantic_native_points.inc": "ef8175877b2b1c0814286ce98a141d8469437f11d2f3c2cc3f8e7b5713f19113",
+        "ide/tests/symbol_view_test.c": "5aaf4a517aa3ee57fc5d65c0aaf8cb532e612274d6db2d4f2aa12bdb1e0329b4",
+        "ide/tools/build_lsp_core.py": "bdc72820246ce0cacaff657ea434597766bcac0bbf44080afd9b33db0be1ab05",
+        "ide/tools/native_ast_overlay.py": "e27f638d2b34815243a84ce5d234acdaeb5c90fbd03c8f1cdbc57f31dd55a240"
+      },
+      "snapshotRoot": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\gui-source-v3",
+      "objectRoot": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\gui-objects-v3",
+      "sdkJunction": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\gui-source-v3\\ide\\third_party\\xge_sdk",
+      "sdkTarget": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\sdk-frozen",
+      "buildScriptOnlyChange": "Move compiler objects to task-owned directory; no source behavior change",
+      "reason": "Immutable current committed IDE plus this slice; preserve concurrent unrelated frontend work. Executables still use actual repository release/win_x64 runtime.",
+      "sdkOriginalTarget": "D:\\GIT\\x-lang\\ide\\third_party\\xge_sdk",
+      "sdkFreezeReceiptSha256": "53917c29c1d576ee3f965e107423d51f7170169a8996677ba46fdbfaa30387d4"
+    },
+    "tests": [
+      {
+        "fixture": "language_optional_fields_test",
+        "exit": 0,
+        "arguments": [
+          "all"
+        ]
+      },
+      {
+        "fixture": "input_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\gui-alias-1794180413084617900\\input_test"
+        ]
+      },
+      {
+        "fixture": "completion_view_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\gui-alias-1794180413084617900\\completion_view_test",
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\absent-compiler.exe"
+        ]
+      },
+      {
+        "fixture": "automatic_diagnostics_view_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\gui-alias-1794180413084617900\\automatic_diagnostics_view_test",
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe"
+        ]
+      },
+      {
+        "fixture": "settings_menu_frame_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\gui-alias-1794180413084617900\\settings_menu_frame_test",
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe"
+        ]
+      },
+      {
+        "fixture": "analysis_configuration_view_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\gui-alias-1794180413084617900\\analysis_configuration_view_test",
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe"
+        ]
+      },
+      {
+        "fixture": "analysis_project_context_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\gui-alias-1794180413084617900\\analysis_project_context_test"
+        ]
+      },
+      {
+        "fixture": "analysis_catalog_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\gui-alias-1794180413084617900\\analysis_catalog_test"
+        ]
+      },
+      {
+        "fixture": "symbol_view_test",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\gui-alias-1794180413084617900\\symbol_view_test",
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe"
+        ]
+      },
+      {
+        "fixture": "symbol_view_test-old-capabilities",
+        "exit": 0,
+        "arguments": [
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\gui-alias-1794180413084617900\\legacy\\output",
+          "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+          "legacy"
+        ],
+        "serverMode": "controlled-old-capability-fixture",
+        "pairedServerSha256": "24f226aa16e312e357921ccd37baa369b9ddf9efa198083c2884ef5c4a10c3a0"
+      }
+    ],
+    "objects": 113,
+    "guiCandidateSha256": "131e1121f1bcf75b47a224b8d44f47debd19267958e5b32b3c3a22e103eb0117",
+    "pairedServerSha256": "447775c9d33cd260787901a63761cc581ee0623ac3f5509fffe90785264a780f",
+    "sdkFreeze": {
+      "status": "passed",
+      "scope": "Frozen compiler SDK only; executables use actual root runtime and verify its DLL matches this SDK.",
+      "original": "D:\\GIT\\x-lang\\ide\\third_party\\xge_sdk",
+      "frozen": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\sdk-frozen",
+      "files": {
+        "sdk_manifest.json": "223a64f59ef77701f4729e87b328bd4509300df1e46bf015f2487e5803ab926c",
+        "xge-source-files.json": "8b0e92db1fa95dae2c472335d7fed882b62a39b63501ff81dc445594fbe66ca9",
+        "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3",
+        "xge.h": "1821696314a82530f0fb06290a9ef4483083881444ebf1d00fc362a4426c68a5",
+        "xge.lib": "8be9340043d64175c62dfdc26049d955cc99b28302dcadfeb65f086bc94141c2",
+        "xge_build_config.h": "bdcae83daf236e3cb234ea0e8bda4c1841c7cf71cea360714468f78b010614b9",
+        "xge_config.h": "5d960786a736321b22d1b88cbe2d3aaac807e8afaa8a7bd0a4e509b06f7b76bf",
+        "xge_host_xrt.h": "5e43dc2cff98741941c1be6d02832d6cf34256521c94975e4fe96fd411e7b60f",
+        "xnative_transfer.h": "620fe84af1c7c5f40006a65a4ca4435a5d62f2fd500b345514829e27c08dff6f",
+        "xui.h": "b0f048522b1e2c19d65bfa68f04c4ce066f3c4762f4ab54c1df3341732537893",
+        "xui_config.h": "735eb9adf7a85f28902454478f96984f91b2b3971d00deefa28dc8df06ecbfad",
+        "xui_document.h": "7062c587237e6486c9efb84ba8e5023b9346ac90e4ab6afe780ad00aa5bd6fe2",
+        "xui_document_ui.h": "e343a8600039805be3c5e481fe1d15dbcd426490ce2ad2b5dca65f78b6574bb2",
+        "provenance/parent-sdk-manifest.json": "e35eda1f6f8f28437204fa565d5ee7949b35feeb639b7e6d36db4cb559e3b30f",
+        "provenance/source-build-manifest.json": "5d12ce228878a9f990297d665143e2d84745ab9df22710fbf5a94708ea232d24",
+        "provenance/source-build-report.json": "5dfb404668a8337e9708830d82c4c14403b9871bbe5bddce68394a2395dc3825",
+        "provenance/xrt-declarations.json": "76835d98e81b4f56507ca2845ba782c0ba147c9bbe00543578aabb534a6a141e",
+        "extlibs/xrt/upstream.json": "13bbabde78aa12ad00b6546f7d464f41403095cd2010fb8c4b154825a2cad89c",
+        "extlibs/xrt/xrt.h": "fcca8e92dc4f04384ec39ce35dfdbfbe676c21e363c4b311ecd12165fc6ef5fc",
+        "extlibs/xrt/xrt_config.h": "0aa49016ab725145a8043619b860f780d0b81cbb2184084aaf1c485fa57bf314",
+        "extlibs/xrt/extlibs/xllm/include/xllm.h": "53921f2b7888eaea36a91cb014c482de2260b2f21c98c299138783b21fcd4ab1",
+        "extlibs/xrt/extlibs/xllm/include/xllm/api.h": "0182c8e567ea936444666e58be148ef20b6fe693f85db193e3895af5ab436c6d",
+        "extlibs/xrt/extlibs/xllm/include/xllm/executor.h": "07c29f7190a909c6266f807cf1a675a4b764bfb133db4dd47c0a1a58e9b812cf",
+        "extlibs/xrt/extlibs/xllm/include/xllm/features.h": "1865a3cca266bb8035d6c313e1dbd18cb6a1f93be72059ef0e4b1619a6c874e8",
+        "extlibs/xrt/extlibs/xllm/src/internal/xllm_internal.h": "36c04e2f6bcb6588fb5f82bf7f1e5c907f2ea4446fe340421babdedb3319a14e",
+        "extlibs/xrt/extlibs/xllm-session/include/xllm-session.h": "df6bc5bdee305d163e38874252f6d58d4542c67bcb24384c89a56a59a88cda97",
+        "extlibs/xrt/extlibs/xllm-session/include/xllm-session/api.h": "737969514039b3d072b231dfdfe9925e0478b403ebe95489761e0b08503aeb2b",
+        "extlibs/xrt/extlibs/xllm-session/include/xllm-session/features.h": "a0fefc50260d09e1e8d00a1487169d8e9402f6edc61e775f20695d33e3ec2624",
+        "extlibs/xrt/extlibs/xllm-session/src/internal/xllm_session_internal.h": "1df1879ff315d72f370058c19526076732404b9b1070c9eaad4dbf2821ef22f5",
+        "extlibs/xrt/extlibs/xwork/include/xwork.h": "b5683a0fac630c60f51d95bf728b9031aa99a4d05fcc81ba642e2110bcc82c02",
+        "extlibs/xrt/extlibs/xwork/include/xwork/api.h": "e3e05ee6f950d879ed03c63c66d6c7a7108c5aa20bcfabcf69505e6667b41ece",
+        "extlibs/xrt/extlibs/xwork/include/xwork/features.h": "91996f1fc399ed139543929d919af4a48b2e044979866650f0414ff822fd2be3",
+        "extlibs/xrt/extlibs/xwork/src/internal/xwork_internal.h": "a899e654a4aa31ff7f0c250be83a42c604beb4b7869903dc881b13f743ac7920",
+        "extlibs/xrt/include/xrt/detail/wait.h": "5bb75cbad71ec10ccbbc1278bf2458dfc58948c7a33cf4daf11404bf84ed59cd",
+        "provenance/compatibility-patches/patch-manifest.json": "0bd32e3bdf09fef54395d878798be434d982f96be910f79a69d9f8fa785fc234",
+        "provenance/compatibility-patches/upstream.json": "31451c4e78a4359dcd809394873231369108208b23e63f93e21df9bfa960de6a",
+        "provenance/compatibility-patches/upstream.json.patch": "132c3fbf36b554c61d69629f4e56dc7011057a1b34f3ca4891f7e20de96c3ee1",
+        "provenance/compatibility-patches/xrt.h": "095a852f390a83e7adef52e8e456634298f40245b7a36ec1e55b138e91143e16",
+        "provenance/compatibility-patches/xrt.h.patch": "2437a75331c1804bffb1bcbd389c126b42583b909dfef2a4a60e90ff3e2c676c",
+        "provenance/compatibility-patches/xui_code_annotation.c": "3bd2b3e67c77d6915aa2df0b5df62451e88ca1d025cb7dddc42eaf619d3f4105",
+        "provenance/compatibility-patches/xui_code_annotation.patch": "d2609097c5ae55cfaf398657623966704d5d006d289f8b99dbb4b59e3e44c33a",
+        "provenance/compatibility-patches/xui_code_edit.c": "943ae32753216072fc348b4eae6deb52c1441f8b1da85e0b977fa68c4b57d401",
+        "provenance/compatibility-patches/xui_code_edit.patch": "8ae0baa90cb05400d4b949276a3efc55845c94e56b3705f3f9dbe5b352409b64",
+        "provenance/compatibility-patches/xui_find.c": "119950af38e3d0d1617d1b666d2d046b7b2d8d360e0cf60b99b8b7aa91983832",
+        "provenance/compatibility-patches/xui_find.patch": "b61f2531267809547ffdbaff64e8ab2587ac4ff3990bff7c7b59ebbbf4e5d0c0",
+        "provenance/source-2174bf5b8e68-2c4a203361ee/parent-sdk-manifest.json": "c0fbd47f95fafe863fae241ece7d4654d3908f5efb6b3ab2a1b678cb59b79f93",
+        "provenance/source-2174bf5b8e68-2c4a203361ee/source-build-manifest.json": "2afce80ad86c7baf861d980ad1f3713b1e59366f6ebb2b5af4587f704ea1025d",
+        "provenance/source-2174bf5b8e68-2c4a203361ee/source-build-report.json": "1e1ee996688d157c7a50414ee6c64f1a811215600a6774c50803d67479195a02",
+        "provenance/source-2174bf5b8e68-2c4a203361ee/xrt-declarations.json": "76835d98e81b4f56507ca2845ba782c0ba147c9bbe00543578aabb534a6a141e",
+        "provenance/source-2174bf5b8e68-431e42320088/parent-sdk-manifest.json": "e675c7b210511c91b6c150f08e2ef71f3fb73dc296a33091f550c2906f43cc11",
+        "provenance/source-2174bf5b8e68-431e42320088/source-build-manifest.json": "48e5a225aef28a0c48497b22539cfcc1ddf526ccc8770b76da3ebb4460aee0f7",
+        "provenance/source-2174bf5b8e68-431e42320088/source-build-report.json": "8953cb6c58f98b9bcf35deda5d2aa46c76b52e1f88f20405cc77169511cc307d",
+        "provenance/source-2174bf5b8e68-431e42320088/xrt-declarations.json": "76835d98e81b4f56507ca2845ba782c0ba147c9bbe00543578aabb534a6a141e",
+        "provenance/source-2174bf5b8e68-f199ab3e43c3/parent-sdk-manifest.json": "5b00307ed19f288b7ca1d084ee4c4fd5aa5f5ac7819c7d7e0ea3c51c0b505e6f",
+        "provenance/source-2174bf5b8e68-f199ab3e43c3/source-build-manifest.json": "3ec6d22140cf244d0220f7824ed1f4be987a86f8ec0696df592e92c8623d27cf",
+        "provenance/source-2174bf5b8e68-f199ab3e43c3/source-build-report.json": "ae1983f1b88b5d91cde14191ba721108001994a18501363fde1f9c87744ca651",
+        "provenance/source-2174bf5b8e68-f199ab3e43c3/xrt-declarations.json": "76835d98e81b4f56507ca2845ba782c0ba147c9bbe00543578aabb534a6a141e",
+        "provenance/source-67d124505aa9-3cd9d0a16b0b/parent-sdk-manifest.json": "5dbc812cb3f4bdcdd563aa1f3ce6832b47f650aac931590d2ab1e70d56d889b9",
+        "provenance/source-67d124505aa9-3cd9d0a16b0b/source-build-manifest.json": "63612243a13d796a93787e4ee70215af0231c050a1065b1a56c8e72f8b82e173",
+        "provenance/source-67d124505aa9-3cd9d0a16b0b/source-build-report.json": "65d05ffa566760e5bcffed82eed536232ea211193916e6db1a2cf04b25945aae",
+        "provenance/source-67d124505aa9-3cd9d0a16b0b/xrt-declarations.json": "76835d98e81b4f56507ca2845ba782c0ba147c9bbe00543578aabb534a6a141e",
+        "provenance/wgl-context-v1/overlay.json": "74eff350628fd5be9c302198d46127d89d4be842257b64179170cb02e7fbe4a2",
+        "provenance/wgl-context-v1/parent-sdk_manifest.json": "2d540fd86eabc6ba5f2012fbecfa0f10d60d2e482eb6c2c72d0cf1cc39a1ae4c",
+        "provenance/wgl-context-v1/parent-source-build-manifest.json": "d46e4a963c1b7349d46504f4c5d768658d39254b70f9933b335d5b9cd6b922b3",
+        "provenance/wgl-context-v1/parent-source-build-report.json": "0fbd0a39bd646f45b8ca032b3e341397c1c3821632ad4e88c2a46a0fd549b248",
+        "provenance/wgl-context-v1/parent-xge-source-files.json": "d46e4a963c1b7349d46504f4c5d768658d39254b70f9933b335d5b9cd6b922b3",
+        "provenance/wgl-context-v1/sokol_app.h.patch": "098d66ee4a6d90f714e686122f34af611ae16a7ba28ff469a166d95a4354d9a5",
+        "provenance/wgl-context-v1/source-freeze.json": "b15be9bc5f0ed55f75105b9d64bd8a477353da7163fcfdbe577f6e8ae3658efd",
+        "provenance/wgl-context-v1/upstream-build-report.json": "9fd16eb1fd3340ff678bcc8af1b97da7d5502996d3fbddf8a904e7f458fe9d7e",
+        "provenance/wgl-context-v1/wgl_context_overlay.py": "eebaa6a0cd79e9130188e0451193413120c2ca8ec7cb34cc19cfdc5cb4580469",
+        "provenance/wgl-context-v1/xge_core.c.patch": "51813d71334522269d11301ab5b1fc0c4afcd25fcb8eeafabb78a44b9918c87c",
+        "provenance/wgl-context-v1/xge_impl.c.patch": "2b8d18bbc012c9601c0058580f5accbd5d91ec55c23e12645c4319be02c2afac",
+        "provenance/xge3-3e6e77f6c445-c6acff776a02-142d9fd1/parent-sdk-manifest.json": "142d9fd10e13c810c8b45679c171af5d93c2de212579238cc31fe8120f7097d6",
+        "provenance/xge3-3e6e77f6c445-c6acff776a02-142d9fd1/parent-xge-source-files.json": "908d5a067047b45249c0cf8368203279d0eb6d118bf8dc7cc0996bb1527d395d",
+        "provenance/xge3-3e6e77f6c445-c6acff776a02-142d9fd1/source-build-report.json": "c6acff776a02098580b00562ba98e89f3f26309f2db4b5cf58809c4587d77b3e",
+        "provenance/xge3-3e6e77f6c445-c6acff776a02-142d9fd1/source-freeze.json": "3e6e77f6c445225b0370cf2e638f6c664d442ca277b47156cbdd580c8563faf6",
+        "provenance/xge3-4fe557426d33-83b8c377aba1-ab36bf1e/parent-sdk-manifest.json": "ab36bf1effbe19e5793d301caeffa4811f3f3de6580e9c5348813a581acbad74",
+        "provenance/xge3-4fe557426d33-83b8c377aba1-ab36bf1e/parent-xge-source-files.json": "8722861b3f5254f475892cca97c0c023d431546d17942dc9f1f7df738d8a29ae",
+        "provenance/xge3-4fe557426d33-83b8c377aba1-ab36bf1e/source-build-report.json": "83b8c377aba1ee747ec15e5565544d9a2c006ee6bea0b7959c4cddda65b2db9e",
+        "provenance/xge3-4fe557426d33-83b8c377aba1-ab36bf1e/source-freeze.json": "4fe557426d33594969aff5075bfe6a588855045da44e213977b75d139f18aec9",
+        "provenance/compatibility-patches/diff/include/xge.h.diff": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "provenance/compatibility-patches/diff/include/xui.h.diff": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "provenance/compatibility-patches/diff/extlibs/sokol/sokol_app.h.diff": "652f6b352350dfefe4ca732602ebdb32ae9a41c0cd729509cf190610dd4023ec",
+        "provenance/compatibility-patches/diff/extlibs/xrt/xrt.h.diff": "5489edbe8dbdb1bcc715e069fbe034842e7a7e3c0b8c4b3e15c6d5e94077bb4d",
+        "provenance/compatibility-patches/diff/src/xge/core/xge_core.c.diff": "50a939cc2efbe8bd9c57488b054f68517d0d79c9ce5a07fcf687922f43b89fc4",
+        "provenance/compatibility-patches/diff/src/xge/core/xge_impl.c.diff": "88db7f6fbd2c32b722e1037606f89fe24b0eeeef47aa27ce0204e07328254420",
+        "provenance/compatibility-patches/diff/src/xge/input/xge_data_object.c.diff": "afd500d516f143581d66b87678a8549e7c66d946a874e823b880fd2177ace98c",
+        "provenance/compatibility-patches/diff/src/xge/text/xge_system_font.c.diff": "360bb89341e788c38a72e4bef5436d4a6bcc10e03326675405cc998e559c9ced",
+        "provenance/compatibility-patches/diff/src/xui/accessibility/xui_accessibility.c.diff": "acd38e6d07033c3dc9cc9b445e79f64c9aa2927d0fbfe80357493fb111e4e067",
+        "provenance/compatibility-patches/diff/src/xui/controls/xui_table_view.c.diff": "7dd557156c4ae31427744db36329230f96f74bfebb4766da94eed1d46f2f0bdb",
+        "provenance/compatibility-patches/diff/src/xui/controls/xui_tree_view.c.diff": "62f4a4ca816939544cc003d84c14f299e89005ebd9b6ea24ee7bd232b1b3719c",
+        "provenance/compatibility-patches/diff/src/xui/core/xui_core.c.diff": "7ec96ac2bfb5c87edb99c593c0bdd15883e3f0314ecba612dc2c4836b49c67b9",
+        "provenance/compatibility-patches/diff/src/xui/core/xui_internal.h.diff": "72059860e7f6012c1b870e8557657333420edb98fd16266130bde059df090b59",
+        "provenance/compatibility-patches/diff/src/xui/core/xui_owned_resource_slots.c.diff": "32eb9aad1e08f66bc13f0b9cb2569894bf4d6c41e3ba3985a9fde7d20b407928",
+        "provenance/compatibility-patches/diff/src/xui/core/xui_proxy_xge.c.diff": "1f41627e5df33f055b5eb936eed7bcd67793accafd607abd70b6a23495f44875",
+        "provenance/compatibility-patches/diff/src/xui/core/xui_widget.c.diff": "e67170b06093980f1a8ba463c479a9e443d2599e77fb358fe986ca7484e997fa",
+        "provenance/compatibility-patches/diff/tools/build/build.py.diff": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "provenance/compatibility-patches/payload/include/xge.h": "1821696314a82530f0fb06290a9ef4483083881444ebf1d00fc362a4426c68a5",
+        "provenance/compatibility-patches/payload/include/xui.h": "7277659690681a8221370b9ce4b50ec7932ee1d45f597df9c6d285544b2b3a90",
+        "provenance/compatibility-patches/payload/extlibs/sokol/sokol_app.h": "7d725c8f3b5eb52a9dba4f5ba1c9d6cbc603a2f5c5dc712a8f0fa3b4dd5378e2",
+        "provenance/compatibility-patches/payload/extlibs/xrt/xrt.h": "41bc24579f4b3207b0434755ca23dd06481af90c05f71e9b365848cf9a7c12d1",
+        "provenance/compatibility-patches/payload/src/xge/core/xge_core.c": "b87d72adc887352629ccba72bbfb642276fc68e64d283eb77391c0cc23acdf0b",
+        "provenance/compatibility-patches/payload/src/xge/core/xge_impl.c": "07fb8b684e7d2d48cb24da2dca23b9038e998e95f7e72da15b095ea9036fbcee",
+        "provenance/compatibility-patches/payload/src/xge/input/xge_data_object.c": "be4c725faff9d5c2c5b2d533bb3d06ed0b02e2587f5e297d85013a820927586a",
+        "provenance/compatibility-patches/payload/src/xge/text/xge_system_font.c": "12e0c3fe224b5f5bd6a0f88d578c7415c25f74572e359659156c531195e358cc",
+        "provenance/compatibility-patches/payload/src/xui/accessibility/xui_accessibility.c": "fda385249bc2ca9d6fb1141059c4eb203ec13dfc417014bcfbff2c3620156737",
+        "provenance/compatibility-patches/payload/src/xui/controls/xui_table_view.c": "2eca10781dac61e8b8bd3c54ac5919868183f643269c874f7e3276bb5c64caef",
+        "provenance/compatibility-patches/payload/src/xui/controls/xui_tree_view.c": "8fbe4f9172772e6af043e59926c47f32f2748d9d24ee0c58775270072d0b1272",
+        "provenance/compatibility-patches/payload/src/xui/core/xui_core.c": "fcf6ec3137ec6fe7722f434a8fdc1a0c21e918c8aecec5e1bb158cb61230ebe7",
+        "provenance/compatibility-patches/payload/src/xui/core/xui_internal.h": "3864af59ebaa9d2c5e773190831335955fc57fa096bc1df521825c6395567709",
+        "provenance/compatibility-patches/payload/src/xui/core/xui_owned_resource_slots.c": "beeb92ae8b7cd719297f83868d6454ce21fdd3f566368f2fad988efd891287ba",
+        "provenance/compatibility-patches/payload/src/xui/core/xui_proxy_xge.c": "ff980ed8bdaab15940de653fbb3c76a3eda03d3fa5863dffd1373b32d17cfb13",
+        "provenance/compatibility-patches/payload/src/xui/core/xui_widget.c": "b5ba15633c03615f95e614b3b80795921cfc053c0cab99d8f4910a830253e6f9",
+        "provenance/compatibility-patches/payload/tools/build/build.py": "754840e4a884f5d24e73cfa1e2b16a111ecd906d3354a207dd77b9a00dfe41dd",
+        "provenance/source-2174bf5b8e68-2c4a203361ee/compatibility-patches/patch-manifest.json": "038093897f8a7756b5111a5f995303673f667b5a09f930f169b67a5c33827354",
+        "provenance/source-2174bf5b8e68-2c4a203361ee/compatibility-patches/diff/include/xge.h.diff": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "provenance/source-2174bf5b8e68-2c4a203361ee/compatibility-patches/diff/include/xui.h.diff": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "provenance/source-2174bf5b8e68-2c4a203361ee/compatibility-patches/diff/extlibs/sokol/sokol_app.h.diff": "652f6b352350dfefe4ca732602ebdb32ae9a41c0cd729509cf190610dd4023ec",
+        "provenance/source-2174bf5b8e68-2c4a203361ee/compatibility-patches/diff/extlibs/xrt/xrt.h.diff": "5489edbe8dbdb1bcc715e069fbe034842e7a7e3c0b8c4b3e15c6d5e94077bb4d",
+        "provenance/source-2174bf5b8e68-2c4a203361ee/compatibility-patches/diff/src/xge/core/xge_core.c.diff": "50a939cc2efbe8bd9c57488b054f68517d0d79c9ce5a07fcf687922f43b89fc4",
+        "provenance/source-2174bf5b8e68-2c4a203361ee/compatibility-patches/diff/src/xge/core/xge_impl.c.diff": "88db7f6fbd2c32b722e1037606f89fe24b0eeeef47aa27ce0204e07328254420",
+        "provenance/source-2174bf5b8e68-2c4a203361ee/compatibility-patches/diff/src/xui/controls/xui_table_view.c.diff": "7dd557156c4ae31427744db36329230f96f74bfebb4766da94eed1d46f2f0bdb",
+        "provenance/source-2174bf5b8e68-2c4a203361ee/compatibility-patches/diff/tools/build/build.py.diff": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "provenance/source-2174bf5b8e68-2c4a203361ee/compatibility-patches/payload/include/xge.h": "1821696314a82530f0fb06290a9ef4483083881444ebf1d00fc362a4426c68a5",
+        "provenance/source-2174bf5b8e68-2c4a203361ee/compatibility-patches/payload/include/xui.h": "1cbae03fcb6ee4d6d4a74da941a42bb9e05e73ffc3f76fad4f79574fe34069b3",
+        "provenance/source-2174bf5b8e68-2c4a203361ee/compatibility-patches/payload/extlibs/sokol/sokol_app.h": "7d725c8f3b5eb52a9dba4f5ba1c9d6cbc603a2f5c5dc712a8f0fa3b4dd5378e2",
+        "provenance/source-2174bf5b8e68-2c4a203361ee/compatibility-patches/payload/extlibs/xrt/xrt.h": "41bc24579f4b3207b0434755ca23dd06481af90c05f71e9b365848cf9a7c12d1",
+        "provenance/source-2174bf5b8e68-2c4a203361ee/compatibility-patches/payload/src/xge/core/xge_core.c": "b87d72adc887352629ccba72bbfb642276fc68e64d283eb77391c0cc23acdf0b",
+        "provenance/source-2174bf5b8e68-2c4a203361ee/compatibility-patches/payload/src/xge/core/xge_impl.c": "07fb8b684e7d2d48cb24da2dca23b9038e998e95f7e72da15b095ea9036fbcee",
+        "provenance/source-2174bf5b8e68-2c4a203361ee/compatibility-patches/payload/src/xui/controls/xui_table_view.c": "2eca10781dac61e8b8bd3c54ac5919868183f643269c874f7e3276bb5c64caef",
+        "provenance/source-2174bf5b8e68-2c4a203361ee/compatibility-patches/payload/tools/build/build.py": "754840e4a884f5d24e73cfa1e2b16a111ecd906d3354a207dd77b9a00dfe41dd",
+        "provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/patch-manifest.json": "f3c876a56dc4197af3eb24e28fd61b2a0bab10fea7013734b3e75dc873fd89c2",
+        "provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/diff/include/xge.h.diff": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/diff/include/xui.h.diff": "bc85472483a8d052c40d597cd212947338bc9041dcefcd4a745a21017df800f1",
+        "provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/diff/extlibs/sokol/sokol_app.h.diff": "652f6b352350dfefe4ca732602ebdb32ae9a41c0cd729509cf190610dd4023ec",
+        "provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/diff/extlibs/xrt/xrt.h.diff": "5489edbe8dbdb1bcc715e069fbe034842e7a7e3c0b8c4b3e15c6d5e94077bb4d",
+        "provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/diff/src/xge/core/xge_core.c.diff": "50a939cc2efbe8bd9c57488b054f68517d0d79c9ce5a07fcf687922f43b89fc4",
+        "provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/diff/src/xge/core/xge_impl.c.diff": "88db7f6fbd2c32b722e1037606f89fe24b0eeeef47aa27ce0204e07328254420",
+        "provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/diff/src/xui/controls/xui_table_view.c.diff": "7dd557156c4ae31427744db36329230f96f74bfebb4766da94eed1d46f2f0bdb",
+        "provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/diff/src/xui/controls/xui_tree_view.c.diff": "62f4a4ca816939544cc003d84c14f299e89005ebd9b6ea24ee7bd232b1b3719c",
+        "provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/diff/tools/build/build.py.diff": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/payload/include/xge.h": "1821696314a82530f0fb06290a9ef4483083881444ebf1d00fc362a4426c68a5",
+        "provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/payload/include/xui.h": "b0f048522b1e2c19d65bfa68f04c4ce066f3c4762f4ab54c1df3341732537893",
+        "provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/payload/extlibs/sokol/sokol_app.h": "7d725c8f3b5eb52a9dba4f5ba1c9d6cbc603a2f5c5dc712a8f0fa3b4dd5378e2",
+        "provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/payload/extlibs/xrt/xrt.h": "41bc24579f4b3207b0434755ca23dd06481af90c05f71e9b365848cf9a7c12d1",
+        "provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/payload/src/xge/core/xge_core.c": "b87d72adc887352629ccba72bbfb642276fc68e64d283eb77391c0cc23acdf0b",
+        "provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/payload/src/xge/core/xge_impl.c": "07fb8b684e7d2d48cb24da2dca23b9038e998e95f7e72da15b095ea9036fbcee",
+        "provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/payload/src/xui/controls/xui_table_view.c": "2eca10781dac61e8b8bd3c54ac5919868183f643269c874f7e3276bb5c64caef",
+        "provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/payload/src/xui/controls/xui_tree_view.c": "8fbe4f9172772e6af043e59926c47f32f2748d9d24ee0c58775270072d0b1272",
+        "provenance/source-2174bf5b8e68-431e42320088/compatibility-patches/payload/tools/build/build.py": "754840e4a884f5d24e73cfa1e2b16a111ecd906d3354a207dd77b9a00dfe41dd",
+        "provenance/source-2174bf5b8e68-f199ab3e43c3/compatibility-patches/patch-manifest.json": "459728abd5b513a8b5d32001fb44903cc90d404cf9b284df68fa05ceb4658632",
+        "provenance/source-2174bf5b8e68-f199ab3e43c3/compatibility-patches/diff/include/xge.h.diff": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "provenance/source-2174bf5b8e68-f199ab3e43c3/compatibility-patches/diff/include/xui.h.diff": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "provenance/source-2174bf5b8e68-f199ab3e43c3/compatibility-patches/diff/extlibs/sokol/sokol_app.h.diff": "652f6b352350dfefe4ca732602ebdb32ae9a41c0cd729509cf190610dd4023ec",
+        "provenance/source-2174bf5b8e68-f199ab3e43c3/compatibility-patches/diff/extlibs/xrt/xrt.h.diff": "5489edbe8dbdb1bcc715e069fbe034842e7a7e3c0b8c4b3e15c6d5e94077bb4d",
+        "provenance/source-2174bf5b8e68-f199ab3e43c3/compatibility-patches/diff/src/xge/core/xge_core.c.diff": "50a939cc2efbe8bd9c57488b054f68517d0d79c9ce5a07fcf687922f43b89fc4",
+        "provenance/source-2174bf5b8e68-f199ab3e43c3/compatibility-patches/diff/src/xge/core/xge_impl.c.diff": "88db7f6fbd2c32b722e1037606f89fe24b0eeeef47aa27ce0204e07328254420",
+        "provenance/source-2174bf5b8e68-f199ab3e43c3/compatibility-patches/diff/tools/build/build.py.diff": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "provenance/source-2174bf5b8e68-f199ab3e43c3/compatibility-patches/payload/include/xge.h": "1821696314a82530f0fb06290a9ef4483083881444ebf1d00fc362a4426c68a5",
+        "provenance/source-2174bf5b8e68-f199ab3e43c3/compatibility-patches/payload/include/xui.h": "1cbae03fcb6ee4d6d4a74da941a42bb9e05e73ffc3f76fad4f79574fe34069b3",
+        "provenance/source-2174bf5b8e68-f199ab3e43c3/compatibility-patches/payload/extlibs/sokol/sokol_app.h": "7d725c8f3b5eb52a9dba4f5ba1c9d6cbc603a2f5c5dc712a8f0fa3b4dd5378e2",
+        "provenance/source-2174bf5b8e68-f199ab3e43c3/compatibility-patches/payload/extlibs/xrt/xrt.h": "41bc24579f4b3207b0434755ca23dd06481af90c05f71e9b365848cf9a7c12d1",
+        "provenance/source-2174bf5b8e68-f199ab3e43c3/compatibility-patches/payload/src/xge/core/xge_core.c": "b87d72adc887352629ccba72bbfb642276fc68e64d283eb77391c0cc23acdf0b",
+        "provenance/source-2174bf5b8e68-f199ab3e43c3/compatibility-patches/payload/src/xge/core/xge_impl.c": "07fb8b684e7d2d48cb24da2dca23b9038e998e95f7e72da15b095ea9036fbcee",
+        "provenance/source-2174bf5b8e68-f199ab3e43c3/compatibility-patches/payload/tools/build/build.py": "754840e4a884f5d24e73cfa1e2b16a111ecd906d3354a207dd77b9a00dfe41dd",
+        "provenance/source-67d124505aa9-3cd9d0a16b0b/compatibility-patches/patch-manifest.json": "a5dda250924ee24caf9987c1bc69d5169a286aa13c162d930caf29b9533a8a13",
+        "provenance/source-67d124505aa9-3cd9d0a16b0b/compatibility-patches/diff/include/xge.h.diff": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "provenance/source-67d124505aa9-3cd9d0a16b0b/compatibility-patches/diff/include/xui.h.diff": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "provenance/source-67d124505aa9-3cd9d0a16b0b/compatibility-patches/diff/extlibs/sokol/sokol_app.h.diff": "652f6b352350dfefe4ca732602ebdb32ae9a41c0cd729509cf190610dd4023ec",
+        "provenance/source-67d124505aa9-3cd9d0a16b0b/compatibility-patches/diff/extlibs/xrt/xrt.h.diff": "5489edbe8dbdb1bcc715e069fbe034842e7a7e3c0b8c4b3e15c6d5e94077bb4d",
+        "provenance/source-67d124505aa9-3cd9d0a16b0b/compatibility-patches/diff/src/xge/core/xge_core.c.diff": "50a939cc2efbe8bd9c57488b054f68517d0d79c9ce5a07fcf687922f43b89fc4",
+        "provenance/source-67d124505aa9-3cd9d0a16b0b/compatibility-patches/diff/src/xge/core/xge_impl.c.diff": "88db7f6fbd2c32b722e1037606f89fe24b0eeeef47aa27ce0204e07328254420",
+        "provenance/source-67d124505aa9-3cd9d0a16b0b/compatibility-patches/diff/tools/build/build.py.diff": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "provenance/source-67d124505aa9-3cd9d0a16b0b/compatibility-patches/payload/include/xge.h": "1821696314a82530f0fb06290a9ef4483083881444ebf1d00fc362a4426c68a5",
+        "provenance/source-67d124505aa9-3cd9d0a16b0b/compatibility-patches/payload/include/xui.h": "1cbae03fcb6ee4d6d4a74da941a42bb9e05e73ffc3f76fad4f79574fe34069b3",
+        "provenance/source-67d124505aa9-3cd9d0a16b0b/compatibility-patches/payload/extlibs/sokol/sokol_app.h": "7d725c8f3b5eb52a9dba4f5ba1c9d6cbc603a2f5c5dc712a8f0fa3b4dd5378e2",
+        "provenance/source-67d124505aa9-3cd9d0a16b0b/compatibility-patches/payload/extlibs/xrt/xrt.h": "41bc24579f4b3207b0434755ca23dd06481af90c05f71e9b365848cf9a7c12d1",
+        "provenance/source-67d124505aa9-3cd9d0a16b0b/compatibility-patches/payload/src/xge/core/xge_core.c": "b87d72adc887352629ccba72bbfb642276fc68e64d283eb77391c0cc23acdf0b",
+        "provenance/source-67d124505aa9-3cd9d0a16b0b/compatibility-patches/payload/src/xge/core/xge_impl.c": "07fb8b684e7d2d48cb24da2dca23b9038e998e95f7e72da15b095ea9036fbcee",
+        "provenance/source-67d124505aa9-3cd9d0a16b0b/compatibility-patches/payload/tools/build/build.py": "754840e4a884f5d24e73cfa1e2b16a111ecd906d3354a207dd77b9a00dfe41dd"
+      }
+    },
+    "receiptSha256": "ab96c115e7d47c1db6e39b885b7cc1dcc216913cbc49c15117dbef046c04d949"
+  },
+  "controls": {
+    "guiFixtureSequencing": {
+      "status": "failed-fixture-sequencing",
+      "source": "D:\\GIT\\x-lang\\ide\\tests\\symbol_view_test.c",
+      "sourceSha256": "bb623195bb936380c4654da25e9830eb3aa31546e0a83e9c27d4df833e79fb57",
+      "reason": "New34-declaration fixture inserted between original async setup and original async tree assertions; new34-role and field-click checks passed, then the old async expectation read the34-role document. Move new block after the complete async assertions; preserve every assertion.",
+      "nativeBuildRemainsQualified": true
+    },
+    "initialGuiQualification": [
+      {
+        "stage": "gui-build",
+        "command": [
+          "powershell",
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\gui-source-v2\\ide\\tools\\build.ps1",
+          "-Configuration",
+          "Release",
+          "-GuiOnly",
+          "-CandidateOnly",
+          "-LanguageServerPath",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\xlang-ls.exe",
+          "-ReleaseDirectory",
+          "D:\\GIT\\x-lang\\release\\win_x64"
+        ],
+        "exit": 0
+      },
+      {
+        "stage": "protocols",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-u",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\validate-protocols.py"
+        ],
+        "exit": 0
+      },
+      {
+        "stage": "legacy-control",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-u",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\build-legacy-fixture.py"
+        ],
+        "exit": 0
+      },
+      {
+        "stage": "gui",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-u",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\validate-gui.py"
+        ],
+        "exit": 1
+      }
+    ],
+    "oldImage": {
+      "status": "rejected-as-expected",
+      "command": [
+        "C:\\Program Files\\Python312\\python.exe",
+        "-X",
+        "utf8",
+        "-B",
+        "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_declarations.py",
+        "--server",
+        "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-ls-declarations-baseline.exe",
+        "--output",
+        "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\old-image-control"
+      ],
+      "exit": 1,
+      "serverSha256": "15c004bf28c223ca7ed22cc325c7b8745933dd49b298a8bd0a71f65f6cdbe5b2"
+    },
+    "redundantLineScan": {
+      "status": "rejected-as-expected",
+      "scope": "Actual per-declaration line-start scan inserted before original batch; same positions, rejected by the production-linked constructor fixture.",
+      "originals": {
+        "D:\\GIT\\x-lang\\ide\\tests\\declaration_symbols_test.c": "cf79778162540070aee426dd57ce9e5b062834cbb708d305f0ecd056d4531a50",
+        "D:\\GIT\\x-lang\\ide\\src\\services\\semantic_definition.c": "7ab8066594c00c54c01117f61707ed8400d904b3da5ac7142aeb29ce46ac5c06",
+        "D:\\GIT\\x-lang\\ide\\src\\services\\semantic_symbols.inc": "1e1e2a2996eb29ca7de4780a917f7b8940af082ec3bee433f7204cb86df090ca"
+      },
+      "privateSources": {
+        "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\scan-negative-control\\declaration_symbols_test.c": "c4e2a84a5da86115840ee8d84b5cbfbf5520061ef13f47015f4cc3f0d71890e2",
+        "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\scan-negative-control\\semantic_definition.c": "c4dd9d823f3395ce7658cfbc6691e3425d3afb35c37aec2730fb6184024fccca",
+        "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\scan-negative-control\\semantic_symbols.inc": "7782ca4d5ff07743a18f8b20bee8977b86499da5171429bdeffc28bb63c566a1"
+      },
+      "commands": [
+        {
+          "name": "compile",
+          "command": [
+            "E:\\software\\w64devkit\\bin\\gcc.exe",
+            "-std=c11",
+            "-ffunction-sections",
+            "-fdata-sections",
+            "-DXRT_MODULE_ALL=",
+            "-DXLS_COMPILER_XRT=1",
+            "-finput-charset=UTF-8",
+            "-fexec-charset=UTF-8",
+            "-ID:\\GIT\\x-lang\\ide\\src",
+            "-ID:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\frontend",
+            "-ID:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\frontend-inputs",
+            "-ID:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\frontend-inputs\\src\\ir",
+            "-ID:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\frontend-inputs\\release",
+            "-ID:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\frontend-inputs\\release\\include",
+            "-ID:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\native_xrt",
+            "-ID:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\frontend-inputs\\lib\\xrt",
+            "-include",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\native_xrt\\xrt.h",
+            "-O2",
+            "-DXRT_EXCLUDE_MEMORY_DEBUG=",
+            "-DXLS_NATIVE_IR_PROVIDER_FIELDS=1",
+            "-DXLS_NATIVE_IR_FOREIGN_FIELDS=1",
+            "-DXLS_NATIVE_ASYNC_RESULTS=1",
+            "-DXLS_NATIVE_FINAL_INTEROP=1",
+            "-DXLS_NATIVE_CURRENT_CORE=1",
+            "-DXL6_INDEX_BYTES=33554432u",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Wno-unused-parameter",
+            "-ID:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\frontend-inputs\\lib\\xrt",
+            "-ID:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\frontend-inputs\\src\\ast",
+            "-ID:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\frontend-inputs\\src\\compile",
+            "-ID:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\frontend-inputs\\src\\ir",
+            "-ID:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\frontend-inputs\\src\\lexer",
+            "-ID:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\frontend-inputs\\src\\package",
+            "-ID:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\frontend-inputs\\src\\parser",
+            "-ID:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\frontend-inputs\\src\\sem",
+            "-ID:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\frontend-inputs\\src\\stdlib",
+            "-ID:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\frontend-inputs\\src\\type",
+            "-ID:\\GIT\\x-lang\\ide\\src\\services",
+            "-c",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\scan-negative-control\\declaration_symbols_test.c",
+            "-o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\scan-negative-control\\test.o",
+            "-ID:\\GIT\\x-lang\\ide\\tests"
+          ],
+          "exit": 0
+        },
+        {
+          "name": "link",
+          "command": [
+            "E:\\software\\w64devkit\\bin\\gcc.exe",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\scan-negative-control\\test.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\analysis_context_wire.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\signature_help.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\analysis_catalog.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\lsp_wire.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\language_check.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\language_snapshot.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\diagnostic_store.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\project_references.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\semantic_completion.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\c_bridge_map.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\toolchain.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\file_rename.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\file_io.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\text_file.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\process.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\path.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\coordinates.o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\full-v2\\xlang-analysis-core.a",
+            "-Wl,--gc-sections",
+            "-lm",
+            "-lws2_32",
+            "-lwinhttp",
+            "-liphlpapi",
+            "-lgdi32",
+            "-luser32",
+            "-lshell32",
+            "-lole32",
+            "-lwinmm",
+            "-lavrt",
+            "-lversion",
+            "-lbcrypt",
+            "-ladvapi32",
+            "-o",
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\scan-negative-control\\negative.exe"
+          ],
+          "exit": 0
+        },
+        {
+          "name": "run",
+          "command": [
+            "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-declaration-kinds-20261109\\scan-negative-control\\negative.exe"
+          ],
+          "exit": 1
+        }
+      ]
+    },
+    "firstProductFailure": {
+      "status": "failed",
+      "compiled": 240,
+      "passedNativeTests": 141,
+      "failure": "First compact projection allocation returned NULL without setting error.code; new production fault test caught it. Set XIDE_MODEL_IO and rebuilt all consumers.",
+      "originalReceiptSha256": "919f75e2ecedb6f0ef482eaa27926f7a8427e2845870941f0f76166442856a79",
+      "frozenReceiptSha256": "51e39e0b9ba4b1d480b7a45ed706afeabaa8b47f264c3ded763fa0761551945d"
+    }
+  },
+  "performance": {
+    "qualified": false,
+    "observation": {
+      "status": "passed",
+      "scope": "Fixed paired document-symbol observation only, not global latency acceptance. Same source/protocol/engine, no simultaneous build or tests.",
+      "processes": 24,
+      "responses": 264,
+      "groups": [
+        {
+          "size": 32,
+          "style": "pretty",
+          "program": "previous",
+          "firstMedianMs": 0.8949,
+          "cachedMedianMs": 0.6252,
+          "cachedP95Ms": 0.7505
+        },
+        {
+          "size": 32,
+          "style": "pretty",
+          "program": "candidate",
+          "firstMedianMs": 0.8301,
+          "cachedMedianMs": 0.6132500000000001,
+          "cachedP95Ms": 0.7753
+        },
+        {
+          "size": 32,
+          "style": "minified",
+          "program": "previous",
+          "firstMedianMs": 0.839,
+          "cachedMedianMs": 0.60295,
+          "cachedP95Ms": 0.6598
+        },
+        {
+          "size": 32,
+          "style": "minified",
+          "program": "candidate",
+          "firstMedianMs": 0.7741,
+          "cachedMedianMs": 0.61395,
+          "cachedP95Ms": 0.7579
+        },
+        {
+          "size": 512,
+          "style": "pretty",
+          "program": "previous",
+          "firstMedianMs": 11.111,
+          "cachedMedianMs": 8.476600000000001,
+          "cachedP95Ms": 9.6351
+        },
+        {
+          "size": 512,
+          "style": "pretty",
+          "program": "candidate",
+          "firstMedianMs": 10.2839,
+          "cachedMedianMs": 8.28705,
+          "cachedP95Ms": 9.6878
+        },
+        {
+          "size": 512,
+          "style": "minified",
+          "program": "previous",
+          "firstMedianMs": 11.1421,
+          "cachedMedianMs": 8.272400000000001,
+          "cachedP95Ms": 9.7454
+        },
+        {
+          "size": 512,
+          "style": "minified",
+          "program": "candidate",
+          "firstMedianMs": 10.2934,
+          "cachedMedianMs": 8.15555,
+          "cachedP95Ms": 8.4715
+        }
+      ],
+      "allWireResultsEqual": true,
+      "formalPerformanceQualified": false
+    },
+    "priorUnchangedQualification": "dev/release-materials/provenance/lsp-ir-capacity-20261109.json",
+    "priorAAFailures": 4,
+    "priorStageABFailures": 1,
+    "priorCumulativeABFailures": 0,
+    "originalMatrixRerun": false,
+    "thresholdsChanged": false,
+    "note": "Fixed symbol-only observation, exact output parity and no per-offset scans do not qualify the full analysis/IDE/endurance objective."
+  },
+  "evidence": {
+    "directory": "dev/release-materials/provenance/lsp-declarations-20261109",
+    "files": 2390,
+    "manifestSha256": "2b07a18502d135742944fa582797dac5bda9da2d50cbfe981868374685bc9345",
+    "archiveSha256": "4e2535059548ba1afd20fe6e47ab1267153e4fc353800921147dcd64ac9d6236",
+    "sourceDirectory": "dev/release-materials/sources/lsp-declarations-20261109",
+    "sourceBindings": 4429,
+    "sourceBlobs": 1513,
+    "sourceManifestSha256": "b0c4bc9567dd50c0cb3a2006a1a6a015bfdc9e5583fe97eb6a6251168dfd035e",
+    "sourceArchiveSha256": "d182d4fa11dc3e6fe76e0839e8155edf339a589a0a6b89d9cb8b0f11f854d253",
+    "allArchiveMembersVerified": true
+  },
+  "runtime": {
+    "status": "passed",
+    "defaultRuntimeHashes": {
+      "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+      "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+      "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+      "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+      "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+      "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+    },
+    "ownedAliasesRemoved": true,
+    "shippingDelivery": false,
+    "externalPublishPerformedByThisStage": false
+  },
+  "remaining": [
+    "Decouple feature-specific large-source admission from full navigation admission.",
+    "Compiler-backed field reference identities; never invent SymbolIds.",
+    "Workspace symbols and remaining applicable LSP/IDE capabilities.",
+    "Compilation options, global budgets, full scale/concurrency/endurance and latency qualification.",
+    "No DAP or runtime/debug completion."
+  ]
+}

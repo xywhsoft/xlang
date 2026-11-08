@@ -72,6 +72,27 @@ static xvalue* diagnostics(xide_language_check* q,const xvalue* raw,xide_model_e
 invalid: xrtValueRelease(out); fail(e,"编译器诊断位置、来源或字段无法验证。"); return NULL;
 }
 #ifdef XLS_COMPILER_XRT
+static int symbolsCancelled(void* user){return cancelled(user);}
+static void buildRequestedSymbols(xide_language_check* q)
+{
+ EnterCriticalSection(&q->lock);
+ xide_navigation_snapshot* snapshot=q->symbolState==1 && !cancelled(q) && q->guardState==XIDE_GUARD_RUNNING ? q->symbolNavigation : NULL;
+ if(snapshot)q->symbolState=2;
+ LeaveCriticalSection(&q->lock);if(!snapshot)return;
+ xide_symbol_work work={0};xide_model_error error={0},changed={0};
+ xide_semantic_symbols* symbols=xideSemanticSymbolsFromNavigation(snapshot,symbolsCancelled,q,&work,&error);
+ int current=!cancelled(q) && xideLanguageSnapshotGuard(q,&changed),installed=0;
+ EnterCriticalSection(&q->lock);
+ if(symbols && current && !cancelled(q) && q->guardState==XIDE_GUARD_RUNNING){
+  q->symbols=symbols;q->symbolWork=work;q->symbolNavigation=NULL;q->symbolState=3;installed=1;
+ }else{
+  q->symbolState=-1;snprintf(q->symbolError,sizeof(q->symbolError),"%s",*error.message ? error.message : "Deferred declarations could not be constructed.");
+  if(!current && !cancelled(q)){q->guardState=XIDE_GUARD_INVALID;snprintf(q->guardError,sizeof(q->guardError),"%s",*changed.message ? changed.message : "Declaration inputs are no longer current.");}
+ }
+ LeaveCriticalSection(&q->lock);
+ if(installed)xideSemanticNavigationDestroy(snapshot);else xideSemanticSymbolsDestroy(symbols);
+ if(q->wake)q->wake(q->wakeUser);
+}
 static void buildRequestedNavigation(xide_language_check* q)
 {
  EnterCriticalSection(&q->lock);
@@ -111,6 +132,21 @@ int xideLanguageCheckPrepareNavigation(xide_language_check* q,const char* path,i
 {return prepareNavigation(q,path,version,0,message,capacity);}
 int xideLanguageCheckPreparePointNavigation(xide_language_check* q,const char* path,int version,char* message,size_t capacity)
 {return prepareNavigation(q,path,version,1,message,capacity);}
+int xideLanguageCheckPrepareSymbols(xide_language_check* q,const char* path,int version,char* message,size_t capacity)
+{
+ if(!q || !path)return -2;
+ EnterCriticalSection(&q->lock);int match=0,result=-2;
+ for(size_t i=0;i<q->snapshotCount;++i)if(version==q->snapshots[i].version && xidePathLexicalEqual(path,q->snapshots[i].path)){match=1;break;}
+ if(match && q->state==XIDE_CHECK_READY && !cancelled(q) && q->guardState==XIDE_GUARD_RUNNING){
+  if(q->symbols)result=1;
+  else if(q->symbolNavigation){
+   if(!q->symbolState){q->symbolState=1;if(!q->navigationEvent || !SetEvent(q->navigationEvent)){q->symbolState=-1;snprintf(q->symbolError,sizeof(q->symbolError),"Unable to wake declaration worker.");}}
+   result=q->symbolState<0 ? -1 : 0;
+  }else result=-1;
+ }
+ if(result==-1 && message && capacity)snprintf(message,capacity,"%s",q->symbolError);
+ LeaveCriticalSection(&q->lock);return result;
+}
 #endif
 static DWORD WINAPI worker(void* user)
 {
@@ -134,7 +170,7 @@ done:
  if(success && q->snapshotCount) while(1) {
 #ifdef XLS_COMPILER_XRT
   HANDLE events[2]={q->stopEvent,q->navigationEvent};DWORD signal=q->navigationEvent ? WaitForMultipleObjects(2,events,FALSE,1000) : WaitForSingleObject(q->stopEvent,1000);
-  if(signal==WAIT_OBJECT_0+1){buildRequestedNavigation(q);continue;}
+  if(signal==WAIT_OBJECT_0+1){buildRequestedSymbols(q);buildRequestedNavigation(q);continue;}
 #else
   DWORD signal=WaitForSingleObject(q->stopEvent,1000);
 #endif
@@ -386,7 +422,7 @@ xvalue* xideLanguageCheckDocumentSymbolsForClient(xide_language_check* q,const c
  if(!q || !path) return NULL;
  EnterCriticalSection(&q->lock); int match=0;
  for(size_t i=0;i<q->snapshotCount;++i) if(xidePathLexicalEqual(path,q->snapshots[i].path) && version==q->snapshots[i].version) match=1;
- xvalue* out=match && q->state==XIDE_CHECK_READY && !cancelled(q) && q->guardState==XIDE_GUARD_RUNNING && navigation(q) ? xideSemanticDocumentSymbolsForClient(q->definitions,path,uri) : NULL;
+ xvalue* out=match && q->state==XIDE_CHECK_READY && !cancelled(q) && q->guardState==XIDE_GUARD_RUNNING && q->symbols ? xideSemanticSymbolsDocument(q->symbols,path,uri) : NULL;
  LeaveCriticalSection(&q->lock); return out;
 }
 xvalue* xideLanguageCheckDocumentSymbols(xide_language_check* q,const char* path,int version)
@@ -417,9 +453,11 @@ void xideLanguageCheckDestroy(xide_language_check* q)
  xideSemanticReferenceShardRelease(q->referenceShard);xideSemanticReferenceKeyRelease(q->referenceKey);
 #endif
  free(q->snapshots); if(q->stopEvent) CloseHandle(q->stopEvent); xrtValueRelease(q->guardFiles); xrtValueRelease(q->guardResolution);
+ xideSemanticSymbolsDestroy(q->symbols);
 #ifdef XLS_COMPILER_XRT
  xideSemanticDefinitionsReleaseTyped(q->definitions,q->navigationProjection);
  xideSemanticNavigationDestroy(q->deferredNavigation);
+ xideSemanticNavigationDestroy(q->symbolNavigation);
  if(q->navigationEvent)CloseHandle(q->navigationEvent);
 #else
  xideSemanticDefinitionsDestroy(q->definitions);
