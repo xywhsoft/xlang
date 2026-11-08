@@ -1,0 +1,30 @@
+{
+  "files": [
+    {
+      "path": "release/win_x64/data/fonts/Consolas-with-Yahei_Nerd_Font.ttf",
+      "sha256": "35a7074585fe4af3763db2aaa7635aabffb8995b6f52e61cd46c0a53e560b16b",
+      "bytes": 9210776
+    },
+    {
+      "path": "release/win_x64/data/fonts/COPYRIGHT.txt",
+      "sha256": "a00a7a036e3b415af10805dfa2f4f6b47994b0d1c219f1cbd0d0a77cff78b207",
+      "bytes": 264
+    },
+    {
+      "path": "release/win_x64/data/fonts/LICENSE",
+      "sha256": "6a73f9541c2de74158c0e7cf6b0a58ef774f5a780bf191f2d7ec9cc53efe2bf2",
+      "bytes": 4301
+    },
+    {
+      "path": "release/win_x64/data/fonts/source.json",
+      "sha256": "f946dbf95a26ff9b57def3c1bf78c7f594c80a7844325f266d5f9e2b28c72e5f",
+      "bytes": 3072
+    },
+    {
+      "path": "release/win_x64/mdo.exe",
+      "sha256": "9219de70911e1f02d8e54eadc77c257369e4ea637e5202fcbb04854a29893044",
+      "bytes": 7133938
+    }
+  ],
+  "scope": "Existing untracked local resources retained byte-for-byte, not newly added to Git or published externally."
+}

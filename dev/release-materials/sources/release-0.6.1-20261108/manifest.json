@@ -1,0 +1,194 @@
+{
+  "schema": 1,
+  "version": "0.6.1",
+  "versionCode": "0x00000601",
+  "baseRevision": "2c1eb0a5dc58b715263470c99237d9ff0ac36b48",
+  "compilerBase": {
+    "path": "dev/release-materials/sources/example-failures-20261107/manifest.json",
+    "sha256": "697de815136a985a8784d28587212d99fa14e4eeb55a0e75da9f4f7a4f72e602",
+    "bytes": 3644
+  },
+  "guiBase": {
+    "path": "dev/release-materials/sources/xge-keypad-enter-20261108/manifest.json",
+    "sha256": "4a064a0062467b3282b751c4063331903bfe1eaa0cbe33fe2a30448b2d808b71",
+    "bytes": 141801
+  },
+  "archive": {
+    "path": "dev/release-materials/sources/release-0.6.1-20261108/source-delta.zip",
+    "sha256": "d19620f059f9036f4178732b1e76d42da748d34cd9fab0ea097c9d2270e47635",
+    "bytes": 91940
+  },
+  "files": [
+    {
+      "path": "xlang/release/win_x64/include/xl_version.h",
+      "sha256": "14e91f9dff12eeac85afa0db43737226158f9f8b4e884846f7d8f5066df99f87",
+      "bytes": 293
+    },
+    {
+      "path": "xlang/release/win_x64/include/__xl_runtime/xl_version.h",
+      "sha256": "14e91f9dff12eeac85afa0db43737226158f9f8b4e884846f7d8f5066df99f87",
+      "bytes": 293
+    },
+    {
+      "path": "xlang/release/win_x64/include/__xl_compiler/include/xl_version.h",
+      "sha256": "14e91f9dff12eeac85afa0db43737226158f9f8b4e884846f7d8f5066df99f87",
+      "bytes": 293
+    },
+    {
+      "path": "xlang/release/linux_x64/include/xl_version.h",
+      "sha256": "14e91f9dff12eeac85afa0db43737226158f9f8b4e884846f7d8f5066df99f87",
+      "bytes": 293
+    },
+    {
+      "path": "xlang/release/linux_x64/include/__xl_runtime/xl_version.h",
+      "sha256": "14e91f9dff12eeac85afa0db43737226158f9f8b4e884846f7d8f5066df99f87",
+      "bytes": 293
+    },
+    {
+      "path": "xlang/release/linux_x64/include/__xl_compiler/include/xl_version.h",
+      "sha256": "14e91f9dff12eeac85afa0db43737226158f9f8b4e884846f7d8f5066df99f87",
+      "bytes": 293
+    },
+    {
+      "path": "xlang/README.md",
+      "sha256": "05a53dd7522cea1c1a13840b4cd302203918661f1e5ea19ba884a64f1edf7adb",
+      "bytes": 12569
+    },
+    {
+      "path": "xlang/README_zh.md",
+      "sha256": "225205689486a305a64fe4a85ae8e8c02af8429daadf0444b83bc2b37b8675a6",
+      "bytes": 11985
+    },
+    {
+      "path": "xlang/ide/data/version.json",
+      "sha256": "8f1720759adb45762ae24d00e2d2eefb2159e644c489002b7bab52c3e7d69f7b",
+      "bytes": 32
+    },
+    {
+      "path": "xlang/tools/check_release_version.py",
+      "sha256": "9cfc432a9f4440efd23b9a2652cb944ca18677c161155c0ab8d59b7cc846f52b",
+      "bytes": 8841
+    },
+    {
+      "path": "xlang/tools/check_release_delivery.py",
+      "sha256": "7ab8319bd80944274e08a7bc826a644e964f872b7c16f692944afa41ae987849",
+      "bytes": 5033
+    },
+    {
+      "path": "xlang/tools/check_release_runtime.py",
+      "sha256": "777a5e0512d7aae7bbb9af0e492cc390bf74c36d3d65c9c92df40a68104c060c",
+      "bytes": 4258
+    },
+    {
+      "path": "xlang/tools/check_release_committed.py",
+      "sha256": "1874113621c8620d05a9a6e90e4ef8b52a7cb65832d122b570ed12b93ab2bed5",
+      "bytes": 2973
+    },
+    {
+      "path": "xlang/tools/clean_release.ps1",
+      "sha256": "62a5a7d47dd69cf8756a3a599d42edc25581f064f0c030372da3ef67ae42a41a",
+      "bytes": 10207
+    },
+    {
+      "path": "xlang/docs/release-0.6.1.md",
+      "sha256": "4d3fb3b024258ce2c8a450379b7ebc23f8bd64b0f375ce2f11a776c516535eef",
+      "bytes": 1553
+    },
+    {
+      "path": "xlang/release/linux_x64/README.md",
+      "sha256": "21008f14bfb86c5dc73ae1a73147712d37129497cbe8f6e3fa83283448623cfb",
+      "bytes": 577
+    },
+    {
+      "path": "xlang/release/win_x64/data/version.json",
+      "sha256": "f4b67b08f7fa7be8893b59215be1e62c9186808b4677562a4cb83b75dd97e341",
+      "bytes": 35
+    },
+    {
+      "path": "xlang/release/win_x64/data/release.json",
+      "sha256": "50358db4bf3aa3ff5221afe09d837fc5a89e72f1042e7d5e8b316ba76bfd66e8",
+      "bytes": 110
+    },
+    {
+      "path": "reproduction/build_gui.py",
+      "sha256": "aea4b2d8e04b7488040a0cc4951f629809bc3162bd39ae7600e3d09ed1f3af30",
+      "bytes": 2352
+    },
+    {
+      "path": "reproduction/build_linux.py",
+      "sha256": "515890165d97946bed3c58bc13970f44b52ebc3a4a9882add3f6a524325ea852",
+      "bytes": 4048
+    },
+    {
+      "path": "reproduction/build_win.py",
+      "sha256": "ebb95423ae5d2e57676ef71a20031195c99957da4a877c4bdae0dc9feb282db8",
+      "bytes": 4688
+    },
+    {
+      "path": "reproduction/check_gui.py",
+      "sha256": "71a264241900458d917d1fc5a59607c7424c82e19f72c02dcef2c2f1f60303aa",
+      "bytes": 1902
+    },
+    {
+      "path": "reproduction/check_linux.py",
+      "sha256": "90f31cdcfb27c57aae03c45ac5d27606adfcc62de38e4f61b33b990c2c8e71ec",
+      "bytes": 1649
+    },
+    {
+      "path": "reproduction/check_nested.py",
+      "sha256": "c73f04cb2ca8b8e92ca773fe3c6c6212919416b7819bfc70b39f885462d3aa58",
+      "bytes": 1593
+    },
+    {
+      "path": "reproduction/common.py",
+      "sha256": "9618861eb098996d7dae0a7d034b60884757216e671a1a8223d0e59fc2d3ba1b",
+      "bytes": 2817
+    },
+    {
+      "path": "reproduction/prepare.py",
+      "sha256": "cb53f9123c47d25dff935fdb52c69690cf8f8cc3a52e5f0b210219f6616e9651",
+      "bytes": 1336
+    },
+    {
+      "path": "reproduction/publish.py",
+      "sha256": "971aaaec513f6c6b5762c59fa0f796e0b3133c7da40009cba8da9d8a7db58f7f",
+      "bytes": 3997
+    },
+    {
+      "path": "reproduction/record.py",
+      "sha256": "744e796089616d3909f9abb78f7d1a7571f3807d7c9b3fb31b127073f018ed4b",
+      "bytes": 11626
+    },
+    {
+      "path": "reproduction/resume_linux_delivery.py",
+      "sha256": "bfbac18594b66821f419a1d41a1c68ea0eebd2d7ad64e66cabd63d9971b58beb",
+      "bytes": 2409
+    },
+    {
+      "path": "reproduction/resume_win.py",
+      "sha256": "73dfd37650cb1f375607a8f9ae8cf11c4a77cf454f4bdb2e067e7d71865da940",
+      "bytes": 987
+    },
+    {
+      "path": "generated/xide_version.h",
+      "sha256": "bb02567483e108910848fc1bae1fd658c2411b4514a80fed275f7d28cebd6068",
+      "bytes": 69
+    },
+    {
+      "path": "review/res/xlang_version.rc",
+      "sha256": "ea6ce2f3d9997b297ac944d0a98dd9bdd920732479e8c0f1530c14397ce8f1f5",
+      "bytes": 734
+    },
+    {
+      "path": "review/ide/data/xlang_ide.rc",
+      "sha256": "5bd73443444cdbe8af74b35e0f90cb7c112a775e08cdff212f6c7ad71550f003",
+      "bytes": 655
+    },
+    {
+      "path": "review/src/api/xl_api.c",
+      "sha256": "48150767b8f8ce0263045ef2a91216fea2fab68c920a735990e79f2a209f388b",
+      "bytes": 219613
+    }
+  ],
+  "scope": "Version-only source delta over previously qualified compiler/GUI cohorts. Semantic/LS worktree changes excluded. Windows reuses 2627 qualified objects plus matched libtcc1; Linux native DLLs rebuilt with -O2. Four serialized API profiles refreshed on each platform."
+}

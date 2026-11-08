@@ -224,3 +224,18 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 # Pinned static-native public headers retain their captured bytes.
 /release/win_x64/static/xge3/packages/_xge_native/include/xge.h -text whitespace=cr-at-eol
 /release/linux_x64/static/xge3/packages/_xge_native/include/xge.h -text whitespace=cr-at-eol
+
+# Exact-byte 0.6.1 release source and acceptance materials.
+/dev/release-materials/sources/release-0.6.1-20261108/** -text -whitespace
+/dev/release-materials/provenance/release-0.6.1-20261108/** -text -whitespace
+# Shipped version headers keep the bytes captured by the qualified SDK build.
+/release/win_x64/include/xl_version.h -text whitespace=cr-at-eol
+/release/win_x64/include/__xl_compiler/include/xl_version.h -text whitespace=cr-at-eol
+/release/win_x64/include/__xl_runtime/xl_version.h -text whitespace=cr-at-eol
+/release/linux_x64/include/xl_version.h -text whitespace=cr-at-eol
+/release/linux_x64/include/__xl_compiler/include/xl_version.h -text whitespace=cr-at-eol
+/release/linux_x64/include/__xl_runtime/xl_version.h -text whitespace=cr-at-eol
+
+# Preserve the exact runtime display metadata generated for Windows.
+/release/win_x64/data/version.json whitespace=cr-at-eol
+/release/win_x64/data/release.json whitespace=cr-at-eol

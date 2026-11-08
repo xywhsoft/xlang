@@ -1,9 +1,31 @@
 [CmdletBinding()]
-param([string]$Root='', [string]$OutputDirectory='')
+param([string]$Root='', [string]$OutputDirectory='', [string]$RuntimeDirectory='')
 $ErrorActionPreference='Stop'
 if (!$Root) { $Root=Split-Path -Parent $PSScriptRoot }
 $Root=(Resolve-Path -LiteralPath $Root).Path
-$release=(Resolve-Path -LiteralPath (Join-Path $Root 'release')).Path
+$releaseBase=(Resolve-Path -LiteralPath (Join-Path $Root 'release')).Path
+$platformDirectories=@('win_x64','linux_x64' | Where-Object {
+    Test-Path -LiteralPath (Join-Path $releaseBase $_) -PathType Container
+})
+if (!$RuntimeDirectory -and $platformDirectories.Count -and !(Test-Path -LiteralPath (Join-Path $releaseBase 'include'))) {
+    if (!$OutputDirectory) { $OutputDirectory=Join-Path $Root ('build\release-cleanup-'+(Get-Date -Format 'yyyyMMdd-HHmmss')) }
+    foreach ($platform in $platformDirectories) {
+        $runtime=Join-Path $releaseBase $platform
+        if (Test-Path -LiteralPath $runtime -PathType Container) {
+            & $PSCommandPath -Root $Root -RuntimeDirectory $runtime -OutputDirectory (Join-Path $OutputDirectory $platform)
+        }
+    }
+    return
+}
+$release=$releaseBase
+if ($RuntimeDirectory) {
+    $release=(Resolve-Path -LiteralPath $RuntimeDirectory).Path
+    if (!$release.StartsWith($releaseBase+'\',[StringComparison]::OrdinalIgnoreCase) -or
+        (Split-Path -Parent $release) -ne $releaseBase -or
+        (Split-Path -Leaf $release) -notin @('win_x64','linux_x64')) {
+        throw "RuntimeDirectory must be a platform directory directly under $releaseBase"
+    }
+}
 if (!$OutputDirectory) { $OutputDirectory=Join-Path $Root ('build\release-cleanup-'+(Get-Date -Format 'yyyyMMdd-HHmmss')) }
 $OutputDirectory=[IO.Path]::GetFullPath($OutputDirectory)
 function Assert-Within([string]$Path,[string]$Boundary) {

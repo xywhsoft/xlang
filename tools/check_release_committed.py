@@ -26,7 +26,8 @@ def check(root):
 
     # 同时验证 Git 中的原始字节，防止忽略规则或换行转换遗漏运行成果。
     tracked = subprocess.check_output(
-        ['git', 'ls-tree', '-r', '-z', 'HEAD', '--', 'release/data',
+        ['git', 'ls-tree', '-r', '-z', 'HEAD', '--',
+         'release/win_x64/data', 'release/linux_x64/data',
          *[row['path'] for row in data['products']]], cwd=root)
     blobs = {}
     modes = {}
@@ -48,8 +49,8 @@ def check(root):
     for path, oid in zip(paths, hashes):
         if blobs.get(path) != oid:
             raise ValueError('Uncommitted or transformed runtime file: ' + path)
-    if modes.get('release/xl') != '100755':
-        raise ValueError('Linux release/xl lacks its committed executable bit')
+    if modes.get('release/linux_x64/xl') != '100755':
+        raise ValueError('Linux release/linux_x64/xl lacks its committed executable bit')
     return dict(status='passed',products=len(data['products']),
                 dataFiles=len(data['dataFiles']),committedExactFiles=len(paths))
 

@@ -6,6 +6,7 @@ import json
 import os
 import shutil
 import subprocess
+from runtime_layout import runtime_directory
 
 
 def main():
@@ -16,17 +17,20 @@ def main():
     parser.add_argument("--cc", default=os.environ.get("CC", "gcc"))
     args = parser.parse_args()
     root = args.root.resolve()
-    products = (args.products or root / "release").resolve()
+    products = (args.products or runtime_directory(root)).resolve()
+    sdk = products / "include"
+    if not sdk.is_dir():
+        sdk = runtime_directory(root) / "include"
     directory = (args.directory or root / "build/test/release-delivery").resolve()
     directory.mkdir(parents=True, exist_ok=True)
     payload = directory / "payload"
     payload.mkdir(exist_ok=True)
     work = directory / "empty-cwd"
     work.mkdir(exist_ok=True)
-    shutil.copytree(root / "release/include", payload / "include", dirs_exist_ok=True)
+    shutil.copytree(sdk, payload / "include", dirs_exist_ok=True)
     names = ["xl.exe", "xl.dll", "xlc.dll"] if os.name == "nt" else ["xl", "libxl.so", "libxlc.so"]
     inputs = {}
-    for source in (root / "release/include").rglob("*"):
+    for source in sdk.rglob("*"):
         if source.is_file():
             inputs[str(source)] = hashlib.sha256(source.read_bytes()).hexdigest()
     for name in names:
@@ -72,6 +76,14 @@ def main():
         library = payload / library_name
         for relative in ["release/examples/xl_dll_embed_string.c", "test/cases/stdlib_nested_sdk_host.c"]:
             source = root / relative
+            if not source.is_file() and relative.startswith("release/"):
+                portable = Path(relative).relative_to("release")
+                # The portable C sample is shared by both SDKs; a runtime-only
+                # platform bundle may omit its examples directory.
+                candidates = [runtime_directory(root) / portable,
+                              root / "release/win_x64" / portable,
+                              root / "release/linux_x64" / portable]
+                source = next((path for path in candidates if path.is_file()), source)
             inputs[str(source)] = hashlib.sha256(source.read_bytes()).hexdigest()
             copied = payload / source.name
             shutil.copy2(source, copied)

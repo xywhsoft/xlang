@@ -6,6 +6,7 @@ import json
 import os
 import re
 import subprocess
+from runtime_layout import runtime_directory
 
 
 def main():
@@ -16,13 +17,16 @@ def main():
     parser.add_argument("--cc", default=os.environ.get("CC", "gcc"))
     args = parser.parse_args()
     root = args.root.resolve()
-    products = (args.products or root / "release").resolve()
+    products = (args.products or runtime_directory(root)).resolve()
+    sdk = products / "include"
+    if not sdk.is_dir():
+        sdk = runtime_directory(root) / "include"
     directory = (args.directory or root / "build/test/release-runtime").resolve()
     directory.mkdir(parents=True, exist_ok=True)
     xl = products / ("xl.exe" if os.name == "nt" else "xl")
     env = dict(os.environ, XL6_OS_ARGS_TOKEN="preflight-你")
     env["PATH"] = str(products) + os.pathsep + env.get("PATH", "")
-    env["XLANG_PACKAGE_PATH"] = str(root / "release/extlibs")
+    env["XLANG_PACKAGE_PATH"] = str(runtime_directory(root) / "extlibs")
     report = {"complete": False, "checks": []}
     symbols = re.findall(r"XL6_TEXT_EXPORT\(\s*(\w+)\s*,",
                          (root / "src/runtime/xl6_text_symbols.inc").read_text(encoding="utf-8"))
@@ -60,7 +64,7 @@ def main():
         library = products / name
         binary = directory / (library.stem + "_argv" + suffix)
         link = library
-        command = [args.cc, "-std=c11", "-Wall", "-Wextra", "-Werror", "-I" + str(root / "release/include"),
+        command = [args.cc, "-std=c11", "-Wall", "-Wextra", "-Werror", "-I" + str(sdk),
                    root / "test/cases/stdlib_os_args_native_host.c", link, "-o", binary]
         if os.name != "nt":
             command += ["-Wl,-rpath," + str(products)]

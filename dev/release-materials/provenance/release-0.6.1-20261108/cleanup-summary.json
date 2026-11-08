@@ -1,0 +1,102 @@
+{
+  "removedBytes": 724027,
+  "archivedBytes": 22433860,
+  "releaseReductionBytes": 23157887,
+  "releaseReductionMiB": 22.085,
+  "removedFiles": 4,
+  "archivedFiles": 7,
+  "image": {
+    "path": "release/linux_x64/tmpb78bhcsa",
+    "action": "archived",
+    "bytes": 22432528,
+    "sha256": "62B63FF71173B43D7C5ABA730E80019F48D548191394EC2F8158ADBE10949797",
+    "destination": "build/release-0.6.1-20261108/cleanup-extra/tmpb78bhcsa"
+  },
+  "logs": {
+    "path": "release/win_x64/logs",
+    "action": "archived",
+    "destination": "build/release-0.6.1-20261108/cleanup-extra/agent-logs",
+    "files": [
+      {
+        "path": "agent\\1793983014221\\trace.jsonl",
+        "bytes": 222,
+        "sha256": "4FA1003B1A1AFC6BD265D1B04629E0AA21980865A5EC0DED5FE70948F2894E31"
+      },
+      {
+        "path": "agent\\1793985099403\\trace.jsonl",
+        "bytes": 222,
+        "sha256": "256E3FB3BC2F7982A42E6EAB0CB4B18D09CE6C31A95FA5071E2772BB56C005CA"
+      },
+      {
+        "path": "agent\\1793985101001\\trace.jsonl",
+        "bytes": 222,
+        "sha256": "D7AC2EEB5656B333EB23F9B66824B2493859013580D88549B98D6CB1F465524C"
+      },
+      {
+        "path": "agent\\1793985970941\\trace.jsonl",
+        "bytes": 222,
+        "sha256": "50299D7629B09C881AEBA1B417B187C6AB0358B007E725E8CF30FAE52F6C2C78"
+      },
+      {
+        "path": "agent\\1793985972705\\trace.jsonl",
+        "bytes": 222,
+        "sha256": "2C53D4A858CE923FE5B67028AC25F6BA8989FBA592CE3AF6308DFD40606BAFD4"
+      },
+      {
+        "path": "agent\\1793996597701\\trace.jsonl",
+        "bytes": 222,
+        "sha256": "77D890C815F6AE9BC4B5067CF129804AD884EEC1CDE00BE47FA8539751038A8E"
+      }
+    ]
+  },
+  "platformReports": [
+    {
+      "schema": 1,
+      "status": "cleaned",
+      "createdUtc": "2026-11-08T00:05:03.9037625Z",
+      "beforeFiles": 7043,
+      "beforeBytes": 325304082,
+      "afterFiles": 7039,
+      "afterBytes": 324580055,
+      "releaseReductionBytes": 724027,
+      "retainedBytesUnchanged": true,
+      "unhashedBusyLocks": [],
+      "preservedPinnedCaches": [],
+      "blocked": [],
+      "operations": [
+        {
+          "path": "tmp/xl6_build_30008_3287350767_0",
+          "action": "remove",
+          "reason": "completed validation or compiler temporary output",
+          "destination": null,
+          "files": 3,
+          "bytes": 724027
+        },
+        {
+          "path": "option/settings.json.lock",
+          "action": "remove",
+          "reason": "inactive preferences writer lock",
+          "destination": null,
+          "files": 1,
+          "bytes": 0
+        }
+      ]
+    },
+    {
+      "schema": 1,
+      "status": "cleaned",
+      "createdUtc": "2026-11-08T00:05:06.1658917Z",
+      "beforeFiles": 2663,
+      "beforeBytes": 145235357,
+      "afterFiles": 2663,
+      "afterBytes": 145235357,
+      "releaseReductionBytes": 0,
+      "retainedBytesUnchanged": true,
+      "unhashedBusyLocks": [],
+      "preservedPinnedCaches": [],
+      "blocked": [],
+      "operations": []
+    }
+  ],
+  "userSettingsAndOtherRetainedBytesPreserved": true
+}
