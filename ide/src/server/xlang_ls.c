@@ -48,7 +48,7 @@ typedef struct server {
  unsigned long long signatureGeneration,signaturePendingGeneration;
  int signaturePendingDocument,signaturePendingEntry,signaturePendingVersion,signaturePendingLine,signaturePendingCharacter;
  int signatureContextDocument;
- unsigned signatureFlags;
+ unsigned signatureFlags;bool hierarchicalSymbols;
  xls_worker *analysis,*semanticAnalysis,*cursorAnalysis,*signatureAnalysis; native_request native[DOC_LIMIT]; size_t foldingLimit;
  xls_session_stats analysisStats; uint64_t analysisThread;
  semantic_request semantic[DOC_LIMIT]; unsigned long long semanticOrder; int checkForSemantic;
@@ -579,8 +579,14 @@ static xvalue* semanticResult(server* s,semantic_request* request)
  int prepared=request->kind<2 ? xideLanguageCheckPreparePointNavigation(s->guard,d->path,request->version,NULL,0) : xideLanguageCheckPrepareNavigation(s->guard,d->path,request->version,NULL,0);
  if(prepared!=1){request->waitingNavigation=prepared==0;request->navigationFailed=prepared==-1;return NULL;}
 #endif
+ if(request->kind==2){
+  xvalue* out=xideLanguageCheckDocumentSymbolsForClient(s->guard,d->path,request->version,s->hierarchicalSymbols ? NULL : d->uri);
+  /* A current checked owner with no complete symbol result has hit a
+     resource/serialization failure. Do not retry it as another analysis. */
+  if(!out && xideLanguageCheckGuardState(s->guard,NULL,0)==XIDE_GUARD_RUNNING)request->navigationFailed=1;
+  return out;
+ }
  return request->kind==3 ? xideLanguageCheckDocumentHighlights(s->guard,d->path,request->version,request->line,request->character) :
-  request->kind==2 ? xideLanguageCheckDocumentSymbols(s->guard,d->path,request->version) :
   request->kind==1 ? xideLanguageCheckHover(s->guard,d->path,request->version,request->line,request->character) :
   s->definitionInputProof ? xideLanguageCheckDefinitionWithProof(s->guard,d->path,request->version,request->line,request->character) :
   xideLanguageCheckDefinition(s->guard,d->path,request->version,request->line,request->character);
@@ -776,6 +782,9 @@ static void dispatch(server* s,const xvalue* message)
   const xvalue* backendOption=get(options,"completionBackend"); const char* backend=string(backendOption);
   if(backendOption && (!backend || (strcmp(backend,"native") && strcmp(backend,"cli")))) { response(s,id,NULL,-32602,"completionBackend must be native or cli."); return; }
   if(!xlsSignatureHelpCapabilities(get(params,"capabilities"),&s->signatureFlags)){response(s,id,NULL,-32602,"Invalid signature help capabilities.");return;}
+  bool hierarchical=false;
+  const xvalue* symbolHierarchy=get(get(get(get(params,"capabilities"),"textDocument"),"documentSymbol"),"hierarchicalDocumentSymbolSupport");
+  if(symbolHierarchy && (xrtValueType(symbolHierarchy)!=XVALUE_BOOL || !xrtValueGetBool(symbolHierarchy,&hierarchical))){response(s,id,NULL,-32602,"hierarchicalDocumentSymbolSupport must be boolean.");return;}
   s->cliCompletion=backend && !strcmp(backend,"cli");
   const xvalue* diagnosticsOption=get(options,"diagnosticsBackend"); const char* diagnostics=string(diagnosticsOption);
   if(diagnosticsOption && (!diagnostics || (strcmp(diagnostics,"native") && strcmp(diagnostics,"cli")))) { response(s,id,NULL,-32602,"diagnosticsBackend must be native or cli."); return; }
@@ -845,7 +854,7 @@ static void dispatch(server* s,const xvalue* message)
   if(!s->cliCompletion && !s->cliDiagnostics)put(cap,"referencesProvider",xrtValueBool(true));
   put(scope,"referenceCompilationOwners",xrtValueBool(!s->cliCompletion && !s->cliDiagnostics));
 #endif
-  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.101"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
+  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.101"))); put(result,"serverInfo",info); s->hierarchicalSymbols=hierarchical;s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
  }
  if(!s->initialized) { if(id) response(s,id,NULL,-32002,"Server not initialized."); return; }
  if(s->shutdown) { if(id) response(s,id,NULL,-32600,"Server has shut down."); return; }

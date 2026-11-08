@@ -21,6 +21,24 @@ static bool lookupReserve(xarray* a,size_t count)
 {return lookupOperation() && xrtArrayReserve(a,count);}
 static void lookupUnit(xarray* a)
 {if(!lookupArrays)lookupBadLifetime=1;else --lookupArrays;xrtArrayUnit(a);}
+/* Exercise each real serializer allocation/mutation, preserving the XRT
+ * consuming ownership contract even at an injected failure. */
+static size_t symbolOperations,symbolFail;static int symbolTracking;
+static int symbolOperation(void){return !symbolTracking || ++symbolOperations!=symbolFail;}
+static xvalue* symbolObject(void){return symbolOperation() ? xrtValueObject() : NULL;}
+static xvalue* symbolArray(void){return symbolOperation() ? xrtValueArray() : NULL;}
+static xvalue* symbolString(xstrview s){return symbolOperation() ? xrtValueString(s) : NULL;}
+static xvalue* symbolInt(int64 n){return symbolOperation() ? xrtValueInt(n) : NULL;}
+static void* symbolCalloc(size_t n,size_t size){return symbolOperation() ? calloc(n,size) : NULL;}
+static bool symbolSet(xvalue* o,xstrview k,xvalue* v){if(symbolOperation())return xrtValueObjectSetNew(o,k,v);xrtValueRelease(v);return false;}
+static bool symbolAppend(xvalue* a,xvalue* v){if(symbolOperation())return xrtValueArrayAppendNew(a,v);xrtValueRelease(v);return false;}
+#define xrtValueObject symbolObject
+#define xrtValueArray symbolArray
+#define xrtValueString symbolString
+#define xrtValueInt symbolInt
+#define xrtValueObjectSetNew symbolSet
+#define xrtValueArrayAppendNew symbolAppend
+#define calloc symbolCalloc
 #define xrtArrayInit lookupInit
 #define xrtArrayAppend lookupAppend
 #define xrtArraySort lookupSort
@@ -34,6 +52,13 @@ static void lookupUnit(xarray* a)
 #undef xrtArrayResize
 #undef xrtArrayReserve
 #undef xrtArrayUnit
+#undef xrtValueObject
+#undef xrtValueArray
+#undef xrtValueString
+#undef xrtValueInt
+#undef xrtValueObjectSetNew
+#undef xrtValueArrayAppendNew
+#undef calloc
 
 static size_t checks;
 #define CHECK(e) do {++checks;if(!(e)){fprintf(stderr,"semantic_lookup_test:%d: %s\n",__LINE__,#e);return 0;}}while(0)
@@ -136,8 +161,41 @@ static int typedLimits(void)
  source.path=NULL;CHECK(!typedCapacity(0,&source,1,&budget));return 1;
 }
 #endif
+static int symbols(void)
+{
+ char* path="/symbols-中文😀.xl";const char* uri="file:///symbols-%E4%B8%AD%E6%96%87%F0%9F%98%80.xl";
+ char* paths[]={path};node nodes[4]={0};xide_semantic_definitions d={.paths=paths,.sourceCount=1,.nodes=nodes,.count=4};
+ const char* kinds[]={"class","async_func","var_decl","extern_func"};
+ const char* names[]={"Box","fetch","hidden_local","native"};
+ for(unsigned i=0;i<4;++i){nodeShape(&d,nodes+i,i==1 ? 1 : i==2 ? 2 : 0,i+1,0,kinds[i]);nodes[i].name=(char*)names[i];nodes[i].header=(char*)names[i];nodes[i].full=(span){1,(int)i*10,100-(int)i*10,{(int)i,0},{10-(int)i,0}};nodes[i].selection=nodes[i].full;}
+ CHECK(nodes[1].kind==12 && nodes[3].kind==12);
+ for(unsigned flat=0;flat<2;++flat){
+  symbolTracking=1;symbolOperations=symbolFail=0;
+  xvalue* value=xideSemanticDocumentSymbolsForClient(&d,path,flat ? uri : NULL);symbolTracking=0;
+  CHECK(value && xrtValueCount(value)==(flat ? 3 : 2));size_t operations=symbolOperations;
+  xvalue* method=flat ? xrtValueArrayGet(value,1) : xrtValueArrayGet(get(xrtValueArrayGet(value,0),"children"),0);
+  int64 kind=0;CHECK(xrtValueGetInt(get(method,"kind"),&kind) && kind==6);
+  xstrview name={0};CHECK(xrtValueGetString(get(method,"name"),&name) && name.Size==5 && !memcmp(name.Data,"fetch",5));
+  if(flat){CHECK(!get(method,"children") && !get(method,"selectionRange") && !get(method,"range"));CHECK(xrtValueGetString(get(get(method,"location"),"uri"),&name) && !strcmp(name.Data,uri));CHECK(xrtValueGetString(get(method,"containerName"),&name) && !strcmp(name.Data,"Box"));CHECK(!get(xrtValueArrayGet(value,2),"containerName"));}
+  else {CHECK(!get(method,"location") && xrtValueCount(get(method,"children"))==0);}
+  for(size_t fail=1;fail<=operations;++fail){symbolTracking=1;symbolOperations=0;symbolFail=fail;xvalue* bad=xideSemanticDocumentSymbolsForClient(&d,path,flat ? uri : NULL);symbolTracking=0;CHECK(!bad && symbolOperations>=fail);xvalue* recovered=xideSemanticDocumentSymbolsForClient(&d,path,flat ? uri : NULL);CHECK(recovered && xrtValueEqual(value,recovered));xrtValueRelease(recovered);}
+  xrtValueRelease(value);symbolFail=0;
+ }
+ CHECK(!xideSemanticDocumentSymbolsForClient(&d,"/missing.xl",uri));
+ nodes[1].full.endOffset=101;CHECK(!xideSemanticDocumentSymbolsForClient(&d,path,uri) && !xideSemanticDocumentSymbols(&d,path));nodes[1].full.endOffset=90;
+ node* many=calloc(4097,sizeof(*many));CHECK(many);for(size_t i=0;i<4097;++i){many[i]=nodes[3];many[i].parent=0;}
+ d.nodes=many;d.count=4096;
+ for(unsigned flat=0;flat<2;++flat){xvalue* value=xideSemanticDocumentSymbolsForClient(&d,path,flat ? uri : NULL);CHECK(value && xrtValueCount(value)==4096);xrtValueRelease(value);d.count=4097;CHECK(!xideSemanticDocumentSymbolsForClient(&d,path,flat ? uri : NULL));d.count=4096;}
+ size_t uriLimit=7u*1024u*1024u/6u;char* largeUri=calloc(uriLimit+2,1);CHECK(largeUri);memset(largeUri,'a',uriLimit+1);
+ symbolTracking=1;symbolOperations=0;symbolFail=0;CHECK(!xideSemanticDocumentSymbolsForClient(&d,path,largeUri));symbolTracking=0;CHECK(!symbolOperations);
+ largeUri[650000]=0;d.count=2;CHECK(!xideSemanticDocumentSymbolsForClient(&d,path,largeUri));d.count=1;
+ xvalue* bounded=xideSemanticDocumentSymbolsForClient(&d,path,largeUri);CHECK(bounded && xrtValueCount(bounded)==1);xrtValueRelease(bounded);
+ bounded=xideSemanticDocumentSymbolsForClient(&d,path,uri);CHECK(bounded && xrtValueCount(bounded)==1);xrtValueRelease(bounded);free(largeUri);
+ free(many);return 1;
+}
 int main(void)
 {
+ if(!symbols())return 1;
  lookup_input empty;if(!lookupInput(&empty,0))return 1;xide_semantic_definitions* zero=lookupCreate(&empty);xide_semantic_reference_view view={0};
  if(!zero || zero->cursors.Count || zero->references.Count || !xideSemanticReferences(zero,empty.path,0,0,1,&view) || view.count)return 1;
  xideSemanticDefinitionsDestroy(zero);lookupInputUnit(&empty);

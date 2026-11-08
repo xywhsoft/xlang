@@ -156,6 +156,14 @@ static int run(void)
     xls_semantic_check* first=xlsSemanticCheckCreate(path,inputs,1,1,NULL,NULL,error,sizeof(error));
     if(!first) fprintf(stderr,"typed check: %s\n",error);
     CHECK(verify(first));
+    const char* asynchronous="extern \"probe_value\" func native_value(int value) as int\nasync func fetch(int value) as int\n int hidden_local=value+1\n return hidden_local\nend\nfunc main(...) as int\n return 0\nend\n";
+    xls_semantic_input asyncInput={path,asynchronous,strlen(asynchronous)};
+    xls_semantic_check* asyncCheck=xlsSemanticCheckCreate(path,&asyncInput,1,1,NULL,NULL,error,sizeof(error));
+    CHECK(verify(asyncCheck));
+    const xls_semantic_index* asyncIndex=xlsSemanticCheckTypedIndex(asyncCheck);unsigned asyncFound=0,externFound=0;
+    for(size_t i=0;i<xlsSemanticIndexCount(asyncIndex);++i){xls_index_point_fact p={0};CHECK(xlsSemanticIndexPointFact(asyncIndex,i,&p));if(!strcmp(p.fact.kind,"async_func") || !strcmp(p.fact.kind,"extern_func")){CHECK(p.kind==XLS_INDEX_POINT_FUNC && xlsIndexPointKindParse(p.fact.kind)==p.kind);if(!strcmp(p.fact.kind,"async_func"))++asyncFound;else ++externFound;}}
+    CHECK(asyncFound==1 && externFound==1);
+    xlsSemanticCheckDestroy(asyncCheck);
     const char* generics="protocol Named\n func name() as string\nend\nclass Base\n int value\nend\nclass Child extends Base\nend\nfunc keep<T>(T value) as T\n return value\nend\nfunc bounded<T is Named>(T value) as int\n return 0\nend\nfunc main(...) as int\n return keep::<int>(7)\nend\n";
     inputs[0]=(xls_semantic_input){path,generics,strlen(generics)};
     xls_semantic_check* second=xlsSemanticCheckCreate(path,inputs,1,1,NULL,NULL,error,sizeof(error));

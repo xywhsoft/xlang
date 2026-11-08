@@ -34,7 +34,7 @@ def initialize(client, entry, members, directory):
     context = dict(schema=1, kind='project', project=(directory/'project.xlp').as_posix(),
         configuration='debug', entry=entry.as_posix(), directory=directory.as_posix(),
         analysisProfile=PROFILE, targetKind='exe', packagePath='', lists=lists)
-    client.send('initialize', dict(capabilities={}, initializationOptions=dict(automaticDiagnostics=False,
+    client.send('initialize', dict(capabilities=dict(textDocument=dict(documentSymbol=dict(hierarchicalDocumentSymbolSupport=True))), initializationOptions=dict(automaticDiagnostics=False,
         checkOnSave=False, analysisConfiguration=dict(epoch=1, catalog=dict(schema=1,
             projects=[context], selectedProject=context['project'], packagePath='')))), 1)
     reply, _ = client.reply(1)

@@ -39,7 +39,7 @@ class Client:
  def initialize(self,diagnostics_backend=None):
   options={'checkOnSave':False,'automaticDiagnostics':False}
   if diagnostics_backend is not None:options['diagnosticsBackend']=diagnostics_backend
-  self.send('initialize',{'capabilities':{},'initializationOptions':options},1)
+  self.send('initialize',{'capabilities':{'textDocument':{'documentSymbol':{'hierarchicalDocumentSymbolSupport':True}}},'initializationOptions':options},1)
   m,_=self.reply(1);cap=m['result']['capabilities'];assert cap['positionEncoding']=='utf-16' and cap['experimental']['unsavedDependencies'] and cap['experimental']['snapshotInputGuard']=='background-poll';self.send('initialized',{})
  def open(self,path,text,version=1):self.send('textDocument/didOpen',{'textDocument':{'uri':path.as_uri(),'text':text,'version':version,'languageId':'xlang'}})
  def change(self,path,text,version):self.send('textDocument/didChange',{'textDocument':{'uri':path.as_uri(),'version':version},'contentChanges':[{'text':text}]})

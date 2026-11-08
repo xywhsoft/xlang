@@ -683,26 +683,48 @@ xvalue* xideSemanticHover(xide_semantic_definitions* d,const char* path,int line
 /* Standard DocumentSymbol hierarchy, in original source order. Locals and
    parameters are excluded; generated declarations without a source name are
    omitted. Name-node scope IDs never duplicate a function declaration. */
-xvalue* xideSemanticDocumentSymbols(xide_semantic_definitions* d,const char* path)
+xvalue* xideSemanticDocumentSymbolsForClient(xide_semantic_definitions* d,const char* path,const char* uri)
 {
  int source=sourceFor(d,path); if(!source) return NULL;
+ /* Flat locations repeat the document URI. Bound their worst-case escaped
+    JSON charge before copying text; retain room in the 8 MiB wire envelope.
+    Six bytes per input byte covers every JSON string escape, with 512 bytes
+    per row for keys, integer positions and punctuation. */
+ const size_t wireBudget=7u*1024u*1024u;size_t wireBytes=0,uriBytes=uri ? strlen(uri) : 0;
+ if(uri && uriBytes>wireBudget/6u)return NULL;
  xvalue *out=xrtValueArray(),**items=calloc(d->count+1,sizeof(*items)); int okay=out && items; size_t count=0;
  for(size_t i=0;okay && i<d->count;++i) {
   node* n=&d->nodes[i]; if(!n->kind || !n->name || n->full.source!=source || n->selection.source!=source) continue;
   size_t parent=SIZE_MAX; int inFunction=0;
   for(unsigned p=n->parent;p;p=d->nodes[p-1].parent) { node* a=&d->nodes[p-1]; if(a->kind==12) inFunction=1; if(parent==SIZE_MAX && items[p-1]) parent=p-1; }
   if(inFunction || ++count>4096) { if(count>4096) okay=0; continue; }
-  xvalue *v=xrtValueObject(),*children=xrtValueArray(); int kind=n->kind;
+  if(uri){
+   size_t textBytes=uriBytes+strlen(n->name)+(parent==SIZE_MAX ? 0 : strlen(d->nodes[parent].name));
+   if(textBytes>(wireBudget-512u)/6u){okay=0;break;}
+   size_t charge=512u+textBytes*6u;if(charge>wireBudget-wireBytes){okay=0;break;}wireBytes+=charge;
+  }
+  xvalue *v=xrtValueObject(),*children=NULL; int kind=n->kind;
   if(kind==12 && parent!=SIZE_MAX && d->nodes[parent].kind==5) kind=6;
-  okay=v && children && put(v,"name",xrtValueString(sv(n->name))) && put(v,"kind",xrtValueInt(kind)) && put(v,"range",wireRange(&n->full)) && put(v,"selectionRange",wireRange(&n->selection));
-  if(okay && n->header) okay=put(v,"detail",xrtValueString(sv(n->header)));
-  if(okay) { okay=put(v,"children",children); children=NULL; }
+  okay=v && put(v,"name",xrtValueString(sv(n->name))) && put(v,"kind",xrtValueInt(kind));
+  if(okay && uri) {
+   xvalue* location=xrtValueObject();
+   okay=location && put(location,"uri",xrtValueString(sv(uri))) && put(location,"range",wireRange(&n->full));
+   if(okay){okay=put(v,"location",location);location=NULL;}xrtValueRelease(location);
+   if(okay && parent!=SIZE_MAX)okay=put(v,"containerName",xrtValueString(sv(d->nodes[parent].name)));
+  } else if(okay) {
+   children=xrtValueArray();
+   okay=children && put(v,"range",wireRange(&n->full)) && put(v,"selectionRange",wireRange(&n->selection));
+   if(okay && n->header)okay=put(v,"detail",xrtValueString(sv(n->header)));
+   if(okay){okay=put(v,"children",children);children=NULL;}
+  }
   if(okay && parent!=SIZE_MAX) { span *a=&d->nodes[parent].full; okay=n->full.startOffset>=a->startOffset && n->full.endOffset<=a->endOffset; }
-  if(okay) { items[i]=v; okay=xrtValueArrayAppendNew(parent==SIZE_MAX ? out : get(items[parent],"children"),v); v=NULL; }
+  if(okay) { items[i]=v; okay=xrtValueArrayAppendNew(uri || parent==SIZE_MAX ? out : get(items[parent],"children"),v); v=NULL; }
   xrtValueRelease(v); xrtValueRelease(children);
  }
  free(items); if(!okay) { xrtValueRelease(out); return NULL; } return out;
 }
+xvalue* xideSemanticDocumentSymbols(xide_semantic_definitions* d,const char* path)
+{return xideSemanticDocumentSymbolsForClient(d,path,NULL);}
 #ifdef XLS_COMPILER_XRT
 #include "services/semantic_reference_shard.inc"
 #include "services/semantic_native_points.inc"

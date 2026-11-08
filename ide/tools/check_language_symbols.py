@@ -13,7 +13,7 @@ def main():
  def client(tool=compiler):
   options={'checkOnSave':False,'automaticDiagnostics':False}
   if tool!=compiler: options['diagnosticsBackend']='cli'
-  c=Client(server,tool,root); clients.append(c); c.send('initialize',{'capabilities':{},'initializationOptions':options},1); m,_=c.reply(1); cap=m['result']['capabilities']; assert cap['hoverProvider'] and cap['documentSymbolProvider'] and cap['experimental']['snapshotHover'] and cap['experimental']['snapshotDocumentSymbols'] and not cap['experimental']['cSemantics']; c.send('initialized',{}); return c
+  c=Client(server,tool,root); clients.append(c); c.send('initialize',{'capabilities':{'textDocument':{'documentSymbol':{'hierarchicalDocumentSymbolSupport':True}}},'initializationOptions':options},1); m,_=c.reply(1); cap=m['result']['capabilities']; assert cap['hoverProvider'] and cap['documentSymbolProvider'] and cap['experimental']['snapshotHover'] and cap['experimental']['snapshotDocumentSymbols'] and not cap['experimental']['cSemantics']; c.send('initialized',{}); return c
  def check(c,text,version=1,extra=()):
   c.open(entry,text,version)
   for p,t,v in extra: c.open(p,t,v)

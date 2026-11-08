@@ -381,14 +381,16 @@ xvalue* xideLanguageCheckHover(xide_language_check* q,const char* path,int versi
  }
  LeaveCriticalSection(&q->lock); return out;
 }
-xvalue* xideLanguageCheckDocumentSymbols(xide_language_check* q,const char* path,int version)
+xvalue* xideLanguageCheckDocumentSymbolsForClient(xide_language_check* q,const char* path,int version,const char* uri)
 {
  if(!q || !path) return NULL;
  EnterCriticalSection(&q->lock); int match=0;
  for(size_t i=0;i<q->snapshotCount;++i) if(xidePathLexicalEqual(path,q->snapshots[i].path) && version==q->snapshots[i].version) match=1;
- xvalue* out=match && q->state==XIDE_CHECK_READY && !cancelled(q) && q->guardState==XIDE_GUARD_RUNNING && navigation(q) ? xideSemanticDocumentSymbols(q->definitions,path) : NULL;
+ xvalue* out=match && q->state==XIDE_CHECK_READY && !cancelled(q) && q->guardState==XIDE_GUARD_RUNNING && navigation(q) ? xideSemanticDocumentSymbolsForClient(q->definitions,path,uri) : NULL;
  LeaveCriticalSection(&q->lock); return out;
 }
+xvalue* xideLanguageCheckDocumentSymbols(xide_language_check* q,const char* path,int version)
+{return xideLanguageCheckDocumentSymbolsForClient(q,path,version,NULL);}
 xvalue* xideLanguageCheckDocumentHighlights(xide_language_check* q,const char* path,int version,int line,int character)
 {
  if(!q || !path) return NULL;

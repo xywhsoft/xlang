@@ -24,6 +24,8 @@ static int capture(xide_app* a,const char* path) { if(!settle(a) || xuiUpdate(a-
 
 static int waitOutline(xide_app* a)
 { uint64_t until=GetTickCount64()+6000; do { if(!settle(a)) return 0; if(!a->languageView->outlineRequest && a->languageView->outlineResult && a->languageView->outlineDocument==a->activeDocument) return 1; Sleep(5); } while(GetTickCount64()<until); return 0; }
+static int waitOutlineFailure(xide_app* a)
+{uint64_t until=GetTickCount64()+6000;do{if(!settle(a))return 0;xide_language_view* v=a->languageView;if(v->outlineDocument==a->activeDocument && v->outlineVersion==xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(a->activeDocument->editor)) && !v->outlineRequest && !v->outlineResult)return 1;Sleep(5);}while(GetTickCount64()<until);return 0;}
 static int waitHover(xide_app* a)
 { uint64_t until=GetTickCount64()+6000; do { if(!settle(a)) return 0; if(a->languageView->hoverResult && xuiCodeEditIsHintOpen(a->activeDocument->editor)) return 1; Sleep(5); } while(GetTickCount64()<until); return 0; }
 static int waitOutlineRequest(xide_app* a)
@@ -46,7 +48,7 @@ static int legacyRemove(xvalue* v)
 static int verify(void* user)
 {
  fixture* f=user; if(f->started) return XGE_OK; f->started=1; xide_app app={0}; xide_model_error error={0}; int began=0;
- char *root=NULL,*entry=NULL,*dep=NULL,*native=NULL,*light=NULL,*dark=NULL,*large=NULL,*cold=NULL; xvalue *state=NULL,*fake=NULL;
+ char *root=NULL,*entry=NULL,*dep=NULL,*native=NULL,*light=NULL,*dark=NULL,*large=NULL,*cold=NULL,*symbolLimit=NULL; xvalue *state=NULL,*fake=NULL;
  char unique[60]; snprintf(unique,sizeof(unique),"symbols-%lu-%llu",GetCurrentProcessId(),(unsigned long long)GetTickCount64()); root=xidePathResolve(f->directory,unique); entry=xidePathResolve(root,"入口😀.xl"); dep=xidePathResolve(root,"helper.xl"); native=xidePathResolve(root,"helper.c"); light=xidePathResolve(root,"outline-hover-light.png"); dark=xidePathResolve(root,"outline-hover-dark.png");
  const char *saved="func main(...) as int\n    return 0\nend\n",*overload="func pick(int value) as int\n    return value\nend\nfunc pick(string value) as int\n    return 2\nend\nfunc main(...) as int\n    string 中文 = \"😀\"; auto second = pick(\"x\")\n    return second - 2\nend\n",*helper="export func answer() as int\n    return 42\nend\n",*overlay="\n\nexport func answer() as int\n    return 42\nend\n",*imported="import helper\nfunc main(...) as int\n    return helper.answer() - 42\nend\n";
  CHECK(root && entry && dep && native && light && dark && xrtDirCreateAll(root) && writeText(entry,saved) && writeText(dep,helper) && writeText(native,"int helper(void) { return 1; }\n"));
@@ -94,6 +96,24 @@ static int verify(void* user)
  CHECK(replace(xl,coldError) && settle(&app) && waitOutline(&app) && app.languageView->onDemandMode && !app.languageView->outlineCount && !app.languageView->snapshotResult && waitAutomaticError(&app));
  CHECK(gotoOffset(&app,xl,(int)(strstr(coldError,"missingName")-coldError)) && requestCaretHover(&app) && waitHoverEmpty(&app) && !xuiCodeEditIsHintOpen(xl->editor));
  CHECK(replace(xl,coldImported) && settle(&app) && waitOutline(&app) && gotoOffset(&app,xl,coldCall) && requestCaretHover(&app) && waitHover(&app));
+ /* Async callable scopes keep locals out of the navigable hierarchy. The
+    manual batch checks below also require hierarchy after diagnostics stops. */
+ const char* asynchronous="class Box\n async func fetch(int value) as int\n  int hidden_method=value+1\n  return hidden_method\n end\nend\nasync func fetch(int value) as int\n int hidden_local=value+1\n return hidden_local\nend\nfunc main(...) as int\n return 0\nend\n";
+ CHECK(replace(xl,asynchronous) && settle(&app) && waitOutline(&app) && app.languageView->outlineCount==4);
+ xvalue* asyncOutline=app.languageView->outlineResult;
+ CHECK(xrtValueCount(asyncOutline)==3 && formatted(get(xrtValueArrayGet(asyncOutline,1),"name"),"fetch"));
+ xvalue* asyncMethods=get(xrtValueArrayGet(asyncOutline,0),"children");
+ CHECK(xrtValueCount(asyncMethods)==1 && formatted(get(xrtValueArrayGet(asyncMethods,0),"name"),"fetch") && !xrtValueCount(get(xrtValueArrayGet(asyncMethods,0),"children")));
+ CHECK(xuiTreeViewSetSelected(app.languageView->outline,3)==XUI_OK && xuiSetFocusWidget(app.context,app.languageView->outline)==XUI_OK && xuiInputKeyDown(app.context,XUI_KEY_ENTER,0)==XUI_OK && xuiInputKeyUp(app.context,XUI_KEY_ENTER,0)==XUI_OK && settle(&app) && caret(xl)==(int)(strstr(strstr(asynchronous,"async func fetch")+1,"async func fetch")+11-asynchronous));
+ symbolLimit=malloc(512000);CHECK(symbolLimit);size_t symbolBytes=0;
+ for(unsigned i=0;i<4097;++i){int n=snprintf(symbolLimit+symbolBytes,512000-symbolBytes,"func limit_%u() as int\n return %u\nend\n",i,i);CHECK(n>0 && (size_t)n<512000-symbolBytes);symbolBytes+=(size_t)n;}
+ CHECK(symbolBytes+strlen(saved)+1<512000);memcpy(symbolLimit+symbolBytes,saved,strlen(saved)+1);
+ CHECK(replace(xl,symbolLimit) && waitOutlineFailure(&app));free(symbolLimit);symbolLimit=NULL;
+ clearHover(app.languageView);int afterFailure=app.languageView->nextId;
+ for(unsigned i=0;i<100;++i)pollSemantic(&app);
+ CHECK(app.languageView->nextId==afterFailure && !app.languageView->outlineRequest && app.languageView->outlineDocument==xl);
+ CHECK(replace(xl,asynchronous) && settle(&app) && waitOutline(&app) && app.languageView->outlineCount==4);
+ CHECK(replace(xl,coldImported) && settle(&app) && waitOutline(&app));
  /* Default cold hover/outline, dependency/disk invalidation and source errors
     are checked above. The rest deliberately exercises manual batch internals. */
  CHECK(app.languageView->autoEnabled); app.disableAutomaticDiagnostics=1; reset(&app); automaticDestroy(app.languageView);
@@ -151,6 +171,7 @@ static int verify(void* user)
  xide_text_file file={0}; CHECK(xideTextFileRead(entry,&file,&error) && !strcmp(file.text,saved)); xideTextFileClear(&file); CHECK(xideTextFileRead(dep,&file,&error) && !strcmp(file.text,helper)); xideTextFileClear(&file);
  printf("symbol_view_test passed: cold-path=%d; standard hover/outline or explicit legacy fallback, receipt/current-input guards, mouse hover, Ctrl+I, overload, central outline jump, batch/range/caret/tab/edit/C guards and preserved source bytes; renders in %s.\n",!f->legacy,root);
 cleanup:
+ free(symbolLimit);
  xrtValueRelease(fake); xrtValueRelease(state); if(began) xgeEnd(); xideAppDestroy(&app); free(root); free(entry); free(dep); free(native); free(light); free(dark); free(large); free(cold); xgeQuit(); return XGE_OK;
 }
 static DWORD WINAPI worker(void* data) { fixture* f=data; if(!SetThreadDesktop(f->desktop)) return 1; xge_desc_t d={0}; d.iWidth=1600; d.iHeight=1000; d.sTitle="xlang symbol verification"; d.iFlags=XGE_INIT_WINDOW|XGE_INIT_HIGHDPI; d.iRunMode=XGE_RUN_GAME_LOOP; int result=xgeInit(&d); if(result==XGE_OK) result=xgeRun(verify,f); xgeUnit(); return result==XGE_OK && f->started && !f->failed ? 0 : 1; }

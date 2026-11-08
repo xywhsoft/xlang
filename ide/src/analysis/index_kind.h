@@ -15,6 +15,10 @@
 /* Append new query categories independently of the selected native AST ABI;
  * every consumer sees the same enum, including compatibility-only hosts. */
 #define XLS_INDEX_POINT_KINDS(X) XLS_INDEX_POINT_NATIVE_KINDS(X) X(VARIANT,"variant") X(C_RECORD,"C record")
+/* Callable spelling aliases share the existing query category. Keep enum
+ * values stable and classify native and compatibility facts identically. */
+#define XLS_INDEX_POINT_ALIASES(X) \
+ X(ASYNC_FUNC,"async_func",FUNC) X(EXTERN_FUNC,"extern_func",FUNC)
 enum xls_index_point_kind {
  XLS_INDEX_POINT_OTHER,
 #define XLS_INDEX_KIND_ENUM(name,text) XLS_INDEX_POINT_##name,
@@ -28,6 +32,9 @@ static inline enum xls_index_point_kind xlsIndexPointKindParse(const char* value
 #define XLS_INDEX_KIND_PARSE(name,text) if(!strcmp(value,text))return XLS_INDEX_POINT_##name;
  XLS_INDEX_POINT_KINDS(XLS_INDEX_KIND_PARSE)
 #undef XLS_INDEX_KIND_PARSE
+#define XLS_INDEX_ALIAS_PARSE(name,text,category) if(!strcmp(value,text))return XLS_INDEX_POINT_##category;
+ XLS_INDEX_POINT_ALIASES(XLS_INDEX_ALIAS_PARSE)
+#undef XLS_INDEX_ALIAS_PARSE
  return XLS_INDEX_POINT_OTHER;
 }
 #endif

@@ -291,11 +291,16 @@ static int connectClient(xide_app* app,xide_document* d)
   xvalue *p=xrtValueObject(),*options=xrtValueObject(),*capabilities=xrtValueObject(),*experimental=xrtValueObject();
   if(!p || !options || !capabilities || !experimental) {xrtValueRelease(configuration);xrtValueRelease(p);xrtValueRelease(options);xrtValueRelease(capabilities);xrtValueRelease(experimental);reset(app);free(directory);return 0;}
   put(options,"analysisConfiguration",configuration);
+  xvalue* td=xrtValueObject(),*symbols=xrtValueObject();
+  int symbolReady=td && symbols && put(symbols,"hierarchicalDocumentSymbolSupport",xrtValueBool(true));
+  if(symbolReady){symbolReady=put(td,"documentSymbol",symbols);symbols=NULL;}
+  if(!symbolReady){xrtValueRelease(td);xrtValueRelease(symbols);xrtValueRelease(p);xrtValueRelease(options);xrtValueRelease(capabilities);xrtValueRelease(experimental);reset(app);free(directory);return 0;}
   if(v->autoView && !app->disableAutomaticDiagnostics) {
-   xvalue* td=xrtValueObject(),*diagnostics=xrtValueObject();put(diagnostics,"versionSupport",xrtValueBool(true));put(td,"publishDiagnostics",diagnostics);put(capabilities,"textDocument",td);
+   xvalue* diagnostics=xrtValueObject();put(diagnostics,"versionSupport",xrtValueBool(true));put(td,"publishDiagnostics",diagnostics);
    put(experimental,"diagnosticInputProof",xrtValueBool(true));put(experimental,"diagnosticDependencyProof",xrtValueBool(true));put(experimental,"diagnosticOverlayProof",xrtValueBool(true));
    put(options,"automaticDiagnosticsIfSupported",xrtValueBool(true));
   }
+  if(!put(capabilities,"textDocument",td)){xrtValueRelease(p);xrtValueRelease(options);xrtValueRelease(capabilities);xrtValueRelease(experimental);reset(app);free(directory);return 0;}
   put(experimental,"definitionInputProof",xrtValueBool(true));put(experimental,"referenceInputProof",xrtValueBool(true)); put(capabilities,"experimental",experimental); put(p,"capabilities",capabilities);
   put(options,"diagnosticDelay",xrtValueInt(xideSettingsOptions(&app->preferences)->diagnosticDelay));
   put(options,"checkOnSave",xrtValueBool(false)); put(options,"automaticDiagnostics",xrtValueBool(false)); put(p,"initializationOptions",options);
