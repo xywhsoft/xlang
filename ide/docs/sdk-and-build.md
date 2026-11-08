@@ -36,7 +36,7 @@ Windows PowerShell、GCC、windres 和 objdump 需要在 PATH 中。当前机器
 
 ```powershell
 ..\release\xlang_ide.exe --help
-..\release\xlang_ide.exe --hidden --frames 3 --no-session --demo c --theme graphite-dark --screenshot .\build\c-dark.png
+..\release\xlang_ide.exe --hidden --frames 3 --no-session --open-file ..\examples\hello.c --theme graphite-dark --screenshot .\build\c-dark.png
 ..\release\xlang_ide.exe --workspace .\MyWorkspace.xlw --open-file .\src\main.xl
 ..\release\xlang_ide.exe --recovery-manager  # 打开只读恢复管理入口，修复仍需窗口内确认
 ```

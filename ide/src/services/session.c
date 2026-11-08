@@ -1,3 +1,4 @@
+#include "ui/home_view.h"
 #include "model/metadata_read.h"
 #include "services/session.h"
 #include "services/rename_journal.h"
@@ -704,9 +705,7 @@ static void restore(xide_app* app)
         if(info.iState==XUI_DOCK_PANEL_WINDOW_HIDDEN) xideEditorShow(app,active);
         else xuiSetFocusWidget(app->context,active->editor);
     } else if(!app->activeDocument) {
-        xui_dock_window_info_t xlang={0},c={0}; xlang.iSize=sizeof(xlang); c.iSize=sizeof(c);
-        xuiDockPanelGetWindowInfo(app->dock,app->windows[XIDE_XLANG_DEMO],&xlang); xuiDockPanelGetWindowInfo(app->dock,app->windows[XIDE_C_DEMO],&c);
-        if(xlang.iState==XUI_DOCK_PANEL_WINDOW_HIDDEN && c.iState==XUI_DOCK_PANEL_WINDOW_HIDDEN) xideDispatchAction(app,XIDE_ACTION_XLANG);
+        xideWorkbenchShowHome(app);
     }
     s->scrollPending=1; s->restoring=0; xrtValueRelease(recovered);
 }

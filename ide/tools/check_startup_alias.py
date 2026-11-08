@@ -67,7 +67,7 @@ def check(fixture,output):
         p=directory/('真实编辑文件.'+('c' if kind=='c' else 'xl'));native(p).write_text(text,encoding='utf8');protected[str(p)]=sha(p)
     for name,program,kind in [('gui-xl-primary','xlang_ide.exe','xlang'),('gui-c','xlang_ide.exe','c'),('gui-xl','xlang_ide.exe','xlang')]:
         image=proof/(name+'.png');source=directory/('真实编辑文件.'+('c' if kind=='c' else 'xl'))
-        command=[str(native(directory/program)),'--hidden','--frames','3','--no-session','--settings',str(settings),'--open-file',str(source),'--demo',kind,'--command','c:keyword:inline' if kind=='c' else 'language:func','--screenshot',str(image)]
+        command=[str(native(directory/program)),'--hidden','--frames','3','--no-session','--settings',str(settings),'--open-file',str(source),'--command','c:keyword:inline' if kind=='c' else 'language:func','--screenshot',str(image)]
         text,_,_=invoke(name,command);assert 'rendered 3 frames' in text and 'C and xlang registered' in text
         with Image.open(image) as im:assert im.size==(1280,800) and max(im.convert('L').getextrema())-min(im.convert('L').getextrema())>50
         checks+=4;print('Passed automatic deep IDE startup',name,flush=True)

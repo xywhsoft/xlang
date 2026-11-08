@@ -1,5 +1,6 @@
 #include "ui/association_view.h"
 #include "ui/about_view.h"
+#include "ui/home_view.h"
 #include "ui/import_view.h"
 #include "ui/template_view.h"
 #include "ui/rename_view.h"
@@ -115,7 +116,6 @@ int xideAppCreate(xide_app* app)
     app->startupAsync=1;
     TRY(xideWorkbenchCreate(app)); TRY(xideUiFontInitialize(app));
     TRY(xideCatalogViewDocumentFont(app));
-    for(int i=0;i<2;++i)TRY(xidePreferencesEditor(app,app->editors[i],options));
     /* Draw composition inline; the operating system retains candidate UI. */
     int result=xgeImeSetMode(XGE_IME_MODE_COMPOSITION);
     if(result==XGE_ERROR_UNSUPPORTED) result=xgeImeSetMode(XGE_IME_MODE_NATIVE);
@@ -135,7 +135,6 @@ int xideAppCreate(xide_app* app)
             fputs("Selected project ID not found.\n",stderr); return XUI_ERROR;
         }
     }
-    if (app->initialEditor) xideDispatchAction(app, XIDE_ACTION_C);
     if(app->initialFile && !xideWorkspaceOpenFile(app,app->initialFile)) { xideFailureSet(&app->failure,XIDE_FAILURE_DOCUMENT,"XUI",XUI_ERROR,app->initialFile,"xideWorkspaceOpenFile"); return XUI_ERROR; }
     if(app->initialCommandSearch && xideCatalogViewSearch(app,app->initialCommandSearch)!=XUI_OK) { xideFailureSet(&app->failure,XIDE_FAILURE_COMMAND,"XUI",XUI_ERROR,"Unable to filter the command catalog.","xideCatalogViewSearch"); return XUI_ERROR; }
     if(app->initialCommand && xideCatalogViewSettled(app)) { const xide_command* command=xideCatalogFind(&app->catalog,app->initialCommand); if(!command) { xideFailureSet(&app->failure,XIDE_FAILURE_COMMAND,"XUI",XUI_ERROR,app->initialCommand,"xideCatalogFind"); return XUI_ERROR; } xideWorkbenchShowHelp(app,(int)(command-app->catalog.entries));app->initialCommand=NULL; }
@@ -174,6 +173,7 @@ void xideAppDestroy(xide_app* app)
     xideActionsDestroy(app);
     xideAboutViewDestroy(app);
     xideMainToolbarDestroy(app);xideExecutionReset(app);
+    xideHomeDestroy(app);
     xideCatalogViewDestroy(app); xideCatalogClear(&app->catalog);
 
 #if XIDE_ENABLE_C_LSP

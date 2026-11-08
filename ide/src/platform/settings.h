@@ -23,6 +23,11 @@ int xideSettingsSetCServer(xide_settings* settings,const char* server,xide_model
 int xideSettingsSetEditorFont(xide_settings* settings,const char* path,int size,xide_model_error* error);
 int xideSettingsSetUiFont(xide_settings* settings,const char* path,int size,xide_model_error* error);
 int xideSettingsRememberOpen(xide_settings* settings,const char* path,xide_model_error* error);
+#define XIDE_RECENT_LIMIT 100
+size_t xideSettingsRecentCount(const xide_settings*);
+const char* xideSettingsRecentPath(const xide_settings*,size_t index);
+int64_t xideSettingsRecentTime(const xide_settings*,size_t index);
+int xideSettingsClearRecent(xide_settings*,xide_model_error*);
 unsigned xideSettingsAssociationMask(const xide_settings*);
 int xideSettingsAssociationPrompt(const xide_settings*);
 int xideSettingsSetAssociations(xide_settings*,unsigned,int,xide_model_error*);

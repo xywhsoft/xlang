@@ -30,6 +30,7 @@
 #include "ui/workbench_windows.h"
 #include "services/update_client.h"
 #include "ui/about_view.h"
+#include "ui/home_view.h"
 #include <stdlib.h>
 #include <string.h>
 enum requirement { WORKBENCH, WORKSPACE_VIEW, WORKSPACE, NEW_PROJECT, IMPORT_VIEW, PROJECT, AVAILABLE_PROJECT, REFERENCES, RESOURCES, NEW_RESOURCE, ADD_FILE, REMOVE_FILE, RENAME_SELECTED_FILE, MIGRATE_PROJECT, PROPERTIES,
@@ -65,13 +66,12 @@ static const action_def definitions[]={
     A(XIDE_ACTION_UPDATE_CHECK,"help.checkUpdates","检查更新…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideUpdateAction),
     A(XIDE_ACTION_UPDATE_REPAIR,"help.repairInstallation","更新／修复安装…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideUpdateAction),
     A(XIDE_ACTION_RESET,"view.resetLayout","恢复默认布局","恢复布局",NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideWorkbenchAction),
-    A(XIDE_ACTION_XLANG,"view.xlangDemo","查看 xlang 语法演示","xlang",NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideWorkbenchAction),
-    A(XIDE_ACTION_C,"view.cDemo","查看 C 语法演示","C",NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideWorkbenchAction),
+    A(XIDE_ACTION_ONLINE_TUTORIAL,"help.tutorial","在线教程",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideHomeAction),
+    A(XIDE_ACTION_HOME_OPEN_RECENT,"home.openRecent","打开历史记录",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideHomeAction),
     V(XIDE_ACTION_VIEW_COMMANDS,"view.commands","命令列表"),
     V(XIDE_ACTION_VIEW_WORKSPACE,"view.workspace","工作空间"),
     V(XIDE_ACTION_VIEW_PROPERTIES,"view.properties","项目属性"),
-    V(XIDE_ACTION_VIEW_XLANG,"view.xlangWindow","xlang 语法演示"),
-    V(XIDE_ACTION_VIEW_C,"view.cWindow","C 语法演示"),
+    A(XIDE_ACTION_VIEW_HOME,"view.home","首页",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideHomeAction),
     V(XIDE_ACTION_VIEW_HELP,"view.commandHelp","集成帮助"),
     V(XIDE_ACTION_VIEW_PROBLEMS,"view.problems","问题"),
     V(XIDE_ACTION_VIEW_OUTPUT,"view.output","构建输出"),
@@ -194,7 +194,7 @@ xide_action_state xideActionQuery(xide_app* a,int id)
 {
     const action_def* d=definition(id); xide_action_state state={0,0,"未知动作或工作台尚未就绪"};
     if(!a || !a->actions || !d || !a->context) return state;
-    int windowState=d->check==WINDOW_CHECK ? xideWorkbenchWindowVisible(a,id-XIDE_ACTION_VIEW_COMMANDS):-1;
+    int windowState=d->check==WINDOW_CHECK ? xideWorkbenchWindowVisible(a,xideWorkbenchWindowForAction(id)):-1;
     xide_document* doc=a->activeDocument && a->activeDocument->open ? a->activeDocument : NULL;
     xide_project* project=xideWorkspaceFindProject(&a->workspaceModel,a->selectedProject);
     xide_project* startup=xideWorkspaceFindProject(&a->workspaceModel,a->workspaceModel.startupProject);
@@ -284,7 +284,7 @@ static int command(xui_widget widget,const xui_event_t* event,void* user)
     xide_app* app=user; xide_actions* actions=app->actions;
     if(!actions->depth && event->iPhase==XUI_EVENT_PHASE_CAPTURE) {
         /* A native CodeEdit shortcut/context menu targets its own document.
-           Plain fields, read-only help/demos and find inputs keep SDK behavior. */
+           Plain fields, read-only help and find inputs keep SDK behavior. */
         for(size_t j=0;j<app->documents.count;++j) {
             xide_document* doc=app->documents.items[j];
             if(!doc->open || event->pTarget!=doc->editor) continue;

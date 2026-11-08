@@ -5,7 +5,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
-static const char* ids[]={"commands","workspace","properties","xlang_demo","c_demo","command_help","problems","build_output","terminal","tasks","outline","usages"};
+static const char* ids[]={"commands","workspace","properties","home","command_help","problems","build_output","terminal","tasks","outline","usages"};
 _Static_assert(sizeof(ids)/sizeof(ids[0])==XIDE_WINDOW_COUNT,"Every IDE panel needs a stable layout ID.");
 static xstrview sv(const char* s) { return (xstrview){s,strlen(s)}; }
 static xvalue* get(const xvalue* v,const char* key) { return xideMetaField(v,sv(key)); }
@@ -185,7 +185,7 @@ int xideLayoutRestore(xide_app* app,const xvalue* state,xide_model_error* error)
     int result=xuiDockPanelLoadState(app->dock,native); xrtValueRelease(native);
     if(result!=XUI_OK) { if(before) xuiDockPanelLoadState(app->dock,before); xuiDockPanelStateFree(before); return fail(error,"Native Dock restore failed; previous layout restored."); }
     xuiDockPanelStateFree(before);
-    int logical[]={XIDE_XLANG_DEMO,XIDE_HELP,XIDE_WORKSPACE,XIDE_PROPERTIES}; int* panes[]={&app->documentPane,&app->helpPane,&app->workspacePane,&app->propertyPane};
+    int logical[]={XIDE_HOME,XIDE_HELP,XIDE_WORKSPACE,XIDE_PROPERTIES}; int* panes[]={&app->documentPane,&app->helpPane,&app->workspacePane,&app->propertyPane};
     for(int i=0;i<4;++i) { xui_dock_window_info_t info={0}; info.iSize=sizeof(info); xuiDockPanelGetWindowInfo(app->dock,app->windows[logical[i]],&info); *panes[i]=info.iPane; }
     if(app->activeDocument && app->activeDocument->open) {
         xui_dock_window_info_t info={0}; info.iSize=sizeof(info); xuiDockPanelGetWindowInfo(app->dock,app->activeDocument->window,&info); if(info.iPane>=0) app->documentPane=info.iPane;

@@ -89,7 +89,7 @@ def check(fixture, output, compiler=None):
         p=directory/('编辑文件.'+('c' if kind=='c' else 'xl'));native(p).write_text(text,encoding='utf8');protected[str(p)]=sha(p)
     for name,program,kind in [('gui-c','xlang_ide.exe','c'),('gui-xl-primary','xlang_ide.exe','xlang'),('gui-xl','xlang_ide.exe','xlang')]:
         image=proof/(name+'.png');source=directory/('编辑文件.'+('c' if kind=='c' else 'xl'))
-        text,row=invoke(name,[str(native(directory/program)),'--frames','3','--no-session','--open-file',str(source),'--demo',kind,'--command','c:keyword:inline' if kind=='c' else 'language:func','--screenshot',str(image)])
+        text,row=invoke(name,[str(native(directory/program)),'--frames','3','--no-session','--open-file',str(source),'--command','c:keyword:inline' if kind=='c' else 'language:func','--screenshot',str(image)])
         assert 'rendered 3 frames' in text and 'C and xlang registered' in text
         assert 'preferences:' not in Path(row['stderr']).read_text(encoding='utf8')
         with Image.open(image) as im:assert im.size==(1280,800) and max(im.convert('L').getextrema())-min(im.convert('L').getextrema())>50

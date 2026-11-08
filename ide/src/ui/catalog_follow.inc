@@ -66,7 +66,7 @@ static int selectedName(xui_widget editor,int start,int end,int caret,char name[
 static xui_widget selectionEditor(xide_app* a) {
  xui_widget focus=xuiGetFocusWidget(a->context);
  if(a->activeDocument && a->activeDocument->open && focus==a->activeDocument->editor)return focus;
- return focus==a->editors[0] || focus==a->editors[1] ? focus:NULL;
+ return NULL;
 }
 static int matchSelection(xide_app* a,xui_widget editor,int start,int end,int caret) {
  xide_catalog_view* v=a->catalogView;char name[513];if(!selectedName(editor,start,end,caret,name))return 0;

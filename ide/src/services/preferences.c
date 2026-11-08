@@ -36,7 +36,6 @@ int xidePreferencesEditor(xide_app* a,xui_widget editor,const xide_settings_opti
 static int editors(xide_app* a,const xide_settings_options* o)
 {
     for(size_t i=0;i<a->documents.count;++i)TRY(xidePreferencesEditor(a,a->documents.items[i]->editor,o));
-    for(int i=0;i<2;++i)TRY(xidePreferencesEditor(a,a->editors[i],o));
     return XUI_OK;
 }
 static int document(xide_app* a,xui_font font,int size)

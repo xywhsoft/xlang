@@ -25,7 +25,7 @@ static xvalue* read(const char* path)
     /* Handled settings failures use xide_model_error, not the next UI callback.
        Preserve the caller's prior diagnostic while trying this fallback read. */
     xerror* previous=xrtTakeError();
-    size_t size; unsigned char* bytes=xideIoReadAllLimit(path,256*1024,&size);
+    size_t size; unsigned char* bytes=xideIoReadAllLimit(path,2*1024*1024,&size);
     if(!bytes) { xrtErrorFree(xrtTakeError());xrtSetErrorTake(previous);return NULL; }
     size_t offset=size>=3 && bytes[0]==0xef && bytes[1]==0xbb && bytes[2]==0xbf ? 3 : 0;
     xvalue* value=size>offset && !memchr(bytes+offset,0,size-offset) && MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,(char*)bytes+offset,(int)(size-offset),NULL,0) ? xrtJsonParse((xstrview){(char*)bytes+offset,size-offset}) : NULL; xrtFree(bytes);
@@ -143,11 +143,13 @@ static int retiredServerPreference(xvalue* root)
 #endif
     return 1;
 }
+static int normalizeRecent(xvalue* root);
 static int writeSettings(xide_settings* settings,xvalue* root,xide_model_error* error)
 {
+    if(!normalizeRecent(root))return fail(error,XIDE_MODEL_MEMORY,"Cannot prepare recent history.");
     if(!retiredServerPreference(root)) return fail(error,XIDE_MODEL_MEMORY,"Cannot prepare preferences without retired C LSP settings.");
-    size_t size=0; char* text=xrtJsonStringify(root,true,&size); int okay=text && size<=256u*1024u; xrtFree(text);
-    if(!okay) return fail(error,XIDE_MODEL_INVALID,"Preferences exceed their 256 KiB limit.");
+    size_t size=0; char* text=xrtJsonStringify(root,true,&size); int okay=text && size<=2u*1024u*1024u; xrtFree(text);
+    if(!okay) return fail(error,XIDE_MODEL_INVALID,"Preferences exceed their 2 MiB limit.");
     xide_state_file state={settings->path,settings->source,settings->existed};
     okay=xideStateWrite(&state,root,error); settings->source=state.source; settings->existed=state.existed; return okay;
 }
@@ -175,24 +177,81 @@ int xideSettingsSetCompiler(xide_settings* settings,const char* compiler,xide_mo
 int xideSettingsSetCServer(xide_settings* settings,const char* server,xide_model_error* error)
 { return setExecutable(settings,server,"cServer",error); }
 #endif
+static const char* recentPath(const xvalue* item)
+{
+    if(xrtValueIs(item,XVALUE_OBJECT))item=get(item,"path");
+    xstrview path={0};
+    return item && xideMetaString(item,&path) && path.Size>0 && path.Size<=8192 && !memchr(path.Data,0,path.Size) ? path.Data:NULL;
+}
+static int64_t recentTime(const xvalue* item)
+{
+    int64_t time=0;if(xrtValueIs(item,XVALUE_OBJECT))xideMetaInt(get(item,"accessedAt"),&time);
+    return time>0 ? time:0;
+}
+size_t xideSettingsRecentCount(const xide_settings* settings)
+{
+    const xvalue* list=settings ? get(settings->source,"recent"):NULL;
+    size_t count=xrtValueIs(list,XVALUE_ARRAY) ? xideMetaCount(list):0;
+    return count>XIDE_RECENT_LIMIT ? XIDE_RECENT_LIMIT:count;
+}
+const char* xideSettingsRecentPath(const xide_settings* settings,size_t index)
+{
+    return index<xideSettingsRecentCount(settings) ? recentPath(xrtValueArrayGet(get(settings->source,"recent"),index)):NULL;
+}
+int64_t xideSettingsRecentTime(const xide_settings* settings,size_t index)
+{
+    return index<xideSettingsRecentCount(settings) ? recentTime(xrtValueArrayGet(get(settings->source,"recent"),index)):0;
+}
+static xvalue* recentEntry(const char* path,int64_t time)
+{
+    xvalue* entry=xrtValueObject();
+    if(entry && xrtValueObjectSetNew(entry,sv("path"),xrtValueString(sv(path))) &&
+       xrtValueObjectSetNew(entry,sv("accessedAt"),xrtValueInt(time)))return entry;
+    xrtValueRelease(entry);return NULL;
+}
+/* The loaded source remains the disk identity until an atomic write succeeds.
+ * Normalize only the independent write copy, including legacy string entries. */
+static int collectRecent(xvalue* out,const xvalue* old)
+{
+    for(size_t i=0;xrtValueIs(old,XVALUE_ARRAY) && i<xideMetaCount(old) && xideMetaCount(out)<XIDE_RECENT_LIMIT;++i) {
+        const xvalue* item=xrtValueArrayGet(old,i);const char* path=recentPath(item);if(!path)continue;
+        int duplicate=0;
+        for(size_t j=0;j<xideMetaCount(out);++j)if(xidePathLexicalEqual(path,recentPath(xrtValueArrayGet(out,j)))) {duplicate=1;break;}
+        if(!duplicate && !xrtValueArrayAppendNew(out,recentEntry(path,recentTime(item))))return 0;
+    }
+    return 1;
+}
+static int normalizeRecent(xvalue* root)
+{
+    const xvalue* old=get(root,"recent");if(!old)return 1;
+    xvalue* recent=xrtValueArray();if(!recent)return 0;
+    if(!collectRecent(recent,old)) {xrtValueRelease(recent);return 0;}
+    return xrtValueObjectSetNew(root,sv("recent"),recent);
+}
 int xideSettingsRememberOpen(xide_settings* settings,const char* path,xide_model_error* error)
 {
     if(error)memset(error,0,sizeof(*error));
     if(!settings || !settings->path || !settings->source)return fail(error,XIDE_MODEL_INVALID,"Preferences are unavailable.");
     char* resolved=xidePathResolve(NULL,path);if(!resolved || strlen(resolved)>8192) { free(resolved);return fail(error,XIDE_MODEL_INVALID,"Invalid recent path."); }
+    FILETIME ft;GetSystemTimeAsFileTime(&ft);ULARGE_INTEGER now;now.LowPart=ft.dwLowDateTime;now.HighPart=ft.dwHighDateTime;
+    int64_t seconds=(int64_t)(now.QuadPart/10000000ULL)-INT64_C(11644473600);
     xvalue *root=xrtValueDeepClone(settings->source),*recent=xrtValueArray();int okay=root && recent;
-    if(okay)okay=xrtValueArrayAppendNew(recent,xrtValueString(sv(resolved)));
-    const xvalue* old=get(settings->source,"recent");
-    for(size_t i=0;okay && xrtValueIs(old,XVALUE_ARRAY) && i<xideMetaCount(old) && i<12 && xideMetaCount(recent)<12;++i) {
-        char* previous=string(xrtValueArrayGet(old,i));
-        if(previous && strlen(previous)<=8192 && !xidePathEqual(previous,resolved))okay=xrtValueArrayAppendNew(recent,xrtValueString(sv(previous)));
-        free(previous);
-    }
+    if(okay)okay=xrtValueArrayAppendNew(recent,recentEntry(resolved,seconds));
+    if(okay)okay=collectRecent(recent,get(settings->source,"recent"));
     if(okay)okay=xrtValueObjectSetNew(root,sv("recent"),recent);else xrtValueRelease(recent);
     if(okay)okay=xrtValueObjectSetNew(root,sv("format"),xrtValueString(sv("xlang-ide-settings-1"))) && writeSettings(settings,root,error);
     xrtValueRelease(root);free(resolved);
     if(!okay && error && !error->code)fail(error,XIDE_MODEL_MEMORY,"Cannot save recent paths; the previous list is preserved.");
     return okay;
+}
+int xideSettingsClearRecent(xide_settings* settings,xide_model_error* error)
+{
+    if(error)memset(error,0,sizeof(*error));
+    if(!settings || !settings->path || !settings->source)return fail(error,XIDE_MODEL_INVALID,"Preferences are unavailable.");
+    xvalue* root=xrtValueDeepClone(settings->source);
+    int okay=root && xrtValueObjectSetNew(root,sv("recent"),xrtValueArray()) &&
+        xrtValueObjectSetNew(root,sv("format"),xrtValueString(sv("xlang-ide-settings-1"))) && writeSettings(settings,root,error);
+    xrtValueRelease(root);if(!okay && error && !error->code)fail(error,XIDE_MODEL_MEMORY,"Cannot clear recent history.");return okay;
 }
 /* Shared settings object retains compiler and unknown JSON members. */
 static int setFont(xide_settings* settings,const char* path,int size,const char* section,xide_model_error* error)
@@ -246,8 +305,8 @@ xvalue* xideSettingsCapture(const xide_settings* settings,const char* path,const
         free(relative);
     }
     if(okay) okay=retiredServerPreference(root);
-    size_t n=0; char* text=okay ? xrtJsonStringify(root,true,&n) : NULL; okay=text && n<=256u*1024u; xrtFree(text);
-    if(!okay) { xrtValueRelease(root); return NULL; } return root;
+    size_t n=0; char* text=okay ? xrtJsonStringify(root,true,&n) : NULL; okay=text && n<=2u*1024u*1024u; xrtFree(text);
+    if(!okay || !normalizeRecent(root)) { xrtValueRelease(root); return NULL; } return root;
 }
 
 int xideSettingsSetEditorFont(xide_settings* settings,const char* path,int size,xide_model_error* error)

@@ -1,3 +1,4 @@
+#include "ui/home_view.h"
 #include "ui/main_toolbar.h"
 #include "services/execution_target.h"
 #include "services/ui_font.h"
@@ -172,12 +173,12 @@ static int openMenu(xide_app* app,int kind,xui_widget owner)
         const int* items=kind==MENU_NEW ? newActions : kind==MENU_OPEN ? openActions : saveActions;
         for(int i=0;i<3;++i)TRY(addAction(app,items[i]));
         if(kind==MENU_OPEN) {
-            const xvalue* recent=app->preferences.source ? xrtValueObjectGet(app->preferences.source,(xstrview){"recent",6}) : NULL;
-            if(xrtValueIs(recent,XVALUE_ARRAY) && xrtValueCount(recent)) {
+            size_t count=xideSettingsRecentCount(&app->preferences);
+            if(count) {
                 TRY(addAction(app,0));TRY(addChoice(app,"最近打开",XUI_MENU_ITEM_NORMAL,0,0,(choice){0}));
-                for(size_t i=0;i<xrtValueCount(recent) && i<12;++i) {
-                    xstrview path={0};if(!xrtValueGetString(xrtValueArrayGet(recent,i),&path) || path.Size>8192 || memchr(path.Data,0,path.Size))continue;
-                    TRY(addChoice(app,path.Data,XUI_MENU_ITEM_NORMAL,xidePathExists(path.Data),0,(choice){.path=(char*)path.Data}));
+                for(size_t i=0;i<count && i<12;++i) {
+                    const char* path=xideSettingsRecentPath(&app->preferences,i);if(!path)continue;
+                    TRY(addChoice(app,path,XUI_MENU_ITEM_NORMAL,xidePathExists(path),0,(choice){.path=(char*)path}));
                 }
             }
         }
@@ -331,13 +332,7 @@ int xideMainToolbarAction(xide_app* app,int action)
 {
     if(action==XIDE_ACTION_OPEN_RECENT) {
         xide_main_toolbar* v=app->mainToolbar;if(!v || !v->recentPath)return 0;
-        xide_model_error error={0};int project=xidePathHasExtension(v->recentPath,".xlp"),workspace=xidePathHasExtension(v->recentPath,".xlw"),okay=0;
-        if(project || workspace) {
-            if(!xideWorkspaceQuitRequest(app))return 1;
-            app->sessionSwitchConfirmed=1;okay=xideWorkspaceOpen(app,v->recentPath,project,&error);app->sessionSwitchConfirmed=0;
-        } else okay=xideEditorOpen(app,v->recentPath,&error);
-        if(!okay)xideMessageShow(app,"打开失败",error.message,XUI_MSGBOX_ICON_ERROR);
-        else if(app->preferencesInitialized && !xideSettingsRememberOpen(&app->preferences,v->recentPath,&error))xuiStatusBarSetItemText(app->statusBar,0,error.message);
+        xideHomeOpenPath(app,v->recentPath);
         return 1;
     }
     if(action==XIDE_ACTION_TARGET_CONFIGURATIONS) {

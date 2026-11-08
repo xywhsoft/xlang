@@ -6,4 +6,6 @@
 int xideWorkbenchWindowVisible(xide_app* app,int window);
 int xideWorkbenchToggleWindow(xide_app* app,int window);
 int xideWorkbenchRevealHelp(xide_app*);
+int xideWorkbenchWindowForAction(int action);
+int xideWorkbenchWindowAction(int window);
 #endif

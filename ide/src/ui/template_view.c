@@ -4,6 +4,7 @@
 #include "ui/resource_view.h"
 #include "ui/import_view.h"
 #include "ui/template_view.h"
+#include "ui/home_view.h"
 #include "ui/rename_view.h"
 #include "services/project_templates.h"
 #include "services/ui_font.h"
@@ -103,6 +104,7 @@ int xideTemplateViewApply(xide_app* a,xide_model_error* e)
  xideDialogSetOpen(v->window,0); int refreshed=xideWorkspaceViewRefresh(a); if(refreshed!=XUI_OK) a->frameError=refreshed;
  if(refreshed==XUI_OK) { xideReadingRestore(a,reading,0); xideWorkbenchLayout(a); if(xuiLayout(a->context)==XUI_OK) xideReadingRestore(a,reading,1); xideWorkspaceViewSelectProject(a,id); }
  xrtValueRelease(reading); xide_project* p=xideWorkspaceFindProject(&a->workspaceModel,id);
+ if(p)xideHomeRemember(a,p->manifest);
  if(p && !xideEditorOpen(a,p->entry,e)) { snprintf(a->editorStatus,sizeof(a->editorStatus),"项目已生成；入口打开失败，可从工作空间树重试。"); xuiStatusBarSetItemText(a->statusBar,0,a->editorStatus); }
  free(id); xideTemplatePlanDestroy(v->plan); v->plan=NULL; xideActionsRefresh(a); xgeRenderRequest(); return 1;
 }

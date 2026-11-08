@@ -1,0 +1,147 @@
+/* Home is part of the workbench translation unit; no editor/demo document. */
+#include <windows.h>
+#include <shellapi.h>
+#include <stdlib.h>
+#include "platform/path.h"
+struct xide_home_view {
+    xui_widget root,caption,controls[XIDE_HOME_CONTROL_COUNT];
+    xide_settings snapshot;
+    xui_table_view_column_t columns[3];
+    char* recentPath;
+    float scale;
+    char times[XIDE_RECENT_LIMIT][40];
+    xui_widget_event_proc keyHandler; void* keyUser;
+};
+const char* xideHomeTutorialUrl(void) { return "https://xcompiler.com/book/index.html"; }
+xui_widget xideHomeControl(xide_app* a,int id) {
+    return a && a->homeView && id>=0 && id<XIDE_HOME_CONTROL_COUNT ? a->homeView->controls[id]:NULL;
+}
+static int homeCount(xui_widget w,void* user) {
+    (void)w;struct xide_home_view* v=((xide_app*)user)->homeView;
+    return (int)xideSettingsRecentCount(&v->snapshot);
+}
+static int homeCell(xui_widget w,int row,int column,xui_table_view_cell_t* cell,void* user) {
+    (void)w;struct xide_home_view* v=((xide_app*)user)->homeView;
+    const char* path=row>=0 ? xideSettingsRecentPath(&v->snapshot,(size_t)row):NULL;
+    if(!path || column<0 || column>=3)return XUI_ERROR_INVALID_ARGUMENT;
+    cell->iType=XUI_TABLE_CELL_TYPE_TEXT;cell->bReadOnly=1;cell->sTooltip=path;
+    cell->sText=column==0 ? xidePathFilename(path):column==1 ? v->times[row]:path;
+    return XUI_OK;
+}
+int xideHomeRefresh(xide_app* a) {
+    struct xide_home_view* v=a ? a->homeView:NULL;if(!v)return XUI_OK;
+    if(v->snapshot.source==a->preferences.source)return XUI_OK;
+    xvalue* source=a->preferences.source ? xrtValueRetain(a->preferences.source):NULL;
+    xrtValueRelease(v->snapshot.source);v->snapshot.source=source;
+    size_t count=xideSettingsRecentCount(&v->snapshot);
+    for(size_t i=0;i<count;++i) {
+        int64_t time=xideSettingsRecentTime(&v->snapshot,i);strcpy(v->times[i],"—");
+        if(time>0 && time<INT64_C(253402300800)) {
+            ULARGE_INTEGER n;n.QuadPart=((uint64_t)time+UINT64_C(11644473600))*UINT64_C(10000000);
+            FILETIME ft={n.LowPart,n.HighPart};SYSTEMTIME utc,local;
+            if(FileTimeToSystemTime(&ft,&utc) && SystemTimeToTzSpecificLocalTime(NULL,&utc,&local))
+                snprintf(v->times[i],sizeof(v->times[i]),"%04u-%02u-%02u %02u:%02u:%02u",local.wYear,local.wMonth,local.wDay,local.wHour,local.wMinute,local.wSecond);
+        }
+    }
+    char caption[128];snprintf(caption,sizeof(caption),"历史记录（双击或按 Enter 打开） · %zu / %d",count,XIDE_RECENT_LIMIT);
+    TRY(xuiLabelSetText(v->caption,caption));TRY(xuiWidgetSetEnabled(v->controls[XIDE_HOME_CLEAR],count>0));
+    TRY(xuiTableViewSetSelectedRow(v->controls[XIDE_HOME_HISTORY],-1));
+    return xuiTableViewRefreshAdapter(v->controls[XIDE_HOME_HISTORY]);
+}
+void xideHomeRemember(xide_app* a,const char* path) {
+    if(!a || !path || !a->preferencesInitialized)return;
+    xide_model_error error={0};
+    if(!xideSettingsRememberOpen(&a->preferences,path,&error))xuiStatusBarSetItemText(a->statusBar,0,error.message);
+    int result=xideHomeRefresh(a);if(result!=XUI_OK)a->frameError=result;
+}
+int xideHomeOpenPath(xide_app* a,const char* path) {
+    if(!a || !path || xideActionsHasModal(a))return 0;
+    /* The source snapshot may be replaced by successful open/remember. */
+    size_t n=strlen(path)+1;char* owned=malloc(n);if(!owned)return 0;memcpy(owned,path,n);
+    int project=xidePathHasExtension(owned,".xlp"),workspace=xidePathHasExtension(owned,".xlw"),okay=0;
+    xide_model_error error={0};
+    if(project || workspace) {
+        if(!xideWorkspaceQuitRequest(a)) {free(owned);return 0;}
+        a->sessionSwitchConfirmed=1;okay=xideWorkspaceOpen(a,owned,project,&error);a->sessionSwitchConfirmed=0;
+    } else okay=xideEditorOpen(a,owned,&error);
+    if(!okay)xideMessageShow(a,"打开失败",error.message,XUI_MSGBOX_ICON_ERROR);
+    free(owned);return okay;
+}
+static int homeEvent(xui_widget w,const xui_event_t* e,void* user) {
+    xide_app* a=user;struct xide_home_view* v=a->homeView;int row=-1,column=-1;
+    if(e->iType==XUI_EVENT_POINTER_DOUBLE_CLICK && e->iButton==XUI_POINTER_BUTTON_LEFT) {
+        xui_rect_t world=xuiWidgetGetWorldRect(w);
+        xuiTableViewGetItemAt(w,e->fX-world.fX,e->fY-world.fY,&row,&column);
+    } else if(e->iType==XUI_EVENT_KEY_DOWN && (e->iKey==XUI_KEY_ENTER))row=xuiTableViewGetSelectedRow(w);
+    if(row>=0) {
+        const char* path=xideSettingsRecentPath(&v->snapshot,(size_t)row);
+        if(path) {
+            size_t size=strlen(path)+1;char* owned=malloc(size);
+            if(owned) {memcpy(owned,path,size);free(v->recentPath);v->recentPath=owned;xideActionExecute(a,XIDE_ACTION_HOME_OPEN_RECENT);}
+            return XUI_EVENT_DISPATCH_STOP;
+        }
+    }
+    return e->iType==XUI_EVENT_KEY_DOWN && v->keyHandler ? v->keyHandler(w,e,v->keyUser):XUI_OK;
+}
+static void homeClear(xui_widget w,void* user) {
+    (void)w;xide_app* a=user;if(xideActionsHasModal(a))return;
+    xide_model_error error={0};
+    if(!xideSettingsClearRecent(&a->preferences,&error))xideMessageShow(a,"清空历史记录",error.message,XUI_MSGBOX_ICON_ERROR);
+    int result=xideHomeRefresh(a);if(result!=XUI_OK)a->frameError=result;
+}
+int xideHomeAction(xide_app* a,int action) {
+    if(action==XIDE_ACTION_HOME_OPEN_RECENT)return a->homeView && a->homeView->recentPath ? xideHomeOpenPath(a,a->homeView->recentPath):0;
+    if(action==XIDE_ACTION_VIEW_HOME) {int r=xideWorkbenchShowHome(a);if(r!=XUI_OK)a->frameError=r;return r==XUI_OK;}
+    if(action!=XIDE_ACTION_ONLINE_TUTORIAL)return 0;
+    if((INT_PTR)ShellExecuteW(NULL,L"open",L"https://xcompiler.com/book/index.html",NULL,NULL,SW_SHOWNORMAL)<=32)
+        xideMessageShow(a,"在线教程","无法打开浏览器，请检查默认浏览器设置。",XUI_MSGBOX_ICON_ERROR);
+    return 1;
+}
+static int homeLayout(xui_widget root,xui_rect_t area,void* user) {
+    xide_app* a=user;struct xide_home_view* v=a->homeView;float s=xideUiFontScale(a),pad=14*s,gap=8*s;
+    float width=fmaxf(0,area.fW-2*pad),button=32*s,y=area.fY+pad;
+    int columns=(int)((width+gap)/(126*s+gap));if(columns<1)columns=1;if(columns>4)columns=4;
+    float bw=fmaxf(0,(width-gap*(columns-1))/columns);
+    for(int i=0;i<7;++i)TRY(xuiLayoutArrangeChild(root,v->controls[i],(xui_rect_t){area.fX+pad+(i%columns)*(bw+gap),y+(i/columns)*(button+gap),bw,button}));
+    y+=((7+columns-1)/columns)*(button+gap)+4*s;
+    float clear=fminf(width,114*s),label=fmaxf(0,width-clear-gap);
+    TRY(xuiLayoutArrangeChild(root,v->caption,(xui_rect_t){area.fX+pad,y,label,button}));
+    TRY(xuiLayoutArrangeChild(root,v->controls[XIDE_HOME_CLEAR],(xui_rect_t){area.fX+pad+width-clear,y,clear,button}));y+=button+gap;
+    TRY(xuiLayoutArrangeChild(root,v->controls[XIDE_HOME_HISTORY],(xui_rect_t){area.fX+pad,y,width,fmaxf(0,area.fY+area.fH-pad-y)}));
+    xui_widget table=v->controls[XIDE_HOME_HISTORY];
+    if(v->scale!=s) {
+        TRY(xuiTableViewSetColumnWidth(table,0,160*s));TRY(xuiTableViewSetColumnWidth(table,1,190*s));v->scale=s;
+    }
+    /* Keep the path column flexible; narrow panes use the table's own scrolling. */
+    float path=fmaxf(220*s,width-350*s-18*s);
+    if(fabsf(xuiTableViewGetColumnWidth(table,2)-path)>0.5f)TRY(xuiTableViewSetColumnWidth(table,2,path));
+    return XUI_OK;
+}
+static int homeCreate(xide_app* a) {
+    struct xide_home_view* v=calloc(1,sizeof(*v));if(!v)return XUI_ERROR_OUT_OF_MEMORY;a->homeView=v;
+    TRY(xuiWidgetCreate(a->context,&v->root));TRY(xuiWidgetSetLayoutType(v->root,XUI_LAYOUT_MANUAL));a->panels[XIDE_HOME]=v->root;
+    const int actions[]={XIDE_ACTION_NEW_PROJECT,XIDE_ACTION_NEW_FILE,XIDE_ACTION_NEW_WORKSPACE,XIDE_ACTION_OPEN_FILE,XIDE_ACTION_OPEN_PROJECT,XIDE_ACTION_OPEN_WORKSPACE,XIDE_ACTION_ONLINE_TUTORIAL};
+    const char* titles[]={"新建工程","新建文件","新建工作空间","打开文件","打开工程","打开工作空间","在线教程","清空历史记录"};
+    for(int i=0;i<8;++i) {
+        xui_button_desc_t d={0};d.iSize=sizeof(d);d.pFont=a->uiFont;d.sText=titles[i];
+        TRY(xuiButtonCreate(a->context,&v->controls[i],&d));TRY(xuiWidgetAddChild(v->root,v->controls[i]));
+        if(i<7)TRY(xideActionsButton(a,v->controls[i],actions[i]));else TRY(xuiButtonSetClick(v->controls[i],homeClear,a));
+    }
+    xui_label_desc_t label={0};label.iSize=sizeof(label);label.pFont=a->uiFont;label.sText="历史记录（双击或按 Enter 打开） · 0 / 100";
+    TRY(xuiLabelCreate(a->context,&v->caption,&label));TRY(xuiWidgetAddChild(v->root,v->caption));
+    const char* headers[]={"名称","访问时间","文件路径"};float widths[]={160,190,300};
+    for(int i=0;i<3;++i) {v->columns[i].iId=i;v->columns[i].sTitle=headers[i];v->columns[i].fWidth=widths[i]*xideUiFontScale(a);v->columns[i].fMinWidth=60;v->columns[i].bResizableSet=1;v->columns[i].bResizable=1;}
+    xui_table_view_desc_t table={0};table.iSize=sizeof(table);table.pFont=a->uiFont;table.arrColumns=v->columns;table.iColumnCount=3;
+    table.onCount=homeCount;table.onCell=homeCell;table.pAdapterUser=a;table.iSelectionMode=XUI_TABLE_VIEW_SELECTION_ROW;table.iSelectedRow=-1;
+    table.fDefaultRowHeight=30*xideUiFontScale(a);table.fHeaderHeight=30*xideUiFontScale(a);
+    TRY(xuiTableViewCreate(a->context,&v->controls[XIDE_HOME_HISTORY],&table));TRY(xuiWidgetAddChild(v->root,v->controls[XIDE_HOME_HISTORY]));
+    TRY(xuiWidgetGetEventHandler(v->controls[XIDE_HOME_HISTORY],XUI_EVENT_KEY_DOWN,&v->keyHandler,&v->keyUser));
+    TRY(xuiWidgetSetEventHandler(v->controls[XIDE_HOME_HISTORY],XUI_EVENT_KEY_DOWN,homeEvent,a));
+    TRY(xuiWidgetSetEventHandler(v->controls[XIDE_HOME_HISTORY],XUI_EVENT_POINTER_DOUBLE_CLICK,homeEvent,a));
+    TRY(xuiWidgetSetEnabled(v->controls[XIDE_HOME_CLEAR],0));
+    TRY(xuiWidgetSetLayoutChildrenCallback(v->root,homeLayout,a));return xideHomeRefresh(a);
+}
+void xideHomeDestroy(xide_app* a) {
+    if(!a || !a->homeView)return;
+    xrtValueRelease(a->homeView->snapshot.source);free(a->homeView->recentPath);free(a->homeView);a->homeView=NULL;
+}

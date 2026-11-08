@@ -1,3 +1,4 @@
+#include "ui/home_view.h"
 #include "ui/template_view.h"
 #include "ui/rename_view.h"
 #include "services/project_migration.h"
@@ -417,6 +418,7 @@ int xideWorkspaceOpen(xide_app* app,const char* path,int projectOnly,xide_model_
     if(xideWorkspaceViewRefresh(app)!=XUI_OK) return 0;
     if(*selection) xideWorkspaceViewSelectProject(app,selection);
     xideSessionAfterWorkspace(app);
+    xideHomeRemember(app,path);
     return 1;
 }
 int xideWorkspaceSaveAll(xide_app* app,const char* path,xide_model_error* error)
@@ -438,7 +440,9 @@ int xideWorkspaceSaveAll(xide_app* app,const char* path,xide_model_error* error)
         for(size_t j=0;j<app->workspaceModel.projectCount && !manifest;++j) if(xidePathEqual(document->path,app->workspaceModel.projects[j].manifest)) manifest=1;
         if(manifest && !document->dirty && xideDocumentCheckExternal(document) && !xideDocumentReload(document,0,error)) return 0;
     }
-    return xideWorkspaceViewRefresh(app)==XUI_OK;
+    int shown=xideWorkspaceViewRefresh(app)==XUI_OK;
+    if(shown)xideHomeRemember(app,app->workspaceModel.manifest);
+    return shown;
 }
 static int dirty(xide_app* app)
 {
@@ -475,7 +479,7 @@ int xideWorkspaceAction(xide_app* app,int action)
         xide_workspace model={0}; ok=xideWorkspaceCreate(&model,xidePathFilename(path),&error) && xideWorkspaceSave(&model,path,&error);
         app->sessionSwitchConfirmed=1;
         if(ok) ok=xideSessionBeforeWorkspace(app,&error);
-        if(ok) { xideWorkspaceClear(&app->workspaceModel); app->workspaceModel=model; free(app->projectSessionPath); app->projectSessionPath=NULL; free(app->selectedProject); app->selectedProject=duplicate(""); app->workspaceView->selectedNode=0; xideSessionAfterWorkspace(app); }
+        if(ok) { xideWorkspaceClear(&app->workspaceModel); app->workspaceModel=model; free(app->projectSessionPath); app->projectSessionPath=NULL; free(app->selectedProject); app->selectedProject=duplicate(""); app->workspaceView->selectedNode=0; xideSessionAfterWorkspace(app); xideHomeRemember(app,path); }
         else xideWorkspaceClear(&model);
         app->sessionSwitchConfirmed=0;
     } else if(action==XIDE_ACTION_OPEN_WORKSPACE || action==XIDE_ACTION_OPEN_PROJECT) {
@@ -483,7 +487,6 @@ int xideWorkspaceAction(xide_app* app,int action)
         path=chooseFile(app,0,action==XIDE_ACTION_OPEN_PROJECT ? 1 : 0);
         app->sessionSwitchConfirmed=1;
         if(path) ok=xideWorkspaceOpen(app,path,action==XIDE_ACTION_OPEN_PROJECT,&error);
-        if(path && ok && app->preferencesInitialized) { xide_model_error recent={0};if(!xideSettingsRememberOpen(&app->preferences,path,&recent))xuiStatusBarSetItemText(app->statusBar,0,recent.message); }
         app->sessionSwitchConfirmed=0;
     } else if(action==XIDE_ACTION_SAVE_WORKSPACE || action==XIDE_ACTION_SAVE_WORKSPACE_AS) {
         saveWithDialog(app,action==XIDE_ACTION_SAVE_WORKSPACE_AS); return 1;

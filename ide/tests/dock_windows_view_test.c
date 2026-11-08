@@ -1,3 +1,4 @@
+#include "ui/editor_view.h"
 #include "app/xide_app.h"
 #include "ui/workbench_windows.h"
 #include "platform/path.h"
@@ -36,8 +37,9 @@ static int states(xide_app* a,xui_widget menu)
     for(int i=0;i<xuiMenuGetItemCount(menu);++i) {
         const xui_menu_item_t* item=xuiMenuGetItem(menu,i);
         if(item->iValue<XIDE_ACTION_VIEW_COMMANDS || item->iValue>XIDE_ACTION_VIEW_USAGES) continue;
-        int id=item->iValue-XIDE_ACTION_VIEW_COMMANDS,visible=xideWorkbenchWindowVisible(a,id);
+        int id=xideWorkbenchWindowForAction(item->iValue),visible=xideWorkbenchWindowVisible(a,id);
         xide_action_state query=xideActionQuery(a,item->iValue);
+        if(id==XIDE_HOME) {if(++seen[id]!=1 || item->iType!=XUI_MENU_ITEM_NORMAL || !query.enabled)return 0;continue;}
         if(++seen[id]!=1 || item->iType!=XUI_MENU_ITEM_CHECK || visible<0 || !query.enabled ||
            query.checked!=visible || !!(item->iState&XUI_MENU_ITEM_CHECKED)!=visible ||
            !(item->iState&XUI_MENU_ITEM_ENABLED) || strcmp(item->sText,xideActionFind(item->iValue)->title)) return 0;
@@ -60,7 +62,8 @@ static int run(void* data)
     }
     CHECK(bar>=0 && states(&a,menu));
     for(int id=0;id<XIDE_WINDOW_COUNT;++id) {
-        int action=XIDE_ACTION_VIEW_COMMANDS+id;xui_widget client=a.panels[id];
+        if(id==XIDE_HOME)continue;
+        int action=xideWorkbenchWindowAction(id);xui_widget client=a.panels[id];
         if(xideWorkbenchWindowVisible(&a,id)) CHECK(selectWindow(&a,bar,menu,action));
         CHECK(xideWorkbenchWindowVisible(&a,id)==0 && states(&a,menu));
         CHECK(selectWindow(&a,bar,menu,action) && xideWorkbenchWindowVisible(&a,id)==1 && states(&a,menu));
@@ -79,18 +82,19 @@ static int run(void* data)
     for(int id=0;id<XIDE_WINDOW_COUNT;++id) CHECK(xuiDockPanelHideWindow(a.dock,a.windows[id])==XUI_OK);
     CHECK(settle(&a) && states(&a,menu));
     for(int id=XIDE_WINDOW_COUNT-1;id>=0;--id)
-        CHECK(selectWindow(&a,bar,menu,XIDE_ACTION_VIEW_COMMANDS+id) && xideWorkbenchWindowVisible(&a,id)==1 && states(&a,menu));
+        CHECK(selectWindow(&a,bar,menu,xideWorkbenchWindowAction(id)) && xideWorkbenchWindowVisible(&a,id)==1 && states(&a,menu));
     xui_dock_pane_info_t editorPane={0};editorPane.iSize=sizeof(editorPane);
     CHECK(xuiDockPanelGetPaneInfo(a.dock,a.documentPane,&editorPane)==XUI_OK && editorPane.tRect.fH>a.viewportHeight/2);
     /* A C-only editor still gets a separate bottom tool pane. */
     for(int id=XIDE_HELP;id<=XIDE_USAGES;++id) CHECK(xuiDockPanelHideWindow(a.dock,a.windows[id])==XUI_OK);
-    CHECK(xuiDockPanelHideWindow(a.dock,a.windows[XIDE_XLANG_DEMO])==XUI_OK && settle(&a));
+    xide_model_error error={0};xide_document* c=xideDocumentNew(&a.documents,"c",&error);
+    CHECK(c && xideEditorShow(&a,c)==XUI_OK && settle(&a));
     CHECK(selectWindow(&a,bar,menu,XIDE_ACTION_VIEW_HELP));
     xui_dock_window_info_t cEditor={0},help={0};cEditor.iSize=sizeof(cEditor);help.iSize=sizeof(help);
-    CHECK(xuiDockPanelGetWindowInfo(a.dock,a.windows[XIDE_C_DEMO],&cEditor)==XUI_OK &&
+    CHECK(xuiDockPanelGetWindowInfo(a.dock,c->window,&cEditor)==XUI_OK &&
         xuiDockPanelGetWindowInfo(a.dock,a.windows[XIDE_HELP],&help)==XUI_OK && cEditor.iPane!=help.iPane);
-    for(int id=XIDE_HELP+1;id<=XIDE_USAGES;++id) CHECK(selectWindow(&a,bar,menu,XIDE_ACTION_VIEW_COMMANDS+id));
-    CHECK(selectWindow(&a,bar,menu,XIDE_ACTION_VIEW_XLANG) && states(&a,menu));
+    for(int id=XIDE_HELP+1;id<=XIDE_USAGES;++id) CHECK(selectWindow(&a,bar,menu,xideWorkbenchWindowAction(id)));
+    CHECK(selectWindow(&a,bar,menu,XIDE_ACTION_VIEW_HOME) && states(&a,menu));
     CHECK(xuiDockPanelAutoHideWindow(a.dock,a.windows[XIDE_COMMANDS])==XUI_OK && settle(&a) && states(&a,menu));
     CHECK(selectWindow(&a,bar,menu,XIDE_ACTION_VIEW_COMMANDS) && xideWorkbenchWindowVisible(&a,XIDE_COMMANDS)==0 && states(&a,menu));
     CHECK(selectWindow(&a,bar,menu,XIDE_ACTION_VIEW_PROPERTIES) && xideWorkbenchWindowVisible(&a,XIDE_PROPERTIES)==0);
@@ -105,7 +109,7 @@ static int run(void* data)
     CHECK(a.proxy.surfaceClear(&a.proxy,a.target,0xffffffff)==XUI_OK && xuiRender(a.context,a.target,&rect,1)==XUI_OK);
     char* image=xidePathResolve(f->directory,"view-menu.png");CHECK(image);
     int captured=xideAppCapture(&a,image);free(image);CHECK(captured==XGE_OK);
-    printf("dock_windows_view_test passed: %d checks; 12 checkable windows, actual View and native close clicks, floating/auto-hide, all-hidden recovery, unchanged clients and loaded layout state.\n",f->checks);
+    printf("dock_windows_view_test passed: %d checks; 10 checkable tool windows and Home, actual View and native close clicks, floating/auto-hide, all-hidden recovery, unchanged clients and loaded layout state.\n",f->checks);
 cleanup:
     xuiDockPanelStateFree(saved);if(began)xgeEnd();xideAppDestroy(&a);free(settings);xgeQuit();return XGE_OK;
 }

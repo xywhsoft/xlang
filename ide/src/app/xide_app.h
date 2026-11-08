@@ -48,7 +48,7 @@ typedef struct xide_editor_position {
 } xide_editor_position;
 
 enum xide_window_id {
-    XIDE_COMMANDS, XIDE_WORKSPACE, XIDE_PROPERTIES, XIDE_XLANG_DEMO, XIDE_C_DEMO,
+    XIDE_COMMANDS, XIDE_WORKSPACE, XIDE_PROPERTIES, XIDE_HOME,
     XIDE_HELP, XIDE_PROBLEMS, XIDE_OUTPUT, XIDE_TERMINAL, XIDE_TASKS, XIDE_OUTLINE, XIDE_USAGES, XIDE_WINDOW_COUNT
 };
 typedef struct xide_app {
@@ -104,12 +104,13 @@ typedef struct xide_app {
     xui_surface target;
     xui_font uiFont, codeFont, documentFont;
     xui_widget root, menuBar, toolbar, statusBar, dock;
-    xui_widget commands, workspace, properties, editors[2], help, helpContent;
+    struct xide_home_view* homeView;
+    xui_widget commands, workspace, properties, help, helpContent;
     xui_widget helpTitle, helpDescription, helpSignature, helpParameters, helpReturn, helpExample;
     xui_widget panels[XIDE_WINDOW_COUNT];
     int windows[XIDE_WINDOW_COUNT], documentPane, helpPane, workspacePane, propertyPane;
     int viewportWidth, viewportHeight, theme, selectedCommand, frames, maxFrames, hidden;
-    int frameError, initialEditor;
+    int frameError;
     xide_runtime_failure failure;
     const char* diagnosticRoot;
     const char* screenshot;

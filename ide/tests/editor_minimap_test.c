@@ -35,7 +35,7 @@ static int run(void* user)
     f->started=1;app->hidden=1;app->noSession=1;app->disableAutomaticDiagnostics=1;app->maxFrames=10000;app->dpiOverride=1;
     CHECK(xrtDirCreateAll(f->directory));f->settings=xidePathResolve(f->directory,"preferences.json");CHECK(f->settings);app->settingsPath=f->settings;
     CHECK(xideAppCreate(app)==XUI_OK && frame(app));
-    CHECK(minimap(app->editors[0]) && minimap(app->editors[1]));
+    CHECK(!app->activeDocument && app->documents.count==0);
     CHECK(!(xuiCodeEditGetDisplayOptions(app->helpExample)&XUI_CODE_EDIT_SHOW_MINIMAP));
     CHECK(!(xuiCodeEditGetDisplayOptions(app->panels[XIDE_OUTPUT])&XUI_CODE_EDIT_SHOW_MINIMAP));
     f->text=calloc(131072,1);CHECK(f->text);
@@ -96,7 +96,7 @@ static int run(void* user)
     CHECK(reused==c && minimap(reused->editor) && !xuiCodeDocumentCanUndo(xuiCodeEditGetDocument(reused->editor)));
     CHECK(xideEditorShow(app,reused)==XUI_OK && frame(app));
     CHECK(capture(f,"editor-minimap-empty.png"));
-    printf("editor_minimap_test passed: %d native checks; C/xlang drafts, demos, 4 themes, 100/125/200%% DPI, minimap click/drag/capture, text/selection preservation, context menu keyboard navigation, slot reuse\n",f->checks);fflush(stdout);
+    printf("editor_minimap_test passed: %d native checks; C/xlang drafts, Home startup, 4 themes, 100/125/200%% DPI, minimap click/drag/capture, text/selection preservation, context menu keyboard navigation, slot reuse\n",f->checks);fflush(stdout);
 cleanup:
     xideAppDestroy(app);xgeSetQuitRequestCallback(NULL,NULL);xgeQuit();return XGE_OK;
 }

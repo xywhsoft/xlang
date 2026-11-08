@@ -31,33 +31,22 @@
 #include "ui/recovery_view.h"
 #include "ui/file_changes_view.h"
 #include "ui/workbench_windows.h"
+#include "ui/home_view.h"
 #include <stdio.h>
 #include <string.h>
 #define TRY(call) do { int result_ = (call); if (result_ != XUI_OK) { fprintf(stderr, "UI call failed at line %d: %s -> %d\n", __LINE__, #call, result_); return result_; } } while (0)
 
-_Static_assert(XIDE_ACTION_VIEW_USAGES-XIDE_ACTION_VIEW_COMMANDS+1==XIDE_WINDOW_COUNT,
-               "Every fixed Dock window must have a View action");
-
-static const char* xlangSample =
-    "#doc\n描述: xlang 语法演示，只读\n#end\n\n"
-    "func add(int a, int b) as int\n    return a + b\nend\n\n"
-    "func main(...) as int\n    int 总数 = add(1, 2)\n"
-    "    if 总数 > 0 then\n        print(f\"总数 = {总数}\")\n    end\n    return 0\nend\n";
-static const char* cSample =
-    "/* C 语法演示，只读 */\n#include <stdio.h>\n\n"
-    "static int add(int a, int b)\n{\n    return a + b;\n}\n\n"
-    "int main(void)\n{\n    printf(\"sum = %d\\n\", add(1, 2));\n    return 0;\n}\n";
-
-static int codeEditor(xide_app* app, xui_widget* widget, const char* text, const char* language)
-{
-    xui_code_edit_desc_t desc = {0}; desc.iSize = sizeof(desc);
-    desc.pFont = app->codeFont; desc.sText = text; desc.bReadonly = 1;
-    desc.bShowLineNumbers = 1; desc.bShowFoldMargin = 1; desc.iTabColumns = 4; desc.iIndentColumns = 4;
-    TRY(xideDpiCodeEditCreate(app->context, widget, &desc));
-    TRY(xuiCodeEditSetMinimap(*widget,1,96.0f));
-    TRY(xideRegisterLanguages(xuiCodeEditGetLanguageRegistry(*widget)));
-    return xideConfigureEditorLanguage(*widget, language);
+static const int windowActions[]={XIDE_ACTION_VIEW_COMMANDS,XIDE_ACTION_VIEW_WORKSPACE,XIDE_ACTION_VIEW_PROPERTIES,
+    XIDE_ACTION_VIEW_HOME,XIDE_ACTION_VIEW_HELP,XIDE_ACTION_VIEW_PROBLEMS,XIDE_ACTION_VIEW_OUTPUT,
+    XIDE_ACTION_VIEW_TERMINAL,XIDE_ACTION_VIEW_TASKS,XIDE_ACTION_VIEW_OUTLINE,XIDE_ACTION_VIEW_USAGES};
+_Static_assert(sizeof(windowActions)/sizeof(windowActions[0])==XIDE_WINDOW_COUNT,"Every Dock window needs a View action");
+int xideWorkbenchWindowAction(int window) { return window>=0 && window<XIDE_WINDOW_COUNT ? windowActions[window]:0; }
+int xideWorkbenchWindowForAction(int action) {
+    for(int i=0;i<XIDE_WINDOW_COUNT;++i) if(windowActions[i]==action)return i;
+    return -1;
 }
+static int showHomeDock(xide_app*,int);
+#include "ui/home_view.inc"
 static int dockedPane(xide_app* app, int id)
 {
     xui_dock_window_info_t info = {0}; info.iSize = sizeof(info);
@@ -65,12 +54,22 @@ static int dockedPane(xide_app* app, int id)
         info.iState != XUI_DOCK_PANEL_WINDOW_DOCKED) return -1;
     return info.iPane;
 }
-static int showEditor(xide_app* app, int id)
+int xideWorkbenchShowHome(xide_app* app)
+{
+    if(!app || !app->dock || !app->homeView)return XUI_ERROR_INVALID_ARGUMENT;
+    int id=XIDE_HOME;
+    app->activeDocument=NULL;
+    TRY(xideHomeRefresh(app));
+    TRY(showHomeDock(app,id));
+    TRY(xuiLayout(app->context));
+    return xuiSetFocusWidget(app->context,xideHomeControl(app,XIDE_HOME_HISTORY));
+}
+static int showHomeDock(xide_app* app, int id)
 {
     int pane = dockedPane(app, id);
     if (pane < 0) {
-        int other = id == XIDE_C_DEMO ? XIDE_XLANG_DEMO : XIDE_C_DEMO;
-        pane = dockedPane(app, other);
+        for(size_t i=0;i<app->documents.count && pane<0;++i)
+            if(app->documents.items[i]->open) pane=dockedPane(app,app->documents.items[i]->window);
         if (pane >= 0) TRY(xuiDockPanelDockWindowToPane(app->dock, app->windows[id], pane));
         else {
             int bottom = dockedPane(app, XIDE_HELP);
@@ -90,9 +89,8 @@ static int showHelp(xide_app* app)
         for (int i = XIDE_PROBLEMS; i <= XIDE_USAGES && pane < 0; ++i) pane = dockedPane(app, i);
         if (pane >= 0) TRY(xuiDockPanelDockWindowToPane(app->dock, app->windows[XIDE_HELP], pane));
         else {
-            int editor = dockedPane(app, XIDE_XLANG_DEMO);
-            if (editor < 0) editor = dockedPane(app, XIDE_C_DEMO);
-            if (editor < 0) { TRY(showEditor(app, XIDE_XLANG_DEMO)); editor = app->documentPane; }
+            int editor = dockedPane(app, XIDE_HOME);
+            if (editor < 0) { TRY(xideWorkbenchShowHome(app)); editor = app->documentPane; }
             TRY(xuiDockPanelDockWindowToPaneSide(app->dock, app->windows[XIDE_HELP], editor,
                                                 XUI_DOCK_PANEL_SIDE_BOTTOM, 0.28f, &pane));
         }
@@ -121,7 +119,7 @@ int xideWorkbenchToggleWindow(xide_app* app,int id)
     int visible=xideWorkbenchWindowVisible(app,id),pane=-1;
     if(visible<0) return XUI_ERROR_INVALID_ARGUMENT;
     if(visible) return xuiDockPanelHideWindow(app->dock,app->windows[id]);
-    if(id==XIDE_XLANG_DEMO || id==XIDE_C_DEMO) return showEditor(app,id);
+    if(id==XIDE_HOME) return xideWorkbenchShowHome(app);
     if(id==XIDE_COMMANDS) {
         TRY(xuiDockPanelDockWindow(app->dock,app->windows[id],XUI_DOCK_PANEL_REGION_LEFT,XUI_DOCK_PANEL_SIDE_FILL,0,&pane));
     } else if(id==XIDE_WORKSPACE || id==XIDE_PROPERTIES) {
@@ -136,8 +134,7 @@ int xideWorkbenchToggleWindow(xide_app* app,int id)
         for(int i=XIDE_HELP;i<=XIDE_USAGES && pane<0;++i) if(i!=id) pane=dockedPane(app,i);
         if(pane>=0) TRY(xuiDockPanelDockWindowToPane(app->dock,app->windows[id],pane));
         else {
-            int editorPane=dockedPane(app,XIDE_XLANG_DEMO);
-            if(editorPane<0) editorPane=dockedPane(app,XIDE_C_DEMO);
+            int editorPane=dockedPane(app,XIDE_HOME);
             xui_dock_window_info_t info={0};info.iSize=sizeof(info);
             if(app->activeDocument && app->activeDocument->window>=0 &&
                xuiDockPanelGetWindowInfo(app->dock,app->activeDocument->window,&info)==XUI_OK && info.iState==XUI_DOCK_PANEL_WINDOW_DOCKED) editorPane=info.iPane;
@@ -178,7 +175,7 @@ static int createChrome(xide_app* app)
     const int view[]={XIDE_ACTION_VIEW_COMMANDS,XIDE_ACTION_VIEW_WORKSPACE,XIDE_ACTION_VIEW_PROPERTIES,0,
         XIDE_ACTION_VIEW_HELP,XIDE_ACTION_VIEW_PROBLEMS,XIDE_ACTION_VIEW_OUTPUT,XIDE_ACTION_VIEW_TERMINAL,
         XIDE_ACTION_VIEW_TASKS,XIDE_ACTION_VIEW_OUTLINE,XIDE_ACTION_VIEW_USAGES,0,
-        XIDE_ACTION_VIEW_XLANG,XIDE_ACTION_VIEW_C,0,XIDE_ACTION_RECOVERY,XIDE_ACTION_FILE_CHANGES,XIDE_ACTION_RESET};
+        XIDE_ACTION_VIEW_HOME,0,XIDE_ACTION_RECOVERY,XIDE_ACTION_FILE_CHANGES,XIDE_ACTION_RESET};
     const int language[]={XIDE_ACTION_LANGUAGE_C,XIDE_ACTION_LANGUAGE_XLANG,XIDE_ACTION_LANGUAGE_JSON,XIDE_ACTION_LANGUAGE_XLON,XIDE_ACTION_LANGUAGE_JSONL,XIDE_ACTION_LANGUAGE_XLONL,XIDE_ACTION_LANGUAGE_TEXT};
     const int build[]={XIDE_ACTION_BUILD,XIDE_ACTION_RUN,XIDE_ACTION_TEST,0,XIDE_ACTION_STOP,XIDE_ACTION_STOP_ALL,XIDE_ACTION_SHOW_TASKS,0,XIDE_ACTION_TARGET_CONFIGURATIONS,XIDE_ACTION_BUILD_FILE,XIDE_ACTION_RUN_FILE,XIDE_ACTION_CLOSE_INPUT};
     const int tools[]={
@@ -186,7 +183,7 @@ static int createChrome(xide_app* app)
 XIDE_ACTION_C_SERVER,
 #endif
 XIDE_ACTION_CHECK_CURRENT,XIDE_ACTION_CHECK_SAVED,XIDE_ACTION_CANCEL_CHECK};
-    const int help[]={XIDE_ACTION_UPDATE_CHECK,XIDE_ACTION_UPDATE_REPAIR,0,XIDE_ACTION_CONTEXT_HELP,0,XIDE_ACTION_XLANG,XIDE_ACTION_C,0,XIDE_ACTION_ABOUT};
+    const int help[]={XIDE_ACTION_UPDATE_CHECK,XIDE_ACTION_UPDATE_REPAIR,0,XIDE_ACTION_CONTEXT_HELP,0,XIDE_ACTION_ONLINE_TUTORIAL,0,XIDE_ACTION_ABOUT};
     TRY(addMenu(app, "文件", file, sizeof(file)/sizeof(*file)));
     TRY(addMenu(app, "项目", project, sizeof(project)/sizeof(*project)));
     const int edit[]={XIDE_ACTION_EDITOR_UNDO,XIDE_ACTION_EDITOR_REDO,0,XIDE_ACTION_EDITOR_CUT,XIDE_ACTION_EDITOR_COPY,XIDE_ACTION_EDITOR_PASTE,XIDE_ACTION_EDITOR_SELECT_ALL,0,XIDE_ACTION_EDITOR_INDENT,XIDE_ACTION_EDITOR_OUTDENT,XIDE_ACTION_EDITOR_COMMENT,0,XIDE_ACTION_EDITOR_FIND,XIDE_ACTION_EDITOR_REPLACE,XIDE_ACTION_EDITOR_GOTO,XIDE_ACTION_EDITOR_COMPLETE,XIDE_ACTION_SIGNATURE,0,XIDE_ACTION_DEFINITION,XIDE_ACTION_FIND_REFERENCES,XIDE_ACTION_HOVER};
@@ -218,8 +215,7 @@ int xideWorkbenchReset(xide_app* app)
     for(size_t i=0;i<app->documents.count;++i) if(app->documents.items[i]->window>=0) TRY(xuiDockPanelHideWindow(app->dock,app->documents.items[i]->window));
     TRY(xuiDockPanelSetRegionSize(app->dock, XUI_DOCK_PANEL_REGION_LEFT, XUI_DOCK_PANEL_SIZE_PIXEL, 190));
     TRY(xuiDockPanelSetRegionSize(app->dock, XUI_DOCK_PANEL_REGION_RIGHT, XUI_DOCK_PANEL_SIZE_PIXEL, 242));
-    TRY(xuiDockPanelDockWindow(app->dock, app->windows[XIDE_XLANG_DEMO], XUI_DOCK_PANEL_REGION_DOCUMENT, XUI_DOCK_PANEL_SIDE_FILL, 0, &app->documentPane));
-    TRY(xuiDockPanelDockWindowToPane(app->dock, app->windows[XIDE_C_DEMO], app->documentPane));
+    TRY(xuiDockPanelDockWindow(app->dock, app->windows[XIDE_HOME], XUI_DOCK_PANEL_REGION_DOCUMENT, XUI_DOCK_PANEL_SIDE_FILL, 0, &app->documentPane));
     /* The help pane splits DOCUMENT; using REGION_BOTTOM would span beneath both side docks. */
     float ratio = 180.0f / (app->viewportHeight > 300 ? app->viewportHeight - 92.0f : 400.0f);
     if (ratio > 0.45f) ratio = 0.45f;
@@ -228,7 +224,7 @@ int xideWorkbenchReset(xide_app* app)
     TRY(xuiDockPanelDockWindow(app->dock, app->windows[XIDE_COMMANDS], XUI_DOCK_PANEL_REGION_LEFT, XUI_DOCK_PANEL_SIDE_FILL, 0, NULL));
     TRY(xuiDockPanelDockWindow(app->dock, app->windows[XIDE_WORKSPACE], XUI_DOCK_PANEL_REGION_RIGHT, XUI_DOCK_PANEL_SIDE_FILL, 0, &app->workspacePane));
     TRY(xuiDockPanelDockWindowToPaneSide(app->dock, app->windows[XIDE_PROPERTIES], app->workspacePane, XUI_DOCK_PANEL_SIDE_BOTTOM, 0.4f, &app->propertyPane));
-    TRY(xuiDockPanelSetPaneActiveWindow(app->dock, app->documentPane, app->windows[XIDE_XLANG_DEMO]));
+    TRY(xuiDockPanelSetPaneActiveWindow(app->dock, app->documentPane, app->windows[XIDE_HOME]));
     TRY(showHelp(app));
     return xideEditorReset(app);
 }
@@ -241,20 +237,19 @@ static int createWorkbench(xide_app* app)
     TRY(xuiDockPanelSetTabScrollButtonsVisible(app->dock,1));
     TRY(xideCatalogViewCreate(app));
     TRY(xideWorkspaceViewCreate(app));
-    TRY(codeEditor(app, &app->editors[0], xlangSample, "xlang")); TRY(codeEditor(app, &app->editors[1], cSample, "c"));
+    TRY(homeCreate(app));
 
     app->panels[XIDE_WORKSPACE] = app->workspace;
-    app->panels[XIDE_PROPERTIES] = app->properties; app->panels[XIDE_XLANG_DEMO] = app->editors[0];
-    app->panels[XIDE_C_DEMO] = app->editors[1];
+    app->panels[XIDE_PROPERTIES] = app->properties;
     TRY(xideTaskViewCreate(app)); TRY(xideConfigurationViewCreate(app)); TRY(xideReferencesViewCreate(app)); TRY(xideResourceViewCreate(app)); TRY(xideToolchainViewCreate(app)); TRY(xideLanguageViewCreate(app)); TRY(xideCompletionViewCreate(app));
 #if XIDE_ENABLE_C_LSP
  TRY(xideCCompletionViewCreate(app)); TRY(xideCLanguageViewCreate(app));
 #endif
  TRY(xideTemplateViewCreate(app)); TRY(xideImportViewCreate(app)); TRY(xideRenameViewCreate(app)); TRY(xideFontViewCreate(app)); TRY(xideSettingsViewCreate(app)); TRY(xideRecoveryViewCreate(app)); TRY(xideFileChangesViewCreate(app)); TRY(xideGotoViewCreate(app));
     for (int i = 0; i < XIDE_WINDOW_COUNT; ++i) {
-        const xide_action_info* action=xideActionFind(XIDE_ACTION_VIEW_COMMANDS+i);
+        const xide_action_info* action=xideActionFind(xideWorkbenchWindowAction(i));
         TRY(xuiDockPanelAddWindow(app->dock, action->title, app->panels[i], &app->windows[i]));
-        TRY(xuiDockPanelSetWindowFlags(app->dock, app->windows[i], 1, 1));
+        TRY(xuiDockPanelSetWindowFlags(app->dock, app->windows[i], i!=XIDE_HOME, 1));
     }
     TRY(xideWorkbenchReset(app)); TRY(xideEditorViewInit(app)); xideWorkbenchShowHelp(app, 0);
     if(app->catalog.count) xuiTreeViewSetSelected(app->commands, 100);
@@ -292,8 +287,8 @@ void xideWorkbenchLayout(xide_app* app)
 int xideWorkbenchApplyTheme(xide_app* app, int theme)
 {
     TRY(ideThemeApply(app->context, theme)); app->theme = theme;
-    for (int i = 0; i < 3; ++i) {
-        xui_widget editor = i < 2 ? app->editors[i] : app->helpExample;
+    {
+        xui_widget editor = app->helpExample;
         int styles[] = {XUI_CODE_STYLE_DEFAULT, XUI_CODE_STYLE_KEYWORD, XUI_CODE_STYLE_TYPE, XUI_CODE_STYLE_NUMBER, XUI_CODE_STYLE_STRING, XUI_CODE_STYLE_CHAR, XUI_CODE_STYLE_COMMENT};
         ide_color_role roles[] = {IDE_TEXT, IDE_KEYWORD, IDE_TYPE, IDE_NUMBER, IDE_STRING, IDE_STRING, IDE_COMMENT};
         for (size_t j = 0; j < sizeof(styles)/sizeof(*styles); ++j) {
@@ -307,12 +302,10 @@ int xideWorkbenchApplyTheme(xide_app* app, int theme)
 int xideWorkbenchAction(xide_app* app,int action)
 {
     if(action>=XIDE_ACTION_VIEW_COMMANDS && action<=XIDE_ACTION_VIEW_USAGES) {
-        int result=xideWorkbenchToggleWindow(app,action-XIDE_ACTION_VIEW_COMMANDS);
+        int result=xideWorkbenchToggleWindow(app,xideWorkbenchWindowForAction(action));
         if(result!=XUI_OK) { xideMessageShow(app,"窗口显示失败","无法更改窗口状态，请重试或恢复默认布局。",XUI_MSGBOX_ICON_ERROR);return 0; }
     }
     else if (action == XIDE_ACTION_RESET) xideWorkbenchReset(app);
-    else if (action == XIDE_ACTION_XLANG || action == XIDE_ACTION_C)
-        showEditor(app, action == XIDE_ACTION_XLANG ? XIDE_XLANG_DEMO : XIDE_C_DEMO);
     else if (action >= XIDE_ACTION_THEME_CLASSIC && action <= XIDE_ACTION_THEME_OCEAN)
         xideWorkbenchApplyTheme(app, action-XIDE_ACTION_THEME_CLASSIC);
     else return 0;

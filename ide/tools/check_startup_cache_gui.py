@@ -109,7 +109,7 @@ def check(ide_root,package_root,fixture,output):
                 env={key:value for key,value in os.environ.items() if not key.upper().startswith('XLANG_IDE_STARTUP_')}
                 env.update({'TEMP':str(cache_root),'TMP':str(cache_root)})
                 png=case_root/'after-parent-exit.png';out_path=case_root/'gui.stdout';err_path=case_root/'gui.stderr'
-                args=[str(native(program)),'--frames','600','--no-session','--open-file',str(source),'--demo',language,'--command','c:keyword:inline' if language=='c' else 'language:func','--screenshot',str(png),'--diagnostic-root',str(case_root/'diagnostics')]
+                args=[str(native(program)),'--frames','600','--no-session','--open-file',str(source),'--command','c:keyword:inline' if language=='c' else 'language:func','--screenshot',str(png),'--diagnostic-root',str(case_root/'diagnostics')]
                 row={'label':label+'-startup-parent','arguments':args,'desktop':desktop_name,'stdout':str(out_path),'stderr':str(err_path)}
                 process=None;survivor=None;survivor_row=None
                 case={'label':label,'language':language,'originalProgram':str(program),'shortPath':short.value,'shortDirectoryAcpBytes':acp,'removedShortNamesOnlyFromFreshPrivateDirectories':removed,'tempRoot':str(cache_root),'desktop':desktop_name};cases.append(case)

@@ -53,7 +53,7 @@ static int show(xide_app* app,int id)
     if(current<0) {
         for(int i=XIDE_HELP;i<=XIDE_USAGES && current<0;++i) current=pane(app,i);
         if(current>=0) TRY(xuiDockPanelDockWindowToPane(app->dock,app->windows[id],current));
-        else { int editor=app->activeDocument ? app->activeDocument->window : app->windows[XIDE_XLANG_DEMO]; xui_dock_window_info_t info={0}; info.iSize=sizeof(info);
+        else { int editor=app->activeDocument ? app->activeDocument->window : app->windows[XIDE_HOME]; xui_dock_window_info_t info={0}; info.iSize=sizeof(info);
             TRY(xuiDockPanelGetWindowInfo(app->dock,editor,&info));
             TRY(xuiDockPanelDockWindowToPaneSide(app->dock,app->windows[id],info.iPane,XUI_DOCK_PANEL_SIDE_BOTTOM,0.28f,&current)); }
     }

@@ -15,7 +15,7 @@ typedef struct fixture { xide_app app; HDESK desktop; char* directory; int phase
 static int closeInt(int a,int b) { return abs(a-b)<=2; }
 static int layout(xide_app* app)
 {
-    int ids[]={XIDE_XLANG_DEMO,XIDE_HELP,XIDE_COMMANDS,XIDE_WORKSPACE,XIDE_PROPERTIES}; xui_dock_pane_info_t panes[5]={0};
+    int ids[]={XIDE_HOME,XIDE_HELP,XIDE_COMMANDS,XIDE_WORKSPACE,XIDE_PROPERTIES}; xui_dock_pane_info_t panes[5]={0};
     for(int i=0;i<5;++i) { xui_dock_window_info_t w={0}; w.iSize=sizeof(w); panes[i].iSize=sizeof(panes[i]);
         if(xuiDockPanelGetWindowInfo(app->dock,i==0 ? app->activeDocument->window : app->windows[ids[i]],&w)!=XUI_OK || xuiDockPanelGetPaneInfo(app->dock,w.iPane,&panes[i])!=XUI_OK) return 0; }
     return closeInt(panes[0].tRect.fX,panes[1].tRect.fX) && closeInt(panes[0].tRect.fW,panes[1].tRect.fW) &&

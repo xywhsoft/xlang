@@ -137,7 +137,6 @@ int xideEditorFontInstall(xide_app* app,xui_font font)
     app->codeFont=font; app->documents.font=font;
     int result=XUI_OK;
     for(size_t i=0;i<app->documents.count && result==XUI_OK;++i) result=xideCodeWidgetSetFont(app,app->documents.items[i]->editor,font);
-    for(int i=0;i<2 && result==XUI_OK;++i) result=xideCodeWidgetSetFont(app,app->editors[i],font);
     if(result==XUI_OK) result=xideCatalogViewCodeFont(app);
     if(result==XUI_OK) result=xideFontViewCodeFont(app);
     if(result==XUI_OK) result=xideRecoveryViewCodeFont(app);
@@ -159,12 +158,12 @@ int xideEditorFontApply(xide_app* app,const char* path,int size,xide_model_error
     if(!resolved) return fail(error,XIDE_MODEL_INVALID,"Invalid UTF-8 font path.");
     if(!xideFontLoad(app,resolved,size,&font,error)) { free(resolved); return 0; }
     typedef struct font_scroll { xui_widget widget; float x,y; } font_scroll;
-    size_t count=app->documents.count+8;
+    size_t count=app->documents.count+6;
     font_scroll* scroll=calloc(count,sizeof(*scroll));
     if(!scroll) { app->proxy.fontDestroy(&app->proxy,font); free(resolved); return fail(error,XIDE_MODEL_IO,"Cannot retain editor positions while changing fonts."); }
     for(size_t i=0;i<app->documents.count;++i) scroll[i].widget=app->documents.items[i]->editor;
-    scroll[count-8].widget=xideTemplateViewControl(app,XIDE_TEMPLATE_PREVIEW);
-    scroll[count-7].widget=app->editors[0]; scroll[count-6].widget=app->editors[1]; scroll[count-5].widget=app->helpExample;
+    scroll[count-6].widget=xideTemplateViewControl(app,XIDE_TEMPLATE_PREVIEW);
+    scroll[count-5].widget=app->helpExample;
     scroll[count-4].widget=xideFontViewControl(app,XIDE_FONT_PREVIEW); scroll[count-3].widget=xideRecoveryViewControl(app,XIDE_RECOVERY_CODE);
     scroll[count-2].widget=xideFileChangesViewControl(app,XIDE_CHANGES_LOCAL); scroll[count-1].widget=xideFileChangesViewControl(app,XIDE_CHANGES_DISK);
     for(size_t i=0;i<count;++i) if(scroll[i].widget) xuiCodeEditGetScroll(scroll[i].widget,&scroll[i].x,&scroll[i].y);
