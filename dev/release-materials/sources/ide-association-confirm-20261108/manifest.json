@@ -1,0 +1,92 @@
+{
+  "schema": 1,
+  "base": {
+    "path": "dev/release-materials/sources/ide-startup-associations-20261108/manifest.json",
+    "sha256": "68d02acf171acb8899d73077c4c9e5d83936315866711045bc5e55ccce04f3b4",
+    "bytes": 8722
+  },
+  "baseSourceCommit": "6e177576c3c5103486bedb67b2f245b235e230f2",
+  "overlayBaseCommit": "365cc650eee3325807a43f6fdad7bb2a37d10e47",
+  "archive": {
+    "path": "dev/release-materials/sources/ide-association-confirm-20261108/source-delta.zip",
+    "sha256": "71cad387dfeed3aa313e2a65afaa4c82ba3e0f3fe1f9549e9b1812da9b0de5de",
+    "bytes": 38802
+  },
+  "files": [
+    {
+      "path": "ide/docs/file-associations.md",
+      "sha256": "cb6310fb91ce5cf99af384bb849a5aa7e0d15127bf92378a2165bab3c3302dad",
+      "bytes": 4392
+    },
+    {
+      "path": "ide/src/platform/file_association.c",
+      "sha256": "ae430b7d5c42b7f38c44b7fac56f4ea90592cc6a311b03b7ae166b4ce459574c",
+      "bytes": 14502
+    },
+    {
+      "path": "ide/src/platform/file_association.h",
+      "sha256": "e946765526bdf5480bddbec08acb6441bbe3c46de48f1464179f2fdca2d81c8a",
+      "bytes": 1060
+    },
+    {
+      "path": "ide/src/services/ui_font.c",
+      "sha256": "5b1f900a41319b5065fa04e36c378a9f1aa162c189e1ab2de33f9ad438e4ce88",
+      "bytes": 19483
+    },
+    {
+      "path": "ide/src/ui/association_view.c",
+      "sha256": "059174d1d1c2f2badb79b2264d06e8b6e69846425bf4aa292128569774679b07",
+      "bytes": 10114
+    },
+    {
+      "path": "ide/src/ui/association_view.h",
+      "sha256": "9aa795690b7d3c73638f55fab2013b0205650e35a64d70bf0ff84ba6a4d025e2",
+      "bytes": 445
+    },
+    {
+      "path": "ide/src/ui/dialog.c",
+      "sha256": "6709e6ee387160eb251c4d4d425149e4f283ef36048c63e31c035c2e727c0f80",
+      "bytes": 13713
+    },
+    {
+      "path": "ide/src/ui/dialog.h",
+      "sha256": "91583837f49738c960aa8115665671435929ba687b6188519e594de5ccd5c5d7",
+      "bytes": 2067
+    },
+    {
+      "path": "ide/src/ui/dialog_form.inc",
+      "sha256": "86794529877318a55c764fdfc73c13db37fd38e6fe6c94e6c6db0959b93f4ce3",
+      "bytes": 16051
+    },
+    {
+      "path": "ide/tests/association_view_test.c",
+      "sha256": "fd950b440e131104cf3b645c7230664012e4dc7e5aedeaaeb20118c4b19ff64b",
+      "bytes": 10106
+    },
+    {
+      "path": "ide/tests/file_association_test.c",
+      "sha256": "e08bccfd2ce8123d51a3f0194b3492385fbb00b53364cc7b8626a7a9206627c0",
+      "bytes": 6388
+    },
+    {
+      "path": "reproduction/build.py",
+      "sha256": "809ced77cfc5aa6816e2bc5d1b7b7d5b067badb9dbfd11b657729ea0d93112a2",
+      "bytes": 3065
+    },
+    {
+      "path": "reproduction/publish.py",
+      "sha256": "5541a216107a0a633c6a1317adb6d1dfae0cfb807d72ec67de89a106f62013cf",
+      "bytes": 3422
+    },
+    {
+      "path": "reproduction/record.py",
+      "sha256": "f6357c823abc8ce701798c163f389fc5046e82aa6645c65bdd64551afb86e329",
+      "bytes": 7131
+    },
+    {
+      "path": "reproduction/test.py",
+      "sha256": "8053a015c284e422d651f18483338d84df9d7ae2e222f2fac86401cbaaca8326",
+      "bytes": 4482
+    }
+  ]
+}

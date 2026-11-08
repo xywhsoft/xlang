@@ -4,6 +4,7 @@
 int xideAssociationViewAction(xide_app*,int);
 int xideAssociationViewOpen(xide_app*);
 int xideAssociationViewIsOpen(xide_app*);
+xui_widget xideAssociationViewWindow(xide_app*);
 int xideAssociationViewBusy(xide_app*);
 int xideAssociationStartupSettled(xide_app*);
 void xideAssociationViewPoll(xide_app*);

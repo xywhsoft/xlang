@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 typedef struct dialog_row {
-    struct dialog_row* next; xui_widget row,line,label,spacer,children[12];
+    struct dialog_row* next; xui_widget row,line,label,spacer,leading,children[12];
     float height; size_t count; int field,block,grow,footer;
     float measured[12],measureScale;uint64_t textHash[12];xui_font measureFont;
 } dialog_row;

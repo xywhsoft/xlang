@@ -9,5 +9,8 @@ extern const wchar_t* const xideAssociationExtensions[4];
 DWORD xideAssociationProbe(const wchar_t* prefix,const wchar_t* exe,xide_association_result*);
 DWORD xideAssociationRegister(const wchar_t* prefix,const wchar_t* exe,unsigned mask);
 DWORD xideAssociationUnregister(const wchar_t* prefix,const wchar_t* exe,unsigned mask);
+/* Checked types are registered; unchecked types owned by this path are removed.
+ * Zero is valid and removes all four registrations. */
+DWORD xideAssociationApply(const wchar_t* prefix,const wchar_t* exe,unsigned mask);
 void xideAssociationOpenDefaults(void);
 #endif

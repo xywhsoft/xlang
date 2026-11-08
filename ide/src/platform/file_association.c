@@ -188,3 +188,14 @@ DWORD xideAssociationUnregister(const wchar_t* prefix,const wchar_t* exe,unsigne
     HANDLE mutex=NULL;DWORD error=acquire(&mutex);if(error)return error;
     error=unregisterTypes(prefix,exe,mask);ReleaseMutex(mutex);CloseHandle(mutex);return error;
 }
+DWORD xideAssociationApply(const wchar_t* prefix,const wchar_t* exe,unsigned mask)
+{
+    if(!validInput(prefix,exe) || mask>15)return ERROR_INVALID_PARAMETER;
+    HANDLE mutex=NULL;DWORD error=acquire(&mutex);if(error)return error;
+    /* Prepare checked entries before removing unchecked entries. A failed
+       registration retains its existing rollback behavior. */
+    if(mask)error=registerTypes(prefix,exe,mask);
+    unsigned remove=(~mask)&15u;
+    if(!error && remove)error=unregisterTypes(prefix,exe,remove);
+    ReleaseMutex(mutex);CloseHandle(mutex);return error;
+}

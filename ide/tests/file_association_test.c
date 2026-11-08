@@ -64,6 +64,17 @@ int main(void)
     path(key,prefix,L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\.c\\UserChoice");CHECK(equalString(key,L"ProgId",L"OtherC.Editor"));
     path(key,prefix,L"Software\\RegisteredApplications");CHECK(!equalString(key,L"xlang IDE",L"Software\\xlang\\IDE\\Capabilities"));
     path(key,prefix,L"Software\\xlang\\IDE\\Capabilities");CHECK(equalString(key,L"future",L"preserved"));
+    /* Confirm applies the whole desired set, including an empty set. */
+    CHECK(xideAssociationApply(prefix,moved,15)==0 && xideAssociationApply(prefix,moved,5)==0);
+    CHECK(xideAssociationProbe(prefix,moved,&result)==0);
+    for(int i=0;i<4;++i)CHECK(result.registered[i]==!!(5u&(1u<<i)));
+    failWrite=1;writeNumber=0;CHECK(xideAssociationApply(prefix,moved,7)==ERROR_ACCESS_DENIED);failWrite=0;
+    CHECK(xideAssociationProbe(prefix,moved,&result)==0);
+    for(int i=0;i<4;++i)CHECK(result.registered[i]==!!(5u&(1u<<i)));
+    CHECK(xideAssociationApply(prefix,moved,0)==0 && xideAssociationProbe(prefix,moved,&result)==0);
+    for(int i=0;i<4;++i)CHECK(!result.registered[i]);
+    CHECK(xideAssociationApply(prefix,moved,16)==ERROR_INVALID_PARAMETER);
+    path(key,prefix,L"Software\\Classes\\.c");CHECK(equalString(key,NULL,L"OtherC.Editor"));
     /* Exercise the real effective-default COM query without any registration. */
     wchar_t actual[32768];CHECK(GetModuleFileNameW(NULL,actual,32768)>0);
     CHECK(xideAssociationProbe(NULL,actual,&result)==0);

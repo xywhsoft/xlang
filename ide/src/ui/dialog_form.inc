@@ -113,6 +113,19 @@ int xideDialogFormActions(xui_widget w,const xui_widget* children,size_t count)
     FORM_TRY(xuiWidgetSetFlex(r->spacer,1,1));
     return rowWidgets(r,children,count);
 }
+int xideDialogFormFooterLeading(xui_widget w,xui_widget child)
+{
+    xide_dialog* d=dialog(w);if(!d || !d->form || !child)return XUI_ERROR_INVALID_ARGUMENT;
+    for(dialog_row* r=d->rows;r;r=r->next)if(r->footer && r->spacer && !r->leading){
+        FORM_TRY(moveFormWidget(r->spacer,child));r->leading=child;
+        FORM_TRY(xuiWidgetSetLayoutType(r->spacer,XUI_LAYOUT_ROW));
+        FORM_TRY(xuiWidgetSetAlign(r->spacer,XUI_ALIGN_START,XUI_ALIGN_CENTER));
+        FORM_TRY(xuiWidgetSetSizeMode(child,XUI_SIZE_CONTENT,XUI_SIZE_CONTENT));
+        FORM_TRY(xuiWidgetSetAlign(child,XUI_ALIGN_START,XUI_ALIGN_CENTER));
+        return XUI_OK;
+    }
+    return XUI_ERROR_INVALID_STATE;
+}
 int xideDialogFormEnd(xui_widget w)
 {
     xide_dialog* d=dialog(w);if(!d || !d->form)return XUI_ERROR_INVALID_ARGUMENT;
@@ -175,8 +188,18 @@ static int rowLayout(xide_dialog* d,dialog_row* r,float available,float scale,in
         int button=xuiWidgetGetType(r->children[i])==xuiButtonGetType(d->app->context);
         fixed+=button ? r->measured[i]:80*scale;
     }
-    int stack=!r->block && fixed+gap*(shown ? shown-1:0)>available;
-    if(r->spacer)FORM_TRY(xuiWidgetSetVisible(r->spacer,!stack));
+    int leading=r->leading && xuiWidgetGetVisible(r->leading);
+    if(leading){xui_vec2_t measured={0};FORM_TRY(xuiWidgetMeasureContent(r->leading,(xui_vec2_t){XUI_LAYOUT_UNBOUNDED,XUI_LAYOUT_UNBOUNDED},&measured));fixed+=measured.fX;}
+    int stack=!r->block && fixed+gap*(shown ? shown-1+leading:0)>available;
+    if(r->spacer){
+        FORM_TRY(xuiWidgetSetVisible(r->spacer,!stack || leading));
+        if(r->leading){
+            FORM_TRY(xuiWidgetSetFlowMode(r->spacer,XUI_FLOW_BLOCK));
+            FORM_TRY(xuiWidgetSetSizeMode(r->spacer,XUI_SIZE_FILL,XUI_SIZE_FIXED));
+            FORM_TRY(xuiWidgetSetPreferredSize(r->spacer,(xui_vec2_t){0,height}));
+            FORM_TRY(xuiWidgetSetFlex(r->spacer,stack ? 0:1,1));
+        }
+    }
     xui_widget line=r->line ? r->line:r->row;
     if(stack)FORM_TRY(xuiWidgetSetLayoutType(line,r->footer ? XUI_LAYOUT_FLOW:XUI_LAYOUT_COLUMN));
     if(r->footer) {FORM_TRY(xuiWidgetSetAlign(line,XUI_ALIGN_END,XUI_ALIGN_START));FORM_TRY(xuiWidgetSetGap(line,gap));}
@@ -198,6 +221,7 @@ static int rowLayout(xide_dialog* d,dialog_row* r,float available,float scale,in
         if(r->footer && xuiWidgetGetVisible(c)) {if(used && used+gap+width>available){++lines;used=0;}used+=(used ? gap:0)+width;}
     }
     if(r->footer) {
+        if(leading && stack)++lines;
         float pad=d->padding*scale;
         FORM_TRY(xuiWidgetSetMargin(line,(xui_thickness_t){pad,0,pad,0}));
         FORM_TRY(xuiWidgetSetSizeMode(line,XUI_SIZE_FILL,XUI_SIZE_FIXED));

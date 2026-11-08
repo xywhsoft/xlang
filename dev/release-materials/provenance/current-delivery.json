@@ -75,7 +75,7 @@
       "licenseUrl": "http://www.microsoft.com/typography/fonts/default.aspx"
     },
     "fontChangeSourceParent": "b16a95bbf022efcafc7b965d1bd9b5b945c0d881",
-    "currentBuildProvenance": "dev/release-materials/provenance/ide-startup-associations-20261108/receipt.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/ide-association-confirm-20261108/receipt.json",
     "cLspEnabled": false,
     "applicationIcon": {
       "source": "ide/data/xlang_ide.ico",
@@ -89,19 +89,19 @@
       "provenance": "docs/reports/release-materials-migration-20261031.json",
       "buildCommand": "pwsh -NoProfile -File ide/tools/build.ps1 -Configuration Release -GuiOnly -LanguageServerPath D:/GIT/x-lang/release/xlang-ls.exe -ReleaseDirectory D:/GIT/x-lang/release"
     },
-    "sha256": "7c1ee2ae62ee21367bcf2735311c947a816c66d2c79a6a5f4123c3862b8f6f38",
+    "sha256": "cbbdf3a40963c183957f4281aa0d74cf37f62cc337862292f7a546e5eb3ca593",
     "sourceIdentity": {
-      "guiBaseSourceRevision": "865d0e54b3fbba24674f50da5fb349a5c50ef83b",
-      "overlayBaseRevision": "6e177576c3c5103486bedb67b2f245b235e230f2",
+      "guiBaseSourceRevision": "6e177576c3c5103486bedb67b2f245b235e230f2",
+      "overlayBaseRevision": "365cc650eee3325807a43f6fdad7bb2a37d10e47",
       "sourceOverlay": {
-        "path": "dev/release-materials/sources/ide-startup-associations-20261108/manifest.json",
-        "sha256": "68d02acf171acb8899d73077c4c9e5d83936315866711045bc5e55ccce04f3b4",
-        "bytes": 8722
+        "path": "dev/release-materials/sources/ide-association-confirm-20261108/manifest.json",
+        "sha256": "9b21256b98822b87e056784678abde91b1b07e131fdf752c5ed11608d9559178",
+        "bytes": 3023
       },
       "build": {
-        "path": "dev/release-materials/provenance/ide-startup-associations-20261108/evidence.zip",
-        "sha256": "75e2a006abc70218e544b6a3a8dd955238cce460f63d5cdfaaa2475b8189e2d8",
-        "bytes": 331656
+        "path": "dev/release-materials/provenance/ide-association-confirm-20261108/evidence.zip",
+        "sha256": "1617509ac0676159709dbec04397c37bc3ad0472c56712dce9323f02446076c9",
+        "bytes": 349573
       },
       "matchedSdkManifestSha256": "c0fbd47f95fafe863fae241ece7d4654d3908f5efb6b3ab2a1b678cb59b79f93"
     },
@@ -128,7 +128,7 @@
       "sha256": "cb3dd03ba90452fb9a670371ed7447763a0188fdc61b57adf11d5d89851ce13b",
       "bytes": 2693
     },
-    "buildScope": "All 108 existing GUI objects and 3 new units compiled with consistent app/action headers from the qualified GUI baseline plus focused overlays; final .c refinements rebuilt and relinked with otherwise unchanged matching objects. C LSP remains disabled. Unrelated semantic/LSP workspace work preserved.",
+    "buildScope": "All 111 GUI units rebuilt with matching public headers; final footer-centering implementation refinement rebuilt in its owning dialog unit. C LSP remains disabled and unrelated workspace work remains excluded.",
     "currentEngine": {
       "sourceMaterials": {
         "path": "dev/release-materials/sources/xge-code-wrap-20261108/manifest.json",
@@ -155,20 +155,20 @@
     "updateStateDirectory": "ide/build/update-runtime/<platform>-<install-path-sha256>",
     "previousBuildProvenanceBeforeDialogBackdrop": "dev/release-materials/provenance/ide-release-maintenance-20261106.json",
     "dialogBackdrop": "viewport-sized absolute overlay; dialog above backdrop; child/IME-aware Escape",
-    "previousBuildProvenance": "dev/release-materials/provenance/ide-save-task-race-20261108/receipt.json",
-    "sourceRevision": "6e177576c3c5103486bedb67b2f245b235e230f2",
+    "previousBuildProvenance": "dev/release-materials/provenance/ide-startup-associations-20261108/receipt.json",
+    "sourceRevision": "365cc650eee3325807a43f6fdad7bb2a37d10e47",
     "previousSourceIdentity": {
-      "guiBaseSourceRevision": "b7d924d3d24742a429180821a39535c29e528edc",
-      "overlayBaseRevision": "865d0e54b3fbba24674f50da5fb349a5c50ef83b",
+      "guiBaseSourceRevision": "865d0e54b3fbba24674f50da5fb349a5c50ef83b",
+      "overlayBaseRevision": "6e177576c3c5103486bedb67b2f245b235e230f2",
       "sourceOverlay": {
-        "path": "dev/release-materials/sources/ide-save-task-race-20261108/manifest.json",
-        "sha256": "adb614df39c2366b76963a6cd48b408b4803a07fe9c62682db070edf495972d4",
-        "bytes": 2863
+        "path": "dev/release-materials/sources/ide-startup-associations-20261108/manifest.json",
+        "sha256": "68d02acf171acb8899d73077c4c9e5d83936315866711045bc5e55ccce04f3b4",
+        "bytes": 8722
       },
       "build": {
-        "path": "dev/release-materials/provenance/ide-save-task-race-20261108/evidence.zip",
-        "sha256": "fdcd8fac107891f8464f66e47f3726302b194c2d78ec44e5529e85ba4dfee594",
-        "bytes": 1719238
+        "path": "dev/release-materials/provenance/ide-startup-associations-20261108/evidence.zip",
+        "sha256": "75e2a006abc70218e544b6a3a8dd955238cce460f63d5cdfaaa2475b8189e2d8",
+        "bytes": 331656
       },
       "matchedSdkManifestSha256": "c0fbd47f95fafe863fae241ece7d4654d3908f5efb6b3ab2a1b678cb59b79f93"
     },
@@ -298,6 +298,11 @@
       ],
       "sourceDirectory": "ide/data/file-icons",
       "embedded": true
+    },
+    "associationConfirmation": {
+      "path": "dev/release-materials/provenance/ide-association-confirm-20261108/receipt.json",
+      "sha256": "46ac4b935a0f78af3d864372b8d20c33cbfb107298072a68abd15c5cb1658ff8",
+      "bytes": 4537
     }
   },
   "catalog": {
@@ -6297,8 +6302,8 @@
       "previousSha256": "c95a4b367e5ee67b9def00181060d678f56e084072ddc2c6b6ed5f1a5b25528b"
     },
     {
-      "sha256": "7c1ee2ae62ee21367bcf2735311c947a816c66d2c79a6a5f4123c3862b8f6f38",
-      "bytes": 2033295,
+      "sha256": "cbbdf3a40963c183957f4281aa0d74cf37f62cc337862292f7a546e5eb3ca593",
+      "bytes": 2034040,
       "path": "release/win_x64/xlang_ide.exe",
       "origin": "release-0.6.1-20261108",
       "previousSha256": "8a4d9e633fea3baad66e2cf05c0aa6d7f335b2e87ac655cc6f11d29f0685d8e5"
@@ -6478,7 +6483,7 @@
     "historicalReportPathsPreserved": true,
     "mutableDataPathsUpdated": 600
   },
-  "currentScope": "Local Windows IDE file associations/icons and ordered background startup; 17 targeted suites plus 8 GUI startup cases; compiler, runtime, language server, XGE and online ver2 unchanged.",
+  "currentScope": "Local IDE compact file-association confirmation dialog and UI font rebinding; compiler, runtime, language server, XGE and online ver2 unchanged.",
   "localPublication": {
     "path": "dev/release-materials/provenance/xge3-local-publication-20261105/receipt.json",
     "sha256": "d55e8e816fddbfc2d2283c9ba45b9b28ac5c5e07e0da183fbab3088f118fbad1",
@@ -6723,6 +6728,11 @@
       "path": "dev/release-materials/provenance/ide-startup-associations-20261108/receipt.json",
       "sha256": "5d3e7b9fca5ab9adb5227eb7f4755a3526ce1500af5c9d361d71d8223c6f13ae",
       "bytes": 16690
+    },
+    "associationConfirmation": {
+      "path": "dev/release-materials/provenance/ide-association-confirm-20261108/receipt.json",
+      "sha256": "46ac4b935a0f78af3d864372b8d20c33cbfb107298072a68abd15c5cb1658ff8",
+      "bytes": 4537
     }
   },
   "xuiGallery": {

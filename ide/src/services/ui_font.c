@@ -4,6 +4,7 @@
 #include "ui/rename_view.h"
 #include "ui/file_changes_view.h"
 #include "services/ui_font.h"
+#include "ui/association_view.h"
 #include "services/editor_font.h"
 #include "ui/catalog_view.h"
 #include "ui/font_view.h"
@@ -149,6 +150,7 @@ int xideUiFontInstall(xide_app* app,xui_font previous,xui_font replacement,int s
     if(result==XUI_OK) result=bind(app,xideGotoViewWindow(app),previous,replacement,&scan);
     if(result==XUI_OK) result=bind(app,xideFontViewWindow(app),previous,replacement,&scan);
     if(result==XUI_OK) result=bind(app,xideSettingsViewWindow(app),previous,replacement,&scan);
+    if(result==XUI_OK) result=bind(app,xideAssociationViewWindow(app),previous,replacement,&scan);
     if(result==XUI_OK) result=bind(app,xideAboutViewWindow(app),previous,replacement,&scan);
     if(result==XUI_OK) result=bind(app,xideReferencesViewWindow(app),previous,replacement,&scan);
     if(result==XUI_OK) result=bind(app,xideResourceViewWindow(app),previous,replacement,&scan);
@@ -213,6 +215,7 @@ int xideUiFontApply(xide_app* app,const char* path,int size,xide_model_error* er
     for(size_t i=0;i<app->documents.count && retained;++i) retained=retainScroll(app,app->documents.items[i]->editor,&scroll);
     if(retained) retained=retainScroll(app,xideGotoViewWindow(app),&scroll);
     if(retained) retained=retainScroll(app,xideFontViewWindow(app),&scroll);
+    if(retained) retained=retainScroll(app,xideAssociationViewWindow(app),&scroll);
     if(retained) retained=retainScroll(app,xideReferencesViewWindow(app),&scroll);
     if(retained) retained=retainScroll(app,xideResourceViewWindow(app),&scroll);
     if(retained) retained=retainScroll(app,xideToolchainViewWindow(app),&scroll);

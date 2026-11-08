@@ -24,6 +24,8 @@ int xideDialogFormBlock(xui_widget,xui_widget,float,int);
 int xideDialogFormText(xui_widget,const char*);
 int xideDialogFormRow(xui_widget,const xui_widget*,size_t,float,int);
 int xideDialogFormActions(xui_widget,const xui_widget*,size_t);
+/* Optional control at the left of the fixed action bar, vertically centered. */
+int xideDialogFormFooterLeading(xui_widget,xui_widget);
 int xideDialogFormEnd(xui_widget);
 int xideDialogSetFixedBody(xui_widget,int);
 xui_widget xideDialogGetFooterWidget(xui_widget);
