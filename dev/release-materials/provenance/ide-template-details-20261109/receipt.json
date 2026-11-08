@@ -1,0 +1,255 @@
+{
+  "schema": 1,
+  "date": "2026-11-09",
+  "passed": true,
+  "publication": "local-only",
+  "fullRegressionPassed": false,
+  "scope": "Wider create buttons, dedicated 16px category icons, inline author/version and optional template website link.",
+  "sourceMaterials": {
+    "path": "dev/release-materials/sources/ide-template-details-20261109/manifest.json",
+    "sha256": "04c91207a6f45317ffbe98ace8b04ca34b100f56242c10bf62e889638949c7e3",
+    "bytes": 4787
+  },
+  "evidence": {
+    "path": "dev/release-materials/provenance/ide-template-details-20261109/evidence.zip",
+    "sha256": "c98aa3fd64327fafd7af50abcb39e6c32b6791a5c76fbd5936f21ff1ce090882",
+    "bytes": 2694986
+  },
+  "installed": {
+    "passed": true,
+    "installedSmokeExit": 0,
+    "installedPath": "release/win_x64/xlang_ide.exe",
+    "sha256": "368595537628e522d6e1a9107c7469a9be989160c90a8c00d541bd057ab41b97",
+    "bytes": 2125155,
+    "preserved": {
+      "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe": "e5f4719890814a3f7b5422ffb1f293ffc944c527de62217d32e9a3a4c287dfad",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xl.dll": "e783d6a15c946945d4186084cff9006839cbc1d31a0ae387396dc6f500aaac6c",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xlc.dll": "b4563a13448e2f550b00c0504cac481cdefd2b61ee961276049f936243f125a1",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+    },
+    "changes": [
+      {
+        "path": "release/win_x64/xlang_ide.exe",
+        "before": "59dcd027f1f51ce7b9d5446959a878487e786a1c238f3506760db9afe2195944",
+        "after": "368595537628e522d6e1a9107c7469a9be989160c90a8c00d541bd057ab41b97"
+      },
+      {
+        "path": "release/win_x64/examples/templates/hello/template.json",
+        "before": "e0dafb143258910402d32cb4a8ea2e0f24580a3c7a2bbb2d08ca7dfe6aaa0e4e",
+        "after": "e29c9d391e0e95abaf2822794c03a2692198820282c18a369cfd21b12ab81139"
+      },
+      {
+        "path": "release/win_x64/data/template-icons/tree-file.png",
+        "before": null,
+        "after": "f2a3886c94e4ecc67330e34715053e721990c052f74f3bb6b5ac9908faeee2fd"
+      },
+      {
+        "path": "release/win_x64/data/template-icons/tree-file@2x.png",
+        "before": null,
+        "after": "6069d250fe13e5c837dc9cb85f5b89cef93f221c67caf872993f873df9deb70c"
+      },
+      {
+        "path": "release/win_x64/data/template-icons/tree-local.png",
+        "before": null,
+        "after": "f718fa5723439e45a2da6e9d48074e5ccfc1a0289b8ca722d6ad8f0f94547f47"
+      },
+      {
+        "path": "release/win_x64/data/template-icons/tree-local@2x.png",
+        "before": null,
+        "after": "d50afbec8bd2bc4b0d459d3085eb44c0bbde6f0097f08282436dcdab1f5af1b6"
+      },
+      {
+        "path": "release/win_x64/data/template-icons/tree-project.png",
+        "before": null,
+        "after": "2ddc2b234c524731a4c0fabb3d3097a597cb8274db385e5c31b1fb8468d6ea93"
+      },
+      {
+        "path": "release/win_x64/data/template-icons/tree-project@2x.png",
+        "before": null,
+        "after": "786884a6606c4cffa3e9cc8bedae92bee260045051ec98e1dc412a593913ce4f"
+      }
+    ]
+  },
+  "tests": [
+    {
+      "test": "template_registry_test",
+      "exit": 0,
+      "source": "D:\\GIT\\x-lang\\ide\\tests\\template_registry_test.c",
+      "sourceSha256": "a6faf5d008029a93705aa0d245dc90475e808498d6b8e1751c0a6f93c494f83c"
+    },
+    {
+      "test": "input_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-template-details-20261109\\gui-source\\ide\\tests\\input_test.c",
+      "sourceSha256": "2804e8842d91a338ac4dcb3788d9133f597303b435b55038168e0669645d40f5"
+    },
+    {
+      "test": "settings_view_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-template-details-20261109\\gui-source\\ide\\tests\\settings_view_test.c",
+      "sourceSha256": "1a09b8f399fca72e2bd060d9c3ac3f54c820cb3db5367932f2607fae093a70f3"
+    },
+    {
+      "test": "find_follow_view_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-template-details-20261109\\gui-source\\ide\\tests\\find_follow_view_test.c",
+      "sourceSha256": "57f31d4f99fffece30d9a5e657c991aea72a7ed901c34fe1da49b2919c8304c9"
+    },
+    {
+      "test": "template_view_test",
+      "exit": 0,
+      "source": "D:\\GIT\\x-lang\\ide\\tests\\template_view_test.c",
+      "sourceSha256": "6cbcdcec9d554931e518242bb6829bd1975b24c7a0889d7f10ada33ee01225a4"
+    },
+    {
+      "test": "home_view_test",
+      "exit": 0,
+      "source": "D:\\GIT\\x-lang\\ide\\tests\\home_view_test.c",
+      "sourceSha256": "3ea237efe8acc93be5be785a9f6ded4a304baf9f6fec3bdef555badbe339f18b"
+    }
+  ],
+  "checks": {
+    "home": 126,
+    "templateView": 59,
+    "websiteManifestCases": 9,
+    "browserCallsInterceptedInTests": true,
+    "clickOpensExpectedUrl": true,
+    "dragOutsideCancels": true,
+    "createButtonContentFits": true
+  },
+  "build": {
+    "guiObjects": 113,
+    "fullMatchedGuiRebuild": true,
+    "optimization": "-O2",
+    "warnings": [
+      "-Wall",
+      "-Wextra",
+      "-Werror"
+    ],
+    "cLspEnabled": false,
+    "rebuiltUnits": [
+      "src/app/xide_app.c",
+      "src/app/actions.c",
+      "src/ui/workbench.c",
+      "src/platform/xide_input.c",
+      "src/lang/languages.c",
+      "src/theme/theme.c",
+      "src/platform/path.c",
+      "src/model/workspace.c",
+      "src/model/resources.c",
+      "src/model/resource_text.c",
+      "src/services/resource_creation.c",
+      "src/services/resource_inputs.c",
+      "src/services/resource_rebind.c",
+      "src/ui/resource_view.c",
+      "src/ui/workspace_view.c",
+      "src/platform/text_file.c",
+      "src/platform/file_rename.c",
+      "src/editor/documents.c",
+      "src/ui/editor_view.c",
+      "src/ui/find_view.c",
+      "src/ui/goto_view.c",
+      "src/platform/process.c",
+      "src/services/tasks.c",
+      "src/services/toolchain.c",
+      "src/protocol/lsp_wire.c",
+      "src/services/language_check.c",
+      "src/services/language_snapshot.c",
+      "src/services/semantic_definition.c",
+      "src/services/semantic_completion.c",
+      "src/services/language_client.c",
+      "src/services/c_bridge_map.c",
+      "src/ui/language_view.c",
+      "src/ui/completion_view.c",
+      "src/ui/toolchain_view.c",
+      "src/services/project_templates.c",
+      "src/services/file_rebind.c",
+      "src/services/rename_journal.c",
+      "src/services/project_migration.c",
+      "src/services/legacy_import.c",
+      "src/ui/task_view.c",
+      "src/ui/configuration_view.c",
+      "src/ui/references_view.c",
+      "src/ui/template_view.c",
+      "src/ui/import_view.c",
+      "src/ui/rename_view.c",
+      "src/platform/settings.c",
+      "src/services/command_catalog.c",
+      "src/services/catalog_lookup.c",
+      "src/services/library_info.c",
+      "src/ui/catalog_view.c",
+      "src/ui/help_document.c",
+      "src/platform/state_file.c",
+      "src/platform/state_repair.c",
+      "src/editor/coordinates.c",
+      "src/ui/layout_state.c",
+      "src/services/session.c",
+      "src/services/editor_font.c",
+      "src/ui/font_view.c",
+      "src/platform/window_state.c",
+      "src/platform/dpi_proxy.c",
+      "src/services/ui_font.c",
+      "src/ui/reading_state.c",
+      "src/platform/recovery_store.c",
+      "src/platform/recovery_backup.c",
+      "src/services/recovery.c",
+      "src/ui/recovery_view.c",
+      "src/platform/file_watch.c",
+      "src/services/file_sync.c",
+      "src/ui/file_changes_view.c",
+      "src/editor/lsp_coordinates.c",
+      "src/platform/text_utf.c",
+      "src/services/highlight_result.c",
+      "src/services/completion_result.c",
+      "src/services/signature_result.c",
+      "src/services/sync_plan.c",
+      "src/services/diagnostic_dependencies.c",
+      "src/services/diagnostic_notice.c",
+      "src/services/diagnostic_stream.c",
+      "src/platform/startup_alias.c",
+      "src/platform/startup_stage.c",
+      "src/platform/startup_cache.c",
+      "src/services/build_inputs.c",
+      "src/platform/file_io.c",
+      "src/platform/task_stage.c",
+      "src/platform/runtime_failure.c",
+      "src/platform/dpi_text_paint.c",
+      "src/services/catalog_sources.c",
+      "src/ui/dialog.c",
+      "src/ui/message_box.c",
+      "src/ui/file_dialog.c",
+      "src/platform/failure_window.c",
+      "src/analysis/text.c",
+      "src/analysis/context.c",
+      "src/services/analysis_context.c",
+      "src/protocol/analysis_context_wire.c",
+      "src/services/analysis_catalog.c",
+      "src/services/analysis_configuration.c",
+      "src/protocol/document_sync.c",
+      "src/protocol/input_state.c",
+      "src/protocol/diagnostic_paths.c",
+      "src/services/reference_results.c",
+      "src/services/execution_target.c",
+      "src/services/update_client.c",
+      "src/services/program_version.c",
+      "src/ui/about_view.c",
+      "src/ui/main_toolbar.c",
+      "src/services/preferences.c",
+      "src/ui/settings_view.c",
+      "src/services/catalog_job.c",
+      "src/platform/file_association.c",
+      "src/ui/association_view.c",
+      "src/services/template_registry.c",
+      "src/services/template_generation.c"
+    ],
+    "sourceAndObjectHashesVerified": true,
+    "xgeSdkChanged": false
+  },
+  "limits": [
+    "Windows focused acceptance only, not a full repository or Linux regression.",
+    "Browser launching was intercepted in tests; no external webpage or live network was accessed.",
+    "Website metadata is optional; absent/empty omits the link. Built-in templates link to the existing online tutorial.",
+    "No native XGE changes or online update-channel publication in this delivery."
+  ]
+}

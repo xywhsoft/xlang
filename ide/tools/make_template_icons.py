@@ -13,12 +13,13 @@ def render(path, width=384, height=288):
     ox, oy = (width - vw * scale) / 2 - vx * scale, (height - vh * scale) / 2 - vy * scale
     canvas = Image.new('RGBA', (width, height))
     draw = ImageDraw.Draw(canvas)
+    edge = 1 if vw == 16 else 0
     for node in root:
         tag, a = node.tag.rsplit('}', 1)[-1], node.attrib
         fill = a.get('fill', '#253246')
         if tag == 'rect':
             x, y, w, h = (float(a.get(k, 0)) for k in ('x', 'y', 'width', 'height'))
-            draw.rounded_rectangle((ox+x*scale, oy+y*scale, ox+(x+w)*scale, oy+(y+h)*scale),
+            draw.rounded_rectangle((ox+x*scale, oy+y*scale, ox+(x+w)*scale-edge, oy+(y+h)*scale-edge),
                                    radius=float(a.get('rx', 0))*scale, fill=fill)
         elif tag == 'polygon':
             points = [tuple(map(float, part.split(','))) for part in a['points'].split()]
@@ -39,5 +40,9 @@ if __name__ == '__main__':
         text = source.read_text(encoding='utf8').replace('width="64" height="64"', 'width="96" height="72"')
         (ROOT/(name+'.svg')).write_text(text, encoding='utf8', newline='\n')
     for svg in sorted(ROOT.glob('*.svg')):
-        render(svg).save(svg.with_suffix('.png'))
+        if svg.stem.startswith('tree-'):
+            render(svg,16,16).save(svg.with_suffix('.png'))
+            render(svg,32,32).save(svg.with_name(svg.stem+'@2x.png'))
+        else:
+            render(svg).save(svg.with_suffix('.png'))
         print(svg.with_suffix('.png'))

@@ -3,7 +3,7 @@
 #include "services/project_templates.h"
 
 typedef struct xide_template_definition {
-    char *id,*title,*description,*author,*version,*icon,*category,*root;
+    char *id,*title,*description,*author,*version,*website,*icon,*category,*root;
     char *module,*validate,*create,*language;
     int project,builtin;
     xvalue *fields,*files;

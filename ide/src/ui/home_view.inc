@@ -15,7 +15,10 @@ struct xide_home_view {
     xide_template_registry templates;
     int templatesLoaded,category,visible[256],visibleCount,categoryDefinition[256],categoryCount;
     xui_surface icons[256];xui_rect_t iconSources[256];
-    char (*descriptions)[2][1024];float descriptionWidth,templateScale;
+    xui_surface categoryIcons[3];
+    struct {float title,metadata,link;} headers[256];
+    int linkPressed;uint64_t linkPointer;int linkPointerType;
+    char (*descriptions)[2][1024];float descriptionWidth,templateScale;xui_font templateFont;
 };
 #include "ui/home_templates.inc"
 const char* xideHomeTutorialUrl(void) { return "https://xcompiler.com/book/index.html"; }
@@ -187,6 +190,7 @@ static int homeCreate(xide_app* a) {
 void xideHomeDestroy(xide_app* a) {
     if(!a || !a->homeView)return;
     for(size_t i=0;i<a->homeView->templates.count;++i)if(a->homeView->icons[i])a->proxy.surfaceDestroy(&a->proxy,a->homeView->icons[i]);
+    for(int i=0;i<3;++i)if(a->homeView->categoryIcons[i])a->proxy.surfaceDestroy(&a->proxy,a->homeView->categoryIcons[i]);
     free(a->homeView->descriptions);xideTemplateRegistryClear(&a->homeView->templates);
     xrtValueRelease(a->homeView->snapshot.source);free(a->homeView->recentPath);free(a->homeView);a->homeView=NULL;
 }

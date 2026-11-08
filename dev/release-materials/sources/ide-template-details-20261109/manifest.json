@@ -1,0 +1,142 @@
+{
+  "schema": 1,
+  "base": {
+    "path": "dev/release-materials/sources/ide-templates-20261109/manifest.json",
+    "sha256": "8f5b2b6a76e245e19eb49b792346e251d368229d75f5f05bea23ba228585ae7b",
+    "bytes": 54415
+  },
+  "guiBaseSourceRevision": "9a81d2470d24dfbe1cc0a991dd96c2094c0393c7",
+  "overlayBaseRevision": "7b2b33c5e7b179b35d80883da47ffc49a813ded3",
+  "archive": {
+    "path": "dev/release-materials/sources/ide-template-details-20261109/source-delta.zip",
+    "sha256": "4024201cc56d6953cdca1d1674abdbb62ec3a0edd2d24bdec6a8ceb2522457fc",
+    "bytes": 48860
+  },
+  "sdkManifest": {
+    "path": "ide/third_party/xge_sdk/sdk_manifest.json",
+    "sha256": "223a64f59ef77701f4729e87b328bd4509300df1e46bf015f2487e5803ab926c",
+    "bytes": 41003
+  },
+  "files": [
+    {
+      "path": ".gitattributes",
+      "sha256": "f5030ae0ca6dd4b25a3bd3727511bba01dcdf08f1821fd895fc63aa14194e06b",
+      "bytes": 16007
+    },
+    {
+      "path": "ide/data/template-examples/hello/template.json",
+      "sha256": "e29c9d391e0e95abaf2822794c03a2692198820282c18a369cfd21b12ab81139",
+      "bytes": 701
+    },
+    {
+      "path": "ide/data/template-icons/tree-file.png",
+      "sha256": "f2a3886c94e4ecc67330e34715053e721990c052f74f3bb6b5ac9908faeee2fd",
+      "bytes": 178
+    },
+    {
+      "path": "ide/data/template-icons/tree-file.svg",
+      "sha256": "9ae1c5da74ed47a5744c122f1e40f54d3814fd02f3da482173d1d856a240686c",
+      "bytes": 439
+    },
+    {
+      "path": "ide/data/template-icons/tree-file@2x.png",
+      "sha256": "6069d250fe13e5c837dc9cb85f5b89cef93f221c67caf872993f873df9deb70c",
+      "bytes": 247
+    },
+    {
+      "path": "ide/data/template-icons/tree-local.png",
+      "sha256": "f718fa5723439e45a2da6e9d48074e5ccfc1a0289b8ca722d6ad8f0f94547f47",
+      "bytes": 161
+    },
+    {
+      "path": "ide/data/template-icons/tree-local.svg",
+      "sha256": "8ce4b761cfdbc5b5e633abcfca6931a9f1fbc8e85e13c1a5de7cf78468a47963",
+      "bytes": 443
+    },
+    {
+      "path": "ide/data/template-icons/tree-local@2x.png",
+      "sha256": "d50afbec8bd2bc4b0d459d3085eb44c0bbde6f0097f08282436dcdab1f5af1b6",
+      "bytes": 207
+    },
+    {
+      "path": "ide/data/template-icons/tree-project.png",
+      "sha256": "2ddc2b234c524731a4c0fabb3d3097a597cb8274db385e5c31b1fb8468d6ea93",
+      "bytes": 159
+    },
+    {
+      "path": "ide/data/template-icons/tree-project.svg",
+      "sha256": "11699018ebdb3f147af8c8bcfacd3532bbc1b30a63fdf134a39cf99c4f61e20d",
+      "bytes": 441
+    },
+    {
+      "path": "ide/data/template-icons/tree-project@2x.png",
+      "sha256": "786884a6606c4cffa3e9cc8bedae92bee260045051ec98e1dc412a593913ce4f",
+      "bytes": 209
+    },
+    {
+      "path": "ide/docs/project-templates.md",
+      "sha256": "27d4796042db1ef930b2e2acf75b84d9310b09353a46192bd348fe1c60f6aa6a",
+      "bytes": 7112
+    },
+    {
+      "path": "ide/src/services/template_registry.c",
+      "sha256": "90fca0e3503ce67358199649ac8eda6579f5a4aa301f96de11294989413528b4",
+      "bytes": 14331
+    },
+    {
+      "path": "ide/src/services/template_registry.h",
+      "sha256": "e1b14d85d3adcba73898fd4fb91ebae029d492ad34e443e355e1b8002d5bdf60",
+      "bytes": 1337
+    },
+    {
+      "path": "ide/src/ui/dialog_form.inc",
+      "sha256": "363da05e396178cc86c06fc40f70babb4eac4a7f56a3dd7c7822bda04f1234e5",
+      "bytes": 16115
+    },
+    {
+      "path": "ide/src/ui/home_templates.inc",
+      "sha256": "ccea2a521076ff5f6197e8f8a69227fa155a719a81cf127ae1c3051d335b185b",
+      "bytes": 19324
+    },
+    {
+      "path": "ide/src/ui/home_view.inc",
+      "sha256": "2f635a5c7cd057a1d79c992986acad1b18c20cf2f2c6a311503439518607c497",
+      "bytes": 14160
+    },
+    {
+      "path": "ide/tests/template_registry_test.c",
+      "sha256": "a6faf5d008029a93705aa0d245dc90475e808498d6b8e1751c0a6f93c494f83c",
+      "bytes": 10181
+    },
+    {
+      "path": "ide/tests/template_view_test.c",
+      "sha256": "6cbcdcec9d554931e518242bb6829bd1975b24c7a0889d7f10ada33ee01225a4",
+      "bytes": 11063
+    },
+    {
+      "path": "ide/tools/make_template_icons.py",
+      "sha256": "6297a11078005a3e4858d25aaf6fb2547b0fb864a55673effa330ab60305cbdb",
+      "bytes": 2300
+    },
+    {
+      "path": "reproduction/build_ide.py",
+      "sha256": "5f1d360a32188f03bc6dda7e4975c6da9ea6cf3e438c9b2a397d6379dd521fee",
+      "bytes": 3331
+    },
+    {
+      "path": "reproduction/publish.py",
+      "sha256": "5786bc58a5b509d214b8b98940495d8ea86c688fc8fd657cdb6a8fe1ec87f8d2",
+      "bytes": 3697
+    },
+    {
+      "path": "reproduction/record.py",
+      "sha256": "cb5e29a27bc367d0e22018c1ac6bba985690f7710b4d92b79e0001dca4654369",
+      "bytes": 7036
+    },
+    {
+      "path": "reproduction/test.py",
+      "sha256": "dddcb3afd5fe4fff13ef43254e9b7262e0b70eb163e413c5f871e526f28e84da",
+      "bytes": 6332
+    }
+  ]
+}

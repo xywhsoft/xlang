@@ -75,7 +75,7 @@
       "licenseUrl": "http://www.microsoft.com/typography/fonts/default.aspx"
     },
     "fontChangeSourceParent": "b16a95bbf022efcafc7b965d1bd9b5b945c0d881",
-    "currentBuildProvenance": "dev/release-materials/provenance/ide-templates-20261109/receipt.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/ide-template-details-20261109/receipt.json",
     "cLspEnabled": false,
     "applicationIcon": {
       "source": "ide/data/xlang_ide.ico",
@@ -89,19 +89,19 @@
       "provenance": "docs/reports/release-materials-migration-20261031.json",
       "buildCommand": "pwsh -NoProfile -File ide/tools/build.ps1 -Configuration Release -GuiOnly -LanguageServerPath D:/GIT/x-lang/release/xlang-ls.exe -ReleaseDirectory D:/GIT/x-lang/release"
     },
-    "sha256": "59dcd027f1f51ce7b9d5446959a878487e786a1c238f3506760db9afe2195944",
+    "sha256": "368595537628e522d6e1a9107c7469a9be989160c90a8c00d541bd057ab41b97",
     "sourceIdentity": {
-      "guiBaseSourceRevision": "6186e26e10b8f00acf9f15f241600be8d4b0e58b",
-      "overlayBaseRevision": "9a81d2470d24dfbe1cc0a991dd96c2094c0393c7",
+      "guiBaseSourceRevision": "9a81d2470d24dfbe1cc0a991dd96c2094c0393c7",
+      "overlayBaseRevision": "7b2b33c5e7b179b35d80883da47ffc49a813ded3",
       "sourceOverlay": {
-        "path": "dev/release-materials/sources/ide-templates-20261109/manifest.json",
-        "sha256": "8f5b2b6a76e245e19eb49b792346e251d368229d75f5f05bea23ba228585ae7b",
-        "bytes": 54415
+        "path": "dev/release-materials/sources/ide-template-details-20261109/manifest.json",
+        "sha256": "04c91207a6f45317ffbe98ace8b04ca34b100f56242c10bf62e889638949c7e3",
+        "bytes": 4787
       },
       "build": {
-        "path": "dev/release-materials/provenance/ide-templates-20261109/evidence.zip",
-        "sha256": "d062b36f62c324c9ec6b2fec3f8866bc8e993806981c92756c082fbac9bddd91",
-        "bytes": 2728351
+        "path": "dev/release-materials/provenance/ide-template-details-20261109/evidence.zip",
+        "sha256": "c98aa3fd64327fafd7af50abcb39e6c32b6791a5c76fbd5936f21ff1ce090882",
+        "bytes": 2694986
       },
       "matchedSdkManifestSha256": "223a64f59ef77701f4729e87b328bd4509300df1e46bf015f2487e5803ab926c"
     },
@@ -128,7 +128,7 @@
       "sha256": "cb3dd03ba90452fb9a670371ed7447763a0188fdc61b57adf11d5d89851ce13b",
       "bytes": 2693
     },
-    "buildScope": "Full matched 113-object GUI rebuild after action/public-header updates; qualified baseline plus template overlay, C LSP disabled, -O2, -Wall -Wextra -Werror. Independent concurrent work excluded.",
+    "buildScope": "Full matched 113-object GUI rebuild with qualified baseline and template presentation overlay; -O2, -Wall -Wextra -Werror, C LSP disabled. Native SDK unchanged.",
     "currentEngine": {
       "sourceMaterials": {
         "path": "dev/release-materials/sources/ide-templates-20261109/manifest.json",
@@ -161,22 +161,22 @@
     "updateStateDirectory": "ide/build/update-runtime/<platform>-<install-path-sha256>",
     "previousBuildProvenanceBeforeDialogBackdrop": "dev/release-materials/provenance/ide-release-maintenance-20261106.json",
     "dialogBackdrop": "viewport-sized absolute overlay; dialog above backdrop; child/IME-aware Escape",
-    "previousBuildProvenance": "dev/release-materials/provenance/ide-table-grid-20261109/receipt.json",
-    "sourceRevision": "9a81d2470d24dfbe1cc0a991dd96c2094c0393c7",
+    "previousBuildProvenance": "dev/release-materials/provenance/ide-templates-20261109/receipt.json",
+    "sourceRevision": "7b2b33c5e7b179b35d80883da47ffc49a813ded3",
     "previousSourceIdentity": {
-      "guiBaseSourceRevision": "cea3cb135f92a378a70cab30f222057de6a434cd",
-      "overlayBaseRevision": "6186e26e10b8f00acf9f15f241600be8d4b0e58b",
+      "guiBaseSourceRevision": "6186e26e10b8f00acf9f15f241600be8d4b0e58b",
+      "overlayBaseRevision": "9a81d2470d24dfbe1cc0a991dd96c2094c0393c7",
       "sourceOverlay": {
-        "path": "dev/release-materials/sources/ide-table-grid-20261109/manifest.json",
-        "sha256": "e266f724ef5ad9140058d84b0abc1faf5c358af1ec08d537f18dd888d5cc7917",
-        "bytes": 3617
+        "path": "dev/release-materials/sources/ide-templates-20261109/manifest.json",
+        "sha256": "8f5b2b6a76e245e19eb49b792346e251d368229d75f5f05bea23ba228585ae7b",
+        "bytes": 54415
       },
       "build": {
-        "path": "dev/release-materials/provenance/ide-table-grid-20261109/evidence.zip",
-        "sha256": "eb2fa96bdb696f9fa03b4bba620d84c827e0554f9614f5ce6281e821799df7a5",
-        "bytes": 4031469
+        "path": "dev/release-materials/provenance/ide-templates-20261109/evidence.zip",
+        "sha256": "d062b36f62c324c9ec6b2fec3f8866bc8e993806981c92756c082fbac9bddd91",
+        "bytes": 2728351
       },
-      "matchedSdkManifestSha256": "e675c7b210511c91b6c150f08e2ef71f3fb73dc296a33091f550c2906f43cc11"
+      "matchedSdkManifestSha256": "223a64f59ef77701f4729e87b328bd4509300df1e46bf015f2487e5803ab926c"
     },
     "dockTabNavigation": {
       "enabled": true,
@@ -334,6 +334,11 @@
       "path": "dev/release-materials/provenance/ide-templates-20261109/receipt.json",
       "sha256": "d9a254b1f4d0378b7dd2d3a7ae19f74ec9df0d34d8c3ec3544430f5ddd69cebe",
       "bytes": 20243
+    },
+    "templatePresentation": {
+      "path": "dev/release-materials/provenance/ide-template-details-20261109/receipt.json",
+      "sha256": "058a41272199275218c205e3a3e09b54d593fc8a9fb37530c2bc1d06754ed67f",
+      "bytes": 9707
     }
   },
   "catalog": {
@@ -6333,8 +6338,8 @@
       "previousSha256": "c95a4b367e5ee67b9def00181060d678f56e084072ddc2c6b6ed5f1a5b25528b"
     },
     {
-      "sha256": "59dcd027f1f51ce7b9d5446959a878487e786a1c238f3506760db9afe2195944",
-      "bytes": 2118987,
+      "sha256": "368595537628e522d6e1a9107c7469a9be989160c90a8c00d541bd057ab41b97",
+      "bytes": 2125155,
       "path": "release/win_x64/xlang_ide.exe",
       "origin": "release-0.6.1-20261108",
       "previousSha256": "8a4d9e633fea3baad66e2cf05c0aa6d7f335b2e87ac655cc6f11d29f0685d8e5"
@@ -6448,8 +6453,38 @@
     },
     {
       "path": "release/win_x64/examples/templates/hello/template.json",
-      "sha256": "e0dafb143258910402d32cb4a8ea2e0f24580a3c7a2bbb2d08ca7dfe6aaa0e4e",
-      "bytes": 647
+      "sha256": "e29c9d391e0e95abaf2822794c03a2692198820282c18a369cfd21b12ab81139",
+      "bytes": 701
+    },
+    {
+      "path": "release/win_x64/data/template-icons/tree-file.png",
+      "sha256": "f2a3886c94e4ecc67330e34715053e721990c052f74f3bb6b5ac9908faeee2fd",
+      "bytes": 178
+    },
+    {
+      "path": "release/win_x64/data/template-icons/tree-file@2x.png",
+      "sha256": "6069d250fe13e5c837dc9cb85f5b89cef93f221c67caf872993f873df9deb70c",
+      "bytes": 247
+    },
+    {
+      "path": "release/win_x64/data/template-icons/tree-local.png",
+      "sha256": "f718fa5723439e45a2da6e9d48074e5ccfc1a0289b8ca722d6ad8f0f94547f47",
+      "bytes": 161
+    },
+    {
+      "path": "release/win_x64/data/template-icons/tree-local@2x.png",
+      "sha256": "d50afbec8bd2bc4b0d459d3085eb44c0bbde6f0097f08282436dcdab1f5af1b6",
+      "bytes": 207
+    },
+    {
+      "path": "release/win_x64/data/template-icons/tree-project.png",
+      "sha256": "2ddc2b234c524731a4c0fabb3d3097a597cb8274db385e5c31b1fb8468d6ea93",
+      "bytes": 159
+    },
+    {
+      "path": "release/win_x64/data/template-icons/tree-project@2x.png",
+      "sha256": "786884a6606c4cffa3e9cc8bedae92bee260045051ec98e1dc412a593913ce4f",
+      "bytes": 209
     }
   ],
   "acceptance": {
@@ -6559,7 +6594,7 @@
     "historicalReportPathsPreserved": true,
     "mutableDataPathsUpdated": 600
   },
-  "currentScope": "Local IDE template chooser/form/generation delivery; six icons, typed custom fields, background callbacks, confirmed history clear. Seven IDE suites, two native suites and 18 SDK material checks passed; full repository regression not claimed.",
+  "currentScope": "Local IDE template presentation refinement: readable create actions, dedicated small tree icons, inline metadata and clickable website. Six focused suites and official-path hidden startup passed; full regression not claimed.",
   "localPublication": {
     "path": "dev/release-materials/provenance/xge3-local-publication-20261105/receipt.json",
     "sha256": "d55e8e816fddbfc2d2283c9ba45b9b28ac5c5e07e0da183fbab3088f118fbad1",
@@ -6834,6 +6869,11 @@
       "path": "dev/release-materials/provenance/ide-templates-20261109/receipt.json",
       "sha256": "d9a254b1f4d0378b7dd2d3a7ae19f74ec9df0d34d8c3ec3544430f5ddd69cebe",
       "bytes": 20243
+    },
+    "templatePresentation": {
+      "path": "dev/release-materials/provenance/ide-template-details-20261109/receipt.json",
+      "sha256": "058a41272199275218c205e3a3e09b54d593fc8a9fb37530c2bc1d06754ed67f",
+      "bytes": 9707
     }
   },
   "xuiGallery": {
@@ -7145,5 +7185,10 @@
     "path": "dev/release-materials/provenance/ide-templates-20261109/receipt.json",
     "sha256": "d9a254b1f4d0378b7dd2d3a7ae19f74ec9df0d34d8c3ec3544430f5ddd69cebe",
     "bytes": 20243
+  },
+  "ideTemplatePresentation": {
+    "path": "dev/release-materials/provenance/ide-template-details-20261109/receipt.json",
+    "sha256": "058a41272199275218c205e3a3e09b54d593fc8a9fb37530c2bc1d06754ed67f",
+    "bytes": 9707
   }
 }

@@ -31,15 +31,22 @@ static int relative(const char* s) {
     while(*p){const char* end=strchr(p,'/');size_t n=end ? (size_t)(end-p):strlen(p);if(!n || (n==1&&p[0]=='.') || (n==2&&!strncmp(p,"..",2)))return 0;p=end ? end+1:p+n;}
     return 1;
 }
+static int websiteValid(const char* s) {
+    if(!*s)return 1;
+    const char* host=!strncmp(s,"https://",8) ? s+8:!strncmp(s,"http://",7) ? s+7:NULL;
+    if(!host||!*host||strchr("/#?:",*host)||strlen(s)>2048)return 0;
+    for(const unsigned char* p=(const unsigned char*)s;*p;++p)if(*p<=32||*p==127||*p=='\\')return 0;
+    return 1;
+}
 void xideTemplateDefinitionClear(xide_template_definition* d) {
     if(!d)return;
-    free(d->id);free(d->title);free(d->description);free(d->author);free(d->version);free(d->icon);free(d->category);free(d->root);
+    free(d->id);free(d->title);free(d->description);free(d->author);free(d->version);free(d->website);free(d->icon);free(d->category);free(d->root);
     free(d->module);free(d->validate);free(d->create);free(d->language);xrtValueRelease(d->fields);xrtValueRelease(d->files);memset(d,0,sizeof(*d));
 }
 int xideTemplateDefinitionCopy(xide_template_definition* d,const xide_template_definition* s) {
     memset(d,0,sizeof(*d));
 #define COPY(k) do {d->k=duplicate(s->k ? s->k:"");if(!d->k)goto failed;}while(0)
-    COPY(id);COPY(title);COPY(description);COPY(author);COPY(version);COPY(icon);COPY(category);COPY(root);COPY(module);COPY(validate);COPY(create);COPY(language);
+    COPY(id);COPY(title);COPY(description);COPY(author);COPY(version);COPY(website);COPY(icon);COPY(category);COPY(root);COPY(module);COPY(validate);COPY(create);COPY(language);
 #undef COPY
     d->project=s->project;d->builtin=s->builtin;d->fields=s->fields ? xrtValueDeepClone(s->fields):xrtValueArray();d->files=s->files ? xrtValueDeepClone(s->files):xrtValueArray();
     if(d->fields && d->files)return 1;
@@ -95,7 +102,8 @@ static int loadOne(xide_template_registry* r,const char* root,xide_model_error* 
     xide_template_definition d={0};d.id=(char*)xideTemplateString(json,"id","");d.title=(char*)xideTemplateString(json,"title","");d.description=(char*)xideTemplateString(json,"description","");d.author=(char*)xideTemplateString(json,"author","");d.version=(char*)xideTemplateString(json,"version","");d.icon=(char*)xideTemplateString(json,"icon","");d.category=(char*)xideTemplateString(json,"category","");d.root=(char*)root;d.language=(char*)xideTemplateString(json,"language","xlang");
     const char* kind=xideTemplateString(json,"kind","");d.project=!strcmp(kind,"project");xvalue* gen=get(json,"generator"),*form=get(json,"form");d.module=(char*)xideTemplateString(gen,"module","");d.validate=(char*)xideTemplateString(gen,"validate","");d.create=(char*)xideTemplateString(gen,"create","");d.fields=get(form,"fields");d.files=get(json,"files");
     xvalue* empty=xrtValueArray();if(!d.fields)d.fields=empty;if(!d.files)d.files=empty;
-    int okay=empty&&!strcmp(xideTemplateString(json,"format",""),"xlang-ide-template-1")&&identifier(d.id)&&strncmp(d.id,"builtin.",8)&&*d.title&&(!strcmp(kind,"project")||!strcmp(kind,"file"))&&(!*d.icon||relative(d.icon))&&fieldsValid(d.fields,e);
+    d.website=(char*)xideTemplateString(json,"website","");xstrview website={0};xvalue* websiteValue=get(json,"website");
+    int okay=empty&&(!websiteValue||(xrtValueIs(websiteValue,XVALUE_STRING)&&xrtValueGetString(websiteValue,&website)&&!memchr(website.Data,0,website.Size)))&&websiteValid(d.website)&&!strcmp(xideTemplateString(json,"format",""),"xlang-ide-template-1")&&identifier(d.id)&&strncmp(d.id,"builtin.",8)&&*d.title&&(!strcmp(kind,"project")||!strcmp(kind,"file"))&&(!*d.icon||relative(d.icon))&&fieldsValid(d.fields,e);
     if(okay&&*d.module)okay=relative(d.module)&&functionName(d.create)&&(!*d.validate||functionName(d.validate))&&!strcmp(xideTemplateString(gen,"kind",""),"xlang");
     if(okay)okay=xrtValueType(d.files)==XVALUE_ARRAY&&append(r,&d);
     if(!okay&&e&&!e->message[0]){fail(e,"模板格式、ID、路径或回调声明无效（或 ID 重复）。");}xrtValueRelease(empty);xrtValueRelease(json);return okay;
@@ -104,8 +112,8 @@ static int compare(const void* aa,const void* bb){const xide_template_definition
 static int loadRegistry(xide_template_registry* r,const char* userRoot,xide_model_error* e) {
     memset(r,0,sizeof(*r));if(e)memset(e,0,sizeof(*e));
     const char* icons[]={"blank","console","mixed","dll"};
-    for(size_t i=0;i<xideProjectTemplateCount();++i){const xide_project_template* p=xideProjectTemplateAt(i);xide_template_definition d={0};d.id=(char*)p->id;d.title=(char*)p->title;d.description=(char*)p->description;d.author="xlang";d.version="1.0.0";d.icon=(char*)icons[i];d.builtin=1;d.project=1;if(!append(r,&d))goto memory;}
-    for(int i=0;i<2;++i){xide_template_definition d={0};d.id=i ? "builtin.file.c":"builtin.file.xlang";d.title=i ? "C 文件（.c）":"xlang 文件（.xl）";d.description=i ? "创建独立的 C 文件（.c）；保存时选择文件名与位置。":"创建独立的 xlang 文件（.xl）；保存时选择文件名与位置。";d.author="xlang";d.version="1.0.0";d.icon=i ? "c-source":"script";d.language=i ? "c":"xlang";d.builtin=1;if(!append(r,&d))goto memory;}
+    for(size_t i=0;i<xideProjectTemplateCount();++i){const xide_project_template* p=xideProjectTemplateAt(i);xide_template_definition d={0};d.id=(char*)p->id;d.title=(char*)p->title;d.description=(char*)p->description;d.author="xlang";d.version="1.0.0";d.website="https://xcompiler.com/book/index.html";d.icon=(char*)icons[i];d.builtin=1;d.project=1;if(!append(r,&d))goto memory;}
+    for(int i=0;i<2;++i){xide_template_definition d={0};d.id=i ? "builtin.file.c":"builtin.file.xlang";d.title=i ? "C 文件（.c）":"xlang 文件（.xl）";d.description=i ? "创建独立的 C 文件（.c）；保存时选择文件名与位置。":"创建独立的 xlang 文件（.xl）；保存时选择文件名与位置。";d.author="xlang";d.version="1.0.0";d.website="https://xcompiler.com/book/index.html";d.icon=i ? "c-source":"script";d.language=i ? "c":"xlang";d.builtin=1;if(!append(r,&d))goto memory;}
     if(!userRoot||!xidePathExists(userRoot))return 1;
     char* mask=xidePathResolve(userRoot,"*");wchar_t* wide=mask ? xidePathNativeWide(mask):NULL;free(mask);WIN32_FIND_DATAW entry={0};HANDLE find=wide ? FindFirstFileW(wide,&entry):INVALID_HANDLE_VALUE;free(wide);
     if(find==INVALID_HANDLE_VALUE){snprintf(r->issues,sizeof(r->issues),"无法枚举用户模板目录；内置模板仍可使用。");return 1;}

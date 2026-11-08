@@ -166,7 +166,8 @@ static int rowLayout(xide_dialog* d,dialog_row* r,float available,float scale,in
         for(const unsigned char* p=(const unsigned char*)text;*p;++p)hash=hash*131+*p;
         if(r->measureScale!=scale || r->measureFont!=d->app->uiFont || r->textHash[i]!=hash) {
             xui_vec2_t size={0};FORM_TRY(xideDpiTextMeasure(&d->app->proxy,d->app->uiFont,text,&size));
-            r->measured[i]=fmaxf((r->footer ? 48:80)*scale,ceilf(size.fX)+(r->footer ? 16:32)*scale);r->textHash[i]=hash;
+            /* Reserve native button padding and border as well as the text. */
+            r->measured[i]=fmaxf((r->footer ? 56:80)*scale,ceilf(size.fX)+40*scale);r->textHash[i]=hash;
         }
     }
     r->measureScale=scale;r->measureFont=d->app->uiFont;

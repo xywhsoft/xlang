@@ -5,6 +5,7 @@
   "description": "演示通用工程表单、自定义字段及后台 xlang 生成回调。",
   "author": "xlang",
   "version": "1.0.0",
+  "website": "https://xcompiler.com/book/index.html",
   "kind": "project",
   "category": "示例模板",
   "form": {

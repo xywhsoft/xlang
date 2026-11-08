@@ -7,6 +7,7 @@
 #include "ui/message_box.h"
 #include "platform/path.h"
 #include "platform/file_io.h"
+#include "platform/dpi_proxy.h"
 #include "services/ui_font.h"
 #include "catalog_ready.h"
 #include "dialog_test_helpers.h"
@@ -16,6 +17,10 @@
 #include <string.h>
 #include <math.h>
 static int failed,started,checks;
+static int websiteOpens;static wchar_t openedWebsite[2049];
+static HINSTANCE WINAPI openWebsite(HWND owner,LPCWSTR verb,LPCWSTR path,LPCWSTR args,LPCWSTR directory,INT show){(void)owner;(void)verb;(void)args;(void)directory;(void)show;++websiteOpens;wcsncpy(openedWebsite,path,2048);openedWebsite[2048]=0;return (HINSTANCE)(INT_PTR)33;}
+/* Exercise real event routing without opening a browser during acceptance. */
+HINSTANCE (WINAPI* __imp_ShellExecuteW)(HWND,LPCWSTR,LPCWSTR,LPCWSTR,LPCWSTR,INT)=openWebsite;
 #define CHECK(e) do{++checks;if(!(e)){fprintf(stderr,"template_view_test:%d %s; %s; %s\n",__LINE__,#e,error.message,xideTemplateViewMessage(&a));failed=1;goto cleanup;}}while(0)
 static int settle(xide_app* a){for(int i=0;i<3;++i){if(xuiDispatchPendingEvents(a->context)!=XUI_OK)return 0;xideMessagePoll(a);xideFileDialogPoll(a);xideEditorPoll(a);xideWorkbenchLayout(a);if(xuiLayout(a->context)!=XUI_OK||a->frameError)return 0;}return 1;}
 static int click(xide_app* a,xui_widget w){xui_rect_t r=xuiWidgetGetWorldRect(w);float x=r.fX+r.fW/2,y=r.fY+r.fH/2;return r.fW>0&&r.fH>0&&xuiInputPointerMove(a->context,x,y,0)==XUI_OK&&xuiInputPointerDown(a->context,x,y,XUI_POINTER_BUTTON_LEFT,XUI_POINTER_BUTTON_LEFT)==XUI_OK&&xuiInputPointerUp(a->context,x,y,XUI_POINTER_BUTTON_LEFT,0)==XUI_OK&&settle(a);}
@@ -23,6 +28,8 @@ static int category(xide_app* a,int id){xui_widget tree=xideHomeControl(a,XIDE_H
 static int button(xide_app* a,int id){xui_widget w=xideTemplateViewControl(a,id);if(xideTestReveal(xideDialogGetScrollViewWidget(xideTemplateViewWindow(a)),w)!=XUI_OK||!settle(a))return 0;return click(a,w);}
 static int shot(xide_app* a,const char* root,const char* name){char* path=xidePathResolve(root,name);xui_rect_i_t r={0,0,a->viewportWidth,a->viewportHeight};int okay=path&&xuiUpdate(a->context,0)==XUI_OK&&a->proxy.surfaceClear(&a->proxy,a->target,0xffffffff)==XUI_OK&&xuiRender(a->context,a->target,&r,1)==XUI_OK&&xideAppCapture(a,path)==XGE_OK;free(path);return okay;}
 static int finish(xide_app* a){ULONGLONG until=GetTickCount64()+10000;while(xideTemplateViewIsOpen(a)&&GetTickCount64()<until){if(!settle(a))return 0;Sleep(5);}return !xideTemplateViewIsOpen(a);}
+static int websiteClick(xide_app* a,int releaseOutside){xui_widget list=xideHomeControl(a,XIDE_HOME_TEMPLATES);xui_rect_t world=xuiWidgetGetWorldRect(list),row=xuiListViewGetItemRect(list,0);int x=world.fX+row.fX+row.fW-36,y=world.fY+row.fY+28;return xuiQueryCursor(a->context,x,y)==XUI_CURSOR_HAND&&xuiInputPointerDown(a->context,x,y,XUI_POINTER_BUTTON_LEFT,XUI_POINTER_BUTTON_LEFT)==XUI_OK&&xuiInputPointerUp(a->context,releaseOutside ? world.fX+8:x,y,XUI_POINTER_BUTTON_LEFT,0)==XUI_OK&&settle(a);}
+static int buttonFits(xide_app* a,xui_widget widget){xui_vec2_t text={0};const char* label=xuiButtonGetText(widget);return xideDpiTextMeasure(&a->proxy,a->uiFont,label,&text)==XUI_OK&&xuiWidgetGetWorldRect(widget).fW>=ceilf(text.fX)+32*xideUiFontScale(a);}
 static int run(void* raw){
     xide_app a={0};xide_model_error error={0};int began=0;char *root=NULL,*settings=NULL,*workspace=NULL;xide_template_registry registry={0};started=1;
     char* id=xideCreateId("template-view");root=id ? xidePathResolve(raw,id):NULL;free(id);CHECK(root&&xideIoCreateDirectories(root));settings=xidePathResolve(root,"settings.json");workspace=xidePathResolve(root,"workspace.xlw");CHECK(settings&&workspace);
@@ -30,7 +37,9 @@ static int run(void* raw){
     CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_NEW))&&xideDialogIsOpen(xideHomeNewWindow(&a)));
     CHECK(xuiTreeViewGetSelected(xideHomeControl(&a,XIDE_HOME_CATEGORY))==2&&xuiListViewGetItemCount(xideHomeControl(&a,XIDE_HOME_TEMPLATES))==4);
     CHECK(strstr(xuiListViewGetItemText(xideHomeControl(&a,XIDE_HOME_TEMPLATES),0),"控制台"));CHECK(xuiListViewGetItemHeight(xideHomeControl(&a,XIDE_HOME_TEMPLATES))>=96*xideUiFontScale(&a));CHECK(shot(&a,raw,"templates-project.png"));
+    CHECK(buttonFits(&a,xideHomeControl(&a,XIDE_HOME_CREATE)));CHECK(websiteClick(&a,1)&&!websiteOpens);CHECK(websiteClick(&a,0)&&websiteOpens==1&&!wcscmp(openedWebsite,L"https://xcompiler.com/book/index.html")&&xideDialogIsOpen(xideHomeNewWindow(&a))&&!xideTemplateViewIsOpen(&a));
     CHECK(category(&a,3)&&settle(&a)&&xuiListViewGetItemCount(xideHomeControl(&a,XIDE_HOME_TEMPLATES))==2);CHECK(shot(&a,raw,"templates-files.png"));
+    CHECK(buttonFits(&a,xideHomeControl(&a,XIDE_HOME_CREATE)));
     CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_CANCEL))&&xideActionExecute(&a,XIDE_ACTION_NEW_PROJECT)==XIDE_ACTION_DISPATCHED&&settle(&a));CHECK(xuiTreeViewGetSelected(xideHomeControl(&a,XIDE_HOME_CATEGORY))==2);
     CHECK(click(&a,xideHomeControl(&a,XIDE_HOME_CREATE))&&xideTemplateViewIsOpen(&a)&&!xideDialogIsOpen(xideHomeNewWindow(&a)));
     CHECK(xuiComboBoxGetSelected(xideTemplateViewControl(&a,XIDE_TEMPLATE_WORKSPACE_MODE))==0&&!xuiComboBoxIsItemEnabled(xideTemplateViewControl(&a,XIDE_TEMPLATE_WORKSPACE_MODE),2));
