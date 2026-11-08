@@ -7,7 +7,7 @@
   "embeddingAbi": 1,
   "passed": true,
   "fullRegressionPassed": false,
-  "publication": "local-with-ver3-prepared",
+  "publication": "Windows ver3 published; Linux local-only",
   "recordedRepositoryRevision": "80ec77dc5a2979f665f8f9915818abbb1cafbf44",
   "sourceMaterials": {
     "path": "dev/release-materials/sources/release-0.6.2-20261109/manifest.json",
@@ -242,8 +242,10 @@
       "path": "release/win_x64/data/release.json",
       "source": "F:\\xlang-validation\\release-0.6.2-20261109\\win-candidate\\data\\release.json",
       "beforeSha256": "c431aaf96e98ce7813ccbeab816477e954e06f6c39644137fc57463079d484a8",
-      "sha256": "6d680e3a1db90631658c8caa93f1d7a68a5c4006a61af4347f7a7c62499a150e",
-      "bytes": 110
+      "sha256": "32789b8f401224667b55dbaafc8c27ad92978483202035715060eed773d34254",
+      "bytes": 104,
+      "installedBeforeUpdatePreparationSha256": "6d680e3a1db90631658c8caa93f1d7a68a5c4006a61af4347f7a7c62499a150e",
+      "metadataUpdatedBy": "Signed ver3 preparation"
     },
     {
       "path": "release/linux_x64/xl",
@@ -301,5 +303,6 @@
     "Existing extended 40-DIP resource-dialog footer fitting and extended DPI-test cleanup failures are inherited baseline limitations; this version-only update does not claim to fix them.",
     "Windows formal update channel is published separately as ver3; Linux is a local delivery.",
     "Concurrent compiler/LS/foreign-interop development was not rebuilt into this compiler cohort."
-  ]
+  ],
+  "onlinePublication": "dev/release-materials/provenance/ide-update-v3-publish-20261109/receipt.json"
 }

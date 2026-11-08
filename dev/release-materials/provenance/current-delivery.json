@@ -6540,9 +6540,9 @@
       "bytes": 50319
     },
     "currentOnlinePublication": {
-      "path": "dev/release-materials/provenance/ide-update-v2-publish-20261108/receipt.json",
-      "sha256": "aca347fe45d76a2d7d4ac37276e406bf4f7bbba695a52d07e07f73f94ce86b07",
-      "bytes": 3160
+      "path": "dev/release-materials/provenance/ide-update-v3-publish-20261109/receipt.json",
+      "sha256": "f869edbad7f27801e51cd77ef22c079e81783b3eb4406b4519412a221e0f96da",
+      "bytes": 3257
     }
   },
   "remaining": {
@@ -6593,7 +6593,7 @@
     ],
     "publisherTools": "release/update_info/tools",
     "preparedStore": "release/update_info/win_x64",
-    "preparedVersion": 2,
+    "preparedVersion": 3,
     "published": true,
     "privateKeyPackaged": false,
     "publicKey": "53d97e95b59ae119fe0a95d02edfe1010458e60e7b95ede3541aad1df018f6a8",
@@ -6601,8 +6601,8 @@
     "publishedPlatforms": [
       "win_x64"
     ],
-    "currentPublishProvenance": "dev/release-materials/provenance/ide-update-v2-publish-20261108/receipt.json",
-    "publishedVersion": 2,
+    "currentPublishProvenance": "dev/release-materials/provenance/ide-update-v3-publish-20261109/receipt.json",
+    "publishedVersion": 3,
     "publicUrl": "https://xcompiler.com/download/update_win_x64",
     "remoteRoot": "/opt/www/host/xlang/wwwroot/download/update_win_x64",
     "localBootstrapObservedPath": "release/win_x64/update.exe",
@@ -6610,12 +6610,12 @@
     "publishedForceUpdate": false,
     "displayVersionSupported": true,
     "comparisonField": "version",
-    "preparedDisplayVersion": "0.6.1",
+    "preparedDisplayVersion": "0.6.2",
     "historicalTestStore": "release/update_info/test-history/win_x64",
     "publishedChannel": "production",
     "runtimeState": "external same-filesystem directory; --print-state-dir",
     "gitIgnoredDirectory": "release/update_info",
-    "publishedDisplayVersion": "0.6.1",
+    "publishedDisplayVersion": "0.6.2",
     "previousTestVersionsArchived": "/opt/www/host/xlang/wwwroot/download/.xlang-publish-d2bdfe7284970358/retired-test-20261106T150355Z-0dcfe9aeb28b476f"
   },
   "runtimeLayout": {
@@ -6625,7 +6625,7 @@
     "historicalReportPathsPreserved": true,
     "mutableDataPathsUpdated": 600
   },
-  "currentScope": "0.6.2 targeted two-platform version release and latest qualified IDE, ver3 update prepared pending online publication.",
+  "currentScope": "Windows formal update 0.6.2 / ver3 published and verified, qualified compiler version overlay plus latest unified-new/open IDE. Linux 0.6.2 delivered locally. Unrelated development excluded.",
   "localPublication": {
     "path": "dev/release-materials/provenance/xge3-local-publication-20261105/receipt.json",
     "sha256": "d55e8e816fddbfc2d2283c9ba45b9b28ac5c5e07e0da183fbab3088f118fbad1",
@@ -6915,6 +6915,11 @@
       "path": "dev/release-materials/provenance/ide-unified-new-open-20261109/receipt.json",
       "sha256": "89f590e785ac51cc7c27619d3e453cdb0ce330144050a40364f275f44e788042",
       "bytes": 9891
+    },
+    "updateV3Publication": {
+      "path": "dev/release-materials/provenance/ide-update-v3-publish-20261109/receipt.json",
+      "sha256": "f869edbad7f27801e51cd77ef22c079e81783b3eb4406b4519412a221e0f96da",
+      "bytes": 3257
     }
   },
   "xuiGallery": {
@@ -7191,9 +7196,9 @@
     }
   ],
   "onlinePublication": {
-    "path": "dev/release-materials/provenance/ide-update-v2-publish-20261108/receipt.json",
-    "sha256": "aca347fe45d76a2d7d4ac37276e406bf4f7bbba695a52d07e07f73f94ce86b07",
-    "bytes": 3160
+    "path": "dev/release-materials/provenance/ide-update-v3-publish-20261109/receipt.json",
+    "sha256": "f869edbad7f27801e51cd77ef22c079e81783b3eb4406b4519412a221e0f96da",
+    "bytes": 3257
   },
   "repositoryHistoryCleanup": {
     "path": "dev/release-materials/provenance/git-artifact-clean-20261108/receipt.json",
@@ -7244,7 +7249,7 @@
   },
   "release062": {
     "path": "dev/release-materials/provenance/release-0.6.2-20261109/receipt.json",
-    "sha256": "98c76fa14585afed6048d8a1f2656ea939542931ea1ea396ef222b1300694fac",
-    "bytes": 11473
+    "sha256": "5964cbeed5ef534d030e7b8e114f685f33c48153db01e555cc892dbe05645cea",
+    "bytes": 11765
   }
 }

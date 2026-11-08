@@ -9,6 +9,11 @@
       "bytes": 5916
     },
     {
+      "path": "dev/release-materials/sources/ide-update-v3-publish-20261109/finalize.py",
+      "sha256": "d11f61e0f26dacb2774f79f0a819ed38347aeac4bb457291e7e2f1ebbb29ae87",
+      "bytes": 7877
+    },
+    {
       "path": "dev/release-materials/sources/ide-update-v3-publish-20261109/prepare_update.py",
       "sha256": "1352c5c161bd0646b877a67e6d1d42377844b25c1942a30237c71c49b88b0ce2",
       "bytes": 14051
@@ -17,6 +22,11 @@
       "path": "dev/release-materials/sources/ide-update-v3-publish-20261109/publish_persistent_curl.py",
       "sha256": "f6fdc7d279d9e148f0c79c408d63e297573c5b5b6961e4780bee23132d2e5838",
       "bytes": 2365
+    },
+    {
+      "path": "dev/release-materials/sources/ide-update-v3-publish-20261109/record_prepare.py",
+      "sha256": "d2d1f1ee274d9461e5e7ebbefdef4bd29f00c87138a3678045b584646fd421a8",
+      "bytes": 2802
     },
     {
       "path": "dev/release-materials/sources/ide-update-v3-publish-20261109/update_manager.py",

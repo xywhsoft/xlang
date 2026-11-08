@@ -139,7 +139,7 @@ python ide/tools/update/release_maintenance.py bundle --platform win_x64
 
 制作版本会生成并签名 `data/release.json`，便携 ZIP 解压后即能显示迭代 1，无需附带发布机的安装回执。ZIP 含运行依赖及扩展包；在线差分仍排除 `extlibs/`。`--include-mdo` 的选择保存在版本库配置中，后续继承，也可显式用 `--no-include-mdo` 取消。
 
-**Windows 正式通道于 2026-11-07 发布 `0.6.0 / 迭代 1`，2026-11-08 已发布 `0.6.1 / 迭代 2`（普通更新）。此前迭代 3 的测试通道及其旧暂存资料已归档。正式通道后续从迭代 3 递增，不要再次初始化或重置。**
+**Windows 正式通道于 2026-11-07 发布 `0.6.0 / 迭代 1`，2026-11-08 发布 `0.6.1 / 迭代 2`，2026-11-09 发布 `0.6.2 / 迭代 3`（普通更新）。此前同编号的测试通道及其旧暂存资料已归档。正式通道后续从迭代 4 递增，不要再次初始化或重置。**
 
 以下仅保留首次上线前的测试通道归档操作，供审计和其他尚未正式发行的测试通道参考；不用于正常已发行版本的降级：
 
@@ -154,7 +154,7 @@ python ide/tools/update/update_manager.py push --platform win_x64 --verify-publi
 后续相同显示版本的修复仍递增迭代：
 
 ```powershell
-python ide/tools/update/update_manager.py prepare --platform win_x64 --version 3 --notes-file release/update_info/notes/0.6.1-v3.txt
+python ide/tools/update/update_manager.py prepare --platform win_x64 --version 4 --notes-file release/update_info/notes/next-v4.txt
 python ide/tools/update/update_manager.py push --platform win_x64 --verify-public-on-server
 ```
 

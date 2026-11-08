@@ -1,0 +1,21 @@
+{
+  "passed": true,
+  "managedFilesVerified": 2188,
+  "allReferencesVerified": true,
+  "userSettingsAndDiagnosticsPreserved": true,
+  "windowsVersion": {
+    "version": "0.6.2",
+    "versionCode": 1538,
+    "versionCodeHex": "0x00000602"
+  },
+  "linuxVersion": {
+    "version": "0.6.2",
+    "versionCode": 1538,
+    "versionCodeHex": "0x00000602"
+  },
+  "serverObjectsVerified": 1652,
+  "publicMetadataMatchesSignedPackage": true,
+  "onlineOldClientDetectsUpdate": true,
+  "onlineCurrentClientUpToDate": true,
+  "fullRepositoryRegression": false
+}

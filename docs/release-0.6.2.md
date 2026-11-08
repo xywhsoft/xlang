@@ -11,3 +11,5 @@ Windows CLI、DLL、IDE 版本资源、两平台 SDK 和内嵌编译 API 均已�
 更新迭代号为 **ver3**，采用普通更新。Windows 正式更新通道的上线状态及签名、升级和 HTTPS 校验结果，以 [ver3 发布记录](../dev/release-materials/provenance/ide-update-v3-publish-20261109/README.md) 为准；Linux 本次为本地交付。
 
 构建、清理及验收记录见 [0.6.2 交付材料](../dev/release-materials/provenance/release-0.6.2-20261109/README.md)。
+
+Windows 正式通道现已上线 **0.6.2 / ver3**。真实 ver2 升级、全部 1,652 个公开 HTTPS 对象、签名元数据和正式客户端在线检测均通过。

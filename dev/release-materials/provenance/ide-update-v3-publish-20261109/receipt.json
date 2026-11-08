@@ -1,0 +1,76 @@
+{
+  "schema": 1,
+  "platform": "win_x64",
+  "version": 3,
+  "displayVersion": "0.6.2",
+  "versionCode": 1538,
+  "versionCodeHex": "0x00000602",
+  "forceUpdate": false,
+  "published": true,
+  "publishedAt": 1794170564,
+  "sourceRevision": "63c0c5d6e71364b43868618caebd4e2cca552834",
+  "publicUrl": "https://xcompiler.com/download/update_win_x64",
+  "publishedObjects": 1652,
+  "files": 2188,
+  "changedFiles": 29,
+  "deletedFiles": 124,
+  "newDeletions": 2,
+  "newObjects": 27,
+  "deltaBytes": 24909007,
+  "mainBytes": 42078123,
+  "signatureKey": "53d97e95b59ae119fe0a95d02edfe1010458e60e7b95ede3541aad1df018f6a8",
+  "sourceMaterials": {
+    "path": "dev/release-materials/sources/ide-update-v3-publish-20261109/manifest.json",
+    "sha256": "74ea37ed61531b7cf9b8c470e89472960a3ae21f583d55dc6a845449b6fd6120",
+    "bytes": 1694
+  },
+  "releaseAcceptance": "dev/release-materials/provenance/release-0.6.2-20261109/receipt.json",
+  "acceptance": {
+    "path": "dev/release-materials/provenance/ide-update-v3-publish-20261109/acceptance.json",
+    "sha256": "d89a46a7910c5eb2d0c436bec1b369d704921cfb482f3d7aed165a9c2b28301f",
+    "bytes": 735
+  },
+  "onlineVerification": {
+    "path": "dev/release-materials/provenance/ide-update-v3-publish-20261109/online-verification.json",
+    "sha256": "e2a9db723c6645e4e4429e299f38c75099098c81973b4ba23f4b497cf8e31a66",
+    "bytes": 575
+  },
+  "publishedMetadata": [
+    {
+      "path": "dev/release-materials/provenance/ide-update-v3-publish-20261109/update.json",
+      "sha256": "3a1211ae4fde0bdea54d91d739ddac930be3ecd76a9434c128de6c91646538e4",
+      "bytes": 719473
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-v3-publish-20261109/update.lzma",
+      "sha256": "e4730e98044c5e7ef44b9ba3f352dec34aa925139e676b0703f98a30ea1cab9b",
+      "bytes": 140716
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-v3-publish-20261109/version.txt",
+      "sha256": "d4644abfc90b3d79a7be0a68b5dda2136252c4001e65d4166fad71b052cdefc5",
+      "bytes": 72
+    }
+  ],
+  "record": {
+    "path": "dev/release-materials/provenance/ide-update-v3-publish-20261109/publish-record.json",
+    "sha256": "917c05a6a6d9ccbf386171183ed7dd747b304d30ec08e19d5b22bda59a98098a",
+    "bytes": 448
+  },
+  "notes": {
+    "path": "dev/release-materials/provenance/ide-update-v3-publish-20261109/notes.txt",
+    "sha256": "98b795f85566d8d417c7ebcc05201c0d695c363c40a7625e932fb6ac76e0e833",
+    "bytes": 382
+  },
+  "limitations": [
+    "Windows formal updater channel only; Linux local 0.6.2 was built and validated but not remotely published.",
+    "Existing update scope excludes extlibs, static, examples, projects and user settings; MDO inclusion inherited from ver2, unchanged bytes.",
+    "Historical compiler/catalog binding remains; package source-pair integrity and IDE startup verified, not a full compiler/help audit.",
+    "Targeted release regression only; unrelated worktree changes excluded."
+  ],
+  "finalAudit": {
+    "path": "dev/release-materials/provenance/ide-update-v3-publish-20261109/final-audit.json",
+    "sha256": "3594d9ad16f6ee7df6eed9dbaee2a3242a6b1890bd37d84c37b6b3cf4a44237d",
+    "bytes": 569
+  }
+}
