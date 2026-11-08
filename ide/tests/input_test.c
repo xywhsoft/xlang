@@ -1,4 +1,5 @@
 #include "app/xide_app.h"
+#include "catalog_ready.h"
 #include "ui/editor_view.h"
 #include "ui/workspace_view.h"
 #include "ui/configuration_view.h"
@@ -78,6 +79,7 @@ static int verify(void* user)
     CHECK(image && entry && projectPath);
     app.hidden=1; app.noSession=1; app.maxFrames=1;
     CHECK(xideAppCreate(&app)==XUI_OK && xgeImeGetMode()==XGE_IME_MODE_COMPOSITION);
+    CHECK(xideTestCatalogReady(&app));
     CHECK(xgeBegin()==XGE_OK); began=1;
     CHECK(pump(&app));
     uint64_t dropped=xgeInputEventDroppedCount();

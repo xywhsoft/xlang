@@ -1,5 +1,6 @@
 #include "app/xide_app.h"
 #include "ui/catalog_view.h"
+#include "catalog_ready.h"
 #include "ui/editor_view.h"
 #include "lang/languages.h"
 #include "theme/theme.h"
@@ -37,7 +38,7 @@ int main(void)
     xide_app app={0}; int failed=0,count=0; xide_model_error error={0}; xui_code_completion_item_t items[512];
     app.hidden=1; app.viewportWidth=1280; app.viewportHeight=800;
     CHECK(xuiCreate(&app.context)==XUI_OK && ideThemeInit(app.context,IDE_THEME_CLASSIC)==XUI_OK && xuiInputViewport(app.context,1280,800)==XUI_OK);
-    CHECK(xideWorkbenchCreate(&app)==XUI_OK && settle(&app)); CHECK(app.catalog.count>4300 && xideCatalogVisibleCount(&app)==app.catalog.count);
+    CHECK(xideWorkbenchCreate(&app)==XUI_OK && xideTestCatalogReady(&app) && settle(&app)); CHECK(app.catalog.count>4300 && xideCatalogVisibleCount(&app)==app.catalog.count);
     xide_document* doc=xideDocumentNew(&app.documents,"xlang",&error); CHECK(doc && xideEditorShow(&app,doc)==XUI_OK && settle(&app));
     xui_code_document core=xuiCodeEditGetDocument(doc->editor); uint32_t version=xuiCodeDocumentGetVersion(core);
     CHECK(xuiSetFocusWidget(app.context,app.commands)==XUI_OK);

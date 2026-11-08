@@ -256,3 +256,18 @@ int xideSettingsSetUiFont(xide_settings* settings,const char* path,int size,xide
 { return setFont(settings,path,size,"ui",error); }
 
 #include "platform/settings_options.inc"
+
+unsigned xideSettingsAssociationMask(const xide_settings* s)
+{ int64 value=7;const xvalue* a=s?get(s->source,"associations"):NULL;const xvalue* v=get(a,"types");if(v && (!xideMetaInt(v,&value) || value<0 || value>15))value=7;return (unsigned)value; }
+int xideSettingsAssociationPrompt(const xide_settings* s)
+{ bool value=true;const xvalue* a=s?get(s->source,"associations"):NULL;const xvalue* v=get(a,"prompt");if(v)xrtValueGetBool(v,&value);return value; }
+int xideSettingsSetAssociations(xide_settings* s,unsigned mask,int prompt,xide_model_error* e)
+{
+    if(!s || !s->source || !s->path || mask>15)return fail(e,XIDE_MODEL_INVALID,"Invalid association preference.");
+    xvalue* root=xrtValueClone(s->source);const xvalue* previous=get(s->source,"associations");
+    xvalue* a=xrtValueIs(previous,XVALUE_OBJECT)?xrtValueClone(previous):xrtValueObject();
+    int okay=root && a && xrtValueObjectSetNew(root,sv("format"),xrtValueString(sv("xlang-ide-settings-1"))) && xrtValueObjectSetNew(a,sv("types"),xrtValueInt(mask)) && xrtValueObjectSetNew(a,sv("prompt"),xrtValueBool(prompt!=0));
+    if(okay)okay=xrtValueObjectSetNew(root,sv("associations"),a);else xrtValueRelease(a);
+    if(okay)okay=writeSettings(s,root,e);
+    xrtValueRelease(root);return okay;
+}

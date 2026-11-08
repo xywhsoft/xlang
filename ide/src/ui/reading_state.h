@@ -7,6 +7,8 @@ double xideReadingNumber(const xvalue* value,double fallback);
 xvalue* xideReadingCapture(xide_app* app,const xvalue* previous);
 int xideReadingValid(const xvalue* value);
 int xideReadingRestore(xide_app* app,const xvalue* value,int afterLayout);
+/* Apply only the state whose widgets depend on the asynchronous catalog. */
+void xideReadingRestoreCatalog(xide_app* app,const xvalue* value,int afterLayout);
 void xideReadingReset(xide_app* app);
 uint64_t xideReadingFingerprint(xide_app* app,uint64_t seed);
 #endif

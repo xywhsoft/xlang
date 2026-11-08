@@ -22,6 +22,7 @@
 #include "ui/language_view.h"
 #include "ui/font_view.h"
 #include "ui/settings_view.h"
+#include "ui/association_view.h"
 #include "ui/recovery_view.h"
 #include "ui/file_changes_view.h"
 #include "ui/goto_view.h"
@@ -52,6 +53,7 @@ static int contextHelp(xide_app* a,int id) {(void)id;return xideCatalogFollowNow
 #define E(id,name,title,chord,key,mods,need,scope,cmd) A(id,name,title,NULL,chord,key,mods,scope,cmd,need,NO_CHECK,xideEditorAction)
 #define V(id,name,title) A(id,name,title,NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,WINDOW_CHECK,xideWorkbenchAction)
 static const action_def definitions[]={
+    A(XIDE_ACTION_SETTINGS_ASSOCIATIONS,"settings.associations","文件关联…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideAssociationViewAction),
     A(XIDE_ACTION_SETTINGS,"settings.open","全部设置…",NULL,"Ctrl+,",188,XUI_MOD_CTRL,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideSettingsViewAction),
     A(XIDE_ACTION_SETTINGS_EDITOR,"settings.editor","编辑器设置…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideSettingsViewAction),
     A(XIDE_ACTION_SETTINGS_DOCUMENTS,"settings.documents","文档与帮助设置…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideSettingsViewAction),
@@ -168,7 +170,7 @@ static const action_def* definition(int id) { for(size_t i=0;i<xideActionCount()
 const xide_action_info* xideActionFind(int id) { const action_def* d=definition(id); return d ? &d->info : NULL; }
 const xide_action_info* xideActionNamed(const char* name) { if(name) for(size_t i=0;i<xideActionCount();++i) if(!strcmp(name,definitions[i].info.name)) return &definitions[i].info; return NULL; }
 int xideActionsHasOtherModal(xide_app* a)
-{ return a && ( xideSettingsViewIsOpen(a) || xideAboutViewIsOpen(a) || xideFileDialogBusy(a) || xideMessageBusy(a) || xideCatalogSourceIsOpen(a) || xideGotoViewIsOpen(a) || xideToolchainViewIsOpen(a) || xideResourceViewIsOpen(a) || xideImportViewIsOpen(a) || xideRenameViewIsOpen(a) || xideRenameViewHasPending(a) || xideTemplateViewIsOpen(a) || xideReferencesViewIsOpen(a) || xideConfigurationViewIsOpen(a) || xideFontViewIsOpen(a) || xideRecoveryViewIsOpen(a) || xideFileChangesViewIsOpen(a)); }
+{ return a && ( xideAssociationViewIsOpen(a) || xideSettingsViewIsOpen(a) || xideAboutViewIsOpen(a) || xideFileDialogBusy(a) || xideMessageBusy(a) || xideCatalogSourceIsOpen(a) || xideGotoViewIsOpen(a) || xideToolchainViewIsOpen(a) || xideResourceViewIsOpen(a) || xideImportViewIsOpen(a) || xideRenameViewIsOpen(a) || xideRenameViewHasPending(a) || xideTemplateViewIsOpen(a) || xideReferencesViewIsOpen(a) || xideConfigurationViewIsOpen(a) || xideFontViewIsOpen(a) || xideRecoveryViewIsOpen(a) || xideFileChangesViewIsOpen(a)); }
 int xideActionsHasModal(xide_app* a)
 { return a && (xideUpdateIsModal(a) || xideActionsHasOtherModal(a)); }
 xide_action_state xideActionQuery(xide_app* a,int id)

@@ -1,3 +1,4 @@
+#include "ui/association_view.h"
 #include "ui/about_view.h"
 #include "ui/import_view.h"
 #include "ui/template_view.h"
@@ -66,7 +67,7 @@ static int createTarget(xide_app* app, int width, int height)
 }
 static int quitRequest(void* user)
 {
-    xide_app* app=user; if(xideActionsHasModal(app)) return 0;
+    xide_app* app=user; if(xideActionsHasModal(app) || xideAssociationViewBusy(app)) return 0;
     xideMessageBeginQuit(app);
     if(!xideWorkspaceQuitRequest(app)) { xideMessageEndOperation(app);return 0; }
     xideMessageEndOperation(app);
@@ -111,6 +112,7 @@ int xideAppCreate(xide_app* app)
     TRY(xideEditorFontStart(app));
     TRY(xidePreferencesStartDocument(app));
     TRY(xuiSetDefaultFont(app->context, app->uiFont));
+    app->startupAsync=1;
     TRY(xideWorkbenchCreate(app)); TRY(xideUiFontInitialize(app));
     TRY(xideCatalogViewDocumentFont(app));
     for(int i=0;i<2;++i)TRY(xidePreferencesEditor(app,app->editors[i],options));
@@ -136,7 +138,7 @@ int xideAppCreate(xide_app* app)
     if (app->initialEditor) xideDispatchAction(app, XIDE_ACTION_C);
     if(app->initialFile && !xideWorkspaceOpenFile(app,app->initialFile)) { xideFailureSet(&app->failure,XIDE_FAILURE_DOCUMENT,"XUI",XUI_ERROR,app->initialFile,"xideWorkspaceOpenFile"); return XUI_ERROR; }
     if(app->initialCommandSearch && xideCatalogViewSearch(app,app->initialCommandSearch)!=XUI_OK) { xideFailureSet(&app->failure,XIDE_FAILURE_COMMAND,"XUI",XUI_ERROR,"Unable to filter the command catalog.","xideCatalogViewSearch"); return XUI_ERROR; }
-    if(app->initialCommand) { const xide_command* command=xideCatalogFind(&app->catalog,app->initialCommand); if(!command) { xideFailureSet(&app->failure,XIDE_FAILURE_COMMAND,"XUI",XUI_ERROR,app->initialCommand,"xideCatalogFind"); return XUI_ERROR; } xideWorkbenchShowHelp(app,(int)(command-app->catalog.entries)); }
+    if(app->initialCommand && xideCatalogViewSettled(app)) { const xide_command* command=xideCatalogFind(&app->catalog,app->initialCommand); if(!command) { xideFailureSet(&app->failure,XIDE_FAILURE_COMMAND,"XUI",XUI_ERROR,app->initialCommand,"xideCatalogFind"); return XUI_ERROR; } xideWorkbenchShowHelp(app,(int)(command-app->catalog.entries));app->initialCommand=NULL; }
     if(app->initialTask) { app->taskStartMs=GetTickCount64(); xideDispatchAction(app,app->initialTask); }
     if(app->initialConfigurations && !xideConfigurationViewOpen(app)) return XUI_ERROR;
     if(app->initialFontSettings && !xideFontViewOpen(app)) return XUI_ERROR;
@@ -149,7 +151,7 @@ int xideAppCreate(xide_app* app)
 }
 void xideAppDestroy(xide_app* app)
 {
-    xideUpdateDestroy(app);
+    xideUpdateDestroy(app);xideAssociationViewDestroy(app);
 
 #if XIDE_ENABLE_C_LSP
  xideCLanguageViewStop(app); xideCCompletionViewStop(app);
@@ -217,14 +219,15 @@ static int frame(void* user)
         app->viewportWidth = width; app->viewportHeight = height;
         TRY(xuiInputViewport(app->context, (float)width, (float)height));
     }
-    xideUpdatePoll(app);
     TRY(xidePlatformHandleInput(app)); TRY(xuiDispatchPendingEvents(app->context)); xideFileDialogPoll(app); xideMessagePoll(app); xideSettingsViewPoll(app); xideEditorPoll(app); xideFileSyncPoll(app); xideFileChangesViewPoll(app); xideTaskViewPoll(app); xideLanguageViewPoll(app);
 #if XIDE_ENABLE_C_LSP
  xideCLanguageViewPoll(app);
 #endif
  xideToolchainViewPoll(app); xideRecoveryViewPoll(app);
+    xideAssociationViewPoll(app);xideUpdatePoll(app);
+    if(app->frameError)return app->frameError;
     xideWorkbenchLayout(app); TRY(xuiLayout(app->context)); xideCatalogViewLayout(app); TRY(xuiLayout(app->context)); TRY(xuiTerminalFit(app->panels[XIDE_TERMINAL]));
-    if(app->initialChapterRequested && app->frames==0) {
+    if(app->initialChapterRequested && xideCatalogViewSettled(app)) {
         if(!xideHelpJump(xideCatalogHelpDocument(app),(size_t)app->initialChapter)) return XUI_ERROR_INVALID_ARGUMENT;
         app->initialChapterRequested=0;
     }
@@ -244,7 +247,7 @@ static int frame(void* user)
     xgeClear(ideThemeColor(app->theme, IDE_BG));
     TRY(xideDpiSurfacePresent(app->dpiProxy,app->target,xgeGetWidth(),xgeGetHeight()));
     ++app->frames;
-    int taskDone=(!app->waitTask || xideTaskViewSettled(app)) && !xideRecoveryViewBusy(app) && xideFileSyncSettled(app);
+    int taskDone=(!app->waitTask || xideTaskViewSettled(app)) && !xideRecoveryViewBusy(app) && xideFileSyncSettled(app) && xideCatalogViewSettled(app);
     if(app->waitTask && app->taskStartMs && GetTickCount64()-app->taskStartMs>30000) { app->taskExit=1; taskDone=1; }
     if (app->maxFrames > 0 && app->frames >= app->maxFrames && taskDone && app->screenshot) TRY(xideAppCapture(app,app->screenshot));
     TRY_XGE(xgeEnd());

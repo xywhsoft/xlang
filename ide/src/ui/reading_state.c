@@ -110,7 +110,8 @@ failed:
 }
 xvalue* xideReadingCapture(xide_app* app,const xvalue* old)
 {
-    xvalue *root=object(old),*workspace=captureTree(app,app->workspace,xideWorkspaceTreeKey,get(old,"workspace")),*commands=captureTree(app,app->commands,xideCatalogTreeKey,get(old,"commands"));
+    int pending=!xideCatalogViewSettled(app) && old;
+    xvalue *root=object(old),*workspace=captureTree(app,app->workspace,xideWorkspaceTreeKey,get(old,"workspace")),*commands=pending ? object(get(old,"commands")) : captureTree(app,app->commands,xideCatalogTreeKey,get(old,"commands"));
     if(!root || !workspace || !commands) { xrtValueRelease(root); xrtValueRelease(workspace); xrtValueRelease(commands); return NULL; }
     int okay=put(root,"version",xrtValueInt(1));
     okay=put(root,"execution",xideExecutionCapture(app)) && okay;
@@ -118,6 +119,11 @@ xvalue* xideReadingCapture(xide_app* app,const xvalue* old)
     xvalue* properties=object(get(old,"properties")); float y=0; xuiScrollViewGetOffset(app->properties,NULL,&y);
     if(properties && put(properties,"scrollY",xrtValueFloat(y))) okay=put(root,"properties",properties) && okay;
     else { xrtValueRelease(properties); okay=0; }
+    if(pending){
+        okay=put(root,"help",object(get(old,"help"))) && okay;
+        if(!okay || !xideReadingValid(root)){xrtValueRelease(root);return NULL;}
+        return root;
+    }
     const char* command=app->selectedCommand>=0 && (size_t)app->selectedCommand<app->catalog.count ? app->catalog.entries[app->selectedCommand].id : "";
     const xvalue* before=get(old,"help"); const char* previous=text(get(before,"command")); if(!previous || strcmp(command,previous)) before=NULL;
     xvalue* help=object(before),*position=xideHelpCaptureReading(xideCatalogHelpDocument(app),get(before,"position"));
@@ -149,6 +155,16 @@ static void restoreTree(xide_app* app,xui_widget tree,node_key key,const xvalue*
         xuiTreeViewSetScroll(tree,(float)offset);
     }
 }
+void xideReadingRestoreCatalog(xide_app* app,const xvalue* value,int afterLayout)
+{
+    if(!value || !xideCatalogViewSettled(app))return;
+    restoreTree(app,app->commands,xideCatalogTreeKey,get(value,"commands"),afterLayout,0);
+    if(afterLayout){
+        const xvalue* help=get(value,"help");const char* command=text(get(help,"command"));
+        if(command && app->selectedCommand>=0 && (size_t)app->selectedCommand<app->catalog.count && !strcmp(command,app->catalog.entries[app->selectedCommand].id))
+            xideHelpRestoreReading(xideCatalogHelpDocument(app),get(help,"position"));
+    }
+}
 int xideReadingRestore(xide_app* app,const xvalue* value,int afterLayout)
 {
     if(!value) return 1;
@@ -157,12 +173,9 @@ int xideReadingRestore(xide_app* app,const xvalue* value,int afterLayout)
     int explicitProject=app->frames==0 && app->initialSelectedProject;
     int explicitCommand=app->frames==0 && (app->initialCommand || app->initialCommandSearch);
     if(!afterLayout || !explicitProject) restoreTree(app,app->workspace,xideWorkspaceTreeKey,get(value,"workspace"),afterLayout,1);
-    if(!afterLayout || !explicitCommand) restoreTree(app,app->commands,xideCatalogTreeKey,get(value,"commands"),afterLayout,0);
+    if(!explicitCommand && !(app->frames==0 && app->initialChapterRequested))xideReadingRestoreCatalog(app,value,afterLayout);
     if(afterLayout) {
         if(!explicitProject) xuiScrollViewSetOffset(app->properties,0,(float)xideReadingNumber(get(get(value,"properties"),"scrollY"),0));
-        const xvalue* help=get(value,"help"); const char* command=text(get(help,"command"));
-        if(!(app->frames==0 && (app->initialChapterRequested || app->initialCommand)) && command && app->selectedCommand>=0 && (size_t)app->selectedCommand<app->catalog.count && !strcmp(command,app->catalog.entries[app->selectedCommand].id))
-            xideHelpRestoreReading(xideCatalogHelpDocument(app),get(help,"position"));
     }
     return 1;
 }

@@ -2,6 +2,10 @@
 #include "xide_version.h"
 
 XIDE_RESOURCE_APP_ICON ICON "xlang_ide.ico"
+XIDE_RESOURCE_SCRIPT_ICON ICON "file-icons/script.ico"
+XIDE_RESOURCE_PROJECT_ICON ICON "file-icons/project.ico"
+XIDE_RESOURCE_WORKSPACE_ICON ICON "file-icons/workspace.ico"
+XIDE_RESOURCE_C_ICON ICON "file-icons/c-source.ico"
 
 1 VERSIONINFO
 FILEVERSION XIDE_VERSION_RESOURCE

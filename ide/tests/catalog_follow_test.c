@@ -1,6 +1,7 @@
 #define _WIN32_WINNT 0x0601
 #include "app/xide_app.h"
 #include "ui/catalog_view.h"
+#include "catalog_ready.h"
 #include "ui/editor_view.h"
 #include "ui/help_document.h"
 #include "ui/workbench_windows.h"
@@ -80,7 +81,7 @@ static int verify(void* user) {
  char *settings=xidePathResolve(f->directory,"settings.json"),*catalog=xidePathResolve(f->directory,"commands.json");wchar_t exe[32768];char binary[131072];char *runtime=NULL,*shipping=NULL,*image=NULL,*markdown=NULL;
  CHECK(GetModuleFileNameW(NULL,exe,32768) && WideCharToMultiByte(CP_UTF8,0,exe,-1,binary,sizeof(binary),NULL,NULL));runtime=xidePathDirectory(binary);shipping=runtime ? xidePathResolve(runtime,"data/commands.json"):NULL;
  CHECK(settings && catalog && shipping && xrtFileCopy(shipping,catalog,true));a.hidden=1;a.noSession=1;a.disableAutomaticDiagnostics=1;a.settingsPath=settings;a.catalogPath=catalog;
- CHECK(xideAppCreate(&a)==XUI_OK && xgeBegin()==XGE_OK);began=1;CHECK(settle(&a));
+ CHECK(xideAppCreate(&a)==XUI_OK && xgeBegin()==XGE_OK);began=1;CHECK(xideTestCatalogReady(&a) && settle(&a));
  CHECK(xideSettingsOptions(&a.preferences)->helpFollow);
  xide_catalog_lookup* index=xideCatalogLookupCreate(&a.catalog);CHECK(index && xideCatalogLookupBytes(index)<a.catalog.count*13+256);
  uint32_t items[64];size_t total=0;CHECK(xideCatalogLookupName(index,"math.sin","xlang",0,items,64,&total)==1 && total==1 && xideCatalogLookupId(index,a.catalog.entries[items[0]].id)==a.catalog.entries+items[0]);xideCatalogLookupDestroy(index);
@@ -116,7 +117,7 @@ static int verify(void* user) {
  CHECK(benchmark(&a,f->directory));
  CHECK(xideEditorClose(&a,d,1,&error));xide_document* reused=xideDocumentNew(&a.documents,"xlang",&error);CHECK(reused==d && xideEditorShow(&a,d)==XUI_OK && xuiCodeEditSetText(d->editor,code)==XUI_OK && mark(&a,"abs") && tick(&a,4900) && chosen(&a,"math.abs"));
  markdown=malloc(120000);CHECK(markdown);strcpy(markdown,"# First\n");for(int i=0;i<800;++i)strcat(markdown,"Paragraph with enough text for scrolling and virtualization.\n\n");
- CHECK(replaceCatalog(&a,catalog,markdown) && xideCatalogViewReload(&a) && a.catalog.count==3);
+ CHECK(replaceCatalog(&a,catalog,markdown) && xideCatalogViewReload(&a) && xideTestCatalogReady(&a) && a.catalog.count==3);
  CHECK(xuiCodeEditSetText(d->editor,"followDoc()\nfollowOther()\n测试函数()\n")==XUI_OK && mark(&a,"followDoc") && tick(&a,5000) && waitHelp(&a));xide_help_view* help=xideCatalogHelpDocument(&a);unsigned builds=0,hits=0;xideHelpPreparationCounts(help,&builds,&hits);CHECK(builds>=1);
  CHECK(mark(&a,"followOther") && tick(&a,5200) && waitHelp(&a));unsigned two=0;xideHelpPreparationCounts(help,&two,NULL);CHECK(two>builds);
  CHECK(mark(&a,"followDoc") && tick(&a,5400) && waitHelp(&a));xideHelpPreparationCounts(help,&builds,&hits);unsigned warm=builds;CHECK(mark(&a,"followOther") && tick(&a,5460) && waitHelp(&a));CHECK(mark(&a,"followDoc") && tick(&a,5520) && waitHelp(&a));xideHelpPreparationCounts(help,&builds,&hits);CHECK(builds==warm && hits>0);
@@ -126,7 +127,7 @@ static int verify(void* user) {
  CHECK(mark(&a,"测试函数") && tick(&a,5600) && chosen(&a,"测试函数") && waitHelp(&a));
  CHECK(xideHelpSetDeferred(help,NULL,0,NULL)==XUI_ERROR_INVALID_ARGUMENT);
  CHECK(xideHelpSetDeferred(help,a.catalog.entries[1].documents,a.catalog.entries[1].documentCount,&a.catalog)==XUI_OK && xideHelpSet(help,a.catalog.entries[0].documents,a.catalog.entries[0].documentCount)==XUI_OK && xuiWidgetGetVisible(xideHelpContent(help)) && !xideHelpPending(help));
- CHECK(mark(&a,"followOther") && tick(&a,5800) && replaceCatalog(&a,catalog,"# New owner\nReload-safe body.\n") && xideCatalogViewReload(&a) && waitHelp(&a));CHECK(xideHelpSourceDocument(help)==a.catalog.documents || xideHelpSourceDocument(help)==a.catalog.documents+1);
+ CHECK(mark(&a,"followOther") && tick(&a,5800) && replaceCatalog(&a,catalog,"# New owner\nReload-safe body.\n") && xideCatalogViewReload(&a) && xideTestCatalogReady(&a) && waitHelp(&a));CHECK(xideHelpSourceDocument(help)==a.catalog.documents || xideHelpSourceDocument(help)==a.catalog.documents+1);
  for(int i=0;i<10;++i){CHECK(xideHelpPoll(help)==XUI_OK && settle(&a));Sleep(1);}
  image=xidePathResolve(f->directory,"follow-help.png");CHECK(image && xuiUpdate(a.context,0)==XUI_OK);xui_rect_i_t all={0,0,a.viewportWidth,a.viewportHeight};CHECK(a.proxy.surfaceClear(&a.proxy,a.target,0)==XUI_OK && xuiRender(a.context,a.target,&all,1)==XUI_OK && xideAppCapture(&a,image)==XGE_OK);
  printf("catalog_follow_test passed: %d checks; bounded/indexed qualified selection, debounce, overload preservation, pin/setting, hidden/inactive panes, F1, drag/IME exclusions, no focus stealing, worker/cache/reload ownership, Unicode and 1MiB selection performance.\n",f->checks);

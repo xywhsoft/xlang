@@ -54,7 +54,7 @@
   },
   "ide": {
     "languageServer": "Rebuilt qualified 455-pin C interop cohort; separately accepted from the prior GUI build.",
-    "guiTranslationUnits": 108,
+    "guiTranslationUnits": 111,
     "compiler": "GCC 16.2.0",
     "warnings": [
       "-Wall",
@@ -75,7 +75,7 @@
       "licenseUrl": "http://www.microsoft.com/typography/fonts/default.aspx"
     },
     "fontChangeSourceParent": "b16a95bbf022efcafc7b965d1bd9b5b945c0d881",
-    "currentBuildProvenance": "dev/release-materials/provenance/ide-save-task-race-20261108/receipt.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/ide-startup-associations-20261108/receipt.json",
     "cLspEnabled": false,
     "applicationIcon": {
       "source": "ide/data/xlang_ide.ico",
@@ -89,19 +89,19 @@
       "provenance": "docs/reports/release-materials-migration-20261031.json",
       "buildCommand": "pwsh -NoProfile -File ide/tools/build.ps1 -Configuration Release -GuiOnly -LanguageServerPath D:/GIT/x-lang/release/xlang-ls.exe -ReleaseDirectory D:/GIT/x-lang/release"
     },
-    "sha256": "6aaa255b00da1ee63f7d4854cb29125cee34f67b885c04456161bc3d68887d5d",
+    "sha256": "7c1ee2ae62ee21367bcf2735311c947a816c66d2c79a6a5f4123c3862b8f6f38",
     "sourceIdentity": {
-      "guiBaseSourceRevision": "b7d924d3d24742a429180821a39535c29e528edc",
-      "overlayBaseRevision": "865d0e54b3fbba24674f50da5fb349a5c50ef83b",
+      "guiBaseSourceRevision": "865d0e54b3fbba24674f50da5fb349a5c50ef83b",
+      "overlayBaseRevision": "6e177576c3c5103486bedb67b2f245b235e230f2",
       "sourceOverlay": {
-        "path": "dev/release-materials/sources/ide-save-task-race-20261108/manifest.json",
-        "sha256": "adb614df39c2366b76963a6cd48b408b4803a07fe9c62682db070edf495972d4",
-        "bytes": 2863
+        "path": "dev/release-materials/sources/ide-startup-associations-20261108/manifest.json",
+        "sha256": "68d02acf171acb8899d73077c4c9e5d83936315866711045bc5e55ccce04f3b4",
+        "bytes": 8722
       },
       "build": {
-        "path": "dev/release-materials/provenance/ide-save-task-race-20261108/evidence.zip",
-        "sha256": "fdcd8fac107891f8464f66e47f3726302b194c2d78ec44e5529e85ba4dfee594",
-        "bytes": 1719238
+        "path": "dev/release-materials/provenance/ide-startup-associations-20261108/evidence.zip",
+        "sha256": "75e2a006abc70218e544b6a3a8dd955238cce460f63d5cdfaaa2475b8189e2d8",
+        "bytes": 331656
       },
       "matchedSdkManifestSha256": "c0fbd47f95fafe863fae241ece7d4654d3908f5efb6b3ab2a1b678cb59b79f93"
     },
@@ -128,7 +128,7 @@
       "sha256": "cb3dd03ba90452fb9a670371ed7447763a0188fdc61b57adf11d5d89851ce13b",
       "bytes": 2693
     },
-    "buildScope": "All 108 GUI objects rebuilt from the qualified GUI source baseline plus the five scoped source/header changes; final watcher-only refinement relinked with unchanged remaining objects. Unrelated semantic/LSP workspace development excluded.",
+    "buildScope": "All 108 existing GUI objects and 3 new units compiled with consistent app/action headers from the qualified GUI baseline plus focused overlays; final .c refinements rebuilt and relinked with otherwise unchanged matching objects. C LSP remains disabled. Unrelated semantic/LSP workspace work preserved.",
     "currentEngine": {
       "sourceMaterials": {
         "path": "dev/release-materials/sources/xge-code-wrap-20261108/manifest.json",
@@ -155,22 +155,22 @@
     "updateStateDirectory": "ide/build/update-runtime/<platform>-<install-path-sha256>",
     "previousBuildProvenanceBeforeDialogBackdrop": "dev/release-materials/provenance/ide-release-maintenance-20261106.json",
     "dialogBackdrop": "viewport-sized absolute overlay; dialog above backdrop; child/IME-aware Escape",
-    "previousBuildProvenance": "dev/release-materials/provenance/xge-terminal-newline-20261108/receipt.json",
-    "sourceRevision": "865d0e54b3fbba24674f50da5fb349a5c50ef83b",
+    "previousBuildProvenance": "dev/release-materials/provenance/ide-save-task-race-20261108/receipt.json",
+    "sourceRevision": "6e177576c3c5103486bedb67b2f245b235e230f2",
     "previousSourceIdentity": {
-      "guiSourceRevision": "b7d924d3d24742a429180821a39535c29e528edc",
-      "sourceCommit": "b7d924d3d24742a429180821a39535c29e528edc",
+      "guiBaseSourceRevision": "b7d924d3d24742a429180821a39535c29e528edc",
+      "overlayBaseRevision": "865d0e54b3fbba24674f50da5fb349a5c50ef83b",
       "sourceOverlay": {
-        "path": "dev/release-materials/sources/xge-terminal-newline-20261108/manifest.json",
-        "sha256": "b20a36fa3cdc964060fba5c396a9e5dc63554877f46e9100c0ba02d7cc753695",
-        "bytes": 142885
+        "path": "dev/release-materials/sources/ide-save-task-race-20261108/manifest.json",
+        "sha256": "adb614df39c2366b76963a6cd48b408b4803a07fe9c62682db070edf495972d4",
+        "bytes": 2863
       },
       "build": {
-        "path": "dev/release-materials/provenance/xge-terminal-newline-20261108/evidence.zip",
-        "sha256": "16b9b18fa66587b59fad40774ff9e8fb797e001301f3f2471d9e6bfb4352cb54",
-        "bytes": 7503420
+        "path": "dev/release-materials/provenance/ide-save-task-race-20261108/evidence.zip",
+        "sha256": "fdcd8fac107891f8464f66e47f3726302b194c2d78ec44e5529e85ba4dfee594",
+        "bytes": 1719238
       },
-      "matchedSdkManifestSha256": "5b00307ed19f288b7ca1d084ee4c4fd5aa5f5ac7819c7d7e0ea3c51c0b505e6f"
+      "matchedSdkManifestSha256": "c0fbd47f95fafe863fae241ece7d4654d3908f5efb6b3ab2a1b678cb59b79f93"
     },
     "dockTabNavigation": {
       "enabled": true,
@@ -231,6 +231,73 @@
       "path": "dev/release-materials/provenance/ide-save-task-race-20261108/receipt.json",
       "sha256": "9d09e11f0df99880bc6ef054230f90436495078bfe9acdf3cb495be47138f01c",
       "bytes": 4496
+    },
+    "startupAssociations": {
+      "path": "dev/release-materials/provenance/ide-startup-associations-20261108/receipt.json",
+      "sha256": "5d3e7b9fca5ab9adb5227eb7f4755a3526ce1500af5c9d361d71d8223c6f13ae",
+      "bytes": 16690
+    },
+    "fileIcons": {
+      "resources": [
+        {
+          "resource": 201,
+          "sizes": [
+            16,
+            20,
+            24,
+            32,
+            40,
+            48,
+            64,
+            128,
+            256
+          ]
+        },
+        {
+          "resource": 202,
+          "sizes": [
+            16,
+            20,
+            24,
+            32,
+            40,
+            48,
+            64,
+            128,
+            256
+          ]
+        },
+        {
+          "resource": 203,
+          "sizes": [
+            16,
+            20,
+            24,
+            32,
+            40,
+            48,
+            64,
+            128,
+            256
+          ]
+        },
+        {
+          "resource": 204,
+          "sizes": [
+            16,
+            20,
+            24,
+            32,
+            40,
+            48,
+            64,
+            128,
+            256
+          ]
+        }
+      ],
+      "sourceDirectory": "ide/data/file-icons",
+      "embedded": true
     }
   },
   "catalog": {
@@ -6230,8 +6297,8 @@
       "previousSha256": "c95a4b367e5ee67b9def00181060d678f56e084072ddc2c6b6ed5f1a5b25528b"
     },
     {
-      "sha256": "6aaa255b00da1ee63f7d4854cb29125cee34f67b885c04456161bc3d68887d5d",
-      "bytes": 1898092,
+      "sha256": "7c1ee2ae62ee21367bcf2735311c947a816c66d2c79a6a5f4123c3862b8f6f38",
+      "bytes": 2033295,
       "path": "release/win_x64/xlang_ide.exe",
       "origin": "release-0.6.1-20261108",
       "previousSha256": "8a4d9e633fea3baad66e2cf05c0aa6d7f335b2e87ac655cc6f11d29f0685d8e5"
@@ -6411,7 +6478,7 @@
     "historicalReportPathsPreserved": true,
     "mutableDataPathsUpdated": 600
   },
-  "currentScope": "Local IDE integrated-help title and save/watch/task race fix; XGE, compiler, language server, packages and online ver2 unchanged.",
+  "currentScope": "Local Windows IDE file associations/icons and ordered background startup; 17 targeted suites plus 8 GUI startup cases; compiler, runtime, language server, XGE and online ver2 unchanged.",
   "localPublication": {
     "path": "dev/release-materials/provenance/xge3-local-publication-20261105/receipt.json",
     "sha256": "d55e8e816fddbfc2d2283c9ba45b9b28ac5c5e07e0da183fbab3088f118fbad1",
@@ -6651,6 +6718,11 @@
       "path": "dev/release-materials/provenance/ide-save-task-race-20261108/receipt.json",
       "sha256": "9d09e11f0df99880bc6ef054230f90436495078bfe9acdf3cb495be47138f01c",
       "bytes": 4496
+    },
+    "startupAssociations": {
+      "path": "dev/release-materials/provenance/ide-startup-associations-20261108/receipt.json",
+      "sha256": "5d3e7b9fca5ab9adb5227eb7f4755a3526ce1500af5c9d361d71d8223c6f13ae",
+      "bytes": 16690
     }
   },
   "xuiGallery": {

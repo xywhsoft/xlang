@@ -55,6 +55,8 @@ typedef struct xide_app {
     xide_dialog* dialogs;
     xide_messages* messages;
     struct xide_update* updater;
+    struct xide_association_view* associationView;
+    int startupAsync;
     xide_file_dialog* fileDialog;
     xide_actions* actions;
     struct xide_about_view* aboutView;

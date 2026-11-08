@@ -23,6 +23,9 @@ int xideSettingsSetCServer(xide_settings* settings,const char* server,xide_model
 int xideSettingsSetEditorFont(xide_settings* settings,const char* path,int size,xide_model_error* error);
 int xideSettingsSetUiFont(xide_settings* settings,const char* path,int size,xide_model_error* error);
 int xideSettingsRememberOpen(xide_settings* settings,const char* path,xide_model_error* error);
+unsigned xideSettingsAssociationMask(const xide_settings*);
+int xideSettingsAssociationPrompt(const xide_settings*);
+int xideSettingsSetAssociations(xide_settings*,unsigned,int,xide_model_error*);
 /* Rebuild known preferences from live fonts and the loaded preferences, keeping
    unknown members of a previously valid settings object. CLI tools stay local. */
 xvalue* xideSettingsCapture(const xide_settings* settings,const char* path,const char* editorFont,int editorSize,const char* uiFont,int uiSize);

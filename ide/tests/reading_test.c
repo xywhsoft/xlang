@@ -2,6 +2,7 @@
 #include "app/xide_app.h"
 #include "ui/reading_state.h"
 #include "ui/catalog_view.h"
+#include "catalog_ready.h"
 #include "ui/workspace_view.h"
 #include "ui/editor_view.h"
 #include "services/session.h"
@@ -22,7 +23,7 @@ static int writeText(const char* path,const char* s) { return xrtFileWriteAtomic
 static int start(xide_app* app,const char* storage,const char* manifest,const char* settings,const char* catalog)
 {
     memset(app,0,sizeof(*app)); app->hidden=1; app->highDpi=1; app->dpiOverride=1.25f; app->maxFrames=10000;
-    app->sessionRoot=storage; app->workspacePath=manifest; app->settingsPath=settings; app->catalogPath=catalog; return xideAppCreate(app)==XUI_OK;
+    app->sessionRoot=storage; app->workspacePath=manifest; app->settingsPath=settings; app->catalogPath=catalog; return xideAppCreate(app)==XUI_OK && xideTestCatalogReady(app);
 }
 static int settle(xide_app* app)
 {

@@ -198,7 +198,7 @@ XIDE_ACTION_CHECK_CURRENT,XIDE_ACTION_CHECK_SAVED,XIDE_ACTION_CANCEL_CHECK};
     xui_menu_item_t modeItem={0};modeItem.sText="语言模式";modeItem.iType=XUI_MENU_ITEM_SUBMENU;modeItem.pSubmenu=app->languageMenu;
     if(xuiMenuAddItem(app->editMenu,&modeItem)<0)return XUI_ERROR;
     TRY(addMenu(app,"工具",tools,sizeof(tools)/sizeof(*tools)));
-    const int settings[]={XIDE_ACTION_SETTINGS,0,XIDE_ACTION_SETTINGS_EDITOR,XIDE_ACTION_SETTINGS_DOCUMENTS,XIDE_ACTION_SETTINGS_COMPILER,XIDE_ACTION_SETTINGS_APPEARANCE,XIDE_ACTION_SETTINGS_LANGUAGE,0,XIDE_ACTION_SETTINGS_FILE};
+    const int settings[]={XIDE_ACTION_SETTINGS,0,XIDE_ACTION_SETTINGS_EDITOR,XIDE_ACTION_SETTINGS_DOCUMENTS,XIDE_ACTION_SETTINGS_COMPILER,XIDE_ACTION_SETTINGS_APPEARANCE,XIDE_ACTION_SETTINGS_LANGUAGE,XIDE_ACTION_SETTINGS_ASSOCIATIONS,0,XIDE_ACTION_SETTINGS_FILE};
     TRY(addMenu(app,"设置",settings,sizeof(settings)/sizeof(*settings)));
     TRY(addMenu(app,"帮助",help,sizeof(help)/sizeof(*help)));
     xui_toolbar_desc_t toolbar = {0}; toolbar.iSize = sizeof(toolbar); toolbar.pFont = app->uiFont;

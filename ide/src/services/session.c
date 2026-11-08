@@ -34,7 +34,7 @@ struct xide_session {
     xide_migration_journal *migrationJournal,*incomingMigration;
     xide_recovery_service* migrationMaintenance;
     xvalue *incomingCheckpoint,*restoredCheckpoint;
-    int ready,layoutReady,indexReady,restoring,blocked,scrollPending;
+    int ready,layoutReady,indexReady,restoring,blocked,scrollPending,catalogReadingPending;
     uint64_t fingerprint,due,lastMaintenance,lastMigrationMaintenance;
     char issue[512];
 };
@@ -171,6 +171,7 @@ static int validLayout(const xvalue* root)
 }
 static void clearScope(xide_session* s)
 {
+    s->catalogReadingPending=0;
     xideRenameJournalDestroy(s->renameJournal); s->renameJournal=NULL;
     xideRenameJournalDestroy(s->migrationJournal); s->migrationJournal=NULL;
     xrtValueRelease(s->restoredCheckpoint); s->restoredCheckpoint=NULL;
@@ -336,7 +337,7 @@ static int checkpointLocked(xide_app* app,int cleanExit,xide_model_error* error,
         for(size_t j=0;!opened && j<app->documents.count;++j) if(app->documents.items[j]->open && !strcmp(app->documents.items[j]->sessionId,string(missing,"id",""))) opened=1;
         if(!opened) okay=xrtValueArrayAppendNew(docs,xrtValueDeepClone(missing));
     }
-    const char* command=app->selectedCommand>=0 && (size_t)app->selectedCommand<app->catalog.count ? app->catalog.entries[app->selectedCommand].id : "";
+    const char* command=xideCatalogViewSelectionId(app);
     char* activePath=app->activeDocument && app->activeDocument->path ? xidePathRelative(s->base,app->activeDocument->path) : copy("");
     char* ownerPath=owner(app) ? xidePathRelative(s->base,owner(app)) : copy("");
     xvalue* configs=configurations(app);
@@ -692,7 +693,8 @@ static void restore(xide_app* app)
     xideWorkspaceViewRefresh(app);
     if(!app->themeExplicit && xideSettingsOptions(&app->preferences)->theme<0) { int theme=ideThemeFind(string(root,"theme","")); if(theme>=0) xideWorkbenchApplyTheme(app,theme); }
     const char* query=string(root,"commandSearch",""); xideCatalogViewSearch(app,query);
-    const xide_command* command=xideCatalogFind(&app->catalog,string(root,"selectedCommand","")); if(command) xideWorkbenchShowHelp(app,(int)(command-app->catalog.entries));
+    xideCatalogViewRestoreSelection(app,string(root,"selectedCommand",""));
+    s->catalogReadingPending=!xideCatalogViewSettled(app) && !app->initialCommand && !app->initialCommandSearch && !app->initialChapterRequested;
     xideReadingRestore(app,get(root,"reading"),0);
     const xvalue* layout=s->layoutReady ? layoutState(s,string(root,"layoutGeneration","")) : NULL;
     const xvalue* dock=layout ? get(layout,"dock") : xideMigrationJournalDock(s->migrationJournal,string(root,"layoutGeneration",""));
@@ -773,7 +775,7 @@ void xideSessionPoll(xide_app* app)
     xide_session* s=app->session; if(!s) return;
     if(xideRecoveryViewBusy(app)) return;
     xide_model_error windowError={0}; if(!xideWindowStatePoll(&s->window,&windowError)) report(app,windowError.message);
-    if(!s->ready || s->restoring || s->blocked || xideRecoveryViewBusy(app)) return;
+    if(!s->ready || s->restoring || s->blocked || xideRecoveryViewBusy(app) || !xideCatalogViewSettled(app)) return;
     uint64_t fingerprint=current(app),now=GetTickCount64();
     if(!s->migrationMaintenance) s->migrationMaintenance=xideRecoveryServiceCreate(NULL);
     if(s->migrationMaintenance) {
@@ -791,7 +793,13 @@ void xideSessionPoll(xide_app* app)
 }
 void xideSessionAfterLayout(xide_app* app)
 {
-    xide_session* s=app->session; if(!s || !s->scrollPending) return; s->scrollPending=0;
+    xide_session* s=app->session;if(!s)return;
+    if(s->catalogReadingPending && xideCatalogViewSettled(app)){
+        const xvalue* reading=get(s->restoredCheckpoint ? s->restoredCheckpoint : s->metadata.source,"reading");
+        xideReadingRestoreCatalog(app,reading,0);xideReadingRestoreCatalog(app,reading,1);s->catalogReadingPending=0;
+    }
+    if(!s->scrollPending)return;
+    s->scrollPending=0;
     xideReadingRestore(app,get(s->restoredCheckpoint ? s->restoredCheckpoint : s->metadata.source,"reading"),1);
     for(size_t i=0;i<app->documents.count;++i) if(app->documents.items[i]->open) {
         xide_document* d=app->documents.items[i]; const xvalue* entry=oldEntry(s,d->sessionId); double x=0,y=0;

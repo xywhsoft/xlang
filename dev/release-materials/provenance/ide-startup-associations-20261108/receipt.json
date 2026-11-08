@@ -1,0 +1,414 @@
+{
+  "schema": 1,
+  "date": "2026-11-08",
+  "complete": true,
+  "passed": true,
+  "publication": "local-only",
+  "scope": "Windows IDE file associations, embedded file icons and ordered background startup. Targeted acceptance; not a full repository test pass.",
+  "sourceMaterials": {
+    "path": "dev/release-materials/sources/ide-startup-associations-20261108/manifest.json",
+    "sha256": "68d02acf171acb8899d73077c4c9e5d83936315866711045bc5e55ccce04f3b4",
+    "bytes": 8722
+  },
+  "evidence": {
+    "path": "dev/release-materials/provenance/ide-startup-associations-20261108/evidence.zip",
+    "sha256": "75e2a006abc70218e544b6a3a8dd955238cce460f63d5cdfaaa2475b8189e2d8",
+    "bytes": 331656
+  },
+  "installed": {
+    "passed": true,
+    "installedPath": "release/win_x64/xlang_ide.exe",
+    "previousSha256": "6aaa255b00da1ee63f7d4854cb29125cee34f67b885c04456161bc3d68887d5d",
+    "sha256": "7c1ee2ae62ee21367bcf2735311c947a816c66d2c79a6a5f4123c3862b8f6f38",
+    "bytes": 2033295,
+    "installedSmokeExit": 0,
+    "preserved": {
+      "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe": "e5f4719890814a3f7b5422ffb1f293ffc944c527de62217d32e9a3a4c287dfad",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xl.dll": "e783d6a15c946945d4186084cff9006839cbc1d31a0ae387396dc6f500aaac6c",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xlc.dll": "b4563a13448e2f550b00c0504cac481cdefd2b61ee961276049f936243f125a1",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xge.dll": "f6eaa3961017f79cd06d18568bab8fb60274c4935e1a83ab8fb37da21acc607b",
+      "D:\\GIT\\x-lang\\ide\\third_party\\xge_sdk\\sdk_manifest.json": "c0fbd47f95fafe863fae241ece7d4654d3908f5efb6b3ab2a1b678cb59b79f93"
+    }
+  },
+  "tests": [
+    {
+      "test": "catalog_job_test",
+      "exit": 0,
+      "source": "D:\\GIT\\x-lang\\ide\\tests\\catalog_job_test.c",
+      "sourceSha256": "e79f4c6e951e5fb2d331be765ba8ad5fd889b8f921b1231bfa8c86f03e3aaacd"
+    },
+    {
+      "test": "association_view_test",
+      "exit": 0,
+      "source": "D:\\GIT\\x-lang\\ide\\tests\\association_view_test.c",
+      "sourceSha256": "b6614c89248f155a006af02c8ab903dbed369bc85c93ad9e9df0dc292908719c"
+    },
+    {
+      "test": "startup_services_test",
+      "exit": 0,
+      "source": "D:\\GIT\\x-lang\\ide\\tests\\startup_services_test.c",
+      "sourceSha256": "af5d2ac822f7efbb655da70e1e1dce2f80d8a03d615a36dd54ff95b015185ff7"
+    },
+    {
+      "test": "input_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-startup-associations-20261108\\gui-source\\ide\\tests\\input_test.c",
+      "sourceSha256": "2804e8842d91a338ac4dcb3788d9133f597303b435b55038168e0669645d40f5"
+    },
+    {
+      "test": "find_follow_view_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-startup-associations-20261108\\gui-source\\ide\\tests\\find_follow_view_test.c",
+      "sourceSha256": "57f31d4f99fffece30d9a5e657c991aea72a7ed901c34fe1da49b2919c8304c9"
+    },
+    {
+      "test": "task_pending_input_view_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-startup-associations-20261108\\gui-source\\ide\\tests\\task_pending_input_view_test.c",
+      "sourceSha256": "c7b1774736805fa85e7b416734e8ae4dbbc8806c0780f01a3a70a6967597c411"
+    },
+    {
+      "test": "catalog_follow_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-startup-associations-20261108\\gui-source\\ide\\tests\\catalog_follow_test.c",
+      "sourceSha256": "042c344da4e3dd5425d4af2314435b64c7ea1985504db2d261e4fe1acad5792f"
+    },
+    {
+      "test": "settings_view_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-startup-associations-20261108\\gui-source\\ide\\tests\\settings_view_test.c",
+      "sourceSha256": "1a09b8f399fca72e2bd060d9c3ac3f54c820cb3db5367932f2607fae093a70f3"
+    },
+    {
+      "test": "settings_menu_frame_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-startup-associations-20261108\\gui-source\\ide\\tests\\settings_menu_frame_test.c",
+      "sourceSha256": "1b3ed104a70c61cdc051a7f8ea985d23441f5ea317b8295bd030116984481f19"
+    },
+    {
+      "test": "dialog_layout_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-startup-associations-20261108\\gui-source\\ide\\tests\\dialog_layout_test.c",
+      "sourceSha256": "70a0e91feb961d7ff69e40316218881d72aabbfc8a3a2859f0b096d2567312a4"
+    },
+    {
+      "test": "terminal_newline_view_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-startup-associations-20261108\\gui-source\\ide\\tests\\terminal_newline_view_test.c",
+      "sourceSha256": "7ff72ae9611e23f93c1457f31df2aebc41723ff733bd6b3263a6a752b96e09c2"
+    },
+    {
+      "test": "catalog_view_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-startup-associations-20261108\\gui-source\\ide\\tests\\catalog_view_test.c",
+      "sourceSha256": "d82bc7cd946ec65a18b4ed92636733d9e452a2b83a365523d082f1f20244dae0"
+    },
+    {
+      "test": "settings_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-startup-associations-20261108\\gui-source\\ide\\tests\\settings_test.c",
+      "sourceSha256": "775d00a4c492254478cbc2ad3b1f8c38b83a85d29ea7c91026a3d90a6ae58107"
+    },
+    {
+      "test": "file_association_test",
+      "exit": 0,
+      "source": "D:\\GIT\\x-lang\\ide\\tests\\file_association_test.c",
+      "sourceSha256": "6ffd826f95e062a066f646d817ca2908cd3f43522a0def03ca27853572e2aee4"
+    },
+    {
+      "test": "startup_catalog_view_test",
+      "exit": 0,
+      "source": "D:\\GIT\\x-lang\\ide\\tests\\startup_catalog_view_test.c",
+      "sourceSha256": "79b3291b783f9936f10f10e0ff8e6ba96df01fca950e2c19dd0b1f66c910c95d"
+    },
+    {
+      "test": "reading_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-startup-associations-20261108\\gui-source\\ide\\tests\\reading_test.c",
+      "sourceSha256": "6c11f68274c9fa85503909dbf8127b3f5d3f0413f34e149cc70f7958a397f6f0"
+    },
+    {
+      "test": "session_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-startup-associations-20261108\\gui-source\\ide\\tests\\session_test.c",
+      "sourceSha256": "b8559524305cc9881aba3f76d4e5f040ce94cdf0d0db250bbfce296219dcc340"
+    }
+  ],
+  "guiSmokes": {
+    "icons": [
+      {
+        "resource": 201,
+        "sizes": [
+          16,
+          20,
+          24,
+          32,
+          40,
+          48,
+          64,
+          128,
+          256
+        ]
+      },
+      {
+        "resource": 202,
+        "sizes": [
+          16,
+          20,
+          24,
+          32,
+          40,
+          48,
+          64,
+          128,
+          256
+        ]
+      },
+      {
+        "resource": 203,
+        "sizes": [
+          16,
+          20,
+          24,
+          32,
+          40,
+          48,
+          64,
+          128,
+          256
+        ]
+      },
+      {
+        "resource": 204,
+        "sizes": [
+          16,
+          20,
+          24,
+          32,
+          40,
+          48,
+          64,
+          128,
+          256
+        ]
+      }
+    ],
+    "checks": [
+      {
+        "name": "workbench",
+        "exit": 0,
+        "expected": 0,
+        "command": [
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-startup-gui-03ac3813d3304cb194cad8460bf197d9.exe",
+          "--hidden",
+          "--frames",
+          "5",
+          "--no-session",
+          "--no-auto-diagnostics",
+          "--settings",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\workbench\\settings.json",
+          "--session-root",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\workbench\\session",
+          "--diagnostic-root",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\workbench\\diagnostics",
+          "--screenshot",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\workbench\\workbench.png"
+        ]
+      },
+      {
+        "name": "script",
+        "exit": 0,
+        "expected": 0,
+        "command": [
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-startup-gui-03ac3813d3304cb194cad8460bf197d9.exe",
+          "--hidden",
+          "--frames",
+          "5",
+          "--no-session",
+          "--no-auto-diagnostics",
+          "--settings",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\script\\settings.json",
+          "--session-root",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\script\\session",
+          "--diagnostic-root",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\script\\diagnostics",
+          "--screenshot",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\script\\workbench.png",
+          "--open-file",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\Unicode 路径\\main.xl"
+        ]
+      },
+      {
+        "name": "c-source",
+        "exit": 0,
+        "expected": 0,
+        "command": [
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-startup-gui-03ac3813d3304cb194cad8460bf197d9.exe",
+          "--hidden",
+          "--frames",
+          "5",
+          "--no-session",
+          "--no-auto-diagnostics",
+          "--settings",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\c-source\\settings.json",
+          "--session-root",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\c-source\\session",
+          "--diagnostic-root",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\c-source\\diagnostics",
+          "--screenshot",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\c-source\\workbench.png",
+          "--open-file",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\Unicode 路径\\main.c"
+        ]
+      },
+      {
+        "name": "project",
+        "exit": 0,
+        "expected": 0,
+        "command": [
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-startup-gui-03ac3813d3304cb194cad8460bf197d9.exe",
+          "--hidden",
+          "--frames",
+          "5",
+          "--no-session",
+          "--no-auto-diagnostics",
+          "--settings",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\project\\settings.json",
+          "--session-root",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\project\\session",
+          "--diagnostic-root",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\project\\diagnostics",
+          "--screenshot",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\project\\workbench.png",
+          "--project",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\Unicode 路径\\sample.xlp"
+        ]
+      },
+      {
+        "name": "workspace",
+        "exit": 0,
+        "expected": 0,
+        "command": [
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-startup-gui-03ac3813d3304cb194cad8460bf197d9.exe",
+          "--hidden",
+          "--frames",
+          "5",
+          "--no-session",
+          "--no-auto-diagnostics",
+          "--settings",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\workspace\\settings.json",
+          "--session-root",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\workspace\\session",
+          "--diagnostic-root",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\workspace\\diagnostics",
+          "--screenshot",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\workspace\\workbench.png",
+          "--workspace",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\Unicode 路径\\sample.xlw"
+        ]
+      },
+      {
+        "name": "command",
+        "exit": 0,
+        "expected": 0,
+        "command": [
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-startup-gui-03ac3813d3304cb194cad8460bf197d9.exe",
+          "--hidden",
+          "--frames",
+          "5",
+          "--no-session",
+          "--no-auto-diagnostics",
+          "--settings",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\command\\settings.json",
+          "--session-root",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\command\\session",
+          "--diagnostic-root",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\command\\diagnostics",
+          "--screenshot",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\command\\workbench.png",
+          "--command",
+          "standard:math.sqrt:8a5dc87fdb93b619",
+          "--command-search",
+          "math sqrt"
+        ]
+      },
+      {
+        "name": "missing-catalog",
+        "exit": 0,
+        "expected": 0,
+        "command": [
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-startup-gui-03ac3813d3304cb194cad8460bf197d9.exe",
+          "--hidden",
+          "--frames",
+          "5",
+          "--no-session",
+          "--no-auto-diagnostics",
+          "--settings",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\missing-catalog\\settings.json",
+          "--session-root",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\missing-catalog\\session",
+          "--diagnostic-root",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\missing-catalog\\diagnostics",
+          "--screenshot",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\missing-catalog\\workbench.png",
+          "--catalog",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\Unicode 路径\\missing.json"
+        ]
+      },
+      {
+        "name": "invalid-command",
+        "exit": 1,
+        "expected": 1,
+        "command": [
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xlang-startup-gui-03ac3813d3304cb194cad8460bf197d9.exe",
+          "--hidden",
+          "--frames",
+          "5",
+          "--no-session",
+          "--no-auto-diagnostics",
+          "--settings",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\invalid-command\\settings.json",
+          "--session-root",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\invalid-command\\session",
+          "--diagnostic-root",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\invalid-command\\diagnostics",
+          "--screenshot",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\startup-associations-20261108\\gui-smokes\\invalid-command\\workbench.png",
+          "--command",
+          "not-a-valid-command-id"
+        ]
+      }
+    ]
+  },
+  "gui": {
+    "compiledObjects": 111,
+    "cLspEnabled": false,
+    "optimization": "-O2",
+    "baseSourceCommit": "865d0e54b3fbba24674f50da5fb349a5c50ef83b",
+    "overlayBaseCommit": "6e177576c3c5103486bedb67b2f245b235e230f2",
+    "allInputsUnchanged": true,
+    "resourceObjectSha256": "f10e8441edb205aff176b476587d0d9bc6a12cfb89f6d6b196fcf3258969f904"
+  },
+  "associations": {
+    "defaultMask": 7,
+    "cOptIn": true,
+    "currentUserOnly": true,
+    "userChoiceWrites": false,
+    "realRegistrationWritesDuringAcceptance": false,
+    "rollbackBoundaries": 22,
+    "checkedPlatformAssertions": 217,
+    "serializedAcrossInstances": true
+  },
+  "startupOrder": [
+    "background catalog preparation and UI adoption",
+    "background association probe and queued prompt",
+    "background updater preparation and independent child"
+  ],
+  "timingLog": "startup_catalog_view_test/result.log",
+  "limits": [
+    "No real default file association or system-defaults change was performed by automated acceptance. That is an interactive Windows confirmation after registration.",
+    "Updater orchestration tested with an offline stub process; no online update delivery occurred.",
+    "Unrelated in-progress semantic/LSP workspace changes excluded from the qualified GUI source cohort."
+  ]
+}

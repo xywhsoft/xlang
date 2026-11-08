@@ -3,6 +3,7 @@
 #include "ui/workspace_view.h"
 #include "ui/editor_view.h"
 #include "ui/catalog_view.h"
+#include "catalog_ready.h"
 #include "platform/path.h"
 #include "platform/state_file.h"
 #include "editor/coordinates.h"
@@ -25,7 +26,7 @@ static int start(xide_app* app,const char* storage,const char* manifest,int shif
     if(xuiCreate(&app->context) || ideThemeInit(app->context,0) || xuiInputViewport(app->context,1280,800) || xideWorkbenchCreate(app)) return 0;
     if(shift) { xui_widget placeholder=NULL; int window=-1; if(xuiWidgetCreate(app->context,&placeholder) || xuiDockPanelAddWindow(app->dock,"Unknown runtime window",placeholder,&window)) return 0; }
     if(manifest && !xideWorkspaceOpen(app,manifest,0,&error)) return 0;
-    return xideSessionStart(app);
+    return xideSessionStart(app) && xideTestCatalogReady(app);
 }
 static int settle(xide_app* app)
 { xideWorkbenchLayout(app); if(xuiDispatchPendingEvents(app->context) || xuiLayout(app->context)) return 0; xideSessionAfterLayout(app); return 1; }
