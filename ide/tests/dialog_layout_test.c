@@ -53,6 +53,8 @@ static int verify(void* user) {
  CHECK(xuiInputSetText(xideFontViewControl(&a,XIDE_FONT_PATH),longPath)==XUI_OK);
  const char* items[]={longPath,"short"};xui_widget candidates=xideImportViewControl(&a,XIDE_IMPORT_CANDIDATES);
  CHECK(xuiComboBoxSetItems(candidates,items,2)==XUI_OK);
+ /* The current template form is created lazily after template selection. */
+ xide_template_registry templates={0};CHECK(xideTemplateRegistryLoad(&templates,NULL,&error));CHECK(xideTemplateViewOpenDefinition(&a,&templates.items[1]));xideTemplateRegistryClear(&templates);CHECK(xideDialogSetOpen(xideTemplateViewWindow(&a),0)==XUI_OK);
  xui_widget windows[]={xideFontViewWindow(&a),xideImportViewWindow(&a),xideRecoveryViewWindow(&a),xideSettingsViewWindow(&a),xideTemplateViewWindow(&a),xideConfigurationViewWindow(&a),xideReferencesViewWindow(&a),xideRenameViewWindow(&a),xideToolchainViewWindow(&a),xideFileChangesViewWindow(&a),xideGotoViewWindow(&a),xideResourceViewWindow(&a)};
  const int fonts[]={16,20,24,40};
  for(size_t font=0;font<sizeof(fonts)/sizeof(*fonts);++font) {

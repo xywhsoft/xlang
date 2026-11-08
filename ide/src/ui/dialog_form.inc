@@ -113,6 +113,15 @@ int xideDialogFormActions(xui_widget w,const xui_widget* children,size_t count)
     FORM_TRY(xuiWidgetSetFlex(r->spacer,1,1));
     return rowWidgets(r,children,count);
 }
+int xideDialogFormFieldOption(xui_widget w,xui_widget control,xui_widget option)
+{
+    xide_dialog* d=dialog(w);if(!d || !d->form || !control || !option)return XUI_ERROR_INVALID_ARGUMENT;
+    for(dialog_row* r=d->rows;r;r=r->next)if(r->field && r->children[0]==control) {
+        if(r->count>=12)return XUI_ERROR_INVALID_ARGUMENT;
+        FORM_TRY(moveFormWidget(r->line,option));r->children[r->count++]=option;return XUI_OK;
+    }
+    return XUI_ERROR_INVALID_ARGUMENT;
+}
 int xideDialogFormFooterLeading(xui_widget w,xui_widget child)
 {
     xide_dialog* d=dialog(w);if(!d || !d->form || !child)return XUI_ERROR_INVALID_ARGUMENT;
@@ -161,13 +170,18 @@ static int rowLayout(xide_dialog* d,dialog_row* r,float available,float scale,in
     FORM_TRY(xuiWidgetSetVisible(r->row,visible));if(!visible)return XUI_OK;
     float gap=(r->footer ? 6:8)*scale,height=r->height*scale;
     int compact=r->field && available<500*scale;
-    for(size_t i=0;i<r->count;++i)if(xuiWidgetGetType(r->children[i])==xuiButtonGetType(d->app->context)) {
-        const char* text=xuiButtonGetText(r->children[i]);uint64_t hash=1;
+    for(size_t i=0;i<r->count;++i) {
+        int button=xuiWidgetGetType(r->children[i])==xuiButtonGetType(d->app->context);
+        int option=r->field && i>0 && xuiWidgetGetType(r->children[i])==xuiCheckBoxGetType(d->app->context);
+        if(!button && !option)continue;
+        const char* text=button ? xuiButtonGetText(r->children[i]):xuiCheckBoxGetText(r->children[i]);uint64_t hash=1;
         for(const unsigned char* p=(const unsigned char*)text;*p;++p)hash=hash*131+*p;
         if(r->measureScale!=scale || r->measureFont!=d->app->uiFont || r->textHash[i]!=hash) {
-            xui_vec2_t size={0};FORM_TRY(xideDpiTextMeasure(&d->app->proxy,d->app->uiFont,text,&size));
+            xui_vec2_t size={0};
+            if(option)FORM_TRY(xuiWidgetMeasureContent(r->children[i],(xui_vec2_t){XUI_LAYOUT_UNBOUNDED,XUI_LAYOUT_UNBOUNDED},&size));
+            else FORM_TRY(xideDpiTextMeasure(&d->app->proxy,d->app->uiFont,text,&size));
             /* Reserve native button padding and border as well as the text. */
-            r->measured[i]=fmaxf((r->footer ? 56:80)*scale,ceilf(size.fX)+40*scale);r->textHash[i]=hash;
+            r->measured[i]=option ? ceilf(size.fX)+4*scale:fmaxf((r->footer ? 56:80)*scale,ceilf(size.fX)+40*scale);r->textHash[i]=hash;
         }
     }
     r->measureScale=scale;r->measureFont=d->app->uiFont;
@@ -177,8 +191,10 @@ static int rowLayout(xide_dialog* d,dialog_row* r,float available,float scale,in
     FORM_TRY(xuiWidgetSetFlex(r->row,r->grow ? 1:0,0));
     FORM_TRY(xuiWidgetSetMinSize(r->row,(xui_vec2_t){0,height}));
     if(r->field) {
-        FORM_TRY(xuiWidgetSetPreferredSize(r->label,(xui_vec2_t){compact ? 0:128*scale,0}));
-        FORM_TRY(xuiWidgetSetSizeMode(r->label,compact ? XUI_SIZE_FILL:XUI_SIZE_FIXED,XUI_SIZE_CONTENT));
+        FORM_TRY(xuiWidgetSetPreferredSize(r->label,(xui_vec2_t){compact ? 0:128*scale,compact ? 0:height}));
+        FORM_TRY(xuiWidgetSetSizeMode(r->label,compact ? XUI_SIZE_FILL:XUI_SIZE_FIXED,compact ? XUI_SIZE_CONTENT:XUI_SIZE_FIXED));
+        FORM_TRY(xuiWidgetSetAlign(r->label,XUI_ALIGN_START,XUI_ALIGN_CENTER));
+        FORM_TRY(xuiLabelSetTextFlags(r->label,XUI_TEXT_ALIGN_LEFT|XUI_TEXT_ALIGN_MIDDLE));
         FORM_TRY(xuiWidgetSetLayoutType(r->line,XUI_LAYOUT_ROW));
         FORM_TRY(xuiWidgetSetGap(r->line,gap));
         FORM_TRY(xuiWidgetSetSizeMode(r->line,XUI_SIZE_FILL,XUI_SIZE_CONTENT));
@@ -186,8 +202,8 @@ static int rowLayout(xide_dialog* d,dialog_row* r,float available,float scale,in
         if(!compact)available-=128*scale+gap;
     }
     for(size_t i=0;i<r->count;++i)if(xuiWidgetGetVisible(r->children[i])) {
-        int button=xuiWidgetGetType(r->children[i])==xuiButtonGetType(d->app->context);
-        fixed+=button ? r->measured[i]:80*scale;
+        int fixedControl=xuiWidgetGetType(r->children[i])==xuiButtonGetType(d->app->context) || (r->field && i>0 && xuiWidgetGetType(r->children[i])==xuiCheckBoxGetType(d->app->context));
+        fixed+=fixedControl ? r->measured[i]:80*scale;
     }
     int leading=r->leading && xuiWidgetGetVisible(r->leading);
     if(leading){xui_vec2_t measured={0};FORM_TRY(xuiWidgetMeasureContent(r->leading,(xui_vec2_t){XUI_LAYOUT_UNBOUNDED,XUI_LAYOUT_UNBOUNDED},&measured));fixed+=measured.fX;}
@@ -207,18 +223,19 @@ static int rowLayout(xide_dialog* d,dialog_row* r,float available,float scale,in
     float used=0;int lines=1;
     for(size_t i=0;i<r->count;++i) {
         xui_widget c=r->children[i];int button=xuiWidgetGetType(c)==xuiButtonGetType(d->app->context);
+        int fixedControl=button || (r->field && i>0 && xuiWidgetGetType(c)==xuiCheckBoxGetType(d->app->context));
         if(xuiWidgetGetType(c)==xuiComboBoxGetType(d->app->context)) {
             xui_widget menu=xuiComboBoxGetMenuWidget(c),popup=menu ? xuiMenuGetPopupWidget(menu):NULL;
             if(popup)FORM_TRY(xuiPopupSetMaxSize(popup,fmaxf(1,d->app->viewportWidth-32),fmaxf(1,d->app->viewportHeight-64*scale)));
         }
-        float width=button ? r->measured[i]:0;
+        float width=fixedControl ? r->measured[i]:0;
         if(width>available)width=available;
         FORM_TRY(xuiWidgetSetFlowMode(c,r->footer && stack ? XUI_FLOW_INLINE_BLOCK:XUI_FLOW_BLOCK));
-        FORM_TRY(xuiWidgetSetSizeMode(c,button && (!stack || r->footer) ? XUI_SIZE_FIXED:XUI_SIZE_FILL,
+        FORM_TRY(xuiWidgetSetSizeMode(c,fixedControl && (!stack || r->footer) ? XUI_SIZE_FIXED:XUI_SIZE_FILL,
             r->block ? (r->grow ? XUI_SIZE_FILL:XUI_SIZE_CONTENT):r->grow ? XUI_SIZE_FILL:XUI_SIZE_FIXED));
         FORM_TRY(xuiWidgetSetPreferredSize(c,(xui_vec2_t){width,height}));
         FORM_TRY(xuiWidgetSetMinSize(c,(xui_vec2_t){0,height}));
-        FORM_TRY(xuiWidgetSetFlex(c,button ? 0:1,button ? 0:1));
+        FORM_TRY(xuiWidgetSetFlex(c,fixedControl ? 0:1,fixedControl ? 0:1));
         if(r->footer && xuiWidgetGetVisible(c)) {if(used && used+gap+width>available){++lines;used=0;}used+=(used ? gap:0)+width;}
     }
     if(r->footer) {

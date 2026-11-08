@@ -278,3 +278,7 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 # Exact-byte template presentation delivery.
 /dev/release-materials/sources/ide-template-details-20261109/** -text -whitespace
 /dev/release-materials/provenance/ide-template-details-20261109/** -text -whitespace
+
+# Exact-byte template form layout delivery.
+/dev/release-materials/sources/ide-template-form-layout-20261109/** -text -whitespace
+/dev/release-materials/provenance/ide-template-form-layout-20261109/** -text -whitespace

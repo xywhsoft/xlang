@@ -20,6 +20,8 @@ int xideDialogSetMinSize(xui_widget,float,float);
 int xideDialogFormBegin(xui_widget,float,float);
 int xideDialogFormField(xui_widget,const char*,xui_widget,xui_widget,xui_widget);
 int xideDialogFormNamedField(xui_widget,xui_widget,xui_widget,xui_widget,xui_widget);
+/* Attach a self-labelled option to an existing field's input row. */
+int xideDialogFormFieldOption(xui_widget,xui_widget,xui_widget);
 int xideDialogFormBlock(xui_widget,xui_widget,float,int);
 int xideDialogFormText(xui_widget,const char*);
 int xideDialogFormRow(xui_widget,const xui_widget*,size_t,float,int);

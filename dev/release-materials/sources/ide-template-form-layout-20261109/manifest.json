@@ -1,0 +1,82 @@
+{
+  "schema": 1,
+  "base": {
+    "path": "dev/release-materials/sources/ide-template-details-20261109/manifest.json",
+    "sha256": "04c91207a6f45317ffbe98ace8b04ca34b100f56242c10bf62e889638949c7e3",
+    "bytes": 4787
+  },
+  "guiBaseSourceRevision": "7b2b33c5e7b179b35d80883da47ffc49a813ded3",
+  "overlayBaseRevision": "7770cae084bc51a79934796be13a24f95e62ec3e",
+  "archive": {
+    "path": "dev/release-materials/sources/ide-template-form-layout-20261109/source-delta.zip",
+    "sha256": "ea3462ed83624f3edd7d8b87a8dda355a4bec58a6924da595fdb0c3c7114b4ac",
+    "bytes": 38224
+  },
+  "sdkManifest": {
+    "path": "ide/third_party/xge_sdk/sdk_manifest.json",
+    "sha256": "223a64f59ef77701f4729e87b328bd4509300df1e46bf015f2487e5803ab926c",
+    "bytes": 41003
+  },
+  "files": [
+    {
+      "path": ".gitattributes",
+      "sha256": "01e877789ead90c7750d53cde7e1b88a52cc4b607ec2889f5b29aa5547a0f3ad",
+      "bytes": 16227
+    },
+    {
+      "path": "ide/docs/project-templates.md",
+      "sha256": "1a7e4bcd4bcd52f4fcad44e91a1a2e49ae9b892a0bd182b993d4b1b8489c03ad",
+      "bytes": 7382
+    },
+    {
+      "path": "ide/src/ui/dialog.h",
+      "sha256": "071ef45cf5615472d5d1131ce8b8501efabd40e595728fab0b6f33b3f05becde",
+      "bytes": 2204
+    },
+    {
+      "path": "ide/src/ui/dialog_form.inc",
+      "sha256": "1c83ac61222f3ce667a3dc6700455df9a838b8753f34071c609fb4345b8d509b",
+      "bytes": 17458
+    },
+    {
+      "path": "ide/src/ui/template_view.c",
+      "sha256": "b8ff417e1c430b74e077e34d447b0314c8559846f06051b9fcc7db0cc317fd1c",
+      "bytes": 24702
+    },
+    {
+      "path": "ide/tests/dialog_layout_test.c",
+      "sha256": "f8042c38f3f0a8ee6bedfe5dfb18a0e29ffd69816bc6c1f38465f4ad45d1ba66",
+      "bytes": 10474
+    },
+    {
+      "path": "ide/tests/template_view_test.c",
+      "sha256": "58e549d72c0bf217d747f6adf90353e547ef521faa122fa040c39a68f2e25a35",
+      "bytes": 13557
+    },
+    {
+      "path": "reproduction/baseline.py",
+      "sha256": "e59448c471e8a3aa88583d763b03b503c4c3038038c187f001844530488cd7a5",
+      "bytes": 5240
+    },
+    {
+      "path": "reproduction/build_ide.py",
+      "sha256": "49cfc3f4feac80b39efa1372b25c89c8f291be4bfd1ebf01ae36079dbbaac24e",
+      "bytes": 3364
+    },
+    {
+      "path": "reproduction/publish.py",
+      "sha256": "87cc5daf9a8377650f6c4d87c1e18cff4b56ca187c43ac3f9f01fd16dbc14423",
+      "bytes": 3619
+    },
+    {
+      "path": "reproduction/record.py",
+      "sha256": "1974f5cb1a6e30b09535793ae5e303836154de37c4638732d3565cfaaf7d3a54",
+      "bytes": 7014
+    },
+    {
+      "path": "reproduction/test.py",
+      "sha256": "e754cac16cfa8fea2887456f7f71a51e2a20df162ddaa39fcc93f894d57cf4cc",
+      "bytes": 6375
+    }
+  ]
+}
