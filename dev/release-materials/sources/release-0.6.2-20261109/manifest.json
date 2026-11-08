@@ -1,0 +1,190 @@
+{
+  "schema": 1,
+  "version": "0.6.2",
+  "versionCode": "0x00000602",
+  "recordedRepositoryRevision": "80ec77dc5a2979f665f8f9915818abbb1cafbf44",
+  "compilerBase": {
+    "path": "dev/release-materials/sources/release-0.6.1-20261108/manifest.json",
+    "sha256": "17a9fe953e56bb28c4f6bd2191f2fcd0829f93b569b1209a7c614999e10a7f31",
+    "bytes": 6746
+  },
+  "guiBase": "dev/release-materials/sources/ide-unified-new-open-20261109/manifest.json",
+  "archive": {
+    "path": "dev/release-materials/sources/release-0.6.2-20261109/source-delta.zip",
+    "sha256": "ff9fb71b0ba868ab95ecbf4867ea7381d8eb901ed5bde6dcd4ef997918624159",
+    "bytes": 50097
+  },
+  "files": [
+    {
+      "path": "xlang/README.md",
+      "sha256": "82d301ec17233369e3eaf5a81bd391cd53441be9d3daec0016f3c0a8230e65be",
+      "bytes": 12569
+    },
+    {
+      "path": "xlang/README_zh.md",
+      "sha256": "c9b68fba316df583acebfa92c794dee7271c768ddb102f3812397ce3dccc3c73",
+      "bytes": 11985
+    },
+    {
+      "path": "xlang/ide/data/version.json",
+      "sha256": "95434f550112089d3ebddee7947953e1004f516a652416daa67938f36bb4bd37",
+      "bytes": 32
+    },
+    {
+      "path": "xlang/docs/release-0.6.2.md",
+      "sha256": "848d3ba5471193c00f10df7e38737c21311a6ae69d2dff778aa06e265b962e3f",
+      "bytes": 1363
+    },
+    {
+      "path": "xlang/res/xlang_version.rc",
+      "sha256": "ea6ce2f3d9997b297ac944d0a98dd9bdd920732479e8c0f1530c14397ce8f1f5",
+      "bytes": 734
+    },
+    {
+      "path": "xlang/ide/data/xlang_ide.rc",
+      "sha256": "6479796c0bfef79dd5549d1a4f795231222fca9467ea8e74ef98567740faa5e7",
+      "bytes": 880
+    },
+    {
+      "path": "xlang/ide/tests/about_view_test.c",
+      "sha256": "2fe687cd2b2a5af97728d5e2404b66d2989702b83c7f3e9bd6016221baf7b2dc",
+      "bytes": 8006
+    },
+    {
+      "path": "xlang/tools/check_release_version.py",
+      "sha256": "9cfc432a9f4440efd23b9a2652cb944ca18677c161155c0ab8d59b7cc846f52b",
+      "bytes": 8841
+    },
+    {
+      "path": "xlang/tools/check_release_runtime.py",
+      "sha256": "777a5e0512d7aae7bbb9af0e492cc390bf74c36d3d65c9c92df40a68104c060c",
+      "bytes": 4258
+    },
+    {
+      "path": "xlang/tools/check_release_delivery.py",
+      "sha256": "7ab8319bd80944274e08a7bc826a644e964f872b7c16f692944afa41ae987849",
+      "bytes": 5033
+    },
+    {
+      "path": "xlang/tools/clean_release.ps1",
+      "sha256": "62a5a7d47dd69cf8756a3a599d42edc25581f064f0c030372da3ef67ae42a41a",
+      "bytes": 10207
+    },
+    {
+      "path": "xlang/release/linux_x64/README.md",
+      "sha256": "3fbfb31ac9c798ba12bf610485f01271f78b85a3a99f6d22bccc1f8eeb2cd2a9",
+      "bytes": 577
+    },
+    {
+      "path": "xlang/release/win_x64/data/version.json",
+      "sha256": "b4c63b683fd0415fbcb65a4db1484861bfdc88b3d33ee24e4a7b7d7085ef1545",
+      "bytes": 35
+    },
+    {
+      "path": "xlang/release/win_x64/data/release.json",
+      "sha256": "32789b8f401224667b55dbaafc8c27ad92978483202035715060eed773d34254",
+      "bytes": 104
+    },
+    {
+      "path": "xlang/release/win_x64/include/xl_version.h",
+      "sha256": "3d1747d5c4e3fb73535e0174010bc8cd0e6a2217aa7b7422de1ba79e658d059d",
+      "bytes": 293
+    },
+    {
+      "path": "xlang/release/win_x64/include/__xl_runtime/xl_version.h",
+      "sha256": "3d1747d5c4e3fb73535e0174010bc8cd0e6a2217aa7b7422de1ba79e658d059d",
+      "bytes": 293
+    },
+    {
+      "path": "xlang/release/win_x64/include/__xl_compiler/include/xl_version.h",
+      "sha256": "3d1747d5c4e3fb73535e0174010bc8cd0e6a2217aa7b7422de1ba79e658d059d",
+      "bytes": 293
+    },
+    {
+      "path": "xlang/release/linux_x64/include/xl_version.h",
+      "sha256": "3d1747d5c4e3fb73535e0174010bc8cd0e6a2217aa7b7422de1ba79e658d059d",
+      "bytes": 293
+    },
+    {
+      "path": "xlang/release/linux_x64/include/__xl_runtime/xl_version.h",
+      "sha256": "3d1747d5c4e3fb73535e0174010bc8cd0e6a2217aa7b7422de1ba79e658d059d",
+      "bytes": 293
+    },
+    {
+      "path": "xlang/release/linux_x64/include/__xl_compiler/include/xl_version.h",
+      "sha256": "3d1747d5c4e3fb73535e0174010bc8cd0e6a2217aa7b7422de1ba79e658d059d",
+      "bytes": 293
+    },
+    {
+      "path": "reproduction/accept_update.py",
+      "sha256": "379abe428d2c9bd18a6dbb9f4ae3e74b73abfc13f75cde444bf223ae3989c6b0",
+      "bytes": 5916
+    },
+    {
+      "path": "reproduction/build_gui.py",
+      "sha256": "e81447abb340e7eb78bb1c8fc1212ddebe8b6a5906c787650694222ccdfe3f32",
+      "bytes": 2851
+    },
+    {
+      "path": "reproduction/build_linux.py",
+      "sha256": "52d53739390dd246da97e718cc488c4b0cdb7ea33c7a649f34a5631ab04ba678",
+      "bytes": 4117
+    },
+    {
+      "path": "reproduction/build_win.py",
+      "sha256": "464843b4a49e4eb8abf9a023206bb82b2d8e461021f4c384ed7b57ed3e12a74c",
+      "bytes": 4679
+    },
+    {
+      "path": "reproduction/check_gui.py",
+      "sha256": "ff50562bd9510bb0c055c5514210aaba8e36013e1f87e1576520b8285a1fd3c4",
+      "bytes": 1907
+    },
+    {
+      "path": "reproduction/check_gui_regression.py",
+      "sha256": "74dabff9162b801f5a783913b4ed90a9d2094de3b300b8a663c64a106c53ee1a",
+      "bytes": 1805
+    },
+    {
+      "path": "reproduction/check_linux.py",
+      "sha256": "caaca5b7fff44be4f760d67b20a8d7c0cf4d902bedd77e0a42c62d9814612e59",
+      "bytes": 1663
+    },
+    {
+      "path": "reproduction/check_nested.py",
+      "sha256": "60013dce45e251f1cbce33c2a65f2de2af086468bbd2c4bff8211fc661edd4e5",
+      "bytes": 1606
+    },
+    {
+      "path": "reproduction/check_win.py",
+      "sha256": "e11da2128d8fdd85bfe1007997382bd3008e5b2b43ca1c468e917f86b92e6178",
+      "bytes": 1184
+    },
+    {
+      "path": "reproduction/common.py",
+      "sha256": "8a1ff6e559a07be9fc6abccca7bb181b8ce5e854c68f6b91d64557d97a9668d3",
+      "bytes": 2839
+    },
+    {
+      "path": "reproduction/install_linux.py",
+      "sha256": "070ac34bdc0c5cf32b3dd9c428097fda39bdaf9f19248705e7ee937be133fa96",
+      "bytes": 2333
+    },
+    {
+      "path": "reproduction/install_win.py",
+      "sha256": "9ca17688c9d7f5454dd4236a4602b703de81ffe65a7ef19617937ae5b32f1744",
+      "bytes": 2381
+    },
+    {
+      "path": "reproduction/record_release.py",
+      "sha256": "cff92e18769fc18fe9577923472f80a982f8d285f682014dd02b129065427f59",
+      "bytes": 7716
+    },
+    {
+      "path": "generated/xide_version.h",
+      "sha256": "cf68ca3f521adeb645947182571ab6976cded8136bbf7979b9a6fb9abbfe1b3a",
+      "bytes": 69
+    }
+  ],
+  "scope": "Version-only overlay on qualified compiler and latest unified-new/open GUI. All reused native and serialized objects checked. Linux native libraries fully rebuilt at -O2. Unrelated current worktree/HEAD changes excluded. Public SDK differs from compiler base only by three line-ending normalizations and version macros."
+}

@@ -286,3 +286,9 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 # Exact-byte unified new/open and empty-workspace delivery.
 /dev/release-materials/sources/ide-unified-new-open-20261109/** -text -whitespace
 /dev/release-materials/provenance/ide-unified-new-open-20261109/** -text -whitespace
+
+# Exact-byte 0.6.2 and signed ver3 delivery evidence.
+/dev/release-materials/sources/release-0.6.2-20261109/** -text -whitespace
+/dev/release-materials/provenance/release-0.6.2-20261109/** -text -whitespace
+/dev/release-materials/sources/ide-update-v3-publish-20261109/** -text -whitespace
+/dev/release-materials/provenance/ide-update-v3-publish-20261109/** -text -whitespace

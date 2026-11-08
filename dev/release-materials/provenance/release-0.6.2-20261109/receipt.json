@@ -1,0 +1,305 @@
+{
+  "schema": 1,
+  "date": "2026-11-09",
+  "version": "0.6.2",
+  "versionCode": 1538,
+  "versionCodeHex": "0x00000602",
+  "embeddingAbi": 1,
+  "passed": true,
+  "fullRegressionPassed": false,
+  "publication": "local-with-ver3-prepared",
+  "recordedRepositoryRevision": "80ec77dc5a2979f665f8f9915818abbb1cafbf44",
+  "sourceMaterials": {
+    "path": "dev/release-materials/sources/release-0.6.2-20261109/manifest.json",
+    "sha256": "4ffb4e8b2e84607959a46674f360f8f253daaf60f639bfeff92f8c85fbc2045b",
+    "bytes": 6897
+  },
+  "evidence": {
+    "path": "dev/release-materials/provenance/release-0.6.2-20261109/evidence.zip",
+    "sha256": "2c4babeb4b7ac9053121780a77119e3e0bde928c5737f2ee835878eee2bf303a",
+    "bytes": 1586973
+  },
+  "checks": [
+    {
+      "name": "check-version-win",
+      "passed": true,
+      "checks": 15
+    },
+    {
+      "name": "check-runtime-win",
+      "passed": true,
+      "checks": 10
+    },
+    {
+      "name": "check-delivery-win",
+      "passed": true,
+      "checks": 17
+    },
+    {
+      "name": "check-nested-version-win",
+      "passed": true,
+      "checks": 3
+    },
+    {
+      "name": "check-gui-win",
+      "passed": true,
+      "checks": 2
+    },
+    {
+      "name": "check-gui-regression-win",
+      "passed": true,
+      "checks": 5
+    },
+    {
+      "name": "installed-version-win",
+      "passed": true,
+      "checks": 15
+    },
+    {
+      "name": "installed-version-linux",
+      "passed": true,
+      "checks": 9
+    },
+    {
+      "name": "linux-version/runtime/delivery/nested",
+      "passed": true,
+      "groups": [
+        {
+          "name": "version",
+          "exit": 0,
+          "command": [
+            "python3",
+            "-X",
+            "utf8",
+            "/mnt/d/GIT/x-lang/tools/check_release_version.py",
+            "--root",
+            "/mnt/d/GIT/x-lang",
+            "--products",
+            "/root/xlang-validation/release-0.6.2-20261109/runtime",
+            "--directory",
+            "/root/xlang-validation/release-0.6.2-20261109/acceptance/version",
+            "--cc",
+            "gcc"
+          ]
+        },
+        {
+          "name": "delivery",
+          "exit": 0,
+          "command": [
+            "python3",
+            "-X",
+            "utf8",
+            "/mnt/d/GIT/x-lang/tools/check_release_delivery.py",
+            "--root",
+            "/mnt/d/GIT/x-lang",
+            "--products",
+            "/root/xlang-validation/release-0.6.2-20261109/runtime",
+            "--directory",
+            "/root/xlang-validation/release-0.6.2-20261109/acceptance/delivery",
+            "--cc",
+            "gcc"
+          ]
+        },
+        {
+          "name": "runtime",
+          "exit": 0,
+          "command": [
+            "python3",
+            "-X",
+            "utf8",
+            "/mnt/d/GIT/x-lang/tools/check_release_runtime.py",
+            "--root",
+            "/mnt/d/GIT/x-lang",
+            "--products",
+            "/root/xlang-validation/release-0.6.2-20261109/runtime",
+            "--directory",
+            "/root/xlang-validation/release-0.6.2-20261109/acceptance/runtime",
+            "--cc",
+            "gcc"
+          ]
+        }
+      ],
+      "nested": [
+        {
+          "name": "jit",
+          "exit": 0,
+          "command": [
+            "/root/xlang-validation/release-0.6.2-20261109/runtime/xl",
+            "run",
+            "/mnt/f/xlang-validation/release-0.6.2-20261109/check-nested-version-win/version.xl"
+          ]
+        },
+        {
+          "name": "build",
+          "exit": 0,
+          "command": [
+            "/root/xlang-validation/release-0.6.2-20261109/runtime/xl",
+            "build",
+            "/mnt/f/xlang-validation/release-0.6.2-20261109/check-nested-version-win/version.xl",
+            "-o",
+            "/root/xlang-validation/release-0.6.2-20261109/acceptance/nested-version"
+          ]
+        },
+        {
+          "name": "aot",
+          "exit": 0,
+          "command": [
+            "/root/xlang-validation/release-0.6.2-20261109/acceptance/nested-version"
+          ]
+        }
+      ]
+    }
+  ],
+  "exports": [
+    {
+      "platform": "win_x64",
+      "library": "xl.dll",
+      "exports": 10061,
+      "unchanged": true
+    },
+    {
+      "platform": "win_x64",
+      "library": "xlc.dll",
+      "exports": 10117,
+      "unchanged": true
+    },
+    {
+      "platform": "linux_x64",
+      "library": "libxl.so",
+      "exports": 12636,
+      "unchanged": true
+    },
+    {
+      "platform": "linux_x64",
+      "library": "libxlc.so",
+      "exports": 12703,
+      "unchanged": true
+    }
+  ],
+  "cleanup": {
+    "path": "dev/release-materials/provenance/release-0.6.2-20261109/cleanup-summary.json",
+    "sha256": "82e3b0337187dcbe684537a18e70ddb16db1ef78224e342c7470b1eea43806c6",
+    "bytes": 1591
+  },
+  "installed": [
+    {
+      "path": "release/win_x64/xl.exe",
+      "source": "F:\\xlang-validation\\release-0.6.2-20261109\\win-candidate\\xl.exe",
+      "beforeSha256": "e5f4719890814a3f7b5422ffb1f293ffc944c527de62217d32e9a3a4c287dfad",
+      "sha256": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+      "bytes": 72704
+    },
+    {
+      "path": "release/win_x64/xl.dll",
+      "source": "F:\\xlang-validation\\release-0.6.2-20261109\\win-candidate\\xl.dll",
+      "beforeSha256": "e783d6a15c946945d4186084cff9006839cbc1d31a0ae387396dc6f500aaac6c",
+      "sha256": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+      "bytes": 15184896
+    },
+    {
+      "path": "release/win_x64/xlc.dll",
+      "source": "F:\\xlang-validation\\release-0.6.2-20261109\\win-candidate\\xlc.dll",
+      "beforeSha256": "b4563a13448e2f550b00c0504cac481cdefd2b61ee961276049f936243f125a1",
+      "sha256": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+      "bytes": 21298688
+    },
+    {
+      "path": "release/win_x64/xlang_ide.exe",
+      "source": "F:\\xlang-validation\\release-0.6.2-20261109\\win-candidate\\xlang_ide.exe",
+      "beforeSha256": "a8de3f567398f6499b9b5bfd9cbc500ff137a308299fdebdea292a819745ed3f",
+      "sha256": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+      "bytes": 2128075
+    },
+    {
+      "path": "release/win_x64/include/xl_version.h",
+      "source": "F:\\xlang-validation\\release-0.6.2-20261109\\win-candidate\\include\\xl_version.h",
+      "beforeSha256": "14e91f9dff12eeac85afa0db43737226158f9f8b4e884846f7d8f5066df99f87",
+      "sha256": "3d1747d5c4e3fb73535e0174010bc8cd0e6a2217aa7b7422de1ba79e658d059d",
+      "bytes": 293
+    },
+    {
+      "path": "release/win_x64/include/__xl_runtime/xl_version.h",
+      "source": "F:\\xlang-validation\\release-0.6.2-20261109\\win-candidate\\include\\__xl_runtime\\xl_version.h",
+      "beforeSha256": "14e91f9dff12eeac85afa0db43737226158f9f8b4e884846f7d8f5066df99f87",
+      "sha256": "3d1747d5c4e3fb73535e0174010bc8cd0e6a2217aa7b7422de1ba79e658d059d",
+      "bytes": 293
+    },
+    {
+      "path": "release/win_x64/include/__xl_compiler/include/xl_version.h",
+      "source": "F:\\xlang-validation\\release-0.6.2-20261109\\win-candidate\\include\\__xl_compiler\\include\\xl_version.h",
+      "beforeSha256": "14e91f9dff12eeac85afa0db43737226158f9f8b4e884846f7d8f5066df99f87",
+      "sha256": "3d1747d5c4e3fb73535e0174010bc8cd0e6a2217aa7b7422de1ba79e658d059d",
+      "bytes": 293
+    },
+    {
+      "path": "release/win_x64/data/version.json",
+      "source": "F:\\xlang-validation\\release-0.6.2-20261109\\win-candidate\\data\\version.json",
+      "beforeSha256": "f4b67b08f7fa7be8893b59215be1e62c9186808b4677562a4cb83b75dd97e341",
+      "sha256": "b4c63b683fd0415fbcb65a4db1484861bfdc88b3d33ee24e4a7b7d7085ef1545",
+      "bytes": 35
+    },
+    {
+      "path": "release/win_x64/data/release.json",
+      "source": "F:\\xlang-validation\\release-0.6.2-20261109\\win-candidate\\data\\release.json",
+      "beforeSha256": "c431aaf96e98ce7813ccbeab816477e954e06f6c39644137fc57463079d484a8",
+      "sha256": "6d680e3a1db90631658c8caa93f1d7a68a5c4006a61af4347f7a7c62499a150e",
+      "bytes": 110
+    },
+    {
+      "path": "release/linux_x64/xl",
+      "source": "F:\\xlang-validation\\release-0.6.2-20261109\\linux-candidate\\xl",
+      "beforeSha256": "faa25e49bdf8c5ce8ccdb084810075b406cc6dd499a59577664616eb2a08265b",
+      "sha256": "faa25e49bdf8c5ce8ccdb084810075b406cc6dd499a59577664616eb2a08265b",
+      "bytes": 47224
+    },
+    {
+      "path": "release/linux_x64/libxl.so",
+      "source": "F:\\xlang-validation\\release-0.6.2-20261109\\linux-candidate\\libxl.so",
+      "beforeSha256": "9af2b3f85ba230ce848e60d3e6619ada5cff81c4aaa57ed6cd33ef1a8420f68e",
+      "sha256": "235f7e46d1e264d33907eb230e920d93e34a34dca583f1b63d6b8b72cd2a66cd",
+      "bytes": 16448016
+    },
+    {
+      "path": "release/linux_x64/libxlc.so",
+      "source": "F:\\xlang-validation\\release-0.6.2-20261109\\linux-candidate\\libxlc.so",
+      "beforeSha256": "84b68259fca8243cbd5fcf0b69e06c976d173890248d56f719d0713b69c5a1c6",
+      "sha256": "644d740a458440b6626ef96e1a8c7cee22f5510194126d31b04b8ead4f4297d0",
+      "bytes": 22440720
+    },
+    {
+      "path": "release/linux_x64/include/xl_version.h",
+      "source": "F:\\xlang-validation\\release-0.6.2-20261109\\linux-candidate\\include\\xl_version.h",
+      "beforeSha256": "14e91f9dff12eeac85afa0db43737226158f9f8b4e884846f7d8f5066df99f87",
+      "sha256": "3d1747d5c4e3fb73535e0174010bc8cd0e6a2217aa7b7422de1ba79e658d059d",
+      "bytes": 293
+    },
+    {
+      "path": "release/linux_x64/include/__xl_runtime/xl_version.h",
+      "source": "F:\\xlang-validation\\release-0.6.2-20261109\\linux-candidate\\include\\__xl_runtime\\xl_version.h",
+      "beforeSha256": "14e91f9dff12eeac85afa0db43737226158f9f8b4e884846f7d8f5066df99f87",
+      "sha256": "3d1747d5c4e3fb73535e0174010bc8cd0e6a2217aa7b7422de1ba79e658d059d",
+      "bytes": 293
+    },
+    {
+      "path": "release/linux_x64/include/__xl_compiler/include/xl_version.h",
+      "source": "F:\\xlang-validation\\release-0.6.2-20261109\\linux-candidate\\include\\__xl_compiler\\include\\xl_version.h",
+      "beforeSha256": "14e91f9dff12eeac85afa0db43737226158f9f8b4e884846f7d8f5066df99f87",
+      "sha256": "3d1747d5c4e3fb73535e0174010bc8cd0e6a2217aa7b7422de1ba79e658d059d",
+      "bytes": 293
+    },
+    {
+      "path": "release/linux_x64/README.md",
+      "source": "F:\\xlang-validation\\release-0.6.2-20261109\\linux-README.md",
+      "beforeSha256": "21008f14bfb86c5dc73ae1a73147712d37129497cbe8f6e3fa83283448623cfb",
+      "sha256": "3fbfb31ac9c798ba12bf610485f01271f78b85a3a99f6d22bccc1f8eeb2cd2a9",
+      "bytes": 577
+    }
+  ],
+  "limitations": [
+    "Targeted release acceptance, not a full repository regression.",
+    "Historical command catalog compiler binding remains unchanged; source-pair integrity and GUI startup passed.",
+    "Existing extended 40-DIP resource-dialog footer fitting and extended DPI-test cleanup failures are inherited baseline limitations; this version-only update does not claim to fix them.",
+    "Windows formal update channel is published separately as ver3; Linux is a local delivery.",
+    "Concurrent compiler/LS/foreign-interop development was not rebuilt into this compiler cohort."
+  ]
+}

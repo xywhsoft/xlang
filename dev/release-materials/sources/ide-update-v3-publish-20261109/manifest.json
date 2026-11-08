@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "version": 3,
+  "displayVersion": "0.6.2",
+  "files": [
+    {
+      "path": "dev/release-materials/sources/ide-update-v3-publish-20261109/accept.py",
+      "sha256": "379abe428d2c9bd18a6dbb9f4ae3e74b73abfc13f75cde444bf223ae3989c6b0",
+      "bytes": 5916
+    },
+    {
+      "path": "dev/release-materials/sources/ide-update-v3-publish-20261109/prepare_update.py",
+      "sha256": "1352c5c161bd0646b877a67e6d1d42377844b25c1942a30237c71c49b88b0ce2",
+      "bytes": 14051
+    },
+    {
+      "path": "dev/release-materials/sources/ide-update-v3-publish-20261109/publish_persistent_curl.py",
+      "sha256": "f6fdc7d279d9e148f0c79c408d63e297573c5b5b6961e4780bee23132d2e5838",
+      "bytes": 2365
+    },
+    {
+      "path": "dev/release-materials/sources/ide-update-v3-publish-20261109/update_manager.py",
+      "sha256": "f07c88899f744d3f639ddc27955fa15a576765e20d8e6b84496de8fb8f9d6831",
+      "bytes": 38108
+    }
+  ],
+  "publicKey": "53d97e95b59ae119fe0a95d02edfe1010458e60e7b95ede3541aad1df018f6a8",
+  "privateSigningKeyIncluded": false,
+  "scope": "Existing updater publisher, exact signed ver2-to-ver3 acceptance, persistent HTTPS object verification. Local deployment configuration and signing secret excluded."
+}

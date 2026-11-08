@@ -1,0 +1,66 @@
+xlang 更新器
+检查更新清单 |  | 0/0 bytes
+
+PLAN version=3 changes=31 download=24909389
+程序 0.6.2  ·  更新迭代 2 -> 3
+xlang 0.6.2 / ver3新增首页与最多 100 条文件、工程和工作空间历史记录统一新建、打开入口，支持工程模板、自定义字段及空白工作空间完善设置中心、集成帮助跟随、查找替换和编辑器高亮同步 XGE 界面与终端修复，整理发布目录更新两平台产品版本和内嵌编译资源，保持宿主 ABI 1
+下载更新文件 | data/catalog-sources/6991d2141b4404f773c08ecfdf40acc1ac0ea3f3e887d | 0/24909389 bytes
+解压并校验文件 | data/catalog-sources/6991d2141b4404f773c08ecfdf40acc1ac0ea3f3e887d | 31102/24909389 bytes
+下载更新文件 | data/catalog-sources/866d5e1b19f109bf934cb321451ee8ce8ba86699db9a0 | 31102/24909389 bytes
+解压并校验文件 | data/catalog-sources/866d5e1b19f109bf934cb321451ee8ce8ba86699db9a0 | 40728/24909389 bytes
+下载更新文件 | data/catalog-sources/index.json | 40728/24909389 bytes
+解压并校验文件 | data/catalog-sources/index.json | 66325/24909389 bytes
+下载更新文件 | data/commands.json | 66325/24909389 bytes
+解压并校验文件 | data/commands.json | 1544249/24909389 bytes
+下载更新文件 | data/release.json | 1544249/24909389 bytes
+解压并校验文件 | data/release.json | 1544353/24909389 bytes
+下载更新文件 | data/template-icons/blank.png | 1544353/24909389 bytes
+解压并校验文件 | data/template-icons/blank.png | 1545312/24909389 bytes
+下载更新文件 | data/template-icons/c-source.png | 1545312/24909389 bytes
+解压并校验文件 | data/template-icons/c-source.png | 1548338/24909389 bytes
+下载更新文件 | data/template-icons/console.png | 1548338/24909389 bytes
+解压并校验文件 | data/template-icons/console.png | 1552338/24909389 bytes
+下载更新文件 | data/template-icons/dll.png | 1552338/24909389 bytes
+解压并校验文件 | data/template-icons/dll.png | 1554598/24909389 bytes
+下载更新文件 | data/template-icons/mixed.png | 1554598/24909389 bytes
+解压并校验文件 | data/template-icons/mixed.png | 1559260/24909389 bytes
+下载更新文件 | data/template-icons/script.png | 1559260/24909389 bytes
+解压并校验文件 | data/template-icons/script.png | 1562639/24909389 bytes
+下载更新文件 | data/template-icons/tree-file.png | 1562639/24909389 bytes
+解压并校验文件 | data/template-icons/tree-file.png | 1562817/24909389 bytes
+下载更新文件 | data/template-icons/tree-file@2x.png | 1562817/24909389 bytes
+解压并校验文件 | data/template-icons/tree-file@2x.png | 1563064/24909389 bytes
+下载更新文件 | data/template-icons/tree-local.png | 1563064/24909389 bytes
+解压并校验文件 | data/template-icons/tree-local.png | 1563225/24909389 bytes
+下载更新文件 | data/template-icons/tree-local@2x.png | 1563225/24909389 bytes
+解压并校验文件 | data/template-icons/tree-local@2x.png | 1563432/24909389 bytes
+下载更新文件 | data/template-icons/tree-project.png | 1563432/24909389 bytes
+解压并校验文件 | data/template-icons/tree-project.png | 1563591/24909389 bytes
+下载更新文件 | data/template-icons/tree-project@2x.png | 1563591/24909389 bytes
+解压并校验文件 | data/template-icons/tree-project@2x.png | 1563800/24909389 bytes
+下载更新文件 | data/template-icons/tree-workspace.png | 1563800/24909389 bytes
+解压并校验文件 | data/template-icons/tree-workspace.png | 1563999/24909389 bytes
+下载更新文件 | data/template-icons/tree-workspace@2x.png | 1563999/24909389 bytes
+解压并校验文件 | data/template-icons/tree-workspace@2x.png | 1564248/24909389 bytes
+下载更新文件 | data/template-icons/workspace.png | 1564248/24909389 bytes
+解压并校验文件 | data/template-icons/workspace.png | 1565272/24909389 bytes
+下载更新文件 | data/version.json | 1565272/24909389 bytes
+解压并校验文件 | data/version.json | 1565307/24909389 bytes
+下载更新文件 | include/__xl_compiler/include/xl_version.h | 1565307/24909389 bytes
+解压并校验文件 | include/__xl_compiler/include/xl_version.h | 1565498/24909389 bytes
+下载更新文件 | include/__xl_runtime/xl_version.h | 1565498/24909389 bytes
+解压并校验文件 | include/__xl_runtime/xl_version.h | 1565689/24909389 bytes
+下载更新文件 | include/xl_version.h | 1565689/24909389 bytes
+解压并校验文件 | include/xl_version.h | 1565880/24909389 bytes
+下载更新文件 | xge.dll | 1565880/24909389 bytes
+解压并校验文件 | xge.dll | 6586882/24909389 bytes
+下载更新文件 | xl.dll | 6586882/24909389 bytes
+解压并校验文件 | xl.dll | 12376566/24909389 bytes
+下载更新文件 | xl.exe | 12376566/24909389 bytes
+解压并校验文件 | xl.exe | 12408188/24909389 bytes
+下载更新文件 | xlang_ide.exe | 12408188/24909389 bytes
+解压并校验文件 | xlang_ide.exe | 13216411/24909389 bytes
+下载更新文件 | xlc.dll | 13216411/24909389 bytes
+解压并校验文件 | xlc.dll | 24909389/24909389 bytes
+安装更新 | xlc.dll | 24909389/24909389 bytes
+更新完成 | xlc.dll | 24909389/24909389 bytes

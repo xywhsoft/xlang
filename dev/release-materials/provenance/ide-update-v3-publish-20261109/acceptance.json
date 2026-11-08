@@ -1,0 +1,28 @@
+{
+  "platform": "win_x64",
+  "version": 3,
+  "displayVersion": "0.6.2",
+  "passed": true,
+  "checks": [
+    "signature",
+    "managed-scope-and-deletions",
+    "exact-v2-installation-materialized",
+    "v2-detects-v3",
+    "v2-to-v3-install",
+    "all-v3-installed-bytes",
+    "obsolete-managed-files-removed",
+    "user-files-preserved",
+    "installed-receipt-and-no-pending-transaction",
+    "same-version-integrity",
+    "installed-cli-version",
+    "installed-xlang-jit",
+    "installed-c-jit",
+    "installed-gui-startup"
+  ],
+  "files": 2188,
+  "deletedFiles": 124,
+  "previousFiles": 2173,
+  "work": "F:\\xlang-validation\\update-v3-20261109",
+  "completed": 1794170322,
+  "sourceUnchanged": true
+}

@@ -1,0 +1,58 @@
+{
+  "removedFiles": 6,
+  "removedBytes": 2567734,
+  "archivedCacheFiles": 7,
+  "archivedCacheBytes": 15907091,
+  "runtimeReductionBytes": 18474825,
+  "userSettingsPreserved": true,
+  "platformReports": [
+    {
+      "schema": 1,
+      "status": "cleaned",
+      "createdUtc": "2026-11-08T20:31:23.7354025Z",
+      "beforeFiles": 7052,
+      "beforeBytes": 324845054,
+      "afterFiles": 7051,
+      "afterBytes": 324845054,
+      "releaseReductionBytes": 0,
+      "retainedBytesUnchanged": true,
+      "unhashedBusyLocks": [],
+      "preservedPinnedCaches": [],
+      "blocked": [],
+      "operations": [
+        {
+          "path": "option/settings.json.lock",
+          "action": "remove",
+          "reason": "inactive preferences writer lock",
+          "destination": null,
+          "files": 1,
+          "bytes": 0
+        }
+      ]
+    },
+    {
+      "schema": 1,
+      "status": "cleaned",
+      "createdUtc": "2026-11-08T20:31:25.2291319Z",
+      "beforeFiles": 2668,
+      "beforeBytes": 125376948,
+      "afterFiles": 2663,
+      "afterBytes": 122809214,
+      "releaseReductionBytes": 2567734,
+      "retainedBytesUnchanged": true,
+      "unhashedBusyLocks": [],
+      "preservedPinnedCaches": [],
+      "blocked": [],
+      "operations": [
+        {
+          "path": "tmp/xl6_build_404_63929730286982_0",
+          "action": "remove",
+          "reason": "completed validation or compiler temporary output",
+          "destination": null,
+          "files": 5,
+          "bytes": 2567734
+        }
+      ]
+    }
+  ]
+}

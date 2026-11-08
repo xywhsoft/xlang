@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "date": "2026-11-08",
+  "date": "2026-11-09",
   "primaryDirectory": "D:/GIT/x-lang",
   "deliveryDirectory": "release",
   "externalPublishPerformed": true,
@@ -21,7 +21,7 @@
   },
   "compiler": {
     "sourceRevision": "9213f2a906bd424ab31e14ac3499f5b636e5c860",
-    "version": "0.6.1",
+    "version": "0.6.2",
     "rebuiltThisDelivery": true,
     "entireAcceptanceRerunThisDelivery": false,
     "reusedQualifiedProducts": false,
@@ -29,27 +29,27 @@
     "xrtBaseRevision": "93347eb5ae6beba8cf7ee3558708cc4f628fdd07",
     "xrtLocalPatchTip": "0a44e3f80091be178c802c231a37e4f2733fd9fb",
     "optimization": "-O2",
-    "currentBuildProvenance": "dev/release-materials/provenance/release-0.6.1-20261108/receipt.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/release-0.6.2-20261109/receipt.json",
     "sourceMaterials": {
-      "path": "dev/release-materials/sources/release-0.6.1-20261108/manifest.json",
-      "sha256": "17a9fe953e56bb28c4f6bd2191f2fcd0829f93b569b1209a7c614999e10a7f31",
-      "bytes": 6746
+      "path": "dev/release-materials/sources/release-0.6.2-20261109/manifest.json",
+      "sha256": "4ffb4e8b2e84607959a46674f360f8f253daaf60f639bfeff92f8c85fbc2045b",
+      "bytes": 6897
     },
     "previousDelivery": {
       "path": "dev/release-materials/provenance/example-failures-20261107/previous-delivery.json",
       "sha256": "0d682b70638c7e28396680e6e0faa0cdf649aaff7966cdf48fb8b3bb8928d8a2",
       "bytes": 177183
     },
-    "buildScope": "Version-only overlay; Windows qualified object reuse, Linux full -O2 native build, refreshed embedded SDK/API profiles. Focused two-platform JIT/AOT/C SDK and lifecycle checks.",
+    "buildScope": "Qualified 0.6.1 compiler version-only overlay. All unchanged Windows object hashes verified; Linux native libraries rebuilt; four embedded API profiles refreshed per platform.",
     "cohortBaseRevision": "9ab5279c4",
-    "previousBuildProvenance": "dev/release-materials/provenance/example-failures-20261107/receipt.json",
+    "previousBuildProvenance": "dev/release-materials/provenance/release-0.6.1-20261108/receipt.json",
     "qualifiedBaseSourceMaterials": {
       "path": "dev/release-materials/sources/example-failures-20261107/manifest.json",
       "sha256": "697de815136a985a8784d28587212d99fa14e4eeb55a0e75da9f4f7a4f72e602",
       "bytes": 3644
     },
-    "versionCode": 1537,
-    "versionCodeHex": "0x00000601",
+    "versionCode": 1538,
+    "versionCodeHex": "0x00000602",
     "reusedQualifiedObjects": true
   },
   "ide": {
@@ -75,7 +75,7 @@
       "licenseUrl": "http://www.microsoft.com/typography/fonts/default.aspx"
     },
     "fontChangeSourceParent": "b16a95bbf022efcafc7b965d1bd9b5b945c0d881",
-    "currentBuildProvenance": "dev/release-materials/provenance/ide-unified-new-open-20261109/receipt.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/release-0.6.2-20261109/receipt.json",
     "cLspEnabled": false,
     "applicationIcon": {
       "source": "ide/data/xlang_ide.ico",
@@ -209,7 +209,7 @@
       "sha256": "3b86d5c3e21f9cf58b6a610a36cfd696335928add90338a4313e1b9a23901867",
       "bytes": 19908
     },
-    "displayVersion": "0.6.1",
+    "displayVersion": "0.6.2",
     "versionOverlay": {
       "versionData": "ide/data/version.json",
       "sourceMaterials": {
@@ -349,7 +349,8 @@
       "path": "dev/release-materials/provenance/ide-unified-new-open-20261109/receipt.json",
       "sha256": "89f590e785ac51cc7c27619d3e453cdb0ce330144050a40364f275f44e788042",
       "bytes": 9891
-    }
+    },
+    "versionBuildInputs": "F:/xlang-validation/release-0.6.2-20261109/gui-build/gui-build-inputs.json"
   },
   "catalog": {
     "status": "passed",
@@ -6306,22 +6307,22 @@
   ],
   "products": [
     {
-      "sha256": "e5f4719890814a3f7b5422ffb1f293ffc944c527de62217d32e9a3a4c287dfad",
+      "sha256": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
       "bytes": 72704,
       "path": "release/win_x64/xl.exe",
       "origin": "release-0.6.1-20261108",
       "previousSha256": "a5feede784f0a5cb1a829c2e362de57e9278b55cec1a11b796cf4b6e78831bbc"
     },
     {
-      "sha256": "e783d6a15c946945d4186084cff9006839cbc1d31a0ae387396dc6f500aaac6c",
+      "sha256": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
       "bytes": 15184896,
       "path": "release/win_x64/xl.dll",
       "origin": "release-0.6.1-20261108",
       "previousSha256": "215d6b3c87704c745ec609eb07e718a52708ad7c13436294f2f662a56169be13"
     },
     {
-      "sha256": "b4563a13448e2f550b00c0504cac481cdefd2b61ee961276049f936243f125a1",
-      "bytes": 21298176,
+      "sha256": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+      "bytes": 21298688,
       "path": "release/win_x64/xlc.dll",
       "origin": "release-0.6.1-20261108",
       "previousSha256": "2241fcd462980fc40cbd6c47ce9347d537bababc93225cb6d2a2d36b9b978797"
@@ -6334,21 +6335,21 @@
       "previousSha256": "faa25e49bdf8c5ce8ccdb084810075b406cc6dd499a59577664616eb2a08265b"
     },
     {
-      "sha256": "9af2b3f85ba230ce848e60d3e6619ada5cff81c4aaa57ed6cd33ef1a8420f68e",
+      "sha256": "235f7e46d1e264d33907eb230e920d93e34a34dca583f1b63d6b8b72cd2a66cd",
       "bytes": 16448016,
       "path": "release/linux_x64/libxl.so",
       "origin": "release-0.6.1-20261108",
       "previousSha256": "206ed56701191caa5e80db74393b2c2fdfaf0942d06a067eb0a3836671e7be64"
     },
     {
-      "sha256": "84b68259fca8243cbd5fcf0b69e06c976d173890248d56f719d0713b69c5a1c6",
+      "sha256": "644d740a458440b6626ef96e1a8c7cee22f5510194126d31b04b8ead4f4297d0",
       "bytes": 22440720,
       "path": "release/linux_x64/libxlc.so",
       "origin": "release-0.6.1-20261108",
       "previousSha256": "c95a4b367e5ee67b9def00181060d678f56e084072ddc2c6b6ed5f1a5b25528b"
     },
     {
-      "sha256": "a8de3f567398f6499b9b5bfd9cbc500ff137a308299fdebdea292a819745ed3f",
+      "sha256": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
       "bytes": 2128075,
       "path": "release/win_x64/xlang_ide.exe",
       "origin": "release-0.6.1-20261108",
@@ -6395,14 +6396,14 @@
     },
     {
       "path": "release/win_x64/data/version.json",
-      "sha256": "f4b67b08f7fa7be8893b59215be1e62c9186808b4677562a4cb83b75dd97e341",
+      "sha256": "b4c63b683fd0415fbcb65a4db1484861bfdc88b3d33ee24e4a7b7d7085ef1545",
       "bytes": 35,
       "origin": "release-0.6.1-20261108",
       "previousSha256": "44a151ab97d67fcb4cca6e544db12f7dcce8d4944e15729f17dc00ca82873057"
     },
     {
       "path": "release/win_x64/data/release.json",
-      "sha256": "c431aaf96e98ce7813ccbeab816477e954e06f6c39644137fc57463079d484a8",
+      "sha256": "32789b8f401224667b55dbaafc8c27ad92978483202035715060eed773d34254",
       "bytes": 104,
       "origin": "release-0.6.1-20261108",
       "previousSha256": "091d16c8897c6f521efc0d82a4d3da7b8587bd931460cb9f713014ba104d8432"
@@ -6570,7 +6571,12 @@
     "releaseReductionBytes": 181883679,
     "validationEvidenceDirectory": "D:\\GIT\\x-lang\\build\\release-cleanup-20261031\\validation",
     "runtimeUnchanged": true,
-    "userSettingsUnchanged": true
+    "userSettingsUnchanged": true,
+    "release062": {
+      "path": "dev/release-materials/provenance/release-0.6.2-20261109/cleanup-summary.json",
+      "sha256": "82e3b0337187dcbe684537a18e70ddb16db1ef78224e342c7470b1eea43806c6",
+      "bytes": 1591
+    }
   },
   "developmentMaterialsDirectory": "dev/release-materials",
   "materialsMigration": "docs/reports/release-materials-migration-20261031.json",
@@ -6619,7 +6625,7 @@
     "historicalReportPathsPreserved": true,
     "mutableDataPathsUpdated": 600
   },
-  "currentScope": "Local unified new/open workflow and empty-workspace category. Ten focused suites and official-path hidden startup passed; full regression and inherited extreme-font boundary resolution not claimed.",
+  "currentScope": "0.6.2 targeted two-platform version release and latest qualified IDE, ver3 update prepared pending online publication.",
   "localPublication": {
     "path": "dev/release-materials/provenance/xge3-local-publication-20261105/receipt.json",
     "sha256": "d55e8e816fddbfc2d2283c9ba45b9b28ac5c5e07e0da183fbab3088f118fbad1",
@@ -7235,5 +7241,10 @@
     "path": "dev/release-materials/provenance/ide-unified-new-open-20261109/receipt.json",
     "sha256": "89f590e785ac51cc7c27619d3e453cdb0ce330144050a40364f275f44e788042",
     "bytes": 9891
+  },
+  "release062": {
+    "path": "dev/release-materials/provenance/release-0.6.2-20261109/receipt.json",
+    "sha256": "98c76fa14585afed6048d8a1f2656ea939542931ea1ea396ef222b1300694fac",
+    "bytes": 11473
   }
 }

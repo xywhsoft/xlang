@@ -4,7 +4,7 @@
 
 **English** · [中文](README_zh.md)
 
-Current product version: **0.6.1**, code **`0x00000601`**. The embedding ABI remains version 1. See the [0.6.1 release validation](docs/release-0.6.1.md) for acceptance results and scope, and the [0.6.0 audit](docs/prerelease-0.6.0.md) for the preceding fixes.
+Current product version: **0.6.2**, code **`0x00000602`**. The embedding ABI remains version 1. See the [0.6.2 release validation](docs/release-0.6.2.md) for acceptance results and scope, and the [0.6.0 audit](docs/prerelease-0.6.0.md) for the preceding fixes.
 
 ---
 
