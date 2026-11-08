@@ -32,6 +32,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--build',type=Path,required=True,help='intact passed normal build directory')
     parser.add_argument('--output',type=Path,required=True,help='fresh private output directory')
+    parser.add_argument('--ir-verifier-detail',action='store_true',help='diagnostic-only inclusive timings for direct native verifier helpers; does not qualify performance')
     args=parser.parse_args();B=args.build.resolve(strict=True);O=args.output.resolve()
     b=read(B/'build-result.json');verify_build(b,B)
     O.mkdir(parents=True,exist_ok=False);temporary=O/'compiler-temp';temporary.mkdir()
@@ -95,6 +96,11 @@ def main():
      ir_build=function(copies['xl6_ir'],'xlsIrBuildModuleOriginal')
      ir_names=set(re.findall(r'\b(xl6Ir(?:Build|Refresh|Intern|Normalize|TypePoolFinalize|VerifyModule)\w*)\s*\(',ir_build))
      copies['xl6_ir']=edit(copies['xl6_ir'],'xlsIrBuildModuleOriginal',lambda body:calls(body,ir_names,'ir.',{'xl6IrBuildRuntimeTypeMap'}))
+     if args.ir_verifier_detail:
+      verifier=function(copies['xl6_ir'],'xlsIrVerifyModuleOriginal')
+      verifier_names=set(re.findall(r'\b(xl6IrVerify\w*)\s*\(',verifier))
+      copies['xl6_ir']=edit(copies['xl6_ir'],'xlsIrVerifyModuleOriginal',lambda body:calls(body,verifier_names,'verify.'))
+      rec['verifierDetail']=dict(scope='Direct helper calls in the complete native verifier; inclusive diagnostic timers alter cost and are not performance qualification',functions=sorted(verifier_names))
      def adapter(body):
       body=calls(body,{'nativeAnalysis','loadGraph','buildDiagnostics','buildNativeDiagnostics','xideSemanticDefinitionsAcquireTyped','validateGraph','xrtJsonRead','xrtJsonParse','xlsSemanticCheckValidate'},'adapter.')
       return body
@@ -132,24 +138,25 @@ def main():
      header=O/'profile.h';header.write_text('''#ifndef XLS_LIFECYCLE_PROFILE_H
     #define XLS_LIFECYCLE_PROFILE_H
     #include <xrt.h>
+    #define XLS_LIFECYCLE_CELLS 256
 void xlsLifecycleBegin(void);void xlsLifecycleAdd(size_t,double);void xlsLifecycleStep(size_t,double*);void xlsLifecycleEmit(const char*);
     #define XLS_LIFECYCLE(id,expression) ({double lifecycleStart=xrtTimer();__auto_type lifecycleResult=(expression);xlsLifecycleAdd(id,lifecycleStart);lifecycleResult;})
     #define XLS_LIFECYCLE_VOID(id,expression) do{double lifecycleStart=xrtTimer();expression;xlsLifecycleAdd(id,lifecycleStart);}while(0)
     #endif
     ''',encoding='utf8',newline='\n')
-     assert len(labels)<128 and all(re.fullmatch(r'[A-Za-z0-9_.-]{1,80}',x) for x in labels)
+     assert len(labels)<256 and all(re.fullmatch(r'[A-Za-z0-9_.-]{1,80}',x) for x in labels)
      diag=O/'diagnostic.c';diag.write_text('''#include "profile.h"
     #include <stdio.h>
     #include <string.h>
     typedef struct{double ms;unsigned long long calls;} lifecycle_cell;
-    static _Thread_local lifecycle_cell frames[8][128];
+    static _Thread_local lifecycle_cell frames[8][XLS_LIFECYCLE_CELLS];
     static _Thread_local size_t depth;
     /* OS thread IDs can be reused after a worker exits. A process-wide
      * sequence distinguishes later lifetimes without allocating TLS records. */
     static xatomic64 sequence;
     static const char* const labels[]={'''+','.join(json.dumps(x) for x in labels)+'''};
     void xlsLifecycleBegin(void){if(depth<8)memset(frames[depth],0,sizeof(frames[depth]));++depth;}
-    void xlsLifecycleAdd(size_t at,double begin){if(depth && depth<=8 && at<128){lifecycle_cell* cell=&frames[depth-1][at];cell->ms+=(xrtTimer()-begin)*1000;++cell->calls;}}
+    void xlsLifecycleAdd(size_t at,double begin){if(depth && depth<=8 && at<XLS_LIFECYCLE_CELLS){lifecycle_cell* cell=&frames[depth-1][at];cell->ms+=(xrtTimer()-begin)*1000;++cell->calls;}}
     void xlsLifecycleStep(size_t at,double* begin){xlsLifecycleAdd(at,*begin);*begin=xrtTimer();}
     void xlsLifecycleEmit(const char* group){
      char record[32768];size_t at=0;

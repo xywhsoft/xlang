@@ -108,6 +108,7 @@ CORE_TESTS = ("analysis_semantic_alias_reads_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_multifunction_syntax_test", "analysis_multifunction_fault_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_type_constructor_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_derived_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_ir_parameters_test", *CORE_TESTS)
 HOST_TESTS += ("navigation_cache_test", "semantic_reference_shard_test", "project_references_test", "project_reference_budget_test", "reference_path_index_test")
 HOST_TESTS += ("path_identity_batch_test", "reference_capture_test")
 HOST_TESTS += ("project_reference_parallel_test",)
@@ -698,7 +699,7 @@ def main() -> None:
         sources += [(ide / "tests" / (name + ".c"), name not in
                      ("analysis_semantic_read_front_test", "analysis_ir_sparse_decode_test",
                       "analysis_semantic_final_input_test", "analysis_ir_input_test", "analysis_final_environment_test", "analysis_index_canonical_guards_test",
-                      "analysis_semantic_alias_reads_test", "analysis_type_constructor_test", "analysis_ir_derived_test")) for name in tests]
+                      "analysis_semantic_alias_reads_test", "analysis_type_constructor_test", "analysis_ir_derived_test", "analysis_ir_parameters_test")) for name in tests]
     if args.server:
         if os.name != "nt":
             parser.error("the current host still uses Windows transport/process adapters; the standalone core is separate")
