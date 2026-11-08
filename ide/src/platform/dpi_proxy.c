@@ -327,7 +327,17 @@ static int drawSurfaceQuad(xui_proxy pProxy, xui_draw_context pDraw, xui_surface
 { xide_dpi_proxy* s=state(pProxy); if(!s) return XUI_ERROR_INVALID_ARGUMENT; if(!pVertices) return XUI_ERROR_INVALID_ARGUMENT; xui_surface_vertex_t transformed[4]; for(int i=0;i<4;++i) { transformed[i]=pVertices[i]; transformed[i].fX*=drawScale(pDraw); transformed[i].fY*=drawScale(pDraw); } int result=s->raw.drawSurfaceQuad(&s->raw,rawDraw(pDraw),rawSurface(pSurface),transformed,iFlags); return result; }
 
 static int drawMeshTriangles(xui_proxy pProxy, xui_draw_context pDraw, const xui_mesh_vertex_t* pVertices, int iVertexCount, const uint32_t* pIndices, int iIndexCount, uint32_t iFlags)
-{ xide_dpi_proxy* s=state(pProxy); if(!s) return XUI_ERROR_INVALID_ARGUMENT; if(!pVertices || iVertexCount<0 || (size_t)iVertexCount>SIZE_MAX/sizeof(xui_mesh_vertex_t)) return XUI_ERROR_INVALID_ARGUMENT; xui_mesh_vertex_t* transformed=malloc((size_t)iVertexCount*sizeof(*transformed)); if(!transformed && iVertexCount) return XUI_ERROR_OUT_OF_MEMORY; for(int i=0;i<iVertexCount;++i) { transformed[i]=pVertices[i]; transformed[i].fX*=drawScale(pDraw); transformed[i].fY*=drawScale(pDraw); } int result=s->raw.drawMeshTriangles(&s->raw,rawDraw(pDraw),transformed,iVertexCount,pIndices,iIndexCount,iFlags); free(transformed); return result; }
+{
+    xide_dpi_proxy* s=state(pProxy);
+    if(!s || !pVertices || iVertexCount<0 || (size_t)iVertexCount>SIZE_MAX/sizeof(xui_mesh_vertex_t))return XUI_ERROR_INVALID_ARGUMENT;
+    xui_mesh_vertex_t small[16];
+    xui_mesh_vertex_t* transformed=iVertexCount<=16 ? small:malloc((size_t)iVertexCount*sizeof(*transformed));
+    if(!transformed && iVertexCount)return XUI_ERROR_OUT_OF_MEMORY;
+    for(int i=0;i<iVertexCount;++i) {transformed[i]=pVertices[i];transformed[i].fX*=drawScale(pDraw);transformed[i].fY*=drawScale(pDraw);}
+    int result=s->raw.drawMeshTriangles(&s->raw,rawDraw(pDraw),transformed,iVertexCount,pIndices,iIndexCount,iFlags);
+    if(transformed!=small)free(transformed);
+    return result;
+}
 
 static int drawPath(xui_proxy pProxy, xui_draw_context pDraw, const xui_path_command_t* pCommands, int iCommandCount, const xui_path_style_t* pStyle, float fTolerance)
 { xide_dpi_proxy* s=state(pProxy); if(!s) return XUI_ERROR_INVALID_ARGUMENT; if(!pCommands || iCommandCount<0 || (size_t)iCommandCount>SIZE_MAX/sizeof(*pCommands)) return XUI_ERROR_INVALID_ARGUMENT; xui_path_command_t* commands=malloc((size_t)iCommandCount*sizeof(*commands)); if(!commands && iCommandCount) return XUI_ERROR_OUT_OF_MEMORY; for(int i=0;i<iCommandCount;++i) { commands[i]=pCommands[i]; for(int j=0;j<3;++j) commands[i].arrPoints[j]=vector(commands[i].arrPoints[j],drawScale(pDraw)); } xui_path_style_t style={0}; float* dashes=NULL; if(pStyle) { style=*pStyle; style.fStrokeWidth*=drawScale(pDraw); style.fDashOffset*=drawScale(pDraw); if(style.iDashCount>0) { if(!style.pDashPattern || (size_t)style.iDashCount>SIZE_MAX/sizeof(float)) { free(commands); return XUI_ERROR_INVALID_ARGUMENT; } dashes=malloc((size_t)style.iDashCount*sizeof(float)); if(!dashes) { free(commands); return XUI_ERROR_OUT_OF_MEMORY; } for(int i=0;i<style.iDashCount;++i) dashes[i]=style.pDashPattern[i]*drawScale(pDraw); style.pDashPattern=dashes; } } int result=s->raw.drawPath(&s->raw,rawDraw(pDraw),commands,iCommandCount,pStyle ? &style : NULL,fTolerance*drawScale(pDraw)); free(commands); free(dashes); return result; }

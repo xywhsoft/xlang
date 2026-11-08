@@ -1,0 +1,364 @@
+{
+  "schema": 1,
+  "date": "2026-11-09",
+  "passed": true,
+  "scopeComplete": true,
+  "fullRegressionPassed": false,
+  "publication": "local-only",
+  "scope": "Crisp single-pixel table grid at 100 percent scale; preserve theme colors and outer outline.",
+  "sourceMaterials": {
+    "path": "dev/release-materials/sources/ide-table-grid-20261109/manifest.json",
+    "sha256": "e266f724ef5ad9140058d84b0abc1faf5c358af1ec08d537f18dd888d5cc7917",
+    "bytes": 3617
+  },
+  "evidence": {
+    "path": "dev/release-materials/provenance/ide-table-grid-20261109/evidence.zip",
+    "sha256": "eb2fa96bdb696f9fa03b4bba620d84c827e0554f9614f5ce6281e821799df7a5",
+    "bytes": 4031469
+  },
+  "installed": {
+    "passed": true,
+    "installedSmokeExit": 0,
+    "installedPath": "release/win_x64/xlang_ide.exe",
+    "sha256": "d335281a9d2b11f92b027752e9a6529d947b82506ba1721617e53f012aa0aee3",
+    "bytes": 2061823,
+    "xge": {
+      "path": "release/win_x64/xge.dll",
+      "sha256": "40d6bfa25cc881d45e4a8ac12e0dc4ff6c5115bad93f8e0f1ffdbc1d0a67c4e2",
+      "bytes": 11172104
+    },
+    "preserved": {
+      "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe": "e5f4719890814a3f7b5422ffb1f293ffc944c527de62217d32e9a3a4c287dfad",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xl.dll": "e783d6a15c946945d4186084cff9006839cbc1d31a0ae387396dc6f500aaac6c",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xlc.dll": "b4563a13448e2f550b00c0504cac481cdefd2b61ee961276049f936243f125a1",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232"
+    },
+    "changes": [
+      {
+        "path": "ide/third_party/xge_sdk/sdk_manifest.json",
+        "before": "c0fbd47f95fafe863fae241ece7d4654d3908f5efb6b3ab2a1b678cb59b79f93",
+        "after": "e675c7b210511c91b6c150f08e2ef71f3fb73dc296a33091f550c2906f43cc11"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/xge-source-files.json",
+        "before": "6df4313f259d823119dfee4e4de3cc037164b1b2dd14f017e591faa2cd7cdd2b",
+        "after": "43e9be5eaec1a31415833a006ca1370fd034f2c37feb682f8ff37e477db93e45"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/xge.dll",
+        "before": "f6eaa3961017f79cd06d18568bab8fb60274c4935e1a83ab8fb37da21acc607b",
+        "after": "40d6bfa25cc881d45e4a8ac12e0dc4ff6c5115bad93f8e0f1ffdbc1d0a67c4e2"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/xge.lib",
+        "before": "e044c24b3a62790124a5ed5ca0b83f3d5c5569ee3a507525ccb700947cd2db84",
+        "after": "ee977b55040e321a3fe5eaa59a9a3a1f40c292835e2231720c515b8ca5ed3e69"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-2c4a203361ee/parent-sdk-manifest.json",
+        "before": null,
+        "after": "c0fbd47f95fafe863fae241ece7d4654d3908f5efb6b3ab2a1b678cb59b79f93"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-2c4a203361ee/source-build-manifest.json",
+        "before": null,
+        "after": "2afce80ad86c7baf861d980ad1f3713b1e59366f6ebb2b5af4587f704ea1025d"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-2c4a203361ee/source-build-report.json",
+        "before": null,
+        "after": "1e1ee996688d157c7a50414ee6c64f1a811215600a6774c50803d67479195a02"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-2c4a203361ee/xrt-declarations.json",
+        "before": null,
+        "after": "76835d98e81b4f56507ca2845ba782c0ba147c9bbe00543578aabb534a6a141e"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/diff/src/xui/controls/xui_table_view.c.diff",
+        "before": null,
+        "after": "7dd557156c4ae31427744db36329230f96f74bfebb4766da94eed1d46f2f0bdb"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/compatibility-patches/payload/src/xui/controls/xui_table_view.c",
+        "before": null,
+        "after": "2eca10781dac61e8b8bd3c54ac5919868183f643269c874f7e3276bb5c64caef"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-2c4a203361ee/compatibility-patches/patch-manifest.json",
+        "before": null,
+        "after": "038093897f8a7756b5111a5f995303673f667b5a09f930f169b67a5c33827354"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-2c4a203361ee/compatibility-patches/diff/include/xge.h.diff",
+        "before": null,
+        "after": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-2c4a203361ee/compatibility-patches/diff/include/xui.h.diff",
+        "before": null,
+        "after": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-2c4a203361ee/compatibility-patches/diff/extlibs/sokol/sokol_app.h.diff",
+        "before": null,
+        "after": "652f6b352350dfefe4ca732602ebdb32ae9a41c0cd729509cf190610dd4023ec"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-2c4a203361ee/compatibility-patches/diff/extlibs/xrt/xrt.h.diff",
+        "before": null,
+        "after": "5489edbe8dbdb1bcc715e069fbe034842e7a7e3c0b8c4b3e15c6d5e94077bb4d"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-2c4a203361ee/compatibility-patches/diff/src/xge/core/xge_core.c.diff",
+        "before": null,
+        "after": "50a939cc2efbe8bd9c57488b054f68517d0d79c9ce5a07fcf687922f43b89fc4"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-2c4a203361ee/compatibility-patches/diff/src/xge/core/xge_impl.c.diff",
+        "before": null,
+        "after": "88db7f6fbd2c32b722e1037606f89fe24b0eeeef47aa27ce0204e07328254420"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-2c4a203361ee/compatibility-patches/diff/src/xui/controls/xui_table_view.c.diff",
+        "before": null,
+        "after": "7dd557156c4ae31427744db36329230f96f74bfebb4766da94eed1d46f2f0bdb"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-2c4a203361ee/compatibility-patches/diff/tools/build/build.py.diff",
+        "before": null,
+        "after": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-2c4a203361ee/compatibility-patches/payload/include/xge.h",
+        "before": null,
+        "after": "1821696314a82530f0fb06290a9ef4483083881444ebf1d00fc362a4426c68a5"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-2c4a203361ee/compatibility-patches/payload/include/xui.h",
+        "before": null,
+        "after": "1cbae03fcb6ee4d6d4a74da941a42bb9e05e73ffc3f76fad4f79574fe34069b3"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-2c4a203361ee/compatibility-patches/payload/extlibs/sokol/sokol_app.h",
+        "before": null,
+        "after": "7d725c8f3b5eb52a9dba4f5ba1c9d6cbc603a2f5c5dc712a8f0fa3b4dd5378e2"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-2c4a203361ee/compatibility-patches/payload/extlibs/xrt/xrt.h",
+        "before": null,
+        "after": "41bc24579f4b3207b0434755ca23dd06481af90c05f71e9b365848cf9a7c12d1"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-2c4a203361ee/compatibility-patches/payload/src/xge/core/xge_core.c",
+        "before": null,
+        "after": "b87d72adc887352629ccba72bbfb642276fc68e64d283eb77391c0cc23acdf0b"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-2c4a203361ee/compatibility-patches/payload/src/xge/core/xge_impl.c",
+        "before": null,
+        "after": "07fb8b684e7d2d48cb24da2dca23b9038e998e95f7e72da15b095ea9036fbcee"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-2c4a203361ee/compatibility-patches/payload/src/xui/controls/xui_table_view.c",
+        "before": null,
+        "after": "2eca10781dac61e8b8bd3c54ac5919868183f643269c874f7e3276bb5c64caef"
+      },
+      {
+        "path": "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-2c4a203361ee/compatibility-patches/payload/tools/build/build.py",
+        "before": null,
+        "after": "754840e4a884f5d24e73cfa1e2b16a111ecd906d3354a207dd77b9a00dfe41dd"
+      },
+      {
+        "path": "ide/data/xge-sdk-materials.json",
+        "before": "fb3524b16492e7cce8159da6f8ef37a0bf35c2e58c99bf87fba700cf83bedfc2",
+        "after": "de6cec639b19ec4795d3a286323e1156ec9cdbaab0d54b901bd60ad311999cb0"
+      },
+      {
+        "path": "release/win_x64/xge.dll",
+        "before": "f6eaa3961017f79cd06d18568bab8fb60274c4935e1a83ab8fb37da21acc607b",
+        "after": "40d6bfa25cc881d45e4a8ac12e0dc4ff6c5115bad93f8e0f1ffdbc1d0a67c4e2"
+      },
+      {
+        "path": "release/win_x64/xlang_ide.exe",
+        "before": "23381a7f7adabe972e5f48ddd97ac6e9fce33110b0748181508befb73518d35b",
+        "after": "d335281a9d2b11f92b027752e9a6529d947b82506ba1721617e53f012aa0aee3"
+      }
+    ]
+  },
+  "nativeTests": [
+    {
+      "test": "xui_table_view_test",
+      "exit": 0
+    },
+    {
+      "test": "xui_table_grid_test",
+      "exit": 0
+    },
+    {
+      "alpha": 255,
+      "before": {
+        "width": 160,
+        "height": 96,
+        "lineCalls": 11,
+        "horizontalPixels": 2,
+        "verticalPixels": 3,
+        "bodyCenter": [
+          208,
+          160,
+          64,
+          255
+        ],
+        "headerCenter": [
+          177,
+          137,
+          58,
+          255
+        ]
+      },
+      "after": {
+        "width": 160,
+        "height": 96,
+        "lineCalls": 0,
+        "horizontalPixels": 1,
+        "verticalPixels": 1,
+        "bodyCenter": [
+          208,
+          160,
+          64,
+          255
+        ],
+        "headerCenter": [
+          177,
+          137,
+          58,
+          255
+        ]
+      },
+      "centerColorsEqual": true
+    },
+    {
+      "alpha": 110,
+      "before": {
+        "width": 160,
+        "height": 96,
+        "lineCalls": 11,
+        "horizontalPixels": 2,
+        "verticalPixels": 3,
+        "bodyCenter": [
+          117,
+          96,
+          55,
+          255
+        ],
+        "headerCenter": [
+          177,
+          137,
+          58,
+          255
+        ]
+      },
+      "after": {
+        "width": 160,
+        "height": 96,
+        "lineCalls": 0,
+        "horizontalPixels": 1,
+        "verticalPixels": 1,
+        "bodyCenter": [
+          117,
+          96,
+          55,
+          255
+        ],
+        "headerCenter": [
+          177,
+          137,
+          58,
+          255
+        ]
+      },
+      "centerColorsEqual": true
+    },
+    {
+      "exportsIdentical": true
+    }
+  ],
+  "ideTests": [
+    {
+      "test": "home_view_test",
+      "exit": 0,
+      "source": "D:\\GIT\\x-lang\\ide\\tests\\home_view_test.c",
+      "sourceSha256": "6c1b07cf4bd1265fb753072e145fc089d17b7f9ba0fd58eaca0c3d9fcfc7ef57"
+    },
+    {
+      "test": "dpi_test",
+      "exit": 3221226356,
+      "source": "D:\\GIT\\x-lang\\ide\\tests\\dpi_test.c",
+      "sourceSha256": "025eba457295790981dbd33a26eef408d10f4ec16e147cedbe4d70db3f013031"
+    },
+    {
+      "test": "input_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\xge-table-grid-20261109\\gui-source\\ide\\tests\\input_test.c",
+      "sourceSha256": "2804e8842d91a338ac4dcb3788d9133f597303b435b55038168e0669645d40f5"
+    },
+    {
+      "test": "settings_view_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\xge-table-grid-20261109\\gui-source\\ide\\tests\\settings_view_test.c",
+      "sourceSha256": "1a09b8f399fca72e2bd060d9c3ac3f54c820cb3db5367932f2607fae093a70f3"
+    },
+    {
+      "test": "find_follow_view_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\xge-table-grid-20261109\\gui-source\\ide\\tests\\find_follow_view_test.c",
+      "sourceSha256": "57f31d4f99fffece30d9a5e657c991aea72a7ed901c34fe1da49b2919c8304c9"
+    },
+    {
+      "test": "dpi_mesh_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\xge-table-grid-20261109\\gui-source\\ide\\tests\\dpi_mesh_test.c",
+      "sourceSha256": "32aa3fd25fc44c403d44c5b901ae3adee24797edad28d02f7f5ae6412c9837a9"
+    }
+  ],
+  "sdkMaterialsChecks": 18,
+  "baselineDpiComparison": [
+    {
+      "name": "baseline",
+      "exit": 3221226356
+    },
+    {
+      "name": "candidate",
+      "exit": 3221226356
+    }
+  ],
+  "rootCause": "Antialias fringe on drawLine enlarged 1-unit grid strokes to 2/3 physical pixels.",
+  "behavior": {
+    "grid": "unfringed integral quad, same vertex-color blend path",
+    "themeColorsUnchanged": true,
+    "outerOutlineUnchanged": true,
+    "smallMeshHeapAllocations": 0,
+    "publicApiUnchanged": true,
+    "homeCoexistsWithFiles": true
+  },
+  "build": {
+    "guiObjects": 111,
+    "optimization": "-O2",
+    "rebuiltUnits": [
+      "src/platform/dpi_proxy.c"
+    ],
+    "reusedObjects": 110,
+    "headersUnchanged": true,
+    "sourceAndObjectHashesVerified": true,
+    "baseBuildMetadata": "D:\\GIT\\x-lang\\ide\\build\\Release\\home-tabs-20261108\\objects\\gui-build-inputs.json",
+    "xgeSourceFixCommit": "381cd2273d6ba8f70255beb0142312c42c3ac9b1",
+    "xgeBaseCommit": "2174bf5b8e68a9069bd9788bd2f73444b9a0d722"
+  },
+  "limits": [
+    "Windows targeted acceptance only; not a full repository regression.",
+    "The extended dpi_test reaches phases 0-6 then exits with heap-corruption status 0xc0000374 in both baseline (old DLL and old DPI object) and candidate. Kept as an existing unresolved acceptance limitation; no claim this test passed.",
+    "A separate existing private table index fixture uses an obsolete internal GetCell signature; exploratory adaptation was reverted and not included in passing native suite.",
+    "Only the table raster fix was backported to the qualified IDE SDK source cohort. Other current XGE API changes were not mixed into this delivery.",
+    "Compiler, language server, extension packages and online update channel were not replaced."
+  ]
+}

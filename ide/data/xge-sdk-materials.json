@@ -1,7 +1,7 @@
 {
   "format": "xlang-ide-sdk-materials-1",
-  "sourceManifestSha256": "13dd76256e050a8d1c7f31e09a08869cabed18ef4068991d3e68c1caac111150",
-  "sdkDllSha256": "b415e78d21f8c8b0d8fcb86924169dd35d595d29951391c102892b00399718ff",
+  "sourceManifestSha256": "43e9be5eaec1a31415833a006ca1370fd034f2c37feb682f8ff37e477db93e45",
+  "sdkDllSha256": "40d6bfa25cc881d45e4a8ac12e0dc4ff6c5115bad93f8e0f1ffdbc1d0a67c4e2",
   "sourceScope": "XGE 3.0.0 IDE-profile compiler dependency closure, build inputs, public headers and notices; explicit compatibility patches recorded in provenance",
   "translationUnits": [
     "single/xge.c",
@@ -724,6 +724,7 @@
     "src/xge/text/xge_ime_owner_internal.h",
     "src/xge/text/xge_ime_win32_compat.h",
     "src/xge/text/xge_ime_win32_tsf.c",
+    "src/xge/text/xge_system_font.c",
     "src/xge/text/xge_text_context.h",
     "src/xge/text/xge_text_ignorable_data.inc",
     "src/xge/text/xge_text_input.h",
@@ -757,6 +758,7 @@
     "src/xui/code/xui_code_document_internal.h",
     "src/xui/code/xui_code_edit.c",
     "src/xui/code/xui_code_editing.c",
+    "src/xui/code/xui_code_find_window.inc",
     "src/xui/code/xui_code_fold.c",
     "src/xui/code/xui_code_fold_state.c",
     "src/xui/code/xui_code_geometry_internal.h",
@@ -3524,8 +3526,8 @@
     },
     {
       "path": "extlibs/xrt/xrt.h",
-      "sha256": "4c02cd11accbd06c4e5de725b1f19bacbf44a92e4791a3819ba45540bc6e4f5d",
-      "size": 9113263
+      "sha256": "41bc24579f4b3207b0434755ca23dd06481af90c05f71e9b365848cf9a7c12d1",
+      "size": 9119295
     },
     {
       "path": "extlibs/xrt/xrt_config.h",
@@ -3549,8 +3551,8 @@
     },
     {
       "path": "include/xge.h",
-      "sha256": "b7b315ddfca9add6074a1e414f1da2188e4a0ece037e8ce3927c9ffa8e7f5d79",
-      "size": 232153
+      "sha256": "1821696314a82530f0fb06290a9ef4483083881444ebf1d00fc362a4426c68a5",
+      "size": 238037
     },
     {
       "path": "include/xge_config.h",
@@ -3569,13 +3571,13 @@
     },
     {
       "path": "include/xui.h",
-      "sha256": "f31173fbd4af53d10e1a8c7a84eaee3b7547f0d6465bbe9a8fe5b5b48fcba5a4",
-      "size": 692767
+      "sha256": "1cbae03fcb6ee4d6d4a74da941a42bb9e05e73ffc3f76fad4f79574fe34069b3",
+      "size": 710460
     },
     {
       "path": "include/xui_config.h",
-      "sha256": "01448ede1da13af8e8ef81ef7574f15edc88f5fa8c2312d9d8a5ede91e17f193",
-      "size": 22798
+      "sha256": "735eb9adf7a85f28902454478f96984f91b2b3971d00deefa28dc8df06ecbfad",
+      "size": 22964
     },
     {
       "path": "include/xui_document.h",
@@ -3679,8 +3681,8 @@
     },
     {
       "path": "src/xge/core/xge_impl.c",
-      "sha256": "f223007e204a7f9994f4b114344aa487fd373abc8c99737c922cafe1afab1402",
-      "size": 74933
+      "sha256": "07fb8b684e7d2d48cb24da2dca23b9038e998e95f7e72da15b095ea9036fbcee",
+      "size": 74963
     },
     {
       "path": "src/xge/core/xge_input_actions.c",
@@ -3699,8 +3701,8 @@
     },
     {
       "path": "src/xge/input/xge_data_object.c",
-      "sha256": "e9a321adb713b29402c8edef213c0e76b9e99fb8faa9998bb2f897321e054c28",
-      "size": 23551
+      "sha256": "be4c725faff9d5c2c5b2d533bb3d06ed0b02e2587f5e297d85013a820927586a",
+      "size": 23552
     },
     {
       "path": "src/xge/input/xge_drag_drop.c",
@@ -3868,6 +3870,11 @@
       "size": 86997
     },
     {
+      "path": "src/xge/text/xge_system_font.c",
+      "sha256": "12e0c3fe224b5f5bd6a0f88d578c7415c25f74572e359659156c531195e358cc",
+      "size": 15933
+    },
+    {
       "path": "src/xge/text/xge_text_context.h",
       "sha256": "17760e8342bbc6ca384e20424715216213751dc3bde042c41e303a1595ad36b7",
       "size": 654
@@ -4024,13 +4031,18 @@
     },
     {
       "path": "src/xui/code/xui_code_edit.c",
-      "sha256": "e18cbd6d1318e5fcb74c3d64c6b0585a155002cd2722e6e6a68d8a44bc063e07",
-      "size": 398244
+      "sha256": "fa86a2be94150c73b0e2ea377ab75cb7c95338c3f97b9755c10d03b7994942a2",
+      "size": 371381
     },
     {
       "path": "src/xui/code/xui_code_editing.c",
       "sha256": "bd5eeec434ede0d2a7c9d79537b740c07c35f26dddb099d517e6d34b37af5001",
       "size": 16531
+    },
+    {
+      "path": "src/xui/code/xui_code_find_window.inc",
+      "sha256": "3e5407045c59da2522dbb82ac3756f424cfd2d474e5d11558d160ce7c309061c",
+      "size": 40785
     },
     {
       "path": "src/xui/code/xui_code_fold.c",
@@ -4174,8 +4186,8 @@
     },
     {
       "path": "src/xui/controls/xui_file_dialog.c",
-      "sha256": "d29b0aa4fa2f01c911e46a28829bbd92a1d8e71cd7d7921df862a3dbf524db2d",
-      "size": 148739
+      "sha256": "dfa0e95839444473dee7a75b2a69013e35ddcd9ad2ab7e4a3c3ca4d2b368ee04",
+      "size": 151414
     },
     {
       "path": "src/xui/controls/xui_find.c",
@@ -4209,8 +4221,8 @@
     },
     {
       "path": "src/xui/controls/xui_menu.c",
-      "sha256": "b88468e62b7752de472781a217a4588d65646572f25eab393c199e7147cfb7d9",
-      "size": 97298
+      "sha256": "9683775b84e691c0058f6d390cc45c9e333cd54a104ff11894d455a03c5de864",
+      "size": 97326
     },
     {
       "path": "src/xui/controls/xui_menubar.c",
@@ -4224,8 +4236,8 @@
     },
     {
       "path": "src/xui/controls/xui_msgbox.c",
-      "sha256": "5b83e891c4f93120cee51e314cfed915a9a89cb6217c8097ef9ce63c6fb5719d",
-      "size": 92512
+      "sha256": "8b2ac7914de064292af742c37fd0ac716d74cc191287023b8d4e141fc5cfc687",
+      "size": 96360
     },
     {
       "path": "src/xui/controls/xui_msgtip.c",
@@ -4339,8 +4351,8 @@
     },
     {
       "path": "src/xui/controls/xui_table_view.c",
-      "sha256": "220885aa8d67d7d5bf2984f1c25744ebdb11bae1cd5e674fda16b2817bb4f5f3",
-      "size": 207279
+      "sha256": "2eca10781dac61e8b8bd3c54ac5919868183f643269c874f7e3276bb5c64caef",
+      "size": 208485
     },
     {
       "path": "src/xui/controls/xui_table_view_paint.h",
@@ -4359,8 +4371,8 @@
     },
     {
       "path": "src/xui/controls/xui_terminal.c",
-      "sha256": "9800e03a00a6f62c6bb115cae5ed66bad13e7f072effca13e64932baaad1bdef",
-      "size": 304290
+      "sha256": "cf849d3173c7a5bc33ecde549cb2e97dc3432b13e7b7b9bef38235201ff512fc",
+      "size": 305606
     },
     {
       "path": "src/xui/controls/xui_timeline_view.c",
@@ -4394,8 +4406,8 @@
     },
     {
       "path": "src/xui/controls/xui_window.c",
-      "sha256": "263a6c2fa4697b076af0edd24074ea94e8d580e772a6941511ae0ef7a093a924",
-      "size": 107874
+      "sha256": "15b4e915314e8eb3b304cdad83b6b46d1ff04613a44f670a4428930a4b450fc3",
+      "size": 108765
     },
     {
       "path": "src/xui/controls/xui_window_frame.c",
@@ -4434,8 +4446,8 @@
     },
     {
       "path": "src/xui/core/xui_core.c",
-      "sha256": "81574635b9c27582521e82d01226561a5cb6e14c1c8319e89099bccd19926e60",
-      "size": 150276
+      "sha256": "fcf6ec3137ec6fe7722f434a8fdc1a0c21e918c8aecec5e1bb158cb61230ebe7",
+      "size": 156197
     },
     {
       "path": "src/xui/core/xui_data_object.c",
@@ -4459,8 +4471,8 @@
     },
     {
       "path": "src/xui/core/xui_icon_picker.c",
-      "sha256": "0c061a41ae2a5aad46d4ee73207d996328caa1c8552928b88d633f11f0702b69",
-      "size": 113395
+      "sha256": "33ac07297ec2713c8aab208723db8daeb6bfaf89b90cf6ff421e7bdbc20a2c21",
+      "size": 113564
     },
     {
       "path": "src/xui/core/xui_input.c",
@@ -4474,13 +4486,13 @@
     },
     {
       "path": "src/xui/core/xui_internal.h",
-      "sha256": "2594f163e9f46d9dd52a7dd67e8e83411a73eccb4884f0a539dc1980e0a0cc43",
-      "size": 59301
+      "sha256": "e527813c222444f925b48ab5625eeb77868ef571441ccb64780e99edb9205eaf",
+      "size": 61012
     },
     {
       "path": "src/xui/core/xui_layout.c",
-      "sha256": "5b249723ba4b03ea045fdb26c8e05179e9f9704851a2c809bbb01d24f5abb69f",
-      "size": 26918
+      "sha256": "83ee1b5b68c381f80b1a9a71cca0a4f3ac6807ad45a74c66e155a7b8209ef8eb",
+      "size": 27170
     },
     {
       "path": "src/xui/core/xui_owned_manager.c",
@@ -4494,8 +4506,8 @@
     },
     {
       "path": "src/xui/core/xui_owned_resource_slots.c",
-      "sha256": "5c2c300e432d924c10a66cffa91ad7a619287895d7d6b707982f46f700626572",
-      "size": 14573
+      "sha256": "beeb92ae8b7cd719297f83868d6454ce21fdd3f566368f2fad988efd891287ba",
+      "size": 14670
     },
     {
       "path": "src/xui/core/xui_pointer_press_internal.h",
@@ -4514,8 +4526,8 @@
     },
     {
       "path": "src/xui/core/xui_proxy_xge.c",
-      "sha256": "b0443b56f558ae5eb79fba7d04a6003008e111c620bfac1578e8aa190fba5cfd",
-      "size": 123857
+      "sha256": "33aa0c6d47e7876c895308366f75c8cec2664300696313be8e875a6e62dd26a1",
+      "size": 124864
     },
     {
       "path": "src/xui/core/xui_proxy_xge_shape_paint.inl",
@@ -4604,8 +4616,8 @@
     },
     {
       "path": "src/xui/core/xui_widget.c",
-      "sha256": "bdf7614b246ac6b6f367e98ea5414d1c622f601dd88178c1dca74e97e9bf8a26",
-      "size": 294659
+      "sha256": "4a19fbd994920c1dd10e0eeafa72d68fa89bda75f3483bb60e08e6450bcae4cf",
+      "size": 326643
     },
     {
       "path": "src/xui/core/xui_xrt_port.h",
@@ -4964,8 +4976,8 @@
     },
     {
       "path": "tools/build/build.py",
-      "sha256": "fedfcac8068f7e0106bdc924b3877dbe04c8ee39b2cfaa5a4b302c56cd152ad6",
-      "size": 16887
+      "sha256": "754840e4a884f5d24e73cfa1e2b16a111ecd906d3354a207dd77b9a00dfe41dd",
+      "size": 17200
     },
     {
       "path": "tools/build/build_dll.bat",
@@ -4985,5 +4997,5 @@
   ],
   "legalDistributionReviewComplete": false,
   "formalRelease": false,
-  "sourceCommit": "1312f03546d8def9e4ddf169881f7ba44a1438e2"
+  "sourceCommit": "2174bf5b8e68a9069bd9788bd2f73444b9a0d722"
 }

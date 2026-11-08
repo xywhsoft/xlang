@@ -1,0 +1,108 @@
+{
+  "schema": 1,
+  "base": {
+    "path": "dev/release-materials/sources/ide-home-tabs-20261108/manifest.json",
+    "sha256": "7f18295914ac6377b10ad6159b5cdb242a913a0890fbe1dd9a59ceb64c90c9f5",
+    "bytes": 2303
+  },
+  "xgeBase": {
+    "path": "dev/release-materials/sources/xge-code-wrap-20261108/manifest.json",
+    "sha256": "e7b1018ca706a47a71c6ae77caae14145d82c68e532fb6404e06fdfed97d5a3a",
+    "bytes": 3038
+  },
+  "guiBaseSourceCommit": "cea3cb135f92a378a70cab30f222057de6a434cd",
+  "guiOverlayBaseCommit": "6186e26e10b8f00acf9f15f241600be8d4b0e58b",
+  "xgeFixCommit": "381cd2273d6ba8f70255beb0142312c42c3ac9b1",
+  "sdkManifest": {
+    "path": "ide/third_party/xge_sdk/sdk_manifest.json",
+    "sha256": "e675c7b210511c91b6c150f08e2ef71f3fb73dc296a33091f550c2906f43cc11",
+    "bytes": 35487
+  },
+  "archive": {
+    "path": "dev/release-materials/sources/ide-table-grid-20261109/source-delta.zip",
+    "sha256": "aa2ee2289d826c030cce49a5c760f08bcd8154c7bbe0efeb684294bb0e9d3565",
+    "bytes": 115848
+  },
+  "files": [
+    {
+      "path": ".gitattributes",
+      "sha256": "ca6c3bfbcb997c051245e5b8ac107b1955c072d057e43c461b25e1ae66274f80",
+      "bytes": 15358
+    },
+    {
+      "path": "ide/data/xge-sdk-materials.json",
+      "sha256": "de6cec639b19ec4795d3a286323e1156ec9cdbaab0d54b901bd60ad311999cb0",
+      "bytes": 188955
+    },
+    {
+      "path": "ide/src/platform/dpi_proxy.c",
+      "sha256": "5124f6a8d1042ae33a5b2988a696d43b485cfee0d63c9dd2a1935733020a2c8b",
+      "bytes": 45401
+    },
+    {
+      "path": "ide/tests/dpi_mesh_test.c",
+      "sha256": "32aa3fd25fc44c403d44c5b901ae3adee24797edad28d02f7f5ae6412c9837a9",
+      "bytes": 2870
+    },
+    {
+      "path": "reproduction/build_ide.py",
+      "sha256": "ea75e11d603461e361948725e47b91dcfeed9182c4d17d5081161646c3a7c6ce",
+      "bytes": 3349
+    },
+    {
+      "path": "reproduction/build_xge.py",
+      "sha256": "f60cf761611f6dbfdfd511d2c007c62a55f4dc562ba0000702c6fc56f298a25f",
+      "bytes": 4780
+    },
+    {
+      "path": "reproduction/dpi_diagnose.py",
+      "sha256": "d18e7eb483a6e20548756ddca6a192f70556a8268c3039033542a631c2805646",
+      "bytes": 2496
+    },
+    {
+      "path": "reproduction/native_tests.py",
+      "sha256": "d486afceb4f69337a5ca51ffb093a2694637a632ffbd211bbbbade959a4b9b76",
+      "bytes": 3125
+    },
+    {
+      "path": "reproduction/probe.py",
+      "sha256": "0ef859308f9db1f1dfbc347a120b2479e5b03c22a11dfccdae181948ff4f62ad",
+      "bytes": 2119
+    },
+    {
+      "path": "reproduction/publish.py",
+      "sha256": "11f2d63bf8da35832859bbd42ab264f1a8249f5856368316ce0b6f79e94a2c3b",
+      "bytes": 3767
+    },
+    {
+      "path": "reproduction/record.py",
+      "sha256": "ef243fa895b6a3fd98cd3a1d069ea27ce3f490c6e5d41c6ddc8c66351d791348",
+      "bytes": 9696
+    },
+    {
+      "path": "reproduction/test.py",
+      "sha256": "a8d399e24411c966d218ceb9e5e37d137725ceb9080b3d97e126280bdbeda8c3",
+      "bytes": 6105
+    },
+    {
+      "path": "xge/fix.diff",
+      "sha256": "1284dd05cf95936b59bea5bb15297e8ef0bdae9e09dc290a16377080104f5f57",
+      "bytes": 4425
+    },
+    {
+      "path": "xge/src/xui/controls/xui_table_view.c",
+      "sha256": "cc480438afcefd89c6d0618b990ba49cb2d40308a38f183b4bac298f1a6782bc",
+      "bytes": 213405
+    },
+    {
+      "path": "xge/tests/xui/build_table_view_pixel_test.bat",
+      "sha256": "6ca8052375cadb96a78ed135c37405768bb6593ebae68575c070e66a6c89ea54",
+      "bytes": 505
+    },
+    {
+      "path": "xge/tests/xui/xui_table_view_pixel_test.c",
+      "sha256": "6725eece04bc73667bc94a84c02cb71fc706d0197ef7e7953bddc76c2f72bb0b",
+      "bytes": 5094
+    }
+  ]
+}

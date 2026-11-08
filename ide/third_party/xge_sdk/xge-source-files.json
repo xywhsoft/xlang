@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "root": "F:\\xlang-validation\\xge-code-wrap-20261108\\source",
+  "root": "F:\\xlang-validation\\xge-table-grid-20261109\\source",
   "sourceCommit": "2174bf5b8e68a9069bd9788bd2f73444b9a0d722",
   "sourceFileCount": 791,
   "files": [
@@ -3316,8 +3316,8 @@
     },
     {
       "path": "src/xui/controls/xui_table_view.c",
-      "sha256": "220885aa8d67d7d5bf2984f1c25744ebdb11bae1cd5e674fda16b2817bb4f5f3",
-      "size": 207279
+      "sha256": "2eca10781dac61e8b8bd3c54ac5919868183f643269c874f7e3276bb5c64caef",
+      "size": 208485
     },
     {
       "path": "src/xui/controls/xui_table_view_paint.h",
@@ -4021,8 +4021,17 @@
         "sha256": "754840e4a884f5d24e73cfa1e2b16a111ecd906d3354a207dd77b9a00dfe41dd",
         "payload": "payload/tools/build/build.py",
         "diff": "diff/tools/build/build.py.diff"
+      },
+      {
+        "path": "src/xui/controls/xui_table_view.c",
+        "upstreamExists": true,
+        "upstreamSha256": "220885aa8d67d7d5bf2984f1c25744ebdb11bae1cd5e674fda16b2817bb4f5f3",
+        "sha256": "2eca10781dac61e8b8bd3c54ac5919868183f643269c874f7e3276bb5c64caef",
+        "payload": "payload/src/xui/controls/xui_table_view.c",
+        "diff": "diff/src/xui/controls/xui_table_view.c.diff"
       }
-    ]
+    ],
+    "gridFixCommit": "381cd2273d6ba8f70255beb0142312c42c3ac9b1"
   },
-  "compatibilityPatchRoot": "provenance/source-2174bf5b8e68-f199ab3e43c3/compatibility-patches"
+  "compatibilityPatchRoot": "provenance/source-2174bf5b8e68-2c4a203361ee/compatibility-patches"
 }

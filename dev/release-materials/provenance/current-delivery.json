@@ -75,7 +75,7 @@
       "licenseUrl": "http://www.microsoft.com/typography/fonts/default.aspx"
     },
     "fontChangeSourceParent": "b16a95bbf022efcafc7b965d1bd9b5b945c0d881",
-    "currentBuildProvenance": "dev/release-materials/provenance/ide-home-tabs-20261108/receipt.json",
+    "currentBuildProvenance": "dev/release-materials/provenance/ide-table-grid-20261109/receipt.json",
     "cLspEnabled": false,
     "applicationIcon": {
       "source": "ide/data/xlang_ide.ico",
@@ -89,21 +89,21 @@
       "provenance": "docs/reports/release-materials-migration-20261031.json",
       "buildCommand": "pwsh -NoProfile -File ide/tools/build.ps1 -Configuration Release -GuiOnly -LanguageServerPath D:/GIT/x-lang/release/xlang-ls.exe -ReleaseDirectory D:/GIT/x-lang/release"
     },
-    "sha256": "23381a7f7adabe972e5f48ddd97ac6e9fce33110b0748181508befb73518d35b",
+    "sha256": "d335281a9d2b11f92b027752e9a6529d947b82506ba1721617e53f012aa0aee3",
     "sourceIdentity": {
-      "guiBaseSourceRevision": "c23590b1594d0772dda7f2091e38c8842df0a530",
-      "overlayBaseRevision": "cea3cb135f92a378a70cab30f222057de6a434cd",
+      "guiBaseSourceRevision": "cea3cb135f92a378a70cab30f222057de6a434cd",
+      "overlayBaseRevision": "6186e26e10b8f00acf9f15f241600be8d4b0e58b",
       "sourceOverlay": {
-        "path": "dev/release-materials/sources/ide-home-tabs-20261108/manifest.json",
-        "sha256": "7f18295914ac6377b10ad6159b5cdb242a913a0890fbe1dd9a59ceb64c90c9f5",
-        "bytes": 2303
+        "path": "dev/release-materials/sources/ide-table-grid-20261109/manifest.json",
+        "sha256": "e266f724ef5ad9140058d84b0abc1faf5c358af1ec08d537f18dd888d5cc7917",
+        "bytes": 3617
       },
       "build": {
-        "path": "dev/release-materials/provenance/ide-home-tabs-20261108/evidence.zip",
-        "sha256": "05b38b972af5b530cde95843af670ad91d64988d0646ca8997447eccfc6c817b",
-        "bytes": 2326720
+        "path": "dev/release-materials/provenance/ide-table-grid-20261109/evidence.zip",
+        "sha256": "eb2fa96bdb696f9fa03b4bba620d84c827e0554f9614f5ce6281e821799df7a5",
+        "bytes": 4031469
       },
-      "matchedSdkManifestSha256": "c0fbd47f95fafe863fae241ece7d4654d3908f5efb6b3ab2a1b678cb59b79f93"
+      "matchedSdkManifestSha256": "e675c7b210511c91b6c150f08e2ef71f3fb73dc296a33091f550c2906f43cc11"
     },
     "previousMatchedGuiProvenance": "dev/release-materials/provenance/ide-updater-20261103.json",
     "openglStartupCompatibility": {
@@ -128,19 +128,25 @@
       "sha256": "cb3dd03ba90452fb9a670371ed7447763a0188fdc61b57adf11d5d89851ce13b",
       "bytes": 2693
     },
-    "buildScope": "Matched 111 GUI objects: workbench, editor_view and session rebuilt with unchanged public headers; 108 unchanged objects reused with recorded identities. C LSP disabled; independent ongoing work excluded.",
+    "buildScope": "Matched 111 GUI objects: DPI proxy implementation rebuilt with unchanged public headers; 110 qualified objects reused with recorded identities. C LSP disabled, -O2; independent concurrent work excluded.",
     "currentEngine": {
       "sourceMaterials": {
-        "path": "dev/release-materials/sources/xge-code-wrap-20261108/manifest.json",
-        "sha256": "e7b1018ca706a47a71c6ae77caae14145d82c68e532fb6404e06fdfed97d5a3a",
-        "bytes": 3038
+        "path": "dev/release-materials/sources/ide-table-grid-20261109/manifest.json",
+        "sha256": "e266f724ef5ad9140058d84b0abc1faf5c358af1ec08d537f18dd888d5cc7917",
+        "bytes": 3617
       },
       "sourceCommit": "2174bf5b8e68a9069bd9788bd2f73444b9a0d722",
       "publicAbiFingerprint": "0x9e6e84f348182bf8",
       "profile": "ide",
       "xrtMode": "embedded",
       "runtime": "release/win_x64/xge.dll",
-      "mainlineCommit": "42c42f79815763bc869a2683550cbb3a2a9223e5"
+      "mainlineCommit": "381cd2273d6ba8f70255beb0142312c42c3ac9b1",
+      "previousSourceMaterials": {
+        "path": "dev/release-materials/sources/xge-code-wrap-20261108/manifest.json",
+        "sha256": "e7b1018ca706a47a71c6ae77caae14145d82c68e532fb6404e06fdfed97d5a3a",
+        "bytes": 3038
+      },
+      "sha256": "40d6bfa25cc881d45e4a8ac12e0dc4ff6c5115bad93f8e0f1ffdbc1d0a67c4e2"
     },
     "previousBuildProvenanceBeforeAbout": "dev/release-materials/provenance/xge-ide-update-20261106/publication-receipt.json",
     "aboutWindow": {
@@ -155,20 +161,20 @@
     "updateStateDirectory": "ide/build/update-runtime/<platform>-<install-path-sha256>",
     "previousBuildProvenanceBeforeDialogBackdrop": "dev/release-materials/provenance/ide-release-maintenance-20261106.json",
     "dialogBackdrop": "viewport-sized absolute overlay; dialog above backdrop; child/IME-aware Escape",
-    "previousBuildProvenance": "dev/release-materials/provenance/ide-home-layout-20261108/receipt.json",
-    "sourceRevision": "cea3cb135f92a378a70cab30f222057de6a434cd",
+    "previousBuildProvenance": "dev/release-materials/provenance/ide-home-tabs-20261108/receipt.json",
+    "sourceRevision": "6186e26e10b8f00acf9f15f241600be8d4b0e58b",
     "previousSourceIdentity": {
-      "guiBaseSourceRevision": "3765e71ff0983e77f15479e074a000fbf4340484",
-      "overlayBaseRevision": "c23590b1594d0772dda7f2091e38c8842df0a530",
+      "guiBaseSourceRevision": "c23590b1594d0772dda7f2091e38c8842df0a530",
+      "overlayBaseRevision": "cea3cb135f92a378a70cab30f222057de6a434cd",
       "sourceOverlay": {
-        "path": "dev/release-materials/sources/ide-home-layout-20261108/manifest.json",
-        "sha256": "327a1e2d584ef1ba16c2ad98519af9e121147cdc5faa593c94825176ba3924f4",
-        "bytes": 2771
+        "path": "dev/release-materials/sources/ide-home-tabs-20261108/manifest.json",
+        "sha256": "7f18295914ac6377b10ad6159b5cdb242a913a0890fbe1dd9a59ceb64c90c9f5",
+        "bytes": 2303
       },
       "build": {
-        "path": "dev/release-materials/provenance/ide-home-layout-20261108/evidence.zip",
-        "sha256": "ec6d88fe7635a89fc227056cbf726b66e1209805ba9a9abe851764339530a5b9",
-        "bytes": 2345800
+        "path": "dev/release-materials/provenance/ide-home-tabs-20261108/evidence.zip",
+        "sha256": "05b38b972af5b530cde95843af670ad91d64988d0646ca8997447eccfc6c817b",
+        "bytes": 2326720
       },
       "matchedSdkManifestSha256": "c0fbd47f95fafe863fae241ece7d4654d3908f5efb6b3ab2a1b678cb59b79f93"
     },
@@ -318,6 +324,11 @@
       "path": "dev/release-materials/provenance/ide-home-tabs-20261108/receipt.json",
       "sha256": "dcff8fc2599d516ea4be8bac335368e55fdae652801fc1c08dc18d5b01dfb295",
       "bytes": 5618
+    },
+    "tableGridRepair": {
+      "path": "dev/release-materials/provenance/ide-table-grid-20261109/receipt.json",
+      "sha256": "3ed9b6c0eb5e8d27545fa081bb5f8c9658fe167743f3f58b2ef2a81b3371a832",
+      "bytes": 14191
     }
   },
   "catalog": {
@@ -6317,7 +6328,7 @@
       "previousSha256": "c95a4b367e5ee67b9def00181060d678f56e084072ddc2c6b6ed5f1a5b25528b"
     },
     {
-      "sha256": "23381a7f7adabe972e5f48ddd97ac6e9fce33110b0748181508befb73518d35b",
+      "sha256": "d335281a9d2b11f92b027752e9a6529d947b82506ba1721617e53f012aa0aee3",
       "bytes": 2061823,
       "path": "release/win_x64/xlang_ide.exe",
       "origin": "release-0.6.1-20261108",
@@ -6330,8 +6341,8 @@
       "origin": "matched-xge3-xui3-local-delivery-20261105"
     },
     {
-      "sha256": "f6eaa3961017f79cd06d18568bab8fb60274c4935e1a83ab8fb37da21acc607b",
-      "bytes": 11171080,
+      "sha256": "40d6bfa25cc881d45e4a8ac12e0dc4ff6c5115bad93f8e0f1ffdbc1d0a67c4e2",
+      "bytes": 11172104,
       "path": "release/win_x64/xge.dll",
       "origin": "xge-keypad-enter-20261108",
       "previousSha256": "f165f5b01576b67b56ecb0f7f7f35e4bb82c33f54a1d697fc40ff7443d18a4e7"
@@ -6498,7 +6509,7 @@
     "historicalReportPathsPreserved": true,
     "mutableDataPathsUpdated": 600
   },
-  "currentScope": "Local IDE Home/file tab coexistence, explicit Home closure and session persistence; history outer outline restored to original theme color. Other runtime products and online channel unchanged.",
+  "currentScope": "Local IDE/XGE table grid raster correction with exact unchanged color checks. Extended DPI cleanup failure also reproduced on baseline and recorded as unresolved; targeted Home/input/settings/find and mesh tests passed.",
   "localPublication": {
     "path": "dev/release-materials/provenance/xge3-local-publication-20261105/receipt.json",
     "sha256": "d55e8e816fddbfc2d2283c9ba45b9b28ac5c5e07e0da183fbab3088f118fbad1",
@@ -6763,6 +6774,11 @@
       "path": "dev/release-materials/provenance/ide-home-tabs-20261108/receipt.json",
       "sha256": "dcff8fc2599d516ea4be8bac335368e55fdae652801fc1c08dc18d5b01dfb295",
       "bytes": 5618
+    },
+    "tableGridRepair": {
+      "path": "dev/release-materials/provenance/ide-table-grid-20261109/receipt.json",
+      "sha256": "3ed9b6c0eb5e8d27545fa081bb5f8c9658fe167743f3f58b2ef2a81b3371a832",
+      "bytes": 14191
     }
   },
   "xuiGallery": {
@@ -7064,5 +7080,10 @@
     "path": "dev/release-materials/provenance/xge-code-wrap-20261108/receipt.json",
     "sha256": "9a1c215a34b59046d139783d1cd6328ed407d1048f5592033b165d9856833802",
     "bytes": 19284
+  },
+  "xgeTableGridRepair": {
+    "path": "dev/release-materials/provenance/ide-table-grid-20261109/receipt.json",
+    "sha256": "3ed9b6c0eb5e8d27545fa081bb5f8c9658fe167743f3f58b2ef2a81b3371a832",
+    "bytes": 14191
   }
 }

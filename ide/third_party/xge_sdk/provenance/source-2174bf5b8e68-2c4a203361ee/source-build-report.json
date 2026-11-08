@@ -1,0 +1,1466 @@
+{
+  "status": "sdk-build-finished",
+  "exitCode": 0,
+  "profile": "ide",
+  "version": "3.0.0",
+  "source": "F:\\xlang-validation\\xge-table-grid-20261109\\source",
+  "sourceCommit": "2174bf5b8e68a9069bd9788bd2f73444b9a0d722",
+  "sourceUnchanged": true,
+  "sourceArchiveSha256": "79ac764f141acdc3a6a702e9e4051765694098bbcd8c40293923785fa21469d1",
+  "wholeSdkWerror": false,
+  "compiler": "gcc.EXE (GCC) 16.2.0",
+  "upstreamBuild": {
+    "api_major": 3,
+    "public_abi_schema": 2,
+    "profile": "ide",
+    "defines": [],
+    "compiler": [
+      "E:/software/w64devkit/bin\\gcc.EXE",
+      [
+        1790597177093716600,
+        2378896
+      ],
+      "gcc.EXE (GCC) 16.2.0\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
+    ],
+    "flags": [
+      "-O2",
+      "-Wall",
+      "-Wextra",
+      "-Wno-unused-parameter",
+      "-Wno-unused-function",
+      "-Wno-cast-function-type",
+      "-DXGE_DLL",
+      "-DXGE_BUILD_DLL",
+      "-DXUI_DLL",
+      "-DXUI_BUILD_DLL",
+      "-DBUILD_DLL",
+      "-DXGE_DEBUGMODE=0",
+      "-DXGE_BUILD_PROFILE=0",
+      "-I.",
+      "-Iinclude",
+      "-Imodules/xlayout",
+      "-Iextlibs/xrt",
+      "-Iextlibs/xrt/include",
+      "-Isrc/xge/core",
+      "-Isrc/xge/render",
+      "-Isrc/xge/text",
+      "-Isrc/xge/input",
+      "-Isrc/xge/resource",
+      "-Isrc/xge/audio",
+      "-Isrc/xge/particle",
+      "-Isrc/xge/3d",
+      "-Isrc/xge/platform",
+      "-Isrc/xui/core",
+      "-Isrc/xui/controls",
+      "-Isrc/xui/code",
+      "-Isrc/xui/document",
+      "-Isrc/xui/workflow",
+      "-Isrc/xui/accessibility",
+      "-DXGE_XRT_PROFILE_IDE",
+      "-include",
+      "extlibs/xrt/xrt_config.h",
+      "-Iextlibs/xrt",
+      "-Iextlibs/xrt/include",
+      "-Iextlibs/xrt/extlibs/xllm/include",
+      "-Iextlibs/xrt/extlibs/xllm-session/include",
+      "-Iextlibs/xrt/extlibs/xwork/include",
+      "-DXGE_ENABLE_HARFBUZZ=1",
+      "-DXGE_BUILD_ABI_FINGERPRINT=0x9e6e84f348182bf8ULL"
+    ],
+    "source_root": "F:\\xlang-validation\\xge-table-grid-20261109\\source",
+    "runtime_image": "xge.dll",
+    "unstripped_image": "xge.unstripped.dll",
+    "import_library": "xge.lib",
+    "runtime_soname": null,
+    "qualified_object_build": {
+      "base": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win",
+      "baseReportSha256": "f199ab3e43c3de2cd8e8122344f70f2469f4b8804953bb83e470b8ae719a0c89",
+      "originalObjects": [
+        {
+          "source": "single/xge.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\single_xge.c.o",
+          "sha256": "2241322e613e0d5c6fa23a222fec99d1e1874ef989c3e74088bf9ed9ba995d0d"
+        },
+        {
+          "source": "modules/xlayout/xlayout.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\modules_xlayout_xlayout.c.o",
+          "sha256": "cac1116ecc0a0c143e118c755a8a830a21a1cd8a9d44b28ba687f0744754c198"
+        },
+        {
+          "source": "src/xui/core/xui_core.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_core_xui_core.c.o",
+          "sha256": "66d0054e7859f5e44393fb0ef2b9beb07a5e5598311c22d33333d2bd7642d249"
+        },
+        {
+          "source": "src/xui/accessibility/xui_native_accessibility.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_accessibility_xui_native_accessibility.c.o",
+          "sha256": "16a90ee9137e874974633239de347f71d8c3504dff0e225a80ad68f6bb5a7be4"
+        },
+        {
+          "source": "src/xui/core/xui_widget.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_core_xui_widget.c.o",
+          "sha256": "27a37dda6c3cd45f2ec619febd62eede7cd53a667e63d54afa76460c1aa89a31"
+        },
+        {
+          "source": "src/xui/core/xui_callback_owned.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_core_xui_callback_owned.c.o",
+          "sha256": "65112c2ba4b458dacf2ca3904b264e8e91c5f14799d328dca5ec4da9fff72ce2"
+        },
+        {
+          "source": "src/xui/core/xui_layout.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_core_xui_layout.c.o",
+          "sha256": "9e777db0d8d932f0b8e9a07266db0569bc538dc368393ff689b016a816410924"
+        },
+        {
+          "source": "src/xui/core/xui_input.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_core_xui_input.c.o",
+          "sha256": "6141db67049c08cee4ee0ba02625444de02c54e8e709d53f6ff3858bb6dd02ed"
+        },
+        {
+          "source": "src/xui/core/xui_icon.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_core_xui_icon.c.o",
+          "sha256": "595c277687cb20429e98428627ebef00bb5dba2c00dbc374fcf46e15299e0690"
+        },
+        {
+          "source": "src/xui/core/xui_assets.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_core_xui_assets.c.o",
+          "sha256": "d6979f56bbf8ea6467d3ebfbec04606eae1dccfc0d86ed466afef3efe667bcbd"
+        },
+        {
+          "source": "src/xui/core/xui_builtin_atlas.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_core_xui_builtin_atlas.c.o",
+          "sha256": "cfcb3f7336b2df1e3944694446bf8ac2226e95ebecebf11ea6129628d1d2f7ef"
+        },
+        {
+          "source": "src/xui/core/xui_text.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_core_xui_text.c.o",
+          "sha256": "cd719f1c7cc0043031ea0060a0a01dfe004809ed18b8cc8771480898776c59c6"
+        },
+        {
+          "source": "src/xui/controls/xui_label.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_label.c.o",
+          "sha256": "9f89c74f4362f97339d2d15b0feea633d3ab29ac67f3125e0a037c501f51f737"
+        },
+        {
+          "source": "src/xui/controls/xui_hyperlink.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_hyperlink.c.o",
+          "sha256": "88564dfbe6f8cede9fa43a8f3a3182c532c2241202acf76de239006ec791bbc2"
+        },
+        {
+          "source": "src/xui/controls/xui_breadcrumb.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_breadcrumb.c.o",
+          "sha256": "75b175ab63e45539763ab310d9cb9f120209a68777ee89a4168519d5f14dcdb9"
+        },
+        {
+          "source": "src/xui/controls/xui_image.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_image.c.o",
+          "sha256": "a2fca708baa49a47953bdf8fdf6ceb388fcd427be00575f9eeab73677ca5385b"
+        },
+        {
+          "source": "src/xui/controls/xui_qrcode.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_qrcode.c.o",
+          "sha256": "d1dc462ffeddd29df58aff9e74e8822d0e2ea437aa360ea3798a16abbf1b92f5"
+        },
+        {
+          "source": "src/xui/controls/xui_panel.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_panel.c.o",
+          "sha256": "1792d59ad195ef067bc89ad5220a5facd82471d4576bb1ca16f2f15f128c85cb"
+        },
+        {
+          "source": "src/xui/controls/xui_button.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_button.c.o",
+          "sha256": "9228895262da1a474a838a13cac8b1cecf83075653ffdd23ac8be99f8cd99dd1"
+        },
+        {
+          "source": "src/xui/controls/xui_checkbox.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_checkbox.c.o",
+          "sha256": "e85ccf346d3e8bf81825960bad626c6e173d9cea5d17b70b88efff4fae358799"
+        },
+        {
+          "source": "src/xui/controls/xui_check_card.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_check_card.c.o",
+          "sha256": "bb7d53485195c37b469cff72080c7e8a6a2144c762cfa3aa33f58b5b634443ae"
+        },
+        {
+          "source": "src/xui/controls/xui_radio.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_radio.c.o",
+          "sha256": "695e30f91fc7fa8df97f66c2d7d98f00475f5873d05285041848ff0b0fb3ac9f"
+        },
+        {
+          "source": "src/xui/controls/xui_toggle.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_toggle.c.o",
+          "sha256": "4e5cd0982153973e01b54e34a805c44b5ee81de352d83bda1ae71920a8dc983e"
+        },
+        {
+          "source": "src/xui/controls/xui_progress.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_progress.c.o",
+          "sha256": "88b2c4ca6e599e3fc97503c14da3ef936d5b98e37f888cbb84a6d1e9f20b6e37"
+        },
+        {
+          "source": "src/xui/controls/xui_step_bar.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_step_bar.c.o",
+          "sha256": "e205d446b60d458d47cfde90205d58aacaa3e700804ea2c3213e2588a18029f0"
+        },
+        {
+          "source": "src/xui/controls/xui_slider.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_slider.c.o",
+          "sha256": "20de2c088ac128d653cbf6cc2d88bf7220a116e948fe0e871986b3b8c06334a6"
+        },
+        {
+          "source": "src/xui/controls/xui_range_slider.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_range_slider.c.o",
+          "sha256": "42e903b54651c243ce2c6cb648ebb9c735305bb74f2bd752d5dafbbafcf7dd1f"
+        },
+        {
+          "source": "src/xui/controls/xui_page.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_page.c.o",
+          "sha256": "3e343d4018639fd785d641239850a70a4c6ba7f07bd887ccfb22222a14ca1847"
+        },
+        {
+          "source": "src/xui/controls/xui_carousel.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_carousel.c.o",
+          "sha256": "91d2afb197795266e09a88837f2cdf61e9b9bac8e1de583717d38184c758349a"
+        },
+        {
+          "source": "src/xui/controls/xui_virtual_joystick.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_virtual_joystick.c.o",
+          "sha256": "ad02cb704d2b9310ddab06dd59d8ffa9341309b0dfbf74b30f1c760ffe87bf38"
+        },
+        {
+          "source": "src/xui/controls/xui_inventory_grid.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_inventory_grid.c.o",
+          "sha256": "2090cbedfaf741fa42b363668357ec402aab13c78132cf880342208a5ceca01d"
+        },
+        {
+          "source": "src/xui/controls/xui_terminal.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_terminal.c.o",
+          "sha256": "611808bd332c4f760492bed8ee19da0c3224be467479c7266f7cfb0d8480c7dc"
+        },
+        {
+          "source": "src/xui/controls/xui_separator.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_separator.c.o",
+          "sha256": "509bba81e2ae611d88b2b9bccc3419926600e747328a8705ad3c8d751ce13014"
+        },
+        {
+          "source": "src/xui/controls/xui_split_layout.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_split_layout.c.o",
+          "sha256": "383b6c563edc1ce21bf46070246378144a4bef7fe4777377ebbee9808b9c6955"
+        },
+        {
+          "source": "src/xui/core/xui_scroll_model.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_core_xui_scroll_model.c.o",
+          "sha256": "9fb47b252fb61609c20e52f1c2fb1d3b802af1dd0aa8ada1c2a2d51cf433e39b"
+        },
+        {
+          "source": "src/xui/controls/xui_scrollbar.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_scrollbar.c.o",
+          "sha256": "aa7255f66acbd68f22147691c922a64bb68fd5b9976fdf5f0d604b856ef847aa"
+        },
+        {
+          "source": "src/xui/controls/xui_scroll_frame.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_scroll_frame.c.o",
+          "sha256": "4cee12efeb6f4fd4f9a5b0325573f6554fbfc1105b46127af95d61d049520faf"
+        },
+        {
+          "source": "src/xui/controls/xui_scroll_view.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_scroll_view.c.o",
+          "sha256": "d4b46dff43c78f01efc72033691bfa3d3aaa3f821d6ed9011a07796074904ee2"
+        },
+        {
+          "source": "src/xui/controls/xui_canvas.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_canvas.c.o",
+          "sha256": "ce679ac7fff66d652b9a68f118e6b6cecd53550c36de46553686d348382ed42e"
+        },
+        {
+          "source": "src/xui/controls/xui_popup.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_popup.c.o",
+          "sha256": "de52ee45c77918a4f08a4d148c87c392246c60a7d7bb393c5c14e99d95da6c28"
+        },
+        {
+          "source": "src/xui/controls/xui_menu.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_menu.c.o",
+          "sha256": "a517fab0e7ffcbcf0679a052bd421db17c72fa53c7dfb1c7ee598dbb8e5629ee"
+        },
+        {
+          "source": "src/xui/controls/xui_menubar.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_menubar.c.o",
+          "sha256": "71c078ad7789b6278b0059cee5c928b49663d4b1becf218e97f3dba6bca2d96e"
+        },
+        {
+          "source": "src/xui/controls/xui_toolbar.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_toolbar.c.o",
+          "sha256": "8c88cfaac32bfe57d3f3d0a8a6f54c17bc8d6438bdf49bea5bf7ab65ccddee89"
+        },
+        {
+          "source": "src/xui/controls/xui_statusbar.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_statusbar.c.o",
+          "sha256": "f1cd1f20fc2276e31322cbfaa8d5715cc384e8b21e57960581c0115a65e962cf"
+        },
+        {
+          "source": "src/xui/controls/xui_accordion.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_accordion.c.o",
+          "sha256": "ff071f2a373f0637398fb899818ca3af6b8dcf5c94f0fe77fa497ce2d02208ab"
+        },
+        {
+          "source": "src/xui/controls/xui_list_view.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_list_view.c.o",
+          "sha256": "55bc27dc35f813858bd39ad07a80c6bd5ddf0539c798013ab5b024819108f5e8"
+        },
+        {
+          "source": "src/xui/controls/xui_table_cell_output.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_table_cell_output.c.o",
+          "sha256": "f993eca7659fb9591584e4f0fd390d1075d7ba4a24fd99b123bf0e7b260f72b2"
+        },
+        {
+          "source": "src/xui/controls/xui_table_view.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_table_view.c.o",
+          "sha256": "b81e14024b0e8058625d4c1fe570a3b4dbfb3765cc5788c8eaa870708254764c"
+        },
+        {
+          "source": "src/xui/controls/xui_table_grid_config_output.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_table_grid_config_output.c.o",
+          "sha256": "66a0cdbd481ea72c4735a74f75e5b669ac7ca7d0921c32476c0a5dbfce1d94ba"
+        },
+        {
+          "source": "src/xui/controls/xui_table_grid.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_table_grid.c.o",
+          "sha256": "4798c933d36156a9720fc966e0a3a7ff12096ed0c118affc7b8b1a3d71e9e8df"
+        },
+        {
+          "source": "src/xui/controls/xui_tree_view.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_tree_view.c.o",
+          "sha256": "1c48a702524d9ee1682e63e005ddffd48a2374c63040346aeded3e3a181dc583"
+        },
+        {
+          "source": "src/xui/controls/xui_tabs.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_tabs.c.o",
+          "sha256": "a17106cb53e5aaf7c49fb67933dff1f8ff027d80dbae4560ede9f8435ef477ea"
+        },
+        {
+          "source": "src/xui/controls/xui_window_frame.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_window_frame.c.o",
+          "sha256": "bdaffdc51f67a6e773969952219bacdfc91c8a9571f2161e611d53bd243d41b0"
+        },
+        {
+          "source": "src/xui/controls/xui_window.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_window.c.o",
+          "sha256": "a8eb46b00a47185b15e49ccc2ce3f1387aa4063220b4dab5d4374e69d407868e"
+        },
+        {
+          "source": "src/xui/controls/xui_msgbox.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_msgbox.c.o",
+          "sha256": "901df76c27aa382c124818d65ddd1f0d9ab39af051c290f12cbef4e31e0cca8e"
+        },
+        {
+          "source": "src/xui/controls/xui_file_dialog.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_file_dialog.c.o",
+          "sha256": "48c75ec05668e8d489184f45fae30025d592b45292dd43406d580b6ef4d8e14a"
+        },
+        {
+          "source": "src/xui/controls/xui_msgtip.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_msgtip.c.o",
+          "sha256": "c3f11b822793eed743772cf1703a24aec0298071b79b4117ac3dceaea81720b1"
+        },
+        {
+          "source": "src/xui/controls/xui_toast.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_toast.c.o",
+          "sha256": "3adbcd392fdab97fe3c2761f7b7d0186c214c8fdedbd0e0bbe6fdd5411cc340b"
+        },
+        {
+          "source": "src/xui/core/xui_input_widget.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_core_xui_input_widget.c.o",
+          "sha256": "a38854dfd20074875f998b40a21137d00ab933a13e924d1e92da027f42c661e0"
+        },
+        {
+          "source": "src/xui/controls/xui_tag_input.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_tag_input.c.o",
+          "sha256": "eb1b78bd5a172bfc48484d5bfa02c1e133635b86f29884a2c97516c80762a0bc"
+        },
+        {
+          "source": "src/xui/controls/xui_numeric_input.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_numeric_input.c.o",
+          "sha256": "08d36ba1ef03b21d32c4054c65e6b7342bbcf418bedba202bda7f6f6a176bf99"
+        },
+        {
+          "source": "src/xui/controls/xui_find.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_find.c.o",
+          "sha256": "c07ccf7934106c6006c30a06bdee77a1a289a0999b21afe9f9aedb18f5f552ae"
+        },
+        {
+          "source": "src/xui/core/xui_text_edit.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_core_xui_text_edit.c.o",
+          "sha256": "4b889cabadf2214ba3ad9403943b5cd7c32df9bfd6de074995c8ab340661d8b0"
+        },
+        {
+          "source": "src/xui/controls/xui_combobox.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_combobox.c.o",
+          "sha256": "a9b28672863622d733e6597b896e1c20b9596a6e95f5e4346ce7ef6b1324d88d"
+        },
+        {
+          "source": "src/xui/controls/xui_cascader.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_cascader.c.o",
+          "sha256": "f80f18bc06b58ad43d41a249f3715b33f40e9b4bd16c7a0db2fe331d27d38770"
+        },
+        {
+          "source": "src/xui/controls/xui_color_picker.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_color_picker.c.o",
+          "sha256": "c370a24428ef6922d128de0bd5359c488dc78fe95971edf7d593a73b50a7e896"
+        },
+        {
+          "source": "src/xui/core/xui_icon_picker.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_core_xui_icon_picker.c.o",
+          "sha256": "9823287d815ad0336afc8ce8498a432a686eaa8cc9683def234c989d06664fcb"
+        },
+        {
+          "source": "src/xui/controls/xui_date_picker.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_date_picker.c.o",
+          "sha256": "aad9c299bd8678d347c6380ba25f3aa5002ab385bae3b629f2746ecf630a268f"
+        },
+        {
+          "source": "src/xui/controls/xui_property_grid.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_property_grid.c.o",
+          "sha256": "724ae77f6801c99e4ab3664b5d9e35d7aca5744c1ddd32639f489fefc945451e"
+        },
+        {
+          "source": "src/xui/controls/xui_dock_panel.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_dock_panel.c.o",
+          "sha256": "b6f4210b1d8cce3a1481dd40c2c24221c27002357eff08828977245a046ad724"
+        },
+        {
+          "source": "src/xui/controls/xui_chart.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_chart.c.o",
+          "sha256": "11735d7746f1bf14f077c6deefde5b54cd46e6bc12751d4c258e018ae9103a22"
+        },
+        {
+          "source": "src/xui/workflow/xui_flow_graph.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_workflow_xui_flow_graph.c.o",
+          "sha256": "3a9a23dc7ba6c930ee8a60d1a7830964baca370a7ded477176ec21bf389c53b3"
+        },
+        {
+          "source": "src/xui/workflow/xui_flow_graph_widget.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_workflow_xui_flow_graph_widget.c.o",
+          "sha256": "8667915e7de03eaa116912d4aa36bd398402aaa39c3a3f4200b90081adf077be"
+        },
+        {
+          "source": "src/xui/workflow/xui_workflow.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_workflow_xui_workflow.c.o",
+          "sha256": "4dee5ef58f005cb6257f1398e1d8b5b52b9d7cbdfb251bcaab349197eca7fa1b"
+        },
+        {
+          "source": "src/xui/workflow/xui_workflow_widget.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_workflow_xui_workflow_widget.c.o",
+          "sha256": "b4fc58e012a3ef73ba770d5eaa5523e1688e5c2518421537d235cd87edb269cb"
+        },
+        {
+          "source": "src/xui/controls/xui_message_list.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_message_list.c.o",
+          "sha256": "3f4b3550df1669d74f9a2a236400e43773a2340443d4101137711c0e92709648"
+        },
+        {
+          "source": "src/xui/controls/xui_timeline_view.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_controls_xui_timeline_view.c.o",
+          "sha256": "3359b689d8ac5460598965459c9c278c534b0db2e75be54d02dd3545c00104cd"
+        },
+        {
+          "source": "src/xui/code/xui_code_document.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_code_xui_code_document.c.o",
+          "sha256": "f1aa77983f7b2e4b34f81e2a898ca91253f59c977c23d0baae47cb149f75af06"
+        },
+        {
+          "source": "src/xui/code/xui_code_selection.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_code_xui_code_selection.c.o",
+          "sha256": "4af134713a7ac04164aa6e6e16b5b24706fdfa389c64a44169d3bfbeb1463d12"
+        },
+        {
+          "source": "src/xui/code/xui_code_theme.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_code_xui_code_theme.c.o",
+          "sha256": "29d0c0d3a275bbcc13c6bd3a2eafa11f283ba978f0bd471406711aaa98d08632"
+        },
+        {
+          "source": "src/xui/code/xui_code_fold_state.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_code_xui_code_fold_state.c.o",
+          "sha256": "6f191fe7c9b03db029cbc52e3c090c5549e0e532a6de6ffc5fecc71cdc7251e4"
+        },
+        {
+          "source": "src/xui/code/xui_code_annotation.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_code_xui_code_annotation.c.o",
+          "sha256": "ee9993898ec99b46039f0ab416d9280564890e8a97671d0f3209651c28c6cccb"
+        },
+        {
+          "source": "src/xui/code/xui_code_token_buffer.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_code_xui_code_token_buffer.c.o",
+          "sha256": "20029d7e9a3be065e9057b5f3625853a66c89d2f25a287d2638406d0789f786f"
+        },
+        {
+          "source": "src/xui/code/xui_code_provider.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_code_xui_code_provider.c.o",
+          "sha256": "598820e2b39c67d245a32bb40a6e8c57d0588d9938e19b8fb72908b8986aa7e0"
+        },
+        {
+          "source": "src/xui/code/xui_code_margin.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_code_xui_code_margin.c.o",
+          "sha256": "cc4622107cb91e0cc55f262ee846586752a7b626b8bb62d520a511512f517369"
+        },
+        {
+          "source": "src/xui/code/xui_code_command.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_code_xui_code_command.c.o",
+          "sha256": "7c104c5d189c575c9c7d12b7aadb2fb981e9c8c6bdccecb1a6ec595a94500110"
+        },
+        {
+          "source": "src/xui/code/xui_code_fold.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_code_xui_code_fold.c.o",
+          "sha256": "5461122d9e3b9a3e64e6d4a1271a5faa0c655c103e179364bf0382cdff2d25e0"
+        },
+        {
+          "source": "src/xui/code/xui_code_editing.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_code_xui_code_editing.c.o",
+          "sha256": "c42b41094d1d74e6235e3e994273062352b83dd043e677927a54c917a56b3dcf"
+        },
+        {
+          "source": "src/xui/code/xui_code_lexer_c.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_code_xui_code_lexer_c.c.o",
+          "sha256": "2f28e187bed5f40ba0104a0154b894c86d40e30d25e46442606a973eafbb5fc1"
+        },
+        {
+          "source": "src/xui/code/xui_code_lexer.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_code_xui_code_lexer.c.o",
+          "sha256": "0db8244b6d320dc2ac3792c783bb69422c06ac0b20bb72f929ca77d39c86dc4c"
+        },
+        {
+          "source": "src/xui/code/xui_code_language.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_code_xui_code_language.c.o",
+          "sha256": "2a42ed662e0938bc175f4846b21cd1d2c038f25953e7f6ba60666f0c0a599b99"
+        },
+        {
+          "source": "src/xui/code/xui_code_search.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_code_xui_code_search.c.o",
+          "sha256": "472d9e4293784c727b27b6227fbd9062c326e5be7dcfa6097bbd28a7f9237004"
+        },
+        {
+          "source": "src/xui/code/xui_code_layout.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_code_xui_code_layout.c.o",
+          "sha256": "87f4bf03cf64d40a94e7ed120a979280081f5cc26316dcedb0948edb92705545"
+        },
+        {
+          "source": "src/xui/code/xui_code_bracket.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_code_xui_code_bracket.c.o",
+          "sha256": "59d928cf6978125c485b6d75cec2b0a9136ff2e97f80225b29c4d6a6cc3c844f"
+        },
+        {
+          "source": "src/xui/code/xui_code_edit.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_code_xui_code_edit.c.o",
+          "sha256": "e24ce981933cdf5abd966d8776b59c93a96846eb95958eff22ed3d23f44592b5"
+        },
+        {
+          "source": "src/xui/core/xui_proxy_resource.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_core_xui_proxy_resource.c.o",
+          "sha256": "c92ab1c1ab48bb4ede526f596a07ba382d36de4a0b6b09b8ccc4b2c5f29730a9"
+        },
+        {
+          "source": "src/xui/core/xui_owned_resource_slots.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_core_xui_owned_resource_slots.c.o",
+          "sha256": "7720f59079fcb82bd9749cd2621c2c7348e2795d16bd409cc8a90dbac8528a99"
+        },
+        {
+          "source": "src/xui/core/xui_owned_manager.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_core_xui_owned_manager.c.o",
+          "sha256": "5d520c2b93ebc4e48e31dcee2bee56229155e81ee69efd3ebc8702a2ecc94059"
+        },
+        {
+          "source": "src/xui/core/xui_proxy_xge.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_core_xui_proxy_xge.c.o",
+          "sha256": "5a2d7fb5584e72a571d9618639dadd7736b3c4b21db2fe9dac6a33d9b0c87c0c"
+        },
+        {
+          "source": "src/xui/core/xui_edit.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_core_xui_edit.c.o",
+          "sha256": "4d6c21b16f3c606a5481072e613afca03477e801aff549945412e3ef5eba118f"
+        },
+        {
+          "source": "src/xui/core/xui_drag_drop.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_core_xui_drag_drop.c.o",
+          "sha256": "af61a2aac55243112414ea48a3e951f8f4dcacaa0c8fba588c723d490c48d438"
+        },
+        {
+          "source": "src/xui/accessibility/xui_accessibility.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_accessibility_xui_accessibility.c.o",
+          "sha256": "0b533d01da497e9f40e35cfa5de82fa041b8443b1c00dc6a1afe972882463347"
+        },
+        {
+          "source": "src/xui/core/xui_text_bidi.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_core_xui_text_bidi.c.o",
+          "sha256": "4c0ceda3a6922dc6e0020e12dcae4421c68b1f594442ab78f2d799116dc7078d"
+        },
+        {
+          "source": "src/xui/document/xui_document_layout.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_layout.c.o",
+          "sha256": "650e2a476232053da2d4480d93b90105c3f49e2ecb68a26774ea1abde01e9def"
+        },
+        {
+          "source": "src/xui/document/xui_document_renderer.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_renderer.c.o",
+          "sha256": "13dea6d4d9199f50444279275b488755b828332ae6c94a0be691c005cb8ec2c5"
+        },
+        {
+          "source": "src/xui/document/xui_document_image_resource.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_image_resource.c.o",
+          "sha256": "91209b008526fa90cb0ae6d1f4c31379e0b2a52038dda4f88915df247055fecc"
+        },
+        {
+          "source": "src/xui/document/xui_document_image_async.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_image_async.c.o",
+          "sha256": "ca8ada9a2af9a1cee7ede1974baa5a2fd293b9344c22e9ad507e2bbded42edf5"
+        },
+        {
+          "source": "src/xui/document/xui_document_view.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_view.c.o",
+          "sha256": "943b4f5d7bd6c010225970a88f6b0244bc2e94fa090052b7d9b084e213fe63ac"
+        },
+        {
+          "source": "src/xui/document/xui_document_editor.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_editor.c.o",
+          "sha256": "44490cf27f7f3d410d7eb93181c6f4a7a367b2ce9e04190930e3521425604324"
+        },
+        {
+          "source": "src/xui/document/xui_document_find_ui.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_find_ui.c.o",
+          "sha256": "4600311c6734a0aa71be5a4668a9db88798798b41547bf417cb9caeda8597a2d"
+        },
+        {
+          "source": "src/xui/document/xui_document_toolbar.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_toolbar.c.o",
+          "sha256": "eeb9d93be944256672739e4ef163b45205e9872518f7a0b12e94a4d77d7f0fcc"
+        },
+        {
+          "source": "src/xui/document/xui_document_edit_adapter.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_edit_adapter.c.o",
+          "sha256": "00b70f58936f7621e5a372e2cba78295e76b39487c9286668a7838ce9b577bd8"
+        },
+        {
+          "source": "src/xui/document/xui_document_html_interaction.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_html_interaction.c.o",
+          "sha256": "4aa8906ef427061b972417b0e70f14f43ff15e830f842b36875add50c0fa76c9"
+        },
+        {
+          "source": "src/xui/document/xui_document_web_provider.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_web_provider.c.o",
+          "sha256": "32f11e8aeb69f3b6abc986abfee05d644d35f899a27946921db630fd9ea0a1b8"
+        },
+        {
+          "source": "src/xui/document/xui_webview.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_webview.c.o",
+          "sha256": "abbaa40261a8b1112003a7c396b23044318953f862f9c92431e6ff93f8ca4de2"
+        },
+        {
+          "source": "src/xui/document/xui_document_store.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_store.c.o",
+          "sha256": "03c4c9206fc4bedbbeeb3ab3c1e8a7024de708a9d885c13984af577bc6a1383c"
+        },
+        {
+          "source": "src/xui/document/xui_document.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document.c.o",
+          "sha256": "4e289edf13788cedeb60cdc42a626aaa77327d6748dbea20ecaab36d3e8a073d"
+        },
+        {
+          "source": "src/xui/document/xui_document_owned.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_owned.c.o",
+          "sha256": "670d2de2cfadc4ed48785898bf64c686f5463da0fc887b8713d7bc07580a7dd5"
+        },
+        {
+          "source": "src/xui/document/xui_document_schema.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_schema.c.o",
+          "sha256": "4e87c0f05e64073b375a4b5f41691361e195e793f41e7e7574a924c91dda32da"
+        },
+        {
+          "source": "src/xui/document/xui_document_position.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_position.c.o",
+          "sha256": "c494bef14fc04b354fee50d93267ccc4e39fee3181582818b9e9fe37691e04e3"
+        },
+        {
+          "source": "src/xui/document/xui_document_range.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_range.c.o",
+          "sha256": "701ad3b1780190be0e2fd8c48ae4aaff9a1262daede0b3fec421f4d4603dd639"
+        },
+        {
+          "source": "src/xui/document/xui_document_commands.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_commands.c.o",
+          "sha256": "289f7b72f7ab8ae04e791d05b5e4d6e13e2c5fde7740e81f1d57177234f4ff98"
+        },
+        {
+          "source": "src/xui/document/xui_document_markdown.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_markdown.c.o",
+          "sha256": "5dd63debc932aea2f379bf775a637623047ea9d90b566b47a1d5bb5adb8cecaf"
+        },
+        {
+          "source": "src/xui/document/xui_document_reconcile.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_reconcile.c.o",
+          "sha256": "10262187444e62e3e6c36a5e82e257844d415a134564bc43b38c27a5ed3fbcf8"
+        },
+        {
+          "source": "src/xui/document/xui_document_md4c.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_md4c.c.o",
+          "sha256": "2938c894b36b98bff940eef49387ae307f158be0f7c0625cf795b29e8ed586de"
+        },
+        {
+          "source": "src/xui/document/xui_document_io.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_io.c.o",
+          "sha256": "a79352a0ae0ce53172bc6073d4fed64a1f7e226621635bee683d7d5406449f73"
+        },
+        {
+          "source": "src/xui/document/xui_document_html.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_html.c.o",
+          "sha256": "a1e58e41ceb74a5c88c350f4d9b93f5aaf6a1491b283cbc7509b6d88ad26f727"
+        },
+        {
+          "source": "src/xui/document/xui_document_equivalent.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_equivalent.c.o",
+          "sha256": "4ece776080e780d32b40f73632b4354b1d068e0aab69adf232b950aaab6bbcb8"
+        },
+        {
+          "source": "extlibs/md4c/entity.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\extlibs_md4c_entity.c.o",
+          "sha256": "21c88c3f5214436f2ddd83ea684aa9cdc4045fa930ae1bd234a61d607d1cd3f3"
+        },
+        {
+          "source": "src/xui/document/xui_document_table.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_table.c.o",
+          "sha256": "d838957b336e9a41708d9c499a9201c4c0996abad3d86efbc14cf2569f99f16f"
+        },
+        {
+          "source": "src/xui/document/xui_document_fragment.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_fragment.c.o",
+          "sha256": "59543aa4b1ea02d8c157dc9be5a0c8820ad73a2d28dbd853e70e464f8921b4c8"
+        },
+        {
+          "source": "src/xui/document/xui_document_html_import.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_html_import.c.o",
+          "sha256": "dcfd81419e89ac6436e82ccf1c5c8cc31f7bc6a48b336c0f11e666d8c42a2abd"
+        },
+        {
+          "source": "src/xui/document/xui_document_convert.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_convert.c.o",
+          "sha256": "22cb6fcc1d5899850b3195da87335f0efb4e72cff121cb291f4656752fe6ad3c"
+        },
+        {
+          "source": "src/xui/document/xui_document_markdown_edit.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_markdown_edit.c.o",
+          "sha256": "afdae62e4f2de1d3ece941bafe7032aa59e6ba4477f723a9569fdd721de7d289"
+        },
+        {
+          "source": "src/xui/document/xui_document_search.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_search.c.o",
+          "sha256": "a2cdd0d3ce6cc674a6ff6460757fe546d1a52f1bf896113da41fc3a3679619bf"
+        },
+        {
+          "source": "src/xui/core/xui_unicode.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_core_xui_unicode.c.o",
+          "sha256": "cb06e404b28c7cc3e19b6622be9e137a049f5e3ea2e5b4b85443c7b5519e273a"
+        },
+        {
+          "source": "src/xui/document/xui_document_file.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_file.c.o",
+          "sha256": "fbcad1757316579bff73f00e4e57d1e778f71f5b2e41012a5c2bbc0644a467c8"
+        },
+        {
+          "source": "src/xui/document/xui_document_source.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_source.c.o",
+          "sha256": "e71969b15eaec50978e19a7b803f2e7df2c0b438911874fa0da5c3effa4a1739"
+        },
+        {
+          "source": "src/xui/document/xui_document_reference.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_reference.c.o",
+          "sha256": "2505ba1665983f026633341f896bd2106bb5b423ad0a6e71c015a72bfb0e5068"
+        },
+        {
+          "source": "src/xui/document/xui_document_memory.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_memory.c.o",
+          "sha256": "8b1fcd3fd1b621d8fb211c28ba19457b9bf55ac9858371fa89031d6e4d73befc"
+        },
+        {
+          "source": "src/xui/document/xui_document_prepare.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_prepare.c.o",
+          "sha256": "f49e47d1550cd800b7d53a4b737825d847df451757334467ca1f0a840cc04c5c"
+        },
+        {
+          "source": "src/xui/document/xui_document_publish.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_publish.c.o",
+          "sha256": "c3ff5b83a922319526c407ff9bf9debcb2f1da88d282d358f8e9d093d51dd18d"
+        },
+        {
+          "source": "src/xui/document/xui_document_incremental.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_incremental.c.o",
+          "sha256": "4aca062b200986de7980f6fe0b7848f524481e547032c0439301e871dc811514"
+        },
+        {
+          "source": "src/xui/document/xui_document_sequence_share.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\src_xui_document_xui_document_sequence_share.c.o",
+          "sha256": "9a95daf393e6f8258cf3dd626c6126b0acfbcce3d4f870bdb8cb5af2249aed7c"
+        },
+        {
+          "source": "extlibs/xrt/extlibs/xllm/src/llm/xllm_core.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\extlibs_xrt_extlibs_xllm_src_llm_xllm_core.c.o",
+          "sha256": "9a6e62f3a8b2c0a83bc17a37dc638927bdd9c10fa3081845a5c9f113f74dace8"
+        },
+        {
+          "source": "extlibs/xrt/extlibs/xllm/src/llm/xllm_profile.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\extlibs_xrt_extlibs_xllm_src_llm_xllm_profile.c.o",
+          "sha256": "ba0d5ebdad69ce9b0260679346ba82074fcc53b40c16d61273543d04347ea6b3"
+        },
+        {
+          "source": "extlibs/xrt/extlibs/xllm/src/llm/xllm_parts.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\extlibs_xrt_extlibs_xllm_src_llm_xllm_parts.c.o",
+          "sha256": "e44f676dca9258c37e95ecaf9472cc77e8b29ba34fad703dec9908a830a9114a"
+        },
+        {
+          "source": "extlibs/xrt/extlibs/xllm/src/llm/xllm_history.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\extlibs_xrt_extlibs_xllm_src_llm_xllm_history.c.o",
+          "sha256": "e2030352dbec05cf19fe57048fffb9a4a56646ae6ca6734d67c2130c1874b21c"
+        },
+        {
+          "source": "extlibs/xrt/extlibs/xllm/src/llm/xllm_sse.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\extlibs_xrt_extlibs_xllm_src_llm_xllm_sse.c.o",
+          "sha256": "df69ede059f40494b54f7b68686d8fe618061cd8fce0266859042ca6312e771b"
+        },
+        {
+          "source": "extlibs/xrt/extlibs/xllm/src/llm/xllm_assemble.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\extlibs_xrt_extlibs_xllm_src_llm_xllm_assemble.c.o",
+          "sha256": "06024d56c5cb852e910f22652f6ae0654f3d6bb468a66fb0f842ebac57f0e042"
+        },
+        {
+          "source": "extlibs/xrt/extlibs/xllm/src/llm/xllm_dialect.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\extlibs_xrt_extlibs_xllm_src_llm_xllm_dialect.c.o",
+          "sha256": "38636dc6a6cb849eb97280279bd19713122586fa960ffb1a81c8ea1f8efc1586"
+        },
+        {
+          "source": "extlibs/xrt/extlibs/xllm/src/llm/dialect_completions.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\extlibs_xrt_extlibs_xllm_src_llm_dialect_completions.c.o",
+          "sha256": "48d14e61b56bf7bd26037f544978aa7d6ca988ab42a1021fc3c6b783ab72aef9"
+        },
+        {
+          "source": "extlibs/xrt/extlibs/xllm/src/llm/dialect_anthropic.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\extlibs_xrt_extlibs_xllm_src_llm_dialect_anthropic.c.o",
+          "sha256": "9dbb785f171e736605ed18e96c0f28ebbcbc238b5eb43781ba3b0733870900fc"
+        },
+        {
+          "source": "extlibs/xrt/extlibs/xllm/src/llm/dialect_responses.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\extlibs_xrt_extlibs_xllm_src_llm_dialect_responses.c.o",
+          "sha256": "a04df8d7f560427df093ee91c54cbcaf1f1bcb4a505d772789b1e0fdc4b5946f"
+        },
+        {
+          "source": "extlibs/xrt/extlibs/xllm/src/llm/xllm_transport.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\extlibs_xrt_extlibs_xllm_src_llm_xllm_transport.c.o",
+          "sha256": "fc32289fd6cbc36bfe08232ce1376fab476051d561dc80efe7ee98c8a1c84479"
+        },
+        {
+          "source": "extlibs/xrt/extlibs/xllm/src/llm/xllm_client.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\extlibs_xrt_extlibs_xllm_src_llm_xllm_client.c.o",
+          "sha256": "a697f27582d8ab077da039be349bf1f597a9e28a6ce3bc13b81a8961d2f5838d"
+        },
+        {
+          "source": "extlibs/xrt/extlibs/xllm-session/src/session/xllm_session_core.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\extlibs_xrt_extlibs_xllm-session_src_session_xllm_session_core.c.o",
+          "sha256": "764662948b472303f124d0a21299fa14f63ff68fc3b54d3eb1b58ef480681a86"
+        },
+        {
+          "source": "extlibs/xrt/extlibs/xllm-session/src/session/xllm_session_govern.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\extlibs_xrt_extlibs_xllm-session_src_session_xllm_session_govern.c.o",
+          "sha256": "2888890326773a2ff0d138acb31ec2f62db4d9657fbe557ebddda16780cf8a36"
+        },
+        {
+          "source": "extlibs/xrt/extlibs/xllm-session/src/session/xllm_session_compact.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\extlibs_xrt_extlibs_xllm-session_src_session_xllm_session_compact.c.o",
+          "sha256": "ec31537f1dc1983648b14cbf0d89992a7dc2faac42fb9226453c66e63c2058d2"
+        },
+        {
+          "source": "extlibs/xrt/extlibs/xllm-session/src/session/xllm_session_render.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\extlibs_xrt_extlibs_xllm-session_src_session_xllm_session_render.c.o",
+          "sha256": "bde5b476680e5d8982bc8792ec0021cd9987f5eb151faf3d0f372b123467b75e"
+        },
+        {
+          "source": "extlibs/xrt/extlibs/xllm-session/src/session/xllm_session_easy.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\extlibs_xrt_extlibs_xllm-session_src_session_xllm_session_easy.c.o",
+          "sha256": "6fd17e7a89e94147a33b1dac3409897fd40b437f69c3e6c67b3825c8ff9505ff"
+        },
+        {
+          "source": "extlibs/xrt/extlibs/xllm-session/src/session/xllm_session_run.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\extlibs_xrt_extlibs_xllm-session_src_session_xllm_session_run.c.o",
+          "sha256": "f5d2f22cdb975494888343b48c92a4700a211148052726ca75d18b1cc83a6457"
+        },
+        {
+          "source": "extlibs/xrt/extlibs/xllm-session/src/session/xllm_session_persist.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\extlibs_xrt_extlibs_xllm-session_src_session_xllm_session_persist.c.o",
+          "sha256": "0dbead828b5fb44d99ad2deb623ff026803616c7db3b9ffd3e1f7ba3e0f679f9"
+        },
+        {
+          "source": "extlibs/xrt/extlibs/xllm-session/src/session/xllm_session_journal.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\extlibs_xrt_extlibs_xllm-session_src_session_xllm_session_journal.c.o",
+          "sha256": "db889fc83a7bbafd9399905634faaa81717da214c8ba7d774eae732e05547a3f"
+        },
+        {
+          "source": "extlibs/xrt/extlibs/xwork/src/work/xwork_core.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\extlibs_xrt_extlibs_xwork_src_work_xwork_core.c.o",
+          "sha256": "d0773ea0fe34d95061f8bdb27b0527733ae55bc7028d6dbaeb7a0ceca0e50e13"
+        },
+        {
+          "source": "extlibs/xrt/extlibs/xwork/src/work/xwork_tools.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\extlibs_xrt_extlibs_xwork_src_work_xwork_tools.c.o",
+          "sha256": "4ea3036790b2d98131f11e8967fc2b6851833d0406cd65549001d6fc8a468dd9"
+        },
+        {
+          "source": "extlibs/xrt/extlibs/xwork/src/work/xwork_mcp.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\extlibs_xrt_extlibs_xwork_src_work_xwork_mcp.c.o",
+          "sha256": "e422928848c80bded4b56bfb0549845644279e80cfa4882e1a59d2491ed22d54"
+        },
+        {
+          "source": "extlibs/xrt/extlibs/xwork/src/work/xwork_agent.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\extlibs_xrt_extlibs_xwork_src_work_xwork_agent.c.o",
+          "sha256": "f8d5034fb92586f86124c57941f2f30e38f2adfa9cf0aefc826faf77cbb199c6"
+        },
+        {
+          "source": "extlibs/xrt/extlibs/xwork/src/work/xwork_executor.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\extlibs_xrt_extlibs_xwork_src_work_xwork_executor.c.o",
+          "sha256": "473585389e0f5ec8c87eab442c1cfbe841534705d4f0326a8342f827fc2da538"
+        },
+        {
+          "source": "extlibs/xrt/extlibs/xwork/src/work/xwork_subagent.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\extlibs_xrt_extlibs_xwork_src_work_xwork_subagent.c.o",
+          "sha256": "f9131d2153a4518804f95eef1e862befcd6e023e44fc47af2c9b4fb11255751f"
+        },
+        {
+          "source": "extlibs/xrt/extlibs/xwork/src/work/xwork_explore.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\extlibs_xrt_extlibs_xwork_src_work_xwork_explore.c.o",
+          "sha256": "cfb52e7d519ff6e6e2a22c313236cdd407a7ada37d52603da278290bf8b403db"
+        },
+        {
+          "source": "extlibs/xrt/extlibs/xwork/src/work/xwork_python.c",
+          "path": "F:\\xlang-validation\\xge-code-wrap-20261108\\ide-win\\obj\\extlibs_xrt_extlibs_xwork_src_work_xwork_python.c.o",
+          "sha256": "018633bb862478d55562ec3fbb8137a30d9fd6e912643297b63579d5e5b8012b"
+        }
+      ],
+      "allQualifiedInputsUnchanged": true
+    },
+    "xrt_mode": "embedded",
+    "xrt_host_imports": [],
+    "xrt_host_header_sha256": null,
+    "features": [
+      "XGE_ENABLE_2D",
+      "XGE_ENABLE_AUDIO",
+      "XGE_ENABLE_EMOJI",
+      "XGE_ENABLE_HARFBUZZ",
+      "XGE_ENABLE_INPUT_ACTIONS",
+      "XGE_ENABLE_PARTICLES",
+      "XGE_ENABLE_SHAPE_EX",
+      "XGE_ENABLE_SVG",
+      "XGE_ENABLE_TEXT",
+      "XGE_ENABLE_XUI",
+      "XUI_ENABLE_ACCORDION",
+      "XUI_ENABLE_BREADCRUMB",
+      "XUI_ENABLE_BUTTON",
+      "XUI_ENABLE_CANVAS",
+      "XUI_ENABLE_CAROUSEL",
+      "XUI_ENABLE_CASCADER",
+      "XUI_ENABLE_CHART",
+      "XUI_ENABLE_CHECKBOX",
+      "XUI_ENABLE_CHECK_CARD",
+      "XUI_ENABLE_CODE_EDIT",
+      "XUI_ENABLE_COLOR_PICKER",
+      "XUI_ENABLE_COMBOBOX",
+      "XUI_ENABLE_DATE_PICKER",
+      "XUI_ENABLE_DOCK_PANEL",
+      "XUI_ENABLE_DOCUMENT",
+      "XUI_ENABLE_DOCUMENT_EDITOR",
+      "XUI_ENABLE_DOCUMENT_VIEW",
+      "XUI_ENABLE_FILE_DIALOG",
+      "XUI_ENABLE_FIND",
+      "XUI_ENABLE_FLOW_GRAPH",
+      "XUI_ENABLE_HYPERLINK",
+      "XUI_ENABLE_ICON_PICKER",
+      "XUI_ENABLE_IMAGE",
+      "XUI_ENABLE_INPUT",
+      "XUI_ENABLE_INVENTORY_GRID",
+      "XUI_ENABLE_LABEL",
+      "XUI_ENABLE_LIST_VIEW",
+      "XUI_ENABLE_MENU",
+      "XUI_ENABLE_MENUBAR",
+      "XUI_ENABLE_MESSAGE_LIST",
+      "XUI_ENABLE_MSGBOX",
+      "XUI_ENABLE_MSGTIP",
+      "XUI_ENABLE_NUMERIC_INPUT",
+      "XUI_ENABLE_PAGE",
+      "XUI_ENABLE_PANEL",
+      "XUI_ENABLE_POPUP",
+      "XUI_ENABLE_PROGRESS",
+      "XUI_ENABLE_PROPERTY_GRID",
+      "XUI_ENABLE_QRCODE",
+      "XUI_ENABLE_RADIO",
+      "XUI_ENABLE_RADIO_GROUP",
+      "XUI_ENABLE_RANGE_SLIDER",
+      "XUI_ENABLE_SCROLLBAR",
+      "XUI_ENABLE_SCROLL_FRAME",
+      "XUI_ENABLE_SCROLL_VIEW",
+      "XUI_ENABLE_SEPARATOR",
+      "XUI_ENABLE_SLIDER",
+      "XUI_ENABLE_SPLIT_LAYOUT",
+      "XUI_ENABLE_STATUSBAR",
+      "XUI_ENABLE_STEP_BAR",
+      "XUI_ENABLE_TABLE_GRID",
+      "XUI_ENABLE_TABLE_VIEW",
+      "XUI_ENABLE_TABS",
+      "XUI_ENABLE_TAG_INPUT",
+      "XUI_ENABLE_TERMINAL",
+      "XUI_ENABLE_TEXT_EDIT",
+      "XUI_ENABLE_TIMELINE_VIEW",
+      "XUI_ENABLE_TOAST",
+      "XUI_ENABLE_TOGGLE",
+      "XUI_ENABLE_TOOLBAR",
+      "XUI_ENABLE_TREE_VIEW",
+      "XUI_ENABLE_VIRTUAL_JOYSTICK",
+      "XUI_ENABLE_WEBVIEW",
+      "XUI_ENABLE_WINDOW",
+      "XUI_ENABLE_WORKFLOW"
+    ],
+    "sources": [
+      "single/xge.c",
+      "modules/xlayout/xlayout.c",
+      "src/xui/core/xui_core.c",
+      "src/xui/accessibility/xui_native_accessibility.c",
+      "src/xui/core/xui_widget.c",
+      "src/xui/core/xui_callback_owned.c",
+      "src/xui/core/xui_layout.c",
+      "src/xui/core/xui_input.c",
+      "src/xui/core/xui_icon.c",
+      "src/xui/core/xui_assets.c",
+      "src/xui/core/xui_builtin_atlas.c",
+      "src/xui/core/xui_text.c",
+      "src/xui/controls/xui_label.c",
+      "src/xui/controls/xui_hyperlink.c",
+      "src/xui/controls/xui_breadcrumb.c",
+      "src/xui/controls/xui_image.c",
+      "src/xui/controls/xui_qrcode.c",
+      "src/xui/controls/xui_panel.c",
+      "src/xui/controls/xui_button.c",
+      "src/xui/controls/xui_checkbox.c",
+      "src/xui/controls/xui_check_card.c",
+      "src/xui/controls/xui_radio.c",
+      "src/xui/controls/xui_toggle.c",
+      "src/xui/controls/xui_progress.c",
+      "src/xui/controls/xui_step_bar.c",
+      "src/xui/controls/xui_slider.c",
+      "src/xui/controls/xui_range_slider.c",
+      "src/xui/controls/xui_page.c",
+      "src/xui/controls/xui_carousel.c",
+      "src/xui/controls/xui_virtual_joystick.c",
+      "src/xui/controls/xui_inventory_grid.c",
+      "src/xui/controls/xui_terminal.c",
+      "src/xui/controls/xui_separator.c",
+      "src/xui/controls/xui_split_layout.c",
+      "src/xui/core/xui_scroll_model.c",
+      "src/xui/controls/xui_scrollbar.c",
+      "src/xui/controls/xui_scroll_frame.c",
+      "src/xui/controls/xui_scroll_view.c",
+      "src/xui/controls/xui_canvas.c",
+      "src/xui/controls/xui_popup.c",
+      "src/xui/controls/xui_menu.c",
+      "src/xui/controls/xui_menubar.c",
+      "src/xui/controls/xui_toolbar.c",
+      "src/xui/controls/xui_statusbar.c",
+      "src/xui/controls/xui_accordion.c",
+      "src/xui/controls/xui_list_view.c",
+      "src/xui/controls/xui_table_cell_output.c",
+      "src/xui/controls/xui_table_view.c",
+      "src/xui/controls/xui_table_grid_config_output.c",
+      "src/xui/controls/xui_table_grid.c",
+      "src/xui/controls/xui_tree_view.c",
+      "src/xui/controls/xui_tabs.c",
+      "src/xui/controls/xui_window_frame.c",
+      "src/xui/controls/xui_window.c",
+      "src/xui/controls/xui_msgbox.c",
+      "src/xui/controls/xui_file_dialog.c",
+      "src/xui/controls/xui_msgtip.c",
+      "src/xui/controls/xui_toast.c",
+      "src/xui/core/xui_input_widget.c",
+      "src/xui/controls/xui_tag_input.c",
+      "src/xui/controls/xui_numeric_input.c",
+      "src/xui/controls/xui_find.c",
+      "src/xui/core/xui_text_edit.c",
+      "src/xui/controls/xui_combobox.c",
+      "src/xui/controls/xui_cascader.c",
+      "src/xui/controls/xui_color_picker.c",
+      "src/xui/core/xui_icon_picker.c",
+      "src/xui/controls/xui_date_picker.c",
+      "src/xui/controls/xui_property_grid.c",
+      "src/xui/controls/xui_dock_panel.c",
+      "src/xui/controls/xui_chart.c",
+      "src/xui/workflow/xui_flow_graph.c",
+      "src/xui/workflow/xui_flow_graph_widget.c",
+      "src/xui/workflow/xui_workflow.c",
+      "src/xui/workflow/xui_workflow_widget.c",
+      "src/xui/controls/xui_message_list.c",
+      "src/xui/controls/xui_timeline_view.c",
+      "src/xui/code/xui_code_document.c",
+      "src/xui/code/xui_code_selection.c",
+      "src/xui/code/xui_code_theme.c",
+      "src/xui/code/xui_code_fold_state.c",
+      "src/xui/code/xui_code_annotation.c",
+      "src/xui/code/xui_code_token_buffer.c",
+      "src/xui/code/xui_code_provider.c",
+      "src/xui/code/xui_code_margin.c",
+      "src/xui/code/xui_code_command.c",
+      "src/xui/code/xui_code_fold.c",
+      "src/xui/code/xui_code_editing.c",
+      "src/xui/code/xui_code_lexer_c.c",
+      "src/xui/code/xui_code_lexer.c",
+      "src/xui/code/xui_code_language.c",
+      "src/xui/code/xui_code_search.c",
+      "src/xui/code/xui_code_layout.c",
+      "src/xui/code/xui_code_bracket.c",
+      "src/xui/code/xui_code_edit.c",
+      "src/xui/core/xui_proxy_resource.c",
+      "src/xui/core/xui_owned_resource_slots.c",
+      "src/xui/core/xui_owned_manager.c",
+      "src/xui/core/xui_proxy_xge.c",
+      "src/xui/core/xui_edit.c",
+      "src/xui/core/xui_drag_drop.c",
+      "src/xui/accessibility/xui_accessibility.c",
+      "src/xui/core/xui_text_bidi.c",
+      "src/xui/document/xui_document_layout.c",
+      "src/xui/document/xui_document_renderer.c",
+      "src/xui/document/xui_document_image_resource.c",
+      "src/xui/document/xui_document_image_async.c",
+      "src/xui/document/xui_document_view.c",
+      "src/xui/document/xui_document_editor.c",
+      "src/xui/document/xui_document_find_ui.c",
+      "src/xui/document/xui_document_toolbar.c",
+      "src/xui/document/xui_document_edit_adapter.c",
+      "src/xui/document/xui_document_html_interaction.c",
+      "src/xui/document/xui_document_web_provider.c",
+      "src/xui/document/xui_webview.c",
+      "src/xui/document/xui_document_store.c",
+      "src/xui/document/xui_document.c",
+      "src/xui/document/xui_document_owned.c",
+      "src/xui/document/xui_document_schema.c",
+      "src/xui/document/xui_document_position.c",
+      "src/xui/document/xui_document_range.c",
+      "src/xui/document/xui_document_commands.c",
+      "src/xui/document/xui_document_markdown.c",
+      "src/xui/document/xui_document_reconcile.c",
+      "src/xui/document/xui_document_md4c.c",
+      "src/xui/document/xui_document_io.c",
+      "src/xui/document/xui_document_html.c",
+      "src/xui/document/xui_document_equivalent.c",
+      "extlibs/md4c/entity.c",
+      "src/xui/document/xui_document_table.c",
+      "src/xui/document/xui_document_fragment.c",
+      "src/xui/document/xui_document_html_import.c",
+      "src/xui/document/xui_document_convert.c",
+      "src/xui/document/xui_document_markdown_edit.c",
+      "src/xui/document/xui_document_search.c",
+      "src/xui/core/xui_unicode.c",
+      "src/xui/document/xui_document_file.c",
+      "src/xui/document/xui_document_source.c",
+      "src/xui/document/xui_document_reference.c",
+      "src/xui/document/xui_document_memory.c",
+      "src/xui/document/xui_document_prepare.c",
+      "src/xui/document/xui_document_publish.c",
+      "src/xui/document/xui_document_incremental.c",
+      "src/xui/document/xui_document_sequence_share.c",
+      "extlibs/xrt/extlibs/xllm/src/llm/xllm_core.c",
+      "extlibs/xrt/extlibs/xllm/src/llm/xllm_profile.c",
+      "extlibs/xrt/extlibs/xllm/src/llm/xllm_parts.c",
+      "extlibs/xrt/extlibs/xllm/src/llm/xllm_history.c",
+      "extlibs/xrt/extlibs/xllm/src/llm/xllm_sse.c",
+      "extlibs/xrt/extlibs/xllm/src/llm/xllm_assemble.c",
+      "extlibs/xrt/extlibs/xllm/src/llm/xllm_dialect.c",
+      "extlibs/xrt/extlibs/xllm/src/llm/dialect_completions.c",
+      "extlibs/xrt/extlibs/xllm/src/llm/dialect_anthropic.c",
+      "extlibs/xrt/extlibs/xllm/src/llm/dialect_responses.c",
+      "extlibs/xrt/extlibs/xllm/src/llm/xllm_transport.c",
+      "extlibs/xrt/extlibs/xllm/src/llm/xllm_client.c",
+      "extlibs/xrt/extlibs/xllm-session/src/session/xllm_session_core.c",
+      "extlibs/xrt/extlibs/xllm-session/src/session/xllm_session_govern.c",
+      "extlibs/xrt/extlibs/xllm-session/src/session/xllm_session_compact.c",
+      "extlibs/xrt/extlibs/xllm-session/src/session/xllm_session_render.c",
+      "extlibs/xrt/extlibs/xllm-session/src/session/xllm_session_easy.c",
+      "extlibs/xrt/extlibs/xllm-session/src/session/xllm_session_run.c",
+      "extlibs/xrt/extlibs/xllm-session/src/session/xllm_session_persist.c",
+      "extlibs/xrt/extlibs/xllm-session/src/session/xllm_session_journal.c",
+      "extlibs/xrt/extlibs/xwork/src/work/xwork_core.c",
+      "extlibs/xrt/extlibs/xwork/src/work/xwork_tools.c",
+      "extlibs/xrt/extlibs/xwork/src/work/xwork_mcp.c",
+      "extlibs/xrt/extlibs/xwork/src/work/xwork_agent.c",
+      "extlibs/xrt/extlibs/xwork/src/work/xwork_executor.c",
+      "extlibs/xrt/extlibs/xwork/src/work/xwork_subagent.c",
+      "extlibs/xrt/extlibs/xwork/src/work/xwork_explore.c",
+      "extlibs/xrt/extlibs/xwork/src/work/xwork_python.c"
+    ],
+    "compiled": [
+      "src/xui/controls/xui_table_view.c"
+    ],
+    "reused": [
+      "single/xge.c",
+      "modules/xlayout/xlayout.c",
+      "src/xui/core/xui_core.c",
+      "src/xui/accessibility/xui_native_accessibility.c",
+      "src/xui/core/xui_widget.c",
+      "src/xui/core/xui_callback_owned.c",
+      "src/xui/core/xui_layout.c",
+      "src/xui/core/xui_input.c",
+      "src/xui/core/xui_icon.c",
+      "src/xui/core/xui_assets.c",
+      "src/xui/core/xui_builtin_atlas.c",
+      "src/xui/core/xui_text.c",
+      "src/xui/controls/xui_label.c",
+      "src/xui/controls/xui_hyperlink.c",
+      "src/xui/controls/xui_breadcrumb.c",
+      "src/xui/controls/xui_image.c",
+      "src/xui/controls/xui_qrcode.c",
+      "src/xui/controls/xui_panel.c",
+      "src/xui/controls/xui_button.c",
+      "src/xui/controls/xui_checkbox.c",
+      "src/xui/controls/xui_check_card.c",
+      "src/xui/controls/xui_radio.c",
+      "src/xui/controls/xui_toggle.c",
+      "src/xui/controls/xui_progress.c",
+      "src/xui/controls/xui_step_bar.c",
+      "src/xui/controls/xui_slider.c",
+      "src/xui/controls/xui_range_slider.c",
+      "src/xui/controls/xui_page.c",
+      "src/xui/controls/xui_carousel.c",
+      "src/xui/controls/xui_virtual_joystick.c",
+      "src/xui/controls/xui_inventory_grid.c",
+      "src/xui/controls/xui_terminal.c",
+      "src/xui/controls/xui_separator.c",
+      "src/xui/controls/xui_split_layout.c",
+      "src/xui/core/xui_scroll_model.c",
+      "src/xui/controls/xui_scrollbar.c",
+      "src/xui/controls/xui_scroll_frame.c",
+      "src/xui/controls/xui_scroll_view.c",
+      "src/xui/controls/xui_canvas.c",
+      "src/xui/controls/xui_popup.c",
+      "src/xui/controls/xui_menu.c",
+      "src/xui/controls/xui_menubar.c",
+      "src/xui/controls/xui_toolbar.c",
+      "src/xui/controls/xui_statusbar.c",
+      "src/xui/controls/xui_accordion.c",
+      "src/xui/controls/xui_list_view.c",
+      "src/xui/controls/xui_table_cell_output.c",
+      "src/xui/controls/xui_table_grid_config_output.c",
+      "src/xui/controls/xui_table_grid.c",
+      "src/xui/controls/xui_tree_view.c",
+      "src/xui/controls/xui_tabs.c",
+      "src/xui/controls/xui_window_frame.c",
+      "src/xui/controls/xui_window.c",
+      "src/xui/controls/xui_msgbox.c",
+      "src/xui/controls/xui_file_dialog.c",
+      "src/xui/controls/xui_msgtip.c",
+      "src/xui/controls/xui_toast.c",
+      "src/xui/core/xui_input_widget.c",
+      "src/xui/controls/xui_tag_input.c",
+      "src/xui/controls/xui_numeric_input.c",
+      "src/xui/controls/xui_find.c",
+      "src/xui/core/xui_text_edit.c",
+      "src/xui/controls/xui_combobox.c",
+      "src/xui/controls/xui_cascader.c",
+      "src/xui/controls/xui_color_picker.c",
+      "src/xui/core/xui_icon_picker.c",
+      "src/xui/controls/xui_date_picker.c",
+      "src/xui/controls/xui_property_grid.c",
+      "src/xui/controls/xui_dock_panel.c",
+      "src/xui/controls/xui_chart.c",
+      "src/xui/workflow/xui_flow_graph.c",
+      "src/xui/workflow/xui_flow_graph_widget.c",
+      "src/xui/workflow/xui_workflow.c",
+      "src/xui/workflow/xui_workflow_widget.c",
+      "src/xui/controls/xui_message_list.c",
+      "src/xui/controls/xui_timeline_view.c",
+      "src/xui/code/xui_code_document.c",
+      "src/xui/code/xui_code_selection.c",
+      "src/xui/code/xui_code_theme.c",
+      "src/xui/code/xui_code_fold_state.c",
+      "src/xui/code/xui_code_annotation.c",
+      "src/xui/code/xui_code_token_buffer.c",
+      "src/xui/code/xui_code_provider.c",
+      "src/xui/code/xui_code_margin.c",
+      "src/xui/code/xui_code_command.c",
+      "src/xui/code/xui_code_fold.c",
+      "src/xui/code/xui_code_editing.c",
+      "src/xui/code/xui_code_lexer_c.c",
+      "src/xui/code/xui_code_lexer.c",
+      "src/xui/code/xui_code_language.c",
+      "src/xui/code/xui_code_search.c",
+      "src/xui/code/xui_code_layout.c",
+      "src/xui/code/xui_code_bracket.c",
+      "src/xui/code/xui_code_edit.c",
+      "src/xui/core/xui_proxy_resource.c",
+      "src/xui/core/xui_owned_resource_slots.c",
+      "src/xui/core/xui_owned_manager.c",
+      "src/xui/core/xui_proxy_xge.c",
+      "src/xui/core/xui_edit.c",
+      "src/xui/core/xui_drag_drop.c",
+      "src/xui/accessibility/xui_accessibility.c",
+      "src/xui/core/xui_text_bidi.c",
+      "src/xui/document/xui_document_layout.c",
+      "src/xui/document/xui_document_renderer.c",
+      "src/xui/document/xui_document_image_resource.c",
+      "src/xui/document/xui_document_image_async.c",
+      "src/xui/document/xui_document_view.c",
+      "src/xui/document/xui_document_editor.c",
+      "src/xui/document/xui_document_find_ui.c",
+      "src/xui/document/xui_document_toolbar.c",
+      "src/xui/document/xui_document_edit_adapter.c",
+      "src/xui/document/xui_document_html_interaction.c",
+      "src/xui/document/xui_document_web_provider.c",
+      "src/xui/document/xui_webview.c",
+      "src/xui/document/xui_document_store.c",
+      "src/xui/document/xui_document.c",
+      "src/xui/document/xui_document_owned.c",
+      "src/xui/document/xui_document_schema.c",
+      "src/xui/document/xui_document_position.c",
+      "src/xui/document/xui_document_range.c",
+      "src/xui/document/xui_document_commands.c",
+      "src/xui/document/xui_document_markdown.c",
+      "src/xui/document/xui_document_reconcile.c",
+      "src/xui/document/xui_document_md4c.c",
+      "src/xui/document/xui_document_io.c",
+      "src/xui/document/xui_document_html.c",
+      "src/xui/document/xui_document_equivalent.c",
+      "extlibs/md4c/entity.c",
+      "src/xui/document/xui_document_table.c",
+      "src/xui/document/xui_document_fragment.c",
+      "src/xui/document/xui_document_html_import.c",
+      "src/xui/document/xui_document_convert.c",
+      "src/xui/document/xui_document_markdown_edit.c",
+      "src/xui/document/xui_document_search.c",
+      "src/xui/core/xui_unicode.c",
+      "src/xui/document/xui_document_file.c",
+      "src/xui/document/xui_document_source.c",
+      "src/xui/document/xui_document_reference.c",
+      "src/xui/document/xui_document_memory.c",
+      "src/xui/document/xui_document_prepare.c",
+      "src/xui/document/xui_document_publish.c",
+      "src/xui/document/xui_document_incremental.c",
+      "src/xui/document/xui_document_sequence_share.c",
+      "extlibs/xrt/extlibs/xllm/src/llm/xllm_core.c",
+      "extlibs/xrt/extlibs/xllm/src/llm/xllm_profile.c",
+      "extlibs/xrt/extlibs/xllm/src/llm/xllm_parts.c",
+      "extlibs/xrt/extlibs/xllm/src/llm/xllm_history.c",
+      "extlibs/xrt/extlibs/xllm/src/llm/xllm_sse.c",
+      "extlibs/xrt/extlibs/xllm/src/llm/xllm_assemble.c",
+      "extlibs/xrt/extlibs/xllm/src/llm/xllm_dialect.c",
+      "extlibs/xrt/extlibs/xllm/src/llm/dialect_completions.c",
+      "extlibs/xrt/extlibs/xllm/src/llm/dialect_anthropic.c",
+      "extlibs/xrt/extlibs/xllm/src/llm/dialect_responses.c",
+      "extlibs/xrt/extlibs/xllm/src/llm/xllm_transport.c",
+      "extlibs/xrt/extlibs/xllm/src/llm/xllm_client.c",
+      "extlibs/xrt/extlibs/xllm-session/src/session/xllm_session_core.c",
+      "extlibs/xrt/extlibs/xllm-session/src/session/xllm_session_govern.c",
+      "extlibs/xrt/extlibs/xllm-session/src/session/xllm_session_compact.c",
+      "extlibs/xrt/extlibs/xllm-session/src/session/xllm_session_render.c",
+      "extlibs/xrt/extlibs/xllm-session/src/session/xllm_session_easy.c",
+      "extlibs/xrt/extlibs/xllm-session/src/session/xllm_session_run.c",
+      "extlibs/xrt/extlibs/xllm-session/src/session/xllm_session_persist.c",
+      "extlibs/xrt/extlibs/xllm-session/src/session/xllm_session_journal.c",
+      "extlibs/xrt/extlibs/xwork/src/work/xwork_core.c",
+      "extlibs/xrt/extlibs/xwork/src/work/xwork_tools.c",
+      "extlibs/xrt/extlibs/xwork/src/work/xwork_mcp.c",
+      "extlibs/xrt/extlibs/xwork/src/work/xwork_agent.c",
+      "extlibs/xrt/extlibs/xwork/src/work/xwork_executor.c",
+      "extlibs/xrt/extlibs/xwork/src/work/xwork_subagent.c",
+      "extlibs/xrt/extlibs/xwork/src/work/xwork_explore.c",
+      "extlibs/xrt/extlibs/xwork/src/work/xwork_python.c",
+      "extlibs/harfbuzz/src/harfbuzz.cc"
+    ],
+    "linked": true,
+    "runtime_dependencies": [],
+    "seconds": 4.285893000000215,
+    "runtime_bytes": 11172104,
+    "unstripped_bytes": 13447025
+  },
+  "compatibilityPatches": {
+    "format": "xlang-ide-xge-source-patches-1",
+    "baseCommit": "2174bf5b8e68a9069bd9788bd2f73444b9a0d722",
+    "purpose": "Qualified GL startup and canonical sole-host XRT overlays; CodeEdit wrap fix committed upstream.",
+    "files": [
+      {
+        "path": "extlibs/sokol/sokol_app.h",
+        "upstreamExists": true,
+        "upstreamSha256": "42228272007c06ae5e7b256d536fb28a9bfd5ce4d16b94f74acf74fd7a948ee7",
+        "sha256": "7d725c8f3b5eb52a9dba4f5ba1c9d6cbc603a2f5c5dc712a8f0fa3b4dd5378e2",
+        "payload": "payload/extlibs/sokol/sokol_app.h",
+        "diff": "diff/extlibs/sokol/sokol_app.h.diff"
+      },
+      {
+        "path": "extlibs/xrt/xrt.h",
+        "upstreamExists": true,
+        "upstreamSha256": "4c02cd11accbd06c4e5de725b1f19bacbf44a92e4791a3819ba45540bc6e4f5d",
+        "sha256": "41bc24579f4b3207b0434755ca23dd06481af90c05f71e9b365848cf9a7c12d1",
+        "payload": "payload/extlibs/xrt/xrt.h",
+        "diff": "diff/extlibs/xrt/xrt.h.diff"
+      },
+      {
+        "path": "include/xge.h",
+        "upstreamExists": true,
+        "upstreamSha256": "580b50807a69ec568352cd0d54b59a73387287ba758d76b15334d97086159db8",
+        "sha256": "1821696314a82530f0fb06290a9ef4483083881444ebf1d00fc362a4426c68a5",
+        "payload": "payload/include/xge.h",
+        "diff": "diff/include/xge.h.diff"
+      },
+      {
+        "path": "include/xui.h",
+        "upstreamExists": true,
+        "upstreamSha256": "14e17b65e684d407bd0969e7838972a8a414c1078472295c63ca9cc20a19b0c7",
+        "sha256": "1cbae03fcb6ee4d6d4a74da941a42bb9e05e73ffc3f76fad4f79574fe34069b3",
+        "payload": "payload/include/xui.h",
+        "diff": "diff/include/xui.h.diff"
+      },
+      {
+        "path": "src/xge/core/xge_core.c",
+        "upstreamExists": true,
+        "upstreamSha256": "7d80172a6bcff23cff1d055b83509a7fcb5e6af160767ac420816638823763d0",
+        "sha256": "b87d72adc887352629ccba72bbfb642276fc68e64d283eb77391c0cc23acdf0b",
+        "payload": "payload/src/xge/core/xge_core.c",
+        "diff": "diff/src/xge/core/xge_core.c.diff"
+      },
+      {
+        "path": "src/xge/core/xge_impl.c",
+        "upstreamExists": true,
+        "upstreamSha256": "6e006fb034a1d071c5284e8b614fa1ef6d239fad5519942cdb594c25f12406ff",
+        "sha256": "07fb8b684e7d2d48cb24da2dca23b9038e998e95f7e72da15b095ea9036fbcee",
+        "payload": "payload/src/xge/core/xge_impl.c",
+        "diff": "diff/src/xge/core/xge_impl.c.diff"
+      },
+      {
+        "path": "tools/build/build.py",
+        "upstreamExists": true,
+        "upstreamSha256": "15f60f70709dceea1b2e35eda959834378f699ef8cf34d9a9360a46503783d7e",
+        "sha256": "754840e4a884f5d24e73cfa1e2b16a111ecd906d3354a207dd77b9a00dfe41dd",
+        "payload": "payload/tools/build/build.py",
+        "diff": "diff/tools/build/build.py.diff"
+      },
+      {
+        "path": "src/xui/controls/xui_table_view.c",
+        "upstreamExists": true,
+        "upstreamSha256": "220885aa8d67d7d5bf2984f1c25744ebdb11bae1cd5e674fda16b2817bb4f5f3",
+        "sha256": "2eca10781dac61e8b8bd3c54ac5919868183f643269c874f7e3276bb5c64caef",
+        "payload": "payload/src/xui/controls/xui_table_view.c",
+        "diff": "diff/src/xui/controls/xui_table_view.c.diff"
+      }
+    ],
+    "gridFixCommit": "381cd2273d6ba8f70255beb0142312c42c3ac9b1"
+  },
+  "initialCleanBuild": null,
+  "outputs": [
+    {
+      "path": "F:\\xlang-validation\\xge-table-grid-20261109\\ide-win\\xge.dll",
+      "sha256": "40d6bfa25cc881d45e4a8ac12e0dc4ff6c5115bad93f8e0f1ffdbc1d0a67c4e2"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-table-grid-20261109\\ide-win\\xge.lib",
+      "sha256": "ee977b55040e321a3fe5eaa59a9a3a1f40c292835e2231720c515b8ca5ed3e69"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-table-grid-20261109\\ide-win\\xge_build_config.h",
+      "sha256": "bdcae83daf236e3cb234ea0e8bda4c1841c7cf71cea360714468f78b010614b9"
+    }
+  ]
+}

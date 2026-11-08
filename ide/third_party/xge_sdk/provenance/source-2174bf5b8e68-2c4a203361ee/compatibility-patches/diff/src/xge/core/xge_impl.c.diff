@@ -1,0 +1,53 @@
+--- a/src/xge/core/xge_impl.c
++++ b/src/xge/core/xge_impl.c
+@@ -2260,23 +2260,23 @@
+ 	return g_xge.iCursor;
+ }
+ 
++/* A returning logger must not turn a failed WGL startup into success. */
++static int g_xgeSokolFailure;
+ static void __xgeSokolLog(const char* sTag, uint32_t iLogLevel, uint32_t iLogItemId, const char* sMessage, uint32_t iLine, const char* sFile, void* pUser)
+ {
+-	int iLevel;
+-
+-	(void)sFile;
+-	(void)pUser;
+-	switch ( iLogLevel ) {
+-		case 0: iLevel = XGE_LOG_FATAL; break;
+-		case 1: iLevel = XGE_LOG_ERROR; break;
+-		case 2: iLevel = XGE_LOG_WARN; break;
+-		default: iLevel = XGE_LOG_INFO; break;
+-	}
+-	if ( sMessage != NULL && sMessage[0] != 0 ) {
+-		__xgeLogFormat(iLevel, (sTag != NULL && sTag[0] != 0) ? sTag : "sokol", "item=%u line=%u %s", (unsigned int)iLogItemId, (unsigned int)iLine, sMessage);
+-	} else {
+-		__xgeLogFormat(iLevel, (sTag != NULL && sTag[0] != 0) ? sTag : "sokol", "item=%u line=%u", (unsigned int)iLogItemId, (unsigned int)iLine);
+-	}
++    unsigned long osError=0;
++#if defined(_WIN32) || defined(_WIN64)
++    osError=GetLastError();
++#endif
++    (void)sFile; (void)pUser;
++    int level=iLogLevel==0 ? XGE_LOG_FATAL : iLogLevel==1 ? XGE_LOG_ERROR : iLogLevel==2 ? XGE_LOG_WARN : XGE_LOG_INFO;
++    const char* message=sMessage && sMessage[0] ? sMessage : "Graphics/window initialization failed; OpenGL 3.3 core is required.";
++    __xgeLogFormat(level,sTag && sTag[0] ? sTag : "sokol","item=%u line=%u %s",(unsigned)iLogItemId,(unsigned)iLine,message);
++    if(iLogLevel==0) {
++        char detail[768]; g_xgeSokolFailure=XGE_ERROR;
++        snprintf(detail,sizeof(detail),"%s (item=%u, line=%u, Windows=%lu; requested OpenGL 3.3 core)",message,(unsigned)iLogItemId,(unsigned)iLine,osError);
++        __xgeReportErrorInternal(XGE_ERROR,0,"graphics","sapp/wgl",detail);
++    }
+ }
+ 
+ // 构建 Sokol 描述信息
+@@ -2293,6 +2293,11 @@
+ 	objDesc.height = g_xge.objDesc.iHeight;
+ 	objDesc.window_title = g_xge.objDesc.sTitle ? g_xge.objDesc.sTitle : "XGE";
+ 	objDesc.high_dpi = ((g_xge.objDesc.iFlags & XGE_INIT_HIGHDPI) != 0);
++#if defined(SOKOL_GLCORE) && (defined(_WIN32) || defined(_WIN64))
++    /* The renderer uses GLSL330; do not inherit Sokol's GL4.3 default. */
++    objDesc.gl.major_version = 3;
++    objDesc.gl.minor_version = 3;
++#endif
+ 	objDesc.sample_count = 1;
+ 	objDesc.swap_interval = ((g_xge.objDesc.iFlags & XGE_INIT_VSYNC) != 0) ? 1 : 0;
+ 	objDesc.enable_clipboard = true;
