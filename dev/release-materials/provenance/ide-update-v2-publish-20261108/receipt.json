@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "platform": "win_x64",
+  "version": 2,
+  "displayVersion": "0.6.1",
+  "versionCode": 1537,
+  "forceUpdate": false,
+  "published": true,
+  "publishedAt": 1794099340,
+  "sourceRevision": "25959debcd03ee888f1db482645242357e8643bd",
+  "publicUrl": "https://xcompiler.com/download/update_win_x64",
+  "publishedObjects": 1637,
+  "files": 2173,
+  "changedFiles": 139,
+  "deletedFiles": 122,
+  "newObjects": 134,
+  "deltaBytes": 25209046,
+  "mainBytes": 41909723,
+  "signatureKey": "53d97e95b59ae119fe0a95d02edfe1010458e60e7b95ede3541aad1df018f6a8",
+  "sourceMaterials": {
+    "path": "dev/release-materials/sources/ide-update-v2-publish-20261108/manifest.json",
+    "sha256": "0ee3728f9205197e8cb9a7e92468349b9de239adf72c9789f55400a5a0a8a953",
+    "bytes": 1654
+  },
+  "releaseAcceptance": "dev/release-materials/provenance/release-0.6.1-20261108/receipt.json",
+  "acceptance": {
+    "path": "dev/release-materials/provenance/ide-update-v2-publish-20261108/acceptance.json",
+    "sha256": "a45b842789186d70595ab7b61c8236e1901ea26ff2e32105afe642e43ba64ce8",
+    "bytes": 735
+  },
+  "onlineVerification": {
+    "path": "dev/release-materials/provenance/ide-update-v2-publish-20261108/online-verification.json",
+    "sha256": "4348660f793f61d459e0d38953321abdb40f20e72f18a08bc0df85485d17b5a6",
+    "bytes": 345
+  },
+  "publishedMetadata": [
+    {
+      "path": "dev/release-materials/provenance/ide-update-v2-publish-20261108/update.json",
+      "sha256": "3463718671fc0aadba4b9367a9d3561c8ef98bcfe4d428ec40761cd7cb9b8379",
+      "bytes": 714933
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-v2-publish-20261108/update.lzma",
+      "sha256": "4fc6c2e4bed660c126fb95cf3ac3771bc25d37adfb0f0240209754055bc83f67",
+      "bytes": 139700
+    },
+    {
+      "path": "dev/release-materials/provenance/ide-update-v2-publish-20261108/version.txt",
+      "sha256": "1d9c4e5f26ee4e14d65d8102c29e93cd369f2cfbb5b409c1e4a43f255f839d7b",
+      "bytes": 72
+    }
+  ],
+  "record": {
+    "path": "dev/release-materials/provenance/ide-update-v2-publish-20261108/publish-record.json",
+    "sha256": "a9e578cb261933ecf7dbd0ec5b0cfc49d6a8a46aab5b6229be5c9a294463edd4",
+    "bytes": 433
+  },
+  "notes": {
+    "path": "dev/release-materials/provenance/ide-update-v2-publish-20261108/notes.txt",
+    "sha256": "aadf6c3349778085b0efd0a3b8401b05817b8e4bfc66e26a72e05bf0c348331b",
+    "bytes": 402
+  },
+  "localMetadataChanges": [
+    "release/win_x64/data/release.json"
+  ],
+  "limitations": [
+    "Windows formal update channel only; Linux local 0.6.1 delivery is unchanged and is not remotely published by this operation.",
+    "Existing updater scope excludes extlibs, static packages, examples, projects and user settings; MDO inclusion is inherited from v1 and its bytes are unchanged.",
+    "The original non-extension command-help compiler binding remains historical (catalogCompilerBindingCurrent=false); source-pair integrity and installed GUI startup passed. This publication does not claim a full compiler/help compatibility audit.",
+    "Existing unrelated semantic/LS development and flat-release migration changes are not included."
+  ]
+}

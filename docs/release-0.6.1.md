@@ -13,3 +13,5 @@
 实际发布产物位于 `release/win_x64/` 和 `release/linux_x64/`。这是本地发布整理；未执行远端发布，更新器的安装迭代号保持独立。
 
 完整记录见 [验收材料](../dev/release-materials/provenance/release-0.6.1-20261108/README.md)。此前的 [0.6.0 发布前检查](prerelease-0.6.0.md) 保持为历史记录。
+
+Windows 正式更新通道随后已发布 **0.6.1 / 迭代 2**（普通更新）；Linux 保持本地交付。线上签名、完整对象和正式客户端版本检测均通过，见 [ver2 发布记录](../dev/release-materials/provenance/ide-update-v2-publish-20261108/README.md)。

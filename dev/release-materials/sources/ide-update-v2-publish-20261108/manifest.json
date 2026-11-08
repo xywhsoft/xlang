@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "revision": "25959debcd03ee888f1db482645242357e8643bd",
+  "scope": "Exact publishing and acceptance sources used for the Windows 0.6.1 / iteration 2 update; no signing seed or SSH credentials included.",
+  "files": [
+    {
+      "path": "ide/tools/update/update_manager.py",
+      "sha256": "f07c88899f744d3f639ddc27955fa15a576765e20d8e6b84496de8fb8f9d6831",
+      "bytes": 38108
+    },
+    {
+      "path": "ide/tools/update/prepare_update.py",
+      "sha256": "1352c5c161bd0646b877a67e6d1d42377844b25c1942a30237c71c49b88b0ce2",
+      "bytes": 14051
+    },
+    {
+      "path": "ide/update/publisher-public-key.txt",
+      "sha256": "0f9532388ce01e8c5dce8251854c7400b347dc4590f09c7ae8ffb54e08dd5d4a",
+      "bytes": 65
+    },
+    {
+      "path": "ide/update/README.md",
+      "sha256": "38847264c3b5a180786cad699a74b3e2721fe85b87efa6a588483f3b7dc28b8b",
+      "bytes": 7717
+    },
+    {
+      "path": "ide/tools/update/README.md",
+      "sha256": "4da0ee0fa91dafd6807b5d81c5ad00a8fdefe2fc8eb2ae321b549c41d0a22125",
+      "bytes": 14711
+    },
+    {
+      "path": "accept.py",
+      "sha256": "d2e197489c87a0931dbf02c85a0fbc673ee22b2792f8d45d07182dd318b4e3fd",
+      "bytes": 5872
+    },
+    {
+      "path": "finalize.py",
+      "sha256": "dd98421fc82a7ab0b2774825ccbfc1468445f05577b38492d70df66583727834",
+      "bytes": 9272
+    },
+    {
+      "path": "publish_persistent_curl.py",
+      "sha256": "f6fdc7d279d9e148f0c79c408d63e297573c5b5b6961e4780bee23132d2e5838",
+      "bytes": 2365
+    }
+  ],
+  "releaseSource": "dev/release-materials/sources/release-0.6.1-20261108/manifest.json"
+}

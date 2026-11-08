@@ -1,0 +1,14 @@
+UPLOAD 128/134 (128 objects in batch)
+UPLOAD 134/134 (6 objects in batch)
+ERROR: curl: (55) OpenSSL SSL_write: Broken pipe, errno 32
+curl: (55) OpenSSL SSL_write: Broken pipe, errno 32
+curl: (55) OpenSSL SSL_write: Broken pipe, errno 32
+curl: (55) OpenSSL SSL_write: Broken pipe, errno 32
+curl: (55) OpenSSL SSL_write: Broken pipe, errno 32
+curl: (55) OpenSSL SSL_write: Broken pipe, errno 32
+curl: (55) OpenSSL SSL_write: Broken pipe, errno 32
+curl: (55) OpenSSL SSL_write: Broken pipe, errno 32
+curl: (55) OpenSSL SSL_write: Broken pipe, errno 32
+curl: (55) OpenSSL SSL_write: Broken pipe, errno 32
+curl: (55) OpenSSL SSL_write: Broken pipe, errno 32
+curl: (55) OpenSSL SSL_write: Broken pipe, errno 32

@@ -1,0 +1,5 @@
+{
+  "version": 2,
+  "displayVersion": "0.6.1",
+  "forceUpdate": false
+}

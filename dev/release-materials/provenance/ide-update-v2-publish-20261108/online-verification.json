@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "checks": [
+    "public-update.json-exact",
+    "public-update.lzma-exact",
+    "public-version.txt-exact",
+    "public-json-lzma-pair",
+    "production-client-v1-detects-optional-v2",
+    "production-client-v2-current"
+  ],
+  "url": "https://xcompiler.com/download/update_win_x64",
+  "verificationRoute": "server-https"
+}

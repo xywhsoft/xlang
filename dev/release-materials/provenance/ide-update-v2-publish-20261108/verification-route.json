@@ -1,0 +1,22 @@
+{
+  "firstAttempt": {
+    "route": "server-https",
+    "failure": "curl OpenSSL SSL_write broken pipe",
+    "activated": false,
+    "remoteVersionAfterFailure": 1,
+    "publicVersionAfterFailure": 1
+  },
+  "secondAttempt": {
+    "route": "publisher-direct-https",
+    "largestObjectBytes": 11692441,
+    "largestObjectHashVerified": true,
+    "objectsReusedAfterUpload": true,
+    "failure": "Remote end closed connection without response",
+    "activated": false
+  },
+  "finalAttempt": {
+    "route": "server-https",
+    "transport": "single curl process with connection reuse; TLS certificate and hostname validation unchanged; all object sizes and SHA256 checked",
+    "driverSha256": "f6fdc7d279d9e148f0c79c408d63e297573c5b5b6961e4780bee23132d2e5838"
+  }
+}

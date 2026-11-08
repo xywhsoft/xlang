@@ -3,7 +3,7 @@
   "date": "2026-11-08",
   "primaryDirectory": "D:/GIT/x-lang",
   "deliveryDirectory": "release",
-  "externalPublishPerformed": false,
+  "externalPublishPerformed": true,
   "primaryIntegrationRevision": "6c8c0fbd017a61d89d5b81c836db67f712a422cb",
   "integrations": {
     "tomlCalendarCommit": "65eb0f3dc",
@@ -6256,8 +6256,8 @@
     },
     {
       "path": "release/win_x64/data/release.json",
-      "sha256": "50358db4bf3aa3ff5221afe09d837fc5a89e72f1042e7d5e8b316ba76bfd66e8",
-      "bytes": 110,
+      "sha256": "c431aaf96e98ce7813ccbeab816477e954e06f6c39644137fc57463079d484a8",
+      "bytes": 104,
       "origin": "release-0.6.1-20261108",
       "previousSha256": "091d16c8897c6f521efc0d82a4d3da7b8587bd931460cb9f713014ba104d8432"
     },
@@ -6301,6 +6301,11 @@
       "path": "dev/release-materials/provenance/compiler-rebuild-20261106/receipt.json",
       "sha256": "699c8ba12f9d500d9cba34c0f25184af14f2d12eeabfa694c6daf95957af381d",
       "bytes": 50319
+    },
+    "currentOnlinePublication": {
+      "path": "dev/release-materials/provenance/ide-update-v2-publish-20261108/receipt.json",
+      "sha256": "aca347fe45d76a2d7d4ac37276e406bf4f7bbba695a52d07e07f73f94ce86b07",
+      "bytes": 3160
     }
   },
   "remaining": {
@@ -6346,7 +6351,7 @@
     ],
     "publisherTools": "release/update_info/tools",
     "preparedStore": "release/update_info/win_x64",
-    "preparedVersion": 1,
+    "preparedVersion": 2,
     "published": true,
     "privateKeyPackaged": false,
     "publicKey": "53d97e95b59ae119fe0a95d02edfe1010458e60e7b95ede3541aad1df018f6a8",
@@ -6354,8 +6359,8 @@
     "publishedPlatforms": [
       "win_x64"
     ],
-    "currentPublishProvenance": "dev/release-materials/provenance/ide-update-v1-publish-20261107.json",
-    "publishedVersion": 1,
+    "currentPublishProvenance": "dev/release-materials/provenance/ide-update-v2-publish-20261108/receipt.json",
+    "publishedVersion": 2,
     "publicUrl": "https://xcompiler.com/download/update_win_x64",
     "remoteRoot": "/opt/www/host/xlang/wwwroot/download/update_win_x64",
     "localBootstrapObservedPath": "release/win_x64/update.exe",
@@ -6363,12 +6368,12 @@
     "publishedForceUpdate": false,
     "displayVersionSupported": true,
     "comparisonField": "version",
-    "preparedDisplayVersion": "0.6.0",
+    "preparedDisplayVersion": "0.6.1",
     "historicalTestStore": "release/update_info/test-history/win_x64",
     "publishedChannel": "production",
     "runtimeState": "external same-filesystem directory; --print-state-dir",
     "gitIgnoredDirectory": "release/update_info",
-    "publishedDisplayVersion": "0.6.0",
+    "publishedDisplayVersion": "0.6.1",
     "previousTestVersionsArchived": "/opt/www/host/xlang/wwwroot/download/.xlang-publish-d2bdfe7284970358/retired-test-20261106T150355Z-0dcfe9aeb28b476f"
   },
   "runtimeLayout": {
@@ -6378,7 +6383,7 @@
     "historicalReportPathsPreserved": true,
     "mutableDataPathsUpdated": 600
   },
-  "currentScope": "Local xlang 0.6.1 version identity, matched runtime/GUI products, active-platform data inventory and release temporary cleanup. Existing semantic/LS and flat-layout worktree changes excluded.",
+  "currentScope": "Windows formal updater publication 0.6.1 / iteration 2, based on the qualified 25959debc local release; Linux remains a local delivery. Unrelated semantic/LS and flat-layout changes excluded.",
   "localPublication": {
     "path": "dev/release-materials/provenance/xge3-local-publication-20261105/receipt.json",
     "sha256": "d55e8e816fddbfc2d2283c9ba45b9b28ac5c5e07e0da183fbab3088f118fbad1",
@@ -6598,6 +6603,11 @@
       "path": "dev/release-materials/provenance/release-0.6.1-20261108/receipt.json",
       "sha256": "260d480911e442a2e37e851eeffd0b79bed50425973538f93d9c575cf52258b1",
       "bytes": 9340
+    },
+    "updateV2Publication": {
+      "path": "dev/release-materials/provenance/ide-update-v2-publish-20261108/receipt.json",
+      "sha256": "aca347fe45d76a2d7d4ac37276e406bf4f7bbba695a52d07e07f73f94ce86b07",
+      "bytes": 3160
     }
   },
   "xuiGallery": {
@@ -6872,5 +6882,10 @@
       "management": "independent",
       "scope": "Existing local MDO executable retained byte-for-byte; not part of this xlang Git delivery or remote publication."
     }
-  ]
+  ],
+  "onlinePublication": {
+    "path": "dev/release-materials/provenance/ide-update-v2-publish-20261108/receipt.json",
+    "sha256": "aca347fe45d76a2d7d4ac37276e406bf4f7bbba695a52d07e07f73f94ce86b07",
+    "bytes": 3160
+  }
 }

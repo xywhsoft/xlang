@@ -239,3 +239,7 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 # Preserve the exact runtime display metadata generated for Windows.
 /release/win_x64/data/version.json whitespace=cr-at-eol
 /release/win_x64/data/release.json whitespace=cr-at-eol
+
+# Exact-byte Windows formal updater iteration 2 publication evidence.
+/dev/release-materials/sources/ide-update-v2-publish-20261108/** -text -whitespace
+/dev/release-materials/provenance/ide-update-v2-publish-20261108/** -text -whitespace

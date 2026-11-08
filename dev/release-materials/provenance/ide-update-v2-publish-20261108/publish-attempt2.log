@@ -1,0 +1,6 @@
+RETRY public 1/2 https://xcompiler.com/download/update_win_x64/update/007753adbe2b7450d3e0d29097a375b518c5f9ab4cef44180fb9f3d1290c87fd.lzma: Remote end closed connection without response
+VERIFY PUBLIC 1/1637
+RETRY public 1/2 https://xcompiler.com/download/update_win_x64/update/01d9b806aaa408cc5192b241dc1500e374ae8e2de458886d0a42c960a72d7a6a.lzma: Remote end closed connection without response
+RETRY public 1/2 https://xcompiler.com/download/update_win_x64/update/020970da340c3c39844770793752433ba54a5a5d93076e044ec2bdc8a0a049ec.lzma: Remote end closed connection without response
+RETRY public 2/2 https://xcompiler.com/download/update_win_x64/update/020970da340c3c39844770793752433ba54a5a5d93076e044ec2bdc8a0a049ec.lzma: Remote end closed connection without response
+ERROR: public download failed: https://xcompiler.com/download/update_win_x64/update/020970da340c3c39844770793752433ba54a5a5d93076e044ec2bdc8a0a049ec.lzma: Remote end closed connection without response

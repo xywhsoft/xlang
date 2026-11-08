@@ -1,0 +1,9 @@
+{
+  "revision": "25959debcd03ee888f1db482645242357e8643bd",
+  "platform": "win_x64",
+  "displayVersion": "0.6.1",
+  "version": 2,
+  "forceUpdate": false,
+  "upstreamReleaseReceipt": "dev/release-materials/provenance/release-0.6.1-20261108/receipt.json",
+  "scope": "Existing Windows formal update channel only; inherits includeMdo; extlibs remain outside the updater-managed scope."
+}

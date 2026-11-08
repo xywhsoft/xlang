@@ -1,0 +1,4 @@
+VERIFY PUBLIC SERVER PERSISTENT HTTPS 1637/1637
+RETRY public 1/2 https://xcompiler.com/download/update_win_x64/update.json?verify=6596869344cc1908: Remote end closed connection without response
+RETRY public 1/2 https://xcompiler.com/download/update_win_x64/update.lzma?verify=6596869344cc1908: Remote end closed connection without response
+PUBLISHED win_x64 version=2 uploaded=0 reused=1637
