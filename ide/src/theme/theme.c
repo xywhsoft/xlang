@@ -125,7 +125,7 @@ static const color_rules rules[] = {
 	 "listview.focus.color tableview.focus.color treeview.focus.color treeview.check.color treeview.check.mark_color "
 	 "treeview.icon.folder_tab_color treeview.icon.file_line_color tableview.check.mark_color "
 	 "choice.accent.color choice.accent.hover_color choice.accent.active_color choice.focus.color choice.border.hover_color "
-	 "checkbox.check.color radio.dot.color toggle.track.active_color slider.fill.color slider.fill.hover_color "
+	 "radio.dot.color toggle.track.active_color slider.fill.color slider.fill.hover_color "
 	 "slider.fill.active_color slider.focus.color splitlayout.divider.active_color terminal.focus.color "
 	 "terminal.link.hover_color colorpicker.accent.color colorpicker.selection.color "
 	 "codeedit.ime.color codeedit.minimap.viewport_border_color codeedit.assist.active_color "
@@ -347,6 +347,10 @@ int ideThemeInit(xui_context context, int theme)
 		if (sheet->count >= COUNT(sheet->props)) result = XUI_ERROR_OUT_OF_MEMORY;
 		else sheet->props[sheet->count++] = token_property("codeedit.minimap.viewport_color", "ide.minimap-viewport");
 	}
+	if (result == XUI_OK) {
+		if (sheet->count >= COUNT(sheet->props)) result = XUI_ERROR_OUT_OF_MEMORY;
+		else sheet->props[sheet->count++] = token_property("checkbox.check.color", "ide.choice-mark");
+	}
 	char ansi_tokens[16][32];
 	for (int i = 0; i < 16 && result == XUI_OK; ++i) {
 		int n = sheet->count++;
@@ -400,6 +404,14 @@ int ideThemeApply(xui_context context, int theme)
 		value.iSize = sizeof(value); value.iType = XUI_STYLE_VALUE_COLOR;
 		value.iColor = (palettes[theme].colors[IDE_ACCENT] & 0xffffff00u) | 46u;
 		result = xuiStyleSetToken(context, "ide.minimap-viewport", &value);
+	}
+	if (result == XUI_OK) {
+		/* The mark is drawn over choice.accent.color; using that same color
+		 * hides it. Light accent fills in dark themes need a dark mark. */
+		xui_style_value_t value = {0};
+		value.iSize = sizeof(value); value.iType = XUI_STYLE_VALUE_COLOR;
+		value.iColor = palettes[theme].colors[palettes[theme].dark ? IDE_BG : IDE_ON_ACCENT];
+		result = xuiStyleSetToken(context, "ide.choice-mark", &value);
 	}
 	int end = xuiStyleEndUpdate(context);
 	return result != XUI_OK ? result : end;

@@ -1,0 +1,98 @@
+{
+  "schema": 1,
+  "date": "2026-11-08",
+  "passed": true,
+  "complete": true,
+  "publication": "local-only",
+  "scope": "Inline actual association state, smaller dialog and visible checkbox marks in all IDE themes.",
+  "sourceMaterials": {
+    "path": "dev/release-materials/sources/ide-association-inline-20261108/manifest.json",
+    "sha256": "95a5b210dff1b2417b0250d6c49b63a5f82e83f2fc3e5624087890ec4bde0dea",
+    "bytes": 1873
+  },
+  "evidence": {
+    "path": "dev/release-materials/provenance/ide-association-inline-20261108/evidence.zip",
+    "sha256": "07e64bf7e90fee49acbefe35a8ce29ba8a3554e77b49a9c866b9770597d69184",
+    "bytes": 801025
+  },
+  "installed": {
+    "passed": true,
+    "installedPath": "release/win_x64/xlang_ide.exe",
+    "previousSha256": "cbbdf3a40963c183957f4281aa0d74cf37f62cc337862292f7a546e5eb3ca593",
+    "sha256": "810c4b45494a809156fad78897b006db5b5440e1ae9bf3de44ecb1ef21831b93",
+    "bytes": 2034204,
+    "installedSmokeExit": 0,
+    "preserved": {
+      "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe": "e5f4719890814a3f7b5422ffb1f293ffc944c527de62217d32e9a3a4c287dfad",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xl.dll": "e783d6a15c946945d4186084cff9006839cbc1d31a0ae387396dc6f500aaac6c",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xlc.dll": "b4563a13448e2f550b00c0504cac481cdefd2b61ee961276049f936243f125a1",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+      "D:\\GIT\\x-lang\\release\\win_x64\\xge.dll": "f6eaa3961017f79cd06d18568bab8fb60274c4935e1a83ab8fb37da21acc607b",
+      "D:\\GIT\\x-lang\\ide\\third_party\\xge_sdk\\sdk_manifest.json": "c0fbd47f95fafe863fae241ece7d4654d3908f5efb6b3ab2a1b678cb59b79f93"
+    }
+  },
+  "tests": [
+    {
+      "test": "input_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-association-inline-20261108\\gui-source\\ide\\tests\\input_test.c",
+      "sourceSha256": "2804e8842d91a338ac4dcb3788d9133f597303b435b55038168e0669645d40f5"
+    },
+    {
+      "test": "settings_view_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-association-inline-20261108\\gui-source\\ide\\tests\\settings_view_test.c",
+      "sourceSha256": "1a09b8f399fca72e2bd060d9c3ac3f54c820cb3db5367932f2607fae093a70f3"
+    },
+    {
+      "test": "find_follow_view_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-association-inline-20261108\\gui-source\\ide\\tests\\find_follow_view_test.c",
+      "sourceSha256": "57f31d4f99fffece30d9a5e657c991aea72a7ed901c34fe1da49b2919c8304c9"
+    },
+    {
+      "test": "dialog_layout_test",
+      "exit": 0,
+      "source": "F:\\xlang-validation\\ide-association-inline-20261108\\gui-source\\ide\\tests\\dialog_layout_test.c",
+      "sourceSha256": "70a0e91feb961d7ff69e40316218881d72aabbfc8a3a2859f0b096d2567312a4"
+    },
+    {
+      "test": "association_view_test",
+      "exit": 0,
+      "source": "D:\\GIT\\x-lang\\ide\\tests\\association_view_test.c",
+      "sourceSha256": "8c47bda566250eda3b3c9c179df9ae644271a4f07d576b8b20bdd3c0f033692a"
+    }
+  ],
+  "uiAssertions": 149,
+  "dialog": {
+    "defaultDip": [
+      486,
+      298
+    ],
+    "inlineState": true,
+    "linkedColorRole": "IDE_SUCCESS",
+    "unlinkedColorRole": "IDE_TEXT",
+    "draftDoesNotChangeActualState": true,
+    "unknownQueryExplicit": true
+  },
+  "checkbox": {
+    "rootCause": "IDE theme mapped checkbox.check.color to the same IDE_ACCENT token as the checked fill. Native XGE already renders the mark.",
+    "fix": "Dedicated theme token: IDE_ON_ACCENT in light themes, IDE_BG in dark themes.",
+    "actualPixelAcceptanceThemes": 4,
+    "nativeXgeChanged": false
+  },
+  "build": {
+    "changedUnits": 2,
+    "reusedVerifiedObjects": 109,
+    "publicHeadersUnchanged": true,
+    "optimization": "-O2",
+    "allInputsUnchanged": true,
+    "baseSourceCommit": "365cc650eee3325807a43f6fdad7bb2a37d10e47",
+    "overlayBaseCommit": "ec6d088b8f302d78d3e96b17cdb0dbb31cf3f9db"
+  },
+  "limits": [
+    "Targeted Windows GUI acceptance; not a full repository test pass.",
+    "Association UI uses a deterministic backend and never changes actual user defaults during acceptance.",
+    "Compiler, language server and XGE products remain byte-identical; concurrent source work excluded from the qualified GUI snapshot."
+  ]
+}

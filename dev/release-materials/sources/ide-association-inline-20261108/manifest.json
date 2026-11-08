@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "base": {
+    "path": "dev/release-materials/sources/ide-association-confirm-20261108/manifest.json",
+    "sha256": "9b21256b98822b87e056784678abde91b1b07e131fdf752c5ed11608d9559178",
+    "bytes": 3023
+  },
+  "baseSourceCommit": "365cc650eee3325807a43f6fdad7bb2a37d10e47",
+  "overlayBaseCommit": "ec6d088b8f302d78d3e96b17cdb0dbb31cf3f9db",
+  "archive": {
+    "path": "dev/release-materials/sources/ide-association-inline-20261108/source-delta.zip",
+    "sha256": "1aa38f711c7ae767aacc33dcaef3421d942957de84faf1ef2b657bb0ed8f4486",
+    "bytes": 27036
+  },
+  "files": [
+    {
+      "path": "ide/docs/file-associations.md",
+      "sha256": "37562b668a1dc49a669e77d2d4433e24cf5b6913595ab9fc46c3e27db02e3c2c",
+      "bytes": 4857
+    },
+    {
+      "path": "ide/src/theme/theme.c",
+      "sha256": "311e63c8df161d6cf6fc8192d191324ffd1722aef882798121cbb3f699cb1c09",
+      "bytes": 27691
+    },
+    {
+      "path": "ide/src/ui/association_view.c",
+      "sha256": "b152a17d315ff222a714cda9652a1826f41d9162511ac7d8a4751657a97588f6",
+      "bytes": 10844
+    },
+    {
+      "path": "ide/tests/association_view_test.c",
+      "sha256": "8c47bda566250eda3b3c9c179df9ae644271a4f07d576b8b20bdd3c0f033692a",
+      "bytes": 12983
+    },
+    {
+      "path": "reproduction/build.py",
+      "sha256": "c80420700d53c9241f334a4a5a1a6b8453af8cada90da4d317e931521ae65aa2",
+      "bytes": 2479
+    },
+    {
+      "path": "reproduction/publish.py",
+      "sha256": "4a2c4855105960eae27227344bc83adce6f5527258180c292577e30093f547b5",
+      "bytes": 3421
+    },
+    {
+      "path": "reproduction/record.py",
+      "sha256": "1d0a99112ef8265093af18323c15d942763bc65ebf9b5e24e089cf8968408c8b",
+      "bytes": 7527
+    },
+    {
+      "path": "reproduction/test.py",
+      "sha256": "8053a015c284e422d651f18483338d84df9d7ae2e222f2fac86401cbaaca8326",
+      "bytes": 4482
+    }
+  ]
+}
