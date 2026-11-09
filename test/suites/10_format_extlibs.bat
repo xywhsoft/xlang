@@ -113,18 +113,18 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_extlib_c.ps1 -Pack
 if errorlevel 1 exit /b 1
 
 for %%F in (
-    gzip
-    bz2
-    zip
-    tar
-    csv
-    ini
-    toml
-    netrc
-    plist
-    xml_sax
-    xml_etree
-    xml_dom
+    compression\gzip
+    compression\bz2
+    compression\zip
+    compression\tar
+    data_format\csv
+    data_format\ini
+    data_format\toml
+    data_format\netrc
+    data_format\plist
+    data_format\xml_sax
+    data_format\xml_etree
+    data_format\xml_dom
 ) do (
     release\xl.exe run release\examples\extlibs\%%F.xl
     if errorlevel 1 exit /b 1

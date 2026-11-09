@@ -11,7 +11,23 @@ import subprocess
 import sys
 import time
 import uuid
-from runtime_layout import runtime_directory
+from runtime_layout import runtime_directory, runtime_example
+
+
+def example_cases(root, runtime):
+    package = runtime / 'extlibs/vcard'
+    sources = [('literal', root/'test/cases/extlib_vcard.xl'),
+               ('boundaries', root/'test/cases/extlib_vcard_boundaries.xl'),
+               ('read-cost', root/'test/cases/extlib_vcard_read_views.xl'),
+               ('read-views', package/'test/read_views.xl')]
+    sources += [(name, package/'test'/(name+'.xl')) for name in (
+        'control_characters', 'allocations', 'uri_values', 'structure', 'limits', 'utf8_folding', 'aot_core')]
+    sources += [('original', runtime_example(runtime, 'extlibs/vcard.xl')),
+                ('folded', package/'examples/folded_contact.xl'),
+                ('original-c', package/'examples/vcard.c'),
+                ('folded-c', package/'examples/folded_contact_c.c'),
+                ('utf8-c', package/'test/test_utf8_folding.c')]
+    return sources
 
 
 def main():
@@ -21,9 +37,14 @@ def main():
     parser.add_argument('--out', type=Path)
     parser.add_argument('--skip-aot', action='store_true')
     parser.add_argument('--sanitize', action='store_true')
+    parser.add_argument('--list', action='store_true')
     args = parser.parse_args()
     runtime = args.runtime.resolve()
     package = runtime / 'extlibs/vcard'
+    sources = example_cases(root, runtime)
+    if args.list:
+        assert all(source.is_file() for _, source in sources)
+        print(json.dumps([str(source) for _, source in sources])); return
     out = (args.out or root / 'build/test' / ('vcard-' + uuid.uuid4().hex)).resolve()
     out.mkdir(parents=True, exist_ok=False)
     windows = os.name == 'nt'
@@ -103,17 +124,6 @@ def main():
         wrong.write_text(re.sub(r'extern .* xv_parse\(', 'extern int xv_parse(', abi.read_text()))
         check('native-header-rejects-wrong-abi', [cc,*flags,'-fsyntax-only',wrong], expected=1)
 
-        sources = [('literal', root/'test/cases/extlib_vcard.xl'),
-                   ('boundaries', root/'test/cases/extlib_vcard_boundaries.xl'),
-                   ('read-cost', root/'test/cases/extlib_vcard_read_views.xl'),
-                   ('read-views', package/'test/read_views.xl')]
-        sources += [(name, package/'test'/(name+'.xl')) for name in (
-            'control_characters', 'allocations', 'uri_values', 'structure', 'limits', 'utf8_folding', 'aot_core')]
-        sources += [('original', runtime/'examples/extlibs/vcard.xl'),
-                    ('folded', package/'examples/folded_contact.xl'),
-                    ('original-c', package/'examples/vcard.c'),
-                    ('folded-c', package/'examples/folded_contact_c.c'),
-                    ('utf8-c', package/'test/test_utf8_folding.c')]
         for name, source in sources:
             assert source.is_file(), source
             report['inputs'][str(source)] = sha(source)

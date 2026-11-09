@@ -10,7 +10,24 @@ import json
 import os
 import subprocess
 import time
-from runtime_layout import runtime_directory
+from runtime_layout import runtime_directory, runtime_example
+
+
+def example_cases(root, runtime, windows):
+    cases = [(name, root / 'test/cases' / (name + '.xl'), []) for name in (
+        'cgen_class_projection_derived', 'cgen_destroy_field_assignment',
+        'stdlib_channel_default_initialized', 'stdlib_object_index_context',
+        'cgen_foreign_read_views', 'extlib_vcard_read_views')]
+    cases += [(name, runtime_example(runtime, path), []) for name, path in (
+        ('cli', 'extlibs/cli.xl'), ('serial', 'extlibs/serial.xl'), ('vcard', 'extlibs/vcard.xl'),
+        ('copy_clone', 'copy_clone.xl'), ('class_c_export', 'class_c_export.xl'),
+        ('fs', 'stdlib_fs_advanced.xl'), ('concurrency', 'feature_suite/11_concurrency.xl'))]
+    cases += [(name, root / 'test/fixtures/example_projects' / (name + '.xl'),
+               ['test'] if name == 'xneural' else (['run', '3', '2', '10'] if name == 'prodcon' else []))
+              for name in ('shapes', 'xneural', 'dynobj', 'deepclone', 'prodcon')]
+    if windows:
+        cases.append(('com', runtime_example(runtime, 'extlibs/com.xl'), []))
+    return cases
 
 
 def main():
@@ -18,8 +35,17 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--runtime', type=Path, default=runtime_directory(root))
     parser.add_argument('--out', type=Path, required=True)
+    parser.add_argument('--list', action='store_true', help='Validate source paths without executing examples')
     args = parser.parse_args()
     runtime = args.runtime.resolve()
+    cases = example_cases(root, runtime, os.name == 'nt')
+    if args.list:
+        paths = [source for _, source, _ in cases]
+        if os.name == 'nt':
+            paths += [runtime_example(runtime, 'extlibs/clipboard.xl')]
+        assert all(path.is_file() for path in paths)
+        print(json.dumps(list(map(str, paths))))
+        return 0
     out = args.out.resolve()
     out.mkdir(parents=True, exist_ok=False)
     windows = os.name == 'nt'
@@ -58,20 +84,7 @@ def main():
         print(name, code, flush=True)
         return code == 0
 
-    cases = [(name, root / 'test/cases' / (name + '.xl'), []) for name in (
-        'cgen_class_projection_derived', 'cgen_destroy_field_assignment',
-        'stdlib_channel_default_initialized', 'stdlib_object_index_context',
-        'cgen_foreign_read_views', 'extlib_vcard_read_views')]
-    cases += [(name, runtime / 'examples' / path, []) for name, path in (
-        ('cli', 'extlibs/cli.xl'), ('serial', 'extlibs/serial.xl'), ('vcard', 'extlibs/vcard.xl'),
-        ('copy_clone', 'copy_clone.xl'), ('class_c_export', 'class_c_export.xl'),
-        ('fs', 'stdlib_fs_advanced.xl'), ('concurrency', 'feature_suite/11_concurrency.xl'))]
-    cases += [(name, runtime / 'projects/dev' / name / (name + '.xl'),
-               ['test'] if name == 'xneural' else (['run', '3', '2', '10'] if name == 'prodcon' else []))
-              for name in ('shapes', 'xneural', 'dynobj', 'deepclone', 'prodcon')]
-    if windows:
-        cases.append(('com', runtime / 'examples/extlibs/com.xl', []))
-    else:
+    if not windows:
         report['skipped'].append(dict(name='com', reason='Windows COM API'))
     for name, source, argv in cases:
         report['inputs'][str(source)] = sha(source)
@@ -81,7 +94,7 @@ def main():
             run(name + '-aot', [binary, *argv])
     if windows:
         runner_source = runtime / 'extlibs/clipboard/test/isolated_runner.c'
-        source = runtime / 'examples/extlibs/clipboard.xl'
+        source = runtime_example(runtime, 'extlibs/clipboard.xl')
         report['inputs'][str(runner_source)] = sha(runner_source)
         report['inputs'][str(source)] = sha(source)
         runner = out / 'clipboard-isolated.exe'

@@ -5,6 +5,7 @@ built, then run with its credentials removed to validate the no-request guard.
 """
 from pathlib import Path
 import argparse,concurrent.futures,hashlib,json,os,subprocess,time
+from runtime_layout import runtime_example
 
 EXT = "csv_basic epub fix graph graph_basic ical json_patch rss rss_pair sitemap sitemap_pair socks srt statistics xregex xregex_basic tar memcached modbus mqtt mqtt_tcp volc_core volc_phone volc_phone_live volc_sts xbot_agent".split()
 STD = "stdlib_buffer stdlib_time_calendar stdlib_log stdlib_log_formats stdlib_logging stdlib_api_contracts stdlib_time_core stdlib_os".split()
@@ -21,8 +22,12 @@ def main():
  p.add_argument("--jobs",type=int,default=2)
  p.add_argument("--aot",action="store_true")
  p.add_argument("--skip-games",action="store_true")
+ p.add_argument("--list",action="store_true")
  p.add_argument("--case",action="append",choices=CASES)
  a=p.parse_args();root=a.root.resolve();runtime=a.runtime.resolve();compiler=a.compiler.resolve();out=a.out.resolve()
+ selected=[name for name in (a.case or CASES) if not(a.skip_games and name.startswith("games/"))]
+ sources={name:runtime_example(runtime,name+".xl")for name in selected}
+ if a.list:print(json.dumps([str(source)for source in sources.values()]));return 0
  if out.exists():raise SystemExit("Use a new report directory")
  out.mkdir(parents=True);env={k:v for k,v in os.environ.items()if not k.upper().startswith("VOLC_")}
  env["XLANG_PACKAGE_PATH"]=str(runtime/"extlibs")
@@ -35,7 +40,7 @@ def main():
   log.write_bytes(raw)
   return dict(command=list(map(str,command)),exitCode=code,expectedExitCode=expected,passed=code==expected,seconds=round(time.monotonic()-started,3),log=str(log),logSha256=sha(log))
  def case(name):
-  game=name.startswith("games/");source=runtime/"examples"/(name+".xl");label=name.replace("/","-");steps=[]
+  game=name.startswith("games/");source=sources[name];label=name.replace("/","-");steps=[]
   steps.append(execute([compiler,"check",source],out/(label+"-check.log")))
   if steps[-1]["passed"]:
    if game or a.aot:
@@ -44,9 +49,6 @@ def main():
    if not game:steps.append(execute([compiler,"run",source],out/(label+"-jit-run.log"),2 if name=="extlibs/volc_phone_live"else 0))
   row=dict(name=name,source=str(source),sourceSha256=sha(source),passed=all(v["passed"]for v in steps),steps=steps)
   print(name,"PASS"if row["passed"]else"FAIL",flush=True);return row
- selected=[name for name in (a.case or CASES) if not(a.skip_games and name.startswith("games/"))]
- missing=[name for name in selected if not(runtime/"examples"/(name+".xl")).exists()]
- if missing:raise SystemExit("Missing examples: "+str(missing))
  with concurrent.futures.ThreadPoolExecutor(max_workers=a.jobs)as pool:rows=list(pool.map(case,selected))
  core=[]
  for name in ([] if a.case else CORE):

@@ -14,6 +14,11 @@ if ($Root -eq "") {
 $extlibRoot = Join-Path $Root "release\extlibs"
 $caseRoot = Join-Path $Root "test\cases"
 $exampleRoot = Join-Path $Root "release\examples\extlibs"
+$exampleIndex = @{}
+foreach ($example in Get-ChildItem -LiteralPath $exampleRoot -File -Filter '*.xl' -Recurse) {
+    if ($exampleIndex.ContainsKey($example.Name)) { throw "Ambiguous extension example: $($example.Name)" }
+    $exampleIndex[$example.Name] = $example.FullName
+}
 $featuredPath = Join-Path $Root "test\featured_extlibs.json"
 $phase1Path = Join-Path $Root "test\phase1_extlibs.json"
 $platformGatePath = Join-Path $Root "test\platform_extlibs.json"
@@ -87,6 +92,8 @@ $packages = New-Object System.Collections.Generic.List[object]
 foreach ($directory in Get-ChildItem -LiteralPath $extlibRoot -Directory | Sort-Object Name) {
     $name = $directory.Name
     $manifestPath = Join-Path $directory.FullName "xlang.package.json"
+    # Shared C read-view headers are support files, not a loadable package.
+    if ($name -eq '_common' -and !(Test-Path -LiteralPath $manifestPath -PathType Leaf)) { continue }
     $manifest = $null
     $issues = [Collections.Generic.List[string]]::new()
     if (Test-Path -LiteralPath $manifestPath -PathType Leaf) {
@@ -143,7 +150,8 @@ foreach ($directory in Get-ChildItem -LiteralPath $extlibRoot -Directory | Sort-
     $tests = @(Get-ChildItem -LiteralPath $directory.FullName -Recurse -File -ErrorAction SilentlyContinue |
         Where-Object { $_.FullName -match '\\tests?\\' })
     $casePath = Join-Path $caseRoot ("extlib_{0}.xl" -f $name.Replace('.', '_'))
-    $examplePath = Join-Path $exampleRoot ("{0}.xl" -f $name.Replace('.', '_'))
+    $exampleName = "{0}.xl" -f $name.Replace('.', '_')
+    $examplePath = if ($exampleIndex.ContainsKey($exampleName)) { $exampleIndex[$exampleName] } else { Join-Path $exampleRoot $exampleName }
     $usesLegacyErrorAbi = $false
     $usesLegacyValueAbi = $false
     $usesRedeclaredXrtAbi = $false

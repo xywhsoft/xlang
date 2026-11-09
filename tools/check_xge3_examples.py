@@ -67,7 +67,7 @@ def main():
     legacy = []
     for package in ('xge', 'xui'):
         directory = root / 'release/win_x64/examples' / package
-        for source in sorted(directory.glob('*.xl')):
+        for source in sorted(directory.rglob('*.xl')):
             text = source.read_text(encoding='utf-8-sig')
             markers = [marker for marker in ('XgeApp', 'XuiApp', 'xge.Shape.', 'xge.Color.',
                         '.rootHandle()', 'point ctx', 'point font') if marker in text]

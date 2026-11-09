@@ -25,7 +25,7 @@ if ( ! (Test-Path -LiteralPath $xl -PathType Leaf) ) {
 # NOTE: keep this file ASCII-only. Windows PowerShell 5.1 reads BOM-less
 # scripts as ANSI/GBK; UTF-8 comment bytes can swallow the next newline
 # and silently merge statements into comment lines.
-$examples = @(Get-ChildItem -LiteralPath $exampleDir -File -Filter "*.xl" | Where-Object { !$_.Name.StartsWith("_") } | Sort-Object Name)
+$examples = @(Get-ChildItem -LiteralPath $exampleDir -File -Filter "*.xl" -Recurse | Where-Object { !$_.Name.StartsWith("_") } | Sort-Object FullName)
 if ($Example) {
     $examples = @($examples | Where-Object { $_.BaseName -eq $Example })
 }

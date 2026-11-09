@@ -481,6 +481,9 @@ Test-ExampleExecutionIndex "release\examples\apps" "release\examples\apps\run_ap
 Test-ExampleExecutionIndex "release\examples\games" "release\examples\games\run_games.bat" @()
 Test-ExampleExecutionIndex "release\examples\extlibs" "release\examples\extlibs\run_extlibs.bat" @("com.xl")
 
+& python (Join-Path $PSScriptRoot 'check_example_layout.py') --root $Root
+if ($LASTEXITCODE -ne 0) { Add-Failure 'categorized/dynamic example layout check failed' }
+
 if ( $failures.Count -gt 0 ) {
     foreach ( $failure in $failures ) {
         Write-Host $failure

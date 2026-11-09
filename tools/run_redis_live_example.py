@@ -1,7 +1,7 @@
 """Run redis_live against a disposable authenticated local Redis, never an existing DB."""
 from pathlib import Path
 import argparse, json, os, secrets, shutil, socket, subprocess, time
-from runtime_layout import runtime_directory
+from runtime_layout import runtime_directory, runtime_example
 
 def command(stream, *parts):
     payload = ('*%d\r\n' % len(parts)).encode()
@@ -16,8 +16,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--runtime', type=Path, default=runtime_directory(root))
     parser.add_argument('--out', type=Path, required=True)
+    parser.add_argument('--list', action='store_true')
     parser.add_argument('--redis-server', help='Native redis-server executable')
     args = parser.parse_args()
+    source = runtime_example(args.runtime.resolve(), 'extlibs/redis_live.xl')
+    if args.list:
+        print(json.dumps([str(source)])); return 0
     out = args.out.resolve(); out.mkdir(parents=True, exist_ok=False)
     runtime = args.runtime.resolve(); xl = runtime / ('xl.exe' if os.name == 'nt' else 'xl')
     report = {'passed': False, 'skipped': False, 'runtime': str(xl)}
@@ -51,10 +55,10 @@ def main():
             else: raise RuntimeError('private Redis readiness timeout')
             if not authenticated: raise RuntimeError('private fixture authentication failed')
             env = os.environ.copy(); env.update(REDIS_LIVE_PORT=str(port), REDIS_LIVE_PASSWORD=password, REDIS_LIVE_PREFIX='xlang:fixture:' + secrets.token_hex(12))
-            result = subprocess.run([str(xl), 'run', str(runtime / 'examples/extlibs/redis_live.xl')], env=env, capture_output=True, timeout=30, cwd=runtime)
+            result = subprocess.run([str(xl), 'run', str(source)], env=env, capture_output=True, timeout=30, cwd=runtime)
             (out / 'example.log').write_bytes(result.stdout + result.stderr)
             binary = out / ('redis-live.exe' if os.name == 'nt' else 'redis-live')
-            built = subprocess.run([str(xl), 'build', str(runtime / 'examples/extlibs/redis_live.xl'), '-o', str(binary)], env=env, capture_output=True, timeout=120, cwd=runtime)
+            built = subprocess.run([str(xl), 'build', str(source), '-o', str(binary)], env=env, capture_output=True, timeout=120, cwd=runtime)
             (out / 'build.log').write_bytes(built.stdout + built.stderr)
             aot_code = None
             if built.returncode == 0:
