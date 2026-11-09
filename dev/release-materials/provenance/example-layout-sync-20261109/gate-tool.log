@@ -1,0 +1,6 @@
+check script is not wired into test.bat/test suites: tools\check_extlib_native_globals_failures.ps1
+check script is not wired into rc0_guard.ps1 or a full-regression-only exception: tools\check_extlib_native_globals_failures.ps1
+check script is not wired into test.bat/test suites: tools\check_extlib_native_globals.ps1
+check script is not wired into rc0_guard.ps1 or a full-regression-only exception: tools\check_extlib_native_globals.ps1
+check script is not wired into test.bat/test suites: tools\check_release_cleanup.ps1
+check script is not wired into rc0_guard.ps1 or a full-regression-only exception: tools\check_release_cleanup.ps1

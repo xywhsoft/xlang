@@ -296,3 +296,7 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 # Preserve the reviewed vcard source snapshot and acceptance bytes.
 /dev/release-materials/sources/vcard-read-views-20261109/** -text -whitespace
 /dev/release-materials/provenance/vcard-read-views-20261109/** -text -whitespace
+
+# Exact bytes for categorized-example validation and source materials.
+/dev/release-materials/sources/example-layout-sync-20261109/** -text -whitespace
+/dev/release-materials/provenance/example-layout-sync-20261109/** -text -whitespace

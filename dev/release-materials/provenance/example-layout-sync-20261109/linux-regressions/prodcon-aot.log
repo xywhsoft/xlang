@@ -1,0 +1,31 @@
+==== prodcon start ====
+producers: 3  consumers: 2  items: 10  buffer: 4
+------------------------
+[P2] sent 2
+[P3] sent 3
+[C1] recv 2
+[P1] sent 1
+[C2] recv 3
+[P2] sent 4
+[P3] sent 5
+[C1] recv 1
+[P1] sent 6
+[C2] recv 4
+[P2] sent 7
+[P3] sent 8
+[C1] recv 5
+[P1] sent 9
+[C2] recv 6
+[P2] sent 10
+[C1] recv 7
+[C2] recv 8
+[C1] recv 9
+[C2] recv 10
+------------------------
+==== prodcon summary ====
+producers:     3
+consumers:     2
+items target:  10
+sent total:    10
+received total: 10
+RESULT: OK - all 10 items produced and consumed

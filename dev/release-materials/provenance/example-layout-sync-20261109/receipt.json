@@ -1,0 +1,845 @@
+{
+  "schema": 1,
+  "date": "2026-11-09",
+  "passed": true,
+  "scope": "Categorized Windows examples, dual-layout Python runners and directory guards; not a whole-repository gate certification.",
+  "codeCommit": "9f5c9fe0f03464cd1eeb2feaf12a92c58c46814a",
+  "sourceMaterials": {
+    "path": "dev/release-materials/sources/example-layout-sync-20261109/manifest.json",
+    "sha256": "589b31ebcd12970004a2ca07ae0580ab9a088adca78d06bfdf4e915015b26f8c",
+    "bytes": 5538
+  },
+  "validation": {
+    "layoutReferences": 210,
+    "runnerLists": 4,
+    "resolverTests": 6,
+    "tableEntriesMigrated": 114,
+    "batchLoopEntriesMigrated": 12,
+    "windowsRegressionSteps": 61,
+    "linuxRegressionSteps": 54,
+    "xuiDeclarationChecks": 72,
+    "xgeDeclarationChecks": 4,
+    "guiProgramsExecuted": false,
+    "redis": "Disposable authenticated local fixture; JIT/build/AOT passed"
+  },
+  "results": {
+    "windows-regressions": {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/results.json",
+      "sha256": "623e804616da1fd2858c29d6d76ddd46070459d19a0a76fe51fd000cf3eba41d",
+      "bytes": 29386
+    },
+    "linux-regressions": {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/results.json",
+      "sha256": "da650fcb2a776eb5dd1a1909f7acad0c5211e1999995e60968a7010c006ac9db",
+      "bytes": 24403
+    },
+    "redis": {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/redis/report.json",
+      "sha256": "6b1cb0716a786b564fd11dd29a5c0085e3106444e31bb27d3a393c9704519f8a",
+      "bytes": 229
+    },
+    "failure-samples": {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/failure-samples/report.json",
+      "sha256": "ffb99ea8f138d5afed210155967ec837731fe550d6dc1d226926319f5fdbdf51",
+      "bytes": 8324
+    }
+  },
+  "fixes": [
+    "Resolve legacy logical example names inside the selected platform only; reject ambiguous, missing explicit, absolute/rooted and traversal paths.",
+    "Update three Windows extension gate tables and the dynamic format-extension loop to categorized paths.",
+    "Give four Python runners a no-execution --list mode and guard the sources selected by those same paths.",
+    "Retain five former dev projects under test/fixtures/example_projects and keep JIT/AOT coverage.",
+    "Recursively discover XUI declarations and nested XGE/XUI audit inputs.",
+    "Classify _common without a package manifest as shared C support, while retaining manifest checks for real packages."
+  ],
+  "passingGuards": [
+    "example layout",
+    "example wiring",
+    "batch wiring",
+    "test data wiring",
+    "extension ecosystem CheckOnly"
+  ],
+  "otherRepositoryGateResults": {
+    "toolWiring": "Existing unregistered check_extlib_native_globals, check_extlib_native_globals_failures and check_release_cleanup scripts.",
+    "testCaseWiring": "Unwired foreign/native/static cases and README category entries outside this change.",
+    "stdlibTestWiring": "Reports the same global test-case wiring failures.",
+    "sourceWiring": "src/runtime/xl6_host_xrt.c is not wired; source unchanged by this task.",
+    "cFixtureWiring": "Full scan timed out at 120 seconds; not counted as passed."
+  },
+  "preservation": {
+    "userLayoutEditsPreserved": true,
+    "unrelatedWorkNotStaged": true,
+    "historicalReportsUnmodified": true,
+    "compilerRebuilt": false,
+    "releaseFilesTracked": false,
+    "linuxExamplesReorganized": false,
+    "externalPublicationPerformed": false
+  },
+  "evidence": [
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/baseline-batch-wiring.log",
+      "sha256": "4aaa3c9ab9c93e5d0fec788a126c2dfa4c1e05854ae57fd3e06e81afbdc7d410",
+      "bytes": 107
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/baseline-ecosystem.log",
+      "sha256": "6776b7d205f141fac1208f581ccc160dfa659ac186b7d1e3c5fd9d695aab36a6",
+      "bytes": 491
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/baseline-example-wiring.log",
+      "sha256": "2d89f7a82edad6da6acec2c7db3b1d756400962cf89c2bd1ef7f300c04c43aae",
+      "bytes": 31
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/ecosystem-final.log",
+      "sha256": "df1ed27cbb7f9990bb399db12af2b96cafe17b377cf0461367c63e2136b40f75",
+      "bytes": 115
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/example-inventory.json",
+      "sha256": "f8d0f47b914c8a5098c193acf2e70aa0eceff9b43a17e23e67a4357e9668fc40",
+      "bytes": 113552
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/failure-samples/extlibs-csv_basic-aot-run.log",
+      "sha256": "c47b2370b0efc3594c1b62e1dc57a30662659f990b6dc9649b1e987054b73774",
+      "bytes": 99
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/failure-samples/extlibs-csv_basic-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/failure-samples/extlibs-csv_basic-check.log",
+      "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+      "bytes": 3
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/failure-samples/extlibs-csv_basic-jit-run.log",
+      "sha256": "c47b2370b0efc3594c1b62e1dc57a30662659f990b6dc9649b1e987054b73774",
+      "bytes": 99
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/failure-samples/extlibs-statistics-aot-run.log",
+      "sha256": "f4379527a17f5b4bd963d1e3f2213822e16661e60ee9f5fc79769f0bde7972f1",
+      "bytes": 348
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/failure-samples/extlibs-statistics-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/failure-samples/extlibs-statistics-check.log",
+      "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+      "bytes": 3
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/failure-samples/extlibs-statistics-jit-run.log",
+      "sha256": "f4379527a17f5b4bd963d1e3f2213822e16661e60ee9f5fc79769f0bde7972f1",
+      "bytes": 348
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/failure-samples/report.json",
+      "sha256": "ffb99ea8f138d5afed210155967ec837731fe550d6dc1d226926319f5fdbdf51",
+      "bytes": 8324
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/failure-samples/stdlib_buffer-aot-run.log",
+      "sha256": "3ccf31866690ff43e5e580431c86dba49b5ffc4b3f5b0df399fc56bf444edda4",
+      "bytes": 52
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/failure-samples/stdlib_buffer-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/failure-samples/stdlib_buffer-check.log",
+      "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+      "bytes": 3
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/failure-samples/stdlib_buffer-jit-run.log",
+      "sha256": "3ccf31866690ff43e5e580431c86dba49b5ffc4b3f5b0df399fc56bf444edda4",
+      "bytes": 52
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/gate-batch.log",
+      "sha256": "4aaa3c9ab9c93e5d0fec788a126c2dfa4c1e05854ae57fd3e06e81afbdc7d410",
+      "bytes": 107
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/gate-example.log",
+      "sha256": "bff4f88df0835e49484e70d49193bcd7559b50ae0ddcfd3f895730db72b9d2df",
+      "bytes": 101
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/gate-source.log",
+      "sha256": "efef15fda666180e6571b576bf44281893651613b839d3d5d675ad46a53228d1",
+      "bytes": 54
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/gate-stdlib_test.log",
+      "sha256": "c4e8ab77f6235a9643d6e8d6c147a11e9e9bd7b12714fe077e143fda10e0be9d",
+      "bytes": 2071
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/gate-test_case.log",
+      "sha256": "149d8e0b71409a039b2426be3133a4f7656e44c5ceaa18bfc10062565c6d99d8",
+      "bytes": 2018
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/gate-test_data.log",
+      "sha256": "c6d2cf61446e54c793c14569f0accd1851fc5da6b88579ca6f0c0ae315902e50",
+      "bytes": 39
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/gate-tool.log",
+      "sha256": "a8c612c74343b376a8564a9799bac7f4757fe1a41d3a3be4dd71dad1499fcd09",
+      "bytes": 645
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/layout.json",
+      "sha256": "303eb533d1fabeb0e28102a88e8e4a740baac2319f7fb415787e8473678eda45",
+      "bytes": 17200
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/cgen_class_projection_derived-aot.log",
+      "sha256": "ec9309d7e8c6fa556b06583a33a2dda4342fc448ba46c92dfb056fa5e57577fb",
+      "bytes": 44
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/cgen_class_projection_derived-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/cgen_class_projection_derived-jit.log",
+      "sha256": "ec9309d7e8c6fa556b06583a33a2dda4342fc448ba46c92dfb056fa5e57577fb",
+      "bytes": 44
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/cgen_destroy_field_assignment-aot.log",
+      "sha256": "97f2183efcbbaaf6d0d698e29f06d6aced0c3b650d2d8217fd85919fd3bf15ec",
+      "bytes": 38
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/cgen_destroy_field_assignment-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/cgen_destroy_field_assignment-jit.log",
+      "sha256": "97f2183efcbbaaf6d0d698e29f06d6aced0c3b650d2d8217fd85919fd3bf15ec",
+      "bytes": 38
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/cgen_foreign_read_views-aot.log",
+      "sha256": "5ced9c2bbba02c741bdee7d3e8882c539e7b151aeb879acffd82f61b79cd894a",
+      "bytes": 39
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/cgen_foreign_read_views-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/cgen_foreign_read_views-jit.log",
+      "sha256": "5ced9c2bbba02c741bdee7d3e8882c539e7b151aeb879acffd82f61b79cd894a",
+      "bytes": 39
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/class_c_export-aot.log",
+      "sha256": "36b74163512b786b62b652daa212110f70b319b25fbd3d9fc792f4c94304c403",
+      "bytes": 18
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/class_c_export-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/class_c_export-jit.log",
+      "sha256": "36b74163512b786b62b652daa212110f70b319b25fbd3d9fc792f4c94304c403",
+      "bytes": 18
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/cli-aot.log",
+      "sha256": "716bbffab9a10dd8d652c55cf60bcff056f23a4f805b40ff0aac121355ecea5d",
+      "bytes": 379
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/cli-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/cli-jit.log",
+      "sha256": "716bbffab9a10dd8d652c55cf60bcff056f23a4f805b40ff0aac121355ecea5d",
+      "bytes": 379
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/concurrency-aot.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/concurrency-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/concurrency-jit.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/copy_clone-aot.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/copy_clone-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/copy_clone-jit.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/deepclone-aot.log",
+      "sha256": "04b374c454b6676caf2e35e781ab9d50397d27badb856cd44b66e1757b3c0ad8",
+      "bytes": 4319
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/deepclone-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/deepclone-jit.log",
+      "sha256": "04b374c454b6676caf2e35e781ab9d50397d27badb856cd44b66e1757b3c0ad8",
+      "bytes": 4319
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/dynobj-aot.log",
+      "sha256": "51660d27a49698d050cb7454b905e2442c2768666794826e4c0c674bd70eef45",
+      "bytes": 3264
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/dynobj-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/dynobj-jit.log",
+      "sha256": "51660d27a49698d050cb7454b905e2442c2768666794826e4c0c674bd70eef45",
+      "bytes": 3264
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/extlib_vcard_read_views-aot.log",
+      "sha256": "556b9567ae79ad5841e3e380ef5b17a46dea5c034e1600fb99d0a67dacf64cd0",
+      "bytes": 99
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/extlib_vcard_read_views-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/extlib_vcard_read_views-jit.log",
+      "sha256": "556b9567ae79ad5841e3e380ef5b17a46dea5c034e1600fb99d0a67dacf64cd0",
+      "bytes": 99
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/fs-aot.log",
+      "sha256": "f09638fc458d9b80ad7f2072145cec80f1a6ebc2bc177b5f7ea4a1b10c97d21e",
+      "bytes": 31
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/fs-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/fs-jit.log",
+      "sha256": "f09638fc458d9b80ad7f2072145cec80f1a6ebc2bc177b5f7ea4a1b10c97d21e",
+      "bytes": 31
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/prodcon-aot.log",
+      "sha256": "0466a82afcb5d35777e02ad65d9309f808596e8c08572b82aeffa6fd579400e1",
+      "bytes": 528
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/prodcon-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/prodcon-jit.log",
+      "sha256": "55774151f4f40dc0c0862e0f75cdd1622099aea42cae017282bcf4cdb260f11e",
+      "bytes": 528
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/results.json",
+      "sha256": "da650fcb2a776eb5dd1a1909f7acad0c5211e1999995e60968a7010c006ac9db",
+      "bytes": 24403
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/serial-aot.log",
+      "sha256": "665b18408c18fdfe951bb1f606ce041d194ce175dbc0e167249bca00267d6eaa",
+      "bytes": 200
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/serial-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/serial-jit.log",
+      "sha256": "665b18408c18fdfe951bb1f606ce041d194ce175dbc0e167249bca00267d6eaa",
+      "bytes": 200
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/shapes-aot.log",
+      "sha256": "58cdd272f1a7122d3edd57953b17e3407104004188004ce6d3d4d44451cf9cd0",
+      "bytes": 3083
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/shapes-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/shapes-jit.log",
+      "sha256": "58cdd272f1a7122d3edd57953b17e3407104004188004ce6d3d4d44451cf9cd0",
+      "bytes": 3083
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/stdlib_channel_default_initialized-aot.log",
+      "sha256": "925eb35f1477e4e8871ad6156dba5cd2adfd808b6d4f5ad71f7ea10b54515597",
+      "bytes": 33
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/stdlib_channel_default_initialized-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/stdlib_channel_default_initialized-jit.log",
+      "sha256": "925eb35f1477e4e8871ad6156dba5cd2adfd808b6d4f5ad71f7ea10b54515597",
+      "bytes": 33
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/stdlib_object_index_context-aot.log",
+      "sha256": "1985c5a5b67a7892d41172b8a3b43c705280777ef33954cf475cc5a02062b370",
+      "bytes": 28
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/stdlib_object_index_context-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/stdlib_object_index_context-jit.log",
+      "sha256": "1985c5a5b67a7892d41172b8a3b43c705280777ef33954cf475cc5a02062b370",
+      "bytes": 28
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/vcard-aot.log",
+      "sha256": "2fa5dd67c64a8dc745fff3a4d1df693ecdfe3c8707aa1275f6550dcf12c6e2ee",
+      "bytes": 61
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/vcard-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/vcard-jit.log",
+      "sha256": "2fa5dd67c64a8dc745fff3a4d1df693ecdfe3c8707aa1275f6550dcf12c6e2ee",
+      "bytes": 61
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/xneural-aot.log",
+      "sha256": "e5749ac417edd01dab56d3e7c9e43e6cc6fd414ab7758694695600c5ed75abf9",
+      "bytes": 1364
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/xneural-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/linux-regressions/xneural-jit.log",
+      "sha256": "e5749ac417edd01dab56d3e7c9e43e6cc6fd414ab7758694695600c5ed75abf9",
+      "bytes": 1364
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/owned-staging.json",
+      "sha256": "b34d2c2f64d6af719d463ec0392306934e76eee6d126b9851e87e9e97ff9c7e6",
+      "bytes": 5195
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/previous-delivery.json",
+      "sha256": "3653482344f048598098dd81ac165b5fde83fc4434f80c1319f45bddde42ac8c",
+      "bytes": 353353
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/redis/aot.log",
+      "sha256": "51cd3b8dbf74974d8ecfb4404964406d22f36f7ba739bf050e4a1879207f355b",
+      "bytes": 60
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/redis/build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/redis/example.log",
+      "sha256": "51cd3b8dbf74974d8ecfb4404964406d22f36f7ba739bf050e4a1879207f355b",
+      "bytes": 60
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/redis/redis.log",
+      "sha256": "2079407bf8f722557810cb93ccc892d9313cbf615c16805b7f6628821f867e75",
+      "bytes": 1115
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/redis/report.json",
+      "sha256": "6b1cb0716a786b564fd11dd29a5c0085e3106444e31bb27d3a393c9704519f8a",
+      "bytes": 229
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/table-migrations.json",
+      "sha256": "a1f572736a49bfb2aa2c706464261c88bec054dd6d46c9cd19d82b8e07b4a7c3",
+      "bytes": 12602
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/cgen_class_projection_derived-aot.log",
+      "sha256": "ec9309d7e8c6fa556b06583a33a2dda4342fc448ba46c92dfb056fa5e57577fb",
+      "bytes": 44
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/cgen_class_projection_derived-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/cgen_class_projection_derived-jit.log",
+      "sha256": "ec9309d7e8c6fa556b06583a33a2dda4342fc448ba46c92dfb056fa5e57577fb",
+      "bytes": 44
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/cgen_destroy_field_assignment-aot.log",
+      "sha256": "97f2183efcbbaaf6d0d698e29f06d6aced0c3b650d2d8217fd85919fd3bf15ec",
+      "bytes": 38
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/cgen_destroy_field_assignment-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/cgen_destroy_field_assignment-jit.log",
+      "sha256": "97f2183efcbbaaf6d0d698e29f06d6aced0c3b650d2d8217fd85919fd3bf15ec",
+      "bytes": 38
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/cgen_foreign_read_views-aot.log",
+      "sha256": "5ced9c2bbba02c741bdee7d3e8882c539e7b151aeb879acffd82f61b79cd894a",
+      "bytes": 39
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/cgen_foreign_read_views-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/cgen_foreign_read_views-jit.log",
+      "sha256": "5ced9c2bbba02c741bdee7d3e8882c539e7b151aeb879acffd82f61b79cd894a",
+      "bytes": 39
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/class_c_export-aot.log",
+      "sha256": "36b74163512b786b62b652daa212110f70b319b25fbd3d9fc792f4c94304c403",
+      "bytes": 18
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/class_c_export-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/class_c_export-jit.log",
+      "sha256": "36b74163512b786b62b652daa212110f70b319b25fbd3d9fc792f4c94304c403",
+      "bytes": 18
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/cli-aot.log",
+      "sha256": "716bbffab9a10dd8d652c55cf60bcff056f23a4f805b40ff0aac121355ecea5d",
+      "bytes": 379
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/cli-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/cli-jit.log",
+      "sha256": "716bbffab9a10dd8d652c55cf60bcff056f23a4f805b40ff0aac121355ecea5d",
+      "bytes": 379
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/clipboard-aot.log",
+      "sha256": "18ae16840885bd8b0fb1b58cbf52bcaf6a178264d9de8b405b5c53384a39fb5d",
+      "bytes": 32
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/clipboard-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/clipboard-jit.log",
+      "sha256": "18ae16840885bd8b0fb1b58cbf52bcaf6a178264d9de8b405b5c53384a39fb5d",
+      "bytes": 32
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/clipboard-runner-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/com-aot.log",
+      "sha256": "ace04a4bead4d8000f8f6ecda56230649f36170f0bff36b8e5dbcb136d8ffacc",
+      "bytes": 14
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/com-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/com-jit.log",
+      "sha256": "ace04a4bead4d8000f8f6ecda56230649f36170f0bff36b8e5dbcb136d8ffacc",
+      "bytes": 14
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/concurrency-aot.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/concurrency-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/concurrency-jit.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/copy_clone-aot.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/copy_clone-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/copy_clone-jit.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/deepclone-aot.log",
+      "sha256": "04b374c454b6676caf2e35e781ab9d50397d27badb856cd44b66e1757b3c0ad8",
+      "bytes": 4319
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/deepclone-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/deepclone-jit.log",
+      "sha256": "04b374c454b6676caf2e35e781ab9d50397d27badb856cd44b66e1757b3c0ad8",
+      "bytes": 4319
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/dynobj-aot.log",
+      "sha256": "51660d27a49698d050cb7454b905e2442c2768666794826e4c0c674bd70eef45",
+      "bytes": 3264
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/dynobj-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/dynobj-jit.log",
+      "sha256": "51660d27a49698d050cb7454b905e2442c2768666794826e4c0c674bd70eef45",
+      "bytes": 3264
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/extlib_vcard_read_views-aot.log",
+      "sha256": "556b9567ae79ad5841e3e380ef5b17a46dea5c034e1600fb99d0a67dacf64cd0",
+      "bytes": 99
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/extlib_vcard_read_views-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/extlib_vcard_read_views-jit.log",
+      "sha256": "556b9567ae79ad5841e3e380ef5b17a46dea5c034e1600fb99d0a67dacf64cd0",
+      "bytes": 99
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/fs-aot.log",
+      "sha256": "f09638fc458d9b80ad7f2072145cec80f1a6ebc2bc177b5f7ea4a1b10c97d21e",
+      "bytes": 31
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/fs-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/fs-jit.log",
+      "sha256": "f09638fc458d9b80ad7f2072145cec80f1a6ebc2bc177b5f7ea4a1b10c97d21e",
+      "bytes": 31
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/prodcon-aot.log",
+      "sha256": "0cac0d32122a9f30918fe70ba1b8618db42efa8e2fd80ec33e36525cff2f93dc",
+      "bytes": 528
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/prodcon-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/prodcon-jit.log",
+      "sha256": "96e302640990d9445be3e2ef5bef6d1fefe4a5eb10a845c9a13c9ee303bc73fc",
+      "bytes": 528
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/results.json",
+      "sha256": "623e804616da1fd2858c29d6d76ddd46070459d19a0a76fe51fd000cf3eba41d",
+      "bytes": 29386
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/serial-aot.log",
+      "sha256": "665b18408c18fdfe951bb1f606ce041d194ce175dbc0e167249bca00267d6eaa",
+      "bytes": 200
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/serial-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/serial-jit.log",
+      "sha256": "665b18408c18fdfe951bb1f606ce041d194ce175dbc0e167249bca00267d6eaa",
+      "bytes": 200
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/shapes-aot.log",
+      "sha256": "58cdd272f1a7122d3edd57953b17e3407104004188004ce6d3d4d44451cf9cd0",
+      "bytes": 3083
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/shapes-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/shapes-jit.log",
+      "sha256": "58cdd272f1a7122d3edd57953b17e3407104004188004ce6d3d4d44451cf9cd0",
+      "bytes": 3083
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/stdlib_channel_default_initialized-aot.log",
+      "sha256": "925eb35f1477e4e8871ad6156dba5cd2adfd808b6d4f5ad71f7ea10b54515597",
+      "bytes": 33
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/stdlib_channel_default_initialized-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/stdlib_channel_default_initialized-jit.log",
+      "sha256": "925eb35f1477e4e8871ad6156dba5cd2adfd808b6d4f5ad71f7ea10b54515597",
+      "bytes": 33
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/stdlib_object_index_context-aot.log",
+      "sha256": "1985c5a5b67a7892d41172b8a3b43c705280777ef33954cf475cc5a02062b370",
+      "bytes": 28
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/stdlib_object_index_context-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/stdlib_object_index_context-jit.log",
+      "sha256": "1985c5a5b67a7892d41172b8a3b43c705280777ef33954cf475cc5a02062b370",
+      "bytes": 28
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/vcard-aot.log",
+      "sha256": "2fa5dd67c64a8dc745fff3a4d1df693ecdfe3c8707aa1275f6550dcf12c6e2ee",
+      "bytes": 61
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/vcard-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/vcard-jit.log",
+      "sha256": "2fa5dd67c64a8dc745fff3a4d1df693ecdfe3c8707aa1275f6550dcf12c6e2ee",
+      "bytes": 61
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/xneural-aot.log",
+      "sha256": "e5749ac417edd01dab56d3e7c9e43e6cc6fd414ab7758694695600c5ed75abf9",
+      "bytes": 1364
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/xneural-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/windows-regressions/xneural-jit.log",
+      "sha256": "e5749ac417edd01dab56d3e7c9e43e6cc6fd414ab7758694695600c5ed75abf9",
+      "bytes": 1364
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/xge-check.log",
+      "sha256": "296ec63ae62864cedc0c931aacd298837551dd96c3e52172d117069c7c12e139",
+      "bytes": 206
+    },
+    {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/xui-check.log",
+      "sha256": "bd7b27265382cfa8b1fbff9dab2aac5a80b50446cd7d190c011e15e54fc8af7e",
+      "bytes": 1868
+    }
+  ]
+}

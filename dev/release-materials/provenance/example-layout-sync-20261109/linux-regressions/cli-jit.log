@@ -1,0 +1,16 @@
+[1mtool[0m  ["--verbose","-j4","a.txt","b.txt"]
+  verbose mode
+  jobs: 4  output: 
+  copy: a.txt -> b.txt
+
+[1mtool[0m  ["-o","merged.bin","--dry-run","in/"]
+  dry run (no writes)
+  jobs: 1  output: merged.bin
+  copy: in/ -> null
+
+[1mtool[0m  ["--jobs=8","--","-weird-name","out/"]
+  jobs: 8  output: 
+  copy: -weird-name -> out/
+
+this process: tag = none
+cli example: PASS

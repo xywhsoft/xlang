@@ -1,0 +1,195 @@
+{
+  "schema": 1,
+  "passed": true,
+  "examples": 3,
+  "binaries": {
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6"
+  },
+  "redis": "excluded by user",
+  "cloud": "credentials removed; live case must exit 2 without a request",
+  "rows": [
+    {
+      "name": "extlibs/csv_basic",
+      "source": "D:\\GIT\\x-lang\\release\\win_x64\\examples\\extlibs\\data_format\\csv_basic.xl",
+      "sourceSha256": "0579d94e324a9db5f947a41b969c5064ba32f0b9d95c8a9d7cf679ba1328498a",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "check",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\extlibs\\data_format\\csv_basic.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.078,
+          "log": "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\failure-samples\\extlibs-csv_basic-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "build",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\extlibs\\data_format\\csv_basic.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\failure-samples\\extlibs-csv_basic.exe"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 1.531,
+          "log": "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\failure-samples\\extlibs-csv_basic-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\failure-samples\\extlibs-csv_basic.exe"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.016,
+          "log": "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\failure-samples\\extlibs-csv_basic-aot-run.log",
+          "logSha256": "c47b2370b0efc3594c1b62e1dc57a30662659f990b6dc9649b1e987054b73774"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "run",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\extlibs\\data_format\\csv_basic.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.89,
+          "log": "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\failure-samples\\extlibs-csv_basic-jit-run.log",
+          "logSha256": "c47b2370b0efc3594c1b62e1dc57a30662659f990b6dc9649b1e987054b73774"
+        }
+      ]
+    },
+    {
+      "name": "stdlib_buffer",
+      "source": "D:\\GIT\\x-lang\\release\\win_x64\\examples\\stdlib\\io\\stdlib_buffer.xl",
+      "sourceSha256": "9c2216dd061ee8fc2538751411252b80685ea33696773f638193e82b3213585d",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "check",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\stdlib\\io\\stdlib_buffer.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.031,
+          "log": "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\failure-samples\\stdlib_buffer-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "build",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\stdlib\\io\\stdlib_buffer.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\failure-samples\\stdlib_buffer.exe"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.265,
+          "log": "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\failure-samples\\stdlib_buffer-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\failure-samples\\stdlib_buffer.exe"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.016,
+          "log": "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\failure-samples\\stdlib_buffer-aot-run.log",
+          "logSha256": "3ccf31866690ff43e5e580431c86dba49b5ffc4b3f5b0df399fc56bf444edda4"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "run",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\stdlib\\io\\stdlib_buffer.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.141,
+          "log": "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\failure-samples\\stdlib_buffer-jit-run.log",
+          "logSha256": "3ccf31866690ff43e5e580431c86dba49b5ffc4b3f5b0df399fc56bf444edda4"
+        }
+      ]
+    },
+    {
+      "name": "extlibs/statistics",
+      "source": "D:\\GIT\\x-lang\\release\\win_x64\\examples\\extlibs\\algo\\statistics.xl",
+      "sourceSha256": "f375e7a567d531722a665241efc2a5c0c9693f667b6f460163cb4f698589e3f3",
+      "passed": true,
+      "steps": [
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "check",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\extlibs\\algo\\statistics.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.031,
+          "log": "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\failure-samples\\extlibs-statistics-check.log",
+          "logSha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "build",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\extlibs\\algo\\statistics.xl",
+            "-o",
+            "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\failure-samples\\extlibs-statistics.exe"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.562,
+          "log": "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\failure-samples\\extlibs-statistics-build.log",
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\failure-samples\\extlibs-statistics.exe"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.016,
+          "log": "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\failure-samples\\extlibs-statistics-aot-run.log",
+          "logSha256": "f4379527a17f5b4bd963d1e3f2213822e16661e60ee9f5fc79769f0bde7972f1"
+        },
+        {
+          "command": [
+            "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+            "run",
+            "D:\\GIT\\x-lang\\release\\win_x64\\examples\\extlibs\\algo\\statistics.xl"
+          ],
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "passed": true,
+          "seconds": 0.313,
+          "log": "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\failure-samples\\extlibs-statistics-jit-run.log",
+          "logSha256": "f4379527a17f5b4bd963d1e3f2213822e16661e60ee9f5fc79769f0bde7972f1"
+        }
+      ]
+    }
+  ],
+  "core": []
+}

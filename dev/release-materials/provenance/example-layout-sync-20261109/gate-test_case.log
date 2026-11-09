@@ -1,0 +1,31 @@
+test case is not wired: test/cases/foreign_decl_callback.xl
+test case is not wired: test/cases/foreign_global_callback.xl
+test case is not wired: test/cases/foreign_xge3_binding_callbacks.xl
+test case is not wired: test/cases/foreign_xge3_binding_cell_cycle.xl
+test case is not wired: test/cases/foreign_xge3_binding_const.xl
+test case is not wired: test/cases/foreign_xge3_binding_domain.xl
+test case is not wired: test/cases/foreign_xge3_binding_export_alias.xl
+test case is not wired: test/cases/foreign_xge3_binding_field_alias.xl
+test case is not wired: test/cases/foreign_xge3_binding_grid.xl
+test case is not wired: test/cases/foreign_xge3_binding_guard.xl
+test case is not wired: test/cases/foreign_xge3_binding_header.xl
+test case is not wired: test/cases/foreign_xge3_binding_manager_cycle.xl
+test case is not wired: test/cases/foreign_xge3_binding_managers.xl
+test case is not wired: test/cases/foreign_xge3_binding_merge.xl
+test case is not wired: test/cases/foreign_xge3_binding_outputs.xl
+test case is not wired: test/cases/foreign_xge3_binding_rollback.xl
+test case is not wired: test/cases/foreign_xge3_binding_scalar.xl
+test case is not wired: test/cases/foreign_xge3_binding_terminal.xl
+test case is not wired: test/cases/foreign_xge3_binding_value.xl
+test case is not wired: test/cases/foreign_xge3_code_wrap.xl
+test case is not wired: test/cases/foreign_xge3_package_native_sequence.xl
+test case is not wired: test/cases/foreign_xge3_package_public_init.xl
+test case is not wired: test/cases/foreign_xge3_package_tail.xl
+test case is not wired: test/cases/foreign_xge3_package.xl
+test case is not wired: test/cases/foreign_xge3_terminal_newline.xl
+test case is not wired: test/cases/foreign_xui_choice.xl
+test case is not wired: test/cases/foreign_xui_declarative.xl
+test case is not wired: test/cases/foreign_xui_navigation.xl
+test README does not list case prefix: foreign
+test README does not list case prefix: native
+test README does not list case prefix: static

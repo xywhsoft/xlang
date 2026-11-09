@@ -1,0 +1,41 @@
+=== xneural: self-test suite ===
+(Tensor ops + Loss + Gradient check + Layer polymorphism)
+
+[1] Tensor matrix operations (matMul/add/sub/transpose/relu/sigmoid)
+  [PASS] matMul [0,0]=58
+  [PASS] matMul [0,1]=64
+  [PASS] matMul [1,0]=139
+  [PASS] matMul [1,1]=154
+  [PASS] transpose rows=3
+  [PASS] transpose cols=2
+  [PASS] transpose [0,0]=1
+  [PASS] transpose [2,1]=6
+  [PASS] add [0,0]=11
+  [PASS] add [1,2]=66
+  [PASS] sub [0,0]=9
+  [PASS] sub [1,2]=54
+  [PASS] relu(-1)=0
+  [PASS] relu(2)=2
+  [PASS] relu(4)=4
+  [PASS] sigmoid(0)=0.5
+  [PASS] __item__/__setItem__ multi-dim
+[2] Loss functions (MSE + CrossEntropy)
+  [PASS] MSE loss=0.04
+  [PASS] MSE grad=-0.4
+  [PASS] CE uniform softmax loss~1.0986
+  [PASS] CE grad[0]=-2/3
+  [PASS] CE grad[1]=1/3
+[3] Gradient check (numerical vs analytic)
+  single Dense + MSE: 16 params, max rel err=0.000000
+  [PASS] Dense gradient check passed (max rel err < 1e-4)
+  Sequential(Dense->Sigmoid->Dense) via array<Layer>: max rel err=0.000000
+  [PASS] Sequential gradient check passed (vtable + shared object identity)
+[4] Layer polymorphism via array<Layer>
+  [PASS] Dense.forward via base reference -> 3 outputs
+  [PASS] downcast mutation affects object stored as Layer
+  [PASS] ReLU(1)=1
+  [PASS] ReLU(-2)=0
+  [PASS] Sigmoid(-2)~0.1192
+  [PASS] ReLU vs Sigmoid dispatch distinct -> vtable works
+
+total passed=30 failed=0

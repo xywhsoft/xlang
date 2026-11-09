@@ -6548,6 +6548,11 @@
       "path": "dev/release-materials/provenance/vcard-read-views-20261109/receipt.json",
       "sha256": "a00896669cb03a1291da3b627297424a1c34e406aa2eab739a62c152b634d6ed",
       "bytes": 48225
+    },
+    "exampleLayoutSync": {
+      "path": "dev/release-materials/provenance/example-layout-sync-20261109/receipt.json",
+      "sha256": "6695dbd09bc34c57527d422e9d7d1f426a668a2c233bcac883cde82c53a849be",
+      "bytes": 40031
     }
   },
   "remaining": {
@@ -7261,5 +7266,10 @@
     "path": "dev/release-materials/provenance/vcard-read-views-20261109/receipt.json",
     "sha256": "a00896669cb03a1291da3b627297424a1c34e406aa2eab739a62c152b634d6ed",
     "bytes": 48225
+  },
+  "exampleLayoutSync": {
+    "path": "dev/release-materials/provenance/example-layout-sync-20261109/receipt.json",
+    "sha256": "6695dbd09bc34c57527d422e9d7d1f426a668a2c233bcac883cde82c53a849be",
+    "bytes": 40031
   }
 }

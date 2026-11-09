@@ -1,0 +1,3122 @@
+[
+  {
+    "path": "release/win_x64/examples/apps/asset_manifest.xl",
+    "sha256": "8d6a7eddb97a7369ea92e59dc786a8de23e6fd5381d59ae090a7f771186b5756",
+    "bytes": 1513
+  },
+  {
+    "path": "release/win_x64/examples/apps/cli_args.xl",
+    "sha256": "dd2453cd5d429cdb4bd68e626626c5a6e455d80e9fe9a2ea45169863ed970e20",
+    "bytes": 903
+  },
+  {
+    "path": "release/win_x64/examples/apps/config_loader.xl",
+    "sha256": "f1ff437009ed9e62e29709d70a6dfecc94394a64869664a4438fa37894db1d1c",
+    "bytes": 1239
+  },
+  {
+    "path": "release/win_x64/examples/apps/csv_sales_report.xl",
+    "sha256": "655388cdeb5f83c32f86b1eaae2c07b6283ad7a975bfe44271e8974ab3986abe",
+    "bytes": 1166
+  },
+  {
+    "path": "release/win_x64/examples/apps/file_backup.xl",
+    "sha256": "3afa72eddf8530e465872e4df92143fcb56ba00fbdbbc6d6dd0afbba1dd2c8b8",
+    "bytes": 1301
+  },
+  {
+    "path": "release/win_x64/examples/apps/log_summary.xl",
+    "sha256": "0002d090580390047c3a4e80555c1933d782b738635bcf6bb9ba745fde5b91f1",
+    "bytes": 982
+  },
+  {
+    "path": "release/win_x64/examples/apps/README.md",
+    "sha256": "9309ab1d1c72dabf9cb2126fa8920b5919c91815a3b96fc8c5db3c53e44d76c3",
+    "bytes": 1336
+  },
+  {
+    "path": "release/win_x64/examples/apps/run_apps.bat",
+    "sha256": "0f58d05077583df6984856f191d4efaa035236fab6209489f69e5e1884240abf",
+    "bytes": 1148
+  },
+  {
+    "path": "release/win_x64/examples/apps/static_site_builder.xl",
+    "sha256": "a053e575792d6ecc4321240f02b33f451ef922d50c001a5df3284f6396fe22ce",
+    "bytes": 1360
+  },
+  {
+    "path": "release/win_x64/examples/apps/template_mail_merge.xl",
+    "sha256": "fd68ab491ef5001137e25578fdab16d078f9b9d149adc7b2c3af99fa4ee829df",
+    "bytes": 1175
+  },
+  {
+    "path": "release/win_x64/examples/apps/todo_json_store.xl",
+    "sha256": "d0e50022732eb90170bfa96c6d0dbc8ffa00eb68e2450631d2db662ffefe53dd",
+    "bytes": 1296
+  },
+  {
+    "path": "release/win_x64/examples/embedded_package/external.xl",
+    "sha256": "df24dd7e2f2f1ecf7f0b8cf936a6a33b46d1bb6ef8f587de25911d1d21aad0f0",
+    "bytes": 135
+  },
+  {
+    "path": "release/win_x64/examples/embedded_package/host.xl",
+    "sha256": "2849cdd509e845d685d854325a65d2d5f4c249150f6510c88b895457f2a337cc",
+    "bytes": 458
+  },
+  {
+    "path": "release/win_x64/examples/embedded_package/packages/embedded_math/math.xl",
+    "sha256": "3327cdc550410ccb57bc787998b815d66fe5db901e8230cbea9b09e4060ed3e9",
+    "bytes": 162
+  },
+  {
+    "path": "release/win_x64/examples/embedded_package/packages/embedded_math/native.c",
+    "sha256": "5fe69e7abbfb98e50dcbc956d3753263dbbe2107c22cbddec146bf7ab290934f",
+    "bytes": 88
+  },
+  {
+    "path": "release/win_x64/examples/embedded_package/packages/embedded_math/xlang.package.json",
+    "sha256": "c40ec46f871257bb0e272a25fa8a563eca6b53d1622519644094d7169b9a5ae1",
+    "bytes": 253
+  },
+  {
+    "path": "release/win_x64/examples/embedded_package/README.md",
+    "sha256": "317c91e96dd6112257bc43d821686ab6f40abc9eb01159aa11a8b7163ec70abc",
+    "bytes": 1302
+  },
+  {
+    "path": "release/win_x64/examples/embedding/c_export.xl",
+    "sha256": "ca4ffb88726ed59fd3d459e0dcf2c22bcf3f359a1536f955e9f5cf242cb52ebb",
+    "bytes": 144
+  },
+  {
+    "path": "release/win_x64/examples/embedding/class_c_export.xl",
+    "sha256": "0da5e4ae095159d4978a94339ea66fb80afeaecb68fc09fc743bd28c0d4f670b",
+    "bytes": 881
+  },
+  {
+    "path": "release/win_x64/examples/embedding/README.md",
+    "sha256": "365d16f1ca77ec1200feeb28c08a4e09bf78c0fd0a9f34f1845bc8f874f932b7",
+    "bytes": 2006
+  },
+  {
+    "path": "release/win_x64/examples/embedding/script_embed_tcc.xl",
+    "sha256": "de6b37522f4ed5a2c77210214926563db05ffa9644a31e3699a081f99e55d3c3",
+    "bytes": 829
+  },
+  {
+    "path": "release/win_x64/examples/embedding/script_embed_xlang.xl",
+    "sha256": "057e9ca6c710b119a7d5b31ea4e9a81501438d7763f4bec0931fb07a8472cd46",
+    "bytes": 311
+  },
+  {
+    "path": "release/win_x64/examples/embedding/stdlib_tcc_xlang_embed.xl",
+    "sha256": "caed90a0c0e56572b9ce318db22abf225b2b947d62ead65598c0dc4d00c87c60",
+    "bytes": 1564
+  },
+  {
+    "path": "release/win_x64/examples/embedding/xl_dll_embed_string.c",
+    "sha256": "f2f52a8533245a5c0698ef5528974809dcda5202fd43c30ee7359d643d827b03",
+    "bytes": 16282
+  },
+  {
+    "path": "release/win_x64/examples/embedding/xl_dll_link_host.c",
+    "sha256": "230e1ede7143e80d3c7ed57a21dce4f1148364fc49d7a2709dd6757c0ff4d16c",
+    "bytes": 248
+  },
+  {
+    "path": "release/win_x64/examples/embedding/xl_dll_loadlib_host.c",
+    "sha256": "a54ec14897050c887b29e73f5ab0e0d131d1e900001f48e4a7d573fd7a35ac86",
+    "bytes": 282
+  },
+  {
+    "path": "release/win_x64/examples/embedding/xl_dll_null_context.c",
+    "sha256": "093c12f1a8e19ba202809ff3c433f131a3f096c7f0c804ae0d0a66e61fc1bb0c",
+    "bytes": 17587
+  },
+  {
+    "path": "release/win_x64/examples/embedding/xl_dll_threaded_host.c",
+    "sha256": "8f71b03b060d536f3e1904663ba4e992207f92f0b150f4b3a6bd976d2307e170",
+    "bytes": 15076
+  },
+  {
+    "path": "release/win_x64/examples/embedding/xl_dll_xrt_exports.c",
+    "sha256": "725e8fecb347ba92be5a9fef791ca7190286e3eeb32b2314aa6dd897746194c2",
+    "bytes": 579
+  },
+  {
+    "path": "release/win_x64/examples/embedding/xl_run_demo_win32.c",
+    "sha256": "be107bd99ff5cf80e780bc1c5c2d2325f3a46ff1b96709e1a9dccaaf87e9a58f",
+    "bytes": 14987
+  },
+  {
+    "path": "release/win_x64/examples/embedding/xlc_api_embed.c",
+    "sha256": "8e589a8f29b02fa48a6bcff1e9b20c4cb3facdccb499bfd317afa82a0581d408",
+    "bytes": 5404
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/.gitattributes",
+    "sha256": "cc42213f1bc8f5a96f14f024d12ad86a8a2f4245f57841a8a67d04fe6b84584a",
+    "bytes": 27
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/ai_ml/dinov3.xl",
+    "sha256": "dd560d1f3412e0ae69ef9f422fdbd2e08ce0d071319e866a9c39e7786bb59c72",
+    "bytes": 1349
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/ai_ml/embeddings.xl",
+    "sha256": "8a861cdc1f736e8d5486e1bd9f74992b6cc8439a2f01528ce935331c8a07c21b",
+    "bytes": 297
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/ai_ml/faiss.xl",
+    "sha256": "257bbab409027a9c8448798a6ba4d3692333018f3cf2f4ebed1b438595cf5652",
+    "bytes": 379
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/ai_ml/ggml.xl",
+    "sha256": "38d5460d917325bae9ed220f22b08b6a02013151f5cbdd742c3f1de6300ed1c4",
+    "bytes": 301
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/ai_ml/hnswlib.xl",
+    "sha256": "b63800077829104d8d7fc162b52c728f48a04729067d0deaff94b7a2b0eb99e0",
+    "bytes": 300
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/ai_ml/libsvm.xl",
+    "sha256": "9fd2a5e976c845765e08d699662880747450fc6fa9ccb0f6929a5ba1c3dc1ebd",
+    "bytes": 356
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/ai_ml/linalg.xl",
+    "sha256": "e977bd7e0b494da575f73519c61632fa1180fdf7efd13048c3fb60c33cbec47d",
+    "bytes": 1371
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/ai_ml/linalg_c.c",
+    "sha256": "9f20e4ce7b7e08bea17eff99ae3841906d67d88fbbd7e310267be40dd0f85e1a",
+    "bytes": 1554
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/ai_ml/llama.xl",
+    "sha256": "6670ca76929fa498c4ff588dfa0b32aa38a62b1dd3a39ec6f484cdf8dc9d6270",
+    "bytes": 336
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/ai_ml/mnn.xl",
+    "sha256": "916ff1f4b45d9b6b7f42fbef875b6b5ccbacaa10e0618b2f2956b1a406acd01d",
+    "bytes": 274
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/ai_ml/ncnn.xl",
+    "sha256": "d5a0218bc546dd818d678e79504a6d8170e6f175011f84fb730a1747610a1292",
+    "bytes": 318
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/ai_ml/onnxruntime.xl",
+    "sha256": "2ebbb825967e2d65465d9c3d0eab9525e34bf63fa810de48dc4d8d62189eb584",
+    "bytes": 8859
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/ai_ml/op.xl",
+    "sha256": "ff793a6f47f19e8d92c6e82b1c725fc68c7a8076e5d6bfcac47faf890260910e",
+    "bytes": 336
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/ai_ml/op_c.c",
+    "sha256": "2ee21ccaacbee1a879820289ee78800bc4111a7cf68a33d67ff8a9aed7a4caf6",
+    "bytes": 597
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/ai_ml/op_interactive.xl",
+    "sha256": "fb8bc6a8434784f89d9feff7a3ff6d4187f8da0ee988ca7f9f9b508fba03b19b",
+    "bytes": 3378
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/ai_ml/op_memory.xl",
+    "sha256": "2e08ac86ac574cd0df98f191233f1a79b35792cc78dee0ff8e670dac2cd4ae1d",
+    "bytes": 360
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/ai_ml/op_memory_c.c",
+    "sha256": "c08d69e6d0a6cb6005ea4b860505fa27c6770e8247c464c6a18aa9ac91b8d55d",
+    "bytes": 676
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/ai_ml/op_memory_fixture.c",
+    "sha256": "207221d3e528a685cbdf4cb4cb8016e7e79338755487582ce053c35e93044594",
+    "bytes": 261
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/ai_ml/op_memory_helper.c",
+    "sha256": "d6d5ef418e1c28879ec31becc6becdd2797ed98ff4a139bf9bf2b7a30e57c2ee",
+    "bytes": 409
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/ai_ml/openvino.xl",
+    "sha256": "74c72c35bc8f5f6d4db5746146750898bc72b2ef5677fce58de35f96b8407975",
+    "bytes": 291
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/ai_ml/rapidocr.xl",
+    "sha256": "a3f0378ad33098858f5d06ed7924a61356ba8e18a0733f75efb25e75a2670680",
+    "bytes": 5377
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/ai_ml/sentencepiece.xl",
+    "sha256": "a4441b0d326a3c85508a0c9ece6e7dce7c2283cb8b4f6ffbb76f1e6e04189da5",
+    "bytes": 342
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/ai_ml/tokenizers.xl",
+    "sha256": "e9c7983359ca674834db04c19780c2106b0079eb0bbccc8ae59ff6610e1d2547",
+    "bytes": 378
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/ai_ml/whisper.xl",
+    "sha256": "ab7e89a405e1f0cb7178bf6e101643f3594b8e7c2514a2c066b99fd402d5a0dc",
+    "bytes": 337
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/ai_ml/xbot.xl",
+    "sha256": "42c6d6eaeba3c8bca9e824e2236f59a3379781468fac46fc0d53adc7d98d059c",
+    "bytes": 574
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/ai_ml/xbot_agent.xl",
+    "sha256": "cf7e8fe1e651d674cc602434bf940325585889cca04e42ee87459ffe466cd591",
+    "bytes": 738
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/ai_ml/xfeat.xl",
+    "sha256": "25095844699d4ffca1d3dd5640e18532c2d453080706da97f3da1d0d8bf86cf0",
+    "bytes": 1942
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/algo/aho_corasick.xl",
+    "sha256": "a1a6ab1765c282dc94c0686e9e6108f16f064172fd483a23de8ca66094ab071d",
+    "bytes": 15491
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/algo/aho_corasick_basic.expected.txt",
+    "sha256": "14fb2322632bdde83c9c60bce4f79ecf7b8fa43737ec2d7780a2a2473df6edd3",
+    "bytes": 150
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/algo/aho_corasick_basic.xl",
+    "sha256": "68e3de86c33e98ed9940682ee3faf6493b91ee18e75856a7a25323b8ecd7d460",
+    "bytes": 1352
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/algo/aho_corasick_c.c",
+    "sha256": "f6040e4a9e49bfe684fb8a08deee3a869dd6d2075f26bb097a5d4fdf7d136e02",
+    "bytes": 2162
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/algo/bloom.xl",
+    "sha256": "6eb9b74c28bb64a67cd3463a32bd049128de037b31a6e939ccbaae8ede15612b",
+    "bytes": 4700
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/algo/bloom_basic.expected.txt",
+    "sha256": "9c4f0455ce12f1d99de2906a3e6b7d5ebce2b73b10532c112f8a3617f7c1319e",
+    "bytes": 70
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/algo/bloom_basic.xl",
+    "sha256": "57d3cc14cb82b082632dea798ff15a8f8e159234360932e7b9744cfdc9e4973b",
+    "bytes": 662
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/algo/bloom_c.c",
+    "sha256": "6d566adf9c996a3557b930f8068bca58522f30b109a0779f9d033854a30b2ef3",
+    "bytes": 1316
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/algo/consistent_hash.xl",
+    "sha256": "12c0620a8883407ebc3f8b1a61ebdf20d783cc54d56d95a251536891dc84dd6d",
+    "bytes": 761
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/algo/crc32.xl",
+    "sha256": "38a0ff21019bed1539e80ddf1f2afda6cc073b1ae5376c4d271192e7e189eb25",
+    "bytes": 925
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/algo/crc32_basic.expected.txt",
+    "sha256": "c69eec804255338aa5b7454aa33b620aa5bbc38d88a08f6833bdd6420a5d21a7",
+    "bytes": 84
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/algo/crc32_basic.xl",
+    "sha256": "f96ccb5553aff3a88b2398626142f332d75dafca93626227ff4cc784860055a9",
+    "bytes": 464
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/algo/cuckoo.xl",
+    "sha256": "613b144d3ad11eb6333f7beb4d61e544fe941876a36877c25d10c1f586ddddbe",
+    "bytes": 768
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/algo/geohash.xl",
+    "sha256": "d76386ab35be9726dcff90d1ac4400e41c6c4cdce1ddb198f26d7d064b985753",
+    "bytes": 763
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/algo/graph.xl",
+    "sha256": "8c6e6ce646d3190311bf20dfcd3383eb2e22454e4649d840b3296b13fbe6d538",
+    "bytes": 1404
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/algo/graph_basic.expected.txt",
+    "sha256": "4023d2f9d9376f8d06cd56f244ba68f1cf21c67e25f4d38f0c35ce79014d86b1",
+    "bytes": 193
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/algo/graph_basic.xl",
+    "sha256": "90ef15c3cb1cc705b25ea30abeeb85c8ab4c711f95507a8d6b416d5be76fdbf6",
+    "bytes": 1373
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/algo/hyperloglog.xl",
+    "sha256": "dd021bbea9748b22d8a91bd07b2476f301387a24f71fdddf12c038893ee3a444",
+    "bytes": 939
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/algo/lru.xl",
+    "sha256": "b3e4944fa323b280f958326f92eb141b4203fb0bf1c4ef550b5e65f0aef765ca",
+    "bytes": 995
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/algo/money.xl",
+    "sha256": "a3a7f2ef70845815c017cb6d4d3455b8a8700589c51ea9796443939da58f6c7d",
+    "bytes": 1534
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/algo/murmur3.expected.txt",
+    "sha256": "490856b9e80156f2e673015c01689cc5348bba64cae37696092e8b9a87ccc505",
+    "bytes": 118
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/algo/murmur3.xl",
+    "sha256": "473d39c08bfdb66ddf7d5d6cd154462c70242615b8b56bfefcd2dd7ef66a8406",
+    "bytes": 1937
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/algo/murmur3_basic.expected.txt",
+    "sha256": "99cd08db99f729be05e6179f70bab087ce55b9347c50ae479dc313cebf7aea46",
+    "bytes": 312
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/algo/murmur3_basic.xl",
+    "sha256": "6f3d85a47d4c8ab247d5ca40805e7a2260669f762b25808dc644525cca91dba0",
+    "bytes": 1311
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/algo/pkg_math.xl",
+    "sha256": "151debc42d8148b88a3f34bfb20ea06e97f1d4b1734efb9089d97ee37928d9ab",
+    "bytes": 526
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/algo/roaring.xl",
+    "sha256": "7f9a0facd0f447d470f48973ccc47fab12d489eff156ab0cafc21f6b2722358e",
+    "bytes": 902
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/algo/rtree.xl",
+    "sha256": "22337447db963dbf31801b35336344359ab4f6a9b370db2463db9ae362da793f",
+    "bytes": 511
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/algo/rtree_c.c",
+    "sha256": "a3a2f44c50a7dbbcaaf8ed1ddce7f0d9ceb047b1211453a7a54cc6e2cc3bd8bc",
+    "bytes": 940
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/algo/skiplist.xl",
+    "sha256": "d008ab866252b52b9047598b85c53b0e4ca4e46ded5814cacff1a673f3deb0c9",
+    "bytes": 713
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/algo/skiplist_c.c",
+    "sha256": "f7a34c5080f4bc3474d144961de0c32aa61ff72572c2b32fc93b41693d56a7f5",
+    "bytes": 2390
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/algo/statistics.xl",
+    "sha256": "f375e7a567d531722a665241efc2a5c0c9693f667b6f460163cb4f698589e3f3",
+    "bytes": 1394
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/algo/xxhash.xl",
+    "sha256": "9caa1cb693bb7c2124a3a344bb4771efcd652e6c3f3e0bbb9a99fed7d2d7a40e",
+    "bytes": 3744
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/algo/xxhash_basic.expected.txt",
+    "sha256": "edc7741c4e0bc692274d9b5d77a05fe3acc0957b4c35935f957b9073c47aca41",
+    "bytes": 192
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/algo/xxhash_basic.xl",
+    "sha256": "38d2494bcae07f1aaf1f9826adfc99cb166be8ae70610779f06b17c0f38f594a",
+    "bytes": 578
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/assets/tiny.png",
+    "sha256": "9c2fcfbb97b34614052be075a8bd4d1e626412dc87db62356aa8e7bd7887ef4a",
+    "bytes": 86
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/compression/brotli.xl",
+    "sha256": "0f28f8ae37a627033d8856cbe1acb460a2156e4dd89306e9331f454e7bbd96f6",
+    "bytes": 4715
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/compression/brotli_basic.expected.txt",
+    "sha256": "0181f80046b4e886c2d52a12d05c90141c2420738cb63d46926f911aee1d5bcd",
+    "bytes": 51
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/compression/brotli_basic.xl",
+    "sha256": "e7e1d07ea0093898ac6db2bc74443fe6e76c0785162e06bb69ab3c4457f3ce6c",
+    "bytes": 1212
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/compression/bz2.xl",
+    "sha256": "7d5cb34001c33a06865ab934908538787c34198f7961c10c6d53a408e7ee5ca8",
+    "bytes": 1776
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/compression/bz2_basic.expected.txt",
+    "sha256": "0181f80046b4e886c2d52a12d05c90141c2420738cb63d46926f911aee1d5bcd",
+    "bytes": 51
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/compression/bz2_basic.xl",
+    "sha256": "fdb762d9fefc81311f517ea9d7f77b9e31f94d102d3a68da30ec839e8111db7a",
+    "bytes": 1165
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/compression/bz2_c.c",
+    "sha256": "5e9408eddc06bbb353cf510c7c0d9159a892eb79580991d2b8292152872fc240",
+    "bytes": 1479
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/compression/bz2_files.expected.txt",
+    "sha256": "5b394e7af79b3dd1864699f9573f2b470071ae50ad8d1e1bd5146948ddedbe42",
+    "bytes": 41
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/compression/bz2_files.xl",
+    "sha256": "657c33458555e9521c51496f3b8e4661b59c881fd70a6e157869cf0797c14481",
+    "bytes": 1559
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/compression/gzip.xl",
+    "sha256": "bcd83e1dadb5c1211d22a8753f52feb9c9b32fe371896477201adb893198c3ff",
+    "bytes": 2987
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/compression/gzip_basic.expected.txt",
+    "sha256": "0181f80046b4e886c2d52a12d05c90141c2420738cb63d46926f911aee1d5bcd",
+    "bytes": 51
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/compression/gzip_basic.xl",
+    "sha256": "596c9a6faf2dce5e5b3e5bc8a96e31be62b45a6192a512846b5c2e8e82aaddb3",
+    "bytes": 1138
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/compression/gzip_c.c",
+    "sha256": "5e792c331beb4a06999024226ce0949236c779f756dcc4e58f7099ae6d420ece",
+    "bytes": 1054
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/compression/lz4.xl",
+    "sha256": "0e66086984fe02a82ec31e442bdfd9ef35ae94504b7b7309164bd29fe13a38ed",
+    "bytes": 4484
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/compression/lz4_basic.expected.txt",
+    "sha256": "0181f80046b4e886c2d52a12d05c90141c2420738cb63d46926f911aee1d5bcd",
+    "bytes": 51
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/compression/lz4_basic.xl",
+    "sha256": "5a914706af0586669cb45861ee5cd625416ddbacda5f5f0718c8d226ce557c3c",
+    "bytes": 1186
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/compression/lz4_files.expected.txt",
+    "sha256": "5b394e7af79b3dd1864699f9573f2b470071ae50ad8d1e1bd5146948ddedbe42",
+    "bytes": 41
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/compression/lz4_files.xl",
+    "sha256": "313071eeececee284883d278b2449bc1f6d7a598ac428236882f26a5a8d31e99",
+    "bytes": 1557
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/compression/lzma.xl",
+    "sha256": "8ec2b773800e3ad0b12d5f120f1b17d4e81455a1cae6d871ee82b777e9379366",
+    "bytes": 4253
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/compression/miniz.xl",
+    "sha256": "cceda960e9110a81718dbe345ab6582105935ea4aefb53857714d5ecfd81db8e",
+    "bytes": 4235
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/compression/miniz_basic.xl",
+    "sha256": "4e29707029eeda0c5c687a19a39e0bd5a378dfd402ae9d3cd7aa8b7005838972",
+    "bytes": 204
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/compression/snappy.xl",
+    "sha256": "07a4ad001dc1135a248fc8bb6bcd30adde2c96ff4ef0da729ed45a072dac6202",
+    "bytes": 4771
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/compression/snappy_basic.xl",
+    "sha256": "86d66a49421b9fa8269c04e11ea7268a16907d20b8892882074265c787ed5840",
+    "bytes": 209
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/compression/tar.xl",
+    "sha256": "2fb7686a91c6c60bc01d3885100999137de310e87e881ed07b063adc670259de",
+    "bytes": 1296
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/compression/tar_c.c",
+    "sha256": "e14e84c6512febfa83de0fabe532ec01df1113f0df9f4f82892deafe13439f04",
+    "bytes": 3552
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/compression/tar_compressed.xl",
+    "sha256": "a0f0607add705dff8ebbb408ed7f0c38ba4dc81b16977865cd58bc82338b8337",
+    "bytes": 737
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/compression/tar_compressed_c.c",
+    "sha256": "680f814bec083c736bd9781778b19fb25f02dadefa07b3aa0d07dc7c2f9b0e43",
+    "bytes": 2099
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/compression/zip.xl",
+    "sha256": "344e61b12e6a75d6c399e4cae7670cd7cc07284dd7883baecce76a8cec283864",
+    "bytes": 768
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/compression/zip_c.c",
+    "sha256": "8480382fb348392253c8816c93b4ec9433b4b65f0077b79dcf6341d2845d546b",
+    "bytes": 1909
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/compression/zstd.xl",
+    "sha256": "a17cd1c857f6d0aecc36e72024f86570267ca58a40b0f2ba5473d42c19bb19bf",
+    "bytes": 5038
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/crypto/argon2.xl",
+    "sha256": "01b317b3db9ab5d3d1ea26196a04804a4328f71d1d53efaa02ec5e9a922424f6",
+    "bytes": 13215
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/crypto/argon2_basic.expected.txt",
+    "sha256": "7679b76ff096efe3f7e749ee6f4b8396ed27a9707b09da2faa8dd9c49c6b6aa8",
+    "bytes": 120
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/crypto/argon2_basic.xl",
+    "sha256": "8b632e33b4494bc0d6417ad0da3d0c89823ba921d88d12f50676d440c22f40d6",
+    "bytes": 979
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/crypto/argon2_c.c",
+    "sha256": "746ac43d5c06bc169609f586b7fc51da1888200037ae116a04116fb06c948117",
+    "bytes": 2254
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/crypto/blake2.xl",
+    "sha256": "6e0484abbc4091a3773d43fb202508eb02f921ccf0ec2fb3d9ac15e3cdd7c54e",
+    "bytes": 1452
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/crypto/blake2_basic.expected.txt",
+    "sha256": "9b71764c1c347cb6c54816e49a3c8f57f0eccbbb473159c4d071ee5c888dd16e",
+    "bytes": 211
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/crypto/blake2_basic.xl",
+    "sha256": "e7e7e9b3a23feaf9baf35efeb5b171ba2a0241fcbbd58d5f6ef51aad45932f42",
+    "bytes": 787
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/crypto/blake3.xl",
+    "sha256": "074e92310ae443fa82e8654cef561646586f749a6f61cf71bea0f4aef7175838",
+    "bytes": 2163
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/crypto/blake3_basic.expected.txt",
+    "sha256": "8f0d1092b602e75a8d226c87d65e26db49ccac90cdbe38385d7a98659789cfcb",
+    "bytes": 345
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/crypto/blake3_basic.xl",
+    "sha256": "860fd7a3f8bc8b9c3d2dcea9bdf32387d2499b36cc7923ec47be79f1a4cf13d8",
+    "bytes": 937
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/crypto/md5.xl",
+    "sha256": "30c15e17e43109b7bf522a0038611f330d29ef52ee99b2d03b2a412c03e2b3a1",
+    "bytes": 1637
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/crypto/md5_basic.expected.txt",
+    "sha256": "da63253c5bf4a89ad09c34606a1599b31b684dfdf802d5587d4f0a4b1bfac94f",
+    "bytes": 163
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/crypto/md5_basic.xl",
+    "sha256": "e2649d91f202c919b87796753d9c40a1a462887619287343e561159e35a70946",
+    "bytes": 324
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/crypto/passkey.xl",
+    "sha256": "a2a4beeb84d6ee4a2702d075476db921c673dd4456913505a6400b0364367c27",
+    "bytes": 563
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/crypto/pkcs.xl",
+    "sha256": "0068daa8a698902a1e4cfe233f77590d35fa394cc7bb2aa8c4872cd4f83565e8",
+    "bytes": 1336
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/crypto/sha3.expected.txt",
+    "sha256": "b4d1878394fb8ed21a33472fd6adb21ae4d537eccca3f44cf05451de113fc4af",
+    "bytes": 138
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/crypto/sha3.xl",
+    "sha256": "eb766324b49a94b7e34efd73ea54525f7b1ff169994df8b0df45393819137db9",
+    "bytes": 1962
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/crypto/sha3_basic.expected.txt",
+    "sha256": "cda81962f5485c102bd6d58561f2a2cd38b4d9d46666c51944aace25d383a411",
+    "bytes": 856
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/crypto/sha3_basic.xl",
+    "sha256": "49150a68b3dfb07a01eb61895e7aa0e4ada9ba81c9a03c3878a866b3c0f646c7",
+    "bytes": 1307
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/crypto/siphash.expected.txt",
+    "sha256": "747df6263c66eec3ca38c402c1bf067eec086ddd92da7b0e952dd999aec75f6b",
+    "bytes": 135
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/crypto/siphash128.xl",
+    "sha256": "15166ef43dc63d333b9c9553fc000f1baa197e6d733fd7ea50e19ae08a861a91",
+    "bytes": 285
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/crypto/siphash_basic.expected.txt",
+    "sha256": "9347f5aeb8453cd2353e5aafb852571b77e0d9399b860002ab0382897b6809bb",
+    "bytes": 245
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/crypto/totp.xl",
+    "sha256": "84dde9f16ecba2eb21c00cb576d4fd821d85f4a9bd75db98d8f39759ab91de58",
+    "bytes": 488
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/crypto/vault.xl",
+    "sha256": "d72bead057201df47f4b8bd243f640fa4a1063c14bebc2a94157612aec64bb10",
+    "bytes": 349
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/ansi.xl",
+    "sha256": "8b8bdbd740ddfac30dda3d12e5158b29f53694f8e3c47d0e9508428bc2fe813e",
+    "bytes": 987
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/bson.xl",
+    "sha256": "c4577c9924cb92708c636f761caa0dc18eb9bfd26af4de200c87f21564e744a0",
+    "bytes": 3479
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/cbor.xl",
+    "sha256": "15b48f8e17cf735fd3cf56fd05be1c210961d4bd0ba53a230342291f6b1abc24",
+    "bytes": 844
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/chardet.xl",
+    "sha256": "06f3f63127f626c4b6c940ed663aeb3fabe510d5e39b46f18ccc20d3bd7e4169",
+    "bytes": 537
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/chardet_basic.expected.txt",
+    "sha256": "51b2541c8e84392cca1543c33981d0df27f7e0194b6eb03de589939eaaa5cfee",
+    "bytes": 228
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/chardet_basic.xl",
+    "sha256": "8ef5d39b6632ad1c7e7d99108ddfd153fa63e81b6fe9d6204e640bdf3686d0fc",
+    "bytes": 1262
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/css.xl",
+    "sha256": "3ed2b47171e8afbd0e3ef29329ebc0417b85fd81487a671d56351b78e40e5160",
+    "bytes": 1129
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/css_c.c",
+    "sha256": "30234ebcb06e74d9df32c7064147e6e199f68115a1b345567de895ef253c17db",
+    "bytes": 1882
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/csv.xl",
+    "sha256": "f5adf7bf19563bf4afa6809d596590b63f75964da4e276543e4dc1ac6f0ec209",
+    "bytes": 657
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/csv_basic.expected.txt",
+    "sha256": "c47b2370b0efc3594c1b62e1dc57a30662659f990b6dc9649b1e987054b73774",
+    "bytes": 99
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/csv_basic.xl",
+    "sha256": "0579d94e324a9db5f947a41b969c5064ba32f0b9d95c8a9d7cf679ba1328498a",
+    "bytes": 1328
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/csv_c.c",
+    "sha256": "6d9d9b84710675db8711208bfcb5406221926cdcdbe87a9d256a3cd6c1e4e83d",
+    "bytes": 1538
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/csv_files.expected.txt",
+    "sha256": "1f9435473a07c516bdf251c722e7374d30b7450d801b8d8d0adfa403d75485f4",
+    "bytes": 50
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/csv_files.xl",
+    "sha256": "b019f53cde95f57eb6b97df9c8f8fa407ddc60d30e65ab82fca8488edee58bee",
+    "bytes": 1259
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/diff.xl",
+    "sha256": "416232a7daaa255b63d3f82754dac1fea79974eb6afbe6fa5a7ac95c95fe08de",
+    "bytes": 404
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/dotenv.xl",
+    "sha256": "bb84f8279fdc9865b8b0140f79c98ac9a5e773d49c5957a6cb06910eb8cd6d18",
+    "bytes": 1910
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/epub.xl",
+    "sha256": "66bc05a1c104f2dbb8ffc81a1d91edd36a72d463f62264c4687b6e9e4e577f3c",
+    "bytes": 1085
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/flatbuffers.xl",
+    "sha256": "637f9f0dd1760956fc34f995bff092c444a4b6f6ce47a13c6bf4b8b1c2e918c9",
+    "bytes": 418
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/fuzzy.xl",
+    "sha256": "cdafc137989089859331350257ee0aed062545192e3c505d9154f315ecd7cf17",
+    "bytes": 593
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/gettext.xl",
+    "sha256": "ff2417a3a905e793c9cc9fc2c430b3524d4a6f6511d0166a3a390802fb38962b",
+    "bytes": 1667
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/hcl.xl",
+    "sha256": "8db15aa5d1b91f46c1dda70e0ede3340ec8166fa467054372a6764e3348acbee",
+    "bytes": 1730
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/hcl_c.c",
+    "sha256": "e314204937d47ccb817b75ae3547d966cb0e1015b61f9492366fbf4f13e2a495",
+    "bytes": 2763
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/html5.xl",
+    "sha256": "d8aed26df1ecd489d2a33780be7b44f771764f413a7ce42180bcc3f76a6a7bc7",
+    "bytes": 499
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/ical.xl",
+    "sha256": "c30668beb753445c75faa4e9c72defb6cefc6442c3f68c4f140722f1da793ad9",
+    "bytes": 616
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/icu.xl",
+    "sha256": "1220e6fe70ca8d6b73aed332c67894f505d9ba54b560da6149704274e0cec0ee",
+    "bytes": 296
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/ini.xl",
+    "sha256": "fc38b0039f50eaf9341a7facd41270a895f1b67c2a53916ba432dd2d21b640a4",
+    "bytes": 1152
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/ini_c.c",
+    "sha256": "1286aac725f855b6dd349780759e00bde644e0c16aed784413954e6b981f6e0d",
+    "bytes": 2413
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/jieba.xl",
+    "sha256": "2cbc2e9947da1792e6ceb16efda30112517a899678bb9a80e30453a6ec81893c",
+    "bytes": 290
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/json5.xl",
+    "sha256": "3ff8b0f225c4634e35d7c8940edd5f7a2fe2817b10f18b8cad0706c6b7664ed2",
+    "bytes": 523
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/json_patch.xl",
+    "sha256": "decbac12e99fe141ac337377809240438483ea0b63e35fafef7d67a9ca9a6640",
+    "bytes": 1954
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/langdetect.xl",
+    "sha256": "9682ff6d86287c42a5a6fa8b7adaab00eca44d7736e7deb9cf1857dc606340f3",
+    "bytes": 1853
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/md4c.xl",
+    "sha256": "c813227dcaac7294b029b5aab6dd9328ec3b5f026f6656f5ed798bea3893d06c",
+    "bytes": 1358
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/msgpack.xl",
+    "sha256": "0237df716a814fc5130c86cab8b15e282f9cd7121a5b86e739e4df652468b3e3",
+    "bytes": 998
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/netrc.xl",
+    "sha256": "a80e62cc41921fb82f9e09e4ea00544f771d568db905e43cc019244d82b7782e",
+    "bytes": 2296
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/netrc_c.c",
+    "sha256": "55c43bed4839d01098f5ab975ed3dc80afdff0849759ae2b4e4203590c534779",
+    "bytes": 118
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/pinyin.xl",
+    "sha256": "2303d047aa9e06bc35d94123d73111cb717813a14c39b7aeaa71d663af856d30",
+    "bytes": 493
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/pinyin_c.c",
+    "sha256": "9776291c76234ceeaab5899e1a4a8deab89fb6702a74ef8515960416ea8ac226",
+    "bytes": 722
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/plist.xl",
+    "sha256": "a84feb0a77992b993dbac67e8f52e33c7cebf3b28fb3e5d96b31531ba7267341",
+    "bytes": 896
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/plist_c.c",
+    "sha256": "02880fafab5bacc9fa8576b9248579cd73923ea1d612a77bb1a3e8241b9a7cf8",
+    "bytes": 3328
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/rss.xl",
+    "sha256": "a137b95a8d744086d6de02d42651e1e625cbda5cda5fc12682af0d7af99737ca",
+    "bytes": 1900
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/rss_c.c",
+    "sha256": "b70f840a7e0e97bb354c867c9447bf1a1c1848210a65c6997e71d6f4ad24e297",
+    "bytes": 2709
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/rss_pair.xl",
+    "sha256": "7a649ef1a6c1a59e25fc561b5074ed884d366fbb0f738e08f11821f2948511e3",
+    "bytes": 566
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/semver.xl",
+    "sha256": "6fc12274e4ca8bc740d4cd1fd64ea3dca92274eccdb5db262b6a7c2411856ed1",
+    "bytes": 1606
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/shellwords.xl",
+    "sha256": "ecf06e0410bc592e16360a8daabccce9bcb3b3ce7f889ca5a87b9abce85886ee",
+    "bytes": 416
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/sitemap.xl",
+    "sha256": "d7dc32237a812345079d050c0ae37d34b91fcc588edeb5b62ca2d9df63922c20",
+    "bytes": 1454
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/sitemap_pair.xl",
+    "sha256": "da04256980e2ea32bc1819b20756e4dd69b0028cf40a092788e7bff3b03e9256",
+    "bytes": 793
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/slugify.xl",
+    "sha256": "621fc782bcb11758dd365ad13d5751aba3f5379423680359ffb9246dabbc91e8",
+    "bytes": 310
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/srt.xl",
+    "sha256": "1af1db5f24e35fd84125131e4b47d1b72ec06cf20e36aa8a4fc43eb56e1aba6a",
+    "bytes": 950
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/srt_c.c",
+    "sha256": "f846596d2bdb183c0549d91b318c03c478f1bb43239ae4c9cb6ba924cb8886da",
+    "bytes": 1523
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/srt_pair.xl",
+    "sha256": "890f8a28dd1854c0624a7a49a6ef28845ce342c2eaf892b83e0a67099ac3b104",
+    "bytes": 807
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/tabulate.xl",
+    "sha256": "68538e8381f48a97e814c95bf867f9528732a8ca55bd2400177c698e0380ce7c",
+    "bytes": 378
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/toml.xl",
+    "sha256": "a67bf70da7163805a1042394ce8d037bf5eced9354ffca9145433fcaa7b9b26a",
+    "bytes": 1329
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/toml_c.c",
+    "sha256": "28d5c14d1b96839c9495e6a8215f4cc82ca032d6f7642b4ecf9cd44f07c09879",
+    "bytes": 3461
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/treesitter.xl",
+    "sha256": "709890d531f7216bd3f5d564f3b1ebe57c7dfe9edfb2d1685e5340f8175db328",
+    "bytes": 327
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/trie.xl",
+    "sha256": "61bb2663823fad2ccdf52692e61db52903c67febff9a1bec7f5eb91da72f0d43",
+    "bytes": 639
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/trie_c.c",
+    "sha256": "62fff79b6a0845a2ae03d86700d4e0732860144626b11032e13ec574380e8581",
+    "bytes": 1461
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/units.xl",
+    "sha256": "9006f2c66be7711f31feb779d029ee78c738ff0fcb506b2777e13449e5c233cd",
+    "bytes": 546
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/vcard.xl",
+    "sha256": "8f70f57dac46c5b08788718fc54717c0f0de7a214eafa83855aae8a7f03e7051",
+    "bytes": 871
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/xml_dom.xl",
+    "sha256": "94ed3341c00bb00d826822666471235c66b710cb8328e89002e056f9e3db2ea6",
+    "bytes": 403
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/xml_dom_c.c",
+    "sha256": "4409e7002584b4cb4b13289c12f2bb7e4071f88dd98371ed7b7661eb0904ffbd",
+    "bytes": 1887
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/xml_etree.xl",
+    "sha256": "03335a11adb27388cef38b3542cbf800eff3bfd53bc114cd8417b242ddc3a441",
+    "bytes": 401
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/xml_etree_c.c",
+    "sha256": "073ecb8393f8c503cf0fae0665a673363dff95e118c37b0d21027118428e4f4f",
+    "bytes": 2077
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/xml_sax.xl",
+    "sha256": "718f168d71c33746bbc274b7e9e73431727f1af1486ecdd077461ccc9c6979b7",
+    "bytes": 629
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/xml_sax_c.c",
+    "sha256": "85db5f34d07f600661961b7690e629fac7195aed8561c5031c5d495fb6532177",
+    "bytes": 1917
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/xregex.xl",
+    "sha256": "dac08e65632bbc53e7cb9ad649be4e8834dfcbb42755cf039dd9c15168bc9cbc",
+    "bytes": 819
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/xregex_basic.expected.txt",
+    "sha256": "a1c2e47bdafd596fdf7a6cad272e664ba40a73c7f75d774f1923a1a901f8de50",
+    "bytes": 83
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/xregex_basic.xl",
+    "sha256": "14b2d83f98b513f687a0a81608c5b875ab6477ce62427e15ec78d28ec1a1f4b6",
+    "bytes": 884
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/data_format/yaml.xl",
+    "sha256": "009226b6d8c6142b97df67ba469fd827938dd05869094dbfd759b97d8b291486",
+    "bytes": 470
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/database/clickhouse.xl",
+    "sha256": "25d2e2e7a9da5cb5cbef565a8df09ab394fe21914151714754106162d0d5ff7a",
+    "bytes": 709
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/database/dataframe.xl",
+    "sha256": "cfe21e9ee81fd0443ffd3937a55e59b0add002ab9d1cd628daffa89ca6599380",
+    "bytes": 375
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/database/etcd.xl",
+    "sha256": "1364f1c8b92942ac26229ef7b7286282a2ce215809f887e6a50ad2272ebee8c0",
+    "bytes": 424
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/database/influxdb.xl",
+    "sha256": "02580ffb3a67ea122890cec9177da6a8a74431204ba27d6cc6d6a551d55a8d70",
+    "bytes": 531
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/database/leveldb.xl",
+    "sha256": "c37d03784768bbe95d31a4cd7a98017cf72f29ad0c15e2303257023b9591c7df",
+    "bytes": 493
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/database/lmdb.xl",
+    "sha256": "0b86bcc493e0ed675dece775da890df573ea277ad114373969f15835dc8fcf55",
+    "bytes": 522
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/database/memcached.xl",
+    "sha256": "475e307f94d268e37c5bd68c69e309391c64372d0b70dcc08106a4e57ec85abd",
+    "bytes": 1329
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/database/minio.xl",
+    "sha256": "db027f1ff7579ec572e3ca7955216e28b7ae16efacc33f59854ffabb910e02f4",
+    "bytes": 1086
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/database/mongodb.xl",
+    "sha256": "d439726755620c4285a134b42ec7c90b5c17b5f1ee17cab047c2a3f5845a90fe",
+    "bytes": 493
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/database/mysql.xl",
+    "sha256": "c3048016dfbfbc01fb3fff895b77749fcec46ed042a8b92caf623cbf1310c412",
+    "bytes": 608
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/database/neo4j.xl",
+    "sha256": "6db5a26ac43c97273287e4185560dc49b7e299d2d807d7d12ae8762acf860d46",
+    "bytes": 388
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/database/postgresql.xl",
+    "sha256": "0178a047aa29f4daeb0f0109d7786585663142f609d06669beecb468f9ecc86d",
+    "bytes": 514
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/database/redis.xl",
+    "sha256": "cc4343b8ce3c0c33c99cb0e804b245df2e3d8e986adb91d8d22236322100d216",
+    "bytes": 1290
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/database/redis_c.c",
+    "sha256": "993ab9bffeab846a0166258df42a2c407a6c7317c19444c7ed2b08997d37c774",
+    "bytes": 4538
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/database/redis_live.xl",
+    "sha256": "bd75936b5049eef3774eef49a05a82f154b210686b2010c5e7040fa04a021ea2",
+    "bytes": 1305
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/database/redis_live_c.c",
+    "sha256": "aeca5efe790961e7e299e2b7c06351831afae4038ebaa2777def1e6f209fa1c3",
+    "bytes": 6594
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/database/rocksdb.xl",
+    "sha256": "b89f8f4e0e090f9bee44d30d9c56e6deb4bb7cfc4ca8d334b9f37c7c52ac5342",
+    "bytes": 325
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/database/sqlite.xl",
+    "sha256": "2b35722eed46f619af2a16ab3a2eec10240442b5190c676bd7e314c658fcbb9d",
+    "bytes": 6344
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/database/sqlite_basic.expected.txt",
+    "sha256": "eeca0aa74df20cc8930827d033246abe8c4e5afb795d03b64f9b3d4813c16102",
+    "bytes": 57
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/database/sqlite_basic.xl",
+    "sha256": "21bc92bad4b19a321bf84688c5d36fbfd51bd5df583aa97c4b17d226275e440a",
+    "bytes": 1420
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/database/sqlite_test.def",
+    "sha256": "a928ef720ff5b1807754ba3b6950b5dca5877bb1204db2785dc40498a9d92fca",
+    "bytes": 2403
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/database/tdengine.xl",
+    "sha256": "e890ac69b35cf71fa23e6a85dab2b18caffdea60053cf05ffd96162fb782213c",
+    "bytes": 637
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/database/vectordb.xl",
+    "sha256": "c4f5f7c2e330854ca93372ed4945ed30505929f0545677d02355ff4fd4871ae1",
+    "bytes": 277
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/graphics/barcode.xl",
+    "sha256": "20ca34af34ae19641a46fc683144623560e1ff730bf0930c22e3e1ef12792c0e",
+    "bytes": 722
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/graphics/color.xl",
+    "sha256": "0423f4b514359112665b8c39d080a6936f4287d0c3db534d222de0f572ec73c9",
+    "bytes": 1320
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/graphics/color_basic.expected.txt",
+    "sha256": "fc767daf9617014377ce2cbd483772c0c0cb41a47c24091f111466f301bbe0ae",
+    "bytes": 178
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/graphics/color_basic.xl",
+    "sha256": "5a89f4c1464ee0bd30223e2076a2e89f5aef7c62daae133e0e6bea6448c58384",
+    "bytes": 1581
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/graphics/freetype.xl",
+    "sha256": "120a9c0d5730440d53b22e306ff22c1fe1878ebb3dd266118d3c41f0a7064db0",
+    "bytes": 323
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/graphics/glad.xl",
+    "sha256": "cc63f7e4ca636b4e61e7876e12036b85d431e50cfa29f6be04d7db31a59301b2",
+    "bytes": 294
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/graphics/harfbuzz.xl",
+    "sha256": "feef50ed984d2a85aea0ff233b2bdb314f0d566293f3f672fbb5e9165125759f",
+    "bytes": 332
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/graphics/imagehash.xl",
+    "sha256": "c7c0062417edc092d135b4b1091f3e93564c14cd7391183728311b4affaec11f",
+    "bytes": 470
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/graphics/opencv.xl",
+    "sha256": "9428a545bbc004f4b1098d994cba258bc7d965624c44b6eb8580e448e1b757a3",
+    "bytes": 6766
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/graphics/pdf.xl",
+    "sha256": "5d937b736372ede091b81f54dadb03797637ff5eabffbfc29bc9a71b8637ac5e",
+    "bytes": 276
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/graphics/pdfium.xl",
+    "sha256": "ee881f59db33cdd35ebed1414c6017eeaa14e5cfda61c97957b402e1fe49f4b4",
+    "bytes": 318
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/graphics/pptx.xl",
+    "sha256": "25999245bbe6339bb478adee5d20af42abcde57555d8257b8e28a4282f82b352",
+    "bytes": 434
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/graphics/qr.xl",
+    "sha256": "a9a9fd5fec38e910f23dc032df406aace67ea35a86010a333aeef3bda6e8f486",
+    "bytes": 389
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/graphics/qr_c.c",
+    "sha256": "7c8f44d44dc150e874cb4d71fe381c7b70e05f22afc74aeb7ab5e26a9487a899",
+    "bytes": 684
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/graphics/stb_image.xl",
+    "sha256": "a158c57ef222f13fe08b65602c0672a9711ef7e85941811dec3846c391fc9963",
+    "bytes": 1063
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/graphics/stb_image_c.c",
+    "sha256": "8e6ac685bf070c0075ab959af068858a09d549ad47dcc65c581b4e899bf186ce",
+    "bytes": 1608
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/graphics/stb_image_resize2.xl",
+    "sha256": "0d4afd0bb18a12ee63dad447481f1c85c4490312fb5659bdd37c619fc5a79f51",
+    "bytes": 1332
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/graphics/stb_image_resize2_c.c",
+    "sha256": "cef6cd1465e75c3612571e460ff150c3937d99337715a13d83266bcf204008b5",
+    "bytes": 2401
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/graphics/stb_image_write.xl",
+    "sha256": "4d361606aa41068ea199e4900e0d10b293b0700a342966716c35b4cef967ec70",
+    "bytes": 2320
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/graphics/stb_image_write_c.c",
+    "sha256": "165c235c7dbd3c6c0a567225f039d26c7f43c8404b5dca048cd17d49162b2f5c",
+    "bytes": 3972
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/graphics/stb_truetype.xl",
+    "sha256": "b2d091134cd1ad91f0cb0c7a369a2c05bf52ab4797e75dd269aedb505afcdeb1",
+    "bytes": 698
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/graphics/stb_truetype_c.c",
+    "sha256": "5c9ca125701dccdeffcf648af5b20fd62694db93fae5d33b60aaf46d3690e378",
+    "bytes": 1157
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/media/libsndfile.xl",
+    "sha256": "1afd3772b4123333e0f72ead209b3b99bb6ab42f98fa12f9e3e0965e11fc0358",
+    "bytes": 451
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/media/opus.xl",
+    "sha256": "d75e9da8d32d1ca778e973023e08ed4a926c1fd749bf3aa8d5f30b4f229a713d",
+    "bytes": 466
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/media/portaudio.xl",
+    "sha256": "e4bdba2c446c691715544873e04a5dd49ab9abb32d6fe2b99ed0ff0e6ff64e43",
+    "bytes": 415
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/media/sox.xl",
+    "sha256": "d09fb1d457514287daf25452f7c13469c07b6a13e3ba0b3559564d18061ff850",
+    "bytes": 366
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/media/taglib.xl",
+    "sha256": "ecec7ecb7febddece1ad36b34ee8ee68e5be32571d9d27b53c5e210974b80837",
+    "bytes": 398
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/net/canbus.xl",
+    "sha256": "daba9990567fdc227600c3735e785d476a841c237c9db57b8239dc702e7b884b",
+    "bytes": 561
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/net/coap.xl",
+    "sha256": "44c09432c002ba1b940dd905e36f77004fa86cbd7d5e5bab174addfe7fe50bc6",
+    "bytes": 427
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/net/dns.xl",
+    "sha256": "391eb96d8f4eb76f360f59e849103eb3a989991d71c6a736104654d4d2638311",
+    "bytes": 705
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/net/docker.xl",
+    "sha256": "54d88558689b3ffcbeb740745928c8bbae45c3f6963cf6ae1235989dd5d4c2e1",
+    "bytes": 303
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/net/enet.xl",
+    "sha256": "4081a8c643ca2a64db2dd936e19600cf251fb6176adb17697c267207712e9ba1",
+    "bytes": 448
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/net/fix.xl",
+    "sha256": "b88cc83c05162e0aa329f7af47751860f90f5809a69af26691cea5c06cdff1a9",
+    "bytes": 719
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/net/ftp.xl",
+    "sha256": "4aac9cfc38b4bb36cbcbc313372dcf0f8cbb12f220f78ad02c88f75af39d4547",
+    "bytes": 442
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/net/kubernetes.xl",
+    "sha256": "f1e7b626b1aaac4db740623c47b9f24bf94431cf8601e3857a52b93436559a11",
+    "bytes": 331
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/net/ldap.xl",
+    "sha256": "d707e089318d162a7a5dbafdc51091d315c06408d32a4c782862268480de34d9",
+    "bytes": 533
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/net/mdns.xl",
+    "sha256": "b26ce2b3a75a4a9e328c560188391b7e8153954003fc150751e24921939eda29",
+    "bytes": 486
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/net/modbus.xl",
+    "sha256": "0a68dacae80e969a2b0b6f9bba3aeea060718c20f398f01bd7e8d72d2c1c53dd",
+    "bytes": 1108
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/net/mqtt.expected.txt",
+    "sha256": "1f5a6f298dee7e5b753034510201c1652d3ab92f822744260fa2a9afbe256d6e",
+    "bytes": 323
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/net/mqtt.xl",
+    "sha256": "e1a5b161add02377324149b717d05e2be98394a1559ee55da9b19f6d0ef8633c",
+    "bytes": 1455
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/net/mqtt_c.c",
+    "sha256": "30ed7a013d148edece554f10e0d4ef6f7a2405e24b543ebb4ff30ec808b18e42",
+    "bytes": 3416
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/net/mqtt_tcp.expected.txt",
+    "sha256": "7937ad592cffa60b9da27410bf442e7f5820b11d646bb61f6077d92037067320",
+    "bytes": 76
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/net/mqtt_tcp.xl",
+    "sha256": "8242152b886808f0b97fbdc869208acc61da6b0ea123496303fc1ff10de7389c",
+    "bytes": 1520
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/net/mqtt_tcp_c.c",
+    "sha256": "7e3e6738a1b5491b38980dfa30c23b57d96aca8f7c38059ca2e7b09feea57dc6",
+    "bytes": 4443
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/net/nanomsg.xl",
+    "sha256": "0899c9efcdb162c583f2301b8a73a68b8f8b8d56b7abfb0e4cac30d3c17668ab",
+    "bytes": 429
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/net/nsq.xl",
+    "sha256": "668580d682942416f9ea0508b2007dfa5712c37c1fa4e8bd7a9c906e22d04a55",
+    "bytes": 459
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/net/ntp.xl",
+    "sha256": "4bdb57a0c9e929369dc682d834bca275695e296581c45f9be4eaf17616e3f5dc",
+    "bytes": 1127
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/net/opentelemetry.xl",
+    "sha256": "026e8c1ee1ffa056a214445658b691f1a356ca85981e0addd277f97af1802596",
+    "bytes": 389
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/net/pcap.xl",
+    "sha256": "cab0b362e3bd0a1cf803710cb09f9a58293b77c77df647af2263773a94a7d211",
+    "bytes": 433
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/net/prometheus.xl",
+    "sha256": "c12f014dab6370c816b716a50fd9e28bf21ca9bbb875544d8aef1ef64752e7fc",
+    "bytes": 306
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/net/rabbitmq.xl",
+    "sha256": "33cb709addfd73bd3f1429d0450b5ad886d64b65c1c9c538cef3ee562a83496a",
+    "bytes": 540
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/net/rtmp.xl",
+    "sha256": "52bcdc1c67775ff71eb8fcca3cc3bf71e0b66520eff15215fddf3e4423af41c1",
+    "bytes": 415
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/net/snmp.xl",
+    "sha256": "e2252149e3f8a439fb3789a516254e2c5c6d750a595f427834f3735b0293efdc",
+    "bytes": 495
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/net/socks.xl",
+    "sha256": "7cba7628e468a2ece350d6923103b5fd4c629ecaa41866b8012a8411ba013a7f",
+    "bytes": 929
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/net/terraform_state.xl",
+    "sha256": "bb75ad385168c4bd04f38ae07da48031705510f498fcddf38d06449ca179e9aa",
+    "bytes": 891
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/net/upnp.xl",
+    "sha256": "35fe977d49b56fc4c7792d853a0914a2d342411ee3c5883631e195e191124c3e",
+    "bytes": 358
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/net/volc_core.xl",
+    "sha256": "fe8d9854a4cdca47bef93e93df8aed6752c39831890b2cd91b3978138fe04111",
+    "bytes": 3097
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/net/volc_phone.xl",
+    "sha256": "15acff221aa6455242220b417d88d3242c76623296cfb328cbb42e38c9e0e3fb",
+    "bytes": 2189
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/net/volc_phone_live.xl",
+    "sha256": "dcd5eae24022416dc3da4a5d5e18841318e455e42be5e16185cc7ee20adc631b",
+    "bytes": 936
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/net/volc_sts.xl",
+    "sha256": "7648d5dca2eba35cdc4cdcc6907b4648590d9fa1c50d36a02b7880080275441d",
+    "bytes": 2229
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/net/xmail.xl",
+    "sha256": "1a64b9e8cfdaa074d529096ca7491a274fd63c293faadc433c60c41cd45d81da",
+    "bytes": 364
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/net/xssh.xl",
+    "sha256": "e04e10752cbdc45cf88df0329e9dd6945ec831df11c28f66d9ff4e5ca518606c",
+    "bytes": 450
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/net/zeromq.xl",
+    "sha256": "a3bbc93b5f3353508c9e3ee82eea3be5d5c5fa037a79c662d4027524d44deb5e",
+    "bytes": 469
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/README.md",
+    "sha256": "0eb78214fce5271970b29567b549006087d6425c3b5b59ea96c429dce6599605",
+    "bytes": 8926
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/run_extlibs.bat",
+    "sha256": "8cb1047628fc3a6d2795eb8a1d3d8b2efac57acc7488acf19806647fa9936a25",
+    "bytes": 8777
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/system/cli.xl",
+    "sha256": "0cc1ab682201b6c6fbd278572a2f883ae86e6d9075a77e05883911793ebf7f32",
+    "bytes": 1619
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/system/clip.xl",
+    "sha256": "b4bc7706d78a502e86e206c7e2156a28a7fbafd0375a0ffdad3350ddd1fb651e",
+    "bytes": 278
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/system/clipboard.xl",
+    "sha256": "275c1f2563a663b852e5dec0ef128d5b9e26deb1d271a5efd6417c6687b8b20c",
+    "bytes": 9274
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/system/com.c",
+    "sha256": "8b544348d74b38725135beef73ba532172e01de54d02843b8f00ea3f22461b1f",
+    "bytes": 53
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/system/com.xl",
+    "sha256": "b087f326d0ce641623fcbf610837b35da9abfcd436567460bc099180b36260a4",
+    "bytes": 1914
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/system/crontab.xl",
+    "sha256": "c9b1309752bb154dd643bb54798ae7ea8db0bab5b2b0e97146045fa9ae0694ca",
+    "bytes": 846
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/system/daemon.xl",
+    "sha256": "98c5b5ee4f32a163561b335845ccd354a0565e5af36ace2475a04df97c4af0a4",
+    "bytes": 508
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/system/daemon_c.c",
+    "sha256": "18305cd3acf139921120e292dec6bf11eee562829a25c71cda4b853148bb62b8",
+    "bytes": 1189
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/system/floatEnv.xl",
+    "sha256": "04d3fc0e6bc0554ebc6249cca9680af8cad9a849f9f3fe82b6604cf1e5dfd85a",
+    "bytes": 624
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/system/git.xl",
+    "sha256": "ee79a52fbec05c38f8f8feb5cc97c52a7ce4fed91dfa35486ccbbab777995b5c",
+    "bytes": 284
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/system/gpio.xl",
+    "sha256": "dad5c4a2592f31510d54d1721d2fda279c851abf148b26d8a0ba2bf784ddab58",
+    "bytes": 568
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/system/libusb.xl",
+    "sha256": "1e0116b96388b8f86b9f1397f5d8f04bf1ecf023ed9055bc8e8a079928e6407a",
+    "bytes": 332
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/system/procps.xl",
+    "sha256": "4b8fddc4c5443b9b71b0274d20d542d17ad138472b7bfe18c282c003b5cb54e4",
+    "bytes": 655
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/system/progress.xl",
+    "sha256": "d36e2f14ce0a89778487bc0a6564115529455e652a6da5f51929aebde778e24d",
+    "bytes": 537
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/system/progress_c.c",
+    "sha256": "d7aad4e2eda2c4933a2b825bafa15a431ccaa2fd43f6d8ee506c200b05516ead",
+    "bytes": 1202
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/system/progress_callback_c.c",
+    "sha256": "02d602b306e517aa31fb43cf0269fcc7cedb3256b6f407f70c996c2912d861cf",
+    "bytes": 2503
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/system/serial.xl",
+    "sha256": "9bb28e0b9d2e6cff4b124895a3dfdbbd4089da334b2b5e289ff55311a529c835",
+    "bytes": 2098
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/system/serial_c.c",
+    "sha256": "d97646d5a816c9244834250f1e2652b423054f2f746c6768cc1257ba226ea88f",
+    "bytes": 3564
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/system/sharedmem.xl",
+    "sha256": "f1a2618ed6241940e3a3a3e5354f8594578b23dc63fb40e9e5ebe94303b2f092",
+    "bytes": 561
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/system/singleinstance.xl",
+    "sha256": "59592de35e0d24e258cd3e964bceb303d291877714b8554719a3006e22e960e2",
+    "bytes": 464
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/system/sysinfo.xl",
+    "sha256": "7ff17d91c03bc2d97e578bb4e65b9def49c3adf56a49167b8dd0e5a68c91fd42",
+    "bytes": 646
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/system/watch.xl",
+    "sha256": "c95405e467ef825f66ba917c8dc1815427fda558c6b6a5a84d74fea511f259a4",
+    "bytes": 818
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/ui/imgui.xl",
+    "sha256": "432896e7bae43929fdf5b80915a5210dda5d8e58372f2208567ff47b492d861c",
+    "bytes": 317
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/ui/ratatui.xl",
+    "sha256": "adf7b0bcd91b675080c0b033354ea251d5eb227c97509ab7a77819aaa172c89b",
+    "bytes": 358
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/ui/sciter.xl",
+    "sha256": "fef35f5552e915a7b99a52b5fc9fe83455e733e719255edd4b49024e15498d32",
+    "bytes": 271
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/ui/ui_auto.xl",
+    "sha256": "2bada6a6560de3a2a302bea068fca853270abc4dca5e76d02c54421b675c810a",
+    "bytes": 1019
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/ui/ui_auto_c.c",
+    "sha256": "60ae9829693ef54fb6b9b73f6e005eec287c202c2284bb448e7d5c2c32fae92a",
+    "bytes": 3758
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/ui/uia.xl",
+    "sha256": "5a92e697df52938c3dc4590bf2183e753c5692d7b66ea64d0557b415dac977e9",
+    "bytes": 6293
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/ui/uia_quick.xl",
+    "sha256": "0a1d66fc8d5e9203ec2e7158038062012cb5d90a8a695e58459be83f093d4c47",
+    "bytes": 505
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/ui/uia_quick_c.c",
+    "sha256": "565e8060c0aec106aafe8ef8d5d861a96b985458fbe82bd11f3cc2e62f46bbeb",
+    "bytes": 735
+  },
+  {
+    "path": "release/win_x64/examples/extlibs/ui/webview.xl",
+    "sha256": "d3f428acca7cee1aadb25b680d9c437b2c2ae803ffabe9a94e6b28f4884b2ca1",
+    "bytes": 381
+  },
+  {
+    "path": "release/win_x64/examples/feature_suite/00_language_basics.xl",
+    "sha256": "3eaa800ce9a1a235721a219f5de8ed351595912ccc9aec1d4b4ea263d006c352",
+    "bytes": 2402
+  },
+  {
+    "path": "release/win_x64/examples/feature_suite/01_expressions_control_flow.xl",
+    "sha256": "56cae250dccb8d93af502300c902862fc0a83caf6cbb0abca0c9b3db6688c293",
+    "bytes": 2976
+  },
+  {
+    "path": "release/win_x64/examples/feature_suite/02_functions.xl",
+    "sha256": "8ba856cb6aff8523e586066d71f8567b7991af726348cabfee9b94d2407e8e1e",
+    "bytes": 2338
+  },
+  {
+    "path": "release/win_x64/examples/feature_suite/03_types_and_values.xl",
+    "sha256": "4e5e5cdedfe085a91ba738ea473188fc9d4c173dd46cd71de1f238b89136016e",
+    "bytes": 2453
+  },
+  {
+    "path": "release/win_x64/examples/feature_suite/04_containers.xl",
+    "sha256": "a4ee18917566cda554a840d394ef4460b53ec6a0f47fbfbd016c355ea085e496",
+    "bytes": 5877
+  },
+  {
+    "path": "release/win_x64/examples/feature_suite/05_generics.xl",
+    "sha256": "3ae8e212be88096eb5b931eca6475fbf22b766ee4b34c28ff23d55ee74ad936b",
+    "bytes": 1376
+  },
+  {
+    "path": "release/win_x64/examples/feature_suite/06_function_values_closures.xl",
+    "sha256": "130fd4187a13d1b424ad896cf946ffac21aa59236d5f6ff2cfa1a52c491ffc3d",
+    "bytes": 2180
+  },
+  {
+    "path": "release/win_x64/examples/feature_suite/07_class_native_backed.xl",
+    "sha256": "e0bf81de544d6e0eb98b0dd439cdde26cc5ab22db5eefe28bfde7a1d13deef81",
+    "bytes": 3460
+  },
+  {
+    "path": "release/win_x64/examples/feature_suite/08_c_interop_exports.xl",
+    "sha256": "059b2e6b233a484934323a98f77d60c07673cd2160d23740e73dbdd3d64dc585",
+    "bytes": 1315
+  },
+  {
+    "path": "release/win_x64/examples/feature_suite/09_c_export_abi.xl",
+    "sha256": "3a90b9831478f983b858cdd793d5c4ec1248b9e39d2bb19f53c571070b887e01",
+    "bytes": 573
+  },
+  {
+    "path": "release/win_x64/examples/feature_suite/10_errors_docs.xl",
+    "sha256": "fe9dddb7cf205d2f92954278b4e7b55eb821dead4790f507a6289dae98abf9d0",
+    "bytes": 1056
+  },
+  {
+    "path": "release/win_x64/examples/feature_suite/11_concurrency.xl",
+    "sha256": "ec8df1c421d1f765e96709e54bfeac3a3fa2306764d1b1314abd03c98a6e3220",
+    "bytes": 130852
+  },
+  {
+    "path": "release/win_x64/examples/feature_suite/12_union.xl",
+    "sha256": "a1fd1b5605cd02d4bff9dcbc944ee27d71ac31e51c4f9296a7cd81c506df8597",
+    "bytes": 1356
+  },
+  {
+    "path": "release/win_x64/examples/feature_suite/host.c",
+    "sha256": "e299edecc2e48a935ad2124ad27155bc939a60c5bd699e6a18d509ac6f1c2322",
+    "bytes": 2419
+  },
+  {
+    "path": "release/win_x64/examples/feature_suite/host_exports.c",
+    "sha256": "5020de8467829d7be56d6628c3503f7066e6459f971104321d2d5d2a92f165ca",
+    "bytes": 932
+  },
+  {
+    "path": "release/win_x64/examples/feature_suite/README.md",
+    "sha256": "ad21a79b6a7afa80cd2faaa637a3024caadaca6f4e188db4e231a6b1b12e0bea",
+    "bytes": 3408
+  },
+  {
+    "path": "release/win_x64/examples/feature_suite/run_feature_suite.bat",
+    "sha256": "5cdec0673c1a4dcc64b3af3969cfd7cc29c9d8878f89216641ab3b30d8fa1861",
+    "bytes": 2897
+  },
+  {
+    "path": "release/win_x64/examples/fixtures/tls_cert.pem",
+    "sha256": "82378c13a4be3eb99f596b67fae75b56ed7100b135e4e3b83cce257fa6397ebb",
+    "bytes": 1241
+  },
+  {
+    "path": "release/win_x64/examples/fixtures/tls_key.pem",
+    "sha256": "c265beec0fa320ef1fc5762cdf37a88c2b1d0443608c0793d378a18280321789",
+    "bytes": 1675
+  },
+  {
+    "path": "release/win_x64/examples/foundation/memory.xl",
+    "sha256": "ffad75e88471eab4cca3381d19b5cd0e202a52e34d1dfc46a1dccfc9cb7740c2",
+    "bytes": 461
+  },
+  {
+    "path": "release/win_x64/examples/foundation/pools.xl",
+    "sha256": "b8b75b8e1ccd57490187c06c307308e8aa6048fc682cea62018a57b3add3bdef",
+    "bytes": 532
+  },
+  {
+    "path": "release/win_x64/examples/foundation/README.md",
+    "sha256": "f150adf82328488413e83ddf3be06e8d131ce89d4d5422ecc9d755b5d1fa7af9",
+    "bytes": 1132
+  },
+  {
+    "path": "release/win_x64/examples/foundation/system.xl",
+    "sha256": "6bb77b79108571f7b3574e32c0a376a72fd2765d2197f1deda9d7cc9db7e1bdf",
+    "bytes": 210
+  },
+  {
+    "path": "release/win_x64/examples/games/2048.xl",
+    "sha256": "fa304a8dff29703203bd373f5a2d8f006ec000b0fab700d1d38e54d950a8965d",
+    "bytes": 9351
+  },
+  {
+    "path": "release/win_x64/examples/games/_game.xl",
+    "sha256": "a8ee5cbc704f9a5a80393d6e49bdfb0878f70b804105ddf4ce240b504af1600f",
+    "bytes": 2788
+  },
+  {
+    "path": "release/win_x64/examples/games/assets/beep.wav",
+    "sha256": "0b65db53cde150433db8db4f91c269314356cc303f760e0d1fa29f685294c136",
+    "bytes": 926
+  },
+  {
+    "path": "release/win_x64/examples/games/assets/boom.wav",
+    "sha256": "2c5dcb6cfa9742cbb2d495af9d6263d2c38de885d32dd39648216bb5af3c9931",
+    "bytes": 3903
+  },
+  {
+    "path": "release/win_x64/examples/games/assets/coin.wav",
+    "sha256": "bad1366f989145798790f082cccce7fe787483cd58521f92a95f9ec2f50b27fa",
+    "bytes": 1146
+  },
+  {
+    "path": "release/win_x64/examples/games/assets/laser.wav",
+    "sha256": "11bbcb2ec0f5ef933ad1eab98519044e8502552c0264b6d0b5551eb2d63e8b7b",
+    "bytes": 1367
+  },
+  {
+    "path": "release/win_x64/examples/games/assets/player.png",
+    "sha256": "c827984ecaff2b810b92e5e16f52c9843fdca1fb1dd458e040e10cd62653b014",
+    "bytes": 946
+  },
+  {
+    "path": "release/win_x64/examples/games/asteroids.xl",
+    "sha256": "4af3f3bc7311a66bbf320e406c9c9bc2d7403ae773f797c85406b9e58914d8c6",
+    "bytes": 10602
+  },
+  {
+    "path": "release/win_x64/examples/games/breakout.xl",
+    "sha256": "5b44274a92e79bce17c96a4f319905dd14b748ba38428533c0dfc63825bda2ea",
+    "bytes": 10226
+  },
+  {
+    "path": "release/win_x64/examples/games/flappy.xl",
+    "sha256": "a53dadf91ada70d9c101fcd7322cda4121153f2ef702b67802cd16dc6822aa5a",
+    "bytes": 7485
+  },
+  {
+    "path": "release/win_x64/examples/games/minesweeper.xl",
+    "sha256": "9b2f83ab70c76262aafbb089762a27b83d063081abb8c3cf1abbdbca9d0f41c1",
+    "bytes": 10786
+  },
+  {
+    "path": "release/win_x64/examples/games/pong.xl",
+    "sha256": "e2dc4beb3cdedc0777d6e15f91ae81b5f339eec33200bce07187795b592f49b7",
+    "bytes": 7665
+  },
+  {
+    "path": "release/win_x64/examples/games/README.md",
+    "sha256": "2e18b6690921c27c67b42cde3f89c689627997c7582a9808e3e40b78ea1b76e8",
+    "bytes": 1626
+  },
+  {
+    "path": "release/win_x64/examples/games/run_games.bat",
+    "sha256": "ccc0897219cf75b00f3b6e886af84678d79dcb7b756d4f2a76e8382f2c762365",
+    "bytes": 512
+  },
+  {
+    "path": "release/win_x64/examples/games/shooter.xl",
+    "sha256": "913d0d01ddac8d96130547336adde67771e788bf1892a569ef708d4ecd3e528e",
+    "bytes": 11455
+  },
+  {
+    "path": "release/win_x64/examples/games/snake.xl",
+    "sha256": "4fe57484af05a3fccccaa5e635b129354cc9cb906a642616527be1175dccdf90",
+    "bytes": 6072
+  },
+  {
+    "path": "release/win_x64/examples/games/tetris.xl",
+    "sha256": "79243f51b72aea72ed9a786b730291ebd6626bc941dae6afa2ea9824da8039b1",
+    "bytes": 12749
+  },
+  {
+    "path": "release/win_x64/examples/http_apps/README.md",
+    "sha256": "40508584fa7a950a9622ca5788bdc687ec6c343b549d2eaf69167472369ea036",
+    "bytes": 2534
+  },
+  {
+    "path": "release/win_x64/examples/http_apps/stdlib_http_client.xl",
+    "sha256": "44fc06ba70e47e4c05a2d8a7084419e0fc5936424fdbe5215b796a1212ee7639",
+    "bytes": 6456
+  },
+  {
+    "path": "release/win_x64/examples/http_apps/stdlib_http_client_c.c",
+    "sha256": "e4af323ce3de4508029363bd904bf00c575f5482ab21b06190e55e7ce09b7081",
+    "bytes": 16277
+  },
+  {
+    "path": "release/win_x64/examples/http_apps/stdlib_http_server.xl",
+    "sha256": "63b74bbce6756535d3c206ebcb73509fe37ad89f759c90dca1107f8c149fdc01",
+    "bytes": 10444
+  },
+  {
+    "path": "release/win_x64/examples/http_apps/stdlib_http_server_app.xl",
+    "sha256": "4fecd2cb7cb1d27f7f90f2db2f39689203ef10f430a6d0063ac76791ec6eba7f",
+    "bytes": 5147
+  },
+  {
+    "path": "release/win_x64/examples/http_apps/stdlib_http_server_c.c",
+    "sha256": "d20da880f8a7ceec9725d211bd90aaee781f8bb89a7a90b3c69ff7608f02d678",
+    "bytes": 20820
+  },
+  {
+    "path": "release/win_x64/examples/http_apps/stdlib_query.xl",
+    "sha256": "b15f057c4ed91a959fcaa7378699208913351a069ef15766691ec71392327c40",
+    "bytes": 992
+  },
+  {
+    "path": "release/win_x64/examples/http_apps/stdlib_query_c.c",
+    "sha256": "890476abc4f3b5b1a77cb78808301ab82a49a697bd005a590413ddf0f32cdf5f",
+    "bytes": 2359
+  },
+  {
+    "path": "release/win_x64/examples/http_apps/stdlib_url.xl",
+    "sha256": "bc71dbc7aa85b2356b2098b03c4532580ee229957326d4a7b027e0150c5cedb2",
+    "bytes": 1711
+  },
+  {
+    "path": "release/win_x64/examples/http_apps/stdlib_url_c.c",
+    "sha256": "75af9a408452f24fb638817a4980b10a3d7db46f070149413a3dbb9f57a18947",
+    "bytes": 3640
+  },
+  {
+    "path": "release/win_x64/examples/http_apps/url_batch_builder.xl",
+    "sha256": "d698a641772eaa658c74e4377e597a1859bf009790950e811f85f0ccc4593909",
+    "bytes": 923
+  },
+  {
+    "path": "release/win_x64/examples/language/basics/hello.xl",
+    "sha256": "9bd928b7531f207839713e1b0b7996e2f80ba5f9ccbbd5008600f5500baba124",
+    "bytes": 23
+  },
+  {
+    "path": "release/win_x64/examples/language/basics/literals.xl",
+    "sha256": "bb72d86d244c449c9ca78ae183c9542c4475232e6cd95dead2de750a2ef066c0",
+    "bytes": 172
+  },
+  {
+    "path": "release/win_x64/examples/language/basics/second_stage.xl",
+    "sha256": "ba8910bd2288b210b521662bab74d19f6bd715f35027375732ec13035cc9bd33",
+    "bytes": 1236
+  },
+  {
+    "path": "release/win_x64/examples/language/basics/top_level_main.xl",
+    "sha256": "31b466efb8e73215c9e248f20e00b61dbbd1072eca6d97c9f8d23a76256b94ee",
+    "bytes": 91
+  },
+  {
+    "path": "release/win_x64/examples/language/concurrency/async_generator.xl",
+    "sha256": "35ad1ae495ccb7e91c14bdef0031191e9dfffa03550fbcbf356521748108873b",
+    "bytes": 12770
+  },
+  {
+    "path": "release/win_x64/examples/language/concurrency/async_task_wait.xl",
+    "sha256": "b9b7270b7ac57f6355d108b36cac4cc671f05e51d9769f61363c8dc8bdb71fdd",
+    "bytes": 487
+  },
+  {
+    "path": "release/win_x64/examples/language/concurrency/concurrency.xl",
+    "sha256": "8fa2ad4d39669a6f3e7b7b7a4a9df5fc4877351ad600b2c001babb79de904a2c",
+    "bytes": 36366
+  },
+  {
+    "path": "release/win_x64/examples/language/concurrency/task_api.xl",
+    "sha256": "075f7da1ae39633d3d0df194dda4b13432192d7bf807399546a24ca39bde981c",
+    "bytes": 228446
+  },
+  {
+    "path": "release/win_x64/examples/language/containers/container_methods.xl",
+    "sha256": "daf034c0b9098f7e41b1af7bb4dfcab9fe04d5abf1924e4545a513f039d2940e",
+    "bytes": 1258
+  },
+  {
+    "path": "release/win_x64/examples/language/containers/container_ops.xl",
+    "sha256": "74a109a206216de28529aa0b440715b3cc3c5f305d1fb2f0afc28ce1fd8b2c64",
+    "bytes": 1651
+  },
+  {
+    "path": "release/win_x64/examples/language/containers/containers.xl",
+    "sha256": "7699cd8ac6483a85252906cef5908b657df77e27d2a5d2105398296f875a0981",
+    "bytes": 2045
+  },
+  {
+    "path": "release/win_x64/examples/language/errors/error_model.xl",
+    "sha256": "31969efa4161c8153f18dfcc5811e260718cb28655f25a8f659af7ce0a1521a9",
+    "bytes": 1349
+  },
+  {
+    "path": "release/win_x64/examples/language/functions/anonymous_functions.xl",
+    "sha256": "0ee7b318fb4bf403981e6ea1ae3370cf1f4f5f0e323bf51efe635b10d051b241",
+    "bytes": 443
+  },
+  {
+    "path": "release/win_x64/examples/language/generics/generic_class_iter.xl",
+    "sha256": "0c5321c3bcadfe2cfdd1695adb5e54e0c2736f52603a976330fafd9c09911b8f",
+    "bytes": 1157
+  },
+  {
+    "path": "release/win_x64/examples/language/generics/generic_constraints.xl",
+    "sha256": "326ef5482ec5d487bd22ff1f4bd16f41b064c6d344fe131accba28b40e2547a7",
+    "bytes": 846
+  },
+  {
+    "path": "release/win_x64/examples/language/generics/generic_identity.xl",
+    "sha256": "210c6436511d03b5edd8a52450b20bfa514e4ac17e14c985ba47da124768679a",
+    "bytes": 129
+  },
+  {
+    "path": "release/win_x64/examples/language/generics/generics.xl",
+    "sha256": "2fd91b280b6cfbe0e821516dec58716a4c5e5f9b52457cc09fe14a80907d0fe1",
+    "bytes": 313
+  },
+  {
+    "path": "release/win_x64/examples/language/interop/c_hello.xl",
+    "sha256": "b35aa1e916b97408c3bd8741c7bd7a8a19f6fd041f78907a9fb9b35401dc3777",
+    "bytes": 24
+  },
+  {
+    "path": "release/win_x64/examples/language/interop/c_vararg_printf.xl",
+    "sha256": "37b95610038208a6b2deddfead946b691767a3f69fabbc2726c713f33b52f81a",
+    "bytes": 174
+  },
+  {
+    "path": "release/win_x64/examples/language/interop/c_variables.xl",
+    "sha256": "e7e520307fea84b2129889a4a06b9d515ae6e9b2d6396943b692a37f596a9a3e",
+    "bytes": 400
+  },
+  {
+    "path": "release/win_x64/examples/language/interop/extern_owned_string.xl",
+    "sha256": "1d623fa664b02855a3c98df4f8d28c200419b85e892b63fce324f80fc30fa0e0",
+    "bytes": 670
+  },
+  {
+    "path": "release/win_x64/examples/language/interop/extern_owned_string_native.c",
+    "sha256": "3254b1b94b9a49dcdb9f96f261c0f592963f44584d1a8cf663df831a68b2a5b9",
+    "bytes": 411
+  },
+  {
+    "path": "release/win_x64/examples/language/oop/class_field_persistence_attrs.xl",
+    "sha256": "fbeeadc9805f47b8e71161c220107672ce4053ab80d016672a8104729a86cf55",
+    "bytes": 1532
+  },
+  {
+    "path": "release/win_x64/examples/language/oop/class_native_backed.xl",
+    "sha256": "760856a445aa7bf2a46bdabbd94142463a3c66f62c1e6052a755097490ba9f2e",
+    "bytes": 676
+  },
+  {
+    "path": "release/win_x64/examples/language/oop/class_native_bridge.xl",
+    "sha256": "835dea8ae27a9c529637f4ab03dbce261b575ef93eff84b8a08b7e724eab2cf9",
+    "bytes": 321
+  },
+  {
+    "path": "release/win_x64/examples/language/oop/class_persistence.xl",
+    "sha256": "439fbc693c760d5e17e49c550a70555696abb6c1e8af57bd94ce4cdcc6ac27f3",
+    "bytes": 647
+  },
+  {
+    "path": "release/win_x64/examples/language/oop/class_point.xl",
+    "sha256": "427fe21f7766b7a523f0aac62f6c46cc09b5f01ab11e6997d01a27246c426b4e",
+    "bytes": 468
+  },
+  {
+    "path": "release/win_x64/examples/language/oop/class_reference_model.xl",
+    "sha256": "284b9314f2edffea4c0dadcee4ec86cf7505472d37bc39dd75f7b37f01619795",
+    "bytes": 544
+  },
+  {
+    "path": "release/win_x64/examples/language/oop/copy_clone.xl",
+    "sha256": "37ed4a46fde062439f2f3220741847db025c266767402f7dc7d07f9dd6d9eb7b",
+    "bytes": 561
+  },
+  {
+    "path": "release/win_x64/examples/language/oop/native_counter.xl",
+    "sha256": "1fc265fa9480ff03612c57c7d4ae0d3cc6494004ebfa71cf91f6eaa26dd6f981",
+    "bytes": 454
+  },
+  {
+    "path": "release/win_x64/examples/language/oop/object_protocol.xl",
+    "sha256": "0ef6f29e8d6377d5f233f38666fa328e29c116154a2093db8183ba3257f3161e",
+    "bytes": 836
+  },
+  {
+    "path": "release/win_x64/examples/language/oop/oop_property_get_let.xl",
+    "sha256": "ca08013ae8d1566c37421677b6148aaf99046dc215c220b1a05010037805f36a",
+    "bytes": 576
+  },
+  {
+    "path": "release/win_x64/examples/language/oop/oop_protected_access.xl",
+    "sha256": "aec466fa334e425526e2564b254133e9e291a913d486dcd2081bffb06d60bb71",
+    "bytes": 572
+  },
+  {
+    "path": "release/win_x64/examples/language/oop/oop_protocol_overload.xl",
+    "sha256": "9952b53fc0fe6cc95818a960d6018fab79aaab697e2ec68df3cec59ce57eb9f1",
+    "bytes": 1440
+  },
+  {
+    "path": "release/win_x64/examples/language/oop/oop_static_access.xl",
+    "sha256": "87921ac96d8fbf3fc915b50f5ce754b37015e81adc77bba89501cb541ec7f1b0",
+    "bytes": 566
+  },
+  {
+    "path": "release/win_x64/examples/language/oop/oop_virtual_dispatch.xl",
+    "sha256": "3b51053c700c65a794243813dcf274f81d8d74fd77681641e4a74a8fefc1054d",
+    "bytes": 1251
+  },
+  {
+    "path": "release/win_x64/examples/language/README.md",
+    "sha256": "b88cb017353eeec8675c1ae9d8a28699e597f2aa03fd30715b31a5668e46cc40",
+    "bytes": 5357
+  },
+  {
+    "path": "release/win_x64/examples/language/types/runtime_type.xl",
+    "sha256": "28d9ee9b7f49ff1e9facbe0683c7c46833a6043e16e9ca8f82eb64592ad44f41",
+    "bytes": 1844
+  },
+  {
+    "path": "release/win_x64/examples/language/types/typed_point.xl",
+    "sha256": "ec74da8f254ba3e9ed002cbee4323299081bc4d8237d4c50bf95b227d6e85934",
+    "bytes": 388
+  },
+  {
+    "path": "release/win_x64/examples/language/types/union.xl",
+    "sha256": "c471628df5d089427f5e8d09cd76bb8dfbe98ebf88a490510cb1aca926e0c673",
+    "bytes": 868
+  },
+  {
+    "path": "release/win_x64/examples/README.md",
+    "sha256": "135197267f68e844d5158f1ebe36a00057a65232f0ae3504f00bd3140648e19b",
+    "bytes": 4151
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/core/stdlib_api_contracts.xl",
+    "sha256": "d25ab7ed0470ed118ce59bcd461abd94eaab3a172fcbaa8b1a7e5b2d48894844",
+    "bytes": 21854
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/core/stdlib_ascii.xl",
+    "sha256": "95ffd67d2943a40ea9e920a8dbdf798adab3cb2bd254090e893c1a45184e6fba",
+    "bytes": 564
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/core/stdlib_crt_algorithms.xl",
+    "sha256": "cd4f0af58b7069ed909e85304a5463ef52aaf6f7ed6068b77a404da72e85f4a9",
+    "bytes": 524
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/core/stdlib_crt_env.xl",
+    "sha256": "0ad6d8b44509e636d4bf8f2556e2b8547d3d19f2aa86fc09d852ccb11f68b8e6",
+    "bytes": 552
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/core/stdlib_crt_math.xl",
+    "sha256": "86d461339037462589cf9411f94a7861d425cd64b03e352f7e87530e21972f06",
+    "bytes": 1309
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/core/stdlib_crt_numeric.xl",
+    "sha256": "e4993b6d05a9cc7fef603e145b5a83a56c3c9e32b1d78940c2f2ca5bcec9ac46",
+    "bytes": 1373
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/core/stdlib_dict.xl",
+    "sha256": "417f18c13b169aaf232dd0c34cf7aa66c222802af140beeafba8fd06a8e5913f",
+    "bytes": 797
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/core/stdlib_future.xl",
+    "sha256": "9ab75f90cad0023594cab1d23ffc2d66bc5e13f71ec38f1d8108ee2d257cc78e",
+    "bytes": 824
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/core/stdlib_future_c.c",
+    "sha256": "79831ebc33488f41eef212ae49b432125b38fbef56a0144809e85c3189f87e18",
+    "bytes": 3239
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/core/stdlib_hash.xl",
+    "sha256": "85f95ee3d492407372c6b0074e80521dddfdd678da8fe1a307913415c1dfe0be",
+    "bytes": 816
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/core/stdlib_hash_buffer.xl",
+    "sha256": "1367ccbc6f11baa76cd365efb35cdfc60371d56854944153d856d3eb2700483d",
+    "bytes": 635
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/core/stdlib_hash_c.c",
+    "sha256": "540140dcbcded746b0a430d4da82ff9266d09809fc999c37625d3e314c87b32f",
+    "bytes": 1132
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/core/stdlib_id_net.xl",
+    "sha256": "c0b418fa4b27bd4f3725d29af26e03a9dee40bea6e878d407e830c3c0e3f0468",
+    "bytes": 2211
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/core/stdlib_id_net_c.c",
+    "sha256": "5c11bf505b6ac28f1e4f2e714edab15f4775a732eab729d9e0d57be069c1f817",
+    "bytes": 1286
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/core/stdlib_math.xl",
+    "sha256": "ada17e533596788a134d8ef7db9cf74c4616d34ccce36ff508bc6c01cffa28bf",
+    "bytes": 1761
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/core/stdlib_math_c.c",
+    "sha256": "cfc1f5cff14cf1eb4bc75e8639d133c74b7db9e5f674bc2aa4cccb429ef1bc56",
+    "bytes": 2527
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/core/stdlib_print.xl",
+    "sha256": "7d95f3c1b82a855088f0d238fa9da8216994fbabf47ed84f8bc06cedc3c60839",
+    "bytes": 276
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/core/stdlib_random.xl",
+    "sha256": "8f681009d1b0686e82d93570561cf34af665d6f411adfeda3b81c53dce547916",
+    "bytes": 1214
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/core/stdlib_random_c.c",
+    "sha256": "a7c288504b3b98a36473ddd990e209b4f5f13ee59e411a16c9bba9d0d8861d8e",
+    "bytes": 2836
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/core/stdlib_random_extended.xl",
+    "sha256": "cd9b71488c755116e7ca5478ffe60f429549ea6447f8a75d91e82b40f77c01f4",
+    "bytes": 831
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/core/stdlib_siphash.xl",
+    "sha256": "98e00d0bcb71e0fb5a707436718072090de2bba82ca359a0aac60a590bf0f98f",
+    "bytes": 568
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/core/stdlib_special_collections.xl",
+    "sha256": "865a8c93f30f6508d3c34e504b71783aca5f8cd108bf69b3dbe6adf439efa019",
+    "bytes": 1465
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/core/stdlib_special_collections_c.c",
+    "sha256": "71663e96182e9fe2640f4fe737304aa343863bc7e599866f7d4e0944f8b5e605",
+    "bytes": 3586
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/core/stdlib_string.xl",
+    "sha256": "9e0edd2c4fe4a3a6742da34d49fdb9d030a29733beefafc0f5e922be78254115",
+    "bytes": 3650
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/core/stdlib_string_boundaries.xl",
+    "sha256": "1750b96bf1a46459dd582679c086ec1fa65de40d0448f83d8968238bab1420fe",
+    "bytes": 1234
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/core/stdlib_string_boundaries_c.c",
+    "sha256": "6a37f5c3565d4e20ee3d426c3a8333012b83de8f13a889b142adaf173d6258ce",
+    "bytes": 2534
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/core/stdlib_string_c.c",
+    "sha256": "8ed444359bfde6e31a978af6d011b8418d5daadb4127af5fd24b6f7f51bbbbf1",
+    "bytes": 8959
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/core/stdlib_xid.xl",
+    "sha256": "53786ac1c4f584d7c5691fc6966d7340ace60f658a4d3a9b575ca13ba502033b",
+    "bytes": 296
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/crypto/stdlib_crypto.xl",
+    "sha256": "12119667338e10541f7be8e4210aeffb5855457b11815e7e3f12dea0e8191dc1",
+    "bytes": 4635
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/crypto/stdlib_crypto_c.c",
+    "sha256": "1941c32d7adb6e69f26a58ec6ca61da6d66889193e31ce36df626be566fb7fad",
+    "bytes": 10464
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/http/parse.xl",
+    "sha256": "9e43a8a89a7273da10cf05329dac196d85c05a1281bd608c13b61642dbcbf106",
+    "bytes": 501
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/http/README.md",
+    "sha256": "61c8015e1ec493124d35ab9abe6c5ee7d56df6c38d249884d1511828597f3d0f",
+    "bytes": 1225
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/http/tcp.xl",
+    "sha256": "2ec51b2ba2cd6891276904c2eadddf20c89ac47aeb6194a29ed0ab6d2478f235",
+    "bytes": 2243
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/io/stdlib_buffer.xl",
+    "sha256": "9c2216dd061ee8fc2538751411252b80685ea33696773f638193e82b3213585d",
+    "bytes": 789
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/io/stdlib_buffer_c.c",
+    "sha256": "6f4a7fd1649860c295833e029150e292f7dbec90385dc51cb4692010c8ff46ec",
+    "bytes": 2464
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/io/stdlib_console.xl",
+    "sha256": "d714af771c0344c9d8105ff6676b888f266806fe4a5ab30b41d7755c6085f024",
+    "bytes": 1261
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/io/stdlib_console_codes.xl",
+    "sha256": "cacb4013f972cf66f1c8c43911cebadd6c69016f9b865f60f078f35bf39fe436",
+    "bytes": 2123
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/io/stdlib_file_async.xl",
+    "sha256": "374bad6bf060a6f6ab0c3e2c88a8d09935a5317b27c1bb746cd82ec123f10cd1",
+    "bytes": 2662
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/io/stdlib_file_async_c.c",
+    "sha256": "ca633519c21ecbb7efc73e4de38031b9cb5bc7974777e171db4b7bbcbce9d61e",
+    "bytes": 9653
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/io/stdlib_fs_advanced.xl",
+    "sha256": "a4796b32b692b344983119186a58b72674b610e346c483211fa07378dc47bc9b",
+    "bytes": 2192
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/io/stdlib_fs_async.xl",
+    "sha256": "cc5105afd758d929648d6cf5726e598dd0ccb24d3b11af8bfe02a7028a25d88e",
+    "bytes": 293
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/io/stdlib_fs_async_extended.xl",
+    "sha256": "3cf3aba55e1bedffd27c6e651150b6f9ed32f8650b5828a485d54935bb53ed4c",
+    "bytes": 1510
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/io/stdlib_fs_file.xl",
+    "sha256": "31ccaccd0ed68c2c87e4a5b6714961155d3e7ee383ce9f4b4f0d73bf14b5a6c9",
+    "bytes": 615
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/io/stdlib_fs_paths_text.xl",
+    "sha256": "4d80dbd5c9bdc7045191acb895987d179807cdaa0ab2ea68ddf58be239432215",
+    "bytes": 870
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/io/stdlib_fs_tree_temp.xl",
+    "sha256": "10fbfad2b7cc31e15b46e6ea846d5ee76e5d56603b511e40fc077d8443fd4b7f",
+    "bytes": 526
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/io/stdlib_fs_walk.xl",
+    "sha256": "dd50521f08addedd9a3299dbf0aa3574b6bb36988f16ffee07aa8b3357fc8837",
+    "bytes": 602
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/io/stdlib_io.xl",
+    "sha256": "d469d62f12bb4e2e0b7b1bcb3524e9da49202b78cea9c687c72394a28403808a",
+    "bytes": 708
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/io/stdlib_io_native.xl",
+    "sha256": "515fd2f674289c8cc7283212ffbb9922a8b598fc02e47bf75bd74aed595b2de0",
+    "bytes": 951
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/io/stdlib_log.xl",
+    "sha256": "619ebfbafd01c189741132e36c3048b0655e087d9171a7bdfa2ce81dd5c59f7f",
+    "bytes": 1828
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/io/stdlib_log_c.c",
+    "sha256": "879d187dcd9ea5837500d30e3cfce954fb2ae2b36c9f76c41f6e8b19f44e0ba8",
+    "bytes": 7792
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/io/stdlib_log_formats.xl",
+    "sha256": "c8cbd3649dd083502668ad64b58daf7ca380b9367f9595d95cc4435a4c1ac19d",
+    "bytes": 2058
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/io/stdlib_logging.xl",
+    "sha256": "8ed8249359e5ec520c3160a865fdd4cb0782f719442c0a5a0ed626a742aa5008",
+    "bytes": 1211
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/io/stdlib_path_file.xl",
+    "sha256": "30459b27e3facd7dd227725d8d3dcf59b3a441be4ae772afed6c46a620867597",
+    "bytes": 12399
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/io/stdlib_path_file_c.c",
+    "sha256": "2710f2be117562c1d72d76b29e4aefef7b9c6c5a9e87a88a0fbe81266f458a96",
+    "bytes": 12876
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/io/stdlib_template.xl",
+    "sha256": "5f8b99029e01a28df7b0330684ef40edd49f472a4b9bcbf816cb22f5784e9f33",
+    "bytes": 1555
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/io/stdlib_template_c.c",
+    "sha256": "cdfde4efed00e25bbc31642a377a575b60ef55d1a21fa9612834b62011b74703",
+    "bytes": 4792
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/io/stdlib_vfs.xl",
+    "sha256": "b67dbf0721d6a57b3df8c358567a19c186cd03d7a4e66c68989f8a439f5f47c1",
+    "bytes": 1039
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/net/stdlib_net_fast_path.xl",
+    "sha256": "b3a8c82a13cc8bb98ecea8f4b7245d0366fd4b35a897bcb9b6bf8f245068b7b9",
+    "bytes": 731
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/net/stdlib_net_interfaces.xl",
+    "sha256": "43e25d069152c33d40e2c1cd6b7f049dc0504d627634f690523ad3889865b0a0",
+    "bytes": 1079
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/net/stdlib_net_interfaces_c.c",
+    "sha256": "f203d15c5447664996c3c31a66660d4a5370866582270669a2afdd5cce93fa0e",
+    "bytes": 1944
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/net/stdlib_net_tcp_udp.xl",
+    "sha256": "b2673dddde2559046f22659d62d23b1aa5b5ebc6242ba78a10f6a9ac338b959e",
+    "bytes": 3095
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/net/stdlib_net_tcp_udp_c.c",
+    "sha256": "f62dd450352ec8dac697a22a7b8e3512e1c4dd6de612d19c7d7447652cf8450f",
+    "bytes": 10126
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/net/stdlib_tls_session.xl",
+    "sha256": "2a739a18166fd654a807d3fd01ab28c739ae7295ef6c67012acb8b432c04873f",
+    "bytes": 2402
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/net/stdlib_tls_session_pair.xl",
+    "sha256": "6bd04f54b7498770d0e7bd34b3d52957bb81746c90d780579db9221d6b67862e",
+    "bytes": 6588
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/net/stdlib_tls_session_pair_c.c",
+    "sha256": "edc0bd3b395b4c61713d8874954ae9f7afa3ddfd6185014eb18b7bcc952c0a6d",
+    "bytes": 13563
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/net/stdlib_tls_stream.xl",
+    "sha256": "56570a6c3c6da6191d6d01d7ee76dfe9fd4ff3c22c5cfc30a9962b67c1e7e9f9",
+    "bytes": 6586
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/process/stdlib_environment.xl",
+    "sha256": "a2dc2a0a66787cde31e6b7f59a2922a370ec160c2330d08d32cef0f9f1d94b3c",
+    "bytes": 461
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/process/stdlib_os.xl",
+    "sha256": "42904e035ed986ce72bb9006364f582e37c88990ac852d7c25cb2831bdc71daa",
+    "bytes": 1279
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/process/stdlib_os_c.c",
+    "sha256": "34bd1238c0c8d672dfebf44cdc1bb08da06c78b1341af4b98e2a2bdef0f30b58",
+    "bytes": 3260
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/process/stdlib_process.xl",
+    "sha256": "ac947c9926c831bebfea7b167bd8f4496c56163238a5fd5a4f624fc0b3b579cf",
+    "bytes": 2247
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/process/stdlib_process_c.c",
+    "sha256": "2990068039160b4274803904d1996f166aa7f4f9d11f0a6c3769c6eb80c3087e",
+    "bytes": 8900
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/process/stdlib_process_pipeline.xl",
+    "sha256": "256cfc24b73b41b1bd266be3b789f96c4ac5c3824f1b010f9c7a23a51daaaaac",
+    "bytes": 675
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/process/stdlib_process_run.xl",
+    "sha256": "620ae40f58a623b9112b2a44f4c495eec6983c7b1e6d37d6a366d53866567cc7",
+    "bytes": 459
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/process/stdlib_process_support.xl",
+    "sha256": "c19f95c850a0911c99f9ece0007cd0e8d484be110e9246678bbef0509ccc5a00",
+    "bytes": 501
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/process/stdlib_signal.xl",
+    "sha256": "082e373c61617fe83c24bb6843d5abcce75e79d77d39ea08fc90b9a8e27aae8e",
+    "bytes": 1404
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/process/stdlib_signal_core.xl",
+    "sha256": "857a67585d9a9bcaff33195d5d9431bb9fda41d85b48bd7642292e014adfb8c3",
+    "bytes": 354
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/README.md",
+    "sha256": "61f0ae06e8c38d70bec4bc825ab370a1ccd7034b090b1f3296b057a672477c58",
+    "bytes": 7868
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/text/stdlib_codec.xl",
+    "sha256": "e7fb9aca15bce7b5396a04455ff7bd44e72065a306251c54ea866324f182a00f",
+    "bytes": 811
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/text/stdlib_codec_c.c",
+    "sha256": "414add02775705cc5b625ae9342869e480ad753f461d58b69a715bf8ae0f6e94",
+    "bytes": 2201
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/text/stdlib_encoding.xl",
+    "sha256": "33f51e2affda4895f5e14a4e8ddf5dfb7d322c3d84239a8ea1ccbc448b09dc52",
+    "bytes": 1063
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/text/stdlib_encoding_c.c",
+    "sha256": "03dbb58d48a2bdb1b88273814c6c76cdc7ff208e63b02a61b39892c934120976",
+    "bytes": 3441
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/text/stdlib_json.xl",
+    "sha256": "f776173745cd912c46cb6ffb5d3c4db10f1d79d96d1b793f697386df976bee8f",
+    "bytes": 2391
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/text/stdlib_json_c.c",
+    "sha256": "05458c88dafec3e2d2b73a0a2ab001089b2e1d7ca1e3fc506c78bc1928889be5",
+    "bytes": 3964
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/text/stdlib_regex.xl",
+    "sha256": "234d601fc25d7168539388211e304014aa3e3291db15acbd058562ef880afc47",
+    "bytes": 2730
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/text/stdlib_regex_c.c",
+    "sha256": "d5d1a3bd0fe4a154dc071ffb8dc4dcb9f4f58a1741cb54dbd3a9d1e14383e1ba",
+    "bytes": 7701
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/text/stdlib_structured_lines.xl",
+    "sha256": "e8b1eeee8aecfed4a3a2eb06b4c254b7c7f5a4677bb3fecab85edfa3db1f8a25",
+    "bytes": 719
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/text/stdlib_structured_sinks.xl",
+    "sha256": "d7acfbe638bd1362a86d2826e9f902488adc7664f690afdf6801cf537ea813c5",
+    "bytes": 678
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/text/stdlib_text_pattern.xl",
+    "sha256": "d12be28a0dd2da914f3e15e0ac2742af07faf25945cc1d76082ab25d71e5334d",
+    "bytes": 2957
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/text/stdlib_xlon.xl",
+    "sha256": "dcce68e319b57028fdd686791aeaca9b3a67f32447099d40d2f5411c001acae3",
+    "bytes": 2920
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/text/stdlib_xlon_c.c",
+    "sha256": "73bc064f43a1aeb315a6ef2274fe7535917673135f3023c11be01d1cfb18edc2",
+    "bytes": 5401
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/time/stdlib_time.xl",
+    "sha256": "85bc7b2f5e3fb333d6de19b70dd020ff7e70f3a99c232fa130cf8030633f3a1c",
+    "bytes": 5483
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/time/stdlib_time_c.c",
+    "sha256": "0d9d79d047bec194bd73e91a081558b9761841e04065b4a0b4f1f15c1c0c7226",
+    "bytes": 11281
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/time/stdlib_time_calendar.xl",
+    "sha256": "b56873360fa06adaf7e715befe3ff6cbac6a5b728bd3daff7e3dd94c5957e271",
+    "bytes": 930
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/time/stdlib_time_core.xl",
+    "sha256": "1be180bbffff1174e5d55b5d342f3ce7d337f5a3b6d9cbced555a796814b2b29",
+    "bytes": 697
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/websocket/loopback.xl",
+    "sha256": "89fe8dd9016f549ef04d564876eeca0921fb37904aacb6e95817cf2f3bda5347",
+    "bytes": 2230
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/websocket/protocol.xl",
+    "sha256": "50734073710d9dc3f3ac254552ca9407f47290e1731a4526dfe5467f78589f64",
+    "bytes": 431
+  },
+  {
+    "path": "release/win_x64/examples/stdlib/websocket/README.md",
+    "sha256": "2c3ab7c94b81c0f508ee90625bfb677aa4466d8855434067d47b7f377e227b86",
+    "bytes": 1035
+  },
+  {
+    "path": "release/win_x64/examples/templates/hello/generator.xl",
+    "sha256": "3ace7207d82c1a1ba0fdf5225fc2e300eefcb4cdd890e8f01a0e6f19a83d4668",
+    "bytes": 1040
+  },
+  {
+    "path": "release/win_x64/examples/templates/hello/README.md",
+    "sha256": "23d1f8a7d432ede0623d4a105d05d58538550617e3e4d1bdc0c5a8939c41f2f7",
+    "bytes": 907
+  },
+  {
+    "path": "release/win_x64/examples/templates/hello/template.json",
+    "sha256": "e29c9d391e0e95abaf2822794c03a2692198820282c18a369cfd21b12ab81139",
+    "bytes": 701
+  },
+  {
+    "path": "release/win_x64/examples/tutorial/01_entry_and_layout.xl",
+    "sha256": "5ad8143701832ea68c7bf08695ade23136b9bb0d60f8ce0595c0c744adf631b9",
+    "bytes": 760
+  },
+  {
+    "path": "release/win_x64/examples/tutorial/02_variables_and_literals.xl",
+    "sha256": "ee3cad2022279ce834c4bddfbf6605b3331c039afe72acc1dd04037d8b45dfa6",
+    "bytes": 1643
+  },
+  {
+    "path": "release/win_x64/examples/tutorial/03_operators.xl",
+    "sha256": "fc2bf7abf6b32c23ccaeeaf1e218e7536597e7fbf9cd92fa010f5ca22f55d74d",
+    "bytes": 1533
+  },
+  {
+    "path": "release/win_x64/examples/tutorial/04_control_flow.xl",
+    "sha256": "6ed46a94e382afab620f94b010372762680c63cdf05cdaebfc36462838d2c5cf",
+    "bytes": 1856
+  },
+  {
+    "path": "release/win_x64/examples/tutorial/05_functions.xl",
+    "sha256": "82bba491a494c26e0a81552b24a9b5f1daee9c0aa2a46dc6db9e33d848e7df79",
+    "bytes": 2017
+  },
+  {
+    "path": "release/win_x64/examples/tutorial/06_function_values_and_closures.xl",
+    "sha256": "e910f87f6e0b336fea68d6dec77c7184c275f5a2278c5137502e71e098d12cdd",
+    "bytes": 1585
+  },
+  {
+    "path": "release/win_x64/examples/tutorial/07_containers.xl",
+    "sha256": "82beaab2e3a3ae9bf107c0d0443123428d33387fdebe5a4b28ae1cf4d6f0f778",
+    "bytes": 3135
+  },
+  {
+    "path": "release/win_x64/examples/tutorial/08_generics.xl",
+    "sha256": "abc59b7cfaeefc7a67572ebb479e852f4fa970509ef968ab578d960a8f1f8cd5",
+    "bytes": 1787
+  },
+  {
+    "path": "release/win_x64/examples/tutorial/09_class_lifecycle.xl",
+    "sha256": "90be79cf8c481354c2b2b9aa789dc354d36f0804d153cc1c164ca90655e805de",
+    "bytes": 1462
+  },
+  {
+    "path": "release/win_x64/examples/tutorial/10_c_interop_and_native_class.xl",
+    "sha256": "138165f606bfee02ddae0c83b5d1f4acd47c9906e3ab6b85e2b5ad142319fad2",
+    "bytes": 399
+  },
+  {
+    "path": "release/win_x64/examples/tutorial/11_export_to_c.xl",
+    "sha256": "7c5977ed11df3c615874518e7bf145a829c0ff0ce98ee391ab397a625728e5a3",
+    "bytes": 762
+  },
+  {
+    "path": "release/win_x64/examples/tutorial/12_errors_and_docs.xl",
+    "sha256": "d81f3bbf3539138780e908b3fefd5132b609b78e5596d077126bc9503fb4d9f7",
+    "bytes": 822
+  },
+  {
+    "path": "release/win_x64/examples/tutorial/13_modern_type_semantics.xl",
+    "sha256": "90e892b33d60e0a75573c92d9fcd8dbabea67a263a6bf1230ed60ccf5babf766",
+    "bytes": 2163
+  },
+  {
+    "path": "release/win_x64/examples/tutorial/host.c",
+    "sha256": "54e030bbebedf6f7f8f2437d8c6f7bf25579e1f07405857abecb85095817328f",
+    "bytes": 1692
+  },
+  {
+    "path": "release/win_x64/examples/tutorial/host_export.c",
+    "sha256": "c8f8e34701fe37264802cc921e6d4c6105c9e2e279a3d6bb6ae8d21d8b8c9ea0",
+    "bytes": 882
+  },
+  {
+    "path": "release/win_x64/examples/tutorial/README.md",
+    "sha256": "f04cbadfa9305f2c29818eafc6f2fe7cb391cab2e7373c2d0c38af9c032527f9",
+    "bytes": 2546
+  },
+  {
+    "path": "release/win_x64/examples/xge/gui_shapes.xl",
+    "sha256": "33ecf635b267e67ccb59e8c0852e41d1ed97f8bed4cd4e50fe5fa94271c7079f",
+    "bytes": 768
+  },
+  {
+    "path": "release/win_x64/examples/xge/headless_frame.xl",
+    "sha256": "f609b4f2e45cd4c571f2ee83c0e11b000afdd46b8c6123e5fe758115dfb77ef9",
+    "bytes": 335
+  },
+  {
+    "path": "release/win_x64/examples/xge/headless_shape.xl",
+    "sha256": "604881d4b0ebe27fe57de79387a7aba33c6dd6d15d3d1096774d3d02c67a053b",
+    "bytes": 423
+  },
+  {
+    "path": "release/win_x64/examples/xge/README.md",
+    "sha256": "6e83534af23588ec7b029e3687b4fa28602f39478f460ea70cb5845ddcffbb6f",
+    "bytes": 2454
+  },
+  {
+    "path": "release/win_x64/examples/xge/system_font.xl",
+    "sha256": "2623233c366b1d2f6b4996086e3837eebbf98bd5af8861dccd0688c346f70444",
+    "bytes": 385
+  },
+  {
+    "path": "release/win_x64/examples/xui/headless/document_ui_headless.xl",
+    "sha256": "c309d7306d9d013a3bbbef9be1c0f7aa637dc0049e448e65cc31fe4381cff447",
+    "bytes": 628
+  },
+  {
+    "path": "release/win_x64/examples/xui/headless/headless_cell.xl",
+    "sha256": "31a25b1f3711641a1a461c3ce684c841f9669274fa1cdb0c316b51b7331bf895",
+    "bytes": 326
+  },
+  {
+    "path": "release/win_x64/examples/xui/headless/headless_path.xl",
+    "sha256": "4dccfd0d0360ac4ee4df4c781c36fa2642776ffbae7a3ceba0ce4a9e0e224c33",
+    "bytes": 296
+  },
+  {
+    "path": "release/win_x64/examples/xui/README.md",
+    "sha256": "8bc248abb78deded4317337e9f7fc83b6eb2b46d48449600e0dbb37e307661fb",
+    "bytes": 12726
+  },
+  {
+    "path": "release/win_x64/examples/xui/run_xui_examples.bat",
+    "sha256": "6f941d5954160624bf407f973387a78ac926dc8bff31a41f0f7327cacd0bd054",
+    "bytes": 781
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/_window.xl",
+    "sha256": "7f1006bfeb3f0a3bee7110992c38483de821959ad6f7227f57b761167ee6fd05",
+    "bytes": 5683
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/accordion.xl",
+    "sha256": "0b195f8bffe24b14a43b9003e92bfc2ae55128eaf2e47bd79ff0eb9a5c151d61",
+    "bytes": 731
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/all_controls.xl",
+    "sha256": "09b9ddf4e1b952855f792d2c559f24ebcebe81373a25bd4e8d640af547bce8f8",
+    "bytes": 30554
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/basic.xl",
+    "sha256": "42b3453e21274031fd5f61088d8588eebf6196680327c73c703da46f9980af03",
+    "bytes": 780
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/breadcrumb.xl",
+    "sha256": "530cec1d152534c083ee1d5f8636dac6b0bce158549bf6da092e25c0fbf3dd8e",
+    "bytes": 404
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/button.xl",
+    "sha256": "c7052ce68dc14b64e5fd741c7591fe6f7cba1f46f2e474b55c2281c03cc32d6f",
+    "bytes": 567
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/canvas.xl",
+    "sha256": "7f92423cd324cf356b3f3a478205a0f3c8dfaef54112f8c7ff863bba01426bb1",
+    "bytes": 528
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/carousel.xl",
+    "sha256": "33ac05ec248cda8dce34bfa8ed8b61751d538a46e0e6dc9a47897578516752fe",
+    "bytes": 637
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/cascader.xl",
+    "sha256": "0499b4a1c0ee5ac91a0c5904c5d369ee9c577123a24b30b4e9951d00ace04769",
+    "bytes": 671
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/chart.xl",
+    "sha256": "2c35fb9f6996a47d1f4420b3f1a7e455d947acffa6905f8dfe80267d6bcecc12",
+    "bytes": 496
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/checkbox.xl",
+    "sha256": "214c832ac4ba881e25c06bc0c4fff22970afce5bfd45548076d2b75b037892b4",
+    "bytes": 387
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/checkcard.xl",
+    "sha256": "e51c4eb6e617cc56e7f8435c1f6b7d97fb422d8c6f14069c1f5e8bbeeee0ceb6",
+    "bytes": 418
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/codeedit.xl",
+    "sha256": "2fffc2d753ee05719f9591721c6c3449fe48220c465f72f24f9a3ffbaaccd72d",
+    "bytes": 653
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/colorpicker.xl",
+    "sha256": "cec55e170b4d42f93f686ed1dc9f2dbbb96b5712c27ed8dcf0952a9192cef24a",
+    "bytes": 320
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/combobox.xl",
+    "sha256": "f4ef4931d6d8f8b21b005b60b87adc09611f2afa0286d835f48a2ff64866dcf1",
+    "bytes": 346
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/context_graph.xl",
+    "sha256": "9fd9f8bf138d594e7eea94790e111ddd6f931319a2b2ed3a5fc6887aa09da8fa",
+    "bytes": 423
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/data_object.xl",
+    "sha256": "aeb5d7aea9b84aacbc8aa39cc5b72fefe293d84e551be169eb5beaf6e7f25bd8",
+    "bytes": 408
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/datepicker.xl",
+    "sha256": "3d57823c782bfdcd2acda2286b851a95654852a27bfe99949779dc96a4fda862",
+    "bytes": 311
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/dockpanel.xl",
+    "sha256": "2847e35a12687ac83c27846e234abbfa7d587d70208cf14c6ae36386e8879a7d",
+    "bytes": 802
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/document_model.xl",
+    "sha256": "389200d7c7f895cb013aefeaccc6268500781c48433a2239e2779b8ab74c04d8",
+    "bytes": 791
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/documenteditor.xl",
+    "sha256": "03f575bdcaee661d5e9d656e9980ad58400fcf6d700982ce673d2ad128d9ffd0",
+    "bytes": 915
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/filedialog.xl",
+    "sha256": "d6dcfc9d9d4308f34a01714a3b5260f71d46d3e461af7cfba4a0f34acb854966",
+    "bytes": 889
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/gallery.json",
+    "sha256": "8cf1ad92adb99990d88704145e3faaba4bf84da9821ea8dd28ce51057d1b4d68",
+    "bytes": 14755
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/gui_surface_draw.xl",
+    "sha256": "ebb6be42659e9642817ee4de05837fff32ca08daa472caa0f058db5b3b6f5ca2",
+    "bytes": 843
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/hyperlink.xl",
+    "sha256": "1c4b5dce4a4f49949b48030398f90cf01e9b1516357458e5146f13e9b65c3115",
+    "bytes": 423
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/image.xl",
+    "sha256": "b35ebc8819c61ce5dd8e065ec663f74efc8d9e9506aa694d8a108190201b7ffc",
+    "bytes": 664
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/input.xl",
+    "sha256": "32c5a497eb9b55e0c73c92427c0cc0e23f1d6989b0413ecf2c1f198474803d43",
+    "bytes": 313
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/inventorygrid.xl",
+    "sha256": "20bb74abbdc85b7d9dda435078185657b44bb91e6ae770bb51a9f7cc87074a89",
+    "bytes": 594
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/label.xl",
+    "sha256": "817a98de5cfb8649e54897d6f6b6e60bc39ad208eb7ce5487db0b4dfec803aed",
+    "bytes": 491
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/listview.xl",
+    "sha256": "7779b857b3367db07556a19ab36722f3b018a6a91b8de79f0446fe4d03b20c68",
+    "bytes": 391
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/manager_lifetime.xl",
+    "sha256": "b5c21bf0fee83fc863e3ba6d72dd9b292c7a6a92230e4d957a3ff313c0422ca9",
+    "bytes": 352
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/menu.xl",
+    "sha256": "9b97d1e128a2fb11d62f34f5b95060f1fc5477dfa1ba4c31f20ffdd9fa2769b1",
+    "bytes": 916
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/menubar.xl",
+    "sha256": "222be9b0bc5090dbba849ce0703aa95ca872549ddddf824b9580942b0667142f",
+    "bytes": 735
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/messagelist.xl",
+    "sha256": "9c8ace2fc8b78517d67685057a74310803749ab558f6146151d90cc2f0d486fb",
+    "bytes": 504
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/msgbox.xl",
+    "sha256": "989a81635827e3e7e5e7ca0f9e12a239b3e0cc7c965130523c42085891e86a85",
+    "bytes": 809
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/msgtip.xl",
+    "sha256": "d06af3616dedf6597d1e4fdf90347c066ed106f5d0ff9bbe045071fad4ffb8a5",
+    "bytes": 400
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/numericinput.xl",
+    "sha256": "a77938ba81cda7710a76d49d58e573e8e7af5a26d56373f1a955d904baad9c39",
+    "bytes": 353
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/page.xl",
+    "sha256": "f1eb0d0b4f814638270429d4b5f869ee08685380293dd642ce5352ab9e2bd5c5",
+    "bytes": 299
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/panel.xl",
+    "sha256": "a05182ca06c9d21e8c640a890f3cca15715f02ab036f3b5bfcdfbf197f6df2ca",
+    "bytes": 424
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/popup.xl",
+    "sha256": "669efcfa938ea100d232482c11fb84ecc625bdd5f7078310d809692d5a6ece31",
+    "bytes": 719
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/progress.xl",
+    "sha256": "240396ad22b8c4fd4c105988b6348da06d816ebf072f362e871b708611bf5b08",
+    "bytes": 643
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/propertygrid.xl",
+    "sha256": "d41d7620e37b3a650ef533688b44e147e598ca30db2c819f04ad91ca73375914",
+    "bytes": 558
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/qrcode.xl",
+    "sha256": "5882d2c8788f1ce2d7af625ff1d7f49a48932c697cd1b423b88b6e8549b3e6db",
+    "bytes": 363
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/radio.xl",
+    "sha256": "b05c57f9e1c97353d7d82fd0454e1db2142071589e409c2eb3003241fad5c4bf",
+    "bytes": 561
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/radiogroup.xl",
+    "sha256": "63eb777d68ebbdb418f8ab6a7dc8cd9e541774485b664ea21bd83591110d4c21",
+    "bytes": 549
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/rangeslider.xl",
+    "sha256": "025f9573dc1621bf19a167da68f65a7a08e321265d10c3bb8ea3811d79c0deda",
+    "bytes": 402
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/richtext.xl",
+    "sha256": "b71b9211d4a0f23f1e1d479e9ca3cc8e6e16f0cffc6ea5f8b7306a47f9232421",
+    "bytes": 887
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/scrollbar.xl",
+    "sha256": "7efdb11667ce2fd74d6844be84520e36edc4c56d0221b30c631fc49c59e6d0ca",
+    "bytes": 441
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/scrollframe.xl",
+    "sha256": "a715edb4fdf0f839b6f24fc1728974d3699d487449718bb76e735e21a481cd32",
+    "bytes": 571
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/scrollview.xl",
+    "sha256": "157ad802d1929378a68911d17302eb58c87d670019483a397983eae203fb93f2",
+    "bytes": 576
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/separator.xl",
+    "sha256": "7b724179f3699e7ddef03fc94871b8e449aa84620434b4303d2a5bde5762f334",
+    "bytes": 537
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/shared_find.xl",
+    "sha256": "d2388f9f02847d8d0dbe1f598fbd53a84841cf9eee030e56bc7a6fb279a24f07",
+    "bytes": 706
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/slider.xl",
+    "sha256": "406c9cb7c539295c4711720ffd2aab2582d4876875b267c6cafb798d73fbc7d6",
+    "bytes": 546
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/splitlayout.xl",
+    "sha256": "22156dbd43fcb5aaa7cbae11d55fee023a0d9c23ba81e584a15efc614868d565",
+    "bytes": 728
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/statusbar.xl",
+    "sha256": "ef68fb0f39c281a6562c3bfad7aac7b0d0ff7a864cc25c2c907e2d3f2672c3b4",
+    "bytes": 384
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/stepbar.xl",
+    "sha256": "e265755d64a04465b149e4eb189661e954722a3bb0f334867bff32d9cad101fd",
+    "bytes": 342
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/tablegrid.xl",
+    "sha256": "bb90175f99e86617e01fa391fac9718b14b78a235e2adaa1c1ce3c293fcc759d",
+    "bytes": 791
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/tableview.xl",
+    "sha256": "d7b1a7e384ef2c1854cb0eba49ee56ce6f712fc59b9ddd64ee2ea5c37e56ca86",
+    "bytes": 657
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/tabs.xl",
+    "sha256": "b96fb256353db09734fa33f120d079a3a4b8cd9428b7cfa0b2211415713816c9",
+    "bytes": 859
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/taginput.xl",
+    "sha256": "11a46d949b6ba9d8493d76347a9a50b703055550107e7c25b17738b972d85532",
+    "bytes": 389
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/terminal.xl",
+    "sha256": "76d06b8054b0a1a043cff764b58b92a1fc3b89ba81edeaaeceeb74d5dc62f37f",
+    "bytes": 426
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/textedit.xl",
+    "sha256": "eca5b790134ca4b08610cb07a0d96d0e93d10ba80851c6dac98760fa20e9c65b",
+    "bytes": 408
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/timeline.xl",
+    "sha256": "6adaf803f1bd18e24c878032c621a25e8b594b8a8e86ce589f2cf04947db6862",
+    "bytes": 450
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/toast.xl",
+    "sha256": "379d0bb604cc4c58f1d37386fdb8548500fe57a5cb4ee546fb99d9393f2b3467",
+    "bytes": 471
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/toggle.xl",
+    "sha256": "0043fbabae66bfbf9e48c83a838ca7830686589feba28875677fa44e9add94f0",
+    "bytes": 316
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/toolbar.xl",
+    "sha256": "914a87cd0f54caaaccc1b017b52cf856cb9ce3b8f245bb785a8cc7101be4a38f",
+    "bytes": 464
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/treeview.xl",
+    "sha256": "ce92e734f8e0162f51db21eea10c62b7d32948c35e7e15ad5a5ed6d1eac036f0",
+    "bytes": 441
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/virtualjoystick.xl",
+    "sha256": "518dcda9e388cf9ab6195e5f5ecaf8f688b06a0b6623c5101e7408440553e6f2",
+    "bytes": 601
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/webview.xl",
+    "sha256": "371d413e3b5498e759f810b219add3ad288c10b02dfdb23c2e3df1c67a3b4e2d",
+    "bytes": 1329
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/widget.xl",
+    "sha256": "750a6a4272edee60111977cc6bf6723c5aea8a09b1a5fda5762a9f41b95704e6",
+    "bytes": 428
+  },
+  {
+    "path": "release/win_x64/examples/xui/widgets/window.xl",
+    "sha256": "439999e6066dbe5883c7cab5d8b16fc378e957acde7fc41015c48851da39e87b",
+    "bytes": 561
+  }
+]

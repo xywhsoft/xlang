@@ -1,0 +1,572 @@
+[
+  {
+    "file": "test/platform_extlibs.json",
+    "old": "clipboard.xl",
+    "new": "system/clipboard.xl"
+  },
+  {
+    "file": "test/platform_extlibs.json",
+    "old": "com.xl",
+    "new": "system/com.xl"
+  },
+  {
+    "file": "test/platform_extlibs.json",
+    "old": "uia.xl",
+    "new": "ui/uia.xl"
+  },
+  {
+    "file": "test/platform_extlibs.json",
+    "old": "ui_auto.xl",
+    "new": "ui/ui_auto.xl"
+  },
+  {
+    "file": "test/platform_extlibs.json",
+    "old": "daemon.xl",
+    "new": "system/daemon.xl"
+  },
+  {
+    "file": "test/platform_extlibs.json",
+    "old": "sysinfo.xl",
+    "new": "system/sysinfo.xl"
+  },
+  {
+    "file": "test/platform_extlibs.json",
+    "old": "watch.xl",
+    "new": "system/watch.xl"
+  },
+  {
+    "file": "test/platform_extlibs.json",
+    "old": "singleinstance.xl",
+    "new": "system/singleinstance.xl"
+  },
+  {
+    "file": "test/platform_extlibs.json",
+    "old": "sharedmem.xl",
+    "new": "system/sharedmem.xl"
+  },
+  {
+    "file": "test/platform_extlibs.json",
+    "old": "serial.xl",
+    "new": "system/serial.xl"
+  },
+  {
+    "file": "test/featured_extlibs.json",
+    "old": "aho_corasick.xl",
+    "new": "algo/aho_corasick.xl"
+  },
+  {
+    "file": "test/featured_extlibs.json",
+    "old": "argon2.xl",
+    "new": "crypto/argon2.xl"
+  },
+  {
+    "file": "test/featured_extlibs.json",
+    "old": "blake2.xl",
+    "new": "crypto/blake2.xl"
+  },
+  {
+    "file": "test/featured_extlibs.json",
+    "old": "blake3.xl",
+    "new": "crypto/blake3.xl"
+  },
+  {
+    "file": "test/featured_extlibs.json",
+    "old": "bloom.xl",
+    "new": "algo/bloom.xl"
+  },
+  {
+    "file": "test/featured_extlibs.json",
+    "old": "brotli.xl",
+    "new": "compression/brotli.xl"
+  },
+  {
+    "file": "test/featured_extlibs.json",
+    "old": "bson.xl",
+    "new": "data_format/bson.xl"
+  },
+  {
+    "file": "test/featured_extlibs.json",
+    "old": "bz2.xl",
+    "new": "compression/bz2.xl"
+  },
+  {
+    "file": "test/featured_extlibs.json",
+    "old": "crc32.xl",
+    "new": "algo/crc32.xl"
+  },
+  {
+    "file": "test/featured_extlibs.json",
+    "old": "lz4.xl",
+    "new": "compression/lz4.xl"
+  },
+  {
+    "file": "test/featured_extlibs.json",
+    "old": "lzma.xl",
+    "new": "compression/lzma.xl"
+  },
+  {
+    "file": "test/featured_extlibs.json",
+    "old": "md5.xl",
+    "new": "crypto/md5.xl"
+  },
+  {
+    "file": "test/featured_extlibs.json",
+    "old": "miniz.xl",
+    "new": "compression/miniz.xl"
+  },
+  {
+    "file": "test/featured_extlibs.json",
+    "old": "murmur3.xl",
+    "new": "algo/murmur3.xl"
+  },
+  {
+    "file": "test/featured_extlibs.json",
+    "old": "sha3.xl",
+    "new": "crypto/sha3.xl"
+  },
+  {
+    "file": "test/featured_extlibs.json",
+    "old": "siphash128.xl",
+    "new": "crypto/siphash128.xl"
+  },
+  {
+    "file": "test/featured_extlibs.json",
+    "old": "snappy.xl",
+    "new": "compression/snappy.xl"
+  },
+  {
+    "file": "test/featured_extlibs.json",
+    "old": "xxhash.xl",
+    "new": "algo/xxhash.xl"
+  },
+  {
+    "file": "test/featured_extlibs.json",
+    "old": "zstd.xl",
+    "new": "compression/zstd.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "css.xl",
+    "new": "data_format/css.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "consistent_hash.xl",
+    "new": "algo/consistent_hash.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "crontab.xl",
+    "new": "system/crontab.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "diff.xl",
+    "new": "data_format/diff.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "fuzzy.xl",
+    "new": "data_format/fuzzy.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "fix.xl",
+    "new": "net/fix.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "geohash.xl",
+    "new": "algo/geohash.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "hyperloglog.xl",
+    "new": "algo/hyperloglog.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "hcl.xl",
+    "new": "data_format/hcl.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "lru.xl",
+    "new": "algo/lru.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "trie.xl",
+    "new": "data_format/trie.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "cuckoo.xl",
+    "new": "algo/cuckoo.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "dotenv.xl",
+    "new": "data_format/dotenv.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "chardet.xl",
+    "new": "data_format/chardet.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "langdetect.xl",
+    "new": "data_format/langdetect.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "terraform_state.xl",
+    "new": "net/terraform_state.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "imagehash.xl",
+    "new": "graphics/imagehash.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "md4c.xl",
+    "new": "data_format/md4c.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "sqlite.xl",
+    "new": "database/sqlite.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "dns.xl",
+    "new": "net/dns.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "cbor.xl",
+    "new": "data_format/cbor.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "pkcs.xl",
+    "new": "crypto/pkcs.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "linalg.xl",
+    "new": "ai_ml/linalg.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "csv.xl",
+    "new": "data_format/csv.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "ini.xl",
+    "new": "data_format/ini.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "gzip.xl",
+    "new": "compression/gzip.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "tar.xl",
+    "new": "compression/tar.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "zip.xl",
+    "new": "compression/zip.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "netrc.xl",
+    "new": "data_format/netrc.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "toml.xl",
+    "new": "data_format/toml.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "plist.xl",
+    "new": "data_format/plist.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "xml_sax.xl",
+    "new": "data_format/xml_sax.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "xml_dom.xl",
+    "new": "data_format/xml_dom.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "xml_etree.xl",
+    "new": "data_format/xml_etree.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "xbot.xl",
+    "new": "ai_ml/xbot.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "xbot_agent.xl",
+    "new": "ai_ml/xbot_agent.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "volc_core.xl",
+    "new": "net/volc_core.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "onnxruntime.xl",
+    "new": "ai_ml/onnxruntime.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "rapidocr.xl",
+    "new": "ai_ml/rapidocr.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "dinov3.xl",
+    "new": "ai_ml/dinov3.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "xfeat.xl",
+    "new": "ai_ml/xfeat.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "stb_image.xl",
+    "new": "graphics/stb_image.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "stb_image_resize2.xl",
+    "new": "graphics/stb_image_resize2.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "stb_image_write.xl",
+    "new": "graphics/stb_image_write.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "stb_truetype.xl",
+    "new": "graphics/stb_truetype.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "opencv.xl",
+    "new": "graphics/opencv.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "skiplist.xl",
+    "new": "algo/skiplist.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "rtree.xl",
+    "new": "algo/rtree.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "roaring.xl",
+    "new": "algo/roaring.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "totp.xl",
+    "new": "crypto/totp.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "pinyin.xl",
+    "new": "data_format/pinyin.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "json5.xl",
+    "new": "data_format/json5.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "msgpack.xl",
+    "new": "data_format/msgpack.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "yaml.xl",
+    "new": "data_format/yaml.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "tabulate.xl",
+    "new": "data_format/tabulate.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "progress.xl",
+    "new": "system/progress.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "semver.xl",
+    "new": "data_format/semver.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "color.xl",
+    "new": "graphics/color.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "ansi.xl",
+    "new": "data_format/ansi.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "statistics.xl",
+    "new": "algo/statistics.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "json_patch.xl",
+    "new": "data_format/json_patch.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "rss.xl",
+    "new": "data_format/rss.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "cli.xl",
+    "new": "system/cli.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "shellwords.xl",
+    "new": "data_format/shellwords.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "units.xl",
+    "new": "data_format/units.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "sitemap.xl",
+    "new": "data_format/sitemap.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "srt.xl",
+    "new": "data_format/srt.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "qr.xl",
+    "new": "graphics/qr.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "graph.xl",
+    "new": "algo/graph.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "money.xl",
+    "new": "algo/money.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "gettext.xl",
+    "new": "data_format/gettext.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "ical.xl",
+    "new": "data_format/ical.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "barcode.xl",
+    "new": "graphics/barcode.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "redis.xl",
+    "new": "database/redis.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "ntp.xl",
+    "new": "net/ntp.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "socks.xl",
+    "new": "net/socks.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "xssh.xl",
+    "new": "net/xssh.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "xmail.xl",
+    "new": "net/xmail.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "xregex.xl",
+    "new": "data_format/xregex.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "modbus.xl",
+    "new": "net/modbus.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "epub.xl",
+    "new": "data_format/epub.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "mqtt.xl",
+    "new": "net/mqtt.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "memcached.xl",
+    "new": "database/memcached.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "vcard.xl",
+    "new": "data_format/vcard.xl"
+  },
+  {
+    "file": "test/phase1_extlibs.json",
+    "old": "slugify.xl",
+    "new": "data_format/slugify.xl"
+  }
+]

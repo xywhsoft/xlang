@@ -1,0 +1,147 @@
+check: document_ui_headless.xl
+ok
+check: headless_cell.xl
+ok
+check: headless_path.xl
+ok
+check: accordion.xl
+ok
+check: all_controls.xl
+ok
+check: basic.xl
+ok
+check: breadcrumb.xl
+ok
+check: button.xl
+ok
+check: canvas.xl
+ok
+check: carousel.xl
+ok
+check: cascader.xl
+ok
+check: chart.xl
+ok
+check: checkbox.xl
+ok
+check: checkcard.xl
+ok
+check: codeedit.xl
+ok
+check: colorpicker.xl
+ok
+check: combobox.xl
+ok
+check: context_graph.xl
+ok
+check: data_object.xl
+ok
+check: datepicker.xl
+ok
+check: dockpanel.xl
+ok
+check: document_model.xl
+ok
+check: documenteditor.xl
+ok
+check: filedialog.xl
+ok
+check: gui_surface_draw.xl
+ok
+check: hyperlink.xl
+ok
+check: image.xl
+ok
+check: input.xl
+ok
+check: inventorygrid.xl
+ok
+check: label.xl
+ok
+check: listview.xl
+ok
+check: manager_lifetime.xl
+ok
+check: menu.xl
+ok
+check: menubar.xl
+ok
+check: messagelist.xl
+ok
+check: msgbox.xl
+ok
+check: msgtip.xl
+ok
+check: numericinput.xl
+ok
+check: page.xl
+ok
+check: panel.xl
+ok
+check: popup.xl
+ok
+check: progress.xl
+ok
+check: propertygrid.xl
+ok
+check: qrcode.xl
+ok
+check: radio.xl
+ok
+check: radiogroup.xl
+ok
+check: rangeslider.xl
+ok
+check: richtext.xl
+ok
+check: scrollbar.xl
+ok
+check: scrollframe.xl
+ok
+check: scrollview.xl
+ok
+check: separator.xl
+ok
+check: shared_find.xl
+ok
+check: slider.xl
+ok
+check: splitlayout.xl
+ok
+check: statusbar.xl
+ok
+check: stepbar.xl
+ok
+check: tablegrid.xl
+ok
+check: tableview.xl
+ok
+check: tabs.xl
+ok
+check: taginput.xl
+ok
+check: terminal.xl
+ok
+check: textedit.xl
+ok
+check: timeline.xl
+ok
+check: toast.xl
+ok
+check: toggle.xl
+ok
+check: toolbar.xl
+ok
+check: treeview.xl
+ok
+check: virtualjoystick.xl
+ok
+check: webview.xl
+ok
+check: widget.xl
+ok
+check: window.xl
+ok
+
+XUI examples: 72 files, checked: 72, check failures: 0
+XUI examples check ok.

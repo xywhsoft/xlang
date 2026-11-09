@@ -1,0 +1,787 @@
+{
+  "passed": true,
+  "runtime": "D:\\GIT\\x-lang\\release\\win_x64",
+  "inputs": {
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "D:\\GIT\\x-lang\\test\\cases\\cgen_class_projection_derived.xl": "7f311089730d4e2a63bc8910ea903f411053271a83339ba0a9c9f25566a4a0d8",
+    "D:\\GIT\\x-lang\\test\\cases\\cgen_destroy_field_assignment.xl": "b32509ac8aa21a80ebf1444a8de68c1e35bee77b1b14d0f41292ed518de42f0c",
+    "D:\\GIT\\x-lang\\test\\cases\\stdlib_channel_default_initialized.xl": "13649186d656e0cb7cbbd5f19ba27809026fa7a71663e0a6e48068a76923a246",
+    "D:\\GIT\\x-lang\\test\\cases\\stdlib_object_index_context.xl": "ef9fb157069b1451df450209013f0670363c1a7c12d70a4ebeccad5c53bfc758",
+    "D:\\GIT\\x-lang\\test\\cases\\cgen_foreign_read_views.xl": "179678f07b82485d3c993674f937c7289af61a4f27b0b8c56c712904f46b1e30",
+    "D:\\GIT\\x-lang\\test\\cases\\extlib_vcard_read_views.xl": "1e990ba643607ca77fe407f65dd8f094056325d4d0d5ebce5f71b423f6a2fac5",
+    "D:\\GIT\\x-lang\\release\\win_x64\\examples\\extlibs\\system\\cli.xl": "0cc1ab682201b6c6fbd278572a2f883ae86e6d9075a77e05883911793ebf7f32",
+    "D:\\GIT\\x-lang\\release\\win_x64\\examples\\extlibs\\system\\serial.xl": "9bb28e0b9d2e6cff4b124895a3dfdbbd4089da334b2b5e289ff55311a529c835",
+    "D:\\GIT\\x-lang\\release\\win_x64\\examples\\extlibs\\data_format\\vcard.xl": "8f70f57dac46c5b08788718fc54717c0f0de7a214eafa83855aae8a7f03e7051",
+    "D:\\GIT\\x-lang\\release\\win_x64\\examples\\language\\oop\\copy_clone.xl": "37ed4a46fde062439f2f3220741847db025c266767402f7dc7d07f9dd6d9eb7b",
+    "D:\\GIT\\x-lang\\release\\win_x64\\examples\\embedding\\class_c_export.xl": "0da5e4ae095159d4978a94339ea66fb80afeaecb68fc09fc743bd28c0d4f670b",
+    "D:\\GIT\\x-lang\\release\\win_x64\\examples\\stdlib\\io\\stdlib_fs_advanced.xl": "a4796b32b692b344983119186a58b72674b610e346c483211fa07378dc47bc9b",
+    "D:\\GIT\\x-lang\\release\\win_x64\\examples\\feature_suite\\11_concurrency.xl": "ec8df1c421d1f765e96709e54bfeac3a3fa2306764d1b1314abd03c98a6e3220",
+    "D:\\GIT\\x-lang\\test\\fixtures\\example_projects\\shapes.xl": "77d2493dca4520086117ef744200825f11ecfc7b477e88f18eabb9fc48bcb6dd",
+    "D:\\GIT\\x-lang\\test\\fixtures\\example_projects\\xneural.xl": "4d1276f9ee8ba64177af6277448ba58f7964aa93efe825204bebb2140e59d96b",
+    "D:\\GIT\\x-lang\\test\\fixtures\\example_projects\\dynobj.xl": "a2e91814ea545a1b541b63e720176e0083e0db4302c4d818a039501087435cde",
+    "D:\\GIT\\x-lang\\test\\fixtures\\example_projects\\deepclone.xl": "26abd8dd808ed8c01239ded7d1690d6d6aba3d21eb794e1b4c3e3d8cb0f8fc7b",
+    "D:\\GIT\\x-lang\\test\\fixtures\\example_projects\\prodcon.xl": "ad4106cef45f0993c51320d8fc5fed2bcc9ca41f540911c68ba926140c22b388",
+    "D:\\GIT\\x-lang\\release\\win_x64\\examples\\extlibs\\system\\com.xl": "b087f326d0ce641623fcbf610837b35da9abfcd436567460bc099180b36260a4",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\clipboard\\test\\isolated_runner.c": "6da37904e0ece93581fbbcc2075b9863ebbbbd78431002b93877acc9e72fc4ad",
+    "D:\\GIT\\x-lang\\release\\win_x64\\examples\\extlibs\\system\\clipboard.xl": "275c1f2563a663b852e5dec0ef128d5b9e26deb1d271a5efd6417c6687b8b20c"
+  },
+  "rows": [
+    {
+      "name": "cgen_class_projection_derived-jit",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.094,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\test\\cases\\cgen_class_projection_derived.xl"
+      ],
+      "logSha256": "ec9309d7e8c6fa556b06583a33a2dda4342fc448ba46c92dfb056fa5e57577fb"
+    },
+    {
+      "name": "cgen_class_projection_derived-build",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.218,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "build",
+        "D:\\GIT\\x-lang\\test\\cases\\cgen_class_projection_derived.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\cgen_class_projection_derived.exe"
+      ],
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "cgen_class_projection_derived-aot",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.016,
+      "command": [
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\cgen_class_projection_derived.exe"
+      ],
+      "logSha256": "ec9309d7e8c6fa556b06583a33a2dda4342fc448ba46c92dfb056fa5e57577fb"
+    },
+    {
+      "name": "cgen_destroy_field_assignment-jit",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.078,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\test\\cases\\cgen_destroy_field_assignment.xl"
+      ],
+      "logSha256": "97f2183efcbbaaf6d0d698e29f06d6aced0c3b650d2d8217fd85919fd3bf15ec"
+    },
+    {
+      "name": "cgen_destroy_field_assignment-build",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.172,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "build",
+        "D:\\GIT\\x-lang\\test\\cases\\cgen_destroy_field_assignment.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\cgen_destroy_field_assignment.exe"
+      ],
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "cgen_destroy_field_assignment-aot",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.016,
+      "command": [
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\cgen_destroy_field_assignment.exe"
+      ],
+      "logSha256": "97f2183efcbbaaf6d0d698e29f06d6aced0c3b650d2d8217fd85919fd3bf15ec"
+    },
+    {
+      "name": "stdlib_channel_default_initialized-jit",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.062,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\test\\cases\\stdlib_channel_default_initialized.xl"
+      ],
+      "logSha256": "925eb35f1477e4e8871ad6156dba5cd2adfd808b6d4f5ad71f7ea10b54515597"
+    },
+    {
+      "name": "stdlib_channel_default_initialized-build",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.172,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "build",
+        "D:\\GIT\\x-lang\\test\\cases\\stdlib_channel_default_initialized.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\stdlib_channel_default_initialized.exe"
+      ],
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "stdlib_channel_default_initialized-aot",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.0,
+      "command": [
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\stdlib_channel_default_initialized.exe"
+      ],
+      "logSha256": "925eb35f1477e4e8871ad6156dba5cd2adfd808b6d4f5ad71f7ea10b54515597"
+    },
+    {
+      "name": "stdlib_object_index_context-jit",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.093,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\test\\cases\\stdlib_object_index_context.xl"
+      ],
+      "logSha256": "1985c5a5b67a7892d41172b8a3b43c705280777ef33954cf475cc5a02062b370"
+    },
+    {
+      "name": "stdlib_object_index_context-build",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.235,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "build",
+        "D:\\GIT\\x-lang\\test\\cases\\stdlib_object_index_context.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\stdlib_object_index_context.exe"
+      ],
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "stdlib_object_index_context-aot",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.0,
+      "command": [
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\stdlib_object_index_context.exe"
+      ],
+      "logSha256": "1985c5a5b67a7892d41172b8a3b43c705280777ef33954cf475cc5a02062b370"
+    },
+    {
+      "name": "cgen_foreign_read_views-jit",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.141,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\test\\cases\\cgen_foreign_read_views.xl"
+      ],
+      "logSha256": "5ced9c2bbba02c741bdee7d3e8882c539e7b151aeb879acffd82f61b79cd894a"
+    },
+    {
+      "name": "cgen_foreign_read_views-build",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.25,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "build",
+        "D:\\GIT\\x-lang\\test\\cases\\cgen_foreign_read_views.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\cgen_foreign_read_views.exe"
+      ],
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "cgen_foreign_read_views-aot",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.016,
+      "command": [
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\cgen_foreign_read_views.exe"
+      ],
+      "logSha256": "5ced9c2bbba02c741bdee7d3e8882c539e7b151aeb879acffd82f61b79cd894a"
+    },
+    {
+      "name": "extlib_vcard_read_views-jit",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.234,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\test\\cases\\extlib_vcard_read_views.xl"
+      ],
+      "logSha256": "556b9567ae79ad5841e3e380ef5b17a46dea5c034e1600fb99d0a67dacf64cd0"
+    },
+    {
+      "name": "extlib_vcard_read_views-build",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.391,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "build",
+        "D:\\GIT\\x-lang\\test\\cases\\extlib_vcard_read_views.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\extlib_vcard_read_views.exe"
+      ],
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "extlib_vcard_read_views-aot",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.015,
+      "command": [
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\extlib_vcard_read_views.exe"
+      ],
+      "logSha256": "556b9567ae79ad5841e3e380ef5b17a46dea5c034e1600fb99d0a67dacf64cd0"
+    },
+    {
+      "name": "cli-jit",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.469,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\release\\win_x64\\examples\\extlibs\\system\\cli.xl"
+      ],
+      "logSha256": "716bbffab9a10dd8d652c55cf60bcff056f23a4f805b40ff0aac121355ecea5d"
+    },
+    {
+      "name": "cli-build",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.781,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "build",
+        "D:\\GIT\\x-lang\\release\\win_x64\\examples\\extlibs\\system\\cli.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\cli.exe"
+      ],
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "cli-aot",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.031,
+      "command": [
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\cli.exe"
+      ],
+      "logSha256": "716bbffab9a10dd8d652c55cf60bcff056f23a4f805b40ff0aac121355ecea5d"
+    },
+    {
+      "name": "serial-jit",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.344,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\release\\win_x64\\examples\\extlibs\\system\\serial.xl"
+      ],
+      "logSha256": "665b18408c18fdfe951bb1f606ce041d194ce175dbc0e167249bca00267d6eaa"
+    },
+    {
+      "name": "serial-build",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.515,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "build",
+        "D:\\GIT\\x-lang\\release\\win_x64\\examples\\extlibs\\system\\serial.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\serial.exe"
+      ],
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "serial-aot",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.016,
+      "command": [
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\serial.exe"
+      ],
+      "logSha256": "665b18408c18fdfe951bb1f606ce041d194ce175dbc0e167249bca00267d6eaa"
+    },
+    {
+      "name": "vcard-jit",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.234,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\release\\win_x64\\examples\\extlibs\\data_format\\vcard.xl"
+      ],
+      "logSha256": "2fa5dd67c64a8dc745fff3a4d1df693ecdfe3c8707aa1275f6550dcf12c6e2ee"
+    },
+    {
+      "name": "vcard-build",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.375,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "build",
+        "D:\\GIT\\x-lang\\release\\win_x64\\examples\\extlibs\\data_format\\vcard.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\vcard.exe"
+      ],
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "vcard-aot",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.016,
+      "command": [
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\vcard.exe"
+      ],
+      "logSha256": "2fa5dd67c64a8dc745fff3a4d1df693ecdfe3c8707aa1275f6550dcf12c6e2ee"
+    },
+    {
+      "name": "copy_clone-jit",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.078,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\release\\win_x64\\examples\\language\\oop\\copy_clone.xl"
+      ],
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "copy_clone-build",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.188,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "build",
+        "D:\\GIT\\x-lang\\release\\win_x64\\examples\\language\\oop\\copy_clone.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\copy_clone.exe"
+      ],
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "copy_clone-aot",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.015,
+      "command": [
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\copy_clone.exe"
+      ],
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "class_c_export-jit",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.063,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\release\\win_x64\\examples\\embedding\\class_c_export.xl"
+      ],
+      "logSha256": "36b74163512b786b62b652daa212110f70b319b25fbd3d9fc792f4c94304c403"
+    },
+    {
+      "name": "class_c_export-build",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.172,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "build",
+        "D:\\GIT\\x-lang\\release\\win_x64\\examples\\embedding\\class_c_export.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\class_c_export.exe"
+      ],
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "class_c_export-aot",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.0,
+      "command": [
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\class_c_export.exe"
+      ],
+      "logSha256": "36b74163512b786b62b652daa212110f70b319b25fbd3d9fc792f4c94304c403"
+    },
+    {
+      "name": "fs-jit",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.61,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\release\\win_x64\\examples\\stdlib\\io\\stdlib_fs_advanced.xl"
+      ],
+      "logSha256": "f09638fc458d9b80ad7f2072145cec80f1a6ebc2bc177b5f7ea4a1b10c97d21e"
+    },
+    {
+      "name": "fs-build",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 1.203,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "build",
+        "D:\\GIT\\x-lang\\release\\win_x64\\examples\\stdlib\\io\\stdlib_fs_advanced.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\fs.exe"
+      ],
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "fs-aot",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.031,
+      "command": [
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\fs.exe"
+      ],
+      "logSha256": "f09638fc458d9b80ad7f2072145cec80f1a6ebc2bc177b5f7ea4a1b10c97d21e"
+    },
+    {
+      "name": "concurrency-jit",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 23.328,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\release\\win_x64\\examples\\feature_suite\\11_concurrency.xl"
+      ],
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "concurrency-build",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 30.172,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "build",
+        "D:\\GIT\\x-lang\\release\\win_x64\\examples\\feature_suite\\11_concurrency.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\concurrency.exe"
+      ],
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "concurrency-aot",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 5.984,
+      "command": [
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\concurrency.exe"
+      ],
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "shapes-jit",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.485,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\test\\fixtures\\example_projects\\shapes.xl"
+      ],
+      "logSha256": "58cdd272f1a7122d3edd57953b17e3407104004188004ce6d3d4d44451cf9cd0"
+    },
+    {
+      "name": "shapes-build",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.906,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "build",
+        "D:\\GIT\\x-lang\\test\\fixtures\\example_projects\\shapes.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\shapes.exe"
+      ],
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "shapes-aot",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.016,
+      "command": [
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\shapes.exe"
+      ],
+      "logSha256": "58cdd272f1a7122d3edd57953b17e3407104004188004ce6d3d4d44451cf9cd0"
+    },
+    {
+      "name": "xneural-jit",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 5.282,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\test\\fixtures\\example_projects\\xneural.xl",
+        "--",
+        "test"
+      ],
+      "logSha256": "e5749ac417edd01dab56d3e7c9e43e6cc6fd414ab7758694695600c5ed75abf9"
+    },
+    {
+      "name": "xneural-build",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 8.937,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "build",
+        "D:\\GIT\\x-lang\\test\\fixtures\\example_projects\\xneural.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\xneural.exe"
+      ],
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "xneural-aot",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.047,
+      "command": [
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\xneural.exe",
+        "test"
+      ],
+      "logSha256": "e5749ac417edd01dab56d3e7c9e43e6cc6fd414ab7758694695600c5ed75abf9"
+    },
+    {
+      "name": "dynobj-jit",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.969,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\test\\fixtures\\example_projects\\dynobj.xl"
+      ],
+      "logSha256": "51660d27a49698d050cb7454b905e2442c2768666794826e4c0c674bd70eef45"
+    },
+    {
+      "name": "dynobj-build",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 1.797,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "build",
+        "D:\\GIT\\x-lang\\test\\fixtures\\example_projects\\dynobj.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\dynobj.exe"
+      ],
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "dynobj-aot",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.093,
+      "command": [
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\dynobj.exe"
+      ],
+      "logSha256": "51660d27a49698d050cb7454b905e2442c2768666794826e4c0c674bd70eef45"
+    },
+    {
+      "name": "deepclone-jit",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.891,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\test\\fixtures\\example_projects\\deepclone.xl"
+      ],
+      "logSha256": "04b374c454b6676caf2e35e781ab9d50397d27badb856cd44b66e1757b3c0ad8"
+    },
+    {
+      "name": "deepclone-build",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 1.64,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "build",
+        "D:\\GIT\\x-lang\\test\\fixtures\\example_projects\\deepclone.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\deepclone.exe"
+      ],
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "deepclone-aot",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.016,
+      "command": [
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\deepclone.exe"
+      ],
+      "logSha256": "04b374c454b6676caf2e35e781ab9d50397d27badb856cd44b66e1757b3c0ad8"
+    },
+    {
+      "name": "prodcon-jit",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.25,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\test\\fixtures\\example_projects\\prodcon.xl",
+        "--",
+        "run",
+        "3",
+        "2",
+        "10"
+      ],
+      "logSha256": "96e302640990d9445be3e2ef5bef6d1fefe4a5eb10a845c9a13c9ee303bc73fc"
+    },
+    {
+      "name": "prodcon-build",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.344,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "build",
+        "D:\\GIT\\x-lang\\test\\fixtures\\example_projects\\prodcon.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\prodcon.exe"
+      ],
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "prodcon-aot",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.14,
+      "command": [
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\prodcon.exe",
+        "run",
+        "3",
+        "2",
+        "10"
+      ],
+      "logSha256": "0cac0d32122a9f30918fe70ba1b8618db42efa8e2fd80ec33e36525cff2f93dc"
+    },
+    {
+      "name": "com-jit",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.266,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\release\\win_x64\\examples\\extlibs\\system\\com.xl"
+      ],
+      "logSha256": "ace04a4bead4d8000f8f6ecda56230649f36170f0bff36b8e5dbcb136d8ffacc"
+    },
+    {
+      "name": "com-build",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 2.531,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "build",
+        "D:\\GIT\\x-lang\\release\\win_x64\\examples\\extlibs\\system\\com.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\com.exe"
+      ],
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "com-aot",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.047,
+      "command": [
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\com.exe"
+      ],
+      "logSha256": "ace04a4bead4d8000f8f6ecda56230649f36170f0bff36b8e5dbcb136d8ffacc"
+    },
+    {
+      "name": "clipboard-runner-build",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.75,
+      "command": [
+        "gcc",
+        "-O2",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\clipboard\\test\\isolated_runner.c",
+        "-luser32",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\clipboard-isolated.exe"
+      ],
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "clipboard-jit",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.5,
+      "command": [
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\clipboard-isolated.exe",
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "D:\\GIT\\x-lang\\release\\win_x64\\examples\\extlibs\\system\\clipboard.xl",
+        "D:\\GIT\\x-lang",
+        "--restored"
+      ],
+      "logSha256": "18ae16840885bd8b0fb1b58cbf52bcaf6a178264d9de8b405b5c53384a39fb5d"
+    },
+    {
+      "name": "clipboard-build",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.781,
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "build",
+        "D:\\GIT\\x-lang\\release\\win_x64\\examples\\extlibs\\system\\clipboard.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\clipboard.exe"
+      ],
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "clipboard-aot",
+      "exitCode": 0,
+      "passed": true,
+      "seconds": 0.047,
+      "command": [
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\clipboard-isolated.exe",
+        "D:\\GIT\\x-lang\\build\\example-layout-sync-20261109\\windows-regressions\\clipboard.exe",
+        "D:\\GIT\\x-lang\\release\\win_x64\\examples\\extlibs\\system\\clipboard.xl",
+        "D:\\GIT\\x-lang",
+        "--binary",
+        "--restored"
+      ],
+      "logSha256": "18ae16840885bd8b0fb1b58cbf52bcaf6a178264d9de8b405b5c53384a39fb5d"
+    }
+  ],
+  "skipped": []
+}

@@ -1,0 +1,13 @@
+port: LOOPBACK
+baudrate: 115200
+open: true
+text bytes: 6
+text: 你好
+binary: 3,0,255,65
+nul text bytes: 3
+pending: 2
+short write: 4096
+full write: 0
+drained: 4096
+after flush: 0
+serial example: PASS
