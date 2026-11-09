@@ -1,0 +1,7 @@
+/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/wrong-abi.c:2:12: error: conflicting types for ‘xv_parse’; have ‘int(const char *, size_t)’ {aka ‘int(const char *, long unsigned int)’}
+    2 | extern int xv_parse(const char*, size_t);
+      |            ^~~~~~~~
+In file included from /mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/wrong-abi.c:1:
+/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/include/vcard_native.h:15:9: note: previous declaration of ‘xv_parse’ with type ‘xvalue *(const char *, size_t)’ {aka ‘xvalue *(const char *, long unsigned int)’}
+   15 | xvalue *xv_parse(const char *text, size_t size);
+      |         ^~~~~~~~

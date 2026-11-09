@@ -1,0 +1,2 @@
+vcard allocation counts (alloc*10000+realloc): 20001
+vcard no-copy and unknown-handle checks: PASS

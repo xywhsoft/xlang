@@ -1,0 +1,1154 @@
+{
+  "schema": 1,
+  "date": "2026-11-09",
+  "passed": true,
+  "codeCommit": "be50caab3d66ebebc16e7c4291e09ebaabe58e92",
+  "scope": "vcard read-only native container interoperability; no compiler/XRT ABI or implementation change.",
+  "sourceMaterials": {
+    "path": "dev/release-materials/sources/vcard-read-views-20261109/manifest.json",
+    "sha256": "70088c6a8178a30c943ff0c1cebabce192107ab870c736705db7001353291f3d",
+    "bytes": 11349
+  },
+  "results": {
+    "windows": {
+      "checks": 71,
+      "sanitize": false,
+      "results": {
+        "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/results.json",
+        "sha256": "079793152fdf743c93ec014c94a26d73b3ddcf25945b41a28b74bd3f9607fac2",
+        "bytes": 42876
+      }
+    },
+    "linux": {
+      "checks": 71,
+      "sanitize": true,
+      "results": {
+        "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/results.json",
+        "sha256": "c49a7b3a9b8f57187753bf440d77faf96d63b005b5186cd8dc93ce5c3955a111",
+        "bytes": 42395
+      }
+    }
+  },
+  "correctness": [
+    "Native dict and typed dict<string>",
+    "Standard XRT Object/Array",
+    "Mixed native and wire nested arrays",
+    "Aliased arrays reused between fields",
+    "Post-error mutation and recovery",
+    "Unknown handle fail-closed",
+    "OOM classification and recovery",
+    "4 MiB limits",
+    "UTF-8/control-character/folding boundaries",
+    "Generated C ABI and deliberate incompatible signature rejection",
+    "Pure C/JIT/AOT examples and byte comparisons"
+  ],
+  "performance": {
+    "inputSnapshots": false,
+    "inputStringCopies": false,
+    "owningScalarShells": false,
+    "noAllocationReadIterations": 2000,
+    "outputAllocations": 2,
+    "outputReallocations": 1,
+    "outputCostComparedWith": "Identical payload represented as a standard XRT Object/Array",
+    "remainingCosts": [
+      "Scope authentication and validation",
+      "Owner pin/unpin and mutation guard",
+      "Borrow descriptor copies",
+      "Existing dictionary At scanning and output buffer/escaping/folding"
+    ],
+    "universalZeroOverheadClaim": false
+  },
+  "testChanges": "Replace the obsolete 24-allocation OOM budget with sequential fault injection until first success, bounded at 256, preserving error-kind and post-failure recovery assertions.",
+  "preservation": {
+    "compilerRebuilt": false,
+    "kernelChanged": false,
+    "publicApiChanged": false,
+    "unrelatedWorkPreserved": true,
+    "historicalReportBytesPreserved": true,
+    "runtimeFilesAddedToGit": false,
+    "externalPublishPerformed": false
+  },
+  "installed": [
+    {
+      "path": "release/win_x64/extlibs/vcard/docs/site.html",
+      "sha256": "8f6e49cf9d4f7225e74cb8271c8663d4f11778d1fd4665cf0cb89daafae11fad",
+      "bytes": 5023
+    },
+    {
+      "path": "release/win_x64/extlibs/vcard/examples/folded_contact.expected.txt",
+      "sha256": "8d38fe0a1738793cc64ee5e7d87f5c5f6669bdc80d9a37435c704f386344ec7e",
+      "bytes": 57
+    },
+    {
+      "path": "release/win_x64/extlibs/vcard/examples/folded_contact.xl",
+      "sha256": "fc0f3a38bca46002327ce3106368d30aff8f5edf45bb02ece2c55e4c7b6c8236",
+      "bytes": 816
+    },
+    {
+      "path": "release/win_x64/extlibs/vcard/examples/folded_contact_c.c",
+      "sha256": "6885f436951d30d0c63fdc8831c1651a5f8de07e69501d822eff56f7271e2914",
+      "bytes": 1838
+    },
+    {
+      "path": "release/win_x64/extlibs/vcard/examples/README.md",
+      "sha256": "1ff684715bdbfa3b9eae69b089ea4fea8e19a464afd16d60c88baa7e00b770fa",
+      "bytes": 1295
+    },
+    {
+      "path": "release/win_x64/extlibs/vcard/examples/vcard.c",
+      "sha256": "404b6d1173fb6734bd82dd1eebe2c645326918876c87ced74418a579a60d2305",
+      "bytes": 3117
+    },
+    {
+      "path": "release/win_x64/extlibs/vcard/include/vcard_native.h",
+      "sha256": "776bd9c7d490f7d4aebce39b1f2e19dced854150319e31034e9e0bf5ca9d68be",
+      "bytes": 415
+    },
+    {
+      "path": "release/win_x64/extlibs/vcard/README.md",
+      "sha256": "0bf75a3707787cf52c0935c1dd0640619e29c70b70e1939f065dcfec82581cbc",
+      "bytes": 16107
+    },
+    {
+      "path": "release/win_x64/extlibs/vcard/src/vcard.xl",
+      "sha256": "d9700b33e79704cb3d3c990b363293d53c1c2f346232b5ea87484b7a244595b9",
+      "bytes": 871
+    },
+    {
+      "path": "release/win_x64/extlibs/vcard/test/allocations.xl",
+      "sha256": "c422c848c8478aa49a0396ec021cb7126b1530d54de56bfd3b8fb797085901dc",
+      "bytes": 1738
+    },
+    {
+      "path": "release/win_x64/extlibs/vcard/test/aot_core.xl",
+      "sha256": "89499747bb799d28cf4c554c525637f48a425b025177a8cbe62d0a05a8af85c0",
+      "bytes": 246
+    },
+    {
+      "path": "release/win_x64/extlibs/vcard/test/check.ps1",
+      "sha256": "24a28b5d426f03e612d1894b5cb587900f31328ae667483ce153a5e733533acf",
+      "bytes": 390
+    },
+    {
+      "path": "release/win_x64/extlibs/vcard/test/check.sh",
+      "sha256": "7325220334f4c0a47adf6e8b00085db1753e5b956280d805137972c591d29160",
+      "bytes": 254
+    },
+    {
+      "path": "release/win_x64/extlibs/vcard/test/check_external.py",
+      "sha256": "0603ccd99e642e2eb8304c9818ad24e75ce5b7a83b343c3f6edb096332cff961",
+      "bytes": 1183
+    },
+    {
+      "path": "release/win_x64/extlibs/vcard/test/check_folded.py",
+      "sha256": "67cd8cabc4b6a5a298c39500549213e188ed05bbd8a1ac638aa23861a23d7b56",
+      "bytes": 605
+    },
+    {
+      "path": "release/win_x64/extlibs/vcard/test/control_characters.xl",
+      "sha256": "ef2a49349faf230bc40489fa61876c647b956e615ed36b432a5837d4e9347347",
+      "bytes": 797
+    },
+    {
+      "path": "release/win_x64/extlibs/vcard/test/limits.xl",
+      "sha256": "c1cae1029eb32f5360c54ab54ee2a7abc3edecebb72d3ff188514449a24a2f6d",
+      "bytes": 591
+    },
+    {
+      "path": "release/win_x64/extlibs/vcard/test/read_views.xl",
+      "sha256": "bd6ef891da2aa8241e77dbe9427d23961714dffdfc406376728d221a7dd35002",
+      "bytes": 1896
+    },
+    {
+      "path": "release/win_x64/extlibs/vcard/test/structure.xl",
+      "sha256": "114b1d276bf4204565f3e72e3d649c4766b6c7c6e46157409476389c9ca721db",
+      "bytes": 3630
+    },
+    {
+      "path": "release/win_x64/extlibs/vcard/test/test_utf8_folding.c",
+      "sha256": "b4281dc92e914988171258c2cf1b34eb7beefa74bbdd282fd9b6f6536724836a",
+      "bytes": 8478
+    },
+    {
+      "path": "release/win_x64/extlibs/vcard/test/test_vcard.c",
+      "sha256": "dd3463b8af5509855cf5361846ed144ff714a1b59e4c2483dc8c86ad031ee8a4",
+      "bytes": 17160
+    },
+    {
+      "path": "release/win_x64/extlibs/vcard/test/uri_values.xl",
+      "sha256": "f2fb5a51648159ea620337eedca3b62fdb66fd5b55810bf777d1510b6c27772c",
+      "bytes": 1013
+    },
+    {
+      "path": "release/win_x64/extlibs/vcard/test/utf8_folding.c",
+      "sha256": "e809f52d1986063b19824aefa03f9cad5d81eb6a0f264240c4f9316a63e94c3c",
+      "bytes": 655
+    },
+    {
+      "path": "release/win_x64/extlibs/vcard/test/utf8_folding.xl",
+      "sha256": "b31d82ab336401dfa08c409ff62c2ff13d4aacc69ba7e21dbb870ebef2f65975",
+      "bytes": 1783
+    },
+    {
+      "path": "release/win_x64/extlibs/vcard/test/xrt_runtime.c",
+      "sha256": "e6373080b89c1835fd6f9b2924f53a40b54f090d8437f13eb30b32274b555cc9",
+      "bytes": 156
+    },
+    {
+      "path": "release/win_x64/extlibs/vcard/UTF8_FOLDING_AUDIT_2026-10-30.md",
+      "sha256": "dd1d091eaec5aaae9c22601213c06b79110d16d2987c0c25f9212cb6a7026854",
+      "bytes": 5039
+    },
+    {
+      "path": "release/win_x64/extlibs/vcard/vcard_build.c",
+      "sha256": "8bd3fafb89116058f406b0e87fb3eb7199dd17e475d03db4b3843255eed7cf59",
+      "bytes": 5488
+    },
+    {
+      "path": "release/win_x64/extlibs/vcard/vcard_internal.h",
+      "sha256": "7c1bdac52a86cf741d23f9b2208b0bf781751e59a886c840edb95a782b6436de",
+      "bytes": 997
+    },
+    {
+      "path": "release/win_x64/extlibs/vcard/vcard_native.c",
+      "sha256": "7921af643a44ea4961c6722343270e8ad1f5b72523abb769fde8a7cdee7db277",
+      "bytes": 2524
+    },
+    {
+      "path": "release/win_x64/extlibs/vcard/vcard_parse.c",
+      "sha256": "f5307cb644fbef561d8a0b27395efcf4ad53d7ff8d61da89ba1c91347a2981f1",
+      "bytes": 8561
+    },
+    {
+      "path": "release/win_x64/extlibs/vcard/xlang.package.json",
+      "sha256": "464a5a1e6ab13eb3b91173c8075b2b703aa8e48048af1508588ac6db36c1831a",
+      "bytes": 895
+    },
+    {
+      "path": "release/win_x64/examples/extlibs/vcard.xl",
+      "sha256": "8f70f57dac46c5b08788718fc54717c0f0de7a214eafa83855aae8a7f03e7051",
+      "bytes": 871
+    },
+    {
+      "path": "release/linux_x64/extlibs/vcard/docs/site.html",
+      "sha256": "8f6e49cf9d4f7225e74cb8271c8663d4f11778d1fd4665cf0cb89daafae11fad",
+      "bytes": 5023
+    },
+    {
+      "path": "release/linux_x64/extlibs/vcard/examples/folded_contact.expected.txt",
+      "sha256": "8d38fe0a1738793cc64ee5e7d87f5c5f6669bdc80d9a37435c704f386344ec7e",
+      "bytes": 57
+    },
+    {
+      "path": "release/linux_x64/extlibs/vcard/examples/folded_contact.xl",
+      "sha256": "fc0f3a38bca46002327ce3106368d30aff8f5edf45bb02ece2c55e4c7b6c8236",
+      "bytes": 816
+    },
+    {
+      "path": "release/linux_x64/extlibs/vcard/examples/folded_contact_c.c",
+      "sha256": "6885f436951d30d0c63fdc8831c1651a5f8de07e69501d822eff56f7271e2914",
+      "bytes": 1838
+    },
+    {
+      "path": "release/linux_x64/extlibs/vcard/examples/README.md",
+      "sha256": "1ff684715bdbfa3b9eae69b089ea4fea8e19a464afd16d60c88baa7e00b770fa",
+      "bytes": 1295
+    },
+    {
+      "path": "release/linux_x64/extlibs/vcard/examples/vcard.c",
+      "sha256": "404b6d1173fb6734bd82dd1eebe2c645326918876c87ced74418a579a60d2305",
+      "bytes": 3117
+    },
+    {
+      "path": "release/linux_x64/extlibs/vcard/include/vcard_native.h",
+      "sha256": "776bd9c7d490f7d4aebce39b1f2e19dced854150319e31034e9e0bf5ca9d68be",
+      "bytes": 415
+    },
+    {
+      "path": "release/linux_x64/extlibs/vcard/README.md",
+      "sha256": "0bf75a3707787cf52c0935c1dd0640619e29c70b70e1939f065dcfec82581cbc",
+      "bytes": 16107
+    },
+    {
+      "path": "release/linux_x64/extlibs/vcard/src/vcard.xl",
+      "sha256": "d9700b33e79704cb3d3c990b363293d53c1c2f346232b5ea87484b7a244595b9",
+      "bytes": 871
+    },
+    {
+      "path": "release/linux_x64/extlibs/vcard/test/allocations.xl",
+      "sha256": "c422c848c8478aa49a0396ec021cb7126b1530d54de56bfd3b8fb797085901dc",
+      "bytes": 1738
+    },
+    {
+      "path": "release/linux_x64/extlibs/vcard/test/aot_core.xl",
+      "sha256": "89499747bb799d28cf4c554c525637f48a425b025177a8cbe62d0a05a8af85c0",
+      "bytes": 246
+    },
+    {
+      "path": "release/linux_x64/extlibs/vcard/test/check.ps1",
+      "sha256": "24a28b5d426f03e612d1894b5cb587900f31328ae667483ce153a5e733533acf",
+      "bytes": 390
+    },
+    {
+      "path": "release/linux_x64/extlibs/vcard/test/check.sh",
+      "sha256": "7325220334f4c0a47adf6e8b00085db1753e5b956280d805137972c591d29160",
+      "bytes": 254
+    },
+    {
+      "path": "release/linux_x64/extlibs/vcard/test/check_external.py",
+      "sha256": "0603ccd99e642e2eb8304c9818ad24e75ce5b7a83b343c3f6edb096332cff961",
+      "bytes": 1183
+    },
+    {
+      "path": "release/linux_x64/extlibs/vcard/test/check_folded.py",
+      "sha256": "67cd8cabc4b6a5a298c39500549213e188ed05bbd8a1ac638aa23861a23d7b56",
+      "bytes": 605
+    },
+    {
+      "path": "release/linux_x64/extlibs/vcard/test/control_characters.xl",
+      "sha256": "ef2a49349faf230bc40489fa61876c647b956e615ed36b432a5837d4e9347347",
+      "bytes": 797
+    },
+    {
+      "path": "release/linux_x64/extlibs/vcard/test/limits.xl",
+      "sha256": "c1cae1029eb32f5360c54ab54ee2a7abc3edecebb72d3ff188514449a24a2f6d",
+      "bytes": 591
+    },
+    {
+      "path": "release/linux_x64/extlibs/vcard/test/read_views.xl",
+      "sha256": "bd6ef891da2aa8241e77dbe9427d23961714dffdfc406376728d221a7dd35002",
+      "bytes": 1896
+    },
+    {
+      "path": "release/linux_x64/extlibs/vcard/test/structure.xl",
+      "sha256": "114b1d276bf4204565f3e72e3d649c4766b6c7c6e46157409476389c9ca721db",
+      "bytes": 3630
+    },
+    {
+      "path": "release/linux_x64/extlibs/vcard/test/test_utf8_folding.c",
+      "sha256": "b4281dc92e914988171258c2cf1b34eb7beefa74bbdd282fd9b6f6536724836a",
+      "bytes": 8478
+    },
+    {
+      "path": "release/linux_x64/extlibs/vcard/test/test_vcard.c",
+      "sha256": "dd3463b8af5509855cf5361846ed144ff714a1b59e4c2483dc8c86ad031ee8a4",
+      "bytes": 17160
+    },
+    {
+      "path": "release/linux_x64/extlibs/vcard/test/uri_values.xl",
+      "sha256": "f2fb5a51648159ea620337eedca3b62fdb66fd5b55810bf777d1510b6c27772c",
+      "bytes": 1013
+    },
+    {
+      "path": "release/linux_x64/extlibs/vcard/test/utf8_folding.c",
+      "sha256": "e809f52d1986063b19824aefa03f9cad5d81eb6a0f264240c4f9316a63e94c3c",
+      "bytes": 655
+    },
+    {
+      "path": "release/linux_x64/extlibs/vcard/test/utf8_folding.xl",
+      "sha256": "b31d82ab336401dfa08c409ff62c2ff13d4aacc69ba7e21dbb870ebef2f65975",
+      "bytes": 1783
+    },
+    {
+      "path": "release/linux_x64/extlibs/vcard/test/xrt_runtime.c",
+      "sha256": "e6373080b89c1835fd6f9b2924f53a40b54f090d8437f13eb30b32274b555cc9",
+      "bytes": 156
+    },
+    {
+      "path": "release/linux_x64/extlibs/vcard/UTF8_FOLDING_AUDIT_2026-10-30.md",
+      "sha256": "dd1d091eaec5aaae9c22601213c06b79110d16d2987c0c25f9212cb6a7026854",
+      "bytes": 5039
+    },
+    {
+      "path": "release/linux_x64/extlibs/vcard/vcard_build.c",
+      "sha256": "8bd3fafb89116058f406b0e87fb3eb7199dd17e475d03db4b3843255eed7cf59",
+      "bytes": 5488
+    },
+    {
+      "path": "release/linux_x64/extlibs/vcard/vcard_internal.h",
+      "sha256": "7c1bdac52a86cf741d23f9b2208b0bf781751e59a886c840edb95a782b6436de",
+      "bytes": 997
+    },
+    {
+      "path": "release/linux_x64/extlibs/vcard/vcard_native.c",
+      "sha256": "7921af643a44ea4961c6722343270e8ad1f5b72523abb769fde8a7cdee7db277",
+      "bytes": 2524
+    },
+    {
+      "path": "release/linux_x64/extlibs/vcard/vcard_parse.c",
+      "sha256": "f5307cb644fbef561d8a0b27395efcf4ad53d7ff8d61da89ba1c91347a2981f1",
+      "bytes": 8561
+    },
+    {
+      "path": "release/linux_x64/extlibs/vcard/xlang.package.json",
+      "sha256": "464a5a1e6ab13eb3b91173c8075b2b703aa8e48048af1508588ac6db36c1831a",
+      "bytes": 895
+    },
+    {
+      "path": "release/linux_x64/examples/extlibs/vcard.xl",
+      "sha256": "8f70f57dac46c5b08788718fc54717c0f0de7a214eafa83855aae8a7f03e7051",
+      "bytes": 871
+    }
+  ],
+  "runtimeArchives": [
+    {
+      "path": "dev/releases/vcard-read-views-20261109/vcard-win_x64.zip",
+      "sha256": "b05b6450b4795569cedb53c76981b8a72c16c85259a3950a07f512a071f904dd",
+      "bytes": 41047
+    },
+    {
+      "path": "dev/releases/vcard-read-views-20261109/vcard-linux_x64.zip",
+      "sha256": "f2d9442c8daf5ce0a35ca096f36224a6bb727b19790e2a539a2a076644373c05",
+      "bytes": 41175
+    }
+  ],
+  "dependencies": [
+    {
+      "path": "release/win_x64/include/xl_value_read.h",
+      "sha256": "0903296d1123a7948c45c84cd386a6eb519b8bf798766f0e146499f923e927ef",
+      "bytes": 3715
+    },
+    {
+      "path": "release/win_x64/extlibs/_common/xl_value_read_wire.h",
+      "sha256": "00105239b9a8c1abc536c4d201a4e67413b825430c38160e5abcbbb375072b1c",
+      "bytes": 3022
+    },
+    {
+      "path": "release/linux_x64/include/xl_value_read.h",
+      "sha256": "0903296d1123a7948c45c84cd386a6eb519b8bf798766f0e146499f923e927ef",
+      "bytes": 3715
+    },
+    {
+      "path": "release/linux_x64/extlibs/_common/xl_value_read_wire.h",
+      "sha256": "00105239b9a8c1abc536c4d201a4e67413b825430c38160e5abcbbb375072b1c",
+      "bytes": 3022
+    }
+  ],
+  "evidence": [
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/actual-c-abi.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/allocations-aot.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/allocations-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/allocations-jit.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/aot_core-aot.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/aot_core-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/aot_core-jit.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/boundaries-aot.log",
+      "sha256": "4e45f51368ff7d39c2642c015bc67db6b104ddb771955e70b43514f0bff20b8a",
+      "bytes": 23
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/boundaries-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/boundaries-jit.log",
+      "sha256": "4e45f51368ff7d39c2642c015bc67db6b104ddb771955e70b43514f0bff20b8a",
+      "bytes": 23
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/c-boundaries-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/c-boundaries.log",
+      "sha256": "431addef2434a40c49143badd76c4b41cb8e67451db3ab45c90e6ab54218915b",
+      "bytes": 19
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/c-canonical.log",
+      "sha256": "840a00c200551c31260182c76ae9d23cf7169fe15ea8b4f5531ce96363877fa5",
+      "bytes": 40
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/c-failed-write.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/c-folded-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/c-folded.log",
+      "sha256": "8d38fe0a1738793cc64ee5e7d87f5c5f6669bdc80d9a37435c704f386344ec7e",
+      "bytes": 57
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/c-jit-failed-write.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/c-original-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/c-original.log",
+      "sha256": "2fa5dd67c64a8dc745fff3a4d1df693ecdfe3c8707aa1275f6550dcf12c6e2ee",
+      "bytes": 61
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/c-utf8-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/c-utf8.log",
+      "sha256": "d65a2af73abb925b3dbc66289aae3d54dac13958b79117d0aae9c621871f1fc1",
+      "bytes": 57
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/compile-vcard_build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/compile-vcard_native.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/compile-vcard_parse.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/compile-xrt_runtime.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/control_characters-aot.log",
+      "sha256": "cad781748e4fd0d3704f642c6c3702a91a27167333e36e3738c6d560fe1a20f9",
+      "bytes": 31
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/control_characters-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/control_characters-jit.log",
+      "sha256": "cad781748e4fd0d3704f642c6c3702a91a27167333e36e3738c6d560fe1a20f9",
+      "bytes": 31
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/folded-aot-canonical.log",
+      "sha256": "840a00c200551c31260182c76ae9d23cf7169fe15ea8b4f5531ce96363877fa5",
+      "bytes": 40
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/folded-aot.log",
+      "sha256": "8d38fe0a1738793cc64ee5e7d87f5c5f6669bdc80d9a37435c704f386344ec7e",
+      "bytes": 57
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/folded-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/folded-c-aot-canonical.log",
+      "sha256": "840a00c200551c31260182c76ae9d23cf7169fe15ea8b4f5531ce96363877fa5",
+      "bytes": 40
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/folded-c-aot.log",
+      "sha256": "8d38fe0a1738793cc64ee5e7d87f5c5f6669bdc80d9a37435c704f386344ec7e",
+      "bytes": 57
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/folded-c-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/folded-c-jit-canonical.log",
+      "sha256": "840a00c200551c31260182c76ae9d23cf7169fe15ea8b4f5531ce96363877fa5",
+      "bytes": 40
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/folded-c-jit.log",
+      "sha256": "8d38fe0a1738793cc64ee5e7d87f5c5f6669bdc80d9a37435c704f386344ec7e",
+      "bytes": 57
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/folded-jit-canonical.log",
+      "sha256": "840a00c200551c31260182c76ae9d23cf7169fe15ea8b4f5531ce96363877fa5",
+      "bytes": 40
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/folded-jit.log",
+      "sha256": "8d38fe0a1738793cc64ee5e7d87f5c5f6669bdc80d9a37435c704f386344ec7e",
+      "bytes": 57
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/gcc-version.log",
+      "sha256": "6e876a25bb7fdb71ab2914e8f1eeaa00cc61d20a36a6c2981ab7d4d7ceab42f8",
+      "bytes": 239
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/limits-aot.log",
+      "sha256": "82a3c2b84dc74650b33f50dc441bb74839dbbe949faccc5e5982ad889cb333fa",
+      "bytes": 19
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/limits-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/limits-jit.log",
+      "sha256": "82a3c2b84dc74650b33f50dc441bb74839dbbe949faccc5e5982ad889cb333fa",
+      "bytes": 19
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/literal-aot.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/literal-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/literal-jit.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/native-header-abi.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/native-header-rejects-wrong-abi.log",
+      "sha256": "0050b11f92f6c154e5034b2786837dba6c1f285f029ee503197b9a457a4f8554",
+      "bytes": 695
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/original-aot.log",
+      "sha256": "2fa5dd67c64a8dc745fff3a4d1df693ecdfe3c8707aa1275f6550dcf12c6e2ee",
+      "bytes": 61
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/original-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/original-c-aot.log",
+      "sha256": "2fa5dd67c64a8dc745fff3a4d1df693ecdfe3c8707aa1275f6550dcf12c6e2ee",
+      "bytes": 61
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/original-c-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/original-c-jit.log",
+      "sha256": "2fa5dd67c64a8dc745fff3a4d1df693ecdfe3c8707aa1275f6550dcf12c6e2ee",
+      "bytes": 61
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/original-jit.log",
+      "sha256": "2fa5dd67c64a8dc745fff3a4d1df693ecdfe3c8707aa1275f6550dcf12c6e2ee",
+      "bytes": 61
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/read-cost-aot.log",
+      "sha256": "556b9567ae79ad5841e3e380ef5b17a46dea5c034e1600fb99d0a67dacf64cd0",
+      "bytes": 99
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/read-cost-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/read-cost-jit.log",
+      "sha256": "556b9567ae79ad5841e3e380ef5b17a46dea5c034e1600fb99d0a67dacf64cd0",
+      "bytes": 99
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/read-views-aot.log",
+      "sha256": "629a0359ac6155323429569bc866bc784127066c42f78be5c37cf9536104cc72",
+      "bytes": 23
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/read-views-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/read-views-jit.log",
+      "sha256": "629a0359ac6155323429569bc866bc784127066c42f78be5c37cf9536104cc72",
+      "bytes": 23
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/results.json",
+      "sha256": "c49a7b3a9b8f57187753bf440d77faf96d63b005b5186cd8dc93ce5c3955a111",
+      "bytes": 42395
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/structure-aot.log",
+      "sha256": "7d02f6e9f430c0550fa0596a6338b0488ddd7a43c7b28ba8fe5e8c720507e81c",
+      "bytes": 22
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/structure-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/structure-jit.log",
+      "sha256": "7d02f6e9f430c0550fa0596a6338b0488ddd7a43c7b28ba8fe5e8c720507e81c",
+      "bytes": 22
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/uri_values-aot.log",
+      "sha256": "bb4912161c3061de0f4981037a9d6309245f694876a5038870a4154950974ded",
+      "bytes": 23
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/uri_values-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/uri_values-jit.log",
+      "sha256": "bb4912161c3061de0f4981037a9d6309245f694876a5038870a4154950974ded",
+      "bytes": 23
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/utf8-c-aot.log",
+      "sha256": "d65a2af73abb925b3dbc66289aae3d54dac13958b79117d0aae9c621871f1fc1",
+      "bytes": 57
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/utf8-c-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/utf8-c-jit.log",
+      "sha256": "d65a2af73abb925b3dbc66289aae3d54dac13958b79117d0aae9c621871f1fc1",
+      "bytes": 57
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/utf8_folding-aot.log",
+      "sha256": "d1b8ca66025714520366b0df8eca478c4688fadbf1695073915fea0d2a59df4f",
+      "bytes": 31
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/utf8_folding-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/linux/utf8_folding-jit.log",
+      "sha256": "d1b8ca66025714520366b0df8eca478c4688fadbf1695073915fea0d2a59df4f",
+      "bytes": 31
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/previous-delivery.json",
+      "sha256": "ea8d484a35c14231ba7ddf253f9a46630994a652dd8d1b06b077fc944c1413a2",
+      "bytes": 352903
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/actual-c-abi.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/allocations-aot.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/allocations-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/allocations-jit.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/aot_core-aot.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/aot_core-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/aot_core-jit.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/boundaries-aot.log",
+      "sha256": "4e45f51368ff7d39c2642c015bc67db6b104ddb771955e70b43514f0bff20b8a",
+      "bytes": 23
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/boundaries-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/boundaries-jit.log",
+      "sha256": "4e45f51368ff7d39c2642c015bc67db6b104ddb771955e70b43514f0bff20b8a",
+      "bytes": 23
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/c-boundaries-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/c-boundaries.log",
+      "sha256": "6c9e58f7d6cbd627dd372ff16374463b16c1b08e9ba7950f561d33a5ec610621",
+      "bytes": 20
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/c-canonical.log",
+      "sha256": "fd4a502e925946bf100b0cea1c5f462baf1e7c53f3afafa477c2f879b497d6a1",
+      "bytes": 41
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/c-failed-write.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/c-folded-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/c-folded.log",
+      "sha256": "8b51f0efedb099021ba94da415502d52ad7f277446ee68e30216c0336382c77a",
+      "bytes": 60
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/c-jit-failed-write.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/c-original-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/c-original.log",
+      "sha256": "1a5a4855aa03f8c2ce636524de81db4cb4eeae7dbe681270df423d15048c7490",
+      "bytes": 65
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/c-utf8-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/c-utf8.log",
+      "sha256": "7ef9c97d34ceaf903b0ee3eea9ea411d47d462011b053ab209765917a12b6c3d",
+      "bytes": 58
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/compile-vcard_build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/compile-vcard_native.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/compile-vcard_parse.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/compile-xrt_runtime.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/control_characters-aot.log",
+      "sha256": "cad781748e4fd0d3704f642c6c3702a91a27167333e36e3738c6d560fe1a20f9",
+      "bytes": 31
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/control_characters-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/control_characters-jit.log",
+      "sha256": "cad781748e4fd0d3704f642c6c3702a91a27167333e36e3738c6d560fe1a20f9",
+      "bytes": 31
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/folded-aot-canonical.log",
+      "sha256": "fd4a502e925946bf100b0cea1c5f462baf1e7c53f3afafa477c2f879b497d6a1",
+      "bytes": 41
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/folded-aot.log",
+      "sha256": "8d38fe0a1738793cc64ee5e7d87f5c5f6669bdc80d9a37435c704f386344ec7e",
+      "bytes": 57
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/folded-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/folded-c-aot-canonical.log",
+      "sha256": "fd4a502e925946bf100b0cea1c5f462baf1e7c53f3afafa477c2f879b497d6a1",
+      "bytes": 41
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/folded-c-aot.log",
+      "sha256": "8b51f0efedb099021ba94da415502d52ad7f277446ee68e30216c0336382c77a",
+      "bytes": 60
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/folded-c-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/folded-c-jit-canonical.log",
+      "sha256": "fd4a502e925946bf100b0cea1c5f462baf1e7c53f3afafa477c2f879b497d6a1",
+      "bytes": 41
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/folded-c-jit.log",
+      "sha256": "8b51f0efedb099021ba94da415502d52ad7f277446ee68e30216c0336382c77a",
+      "bytes": 60
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/folded-jit-canonical.log",
+      "sha256": "fd4a502e925946bf100b0cea1c5f462baf1e7c53f3afafa477c2f879b497d6a1",
+      "bytes": 41
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/folded-jit.log",
+      "sha256": "8d38fe0a1738793cc64ee5e7d87f5c5f6669bdc80d9a37435c704f386344ec7e",
+      "bytes": 57
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/gcc-version.log",
+      "sha256": "7637c6cbf2a95bab74868ac6b35bac51e5bc633e2ea9b3cc2311bc16eac8510e",
+      "bytes": 228
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/limits-aot.log",
+      "sha256": "82a3c2b84dc74650b33f50dc441bb74839dbbe949faccc5e5982ad889cb333fa",
+      "bytes": 19
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/limits-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/limits-jit.log",
+      "sha256": "82a3c2b84dc74650b33f50dc441bb74839dbbe949faccc5e5982ad889cb333fa",
+      "bytes": 19
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/literal-aot.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/literal-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/literal-jit.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/native-header-abi.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/native-header-rejects-wrong-abi.log",
+      "sha256": "08f30f9e8582a77d289a62018c3c3a58c1d2e821e382239be595e02e1f77e0cf",
+      "bytes": 671
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/original-aot.log",
+      "sha256": "2fa5dd67c64a8dc745fff3a4d1df693ecdfe3c8707aa1275f6550dcf12c6e2ee",
+      "bytes": 61
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/original-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/original-c-aot.log",
+      "sha256": "1a5a4855aa03f8c2ce636524de81db4cb4eeae7dbe681270df423d15048c7490",
+      "bytes": 65
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/original-c-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/original-c-jit.log",
+      "sha256": "1a5a4855aa03f8c2ce636524de81db4cb4eeae7dbe681270df423d15048c7490",
+      "bytes": 65
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/original-jit.log",
+      "sha256": "2fa5dd67c64a8dc745fff3a4d1df693ecdfe3c8707aa1275f6550dcf12c6e2ee",
+      "bytes": 61
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/read-cost-aot.log",
+      "sha256": "556b9567ae79ad5841e3e380ef5b17a46dea5c034e1600fb99d0a67dacf64cd0",
+      "bytes": 99
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/read-cost-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/read-cost-jit.log",
+      "sha256": "556b9567ae79ad5841e3e380ef5b17a46dea5c034e1600fb99d0a67dacf64cd0",
+      "bytes": 99
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/read-views-aot.log",
+      "sha256": "629a0359ac6155323429569bc866bc784127066c42f78be5c37cf9536104cc72",
+      "bytes": 23
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/read-views-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/read-views-jit.log",
+      "sha256": "629a0359ac6155323429569bc866bc784127066c42f78be5c37cf9536104cc72",
+      "bytes": 23
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/results.json",
+      "sha256": "079793152fdf743c93ec014c94a26d73b3ddcf25945b41a28b74bd3f9607fac2",
+      "bytes": 42876
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/structure-aot.log",
+      "sha256": "7d02f6e9f430c0550fa0596a6338b0488ddd7a43c7b28ba8fe5e8c720507e81c",
+      "bytes": 22
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/structure-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/structure-jit.log",
+      "sha256": "7d02f6e9f430c0550fa0596a6338b0488ddd7a43c7b28ba8fe5e8c720507e81c",
+      "bytes": 22
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/uri_values-aot.log",
+      "sha256": "bb4912161c3061de0f4981037a9d6309245f694876a5038870a4154950974ded",
+      "bytes": 23
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/uri_values-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/uri_values-jit.log",
+      "sha256": "bb4912161c3061de0f4981037a9d6309245f694876a5038870a4154950974ded",
+      "bytes": 23
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/utf8-c-aot.log",
+      "sha256": "7ef9c97d34ceaf903b0ee3eea9ea411d47d462011b053ab209765917a12b6c3d",
+      "bytes": 58
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/utf8-c-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/utf8-c-jit.log",
+      "sha256": "7ef9c97d34ceaf903b0ee3eea9ea411d47d462011b053ab209765917a12b6c3d",
+      "bytes": 58
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/utf8_folding-aot.log",
+      "sha256": "d1b8ca66025714520366b0df8eca478c4688fadbf1695073915fea0d2a59df4f",
+      "bytes": 31
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/utf8_folding-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/windows/utf8_folding-jit.log",
+      "sha256": "d1b8ca66025714520366b0df8eca478c4688fadbf1695073915fea0d2a59df4f",
+      "bytes": 31
+    }
+  ]
+}

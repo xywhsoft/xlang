@@ -1,8 +1,8 @@
 # Native container read views
 
 `xl_value_read.h` is the public, synchronous C read boundary for XRT
-Array/Object values and xlang native array/dict values. `cli`, `com` and
-`clipboard` use it instead of constructing XRT container snapshots.
+Array/Object values and xlang native array/dict values. `cli`, `com`,
+`clipboard` and `vcard` use it instead of constructing XRT container snapshots.
 
 ```c
 #include <xl_value_read.h>
@@ -80,3 +80,8 @@ It runs clipboard tests in a private Windows window station. Run
 `tools/run_redis_live_example.py --out <new-directory>` separately for an
 authenticated disposable Redis fixture. Serial uses its built-in LOOPBACK
 transport and needs no serial hardware.
+
+`tools/check_vcard_read_views.py --runtime release/win_x64 --out <new-directory>`
+checks the vcard C wire-only provider, original examples, native dictionaries,
+nested/mixed arrays, allocation counts, OOM cleanup, ABI and JIT/AOT output.
+On Linux select `release/linux_x64` and add `--sanitize` for C ASan/UBSan.

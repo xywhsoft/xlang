@@ -1,0 +1,613 @@
+--- a/extlibs/vcard/examples/folded_contact_c.c
++++ b/extlibs/vcard/examples/folded_contact_c.c
+@@ -5,6 +5,9 @@
+ #include <string.h>
+ 
+ #ifdef __TINYC__
++#define XL_VALUE_READ_WIRE_ONLY
++#define XL_VALUE_READ_WIRE_IMPLEMENTATION
++#include "../../_common/xl_value_read_wire.h"
+ #include "../vcard_native.c"
+ #include "../vcard_parse.c"
+ #include "../vcard_build.c"
+--- a/extlibs/vcard/examples/vcard.c
++++ b/extlibs/vcard/examples/vcard.c
+@@ -69,6 +69,9 @@
+ 
+ /* TCC 单文件范例包含实现；正式 C 构建仍分别编译三个单元。 */
+ #ifdef __TINYC__
++#define XL_VALUE_READ_WIRE_ONLY
++#define XL_VALUE_READ_WIRE_IMPLEMENTATION
++#include "../../_common/xl_value_read_wire.h"
+ #include "../vcard_native.c"
+ #include "../vcard_parse.c"
+ #include "../vcard_build.c"
+--- a/extlibs/vcard/README.md
++++ b/extlibs/vcard/README.md
+@@ -148,3 +148,9 @@
+ 2026-10-21：C/XLang 负例确认 `VERSION;X=1:3.0` 原被错误接受；根据 vCard 3.0 的 VERSION 参数约束，仅在识别出 3.0 时拒绝参数。4.0 的 `VERSION;VALUE=text:4.0` 保持可解析。Windows 包级门禁与 Linux C ASan/UBSan、XLang JIT 和双语范例均通过；完整带输出 AOT 未在本轮重测，仍待主线缺符号修复。
+ 
+ 同日：C/XLang 负例先复现 `item1.VERSION:4.0` 被当成整卡版本；现在 3.0/4.0 的分组 `VERSION` 均拒绝，普通 `item1.EMAIL` 仍可提取，4.0 的参数正例保留。Windows 包级门禁与 Linux C ASan/UBSan、XLang JIT、双语范例通过。完整带输出 AOT 的共享缺符号阻断不变。
++
++2026-11-09：build 通过公共 xl_value_read.h 同步只读作用域，直接读取标准 XRT Object/Array 与 xlang 原生 dict/array（包括混合嵌套）。读取不构造快照、不复制输入文本、不分配标量外壳；仍有作用域认证、pin/unpin 和描述符处理成本。输出缓冲区的分配、转义和折行保持原算法。所有退出路径结束作用域并保留错误。
++
++包清单显式声明五个 runtimeSymbols；独立 C 构建使用 -DXL_VALUE_READ_WIRE_ONLY，并且恰好一个翻译单元启用 XL_VALUE_READ_WIRE_IMPLEMENTATION（test/xrt_runtime.c 已提供）。该配置只接受标准 XRT 容器，不链接语言 DLL。单文件 C 范例在 TinyCC 下自动选择此配置。
++
++完整门禁：python tools/check_vcard_read_views.py --runtime release/win_x64 --out build/test/vcard-windows（Windows）；Linux 将 runtime 改为 release/linux_x64 并追加 --sanitize。包内 test/check.ps1 与 test/check.sh 调用相同门禁。覆盖原字典、显式类型容器、标准对象、混合数组、字段错误后的写入恢复、OOM、4 MiB 限制、UTF-8 折行、C/JIT/AOT 输出及实际 C ABI。
+--- a/extlibs/vcard/test/allocations.xl
++++ b/extlibs/vcard/test/allocations.xl
+@@ -10,7 +10,8 @@
+     for api in range(2)
+         int failures = 0
+         int successes = 0
+-        for point in range(24)
++        // 覆盖每个实际分配失败点，直到首次成功；不能假定新版 XRT 少于 24 次分配。
++        for point in range(256)
+             bool memoryError = false
+             bool accepted = false
+             assert failAfter(uint64(point))
+@@ -39,6 +40,9 @@
+             else
+                 assert string.indexOf(vcard.build(card), "FN:张三") >= 0
+             end
++            if successes > 0 then
++                break
++            end
+         end
+         assert failures > 1 and successes > 0
+     end
+--- a/extlibs/vcard/test/check.ps1
++++ b/extlibs/vcard/test/check.ps1
+@@ -1,174 +1,8 @@
+ param([switch]$SkipAot)
+-
+ $ErrorActionPreference = 'Stop'
+-[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
+-$root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../..')).Path
+-$safeRoot = [IO.Path]::GetFullPath((Join-Path $root 'build/test'))
+-$work = Join-Path $safeRoot ('vcard_guard_' + [guid]::NewGuid().ToString('N'))
+-$xl = Join-Path $root 'release/xl.exe'
+-$runner = Join-Path $root 'tools/run_extlib_c.ps1'
+-$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+-$python = (Get-Command python -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+-$shell = (Get-Process -Id $PID).Path
+-. (Join-Path $root 'tools/extlib_smoke_process.ps1')
+-$checks = [Collections.Generic.List[object]]::new()
+-$passed = $false
+-$inputs = @(Get-ChildItem (Join-Path $root 'release/extlibs/vcard') -Recurse -File | ForEach-Object FullName)
+-$inputs += @(Get-ChildItem (Join-Path $root 'release/include') -Recurse -File | ForEach-Object FullName)
+-$inputs += @('release/xl.exe','release/xl.dll','release/xlc.dll','lib/xrt/xrt.h',
+-    'lib/xruntime/xruntime.h','tools/run_extlib_c.ps1','tools/extlib_smoke_process.ps1',
+-    'tools/xlir_native_process.ps1','test/cases/extlib_vcard.xl',
+-    'test/cases/extlib_vcard_boundaries.xl','release/examples/extlibs/vcard.xl') |
+-    ForEach-Object {Join-Path $root $_}
+-$hashes = @{}
+-foreach ($path in @($inputs) + @($gcc,$python,$shell)) {$hashes[$path] = (Get-FileHash -LiteralPath $path).Hash}
+-$flags = @('-std=c11','-O2','-Wall','-Wextra','-Werror','-Ilib/xrt','-Irelease/extlibs/vcard/include')
+-$links = @('-lWs2_32','-lAdvapi32','-lIphlpapi','-lm')
+-
+-function Run([string]$name, [string]$program, [string[]]$arguments, [int]$expected = 0) {
+-    if ($null -eq $arguments) {$arguments = @()}
+-    if ($program.EndsWith('.ps1')) {
+-        $arguments = @('-NoProfile','-ExecutionPolicy','Bypass','-File',$program) + $arguments
+-        $program = $shell
+-    }
+-    $result = Invoke-ExtlibSmokeProcess $program $arguments $root 180 @{LC_ALL='C'}
+-    $checks.Add([ordered]@{name=$name;program=$program;arguments=$arguments;expectedExit=$expected;result=$result})
+-    [IO.File]::AppendAllText((Join-Path $work 'commands.log'),
+-        "${name}: $program $($arguments -join ' ')`nstatus=$($result.status) exit=$($result.exitCode)`nstdout:`n$($result.stdout)`nstderr:`n$($result.stderr)`n")
+-    if ($result.status -notin @('pass','fail') -or $result.exitCode -ne $expected) {
+-        throw "${name}: $($result.status) exit=$($result.exitCode)`n$($result.stdout)`n$($result.stderr)"
+-    }
+-    Write-Host "[vcard] ${name}: PASS"
+-    return ($result.stdout + $result.stderr).Replace("`r`n","`n").TrimEnd("`n")
+-}
+-
+-function VerifyInputs {
+-    foreach ($path in $hashes.Keys) {
+-        if ((Get-FileHash -LiteralPath $path).Hash -cne $hashes[$path]) {throw "vcard input changed: $path"}
+-    }
+-}
+-
+-[void][IO.Directory]::CreateDirectory($work)
+-Push-Location $root
+-try {
+-    $hashes | ConvertTo-Json | Set-Content (Join-Path $work 'inputs.before.json') -Encoding UTF8
+-    $null = Run 'GCC version' $gcc @('--version')
+-    $cc1 = Run 'GCC cc1 path' $gcc @('-print-prog-name=cc1')
+-    $hashes[$cc1] = (Get-FileHash -LiteralPath $cc1).Hash
+-    $null = Run 'Python version' $python @('--version')
+-    $units = @('vcard_native','vcard_parse','vcard_build')
+-    $null = Run 'strict manifest syntax' $gcc ($flags + @('-fsyntax-only',
+-        '-DXRT_MODULE_BUFFER','-DXRT_MODULE_UNICODE','-DXRT_MODULE_VALUE_CONTAINER') +
+-        @($units | ForEach-Object {"release/extlibs/vcard/$_.c"}))
+-    $null = Run 'strict fixture syntax' $gcc ($flags + @('-fsyntax-only',
+-        'release/extlibs/vcard/test/test_vcard.c','release/extlibs/vcard/examples/vcard.c',
+-        'release/extlibs/vcard/test/utf8_folding.c'))
+-    $runtime = Join-Path $work 'runtime.o'
+-    $null = Run 'XRT compile' $gcc ($flags + @('-c','release/extlibs/vcard/test/xrt_runtime.c','-o',$runtime))
+-    $objects = @($runtime)
+-    foreach ($unit in $units) {
+-        $object = Join-Path $work ($unit + '.o')
+-        $null = Run "$unit compile" $gcc ($flags + @('-c',"release/extlibs/vcard/$unit.c",'-o',$object))
+-        $objects += $object
+-    }
+-    foreach ($name in @('test_vcard','test_utf8_folding')) {
+-        $target = Join-Path $work ($name + '.exe')
+-        $null = Run "GCC $name build" $gcc ($flags + @("release/extlibs/vcard/test/$name.c") + $objects + $links + @('-o',$target))
+-        $argsForTest = if ($name -eq 'test_vcard') {@((Join-Path $work 'long.vcf'),(Join-Path $work 'four.vcf'))} else {@()}
+-        $null = Run "GCC $name" $target $argsForTest
+-    }
+-    $null = Run 'old C boundaries JIT' $runner @('-Package','vcard','-Source','release/extlibs/vcard/test/test_vcard.c')
+-    $null = Run 'C folding JIT' $xl @('run','release/extlibs/vcard/test/test_utf8_folding.c')
+-    $null = Run 'XLang folding JIT' $xl @('run','release/extlibs/vcard/test/utf8_folding.xl')
+-
+-    $generated = Join-Path $work 'generated.c'
+-    $null = Run 'actual ABI cgen' $xl @('cgen','release/extlibs/vcard/test/utf8_folding.xl','--emit',$generated)
+-    $prototypes = [regex]::Matches([IO.File]::ReadAllText($generated),'(?m)^extern [^\r\n;]*\bxv_(?:parse|build)\([^;\r\n]*\);')
+-    if ($prototypes.Count -ne 2) {throw 'Both actual vcard C prototypes must be checked'}
+-    $abi = Join-Path $work 'abi.c'
+-    $abiText = '#include "vcard_native.h"' + "`n" + (($prototypes | ForEach-Object Value) -join "`n")
+-    [IO.File]::WriteAllText($abi,$abiText,[Text.UTF8Encoding]::new($false))
+-    $null = Run 'two actual prototypes' $gcc ($flags + @('-fsyntax-only',$abi))
+-    $wrong = $abiText -replace '(?m)^extern [^\r\n;]*\bxv_parse\(', 'extern int xv_parse('
+-    if ($wrong -ceq $abiText) {throw 'Wrong ABI control did not change declaration'}
+-    [IO.File]::WriteAllText($abi,$wrong,[Text.UTF8Encoding]::new($false))
+-    $null = Run 'wrong parse return rejected' $gcc ($flags + @('-fsyntax-only',$abi)) 1
+-    if ($checks[-1].result.stderr -notmatch 'conflicting types') {throw 'Wrong ABI failed for an unrelated reason'}
+-
+-    $cFile = Join-Path $work 'c.vcf'
+-    $oldExample = Join-Path $work 'old_example.exe'
+-    $null = Run 'GCC original C example build' $gcc ($flags + @('release/extlibs/vcard/examples/vcard.c') + $objects + $links + @('-o',$oldExample))
+-    $cOutput = Run 'GCC original C example' $oldExample @($cFile)
+-    $directFile = Join-Path $work 'direct.vcf'
+-    $direct = Run 'original C example direct JIT' $xl @('run','release/extlibs/vcard/examples/vcard.c','--',$directFile)
+-    if ($direct -cne $cOutput -or (Get-FileHash $directFile).Hash -ne (Get-FileHash $cFile).Hash) {throw 'Original C example JIT/GCC mismatch'}
+-    $null = Run 'original C GCC failed write' $oldExample @($work) 1
+-    if ($checks[-1].result.stdout -ne '' -or $checks[-1].result.stderr -ne '') {throw 'Failed C write printed success or unrelated output'}
+-    $null = Run 'original C JIT failed write' $xl @('run','release/extlibs/vcard/examples/vcard.c','--',$work) 1
+-    if ($checks[-1].result.stdout -ne '' -or $checks[-1].result.stderr -ne '') {throw 'Failed C JIT write printed success or unrelated output'}
+-
+-    $expected = [IO.File]::ReadAllText((Join-Path $root 'release/extlibs/vcard/examples/folded_contact.expected.txt')).Replace("`r`n","`n").TrimEnd("`n")
+-    foreach ($language in @('C','XLang')) {
+-        $source = if ($language -eq 'C') {'release/extlibs/vcard/examples/folded_contact_c.c'} else {'release/extlibs/vcard/examples/folded_contact.xl'}
+-        foreach ($engine in @('GCC','JIT','AOT')) {
+-            if (($engine -eq 'GCC' -and $language -ne 'C') -or ($SkipAot -and $engine -eq 'AOT')) {continue}
+-            $target = Join-Path $work ("folded_${language}_${engine}.exe")
+-            if ($engine -eq 'GCC') {$null = Run 'GCC folded example build' $gcc ($flags + @($source) + $objects + $links + @('-o',$target))}
+-            elseif ($engine -eq 'AOT') {$null = Run "$language folded AOT build" $xl @('build',$source,'-o',$target)}
+-            $outputFile = Join-Path $work ("folded_${language}_${engine}.vcf")
+-            if ($engine -eq 'JIT') {$output = Run "$language folded JIT" $xl @('run',$source,'--',$outputFile)}
+-            else {$output = Run "$language folded $engine" $target @($outputFile)}
+-            if ($output -cne $expected) {throw 'Folded example output differs'}
+-            $null = Run "$language $engine independent canonical bytes" $python @('-I','release/extlibs/vcard/test/check_folded.py',$outputFile)
+-        }
+-    }
+-    if (!$SkipAot) {
+-        foreach ($source in @('release/extlibs/vcard/test/test_utf8_folding.c','release/extlibs/vcard/test/utf8_folding.xl')) {
+-            $target = Join-Path $work ([IO.Path]::GetFileName($source) + '.exe')
+-            $null = Run "$source AOT build" $xl @('build',$source,'-o',$target)
+-            $null = Run "$source AOT" $target @()
+-        }
+-        $target = Join-Path $work 'original_c.exe'
+-        $null = Run 'original C AOT build' $xl @('build','release/extlibs/vcard/examples/vcard.c','-o',$target)
+-        $output = Run 'original C AOT' $target @((Join-Path $work 'aot-c.vcf'))
+-        if ($output -cne $cOutput -or (Get-FileHash (Join-Path $work 'aot-c.vcf')).Hash -ne (Get-FileHash $cFile).Hash) {throw 'Original C AOT/GCC mismatch'}
+-    }
+-    VerifyInputs
+-
+-    # 原字典创建是必须通过的正例；M1 不能改为预期错误或用原生 parse 对象替代。
+-    foreach ($source in @('test/cases/extlib_vcard.xl','test/cases/extlib_vcard_boundaries.xl',
+-        'release/extlibs/vcard/test/control_characters.xl','release/extlibs/vcard/test/allocations.xl',
+-        'release/extlibs/vcard/test/uri_values.xl','release/extlibs/vcard/test/structure.xl',
+-        'release/extlibs/vcard/test/limits.xl')) {
+-        $null = Run $source $xl @('run',$source)
+-    }
+-    $xlangFile = Join-Path $work 'xlang.vcf'
+-    $xlangOutput = Run 'original XLang example' $xl @('run','release/examples/extlibs/vcard.xl','--',$xlangFile)
+-    if ($xlangOutput -cne $cOutput -or (Get-FileHash $xlangFile).Hash -ne (Get-FileHash $cFile).Hash) {throw 'Original C/XLang example mismatch'}
+-    if (!$SkipAot) {
+-        $core = Join-Path $work 'core.exe'
+-        $null = Run 'original XLang core AOT build' $xl @('build','release/extlibs/vcard/test/aot_core.xl','-o',$core)
+-        $null = Run 'original XLang core AOT' $core @()
+-        $target = Join-Path $work 'original_xlang.exe'
+-        $file = Join-Path $work 'aot.vcf'
+-        $null = Run 'original XLang example AOT build' $xl @('build','release/examples/extlibs/vcard.xl','-o',$target)
+-        $output = Run 'original XLang example AOT' $target @($file)
+-        if ($output -cne $cOutput -or (Get-FileHash $file).Hash -ne (Get-FileHash $cFile).Hash) {throw 'Original XLang AOT/C example mismatch'}
+-    }
+-    VerifyInputs
+-    $passed = $true
+-    if ($SkipAot) {Write-Output 'vcard Windows C/XLang (AOT skipped) gate: PASS'}
+-    else {Write-Output 'vcard Windows full C/XLang/AOT gate: PASS'}
+-} catch {
+-    [IO.File]::WriteAllText((Join-Path $work 'failure.txt'),$_.Exception.Message,[Text.UTF8Encoding]::new($false))
+-    throw
+-} finally {
+-    Pop-Location
+-    $resolved = [IO.Path]::GetFullPath($work)
+-    if (!$resolved.StartsWith($safeRoot + [IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase) -or
+-        !([IO.Path]::GetFileName($resolved)).StartsWith('vcard_guard_')) {throw 'Unsafe vcard cleanup path'}
+-    [ordered]@{passed=$passed;inputs=$hashes;checks=$checks} | ConvertTo-Json -Depth 10 |
+-        Set-Content ($work + '.report.json') -Encoding UTF8
+-    if ($passed) {Remove-Item -LiteralPath $resolved -Recurse -Force}
+-    else {Write-Warning "vcard failure artifacts retained: $resolved"}
+-}
++$runtime = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../..')).Path
++$root = (Resolve-Path -LiteralPath (Join-Path $runtime '../..')).Path
++$arguments = @((Join-Path $root 'tools/check_vcard_read_views.py'), '--runtime', $runtime)
++if ($SkipAot) { $arguments += '--skip-aot' }
++& python @arguments
++exit $LASTEXITCODE
+--- a/extlibs/vcard/test/check.sh
++++ b/extlibs/vcard/test/check.sh
+@@ -1,130 +1,5 @@
+ #!/usr/bin/env bash
+ set -Eeuo pipefail
+-
+-root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../../.." && pwd)
+-cd "$root"
+-work=$(mktemp -d "${TMPDIR:-/tmp}/xlang-vcard-XXXXXX")
+-cleanup() {
+-    result=$?
+-    trap - EXIT
+-    set +e
+-    if ((result == 0)); then rm -rf -- "$work" || result=$?
+-    else printf '[vcard] FAIL exit=%s artifacts=%s\n' "$result" "$work" >&2; fi
+-    exit "$result"
+-}
+-trap cleanup EXIT
+-record_failure() {
+-    if [[ ! -s "$work/failure.txt" ]]; then
+-        printf 'exit=%s\nline=%s\ncommand=%s\n' "$@" > "$work/failure.txt"
+-    fi
+-}
+-trap 'record_failure "$?" "$LINENO" "$BASH_COMMAND"' ERR
+-exec > >(tee "$work/output.log") 2>&1
+-cc=${CC:-gcc}
+-python=${PYTHON:-python3}
+-export LC_ALL=C
+-run() {
+-    printf '%q ' "$@" > "$work/last-command.txt"
+-    printf '\n' >> "$work/last-command.txt"
+-    timeout 180s "$@"
+-}
+-mapfile -d '' inputs < <(find release/extlibs/vcard release/include -type f -print0)
+-inputs+=(lib/xrt/xrt.h lib/xruntime/xruntime.h release/xl release/libxl.so release/libxlc.so
+-    test/cases/extlib_vcard.xl test/cases/extlib_vcard_boundaries.xl release/examples/extlibs/vcard.xl)
+-sha256sum "${inputs[@]}" > "$work/inputs.before.sha256"
+-run "$cc" --version > "$work/compiler.txt"
+-cc1=$(run "$cc" -print-prog-name=cc1)
+-sha256sum "$(command -v "$cc")" "$cc1" "$(command -v "$python")" >> "$work/inputs.before.sha256"
+-run "$python" --version > "$work/python.txt"
+-flags=(-std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt
+-       -Irelease/extlibs/vcard/include -fsanitize=address,undefined
+-       -fno-omit-frame-pointer -fno-pie -no-pie -pthread)
+-export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1
+-export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
+-run "$cc" "${flags[@]}" -fsyntax-only -DXRT_MODULE_BUFFER -DXRT_MODULE_UNICODE \
+-    -DXRT_MODULE_VALUE_CONTAINER release/extlibs/vcard/vcard_native.c \
+-    release/extlibs/vcard/vcard_parse.c release/extlibs/vcard/vcard_build.c
+-run "$cc" "${flags[@]}" -c release/extlibs/vcard/test/xrt_runtime.c -o "$work/runtime.o"
+-objects=("$work/runtime.o")
+-for unit in vcard_native vcard_parse vcard_build; do
+-    run "$cc" "${flags[@]}" -c "release/extlibs/vcard/$unit.c" -o "$work/$unit.o"
+-    objects+=("$work/$unit.o")
+-done
+-for name in test_vcard test_utf8_folding; do
+-    run "$cc" "${flags[@]}" "release/extlibs/vcard/test/$name.c" "${objects[@]}" -lm -ldl -o "$work/$name"
+-    args=()
+-    if [[ "$name" == test_vcard ]]; then args=("$work/long.vcf" "$work/four.vcf"); fi
+-    run "$work/$name" "${args[@]}"
+-done
+-xl=./release/xl
+-run "$xl" run release/extlibs/vcard/test/test_utf8_folding.c
+-run "$xl" run release/extlibs/vcard/test/utf8_folding.xl
+-run "$xl" cgen release/extlibs/vcard/test/utf8_folding.xl --emit "$work/generated.c"
+-grep -E '^extern [^;]*\bxv_(parse|build)\(' "$work/generated.c" > "$work/prototypes.txt"
+-[[ $(wc -l < "$work/prototypes.txt") == 2 ]]
+-printf '#include "vcard_native.h"\n' > "$work/abi.c"
+-cat "$work/prototypes.txt" >> "$work/abi.c"
+-run "$cc" "${flags[@]}" -fsyntax-only "$work/abi.c"
+-sed 's/^extern .* xv_parse(/extern int xv_parse(/' "$work/abi.c" > "$work/wrong.c"
+-if run "$cc" "${flags[@]}" -fsyntax-only "$work/wrong.c" > "$work/wrong.log" 2>&1; then
+-    printf 'wrong parse return accepted\n' >&2; exit 1
+-else [[ $? == 1 ]]; fi
+-grep -q 'conflicting types' "$work/wrong.log"
+-
+-run "$cc" "${flags[@]}" release/extlibs/vcard/examples/vcard.c "${objects[@]}" -lm -ldl -o "$work/original"
+-run "$work/original" "$work/c.vcf" > "$work/c.out"
+-run "$xl" run release/extlibs/vcard/examples/vcard.c -- "$work/direct.vcf" > "$work/direct.out"
+-diff -u "$work/c.out" "$work/direct.out"
+-cmp "$work/c.vcf" "$work/direct.vcf"
+-for engine in GCC JIT; do
+-    if [[ "$engine" == GCC ]]; then command=("$work/original")
+-    else command=("$xl" run release/extlibs/vcard/examples/vcard.c --); fi
+-    if run "${command[@]}" "$work" > "$work/failed-write.out" 2> "$work/failed-write.err"; then
+-        printf 'failed write returned success\n' >&2; exit 1
+-    else [[ $? == 1 ]]; fi
+-    [[ ! -s "$work/failed-write.out" && ! -s "$work/failed-write.err" ]]
+-done
+-
+-run "$cc" "${flags[@]}" release/extlibs/vcard/examples/folded_contact_c.c "${objects[@]}" -lm -ldl -o "$work/folded_gcc"
+-run "$work/folded_gcc" "$work/folded_gcc.vcf" > "$work/folded_gcc.out"
+-diff -u release/extlibs/vcard/examples/folded_contact.expected.txt "$work/folded_gcc.out"
+-run "$python" -I release/extlibs/vcard/test/check_folded.py "$work/folded_gcc.vcf"
+-for source in release/extlibs/vcard/examples/folded_contact_c.c release/extlibs/vcard/examples/folded_contact.xl; do
+-    name=$(basename "$source")
+-    run "$xl" run "$source" -- "$work/$name.jit.vcf" > "$work/$name.jit.out"
+-    diff -u release/extlibs/vcard/examples/folded_contact.expected.txt "$work/$name.jit.out"
+-    run "$xl" build "$source" -o "$work/$name.exe"
+-    run "$work/$name.exe" "$work/$name.aot.vcf" > "$work/$name.aot.out"
+-    diff -u release/extlibs/vcard/examples/folded_contact.expected.txt "$work/$name.aot.out"
+-    run "$python" -I release/extlibs/vcard/test/check_folded.py "$work/$name.jit.vcf" "$work/$name.aot.vcf"
+-done
+-for source in release/extlibs/vcard/test/test_utf8_folding.c release/extlibs/vcard/test/utf8_folding.xl; do
+-    name=$(basename "$source")
+-    run "$xl" build "$source" -o "$work/$name.exe"
+-    run "$work/$name.exe"
+-done
+-run "$xl" build release/extlibs/vcard/examples/vcard.c -o "$work/original_c"
+-run "$work/original_c" "$work/aot-c.vcf" > "$work/aot-c.out"
+-diff -u "$work/c.out" "$work/aot-c.out"
+-cmp "$work/c.vcf" "$work/aot-c.vcf"
+-sha256sum -c "$work/inputs.before.sha256" > "$work/inputs.after.txt"
+-printf 'vcard focused UTF8/C/XLang/AOT checks: PASS; full gate continues\n'
+-
+-# 原字典创建保持为必须通过的正例；不改写成原生 parse 对象来规避 M1。
+-for source in test/cases/extlib_vcard.xl test/cases/extlib_vcard_boundaries.xl \
+-    release/extlibs/vcard/test/control_characters.xl release/extlibs/vcard/test/allocations.xl \
+-    release/extlibs/vcard/test/uri_values.xl release/extlibs/vcard/test/structure.xl \
+-    release/extlibs/vcard/test/limits.xl; do
+-    run "$xl" run "$source"
+-done
+-run "$xl" run release/examples/extlibs/vcard.xl -- "$work/xlang.vcf" > "$work/xlang.out"
+-diff -u "$work/c.out" "$work/xlang.out"
+-cmp "$work/c.vcf" "$work/xlang.vcf"
+-run "$xl" build release/extlibs/vcard/test/aot_core.xl -o "$work/core"
+-run "$work/core"
+-run "$xl" build release/examples/extlibs/vcard.xl -o "$work/original_xlang"
+-run "$work/original_xlang" "$work/aot.vcf" > "$work/aot.out"
+-diff -u "$work/c.out" "$work/aot.out"
+-cmp "$work/c.vcf" "$work/aot.vcf"
+-sha256sum -c "$work/inputs.before.sha256" > "$work/inputs.after.txt"
+-printf 'vcard Linux C ASan/UBSan, XLang JIT and bilingual AOT gate: PASS\n'
++runtime=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd)
++root=$(cd -- "$runtime/../.." && pwd)
++exec "${PYTHON:-python3}" "$root/tools/check_vcard_read_views.py" --runtime "$runtime" --sanitize "$@"
+--- a/extlibs/vcard/test/read_views.xl
++++ b/extlibs/vcard/test/read_views.xl
+@@ -0,0 +1,55 @@
++import vcard
++
++// 原生字典、标准 XRT 对象和两者的混合表示必须产生相同字节。
++func main(...) as int
++    string minimal = "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:A\r\nEND:VCARD\r\n"
++    assert vcard.build({"fn":"A"}) == minimal
++    dict<string> typed = {"fn":"A"}
++    assert vcard.build(typed) == minimal
++    var wire = vcard.parse(minimal)
++    assert vcard.build(wire) == minimal
++
++    array<string> emails = array["a@example.com","b@example.com"]
++    string expected = "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:A\r\nEMAIL:a@example.com\r\nEMAIL:b@example.com\r\nEND:VCARD\r\n"
++    var native = {"fn":"A","email":emails}
++    assert vcard.build(native) == expected
++    wire["email"] = emails
++    assert vcard.build(wire) == expected
++    // 同一数组可由两个字段共享，前一字段的读作用域必须已经结束。
++    native["tel"] = emails
++    assert vcard.build(native).contains("TEL:a@example.com\r\n")
++    // 序列化结束后，原始字典和数组均必须可继续修改。
++    native["fn"] = "B"
++    emails.push("c@example.com")
++    assert vcard.build(native).contains("FN:B\r\n")
++
++    var invalid = {"fn":"A","email":array[1]}
++    int rejected = 0
++    try
++        vcard.build(invalid)
++    catch e
++        rejected += 1
++    end
++    // 字段错误后同样释放所有作用域；修正原字典后可再次序列化。
++    invalid["email"] = array["ok@example.com"]
++    assert vcard.build(invalid).contains("EMAIL:ok@example.com\r\n")
++    try
++        vcard.build({"fn":"A","email":array[]})
++    catch e
++        rejected += 1
++    end
++    try
++        vcard.build({"fn":"A","email":{"nested":"bad"}})
++    catch e
++        rejected += 1
++    end
++    try
++        vcard.build({"fn":"A","unknown":"bad"})
++    catch e
++        rejected += 1
++    end
++    assert rejected == 4
++    assert vcard.build({"fn":"A"}) == minimal
++    println("vcard read views: PASS")
++    return 0
++end
+--- a/extlibs/vcard/test/test_utf8_folding.c
++++ b/extlibs/vcard/test/test_utf8_folding.c
+@@ -7,6 +7,9 @@
+ #include <string.h>
+ 
+ #ifdef __TINYC__
++#define XL_VALUE_READ_WIRE_ONLY
++#define XL_VALUE_READ_WIRE_IMPLEMENTATION
++#include "../../_common/xl_value_read_wire.h"
+ #include "../vcard_native.c"
+ #include "../vcard_parse.c"
+ #include "../vcard_build.c"
+--- a/extlibs/vcard/test/xrt_runtime.c
++++ b/extlibs/vcard/test/xrt_runtime.c
+@@ -1,3 +1,6 @@
+ #define XRT_MODULE_ALL
+ #define XRT_IMPLEMENTATION
+ #include "xrt.h"
++
++#define XL_VALUE_READ_WIRE_IMPLEMENTATION
++#include "../../_common/xl_value_read_wire.h"
+--- a/extlibs/vcard/vcard_build.c
++++ b/extlibs/vcard/vcard_build.c
+@@ -1,6 +1,11 @@
+ /* vCard 常用字段文本生成：按 UTF-8 字符边界折行，结果独立持有。 */
+ #include "vcard_internal.h"
+ #include "include/vcard_native.h"
++#ifdef XL_VALUE_READ_WIRE_ONLY
++#include "../_common/xl_value_read_wire.h"
++#else
++#include <xl_value_read.h>
++#endif
+ 
+ #include <string.h>
+ 
+@@ -37,58 +42,94 @@
+     return xv_literal(output, "\r\n");
+ }
+ 
++static int xv_present(XL_ValueBorrowV1 value) {
++    return value.ref != NULL || value.kind != XVALUE_NULL;
++}
++
++static int xv_text(XL_ValueBorrowV1 value, xstrview *text) {
++    if (value.kind != XVALUE_STRING) {
++        xrtSetErrorKind(XERR_TYPE);
++        return 0;
++    }
++    *text = value.data.text;
++    return 1;
++}
++
+ static int xv_emit_value(xbuffer *output, const XvProperty *property,
+-    const xvalue *value) {
++    XL_ValueBorrowV1 value) {
+     xstrview text;
+-    if (value == NULL || !xrtValueGetString(value, &text)) return 0;
+-    return xv_emit(output, property, text);
++    return xv_text(value, &text) && xv_emit(output, property, text);
+ }
+ 
+ void *xv_build(xvalue *card) {
+-    xbuffer output;
+-    xvalue *value;
++    xbuffer output = {0};
++    XL_ValueReadV1 object = {0}, array = {0};
++    XL_ValueBorrowV1 value;
++    int initialized = 0;
++    void *result = NULL;
+     xstrview text;
+     const char *version = "3.0";
+     size_t i;
+     xrtClearError();
+-    if (card == NULL || xrtValueType(card) != XVALUE_OBJECT) goto invalid;
+-    value = xrtValueObjectGet(card, (xstrview){"version", 7});
+-    if (value != NULL && (!xrtValueGetString(value, &text) ||
++    if (card == NULL || (xrtValueType(card) != XVALUE_OBJECT &&
++            xrtValueType(card) != XVALUE_HANDLE)) goto invalid;
++    if (!xlValueReadBeginV1(xlValueBorrowV1(card), &object) ||
++            object.kind != XVALUE_OBJECT) goto invalid;
++    value = xlValueReadFindV1(&object, (xstrview){"version", 7});
++    if (xrtGetError()) goto invalid;
++    if (xv_present(value) && (!xv_text(value, &text) ||
+             text.Size != 3 ||
+             (memcmp(text.Data, "3.0", 3) != 0 &&
+              memcmp(text.Data, "4.0", 3) != 0))) goto invalid;
+-    if (value != NULL) version = text.Data;
+-    value = xrtValueObjectGet(card, (xstrview){"fn", 2});
+-    if (value == NULL || !xrtValueGetString(value, &text) || text.Size == 0) goto invalid;
+-    for (i = 0; i < (size_t)xrtValueCount(card); ++i) {
+-        xstrview key;
+-        xrtValueObjectAt(card, i, &key);
++    if (xv_present(value)) version = text.Data;
++    value = xlValueReadFindV1(&object, (xstrview){"fn", 2});
++    if (xrtGetError() || !xv_present(value) || !xv_text(value, &text) || text.Size == 0) goto invalid;
++    for (i = 0; i < object.count; ++i) {
++        xstrview key = {0};
++        (void)xlValueReadAtV1(&object, i, &key);
++        if (xrtGetError()) goto invalid;
+         if ((key.Size == 7 && memcmp(key.Data, "version", 7) == 0) ||
+             xv_property_key(key.Data, key.Size) != NULL) continue;
+         goto invalid;
+     }
+-    if (!xrtBufferInit(&output)) return NULL;
++    if (!xrtBufferInit(&output)) goto invalid;
++    initialized = 1;
+     if (!xv_literal(&output, "BEGIN:VCARD\r\nVERSION:") ||
+-        !xv_append(&output, version, 3) || !xv_literal(&output, "\r\n")) goto failed;
++        !xv_append(&output, version, 3) || !xv_literal(&output, "\r\n")) goto invalid;
+     for (i = 0; i < xv_property_count; ++i) {
+         const XvProperty *property = xv_properties + i;
+-        value = xrtValueObjectGet(card,
++        value = xlValueReadFindV1(&object,
+             (xstrview){property->key, strlen(property->key)});
+-        if (value == NULL) continue;
+-        if (xrtValueType(value) == XVALUE_ARRAY) {
+-            int64_t j, count = xrtValueCount(value);
+-            if (count == 0 || property == xv_properties) goto failed;
+-            for (j = 0; j < count; ++j) {
+-                if (!xv_emit_value(&output, property, xrtValueArrayAt(value, j))) goto failed;
++        if (xrtGetError()) goto invalid;
++        if (!xv_present(value)) continue;
++        if (value.kind == XVALUE_ARRAY || value.kind == XVALUE_HANDLE) {
++            /* A native array is a HANDLE until its resident policy is
++             * authenticated. Never inspect its payload or create a snapshot. */
++            if (!xlValueReadBeginV1(value, &array) || array.kind != XVALUE_ARRAY ||
++                    array.count == 0 || property == xv_properties) goto invalid;
++            for (size_t j = 0; j < array.count; ++j) {
++                XL_ValueBorrowV1 item = xlValueReadAtV1(&array, j, NULL);
++                if (xrtGetError() || !xv_emit_value(&output, property, item)) goto invalid;
+             }
+-        } else if (!xv_emit_value(&output, property, value)) goto failed;
++            if (!xlValueReadEndV1(&array)) goto invalid;
++        } else if (!xv_emit_value(&output, property, value)) goto invalid;
+     }
+-    if (!xv_literal(&output, "END:VCARD\r\n")) goto failed;
+-    if (!xrtBufferAppendByte(&output, 0)) goto failed;
+-    return xrtBufferTake(&output, NULL, NULL);
+-failed:
+-    xrtBufferUnit(&output);
++    if (!xv_literal(&output, "END:VCARD\r\n") ||
++            !xrtBufferAppendByte(&output, 0)) goto invalid;
++    result = xrtBufferTake(&output, NULL, NULL);
++    if (result != NULL) goto cleanup;
+ invalid:
+     if (xrtGetError() == NULL) xv_error("invalid vCard field or output exceeds 4 MiB");
+-    return NULL;
++cleanup:
++    {
++        /* End every successful scope, including OOM/error paths. Preserve the
++         * original failure while cleanup operates on the borrowed owners. */
++        xerror *failure = xrtTakeError();
++        if (initialized) xrtBufferUnit(&output);
++        int ended = xlValueReadEndV1(&array);
++        if (!xlValueReadEndV1(&object)) ended = 0;
++        if (!ended) { xrtFree(result); result = NULL; }
++        if (failure) { xrtClearError(); xrtSetErrorTake(failure); }
++    }
++    return result;
+ }
+--- a/extlibs/vcard/xlang.package.json
++++ b/extlibs/vcard/xlang.package.json
+@@ -6,6 +6,7 @@
+     "kind": "demo6-extlib",
+     "artifact": {
+         "kind": "source",
++        "runtimeSymbols": ["xlValueBorrowV1", "xlValueReadBeginV1", "xlValueReadEndV1", "xlValueReadAtV1", "xlValueReadFindV1"],
+         "includeDirs": ["include"],
+         "cSources": ["vcard_native.c", "vcard_parse.c", "vcard_build.c"],
+         "xrtModules": ["XRT_MODULE_BUFFER", "XRT_MODULE_UNICODE", "XRT_MODULE_VALUE_CONTAINER"],
+@@ -14,6 +15,6 @@
+     "links": [],
+     "loadlibs": [],
+     "dependencies": [],
+-    "coverage": { "mode": "suite", "tests": ["test/control_characters.xl", "test/allocations.xl", "test/uri_values.xl", "test/structure.xl", "test/limits.xl", "test/utf8_folding.xl"] },
++    "coverage": { "mode": "suite", "tests": ["test/read_views.xl", "test/control_characters.xl", "test/allocations.xl", "test/uri_values.xl", "test/structure.xl", "test/limits.xl", "test/utf8_folding.xl"] },
+     "native": { "singleton": false, "loadName": "", "version": "" }
+ }

@@ -1,0 +1,122 @@
+[
+  {
+    "path": "docs/site.html",
+    "sha256": "8f6e49cf9d4f7225e74cb8271c8663d4f11778d1fd4665cf0cb89daafae11fad"
+  },
+  {
+    "path": "examples/folded_contact.expected.txt",
+    "sha256": "8d38fe0a1738793cc64ee5e7d87f5c5f6669bdc80d9a37435c704f386344ec7e"
+  },
+  {
+    "path": "examples/folded_contact.xl",
+    "sha256": "fc0f3a38bca46002327ce3106368d30aff8f5edf45bb02ece2c55e4c7b6c8236"
+  },
+  {
+    "path": "examples/folded_contact_c.c",
+    "sha256": "c63fb89bb011825e5fb4cc03b51b159e3755bc0ba4872c778bc7cae5c202f61c"
+  },
+  {
+    "path": "examples/README.md",
+    "sha256": "1ff684715bdbfa3b9eae69b089ea4fea8e19a464afd16d60c88baa7e00b770fa"
+  },
+  {
+    "path": "examples/vcard.c",
+    "sha256": "7f5cf9e65c9f7aecbd90f4a102c8640043b73532db60cb5cedabc8653ddeb142"
+  },
+  {
+    "path": "include/vcard_native.h",
+    "sha256": "776bd9c7d490f7d4aebce39b1f2e19dced854150319e31034e9e0bf5ca9d68be"
+  },
+  {
+    "path": "README.md",
+    "sha256": "9e740ccbd0a0e4a1b3413f9b98bb0e62c76c7458809d91f9e5f2c61c87371070"
+  },
+  {
+    "path": "src/vcard.xl",
+    "sha256": "d9700b33e79704cb3d3c990b363293d53c1c2f346232b5ea87484b7a244595b9"
+  },
+  {
+    "path": "test/allocations.xl",
+    "sha256": "b31b6d0fb2f9b8ca8666ae538a26dd9db2729afecba4dfbfe25b917e3d0636a1"
+  },
+  {
+    "path": "test/aot_core.xl",
+    "sha256": "89499747bb799d28cf4c554c525637f48a425b025177a8cbe62d0a05a8af85c0"
+  },
+  {
+    "path": "test/check.ps1",
+    "sha256": "bd8baed98aaa0aa51505b33da9af3479155dc6d12bbff3152e3b80b21282f027"
+  },
+  {
+    "path": "test/check.sh",
+    "sha256": "a548a8b9b676ef4b398b643a792227142fccb9d792d9eeb87a98e5c0681961fe"
+  },
+  {
+    "path": "test/check_external.py",
+    "sha256": "0603ccd99e642e2eb8304c9818ad24e75ce5b7a83b343c3f6edb096332cff961"
+  },
+  {
+    "path": "test/check_folded.py",
+    "sha256": "67cd8cabc4b6a5a298c39500549213e188ed05bbd8a1ac638aa23861a23d7b56"
+  },
+  {
+    "path": "test/control_characters.xl",
+    "sha256": "ef2a49349faf230bc40489fa61876c647b956e615ed36b432a5837d4e9347347"
+  },
+  {
+    "path": "test/limits.xl",
+    "sha256": "c1cae1029eb32f5360c54ab54ee2a7abc3edecebb72d3ff188514449a24a2f6d"
+  },
+  {
+    "path": "test/structure.xl",
+    "sha256": "114b1d276bf4204565f3e72e3d649c4766b6c7c6e46157409476389c9ca721db"
+  },
+  {
+    "path": "test/test_utf8_folding.c",
+    "sha256": "ff3bdd496ad1c93b17cc04c37719a6cc6fb0bc2c1c3933b86256379ef457719e"
+  },
+  {
+    "path": "test/test_vcard.c",
+    "sha256": "dd3463b8af5509855cf5361846ed144ff714a1b59e4c2483dc8c86ad031ee8a4"
+  },
+  {
+    "path": "test/uri_values.xl",
+    "sha256": "f2fb5a51648159ea620337eedca3b62fdb66fd5b55810bf777d1510b6c27772c"
+  },
+  {
+    "path": "test/utf8_folding.c",
+    "sha256": "e809f52d1986063b19824aefa03f9cad5d81eb6a0f264240c4f9316a63e94c3c"
+  },
+  {
+    "path": "test/utf8_folding.xl",
+    "sha256": "b31d82ab336401dfa08c409ff62c2ff13d4aacc69ba7e21dbb870ebef2f65975"
+  },
+  {
+    "path": "test/xrt_runtime.c",
+    "sha256": "152349a7e36da9892b98207a25e9f421fd3ba121f20c4580201913a984224444"
+  },
+  {
+    "path": "UTF8_FOLDING_AUDIT_2026-10-30.md",
+    "sha256": "dd1d091eaec5aaae9c22601213c06b79110d16d2987c0c25f9212cb6a7026854"
+  },
+  {
+    "path": "vcard_build.c",
+    "sha256": "2b37144bc3d5ca73cb2d048e909b6e2eb4a1c258e903c5e48e67c671b9cf0213"
+  },
+  {
+    "path": "vcard_internal.h",
+    "sha256": "7c1bdac52a86cf741d23f9b2208b0bf781751e59a886c840edb95a782b6436de"
+  },
+  {
+    "path": "vcard_native.c",
+    "sha256": "7921af643a44ea4961c6722343270e8ad1f5b72523abb769fde8a7cdee7db277"
+  },
+  {
+    "path": "vcard_parse.c",
+    "sha256": "f5307cb644fbef561d8a0b27395efcf4ad53d7ff8d61da89ba1c91347a2981f1"
+  },
+  {
+    "path": "xlang.package.json",
+    "sha256": "d82949377c3a5bd042f76f1c920c787d6c6da4e9ae1e8bda76c7455ece4433b7"
+  }
+]

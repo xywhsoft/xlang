@@ -6543,6 +6543,11 @@
       "path": "dev/release-materials/provenance/ide-update-v3-publish-20261109/receipt.json",
       "sha256": "f869edbad7f27801e51cd77ef22c079e81783b3eb4406b4519412a221e0f96da",
       "bytes": 3257
+    },
+    "vcardReadViews": {
+      "path": "dev/release-materials/provenance/vcard-read-views-20261109/receipt.json",
+      "sha256": "a00896669cb03a1291da3b627297424a1c34e406aa2eab739a62c152b634d6ed",
+      "bytes": 48225
     }
   },
   "remaining": {
@@ -7251,5 +7256,10 @@
     "path": "dev/release-materials/provenance/release-0.6.2-20261109/receipt.json",
     "sha256": "5964cbeed5ef534d030e7b8e114f685f33c48153db01e555cc892dbe05645cea",
     "bytes": 11765
+  },
+  "vcardReadViews": {
+    "path": "dev/release-materials/provenance/vcard-read-views-20261109/receipt.json",
+    "sha256": "a00896669cb03a1291da3b627297424a1c34e406aa2eab739a62c152b634d6ed",
+    "bytes": 48225
   }
 }

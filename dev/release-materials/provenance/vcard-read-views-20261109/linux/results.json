@@ -1,0 +1,1194 @@
+{
+  "passed": true,
+  "runtime": "/mnt/d/GIT/x-lang/release/linux_x64",
+  "sanitize": true,
+  "inputs": {
+    "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/README.md": "0bf75a3707787cf52c0935c1dd0640619e29c70b70e1939f065dcfec82581cbc",
+    "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/UTF8_FOLDING_AUDIT_2026-10-30.md": "dd1d091eaec5aaae9c22601213c06b79110d16d2987c0c25f9212cb6a7026854",
+    "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/vcard_build.c": "8bd3fafb89116058f406b0e87fb3eb7199dd17e475d03db4b3843255eed7cf59",
+    "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/vcard_internal.h": "7c1bdac52a86cf741d23f9b2208b0bf781751e59a886c840edb95a782b6436de",
+    "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/vcard_native.c": "7921af643a44ea4961c6722343270e8ad1f5b72523abb769fde8a7cdee7db277",
+    "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/vcard_parse.c": "f5307cb644fbef561d8a0b27395efcf4ad53d7ff8d61da89ba1c91347a2981f1",
+    "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/xlang.package.json": "464a5a1e6ab13eb3b91173c8075b2b703aa8e48048af1508588ac6db36c1831a",
+    "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/docs/site.html": "8f6e49cf9d4f7225e74cb8271c8663d4f11778d1fd4665cf0cb89daafae11fad",
+    "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/examples/folded_contact.expected.txt": "8d38fe0a1738793cc64ee5e7d87f5c5f6669bdc80d9a37435c704f386344ec7e",
+    "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/examples/folded_contact.xl": "fc0f3a38bca46002327ce3106368d30aff8f5edf45bb02ece2c55e4c7b6c8236",
+    "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/examples/folded_contact_c.c": "6885f436951d30d0c63fdc8831c1651a5f8de07e69501d822eff56f7271e2914",
+    "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/examples/README.md": "1ff684715bdbfa3b9eae69b089ea4fea8e19a464afd16d60c88baa7e00b770fa",
+    "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/examples/vcard.c": "404b6d1173fb6734bd82dd1eebe2c645326918876c87ced74418a579a60d2305",
+    "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/include/vcard_native.h": "776bd9c7d490f7d4aebce39b1f2e19dced854150319e31034e9e0bf5ca9d68be",
+    "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/src/vcard.xl": "d9700b33e79704cb3d3c990b363293d53c1c2f346232b5ea87484b7a244595b9",
+    "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/allocations.xl": "c422c848c8478aa49a0396ec021cb7126b1530d54de56bfd3b8fb797085901dc",
+    "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/aot_core.xl": "89499747bb799d28cf4c554c525637f48a425b025177a8cbe62d0a05a8af85c0",
+    "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/check.ps1": "24a28b5d426f03e612d1894b5cb587900f31328ae667483ce153a5e733533acf",
+    "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/check.sh": "7325220334f4c0a47adf6e8b00085db1753e5b956280d805137972c591d29160",
+    "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/check_external.py": "0603ccd99e642e2eb8304c9818ad24e75ce5b7a83b343c3f6edb096332cff961",
+    "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/check_folded.py": "67cd8cabc4b6a5a298c39500549213e188ed05bbd8a1ac638aa23861a23d7b56",
+    "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/control_characters.xl": "ef2a49349faf230bc40489fa61876c647b956e615ed36b432a5837d4e9347347",
+    "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/limits.xl": "c1cae1029eb32f5360c54ab54ee2a7abc3edecebb72d3ff188514449a24a2f6d",
+    "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/read_views.xl": "bd6ef891da2aa8241e77dbe9427d23961714dffdfc406376728d221a7dd35002",
+    "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/structure.xl": "114b1d276bf4204565f3e72e3d649c4766b6c7c6e46157409476389c9ca721db",
+    "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/test_utf8_folding.c": "b4281dc92e914988171258c2cf1b34eb7beefa74bbdd282fd9b6f6536724836a",
+    "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/test_vcard.c": "dd3463b8af5509855cf5361846ed144ff714a1b59e4c2483dc8c86ad031ee8a4",
+    "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/uri_values.xl": "f2fb5a51648159ea620337eedca3b62fdb66fd5b55810bf777d1510b6c27772c",
+    "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/utf8_folding.c": "e809f52d1986063b19824aefa03f9cad5d81eb6a0f264240c4f9316a63e94c3c",
+    "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/utf8_folding.xl": "b31d82ab336401dfa08c409ff62c2ff13d4aacc69ba7e21dbb870ebef2f65975",
+    "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/xrt_runtime.c": "e6373080b89c1835fd6f9b2924f53a40b54f090d8437f13eb30b32274b555cc9",
+    "/mnt/d/GIT/x-lang/release/linux_x64/xl": "faa25e49bdf8c5ce8ccdb084810075b406cc6dd499a59577664616eb2a08265b",
+    "/mnt/d/GIT/x-lang/release/linux_x64/libxl.so": "235f7e46d1e264d33907eb230e920d93e34a34dca583f1b63d6b8b72cd2a66cd",
+    "/mnt/d/GIT/x-lang/release/linux_x64/libxlc.so": "644d740a458440b6626ef96e1a8c7cee22f5510194126d31b04b8ead4f4297d0",
+    "/mnt/d/GIT/x-lang/release/linux_x64/include/xl_value_read.h": "0903296d1123a7948c45c84cd386a6eb519b8bf798766f0e146499f923e927ef",
+    "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/_common/xl_value_read_wire.h": "00105239b9a8c1abc536c4d201a4e67413b825430c38160e5abcbbb375072b1c",
+    "/mnt/d/GIT/x-lang/lib/xrt/xrt.h": "41bc24579f4b3207b0434755ca23dd06481af90c05f71e9b365848cf9a7c12d1",
+    "/mnt/d/GIT/x-lang/test/cases/extlib_vcard.xl": "e66b9907c47f051a677c643901f1131404984a005212e453ade9a99f548db6fe",
+    "/mnt/d/GIT/x-lang/test/cases/extlib_vcard_boundaries.xl": "8faeb9fa55e1b20bf44fcf1a8047454873e4dfd87a3a5d7d66a699abd7d62767",
+    "/mnt/d/GIT/x-lang/test/cases/extlib_vcard_read_views.xl": "1e990ba643607ca77fe407f65dd8f094056325d4d0d5ebce5f71b423f6a2fac5",
+    "/mnt/d/GIT/x-lang/release/linux_x64/examples/extlibs/vcard.xl": "8f70f57dac46c5b08788718fc54717c0f0de7a214eafa83855aae8a7f03e7051"
+  },
+  "rows": [
+    {
+      "name": "gcc-version",
+      "command": [
+        "/usr/bin/gcc",
+        "--version"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.017,
+      "logSha256": "6e876a25bb7fdb71ab2914e8f1eeaa00cc61d20a36a6c2981ab7d4d7ceab42f8"
+    },
+    {
+      "name": "compile-xrt_runtime",
+      "command": [
+        "/usr/bin/gcc",
+        "-std=c11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-O2",
+        "-DXL_VALUE_READ_WIRE_ONLY",
+        "-I/mnt/d/GIT/x-lang/lib/xrt",
+        "-I/mnt/d/GIT/x-lang/release/linux_x64/include",
+        "-I/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/include",
+        "-O1",
+        "-g",
+        "-fsanitize=address,undefined",
+        "-fno-omit-frame-pointer",
+        "-fno-pie",
+        "-no-pie",
+        "-D_GNU_SOURCE",
+        "-pthread",
+        "-c",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/xrt_runtime.c",
+        "-o",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/xrt_runtime.o"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 80.144,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "compile-vcard_native",
+      "command": [
+        "/usr/bin/gcc",
+        "-std=c11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-O2",
+        "-DXL_VALUE_READ_WIRE_ONLY",
+        "-I/mnt/d/GIT/x-lang/lib/xrt",
+        "-I/mnt/d/GIT/x-lang/release/linux_x64/include",
+        "-I/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/include",
+        "-O1",
+        "-g",
+        "-fsanitize=address,undefined",
+        "-fno-omit-frame-pointer",
+        "-fno-pie",
+        "-no-pie",
+        "-D_GNU_SOURCE",
+        "-pthread",
+        "-c",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/vcard_native.c",
+        "-o",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/vcard_native.o"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.439,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "compile-vcard_parse",
+      "command": [
+        "/usr/bin/gcc",
+        "-std=c11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-O2",
+        "-DXL_VALUE_READ_WIRE_ONLY",
+        "-I/mnt/d/GIT/x-lang/lib/xrt",
+        "-I/mnt/d/GIT/x-lang/release/linux_x64/include",
+        "-I/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/include",
+        "-O1",
+        "-g",
+        "-fsanitize=address,undefined",
+        "-fno-omit-frame-pointer",
+        "-fno-pie",
+        "-no-pie",
+        "-D_GNU_SOURCE",
+        "-pthread",
+        "-c",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/vcard_parse.c",
+        "-o",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/vcard_parse.o"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.62,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "compile-vcard_build",
+      "command": [
+        "/usr/bin/gcc",
+        "-std=c11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-O2",
+        "-DXL_VALUE_READ_WIRE_ONLY",
+        "-I/mnt/d/GIT/x-lang/lib/xrt",
+        "-I/mnt/d/GIT/x-lang/release/linux_x64/include",
+        "-I/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/include",
+        "-O1",
+        "-g",
+        "-fsanitize=address,undefined",
+        "-fno-omit-frame-pointer",
+        "-fno-pie",
+        "-no-pie",
+        "-D_GNU_SOURCE",
+        "-pthread",
+        "-c",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/vcard_build.c",
+        "-o",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/vcard_build.o"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.566,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "c-boundaries-build",
+      "command": [
+        "/usr/bin/gcc",
+        "-std=c11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-O2",
+        "-DXL_VALUE_READ_WIRE_ONLY",
+        "-I/mnt/d/GIT/x-lang/lib/xrt",
+        "-I/mnt/d/GIT/x-lang/release/linux_x64/include",
+        "-I/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/include",
+        "-O1",
+        "-g",
+        "-fsanitize=address,undefined",
+        "-fno-omit-frame-pointer",
+        "-fno-pie",
+        "-no-pie",
+        "-D_GNU_SOURCE",
+        "-pthread",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/test_vcard.c",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/xrt_runtime.o",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/vcard_native.o",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/vcard_parse.o",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/vcard_build.o",
+        "-lm",
+        "-ldl",
+        "-pthread",
+        "-o",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/c-boundaries"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 1.665,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "c-boundaries",
+      "command": [
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/c-boundaries",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/long.vcf",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/four.vcf"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.784,
+      "logSha256": "431addef2434a40c49143badd76c4b41cb8e67451db3ab45c90e6ab54218915b"
+    },
+    {
+      "name": "c-utf8-build",
+      "command": [
+        "/usr/bin/gcc",
+        "-std=c11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-O2",
+        "-DXL_VALUE_READ_WIRE_ONLY",
+        "-I/mnt/d/GIT/x-lang/lib/xrt",
+        "-I/mnt/d/GIT/x-lang/release/linux_x64/include",
+        "-I/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/include",
+        "-O1",
+        "-g",
+        "-fsanitize=address,undefined",
+        "-fno-omit-frame-pointer",
+        "-fno-pie",
+        "-no-pie",
+        "-D_GNU_SOURCE",
+        "-pthread",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/test_utf8_folding.c",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/xrt_runtime.o",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/vcard_native.o",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/vcard_parse.o",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/vcard_build.o",
+        "-lm",
+        "-ldl",
+        "-pthread",
+        "-o",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/c-utf8"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 1.612,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "c-utf8",
+      "command": [
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/c-utf8"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.102,
+      "logSha256": "d65a2af73abb925b3dbc66289aae3d54dac13958b79117d0aae9c621871f1fc1"
+    },
+    {
+      "name": "c-original-build",
+      "command": [
+        "/usr/bin/gcc",
+        "-std=c11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-O2",
+        "-DXL_VALUE_READ_WIRE_ONLY",
+        "-I/mnt/d/GIT/x-lang/lib/xrt",
+        "-I/mnt/d/GIT/x-lang/release/linux_x64/include",
+        "-I/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/include",
+        "-O1",
+        "-g",
+        "-fsanitize=address,undefined",
+        "-fno-omit-frame-pointer",
+        "-fno-pie",
+        "-no-pie",
+        "-D_GNU_SOURCE",
+        "-pthread",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/examples/vcard.c",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/xrt_runtime.o",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/vcard_native.o",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/vcard_parse.o",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/vcard_build.o",
+        "-lm",
+        "-ldl",
+        "-pthread",
+        "-o",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/c-original"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 1.43,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "c-original",
+      "command": [
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/c-original",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/c-original.vcf"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.078,
+      "logSha256": "2fa5dd67c64a8dc745fff3a4d1df693ecdfe3c8707aa1275f6550dcf12c6e2ee"
+    },
+    {
+      "name": "c-folded-build",
+      "command": [
+        "/usr/bin/gcc",
+        "-std=c11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-O2",
+        "-DXL_VALUE_READ_WIRE_ONLY",
+        "-I/mnt/d/GIT/x-lang/lib/xrt",
+        "-I/mnt/d/GIT/x-lang/release/linux_x64/include",
+        "-I/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/include",
+        "-O1",
+        "-g",
+        "-fsanitize=address,undefined",
+        "-fno-omit-frame-pointer",
+        "-fno-pie",
+        "-no-pie",
+        "-D_GNU_SOURCE",
+        "-pthread",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/examples/folded_contact_c.c",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/xrt_runtime.o",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/vcard_native.o",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/vcard_parse.o",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/vcard_build.o",
+        "-lm",
+        "-ldl",
+        "-pthread",
+        "-o",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/c-folded"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 1.417,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "c-folded",
+      "command": [
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/c-folded",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/c-folded.vcf"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.081,
+      "logSha256": "8d38fe0a1738793cc64ee5e7d87f5c5f6669bdc80d9a37435c704f386344ec7e"
+    },
+    {
+      "name": "c-canonical",
+      "command": [
+        "/usr/bin/python3",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/check_folded.py",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/c-folded.vcf"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.087,
+      "logSha256": "840a00c200551c31260182c76ae9d23cf7169fe15ea8b4f5531ce96363877fa5"
+    },
+    {
+      "name": "c-failed-write",
+      "command": [
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/c-original",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final"
+      ],
+      "exitCode": 1,
+      "expected": 1,
+      "passed": true,
+      "seconds": 0.078,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "actual-c-abi",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "cgen",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/examples/folded_contact.xl",
+        "--emit",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/generated.c"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.111,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "native-header-abi",
+      "command": [
+        "/usr/bin/gcc",
+        "-std=c11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-O2",
+        "-DXL_VALUE_READ_WIRE_ONLY",
+        "-I/mnt/d/GIT/x-lang/lib/xrt",
+        "-I/mnt/d/GIT/x-lang/release/linux_x64/include",
+        "-I/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/include",
+        "-O1",
+        "-g",
+        "-fsanitize=address,undefined",
+        "-fno-omit-frame-pointer",
+        "-fno-pie",
+        "-no-pie",
+        "-D_GNU_SOURCE",
+        "-pthread",
+        "-fsyntax-only",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/abi.c"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.282,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "native-header-rejects-wrong-abi",
+      "command": [
+        "/usr/bin/gcc",
+        "-std=c11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-O2",
+        "-DXL_VALUE_READ_WIRE_ONLY",
+        "-I/mnt/d/GIT/x-lang/lib/xrt",
+        "-I/mnt/d/GIT/x-lang/release/linux_x64/include",
+        "-I/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/include",
+        "-O1",
+        "-g",
+        "-fsanitize=address,undefined",
+        "-fno-omit-frame-pointer",
+        "-fno-pie",
+        "-no-pie",
+        "-D_GNU_SOURCE",
+        "-pthread",
+        "-fsyntax-only",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/wrong-abi.c"
+      ],
+      "exitCode": 1,
+      "expected": 1,
+      "passed": true,
+      "seconds": 0.277,
+      "logSha256": "0050b11f92f6c154e5034b2786837dba6c1f285f029ee503197b9a457a4f8554"
+    },
+    {
+      "name": "literal-jit",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "run",
+        "/mnt/d/GIT/x-lang/test/cases/extlib_vcard.xl"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 5.209,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "literal-build",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "build",
+        "/mnt/d/GIT/x-lang/test/cases/extlib_vcard.xl",
+        "-o",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/literal"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 7.325,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "literal-aot",
+      "command": [
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/literal"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.02,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "boundaries-jit",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "run",
+        "/mnt/d/GIT/x-lang/test/cases/extlib_vcard_boundaries.xl"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 4.34,
+      "logSha256": "4e45f51368ff7d39c2642c015bc67db6b104ddb771955e70b43514f0bff20b8a"
+    },
+    {
+      "name": "boundaries-build",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "build",
+        "/mnt/d/GIT/x-lang/test/cases/extlib_vcard_boundaries.xl",
+        "-o",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/boundaries"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 7.108,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "boundaries-aot",
+      "command": [
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/boundaries"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.018,
+      "logSha256": "4e45f51368ff7d39c2642c015bc67db6b104ddb771955e70b43514f0bff20b8a"
+    },
+    {
+      "name": "read-cost-jit",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "run",
+        "/mnt/d/GIT/x-lang/test/cases/extlib_vcard_read_views.xl"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 5.241,
+      "logSha256": "556b9567ae79ad5841e3e380ef5b17a46dea5c034e1600fb99d0a67dacf64cd0"
+    },
+    {
+      "name": "read-cost-build",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "build",
+        "/mnt/d/GIT/x-lang/test/cases/extlib_vcard_read_views.xl",
+        "-o",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/read-cost"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 8.108,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "read-cost-aot",
+      "command": [
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/read-cost"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.019,
+      "logSha256": "556b9567ae79ad5841e3e380ef5b17a46dea5c034e1600fb99d0a67dacf64cd0"
+    },
+    {
+      "name": "read-views-jit",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "run",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/read_views.xl"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 4.427,
+      "logSha256": "629a0359ac6155323429569bc866bc784127066c42f78be5c37cf9536104cc72"
+    },
+    {
+      "name": "read-views-build",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "build",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/read_views.xl",
+        "-o",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/read-views"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 7.388,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "read-views-aot",
+      "command": [
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/read-views"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.019,
+      "logSha256": "629a0359ac6155323429569bc866bc784127066c42f78be5c37cf9536104cc72"
+    },
+    {
+      "name": "control_characters-jit",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "run",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/control_characters.xl"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 4.414,
+      "logSha256": "cad781748e4fd0d3704f642c6c3702a91a27167333e36e3738c6d560fe1a20f9"
+    },
+    {
+      "name": "control_characters-build",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "build",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/control_characters.xl",
+        "-o",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/control_characters"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 7.155,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "control_characters-aot",
+      "command": [
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/control_characters"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.018,
+      "logSha256": "cad781748e4fd0d3704f642c6c3702a91a27167333e36e3738c6d560fe1a20f9"
+    },
+    {
+      "name": "allocations-jit",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "run",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/allocations.xl"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 4.453,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "allocations-build",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "build",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/allocations.xl",
+        "-o",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/allocations"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 7.341,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "allocations-aot",
+      "command": [
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/allocations"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.019,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "uri_values-jit",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "run",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/uri_values.xl"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 4.45,
+      "logSha256": "bb4912161c3061de0f4981037a9d6309245f694876a5038870a4154950974ded"
+    },
+    {
+      "name": "uri_values-build",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "build",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/uri_values.xl",
+        "-o",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/uri_values"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 7.138,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "uri_values-aot",
+      "command": [
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/uri_values"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.026,
+      "logSha256": "bb4912161c3061de0f4981037a9d6309245f694876a5038870a4154950974ded"
+    },
+    {
+      "name": "structure-jit",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "run",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/structure.xl"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 4.377,
+      "logSha256": "7d02f6e9f430c0550fa0596a6338b0488ddd7a43c7b28ba8fe5e8c720507e81c"
+    },
+    {
+      "name": "structure-build",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "build",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/structure.xl",
+        "-o",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/structure"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 7.076,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "structure-aot",
+      "command": [
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/structure"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.019,
+      "logSha256": "7d02f6e9f430c0550fa0596a6338b0488ddd7a43c7b28ba8fe5e8c720507e81c"
+    },
+    {
+      "name": "limits-jit",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "run",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/limits.xl"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 4.279,
+      "logSha256": "82a3c2b84dc74650b33f50dc441bb74839dbbe949faccc5e5982ad889cb333fa"
+    },
+    {
+      "name": "limits-build",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "build",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/limits.xl",
+        "-o",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/limits"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 6.992,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "limits-aot",
+      "command": [
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/limits"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.164,
+      "logSha256": "82a3c2b84dc74650b33f50dc441bb74839dbbe949faccc5e5982ad889cb333fa"
+    },
+    {
+      "name": "utf8_folding-jit",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "run",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/utf8_folding.xl"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 5.017,
+      "logSha256": "d1b8ca66025714520366b0df8eca478c4688fadbf1695073915fea0d2a59df4f"
+    },
+    {
+      "name": "utf8_folding-build",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "build",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/utf8_folding.xl",
+        "-o",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/utf8_folding"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 6.282,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "utf8_folding-aot",
+      "command": [
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/utf8_folding"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.021,
+      "logSha256": "d1b8ca66025714520366b0df8eca478c4688fadbf1695073915fea0d2a59df4f"
+    },
+    {
+      "name": "aot_core-jit",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "run",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/aot_core.xl"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 4.254,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "aot_core-build",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "build",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/aot_core.xl",
+        "-o",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/aot_core"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 7.015,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "aot_core-aot",
+      "command": [
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/aot_core"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.056,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "original-jit",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "run",
+        "/mnt/d/GIT/x-lang/release/linux_x64/examples/extlibs/vcard.xl",
+        "--",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/original-jit.vcf"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 4.26,
+      "logSha256": "2fa5dd67c64a8dc745fff3a4d1df693ecdfe3c8707aa1275f6550dcf12c6e2ee"
+    },
+    {
+      "name": "original-build",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "build",
+        "/mnt/d/GIT/x-lang/release/linux_x64/examples/extlibs/vcard.xl",
+        "-o",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/original"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 7.639,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "original-aot",
+      "command": [
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/original",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/original-aot.vcf"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.021,
+      "logSha256": "2fa5dd67c64a8dc745fff3a4d1df693ecdfe3c8707aa1275f6550dcf12c6e2ee"
+    },
+    {
+      "name": "folded-jit",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "run",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/examples/folded_contact.xl",
+        "--",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/folded-jit.vcf"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 4.329,
+      "logSha256": "8d38fe0a1738793cc64ee5e7d87f5c5f6669bdc80d9a37435c704f386344ec7e"
+    },
+    {
+      "name": "folded-jit-canonical",
+      "command": [
+        "/usr/bin/python3",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/check_folded.py",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/folded-jit.vcf"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.084,
+      "logSha256": "840a00c200551c31260182c76ae9d23cf7169fe15ea8b4f5531ce96363877fa5"
+    },
+    {
+      "name": "folded-build",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "build",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/examples/folded_contact.xl",
+        "-o",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/folded"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 7.642,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "folded-aot",
+      "command": [
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/folded",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/folded-aot.vcf"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.038,
+      "logSha256": "8d38fe0a1738793cc64ee5e7d87f5c5f6669bdc80d9a37435c704f386344ec7e"
+    },
+    {
+      "name": "folded-aot-canonical",
+      "command": [
+        "/usr/bin/python3",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/check_folded.py",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/folded-aot.vcf"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.083,
+      "logSha256": "840a00c200551c31260182c76ae9d23cf7169fe15ea8b4f5531ce96363877fa5"
+    },
+    {
+      "name": "original-c-jit",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "run",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/examples/vcard.c",
+        "--",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/original-c-jit.vcf"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.768,
+      "logSha256": "2fa5dd67c64a8dc745fff3a4d1df693ecdfe3c8707aa1275f6550dcf12c6e2ee"
+    },
+    {
+      "name": "c-jit-failed-write",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "run",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/examples/vcard.c",
+        "--",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final"
+      ],
+      "exitCode": 1,
+      "expected": 1,
+      "passed": true,
+      "seconds": 0.747,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "original-c-build",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "build",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/examples/vcard.c",
+        "-o",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/original-c"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 1.808,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "original-c-aot",
+      "command": [
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/original-c",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/original-c-aot.vcf"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.018,
+      "logSha256": "2fa5dd67c64a8dc745fff3a4d1df693ecdfe3c8707aa1275f6550dcf12c6e2ee"
+    },
+    {
+      "name": "folded-c-jit",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "run",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/examples/folded_contact_c.c",
+        "--",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/folded-c-jit.vcf"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.746,
+      "logSha256": "8d38fe0a1738793cc64ee5e7d87f5c5f6669bdc80d9a37435c704f386344ec7e"
+    },
+    {
+      "name": "folded-c-jit-canonical",
+      "command": [
+        "/usr/bin/python3",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/check_folded.py",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/folded-c-jit.vcf"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.103,
+      "logSha256": "840a00c200551c31260182c76ae9d23cf7169fe15ea8b4f5531ce96363877fa5"
+    },
+    {
+      "name": "folded-c-build",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "build",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/examples/folded_contact_c.c",
+        "-o",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/folded-c"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 1.794,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "folded-c-aot",
+      "command": [
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/folded-c",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/folded-c-aot.vcf"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.019,
+      "logSha256": "8d38fe0a1738793cc64ee5e7d87f5c5f6669bdc80d9a37435c704f386344ec7e"
+    },
+    {
+      "name": "folded-c-aot-canonical",
+      "command": [
+        "/usr/bin/python3",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/check_folded.py",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/folded-c-aot.vcf"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.085,
+      "logSha256": "840a00c200551c31260182c76ae9d23cf7169fe15ea8b4f5531ce96363877fa5"
+    },
+    {
+      "name": "utf8-c-jit",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "run",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/test_utf8_folding.c"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.908,
+      "logSha256": "d65a2af73abb925b3dbc66289aae3d54dac13958b79117d0aae9c621871f1fc1"
+    },
+    {
+      "name": "utf8-c-build",
+      "command": [
+        "/mnt/d/GIT/x-lang/release/linux_x64/xl",
+        "build",
+        "/mnt/d/GIT/x-lang/release/linux_x64/extlibs/vcard/test/test_utf8_folding.c",
+        "-o",
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/utf8-c"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 1.974,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "utf8-c-aot",
+      "command": [
+        "/mnt/d/GIT/x-lang/build/vcard-read-views-20261109/linux-final/utf8-c"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.022,
+      "logSha256": "d65a2af73abb925b3dbc66289aae3d54dac13958b79117d0aae9c621871f1fc1"
+    }
+  ],
+  "inputsUnchanged": true
+}

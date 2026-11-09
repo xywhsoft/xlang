@@ -1,0 +1,1118 @@
+{
+  "passed": true,
+  "runtime": "D:\\GIT\\x-lang\\release\\win_x64",
+  "sanitize": false,
+  "inputs": {
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\README.md": "0bf75a3707787cf52c0935c1dd0640619e29c70b70e1939f065dcfec82581cbc",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\UTF8_FOLDING_AUDIT_2026-10-30.md": "dd1d091eaec5aaae9c22601213c06b79110d16d2987c0c25f9212cb6a7026854",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\vcard_build.c": "8bd3fafb89116058f406b0e87fb3eb7199dd17e475d03db4b3843255eed7cf59",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\vcard_internal.h": "7c1bdac52a86cf741d23f9b2208b0bf781751e59a886c840edb95a782b6436de",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\vcard_native.c": "7921af643a44ea4961c6722343270e8ad1f5b72523abb769fde8a7cdee7db277",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\vcard_parse.c": "f5307cb644fbef561d8a0b27395efcf4ad53d7ff8d61da89ba1c91347a2981f1",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\xlang.package.json": "464a5a1e6ab13eb3b91173c8075b2b703aa8e48048af1508588ac6db36c1831a",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\docs\\site.html": "8f6e49cf9d4f7225e74cb8271c8663d4f11778d1fd4665cf0cb89daafae11fad",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\examples\\folded_contact.expected.txt": "8d38fe0a1738793cc64ee5e7d87f5c5f6669bdc80d9a37435c704f386344ec7e",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\examples\\folded_contact.xl": "fc0f3a38bca46002327ce3106368d30aff8f5edf45bb02ece2c55e4c7b6c8236",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\examples\\folded_contact_c.c": "6885f436951d30d0c63fdc8831c1651a5f8de07e69501d822eff56f7271e2914",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\examples\\README.md": "1ff684715bdbfa3b9eae69b089ea4fea8e19a464afd16d60c88baa7e00b770fa",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\examples\\vcard.c": "404b6d1173fb6734bd82dd1eebe2c645326918876c87ced74418a579a60d2305",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\include\\vcard_native.h": "776bd9c7d490f7d4aebce39b1f2e19dced854150319e31034e9e0bf5ca9d68be",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\src\\vcard.xl": "d9700b33e79704cb3d3c990b363293d53c1c2f346232b5ea87484b7a244595b9",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\allocations.xl": "c422c848c8478aa49a0396ec021cb7126b1530d54de56bfd3b8fb797085901dc",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\aot_core.xl": "89499747bb799d28cf4c554c525637f48a425b025177a8cbe62d0a05a8af85c0",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\check.ps1": "24a28b5d426f03e612d1894b5cb587900f31328ae667483ce153a5e733533acf",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\check.sh": "7325220334f4c0a47adf6e8b00085db1753e5b956280d805137972c591d29160",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\check_external.py": "0603ccd99e642e2eb8304c9818ad24e75ce5b7a83b343c3f6edb096332cff961",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\check_folded.py": "67cd8cabc4b6a5a298c39500549213e188ed05bbd8a1ac638aa23861a23d7b56",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\control_characters.xl": "ef2a49349faf230bc40489fa61876c647b956e615ed36b432a5837d4e9347347",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\limits.xl": "c1cae1029eb32f5360c54ab54ee2a7abc3edecebb72d3ff188514449a24a2f6d",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\read_views.xl": "bd6ef891da2aa8241e77dbe9427d23961714dffdfc406376728d221a7dd35002",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\structure.xl": "114b1d276bf4204565f3e72e3d649c4766b6c7c6e46157409476389c9ca721db",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\test_utf8_folding.c": "b4281dc92e914988171258c2cf1b34eb7beefa74bbdd282fd9b6f6536724836a",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\test_vcard.c": "dd3463b8af5509855cf5361846ed144ff714a1b59e4c2483dc8c86ad031ee8a4",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\uri_values.xl": "f2fb5a51648159ea620337eedca3b62fdb66fd5b55810bf777d1510b6c27772c",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\utf8_folding.c": "e809f52d1986063b19824aefa03f9cad5d81eb6a0f264240c4f9316a63e94c3c",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\utf8_folding.xl": "b31d82ab336401dfa08c409ff62c2ff13d4aacc69ba7e21dbb870ebef2f65975",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\xrt_runtime.c": "e6373080b89c1835fd6f9b2924f53a40b54f090d8437f13eb30b32274b555cc9",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "D:\\GIT\\x-lang\\release\\win_x64\\include\\xl_value_read.h": "0903296d1123a7948c45c84cd386a6eb519b8bf798766f0e146499f923e927ef",
+    "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\_common\\xl_value_read_wire.h": "00105239b9a8c1abc536c4d201a4e67413b825430c38160e5abcbbb375072b1c",
+    "D:\\GIT\\x-lang\\lib\\xrt\\xrt.h": "41bc24579f4b3207b0434755ca23dd06481af90c05f71e9b365848cf9a7c12d1",
+    "D:\\GIT\\x-lang\\test\\cases\\extlib_vcard.xl": "e66b9907c47f051a677c643901f1131404984a005212e453ade9a99f548db6fe",
+    "D:\\GIT\\x-lang\\test\\cases\\extlib_vcard_boundaries.xl": "8faeb9fa55e1b20bf44fcf1a8047454873e4dfd87a3a5d7d66a699abd7d62767",
+    "D:\\GIT\\x-lang\\test\\cases\\extlib_vcard_read_views.xl": "1e990ba643607ca77fe407f65dd8f094056325d4d0d5ebce5f71b423f6a2fac5",
+    "D:\\GIT\\x-lang\\release\\win_x64\\examples\\extlibs\\vcard.xl": "8f70f57dac46c5b08788718fc54717c0f0de7a214eafa83855aae8a7f03e7051"
+  },
+  "rows": [
+    {
+      "name": "gcc-version",
+      "command": [
+        "E:\\software\\w64devkit\\bin\\gcc.EXE",
+        "--version"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.015,
+      "logSha256": "7637c6cbf2a95bab74868ac6b35bac51e5bc633e2ea9b3cc2311bc16eac8510e"
+    },
+    {
+      "name": "compile-xrt_runtime",
+      "command": [
+        "E:\\software\\w64devkit\\bin\\gcc.EXE",
+        "-std=c11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-O2",
+        "-DXL_VALUE_READ_WIRE_ONLY",
+        "-ID:\\GIT\\x-lang\\lib\\xrt",
+        "-ID:\\GIT\\x-lang\\release\\win_x64\\include",
+        "-ID:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\include",
+        "-c",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\xrt_runtime.c",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\xrt_runtime.o"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 71.344,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "compile-vcard_native",
+      "command": [
+        "E:\\software\\w64devkit\\bin\\gcc.EXE",
+        "-std=c11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-O2",
+        "-DXL_VALUE_READ_WIRE_ONLY",
+        "-ID:\\GIT\\x-lang\\lib\\xrt",
+        "-ID:\\GIT\\x-lang\\release\\win_x64\\include",
+        "-ID:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\include",
+        "-c",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\vcard_native.c",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\vcard_native.o"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.203,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "compile-vcard_parse",
+      "command": [
+        "E:\\software\\w64devkit\\bin\\gcc.EXE",
+        "-std=c11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-O2",
+        "-DXL_VALUE_READ_WIRE_ONLY",
+        "-ID:\\GIT\\x-lang\\lib\\xrt",
+        "-ID:\\GIT\\x-lang\\release\\win_x64\\include",
+        "-ID:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\include",
+        "-c",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\vcard_parse.c",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\vcard_parse.o"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.375,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "compile-vcard_build",
+      "command": [
+        "E:\\software\\w64devkit\\bin\\gcc.EXE",
+        "-std=c11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-O2",
+        "-DXL_VALUE_READ_WIRE_ONLY",
+        "-ID:\\GIT\\x-lang\\lib\\xrt",
+        "-ID:\\GIT\\x-lang\\release\\win_x64\\include",
+        "-ID:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\include",
+        "-c",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\vcard_build.c",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\vcard_build.o"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.328,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "c-boundaries-build",
+      "command": [
+        "E:\\software\\w64devkit\\bin\\gcc.EXE",
+        "-std=c11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-O2",
+        "-DXL_VALUE_READ_WIRE_ONLY",
+        "-ID:\\GIT\\x-lang\\lib\\xrt",
+        "-ID:\\GIT\\x-lang\\release\\win_x64\\include",
+        "-ID:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\include",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\test_vcard.c",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\xrt_runtime.o",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\vcard_native.o",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\vcard_parse.o",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\vcard_build.o",
+        "-lWs2_32",
+        "-lAdvapi32",
+        "-lIphlpapi",
+        "-lm",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\c-boundaries.exe"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.453,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "c-boundaries",
+      "command": [
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\c-boundaries.exe",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\long.vcf",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\four.vcf"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.109,
+      "logSha256": "6c9e58f7d6cbd627dd372ff16374463b16c1b08e9ba7950f561d33a5ec610621"
+    },
+    {
+      "name": "c-utf8-build",
+      "command": [
+        "E:\\software\\w64devkit\\bin\\gcc.EXE",
+        "-std=c11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-O2",
+        "-DXL_VALUE_READ_WIRE_ONLY",
+        "-ID:\\GIT\\x-lang\\lib\\xrt",
+        "-ID:\\GIT\\x-lang\\release\\win_x64\\include",
+        "-ID:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\include",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\test_utf8_folding.c",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\xrt_runtime.o",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\vcard_native.o",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\vcard_parse.o",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\vcard_build.o",
+        "-lWs2_32",
+        "-lAdvapi32",
+        "-lIphlpapi",
+        "-lm",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\c-utf8.exe"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.469,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "c-utf8",
+      "command": [
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\c-utf8.exe"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.016,
+      "logSha256": "7ef9c97d34ceaf903b0ee3eea9ea411d47d462011b053ab209765917a12b6c3d"
+    },
+    {
+      "name": "c-original-build",
+      "command": [
+        "E:\\software\\w64devkit\\bin\\gcc.EXE",
+        "-std=c11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-O2",
+        "-DXL_VALUE_READ_WIRE_ONLY",
+        "-ID:\\GIT\\x-lang\\lib\\xrt",
+        "-ID:\\GIT\\x-lang\\release\\win_x64\\include",
+        "-ID:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\include",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\examples\\vcard.c",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\xrt_runtime.o",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\vcard_native.o",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\vcard_parse.o",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\vcard_build.o",
+        "-lWs2_32",
+        "-lAdvapi32",
+        "-lIphlpapi",
+        "-lm",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\c-original.exe"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.281,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "c-original",
+      "command": [
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\c-original.exe",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\c-original.vcf"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.016,
+      "logSha256": "1a5a4855aa03f8c2ce636524de81db4cb4eeae7dbe681270df423d15048c7490"
+    },
+    {
+      "name": "c-folded-build",
+      "command": [
+        "E:\\software\\w64devkit\\bin\\gcc.EXE",
+        "-std=c11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-O2",
+        "-DXL_VALUE_READ_WIRE_ONLY",
+        "-ID:\\GIT\\x-lang\\lib\\xrt",
+        "-ID:\\GIT\\x-lang\\release\\win_x64\\include",
+        "-ID:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\include",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\examples\\folded_contact_c.c",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\xrt_runtime.o",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\vcard_native.o",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\vcard_parse.o",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\vcard_build.o",
+        "-lWs2_32",
+        "-lAdvapi32",
+        "-lIphlpapi",
+        "-lm",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\c-folded.exe"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.234,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "c-folded",
+      "command": [
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\c-folded.exe",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\c-folded.vcf"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.016,
+      "logSha256": "8b51f0efedb099021ba94da415502d52ad7f277446ee68e30216c0336382c77a"
+    },
+    {
+      "name": "c-canonical",
+      "command": [
+        "C:\\Program Files\\Python312\\python.exe",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\check_folded.py",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\c-folded.vcf"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.062,
+      "logSha256": "fd4a502e925946bf100b0cea1c5f462baf1e7c53f3afafa477c2f879b497d6a1"
+    },
+    {
+      "name": "c-failed-write",
+      "command": [
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\c-original.exe",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final"
+      ],
+      "exitCode": 1,
+      "expected": 1,
+      "passed": true,
+      "seconds": 0.0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "actual-c-abi",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "cgen",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\examples\\folded_contact.xl",
+        "--emit",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\generated.c"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.047,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "native-header-abi",
+      "command": [
+        "E:\\software\\w64devkit\\bin\\gcc.EXE",
+        "-std=c11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-O2",
+        "-DXL_VALUE_READ_WIRE_ONLY",
+        "-ID:\\GIT\\x-lang\\lib\\xrt",
+        "-ID:\\GIT\\x-lang\\release\\win_x64\\include",
+        "-ID:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\include",
+        "-fsyntax-only",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\abi.c"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.109,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "native-header-rejects-wrong-abi",
+      "command": [
+        "E:\\software\\w64devkit\\bin\\gcc.EXE",
+        "-std=c11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-O2",
+        "-DXL_VALUE_READ_WIRE_ONLY",
+        "-ID:\\GIT\\x-lang\\lib\\xrt",
+        "-ID:\\GIT\\x-lang\\release\\win_x64\\include",
+        "-ID:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\include",
+        "-fsyntax-only",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\wrong-abi.c"
+      ],
+      "exitCode": 1,
+      "expected": 1,
+      "passed": true,
+      "seconds": 0.125,
+      "logSha256": "08f30f9e8582a77d289a62018c3c3a58c1d2e821e382239be595e02e1f77e0cf"
+    },
+    {
+      "name": "literal-jit",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\test\\cases\\extlib_vcard.xl"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.391,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "literal-build",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "build",
+        "D:\\GIT\\x-lang\\test\\cases\\extlib_vcard.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\literal.exe"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.593,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "literal-aot",
+      "command": [
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\literal.exe"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.032,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "boundaries-jit",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\test\\cases\\extlib_vcard_boundaries.xl"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.234,
+      "logSha256": "4e45f51368ff7d39c2642c015bc67db6b104ddb771955e70b43514f0bff20b8a"
+    },
+    {
+      "name": "boundaries-build",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "build",
+        "D:\\GIT\\x-lang\\test\\cases\\extlib_vcard_boundaries.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\boundaries.exe"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.406,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "boundaries-aot",
+      "command": [
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\boundaries.exe"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.016,
+      "logSha256": "4e45f51368ff7d39c2642c015bc67db6b104ddb771955e70b43514f0bff20b8a"
+    },
+    {
+      "name": "read-cost-jit",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\test\\cases\\extlib_vcard_read_views.xl"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.25,
+      "logSha256": "556b9567ae79ad5841e3e380ef5b17a46dea5c034e1600fb99d0a67dacf64cd0"
+    },
+    {
+      "name": "read-cost-build",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "build",
+        "D:\\GIT\\x-lang\\test\\cases\\extlib_vcard_read_views.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\read-cost.exe"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.359,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "read-cost-aot",
+      "command": [
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\read-cost.exe"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.016,
+      "logSha256": "556b9567ae79ad5841e3e380ef5b17a46dea5c034e1600fb99d0a67dacf64cd0"
+    },
+    {
+      "name": "read-views-jit",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\read_views.xl"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.281,
+      "logSha256": "629a0359ac6155323429569bc866bc784127066c42f78be5c37cf9536104cc72"
+    },
+    {
+      "name": "read-views-build",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "build",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\read_views.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\read-views.exe"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.469,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "read-views-aot",
+      "command": [
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\read-views.exe"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.031,
+      "logSha256": "629a0359ac6155323429569bc866bc784127066c42f78be5c37cf9536104cc72"
+    },
+    {
+      "name": "control_characters-jit",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\control_characters.xl"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.203,
+      "logSha256": "cad781748e4fd0d3704f642c6c3702a91a27167333e36e3738c6d560fe1a20f9"
+    },
+    {
+      "name": "control_characters-build",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "build",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\control_characters.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\control_characters.exe"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.36,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "control_characters-aot",
+      "command": [
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\control_characters.exe"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.015,
+      "logSha256": "cad781748e4fd0d3704f642c6c3702a91a27167333e36e3738c6d560fe1a20f9"
+    },
+    {
+      "name": "allocations-jit",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\allocations.xl"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.203,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "allocations-build",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "build",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\allocations.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\allocations.exe"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.344,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "allocations-aot",
+      "command": [
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\allocations.exe"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.031,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "uri_values-jit",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\uri_values.xl"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.219,
+      "logSha256": "bb4912161c3061de0f4981037a9d6309245f694876a5038870a4154950974ded"
+    },
+    {
+      "name": "uri_values-build",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "build",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\uri_values.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\uri_values.exe"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.375,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "uri_values-aot",
+      "command": [
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\uri_values.exe"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.016,
+      "logSha256": "bb4912161c3061de0f4981037a9d6309245f694876a5038870a4154950974ded"
+    },
+    {
+      "name": "structure-jit",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\structure.xl"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.281,
+      "logSha256": "7d02f6e9f430c0550fa0596a6338b0488ddd7a43c7b28ba8fe5e8c720507e81c"
+    },
+    {
+      "name": "structure-build",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "build",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\structure.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\structure.exe"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.437,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "structure-aot",
+      "command": [
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\structure.exe"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.016,
+      "logSha256": "7d02f6e9f430c0550fa0596a6338b0488ddd7a43c7b28ba8fe5e8c720507e81c"
+    },
+    {
+      "name": "limits-jit",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\limits.xl"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.281,
+      "logSha256": "82a3c2b84dc74650b33f50dc441bb74839dbbe949faccc5e5982ad889cb333fa"
+    },
+    {
+      "name": "limits-build",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "build",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\limits.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\limits.exe"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.328,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "limits-aot",
+      "command": [
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\limits.exe"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.172,
+      "logSha256": "82a3c2b84dc74650b33f50dc441bb74839dbbe949faccc5e5982ad889cb333fa"
+    },
+    {
+      "name": "utf8_folding-jit",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\utf8_folding.xl"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.25,
+      "logSha256": "d1b8ca66025714520366b0df8eca478c4688fadbf1695073915fea0d2a59df4f"
+    },
+    {
+      "name": "utf8_folding-build",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "build",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\utf8_folding.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\utf8_folding.exe"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 2.625,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "utf8_folding-aot",
+      "command": [
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\utf8_folding.exe"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.031,
+      "logSha256": "d1b8ca66025714520366b0df8eca478c4688fadbf1695073915fea0d2a59df4f"
+    },
+    {
+      "name": "aot_core-jit",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\aot_core.xl"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.187,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "aot_core-build",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "build",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\aot_core.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\aot_core.exe"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.313,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "aot_core-aot",
+      "command": [
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\aot_core.exe"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.015,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "original-jit",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\release\\win_x64\\examples\\extlibs\\vcard.xl",
+        "--",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\original-jit.vcf"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.266,
+      "logSha256": "2fa5dd67c64a8dc745fff3a4d1df693ecdfe3c8707aa1275f6550dcf12c6e2ee"
+    },
+    {
+      "name": "original-build",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "build",
+        "D:\\GIT\\x-lang\\release\\win_x64\\examples\\extlibs\\vcard.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\original.exe"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.39,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "original-aot",
+      "command": [
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\original.exe",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\original-aot.vcf"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.032,
+      "logSha256": "2fa5dd67c64a8dc745fff3a4d1df693ecdfe3c8707aa1275f6550dcf12c6e2ee"
+    },
+    {
+      "name": "folded-jit",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\examples\\folded_contact.xl",
+        "--",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\folded-jit.vcf"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.234,
+      "logSha256": "8d38fe0a1738793cc64ee5e7d87f5c5f6669bdc80d9a37435c704f386344ec7e"
+    },
+    {
+      "name": "folded-jit-canonical",
+      "command": [
+        "C:\\Program Files\\Python312\\python.exe",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\check_folded.py",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\folded-jit.vcf"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.047,
+      "logSha256": "fd4a502e925946bf100b0cea1c5f462baf1e7c53f3afafa477c2f879b497d6a1"
+    },
+    {
+      "name": "folded-build",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "build",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\examples\\folded_contact.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\folded.exe"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.344,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "folded-aot",
+      "command": [
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\folded.exe",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\folded-aot.vcf"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.031,
+      "logSha256": "8d38fe0a1738793cc64ee5e7d87f5c5f6669bdc80d9a37435c704f386344ec7e"
+    },
+    {
+      "name": "folded-aot-canonical",
+      "command": [
+        "C:\\Program Files\\Python312\\python.exe",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\check_folded.py",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\folded-aot.vcf"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.047,
+      "logSha256": "fd4a502e925946bf100b0cea1c5f462baf1e7c53f3afafa477c2f879b497d6a1"
+    },
+    {
+      "name": "original-c-jit",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\examples\\vcard.c",
+        "--",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\original-c-jit.vcf"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.078,
+      "logSha256": "1a5a4855aa03f8c2ce636524de81db4cb4eeae7dbe681270df423d15048c7490"
+    },
+    {
+      "name": "c-jit-failed-write",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\examples\\vcard.c",
+        "--",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final"
+      ],
+      "exitCode": 1,
+      "expected": 1,
+      "passed": true,
+      "seconds": 0.062,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "original-c-build",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "build",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\examples\\vcard.c",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\original-c.exe"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 2.032,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "original-c-aot",
+      "command": [
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\original-c.exe",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\original-c-aot.vcf"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.015,
+      "logSha256": "1a5a4855aa03f8c2ce636524de81db4cb4eeae7dbe681270df423d15048c7490"
+    },
+    {
+      "name": "folded-c-jit",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\examples\\folded_contact_c.c",
+        "--",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\folded-c-jit.vcf"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.078,
+      "logSha256": "8b51f0efedb099021ba94da415502d52ad7f277446ee68e30216c0336382c77a"
+    },
+    {
+      "name": "folded-c-jit-canonical",
+      "command": [
+        "C:\\Program Files\\Python312\\python.exe",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\check_folded.py",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\folded-c-jit.vcf"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.047,
+      "logSha256": "fd4a502e925946bf100b0cea1c5f462baf1e7c53f3afafa477c2f879b497d6a1"
+    },
+    {
+      "name": "folded-c-build",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "build",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\examples\\folded_contact_c.c",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\folded-c.exe"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 2.032,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "folded-c-aot",
+      "command": [
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\folded-c.exe",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\folded-c-aot.vcf"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.031,
+      "logSha256": "8b51f0efedb099021ba94da415502d52ad7f277446ee68e30216c0336382c77a"
+    },
+    {
+      "name": "folded-c-aot-canonical",
+      "command": [
+        "C:\\Program Files\\Python312\\python.exe",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\check_folded.py",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\folded-c-aot.vcf"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.047,
+      "logSha256": "fd4a502e925946bf100b0cea1c5f462baf1e7c53f3afafa477c2f879b497d6a1"
+    },
+    {
+      "name": "utf8-c-jit",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "run",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\test_utf8_folding.c"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.093,
+      "logSha256": "7ef9c97d34ceaf903b0ee3eea9ea411d47d462011b053ab209765917a12b6c3d"
+    },
+    {
+      "name": "utf8-c-build",
+      "command": [
+        "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe",
+        "build",
+        "D:\\GIT\\x-lang\\release\\win_x64\\extlibs\\vcard\\test\\test_utf8_folding.c",
+        "-o",
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\utf8-c.exe"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 2.391,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "utf8-c-aot",
+      "command": [
+        "D:\\GIT\\x-lang\\build\\vcard-read-views-20261109\\windows-final\\utf8-c.exe"
+      ],
+      "exitCode": 0,
+      "expected": 0,
+      "passed": true,
+      "seconds": 0.047,
+      "logSha256": "7ef9c97d34ceaf903b0ee3eea9ea411d47d462011b053ab209765917a12b6c3d"
+    }
+  ],
+  "inputsUnchanged": true
+}
