@@ -1,0 +1,80 @@
+{
+  "schema": 1,
+  "date": "2026-11-09",
+  "passed": true,
+  "publication": "validated locally, remote replacement pending",
+  "sourceOld": "a5756b4f898e82ac5a7e5299fb20a54b90f92c2e",
+  "sourceFiltered": "07d3d84716b61282fe5ebccf6feb3067b443f80a",
+  "commitsVerified": 2881,
+  "allUnaffectedFileBytesAndModesPreserved": true,
+  "mergeTopologyPreserved": true,
+  "selectedHistoricalPaths": 11843,
+  "categories": {
+    "opencv-work-copy": 8127,
+    "acceptance-image": 110,
+    "acceptance-archive": 59,
+    "source-archive": 3515,
+    "large-raw-acceptance-log": 21,
+    "onnxruntime-smoke-binary": 6,
+    "downloadable-ocr-model": 3,
+    "downloadable-onnx-smoke-alias": 2
+  },
+  "worktreeCount": 6,
+  "preservedLocalMaterialCopies": 10875,
+  "dirtySourceBytesPreserved": true,
+  "privateBackupsNeverPublished": true,
+  "backupDirectory": "F:\\xlang-validation\\git-slim-20261109\\backup.git",
+  "privateWorktreeBackup": "F:\\xlang-validation\\git-slim-20261109\\private-worktrees",
+  "objectStoreBytesBefore": 815833314,
+  "objectStoreBytesAfterFilter": 171666177,
+  "objectStoreMiBAfterFilter": 163.71,
+  "materialIndex": {
+    "path": "dev/release-materials/materials-index.json",
+    "bytes": 981720,
+    "sha256": "df62c2c9f78857f6266aa452486975d0d5f4a21b5bbdde32f20f2024a4c88e10"
+  },
+  "materialBundle": {
+    "file": "xlang-development-materials-20261109-8408e8f22a09.bundle",
+    "bytes": 650853835,
+    "sha256": "8408e8f22a09dc466ff0112ee09eeb863eb1d7b2c0d08fd8fe36009914d23d0e",
+    "ref": "refs/heads/development-materials",
+    "commit": "c567973586088b0bcdedd77d411cdbf32baacfea",
+    "url": "https://xcompiler.com/download/development-materials/xlang-development-materials-20261109-8408e8f22a09.bundle"
+  },
+  "materialCatalog": {
+    "gitBlob": "63dcf8a3c88d67b6705ab36f3d59a069674b164a",
+    "bytes": 3747455,
+    "sha256": "50854aa345ddb2b055efc70555aab1b7a6a35ba7aeeb0c226e5e7003f375b3fd"
+  },
+  "materialsAvailableAtOriginalLocalPaths": true,
+  "publicMaterialPublicationPending": false,
+  "checks": {
+    "fullHistoryTreeVerification": true,
+    "liveGitFsck": true,
+    "restoreAndBudgetUnitTests": 9,
+    "realArchiveRestore": true,
+    "realHistoricalAliasRestore": true,
+    "existingGitLfsHookPreservedAndChained": true,
+    "ciBudgetJobAdded": true
+  },
+  "policy": {
+    "path": "tools/git_repository_policy.json",
+    "bytes": 143124,
+    "sha256": "fa8e064337a85d8589d7747b7869fd79612fa41de144085ed9d2cf9768c1489e"
+  },
+  "limits": {
+    "warnMiB": 250,
+    "hardMiB": 350,
+    "newFileWarnMiB": 1,
+    "newFileHardMiB": 5
+  },
+  "remoteLease": {
+    "master": "a5756b4f898e82ac5a7e5299fb20a54b90f92c2e",
+    "tag": "b43f7965918b5bc583da54aad468f25c6f1491c8"
+  },
+  "materialPublication": {
+    "path": "dev/release-materials/provenance/git-slim-20261109/material-publication.json",
+    "sha256": "3f51fe66c399cde3d8b4927c18202878227d8fcdaa50231cb0ecc0b45bb4abad",
+    "bytes": 430
+  }
+}

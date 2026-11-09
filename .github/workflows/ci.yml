@@ -12,6 +12,18 @@ on:
   workflow_dispatch:
 
 jobs:
+  repository-budget:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Enforce history and repository size budgets
+        run: python3 -X utf8 tools/git_repository_budget.py
+      - name: Check material recovery and guard failure paths
+        run: python3 -X utf8 -m unittest discover -s test -p test_git_repository_maintenance.py -v
+
   linux-native:
     runs-on: ubuntu-latest
     timeout-minutes: 60

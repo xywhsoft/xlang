@@ -1,0 +1,17 @@
+test_bundle_bytes_verified_before_import (test_git_repository_maintenance.RepositoryMaintenance.test_bundle_bytes_verified_before_import) ... ok
+test_corrupt_object_contract_delivers_no_partial_file (test_git_repository_maintenance.RepositoryMaintenance.test_corrupt_object_contract_delivers_no_partial_file) ... ok
+test_exact_binary_recovery_and_repeat (test_git_repository_maintenance.RepositoryMaintenance.test_exact_binary_recovery_and_repeat) ... ok
+test_existing_user_file_is_preserved (test_git_repository_maintenance.RepositoryMaintenance.test_existing_user_file_is_preserved) ... ok
+test_installer_chains_existing_hook_with_original_stdin (test_git_repository_maintenance.RepositoryMaintenance.test_installer_chains_existing_hook_with_original_stdin) ... warning: in the working copy of 'source.c', LF will be replaced by CRLF the next time Git touches it
+ok
+test_large_new_blob_is_rejected (test_git_repository_maintenance.RepositoryMaintenance.test_large_new_blob_is_rejected) ... ok
+test_pack_measurement_and_early_limit (test_git_repository_maintenance.RepositoryMaintenance.test_pack_measurement_and_early_limit) ... warning: in the working copy of 'source.c', LF will be replaced by CRLF the next time Git touches it
+ok
+test_removed_archive_in_old_commit_still_blocks_push (test_git_repository_maintenance.RepositoryMaintenance.test_removed_archive_in_old_commit_still_blocks_push) ... ok
+test_traversal_and_absolute_paths_rejected (test_git_repository_maintenance.RepositoryMaintenance.test_traversal_and_absolute_paths_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 2.322s
+
+OK
+Repository budget hook installed; previous hook preserved and chained

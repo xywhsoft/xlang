@@ -1,0 +1,22 @@
+#!/bin/sh
+# xlang-repository-budget-hook-v1; preserve and chain the previous hook.
+set -u
+root=$(git rev-parse --show-toplevel) || exit 1
+script="$root/tools/git_repository_budget.py"
+if ! test -f "$script"; then
+    common=$(git rev-parse --path-format=absolute --git-common-dir) || exit 1
+    script="$(dirname "$common")/tools/git_repository_budget.py"
+fi
+case "$(uname -s)" in
+    MINGW*|MSYS*|CYGWIN*) python=${XLANG_PYTHON:-python} ;;
+    *) python=${XLANG_PYTHON:-python3} ;;
+esac
+saved=$(mktemp "${TMPDIR:-/tmp}/xlang-pre-push.XXXXXX") || exit 1
+trap 'rm -f -- "$saved"' EXIT HUP INT TERM
+cat > "$saved"
+"$python" -X utf8 "$script" --repo "$root" --pre-push < "$saved" || exit $?
+previous="$(dirname "$0")/pre-push.xlang-original"
+if test -f "$previous"; then
+    sh "$previous" "$@" < "$saved"
+    exit $?
+fi

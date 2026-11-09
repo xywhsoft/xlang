@@ -303,3 +303,8 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 
 # Exact-byte Git object cleanup evidence.
 /dev/release-materials/provenance/git-history-gc-20261109/** -text -whitespace
+
+# External material manifests and history-rewrite audit records retain exact bytes.
+/dev/release-materials/materials-index.json -text -whitespace
+/dev/release-materials/provenance/git-slim-20261109/** -text -whitespace
+/tools/hooks/pre-push text eol=lf

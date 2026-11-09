@@ -62,3 +62,10 @@
 # Local release maintenance state, archives and publisher helpers
 /dev/local-state/
 /dev/releases/
+
+# Downloaded development materials and third-party work copies stay outside Git.
+**/dev/extlibs/opencv/work/
+**/dev/extlibs/onnxruntime/smoke/*.dll
+**/dev/extlibs/onnxruntime/smoke/*.so
+**/dev/extlibs/rapidocr/smoke/onnxruntime*.dll
+**/packages/rapidocr/models/*.onnx
