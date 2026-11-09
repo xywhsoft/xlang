@@ -1,0 +1,22 @@
+// Verify embedded VFS Cgen. Run this diagnostic from the source root for its C fixture header.
+import xlang
+func main(...) as int
+ string source=r"""
+extern "counted_void_fields*" class Blob @header("test/cases/foreign_counted_void_fields.h") @lifetime("caller")
+ native point handle
+ extern "data" @c_field @c_length("length","int") @c_result("bytes_view") get bytes() as bytes
+end
+extern "counted_void_get" @header("test/cases/foreign_counted_void_fields.h") @no_raise func view(c_int mode) as Blob
+assert view(0).bytes==b"\0\xff\x80\0"
+assert view(1).bytes==b""
+"""
+ auto context=xlang.Context()
+ auto temp=env.get("XL6_NESTED_TEST_TEMP")
+ if temp!=null then
+  assert context.setTempDir(temp)
+ end
+ assert context.run(source),context.lastError
+ assert not context.run("int broken=missingNestedVoidFieldSymbol")
+ assert context.run(source),context.lastError
+ return 0
+end

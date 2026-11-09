@@ -535,7 +535,14 @@ static int xl6IrCgenPrepareForeignCountedField(XL6_Output* out,const XL6_IrModul
         length->countAbi==XL6_FOREIGN_SPAN_COUNT_INT ? "native_field_count < 0 || " : "",errors,
         target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_BYTES_VIEW ? "const uint8_t*" : "const char*");
     if(!xl6IrCgenEmitCallPlace(out,module,target,0,place))return 0;
-    xl6OutputPrintf(out,")->%s; }\n",target->cName);return !xl6OutputHasFailed(out);
+    xl6OutputPrintf(out,")->%s; }\n",target->cName);
+    /* Explicit field lengths describe a byte sequence, including the valid
+     * NULL/zero representation. Nullable fields retain their absent sentinel;
+     * by-value native view returns retain their separate producer contract. */
+    const XL6_IrType* result=xl6IrTypeGet(&module->types,target->returnType);
+    if(target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_BYTES_VIEW && result && result->kind!=XL6_IR_TYPE_NULLABLE)
+        xl6OutputPuts("    if (native_field_count == 0 && native_field_view.Data == NULL) native_field_view.Data=(const uint8_t*)\"\";\n",out);
+    return !xl6OutputHasFailed(out);
 }
 
 static int xl6IrCgenEmitForeignProjectionExpression(XL6_Output* out,const XL6_IrModule* module,

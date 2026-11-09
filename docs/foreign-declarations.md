@@ -466,6 +466,10 @@ A native field getter can combine `@c_result("text_view")` or
 `@c_result("bytes_view")` with `@c_length("nativeCountField", "int")` (or
 `"size_t"`). Both names are C field identifiers on the same admitted receiver.
 The authoritative header checks the byte pointer/array and count field types.
+Byte fields accept char, unsigned-char, void and their const pointer forms;
+text fields accept only char/const-char storage. Integer/object pointers are
+not admitted as byte storage. The declared count still has the exact int or
+size_t C type; no implicit narrowing changes its ABI.
 
 ```xlang
 extern "text" @c_field @c_length("textSize", "int") @c_result("text_view") get text() as string
@@ -476,6 +480,12 @@ fixed inline array's capacity raise checked errors before copying. Pointer
 fields require the native publisher's valid-range contract; a nonzero count
 with NULL data, or a result beyond the language length range, is rejected.
 Flexible arrays need a separate explicit pointer/capacity API.
+
+For a required bytes field, NULL plus an explicit zero count is an empty bytes
+value. A nullable bytes field preserves NULL/zero as null. This field rule uses
+the admitted authoritative count; it does not change NULL handling of ordinary
+native xbytesview return values or pointer-valued text results. Materialization
+still makes the language value copy; normalization adds no native allocation.
 
 Embedded NUL bytes are preserved. A requested language string/bytes value is
 copied before ending the receiver's native scope, so that value can be saved.

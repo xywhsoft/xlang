@@ -382,8 +382,8 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
             xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(((%s)0)->%s,char*) || XLIR_NATIVE_IS_TYPE(((%s)0)->%s,const char*)",
                 receiver->cName,target->cName,receiver->cName,target->cName);
             if(target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_BYTES_VIEW)
-                xl6OutputPrintf(out," || XLIR_NATIVE_IS_TYPE(((%s)0)->%s,unsigned char*) || XLIR_NATIVE_IS_TYPE(((%s)0)->%s,const unsigned char*)",
-                    receiver->cName,target->cName,receiver->cName,target->cName);
+                xl6OutputPrintf(out," || XLIR_NATIVE_IS_TYPE(((%s)0)->%s,unsigned char*) || XLIR_NATIVE_IS_TYPE(((%s)0)->%s,const unsigned char*) || XLIR_NATIVE_IS_TYPE(((%s)0)->%s,void*) || XLIR_NATIVE_IS_TYPE(((%s)0)->%s,const void*)",
+                    receiver->cName,target->cName,receiver->cName,target->cName,receiver->cName,target->cName,receiver->cName,target->cName);
             xl6OutputPrintf(out,", \"native field data type\");\nXLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(((%s)0)->%s, %s), \"native field length type\");\n",
                 receiver->cName,length->field,length->countAbi==XL6_FOREIGN_SPAN_COUNT_INT ? "int" : "size_t");
             return !xl6OutputHasFailed(out);

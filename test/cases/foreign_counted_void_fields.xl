@@ -1,0 +1,33 @@
+extern "counted_void_fields*" class Blob @header("test/cases/foreign_counted_void_fields.h") @lifetime("caller")
+ native point handle
+ extern "data" @c_field @c_length("length","int") @c_result("bytes_view") get bytes() as bytes
+ extern "constant" @c_field @c_length("length","int") @c_result("bytes_view") get constant() as bytes
+ extern "data" @c_field @c_length("length","int") @c_result("bytes_view") get optionalBytes() as bytes?
+end
+extern "counted_void_get" @header("test/cases/foreign_counted_void_fields.h") @no_raise func view(c_int mode) as Blob
+func main(...) as int
+ auto value=view(0)
+ bytes copy=value.bytes
+ assert copy==b"\0\xff\x80\0" and value.constant==copy
+ var dynamicValue=value
+ bytes? optionalCopy=copy
+ assert dynamicValue.bytes==copy and dynamicValue.optionalBytes==optionalCopy
+ value=view(4)
+ assert copy==b"\0\xff\x80\0" and value.bytes==b"*\xff\x80\0"
+ value=view(5)
+ for mode in range(1,4)
+  value=view(c_int(mode))
+  if mode==1 then
+   assert value.optionalBytes==null
+  end
+  bool rejected=false
+  try
+   bytes current=value.bytes
+   assert mode==1 and current==b""
+  catch error
+   rejected=true
+  end
+  assert rejected==(mode!=1)
+ end
+ return 0
+end
