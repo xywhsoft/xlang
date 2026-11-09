@@ -1,0 +1,43 @@
+// One frame: a worker drops the last Shader owner; GL cleanup stays on creator.
+import xge
+extern "fixtureXgeForeignThreadRelease" @header("test/cases/foreign_xge3_threads.h") @no_raise @c_code_owner(1) func releaseOnWorker(c_int kind) as bool
+extern "fixtureXgeThreadQueueIdle" @header("test/cases/foreign_xge3_threads.h") @no_raise func queueIdle() as bool
+extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func debugEnabled() as bool
+assert debugEnabled()
+func foreignShader(xge.Shader shader) as func() as int
+ return func() as int
+  int rejected=0
+  try
+   auto program=shader.nativeProgram
+  catch StateError
+   rejected+=1
+  end
+  try
+   shader.uniform1f("missing",1)
+  catch StateError
+   rejected+=1
+  end
+  try
+   shader.close()
+  catch StateError
+   rejected+=1
+  end
+  return rejected
+ end
+end
+xge.init(64,64,"XGE bounded thread retirement")
+try
+ xge.run(func() as c_int
+  assert releaseOnWorker(8)
+  auto shader=xge.createShader("#version 330\nvoid main(){gl_Position=vec4(0.0);}","#version 330\nout vec4 color;void main(){color=vec4(1.0);}")
+  auto worker=thread(foreignShader(shader))
+  assert worker.waitTimeout(30000) and worker.exitCode()==3
+  assert shader.nativeProgram!=c_uint(0)
+  shader.close()
+  return c_int(1)
+ end)
+ assert queueIdle()
+finally
+ xge.setFrameCallback(null)
+ xge.unit()
+end

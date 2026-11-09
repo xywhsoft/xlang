@@ -1,0 +1,85 @@
+// Actual language thread calls and the production creator-thread retirement queue.
+import xge
+extern "fixtureXgeForeignThreadRelease" @header("test/cases/foreign_xge3_threads.h") @no_raise @c_code_owner(1) func releaseOnWorker(c_int kind) as bool
+// The test-only C helper needs the optional fault-injection XRT module in AOT.
+extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func debugEnabled() as bool
+
+func foreignCalls(xge.Texture texture,xge.Font font,xge.Material material,xge.RenderTarget target,xge.Pass pass,xge.GpuBuffer buffer,xge.ShaderVariants variants) as func() as int
+ return func() as int
+  int rejected=0
+  try
+   auto width=texture.width
+  catch StateError
+   rejected+=1
+  end
+  try
+   texture.setSampler(xge.samplerDefault())
+  catch StateError
+   rejected+=1
+  end
+  try
+   texture.close()
+  catch StateError
+   rejected+=1
+  end
+  try
+   auto size=font.size
+  catch StateError
+   rejected+=1
+  end
+  try
+   material.setTexture(texture)
+  catch StateError
+   rejected+=1
+  end
+  try
+   target.resize(3,3)
+  catch StateError
+   rejected+=1
+  end
+  try
+   pass.close()
+  catch StateError
+   rejected+=1
+  end
+  try
+   buffer.update(0,b"xyz")
+  catch StateError
+   rejected+=1
+  end
+  try
+   auto count=variants.count
+  catch StateError
+   rejected+=1
+  end
+  return rejected
+ end
+end
+func main(...) as int
+ assert debugEnabled()
+ for kind in range(8)
+  assert releaseOnWorker(c_int(kind))
+ end
+ auto texture=xge.createTexture(2,2)
+ auto font=xge.loadSystemFont(xge.XGE_SYSTEM_FONT_MONOSPACE,16)
+ auto material=xge.createMaterial()
+ auto target=xge.createRenderTarget(2,2)
+ auto pass=xge.createPass(target)
+ auto buffer=xge.createGpuBuffer(xge.XGE_BUFFER_VERTEX,xge.XGE_BUFFER_STATIC,b"abc")
+ auto variants=xge.createShaderVariants("void main(){}","void main(){}")
+ auto worker=thread(foreignCalls(texture,font,material,target,pass,buffer,variants))
+ assert worker.waitTimeout(30000) and worker.exitCode()==9
+ assert texture.width==c_int(2) and target.width==c_int(2) and font.size==c_float(16)
+ assert material.texture==null and variants.count==c_int(0)
+ variants.close()
+ buffer.close()
+ pass.close()
+ target.close()
+ material.close()
+ font.close()
+ texture.close()
+ assert xge.graphicsResourceCount()==uint64(0)
+ xge.unit()
+ println("XGE creator-thread calls and eight foreign-thread final releases passed")
+ return 0
+end

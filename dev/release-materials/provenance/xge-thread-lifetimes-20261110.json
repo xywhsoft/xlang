@@ -1,0 +1,81 @@
+{
+  "scope": "Existing ForeignView creator-thread admission and checked retirement applied to actual graphics resources",
+  "taskStatus": "active",
+  "productionRuntimeChanged": false,
+  "nativeSnapshot": "native-source-r13 / XGE 9feb5fca",
+  "compiler": "Full Windows O2 compiler/TinyCC/XRT/VFS r9",
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\language-threads-win-r4\\results.json",
+      "sha256": "4fe59c1a6ed61be4953d95d6444d586a9612fe299d51c3db041bbb6e1e6c9391",
+      "checks": 25
+    }
+  ],
+  "cohort": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r9\\build.json",
+      "sha256": "bc8c9c68aab99dfb564ff4b67ce865d32e320000750afb806848ea2b07c5d0a9"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-texture-host-r2.json",
+      "sha256": "62b38fe18058fcbe9d4488e297658c7f563432847d4cb1a3ea56b167756199b9"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-texture-static-r2.json",
+      "sha256": "7cdb31b6df6a93a0f59517868e23fd876c63e21f80431649b33f3bb519123f9c"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-host-win-r13\\build-report.json",
+      "sha256": "a4ca4eed2179e503bd18fb10b7826bb35ac22b9e6c8840e32c55d9ab319f88f7"
+    }
+  ],
+  "sourceInputs": {
+    "test/cases/foreign_xge3_threads.h": "617c8dbaf53b48776751df3b565acaa1844202bada9b8b79e4a3b0718012adb8",
+    "test/cases/foreign_xge3_threads.xl": "ea1909c8585ffe6eb84fa5d41da03ddd9cbd1b05c14b67cbdc04af7a973c8cd7",
+    "test/cases/foreign_xge3_threads_gpu.xl": "9c2c9bf7e496f9786223a2ca67111b9c9a44ed387344810bde3534cd0092455e"
+  },
+  "residentInputs": {
+    "src/runtime/xl6_foreign_view.c": "bd4b3912a2e511bbd93278131322c4b42ffe6e3faed367391c3cbca2b00e4b04",
+    "src/runtime/xl6_foreign_view.h": "2d57673fff75f11d3d31376272b5971a042d2d64bc6341ac1d67ef5031fac797",
+    "src/runtime/xl6_foreign_context.c": "ecbdf21fb58dcdf64a36519eb9e406e95988a53fe0b5afcd5d1a8fbfe69e728d",
+    "src/api/xl_foreign_error.c": "5402d173d9cb153be9fb02d1a14ebb327f0377ad9434ebd9b960ef47c3df11ab"
+  },
+  "coverage": {
+    "cpuFamilies": [
+      "Texture",
+      "system Font",
+      "Image",
+      "Material with Texture",
+      "GPU Buffer",
+      "RenderTarget",
+      "Pass",
+      "ShaderVariants"
+    ],
+    "gpuFamilies": [
+      "Shader"
+    ],
+    "languageWrongThreadOperations": 12,
+    "queuePublicationAllocationAttempts": 0,
+    "actualCompilerCodeOwner": true,
+    "callbackTailRetirement": true,
+    "mode": [
+      "JIT",
+      "static AOT"
+    ],
+    "graphics": "One bounded actual OpenGL frame"
+  },
+  "networkTests": false,
+  "shippingDelivery": false,
+  "releaseOrIdeInstalled": false,
+  "limits": [
+    "The production contract is an accepted native publisher contract; raw C caller pointer/thread promises still apply",
+    "Resources created by foreign C outside the accepted publisher contract are not sandboxed",
+    "This does not certify creator-thread death recovery, unimplemented Scene/async families or every GUI/backend",
+    "No new per-method gate/lock and no hardware timing claim; existing ForeignView ownership/check costs remain",
+    "Linux language execution is pending a fresh complete compiler build"
+  ],
+  "next": [
+    "Finish native Scene transition correction and owned Scene graph/callback integration",
+    "Continue managed async and remaining integration phases"
+  ]
+}

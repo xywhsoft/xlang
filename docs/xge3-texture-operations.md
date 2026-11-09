@@ -64,8 +64,9 @@ Validation is pinned in
   qualification of the whole engine or every image format.
 
 Creator-thread admission and checked retirement for ordinary graphics calls
-and foreign-thread final release remain the next required lifetime work. This
-batch's functional checks do not establish cross-thread resource safety.
+and foreign-thread final release were subsequently qualified against the
+existing resident mechanism; see [thread lifetime evidence](xge3-thread-lifetimes.md).
+The original functional checks alone did not establish that contract.
 Linux language-side JIT/AOT, the remaining feature families, performance
 comparison and the matched release/IDE delivery remain in the long task.
 
