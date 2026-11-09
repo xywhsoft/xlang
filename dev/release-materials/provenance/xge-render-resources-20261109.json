@@ -1,0 +1,114 @@
+{
+  "format": "xge-render-resources-acceptance-1",
+  "nativeRevision": "c6a1d58ee2d44aa4d5999567fb5df7b5f55b2ea1",
+  "nativeXrtOverlay": "xlang current lib/xrt/xrt.h; upstream XGE dependency unchanged",
+  "cpuPassed": true,
+  "processRows": 15,
+  "gpuAcceptance": false,
+  "installed": false,
+  "compilerCohort": "diagnostic semantic IR and Cgen replacements; full release rebuild pending",
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\render-suite-r1\\results.json",
+      "sha256": "8212b86117928cadf3be832cb1345f587112904ee1e374774855e16a60e3f71b",
+      "bytes": 367974
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\projection-suite-r1\\results.json",
+      "sha256": "d7e0f148fa125dd4b96c56fc5ea4221f203375b711eaccec8bdd18bcaf002273",
+      "bytes": 11886
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\header-gate-r1\\results.json",
+      "sha256": "8def9c92f6131200d241ce0ced3decdca253dcb7dca7b71539d3a3dd15f2d6a3",
+      "bytes": 1546
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\mesh-native-gate-win\\results.json",
+      "sha256": "ac57f7a2ae2f1aebd6693e9c5f0b0a61e0636844e07d6466d3b1c3da1e900794",
+      "bytes": 3422
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\mesh-native-gate-linux\\results.json",
+      "sha256": "780c25d36b4cf5423f99e4f7057f09387658cb49e08660a88c91af3e4f1b73b8",
+      "bytes": 3434
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\engine-host-win.log",
+      "sha256": "7c52ba776f629b7419b2b426632b71571f64892475cb0884f9d5450e505bdeed",
+      "bytes": 6750
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\engine-static-win\\build-report.json",
+      "sha256": "63cece9aefc84290040bed592c14535c345909f4546df66d9fd688c8812d8679",
+      "bytes": 10049246
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\native-freeze.json",
+      "sha256": "c97c22d01d3e4c4c838128b39f6b7be5fc38fc4da3e37db2777f6909ca3f2997",
+      "bytes": 959980
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\packages-new-host-r2.json",
+      "sha256": "9b2a4fd1a0d8ebe9bceb0ef6db6b0343161c0c2debd31d35b7252943986caa5f",
+      "bytes": 40262
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\packages-new-static.json",
+      "sha256": "02fc234a8fabfa7aacc227e65d582934340849258238e70f6ff39e55e08e0982",
+      "bytes": 9203729
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\compiler-r5\\reused-object-audit.json",
+      "sha256": "f77325016ad669a0e9a4a30f45a068f4c2398d9ef16f4bbeef41bd1a596f72cf",
+      "bytes": 1223
+    }
+  ],
+  "binaries": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\render-suite-r1\\foreign_xge3_render_resources.exe",
+      "sha256": "54fa53710d802f0417070f8aaa1590ba92441bfd33fa2288e49ac094c4c13cac",
+      "bytes": 4025344,
+      "imports": [
+        "msvcrt.dll",
+        "kernel32.dll",
+        "USER32.dll",
+        "ole32.dll",
+        "OLEAUT32.dll",
+        "SHELL32.dll",
+        "GDI32.dll",
+        "IMM32.dll"
+      ]
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\render-suite-r1\\foreign_xge3_render_oom.exe",
+      "sha256": "64b892a3d57a40c185f0a50e8370996e541ada12c7bd0f4656e22bc27e2ccff0",
+      "bytes": 3852288,
+      "imports": [
+        "msvcrt.dll",
+        "kernel32.dll",
+        "USER32.dll",
+        "ole32.dll",
+        "OLEAUT32.dll",
+        "SHELL32.dll",
+        "GDI32.dll",
+        "IMM32.dll"
+      ]
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\render-suite-r1\\headless_batches.exe",
+      "sha256": "7ce943e81eeeaf4c33e3a844087614bf994d646b2aa79aeba366ef0c8fe3e021",
+      "bytes": 3676160,
+      "imports": [
+        "msvcrt.dll",
+        "kernel32.dll",
+        "USER32.dll",
+        "ole32.dll",
+        "OLEAUT32.dll",
+        "SHELL32.dll",
+        "GDI32.dll",
+        "IMM32.dll"
+      ]
+    }
+  ]
+}
