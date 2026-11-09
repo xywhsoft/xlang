@@ -1,0 +1,54 @@
+// Native resource ownership; methods remain direct engine calls.
+export extern "xge_shader_t*" class Shader @header("xge3_shader.h") @lifetime("owned") @policy("xl6Xge3ShaderPolicy")
+ native point handle
+ extern "iProgram" @c_field get nativeProgram() as c_uint
+ extern "xgeShaderUniform1i" @no_raise @c_cstr(0) @c_result("status",0) func uniform1i(string name,c_int value)
+ extern "xgeShaderUniform1f" @no_raise @c_cstr(0) @c_result("status",0) func uniform1f(string name,c_float value)
+ extern "xgeShaderUniform2f" @no_raise @c_cstr(0) @c_result("status",0) func uniform2f(string name,c_float x,c_float y)
+ extern "xgeShaderUniform3f" @no_raise @c_cstr(0) @c_result("status",0) func uniform3f(string name,c_float x,c_float y,c_float z)
+ extern "xgeShaderUniform4f" @no_raise @c_cstr(0) @c_result("status",0) func uniform4f(string name,c_float x,c_float y,c_float z,c_float w)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xgeShaderAddRef" @header("xge3_shader.h") @no_raise func retainShader(Shader shader) as c_int
+extern "xgeShaderFree" @header("xge3_shader.h") @no_raise func freeShader(Shader shader)
+export extern "xgeShaderCreateOwned" @header("xge3_shader.h") @no_raise @c_cstr(0) @c_cstr(1) @c_result("owned_view") @factory(0,0,freeShader) func createShader(string vertexSource,string fragmentSource) as Shader
+
+export extern "xge_shader_define_t" struct ShaderDefine @header("xge3_shader.h")
+ c_char sName[32]
+ c_int iValue
+end
+export extern "xge_shader_variant_set_t*" class ShaderVariants @header("xge3_shader.h") @lifetime("owned") @policy("xl6Xge3ShaderVariantsPolicy")
+ native point handle
+ extern "iCount" @c_field get count() as c_int
+ extern "xgeShaderVariantGetOwned" @no_raise @c_array_group(2,1,1,"int",2) @c_array_input(2,0,"const xge_shader_define_t*","value") @c_result("owned_view") @factory(4,0,freeShader) func get(c_uint key,array<ShaderDefine> defines,int size=-1) as Shader
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xgeShaderVariantSetFree" @header("xge3_shader.h") @no_raise func freeShaderVariants(ShaderVariants value)
+export extern "xgeShaderVariantSetInit" @header("xge3_shader.h") @no_raise @c_cstr(0) @c_cstr(1) @c_result("owned_view") @factory(0,0,freeShaderVariants) @c_inplace("xge_shader_variant_set_t") func createShaderVariants(string vertexSource,string fragmentSource) as ShaderVariants
+
+export extern "xge_render_target_t*" class RenderTarget @header("xge3_render_target.h") @lifetime("owned") @policy("xl6Xge3TargetPolicy")
+ native point handle
+ extern "iWidth" @c_field get width() as c_int
+ extern "iHeight" @c_field get height() as c_int
+ extern "xgeRenderTargetResize" @no_raise @c_result("status",0) func resize(c_int width,c_int height)
+ extern "xgeRenderTargetCaptureCurrent" @no_raise @c_result("status",0) func captureCurrent(c_int x,c_int y)
+ extern "xgeRenderTargetReadPixelsSized" @no_raise @c_span(0,"void*","size_t") @c_result("status",0) func readPixels(Buffer output,c_int stride=0)
+ extern "xgeRenderTargetTexture" @no_raise @c_result("retained_view") @c_retain(retainTexture,"positive",freeTexture) get texture() as Texture?
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xgeRenderTargetFree" @header("xge3_render_target.h") @no_raise func freeRenderTarget(RenderTarget value)
+export extern "xgeRenderTargetCreateOwned" @header("xge3_render_target.h") @no_raise @c_result("owned_view") @factory(0,0,freeRenderTarget) func createRenderTarget(c_int width,c_int height) as RenderTarget
+export extern "xgeRenderTargetWindowOwned" @header("xge3_render_target.h") @no_raise @c_result("owned_view") @factory(0,0,freeRenderTarget) func createWindowTarget() as RenderTarget
+
+export extern "xge_pass_t*" class Pass @header("xge3_pass.h") @lifetime("owned") @policy("xl6Xge3PassPolicy")
+ native point handle
+ extern "bActive" @c_field get active() as c_int
+ extern "xgePassIsCurrent" @no_raise @c_const(0) func isCurrent() as bool
+ extern "xgePassBegin" @no_raise @c_result("status",0) func begin()
+ extern "xgePassEnd" @no_raise @c_result("status",0) func finish()
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xgePassFree" @header("xge3_pass.h") @no_raise func freePass(Pass value)
+export extern "xgePassCreateOwned" @header("xge3_pass.h") @no_raise @c_result("owned_view") @factory(0,0,freePass) func createPass(RenderTarget target,c_uint clearFlags=0,c_uint clearColor=0) as Pass
+export extern "xgeGraphicsOwnedResourceCount" @header("xge3_runtime.h") @no_raise func graphicsResourceCount() as uint64
+export extern "xgePassIsIdle" @header("xge3_pass.h") @no_raise func passesIdle() as bool

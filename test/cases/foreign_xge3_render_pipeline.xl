@@ -1,0 +1,120 @@
+// CPU lifecycle and byte-capacity checks; the separate GPU fixture opens a window.
+import xge
+func main(...) as int
+ assert xge.graphicsResourceCount()==uint64(0)
+ auto target=xge.createRenderTarget(2,2)
+ assert target.width==c_int(2) and target.height==c_int(2)
+ auto pass=xge.createPass(target)
+ target.close()
+ bool failed=false
+ try
+  pass.begin()
+ catch error
+  failed=true
+ end
+ assert failed and pass.active==c_int(0) and not pass.isCurrent() and xge.passesIdle()
+ pass.close()
+ assert xge.graphicsResourceCount()==uint64(0)
+ target=xge.createRenderTarget(2,2)
+ auto texture=target.texture
+ assert texture!=null
+ failed=false
+ try
+  target.resize(3,3)
+ catch error
+  failed=true
+ end
+ assert failed and target.width==c_int(2)
+ if texture!=null then
+  texture.close()
+ else
+  return 1
+ end
+ target.resize(3,3)
+ auto output=Buffer()
+ assert output.resize(36)
+ assert output.len()==36
+ target.readPixels(output)
+ failed=false
+ try
+  target.readPixels(Buffer(b"small"))
+ catch error
+  failed=true
+ end
+ assert failed and target.width==c_int(3)
+ texture=target.texture
+ if texture!=null then
+  target.close()
+  assert texture.width==c_int(3) and xge.graphicsResourceCount()==uint64(1)
+  failed=false
+  try
+   xge.unit()
+  catch error
+   failed=true
+  end
+  assert failed and texture.width==c_int(3)
+  texture.close()
+ else
+  return 2
+ end
+ assert xge.graphicsResourceCount()==uint64(0)
+ auto blank=xge.createTexture(1,1)
+ auto pixels=xge.createTexture(1,1,b"a\0b\0")
+ auto bufferPixels=xge.createTexture(1,1,Buffer(b"a\0b\0"))
+ assert xge.graphicsResourceCount()==uint64(3)
+ blank.close()
+ pixels.close()
+ bufferPixels.close()
+ failed=false
+ try
+  auto invalidTexture=xge.createTexture(1,1,b"abc")
+ catch error
+  failed=true
+ end
+ assert failed and xge.graphicsResourceCount()==uint64(0)
+ auto variants=xge.createShaderVariants("void main(){}","void main(){}")
+ auto shaderDefine=xge.ShaderDefine()
+ shaderDefine.sName[0]=c_char(65)
+ shaderDefine.iValue=c_int(1)
+ array<xge.ShaderDefine> defines=[shaderDefine]
+ failed=false
+ try
+  auto unavailable=variants.get(0,defines)
+ catch error
+  failed=true
+ end
+ assert failed and variants.count==c_int(0) and xge.graphicsResourceCount()==uint64(0)
+ variants.close()
+ auto material=xge.createMaterial()
+ assert material.shader==null
+ material.setShader(null)
+ auto shared=xge.createTexture(1,1)
+ material.setTexture2(shared)
+ material.setTexture3(shared)
+ shared.close()
+ auto second=material.texture2
+ auto third=material.texture3
+ material.close()
+ if second!=null and third!=null then
+  assert second.width==c_int(1) and third.width==c_int(1)
+  second.close()
+  assert third.width==c_int(1)
+  third.close()
+ else
+  return 3
+ end
+ assert xge.graphicsResourceCount()==uint64(0)
+ failed=false
+ try
+  auto invalidWindow=xge.createWindowTarget()
+ catch error
+  failed=true
+ end
+ assert failed
+ xge.initNative()
+ auto window=xge.createWindowTarget()
+ assert window.width==c_int(800) and window.height==c_int(600) and window.texture==null
+ window.close()
+ xge.unit()
+ return 0
+end

@@ -1,0 +1,150 @@
+// Bounded real graphics acceptance. Run explicitly on a graphics-capable host.
+import xge
+xge.Texture? heldTexture=null
+xge.Shader? heldShader=null
+xge.Pass? heldPass=null
+int frames=0
+func vertexAt(float x,float y,c_uint color) as xge.Vertex
+ auto vertex=xge.Vertex()
+ vertex.fX=c_float(x)
+ vertex.fY=c_float(y)
+ vertex.fW=c_float(1)
+ vertex.iColor=color
+ return vertex
+end
+func area(float width,float height) as xge.Rect
+ auto rect=xge.Rect()
+ rect.fW=c_float(width)
+ rect.fH=c_float(height)
+ return rect
+end
+func main(...) as int
+ auto preloaded=xge.createTexture(1,1,Buffer.fromHex("ffffffff"))
+ xge.init(128,96,"xlang bounded render pipeline")
+ xge.run(func() as c_int
+  frames+=1
+  auto target=xge.createRenderTarget(2,2)
+  auto pass=xge.createPass(target,c_uint(xge.XGE_PASS_CLEAR_COLOR),xge.colorRGBA(10,20,30,255))
+  pass.begin()
+  assert pass.isCurrent() and not xge.passesIdle()
+  pass.finish()
+  assert not pass.isCurrent() and xge.passesIdle()
+  auto pixels=Buffer()
+  assert pixels.resize(16)
+  target.readPixels(pixels)
+  assert pixels.hex()=="0a141eff0a141eff0a141eff0a141eff"
+  auto solid=xge.colorRGBA(80,90,100,255)
+  auto shapes=xge.createShapeBatch(solid,2,c_uint(xge.XGE_DRAW_SCREEN_SPACE))
+  pass.begin()
+  shapes.rect(area(2,2))
+  shapes.flush()
+  pass.finish()
+  target.readPixels(pixels)
+  assert pixels.hex()=="505a64ff505a64ff505a64ff505a64ff"
+  shapes.close()
+  auto white=preloaded
+  array<xge.Vertex> vertices=[vertexAt(0,0,solid),vertexAt(2,0,solid),vertexAt(2,2,solid),vertexAt(0,2,solid)]
+  array<c_ushort> indices=[c_ushort(0),c_ushort(1),c_ushort(2),c_ushort(0),c_ushort(2),c_ushort(3)]
+  auto mesh=xge.createMesh(vertices,-1,indices)
+  pass.begin()
+  mesh.draw(white,c_uint(xge.XGE_DRAW_SCREEN_SPACE))
+  pass.finish()
+  target.readPixels(pixels)
+  assert pixels.hex()=="505a64ff505a64ff505a64ff505a64ff"
+  mesh.close()
+  auto sprites=xge.createSpriteBatch(white,1,c_uint(xge.XGE_DRAW_SCREEN_SPACE))
+  pass.begin()
+  sprites.add(white,area(1,1),area(2,2),solid)
+  sprites.flush()
+  pass.finish()
+  target.readPixels(pixels)
+  assert pixels.hex()=="505a64ff505a64ff505a64ff505a64ff"
+  sprites.close()
+  auto vertex="#version 330\nlayout(location=0)in vec4 aPosition;uniform vec2 uResolution;void main(){vec2 p=aPosition.xy/uResolution;gl_Position=vec4(p.x*2.0-1.0,1.0-p.y*2.0,0.0,1.0);}"
+  auto fragment="#version 330\nuniform vec4 uTint;out vec4 fragColor;void main(){fragColor=uTint;}"
+  auto direct=xge.createShader(vertex,fragment)
+  assert direct.nativeProgram!=c_uint(0)
+  direct.uniform4f("uTint",1,0,0,1)
+  int missingUniforms=0
+  for kind in range(4)
+   try
+    if kind==0 then
+     direct.uniform1i("missingUniform",1)
+    elseif kind==1 then
+     direct.uniform1f("missingUniform",1)
+    elseif kind==2 then
+     direct.uniform2f("missingUniform",1,2)
+    else
+     direct.uniform3f("missingUniform",1,2,3)
+    end
+   catch error
+    missingUniforms+=1
+   end
+  end
+  assert missingUniforms==4 and direct.nativeProgram!=c_uint(0)
+  direct.close()
+  auto variants=xge.createShaderVariants(vertex,fragment)
+  auto shaderDefine=xge.ShaderDefine()
+  shaderDefine.sName[0]=c_char(65)
+  shaderDefine.iValue=c_int(1)
+  array<xge.ShaderDefine> defines=[shaderDefine]
+  auto shader=variants.get(0,defines)
+  variants.close()
+  auto material=xge.createMaterial()
+  material.setShader(shader)
+  shader.uniform4f("uTint",1,0,0,1)
+  pass.begin()
+  material.draw(white,area(1,1),area(2,2),xge.Vec2(),c_float(0),c_uint(0xffffffff),c_uint(xge.XGE_DRAW_SCREEN_SPACE))
+  pass.finish()
+  target.readPixels(pixels)
+  assert pixels.hex()=="ff0000ffff0000ffff0000ffff0000ff"
+  shader.close()
+  heldShader=material.shader
+  material.close()
+  white.close()
+  pass.close()
+  heldTexture=target.texture
+  target.close()
+  return c_int(1)
+ end)
+ xge.setFrameCallback(null)
+ assert frames==1 and xge.graphicsResourceCount()==uint64(2)
+ bool busy=false
+ try
+  xge.unit()
+ catch error
+  busy=true
+ end
+ assert busy
+ if heldTexture!=null then heldTexture.close() end
+ if heldShader!=null then heldShader.close() end
+ heldTexture=null
+ heldShader=null
+ assert xge.graphicsResourceCount()==uint64(0)
+ xge.unit()
+ // Window-system cleanup can precede explicit Pass cleanup. The checked
+ // close reports End failure while still consuming the restored owner.
+ xge.init(128,96,"xlang ended Pass cleanup")
+ xge.run(func() as c_int
+  auto target=xge.createRenderTarget(2,2)
+  auto pass=xge.createPass(target)
+  target.close()
+  pass.begin()
+  heldPass=pass
+  return c_int(1)
+ end)
+ xge.setFrameCallback(null)
+ assert xge.graphicsResourceCount()==uint64(1)
+ bool cleanupFailed=false
+ if heldPass!=null then
+  try
+   heldPass.close()
+  catch error
+   cleanupFailed=true
+  end
+ end
+ heldPass=null
+ assert cleanupFailed and xge.graphicsResourceCount()==uint64(0) and xge.passesIdle()
+ xge.unit()
+ return 0
+end

@@ -13,7 +13,11 @@ end
 export extern "xge_material_t*" class Material @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xge3MaterialPolicy")
  native point handle
  extern "iColor" @c_field get color() as c_uint
+ extern "pShader" @c_field @c_result("retained_view") @c_retain(retainShader,"positive",freeShader) get shader() as Shader?
+ extern "xgeMaterialSetShaderChecked" @no_raise @c_result("status",0) func setShader(Shader? value)
  extern "pTexture" @c_field @c_result("retained_view") @c_retain(retainTexture,"positive",freeTexture) get texture() as Texture?
+ extern "pTexture2" @c_field @c_result("retained_view") @c_retain(retainTexture,"positive",freeTexture) get texture2() as Texture?
+ extern "pTexture3" @c_field @c_result("retained_view") @c_retain(retainTexture,"positive",freeTexture) get texture3() as Texture?
  extern "xgeMaterialSetTextureChecked" @no_raise @c_result("status",0) func setTexture(Texture? value)
  extern "xgeMaterialSetTexture2Checked" @no_raise @c_result("status",0) func setTexture2(Texture? value)
  extern "xgeMaterialSetTexture3Checked" @no_raise @c_result("status",0) func setTexture3(Texture? value)
@@ -39,7 +43,7 @@ export extern "xge_font" class Font @header("xge3_runtime.h") @lifetime("owned")
  extern "fSize" @c_field get size() as c_float
  extern "xgeTextDraw" @c_cstr(0) func drawText(string text,c_float x,c_float y,c_uint color)
  extern "pFallback" @c_field @c_result("retained_view") @c_retain(retainFont,"positive",freeFont) get fallback() as Font?
- extern "xgeFontCreateSized" @no_raise @c_result("owned_view") @factory(0,0,freeFont) @c_inplace("xge_font_t",adoptFont,0) func sized(c_float size) as Font
+ extern "xgeFontCreateSizedOwned" @no_raise @c_result("owned_view") @factory(0,0,freeFont) func sized(c_float size) as Font
  extern "xgeFontSetFallbackChecked" @no_raise @c_result("status",0) func setFallback(Font? fallback)
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
@@ -53,14 +57,13 @@ export extern "xgeImageLoadMemory" @no_raise @c_span(0,"const void*","int") @c_r
 extern "xgeImageFree" @no_raise func freeImage(Image value)
 export extern "xgeMaterialInit" @no_raise @c_result("owned_view") @factory(0,freeMaterial) @c_inplace("xge_material_t") func createMaterial() as Material
 extern "xgeMaterialFree" @no_raise func freeMaterial(Material value)
-export extern "xgeTextureCreateRGBA" @no_raise @c_result("owned_view") @factory(0,0,freeTexture) @c_inplace("xge_texture_t",adoptTexture,0) func createTexture(c_int width,c_int height,Pixels? pixels=null) as Texture
-export extern "xgeTextureLoadMemory" @no_raise @c_span(0,"const void*","int") @c_result("owned_view") @factory(0,0,freeTexture) @c_inplace("xge_texture_t",adoptTexture,0) func loadTexture(bytes data) as Texture
-export extern "xgeFontLoad" @no_raise @c_cstr(0) @c_result("owned_view") @factory(0,0,freeFont) @c_inplace("xge_font_t",adoptFont,0) func loadFont(string path,c_float size) as Font
-export extern "xgeFontLoadMemory" @no_raise @c_span(0,"const void*","int") @c_result("owned_view") @factory(0,0,freeFont) @c_inplace("xge_font_t",adoptFont,0) func loadFontMemory(bytes data,c_float size) as Font
-extern "xgeTextureAdoptStorage" @no_raise func adoptTexture(Texture value) as c_int
+export extern "xgeTextureCreateRGBAOwned" @no_raise @c_span(2,"const void*","size_t") @c_result("owned_view") @factory(0,0,freeTexture) func createTexture(c_int width,c_int height,Buffer? pixels=null) as Texture
+export extern "xgeTextureCreateRGBAOwned" @no_raise @c_span(2,"const void*","size_t") @c_result("owned_view") @factory(0,0,freeTexture) func createTexture(c_int width,c_int height,bytes pixels) as Texture
+export extern "xgeTextureLoadMemoryOwned" @no_raise @c_span(0,"const void*","int") @c_result("owned_view") @factory(0,0,freeTexture) func loadTexture(bytes data) as Texture
+export extern "xgeFontLoadOwned" @no_raise @c_cstr(0) @c_result("owned_view") @factory(0,0,freeFont) func loadFont(string path,c_float size) as Font
+export extern "xgeFontLoadMemoryOwned" @no_raise @c_span(0,"const void*","int") @c_result("owned_view") @factory(0,0,freeFont) func loadFontMemory(bytes data,c_float size) as Font
 extern "xgeTextureAddRef" @no_raise func retainTexture(Texture value) as c_int
 extern "xgeTextureFree" @no_raise func freeTexture(Texture value)
-extern "xgeFontAdoptStorage" @no_raise func adoptFont(Font value) as c_int
 extern "xgeFontAddRef" @no_raise func retainFont(Font value) as c_int
 extern "xgeFontFree" @no_raise func freeFont(Font value)
 
@@ -68,4 +71,4 @@ extern "xgeFontFree" @no_raise func freeFont(Font value)
 export extern "xgeDrawEx" @header("xge3_runtime.h") @no_raise @c_pack(0,"xge_draw_t",0,4) @c_pack_field(0,"pTexture",0,"view_raw") @c_pack_field(0,"tSrc",1,"value") @c_pack_field(0,"tDst",2,"value") @c_pack_field(0,"iColor",3,"value") func drawTexture(Texture texture,Rect source,Rect destination,c_uint color)
 
 // Explicit platform font loading; engine initialization does not preload it.
-export extern "xgeFontLoadSystem" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(0,0,freeFont) @c_inplace("xge_font_t",adoptFont,0) @c_pack(1,"xge_system_font_desc_t",0,5) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"iRole",0,"value") @c_pack_field(1,"fPixelSize",1,"value") @c_pack_field(1,"iWeight",2,"value") @c_pack_field(1,"iSlant",3,"value") @c_pack_field(1,"sLanguage",4,"c_string") func loadSystemFont(c_int role=0,c_float size=0,c_int weight=0,c_int slant=0,string? language=null) as Font
+export extern "xgeFontLoadSystem" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(0,0,freeFont) @c_pack(1,"xge_system_font_desc_t",0,5) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"iRole",0,"value") @c_pack_field(1,"fPixelSize",1,"value") @c_pack_field(1,"iWeight",2,"value") @c_pack_field(1,"iSlant",3,"value") @c_pack_field(1,"sLanguage",4,"c_string") func loadSystemFont(c_int role=0,c_float size=0,c_int weight=0,c_int slant=0,string? language=null) as Font

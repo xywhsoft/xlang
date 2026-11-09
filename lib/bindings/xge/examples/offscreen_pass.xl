@@ -1,0 +1,30 @@
+// Draw once into a texture, read its pixels, then close the small window.
+import xge
+func main(...) as int
+ xge.init(160,120,"Offscreen render pass")
+ try
+  xge.run(func() as c_int
+   auto target=xge.createRenderTarget(2,2)
+   try
+    auto pass=xge.createPass(target,c_uint(xge.XGE_PASS_CLEAR_COLOR),xge.colorRGBA(10,20,30,255))
+    try
+     pass.begin()
+     pass.finish()
+    finally
+     pass.close()
+    end
+    auto pixels=Buffer()
+    assert pixels.resize(16)
+    target.readPixels(pixels)
+    println(pixels.hex()) // Four identical RGBA pixels: 0a141eff...
+   finally
+    target.close()
+   end
+   return c_int(1)
+  end)
+ finally
+  xge.setFrameCallback(null)
+  xge.unit()
+ end
+ return 0
+end

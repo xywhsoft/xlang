@@ -10,8 +10,8 @@ export extern "xge_buffer_t*" class GpuBuffer @header("xge3_gpu_buffer.h") @life
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
 extern "xgeBufferFree" @header("xge3_gpu_buffer.h") @no_raise func freeGpuBuffer(GpuBuffer value)
-export extern "xgeBufferCreate" @header("xge3_gpu_buffer.h") @no_raise @c_span(2,"const void*","int") @c_result("owned_view") @factory(0,0,freeGpuBuffer) @c_inplace("xge_buffer_t") func createGpuBuffer(c_int kind,c_int usage,bytes data) as GpuBuffer
-export extern "xgeBufferCreate" @header("xge3_gpu_buffer.h") @no_raise @c_span(2,"const void*","int") @c_result("owned_view") @factory(0,0,freeGpuBuffer) @c_inplace("xge_buffer_t") func createGpuBuffer(c_int kind,c_int usage,Buffer data) as GpuBuffer
+export extern "xgeBufferCreateOwned" @header("xge3_gpu_buffer.h") @no_raise @c_span(2,"const void*","int") @c_result("owned_view") @factory(0,0,freeGpuBuffer) func createGpuBuffer(c_int kind,c_int usage,bytes data) as GpuBuffer
+export extern "xgeBufferCreateOwned" @header("xge3_gpu_buffer.h") @no_raise @c_span(2,"const void*","int") @c_result("owned_view") @factory(0,0,freeGpuBuffer) func createGpuBuffer(c_int kind,c_int usage,Buffer data) as GpuBuffer
 
 export extern "xge_mesh_t*" class Mesh @header("xge3_mesh.h") @lifetime("owned") @policy("xl6Xge3MeshPolicy")
  native point handle
@@ -26,8 +26,8 @@ export extern "xge_mesh_t*" class Mesh @header("xge3_mesh.h") @lifetime("owned")
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
 extern "xgeMeshFree" @header("xge3_mesh.h") @no_raise func freeMesh(Mesh value)
-export extern "xgeMeshCreate" @header("xge3_mesh.h") @no_raise @c_span(0,"const xge_vertex_t*","int") @c_span(1,"const uint16_t*","int") @c_result("owned_view") @factory(0,0,freeMesh) @c_inplace("xge_mesh_t") func createMesh(Buffer vertices,Buffer indices,c_uint flags=0) as Mesh
-export extern "xgeMeshCreate" @header("xge3_mesh.h") @no_raise @c_array_group(1,0,1,"int",1) @c_array_input(1,0,"const xge_vertex_t*","value") @c_array_group(3,2,1,"int",3) @c_array_input(3,0,"const uint16_t*","value") @c_result("owned_view") @factory(0,0,freeMesh) @c_inplace("xge_mesh_t") func createMesh(array<Vertex> vertices,int vertexSize,array<c_ushort> indices,int indexSize=-1,c_uint flags=0) as Mesh
+export extern "xgeMeshCreateOwned" @header("xge3_mesh.h") @no_raise @c_span(0,"const xge_vertex_t*","int") @c_span(1,"const uint16_t*","int") @c_result("owned_view") @factory(0,0,freeMesh) func createMesh(Buffer vertices,Buffer indices,c_uint flags=0) as Mesh
+export extern "xgeMeshCreateOwned" @header("xge3_mesh.h") @no_raise @c_array_group(1,0,1,"int",1) @c_array_input(1,0,"const xge_vertex_t*","value") @c_array_group(3,2,1,"int",3) @c_array_input(3,0,"const uint16_t*","value") @c_result("owned_view") @factory(0,0,freeMesh) func createMesh(array<Vertex> vertices,int vertexSize,array<c_ushort> indices,int indexSize=-1,c_uint flags=0) as Mesh
 
 export extern "xge_shape_batch_t*" class ShapeBatch @header("xge3_shape_batch.h") @lifetime("owned") @policy("xl6Xge3ShapeBatchPolicy")
  native point handle

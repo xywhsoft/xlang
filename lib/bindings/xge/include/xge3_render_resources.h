@@ -15,6 +15,17 @@ static inline const XL6_ForeignViewDescriptorV1* Name##Get(void) \
  return &policy; \
 }
 
+/* These C APIs own the outer record, including shared native references. */
+#define XL6_XGE_NATIVE_POLICY(Name,Family,Type,NativeFree) \
+static inline bool Name##Destroy(void* raw) \
+{ NativeFree((Type*)raw);return true; } \
+static inline const XL6_ForeignViewDescriptorV1* Name##Get(void) \
+{ \
+ static const XL6_ForeignViewDescriptorV1 policy={sizeof(policy),XL6_FOREIGN_VIEW_V1_TAG, \
+  Family,0,1,NULL,NULL,Name##Destroy,0,1,NULL,NULL,NULL,NULL,0,Name##Destroy,NULL}; \
+ return &policy; \
+}
+
 /* Each family instantiates this in its own header so importing one resource
  * does not define cleanup functions that reference three unrelated families. */
 #endif

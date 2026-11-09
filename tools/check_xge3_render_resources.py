@@ -1,7 +1,7 @@
-"""CPU-only acceptance of direct XGE render-resource declarations.
+"""Acceptance of direct XGE render-resource declarations (CPU by default).
 
 Requires independently qualified compiler, dynamic packages and static packages.
-Does not open a graphics context or establish GPU/platform acceptance.
+Only explicit --graphics-case inputs open a bounded graphics context.
 """
 from pathlib import Path
 import argparse
@@ -17,6 +17,8 @@ def main():
     p.add_argument('--root', type=Path, default=Path(__file__).resolve().parents[1])
     p.add_argument('--extra-case', type=Path, action='append', default=[],
         help='Additional CPU-only resource fixture or example; same JIT/static checks')
+    p.add_argument('--graphics-case', type=Path, action='append', default=[],
+        help='Explicit bounded real-graphics fixture or example; requires working display/backend')
     for name in ('compiler', 'dynamic-packages', 'static-packages', 'out', 'objdump'):
         p.add_argument('--' + name, type=Path, required=True)
     a = p.parse_args()
@@ -33,6 +35,7 @@ def main():
         ('foreign_xge3_render_resources', 'foreign_xge3_render_oom')]
     cases.append(root / 'lib/bindings/xge/examples/headless_batches.xl')
     cases.extend(path.resolve() for path in a.extra_case)
+    cases.extend(path.resolve() for path in a.graphics_case)
     assert len({path.stem for path in cases}) == len(cases), 'Duplicate output basename'
     inputs.update({str(path): sha(path) for path in cases})
     for case in cases:
@@ -40,7 +43,8 @@ def main():
             sidecar = case.with_suffix(suffix)
             if sidecar.is_file():
                 inputs[str(sidecar)] = sha(sidecar)
-    report = dict(passed=False, graphicsContext=False, gpuAcceptance=False,
+    report = dict(passed=False, graphicsContext=bool(a.graphics_case), gpuAcceptance=bool(a.graphics_case),
+        graphicsScope='Bounded OpenGL API/readback; no hardware performance qualification' if a.graphics_case else None,
         shippingDelivery=False, compilerBuild='caller supplied; qualify cohort separately',
         inputs=inputs, rows=[])
 
@@ -90,7 +94,7 @@ def main():
     assert all(sha(path) == digest for path, digest in inputs.items()), 'Acceptance input changed'
     report.update(passed=True, inputsUnchanged=True)
     save()
-    print(json.dumps(dict(passed=True, rows=len(report['rows']), gpuAcceptance=False)))
+    print(json.dumps(dict(passed=True, rows=len(report['rows']), gpuAcceptance=bool(a.graphics_case))))
 
 
 if __name__ == '__main__':

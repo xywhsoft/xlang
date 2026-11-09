@@ -1,0 +1,17 @@
+// Exercise the embedded compiler's new input contract, not just the host DLL.
+import xlang
+func main(...) as int
+ string source=r"""
+extern "xrtHash32" @header("xrt_decl.h") @no_raise @c_span(0,"const void*","size_t") func digest(bytes data) as c_uint
+extern "xrtHash32" @header("xrt_decl.h") @no_raise @c_span(0,"const void*","size_t") func digest(Buffer? data) as c_uint
+Buffer? input=Buffer(b"a\0b")
+Buffer? absent=null
+assert digest(input)==digest(b"a\0b")
+assert digest(absent)==digest(b"")
+"""
+ auto compiler=xlang.Context()
+ assert compiler.run(source),compiler.lastError
+ assert not compiler.run("int broken=missingNestedSpanSymbol")
+ assert compiler.run(source),compiler.lastError
+ return 0
+end

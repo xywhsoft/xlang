@@ -506,14 +506,16 @@ static bool destroy_texture(void* raw){xgeTextureFree(raw);return true;}
 static bool destroy_unadopted_font(void* raw)
 {
     xge_font font=raw;
-    if(font->iRefCount>1){xrtSetErrorKind(XERR_STATE);return false;}
-    xgeFontFree(font);xrtFree(font);return true;
+    bool owned=xgeFontIsOwned(font);
+    if(!owned && font->iRefCount>1){xrtSetErrorKind(XERR_STATE);return false;}
+    xgeFontFree(font);if(!owned)xrtFree(font);return true;
 }
 static bool destroy_unadopted_texture(void* raw)
 {
     xge_texture texture=raw;
-    if(texture->iRefCount>1){xrtSetErrorKind(XERR_STATE);return false;}
-    xgeTextureFree(texture);xrtFree(texture);return true;
+    bool owned=xgeTextureIsOwned(texture);
+    if(!owned && texture->iRefCount>1){xrtSetErrorKind(XERR_STATE);return false;}
+    xgeTextureFree(texture);if(!owned)xrtFree(texture);return true;
 }
 static bool destroy_image(void* raw){xgeImageFree(raw);xrtFree(raw);return true;}
 static bool destroy_material(void* raw){xgeMaterialFree(raw);xrtFree(raw);return true;}

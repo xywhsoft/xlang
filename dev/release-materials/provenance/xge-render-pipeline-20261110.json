@@ -1,0 +1,98 @@
+{
+  "format": "xge-render-pipeline-stage-1",
+  "scope": "Native-owned graphics admission and direct Shader/RenderTarget/Pass/Material bindings",
+  "shippingDelivery": false,
+  "fullCompilerRebuild": true,
+  "nativeImplementationRevision": "58f7264e",
+  "compilerFreezeRevision": "58c8d355b",
+  "compilerWorkingTreeIncluded": true,
+  "compilerBuildSeconds": 851.438,
+  "checks": {
+    "languageRenderProcesses": 40,
+    "nativeWindows": 20,
+    "nativeLinux": 20,
+    "admissionWindows": 4,
+    "admissionLinux": 4,
+    "inputContracts": 33,
+    "crtHeaders": 23,
+    "nestedCompilation": 6,
+    "publicHeaders": 3,
+    "sealedIrMutations": 110
+  },
+  "limitations": [
+    "Not installed into release or IDE",
+    "Linux xlang JIT and static AOT cohort remains pending",
+    "Later full-coverage phases 2-8 remain pending",
+    "Bounded OpenGL/readback acceptance is not hardware performance qualification"
+  ],
+  "externalEvidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r7\\build.json",
+      "sha256": "0aeac31915df615d4d6d25bd9665199af60df93e66e1cb97170a34a4f3c9db67"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-freeze-r7.json",
+      "sha256": "8671028cacdb90cb6139450606197a716d4c6daaa566befc407106af2f540bd8"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-host-win-r7\\build-report.json",
+      "sha256": "f85659114c3f1dd763c4799ef8f9a3fb2a2d4829e915161f9463ee1644e2a0e0"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-static-win-r7\\build-report.json",
+      "sha256": "8871819a6ec79ccb0a346c0e9343d6d0590f36759e4e1124b78fde316f9e77f5"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-host-linux-r7\\build-report.json",
+      "sha256": "69ac93f3673dff7612ef57fe076514b707b4ada424b39a8ff88e68d33366d239"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-graphics-host-r6.json",
+      "sha256": "7f3908c28d1386189c717ebe33bbb87d3046c514ee3ba3695cc67455f148f93f"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-graphics-static-r6.json",
+      "sha256": "36d273c190895ec0cbbb3d05623e18d41bf1922f7df5ed5ae7c991c33b41d250"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\language-graphics-full-win-r7\\results.json",
+      "sha256": "cac8f68f25f0099000ffc982616c9174b922b6cb555e8683a9ba6ab6c3d2e427"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-graphics-win-r8\\results.json",
+      "sha256": "9d4c43dc435fb25fd3981aec3be95fd572cacfd3dde90ce5832dc8e07306285a"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-graphics-linux-r8\\results.json",
+      "sha256": "7c1c29d009bcd185d3be35a1be520f8bfa711fce5baaddece257f6fb17a7ff05"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\domain-win-r5\\results.json",
+      "sha256": "25000938492fa0f75e3d3f3d1d1076df75a9dc4061f62a049bdb04b403ef74aa"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\domain-linux-r5\\results.json",
+      "sha256": "f63f52e0209d49da60ab1fb32f910a280792a93ae8d769a6459ed317555381d5"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\input-contracts-full-win-r7\\results.json",
+      "sha256": "5851bf900a038f6925a45ecae6cdd1d40599d1b60415c9bfb314c106d6178b28"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\stdlib-headers-full-win-r7\\results.json",
+      "sha256": "d74455ba4be7da699d5c3e1ecf81766ac54485d7817c93e0edba9af738638e93"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\nested-full-win-r7\\results.json",
+      "sha256": "8a1e5e663a2083ed59af3a50dd8dd76fbd180e7212174f2e21e4458104d46ea3"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\pipeline-headers-full-win-r7\\results.json",
+      "sha256": "0534a19020be77f96f4010abbf34ce9476a14359fc965cd5e76f6a07f61c3f63"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\input-ir-gates-r3\\results.json",
+      "sha256": "b943b9c347eb6c7133b232e133f99ea179446f73bf469d45b0ef83aea58170ca"
+    }
+  ]
+}

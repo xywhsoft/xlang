@@ -39,8 +39,25 @@ func factoryAttempt(int kind,int budget,xge.Texture texture,Buffer vertices,Buff
   elseif kind==2 then
    auto value=xge.createSpriteBatch(texture,2)
    value.close()
-  else
+  elseif kind==3 then
    auto value=xge.createMesh(vertices,indices)
+   value.close()
+  elseif kind==4 then
+   auto value=xge.createRenderTarget(2,2)
+   value.close()
+  elseif kind==5 then
+   auto target=xge.createRenderTarget(2,2)
+   try
+    auto value=xge.createPass(target)
+    value.close()
+   finally
+    target.close()
+   end
+  elseif kind==6 then
+   auto value=xge.createTexture(2,2)
+   value.close()
+  else
+   auto value=xge.createShaderVariants("void main(){}","void main(){}")
    value.close()
   end
  catch error
@@ -56,7 +73,7 @@ func main(...) as int
  auto indices=Buffer.fromHex("0000")
  try
   // Warm the same success/failure paths and runtime directory capacities.
-  for kind in range(4)
+  for kind in range(8)
    for budget in range(32)
     factoryAttempt(kind,budget,texture,vertices,indices)
    end
@@ -65,7 +82,7 @@ func main(...) as int
   assert before.Enabled
   int failed=0
   int succeeded=0
-  for kind in range(4)
+  for kind in range(8)
    for budget in range(32)
     if factoryAttempt(kind,budget,texture,vertices,indices) then
      failed+=1
