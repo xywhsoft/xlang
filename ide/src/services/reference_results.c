@@ -16,16 +16,18 @@ static int position(const xvalue* v,xide_lsp_position* p){return integer(field(v
 static int wireVersion(const xvalue* v){int64 n=0;return v && xrtValueGetInt(v,&n) && n>=INT_MIN && n<=INT_MAX;}
 static int hex(const xvalue* v)
 {const char* s=string(v,64);if(!s || strlen(s)!=64)return 0;for(size_t i=0;i<64;++i)if(!((s[i]>='0' && s[i]<='9') || (s[i]>='a' && s[i]<='f')))return 0;return 1;}
-static int proof(const xvalue* v,const char* path,const xvalue** document)
+int xideReferenceDocumentValid(const xvalue* d,const char* path)
 {
- int schema=0,size=0;const xvalue* d=field(v,"document");const char *declared=string(field(d,"path"),65535),*origin=string(field(d,"origin"),16);
- if(!integer(field(v,"schema"),&schema) || schema!=1 || !declared || !xidePathLexicalEqual(path,declared) || !origin || !integer(field(d,"normalizedSize"),&size) || size>8*1024*1024 || !hex(field(d,"normalizedSha256")))return 0;
+ int size=0;const char *declared=string(field(d,"path"),65535),*origin=string(field(d,"origin"),16);
+ if(!path || !declared || !xidePathLexicalEqual(path,declared) || !origin || !integer(field(d,"normalizedSize"),&size) || size>8*1024*1024 || !hex(field(d,"normalizedSha256")))return 0;
  const xvalue* input=field(d,"input");
  if(!strcmp(origin,"overlay")){if(input || !wireVersion(field(d,"version")))return 0;}
  else if(!strcmp(origin,"disk")){const char *file=string(field(input,"path"),65535),*kind=string(field(input,"origin"),16);if(field(d,"version") || !file || !xidePathLexicalEqual(path,file) || !kind || strcmp(kind,"disk") || !integer(field(input,"rawSize"),&size) || size>8*1024*1024 || !hex(field(input,"rawSha256")))return 0;}
  else return 0;
- *document=d;return 1;
+ return 1;
 }
+static int proof(const xvalue* v,const char* path,const xvalue** document)
+{int schema=0;const xvalue* d=field(v,"document");if(!integer(field(v,"schema"),&schema) || schema!=1 || !xideReferenceDocumentValid(d,path))return 0;*document=d;return 1;}
 static int compare(const void* a,const void* b)
 {const xide_reference_item *x=a,*y=b;int n=xidePathNativeKeyCompare(x->key,y->key);if(!n)n=(x->start.line>y->start.line)-(x->start.line<y->start.line);if(!n)n=(x->start.character>y->start.character)-(x->start.character<y->start.character);if(!n)n=(x->end.line>y->end.line)-(x->end.line<y->end.line);return n ? n : (x->end.character>y->end.character)-(x->end.character<y->end.character);}
 static void freeItem(xide_reference_item* item){free(item->path);free(item->key);free(item->label);memset(item,0,sizeof(*item));}

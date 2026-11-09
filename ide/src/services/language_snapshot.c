@@ -316,6 +316,15 @@ char* xideLanguageReadDiskProof(const char* path,const xvalue* item,int (*stop)(
  if(okay && (!stop || !stop(user))) { text=normalized(raw+bom,done-bom); if(text && original) { memmove(raw,raw+bom,done-bom+1); *original=raw; raw=NULL; } }
  free(raw); if(!text) fail(e,"磁盘输入与编译器使用的源码摘要、身份或编码不一致。"); return text;
 }
+int xideLanguageReadDiskSnapshot(const char* path,const xvalue* input,int (*stop)(void*),void* user,xide_text_file* snapshot,xide_model_error* e)
+{
+ xide_model_error fallback={0};if(!e)e=&fallback;if(!snapshot)return fail(e,"缺少磁盘快照输出。");
+ char* original=NULL;char* text=xideLanguageReadDiskProof(path,input,stop,user,&original,e);int64 raw=0,size=0;
+ if(!text || !original || !xrtValueGetInt(get(input,"rawSize"),&raw) || !xrtValueGetInt(get(input,"textSize"),&size) || (raw-size!=0 && raw-size!=3)){free(text);free(original);return fail(e,"磁盘快照长度无效。");}
+ size_t crlf=0,lf=0,cr=0;for(size_t i=0;i<(size_t)size;++i){if(stop && !(i&4095u) && stop(user)){free(text);free(original);return fail(e,"磁盘快照已取消。");}if(original[i]=='\r'){if(i+1<(size_t)size && original[i+1]=='\n'){++i;++crlf;}else ++cr;}else if(original[i]=='\n')++lf;}
+ int bom=raw-size==3;if(bom){memmove(original+3,original,(size_t)size+1);memcpy(original,"\xef\xbb\xbf",3);}
+ if(stop && stop(user)){free(text);free(original);return fail(e,"磁盘快照已取消。");}xideTextFileClear(snapshot);*snapshot=(xide_text_file){.raw=(unsigned char*)original,.rawLength=(size_t)raw,.text=text,.bom=bom,.eol=crlf>lf && crlf>=cr?XIDE_TEXT_EOL_CRLF:cr>lf?XIDE_TEXT_EOL_CR:XIDE_TEXT_EOL_LF};return 1;
+}
 static int diskProofCancelled(void* user) {return cancelled(user);}
 static char* diskText(xide_language_check* q,const char* path,const xvalue* item,char** original,xide_model_error* e)
 {return xideLanguageReadDiskProof(path,item,diskProofCancelled,q,original,e);}

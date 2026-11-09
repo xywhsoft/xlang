@@ -15,7 +15,7 @@ static void referenceMessage(xide_language_view* v,const char* text)
 static int referenceReady(xide_language_view* v)
 {return v->initialized && v->snapshotMode && !v->busy && !v->syncMode && current(v) && (v->onDemandMode ? v->receiptReady : v->snapshotResult!=NULL);}
 static int referenceReceiverInstall(xide_language_view* v)
-{return v->references && xideLanguageClientSetReceiver(v->client,xideReferenceDecoderReceive,v->references->decoder);}
+{return v->references && xideLanguageClientSetReceiver(v->client,workspaceSearchReceive,v);}
 static void referenceInputsFree(struct xide_reference_view* r)
 {for(size_t i=0;i<r->count;++i)freeInput(r->inputs+i);r->count=0;}
 static int referenceInputsCapture(xide_app* app)

@@ -37,6 +37,9 @@ void xideDocumentsInit(xide_document_store* store,xui_context context,xui_font f
 void xideDocumentsClear(xide_document_store* store);
 xide_document* xideDocumentsFind(xide_document_store* store,const char* path);
 xide_document* xideDocumentOpen(xide_document_store* store,const char* path,xide_model_error* error);
+/* Verified worker snapshot;no source read,decode or hash here. Moves buffers
+ * only on success. Existing open paths are refused to preserve their undo. */
+xide_document* xideDocumentOpenPrepared(xide_document_store* store,const char* path,xide_text_file* snapshot,xide_model_error* error);
 xide_document* xideDocumentNew(xide_document_store* store,const char* language,xide_model_error* error);
 xide_document* xideDocumentRecover(xide_document_store* store,const char* path,const char* title,const char* language,xide_text_file* baseline,const char* recovered,xide_model_error* error);
 int xideDocumentSave(xide_document* document,const char* path,int flags,xide_model_error* error);

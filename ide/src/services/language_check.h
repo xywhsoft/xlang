@@ -2,6 +2,7 @@
 #define XLANG_IDE_LANGUAGE_CHECK_H
 #include "services/toolchain.h"
 #include "analysis/context.h"
+#include "platform/text_file.h"
 typedef struct xide_language_check xide_language_check;
 typedef struct xide_language_snapshot { const char *path,*text; int version; } xide_language_snapshot;
 typedef struct xide_language_analysis_options {
@@ -14,6 +15,10 @@ typedef xide_language_analysis_options xide_language_completion_options;
  * Does not establish semantic/dependency freshness. */
 char* xideLanguageReadDiskProof(const char* path,const xvalue* input,
  int (*cancelled)(void*),void* user,char** original,xide_model_error* error);
+/* Same single verified read,transferring its malloc raw/LF buffers into a
+ * decoded editor baseline. Preserves BOM/dominant EOL;worker only. */
+int xideLanguageReadDiskSnapshot(const char* path,const xvalue* input,
+ int (*cancelled)(void*),void* user,xide_text_file* snapshot,xide_model_error* error);
 /* Immutable 64-file, 8 MiB/file, 32 MiB batch; entry must be present. Never
    writes original files. Result documents carry per-file UTF-16 diagnostics
    and versions for open files. Disk inputs are verified before publication and while the result is retained. */

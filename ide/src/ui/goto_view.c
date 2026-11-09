@@ -30,7 +30,7 @@ static int number(const char** cursor,int* value)
 /* Expand only ranges containing the requested line; leave other folds intact.
    Prepare all ranges before changing selection, and preserve the real SDK's
    flags, levels and primary document version. */
-static int reveal(xui_widget editor,int line)
+int xideGotoRevealLine(xui_widget editor,int line)
 {
  xui_code_fold_state folds=xuiCodeEditGetFoldState(editor);int count=xuiCodeFoldStateGetCount(folds),needed=0;
  if(count<0) return XUI_ERROR;
@@ -70,7 +70,7 @@ int xideGotoViewApply(xide_app* a,xide_model_error* e)
  int start=0,end=0,maxColumn=0,offset=0;
  if(xuiCodeDocumentGetLineRange(doc,line-1,&start,&end)!=XUI_OK || xuiCodeDocumentOffsetToLineColumn(doc,end,NULL,&maxColumn)!=XUI_OK) return fail(a,e,"无法读取目标行，请取消后重新打开。");
  if(column-1>maxColumn) { char text[128];snprintf(text,sizeof(text),"第 %d 行的列号应为 1 到 %d（编辑器字符；含行尾）。",line,maxColumn+1);return fail(a,e,text); }
- if(xuiCodeDocumentLineColumnToOffset(doc,line-1,column-1,&offset)!=XUI_OK || reveal(d->editor,line-1)!=XUI_OK) return fail(a,e,"无法展开或定位目标行。");
+ if(xuiCodeDocumentLineColumnToOffset(doc,line-1,column-1,&offset)!=XUI_OK || xideGotoRevealLine(d->editor,line-1)!=XUI_OK) return fail(a,e,"无法展开或定位目标行。");
  xuiCodeSelectionClear(xuiCodeEditGetSelection(d->editor));
  if(xuiCodeSelectionGotoOffset(xuiCodeEditGetSelection(d->editor),doc,offset,0)!=XUI_OK) return fail(a,e,"无法移动文档光标。");
  xideDialogSetOpen(a->gotoView->window,0);xuiSetFocusWidget(a->context,d->editor);xuiCodeEditEnsureCaretVisible(d->editor);readingMargin(d->editor,offset);xideEditorPoll(a);xideActionsRefresh(a);xgeRenderRequest();return 1;

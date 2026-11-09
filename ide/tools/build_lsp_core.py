@@ -41,7 +41,7 @@ FRONTEND_SOURCES = (
 )
 SERVER_SOURCES = (
     "src/protocol/analysis_context_wire.c", "src/protocol/signature_help.c", "src/services/analysis_catalog.c",
-    "src/protocol/lsp_wire.c", "src/protocol/workspace_symbol_wire.c", "src/services/language_check.c", "src/services/language_snapshot.c", "src/services/diagnostic_store.c",
+    "src/protocol/lsp_wire.c", "src/protocol/workspace_symbol_selection.c", "src/protocol/workspace_symbol_wire.c", "src/services/language_check.c", "src/services/language_snapshot.c", "src/services/diagnostic_store.c",
     "src/services/semantic_definition.c", "src/services/project_references.c", "src/services/workspace_symbol_index.c", "src/services/workspace_symbols.c", "src/services/semantic_completion.c", "src/services/c_bridge_map.c",
     "src/services/toolchain.c", "src/platform/file_rename.c", "src/platform/file_io.c",
     "src/platform/text_file.c", "src/platform/process.c", "src/platform/path.c", "src/editor/coordinates.c",
@@ -50,8 +50,8 @@ SERVER_SOURCES = (
 CORE_TESTS = ("analysis_context_fault_test", "analysis_context_resolution_test", "analysis_input_view_test", "analysis_context_test", "analysis_check_test", "analysis_check_session_test", "analysis_incremental_check_test", "analysis_semantic_memo_test", "analysis_check_worker_test", "analysis_index_test", "analysis_index_limit_test", "analysis_ir_scan_test", "analysis_stdlib_scan_test", "analysis_overload_scan_test", "analysis_completion_candidates_test", "analysis_ast_clone_test", "analysis_semantic_test", "analysis_completion_session_test", "analysis_folding_test", "analysis_worker_test", "analysis_session_test", "analysis_incremental_syntax_test", "analysis_cursor_syntax_test", "analysis_text_test", "document_sync_test")
 CORE_TESTS = ("analysis_native_borrow_test", "analysis_final_annotations_test", "analysis_final_environment_test", *CORE_TESTS)
 HOST_TESTS = ("signature_help_test", "analysis_catalog_test", "language_context_test", "semantic_lookup_test", "analysis_index_view_test", "language_input_guard_test", "diagnostic_store_test", "language_definition_proof_test", "snapshot_report_test")
-CLIENT_TESTS = ("diagnostic_dependencies_test", "diagnostic_notice_test", "diagnostic_stream_test", "reference_results_test")
-CLIENT_TEST_SOURCES = ("src/services/diagnostic_dependencies.c", "src/services/diagnostic_notice.c", "src/services/diagnostic_stream.c", "src/services/reference_results.c")
+CLIENT_TESTS = ("diagnostic_dependencies_test", "diagnostic_notice_test", "diagnostic_stream_test", "reference_results_test", "workspace_search_result_test")
+CLIENT_TEST_SOURCES = ("src/services/diagnostic_dependencies.c", "src/services/diagnostic_notice.c", "src/services/diagnostic_stream.c", "src/services/reference_results.c", "src/services/language_client.c", "src/services/workspace_search_result.c")
 HOST_TESTS += CLIENT_TESTS
 HOST_TESTS += ("workspace_symbol_navigation_test",)
 HOST_TESTS += ("diagnostic_reverse_fault_test",)
@@ -1008,7 +1008,8 @@ def main() -> None:
                 # gates. Other client fixtures need only the pure decoders.
                 extra += [str(objects[Path(source).stem]) for source in CLIENT_TEST_SOURCES
                           if Path(source).stem != "diagnostic_stream" and
-                          not (name == "reference_results_test" and Path(source).stem == "reference_results")]
+                          not (name == "reference_results_test" and Path(source).stem == "reference_results") and
+                          not (name == "workspace_search_result_test" and Path(source).stem == "workspace_search_result")]
             if name in ("analysis_dependency_capture_test", "analysis_dependency_session_test", "analysis_dependency_worker_test"):
                 # Observe real original semantic/IR entry calls in this fixture
                 # only;the dependency snapshot must invoke neither stage.

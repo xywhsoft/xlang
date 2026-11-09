@@ -34,7 +34,7 @@
 #include <stdlib.h>
 #include <string.h>
 enum requirement { WORKBENCH, WORKSPACE_VIEW, WORKSPACE, RECENT, IMPORT_VIEW, PROJECT, AVAILABLE_PROJECT, REFERENCES, RESOURCES, NEW_RESOURCE, ADD_FILE, REMOVE_FILE, RENAME_SELECTED_FILE, MIGRATE_PROJECT, PROPERTIES,
-    DOCUMENTS, DOCUMENT, NAMED_DOCUMENT, RENAME_DOCUMENT, DIRTY_DOCUMENTS, UNDO, REDO, WRITABLE_DOCUMENT, SELECTED_TEXT, WRITABLE_SELECTION, NONEMPTY_DOCUMENT, LINE_COMMENT, COMPLETION, SIGNATURE, GOTO_VIEW, BUILD, RUN, BUILD_FILE, TEST, STOP, INPUT, TASK_VIEW, FONT_VIEW, RECOVERY_VIEW, CHANGES_VIEW, TOOLCHAIN_VIEW, SAVED_CHECK, CURRENT_CHECK, CANCEL_CHECK, DEFINITION, HOVER, SOURCE_DECLARATION, SOURCE_DOCUMENT, FIND_REFERENCES };
+    DOCUMENTS, DOCUMENT, NAMED_DOCUMENT, RENAME_DOCUMENT, DIRTY_DOCUMENTS, UNDO, REDO, WRITABLE_DOCUMENT, SELECTED_TEXT, WRITABLE_SELECTION, NONEMPTY_DOCUMENT, LINE_COMMENT, COMPLETION, SIGNATURE, GOTO_VIEW, BUILD, RUN, BUILD_FILE, TEST, STOP, INPUT, TASK_VIEW, FONT_VIEW, RECOVERY_VIEW, CHANGES_VIEW, TOOLCHAIN_VIEW, SAVED_CHECK, CURRENT_CHECK, CANCEL_CHECK, DEFINITION, HOVER, SOURCE_DECLARATION, SOURCE_DOCUMENT, FIND_REFERENCES, WORKSPACE_SYMBOLS };
 enum check_kind { NO_CHECK, THEME_CHECK, LANGUAGE_CHECK, STARTUP_CHECK, WINDOW_CHECK };
 typedef struct action_def { xide_action_info info; enum requirement need; enum check_kind check; int (*execute)(xide_app*,int); } action_def;
 static int fontAction(xide_app* a,int id) { return xideSettingsViewAction(a,id); }
@@ -153,6 +153,7 @@ static const action_def definitions[]={
     A(XIDE_ACTION_CONTEXT_HELP,"help.selection","当前符号帮助",NULL,"F1",XUI_KEY_F1,0,XIDE_SHORTCUT_EDITOR,0,DOCUMENT,NO_CHECK,contextHelp),
     A(XIDE_ACTION_DEFINITION,"language.definition","转到定义",NULL,"F12",XUI_KEY_F12,0,XIDE_SHORTCUT_EDITOR,0,DEFINITION,NO_CHECK,xideLanguageViewAction),
     A(XIDE_ACTION_FIND_REFERENCES,"language.findReferences","查找引用",NULL,"Shift+F12",XUI_KEY_F12,XUI_MOD_SHIFT,XIDE_SHORTCUT_EDITOR,0,FIND_REFERENCES,NO_CHECK,xideLanguageViewAction),
+    A(XIDE_ACTION_WORKSPACE_SYMBOLS,"language.workspaceSymbols","搜索工作空间符号…",NULL,"Ctrl+T",'T',XUI_MOD_CTRL,XIDE_SHORTCUT_GLOBAL,0,WORKSPACE_SYMBOLS,NO_CHECK,xideLanguageViewAction),
     A(XIDE_ACTION_CHECK_SAVED,"language.checkSaved","检查已保存的 xlang 源码",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,SAVED_CHECK,NO_CHECK,xideLanguageViewAction),
     A(XIDE_ACTION_CANCEL_CHECK,"language.cancelCheck","取消源码检查",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,CANCEL_CHECK,NO_CHECK,xideLanguageViewAction),
     A(XIDE_ACTION_EDITOR_FONT,"view.codeFont","代码字体…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,FONT_VIEW,NO_CHECK,fontAction),
@@ -184,7 +185,7 @@ static const action_def* definition(int id) { for(size_t i=0;i<xideActionCount()
 const xide_action_info* xideActionFind(int id) { const action_def* d=definition(id); return d ? &d->info : NULL; }
 const xide_action_info* xideActionNamed(const char* name) { if(name) for(size_t i=0;i<xideActionCount();++i) if(!strcmp(name,definitions[i].info.name)) return &definitions[i].info; return NULL; }
 int xideActionsHasOtherModal(xide_app* a)
-{ return a && ( xideDialogIsOpen(xideHomeNewWindow(a)) || xideAssociationViewIsOpen(a) || xideSettingsViewIsOpen(a) || xideAboutViewIsOpen(a) || xideFileDialogBusy(a) || xideMessageBusy(a) || xideCatalogSourceIsOpen(a) || xideGotoViewIsOpen(a) || xideToolchainViewIsOpen(a) || xideResourceViewIsOpen(a) || xideImportViewIsOpen(a) || xideRenameViewIsOpen(a) || xideRenameViewHasPending(a) || xideTemplateViewIsOpen(a) || xideReferencesViewIsOpen(a) || xideConfigurationViewIsOpen(a) || xideFontViewIsOpen(a) || xideRecoveryViewIsOpen(a) || xideFileChangesViewIsOpen(a)); }
+{ return a && ( xideLanguageViewWorkspaceSymbolsIsOpen(a) || xideDialogIsOpen(xideHomeNewWindow(a)) || xideAssociationViewIsOpen(a) || xideSettingsViewIsOpen(a) || xideAboutViewIsOpen(a) || xideFileDialogBusy(a) || xideMessageBusy(a) || xideCatalogSourceIsOpen(a) || xideGotoViewIsOpen(a) || xideToolchainViewIsOpen(a) || xideResourceViewIsOpen(a) || xideImportViewIsOpen(a) || xideRenameViewIsOpen(a) || xideRenameViewHasPending(a) || xideTemplateViewIsOpen(a) || xideReferencesViewIsOpen(a) || xideConfigurationViewIsOpen(a) || xideFontViewIsOpen(a) || xideRecoveryViewIsOpen(a) || xideFileChangesViewIsOpen(a)); }
 int xideActionsHasModal(xide_app* a)
 { return a && (xideUpdateIsModal(a) || xideActionsHasOtherModal(a)); }
 const char* xideActionLanguage(int id)
@@ -274,6 +275,7 @@ xide_action_state xideActionQuery(xide_app* a,int id)
     case HOVER: state.enabled=xideLanguageViewCanHover(a); state.reason="请先完成当前文档分析，并配置支持语义索引的语言服务"; break;
     case DEFINITION: state.enabled=xideLanguageViewCanDefine(a); state.reason="请先完成当前文档分析，并配置支持语义索引的语言服务"; break;
     case FIND_REFERENCES: state.enabled=xideLanguageViewCanFindReferences(a); state.reason="请打开 xlang 源码，并使用支持查找引用的语言服务"; break;
+    case WORKSPACE_SYMBOLS:state.enabled=xideLanguageViewCanSearchWorkspace(a);state.reason="请等待源码检查完成，并配置可用的 xlang 工具链";break;
     case CANCEL_CHECK: state.enabled=xideLanguageViewCanCancel(a); state.reason="没有正在进行或自动复查的源码检查"; break;
     case CHANGES_VIEW: state.enabled=a->fileChangesView!=NULL; break;
     }

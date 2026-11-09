@@ -20,6 +20,8 @@ typedef struct xide_language_batch xide_language_batch;
  * Successful Send TAKES the batch; false leaves it owned by the caller. */
 xide_language_batch* xideLanguageBatchCreate(void);
 int xideLanguageBatchAppend(xide_language_batch* batch,const char* method,const xvalue* params);
+/* Worker-side request encoding;positive IDE request ID. Same queue splice. */
+int xideLanguageBatchAppendRequest(xide_language_batch* batch,const char* method,const xvalue* params,int request);
 void xideLanguageBatchDestroy(xide_language_batch* batch);
 int xideLanguageBatchSend(xide_language_client* client,xide_language_batch* batch);
 enum xide_language_client_state { XIDE_LS_STARTING,XIDE_LS_RUNNING,XIDE_LS_STOPPED,XIDE_LS_FAILED };

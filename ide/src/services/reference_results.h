@@ -12,6 +12,8 @@ typedef struct xide_reference_result {
  xide_reference_item* items;xvalue* message;
 } xide_reference_result;
 typedef struct xide_reference_decoder xide_reference_decoder;
+/* Shared structural proof validation;worker only,no disk/body reads. */
+int xideReferenceDocumentValid(const xvalue* document,const char* path);
 /* Worker/test API. Takes message,including failures;owns the original DOM.
  * Strict complete Location[]+negotiated source proofs,at most65536 rows and
  *32MiB known typed row/path/label/key storage. No source reads or GUI calls. */

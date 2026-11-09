@@ -185,7 +185,7 @@ static int automaticPrepare(xide_app* app,int manual)
  if(root) {if(!v->path || strcmp(v->path,root->path)) {free(v->path);v->path=copy(root->path);if(!v->path) return 0;}v->document=root;v->documentId=root->id;v->version=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(root->editor));}
  else {v->document=NULL;v->documentId=0;free(v->path);v->path=NULL;}
  if(manual) {v->autoManual=manual;v->busy=1;}
- if(automaticInputsCurrent(v) && v->syncMode==4) return 1;
+ if(automaticInputsCurrent(v) && (v->syncMode==4 || v->syncMode==5)) return 1;
  if(!automaticInputsCurrent(v) || !a->syncAdopted || manual) {
   a->syncAdopted=0;
   if(!captureInputs(app)) {automaticFault(v,"命名 xlang 文档超过 64 份、8 MiB/份或 32 MiB 总正文预算");return 0;}

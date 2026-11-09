@@ -25,19 +25,24 @@ xide_language_batch* xideLanguageBatchCreate(void)
 { return calloc(1,sizeof(xide_language_batch)); }
 void xideLanguageBatchDestroy(xide_language_batch* batch)
 { if(batch) {clear(batch->head);free(batch);} }
-int xideLanguageBatchAppend(xide_language_batch* batch,const char* method,const xvalue* params)
+static int batchAppend(xide_language_batch* batch,const char* method,const xvalue* params,int request)
 {
  if(!batch || !method || !*method || !params || batch->count>=QUEUE_COUNT) return 0;
  xvalue* message=xrtValueObject();node* n=calloc(1,sizeof(*n));xide_model_error error={0};
  int okay=message && n && xrtValueObjectSetNew(message,xrtStrView("jsonrpc"),xrtValueString(xrtStrView("2.0"))) &&
   xrtValueObjectSetNew(message,xrtStrView("method"),xrtValueString(xrtStrView(method))) &&
   xrtValueObjectSet(message,xrtStrView("params"),params);
+ if(okay && request)okay=xrtValueObjectSetNew(message,xrtStrView("id"),xrtValueInt(request));
  if(okay) n->bytes=xideLspFrame(message,&n->length,&error);
  okay=okay && n->bytes && n->length<=QUEUE_BYTES-batch->bytes;xrtValueRelease(message);
  if(!okay) {clear(n);return 0;}
  if(batch->tail) batch->tail->next=n;else batch->head=n;
  batch->tail=n;batch->bytes+=n->length;++batch->count;return 1;
 }
+int xideLanguageBatchAppend(xide_language_batch* batch,const char* method,const xvalue* params)
+{return batchAppend(batch,method,params,0);}
+int xideLanguageBatchAppendRequest(xide_language_batch* batch,const char* method,const xvalue* params,int request)
+{return request>0 && batchAppend(batch,method,params,request);}
 int xideLanguageBatchSend(xide_language_client* c,xide_language_batch* batch)
 {
  if(!c || !batch) return 0;

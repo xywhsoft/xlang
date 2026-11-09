@@ -133,6 +133,16 @@ xide_document* xideDocumentOpen(xide_document_store* store,const char* path,xide
     document->stageReference=reference;
     return document;
 }
+xide_document* xideDocumentOpenPrepared(xide_document_store* store,const char* path,xide_text_file* snapshot,xide_model_error* error)
+{
+ if(!store || !path || !snapshot || !snapshot->raw || !snapshot->text || snapshot->rawLength>16u*1024u*1024u){failure(error,XIDE_MODEL_INVALID,"Invalid prepared document.");return NULL;}
+ char* resolved=xidePathResolve(NULL,path);if(!resolved){failure(error,XIDE_MODEL_INVALID,"Invalid prepared path.");return NULL;}
+ if(xideDocumentsFind(store,resolved)){free(resolved);failure(error,XIDE_MODEL_CONFLICT,"Prepared target is already open.");return NULL;}
+ xide_model_error protectionError={0};xide_task_stage* reference=xideTaskStageProtectPath(resolved,&protectionError);if(protectionError.code){if(error)*error=protectionError;free(resolved);return NULL;}
+ xide_document* document=acquire(store,error);
+ if(!document || !initialize(document,resolved,xidePathFilename(resolved),xideLanguageForPath(resolved),snapshot,error)){xideTaskStageRelease(reference);free(resolved);return NULL;}
+ document->stageReference=reference;return document;
+}
 xide_document* xideDocumentNew(xide_document_store* store,const char* language,xide_model_error* error)
 {
     if(!xideLanguageSupported(language)) {

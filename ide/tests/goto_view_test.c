@@ -89,7 +89,11 @@ static int verify(void* user) {
  CHECK(!xideGotoViewApply(&app,&error));app.activeDocument=xl;CHECK(key(&app,XUI_KEY_ESCAPE,0));
  CHECK(xideEditorShow(&app,xl)==XUI_OK && settle(&app) && key(&app,'G',XUI_MOD_CTRL));uint64_t oldId=xl->id;
  CHECK(xideDocumentClose(xl,1,&error));xide_document* plain=xideDocumentNew(&app.documents,"text",&error);app.activeDocument=plain;
- CHECK(plain==xl && plain->id!=oldId && !xideGotoViewApply(&app,&error) && caret(plain)==0 && key(&app,XUI_KEY_ESCAPE,0) && xideEditorShow(&app,plain)==XUI_OK && settle(&app));
+ CHECK(plain==xl && plain->id!=oldId && !xideGotoViewApply(&app,&error) && caret(plain)==0);
+ /* Re-register the reused editor with the shared find scope before pumping
+    UI events; the direct store close above deliberately bypasses EditorClose. */
+ CHECK(xideEditorShow(&app,plain)==XUI_OK && xuiSetFocusWidget(app.context,xideGotoViewControl(&app,XIDE_GOTO_POSITION))==XUI_OK);
+ CHECK(key(&app,XUI_KEY_ESCAPE,0) && !xideGotoViewIsOpen(&app) && settle(&app));
  CHECK(xuiCodeEditSetText(plain->editor,"plain\n中文😀\n")==XUI_OK && settle(&app) && gotoAt(&app,"2:3",12));
  CHECK(xideEditorShow(&app,c)==XUI_OK && settle(&app));
  longText=calloc(1,16384);CHECK(longText);size_t length=0;

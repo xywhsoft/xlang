@@ -7,6 +7,8 @@ void xideGotoViewDestroy(xide_app* app);
 int xideGotoViewOpen(xide_app* app);
 int xideGotoViewIsOpen(xide_app* app);
 int xideGotoViewApply(xide_app* app,xide_model_error* error);
+/* Shared navigation reveal;does not change selection or focus. */
+int xideGotoRevealLine(xui_widget editor,int line);
 void xideGotoViewLayout(xide_app* app);
 xui_widget xideGotoViewWindow(xide_app* app);
 xui_widget xideGotoViewControl(xide_app* app,int control);
