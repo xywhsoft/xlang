@@ -1,0 +1,28 @@
+extern "ProjectionPair" struct Pair @header("test/cases/foreign_projection_overloads.h")
+ c_int first
+ c_int second
+end
+extern "projectionScale" @header("test/cases/foreign_projection_overloads.h") @no_raise @c_pack(0,"ProjectionDescriptor",0,1) @c_pack_field(0,"value",0,"value") func scale(c_int value) as c_int
+extern "projectionScale" @header("test/cases/foreign_projection_overloads.h") @no_raise @c_pack(0,"ProjectionDescriptor",0,2) @c_pack_field(0,"value",0,"value") @c_pack_field(0,"scale",1,"value") func scale(c_int value,c_int multiplier) as c_int
+extern "projectionStatus" @header("test/cases/foreign_projection_overloads.h") @no_raise @c_result("status",0) @c_pack(0,"ProjectionDescriptor",0,1) @c_pack_field(0,"value",0,"value") func accept(c_int value)
+extern "projectionStatus" @header("test/cases/foreign_projection_overloads.h") @no_raise @c_result("status",0) @c_pack(0,"ProjectionDescriptor",0,2) @c_pack_field(0,"value",0,"value") @c_pack_field(0,"scale",1,"value") func accept(c_int value,c_int unused)
+extern "projectionSum" @header("test/cases/foreign_projection_overloads.h") @no_raise @c_span(0,"const ProjectionPair*","int") func sum(Buffer pairs) as c_int
+extern "projectionSum" @header("test/cases/foreign_projection_overloads.h") @no_raise @c_array_group(0,0,1,"int",1) @c_array_input(0,0,"const ProjectionPair*","value") func sum(array<Pair> pairs,int size=-1) as c_int
+func main(...) as int
+ assert scale(7)==c_int(7)
+ assert scale(7,3)==c_int(21)
+ accept(0)
+ accept(1,2)
+ auto a=Pair()
+ auto b=Pair()
+ a.first=c_int(1)
+ a.second=c_int(2)
+ b.first=c_int(3)
+ b.second=c_int(4)
+ array<Pair> pairs=[a,b]
+ assert sum(pairs)==c_int(10)
+ assert sum(pairs,1)==c_int(3)
+ assert sum(pairs,20)==c_int(10)
+ assert sum(Buffer.fromHex("01000000020000000300000004000000"))==c_int(10)
+ return 0
+end

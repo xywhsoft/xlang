@@ -4,8 +4,10 @@ static const char* xl6IrCgenNativeSlotTypeExpr(XL6_IrNativeSlotAbi);
 static int xl6IrCgenArrayProof(XL6_Output* out,const XL6_IrModule* m,const XL6_IrCallTarget* t)
 {
     if(!xl6IrForeignArrayGroupsMatch(m,t))return 0;
+    int recordHeader=0;
     for(size_t g=0;g<m->foreignArrayGroupCount;++g){const XL6_ForeignArrayGroupContract* group=&m->foreignArrayGroups[g];
         if(group->declaration!=t->declaration)continue;
+        if(!recordHeader){xl6OutputPuts("#include <__xl_runtime/xl6_foreign_record_abi.h>\n",out);recordHeader=1;}
         if(group->recordCName[0])xl6OutputPrintf(out,
             "XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE((%s*)0,struct %s*), \"native Array tagged struct\");\n"
             "XLIR_NATIVE_ASSERT(XLIR_NATIVE_ALIGNOF(%s)<=XL6_FOREIGN_RECORD_ALIGNMENT_V1, \"native Array heap alignment\");\n"

@@ -9206,6 +9206,7 @@ static int xl6SemExternParameterListsCompatible(XL6_SemContext* ctx,const XL6_As
     return 1;
 }
 #include "src/sem/xl6_sem_foreign_null_compat.c"
+#include "src/sem/xl6_sem_foreign_projection_compat.c"
 static int xl6SemExternCDeclsCompatible(XL6_SemContext* ctx, const XL6_AstNode* a, const XL6_AstNode* b,const XL6_AstNode* ownerClass)
 {
     if ( a == NULL || b == NULL ) {
@@ -9216,6 +9217,8 @@ static int xl6SemExternCDeclsCompatible(XL6_SemContext* ctx, const XL6_AstNode* 
         if (!xl6ForeignFunctionRead(a, &left) || !xl6ForeignFunctionRead(b, &right))return 0;
         int nullCompatibility=xl6SemForeignNullPhysicalCompatible(ctx,a,b,ownerClass);
         if(nullCompatibility>=0)return nullCompatibility;
+        int projectionCompatibility=xl6SemForeignProjectionCompatible(ctx,a,b,ownerClass);
+        if(projectionCompatibility>=0)return projectionCompatibility;
         if (
             left.constAggregateAddresses != right.constAggregateAddresses ||
             left.staticCallbackAddresses != right.staticCallbackAddresses ||

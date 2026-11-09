@@ -51,6 +51,9 @@ static int xl6IrForeignOverloadMetadataEqual(const XL6_IrModule* m,const XL6_IrC
     XL6_EQUAL_ROWS(foreignOutputRecords,foreignOutputRecordCount);
     XL6_EQUAL_ROWS(foreignOutputFields,foreignOutputFieldCount);
     XL6_EQUAL_ROWS(foreignPacks,foreignPackCount);
+    XL6_EQUAL_ROWS(foreignArrayGroups,foreignArrayGroupCount);
+    XL6_EQUAL_ROWS(foreignArrayInputs,foreignArrayInputCount);
+    XL6_EQUAL_ROWS(foreignArrayFields,foreignArrayFieldCount);
     XL6_EQUAL_ROWS(foreignFixedInputs,foreignFixedInputCount);
     if(!xl6IrForeignPackFieldsEqual(m,left,right))return 0;
     XL6_EQUAL_ROWS(foreignPointerQualifiers,foreignPointerQualifierCount);
@@ -83,10 +86,13 @@ static int xl6IrForeignManagedInputCompatible(const XL6_IrModule* module,const X
         left->foreignHeader && right->foreignHeader && !strcmp(left->cName,right->cName) && !strcmp(left->foreignHeader,right->foreignHeader);
 }
 #include "src/ir/xl6_ir_foreign_null_compat.c"
+#include "src/ir/xl6_ir_foreign_projection_compat.c"
 static int xl6IrForeignOverloadsCompatible(const XL6_IrModule* module,const XL6_IrCallTarget* a,const XL6_IrCallTarget* b)
 {
     int nullCompatibility=xl6IrForeignNullPhysicalCompatible(module,a,b);
     if(nullCompatibility>=0)return nullCompatibility;
+    int projectionCompatibility=xl6IrForeignProjectionCompatible(module,a,b);
+    if(projectionCompatibility>=0)return projectionCompatibility;
     const XL6_IrNode* left=xl6IrNodeGet(module,a->declaration);const XL6_IrNode* right=xl6IrNodeGet(module,b->declaration);
     if(!left || !right || !xl6ForeignCallFactsEqual(&left->foreignCall,&right->foreignCall) ||
         ((left->flags^right->flags)&(XL6_AST_FLAG_STATIC|XL6_AST_FLAG_FOREIGN_OWNED_STRING|XL6_AST_FLAG_FOREIGN_PURE|
