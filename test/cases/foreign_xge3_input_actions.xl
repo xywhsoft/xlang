@@ -1,0 +1,191 @@
+// Deterministic input readers exercise native behavior without a real device.
+import xge
+from xge import InputBinding
+extern "actions_test_begin" @header("test/cases/foreign_xge3_input_actions.h") @no_raise func beginHeap()
+extern "actions_test_balanced" @header("test/cases/foreign_xge3_input_actions.h") @no_raise func heapBalanced() as c_int
+extern "actions_test_allocations" @header("test/cases/foreign_xge3_input_actions.h") @no_raise func allocations() as uint64
+extern "actions_test_fail" @header("test/cases/foreign_xge3_input_actions.h") @no_raise func failAfter(c_int count) as c_int
+extern "actions_test_clear" @header("test/cases/foreign_xge3_input_actions.h") @no_raise func clearFailure()
+class SavedInput
+ xge.InputBinding? value
+ c_float sample=c_float(0.6)
+ int busy=0
+end
+func main(...) as int
+ auto actions=xge.createActions(2,3)
+ try
+  auto binding=xge.ActionBinding()
+  binding.type=xge.XGE_ACTION_KEY
+  binding.device=0
+  binding.code=65
+  binding.scale=c_float(1)
+  actions.bind(0,binding)
+  actions.setDeadzone(0,c_float(0.2))
+  auto saved=SavedInput()
+  xge.ActionReader reader=func(xge.InputBinding value) as c_float
+   saved.value=value
+   assert value.kind==xge.XGE_ACTION_KEY and value.code==c_uint(65)
+   assert value.scale==c_float(1)
+   return saved.sample
+  end
+  actions.update(reader)
+  auto state=actions.state(0)
+  assert state.value>c_float(0.49999) and state.value<c_float(0.50001),"deadzone value"
+  assert state.down==c_int(1) and state.pressed==c_int(1) and state.released==c_int(0)
+  bool expired=false
+  try
+   auto ignored=(saved.value as InputBinding).code
+  catch error
+   expired=true
+  end
+  assert expired,"callback view expiration"
+  actions.update(reader)
+  state=actions.state(0)
+  assert state.pressed==c_int(0)
+  saved.sample=c_float(0)
+  actions.update(reader)
+  state=actions.state(0)
+  assert state.released==c_int(1)
+  actions.update(reader)
+  state=actions.state(0)
+  assert state.released==c_int(0)
+  saved.sample=c_float(1)
+  actions.update(reader)
+  bool failed=false
+  try
+   actions.update(func(xge.InputBinding value) as c_float
+    throw RuntimeError "sample failed"
+    return c_float(0)
+   end)
+  catch error
+   failed=error.message=="sample failed"
+  end
+  state=actions.state(0)
+  assert failed and state.down==c_int(1)
+  assert state.pressed==c_int(1)
+  failed=false
+  try
+   actions.update(func(xge.InputBinding value) as c_float
+    return c_float(2)
+   end)
+  catch error
+   failed=true
+  end
+  state=actions.state(0)
+  assert failed and state.down==c_int(1)
+  actions.update(func(xge.InputBinding value) as c_float
+   try
+    actions.clearBindings(0)
+   catch error
+    saved.busy+=1
+   end
+   try
+    actions.bind(0,binding)
+   catch error
+    saved.busy+=1
+   end
+   try
+    actions.reset()
+   catch error
+    saved.busy+=1
+   end
+   try
+    actions.update()
+   catch error
+    saved.busy+=1
+   end
+   return c_float(1)
+  end)
+  state=actions.state(0)
+  assert saved.busy==4 and state.down==c_int(1),"reentry refused"
+  actions.reset()
+  state=actions.state(0)
+  assert state.down==c_int(0)
+  actions.setEnabled(0,0)
+  actions.update(reader)
+  state=actions.state(0)
+  assert state.down==c_int(0)
+  actions.setEnabled(0,1)
+  actions.clearBindings(0)
+  actions.update()
+  state=actions.state(0)
+  assert state.value==c_float(0)
+  beginHeap()
+  int iteration=0
+  while iteration<200
+   actions.update()
+   state=actions.state(0)
+   iteration+=1
+  end
+  assert allocations()==uint64(0) and heapBalanced()==c_int(1),"poll loop allocation balance"
+  failed=false
+  try
+   auto ignored=actions.state(2)
+  catch error
+   failed=true
+  end
+  assert failed
+  actions.bind(0,binding)
+  actions.bind(1,binding)
+  actions.bind(1,binding)
+  failed=false
+  try
+   actions.bind(0,binding)
+  catch error
+   failed=true
+  end
+  assert failed
+ finally
+  actions.close()
+ end
+ bool closed=false
+ try
+  actions.reset()
+ catch error
+  closed=true
+ end
+ assert closed
+ // A callback may close its language owner. The active call pins its storage
+ // until sampling returns; subsequent methods must reject the closed owner.
+ auto closing=xge.createActions(1,1)
+ auto key=xge.ActionBinding()
+ key.type=xge.XGE_ACTION_KEY
+ key.code=65
+ key.scale=c_float(1)
+ closing.bind(0,key)
+ closing.update(func(xge.InputBinding value) as c_float
+  closing.close()
+  return c_float(1)
+ end)
+ closed=false
+ try
+  auto ignored=closing.state(0)
+ catch error
+  closed=true
+ end
+ assert closed,"callback close lifetime"
+ // Warm code/runtime paths before comparing real allocator live counters.
+ auto warm=xge.createActions(2,3)
+ warm.close()
+ int failedCount=0
+ int successCount=0
+ for budget in range(32)
+  beginHeap()
+  assert failAfter(c_int(budget))==c_int(1)
+  try
+   auto value=xge.createActions(2,3)
+   clearFailure()
+   value.close()
+   successCount+=1
+  catch error
+   clearFailure()
+   failedCount+=1
+  finally
+   clearFailure()
+  end
+  assert heapBalanced()==c_int(1),"factory allocation rollback"
+ end
+ assert failedCount>0 and successCount>0
+ println("Input actions CPU contracts passed")
+ return 0
+end

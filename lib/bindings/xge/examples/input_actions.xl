@@ -1,0 +1,20 @@
+// Run: xl run input_actions.xl
+// Expected: Action value: 1. A deterministic reader needs no window or device.
+import xge
+
+auto actions=xge.createActions(1,1)
+try
+ auto jump=xge.ActionBinding()
+ jump.type=xge.XGE_ACTION_KEY
+ jump.code=c_uint(32)
+ jump.scale=c_float(1)
+ actions.bind(0,jump)
+
+ actions.update(func(xge.InputBinding binding) as c_float
+  return c_float(1)
+ end)
+ auto state=actions.state(0)
+ println("Action value:",state.value)
+finally
+ actions.close()
+end

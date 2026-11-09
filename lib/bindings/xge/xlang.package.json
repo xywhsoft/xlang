@@ -17,7 +17,8 @@
       "src/shapes.xl",
       "src/data_object.xl",
       "src/audio_resources.xl",
-      "src/render_resources.xl"
+      "src/render_resources.xl",
+      "src/input_actions.xl"
     ],
     "includeDirs": [
       "include"

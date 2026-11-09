@@ -1,0 +1,23 @@
+// Sampling is synchronous. InputBinding is valid only inside its callback.
+export extern "const xge_action_binding_t*" class InputBinding @header("xge3_input_actions.h") @lifetime("callback")
+ native point handle
+ extern "type" @c_field get kind() as c_int
+ extern "device" @c_field get device() as c_int
+ extern "code" @c_field get code() as c_uint
+ extern "scale" @c_field get scale() as c_float
+end
+export typedef ActionReader = func(InputBinding) as c_float
+export extern "xge_actions*" class Actions @header("xge3_input_actions.h") @lifetime("owned") @policy("xl6Xge3ActionsPolicy")
+ native point handle
+ extern "xgeActionsBind" @no_raise @c_ref(1) @c_result("status",0) func bind(c_uint action,ActionBinding binding)
+ extern "xgeActionsClearBindings" @no_raise @c_result("status",0) func clearBindings(c_uint action)
+ extern "xgeActionsSetDeadzone" @no_raise @c_result("status",0) func setDeadzone(c_uint action,c_float deadzone)
+ extern "xgeActionsSetEnabled" @no_raise @c_result("status",0) func setEnabled(c_uint action,c_int enabled)
+ // Out-of-range fallback prevents a throwing reader from committing new state.
+ extern "xgeActionsUpdate" @no_raise @c_sync_callback(0,-1,-16) @c_result("status",0) func update(ActionReader? read=null)
+ extern "xgeActionsGet" @no_raise @c_const(0) @c_output(2,0) func state(c_uint action) as ActionState
+ extern "xgeActionsResetChecked" @no_raise @c_result("status",0) func reset()
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xgeActionsFree" @header("xge3_input_actions.h") @no_raise func freeActions(Actions value)
+export extern "xgeActionsCreate" @header("xge3_input_actions.h") @no_raise @c_result("owned_view") @factory(2,0,freeActions) func createActions(c_uint actionCount,c_uint bindingCapacity) as Actions

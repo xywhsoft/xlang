@@ -15,6 +15,8 @@ import subprocess
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--root', type=Path, default=Path(__file__).resolve().parents[1])
+    p.add_argument('--extra-case', type=Path, action='append', default=[],
+        help='Additional CPU-only resource fixture or example; same JIT/static checks')
     for name in ('compiler', 'dynamic-packages', 'static-packages', 'out', 'objdump'):
         p.add_argument('--' + name, type=Path, required=True)
     a = p.parse_args()
@@ -30,7 +32,14 @@ def main():
     cases = [root / 'test/cases' / (name + '.xl') for name in
         ('foreign_xge3_render_resources', 'foreign_xge3_render_oom')]
     cases.append(root / 'lib/bindings/xge/examples/headless_batches.xl')
+    cases.extend(path.resolve() for path in a.extra_case)
+    assert len({path.stem for path in cases}) == len(cases), 'Duplicate output basename'
     inputs.update({str(path): sha(path) for path in cases})
+    for case in cases:
+        for suffix in ('.c', '.h'):
+            sidecar = case.with_suffix(suffix)
+            if sidecar.is_file():
+                inputs[str(sidecar)] = sha(sidecar)
     report = dict(passed=False, graphicsContext=False, gpuAcceptance=False,
         shippingDelivery=False, compilerBuild='caller supplied; qualify cohort separately',
         inputs=inputs, rows=[])

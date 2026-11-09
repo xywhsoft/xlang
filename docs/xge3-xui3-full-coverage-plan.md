@@ -109,6 +109,8 @@ Document 和已有 XUI 接入的单纯声明缺口可以与前面阶段穿插修
 SpriteBatch 及部分 Material/Texture 操作已通过 CPU、OOM、JIT/静态 AOT 检查，
 见[本批边界与剩余合同](xge3-render-resources.md)。原生 Mesh 修复已单独提交。
 尚未安装新的正式编译器/发布包，阶段 1 仍在进行，全部范围没有结项。
+穿插完成了 [Input Actions](xge3-input-actions.md) 的声明、原生重入防护、回调/失败
+生命周期、CPU 与 JIT/静态 AOT 验收；真实设备与正式配套交付尚未结项。
 
 已确认全量目标和上述范围。现有接口仍是部分接入，缺口见本次复算报告和
 [既有映射说明](xge3-xui3-api-map.md)。本阶段固定范围与核对工具，未宣称完成

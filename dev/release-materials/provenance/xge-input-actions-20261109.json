@@ -1,0 +1,139 @@
+{
+  "format": "xge-input-actions-acceptance-1",
+  "nativeRevision": "09cf77bb130e71b96d8e647b79ddbfa710d507f9",
+  "cpuPassed": true,
+  "processRows": 25,
+  "hardwareInputAcceptance": false,
+  "gpuAcceptance": false,
+  "installed": false,
+  "compilerCohort": "diagnostic semantic IR and Cgen replacements; ordinary full build pending",
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\actions-render-suite-r2\\results.json",
+      "sha256": "b03aa64f05e09bdc65645cf3298bcfa28472aa014399b0a55e0a6e98d0a2da62",
+      "bytes": 377015
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\actions-header-r1\\results.json",
+      "sha256": "95f151819440dd323ee797568fc4e712b78101f9e676aac91c14f0b59cdbc428",
+      "bytes": 4008
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\actions-native-win-r1\\results.json",
+      "sha256": "206dae4ab8b5021602d8b3a34b410fb28d3749ca68795358df2d2fe6b788b2f1",
+      "bytes": 3678
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\actions-native-linux-r1\\results.json",
+      "sha256": "12e22edfd590118b349bbc19643d67ca6e8ca957c59b08768e9a222a32c5d0ea",
+      "bytes": 3760
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\native-actions-freeze.json",
+      "sha256": "cde27e7f007d4e038e419fb3d5891215a832970bb2a8616b8e46f25c5c4b4866",
+      "bytes": 1278403
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\engine-actions-host-win\\build-report.json",
+      "sha256": "7620e0c30f815956891015b7c61dff8fb3314d27218ff40c80947caca0bf43ce",
+      "bytes": 21205
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\engine-actions-static-win\\build-report.json",
+      "sha256": "00f5480cf231bc5188b246e9325f1173ccdf3748b056e864f1ef1545a26f2b8d",
+      "bytes": 10070167
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\packages-actions-host.json",
+      "sha256": "b2f2c70fb11187b56883c25eec360b9a55b48c1b9b1d95b758d450ffd581e24b",
+      "bytes": 41138
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\packages-actions-static.json",
+      "sha256": "a0528cfdf8b70223d8c0d8fbe9a10f9f4ae21f6324153dcfdbf0e467cce4998c",
+      "bytes": 9213727
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\surface-after-actions\\surface.json",
+      "sha256": "16b42458218e13599ba2fccede7a66eaaf44f8975e6a668c74081f638e24fc27",
+      "bytes": 4780702
+    }
+  ],
+  "binaries": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\actions-render-suite-r2\\foreign_xge3_render_resources.exe",
+      "sha256": "5c5cc7919829a9576e156a8c8d61c7aa566697395765ee8222caef3e1d294cf3",
+      "bytes": 4025344,
+      "imports": [
+        "msvcrt.dll",
+        "kernel32.dll",
+        "USER32.dll",
+        "ole32.dll",
+        "OLEAUT32.dll",
+        "SHELL32.dll",
+        "GDI32.dll",
+        "IMM32.dll"
+      ]
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\actions-render-suite-r2\\foreign_xge3_render_oom.exe",
+      "sha256": "6d9f8f5ae894e9cbb27e2593c9f451cfd927c19c757f8f328e0fa191162bc237",
+      "bytes": 3852288,
+      "imports": [
+        "msvcrt.dll",
+        "kernel32.dll",
+        "USER32.dll",
+        "ole32.dll",
+        "OLEAUT32.dll",
+        "SHELL32.dll",
+        "GDI32.dll",
+        "IMM32.dll"
+      ]
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\actions-render-suite-r2\\headless_batches.exe",
+      "sha256": "906b62cb670ad542b23584764bb8fa7d7667a19137ab17381200ea00e71e8e42",
+      "bytes": 3676160,
+      "imports": [
+        "msvcrt.dll",
+        "kernel32.dll",
+        "USER32.dll",
+        "ole32.dll",
+        "OLEAUT32.dll",
+        "SHELL32.dll",
+        "GDI32.dll",
+        "IMM32.dll"
+      ]
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\actions-render-suite-r2\\foreign_xge3_input_actions.exe",
+      "sha256": "f5c44f550ba79727aacb42b10049ae91def47c1407f5e6bec46cac986156f788",
+      "bytes": 4224512,
+      "imports": [
+        "msvcrt.dll",
+        "kernel32.dll",
+        "USER32.dll",
+        "ole32.dll",
+        "OLEAUT32.dll",
+        "SHELL32.dll",
+        "GDI32.dll",
+        "IMM32.dll"
+      ]
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\actions-render-suite-r2\\input_actions.exe",
+      "sha256": "076a8c9e8436a8847c4ee0757f6f49ba569495cebdc9dd94fe6b79b3abe739e1",
+      "bytes": 3709952,
+      "imports": [
+        "msvcrt.dll",
+        "kernel32.dll",
+        "USER32.dll",
+        "ole32.dll",
+        "OLEAUT32.dll",
+        "SHELL32.dll",
+        "GDI32.dll",
+        "IMM32.dll"
+      ]
+    }
+  ]
+}
