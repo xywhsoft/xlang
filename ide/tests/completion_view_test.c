@@ -6,12 +6,24 @@
 #include "ui/font_view.h"
 #include "platform/path.h"
 #include "catalog_ready.h"
+#include "services/language_client.h"
 #include <windows.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 /* Include the actual adapter to test malformed and late response rejection. */
+static unsigned cursorInitializations,invalidCursorBackground;
+static int observeCursorSend(xide_language_client* client,const xvalue* message,xide_model_error* error)
+{
+ xstrview method={0};if(xrtValueGetString(xrtValueObjectGet(message,xrtStrView("method")),&method) && xrtStrEqual(method,xrtStrView("initialize"))){
+  ++cursorInitializations;const xvalue* params=xrtValueObjectGet(message,xrtStrView("params"));const xvalue* options=xrtValueObjectGet(params,xrtStrView("initializationOptions"));bool enabled=true;
+  if(!xrtValueGetBool(xrtValueObjectGet(options,xrtStrView("backgroundWorkspaceSymbols")),&enabled) || enabled)++invalidCursorBackground;
+ }
+ return xideLanguageClientSend(client,message,error);
+}
+#define xideLanguageClientSend observeCursorSend
 #include "../src/ui/completion_view.c"
+#undef xideLanguageClientSend
 typedef struct fixture { const char *directory,*compiler,*legacy; HDESK desktop; int started,failed,checks; } fixture;
 static void dumpCompletionItems(const xide_app* app)
 {
@@ -116,6 +128,7 @@ static int verify(void* user)
  app.hidden=1; app.noSession=1; app.compilerPath=f->compiler; CHECK(xideAppCreate(&app)==XUI_OK && xgeBegin()==XGE_OK); began=1; CHECK(xideTestCatalogReady(&app));
  CHECK(xideEditorOpen(&app,entry,&error) && settle(&app)); xide_document* xl=app.activeDocument; xide_completion_view* v=app.completionView;
  CHECK(prepare(&app,xl,local,"zzROther",3) && invoke(&app) && v->count==1 && has(v,"zzResult") && !strcmp(v->items[0].sDetail,"int") && xuiCodeEditIsCompletionOpen(xl->editor));
+ CHECK(cursorInitializations && !invalidCursorBackground);
  CHECK(v->start==(int)(strstr(local,"zzROther")-local) && v->end==v->start+8 && capture(&app,light));
  /* A real stdio response must finish strict decoding while the GUI owner does
     no polling at all. The previous owner-submit path cannot satisfy this. */

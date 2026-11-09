@@ -73,6 +73,9 @@ typedef struct server {
  xide_workspace_symbols* workspaceSymbols;
  struct {xide_workspace_symbol_query* query;xvalue* id;unsigned long long serial;int64 epoch;} workspaceSymbolRequests[8];
  xide_workspace_symbol_work workspaceSymbolWork;uint32_t workspaceSymbolKinds;
+ struct {xide_workspace_symbol_query* query;xide_workspace_symbol_work work;
+  unsigned long long serial,seenSerial;int64 epoch,seenEpoch;uint64_t due,scheduled,started,completed,cancelled,failed;
+  int enabled,ready,seen,pending;char error[512];} workspaceRefresh;
 #endif
  xide_analysis_catalog* catalog;int64 configurationEpoch;
 } server;
@@ -779,6 +782,9 @@ static void dispatch(server* s,const xvalue* message)
 {
  const xvalue* id=get(message,"id"); const char *rpc=string(get(message,"jsonrpc")),*method=string(get(message,"method")); const xvalue* params=get(message,"params");
  if(!rpc || strcmp(rpc,"2.0") || !method || (id && !validId(id))) { response(s,NULL,NULL,-32600,"Invalid JSON-RPC request."); return; }
+#ifdef XLS_COMPILER_XRT
+ workspaceRefreshActivity(s,method,id);
+#endif
  if(!strcmp(method,"exit")) { if(!id) { s->exitRequested=1; s->exitCode=s->shutdown ? 0 : 1; } else response(s,id,NULL,-32600,"exit must be a notification."); return; }
  if(!strcmp(method,"initialize")) {
   if(!id || s->initialized || s->shutdown || !params || xrtValueType(params)!=XVALUE_OBJECT) { if(id) response(s,id,NULL,-32600,"Invalid or duplicate initialize request."); return; }
@@ -796,6 +802,15 @@ static void dispatch(server* s,const xvalue* message)
   const xvalue* diagnosticsOption=get(options,"diagnosticsBackend"); const char* diagnostics=string(diagnosticsOption);
   if(diagnosticsOption && (!diagnostics || (strcmp(diagnostics,"native") && strcmp(diagnostics,"cli")))) { response(s,id,NULL,-32602,"diagnosticsBackend must be native or cli."); return; }
   s->cliDiagnostics=diagnostics && !strcmp(diagnostics,"cli");
+  bool nativeWorkspace=false;
+#ifdef XLS_COMPILER_XRT
+  nativeWorkspace=!s->cliCompletion && !s->cliDiagnostics;
+#endif
+  bool background=nativeWorkspace;const xvalue* backgroundOption=get(options,"backgroundWorkspaceSymbols");
+  if((backgroundOption && !xrtValueGetBool(backgroundOption,&background)) || (background && !nativeWorkspace)){response(s,id,NULL,-32602,"backgroundWorkspaceSymbols must be boolean and requires native analysis.");return;}
+#ifdef XLS_COMPILER_XRT
+  s->workspaceRefresh.enabled=background;
+#endif
   bool automatic=!s->cliDiagnostics,versions=false,inputProof=false,dependencyProof=false,definitionProof=false; const xvalue* autoOption=get(options,"automaticDiagnostics");
   int delay=75; const xvalue* delayOption=get(options,"diagnosticDelay");
   if((autoOption && !xrtValueGetBool(autoOption,&automatic)) || (automatic && s->cliDiagnostics) || (delayOption && (!integer(delayOption,&delay) || delay<0 || delay>2000))) { response(s,id,NULL,-32602,"automaticDiagnostics requires the native backend; diagnosticDelay must be 0..2000 milliseconds."); return; }
@@ -858,7 +873,7 @@ static void dispatch(server* s,const xvalue* message)
   put(signature,"triggerCharacters",signatureTriggers);put(signature,"retriggerCharacters",retriggers);put(cap,"signatureHelpProvider",signature);put(scope,"signatureInputGuard",xrtValueString(sv("background-poll")));
   put(cap,"documentHighlightProvider",xrtValueBool(true));
 #ifdef XLS_COMPILER_XRT
-  if(!s->cliCompletion && !s->cliDiagnostics){put(cap,"referencesProvider",xrtValueBool(true));put(cap,"workspaceSymbolProvider",xrtValueBool(true));put(scope,"workspaceSymbolInputProof",xrtValueBool(true));workspaceSymbolCapabilities(s,params);}
+  if(!s->cliCompletion && !s->cliDiagnostics){put(cap,"referencesProvider",xrtValueBool(true));put(cap,"workspaceSymbolProvider",xrtValueBool(true));put(scope,"workspaceSymbolInputProof",xrtValueBool(true));put(scope,"workspaceSymbolBackgroundIndex",xrtValueBool(true));workspaceSymbolCapabilities(s,params);}
   put(scope,"referenceCompilationOwners",xrtValueBool(!s->cliCompletion && !s->cliDiagnostics));
 #endif
   put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.101"))); put(result,"serverInfo",info); s->hierarchicalSymbols=hierarchical;s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
@@ -869,9 +884,14 @@ static void dispatch(server* s,const xvalue* message)
 #ifdef XLS_COMPILER_XRT
  cancelReferences(s,NULL,-32800,"Server shutting down.");
  cancelWorkspaceSymbols(s,NULL,-32800,"Server shutting down.");
+ workspaceRefreshCancel(s,0);
 #endif
  diagnosticStop(s); cancelNative(s,-1,-32800,"Server shutting down."); clearPublished(s); cancel(s,-32800,"Server shutting down."); cancelSemantic(s,-1,-32800,"Server shutting down."); cancelCompletion(s,-32800,"Server shutting down.",1);cancelSignature(s,-32800,"Server shutting down.",1); response(s,id,NULL,0,NULL); } return; }
- if(!strcmp(method,"initialized")) { if(id) response(s,id,NULL,-32600,"initialized must be a notification."); return; }
+ if(!strcmp(method,"initialized")) { if(id) response(s,id,NULL,-32600,"initialized must be a notification.");
+#ifdef XLS_COMPILER_XRT
+ else s->workspaceRefresh.ready=1;
+#endif
+ return; }
  if(!strcmp(method,"$/cancelRequest")) {
   if(id) response(s,id,NULL,-32600,"Cancellation must be a notification.");
   else {
@@ -953,6 +973,7 @@ int main(void)
 #ifdef XLS_COMPILER_XRT
   pollReferences(&s);
   pollWorkspaceSymbols(&s);
+  pollWorkspaceRefresh(&s);
 #endif
   if(!m) {
    HANDLE waits[5]={s.event}; DWORD count=1;
@@ -976,7 +997,7 @@ int main(void)
  for(size_t i=0;i<DOC_LIMIT;++i) if(s.semantic[i].id) releaseSemantic(&s.semantic[i]);
  #ifdef XLS_COMPILER_XRT
  cancelReferences(&s,NULL,0,"Server stopped.");xideProjectReferencesDestroy(s.references);
- cancelWorkspaceSymbols(&s,NULL,0,"Server stopped.");xideWorkspaceSymbolsDestroy(s.workspaceSymbols);
+ workspaceRefreshCancel(&s,0);cancelWorkspaceSymbols(&s,NULL,0,"Server stopped.");xideWorkspaceSymbolsDestroy(s.workspaceSymbols);
 #endif
  diagnosticStop(&s); xideDiagnosticStoreDestroy(s.diagnostics); xrtValueRelease(s.diagnosticAnalysis);xrtValueRelease(s.diagnosticOverlayState);
  xlsWorkerDestroy(s.analysis);

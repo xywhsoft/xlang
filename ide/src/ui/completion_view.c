@@ -176,6 +176,9 @@ static int cvstartClient(xide_completion_view* v)
  xvalue* configuration=xideAnalysisConfigurationPacket(&v->app->workspaceModel,v->app->selectedProject,v->app->configurationId,v->package,1,NULL);
  xvalue *p=xrtValueObject(),*options=xrtValueObject();
  if(!configuration || !p || !options) {xrtValueRelease(configuration);xrtValueRelease(p);xrtValueRelease(options);cvstopClient(v);return 0;}
+ /* This cursor-only connection shares the IDE's documents/configuration but
+    must not duplicate idle workspace analysis owned by language_view. */
+ if(!cvput(options,"backgroundWorkspaceSymbols",xrtValueBool(false))) {xrtValueRelease(configuration);xrtValueRelease(p);xrtValueRelease(options);cvstopClient(v);return 0;}
  v->analysisRequired=xrtValueCount(cvget(cvget(configuration,"catalog"),"projects"))>0;
  cvput(options,"analysisConfiguration",configuration);xvalue* caps=xrtJsonParse(cvsv("{\"textDocument\":{\"signatureHelp\":{\"contextSupport\":true,\"signatureInformation\":{\"activeParameterSupport\":true,\"parameterInformation\":{\"labelOffsetSupport\":true},\"documentationFormat\":[\"plaintext\"]}}}}"));cvput(p,"capabilities",caps); cvput(options,"checkOnSave",xrtValueBool(false)); cvput(options,"automaticDiagnostics",xrtValueBool(false)); cvput(p,"initializationOptions",options);
  if(!cvsend(v,"initialize",p,1)) { cvstopClient(v); return 0; } return 1;

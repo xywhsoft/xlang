@@ -118,7 +118,7 @@ HOST_TESTS += ("project_reference_parallel_test",)
 HOST_TESTS += ("project_reference_owner_test", "project_reference_owner_fault_test")
 HOST_TESTS += ("declaration_symbols_test", "declaration_capture_test")
 HOST_TESTS += ("workspace_symbol_index_test",)
-HOST_TESTS += ("workspace_symbols_test", "workspace_symbols_public_test")
+HOST_TESTS += ("workspace_symbols_test", "workspace_symbols_public_test", "workspace_symbol_refresh_test")
 HOST_TESTS += ("workspace_symbol_wire_test",)
 
 
@@ -997,7 +997,7 @@ def main() -> None:
                           not (name in ("snapshot_report_test", "reference_capture_test", "declaration_capture_test", "project_reference_owner_fault_test") and Path(source).stem == "language_snapshot") and
                           not (name == "path_identity_batch_test" and Path(source).stem == "path") and
                           not (name == "workspace_symbol_index_test" and Path(source).stem == "workspace_symbol_index") and
-                          not (name == "workspace_symbols_test" and Path(source).stem == "workspace_symbols") and
+                          not (name in ("workspace_symbols_test", "workspace_symbol_refresh_test") and Path(source).stem == "workspace_symbols") and
                           not (name == "workspace_symbol_wire_test" and Path(source).stem == "workspace_symbol_wire") and
                           not (name in ("semantic_lookup_test", "semantic_reference_shard_test", "declaration_symbols_test") and Path(source).stem == "semantic_definition") and
                           not (name in ("project_reference_budget_test", "reference_path_index_test", "project_reference_parallel_test", "project_reference_owner_fault_test") and Path(source).stem == "project_references")]

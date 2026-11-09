@@ -16,7 +16,8 @@ enum xide_workspace_symbol_state {XIDE_WORKSPACE_SYMBOL_FAILED=-1,XIDE_WORKSPACE
 /* Independent single-owner XRT coordinator + one bounded semantic actor;
  * foreground completion/diagnostics do not wait in this queue. Borrowed cache
  * outlives Destroy;module assets use the existing worker ownership contract.
- * Eight pending jobs;8 semantic sessions/64MiB known inputs;128MiB index and
+ * Nine pending jobs (host reserves one for idle refresh);8 semantic
+ * sessions/64MiB known inputs;128MiB index and
  *128MiB compact guard/overlay-topology records per current cohort;one shared
  * original input-batch history additionally retains up to64MiB input storage.
  * Admitted input history may advance when a later workspace member fails;
@@ -43,6 +44,12 @@ xide_workspace_symbol_query* xideWorkspaceSymbolsSubmit(xide_workspace_symbols* 
 xide_workspace_symbol_query* xideWorkspaceSymbolsSubmitLsp(xide_workspace_symbols* store,
  xls_context* const* contexts,size_t contextCount,const xls_analysis_document* documents,size_t documentCount,
  const char* query,size_t limit,uint32_t kindMask);
+/* Refresh the complete guarded cohort without scanning/ranking results or
+ * constructing JSON. Result READY reports work only; Take/TakeLsp return NULL.
+ * Shares the same bounded actor/queue. Host cancels idle work before foreground
+ * requests and gates its completion on the captured input/configuration epoch. */
+xide_workspace_symbol_query* xideWorkspaceSymbolsRefresh(xide_workspace_symbols* store,
+ xls_context* const* contexts,size_t contextCount,const xls_analysis_document* documents,size_t documentCount);
 xvalue* xideWorkspaceSymbolsTakeLsp(xide_workspace_symbol_query* query);
 /* Rerun the original bounded query,require an exact selected wire row and
  * produce {symbol,document}. The document uses the existing reference proof
