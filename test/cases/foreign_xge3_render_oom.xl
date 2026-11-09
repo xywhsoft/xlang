@@ -26,7 +26,7 @@ extern "xmemdebugsnapshot" struct HeapSnapshot @header("xrt_decl.h")
 end
 extern "xrtMemDebugSnapshot" @header("xrt_decl.h") @no_raise @c_output(0) func heapSnapshot() as HeapSnapshot
 
-func factoryAttempt(int kind,int budget,xge.Texture texture,Buffer vertices,Buffer indices) as bool
+func factoryAttempt(int kind,int budget,xge.Texture texture,Buffer vertices,Buffer indices,xge.Image image,bytes png) as bool
  assert failAfter(uint64(budget))
  bool failed=false
  try
@@ -56,8 +56,20 @@ func factoryAttempt(int kind,int budget,xge.Texture texture,Buffer vertices,Buff
   elseif kind==6 then
    auto value=xge.createTexture(2,2)
    value.close()
-  else
+  elseif kind==7 then
    auto value=xge.createShaderVariants("void main(){}","void main(){}")
+   value.close()
+  elseif kind==8 then
+   auto value=xge.createYUV420PTexture(3,3)
+   value.close()
+  elseif kind==9 then
+   auto value=xge.loadTexture(png)
+   value.close()
+  elseif kind==10 then
+   auto value=xge.createTexture(image)
+   value.close()
+  else
+   auto value=xge.textureFallbackGet()
    value.close()
   end
  catch error
@@ -71,20 +83,23 @@ func main(...) as int
  auto texture=xge.createTexture(2,2)
  auto vertices=Buffer.fromHex("00000000000000000000000000000000000000000000000000000000")
  auto indices=Buffer.fromHex("0000")
+ auto png=Buffer.fromHex("89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d49444154789c63f8cfc0f01f00050001ff89993d1d0000000049454e44ae426082").toBytes()
+ auto image=xge.loadImage(png)
+ xge.textureFallbackSetRGBA(2,2)
  try
   // Warm the same success/failure paths and runtime directory capacities.
-  for kind in range(8)
+  for kind in range(12)
    for budget in range(32)
-    factoryAttempt(kind,budget,texture,vertices,indices)
+    factoryAttempt(kind,budget,texture,vertices,indices,image,png)
    end
   end
   auto before=heapSnapshot()
   assert before.Enabled
   int failed=0
   int succeeded=0
-  for kind in range(8)
+  for kind in range(12)
    for budget in range(32)
-    if factoryAttempt(kind,budget,texture,vertices,indices) then
+    if factoryAttempt(kind,budget,texture,vertices,indices,image,png) then
      failed+=1
     else
      succeeded+=1
@@ -124,12 +139,25 @@ func main(...) as int
    b.fX=c_float(1)
    c.fY=c_float(1)
    bytes updateData=b"xyz"
+   bytes pixelData=b"abcd"
+   auto output=Buffer()
+   assert output.resize(16)
+   auto sampler=texture.sampler
+   texture.updateRGBA(0,0,1,1,pixelData)
+   texture.readPixels(output)
+   texture.setSampler(sampler)
+   auto storage=texture.storageInfo()
+   assert storage.iCpuBytes==uint64(16)
    int iteration=0
    auto hotBefore=heapSnapshot()
    while iteration<200
     batch.clear()
     batch.triangle(a,b,c)
     gpu.update(0,updateData)
+    texture.updateRGBA(0,0,1,1,pixelData)
+    texture.readPixels(output)
+    texture.setSampler(sampler)
+    storage=texture.storageInfo()
     iteration+=1
    end
    auto hotAfter=heapSnapshot()
@@ -141,6 +169,8 @@ func main(...) as int
    batch.close()
   end
  finally
+  xge.textureFallbackClear()
+  image.close()
   texture.close()
  end
  return 0

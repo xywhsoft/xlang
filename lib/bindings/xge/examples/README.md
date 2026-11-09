@@ -38,3 +38,9 @@ compiler qualification; this does not qualify a final shipped runtime or GPU.
 
 `resource_provider.xl` demonstrates exact resource bytes, a typed provider callback,
 and explicit global registration cleanup. It needs no window or external data.
+
+`texture_pixels.xl` creates two RGBA pixels, changes the second to blue and
+asserts the readback bytes without a window. `system_font.xl` resolves the
+platform monospace font through the corrected native owned factory. Both have
+Windows JIT/static AOT execution evidence in `docs/xge3-texture-operations.md`;
+use the matched SDK/engine/compiler cohort rather than an older installed DLL.

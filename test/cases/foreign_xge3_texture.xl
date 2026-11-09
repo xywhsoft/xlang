@@ -1,0 +1,104 @@
+// CPU-only native Texture operations; exact byte lengths include embedded NUL.
+import xge
+
+func pixelsOf(xge.Texture texture,int size=16) as string
+ auto output=Buffer()
+ assert output.resize(size)
+ texture.readPixels(output)
+ return output.hex()
+end
+
+func main(...) as int
+ auto original=Buffer.fromHex("010203ff040506ff070809ff0a0b0cff")
+ auto texture=xge.createTexture(2,2,original,c_uint(xge.XGE_TEXTURE_COMPRESS_NONE))
+ auto info=texture.storageInfo()
+ assert info.iCompression==c_uint(xge.XGE_TEXTURE_COMPRESS_NONE) and info.iCpuBytes==uint64(16)
+ assert info.bResident==c_int(0)
+ auto sampler=texture.sampler
+ sampler.iMinFilter=xge.XGE_FILTER_NEAREST
+ sampler.iWrapS=xge.XGE_WRAP_REPEAT
+ texture.setSampler(sampler)
+ assert texture.sampler.iMinFilter==xge.XGE_FILTER_NEAREST and texture.sampler.iWrapS==xge.XGE_WRAP_REPEAT
+
+ auto output=Buffer.fromHex("a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5")
+ texture.readPixels(output,12)
+ assert output.hex()=="010203ff040506ffa5a5a5a5070809ff0a0b0cffa5a5a5a5"
+ auto shortOutput=Buffer.fromHex("a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5")
+ bool rejected=false
+ try
+  texture.readPixels(shortOutput,12)
+ catch error
+  rejected=true
+ end
+ assert rejected and shortOutput.hex()=="a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5"
+ rejected=false
+ try
+  texture.updateRGBA(1,0,1,2,Buffer.fromHex("151617ff0000000018191a"),8)
+ catch error
+  rejected=true
+ end
+ assert rejected and pixelsOf(texture)==original.hex()
+ texture.updateRGBA(1,0,1,2,Buffer.fromHex("151617ff0000000018191aff"),8)
+ assert pixelsOf(texture)=="010203ff151617ff070809ff18191aff"
+ texture.updateRGBA(0,0,1,1,Buffer.fromHex("1b1c1dff").toBytes())
+ assert pixelsOf(texture)=="1b1c1dff151617ff070809ff18191aff"
+ texture.close()
+
+ auto png=Buffer.fromHex("89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d49444154789c63f8cfc0f01f00050001ff89993d1d0000000049454e44ae426082")
+ auto image=xge.loadImage(png.toBytes())
+ texture=xge.createTexture(image)
+ image.close()
+ assert pixelsOf(texture,4)=="ff0000ff"
+ texture.close()
+ texture=xge.loadTexture(png.toBytes(),0)
+ assert pixelsOf(texture,4)=="ff0000ff"
+ texture.close()
+ texture=xge.loadTexture(png)
+ assert pixelsOf(texture,4)=="ff0000ff"
+ texture.close()
+ xge.addResourceProvider("textureFixture",func(xge.ResourcePath path,xge.ResourceOutput result) as c_int
+  result.set(png)
+  return c_int(0)
+ end)
+ try
+  texture=xge.loadTexture("textureFixture://pixel")
+  assert pixelsOf(texture,4)=="ff0000ff"
+  texture.close()
+ finally
+  xge.resourceProviderClear()
+ end
+
+ auto y=Buffer.fromHex("ebebebebebebebebeb")
+ auto uv=Buffer.fromHex("80808080")
+ texture=xge.createYUV420PTexture(3,3)
+ texture.updateYUV420P(y,3,uv,2,uv,2)
+ texture.updateYUV420P(y.toBytes(),3,uv.toBytes(),2,uv.toBytes(),2)
+ rejected=false
+ try
+  texture.updateYUV420P(y.toBytes(),3,uv.toBytes(),2,b"bad",2)
+ catch error
+  rejected=true
+ end
+ assert rejected and texture.storageInfo().iStorage==xge.XGE_TEXTURE_STORAGE_YUV420P
+ texture.close()
+
+ xge.textureFallbackSetRGBA(2,2,original)
+ try
+  texture=xge.textureFallbackGet()
+  assert pixelsOf(texture)==original.hex()
+  texture.close()
+  texture=xge.loadTexture(b"invalid image")
+  assert pixelsOf(texture)==original.hex()
+  texture.close()
+  xge.textureFallbackSetRGBA(1,1,b"abcd")
+  texture=xge.textureFallbackGet()
+  assert pixelsOf(texture,4)=="61626364"
+  texture.close()
+ finally
+  xge.textureFallbackClear()
+ end
+ assert xge.graphicsResourceCount()==uint64(0)
+ xge.unit()
+ println("Texture capacities, defaults, sampler, image/provider, YUV and fallback passed")
+ return 0
+end

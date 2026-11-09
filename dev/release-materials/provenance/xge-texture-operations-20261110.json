@@ -1,0 +1,137 @@
+{
+  "scope": "Texture operations and corrected owned system font factory; partial XGE/XUI/Document long task",
+  "taskStatus": "active",
+  "nativeAuthorityCommit": "9feb5fca7acb6c57af4b22d36cc6fff986681dbb",
+  "nativePrerequisiteCommits": [
+    "56bacf1b",
+    "1bdba266"
+  ],
+  "xlangHeadBeforeBatch": "727a333f9c6ed60034a2667fa9da8cdcf3fd31a0",
+  "compilerCohort": "compiler-full-r9: full O2 compiler/TinyCC/VFS; qualified separately",
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-texture-win-r4\\results.json",
+      "sha256": "8569e338f48ce6f6acf180360ba06034bb9936e83526b496e2482f594a870b15",
+      "checks": 44,
+      "sanitizers": false
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-texture-linux-r2\\results.json",
+      "sha256": "920d96dfb21040aa11c4b2cea8a45b7cc6ae9ab4dda943c9ff7b8b8647592146",
+      "checks": 44,
+      "sanitizers": false
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\language-texture-win-r3\\results.json",
+      "sha256": "44fe14795d6d74c486de630afc8f693f010baba3d99846123923546be23e0a9f",
+      "checks": 50,
+      "sanitizers": false
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\texture-headers-win-r2\\results.json",
+      "sha256": "2b837bbf5003ba9b73ea001ca7d56d9ae57912ec45d018adc76e411e29fef8b1",
+      "checks": 9,
+      "sanitizers": false
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\stb-image-oom-win-r3\\results.json",
+      "sha256": "70cd073459f4feaf9f6d814446e92d4f1f321dc037ccd8138f182477ba571f78",
+      "checks": 4,
+      "sanitizers": false
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\stb-image-oom-linux-r3\\results.json",
+      "sha256": "a8a13f53ac1be7902b94fd6958b5628705e1ce07f2bf444fe1f04fbb4c96beee",
+      "checks": 4,
+      "sanitizers": true
+    }
+  ],
+  "cohortRecords": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-freeze-r13.json",
+      "sha256": "0120c682f778e7e77038f290038877ceef248984b0dd7f2508312148e6ac33fc"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-host-win-r13\\build-report.json",
+      "sha256": "a4ca4eed2179e503bd18fb10b7826bb35ac22b9e6c8840e32c55d9ab319f88f7"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-host-linux-r13\\build-report.json",
+      "sha256": "5fbb6102eff8a2afb5867bf7d0851b407b34493a66ecb69b41450556d09bdde7"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-static-win-r13\\build-report.json",
+      "sha256": "135bab9a93b4f3e14372adb0be5aeaef5224890af411d872cb00277f6f330dfd"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-texture-host-r2.json",
+      "sha256": "62b38fe18058fcbe9d4488e297658c7f563432847d4cb1a3ea56b167756199b9"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-texture-static-r2.json",
+      "sha256": "7cdb31b6df6a93a0f59517868e23fd876c63e21f80431649b33f3bb519123f9c"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\surface-texture-r2\\surface.json",
+      "sha256": "6739637f3ea939f26e5de3d9c4fdf8697bd344ea08e52dc5b9cdec694f4c6dfb"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r9\\build.json",
+      "sha256": "bc8c9c68aab99dfb564ff4b67ce865d32e320000750afb806848ea2b07c5d0a9"
+    }
+  ],
+  "bindingInputs": {
+    "lib/bindings/xge/src/resources.xl": "e07fa7b1699b3a92065490b375e0fdb7821abe8af2253e979eb188f8c8b2c1ca",
+    "test/cases/foreign_xge3_render_oom.xl": "9d655bbf306ae17d3bddb36e8ff0230f8174fff4753b056d529db4316fca1b85",
+    "test/cases/foreign_xge3_texture.xl": "89804971ecf8dc95d5bc2b5d0184fe6e7458648f7485046bad7b1897adbc5654",
+    "test/cases/foreign_xge3_texture_gpu.xl": "75d6e216201671e85345d101208509524262e2077d035e3eb761d546d4e5e5c6",
+    "test/cases/foreign_xge3_system_font.xl": "c2934b62de85544a08a26d605213c60634cf2491399349f85cda7b4c2da632f6",
+    "lib/bindings/xge/examples/texture_pixels.xl": "f8302c50e2df0901083d273b0e541abe17dd46e3fc84acd45af097d695b063da"
+  },
+  "sourcesMatchFrozenBuildAndStagedDeclarations": true,
+  "graphicsTests": "Bounded OpenGL state and pixel checks; Linux Xvfb",
+  "hotPath": {
+    "cpuOnly": true,
+    "iterations": 200,
+    "newHeapAllocations": 0,
+    "modes": [
+      "JIT",
+      "static AOT"
+    ],
+    "zeroOverheadClaim": false
+  },
+  "surface": {
+    "population": {
+      "functions": 5035,
+      "types": 959,
+      "constants": 1835,
+      "functionMacros": 7,
+      "callableFields": 181,
+      "enums": 40,
+      "enumConstants": 316
+    },
+    "declarationPresent": {
+      "functions": 3407,
+      "types": 344,
+      "constants": 1820,
+      "callableFields": 66,
+      "enumConstants": 316
+    },
+    "completionPercentage": null
+  },
+  "shippingDelivery": false,
+  "releaseOrIdeInstalled": false,
+  "networkTests": false,
+  "limits": [
+    "Creator-thread admission and foreign-thread final-release retirement remain required for ordinary graphics resources",
+    "Linux language JIT/AOT and other feature families remain in the long task",
+    "No complete image-format or whole-engine sanitizer certification",
+    "No physical GPU timing or handwritten-C performance comparison",
+    "GPU errors may partially commit pixel/sampler state; capacity rejection is pre-write"
+  ],
+  "next": [
+    "Close ordinary graphics method and release thread contracts",
+    "Owned Scene transitions/callbacks and managed async resource targets",
+    "Complete remaining Font/audio/SVG/particles/XUI/Document/3D/debug/platform families and matched delivery"
+  ]
+}

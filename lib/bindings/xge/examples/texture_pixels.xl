@@ -1,0 +1,16 @@
+// No window is needed: create RGBA pixels, change one pixel, read them back.
+import xge
+
+auto pixels=Buffer.fromHex("ff0000ff00ff00ff") // red, green
+auto texture=xge.createTexture(2,1,pixels)
+try
+ texture.updateRGBA(1,0,1,1,Buffer.fromHex("0000ffff")) // green becomes blue
+ auto output=Buffer()
+ assert output.resize(8) // two RGBA pixels, four bytes each
+ texture.readPixels(output)
+ assert output.hex()=="ff0000ff0000ffff"
+ println(output.hex())
+finally
+ texture.close()
+ xge.unit()
+end

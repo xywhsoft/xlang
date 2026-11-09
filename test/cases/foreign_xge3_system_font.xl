@@ -1,0 +1,15 @@
+// Platform font lookup creates one owned engine obligation without a window.
+import xge
+auto font=xge.loadSystemFont(xge.XGE_SYSTEM_FONT_MONOSPACE,16)
+assert font.size==c_float(16) and xge.graphicsResourceCount()==uint64(1)
+bool busy=false
+try
+ xge.unit()
+catch error
+ busy=true
+end
+assert busy and font.size==c_float(16)
+font.close()
+assert xge.graphicsResourceCount()==uint64(0)
+xge.unit()
+println("System font factory ABI and Busy shutdown passed")

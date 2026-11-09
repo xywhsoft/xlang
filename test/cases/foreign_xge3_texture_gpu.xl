@@ -1,0 +1,57 @@
+// One bounded frame: capacity rejection must leave YUV pixels unchanged.
+import xge
+func readDraw(xge.Texture texture,xge.RenderTarget target,xge.Pass pass) as bytes
+ pass.begin()
+ texture.drawPx(0,0)
+ assert xge.flush()==c_int(0)
+ pass.finish()
+ auto output=Buffer()
+ assert output.resize(16)
+ target.readPixels(output)
+ return output.toBytes()
+end
+func checkColor(bytes pixels,int minimum,int maximum)
+ for i in range(4)
+  assert int(pixels[i*4])>=minimum and int(pixels[i*4])<=maximum
+  assert int(pixels[i*4+1])>=minimum and int(pixels[i*4+1])<=maximum
+  assert int(pixels[i*4+2])>=minimum and int(pixels[i*4+2])<=maximum
+  assert pixels[i*4+3]==255
+ end
+end
+func main(...) as int
+ auto texture=xge.createYUV420PTexture(3,3)
+ xge.init(64,64,"xlang bounded Texture capacity")
+ try
+  xge.run(func() as c_int
+   auto target=xge.createRenderTarget(2,2)
+   auto pass=xge.createPass(target,c_uint(xge.XGE_PASS_CLEAR_COLOR),c_uint(0xff00ffff))
+   try
+    checkColor(readDraw(texture,target,pass),0,2)
+    auto y=Buffer.fromHex("ebebebebebebebebeb").toBytes()
+    auto uv=Buffer.fromHex("80808080").toBytes()
+    bool rejected=false
+    try
+     texture.updateYUV420P(y,3,uv,2,b"bad",2)
+    catch error
+     rejected=true
+    end
+    assert rejected
+    checkColor(readDraw(texture,target,pass),0,2)
+    texture.updateYUV420P(y,3,uv,2,uv,2)
+    // XGE's existing YUV shader uses full-range Y (235 remains light gray).
+    checkColor(readDraw(texture,target,pass),232,238)
+   finally
+    pass.close()
+    target.close()
+    texture.close()
+   end
+   return c_int(1)
+  end)
+ finally
+  xge.setFrameCallback(null)
+  texture.close()
+  xge.unit()
+ end
+ assert xge.graphicsResourceCount()==uint64(0)
+ return 0
+end

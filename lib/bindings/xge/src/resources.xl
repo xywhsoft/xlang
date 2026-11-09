@@ -36,6 +36,14 @@ export extern "xge_texture_t*" class Texture @header("xge3_runtime.h") @lifetime
  extern "xgeTextureUploadQueue" @no_raise @c_result("status",0) func queueUpload()
  extern "xgeTextureUVTransform" @c_const(0) func uvTransform() as TextureUvTransform
  extern "xgeTextureMapUV" @c_const(0) func mapUV(Vec2 uv) as Vec2
+ extern "xgeTextureGetSampler" @no_raise get sampler() as Sampler
+ extern "xgeTextureSetSampler" @no_raise @c_ref(0) @c_result("status",0) func setSampler(Sampler value)
+ extern "xgeTextureGetStorageInfo" @no_raise @c_output(1,0) @c_output_size(1,"iSize") func storageInfo() as TextureStorageInfo
+ extern "xgeTextureReadPixelsSized" @no_raise @c_span(0,"void*","size_t") @c_result("status",0) func readPixels(Buffer output,c_int stride=0)
+ extern "xgeTextureUpdateRGBASized" @no_raise @c_span(4,"const void*","size_t") @c_result("status",0) func updateRGBA(c_int x,c_int y,c_int width,c_int height,bytes pixels,c_int stride=0)
+ extern "xgeTextureUpdateRGBASized" @no_raise @c_span(4,"const void*","size_t") @c_result("status",0) func updateRGBA(c_int x,c_int y,c_int width,c_int height,Buffer pixels,c_int stride=0)
+ extern "xgeTextureUpdateYUV420PSized" @no_raise @c_span(0,"const void*","size_t") @c_span(2,"const void*","size_t") @c_span(4,"const void*","size_t") @c_result("status",0) func updateYUV420P(bytes y,c_int strideY,bytes u,c_int strideU,bytes v,c_int strideV)
+ extern "xgeTextureUpdateYUV420PSized" @no_raise @c_span(0,"const void*","size_t") @c_span(2,"const void*","size_t") @c_span(4,"const void*","size_t") @c_result("status",0) func updateYUV420P(Buffer y,c_int strideY,Buffer u,c_int strideU,Buffer v,c_int strideV)
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
 export extern "xge_font" class Font @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xge3FontPolicy")
@@ -47,7 +55,7 @@ export extern "xge_font" class Font @header("xge3_runtime.h") @lifetime("owned")
  extern "xgeFontSetFallbackChecked" @no_raise @c_result("status",0) func setFallback(Font? fallback)
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
-export extern "xge_image" class Image @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xge3ImagePolicy")
+export extern "xge_image_t*" class Image @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xge3ImagePolicy")
  native point handle
  extern "iWidth" @c_field get width() as c_int
  extern "iHeight" @c_field get height() as c_int
@@ -57,9 +65,18 @@ export extern "xgeImageLoadMemory" @no_raise @c_span(0,"const void*","int") @c_r
 extern "xgeImageFree" @no_raise func freeImage(Image value)
 export extern "xgeMaterialInit" @no_raise @c_result("owned_view") @factory(0,freeMaterial) @c_inplace("xge_material_t") func createMaterial() as Material
 extern "xgeMaterialFree" @no_raise func freeMaterial(Material value)
-export extern "xgeTextureCreateRGBAOwned" @no_raise @c_span(2,"const void*","size_t") @c_result("owned_view") @factory(0,0,freeTexture) func createTexture(c_int width,c_int height,Buffer? pixels=null) as Texture
-export extern "xgeTextureCreateRGBAOwned" @no_raise @c_span(2,"const void*","size_t") @c_result("owned_view") @factory(0,0,freeTexture) func createTexture(c_int width,c_int height,bytes pixels) as Texture
-export extern "xgeTextureLoadMemoryOwned" @no_raise @c_span(0,"const void*","int") @c_result("owned_view") @factory(0,0,freeTexture) func loadTexture(bytes data) as Texture
+// The native owned factories reserve the engine obligation before allocation.
+// Defaults match XGE: RGBA creation is lossless; image decoding premultiplies.
+export extern "xgeTextureCreateRGBAExOwned" @no_raise @c_span(2,"const void*","size_t") @c_result("owned_view") @factory(0,0,freeTexture) func createTexture(c_int width,c_int height,Buffer? pixels=null,c_uint flags=0) as Texture
+export extern "xgeTextureCreateRGBAExOwned" @no_raise @c_span(2,"const void*","size_t") @c_result("owned_view") @factory(0,0,freeTexture) func createTexture(c_int width,c_int height,bytes pixels,c_uint flags=0) as Texture
+export extern "xgeTextureCreateFromImageOwned" @no_raise @c_const(0) @c_result("owned_view") @factory(0,0,freeTexture) func createTexture(Image image,c_uint flags=0) as Texture
+export extern "xgeTextureCreateYUV420POwned" @no_raise @c_result("owned_view") @factory(0,0,freeTexture) func createYUV420PTexture(c_int width,c_int height) as Texture
+export extern "xgeTextureLoadMemoryExOwned" @no_raise @c_span(0,"const void*","int") @c_result("owned_view") @factory(0,0,freeTexture) func loadTexture(bytes data,c_uint flags=1) as Texture
+export extern "xgeTextureLoadMemoryExOwned" @no_raise @c_span(0,"const void*","int") @c_result("owned_view") @factory(0,0,freeTexture) func loadTexture(Buffer data,c_uint flags=1) as Texture
+export extern "xgeTextureLoadExOwned" @no_raise @c_cstr(0) @c_result("owned_view") @factory(0,0,freeTexture) func loadTexture(string path,c_uint flags=1) as Texture
+export extern "xgeTextureFallbackSetRGBASized" @header("xge3_runtime.h") @no_raise @c_span(2,"const void*","size_t") @c_result("status",0) func textureFallbackSetRGBA(c_int width,c_int height,bytes pixels)
+export extern "xgeTextureFallbackSetRGBASized" @header("xge3_runtime.h") @no_raise @c_span(2,"const void*","size_t") @c_result("status",0) func textureFallbackSetRGBA(c_int width,c_int height,Buffer? pixels=null)
+export extern "xgeTextureFallbackGetOwned" @no_raise @c_result("owned_view") @factory(0,0,freeTexture) func textureFallbackGet() as Texture
 export extern "xgeFontLoadOwned" @no_raise @c_cstr(0) @c_result("owned_view") @factory(0,0,freeFont) func loadFont(string path,c_float size) as Font
 export extern "xgeFontLoadMemoryOwned" @no_raise @c_span(0,"const void*","int") @c_result("owned_view") @factory(0,0,freeFont) func loadFontMemory(bytes data,c_float size) as Font
 extern "xgeTextureAddRef" @no_raise func retainTexture(Texture value) as c_int
@@ -71,4 +88,4 @@ extern "xgeFontFree" @no_raise func freeFont(Font value)
 export extern "xgeDrawEx" @header("xge3_runtime.h") @no_raise @c_pack(0,"xge_draw_t",0,4) @c_pack_field(0,"pTexture",0,"view_raw") @c_pack_field(0,"tSrc",1,"value") @c_pack_field(0,"tDst",2,"value") @c_pack_field(0,"iColor",3,"value") func drawTexture(Texture texture,Rect source,Rect destination,c_uint color)
 
 // Explicit platform font loading; engine initialization does not preload it.
-export extern "xgeFontLoadSystem" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(0,0,freeFont) @c_pack(1,"xge_system_font_desc_t",0,5) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"iRole",0,"value") @c_pack_field(1,"fPixelSize",1,"value") @c_pack_field(1,"iWeight",2,"value") @c_pack_field(1,"iSlant",3,"value") @c_pack_field(1,"sLanguage",4,"c_string") func loadSystemFont(c_int role=0,c_float size=0,c_int weight=0,c_int slant=0,string? language=null) as Font
+export extern "xgeFontLoadSystemOwned" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(0,0,freeFont) @c_pack(1,"xge_system_font_desc_t",0,5) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"iRole",0,"value") @c_pack_field(1,"fPixelSize",1,"value") @c_pack_field(1,"iWeight",2,"value") @c_pack_field(1,"iSlant",3,"value") @c_pack_field(1,"sLanguage",4,"c_string") func loadSystemFont(c_int role=0,c_float size=0,c_int weight=0,c_int slant=0,string? language=null) as Font
