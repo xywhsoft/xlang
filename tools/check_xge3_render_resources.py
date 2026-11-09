@@ -76,12 +76,12 @@ def main():
         run(name + '-emit', [compiler, 'cgen', case, '--emit', cfile,
             '--emit-header', hfile], dynamic)
         result = run(name + '-jit', [compiler, 'run', case, *include], dynamic)
-        if name.endswith('_oom'):
+        if name == 'foreign_xge3_render_oom':
             assert b'render hot allocations: 0' in result.stdout
         binary = out / (name + ('.exe' if os.name == 'nt' else ''))
         run(name + '-static-build', [compiler, 'build', case, '-o', binary, *include], static)
         result = run(name + '-static-run', [binary])
-        if name.endswith('_oom'):
+        if name == 'foreign_xge3_render_oom':
             assert b'render hot allocations: 0' in result.stdout
         if os.name == 'nt':
             result = run(name + '-imports', [objdump, '-p', binary])

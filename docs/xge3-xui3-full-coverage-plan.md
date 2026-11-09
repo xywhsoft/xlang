@@ -134,3 +134,11 @@ OpenGL、CPU/OOM 和并发门检查通过；xlang Windows JIT/静态 AOT 已完�
 本次工具核对包括真实头全量扫描、独立 Document 声明的正例、未接入粒子入口的
 失败对照、关闭的 3D 分支保留、传输协议类型/字段统计，以及新增公开头的拒绝对照。
 报告保存在 `build/xge-full-surface-20261109-r2/`，未运行引擎后端或修改发布包。
+
+2026-11-10 阶段 2 的[资源部分](xge3-resource-loading.md) 已落地：Resource、
+拥有式 Provider/XPack 回调、Zstd，以及原生注册快照/清理修复；完整 O2/VFS
+候选与匹配动态/静态包通过专项验收。通用 counted byte 字段补齐 void*/const void*
+及明确的空片段规则。场景、受管异步请求、宿主后端和其余阶段仍待实施，正式
+release/IDE 尚未更新。全量清单为 5,025 函数/959 类型，找到公开声明 3,396
+函数/344 类型；私有释放与生命周期替代另记，不据此计算功能完成率。最新清单
+位于 `F:/xlang-validation/xge-full-20261110/surface-resource-r2/surface.json`。

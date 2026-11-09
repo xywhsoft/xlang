@@ -1,0 +1,19 @@
+// A provider can read an archive, database or generated content.
+// This example supplies exact bytes without any files or network.
+import xge
+
+xge.addResourceProvider("demo",func(xge.ResourcePath path,xge.ResourceOutput output) as c_int
+ print("Requested:",path.text)
+ output.set("Hello, xlang!")
+ return c_int(0)
+end)
+
+try
+ auto resource=xge.loadResource("demo://hello")
+ print("Bytes:",resource.size)
+ print(encoding.decodeUtf8(resource.bytes))
+ resource.close()
+finally
+ // Global registrations own their callbacks until explicitly cleared.
+ xge.resourceProviderClear()
+end

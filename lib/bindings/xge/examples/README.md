@@ -35,3 +35,6 @@ on Windows and Linux against the matched Model engine. The interactive
 example has compilation/ABI acceptance only. The headless runner never opens
 a window. See `docs/xge3-xui3-example-status.md` for the exact evidence and
 compiler qualification; this does not qualify a final shipped runtime or GPU.
+
+`resource_provider.xl` demonstrates exact resource bytes, a typed provider callback,
+and explicit global registration cleanup. It needs no window or external data.

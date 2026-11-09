@@ -1,0 +1,32 @@
+// Each provider receives a callback-scoped path and transactional byte output.
+export extern "const xstrview*" class ResourcePath @header("xge3_resource.h") @lifetime("callback")
+ native point handle
+ extern "Size" @c_field get length() as c_size
+ extern "Data" @c_field @c_length("Size","size_t") @c_result("text_view") get text() as string
+end
+export extern "xge_resource_output_t*" class ResourceOutput @header("xge3_resource.h") @lifetime("callback")
+ native point handle
+ extern "iSize" @c_field get size() as c_int
+ extern "xgeResourceOutputSet" @no_raise @c_span(0,"const void*","size_t") @c_result("status",0) func set(bytes data)
+ extern "xgeResourceOutputSet" @no_raise @c_span(0,"const void*","size_t") @c_result("status",0) func set(string data)
+ extern "xgeResourceOutputSet" @no_raise @c_span(0,"const void*","size_t") @c_result("status",0) func set(Buffer data)
+end
+export typedef ResourceReader = func(ResourcePath,ResourceOutput) as c_int
+export extern "xgeResourceProviderAddOwned" @header("xge3_resource.h") @no_raise @c_cstr(0) @c_owned_callback(1,-1,"xge_callback_owner_t",-16) @c_result("status",0) func addResourceProvider(string scheme,ResourceReader read)
+// The closure captures an actual pack object; root/path normalization is Native.
+export extern "xgeResourceXPackProviderAddOwned" @header("xge3_resource.h") @no_raise @c_cstr(0) @c_owned_callback(1,-1,"xge_callback_owner_t",-16) @c_result("status",0) func addXPackProvider(string root,ResourceReader read)
+export extern "xge_resource_t*" class Resource @header("xge3_resource.h") @lifetime("owned") @policy("xl6Xge3ResourcePolicy")
+ native point handle
+ extern "iSize" @c_field get size() as c_int
+ extern "iProvider" @c_field get providerIndex() as c_int
+ // bytes is a language value copy; it can outlive this native Resource.
+ extern "pData" @c_field @c_length("iSize","int") @c_result("bytes_view") get bytes() as bytes
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xgeResourceFree" @header("xge3_resource.h") @no_raise func freeResource(Resource value)
+export extern "xgeResourceLoad" @header("xge3_resource.h") @no_raise @c_cstr(0) @c_result("owned_view") @factory(1,0,freeResource) @c_inplace("xge_resource_t") func loadResource(string uri) as Resource
+export extern "xgeResourceLoadMemory" @header("xge3_resource.h") @no_raise @c_span(0,"const void*","int") @c_result("owned_view") @factory(2,0,freeResource) @c_inplace("xge_resource_t") func resourceFromMemory(bytes data) as Resource
+export extern "xgeResourceLoadMemory" @header("xge3_resource.h") @no_raise @c_span(0,"const void*","int") @c_result("owned_view") @factory(2,0,freeResource) @c_inplace("xge_resource_t") func resourceFromMemory(string data) as Resource
+export extern "xgeResourceLoadMemory" @header("xge3_resource.h") @no_raise @c_span(0,"const void*","int") @c_result("owned_view") @factory(2,0,freeResource) @c_inplace("xge_resource_t") func resourceFromMemory(Buffer data) as Resource
+export extern "xgeZstdDecompress" @header("xge3_resource.h") @no_raise @c_span(0,"void*","int") @c_span(1,"const void*","int") @c_output(4,0) func decompressZstd(Buffer output,bytes input) as c_int
+export extern "xgeZstdDecompress" @header("xge3_resource.h") @no_raise @c_span(0,"void*","int") @c_span(1,"const void*","int") @c_output(4,0) func decompressZstd(Buffer output,Buffer input) as c_int

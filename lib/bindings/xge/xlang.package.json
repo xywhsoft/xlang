@@ -19,7 +19,8 @@
       "src/audio_resources.xl",
       "src/render_resources.xl",
       "src/render_pipeline.xl",
-      "src/input_actions.xl"
+      "src/input_actions.xl",
+      "src/resource_loading.xl"
     ],
     "includeDirs": [
       "include"

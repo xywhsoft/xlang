@@ -1,0 +1,86 @@
+{
+  "format": "xge-resource-loading-stage-2",
+  "scope": "Exact native resource bytes, owned global providers and XPack callbacks; generic counted void byte fields",
+  "shippingDelivery": false,
+  "fullCompilerRebuild": true,
+  "compilerFreezeRevision": "ffe18fc7a9a221274720480c8dec9a5c3202a7b5",
+  "compilerWorkingTreeIncluded": true,
+  "compilerBuildSeconds": 915.344,
+  "nativeImplementationRevision": "0b9e76b42371d3102408d78652544ad33b0a83f5",
+  "nativeSDK": "F:\\xlang-validation\\xge-full-20261110\\native-source-r10",
+  "nativeTestsSourceRoot": "D:/GIT/xge (exact test files pinned by check reports)",
+  "nativeTestsHostRuntime": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r7\\source\\release\\win_x64\\xl.dll",
+  "languageHostCompiler": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r9\\source\\release\\win_x64\\xl.exe",
+  "checks": {
+    "languageRenderResourceProcesses": 45,
+    "countedByteFieldContracts": 24,
+    "existingViewRegressions": 6,
+    "publicHeaders": 3,
+    "nativeWindows": 24,
+    "nativeLinux": 24
+  },
+  "limitations": [
+    "Not installed into release or IDE",
+    "Native Linux checks use matched standalone host XRT; Linux xlang JIT/static AOT delivery remains pending",
+    "Scenes, managed async loading, host backends and later full-coverage phases remain pending",
+    "No network tests and no hardware performance or zero-overhead certification"
+  ],
+  "externalEvidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r9\\build.json",
+      "sha256": "bc8c9c68aab99dfb564ff4b67ce865d32e320000750afb806848ea2b07c5d0a9"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-freeze-r10.json",
+      "sha256": "fb3606967acd2787fea1d2fa3b20e4cd33bc80770e95fc1d38df301d6890f97d"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-host-win-r10\\build-report.json",
+      "sha256": "2b0882d8ace8e824440ee2f3a81c280f9b342e563dbbc8d19a3ad445fc04d478"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-static-win-r10\\build-report.json",
+      "sha256": "b9bd015a4d9e0d7977b7b0dcff470a7946effe18cd02df6fba08cefda3ed5990"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-host-linux-r10\\build-report.json",
+      "sha256": "56e675017b280fb6677f05c7a9e8793db2231dd9b874b5d0e5e5ff566bfef7d5"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-resource-host-r2.json",
+      "sha256": "f003af1d13abbb0817dea627bcabf193172db4317c2612709ad62b245388e728"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-resource-static-r2.json",
+      "sha256": "5ebc4bbbdc4a0ab98dd0b2a56df2c7eef02f7fa925ed8cae554444804ee4bd3c"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-resource-win-r2\\results.json",
+      "sha256": "d4737e7cfce20c2e5ee458b4311cfc10cc2a271e94d368f1cb4fb38f0d516255"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-resource-linux-r2\\results.json",
+      "sha256": "11deba2971172a56d616b590a1ba5ed3b7a77f09031284c5fcf493b7fab39a8b"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\language-resource-full-win-r1\\results.json",
+      "sha256": "6c5bcf8ba95c9207cd325d05bd87c6a84ea3165916a372a7e063f202e33437aa"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\counted-void-full-win-r3\\results.json",
+      "sha256": "fc0d9ecfbb6fdf350a2d8676770500c2133a4e5aec762a321575c08bcd2f06f4"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\counted-view-regressions-full-win-r1\\results.json",
+      "sha256": "041f2f36cff059513cec68a98f2040a93bb2e1d5eeb6c9c3a50a6d31717b4b3a"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\resource-headers-full-win-r1\\results.json",
+      "sha256": "0a8b97df52159ae27c2cc56e4ec858553ac82d6365a707f402d33fd00e3071e0"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\surface-resource-r2\\surface.json",
+      "sha256": "dec0d8cfd580be532d4bfde58883caaefe3d14333d1264202b7518ca0c9a96fe"
+    }
+  ]
+}

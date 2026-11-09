@@ -58,7 +58,7 @@ export extern "xgeCameraSet" @header("xge3_runtime.h") @c_ref(0) func cameraSet(
 export extern "xgeCameraGet" @header("xge3_runtime.h") func cameraGet() as Camera
 export extern "xgeWorldToScreen" @header("xge3_runtime.h") func worldToScreen(Vec2 tPoint) as Vec2
 export extern "xgeScreenToWorld" @header("xge3_runtime.h") func screenToWorld(Vec2 tPoint) as Vec2
-export extern "xgeResourceProviderClear" @header("xge3_runtime.h") func resourceProviderClear()
+export extern "xgeResourceProviderClearChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func resourceProviderClear()
 export extern "xgeMiniProgramInitSimple" @header("xge3_runtime.h") func miniProgramInitSimple(c_int iWidth,c_int iHeight,c_float fDevicePixelRatio) as c_int
 export extern "xgeMiniProgramUnit" @header("xge3_runtime.h") func miniProgramUnit()
 export extern "xgeMiniProgramFrame" @header("xge3_runtime.h") func miniProgramFrame(c_double fTimeSeconds) as c_int

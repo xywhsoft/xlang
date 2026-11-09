@@ -1,0 +1,51 @@
+import xge
+extern "resource_test_begin" @header("test/cases/foreign_xge3_resource_oom.h") @no_raise func beginHeap()
+extern "resource_test_balanced" @header("test/cases/foreign_xge3_resource_oom.h") @no_raise func balanced() as c_int
+extern "resource_test_fail" @header("test/cases/foreign_xge3_resource_oom.h") @no_raise func failAfter(c_int count) as c_int
+extern "resource_test_clear" @header("test/cases/foreign_xge3_resource_oom.h") @no_raise func clearFailure()
+func cycle(c_int budget)
+ try
+  assert failAfter(budget)!=c_int(0)
+  auto resource=xge.resourceFromMemory(b"a\0b")
+  clearFailure()
+  assert resource.bytes==b"a\0b"
+  resource.close()
+ catch error
+  clearFailure()
+ end
+ xge.ResourceReader reader=func(xge.ResourcePath path,xge.ResourceOutput output) as c_int
+  output.set(b"a\0b")
+  return c_int(0)
+ end
+ try
+  assert failAfter(budget)!=c_int(0)
+  xge.addResourceProvider("oom",reader)
+  clearFailure()
+  try
+   assert failAfter(budget)!=c_int(0)
+   auto resource=xge.loadResource("oom://test")
+   clearFailure()
+   assert resource.bytes==b"a\0b"
+   resource.close()
+  catch error
+   clearFailure()
+  end
+ catch error
+  clearFailure()
+ end
+ xge.resourceProviderClear()
+end
+func main(...) as int
+ // Warm language/runtime metadata before comparing storage obligations.
+ for i in range(16)
+  cycle(c_int(i))
+ end
+ beginHeap()
+ for repeat in range(2)
+  for i in range(32)
+   cycle(c_int(i))
+  end
+ end
+ assert balanced()==c_int(1)
+ return 0
+end

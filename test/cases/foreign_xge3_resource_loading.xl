@@ -1,0 +1,96 @@
+// No window, device, network or external resource required.
+import xge
+from xge import ResourcePath,ResourceOutput
+class SavedResource
+ ResourcePath? path
+ ResourceOutput? output
+ int calls=0
+end
+func main(...) as int
+ auto data=xge.resourceFromMemory(b"a\0b")
+ assert data.size==c_int(3) and data.providerIndex==c_int(0)
+ bytes copy=data.bytes
+ data.close()
+ assert copy==b"a\0b"
+ data=xge.resourceFromMemory("a\0b")
+ assert data.bytes==b"a\0b"
+ data.close()
+ data=xge.resourceFromMemory(Buffer(b"a\0b"))
+ assert data.bytes==b"a\0b"
+ data.close()
+ data=xge.resourceFromMemory(b"")
+ assert data.size==c_int(0) and data.bytes==b""
+ data.close()
+ auto saved=SavedResource()
+ xge.addResourceProvider("demo",func(ResourcePath path,ResourceOutput output) as c_int
+  saved.calls+=1
+  saved.path=path
+  saved.output=output
+  assert path.text=="demo://test" and path.length==c_size(11)
+  output.set(b"a\0b")
+  xge.resourceProviderClear()
+  return c_int(0)
+ end)
+ // Init must preserve a provider registered before initialization.
+ xge.init(100,100,"resource CPU test",0,xge.XGE_RUN_MANUAL)
+ data=xge.loadResource("demo://test")
+ assert saved.calls==1 and data.bytes==b"a\0b" and data.providerIndex>c_int(0)
+ data.close()
+ bool expired=false
+ try
+  auto ignored=(saved.path as ResourcePath).text
+ catch error
+  expired=true
+ end
+ assert expired
+ expired=false
+ try
+  (saved.output as ResourceOutput).set(b"late")
+ catch error
+  expired=true
+ end
+ assert expired
+ xge.addXPackProvider("assets",func(ResourcePath path,ResourceOutput output) as c_int
+  saved.calls+=1
+  assert path.text=="assets/test"
+  output.set(Buffer(b"pack"))
+  return c_int(0)
+ end)
+ data=xge.loadResource("res:///test")
+ assert data.bytes==b"pack"
+ data.close()
+ bool rejected=false
+ try
+  data=xge.loadResource("res://../escape")
+ catch error
+  rejected=true
+ end
+ assert rejected and saved.calls==2
+ xge.resourceProviderClear()
+ xge.addResourceProvider("broken",func(ResourcePath path,ResourceOutput output) as c_int
+  output.set("partial")
+  throw RuntimeError "resource reader failed"
+  return c_int(0)
+ end)
+ rejected=false
+ try
+  data=xge.loadResource("broken://test")
+ catch error
+  rejected=error.message=="resource reader failed"
+ end
+ assert rejected
+ xge.resourceProviderClear()
+ auto decoded=Buffer()
+ assert decoded.resize(3)
+ assert xge.decompressZstd(decoded,b"\x28\xb5\x2f\xfd\x20\x03\x19\0\0a\0b")==c_int(3)
+ assert decoded.toBytes()==b"a\0b"
+ rejected=false
+ try
+  auto count=xge.decompressZstd(Buffer(b"xx"),b"\x28\xb5\x2f\xfd\x20\x03\x19\0\0a\0b")
+ catch error
+  rejected=true
+ end
+ assert rejected
+ xge.unit()
+ return 0
+end
