@@ -31,7 +31,7 @@ def main():
  for std in ('c++11','c++17'):run('header-'+std,['g++','-std='+std,'-Wall','-Wextra','-Werror','-DXL_STATIC_EMBED',*includes,'-x','c++','-fsyntax-only',out/'public.h'])
  code=fixture.read_text();reverseLines=code.splitlines()
  for method in ('read','pack'):
-  indices=[i for i,line in enumerate(reverseLines) if 'extern ' in line and 'func '+method+'(' in line];assert len(indices)==3
+  indices=[i for i,line in enumerate(reverseLines) if 'extern ' in line and 'func '+method+'(' in line];assert len(indices)==4
   values=[reverseLines[i] for i in indices][::-1]
   for i,value in zip(indices,values):reverseLines[i]=value
  reverse=out/'reverse.xl';reverse.write_text('\n'.join(reverseLines)+'\n');reverseC=out/'reverse.c';run('reverse-cgen',[driver,reverse,'cgen-default',reverseC]);run('reverse-ir',[driver,reverse,'ir-lowered',out/'reverse.json'])
@@ -47,7 +47,6 @@ def main():
   'nullable-record':code.replace(probe,probe.replace('Buffer? data','Pod? data')),
   'writable-string':code.replace(write,write.replace('Buffer? data','string data')),
   'writable-bytes':code.replace(write,write.replace('Buffer? data','bytes data')),
-  'nullable-nominal-overload':code.replace(read,read.replace('string data','Buffer? data')),
   'different-read-count':code.replace(read,read.replace('"size_t"','"int"')),
   'different-read-element':code.replace(read,read.replace('"const void*"','"const char*"')),
   'different-read-effect':code.replace(read,read.replace('@no_raise','@pure @no_raise')),

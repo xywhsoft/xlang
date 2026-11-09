@@ -99,7 +99,11 @@ static int xl6SemForeignReadonlySpanInputCompatible(XL6_SemContext* ctx,
         strcmp(a->pointerCName,b->pointerCName) || strcmp(a->elementCName,b->elementCName) ||
         strcmp(a->header,b->header) || a->countAbi!=b->countAbi)return 0;
     left=xl6SemResolveAliasType(ctx,left);right=xl6SemResolveAliasType(ctx,right);
-    if(!left || !right || xl6SemTypeIsNullable(left) || xl6SemTypeIsNullable(right))return 0;
+    if(!left || !right || !xl6SemForeignSpanType(ctx,left,a) || !xl6SemForeignSpanType(ctx,right,b))return 0;
+    int ln=xl6SemTypeIsNullable(left),rn=xl6SemTypeIsNullable(right);
+    if(ln)left=xl6SemResolveAliasType(ctx,xl6SemNullableInnerType(left));
+    if(rn)right=xl6SemResolveAliasType(ctx,xl6SemNullableInnerType(right));
+    if(!left || !right)return 0;
     int lk=!left->childCount && xl6TextEquals(left->text,"string") ? 1:
         !left->childCount && xl6TextEquals(left->text,"bytes") ? 2:0;
     int rk=!right->childCount && xl6TextEquals(right->text,"string") ? 1:
@@ -109,5 +113,5 @@ static int xl6SemForeignReadonlySpanInputCompatible(XL6_SemContext* ctx,
     const XL6_AstNode* rd=rv && rv->text ? xl6SemFindTypeDecl(ctx,rv->text):NULL;
     if(!lk && ld && ld->kind==XL6_AST_CLASS)lk=3;
     if(!rk && rd && rd->kind==XL6_AST_CLASS)rk=3;
-    return lk && rk && lk!=rk && xl6SemForeignSpanType(ctx,left,a) && xl6SemForeignSpanType(ctx,right,b);
+    return lk && rk && (lk!=rk || ln!=rn);
 }

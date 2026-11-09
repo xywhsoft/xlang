@@ -6,12 +6,14 @@ extern "NullableSpanRoot*" class SpanApi @header("test/cases/foreign_nullable_sp
  extern "nullable_span_read" @no_raise @c_span(0,"const void*","size_t") @c_output(3,0) func read(string data) as c_int
  extern "nullable_span_read" @no_raise @c_span(0,"const void*","size_t") @c_output(3,0) func read(bytes data) as c_int
  extern "nullable_span_read" @no_raise @c_span(0,"const void*","size_t") @c_output(3,0) func read(Buffer data) as c_int
+ extern "nullable_span_read" @no_raise @c_span(0,"const void*","size_t") @c_output(3,0) func read(Buffer? data) as c_int
  extern "nullable_span_probe" @no_raise @c_span(0,"const void*","size_t") @c_output(3,0) func probe(Buffer? data=null) as c_int
  extern "nullable_span_words" @no_raise @c_span(0,"const uint32_t*","size_t") @c_output(3,0) func words(Buffer? data) as c_int
  extern "nullable_span_write" @no_raise @c_span(0,"void*","int") @c_output(4,0) func write(Buffer? data,c_int fail=c_int(0)) as c_int
  extern "nullable_span_pack" @no_raise @c_span(0,"const void*","size_t") @c_pack(1,"NullableSpanDesc",0,1) @c_pack_field(1,"data",0,"span_data") @c_pack_field(1,"count",0,"span_count") @c_output(2,0) func pack(string data) as c_int
  extern "nullable_span_pack" @no_raise @c_span(0,"const void*","size_t") @c_pack(1,"NullableSpanDesc",0,1) @c_pack_field(1,"data",0,"span_data") @c_pack_field(1,"count",0,"span_count") @c_output(2,0) func pack(bytes data) as c_int
  extern "nullable_span_pack" @no_raise @c_span(0,"const void*","size_t") @c_pack(1,"NullableSpanDesc",0,1) @c_pack_field(1,"data",0,"span_data") @c_pack_field(1,"count",0,"span_count") @c_output(2,0) func pack(Buffer data) as c_int
+ extern "nullable_span_pack" @no_raise @c_span(0,"const void*","size_t") @c_pack(1,"NullableSpanDesc",0,1) @c_pack_field(1,"data",0,"span_data") @c_pack_field(1,"count",0,"span_count") @c_output(2,0) func pack(Buffer? data) as c_int
  extern "nullable_span_pack_optional" @no_raise @c_span(0,"const void*","size_t") @c_pack(1,"NullableSpanDesc",0,1) @c_pack_field(1,"data",0,"span_data") @c_pack_field(1,"count",0,"span_count") @c_output(2,0) func packOptional(Buffer? data) as c_int
  extern "nullable_span_callback" @no_raise @c_span(0,"const void*","size_t") @c_sync_callback(1,0,-16) @c_output(5,0) func inspect(Buffer? data,func() as c_int callback) as c_int
  extern "nullable_span_text_callback" @no_raise @c_span(0,"const void*","size_t") @c_sync_callback(1,0,-16) @c_output(5,0) func inspectText(string data,func() as c_int callback) as c_int
@@ -32,6 +34,8 @@ func main(...) as int
  Buffer? absent=null
  Buffer empty=Buffer()
  Buffer? optionalEmpty=empty
+ assert api.read(absent)==c_int(0) and api.read(optionalEmpty)==c_int(0)
+ assert api.pack(absent)==c_int(0) and api.pack(optionalEmpty)==c_int(0)
  assert api.probe(absent)==c_int(0) and api.write(absent)==c_int(0)
  assert api.probe()==c_int(0)
  assert api.probe(optionalEmpty)==c_int(0) and api.write(optionalEmpty)==c_int(0)
@@ -51,6 +55,7 @@ func main(...) as int
  assert blocked==1 and empty.len()==0
  Buffer data=Buffer(b"a\0b")
  Buffer? optionalData=data
+ assert api.read(optionalData)==c_int(195) and api.pack(optionalData)==c_int(195)
  assert api.read("a\0b")==c_int(195)
  assert api.read(b"a\0b")==c_int(195)
  assert api.read(data)==c_int(195)

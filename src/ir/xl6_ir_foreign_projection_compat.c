@@ -33,6 +33,25 @@ static const XL6_ForeignParameterContract* xl6IrProjectionSpan(const XL6_IrModul
     const XL6_ForeignParameterContract* span=xl6IrForeignParameterGet(m,t,step->parameter);
     return span && span->kind==XL6_FOREIGN_PARAMETER_SPAN && span->readOnly ? span:NULL;
 }
+static int xl6IrProjectionPackedSpansEqual(const XL6_IrModule* m,const XL6_IrCallTarget* a,const XL6_ForeignPackContract* ap,
+    const XL6_IrCallTarget* b,const XL6_ForeignPackContract* bp)
+{
+    for(size_t i=0;i<m->foreignPackFieldCount;++i){const XL6_ForeignPackFieldContract* x=&m->foreignPackFields[i];
+        if(x->declaration!=a->declaration || x->packPhysicalIndex!=ap->physicalIndex)continue;
+        for(size_t j=0;j<m->foreignPackFieldCount;++j){const XL6_ForeignPackFieldContract* y=&m->foreignPackFields[j];
+            if(y->declaration!=b->declaration || y->packPhysicalIndex!=bp->physicalIndex || strcmp(x->field,y->field))continue;
+            int xs=x->kind==XL6_FOREIGN_PACK_FIELD_SPAN_DATA || x->kind==XL6_FOREIGN_PACK_FIELD_SPAN_COUNT;
+            int ys=y->kind==XL6_FOREIGN_PACK_FIELD_SPAN_DATA || y->kind==XL6_FOREIGN_PACK_FIELD_SPAN_COUNT;
+            if(!xs && !ys)continue;
+            const XL6_ForeignParameterContract* u=xl6IrForeignParameterGet(m,a,x->parameter);
+            const XL6_ForeignParameterContract* v=xl6IrForeignParameterGet(m,b,y->parameter);
+            if(!xs || !ys || x->kind!=y->kind || !u || !v || u->kind!=XL6_FOREIGN_PARAMETER_SPAN || v->kind!=u->kind ||
+                !u->readOnly || v->readOnly!=u->readOnly || u->countAbi!=v->countAbi ||
+                strcmp(u->pointerCName,v->pointerCName) || strcmp(u->elementCName,v->elementCName) || strcmp(u->header,v->header))return 0;
+        }
+    }
+    return 1;
+}
 static int xl6IrForeignProjectionCompatible(const XL6_IrModule* m,const XL6_IrCallTarget* a,const XL6_IrCallTarget* b)
 {
     const XL6_IrNode* an=xl6IrNodeGet(m,a->declaration);const XL6_IrNode* bn=xl6IrNodeGet(m,b->declaration);
@@ -66,7 +85,8 @@ static int xl6IrForeignProjectionCompatible(const XL6_IrModule* m,const XL6_IrCa
             const XL6_ForeignPackContract* ap=xl6IrForeignPackGet(m,a,x.physicalIndex);
             const XL6_ForeignPackContract* bp=xl6IrForeignPackGet(m,b,y.physicalIndex);
             if(!ap || !bp || strcmp(ap->recordCName,bp->recordCName) || strcmp(ap->header,bp->header) ||
-                !xl6IrForeignPacksMatch(m,a) || !xl6IrForeignPacksMatch(m,b))return 0;
+                !xl6IrForeignPacksMatch(m,a) || !xl6IrForeignPacksMatch(m,b) ||
+                !xl6IrProjectionPackedSpansEqual(m,a,ap,b,bp))return 0;
             ++changed;continue;
         }
         const XL6_ForeignParameterContract* xs=xl6IrProjectionSpan(m,a,&x);

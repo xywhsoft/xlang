@@ -33,6 +33,10 @@ static int xl6IrForeignTrivialCValue(const XL6_IrModule* m,XL6_IrTypeId id,size_
     const XL6_IrType* type=xl6IrTypeGet(&m->types,id);
     if(!type || depth>16)return 0;
     if(xl6IrPackScalarCName(type))return 1;
+    if(depth && type->kind==XL6_IR_TYPE_C_ARRAY && type->cAbi==XL6_IR_C_ABI_C_ARRAY &&
+        type->nativeArrayExtent && type->paramCount==1 && type->params &&
+        type->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL)
+        return xl6IrForeignTrivialCValue(m,type->params[0],depth+1);
     if(type->kind!=XL6_IR_TYPE_C_RECORD || type->cAbi!=XL6_IR_C_ABI_C_RECORD ||
         type->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_TRIVIAL || !type->foreignHeader)return 0;
     const XL6_IrAggregateLayout* layout=xl6IrUnionLayoutGet(m,id);

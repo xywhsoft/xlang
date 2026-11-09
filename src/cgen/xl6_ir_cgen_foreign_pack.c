@@ -3,6 +3,10 @@ static int xl6IrCgenPackPodProof(XL6_Output* out,const XL6_IrModule* module,XL6_
 {
     const XL6_IrType* type=xl6IrTypeGet(&module->types,id);
     if(!type || depth>16)return 0;
+    if(depth && type->kind==XL6_IR_TYPE_C_ARRAY && type->cAbi==XL6_IR_C_ABI_C_ARRAY &&
+        type->nativeArrayExtent && type->paramCount==1 && type->params &&
+        type->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL)
+        return xl6IrCgenPackPodProof(out,module,type->params[0],depth+1);
     if(type->kind!=XL6_IR_TYPE_C_RECORD)return type->kind==XL6_IR_TYPE_BUILTIN && type->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL;
     const XL6_IrAggregateLayout* layout=xl6IrUnionLayoutGet(module,id);
     if(!layout)return 0;

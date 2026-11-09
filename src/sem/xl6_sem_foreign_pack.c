@@ -17,6 +17,13 @@ static int xl6SemForeignTrivialCValue(XL6_SemContext* ctx,const XL6_AstNode* typ
     type=xl6SemResolveAliasType(ctx,type);
     if(!type || depth>16 || xl6SemTypeIsNullable(type))return 0;
     if(xl6SemForeignPackScalarCName(type))return 1;
+    /* An embedded fixed C array is part of its containing record's value.
+     * Top-level arrays still decay in C and are not accepted as value slots. */
+    uint64 extent;
+    if(depth && type->childCount==1 && xl6ForeignArrayExtent(type->text,&extent) && extent && extent<=UINT32_MAX){
+        const XL6_AstNode* args=xl6SemTypeNodeGenericArgs(type);
+        return args && args->childCount==1 && xl6SemForeignTrivialCValue(ctx,args->children[0],depth+1);
+    }
     const XL6_AstNode* record=type->text && !type->childCount ? xl6SemFindTypeDecl(ctx,type->text):NULL;
     if(!record || record->kind!=XL6_AST_C_RECORD || !record->childCount)return 0;
     const XL6_AstNode* fields=record->children[0];

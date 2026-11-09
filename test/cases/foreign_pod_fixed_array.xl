@@ -1,0 +1,23 @@
+extern "PodArrayItem" struct Item @header("test/cases/foreign_pod_fixed_array.h")
+ c_char name[8]
+ c_int values[2]
+end
+extern "podArraySum" @header("test/cases/foreign_pod_fixed_array.h") @no_raise @c_array_group(0,0,1,"int",1) @c_array_input(0,0,"const PodArrayItem*","value") func sum(array<Item> items,int size=-1) as c_int
+func main(...) as int
+ auto first=Item()
+ first.name[0]=c_char(65)
+ first.values[1]=c_int(7)
+ assert first.name[0]==c_char(65) and first.values[1]==c_int(7)
+ array<Item> items=[first]
+ assert sum(items)==c_int(72) and sum(items,0)==c_int(0) and sum(items,200)==c_int(72)
+ first.name[0]=c_char(66)
+ assert sum(items)==c_int(72)
+ bool failed=false
+ try
+  sum(items,-2)
+ catch error
+  failed=true
+ end
+ assert failed
+ return 0
+end

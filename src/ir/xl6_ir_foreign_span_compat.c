@@ -11,12 +11,19 @@ static int xl6IrForeignReadonlySpanByteInputCompatible(const XL6_IrModule* m,
     const XL6_IrType* left=xl6IrTypeGet(&m->types,a->parameterTypes[p]);const XL6_IrType* right=xl6IrTypeGet(&m->types,b->parameterTypes[p]);
     if(!x || !y || !x->readOnly || !y->readOnly || x->kind!=XL6_FOREIGN_PARAMETER_SPAN || y->kind!=x->kind ||
         strcmp(x->pointerCName,y->pointerCName) || strcmp(x->elementCName,y->elementCName) || strcmp(x->header,y->header) || x->countAbi!=y->countAbi ||
-        !left || !right || left->kind==XL6_IR_TYPE_NULLABLE || right->kind==XL6_IR_TYPE_NULLABLE)return 0;
+        !left || !right)return 0;
+    /* ParameterMatches first proves each preparation contract independently:
+     * only protected Buffer may be nullable; string/bytes remain nonnullable.
+     * Null produces (NULL,0), while a present Buffer keeps its span guard. */
+    int ln=left->kind==XL6_IR_TYPE_NULLABLE,rn=right->kind==XL6_IR_TYPE_NULLABLE;
+    if(ln)left=xl6IrTypeGet(&m->types,left->params[0]);
+    if(rn)right=xl6IrTypeGet(&m->types,right->params[0]);
+    if(!left || !right)return 0;
     unsigned lk=left->kind==XL6_IR_TYPE_BUILTIN && left->cAbi==XL6_IR_C_ABI_MANAGED_STRING ? 1:
         left->kind==XL6_IR_TYPE_BUILTIN && left->cAbi==XL6_IR_C_ABI_MANAGED_BYTES ? 2:
         xl6IrForeignSpanBufferField(m,a,p) ? 3:0;
     unsigned rk=right->kind==XL6_IR_TYPE_BUILTIN && right->cAbi==XL6_IR_C_ABI_MANAGED_STRING ? 1:
         right->kind==XL6_IR_TYPE_BUILTIN && right->cAbi==XL6_IR_C_ABI_MANAGED_BYTES ? 2:
         xl6IrForeignSpanBufferField(m,b,p) ? 3:0;
-    return lk && rk && lk!=rk;
+    return lk && rk && (lk!=rk || ln!=rn);
 }

@@ -1,0 +1,28 @@
+{
+  "format": "xge-full-acceptance-stage-1",
+  "scope": "Nullable protected Buffer readonly ABI aliases and fixed C arrays embedded in POD records; exact packed-span contract equality",
+  "shippingDelivery": false,
+  "fullCompilerRebuild": false,
+  "compilerCandidate": "F:\\xlang-validation\\xge-full-20261110\\compiler-r13\\candidate.json",
+  "checks": 33,
+  "sealedIrMutations": 110,
+  "externalEvidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\input-contracts-win-r1\\results.json",
+      "sha256": "e0bcfd72e2f9ef45af67a203e845e9ef1134308fc2cd0d22fc00dcc697027ec2"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\input-ir-gates-r3\\results.json",
+      "sha256": "b943b9c347eb6c7133b232e133f99ea179446f73bf469d45b0ef83aea58170ca"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-r13\\candidate.json",
+      "sha256": "1f45cc44ffe1cdcea4d6350eebe6b469345160ea09c4b792c68237248a1d6597"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-r12b\\candidate.json",
+      "sha256": "1eab6a268e0efe0dc5813731af62ee5260363cdd01eab893fb5f2d5ad8b29e31"
+    }
+  ],
+  "result": "passed Windows CPU JIT/TCC AOT/GCC O0-O2 and C11-C++11-C++17 headers; final matched compiler cohort remains required"
+}

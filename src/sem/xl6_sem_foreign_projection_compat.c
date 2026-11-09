@@ -50,6 +50,28 @@ static int xl6SemProjectionArraySpan(XL6_SemContext* ctx,const XL6_SemNullPhysic
     const XL6_AstNode* type=size && size->childCount ? xl6SemResolveAliasType(ctx,size->children[0]):NULL;
     return inputs==1 && type && !type->childCount && xl6TextEquals(type->text,"int") && !xl6SemParamMode(size);
 }
+/* Physical descriptors may omit fields, but two populated span fields must
+ * preserve their exact pointer/count/header contract even when arities differ. */
+static int xl6SemProjectionPackedSpansEqual(const XL6_AstNode* left,const XL6_ForeignPackContract* a,
+    const XL6_AstNode* right,const XL6_ForeignPackContract* b)
+{
+    const XL6_AstNode* aa=xl6ForeignFunctionAttributes(left);const XL6_AstNode* bb=xl6ForeignFunctionAttributes(right);
+    for(size_t i=0;aa && i<aa->childCount;++i){XL6_ForeignPackFieldContract x;
+        if(!xl6ForeignPackFieldRead(aa->children[i],&x) || x.packPhysicalIndex!=a->physicalIndex)continue;
+        for(size_t j=0;bb && j<bb->childCount;++j){XL6_ForeignPackFieldContract y;
+            if(!xl6ForeignPackFieldRead(bb->children[j],&y) || y.packPhysicalIndex!=b->physicalIndex || strcmp(x.field,y.field))continue;
+            int xs=x.kind==XL6_FOREIGN_PACK_FIELD_SPAN_DATA || x.kind==XL6_FOREIGN_PACK_FIELD_SPAN_COUNT;
+            int ys=y.kind==XL6_FOREIGN_PACK_FIELD_SPAN_DATA || y.kind==XL6_FOREIGN_PACK_FIELD_SPAN_COUNT;
+            if(!xs && !ys)continue;
+            XL6_ForeignParameterContract u={0},v={0};
+            if(!xs || !ys || x.kind!=y.kind || !xl6SemExternParameterExpansion(left,x.parameter,&u) ||
+                !xl6SemExternParameterExpansion(right,y.parameter,&v) || u.kind!=XL6_FOREIGN_PARAMETER_SPAN || v.kind!=u.kind ||
+                !u.readOnly || v.readOnly!=u.readOnly || u.countAbi!=v.countAbi ||
+                strcmp(u.pointerCName,v.pointerCName) || strcmp(u.elementCName,v.elementCName) || strcmp(u.header,v.header))return 0;
+        }
+    }
+    return 1;
+}
 static int xl6SemForeignProjectionCompatible(XL6_SemContext* ctx,const XL6_AstNode* left,
     const XL6_AstNode* right,const XL6_AstNode* owner)
 {
@@ -81,7 +103,8 @@ static int xl6SemForeignProjectionCompatible(XL6_SemContext* ctx,const XL6_AstNo
             XL6_ForeignPackContract ap,bp;
             if(x.parameter<a.receiver || y.parameter<b.receiver ||
                 !xl6ForeignPackForParameter(left,x.parameter-a.receiver,&ap) ||
-                !xl6ForeignPackForParameter(right,y.parameter-b.receiver,&bp) || strcmp(ap.recordCName,bp.recordCName))return 0;
+                !xl6ForeignPackForParameter(right,y.parameter-b.receiver,&bp) || strcmp(ap.recordCName,bp.recordCName) ||
+                !xl6SemProjectionPackedSpansEqual(left,&ap,right,&bp))return 0;
             ++changed;continue;
         }
         XL6_ForeignParameterContract xs={0},ys={0};
