@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "tips": [
+    "0afddeb0f237f481b4735c4ce8eb33a663352df2",
+    "52a3f165d6f7cea453ed734af2c13d18943849cc"
+  ],
+  "objects": 68765,
+  "packBytes": 170850813,
+  "packMiB": 162.94,
+  "errors": []
+}

@@ -1,0 +1,15 @@
+{
+  "published": true,
+  "sourceCommit": "0afddeb0f237f481b4735c4ce8eb33a663352df2",
+  "remoteMaster": "0afddeb0f237f481b4735c4ce8eb33a663352df2",
+  "remoteTag": "52a3f165d6f7cea453ed734af2c13d18943849cc",
+  "remotePeeledTag": "c10bc94d9133455a3956101058df7cddee03a42f",
+  "mainlineAndTagMatch": true,
+  "publicMaterialHttpsVerified": true,
+  "materialBundle": "https://xcompiler.com/download/development-materials/xlang-development-materials-20261109-8408e8f22a09.bundle",
+  "serverGcPending": true,
+  "serverReportedMBBeforeGc": 942.457,
+  "logicalPushPackMiB": 162.94,
+  "oldGitHistoryRemovedFromAllLocalReferences": true,
+  "uncommittedSourceChangesNotPublished": true
+}

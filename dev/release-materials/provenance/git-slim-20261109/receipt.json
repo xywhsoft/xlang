@@ -2,7 +2,7 @@
   "schema": 1,
   "date": "2026-11-09",
   "passed": true,
-  "publication": "validated locally, remote replacement pending",
+  "publication": "Gitee filtered mainline and tag published and verified; server GC pending",
   "sourceOld": "a5756b4f898e82ac5a7e5299fb20a54b90f92c2e",
   "sourceFiltered": "07d3d84716b61282fe5ebccf6feb3067b443f80a",
   "commitsVerified": 2881,
@@ -76,5 +76,6 @@
     "path": "dev/release-materials/provenance/git-slim-20261109/material-publication.json",
     "sha256": "3f51fe66c399cde3d8b4927c18202878227d8fcdaa50231cb0ecc0b45bb4abad",
     "bytes": 430
-  }
+  },
+  "publishedRecord": "dev/release-materials/provenance/git-slim-20261109/published.json"
 }
