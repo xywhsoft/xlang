@@ -53,6 +53,7 @@ HOST_TESTS = ("signature_help_test", "analysis_catalog_test", "language_context_
 CLIENT_TESTS = ("diagnostic_dependencies_test", "diagnostic_notice_test", "diagnostic_stream_test", "reference_results_test")
 CLIENT_TEST_SOURCES = ("src/services/diagnostic_dependencies.c", "src/services/diagnostic_notice.c", "src/services/diagnostic_stream.c", "src/services/reference_results.c")
 HOST_TESTS += CLIENT_TESTS
+HOST_TESTS += ("workspace_symbol_navigation_test",)
 HOST_TESTS += ("diagnostic_reverse_fault_test",)
 NATIVE_INDEX_BYTES = 32 * 1024 * 1024
 CORE_TESTS = ("analysis_header_syntax_test", "analysis_semantic_read_values_test", "analysis_semantic_reads_test", "analysis_ir_entity_test", "analysis_entity_versions_test", "analysis_entity_binding_test", "analysis_entity_store_test", "analysis_module_graph_test", "analysis_input_topology_test", "analysis_module_store_test", "analysis_process_tree_test", *CORE_TESTS)

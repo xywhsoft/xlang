@@ -18,11 +18,11 @@ static int appendWorkspaceScope(xls_context** scopes,size_t* count,xls_context* 
  if(*count==64)return 0;
  scopes[(*count)++]=xlsContextRetain(context);return 1;
 }
-static void requestWorkspaceSymbols(server* s,const xvalue* id,const xvalue* params)
+static void requestWorkspaceSymbols(server* s,const xvalue* id,const xvalue* params,int navigation)
 {
  if(s->cliCompletion || s->cliDiagnostics){response(s,id,NULL,-32601,"Workspace symbols require native analysis.");return;}
- const char *query=string(get(params,"query")),*namedId=string(id);int limit=200;const xvalue* supplied=get(params,"xlangLimit");
- if(!query || !xideWorkspaceSymbolQueryValid(query) || (namedId && strlen(namedId)>65535) || (supplied && (!integer(supplied,&limit) || limit<1 || limit>4096))){response(s,id,NULL,-32602,"Workspace query needs valid UTF8 within512 bytes/128 scalars/16 terms;limit must be1..4096.");return;}
+ const char *query=string(get(params,"query")),*namedId=string(id);int limit=200;const xvalue *supplied=get(params,"xlangLimit"),*selection=navigation?get(params,"symbol"):NULL;
+ if(!query || !xideWorkspaceSymbolQueryValid(query) || (navigation && !xideWorkspaceSymbolSelectionValid(selection)) || (namedId && strlen(namedId)>65535) || (supplied && (!integer(supplied,&limit) || limit<1 || limit>4096))){response(s,id,NULL,-32602,"Workspace query/selection invalid;query within512 bytes/128 scalars/16 terms;limit must be1..4096.");return;}
  size_t slot=8;for(size_t i=0;i<8;++i){if(s->workspaceSymbolRequests[i].query && sameId(id,s->workspaceSymbolRequests[i].id)){cancelWorkspaceSymbols(s,id,-32600,"Workspace symbol request ID is already active.");return;}if(!s->workspaceSymbolRequests[i].query && slot==8)slot=i;}
  if(slot==8){response(s,id,NULL,-32603,"Workspace symbol request queue is full.");return;}
  xls_context* contexts[64]={0};size_t contextCount=0,documentCount=0;xls_analysis_document documents[DOC_LIMIT];int okay=1;char* package=NULL;xide_model_error error={0};
@@ -36,7 +36,7 @@ static void requestWorkspaceSymbols(server* s,const xvalue* id,const xvalue* par
  }
  xrtFree(package);xvalue* captured=okay?xrtValueDeepClone(id):NULL;
  if(okay && !s->workspaceSymbols)s->workspaceSymbols=xideWorkspaceSymbolsCreate(s->cache,s->compiler,s->modules);
- xide_workspace_symbol_query* work=okay && captured?xideWorkspaceSymbolsSubmitLsp(s->workspaceSymbols,contexts,contextCount,documents,documentCount,query,(size_t)limit,s->workspaceSymbolKinds):NULL;
+ xide_workspace_symbol_query* work=NULL;if(okay && captured)work=navigation?xideWorkspaceSymbolsSubmitNavigation(s->workspaceSymbols,contexts,contextCount,documents,documentCount,query,(size_t)limit,s->workspaceSymbolKinds,selection):xideWorkspaceSymbolsSubmitLsp(s->workspaceSymbols,contexts,contextCount,documents,documentCount,query,(size_t)limit,s->workspaceSymbolKinds);
  for(size_t i=0;i<contextCount;++i)xlsContextRelease(contexts[i]);
  if(!work || !xideWorkspaceSymbolsSetWake(work,nativeWake,s)){xideWorkspaceSymbolsCancel(work);xideWorkspaceSymbolsQueryDestroy(work);xrtValueRelease(captured);response(s,id,NULL,okay?-32603:-32602,okay?"Cannot start background workspace symbol query.":"Workspace analysis scope/input limits exceeded.");return;}
  s->workspaceSymbolRequests[slot].query=work;s->workspaceSymbolRequests[slot].id=captured;s->workspaceSymbolRequests[slot].serial=s->inputSerial;s->workspaceSymbolRequests[slot].epoch=s->configurationEpoch;

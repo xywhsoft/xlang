@@ -7,4 +7,7 @@
  * leaves1MiB of the existing8MiB frame for request ID/envelope. Worker only. */
 xvalue* xideWorkspaceSymbolWire(const xide_workspace_symbol_result* result,uint32_t kindMask,
  int (*cancelled)(void*),void* user,xide_model_error* error);
+/* Bounded exact full-location row accepted by the fresh navigation extension.
+ * Performs no disk access,body hashing or allocation. */
+int xideWorkspaceSymbolSelectionValid(const xvalue* selection);
 #endif

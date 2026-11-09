@@ -3,8 +3,22 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <limits.h>
 #define WIRE_LIMIT (XIDE_LSP_BODY_BYTES-1024u*1024u)
 static xstrview sv(const char* p){return (xstrview){p,strlen(p)};}
+static const xvalue* selectionField(const xvalue* o,const char* key)
+{return xrtValueType(o)==XVALUE_OBJECT?xrtValueObjectGet(o,sv(key)):NULL;}
+static int selectionText(const xvalue* v)
+{xstrview text={0};return xrtValueType(v)==XVALUE_STRING && xrtValueGetString(v,&text) && text.Size && text.Size<=262144 && !memchr(text.Data,0,text.Size) && xrtUtf8Valid(text,NULL);}
+static int selectionInteger(const xvalue* v,int* out)
+{int64 n=0;if(xrtValueType(v)!=XVALUE_INT || !xrtValueGetInt(v,&n) || n<0 || n>INT_MAX)return 0;*out=(int)n;return 1;}
+static int selectionPosition(const xvalue* v,int* line,int* character)
+{return xrtValueType(v)==XVALUE_OBJECT && xrtValueCount(v)==2 && selectionInteger(selectionField(v,"line"),line) && selectionInteger(selectionField(v,"character"),character);}
+int xideWorkspaceSymbolSelectionValid(const xvalue* v)
+{
+ int kind=0,sl=0,sc=0,el=0,ec=0;const xvalue *container=selectionField(v,"containerName"),*location=selectionField(v,"location"),*range=selectionField(location,"range");
+ return xrtValueType(v)==XVALUE_OBJECT && xrtValueCount(v)==(container?4u:3u) && selectionText(selectionField(v,"name")) && selectionInteger(selectionField(v,"kind"),&kind) && kind>=1 && kind<=26 && (!container || selectionText(container)) && xrtValueType(location)==XVALUE_OBJECT && xrtValueCount(location)==2 && selectionText(selectionField(location,"uri")) && xrtValueType(range)==XVALUE_OBJECT && xrtValueCount(range)==2 && selectionPosition(selectionField(range,"start"),&sl,&sc) && selectionPosition(selectionField(range,"end"),&el,&ec) && (el>sl || (el==sl && ec>sc));
+}
 static int put(xvalue* o,const char* key,xvalue* v){return v && xrtValueObjectSetNew(o,sv(key),v);}
 static xvalue* position(xide_lsp_position p)
 {xvalue* v=xrtValueObject();if(v && put(v,"line",xrtValueInt(p.line)) && put(v,"character",xrtValueInt(p.character)))return v;xrtValueRelease(v);return NULL;}

@@ -55,6 +55,10 @@ int main(void)
  fixture_rows rows={2,"D:/workspace/中文😀.xl","number","Payload.number",8};const xide_workspace_symbol_result* result=(const xide_workspace_symbol_result*)&rows;xide_model_error error={0};
  xvalue* json=xideWorkspaceSymbolWire(result,0,NULL,NULL,&error);CHECK(json && xrtValueCount(json)==2 && !error.code);const xvalue* item=xrtValueArrayGet(json,0);xstrview name={0},container={0},uri={0};int64 kind=0;
  CHECK(xrtValueGetString(field(item,"name"),&name) && xrtStrEqual(name,xrtStrView("number")) && xrtValueGetString(field(item,"containerName"),&container) && xrtStrEqual(container,xrtStrView("Payload")) && xrtValueGetInt(field(item,"kind"),&kind) && kind==8);
+ CHECK(xideWorkspaceSymbolSelectionValid(item) && !xideWorkspaceSymbolSelectionValid(NULL));
+ xvalue* invalid=xrtValueDeepClone(item);CHECK(invalid && xrtValueObjectSetNew(invalid,xrtStrView("kind"),xrtValueBool(true)) && !xideWorkspaceSymbolSelectionValid(invalid));xrtValueRelease(invalid);
+ invalid=xrtValueDeepClone(item);CHECK(invalid && xrtValueObjectSetNew(invalid,xrtStrView("extra"),xrtValueArray()) && !xideWorkspaceSymbolSelectionValid(invalid));xrtValueRelease(invalid);
+ invalid=xrtValueDeepClone(item);CHECK(invalid && xrtValueObjectSetNew(invalid,xrtStrView("name"),xrtValueString((xstrview){"n\0m",3})) && !xideWorkspaceSymbolSelectionValid(invalid));xrtValueRelease(invalid);
  CHECK(xrtValueGetString(field(field(item,"location"),"uri"),&uri));char* path=xideLspUriToPath(uri.Data,NULL);CHECK(path && !strcmp(path,rows.path));free(path);const xvalue* start=field(field(field(item,"location"),"range"),"start");CHECK(xrtValueGetInt(field(start,"line"),&kind) && kind==0 && xrtValueGetInt(field(start,"character"),&kind) && kind==1);xrtValueRelease(json);
  rows.kind=26;json=xideWorkspaceSymbolWire(result,0,NULL,NULL,&error);CHECK(json && xrtValueGetInt(field(xrtValueArrayGet(json,0),"kind"),&kind) && kind==13);xrtValueRelease(json);
  json=xideWorkspaceSymbolWire(result,UINT32_C(1)<<25,NULL,NULL,&error);CHECK(json && xrtValueGetInt(field(xrtValueArrayGet(json,0),"kind"),&kind) && kind==26);xrtValueRelease(json);

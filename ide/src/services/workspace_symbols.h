@@ -44,6 +44,15 @@ xide_workspace_symbol_query* xideWorkspaceSymbolsSubmitLsp(xide_workspace_symbol
  xls_context* const* contexts,size_t contextCount,const xls_analysis_document* documents,size_t documentCount,
  const char* query,size_t limit,uint32_t kindMask);
 xvalue* xideWorkspaceSymbolsTakeLsp(xide_workspace_symbol_query* query);
+/* Rerun the original bounded query,require an exact selected wire row and
+ * produce {symbol,document}. The document uses the existing reference proof
+ * contract,including actual disk identity/raw digest or overlay wire version.
+ * Retains selection as an immutable value;caller must not mutate it. No
+ * persistent ticket/lease bypasses full scope,input and final publication
+ * guards. TakeLsp transfers the object;failure never returns the stale row. */
+xide_workspace_symbol_query* xideWorkspaceSymbolsSubmitNavigation(xide_workspace_symbols* store,
+ xls_context* const* contexts,size_t contextCount,const xls_analysis_document* documents,size_t documentCount,
+ const char* query,size_t limit,uint32_t kindMask,const xvalue* selection);
 enum xide_workspace_symbol_state xideWorkspaceSymbolsResult(xide_workspace_symbol_query* query,
  const xide_workspace_symbol_result** result,xide_workspace_symbol_work* work,char* error,size_t capacity);
 /* Transfers once;destroy with xideWorkspaceSymbolResultDestroy. */

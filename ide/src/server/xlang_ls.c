@@ -12,6 +12,7 @@
 #include "analysis/entity_store.h"
 #include "services/project_references.h"
 #include "services/workspace_symbols.h"
+#include "protocol/workspace_symbol_wire.h"
 #endif
 #include "protocol/signature_help.h"
 #include <windows.h>
@@ -857,7 +858,7 @@ static void dispatch(server* s,const xvalue* message)
   put(signature,"triggerCharacters",signatureTriggers);put(signature,"retriggerCharacters",retriggers);put(cap,"signatureHelpProvider",signature);put(scope,"signatureInputGuard",xrtValueString(sv("background-poll")));
   put(cap,"documentHighlightProvider",xrtValueBool(true));
 #ifdef XLS_COMPILER_XRT
-  if(!s->cliCompletion && !s->cliDiagnostics){put(cap,"referencesProvider",xrtValueBool(true));put(cap,"workspaceSymbolProvider",xrtValueBool(true));workspaceSymbolCapabilities(s,params);}
+  if(!s->cliCompletion && !s->cliDiagnostics){put(cap,"referencesProvider",xrtValueBool(true));put(cap,"workspaceSymbolProvider",xrtValueBool(true));put(scope,"workspaceSymbolInputProof",xrtValueBool(true));workspaceSymbolCapabilities(s,params);}
   put(scope,"referenceCompilationOwners",xrtValueBool(!s->cliCompletion && !s->cliDiagnostics));
 #endif
   put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.101"))); put(result,"serverInfo",info); s->hierarchicalSymbols=hierarchical;s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
@@ -912,7 +913,8 @@ static void dispatch(server* s,const xvalue* message)
  }
  #ifdef XLS_COMPILER_XRT
  if(!strcmp(method,"textDocument/references")){if(id)requestReferences(s,id,params);return;}
- if(!strcmp(method,"workspace/symbol")){if(id)requestWorkspaceSymbols(s,id,params);return;}
+ if(!strcmp(method,"workspace/symbol")){if(id)requestWorkspaceSymbols(s,id,params,0);return;}
+ if(!strcmp(method,"xlang/workspaceSymbolNavigation")){if(id)requestWorkspaceSymbols(s,id,params,1);return;}
  if(!strcmp(method,"xlang/workspaceSymbolStats")){if(id)workspaceSymbolStats(s,id);return;}
  if(!strcmp(method,"xlang/referenceStats")){if(id)referenceStats(s,id);return;}
 #endif
