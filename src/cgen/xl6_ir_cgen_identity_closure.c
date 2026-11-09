@@ -441,7 +441,7 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
         "XLIR_NATIVE_ASSERT(sizeof(%s[1])>0 && XLIR_NATIVE_ALIGNOF(%s)<=XL6_FOREIGN_RECORD_ALIGNMENT_V1, \"in-place native record size/alignment\");\n",
         resultType->cName,storage->recordCName,storage->recordCName,storage->recordCName);
     if(fieldCall)xl6OutputPrintf(out,"typedef %s (*xlir_native_callee_s%u)(",returnType,(unsigned)target->symbol);
-    else if(headerDeclared)xl6OutputPuts("XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(&",out);
+    else if(headerDeclared)xl6OutputPuts("XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_FUNCTION(&",out);
     else xl6OutputPrintf(out, "extern %s ", returnType);
     size_t startByte = out->buffer.Size;
     if(!fieldCall)xl6OutputPuts(target->cName, out);

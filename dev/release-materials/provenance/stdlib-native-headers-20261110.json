@@ -1,0 +1,80 @@
+{
+  "format": "stdlib-native-header-acceptance-1",
+  "installed": false,
+  "completeSourceBuild": true,
+  "optimization": "O2",
+  "fullBuildProducts": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\compiler-full-r4\\source\\release\\win_x64\\xl.exe",
+      "bytes": 72704,
+      "sha256": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\compiler-full-r4\\source\\release\\win_x64\\xl.dll",
+      "bytes": 15195136,
+      "sha256": "9f0170b59f6b189cc5aa8361e2bd0fdcd7e2d21477be89716050903d1ed58272"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\compiler-full-r4\\source\\release\\win_x64\\xlc.dll",
+      "bytes": 21311488,
+      "sha256": "673268a23971d6ef8536199a568e25e42f0f480a593b6458a422024c30d9bd48"
+    }
+  ],
+  "fullBuildCpuProcesses": 37,
+  "cppProofDiagnosticProcesses": 26,
+  "cppRegressionProcesses": 27,
+  "projectionProcesses": 20,
+  "cppProofInFullBuild": false,
+  "pending": [
+    "Full matched compiler SDK precompiled nested objects and VFS rebuild including latest C++ Cgen predicate",
+    "GPU shutdown ownership decision",
+    "Remaining XGE XUI Document coverage and actual device acceptance"
+  ],
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\compiler-full-r4\\build.json",
+      "bytes": 1605645,
+      "sha256": "96c4942cca6f8e92b91df52828f41f7a1905a9455890d2baef72c4936e193045"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\full-r4-math-cpu\\results.json",
+      "bytes": 5341,
+      "sha256": "ed1e6213a9df70833290b29cdbe00e5ea14ae0a804d7c58f895cb1c57b75c4eb"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\full-r4-actions-render-suite\\results.json",
+      "bytes": 418220,
+      "sha256": "4792c84ffbdfae920d1882264a1749fc5d10c43e95a161475a3afe78646690eb"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\math-headers-final-r2\\results.json",
+      "bytes": 75531,
+      "sha256": "b2954966862b8d2b84500ffe41475075cf5f03d7cf3611f2e16b46a7d50b3231"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\cpp-proof-regressions\\results.json",
+      "bytes": 2733,
+      "sha256": "592fa8a5363b01ae6e5dc3b1f4158479f706fae677dd73843061d884025c44fe"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\projection-after-native-headers\\results.json",
+      "bytes": 12198,
+      "sha256": "c7c0d57dc110bfab577cf19685f19fa913a8749b0727f46fc44e50769267b6bf"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\tcc-math-native-r1\\results.json",
+      "bytes": 877,
+      "sha256": "45e4f25d0202f6bd4fc50c821f0b218120014b107ba03251f292adb0387ca63b"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\math-native-probe-r1\\results.json",
+      "bytes": 1065,
+      "sha256": "152f17f19f12b0b1fb4c9fae54b583bd5a09288c3571e7d38615b40175d62a46"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261109\\compiler-r8\\candidate.json",
+      "bytes": 1247,
+      "sha256": "6f2d62e7a59e9c9ae790efbb62287e54f27353e6c76f2f25e3fa760c621fb607"
+    }
+  ]
+}

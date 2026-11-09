@@ -1433,27 +1433,28 @@ static int xl6StdlibNeedsAsyncFileClass(const XL6_AstNode* root, const int* used
         (xl6StdlibFindFunc("file", "takeAsync", &index) != NULL && used[index]);
 }
 
-static unsigned int xl6StdlibForeignEffects(const XL6_StdlibFunc* func)
+static const XL6_StdlibForeignContract* xl6StdlibForeignContract(const XL6_StdlibFunc* func)
 {
     size_t i;
 
     if ( func == NULL || func->internalName == NULL || func->cSymbol == NULL ) {
-        return XL6_STDLIB_FOREIGN_EFFECT_NONE;
+        return NULL;
     }
     for ( i = 0; i < xl6StdlibForeignContractCount; ++i ) {
         const XL6_StdlibForeignContract* contract = &xl6StdlibForeignContracts[i];
         if ( strcmp(contract->internalName, func->internalName) == 0 &&
              strcmp(contract->cSymbol, func->cSymbol) == 0 ) {
-            return contract->effects;
+            return contract;
         }
     }
-    return XL6_STDLIB_FOREIGN_EFFECT_NONE;
+    return NULL;
 }
 
 static void xl6StdlibAppendFuncDecl(XL6_StdlibTextBuilder* builder, const XL6_StdlibFunc* func)
 {
     size_t i;
     unsigned int effects;
+    const XL6_StdlibForeignContract* contract;
 
     if ( builder == NULL || func == NULL ) {
         return;
@@ -1466,7 +1467,13 @@ static void xl6StdlibAppendFuncDecl(XL6_StdlibTextBuilder* builder, const XL6_St
 
     xl6StdlibBuilderAppend(builder, "extern ");
     xl6StdlibBuilderAppendQuoted(builder, func->cSymbol);
-    effects = xl6StdlibForeignEffects(func);
+    contract = xl6StdlibForeignContract(func);
+    effects = contract != NULL ? contract->effects : XL6_STDLIB_FOREIGN_EFFECT_NONE;
+    if ( contract != NULL && contract->header != NULL ) {
+        xl6StdlibBuilderAppend(builder, " @header(");
+        xl6StdlibBuilderAppendQuoted(builder, contract->header);
+        xl6StdlibBuilderAppend(builder, ")");
+    }
     if ( (effects & XL6_STDLIB_FOREIGN_EFFECT_PURE) != 0 ) {
         xl6StdlibBuilderAppend(builder, " @pure");
     }

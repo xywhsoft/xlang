@@ -413,16 +413,22 @@ __CRT_INLINE long double __cdecl nexttowardl(long double x, long double to) {
   return nextafter(x, to);
 }
 
-/* Override msvcrt fabs(): 6.3x speedup! */
+/* Clear the sign without a floating comparison: -0 becomes +0 and NaN
+ * payload bits are preserved. This header is the Windows TCC SDK. */
 
 __CRT_INLINE double __cdecl fabs(double x) {
-  return x < 0 ? -x : x;
+  union { double value; uint64_t bits; } result = { x };
+  result.bits &= UINT64_C(0x7fffffffffffffff);
+  return result.value;
 }
 __CRT_INLINE float __cdecl fabsf(float x) {
-  return x < 0 ? -x : x;
+  union { float value; uint32_t bits; } result = { x };
+  result.bits &= UINT32_C(0x7fffffff);
+  return result.value;
 }
 __CRT_INLINE long double __cdecl fabsl(long double x) {
-  return x < 0 ? -x : x;
+  /* This Windows TCC SDK uses the documented 8-byte long double ABI. */
+  return fabs((double)x);
 }
 
 

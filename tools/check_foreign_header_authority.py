@@ -25,7 +25,7 @@ def main():
             'export "probe_header" func probe(Raw raw) as '+result+'\n return raw.read('+args+')\nend\n'
             'func main(...) as int\n return 0\nend\n',encoding='utf8')
         run(name+'-cgen',[driver,source,'cgen-default',generated]);text=generated.read_text(encoding='utf-8-sig')
-        assert 'XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(&managed_root_read,' in text and 'extern int managed_root_read(' not in text
+        assert 'XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_FUNCTION(&managed_root_read,' in text and 'extern int managed_root_read(' not in text
         run(name+'-header',[cc,'-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-fsyntax-only',*['-I'+str(x) for x in (root,public/'include',sdk,sdk/'include')],generated],name!='exact')
     unchanged=all(sha(p)==v for p,v in inputs.items());assert unchanged
     (out/'results.json').write_text(json.dumps(dict(complete=True,passed=True,inputsUnchanged=True,inputs=inputs,rows=rows,scope=__doc__,networkTests=False),indent=2)+'\n',encoding='utf8')

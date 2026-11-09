@@ -1,0 +1,8 @@
+// The automatic C sidecar receives the public header as a second C unit.
+extern "crt_math_header_probe" @header("test/cases/stdlib_crt_math_header.h") @no_raise func nativeProbe() as c_int
+assert math.abs(-2.0)==2.0,"fabs finite"
+assert math.copySign(1.0,math.abs(-0.0))==1.0,"fabs negative zero"
+assert not math.signBit(math.abs(math.copySign(math.nan,-1.0))),"fabs NaN sign"
+func(float) as float absolute=math.abs
+assert absolute(-3.0)==3.0,"fabs function value"
+assert nativeProbe()==c_int(0),"C fabs variants"

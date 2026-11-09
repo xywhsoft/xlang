@@ -4567,48 +4567,48 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
 };
 
 const XL6_StdlibForeignContract xl6StdlibForeignContracts[] = {
-    {"__xl_std_crc32_text", "xl6Crc32StringV1", XL6_STDLIB_FOREIGN_EFFECT_PURE | XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING},
-    {"__xl_std_crc32_bytes", "xl6Crc32BytesV1", XL6_STDLIB_FOREIGN_EFFECT_PURE | XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING},
-    {"__xl_std_crc32_bytes", "xl6Crc32BytesSpanV1", XL6_STDLIB_FOREIGN_EFFECT_PURE | XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING},
-    {"__xl_std_crc32_buffer", "xl6Crc32BufferV1", XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING},
+    {"__xl_std_crc32_text", "xl6Crc32StringV1", XL6_STDLIB_FOREIGN_EFFECT_PURE | XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING, NULL},
+    {"__xl_std_crc32_bytes", "xl6Crc32BytesV1", XL6_STDLIB_FOREIGN_EFFECT_PURE | XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING, NULL},
+    {"__xl_std_crc32_bytes", "xl6Crc32BytesSpanV1", XL6_STDLIB_FOREIGN_EFFECT_PURE | XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING, NULL},
+    {"__xl_std_crc32_buffer", "xl6Crc32BufferV1", XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING, NULL},
 #define XL6_HASH_VALUE_EFFECTS (XL6_STDLIB_FOREIGN_EFFECT_PURE | \
     XL6_STDLIB_FOREIGN_EFFECT_NO_RAISE | XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING)
 #define XL6_HASH_BUFFER_EFFECTS (XL6_STDLIB_FOREIGN_EFFECT_NO_RAISE | \
     XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING)
-    {"__xl_std_xrt_hash32", "xl6_xrt_hash32_string", XL6_HASH_VALUE_EFFECTS},
-    {"__xl_std_xrt_hash32_seed", "xl6_xrt_hash32_string_seed", XL6_HASH_VALUE_EFFECTS},
-    {"__xl_std_xrt_hash64", "xl6_xrt_hash64_string", XL6_HASH_VALUE_EFFECTS},
-    {"__xl_std_xrt_hash64_seed", "xl6_xrt_hash64_string_seed", XL6_HASH_VALUE_EFFECTS},
-    {"__xl_std_xrt_hash32_bytes", "xl6_xrt_hash32_bytes", XL6_HASH_VALUE_EFFECTS},
-    {"__xl_std_xrt_hash32_bytes_seed", "xl6_xrt_hash32_bytes_seed", XL6_HASH_VALUE_EFFECTS},
-    {"__xl_std_xrt_hash64_bytes", "xl6_xrt_hash64_bytes", XL6_HASH_VALUE_EFFECTS},
-    {"__xl_std_xrt_hash64_bytes_seed", "xl6_xrt_hash64_bytes_seed", XL6_HASH_VALUE_EFFECTS},
-    {"__xl_std_xrt_hash32_raw", "xl6_xrt_hash32_raw", XL6_HASH_BUFFER_EFFECTS},
-    {"__xl_std_xrt_hash32_raw_seed", "xl6_xrt_hash32_raw_seed", XL6_HASH_BUFFER_EFFECTS},
-    {"__xl_std_xrt_hash64_raw", "xl6_xrt_hash64_raw", XL6_HASH_BUFFER_EFFECTS},
-    {"__xl_std_xrt_hash64_raw_seed", "xl6_xrt_hash64_raw_seed", XL6_HASH_BUFFER_EFFECTS},
-    {"__xl_std_xrt_siphash64_string", "xl6_xrt_siphash64_string", XL6_HASH_VALUE_EFFECTS},
-    {"__xl_std_xrt_siphash64_bytes", "xl6_xrt_siphash64_bytes", XL6_HASH_VALUE_EFFECTS},
-    {"__xl_std_xrt_siphash64_raw", "xl6_xrt_siphash64_raw", XL6_HASH_BUFFER_EFFECTS},
+    {"__xl_std_xrt_hash32", "xl6_xrt_hash32_string", XL6_HASH_VALUE_EFFECTS, NULL},
+    {"__xl_std_xrt_hash32_seed", "xl6_xrt_hash32_string_seed", XL6_HASH_VALUE_EFFECTS, NULL},
+    {"__xl_std_xrt_hash64", "xl6_xrt_hash64_string", XL6_HASH_VALUE_EFFECTS, NULL},
+    {"__xl_std_xrt_hash64_seed", "xl6_xrt_hash64_string_seed", XL6_HASH_VALUE_EFFECTS, NULL},
+    {"__xl_std_xrt_hash32_bytes", "xl6_xrt_hash32_bytes", XL6_HASH_VALUE_EFFECTS, NULL},
+    {"__xl_std_xrt_hash32_bytes_seed", "xl6_xrt_hash32_bytes_seed", XL6_HASH_VALUE_EFFECTS, NULL},
+    {"__xl_std_xrt_hash64_bytes", "xl6_xrt_hash64_bytes", XL6_HASH_VALUE_EFFECTS, NULL},
+    {"__xl_std_xrt_hash64_bytes_seed", "xl6_xrt_hash64_bytes_seed", XL6_HASH_VALUE_EFFECTS, NULL},
+    {"__xl_std_xrt_hash32_raw", "xl6_xrt_hash32_raw", XL6_HASH_BUFFER_EFFECTS, NULL},
+    {"__xl_std_xrt_hash32_raw_seed", "xl6_xrt_hash32_raw_seed", XL6_HASH_BUFFER_EFFECTS, NULL},
+    {"__xl_std_xrt_hash64_raw", "xl6_xrt_hash64_raw", XL6_HASH_BUFFER_EFFECTS, NULL},
+    {"__xl_std_xrt_hash64_raw_seed", "xl6_xrt_hash64_raw_seed", XL6_HASH_BUFFER_EFFECTS, NULL},
+    {"__xl_std_xrt_siphash64_string", "xl6_xrt_siphash64_string", XL6_HASH_VALUE_EFFECTS, NULL},
+    {"__xl_std_xrt_siphash64_bytes", "xl6_xrt_siphash64_bytes", XL6_HASH_VALUE_EFFECTS, NULL},
+    {"__xl_std_xrt_siphash64_raw", "xl6_xrt_siphash64_raw", XL6_HASH_BUFFER_EFFECTS, NULL},
 #undef XL6_HASH_VALUE_EFFECTS
 #undef XL6_HASH_BUFFER_EFFECTS
     {"__xl_std_math_is_close", "xrtMathNear",
-     XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING},
+     XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING, NULL},
     {"__xl_std_math_int_near", "xrtMathIntNear",
      XL6_STDLIB_FOREIGN_EFFECT_PURE |
      XL6_STDLIB_FOREIGN_EFFECT_NO_RAISE |
-     XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING},
+     XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING, NULL},
     {"__xl_std_math_sin", "sin",
      XL6_STDLIB_FOREIGN_EFFECT_NO_RAISE |
-     XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING},
+     XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING, "math.h"},
     {"__xl_std_math_abs", "fabs",
      XL6_STDLIB_FOREIGN_EFFECT_PURE |
      XL6_STDLIB_FOREIGN_EFFECT_NO_RAISE |
-     XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING},
+     XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING, "math.h"},
 #define XL6_CRT_MATH_CONTRACT(name, symbol) \
     {"__xl_std_math_" name, symbol, \
      XL6_STDLIB_FOREIGN_EFFECT_NO_RAISE | \
-     XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING}
+     XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING, "math.h"}
     XL6_CRT_MATH_CONTRACT("cos", "cos"),
     XL6_CRT_MATH_CONTRACT("tan", "tan"),
     XL6_CRT_MATH_CONTRACT("asin", "asin"),

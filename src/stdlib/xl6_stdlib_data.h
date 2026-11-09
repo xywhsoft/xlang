@@ -64,13 +64,15 @@ typedef enum XL6_StdlibForeignEffect {
     XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING = 1u << 2
 } XL6_StdlibForeignEffect;
 
-/* Transitional declarative catalog for generated extern declarations.  It is
+/* Declarative catalog for generated extern declarations. It is
  * deliberately separate from XL6_StdlibFunc so unreviewed entries retain the
  * conservative default instead of inheriting optimistic effects. */
 typedef struct XL6_StdlibForeignContract {
     const char* internalName;
     const char* cSymbol;
     unsigned int effects;
+    /* The native header owns linkage, inline and calling-convention details. */
+    const char* header;
 } XL6_StdlibForeignContract;
 
 typedef struct XL6_StdlibConst {
