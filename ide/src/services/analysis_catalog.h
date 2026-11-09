@@ -16,6 +16,8 @@ enum xide_analysis_binding xideAnalysisCatalogFindNative(const xide_analysis_cat
 int xideAnalysisCatalogPrefers(const xide_analysis_catalog* catalog,const xls_context* context);
 const char* xideAnalysisCatalogPackagePath(const xide_analysis_catalog* catalog);
 size_t xideAnalysisCatalogCount(const xide_analysis_catalog* catalog);
+/* Borrowed complete project scope in prepared order;NULL out of range. */
+const xls_context* xideAnalysisCatalogAt(const xide_analysis_catalog* catalog,size_t index);
 /* No matching project: capture a standalone .xl context from the file's own
    directory and this catalog's explicit package input, without alias I/O. */
 xls_context* xideAnalysisCatalogFile(const xide_analysis_catalog* catalog,const char* path);

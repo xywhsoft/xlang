@@ -231,6 +231,7 @@ static int parseQuery(const char* raw,symbol_query* q)
   int space=c==' ' || (c>='\t' && c<='\r');if(!space){if(q->used==128)return 0;if(!inTerm){if(q->count==16)return 0;q->terms[q->count++]=(query_term){.text={raw+at,0},.start=q->used};inTerm=1;}query_term* t=q->terms+q->count-1;t->text.Size+=read;++t->count;q->scalars[q->used++]=fold(c);if(c<128)q->mask|=UINT64_C(1)<<(fold(c)&63u);}else inTerm=0;at+=read;
  }return 1;
 }
+int xideWorkspaceSymbolQueryValid(const char* raw){symbol_query query={0};return parseQuery(raw,&query);}
 static int subsequence(const char* value,const uint32* query,size_t count)
 {
  size_t size=strlen(value),at=0,matched=0,last=SIZE_MAX,ordinal=0;int score=0;uint32 previous=0;

@@ -54,6 +54,8 @@ int xideWorkspaceSymbolSnapshotResolve(const xide_workspace_symbol_snapshot* sna
  * in the same semantic scope/source/name/range are deduplicated. */
 xide_workspace_symbol_result* xideWorkspaceSymbolSnapshotQuery(xide_workspace_symbol_snapshot* snapshot,
  const char* query,size_t limit,int (*stopped)(void*),void* user,xide_model_error* error);
+/* Same query admission,without allocation,index access or analysis. */
+int xideWorkspaceSymbolQueryValid(const char* query);
 size_t xideWorkspaceSymbolResultCount(const xide_workspace_symbol_result* result);
 size_t xideWorkspaceSymbolResultMatches(const xide_workspace_symbol_result* result);
 int xideWorkspaceSymbolResultAt(const xide_workspace_symbol_result* result,size_t at,xide_workspace_symbol_view* out);

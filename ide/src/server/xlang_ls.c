@@ -11,6 +11,7 @@
 #include "analysis/frontend_context.h"
 #include "analysis/entity_store.h"
 #include "services/project_references.h"
+#include "services/workspace_symbols.h"
 #endif
 #include "protocol/signature_help.h"
 #include <windows.h>
@@ -68,6 +69,9 @@ typedef struct server {
  xide_project_references* references;
  struct {xide_reference_query* query;xvalue* id;int document,version;unsigned long long identity,serial;int64 epoch;} referenceRequests[8];
  xide_project_reference_stats referenceStats;
+ xide_workspace_symbols* workspaceSymbols;
+ struct {xide_workspace_symbol_query* query;xvalue* id;unsigned long long serial;int64 epoch;} workspaceSymbolRequests[8];
+ xide_workspace_symbol_work workspaceSymbolWork;uint32_t workspaceSymbolKinds;
 #endif
  xide_analysis_catalog* catalog;int64 configurationEpoch;
 } server;
@@ -768,6 +772,7 @@ static void referenceStats(server* s,const xvalue* id)
 #undef REF_STAT
  if(okay)response(s,id,out,0,NULL);else{ xrtValueRelease(out);response(s,id,NULL,-32603,"Cannot encode reference work counters.");}
 }
+#include "server/workspace_symbols.inc"
 #endif
 static void dispatch(server* s,const xvalue* message)
 {
@@ -852,7 +857,7 @@ static void dispatch(server* s,const xvalue* message)
   put(signature,"triggerCharacters",signatureTriggers);put(signature,"retriggerCharacters",retriggers);put(cap,"signatureHelpProvider",signature);put(scope,"signatureInputGuard",xrtValueString(sv("background-poll")));
   put(cap,"documentHighlightProvider",xrtValueBool(true));
 #ifdef XLS_COMPILER_XRT
-  if(!s->cliCompletion && !s->cliDiagnostics)put(cap,"referencesProvider",xrtValueBool(true));
+  if(!s->cliCompletion && !s->cliDiagnostics){put(cap,"referencesProvider",xrtValueBool(true));put(cap,"workspaceSymbolProvider",xrtValueBool(true));workspaceSymbolCapabilities(s,params);}
   put(scope,"referenceCompilationOwners",xrtValueBool(!s->cliCompletion && !s->cliDiagnostics));
 #endif
   put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.101"))); put(result,"serverInfo",info); s->hierarchicalSymbols=hierarchical;s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
@@ -862,6 +867,7 @@ static void dispatch(server* s,const xvalue* message)
  if(!strcmp(method,"shutdown")) { if(id) { s->shutdown=1; s->pending=-1;
 #ifdef XLS_COMPILER_XRT
  cancelReferences(s,NULL,-32800,"Server shutting down.");
+ cancelWorkspaceSymbols(s,NULL,-32800,"Server shutting down.");
 #endif
  diagnosticStop(s); cancelNative(s,-1,-32800,"Server shutting down."); clearPublished(s); cancel(s,-32800,"Server shutting down."); cancelSemantic(s,-1,-32800,"Server shutting down."); cancelCompletion(s,-32800,"Server shutting down.",1);cancelSignature(s,-32800,"Server shutting down.",1); response(s,id,NULL,0,NULL); } return; }
  if(!strcmp(method,"initialized")) { if(id) response(s,id,NULL,-32600,"initialized must be a notification."); return; }
@@ -871,6 +877,7 @@ static void dispatch(server* s,const xvalue* message)
    const xvalue* cancelledId=get(params,"id");
 #ifdef XLS_COMPILER_XRT
    if(cancelledId)cancelReferences(s,cancelledId,-32800,"Request cancelled.");
+   if(cancelledId)cancelWorkspaceSymbols(s,cancelledId,-32800,"Request cancelled.");
 #endif
    for(size_t i=0;i<DOC_LIMIT;++i) if(s->native[i].query && sameId(s->native[i].id,cancelledId)) { xlsQueryCancel(s->native[i].query); response(s,s->native[i].id,NULL,-32800,"Request cancelled."); releaseNative(&s->native[i]); }
    for(size_t i=0;i<DOC_LIMIT;++i) if(s->semantic[i].id && sameId(s->semantic[i].id,cancelledId)) { response(s,s->semantic[i].id,NULL,-32800,"Request cancelled."); releaseSemantic(&s->semantic[i]); }
@@ -905,6 +912,8 @@ static void dispatch(server* s,const xvalue* message)
  }
  #ifdef XLS_COMPILER_XRT
  if(!strcmp(method,"textDocument/references")){if(id)requestReferences(s,id,params);return;}
+ if(!strcmp(method,"workspace/symbol")){if(id)requestWorkspaceSymbols(s,id,params);return;}
+ if(!strcmp(method,"xlang/workspaceSymbolStats")){if(id)workspaceSymbolStats(s,id);return;}
  if(!strcmp(method,"xlang/referenceStats")){if(id)referenceStats(s,id);return;}
 #endif
  if(!strcmp(method,"textDocument/definition")) { if(id) semanticQuery(s,id,params,0); return; }
@@ -941,6 +950,7 @@ int main(void)
   pollGuard(&s); pollCheck(&s); pollCompletion(&s); pollSignature(&s); pollNative(&s); pollSemantic(&s); diagnosticPoll(&s);
 #ifdef XLS_COMPILER_XRT
   pollReferences(&s);
+  pollWorkspaceSymbols(&s);
 #endif
   if(!m) {
    HANDLE waits[5]={s.event}; DWORD count=1;
@@ -964,6 +974,7 @@ int main(void)
  for(size_t i=0;i<DOC_LIMIT;++i) if(s.semantic[i].id) releaseSemantic(&s.semantic[i]);
  #ifdef XLS_COMPILER_XRT
  cancelReferences(&s,NULL,0,"Server stopped.");xideProjectReferencesDestroy(s.references);
+ cancelWorkspaceSymbols(&s,NULL,0,"Server stopped.");xideWorkspaceSymbolsDestroy(s.workspaceSymbols);
 #endif
  diagnosticStop(&s); xideDiagnosticStoreDestroy(s.diagnostics); xrtValueRelease(s.diagnosticAnalysis);xrtValueRelease(s.diagnosticOverlayState);
  xlsWorkerDestroy(s.analysis);

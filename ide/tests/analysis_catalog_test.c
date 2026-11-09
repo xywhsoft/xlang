@@ -62,7 +62,7 @@ static int run(void)
  xide_analysis_catalog* lease=xideAnalysisCatalogRetain(prepared);xideAnalysisCatalogDestroy(prepared);xrtValueRelease(wire);xlsContextRelease(a);xlsContextRelease(b);xlsContextRelease(c);
  CHECK(xideAnalysisCatalogFind(lease,shared,&found)==XIDE_ANALYSIS_PROJECT && !strcmp(xlsContextSpec(found)->configuration,"debug"));
  wire=xideAnalysisContextWrite(found);CHECK(wire && xrtValueCount(get(get(wire,"lists"),"members"))==3);xrtValueRelease(wire);xideAnalysisCatalogDestroy(lease);
- xideAnalysisCatalogDestroy(NULL);CHECK(!xideAnalysisCatalogRetain(NULL));
+ xideAnalysisCatalogDestroy(NULL);CHECK(!xideAnalysisCatalogRetain(NULL) && !xideAnalysisCatalogAt(NULL,0));
  a=project("D:/a.xlp","D:/a/main.xl",NULL,NULL,0);contexts[0]=a;contexts[1]=a;
  wire=catalog(contexts,2,"",NULL);CHECK(!xideAnalysisCatalogCreate(wire,error,sizeof(error)));xrtValueRelease(wire);
  wire=catalog(contexts,1,"D:/missing.xlp",NULL);CHECK(!xideAnalysisCatalogCreate(wire,error,sizeof(error)));xrtValueRelease(wire);
@@ -73,6 +73,7 @@ static int run(void)
  /* Exact binding boundary and duplicate compaction on actual prepared paths. */
  const char** many=xrtCalloc(65536,sizeof(char*));CHECK(many);for(size_t i=0;i<65536;++i) many[i]="D:/bound/shared.xl";
  a=project("D:/bound.xlp","D:/bound/main.xl",NULL,many,65535);CHECK(a);contexts[0]=a;wire=catalog(contexts,1,"",NULL);prepared=xideAnalysisCatalogCreate(wire,error,sizeof(error));CHECK(prepared);
+ CHECK(xideAnalysisCatalogAt(prepared,0) && xlsContextEqual(xideAnalysisCatalogAt(prepared,0),a) && !xideAnalysisCatalogAt(prepared,1) && !xideAnalysisCatalogAt(prepared,SIZE_MAX));
  for(size_t i=0;i<1000;++i) CHECK(xideAnalysisCatalogFind(prepared,many[0],&found)==XIDE_ANALYSIS_PROJECT && xlsContextEqual(found,a));
  xideAnalysisCatalogDestroy(prepared);xrtValueRelease(wire);xlsContextRelease(a);
  a=project("D:/bound.xlp","D:/bound/main.xl",NULL,many,65536);CHECK(a);contexts[0]=a;wire=catalog(contexts,1,"",NULL);CHECK(!xideAnalysisCatalogCreate(wire,error,sizeof(error)));xrtValueRelease(wire);xlsContextRelease(a);xrtFree(many);

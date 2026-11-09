@@ -38,6 +38,12 @@ void xideWorkspaceSymbolsDestroy(xide_workspace_symbols* store);
 xide_workspace_symbol_query* xideWorkspaceSymbolsSubmit(xide_workspace_symbols* store,
  xls_context* const* contexts,size_t contextCount,const xls_analysis_document* documents,size_t documentCount,
  const char* query,size_t limit);
+/* Same guarded work,with standard result encoding completed on coordinator.
+ * kindMask bit(kind-1);zero means legacy1..18. TakeLsp transfers JSON once. */
+xide_workspace_symbol_query* xideWorkspaceSymbolsSubmitLsp(xide_workspace_symbols* store,
+ xls_context* const* contexts,size_t contextCount,const xls_analysis_document* documents,size_t documentCount,
+ const char* query,size_t limit,uint32_t kindMask);
+xvalue* xideWorkspaceSymbolsTakeLsp(xide_workspace_symbol_query* query);
 enum xide_workspace_symbol_state xideWorkspaceSymbolsResult(xide_workspace_symbol_query* query,
  const xide_workspace_symbol_result** result,xide_workspace_symbol_work* work,char* error,size_t capacity);
 /* Transfers once;destroy with xideWorkspaceSymbolResultDestroy. */

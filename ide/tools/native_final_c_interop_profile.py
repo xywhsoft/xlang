@@ -11,16 +11,29 @@ CURRENT_RECORD_PATH = Path(__file__).with_name('native_current_core_pins_2026110
 CURRENT_RECORD = json.loads(CURRENT_RECORD_PATH.read_text(encoding='utf-8'))
 CURRENT_RECORD_SHA256 = hashlib.sha256(CURRENT_RECORD_PATH.read_bytes()).hexdigest()
 CURRENT_PINS = CURRENT_RECORD['pins']
+PRODUCT_RECORD_PATH = Path(__file__).with_name('native_current_core_product_062_pins.json')
+PRODUCT_RECORD = json.loads(PRODUCT_RECORD_PATH.read_text(encoding='utf-8'))
+PRODUCT_RECORD_SHA256 = hashlib.sha256(PRODUCT_RECORD_PATH.read_bytes()).hexdigest()
+PRODUCT_PINS = PRODUCT_RECORD['pins']
+_parent_lf = CURRENT_RECORD_PATH.read_bytes().replace(b'\r\n',b'\n')
+_parent_hashes = {hashlib.sha256(data).hexdigest() for data in
+                  (_parent_lf,_parent_lf.replace(b'\n',b'\r\n'))}
+if (PRODUCT_RECORD['parentRecordSha256'] not in _parent_hashes or
+    PRODUCT_RECORD['sourceRevision'] != CURRENT_RECORD['sourceRevision'] or
+    PRODUCT_RECORD['sourcePaths'] != CURRENT_RECORD['sourcePaths'] or
+    set(PRODUCT_PINS) != set(CURRENT_PINS) or
+    [name for name in CURRENT_PINS if PRODUCT_PINS[name] != CURRENT_PINS[name]] != ['release/include/xl_version.h']):
+    raise ValueError('product-only frontend revision changes its source/ABI family')
 
 
 def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def _recover_current(data, name):
+def _recover_current(data, name, pins=None):
     # Share the existing exact-digest EOL recovery. No new content repair rule.
     from native_frontend_inputs import recover
-    return recover(data, name, CURRENT_PINS)
+    return recover(data, name, CURRENT_PINS if pins is None else pins)
 
 
 def _current_runtime(frontend):
@@ -33,7 +46,11 @@ def _current_runtime(frontend):
 
 
 def pins_for(frontend):
-    if _current_runtime(frontend):return CURRENT_PINS
+    if _current_runtime(frontend):
+        path=source_path(frontend,'release/include/xl_version.h')
+        if path.is_file() and _recover_current(path.read_bytes(),'release/include/xl_version.h',PRODUCT_PINS) is not None:
+            return PRODUCT_PINS
+        return CURRENT_PINS
     path=frontend/'src/sem/xl6_sem.c'
     return COMPLETION_PINS if path.is_file() and sha(path)==COMPLETION_PINS['src/sem/xl6_sem.c'] else PINS
 
@@ -44,7 +61,7 @@ def completion_facts(frontend):
 
 def source_revision(frontend):
     pins=pins_for(frontend)
-    return CURRENT_RECORD['sourceRevision'] if pins is CURRENT_PINS else 'final-completion-facts-20261108' if pins is COMPLETION_PINS else 'final-core-r2-20261105'
+    return CURRENT_RECORD['sourceRevision'] if pins is CURRENT_PINS or pins is PRODUCT_PINS else 'final-completion-facts-20261108' if pins is COMPLETION_PINS else 'final-core-r2-20261105'
 
 
 def selected(frontend):
@@ -69,7 +86,7 @@ def profile(frontend):
         path=source_path(frontend,name)
         if not path.is_file():raise ValueError('final frontend contract dependency missing: '+name)
         data=path.read_bytes();actual=hashlib.sha256(data).hexdigest()
-        if actual!=expected and (pins is not CURRENT_PINS or _recover_current(data,name) is None):
+        if actual!=expected and (pins is not CURRENT_PINS and pins is not PRODUCT_PINS or _recover_current(data,name,pins) is None):
             raise ValueError('final frontend contract dependency changed: '+name)
         inputs[str(path)]=actual
     return inputs
@@ -78,13 +95,16 @@ def profile(frontend):
 def prepare(frontend,destination):
     original=profile(frontend);pins=pins_for(frontend);revision=source_revision(frontend)
     if pins is CURRENT_PINS:original[str(CURRENT_RECORD_PATH.resolve())]=CURRENT_RECORD_SHA256
+    if pins is PRODUCT_PINS:
+        original[str(CURRENT_RECORD_PATH.resolve())]=CURRENT_RECORD_SHA256
+        original[str(PRODUCT_RECORD_PATH.resolve())]=PRODUCT_RECORD_SHA256
     destination=destination.resolve();destination.mkdir(parents=True,exist_ok=False)
     projected=[]
     for name,expected in pins.items():
         source=source_path(frontend,name);target=destination/name;data=source.read_bytes()
         operation='SDK-layout-projection'
-        if pins is CURRENT_PINS:
-            recovered=_recover_current(data,name)
+        if pins is CURRENT_PINS or pins is PRODUCT_PINS:
+            recovered=_recover_current(data,name,pins)
             if recovered is None:raise ValueError('final frontend changed during source projection: '+name)
             data,operation=recovered
         target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(data)
@@ -95,5 +115,6 @@ def prepare(frontend,destination):
     if any(sha(path)!=expected for path,expected in original.items()):
         raise ValueError('final frontend changed during source projection')
     return destination,dict(status='final-cohort-layout-projection',cohort=COHORT,
+        productVersion=PRODUCT_RECORD['productVersion'] if pins is PRODUCT_PINS else None,
         sourceRevision=revision,sourceRoot=str(frontend),frontendRoot=str(destination),
         originalInputs=original,transformations=projected)

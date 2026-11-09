@@ -20,5 +20,14 @@ int main(void)
   CHECK(state==XIDE_WORKSPACE_SYMBOL_READY);xide_workspace_symbol_result* result=xideWorkspaceSymbolsTake(query);CHECK(result && !xideWorkspaceSymbolsTake(query) && named(result,"value")==1 && named(result,"main")==1 && named(result,"added")== (round==2));
   CHECK(work.roots==2 && work.covered==1 && work.index.rows==(round==2?3u:2u));if(round==1)CHECK(!work.captured && work.reused==1);else CHECK(work.captured==1);xideWorkspaceSymbolsQueryDestroy(query);if(!round)old=result;else xideWorkspaceSymbolResultDestroy(result);
  }
- xideWorkspaceSymbolsDestroy(store);CHECK(old && named(old,"value")==1 && !named(old,"added"));xideWorkspaceSymbolResultDestroy(old);xrtEventDestroy(event);xlsTextRelease(text);xlsContextRelease(context);xideToolchainsDestroy(cache);xrtFree(directory);xrtFree(entry);xrtFree(dependency);xrtFree(compiler);printf("workspace_symbols_public_test passed: %u checks;ordinary production module,zero-open captures,retained reuse,real dependency overlay and detached result.\n",checks);return 0;
+ xide_workspace_symbol_query* wire=xideWorkspaceSymbolsSubmitLsp(store,contexts,1,&doc,1,"added",64,UINT32_C(0x3ffffff));CHECK(wire);enum xide_workspace_symbol_state state;
+ for(unsigned spin=0;;++spin){state=xideWorkspaceSymbolsResult(wire,NULL,NULL,NULL,0);if(state!=XIDE_WORKSPACE_SYMBOL_PENDING)break;if(spin>=30000)CHECK(0);xrtSleep(1);}CHECK(state==XIDE_WORKSPACE_SYMBOL_READY);xvalue* encoded=xideWorkspaceSymbolsTakeLsp(wire);CHECK(encoded && xrtValueCount(encoded)==1 && !xideWorkspaceSymbolsTakeLsp(wire));xrtValueRelease(encoded);xideWorkspaceSymbolsQueryDestroy(wire);
+ CHECK(xideWorkspaceSymbolQueryValid("") && xideWorkspaceSymbolQueryValid("计值 Box") && !xideWorkspaceSymbolQueryValid(NULL));
+ /* Identity/revision zero are valid native inputs,including LSP INT_MIN. */
+ for(unsigned round=0;round<3;++round){doc.identity=0;doc.revision=round==2?UINT32_MAX:round;
+  wire=xideWorkspaceSymbolsSubmitLsp(store,contexts,1,&doc,1,"added",64,UINT32_C(0x3ffffff));CHECK(wire);
+  for(unsigned spin=0;;++spin){state=xideWorkspaceSymbolsResult(wire,NULL,NULL,NULL,0);if(state!=XIDE_WORKSPACE_SYMBOL_PENDING)break;if(spin>=30000)CHECK(0);xrtSleep(1);}CHECK(state==XIDE_WORKSPACE_SYMBOL_READY);
+  encoded=xideWorkspaceSymbolsTakeLsp(wire);CHECK(encoded && xrtValueCount(encoded)==1);xrtValueRelease(encoded);xideWorkspaceSymbolsQueryDestroy(wire);
+ }
+ xideWorkspaceSymbolsDestroy(store);CHECK(old && named(old,"value")==1 && !named(old,"added"));xideWorkspaceSymbolResultDestroy(old);xrtEventDestroy(event);xlsTextRelease(text);xlsContextRelease(context);xideToolchainsDestroy(cache);xrtFree(directory);xrtFree(entry);xrtFree(dependency);xrtFree(compiler);printf("workspace_symbols_public_test passed: %u checks;ordinary production module,zero-open captures,retained reuse,real dependency overlay,standard wire and detached result.\n",checks);return 0;
 }

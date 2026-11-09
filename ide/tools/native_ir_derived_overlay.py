@@ -21,19 +21,26 @@ COHORTS={
 
 CURRENT_PAIR=('efea885b3dbd41264f9104679d438d59666bd84ce0f0f00a7aa0381ed446e29a', '938d45bdace241c83d566b4e165f467b7b3b8f5802c09e4952538ac17923c62a')
 CURRENT_CONTRACT_SHA256='4c5759ffbabc7b01ef0d49d3e27e81b5cce63f4c00a034c28d5e7d567b0c7f15'
+PRODUCT_062_CONTRACT_SHA256='1a9281b76f173e01fb668bd816ee7b1ae3e6f8ac1198e33d71fc8dd29d0ec09e'
 
 
 def current_contract(pins):
-    return hashlib.sha256(json.dumps(pins,sort_keys=True,separators=(',',':')).encode()).hexdigest()==CURRENT_CONTRACT_SHA256
+    return contract_digest(pins) in (CURRENT_CONTRACT_SHA256,PRODUCT_062_CONTRACT_SHA256)
+
+
+def contract_digest(pins):
+    return hashlib.sha256(json.dumps(pins,sort_keys=True,separators=(',',':')).encode()).hexdigest()
 
 
 def derive(source: str, output: Path, source_digest: str, header_digest: str, *, frontend=None):
     current=(source_digest,header_digest)==CURRENT_PAIR
+    dependency_contract=None
     if current:
         from native_c_interop_profile import pins_for,profile
         if frontend is None or not current_contract(pins_for(frontend)):
             return source,dict(enabled=False,scope='Current pure phases require their complete reviewed dependency contract')
         profile(frontend)
+        dependency_contract=contract_digest(pins_for(frontend))
     if not current and (source_digest,header_digest) not in COHORTS:
         return source,dict(enabled=False,scope='Unreviewed derived-phase compiler pair;retain original native pure passes')
     references=[];bodies={}
@@ -68,5 +75,5 @@ def derive(source: str, output: Path, source_digest: str, header_digest: str, *,
     reference.parent.mkdir(parents=True,exist_ok=True)
     reference.write_text('\n'.join(references),encoding='utf8',newline='\n')
     source='#define XLS_NATIVE_IR_DERIVED_PHASES 1\n#ifndef XLS_IR_DERIVED_BODY_HIT\n#define XLS_IR_DERIVED_BODY_HIT(phase) ((void)0)\n#endif\n'+source
-    return source,dict(enabled=True,dependencyContractSha256=CURRENT_CONTRACT_SHA256 if current else None,sourceSha256=source_digest,headerSha256=header_digest,originalBodies=bodies,reference=str(reference),referenceSha256=hashlib.sha256(reference.read_bytes()).hexdigest(),
+    return source,dict(enabled=True,dependencyContractSha256=dependency_contract,sourceSha256=source_digest,headerSha256=header_digest,originalBodies=bodies,reference=str(reference),referenceSha256=hashlib.sha256(reference.read_bytes()).hexdigest(),
         scope='Pure operator/index ABI outputs only;immutable per-function assets;exact type/runtime/union context and actual raw cleanliness;original bodies on misses;full original verifier retained')

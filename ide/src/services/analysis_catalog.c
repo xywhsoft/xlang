@@ -93,6 +93,7 @@ int xideAnalysisCatalogPrefers(const xide_analysis_catalog* c,const xls_context*
 {return c && c->selectedOwner!=SIZE_MAX && context && (c->projects[c->selectedOwner]==context || xlsContextEqual(c->projects[c->selectedOwner],context));}
 const char* xideAnalysisCatalogPackagePath(const xide_analysis_catalog* c) {return c ? c->package : NULL;}
 size_t xideAnalysisCatalogCount(const xide_analysis_catalog* c) {return c ? c->count : 0;}
+const xls_context* xideAnalysisCatalogAt(const xide_analysis_catalog* c,size_t index) {return c && index<c->count ? c->projects[index] : NULL;}
 xls_context* xideAnalysisCatalogFile(const xide_analysis_catalog* c,const char* path)
 {
  if(!c || !path || !xrtPathIsAbs(path) || !xidePathHasExtension(path,".xl")) return NULL;
