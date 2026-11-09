@@ -121,6 +121,19 @@ def main():
      copies['language_snapshot']=edit(copies['language_snapshot'],'xideLanguageSnapshotRun',adapter)
      copies['language_snapshot']=surround(copies['language_snapshot'],'xideLanguageSnapshotRun','q,output,e','snapshot','adapter.total')
      copies['semantic_definition']=edit(copies['semantic_definition'],'preparePoints',lambda body:calls(body,{'navigationOwnedKey','xlsProjectionAcquire','nativePointsCreate','xlsProjectionCreate','xlsProjectionPublishAt'},'navigation.points.'))
+     inc=next(Path(p) for p in b['inputs'] if p.endswith('semantic_native_points.inc'))
+     assert sha(inc)==b['inputs'][str(inc)];rec['inputs'][str(inc)]=sha(inc)
+     include='#include "services/semantic_native_points.inc"'
+     assert copies['semantic_definition'].count(include)==1
+     copies['semantic_definition']=copies['semantic_definition'].replace(include,inc.read_text(encoding='utf8'),1)
+     def point_detail(body):
+      body=body.replace('{','{\n double pointDetail=xrtTimer();',1)
+      for marker,label in [(' for(size_t i=0;i<nodes;++i){\n  node n={0};xls_index_fact f;','setup'),(' int fast=budget ? convertDense','facts-and-ranges'),(' if(!xrtArrayInit(&d->cursors','coordinates'),(' qsort(d->declarations','cursors'),(' free(spans);free(ends);free(selections);return d;','sort-and-finish')]:
+       assert body.count(marker)==1,(marker,body.count(marker))
+       body=body.replace(marker,' xlsLifecycleStep('+str(slot('point.body.'+label))+',&pointDetail);\n'+marker,1)
+      return body
+     copies['semantic_definition']=edit(copies['semantic_definition'],'nativePointsCreate',point_detail)
+
      copies['worker']=surround(copies['worker'],'execute','cancel,value,output','check','worker.total',result='xtaskoutcome')
      def destroy(body):
       point='xrtAtomic32FetchSub(&r->references,1,XMEMORY_ACQ_REL)!=1) return;';assert body.count(point)==1

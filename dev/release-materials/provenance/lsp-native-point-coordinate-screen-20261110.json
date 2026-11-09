@@ -1,0 +1,1072 @@
+{
+  "schema": 1,
+  "phase": "M7a2b126s",
+  "date": "2026-11-10",
+  "status": "withheld-production-prototype;verified-diagnostic-tool-and-evidence-source-milestone",
+  "scope": "Detailed actual point-production attribution and bounded coordinate-asset prototype. First fixed CPU-benefit gate failed. Only exact tested diagnostic tool/documentation/index promoted;production text/header/native-point constructor and test registry remain unchanged. Full LSP/performance goal active.",
+  "parentCommitAtIndexCreation": "3e926e23737faa01590a200269dccbeddb453820",
+  "worktreeStageSources": {
+    ".gitignore": "75fe484b35b1f9ed265534f03e980eea0b87d223bbfef480787ea6c786dc9f25",
+    "ide/tools/build_lsp_lifecycle_profile.py": "250a6ababa504fa0ca7f55a539583805b0911b349f3652aea7c8e7e806ef0e59",
+    "ide/docs/lsp-development.md": "50d292317e04bb27061e141e6bb37242071b3342b3207e35ed40ef8d6dbd7016",
+    "ide/docs/lsp-native-point-coordinate-screen.md": "36d9476b2d83985b18b65c9a5c13c7361c5f4fedbc8f26a7b7f3a8f04cfa0b74"
+  },
+  "gitignoreScope": "Snapshot includes concurrent XGE exception;stage only LSP exception at commit and preserve concurrent entry/staging.",
+  "diagnosticTool": {
+    "exactTestedPrivateBytes": true,
+    "privateTool": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\point-detail-profile-tools-v2\\build_lsp_lifecycle_profile.py",
+      "sha256": "250a6ababa504fa0ca7f55a539583805b0911b349f3652aea7c8e7e806ef0e59"
+    },
+    "instrumentedObjects": 10,
+    "diagnosticRuntimeModuleAlsoCompiled": true,
+    "nativeFixturesPassed": 4,
+    "stableFactsProcesses": 16,
+    "queries": 240,
+    "frames": 360,
+    "pointConstructionPhases": {
+      "point.body.setup": {
+        "samples": 112,
+        "inclusiveMedianMs": 1.2856999820000001
+      },
+      "point.body.facts-and-ranges": {
+        "samples": 112,
+        "inclusiveMedianMs": 17.176299996
+      },
+      "point.body.coordinates": {
+        "samples": 112,
+        "inclusiveMedianMs": 4.134300005
+      },
+      "point.body.cursors": {
+        "samples": 112,
+        "inclusiveMedianMs": 5.1799999925
+      },
+      "point.body.sort-and-finish": {
+        "samples": 112,
+        "inclusiveMedianMs": 8.590350000499999
+      }
+    },
+    "rootCliPreflightPassed": true,
+    "normalProgramAndHistoricalReportsUnchanged": true
+  },
+  "withheldPrototype": {
+    "finalSourceBindings": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\point-coordinate-direct-v1\\source-bindings.json",
+      "sha256": "81aeb21dda89e03f56f109f80eb65616177a43cc8a50ad9856b1ca352cdb464b"
+    },
+    "headerAndNavigationBindings": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\point-coordinate-prototype-v2\\source-bindings.json",
+      "sha256": "ac55d636d0882eb8f92e407eaedebf2db24888fb55ed71669bbb43a59c640291"
+    },
+    "initialQuadraticVersionProof": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\point-coordinate-quadratic-proof-v1\\result.json",
+      "sha256": "98af568d2d3b32580f5fbe82b9c85ffd30a4abeb2cf06984eef2aa14d58e6bfb"
+    },
+    "unicodeDecoderCalls512": 131328,
+    "unicodeDecoderCalls1024": 524800,
+    "earlyBuildStoppedBeforeAdmission": true,
+    "actualDependencyUnits": 259,
+    "effectiveFinalNativeInputs": 751,
+    "publicHeaderConsumersRecompiled": 177,
+    "finalPrivateImplementationRecompiles": 1,
+    "asciiEntryExternalRelocations": 0,
+    "originalNativeFixturesRelinkedAndExecuted": 157,
+    "extraNativeFixtures": 2,
+    "releaseTextChecks": 1318053,
+    "debugTextChecks": 1317875,
+    "navigationChecks": 139663,
+    "longUnicodeParameters": [
+      64,
+      256
+    ],
+    "boundedUnicodeFastEntryCalls": 4096,
+    "decoderCallsInBoundedEntry": 0,
+    "actualFinalCTextOmissions": 4,
+    "actualFinalCNavigationCounterexamples": 2,
+    "serverSha256": "2e1088a183de8290a96896c5330f0405142dafc9b4128008e146d8f62709e577",
+    "coreSha256": "7e3693225e20be8db69d51c964f8597097a349948b8a9f4161eac3ab67e75282",
+    "frozenFrontendCohort": true,
+    "concurrentEngineWorktreeReadmitted": false,
+    "promoted": false
+  },
+  "protocolSuites": 8,
+  "ide": {
+    "ordinaryObjectsRecompiled": 115,
+    "entryAndResourcesRecompiled": true,
+    "qaPassed": 26,
+    "pairedServerSha256": "2e1088a183de8290a96896c5330f0405142dafc9b4128008e146d8f62709e577",
+    "guiSha256": "627c937e0c3b77b81f4105734aa4141430f8b2f8a9bcdf09fde729126acd935d",
+    "screenshotsVisuallyReviewed": 3,
+    "qaIncludes": "C/xlang typing,deletion,undo,Unicode,IME,click focus and affected language features"
+  },
+  "performance": {
+    "status": "gates-failed",
+    "accepted": false,
+    "totalGates": 41,
+    "originalLimitsPassed": 40,
+    "cpuGeometricMean": 0.9903228777348304,
+    "cpuRequiredMaximum": 0.98,
+    "cpuGeometricMeanImprovementPercent": 0.9677122265169591,
+    "failedGates": [
+      {
+        "name": "cpu-per-change/equal-weight-four-case-geometric-mean",
+        "actual": 0.9903228777348304,
+        "limit": 0.98,
+        "passed": false,
+        "individualCases": [
+          {
+            "name": "512-single-literal/interaction/cpuPerChangeP50",
+            "actual": 182.69230769230768,
+            "limit": 188.0408653846154,
+            "passed": true,
+            "baseline": 179.08653846153845
+          },
+          {
+            "name": "512-single-declaration/interaction/cpuPerChangeP50",
+            "actual": 221.15384615384616,
+            "limit": 234.73557692307693,
+            "passed": true,
+            "baseline": 223.55769230769232
+          },
+          {
+            "name": "512-imported-literal/interaction/cpuPerChangeP50",
+            "actual": 217.54807692307693,
+            "limit": 232.21153846153848,
+            "passed": true,
+            "baseline": 221.15384615384616
+          },
+          {
+            "name": "512-imported-declaration/interaction/cpuPerChangeP50",
+            "actual": 224.7596153846154,
+            "limit": 243.56971153846155,
+            "passed": true,
+            "baseline": 231.97115384615384
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "512-single-literal": {
+        "cold": {
+          "baseline": {
+            "ms": {
+              "samples": 4,
+              "p50": 762.577,
+              "p95": 860.8347,
+              "maximum": 860.8347
+            },
+            "cpuMs": {
+              "samples": 4,
+              "p50": 765.625,
+              "p95": 859.375,
+              "maximum": 859.375
+            },
+            "cycles": {
+              "samples": 4,
+              "p50": 2654495515,
+              "p95": 2970719045,
+              "maximum": 2970719045
+            }
+          },
+          "candidate": {
+            "ms": {
+              "samples": 4,
+              "p50": 753.5065,
+              "p95": 770.077,
+              "maximum": 770.077
+            },
+            "cpuMs": {
+              "samples": 4,
+              "p50": 750.0,
+              "p95": 765.625,
+              "maximum": 765.625
+            },
+            "cycles": {
+              "samples": 4,
+              "p50": 2622251450,
+              "p95": 2676121350,
+              "maximum": 2676121350
+            }
+          }
+        },
+        "first": {
+          "baseline": {
+            "ms": {
+              "samples": 4,
+              "p50": 182.9526,
+              "p95": 246.4367,
+              "maximum": 246.4367
+            },
+            "cpuMs": {
+              "samples": 4,
+              "p50": 171.875,
+              "p95": 234.375,
+              "maximum": 234.375
+            },
+            "cycles": {
+              "samples": 4,
+              "p50": 630638540,
+              "p95": 817580085,
+              "maximum": 817580085
+            }
+          },
+          "candidate": {
+            "ms": {
+              "samples": 4,
+              "p50": 186.1926,
+              "p95": 192.0001,
+              "maximum": 192.0001
+            },
+            "cpuMs": {
+              "samples": 4,
+              "p50": 187.5,
+              "p95": 187.5,
+              "maximum": 187.5
+            },
+            "cycles": {
+              "samples": 4,
+              "p50": 642793270,
+              "p95": 662355890,
+              "maximum": 662355890
+            }
+          }
+        },
+        "hot": {
+          "baseline": {
+            "ms": {
+              "samples": 48,
+              "p50": 183.6541,
+              "p95": 206.3247,
+              "maximum": 208.3372
+            },
+            "cpuMs": {
+              "samples": 48,
+              "p50": 187.5,
+              "p95": 203.125,
+              "maximum": 218.75
+            },
+            "cycles": {
+              "samples": 48,
+              "p50": 632895935,
+              "p95": 705867890,
+              "maximum": 717792495
+            }
+          },
+          "candidate": {
+            "ms": {
+              "samples": 48,
+              "p50": 183.6579,
+              "p95": 195.2512,
+              "maximum": 197.6882
+            },
+            "cpuMs": {
+              "samples": 48,
+              "p50": 187.5,
+              "p95": 187.5,
+              "maximum": 203.125
+            },
+            "cycles": {
+              "samples": 48,
+              "p50": 632893310,
+              "p95": 672358190,
+              "maximum": 682750250
+            }
+          },
+          "cpuInteractionChainMeanMs": {
+            "baseline": {
+              "samples": 4,
+              "p50": 179.08653846153845,
+              "p95": 194.71153846153845,
+              "maximum": 194.71153846153845
+            },
+            "candidate": {
+              "samples": 4,
+              "p50": 182.69230769230768,
+              "p95": 182.69230769230768,
+              "maximum": 182.69230769230768
+            }
+          }
+        },
+        "exact": {
+          "baseline": {
+            "ms": {
+              "samples": 4,
+              "p50": 2.2609,
+              "p95": 2.4153,
+              "maximum": 2.4153
+            },
+            "cpuMs": {
+              "samples": 4,
+              "p50": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0
+            },
+            "cycles": {
+              "samples": 4,
+              "p50": 7853090,
+              "p95": 8490475,
+              "maximum": 8490475
+            }
+          },
+          "candidate": {
+            "ms": {
+              "samples": 4,
+              "p50": 2.2483,
+              "p95": 2.3417,
+              "maximum": 2.3417
+            },
+            "cpuMs": {
+              "samples": 4,
+              "p50": 0.0,
+              "p95": 15.625,
+              "maximum": 15.625
+            },
+            "cycles": {
+              "samples": 4,
+              "p50": 7862470,
+              "p95": 8096655,
+              "maximum": 8096655
+            }
+          }
+        }
+      },
+      "512-single-declaration": {
+        "cold": {
+          "baseline": {
+            "ms": {
+              "samples": 4,
+              "p50": 771.59,
+              "p95": 774.4896,
+              "maximum": 774.4896
+            },
+            "cpuMs": {
+              "samples": 4,
+              "p50": 765.625,
+              "p95": 781.25,
+              "maximum": 781.25
+            },
+            "cycles": {
+              "samples": 4,
+              "p50": 2685899580,
+              "p95": 2695211190,
+              "maximum": 2695211190
+            }
+          },
+          "candidate": {
+            "ms": {
+              "samples": 4,
+              "p50": 757.1746,
+              "p95": 803.4995,
+              "maximum": 803.4995
+            },
+            "cpuMs": {
+              "samples": 4,
+              "p50": 765.625,
+              "p95": 796.875,
+              "maximum": 796.875
+            },
+            "cycles": {
+              "samples": 4,
+              "p50": 2636119745,
+              "p95": 2796548895,
+              "maximum": 2796548895
+            }
+          }
+        },
+        "first": {
+          "baseline": {
+            "ms": {
+              "samples": 4,
+              "p50": 361.8277,
+              "p95": 368.5829,
+              "maximum": 368.5829
+            },
+            "cpuMs": {
+              "samples": 4,
+              "p50": 359.375,
+              "p95": 359.375,
+              "maximum": 359.375
+            },
+            "cycles": {
+              "samples": 4,
+              "p50": 1255569945,
+              "p95": 1279887385,
+              "maximum": 1279887385
+            }
+          },
+          "candidate": {
+            "ms": {
+              "samples": 4,
+              "p50": 361.2329,
+              "p95": 387.4858,
+              "maximum": 387.4858
+            },
+            "cpuMs": {
+              "samples": 4,
+              "p50": 359.375,
+              "p95": 390.625,
+              "maximum": 390.625
+            },
+            "cycles": {
+              "samples": 4,
+              "p50": 1252728995,
+              "p95": 1341175990,
+              "maximum": 1341175990
+            }
+          }
+        },
+        "hot": {
+          "baseline": {
+            "ms": {
+              "samples": 48,
+              "p50": 204.0406,
+              "p95": 332.5074,
+              "maximum": 334.7922
+            },
+            "cpuMs": {
+              "samples": 48,
+              "p50": 203.125,
+              "p95": 328.125,
+              "maximum": 343.75
+            },
+            "cycles": {
+              "samples": 48,
+              "p50": 705010145,
+              "p95": 1154604990,
+              "maximum": 1161738480
+            }
+          },
+          "candidate": {
+            "ms": {
+              "samples": 48,
+              "p50": 201.3569,
+              "p95": 331.9074,
+              "maximum": 348.6684
+            },
+            "cpuMs": {
+              "samples": 48,
+              "p50": 203.125,
+              "p95": 328.125,
+              "maximum": 359.375
+            },
+            "cycles": {
+              "samples": 48,
+              "p50": 695685025,
+              "p95": 1152218760,
+              "maximum": 1209847450
+            }
+          },
+          "cpuInteractionChainMeanMs": {
+            "baseline": {
+              "samples": 4,
+              "p50": 223.55769230769232,
+              "p95": 227.16346153846155,
+              "maximum": 227.16346153846155
+            },
+            "candidate": {
+              "samples": 4,
+              "p50": 221.15384615384616,
+              "p95": 223.55769230769232,
+              "maximum": 223.55769230769232
+            }
+          }
+        },
+        "exact": {
+          "baseline": {
+            "ms": {
+              "samples": 4,
+              "p50": 2.2581,
+              "p95": 2.3436,
+              "maximum": 2.3436
+            },
+            "cpuMs": {
+              "samples": 4,
+              "p50": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0
+            },
+            "cycles": {
+              "samples": 4,
+              "p50": 7877625,
+              "p95": 8053605,
+              "maximum": 8053605
+            }
+          },
+          "candidate": {
+            "ms": {
+              "samples": 4,
+              "p50": 2.2458,
+              "p95": 2.2743,
+              "maximum": 2.2743
+            },
+            "cpuMs": {
+              "samples": 4,
+              "p50": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0
+            },
+            "cycles": {
+              "samples": 4,
+              "p50": 7838320,
+              "p95": 7871850,
+              "maximum": 7871850
+            }
+          }
+        }
+      },
+      "512-imported-literal": {
+        "cold": {
+          "baseline": {
+            "ms": {
+              "samples": 4,
+              "p50": 863.3963,
+              "p95": 900.2484,
+              "maximum": 900.2484
+            },
+            "cpuMs": {
+              "samples": 4,
+              "p50": 875.0,
+              "p95": 906.25,
+              "maximum": 906.25
+            },
+            "cycles": {
+              "samples": 4,
+              "p50": 3007253025,
+              "p95": 3136153335,
+              "maximum": 3136153335
+            }
+          },
+          "candidate": {
+            "ms": {
+              "samples": 4,
+              "p50": 860.0387,
+              "p95": 881.0972,
+              "maximum": 881.0972
+            },
+            "cpuMs": {
+              "samples": 4,
+              "p50": 859.375,
+              "p95": 875.0,
+              "maximum": 875.0
+            },
+            "cycles": {
+              "samples": 4,
+              "p50": 2993889745,
+              "p95": 3069054169,
+              "maximum": 3069054169
+            }
+          }
+        },
+        "first": {
+          "baseline": {
+            "ms": {
+              "samples": 4,
+              "p50": 221.3008,
+              "p95": 232.3335,
+              "maximum": 232.3335
+            },
+            "cpuMs": {
+              "samples": 4,
+              "p50": 218.75,
+              "p95": 234.375,
+              "maximum": 234.375
+            },
+            "cycles": {
+              "samples": 4,
+              "p50": 765599415,
+              "p95": 802672920,
+              "maximum": 802672920
+            }
+          },
+          "candidate": {
+            "ms": {
+              "samples": 4,
+              "p50": 220.2297,
+              "p95": 224.1002,
+              "maximum": 224.1002
+            },
+            "cpuMs": {
+              "samples": 4,
+              "p50": 218.75,
+              "p95": 218.75,
+              "maximum": 218.75
+            },
+            "cycles": {
+              "samples": 4,
+              "p50": 762251700,
+              "p95": 775320560,
+              "maximum": 775320560
+            }
+          }
+        },
+        "hot": {
+          "baseline": {
+            "ms": {
+              "samples": 48,
+              "p50": 221.9639,
+              "p95": 253.4907,
+              "maximum": 258.1213
+            },
+            "cpuMs": {
+              "samples": 48,
+              "p50": 218.75,
+              "p95": 250.0,
+              "maximum": 250.0
+            },
+            "cycles": {
+              "samples": 48,
+              "p50": 768108180,
+              "p95": 874644050,
+              "maximum": 891388750
+            }
+          },
+          "candidate": {
+            "ms": {
+              "samples": 48,
+              "p50": 220.3941,
+              "p95": 230.1133,
+              "maximum": 237.2442
+            },
+            "cpuMs": {
+              "samples": 48,
+              "p50": 218.75,
+              "p95": 234.375,
+              "maximum": 234.375
+            },
+            "cycles": {
+              "samples": 48,
+              "p50": 760718175,
+              "p95": 795668545,
+              "maximum": 821482865
+            }
+          },
+          "cpuInteractionChainMeanMs": {
+            "baseline": {
+              "samples": 4,
+              "p50": 221.15384615384616,
+              "p95": 242.78846153846155,
+              "maximum": 242.78846153846155
+            },
+            "candidate": {
+              "samples": 4,
+              "p50": 217.54807692307693,
+              "p95": 221.15384615384616,
+              "maximum": 221.15384615384616
+            }
+          }
+        },
+        "exact": {
+          "baseline": {
+            "ms": {
+              "samples": 4,
+              "p50": 2.9588,
+              "p95": 3.0569,
+              "maximum": 3.0569
+            },
+            "cpuMs": {
+              "samples": 4,
+              "p50": 0.0,
+              "p95": 15.625,
+              "maximum": 15.625
+            },
+            "cycles": {
+              "samples": 4,
+              "p50": 10178700,
+              "p95": 10513405,
+              "maximum": 10513405
+            }
+          },
+          "candidate": {
+            "ms": {
+              "samples": 4,
+              "p50": 2.9275,
+              "p95": 3.1278,
+              "maximum": 3.1278
+            },
+            "cpuMs": {
+              "samples": 4,
+              "p50": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0
+            },
+            "cycles": {
+              "samples": 4,
+              "p50": 10049760,
+              "p95": 10672830,
+              "maximum": 10672830
+            }
+          }
+        }
+      },
+      "512-imported-declaration": {
+        "cold": {
+          "baseline": {
+            "ms": {
+              "samples": 4,
+              "p50": 861.0721,
+              "p95": 973.1794,
+              "maximum": 973.1794
+            },
+            "cpuMs": {
+              "samples": 4,
+              "p50": 859.375,
+              "p95": 968.75,
+              "maximum": 968.75
+            },
+            "cycles": {
+              "samples": 4,
+              "p50": 2998979445,
+              "p95": 3379709480,
+              "maximum": 3379709480
+            }
+          },
+          "candidate": {
+            "ms": {
+              "samples": 4,
+              "p50": 874.2117,
+              "p95": 903.1419,
+              "maximum": 903.1419
+            },
+            "cpuMs": {
+              "samples": 4,
+              "p50": 875.0,
+              "p95": 890.625,
+              "maximum": 890.625
+            },
+            "cycles": {
+              "samples": 4,
+              "p50": 3042246828,
+              "p95": 3146150454,
+              "maximum": 3146150454
+            }
+          }
+        },
+        "first": {
+          "baseline": {
+            "ms": {
+              "samples": 4,
+              "p50": 369.2332,
+              "p95": 437.6222,
+              "maximum": 437.6222
+            },
+            "cpuMs": {
+              "samples": 4,
+              "p50": 375.0,
+              "p95": 421.875,
+              "maximum": 421.875
+            },
+            "cycles": {
+              "samples": 4,
+              "p50": 1282842295,
+              "p95": 1519301455,
+              "maximum": 1519301455
+            }
+          },
+          "candidate": {
+            "ms": {
+              "samples": 4,
+              "p50": 372.3823,
+              "p95": 395.8677,
+              "maximum": 395.8677
+            },
+            "cpuMs": {
+              "samples": 4,
+              "p50": 375.0,
+              "p95": 390.625,
+              "maximum": 390.625
+            },
+            "cycles": {
+              "samples": 4,
+              "p50": 1293520060,
+              "p95": 1337881615,
+              "maximum": 1337881615
+            }
+          }
+        },
+        "hot": {
+          "baseline": {
+            "ms": {
+              "samples": 48,
+              "p50": 215.4366,
+              "p95": 329.184,
+              "maximum": 370.0894
+            },
+            "cpuMs": {
+              "samples": 48,
+              "p50": 218.75,
+              "p95": 328.125,
+              "maximum": 359.375
+            },
+            "cycles": {
+              "samples": 48,
+              "p50": 745533355,
+              "p95": 1142343125,
+              "maximum": 1281665526
+            }
+          },
+          "candidate": {
+            "ms": {
+              "samples": 48,
+              "p50": 206.902,
+              "p95": 320.2921,
+              "maximum": 329.0268
+            },
+            "cpuMs": {
+              "samples": 48,
+              "p50": 203.125,
+              "p95": 312.5,
+              "maximum": 328.125
+            },
+            "cycles": {
+              "samples": 48,
+              "p50": 715548785,
+              "p95": 1111956930,
+              "maximum": 1141984585
+            }
+          },
+          "cpuInteractionChainMeanMs": {
+            "baseline": {
+              "samples": 4,
+              "p50": 231.97115384615384,
+              "p95": 252.40384615384616,
+              "maximum": 252.40384615384616
+            },
+            "candidate": {
+              "samples": 4,
+              "p50": 224.7596153846154,
+              "p95": 228.3653846153846,
+              "maximum": 228.3653846153846
+            }
+          }
+        },
+        "exact": {
+          "baseline": {
+            "ms": {
+              "samples": 4,
+              "p50": 2.9581,
+              "p95": 3.2514,
+              "maximum": 3.2514
+            },
+            "cpuMs": {
+              "samples": 4,
+              "p50": 0.0,
+              "p95": 15.625,
+              "maximum": 15.625
+            },
+            "cycles": {
+              "samples": 4,
+              "p50": 10056130,
+              "p95": 11090870,
+              "maximum": 11090870
+            }
+          },
+          "candidate": {
+            "ms": {
+              "samples": 4,
+              "p50": 2.9791,
+              "p95": 3.0479,
+              "maximum": 3.0479
+            },
+            "cpuMs": {
+              "samples": 4,
+              "p50": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0
+            },
+            "cycles": {
+              "samples": 4,
+              "p50": 10248560,
+              "p95": 10341800,
+              "maximum": 10341800
+            }
+          }
+        }
+      }
+    },
+    "processes": 32,
+    "queries": 480,
+    "defaultBackgroundEnabled": true,
+    "oneServiceChainAtATime": true,
+    "ownBuildsAndQaStoppedDuringTiming": true,
+    "hostExclusive": false,
+    "initialCommitFloorGiB": 5,
+    "runningCommitFloorGiB": 3,
+    "thresholdsUnchanged": true,
+    "sameImageNotRerun": true,
+    "prior39of40AAAndGlobalFailuresRetained": true
+  },
+  "materials": {
+    "source": {
+      "schema": 1,
+      "directory": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-native-point-coordinate-screen-20261110",
+      "archive": {
+        "path": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-native-point-coordinate-screen-20261110\\sources.tar.gz",
+        "sha256": "2d459971d9eb24be60c0a254c35dd9035c97b701b54277129033212c33ee0341",
+        "bytes": 43236368
+      },
+      "bindings": {
+        "path": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-native-point-coordinate-screen-20261110\\source-bindings.json",
+        "sha256": "fd7b38b82ec5309a470771d6249d87e486c953383843b6f33ced7b95eed7eaa4"
+      },
+      "nativeInputBindings": 751,
+      "guiInputBindings": 675,
+      "matchedSdkFiles": 180,
+      "distinctSourceEntries": 1525,
+      "baselineFullSourceMaterials": {
+        "schema": 1,
+        "logicalDirectory": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-ir-verification-order-20261110-v2",
+        "storageBacking": "F:\\codex-builds-xlang-lsp-20261110\\lsp-ir-verification-order-20261110-v2-materials\\sources",
+        "archive": {
+          "path": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-ir-verification-order-20261110-v2\\sources.tar.gz",
+          "sha256": "68459acd6720c0fb8129c1a7f2ff495179917d69da0fd1862def838cd1438a03",
+          "bytes": 43873182
+        },
+        "bindings": {
+          "path": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-ir-verification-order-20261110-v2\\source-bindings.json",
+          "sha256": "3526462bfef3c961655279d321fe557e3e346b94fc102a70f8eef46d0c7edbec"
+        },
+        "effectiveNativeInputBindings": 752,
+        "guiInputBindings": 675,
+        "historicalInputBindings": 751,
+        "matchedSdkFiles": 180,
+        "distinctArchiveEntries": 1508
+      }
+    },
+    "provenance": {
+      "schema": 1,
+      "directory": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\lsp-native-point-coordinate-screen-20261110",
+      "archive": {
+        "path": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\lsp-native-point-coordinate-screen-20261110\\reports.tar.gz",
+        "sha256": "c29c4a267975a4091e738bbea23c07ff2e8bac7ed2f97ee30be6cb620b654a35",
+        "bytes": 7748990
+      },
+      "screenshots": {
+        "path": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\lsp-native-point-coordinate-screen-20261110\\screenshots.tar.gz",
+        "sha256": "4fc06c7d84667a7cb8f07269765347d35311ddb3f4cd35a6fdf86070f8a34a75",
+        "bytes": 3496399,
+        "files": 29
+      },
+      "files": 2580,
+      "historicalReportPathsRewritten": false
+    }
+  },
+  "receipts": {
+    "point-detail-probe-v1/result.json": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\point-detail-probe-v1\\result.json",
+      "sha256": "5e0d5daf6e3d59959f677354b19e0d480eccb3d53eca4fb4046b0a05b1a337b2"
+    },
+    "point-detail-probe-v2/result.json": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\point-detail-probe-v2\\result.json",
+      "sha256": "af3b274bcf44459fdef90f7f24b5d60eea4d757783cd339bf786f724871f2c85"
+    },
+    "point-detail-native-v2/result.json": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\point-detail-native-v2\\result.json",
+      "sha256": "72abb0a84fffc3ee876184cc9e9530b8c34d495551eadd689af99274003b2153"
+    },
+    "point-detail-production-v2/result.json": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\point-detail-production-v2\\result.json",
+      "sha256": "bfcb2c4b3ff84192e7d8eed5c337c3e445b2bfbd44a05235c7992ba0ab12614c"
+    },
+    "point-coordinate-quadratic-proof-v1/result.json": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\point-coordinate-quadratic-proof-v1\\result.json",
+      "sha256": "98af568d2d3b32580f5fbe82b9c85ffd30a4abeb2cf06984eef2aa14d58e6bfb"
+    },
+    "point-coordinate-build-v1/result.json": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\point-coordinate-build-v1\\result.json",
+      "sha256": "1282402e51cde96f789287dc58202753e4f530994688db7d7b26801aa15022b5"
+    },
+    "point-coordinate-build-v1/stopped-status.json": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\point-coordinate-build-v1\\stopped-status.json",
+      "sha256": "a72e9e04d618e4a46800ea978afa564d48b33d7fa4165b201ddaaae1040b92c4"
+    },
+    "point-coordinate-text-native-v1/result.json": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\point-coordinate-text-native-v1\\result.json",
+      "sha256": "61944d32a2e86429ceddcf50e6c159576e7ea5859e962150cae55981ea4beea0"
+    },
+    "point-coordinate-text-native-v2/result.json": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\point-coordinate-text-native-v2\\result.json",
+      "sha256": "106a80057a6574f538782e960a9e435ae9d97d9a7befe818eb605c1391ed1713"
+    },
+    "point-coordinate-text-native-v3/result.json": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\point-coordinate-text-native-v3\\result.json",
+      "sha256": "5de1edf6e860e279838066f570a36deb15f2f570afdcf862ae9f9a9216770be8"
+    },
+    "point-coordinate-text-native-v4/result.json": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\point-coordinate-text-native-v4\\result.json",
+      "sha256": "0e54149e4795cb770280888970b5f7458d1f6d1f0c40ba30fe032c08220c3283"
+    },
+    "point-coordinate-build-v2/result.json": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\point-coordinate-build-v2\\result.json",
+      "sha256": "677bd54c646b9c8352ea76ab98ac60bb4836ffbb76a10f12ee5f3664c69af1d3"
+    },
+    "point-coordinate-build-v3/result.json": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\point-coordinate-build-v3\\result.json",
+      "sha256": "19d83ba63f73e055b7dd0b0c02bd97a393a2ee412e7bf59d94b739108fa5f79c"
+    },
+    "point-coordinate-direct-debug-v1/result.json": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\point-coordinate-direct-debug-v1\\result.json",
+      "sha256": "97043b4a4a3bb57c5870305c106bc54dc45d399b99a752df0ef1be20f2f9ce97"
+    },
+    "point-coordinate-extra-native-v2/result.json": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\point-coordinate-extra-native-v2\\result.json",
+      "sha256": "8a505866b1b29e9d7b66a5ee828adbeeadf88faea7b90a0696ebf187ad1cf94a"
+    },
+    "point-coordinate-final-omissions-v1/result.json": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\point-coordinate-final-omissions-v1\\result.json",
+      "sha256": "34fb8aefc4082d1639a0984912a83e6cdf1a25801ce47c15d31067fff110bbb7"
+    },
+    "point-coordinate-final-navigation-omissions-v1/result.json": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\point-coordinate-final-navigation-omissions-v1\\result.json",
+      "sha256": "8cc1e6ce59f7dc18e56a0b5bece498bc170c65cfcd9c9d7ca22cb91032555893"
+    },
+    "point-coordinate-protocols-v2/result.json": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\point-coordinate-protocols-v2\\result.json",
+      "sha256": "156fe56b254652dcd8048c16b5e0f1701708f4e2d91ce680a4f2045956c4a8a5"
+    },
+    "point-coordinate-gui-current-results-v2.json": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\point-coordinate-gui-current-results-v2.json",
+      "sha256": "633c60aca2f31d089b95b8384049fc8d32015378efc3336c0136bc5d38194889"
+    },
+    "point-coordinate-gui-current-build-inputs-v2.json": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\point-coordinate-gui-current-build-inputs-v2.json",
+      "sha256": "753e9e560c2f03c3495863a466dda4889dc0b1c16c7e259bcaa11e47257a0e90"
+    },
+    "point-coordinate-screen-v1/registration.json": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\point-coordinate-screen-v1\\registration.json",
+      "sha256": "3553571fde9676cad4aead8d2c94d504d34499f792010ed1cb73159b0fc1c134"
+    },
+    "point-coordinate-screen-v1/measurement/result.json": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\point-coordinate-screen-v1\\measurement\\result.json",
+      "sha256": "21a981049a62e072ac9f821787544cf0e9f31a121cdd98cce31a60065a8ec4de"
+    },
+    "point-coordinate-screen-v1/decision.json": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\point-coordinate-screen-v1\\decision.json",
+      "sha256": "2d6c07f342e22352676202862efb29f999949f028abcfad2037441015d50a3d3"
+    },
+    "point-coordinate-root-tool-preflight-v1/result.json": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\point-coordinate-root-tool-preflight-v1\\result.json",
+      "sha256": "eadb5488e982f971d59e6bf00f40e53eb99586a66343742afd31a4de0a89ba2f"
+    },
+    "point-coordinate-materials-collected.json": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\point-coordinate-materials-collected.json",
+      "sha256": "befafc71a6f44c719964c787b9630b2ba4cdf61bc69959fb525660361ec4e45a"
+    },
+    "point-coordinate-repository-budget-precommit.json": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\point-coordinate-repository-budget-precommit.json",
+      "sha256": "462c877fdaa096be52c04aa7d3a6ab923af7485143ab0bc64c0083a62234450e"
+    }
+  },
+  "protectedRuntime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "ownedAliasesRemaining": [],
+  "defaultRuntimeInstalled": false,
+  "onlineChannelPushed": false,
+  "deliveryIndexChangedByThisStage": false,
+  "remaining": "Reuse immutable unchanged-function navigation assets to reduce repeated full fact scans/sorts;reduce whole semantic/IR construction;continue error recovery,static checking,edit-time semantic completion and all applicable LSP. Whole-goal latency/memory/large-workspace/delivery gates remain. No DAP or runtime/debug completion."
+}
