@@ -1,7 +1,8 @@
 """Compare a private lifecycle image with its unchanged normal LS over stdio.
 
-Timings are inclusive diagnostic samples. They are not formal performance
-gates, IDE latency, or evidence that a retirement ordinal belongs to a query.
+Timings are inclusive diagnostic samples with idle workspace indexing disabled
+in both images. They are not formal performance gates, IDE latency, or evidence
+that a retirement ordinal belongs to a query.
 """
 from pathlib import Path
 import argparse
@@ -94,7 +95,7 @@ def main():
     protected={str(profile/'result.json'):sha(profile/'result.json')}
     for name in ('build_lsp_lifecycle_profile.py','profile_lsp_lifecycle.py','benchmark_lsp_analysis.py','check_native_bridge_catalog.py','check_lsp_automatic_diagnostics.py','check_lsp_module_semantics.py','check_language_snapshots.py','check_language_definitions.py'):
         path=Path(__file__).with_name(name).resolve();protected[str(path)]=sha(path)
-    report=dict(status='running',accepted=False,scope=__doc__.strip(),functions=args.functions,pairs=args.pairs,queries=0,protected=protected,runs=[])
+    report=dict(status='running',accepted=False,scope=__doc__.strip(),backgroundWorkspaceSymbols=False,functions=args.functions,pairs=args.pairs,queries=0,protected=protected,runs=[])
     def save():(out/'result.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf8',newline='\n')
     save()
     try:
@@ -119,7 +120,8 @@ def main():
                         reader=threading.Thread(target=drain,daemon=True);reader.start()
                         client.process.stderr=io.BytesIO()
                         try:
-                            initialize(client,entry,[entry] if dep==entry else [entry,dep],folder)
+                            initialize(client,entry,[entry] if dep==entry else [entry,dep],folder,
+                                background_workspace_symbols=False)
                             if topology=='imported':client.open(entry,'import dep\nfunc main(...) as int\n return dep.compute(3)\nend\n',1)
                             for step in range(15):
                                 generation=min(step,13);repeat=step==14
