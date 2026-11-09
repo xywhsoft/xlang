@@ -439,7 +439,15 @@ xvalue* xideLanguageCheckDocumentHighlights(xide_language_check* q,const char* p
  xvalue* out=match && q->state==XIDE_CHECK_READY && !cancelled(q) && q->guardState==XIDE_GUARD_RUNNING && navigation(q) ? xideSemanticDocumentHighlights(q->definitions,path,line,character) : NULL;
  LeaveCriticalSection(&q->lock); return out;
 }
-void xideLanguageCheckCancel(xide_language_check* q) { if(q) { InterlockedExchange(&q->cancel,1); if(q->stopEvent) SetEvent(q->stopEvent); } }
+void xideLanguageCheckCancel(xide_language_check* q) { if(q) {
+ InterlockedExchange(&q->cancel,1);
+#ifdef XLS_COMPILER_XRT
+ /* Do not wait for the helper thread to be scheduled before cancelling work
+    queued on a shared actor. Unbinding uses the same lock before destruction. */
+ EnterCriticalSection(&q->lock);xlsQueryCancel(q->activeNativeQuery);LeaveCriticalSection(&q->lock);
+#endif
+ if(q->stopEvent) SetEvent(q->stopEvent);
+} }
 void xideLanguageCheckDestroy(xide_language_check* q)
 {
  if(!q) return;
@@ -528,13 +536,13 @@ xide_language_check* xideLanguageCheckStartCompletionSnapshotsEx(xide_toolchains
 #ifdef XLS_COMPILER_XRT
 static int retainedLabel(const char* s)
 { size_t n=s ? strlen(s) : 0; return n && n<=262144 && xrtUtf8Valid((xstrview){s,n},NULL); }
-enum retained_capture {RETAIN_CHECK,RETAIN_REFERENCES,RETAIN_DECLARATIONS};
+enum retained_capture {RETAIN_CHECK,RETAIN_REFERENCES,RETAIN_DECLARATIONS,RETAIN_CACHED_DECLARATIONS};
 static xide_language_check* startRetained(xls_context* context,int configured,int signatureMode,unsigned signatureFlags,enum retained_capture captureMode,const char* keyPath,xide_toolchains* cache,const char* compiler,
  const char* directory,xls_worker* actor,const xls_analysis_document* documents,size_t count,
  const char* target,const char* queryPath,int line,int character,
  const xide_language_analysis_options* options,xide_model_error* e)
 {
- int declarations=captureMode==RETAIN_DECLARATIONS;
+ int declarations=captureMode==RETAIN_DECLARATIONS || captureMode==RETAIN_CACHED_DECLARATIONS;
  if((configured && !context) || !cache || !compiler || !directory || (count && !documents) || count>64 ||
     (!declarations && (!documents || !count || !retainedLabel(target))) || (declarations && (!configured || target || queryPath)) ||
     (!queryPath && !actor) || (queryPath && (line<0 || character<0)) || (options && !options->nativeBackend)) {
@@ -542,7 +550,7 @@ static xide_language_check* startRetained(xls_context* context,int configured,in
  }
  xide_language_check* q=calloc(1,sizeof(*q)); if(!q) return NULL;
  InitializeCriticalSection(&q->lock); q->cache=cache; q->nativeSemantic=q->retainedSnapshots=1; q->semanticActor=actor;
- q->context=xlsContextRetain(context);q->configuredEntry=configured;
+ q->context=xlsContextRetain(context);q->configuredEntry=configured;q->cachedCheck=captureMode==RETAIN_CACHED_DECLARATIONS;
  q->signatureMode=signatureMode;q->signatureFlags=signatureFlags;
  q->referenceMode=captureMode==RETAIN_REFERENCES;q->declarationMode=declarations;q->referenceLine=line;q->referenceCharacter=character;
  if(keyPath){q->referencePath=copy(keyPath);if(!q->referencePath)goto invalid;}
@@ -652,6 +660,10 @@ xide_language_check* xideLanguageCheckStartDeclarationCapture(xls_context* conte
  xide_toolchains* cache,const char* compiler,xls_worker* actor,const xls_analysis_document* documents,size_t count,
  const xide_language_analysis_options* options,xide_model_error* error)
 {return startRetained(context,1,0,0,RETAIN_DECLARATIONS,NULL,cache,compiler,context ? xlsContextSpec(context)->directory : NULL,actor,documents,count,NULL,NULL,0,0,options,error);}
+xide_language_check* xideLanguageCheckStartCachedDeclarationCapture(xls_context* context,
+ xide_toolchains* cache,const char* compiler,xls_worker* actor,const xls_analysis_document* documents,size_t count,
+ const xide_language_analysis_options* options,xide_model_error* error)
+{return startRetained(context,1,0,0,RETAIN_CACHED_DECLARATIONS,NULL,cache,compiler,context ? xlsContextSpec(context)->directory : NULL,actor,documents,count,NULL,NULL,0,0,options,error);}
 int xideLanguageCheckCaptureDeclarations(xide_language_check* q,xide_semantic_symbols** symbols,xide_declaration_capture_work* work)
 {
  if(symbols)*symbols=NULL;

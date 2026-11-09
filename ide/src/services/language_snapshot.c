@@ -43,14 +43,26 @@ static int symbolsCancelled(void* user){return cancelled(user);}
 #ifdef XLS_COMPILER_XRT
 static int nativeCancelled(void* user) { return cancelled(user); }
 static void nativeQueryWake(void* user) { SetEvent((HANDLE)user); }
+static void bindNativeQuery(xide_language_check* q,xls_query* query)
+{
+ EnterCriticalSection(&q->lock);q->activeNativeQuery=query;
+ if(InterlockedCompareExchange(&q->cancel,0,0))xlsQueryCancel(query);
+ LeaveCriticalSection(&q->lock);
+}
+static void destroyNativeQuery(xide_language_check* q,xls_query* query)
+{
+ EnterCriticalSection(&q->lock);if(q->activeNativeQuery==query)q->activeNativeQuery=NULL;LeaveCriticalSection(&q->lock);
+ xlsQueryDestroy(query);
+}
 static int retainedNative(const xide_language_check* q)
 { return q->semanticActor && (q->semanticTarget || q->configuredEntry); }
 static int captureDeclarations(xide_language_check* q,xls_semantic_check* checked,const xide_semantic_source* sources,size_t count,xide_model_error* error)
 {
  xide_navigation_snapshot* proof=xideSemanticNavigationCapture(checked,sources,count,error);
  if(proof){
-  xideSemanticNavigationBind(proof,xlsWorkerProjectionStore(q->semanticActor));
-  int ready=xideSemanticNavigationPreparePoints(proof,error);
+  int ready;
+  if(q->cachedCheck)ready=xideSemanticNavigationPrepareTransientPoints(proof,xlsWorkerProjectionStore(q->semanticActor),error);
+  else{xideSemanticNavigationBind(proof,xlsWorkerProjectionStore(q->semanticActor));ready=xideSemanticNavigationPreparePoints(proof,error);}
   if(ready>=0)q->symbols=xideSemanticSymbolsFromNavigation(proof,symbolsCancelled,q,&q->symbolWork,error);
   xideSemanticNavigationDestroy(proof);
  }else if(!error->code)q->symbols=xideSemanticSymbolsCreateTyped(xlsSemanticCheckTypedIndex(checked),sources,count,symbolsCancelled,q,&q->symbolWork,error);
@@ -154,7 +166,8 @@ static xls_semantic_check* retainedCheck(xide_language_check* q,xide_model_error
  for(size_t i=0;i<q->snapshotCount;++i) documents[i]=(xls_analysis_document){q->snapshotKeys[i],q->snapshots[i].path,
   q->snapshotTexts[i],q->snapshotIdentities[i],(uint64_t)((int64_t)q->snapshots[i].version-INT_MIN)};
  HANDLE event=CreateEventW(NULL,FALSE,FALSE,NULL);
- xls_query* query=event ? xlsWorkerCheckInContext(q->semanticActor,q->context,documents,q->snapshotCount,q->semanticTarget) : NULL;
+ xls_query* query=event ? (q->cachedCheck ? xlsWorkerCachedCheckInContext : xlsWorkerCheckInContext)(q->semanticActor,q->context,documents,q->snapshotCount,q->semanticTarget) : NULL;
+ bindNativeQuery(q,query);
  xls_semantic_check* result=NULL;
  if(!query || !xlsQuerySetWake(query,nativeQueryWake,event)) { fail(e,"Cannot submit retained semantic analysis."); goto done; }
  for(;;) {
@@ -170,7 +183,7 @@ done:
  if(cancelled(q) || !result) { xlsQueryCancel(query); xlsSemanticCheckDestroy(result); result=NULL; }
  /* Removing a Future watch joins callbacks, not the running analysis. The
     actor owns its captured inputs and cooperates with cancellation itself. */
- xlsQueryDestroy(query); if(event) CloseHandle(event); return result;
+ destroyNativeQuery(q,query); if(event) CloseHandle(event); return result;
 }
 static xls_semantic_completion* retainedCompletion(xide_language_check* q,xide_model_error* e)
 {
@@ -183,6 +196,7 @@ static xls_semantic_completion* retainedCompletion(xide_language_check* q,xide_m
  HANDLE event=CreateEventW(NULL,FALSE,FALSE,NULL);
  xls_query* query=event && target ? xlsWorkerCompletionInContext(q->semanticActor,q->context,documents,q->snapshotCount,
   q->semanticTarget,target,(size_t)q->queryOffset) : NULL;
+ bindNativeQuery(q,query);
  xls_semantic_completion* result=NULL;
  if(!query || !xlsQuerySetWake(query,nativeQueryWake,event)) { fail(e,"Cannot submit retained cursor analysis."); goto done; }
  for(;;) {
@@ -195,7 +209,7 @@ static xls_semantic_completion* retainedCompletion(xide_language_check* q,xide_m
  }
 done:
  if(cancelled(q) || !result) { xlsQueryCancel(query); xlsSemanticCompletionDestroy(result); result=NULL; }
- xlsQueryDestroy(query); if(event) CloseHandle(event); return result;
+ destroyNativeQuery(q,query); if(event) CloseHandle(event); return result;
 }
 static xls_signature_help* retainedSignature(xide_language_check* q,xide_model_error* e)
 {
@@ -203,6 +217,7 @@ static xls_signature_help* retainedSignature(xide_language_check* q,xide_model_e
  for(size_t i=0;i<q->snapshotCount;++i){documents[i]=(xls_analysis_document){q->snapshotKeys[i],q->snapshots[i].path,q->snapshotTexts[i],q->snapshotIdentities[i],(uint64_t)((int64_t)q->snapshots[i].version-INT_MIN)};if(xidePathLexicalEqual(q->queryPath,q->snapshots[i].path))target=q->snapshotKeys[i];}
  HANDLE event=CreateEventW(NULL,FALSE,FALSE,NULL);
  xls_query* query=event && target ? xlsWorkerSignatureInContext(q->semanticActor,q->context,documents,q->snapshotCount,q->semanticTarget,target,(size_t)q->queryOffset) : NULL;
+ bindNativeQuery(q,query);
  xls_signature_help* result=NULL;
  if(!query || !xlsQuerySetWake(query,nativeQueryWake,event)){fail(e,"Cannot submit retained signature analysis.");goto done;}
  for(;;){
@@ -214,7 +229,7 @@ static xls_signature_help* retainedSignature(xide_language_check* q,xide_model_e
  }
 done:
  if(cancelled(q) || !result){xlsQueryCancel(query);xlsSignatureRelease(result);result=NULL;}
- xlsQueryDestroy(query);if(event)CloseHandle(event);return result;
+ destroyNativeQuery(q,query);if(event)CloseHandle(event);return result;
 }
 static int nativeAnalysis(xide_language_check* q,char** json,int* code,xls_semantic_check** checked,xls_semantic_completion** completed,xide_model_error* e)
 {

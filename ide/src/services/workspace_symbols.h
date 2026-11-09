@@ -8,7 +8,7 @@ typedef struct xide_workspace_symbols xide_workspace_symbols;
 typedef struct xide_workspace_symbol_query xide_workspace_symbol_query;
 typedef struct xide_workspace_symbol_work {
  size_t roots,captured,reused,covered,sourceRejections,guardBytes,overlayHashBytes;
- uint64_t coordinatorThread,analysisThread;size_t analysisBuilds,analysisHits;
+ uint64_t coordinatorThread,analysisThread;size_t analysisBuilds,analysisHits,analysisSnapshots,primaryFallbacks;
  xide_workspace_symbol_stats index;
 } xide_workspace_symbol_work;
 enum xide_workspace_symbol_state {XIDE_WORKSPACE_SYMBOL_FAILED=-1,XIDE_WORKSPACE_SYMBOL_PENDING=0,
@@ -25,6 +25,15 @@ enum xide_workspace_symbol_state {XIDE_WORKSPACE_SYMBOL_FAILED=-1,XIDE_WORKSPACE
  * work,queued input snapshots,old caller-held results and allocator cost are
  * extra. Destroy cancels/joins;retained result rows outlive this service. */
 xide_workspace_symbols* xideWorkspaceSymbolsCreate(xide_toolchains* cache,const char* compiler,xls_module_store* modules);
+/* Observe completed foreground checks for configured primary entries using
+ * their exact complete context and immutable overlay owners. This does not run
+ * analysis or change foreground history/residency. Missing/stale candidates use
+ * a temporary private actor that is destroyed after guarded row capture. Caller
+ * keeps foreground alive through Destroy and cancels idle work before requests.
+ * Member-only roots use a lazily created persistent private actor,
+ * so orphan traversal cannot displace foreground sessions. Retains modules;
+ * never destroys foreground, including on constructor failure. */
+xide_workspace_symbols* xideWorkspaceSymbolsCreateWithActor(xide_toolchains* cache,const char* compiler,xls_module_store* modules,xls_worker* foreground);
 void xideWorkspaceSymbolsDestroy(xide_workspace_symbols* store);
 /* Prepared contexts,not manifests: at most64 full project/file scopes and
  *65536 total entry/member bindings. Every .xl member is covered by its own

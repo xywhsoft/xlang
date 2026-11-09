@@ -116,6 +116,13 @@ xide_language_check* xideLanguageCheckStartDeclarationCapture(xls_context* conte
  xide_toolchains* cache,const char* compiler,xls_worker* actor,
  const xls_analysis_document* documents,size_t count,
  const xide_language_analysis_options* options,xide_model_error* error);
+/* Same complete source/guard validation, but analysis is observation-only.
+ * Missing/stale checked snapshots fail; caller may use an independent actor.
+ * Projection lookup is readonly; an absent table is prepared privately. */
+xide_language_check* xideLanguageCheckStartCachedDeclarationCapture(xls_context* context,
+ xide_toolchains* cache,const char* compiler,xls_worker* actor,
+ const xls_analysis_document* documents,size_t count,
+ const xide_language_analysis_options* options,xide_model_error* error);
 /* READY, accepted and still guarded only. Retained immutable declarations
  * survive producer/actor destruction. Payload lifetime is not freshness;
  * index consumers also capture/revalidate the existing detached input guard

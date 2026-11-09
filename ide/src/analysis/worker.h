@@ -53,6 +53,14 @@ xls_query* xlsWorkerCheck(xls_worker* worker,const xls_analysis_document* docume
  * inventing an opened document. Disk inputs remain guarded on cache hits. */
 xls_query* xlsWorkerCheckInContext(xls_worker* worker,xls_context* context,
     const xls_analysis_document* documents,size_t count,const char* target);
+/* Observe an already completed indexed check on the owner thread. Exact full
+ * context, actual entry and immutable overlay identities/revisions/text owners
+ * are required. Does not read disk, invoke analysis or change semantic history
+ * or residency. A miss returns FAILED through xlsQueryCheckResult. READY is a
+ * retained historical candidate, NOT a source freshness proof: callers must
+ * validate disk/overlay/configuration and publication guards independently. */
+xls_query* xlsWorkerCachedCheckInContext(xls_worker* worker,xls_context* context,
+    const xls_analysis_document* documents,size_t count,const char* target);
 /* Exact cursor projections use their own retained session on this actor.
  * Use a dedicated foreground actor to avoid the full-check queue. */
 xls_query* xlsWorkerCompletion(xls_worker* worker,const xls_analysis_document* documents,

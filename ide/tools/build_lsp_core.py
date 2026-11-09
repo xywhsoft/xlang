@@ -112,14 +112,16 @@ CORE_TESTS = ("analysis_ir_derived_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_parameters_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_function_pool_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_capacity_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_worker_snapshot_test", "analysis_worker_entry_mode_test", *CORE_TESTS)
 HOST_TESTS += ("navigation_cache_test", "semantic_reference_shard_test", "project_references_test", "project_reference_budget_test", "reference_path_index_test")
 HOST_TESTS += ("path_identity_batch_test", "reference_capture_test")
 HOST_TESTS += ("project_reference_parallel_test",)
 HOST_TESTS += ("project_reference_owner_test", "project_reference_owner_fault_test")
 HOST_TESTS += ("declaration_symbols_test", "declaration_capture_test")
 HOST_TESTS += ("workspace_symbol_index_test",)
-HOST_TESTS += ("workspace_symbols_test", "workspace_symbols_public_test", "workspace_symbol_refresh_test")
+HOST_TESTS += ("workspace_symbols_test", "workspace_symbols_public_test", "workspace_symbol_refresh_test", "workspace_symbols_shared_test")
 HOST_TESTS += ("workspace_symbol_wire_test",)
+HOST_TESTS += ("language_native_cancel_test",)
 
 
 def sha(path: Path) -> str:
@@ -994,15 +996,17 @@ def main() -> None:
             if name in HOST_TESTS:
                 extra += [str(objects[Path(source).stem]) for source in SERVER_SOURCES
                           if Path(source).stem != "xlang_ls" and
-                          not (name in ("snapshot_report_test", "reference_capture_test", "declaration_capture_test", "project_reference_owner_fault_test") and Path(source).stem == "language_snapshot") and
+                          not (name in ("snapshot_report_test", "reference_capture_test", "declaration_capture_test", "project_reference_owner_fault_test", "language_native_cancel_test") and Path(source).stem == "language_snapshot") and
                           not (name == "path_identity_batch_test" and Path(source).stem == "path") and
                           not (name == "workspace_symbol_index_test" and Path(source).stem == "workspace_symbol_index") and
-                          not (name in ("workspace_symbols_test", "workspace_symbol_refresh_test") and Path(source).stem == "workspace_symbols") and
+                          not (name in ("workspace_symbols_test", "workspace_symbol_refresh_test", "workspace_symbols_shared_test") and Path(source).stem == "workspace_symbols") and
                           not (name == "workspace_symbol_wire_test" and Path(source).stem == "workspace_symbol_wire") and
                           not (name in ("semantic_lookup_test", "semantic_reference_shard_test", "declaration_symbols_test") and Path(source).stem == "semantic_definition") and
                           not (name in ("project_reference_budget_test", "reference_path_index_test", "project_reference_parallel_test", "project_reference_owner_fault_test") and Path(source).stem == "project_references")]
             if name == "project_reference_owner_fault_test":
                 extra.append(str(objects['owner_snapshot_fault']))
+            if name == "language_native_cancel_test":
+                extra.append("-Wl,--wrap=xlsQueryCancel")
             if name in CLIENT_TESTS:
                 # The stream fixture privately owns its actor for deterministic
                 # gates. Other client fixtures need only the pure decoders.

@@ -7,7 +7,7 @@
 #include <string.h>
 #include <stdio.h>
 
-enum query_kind { QUERY_SYNTAX,QUERY_FOLDING,QUERY_SELECTION,QUERY_CHECK,QUERY_COMPLETION,QUERY_SIGNATURE,QUERY_DEPENDENCY,QUERY_COUNT };
+enum query_kind { QUERY_SYNTAX,QUERY_FOLDING,QUERY_SELECTION,QUERY_CHECK,QUERY_COMPLETION,QUERY_SIGNATURE,QUERY_DEPENDENCY,QUERY_COUNT,QUERY_CACHED_CHECK };
 typedef struct semantic_session {
     enum query_kind kind;
     union {xls_check_session* check;xls_completion_session* completion;xls_signature_session* signature;xls_dependency_session* dependency;} value;
@@ -22,7 +22,7 @@ struct xls_worker {
 };
 struct xls_query { xfuture* future; xfuturewatch watch; int watchInitialized,watchLinked; void (*wake)(void*); void* user; };
 typedef struct query_document { char *key,*path; xls_text* text; uint64_t identity,revision; } query_document;
-typedef struct query_input { xls_worker* worker; xls_context* context; xmap documents; char *target,*queryKey; enum query_kind kind; size_t rangeLimit,offset;size_t* selections;size_t selectionCount; } query_input;
+typedef struct query_input { xls_worker* worker; xls_context* context; xmap documents; char *target,*queryKey; enum query_kind kind; int cachedCheck; size_t rangeLimit,offset;size_t* selections;size_t selectionCount; } query_input;
 typedef struct query_result { xls_analysis_snapshot snapshot; xls_session_stats stats; uint64_t threadId; xls_folding* folding;xls_selection* selection; xls_semantic_check* check; xls_check_stats checkStats; xls_semantic_completion* completion; xls_completion_stats completionStats; xls_signature_help* signature; xls_signature_stats signatureStats; xls_dependency_capture* dependency; xls_dependency_session_stats dependencyStats; xls_worker_cache_stats cacheStats; char error[256]; } query_result;
 static xbytesview keyView(const char* key) { return (xbytesview){(const unsigned char*)key,strlen(key)}; }
 static int validLabel(const char* label)
@@ -128,13 +128,14 @@ int xlsWorkerLoad(xls_worker* worker,xls_worker_load* load)
 xls_projection_store* xlsWorkerProjectionStore(xls_worker* worker){return worker ? worker->projections : NULL;}
 static xls_query* submit(xls_worker* worker,xls_context* context,const xls_analysis_document* documents,size_t count,const char* target,enum query_kind kind,size_t rangeLimit,const char* queryKey,size_t offset,const size_t* selections,size_t selectionCount)
 {
+    int cachedCheck=kind==QUERY_CACHED_CHECK;if(cachedCheck)kind=QUERY_CHECK;
     if(selectionCount>XLS_SELECTION_POSITIONS || (selectionCount && !selections))return NULL;
     if(!worker || (count && !documents) || (!count && ((kind!=QUERY_DEPENDENCY && kind!=QUERY_CHECK) || target || !context)) || count>worker->limits.documents ||
        (target ? !validLabel(target) : !context || kind<QUERY_CHECK || kind>=QUERY_COUNT) ||
        ((kind==QUERY_COMPLETION || kind==QUERY_SIGNATURE) && !validLabel(queryKey))) return NULL;
     query_input* input=xrtMalloc(sizeof(*input));
     if(!input) return NULL;
-    memset(input,0,sizeof(*input)); input->context=xlsContextRetain(context); input->worker=worker; input->target=target ? xrtStrDup(target) : NULL; input->kind=kind; input->rangeLimit=rangeLimit;
+    memset(input,0,sizeof(*input)); input->context=xlsContextRetain(context); input->worker=worker; input->target=target ? xrtStrDup(target) : NULL; input->kind=kind; input->cachedCheck=cachedCheck; input->rangeLimit=rangeLimit;
     input->offset=offset; if(queryKey) input->queryKey=xrtStrDup(queryKey);
     if((target && !input->target) || (queryKey && !input->queryKey) || !xrtMapInit(&input->documents,sizeof(query_document)) ||
         !xrtMapSetDrop(&input->documents,dropDocument,NULL)) { freeInput(input,NULL); return NULL; }
@@ -177,6 +178,9 @@ xls_query* xlsWorkerCompletion(xls_worker* worker,const xls_analysis_document* d
 xls_query* xlsWorkerCheckInContext(xls_worker* worker,xls_context* context,
     const xls_analysis_document* documents,size_t count,const char* target)
 { return count>64 ? NULL : submit(worker,context,documents,count,target,QUERY_CHECK,0,NULL,0,NULL,0); }
+xls_query* xlsWorkerCachedCheckInContext(xls_worker* worker,xls_context* context,
+    const xls_analysis_document* documents,size_t count,const char* target)
+{ return count>64 ? NULL : submit(worker,context,documents,count,target,QUERY_CACHED_CHECK,0,NULL,0,NULL,0); }
 xls_query* xlsWorkerCompletionInContext(xls_worker* worker,xls_context* context,
     const xls_analysis_document* documents,size_t count,const char* entry,const char* queryKey,size_t offset)
 { return count>64 ? NULL : submit(worker,context,documents,count,entry,QUERY_COMPLETION,0,queryKey,offset,NULL,0); }

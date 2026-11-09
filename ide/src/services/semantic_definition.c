@@ -411,7 +411,7 @@ size_t xideSemanticNavigationBytes(const xide_navigation_snapshot* snapshot)
 {return snapshot ? snapshot->bytes : 0;}
 void xideSemanticNavigationBind(xide_navigation_snapshot* snapshot,xls_projection_store* cache)
 {if(snapshot){snapshot->cache=cache;snapshot->revision=xlsProjectionRetireOther(cache,snapshot->owner);snapshot->bound=1;}}
-int xideSemanticNavigationPreparePoints(xide_navigation_snapshot* snapshot,xide_model_error* error)
+static int preparePoints(xide_navigation_snapshot* snapshot,xls_projection_store* cache,int publish,xide_model_error* error)
 {
  xide_model_error local;
  if(!error)error=&local;
@@ -425,12 +425,11 @@ int xideSemanticNavigationPreparePoints(xide_navigation_snapshot* snapshot,xide_
  xstrbuf key={0};int valid=navigationOwnedKey(snapshot->sources,snapshot->count,&key,1);
  const uint64_t domain=UINT64_C(0x706f696e747301);
  int keyed=valid && navigationAppend(&key,&domain,sizeof(domain));
- xls_projection_store* cache=snapshot->bound ? snapshot->cache : NULL;
  xls_projection* lease=keyed ? xlsProjectionAcquire(cache,snapshot->owner,key.Data,key.Size) : NULL;
  xide_semantic_definitions* d=lease ? xlsProjectionValue(lease) : nativePointsCreate(xlsSemanticCheckTypedIndex(snapshot->owner),snapshot->sources,snapshot->count,error);
  if(d){
   snapshot->pointWork=(xide_navigation_work){.built=lease==NULL,.hit=lease!=NULL,.bytes=navigationBytes(d)};
-  if(!lease && keyed){lease=xlsProjectionCreate(snapshot->owner,key.Data,key.Size,d,navigationBytes(d),destroyNavigation);if(lease){lease=xlsProjectionPublishAt(cache,lease,snapshot->revision);d=xlsProjectionValue(lease);}}
+  if(!lease && keyed && publish){lease=xlsProjectionCreate(snapshot->owner,key.Data,key.Size,d,navigationBytes(d),destroyNavigation);if(lease){lease=xlsProjectionPublishAt(cache,lease,snapshot->revision);d=xlsProjectionValue(lease);}}
   if(!xlsSemanticCheckTypedIndex(snapshot->owner)){
    xideSemanticDefinitionsReleaseTyped(d,lease);d=NULL;
    if(error){error->code=XIDE_MODEL_INVALID;snprintf(error->message,sizeof(error->message),"Point navigation owner became invalid during preparation.");}
@@ -438,6 +437,10 @@ int xideSemanticNavigationPreparePoints(xide_navigation_snapshot* snapshot,xide_
  }
  xrtStrBufFree(&key);return d ? 1 : error && error->code ? -1 : 0;
 }
+int xideSemanticNavigationPreparePoints(xide_navigation_snapshot* snapshot,xide_model_error* error)
+{return preparePoints(snapshot,snapshot && snapshot->bound ? snapshot->cache : NULL,1,error);}
+int xideSemanticNavigationPrepareTransientPoints(xide_navigation_snapshot* snapshot,xls_projection_store* cache,xide_model_error* error)
+{return preparePoints(snapshot,cache,0,error);}
 int xideSemanticNavigationPointsReady(const xide_navigation_snapshot* snapshot)
 {return snapshot && snapshot->points && xlsSemanticCheckTypedIndex(snapshot->owner)!=NULL;}
 xide_navigation_work xideSemanticNavigationPointWork(const xide_navigation_snapshot* snapshot)

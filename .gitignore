@@ -33,6 +33,7 @@
 !/dev/release-materials/provenance/xge-render-resources-20261109.json
 !/dev/release-materials/provenance/xge-input-actions-20261109.json
 !/dev/release-materials/provenance/stdlib-native-headers-20261110.json
+!/dev/release-materials/provenance/lsp-workspace-analysis-sharing-20261110.json
 /out/
 /tmp/
 /logs/

@@ -60,7 +60,17 @@ static int semanticMatches(const semantic_session* s,const query_input* input,co
     xls_session_state state=semanticState(s);if(!state.inputs)return 0;
     const xls_analysis_document* old=xlsInputBatchTarget(state.inputs);
     const xls_analysis_document* now=capturedFind(inputs,input->target);
-    if((old!=NULL)!=(now!=NULL) || (old && !sameRequired(old,now)))return 0;
+    if((old!=NULL)!=(now!=NULL)){
+        /* Explicit check/dependency contexts identify the actual compilation
+         * entry even when its editor key appears/disappears. Reuse the same
+         * session across that representation change;the session still validates
+         * the full new input batch and reruns semantics when it differs.
+         * Named-to-named identity changes keep their original strict routing. */
+        const char* entry=xlsInputBatchEntry(state.inputs);
+        const char* next=now ? now->path : input->context ? xlsContextSpec(input->context)->entry : NULL;
+        if((input->kind!=QUERY_CHECK && input->kind!=QUERY_DEPENDENCY) || !input->context ||
+           !xlsInputBatchContext(state.inputs) || !entry || !next || strcmp(entry,next))return 0;
+    }else if(old && !sameRequired(old,now))return 0;
     if((state.queryKey!=NULL)!=(input->queryKey!=NULL))return 0;
     if(state.queryKey && (strcmp(state.queryKey,input->queryKey) ||
        !sameRequired(xlsInputBatchFind(state.inputs,state.queryKey),capturedFind(inputs,input->queryKey))))return 0;
@@ -70,6 +80,19 @@ static int stillRequired(const semantic_session* s,const xls_input_batch* curren
 {
     xls_session_state state=semanticState(s);const xls_analysis_document* entry=xlsInputBatchTarget(state.inputs);
     if(entry && !sameRequired(entry,xlsInputBatchFind(current,entry->key)))return 0;
+    /* A configured disk entry has no target key. Its old disk-only session
+     * becomes obsolete when that same path is overlaid (or the overlay's
+     * identity changes), just as a closed named target is already obsolete.
+     * Unrelated closed project roots remain live. No filesystem/body work. */
+    if(!entry){
+        const char* path=xlsInputBatchEntry(state.inputs);
+        const xls_analysis_document *before=NULL,*after=NULL,*document;
+        if(path){
+            for(size_t i=0;(document=xlsInputBatchAt(state.inputs,i));++i)if(!strcmp(document->path,path)){before=document;break;}
+            for(size_t i=0;(document=xlsInputBatchAt(current,i));++i)if(!strcmp(document->path,path)){after=document;break;}
+            if((before!=NULL)!=(after!=NULL) || (before && !sameRequired(before,after)))return 0;
+        }
+    }
     return !state.queryKey || sameRequired(xlsInputBatchFind(state.inputs,state.queryKey),xlsInputBatchFind(current,state.queryKey));
 }
 static uint64_t addWork(uint64_t total,uint64_t before,uint64_t after)
@@ -99,9 +122,36 @@ static void commitSemantic(xls_worker* w,semantic_session* selected,size_t slot,
     w->cacheStats.sessions=w->cachedCount;w->cacheStats.inputStorageBytes=cacheInputBytes(w,0);
     w->cacheStats.inputBudgetExceeded=w->cacheStats.inputStorageBytes>w->cacheLimits.inputStorageBytes;
 }
+static xtaskoutcome cachedSemantic(xcancel* cancel,query_input* input,const check_inputs* inputs,xtaskvalue* output)
+{
+    xls_worker* w=input->worker;query_result* result=xrtCalloc(1,sizeof(*result));if(!result)return XTASK_FAILED;
+    for(size_t i=0;i<w->cachedCount;++i){
+        semantic_session* s=&w->cached[i];if(!semanticMatches(s,input,inputs))continue;
+        const xls_input_batch* batch=semanticState(s).inputs;size_t count=0;const xls_analysis_document* old;
+        const xls_analysis_document* target=capturedFind(inputs,input->target);
+        const char* entry=target ? target->path : input->context ? xlsContextSpec(input->context)->entry : NULL;
+        if(!entry || !xlsInputBatchEntry(batch) || strcmp(entry,xlsInputBatchEntry(batch)))continue;
+        for(;(old=xlsInputBatchAt(batch,count));++count){
+            const xls_analysis_document* now=capturedFind(inputs,old->key);
+            if(!sameRequired(old,now) || old->revision!=now->revision || old->text!=now->text)break;
+        }
+        if(old || count!=inputs->count)continue;
+        xls_semantic_checkpoint saved=checkpointSemantic(s);
+        if(saved.captureIndex){result->check=saved.check;saved.check=NULL;}
+        dropCheckpoint(&saved);if(result->check)break;
+    }
+    /* Observation only: no source I/O, checker invocation, cache promotion,
+     * history advancement or projection retirement. The caller must validate
+     * the immutable candidate against its current source/configuration proof. */
+    result->checkStats=w->checkTotals;result->cacheStats=w->cacheStats;result->threadId=xrtThreadCurrentId();
+    if(!result->check)snprintf(result->error,sizeof(result->error),"Checked snapshot unavailable.");
+    if(xrtCancelRequested(cancel)){freeResult(result,NULL);return XTASK_CANCELLED;}
+    *output=(xtaskvalue){result,freeResult,NULL};return XTASK_SUCCESS;
+}
 static xtaskoutcome executeSemantic(xcancel* cancel,query_input* input,xtaskvalue* output)
 {
     xls_worker* w=input->worker;check_inputs inputs={0};xrtMapVisit(&input->documents,captureCheck,&inputs);
+    if(input->cachedCheck)return cachedSemantic(cancel,input,&inputs,output);
     query_result* result=xrtCalloc(1,sizeof(*result));if(!result)return XTASK_FAILED;
     size_t slot=w->cachedCount;for(size_t i=0;i<w->cachedCount;++i)if(semanticMatches(&w->cached[i],input,&inputs)){slot=i;break;}
     semantic_session staged={0};semantic_session* selected=NULL;int replaced=0;

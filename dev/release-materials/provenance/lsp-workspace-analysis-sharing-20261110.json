@@ -1,0 +1,613 @@
+{
+  "schema": 1,
+  "date": "2026-11-10",
+  "stage": "M7a2b126n",
+  "status": "functionally-verified-performance-not-admitted",
+  "scope": "Guarded read-only completed-check sharing for idle workspace symbols,temporary private fallback,direct native cancellation,true quiet interval and session entry lifecycle. Source milestone only;default runtime unchanged.",
+  "longTermGoal": "active",
+  "repositoryHeadAtCollection": "45d9d59adfd7896fba89415ac636ccc102d3d3af",
+  "releaseAdmitted": false,
+  "defaultRuntimeReplaced": false,
+  "onlinePublishPerformed": false,
+  "currentDeliveryIndexModifiedByThisStage": false,
+  "ownedSources": {
+    ".gitignore": "0b608fd8bb9ba9b30ef8a9cdc66e03d4dca11e29291cc085fbf959ef84815795",
+    "ide/docs/lsp-development.md": "ba2f246c446756b6edbbb27f92e5aa04a079b94c122ce925cca854f37eedd919",
+    "ide/docs/lsp-workspace-analysis-sharing.md": "4bfdb16e6ec9e27973a72fc166e71593292716872c7360ca039cffe0c79ff4e6",
+    "ide/src/analysis/worker.c": "a7d89b1d254168bdd8b35ebc52c617070add89101155c5cf5eb79d95cda56fc9",
+    "ide/src/analysis/worker.h": "95b197af3d330ca15d858a4af351a1fd9010fc63f692efc1186b4d4697e4d899",
+    "ide/src/analysis/worker_cache.inc": "8732105a1fbff1bf778197eccf69df39df920957f912024450a25ab65bfff8b1",
+    "ide/src/server/workspace_symbol_refresh.inc": "9615a328538446ca5ae52a2f650046164523b2cf17f76f7109db95dc11e7c049",
+    "ide/src/server/workspace_symbols.inc": "090cf7f6294f4b854a4e5bccd27ac99e8aee76b1aa0d7653456df0f0e2055aa3",
+    "ide/src/services/language_check.c": "43b3510753081e89c8e6cbb95afdfa09210798fbe70ea9e3a9d697ffbfdb5778",
+    "ide/src/services/language_check.h": "e46be015b623ef9ee2aa880c863e1e5568450f908b66c0e52b9acd3b5595f831",
+    "ide/src/services/language_check_internal.h": "9b7e565d6f6693c3d86f56408e98b5926c866cabba28ae0585d2fb056ef3dfef",
+    "ide/src/services/language_snapshot.c": "d40ecb30e345d7de20eebf1c8a4d8bc23c14e7e35dc701953fd947141e0265e6",
+    "ide/src/services/semantic_definition.c": "b520251bb51237a3b025375719a87c65d90429791e5e7d7c85b7922c59de1a0f",
+    "ide/src/services/semantic_definition.h": "6a24ba5cb083846cade4c38609fc2583db0585272c7cb8a6b03ba832e2066e34",
+    "ide/src/services/workspace_symbols.c": "701c03938236ec6cb37313d3388af0c2e0879cce917d640bdba702513006d7f2",
+    "ide/src/services/workspace_symbols.h": "3e23d55ed62492532ed46c1ae11a6c9cf6548bc306d8886b0344ebb77c5acab4",
+    "ide/tests/analysis_worker_entry_mode_test.c": "d897d5d43ce16e207fbc0de80472333f04eb869179986fb2f945ea4652cd8569",
+    "ide/tests/analysis_worker_snapshot_test.c": "8c6bb00d39ee1561c3f390306b67ac6c9729cec055d1bea2dd523b0f5d75f863",
+    "ide/tests/language_native_cancel_test.c": "8d09e0ae4a2bef4b2bdcf688ba31dd8cda94bc725422e06211d9afdbe670fc4e",
+    "ide/tests/workspace_symbols_shared_test.c": "1b290479988508b8705b756b66a93b43089bed5161cfc3d49f2b223ae151d437",
+    "ide/tools/benchmark_lsp_analysis.py": "13734508611837533c12ca7f677c09dd20aa2f4c40c0906976950700e591f61a",
+    "ide/tools/build_lsp_core.py": "35b149e1666f9a34b3b9dd35b3f7ea273eda6ccbcb1c68fd15853ede45207dcc",
+    "ide/tools/check_lsp_workspace_analysis_reuse.py": "f1d859d515cb3861c7cedca34317de33d9a69953c4b7f0485c1d34d630e124af",
+    "ide/tools/check_lsp_workspace_idle_deadline.py": "596570e8dbf7ff72218860d336646de04b355114bf084ecf3051bd10b8256507"
+  },
+  "materials": {
+    "sourceManifest": {
+      "path": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-workspace-analysis-sharing-20261110\\manifest.json",
+      "sha256": "cce662b8271cc7911a3514cedd26c01e01ae5523ac28da64c4f5b1272cabd9c4",
+      "bytes": 862
+    },
+    "reportManifest": {
+      "path": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\lsp-workspace-analysis-sharing-20261110\\manifest.json",
+      "sha256": "a3a2f5c42edfe6dadecb185445f8e9214d2d7d25758cccae28c74d0b2c136fc1",
+      "bytes": 1065
+    },
+    "source": {
+      "schema": 1,
+      "logicalDirectory": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-workspace-analysis-sharing-20261110",
+      "storageBacking": "E:\\codex-builds-xlang-lsp-20261109\\lsp-workspace-analysis-sharing-20261110-materials\\sources",
+      "archive": {
+        "path": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-workspace-analysis-sharing-20261110\\sources.tar.gz",
+        "sha256": "f0b56a5517069c67699415f4953e39f8812ded98bd7e60d3f29aceba9caac719",
+        "bytes": 44830528
+      },
+      "bindings": {
+        "path": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-workspace-analysis-sharing-20261110\\source-bindings.json",
+        "sha256": "95047ef25dba2a6536d39681b9d5ec5da0323ddd99ff694ed57656f3c042bdc5"
+      },
+      "nativeInputBindings": 1506,
+      "guiInputBindings": 674,
+      "matchedSdkFiles": 180,
+      "distinctArchiveEntries": 1799
+    },
+    "provenance": {
+      "schema": 1,
+      "logicalDirectory": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\lsp-workspace-analysis-sharing-20261110",
+      "storageBacking": "E:\\codex-builds-xlang-lsp-20261109\\lsp-workspace-analysis-sharing-20261110-materials\\provenance",
+      "archive": {
+        "path": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\lsp-workspace-analysis-sharing-20261110\\reports.tar.gz",
+        "sha256": "fe9e0e5cd350cad87651354e5cbc3fab3ddfa639c3763071d776551089a130d4",
+        "bytes": 59955452
+      },
+      "files": 6129,
+      "retainedOriginalRunDirectories": [
+        "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-shared-analysis-20261109",
+        "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-checked-assets-20261109"
+      ],
+      "historicalPathsRewritten": false,
+      "screenshots": {
+        "path": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\lsp-workspace-analysis-sharing-20261110\\screenshots.tar.gz",
+        "sha256": "1ed757d865d29b7e1ef9f45651d041237329d4d739befe7d5479855d980df90a",
+        "bytes": 13928197,
+        "files": 116
+      }
+    }
+  },
+  "build": {
+    "receipt": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-checked-assets-20261109\\qualified-v7\\build-result.json",
+      "sha256": "bf002c0a4a325eaac84383210f9dcd93caf45cec55a12d22b1bd15f39feef27a",
+      "bytes": 11074504,
+      "archiveMember": "checked-assets/qualified-v7/build-result.json"
+    },
+    "serverSha256": "566611c8a0cd05d138c98330e75b3558b3c553a68a26f6a05d081c815323e379",
+    "nativeInputBindings": 1506,
+    "outputs": 156,
+    "recompiledUnits": 63,
+    "relinkedAndExecuted": 154,
+    "aggregateNativeFixtures": 154,
+    "scope": "Retained exact frozen native/frontend/private AST objects;actual changed-header GCC closures recompiled. All core-linked consumers relinked and executed. Not a full frontend recompile.",
+    "concurrentEngineEditsConsumed": false
+  },
+  "gui": {
+    "buildReceipt": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-checked-assets-20261109\\gui-current-build-inputs-v7.json",
+      "sha256": "a148a1532b880eb3e8ecdd50719c25d175e731e058d3aa9347746a704e622ce6",
+      "bytes": 166796,
+      "archiveMember": "checked-assets/gui-current-build-inputs-v7.json"
+    },
+    "result": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-checked-assets-20261109\\gui-current-results-v7.json",
+      "sha256": "3027b55784b953cf7787f90755599e784836e2921bacb9953b38c3322b9c34e4",
+      "bytes": 25418,
+      "archiveMember": "checked-assets/gui-current-results-v7.json"
+    },
+    "translationUnits": 115,
+    "matchedSdkFiles": 180,
+    "checks": 26,
+    "mainCandidateChecks": 25,
+    "controlledLegacyCapabilityChecks": 1,
+    "sha256": "ed7b00beb7010127ef61717b42849181d021d1765d6b7dffd43aff38b548d140",
+    "pairedServerSha256": "566611c8a0cd05d138c98330e75b3558b3c553a68a26f6a05d081c815323e379"
+  },
+  "correctness": {
+    "protocols": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-checked-assets-20261109\\protocols-v7.json",
+      "sha256": "243a2de91e60ce6e1d78b1daab6ba8122aa3229f5c529db5b8df54af7575c38c",
+      "bytes": 3996,
+      "archiveMember": "checked-assets/protocols-v7.json"
+    },
+    "snapshotContractChecks": 45,
+    "entryModeChecks": 73,
+    "nativeCancelChecks": 25,
+    "sharedServiceChecks": 30,
+    "actualCControls": [
+      {
+        "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-checked-assets-20261109\\snapshot-omissions-v7\\result.json",
+        "sha256": "d77943237d2e6be6d5bc5b4152faf72ccacd890333e137058920b5e356732fb3",
+        "bytes": 54907,
+        "archiveMember": "checked-assets/snapshot-omissions-v7/result.json"
+      },
+      {
+        "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-checked-assets-20261109\\cancel-omissions-v7\\result.json",
+        "sha256": "80872beb1835c8c837574c18063a0051cef4385db8e413024034d1a140950347",
+        "bytes": 76444,
+        "archiveMember": "checked-assets/cancel-omissions-v7/result.json"
+      },
+      {
+        "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-checked-assets-20261109\\entry-prune-omission-v7\\result.json",
+        "sha256": "acaaa281f4290122c2b72c3868a6fc26732cd64474fbc8f197d34ef2aae44f3e",
+        "bytes": 9317,
+        "archiveMember": "checked-assets/entry-prune-omission-v7/result.json"
+      },
+      {
+        "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-checked-assets-20261109\\entry-mode-reuse-omission-v7\\result.json",
+        "sha256": "a7ff2dac9721994111e73eb886cc466bc25bc7cbdc6c3511619e3ae8c01a323f",
+        "bytes": 9377,
+        "archiveMember": "checked-assets/entry-mode-reuse-omission-v7/result.json"
+      },
+      {
+        "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-checked-assets-20261109\\idle-deadline-proof-v7\\result.json",
+        "sha256": "ed1f3b0c013202cb02e84eb270ac511e7815ec01a9fc72e87c5060dff9d85cff",
+        "bytes": 30286,
+        "archiveMember": "checked-assets/idle-deadline-proof-v7/result.json"
+      }
+    ],
+    "failedChildCleanup": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-checked-assets-20261109\\isolated-failure-cleanup-control.json",
+      "sha256": "5c830392ff3555e675784fa1dc57040390f88404a3bbcdda7f618b21fdbcfb9c",
+      "bytes": 1495,
+      "archiveMember": "checked-assets/isolated-failure-cleanup-control.json"
+    }
+  },
+  "memory": {
+    "result": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-checked-assets-20261109\\memory-comparison-v7\\result.json",
+      "sha256": "da3f48e80c3725bb13006e90da3553c3836ff37cc372fa45bc58c8243fd5aca6",
+      "bytes": 62962,
+      "archiveMember": "checked-assets/memory-comparison-v7/result.json"
+    },
+    "independentPairs": 6,
+    "processes": 12,
+    "backgroundEnabledInBoth": true,
+    "checkpoint": "After cold check,one edit and second complete background refresh;current private,not whole-lifetime peak/global RSS bound.",
+    "checkpointPrivateMiB": {
+      "baseline": {
+        "minimum": 561.5390625,
+        "maximum": 565.6796875
+      },
+      "candidate": {
+        "minimum": 293.7421875,
+        "maximum": 296.26953125
+      }
+    },
+    "pairedSavingMiB": {
+      "minimum": 265.3125,
+      "maximum": 269.70703125
+    }
+  },
+  "performance": {
+    "admitted": false,
+    "allEarlierFailuresRetained": true,
+    "experiments": [
+      {
+        "name": "initial-live-aa",
+        "result": {
+          "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-shared-analysis-20261109\\screen-aa\\result.json",
+          "sha256": "f5cdf4efdf5005e59e54da4c42dd86482d8c0d50d927bce7e8d5113cb3fc777d",
+          "bytes": 6469336,
+          "archiveMember": "shared-analysis/screen-aa/result.json"
+        },
+        "status": "passed",
+        "queries": 960,
+        "processes": 64,
+        "gates": 64,
+        "failedGates": []
+      },
+      {
+        "name": "initial-live-ab",
+        "result": {
+          "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-shared-analysis-20261109\\screen-ab\\result.json",
+          "sha256": "b9d0291c2362ad59083f3bc1ee034140f1c4851924d117636e41545b94f6328e",
+          "bytes": 12895215,
+          "archiveMember": "shared-analysis/screen-ab/result.json"
+        },
+        "status": "gates-failed",
+        "queries": 1920,
+        "processes": 128,
+        "gates": 64,
+        "failedGates": [
+          {
+            "name": "512-single-literal/hot/wireP50",
+            "actual": 268.7376,
+            "limit": 258.593475,
+            "passed": false,
+            "baseline": 246.2795,
+            "ratio": 1.05
+          },
+          {
+            "name": "512-single-literal/hot/wireP95",
+            "actual": 295.963,
+            "limit": 283.25766000000004,
+            "passed": false,
+            "baseline": 269.7692
+          },
+          {
+            "name": "512-single-literal/hot/cpuP50",
+            "actual": 265.625,
+            "limit": 262.5,
+            "passed": false,
+            "baseline": 250.0
+          },
+          {
+            "name": "512-single-declaration/cold/wireP50",
+            "actual": 824.9658,
+            "limit": 795.9079800000001,
+            "passed": false,
+            "baseline": 758.0076,
+            "ratio": 1.05
+          },
+          {
+            "name": "512-imported-literal/hot/wireP95",
+            "actual": 310.7381,
+            "limit": 309.793785,
+            "passed": false,
+            "baseline": 295.0417
+          }
+        ]
+      },
+      {
+        "name": "initial-live-cumulative",
+        "result": {
+          "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-shared-analysis-20261109\\screen-cumulative\\result.json",
+          "sha256": "a538c81292a0c0576700f396327560f9899e3954f757667088f938d2412ade1d",
+          "bytes": 12953736,
+          "archiveMember": "shared-analysis/screen-cumulative/result.json"
+        },
+        "status": "gates-failed",
+        "queries": 1920,
+        "processes": 128,
+        "gates": 64,
+        "failedGates": [
+          {
+            "name": "512-single-declaration/cold/wireP50",
+            "actual": 764.3495,
+            "limit": 761.7083250000001,
+            "passed": false,
+            "baseline": 725.4365,
+            "ratio": 1.05
+          }
+        ]
+      },
+      {
+        "name": "direct-cancel-target",
+        "result": {
+          "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-checked-assets-20261109\\target-screen\\result.json",
+          "sha256": "a1107414562d4a6c37ba4148973027dc15b65bbb12168153484800f76d552ca0",
+          "bytes": 1566276,
+          "archiveMember": "checked-assets/target-screen/result.json"
+        },
+        "status": "gates-failed",
+        "queries": 240,
+        "processes": 16,
+        "gates": 8,
+        "failedGates": [
+          {
+            "name": "512-single-literal/hot/wireP50",
+            "actual": 289.3625,
+            "limit": 284.93083500000006,
+            "passed": false,
+            "baseline": 271.3627,
+            "ratio": 1.05
+          },
+          {
+            "name": "512-single-literal/hot/wireP95",
+            "actual": 338.1449,
+            "limit": 323.47539,
+            "passed": false,
+            "baseline": 308.0718
+          },
+          {
+            "name": "512-single-literal/hot/cpuP50",
+            "actual": 281.25,
+            "limit": 278.90625,
+            "passed": false,
+            "baseline": 265.625
+          }
+        ]
+      },
+      {
+        "name": "quiet-target",
+        "result": {
+          "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-checked-assets-20261109\\target-screen-v2\\result.json",
+          "sha256": "b60f8031308761fe7e687832334cc6981d27ce5bcf61b5ce7467d3c6f509c8c2",
+          "bytes": 1569096,
+          "archiveMember": "checked-assets/target-screen-v2/result.json"
+        },
+        "status": "gates-failed",
+        "queries": 240,
+        "processes": 16,
+        "gates": 8,
+        "failedGates": [
+          {
+            "name": "512-single-literal/cold/wireP50",
+            "actual": 852.229,
+            "limit": 831.6505050000001,
+            "passed": false,
+            "baseline": 792.0481,
+            "ratio": 1.05
+          },
+          {
+            "name": "512-single-literal/hot/wireP50",
+            "actual": 277.4279,
+            "limit": 275.33793000000003,
+            "passed": false,
+            "baseline": 262.2266,
+            "ratio": 1.05
+          },
+          {
+            "name": "512-single-literal/hot/wireP95",
+            "actual": 334.4818,
+            "limit": 315.24507000000006,
+            "passed": false,
+            "baseline": 300.2334
+          },
+          {
+            "name": "512-single-literal/hot/cpuP50",
+            "actual": 281.25,
+            "limit": 278.90625,
+            "passed": false,
+            "baseline": 265.625
+          }
+        ]
+      },
+      {
+        "name": "prune-target",
+        "result": {
+          "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-checked-assets-20261109\\target-screen-v3\\result.json",
+          "sha256": "bd93cf3c38e98af92568cbc2dee983ba44b58205b97e29d472d41bb62c60fe12",
+          "bytes": 1569295,
+          "archiveMember": "checked-assets/target-screen-v3/result.json"
+        },
+        "status": "gates-failed",
+        "queries": 240,
+        "processes": 16,
+        "gates": 8,
+        "failedGates": [
+          {
+            "name": "512-single-literal/cold/wireP50",
+            "actual": 796.8812,
+            "limit": 772.3898700000001,
+            "passed": false,
+            "baseline": 735.6094,
+            "ratio": 1.05
+          },
+          {
+            "name": "512-single-literal/hot/wireP95",
+            "actual": 281.0796,
+            "limit": 273.91371000000004,
+            "passed": false,
+            "baseline": 260.8702
+          }
+        ]
+      },
+      {
+        "name": "entry-mode-target",
+        "result": {
+          "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-checked-assets-20261109\\target-screen-v4\\result.json",
+          "sha256": "df09971b8236b7030eab257b61a6075332d65d57e1bbf043525500242f0076e7",
+          "bytes": 1568996,
+          "archiveMember": "checked-assets/target-screen-v4/result.json"
+        },
+        "status": "gates-failed",
+        "queries": 240,
+        "processes": 16,
+        "gates": 8,
+        "failedGates": [
+          {
+            "name": "512-single-literal/cold/wireP50",
+            "actual": 811.9589,
+            "limit": 811.35579,
+            "passed": false,
+            "baseline": 772.7198,
+            "ratio": 1.05
+          },
+          {
+            "name": "512-single-literal/hot/wireP95",
+            "actual": 298.7098,
+            "limit": 291.409755,
+            "passed": false,
+            "baseline": 277.5331
+          },
+          {
+            "name": "512-single-literal/hot/cpuP50",
+            "actual": 265.625,
+            "limit": 262.5,
+            "passed": false,
+            "baseline": 250.0
+          }
+        ]
+      },
+      {
+        "name": "snapshot-target",
+        "result": {
+          "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-checked-assets-20261109\\target-screen-v7\\result.json",
+          "sha256": "ce812bf13684956c418461b6dedbf9f41018a90533f80565b1ca6cc3ba72ae9f",
+          "bytes": 1569118,
+          "archiveMember": "checked-assets/target-screen-v7/result.json"
+        },
+        "status": "gates-failed",
+        "queries": 240,
+        "processes": 16,
+        "gates": 8,
+        "failedGates": [
+          {
+            "name": "512-single-literal/cold/wireP50",
+            "actual": 868.0363,
+            "limit": 833.020545,
+            "passed": false,
+            "baseline": 793.3529,
+            "ratio": 1.05
+          },
+          {
+            "name": "512-single-literal/hot/wireP50",
+            "actual": 288.6952,
+            "limit": 280.51295999999996,
+            "passed": false,
+            "baseline": 267.1552,
+            "ratio": 1.05
+          },
+          {
+            "name": "512-single-literal/hot/wireP95",
+            "actual": 353.5516,
+            "limit": 343.329,
+            "passed": false,
+            "baseline": 326.98
+          },
+          {
+            "name": "512-single-literal/hot/cpuP50",
+            "actual": 281.25,
+            "limit": 278.90625,
+            "passed": false,
+            "baseline": 265.625
+          }
+        ]
+      },
+      {
+        "name": "isolated-single-cpu-aa",
+        "result": {
+          "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-checked-assets-20261109\\isolated-screen-aa-v7\\result.json",
+          "sha256": "d77df4b9b6aaa30a7fc986c432ad05ea2dc82d4ef38707ba0af50a71caf8c691",
+          "bytes": 6490793,
+          "archiveMember": "checked-assets/isolated-screen-aa-v7/result.json"
+        },
+        "status": "calibration-failed",
+        "queries": 960,
+        "processes": 64,
+        "gates": 64,
+        "failedGates": [
+          {
+            "name": "512-imported-literal/hot/cpuP50",
+            "actual": 281.25,
+            "limit": 278.90625,
+            "passed": false,
+            "baseline": 265.625
+          }
+        ]
+      },
+      {
+        "name": "isolated-chain-cpu-aa",
+        "result": {
+          "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-checked-assets-20261109\\isolated-chain-aa-v7\\result.json",
+          "sha256": "14a79c73fc07694a6da954c3b2e1ba0c15701bfa187dcc6c104d0695a72eec6d",
+          "bytes": 44221333,
+          "archiveMember": "checked-assets/isolated-chain-aa-v7/result.json"
+        },
+        "status": "calibration-failed",
+        "queries": 6656,
+        "processes": 64,
+        "gates": 80,
+        "failedGates": [
+          {
+            "name": "512-single-literal/hot/wireP95",
+            "actual": 306.1621,
+            "limit": 278.830755,
+            "passed": false,
+            "baseline": 265.5531
+          },
+          {
+            "name": "512-imported-literal/hot/wireP95",
+            "actual": 337.7825,
+            "limit": 306.35839500000003,
+            "passed": false,
+            "baseline": 291.7699
+          }
+        ]
+      }
+    ],
+    "diagnostics": [
+      {
+        "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-checked-assets-20261109\\snapshot-background-disabled-diagnostic\\result.json",
+        "sha256": "4fba6dc66303affc8c9ce0ea8e04656c0c463e6c346378469dff6d82bd42e2d0",
+        "bytes": 1587434,
+        "archiveMember": "checked-assets/snapshot-background-disabled-diagnostic/result.json"
+      },
+      {
+        "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-checked-assets-20261109\\idle-interleaving-diagnostic-v7\\result.json",
+        "sha256": "0bd0ab0e9036c76c8c2fee257918d6b5b95a0fed15ae0961a4f303050b3a4699",
+        "bytes": 1524979,
+        "archiveMember": "checked-assets/idle-interleaving-diagnostic-v7/result.json"
+      },
+      {
+        "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-checked-assets-20261109\\peer-cpu-diagnostic-v7\\result.json",
+        "sha256": "7c7b2230caeef32a032811d0d669aa743061425dd897c5705fe3398a3eccc958",
+        "bytes": 789264,
+        "archiveMember": "checked-assets/peer-cpu-diagnostic-v7/result.json"
+      },
+      {
+        "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-checked-assets-20261109\\peer-cpu-analysis-v7.json",
+        "sha256": "4445fc6c92c6527e201dd5aa1f17abf5470543d9c34fe892fcffca1e0a1ec8fe",
+        "bytes": 21963,
+        "archiveMember": "checked-assets/peer-cpu-analysis-v7.json"
+      },
+      {
+        "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-checked-assets-20261109\\isolated-screen-plan-v7.json",
+        "sha256": "e283897d326fa7c306dc7b1426c38c87f17a66ea6a6bf7fb338ca9c0d7307376",
+        "bytes": 6082,
+        "archiveMember": "checked-assets/isolated-screen-plan-v7.json"
+      },
+      {
+        "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-checked-assets-20261109\\isolated-chain-plan-v7.json",
+        "sha256": "9429e5b8078416a42b372a67dc04376f286939ba0596c17cb0964f851917a254",
+        "bytes": 7562,
+        "archiveMember": "checked-assets/isolated-chain-plan-v7.json"
+      }
+    ],
+    "latestCalibration": {
+      "queries": 6656,
+      "processes": 64,
+      "gates": 80,
+      "failed": 2,
+      "failedMetrics": "Same-image512 single/imported literal hot wire P95. CPU floors and whole-chain CPU passed. Subsequent pre-registered comparisons were not started."
+    },
+    "caveat": "Single-service isolation addresses measured asymmetric peer CPU contention;whole-chain CPU addresses observed query-tick quantization. These are distinct methods,not overrides of the original failed gates. Calibration remains failed;no release admission or global speed claim. Host is not exclusive;other activity was observed but not established as the cause."
+  },
+  "protectedRuntime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "ownedRuntimeAliasesRemaining": [],
+  "gitBudget": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-checked-assets-20261109\\git-budget-before-commit-20261110.json",
+    "sha256": "a78fa9d953acbea05eb0ed5542379c4b350fd36055603c46b45d0656c950854e",
+    "bytes": 227,
+    "archiveMember": "checked-assets/git-budget-before-commit-20261110.json"
+  },
+  "next": "Investigate P95 calibration variability;complete reliable full latency comparisons before runtime adoption. Continue actual incremental semantic/IR production,static recovery/edit-time completion,workspace discovery and scale/concurrency/soak budgets. No DAP/runtime-debug completion.",
+  "concurrentIntegration": {
+    "commitParentAtReview": "425fb69cee1d9a6ac7b441339d37b7726728b957",
+    "gitignoreCollectionSha256": "5144601b4d1db7a6087f838bc6db06cd34920dd19e5d7aa2180b661e694baa21",
+    "gitignoreCurrentSha256": "0b608fd8bb9ba9b30ef8a9cdc66e03d4dca11e29291cc085fbf959ef84815795",
+    "gitignoreIncludedInStage": true,
+    "note": "Concurrent engine task amended its commit to exclude the stage exception. Current stage owns only this one added exception relative to current HEAD. Source archive retains earlier collection bytes;no compiler/GUI consumed source changed."
+  }
+}

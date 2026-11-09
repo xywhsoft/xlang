@@ -28,7 +28,9 @@ struct xide_language_check {
  xls_context* context;
  int signatureMode; unsigned signatureFlags; xls_signature_stats signatureStats;
  xls_worker_cache_stats sessionCache;
- int configuredEntry;
+ /* Borrowed while the helper owns a native query; protected by lock. */
+ xls_query* activeNativeQuery;
+ int configuredEntry,cachedCheck;
  xls_text* snapshotTexts[64]; char* snapshotKeys[64]; uint64_t snapshotIdentities[64];
  int retainedSnapshots; char* semanticTarget; xls_worker* semanticActor;
  xls_check_stats semanticStats; xls_completion_stats completionStats; uint64_t semanticThread,captureThread;

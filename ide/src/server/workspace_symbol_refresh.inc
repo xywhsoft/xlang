@@ -48,11 +48,16 @@ static void pollWorkspaceRefresh(server* s)
   else workspaceRefreshFailed(s,*error?error:"Workspace background refresh cancelled or unavailable.");
   xideWorkspaceSymbolsQueryDestroy(s->workspaceRefresh.query);s->workspaceRefresh.query=NULL;return;
  }
- if(!s->workspaceRefresh.pending || GetTickCount64()<s->workspaceRefresh.due || workspaceRefreshBusy(s))return;
+ if(!s->workspaceRefresh.pending)return;
+ /* Measure quiet time after foreground work,not just from request arrival.
+    Otherwise a long check spends the whole delay while busy and maintenance
+    starts immediately before the next interactive request. */
+ if(workspaceRefreshBusy(s)){s->workspaceRefresh.due=GetTickCount64()+WORKSPACE_REFRESH_DELAY;return;}
+ if(GetTickCount64()<s->workspaceRefresh.due)return;
  s->workspaceRefresh.pending=0;s->workspaceRefresh.due=0;
  xls_context* contexts[64]={0};size_t contextCount=0,documentCount=0;xls_analysis_document documents[DOC_LIMIT];int okay=captureWorkspaceInputs(s,contexts,&contextCount,documents,&documentCount);
  if(okay && (contextCount || documentCount || s->workspaceSymbols)){
-  if(!s->workspaceSymbols)s->workspaceSymbols=xideWorkspaceSymbolsCreate(s->cache,s->compiler,s->modules);
+  if(!s->workspaceSymbols)s->workspaceSymbols=xideWorkspaceSymbolsCreateWithActor(s->cache,s->compiler,s->modules,s->semanticAnalysis);
   s->workspaceRefresh.query=xideWorkspaceSymbolsRefresh(s->workspaceSymbols,contexts,contextCount,documents,documentCount);
   if(s->workspaceRefresh.query && !xideWorkspaceSymbolsSetWake(s->workspaceRefresh.query,nativeWake,s)){workspaceRefreshCancel(s,0);okay=0;}
   else if(!s->workspaceRefresh.query)okay=0;
@@ -71,7 +76,7 @@ static int workspaceRefreshStats(server* s,xvalue* out)
 #undef REFRESH_STAT
  const xide_workspace_symbol_work* work=&s->workspaceRefresh.work;
 #define REFRESH_WORK(field) okay=okay && put(value,#field,xrtValueInt((int64)work->field))
- REFRESH_WORK(roots);REFRESH_WORK(captured);REFRESH_WORK(reused);REFRESH_WORK(covered);REFRESH_WORK(analysisBuilds);REFRESH_WORK(analysisHits);REFRESH_WORK(index.rows);REFRESH_WORK(index.generation);REFRESH_WORK(coordinatorThread);
+ REFRESH_WORK(roots);REFRESH_WORK(captured);REFRESH_WORK(reused);REFRESH_WORK(covered);REFRESH_WORK(analysisBuilds);REFRESH_WORK(analysisHits);REFRESH_WORK(analysisSnapshots);REFRESH_WORK(primaryFallbacks);REFRESH_WORK(index.rows);REFRESH_WORK(index.generation);REFRESH_WORK(coordinatorThread);
 #undef REFRESH_WORK
  char serial[32];snprintf(serial,sizeof(serial),"%llu",s->workspaceRefresh.serial);okay=okay && put(value,"serial",xrtValueString(sv(serial))) && put(value,"lastError",xrtValueString(sv(s->workspaceRefresh.error)));
  if(okay){okay=put(out,"background",value);value=NULL;}xrtValueRelease(value);return okay;

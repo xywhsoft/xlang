@@ -19,7 +19,7 @@ typedef struct symbol_record {
  xls_context* scope;xide_semantic_symbols* symbols;xide_language_input_guard* guard;overlay_names* overlays;
 } symbol_record;
 typedef struct symbol_root {char* path;wchar_t* key;size_t scopeIndex;int primary,covered,duplicate,rejected;} symbol_root;
-struct xide_workspace_symbols {xtaskpool* pool;xls_worker* actor;xide_toolchains* cache;char* compiler;xide_workspace_symbol_index* index;xarray records;xls_input_batch* history;};
+struct xide_workspace_symbols {xtaskpool* pool;xls_worker* actor;/* owned member actor */xls_worker* foreground;/* borrowed */xls_module_store* modules;xide_toolchains* cache;char* compiler;xide_workspace_symbol_index* index;xarray records;xls_input_batch* history;};
 struct xide_workspace_symbol_query {xfuture* future;xfuturewatch watch;int initialized,linked;void (*wake)(void*);void* user;};
 typedef struct symbol_input {
  xide_workspace_symbols* store;xls_context* contexts[64];size_t contextCount,count;
@@ -102,21 +102,57 @@ static symbol_record* cached(symbol_input* in,const symbol_root* root,xcancel* c
  return NULL;
 }
 static void childWake(void* p){xrtEventSet(p);}
+typedef struct child_cancel {xide_language_check* check;xevent* event;} child_cancel;
+static void childCancel(void* p)
+{child_cancel* child=p;xideLanguageCheckCancel(child->check);xrtEventSet(child->event);}
+static xls_worker* captureActor(xide_workspace_symbols* store)
+{
+ /* Only the single coordinator creates or uses the owned actor. */
+ if(!store->actor){xls_worker_cache_limits limits={8,64u*1024u*1024u};store->actor=xlsWorkerCreateWithModules(NULL,8,&limits,store->modules);}
+ return store->actor;
+}
 static symbol_record* capture(symbol_input* in,const symbol_root* root,xcancel* cancel,int* rejected,symbol_output* out)
 {
- symbol_record* r=NULL;xide_model_error e={0};xls_context_spec spec=*xlsContextSpec(in->contexts[root->scopeIndex]);spec.entry=root->path;spec.lists[XLS_CONTEXT_MEMBERS]=(xls_context_strings){0};xls_context* context=xlsContextCreate(&spec,16u*1024u*1024u,NULL);xevent* event=xrtEventCreate(false,false);xide_language_analysis_options options={1,childWake,event};
- xide_language_check* check=context && event ? xideLanguageCheckStartDeclarationCapture(context,in->store->cache,in->store->compiler,in->store->actor,in->docs,in->count,&options,&e):NULL;xlsContextRelease(context);xcancelwatch* watch=check?xrtCancelWatch(cancel,childWake,event):NULL;
- if(!check){fail(out,"Cannot start background workspace member analysis.");goto done;}
- while(xideLanguageCheckState(check,NULL,0)==XIDE_CHECK_RUNNING && !stopped(cancel))xrtEventWaitFor(event,XIDE_XRT_TIMEOUT_MS(10));
- if(stopped(cancel)){xideLanguageCheckCancel(check);goto done;}
- r=xrtCalloc(1,sizeof(*r));if(r)xrtAtomic32Init(&r->refs,1);xide_declaration_capture_work work={0};
- if(!r || !xideLanguageCheckCaptureDeclarations(check,&r->symbols,&work)){*rejected=r && xideLanguageCheckDeclarationSourceRejected(check);fail(out,"A workspace member did not produce verified declarations.");goto failed;}
- r->scopeIndex=root->scopeIndex;r->scope=xlsContextRetain(in->contexts[root->scopeIndex]);r->guard=xideLanguageCheckCaptureInputGuard(check,&e);r->entry=xidePathLexicalWide(root->path);r->overlays=namesRetain(in->names);
- size_t size=strlen(root->path)+32;r->owner=xrtMalloc(size);if(r->owner)snprintf(r->owner,size,"%02zu:%s",root->scopeIndex,root->path);r->bytes=sizeof(*r);
- if(!r->owner || !r->entry || !r->guard || !charge(&r->bytes,size+(wcslen(r->entry)+1)*sizeof(wchar_t),GUARD_BYTES) || !charge(&r->bytes,xideLanguageInputGuardReportBytes(r->guard),GUARD_BYTES) || !current(r,in,cancel,out)){fail(out,"Workspace member proof capture or validation failed.");goto failed;}
- out->work.analysisThread=work.workerThread;out->work.analysisBuilds=work.analysis.builds;out->work.analysisHits=work.analysis.hits;++out->work.captured;goto done;
-failed:recordRelease(r);r=NULL;
-done:if(watch)xrtCancelUnwatch(watch);xideLanguageCheckDestroy(check);if(event)xrtEventDestroy(event);return r;
+ symbol_record* r=NULL;xide_model_error e={0};xls_context* context=NULL;
+ if(root->primary)context=xlsContextRetain(in->contexts[root->scopeIndex]);
+ else{xls_context_spec spec=*xlsContextSpec(in->contexts[root->scopeIndex]);spec.entry=root->path;spec.lists[XLS_CONTEXT_MEMBERS]=(xls_context_strings){0};context=xlsContextCreate(&spec,16u*1024u*1024u,NULL);}
+ xevent* event=xrtEventCreate(false,false);xide_language_analysis_options options={1,childWake,event};
+ int snapshot=root->primary && in->store->foreground; xls_worker* temporary=NULL;
+ xide_language_check* check=NULL;child_cancel child={NULL,event};xcancelwatch* watch=NULL;
+ if(!context || !event){fail(out,"Cannot prepare background workspace member analysis.");goto done;}
+ for(;;){
+  xls_worker* actor;
+  if(snapshot)actor=in->store->foreground;
+  else if(root->primary && in->store->foreground){
+   xls_worker_cache_limits limits={1,64u*1024u*1024u};
+   temporary=xlsWorkerCreateWithModules(NULL,1,&limits,in->store->modules);actor=temporary;
+   ++out->work.primaryFallbacks;
+  }else actor=captureActor(in->store);
+  check=actor ? (snapshot ? xideLanguageCheckStartCachedDeclarationCapture : xideLanguageCheckStartDeclarationCapture)(context,in->store->cache,in->store->compiler,actor,in->docs,in->count,&options,&e):NULL;
+  child.check=check;watch=check?xrtCancelWatch(cancel,childCancel,&child):NULL;
+  if(!check){fail(out,"Cannot start background workspace member analysis.");goto done;}
+  while(xideLanguageCheckState(check,NULL,0)==XIDE_CHECK_RUNNING && !stopped(cancel))xrtEventWaitFor(event,XIDE_XRT_TIMEOUT_MS(10));
+  if(stopped(cancel)){xideLanguageCheckCancel(check);goto done;}
+  r=xrtCalloc(1,sizeof(*r));if(r)xrtAtomic32Init(&r->refs,1);xide_declaration_capture_work work={0};
+  if(r && xideLanguageCheckCaptureDeclarations(check,&r->symbols,&work)){
+   r->scopeIndex=root->scopeIndex;r->scope=xlsContextRetain(in->contexts[root->scopeIndex]);r->guard=xideLanguageCheckCaptureInputGuard(check,&e);r->entry=xidePathLexicalWide(root->path);r->overlays=namesRetain(in->names);
+   size_t size=strlen(root->path)+32;r->owner=xrtMalloc(size);if(r->owner)snprintf(r->owner,size,"%02zu:%s",root->scopeIndex,root->path);r->bytes=sizeof(*r);
+   if(r->owner && r->entry && r->guard && charge(&r->bytes,size+(wcslen(r->entry)+1)*sizeof(wchar_t),GUARD_BYTES) && charge(&r->bytes,xideLanguageInputGuardReportBytes(r->guard),GUARD_BYTES) && current(r,in,cancel,out)){
+    out->work.analysisThread=work.workerThread;out->work.analysisBuilds=work.analysis.builds;out->work.analysisHits=work.analysis.hits;
+    if(snapshot)++out->work.analysisSnapshots;
+    ++out->work.captured;goto done;
+   }
+  }
+  *rejected=xideLanguageCheckDeclarationSourceRejected(check);recordRelease(r);r=NULL;
+  if(!snapshot || *rejected || stopped(cancel)){fail(out,"A workspace member did not produce verified declarations.");goto done;}
+  /* A historical candidate is not authority. On a miss or failed source proof
+   * do the original guarded analysis outside the foreground actor, then drop
+   * its entire AST/session/projection residency once rows/proofs are detached. */
+  if(watch)xrtCancelUnwatch(watch);
+  watch=NULL;xideLanguageCheckDestroy(check);check=NULL;
+  snapshot=0;e=(xide_model_error){0};
+ }
+done:if(watch)xrtCancelUnwatch(watch);xideLanguageCheckDestroy(check);xlsWorkerDestroy(temporary);xlsContextRelease(context);if(event)xrtEventDestroy(event);return r;
 }
 static int cover(symbol_record* record,xarray* roots,xcancel* cancel)
 {
@@ -177,15 +213,19 @@ done:
  if(!out->result && !out->refreshed && !*out->error)fail(out,"Workspace indexing allocation or analysis failed.");
  *value=(xtaskvalue){out,outputFree,NULL};return XTASK_SUCCESS;
 }
-xide_workspace_symbols* xideWorkspaceSymbolsCreate(xide_toolchains* cache,const char* compiler,xls_module_store* modules)
+static xide_workspace_symbols* create(xide_toolchains* cache,const char* compiler,xls_module_store* modules,xls_worker* foreground)
 {
  if(!cache || !label(compiler))return NULL;
- xide_workspace_symbols* store=xrtCalloc(1,sizeof(*store));if(!store)return NULL;store->cache=cache;store->compiler=xrtStrDup(compiler);store->index=xideWorkspaceSymbolIndexCreate(NULL);
- xls_worker_cache_limits limits={8,64u*1024u*1024u};store->actor=xlsWorkerCreateWithModules(NULL,8,&limits,modules);xtaskpoolconfig config={.Threads=1,.QueueLimit=9};store->pool=xrtTaskPoolCreate(&config);int initialized=xrtArrayInit(&store->records,sizeof(symbol_record*));
- if(!store->compiler || !store->index || !store->actor || !store->pool || !initialized){xideWorkspaceSymbolsDestroy(store);return NULL;}return store;
+ xide_workspace_symbols* store=xrtCalloc(1,sizeof(*store));if(!store)return NULL;store->cache=cache;store->foreground=foreground;store->modules=xlsModuleStoreRetain(modules);store->compiler=xrtStrDup(compiler);store->index=xideWorkspaceSymbolIndexCreate(NULL);
+ xtaskpoolconfig config={.Threads=1,.QueueLimit=9};store->pool=xrtTaskPoolCreate(&config);int initialized=xrtArrayInit(&store->records,sizeof(symbol_record*));
+ if(!store->compiler || !store->index || !store->pool || !initialized || (!foreground && !captureActor(store))){xideWorkspaceSymbolsDestroy(store);return NULL;}return store;
 }
+xide_workspace_symbols* xideWorkspaceSymbolsCreate(xide_toolchains* cache,const char* compiler,xls_module_store* modules)
+{return create(cache,compiler,modules,NULL);}
+xide_workspace_symbols* xideWorkspaceSymbolsCreateWithActor(xide_toolchains* cache,const char* compiler,xls_module_store* modules,xls_worker* foreground)
+{return foreground ? create(cache,compiler,modules,foreground):NULL;}
 void xideWorkspaceSymbolsDestroy(xide_workspace_symbols* store)
-{if(!store)return;if(store->pool){xrtTaskPoolCancel(store->pool);xrtTaskPoolDestroy(store->pool);}recordsUnit(&store->records);xlsInputBatchDestroy(store->history);xlsWorkerDestroy(store->actor);xideWorkspaceSymbolIndexDestroy(store->index);xrtFree(store->compiler);xrtFree(store);}
+{if(!store)return;if(store->pool){xrtTaskPoolCancel(store->pool);xrtTaskPoolDestroy(store->pool);}recordsUnit(&store->records);xlsInputBatchDestroy(store->history);xlsWorkerDestroy(store->actor);xlsModuleStoreRelease(store->modules);xideWorkspaceSymbolIndexDestroy(store->index);xrtFree(store->compiler);xrtFree(store);}
 static xide_workspace_symbol_query* submit(xide_workspace_symbols* store,xls_context* const* contexts,size_t contextCount,const xls_analysis_document* docs,size_t count,const char* query,size_t limit,int wire,uint32_t kindMask,const xvalue* selection,int refresh)
 {
  size_t querySize=0;if(query)while(querySize<=512 && query[querySize])++querySize;else querySize=513;
