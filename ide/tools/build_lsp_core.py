@@ -42,7 +42,7 @@ FRONTEND_SOURCES = (
 SERVER_SOURCES = (
     "src/protocol/analysis_context_wire.c", "src/protocol/signature_help.c", "src/services/analysis_catalog.c",
     "src/protocol/lsp_wire.c", "src/services/language_check.c", "src/services/language_snapshot.c", "src/services/diagnostic_store.c",
-    "src/services/semantic_definition.c", "src/services/project_references.c", "src/services/workspace_symbol_index.c", "src/services/semantic_completion.c", "src/services/c_bridge_map.c",
+    "src/services/semantic_definition.c", "src/services/project_references.c", "src/services/workspace_symbol_index.c", "src/services/workspace_symbols.c", "src/services/semantic_completion.c", "src/services/c_bridge_map.c",
     "src/services/toolchain.c", "src/platform/file_rename.c", "src/platform/file_io.c",
     "src/platform/text_file.c", "src/platform/process.c", "src/platform/path.c", "src/editor/coordinates.c",
     "src/server/xlang_ls.c",
@@ -117,6 +117,7 @@ HOST_TESTS += ("project_reference_parallel_test",)
 HOST_TESTS += ("project_reference_owner_test", "project_reference_owner_fault_test")
 HOST_TESTS += ("declaration_symbols_test", "declaration_capture_test")
 HOST_TESTS += ("workspace_symbol_index_test",)
+HOST_TESTS += ("workspace_symbols_test", "workspace_symbols_public_test")
 
 
 def sha(path: Path) -> str:
@@ -994,6 +995,7 @@ def main() -> None:
                           not (name in ("snapshot_report_test", "reference_capture_test", "declaration_capture_test", "project_reference_owner_fault_test") and Path(source).stem == "language_snapshot") and
                           not (name == "path_identity_batch_test" and Path(source).stem == "path") and
                           not (name == "workspace_symbol_index_test" and Path(source).stem == "workspace_symbol_index") and
+                          not (name == "workspace_symbols_test" and Path(source).stem == "workspace_symbols") and
                           not (name in ("semantic_lookup_test", "semantic_reference_shard_test", "declaration_symbols_test") and Path(source).stem == "semantic_definition") and
                           not (name in ("project_reference_budget_test", "reference_path_index_test", "project_reference_parallel_test", "project_reference_owner_fault_test") and Path(source).stem == "project_references")]
             if name == "project_reference_owner_fault_test":
