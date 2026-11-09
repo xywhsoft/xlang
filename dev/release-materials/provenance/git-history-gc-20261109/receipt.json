@@ -1,0 +1,136 @@
+{
+  "passed": true,
+  "allDesignatedReleaseHistoryPathsAbsent": true,
+  "liveBranchTagCheckpointRefsPreserved": true,
+  "concurrentFastForwardCommitsPreserved": [],
+  "oldRemoteCommitPhysicallyAbsent": true,
+  "fsckPassed": true,
+  "objectStoreBytes": 815833314,
+  "objectStoreMiB": 778.04,
+  "objectMetrics": "count: 0\nsize: 0\nin-pack: 81625\npacks: 1\nsize-pack: 796223\nprune-packable: 0\ngarbage: 0\nsize-garbage: 0\n",
+  "runtimeFiles": 14578,
+  "runtimeDifferences": [
+    "release/win_x64/examples/xge/tutorial/ch03.xl"
+  ],
+  "worktrees": [
+    {
+      "path": "D:/GIT/x-lang",
+      "indexUnchanged": true,
+      "changedProtectedFiles": []
+    },
+    {
+      "path": "C:/Users/Administrator/.codex/worktrees/c-owned-string-bytes/x-lang",
+      "indexUnchanged": true,
+      "changedProtectedFiles": []
+    },
+    {
+      "path": "C:/Users/Administrator/.codex/worktrees/example-runtime-fixes/x-lang",
+      "indexUnchanged": true,
+      "changedProtectedFiles": []
+    },
+    {
+      "path": "C:/Users/Administrator/.codex/worktrees/example-runtime-integration/x-lang",
+      "indexUnchanged": true,
+      "changedProtectedFiles": []
+    },
+    {
+      "path": "C:/Users/Administrator/.codex/worktrees/extlibs-release-sync/x-lang",
+      "indexUnchanged": true,
+      "changedProtectedFiles": []
+    },
+    {
+      "path": "C:/Users/Administrator/.codex/worktrees/linux-extlib-verify/x-lang",
+      "indexUnchanged": true,
+      "changedProtectedFiles": []
+    }
+  ],
+  "backup": "F:\\xlang-validation\\release-history-clean-20261108\\before.bundle",
+  "remoteTrackingRefsRetired": true,
+  "actualGiteeRepositoryUnchanged": true,
+  "ordinaryFetchFromOldRemoteWouldReintroduceHistory": true,
+  "sourceArchivesAndAcceptanceBytesRetained": true,
+  "remainingPackedBlobGroups": [
+    {
+      "path": "dev/release-materials/sources",
+      "bytes": 281153415,
+      "MiB": 268.13
+    },
+    {
+      "path": "dev/release-materials/provenance",
+      "bytes": 218377311,
+      "MiB": 208.26
+    },
+    {
+      "path": "dev/extlibs/opencv",
+      "bytes": 138777527,
+      "MiB": 132.35
+    },
+    {
+      "path": "demo6",
+      "bytes": 43101987,
+      "MiB": 41.11
+    },
+    {
+      "path": "ide/third_party/xge_sdk",
+      "bytes": 23934222,
+      "MiB": 22.83
+    },
+    {
+      "path": "ide/docs/assets",
+      "bytes": 20685779,
+      "MiB": 19.73
+    },
+    {
+      "path": "ide/data/fonts",
+      "bytes": 19159510,
+      "MiB": 18.27
+    },
+    {
+      "path": "资料",
+      "bytes": 12380663,
+      "MiB": 11.81
+    },
+    {
+      "path": "docs",
+      "bytes": 8442895,
+      "MiB": 8.05
+    },
+    {
+      "path": "dev/extlibs/onnxruntime",
+      "bytes": 5795775,
+      "MiB": 5.53
+    },
+    {
+      "path": "test",
+      "bytes": 4660283,
+      "MiB": 4.44
+    },
+    {
+      "path": "src",
+      "bytes": 3617357,
+      "MiB": 3.45
+    },
+    {
+      "path": "demo5",
+      "bytes": 3375207,
+      "MiB": 3.22
+    },
+    {
+      "path": "tools",
+      "bytes": 3255727,
+      "MiB": 3.1
+    },
+    {
+      "path": "ide/data/catalog-sources",
+      "bytes": 3121864,
+      "MiB": 2.98
+    }
+  ],
+  "sizeAttribution": "Compressed blob object bytes after GC, excluding tree/commit/index overhead. Shared content counted once; original path attribution follows git rev-list.",
+  "beforeObjectStorageApproxMiB": 1888.89,
+  "afterObjectStorageMiB": 778.04,
+  "reclaimedApproxMiB": 1110.85,
+  "beforeStorageRounded": true,
+  "sourceHead": "01c185ae56df79e38afbe512e0e60dea7b062ba4",
+  "noSourceHistoryRewriteNeeded": true
+}

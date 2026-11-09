@@ -1,0 +1,30 @@
+The bundle contains these 26 refs:
+66db6aff28e797e5324efa5acca3aae9c090d8f3 refs/codex/turn-diffs/checkpoints/0d159dbf270a5a463fc95dc16915c04c/c817be05751b54b3fcd9c46ac648def0/1793699914054/c81a8d3f-a2a1-47a4-b706-d0fedc2c3b05
+2807ae7ddd20df6fbca54eb84f4398983d9a0fc5 refs/codex/turn-diffs/checkpoints/32293a40b5b70a504578e852a728571d/97f393dd7d9476f4ba60c1b710e16373/1793600913542/84bf325a-43e4-41d7-a2ed-0b7ae77d268a
+3a77b5783186e5d124a6e93f77991dd4453559e9 refs/codex/turn-diffs/checkpoints/5758c6a86244f7eb3ff7647cbf0500e3/81b62d6ba03b03d7b92315aec3a80185/1794098441797/e6dfa01e-40bf-4207-997b-7ab73846728a
+20f2c9e19a2ed0dee100e749c7ba0e28cef29c33 refs/codex/turn-diffs/checkpoints/8a26e99303e8fd2d978b186182c809fd/81081619a8a5083a00bb9d62b7a4bc57/1793632153563/c0eda22f-c841-46bd-b38a-b6aebbbc98df
+9dd0065184689a421917acd5d7a2850c5b1d1dcc refs/heads/codex/c-owned-audit-fixes
+20fdc575aeeb9284d4e2ac8b3522f58fe4303203 refs/heads/codex/c-owned-call-boundaries
+d00f6a4fd95da1d8c06f69bd846a4748375c9abc refs/heads/codex/c-owned-compiler
+5f8ecffa30aa29f21ffaab50be8fde7416c56784 refs/heads/codex/c-owned-complete
+7ec98ead80107637c8ca3c06c55112d92ca7b47f refs/heads/codex/c-owned-completion
+7486b4aad6ac62e9b2523c324657f880ebdd6db9 refs/heads/codex/c-owned-export-results
+b4c472ac78211914a2d992cfa19563583c510288 refs/heads/codex/c-owned-mainline
+132f6683cfe6dee79f36ced4bdc34a1456ff3108 refs/heads/codex/c-owned-string-bytes
+d3f015f6401bc6c768bbbf986600df67f169cc2b refs/heads/codex/c-owned-variadic-adapters
+ef31b4dd403c827efb03f30626f6f59c5eb49b0e refs/heads/codex/demo6-import-companion
+9b31c934b436b0459b9bd7c9b5ebcab1bc1d780b refs/heads/codex/example-runtime-fixes-20261106
+31648781a04211135fcb77db4bd3ff896a34595c refs/heads/codex/example-runtime-integration-20261106
+9cf4e87ad23fe1b730319dbcf5b5f4068d427ac6 refs/heads/codex/extlib-c-span-optimization
+5710d07cbb0318f80b9665833c5a0781d756c9eb refs/heads/codex/extlib-shared-bridges
+28f3053a8b1599c8d4702c28394ed21d86b46e7e refs/heads/codex/extlib-tabulate-owned-return
+6c93191069943c56d173dba9bd3ad1c4fc6c2dd7 refs/heads/codex/extlibs-release-sync
+498e243855c95015c69d648b0ab263ad7cd1717a refs/heads/codex/foreign-bridge-hardening
+74c9d2cebd4303ce73bdcf5f45385fbf65673a2d refs/heads/master
+596cab8f6b015c2d193e72c8dd39e3587c0178cc refs/remotes/origin/HEAD
+596cab8f6b015c2d193e72c8dd39e3587c0178cc refs/remotes/origin/master
+0e30a18a9fd756f19824100b1f187840fbd4a0c1 refs/tags/0.6.0-Preview
+74c9d2cebd4303ce73bdcf5f45385fbf65673a2d HEAD
+The bundle records a complete history.
+The bundle uses this hash algorithm: sha1
+F:/xlang-validation/release-history-clean-20261108/before.bundle is okay

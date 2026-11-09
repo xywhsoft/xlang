@@ -1,0 +1,12 @@
+{
+  "remoteUrl": "https://gitee.com/xywhsoft/x-lang",
+  "actualRemoteUnchanged": true,
+  "reason": "Remote still holds pre-cleanup history; stale tracking refs reintroduced excluded artifacts",
+  "retired": {
+    "refs/remotes/origin/HEAD": "596cab8f6b015c2d193e72c8dd39e3587c0178cc",
+    "refs/remotes/origin/master": "596cab8f6b015c2d193e72c8dd39e3587c0178cc"
+  },
+  "backup": "F:\\xlang-validation\\release-history-clean-20261108\\before.bundle",
+  "mappedCleanRemote": "4df439289f197503a6c0c06428b3cd660fd31db4",
+  "nextFetchWillReintroduceOldHistoryUntilServerMigration": true
+}

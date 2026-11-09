@@ -300,3 +300,6 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 # Exact bytes for categorized-example validation and source materials.
 /dev/release-materials/sources/example-layout-sync-20261109/** -text -whitespace
 /dev/release-materials/provenance/example-layout-sync-20261109/** -text -whitespace
+
+# Exact-byte Git object cleanup evidence.
+/dev/release-materials/provenance/git-history-gc-20261109/** -text -whitespace
