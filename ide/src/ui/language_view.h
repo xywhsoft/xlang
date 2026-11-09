@@ -4,6 +4,9 @@
 int xideLanguageViewCreate(xide_app* app);
 /* A model/selection change revokes results before another frame can use them. */
 void xideLanguageViewConfigurationChanged(xide_app* app);
+/* Background monitor metadata,not source bytes. type is the standard1..3;
+ * NULL path requests one bounded full resync after monitor overflow. */
+void xideLanguageViewDiskChanged(xide_app* app,const char* path,int type);
 void xideLanguageViewSettingsChanged(xide_app* app);
 void xideLanguageViewStop(xide_app* app);
 void xideLanguageViewDestroy(xide_app* app);

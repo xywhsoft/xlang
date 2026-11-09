@@ -12,7 +12,7 @@ typedef struct automatic_group {
  xide_diagnostic_notice* notice;uint64_t token,checkedEpoch;int valid,applied;
  xide_document* annotated;uint64_t annotatedId;
 } automatic_group;
-typedef struct automatic_fence {char* uri;wchar_t* key;uint64_t serial;int watch,close,type;} automatic_fence;
+typedef struct automatic_fence {char* uri;wchar_t* key;uint64_t serial,revision;int watch,close,type;} automatic_fence;
 typedef struct automatic_cleanup {
  xide_diagnostic_notice* notices;xide_diagnostic_batch* batch;xvalue* root;xide_diagnostic_result* result;
 } automatic_cleanup;
@@ -21,6 +21,7 @@ struct xide_automatic_diagnostics {
  automatic_group* groups;size_t groupCount,cacheBytes;
  automatic_model* models;size_t modelCount;int modelsReady;
  automatic_fence fences[128];size_t fenceCount;
+ size_t fenceBytes;uint64_t watchRevision,restartAt;int restarting;
  xide_diagnostic_batch* batch;xvalue* held;size_t heldBytes;
  automatic_cleanup garbage;automatic_cleanup* retirement;
  xide_diagnostic_result* incoming;size_t incomingAt;
@@ -72,7 +73,7 @@ static void automaticReset(xide_language_view* v)
  for(size_t i=0;i<a->groupCount;++i) {automaticClearAnnotation(a->groups+i);automaticDiscard(a,a->groups[i].notice);}
  a->groupCount=a->cacheBytes=a->routeCount=0;a->problemsDirty=1;a->activate=a->syncAdopted=0;
  for(size_t i=0;i<a->fenceCount;++i) automaticFenceClear(a->fences+i);
- a->fenceCount=0;
+ a->fenceCount=a->fenceBytes=0;a->watchRevision=a->restartAt=0;a->restarting=0;
  if(a->batch) {a->garbage.batch=a->batch;a->batch=NULL;}
  if(a->held) {a->garbage.root=a->held;a->held=NULL;a->heldBytes=0;}
  if(a->incoming) {a->garbage.result=a->incoming;a->incoming=NULL;a->incomingAt=0;}
@@ -81,6 +82,11 @@ static void automaticReset(xide_language_view* v)
 }
 static void automaticPause(xide_language_view* v) {if(v->autoView) v->autoView->paused=1;}
 static void automaticResume(xide_language_view* v) {if(v->autoView) v->autoView->paused=0;}
+static void automaticResync(xide_language_view* v)
+{
+ xide_automatic_diagnostics* a=v->autoView;reset(v->app);a->restarting=1;a->restartAt=GetTickCount64()+150;a->paused=1;++a->resyncs;
+ snprintf(v->message,sizeof(v->message),"工程文件变更已合并，等待监视队列稳定后重新同步。");xgeRenderRequestAfter(.15f);
+}
 static void automaticFault(xide_language_view* v,const char* reason)
 {
  char message[600];snprintf(message,sizeof(message),"%.560s",reason);automaticPause(v);reset(v->app);
@@ -112,15 +118,29 @@ static void automaticDestroy(xide_language_view* v)
 static int automaticFence(xide_language_view* v,const char* path,int close,int watch,int type)
 {
  xide_automatic_diagnostics* a=v->autoView;wchar_t* key=path ? xidePathNativeWide(path) : NULL;if(!key) return 0;
+ if(a->watchRevision==UINT64_MAX){free(key);automaticResync(v);return 0;}
  size_t at=0;while(at<a->fenceCount && xidePathNativeKeyCompare(a->fences[at].key,key)) ++at;
  if(at==a->fenceCount) {
-  if(at==128) {free(key);reset(v->app);++a->resyncs;snprintf(v->message,sizeof(v->message),"诊断输入历史已达到上限，正在重新同步打开文档。");return 0;}
+  if(at==128) {free(key);automaticResync(v);return 0;}
   char* uri=xideLspPathToUri(path,NULL);if(!uri) {free(key);return 0;}
-  a->fences[a->fenceCount++]=(automatic_fence){uri,key,0,watch,close,type};
+  size_t size=strlen(uri);if(size>262144 || size>1024u*1024u-a->fenceBytes){free(uri);free(key);automaticResync(v);return 0;}a->fenceBytes+=size;
+  a->fences[a->fenceCount++]=(automatic_fence){.uri=uri,.key=key,.watch=watch,.close=close,.type=type};
  } else {
   free(key);automatic_fence* f=a->fences+at;f->serial=0;f->close|=close;f->watch|=watch;f->type=type;
  }
- automaticInvalidate(a,a->fences[at].key);return 1;
+ a->fences[at].revision=++a->watchRevision;automaticInvalidate(a,a->fences[at].key);return 1;
+}
+void xideLanguageViewDiskChanged(xide_app* app,const char* path,int type)
+{
+ xide_language_view* v=app?app->languageView:NULL;xide_automatic_diagnostics* a=v?v->autoView:NULL;if(!a)return;
+ if(a->restarting){a->restartAt=GetTickCount64()+150;xgeRenderRequestAfter(.15f);return;}
+ if(!v->autoEnabled || !v->client || !v->initialized){if(path && a->paused)automaticResume(v);return;}
+ if(!path || type<1 || type>3){automaticResync(v);return;}
+ if(!automaticFence(v,path,0,1,type)){if(!a->restarting)automaticResync(v);return;}
+ cancelQuery(v,v->receiptRequest);v->receiptRequest=v->receiptReady=0;
+ cancelQuery(v,v->definitionRequest);v->definitionRequest=v->definitionPending=0;
+ cancelQuery(v,v->hoverRequest);v->hoverRequest=0;v->hoverAt=0;if(v->hoverDocument)xuiCodeEditCloseHint(v->hoverDocument->editor);
+ cancelQuery(v,v->outlineRequest);v->outlineRequest=0;suppressHighlights(v);cancelReferences(v);workspaceSearchDiskChanged(v);xgeRenderRequest();
 }
 static int automaticModels(xide_language_view* v)
 {
@@ -192,7 +212,7 @@ static int automaticPrepare(xide_app* app,int manual)
   cancelQuery(v,v->receiptRequest);v->receiptRequest=v->receiptReady=0;
   return beginSyncPlan(app,4);
  }
- if(root && !v->receiptReady && !v->receiptRequest && !v->syncMode) return finishOnDemandSync(app);
+ if(root && !v->receiptReady && !v->receiptRequest && !v->syncMode && !automaticWatchPending(v)) return finishOnDemandSync(app);
  return 1;
 }
 static void automaticSynced(xide_language_view* v,const xide_sync_result* result)
@@ -219,20 +239,29 @@ static void automaticSaved(xide_language_view* v,xide_document* document)
  if(!document || !document->path) return;
  automaticFence(v,document->path,0,1,2);xgeRenderRequest();
 }
+static int automaticWatchPending(xide_language_view* v)
+{
+ xide_automatic_diagnostics* a=v->autoView;if(a)for(size_t i=0;i<a->fenceCount;++i)if(a->fences[i].watch)return 1;return 0;
+}
+static int automaticWatchCurrent(xide_language_view* v)
+{return v->autoView && v->syncWatchRevision==v->autoView->watchRevision && automaticInputsCurrent(v);}
+static int automaticWatchSubmit(xide_language_view* v)
+{
+ xide_automatic_diagnostics* a=v->autoView;xide_watch_input inputs[128];size_t count=0;for(size_t i=0;i<a->fenceCount;++i)if(a->fences[i].watch){automatic_fence* f=a->fences+i;inputs[count++]=(xide_watch_input){f->uri,f->type,f->revision};}
+ return xideSyncPlannerSubmitWatches(v->syncPlanner,v->syncToken,inputs,count);
+}
+static int automaticWatchSent(xide_language_view* v,const xide_sync_result* result)
+{
+ xide_automatic_diagnostics* a=v->autoView;if(!automaticWatchCurrent(v) || a->sentSerial==UINT64_MAX)return 0;
+ ++a->sentSerial;++a->validityEpoch;for(size_t i=0;i<result->operationCount;++i){const xide_sync_operation* op=result->operations+i;const char* uri=automaticText(op->uri);if(!uri)return 0;
+  for(size_t j=0;j<a->fenceCount;++j){automatic_fence* f=a->fences+j;if(f->watch && f->revision==op->revision && !strcmp(f->uri,uri)){f->watch=0;f->serial=a->sentSerial;break;}}
+ }return 1;
+}
 static void automaticWatches(xide_language_view* v)
 {
- xide_automatic_diagnostics* a=v->autoView;if(!v->autoEnabled || !a->syncAdopted || v->syncMode || !automaticInputsCurrent(v)) return;
- xvalue* changes=NULL;size_t count=0;
- for(size_t i=0;i<a->fenceCount;++i) if(a->fences[i].watch) {
-  if(!changes) changes=xrtValueArray();
-  xvalue* item=xrtValueObject();
-  if(!changes || !item || !put(item,"uri",xrtValueString(sv(a->fences[i].uri))) || !put(item,"type",xrtValueInt(a->fences[i].type)) || !xrtValueArrayAppend(changes,item)) {xrtValueRelease(item);xrtValueRelease(changes);automaticFault(v,"无法准备文件变更通知");return;}
-  xrtValueRelease(item);++count;
- }
- if(!count) return;
- xvalue* params=xrtValueObject();if(!params || !put(params,"changes",changes)) {xrtValueRelease(params);automaticFault(v,"无法准备文件变更通知");return;}
- if(a->sentSerial==UINT64_MAX || !sendMessage(v,"workspace/didChangeWatchedFiles",params,0)) {automaticFault(v,"无法发送文件变更通知");return;}
- ++a->sentSerial;++a->validityEpoch;for(size_t i=0;i<a->fenceCount;++i) if(a->fences[i].watch) {a->fences[i].watch=0;a->fences[i].serial=a->sentSerial;}
+ xide_automatic_diagnostics* a=v->autoView;if(!v->autoEnabled || !a->syncAdopted || v->syncMode || !automaticInputsCurrent(v) || !automaticWatchPending(v))return;
+ if(v->syncSerial==UINT64_MAX || a->sentSerial==UINT64_MAX){automaticFault(v,"文件同步序号已耗尽");return;}
+ v->syncMode=6;v->syncToken=++v->syncSerial;v->syncSession=v->highlightSession;v->syncWatchRevision=a->watchRevision;v->syncDeadline=GetTickCount64()+5000;v->syncSubmitted=0;xgeRenderRequest();
 }
 static int automaticCurrent(xide_language_view* v,const xide_diagnostic_notice* n)
 {
@@ -415,14 +444,17 @@ static void automaticPoll(xide_app* app)
 {
  if(app->disableAutomaticDiagnostics)return;
  xide_language_view* v=app->languageView;xide_automatic_diagnostics* a=v->autoView;if(!a) return;
+ if(a->restarting){if(GetTickCount64()<a->restartAt || !xideFileSyncSettled(app)){xgeRenderRequestAfter(.02f);return;}a->restarting=0;automaticResume(v);}
  LARGE_INTEGER began,now;QueryPerformanceCounter(&began);
  if(!automaticModels(v) || !automaticConfiguration(v)) return;
  if(!automaticRetire(a)) {xgeRenderRequest();return;}
  if(a->paused) return;
  if(!v->client && !v->autoProbed) {
-  xide_document* root=automaticRoot(v);if(!root) return;
-  if(!connectClient(app,root)) {automaticPause(v);return;}
-  v->snapshotMode=1;v->document=root;v->documentId=root->id;v->version=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(root->editor));free(v->path);v->path=copy(root->path);v->invalidated=1;
+  xide_document* root=automaticRoot(v);const char* path=root?root->path:NULL;
+  for(size_t i=0;!path && i<app->workspaceModel.projectCount;++i){xide_project* project=app->workspaceModel.projects+i;if(project->available && project->entry && xidePathHasExtension(project->entry,".xl"))path=project->manifest;}
+  if(!path)return;
+  if(!connectClientPath(app,path)) {automaticPause(v);return;}
+  v->snapshotMode=1;v->document=root;v->documentId=root?root->id:0;v->version=root?xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(root->editor)):0;free(v->path);v->path=root?copy(root->path):NULL;v->invalidated=1;
  }
  if(!v->autoEnabled) return;
  if(!automaticInputsCurrent(v) || !a->syncAdopted) {
@@ -430,7 +462,7 @@ static void automaticPoll(xide_app* app)
  }
  automaticDrain(v);if(!v->autoEnabled) return;
  automaticWatches(v);if(!v->autoEnabled) return;
- if(v->document && !v->busy && !v->syncMode && !v->receiptReady && !v->receiptRequest && current(v)) finishOnDemandSync(app);
+ if(v->document && !v->busy && !v->syncMode && !v->receiptReady && !v->receiptRequest && !automaticWatchPending(v) && current(v)) finishOnDemandSync(app);
  automaticInstall(v);if(!v->autoEnabled) return;
  automaticProblems(v);QueryPerformanceCounter(&now);double elapsed=(double)(now.QuadPart-began.QuadPart)*1000.0/(double)v->highlightClock.QuadPart;if(elapsed>a->maxOwnerMs) a->maxOwnerMs=elapsed;
 }

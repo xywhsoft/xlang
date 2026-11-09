@@ -63,7 +63,7 @@ struct xide_language_view {
     a large message. UI clones share only read-only atomic-refcounted leaves. */
  xvalue* deferredMessage; int deferredDiscard; uint64_t highlightSession,deferredSession;
  xide_sync_planner* syncPlanner;xide_sync_result* syncReady;
- uint64_t syncToken,syncSerial,syncSession,syncDeadline;int syncMode,syncSubmitted;
+ uint64_t syncToken,syncSerial,syncSession,syncDeadline,syncWatchRevision;int syncMode,syncSubmitted;
  xide_automatic_diagnostics* autoView;int autoEnabled,autoProbed,autoManual,analysisRequired;
  char message[768];
 };
@@ -113,7 +113,7 @@ static int snapshotCurrent(xide_language_view* v)
   if(!d->open || d->id!=b->id || d->externalState!=b->externalState || b->version!=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(d->editor))) return 0;
  } return 1;
 }
-static int current(xide_language_view* v) { return !v->invalidated && (v->snapshotMode ? snapshotCurrent(v) : eligible(v->document)) && v->document->id==v->documentId && v->path && !strcmp(v->path,v->document->path) && v->version==xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(v->document->editor)); }
+static int current(xide_language_view* v) { return v->document && v->document->open && !v->invalidated && (v->snapshotMode ? snapshotCurrent(v) : eligible(v->document)) && v->document->id==v->documentId && v->path && !strcmp(v->path,v->document->path) && v->version==xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(v->document->editor)); }
 static int sendMessage(xide_language_view* v,const char* method,xvalue* params,int id)
 {
  xvalue* m=xrtValueObject(); int okay=m && put(m,"jsonrpc",xrtValueString(sv("2.0"))) && put(m,"method",xrtValueString(sv(method)));
@@ -152,6 +152,11 @@ static void workspaceSearchCapabilities(xide_language_view* v,const xvalue* cap)
 static int workspaceSearchReceive(xvalue* message,size_t bytes,void* view);
 static int takeWorkspaceSearch(xide_language_view* v,xvalue* message,size_t bytes);
 static void workspaceSearchSynced(xide_language_view* v);
+static void workspaceSearchDiskChanged(xide_language_view* v);
+static int automaticWatchCurrent(xide_language_view* v);
+static int automaticWatchSubmit(xide_language_view* v);
+static int automaticWatchSent(xide_language_view* v,const xide_sync_result* result);
+static int automaticWatchPending(xide_language_view* v);
 static void pollSemantic(xide_app* app);
 static void applyOutline(xide_app* app,const xvalue* result,const xvalue* error);
 static void applyHover(xide_app* app,const xvalue* result,const xvalue* error);
@@ -213,6 +218,7 @@ void xideLanguageViewConfigurationChanged(xide_app* app)
     sources and import probes continue through their original guards. */
  if(v->analysisCatalog){char* package=NULL;xide_model_error error={0};xvalue* packet=xideLanguageCheckPackagePath(&package,&error) ? xideExecutionAnalysisPacket(app,package,1,&error) : NULL;free(package);int same=packet && xrtValueEqual(v->analysisCatalog,get(packet,"catalog"));xrtValueRelease(packet);if(same)return;}
  if(v->client || v->snapshotResult || v->autoProbed) reset(app);
+ automaticResume(v);
  xgeRenderRequest();
 }
 static char* serverPath(void)
@@ -372,7 +378,7 @@ static int beginSyncPlan(xide_app* app,int mode)
 }
 static void failSyncPlan(xide_app* app)
 {
- reset(app);
+ reset(app);automaticPause(app->languageView);
  snprintf(app->languageView->message,sizeof(app->languageView->message),"文档同步准备失败或发送队列持续拥塞；再次查询会重新连接。");
 }
 static void pollSyncPlan(xide_app* app)
@@ -383,26 +389,27 @@ static void pollSyncPlan(xide_app* app)
   else {xgeRenderRequest();return;}
  }
  if(!v->syncMode) return;
- if(v->syncSession!=v->highlightSession || (v->syncMode==5 ? !workspaceSearchInputsCurrent(app) : v->syncMode==4 ? !automaticInputsCurrent(v) : !current(v))) {cancelSyncPlan(v);return;}
+ if(v->syncSession!=v->highlightSession || (v->syncMode==6 ? !automaticWatchCurrent(v) : v->syncMode==5 ? !workspaceSearchInputsCurrent(app) : v->syncMode==4 ? !automaticInputsCurrent(v) : !current(v))) {cancelSyncPlan(v);return;}
  if(!v->syncSubmitted) {
   xide_sync_input inputs[SNAPSHOT_DOCS];
   for(size_t i=0;i<v->inputCount;++i) inputs[i]=(xide_sync_input){v->inputs[i].uri,v->inputs[i].textValue,v->inputs[i].id,v->inputs[i].version};
-  int submitted=xideSyncPlannerSubmit(v->syncPlanner,v->syncToken,v->sync,inputs,v->inputCount);
+  int submitted=v->syncMode==6 ? automaticWatchSubmit(v) : xideSyncPlannerSubmit(v->syncPlanner,v->syncToken,v->sync,inputs,v->inputCount);
   if(submitted<0 || (!submitted && GetTickCount64()>=v->syncDeadline)) {failSyncPlan(app);return;}
-  if(!submitted) {xgeRenderRequest();return;}
+  if(!submitted) {xgeRenderRequestAfter(.02f);return;}
   v->syncSubmitted=1;v->syncDeadline=0;
  }
  if(!v->syncReady) v->syncReady=xideSyncPlannerTake(v->syncPlanner);
  xide_sync_result* result=v->syncReady;
  if(!result) return; /* The worker wakes the owner after publishing. */
  if(result->token!=v->syncToken) {xgeRenderRequest();return;}
- if(!result->valid || result->count!=v->inputCount) {failSyncPlan(app);return;}
+ if(!result->valid || (v->syncMode==6 ? result->kind!=XIDE_SYNC_WATCHED_FILES : result->kind!=XIDE_SYNC_DOCUMENTS || result->count!=v->inputCount)) {failSyncPlan(app);return;}
  if(!xideLanguageBatchSend(v->client,result->batch)) {
   if(!v->syncDeadline) v->syncDeadline=GetTickCount64()+1000;
   if(xideLanguageClientState(v->client,NULL,0)>=XIDE_LS_STOPPED || GetTickCount64()>=v->syncDeadline) failSyncPlan(app);
-  else xgeRenderRequest();
+  else xgeRenderRequestAfter(.02f);
   return;
  }
+ if(v->syncMode==6){result->batch=NULL;if(!automaticWatchSent(v,result)){failSyncPlan(app);return;}v->syncMode=v->syncSubmitted=0;v->syncToken=v->syncDeadline=0;result->token=0;if(xideSyncPlannerRetire(v->syncPlanner,result))v->syncReady=NULL;return;}
  /* Admission splices the complete encoded batch before the query. Only now
     does the owner adopt the corresponding wire versions and exact receipt. */
  result->batch=NULL;xls_sync* previous=v->sync;v->sync=result->sync;result->sync=previous;
@@ -783,7 +790,7 @@ void xideLanguageViewPoll(xide_app* app)
    const xvalue* result=get(m,"result"),*error=get(m,"error"); const char* reason=boundedString(get(error,"message"),4096);
    if(id==1 && !v->initialized) {
     const xvalue* cap=get(result,"capabilities"); const char* encoding=string(get(cap,"positionEncoding")); bool supported=false;int configurationSchema=0;
-    if(error || !encoding || strcmp(encoding,"utf-16") || !xideMetaBool(get(get(cap,"experimental"),"savedEntryDiagnostics"),&supported) || !supported) { snprintf(v->message,sizeof(v->message),"语言服务初始化失败：%s",reason ? reason : "诊断能力不兼容"); reset(app); }
+    if(error || !encoding || strcmp(encoding,"utf-16") || !xideMetaBool(get(get(cap,"experimental"),"savedEntryDiagnostics"),&supported) || !supported) { snprintf(v->message,sizeof(v->message),"语言服务初始化失败：%s",reason ? reason : "诊断能力不兼容"); reset(app);automaticPause(v); }
     else if(v->analysisRequired && (!number(get(get(cap,"experimental"),"analysisConfiguration"),&configurationSchema) || configurationSchema!=1)) {
      automaticFault(v,"当前语言服务不支持工程分析配置，请更新语言服务。");
     }

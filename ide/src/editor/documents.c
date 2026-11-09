@@ -239,13 +239,18 @@ int xideDocumentAcceptExternal(xide_document* document,xide_text_file* loaded,in
         xidePositionFromOffset(before,saved[i].state.iAnchorOffset,&saved[i].anchorLine,&saved[i].anchorColumn);
         xidePositionFromOffset(before,saved[i].state.iCaretOffset,&saved[i].caretLine,&saved[i].caretColumn);
     }
+    xui_code_fold_state folds=xuiCodeEditGetFoldState(document->editor);int foldCount=xuiCodeFoldStateGetCount(folds);
+    if(foldCount<0 || (size_t)foldCount>SIZE_MAX/sizeof(xui_code_fold_range_t)) {free(saved);return failure(error,XIDE_MODEL_INVALID,"Cannot capture document folds.");}
+    xui_code_fold_range_t* savedFolds=foldCount ? malloc((size_t)foldCount*sizeof(*savedFolds)) : NULL;
+    if((foldCount && !savedFolds) || (foldCount && xuiCodeFoldStateGetRanges(folds,savedFolds,foldCount,&foldCount)!=XUI_OK)) {free(savedFolds);free(saved);return failure(error,XIDE_MODEL_MEMORY,"Cannot preserve document folds.");}
     float x=0,y=0; xuiCodeEditGetScroll(document->editor,&x,&y);
     document->suppressChange=1;
     int result=strcmp(before,loaded->text) ? xuiCodeDocumentReplace(core,0,xuiCodeDocumentGetLength(core),loaded->text) : XUI_OK;
     document->suppressChange=0;
-    if(result!=XUI_OK) { free(saved); return failure(error,XIDE_MODEL_MEMORY,"Reload failed; the local text and disk baseline were retained."); }
+    if(result!=XUI_OK) {free(savedFolds); free(saved); return failure(error,XIDE_MODEL_MEMORY,"Reload failed; the local text and disk baseline were retained."); }
     xideTextFileClear(&document->baseline); document->baseline=*loaded; memset(loaded,0,sizeof(*loaded)); document->dirty=0; document->externalState=0;
     xuiCodeDocumentSetDirty(core,0); xuiCodeEditSetEolMode(document->editor,document->baseline.eol); xideRefreshEditorSyntax(document->editor);
+    xideRestoreEditorFolds(document->editor,savedFolds,foldCount);free(savedFolds);
     const char* after=xuiCodeDocumentGetText(core); xuiCodeSelectionClear(selection);
     for(int i=0;i<count;++i) {
         saved[i].state.iAnchorOffset=xidePositionToOffset(after,saved[i].anchorLine,saved[i].anchorColumn);

@@ -8,6 +8,8 @@
 #include "ui/font_view.h"
 #include "ui/configuration_view.h"
 #include "ui/recovery_view.h"
+#include "ui/language_view.h"
+#include "ui/completion_view.h"
 #include "platform/path.h"
 #include <windows.h>
 #include <stdlib.h>
@@ -21,7 +23,7 @@ typedef struct subscription { xide_watch_target target; char* path; uint64_t doc
 struct xide_file_sync {
     xide_file_watch* watch; subscription* targets; size_t count,capacity;
     uint64_t epoch,nextToken,fingerprint,revision,dropped; xide_file_change* changes; size_t changeCount,changeCapacity,bytes;
-    int refreshTree,retryDropped; uint64_t nextRescan; char status[192];
+    int refreshTree,retryDropped; uint64_t nextRescan,languageDropped,languageStoreDropped; char status[192];
 };
 static int fail(xide_model_error* e,int code,const char* s) { if(e) { e->code=code; snprintf(e->message,sizeof(e->message),"%s",s); } return 0; }
 static char* copy(const char* s) { size_t n=strlen(s)+1; char* p=malloc(n); if(p) memcpy(p,s,n); return p; }
@@ -31,7 +33,7 @@ static uint64_t fingerprint(xide_app* app)
 {
     uint64_t h=UINT64_C(14695981039346656037); xide_workspace* w=&app->workspaceModel; h=textHash(h,w->manifest);
     for(size_t i=0;i<app->documents.count;++i) { xide_document* d=app->documents.items[i]; if(d->open && d->path) { h=hash(h,&d->id,sizeof(d->id)); h=textHash(h,d->path); } }
-    for(size_t i=0;i<w->projectCount;++i) { xide_project* p=&w->projects[i]; h=textHash(h,p->id); h=textHash(h,p->manifest); for(size_t j=0;j<p->files.count;++j) h=textHash(h,p->files.items[j].path); }
+    for(size_t i=0;i<w->projectCount;++i) { xide_project* p=&w->projects[i]; h=textHash(h,p->id); h=textHash(h,p->manifest);h=textHash(h,p->entry); for(size_t j=0;j<p->files.count;++j) h=textHash(h,p->files.items[j].path); }
     for(size_t i=0;i<w->files.count;++i) h=textHash(h,w->files.items[i].path);
     return h;
 }
@@ -170,7 +172,7 @@ static int subscribe(xide_app* app,xide_model_error* e)
     xide_file_sync* s=app->fileSync; uint64_t f=fingerprint(app); if(f==s->fingerprint && s->epoch) return 1;
     xide_file_sync fresh={.nextToken=s->nextToken}; xide_workspace* w=&app->workspaceModel; int okay=addTarget(&fresh,w->manifest,WORKSPACE,0);
     for(size_t i=0;okay && i<app->documents.count;++i) { xide_document* d=app->documents.items[i]; if(d->open && d->path) okay=addTarget(&fresh,d->path,DOCUMENT,d->id); }
-    for(size_t i=0;okay && i<w->projectCount;++i) { xide_project* p=&w->projects[i]; okay=addTarget(&fresh,p->manifest,PROJECT,0); for(size_t j=0;okay && j<p->files.count;++j) okay=addTarget(&fresh,p->files.items[j].path,FILE_ENTRY,0); }
+    for(size_t i=0;okay && i<w->projectCount;++i) { xide_project* p=&w->projects[i]; okay=addTarget(&fresh,p->manifest,PROJECT,0) && addTarget(&fresh,p->entry,FILE_ENTRY,0); for(size_t j=0;okay && j<p->files.count;++j) okay=addTarget(&fresh,p->files.items[j].path,FILE_ENTRY,0); }
     for(size_t i=0;okay && i<w->files.count;++i) okay=addTarget(&fresh,w->files.items[i].path,FILE_ENTRY,0);
     xide_watch_target* targets=fresh.count ? calloc(fresh.count,sizeof(*targets)) : NULL; if(fresh.count && !targets) okay=0;
     for(size_t i=0;okay && i<fresh.count;++i) targets[i]=fresh.targets[i].target;
@@ -199,13 +201,17 @@ void xideFileSyncPoll(xide_app* app)
             if(t->savedAt && event.observedAt<=t->savedAt) {
                 xideFileWatchEventClear(&event);xideFileWatchRescan(s->watch);continue;
             }
-            int changed=t->seen && !sameStamp(&t->last,&event); t->last=event; t->last.bytes=NULL; t->last.path=NULL; t->seen=1;
+            int previous=t->last.state;int changed=t->seen && !sameStamp(&t->last,&event); t->last=event; t->last.bytes=NULL; t->last.path=NULL; t->seen=1;
             /* Atomic saves change file identity/time before their delayed
                watch event reaches the UI. The saved document/model is already
                the new baseline; only unknown contents invalidate a new task. */
             int transient=event.state==XIDE_WATCH_UNSTABLE || (event.state==XIDE_WATCH_UNREADABLE &&
                 (event.error==ERROR_SHARING_VIOLATION || event.error==ERROR_LOCK_VIOLATION || event.error==ERROR_DELETE_PENDING));
-            if(changed && !transient && !alreadyKnown(app,t,&event)) xideTasksInvalidateInput(app->tasks,event.path);
+            if(changed && !transient && !alreadyKnown(app,t,&event)) {
+                ++s->revision;xideTasksInvalidateInput(app->tasks,event.path);
+                xideLanguageViewDiskChanged(app,event.path,event.state==XIDE_WATCH_MISSING ? 3 : previous==XIDE_WATCH_MISSING ? 1 : 2);
+                xideCompletionViewDiskChanged(app);
+            }
             if(t->roles&(DOCUMENT|WORKSPACE|PROJECT)) {
                 int kept=0; for(size_t i=0;i<s->changeCount;++i) if(s->changes[i].acknowledged && s->changes[i].snapshot.token==event.token && sameStamp(&s->changes[i].snapshot,&event)) { kept=1; break; }
                 if(kept) { xideFileWatchEventClear(&event); continue; }
@@ -233,6 +239,10 @@ void xideFileSyncPoll(xide_app* app)
     }
     if(s->retryDropped && GetTickCount64()>=s->nextRescan) { xideFileWatchRescan(s->watch); s->nextRescan=GetTickCount64()+2000; }
     size_t pending=xideFileSyncCount(app); xide_watch_stats stats={0}; xideFileWatchStats(s->watch,&stats);
+    if(stats.dropped!=s->languageDropped || s->dropped!=s->languageStoreDropped) {
+        s->languageDropped=stats.dropped;s->languageStoreDropped=s->dropped;++s->revision;
+        xideLanguageViewDiskChanged(app,NULL,0);xideCompletionViewDiskChanged(app);xideFileWatchRescan(s->watch);
+    }
     if(pending || s->dropped || stats.dropped) { snprintf(s->status,sizeof(s->status),"磁盘变化：%zu 待处理%s",pending,s->dropped || stats.dropped ? " · 队列曾达上限，请刷新检查" : ""); xuiStatusBarSetItemText(app->statusBar,0,s->status); }
 }
 int xideFileSyncSettled(xide_app* app)

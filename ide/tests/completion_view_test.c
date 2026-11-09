@@ -129,6 +129,9 @@ static int verify(void* user)
  CHECK(xideEditorOpen(&app,entry,&error) && settle(&app)); xide_document* xl=app.activeDocument; xide_completion_view* v=app.completionView;
  CHECK(prepare(&app,xl,local,"zzROther",3) && invoke(&app) && v->count==1 && has(v,"zzResult") && !strcmp(v->items[0].sDetail,"int") && xuiCodeEditIsCompletionOpen(xl->editor));
  CHECK(cursorInitializations && !invalidCursorBackground);
+ xide_language_client* retainedCursor=v->client;xls_sync* retainedSync=v->sync;
+ xideCompletionViewDiskChanged(&app);CHECK(v->client==retainedCursor && v->sync==retainedSync && !v->wanted && !v->ready && !v->request && !xideSignatureViewIsOpen(&app));
+ CHECK(prepare(&app,xl,local,"zzROther",3) && invoke(&app) && v->client==retainedCursor && has(v,"zzResult"));
  CHECK(v->start==(int)(strstr(local,"zzROther")-local) && v->end==v->start+8 && capture(&app,light));
  /* A real stdio response must finish strict decoding while the GUI owner does
     no polling at all. The previous owner-submit path cannot satisfy this. */

@@ -46,6 +46,8 @@ static void workspaceCancel(xide_language_view* v)
 {struct xide_workspace_search_view* r=v?v->workspaceSearch:NULL;if(!r)return;cancelQuery(v,r->request);xideWorkspaceSearchDecoderCancel(r->decoder);if(v->syncMode==5)cancelSyncPlan(v);r->request=r->stage=r->usable=r->navigation=r->keepSelection=0;r->due=r->deadline=0;workspaceRows(v);}
 static void resetWorkspaceSearch(xide_language_view* v)
 {if(!v || !v->workspaceSearch)return;workspaceCancel(v);workspaceInputsFree(v->workspaceSearch);v->workspaceSearch->supported=0;if(xideLanguageViewWorkspaceSymbolsIsOpen(v->app))workspaceMessage(v,"分析配置或连接已更新，请重新搜索。");}
+static void workspaceSearchDiskChanged(xide_language_view* v)
+{if(!v || !v->workspaceSearch)return;workspaceCancel(v);if(xideLanguageViewWorkspaceSymbolsIsOpen(v->app))workspaceMessage(v,"工程文件已变化，请重新搜索。");}
 static void destroyWorkspaceSearch(xide_language_view* v)
 {struct xide_workspace_search_view* r=v->workspaceSearch;if(!r)return;xideWorkspaceSearchDecoderDestroy(r->decoder);xideWorkspaceSearchResultRelease(r->result);xideLanguageBatchDestroy(r->batch);workspaceInputsFree(r);free(r);v->workspaceSearch=NULL;}
 static int workspaceSearchBusy(xide_language_view* v)
@@ -99,7 +101,7 @@ static void pollWorkspaceSearch(xide_app* app)
   if(!r->supported){workspaceCancel(v);workspaceMessage(v,"当前语言服务不支持工作空间符号及安全导航，请更新语言服务。");}
   else {if(v->autoEnabled && v->autoView)v->autoView->syncAdopted=0;if(!captureInputsMode(app,1) || !beginSyncPlan(app,5)){workspaceCancel(v);workspaceMessage(v,"无法同步当前输入，请重新搜索。");}else r->stage=2;}
  }
- if(r->stage==3 && !r->batch && !workspaceArm(app))xgeRenderRequestAfter(0.02f);
+ if(r->stage==3 && !v->syncMode && !r->batch && !workspaceArm(app))xgeRenderRequestAfter(0.02f);
  if(r->stage==4){if(!r->batch)r->batch=xideWorkspaceSearchDecoderTakeBatch(r->decoder,r->token);if(r->batch && xideLanguageBatchSend(v->client,r->batch)){r->batch=NULL;r->stage=5;r->deadline=0;}else if(r->batch)xgeRenderRequestAfter(0.02f);}
  if(r->stage && r->stage!=5 && r->deadline && GetTickCount64()>=r->deadline){workspaceCancel(v);workspaceMessage(v,"准备搜索超时，请重试或检查语言服务。");}
  if(r->result && !r->usable && !r->keepSelection && xideWorkspaceSearchDecoderRetire(r->decoder,r->result))r->result=NULL;

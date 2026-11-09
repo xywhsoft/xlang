@@ -141,6 +141,8 @@ static void cvstopClient(xide_completion_view* v)
 }
 void xideCompletionViewConfigurationChanged(xide_app* app)
 {if(app && app->completionView && (app->completionView->client || app->completionView->result)) cvstopClient(app->completionView);}
+void xideCompletionViewDiskChanged(xide_app* app)
+{if(app && app->completionView){xide_completion_view* v=app->completionView;cvcancelSync(v);svdismiss(v);cvdismiss(v);}}
 static void cvwake(void* user) { (void)user; xgeRenderRequest(); }
 static char* cvserverPath(void)
 {

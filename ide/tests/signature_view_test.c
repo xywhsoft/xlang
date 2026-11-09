@@ -4,6 +4,7 @@
 #include "ui/language_view.h"
 #include "ui/task_view.h"
 #include "ui/template_view.h"
+#include "ui/home_view.h"
 #include "platform/path.h"
 #include <windows.h>
 #include <stdio.h>
@@ -94,7 +95,7 @@ static int verify(void* user)
  CHECK(position(&app,d,(int)(strstr(body,"plus(7,")-body)+7) && xideSignatureViewAction(&app,XIDE_ACTION_SIGNATURE) && waitHint(&app));
  CHECK(xideActionExecute(&app,XIDE_ACTION_NEW)==XIDE_ACTION_DISPATCHED && idle(&app,60));
  CHECK(!s->wanted && !xideSignatureViewIsOpen(&app) && xideActionsHasModal(&app) && !xideActionQuery(&app,XIDE_ACTION_SIGNATURE).enabled);
- CHECK(click(&app,xuiWindowGetCloseButtonWidget(xideTemplateViewWindow(&app))));
+ CHECK(xideHomeNewWindow(&app) && click(&app,xuiWindowGetCloseButtonWidget(xideHomeNewWindow(&app))) && !xideActionsHasModal(&app));
  CHECK(position(&app,d,(int)(strstr(body,"plus(7,")-body)+7) && xideSignatureViewAction(&app,XIDE_ACTION_SIGNATURE) && waitHint(&app));
  /* Explicit configuration replacement retires the connection and its hint. */
  session=app.completionView->session;xideCompletionViewConfigurationChanged(&app);

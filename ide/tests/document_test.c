@@ -32,6 +32,16 @@ int main(int argc,char** argv)
     CHECK(xideDocumentOpen(&store,alias,&error)==document && store.count==1);
     xide_document* other=xideDocumentOpen(&store,otherPath,&error); CHECK(other && other!=document && !strcmp(other->language,"c"));
     xui_code_document core=xuiCodeEditGetDocument(document->editor);
+    /* Whole-document external replacements must capture fold flags before
+       the SDK observes the new version. Moved block geometry stays expanded. */
+    int preservedVisible=1;CHECK(xuiCodeFoldStateFoldAll(xuiCodeEditGetFoldState(document->editor))==XUI_OK && xuiCodeFoldStateIsLineVisible(xuiCodeEditGetFoldState(document->editor),1,&preservedVisible)==XUI_OK && !preservedVisible);
+    const char* reloaded="func main(...) as int\n    // 中文\n    return 9\nend\n";
+    CHECK(xideTextFileDecode((const unsigned char*)reloaded,strlen(reloaded),&content,&error) && xideDocumentAcceptExternal(document,&content,0,&error) && !document->dirty && xuiCodeDocumentCanUndo(core));
+    CHECK(xuiCodeFoldStateIsLineVisible(xuiCodeEditGetFoldState(document->editor),1,&preservedVisible)==XUI_OK && !preservedVisible);
+    const char* moved="\nfunc main(...) as int\n    // 中文\n    return 9\nend\n";
+    CHECK(xideTextFileDecode((const unsigned char*)moved,strlen(moved),&content,&error) && xideDocumentAcceptExternal(document,&content,0,&error));
+    CHECK(xuiCodeFoldStateIsLineVisible(xuiCodeEditGetFoldState(document->editor),2,&preservedVisible)==XUI_OK && preservedVisible);
+    CHECK(xideTextFileDecode((const unsigned char*)original,strlen(original),&content,&error) && xideDocumentAcceptExternal(document,&content,0,&error) && document->baseline.bom && document->baseline.eol==XUI_CODE_EOL_CRLF);
     CHECK(xuiCodeFoldStateFoldAll(xuiCodeEditGetFoldState(document->editor))==XUI_OK);
     int end=xuiCodeDocumentGetLength(core); CHECK(xuiCodeDocumentInsert(core,end,"// 新内容 😀\n")==XUI_OK && document->dirty);
     int visible=1; CHECK(xuiCodeFoldStateIsLineVisible(xuiCodeEditGetFoldState(document->editor),1,&visible)==XUI_OK && !visible);

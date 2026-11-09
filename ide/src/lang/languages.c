@@ -289,6 +289,26 @@ static int compareFold(const void* left,const void* right)
     if(a->iLevel!=b->iLevel) return a->iLevel<b->iLevel ? -1 : 1;
     return 0;
 }
+int xideRestoreEditorFolds(xui_widget editor,xui_code_fold_range_t* previous,int previousCount)
+{
+    if(!editor || previousCount<0 || (previousCount && !previous)) return XUI_ERROR_INVALID_ARGUMENT;
+    if(!previousCount) return XUI_OK;
+    xui_code_fold_state state=xuiCodeEditGetFoldState(editor);int count=xuiCodeFoldStateGetCount(state);
+    if(count<0) return XUI_ERROR;
+    if(!count) return XUI_OK;
+    if((size_t)count>SIZE_MAX/sizeof(xui_code_fold_range_t)) return XUI_ERROR_OUT_OF_MEMORY;
+    xui_code_fold_range_t* ranges=malloc((size_t)count*sizeof(*ranges));if(!ranges) return XUI_ERROR_OUT_OF_MEMORY;
+    int result=xuiCodeFoldStateGetRanges(state,ranges,count,&count);
+    if(result==XUI_OK) {
+        qsort(previous,(size_t)previousCount,sizeof(*previous),compareFold);
+        for(int i=0;i<count;++i) {
+            const xui_code_fold_range_t* old=bsearch(&ranges[i],previous,(size_t)previousCount,sizeof(*previous),compareFold);
+            if(old) ranges[i].iFlags=(ranges[i].iFlags&~XUI_CODE_FOLD_COLLAPSED)|(old->iFlags&XUI_CODE_FOLD_COLLAPSED);
+        }
+        result=xuiCodeFoldStateSetRanges(state,ranges,count);
+    }
+    free(ranges);return result;
+}
 static int rebuildEditorFolds(xui_widget editor,const xui_code_token_t* lexical,int lexicalCount,int shared)
 {
     xui_code_language_t language={0}; xui_code_fold_state state=xuiCodeEditGetFoldState(editor);
@@ -299,7 +319,6 @@ static int rebuildEditorFolds(xui_widget editor,const xui_code_token_t* lexical,
     if(previousCount && !previous) return XUI_ERROR_OUT_OF_MEMORY;
     if(previousCount) result=xuiCodeFoldStateGetRanges(state,previous,previousCount,&previousCount);
     if(result!=XUI_OK) { free(previous); return result; }
-    if(previousCount) qsort(previous,(size_t)previousCount,sizeof(*previous),compareFold);
     xuiCodeFoldStateClear(state);
     if(shared && language.onFold==xlangFold && language.onLex==xlangLex) {
         xarray folds;
@@ -316,20 +335,8 @@ static int rebuildEditorFolds(xui_widget editor,const xui_code_token_t* lexical,
             if(result==XUI_OK)result=xuiCodeFoldStateSetRanges(state,(const xui_code_fold_range_t*)folds.Data,count);
             xrtArrayUnit(&folds);}
     } else if(language.onFold) result=xuiCodeFoldStateBuildFromProvider(state,xuiCodeEditGetDocument(editor),language.onFold,language.pUser);
-    int count=xuiCodeFoldStateGetCount(state);
-    xui_code_fold_range_t* ranges=count ? malloc((size_t)count*sizeof(*ranges)) : NULL;
-    if(count && !ranges) result=XUI_ERROR_OUT_OF_MEMORY;
-    if(result==XUI_OK && count) result=xuiCodeFoldStateGetRanges(state,ranges,count,&count);
-    if(result==XUI_OK && count && previousCount) {
-        /* Keep collapse state for structurally unchanged ranges. Edits moving
-         * a block's boundaries currently expand that block deliberately. */
-        for(int i=0;i<count;++i) {
-            const xui_code_fold_range_t* old=bsearch(&ranges[i],previous,(size_t)previousCount,sizeof(*previous),compareFold);
-            if(old && (old->iFlags & XUI_CODE_FOLD_COLLAPSED)) ranges[i].iFlags|=XUI_CODE_FOLD_COLLAPSED;
-        }
-        result=xuiCodeFoldStateSetRanges(state,ranges,count);
-    }
-    free(previous); free(ranges); return result;
+    if(result==XUI_OK) result=xideRestoreEditorFolds(editor,previous,previousCount);
+    free(previous);return result;
 }
 int xideRebuildEditorFolds(xui_widget editor)
 {

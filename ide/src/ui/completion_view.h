@@ -3,6 +3,9 @@
 #include "app/xide_app.h"
 int xideCompletionViewCreate(xide_app* app);
 void xideCompletionViewConfigurationChanged(xide_app* app);
+/* Revoke cursor/signature results and pending decoding without losing the
+ * connection or synchronized text. Future queries still prove disk inputs. */
+void xideCompletionViewDiskChanged(xide_app* app);
 void xideCompletionViewStop(xide_app* app);
 void xideCompletionViewDestroy(xide_app* app);
 void xideCompletionViewPoll(xide_app* app);

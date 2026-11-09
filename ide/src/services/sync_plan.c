@@ -4,7 +4,7 @@
 #define SYNC_TEXT_LIMIT (8u*1024u*1024u)
 #define SYNC_TOTAL_LIMIT (32u*1024u*1024u)
 typedef struct owned_input { xvalue *uri,*text;uint64_t identity,revision; } owned_input;
-typedef struct sync_job { uint64_t token;owned_input inputs[SYNC_DOCUMENTS];size_t count;xide_sync_result* result; } sync_job;
+typedef struct sync_job { uint64_t token;owned_input inputs[128];size_t count;xide_sync_result* result; } sync_job;
 struct xide_sync_planner {
     xthread* thread;xmutex lock;xcond changed;int stop;uint64_t current;
     sync_job* pending;xide_sync_result *completed,*retired;
@@ -25,7 +25,18 @@ static int collect(void* user,const char* method,const xvalue* params)
  xide_sync_result* result=user;const xvalue* document=xrtValueObjectGet(params,xrtStrView("textDocument"));
  const xvalue* uri=xrtValueObjectGet(document,xrtStrView("uri"));
  if(result->operationCount==128 || !uri || !xideLanguageBatchAppend(result->batch,method,params)) return 0;
- result->operations[result->operationCount++]=(xide_sync_operation){xrtValueRetain(uri),!strcmp(method,"textDocument/didClose")};return 1;
+ result->operations[result->operationCount++]=(xide_sync_operation){.uri=xrtValueRetain(uri),.close=!strcmp(method,"textDocument/didClose")};return 1;
+}
+static int prepareWatches(xide_sync_planner* planner,sync_job* job,xide_sync_result* result)
+{
+ xvalue* params=xrtValueObject(),*changes=xrtValueArray();int okay=params && changes;
+ for(size_t i=0;okay && i<job->count;++i){if(!current(planner,job->token)){okay=0;break;}owned_input* input=job->inputs+i;xvalue* row=xrtValueObject();
+  okay=row && xrtValueObjectSet(row,xrtStrView("uri"),input->uri) && xrtValueObjectSetNew(row,xrtStrView("type"),xrtValueInt((int64)input->identity)) && xrtValueArrayAppend(changes,row);xrtValueRelease(row);
+  if(okay)result->operations[result->operationCount++]=(xide_sync_operation){.uri=xrtValueRetain(input->uri),.revision=input->revision};
+ }
+ if(okay){okay=xrtValueObjectSetNew(params,xrtStrView("changes"),changes);changes=NULL;}
+ if(okay)okay=current(planner,job->token) && xideLanguageBatchAppend(result->batch,"workspace/didChangeWatchedFiles",params);
+ xrtValueRelease(changes);xrtValueRelease(params);return okay;
 }
 static int32 run(ptr user)
 {
@@ -42,18 +53,19 @@ static int32 run(ptr user)
         else {job=planner->pending;planner->pending=NULL;}
         xrtMutexUnlock(&planner->lock);
         if(garbage) {xideSyncResultRelease(garbage);if(planner->wake) planner->wake(planner->user);continue;}
-        xide_sync_result* result=job->result;job->result=NULL;
+        xide_sync_result* result=job->result;job->result=NULL;result->workerThreadId=xrtThreadCurrentId();
         if(current(planner,job->token)) {
             xls_sync_document documents[SYNC_DOCUMENTS];int okay=1;
-            for(size_t i=0;i<job->count;++i) {
+            for(size_t i=0;result->kind==XIDE_SYNC_DOCUMENTS && i<job->count;++i) {
                 xstrview uri={0},text={0};owned_input* input=job->inputs+i;
                 if(!xrtValueGetString(input->uri,&uri) || !xrtValueGetString(input->text,&text)) {okay=0;break;}
                 documents[i]=(xls_sync_document){uri.Data,text.Data ? text.Data : "",text.Size,input->identity,input->revision};
             }
             result->batch=xideLanguageBatchCreate();
-            okay=okay && result->batch && xlsSyncUpdate(result->sync,documents,job->count,collect,result) &&
+            if(result->kind==XIDE_SYNC_WATCHED_FILES)okay=result->batch && prepareWatches(planner,job,result);
+            else okay=okay && result->batch && xlsSyncUpdate(result->sync,documents,job->count,collect,result) &&
                 xlsSyncInputState(result->sync,result->digest,&result->count);
-            for(size_t i=0;okay && i<job->count;++i) {
+            for(size_t i=0;okay && result->kind==XIDE_SYNC_DOCUMENTS && i<job->count;++i) {
                 result->versions[i]=xlsSyncVersion(result->sync,documents[i].uri);if(!result->versions[i]) okay=0;
             }
             result->valid=okay;
@@ -96,6 +108,17 @@ int xideSyncPlannerSubmit(xide_sync_planner* planner,uint64_t token,const xls_sy
     xrtMutexLock(&planner->lock);available=!planner->stop && !planner->pending;
     if(available) {planner->current=token;planner->pending=job;job=NULL;xrtCondSignal(&planner->changed);}
     xrtMutexUnlock(&planner->lock);releaseJob(job);return available;
+}
+int xideSyncPlannerSubmitWatches(xide_sync_planner* planner,uint64_t token,const xide_watch_input* inputs,size_t count)
+{
+ if(!planner || !token || !count || count>128 || !inputs)return -1;
+ xrtMutexLock(&planner->lock);int available=!planner->stop && !planner->pending;xrtMutexUnlock(&planner->lock);if(!available)return 0;
+ sync_job* job=xrtCalloc(1,sizeof(*job));if(!job)return -1;job->token=token;job->result=xrtCalloc(1,sizeof(*job->result));if(!job->result){releaseJob(job);return -1;}job->result->token=token;job->result->kind=XIDE_SYNC_WATCHED_FILES;size_t total=0;
+ for(size_t i=0;i<count;++i){const xide_watch_input* in=inputs+i;size_t size=in->uri?strlen(in->uri):0;
+  if(!size || size>262144 || size>1024u*1024u-total || in->type<1 || in->type>3 || !in->revision || !xrtUtf8Valid((xstrview){in->uri,size},NULL)){releaseJob(job);return -1;}
+  total+=size;owned_input* owned=job->inputs+job->count++;owned->uri=xrtValueString((xstrview){in->uri,size});owned->identity=(uint64_t)in->type;owned->revision=in->revision;if(!owned->uri){releaseJob(job);return -1;}
+ }
+ xrtMutexLock(&planner->lock);available=!planner->stop && !planner->pending;if(available){planner->current=token;planner->pending=job;job=NULL;xrtCondSignal(&planner->changed);}xrtMutexUnlock(&planner->lock);releaseJob(job);return available;
 }
 void xideSyncPlannerCancel(xide_sync_planner* planner)
 { if(planner) {xrtMutexLock(&planner->lock);planner->current=0;xrtCondSignal(&planner->changed);xrtMutexUnlock(&planner->lock);} }

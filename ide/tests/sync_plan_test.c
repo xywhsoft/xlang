@@ -7,8 +7,9 @@
 /* Private queue/worker access makes allocation, backpressure and publication
    races deterministic without adding fault hooks to the shipped API. */
 static int frameCalls,failFrame,failAllocation;
+static uint64_t watchFrameThread;
 static char* testFrame(const xvalue* value,size_t* size,xide_model_error* error)
-{ ++frameCalls;return failFrame ? NULL : xideLspFrame(value,size,error); }
+{ ++frameCalls;xstrview method={0};if(xrtValueGetString(xrtValueObjectGet(value,xrtStrView("method")),&method) && xrtStrEqual(method,xrtStrView("workspace/didChangeWatchedFiles")))watchFrameThread=xrtThreadCurrentId();return failFrame ? NULL : xideLspFrame(value,size,error); }
 static void* testCalloc(size_t count,size_t size)
 { return failAllocation ? NULL : calloc(count,size); }
 #define xideLspFrame testFrame
@@ -97,5 +98,24 @@ static int plans(void)
  xideSyncResultRelease(next);CHECK(xideSyncPlannerSubmit(p,7,base,NULL,0)==1);next=waitResult(p);CHECK(next && next->valid && !next->count && xlsSyncVersion(base,input.uri)==2);xideSyncResultRelease(next);
  xideSyncPlannerDestroy(p);xlsSyncDestroy(base);CHECK(!strcmp(xlsTextData(lease),"A😀Z\n"));xlsTextRelease(lease);DeleteCriticalSection(&client.lock);CloseHandle(g.entered);CloseHandle(g.release);return 0;
 }
+static int watches(void)
+{
+ gate g={CreateEventW(NULL,TRUE,FALSE,NULL),CreateEventW(NULL,TRUE,FALSE,NULL),0};CHECK(g.entered && g.release);xide_sync_planner* p=xideSyncPlannerCreate(wake,&g);CHECK(p);
+ char uri[]="file:///D:/%E4%B8%AD.xl";xide_watch_input inputs[]={{uri,2,7},{"file:///D:/removed.xl",3,8}};
+ CHECK(xideSyncPlannerSubmitWatches(p,0,inputs,2)==-1 && xideSyncPlannerSubmitWatches(p,1,NULL,2)==-1 && xideSyncPlannerSubmitWatches(p,1,inputs,0)==-1 && xideSyncPlannerSubmitWatches(p,1,inputs,129)==-1);
+ xide_watch_input invalid={"file:///a.xl",0,1};CHECK(xideSyncPlannerSubmitWatches(p,1,&invalid,1)==-1);invalid.type=4;CHECK(xideSyncPlannerSubmitWatches(p,1,&invalid,1)==-1);invalid.type=2;invalid.revision=0;CHECK(xideSyncPlannerSubmitWatches(p,1,&invalid,1)==-1);invalid.revision=1;invalid.uri="\xc0\x80";CHECK(xideSyncPlannerSubmitWatches(p,1,&invalid,1)==-1);
+ char* large=malloc(262146);CHECK(large);memset(large,'x',262145);large[262145]=0;invalid.uri=large;CHECK(xideSyncPlannerSubmitWatches(p,1,&invalid,1)==-1);large[262144]=0;xide_watch_input many[5];for(int i=0;i<5;++i)many[i]=(xide_watch_input){large,2,(uint64_t)i+1};CHECK(xideSyncPlannerSubmitWatches(p,1,many,5)==-1);free(large);
+ CHECK(xideSyncPlannerSubmitWatches(p,2,inputs,2)==1);uri[8]='Z';inputs[0].revision=99;inputs[0].type=1;
+ xide_sync_result* r=waitResult(p);CHECK(r && r->valid && r->kind==XIDE_SYNC_WATCHED_FILES && !r->sync && !r->count && r->operationCount==2 && r->operations[0].revision==7 && textIs(r->operations[0].uri,"file:///D:/%E4%B8%AD.xl") && r->workerThreadId==watchFrameThread && watchFrameThread!=xrtThreadCurrentId());
+ xide_language_client client={0};InitializeCriticalSection(&client.lock);messages m={0};int frames=frameCalls;failFrame=failAllocation=1;CHECK(xideLanguageBatchSend(&client,r->batch) && frameCalls==frames);r->batch=NULL;failFrame=failAllocation=0;
+ CHECK(drain(&client,&m) && m.count==1 && textIs(get(m.values[0],"method"),"workspace/didChangeWatchedFiles"));const xvalue* changes=get(get(m.values[0],"params"),"changes");CHECK(xrtValueCount(changes)==2 && textIs(get(xrtValueArrayGet(changes,0),"uri"),"file:///D:/%E4%B8%AD.xl") && integer(get(xrtValueArrayGet(changes,0),"type"))==2 && integer(get(xrtValueArrayGet(changes,1),"type"))==3);clearMessages(&m);xideSyncResultRelease(r);
+ xide_watch_input full[128];for(int i=0;i<128;++i)full[i]=(xide_watch_input){"file:///a.xl",(i%3)+1,(uint64_t)i+1};CHECK(xideSyncPlannerSubmitWatches(p,3,full,128)==1);r=waitResult(p);CHECK(r && r->valid && r->operationCount==128 && !r->sync);xideSyncResultRelease(r);
+ blockNext(&g);CHECK(xideSyncPlannerSubmitWatches(p,4,inputs,2)==1 && waitGate(&g));r=xideSyncPlannerTake(p);CHECK(r && r->valid);CHECK(xideSyncPlannerRetire(p,r));CHECK(xideSyncPlannerSubmitWatches(p,5,inputs,2)==1 && xideSyncPlannerSubmitWatches(p,6,inputs,2)==0);xideSyncPlannerCancel(p);CHECK(SetEvent(g.release));
+ uint64_t until=GetTickCount64()+5000;int idle=0;do{xrtMutexLock(&p->lock);idle=!p->pending;xrtMutexUnlock(&p->lock);if(!idle)Sleep(1);}while(!idle && GetTickCount64()<until);CHECK(idle && !xideSyncPlannerTake(p));
+ failFrame=1;CHECK(xideSyncPlannerSubmitWatches(p,7,inputs,2)==1);r=waitResult(p);CHECK(r && !r->valid);failFrame=0;xideSyncResultRelease(r);
+ failAllocation=1;CHECK(xideSyncPlannerSubmitWatches(p,8,inputs,2)==1);r=waitResult(p);CHECK(r && !r->valid);failAllocation=0;xideSyncResultRelease(r);
+ CHECK(xideSyncPlannerSubmitWatches(p,9,inputs,2)==1);r=waitResult(p);CHECK(r && r->valid && r->operations[0].revision==99);xideSyncResultRelease(r);
+ xideSyncPlannerDestroy(p);DeleteCriticalSection(&client.lock);CloseHandle(g.entered);CloseHandle(g.release);return 0;
+}
 int main(void)
-{CHECK(!batches());CHECK(!plans());printf("sync_plan_test passed: %d checks; atomic prepared batches, bounded gated worker slots, cancellation, exact delta/receipt/version parity, immutable ownership and retirement.\n",checks);return 0;}
+{CHECK(!batches());CHECK(!plans());CHECK(!watches());printf("sync_plan_test passed: %d checks; atomic prepared batches, bounded gated worker slots, cancellation, exact delta/receipt/version parity, immutable ownership/retirement and off-owner watched-file encoding.\n",checks);return 0;}
