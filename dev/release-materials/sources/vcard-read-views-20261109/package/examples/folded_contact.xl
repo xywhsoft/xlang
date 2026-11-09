@@ -1,0 +1,18 @@
+import vcard
+
+func main(...) as int
+    if arg.length > 2 then return 2 end
+    // 发送端在完整字符之间折行；分组前缀只用于读取，不承诺无损保留。
+    string source = ("BEGIN:VCARD\r\nVERSION:4.0\r\nFN:张\r\n\t三\r\n" +
+        "item1.EMAIL:home@\r\n example.com\r\n" +
+        "NOTE:第一行\\n第二\r\n 行\r\nEND:VCARD\r\n")
+    var card = vcard.parse(source)
+    string canonical = vcard.build(card)
+    assert card["fn"] == "张三" and card["email"] == "home@example.com"
+    assert card["note"] == "第一行\n第二行"
+    if arg.length == 2 then assert file.writeText(string(arg[1]), canonical) end
+    println("name:", string(card["fn"]))
+    println("email:", string(card["email"]))
+    println("note restored:", card["note"] == "第一行\n第二行")
+    return 0
+end

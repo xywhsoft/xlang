@@ -1,0 +1,22 @@
+import vcard
+import "../fixtures/vcard_read_views" as probe
+
+// 读取时禁止任何 XRT 分配；原生 string 槽位必须直接借用指针。
+array<string> emails = array["a","b"]
+var native = {"fn":"A","email":emails}
+assert probe.noalloc(native) == 1
+assert probe.unknownRejected() == 1
+
+// 相同输入和输出，原生容器不得比标准 XRT 对象多分配/扩容。
+string source = "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:A\r\nEMAIL:a\r\nEMAIL:b\r\nEND:VCARD\r\n"
+var wire = vcard.parse(source)
+int baseline = probe.allocations(wire)
+int nativeCost = probe.allocations(native)
+assert baseline > 0
+assert nativeCost == baseline
+assert vcard.build(native) == vcard.build(wire)
+wire["email"] = emails
+assert probe.allocations(wire) == baseline
+assert vcard.build(wire) == source
+println("vcard allocation counts (alloc*10000+realloc):", nativeCost)
+println("vcard no-copy and unknown-handle checks: PASS")

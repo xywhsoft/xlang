@@ -61,9 +61,9 @@ def main():
     cases = [(name, root / 'test/cases' / (name + '.xl'), []) for name in (
         'cgen_class_projection_derived', 'cgen_destroy_field_assignment',
         'stdlib_channel_default_initialized', 'stdlib_object_index_context',
-        'cgen_foreign_read_views')]
+        'cgen_foreign_read_views', 'extlib_vcard_read_views')]
     cases += [(name, runtime / 'examples' / path, []) for name, path in (
-        ('cli', 'extlibs/cli.xl'), ('serial', 'extlibs/serial.xl'),
+        ('cli', 'extlibs/cli.xl'), ('serial', 'extlibs/serial.xl'), ('vcard', 'extlibs/vcard.xl'),
         ('copy_clone', 'copy_clone.xl'), ('class_c_export', 'class_c_export.xl'),
         ('fs', 'stdlib_fs_advanced.xl'), ('concurrency', 'feature_suite/11_concurrency.xl'))]
     cases += [(name, runtime / 'projects/dev' / name / (name + '.xl'),

@@ -1,0 +1,3 @@
+export extern "vcard_read_noalloc" func noalloc(var card) as int
+export extern "vcard_build_allocations" func allocations(var card) as int
+export extern "vcard_unknown_rejected" func unknownRejected() as int

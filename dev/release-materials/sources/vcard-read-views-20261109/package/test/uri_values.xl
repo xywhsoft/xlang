@@ -1,0 +1,24 @@
+import vcard
+
+var card = {
+    "version": "4.0",
+    "fn": "Alex, B; C",
+    "url": "https://e.test/a,b;c=1",
+    "impp": "xmpp:alex@e.test?x=1,2",
+    "photo": "https://e.test/p;a,b.png",
+    "logo": "https://e.test/l;a,b.png",
+    "geo": "geo:37.386013,-122.082932"
+}
+string wire = vcard.build(card)
+assert wire.contains("FN:Alex\\, B\\; C\r\n"), "TEXT remains escaped"
+assert wire.contains("URL:https://e.test/a,b;c=1\r\n"), "URL is a URI"
+assert wire.contains("IMPP:xmpp:alex@e.test?x=1,2\r\n"), "IMPP is a URI"
+assert wire.contains("PHOTO:https://e.test/p;a,b.png\r\n"), "PHOTO URI"
+assert wire.contains("LOGO:https://e.test/l;a,b.png\r\n"), "LOGO URI"
+assert wire.contains("GEO:geo:37.386013,-122.082932\r\n"), "GEO URI"
+var back = vcard.parse(wire)
+assert back["url"] == card["url"] and back["geo"] == card["geo"]
+
+string older = vcard.build({"version": "3.0", "fn": "Alex", "url": card["url"]})
+assert older.contains("URL:https://e.test/a,b;c=1\r\n"), "3.0 URL is a URI"
+println("vcard URI values: PASS")

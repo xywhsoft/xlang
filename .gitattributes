@@ -292,3 +292,7 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 /dev/release-materials/provenance/release-0.6.2-20261109/** -text -whitespace
 /dev/release-materials/sources/ide-update-v3-publish-20261109/** -text -whitespace
 /dev/release-materials/provenance/ide-update-v3-publish-20261109/** -text -whitespace
+
+# Preserve the reviewed vcard source snapshot and acceptance bytes.
+/dev/release-materials/sources/vcard-read-views-20261109/** -text -whitespace
+/dev/release-materials/provenance/vcard-read-views-20261109/** -text -whitespace

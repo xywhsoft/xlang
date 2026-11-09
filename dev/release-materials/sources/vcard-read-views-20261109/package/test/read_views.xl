@@ -1,0 +1,55 @@
+import vcard
+
+// 原生字典、标准 XRT 对象和两者的混合表示必须产生相同字节。
+func main(...) as int
+    string minimal = "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:A\r\nEND:VCARD\r\n"
+    assert vcard.build({"fn":"A"}) == minimal
+    dict<string> typed = {"fn":"A"}
+    assert vcard.build(typed) == minimal
+    var wire = vcard.parse(minimal)
+    assert vcard.build(wire) == minimal
+
+    array<string> emails = array["a@example.com","b@example.com"]
+    string expected = "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:A\r\nEMAIL:a@example.com\r\nEMAIL:b@example.com\r\nEND:VCARD\r\n"
+    var native = {"fn":"A","email":emails}
+    assert vcard.build(native) == expected
+    wire["email"] = emails
+    assert vcard.build(wire) == expected
+    // 同一数组可由两个字段共享，前一字段的读作用域必须已经结束。
+    native["tel"] = emails
+    assert vcard.build(native).contains("TEL:a@example.com\r\n")
+    // 序列化结束后，原始字典和数组均必须可继续修改。
+    native["fn"] = "B"
+    emails.push("c@example.com")
+    assert vcard.build(native).contains("FN:B\r\n")
+
+    var invalid = {"fn":"A","email":array[1]}
+    int rejected = 0
+    try
+        vcard.build(invalid)
+    catch e
+        rejected += 1
+    end
+    // 字段错误后同样释放所有作用域；修正原字典后可再次序列化。
+    invalid["email"] = array["ok@example.com"]
+    assert vcard.build(invalid).contains("EMAIL:ok@example.com\r\n")
+    try
+        vcard.build({"fn":"A","email":array[]})
+    catch e
+        rejected += 1
+    end
+    try
+        vcard.build({"fn":"A","email":{"nested":"bad"}})
+    catch e
+        rejected += 1
+    end
+    try
+        vcard.build({"fn":"A","unknown":"bad"})
+    catch e
+        rejected += 1
+    end
+    assert rejected == 4
+    assert vcard.build({"fn":"A"}) == minimal
+    println("vcard read views: PASS")
+    return 0
+end
