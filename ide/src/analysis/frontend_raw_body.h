@@ -18,6 +18,9 @@ typedef int (*xls_raw_encoder)(const XL6_AstNode*,xstrbuf*);
 typedef struct xls_raw_scope {
     struct xls_raw_scope* previous;
     const void* baseline;
+    /* Synchronous construction input;caller retains the previous check. */
+    struct xls_model_source_control* modelSource;
+    const struct xls_typed_module* nativeSource;
     xarray bindings,environments;
     xmap functions;
     size_t limit,unitBytes,environmentBytes;

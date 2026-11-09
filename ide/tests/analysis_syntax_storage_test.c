@@ -64,7 +64,11 @@ static void mapUnit(xmap* map)
 #define xlsSyntaxSignatureCacheBytes privateExtraxlsSyntaxSignatureCacheBytes
 #define xlsSyntaxSignatureMatches privateExtraxlsSyntaxSignatureMatches
 #define xlsSyntaxTrySignatureFunction privateExtraxlsSyntaxTrySignatureFunction
+#define xlsRawBodySyntaxUnitCount privateExtraxlsRawBodySyntaxUnitCount
+#define xlsRawBodySyntaxUnitAt privateExtraxlsRawBodySyntaxUnitAt
 #include "analysis/syntax.c"
+#undef xlsRawBodySyntaxUnitCount
+#undef xlsRawBodySyntaxUnitAt
 #undef xlsCursorWordMapRange
 #undef xlsRawBodyProjectionAst
 #undef xlsRawBodyProjectionCreate

@@ -1,0 +1,423 @@
+{
+  "schema": 1,
+  "date": "2026-11-10",
+  "stage": "M7a2b126p",
+  "status": "source-milestone-verified-full-performance-not-admitted",
+  "scope": "Synchronous previous-model immutable function leases outside optional cache;ownership transfer before publication;conservative preceding-foreign-input preflight and bounded missing raw identity capture. Complete native semantic/source/ID/coordinate/IR guards remain.",
+  "longTermGoal": "active",
+  "repositoryHeadAtCollection": "58c8d355b833d1fd614a35fc6f20eb1d5341a0db",
+  "releaseAdmitted": false,
+  "defaultRuntimeReplaced": false,
+  "onlinePublishPerformed": false,
+  "currentDeliveryIndexModifiedByThisStage": false,
+  "ownedSources": {
+    ".gitignore": "80e31dd3c25eb48c5d4825b0f036e84cd8f0528ccc07cc20d7cc0b1f4a88c28c",
+    "ide/src/analysis/check.c": "449537692f1ded7a81da7b022cbacf079d47fc0286d0dfb7c711714486c5fed9",
+    "ide/src/analysis/frontend_raw_body.h": "4aa85181acba8032c14ade6ef6b44cf2dc4526cf976ba43ab3415bd32ca36b71",
+    "ide/src/analysis/frontend_model_source.h": "6b482cc4025e35243305fefdeaee5d84e8ce41fd47e479e2b014e0fd29fa3ca7",
+    "ide/src/analysis/frontend_sem.inc": "498b3b622d852b7dead0e9019359d0bbccde3a6d1f87d13602c02e11062b26fe",
+    "ide/src/analysis/frontend_sem_final.inc": "d35ba0067f0b794e32c89918bf051862a25108ba946d2a7a227c55c4714c3150",
+    "ide/src/analysis/frontend_sem_native.inc": "464c2523fc32ff4cbd8d09d9de2ece21eacbd027c68c71597b29aabae069cf00",
+    "ide/src/analysis/frontend_sem_raw.inc": "bd05dc93b49d62849d25a1bbed0e7b18bb1b8b31336b027555dff80f10c6bf3c",
+    "ide/src/analysis/syntax_raw_body.inc": "55d39e4f03ba9d04024d60d4829befeb67f841b5bdab4fe39bea11e7b2eb4c4a",
+    "ide/tests/analysis_syntax_storage_test.c": "eb0c634911a6e0984252603911b1e80bc113d7115a82c7777f09bb53919613cb",
+    "ide/tests/analysis_model_source_test.c": "60ee3bc7acc6f7647690a6c2ac6d9d387733c94a149b2a92fa1481fc5d4f1570",
+    "ide/tools/build_lsp_core.py": "b2d3c292824b2085d1db0ea524d88f88950044d4032b55a11138f4c2522bbafc",
+    "ide/tools/check_lsp_model_source.py": "99e965c167b71b7c75e2905807aecf585e38e6225a3e8864649cec4d4e4bcaa7",
+    "ide/docs/lsp-development.md": "0073e8c09990b87639bf8ff71afdafbcf3a2f361712fc20466f93b4b0ba56102",
+    "ide/docs/lsp-model-source-reuse.md": "4a7313ca54ae4e1aee457d8a9b1e5a10a77e6adc34086c390b312106d5a13ae8"
+  },
+  "materials": {
+    "sourceManifest": {
+      "schema": 1,
+      "logicalDirectory": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-model-source-reuse-20261110",
+      "storageBacking": "F:\\codex-builds-xlang-lsp-20261110\\lsp-model-source-reuse-20261110-materials\\sources",
+      "archive": {
+        "path": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-model-source-reuse-20261110\\sources.tar.gz",
+        "sha256": "be7b474c501685ca47d2f02fe2c28a3543886b8f3d175bbb44bcfe6b52cc60a2",
+        "bytes": 42326834
+      },
+      "bindings": {
+        "path": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-model-source-reuse-20261110\\source-bindings.json",
+        "sha256": "d990d5a0a2709ea6b03a0c643b717eebc967df7553fd93cb5e4468739a32bc5f"
+      },
+      "effectiveNativeInputBindings": 749,
+      "guiInputBindings": 675,
+      "historicalInputBindings": 749,
+      "matchedSdkFiles": 180,
+      "distinctArchiveEntries": 1499
+    },
+    "provenanceManifest": {
+      "schema": 1,
+      "logicalDirectory": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\lsp-model-source-reuse-20261110",
+      "storageBacking": "F:\\codex-builds-xlang-lsp-20261110\\lsp-model-source-reuse-20261110-materials\\provenance",
+      "archive": {
+        "path": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\lsp-model-source-reuse-20261110\\reports.tar.gz",
+        "sha256": "1c38f55ef88dd8c53fd3fb98d177aa8e95fa17fd8f3c5110420d2c61f68554d6",
+        "bytes": 14111521
+      },
+      "screenshots": {
+        "path": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\lsp-model-source-reuse-20261110\\screenshots.tar.gz",
+        "sha256": "090173b92a044ef9cc11d5b1ef55a64be99acd744ce76ed5fa4070f6c4721a83",
+        "bytes": 3502210,
+        "files": 29
+      },
+      "files": 2768,
+      "retainedOriginalRunDirectories": [
+        "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-full-production-20261110"
+      ],
+      "historicalPathsRewritten": false
+    }
+  },
+  "native": {
+    "receipt": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-full-production-20261110\\model-prefix-v4-build-v1\\build-result.json",
+    "receiptSha256": "7ddb6f6863460cb108c466da0a25243fa646837cf622ff41f4ef2ae5f29f0e4e",
+    "serverSha256": "32d81ed471c72a390b99aea423c8f247f16c308ec72b331b70479ea2cd32820a",
+    "coreSha256": "eaacc85bfb29d5356b7a3f499e04c5a422150ae87fb6e06cfc7d683df23226bd",
+    "closedCompilationUnits": 258,
+    "effectiveInputs": 749,
+    "recompiledAbiConsumers": 28,
+    "newFixtureCompiledFromPromotedSource": true,
+    "originalNativeTestsActuallyExecuted": 155,
+    "newNativeTestsActuallyExecuted": 1,
+    "qualifiedIndexOriginalRunsPreservedWithoutAnotherRerun": 155,
+    "specializedChecks": 1230488,
+    "linkedObjectsVerified": 193,
+    "frontendCohort": "Exact previous matched frozen native frontend/private AST;concurrent current engine worktree not readmitted.",
+    "optionalNativeCacheBytes": 33554432,
+    "rawMemoBytes": 33554432,
+    "newTlsObjects": 0,
+    "wholePreviousCheckRetainedByNewMemo": false,
+    "globalProcessBudgetProven": false
+  },
+  "protocol": {
+    "suites": 8,
+    "resultSha256": "23123796a0025904ee2d093a7b10f3bd4e8355054dc0fdc270068029eaca2500",
+    "serverSha256": "32d81ed471c72a390b99aea423c8f247f16c308ec72b331b70479ea2cd32820a",
+    "importedDeclarationWorkRegression": {
+      "resultSha256": "4372751bb447b487bbb8c6c6a3da23048e23ec078a8baf940e58089cb36291fe",
+      "firstMaterializedNodes": {
+        "baseline": 97843,
+        "candidate": 97843
+      },
+      "hotMaterializedNodes": {
+        "baseline": [
+          47017,
+          47017
+        ],
+        "candidate": [
+          4793,
+          4793
+        ]
+      },
+      "processes": 2,
+      "queries": 10
+    }
+  },
+  "gui": {
+    "rebuiltObjects": 115,
+    "guiEntryRecompiled": true,
+    "resourceObjectRecompiled": true,
+    "tests": 26,
+    "currentServiceCases": 25,
+    "controlledOldCapabilityCases": 1,
+    "serverSha256": "32d81ed471c72a390b99aea423c8f247f16c308ec72b331b70479ea2cd32820a",
+    "candidateSha256": "0c7f8e10f0e42cff774c732ae5b4310e2f0d1ce6f1ca2a0b2b280a7c4feb3cf9",
+    "cLspEnabled": false,
+    "resultSha256": "57226466155aa9faefd6e5736e9bd6ee4d6376748032a2092f65f2cd69591309",
+    "visuallyInspectedScreenshots": [
+      "completion_view_test/completion-19896-127464406/completion-light.png",
+      "input_test/中文 输入/native-ime-preedit.png",
+      "workspace_search_view_test/中文😀 workspace/workspace-symbols-dark.png"
+    ]
+  },
+  "compiledNegativeControls": {
+    "resultSha256": "153fc5c7033a22223dec46b67c753cf131515e573be0a6b5bee201905f4947b2",
+    "cases": [
+      {
+        "name": "root-owner",
+        "programSha256": "868bd54fac4a00151ec20a77b1c07c7306b2abfa6077e0c788cf0e44662d3152",
+        "exit": 1,
+        "stderr": "analysis_semantic_memo_test:107: !!function==expected\r\nanalysis_semantic_memo_test:118: acquire(&fake,slot,0,0)\r\nanalysis_semantic_memo_test:188: rejectedOwners(memo,owner,xlsFrontendCheckFunctionModule(other),slot)\r\n"
+      },
+      {
+        "name": "input-owner",
+        "programSha256": "8787270a784f7735b304c7f1fdcf38cf93602e959689646159f6f2830b68a697",
+        "exit": 1,
+        "stderr": "analysis_semantic_memo_test:107: !!function==expected\r\nanalysis_semantic_memo_test:119: acquire(&fake,slot,0,0)\r\nanalysis_semantic_memo_test:188: rejectedOwners(memo,owner,xlsFrontendCheckFunctionModule(other),slot)\r\n"
+      },
+      {
+        "name": "read-only",
+        "programSha256": "24c11ae2da53205ff64abe0ea878c16dd7e851a11de7304ce9d39cb641b63252",
+        "exit": 1,
+        "stderr": "analysis_semantic_memo_test:107: !!function==expected\r\nanalysis_semantic_memo_test:138: acquire(&fake,0,0,0)\r\nanalysis_semantic_memo_test:188: rejectWritable(memo,xrtArrayConstGet(&memo->entries,slot))\r\n"
+      },
+      {
+        "name": "publication-clear",
+        "programSha256": "9fcd1f31e0dd47bd1d05a66b235195b830db599cef33e46cc2fffa831cac0968",
+        "exit": 1,
+        "stderr": "analysis_semantic_memo_test:192: !((const xls_sem_entry*)capturedMemo->entries.Data)[i].nativeModelLease\r\n"
+      },
+      {
+        "name": "source-before-placement",
+        "programSha256": "877fc8b0ef8727b8eb8e5aeefa2cb47f8c8f614b306f99f348d7a29959c2cdc8",
+        "exit": 1,
+        "stderr": "analysis_semantic_memo_test:48: !result && build.bodyFailure && raw.failed && root.children[slot]==stub\r\nanalysis_semantic_memo_test:188: checkPublicationSource(memo,owner,xlsFrontendCheckFunctionModule(other),slot,held)\r\n"
+      },
+      {
+        "name": "foreign-input-preflight",
+        "programSha256": "2f2944bff8b901eb36eca5582e1be62c31b952f21dbf34977f002f7ee5f0a582",
+        "exit": 1,
+        "stderr": "analysis_semantic_memo_test:165: !xlsRawBodyModelPrefix(&raw,foreign)\r\nanalysis_semantic_memo_test:178: prefixAssets(path,first,second)\r\n"
+      },
+      {
+        "name": "noncached-prefix-identity",
+        "programSha256": "086c80aee21a643ca7b71eb0e1e6e4f095955a37e4663b677473ef50c7f303c0",
+        "exit": 1,
+        "stderr": "analysis_semantic_memo_test:148: memo->raw->prefixUnits.Count==memo->entries.Count && *(xls_raw_unit**)xrtArrayGet(&memo->raw->prefixUnits,0)\r\nanalysis_semantic_memo_test:178: prefixAssets(path,first,second)\r\n"
+      }
+    ],
+    "requirement": "Each actual C omission compiles and links,then the unchanged accepted contract explicitly exits1 at a CHECK. Crashes/compiler failure/markers not accepted."
+  },
+  "componentScreen": {
+    "status": "passed",
+    "processes": 32,
+    "queries": 480,
+    "originalGates": 40,
+    "originalFailedGates": 0,
+    "registrationSha256": "5efe650a23f941ae45ef7bdfae104ccb91c5d4aa00b05aef79f568cc282bbe71",
+    "resultSha256": "e06757517025ad157c402c852b1ca2eb7ecd12c3998f88092b28f80c5487433c",
+    "extraBenefitResultSha256": "b33efc0489080ac9cdcaf034ba64cbb652fb1e6b67d23a45c4adbe5596417af4",
+    "metrics": {
+      "512-single-literal": {
+        "hotP50Ms": {
+          "baseline": 306.1025,
+          "candidate": 225.9684
+        },
+        "hotP95Ms": {
+          "baseline": 350.3118,
+          "candidate": 254.6497
+        },
+        "interactionCpuPerChangeP50Ms": {
+          "baseline": 301.6826923076923,
+          "candidate": 224.7596153846154
+        },
+        "coldP50Ms": {
+          "baseline": 935.5425,
+          "candidate": 956.5747
+        },
+        "firstP50Ms": {
+          "baseline": 287.9821,
+          "candidate": 222.1392
+        },
+        "firstP95Ms": {
+          "baseline": 301.8874,
+          "candidate": 240.1674
+        }
+      },
+      "512-single-declaration": {
+        "hotP50Ms": {
+          "baseline": 324.7753,
+          "candidate": 254.74
+        },
+        "hotP95Ms": {
+          "baseline": 485.1257,
+          "candidate": 421.7875
+        },
+        "interactionCpuPerChangeP50Ms": {
+          "baseline": 338.9423076923077,
+          "candidate": 281.25
+        },
+        "coldP50Ms": {
+          "baseline": 961.141,
+          "candidate": 960.8326
+        },
+        "firstP50Ms": {
+          "baseline": 452.6129,
+          "candidate": 437.9948
+        },
+        "firstP95Ms": {
+          "baseline": 480.2879,
+          "candidate": 465.0079
+        }
+      },
+      "512-imported-literal": {
+        "hotP50Ms": {
+          "baseline": 287.0607,
+          "candidate": 242.7011
+        },
+        "hotP95Ms": {
+          "baseline": 340.2991,
+          "candidate": 272.875
+        },
+        "interactionCpuPerChangeP50Ms": {
+          "baseline": 275.24038461538464,
+          "candidate": 242.78846153846155
+        },
+        "coldP50Ms": {
+          "baseline": 954.6548,
+          "candidate": 878.5355
+        },
+        "firstP50Ms": {
+          "baseline": 258.6075,
+          "candidate": 235.4739
+        },
+        "firstP95Ms": {
+          "baseline": 306.0412,
+          "candidate": 260.6461
+        }
+      },
+      "512-imported-declaration": {
+        "hotP50Ms": {
+          "baseline": 355.8189,
+          "candidate": 287.952
+        },
+        "hotP95Ms": {
+          "baseline": 491.1331,
+          "candidate": 455.5665
+        },
+        "interactionCpuPerChangeP50Ms": {
+          "baseline": 372.59615384615387,
+          "candidate": 313.7019230769231
+        },
+        "coldP50Ms": {
+          "baseline": 1170.6781,
+          "candidate": 1197.214
+        },
+        "firstP50Ms": {
+          "baseline": 480.5814,
+          "candidate": 495.9906
+        },
+        "firstP95Ms": {
+          "baseline": 515.8244,
+          "candidate": 579.1391
+        }
+      }
+    },
+    "additionalBenefit": [
+      {
+        "case": "512-imported-declaration",
+        "values": {
+          "baseline": {
+            "wireP50Ms": 356.2333,
+            "materializedNodesP50": 47017.0
+          },
+          "candidate": {
+            "wireP50Ms": 288.0761,
+            "materializedNodesP50": 4793.0
+          }
+        },
+        "wireRatio": 0.808672574967023,
+        "nodeRatio": 0.1019418508199162,
+        "passed": true
+      },
+      {
+        "case": "512-imported-literal",
+        "values": {
+          "baseline": {
+            "wireP50Ms": 287.92494999999997,
+            "materializedNodesP50": 42012.0
+          },
+          "candidate": {
+            "wireP50Ms": 242.83769999999998,
+            "materializedNodesP50": 4654.0
+          }
+        },
+        "wireRatio": 0.8434062418001635,
+        "nodeRatio": 0.11077787298866991,
+        "passed": true
+      },
+      {
+        "case": "512-single-declaration",
+        "values": {
+          "baseline": {
+            "wireP50Ms": 325.09405000000004,
+            "materializedNodesP50": 46880.0
+          },
+          "candidate": {
+            "wireP50Ms": 255.3515,
+            "materializedNodesP50": 4784.0
+          }
+        },
+        "wireRatio": 0.7854696202529697,
+        "nodeRatio": 0.10204778156996587,
+        "passed": true
+      },
+      {
+        "case": "512-single-literal",
+        "values": {
+          "baseline": {
+            "wireP50Ms": 306.45435,
+            "materializedNodesP50": 47105.0
+          },
+          "candidate": {
+            "wireP50Ms": 226.1055,
+            "materializedNodesP50": 4645.0
+          }
+        },
+        "wireRatio": 0.737811357548033,
+        "nodeRatio": 0.09860948943848848,
+        "passed": true
+      }
+    ],
+    "finalQualifiedServiceImageBenchmarked": true,
+    "scope": "First fixed32-process/480-query screen of this algorithm,default background enabled,one live chain at a time,whole interaction CPU,5GiB initial/3GiB running floors. Own builds/QA stopped during timing;host not exclusive. Component only;old whole-goal and same-image failures remain."
+  },
+  "rejectedExperiments": [
+    {
+      "name": "32/64MiB optional native cache observation",
+      "adopted": false,
+      "reason": "Additional retention lowers copies but diagnostic imported-declaration P95/CPU rises;retention cap not changed."
+    },
+    {
+      "name": "Initial model-source candidate without foreign-input preflight",
+      "adopted": false,
+      "status": "gates-failed",
+      "failedGates": [
+        {
+          "name": "512-single-declaration/cold/wireP50",
+          "actual": 885.4227,
+          "limit": 884.94168,
+          "passed": false,
+          "baseline": 842.8016,
+          "ratio": 1.05
+        },
+        {
+          "name": "512-imported-declaration/first/wireP50",
+          "actual": 609.1885,
+          "limit": 439.26078,
+          "passed": false,
+          "baseline": 418.3436,
+          "ratio": 1.05
+        },
+        {
+          "name": "512-imported-declaration/hot/wireP95",
+          "actual": 535.4225,
+          "limit": 468.704985,
+          "passed": false,
+          "baseline": 446.3857
+        }
+      ],
+      "resultSha256": "c5828090f6d42d5ac9370cf7cd3ab04a9ef4996ac304853333783390b0f4500e",
+      "sameImageNotRetried": true
+    }
+  ],
+  "preservedFailures": [
+    "production profiler setup/relocated path and host object mapping failures retained",
+    "model source contract v1-v5 fixture/header/export-quota/context failures retained;v6/v7 passed without enlarging quota",
+    "first prefix v1 new syntax export duplicate-definition link rejection retained;test-only rename fix and155 actual runs retained",
+    "first prefix contract and diagnostic rejection of missing non-cacheable identity retained;algorithm changed afterward",
+    "post-promotion first qualification metadata rejected an inherited stale root binding;new receipt replaces binding,original reports preserved,no test rerun",
+    "all preceding full performance and same-image calibration failures remain via preceding stage report"
+  ],
+  "protectedRuntime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "priorPerformanceStatusReference": "dev/release-materials/provenance/lsp-ir-classifier-admission-20261110.json",
+  "remaining": "Persistent checked functions/types/final IR and partial production;error recovery;remaining applicable LSP/static checks/edit-time completion;large workspace/concurrency/soak/global budgets;full performance admission and aligned runtime delivery. No DAP or runtime/debug completion."
+}

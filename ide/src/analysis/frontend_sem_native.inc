@@ -38,7 +38,16 @@ xls_typed_module* xlsFrontendSemMemoTakeModule(xls_sem_memo* memo,XL6_AstNode* r
     if(!root || root->childCount!=memo->entries.Count)return NULL;
     xls_typed_function** owners=xrtCalloc(root->childCount,sizeof(*owners));if(!owners)return NULL;
     for(size_t i=0;i<root->childCount;++i){const xls_sem_entry* entry=xrtArrayConstGet(&memo->entries,i);if(entry->nativePlaced)owners[i]=entry->native;}
-    xls_typed_module* result=xlsTypedModuleTakeBorrowed(root,owners,root->childCount);xrtFree(owners);return result;
+    xls_typed_module* result=xlsTypedModuleTakeBorrowed(root,owners,root->childCount);xrtFree(owners);
+    if(result)for(size_t i=0;i<memo->entries.Count;++i){xls_sem_entry* entry=xrtArrayGet(&memo->entries,i);
+        if(entry->nativeModelLease){
+            /* The result now owns its own function reference. Drop the
+             * construction lease before any completed memo is published. */
+            xlsTypedFunctionRelease(entry->native);entry->native=NULL;
+            entry->nativeModelLease=entry->nativePlaced=0;
+        }
+    }
+    return result;
 }
 static int xlsSemNativeCancelled(void* unused){(void)unused;return xlsFrontendCancelPoll();}
 /* Negative write-footprint certificate for the exact unchanged C-owned
@@ -53,9 +62,33 @@ static int xlsSemNativeCOwnedReadOnly(const XL6_AstNode* node,size_t depth)
     for(size_t i=0;i<node->childCount;++i)if(!xlsSemNativeCOwnedReadOnly(node->children[i],depth+1))return 0;
     return 1;
 }
+/* One owned reference. An uncached function is leased only from the exact
+ * already-owned typed module of this synchronous previous check. It is not
+ * retained as another optional cached payload after the new model commits. */
+static xls_typed_function* xlsSemNativeAcquire(const xls_sem_memo* memo,size_t slot,int* modelLease)
+{
+    if(modelLease)*modelLease=0;
+    const xls_sem_entry* entry=memo && slot<memo->entries.Count ? xrtArrayConstGet(&memo->entries,slot) : NULL;
+    if(!entry)return NULL;
+    if(entry->native)return xlsTypedFunctionRetain(entry->native);
+    const xls_raw_scope* scope=xlsRawBodyScopeCurrent();
+    const xls_model_source_control* source=scope ? scope->modelSource : NULL;
+    if(!modelLease || !scope || !scope->ordinary || !source || source->memo!=memo || !scope->nativeSource ||
+       !memo->finalContext || !entry->finalInput || !entry->finalPlanValid)return NULL;
+    const XL6_AstNode* root=xlsTypedModuleRoot(scope->nativeSource);
+    if(!root || root!=memo->finalizedRoot || root->childCount!=memo->entries.Count || slot>=root->childCount ||
+       memo->inputOwner!=xlsTypedModuleIdentity(scope->nativeSource))return NULL;
+    xls_typed_function* value=xlsTypedModuleFunction(scope->nativeSource,slot);
+    if(!value || xlsTypedFunctionRoot(value)!=root->children[slot] ||
+       !xlsSemNativeCOwnedReadOnly(xlsTypedFunctionRoot(value),0)){
+        xlsTypedFunctionRelease(value);return NULL;
+    }
+    *modelLease=1;return value;
+}
 void xlsFrontendSemMemoBindFunctions(xls_sem_memo* memo,xls_typed_module* module)
 {
     if(!memo || !memo->raw || !memo->finalContext || memo->finalizedRoot!=xlsTypedModuleRoot(module))return;
+    xlsRawPrefixCapture(memo,xlsTypedModuleRoot(module));
     int candidate=0;
     for(size_t i=0;i<memo->entries.Count && !candidate;++i){const xls_sem_entry* entry=xrtArrayConstGet(&memo->entries,i);
         candidate=entry->unit && entry->unit->proof && entry->finalInput && entry->finalPlanValid;

@@ -96,7 +96,15 @@ static int xlsSemPrepareNative(XL6_SemContext* ctx,XL6_AstNode* root)
     for(size_t i=0;i<memo->entries.Count;++i){const xls_sem_entry* entry=xrtArrayConstGet(&memo->entries,i);
         if(!entry->native)continue;
         const xls_sem_entry* old=xrtArrayConstGet(&build->baseline->entries,i);
-        if(!entry->finalCandidate || !old || entry->native!=old->native || entry->unit!=old->unit ||
+        int sourceMatch=old && entry->native==old->native;
+        if(entry->nativeModelLease){
+            const xls_raw_scope* source=xlsRawBodyScopeCurrent();
+            const XL6_AstNode* owner=source && source->nativeSource ? xlsTypedModuleRoot(source->nativeSource) : NULL;
+            const xls_model_source_control* control=source ? source->modelSource : NULL;
+            sourceMatch=source && control && control->memo==build->baseline && owner==build->baseline->finalizedRoot &&
+                owner && i<owner->childCount && owner->children[i]==xlsTypedFunctionRoot(entry->native);
+        }
+        if(!entry->finalCandidate || !old || !sourceMatch || entry->unit!=old->unit ||
            entry->finalPredictedStart!=old->finalRegionStart || entry->finalPredictedEnd!=old->finalRegionEnd ||
            !old->finalInput || !old->finalPlanValid || xlsFrontendCancelPoll())return xlsSemNativeFailure(build);
         ++count;

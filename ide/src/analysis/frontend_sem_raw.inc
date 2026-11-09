@@ -10,7 +10,7 @@ typedef struct xls_raw_fact {
     size_t functionBytes,count,body,end,prefixPositions,bodyPositions,totalPositions,bytes,rawBytes;
 } xls_raw_fact;
 typedef struct xls_raw_memo {
-    xarray entries;
+    xarray entries,prefixUnits;
     xmap owners;
     xstrbuf preprocess;
     size_t bytes;
@@ -23,7 +23,8 @@ static void xlsRawMemoDestroy(xls_raw_memo* memo)
 {
     if(!memo)return;
     for(size_t i=0;i<memo->entries.Count;++i)xlsRawFactRelease(*(xls_raw_fact**)xrtArrayGet(&memo->entries,i));
-    xrtArrayUnit(&memo->entries);xrtMapUnit(&memo->owners);xrtStrBufFree(&memo->preprocess);xrtFree(memo);
+    for(size_t i=0;i<memo->prefixUnits.Count;++i)xlsRawUnitRelease(*(xls_raw_unit**)xrtArrayGet(&memo->prefixUnits,i));
+    xrtArrayUnit(&memo->prefixUnits);xrtArrayUnit(&memo->entries);xrtMapUnit(&memo->owners);xrtStrBufFree(&memo->preprocess);xrtFree(memo);
 }
 int xlsRawBodyEnvironmentKey(const XL6_AstNode* root,xstrbuf* out)
 {return root && root->kind==XL6_AST_MODULE && out && !out->Size && xlsSemKeyNode(out,root,0,1);}
@@ -52,6 +53,83 @@ int xlsRawBodyMemoSize(const void* opaque,xls_raw_unit* unit,const char* path,si
     if(!fact || !raw || !path || !bytes || !xl6AstSourcePath(raw) || strcmp(path,xl6AstSourcePath(raw)))return 0;
     *bytes=fact->rawBytes;return 1;
 }
+/* The projection cache intentionally has no body facts for small/non-inert
+ * functions. Keep their immutable syntax identity separately within the SAME
+ * raw-memo budget so an unchanged eager predecessor need not block all later
+ * work. This is only a preflight: no semantic result is admitted by this map. */
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+static int xlsRawPrefixSlot(const xls_raw_memo* memo,xls_raw_unit* unit,size_t* slot)
+{
+    if(!memo || !unit || !slot)return 0;
+    const size_t* found=xrtMapConstGet(&memo->owners,(xbytesview){(const unsigned char*)&unit,sizeof(unit)});
+    if(!found || *found==SIZE_MAX || *found>=memo->entries.Count)return 0;
+    *slot=*found;return 1;
+}
+static void xlsRawPrefixCapture(xls_sem_memo* owner,const XL6_AstNode* root)
+{
+    xls_raw_memo* memo=owner ? owner->raw : NULL;
+    if(!memo || !root || root->childCount!=memo->entries.Count)return;
+    for(size_t i=0;i<root->childCount;++i){
+        if((i&63u)==0 && xlsFrontendCancelPoll())return;
+        xls_raw_binding* binding=xlsRawBodyBinding(root->children[i]);
+        if(!binding || binding->deferred)continue;
+        xbytesview key={(const unsigned char*)&binding->unit,sizeof(binding->unit)};
+        const size_t* found=xrtMapConstGet(&memo->owners,key);
+        if(found){if(*found!=i)*(size_t*)xrtMapGet(&memo->owners,key)=SIZE_MAX;continue;}
+        if(!memo->prefixUnits.Count){
+            xarray units={0};
+            if(!xrtArrayInit(&units,sizeof(xls_raw_unit*)) || !xrtArrayResize(&units,root->childCount) ||
+               memo->bytes>XLS_RAW_MEMO_BYTES || units.Capacity>(XLS_RAW_MEMO_BYTES-memo->bytes)/sizeof(xls_raw_unit*)){
+                xrtArrayUnit(&units);return;
+            }
+            memo->bytes+=units.Capacity*sizeof(xls_raw_unit*);memo->prefixUnits=units;
+        }
+        size_t bytes=binding->bytes;
+        if(memo->bytes>XLS_RAW_MEMO_BYTES || bytes>XLS_RAW_MEMO_BYTES-memo->bytes ||
+           128>XLS_RAW_MEMO_BYTES-memo->bytes-bytes || !xrtMapSet(&memo->owners,key,&i))return;
+        *(xls_raw_unit**)xrtArrayGet(&memo->prefixUnits,i)=xlsRawUnitRetain(binding->unit);memo->bytes+=bytes+128;
+    }
+}
+#endif
+/* Avoid omitting a newly leased body before earlier inputs are available.
+ * Such a function may allocate symbols/types and force the original whole
+ * attempt to retry. This is a conservative work preflight,not freshness or
+ * semantic admission. All original IDs/environment/final checks still run. */
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+size_t xlsRawBodyModelPrefix(const xls_raw_scope* scope,const xls_syntax* syntax)
+{
+    const xls_model_source_control* control=scope ? scope->modelSource : NULL;
+    const xls_sem_memo* memo=control ? control->memo : NULL;
+    const XL6_AstNode* root=scope && scope->nativeSource ? xlsTypedModuleRoot(scope->nativeSource) : NULL;
+    if(!scope || !scope->ordinary || !scope->ready || scope->failed || !memo || memo!=scope->baseline || !memo->raw ||
+       !root || root!=memo->finalizedRoot || root->childCount!=memo->entries.Count || !memo->entries.Count ||
+       memo->entries.Count>65536 || scope->unitBytes>scope->limit || memo->entries.Count>scope->limit-scope->unitBytes ||
+       xlsRawBodySyntaxUnitCount(syntax)>65536)return 0;
+    size_t count=memo->entries.Count,end=0;unsigned char* seen=xrtCalloc(count,1);if(!seen)return 0;
+    for(size_t i=0;i<scope->bindings.Count;++i){
+        if((i&63u)==0 && xlsFrontendCancelPoll())goto done;
+        const xls_raw_binding* binding=xrtArrayConstGet(&scope->bindings,i);size_t slot=SIZE_MAX;
+        if(xlsRawPrefixSlot(memo->raw,binding->unit,&slot) && slot<count)seen[slot]=1;
+    }
+    for(size_t i=0;i<xlsRawBodySyntaxUnitCount(syntax);++i){
+        if((i&63u)==0 && xlsFrontendCancelPoll())goto done;
+        size_t slot=SIZE_MAX;if(xlsRawPrefixSlot(memo->raw,xlsRawBodySyntaxUnitAt(syntax,i),&slot) && slot<count)seen[slot]=1;
+    }
+    /* Earlier inputs have not been analyzed when the entry is projected.
+     * Keep its uncached body eager until their immutable raw identities are
+     * present. Changes inside the current input still go through the complete
+     * existing semantic/ID/coordinate guards and original retry path. This
+     * preflight is deliberately not a claim about allocation equivalence. */
+    const char* currentPath=xlsSyntaxPath(syntax);
+    for(;end<count;++end){
+        const XL6_AstNode* node=root->children[end];const char* path=xl6AstSourcePath(node);
+        if(xlsSemFunction(node) && !seen[end] && (!currentPath || !path || strcmp(path,currentPath)))break;
+    }
+done:xrtFree(seen);return end;
+}
+#else
+size_t xlsRawBodyModelPrefix(const xls_raw_scope* scope,const xls_syntax* syntax){(void)scope;(void)syntax;return 0;}
+#endif
 int xlsRawBodyMemoAdmit(const void* opaque,xls_raw_unit* unit,const char* path,const XL6_AstRange* range,size_t* bytes)
 {
     const xls_sem_memo* memo=opaque;size_t slot=0;
@@ -63,8 +141,14 @@ int xlsRawBodyMemoAdmit(const void* opaque,xls_raw_unit* unit,const char* path,c
        xlsSemBodyBudget()<sizeof(xls_sem_view) || old->unit->bytes>xlsSemBodyBudget()-sizeof(xls_sem_view))return 0;
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
     xls_raw_scope* scope=xlsRawBodyScopeCurrent();
-    if(scope && scope->ordinary && (!old->native || !old->finalInput || !old->finalPlanValid || !memo->finalContext ||
-       !xlsRawRangeEqual(*range,old->lexicalRange) || !xlsRawRangeEqual(*range,xlsTypedFunctionRoot(old->native)->range)))return 0;
+    if(scope && scope->ordinary){
+        const xls_model_source_control* control=scope->modelSource;
+        if(!old->native && (!control || control->memo!=memo || !control->prefixActive || slot>=control->prefixEnd))return 0;
+        int modelLease=0;xls_typed_function* function=xlsSemNativeAcquire(memo,slot,&modelLease);
+        int accepted=function && old->finalInput && old->finalPlanValid && memo->finalContext &&
+            xlsRawRangeEqual(*range,old->lexicalRange) && xlsRawRangeEqual(*range,xlsTypedFunctionRoot(function)->range);
+        xlsTypedFunctionRelease(function);if(!accepted)return 0;
+    }
 #endif
     *bytes=fact->rawBytes;return 1;
 }
@@ -186,6 +270,9 @@ static int xlsSemRawCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node,xls_raw_bind
     size_t oldSlot=SIZE_MAX;const xls_raw_fact* raw=old ? xlsRawMemoFind(build->baseline->raw,binding->unit,&oldSlot) : NULL;
     xls_sem_memo* m=build ? build->memo : NULL;xls_sem_entry* entry=slot ? xrtArrayGet(&m->entries,*slot) : NULL;
     int ordinary=scope && scope->ordinary;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    xls_typed_function* native=NULL;int modelLease=0;
+#endif
     if(!scope || !scope->preprocessValid || scope->failed || !raw || !build->compatible || oldSlot!=*slot || !old->unit || !old->unit->proof ||
        binding->consumed || binding->stdlibMarks || !binding->stdlibVisited || ctx->currentClass || ctx->currentFunction ||
        ctx->typeParams || ctx->captureBoundary || ctx->currentReturns || (!ordinary && (!build->deferred || !build->deferredQuery)) ||
@@ -195,7 +282,8 @@ static int xlsSemRawCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node,xls_raw_bind
     binding->consumed=1;
     entry->start=ctx->nextSymbolId;entry->typeStart=ctx->types.nextId;entry->lexicalRange=node->range;
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
-    if(ordinary && (!old->native || entry->start!=old->start || entry->typeStart!=old->typeStart ||
+    if(ordinary)native=xlsSemNativeAcquire(build->baseline,*slot,&modelLease);
+    if(ordinary && (!native || entry->start!=old->start || entry->typeStart!=old->typeStart ||
        !xlsRawRangeEqual(entry->lexicalRange,old->lexicalRange) || !xlsSemEffectsAdmit(build,old)))goto done;
 #else
     if(ordinary)goto done;
@@ -231,7 +319,10 @@ static int xlsSemRawCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node,xls_raw_bind
        !xlsRawMemoAdd(m,*slot,(xls_raw_fact*)raw) ||
        !xlsRawSparseHeader(raw,view,&nodes,&build->sources,node,&build->queryCursor,entry->start,shifted))goto done;
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
-    if(ordinary && !xlsSemNativeRetain(m,entry,old->native))goto done;
+    if(ordinary){
+        if(modelLease){entry->native=xlsTypedFunctionRetain(native);entry->nativeModelLease=1;}
+        else if(!xlsSemNativeRetain(m,entry,native))goto done;
+    }
     if(ordinary)entry->effectCount=old->effectCount;
 #endif
     entry->view=view;entry->unit=view->unit;entry->positions=view->positions;view=NULL;
@@ -244,6 +335,9 @@ static int xlsSemRawCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node,xls_raw_bind
     if(certified){++build->work.proofHits;build->work.proofNodes+=certified;}
     ++scope->consumed;okay=1;
 done:
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    xlsTypedFunctionRelease(native);
+#endif
     xrtStrBufFree(&state);xrtStrBufFree(&header);xrtArrayUnit(&nodes);xrtArrayUnit(&positions);xlsSemViewRelease(view);
     if(!okay){if(build)build->bodyFailure=1;if(scope)scope->failed=1;}
     return okay;

@@ -13,6 +13,7 @@
 #include "analysis/frontend_internal.h"
 #include "analysis/frontend_sem.h"
 #include "analysis/frontend_raw_body.h"
+#include "analysis/frontend_model_source.h"
 #include "analysis/frontend_cancel.h"
 #include "analysis/frontend_ir_memo.h"
 #include "analysis/typed_module_internal.h"
@@ -115,9 +116,9 @@ static xls_semantic_check* createBody(xls_context* context,const char* entry,
     r->overlay.report=&r->report; r->overlay.semanticIndex=captureIndex; r->deps.sourceOverlay=&r->overlay;
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
     xls_raw_scope* raw=xlsRawBodyScopeCurrent();
-    if(raw && raw->ordinary && allowBorrow && previous && previous->accepted && previous->memo && xlsFrontendSemMemoNativeWork(previous->memo).retained &&
+    if(raw && raw->ordinary && allowBorrow && previous && previous->accepted && previous->memo && (previous->typedModule || xlsFrontendSemMemoNativeWork(previous->memo).retained) &&
        previous->captureIndex==captureIndex && !strcmp(previous->path,r->path) && xlsFrontendContextsEqual(previous->context,context) &&
-       xlsSemanticCheckValidate(previous) && xlsInputTopologyOverlayCompatible(xlsSemanticCheckTopology(previous),&previous->overlay,&r->overlay))raw->baseline=previous->memo;
+       xlsSemanticCheckValidate(previous) && xlsInputTopologyOverlayCompatible(xlsSemanticCheckTopology(previous),&previous->overlay,&r->overlay)){raw->baseline=previous->memo;((xls_model_source_control*)raw->modelSource)->memo=previous->memo;raw->nativeSource=previous->typedModule;}
 #endif
     r->phase="parse"; int okay;
     if(syntax) {
@@ -281,6 +282,7 @@ static xls_semantic_check* createConfiguredInContext(xls_context* context,xls_en
     xlsRawBodyScopeBegin(&raw,NULL,0);
 #endif
     raw.ordinary=1;
+    xls_model_source_control modelSource={0};raw.modelSource=&modelSource;
     xls_ast_materialize_scope materialization;
     xlsAstMaterializeBegin(&materialization,(cache || syntax) ? xlsAstMaterializeBudget() : 0);
     xls_entry_cache_scope entryScope;xlsFrontendEntryBegin(&entryScope,cache,context,entry);

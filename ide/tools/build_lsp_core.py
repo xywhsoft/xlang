@@ -109,7 +109,7 @@ CORE_TESTS = ("analysis_semantic_alias_reads_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_multifunction_syntax_test", "analysis_multifunction_fault_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_type_constructor_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_derived_test", *CORE_TESTS)
-CORE_TESTS = ("analysis_ir_classifier_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_model_source_test", "analysis_ir_classifier_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_parameters_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_function_pool_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_capacity_test", *CORE_TESTS)
@@ -709,7 +709,7 @@ def main() -> None:
         sources += [(ide / "tests" / (name + ".c"), name not in
                      ("analysis_semantic_read_front_test", "analysis_ir_sparse_decode_test", "analysis_ir_capacity_test",
                       "analysis_semantic_final_input_test", "analysis_ir_input_test", "analysis_final_environment_test", "analysis_index_canonical_guards_test",
-                      "analysis_semantic_alias_reads_test", "analysis_type_constructor_test", "analysis_ir_derived_test", "analysis_ir_parameters_test", "analysis_ir_classifier_test")) for name in tests]
+                      "analysis_semantic_alias_reads_test", "analysis_type_constructor_test", "analysis_ir_derived_test", "analysis_ir_parameters_test", "analysis_ir_classifier_test", "analysis_model_source_test")) for name in tests]
     if args.server:
         if os.name != "nt":
             parser.error("the current host still uses Windows transport/process adapters; the standalone core is separate")
@@ -968,6 +968,7 @@ def main() -> None:
             if name == "analysis_typed_module_test":
                 extra += ["-Wl,--wrap=xl6AstFree", "-Wl,--wrap=xlsTypedModuleTake"]
             if name == "analysis_native_borrow_test":extra += ["-Wl,--wrap=xlsFrontendSemCheckMemoFinal"]
+            if name == "analysis_model_source_test":extra += ["-Wl,--wrap=xlsFrontendSemCheckMemoFinal","-Wl,--wrap=xlsTypedModuleTakeBorrowed"]
             if name == "analysis_typed_identity_test":
                 extra += ["-Wl,--wrap=xrtCalloc", "-Wl,--wrap=xrtFree", "-Wl,--wrap=xl6AstFree"]
             if name in ("analysis_composite_function_test", "analysis_typed_function_test"):

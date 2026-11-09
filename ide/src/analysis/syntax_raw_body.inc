@@ -200,6 +200,10 @@ xls_raw_body_work xlsRawBodyProjectionWork(xls_raw_body_projection* p)
 }
 
 #include "analysis/frontend_raw_body.h"
+#include "analysis/frontend_model_source.h"
+size_t xlsRawBodySyntaxUnitCount(const xls_syntax* s){return s ? s->units.Count : 0;}
+xls_raw_unit* xlsRawBodySyntaxUnitAt(const xls_syntax* s,size_t at){const placement* p=s && at<s->units.Count ? xrtArrayConstGet(&s->units,at) : NULL;return p ? p->unit : NULL;}
+
 void xlsRawBodySyntaxRegister(const xls_syntax* s,XL6_AstNode* root,xls_raw_scope* scope)
 {
     if(!s || !root || !s->accepted || root->childCount!=s->units.Count)return;
@@ -236,7 +240,11 @@ static int rawBodySyntaxCopy(const xls_syntax* s,XL6_CompletionQuery* query,XL6_
             if(!s->cursorRange.known || start>query->offset || query->offset>s->cursorRange.endOffset || s->cursorRange.endOffset>size)return 0;
             prefix=xrtStrDupN(xlsTextData(s->text)+bom(s->text)+start,query->offset-start);if(!prefix)return 0;}
     }
+    xls_model_source_control* control=(xls_model_source_control*)scope->modelSource;
+    size_t previousPrefix=control ? control->prefixEnd : 0;int previousActive=control ? control->prefixActive : 0;
+    if(control){control->prefixEnd=xlsRawBodyModelPrefix(scope,s);control->prefixActive=1;}
     xls_raw_body_projection* p=xlsRawBodyProjectionCreatePolicy(s,scope->limit,xlsRawBodyAdmit,xlsRawBodyRecord,scope);
+    if(control){control->prefixEnd=previousPrefix;control->prefixActive=previousActive;}
     if(!p){xrtFree(prefix);int okay=rawBodyCopyFull(s,query,result,mode);if(okay)xlsRawBodySyntaxRegister(s,result->root,scope);return okay;}
     int okay=xlsRawBodyProjectionTakeHeaderParse(p,result);xlsRawBodyProjectionRelease(p);
     if(!okay){xrtFree(prefix);return 0;}

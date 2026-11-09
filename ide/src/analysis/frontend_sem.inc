@@ -6,6 +6,7 @@
 #include "analysis/frontend_cancel.h"
 #include "analysis/index_entities.h"
 #include "analysis/frontend_raw_body.h"
+#include "analysis/frontend_model_source.h"
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
 #include "analysis/typed_module_internal.h"
 typedef struct xls_sem_ir_receipt xls_sem_ir_receipt;
@@ -151,7 +152,7 @@ typedef struct xls_sem_entry {
     unsigned finalPlanValid,finalCandidate,finalReplayed;
     xls_typed_function* native;
     XL6_AstNode* nativeStub;
-    int nativePlaced;
+    int nativePlaced,nativeModelLease;
 #endif
 } xls_sem_entry;
 
@@ -1110,6 +1111,7 @@ failed: xlsSemFactsFree(&staged); xrtArrayUnit(positions); return 0;
 #include "analysis/frontend_sem_body.inc"
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
 static int xlsSemNativeRetain(xls_sem_memo*,xls_sem_entry*,xls_typed_function*);
+static xls_typed_function* xlsSemNativeAcquire(const xls_sem_memo*,size_t,int*);
 #endif
 #include "analysis/frontend_sem_raw.inc"
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
