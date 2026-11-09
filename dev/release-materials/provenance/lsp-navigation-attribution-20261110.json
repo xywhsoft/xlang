@@ -1,0 +1,335 @@
+{
+  "schema": 1,
+  "phase": "M7a2b126r",
+  "date": "2026-11-10",
+  "status": "verified-diagnostic-tool-source-milestone;no-runtime-or-performance-admission",
+  "scope": "Attribute actual eager native point-navigation capture/binding/preparation and cleanup in the snapshot adapter. No production/runtime change. Full LSP goal active.",
+  "parentCommit": "eba3e28b2a8c3c45a6f2f870a733ae1c2ad8475c",
+  "ownedSources": {
+    ".gitignore": "18cddcc2b0ccaa9f383366fdff97fec158493c2be1e32c622cc64332ca9eb53b",
+    "ide/docs/lsp-development.md": "92ffb7b1723047a0d66bf3a8ca1ef35e6f05a9d49993c1e76d84d0c28b581f4f",
+    "ide/docs/lsp-navigation-attribution.md": "5755bd7c8c7316cf4abd5be500f8c34fae9974f5d39706337ade06806fbded96",
+    "ide/tools/build_lsp_lifecycle_profile.py": "79a9f737f005673e0358c01436d5795f3b93f60da1dfa573358990412eac4410"
+  },
+  "sourcePromotion": {
+    "exactTestedPrivateToolBytes": true,
+    "privateTool": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\navigation-profile-tools-v1\\build_lsp_lifecycle_profile.py",
+      "sha256": "79a9f737f005673e0358c01436d5795f3b93f60da1dfa573358990412eac4410"
+    },
+    "fullDiagnosticUnitsCompiled": 10,
+    "diagnosticRuntimeModuleAlsoCompiled": true,
+    "linkedHostObjectsReplaced": 3,
+    "actualArchiveMembersVerified": 66,
+    "linkedHostInputsVerified": 23,
+    "normalImageSha256": "a0048ba973a491b30d08e097eecb7e90913968e39d1c606f5cb0e6ed06c7a4ad",
+    "diagnosticImageSha256": "e322753ccb54415adef5295bdc475d9dee8590585b2df23f344b91f3110d3500",
+    "normalImageNotRebuilt": true,
+    "rootProgramNotReplaced": true
+  },
+  "native": {
+    "fixturesPassed": 4,
+    "rows": [
+      {
+        "name": "analysis_ir_memo_test",
+        "exit": 0,
+        "programSha256": "b9ca8f1e0ea89a9d2651092b7a91b679e958ceeb6359151523647f39dc63e7b4"
+      },
+      {
+        "name": "analysis_check_session_test",
+        "exit": 0,
+        "programSha256": "e2bf95b7f4881f5f1e26ea71d984741c356b37510db4edeed68e2ff3de88720b"
+      },
+      {
+        "name": "analysis_worker_cache_test",
+        "exit": 0,
+        "programSha256": "2a3677b89a85195f4968429de623c332932f959ac24d9be49c95abadda68677e"
+      },
+      {
+        "name": "navigation_cache_test",
+        "exit": 0,
+        "programSha256": "94b3c9625878c4810e825559bb380be67ecf12e81c476dca1a9df4e91331df2e"
+      }
+    ],
+    "actualCandidateCoreAndAllThreeHostObjectsLinked": true
+  },
+  "protocolDiagnosticParity": {
+    "processes": 16,
+    "queries": 240,
+    "frames": 360,
+    "status": "passed",
+    "fullFactsEqual": true,
+    "defaultBackgroundEnabled": true,
+    "oneProcessChainAtATime": true,
+    "initialCommitFloorGiB": 5,
+    "runningCommitFloorGiB": 3,
+    "hostExclusive": false
+  },
+  "observations": {
+    "scope": "All snapshot frames including cold/first/hot/exact,not per-query bound;inclusive nested cells cannot be summed as CPU or acceleration.",
+    "cases": {
+      "single-literal": {
+        "adapter.clearGraph": {
+          "samples": 30,
+          "inclusiveMedianMs": 0.009049996,
+          "maxMs": 0.075500022
+        },
+        "adapter.xlsSemanticCheckDestroy": {
+          "samples": 30,
+          "inclusiveMedianMs": 0.0,
+          "maxMs": 0.000300002
+        },
+        "adapter.xideSemanticNavigationPreparePoints": {
+          "samples": 30,
+          "inclusiveMedianMs": 24.643800003,
+          "maxMs": 34.873600001
+        },
+        "adapter.xideSemanticNavigationBind": {
+          "samples": 30,
+          "inclusiveMedianMs": 4.8118499835,
+          "maxMs": 10.100899992
+        },
+        "adapter.xideSemanticNavigationCapture": {
+          "samples": 30,
+          "inclusiveMedianMs": 0.0054999985000000005,
+          "maxMs": 0.016399979
+        },
+        "adapter.nativeAnalysis": {
+          "samples": 30,
+          "inclusiveMedianMs": 153.33790000300002,
+          "maxMs": 845.686900022
+        },
+        "adapter.total": {
+          "samples": 30,
+          "inclusiveMedianMs": 185.66824999250002,
+          "maxMs": 873.027200025
+        },
+        "navigation.points.nativePointsCreate": {
+          "samples": 28,
+          "inclusiveMedianMs": 24.778049992,
+          "maxMs": 34.864599991
+        }
+      },
+      "single-declaration": {
+        "adapter.clearGraph": {
+          "samples": 30,
+          "inclusiveMedianMs": 0.0205000105,
+          "maxMs": 0.059999991
+        },
+        "adapter.xlsSemanticCheckDestroy": {
+          "samples": 30,
+          "inclusiveMedianMs": 0.000100001,
+          "maxMs": 0.000200002
+        },
+        "adapter.xideSemanticNavigationPreparePoints": {
+          "samples": 30,
+          "inclusiveMedianMs": 21.172800014,
+          "maxMs": 29.724399996
+        },
+        "adapter.xideSemanticNavigationBind": {
+          "samples": 30,
+          "inclusiveMedianMs": 5.7350999995,
+          "maxMs": 35.268100008
+        },
+        "adapter.xideSemanticNavigationCapture": {
+          "samples": 30,
+          "inclusiveMedianMs": 0.005700014,
+          "maxMs": 0.010500022
+        },
+        "adapter.nativeAnalysis": {
+          "samples": 30,
+          "inclusiveMedianMs": 190.23745000600002,
+          "maxMs": 820.743000018
+        },
+        "adapter.total": {
+          "samples": 30,
+          "inclusiveMedianMs": 224.93774999750002,
+          "maxMs": 847.371600015
+        },
+        "navigation.points.nativePointsCreate": {
+          "samples": 28,
+          "inclusiveMedianMs": 21.4011500065,
+          "maxMs": 29.716699995
+        }
+      },
+      "imported-literal": {
+        "adapter.clearGraph": {
+          "samples": 30,
+          "inclusiveMedianMs": 0.0145000085,
+          "maxMs": 0.150900014
+        },
+        "adapter.xlsSemanticCheckDestroy": {
+          "samples": 30,
+          "inclusiveMedianMs": 0.000100001,
+          "maxMs": 0.000300002
+        },
+        "adapter.xideSemanticNavigationPreparePoints": {
+          "samples": 30,
+          "inclusiveMedianMs": 47.199550012,
+          "maxMs": 63.808699982
+        },
+        "adapter.xideSemanticNavigationBind": {
+          "samples": 30,
+          "inclusiveMedianMs": 5.763600013,
+          "maxMs": 11.063700018
+        },
+        "adapter.xideSemanticNavigationCapture": {
+          "samples": 30,
+          "inclusiveMedianMs": 0.010949996,
+          "maxMs": 0.023900007
+        },
+        "adapter.nativeAnalysis": {
+          "samples": 30,
+          "inclusiveMedianMs": 282.2735500085,
+          "maxMs": 1376.618399983
+        },
+        "adapter.total": {
+          "samples": 30,
+          "inclusiveMedianMs": 338.1145500025,
+          "maxMs": 1423.757200013
+        },
+        "navigation.points.nativePointsCreate": {
+          "samples": 28,
+          "inclusiveMedianMs": 48.0177999995,
+          "maxMs": 63.799099997
+        }
+      },
+      "imported-declaration": {
+        "adapter.clearGraph": {
+          "samples": 30,
+          "inclusiveMedianMs": 0.0161500065,
+          "maxMs": 0.115500006
+        },
+        "adapter.xlsSemanticCheckDestroy": {
+          "samples": 30,
+          "inclusiveMedianMs": 0.000100001,
+          "maxMs": 0.000500004
+        },
+        "adapter.xideSemanticNavigationPreparePoints": {
+          "samples": 30,
+          "inclusiveMedianMs": 35.4458000075,
+          "maxMs": 50.694399979
+        },
+        "adapter.xideSemanticNavigationBind": {
+          "samples": 30,
+          "inclusiveMedianMs": 5.89054999,
+          "maxMs": 52.487800014
+        },
+        "adapter.xideSemanticNavigationCapture": {
+          "samples": 30,
+          "inclusiveMedianMs": 0.008100003500000001,
+          "maxMs": 0.019800005
+        },
+        "adapter.nativeAnalysis": {
+          "samples": 30,
+          "inclusiveMedianMs": 253.15959999,
+          "maxMs": 1307.921300002
+        },
+        "adapter.total": {
+          "samples": 30,
+          "inclusiveMedianMs": 297.39510000250004,
+          "maxMs": 1346.852300019
+        },
+        "navigation.points.nativePointsCreate": {
+          "samples": 28,
+          "inclusiveMedianMs": 35.604549993999996,
+          "maxMs": 50.684299989
+        }
+      }
+    }
+  },
+  "interpretation": "Inclusive diagnostic samples include cold/first/hot/exact;not individual request binding. No subtraction/addition of medians as CPU or acceleration. Native point creation remains synchronous measurable production work;capture metadata alone is cheap. Prior39/40 failure and all A/A/global failures unchanged.",
+  "materials": {
+    "source": {
+      "schema": 1,
+      "directory": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-navigation-attribution-20261110",
+      "archive": {
+        "path": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-navigation-attribution-20261110\\sources.tar.gz",
+        "sha256": "c13fbddf6692e5367fda380e841d9b8ce436bbe3c563e98923d37d2610116ce6",
+        "bytes": 5468824
+      },
+      "bindings": {
+        "path": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-navigation-attribution-20261110\\source-bindings.json",
+        "sha256": "db45eb1800ed20059eeb7844e5dc0cfbcadbaf76fc829cc1db21244941c2b97c"
+      },
+      "entries": 268,
+      "baseFullSourceMaterials": {
+        "schema": 1,
+        "logicalDirectory": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-ir-verification-order-20261110-v2",
+        "storageBacking": "F:\\codex-builds-xlang-lsp-20261110\\lsp-ir-verification-order-20261110-v2-materials\\sources",
+        "archive": {
+          "path": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-ir-verification-order-20261110-v2\\sources.tar.gz",
+          "sha256": "68459acd6720c0fb8129c1a7f2ff495179917d69da0fd1862def838cd1438a03",
+          "bytes": 43873182
+        },
+        "bindings": {
+          "path": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-ir-verification-order-20261110-v2\\source-bindings.json",
+          "sha256": "3526462bfef3c961655279d321fe557e3e346b94fc102a70f8eef46d0c7edbec"
+        },
+        "effectiveNativeInputBindings": 752,
+        "guiInputBindings": 675,
+        "historicalInputBindings": 751,
+        "matchedSdkFiles": 180,
+        "distinctArchiveEntries": 1508
+      }
+    },
+    "provenance": {
+      "schema": 1,
+      "directory": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\lsp-navigation-attribution-20261110",
+      "archive": {
+        "path": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\lsp-navigation-attribution-20261110\\reports.tar.gz",
+        "sha256": "7620804fd2a354300a0360d3b15d8c0733f30775e29ad1491a68545813041a22",
+        "bytes": 2465671
+      },
+      "files": 107,
+      "historicalReportPathsRewritten": false
+    },
+    "baseIndex": {
+      "path": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\lsp-ir-verification-order-20261110.json",
+      "sha256": "c0a9f26793393df0164cc6151a15610ddbb393242d2575453dc2263159291759"
+    }
+  },
+  "receipts": {
+    "navigation-probe-v1/result.json": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\navigation-probe-v1\\result.json",
+      "sha256": "a7341e26e5754855d84fb5c9e411cf8db58b6d2ae8d23c89c816facaa06c38de"
+    },
+    "navigation-probe-check-v1/result.json": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\navigation-probe-check-v1\\result.json",
+      "sha256": "fbfe6ad97e91b1140b77ffda995e051e573ddd02bbd37035cd7128a84d546e70"
+    },
+    "navigation-production-profile-v1/result.json": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\navigation-production-profile-v1\\result.json",
+      "sha256": "bc9d349e8f2f67bc86782791b904569203915630fd0e60816e7adae6f9656bfe"
+    },
+    "navigation-production-profile-v1/navigation-summary.json": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\navigation-production-profile-v1\\navigation-summary.json",
+      "sha256": "9c913c75e7ba1cf82ba0dd5c2cec5016c4149628c264c746c36e5cab45280100"
+    },
+    "navigation-materials-collected.json": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\navigation-materials-collected.json",
+      "sha256": "5aa520c683deddaf32b4f42cdeaf6a639366985dc3a570120da8b39fa6f733f2"
+    },
+    "navigation-stage-baseline-sources/bindings.json": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\navigation-stage-baseline-sources\\bindings.json",
+      "sha256": "78b3d29d8693e909c60dd869354c8eb0b40a7371d0dbb48798f1c3bfdd083363"
+    },
+    "navigation-profile-tools-v1/source-bindings.json": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\navigation-profile-tools-v1\\source-bindings.json",
+      "sha256": "227f7bb459a9a75102f49e192bf9a2b2b6705ea318dbfa73a15d6159eb7738b9"
+    }
+  },
+  "protectedRuntime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "ownedAliasesRemaining": [],
+  "installed": false,
+  "pushed": false,
+  "deliveryIndexChangedByThisStage": false,
+  "remaining": "Explore immutable incremental point-navigation assets preserving full source/fact/range/Unicode validation,owner and retirement/memory rules;reduce full semantic/IR production;complete full applicable LSP and performance/delivery gates. No DAP or runtime/debug completion."
+}

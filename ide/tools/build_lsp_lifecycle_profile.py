@@ -116,10 +116,11 @@ def main():
       copies['xl6_ir']=edit(copies['xl6_ir'],'xlsIrVerifyModuleOriginal',lambda body:calls(body,verifier_names,'verify.'))
       rec['verifierDetail']=dict(scope='Direct helper calls in the complete native verifier; inclusive diagnostic timers alter cost and are not performance qualification',functions=sorted(verifier_names))
      def adapter(body):
-      body=calls(body,{'nativeAnalysis','loadGraph','buildDiagnostics','buildNativeDiagnostics','xideSemanticDefinitionsAcquireTyped','validateGraph','xrtJsonRead','xrtJsonParse','xlsSemanticCheckValidate'},'adapter.')
+      body=calls(body,{'nativeAnalysis','loadGraph','buildDiagnostics','buildNativeDiagnostics','xideSemanticDefinitionsAcquireTyped','validateGraph','xrtJsonRead','xrtJsonParse','xlsSemanticCheckValidate','xideSemanticNavigationCapture','xideSemanticNavigationBind','xideSemanticNavigationPreparePoints','xlsSemanticCheckDestroy','clearGraph'},'adapter.',{'xideSemanticNavigationBind','xlsSemanticCheckDestroy','clearGraph'})
       return body
      copies['language_snapshot']=edit(copies['language_snapshot'],'xideLanguageSnapshotRun',adapter)
      copies['language_snapshot']=surround(copies['language_snapshot'],'xideLanguageSnapshotRun','q,output,e','snapshot','adapter.total')
+     copies['semantic_definition']=edit(copies['semantic_definition'],'preparePoints',lambda body:calls(body,{'navigationOwnedKey','xlsProjectionAcquire','nativePointsCreate','xlsProjectionCreate','xlsProjectionPublishAt'},'navigation.points.'))
      copies['worker']=surround(copies['worker'],'execute','cancel,value,output','check','worker.total',result='xtaskoutcome')
      def destroy(body):
       point='xrtAtomic32FetchSub(&r->references,1,XMEMORY_ACQ_REL)!=1) return;';assert body.count(point)==1
