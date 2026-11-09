@@ -48,7 +48,7 @@ static int quiet(xide_app* app,unsigned milliseconds){uint64_t end=GetTickCount6
 static int verify(void* user)
 {
  fixture* f=user;if(f->started)return XGE_OK;f->started=1;xide_app app={0};xide_model_error error={0};xide_project project={0};int began=0;
- char *root=NULL,*entry=NULL,*helper=NULL,*orphan=NULL,*native=NULL,*a=NULL,*b=NULL,*workspace=NULL,*settings=NULL;
+ char *root=NULL,*entry=NULL,*helper=NULL,*orphan=NULL,*native=NULL,*a=NULL,*b=NULL,*workspace=NULL,*settings=NULL,*candidateEntry=NULL,*candidate=NULL,*renamed=NULL;
  const char* mainBody="import helper\nfunc main(...) as int\n return helper.value()\nend\n";
  const char* library="/* 中文😀 */\nclass Payload\n int number\nend\nexport func value() as int\n return 1\nend\n";
  const char* changed="/* 中文😀 */\nclass Payload\n int amount\nend\nexport func value() as int\n return 1\nend\n";
@@ -80,9 +80,21 @@ static int verify(void* user)
  /* Clearing every project stops the zero-open main connection. A standalone
     C editor continues to work with the default C-LSP macro disabled. */
  CHECK(xideWorkspaceRemoveProject(&app.workspaceModel,"A",&error) && xideWorkspaceRemoveProject(&app.workspaceModel,"B",&error) && xideWorkspaceViewRefresh(&app)==XUI_OK);xideLanguageViewConfigurationChanged(&app);CHECK(xideEditorOpen(&app,native,&error) && quiet(&app,700) && !v->client && !strcmp(app.activeDocument->language,"c"));
+ /* Unlisted imported files retain compiler-defined membership. Native name
+    notifications must recover a missing import without opening any .xl tab,
+    and must see subsequent replacement,delete and both sides of a rename. */
+ candidateEntry=xidePathResolve(root,"candidate_main.xl");candidate=xidePathResolve(root,"candidate.xl");renamed=xidePathResolve(root,"candidate_moved.xl");CHECK(candidateEntry && candidate && renamed);
+ const char* candidateMain="import candidate\nfunc main(...) as int\n return candidate.candidateWork()\nend\n";const char* candidateBody="export func candidateWork() as int\n return 1\nend\n";
+ CHECK(writeText(candidateEntry,candidateMain) && xideProjectCreate(&project,a,"候选导入",candidateEntry,&error) && xideProjectSave(&project,project.manifest,&error));xideProjectClear(&project);
+ CHECK(xideWorkspaceAddProject(&app.workspaceModel,a,"candidate-project",&error) && xideWorkspaceViewRefresh(&app)==XUI_OK);xideLanguageViewConfigurationChanged(&app);CHECK(waitFiles(&app) && waitBackground(&app,0,1) && app.workspaceModel.projects[0].files.count==1 && xidePathLexicalEqual(app.workspaceModel.projects[0].files.items[0].path,candidateEntry));
+ original=v->client;session=v->highlightSession;CHECK(writeText(candidate,candidateBody) && waitBackground(&app,1,1) && v->client==original && v->highlightSession==session && search(&app,"candidateWork",1,0) && !openPath(&app,candidate));workspaceClose(NULL,&app);
+ completed=count(stats(&app),"completed");CHECK(completed>=0 && writeText(candidate,"export func candidateWork() as int\n return 2\nend\n") && waitBackground(&app,completed+1,1) && v->client==original);
+ failed=count(stats(&app),"failed");completed=count(get(get(statsReply,"result"),"background"),"completed");CHECK(failed>=0 && completed>=0 && xrtFileMove(candidate,renamed,0) && waitBackground(&app,completed,failed+1));
+ CHECK(xrtFileMove(renamed,candidate,0) && waitBackground(&app,completed+1,failed+1) && search(&app,"candidateWork",1,0) && app.workspaceModel.projects[0].files.count==1);workspaceClose(NULL,&app);
+ failed=count(stats(&app),"failed");completed=count(get(get(statsReply,"result"),"background"),"completed");CHECK(failed>=0 && completed>=0 && xrtFileDelete(candidate) && waitBackground(&app,completed,failed+1));CHECK(writeText(candidate,candidateBody) && waitBackground(&app,completed+1,failed+1) && !openPath(&app,candidate));
  CHECK(!app.frameError);printf("workspace_lifecycle_view_test passed: %d checks;real zero-open two-project startup/prebuilt index,stale prepared-batch rejection,unchanged connection during watch updates,modal equal-length edits,delete/create failure recovery,dirty overlay/undo preservation,132-path coalesced resync,workspace removal and C isolation.\n",f->checks);
 cleanup:
- xrtValueRelease(statsReply);statsReply=NULL;statsClient=NULL;statsId=0;if(began)xgeEnd();xideProjectClear(&project);xideAppDestroy(&app);free(root);free(entry);free(helper);free(orphan);free(native);free(a);free(b);free(workspace);free(settings);xgeQuit();return XGE_OK;
+ xrtValueRelease(statsReply);statsReply=NULL;statsClient=NULL;statsId=0;if(began)xgeEnd();xideProjectClear(&project);xideAppDestroy(&app);free(root);free(entry);free(helper);free(orphan);free(native);free(a);free(b);free(workspace);free(settings);free(candidateEntry);free(candidate);free(renamed);xgeQuit();return XGE_OK;
 }
 static DWORD WINAPI worker(void* p){fixture* f=p;if(!SetThreadDesktop(f->desktop))return 1;xge_desc_t desc={.iWidth=1600,.iHeight=1000,.sTitle="Workspace lifecycle verification",.iFlags=XGE_INIT_WINDOW|XGE_INIT_HIGHDPI,.iRunMode=XGE_RUN_GAME_LOOP};int code=xgeInit(&desc);if(code==XGE_OK)code=xgeRun(verify,f);xgeUnit();return code==XGE_OK && f->started && !f->failed?0:1;}
 int main(int argc,char** argv){if(argc!=3 || !xrtDirCreateAll(argv[1]))return 2;fixture f={.directory=argv[1],.compiler=argv[2]};wchar_t name[100];swprintf(name,100,L"WorkspaceLifecycle-%lu",GetCurrentProcessId());f.desktop=CreateDesktopW(name,NULL,NULL,0,DESKTOP_CREATEWINDOW|DESKTOP_READOBJECTS|DESKTOP_WRITEOBJECTS|DESKTOP_ENUMERATE,NULL);if(!f.desktop)return 1;HANDLE thread=CreateThread(NULL,0,worker,&f,0,NULL);DWORD code=1;if(thread){if(WaitForSingleObject(thread,180000)!=WAIT_OBJECT_0)ExitProcess(1);GetExitCodeThread(thread,&code);CloseHandle(thread);}CloseDesktop(f.desktop);return (int)code;}

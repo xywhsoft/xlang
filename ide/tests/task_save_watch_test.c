@@ -96,6 +96,10 @@ int main(int argc,char** argv)
         CHECK(writeText(path,source) && queued(&app));xideFileSyncPoll(&app);xideTaskInfo(task,&info);
         if(info.invalidated)for(size_t i=0;i<app.fileSync->count;++i){subscription* t=&app.fileSync->targets[i];fprintf(stderr,"round=%d path=%s state=%d error=%u size=%llu hash=%llu baseline=%zu\n",round,t->path,t->last.state,t->last.error,(unsigned long long)t->last.size,(unsigned long long)t->last.hash,document->baseline.rawLength);}
         CHECK(!info.invalidated);
+        /* A directory coverage hint asks language analysis to revalidate its
+           roots;it is not evidence that the build's source bytes changed. */
+        delayed=(xide_watch_event){.epoch=app.fileSync->epoch,.state=XIDE_WATCH_SOURCE_RESCAN};deliverDelayed=1;
+        xideFileSyncPoll(&app);xideTaskInfo(task,&info);CHECK(!info.invalidated);
 #ifndef XIDE_TEST_OLD_WATCH
         /* A temporary sharing failure is not evidence that bytes changed. */
         subscription* target=&app.fileSync->targets[0];

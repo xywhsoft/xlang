@@ -139,8 +139,7 @@ void xideLanguageViewDiskChanged(xide_app* app,const char* path,int type)
  if(!automaticFence(v,path,0,1,type)){if(!a->restarting)automaticResync(v);return;}
  cancelQuery(v,v->receiptRequest);v->receiptRequest=v->receiptReady=0;
  cancelQuery(v,v->definitionRequest);v->definitionRequest=v->definitionPending=0;
- cancelQuery(v,v->hoverRequest);v->hoverRequest=0;v->hoverAt=0;if(v->hoverDocument)xuiCodeEditCloseHint(v->hoverDocument->editor);
- cancelQuery(v,v->outlineRequest);v->outlineRequest=0;suppressHighlights(v);cancelReferences(v);workspaceSearchDiskChanged(v);xgeRenderRequest();
+ clearHover(v);clearOutline(v);suppressHighlights(v);cancelReferences(v);workspaceSearchDiskChanged(v);xgeRenderRequest();
 }
 static int automaticModels(xide_language_view* v)
 {

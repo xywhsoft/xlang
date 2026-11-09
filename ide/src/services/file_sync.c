@@ -167,6 +167,27 @@ void xideFileSyncStop(xide_app* app)
     if(app->statusBar && app->context) xuiStatusBarSetItemText(app->statusBar,0,"就绪");
     xideFileWatchDestroy(s->watch); clearTargets(s); for(size_t i=0;i<s->changeCount;++i) xideFileWatchEventClear(&s->changes[i].snapshot); free(s->changes); free(s); app->fileSync=NULL;
 }
+static int subscriptionPathCompare(const void* left,const void* right)
+{return strcmp((*(subscription* const*)left)->path,(*(subscription* const*)right)->path);}
+static int retainSubscriptionStamps(xide_file_sync* fresh,const xide_file_sync* previous)
+{
+    if(!previous->count)return 1;
+    subscription** sorted=malloc(previous->count*sizeof(*sorted));if(!sorted)return 0;
+    for(size_t i=0;i<previous->count;++i)sorted[i]=previous->targets+i;
+    qsort(sorted,previous->count,sizeof(*sorted),subscriptionPathCompare);
+    for(size_t i=0;i<fresh->count;++i){subscription* now=fresh->targets+i;subscription* probe=now;
+        subscription** found=bsearch(&probe,sorted,previous->count,sizeof(*sorted),subscriptionPathCompare);
+        if(found){now->seen=(*found)->seen;now->last=(*found)->last;
+            /* Closing an editor changes its remaining project subscription
+               from body+metadata to metadata only. The absent body hash is
+               not a disk edit. A newly body-reading document establishes its
+               content baseline through the ordinary apply/conflict path. */
+            if(!now->target.limit){now->last.hash=0;now->last.length=0;}
+            else if(!(*found)->target.limit)now->seen=0;
+            if(now->documentId==(*found)->documentId)now->savedAt=(*found)->savedAt;}
+    }
+    free(sorted);return 1;
+}
 static int subscribe(xide_app* app,xide_model_error* e)
 {
     xide_file_sync* s=app->fileSync; uint64_t f=fingerprint(app); if(f==s->fingerprint && s->epoch) return 1;
@@ -174,9 +195,11 @@ static int subscribe(xide_app* app,xide_model_error* e)
     for(size_t i=0;okay && i<app->documents.count;++i) { xide_document* d=app->documents.items[i]; if(d->open && d->path) okay=addTarget(&fresh,d->path,DOCUMENT,d->id); }
     for(size_t i=0;okay && i<w->projectCount;++i) { xide_project* p=&w->projects[i]; okay=addTarget(&fresh,p->manifest,PROJECT,0) && addTarget(&fresh,p->entry,FILE_ENTRY,0); for(size_t j=0;okay && j<p->files.count;++j) okay=addTarget(&fresh,p->files.items[j].path,FILE_ENTRY,0); }
     for(size_t i=0;okay && i<w->files.count;++i) okay=addTarget(&fresh,w->files.items[i].path,FILE_ENTRY,0);
+    if(okay && !retainSubscriptionStamps(&fresh,s)){clearTargets(&fresh);return fail(e,XIDE_MODEL_MEMORY,"Cannot preserve file watch baselines;subscriptions retained.");}
     xide_watch_target* targets=fresh.count ? calloc(fresh.count,sizeof(*targets)) : NULL; if(fresh.count && !targets) okay=0;
     for(size_t i=0;okay && i<fresh.count;++i) targets[i]=fresh.targets[i].target;
-    uint64_t epoch=okay ? xideFileWatchSetTargets(s->watch,targets,fresh.count,e) : 0; free(targets);
+    int sources=0;for(size_t i=0;i<fresh.count;++i)if(xidePathHasExtension(fresh.targets[i].path,".xl")){sources=1;break;}
+    uint64_t epoch=okay ? xideFileWatchSetTargetsWithSources(s->watch,targets,fresh.count,sources,e) : 0; free(targets);
     if(!epoch) { clearTargets(&fresh); return fail(e,XIDE_MODEL_MEMORY,"Cannot update file watch subscriptions; current subscriptions retained."); }
     clearTargets(s); s->targets=fresh.targets; s->count=fresh.count; s->capacity=fresh.capacity; s->nextToken=fresh.nextToken; s->epoch=epoch; s->fingerprint=f;
     for(size_t i=0;i<s->changeCount;) {
@@ -194,6 +217,18 @@ void xideFileSyncPoll(xide_app* app)
     if(!subscribe(app,&error)) { snprintf(s->status,sizeof(s->status),"%.180s",error.message); xuiStatusBarSetItemText(app->statusBar,0,s->status); return; }
     size_t bytes=0; int count=0; xide_watch_event event={0};
     while(count++<16 && bytes<4u*1024u*1024u && xideFileWatchTake(s->watch,&event)) {
+        if(event.epoch==s->epoch && !event.token && (event.state==XIDE_WATCH_SOURCE_CHANGE || event.state==XIDE_WATCH_SOURCE_RESCAN)) {
+            ++s->revision;
+            if(event.state==XIDE_WATCH_SOURCE_RESCAN) {
+                /* Every checked entry includes its own source in its guard.
+                   Touch subscribed xlang roots to revalidate import candidates
+                   after directory changes/coverage gaps,without reading bodies
+                   or restarting the connection for an ordinary small cohort. */
+                for(size_t i=0;i<s->count;++i)if(xidePathHasExtension(s->targets[i].path,".xl"))xideLanguageViewDiskChanged(app,s->targets[i].path,2);
+            } else {xideTasksInvalidateInput(app->tasks,event.path);xideLanguageViewDiskChanged(app,event.path,event.changeType);}
+            xideCompletionViewDiskChanged(app);
+            xideFileWatchEventClear(&event);continue;
+        }
         bytes+=event.length; subscription* t=event.epoch==s->epoch ? targetByToken(s,event.token) : NULL;
         if(t) {
             /* A snapshot begun before our successful save cannot describe the

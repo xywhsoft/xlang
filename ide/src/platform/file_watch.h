@@ -4,11 +4,12 @@
 #include <stdint.h>
 typedef struct xide_file_watch xide_file_watch;
 typedef struct xide_watch_target { uint64_t token; const char* path; size_t limit; } xide_watch_target;
-enum { XIDE_WATCH_READY=1,XIDE_WATCH_MISSING,XIDE_WATCH_UNREADABLE,XIDE_WATCH_TOO_LARGE,XIDE_WATCH_DIRECTORY,XIDE_WATCH_UNSTABLE };
+enum { XIDE_WATCH_READY=1,XIDE_WATCH_MISSING,XIDE_WATCH_UNREADABLE,XIDE_WATCH_TOO_LARGE,XIDE_WATCH_DIRECTORY,XIDE_WATCH_UNSTABLE,
+       XIDE_WATCH_SOURCE_CHANGE,XIDE_WATCH_SOURCE_RESCAN };
 typedef struct xide_watch_event {
     uint64_t epoch,token,sequence,size,hash,writeTime,fileId;
     uint64_t observedAt; /* Monotonic read-start time, not filesystem time. */
-    unsigned volume,error; int state;
+    unsigned volume,error; int state,changeType;
     char* path; unsigned char* bytes; size_t length;
 } xide_watch_event;
 typedef struct xide_watch_stats {
@@ -18,6 +19,12 @@ typedef struct xide_watch_stats {
 xide_file_watch* xideFileWatchCreate(void (*wake)(void*),void* user,xide_model_error* error);
 /* Copies every target. limit=0 observes metadata; body reads are capped at 16 MiB. */
 uint64_t xideFileWatchSetTargets(xide_file_watch* watch,const xide_watch_target* targets,size_t count,xide_model_error* error);
+/* Opt-in recursive source-name notifications below subscribed parent directories.
+ * Known targets keep their stable snapshots. Other .xl names use token=0,
+ * SOURCE_CHANGE/type1..3/path and no body. Directory-name changes or uncertain
+ * notification coverage use SOURCE_RESCAN/token0/pathNULL. These are invalidation
+ * hints,not source snapshots or additions to project membership. No tree scan. */
+uint64_t xideFileWatchSetTargetsWithSources(xide_file_watch*,const xide_watch_target*,size_t count,int enabled,xide_model_error*);
 void xideFileWatchRescan(xide_file_watch* watch);
 int xideFileWatchTake(xide_file_watch* watch,xide_watch_event* event);
 void xideFileWatchEventClear(xide_watch_event* event);

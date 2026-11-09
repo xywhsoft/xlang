@@ -35,6 +35,11 @@ static int childWrite(const char* path)
     if(okay) { DWORD code=1; okay=WaitForSingleObject(process.hProcess,15000)==WAIT_OBJECT_0 && GetExitCodeProcess(process.hProcess,&code) && code==0; if(!okay) TerminateProcess(process.hProcess,1); CloseHandle(process.hThread); CloseHandle(process.hProcess); }
     free(target); free(command); return okay;
 }
+static int observedSource(xide_file_watch* w,uint64_t epoch,const char* path,int type)
+{
+    uint64_t due=GetTickCount64()+12000;xide_watch_event e={0};
+    do{while(xideFileWatchTake(w,&e)){int match=e.epoch==epoch && !e.token && e.state==XIDE_WATCH_SOURCE_CHANGE && e.path && xidePathLexicalEqual(e.path,path) && e.changeType==type && !e.bytes && !e.length;xideFileWatchEventClear(&e);if(match)return 1;}Sleep(5);}while(GetTickCount64()<due);return 0;
+}
 int main(int argc,char** argv)
 {
     if(argc==3 && !strcmp(argv[1],"--child-write")) {
@@ -100,6 +105,25 @@ int main(int argc,char** argv)
     targets[0]=(xide_watch_target){90000,source,1024}; epoch=xideFileWatchSetTargets(watch,targets,1,&error); CHECK(epoch && waitReady(watch,epoch));
     while(xideFileWatchTake(watch,&event)) { CHECK(event.epoch==epoch && event.token==90000); xideFileWatchEventClear(&event); } free(many); many=NULL;
     CHECK(wakes>0); epoch=xideFileWatchSetTargets(watch,NULL,0,&error); CHECK(epoch && waitReady(watch,epoch)); xideFileWatchStats(watch,&stats); CHECK(!stats.queued && !stats.directories && !stats.targets);
+    /* Opt-in source notifications discover names without reading their bodies
+       or adding them to the stable target set. Nested dotted directories use
+       the independent directory-name channel,including rename/delete. */
+    targets[0]=(xide_watch_target){91000,source,1024};epoch=xideFileWatchSetTargetsWithSources(watch,targets,1,1,&error);CHECK(epoch && waitReady(watch,epoch));drain(watch);
+    free(path);path=xidePathResolve(root,"候选😀.xl");CHECK(path && writeText(path,"candidate\n") && observedSource(watch,epoch,path,1));
+    CHECK(removeFile(path) && observedSource(watch,epoch,path,3));
+    free(dir);dir=xidePathResolve(root,"new.folder");CHECK(dir && xrtDirCreateAll(dir));CHECK(observed(watch,epoch,0,XIDE_WATCH_SOURCE_RESCAN,NULL,&event) && !event.path && !event.bytes);xideFileWatchEventClear(&event);
+    free(path);path=xidePathResolve(dir,"nested.xl");CHECK(path && writeText(path,"nested\n") && observedSource(watch,epoch,path,1));
+    CHECK(writeText(source,"own replacement\n") && observed(watch,epoch,91000,XIDE_WATCH_READY,"own replacement\n",&event));xideFileWatchEventClear(&event);Sleep(100);
+    while(xideFileWatchTake(watch,&event)){CHECK(event.state!=XIDE_WATCH_SOURCE_CHANGE || !xidePathLexicalEqual(event.path,source));xideFileWatchEventClear(&event);}
+    wchar_t* oldFolder=wide(dir);char* renamed=xidePathResolve(root,"renamed.folder");wchar_t* newFolder=wide(renamed);int moved=oldFolder && newFolder && MoveFileW(oldFolder,newFolder);free(oldFolder);free(newFolder);free(renamed);CHECK(moved && observed(watch,epoch,0,XIDE_WATCH_SOURCE_RESCAN,NULL,&event));xideFileWatchEventClear(&event);
+    drain(watch);free(path);path=xidePathResolve(root,"handoff.xl");CHECK(path && writeText(path,"queued before handoff\n"));
+    uint64_t pendingUntil=GetTickCount64()+10000;do{xideFileWatchStats(watch,&stats);if(stats.queued)break;Sleep(5);}while(GetTickCount64()<pendingUntil);CHECK(stats.queued);
+    uint64_t previousEpoch=epoch;epoch=xideFileWatchSetTargetsWithSources(watch,targets,1,1,&error);CHECK(epoch>previousEpoch && waitReady(watch,epoch) && observedSource(watch,epoch,path,1));
+    targets[0]=(xide_watch_target){92000,paths[71],1024};epoch=xideFileWatchSetTargetsWithSources(watch,targets,1,1,&error);CHECK(epoch && waitReady(watch,epoch));drain(watch);xideFileWatchStats(watch,&stats);CHECK(stats.directories==1);
+    free(dir);dir=xidePathDirectory(paths[71]);free(path);path=xidePathResolve(dir,"retained-scope.xl");CHECK(path && writeText(path,"new directory\n") && observedSource(watch,epoch,path,1));
+    free(path);path=xidePathResolve(root,"retired-scope.xl");CHECK(path && writeText(path,"old directory\n"));pendingUntil=GetTickCount64()+200;
+    do{while(xideFileWatchTake(watch,&event)){CHECK(event.state!=XIDE_WATCH_SOURCE_CHANGE || !event.path || !xidePathLexicalEqual(event.path,path));xideFileWatchEventClear(&event);}Sleep(5);}while(GetTickCount64()<pendingUntil);
+    epoch=xideFileWatchSetTargets(watch,NULL,0,&error);CHECK(epoch && waitReady(watch,epoch));
     xideFileWatchDestroy(watch); watch=NULL;
     for(int i=0;i<12;++i) { watch=xideFileWatchCreate(NULL,NULL,&error); CHECK(watch); targets[0]=(xide_watch_target){1,source,1024}; CHECK(xideFileWatchSetTargets(watch,targets,1,&error)); xideFileWatchDestroy(watch); watch=NULL; }
     puts("file_watch_test passed: real IOCP notifications and another process, UTF-8 paths/body, atomic/same-size/hardlink changes, missing/recreated/locked/oversize/empty files, missing parents, 72 directories, epochs, coalescing, 4096-event and 128-MiB limits with retries, empty subscriptions and cancellation teardown");
