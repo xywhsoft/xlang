@@ -109,7 +109,7 @@ CORE_TESTS = ("analysis_semantic_alias_reads_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_multifunction_syntax_test", "analysis_multifunction_fault_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_type_constructor_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_derived_test", *CORE_TESTS)
-CORE_TESTS = ("analysis_model_source_test", "analysis_ir_classifier_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_ir_topology_test", "analysis_model_source_test", "analysis_ir_classifier_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_parameters_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_function_pool_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_capacity_test", *CORE_TESTS)
@@ -709,7 +709,7 @@ def main() -> None:
         sources += [(ide / "tests" / (name + ".c"), name not in
                      ("analysis_semantic_read_front_test", "analysis_ir_sparse_decode_test", "analysis_ir_capacity_test",
                       "analysis_semantic_final_input_test", "analysis_ir_input_test", "analysis_final_environment_test", "analysis_index_canonical_guards_test",
-                      "analysis_semantic_alias_reads_test", "analysis_type_constructor_test", "analysis_ir_derived_test", "analysis_ir_parameters_test", "analysis_ir_classifier_test", "analysis_model_source_test")) for name in tests]
+                      "analysis_semantic_alias_reads_test", "analysis_type_constructor_test", "analysis_ir_derived_test", "analysis_ir_parameters_test", "analysis_ir_classifier_test", "analysis_model_source_test", "analysis_ir_topology_test")) for name in tests]
     if args.server:
         if os.name != "nt":
             parser.error("the current host still uses Windows transport/process adapters; the standalone core is separate")
@@ -892,6 +892,7 @@ def main() -> None:
             flags += ['-DXIDE_OWNER_REFERENCE_FIXTURE="' + owner_coordinator.as_posix() + '"']
         return flags
 
+    objects = {}
     try:
         probe_sources = [ide / "src/analysis/runtime.c", frontend / "src/ast/xl6_ast.c"]
         if args.server:
@@ -922,7 +923,6 @@ def main() -> None:
                     raise RuntimeError(f"source changed during dependency discovery: {path}")
                 inputs[str(path)] = digest
         inputs[str(cc)] = sha(cc)
-        objects = {}
         for source, owned in sources:
             target = output / (source.stem + ".o")
             run([str(cc), *unit_flags(source, owned), "-c", str(source), "-o", str(target)], source.stem)
@@ -1059,6 +1059,7 @@ def main() -> None:
         report["frontendMaterials"] = frontend_materials
         report["runtimeProfiles"] = runtime_profiles
         report["privateAstConsumers"] = ast_consumers
+        report["objectOutputs"] = {str(path.resolve()):sha(path) for path in objects.values() if path.is_file()}
         (output / "build-result.json").write_text(json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
     print(json.dumps(dict(status=status,report=str(output / "build-result.json")),ensure_ascii=False))
 

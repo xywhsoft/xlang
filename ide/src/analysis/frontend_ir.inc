@@ -27,6 +27,7 @@ typedef struct xls_ir_scan {
     size_t directPlanBudget;
     size_t scopeCount;
     int ready,topology,plansReady,plansAttempted,verifying,scopeAttempted,scopeReady;
+    int topologyPending;
     int originalClassifiers; /* Inherit independent native reference selection. */
     xls_ir_region_index regions;
     size_t regionBudget;
@@ -311,17 +312,14 @@ static int xlsIrCandidateCompare(const void* a,const void* b)
     if(left->owner!=right->owner) return left->owner<right->owner ? -1 : 1;
     return left->node<right->node ? -1 : left->node!=right->node;
 }
-static void xlsIrScanInit(xls_ir_scan* scan,const XL6_IrModule* module)
+static void xlsIrScanBegin(xls_ir_scan* scan)
 {
-    memset(scan,0,sizeof(*scan)); scan->previous=xlsActiveIrScan;
+    memset(scan,0,sizeof(*scan));scan->previous=xlsActiveIrScan;
     scan->originalClassifiers=scan->previous && scan->previous->originalClassifiers;
     scan->regionBudget=XLS_IR_REGION_BYTES;
-    if(!module || !module->nodes || !module->nodeCount || !module->root || module->root>module->nodeCount ||
-       module->nodeCount>UINT32_MAX) return;
-    /* Run the compiler's own linear rooted-tree preflight before asking any
-     * parent-chain question, including for adversarial verification input.
-     * On failure the unchanged original path supplies its normal diagnostic. */
-    if(!xl6IrVerifyNodeTopology(module,NULL)) return;
+}
+static void xlsIrScanBuildValidated(xls_ir_scan* scan,const XL6_IrModule* module)
+{
     scan->topology=1; scan->module=module; scan->nodes=module->nodes; scan->count=module->nodeCount;
     size_t count=0;
     for(size_t i=0;i<module->nodeCount;++i)
@@ -344,6 +342,30 @@ static void xlsIrScanInit(xls_ir_scan* scan,const XL6_IrModule* module)
     uint64_t bytes=(uint64_t)scan->all.Capacity*sizeof(XL6_IrNodeId)+(uint64_t)scan->routed.Capacity*sizeof(xls_ir_candidate);
     if(bytes>xlsIrScanWork.peakBytes) xlsIrScanWork.peakBytes=bytes;
 }
+static void xlsIrScanInit(xls_ir_scan* scan,const XL6_IrModule* module)
+{
+    xlsIrScanBegin(scan);
+    if(!module || !module->nodes || !module->nodeCount || !module->root || module->root>module->nodeCount ||
+       module->nodeCount>UINT32_MAX)return;
+    /* Exit-plan production needs its own rooted-tree admission. */
+    if(!xl6IrVerifyNodeTopology(module,NULL))return;
+    xlsIrScanBuildValidated(scan,module);
+}
+#ifdef XLS_NATIVE_IR_TOPOLOGY_OBSERVER
+/* Called only after the unchanged native verifier accepted its own topology.
+ * No arena is touched before the original cancellation/initialization guards;
+ * native validation still runs once on every attempt,including failures. */
+static void xlsIrScanVerifyTopologyReady(const XL6_IrModule* module)
+{
+    xls_ir_scan* scan=xlsActiveIrScan;
+    if(!scan || !scan->verifying || !scan->topologyPending || scan->module!=module)return;
+    scan->topologyPending=0;
+    if(!module || !module->nodes || !module->nodeCount || !module->root || module->root>module->nodeCount ||
+       module->nodeCount>UINT32_MAX)return;
+    xlsIrScanBuildValidated(scan,module);
+}
+#endif
+
 static void xlsIrScanDone(xls_ir_scan* scan)
 {
     xlsActiveIrScan=scan->previous; xrtArrayUnit(&scan->all); xrtArrayUnit(&scan->routed);
@@ -527,7 +549,13 @@ static int xlsIrVerifyBudgets(const XL6_IrModule* module,XL6_DiagList* diags,siz
     xls_ir_initializer_scope initializers;xlsFrontendIrInitializerBegin(&initializers,module);
     initializers.allowed=0;
     xls_ir_call_scan calls; xlsIrCallScanBegin(&calls,module,bytes);
-    xls_ir_scan scan; xlsIrScanInit(&scan,module); scan.planBudget=bytes; scan.directPlanBudget=directBytes; scan.regionBudget=regionBytes; scan.verifying=1; xlsActiveIrScan=&scan;
+    xls_ir_scan scan;
+#ifdef XLS_NATIVE_IR_TOPOLOGY_OBSERVER
+    xlsIrScanBegin(&scan);scan.module=module;scan.topologyPending=1;
+#else
+    xlsIrScanInit(&scan,module);
+#endif
+    scan.planBudget=bytes;scan.directPlanBudget=directBytes;scan.regionBudget=regionBytes;scan.verifying=1;xlsActiveIrScan=&scan;
     int okay=xlsIrVerifyModuleOriginal(module,diags); xlsIrScanDone(&scan); xlsIrCallScanDone(&calls);
     xlsFrontendIrInitializerEnd(&initializers);return okay;
 }

@@ -7,6 +7,8 @@ qualify performance. The normal build must pass build_lsp_core's own checks.
 from pathlib import Path
 import argparse,hashlib,json,os,re,subprocess
 from check_native_bridge_catalog import function
+from build_lsp_core import dependencies
+from lsp_profile_inputs import profile_inputs
 
 
 def sha(path):
@@ -33,10 +35,15 @@ def main():
     parser.add_argument('--build',type=Path,required=True,help='intact passed normal build directory')
     parser.add_argument('--output',type=Path,required=True,help='fresh private output directory')
     parser.add_argument('--ir-verifier-detail',action='store_true',help='diagnostic-only inclusive timings for direct native verifier helpers; does not qualify performance')
+    parser.add_argument('--preflight-only',action='store_true',help='verify archive/linked object recipes and source identities without compiling or running a probe')
     args=parser.parse_args();B=args.build.resolve(strict=True);O=args.output.resolve()
     b=read(B/'build-result.json');verify_build(b,B)
+    originalBindings={v['original']:v['sha256'] for v in b.get('sourceRebinding',{}).get('bindings',[])}
+    for k,v in b.items():
+     if k.endswith('Extension') and isinstance(v,dict):
+      originalBindings.update({p:d['sha256'] for p,d in v.get('actualInputBindings',{}).items()})
     O.mkdir(parents=True,exist_ok=False);temporary=O/'compiler-temp';temporary.mkdir()
-    rec=dict(status='running',accepted=False,scope='Diagnostic inclusive per-thread worker/session/adapter/projection/retirement timings;not formal performance or a per-query retirement binding.',commands=[],inputs={str(Path(__file__).resolve()):sha(__file__),str(Path(__file__).with_name('check_native_bridge_catalog.py')):sha(Path(__file__).with_name('check_native_bridge_catalog.py')),str(B/'build-result.json'):sha(B/'build-result.json')},programs={},normalBuild=str(B),normalBuildInputs=len(b['inputs']),normalBuildOutputs=len(b['outputs']))
+    rec=dict(status='running',accepted=False,scope='Diagnostic inclusive per-thread worker/session/adapter/projection/retirement timings;not formal performance or a per-query retirement binding.',commands=[],inputs={str(Path(__file__).resolve()):sha(__file__),str(Path(__file__).with_name('check_native_bridge_catalog.py')):sha(Path(__file__).with_name('check_native_bridge_catalog.py')),str(B/'build-result.json'):sha(B/'build-result.json'),str(Path(__file__).with_name('lsp_profile_inputs.py')):sha(Path(__file__).with_name('lsp_profile_inputs.py'))},programs={},normalBuild=str(B),normalBuildInputs=len(b['inputs']),normalBuildOutputs=len(b['outputs']))
     labels=[];copies={};host={};env=dict(os.environ,TMP=str(temporary),TEMP=str(temporary))
     env['PATH']=str(Path(b['compiler']).parent)+os.pathsep+env.get('PATH','')
     def slot(label):
@@ -69,8 +76,15 @@ def main():
      wrapper=signature+'\n{\n'+(' if(!q)return;\n' if nullable else '')+' xlsLifecycleBegin();double start=xrtTimer();\n '+invoke+'\n xlsLifecycleAdd('+str(slot(label))+',start);xlsLifecycleEmit("'+group+'");\n'+(' return profileResult;\n' if result!='void' else '')+'}\n'
      return source.replace(body,renamed+'\n'+body[brace:]+'\n'+wrapper,1)
     try:
-     for name in ['check_session','frontend_entry_cache','syntax','check','language_snapshot','projection','worker','semantic_definition','language_check','xl6_ir']:
-      c=next(c for c in b['commands'] if '-c' in c and Path(c[c.index('-c')+1]).stem==name);p=Path(c[c.index('-c')+1]);copies[name]=p.read_text('utf8');assert b['inputs'][str(p)]==sha(p),p;rec['inputs'][str(p)]=sha(p)
+     names=('check_session','frontend_entry_cache','syntax','check','language_snapshot','projection','worker','semantic_definition','language_check','xl6_ir')
+     normalLink,originalCore,units,memberHashes=profile_inputs(b,B,O,names,run)
+     rec['profileSelection']={name:dict(command=command,object=str(Path(command[command.index('-o')+1]).resolve()),sha256=sha(command[command.index('-o')+1])) for name,command in units.items()}
+     rec['originalCoreMemberHashes']=memberHashes
+     rec['linkedInputs']={str(Path(part).resolve()):sha(part) for part in normalLink if part.endswith(('.o','.a'))}
+     for name in names:
+      c=units[name];p=Path(c[c.index('-c')+1]);copies[name]=p.read_text('utf8');assert ({str(Path(q).resolve()):h for q,h in originalBindings.items()} | {str(Path(q).resolve()):h for q,h in b['inputs'].items()}).get(str(p.resolve()))==sha(p),p;rec['inputs'][str(p)]=sha(p)
+     if args.preflight_only:
+      verify_build(b,B);rec['status']='preflight-passed';rec['programs']=dict(normal=dict(path=str(B/'xlang-ls.exe'),sha256=sha(B/'xlang-ls.exe')));return
      def session(body):
       body=body.replace('{','{\n    double lifecycleTotal=xrtTimer();',1)
       body=calls(body,{'xlsInputBatchCreateInContext','xlsSyntaxBuild','xlsSemanticCheckCreateBatch','xlsSemanticCheckValidate','xlsSemanticCheckInputUsage'},'session.')
@@ -176,15 +190,21 @@ void xlsLifecycleBegin(void);void xlsLifecycleAdd(size_t,double);void xlsLifecyc
     ''',encoding='utf8',newline='\n')
      core=O/'core.a';core.write_bytes((B/'xlang-analysis-core.a').read_bytes());ar=str(Path(b['compiler']).with_name('ar.exe' if os.name=='nt' else 'ar'))
      for name,text in copies.items():
-      src=O/(name+'.c');src.write_text(text,encoding='utf8',newline='\n');c=next(c for c in b['commands'] if '-c' in c and Path(c[c.index('-c')+1]).stem==name);obj=O/(name+'.o');flags=[c[0],'-I'+str(O),*c[1:c.index('-c')],'-include',str(header)];run(flags+['-c',str(src),'-o',str(obj)],'compile-'+name)
-      if name in ['language_snapshot','semantic_definition','language_check']:host[str(B/(name+'.o'))]=str(obj)
+      src=O/(name+'.c');src.write_text(text,encoding='utf8',newline='\n');c=units[name];obj=O/(name+'.o');flags=[c[0],'-I'+str(O),'-I'+str(Path(c[c.index('-c')+1]).parent),*c[1:c.index('-c')],'-include',str(header)];dep=run(flags+['-MM','-MT','profileObject',str(src)],'deps-'+name)
+      expected={str(Path(p).resolve()):h for p,h in originalBindings.items()};expected.update({str(Path(p).resolve()):h for p,h in b['inputs'].items()})
+      closure={str(p.resolve()):sha(p) for p in dependencies(dep.stdout.decode())}
+      for p,h in closure.items():assert Path(p).is_relative_to(O) or expected.get(p)==h,(name,p,'unmatched production dependency')
+      rec.setdefault('actualDependencies',{}).update(closure)
+      run(flags+['-c',str(src),'-o',str(obj)],'compile-'+name)
+      if name in ['language_snapshot','semantic_definition','language_check']:host[str(Path(c[c.index('-o')+1]).resolve())]=str(obj)
       else:run([ar,'rcs',str(core),str(obj)],'archive-'+name)
       print(name,'profile compiled',flush=True)
-     c=next(c for c in b['commands'] if '-c' in c and Path(c[c.index('-c')+1]).stem=='check');obj=O/'diagnostic.o';run(c[:c.index('-c')]+['-I'+str(O),'-c',str(diag),'-o',str(obj)],'compile-diagnostic')
-     exe=O/'profile-ls.exe';link=next(c for c in b['commands'] if '-c' not in c and str(B/'xlang-ls.exe') in c);assert all(p in link for p in host)
-     link=[str(exe) if x==str(B/'xlang-ls.exe') else str(core) if x==str(B/'xlang-analysis-core.a') else host.get(x,x) for x in link];link.insert(link.index(str(core)),str(obj));run(link,'link')
+     c=units['check'];obj=O/'diagnostic.o';run(c[:c.index('-c')]+['-I'+str(O),'-c',str(diag),'-o',str(obj)],'compile-diagnostic')
+     exe=O/'profile-ls.exe';link=normalLink.copy();assert all(p in {str(Path(x).resolve()) for x in link if x.endswith('.o')} for p in host)
+     link=[str(core) if x==originalCore else host.get(str(Path(x).resolve()),x) if x.endswith('.o') else x for x in link];link[link.index('-o')+1]=str(exe);link.insert(link.index(str(core)),str(obj));run(link,'link')
      rec['programs']=dict(diagnostic=dict(path=str(exe),sha256=sha(exe)),normal=dict(path=str(B/'xlang-ls.exe'),sha256=sha(B/'xlang-ls.exe')));rec['labels']=labels
      for p,h in rec['inputs'].items():assert sha(p)==h,p
+     for path,h in rec['linkedInputs'].items():assert sha(path)==h,path
      verify_build(b,B)
      rec['outputs']={str(p):sha(p) for p in O.iterdir() if p.is_file() and p.suffix in ('.exe','.a','.o','.h','.c')}
      rec['status']='built'
