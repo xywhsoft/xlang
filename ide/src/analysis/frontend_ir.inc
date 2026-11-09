@@ -27,6 +27,7 @@ typedef struct xls_ir_scan {
     size_t directPlanBudget;
     size_t scopeCount;
     int ready,topology,plansReady,plansAttempted,verifying,scopeAttempted,scopeReady;
+    int originalClassifiers; /* Inherit independent native reference selection. */
     xls_ir_region_index regions;
     size_t regionBudget;
     int regionsAttempted;
@@ -128,6 +129,17 @@ int xlsFrontendIrBuildTypeBudget(XL6_IrModule* module,const XL6_AstNode* root,XL
 }
 int xl6IrBuildModuleFromAst(XL6_IrModule* module,const XL6_AstNode* root,XL6_DiagList* diags)
 { return xlsFrontendIrBuildTypeBudget(module,root,diags,XLS_IR_TYPE_LOOKUP_BYTES); }
+#ifdef XLS_NATIVE_IR_CLASSIFIER_PREFIXES
+/* TU-private independent builder used by the self-including contract fixture.
+ * Real nested scopes inherit this selector; no scan/index is fabricated. */
+static int xlsIrClassifierReferenceBuild(XL6_IrModule* module,const XL6_AstNode* root,XL6_DiagList* diags)
+{
+    xls_ir_scan reference={.previous=xlsActiveIrScan,.originalClassifiers=1};
+    xlsActiveIrScan=&reference;
+    int okay=xl6IrBuildModuleFromAst(module,root,diags);
+    xlsActiveIrScan=reference.previous;return okay;
+}
+#endif
 void xlsFrontendIrTypeLookupReset(void) { memset(&xlsIrTypeLookupWork,0,sizeof(xlsIrTypeLookupWork)); }
 xls_ir_type_lookup_work xlsFrontendIrTypeLookupWork(void) { return xlsIrTypeLookupWork; }
 
@@ -286,8 +298,11 @@ void xlsFrontendIrCallScanReset(void) { memset(&xlsIrCallWork,0,sizeof(xlsIrCall
 xls_ir_call_scan_work xlsFrontendIrCallScanWork(void) { return xlsIrCallWork; }
 int xlsFrontendIrReferenceConversions(XL6_IrModule* module)
 {
+    xls_ir_scan reference={.previous=xlsActiveIrScan,.originalClassifiers=1};
+    xlsActiveIrScan=&reference;
     xls_ir_call_scan* previous=xlsActiveCallScan; xlsActiveCallScan=NULL;
-    int okay=xlsIrBuildImplicitConversionAbisOriginal(module); xlsActiveCallScan=previous; return okay;
+    int okay=xlsIrBuildImplicitConversionAbisOriginal(module); xlsActiveCallScan=previous;
+    xlsActiveIrScan=reference.previous;return okay;
 }
 
 static int xlsIrCandidateCompare(const void* a,const void* b)
@@ -298,7 +313,9 @@ static int xlsIrCandidateCompare(const void* a,const void* b)
 }
 static void xlsIrScanInit(xls_ir_scan* scan,const XL6_IrModule* module)
 {
-    memset(scan,0,sizeof(*scan)); scan->previous=xlsActiveIrScan; scan->regionBudget=XLS_IR_REGION_BYTES;
+    memset(scan,0,sizeof(*scan)); scan->previous=xlsActiveIrScan;
+    scan->originalClassifiers=scan->previous && scan->previous->originalClassifiers;
+    scan->regionBudget=XLS_IR_REGION_BYTES;
     if(!module || !module->nodes || !module->nodeCount || !module->root || module->root>module->nodeCount ||
        module->nodeCount>UINT32_MAX) return;
     /* Run the compiler's own linear rooted-tree preflight before asking any
@@ -534,7 +551,8 @@ int xlsFrontendIrReferenceRefresh(XL6_IrModule* module)
 {
     xls_ir_initializer_scope* oldInitializers=xlsActiveInitializers;xlsActiveInitializers=NULL;
     xls_ir_call_scan* previousCalls=xlsActiveCallScan; xlsActiveCallScan=NULL;
-    xls_ir_scan* prior=xlsActiveIrScan; xlsActiveIrScan=NULL;
+    xls_ir_scan* prior=xlsActiveIrScan;
+    xls_ir_scan reference={.originalClassifiers=1};xlsActiveIrScan=&reference;
     int okay=xlsIrRefreshExitPlansOriginal(module); xlsActiveIrScan=prior; xlsActiveCallScan=previousCalls;
     xlsActiveInitializers=oldInitializers;return okay;
 }
@@ -542,7 +560,8 @@ int xlsFrontendIrReferenceVerify(const XL6_IrModule* module,XL6_DiagList* diags)
 {
     xls_ir_initializer_scope* oldInitializers=xlsActiveInitializers;xlsActiveInitializers=NULL;
     xls_ir_call_scan* previousCalls=xlsActiveCallScan; xlsActiveCallScan=NULL;
-    xls_ir_scan* prior=xlsActiveIrScan; xlsActiveIrScan=NULL;
+    xls_ir_scan* prior=xlsActiveIrScan;
+    xls_ir_scan reference={.originalClassifiers=1};xlsActiveIrScan=&reference;
     int okay=xlsIrVerifyModuleOriginal(module,diags); xlsActiveIrScan=prior; xlsActiveCallScan=previousCalls;
     xlsActiveInitializers=oldInitializers;return okay;
 }

@@ -80,10 +80,15 @@ def derive(frontend:Path,output:Path,*,phases=False,ir_source=None):
             audited[str(dependency)]=hashlib.sha256(dependency.read_bytes()).hexdigest()
     source=raw_memo(source,current=True)
     parameter_overlay=None
+    classifier_overlay=None
     if phases:
         from native_ir_parameter_overlay import derive as parameters
         source,parameter_overlay=parameters(source,frontend,hashlib.sha256(selected.read_bytes()).hexdigest(),audited[str(frontend/'src/ir/xl6_ir.h')])
         dependency=Path(__file__).with_name('native_ir_parameter_overlay.py')
+        audited[str(dependency)]=hashlib.sha256(dependency.read_bytes()).hexdigest()
+        from native_ir_classifier_overlay import derive as classifiers
+        source,classifier_overlay=classifiers(source,frontend,hashlib.sha256(selected.read_bytes()).hexdigest(),audited[str(frontend/'src/ir/xl6_ir.h')])
+        dependency=Path(__file__).with_name('native_ir_classifier_overlay.py')
         audited[str(dependency)]=hashlib.sha256(dependency.read_bytes()).hexdigest()
     compiled=output/'frontend/xl6_ir.c';compiled.parent.mkdir(parents=True,exist_ok=True)
     compiled.write_text(source,encoding='utf8',newline='\n')
@@ -94,6 +99,7 @@ def derive(frontend:Path,output:Path,*,phases=False,ir_source=None):
         irDependencyCohort=dependency_cohort,
         derivedPhases=derived_overlay if phases else None,
         parameterMasks=parameter_overlay,
+        classifierAdmission=classifier_overlay,
         auditedScanSeams=seams if phases else 0,
         originalAncestorContainmentPreserved=phases,
         scope=('private current complete module phases/scans/initializer/cancellation qualification; original bounded ancestor containment retained'

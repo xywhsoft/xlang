@@ -1,0 +1,409 @@
+{
+  "schema": 1,
+  "date": "2026-11-10",
+  "stage": "M7a2b126o",
+  "status": "source-milestone-verified-full-performance-not-admitted",
+  "scope": "Audited inline native IR classifier defaults/admission and empty class-layout shortcut;complete original bodies/verifier retained;existing scan scope carries independent reference selection.",
+  "longTermGoal": "active",
+  "repositoryHeadAtCollection": "e734df7db98a934f272e30fb4f4edc1a08e48b3a",
+  "releaseAdmitted": false,
+  "defaultRuntimeReplaced": false,
+  "onlinePublishPerformed": false,
+  "currentDeliveryIndexModifiedByThisStage": false,
+  "ownedSources": {
+    ".gitignore": "d2a47d10e11afc3c7c25158dd7163152064355e774da5bfa8675837444dcbd8e",
+    "ide/src/analysis/frontend_ir.inc": "8488d18ea79e6e34b58571cc9146234424e67a43016fea35a42c283620503a10",
+    "ide/tests/analysis_ir_classifier_test.c": "2593d5d02425366bf3dee943b0f63629c0f95bc124289de101b4255905cf5d33",
+    "ide/tools/build_lsp_core.py": "1fe204635ef5738cbda18aac4c1cfe4e38364f96f6c3d545f7d0fc57d736e392",
+    "ide/tools/native_current_ir_overlay.py": "359215dc21f21d9b085212726035f18ed2cfb50b42b8bc50eeb3e9472c067f66",
+    "ide/tools/native_ir_classifier_overlay.py": "b2787ddb8b88600cd3f24468d23b22aab73c2f9a503daccdab6f2e2786a8eee2",
+    "ide/docs/lsp-development.md": "c121f77908cdddc60292b698712e48c63b7a180e01d5fa2e51e61537b6afef27",
+    "ide/docs/lsp-ir-classifier-admission.md": "922dd060834853aea5b84bd5ba21d6497fb472c93923461b0bcc68fc29e7cefe"
+  },
+  "materials": {
+    "sourceManifest": {
+      "schema": 1,
+      "logicalDirectory": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-ir-classifier-admission-20261110",
+      "storageBacking": "E:\\codex-builds-xlang-lsp-20261110\\lsp-ir-classifier-admission-20261110-materials\\sources",
+      "archive": {
+        "path": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-ir-classifier-admission-20261110\\sources.tar.gz",
+        "sha256": "88c50f19490a7c29814d3c1184c24e865b8e0441d9b943ab28a60e57d67223cf",
+        "bytes": 45369067
+      },
+      "bindings": {
+        "path": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-ir-classifier-admission-20261110\\source-bindings.json",
+        "sha256": "48a1931a80ae69a753f20c81527a03b88bd44641e72e33a2e4cc1c82a5b2f515"
+      },
+      "nativeInputBindings": 1693,
+      "guiInputBindings": 674,
+      "matchedSdkFiles": 180,
+      "distinctArchiveEntries": 1807
+    },
+    "provenanceManifest": {
+      "schema": 1,
+      "logicalDirectory": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\lsp-ir-classifier-admission-20261110",
+      "storageBacking": "E:\\codex-builds-xlang-lsp-20261110\\lsp-ir-classifier-admission-20261110-materials\\provenance",
+      "archive": {
+        "path": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\lsp-ir-classifier-admission-20261110\\reports.tar.gz",
+        "sha256": "9c96d6f892e8ce3b28118a8313abb4625a273df222108f2421ae1386cc7ce8fc",
+        "bytes": 18068309
+      },
+      "screenshots": {
+        "path": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\lsp-ir-classifier-admission-20261110\\screenshots.tar.gz",
+        "sha256": "c1d0276f50b2e2ac6d1a8fa14be63ed4d710f96aa82a22f0c1bd2e38f07216ae",
+        "bytes": 3493845,
+        "files": 29
+      },
+      "files": 1166,
+      "retainedOriginalRunDirectories": [
+        "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-phase-production-20261110"
+      ],
+      "historicalPathsRewritten": false
+    }
+  },
+  "native": {
+    "receipt": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-phase-production-20261110\\integrated-native-v3\\build-result.json",
+    "receiptSha256": "5c6d2fb7dcd7d01027e5e5b77a88d4cb7823b19d9811a4273fbac5d669c34155",
+    "serverSha256": "f630522233ee3448f8ab53d82faefe581be9bcaacde09908ee2c9924ecfe837d",
+    "inputBindings": 1693,
+    "recompiled": [
+      "xl6_ir",
+      "analysis_ir_capacity_test",
+      "analysis_ir_input_test",
+      "analysis_ir_derived_test",
+      "analysis_ir_parameters_test",
+      "analysis_ir_sparse_decode_test",
+      "analysis_ir_classifier_test"
+    ],
+    "actuallyExecutedTests": 155,
+    "retainedTestsNotRerun": 0,
+    "linkedObjectHashesVerified": 193,
+    "specializedChecks": 36169,
+    "frontendCohort": "Previous matched frozen native frontend/private AST;concurrent engine edits not consumed;not readmission of current engine worktree"
+  },
+  "protocol": {
+    "suites": 8,
+    "resultSha256": "fb7fec320c9437111942a8284d7e33a1aff1ecbd0edf0c4606ea5c9c766ad693",
+    "serverSha256": "f630522233ee3448f8ab53d82faefe581be9bcaacde09908ee2c9924ecfe837d"
+  },
+  "gui": {
+    "rebuiltObjects": 115,
+    "guiEntryRecompiled": true,
+    "resourceObjectRecompiled": true,
+    "inputBindings": 674,
+    "tests": 26,
+    "currentServiceCases": 25,
+    "controlledOldCapabilityCases": 1,
+    "serverSha256": "f630522233ee3448f8ab53d82faefe581be9bcaacde09908ee2c9924ecfe837d",
+    "candidateSha256": "08dd84acee01db4925a11fc261fb21337857f282a1771b5dcccbea2ed36d50ea",
+    "cLspEnabled": false,
+    "resultSha256": "9f3bb047fd3eb3c12f3cb231371dcbd3f81688eff4d513d397a4c9008aa0672d",
+    "visuallyInspectedScreenshots": [
+      "input_test/中文 输入/native-ime-preedit.png",
+      "completion_view_test/completion-26004-120348421/completion-light.png",
+      "workspace_search_view_test/中文😀 workspace/workspace-symbols-dark.png"
+    ]
+  },
+  "compiledNegativeControls": {
+    "cases": [
+      {
+        "name": "loop-error",
+        "exit": 1,
+        "explicitAssertionRejected": true
+      },
+      {
+        "name": "implicit-field",
+        "exit": 1,
+        "explicitAssertionRejected": true
+      },
+      {
+        "name": "empty-class-guard",
+        "exit": 1,
+        "explicitAssertionRejected": true
+      },
+      {
+        "name": "reference-inheritance",
+        "exit": 1,
+        "explicitAssertionRejected": true
+      }
+    ],
+    "resultSha256": "94f33502393806ca8c425d60517517bbef82601a1abb51bdbb978c9e7d972758"
+  },
+  "performanceScreen": {
+    "status": "passed",
+    "failedGates": 0,
+    "gates": 40,
+    "queries": 480,
+    "processes": 32,
+    "registration": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-phase-production-20261110\\classifier-screen-v1\\registration.json",
+    "registrationSha256": "b4731f4177a9a3fd0ac478120b08574fc246cbd91550f01202f2f842d319d5b2",
+    "result": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-phase-production-20261110\\classifier-screen-v1\\measurement\\result.json",
+    "resultSha256": "14958857ffa9f488aa75ff2507bd6430404b321c4897888a25945c68427d70d6",
+    "baselineSha256": "566611c8a0cd05d138c98330e75b3558b3c553a68a26f6a05d081c815323e379",
+    "candidateSha256": "183eb6b1dc5686c24cebc0983f0b0cdb9928fca6270bf61269c1ffeb4dc82730",
+    "summary": {
+      "512-single-literal": {
+        "cold": {
+          "baseline": {
+            "samples": 4,
+            "p50": 778.0748,
+            "p95": 788.2477,
+            "maximum": 788.2477
+          },
+          "candidate": {
+            "samples": 4,
+            "p50": 775.6028,
+            "p95": 789.913,
+            "maximum": 789.913
+          }
+        },
+        "hot": {
+          "baseline": {
+            "samples": 48,
+            "p50": 239.519,
+            "p95": 271.584,
+            "maximum": 273.925
+          },
+          "candidate": {
+            "samples": 48,
+            "p50": 234.7212,
+            "p95": 245.3673,
+            "maximum": 253.1042
+          }
+        },
+        "exact": {
+          "baseline": {
+            "samples": 4,
+            "p50": 2.276,
+            "p95": 2.557,
+            "maximum": 2.557
+          },
+          "candidate": {
+            "samples": 4,
+            "p50": 2.3144,
+            "p95": 2.6391,
+            "maximum": 2.6391
+          }
+        },
+        "cpuInteractionChainMeanMs": {
+          "baseline": {
+            "samples": 4,
+            "p50": 239.18269230769232,
+            "p95": 241.58653846153845,
+            "maximum": 241.58653846153845
+          },
+          "candidate": {
+            "samples": 4,
+            "p50": 233.17307692307693,
+            "p95": 235.57692307692307,
+            "maximum": 235.57692307692307
+          }
+        }
+      },
+      "512-single-declaration": {
+        "cold": {
+          "baseline": {
+            "samples": 4,
+            "p50": 763.4832,
+            "p95": 784.7425,
+            "maximum": 784.7425
+          },
+          "candidate": {
+            "samples": 4,
+            "p50": 746.9591,
+            "p95": 781.2076,
+            "maximum": 781.2076
+          }
+        },
+        "hot": {
+          "baseline": {
+            "samples": 48,
+            "p50": 256.0202,
+            "p95": 344.8089,
+            "maximum": 350.6872
+          },
+          "candidate": {
+            "samples": 48,
+            "p50": 255.1232,
+            "p95": 348.4805,
+            "maximum": 382.8995
+          }
+        },
+        "exact": {
+          "baseline": {
+            "samples": 4,
+            "p50": 2.5126,
+            "p95": 2.9928,
+            "maximum": 2.9928
+          },
+          "candidate": {
+            "samples": 4,
+            "p50": 2.4834,
+            "p95": 2.6332,
+            "maximum": 2.6332
+          }
+        },
+        "cpuInteractionChainMeanMs": {
+          "baseline": {
+            "samples": 4,
+            "p50": 266.8269230769231,
+            "p95": 271.63461538461536,
+            "maximum": 271.63461538461536
+          },
+          "candidate": {
+            "samples": 4,
+            "p50": 269.2307692307692,
+            "p95": 276.4423076923077,
+            "maximum": 276.4423076923077
+          }
+        }
+      },
+      "512-imported-literal": {
+        "cold": {
+          "baseline": {
+            "samples": 4,
+            "p50": 855.3485,
+            "p95": 875.5146,
+            "maximum": 875.5146
+          },
+          "candidate": {
+            "samples": 4,
+            "p50": 860.4934,
+            "p95": 886.0436,
+            "maximum": 886.0436
+          }
+        },
+        "hot": {
+          "baseline": {
+            "samples": 48,
+            "p50": 255.3301,
+            "p95": 282.6615,
+            "maximum": 354.1353
+          },
+          "candidate": {
+            "samples": 48,
+            "p50": 252.1996,
+            "p95": 277.9273,
+            "maximum": 285.0506
+          }
+        },
+        "exact": {
+          "baseline": {
+            "samples": 4,
+            "p50": 3.127,
+            "p95": 3.4365,
+            "maximum": 3.4365
+          },
+          "candidate": {
+            "samples": 4,
+            "p50": 2.9153,
+            "p95": 3.3381,
+            "maximum": 3.3381
+          }
+        },
+        "cpuInteractionChainMeanMs": {
+          "baseline": {
+            "samples": 4,
+            "p50": 253.60576923076923,
+            "p95": 254.80769230769232,
+            "maximum": 254.80769230769232
+          },
+          "candidate": {
+            "samples": 4,
+            "p50": 250.0,
+            "p95": 258.41346153846155,
+            "maximum": 258.41346153846155
+          }
+        }
+      },
+      "512-imported-declaration": {
+        "cold": {
+          "baseline": {
+            "samples": 4,
+            "p50": 834.8046,
+            "p95": 863.3524,
+            "maximum": 863.3524
+          },
+          "candidate": {
+            "samples": 4,
+            "p50": 868.2765,
+            "p95": 973.7621,
+            "maximum": 973.7621
+          }
+        },
+        "hot": {
+          "baseline": {
+            "samples": 48,
+            "p50": 268.1287,
+            "p95": 357.7751,
+            "maximum": 371.8484
+          },
+          "candidate": {
+            "samples": 48,
+            "p50": 263.1483,
+            "p95": 347.3822,
+            "maximum": 352.5433
+          }
+        },
+        "exact": {
+          "baseline": {
+            "samples": 4,
+            "p50": 3.0425,
+            "p95": 3.4367,
+            "maximum": 3.4367
+          },
+          "candidate": {
+            "samples": 4,
+            "p50": 3.234,
+            "p95": 3.3116,
+            "maximum": 3.3116
+          }
+        },
+        "cpuInteractionChainMeanMs": {
+          "baseline": {
+            "samples": 4,
+            "p50": 283.65384615384613,
+            "p95": 284.8557692307692,
+            "maximum": 284.8557692307692
+          },
+          "candidate": {
+            "samples": 4,
+            "p50": 272.83653846153845,
+            "p95": 274.03846153846155,
+            "maximum": 274.03846153846155
+          }
+        }
+      }
+    },
+    "scope": "Fixed private component versus preceding source stage;default background enabled;one service chain at a time;not complete final-image,GUI,absolute budgets or full-goal admission. All regressions and old failed calibrations/matrices remain;no retry/reclassification.",
+    "finalIntegratedImageBenchmarked": false
+  },
+  "rejectedExperiment": {
+    "name": "Per-verification effect result cache",
+    "observedBasicFixture": {
+      "nodes": 32,
+      "requests": 128,
+      "computed": 128,
+      "hits": 0
+    },
+    "adopted": false,
+    "scope": "No work reduction in basic fixture;not a proof about every workload"
+  },
+  "preservedFailures": [
+    "production-profile-v1 report assembly failed after first normal/probe pair;raws retained",
+    "effect-contract-v1 thread callback signature compile failure;v2/v3 zero-hit fixture rejection retained",
+    "integrated-native-v1 junction-spelling assertion before compile",
+    "integrated-native-v2 missing original nested fixture include path;only IR object compiled",
+    "all preceding full performance and same-image calibration failures retained via preceding stage report"
+  ],
+  "protectedRuntime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "priorPerformanceStatusReference": "dev/release-materials/provenance/lsp-workspace-analysis-sharing-20261110.json",
+  "remaining": "Actual persistent checked module/function/type/final IR and partial rebuild;error recovery;remaining applicable LSP/static checks/edit-time completion;large workspace/concurrency/soak/global budgets;full performance admission and final aligned runtime delivery. No DAP or runtime/debug completion."
+}
