@@ -1,0 +1,822 @@
+{
+  "schema": 1,
+  "date": "2026-11-09",
+  "stage": "M7a2b126m",
+  "status": "screened-not-adopted",
+  "scope": "Private canonical IR-input relocation proof and component screening, followed by same-image idle-index memory controls. Normal production sources, runtime and full objective remain unchanged.",
+  "repositoryHeadAtCollection": "207f640e1a59d3d0860a01fd51cb6f8789e53b62",
+  "ownedSources": {
+    "ide/docs/lsp-development.md": "865bb6e25d5d49aae41e9e5e3c12ae77dde84f43144b4e6f587f5df3248b31f6",
+    "ide/docs/lsp-ir-input-relocation-screen.md": "dd1439e363bd7af56a8c8b09512cd539b555121ca5eca4c12bdbe169afdd1419"
+  },
+  "productionSourceChanges": [],
+  "nativeBase": {
+    "receipt": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-symbol-refresh-20261109\\qualified-v2\\build-result.json",
+    "receiptSha256": "415cdcb5c790a1863cbc701a9b28f3267723a55c296f4fc4b1c614772c6ee3ff",
+    "serverSha256": "b97c8d35f6d94351f2817bc9cfd183cfcccb56e96149d68045f0e58b7b4104bc",
+    "inputsVerified": 1457,
+    "outputsVerified": 152,
+    "retainedTests": 150,
+    "fullNativeSuiteRerunThisStage": false
+  },
+  "components": {
+    "1": {
+      "receipt": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-relocation-20261109\\component-v1\\result.json",
+      "sha256": "6a453e5cf810127f7babb3037f8c8cc0e488686de5aa75e2929ebed2e2b32695",
+      "commands": 14,
+      "componentOnly": true
+    },
+    "2": {
+      "receipt": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-relocation-20261109\\component-v2\\result.json",
+      "sha256": "5b6ef38cfe92eb188a8bc864b912604665e5b8654637acfb7173ff3736d9e79e",
+      "commands": 14,
+      "componentOnly": true
+    },
+    "3": {
+      "receipt": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-relocation-20261109\\component-v3\\result.json",
+      "sha256": "d1b9c7f5ccf0ba70ea4048a0bdad4b515f814da965f2dd98101e94cbdac9a099",
+      "commands": 14,
+      "componentOnly": true
+    },
+    "4": {
+      "receipt": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-relocation-20261109\\component-v4\\result.json",
+      "sha256": "ceb6524d049ffd972579971cdf30b55c55e17189d9ee22147804d50c33b07b04",
+      "commands": 14,
+      "componentOnly": true
+    },
+    "5": {
+      "receipt": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-relocation-20261109\\component-v5\\result.json",
+      "sha256": "09d923104b88ee3229ebb64f3178b72edb67b1e7c59b6adb43301b67d5039baf",
+      "commands": 8,
+      "componentOnly": true
+    },
+    "6": {
+      "receipt": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-relocation-20261109\\component-v6\\result.json",
+      "sha256": "7b58963075eb7b4511052c25f599759b561458156ef01816a55a1f225fde79a0",
+      "commands": 8,
+      "componentOnly": true
+    }
+  },
+  "currentComponent": {
+    "serverSha256": "df1fe90e40cb8efb158d4fc8857926f850717a96c13403de5c0c8aa7f783270a",
+    "normalComponentFixtures": [
+      "analysis_ir_input_test",
+      "analysis_worker_cache_test"
+    ],
+    "privateControlChecks": {
+      "producer": 1068,
+      "consumer": 184,
+      "includesInheritedAssertions": true,
+      "fullKeyOraclesPerInputRun": 217
+    },
+    "actualCOmissionsRejected": [
+      {
+        "name": "omit-fact-type-payload",
+        "rejected": true,
+        "reason": "analysis_semantic_final_input_test:30:changed && changedCanonical && changedCanonical!=cb\r\n"
+      },
+      {
+        "name": "omit-exact-miss-relocation-guard",
+        "rejected": true,
+        "reason": "analysis_worker_cache_test:11: !xlsIrInputMatchBound(proof,id,&symbols,NULL,&now)\r\n"
+      },
+      {
+        "name": "omit-producer-unit-identity",
+        "rejected": true,
+        "reason": "analysis_worker_cache_test:91: r.state==XLS_QUERY_READY && xlsSemanticCheckInfo(r.check).accepted && inputBuilds==before+1 && !badKeys\r\n"
+      }
+    ],
+    "protocolSuites": [
+      {
+        "name": "check_lsp_native_analysis",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_native_analysis.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.lsp-ir-relocation-protocol.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-relocation-20261109\\check_lsp_native_analysis-v6"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "check_lsp_current_core",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_current_core.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.lsp-ir-relocation-protocol.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-relocation-20261109\\check_lsp_current_core-v6"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "check_lsp_semantic_reads",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_semantic_reads.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.lsp-ir-relocation-protocol.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-relocation-20261109\\check_lsp_semantic_reads-v6"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "check_lsp_module_semantics",
+        "command": [
+          "C:\\Program Files\\Python312\\python.exe",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_module_semantics.py",
+          "--server",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.lsp-ir-relocation-protocol.exe",
+          "--output",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-relocation-20261109\\check_lsp_module_semantics-v6"
+        ],
+        "exit": 0
+      }
+    ],
+    "localDeclarationKeyReuse": {
+      "before": 4,
+      "after": 21,
+      "proof": "Actual 24-helper declaration insertion;complete regenerated keys and fresh AST/IR/diagnostics agree."
+    },
+    "nativeSourceCohortConsistent": true,
+    "fullChangedConsumerBuild": false,
+    "guiPaired": false,
+    "codegenSections": {
+      "status": "passed",
+      "scope": "COFF section instruction bytes before link; relocation targets are audited separately. This is not a whole-program performance proof.",
+      "sections": [
+        {
+          "function": "xlsSemIrNodes",
+          "same": true,
+          "baselineBytes": 528,
+          "candidateBytes": 528,
+          "hashes": [
+            "2eed26b7b5e4a9e8a7c0e0ba636fc943bdedd1287a202b0af0dafd2012e305af",
+            "2eed26b7b5e4a9e8a7c0e0ba636fc943bdedd1287a202b0af0dafd2012e305af"
+          ]
+        },
+        {
+          "function": "xlsSemIrTypes",
+          "same": true,
+          "baselineBytes": 448,
+          "candidateBytes": 448,
+          "hashes": [
+            "3d0e4478a3c7ece9426040bc1a238e163bf677b2be937204ccf6ed6364ae8f21",
+            "3d0e4478a3c7ece9426040bc1a238e163bf677b2be937204ccf6ed6364ae8f21"
+          ]
+        },
+        {
+          "function": "xlsSemIrRecord",
+          "same": true,
+          "baselineBytes": 544,
+          "candidateBytes": 544,
+          "hashes": [
+            "234bda54ce4455e8802fee63cc326af8430f38becfb3bcdb5fff8addb070efd9",
+            "234bda54ce4455e8802fee63cc326af8430f38becfb3bcdb5fff8addb070efd9"
+          ]
+        },
+        {
+          "function": "xlsSemIrWrite",
+          "same": true,
+          "baselineBytes": 384,
+          "candidateBytes": 384,
+          "hashes": [
+            "e05015ec7568f9ea66f3cf1e0c488760313b67704a7a9440610ed99ab5d349ee",
+            "e05015ec7568f9ea66f3cf1e0c488760313b67704a7a9440610ed99ab5d349ee"
+          ]
+        }
+      ]
+    },
+    "codegenRelocations": [
+      {
+        "function": "xlsSemIrNodes",
+        "same": true,
+        "relocations": [
+          [
+            "RELOCATION RECORDS FOR [.text$xlsSemIrNodes]:",
+            "OFFSET           TYPE              VALUE",
+            "0000000000000069 IMAGE_REL_AMD64_REL32  xrtArrayConstGet",
+            "000000000000013f IMAGE_REL_AMD64_REL32  .text$xlsSemIrRecord",
+            "000000000000016b IMAGE_REL_AMD64_REL32  .text$xlsSemIrTypes",
+            "0000000000000187 IMAGE_REL_AMD64_REL32  .text$xlsSemIrTypes"
+          ],
+          [
+            "RELOCATION RECORDS FOR [.text$xlsSemIrNodes]:",
+            "OFFSET           TYPE              VALUE",
+            "0000000000000069 IMAGE_REL_AMD64_REL32  xrtArrayConstGet",
+            "000000000000013f IMAGE_REL_AMD64_REL32  .text$xlsSemIrRecord",
+            "000000000000016b IMAGE_REL_AMD64_REL32  .text$xlsSemIrTypes",
+            "0000000000000187 IMAGE_REL_AMD64_REL32  .text$xlsSemIrTypes"
+          ]
+        ]
+      },
+      {
+        "function": "xlsSemIrTypes",
+        "same": true,
+        "relocations": [
+          [
+            "RELOCATION RECORDS FOR [.text$xlsSemIrTypes]:",
+            "OFFSET           TYPE              VALUE",
+            "00000000000000ad IMAGE_REL_AMD64_REL32  .text$xlsSemIrNodeFields",
+            "00000000000000ce IMAGE_REL_AMD64_REL32  .text$xlsSemIrRecord"
+          ],
+          [
+            "RELOCATION RECORDS FOR [.text$xlsSemIrTypes]:",
+            "OFFSET           TYPE              VALUE",
+            "00000000000000ad IMAGE_REL_AMD64_REL32  .text$xlsSemIrNodeFields",
+            "00000000000000ce IMAGE_REL_AMD64_REL32  .text$xlsSemIrRecord"
+          ]
+        ]
+      },
+      {
+        "function": "xlsSemIrRecord",
+        "same": true,
+        "relocations": [
+          [
+            "RELOCATION RECORDS FOR [.text$xlsSemIrRecord]:",
+            "OFFSET           TYPE              VALUE",
+            "000000000000004e IMAGE_REL_AMD64_REL32  .text$xlsSemIrNodeFields",
+            "00000000000000f8 IMAGE_REL_AMD64_REL32  strcmp",
+            "000000000000011c IMAGE_REL_AMD64_REL32  .text$xlsSemIrWrite",
+            "0000000000000141 IMAGE_REL_AMD64_REL32  xlsFrontendCancelPoll",
+            "0000000000000175 IMAGE_REL_AMD64_REL32  .text$xlsSemIrWrite",
+            "0000000000000186 IMAGE_REL_AMD64_REL32  strlen",
+            "00000000000001ae IMAGE_REL_AMD64_REL32  .text$xlsSemIrWrite",
+            "00000000000001d7 IMAGE_REL_AMD64_REL32  .text$xlsSemIrWrite",
+            "00000000000001ee IMAGE_REL_AMD64_REL32  .text$xlsSemIrWrite",
+            "0000000000000213 IMAGE_REL_AMD64_REL32  .text$xlsSemIrWrite"
+          ],
+          [
+            "RELOCATION RECORDS FOR [.text$xlsSemIrRecord]:",
+            "OFFSET           TYPE              VALUE",
+            "000000000000004e IMAGE_REL_AMD64_REL32  .text$xlsSemIrNodeFields",
+            "00000000000000f8 IMAGE_REL_AMD64_REL32  strcmp",
+            "000000000000011c IMAGE_REL_AMD64_REL32  .text$xlsSemIrWrite",
+            "0000000000000141 IMAGE_REL_AMD64_REL32  xlsFrontendCancelPoll",
+            "0000000000000175 IMAGE_REL_AMD64_REL32  .text$xlsSemIrWrite",
+            "0000000000000186 IMAGE_REL_AMD64_REL32  strlen",
+            "00000000000001ae IMAGE_REL_AMD64_REL32  .text$xlsSemIrWrite",
+            "00000000000001d7 IMAGE_REL_AMD64_REL32  .text$xlsSemIrWrite",
+            "00000000000001ee IMAGE_REL_AMD64_REL32  .text$xlsSemIrWrite",
+            "0000000000000213 IMAGE_REL_AMD64_REL32  .text$xlsSemIrWrite"
+          ]
+        ]
+      },
+      {
+        "function": "xlsSemIrWrite",
+        "same": true,
+        "relocations": [
+          [
+            "RELOCATION RECORDS FOR [.text$xlsSemIrWrite]:",
+            "OFFSET           TYPE              VALUE",
+            "0000000000000087 IMAGE_REL_AMD64_REL32  .text$xlsSemKeyBytes",
+            "0000000000000107 IMAGE_REL_AMD64_REL32  memcmp",
+            "000000000000015c IMAGE_REL_AMD64_REL32  .text$xlsSemKeyBytes"
+          ],
+          [
+            "RELOCATION RECORDS FOR [.text$xlsSemIrWrite]:",
+            "OFFSET           TYPE              VALUE",
+            "0000000000000087 IMAGE_REL_AMD64_REL32  .text$xlsSemKeyBytes",
+            "0000000000000107 IMAGE_REL_AMD64_REL32  memcmp",
+            "000000000000015c IMAGE_REL_AMD64_REL32  .text$xlsSemKeyBytes"
+          ]
+        ]
+      }
+    ],
+    "materialization": {
+      "baseline": {
+        "materialization": {
+          "calls": 516,
+          "pooledCopies": 516,
+          "heapCopies": 0,
+          "poolFallbacks": 0,
+          "nodes": 47105,
+          "pages": 856,
+          "chargedBytes": 16248384
+        },
+        "semanticMemoBytes": 28435896
+      },
+      "candidate": {
+        "materialization": {
+          "calls": 516,
+          "pooledCopies": 516,
+          "heapCopies": 0,
+          "poolFallbacks": 0,
+          "nodes": 47105,
+          "pages": 856,
+          "chargedBytes": 16248384
+        },
+        "semanticMemoBytes": 31999316
+      }
+    }
+  },
+  "screening": {
+    "status": "rejected",
+    "scope": "Original default workload and 64 unchanged gates;component-only screen,not full release qualification.",
+    "registeredPlanSha256": "cd4f39e5d4c6712c6c1137649fd75cb36600e6b93da2596d396350f284e93b59",
+    "runs": {
+      "screen-aa-v6": {
+        "status": "calibration-failed",
+        "queries": 960,
+        "processes": 64,
+        "failedGates": 6,
+        "gates": 64,
+        "minimumAvailableCommitGiB": 5.8134918212890625,
+        "minimumAvailablePhysicalGiB": 9.871257781982422,
+        "cleanupFailures": 0,
+        "resultSha256": "4c8348bdb6fb2a0df655b028da79de4b426075fe88d93055caee4bc9a4214248",
+        "planSha256": "6f0f993af07819e44ba0cbcde9841da09a01b065023841c542661a08c4301fb5"
+      },
+      "screen-ab-v6": {
+        "status": "gates-failed",
+        "queries": 1920,
+        "processes": 128,
+        "failedGates": 22,
+        "gates": 64,
+        "minimumAvailableCommitGiB": 6.002830505371094,
+        "minimumAvailablePhysicalGiB": 10.06991195678711,
+        "cleanupFailures": 0,
+        "resultSha256": "9c6901ff398a0011aa3c55692883410909fd5a7ddb541275e2d4f2ee811aa1f9",
+        "planSha256": "fec56375b434880b2e31792e93099c8e53d534f054d2881342f81a637d36b980"
+      },
+      "screen-cumulative-v6": {
+        "status": "gates-failed",
+        "queries": 1920,
+        "processes": 128,
+        "failedGates": 6,
+        "gates": 64,
+        "minimumAvailableCommitGiB": 5.709690093994141,
+        "minimumAvailablePhysicalGiB": 10.132984161376953,
+        "cleanupFailures": 0,
+        "resultSha256": "f8f508d050a74ba94511230bc290d53ff93c40d30d097c582a9bdc04e64379b6",
+        "planSha256": "015c5d5ab668ea31a2742bdcbbd0f78c617f8d82252ae33889b96466315580ae"
+      }
+    },
+    "failedGates": {
+      "screen-aa-v6": [
+        {
+          "name": "32-imported-literal/first/wireP50",
+          "actual": 16.1615,
+          "limit": 16.019640000000003,
+          "passed": false,
+          "baseline": 15.2568,
+          "ratio": 1.05
+        },
+        {
+          "name": "512-single-declaration/cold/wireP50",
+          "actual": 916.8741,
+          "limit": 906.6231300000001,
+          "passed": false,
+          "baseline": 863.4506,
+          "ratio": 1.05
+        },
+        {
+          "name": "512-single-declaration/hot/wireP95",
+          "actual": 535.9102,
+          "limit": 535.6152900000001,
+          "passed": false,
+          "baseline": 510.1098
+        },
+        {
+          "name": "512-imported-literal/hot/wireP95",
+          "actual": 537.4234,
+          "limit": 514.0691850000001,
+          "passed": false,
+          "baseline": 489.5897
+        },
+        {
+          "name": "512-imported-declaration/first/wireP50",
+          "actual": 506.2056,
+          "limit": 486.18916500000006,
+          "passed": false,
+          "baseline": 463.0373,
+          "ratio": 1.05
+        },
+        {
+          "name": "512-imported-declaration/hot/wireP50",
+          "actual": 414.1031,
+          "limit": 405.120345,
+          "passed": false,
+          "baseline": 385.8289,
+          "ratio": 1.05
+        }
+      ],
+      "screen-ab-v6": [
+        {
+          "name": "32-single-literal/first/wireP50",
+          "actual": 12.7355,
+          "limit": 12.547920000000001,
+          "passed": false,
+          "baseline": 11.9504,
+          "ratio": 1.05
+        },
+        {
+          "name": "32-single-literal/hot/wireP50",
+          "actual": 12.5651,
+          "limit": 12.227775000000001,
+          "passed": false,
+          "baseline": 11.6455,
+          "ratio": 1.05
+        },
+        {
+          "name": "32-single-literal/hot/wireP95",
+          "actual": 16.9429,
+          "limit": 16.068255,
+          "passed": false,
+          "baseline": 15.3031
+        },
+        {
+          "name": "32-single-declaration/cold/wireP50",
+          "actual": 50.7742,
+          "limit": 48.760635,
+          "passed": false,
+          "baseline": 46.4387,
+          "ratio": 1.05
+        },
+        {
+          "name": "32-single-declaration/hot/wireP50",
+          "actual": 15.0028,
+          "limit": 14.95977,
+          "passed": false,
+          "baseline": 14.2474,
+          "ratio": 1.05
+        },
+        {
+          "name": "32-single-declaration/hot/wireP95",
+          "actual": 22.583,
+          "limit": 22.20204,
+          "passed": false,
+          "baseline": 21.1448
+        },
+        {
+          "name": "32-imported-literal/cold/wireP50",
+          "actual": 59.2148,
+          "limit": 54.338235000000005,
+          "passed": false,
+          "baseline": 51.7507,
+          "ratio": 1.05
+        },
+        {
+          "name": "32-imported-literal/first/wireP50",
+          "actual": 16.8495,
+          "limit": 15.642900000000001,
+          "passed": false,
+          "baseline": 14.898,
+          "ratio": 1.05
+        },
+        {
+          "name": "32-imported-literal/hot/wireP50",
+          "actual": 15.5012,
+          "limit": 15.301335,
+          "passed": false,
+          "baseline": 14.5727,
+          "ratio": 1.05
+        },
+        {
+          "name": "32-imported-literal/hot/wireP95",
+          "actual": 20.2073,
+          "limit": 18.632250000000003,
+          "passed": false,
+          "baseline": 17.745
+        },
+        {
+          "name": "32-imported-declaration/cold/wireP50",
+          "actual": 64.1625,
+          "limit": 58.289595,
+          "passed": false,
+          "baseline": 55.5139,
+          "ratio": 1.05
+        },
+        {
+          "name": "32-imported-declaration/first/wireP50",
+          "actual": 39.1891,
+          "limit": 37.145430000000005,
+          "passed": false,
+          "baseline": 35.3766,
+          "ratio": 1.05
+        },
+        {
+          "name": "32-imported-declaration/hot/wireP50",
+          "actual": 17.8275,
+          "limit": 17.350725,
+          "passed": false,
+          "baseline": 16.5245,
+          "ratio": 1.05
+        },
+        {
+          "name": "32-imported-declaration/hot/wireP95",
+          "actual": 35.5009,
+          "limit": 33.753195,
+          "passed": false,
+          "baseline": 32.1459
+        },
+        {
+          "name": "512-single-literal/first/wireP50",
+          "actual": 325.6975,
+          "limit": 320.20947000000007,
+          "passed": false,
+          "baseline": 304.9614,
+          "ratio": 1.05
+        },
+        {
+          "name": "512-single-literal/hot/wireP50",
+          "actual": 357.3873,
+          "limit": 354.847815,
+          "passed": false,
+          "baseline": 337.9503,
+          "ratio": 1.05
+        },
+        {
+          "name": "512-single-declaration/hot/wireP95",
+          "actual": 516.1824,
+          "limit": 488.34985500000005,
+          "passed": false,
+          "baseline": 465.0951
+        },
+        {
+          "name": "512-imported-literal/hot/wireP50",
+          "actual": 347.0872,
+          "limit": 336.62811000000005,
+          "passed": false,
+          "baseline": 320.5982,
+          "ratio": 1.05
+        },
+        {
+          "name": "512-imported-literal/hot/wireP95",
+          "actual": 449.5496,
+          "limit": 443.825235,
+          "passed": false,
+          "baseline": 422.6907
+        },
+        {
+          "name": "512-imported-literal/hot/cpuP50",
+          "actual": 359.375,
+          "limit": 344.53125,
+          "passed": false,
+          "baseline": 328.125
+        },
+        {
+          "name": "512-imported-declaration/hot/wireP50",
+          "actual": 345.7734,
+          "limit": 337.35040499999997,
+          "passed": false,
+          "baseline": 321.2861,
+          "ratio": 1.05
+        },
+        {
+          "name": "512-imported-declaration/hot/cpuP50",
+          "actual": 359.375,
+          "limit": 344.53125,
+          "passed": false,
+          "baseline": 328.125
+        }
+      ],
+      "screen-cumulative-v6": [
+        {
+          "name": "32-single-declaration/hot/wireP95",
+          "actual": 20.4319,
+          "limit": 20.323275,
+          "passed": false,
+          "baseline": 19.3555
+        },
+        {
+          "name": "512-single-literal/privateExtra",
+          "actual": 299782144,
+          "limit": 201326592,
+          "passed": false,
+          "baseline": 331833344,
+          "candidate": 631615488
+        },
+        {
+          "name": "512-single-declaration/privateExtra",
+          "actual": 328118272,
+          "limit": 201326592,
+          "passed": false,
+          "baseline": 354603008,
+          "candidate": 682721280
+        },
+        {
+          "name": "512-imported-literal/first/wireP50",
+          "actual": 336.9792,
+          "limit": 315.88893,
+          "passed": false,
+          "baseline": 300.8466,
+          "ratio": 1.05
+        },
+        {
+          "name": "512-imported-literal/privateExtra",
+          "actual": 273563648,
+          "limit": 201326592,
+          "passed": false,
+          "baseline": 329228288,
+          "candidate": 602791936
+        },
+        {
+          "name": "512-imported-declaration/privateExtra",
+          "actual": 288317440,
+          "limit": 201326592,
+          "passed": false,
+          "baseline": 388476928,
+          "candidate": 676794368
+        }
+      ]
+    },
+    "hotWallP50": {
+      "32-single-literal": {
+        "baselineMs": 11.6455,
+        "candidateMs": 12.5651,
+        "percent": 7.896612425400362
+      },
+      "32-single-declaration": {
+        "baselineMs": 14.2474,
+        "candidateMs": 15.0028,
+        "percent": 5.3020200176874255
+      },
+      "32-imported-literal": {
+        "baselineMs": 14.5727,
+        "candidateMs": 15.5012,
+        "percent": 6.37150287867041
+      },
+      "32-imported-declaration": {
+        "baselineMs": 16.5245,
+        "candidateMs": 17.8275,
+        "percent": 7.8852612787073895
+      },
+      "512-single-literal": {
+        "baselineMs": 337.9503,
+        "candidateMs": 357.3873,
+        "percent": 5.751437415501615
+      },
+      "512-single-declaration": {
+        "baselineMs": 338.0863,
+        "candidateMs": 353.0743,
+        "percent": 4.433187621030488
+      },
+      "512-imported-literal": {
+        "baselineMs": 320.5982,
+        "candidateMs": 347.0872,
+        "percent": 8.262367037619045
+      },
+      "512-imported-declaration": {
+        "baselineMs": 321.2861,
+        "candidateMs": 345.7734,
+        "percent": 7.621649364849592
+      }
+    },
+    "retries": false,
+    "thresholdsChanged": false,
+    "priorFormalFailures": {
+      "AA": 4,
+      "stageAB": 1,
+      "cumulativeAB": 0,
+      "report": "dev/release-materials/provenance/lsp-ir-capacity-20261109.json",
+      "unchanged": true
+    }
+  },
+  "backgroundMemoryControl": {
+    "status": "passed",
+    "scope": "Six independent same-image process pairs, only the native idle workspace-symbol option differs. Memory checkpoints and lifetime OS peaks; not a latency or whole-service memory qualification.",
+    "sameProgramSha256": "b97c8d35f6d94351f2817bc9cfd183cfcccb56e96149d68045f0e58b7b4104bc",
+    "pairs": 6,
+    "processes": 12,
+    "checkpoints": [
+      {
+        "pair": 0,
+        "defaultPrivate": 591794176,
+        "disabledPrivate": 310517760,
+        "extraPrivate": 281276416,
+        "defaultCommitHighWater": 677433344,
+        "disabledCommitHighWater": 390930432
+      },
+      {
+        "pair": 1,
+        "defaultPrivate": 591953920,
+        "disabledPrivate": 310509568,
+        "extraPrivate": 281444352,
+        "defaultCommitHighWater": 678256640,
+        "disabledCommitHighWater": 390926336
+      },
+      {
+        "pair": 2,
+        "defaultPrivate": 590204928,
+        "disabledPrivate": 310501376,
+        "extraPrivate": 279703552,
+        "defaultCommitHighWater": 677363712,
+        "disabledCommitHighWater": 390926336
+      },
+      {
+        "pair": 3,
+        "defaultPrivate": 590008320,
+        "disabledPrivate": 302653440,
+        "extraPrivate": 287354880,
+        "defaultCommitHighWater": 677597184,
+        "disabledCommitHighWater": 390942720
+      },
+      {
+        "pair": 4,
+        "defaultPrivate": 591736832,
+        "disabledPrivate": 310513664,
+        "extraPrivate": 281223168,
+        "defaultCommitHighWater": 677376000,
+        "disabledCommitHighWater": 390930432
+      },
+      {
+        "pair": 5,
+        "defaultPrivate": 590151680,
+        "disabledPrivate": 310509568,
+        "extraPrivate": 279642112,
+        "defaultCommitHighWater": 677838848,
+        "disabledCommitHighWater": 390926336
+      }
+    ],
+    "conclusion": "The default idle workspace index adds substantial private memory in this controlled same-image workload. Source confirms its own analysis worker. Per-object retention and context/worker-sharing changes remain to be qualified.",
+    "resultSha256": "5735683d33e35e9497c8d8316df61c6956aa7c3c047cafe115b0c4826f08b1d5",
+    "sourceAudit": {
+      "D:\\GIT\\x-lang\\ide\\src\\services\\workspace_symbols.c": {
+        "sha256": "c1528d8e117244f813920aba858a75025d7559f7cdfd4a8a7f1e468867ce884a",
+        "finding": "Creates its own analysis worker and clears member list in per-root contexts."
+      },
+      "D:\\GIT\\x-lang\\ide\\src\\services\\language_check.c": {
+        "sha256": "2e74f8b56825d005d49bd07756e9ad43b9112ed4c063df99957b86e25c9f6ecc",
+        "finding": "Captured source guard retains copied proof data and context, not the complete AST."
+      },
+      "D:\\GIT\\x-lang\\ide\\src\\server\\xlang_ls.c": {
+        "sha256": "a494ccffe3a3b50bfb3f4c14518f1deed0752ddf89ea1057da7fefca18c8ecaa",
+        "finding": "Owns a separate foreground semantic-analysis worker."
+      }
+    }
+  },
+  "historicalAttempts": {
+    "allPrivateVersionsPreserved": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "initialProducerFixtureFailure": "Target region below callable base is rejected by the complete key;corrected fixture to assert canonical refusal,not to loosen production checks.",
+    "initialConsumerCompileFailure": "Nested original fixture redefines main;private base entry renamed while retaining complete original checks.",
+    "allPreliminarySlowSamplesPreserved": true,
+    "diagnosticCounts": "Normal hot checks reuse511 keys;canonical record work is mostly limited to changed functions. This did not establish whole-program performance acceptance."
+  },
+  "evidence": {
+    "directory": "dev/release-materials/provenance/lsp-ir-input-relocation-screen-20261109",
+    "files": 1385,
+    "manifestSha256": "9e01655442d062ac48ad91dfcf022e2061afeddc420eb438cfabee1da6c9c548",
+    "archive": "evidence.tar.gz",
+    "archiveSha256": "b42712ed09deb86990d54bf70e21b55e2b7fb5c42558b22f37d33bc5ecc76116",
+    "sourceDirectory": "dev/release-materials/sources/lsp-ir-input-relocation-screen-20261109",
+    "sourceBindings": 1527,
+    "sourceBlobs": 1075,
+    "sourceManifestSha256": "33623b87bb24a6b90df1663ac96c492f8be57ecbea02e4f9d1b419971283a556",
+    "sourceArchive": "source-snapshot.tar.gz",
+    "sourceArchiveSha256": "cb9cfc4416ce21e6c7c1aff8e7490206496904997a3b0a236815e11361f9eef0",
+    "allArchiveMembersVerified": true,
+    "programBaselines": {
+      "manifest": "program-baselines.json",
+      "manifestSha256": "852a028f3bd842fa4de4368f3104db4b0df2b6deb4786d305ad1fee050a47df5",
+      "archive": "program-baselines.tar.gz",
+      "archiveSha256": "4adfcf95702d7bf5264965b216797fc92e11b2e4b777cebf826b41a67650d183",
+      "verified": true
+    },
+    "initialCollectionReport": {
+      "path": "initial-collection-report.json",
+      "sha256": "af52dbc7965fe8167e36da0c6e7863e331d04a8bc8c59876b0c0a7506a85ef4c"
+    }
+  },
+  "runtime": {
+    "defaultHashes": {
+      "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+      "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+      "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+      "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+      "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+      "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+    },
+    "defaultProgramsReplaced": false,
+    "temporaryProgramsRemoved": true,
+    "externalPublishPerformed": false
+  },
+  "remaining": [
+    "Reduce duplicate foreground/background analysis and retained full results while preserving automatic index freshness,search,navigation and preemption.",
+    "Actual function-local semantic/final IR production and verification;avoid adding proof layers that leave whole-module materialization unchanged.",
+    "Full applicable LSP/static checks/edit-time completion,global memory budgets,scale/concurrency/endurance and paired IDE delivery.",
+    "No DAP or runtime/debug completion."
+  ]
+}
