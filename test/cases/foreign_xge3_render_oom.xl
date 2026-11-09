@@ -1,0 +1,130 @@
+// Actual host-XRT one-shot failures; these hooks are test-only declarations.
+import xge
+extern "xrtMemDebugFailAfter" @header("xrt_decl.h") @no_raise func failAfter(uint64 count) as bool
+extern "xrtMemDebugFailClear" @header("xrt_decl.h") @no_raise func clearFailure()
+extern "xrtMemDebugFailTriggered" @header("xrt_decl.h") @no_raise func failureTriggered() as bool
+extern "xmemdebugsnapshot" struct HeapSnapshot @header("xrt_decl.h")
+ bool Enabled
+ c_size LiveCount
+ c_size LiveBytes
+ c_size PeakCount
+ c_size PeakBytes
+ c_size QuarantineCount
+ c_size QuarantineBytes
+ uint64 AllocCount
+ uint64 FreeCount
+ uint64 ReallocCount
+ uint64 DoubleFreeCount
+ uint64 InvalidFreeCount
+ uint64 OverflowCount
+ uint64 UnderflowCount
+ uint64 UseAfterFreeCount
+ c_size TempCurrentBytes
+ c_size TempPeakBytes
+ uint64 TempResetCount
+ c_size EventCount
+end
+extern "xrtMemDebugSnapshot" @header("xrt_decl.h") @no_raise @c_output(0) func heapSnapshot() as HeapSnapshot
+
+func factoryAttempt(int kind,int budget,xge.Texture texture,Buffer vertices,Buffer indices) as bool
+ assert failAfter(uint64(budget))
+ bool failed=false
+ try
+  if kind==0 then
+   auto value=xge.createGpuBuffer(xge.XGE_BUFFER_VERTEX,xge.XGE_BUFFER_STATIC,b"a\0b")
+   value.close()
+  elseif kind==1 then
+   auto value=xge.createShapeBatch(c_uint(0xffffffff),2)
+   value.close()
+  elseif kind==2 then
+   auto value=xge.createSpriteBatch(texture,2)
+   value.close()
+  else
+   auto value=xge.createMesh(vertices,indices)
+   value.close()
+  end
+ catch error
+  failed=true
+ finally
+  clearFailure()
+ end
+ return failed
+end
+func main(...) as int
+ auto texture=xge.createTexture(2,2)
+ auto vertices=Buffer.fromHex("00000000000000000000000000000000000000000000000000000000")
+ auto indices=Buffer.fromHex("0000")
+ try
+  // Warm the same success/failure paths and runtime directory capacities.
+  for kind in range(4)
+   for budget in range(32)
+    factoryAttempt(kind,budget,texture,vertices,indices)
+   end
+  end
+  auto before=heapSnapshot()
+  assert before.Enabled
+  int failed=0
+  int succeeded=0
+  for kind in range(4)
+   for budget in range(32)
+    if factoryAttempt(kind,budget,texture,vertices,indices) then
+     failed+=1
+    else
+     succeeded+=1
+    end
+   end
+  end
+  auto after=heapSnapshot()
+  assert failed>0 and succeeded>0
+  assert before.LiveCount==after.LiveCount and before.LiveBytes==after.LiveBytes
+  assert before.InvalidFreeCount==after.InvalidFreeCount
+  assert before.DoubleFreeCount==after.DoubleFreeCount
+  assert before.UseAfterFreeCount==after.UseAfterFreeCount
+  auto mesh=xge.createMesh(vertices,indices)
+  try
+   for budget in range(8)
+    auto updateBefore=heapSnapshot()
+    assert failAfter(uint64(budget))
+    try
+     mesh.update(vertices,indices)
+    catch error
+    finally
+     clearFailure()
+    end
+    auto updateAfter=heapSnapshot()
+    assert mesh.vertexCount==c_int(1) and mesh.indexCount==c_int(1)
+    assert updateBefore.LiveCount==updateAfter.LiveCount and updateBefore.LiveBytes==updateAfter.LiveBytes
+   end
+  finally
+   mesh.close()
+  end
+  auto batch=xge.createShapeBatch(c_uint(0xffffffff),1,c_uint(xge.XGE_DRAW_SCREEN_SPACE))
+  auto gpu=xge.createGpuBuffer(xge.XGE_BUFFER_VERTEX,xge.XGE_BUFFER_STATIC,b"abc")
+  try
+   auto a=xge.Vec2()
+   auto b=xge.Vec2()
+   auto c=xge.Vec2()
+   b.fX=c_float(1)
+   c.fY=c_float(1)
+   bytes updateData=b"xyz"
+   int iteration=0
+   auto hotBefore=heapSnapshot()
+   while iteration<200
+    batch.clear()
+    batch.triangle(a,b,c)
+    gpu.update(0,updateData)
+    iteration+=1
+   end
+   auto hotAfter=heapSnapshot()
+   println("render hot allocations:",hotAfter.AllocCount-hotBefore.AllocCount)
+   assert hotBefore.AllocCount==hotAfter.AllocCount
+   assert hotBefore.LiveBytes==hotAfter.LiveBytes
+  finally
+   gpu.close()
+   batch.close()
+  end
+ finally
+  texture.close()
+ end
+ return 0
+end

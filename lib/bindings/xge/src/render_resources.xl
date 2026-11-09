@@ -1,0 +1,59 @@
+// Real native records owned by the language. Methods call XGE directly.
+export extern "xge_buffer_t*" class GpuBuffer @header("xge3_gpu_buffer.h") @lifetime("owned") @policy("xl6Xge3GpuBufferPolicy")
+ native point handle
+ extern "iSize" @c_field get size() as c_int
+ extern "iType" @c_field get kind() as c_int
+ extern "iUsage" @c_field get usage() as c_int
+ extern "xgeBufferUpdate" @no_raise @c_span(1,"const void*","int") @c_result("status",0) func update(c_int offset,bytes data)
+ extern "xgeBufferUpdate" @no_raise @c_span(1,"const void*","int") @c_result("status",0) func update(c_int offset,Buffer data)
+ extern "xgeBufferUpload" @no_raise @c_result("status",0) func upload()
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xgeBufferFree" @header("xge3_gpu_buffer.h") @no_raise func freeGpuBuffer(GpuBuffer value)
+export extern "xgeBufferCreate" @header("xge3_gpu_buffer.h") @no_raise @c_span(2,"const void*","int") @c_result("owned_view") @factory(0,0,freeGpuBuffer) @c_inplace("xge_buffer_t") func createGpuBuffer(c_int kind,c_int usage,bytes data) as GpuBuffer
+export extern "xgeBufferCreate" @header("xge3_gpu_buffer.h") @no_raise @c_span(2,"const void*","int") @c_result("owned_view") @factory(0,0,freeGpuBuffer) @c_inplace("xge_buffer_t") func createGpuBuffer(c_int kind,c_int usage,Buffer data) as GpuBuffer
+
+export extern "xge_mesh_t*" class Mesh @header("xge3_mesh.h") @lifetime("owned") @policy("xl6Xge3MeshPolicy")
+ native point handle
+ extern "iVertexCount" @c_field get vertexCount() as c_int
+ extern "iIndexCount" @c_field get indexCount() as c_int
+ extern "iFlags" @c_field get flags() as c_uint
+ // Binary input avoids a language-array projection. Counts derive from bytes.
+ extern "xgeMeshUpdate" @no_raise @c_span(0,"const xge_vertex_t*","int") @c_span(1,"const uint16_t*","int") @c_result("status",0) func update(Buffer vertices,Buffer indices)
+ // Typed inputs use the general Array projection, never an opcode dispatcher.
+ extern "xgeMeshUpdate" @no_raise @c_array_group(1,0,1,"int",1) @c_array_input(1,0,"const xge_vertex_t*","value") @c_array_group(3,2,1,"int",3) @c_array_input(3,0,"const uint16_t*","value") @c_result("status",0) func update(array<Vertex> vertices,int vertexSize,array<c_ushort> indices,int indexSize=-1)
+ extern "xgeMeshDraw" func draw(Texture texture,c_uint flags=0)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xgeMeshFree" @header("xge3_mesh.h") @no_raise func freeMesh(Mesh value)
+export extern "xgeMeshCreate" @header("xge3_mesh.h") @no_raise @c_span(0,"const xge_vertex_t*","int") @c_span(1,"const uint16_t*","int") @c_result("owned_view") @factory(0,0,freeMesh) @c_inplace("xge_mesh_t") func createMesh(Buffer vertices,Buffer indices,c_uint flags=0) as Mesh
+export extern "xgeMeshCreate" @header("xge3_mesh.h") @no_raise @c_array_group(1,0,1,"int",1) @c_array_input(1,0,"const xge_vertex_t*","value") @c_array_group(3,2,1,"int",3) @c_array_input(3,0,"const uint16_t*","value") @c_result("owned_view") @factory(0,0,freeMesh) @c_inplace("xge_mesh_t") func createMesh(array<Vertex> vertices,int vertexSize,array<c_ushort> indices,int indexSize=-1,c_uint flags=0) as Mesh
+
+export extern "xge_shape_batch_t*" class ShapeBatch @header("xge3_shape_batch.h") @lifetime("owned") @policy("xl6Xge3ShapeBatchPolicy")
+ native point handle
+ extern "iTriangleCount" @c_field get count() as c_int
+ extern "iTriangleCapacity" @c_field get capacity() as c_int
+ extern "xgeShapeBatchClear" func clear()
+ extern "xgeShapeBatchTriangleFill" @no_raise @c_result("status",0) func triangle(Vec2 a,Vec2 b,Vec2 c)
+ extern "xgeShapeBatchRectFill" @no_raise @c_result("status",0) func rect(Rect value)
+ extern "xgeShapeBatchFlush" @no_raise @c_result("status",0) func flush()
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xgeShapeBatchFree" @header("xge3_shape_batch.h") @no_raise func freeShapeBatch(ShapeBatch value)
+export extern "xgeShapeBatchInit" @header("xge3_shape_batch.h") @no_raise @c_result("owned_view") @factory(0,0,freeShapeBatch) @c_inplace("xge_shape_batch_t") func createShapeBatch(c_uint color,c_int triangleCapacity,c_uint flags=0) as ShapeBatch
+
+export extern "xge_sprite_batch_t*" class SpriteBatch @header("xge3_sprite_batch.h") @lifetime("owned") @policy("xl6Xge3SpriteBatchPolicy")
+ native point handle
+ extern "iCount" @c_field get count() as c_int
+ extern "iCapacity" @c_field get capacity() as c_int
+ extern "pTexture" @c_field @c_result("retained_view") @c_retain(retainTexture,"positive",freeTexture) get texture() as Texture
+ extern "xgeSpriteBatchClear" func clear()
+ extern "xgeSpriteBatchSetTexture" @no_raise @c_result("status",0) func setTexture(Texture texture)
+ extern "xgeSpriteBatchAdd" @no_raise @c_pack(1,"xge_draw_t",0,4) @c_pack_field(1,"pTexture",0,"view_raw") @c_pack_field(1,"tSrc",1,"value") @c_pack_field(1,"tDst",2,"value") @c_pack_field(1,"iColor",3,"value") @c_result("status",0) func add(Texture texture,Rect source,Rect destination,c_uint color)
+ extern "xgeSpriteBatchAdd" @no_raise @c_pack(1,"xge_draw_t",0,7) @c_pack_field(1,"pTexture",0,"view_raw") @c_pack_field(1,"tSrc",1,"value") @c_pack_field(1,"tDst",2,"value") @c_pack_field(1,"tOrigin",3,"value") @c_pack_field(1,"fRotation",4,"value") @c_pack_field(1,"iColor",5,"value") @c_pack_field(1,"iFlags",6,"value") @c_result("status",0) func add(Texture texture,Rect source,Rect destination,Vec2 origin,c_float rotation,c_uint color,c_uint flags)
+ extern "xgeSpriteBatchFlush" @no_raise @c_result("status",0) func flush()
+ extern "xgeSpriteBatchFlushMaterial" @no_raise @c_const(1) @c_result("status",0) func flush(Material? material)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xgeSpriteBatchFree" @header("xge3_sprite_batch.h") @no_raise func freeSpriteBatch(SpriteBatch value)
+export extern "xgeSpriteBatchInit" @header("xge3_sprite_batch.h") @no_raise @c_result("owned_view") @factory(0,0,freeSpriteBatch) @c_inplace("xge_sprite_batch_t") func createSpriteBatch(Texture texture,c_int capacity,c_uint flags=0) as SpriteBatch

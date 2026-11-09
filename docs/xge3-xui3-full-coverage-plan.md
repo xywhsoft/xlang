@@ -104,6 +104,12 @@ Document 和已有 XUI 接入的单纯声明缺口可以与前面阶段穿插修
 
 ## 当前状态
 
+2026-11-09 实施批次：通用投影重载已落地（见
+[合同与专项验收](foreign-projection-overloads.md)）；GpuBuffer、Mesh、ShapeBatch、
+SpriteBatch 及部分 Material/Texture 操作已通过 CPU、OOM、JIT/静态 AOT 检查，
+见[本批边界与剩余合同](xge3-render-resources.md)。原生 Mesh 修复已单独提交。
+尚未安装新的正式编译器/发布包，阶段 1 仍在进行，全部范围没有结项。
+
 已确认全量目标和上述范围。现有接口仍是部分接入，缺口见本次复算报告和
 [既有映射说明](xge3-xui3-api-map.md)。本阶段固定范围与核对工具，未宣称完成
 剩余函数、所有权合同或发布更新。下一实现批次从阶段 1 开始。

@@ -1,0 +1,173 @@
+// CPU ownership/geometry coverage; no window or graphics backend is created.
+import xge
+
+func pointAt(float x,float y) as xge.Vec2
+ auto value=xge.Vec2()
+ value.fX=c_float(x)
+ value.fY=c_float(y)
+ return value
+end
+func rectangle(float x,float y,float w,float h) as xge.Rect
+ auto value=xge.Rect()
+ value.fX=c_float(x)
+ value.fY=c_float(y)
+ value.fW=c_float(w)
+ value.fH=c_float(h)
+ return value
+end
+func main(...) as int
+ auto gpu=xge.createGpuBuffer(xge.XGE_BUFFER_VERTEX,xge.XGE_BUFFER_DYNAMIC,b"a\0b")
+ try
+  assert gpu.size==c_int(3)
+  assert gpu.kind==xge.XGE_BUFFER_VERTEX
+  gpu.update(1,b"xy")
+  gpu.update(0,Buffer.fromHex("0100ff"))
+  bool rejected=false
+  try
+   gpu.update(2,b"xy")
+  catch error
+   rejected=true
+  end
+  assert rejected and gpu.size==c_int(3)
+  bool noDevice=false
+  try
+   gpu.upload()
+  catch error
+   noDevice=true
+  end
+  assert noDevice and gpu.size==c_int(3)
+ finally
+  gpu.close()
+ end
+ bool expired=false
+ try
+  auto invalid=gpu.size
+ catch error
+  expired=true
+ end
+ assert expired
+ auto packedGpu=xge.createGpuBuffer(xge.XGE_BUFFER_INDEX,xge.XGE_BUFFER_STATIC,Buffer.fromHex("0000"))
+ assert packedGpu.size==c_int(2)
+ packedGpu.close()
+
+ auto batch=xge.createShapeBatch(c_uint(0xffffffff),3,c_uint(xge.XGE_DRAW_SCREEN_SPACE))
+ try
+  assert batch.capacity==c_int(3) and batch.count==c_int(0)
+  batch.triangle(pointAt(0,0),pointAt(10,0),pointAt(0,10))
+  batch.rect(rectangle(10,10,20,20))
+  assert batch.count==c_int(3)
+  bool full=false
+  try
+   batch.rect(rectangle(0,0,2,2))
+  catch error
+   full=true
+  end
+  assert full and batch.count==c_int(3)
+  batch.clear()
+  assert batch.count==c_int(0)
+  batch.flush()
+ finally
+  batch.close()
+ end
+
+ auto texture=xge.createTexture(2,2)
+ auto sprites=xge.createSpriteBatch(texture,2,c_uint(xge.XGE_DRAW_SCREEN_SPACE))
+ texture.close()
+ try
+  // The batch's real native reference keeps the adopted Texture record alive.
+  auto retained=sprites.texture
+  try
+   assert retained.width==c_int(2) and retained.height==c_int(2)
+   auto uv=retained.mapUV(pointAt(0,0))
+   auto transform=retained.uvTransform()
+   assert uv.fX==c_float(0) and uv.fY==c_float(0)
+   retained.queueUpload()
+   retained.queueUpload()
+   retained.draw(c_float(0),c_float(0))
+   retained.drawPx(0,0)
+   sprites.add(retained,rectangle(0,0,2,2),rectangle(10,10,20,20),c_uint(0xffffffff))
+   sprites.add(retained,rectangle(0,0,2,2),rectangle(30,10,20,20),pointAt(1,1),c_float(0),c_uint(0xffffffff),c_uint(xge.XGE_DRAW_SCREEN_SPACE))
+   assert sprites.count==c_int(2)
+   bool nonempty=false
+   try
+    sprites.setTexture(retained)
+   catch error
+    nonempty=true
+   end
+   assert nonempty
+   sprites.clear()
+   sprites.setTexture(retained)
+   sprites.flush()
+   sprites.flush(null)
+  finally
+   retained.close()
+  end
+ finally
+  sprites.close()
+ end
+
+ auto a=xge.Vertex()
+ auto b=xge.Vertex()
+ auto c=xge.Vertex()
+ a.fW=c_float(1)
+ b.fW=c_float(1)
+ c.fW=c_float(1)
+ b.fX=c_float(10)
+ c.fY=c_float(10)
+ array<xge.Vertex> vertices=[a,b,c]
+ array<c_ushort> indices=[c_ushort(0),c_ushort(1),c_ushort(2)]
+ auto mesh=xge.createMesh(vertices,-1,indices)
+ try
+  assert mesh.vertexCount==c_int(3) and mesh.indexCount==c_int(3)
+  mesh.update(vertices,20,indices,20)
+  assert mesh.vertexCount==c_int(3) and mesh.indexCount==c_int(3)
+  array<c_ushort> invalidIndices=[c_ushort(0),c_ushort(1),c_ushort(3)]
+  bool invalidIndex=false
+  try
+   mesh.update(vertices,-1,invalidIndices)
+  catch error
+   invalidIndex=true
+  end
+  assert invalidIndex and mesh.vertexCount==c_int(3) and mesh.indexCount==c_int(3)
+  auto drawTexture=xge.createTexture(2,2)
+  try
+   mesh.draw(drawTexture)
+  finally
+   drawTexture.close()
+  end
+ finally
+  mesh.close()
+ end
+ auto vertexData=Buffer.fromHex("00000000000000000000000000000000000000000000000000000000")
+ auto indexData=Buffer.fromHex("0000")
+ auto binaryMesh=xge.createMesh(vertexData,indexData)
+ try
+  assert binaryMesh.vertexCount==c_int(1) and binaryMesh.indexCount==c_int(1)
+  binaryMesh.update(vertexData,indexData)
+  bool badSpan=false
+  try
+   binaryMesh.update(Buffer.fromHex("00"),indexData)
+  catch error
+   badSpan=true
+  end
+  assert badSpan and binaryMesh.vertexCount==c_int(1)
+ finally
+  binaryMesh.close()
+ end
+ auto material=xge.createMaterial()
+ try
+  material.setColor(c_uint(0xff0088ff))
+  assert material.color==c_uint(0xff0088ff)
+  material.setBlend(xge.XGE_BLEND_ALPHA)
+  auto drawTexture=xge.createTexture(2,2)
+  try
+   material.draw(drawTexture,rectangle(0,0,2,2),rectangle(0,0,20,20),c_uint(0xffffffff))
+   material.draw(drawTexture,rectangle(0,0,2,2),rectangle(0,0,20,20),pointAt(1,1),c_float(0),c_uint(0xffffffff),c_uint(xge.XGE_DRAW_SCREEN_SPACE))
+  finally
+   drawTexture.close()
+  end
+ finally
+  material.close()
+ end
+ return 0
+end

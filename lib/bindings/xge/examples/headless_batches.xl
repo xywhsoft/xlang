@@ -1,0 +1,16 @@
+// Run: xl run examples/xge/headless_batches.xl
+// This prepares batched geometry without opening a window or using a GPU.
+import xge
+
+auto shape=xge.createShapeBatch(c_uint(0xff80c0ff),2,c_uint(xge.XGE_DRAW_SCREEN_SPACE))
+try
+ auto rectangle=xge.Rect()
+ rectangle.fX=c_float(10)
+ rectangle.fY=c_float(20)
+ rectangle.fW=c_float(100)
+ rectangle.fH=c_float(60)
+ shape.rect(rectangle)
+ println("Prepared triangles:",shape.count) // A rectangle contains two triangles.
+finally
+ shape.close()
+end

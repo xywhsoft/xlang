@@ -10,19 +10,28 @@ export extern "xl6Xge3InitPacked" @header("xge3_init.h") @no_raise @c_result("st
 export extern "const void*" class Pixels @header("xge3_runtime.h") @lifetime("caller")
  native point handle
 end
-export extern "xge_material" class Material @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xge3MaterialPolicy")
+export extern "xge_material_t*" class Material @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xge3MaterialPolicy")
  native point handle
  extern "iColor" @c_field get color() as c_uint
  extern "pTexture" @c_field @c_result("retained_view") @c_retain(retainTexture,"positive",freeTexture) get texture() as Texture?
  extern "xgeMaterialSetTextureChecked" @no_raise @c_result("status",0) func setTexture(Texture? value)
  extern "xgeMaterialSetTexture2Checked" @no_raise @c_result("status",0) func setTexture2(Texture? value)
  extern "xgeMaterialSetTexture3Checked" @no_raise @c_result("status",0) func setTexture3(Texture? value)
+ extern "xgeMaterialSetColor" func setColor(c_uint color)
+ extern "xgeMaterialSetBlend" func setBlend(c_int blend)
+ extern "xgeMaterialDraw" @no_raise @c_pack(1,"xge_draw_t",0,4) @c_pack_field(1,"pTexture",0,"view_raw") @c_pack_field(1,"tSrc",1,"value") @c_pack_field(1,"tDst",2,"value") @c_pack_field(1,"iColor",3,"value") func draw(Texture texture,Rect source,Rect destination,c_uint color)
+ extern "xgeMaterialDraw" @no_raise @c_pack(1,"xge_draw_t",0,7) @c_pack_field(1,"pTexture",0,"view_raw") @c_pack_field(1,"tSrc",1,"value") @c_pack_field(1,"tDst",2,"value") @c_pack_field(1,"tOrigin",3,"value") @c_pack_field(1,"fRotation",4,"value") @c_pack_field(1,"iColor",5,"value") @c_pack_field(1,"iFlags",6,"value") func draw(Texture texture,Rect source,Rect destination,Vec2 origin,c_float rotation,c_uint color,c_uint flags)
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
-export extern "xge_texture" class Texture @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xge3TexturePolicy")
+export extern "xge_texture_t*" class Texture @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xge3TexturePolicy")
  native point handle
  extern "iWidth" @c_field get width() as c_int
  extern "iHeight" @c_field get height() as c_int
+ extern "xgeDraw" func draw(c_float x,c_float y)
+ extern "xgeDrawPx" func drawPx(c_int x,c_int y)
+ extern "xgeTextureUploadQueue" @no_raise @c_result("status",0) func queueUpload()
+ extern "xgeTextureUVTransform" @c_const(0) func uvTransform() as TextureUvTransform
+ extern "xgeTextureMapUV" @c_const(0) func mapUV(Vec2 uv) as Vec2
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
 export extern "xge_font" class Font @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xge3FontPolicy")
