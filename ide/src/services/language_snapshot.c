@@ -45,6 +45,18 @@ static int nativeCancelled(void* user) { return cancelled(user); }
 static void nativeQueryWake(void* user) { SetEvent((HANDLE)user); }
 static int retainedNative(const xide_language_check* q)
 { return q->semanticActor && (q->semanticTarget || q->configuredEntry); }
+static int captureDeclarations(xide_language_check* q,xls_semantic_check* checked,const xide_semantic_source* sources,size_t count,xide_model_error* error)
+{
+ xide_navigation_snapshot* proof=xideSemanticNavigationCapture(checked,sources,count,error);
+ if(proof){
+  xideSemanticNavigationBind(proof,xlsWorkerProjectionStore(q->semanticActor));
+  int ready=xideSemanticNavigationPreparePoints(proof,error);
+  if(ready>=0)q->symbols=xideSemanticSymbolsFromNavigation(proof,symbolsCancelled,q,&q->symbolWork,error);
+  xideSemanticNavigationDestroy(proof);
+ }else if(!error->code)q->symbols=xideSemanticSymbolsCreateTyped(xlsSemanticCheckTypedIndex(checked),sources,count,symbolsCancelled,q,&q->symbolWork,error);
+ q->symbolState=q->symbols ? 3 : -1;
+ return q->symbols!=NULL;
+}
 static int sessionCacheStats(xvalue* stats,const xide_language_check* q)
 {
  const xls_worker_cache_stats* s=&q->sessionCache;xvalue* value=xrtValueObject();
@@ -206,7 +218,7 @@ done:
 }
 static int nativeAnalysis(xide_language_check* q,char** json,int* code,xls_semantic_check** checked,xls_semantic_completion** completed,xide_model_error* e)
 {
- if(q->retainedSnapshots && q->referenceMode){
+ if(q->retainedSnapshots && (q->referenceMode || q->declarationMode)){
   const char* paths[64];for(size_t i=0;i<q->snapshotCount;++i)paths[i]=q->snapshots[i].path;
   if(!xidePathsDistinct(paths,q->snapshotCount,nativeCancelled,q))return fail(e,"Retained source paths are cancelled or resolve to the same physical file.");
  } else if(q->retainedSnapshots) for(size_t i=0;i<q->snapshotCount;++i) {
@@ -711,7 +723,7 @@ analysed:
      normalizing/hashing every open body for an empty diagnostic array.
      Nonempty or malformed diagnostics still use the original validator. */
   const xvalue* diagnostics=get(raw,"diagnostics");
-  int diagnosticsBuilt=q->referenceMode && nativeCheck && okay && diagnostics && xrtValueType(diagnostics)==XVALUE_ARRAY && !xrtValueCount(diagnostics);
+  int diagnosticsBuilt=(q->referenceMode || q->declarationMode) && nativeCheck && okay && diagnostics && xrtValueType(diagnostics)==XVALUE_ARRAY && !xrtValueCount(diagnostics);
   result=xrtValueObject(); if(!result || (!diagnosticsBuilt && !buildDiagnostics(q,raw,&graph,result,e)) || (!okay && !xrtValueCount(get(result,"diagnostics")))) { if(!e->code) fail(e,"检查失败但没有可验证的分文件诊断。"); goto done; }
 #else
   result=xrtValueObject(); if(!result || !buildDiagnostics(q,raw,&graph,result,e) || (!okay && !xrtValueCount(get(result,"diagnostics")))) { if(!e->code) fail(e,"检查失败但没有可验证的分文件诊断。"); goto done; }
@@ -733,6 +745,9 @@ analysed:
    xide_semantic_source sources[512];
    for(size_t i=0;i<graph.count;++i) { int64 kind=0; xrtValueGetInt(get(graph.items[i].report,"kind"),&kind); sources[i]=(xide_semantic_source){graph.items[i].path,graph.items[i].original,(int)kind,graph.items[i].overlay>=0 && strlen(q->snapshots[graph.items[i].overlay].text)>=3 && !memcmp(q->snapshots[graph.items[i].overlay].text,"\xef\xbb\xbf",3) ? 1 : 0}; }
 #ifdef XLS_COMPILER_XRT
+   if(q->declarationMode){
+    if(!nativeCheck || !captureDeclarations(q,nativeCheck,sources,graph.count,e))goto done;
+   }else{
    if(nativeCheck && !q->referenceMode && q->navigationEvent && xlsWorkerProjectionStore(q->semanticActor)) {
     xide_model_error captureError={0};
     q->deferredNavigation=xideSemanticNavigationCapture(nativeCheck,sources,graph.count,&captureError);
@@ -775,6 +790,7 @@ analysed:
     if(!q->referenceShard)goto done;
     if(q->referencePath){xide_model_error keyError={0};q->referenceKey=xideSemanticReferenceKeyCreate(xlsWorkerProjectionStore(q->semanticActor),nativeCheck,sources,graph.count,q->referencePath,q->referenceLine,q->referenceCharacter,XIDE_REFERENCE_BYTES,&keyError);if(keyError.code){*e=keyError;goto done;}}
    }
+   } /* Ordinary navigation/reference consumers. */
 #endif
   }
  }
@@ -784,7 +800,7 @@ analysed:
 #endif
  if(!q->queryPath && !q->nativeBridge && !put(result,"semanticDefinitions",xrtValueBool(navigationAvailable))) goto done;
 #ifdef XLS_COMPILER_XRT
- if(q->referenceMode)goto nativeValidation;
+ if(q->referenceMode || q->declarationMode)goto nativeValidation;
  if(retainedNative(q) && q->queryPath) {
   xvalue* stats=xrtValueObject();
   int okayStats=stats && put(stats,"builds",xrtValueInt((int64)q->completionStats.builds)) &&

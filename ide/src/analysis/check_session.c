@@ -54,7 +54,10 @@ xls_semantic_check* xlsCheckSessionCheckWithHistory(xls_check_session* s,xls_con
     xls_syntax* syntax=NULL;
     if(error && capacity) *error=0;
     if(!s || (captureIndex!=0 && captureIndex!=1)) goto invalid;
-    batch=xlsInputBatchCreateInContext(context,&s->limits,history,documents,count,target,cancelled,user,error,capacity);
+    /* A configured disk check has no mandatory editor overlay. The explicit
+       closed-input constructor still rejects zero inputs without a context,
+       or with a named target, and preserves normal revision validation. */
+    batch=xlsInputBatchCreateClosedInContext(context,&s->limits,history,documents,count,target,cancelled,user,error,capacity);
     if(!batch) goto done;
     const xls_analysis_document* entryDocument=xlsInputBatchTarget(batch);
     const char* entry=xlsInputBatchEntry(batch);

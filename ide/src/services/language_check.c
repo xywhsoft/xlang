@@ -151,7 +151,11 @@ int xideLanguageCheckPrepareSymbols(xide_language_check* q,const char* path,int 
 static DWORD WINAPI worker(void* user)
 {
  xide_language_check* q=user; xide_model_error e={0}; xide_toolchain_stamp stamp={0}; xide_toolchain_profile profile={0}; xide_file_snapshot file={0}; char *help=NULL,*json=NULL; xvalue *raw=NULL,*result=NULL,*list=NULL; int code=0,success=0; uint64_t began=GetTickCount64();
- if(q->snapshotCount) { success=xideLanguageSnapshotRun(q,&result,&e); goto done; }
+ int snapshotRequest=q->snapshotCount!=0;
+#ifdef XLS_COMPILER_XRT
+ snapshotRequest=snapshotRequest || q->declarationMode;
+#endif
+ if(snapshotRequest) { success=xideLanguageSnapshotRun(q,&result,&e); goto done; }
  if(cancelled(q) || !source(q,&file,0,&e) || !xideToolchainCapture(q->compiler,&stamp,&e)) goto done;
  const char* helpArgs[]={"--help"}; if(!xideLanguageCheckRunCompiler(q,helpArgs,1,65535,&help,&code,&e) || code!=0 || !xideToolchainObserve(q->cache,q->compiler,q->directory,&stamp,help,strlen(help),&profile,&e)) goto done;
  if(!(profile.commands&XIDE_TOOL_CHECK) || !(profile.options&XIDE_TOOL_CHECK_JSON)) { fail(&e,"当前编译器未声明 check --json；保存后诊断不可用。"); goto done; }
@@ -164,10 +168,10 @@ static DWORD WINAPI worker(void* user)
 done:
  free(help); free(json); xrtValueRelease(raw); xrtValueRelease(list); xideToolchainProfileClear(&profile);
  EnterCriticalSection(&q->lock); q->state=cancelled(q) ? XIDE_CHECK_CANCELLED : success ? XIDE_CHECK_READY : XIDE_CHECK_FAILED;
- if(q->state==XIDE_CHECK_READY) { q->result=result; result=NULL; if(q->snapshotCount) q->guardState=XIDE_GUARD_RUNNING; } else snprintf(q->error,sizeof(q->error),"%s",cancelled(q) ? "源码检查已取消。" : *e.message ? e.message : "未取得可验证的源码分析结果。");
+ if(q->state==XIDE_CHECK_READY) { q->result=result; result=NULL; if(snapshotRequest) q->guardState=XIDE_GUARD_RUNNING; } else snprintf(q->error,sizeof(q->error),"%s",cancelled(q) ? "源码检查已取消。" : *e.message ? e.message : "未取得可验证的源码分析结果。");
  LeaveCriticalSection(&q->lock); xrtValueRelease(result);
  if(q->wake) q->wake(q->wakeUser);
- if(success && q->snapshotCount) while(1) {
+ if(success && snapshotRequest) while(1) {
 #ifdef XLS_COMPILER_XRT
   HANDLE events[2]={q->stopEvent,q->navigationEvent};DWORD signal=q->navigationEvent ? WaitForMultipleObjects(2,events,FALSE,1000) : WaitForSingleObject(q->stopEvent,1000);
   if(signal==WAIT_OBJECT_0+1){buildRequestedSymbols(q);buildRequestedNavigation(q);continue;}
@@ -524,12 +528,15 @@ xide_language_check* xideLanguageCheckStartCompletionSnapshotsEx(xide_toolchains
 #ifdef XLS_COMPILER_XRT
 static int retainedLabel(const char* s)
 { size_t n=s ? strlen(s) : 0; return n && n<=262144 && xrtUtf8Valid((xstrview){s,n},NULL); }
-static xide_language_check* startRetained(xls_context* context,int configured,int signatureMode,unsigned signatureFlags,int references,const char* keyPath,xide_toolchains* cache,const char* compiler,
+enum retained_capture {RETAIN_CHECK,RETAIN_REFERENCES,RETAIN_DECLARATIONS};
+static xide_language_check* startRetained(xls_context* context,int configured,int signatureMode,unsigned signatureFlags,enum retained_capture captureMode,const char* keyPath,xide_toolchains* cache,const char* compiler,
  const char* directory,xls_worker* actor,const xls_analysis_document* documents,size_t count,
  const char* target,const char* queryPath,int line,int character,
  const xide_language_analysis_options* options,xide_model_error* e)
 {
- if((configured && !context) || !cache || !compiler || !directory || !documents || !count || count>64 || !retainedLabel(target) ||
+ int declarations=captureMode==RETAIN_DECLARATIONS;
+ if((configured && !context) || !cache || !compiler || !directory || (count && !documents) || count>64 ||
+    (!declarations && (!documents || !count || !retainedLabel(target))) || (declarations && (!configured || target || queryPath)) ||
     (!queryPath && !actor) || (queryPath && (line<0 || character<0)) || (options && !options->nativeBackend)) {
   fail(e,"Invalid retained native analysis request."); return NULL;
  }
@@ -537,13 +544,13 @@ static xide_language_check* startRetained(xls_context* context,int configured,in
  InitializeCriticalSection(&q->lock); q->cache=cache; q->nativeSemantic=q->retainedSnapshots=1; q->semanticActor=actor;
  q->context=xlsContextRetain(context);q->configuredEntry=configured;
  q->signatureMode=signatureMode;q->signatureFlags=signatureFlags;
- q->referenceMode=references;q->referenceLine=line;q->referenceCharacter=character;
+ q->referenceMode=captureMode==RETAIN_REFERENCES;q->declarationMode=declarations;q->referenceLine=line;q->referenceCharacter=character;
  if(keyPath){q->referencePath=copy(keyPath);if(!q->referencePath)goto invalid;}
  q->compiler=xidePathResolveLexical(NULL,compiler); q->directory=xidePathResolveLexical(NULL,directory);
  q->semanticTarget=configured ? NULL : copy(target);q->path=configured ? copy(xlsContextSpec(context)->entry) : NULL;
- q->snapshots=calloc(count,sizeof(*q->snapshots)); q->captureThread=xrtThreadCurrentId();
+ q->snapshots=calloc(count ? count : 1,sizeof(*q->snapshots)); q->captureThread=xrtThreadCurrentId();
  if(!q->compiler || !q->directory || (!configured && !q->semanticTarget) || (configured && !q->path) || !q->snapshots) goto invalid;
- size_t bytes=0;int foundTarget=0;
+ size_t bytes=0;int foundTarget=declarations;
  for(size_t i=0;i<count;++i) {
   const xls_analysis_document* d=&documents[i]; size_t n=xlsTextSize(d->text);
   if(!d->text || !retainedLabel(d->key) || !retainedLabel(d->path) || !xrtPathIsAbs(d->path) ||
@@ -563,7 +570,7 @@ static xide_language_check* startRetained(xls_context* context,int configured,in
   q->snapshotKeys[i]=key; q->snapshotTexts[i]=xlsTextRetain(d->text); q->snapshotIdentities[i]=d->identity;
   q->snapshots[q->snapshotCount++]=(xide_language_snapshot){path,xlsTextData(d->text),(int)((int64_t)d->revision+INT_MIN)};
   bytes+=n;
-  if(!strcmp(key,target)) { if(!configured) q->path=copy(path);q->version=q->snapshots[i].version;foundTarget=1;if(!q->path) goto invalid; }
+  if(target && !strcmp(key,target)) { if(!configured) q->path=copy(path);q->version=q->snapshots[i].version;foundTarget=1;if(!q->path) goto invalid; }
  }
  if(!q->path || !foundTarget) goto invalid;
  if(!xlsFrontendContextValid(context,q->path,e ? e->message : NULL,e ? sizeof(e->message) : 0)) {
@@ -611,7 +618,7 @@ xide_language_check* xideLanguageCheckStartReferenceCapture(xls_context* context
  xide_toolchains* cache,const char* compiler,xls_worker* actor,
  const xls_analysis_document* documents,size_t count,const char* trigger,
  const char* keyPath,int line,int character,const xide_language_analysis_options* options,xide_model_error* error)
-{ return startRetained(context,1,0,0,1,keyPath,cache,compiler,context ? xlsContextSpec(context)->directory : NULL,actor,documents,count,trigger,NULL,line,character,options,error); }
+{ return startRetained(context,1,0,0,RETAIN_REFERENCES,keyPath,cache,compiler,context ? xlsContextSpec(context)->directory : NULL,actor,documents,count,trigger,NULL,line,character,options,error); }
 int xideLanguageCheckCaptureReferences(xide_language_check* q,xide_reference_shard** shard,xide_reference_key** key)
 {
  if(shard)*shard=NULL;
@@ -640,6 +647,27 @@ uint64_t xideLanguageCheckReferenceThread(xide_language_check* q)
 {
  if(!q)return 0;
  EnterCriticalSection(&q->lock);uint64_t thread=q->referenceMode && q->state==XIDE_CHECK_READY && q->guardState==XIDE_GUARD_RUNNING && !cancelled(q) && q->referenceShard ? q->semanticThread : 0;LeaveCriticalSection(&q->lock);return thread;
+}
+xide_language_check* xideLanguageCheckStartDeclarationCapture(xls_context* context,
+ xide_toolchains* cache,const char* compiler,xls_worker* actor,const xls_analysis_document* documents,size_t count,
+ const xide_language_analysis_options* options,xide_model_error* error)
+{return startRetained(context,1,0,0,RETAIN_DECLARATIONS,NULL,cache,compiler,context ? xlsContextSpec(context)->directory : NULL,actor,documents,count,NULL,NULL,0,0,options,error);}
+int xideLanguageCheckCaptureDeclarations(xide_language_check* q,xide_semantic_symbols** symbols,xide_declaration_capture_work* work)
+{
+ if(symbols)*symbols=NULL;
+ if(work)*work=(xide_declaration_capture_work){0};
+ if(!q || !symbols)return 0;
+ EnterCriticalSection(&q->lock);
+ int okay=q->declarationMode && q->state==XIDE_CHECK_READY && q->guardState==XIDE_GUARD_RUNNING && !cancelled(q) && q->symbols;
+ if(okay){*symbols=xideSemanticSymbolsRetain(q->symbols);if(work)*work=(xide_declaration_capture_work){q->semanticStats,q->sessionCache,q->symbolWork,q->semanticThread};}
+ LeaveCriticalSection(&q->lock);return okay;
+}
+int xideLanguageCheckDeclarationSourceRejected(xide_language_check* q)
+{
+ if(!q)return 0;
+ EnterCriticalSection(&q->lock);bool accepted=true;const xvalue* diagnostics=get(q->result,"diagnostics");
+ int rejected=q->nativeSemantic && q->declarationMode && q->state==XIDE_CHECK_READY && q->guardState==XIDE_GUARD_RUNNING && !cancelled(q) && !q->symbols && xrtValueGetBool(get(q->result,"ok"),&accepted) && !accepted && xrtValueType(diagnostics)==XVALUE_ARRAY && xrtValueCount(diagnostics)>0;
+ LeaveCriticalSection(&q->lock);return rejected;
 }
 int xideLanguageCheckMatchesContext(const xide_language_check* check,const xls_context* context)
 { return check && xlsFrontendContextsEqual(check->context,context); }

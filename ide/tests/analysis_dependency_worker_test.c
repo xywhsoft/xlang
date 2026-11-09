@@ -50,7 +50,10 @@ static int workers(void)
  f.docs[0].revision=33;b=queryDependency(w,f.context,f.docs,3,"main");CHECK(b.state==XLS_QUERY_FAILED && !b.value);f.docs[0].revision=35;
  b=queryDependency(w,f.context,f.docs,3,"main");CHECK(b.state==XLS_QUERY_READY && b.value==a.value && b.stats.builds==2);releaseDependency(&b);
  CHECK(!xlsWorkerDependenciesInContext(w,NULL,NULL,0,NULL) && !xlsWorkerDependenciesInContext(w,f.context,NULL,0,"main") && !xlsWorkerDependenciesInContext(w,f.context,NULL,1,NULL));
- CHECK(!xlsWorkerCheckInContext(w,f.context,NULL,0,NULL));
+ /* Full checks now also admit a configured zero-overlay disk entry. Keep
+    this dependency-only fixture free of semantic/IR jobs; their complete
+    fresh-result/cache behavior is covered by analysis_worker_cache_test. */
+ CHECK(!xlsWorkerCheckInContext(w,NULL,NULL,0,NULL) && !xlsWorkerCheckInContext(w,f.context,NULL,0,"main"));
  b=queryDependency(w,f.context,NULL,0,NULL);CHECK(b.state==XLS_QUERY_READY && xlsDependencyCaptureInfo(b.value).expanded && b.stats.documents==0 && parity(b.value,f.context,NULL,0,f.entry));releaseDependency(&b);
  b=queryDependency(w,f.context,NULL,0,NULL);CHECK(b.state==XLS_QUERY_READY && b.stats.builds==3);releaseDependency(&b);
  xlsWorkerDestroy(w);xlsModuleStoreRelease(store);CHECK(parity(a.value,f.context,f.docs,3,f.entry));

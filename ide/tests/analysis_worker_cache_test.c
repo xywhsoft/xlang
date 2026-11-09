@@ -25,11 +25,11 @@ static int sameResult(const fixture_result* a,const fixture_result* b,enum fixtu
 {return k==CHECK_KIND ? a->check==b->check : k==COMPLETION_KIND ? a->completion==b->completion : a->signature==b->signature;}
 static fixture_result query(xls_worker* w,enum fixture_kind kind,xls_context* context,const xls_analysis_document* docs,size_t count,const char* entry,const char* target)
 {
- fixture_result result={0};const xls_analysis_document* d=NULL;for(size_t i=0;i<count;++i)if(!strcmp(docs[i].key,target))d=&docs[i];
- if(!d)return result;
- const char* body=xlsTextData(d->text);const char* marker=strstr(body,kind==SIGNATURE_KIND ? "\"hi\"" : "return unique_");if(!marker)return result;
- size_t bom=xlsTextSize(d->text)>=3 && !memcmp(body,"\xef\xbb\xbf",3) ? 3 : 0;
- size_t offset=(size_t)(marker-body)+(kind==SIGNATURE_KIND ? 2 : strlen("return unique_"))-bom;
+ fixture_result result={0};const xls_analysis_document* d=NULL;for(size_t i=0;target && i<count;++i)if(!strcmp(docs[i].key,target))d=&docs[i];
+ const char* body=d ? xlsTextData(d->text) : NULL;const char* marker=body ? strstr(body,kind==SIGNATURE_KIND ? "\"hi\"" : "return unique_") : NULL;
+ if(kind!=CHECK_KIND && !marker)return result;
+ size_t bom=d && xlsTextSize(d->text)>=3 && !memcmp(body,"\xef\xbb\xbf",3) ? 3 : 0;
+ size_t offset=marker ? (size_t)(marker-body)+(kind==SIGNATURE_KIND ? 2 : strlen("return unique_"))-bom : 0;
  xevent event;if(!xrtEventInit(&event,false,false))return result;
  xls_query* q=kind==CHECK_KIND ? xlsWorkerCheckInContext(w,context,docs,count,entry) : kind==COMPLETION_KIND ?
   xlsWorkerCompletionInContext(w,context,docs,count,entry,target,offset) : xlsWorkerSignatureInContext(w,context,docs,count,entry,target,offset);
@@ -59,11 +59,11 @@ static int sameAst(const XL6_AstNode* a,const XL6_AstNode* b)
 static int parity(const fixture_result* r,enum fixture_kind kind,xls_context* context,const xls_analysis_document* docs,size_t count,const char* entry,const char* target)
 {
  const xls_analysis_document *e=NULL,*d=NULL;xls_semantic_input inputs[64];
- for(size_t i=0;i<count;++i){inputs[i]=(xls_semantic_input){docs[i].path,xlsTextData(docs[i].text),xlsTextSize(docs[i].text)};if(entry && !strcmp(docs[i].key,entry))e=&docs[i];if(!strcmp(docs[i].key,target))d=&docs[i];}
- CHECK(d && (e || context));const char* entryPath=e ? e->path : xlsContextSpec(context)->entry;
- const char* body=xlsTextData(d->text);size_t bom=xlsTextSize(d->text)>=3 && !memcmp(body,"\xef\xbb\xbf",3) ? 3 : 0;
- const char* marker=strstr(body,kind==SIGNATURE_KIND ? "\"hi\"" : "return unique_");CHECK(marker);
- size_t offset=(size_t)(marker-body)+(kind==SIGNATURE_KIND ? 2 : strlen("return unique_"))-bom;
+ for(size_t i=0;i<count;++i){inputs[i]=(xls_semantic_input){docs[i].path,xlsTextData(docs[i].text),xlsTextSize(docs[i].text)};if(entry && !strcmp(docs[i].key,entry))e=&docs[i];if(target && !strcmp(docs[i].key,target))d=&docs[i];}
+ CHECK((kind==CHECK_KIND || d) && (e || context));const char* entryPath=e ? e->path : xlsContextSpec(context)->entry;
+ const char* body=d ? xlsTextData(d->text) : NULL;size_t bom=d && xlsTextSize(d->text)>=3 && !memcmp(body,"\xef\xbb\xbf",3) ? 3 : 0;
+ const char* marker=body ? strstr(body,kind==SIGNATURE_KIND ? "\"hi\"" : "return unique_") : NULL;CHECK(kind==CHECK_KIND || marker);
+ size_t offset=marker ? (size_t)(marker-body)+(kind==SIGNATURE_KIND ? 2 : strlen("return unique_"))-bom : 0;
  if(kind==CHECK_KIND){
   xls_semantic_check* fresh=xlsSemanticCheckCreateInContext(context,entryPath,inputs,count,1,NULL,NULL,NULL,0);CHECK(fresh && r->check);
   char *a=xlsSemanticCheckJson(fresh,NULL),*b=xlsSemanticCheckJson(r->check,NULL);CHECK(a && b && !strcmp(a,b));xlsSemanticStringFree(a);xlsSemanticStringFree(b);
@@ -201,8 +201,23 @@ static int closedEntries(void)
  }
  xlsContextRelease(a);xlsContextRelease(b);xlsTextRelease(text);xrtFree(dep);xrtFree(project);clear(&f);return 1;
 }
+static int zeroOpenedChecks(void)
+{
+ fixture f={0};CHECK(setup(&f));char* dep=xrtPathJoin(f.root,"closedmod.xl");CHECK(dep);
+ const char* disk="import closedmod\nfunc main(...) as int\n return closedmod.value()\nend\n";
+ CHECK(writeSource(dep,"export func value() as int\n return 1\nend\n") && writeSource(f.paths[0],disk) && writeSource(f.paths[2],disk));
+ xls_context_spec spec={.kind=XLS_CONTEXT_XLANG,.entry=f.paths[0],.directory=f.root,.analysisProfile="worker-headless-fixture",.targetKind="exe"};xls_context* a=xlsContextCreate(&spec,1024*1024,NULL);spec.entry=f.paths[2];xls_context* b=xlsContextCreate(&spec,1024*1024,NULL);xls_worker* w=xlsWorkerCreate(NULL,4);CHECK(a && b && w);
+ CHECK(!xlsWorkerCheck(w,NULL,0,NULL) && !xlsWorkerCheckInContext(w,a,NULL,0,"missing") && !xlsWorkerFolding(w,NULL,0,NULL,10) && !xlsWorkerSyntax(w,NULL,0,NULL));
+ CHECK(!xlsWorkerCompletionInContext(w,a,NULL,0,NULL,"missing",0) && !xlsWorkerSignatureInContext(w,a,NULL,0,NULL,"missing",0));
+ fixture_result first=query(w,CHECK_KIND,a,NULL,0,NULL,NULL),same=query(w,CHECK_KIND,a,NULL,0,NULL,NULL),other=query(w,CHECK_KIND,b,NULL,0,NULL,NULL);
+ CHECK(first.state==XLS_QUERY_READY && first.check && xlsSemanticCheckInfo(first.check).accepted && same.check==first.check && same.checks.builds==1 && same.checks.hits>first.checks.hits);
+ CHECK(other.state==XLS_QUERY_READY && other.check && other.check!=first.check && other.checks.builds==2 && parity(&first,CHECK_KIND,a,NULL,0,NULL,NULL) && parity(&other,CHECK_KIND,b,NULL,0,NULL,NULL));
+ CHECK(writeSource(dep,"export func value() as int\n return 2\nend\n"));fixture_result changed=query(w,CHECK_KIND,a,NULL,0,NULL,NULL);
+ CHECK(changed.state==XLS_QUERY_READY && changed.check && changed.check!=first.check && changed.checks.builds==3 && !xlsSemanticCheckValidate(first.check) && parity(&changed,CHECK_KIND,a,NULL,0,NULL,NULL));
+ releaseResult(&changed);releaseResult(&first);releaseResult(&same);releaseResult(&other);xlsWorkerDestroy(w);xlsContextRelease(a);xlsContextRelease(b);xrtFree(dep);clear(&f);return 1;
+}
 int main(void)
 {
- if(!switching() || !evictionAndBudget() || !history() || !contexts() || !diskGuards() || !closedEntries())return 1;
+ if(!switching() || !evictionAndBudget() || !history() || !contexts() || !diskGuards() || !closedEntries() || !zeroOpenedChecks())return 1;
  printf("analysis_worker_cache_test passed: %u checks;three semantic kinds,full fresh AST/typed IR and JSON parity,switching/LRU/budget/current-stream versions,close/reopen,context equality and held lifetime.\n",checks);return 0;
 }

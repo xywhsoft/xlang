@@ -3,17 +3,19 @@
  * it is never exposed as a general navigation/binding table. */
 #define SYMBOL_PROJECTION_BYTES (64u*1024u*1024u)
 #define SYMBOL_TEXT_BYTES (4u*1024u*1024u)
-struct xide_semantic_symbols {xide_semantic_definitions view;size_t bytes;};
+struct xide_semantic_symbols {xatomic32 references;xide_semantic_definitions view;size_t bytes;};
 typedef struct symbol_build_row {node value;size_t ordinal;enum xls_declaration_kind role;xls_index_range fullCompiler,nameCompiler;} symbol_build_row;
 typedef struct symbol_scope {unsigned id,depth;size_t nearest;int hidden,callable;} symbol_scope;
 
 void xideSemanticSymbolsDestroy(xide_semantic_symbols* s)
 {
- if(!s)return;
+ if(!s || xrtAtomic32FetchSub(&s->references,1,XMEMORY_ACQ_REL)!=1)return;
  if(s->view.nodes)for(size_t i=0;i<s->view.count;++i){xrtFree(s->view.nodes[i].name);xrtFree(s->view.nodes[i].header);}
  for(size_t i=0;i<s->view.sourceCount;++i)xrtFree(s->view.paths ? s->view.paths[i] : NULL);
  xrtFree(s->view.nodes);xrtFree(s->view.paths);xrtFree(s);
 }
+xide_semantic_symbols* xideSemanticSymbolsRetain(xide_semantic_symbols* s)
+{if(s)xrtAtomic32FetchAdd(&s->references,1,XMEMORY_RELAXED);return s;}
 size_t xideSemanticSymbolsBytes(const xide_semantic_symbols* s){return s ? s->bytes : 0;}
 size_t xideSemanticSymbolsCount(const xide_semantic_symbols* s){return s ? s->view.count : 0;}
 int xideSemanticSymbolAt(const xide_semantic_symbols* s,size_t at,xide_semantic_symbol_view* out)
@@ -100,6 +102,7 @@ static xide_semantic_symbols* symbolsFromVerified(
 #endif
  xide_semantic_symbols* s=xrtCalloc(1,sizeof(*s));xarray rows={0};unsigned* mapping=NULL;endpoint* ends=NULL;size_t endpointCount=0,coordinateBudget=0;int initialized=0,invalid=0,okay=0,dense=0;
  if(!s){if(error){error->code=XIDE_MODEL_IO;snprintf(error->message,sizeof(error->message),"Declaration projection storage is unavailable.");}return NULL;}
+ xrtAtomic32Init(&s->references,1);
  s->view.sourceCount=count;s->view.paths=xrtCalloc(count,sizeof(char*));if(!s->view.paths)goto done;
  for(size_t i=0;i<count;++i){
   if(symbolStopped(stopped,user) || !sources[i].path || !sources[i].text)goto done;

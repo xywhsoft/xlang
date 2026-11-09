@@ -129,7 +129,7 @@ xls_projection_store* xlsWorkerProjectionStore(xls_worker* worker){return worker
 static xls_query* submit(xls_worker* worker,xls_context* context,const xls_analysis_document* documents,size_t count,const char* target,enum query_kind kind,size_t rangeLimit,const char* queryKey,size_t offset,const size_t* selections,size_t selectionCount)
 {
     if(selectionCount>XLS_SELECTION_POSITIONS || (selectionCount && !selections))return NULL;
-    if(!worker || (count && !documents) || (!count && (kind!=QUERY_DEPENDENCY || target || !context)) || count>worker->limits.documents ||
+    if(!worker || (count && !documents) || (!count && ((kind!=QUERY_DEPENDENCY && kind!=QUERY_CHECK) || target || !context)) || count>worker->limits.documents ||
        (target ? !validLabel(target) : !context || kind<QUERY_CHECK || kind>=QUERY_COUNT) ||
        ((kind==QUERY_COMPLETION || kind==QUERY_SIGNATURE) && !validLabel(queryKey))) return NULL;
     query_input* input=xrtMalloc(sizeof(*input));

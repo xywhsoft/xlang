@@ -16,6 +16,7 @@ typedef struct xide_semantic_symbol_view {
 /* Independent owned declaration projection. No AST/check, source-text, GUI,
  * JSON-index or navigation-table pointer survives construction. */
 void xideSemanticSymbolsDestroy(xide_semantic_symbols* symbols);
+xide_semantic_symbols* xideSemanticSymbolsRetain(xide_semantic_symbols* symbols);
 size_t xideSemanticSymbolsBytes(const xide_semantic_symbols* symbols);
 size_t xideSemanticSymbolsCount(const xide_semantic_symbols* symbols);
 int xideSemanticSymbolAt(const xide_semantic_symbols* symbols,size_t at,xide_semantic_symbol_view* out);

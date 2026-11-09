@@ -96,6 +96,29 @@ int xideLanguageCheckReferenceWork(xide_language_check* check,xls_check_stats* w
 /* Actual process-local semantic worker ID for a verified reference capture.
  * Zero when unavailable;not a source identity or a freshness proof. */
 uint64_t xideLanguageCheckReferenceThread(xide_language_check* check);
+#include "services/semantic_symbols.h"
+typedef struct xide_declaration_capture_work {
+ xls_check_stats analysis;xls_worker_cache_stats sessions;
+ xide_symbol_work projection;uint64_t workerThread;
+} xide_declaration_capture_work;
+/* Background index input, independent of an open editor/trigger. context.entry
+ * can be a disk file; zero overlays is valid. Actual overlays retain the same
+ * content/identity/configuration and input publication guards. No fake entry
+ * overlay, full navigation/reference table or diagnostic document copies.
+ * This captures one checked entry and its real imports, not project coverage.
+ * Actor/cache/callback lifetimes follow StartConfigured. */
+xide_language_check* xideLanguageCheckStartDeclarationCapture(xls_context* context,
+ xide_toolchains* cache,const char* compiler,xls_worker* actor,
+ const xls_analysis_document* documents,size_t count,
+ const xide_language_analysis_options* options,xide_model_error* error);
+/* READY, accepted and still guarded only. Retained immutable declarations
+ * survive producer/actor destruction. Payload lifetime is not freshness;
+ * index consumers also capture/revalidate the existing detached input guard
+ * and gate overlay/catalog epochs before publication. Failure clears output. */
+int xideLanguageCheckCaptureDeclarations(xide_language_check* check,
+ xide_semantic_symbols** symbols,xide_declaration_capture_work* work);
+/* Only original guarded source diagnostics; infra/quota/cancel never count. */
+int xideLanguageCheckDeclarationSourceRejected(xide_language_check* check);
 /* Worker-only compact document proof from a verified captured source. Reuses
  * diagnostic newline/hash/origin conventions;disk report is borrowed during
  * construction. Overlay BOM is restored for editor UTF-16/text identity. */
