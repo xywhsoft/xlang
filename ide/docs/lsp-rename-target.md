@@ -19,3 +19,5 @@
 配对验证重新编译了 116 个 GUI 对象，使用同一候选语言服务及匹配 SDK，9 套协议和 27 个 IDE 夹具全部通过，包括 C/xlang 输入、删除、撤销、Unicode/IME、焦点、引用及语义颜色；浅色和深色原生截图已复核。测试入口位于根 `release/win_x64` 并在结束时移除，默认六个程序/DLL 的摘要保持。实际对象和完整来源依赖绑定记录在 `build/Release/lsp-rename-target-20261110`，可恢复材料索引位于 `dev/release-materials/provenance/lsp-rename-target-20261110.json`。没有运行新的正式性能准入，也没有发布更新或将整体长期目标标为完成。
 
 后续 M7b4b 补齐了上述字段身份缺口，见[字段绑定](lsp-field-bindings.md)。本页关于缺失字段的说明及前一阶段原件保留为历史状态；字段可捕获不代表完整重命名已经开放。
+
+后续的[配置范围与跨工程引用收集](lsp-rename-scope.md)复用完整 catalog 和工程引用 actor，保留共享文件的所有工程归属。该阶段仍不授权编辑。

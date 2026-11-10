@@ -1,0 +1,91 @@
+{
+  "schema": 1,
+  "date": "2026-11-10",
+  "stage": "M7b4c",
+  "scope": "Whole-workspace explicit member ownership and immutable rename scope; exact declaration-key reference collection across configured project and standalone scopes with original actor source guards",
+  "stageAccepted": true,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "0025963f78eb4a08f6dbfe8fa9115cb3fe1186a4",
+  "ownedSources": {
+    "ide/docs/lsp-rename-scope.md": "fb3cdde158eabc236c540137951a87fe16fc6deed5cc5c6b34328252b08b5f07",
+    "ide/docs/lsp-rename-target.md": "e69b031fdf6b9fde669176b86ecc4a2e674ec4dcf9e8adc15c7cf1ed0d52f3cf",
+    "ide/src/services/analysis_catalog.c": "9e88d0f25fc4512d6a318e30772fd7c0ec74c3bda80cc5fc519e298480f76338",
+    "ide/src/services/analysis_catalog.h": "b0c7ae4341aac3b0d5b53e079606815c390ea97cccab7815a54f3f670e3fc9b4",
+    "ide/src/services/project_references.c": "f1a104e7b28505324429a1acb00984af967ce53b41a69cec9b5036b53f4e0a36",
+    "ide/src/services/project_references.h": "d8bed62fbd3fb3ce964e790a83b818b8cb47c3284c25f7c4230b2530e13eba22",
+    "ide/src/services/rename_scope.c": "2498609c5b6c02c8bd0417c3e058d3c72939f9e263a16bc94f4bf2aba6dedcc3",
+    "ide/src/services/rename_scope.h": "3bb61518077feee3f47cb93128b51b21d824cf57ecb8d26dd6896a3575777a9f",
+    "ide/tests/project_rename_scope_test.c": "3f7e5b8b7f28f8788490962ca706f28a260e965f32f988ec5655af72ff3576d0",
+    "ide/tests/rename_scope_test.c": "e60ff3fce02a40f521769aab70ee9209526e9f22114fc88c5da5f08d2f0287a3",
+    "ide/tools/build_lsp_core.py": "bd1a9a0820b960d7ea1bc1eaae6a0f286c215a292b8a21a2ab478bc033fda5b5"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-rename-scope-20261110.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-rename-scope-20261110/stage-sources.tar.gz",
+      "sha256": "2a4936fafff689c9b3d0371baf1141b72880e163778b643c925aabfc09081390",
+      "bytes": 61507,
+      "entries": 12,
+      "uniquePayloads": 12,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-rename-scope-20261110/stage-sources.tar.gz.manifest.json",
+      "sha256": "5ce87021316cbdd6ddec771af428efd2e47c0da2fb3a11cf68570647e504c440",
+      "bytes": 2747
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-rename-scope-20261110/actual-builds-and-validation.tar.gz",
+      "sha256": "0b998411e2e7665e3355a6b2e4dae19aeb943bde8421d21321575f51f91742fb",
+      "bytes": 737047953,
+      "entries": 6047,
+      "uniquePayloads": 4146,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-rename-scope-20261110/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "6b7261f0276384baacb13a7541dfece36920cfad7f0a37e9e6e7f6d93edba1d2",
+      "bytes": 2080195
+    }
+  },
+  "candidate": {
+    "serverSha256": "81980864d8527252b9f909d9ec5ccead6781f37a5025d45d5f469bf924ddb8c8",
+    "guiSha256": "26f457a1852106612a0c999ab2529a68f2904a236c651bcdf4598f5d31c33a3d",
+    "sdkDllSha256": "216c1f98f4d55cc5dff9c7d98425edbb08d470cdfc6b26ef4ad962af3431f560",
+    "guiObjects": 116,
+    "actualNativeConsumers": 275
+  },
+  "validation": {
+    "nativeFixtures": 167,
+    "membershipAssertions": 1121,
+    "crossScopeAssertions": 116,
+    "actualCMutantsRejected": 4,
+    "protocolSuites": 10,
+    "guiFixtures": 27,
+    "currentSourcesAndAllLinksChecked": true,
+    "allOwnersIndependentOfSelectedProject": true,
+    "unrelatedScopeCheckedBeforeEmptyResult": true,
+    "unlistedDeclarationAndOccurrenceRejected": true,
+    "changedDeclarationSourceRejected": true,
+    "retainedQueuedLifetimeChecked": true,
+    "performanceAdmissionRun": false,
+    "priorFailuresPreserved": true
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "knownMissing": [
+    "physical alias and OS writability,complete library/foreign policy and full overload/inheritance family closure",
+    "whole-workspace orchestration, deduplication, exact identifier edits, rename conflicts and post-rename binding proof",
+    "standard prepareRename/rename and IDE versioned edit transaction",
+    "remaining applicable LSP and current-engine cohort alignment",
+    "whole-goal performance/large-workspace/soak/final delivery admission"
+  ]
+}

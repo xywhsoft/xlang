@@ -3,6 +3,7 @@
 #include "services/language_check.h"
 #ifdef XLS_COMPILER_XRT
 #include "analysis/module_store.h"
+#include "services/rename_scope.h"
 typedef struct xide_project_references xide_project_references;
 typedef struct xide_reference_query xide_reference_query;
 typedef struct xide_project_reference_stats {size_t roots,captured,reused,locations,records,chargedBytes;
@@ -54,6 +55,18 @@ xide_reference_query* xideProjectReferencesSubmit(xide_project_references* store
 xide_reference_query* xideProjectReferencesSubmitWithProof(xide_project_references* store,xls_context* context,
  const xls_analysis_document* documents,size_t count,const char* trigger,
  const char* path,int line,int character,int includeDeclaration,int inputProof);
+/* Collect the supplied immutable declaration key in one exact configured
+ * scope, including scopes that do not own/import the original query document.
+ * Reuse the same complete member scheduler, checked shards and final guards.
+ * Every returned occurrence and the declaration must be explicitly configured
+ * in the whole rename membership; otherwise fail without partial locations.
+ * Always include declarations and guarded source proofs. The host must query
+ * EVERY ScopeAt, retain/gate configuration/input epochs, refine exact identifier
+ * ranges and prove families/conflicts/post-edit bindings before editing. This
+ * operation alone is neither a rename plan nor an edit authorization. */
+xide_reference_query* xideProjectReferencesSubmitRenameScope(xide_project_references*,
+ xls_context*,xide_rename_scope*,xide_rename_target*,const xls_analysis_document*,
+ size_t count,const char* trigger);
 enum xide_reference_query_state xideProjectReferencesResult(xide_reference_query* query,
  const xvalue** locations,xide_project_reference_stats* stats,char* error,size_t capacity);
 xvalue* xideProjectReferencesTake(xide_reference_query* query);

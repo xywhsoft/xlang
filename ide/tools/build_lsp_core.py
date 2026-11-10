@@ -43,6 +43,7 @@ FRONTEND_SOURCES = (
 )
 SERVER_SOURCES = (
     "src/services/semantic_rename.c",
+    "src/services/rename_scope.c",
     "src/services/semantic_token_positions.c", "src/protocol/semantic_tokens_wire.c", "src/services/semantic_token_job.c",
     "src/protocol/analysis_context_wire.c", "src/protocol/signature_help.c", "src/services/analysis_catalog.c",
     "src/protocol/lsp_wire.c", "src/protocol/workspace_symbol_selection.c", "src/protocol/workspace_symbol_wire.c", "src/services/language_check.c", "src/services/language_snapshot.c", "src/services/diagnostic_store.c",
@@ -132,6 +133,8 @@ HOST_TESTS += ("language_native_cancel_test",)
 HOST_TESTS += ("semantic_tokens_wire_test", "semantic_token_guards_test")
 HOST_TESTS += ("semantic_rename_target_test",)
 HOST_TESTS += ("semantic_field_binding_test",)
+HOST_TESTS += ("rename_scope_test",)
+HOST_TESTS += ("project_rename_scope_test",)
 
 
 def sha(path: Path) -> str:
@@ -1024,6 +1027,7 @@ def main() -> None:
                 extra += [str(objects[Path(source).stem]) for source in SERVER_SOURCES
                           if Path(source).stem != "xlang_ls" and
                           not (name == "semantic_rename_target_test" and Path(source).stem == "semantic_rename") and
+                          not (name == "rename_scope_test" and Path(source).stem == "rename_scope") and
                           not (name in ("snapshot_report_test", "reference_capture_test", "declaration_capture_test", "project_reference_owner_fault_test", "language_native_cancel_test") and Path(source).stem == "language_snapshot") and
                           not (name == "path_identity_batch_test" and Path(source).stem == "path") and
                           not (name == "workspace_symbol_index_test" and Path(source).stem == "workspace_symbol_index") and

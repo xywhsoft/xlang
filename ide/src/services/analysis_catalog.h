@@ -13,6 +13,16 @@ void xideAnalysisCatalogDestroy(xide_analysis_catalog* catalog);
    an unrelated selection does not resolve ambiguity. Safe concurrent reads. */
 enum xide_analysis_binding xideAnalysisCatalogFind(const xide_analysis_catalog* catalog,const char* path,const xls_context** context);
 enum xide_analysis_binding xideAnalysisCatalogFindNative(const xide_analysis_catalog* catalog,const wchar_t* key,const xls_context** context);
+/* All explicitly configured project owners, independent of selectedProject.
+   Bits address At order (at most64). Native lookup allocates nothing and does
+   not inspect disk, aliases, imports or directory containment. An unlisted
+   dependency has no owners even when its path is under a project directory.
+   This is membership, not OS writability or rename-safety/freshness proof. */
+int xideAnalysisCatalogOwnersNative(const xide_analysis_catalog* catalog,const wchar_t* key,uint64_t* owners);
+/* Complete known retained payload, including allocated binding capacity before
+   duplicate compaction, contexts, keys, package and catalog. Excludes allocator
+   metadata and temporary construction. No traversal or allocation. */
+size_t xideAnalysisCatalogBytes(const xide_analysis_catalog* catalog);
 int xideAnalysisCatalogPrefers(const xide_analysis_catalog* catalog,const xls_context* context);
 const char* xideAnalysisCatalogPackagePath(const xide_analysis_catalog* catalog);
 size_t xideAnalysisCatalogCount(const xide_analysis_catalog* catalog);

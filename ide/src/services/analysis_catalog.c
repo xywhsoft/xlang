@@ -5,7 +5,7 @@
 #include <string.h>
 #include <wchar.h>
 typedef struct binding { wchar_t* key;size_t owner; } binding;
-struct xide_analysis_catalog {xatomic32 references;xls_context* projects[64];size_t count,bindingCount,selectedOwner;binding* bindings;char* package;};
+struct xide_analysis_catalog {xatomic32 references;xls_context* projects[64];size_t count,bindingCount,selectedOwner,bytes;binding* bindings;char* package;};
 static xstrview sv(const char* s) {return (xstrview){s,strlen(s)};}
 static const xvalue* get(const xvalue* v,const char* key) {return v && xrtValueType(v)==XVALUE_OBJECT ? xrtValueObjectGet(v,sv(key)) : NULL;}
 static const char* text(const xvalue* v) {xstrview s={0};return xrtValueGetString(v,&s) && s.Size<=32767 && (!s.Size || (s.Data && !memchr(s.Data,0,s.Size))) ? (s.Data ? s.Data : "") : NULL;}
@@ -60,6 +60,9 @@ xide_analysis_catalog* xideAnalysisCatalogCreate(const xvalue* value,char* error
   else c->bindings[kept++]=c->bindings[i];
  }
  c->bindingCount=kept;
+ c->bytes=sizeof(*c)+bindings*sizeof(*c->bindings)+(c->package ? strlen(c->package)+1 : 0);
+ for(size_t i=0;i<c->count;++i)c->bytes+=xlsContextBytes(c->projects[i]);
+ for(size_t i=0;i<c->bindingCount;++i)c->bytes+=(wcslen(c->bindings[i].key)+1)*sizeof(wchar_t);
  return c;
 invalid:fail(error,capacity,"Invalid project analysis identity, selection, paths or capacity.");goto failed;
 memory:fail(error,capacity,"Cannot allocate prepared analysis catalog.");
@@ -89,6 +92,16 @@ enum xide_analysis_binding xideAnalysisCatalogFind(const xide_analysis_catalog* 
  wchar_t* key=xidePathNativeWide(path);if(!key) return XIDE_ANALYSIS_ERROR;
  enum xide_analysis_binding result=xideAnalysisCatalogFindNative(c,key,context);free(key);return result;
 }
+int xideAnalysisCatalogOwnersNative(const xide_analysis_catalog* c,const wchar_t* key,uint64_t* owners)
+{
+ if(owners)*owners=0;
+ if(!c || !key || !owners)return 0;
+ size_t low=0,high=c->bindingCount;
+ while(low<high){size_t mid=low+(high-low)/2;if(xidePathNativeKeyCompare(c->bindings[mid].key,key)<0)low=mid+1;else high=mid;}
+ for(size_t i=low;i<c->bindingCount && !xidePathNativeKeyCompare(c->bindings[i].key,key);++i)*owners|=UINT64_C(1)<<c->bindings[i].owner;
+ return 1;
+}
+size_t xideAnalysisCatalogBytes(const xide_analysis_catalog* c){return c ? c->bytes : 0;}
 int xideAnalysisCatalogPrefers(const xide_analysis_catalog* c,const xls_context* context)
 {return c && c->selectedOwner!=SIZE_MAX && context && (c->projects[c->selectedOwner]==context || xlsContextEqual(c->projects[c->selectedOwner],context));}
 const char* xideAnalysisCatalogPackagePath(const xide_analysis_catalog* c) {return c ? c->package : NULL;}
