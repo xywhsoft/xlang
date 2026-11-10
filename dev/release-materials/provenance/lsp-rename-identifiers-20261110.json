@@ -1,0 +1,94 @@
+{
+  "schema": 1,
+  "date": "2026-11-10",
+  "stage": "M7b4e",
+  "scope": "Exact native identifier projection for already bound references,Unicode UTF8/UTF16 and qualified type prefixes; cached native IDENT policy and actual project/workspace integration",
+  "stageAccepted": true,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "cad3d724e4615d3c010d7141601e0b6eeebda70e",
+  "ownedSources": {
+    "ide/docs/lsp-rename-identifiers.md": "2dd79564d7f19cb0cfa91015c0b62e1ce3ae5fa746f2e812a3d3bf25ff961a41",
+    "ide/docs/lsp-rename-workspace.md": "51ce7a4a0787a8a98e83136598ee340888161753bbc974c01b0bcd96b09c634c",
+    "ide/src/services/project_references.c": "d72b0b3351ebb7567e5e8399239b4ea43dcb0b1bb61f175b1a9a37d65949ca44",
+    "ide/src/services/project_references.h": "a60be568ef050303973663ed6dbf14fcf16cdb1e7dee3c0f7719eaa6c871ccde",
+    "ide/src/services/semantic_reference_shard.h": "554ee38032f715260289606974ca2b74985065f3280843ef40c82bf31e5ac798",
+    "ide/src/services/semantic_reference_shard.inc": "3363bc99c8c0965fbf075de208f785ba6de4ffdd9e904f8a94494f4302816bbd",
+    "ide/src/services/semantic_rename.c": "4d38bac4935b8074df3358ebc8b92dd84a80bea483cb40bcd3dbc505b5e84911",
+    "ide/tests/project_rename_identifier_test.c": "fd60fb3902263de4980543f41f09b1fba16864aefd02f3a1bc654afdd50454b4",
+    "ide/tests/rename_identifier_fixture.h": "418d67c5a54bfccb9e093b90f2126ccb9347d5f495d3b90749d832f33a1c948c",
+    "ide/tests/semantic_rename_identifier_test.c": "7e950f706971a5f08544b1af9d2a8aa724b1d1750f3e25adf783d52244b1afc2",
+    "ide/tools/build_lsp_core.py": "67718fed28300315fb38fd50a065a0bd1ec84ee66bf59fcbbac491ea0aab40e6"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-rename-identifiers-20261110.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-rename-identifiers-20261110/stage-sources.tar.gz",
+      "sha256": "76f93541a56f266365a98520d79ee1b622314dda17a0807bd4f2bcef438cbf6d",
+      "bytes": 62319,
+      "entries": 12,
+      "uniquePayloads": 12,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-rename-identifiers-20261110/stage-sources.tar.gz.manifest.json",
+      "sha256": "54e6d21661e2feb77cbd23b701d1625cbb50514922cf21647706574c5c3039ae",
+      "bytes": 2856
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-rename-identifiers-20261110/actual-builds-and-validation.tar.gz",
+      "sha256": "8f420c75705ad9b1d72f52e2c0827786bd66ceb8298f23df5635183cb0dd3615",
+      "bytes": 823280485,
+      "entries": 9834,
+      "uniquePayloads": 4338,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-rename-identifiers-20261110/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "593eac924fbcd7ebd2f35cf82b5c612035333a4cc741bebcce3effc529bbb097",
+      "bytes": 3515631
+    }
+  },
+  "candidate": {
+    "serverSha256": "9836dd3e0c0636f4fd7d33c3042c0a47122965790e93664828847d9f829d0180",
+    "guiSha256": "f90a0ccad82df018769743480d89c639f269b1c336ae213970de40ceab892692",
+    "sdkDllSha256": "216c1f98f4d55cc5dff9c7d98425edbb08d470cdfc6b26ef4ad962af3431f560",
+    "guiObjects": 116,
+    "actualNativeConsumers": 278
+  },
+  "validation": {
+    "nativeFixtures": 170,
+    "identifierAssertions": 141,
+    "workspaceIdentifierAssertions": 86,
+    "actualCMutantsRejected": 5,
+    "protocolSuites": 10,
+    "guiFixtures": 27,
+    "currentSourcesAndAllLinksChecked": true,
+    "finalNativeMatrixFresh": true,
+    "qualifiedPrefixesPreserved": true,
+    "utf8AndUtf16Separated": true,
+    "bomAndCrlfPreserved": true,
+    "nativeVariadicParameterExplicitlyUnsupported": true,
+    "ordinaryReferenceBehaviorPreserved": true,
+    "viewBorrowsOnlyShard": true,
+    "wrongSameSpellingFieldExcluded": true,
+    "performanceAdmissionRun": false,
+    "priorFailuresPreserved": true
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "knownMissing": [
+    "physical alias and OS writability,complete library/foreign policy and full overload/inheritance/generic specialization/constructor family closure",
+    "versioned edit construction, rename conflicts and post-rename binding proof",
+    "standard prepareRename/rename and IDE versioned edit transaction",
+    "remaining applicable LSP and current-engine cohort alignment",
+    "merge allocation and wide quota adversarial admission;whole-goal performance/large-workspace/soak/final delivery admission"
+  ]
+}

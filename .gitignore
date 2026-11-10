@@ -58,6 +58,7 @@
 !/dev/release-materials/provenance/lsp-field-bindings-20261110.json
 !/dev/release-materials/provenance/lsp-rename-scope-20261110.json
 !/dev/release-materials/provenance/lsp-rename-workspace-20261110.json
+!/dev/release-materials/provenance/lsp-rename-identifiers-20261110.json
 /out/
 /tmp/
 /logs/

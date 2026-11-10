@@ -60,7 +60,8 @@ xide_rename_target* xideRenameTargetCreate(xls_projection_store* cache,xls_seman
  xide_semantic_source declaration={0};size_t first=0,last=0;
  if(!xideSemanticReferenceKeyTarget(key,&declaration,&first,&last) || !(declaration.kind&1)){error=XIDE_RENAME_TARGET_CAPTURE;goto done;}
  size_t nameBytes=last-first;
- if(!xlsIdentifierValid(declaration.text+first,nameBytes)){error=XIDE_RENAME_TARGET_ABSENT;goto done;}
+ xstrview identifier;int identifierUnits=0;
+ if(!xideSemanticReferenceKeyIdentifier(key,&identifier,&identifierUnits)){error=XIDE_RENAME_TARGET_ABSENT;goto done;}
  const xide_semantic_source* query=NULL;
  for(size_t i=0;i<count;++i)if(selected.path && !strcmp(sources[i].path,selected.path)){query=sources+i;break;}
  if(!query || !query->text || selected.start.offset<0 || selected.end.offset<=selected.start.offset ||
@@ -79,7 +80,7 @@ xide_rename_target* xideRenameTargetCreate(xls_projection_store* cache,xls_seman
   ++end;
  }
  if(end-begin!=nameBytes || memcmp(query->text+begin,declaration.text+first,nameBytes))goto done;
- int before=utf16Units(query->text,begin,at),units=utf16Units(query->text,begin,end);
+ int before=utf16Units(query->text,begin,at),units=identifierUnits;
  if(before>character || units>INT_MAX-(character-before)){error=XIDE_RENAME_TARGET_COORDINATE;goto done;}
  size_t pathBytes=strlen(query->path)+1,keyBytes=xideSemanticReferenceKeyBytes(key);
  if(keyBytes>budget-sizeof(*target) || pathBytes>budget-sizeof(*target)-keyBytes){error=XIDE_RENAME_TARGET_LIMIT;goto done;}

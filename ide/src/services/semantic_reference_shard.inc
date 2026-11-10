@@ -1,13 +1,27 @@
 /* Native-only immutable compact query data. Included after the original
  * checked navigation implementation so binding logic has one authority. */
 #include "services/semantic_reference_shard.h"
+#include "analysis/identifier.h"
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
+#endif
+#include "src/lexer/xl6_literal_span.h"
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
 #ifndef XIDE_REFERENCE_ALLOC
 #define XIDE_REFERENCE_ALLOC xrtMalloc
 #endif
 typedef struct reference_source {char *path,*text;size_t size;int kind,prefix;} reference_source;
 typedef struct reference_item {reference_row row;xide_lsp_position start,end;} reference_item;
 struct xide_reference_shard {xatomic32 references;size_t bytes,sources,count;reference_source* source;reference_item* items;};
-struct xide_reference_key {xatomic32 references;size_t bytes,size;char *path,*text;uint32_t start,end;int kind,prefix;};
+struct xide_reference_key {xatomic32 references;size_t bytes,size;char *path,*text;uint32_t start,end;int kind,prefix,identifierUnits;};
+static int referenceIdentifierUnits(const char* text,size_t bytes)
+{
+ if(!xlsIdentifierValid(text,bytes))return -1;
+ int units=0;for(size_t i=0;i<bytes;){unsigned char c=(unsigned char)text[i];size_t n=c<128?1:c<0xe0?2:c<0xf0?3:4;i+=n;units+=n==4?2:1;}return units;
+}
 static void referenceError(xide_model_error* error)
 {if(error){error->code=XIDE_MODEL_INVALID;snprintf(error->message,sizeof(error->message),"Unable to capture bounded verified reference data.");}}
 static int referenceCharge(size_t* used,size_t add,size_t limit)
@@ -59,7 +73,7 @@ xide_reference_key* xideSemanticReferenceKeyCreateAt(xls_projection_store* cache
  if(decl!=SIZE_MAX){const span* at=&d->nodes[decl].selection;
   if(at->source && at->endOffset>at->startOffset){const xide_semantic_source* target=sources+at->source-1;size_t bytes=sizeof(*key);int okay=referenceSourceBytes(&bytes,target,limit);
    if(okay)key=XIDE_REFERENCE_ALLOC(bytes);
-   if(key){memset(key,0,sizeof(*key));xrtAtomic32Init(&key->references,1);key->bytes=bytes;key->start=(uint32_t)at->startOffset;key->end=(uint32_t)at->endOffset;key->kind=target->kind;key->prefix=target->utf16Prefix;key->path=(char*)(key+1);size_t pathBytes=strlen(target->path)+1;memcpy(key->path,target->path,pathBytes);key->text=key->path+pathBytes;key->size=strlen(target->text);memcpy(key->text,target->text,key->size+1);}else failed=1;
+   if(key){memset(key,0,sizeof(*key));xrtAtomic32Init(&key->references,1);key->bytes=bytes;key->start=(uint32_t)at->startOffset;key->end=(uint32_t)at->endOffset;key->kind=target->kind;key->prefix=target->utf16Prefix;key->path=(char*)(key+1);size_t pathBytes=strlen(target->path)+1;memcpy(key->path,target->path,pathBytes);key->text=key->path+pathBytes;key->size=strlen(target->text);memcpy(key->text,target->text,key->size+1);key->identifierUnits=referenceIdentifierUnits(key->text+key->start,key->end-key->start);}else failed=1;
   }
  }
  if(key && selected)*selected=(xide_semantic_reference){sources[source-1].path,{chosenSpan.start.line,chosenSpan.start.character,chosenSpan.startOffset},{chosenSpan.end.line,chosenSpan.end.character,chosenSpan.endOffset},sameSelection(&chosenSpan,&d->nodes[decl].selection)};
@@ -90,11 +104,47 @@ enum xide_reference_match xideSemanticReferenceShardQuery(const xide_reference_s
  if(!include){lo=first;hi=last;while(lo<hi){size_t mid=lo+(hi-lo)/2;if(referenceOccurrenceOrder(&s->items[mid].row,&target)<0)lo=mid+1;else hi=mid;}if(lo<last && !referenceOccurrenceOrder(&s->items[lo].row,&target)){view->excluded=lo-first;--view->count;}}
  return XIDE_REFERENCE_MATCH;
 }
+static const reference_item* referenceItemAt(const xide_reference_shard_view* view,size_t index)
+{
+ if(!view || !view->shard || index>=view->count)return NULL;
+ const xide_reference_shard* s=view->shard;if(view->first>s->count || view->count>s->count-view->first || (view->excluded!=SIZE_MAX && (view->excluded>view->count || view->count==s->count-view->first)))return NULL;
+ return s->items+view->first+index+(view->excluded!=SIZE_MAX && index>=view->excluded);
+}
 int xideSemanticReferenceShardAt(const xide_reference_shard_view* view,size_t index,xide_semantic_reference* out)
 {
  if(out)*out=(xide_semantic_reference){0};
- if(!view || !out || !view->shard || index>=view->count)return 0;
- const xide_reference_shard* s=view->shard;if(view->first>s->count || view->count>s->count-view->first || (view->excluded!=SIZE_MAX && (view->excluded>view->count || view->count==s->count-view->first)))return 0;
- const reference_item* item=s->items+view->first+index+(view->excluded!=SIZE_MAX && index>=view->excluded);const reference_row* r=&item->row;
+ const reference_item* item=referenceItemAt(view,index);if(!out || !item)return 0;
+ const reference_row* r=&item->row;const xide_reference_shard* s=view->shard;
  *out=(xide_semantic_reference){s->source[r->source-1].path,item->start,item->end,r->source==r->targetSource && r->start==r->targetStart && r->end==r->targetEnd};return 1;
+}
+int xideSemanticReferenceKeyIdentifier(const xide_reference_key* key,xstrview* name,int* units)
+{
+ if(name)*name=(xstrview){0};
+ if(units)*units=0;
+ if(!key || !name || !units || key->identifierUnits<=0)return 0;
+ *name=(xstrview){key->text+key->start,key->end-key->start};*units=key->identifierUnits;return 1;
+}
+enum xide_reference_match xideSemanticReferenceShardIdentifiers(const xide_reference_shard* shard,const xide_reference_key* key,int include,xide_reference_identifier_view* out)
+{
+ if(out)*out=(xide_reference_identifier_view){0};
+ if(!out)return XIDE_REFERENCE_INVALID;
+ xide_reference_shard_view view;enum xide_reference_match match=xideSemanticReferenceShardQuery(shard,key,include,&view);if(match!=XIDE_REFERENCE_MATCH)return match;
+ if(key->identifierUnits<=0)return XIDE_REFERENCE_IDENTIFIER_UNSUPPORTED;
+ *out=(xide_reference_identifier_view){.references=view,.utf16Units=key->identifierUnits,.targetStart=key->start,.targetEnd=key->end};
+ if(view.count){const reference_item* item=referenceItemAt(&view,0);if(!item)return XIDE_REFERENCE_INVALID;out->targetSource=item->row.targetSource;out->name=(xstrview){shard->source[out->targetSource-1].text+key->start,key->end-key->start};}
+ return XIDE_REFERENCE_MATCH;
+}
+int xideSemanticReferenceShardIdentifierAt(const xide_reference_identifier_view* view,size_t index,xide_semantic_reference* out)
+{
+ if(out)*out=(xide_semantic_reference){0};
+ if(!view || !out || !view->name.Data || view->utf16Units<=0)return 0;
+ const reference_item* item=referenceItemAt(&view->references,index);if(!item)return 0;const reference_row* row=&item->row;
+ const reference_source* source=view->references.shard->source+row->source-1;
+ if(row->targetSource!=view->targetSource || row->targetStart!=view->targetStart || row->targetEnd!=view->targetEnd ||
+    view->name.Size!=row->targetEnd-row->targetStart || item->start.offset<0 || item->end.offset<item->start.offset ||
+    (size_t)item->end.offset>source->size || view->name.Size>(size_t)(item->end.offset-item->start.offset) || item->end.character<view->utf16Units)return 0;
+ size_t end=(size_t)item->end.offset,begin=end-view->name.Size;
+ if(memcmp(source->text+begin,view->name.Data,view->name.Size) || (begin && xl6LiteralIdentByte((unsigned char)source->text[begin-1])) ||
+    (end<source->size && xl6LiteralIdentByte((unsigned char)source->text[end])))return 0;
+ *out=(xide_semantic_reference){source->path,{item->end.line,item->end.character-view->utf16Units,(int)begin},item->end,row->source==row->targetSource && begin==row->targetStart && end==row->targetEnd};return 1;
 }

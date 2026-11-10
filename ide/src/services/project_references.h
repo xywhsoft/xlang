@@ -64,8 +64,9 @@ xide_reference_query* xideProjectReferencesSubmitWithProof(xide_project_referenc
  * Every returned occurrence and the declaration must be explicitly configured
  * in the whole rename membership; otherwise fail without partial locations.
  * Always include declarations and guarded source proofs. The host must query
- * EVERY ScopeAt, retain/gate configuration/input epochs, refine exact identifier
- * ranges and prove families/conflicts/post-edit bindings before editing. This
+ * EVERY ScopeAt, retain/gate configuration/input epochs and prove all
+ * families/conflicts/post-edit bindings before editing. Returned ranges are
+ * exact identifiers within the already-bound original native occurrences. This
  * operation alone is neither a rename plan nor an edit authorization. */
 xide_reference_query* xideProjectReferencesSubmitRenameScope(xide_project_references*,
  xls_context*,xide_rename_scope*,xide_rename_target*,const xls_analysis_document*,
@@ -77,8 +78,8 @@ xide_reference_query* xideProjectReferencesSubmitRenameScope(xide_project_refere
  * row/path/key/serialized-proof charge32MiB, retained serialized guard/context
  * charge128MiB, final wire7MiB. Active child work, DOM internals, allocator cost,
  * scope/target/inputs and existing caches are additional. Caller still gates
- * input/configuration/publication epochs. These are raw occurrence ranges,
- * not identifier edits or family/conflict/writability/transaction proof. */
+ * input/configuration/publication epochs. Returned identifier ranges are not
+ * family/conflict/writability/transaction proof or edit authorization. */
 xide_reference_query* xideProjectReferencesSubmitRenameWorkspace(xide_project_references*,
  xide_rename_scope*,xide_rename_target*,const xls_analysis_document*,size_t count,
  const char* trigger);

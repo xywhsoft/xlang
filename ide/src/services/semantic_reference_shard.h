@@ -32,6 +32,9 @@ xide_reference_key* xideSemanticReferenceKeyCreateAt(xls_projection_store* cache
 /* Borrow the independently owned exact declaration source and byte interval.
  * Storage/identity only: not writable-scope, freshness or rename-safety proof. */
 int xideSemanticReferenceKeyTarget(const xide_reference_key*,xide_semantic_source*,size_t* start,size_t* end);
+/* Native IDENT and UTF16 length, captured once with the immutable key. No
+ * allocation/scan on read. Lexical validity alone never authorizes rename. */
+int xideSemanticReferenceKeyIdentifier(const xide_reference_key*,xstrview* name,int* utf16Units);
 xide_reference_shard* xideSemanticReferenceShardRetain(xide_reference_shard* shard);
 void xideSemanticReferenceShardRelease(xide_reference_shard* shard);
 xide_reference_key* xideSemanticReferenceKeyRetain(xide_reference_key* key);
@@ -45,7 +48,7 @@ typedef struct xide_reference_shard_view {
  const xide_reference_shard* shard;
  size_t first,count,excluded;
 } xide_reference_shard_view;
-enum xide_reference_match { XIDE_REFERENCE_INVALID=0,XIDE_REFERENCE_MATCH=1,XIDE_REFERENCE_SOURCE_CHANGED=2 };
+enum xide_reference_match { XIDE_REFERENCE_INVALID=0,XIDE_REFERENCE_MATCH=1,XIDE_REFERENCE_SOURCE_CHANGED=2,XIDE_REFERENCE_IDENTIFIER_UNSUPPORTED=3 };
 /* Cross-owner lookup compares exact declaration source bytes before using
  * sorted occurrence rows. Missing sources/targets yield an empty MATCH; a
  * same-path source mismatch is explicitly SOURCE_CHANGED, never a name search.
@@ -59,5 +62,23 @@ enum xide_reference_match { XIDE_REFERENCE_INVALID=0,XIDE_REFERENCE_MATCH=1,XIDE
 enum xide_reference_match xideSemanticReferenceShardQuery(const xide_reference_shard* shard,
  const xide_reference_key* key,int includeDeclaration,xide_reference_shard_view* view);
 int xideSemanticReferenceShardAt(const xide_reference_shard_view* view,size_t index,xide_semantic_reference* reference);
+/* Exact identifiers within the SAME already-bound native occurrence rows.
+ * Preserve the original full-source identity and includeDeclaration rules.
+ * Qualified native name/type tokens end in the declaration's IDENT: verify
+ * the suffix bytes and both original lexer word boundaries, then subtract
+ * its cached UTF16 width from the verified native endpoint. Query retains the
+ * original source comparison and alternate-path allocation; At adds no parse,
+ * AST walk, prefix scan, allocation or semantic binding decision.
+ * A non-spelled/generated or incompatible range fails At rather than being
+ * silently omitted. The complete rename query must reject such a failure.
+ * The view borrows only the shard (not key/check/source vector); keep that
+ * shard alive and use this view unchanged after successful construction. */
+typedef struct xide_reference_identifier_view {
+ xide_reference_shard_view references;xstrview name;int utf16Units;
+ uint32_t targetSource,targetStart,targetEnd;
+} xide_reference_identifier_view;
+enum xide_reference_match xideSemanticReferenceShardIdentifiers(const xide_reference_shard*,
+ const xide_reference_key*,int includeDeclaration,xide_reference_identifier_view*);
+int xideSemanticReferenceShardIdentifierAt(const xide_reference_identifier_view*,size_t,xide_semantic_reference*);
 #endif
 #endif
