@@ -151,6 +151,7 @@ HOST_TESTS += ("rename_plan_test", "project_rename_plan_test")
 HOST_TESTS += ("semantic_binding_check_test",)
 HOST_TESTS += ("analysis_frozen_check_test",)
 HOST_TESTS += ("project_rename_recheck_test",)
+HOST_TESTS += ("analysis_report_index_test",)
 
 
 def sha(path: Path) -> str:
@@ -732,6 +733,7 @@ def main() -> None:
     "src/analysis/frontend_cancel.c", "src/analysis/frontend_ir_regions.c", "src/analysis/frontend_symbols.c", "src/analysis/text.c", "src/analysis/context.c", "src/analysis/frontend_context.c", "src/analysis/frontend_raw_body.c", "src/analysis/frontend_entry_cache.c", "src/analysis/module_store.c", "src/analysis/entity_store.c", "src/analysis/module_graph.c", "src/analysis/input_view.c", "src/analysis/input_topology.c", "src/analysis/dependency_graph.c", "src/analysis/ast_size.c", "src/analysis/ast_storage.c", "src/analysis/ast_materialize.c", "src/analysis/ast_clone.c", "src/analysis/ast_intern.c", "src/analysis/function_unit.c", "src/analysis/typed_module.c", "src/analysis/syntax.c", "src/analysis/session.c", "src/analysis/worker.c", "src/analysis/projection.c", "src/analysis/folding.c", "src/analysis/selection.c", "src/analysis/semantic.c", "src/analysis/signature.c", "src/analysis/signature_session.c", "src/analysis/check.c", "src/analysis/dispatch.c", "src/analysis/callable.c", "src/analysis/input_batch.c", "src/analysis/frontend_overlay.c", "src/analysis/check_session.c", "src/analysis/dependency_session.c", "src/analysis/completion_session.c",
     )]
     sources += [(ide / "src/analysis/frozen_inputs.c", True)]
+    sources += [(ide / "src/analysis/report_index.c", True)]
     if not args.skip_tests:
         sources += [(ide / "src/protocol/document_sync.c", True)]
         # These private fixtures include the exact generated native TUs; use
@@ -981,6 +983,7 @@ def main() -> None:
         core = output / "xlang-analysis-core.a"
         core_names = {Path(source).stem for source in FRONTEND_SOURCES} | {"runtime", "frontend_cancel", "frontend_ir_regions","frontend_symbols","frontend_entry_cache","module_store","entity_store","module_graph","input_view", "input_topology", "dependency_graph", "text", "context", "frontend_context", "frontend_raw_body", "ast_size", "ast_storage", "ast_materialize", "ast_clone", "ast_intern", "function_unit", "typed_module", "syntax", "session", "worker", "projection", "folding", "selection", "semantic", "signature", "signature_session", "check", "dispatch", "callable", "xls_native_callables", "input_batch", "frontend_overlay", "check_session", "dependency_session", "completion_session", "input_state", "diagnostic_paths"}
         core_names.add("frozen_inputs")
+        core_names.add("report_index")
         members = [target for name, target in objects.items() if name in core_names]
         members.append(objects["semantic_tokens"])
         run([str(ar), "rcs", str(core), *map(str, members)], "archive")

@@ -9,6 +9,7 @@ struct xls_frozen_inputs;
 struct XL6_SourceOverlay;
 struct XL6_SourceOverlayItem;
 struct XL6_SourceReport;
+struct xls_report_indexes;
 typedef struct xls_frontend_context_scope {
     const xls_context* context;
     struct xls_frontend_context_scope* previous;
@@ -18,6 +19,7 @@ typedef struct xls_frontend_context_scope {
     struct xls_raw_scope* rawBodies;
     const struct xls_frozen_inputs* frozen;
     const struct XL6_SourceOverlay* frozenOverlay;
+    struct xls_report_indexes* reportIndexes;
 } xls_frontend_context_scope;
 int xlsFrontendContextValid(const xls_context* context,const char* entry,char* error,size_t capacity);
 int xlsFrontendContextsEqual(const xls_context* a,const xls_context* b);
@@ -30,6 +32,8 @@ const xls_context* xlsFrontendContextCurrent(void);
 int xlsFrontendFrozenBind(const struct XL6_SourceOverlay*,const struct xls_frozen_inputs*);
 int xlsFrontendFrozenLookup(const struct XL6_SourceOverlay*,const char*,const struct XL6_SourceOverlayItem**);
 int xlsFrontendFrozenReportLookup(const struct XL6_SourceReport*,const char*,const struct XL6_SourceOverlayItem**);
+struct xls_report_indexes** xlsFrontendReportIndexSlot(void);
+void xlsFrontendReportForget(const struct XL6_SourceReport*);
 /* Actual selected compiler adapter reports support; unsupported versions reject
  * explicit choices before analysis. Initialization reads the existing TLS scope. */
 int xlsFrontendNativeSelectionAvailable(void);

@@ -8,6 +8,7 @@
 #include "platform/file_io.h"
 #include "editor/coordinates.h"
 #include "protocol/lsp_wire.h"
+#include "analysis/input_view.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -380,24 +381,34 @@ static int capturePackage(xide_language_check* q,xide_model_error* e)
 #endif
  return xideLanguageCheckPackagePath(&q->packagePath,e);
 }
+static int resolutionKeyOrder(const void* a,const void* b)
+{return xidePathNativeKeyCompare(*(wchar_t*const*)a,*(wchar_t*const*)b);}
 static int resolution(xide_language_check* q,const xvalue* value,xide_model_error* e)
 {
  int64 schema=0; bool observed=false; const xvalue* probes=get(value,"probes"),*env=get(value,"XLANG_PACKAGE_PATH");
- if(!integer(get(value,"schema"),&schema,1,1) || !formatted(get(value,"scope"),"xlang-import-resolution") || !probes || xrtValueType(probes)!=XVALUE_ARRAY || xrtValueCount(probes)>2048 || !xrtValueGetBool(get(value,"packagePathObserved"),&observed) || !env) return fail(e,"编译器未返回可验证的导入候选报告。");
+ if(!integer(get(value,"schema"),&schema,1,1) || !formatted(get(value,"scope"),"xlang-import-resolution") || !probes || xrtValueType(probes)!=XVALUE_ARRAY || xrtValueCount(probes)>XLS_RESOLUTION_PROBES || !xrtValueGetBool(get(value,"packagePathObserved"),&observed) || !env) return fail(e,"编译器未返回可验证的导入候选报告。");
  const char* package=string(env); if(!package && xrtValueType(env)!=XVALUE_NULL) return fail(e,"包路径报告无效。");
  if(!observed && package) return fail(e,"未观察的包路径报告无效。");
  if(observed && (package && q->packagePath ? strcmp(package,q->packagePath)!=0 : package!=q->packagePath)) return fail(e,"编译器包路径与本次不可变环境不一致。");
  if(!packageCurrent(q,e,"检查期间包搜索环境已变化。")) return 0;
- size_t bytes=0;
+ size_t bytes=0,count=xrtValueCount(probes),prepared=0;int okay=0;const char* message="无法准备完整的导入候选身份。";
+ if(!count)return 1;
+ wchar_t** keys=calloc(count,sizeof(*keys));if(!keys)return fail(e,message);
  for(size_t i=0;i<xrtValueCount(probes);++i) {
-  if(cancelled(q)) return 0;
+  if(cancelled(q)) goto resolutionDone;
   const xvalue* probe=xrtValueArrayGet(probes,i); const char* path=string(get(probe,"path")); bool exists=false; char* resolved=path ? xidePathResolveLexical(NULL,path) : NULL;
   int valid=resolved && absolute(path) && xidePathLexicalEqual(path,resolved) && strlen(path)<=32767 && xrtValueGetBool(get(probe,"exists"),&exists); free(resolved);
-  if(!valid || strlen(path)+1>1024u*1024u-bytes || (xrtFileExists((char*)path)!=0)!=exists) return fail(e,"导入候选的文件状态已变化或报告无效。"); 
+  if(!valid || strlen(path)+1>XLS_RESOLUTION_BYTES-bytes || (xrtFileExists((char*)path)!=0)!=exists){message="导入候选的文件状态已变化或报告无效。";goto resolutionDone;}
   bytes+=strlen(path)+1;
-  for(size_t j=0;j<i;++j) if(xidePathLexicalEqual(path,string(get(xrtValueArrayGet(probes,j),"path")))) return fail(e,"导入候选报告含重复路径。");
+  keys[prepared]=xidePathLexicalWide(path);if(!keys[prepared])goto resolutionDone;++prepared;
  }
- return 1;
+ qsort(keys,count,sizeof(*keys),resolutionKeyOrder);
+ for(size_t i=1;i<count;++i){if(cancelled(q))goto resolutionDone;if(!xidePathNativeKeyCompare(keys[i-1],keys[i])){message="导入候选报告含重复路径。";goto resolutionDone;}}
+ okay=1;
+resolutionDone:
+ for(size_t i=0;i<prepared;++i)free(keys[i]);
+ free(keys);
+ return okay?1:cancelled(q)?0:fail(e,message);
 }
 static void clearGraph(source_graph* g)
 {

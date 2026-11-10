@@ -1,5 +1,7 @@
 #ifndef XLANG_ANALYSIS_INPUT_VIEW_H
 #define XLANG_ANALYSIS_INPUT_VIEW_H
+#define XLS_RESOLUTION_PROBES 65536u
+#define XLS_RESOLUTION_BYTES (1024u*1024u)
 #include <stddef.h>
 /* Captured immutable rows shared by checks and cursor queries. Borrowed data,
  * not validation/I/O or a freshness proof. Text is UTF-8 after BOM removal,

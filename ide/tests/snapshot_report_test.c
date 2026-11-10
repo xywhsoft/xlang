@@ -155,9 +155,23 @@ static int fixtureCaptured(int cursor)
  free(q.packagePath);xrtValueRelease(valid);xrtFree(directory);xrtFree(path);xrtFree(dep);return 1;
 }
 #endif
+static int fixtureWideResolution(void)
+{
+ xvalue* raw=fixtureReport("D:/entry.xl","");CHECK(raw);
+ xvalue* report=get(raw,"resolutionReport"),*probes=get(report,"probes");
+ xide_language_check q={0};xide_model_error e={0};CHECK(xideLanguageCheckPackagePath(&q.packagePath,&e));
+ char* directory=xrtPathAbs("snapshot-wide-missing");CHECK(directory && !xrtFileExists(directory));
+ for(size_t i=0;i<4096;++i){char path[1024];snprintf(path,sizeof(path),"%s/candidate-%05zu.xl",directory,i);xvalue* probe=xrtValueObject();CHECK(probe && put(probe,"path",xrtValueString(sv(path))) && put(probe,"exists",xrtValueBool(false)) && xrtValueArrayAppend(probes,probe));xrtValueRelease(probe);}
+ CHECK(resolution(&q,report,&e));
+ xvalue* last=xrtValueArrayGet(probes,4095);CHECK(put(last,"exists",xrtValueBool(true)) && !resolution(&q,report,&e) && put(last,"exists",xrtValueBool(false)));
+ const char* first=string(get(xrtValueArrayGet(probes,0),"path"));CHECK(first && put(last,"path",xrtValueString(sv(first))) && !resolution(&q,report,&e));
+ q.cancel=1;CHECK(!resolution(&q,report,&e));q.cancel=0;
+ CHECK(put(last,"path",xrtValueString(sv("relative.xl"))) && !resolution(&q,report,&e));
+ free(q.packagePath);xrtFree(directory);xrtValueRelease(raw);return 1;
+}
 int main(void)
 {
- if(!fixtureSource("","") || !fixtureSource("func main(...) as int\n return 0\nend\n","func main(...) as int\n return 0\nend\n") ||
+ if(!fixtureWideResolution() || !fixtureSource("","") || !fixtureSource("func main(...) as int\n return 0\nend\n","func main(...) as int\n return 0\nend\n") ||
     !fixtureSource("\xef\xbb\xbf// 中文😀\r\nfunc main(...) as int\r return 0\r\nend\n","\xef\xbb\xbf// 中文😀\nfunc main(...) as int\n return 0\nend\n")) return 1;
  xstrbuf large;xrtStrBufInit(&large);
  while(large.Size<1024u*1024u) if(!xrtStrBufAppend(&large,sv("// 中文😀 unchanged source bytes\n"))) return 1;

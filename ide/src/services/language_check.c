@@ -3,6 +3,7 @@
 #include "platform/path.h"
 #include "editor/coordinates.h"
 #include "protocol/lsp_wire.h"
+#include "analysis/input_view.h"
 #include <windows.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -313,7 +314,7 @@ xvalue* xideLanguageInputGuardsPaths(const xide_language_input_guard* const* gua
  for(size_t g=0;g<count;++g) {
   if(!guards[g]) return NULL;
   size_t files=xrtValueCount(guards[g]->files),probes=xrtValueCount(get(guards[g]->resolution,"probes"));
-  if(files>512 || probes>2048) return NULL;
+  if(files>512 || probes>XLS_RESOLUTION_PROBES || files+probes>163840u-total) return NULL;
   total+=files+probes;
  }
  guard_path* paths=xrtCalloc(total+1,sizeof(*paths)); xvalue* out=NULL;

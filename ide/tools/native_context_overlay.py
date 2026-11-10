@@ -142,6 +142,7 @@ def derive(frontend: Path, output: Path) -> list[dict]:
             source = source.replace("xrtPathAbs(path)", "xlsFrontendContextAbsolute(path)")
             if current:
                 source='#include "analysis/frontend_input_usage.h"\n'+source
+                source='#include "analysis/report_index.h"\n#include "analysis/input_view.h"\n'+source
                 source='#include "src/compile/xl6_source_overlay.h"\n'+source
                 fail='static int xl6ReportFail(XL6_SourceReport* report, const char* path, const char* error)\n{'
                 if source.count(fail)!=1:raise ValueError('current report failure observer seam changed')
@@ -175,7 +176,33 @@ def derive(frontend: Path, output: Path) -> list[dict]:
                 role='    if (!ok) xl6ReportFail(report, absolute, "source path was read from different snapshots");'
                 if source.count(role)!=1:raise ValueError('frozen source-report source role seam changed')
                 source=source.replace(role,'    if (ok && item) item->kind |= XL6_SOURCE_REPORT_SOURCE;\n'+role,1)
-            seams = 10 if current else 7
+                find='static XL6_SourceReportItem* xl6ReportFind(XL6_SourceReport* report, const char* path)\n{\n    size_t i;'
+                if source.count(find)!=1:raise ValueError('native source report lookup index seam changed')
+                source=source.replace(find,find+'''
+    size_t indexed = SIZE_MAX;
+    int indexedStatus = xlsReportIndexLookup(report, path, XLS_REPORT_SOURCE, &indexed);
+    if (indexedStatus != 2) return indexedStatus == 1 ? &report->items[indexed] : NULL;''',1)
+                probe='''    for (i = 0; i < report->probeCount; ++i) {
+        int equal = xl6PathIdentityEqual(report->probes[i].path, absolute);'''
+                if source.count(probe)!=1:raise ValueError('native resolution probe lookup index seam changed')
+                source=source.replace(probe,'''    size_t indexed = SIZE_MAX;
+    int indexedStatus = xlsReportIndexLookup(report, absolute, XLS_REPORT_PROBE, &indexed);
+    if (indexedStatus == 1) { exists = report->probes[indexed].exists; xrtFree(absolute); return exists; }
+    if (indexedStatus == 0) goto xlsProbeAppend;
+'''+probe,1)
+                charge='    size = strlen(absolute) + 1;'
+                if source.count(charge)!=1:raise ValueError('native resolution probe append seam changed')
+                source=source.replace(charge,'xlsProbeAppend:\n'+charge,1)
+                limit='report->probeCount >= 2048u'
+                if source.count(limit)!=1:raise ValueError('native resolution probe limit seam changed')
+                source=source.replace(limit,'report->probeCount >= XLS_RESOLUTION_PROBES',1)
+                init='    if (report) { memset(report, 0, sizeof(*report)); report->complete = 1; }'
+                if source.count(init)!=1:raise ValueError('native report initialization seam changed')
+                source=source.replace(init,init.replace('{ memset','{ xlsFrontendReportForget(report); memset'),1)
+                free='    if (!report) return;'
+                if source.count(free)!=1:raise ValueError('native report destruction seam changed')
+                source=source.replace(free,free+'\n    xlsFrontendReportForget(report);',1)
+            seams = 16 if current else 7
         elif original.stem == "xl6_package":
             if native_selection:
                 variant=frontend/'src/package/xl6_package_native_variants.inc'

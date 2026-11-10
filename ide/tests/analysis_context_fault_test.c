@@ -39,6 +39,8 @@ static bool fixtureArrayPush(xarray* array,const void* value) {return fixtureOp(
 #define xlsFrontendFrozenBind privateFrozenBind
 #define xlsFrontendFrozenLookup privateFrozenLookup
 #define xlsFrontendFrozenReportLookup privateFrozenReportLookup
+#define xlsFrontendReportIndexSlot privateReportIndexSlot
+#define xlsFrontendReportForget privateReportForget
 #include "analysis/frontend_context.c"
 static unsigned checks;
 #define CHECK(call) do {++checks;if(!(call)){fprintf(stderr,"analysis_context_fault_test:%d: %s\n",__LINE__,#call);return 1;}}while(0)

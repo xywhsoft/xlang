@@ -1,12 +1,17 @@
 #include "analysis/frontend_context.h"
 #include "analysis/frontend_completion_pool.h"
 #include "analysis/frozen_inputs.h"
+#include "analysis/report_index.h"
 #include "src/compile/xl6_source_overlay.h"
 #include <xrt.h>
 #include <stdio.h>
 #include <string.h>
 
 static _Thread_local xls_frontend_context_scope* current;
+struct xls_report_indexes** xlsFrontendReportIndexSlot(void)
+{return current?&current->reportIndexes:NULL;}
+void xlsFrontendReportForget(const struct XL6_SourceReport* report)
+{for(xls_frontend_context_scope* scope=current;scope;scope=scope->previous)xlsReportIndexesForget(scope->reportIndexes,report);}
 int xlsFrontendFrozenBind(const struct XL6_SourceOverlay* overlay,const xls_frozen_inputs* inputs)
 {if(!current || !overlay || !inputs || current->frozen)return 0;current->frozen=inputs;current->frozenOverlay=overlay;return 1;}
 int xlsFrontendFrozenLookup(const struct XL6_SourceOverlay* overlay,const char* path,const struct XL6_SourceOverlayItem** item)
@@ -51,6 +56,7 @@ int xlsFrontendContextEnd(xls_frontend_context_scope* scope)
     if(scope->completionPool)xlsCompletionPoolAbort(&scope->completionPool);
     namespace_names* names=scope->namespaceNames;
     if(names) { xrtMapUnit(&names->entries); xrtFree(names); }
+    xlsReportIndexesDestroy(scope->reportIndexes);scope->reportIndexes=NULL;
     scope->namespaceNames=NULL; current=scope->previous; return okay;
 }
 const xls_context* xlsFrontendContextCurrent(void) { return current ? current->context : NULL; }

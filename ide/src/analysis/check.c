@@ -38,6 +38,7 @@ struct xls_semantic_check {
     XL6_SourceOverlay overlay;
     xls_input_batch* inputOwner;
     xls_frozen_inputs* frozen;
+    xls_report_index_work reportIndexWork;
     XL6_IrModule ir;
     xls_ir_result* cachedIr;
     xls_typed_module* typedModule;
@@ -278,6 +279,7 @@ static xls_semantic_check* createConfiguredInContext(xls_context* context,xls_en
 {
     int retried=0;
     xls_ast_materialize_work totalMaterialization={0};
+    xls_report_index_work totalReportWork={0};
     for(int attempt=0;attempt<2;++attempt){
     if(!xlsFrontendContextValid(context,entry,error,capacity)) return NULL;
     xls_frontend_context_scope scope; xlsFrontendContextBegin(&scope,context);
@@ -307,6 +309,12 @@ static xls_semantic_check* createConfiguredInContext(xls_context* context,xls_en
     if((result || retry) && stopped(cancelled,user)) {xlsSemanticCheckDestroy(result);result=NULL;retry=0;fail(error,capacity,"semantic check cancelled");}
     xlsFrontendCancelEnd(&cancellation,NULL);
     xlsRawBodyScopeEnd(&raw);
+    xls_report_index_work reportWork={0};xlsReportIndexesWork(scope.reportIndexes,&reportWork);
+#define XLS_REPORT_ADD(field) totalReportWork.field+=reportWork.field
+    XLS_REPORT_ADD(lookups);XLS_REPORT_ADD(indexed);XLS_REPORT_ADD(comparisons);
+    XLS_REPORT_ADD(preparedRows);XLS_REPORT_ADD(declines);
+#undef XLS_REPORT_ADD
+    if(reportWork.peakBytes>totalReportWork.peakBytes)totalReportWork.peakBytes=reportWork.peakBytes;
     int scoped=xlsFrontendContextEnd(&scope);
     xls_entry_parse_work work=xlsFrontendEntryEnd(&entryScope,result && scoped);
     xls_ast_materialize_work materializationWork;xlsAstMaterializeEnd(&materialization,&materializationWork);
@@ -317,7 +325,7 @@ static xls_semantic_check* createConfiguredInContext(xls_context* context,xls_en
     if(!scoped) {
         xlsSemanticCheckDestroy(result); fail(error,capacity,(scope.failed&2) ? "cannot retain bounded completion namespace" : "cannot resolve native context path or package environment"); return NULL;
     }
-    if(result) {result->entryWork=work;result->moduleWork=entryScope.moduleWork;result->moduleSyntaxWork=entryScope.moduleSyntaxWork;result->materializationWork=totalMaterialization;result->usedInputs=used;result->usageKnown=known && result->report.complete && result->report.count && result->overlay.count==count;}
+    if(result) {result->reportIndexWork=totalReportWork;result->entryWork=work;result->moduleWork=entryScope.moduleWork;result->moduleSyntaxWork=entryScope.moduleSyntaxWork;result->materializationWork=totalMaterialization;result->usedInputs=used;result->usageKnown=known && result->report.complete && result->report.count && result->overlay.count==count;}
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
     if(result)result->nativeWork.retries=retried;
 #endif
@@ -492,6 +500,8 @@ xls_check_info xlsSemanticCheckInfo(const xls_semantic_check* r)
         r->parse.diags.count,ir->types.count,ir->nodeCount,r->accepted && !stale,
         r->typedIndex && r->accepted && !stale};
 }
+xls_report_index_work xlsSemanticCheckReportIndexWork(const xls_semantic_check* r)
+{return r?r->reportIndexWork:(xls_report_index_work){0};}
 int xlsSemanticCheckDiagnostic(const xls_semantic_check* r,size_t index,xls_check_diagnostic* out)
 {
     if(!r || invalid(r) || !out || index>=r->parse.diags.count) return 0;

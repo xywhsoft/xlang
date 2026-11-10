@@ -4,6 +4,7 @@
 #include "analysis/index.h"
 #include "analysis/context.h"
 #include "analysis/text.h"
+#include "analysis/report_index.h"
 
 typedef struct xls_semantic_check xls_semantic_check;
 #define XLS_CHECK_REPORT_BYTES (36u * 1024u * 1024u)
@@ -74,6 +75,9 @@ xls_semantic_check* xlsSemanticCheckCreateInContext(xls_context* context,const c
     const xls_semantic_input* inputs,size_t count,int captureIndex,
     int (*cancelled)(void*),void* user,char* error,size_t capacity);
 const xls_context* xlsSemanticCheckContext(const xls_semantic_check* result);
+/* Work from the producing native check call, not a subsequent cache lookup.
+ * Optional source/probe lookup index only; known owned payload, not RSS. */
+xls_report_index_work xlsSemanticCheckReportIndexWork(const xls_semantic_check* result);
 /* Demand-only complete hypothetical recheck, using the SAME original parser,
  * import/stdlib resolution, semantic/index and typed-IR passes. Own1..512
  * immutable overlays, original source-report8MiB/file and64MiB total text;128MiB

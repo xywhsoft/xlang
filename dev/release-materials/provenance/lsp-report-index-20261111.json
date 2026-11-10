@@ -1,0 +1,235 @@
+{
+  "schema": 1,
+  "date": "2026-11-11",
+  "stage": "M7b4p",
+  "scope": "Optional XRT AVL native source/probe report indexing, bounded65536-probe tracking and host prepared duplicate validation",
+  "stageAccepted": true,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "b38e9a0313aa4cf26e1a2b1564bcd87070495e13",
+  "ownedSources": {
+    "ide/docs/lsp-rename-native-recheck.md": "c5c0a19cbd089031b5828e582774fed34a75d0b333c69eed03c6c4106ce7e979",
+    "ide/docs/lsp-resolution-report-index.md": "f36177812826f070a0cd6aece1729b7fee1c6a246c2123e3884354d318ca8aab",
+    "ide/src/analysis/check.c": "25ebfdd5cbe2edcd7bbc96a0a7cc1d49895a06af2fd7d3d444934e1c135fcbfc",
+    "ide/src/analysis/check.h": "61d28d3e61cd101789108a3862e7184f373fc73b970d908b3e71b139848141c9",
+    "ide/src/analysis/frontend_context.c": "4ed4aecbe6853e0873a32942c9e4b6ee0aaed200dbf747a6f942f520f1b4f3b9",
+    "ide/src/analysis/frontend_context.h": "52eb0e3c3f99d5e61c23b600ab793ee524bd2756f10bee6802246a8ba5efd206",
+    "ide/src/analysis/input_view.h": "177056a5888932d53b99a41efe4caac59706851e8da2f7f13c2867a6ab8c965d",
+    "ide/src/analysis/report_index.c": "b688eaeb0376f7cee01155513a8270ff3180732fbbcd3fde6be14d8b4c4e2a18",
+    "ide/src/analysis/report_index.h": "70edb359a2c5829c850d612b62f043f3966dcac79492a0e52e7922e4397f3db7",
+    "ide/src/services/language_check.c": "7826734431844cba2b7edbc523aef4037a75c7c87ed681afd6dd45145c37387a",
+    "ide/src/services/language_snapshot.c": "735adcf5a3fea22af1e0c25b6425b6d613306bc3a21b60ae617ae14ea3fedf55",
+    "ide/tests/analysis_context_fault_test.c": "980c7867d6ac0c04560e68a64492e9d1d16eba6b16a8e7aa63d77a7abc321f30",
+    "ide/tests/analysis_frozen_check_test.c": "ca99022f21e3118de234c05e800e04770a1ae74fe13ba7760fcd65dad7260c35",
+    "ide/tests/analysis_report_index_test.c": "0df69e3fa220457f2d81e80f87bc0d3843cf0e6f1c1bc2692f58b66d6ba0f450",
+    "ide/tests/snapshot_report_test.c": "570185253110087b1e3078d9397f3be1da20d1d4fd688f27806491e07bb67783",
+    "ide/tools/build_lsp_core.py": "0b019e70add7890fd15e385f569043709591113ae61f709f56c5af5abad62b6c",
+    "ide/tools/native_context_overlay.py": "60bef88689972cda847b2f08de99972460723474cda6a7a7ff1ba6398e3c151f"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-report-index-20261111.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-report-index-20261111/stage-sources.tar.gz",
+      "sha256": "0ee105f62715e54a5de345712a9d5002d6ae270fe092677a82d13988e77acd32",
+      "bytes": 112994,
+      "entries": 18,
+      "uniquePayloads": 18,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-report-index-20261111/stage-sources.tar.gz.manifest.json",
+      "sha256": "835452252ab4e115983881c57730f32655fc7373eed72dbfc48f8d9c8b2ddee3",
+      "bytes": 4170
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-report-index-20261111/actual-builds-and-validation.tar.gz",
+      "sha256": "2d785d15ec3e1303484c48801aeb1942655c8e2938408575524c04a1c156a6c5",
+      "bytes": 1570604443,
+      "entries": 16866,
+      "uniquePayloads": 4793,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-report-index-20261111/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "eaa75047ae8dec1e321e0db6519d86f139f1cda0498eb1cf075061e9f1511662",
+      "bytes": 5553716
+    }
+  },
+  "candidate": {
+    "serverSha256": "73bada5a8586857f9a58bf3dceac74ae1e5a2b6542e51d68729f3849499cf9e5",
+    "guiSha256": "d60bea60be358112447c1d09af2bf53ca9de73ab2e37a75db3d2e0ed3f4c27e5",
+    "sdkDllSha256": "216c1f98f4d55cc5dff9c7d98425edbb08d470cdfc6b26ef4ad962af3431f560",
+    "guiObjects": 116,
+    "actualNativeConsumers": 300,
+    "nativePrograms": 187
+  },
+  "validation": {
+    "nativeFixtures": 186,
+    "protocolSuites": 12,
+    "guiFixtures": 29,
+    "indexAssertions": 37278,
+    "frozenInputAssertions": 9394,
+    "snapshotAssertions": 4508,
+    "wideGuardAssertions": 1031,
+    "actualImplementationMutantsRejected": 3,
+    "actual512NamedAndExplicitSourceChecks": true,
+    "originalNativePathAndFirstRowOracle": true,
+    "optionalAllocationKeyComparatorQuotaFallbacks": true,
+    "nestedInitForgetsOuterScopes": true,
+    "originalResolverAndParserReused": true,
+    "actual512Source3577ProbeHostGuard": true,
+    "global163840GuardBudgetRetained": true,
+    "sourceAndHeaderClosuresAndAllLinksChecked": true,
+    "contextAdapterReproducedByteForByte": true,
+    "currentWorkspaceCheckTranslationUnit": true,
+    "ordinary64OverlayAndNativeReportAbiUnchanged": true,
+    "standardRenameEnabled": false,
+    "wholePerformanceAdmissionRun": false,
+    "formalBenchmarkIsScoped": true
+  },
+  "performance": [
+    {
+      "sources": 1,
+      "probes": 0,
+      "originalMedianMs": 1.2755,
+      "candidateMedianMs": 1.3761999999999999,
+      "speedup": 0.926827496003488,
+      "index": {
+        "lookups": 0,
+        "indexed": 0,
+        "comparisons": 0,
+        "preparedRows": 0,
+        "declines": 0,
+        "peakBytes": 0
+      },
+      "productSha256": "6f129d21530fb8034a64954ffc518320f8c9518d133d3541ab56e0da37af162c"
+    },
+    {
+      "sources": 8,
+      "probes": 49,
+      "originalMedianMs": 4.70975,
+      "candidateMedianMs": 4.5595,
+      "speedup": 1.0329531746902072,
+      "index": {
+        "lookups": 0,
+        "indexed": 0,
+        "comparisons": 0,
+        "preparedRows": 0,
+        "declines": 0,
+        "peakBytes": 0
+      },
+      "productSha256": "e4d2502fbfbd57227fa89d73ea1da55304f54222bafe116326ca994f499e92c4"
+    },
+    {
+      "sources": 16,
+      "probes": 105,
+      "originalMedianMs": 8.6406,
+      "candidateMedianMs": 8.770399999999999,
+      "speedup": 0.9852002189181794,
+      "index": {
+        "lookups": 0,
+        "indexed": 0,
+        "comparisons": 0,
+        "preparedRows": 0,
+        "declines": 0,
+        "peakBytes": 0
+      },
+      "productSha256": "0524bad637f9ebb6d204fb61b933f75ad9dc53735baa7a0202fce2f17d3b5c14"
+    },
+    {
+      "sources": 24,
+      "probes": 161,
+      "originalMedianMs": 13.3508,
+      "candidateMedianMs": 12.758700000000001,
+      "speedup": 1.0464075493584768,
+      "index": {
+        "lookups": 38,
+        "indexed": 38,
+        "comparisons": 2435,
+        "preparedRows": 184,
+        "declines": 0,
+        "peakBytes": 31208
+      },
+      "productSha256": "86eee47f8b550a6070c1391e8fd77fbdc95a3960a98b59d1c12a1b574a378151"
+    },
+    {
+      "sources": 32,
+      "probes": 217,
+      "originalMedianMs": 18.4132,
+      "candidateMedianMs": 15.91795,
+      "speedup": 1.1567569944622267,
+      "index": {
+        "lookups": 102,
+        "indexed": 102,
+        "comparisons": 3910,
+        "preparedRows": 248,
+        "declines": 0,
+        "peakBytes": 41928
+      },
+      "productSha256": "580aaf1aad8257103741dfbd35ea7c6afeb77d8e79ed0c4b12573ee06bef7cd4"
+    },
+    {
+      "sources": 128,
+      "probes": 889,
+      "originalMedianMs": 130.1076,
+      "candidateMedianMs": 60.8743,
+      "speedup": 2.137315747367937,
+      "index": {
+        "lookups": 870,
+        "indexed": 870,
+        "comparisons": 25083,
+        "preparedRows": 1016,
+        "declines": 0,
+        "peakBytes": 171078
+      },
+      "productSha256": "c65cd0da9a5dce353fbf40111732b26e8d5b96316101471aced42d52cff469b3"
+    },
+    {
+      "sources": 256,
+      "probes": 1785,
+      "originalMedianMs": 422.774,
+      "candidateMedianMs": 137.5911,
+      "speedup": 3.072684207045368,
+      "index": {
+        "lookups": 1894,
+        "indexed": 1894,
+        "comparisons": 57353,
+        "preparedRows": 2040,
+        "declines": 0,
+        "peakBytes": 343110
+      },
+      "productSha256": "0d31e6f5c26f36391d752f8c6f0dbcc1b9717162a95a4dfec510c84b67ac4051"
+    },
+    {
+      "sources": 512,
+      "probes": 3577,
+      "originalMedianMs": 1514.5356,
+      "candidateMedianMs": 300.2092,
+      "speedup": 5.044933999357781,
+      "index": {
+        "lookups": 3942,
+        "indexed": 3942,
+        "comparisons": 127847,
+        "preparedRows": 4088,
+        "declines": 0,
+        "peakBytes": 687174
+      },
+      "productSha256": "114154c93ba8ef4cb8a38fa1d7f99725b7b27cd5af7f91904b5ff25061a69de4"
+    }
+  ],
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "knownMissing": [
+    "current-engine cohort alignment and whole-goal responsiveness/memory/large-workspace/soak/final admission",
+    "remaining applicable LSP; complete generic/unbound/generated/foreign rename coverage and writable/physical-alias policy",
+    "standard prepareRename/rename plus IDE versioned atomic edit transactions",
+    "streaming source sharing and ordinary64-overlay generalization"
+  ]
+}

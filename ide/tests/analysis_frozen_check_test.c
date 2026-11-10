@@ -70,26 +70,14 @@ static int inputOwner(const char* dir)
 typedef struct frozen_read {xls_semantic_check* check;const char* path;int okay;} frozen_read;
 static int32 readFrozen(void* p)
 {frozen_read* r=p;r->okay=1;for(size_t i=0;i<3;++i){xls_check_inputs inputs;if(!xlsSemanticCheckValidate(r->check) || !xlsSemanticCheckInputs(r->check,&inputs) || inputs.sources<65)r->okay=0;}xlsSemanticCheckDestroy(r->check);return 0;}
-static int wideNative(const char* dir,size_t count)
+static int wideNative(const char* dir,size_t count,int explicitPaths)
 {
  xls_semantic_input* in=xrtCalloc(count,sizeof(*in));CHECK(in);char* main=xrtMalloc(count*64+256);CHECK(main);size_t used=0;
- for(size_t i=1;i<count;++i)used+=(size_t)sprintf(main+used,"import dep%03zu\r\n",i);
+ for(size_t i=1;i<count;++i){if(explicitPaths)used+=(size_t)sprintf(main+used,"import \"./dep%03zu.xl\" as dep%03zu\r\n",i,i);else used+=(size_t)sprintf(main+used,"import dep%03zu\r\n",i);}
  used+=(size_t)sprintf(main+used,"func main(...) as int\r\n return dep001.value()+dep%03zu.value()\r\nend\r\n",count-1);
  for(size_t i=0;i<count;++i){char name[64];snprintf(name,sizeof(name),i?"dep%03zu.xl":"main%03zu.xl",i);char* path=xrtPathJoin(dir,name);char* text=xrtStrDup(i?"\xef\xbb\xbf" "export func value() as int\r\n return 1\r\nend\r\n":main);CHECK(path && text);in[i]=(xls_semantic_input){path,text,strlen(text)};CHECK(writeFrozen(path,i?"invalid disk fallback(":"invalid disk main("));}
  xls_context_spec spec={.kind=XLS_CONTEXT_XLANG,.entry=in[0].path,.directory=dir,.analysisProfile="xlang-ls/compiler-xrt-v1",.targetKind="exe"};xls_context* context=xlsContextCreate(&spec,16u*1024u*1024u,NULL);CHECK(context);
  char error[512];CHECK(!xlsSemanticCheckCreateInContext(context,in[0].path,in,count,1,NULL,NULL,error,sizeof(error)));
- if(count==512){
-  /* Existing native resolution reporting also has a2048-candidate limit.
-   * Keep evidence for the many-unqualified-import failure; do not claim the
-   * source-bank capacity removes the resolver's independent bound. */
-  CHECK(!xlsSemanticCheckCreateFrozenInContext(context,in[0].path,in,count,1,NULL,NULL,error,sizeof(error)) && strstr(error,"import candidate report limit"));
-  for(size_t i=0;i<count;++i)CHECK(writeFrozen(in[i].path,in[i].text));
-  CHECK(!xlsSemanticCheckCreateInContext(context,in[0].path,NULL,0,1,NULL,NULL,error,sizeof(error)) && strstr(error,"import candidate report limit"));
-  used=0;for(size_t i=1;i<count;++i)used+=(size_t)sprintf(main+used,"import \"./dep%03zu.xl\" as dep%03zu\r\n",i,i);
-  used+=(size_t)sprintf(main+used,"func main(...) as int\r\n return dep001.value()+dep%03zu.value()\r\nend\r\n",count-1);
-  xrtFree((void*)in[0].text);in[0].text=xrtStrDup(main);CHECK(in[0].text);in[0].size=strlen(in[0].text);
-  for(size_t i=0;i<count;++i)CHECK(writeFrozen(in[i].path,"invalid disk fallback("));
- }
  xls_semantic_check* check=xlsSemanticCheckCreateFrozenInContext(context,in[0].path,in,count,1,NULL,NULL,error,sizeof(error));if(!check)fprintf(stderr,"frozen native: %s\n",error);CHECK(check);
  xls_check_info ci=xlsSemanticCheckInfo(check);if(!ci.accepted)for(size_t i=0;i<ci.diagnostics;++i){xls_check_diagnostic d;xlsSemanticCheckDiagnostic(check,i,&d);fprintf(stderr,"%s:%d %s\n",d.path,d.line,d.message);}CHECK(ci.accepted && ci.hasIndex);
  xls_check_inputs inputs;CHECK(xlsSemanticCheckInputs(check,&inputs) && inputs.sources==count);uint64_t mask=UINT64_MAX;CHECK(!xlsSemanticCheckInputUsage(check,&mask) && !mask && !xlsSemanticCheckTopology(check));
@@ -121,6 +109,6 @@ static int wideNative(const char* dir,size_t count)
 }
 int main(void)
 {
- char* dir=xrtPathAbs("build/frozen-inputs");if(!dir || !xrtDirCreateAll(dir) || !inputOwner(dir) || !wideNative(dir,130) || !wideNative(dir,512))return 1;xrtFree(dir);
+ char* dir=xrtPathAbs("build/frozen-inputs");if(!dir || !xrtDirCreateAll(dir) || !inputOwner(dir) || !wideNative(dir,130,0) || !wideNative(dir,512,0) || !wideNative(dir,512,1))return 1;xrtFree(dir);
  printf("analysis_frozen_check_test passed: %u checks; actual130/512-file hypothetical native checks and rename binding comparison, original disk-index oracle, Unicode/BOM/CRLF, source ownership, original64-overlay refusal, no truncated usage/topology, faults/cancellation and detached readers\n",checks);return 0;
 }
