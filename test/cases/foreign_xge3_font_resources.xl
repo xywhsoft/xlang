@@ -1,0 +1,135 @@
+// Generated valid font input, supplied by the acceptance tool; no OS font,
+// display, audio device, network or malformed-font fuzzing is required.
+import xge
+extern "fixtureXgeFontPath" @header("test/cases/foreign_xge3_font_resources.h") func fixturePath() as string
+extern "fixtureXgeFontTemp" @header("test/cases/foreign_xge3_font_resources.h") func fixtureTemp() as string
+extern "fixtureXgeFontHotBegin" @header("test/cases/foreign_xge3_font_resources.h") @no_raise func hotBegin() as c_int
+extern "fixtureXgeFontHotEnd" @header("test/cases/foreign_xge3_font_resources.h") @no_raise func hotEnd() as c_int
+func checkDrawing(string path)
+ auto context=xge.createEglContext(64,64,true)
+ auto face=xge.loadFontFace(path)
+ auto font=face.createFont(c_float(20))
+ face.close()
+ auto target=xge.createRenderTarget(64,64)
+ auto pass=xge.createPass(target,c_uint(xge.XGE_PASS_CLEAR_COLOR),xge.colorRGBA(0,0,0,255))
+ pass.begin()
+ auto rectangle=xge.Rect()
+ rectangle.fX=c_float(4)
+ rectangle.fY=c_float(4)
+ rectangle.fW=c_float(56)
+ rectangle.fH=c_float(24)
+ font.drawTextRect("AV",rectangle,xge.colorRGBA(255,255,255,255))
+ font.clearCache()
+ font.drawText("ffi",c_float(4),c_float(48),xge.colorRGBA(255,255,255,255))
+ font.close()
+ pass.finish()
+ auto pixels=Buffer()
+ assert pixels.resize(64*64*4)
+ target.readPixels(pixels)
+ int painted=0
+ for i in range(64*64)
+  if pixels.__item__(i*4)!=uint8(0) or pixels.__item__(i*4+1)!=uint8(0) or pixels.__item__(i*4+2)!=uint8(0) then
+   painted+=1
+  end
+ end
+ assert painted>20 and painted<64*64
+ pass.close()
+ target.close()
+ context.close()
+ assert xge.graphicsResourceCount()==uint64(0)
+ println("font queued GPU rendering passed: ",painted)
+end
+func main(...) as int
+ string path=fixturePath()
+ assert path.length>0
+ xge.init(4,4,"Font CPU acceptance",0,xge.XGE_RUN_MANUAL)
+ auto face=xge.loadFontFace(path)
+ auto info=face.info()
+ assert info.iWeight==c_int(400) and info.iStretch==c_int(100)
+ auto data=file.readBytes(path)
+ auto fromBytes=xge.loadFontFace(data)
+ assert fromBytes.info().iSourceHash==info.iSourceHash
+ fromBytes.close()
+ auto buffer=Buffer(data)
+ auto fromBuffer=xge.loadFontFace(buffer)
+ assert fromBuffer.info().iSourceHash==info.iSourceHash
+ fromBuffer.close()
+ auto memoryFont=xge.loadFontMemory(buffer,c_float(20))
+ assert memoryFont.metrics().fPixelSize==c_float(20)
+ memoryFont.close()
+ auto family=xge.createFontFamily()
+ family.addFace(face)
+ family.addFace(face)
+ face.close()
+ auto resolved=family.resolve()
+ assert resolved.info().iSourceHash==info.iSourceHash
+ family.close()
+ auto font=resolved.createFont(c_float(20))
+ resolved.close()
+ assert font.metrics().fPixelSize==c_float(20)
+ auto glyph=font.glyph(c_uint(65))
+ assert glyph.iGlyph>c_int(0) and glyph.fAdvanceX>c_float(0)
+ assert font.glyphByIndex(glyph.iGlyph).fAdvanceX==glyph.fAdvanceX
+ auto measured=font.measureText("AV")
+ assert measured.fX>c_float(0)
+ assert hotBegin()==c_int(1)
+ for i in range(1000)
+  assert font.metrics().fPixelSize==c_float(20)
+  assert font.glyphByIndex(glyph.iGlyph).fAdvanceX>c_float(0)
+ end
+ assert hotEnd()==c_int(1)
+ println("font hot query allocations: 0")
+ auto atlas=font.atlasGlyph(c_uint(65))
+ assert atlas.iWidth>c_int(0) and atlas.iHeight>c_int(0)
+ assert font.cacheStats().iGlyphCount>c_uint(0)
+ assert font.atlasGlyphByIndex(glyph.iGlyph).iWidth==atlas.iWidth
+ font.clearCache()
+ assert font.cacheStats().iGlyphCount==c_uint(0)
+ int refused=0
+ try
+  auto invalid=font.glyphByIndex(c_int(-1))
+ catch Error error
+  refused+=1
+ end
+ auto empty=xge.createFontFamily()
+ try
+  auto missing=empty.resolve()
+ catch Error error
+  refused+=1
+ end
+ empty.close()
+ assert refused==2
+ string temp=fixtureTemp()
+ font.saveXRF(temp,c_uint(65),c_uint(2))
+ auto bitmap=xge.loadFontXRF(temp)
+ auto bitmapBytes=xge.loadFontXRF(file.readBytes(temp))
+ auto bitmapBuffer=xge.loadFontXRF(Buffer(file.readBytes(temp)))
+ assert bitmap.metrics().fLineHeight==bitmapBytes.metrics().fLineHeight
+ assert bitmapBuffer.metrics().fLineHeight==bitmapBytes.metrics().fLineHeight
+ bitmap.close()
+ bitmapBytes.close()
+ bitmapBuffer.close()
+ auto cached=xge.loadFontCached(path,temp+"-cached",c_float(20),c_uint(65),c_uint(2))
+ assert cached.metrics().fPixelSize==c_float(20)
+ cached.close()
+ xge.fontFallbackSet(path,c_float(20))
+ auto fallback=xge.fontFallbackGet(c_float(22))
+ xge.fontFallbackClear()
+ assert fallback.metrics().fPixelSize==c_float(22)
+ fallback.close()
+ xge.fontFallbackSetMemory(buffer,c_float(20))
+ auto memoryFallback=xge.fontFallbackGet(c_float(20))
+ assert memoryFallback.metrics().fPixelSize==c_float(20)
+ memoryFallback.close()
+ xge.fontFallbackClear()
+ auto sized=font.sized(c_float(24))
+ font.close()
+ assert sized.metrics().fPixelSize==c_float(24)
+ sized.close()
+ assert xge.graphicsResourceCount()==uint64(0)
+ if xge.eglCapsGet().bCompiled!=c_int(0) then
+  checkDrawing(path)
+ end
+ xge.unit()
+ return 0
+end

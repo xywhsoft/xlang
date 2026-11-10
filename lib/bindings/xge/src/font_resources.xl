@@ -1,0 +1,29 @@
+// Faces own their copied font data. A Family and each resolved Face hold
+// independent native refs; closing one view cannot invalidate another owner.
+export extern "xge_font_face" class FontFace @header("xge3_font_resources.h") @lifetime("owned") @policy("xl6Xge3FontFacePolicy")
+ native point handle
+ extern "xgeFontFaceGetInfo" @no_raise @c_output(1,0) @c_output_size(1,"iSize") func info() as FontFaceInfo
+ extern "xgeFontCreateOwned" @no_raise @c_result("owned_view") @factory(0,0,freeFont) @c_pack(2,"xge_font_instance_desc_t",0,2) @c_pack_size(2,"iSize","uint32_t") @c_pack_field(2,"fPixelSize",0,"value") @c_pack_field(2,"iFlags",1,"value") func createFont(c_float size,c_uint flags=0) as Font
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+export extern "xge_font_family" class FontFamily @header("xge3_font_resources.h") @lifetime("owned") @policy("xl6Xge3FontFamilyPolicy")
+ native point handle
+ extern "xgeFontFamilyAddFace" @no_raise @c_result("status",0) func addFace(FontFace face)
+ // Stretch is a percentage, matching XGE_FONT_STRETCH_NORMAL=100.
+ extern "xgeFontFamilyResolveEx" @no_raise @c_result("owned_view") @factory(4,0,freeFontFace) func resolve(c_int weight=400,c_int stretch=100,c_int slant=0) as FontFace
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xgeFontFaceFree" @header("xge3_font_resources.h") @no_raise func freeFontFace(FontFace value)
+extern "xgeFontFamilyFree" @header("xge3_font_resources.h") @no_raise func freeFontFamily(FontFamily value)
+export extern "xgeFontFamilyCreate" @header("xge3_font_resources.h") @no_raise @c_result("owned_view") @factory(0,0,freeFontFamily) func createFontFamily() as FontFamily
+export extern "xgeFontFaceLoad" @header("xge3_font_resources.h") @no_raise @c_cstr(0) @c_result("owned_view") @factory(0,0,freeFontFace) @c_pack(2,"xge_font_face_desc_t",1,2) @c_pack_size(2,"iSize","uint32_t") @c_pack_field(2,"iFaceIndex",1,"value") @c_pack_field(2,"iFlags",2,"value") func loadFontFace(string path,c_int faceIndex=0,c_uint flags=0) as FontFace
+export extern "xgeFontFaceLoadMemory" @header("xge3_font_resources.h") @no_raise @c_span(0,"const void*","int") @c_result("owned_view") @factory(0,0,freeFontFace) @c_pack(3,"xge_font_face_desc_t",1,2) @c_pack_size(3,"iSize","uint32_t") @c_pack_field(3,"iFaceIndex",1,"value") @c_pack_field(3,"iFlags",2,"value") func loadFontFace(bytes data,c_int faceIndex=0,c_uint flags=0) as FontFace
+export extern "xgeFontFaceLoadMemory" @header("xge3_font_resources.h") @no_raise @c_span(0,"const void*","int") @c_result("owned_view") @factory(0,0,freeFontFace) @c_pack(3,"xge_font_face_desc_t",1,2) @c_pack_size(3,"iSize","uint32_t") @c_pack_field(3,"iFaceIndex",1,"value") @c_pack_field(3,"iFlags",2,"value") func loadFontFace(Buffer data,c_int faceIndex=0,c_uint flags=0) as FontFace
+export extern "xgeFontLoadXRFOwned" @header("xge3_font_resources.h") @no_raise @c_cstr(0) @c_result("owned_view") @factory(0,0,freeFont) func loadFontXRF(string path) as Font
+export extern "xgeFontLoadXRFMemoryOwned" @header("xge3_font_resources.h") @no_raise @c_span(0,"const void*","int") @c_result("owned_view") @factory(0,0,freeFont) func loadFontXRF(bytes data) as Font
+export extern "xgeFontLoadXRFMemoryOwned" @header("xge3_font_resources.h") @no_raise @c_span(0,"const void*","int") @c_result("owned_view") @factory(0,0,freeFont) func loadFontXRF(Buffer data) as Font
+export extern "xgeFontLoadCachedOwned" @header("xge3_font_resources.h") @no_raise @c_cstr(0) @c_cstr(1) @c_result("owned_view") @factory(0,0,freeFont) func loadFontCached(string ttfPath,string xrfPath,c_float size,c_uint firstCodepoint,c_uint count) as Font
+export extern "xgeFontFallbackGetOwned" @header("xge3_font_resources.h") @no_raise @c_result("owned_view") @factory(0,0,freeFont) func fontFallbackGet(c_float size,c_uint flags=0) as Font
+export extern "xgeFontFallbackSet" @header("xge3_font_resources.h") @no_raise @c_cstr(0) @c_result("status",0) func fontFallbackSet(string path,c_float size)
+export extern "xgeFontFallbackSetMemory" @header("xge3_font_resources.h") @no_raise @c_span(0,"const void*","int") @c_result("status",0) func fontFallbackSetMemory(bytes data,c_float size)
+export extern "xgeFontFallbackSetMemory" @header("xge3_font_resources.h") @no_raise @c_span(0,"const void*","int") @c_result("status",0) func fontFallbackSetMemory(Buffer data,c_float size)

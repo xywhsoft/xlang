@@ -44,6 +44,13 @@ treating it as fully qualified. The normal runtime/IDE has not been replaced.
 
 ## Example resources
 
+`examples/font_faces.xl` uses the bundled generated font to show native Face,
+Family, Font creation and value queries. Run it from the examples directory.
+Family stretch uses the native percentage scale (normal=100). Font bytes are
+copied once by the native loader; the language adds its common checked resource
+control. Glyph-run/bitmap and full audio acceptance remain separate work; see
+`docs/xge3-font-resources.md` for the exact current boundary.
+
 `init(width,height,title)` packs a stack `xge_desc_t` and calls `xgeInitWithCode`
 through one cold code-lease admission;
 `initNative(descriptor=null)` preserves the explicit caller-owned descriptor API.

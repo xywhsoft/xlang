@@ -1,0 +1,137 @@
+{
+  "scope": "FontFace/FontFamily/Font queries, XRF and fallback direct declaration candidate; actual EGL queued text and strict headers",
+  "integrationReady": false,
+  "shippingDelivery": false,
+  "releaseOrIdeInstalled": false,
+  "nativeRevision": "d93838cc6d563a3b0e6d1ceb82620cb0670c324c",
+  "nativeIndex": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\font-resources-20261111.json",
+    "sha256": "61026337cae3962f4fa5bac35f3badcfcaad69dd34ed1fb53a4d016ef4510feb",
+    "checks": 280
+  },
+  "source": {
+    "lib/bindings/xge/include/xge3_font_resources.h": "6417df0c10f0ecdd85c38a84f571d0a0dca38fd72374784e4ebbe0b1e7a52022",
+    "lib/bindings/xge/src/font_resources.xl": "72ebcf85b8c616fc4ddf08bc321275ebef2be77cfda6239391410d3cfa5fe801",
+    "lib/bindings/xge/src/functions.xl": "2b1016858a4f1a96f7d356b4f851e71c5144806dca9e2bb90019ccdd831096c1",
+    "lib/bindings/xge/src/resources.xl": "83545810078c172346d8874b46b48998d35bb55aa4970d815f496fca6079ef33",
+    "lib/bindings/xge/xlang.package.json": "ef970b6571227d8c3c874ac1c6751fc578e13fb053b4d3ff5e5d50ec7bca01eb",
+    "lib/bindings/xge/README.md": "d23b0a19b0263d0aa21af80213aabde2e882c70bd6914091c0ad21202fd87517",
+    "lib/bindings/xge/examples/font_faces.xl": "51b23d8c5bafd1950b554451097a0b7a2b713e54d8db6c99d95be00672f48c22",
+    "lib/bindings/xge/examples/data/font_fixture.ttf": "fdd2a74c24e220a0672ea9f9a74afac40bc9f82c24a95d5dae74045d408984d9",
+    "lib/bindings/xge/examples/data/README.md": "87275815f0eee848abf3401ef43c1d2591561b336edd756c215160198d29d2e8",
+    "test/cases/foreign_xge3_font_resources.xl": "ce89a759d89ac9b2eaa224a3ca35856f62ce49927e3d6d95333ee8189d4f471d",
+    "test/cases/foreign_xge3_font_resources.c": "031400962a7e81726ed51c49ede195a7957802e39915f138a305e8a01a48c112",
+    "test/cases/foreign_xge3_font_resources.h": "12cc91c54af7c9aaa3cdefd1048a28a0ecea5d7ca15c8ea40c1c4058a67e38a6",
+    "tools/check_xge3_font_resources.py": "520f0cf420bb7af15df7fe40ead4237440c2abeef022a8818c9b1251fb6661a1",
+    "tools/check_xge3_async_headers.py": "1eec863b72f3c60eb75efd95a744897058f7e9d78fc9f19338dc2bbea47fccee",
+    "docs/xge3-font-resources.md": "ba618b4a0b7d0fda9ab498dfcbacf52f24c7175fbc1176a8b0c0ebcb4addf752",
+    "docs/xge3-xui3-full-coverage-plan.md": "13878afcea78a8e2bf18db69c3d14867bfbc8668aa6a011ab2364c5d8e89026c"
+  },
+  "languageChecks": 50,
+  "languageEvidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\font-language-win-r2\\results.json",
+      "sha256": "41b6ae5d5186b0257089fe1c75a18470c3d59034d061f0c9d19c3c050b173406",
+      "checks": 10
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\font-language-linux-r2\\results.json",
+      "sha256": "427654dca1c95183c967bee9190f69776fe2f4e5305a9eb013acfa5261329adc",
+      "checks": 8
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\font-language-egl-linux-r1\\results.json",
+      "sha256": "4f41092a971cd104a3865424e7d27bb685678f9983e6cf26819c91d38ce237a9",
+      "checks": 8
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\font-headers-win-r1\\results.json",
+      "sha256": "ce73e899429c9b5f65db6569283c995cc7019f9f37be61c7884ec4e82b9b2a1b",
+      "checks": 8
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\font-headers-linux-r1\\results.json",
+      "sha256": "ea36abea0cb9beb4aadfa9d9ec9aa9f35cbd9f04bfc30a2ae371b73945de5feb",
+      "checks": 8
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\font-headers-egl-linux-r1\\results.json",
+      "sha256": "c4c138e894285742dd725d24515276835acae28abc1a533aafea387a27db02a2",
+      "checks": 8
+    }
+  ],
+  "qualifiedChecks": 330,
+  "packages": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-font-host-win-r5.json",
+      "sha256": "39bfa78966354bfef6aaf9f643b2289f51e8bf7380243c12dfcaa2d703b6a202"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-font-static-win-r5.json",
+      "sha256": "537217eca89f0267d06b1a95cfc45458cf31f8cd157b127aa22bae465b46c29c"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-font-host-linux-r5.json",
+      "sha256": "233bbffb116aacc57d3ad20187531f9a939bc6c0375fe28ce13910a5f2002206"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-font-static-linux-r5.json",
+      "sha256": "38b419979ee0e835eaf6a8bc596debc7ac5a142ebb0851e97f7ddc08761bd053"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-font-egl-host-linux-r5.json",
+      "sha256": "f2040b00fd383e71f82ab608aeed1306aa573d489edb4cdba36ea076517267e5"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-font-egl-static-linux-r5.json",
+      "sha256": "04ed2d9ded55bb0382ff50dbd4fd425afb09a411bd339138d861ced110e417e1"
+    }
+  ],
+  "compilerCohorts": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r13\\build.json",
+      "sha256": "2804689b3b2bb234e3c970a98060c5614b393ae12be995c3295e7c8e0add62f9"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-linux-full-r5\\build.json",
+      "sha256": "35400cf7e77732e9fa0fdd85f4b13c02a262a3cdc4d091766c90ad7248a791ea"
+    }
+  ],
+  "xrtCanonicalSha256": "41bc24579f4b3207b0434755ca23dd06481af90c05f71e9b365848cf9a7c12d1",
+  "networkTests": false,
+  "audioTests": false,
+  "malformedFontFuzzing": false,
+  "hardwarePerformance": false,
+  "allocationProbe": {
+    "iterations": 1000,
+    "newXrtAllocations": 0,
+    "scope": "Repeated warmed Font.metrics and Font.glyphByIndex through actual language views; allocation failure armed before loop",
+    "latencyComparison": false
+  },
+  "gpuProof": {
+    "nativePaintedPixels": 462,
+    "languagePaintedPixels": 462,
+    "backend": "Actual software EGL/GLES 3 offscreen renderer",
+    "queuedAfter": [
+      "Font.clearCache",
+      "Font.close"
+    ],
+    "heapBalance": true,
+    "publicResourcesAfterClose": 0
+  },
+  "breakingChanges": [
+    "fontFallbackSetMemory now a checked statement returning void; catch Error instead of comparing raw c_int"
+  ],
+  "costs": [
+    "Native Face input copy retained; no language copy for bytes/Buffer span projection",
+    "Cold native Font record and one stable native texture record per uploaded atlas page",
+    "Native texture-pointer read and existing delayed command reference maintenance",
+    "Generic language view ownership, thread/call/code lifetime and C-string projection checks; no whole-bridge zero-cost or hardware-speed claim"
+  ],
+  "remaining": [
+    "Stage 2 module-global code-residency/owning-context release gate remains unresolved",
+    "Complete GlyphRun/Bitmap and Font async resources; font parser trust/CFF/variable-font qualification",
+    "Audio and remaining XGE/XUI/Document scope",
+    "Final all-mainline matching release/IDE build and delivery"
+  ]
+}

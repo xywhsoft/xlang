@@ -23,7 +23,8 @@
       "src/resource_loading.xl",
       "src/scene.xl",
       "src/async_load.xl",
-      "src/graphics_context.xl"
+      "src/graphics_context.xl",
+      "src/font_resources.xl"
     ],
     "includeDirs": [
       "include"

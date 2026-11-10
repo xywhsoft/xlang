@@ -1,0 +1,28 @@
+// Run from this examples directory: xl run font_faces.xl
+// Uses our small generated font, without a window, GPU or OS font dependency.
+import xge
+func main(...) as int
+ xge.init(4,4,"Font faces",0,xge.XGE_RUN_MANUAL)
+
+ // A face describes font data; a family selects a face by weight and width.
+ auto face=xge.loadFontFace("data/font_fixture.ttf")
+ auto family=xge.createFontFamily()
+ family.addFace(face)
+ face.close() // The family keeps its own native reference.
+
+ auto selected=family.resolve()
+ family.close()
+ auto font=selected.createFont(c_float(20))
+ selected.close() // The font now keeps the font data alive.
+
+ auto metrics=font.metrics()
+ auto letter=font.glyph(c_uint(65)) // Unicode code point for A.
+ auto text=font.measureText("AV")
+ assert metrics.fPixelSize==c_float(20)
+ assert letter.fAdvanceX>c_float(0) and text.fX>c_float(0)
+ println("Font size:",metrics.fPixelSize,"A advance:",letter.fAdvanceX)
+
+ font.close()
+ xge.unit()
+ return 0
+end
