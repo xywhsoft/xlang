@@ -47,10 +47,10 @@ static int genericRun(void)
  xls_semantic_input inputs[]={{path,imported,strlen(imported)},{dep,lib,strlen(lib)}};o=(owner){0};CHECK(capture(&o,path,inputs,2));
  CHECK(genericReference(&o,path,imported,"dep.😀盒::<int>",dep,(size_t)(strstr(lib,"😀盒<T>")-lib)-3,"😀盒",3));
  CHECK(genericReference(&o,path,imported,"transform::<int>",path,(size_t)(strstr(imported,"transform<T>")-imported)-3,"transform",2));
- /* The native argument retains Marker TypeId but its token covers only
-    "dep". Do not guess a new range or redirect Marker to the outer class. */
- CHECK(!target(&o,path,imported,"dep.Marker>",4));
- CHECK(bound(&o,path,imported,"dep.Marker()",4,dep,(size_t)(strstr(lib,"Marker\r")-lib)-3,"Marker",3));CHECK(parity(&o));release(&o);
+ /* Native reduction ranges now retain the whole qualified type argument.
+    Every Marker use stays separate from the outer generic class binding. */
+ CHECK(genericReference(&o,path,imported,"dep.Marker>",dep,(size_t)(strstr(lib,"Marker\r")-lib)-3,"Marker",3));
+ CHECK(genericReference(&o,path,imported,"dep.Marker()",dep,(size_t)(strstr(lib,"Marker\r")-lib)-3,"Marker",3));CHECK(parity(&o));release(&o);
  const char* overloaded="func choose<T>(T value) as int\n return 1\nend\nfunc choose<T>(T first,T second) as int\n return 2\nend\nfunc main(...) as int\n return choose::<int>(1)+choose::<int>(2,3)\nend\n";
  input=(xls_semantic_input){path,overloaded,strlen(overloaded)};o=(owner){0};CHECK(capture(&o,path,&input,1));
  CHECK(genericReference(&o,path,overloaded,"choose::<int>(1)",path,(size_t)(strstr(overloaded,"choose<T>(T value)")-overloaded),"choose",2));

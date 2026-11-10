@@ -29,6 +29,7 @@ from native_parser_ownership_overlay import derive as derive_parser_ownership
 from native_frontend_inputs import prepare as prepare_frontend_inputs
 from native_identifier_overlay import derive as derive_identifier
 from native_field_bindings_overlay import semantic as derive_field_semantic, index as derive_field_index, ir as derive_field_ir
+from native_qualified_type_overlay import derive as derive_qualified_type_ranges
 
 FRONTEND_SOURCES = (
     "src/lexer/xl6_token.c", "src/lexer/xl6_lexer_api.c", "src/lexer/xl6_lexer_gen.c",
@@ -139,6 +140,7 @@ HOST_TESTS += ("project_rename_workspace_test",)
 HOST_TESTS += ("semantic_rename_identifier_test",)
 HOST_TESTS += ("project_rename_identifier_test",)
 HOST_TESTS += ("semantic_generic_navigation_test",)
+CORE_TESTS += ("analysis_qualified_type_ranges_test",)
 
 
 def sha(path: Path) -> str:
@@ -780,6 +782,9 @@ def main() -> None:
         lexer_overlay['identifier'] = derive_identifier(generated_lexer, identifier_source)
         generated_lexer = identifier_source
         original_stack, generated_stack, stack_overlay = derive_parser_ownership(frontend, output)
+        qualified_stack=output/'native_qualified_types'/generated_stack.name
+        stack_overlay['qualifiedTypeRanges']=derive_qualified_type_ranges(generated_stack,frontend/'src/parser/xl6_parser.y',qualified_stack)
+        generated_stack=qualified_stack
         context_overlays = derive_context_runtime(frontend, output)
         namespaced_completion = next(Path(row['compiledSource']) for row in context_overlays
                                      if Path(row['source']).name == 'xl6_completion.c')
@@ -871,6 +876,7 @@ def main() -> None:
     inputs[str(Path(__file__).with_name('native_ast_overlay.py').resolve())] = sha(Path(__file__).with_name('native_ast_overlay.py'))
     inputs[str(Path(__file__).with_name('native_initializer_overlay.py').resolve())] = sha(Path(__file__).with_name('native_initializer_overlay.py'))
     inputs[str(Path(__file__).with_name('native_parser_ownership_overlay.py').resolve())] = sha(Path(__file__).with_name('native_parser_ownership_overlay.py'))
+    inputs[str(Path(__file__).with_name('native_qualified_type_overlay.py').resolve())] = sha(Path(__file__).with_name('native_qualified_type_overlay.py'))
     inputs[str(Path(__file__).with_name('native_signature_overlay.py').resolve())] = sha(Path(__file__).with_name('native_signature_overlay.py'))
     inputs[str(Path(__file__).with_name('native_index_overlay.py').resolve())] = sha(Path(__file__).with_name('native_index_overlay.py'))
     inputs.update({stack_overlay['source']:stack_overlay['sourceSha256'], stack_overlay['grammarSource']:stack_overlay['grammarSha256']})
@@ -1059,6 +1065,9 @@ def main() -> None:
                 extra += ["-Wl,--wrap=" + function for function in (
                     "xrtMalloc", "xrtCalloc", "xrtFree", "xrtArrayInit",
                     "xrtArrayReserve", "xrtArrayPush", "xrtArrayUnit")]
+            if name == "analysis_qualified_type_ranges_test":
+                extra += ["-Wl,--wrap=" + function for function in (
+                    "xrtMalloc", "xrtCalloc", "xrtRealloc", "xrtFree")]
             run([str(cc), str(objects[name]), *extra, str(core), "-Wl,--gc-sections", *libraries, "-o", str(program)], name + "-link")
             # The dense canonical matrix compares full fresh AST/index/IR
             # across repeated512-function single/imported edits. Its total

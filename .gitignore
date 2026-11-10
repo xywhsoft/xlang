@@ -62,6 +62,7 @@
 !/dev/release-materials/provenance/lsp-rename-workspace-20261110.json
 !/dev/release-materials/provenance/lsp-rename-identifiers-20261110.json
 !/dev/release-materials/provenance/lsp-generic-navigation-20261110.json
+!/dev/release-materials/provenance/lsp-qualified-type-ranges-20261110.json
 /out/
 /tmp/
 /logs/

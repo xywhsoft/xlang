@@ -1,0 +1,102 @@
+{
+  "schema": 1,
+  "date": "2026-11-10",
+  "stage": "M7b4g",
+  "scope": "Native qualified type token ranges from original prefix and import_name reduction endpoints; exact type-argument navigation/reference/identifier ranges and incremental/IDE integration",
+  "stageAccepted": true,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "92baebb5cbec76bf4b66b1d147c585551b10f9b3",
+  "ownedSources": {
+    "ide/docs/lsp-qualified-type-ranges.md": "951dc03b4b2ed97d56dd4ebeeb7048bf13871041ea8144b762e8cefb19d642b3",
+    "ide/docs/lsp-generic-navigation.md": "5dc2c900beae8aeb10906fa350340db9fdc60c59efcaf5e5920bf0418fb93a97",
+    "ide/tools/native_qualified_type_overlay.py": "c8b370a06bb9fb1daedea95e3e337d1b647d1c5f7addc97817bab99e1b29c696",
+    "ide/tools/build_lsp_core.py": "3e693401147665997f42b7ed9e40b875df32822b8a75a5b53510e6d262365f0a",
+    "ide/tests/analysis_qualified_type_ranges_test.c": "10d394752f68c0d41d2fa922225ad11d1ef5bd7c1250f89f3bd6626b84aa1b83",
+    "ide/tests/qualified_type_incremental_fixture.h": "e2f84e96f627c13160721c96166c846dfe0dd41afa2a22f3df5551a96315863c",
+    "ide/tests/semantic_generic_navigation_test.c": "320009781d671a10d54a4e7b32f278cf6b3515567334cb8db7b611363e5af7f2",
+    "ide/tests/generic_navigation_view_test.c": "e463a68373677e5c16837399d74535649c64b27b5a3d13382cd32e5d8fadcbb6",
+    "ide/tools/check_lsp_generic_navigation.py": "c17f305b575fb24cad69c78cd6afa898073e2bd24bd52c74dc4e852dcbfb5485"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-qualified-type-ranges-20261110.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-qualified-type-ranges-20261110/stage-sources.tar.gz",
+      "sha256": "d061753f74263b16113f2869ca152e7366509d161f0cdd492612c20db2d6a885",
+      "bytes": 43093,
+      "entries": 10,
+      "uniquePayloads": 10,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-qualified-type-ranges-20261110/stage-sources.tar.gz.manifest.json",
+      "sha256": "77f52d996e82dad58a8bbda2523b1f473ec0ead867dd64a09ff0754dfbaaa049",
+      "bytes": 2410
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-qualified-type-ranges-20261110/actual-builds-and-validation.tar.gz",
+      "sha256": "9c030952f7c19d642fc36aeec5bbdda4e123b231d9e68e116c9df1bcaa9fa950",
+      "bytes": 785733764,
+      "entries": 5520,
+      "uniquePayloads": 4224,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-qualified-type-ranges-20261110/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "95303bb1a1c598fbce0c095a16f233c6fdf0fc12225d518ddd7f98d18f84180c",
+      "bytes": 1979192
+    }
+  },
+  "candidate": {
+    "serverSha256": "bf7b3dff3a879ee1cbe8e3654b4f683be853e944a6ccaedf7ed1a325ddb8ca6d",
+    "guiSha256": "56aa3deefa3a41cccce0cdef7b802af5dbf70eba4d959d9250d6de9e95b742e8",
+    "sdkDllSha256": "216c1f98f4d55cc5dff9c7d98425edbb08d470cdfc6b26ef4ad962af3431f560",
+    "guiObjects": 116,
+    "actualNativeConsumers": 280
+  },
+  "validation": {
+    "nativeFixtures": 172,
+    "qualifiedRangeAssertions": 3019,
+    "genericNavigationAssertions": 2304,
+    "actualParserCoreMutantsRejected": 3,
+    "unknownAdapterSeamsRejected": 3,
+    "protocolSuites": 11,
+    "guiFixtures": 28,
+    "currentSourcesAndAllLinksChecked": true,
+    "finalNativeMatrixFresh": true,
+    "originalParserCases": 13,
+    "qualifiedNamesCompared": 9,
+    "correctedNativePrefixRanges": 7,
+    "originalAcceptanceAndDiagnosticsEqual": true,
+    "originalObservedAllocationCallsEqual": true,
+    "originalNonCoordinateSemanticKeysAndNormalizedGeometryEqual": true,
+    "incrementalBuilds": 6,
+    "incrementalHits": 6,
+    "functionFragments": 5,
+    "reusedDeclarations": 10,
+    "incrementalFreshFullIndexAndIrParity": true,
+    "oldResultSurvivesSession": true,
+    "typeArgumentIdentityPreserved": true,
+    "unsavedDependencyInvalidationAndRecovery": true,
+    "realIdeQualifiedTypeReferencesAndGuardedJumps": true,
+    "bomUnicodeAndCrlf": true,
+    "performanceAdmissionRun": false,
+    "priorFailuresPreserved": true
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "knownMissing": [
+    "physical alias and OS writability,complete library/foreign policy and full overload/inheritance/protocol/property/implicit specialization family closure",
+    "versioned edit construction, rename conflicts and post-rename binding proof",
+    "standard prepareRename/rename and IDE versioned edit transaction",
+    "remaining applicable LSP and current-engine cohort alignment",
+    "merge allocation and wide quota adversarial admission;whole-goal performance/large-workspace/soak/final delivery admission"
+  ]
+}

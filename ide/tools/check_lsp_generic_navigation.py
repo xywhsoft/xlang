@@ -44,9 +44,12 @@ def main():
         definition(source,'identity::<int>\r',identity);definition(source,'identity::<int>(',identity)
         references(source,'identity::<int>(',[identity,location(entry,source,'identity',source.index('identity::<int>')),location(entry,source,'identity',source.index('identity::<int>(',source.index('identity::<int>')+1))])
         done('generic-function-values-and-calls-share-the-source-origin')
-        assert c.call('textDocument/definition',params(source,'dep.Marker>'))is None
+        definition(source,'dep.Marker>',marker)
         definition(source,'dep.Marker()',marker)
-        done('qualified-type-argument-terminal-token-gap-does-not-redirect-to-outer-class')
+        references(source,'dep.Marker>',[marker,location(entry,source,'dep.Marker',source.index('dep.Marker>')),location(entry,source,'Marker',source.index('dep.Marker()')+4)])
+        highlights=c.call('textDocument/documentHighlight',params(source,'dep.Marker>'))
+        assert sorted((v['range']for v in highlights),key=lambda v:v['start']['character'])==[span(source,source.index('dep.Marker>'),'dep.Marker'),span(source,source.index('dep.Marker()')+4,'Marker')],highlights
+        done('qualified-type-argument-terminal-name-resolves-independently-of-outer-class')
         first=source.index('choose');second=source.index('choose',first+1)
         definition(source,'choose::<int>(1)',location(entry,source,'choose',first));definition(source,'choose::<int>(2,3)',location(entry,source,'choose',second))
         references(source,'choose::<int>(1)',[location(entry,source,'choose',first),location(entry,source,'choose',source.index('choose::<int>(1)'))])
