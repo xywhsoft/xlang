@@ -1,0 +1,97 @@
+{
+  "schema": 1,
+  "date": "2026-11-10",
+  "stage": "M7b4h",
+  "scope": "Demand-only source declaration components from original native class slots/overrides and protocol witnesses; independent shared-source key leases",
+  "stageAccepted": true,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "8a163ca47f796d9adfe793caa93231135b2aa49d",
+  "ownedSources": {
+    "ide/docs/lsp-dispatch-families.md": "19ded4e8075351fea223a3ebb834d204ee0284a39a3a70cc5da61f2f3189683f",
+    "ide/src/analysis/dispatch.c": "e838aaf12df8f0a30f500ec0191f3f0600db041a36f91b36a7992bceb0cfaa90",
+    "ide/src/analysis/dispatch.h": "e7bcebfbab64c5c0a775eccb62dd37eb564dd2f48120154d0358e47b950c28f9",
+    "ide/src/services/semantic_reference_shard.h": "b8e0549af26fa729ea39b01860d46020f4d05a66d44c78fb0bd12c8db5044b4a",
+    "ide/src/services/semantic_reference_shard.inc": "c6857c85a79079bdd95f0f8e014d23bc950644189f17ef71d17bf7bd88a2c8ce",
+    "ide/src/services/semantic_reference_family.inc": "cf7d755ad3dc41493adf39fc211ba516f27b40b86d4e5b2cf7cf5c22ac7cb9f3",
+    "ide/tests/dispatch_family_fixture.h": "115467cfbce73f30cbc1ed30530099fc63d45c2866ad2bea3800b98260319646",
+    "ide/tests/semantic_dispatch_family_test.c": "09fdf44c645c9370ba5e5d5a34ec49ef2cf7fdf9b01a3345dff419bedde01662",
+    "ide/tools/build_lsp_core.py": "0bb03ae9a4a104b7b313e33a25f32ad8eec043f22aeac4058f24d9b7c832d512"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-dispatch-families-20261110.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-dispatch-families-20261110/stage-sources.tar.gz",
+      "sha256": "d95e43b71c3a33b8376dd744934978a5d2065bf7a532f1b18a5ab1800cbb7fd7",
+      "bytes": 47196,
+      "entries": 10,
+      "uniquePayloads": 10,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-dispatch-families-20261110/stage-sources.tar.gz.manifest.json",
+      "sha256": "7c682cfab7527413a0b12eeddd12c9b8af605e924b33abd71926ebe137cc17cd",
+      "bytes": 2349
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-dispatch-families-20261110/actual-builds-and-validation.tar.gz",
+      "sha256": "11a2ca4e07b03f5936580185162e408a2820fa8a6dcb68e3a2e64045ec029e65",
+      "bytes": 764917750,
+      "entries": 5480,
+      "uniquePayloads": 4202,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-dispatch-families-20261110/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "a2ee1dfc72821f3be6ce465be03210f4292fdae53fbdf10b84749140ec74107c",
+      "bytes": 1949020
+    }
+  },
+  "candidate": {
+    "serverSha256": "382e7a7b0a98fc8fbb44b1bf205ff0591cd8ae66615bc4879fbdfe0867cde205",
+    "guiSha256": "fe92a2f8d13e072e9dac06fe2075f717c56894503c67d1a8248569fca83b168f",
+    "sdkDllSha256": "216c1f98f4d55cc5dff9c7d98425edbb08d470cdfc6b26ef4ad962af3431f560",
+    "guiObjects": 116,
+    "actualNativeConsumers": 282,
+    "nativePrograms": 174
+  },
+  "validation": {
+    "nativeFixtures": 173,
+    "dispatchFamilyAssertions": 914,
+    "actualFamilyMutantsRejected": 3,
+    "protocolSuites": 11,
+    "guiFixtures": 28,
+    "currentSourcesAndAllLinksChecked": true,
+    "finalNativeMatrixFresh": true,
+    "originalClassAndProtocolRowsCompared": true,
+    "transitiveComponentAndSignatureSeparation": true,
+    "crossFileAndIndependentCompilationKeys": true,
+    "sharedSourcePayloads": true,
+    "detachedFourReaderLifetime": true,
+    "bomUnicodeAndCrlf": true,
+    "exactConcurrentScratchAndPayloadQuotas": true,
+    "actualFamilyAllocatorRefusals": 2,
+    "keyLeaseAllocatorRefusal": true,
+    "everyObservedFamilyCancellationBoundary": true,
+    "noDispatchAndRejectedOwnerCases": true,
+    "ordinaryNavigationDoesNotBuildFamily": true,
+    "performanceAdmissionRun": false,
+    "priorFailuresPreserved": true
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "knownMissing": [
+    "full overload/property/generic-origin groups and entire-workspace dispatch fixed-point closure; OS writability/physical aliases and complete foreign/library policy",
+    "versioned edit construction, rename conflicts and post-rename binding proof",
+    "standard prepareRename/rename and IDE versioned edit transaction",
+    "remaining applicable LSP and current-engine cohort alignment",
+    "merge allocation and wide quota adversarial admission;whole-goal performance/large-workspace/soak/final delivery admission"
+  ]
+}

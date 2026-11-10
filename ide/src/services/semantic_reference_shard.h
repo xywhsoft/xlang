@@ -4,6 +4,7 @@
 #ifdef XLS_COMPILER_XRT
 typedef struct xide_reference_shard xide_reference_shard;
 typedef struct xide_reference_key xide_reference_key;
+typedef struct xide_reference_family xide_reference_family;
 #define XIDE_REFERENCE_BYTES (64u*1024u*1024u)
 /* Independently owned immutable projections of a successful checked owner.
  * Constructors verify the complete supplied source vector against that owner,
@@ -80,5 +81,36 @@ typedef struct xide_reference_identifier_view {
 enum xide_reference_match xideSemanticReferenceShardIdentifiers(const xide_reference_shard*,
  const xide_reference_key*,int includeDeclaration,xide_reference_identifier_view*);
 int xideSemanticReferenceShardIdentifierAt(const xide_reference_identifier_view*,size_t,xide_semantic_reference*);
+enum xide_reference_family_error {
+ XIDE_REFERENCE_FAMILY_OK,XIDE_REFERENCE_FAMILY_ABSENT,XIDE_REFERENCE_FAMILY_INVALID,
+ XIDE_REFERENCE_FAMILY_LIMIT,XIDE_REFERENCE_FAMILY_MEMORY,XIDE_REFERENCE_FAMILY_CANCELLED,
+ XIDE_REFERENCE_FAMILY_UNSUPPORTED
+};
+typedef struct xide_reference_family_info {size_t members,sources,bytes,relations;unsigned kinds;} xide_reference_family_info;
+/* Demand-only observed CLASS/PROTOCOL dispatch component of an exact source
+ * declaration key. Follow original verified slot/witness IDs transitively;
+ * also join IDs which the existing navigation maps to the same exact source
+ * declaration span. Never join unrelated declarations by spelling/signature.
+ * Missing/generated/non-IDENT or differently spelled connected declarations
+ * reject the WHOLE capture. Missing seed source/declaration is ABSENT.
+ * This is NOT complete overload/property/generic-origin/workspace closure,
+ * writable/foreign policy, freshness, conflicts or permission to edit.
+ * Copies each contributing source once; retains no check/AST/cache/shard/key.
+ * Default32MiB/max64MiB admits concurrent scratch plus completed payload.
+ * Borrowed navigation/check/cache and allocator/sort internals are additional.
+ * Cancellation polls bounded graph work and64KiB payload copies; original
+ * navigation acquisition and the quota-bounded library sorts are not
+ * preemptible. No graph is constructed for ordinary navigation/references. */
+xide_reference_family* xideSemanticReferenceFamilyCreate(xls_projection_store*,xls_semantic_check*,
+ const xide_semantic_source*,size_t,const xide_reference_key*,size_t,
+ int (*cancelled)(void*),void*,enum xide_reference_family_error*);
+xide_reference_family* xideSemanticReferenceFamilyRetain(xide_reference_family*);
+void xideSemanticReferenceFamilyRelease(xide_reference_family*);
+int xideSemanticReferenceFamilyInfo(const xide_reference_family*,xide_reference_family_info*);
+/* New independently owned key lease, borrowing the retained family payload.
+ * Outlives the family handle and original check. KeyBytes conservatively
+ * charges its header plus the ENTIRE retained family, not merely this source.
+ * No text copy/scan on this read; NULL on invalid index/allocation refusal. */
+xide_reference_key* xideSemanticReferenceFamilyKey(xide_reference_family*,size_t);
 #endif
 #endif

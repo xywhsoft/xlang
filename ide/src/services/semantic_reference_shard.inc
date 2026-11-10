@@ -16,7 +16,7 @@
 typedef struct reference_source {char *path,*text;size_t size;int kind,prefix;} reference_source;
 typedef struct reference_item {reference_row row;xide_lsp_position start,end;} reference_item;
 struct xide_reference_shard {xatomic32 references;size_t bytes,sources,count;reference_source* source;reference_item* items;};
-struct xide_reference_key {xatomic32 references;size_t bytes,size;char *path,*text;uint32_t start,end;int kind,prefix,identifierUnits;};
+struct xide_reference_key {xatomic32 references;size_t bytes,size;char *path,*text;uint32_t start,end;int kind,prefix,identifierUnits;xide_reference_family* family;};
 static int referenceIdentifierUnits(const char* text,size_t bytes)
 {
  if(!xlsIdentifierValid(text,bytes))return -1;
@@ -35,7 +35,7 @@ void xideSemanticReferenceShardRelease(xide_reference_shard* s)
 xide_reference_key* xideSemanticReferenceKeyRetain(xide_reference_key* k)
 {if(k)xrtAtomic32FetchAdd(&k->references,1,XMEMORY_RELAXED);return k;}
 void xideSemanticReferenceKeyRelease(xide_reference_key* k)
-{if(k && xrtAtomic32FetchSub(&k->references,1,XMEMORY_ACQ_REL)==1)xrtFree(k);}
+{if(k && xrtAtomic32FetchSub(&k->references,1,XMEMORY_ACQ_REL)==1){xideSemanticReferenceFamilyRelease(k->family);xrtFree(k);}}
 size_t xideSemanticReferenceShardBytes(const xide_reference_shard* s){return s ? s->bytes : 0;}
 size_t xideSemanticReferenceKeyBytes(const xide_reference_key* k){return k ? k->bytes : 0;}
 size_t xideSemanticReferenceShardSources(const xide_reference_shard* s){return s ? s->sources : 0;}
@@ -148,3 +148,4 @@ int xideSemanticReferenceShardIdentifierAt(const xide_reference_identifier_view*
     (end<source->size && xl6LiteralIdentByte((unsigned char)source->text[end])))return 0;
  *out=(xide_semantic_reference){source->path,{item->end.line,item->end.character-view->utf16Units,(int)begin},item->end,row->source==row->targetSource && begin==row->targetStart && end==row->targetEnd};return 1;
 }
+#include "services/semantic_reference_family.inc"
