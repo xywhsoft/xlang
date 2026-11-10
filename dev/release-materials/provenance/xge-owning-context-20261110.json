@@ -1,0 +1,102 @@
+{
+  "scope": "Owning EGL declarations/source candidate; local runtime acceptance passed, module-global retirement gate FAILED",
+  "integrationReady": false,
+  "shippingDelivery": false,
+  "releaseOrIdeInstalled": false,
+  "nativeRevision": "74a0a5872098829243d9776d4f5e3d540e30c3e2",
+  "nativeIndex": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\owning-graphics-context-20261110.json",
+    "sha256": "6a48f24bb3c1b6865b8526c1ade7eb6528d419ef8a3eaa597079a9bcae1b0476",
+    "checks": 263
+  },
+  "source": {
+    "lib/bindings/_xge_native/include/xge3_runtime.h": "79ebcda95ec72c082b94aff7d3c59cb7a564f924860603d5d64ec2d5bebfd483",
+    "lib/bindings/_xge_native/src/graphics_context.c": "6ac5c8e7445ab7311f4e96d1619c2efcd116e4e40819cf455118618a4bb90ee6",
+    "lib/bindings/_xge_native/xlang.package.json": "c8ad7d882ff3a159ff739893d2a0dd619101aa07281ff669fef1e1226d4af965",
+    "lib/bindings/xge/src/graphics_context.xl": "cb02f13cd7d9862575af3fefbe3baae373dfb304fb821f7b94005489e75b00ad",
+    "lib/bindings/xge/include/xge3_graphics_context.h": "614077cc362cd64b65b64facf864e6ef4318af1a712375a3a3a75c7904868f89",
+    "lib/bindings/xge/xlang.package.json": "f2389254aa74257a92364a9e4b59b176b4e8c96195be124b49cd77aaa0f5b61b",
+    "lib/bindings/xge/README.md": "d590c9632e3b279ecb86ba4e853e63d16cf2a31ee0fde7415de3288d463c1373",
+    "lib/bindings/xge/examples/egl_context.xl": "cd0e55767b16acd8079cad51269606c4a8ff53cb422edb9560ca208bda53ec09",
+    "test/cases/foreign_xge3_graphics_context.xl": "4a296ced6a84c6e2c00f3c135b56eb58508073ae5480836bf209a28876a15b31",
+    "test/cases/foreign_xge3_graphics_context_module.xl": "f23d5ee037becdd3a32d4e4082e470f243f9c529856207beeaf1908f18b01e64",
+    "test/cases/foreign_xge3_graphics_context_module.h": "83b65f9981143dbc55931f5011d16983bd7bd5ab3ea193df0460d444c31dea94",
+    "test/cases/foreign_xge3_graphics_context_module_host.c": "e21b26a5d86a5c08ebb8bb1f443f44e0a22afd84ec7ddff7400206b01518c345",
+    "tools/check_xge3_context_module.py": "7be34f01c0df66438ead4c2d4f96e6e65f7d8aa43a134ce331fcbe81d5b8e3cb",
+    "tools/check_xge3_async_headers.py": "3f8594deeef88c7c1c3d8df2df3ff3c7b4e3435085772cd6cffeb8749af3caa3",
+    "docs/xge3-owning-context.md": "df2a6b36f3bc94d5f9505c4fceb16067cd1e8129147f4d7e377280440ae979c1",
+    "docs/xge3-context-safety.md": "3163382d371020649db98ebb07ab15b39e4f980e58796b2fad35b4bcd68e0b4f",
+    "docs/xge3-host-backends.md": "58a3a29e521d6237c7e8e1cf3ad9ad78eb7a4907a7e6526b5a1944abad2efbcd",
+    "docs/xge3-xui3-full-coverage-plan.md": "0017f9ec665502ea235d80d80f52a38c7f6b4d2082ba0246bd62f88df0b2daf7"
+  },
+  "languageChecks": 81,
+  "languageEvidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\owned-context-language-evidence-win-r1.json",
+      "sha256": "457b0a647e4acbd65d7d4bf6fdaa56b183fbd23157b4dbe6f7b23c73bdd1c33e",
+      "checks": 33
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\owned-context-language-evidence-linux-r1.json",
+      "sha256": "d8b9faac8d4586946185f16f9972ac5ead08af2f2a3557bbf3e09799afc08d5d",
+      "checks": 48
+    }
+  ],
+  "qualifiedChecks": 344,
+  "packages": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-owned-context-host-win-r1.json",
+      "sha256": "b797910f70935a090330d6efa73a242f09081fc348c44d6ddadf7a069e32eb93"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-owned-context-static-win-r1.json",
+      "sha256": "5b70621c81989991173a04e292a7ddc016e4ea52df67eb47b26d414a5745ddfc"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-owned-context-host-linux-r1.json",
+      "sha256": "34dce6897d3a153bcd3ded9ee9b45827b430baa92696f7c2acf2a13312d7229d"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-owned-context-static-linux-r1.json",
+      "sha256": "b6cbec2abb5f0b9a9d429a31ac7c1d5a9d029d546537c0795b9dcbfd26946d94"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-owned-context-egl-host-linux-r1.json",
+      "sha256": "a49d952ca4bddc1d87712d6907d6c75a2014a3a08b27e79b6b971dfed694b2ec"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-owned-context-egl-static-linux-r1.json",
+      "sha256": "6d6528373d16fb767b5a5286d9f13ed637ffcbcd8f89f1006074bdda08b4a149"
+    }
+  ],
+  "directCgen": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\owned-context-language-win-r1\\foreign_xge3_graphics_context.c",
+    "sha256": "2539f5f8b3b6dc46fe398898d16ccd50f0759aaf732de333a0d745220821a532",
+    "typedInfoShareMakeCurrent": true
+  },
+  "moduleRetirementGate": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\owned-context-module-linux-r2\\results.json",
+    "sha256": "a070fd14f791403475e1ff7faba2be0250c28798b13153f6cf6126162c900cd9",
+    "passed": false,
+    "inputsUnchanged": true,
+    "localModesPassed": [
+      "O0-mode-0",
+      "O2-mode-0"
+    ],
+    "globalModesFailed": [
+      "O0-mode-1",
+      "O2-mode-1"
+    ],
+    "failure": "After external context ref release, module-global context retained by engine code residency; final Unit remains Busy (-17)",
+    "requiredAction": "Resolve native-only dependency residency without discarding graph edges or weakening live-resource Busy"
+  },
+  "networkTests": false,
+  "hardwarePerformance": false,
+  "remaining": [
+    "Native-only code/dependency lifetime admission",
+    "Owned WGL and replaceable host dispatch",
+    "Windows EGL SDK/runtime",
+    "TCC ELF as-needed trimming",
+    "Other phases in docs/xge3-xui3-full-coverage-plan.md"
+  ]
+}

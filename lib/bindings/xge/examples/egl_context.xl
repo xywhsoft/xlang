@@ -1,0 +1,25 @@
+// Requires an XGE SDK built with EGL. For Linux without a display server:
+// LIBGL_ALWAYS_SOFTWARE=1 EGL_PLATFORM=surfaceless xl run egl_context.xl
+import xge
+func main(...) as int
+ if xge.eglCapsGet().bCompiled==c_int(0) then
+  println("This SDK does not include EGL; use a matched EGL-enabled package.")
+  return 0
+ end
+ xge.init(4,4,"EGL example",0,xge.XGE_RUN_MANUAL)
+ auto context=xge.createEglContext(4,4,true)
+ auto target=xge.createRenderTarget(2,2)
+ auto pass=xge.createPass(target,c_uint(xge.XGE_PASS_CLEAR_COLOR),xge.colorRGBA(10,20,30,255))
+ pass.begin()
+ pass.finish()
+ auto pixels=Buffer()
+ assert pixels.resize(16)
+ target.readPixels(pixels)
+ assert pixels.hex()=="0a141eff0a141eff0a141eff0a141eff"
+ println(pixels.hex())
+ pass.close()
+ target.close()
+ context.close()
+ xge.unit()
+ return 0
+end

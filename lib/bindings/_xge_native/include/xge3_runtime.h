@@ -30,6 +30,7 @@ int xl6Xge3InitWithCode(const xge_desc_t*,const XL6_CodeOwner*);
 int xl6Xge3SceneCreateOwned(xge_scene_owned*,const XL6_CodeOwner*);
 int xl6Xge3AsyncImageCreateOwned(xge_async_owned*,const XL6_CodeOwner*);
 int xl6Xge3AsyncTextureCreateOwned(xge_async_owned*,const XL6_CodeOwner*);
+int xl6Xge3GraphicsContextCreateEglOwned(xge_graphics_context*,int,int,bool,const XL6_CodeOwner*);
 int xl6Xge3RunOwned(xge_scene_proc,void*,const xge_callback_owner_t*,const XL6_CodeOwner*);
 int xl6Xge3DragBegin(xge_data_object,uint32_t,uint32_t,const XL6_CodeOwner*);
 int xl6Xge3CopyToClipboard(xge_data_object,const XL6_CodeOwner*);

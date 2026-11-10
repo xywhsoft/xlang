@@ -1,5 +1,8 @@
 # 宿主后端与离屏接入
 
+后续拥有式 EGL 候选已接通实际渲染器，见 [拥有合同与未过发布门](xge3-owning-context.md)。
+原始 Offscreen 的问题不再用于代表新上下文的实现状态；其余宿主调度仍待完成。
+
 后续的 [GL 启动事务与 EGL checked 清理](xge3-context-safety.md) 补齐了拥有式上下文
 所需的错误与重试前置。它不把原始 EGL 记录或旧 Offscreen 直接算作受管渲染会话。
 

@@ -1,0 +1,21 @@
+// Exclusive creator-thread renderer; render targets/passes remain independent.
+export extern "xge_graphics_context_info_t" struct GraphicsContextInfo @header("xge3_graphics_context.h")
+ c_uint size
+ c_int width
+ c_int height
+ c_int backend
+ bool surfaceless
+ bool current
+ bool graphicsReady
+ uint64 otherResources
+end
+
+export extern "struct xge_graphics_context_t*" class GraphicsContext @header("xge3_graphics_context.h") @lifetime("owned") @policy("xl6Xge3GraphicsContextPolicy") @domain("xl6Xge3GraphicsContextDomainV1")
+ native point handle
+ extern "xgeGraphicsContextShareOwned" @no_raise @c_result("owned_view") @factory(1,0,releaseGraphicsContext) func share() as GraphicsContext
+ extern "xgeGraphicsContextInfoGet" @no_raise @c_output(1,0) @c_output_size(1,"size") func info() as GraphicsContextInfo
+ extern "xgeGraphicsContextMakeCurrent" @no_raise @c_result("status",0) func makeCurrent()
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xgeGraphicsContextReleaseChecked" @header("xge3_graphics_context.h") @no_raise @c_result("status",0) func releaseGraphicsContext(GraphicsContext value)
+export extern "xl6Xge3GraphicsContextCreateEglOwned" @header("xge3_graphics_context.h") @no_raise @c_code_owner(4) @c_result("owned_view") @factory(0,0,releaseGraphicsContext) func createEglContext(c_int width,c_int height,bool surfaceless=false) as GraphicsContext

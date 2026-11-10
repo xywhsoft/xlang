@@ -15,6 +15,7 @@ import subprocess
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
+    p.add_argument('--graphics-context',action='store_true',help='Also link the owning-context policy and domain from its matched SDK')
     for name in ('root','compiler','compiler-report','dynamic-packages','static-packages','header','out'):
         p.add_argument('--'+name,type=Path,required=True)
     a=p.parse_args()
@@ -39,9 +40,11 @@ def main():
     probe=out/'probe.c'
     probe.write_text('#include "'+header.as_posix()+'"\n#include <xge3_async_load.h>\nint main(void){return 0;}\n',encoding='utf8')
     linked=out/'linked.cpp'
-    linked.write_text('#include "'+header.as_posix()+'"\n#include <xge3_async_load.h>\n'
+    contextInclude='#include <xge3_graphics_context.h>\n' if a.graphics_context else ''
+    contextCheck=' || !xl6Xge3GraphicsContextPolicyGet()->Destroy || !xl6Xge3GraphicsContextDomainV1Get()' if a.graphics_context else ''
+    linked.write_text('#include "'+header.as_posix()+'"\n#include <xge3_async_load.h>\n'+contextInclude+
         'int main(){auto* image=xl6Xge3ImageLoadPolicyGet();auto* texture=xl6Xge3TextureLoadPolicyGet();'
-        'auto* domain=xl6Xge3AsyncLoadDomainV1Get();return !image->Destroy || !texture->Destroy || !domain;}\n',encoding='utf8')
+        'auto* domain=xl6Xge3AsyncLoadDomainV1Get();return !image->Destroy || !texture->Destroy || !domain'+contextCheck+';}\n',encoding='utf8')
     inputs.update({str(v):sha(v) for v in (probe,linked)})
     env=dict(os.environ)
     if os.name=='nt':

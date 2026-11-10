@@ -22,7 +22,8 @@
       "src/input_actions.xl",
       "src/resource_loading.xl",
       "src/scene.xl",
-      "src/async_load.xl"
+      "src/async_load.xl",
+      "src/graphics_context.xl"
     ],
     "includeDirs": [
       "include"

@@ -36,6 +36,12 @@ boundaries are described in `docs/xge3-xui3-api-map.md` in the source repository
 The source package is under active completion and is not an assertion that every
 native engine subsystem has already passed managed runtime acceptance.
 
+`examples/egl_context.xl` uses the matched optional EGL SDK for actual headless
+rendering. `GraphicsContext` is a source candidate: local-object JIT/static
+acceptance passes, but module-global/code-residency retirement still blocks
+delivery. See `docs/xge3-owning-context.md` and its module-retirement gate before
+treating it as fully qualified. The normal runtime/IDE has not been replaced.
+
 ## Example resources
 
 `init(width,height,title)` packs a stack `xge_desc_t` and calls `xgeInitWithCode`
