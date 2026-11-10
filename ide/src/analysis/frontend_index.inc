@@ -167,3 +167,4 @@ int xlsSemanticIndexPointFact(const xls_semantic_index* index,size_t at,xls_inde
 }
 #include "analysis/frontend_function_index.inc"
 #include "analysis/frontend_declarations.inc"
+#include "analysis/frontend_callable_groups.inc"

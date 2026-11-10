@@ -92,7 +92,8 @@ static int withoutDispatch(const char* path)
 {
  const char* raw="func simple(int value) as int\n return value\nend\nfunc main(...) as int\n return simple(3)\nend\n";xls_semantic_input input={path,raw,strlen(raw)};family_owner o={0};CHECK(captureFamily(&o,path,&input,1) && bridge(&o));xls_dispatch_info rows;CHECK(xlsSemanticCheckDispatchInfo(o.check,&rows) && !rows.classes && !rows.protocols);
  xide_reference_key* key=familyKeyAt(&o,path,raw,"simple");CHECK(key);enum xide_reference_family_error why;xide_reference_family* f=makeFamily(&o,key,0,NULL,NULL,&why);CHECK(f && familyKeys(&o,f,"simple",1,1));xide_reference_family_info info;CHECK(xideSemanticReferenceFamilyInfo(f,&info) && !info.relations && !info.kinds);
- xide_reference_family* exact=makeFamily(&o,key,info.bytes,NULL,NULL,&why);CHECK(exact);xideSemanticReferenceFamilyRelease(exact);CHECK(!makeFamily(&o,key,info.bytes-1,NULL,NULL,&why) && why==XIDE_REFERENCE_FAMILY_LIMIT);
+ /* Native callable collection also reserves its concurrent temporary rows. */
+ CHECK(!makeFamily(&o,key,info.bytes,NULL,NULL,&why) && why==XIDE_REFERENCE_FAMILY_LIMIT);xide_reference_family* exact=makeFamily(&o,key,info.bytes+8192,NULL,NULL,&why);CHECK(exact);xideSemanticReferenceFamilyRelease(exact);
  xideSemanticReferenceFamilyRelease(f);xideSemanticReferenceKeyRelease(key);clearFamily(&o);
  const char* invalid="func main(...) as int\n return missing\nend\n";input=(xls_semantic_input){path,invalid,strlen(invalid)};xls_semantic_check* check=xlsSemanticCheckCreate(path,&input,1,1,NULL,NULL,NULL,0);CHECK(check && !xlsSemanticCheckInfo(check).accepted);rows=(xls_dispatch_info){9,9};CHECK(!xlsSemanticCheckDispatchInfo(check,&rows) && !rows.classes && !rows.protocols);xlsSemanticCheckDestroy(check);return 1;
 }

@@ -19,6 +19,8 @@ typedef struct native_points native_points;
 #define TYPED_DEFINITION_BYTES (64u*1024u*1024u)
 typedef struct point { int line,character; } point;
 typedef struct span { int source,startOffset,endOffset; point start,end; } span;
+/* Reuse the existing scalar slot; no extra retained per-node storage. */
+enum node_operation {NODE_PLAIN,NODE_CALL,NODE_ASSIGN,NODE_INDEX,NODE_GET,NODE_LET};
 typedef struct node { unsigned parent,depth,declared,target,typeId,declaredType,referencedType; uint64_t typeAbi; int call,kind,origin,typeSyntax,typeParams,typeConstraint,nameSyntax,genericType,memberSyntax,genericInstantSyntax; char *name,*header,*type; span full,token,selection; } node;
 typedef struct declaration { unsigned symbol; size_t node; } declaration;
 typedef struct endpoint { int source,offset,line,column; point* output; } endpoint;
@@ -151,7 +153,7 @@ static int range(const xvalue* value,int source,const xide_semantic_source* sour
 static void nodeShapeKind(node* n,const node* parentNode,unsigned parent,unsigned declared,unsigned target,enum xls_index_point_kind kind)
 {
  n->parent=parent; n->depth=parentNode ? parentNode->depth+1 : 1; n->declared=declared; n->target=target;
- n->call=kind==XLS_INDEX_POINT_CALL;n->kind=symbolKind(kind);n->typeSyntax=kind==XLS_INDEX_POINT_TYPE;n->nameSyntax=kind==XLS_INDEX_POINT_NAME;n->typeParams=kind==XLS_INDEX_POINT_TYPE_PARAMS;n->typeConstraint=kind==XLS_INDEX_POINT_GENERIC_CONSTRAINT;
+ n->call=kind==XLS_INDEX_POINT_CALL ? NODE_CALL : kind==XLS_INDEX_POINT_ASSIGN ? NODE_ASSIGN : kind==XLS_INDEX_POINT_INDEX ? NODE_INDEX : kind==XLS_INDEX_POINT_GET ? NODE_GET : kind==XLS_INDEX_POINT_LET ? NODE_LET : NODE_PLAIN;n->kind=symbolKind(kind);n->typeSyntax=kind==XLS_INDEX_POINT_TYPE;n->nameSyntax=kind==XLS_INDEX_POINT_NAME;n->typeParams=kind==XLS_INDEX_POINT_TYPE_PARAMS;n->typeConstraint=kind==XLS_INDEX_POINT_GENERIC_CONSTRAINT;
  n->memberSyntax=kind==XLS_INDEX_POINT_MEMBER || kind==XLS_INDEX_POINT_SAFE_MEMBER;
  n->genericInstantSyntax=kind==XLS_INDEX_POINT_GENERIC_INSTANT;
 }
@@ -523,11 +525,22 @@ static size_t resolveDeclaration(xide_semantic_definitions* d,size_t chosen,int 
  size_t generic=SIZE_MAX;
  /* A call's first child is its callee. Only the callee's terminal token uses
     the resolved overload; arguments and a member receiver keep their IDs. */
- size_t child=chosen;
+ size_t child=chosen,property=n->memberSyntax ? chosen : SIZE_MAX;
  for(unsigned parent=n->parent;parent;) {
   node callBuffer={0},calleeBuffer={0};node* call=readNode(d,parent-1,&callBuffer);node* callee=readNode(d,child,&calleeBuffer);if(!call || !callee)return SIZE_MAX;
   if(child==chosen && n->nameSyntax && chosen==(size_t)parent && call->genericInstantSyntax && call->target && call->full.source==source && n->token.source==source){target=call->target;generic=parent-1;}
-  if(call->call && call->target && child==(size_t)parent && callee->full.source==source && n->token.source==source &&
+  /* The checker records an indexed GET on INDEX, and a write-only LET on
+     ASSIGN rather than its MEMBER child. Follow only that original target,
+     along the member/first-index/first-assignment path. Receivers, index
+     arguments, RHS names and outer member chains never inherit this binding.
+     A compound operation's already bound getter keeps its original meaning. */
+  if(property==child && child==(size_t)parent && (call->call==NODE_INDEX || call->call==NODE_ASSIGN) && call->full.source==source && n->token.source==source){
+   if(!target && call->target){declaration k={call->target,0};const declaration* r=bsearch(&k,d->declarations,d->declCount,sizeof(*d->declarations),compareDeclaration);node scratch={0};const node* declared=r && r->node!=SIZE_MAX ? readNode(d,r->node,&scratch) : NULL;
+    if(declared && declared->call==(call->call==NODE_INDEX ? NODE_GET : NODE_LET))target=call->target;
+   }
+   property=call->call==NODE_INDEX ? (size_t)parent-1 : SIZE_MAX;
+  }else property=SIZE_MAX;
+  if(call->call==NODE_CALL && call->target && child==(size_t)parent && callee->full.source==source && n->token.source==source &&
      (n->token.endOffset==callee->full.endOffset || child==generic)) {
    /* Constructing a generic class still spells its class, not "create".
       Generic functions use the call's final selected overload. */

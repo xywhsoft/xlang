@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "date": "2026-11-10",
+  "stage": "M7b4i",
+  "scope": "Native same-lexical-owner overload/property declaration associations and exact property operation navigation; merge these relations with class/protocol components on demand",
+  "stageAccepted": true,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "191d8722ed70cde7551fc23d098bdce031d55b67",
+  "ownedSources": {
+    "ide/docs/lsp-callable-families.md": "5ff746d7608e433d20db0cef45d6ac77facc16125b9cf9529c79e62c91fac90a",
+    "ide/docs/lsp-dispatch-families.md": "92aacb40bb967575cfd91511be2daab9ddd0298055660e46c7c644fb8db434be",
+    "ide/src/analysis/callable.c": "4b669bf4416f9801d20b34ed5d5ea505ee9e7ff3ec37247017bb075f494ba644",
+    "ide/src/analysis/callable.h": "7028c14ee74c97e5deb608364275f33bff904bdcbb2d779002b7968611a75f23",
+    "ide/src/analysis/frontend_index.inc": "fa3aadc65b6ad0de54d2542640884f4c4405f3d53afafbd5af0de40319c96a34",
+    "ide/src/analysis/index_kind.h": "b1c57784fbbb815040e434e91df1afb9122d51ea71e48db413a463ee891c6332",
+    "ide/src/analysis/frontend_callable_native.h": "21b3af6c795b862e73a95c4c5398b6a9e70dbbe2b8b218a86b140fdbc844f40c",
+    "ide/src/analysis/frontend_callable_native.inc": "a13820dc96e5fa87f7e3213fcb0474c865733fcbc10b2f801480908d03f4d33e",
+    "ide/src/analysis/frontend_callable_groups.inc": "c3ed0b77523e309342a2e5d3c9155ea63fe5b2f3227601c067f442368c2ed12f",
+    "ide/src/services/semantic_definition.c": "05632463d57c63aeb46986d94115e6dcbbb1e1b07515a20669ee88f421c0f3d9",
+    "ide/src/services/semantic_reference_family.inc": "5068ffd38e9964ef3f37d6c3e71e375e6cd9a461446ca14682e9bf64dc3d214d",
+    "ide/src/services/semantic_reference_shard.h": "c38d687071561e3a1a7fb57e4ff3c5e0eddd32924f6c6db99aeb5ea137ca5603",
+    "ide/tests/semantic_callable_family_test.c": "15b1a6af1bb2ec9166a668001695e42adf7de13264e846de67916795dad1accb",
+    "ide/tests/semantic_dispatch_family_test.c": "218cbb69f027fef75af70a6edfb17ea9a4499baf4eab3c3d6537ca4c7c34237f",
+    "ide/tests/property_navigation_view_test.c": "cb9f2db9715ac3779a455b8a1c26da4f982af2a2db27cabd9524bd4c582ee48d",
+    "ide/tools/native_callable_overlay.py": "27a45c9f464726d96af66ceb0c98215e08d90862b5b359b858dc88af72a2da7f",
+    "ide/tools/build_lsp_core.py": "0ea8e3124c2ff69efdb2cee34f09ac8a1beed272c169fb76bab20ce32991db2c",
+    "ide/tools/check_lsp_properties.py": "1e1ea96bfa0c116950dc5f36aa34484ba6fc804aef3f4412847fbd1dd5643a21"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-callable-families-20261110.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-callable-families-20261110/stage-sources.tar.gz",
+      "sha256": "0dae54a9cb68b62fe0630a057e9c42271d9c48bf4066585b4523df81a799c3d7",
+      "bytes": 77451,
+      "entries": 19,
+      "uniquePayloads": 19,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-callable-families-20261110/stage-sources.tar.gz.manifest.json",
+      "sha256": "93d3ddbb789c821b1f517d34df1030edebb2d3500d879ad93bb2365566359c22",
+      "bytes": 4534
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-callable-families-20261110/actual-builds-and-validation.tar.gz",
+      "sha256": "29059d4a4b77532bea6dc8735db6ff4acb20aa5a9bd8d82948385a3064fa98a8",
+      "bytes": 1384739468,
+      "entries": 6992,
+      "uniquePayloads": 4467,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-callable-families-20261110/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "9fd6dba4257ea054275de4600acdd3d6b5f410add70f2d32f32a180edbccb6cc",
+      "bytes": 2377938
+    }
+  },
+  "candidate": {
+    "serverSha256": "9289370b88acf6e6c701b1cea0bab84e9611c6d726825052822081d8f737f478",
+    "guiSha256": "8dcd51dc2c2eb7c20b121f97caad8d8ed9ccfe0e98de34af2b34898bff58bc84",
+    "sdkDllSha256": "216c1f98f4d55cc5dff9c7d98425edbb08d470cdfc6b26ef4ad962af3431f560",
+    "guiObjects": 116,
+    "actualNativeConsumers": 285,
+    "nativePrograms": 175
+  },
+  "validation": {
+    "nativeFixtures": 174,
+    "callableFamilyAssertions": 6001,
+    "dispatchFamilyAssertions": 950,
+    "actualImplementationMutantsRejected": 4,
+    "originalPureHelpersVerbatim": 6,
+    "unknownMissingOrDuplicateSeamsRejected": 7,
+    "protocolSuites": 12,
+    "propertyProtocolCases": 5,
+    "guiFixtures": 29,
+    "currentSourcesAndAllLinksChecked": true,
+    "finalNativeMatrixFresh": true,
+    "crossModuleAndDistinctLexicalOwners": true,
+    "overloadAndDispatchTransitiveComposition": true,
+    "ordinaryIndexedAndWriteOnlyProperties": true,
+    "selectedNativeAccessorIdentityPreserved": true,
+    "receiversIndicesAndRhsNotRebound": true,
+    "unicodeBomAndCrlf": true,
+    "allCodepointJsonTypedAndResidentDefinitionParity": true,
+    "callableAllocatorRefusals": 2,
+    "exactObservedConcurrentAllocationBudget": true,
+    "everyObservedCallableCancellationBoundary": true,
+    "rowsOutliveOriginalOwner": true,
+    "retainedNavigationNodeLayoutUnchanged": true,
+    "noNewNavigationAllocation": true,
+    "noNewOrdinaryAnalysisGraph": true,
+    "performanceAdmissionRun": false,
+    "priorFailuresAndExplicitlyRetiredAttemptPreserved": true
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "knownMissing": [
+    "entire-workspace dispatch/callable fixed-point closure and all generic-origin families; OS writability/physical aliases and complete foreign/library policy",
+    "versioned edit construction, rename conflicts and post-rename binding proof",
+    "standard prepareRename/rename and IDE versioned edit transaction",
+    "remaining applicable LSP and current-engine cohort alignment",
+    "merge allocation and wide quota adversarial admission;whole-goal performance/large-workspace/soak/final delivery admission"
+  ]
+}

@@ -87,16 +87,18 @@ enum xide_reference_family_error {
  XIDE_REFERENCE_FAMILY_UNSUPPORTED
 };
 typedef struct xide_reference_family_info {size_t members,sources,bytes,relations;unsigned kinds;} xide_reference_family_info;
-/* Demand-only observed CLASS/PROTOCOL dispatch component of an exact source
- * declaration key. Follow original verified slot/witness IDs transitively;
+/* Demand-only observed class/protocol/lexical-overload/property component of
+ * an exact source declaration key. Follow original verified slot/witness IDs
+ * and same-owner native callable declaration associations transitively;
  * also join IDs which the existing navigation maps to the same exact source
  * declaration span. Never join unrelated declarations by spelling/signature.
  * Missing/generated/non-IDENT or differently spelled connected declarations
  * reject the WHOLE capture. Missing seed source/declaration is ABSENT.
- * This is NOT complete overload/property/generic-origin/workspace closure,
+ * This is NOT complete generic-origin/workspace closure,
  * writable/foreign policy, freshness, conflicts or permission to edit.
  * Copies each contributing source once; retains no check/AST/cache/shard/key.
- * Default32MiB/max64MiB admits concurrent scratch plus completed payload.
+ * Default32MiB/max64MiB admits concurrent callable capture/graph scratch plus
+ * completed payload. Callable capture itself has a32MiB maximum.
  * Borrowed navigation/check/cache and allocator/sort internals are additional.
  * Cancellation polls bounded graph work and64KiB payload copies; original
  * navigation acquisition and the quota-bounded library sorts are not
