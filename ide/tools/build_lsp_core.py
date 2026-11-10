@@ -27,6 +27,7 @@ from native_type_source_overlay import derive as derive_type_sources
 from native_initializer_overlay import derive as derive_initializer_index
 from native_parser_ownership_overlay import derive as derive_parser_ownership
 from native_frontend_inputs import prepare as prepare_frontend_inputs
+from native_identifier_overlay import derive as derive_identifier
 
 FRONTEND_SOURCES = (
     "src/lexer/xl6_token.c", "src/lexer/xl6_lexer_api.c", "src/lexer/xl6_lexer_gen.c",
@@ -40,6 +41,7 @@ FRONTEND_SOURCES = (
     "src/sem/xl6_sem_index.c", "src/ir/xl6_ir.c", "src/ir/xl6_ir_class_identity.c",
 )
 SERVER_SOURCES = (
+    "src/services/semantic_rename.c",
     "src/services/semantic_token_positions.c", "src/protocol/semantic_tokens_wire.c", "src/services/semantic_token_job.c",
     "src/protocol/analysis_context_wire.c", "src/protocol/signature_help.c", "src/services/analysis_catalog.c",
     "src/protocol/lsp_wire.c", "src/protocol/workspace_symbol_selection.c", "src/protocol/workspace_symbol_wire.c", "src/services/language_check.c", "src/services/language_snapshot.c", "src/services/diagnostic_store.c",
@@ -116,6 +118,7 @@ CORE_TESTS = ("analysis_function_pool_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_capacity_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_worker_snapshot_test", "analysis_worker_entry_mode_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_semantic_tokens_test", "analysis_semantic_tokens_fault_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_identifier_test", *CORE_TESTS)
 HOST_TESTS += ("navigation_function_reuse_test", "navigation_function_budget_test", "navigation_cache_test", "semantic_reference_shard_test", "project_references_test", "project_reference_budget_test", "reference_path_index_test")
 HOST_TESTS += ("path_identity_batch_test", "reference_capture_test")
 HOST_TESTS += ("project_reference_parallel_test",)
@@ -126,6 +129,7 @@ HOST_TESTS += ("workspace_symbols_test", "workspace_symbols_public_test", "works
 HOST_TESTS += ("workspace_symbol_wire_test",)
 HOST_TESTS += ("language_native_cancel_test",)
 HOST_TESTS += ("semantic_tokens_wire_test", "semantic_token_guards_test")
+HOST_TESTS += ("semantic_rename_target_test",)
 
 
 def sha(path: Path) -> str:
@@ -754,6 +758,9 @@ def main() -> None:
         original_ast, generated_ast, ast_overlay = prepare_native_ast(frontend, output)
         original_parser, generated_parser, parser_overlay = prepare_native_parser(frontend, output)
         original_lexer, generated_lexer, lexer_overlay = prepare_native_lexer(frontend, output)
+        identifier_source = output / 'native_identifier' / generated_lexer.name
+        lexer_overlay['identifier'] = derive_identifier(generated_lexer, identifier_source)
+        generated_lexer = identifier_source
         original_stack, generated_stack, stack_overlay = derive_parser_ownership(frontend, output)
         context_overlays = derive_context_runtime(frontend, output)
         namespaced_completion = next(Path(row['compiledSource']) for row in context_overlays
@@ -1005,6 +1012,7 @@ def main() -> None:
             if name in HOST_TESTS:
                 extra += [str(objects[Path(source).stem]) for source in SERVER_SOURCES
                           if Path(source).stem != "xlang_ls" and
+                          not (name == "semantic_rename_target_test" and Path(source).stem == "semantic_rename") and
                           not (name in ("snapshot_report_test", "reference_capture_test", "declaration_capture_test", "project_reference_owner_fault_test", "language_native_cancel_test") and Path(source).stem == "language_snapshot") and
                           not (name == "path_identity_batch_test" and Path(source).stem == "path") and
                           not (name == "workspace_symbol_index_test" and Path(source).stem == "workspace_symbol_index") and

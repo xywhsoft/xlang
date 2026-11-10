@@ -1,0 +1,82 @@
+{
+  "schema": 1,
+  "date": "2026-11-10",
+  "stage": "M7b4a",
+  "scope": "Allocation-free native IDENT validation and immutable exact semantic rename candidates; no rename endpoint",
+  "stageAccepted": true,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "1f093633213760fdeafd6e4cca7f6399044346ff",
+  "ownedSources": {
+    "ide/docs/lsp-rename-target.md": "18e174f8f2626cac80c7189ab570b2eaaa08a07668dd09a86d35f54d5ed1c853",
+    "ide/src/analysis/frontend_identifier.inc": "3fb23da83cfb09bf685867bc10a3d02b4439fbf4103c914422eddf85bc01c03b",
+    "ide/src/analysis/identifier.h": "6219f1f3032dbb66c92df54fcc03b9cf6f7d0c1f8ac5034bffdf0c3b81504d3e",
+    "ide/src/services/semantic_reference_shard.h": "014b2b59920066ed8c9d674ebcd1d8017c17de7dfbb917ce619e7a9601d33e8a",
+    "ide/src/services/semantic_reference_shard.inc": "4cdca17f8f73bc5a8b48fbe00faf8e6b0e7c2e093f144e80055f4b0e8dfd751f",
+    "ide/src/services/semantic_rename.c": "d9d75777164bc8daf8a09abfa37c72ff18d204532eadd39c5e825cb57016cc83",
+    "ide/src/services/semantic_rename.h": "3b363c2e5503238646cf50497e7209b5ab2cb2555df7a669609f3ee5135eff15",
+    "ide/tests/analysis_identifier_test.c": "8e187b54f224ad7f100487ffeff391e4deba035db4e57fd36f8c20a43f0bdcf2",
+    "ide/tests/semantic_rename_target_test.c": "9d9ad2106733e0c209e99bc4a5a727ca0b668e3829680a32764724f054af03ab",
+    "ide/tools/build_lsp_core.py": "0acac9ae8fb42981423b9b104c50bc6a37a44a52d39030ae6b2120e8de3293b8",
+    "ide/tools/native_identifier_overlay.py": "4ae2da97001d7f2767714f4421bd9ad2420bf05ec53d65c2eb207dfc79b6ec0f"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-rename-target-20261110.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-rename-target-20261110/stage-sources.tar.gz",
+      "sha256": "244e5c7eb482022a00b241661de2191dc046187db19913bc3f5d608c00d52ec1",
+      "bytes": 44334,
+      "entries": 12
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-rename-target-20261110/stage-sources.tar.gz.manifest.json",
+      "sha256": "76be1155be4cbe93b8c8a9d06ecf3ec16b1d301f0c197ca89109dd36210cb170",
+      "bytes": 2822
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-rename-target-20261110/actual-builds-and-validation.tar.gz",
+      "sha256": "f6d8868974ade3697f3c6834cec2c2da2eb00e0c99d7e2d35fd90ff6c04c221f",
+      "bytes": 1370126932,
+      "entries": 6096
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-rename-target-20261110/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "a4e1b224488d02f35d395b5a8fb2e6ef520a8302be4055047076db0c0c303098",
+      "bytes": 2095835
+    }
+  },
+  "candidate": {
+    "serverSha256": "101ddb748ad7ea471789caba3f16fe8f059602485454342bb76983e823b8d732",
+    "guiSha256": "1c1a0b90bfcade7ce27dd88b097e8e5969cbdcbe741a288ed4824efa5e2acbd4",
+    "sdkDllSha256": "216c1f98f4d55cc5dff9c7d98425edbb08d470cdfc6b26ef4ad962af3431f560",
+    "guiObjects": 116,
+    "actualNativeConsumers": 271
+  },
+  "validation": {
+    "nativeFixtures": 164,
+    "identifierAssertions": 32678,
+    "targetAssertions": 631,
+    "actualCMutantsRejected": 4,
+    "unknownLexerShapesRejected": 4,
+    "protocolSuites": 9,
+    "guiFixtures": 27,
+    "performanceAdmissionRun": false,
+    "priorFailuresPreserved": true
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "knownMissing": [
+    "native declaration identity for uninstantiated generic fields",
+    "writable membership and full overload/inheritance family closure",
+    "conflict and post-rename binding proof",
+    "standard prepareRename/rename and IDE versioned edit transaction",
+    "remaining applicable LSP and whole-goal performance/large-workspace/soak/delivery admission"
+  ]
+}

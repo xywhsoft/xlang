@@ -21,6 +21,17 @@ xide_reference_shard* xideSemanticReferenceShardCreate(xls_projection_store* cac
 xide_reference_key* xideSemanticReferenceKeyCreate(xls_projection_store* cache,
  xls_semantic_check* check,const xide_semantic_source* sources,size_t count,
  const char* path,int line,int character,size_t bytes,xide_model_error* error);
+/* Same original binding decision, additionally capture its cursor occurrence.
+ * The occurrence path borrows the supplied sources (not the navigation table);
+ * byte offsets address post-BOM input, UTF16 positions keep the BOM prefix.
+ * Clear selected on missing/failed lookup. No extra navigation construction. */
+xide_reference_key* xideSemanticReferenceKeyCreateAt(xls_projection_store* cache,
+ xls_semantic_check* check,const xide_semantic_source* sources,size_t count,
+ const char* path,int line,int character,size_t bytes,
+ xide_semantic_reference* selected,xide_model_error* error);
+/* Borrow the independently owned exact declaration source and byte interval.
+ * Storage/identity only: not writable-scope, freshness or rename-safety proof. */
+int xideSemanticReferenceKeyTarget(const xide_reference_key*,xide_semantic_source*,size_t* start,size_t* end);
 xide_reference_shard* xideSemanticReferenceShardRetain(xide_reference_shard* shard);
 void xideSemanticReferenceShardRelease(xide_reference_shard* shard);
 xide_reference_key* xideSemanticReferenceKeyRetain(xide_reference_key* key);

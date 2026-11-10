@@ -7,7 +7,7 @@
 typedef struct reference_source {char *path,*text;size_t size;int kind,prefix;} reference_source;
 typedef struct reference_item {reference_row row;xide_lsp_position start,end;} reference_item;
 struct xide_reference_shard {xatomic32 references;size_t bytes,sources,count;reference_source* source;reference_item* items;};
-struct xide_reference_key {xatomic32 references;size_t bytes,size;char *path,*text;uint32_t start,end;int kind;};
+struct xide_reference_key {xatomic32 references;size_t bytes,size;char *path,*text;uint32_t start,end;int kind,prefix;};
 static void referenceError(xide_model_error* error)
 {if(error){error->code=XIDE_MODEL_INVALID;snprintf(error->message,sizeof(error->message),"Unable to capture bounded verified reference data.");}}
 static int referenceCharge(size_t* used,size_t add,size_t limit)
@@ -47,18 +47,31 @@ xide_reference_shard* xideSemanticReferenceShardCreate(xls_projection_store* cac
 }
 xide_reference_key* xideSemanticReferenceKeyCreate(xls_projection_store* cache,
  xls_semantic_check* check,const xide_semantic_source* sources,size_t count,const char* path,int line,int character,size_t limit,xide_model_error* error)
+{return xideSemanticReferenceKeyCreateAt(cache,check,sources,count,path,line,character,limit,NULL,error);}
+xide_reference_key* xideSemanticReferenceKeyCreateAt(xls_projection_store* cache,
+ xls_semantic_check* check,const xide_semantic_source* sources,size_t count,const char* path,int line,int character,size_t limit,xide_semantic_reference* selected,xide_model_error* error)
 {
+ if(selected)*selected=(xide_semantic_reference){0};
  if(!path || line<0 || character<0 || !limit || limit>XIDE_REFERENCE_BYTES){referenceError(error);return NULL;}
  xls_projection* lease=NULL;xide_semantic_definitions* d=xideSemanticDefinitionsAcquireTyped(cache,check,sources,count,&lease,NULL,error);if(!d)return NULL;
- xide_reference_key* key=NULL;int failed=0;int source=sourceFor(d,path);size_t decl=SIZE_MAX;
- if(source){size_t chosen=selectNode(d,source,line,character,&decl);if(chosen==SIZE_MAX || !occurrence(d->nodes+chosen,source,(point){line,character},1))decl=SIZE_MAX;}
+ xide_reference_key* key=NULL;int failed=0;int source=sourceFor(d,path);size_t decl=SIZE_MAX;span chosenSpan={0};
+ if(source){size_t chosen=selectNode(d,source,line,character,&decl);const span* at=chosen==SIZE_MAX?NULL:occurrence(d->nodes+chosen,source,(point){line,character},1);if(!at)decl=SIZE_MAX;else chosenSpan=*at;}
  if(decl!=SIZE_MAX){const span* at=&d->nodes[decl].selection;
   if(at->source && at->endOffset>at->startOffset){const xide_semantic_source* target=sources+at->source-1;size_t bytes=sizeof(*key);int okay=referenceSourceBytes(&bytes,target,limit);
    if(okay)key=XIDE_REFERENCE_ALLOC(bytes);
-   if(key){memset(key,0,sizeof(*key));xrtAtomic32Init(&key->references,1);key->bytes=bytes;key->start=(uint32_t)at->startOffset;key->end=(uint32_t)at->endOffset;key->kind=target->kind;key->path=(char*)(key+1);size_t pathBytes=strlen(target->path)+1;memcpy(key->path,target->path,pathBytes);key->text=key->path+pathBytes;key->size=strlen(target->text);memcpy(key->text,target->text,key->size+1);}else failed=1;
+   if(key){memset(key,0,sizeof(*key));xrtAtomic32Init(&key->references,1);key->bytes=bytes;key->start=(uint32_t)at->startOffset;key->end=(uint32_t)at->endOffset;key->kind=target->kind;key->prefix=target->utf16Prefix;key->path=(char*)(key+1);size_t pathBytes=strlen(target->path)+1;memcpy(key->path,target->path,pathBytes);key->text=key->path+pathBytes;key->size=strlen(target->text);memcpy(key->text,target->text,key->size+1);}else failed=1;
   }
  }
+ if(key && selected)*selected=(xide_semantic_reference){sources[source-1].path,{chosenSpan.start.line,chosenSpan.start.character,chosenSpan.startOffset},{chosenSpan.end.line,chosenSpan.end.character,chosenSpan.endOffset},sameSelection(&chosenSpan,&d->nodes[decl].selection)};
  xideSemanticDefinitionsReleaseTyped(d,lease);if(failed || !source)referenceError(error);return key;
+}
+int xideSemanticReferenceKeyTarget(const xide_reference_key* k,xide_semantic_source* source,size_t* start,size_t* end)
+{
+ if(source)*source=(xide_semantic_source){0};
+ if(start)*start=0;
+ if(end)*end=0;
+ if(!k || !source || !start || !end || k->end<=k->start || k->end>k->size)return 0;
+ *source=(xide_semantic_source){k->path,k->text,k->kind,k->prefix};*start=k->start;*end=k->end;return 1;
 }
 enum xide_reference_match xideSemanticReferenceShardQuery(const xide_reference_shard* s,
  const xide_reference_key* key,int include,xide_reference_shard_view* view)
