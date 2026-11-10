@@ -1,0 +1,5 @@
+extern "NullableFactoryObject*" class Raw @header("test/cases/foreign_nullable_factory.h") @lifetime("caller")
+ native point handle
+end
+extern "nullableFactoryDrop" @header("test/cases/foreign_nullable_factory.h") @no_raise func releaseRaw(Raw value)
+extern "nullableFactoryCreate" @header("test/cases/foreign_nullable_factory.h") @no_raise @factory(0,0,releaseRaw) func wrong(c_int mode) as Raw?

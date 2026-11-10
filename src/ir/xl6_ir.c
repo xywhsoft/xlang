@@ -23483,6 +23483,13 @@ int xl6IrCallResultCAbiMatches(const XL6_IrModule* module, const XL6_IrCallTarge
         if((source->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_SCOPE_NATIVE)!=
             (result->foreignLifetime==XL6_FOREIGN_LIFETIME_CALLBACK))return 0;
         if(source->foreignCall.outputIndexPlusOne){
+            XL6_IrTypeId factoryType=target->returnType;
+            if(result->kind==XL6_IR_TYPE_NULLABLE){
+                if(result->paramCount!=1 || !result->params || source->foreignCall.inplaceOutput ||
+                    source->foreignCall.borrowedViewResult!=XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE)return 0;
+                factoryType=result->params[0];result=xl6IrTypeGet(&module->types,factoryType);
+                if(!result || result->foreignLifetime!=XL6_FOREIGN_LIFETIME_OWNED)return 0;
+            }
             const XL6_IrCallTarget* rollback=xl6IrCallTargetGet(module,source->foreignCall.rollbackSymbol);
             const XL6_IrNode* rollbackDecl=rollback ? xl6IrNodeGet(module,rollback->declaration) : NULL;
             if(!(result->kind==XL6_IR_TYPE_CLASS && (source->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) &&
@@ -23499,10 +23506,10 @@ int xl6IrCallResultCAbiMatches(const XL6_IrModule* module, const XL6_IrCallTarge
                 (rollbackDecl->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) && rollback->kind==XL6_IR_CALL_TARGET_EXTERN_C &&
                 !rollback->runtimeBridge && !rollback->returnType && !rollback->variadicAbi &&
                 !rollback->nativeServicesRequired && !rollback->nativeContextAbi && !rollback->nativeResultAbi && !rollback->nativeArrayResultAbi &&
-                rollback->parameterCount==1 && rollback->parameterTypes && rollback->parameterTypes[0]==target->returnType &&
+                rollback->parameterCount==1 && rollback->parameterTypes && rollback->parameterTypes[0]==factoryType &&
                 rollback->parameterAbis && rollback->parameterAbis[0]==XL6_IR_PARAMETER_ABI_BORROW &&
                 rollback->parameterPhysicalAbis && rollback->parameterPhysicalAbis[0]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VIEW_BORROW &&
-                xl6IrForeignOwnershipHelperMatches(module,source->foreignCall.rollbackSymbol,target->returnType,0)))return 0;
+                xl6IrForeignOwnershipHelperMatches(module,source->foreignCall.rollbackSymbol,factoryType,0)))return 0;
         }
         if(source->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE)
             return result->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNED && source->foreignCall.outputIndexPlusOne &&

@@ -1,0 +1,38 @@
+{
+  "scope": "Nullable owning pointer-output factories, semantic and typed IR admission",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "source": {
+    "src/sem/xl6_sem.c": "67d86189815e4440853d25ef31cc0356a39f3531867c75a0128c42f50dd028d6",
+    "src/ir/xl6_ir.c": "58e35eeee22f582ca90a26b591c6c25d575ab8e774342ef16a2ee516c76c1ffa",
+    "test/cases/foreign_nullable_factory.h": "688d320faf3f13686b834e56b469252fda0617941a296f771b8d8a059f7a3113",
+    "test/cases/foreign_nullable_factory.xl": "e8d70eb197a7e8914f82d2ed4e35999a6dad63398f0fd60b37348a9c2589c48d",
+    "test/cases/foreign_nullable_factory_ir.c": "58ea3718a3accac4e28167c8ea2b40aa8c13a070733efe94f6c91ece55518b6e",
+    "test/cases/bad_foreign_nullable_factory_caller.xl": "b909af8347b86078c4d8bb169ab5e5cb312850a9f81521aafb9e9e1564193db0",
+    "test/cases/bad_foreign_nullable_factory_inplace.xl": "e95271286c03b5c37353437406edeb2c1e257d501ca19875a22671b4ee6e7230",
+    "tools/check_foreign_nullable_factory.py": "b02b8a26bfa4339a3aaf3eea95a8043343947cf1ca0c955f0ea66ab787137089"
+  },
+  "compilerBuild": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r10\\build.json",
+    "sha256": "a47097178d1b0ed01b7ffd10ae4b89e0b12a28e19de6e1b1a73a00f15957e4ee",
+    "fullTccXrtAndVfs": true,
+    "optimization": "O2"
+  },
+  "windows": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\nullable-factory-win-full-r1\\results.json",
+    "sha256": "25d682a01b21a7467c853b475a9971a3c4641ea10fc8239cd5c9e15e05014e4c",
+    "checks": 6
+  },
+  "irMutation": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\nullable-factory-ir-win-r1\\results.json",
+    "sha256": "26d6b6245984ee7fc169b11c88602bb3ec234b358e989e7d317d7f4e56c8b643",
+    "targets": 2,
+    "rejectedMutations": 20,
+    "fullCompiler": false,
+    "modifiedSemAndIrMatchFullCompiler": true
+  },
+  "remaining": [
+    "Linux complete-source compiler and language qualification",
+    "Scene native-code-owner integration and final delivery"
+  ]
+}

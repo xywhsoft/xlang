@@ -1,0 +1,72 @@
+extern "NullableFactoryObject*" class Native @header("test/cases/foreign_nullable_factory.h") @lifetime("owned") @policy("nullableFactoryPolicy")
+ native point handle
+ extern "value" @c_field get value() as c_int
+ extern "nullableFactoryMethod" @no_raise @c_result("owned_view") @factory(1,0,releaseNative) func maybe(c_int mode) as Native?
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "nullableFactoryDrop" @header("test/cases/foreign_nullable_factory.h") @no_raise func releaseNative(Native value)
+extern "nullableFactoryCreate" @header("test/cases/foreign_nullable_factory.h") @no_raise @c_result("owned_view") @factory(0,0,releaseNative) func create(c_int mode) as Native?
+extern "nullableFactoryCreate" @header("test/cases/foreign_nullable_factory.h") @no_raise @c_result("owned_view") @factory(0,0,releaseNative) func require(c_int mode) as Native
+extern "nullableFactoryLive" @header("test/cases/foreign_nullable_factory.h") @no_raise func live() as c_int
+extern "nullableFactoryCalls" @header("test/cases/foreign_nullable_factory.h") @no_raise func calls() as c_int
+extern "nullableFactoryFailAfter" @header("test/cases/foreign_nullable_factory.h") @no_raise func failAfter(c_int value)
+extern "nullableFactoryFailClear" @header("test/cases/foreign_nullable_factory.h") @no_raise func failClear()
+// Explicit test-only dependency; the C fault injector needs this optional module.
+extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func debugEnabled() as bool
+protocol Producer
+ func maybe(c_int mode) as Native?
+end
+func main(...) as int
+ assert debugEnabled()
+ assert create(c_int(1))==null and live()==c_int(0)
+ auto owned=require(c_int(0))
+ assert owned.value==c_int(73) and live()==c_int(1)
+ assert owned.maybe(c_int(1))==null and live()==c_int(1)
+ func(c_int) as Native? bound=owned.maybe
+ assert bound(c_int(1))==null
+ Producer producer=owned
+ assert producer.maybe(c_int(1))==null
+ func(c_int) as Native? factory=create
+ assert factory(c_int(1))==null
+ auto another=factory(c_int(0)) as Native
+ assert another.value==c_int(73) and live()==c_int(2)
+ another.close()
+ for mode in array[2,3,4,5,6]
+  bool rejected=false
+  try
+   auto bad=create(c_int(mode))
+  catch error
+   rejected=true
+  end
+  assert rejected and live()==c_int(1)
+ end
+ bool nonnullRejected=false
+ try
+  auto missing=require(c_int(1))
+ catch error
+  nonnullRejected=true
+ end
+ assert nonnullRejected and live()==c_int(1)
+ for budget in range(6)
+  bool failed=false
+  int before=calls()
+  failAfter(c_int(budget))
+  try
+   auto value=create(c_int(0))
+   if value!=null then
+    (value as Native).close()
+   end
+  catch error
+   failed=true
+  end
+  failClear()
+  assert live()==c_int(1)
+  if budget==0 then
+   assert failed and calls()==c_int(before)
+  end
+ end
+ owned.close()
+ assert live()==c_int(0)
+ println("Nullable native factories: direct, bound, protocol, null, error and OOM passed")
+ return 0
+end

@@ -21866,16 +21866,22 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
     if (facts.outputIndexPlusOne && !facts.valueOutput) {
         const XL6_AstNode* returns = node->childCount > 2 ? node->children[2] : NULL;
         const XL6_AstNode* result = returns && returns->childCount == 1 ? xl6SemResolveAliasType(ctx, returns->children[0]) : NULL;
-        const XL6_AstNode* view = xl6SemClassValueType(ctx, result);
+        int nullableFactory=xl6SemTypeIsNullable(result);
+        const XL6_AstNode* view = xl6SemClassValueType(ctx, nullableFactory ? xl6SemNullableInnerType(result):result);
         const XL6_AstNode* typeDecl = view && view->text ? xl6SemFindTypeDecl(ctx, view->text) : NULL;
         if (xl6ForeignOutputLogicalForDeclaration(node,&facts,count+receiver,receiver)==SIZE_MAX) {
             xl6SemErrorNode(ctx, node, "factory output index is outside the physical signature"); return 0;
         }
         if (!result || xl6ForeignClassRead(typeDecl, NULL, NULL) != 1) {
-            xl6SemErrorNode(ctx, node, "factory result must be an exact non-null external native view"); return 0;
+            xl6SemErrorNode(ctx, node, "factory result must be an exact external native view"); return 0;
         }
         XL6_ForeignClassDecl factoryContract={0};
-        if(xl6ForeignClassRead(typeDecl,&factoryContract,NULL)==1 && factoryContract.lifetime==XL6_FOREIGN_LIFETIME_CALLER &&
+        xl6ForeignClassRead(typeDecl,&factoryContract,NULL);
+        if(nullableFactory && (factoryContract.lifetime!=XL6_FOREIGN_LIFETIME_OWNED ||
+            facts.borrowedViewResult!=XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE || facts.inplaceOutput)){
+            xl6SemErrorNode(ctx,node,"nullable factories require an owned_view pointer-output producer without in-place storage");return 0;
+        }
+        if(factoryContract.lifetime==XL6_FOREIGN_LIFETIME_CALLER &&
             (facts.physicalPairs || facts.retainedCallbacks || facts.terminatedStrings)) {
             xl6SemErrorNode(ctx,node,"expanded factory inputs require a managed result lifetime");return 0;
         }
