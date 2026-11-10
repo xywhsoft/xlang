@@ -4,6 +4,7 @@
 #ifdef XLS_COMPILER_XRT
 #include "analysis/module_store.h"
 #include "services/rename_scope.h"
+#include "services/rename_plan.h"
 typedef struct xide_project_references xide_project_references;
 typedef struct xide_reference_query xide_reference_query;
 typedef struct xide_project_reference_stats {size_t roots,captured,reused,locations,records,chargedBytes;
@@ -104,6 +105,12 @@ xide_reference_family* xideProjectReferencesRetainFamily(xide_reference_query*);
  * OS writability, binding preservation or permission to apply an edit. */
 xide_reference_query* xideProjectReferencesSubmitFamilyReferences(xide_project_references*,
  xide_rename_scope*,xide_rename_target*,const xls_analysis_document*,size_t,const char* trigger);
+/* Same guarded family/reference collection plus a detached byte-exact draft
+ * plan. No new semantic checks here: conflict/post-edit binding, physical
+ * write policy and client epoch/transaction gates must follow before use. */
+xide_reference_query* xideProjectReferencesSubmitRenamePlan(xide_project_references*,
+ xide_rename_scope*,xide_rename_target*,const xls_analysis_document*,size_t,const char* trigger,xstrview newName);
+xide_rename_plan* xideProjectReferencesRetainRenamePlan(xide_reference_query*);
 enum xide_reference_query_state xideProjectReferencesResult(xide_reference_query* query,
  const xvalue** locations,xide_project_reference_stats* stats,char* error,size_t capacity);
 xvalue* xideProjectReferencesTake(xide_reference_query* query);

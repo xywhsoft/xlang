@@ -44,6 +44,7 @@ FRONTEND_SOURCES = (
     "src/sem/xl6_sem_index.c", "src/ir/xl6_ir.c", "src/ir/xl6_ir_class_identity.c",
 )
 SERVER_SOURCES = (
+    "src/services/rename_plan.c",
     "src/services/semantic_rename.c",
     "src/services/rename_scope.c",
     "src/services/semantic_token_positions.c", "src/protocol/semantic_tokens_wire.c", "src/services/semantic_token_job.c",
@@ -146,6 +147,7 @@ HOST_TESTS += ("semantic_dispatch_family_test", "semantic_callable_family_test")
 HOST_TESTS += ("semantic_reference_graph_test", "reference_graph_capture_test")
 HOST_TESTS += ("semantic_reference_merge_test", "project_reference_family_test")
 HOST_TESTS += ("semantic_family_references_test", "project_family_references_test")
+HOST_TESTS += ("rename_plan_test", "project_rename_plan_test")
 
 
 def sha(path: Path) -> str:
@@ -1048,6 +1050,7 @@ def main() -> None:
                 extra += [str(objects[Path(source).stem]) for source in SERVER_SOURCES
                           if Path(source).stem != "xlang_ls" and
                           not (name == "semantic_rename_target_test" and Path(source).stem == "semantic_rename") and
+                          not (name == "rename_plan_test" and Path(source).stem == "rename_plan") and
                           not (name == "rename_scope_test" and Path(source).stem == "rename_scope") and
                           not (name in ("snapshot_report_test", "reference_capture_test", "reference_graph_capture_test", "declaration_capture_test", "project_reference_owner_fault_test", "language_native_cancel_test") and Path(source).stem == "language_snapshot") and
                           not (name == "path_identity_batch_test" and Path(source).stem == "path") and
@@ -1055,7 +1058,7 @@ def main() -> None:
                           not (name in ("workspace_symbols_test", "workspace_symbol_refresh_test", "workspace_symbols_shared_test") and Path(source).stem == "workspace_symbols") and
                           not (name == "workspace_symbol_wire_test" and Path(source).stem == "workspace_symbol_wire") and
                           not (name in ("semantic_dispatch_family_test", "semantic_callable_family_test", "semantic_reference_graph_test", "semantic_reference_merge_test", "semantic_family_references_test", "semantic_lookup_test", "semantic_reference_shard_test", "declaration_symbols_test", "navigation_function_budget_test") and Path(source).stem == "semantic_definition") and
-                          not (name in ("project_reference_budget_test", "reference_path_index_test", "project_reference_parallel_test", "project_reference_owner_fault_test", "project_rename_workspace_test", "project_reference_family_test", "project_family_references_test") and Path(source).stem == "project_references")]
+                          not (name in ("project_reference_budget_test", "reference_path_index_test", "project_reference_parallel_test", "project_reference_owner_fault_test", "project_rename_workspace_test", "project_reference_family_test", "project_family_references_test", "project_rename_plan_test") and Path(source).stem == "project_references")]
             if name == "project_reference_owner_fault_test":
                 extra.append(str(objects['owner_snapshot_fault']))
             if name == "language_native_cancel_test":

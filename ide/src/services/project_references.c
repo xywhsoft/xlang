@@ -2,6 +2,7 @@
 #ifdef XLS_COMPILER_XRT
 #include "platform/path.h"
 #include "analysis/worker_modules.h"
+#include "analysis/identifier.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -23,9 +24,9 @@ typedef struct path_index {path_slot* slots;size_t count;} path_index;
 typedef struct reference_record {xatomic32 references;xls_context* scope;xide_reference_shard* shard;xide_reference_graph* graph;xide_language_input_guard* guard;char** overlays;path_index paths;wchar_t* key;size_t count,bytes;uint64_t used;} reference_record;
 struct xide_project_references {xtaskpool* pool;xls_worker *analysis,*keys,*members[XIDE_REFERENCE_MEMBER_WORKERS];size_t memberCount;xide_toolchains* cache;char* compiler;xarray records;struct {xls_context* context;size_t count;} scopes[64];size_t bytes;uint64_t clock;};
 struct xide_reference_query {xfuture* future;xfuturewatch watch;int initialized,linked;void (*wake)(void*);void* user;};
-typedef struct reference_input {xide_project_references* store;xls_context* scope;xls_analysis_document docs[64];path_index paths;size_t count;char *trigger,*path;int line,character,include,proof,workspacePart,familyMode;xide_rename_scope* renameScope;xide_rename_target* renameTarget;} reference_input;
+typedef struct reference_input {xide_project_references* store;xls_context* scope;xls_analysis_document docs[64];path_index paths;size_t count;char *trigger,*path,*renameName;int line,character,include,proof,workspacePart,familyMode;xide_rename_scope* renameScope;xide_rename_target* renameTarget;} reference_input;
 typedef struct result_row {char* path;wchar_t* key;xide_lsp_position start,end;const xvalue* proof;int ownedProof;} result_row;
-typedef struct reference_output {xvalue* locations;xide_reference_family* family;xide_project_reference_stats stats;uint64_t memberThreads[XIDE_REFERENCE_MEMBER_WORKERS];char error[512];xarray rows,proofs,guards,graphs;size_t guardBytes,graphBytes;} reference_output;
+typedef struct reference_output {xvalue* locations;xide_reference_family* family;xide_rename_plan* plan;xide_project_reference_stats stats;uint64_t memberThreads[XIDE_REFERENCE_MEMBER_WORKERS];char error[512];xarray rows,proofs,guards,graphs;size_t guardBytes,graphBytes;} reference_output;
 typedef struct reference_job {const char* path;xevent* event;xide_language_check* check;reference_record* record;int fresh,sourceRejected;char error[512];} reference_job;
 typedef struct root {char* path;wchar_t* key;int covered,mustAnalyze;char* rejection;reference_record* cached;} root;
 static xstrview sv(const char* s){return (xstrview){s,strlen(s)};}
@@ -69,7 +70,7 @@ static reference_record* retainRecord(reference_record* r)
 static void releaseRecord(reference_record* r)
 {if(!r || xrtAtomic32FetchSub(&r->references,1,XMEMORY_ACQ_REL)!=1)return;pathIndexUnit(&r->paths);if(r->overlays)for(size_t i=0;i<r->count;++i)xrtFree(r->overlays[i]);xrtFree(r->overlays);free(r->key);xlsContextRelease(r->scope);xideSemanticReferenceShardRelease(r->shard);xideSemanticReferenceGraphRelease(r->graph);xideLanguageInputGuardRelease(r->guard);xrtFree(r);}
 static void freeInput(void* data,void* user)
-{(void)user;reference_input* in=data;pathIndexUnit(&in->paths);for(size_t i=0;i<in->count;++i){xrtFree((char*)in->docs[i].key);xrtFree((char*)in->docs[i].path);xlsTextRelease(in->docs[i].text);}xlsContextRelease(in->scope);xideRenameScopeRelease(in->renameScope);xideRenameTargetRelease(in->renameTarget);xrtFree(in->trigger);xrtFree(in->path);xrtFree(in);}
+{(void)user;reference_input* in=data;pathIndexUnit(&in->paths);for(size_t i=0;i<in->count;++i){xrtFree((char*)in->docs[i].key);xrtFree((char*)in->docs[i].path);xlsTextRelease(in->docs[i].text);}xlsContextRelease(in->scope);xideRenameScopeRelease(in->renameScope);xideRenameTargetRelease(in->renameTarget);xrtFree(in->trigger);xrtFree(in->path);xrtFree(in->renameName);xrtFree(in);}
 static void workspaceRowsFree(xarray* rows)
 {for(size_t i=0;i<rows->Count;++i){result_row* row=(result_row*)rows->Data+i;xrtFree(row->path);free(row->key);if(row->ownedProof)xrtValueRelease((xvalue*)row->proof);}xrtArrayUnit(rows);}
 static void freeOutput(void* data,void* user)
@@ -79,7 +80,7 @@ static void freeOutput(void* data,void* user)
  xrtArrayUnit(&out->proofs);
  for(size_t i=0;i<out->guards.Count;++i)xideLanguageInputGuardRelease(((xide_language_input_guard**)out->guards.Data)[i]);
  for(size_t i=0;i<out->graphs.Count;++i)xideSemanticReferenceGraphRelease(((xide_reference_graph**)out->graphs.Data)[i]);
- xrtArrayUnit(&out->graphs);xideSemanticReferenceFamilyRelease(out->family);xrtArrayUnit(&out->guards);xrtFree(out);
+ xrtArrayUnit(&out->graphs);xideRenamePlanRelease(out->plan);xideSemanticReferenceFamilyRelease(out->family);xrtArrayUnit(&out->guards);xrtFree(out);
 }
 static int compareRoot(const void* a,const void* b){return xidePathNativeKeyCompare(((const root*)a)->key,((const root*)b)->key);}
 static int compareRow(const void* a,const void* b)
@@ -449,38 +450,44 @@ xide_project_references* xideProjectReferencesCreate(xide_toolchains* cache,cons
 }
 void xideProjectReferencesDestroy(xide_project_references* store)
 {if(!store)return;if(store->pool){xrtTaskPoolCancel(store->pool);xrtTaskPoolDestroy(store->pool);}for(size_t i=0;i<store->records.Count;++i)releaseRecord(records(store)[i]);xrtArrayUnit(&store->records);for(size_t i=0;i<store->memberCount;++i)xlsWorkerDestroy(store->members[i]);xlsWorkerDestroy(store->keys);xrtFree(store->compiler);xrtFree(store);}
-static xide_reference_query* submitReference(xide_project_references* store,xls_context* context,const xls_analysis_document* docs,size_t count,const char* trigger,const char* path,int line,int character,int include,int proof,xide_rename_scope* renameScope,xide_rename_target* renameTarget,int workspace)
+static xide_reference_query* submitReference(xide_project_references* store,xls_context* context,const xls_analysis_document* docs,size_t count,const char* trigger,const char* path,int line,int character,int include,int proof,xide_rename_scope* renameScope,xide_rename_target* renameTarget,int workspace,const xstrview* newName)
 {
  if(!store || !context || !docs || !count || count>64 || !trigger || !path || line<0 || character<0 || (include!=0 && include!=1) || (proof!=0 && proof!=1))return NULL;
- reference_input* in=xrtCalloc(1,sizeof(*in));xide_reference_query* q=xrtCalloc(1,sizeof(*q));if(!in || !q){xrtFree(in);xrtFree(q);return NULL;}in->store=store;in->scope=xlsContextRetain(context);in->trigger=xrtStrDup(trigger);in->path=xrtStrDup(path);in->line=line;in->character=character;in->include=include;in->proof=proof;in->familyMode=workspace==3 ? 2 : workspace==2;in->renameScope=xideRenameScopeRetain(renameScope);in->renameTarget=xideRenameTargetRetain(renameTarget);int okay=in->trigger && in->path;
+ reference_input* in=xrtCalloc(1,sizeof(*in));xide_reference_query* q=xrtCalloc(1,sizeof(*q));if(!in || !q){xrtFree(in);xrtFree(q);return NULL;}in->store=store;in->scope=xlsContextRetain(context);in->trigger=xrtStrDup(trigger);in->path=xrtStrDup(path);in->line=line;in->character=character;in->include=include;in->proof=proof;in->familyMode=workspace>=3 ? 2 : workspace==2;in->renameScope=xideRenameScopeRetain(renameScope);in->renameTarget=xideRenameTargetRetain(renameTarget);if(newName)in->renameName=xrtStrDupN(newName->Data,newName->Size);int okay=in->trigger && in->path && (!newName || in->renameName);
  for(size_t i=0;okay && i<count;++i){in->docs[i]=docs[i];in->docs[i].key=docs[i].key ? xrtStrDup(docs[i].key) : NULL;in->docs[i].path=docs[i].path ? xrtStrDup(docs[i].path) : NULL;in->docs[i].text=xlsTextRetain(docs[i].text);++in->count;okay=in->docs[i].key && in->docs[i].path && in->docs[i].text;}
  xtaskargs args={.Destroy=freeInput};if(okay)q->future=xrtTaskSubmit(store->pool,workspace ? executeWorkspace : execute,in,&args);if(!q->future){freeInput(in,NULL);xrtFree(q);return NULL;}return q;
 }
 xide_reference_query* xideProjectReferencesSubmitWithProof(xide_project_references* store,xls_context* context,const xls_analysis_document* docs,size_t count,const char* trigger,const char* path,int line,int character,int include,int proof)
-{return submitReference(store,context,docs,count,trigger,path,line,character,include,proof,NULL,NULL,0);}
+{return submitReference(store,context,docs,count,trigger,path,line,character,include,proof,NULL,NULL,0,NULL);}
 xide_reference_query* xideProjectReferencesSubmitRenameScope(xide_project_references* store,xls_context* context,xide_rename_scope* scope,xide_rename_target* target,const xls_analysis_document* docs,size_t count,const char* trigger)
 {
  xide_rename_target_info at;if(!scope || !context || !xideRenameTargetInfo(target,&at))return NULL;
  int found=0;for(size_t i=0;i<xideRenameScopeCount(scope);++i)if(xlsContextEqual(context,xideRenameScopeAt(scope,i))){found=1;break;}
- return found ? submitReference(store,context,docs,count,trigger,at.path,at.start.line,at.start.character,1,1,scope,target,0) : NULL;
+ return found ? submitReference(store,context,docs,count,trigger,at.path,at.start.line,at.start.character,1,1,scope,target,0,NULL) : NULL;
 }
 xide_reference_query* xideProjectReferencesSubmitRenameWorkspace(xide_project_references* store,xide_rename_scope* scope,xide_rename_target* target,const xls_analysis_document* docs,size_t count,const char* trigger)
 {
  xide_rename_target_info at;const xls_context* first=xideRenameScopeAt(scope,0);
  if(!first || !xideRenameTargetInfo(target,&at))return NULL;
- return submitReference(store,(xls_context*)first,docs,count,trigger,at.path,at.start.line,at.start.character,1,1,scope,target,1);
+ return submitReference(store,(xls_context*)first,docs,count,trigger,at.path,at.start.line,at.start.character,1,1,scope,target,1,NULL);
 }
 xide_reference_query* xideProjectReferencesSubmitFamilyWorkspace(xide_project_references* store,xide_rename_scope* scope,xide_rename_target* target,const xls_analysis_document* docs,size_t count,const char* trigger)
 {
  xide_rename_target_info at;const xls_context* first=xideRenameScopeAt(scope,0);
  if(!first || !xideRenameTargetInfo(target,&at))return NULL;
- return submitReference(store,(xls_context*)first,docs,count,trigger,at.path,at.start.line,at.start.character,1,1,scope,target,2);
+ return submitReference(store,(xls_context*)first,docs,count,trigger,at.path,at.start.line,at.start.character,1,1,scope,target,2,NULL);
 }
 xide_reference_query* xideProjectReferencesSubmitFamilyReferences(xide_project_references* store,xide_rename_scope* scope,xide_rename_target* target,const xls_analysis_document* docs,size_t count,const char* trigger)
 {
  xide_rename_target_info at;const xls_context* first=xideRenameScopeAt(scope,0);
  if(!first || !xideRenameTargetInfo(target,&at))return NULL;
- return submitReference(store,(xls_context*)first,docs,count,trigger,at.path,at.start.line,at.start.character,1,1,scope,target,3);
+ return submitReference(store,(xls_context*)first,docs,count,trigger,at.path,at.start.line,at.start.character,1,1,scope,target,3,NULL);
+}
+xide_reference_query* xideProjectReferencesSubmitRenamePlan(xide_project_references* store,xide_rename_scope* scope,xide_rename_target* target,const xls_analysis_document* docs,size_t count,const char* trigger,xstrview newName)
+{
+ xide_rename_target_info at;const xls_context* first=xideRenameScopeAt(scope,0);
+ if(!first || !xideRenameTargetInfo(target,&at) || !xlsIdentifierValid(newName.Data,newName.Size))return NULL;
+ return submitReference(store,(xls_context*)first,docs,count,trigger,at.path,at.start.line,at.start.character,1,1,scope,target,4,&newName);
 }
 xide_reference_query* xideProjectReferencesSubmit(xide_project_references* store,xls_context* context,const xls_analysis_document* docs,size_t count,const char* trigger,const char* path,int line,int character,int include)
 {return xideProjectReferencesSubmitWithProof(store,context,docs,count,trigger,path,line,character,include,0);}
@@ -494,6 +501,8 @@ enum xide_reference_query_state xideProjectReferencesResult(xide_reference_query
 }
 xide_reference_family* xideProjectReferencesRetainFamily(xide_reference_query* q)
 {if(xideProjectReferencesResult(q,NULL,NULL,NULL,0)!=XIDE_REFERENCES_READY)return NULL;const reference_output* out=xrtFutureValue(q->future);return xideSemanticReferenceFamilyRetain(out->family);}
+xide_rename_plan* xideProjectReferencesRetainRenamePlan(xide_reference_query* q)
+{if(xideProjectReferencesResult(q,NULL,NULL,NULL,0)!=XIDE_REFERENCES_READY)return NULL;const reference_output* out=xrtFutureValue(q->future);return xideRenamePlanRetain(out->plan);}
 xvalue* xideProjectReferencesTake(xide_reference_query* q)
 {if(xideProjectReferencesResult(q,NULL,NULL,NULL,0)!=XIDE_REFERENCES_READY)return NULL;reference_output* out=xrtFutureValue(q->future);xvalue* v=out->locations;out->locations=NULL;return v;}
 static void wakeQuery(void* user){xide_reference_query* q=user;q->wake(q->user);}
