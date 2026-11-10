@@ -60,6 +60,8 @@ export extern "xge_font" class Font @header("xge3_runtime.h") @lifetime("owned")
  extern "xgeFontGlyphAtlasGet" @no_raise @c_output(2,0) func atlasGlyph(c_uint codepoint) as Glyph
  extern "xgeFontGlyphAtlasGetByIndex" @no_raise @c_output(2,0) func atlasGlyphByIndex(c_int index) as Glyph
  extern "xgeFontSaveXRF" @no_raise @c_cstr(0) @c_result("status",0) func saveXRF(string path,c_uint firstCodepoint,c_uint count)
+ extern "xgeFontGlyphRasterizeOwned" @no_raise @c_result("owned_view") @factory(0,0,releaseGlyphBitmap) func rasterize(c_uint codepoint) as GlyphBitmap
+ extern "xgeFontGlyphRasterizeByIndexOwned" @no_raise @c_result("owned_view") @factory(0,0,releaseGlyphBitmap) func rasterizeByIndex(c_int index) as GlyphBitmap
  extern "pFallback" @c_field @c_result("retained_view") @c_retain(retainFont,"positive",freeFont) get fallback() as Font?
  extern "xgeFontCreateSizedOwned" @no_raise @c_result("owned_view") @factory(0,0,freeFont) func sized(c_float size) as Font
  extern "xgeFontSetFallbackChecked" @no_raise @c_result("status",0) func setFallback(Font? fallback)

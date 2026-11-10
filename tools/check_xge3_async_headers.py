@@ -11,20 +11,21 @@ import json
 import os
 import shutil
 import subprocess
+from full_compiler_qualification import verify_full_compiler
 
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--graphics-context',action='store_true',help='Also link the owning-context policy and domain from its matched SDK')
     p.add_argument('--font-resources',action='store_true',help='Also link the native FontFace and FontFamily policies')
+    p.add_argument('--text-resources',action='store_true',help='Also link immutable GlyphRun and GlyphBitmap policies')
     for name in ('root','compiler','compiler-report','dynamic-packages','static-packages','header','out'):
         p.add_argument('--'+name,type=Path,required=True)
     a=p.parse_args()
     root,compiler,cohort,dynamic,static,header,out=[v.resolve() for v in
         (a.root,a.compiler,a.compiler_report,a.dynamic_packages,a.static_packages,a.header,a.out)]
     sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest()
-    metadata=json.loads(cohort.read_text(encoding='utf8'))
-    assert metadata.get('passed') and metadata.get('fullTccXrtAndVfs')
+    metadata=verify_full_compiler(cohort,compiler)
     sdk=compiler.parent/'include'
     cc=Path(shutil.which('gcc')).resolve();cpp=Path(shutil.which('g++')).resolve()
     library=compiler.parent/('xlc.dll' if os.name=='nt' else 'libxlc.so')
@@ -35,6 +36,7 @@ def main():
     # GNU ld accepts the delivered PE DLL's export table directly too; use
     # the actual package input rather than an unstaged development .lib.
     files=[Path(__file__).resolve(),cohort,header,cc,cpp,library]
+    files.extend([Path(__file__).with_name('full_compiler_qualification.py'),Path(metadata['sourceFreeze'])])
     for folder in (sdk,dynamic,static):files.extend(v for v in folder.rglob('*') if v.is_file())
     inputs={str(v):sha(v) for v in files}
     out.mkdir(parents=True,exist_ok=False)
@@ -45,9 +47,11 @@ def main():
     contextCheck=' || !xl6Xge3GraphicsContextPolicyGet()->Destroy || !xl6Xge3GraphicsContextDomainV1Get()' if a.graphics_context else ''
     fontInclude='#include <xge3_font_resources.h>\n' if a.font_resources else ''
     fontCheck=' || !xl6Xge3FontFacePolicyGet()->Destroy || !xl6Xge3FontFamilyPolicyGet()->Destroy' if a.font_resources else ''
-    linked.write_text('#include "'+header.as_posix()+'"\n#include <xge3_async_load.h>\n'+contextInclude+fontInclude+
+    textInclude='#include <xge3_text_resources.h>\n' if a.text_resources else ''
+    textCheck=' || !xl6Xge3GlyphRunPolicyGet()->Destroy || !xl6Xge3GlyphBitmapPolicyGet()->Destroy' if a.text_resources else ''
+    linked.write_text('#include "'+header.as_posix()+'"\n#include <xge3_async_load.h>\n'+contextInclude+fontInclude+textInclude+
         'int main(){auto* image=xl6Xge3ImageLoadPolicyGet();auto* texture=xl6Xge3TextureLoadPolicyGet();'
-        'auto* domain=xl6Xge3AsyncLoadDomainV1Get();return !image->Destroy || !texture->Destroy || !domain'+contextCheck+fontCheck+';}\n',encoding='utf8')
+        'auto* domain=xl6Xge3AsyncLoadDomainV1Get();return !image->Destroy || !texture->Destroy || !domain'+contextCheck+fontCheck+textCheck+';}\n',encoding='utf8')
     inputs.update({str(v):sha(v) for v in (probe,linked)})
     env=dict(os.environ)
     if os.name=='nt':

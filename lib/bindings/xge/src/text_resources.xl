@@ -1,0 +1,63 @@
+// Immutable output resources; input text and descriptor storage are call-local.
+// The backing has a private Font*. The independent language value contains
+// only these scalar fields; its stride remains sizeof(xge_glyph_position_t).
+export extern "xge_glyph_position_t" struct GlyphPosition @header("xge3_text_resources.h") @c_projection()
+ c_uint iCodepoint
+ c_uint iCluster
+ c_int iGlyph
+ c_uint iFlags
+ c_float fAdvanceX
+ c_float fOffsetX
+ c_float fOffsetY
+ c_uint iClusterEnd
+ c_uint iItemKind
+ c_uint iEmojiId
+ c_float fEmojiWidth
+ c_float fEmojiHeight
+ c_float fVisualX
+end
+export extern "xge_glyph_bitmap_info_t" struct GlyphBitmapInfo @header("xge3_text_resources.h")
+ c_uint iSize
+ c_uint iCodepoint
+ c_int iWidth
+ c_int iHeight
+ c_int iStride
+ c_int iOffsetX
+ c_int iOffsetY
+ c_int iFormat
+ c_size iBytes
+end
+export extern "xge_glyph_bitmap_resource" class GlyphBitmap @header("xge3_text_resources.h") @lifetime("owned") @policy("xl6Xge3GlyphBitmapPolicy")
+ native point handle
+ extern "xgeGlyphBitmapResourceGetInfo" @no_raise @c_output(1,0) @c_output_size(1,"iSize") func info() as GlyphBitmapInfo
+ extern "xgeGlyphBitmapResourceGetPixels" @no_raise @c_owned_sequence(1,2,0,"size_t",0) @c_retain(retainGlyphBitmap,"positive",releaseGlyphBitmap) func pixels() as NativeSequence<c_uchar>
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xgeGlyphBitmapResourceAddRef" @header("xge3_text_resources.h") @no_raise func retainGlyphBitmap(GlyphBitmap bitmap) as c_int
+extern "xgeGlyphBitmapResourceFree" @header("xge3_text_resources.h") @no_raise func releaseGlyphBitmap(GlyphBitmap bitmap)
+export extern "xge_glyph_run_t*" class GlyphRun @header("xge3_text_resources.h") @lifetime("owned") @policy("xl6Xge3GlyphRunPolicy")
+ native point handle
+ extern "iFlags" @c_field get flags() as c_uint
+ extern "iTextSize" @c_field get textSize() as c_int
+ extern "iGlyphCount" @c_field get glyphCount() as c_int
+ extern "iCaretCount" @c_field get caretCount() as c_int
+ extern "fWidth" @c_field get width() as c_float
+ extern "fHeight" @c_field get height() as c_float
+ extern "fAscent" @c_field get ascent() as c_float
+ extern "fDescent" @c_field get descent() as c_float
+ extern "fLineHeight" @c_field get lineHeight() as c_float
+ extern "xgeGlyphRunRetainedBytes" @no_raise @c_const(0) func retainedBytes() as c_size
+ extern "xgeGlyphRunMeasure" @no_raise @c_const(0) func measure() as Vec2
+ extern "xgeGlyphRunHitTest" @no_raise @c_const(0) @c_outputs(3,4) @c_status(0) func hitTest(c_float x,c_float y) as (c_uint,c_int)
+ extern "xgeGlyphRunGetFont" @no_raise @c_const(0) @c_result("owned_view") @factory(2,0,freeFont) func font(c_size index) as Font?
+ extern "xgeGlyphRunGetCarets" @no_raise @c_const(0) @c_owned_sequence(1,2,0,"size_t",0) @c_retain(retainGlyphRun,"positive",releaseGlyphRun) func carets() as NativeSequence<GlyphCaret>
+ extern "xgeGlyphRunGetGlyphs" @no_raise @c_const(0) @c_owned_sequence(1,2,0,"size_t",0) @c_retain(retainGlyphRun,"positive",releaseGlyphRun) func glyphs() as NativeSequence<GlyphPosition>
+ extern "xgeGlyphRunDraw" @no_raise @c_const(0) func draw(c_float x,c_float y,c_uint color,c_uint flags=0)
+ extern "xgeGlyphRunDrawSpans" @no_raise @c_const(0) @c_array_group(5,4,1,"int",5) @c_array_input(5,0,"const xge_text_paint_span_t*","value") func drawSpans(c_float x,c_float y,c_uint color,c_uint flags,array<TextPaintSpan> spans,int size=-1)
+ extern "xgeGlyphRunDrawDecorated" @no_raise @c_const(0) @c_array_group(5,4,1,"int",5) @c_array_input(5,0,"const xge_text_decoration_t*","value") func drawDecorated(c_float x,c_float y,c_uint color,c_uint flags,array<TextDecoration> decorations,int size=-1)
+ extern "xgeGlyphRunAppendShapeEx" @no_raise @c_const(0) @c_result("status",0) func appendOutline(Shape shape,c_float x=0,c_float y=0)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xgeGlyphRunAddRef" @header("xge3_text_resources.h") @no_raise @c_const(0) func retainGlyphRun(GlyphRun run) as c_int
+extern "xgeGlyphRunFree" @header("xge3_text_resources.h") @no_raise func releaseGlyphRun(GlyphRun run)
+export extern "xgeTextShapeOwned" @header("xge3_text_resources.h") @no_raise @c_result("owned_view") @factory(0,0,releaseGlyphRun) @c_pack(1,"xge_text_shape_desc_t",0,10) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"pFont",0,"view_raw") @c_pack_field(1,"sText",1,"text_data") @c_pack_field(1,"iTextSize",1,"text_size","int") @c_pack_field(1,"iFlags",2,"value") @c_pack_field(1,"sContext",3,"text_data") @c_pack_field(1,"iContextSize",3,"text_size","int") @c_pack_field(1,"iContextOffset",4,"value") @c_pack_field(1,"iScript",5,"value") @c_pack_field(1,"sLanguage",6,"c_string") @c_pack_field(1,"iEmojiPresentation",7,"value") @c_pack_field(1,"iEmojiLinePolicy",8,"value") @c_pack_field(1,"fEmojiScale",9,"value") func shapeText(Font font,string text,c_uint flags=1,string? context=null,c_int contextOffset=0,c_uint script=0,string? language=null,c_int emojiPresentation=0,c_int emojiLinePolicy=0,c_float emojiScale=1) as GlyphRun

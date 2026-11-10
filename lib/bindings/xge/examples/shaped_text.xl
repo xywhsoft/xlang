@@ -1,0 +1,26 @@
+// Run here: xl run shaped_text.xl. No window or system font is needed.
+import xge
+func main(...) as int
+ xge.init(4,4,"Shaped text",0,xge.XGE_RUN_MANUAL)
+ auto font=xge.loadFont("data/font_fixture.ttf",c_float(20))
+ auto text=xge.shapeText(font,"ffi")
+ font.close() // The shaped text keeps the native font alive.
+ println("Text width:",text.width,"glyphs:",text.glyphCount)
+
+ // Caret positions are UTF-8 byte offsets and advances inside ligatures.
+ auto carets=text.carets()
+ auto glyphs=text.glyphs()
+ text.close() // The sequence independently retains the immutable result.
+ for caret in carets
+  println("Caret:",caret.iTextOffset,"advance:",caret.fAdvance)
+ end
+ // Scalar records are read directly from native storage; Font pointers stay private.
+ for glyph in glyphs
+  println("Glyph:",glyph.iCodepoint,"advance:",glyph.fAdvanceX)
+ end
+ // Release the sequence before ending the engine that its Font retains.
+ carets=NativeSequence::<xge.GlyphCaret>()
+ glyphs=NativeSequence::<xge.GlyphPosition>()
+ xge.unit()
+ return 0
+end

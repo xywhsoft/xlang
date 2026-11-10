@@ -1,0 +1,312 @@
+{
+  "scope": "Declarative immutable GlyphRun/GlyphBitmap and independent glyph/caret/pixel sequences",
+  "nativeCompiledRevision": "2f8d708439a17e7504bc42f39a9bd5eb49cbe9be",
+  "nativeQualification": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\text-resources-20261111.json",
+    "sha256": "d84305f31e6e45c2fab4fa60879d7a52b41071212117e4de689cba25aa0b6261",
+    "checks": 376
+  },
+  "compilerFoundation": {
+    "path": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\native-record-projection-20261111.json",
+    "sha256": "f400ee3a606cb9c326acd223085d307a07e8a82e0e1bab5e46fb1d259c8ab2c8",
+    "commit": "314102661f5331bf037d3e2649badae7ce647052"
+  },
+  "bindingSource": {
+    "lib/bindings/xge/include/xge3_text_resources.h": "6b3f40274d3ecdfc05308acef7f54a86bb10123a3e3a9da21c89c7225d610476",
+    "lib/bindings/xge/src/text_resources.xl": "72d24b5816ee7824447f727fc4516055a211133700ae5cde667601e981798ba3",
+    "lib/bindings/xge/src/resources.xl": "3d65f490e3b6e688128cd3c9506c1fe6273683524fbc4db1ec193d867158394f",
+    "lib/bindings/xge/xlang.package.json": "5a7e42feda8fc5406c3354849083415945240adb140b734d247aff0c51891fed",
+    "lib/bindings/xge/examples/shaped_text.xl": "0428dfc021a686cc84b90e1cc801185201d09fe305a58ae9ae014c14ccf60d4a"
+  },
+  "testSource": {
+    "test/cases/foreign_xge3_text_resources.xl": "60577addb3493e3432ea38fb54cc98487249d62eb44afbaa6c6a01c3fa9dce7c",
+    "test/cases/foreign_xge3_text_resources.c": "0ccf7c861fce79de6721c18cf2e0d71bcfe1d92892c1e8355d9dcf27b1ae4821",
+    "test/cases/foreign_xge3_text_resources.h": "f27bed65423135720db170abcea3f1792ba6eb09488853dd21562260e6530d8d",
+    "tools/check_xge3_text_resources.py": "b828f0a0295838a155532b1271efb84b4330684badc8ace3df4835125221dd48",
+    "tools/check_xge3_async_headers.py": "d68e887931e9f2ad40d7def225facd05a4599e8f77640dfd3d9b30358e904d40",
+    "tools/full_compiler_qualification.py": "1eebd601abfcc2c954bceb31ccedfe2794fc9b7fe893d79107ef25d4e5e17fcc"
+  },
+  "packages": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-text-host-win-r4.json",
+      "sha256": "6a67e9485bfc409d4387bc76457ca46b907ccb0bbe1141ec83042c6b3faf1ea7"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-text-static-win-r4.json",
+      "sha256": "c48fdf6b3fa2ee139a3e62c998428fcb3205735b490e28f385ed436b8f860a2b"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-text-host-linux-r4.json",
+      "sha256": "5b5d416286d698e0242c6c61c6d208ac18c233c0692190aec061705da220a19f"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-text-static-linux-r4.json",
+      "sha256": "c3f22b461cf6d8102ebd7a10bae302c0784dbe17124f1a2e1265a7a5a9eaa1de"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-text-egl-host-linux-r4.json",
+      "sha256": "e22955e9dbce73fe9128747bd27cd66cfcad2b54b5a037b854d71e935c762acf"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-text-egl-static-linux-r4.json",
+      "sha256": "7d945eb06ce67f006c55dd82bc1cd5544686dc23d5342cedb46427a6d133b47f"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\text-qualified-win-r2\\results.json",
+      "sha256": "8dcbe9d487c04704eb88216753f704f4e3412d72e899c93383ea46935a575ddb",
+      "checks": 10
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\text-qualified-linux-r2\\results.json",
+      "sha256": "cf929af6d516fe2a00fa1eb99df7742bc3e6f701b652fb07c70d9a6b44d77e2a",
+      "checks": 8
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\text-qualified-egl-linux-r2\\results.json",
+      "sha256": "911aa07c1861df57db6c37cc1b9cd75826f61f202b35d9abedd90e30b2a5dd4e",
+      "checks": 8
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\text-qualified-header-win-r2\\results.json",
+      "sha256": "11151589a975f8a8c1c4ff0cfeac4d07059a4658a23a67089abaf51797006367",
+      "checks": 8
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\text-qualified-header-linux-r2\\results.json",
+      "sha256": "56d0268bbd0a69c4032a056a720634bc3a7a668c874d97c2f364035f7e89a8ee",
+      "checks": 8
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\text-qualified-header-egl-linux-r2\\results.json",
+      "sha256": "b19c925eef15bcb575081dba5794481f2e190a60f713232b3fbc3a8e491d0cc4",
+      "checks": 8
+    }
+  ],
+  "checks": 50,
+  "retainedCosts": {
+    "text-qualified-win-r2": {
+      "foreign_xge3_text_resources-jit": {
+        "-1": {
+          "allocations": 5,
+          "bytes": 416
+        },
+        "-3": {
+          "allocations": 0,
+          "bytes": 0
+        },
+        "-2": {
+          "allocations": 2,
+          "bytes": 191
+        },
+        "-4": {
+          "allocations": 0,
+          "bytes": 0
+        },
+        "0": {
+          "allocations": 7,
+          "bytes": 944
+        },
+        "1": {
+          "allocations": 5,
+          "bytes": 736
+        },
+        "2": {
+          "allocations": 4,
+          "bytes": 719
+        },
+        "3": {
+          "allocations": 5,
+          "bytes": 736
+        }
+      },
+      "foreign_xge3_text_resources-static": {
+        "-1": {
+          "allocations": 5,
+          "bytes": 416
+        },
+        "-3": {
+          "allocations": 0,
+          "bytes": 0
+        },
+        "-2": {
+          "allocations": 2,
+          "bytes": 191
+        },
+        "-4": {
+          "allocations": 0,
+          "bytes": 0
+        },
+        "0": {
+          "allocations": 7,
+          "bytes": 944
+        },
+        "1": {
+          "allocations": 5,
+          "bytes": 736
+        },
+        "2": {
+          "allocations": 4,
+          "bytes": 719
+        },
+        "3": {
+          "allocations": 5,
+          "bytes": 736
+        }
+      }
+    },
+    "text-qualified-linux-r2": {
+      "foreign_xge3_text_resources-jit": {
+        "-1": {
+          "allocations": 5,
+          "bytes": 416
+        },
+        "-3": {
+          "allocations": 0,
+          "bytes": 0
+        },
+        "-2": {
+          "allocations": 2,
+          "bytes": 191
+        },
+        "-4": {
+          "allocations": 0,
+          "bytes": 0
+        },
+        "0": {
+          "allocations": 7,
+          "bytes": 944
+        },
+        "1": {
+          "allocations": 5,
+          "bytes": 736
+        },
+        "2": {
+          "allocations": 4,
+          "bytes": 719
+        },
+        "3": {
+          "allocations": 5,
+          "bytes": 736
+        }
+      },
+      "foreign_xge3_text_resources-static": {
+        "-1": {
+          "allocations": 5,
+          "bytes": 416
+        },
+        "-3": {
+          "allocations": 0,
+          "bytes": 0
+        },
+        "-2": {
+          "allocations": 2,
+          "bytes": 191
+        },
+        "-4": {
+          "allocations": 0,
+          "bytes": 0
+        },
+        "0": {
+          "allocations": 7,
+          "bytes": 944
+        },
+        "1": {
+          "allocations": 5,
+          "bytes": 736
+        },
+        "2": {
+          "allocations": 4,
+          "bytes": 719
+        },
+        "3": {
+          "allocations": 5,
+          "bytes": 736
+        }
+      }
+    },
+    "text-qualified-egl-linux-r2": {
+      "foreign_xge3_text_resources-jit": {
+        "-1": {
+          "allocations": 5,
+          "bytes": 416
+        },
+        "-3": {
+          "allocations": 0,
+          "bytes": 0
+        },
+        "-2": {
+          "allocations": 2,
+          "bytes": 191
+        },
+        "-4": {
+          "allocations": 0,
+          "bytes": 0
+        },
+        "0": {
+          "allocations": 7,
+          "bytes": 944
+        },
+        "1": {
+          "allocations": 5,
+          "bytes": 736
+        },
+        "2": {
+          "allocations": 4,
+          "bytes": 719
+        },
+        "3": {
+          "allocations": 5,
+          "bytes": 736
+        }
+      },
+      "foreign_xge3_text_resources-static": {
+        "-1": {
+          "allocations": 5,
+          "bytes": 416
+        },
+        "-3": {
+          "allocations": 0,
+          "bytes": 0
+        },
+        "-2": {
+          "allocations": 2,
+          "bytes": 191
+        },
+        "-4": {
+          "allocations": 0,
+          "bytes": 0
+        },
+        "0": {
+          "allocations": 7,
+          "bytes": 944
+        },
+        "1": {
+          "allocations": 5,
+          "bytes": 736
+        },
+        "2": {
+          "allocations": 4,
+          "bytes": 719
+        },
+        "3": {
+          "allocations": 5,
+          "bytes": 736
+        }
+      }
+    }
+  },
+  "costScope": "XRT requested live allocation deltas after warmup; same native font/workload. Resident C baseline has native refs but no language/JIT module code-owner semantics. No whole-pilot zero-overhead or hardware-throughput claim.",
+  "queuedSoftwareEglPaintedPixels": 696,
+  "hotTraversalAllocations": 0,
+  "backingArrayCopies": 0,
+  "shippingDelivery": false,
+  "installedIde": false,
+  "moduleGlobalCodeResidencyGate": false,
+  "excludedConcurrentNativeRevisions": [
+    "cc3da5be",
+    "fb17797d"
+  ],
+  "remainingScope": "Full mainline/IDE/release integration, host scheduling, audio, async Font/Sound, SVG/emoji/particles, input payloads, XUI/Document, optional 3D/debug and previously retained platform gates"
+}

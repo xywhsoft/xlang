@@ -1,0 +1,176 @@
+import xge
+extern "fixtureXgeTextPath" @header("test/cases/foreign_xge3_text_resources.h") func fixturePath() as string
+extern "fixtureXgeTextHotBegin" @header("test/cases/foreign_xge3_text_resources.h") @no_raise func hotBegin() as c_int
+extern "fixtureXgeTextHotEnd" @header("test/cases/foreign_xge3_text_resources.h") @no_raise func hotEnd() as c_int
+extern "fixtureXgeTextCostBegin" @header("test/cases/foreign_xge3_text_resources.h") @no_raise func costBegin()
+extern "fixtureXgeTextCostReport" @header("test/cases/foreign_xge3_text_resources.h") @no_raise func costReport(c_int stage)
+extern "fixtureXgeTextNativeCosts" @header("test/cases/foreign_xge3_text_resources.h") @no_raise func nativeCosts(xge.Font font) as c_int
+func measureRun(xge.Font font)
+ costBegin()
+ auto run=xge.shapeText(font,"ffi")
+ costReport(c_int(0))
+ costBegin()
+ auto glyphs=run.glyphs()
+ costReport(c_int(1))
+ assert glyphs.length>0
+ run.close()
+end
+func measureBitmap(xge.Font font)
+ costBegin()
+ auto bitmap=font.rasterize(c_uint(65))
+ costReport(c_int(2))
+ costBegin()
+ auto pixels=bitmap.pixels()
+ costReport(c_int(3))
+ assert pixels.length>0
+ bitmap.close()
+end
+func checkCosts(string path)
+ auto font=xge.loadFont(path,c_float(20))
+ assert nativeCosts(font)==c_int(0)
+ measureRun(font)
+ measureBitmap(font)
+ font.close()
+end
+func checkShape(string path)
+ auto font=xge.loadFont(path,c_float(20))
+ auto run=xge.shapeText(font,"ffi")
+ assert run.textSize==c_int(3) and run.glyphCount>c_int(0)
+ assert run.width>c_float(0) and run.retainedBytes()>c_size(0)
+ assert run.measure().fX==run.width
+ auto cluster, trailing=run.hitTest(c_float(0),c_float(0))
+ assert cluster<=c_uint(3) and (trailing==c_int(0) or trailing==c_int(1))
+ auto selected=run.font(c_size(0))
+ assert selected!=null
+ if selected!=null then selected.close() end
+ auto shape=xge.createShape()
+ run.appendOutline(shape)
+ shape.close()
+ auto carets=run.carets()
+ auto glyphs=run.glyphs()
+ assert glyphs.length==int(run.glyphCount)
+ auto independent=glyphs[0]
+ independent.iGlyph=c_int(-1)
+ assert glyphs[0].iGlyph>c_int(0)
+ assert carets.length>0
+ run.close()
+ font.close()
+ assert xge.graphicsResourceCount()==uint64(1)
+ assert hotBegin()==c_int(1)
+ int stops=0
+ int glyphCount=0
+ for index, glyph in glyphs
+  assert glyph.iGlyph>c_int(0) and glyph.iCluster<c_uint(3)
+  assert glyph.iClusterEnd<=c_uint(3) and glyph.fAdvanceX>c_float(0)
+  glyphCount+=1
+ end
+ for index, caret in carets
+  assert caret.iTextOffset>c_uint(0) and caret.iTextOffset<c_uint(3)
+  assert caret.fAdvance>c_float(0)
+  stops+=1
+ end
+ assert hotEnd()==c_int(1) and stops==carets.length and glyphCount==glyphs.length
+ println("text hot sequence allocations: 0")
+end
+func checkBitmap(string path)
+ auto font=xge.loadFont(path,c_float(20))
+ auto glyph=font.glyph(c_uint(65))
+ auto bitmap=font.rasterize(c_uint(65))
+ auto indexed=font.rasterizeByIndex(glyph.iGlyph)
+ assert bitmap.info().iBytes==indexed.info().iBytes
+ indexed.close()
+ auto pixels=bitmap.pixels()
+ assert pixels.length>0
+ bitmap.close()
+ font.close()
+ assert xge.graphicsResourceCount()==uint64(0)
+ assert hotBegin()==c_int(1)
+ int painted=0
+ for value in pixels
+  if value!=c_uchar(0) then painted+=1 end
+ end
+ assert hotEnd()==c_int(1) and painted>0
+end
+func checkContext(string path)
+ auto font=xge.loadFont(path,c_float(20))
+ string defaultEmpty
+ auto fromDefault=xge.shapeText(font,defaultEmpty)
+ assert fromDefault.textSize==c_int(0) and fromDefault.glyphs().length==0
+ fromDefault.close()
+ auto empty=xge.shapeText(font,"")
+ assert empty.textSize==c_int(0) and empty.glyphCount==c_int(0)
+ assert empty.glyphs().length==0 and empty.carets().length==0
+ empty.close()
+ auto emptyContext=xge.shapeText(font,"",c_uint(1),"",c_int(0))
+ assert emptyContext.textSize==c_int(0) and emptyContext.glyphs().length==0
+ emptyContext.close()
+ auto nul=xge.shapeText(font,"A\0V")
+ assert nul.textSize==c_int(3) and nul.glyphCount==c_int(3)
+ nul.close()
+ auto context=xge.shapeText(font,"AV",c_uint(1),"x AV y",c_int(2),c_uint(0),"en")
+ assert context.textSize==c_int(2)
+ context.close()
+ int refused=0
+ try
+  auto invalidLanguage=xge.shapeText(font,"",c_uint(1),null,c_int(0),c_uint(0),"")
+ catch Error error
+  refused+=1
+ end
+ try
+  auto invalid=font.rasterizeByIndex(c_int(-1))
+ catch Error error
+  refused+=1
+ end
+ assert refused==2
+ font.close()
+end
+func checkDrawing(string path)
+ auto context=xge.createEglContext(64,64,true)
+ auto font=xge.loadFont(path,c_float(20))
+ auto run=xge.shapeText(font,"ffi")
+ font.close()
+ auto target=xge.createRenderTarget(64,64)
+ auto pass=xge.createPass(target,c_uint(xge.XGE_PASS_CLEAR_COLOR),xge.colorRGBA(0,0,0,255))
+ pass.begin()
+ run.draw(c_float(4),c_float(22),xge.colorRGBA(255,255,255,255))
+ auto span=xge.TextPaintSpan()
+ span.iEnd=c_int(1)
+ span.iColor=xge.colorRGBA(255,0,0,255)
+ array<xge.TextPaintSpan> spans=[span]
+ run.drawSpans(c_float(4),c_float(44),xge.colorRGBA(255,255,255,255),c_uint(0),spans)
+ auto decoration=xge.TextDecoration()
+ decoration.iType=c_int(xge.XGE_TEXT_DECORATION_UNDERLINE)
+ decoration.iColor=xge.colorRGBA(0,255,0,255)
+ array<xge.TextDecoration> decorations=[decoration]
+ run.drawDecorated(c_float(32),c_float(44),xge.colorRGBA(255,255,255,255),c_uint(0),decorations)
+ run.close()
+ pass.finish()
+ auto pixels=Buffer()
+ assert pixels.resize(64*64*4)
+ target.readPixels(pixels)
+ int painted=0
+ for i in range(64*64)
+  if pixels.__item__(i*4)!=uint8(0) or pixels.__item__(i*4+1)!=uint8(0) or pixels.__item__(i*4+2)!=uint8(0) then
+   painted+=1
+  end
+ end
+ assert painted>20 and painted<64*64
+ pass.close()
+ target.close()
+ context.close()
+ assert xge.graphicsResourceCount()==uint64(0)
+ println("text queued GPU rendering passed: ",painted)
+end
+func main(...) as int
+ string path=fixturePath()
+ assert path.length>0
+ xge.init(4,4,"Immutable text resources",0,xge.XGE_RUN_MANUAL)
+ checkShape(path)
+ assert xge.graphicsResourceCount()==uint64(0)
+ checkBitmap(path)
+ checkContext(path)
+ checkCosts(path)
+ if xge.eglCapsGet().bCompiled!=c_int(0) then checkDrawing(path) end
+ xge.unit()
+ return 0
+end
