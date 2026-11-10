@@ -16,7 +16,10 @@ typedef struct xide_project_reference_stats {size_t roots,captured,reused,locati
   * program roles rejected by original guarded source diagnostics. Pinned
   * coverageCacheRoots still contribute complete checked shards this query. */
  size_t ownerProbes,ownerRouteHits,ownerActorBuilds,ownerActorHits;
- size_t coveredRoots,sourceRejections,coverageCacheRoots;} xide_project_reference_stats;
+ size_t coveredRoots,sourceRejections,coverageCacheRoots;
+ /* Whole-workspace rename collection only; unrelated scopes also complete. */
+ size_t workspaceScopes,workspaceCompleted,workspaceDuplicates,workspaceGuardBytes;
+} xide_project_reference_stats;
 enum xide_reference_query_state {XIDE_REFERENCES_FAILED=-1,XIDE_REFERENCES_PENDING=0,XIDE_REFERENCES_READY=1,XIDE_REFERENCES_CANCELLED=2};
 /* One independent XRT actor with separate retained key/member workers;borrowed toolchain cache outlives
  * Destroy. Context membership defines ALL xlang source members,including unopened and
@@ -67,6 +70,18 @@ xide_reference_query* xideProjectReferencesSubmitWithProof(xide_project_referenc
 xide_reference_query* xideProjectReferencesSubmitRenameScope(xide_project_references*,
  xls_context*,xide_rename_scope*,xide_rename_target*,const xls_analysis_document*,
  size_t count,const char* trigger);
+/* Traverse every configured scope on the existing reference actor and workers.
+ * Merge sorted native rows, verify one compatible complete proof per file,
+ * and revalidate ALL contributing guards after the last scope, including those
+ * with zero occurrences. Any failure rejects the complete result. Known merged
+ * row/path/key/serialized-proof charge32MiB, retained serialized guard/context
+ * charge128MiB, final wire7MiB. Active child work, DOM internals, allocator cost,
+ * scope/target/inputs and existing caches are additional. Caller still gates
+ * input/configuration/publication epochs. These are raw occurrence ranges,
+ * not identifier edits or family/conflict/writability/transaction proof. */
+xide_reference_query* xideProjectReferencesSubmitRenameWorkspace(xide_project_references*,
+ xide_rename_scope*,xide_rename_target*,const xls_analysis_document*,size_t count,
+ const char* trigger);
 enum xide_reference_query_state xideProjectReferencesResult(xide_reference_query* query,
  const xvalue** locations,xide_project_reference_stats* stats,char* error,size_t capacity);
 xvalue* xideProjectReferencesTake(xide_reference_query* query);
