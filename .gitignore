@@ -79,6 +79,7 @@
 !/dev/release-materials/provenance/lsp-binding-checks-20261111.json
 !/dev/release-materials/provenance/lsp-frozen-recheck-20261111.json
 !/dev/release-materials/provenance/lsp-report-index-20261111.json
+!/dev/release-materials/provenance/lsp-engine-alignment-20261111.json
 /out/
 /tmp/
 /logs/

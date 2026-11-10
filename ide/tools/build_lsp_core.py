@@ -16,6 +16,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import time
+from concurrent.futures import ThreadPoolExecutor
 from xrt_process_tree_overlay import derive as derive_process_runtime
 from native_current_unified_profile import COHORT as UNIFIED_COHORT, PINS as UNIFIED_PINS, CORPUS as UNIFIED_CORPUS
 from native_c_interop_profile import COHORT as C_INTEROP_COHORT, PINS as C_INTEROP_PINS, pins_for as c_interop_pins, selected as c_interop_selected, CORPUS as C_INTEROP_CORPUS, NEGATIVE_CORPUS as C_INTEROP_NEGATIVE, async_corpus, ASYNC_RESULT_PRIVATE_CORPUS, completion_facts
@@ -456,6 +457,8 @@ def prepare_native_sem(frontend: Path, output: Path, *, _current_unit_probe=Fals
     source,type_constructor=derive_type_constructor(frontend,output,source,current)
     source = semantic_cancellation(source)
     source = derive_type_sources(source)
+    from native_aggregate_completion_overlay import derive as derive_aggregate_completion
+    source,aggregate_completion=derive_aggregate_completion(source,frontend)
     compiled.write_text(source, encoding='utf-8', newline='\n')
     return original, compiled, dict(source=str(original), sourceSha256=hashlib.sha256(body).hexdigest(),
         compiledSource=str(compiled), compiledSha256=sha(compiled),
@@ -468,6 +471,7 @@ def prepare_native_sem(frontend: Path, output: Path, *, _current_unit_probe=Fals
         overloadCandidateBytes=8 * 1024 * 1024,
         syntheticTypeOrigins='eight explicit at-node constructors retain original AST source/ranges;original type rules unchanged',
         observedTypeQueries=type_queries, projectedAliasQueries=1 if current else 0,
+        aggregateCompletion=aggregate_completion,
         typeConstructor=type_constructor,
         currentUnitProbe=bool(current and _current_unit_probe), declarationEffects=effect_overlay,
         finalAnnotations=final_annotation_overlay,
@@ -704,11 +708,15 @@ def main() -> None:
     parser.add_argument("--cc", default=shutil.which("gcc") or "E:/software/w64devkit/bin/gcc.exe")
     parser.add_argument("--server", action="store_true", help="also build the external language-server host")
     parser.add_argument("--skip-tests", action="store_true", help="build only, without compiling or running core fixtures")
+    parser.add_argument("--build-only", action="store_true", help="compile/link fixtures without executing them; permits paired validation in the root runtime")
+    parser.add_argument("--jobs", type=int, default=1, help="independent compiler jobs (1..8; default1)")
     parser.add_argument("--configuration", choices=("Debug", "Release"), default="Release")
     parser.add_argument("--cflag", action="append", default=[],
                         help="additional compiler option; repeat --cflag=-option as needed")
     args = parser.parse_args()
+    if not 1<=args.jobs<=8:parser.error('--jobs must be in1..8')
     tests = CORE_TESTS + (HOST_TESTS if args.server else ())
+    tests=(*tests,'analysis_ir_projection_test')
     frontend, output = args.frontend_root.resolve(), args.output.resolve()
     cc = Path(args.cc).resolve()
     if not cc.is_file():
@@ -719,7 +727,7 @@ def main() -> None:
     except ValueError as error:
         parser.error(str(error))
     c_interop = c_interop_selected(frontend)
-    current_core = frontend_materials.get('sourceRevision')=='current-core-20261108'
+    current_core = frontend_materials.get('sourceRevision') in ('current-core-20261108','current-projection-20261111')
     if current_core and not args.skip_tests:tests=('analysis_native_selection_test','analysis_current_core_test',*tests)
     unified = c_interop or ((frontend/'src/sem/xl6_sem.c').is_file() and sha(frontend/'src/sem/xl6_sem.c')==UNIFIED_PINS['src/sem/xl6_sem.c'])
     if completion_facts(frontend) and not args.skip_tests:tests=('analysis_completion_visibility_test',*tests)
@@ -739,7 +747,7 @@ def main() -> None:
         # These private fixtures include the exact generated native TUs; use
         # their native warning profile. Their objects never enter core/server.
         sources += [(ide / "tests" / (name + ".c"), name not in
-                     ("analysis_semantic_read_front_test", "analysis_ir_sparse_decode_test", "analysis_ir_capacity_test",
+                     ("analysis_semantic_read_front_test", "analysis_ir_sparse_decode_test", "analysis_ir_projection_test", "analysis_ir_capacity_test",
                       "analysis_semantic_final_input_test", "analysis_ir_input_test", "analysis_final_environment_test", "analysis_index_canonical_guards_test",
                       "analysis_semantic_alias_reads_test", "analysis_type_constructor_test", "analysis_ir_derived_test", "analysis_ir_parameters_test", "analysis_ir_classifier_test", "analysis_model_source_test", "analysis_ir_topology_test")) for name in tests]
     if args.server:
@@ -835,7 +843,9 @@ def main() -> None:
     env["PATH"] = str(cc.parent) + os.pathsep + env.get("PATH", "")
     common = ["-std=c11", "-ffunction-sections", "-fdata-sections", "-DXRT_MODULE_ALL=", "-DXLS_COMPILER_XRT=1",
               "-finput-charset=UTF-8", "-fexec-charset=UTF-8",
-              "-I" + str(ide / "src"), "-I" + str(output / "frontend"), "-I" + str(frontend),
+              "-I" + str(ide / "src"), "-I" + str(output / "native_fields"),
+              "-I" + str(output / "native_qualified_types"), "-I" + str(output / "native_identifier"),
+              "-I" + str(output / "frontend"), "-I" + str(frontend),
               "-I" + str(frontend / "src/ir"),
               "-I" + str(frontend / "release"), "-I" + str(frontend / "release/include"),
               "-I" + str(output / 'native_xrt'), "-I" + str(frontend / "lib/xrt"),
@@ -880,7 +890,7 @@ def main() -> None:
     inputs[str(Path(__file__).with_name('native_ir_derived_overlay.py').resolve())] = sha(Path(__file__).with_name('native_ir_derived_overlay.py'))
     inputs[str(Path(__file__).with_name('native_current_ir_profile.py').resolve())] = sha(Path(__file__).with_name('native_current_ir_profile.py'))
     inputs[str(Path(__file__).with_name('native_current_retirement_profile.py').resolve())] = sha(Path(__file__).with_name('native_current_retirement_profile.py'))
-    for name in ('native_frontend_inputs.py','native_c_interop_profile.py','native_current_unified_profile.py','native_current_semantic_profile.py','native_semantic_effects_overlay.py','native_current_stdlib_profile.py','native_current_context_profile.py','native_type_constructor_overlay.py'):
+    for name in ('native_frontend_inputs.py','native_c_interop_profile.py','native_current_unified_profile.py','native_current_semantic_profile.py','native_semantic_effects_overlay.py','native_current_stdlib_profile.py','native_current_context_profile.py','native_type_constructor_overlay.py','native_aggregate_completion_overlay.py'):
         controller=Path(__file__).with_name(name).resolve()
         inputs[str(controller)]=sha(controller)
     for overlay in (ir_overlay,sem_overlay,stdlib_overlay,completion_overlay,*context_overlays):
@@ -975,10 +985,13 @@ def main() -> None:
                     raise RuntimeError(f"source changed during dependency discovery: {path}")
                 inputs[str(path)] = digest
         inputs[str(cc)] = sha(cc)
-        for source, owned in sources:
+        def compile_unit(item):
+            source,owned=item
             target = output / (source.stem + ".o")
             run([str(cc), *unit_flags(source, owned), "-c", str(source), "-o", str(target)], source.stem)
-            objects[source.stem] = target
+            return source.stem,target
+        with ThreadPoolExecutor(max_workers=args.jobs) as pool:
+            for name,target in pool.map(compile_unit,sources):objects[name]=target
         ar = cc.with_name("ar.exe" if os.name == "nt" else "ar")
         core = output / "xlang-analysis-core.a"
         core_names = {Path(source).stem for source in FRONTEND_SOURCES} | {"runtime", "frontend_cancel", "frontend_ir_regions","frontend_symbols","frontend_entry_cache","module_store","entity_store","module_graph","input_view", "input_topology", "dependency_graph", "text", "context", "frontend_context", "frontend_raw_body", "ast_size", "ast_storage", "ast_materialize", "ast_clone", "ast_intern", "function_unit", "typed_module", "syntax", "session", "worker", "projection", "folding", "selection", "semantic", "signature", "signature_session", "check", "dispatch", "callable", "xls_native_callables", "input_batch", "frontend_overlay", "check_session", "dependency_session", "completion_session", "input_state", "diagnostic_paths"}
@@ -999,6 +1012,7 @@ def main() -> None:
             if name == "analysis_source_text_test":extra.append("-Wl,--wrap=xlsInputBatchAt")
             if name == "analysis_ast_replacement_test":extra.append("-Wl,--wrap=xrtPoolFree")
             if name == "semantic_token_guards_test":extra.append("-Wl,--wrap=xlsSemanticTokensData")
+            if name == "analysis_ir_projection_test" and frontend_materials.get('sourceRevision')=='current-projection-20261111':extra+=['-Wl,--wrap=xrtFree','-Wl,--wrap=xrtStrDup']
             if name=='analysis_current_provider_test' and ir_overlay.get('irDependencyCohort') in ('current-ed78373d',UNIFIED_COHORT,C_INTEROP_COHORT,FINAL_COHORT):extra+=[str(objects['xl6_ir_lower'])]
             if name=='analysis_current_loader_test' and loader_references:
                 extra += [str(objects[p.stem]) for p in loader_references]+['-Wl,--wrap=xrtMalloc']
@@ -1094,10 +1108,11 @@ def main() -> None:
             # The dense canonical matrix compares full fresh AST/index/IR
             # across repeated512-function single/imported edits. Its total
             # fixture duration is separate from per-request performance gates.
-            result = run([str(program)], name + "-run", 180 if name == "analysis_ir_persistent_fault_test" else 120 if name in ("analysis_ir_scan_test", "analysis_index_canonical_test") else 30, working_directory=output)
-            if b"passed:" not in result.stdout:
-                raise RuntimeError(f"missing test completion receipt: {name}")
-            runs.append(dict(name=name,stdout=result.stdout.decode("utf-8")))
+            if not args.build_only:
+                result = run([str(program)], name + "-run", 180 if name == "analysis_ir_persistent_fault_test" else 120 if name in ("analysis_ir_scan_test", "analysis_index_canonical_test") else 30, working_directory=output)
+                if b"passed:" not in result.stdout:
+                    raise RuntimeError(f"missing test completion receipt: {name}")
+                runs.append(dict(name=name,stdout=result.stdout.decode("utf-8")))
             outputs[program.name] = sha(program)
         if args.server:
             program = output / ("xlang-ls" + suffix)
@@ -1119,6 +1134,7 @@ def main() -> None:
         report = dict(schema=1,status=status,scope="standalone native C/XRT shared analysis with private AST ownership; full LSP/performance/delivery goal remains incomplete",
                       frontendRoot=str(frontend),compiler=str(cc),compilerSha256=sha(cc),inputs=inputs,outputs=outputs,
                       configuration=args.configuration,serverBuilt=args.server,testsBuilt=not args.skip_tests,
+                      testsRun=not args.skip_tests and not args.build_only,compilerJobs=args.jobs,
                       commands=commands,runs=runs,imports=imports,elapsedSeconds=time.monotonic()-started)
         report["sourceOverlays"] = source_overlays
         report["frontendMaterials"] = frontend_materials

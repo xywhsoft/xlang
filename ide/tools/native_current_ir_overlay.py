@@ -1,4 +1,4 @@
-from native_final_c_interop_profile import COHORT as FINAL_COHORT, PINS as FINAL_PINS, CURRENT_PINS
+from native_final_c_interop_profile import COHORT as FINAL_COHORT, PINS as FINAL_PINS, CURRENT_PINS, PROJECTION_PINS
 from native_c_interop_profile import pins_for as final_active_pins
 """Audited current IR components; normal builds require the corrected phase cohort."""
 from pathlib import Path
@@ -23,7 +23,7 @@ PHASE_IR_SHA256='e1ea31c336278b6729369e9f6a1bb4d86a4e945018a88f8c672c0a643e08962
 # Git archive's configured checkout conversion produces this exact CRLF copy.
 # Both constants name the same committed correction; arbitrary normalization
 # must not admit otherwise unknown source contents.
-PHASE_IR_DIGESTS=(PHASE_IR_SHA256,'5c7a46e13b8f774c0fd27c3d66fc9c064aafc73b20386d2e9a448e9df7d78e6a',C_INTEROP_PINS['src/ir/xl6_ir.c'])+RETIREMENT_IR_DIGESTS+(FINAL_PINS['src/ir/xl6_ir.c'],CURRENT_PINS['src/ir/xl6_ir.c'])
+PHASE_IR_DIGESTS=(PHASE_IR_SHA256,'5c7a46e13b8f774c0fd27c3d66fc9c064aafc73b20386d2e9a448e9df7d78e6a',C_INTEROP_PINS['src/ir/xl6_ir.c'])+RETIREMENT_IR_DIGESTS+(FINAL_PINS['src/ir/xl6_ir.c'],CURRENT_PINS['src/ir/xl6_ir.c'],PROJECTION_PINS['src/ir/xl6_ir.c'])
 
 
 def derive(frontend:Path,output:Path,*,phases=False,ir_source=None):
@@ -79,6 +79,8 @@ def derive(frontend:Path,output:Path,*,phases=False,ir_source=None):
             dependency=Path(__file__).with_name(name)
             audited[str(dependency)]=hashlib.sha256(dependency.read_bytes()).hexdigest()
     source=raw_memo(source,current=True)
+    if audited[str(frontend/'src/ir/xl6_ir.h')]==PROJECTION_PINS['src/ir/xl6_ir.h']:
+        source='#define XLS_NATIVE_IR_RECORD_PROJECTION 1\n'+source
     parameter_overlay=None
     classifier_overlay=None
     topology_overlay=None

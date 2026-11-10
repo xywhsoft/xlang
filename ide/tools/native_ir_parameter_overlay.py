@@ -6,13 +6,13 @@ function in the private TU for independent C checks. Compiler sources stay intac
 from pathlib import Path
 import hashlib
 from check_native_bridge_catalog import function
-from native_ir_derived_overlay import CURRENT_PAIR, current_contract
+from native_ir_derived_overlay import current_pair, current_contract
 from native_c_interop_profile import pins_for
 
 
 def derive(source: str, frontend: Path, source_digest: str, header_digest: str):
     pins=pins_for(frontend)
-    if (source_digest,header_digest)!=CURRENT_PAIR or not current_contract(pins):
+    if not current_pair(source_digest,header_digest) or not current_contract(pins):
         return source,dict(enabled=False,scope='Unreviewed parameter-mask dependency cohort; original enumeration retained')
     path=frontend/'src/ir/xl6_ir_foreign_parameter.c'
     digest=hashlib.sha256(path.read_bytes()).hexdigest()

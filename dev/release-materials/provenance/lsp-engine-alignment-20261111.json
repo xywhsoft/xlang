@@ -1,0 +1,129 @@
+{
+  "schema": 1,
+  "date": "2026-11-11",
+  "stage": "M7b4q",
+  "scope": "Pinned native projected-record frontend; complete aggregate field candidates and IR record ownership/type-key alignment",
+  "stageAccepted": true,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "43d5b751aa4519035f77483f5a286d4c4d9d39b8",
+  "frontendSourceRevision": "11f49ad32f4025f143d73c89cd9a446c3daad982",
+  "ownedSources": {
+    "ide/docs/lsp-current-core.md": "aeea40491af4bf0f3e25006c4706dc8b1559fae9e1e845dbadd3d0145e657403",
+    "ide/docs/lsp-current-projection.md": "50736570fa495ae2cea8734af8a615aa92ab4a8f11657d44ba2ea6f2dd728ed0",
+    "ide/src/analysis/frontend_completion_aggregate.inc": "c88693324da552b5c76c6c930be1e48e7aef1cec0e6f4a63f8e2587e538f8252",
+    "ide/src/analysis/frontend_ir_memo.inc": "956adda2c1618a872369dcc86f025f84f37305f3590fa58a35215fadf1e49f6d",
+    "ide/tests/analysis_ir_projection_test.c": "e3b766a0dd285446686ad87a24a00a3506a1e0f457bee61b7dfbb687f7871f6c",
+    "ide/tests/completion_view_test.c": "c0da46ac23c36bdec81cb04bad8e35003c0bd3738f9611a0791117311eac2fbd",
+    "ide/tools/build_lsp_core.py": "8b4060fbc40c7fdda0bcfba90d4c87ef344e775b362689bbb138f5a0cf8efe5d",
+    "ide/tools/check_current_projection_inputs.py": "5d48a71f49b3e2508700e3184882256eb8201bc44ad45432f59342e1616feaff",
+    "ide/tools/check_lsp_projection.py": "7b0915f5951c14173101cfe639b69de54c07c9e192919a9254e34f14980a1954",
+    "ide/tools/native_aggregate_completion_overlay.py": "e06263becb340fbaa43f7f67a5168d4ef36c2f78e494286fdd3b8628cb6f4b3c",
+    "ide/tools/native_current_ir_overlay.py": "b0b1f30368eeb2b211cf15756c54f1584ab261f5a12f41e845044f971b06daf2",
+    "ide/tools/native_current_projection_pins_20261111.json": "b11bef08813433f7afbba8b38e26d38a8523bb2e12d768f88173fede7f125712",
+    "ide/tools/native_final_c_interop_profile.py": "e4c9eec703f903293a67df89c3146d2d2f5ce5a15e9266c71572b7ad32578624",
+    "ide/tools/native_ir_classifier_overlay.py": "5a7df40d2908fe66b694cf7942d196fd4c31a668aec6da9b38f121f298908969",
+    "ide/tools/native_ir_derived_overlay.py": "2e1897faad825f4efeebc41e382b0686c1ae1613c38a1c9c05e82b8a1b11d202",
+    "ide/tools/native_ir_parameter_overlay.py": "7ef95c0253ccb28bfc3b8afa0c15f77ee46222869b3f335bc92119a657986187",
+    "ide/tools/native_ir_topology_overlay.py": "bc4aaeda863c63b5d9e6c0b36225735444c7e8120e19cf3d856be33b4f597204"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-engine-alignment-20261111.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-engine-alignment-20261111/stage-sources.tar.gz",
+      "sha256": "c1083f72d90d13e5181275a4b9daf39d81a991bd40d57e7b6e58f4b6f04098ae",
+      "bytes": 108911,
+      "entries": 18,
+      "uniquePayloads": 18,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-engine-alignment-20261111/stage-sources.tar.gz.manifest.json",
+      "sha256": "c5a33c9f8864305339ba16f4d949b415cda24274fcd6e07428bc37111c9c2cee",
+      "bytes": 4364
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-engine-alignment-20261111/actual-builds-and-validation.tar.gz",
+      "sha256": "881aa158f5a3ad4427fbcba23e1183c0fef638a0de9ae1b7a51bad714542aef2",
+      "bytes": 2231177229,
+      "entries": 17943,
+      "uniquePayloads": 5977,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-engine-alignment-20261111/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "35b595e2be2a7c920d6740702c1a4fdbf540ffedd5e360ed94ba24b8b4510961",
+      "bytes": 5994554
+    }
+  },
+  "candidate": {
+    "serverSha256": "d28415e9bff3fe5cdd2dde0f988f3672ee9d8bbf127203b55ca2695ce942a3a8",
+    "guiSha256": "d83f39cd7714768259a58cac3f049a7c52f8f9d1c91f3957b8982f0a674ffd50",
+    "sdkDllSha256": "216c1f98f4d55cc5dff9c7d98425edbb08d470cdfc6b26ef4ad962af3431f560",
+    "guiObjects": 116,
+    "actualNativeConsumers": 304,
+    "nativePrograms": 189
+  },
+  "validation": {
+    "nativeFixtures": 188,
+    "protocolSuites": 13,
+    "guiFixtures": 29,
+    "projectionAssertions": 908,
+    "projectionProtocolCases": 10,
+    "previousAcceptedServiceCases": 1,
+    "guiCompletionAssertions": 269,
+    "all459FrontendMutationsRejected": true,
+    "sourceAdmissionCases": 6,
+    "semanticTokenGuardAssertions": 32789,
+    "actualImplementationMutantsRejected": 3,
+    "actualFinalNativeConsumerIncludes": true,
+    "actualNativeGeneratorsReproducedByteForByte": true,
+    "sourceHeaderObjectsAndLinksChecked": true,
+    "nativeOwnedStringFreeObserved": true,
+    "nativeBackingAllocationFailure": true,
+    "explicitlyEnabledXrtStats": true,
+    "originalCompletionResolverTypeAndEmitter": true,
+    "ordinary64OverlayAndExistingCandidateBudgetRetained": true,
+    "wholePerformanceAdmissionRun": false,
+    "standardRenameEnabled": false
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "concurrentEngineEditsExcluded": [
+    "src/cgen/xl6_ir_cgen_foreign_pack.c",
+    "src/ir/xl6_ir_foreign_pack.c",
+    "src/sem/xl6_sem_foreign_pack.c",
+    "src/type/xl6_foreign_pack_contract.h",
+    "src/type/xl6_foreign_pack_decl.h"
+  ],
+  "laterValidationControllers": [
+    {
+      "path": "D:\\GIT\\x-lang\\ide\\tools\\check_current_projection_inputs.py",
+      "before": "135170f4166513ee17ac5acd48acceba48f2c77d4645651e728655edfde8480d",
+      "after": "5d48a71f49b3e2508700e3184882256eb8201bc44ad45432f59342e1616feaff"
+    },
+    {
+      "path": "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_projection.py",
+      "before": "041c59781a48569dbac72dad252ea843509a2e58d016295665e9d1f418d34293",
+      "after": "7b0915f5951c14173101cfe639b69de54c07c9e192919a9254e34f14980a1954"
+    },
+    {
+      "path": "D:\\GIT\\x-lang\\ide\\tools\\native_final_c_interop_profile.py",
+      "before": "f854bb7a7046614d96f830f49c2df7aa5cbf5e0e389bb75e436d8bd7eafcb6fd",
+      "after": "e4c9eec703f903293a67df89c3146d2d2f5ce5a15e9266c71572b7ad32578624"
+    }
+  ],
+  "knownMissing": [
+    "later parallel foreign-pack engine changes and full current engine/runtime cohort alignment",
+    "whole-goal response latency/memory/large-workspace/concurrency/soak and final admission",
+    "remaining applicable LSP and complete standard rename/IDE atomic edit transactions",
+    "streaming source sharing and ordinary64-overlay generalization"
+  ]
+}

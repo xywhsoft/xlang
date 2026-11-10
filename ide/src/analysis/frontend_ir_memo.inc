@@ -116,6 +116,9 @@ static int xlsIrMemoTypes(const XL6_IrTypePool* pool,xstrbuf* key,size_t limit)
 #ifdef XLS_NATIVE_FINAL_INTEROP
             ,t->foreignLifetime,t->foreignOwner
 #endif
+#ifdef XLS_NATIVE_IR_RECORD_PROJECTION
+            ,t->foreignRecordAbi
+#endif
 #endif
         };
         if(!xlsIrMemoData(key,fields,sizeof(fields),limit) || !xlsIrMemoData(key,t->cName,sizeof(t->cName),limit) ||
@@ -125,6 +128,9 @@ static int xlsIrMemoTypes(const XL6_IrTypePool* pool,xstrbuf* key,size_t limit)
         /* Header content and nullness are part of the closed C identity;
          * an allocation address is never a type-prefix identity. */
         if(!xlsIrMemoString(key,t->foreignHeader,limit))return 0;
+#ifdef XLS_NATIVE_IR_RECORD_PROJECTION
+        if(!xlsIrMemoString(key,t->foreignRecordSource,limit))return 0;
+#endif
 #ifdef XLS_NATIVE_FINAL_INTEROP
         if(!xlsIrMemoString(key,t->foreignPolicy,limit) || !xlsIrMemoString(key,t->foreignScope,limit) ||
            !xlsIrMemoString(key,t->foreignWatch,limit) || !xlsIrMemoString(key,t->foreignDomain,limit))return 0;

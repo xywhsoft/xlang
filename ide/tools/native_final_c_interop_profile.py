@@ -15,6 +15,14 @@ PRODUCT_RECORD_PATH = Path(__file__).with_name('native_current_core_product_062_
 PRODUCT_RECORD = json.loads(PRODUCT_RECORD_PATH.read_text(encoding='utf-8'))
 PRODUCT_RECORD_SHA256 = hashlib.sha256(PRODUCT_RECORD_PATH.read_bytes()).hexdigest()
 PRODUCT_PINS = PRODUCT_RECORD['pins']
+PROJECTION_RECORD_PATH = Path(__file__).with_name('native_current_projection_pins_20261111.json')
+PROJECTION_RECORD = json.loads(PROJECTION_RECORD_PATH.read_text(encoding='utf-8'))
+PROJECTION_PINS = PROJECTION_RECORD['pins']
+PROJECTION_RECORD_SHA256 = hashlib.sha256(PROJECTION_RECORD_PATH.read_bytes()).hexdigest()
+_projection_parent_lf = PRODUCT_RECORD_PATH.read_bytes().replace(b'\r\n',b'\n')
+if (PROJECTION_RECORD['parentRecordSha256'] not in {hashlib.sha256(data).hexdigest() for data in (_projection_parent_lf,_projection_parent_lf.replace(b'\n',b'\r\n'))} or
+    set(PROJECTION_PINS) != set(PRODUCT_PINS) | {'src/sem/xl6_sem_foreign_projection_compat.c','src/ir/xl6_ir_foreign_projection_compat.c'}):
+    raise ValueError('projected-record frontend changes its reviewed source family')
 _parent_lf = CURRENT_RECORD_PATH.read_bytes().replace(b'\r\n',b'\n')
 _parent_hashes = {hashlib.sha256(data).hexdigest() for data in
                   (_parent_lf,_parent_lf.replace(b'\n',b'\r\n'))}
@@ -46,6 +54,9 @@ def _current_runtime(frontend):
 
 
 def pins_for(frontend):
+    header=source_path(frontend,'src/ir/xl6_ir.h')
+    if header.is_file() and _recover_current(header.read_bytes(),'src/ir/xl6_ir.h',PROJECTION_PINS) is not None:
+        return PROJECTION_PINS
     if _current_runtime(frontend):
         path=source_path(frontend,'release/include/xl_version.h')
         if path.is_file() and _recover_current(path.read_bytes(),'release/include/xl_version.h',PRODUCT_PINS) is not None:
@@ -61,6 +72,7 @@ def completion_facts(frontend):
 
 def source_revision(frontend):
     pins=pins_for(frontend)
+    if pins is PROJECTION_PINS:return PROJECTION_RECORD['sourceRevision']
     return CURRENT_RECORD['sourceRevision'] if pins is CURRENT_PINS or pins is PRODUCT_PINS else 'final-completion-facts-20261108' if pins is COMPLETION_PINS else 'final-core-r2-20261105'
 
 
@@ -75,7 +87,7 @@ def selected(frontend):
 def source_path(frontend, name):
     direct=frontend/name
     if direct.is_file():return direct
-    return frontend/CURRENT_RECORD['sourcePaths'][name]
+    return frontend/PROJECTION_RECORD['sourcePaths'].get(name,CURRENT_RECORD['sourcePaths'].get(name,name))
 
 
 def profile(frontend):
@@ -86,7 +98,7 @@ def profile(frontend):
         path=source_path(frontend,name)
         if not path.is_file():raise ValueError('final frontend contract dependency missing: '+name)
         data=path.read_bytes();actual=hashlib.sha256(data).hexdigest()
-        if actual!=expected and (pins is not CURRENT_PINS and pins is not PRODUCT_PINS or _recover_current(data,name,pins) is None):
+        if actual!=expected and (all(pins is not p for p in (CURRENT_PINS,PRODUCT_PINS,PROJECTION_PINS)) or _recover_current(data,name,pins) is None):
             raise ValueError('final frontend contract dependency changed: '+name)
         inputs[str(path)]=actual
     return inputs
@@ -98,12 +110,15 @@ def prepare(frontend,destination):
     if pins is PRODUCT_PINS:
         original[str(CURRENT_RECORD_PATH.resolve())]=CURRENT_RECORD_SHA256
         original[str(PRODUCT_RECORD_PATH.resolve())]=PRODUCT_RECORD_SHA256
+    if pins is PROJECTION_PINS:
+        original[str(PROJECTION_RECORD_PATH.resolve())]=PROJECTION_RECORD_SHA256
+        original[str(PRODUCT_RECORD_PATH.resolve())]=PRODUCT_RECORD_SHA256
     destination=destination.resolve();destination.mkdir(parents=True,exist_ok=False)
     projected=[]
     for name,expected in pins.items():
         source=source_path(frontend,name);target=destination/name;data=source.read_bytes()
         operation='SDK-layout-projection'
-        if pins is CURRENT_PINS or pins is PRODUCT_PINS:
+        if any(pins is p for p in (CURRENT_PINS,PRODUCT_PINS,PROJECTION_PINS)):
             recovered=_recover_current(data,name,pins)
             if recovered is None:raise ValueError('final frontend changed during source projection: '+name)
             data,operation=recovered
@@ -115,6 +130,6 @@ def prepare(frontend,destination):
     if any(sha(path)!=expected for path,expected in original.items()):
         raise ValueError('final frontend changed during source projection')
     return destination,dict(status='final-cohort-layout-projection',cohort=COHORT,
-        productVersion=PRODUCT_RECORD['productVersion'] if pins is PRODUCT_PINS else None,
+        productVersion=PROJECTION_RECORD['productVersion'] if pins is PROJECTION_PINS else PRODUCT_RECORD['productVersion'] if pins is PRODUCT_PINS else None,
         sourceRevision=revision,sourceRoot=str(frontend),frontendRoot=str(destination),
         originalInputs=original,transformations=projected)

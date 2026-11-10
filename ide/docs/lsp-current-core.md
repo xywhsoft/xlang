@@ -31,3 +31,5 @@ XRT 增量包含容器只读视图及 finalizer 内的字段替换修复。原�
 本阶段提交源接入、测试和验收摘要，默认语言服务保持原版本。材料位于 `dev/release-materials/sources/lsp-current-core-20261108/` 和 `dev/release-materials/provenance/lsp-current-core-20261108/`，摘要为同级 `lsp-current-core-20261108.json`。源码归档与运行时仍保持 Git 忽略，运行时临时测试程序完成后清除。
 
 完整 LSP、整体交互性能、局部最终 IR、全局预算、大规模／并发／长稳、其他适用协议以及全部当前 IDE 改动的集成仍未完成。后续先用当前完整服务做实际耗时归因，再推进有证据支持的增量优化。
+
+2026-11-11 的后续家族升级及原生记录字段补全见 [原生记录投影与成员补全](lsp-current-projection.md)。上述历史性能失败与交付状态保持原记录，不由后续功能检查替代。

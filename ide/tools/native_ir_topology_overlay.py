@@ -5,7 +5,7 @@ remain in their original order. No validation result is cached or bypassed.
 """
 import hashlib
 from check_native_bridge_catalog import function
-from native_ir_derived_overlay import CURRENT_PAIR,current_contract
+from native_ir_derived_overlay import current_pair,current_contract
 from native_c_interop_profile import pins_for
 
 BODY_SHA256='c989f2e46adbdb57d629193e0be8d35e813a1d602c467af97bcb237e069b5d98'
@@ -13,7 +13,7 @@ FEATURE='XLS_NATIVE_IR_TOPOLOGY_OBSERVER'
 
 
 def derive(source,frontend,source_digest,header_digest):
-    if (source_digest,header_digest)!=CURRENT_PAIR or not current_contract(pins_for(frontend)):
+    if not current_pair(source_digest,header_digest) or not current_contract(pins_for(frontend)):
         return source,dict(enabled=False,scope='Unreviewed cohort;original wrapper preflight retained')
     source=source.replace('\r\n','\n').replace('\r','\n')
     if '#define '+FEATURE in source:raise ValueError('Topology observer overlay already applied')

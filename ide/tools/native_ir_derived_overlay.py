@@ -22,10 +22,16 @@ COHORTS={
 CURRENT_PAIR=('efea885b3dbd41264f9104679d438d59666bd84ce0f0f00a7aa0381ed446e29a', '938d45bdace241c83d566b4e165f467b7b3b8f5802c09e4952538ac17923c62a')
 CURRENT_CONTRACT_SHA256='4c5759ffbabc7b01ef0d49d3e27e81b5cce63f4c00a034c28d5e7d567b0c7f15'
 PRODUCT_062_CONTRACT_SHA256='1a9281b76f173e01fb668bd816ee7b1ae3e6f8ac1198e33d71fc8dd29d0ec09e'
+PROJECTION_PAIR=('317c2f29eecdc831c89ceff736262df42e576feba54fcb6829e40003348973b0','227a9ca6453f970a873c3c99649c103ed591c3916c24f53e1fc07c5735f1447e')
+PROJECTION_CONTRACT_SHA256='6c0070c7c03edde822b763dc313609ce92964a9bf59d0f0f339cebf6335d8424'
+
+
+def current_pair(source_digest,header_digest):
+    return (source_digest,header_digest) in (CURRENT_PAIR,PROJECTION_PAIR)
 
 
 def current_contract(pins):
-    return contract_digest(pins) in (CURRENT_CONTRACT_SHA256,PRODUCT_062_CONTRACT_SHA256)
+    return contract_digest(pins) in (CURRENT_CONTRACT_SHA256,PRODUCT_062_CONTRACT_SHA256,PROJECTION_CONTRACT_SHA256)
 
 
 def contract_digest(pins):
@@ -33,7 +39,7 @@ def contract_digest(pins):
 
 
 def derive(source: str, output: Path, source_digest: str, header_digest: str, *, frontend=None):
-    current=(source_digest,header_digest)==CURRENT_PAIR
+    current=current_pair(source_digest,header_digest)
     dependency_contract=None
     if current:
         from native_c_interop_profile import pins_for,profile

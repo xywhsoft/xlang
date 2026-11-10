@@ -6,7 +6,7 @@ Reference scopes select that body directly, including in nested build phases.
 """
 import hashlib
 from check_native_bridge_catalog import function
-from native_ir_derived_overlay import CURRENT_PAIR, current_contract
+from native_ir_derived_overlay import current_pair, current_contract
 from native_c_interop_profile import pins_for
 
 
@@ -31,7 +31,7 @@ SPECS = (
 
 
 def derive(source, frontend, source_digest, header_digest):
-    if (source_digest, header_digest) != CURRENT_PAIR or not current_contract(pins_for(frontend)):
+    if not current_pair(source_digest,header_digest) or not current_contract(pins_for(frontend)):
         return source, dict(enabled=False, scope='Unreviewed cohort; native classifiers retained')
     bodies = [(spec, function(source, spec[0])) for spec in SPECS]
     for (name, digest, *_), body in bodies:
