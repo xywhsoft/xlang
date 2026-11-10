@@ -144,6 +144,7 @@ HOST_TESTS += ("semantic_generic_navigation_test",)
 CORE_TESTS += ("analysis_qualified_type_ranges_test",)
 HOST_TESTS += ("semantic_dispatch_family_test", "semantic_callable_family_test")
 HOST_TESTS += ("semantic_reference_graph_test", "reference_graph_capture_test")
+HOST_TESTS += ("semantic_reference_merge_test", "project_reference_family_test")
 
 
 def sha(path: Path) -> str:
@@ -1052,8 +1053,8 @@ def main() -> None:
                           not (name == "workspace_symbol_index_test" and Path(source).stem == "workspace_symbol_index") and
                           not (name in ("workspace_symbols_test", "workspace_symbol_refresh_test", "workspace_symbols_shared_test") and Path(source).stem == "workspace_symbols") and
                           not (name == "workspace_symbol_wire_test" and Path(source).stem == "workspace_symbol_wire") and
-                          not (name in ("semantic_dispatch_family_test", "semantic_callable_family_test", "semantic_reference_graph_test", "semantic_lookup_test", "semantic_reference_shard_test", "declaration_symbols_test", "navigation_function_budget_test") and Path(source).stem == "semantic_definition") and
-                          not (name in ("project_reference_budget_test", "reference_path_index_test", "project_reference_parallel_test", "project_reference_owner_fault_test", "project_rename_workspace_test") and Path(source).stem == "project_references")]
+                          not (name in ("semantic_dispatch_family_test", "semantic_callable_family_test", "semantic_reference_graph_test", "semantic_reference_merge_test", "semantic_lookup_test", "semantic_reference_shard_test", "declaration_symbols_test", "navigation_function_budget_test") and Path(source).stem == "semantic_definition") and
+                          not (name in ("project_reference_budget_test", "reference_path_index_test", "project_reference_parallel_test", "project_reference_owner_fault_test", "project_rename_workspace_test", "project_reference_family_test") and Path(source).stem == "project_references")]
             if name == "project_reference_owner_fault_test":
                 extra.append(str(objects['owner_snapshot_fault']))
             if name == "language_native_cancel_test":

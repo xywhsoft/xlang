@@ -89,13 +89,17 @@ static xtaskoutcome executeWorkspace(xcancel* cancel,void* data,xtaskvalue* valu
 {
  reference_input* in=data;reference_output* out=xrtCalloc(1,sizeof(*out));if(!out)return XTASK_FAILED;
  out->stats.thread=xrtThreadCurrentId();out->stats.memberWorkers=in->store->memberCount;out->stats.workspaceScopes=xideRenameScopeCount(in->renameScope);
- if(!xrtArrayInit(&out->rows,sizeof(result_row)) || !xrtArrayInit(&out->guards,sizeof(xide_language_input_guard*)))goto failed;
+ if(!xrtArrayInit(&out->rows,sizeof(result_row)) || !xrtArrayInit(&out->guards,sizeof(xide_language_input_guard*)) || !xrtArrayInit(&out->graphs,sizeof(xide_reference_graph*)))goto failed;
  for(size_t i=0;i<out->stats.workspaceScopes;++i){
   if(stopped(cancel))goto done;
   reference_input child=*in;child.scope=(xls_context*)xideRenameScopeAt(in->renameScope,i);child.workspacePart=1;child.paths=(path_index){0};xtaskvalue result={0};
   xtaskoutcome state=execute(cancel,&child,&result);pathIndexUnit(&child.paths);reference_output* part=result.Value;
   int okay=state==XTASK_SUCCESS && part && !*part->error;
-  if(okay){workspaceStats(&out->stats,&part->stats);okay=workspaceMerge(out,part,cancel) && workspaceGuards(out,part);}
+  if(okay){workspaceStats(&out->stats,&part->stats);
+   if(in->familyMode){for(size_t j=0;okay && j<part->graphs.Count;++j)okay=appendGraph(out,((xide_reference_graph**)part->graphs.Data)[j]);}
+   else okay=workspaceMerge(out,part,cancel);
+   okay=okay && workspaceGuards(out,part);
+  }
   else if(!stopped(cancel))fail(out,part && *part->error ? part->error : "A configured workspace scope did not complete.");
   if(result.Destroy)result.Destroy(result.Value,result.DestroyData);
   if(!okay)goto done;
@@ -104,12 +108,25 @@ static xtaskoutcome executeWorkspace(xcancel* cancel,void* data,xtaskvalue* valu
  if(out->stats.workspaceCompleted!=out->stats.workspaceScopes)goto failed;
  XIDE_REFERENCE_WORKSPACE_FENCE(0);
  for(size_t i=0;i<out->guards.Count;++i){xide_model_error error={0};if(!xideLanguageInputGuardValidate(((xide_language_input_guard**)out->guards.Data)[i],stopped,cancel,&error)){if(!stopped(cancel))fail(out,"Workspace source/resolution inputs changed before publication.");goto done;}}
- if(!locations(&out->rows,out))goto failed;
+ if(in->familyMode){
+  xide_reference_key* key=xideRenameTargetRetainKey(in->renameTarget);enum xide_reference_family_error why;
+  out->family=xideSemanticReferenceGraphsFamily((xide_reference_graph**)out->graphs.Data,out->graphs.Count,key,PROOF_BYTES,stopped,cancel,&why);xideSemanticReferenceKeyRelease(key);
+  if(!out->family){char message[128];snprintf(message,sizeof(message),"Cannot compose complete workspace declaration components (%d).",(int)why);fail(out,message);goto done;}
+  xide_reference_family_info info;if(!xideSemanticReferenceFamilyInfo(out->family,&info))goto failed;
+  for(size_t i=0;i<info.members;++i){xide_semantic_source source;size_t start,end;uint64_t owners=0;
+   if(stopped(cancel))goto done;
+   if(!xideSemanticReferenceFamilyMember(out->family,i,&source,&start,&end) || !(source.kind&1) || !xidePathHasExtension(source.path,".xl") || !xideRenameScopeOwners(in->renameScope,source.path,&owners) || !owners){fail(out,"A workspace family declaration is outside explicitly configured source membership.");goto done;}
+  }
+  /* Composition may outlast the earlier validation. Publish only after a
+   * final sweep of every scope's guard, including zero-target scopes. */
+  XIDE_REFERENCE_WORKSPACE_FENCE(SIZE_MAX);
+  for(size_t i=0;i<out->guards.Count;++i){xide_model_error error={0};if(!xideLanguageInputGuardValidate(((xide_language_input_guard**)out->guards.Data)[i],stopped,cancel,&error)){if(!stopped(cancel))fail(out,"Workspace source/resolution inputs changed after declaration composition.");goto done;}}
+ }else if(!locations(&out->rows,out))goto failed;
  out->stats.workspaceGuardBytes=out->guardBytes+out->guards.Capacity*sizeof(xide_language_input_guard*);
  goto done;
 failed:fail(out,"Workspace reference allocation or query budget failed.");
 done:
  if(stopped(cancel)){freeOutput(out,NULL);return XTASK_CANCELLED;}
- if(!out->locations || *out->error){if(!*out->error)fail(out,"Workspace reference collection did not complete.");xrtValueRelease(out->locations);out->locations=NULL;}
+ if((!out->locations && !out->family) || *out->error){if(!*out->error)fail(out,"Workspace reference collection did not complete.");xrtValueRelease(out->locations);out->locations=NULL;xideSemanticReferenceFamilyRelease(out->family);out->family=NULL;}
  *value=(xtaskvalue){out,freeOutput,NULL};return XTASK_SUCCESS;
 }

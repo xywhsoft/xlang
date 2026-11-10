@@ -83,6 +83,17 @@ xide_reference_query* xideProjectReferencesSubmitRenameScope(xide_project_refere
 xide_reference_query* xideProjectReferencesSubmitRenameWorkspace(xide_project_references*,
  xide_rename_scope*,xide_rename_target*,const xls_analysis_document*,size_t count,
  const char* trigger);
+/* Check/cache provider declaration graphs in every configured scope and batch
+ * compose the original native components by exact source declaration identity.
+ * READY has no Location array; use RetainFamily for detached member keys.
+ * All returned members must be explicit .xl members of this scope snapshot.
+ * Complete source guards are revalidated after all scopes, including scopes
+ * with no target relations. This is observed native family closure only:
+ * generic-origin coverage, writability/foreign policy, occurrence collection,
+ * conflicts/post-edit bindings and versioned edits are still separate gates. */
+xide_reference_query* xideProjectReferencesSubmitFamilyWorkspace(xide_project_references*,
+ xide_rename_scope*,xide_rename_target*,const xls_analysis_document*,size_t,const char* trigger);
+xide_reference_family* xideProjectReferencesRetainFamily(xide_reference_query*);
 enum xide_reference_query_state xideProjectReferencesResult(xide_reference_query* query,
  const xvalue** locations,xide_project_reference_stats* stats,char* error,size_t capacity);
 xvalue* xideProjectReferencesTake(xide_reference_query* query);

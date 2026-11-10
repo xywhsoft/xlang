@@ -1,0 +1,114 @@
+{
+  "schema": 1,
+  "date": "2026-11-10",
+  "stage": "M7b4k",
+  "scope": "Explicit whole-workspace native declaration-family composition and shared graph reference cache; batch source/interval union across every configured scope with final guard sweep",
+  "stageAccepted": true,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "442252ecfd4eb21cd75cfa03e4248cb4735fd5b5",
+  "ownedSources": {
+    "ide/src/services/semantic_reference_shard.h": "0d2d7352ff902c0e5ed6d23a6c144db75fe29f9aef0dec61f8fd9d25dcf03bce",
+    "ide/src/services/semantic_reference_family.inc": "2fde52078589ab8b176e3eec09a563ffa0ae07984846af00bdeeb6e07141358f",
+    "ide/src/services/semantic_reference_merge.inc": "5be0aa07ff78e86c68d1fd22639751fa8033f34d7dde02b7bff4aa29480d3c09",
+    "ide/src/services/project_references.c": "702fddf698ffd5ff738e85b889bcfddf00a4b16d9ebc00201b5cca13e6bc2c74",
+    "ide/src/services/project_references.h": "38554bde7627fc7d1a1c784a1788f9ccc1679d128c74e222762771240c7e8f09",
+    "ide/src/services/project_rename_workspace.inc": "8a8d4acfc8ef4777e7f5c8957427878fe2b518b8eb436adfa44c638be0ddd9b9",
+    "ide/tests/semantic_reference_merge_test.c": "25759b73b3103d6d6c84c021d9431613f8a7ed7dc71651d700e7009752b78835",
+    "ide/tests/project_reference_family_test.c": "3ba14f0e5b0a623910003d003999a33d223a83b86c081f95e5ff0c96040d4160",
+    "ide/tools/build_lsp_core.py": "740739d536f8cc7e28b34dec0d3a2a35bb0ee4f9cbd290f730e16c6b98966eb6",
+    "ide/docs/lsp-workspace-families.md": "14aabd0d14db6927a0ba6baf08961833f51f22ca348281a38d880053387715c9",
+    "ide/docs/lsp-reference-graphs.md": "a5193895c8ec29b4c02139f86c9ebdaf74cbadefdd45e88da73c794eb2ff125a"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-workspace-families-20261110.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-workspace-families-20261110/stage-sources.tar.gz",
+      "sha256": "b5d77a31d2f0296f8b788a193319737a7cf717c9f87af3eb156f7d713b9faded",
+      "bytes": 72272,
+      "entries": 12,
+      "uniquePayloads": 12,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-workspace-families-20261110/stage-sources.tar.gz.manifest.json",
+      "sha256": "388d0a13ccedb7a162bb478f4c8bb58f0a5f8d4b4a55889f28ece3e66ff1e0f3",
+      "bytes": 2894
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-workspace-families-20261110/actual-builds-and-validation.tar.gz",
+      "sha256": "baae512de91d0367ae99f7a7fdee461131da5f3d262b468551bb6784c6397258",
+      "bytes": 795797074,
+      "entries": 5693,
+      "uniquePayloads": 4298,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-workspace-families-20261110/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "58b7e6cce4644e085d7bc64a3dd49f8354442586a3ed926d1b6d73e33df4f48d",
+      "bytes": 2021201
+    }
+  },
+  "candidate": {
+    "serverSha256": "4c05204624d60fd24199ef646f62d3b2ba0ef2c96b09af19fbfc77fbca1e56c0",
+    "guiSha256": "b65c7a04f1784e8cc011706edb391dcc2008685ea84ecfc5e4a6680a5b01372d",
+    "sdkDllSha256": "216c1f98f4d55cc5dff9c7d98425edbb08d470cdfc6b26ef4ad962af3431f560",
+    "guiObjects": 116,
+    "actualNativeConsumers": 289,
+    "nativePrograms": 179
+  },
+  "validation": {
+    "nativeFixtures": 178,
+    "referenceMergeAssertions": 181,
+    "workspaceFamilyAssertions": {
+      "directed": 121,
+      "full": 120
+    },
+    "referenceGraphAssertions": 1653,
+    "workerCaptureAssertions": 33,
+    "actualImplementationMutantsRejected": 4,
+    "originalPureHelpersVerbatim": 6,
+    "unknownMissingOrDuplicateSeamsRejected": 7,
+    "protocolSuites": 12,
+    "guiFixtures": 29,
+    "currentSourcesAndAllLinksChecked": true,
+    "finalNativeMatrixFresh": true,
+    "crossOwnerNativeFixedPoint": true,
+    "sourceAndDeclarationDedup": true,
+    "providerOrderAndDuplicateInput": true,
+    "fullSourceKindBomAgreement": true,
+    "connectedUnsupportedPropagation": true,
+    "noPerDiscoveredMemberAnalysis": true,
+    "warmWorkspaceZeroCapturesAndMemberTasks": true,
+    "graphCacheChargesOnlyAdditionalOwnedPayload": true,
+    "allScopesIncludingZeroTargetMembers": true,
+    "unconfiguredRelatedImportsRejected": true,
+    "finalPostCompositionGuardSweep": true,
+    "realScratchAndOutputAllocationRefusals": 2,
+    "minimumQuotaBoundary": true,
+    "everyObservedCompositionCancellationBoundary": true,
+    "unicodePathsAndIdentifiersBomCrlf": true,
+    "detachedFourReaderLifetime": true,
+    "queuedOwnerLifetime": true,
+    "retainedNavigationNodeLayoutUnchanged": true,
+    "noNewOrdinaryAnalysisGraph": true,
+    "performanceAdmissionRun": false,
+    "priorCompileFailureAndIncorrectStructuralProtocolFixturePreserved": true
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "knownMissing": [
+    "entire-family native occurrence collection and complete generic-origin coverage; OS writability/physical aliases and complete foreign/library policy",
+    "versioned edit construction, rename conflicts and post-rename binding proof",
+    "standard prepareRename/rename and IDE versioned edit transaction",
+    "streaming global source sharing to reduce retained provider payloads; remaining applicable LSP and current-engine cohort alignment",
+    "whole-goal performance/large-workspace/soak/final delivery admission"
+  ]
+}

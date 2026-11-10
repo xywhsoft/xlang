@@ -16,6 +16,15 @@ void xideSemanticReferenceFamilyRelease(xide_reference_family* f)
 {if(f && xrtAtomic32FetchSub(&f->references,1,XMEMORY_ACQ_REL)==1){xideSemanticReferenceGraphRelease(f->graph);xrtFree(f);}}
 int xideSemanticReferenceFamilyInfo(const xide_reference_family* f,xide_reference_family_info* out)
 {if(out)*out=(xide_reference_family_info){0};if(!f || !out)return 0;*out=(xide_reference_family_info){f->count,f->sources,f->bytes,f->relations,f->kinds};return 1;}
+int xideSemanticReferenceFamilyMember(const xide_reference_family* f,size_t at,xide_semantic_source* source,size_t* start,size_t* end)
+{
+ if(source)*source=(xide_semantic_source){0};
+ if(start)*start=0;
+ if(end)*end=0;
+ if(!f || at>=f->count || !source || !start || !end)return 0;
+ const family_member* m=f->members+at;const reference_source* s=f->source+m->source;
+ *source=(xide_semantic_source){s->path,s->text,s->kind,s->prefix};*start=m->start;*end=m->end;return 1;
+}
 xide_reference_key* xideSemanticReferenceFamilyKey(xide_reference_family* f,size_t at)
 {
  if(!f || at>=f->count || f->bytes>SIZE_MAX-sizeof(xide_reference_key))return NULL;
@@ -101,3 +110,4 @@ done:
  xrtFree(scratch);xlsCallableRelationsDestroy(groups);xideSemanticDefinitionsReleaseTyped(d,lease);if(why!=XIDE_REFERENCE_FAMILY_OK){xideSemanticReferenceFamilyRelease(family);family=NULL;}if(output)*output=why;return family;
 }
 #include "services/semantic_reference_graph.inc"
+#include "services/semantic_reference_merge.inc"

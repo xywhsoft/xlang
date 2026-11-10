@@ -115,6 +115,9 @@ int xideSemanticReferenceFamilyInfo(const xide_reference_family*,xide_reference_
  * charges its header plus the ENTIRE retained family, not merely this source.
  * No text copy/scan on this read; NULL on invalid index/allocation refusal. */
 xide_reference_key* xideSemanticReferenceFamilyKey(xide_reference_family*,size_t);
+/* Borrow one exact member without allocating a key. Keep the family alive. */
+int xideSemanticReferenceFamilyMember(const xide_reference_family*,size_t,
+ xide_semantic_source*,size_t* start,size_t* end);
 typedef struct xide_reference_graph_info {
  size_t declarations,components,relations,sources,ownedBytes,bytes;
 } xide_reference_graph_info;
@@ -159,5 +162,17 @@ xide_reference_shard* xideSemanticReferenceGraphRetainShard(xide_reference_graph
  * widths and component spelling were checked once during graph capture. */
 xide_reference_family* xideSemanticReferenceGraphFamily(xide_reference_graph*,const xide_reference_key*,
  size_t,int (*cancelled)(void*),void*,enum xide_reference_family_error*);
+/* Batch composition across independently checked owners. Sort source paths
+ * using the existing native lexical identity, prove complete source/kind/BOM
+ * agreement, join identical declaration spans and each provider's components.
+ * No repeated analysis or per-discovered-member graph queries. Output copies
+ * contributing sources once and retains no input graph. Relation counts are
+ * provider observations, not deduplicated edges. Default/max128MiB charges
+ * the complete borrowed graph payloads, scratch, retained native path keys
+ * and output together; path conversion/sort/allocator internals are extra.
+ * Caller must prove ALL configured scopes, including zero-target scopes,
+ * and revalidate their guards/epochs before publishing. No edit permission. */
+xide_reference_family* xideSemanticReferenceGraphsFamily(xide_reference_graph* const*,size_t,
+ const xide_reference_key*,size_t,int (*cancelled)(void*),void*,enum xide_reference_family_error*);
 #endif
 #endif
