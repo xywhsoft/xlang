@@ -1,0 +1,79 @@
+extern "NativeProjectionInner" struct Inner @c_projection() @header("test/cases/native_sequence_projection.h")
+ c_int count
+ c_double weight
+end
+extern "NativeProjectionRow" struct Row @header("test/cases/native_sequence_projection.h") @c_projection()
+ c_int value @c_name("actualValue")
+ Inner inner
+ c_ulonglong ordinal
+end
+extern "NativeProjectionPacked" struct Packed @header("test/cases/native_sequence_projection.h") @c_projection()
+ c_int value
+ c_double weight
+end
+extern "NativeProjectionOwner*" class Owner @header("test/cases/native_sequence_projection.h") @lifetime("owned") @policy("nativeProjectionPolicy")
+ native point handle
+ extern "nativeProjectionRows" @no_raise @c_const(0) @c_owned_sequence(1,2,0,"size_t",0) @c_retain(retain,"positive",release) func rows() as NativeSequence<Row>
+ extern "nativeProjectionPacked" @no_raise @c_const(0) @c_owned_sequence(1,2,0,"size_t",0) @c_retain(retain,"positive",release) func packed() as NativeSequence<Packed>
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "nativeProjectionRetain" @header("test/cases/native_sequence_projection.h") @no_raise @c_const(0) func retain(Owner value) as c_int
+extern "nativeProjectionRelease" @header("test/cases/native_sequence_projection.h") @no_raise func release(Owner value)
+extern "nativeProjectionCreate" @header("test/cases/native_sequence_projection.h") @no_raise @c_result("owned_view") @factory(0,0,release) func create() as Owner
+extern "nativeProjectionLive" @header("test/cases/native_sequence_projection.h") @no_raise func live() as c_int
+extern "nativeProjectionFailAfter" @header("test/cases/native_sequence_projection.h") @no_raise func failAfter(c_int budget) as c_int
+extern "nativeProjectionFailClear" @header("test/cases/native_sequence_projection.h") @no_raise func failClear() as c_int
+export func echo(Row value) as Row
+ return value
+end
+func check()
+ auto owner=create()
+ auto rows=owner.rows()
+ auto packed=owner.packed()
+ owner.close()
+ assert live()==c_int(1) and rows.length==2
+ auto first=rows[0]
+ assert first.value==c_int(10) and first.inner.count==c_int(20) and first.inner.weight==c_double(0.5)
+ auto copy=echo(first)
+ copy.value=c_int(99)
+ assert first.value==c_int(10) and rows[0].value==c_int(10)
+ var boxed=copy
+ auto restored=boxed as Row
+ assert restored.value==c_int(99) and restored.inner.weight==c_double(0.5)
+ auto tail=rows.slice(1)
+ int total=0
+ for index,row in rows
+  assert int(row.value)==10+index and int(row.inner.count)==20+index
+  assert row.ordinal==c_ulonglong(30+index)
+  total+=int(row.value)
+ end
+ assert total==21 and tail[0].value==c_int(11)
+ assert packed[0].value==c_int(40) and packed[1].weight==c_double(3.5)
+ for index,item in packed
+  assert item.value==c_int(40+index) and item.weight==c_double(2.5+float(index))
+ end
+end
+func main(...) as int
+ assert live()==c_int(0)
+ check()
+ assert live()==c_int(0)
+ int failures=0
+ int successes=0
+ for budget in range(24)
+  assert failAfter(c_int(budget))==c_int(1)
+  bool refused=false
+  try
+   check()
+   successes+=1
+  catch Error error
+   refused=true
+   failures+=1
+  end
+  auto hit=failClear()
+  assert (hit!=c_int(0))==refused and live()==c_int(0)
+ end
+ assert failures>0 and successes>0
+ println("projection allocation budgets: ",failures," refused, ",successes," succeeded")
+ println("native record projection passed")
+ return 0
+end

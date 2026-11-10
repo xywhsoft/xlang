@@ -14,6 +14,7 @@ typedef struct XL6_ForeignClassDecl {
     XL6_ForeignLifetimeAbi lifetime;
     char policy[64],scope[64],watch[64],domain[64],owner[256];
     uint32 ownerSymbol;
+    bool recordProjection;
 } XL6_ForeignClassDecl;
 
 static inline const XL6_AstNode* xl6ForeignFunctionAttributes(const XL6_AstNode* node)
@@ -740,14 +741,24 @@ static inline int xl6ForeignRecordRead(const XL6_AstNode* node,
     if (!(node->flags & XL6_AST_FLAG_EXTERN) || node->childCount != 2 ||
         !(declaration = node->children[1]) ||
         declaration->kind != XL6_AST_FIELD_ATTR || !declaration->text ||
-        strcmp(declaration->text, "c_type") || declaration->childCount != 2 ||
+        strcmp(declaration->text, "c_type") || (declaration->childCount != 2 && declaration->childCount != 3) ||
         !xl6ForeignQuotedText(declaration->children[0], result.cName, sizeof(result.cName)) ||
         !xl6ForeignIdentifier(result.cName)) return -1;
-    const XL6_AstNode* header = declaration->children[1];
-    if (!header || header->kind != XL6_AST_FIELD_ATTR || !header->text ||
-        strcmp(header->text, "header") || header->childCount != 1 ||
-        !xl6ForeignQuotedText(header->children[0], result.header, sizeof(result.header)) ||
-        !xl6ForeignHeaderName(result.header)) return -1;
+    bool headerSeen=false;
+    for(size_t i=1;i<declaration->childCount;++i){
+        const XL6_AstNode* attr=declaration->children[i];
+        if(!attr || attr->kind!=XL6_AST_FIELD_ATTR || !attr->text)return -1;
+        if(!strcmp(attr->text,"c_projection")){
+            if(result.recordProjection || attr->childCount)return -1;
+            result.recordProjection=true;
+        }else if(!strcmp(attr->text,"header")){
+            if(headerSeen || attr->childCount!=1 ||
+                !xl6ForeignQuotedText(attr->children[0],result.header,sizeof(result.header)) ||
+                !xl6ForeignHeaderName(result.header))return -1;
+            headerSeen=true;
+        }else return -1;
+    }
+    if(!headerSeen)return -1;
     if (output) *output = result;
     return 1;
 }

@@ -21531,9 +21531,14 @@ static const XL6_AstNode* xl6SemForeignOwnershipHelper(XL6_SemContext* ctx,
             !(decl->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) ||
             (decl->flags&(XL6_AST_FLAG_FOREIGN_PURE|XL6_AST_FLAG_FOREIGN_OWNED_STRING)) ||
             !xl6ForeignFunctionRead(decl,&helperFacts) || !xl6ForeignOwnershipHelperFacts(&helperFacts,status) || xl6SemFuncIsGeneric(decl))continue;
-        const XL6_AstNode* helperAttrs=xl6ForeignFunctionAttributes(decl);int permitted=1;
+        const XL6_AstNode* helperAttrs=xl6ForeignFunctionAttributes(decl);int permitted=1;unsigned qualifiers=0;
         for(size_t a=0;helperAttrs && a<helperAttrs->childCount;++a){
             const XL6_AstNode* attr=helperAttrs->children[a];
+            if(attr && attr->text && !strcmp(attr->text,"c_const")){
+                uint32 parameter;
+                if(!xl6ForeignPointerQualifierRead(attr,&parameter) || parameter!=0 || qualifiers++)permitted=0;
+                continue;
+            }
             if(!attr || !attr->text || (strcmp(attr->text,"header") && strcmp(attr->text,"c_result")))permitted=0;
         }
         if(!permitted)continue;
@@ -21574,6 +21579,15 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
     }
     XL6_AstNode* params = node->childCount > 1 ? node->children[1] : NULL;
     size_t count = params ? params->childCount : 0;
+    for(size_t p=0;p<count;++p)if(params->children[p]->childCount &&
+        xl6SemProjectedRecordValue(ctx,params->children[p]->children[0],0)){
+        xl6SemErrorNode(ctx,node,"projected C record values have no implicit native C parameter ABI");return 0;
+    }
+    const XL6_AstNode* projectionReturns=node->childCount>2 ? node->children[2]:NULL;
+    for(size_t p=0;projectionReturns && p<projectionReturns->childCount;++p)
+        if(xl6SemProjectedRecordValue(ctx,projectionReturns->children[p],0)){
+            xl6SemErrorNode(ctx,node,"projected C record values require an explicit native sequence producer");return 0;
+        }
     if(!xl6SemForeignPacks(ctx,node,ownerClass,attrs,&facts))return 0;
     if(!xl6SemForeignArrayGroups(ctx,node,ownerClass,attrs,&facts))return 0;
     if(xl6ForeignFunctionFieldCall(node)){
@@ -23890,12 +23904,15 @@ static int xl6SemCheckUnion(XL6_SemContext* ctx, XL6_AstNode* node)
     int ok;
 
     ok = 1;
+    bool recordProjection=false;
     if (node->kind == XL6_AST_C_RECORD) {
         const char* error = NULL;
-        if (xl6ForeignRecordRead(node, NULL, &error) != 1) {
+        XL6_ForeignClassDecl contract={0};
+        if (xl6ForeignRecordRead(node, &contract, &error) != 1) {
             xl6SemErrorNode(ctx, node, error);
             return 0;
         }
+        recordProjection=contract.recordProjection;
         if (ctx->currentClass != NULL) {
             xl6SemErrorNode(ctx, node, "C record declarations must be module-level");
             return 0;
@@ -23939,6 +23956,12 @@ static int xl6SemCheckUnion(XL6_SemContext* ctx, XL6_AstNode* node)
             ok = 0;
         }
         if (node->kind == XL6_AST_C_RECORD) {
+            if(recordProjection && (!field->childCount || !xl6SemNativeSequencePod(ctx,field->children[0],0))){
+                xl6SemErrorNode(ctx,field,"projected C records expose only C scalar or recursively scalar record values");ok=0;
+            }
+            if(!recordProjection && field->childCount && xl6SemProjectedRecordValue(ctx,field->children[0],0)){
+                xl6SemErrorNode(ctx,field,"exact C record fields cannot contain a projected language record");ok=0;
+            }
             char name[XL6_C_SYMBOL_COMPONENT_MAX + 1];
             if (xl6ForeignRecordFieldRead(field, name, sizeof(name), NULL)) {
                 for (size_t j = 0; j < i; ++j) {

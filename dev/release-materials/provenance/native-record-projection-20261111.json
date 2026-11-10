@@ -1,0 +1,72 @@
+{
+  "scope": "General immutable native-record scalar projection, separate logical/native layout and const owner helpers",
+  "compiledSource": {
+    "src/sem/xl6_sem.c": "08212dd4996a56f4518047644c3e3e23ced937c75231d909476e7a4d46400bf1",
+    "src/sem/xl6_sem_native_sequence.c": "58d7d35442018d3cbbe240cfac114fc137d02317a9f9dbbd92835e9643124f84",
+    "src/ir/xl6_ir.h": "227a9ca6453f970a873c3c99649c103ed591c3916c24f53e1fc07c5735f1447e",
+    "src/ir/xl6_ir.c": "4341acacb98d9203b5316d0a4b9852e2c4dbf6aa04f8fdde8fff821caa8def64",
+    "src/ir/xl6_ir_foreign_native_sequence.c": "b89452d7abef831acf22f94f6c6c4afec85e425e769dd9769fdba6fb26076797",
+    "src/ir/xl6_ir_foreign_parameter.c": "a16b034a1dae0c1543d88529527bb2db3e4b53004986116922da438227177133",
+    "src/cgen/xl6_ir_cgen_native_sequence.c": "dc3d5f6470f76e33b95302a6ff91f1440d1fade0485a3d546fd972ed75a8eb38",
+    "src/cgen/xl6_ir_cgen_type_definitions.c": "5a7f0e6f3076171525174c12b62260d9d6ae472fef16a7d641a152dc2d8cf40f",
+    "src/type/xl6_foreign_decl.h": "7b3425f94f07a8fac95eb01c34e8d42757b6a5723077748260a1e4925760a627"
+  },
+  "testSource": {
+    "test/cases/native_sequence_projection.xl": "122ca9c8ff29e385883160ab20a6f90147b98c38074bc0d1f1e9b0cd8661b98d",
+    "test/cases/native_sequence_projection.c": "f02f21f52d051fa41f8742e9aeaf341ad778370040c0db12a21ca7e12e451eca",
+    "test/cases/native_sequence_projection.h": "6ad25cf299142b0f11411a212db6ce9d57d99ef08dfb46035d2f7caa3f2ce7f3",
+    "test/cases/native_sequence_projection_ir.c": "b0310bd06920bb1511107b9f251101ba9a2604cfb101d3984396745ccf290091",
+    "test/cases/native_sequence_projection_nested.xl": "2509b914e33d9a69de8b9557f3613b106462545291c3535c17e1bc5f3110472e",
+    "test/cases/native_sequence_projection_nested.h": "5fd2b3ba163df3d870eee1c0c54affc890c2c5254aeb8161e63f7642d3de365a",
+    "tools/check_native_sequence_projection.py": "bd9f8fb07838a1490416bc04631d8e32b2f3fb5650022b3b0f157a7a009939b0",
+    "tools/full_compiler_qualification.py": "1eebd601abfcc2c954bceb31ccedfe2794fc9b7fe893d79107ef25d4e5e17fcc"
+  },
+  "compilers": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r16\\build.json",
+      "sha256": "91babea9fee9a8e5c8af5e8d31e573be9aba0aaf5252801abe7fc6b6f699f8ba",
+      "freeze": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r16\\freeze.json",
+      "freezeSha256": "73db26ef55f16e1cbffecce6d334c8efe01476a98022f79521e24cf6441e350e"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-linux-full-r8\\build.json",
+      "sha256": "dea71e989b91826cd17525e015c76c58dba381feda3492ce4c667aeb12622dc1",
+      "freeze": "F:\\xlang-validation\\xge-full-20261110\\compiler-linux-full-r8\\freeze.json",
+      "freezeSha256": "ebc0f1d56fb2491e5e01b32ed48da73709954b78143973b7f3e4490c41722a0a"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\projection-qualified-win-r2\\results.json",
+      "sha256": "4998c745bad59f1f51d67ed99b89b42894aba55c2f2b80ae561b99aa5e14df57",
+      "checks": 42,
+      "irMutations": 24
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\projection-qualified-linux-r2\\results.json",
+      "sha256": "3a096a2aafd68140b24a50330b3c3f3ed2c248c8ca4bd7e2a349dd935b464d75",
+      "checks": 40,
+      "irMutations": 0
+    }
+  ],
+  "checks": 82,
+  "expectedSourceRejectionsIncluded": true,
+  "irGate": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\projection-ir-diagnostic-r3\\results.json",
+    "sha256": "4aee9859a35efddd1bd0d45d67e30014fd62df9f87036456d98ee47d83735f7c",
+    "standaloneDiagnostic": true,
+    "matchedFullCompilerOverrides": true,
+    "mutations": 24
+  },
+  "nestedJitAndStaticCompiler": true,
+  "nestedImportsExcludeOwnRuntimeLibraries": true,
+  "backingArrayCopies": 0,
+  "allocationBudgets": 24,
+  "allocationResults": {
+    "refused": 16,
+    "succeeded": 8
+  },
+  "costs": "Logical field materialization and zeroing; existing owned sequence/view/code lifetime metadata. No whole-pilot zero-overhead claim.",
+  "shippingDelivery": false,
+  "networkTests": false
+}

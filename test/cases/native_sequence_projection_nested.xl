@@ -1,0 +1,40 @@
+// Verify the rebuilt embedded compiler, including its const owner helper.
+import xlang
+func main(...) as int
+ auto root=env.get("XLANG_PROJECTION_ROOT")
+ auto context=xlang.Context()
+ if root!=null then
+  assert context.setWorkDir(root)
+ else
+  return 2
+ end
+ string source=r"""
+extern "NativeProjectionRow" struct Row @header("test/cases/native_sequence_projection_nested.h") @c_projection()
+ c_int value @c_name("actualValue")
+end
+extern "NativeProjectionOwner*" class Owner @header("test/cases/native_sequence_projection_nested.h") @lifetime("owned") @policy("nativeProjectionPolicy")
+ native point handle
+ extern "nativeProjectionRows" @no_raise @c_const(0) @c_owned_sequence(1,2,0,"size_t",0) @c_retain(retain,"positive",release) func rows() as NativeSequence<Row>
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "nativeProjectionRetain" @header("test/cases/native_sequence_projection_nested.h") @no_raise @c_const(0) func retain(Owner value) as c_int
+extern "nativeProjectionRelease" @header("test/cases/native_sequence_projection_nested.h") @no_raise func release(Owner value)
+extern "nativeProjectionCreate" @header("test/cases/native_sequence_projection_nested.h") @no_raise @c_result("owned_view") @factory(0,0,release) func create() as Owner
+func main(...) as int
+ auto owner=create()
+ auto rows=owner.rows()
+ owner.close()
+ int total=0
+ for row in rows
+  total+=int(row.value)
+ end
+ assert total==21 and rows[0].value==c_int(10)
+ return 0
+end
+"""
+ assert context.run(source),context.lastError
+ assert not context.run("int broken=missingProjectionNestedSymbol")
+ assert context.run(source),context.lastError
+ println("nested native projection passed")
+ return 0
+end

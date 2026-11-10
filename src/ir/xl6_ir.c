@@ -1487,7 +1487,7 @@ static int xl6IrTypeUnionCName(
 {
     char component[XL6_C_SYMBOL_COMPONENT_MAX + 1];
     int written;
-    if (type && type->kind == XL6_IR_TYPE_C_RECORD) {
+    if (type && type->kind == XL6_IR_TYPE_C_RECORD && type->foreignRecordAbi == XL6_IR_FOREIGN_RECORD_EXACT) {
         if (!type->foreignHeader || !xl6ForeignIdentifier(type->cName) ||
             strlen(type->cName) >= capacity) return 0;
         memmove(out, type->cName, strlen(type->cName) + 1);
@@ -1497,7 +1497,7 @@ static int xl6IrTypeUnionCName(
          type->name == NULL || type->name[0] == '\0' ||
          !xl6OutputEncodeSymbolComponent(
              component, sizeof(component), type->name) ) return 0;
-    written = snprintf(out, capacity, "XL_Union_%s", component);
+    written = snprintf(out, capacity, type->foreignRecordAbi == XL6_IR_FOREIGN_RECORD_PROJECTED ? "XL_Projection_%s" : "XL_Union_%s", component);
     return written >= 0 && (size_t)written < capacity;
 }
 
@@ -2461,6 +2461,7 @@ void xl6IrModuleFree(XL6_IrModule* module)
     for ( i = 0; i < module->types.count; ++i ) {
         xrtFree(module->types.items[i].name);
         xrtFree(module->types.items[i].foreignHeader);
+        xrtFree(module->types.items[i].foreignRecordSource);
         xrtFree(module->types.items[i].foreignPolicy);
         xrtFree(module->types.items[i].foreignScope);
         xrtFree(module->types.items[i].foreignDomain);
@@ -3188,6 +3189,12 @@ static XL6_IrTypeId xl6IrInternAstType(XL6_IrModule* module, const XL6_AstNode* 
             return XL6_IR_TYPE_INVALID;
         }
         memcpy(item->cName, contract.cName, strlen(contract.cName) + 1);
+        if(kind==XL6_IR_TYPE_C_RECORD)item->foreignRecordAbi=contract.recordProjection ?
+            XL6_IR_FOREIGN_RECORD_PROJECTED:XL6_IR_FOREIGN_RECORD_EXACT;
+        if(contract.recordProjection && !(item->foreignRecordSource=xrtStrDup(contract.cName))){
+            xrtFree(item->foreignHeader);xrtFree(params);xrtFree(parameterModes);xrtFree(parameterAbis);xrtFree(returns);
+            memset(item,0,sizeof(*item));return XL6_IR_TYPE_INVALID;
+        }
         item->foreignLifetime=contract.lifetime;
         item->foreignOwner=foreignOwner;
         if(contract.policy[0])item->foreignPolicy=xrtStrDup(contract.policy);
@@ -3196,7 +3203,7 @@ static XL6_IrTypeId xl6IrInternAstType(XL6_IrModule* module, const XL6_AstNode* 
         if(contract.domain[0])item->foreignDomain=xrtStrDup(contract.domain);
         if((contract.policy[0]&&!item->foreignPolicy)||(contract.scope[0]&&!item->foreignScope)||
             (contract.watch[0]&&!item->foreignWatch)||(contract.domain[0]&&!item->foreignDomain)){
-            xrtFree(item->foreignHeader);xrtFree(item->foreignPolicy);xrtFree(item->foreignScope);
+            xrtFree(item->foreignHeader);xrtFree(item->foreignRecordSource);xrtFree(item->foreignPolicy);xrtFree(item->foreignScope);
             xrtFree(item->foreignWatch);
             xrtFree(item->foreignDomain);
             xrtFree(params);xrtFree(parameterModes);xrtFree(parameterAbis);xrtFree(returns);
@@ -3216,7 +3223,7 @@ static XL6_IrTypeId xl6IrInternAstType(XL6_IrModule* module, const XL6_AstNode* 
          !xl6IrTypeFinalizeRepresentation(&module->types, item) ||
          !xl6IrTypeInitParameterAbis(&module->types, item) ||
          !xl6IrTypeFinalizeTypeValueId(&module->types, item) ) {
-        xrtFree(item->name); xrtFree(item->displayName); xrtFree(item->foreignHeader);
+        xrtFree(item->name); xrtFree(item->displayName); xrtFree(item->foreignHeader);xrtFree(item->foreignRecordSource);
         xrtFree(item->foreignPolicy);xrtFree(item->foreignScope);
         xrtFree(item->foreignWatch);
         xrtFree(item->foreignDomain);
@@ -53804,6 +53811,8 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
             (unsigned)type->foreignLifetime,(unsigned)type->foreignOwner,type->foreignPolicy ? type->foreignPolicy : "",
             type->foreignScope ? type->foreignScope : "",type->foreignWatch ? type->foreignWatch : "");
         xl6OutputPrintf(out,",\"foreignDomain\":\"%s\"",type->foreignDomain ? type->foreignDomain : "");
+        xl6OutputPrintf(out,",\"foreignRecordAbi\":%u,\"foreignRecordSource\":\"%s\"",
+            (unsigned)type->foreignRecordAbi,type->foreignRecordSource ? type->foreignRecordSource : "");
         xl6OutputPrintf(out,",\"persistenceRestoreScalarAbi\":%u,\"persistenceRestoreCarrierAbi\":%u,\"persistenceWireFormat\":%u,\"collectionCarrierAbi\":%u,\"collectionCarrierAbiName\":\"%s\","
             "\"sequenceLayout\":{\"abi\":%u,\"abiName\":\"%s\",\"role\":%u,\"elementType\":%u,\"baseElementType\":%u,"
             "\"slotAbi\":%u,\"slotAbiName\":\"%s\",\"codecAbi\":%u,\"codecAbiName\":\"%s\","

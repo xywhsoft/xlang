@@ -10,7 +10,7 @@ static int xl6IrCgenNativeSequenceSchemas(XL6_Output* out,const XL6_IrModule* m)
   "typedef struct xlir_native_sequence_cursor { XL6_NativeSequenceReadV1 read; size_t index; } xlir_native_sequence_cursor;\n"
   "static void xlir_native_sequence_cursor_drop(xlir_native_sequence_cursor* cursor) { if(cursor && !xl6NativeSequenceReadEndV1(&cursor->read))xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()}); }\n",out);
  for(size_t n=0;n<m->types.count;++n){XL6_IrTypeId element=xl6IrNativeSequenceElement(m,(XL6_IrTypeId)n+1);if(!element)continue;
-  const XL6_IrType* sequence=&m->types.items[n];const XL6_IrType* item=xl6IrTypeGet(&m->types,element);const char* type=xl6IrCgenType(m,element);if(!type || !item->typeValueId)return 0;
+  const XL6_IrType* sequence=&m->types.items[n];const XL6_IrType* item=xl6IrTypeGet(&m->types,element);const char* type=xl6IrNativeSequenceStorageCName(m,element);if(!type || !item->typeValueId)return 0;
   xl6OutputPrintf(out,"static const XL6_NativeSequenceSchemaV1 xlir_native_sequence_t%u={sizeof(XL6_NativeSequenceSchemaV1),XL6_NATIVE_SEQUENCE_SCHEMA_V1_TAG,UINT64_C(0x%016llX),UINT64_C(0x%016llX),sizeof(%s),XLIR_NATIVE_ALIGNOF(%s),sizeof(%s)};\n",
    (unsigned)n+1,(unsigned long long)sequence->typeValueId,(unsigned long long)item->typeValueId,type,type,type);
  }
@@ -37,6 +37,30 @@ static void xl6IrCgenNativeSequenceOutputAdmit(XL6_Output* out,const XL6_IrModul
   "    if(!%s.failed && !xrtGetError()){ %s=xl6NativeSequenceResultTakeV1(&native_sequence_result);if(!%s)xl6ErrorScopeCaptureFailure(&%s); }\n",
   errors,errors,errors,hold->cName,owner->cName,row->ownerParameter,row->retainSuccess==XL6_FOREIGN_RETAIN_ZERO ? "==0":">0",row->ownerParameter,errors,hold->cName,errors,errors,errors,place,place,errors);
 }
+/* The logical value contains only declared scalar fields. Never memcpy the
+ * backing record, including padding or private pointer-bearing members. */
+static int xl6IrCgenNativeProjectionFields(XL6_Output* out,const XL6_IrModule* m,
+ XL6_IrTypeId id,const char* target,const char* source,size_t depth)
+{
+ const XL6_IrType* type=xl6IrTypeGet(&m->types,id);if(!type || depth>16)return 0;
+ if(type->kind!=XL6_IR_TYPE_C_RECORD){xl6OutputPrintf(out,"    %s=%s;\n",target,source);return !xl6OutputHasFailed(out);}
+ const XL6_IrAggregateLayout* layout=xl6IrUnionLayoutGet(m,id);if(!layout)return 0;
+ for(size_t i=0;i<layout->fieldCount;++i){
+  const XL6_IrAggregateField* field=&m->aggregateFields[layout->firstField+i];char to[2048],from[2048];
+  int a=snprintf(to,sizeof(to),"%s.%s",target,field->cName),b=snprintf(from,sizeof(from),"%s.%s",source,field->cName);
+  if(a<0 || (size_t)a>=sizeof(to) || b<0 || (size_t)b>=sizeof(from) ||
+   !xl6IrCgenNativeProjectionFields(out,m,field->type,to,from,depth+1))return 0;
+ }
+ return 1;
+}
+static int xl6IrCgenNativeSequenceLoad(XL6_Output* out,const XL6_IrModule* m,XL6_IrTypeId element,unsigned result,const char* source)
+{
+ const XL6_IrType* type=xl6IrTypeGet(&m->types,element);if(!type)return 0;
+ if(type->foreignRecordAbi!=XL6_IR_FOREIGN_RECORD_PROJECTED){xl6OutputPrintf(out,"    v%u=%s;\n",result,source);return !xl6OutputHasFailed(out);}
+ char target[32];snprintf(target,sizeof(target),"v%u",result);
+ xl6OutputPrintf(out,"    memset(&v%u,0,sizeof(v%u));\n",result,result);
+ return xl6IrCgenNativeProjectionFields(out,m,element,target,source,0);
+}
 static int xl6IrCgenNativeSequenceInstruction(XL6_Output* out,const XL6_IrModule* m,const XL6_IrInstruction* i)
 {
  if(i->kind!=XL6_IR_INSTR_RUNTIME_CALL || i->runtimeOp<XL6_IR_RUNTIME_NATIVE_SEQUENCE_CREATE || i->runtimeOp>XL6_IR_RUNTIME_NATIVE_SEQUENCE_ORDINAL)return 0;
@@ -57,17 +81,22 @@ static int xl6IrCgenNativeSequenceInstruction(XL6_Output* out,const XL6_IrModule
   if(i->operandCount==3)xl6OutputPrintf(out,"v%u",(unsigned)m->operands[i->firstOperand+2]);else xl6OutputPuts("-1",out);
   xl6OutputPrintf(out,");\n    if(!v%u)xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()});\n",r);break;
  case XL6_IR_RUNTIME_NATIVE_SEQUENCE_INDEX:{
-  unsigned index=(unsigned)m->operands[i->firstOperand+1];const char* type=xl6IrCgenType(m,e);
+  unsigned index=(unsigned)m->operands[i->firstOperand+1];const char* type=xl6IrNativeSequenceStorageCName(m,e);char nativeItem[256];
+  int length=snprintf(nativeItem,sizeof(nativeItem),"((const %s*)native_read.data)[(size_t)v%u]",type,index);
+  if(length<0 || (size_t)length>=sizeof(nativeItem))return -1;
   xl6OutputPrintf(out,"    { XL6_NativeSequenceReadV1 native_read={0};\n      if(!xl6NativeSequenceReadBeginV1(v%u,&xlir_native_sequence_t%u,&native_read))xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()});\n"
    "      else { if(v%u<0 || (uint64_t)v%u>=native_read.count){xrtSetErrorKind(XERR_RANGE);xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()});}\n"
-   "        else v%u=((const %s*)native_read.data)[(size_t)v%u];\n"
-   "        if(!xl6NativeSequenceReadEndV1(&native_read))xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()});\n      }\n    }\n",a,sequence,index,index,r,type,index);break;}
+   "        else {\n",a,sequence,index,index);
+  if(!xl6IrCgenNativeSequenceLoad(out,m,e,r,nativeItem))return -1;
+  xl6OutputPuts("        }\n        if(!xl6NativeSequenceReadEndV1(&native_read))xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()});\n      }\n    }\n",out);break;}
  case XL6_IR_RUNTIME_NATIVE_SEQUENCE_READ_BEGIN:
   xl6OutputPrintf(out,"    native_cursor_v%u.index=0; v%u=&native_cursor_v%u;\n    if(!xl6NativeSequenceReadBeginV1(v%u,&xlir_native_sequence_t%u,&v%u->read)){v%u=NULL;xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()});}\n",r,r,r,a,sequence,r,r);break;
  case XL6_IR_RUNTIME_NATIVE_SEQUENCE_ADVANCE:
   xl6OutputPrintf(out,"    v%u=v%u->index<v%u->read.count; if(v%u)++v%u->index;\n",r,a,a,r,a);break;
- case XL6_IR_RUNTIME_NATIVE_SEQUENCE_ITEM:
-  xl6OutputPrintf(out,"    v%u=((const %s*)v%u->read.data)[v%u->index-1];\n",r,xl6IrCgenType(m,e),a,a);break;
+ case XL6_IR_RUNTIME_NATIVE_SEQUENCE_ITEM:{
+  char nativeItem[256];int length=snprintf(nativeItem,sizeof(nativeItem),"((const %s*)v%u->read.data)[v%u->index-1]",xl6IrNativeSequenceStorageCName(m,e),a,a);
+  if(length<0 || (size_t)length>=sizeof(nativeItem) || !xl6IrCgenNativeSequenceLoad(out,m,e,r,nativeItem))return -1;
+  break;}
  case XL6_IR_RUNTIME_NATIVE_SEQUENCE_ORDINAL:
   xl6OutputPrintf(out,"    v%u=(int64_t)(v%u->index-1);\n",r,a);break;
  default:return -1;

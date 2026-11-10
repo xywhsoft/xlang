@@ -43,6 +43,18 @@ static int xl6SemNativeSequenceSuspends(const XL6_AstNode* node)
  for(size_t i=0;i<node->childCount;++i)if(xl6SemNativeSequenceSuspends(node->children[i]))return 1;
  return 0;
 }
+/* Projected values have a language layout, not the source C record ABI.
+ * NativeSequence's producer supplies that physical storage contract separately. */
+static int xl6SemProjectedRecordValue(XL6_SemContext* ctx,const XL6_AstNode* type,size_t depth)
+{
+ if(!type || depth>32)return 0;
+ type=xl6SemResolveAliasType(ctx,type);if(!type)return 0;
+ if(type->text && xl6TextEquals(type->text,"NativeSequence"))return 0;
+ XL6_ForeignClassDecl contract={0};
+ if(type->text && xl6ForeignRecordRead(xl6SemFindTypeDecl(ctx,type->text),&contract,NULL)==1 && contract.recordProjection)return 1;
+ for(size_t i=0;i<type->childCount;++i)if(xl6SemProjectedRecordValue(ctx,type->children[i],depth+1))return 1;
+ return 0;
+}
 static int xl6SemNativeSequenceWrite(XL6_SemContext* ctx,XL6_AstNode* place)
 {
  if(!place)return 0;

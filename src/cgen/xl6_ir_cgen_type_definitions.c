@@ -310,6 +310,23 @@ static int xl6IrCgenEmitUnionTypes(
                     return xl6IrCgenDiag(diags, module, layout->declaration,
                         "C record has no authoritative declaration header");
                 }
+                if(unionType->foreignRecordAbi==XL6_IR_FOREIGN_RECORD_PROJECTED){
+                    xl6OutputPrintf(out,"#include <%s>\n#ifndef XL6_ABI_DEFINED_%s\n#define XL6_ABI_DEFINED_%s 1\ntypedef struct %s {\n",
+                        unionType->foreignHeader,unionType->cName,unionType->cName,unionType->cName);
+                    for(fieldOffset=0;fieldOffset<layout->fieldCount;++fieldOffset){
+                        const XL6_IrAggregateField* field=&module->aggregateFields[layout->firstField+fieldOffset];
+                        if(!xl6IrCgenEmitForeignFieldSchema(out,module,field,diags)){xrtFree(emitted);return 0;}
+                    }
+                    xl6OutputPrintf(out,"} %s;\n",unionType->cName);
+                    for(fieldOffset=0;fieldOffset<layout->fieldCount;++fieldOffset){
+                        const XL6_IrAggregateField* field=&module->aggregateFields[layout->firstField+fieldOffset];
+                        const XL6_IrType* value=xl6IrTypeGet(&module->types,field->type);
+                        const char* wire=value->foreignRecordAbi==XL6_IR_FOREIGN_RECORD_PROJECTED ? value->foreignRecordSource:xl6IrCgenType(module,field->type);
+                        xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(((%s*)0)->%s, %s), \"projected native field type\");\n",
+                            unionType->foreignRecordSource,field->cName,wire);
+                    }
+                    xl6OutputPuts("#endif\n",out);emitted[layoutIndex]=1;++emittedCount;continue;
+                }
                 xl6OutputPrintf(out, "#include <%s>\n#ifndef XL6_RECORD_CHECK_%s\n"
                     "#define XL6_RECORD_CHECK_%s 1\ntypedef struct {\n",
                     unionType->foreignHeader, unionType->cName, unionType->cName);

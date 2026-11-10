@@ -245,7 +245,11 @@ static int xl6IrForeignOwnershipHelperMatches(const XL6_IrModule* module,
         !helper->nativeContextAbi && !helper->nativeResultAbi && !helper->nativeArrayResultAbi &&
         helper->parameterCount==1 && helper->parameterTypes && helper->parameterTypes[0]==input &&
         helper->parameterAbis && helper->parameterAbis[0]==XL6_IR_PARAMETER_ABI_BORROW &&
-        helper->parameterPhysicalAbis && helper->parameterPhysicalAbis[0]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VIEW_BORROW &&
+        helper->parameterPhysicalAbis &&
+        (helper->parameterPhysicalAbis[0]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VIEW_BORROW ?
+            !xl6IrForeignPointerQualifierGet(module,helper,0) :
+            helper->parameterPhysicalAbis[0]==XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_FOREIGN_VIEW_BORROW &&
+            xl6IrForeignPointerQualifierMatches(module,helper,0)) &&
         (status ? result && result->cAbi==XL6_IR_C_ABI_C_INT : !helper->returnType) &&
         helper->resultPhysicalAbi==XL6_IR_CALL_RESULT_PHYSICAL_DIRECT &&
         (node->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_INT_STATUS ?

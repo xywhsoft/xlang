@@ -803,6 +803,15 @@ typedef struct XL6_IrSequenceLayout {
     XL6_IrRuntimeResourcePayloadAbi childTransferAbi;
 } XL6_IrSequenceLayout;
 
+/* Logical record layout is independent of a native span's storage layout.
+ * Keep the discriminator even when the backing spelling is damaged/missing;
+ * neither verifier nor Cgen may recover this authority from a C name. */
+typedef enum XL6_IrForeignRecordAbi {
+    XL6_IR_FOREIGN_RECORD_NONE = 0,
+    XL6_IR_FOREIGN_RECORD_EXACT,
+    XL6_IR_FOREIGN_RECORD_PROJECTED
+} XL6_IrForeignRecordAbi;
+
 typedef struct XL6_IrType {
     XL6_IrTypeKind kind;
     XL6_IrCAbi cAbi;
@@ -848,6 +857,7 @@ typedef struct XL6_IrType {
     /* Logical boxed domain, independent of physical carrier/transfer. */
     XL6_ValueAdmissionV1 xvalueAdmissionAbi;
     bool xvalueAdmissionNullable;
+    uint8 foreignRecordAbi; /* XL6_IrForeignRecordAbi; NONE outside C_RECORD. */
     uint64 xvalueAdmissionTypeValueId;
     /* Diagnostics/provenance only, except for TYPE_PARAM identity.  Concrete
      * aliases with the same ABI and shape share one canonical XLIR type. */
@@ -874,6 +884,9 @@ typedef struct XL6_IrType {
      * handle; aliases share the canonical type, not another owning wrapper.
      * Backends must use this closed identity rather than inspect source AST. */
     char* foreignHeader;
+    /* Non-NULL for an explicitly projected C record. cName is the independent
+     * language value layout; this is the immutable native backing element. */
+    char* foreignRecordSource;
     XL6_IrTypeId foreignBase;
     XL6_ForeignLifetimeAbi foreignLifetime;
     XL6_IrTypeId foreignOwner;
@@ -8106,6 +8119,7 @@ int xl6IrForeignOutputSizesMatch(const XL6_IrModule*,const XL6_IrCallTarget*);
 XL6_IrTypeId xl6IrTypeInternNativeSequenceRead(XL6_IrModule*,XL6_IrTypeId);
 XL6_IrTypeId xl6IrNativeSequenceElement(const XL6_IrModule*,XL6_IrTypeId);
 int xl6IrNativeSequencePod(const XL6_IrModule*,XL6_IrTypeId,size_t);
+const char* xl6IrNativeSequenceStorageCName(const XL6_IrModule*,XL6_IrTypeId);
 int xl6IrNativeSequenceResourceSignature(const XL6_IrModule*,XL6_IrRuntimeResourceOp,XL6_IrTypeId,XL6_IrTypeId,const XL6_IrTypeId*,size_t);
 int xl6IrNativeSequenceInstructionCompatible(const XL6_IrModule*,const XL6_IrInstruction*);
 const XL6_ForeignNativeSequenceContract* xl6IrForeignNativeSequenceGet(const XL6_IrModule*,const XL6_IrCallTarget*);

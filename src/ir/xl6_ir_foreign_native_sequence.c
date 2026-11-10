@@ -18,6 +18,13 @@ XL6_IrTypeId xl6IrNativeSequenceElement(const XL6_IrModule* m,XL6_IrTypeId id)
   t->cAbi==XL6_IR_C_ABI_RUNTIME_XVALUE_PTR && t->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED && t->typeValueId &&
   t->paramCount==1 && t->params && xl6IrNativeSequencePod(m,t->params[0],0) ? t->params[0]:0;
 }
+const char* xl6IrNativeSequenceStorageCName(const XL6_IrModule* m,XL6_IrTypeId id)
+{
+ const XL6_IrType* t=xl6IrTypeGet(&m->types,id);if(!t)return NULL;
+ if(t->cAbi==XL6_IR_C_ABI_C_RECORD)return t->foreignRecordAbi==XL6_IR_FOREIGN_RECORD_PROJECTED ?
+  t->foreignRecordSource:t->foreignRecordAbi==XL6_IR_FOREIGN_RECORD_EXACT ? t->cName:NULL;
+ return t->cAbi==XL6_IR_C_ABI_C_SSIZE ? "intptr_t":t->cAbi==XL6_IR_C_ABI_C_WCHAR ? "wchar_t":xl6IrPackScalarCName(t);
+}
 const XL6_ForeignNativeSequenceContract* xl6IrForeignNativeSequenceGet(const XL6_IrModule* m,const XL6_IrCallTarget* t)
 {
  if(!m || !t || m->foreignNativeSequenceCount>m->foreignNativeSequenceCapacity ||
@@ -51,7 +58,7 @@ static int xl6IrNativeSequenceExpected(const XL6_IrModule* m,const XL6_ForeignNa
  XL6_IrCallTarget target={0};target.declaration=row->declaration;target.foreignHeaderIndexPlusOne=xl6IrForeignFunctionHeaderIndex(m,row->declaration);
  const XL6_IrType* declarationOwner=xl6IrTypeGet(&m->types,n->declarationOwnerType);
  if(!xl6IrForeignFunctionHeaderGet(m,&target) && !(declarationOwner && declarationOwner->foreignHeader))return 0;
- const XL6_IrType* e=xl6IrTypeGet(&m->types,element);const char* cname=e->cAbi==XL6_IR_C_ABI_C_RECORD ? e->cName:e->cAbi==XL6_IR_C_ABI_C_SSIZE ? "intptr_t":e->cAbi==XL6_IR_C_ABI_C_WCHAR ? "wchar_t":xl6IrPackScalarCName(e);
+ const char* cname=xl6IrNativeSequenceStorageCName(m,element);
  if(!cname || strlen(cname)+8>=sizeof(result->dataCName))return 0;
  *result=*row;result->sequenceType=value->type;result->elementType=element;result->ownerType=owner;
  snprintf(result->dataCName,sizeof(result->dataCName),"const %s*",cname);return 1;
@@ -74,6 +81,12 @@ static int xl6IrVerifyNativeSequences(const XL6_IrModule* m,XL6_DiagList* diags)
    !memchr(row->dataCName,0,sizeof(row->dataCName)) || strcmp(row->dataCName,expected.dataCName))goto invalid;}
  }
  for(size_t i=0;i<m->types.count;++i){const XL6_IrType* type=&m->types.items[i];
+  if(type->kind==XL6_IR_TYPE_C_RECORD){
+   if(type->foreignRecordAbi==XL6_IR_FOREIGN_RECORD_PROJECTED){
+    if(!type->foreignRecordSource || !type->foreignHeader || !xl6ForeignIdentifier(type->foreignRecordSource) ||
+     !xl6IrNativeSequencePod(m,(XL6_IrTypeId)i+1,0))goto invalid;
+   }else if(type->foreignRecordAbi!=XL6_IR_FOREIGN_RECORD_EXACT || type->foreignRecordSource)goto invalid;
+  }else if(type->foreignRecordAbi!=XL6_IR_FOREIGN_RECORD_NONE || type->foreignRecordSource)goto invalid;
   if(type->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_NATIVE_SEQUENCE &&
    type->kind!=XL6_IR_TYPE_BUILTIN && !xl6IrNativeSequenceElement(m,(XL6_IrTypeId)i+1))goto invalid;
   if(type->kind==XL6_IR_TYPE_GENERIC_INSTANCE && (type->collectionAbi!=XL6_IR_COLLECTION_NONE || type->cAbi==XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
