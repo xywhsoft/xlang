@@ -19,7 +19,7 @@ typedef struct native_points native_points;
 #define TYPED_DEFINITION_BYTES (64u*1024u*1024u)
 typedef struct point { int line,character; } point;
 typedef struct span { int source,startOffset,endOffset; point start,end; } span;
-typedef struct node { unsigned parent,depth,declared,target,typeId,declaredType,referencedType; uint64_t typeAbi; int call,kind,origin,typeSyntax,typeParams,typeConstraint,nameSyntax,genericType,memberSyntax; char *name,*header,*type; span full,token,selection; } node;
+typedef struct node { unsigned parent,depth,declared,target,typeId,declaredType,referencedType; uint64_t typeAbi; int call,kind,origin,typeSyntax,typeParams,typeConstraint,nameSyntax,genericType,memberSyntax,genericInstantSyntax; char *name,*header,*type; span full,token,selection; } node;
 typedef struct declaration { unsigned symbol; size_t node; } declaration;
 typedef struct endpoint { int source,offset,line,column; point* output; } endpoint;
 #define CURSOR_SELECTION UINT32_C(0x80000000)
@@ -153,6 +153,7 @@ static void nodeShapeKind(node* n,const node* parentNode,unsigned parent,unsigne
  n->parent=parent; n->depth=parentNode ? parentNode->depth+1 : 1; n->declared=declared; n->target=target;
  n->call=kind==XLS_INDEX_POINT_CALL;n->kind=symbolKind(kind);n->typeSyntax=kind==XLS_INDEX_POINT_TYPE;n->nameSyntax=kind==XLS_INDEX_POINT_NAME;n->typeParams=kind==XLS_INDEX_POINT_TYPE_PARAMS;n->typeConstraint=kind==XLS_INDEX_POINT_GENERIC_CONSTRAINT;
  n->memberSyntax=kind==XLS_INDEX_POINT_MEMBER || kind==XLS_INDEX_POINT_SAFE_MEMBER;
+ n->genericInstantSyntax=kind==XLS_INDEX_POINT_GENERIC_INSTANT;
 }
 static void nodeShapeParent(node* n,const node* parentNode,unsigned parent,unsigned declared,unsigned target,const char* kind)
 {nodeShapeKind(n,parentNode,parent,declared,target,xlsIndexPointKindParse(kind));}
@@ -516,12 +517,25 @@ static int sourceFor(xide_semantic_definitions* d,const char* path)
 static size_t resolveDeclaration(xide_semantic_definitions* d,size_t chosen,int source,point p)
 {
  node selected={0};node* n=readNode(d,chosen,&selected);if(!n)return SIZE_MAX;unsigned target=n->target ? n->target : n->declared;
+ /* The native checker records an explicit specialization's origin on its
+    GENERIC_INSTANT wrapper. Its first child alone spells that target; type
+    arguments keep their own bindings. No inferred-type or spelling lookup. */
+ size_t generic=SIZE_MAX;
  /* A call's first child is its callee. Only the callee's terminal token uses
     the resolved overload; arguments and a member receiver keep their IDs. */
  size_t child=chosen;
  for(unsigned parent=n->parent;parent;) {
   node callBuffer={0},calleeBuffer={0};node* call=readNode(d,parent-1,&callBuffer);node* callee=readNode(d,child,&calleeBuffer);if(!call || !callee)return SIZE_MAX;
-  if(call->call && call->target && child==(size_t)parent && callee->full.source==source && n->token.source==source && n->token.endOffset==callee->full.endOffset) { target=call->target; break; }
+  if(child==chosen && n->nameSyntax && chosen==(size_t)parent && call->genericInstantSyntax && call->target && call->full.source==source && n->token.source==source){target=call->target;generic=parent-1;}
+  if(call->call && call->target && child==(size_t)parent && callee->full.source==source && n->token.source==source &&
+     (n->token.endOffset==callee->full.endOffset || child==generic)) {
+   /* Constructing a generic class still spells its class, not "create".
+      Generic functions use the call's final selected overload. */
+   declaration originKey={target,0};declaration* origin=generic!=SIZE_MAX ? bsearch(&originKey,d->declarations,d->declCount,sizeof(*d->declarations),compareDeclaration) : NULL;
+   node originBuffer={0};node* originNode=origin && origin->node!=SIZE_MAX ? readNode(d,origin->node,&originBuffer) : NULL;
+   if(child!=generic || !originNode || !typeKind(originNode))target=call->target;
+   break;
+  }
   child=(size_t)parent-1;parent=call->parent;
  }
  if(!target) for(unsigned parent=n->parent;parent;) { node buffer={0};node* a=readNode(d,parent-1,&buffer);if(!a)return SIZE_MAX;if(a->declared && contains(&a->selection,source,p)) { target=a->declared; break; }parent=a->parent; }

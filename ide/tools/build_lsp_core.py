@@ -138,6 +138,7 @@ HOST_TESTS += ("project_rename_scope_test",)
 HOST_TESTS += ("project_rename_workspace_test",)
 HOST_TESTS += ("semantic_rename_identifier_test",)
 HOST_TESTS += ("project_rename_identifier_test",)
+HOST_TESTS += ("semantic_generic_navigation_test",)
 
 
 def sha(path: Path) -> str:

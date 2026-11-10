@@ -1,0 +1,93 @@
+{
+  "schema": 1,
+  "date": "2026-11-10",
+  "stage": "M7b4f",
+  "scope": "Exact native explicit generic instance origin projection for class constructors, callable values and selected generic overloads; full/JSON/resident navigation, reference and IDE integration",
+  "stageAccepted": true,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "8ae5b045849b15bb5eb273d8f7285eb9665aead8",
+  "ownedSources": {
+    "ide/docs/lsp-generic-navigation.md": "1ce9fd3facbef4f459e6948c737d63aa665debdbffa12ffaf8eb335351c9ea3f",
+    "ide/docs/lsp-rename-identifiers.md": "2c476e4606ce26be2ea5b43651a28613037cc2a78b7fec7865703d8b229a90c4",
+    "ide/src/analysis/index_kind.h": "c18133d613ca79b3a9df9504adbb2814a57fbf565cdf61263d66e7b0b2884f36",
+    "ide/src/services/semantic_definition.c": "5d6baf6f57d75d55bea13e5e935593a5b8f0541d4a5d07f7a1213573a790c208",
+    "ide/tests/semantic_generic_navigation_test.c": "4e23b45fbcad4d76f769955cb29f426e7db0c7d8962f0eb5ad74a05a2a79124c",
+    "ide/tests/generic_navigation_view_test.c": "71336727e3b0ea6dc13ee39c0cd6ff80d0c93ee20ca88cb7511880ea4aa3c7e4",
+    "ide/tools/build.ps1": "560ca4cd542284478d4e79d40501df1ebde10c37f34c5dd43ac1f0d9ec527f26",
+    "ide/tools/build_lsp_core.py": "68828d6d46c21fc85f1872d61f0478e433b914b8ec9cf9fa311f96896f768f4f",
+    "ide/tools/check_lsp_generic_navigation.py": "eba4fc5c6ab4a831983fc69ebea07ece5a263f8c6afc034ef7c306720b3248ef"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-generic-navigation-20261110.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-generic-navigation-20261110/stage-sources.tar.gz",
+      "sha256": "dcc938fbed3662c92511d08ca890aa5a040f8028fb8ad81ebc9b32a6e6773ff4",
+      "bytes": 64757,
+      "entries": 10,
+      "uniquePayloads": 10,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-generic-navigation-20261110/stage-sources.tar.gz.manifest.json",
+      "sha256": "1f651a4534a8dea0b08e568c53222fa432de020149976863e1dfb8d2b669c3e0",
+      "bytes": 2310
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-generic-navigation-20261110/actual-builds-and-validation.tar.gz",
+      "sha256": "a21dee901070e21982b3c2009dffc2fc76bf0329d551054371cedbb351c9e85e",
+      "bytes": 959897428,
+      "entries": 6416,
+      "uniquePayloads": 4304,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-generic-navigation-20261110/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "bcb61c38a3423d2061eafee98d397b7f295eb6cfecae03f49ed136e835a54979",
+      "bytes": 2219994
+    }
+  },
+  "candidate": {
+    "serverSha256": "48402b57c3ee7a2644a47497a8392443e38eecd53387a875c6287fdcdb4cfe5e",
+    "guiSha256": "e02f389a7adc40f232bdc250d9399134a09dac413c0685873e04adcb5ec3925e",
+    "sdkDllSha256": "216c1f98f4d55cc5dff9c7d98425edbb08d470cdfc6b26ef4ad962af3431f560",
+    "guiObjects": 116,
+    "actualNativeConsumers": 279
+  },
+  "validation": {
+    "nativeFixtures": 171,
+    "actualCMutantsRejected": 2,
+    "protocolSuites": 11,
+    "guiFixtures": 28,
+    "currentSourcesAndAllLinksChecked": true,
+    "finalNativeMatrixFresh": true,
+    "genericSourceOrigins": true,
+    "finalCallOverloadSelection": true,
+    "classConstructorSpellingPreserved": true,
+    "typeArgumentIsolation": true,
+    "jsonTypedResidentPositionParity": true,
+    "unsavedDependencyInvalidationAndRecovery": true,
+    "realIdeReferenceQueriesAndGuardedJumps": true,
+    "utf8AndUtf16Separated": true,
+    "bomAndCrlfPreserved": true,
+    "performanceAdmissionRun": false,
+    "priorFailuresPreserved": true
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "knownMissing": [
+    "physical alias and OS writability,complete library/foreign policy and full overload/inheritance/protocol/property/implicit specialization family closure",
+    "qualified generic type-argument tokenRange covers only module prefix in the selected native frontend",
+    "versioned edit construction, rename conflicts and post-rename binding proof",
+    "standard prepareRename/rename and IDE versioned edit transaction",
+    "remaining applicable LSP and current-engine cohort alignment",
+    "merge allocation and wide quota adversarial admission;whole-goal performance/large-workspace/soak/final delivery admission"
+  ]
+}
