@@ -205,3 +205,10 @@ Provider、Font、Sound 当前仍在调用线程同步完成；不能把“Async
 使用现有 typed factory/存储投影，不能在 Cgen 中添加 XGE 专项包装或裸地址绕行。
 Font/Sound 请求与后续字体/音频资源合同联动验收，不因先完成 Image/Texture 而
 从范围中删除。宿主后端、离屏、输入类型载荷和阶段 3—8 继续保留。
+
+异步前置审查复现并修复了一项原生合同违约：取消后，工作线程与同步 Provider
+两条路径仍会触发完成回调。XGE 提交 `d06493ee` 修正共用完成分支，Windows/
+Linux 各 14 项检查通过，包含正常完成及回调内释放请求。证据索引为
+`D:/GIT/xge/docs/validation/async-cancellation-20261110.json`，候选为 native-source-r19。
+这是原生前置修复；xlang 当前 Scene 候选仍使用经过验证的 r18 配套 SDK，后续
+受管异步批次需一并同步新版本，不据此宣称语言异步请求已实现或已更新 release。

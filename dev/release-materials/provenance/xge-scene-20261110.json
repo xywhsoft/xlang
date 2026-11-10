@@ -54,12 +54,11 @@
     {
       "path": "F:\\xlang-validation\\xge-full-20261110\\scene-headers-win-r2\\linked-results.json",
       "sha256": "dc71e9e251f74f7efdb6db55849835e68504c838b8b03d014d4715c1d40841cb",
-      "checks": 0
+      "checks": 2
     },
     {
       "path": "F:\\xlang-validation\\xge-full-20261110\\scene-native-cost-win-r1\\results.json",
-      "sha256": "6aa232566fea1443201de550fbdc99389be5f581253ee46c3dd4aea550141efc",
-      "checks": 0
+      "sha256": "6aa232566fea1443201de550fbdc99389be5f581253ee46c3dd4aea550141efc"
     }
   ],
   "cohort": [
