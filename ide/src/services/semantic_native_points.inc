@@ -1,3 +1,12 @@
+#include "analysis/index_segments.h"
+typedef struct native_function_points {
+ xls_index_segment info;
+ size_t declFirst,declCount,typeFirst,typeCount,cursorFirst,cursorCount,nameCharge;
+ size_t proofStart; xls_position proofStartPosition,proofEndPosition;
+ unsigned short parentShape;int ready,borrowed;
+} native_function_points;
+typedef struct native_function_key {uintptr_t identity;size_t slot;} native_function_key;
+typedef struct native_reuse {const struct native_points* previous;xarray keys;size_t proofBytes;} native_reuse;
 /* Immutable point-query lookup over the original checked index. Only cursor
  * and declaration lookups are retained: no node,canonical,name,header or
  * reference copies. Validation still visits every original fact/range and
@@ -6,12 +15,18 @@ struct native_points {
  const xls_semantic_index* index;
  xide_semantic_source* sources;xls_text** texts;uint16_t* shapes;
  size_t sourcesCount,nodesCount;
+ native_function_points* functions;size_t functionCount,functionCapacity;
+ cursor_row* cachedCursors;declaration *cachedDeclarations,*cachedTypes;
+ size_t cachedCursorCount,cachedDeclarationCount,cachedTypeCount;
+ xide_point_reuse_work reuse;
+
 };
 typedef struct native_spans {span full,token,selection;} native_spans;
 static void nativePointsDestroy(native_points* p)
 {
  if(!p)return;
  for(size_t i=0;i<p->sourcesCount;++i)xlsTextRelease(p->texts ? p->texts[i] : NULL);
+ free(p->functions);free(p->cachedCursors);free(p->cachedDeclarations);free(p->cachedTypes);
  xrtFree(p->texts);xrtFree(p->sources);xrtFree(p->shapes);xrtFree(p);
 }
 static size_t nativePointsBytes(const xide_semantic_definitions* d)
@@ -20,8 +35,12 @@ static size_t nativePointsBytes(const xide_semantic_definitions* d)
  size_t bytes=sizeof(*d)+sizeof(*p)+p->sourcesCount*(sizeof(char*)+sizeof(xide_semantic_source)+sizeof(xls_text*))+
   (p->nodesCount+1)*sizeof(uint16_t)+(d->count+1)*2*sizeof(declaration)+d->cursors.Capacity*sizeof(cursor_row);
  for(size_t i=0;i<p->sourcesCount;++i)bytes+=strlen(d->paths[i])+1+xlsTextStorageBytes(p->texts[i]);
+ bytes+=p->functionCapacity*sizeof(*p->functions)+p->cachedCursorCount*sizeof(cursor_row)+
+  (p->cachedDeclarationCount+p->cachedTypeCount)*sizeof(declaration);
  return bytes;
 }
+static xide_point_reuse_work nativePointReuseWork(const xide_semantic_definitions* d)
+{return d && d->native ? d->native->reuse : (xide_point_reuse_work){0};}
 static int nativeShape(xide_semantic_definitions* d,size_t at,xls_index_fact* f,node* n)
 {
  native_points* p=d->native;node parent={0};int metadata=1;xls_index_point_fact point;
@@ -67,11 +86,12 @@ static int nativeTextCharge(size_t* bytes,size_t length,size_t limit)
  if(length>limit || length+1>4u*1024u*1024u-*bytes)return 0;
  *bytes+=length+1;return 1;
 }
-static xide_semantic_definitions* nativePointsCreate(const xls_semantic_index* index,const xide_semantic_source* sources,size_t count,xide_model_error* error)
+#include "services/semantic_point_functions.inc"
+static xide_semantic_definitions* nativePointsCreate(const xls_semantic_index* index,const xide_semantic_source* sources,size_t count,const xide_semantic_definitions* previous,xide_model_error* error)
 {
  size_t nodes=xlsSemanticIndexCount(index),budget=0,used=0,textCharge=0;
  if(!index || !typedCapacity(nodes,sources,count,&budget))return NULL;
- xide_semantic_definitions* d=calloc(1,sizeof(*d));native_spans* spans=NULL;endpoint* ends=NULL;unsigned char* selections=NULL;int invalid=0;
+ xide_semantic_definitions* d=calloc(1,sizeof(*d));native_spans* spans=NULL;endpoint* ends=NULL;unsigned char* selections=NULL;int invalid=0;native_reuse reuse={0};
  if(!d)return NULL;
  d->native=xrtCalloc(1,sizeof(*d->native));if(!d->native)goto done;
  native_points* p=d->native;p->index=index;p->sourcesCount=count;p->nodesCount=nodes;d->count=nodes;d->sourceCount=count;
@@ -97,9 +117,19 @@ static xide_semantic_definitions* nativePointsCreate(const xls_semantic_index* i
  size_t temporary=(nodes+1)*sizeof(*spans)+(nodes*6+1)*sizeof(*ends)+nodes+1;
  size_t resident=nativePointsBytes(d),cursorBudget=(nodes*4+8)*sizeof(cursor_row);
  if(resident>TYPED_DEFINITION_BYTES || temporary>TYPED_DEFINITION_BYTES-resident || cursorBudget>TYPED_DEFINITION_BYTES-resident-temporary)goto done;
- if(budget>TYPED_DEFINITION_BYTES-resident-temporary-cursorBudget)budget=TYPED_DEFINITION_BYTES-resident-temporary-cursorBudget;
+ nativeFunctionsBegin(d,previous,TYPED_DEFINITION_BYTES-resident-temporary-cursorBudget,&reuse);
+ resident=nativePointsBytes(d);
+ size_t scratch=reuse.keys.Capacity*sizeof(native_function_key);
+ if(resident>TYPED_DEFINITION_BYTES || temporary>TYPED_DEFINITION_BYTES-resident || cursorBudget>TYPED_DEFINITION_BYTES-resident-temporary || scratch>TYPED_DEFINITION_BYTES-resident-temporary-cursorBudget)goto done;
+ if(budget>TYPED_DEFINITION_BYTES-resident-temporary-cursorBudget-scratch)budget=TYPED_DEFINITION_BYTES-resident-temporary-cursorBudget-scratch;
  spans=calloc(nodes+1,sizeof(*spans));ends=calloc(nodes*6+1,sizeof(*ends));selections=calloc(nodes+1,1);if(!spans || !ends || !selections)goto done;
- for(size_t i=0;i<nodes;++i){
+ size_t functionSlot=0;
+ for(size_t i=0;i<nodes;){
+  native_function_points* part=p->functions ? &p->functions[functionSlot++] : NULL;
+  size_t end=part ? part->info.first+part->info.count : nodes;
+  if(part){part->declFirst=d->declCount;part->typeFirst=d->typeCount;part->parentShape=p->shapes[0];}
+  if(part && nativeFunctionReuseFacts(d,part,&reuse,&textCharge)){i=end;continue;}
+  for(;i<end;++i){
   node n={0};xls_index_fact f;
   if(!nativeShape(d,i,&f,&n) || !typedRange(f.range,(int)f.source,sources,count,&spans[i].full,ends,&used) ||
      !typedRange(f.tokenRange,(int)f.source,sources,count,&spans[i].token,ends,&used) ||
@@ -110,12 +140,25 @@ static xide_semantic_definitions* nativePointsCreate(const xls_semantic_index* i
   if(spans[i].token.source && spans[i].full.source && (spans[i].token.startOffset<spans[i].full.startOffset || spans[i].token.endOffset>spans[i].full.endOffset)){invalid=1;goto done;}
   if(n.declared)d->declarations[d->declCount++]=(declaration){n.declared,i};
   if(n.declaredType)d->typeDeclarations[d->typeCount++]=(declaration){n.declaredType,i};
+  }
+  if(part){part->declCount=d->declCount-part->declFirst;part->typeCount=d->typeCount-part->typeFirst;}
  }
  int fast=budget ? convertDense(ends,used,sources,count,budget) : -1;
  if(!(fast<0 ? convert(ends,used,sources) : fast)){invalid=1;goto done;}
  if(!xrtArrayInit(&d->cursors,sizeof(cursor_row)))goto done;
  d->lookupReady=1;if(!xrtArrayReserve(&d->cursors,nodes*2) || d->cursors.Capacity>nodes*4+8)goto done;
- for(size_t i=0;i<nodes;++i){
+ functionSlot=0;
+ for(size_t i=0;i<nodes;){
+  native_function_points* part=p->functions ? &p->functions[functionSlot++] : NULL;
+  size_t end=part ? part->info.first+part->info.count : nodes;size_t chargeBefore=textCharge;
+  if(part)part->cursorFirst=d->cursors.Count;
+  if(part && part->borrowed){
+   if(part->nameCharge>4u*1024u*1024u-textCharge){invalid=1;goto done;}
+   textCharge+=part->nameCharge;
+   if(!nativeFunctionReuseCursors(d,part,&reuse))goto done;
+   i=end;
+  }else{
+   for(;i<end;++i){
   node n={0};xstrview name,header;n.full=spans[i].full;n.token=spans[i].token;n.selection=spans[i].selection;
   if(!n.selection.source && selections[i]){
    unsigned ordinal=0;if(!nativeDeclarationName(index,i,&ordinal) || ordinal>nodes){invalid=1;goto done;}
@@ -125,7 +168,15 @@ static xide_semantic_definitions* nativePointsCreate(const xls_semantic_index* i
   int selection=selections[i];
   if(!appendCursor(d,&n.token,(uint32_t)i|(selection && sameSelection(&n.selection,&n.token) ? CURSOR_SELECTION : 0)) ||
      (selection && !sameSelection(&n.selection,&n.token) && !appendCursor(d,&n.selection,(uint32_t)i|CURSOR_SELECTION)))goto done;
+   }
+   if(part)part->nameCharge=textCharge-chargeBefore;
+  }
+  if(part){part->cursorCount=d->cursors.Count-part->cursorFirst;
+   if(part->cursorCount>1)qsort((cursor_row*)d->cursors.Data+part->cursorFirst,part->cursorCount,sizeof(cursor_row),compareCursor);}
  }
+ /* Scratch is no longer read. Independent cache rows add no old model owner. */
+ free(spans);spans=NULL;free(ends);ends=NULL;free(selections);selections=NULL;
+ nativeFunctionsSeal(d);
  qsort(d->declarations,d->declCount,sizeof(*d->declarations),compareDeclaration);
  for(size_t i=1;i<d->declCount;++i)if(d->declarations[i-1].symbol==d->declarations[i].symbol){invalid=1;goto done;}
  qsort(d->typeDeclarations,d->typeCount,sizeof(*d->typeDeclarations),compareDeclaration);
@@ -137,13 +188,16 @@ static xide_semantic_definitions* nativePointsCreate(const xls_semantic_index* i
   for(size_t j=i+1;j<end;++j){if(!nativePointNode(d,d->typeDeclarations[j].node,&b)){invalid=1;goto done;}if(!sameTypeLocation(&a,&b)){item.node=SIZE_MAX;break;}}
   d->typeDeclarations[unique++]=item;i=end;
  }
- d->typeCount=unique;if(!xrtArraySort(&d->cursors,compareCursor))goto done;
+ d->typeCount=unique;
+ int ordered=1;cursor_row* orderedRows=(cursor_row*)d->cursors.Data;
+ for(size_t i=1;ordered && i<d->cursors.Count;++i)ordered=compareCursor(orderedRows+i-1,orderedRows+i)<=0;
+ if(!ordered && !xrtArraySort(&d->cursors,compareCursor))goto done;
  cursor_row* rows=(cursor_row*)d->cursors.Data;
  for(size_t i=0;i<d->cursors.Count;){size_t end=i+1;while(end<d->cursors.Count && rows[end].source==rows[i].source)++end;buildCursorTree(rows,i,end);i=end;}
  if(nativePointsBytes(d)>TYPED_DEFINITION_BYTES)goto done;
- free(spans);free(ends);free(selections);return d;
+ xrtArrayUnit(&reuse.keys);free(spans);free(ends);free(selections);return d;
 done:
- free(spans);free(ends);free(selections);xideSemanticDefinitionsDestroy(d);
+ xrtArrayUnit(&reuse.keys);free(spans);free(ends);free(selections);xideSemanticDefinitionsDestroy(d);
  if(invalid && error){error->code=XIDE_MODEL_INVALID;snprintf(error->message,sizeof(error->message),"Native point navigation facts failed the original projection validation.");}
  return NULL;
 }

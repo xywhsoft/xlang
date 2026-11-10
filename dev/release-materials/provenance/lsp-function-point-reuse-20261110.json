@@ -1,0 +1,307 @@
+{
+  "schema": 1,
+  "phase": "M7a2b126t",
+  "date": "2026-11-10",
+  "status": "verified-source-component;full-lsp-and-performance-goal-active",
+  "scope": "Unchanged immutable-function point-navigation construction loans,current byte/UTF16 proof and node rebasing. No new long-lived old-check/AST cache. Failed scans charged before work;no-overlap generations use original full construction. Preserve native semantic/IR validation and existing budgets.",
+  "parentCommitAtIndexCreation": "9739ad94c00a13a60dbe3103481c15843eac6f82",
+  "worktreeStageSources": {
+    "ide/src/analysis/frontend_function_index.inc": "6cd74421c8bbc0776846c2984aad35f1c7966e4246c2a52f70af97e2856ec8d1",
+    "ide/src/analysis/frontend_index_budget.inc": "319ad5e066b2b08ecf520eec11a435f26e792efc39cff1888502751f36ab6e04",
+    "ide/src/analysis/index_segments.h": "dc9feb6bc19f8c3763de2bd1d1668922156139ad10087870eefc2e189b5a6bd1",
+    "ide/src/analysis/projection.c": "9af65c528a313d90408341cfab205bd28d41ea2791136e96a140ad09dc25cb8e",
+    "ide/src/analysis/projection.h": "5c24822e89786bbffe91a30f3139907fda9b2b73924890328d61f8e0dc4c9b64",
+    "ide/src/services/language_snapshot.c": "6155bd7d8604fe933160f5792cfa2e7474d46862441839f389c4f4d2ea432004",
+    "ide/src/services/semantic_definition.c": "f4089aa44a6877555544e7d174e259f60e668ffd2c552162f440793027d86352",
+    "ide/src/services/semantic_definition.h": "df579cd63cc67977f484d7143555ed4cd396095f41fdfb96dddf8fbe0f3ede77",
+    "ide/src/services/semantic_native_points.inc": "3b5e7e4d80bcf2ed2300c91361fcb0944b88852ef6d26a4c31d323178dd9b5be",
+    "ide/src/services/semantic_point_functions.inc": "67ef36e220045f57c98464687cc56821eccc3a8f81424c546c8e2f80859bea33",
+    "ide/tests/navigation_function_reuse_test.c": "b3cc98e661280a1797ed36df8ff869a11d381b6901f6aed5ebdb6ed0b3bebc22",
+    "ide/tests/navigation_function_budget_test.c": "4e9601aa799180f35de4bd1231482bc574605c78f155004a54d16c3220b72229",
+    "ide/tools/build_lsp_core.py": "03e6ac785e5b1b1abbf14f2612d4bd4bdaf5ef40dbf1cb7403ff53bff0489d67",
+    "ide/tools/build_lsp_lifecycle_profile.py": "88206ac243c93c927f01d70cb2d4da4cff7b1019fc71fc9a74601edaacca27ca",
+    ".gitignore": "44202727b79ee8c1dbf81b37141e37d64bba5f0f459a71a0095d0d56bb9c4f32",
+    "ide/docs/lsp-development.md": "0c85359717717c8f64eeda0f4a9c49e0176402efc40b8870a6a57a839c326745",
+    "ide/docs/lsp-function-point-reuse.md": "3c550d97b906aeda576fe4bfa27e7c65c5a28f8eadaedb3124a58bea6eb9e7bc"
+  },
+  "gitignoreScope": "Commit only this LSP material-index exception;preserve other worktree and staging changes.",
+  "sourcePromotion": {
+    "status": "passed",
+    "sources": {
+      "ide/src/analysis/frontend_function_index.inc": {
+        "testedSource": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-point-reuse-20261110\\prototype-v1\\analysis\\frontend_function_index.inc",
+        "sha256": "6cd74421c8bbc0776846c2984aad35f1c7966e4246c2a52f70af97e2856ec8d1"
+      },
+      "ide/src/analysis/frontend_index_budget.inc": {
+        "testedSource": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-point-reuse-20261110\\prototype-v1\\analysis\\frontend_index_budget.inc",
+        "sha256": "319ad5e066b2b08ecf520eec11a435f26e792efc39cff1888502751f36ab6e04"
+      },
+      "ide/src/analysis/index_segments.h": {
+        "testedSource": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-point-reuse-20261110\\prototype-v1\\analysis\\index_segments.h",
+        "sha256": "dc9feb6bc19f8c3763de2bd1d1668922156139ad10087870eefc2e189b5a6bd1"
+      },
+      "ide/src/analysis/projection.c": {
+        "testedSource": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-point-reuse-20261110\\prototype-v1\\analysis\\projection.c",
+        "sha256": "9af65c528a313d90408341cfab205bd28d41ea2791136e96a140ad09dc25cb8e"
+      },
+      "ide/src/analysis/projection.h": {
+        "testedSource": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-point-reuse-20261110\\prototype-v1\\analysis\\projection.h",
+        "sha256": "5c24822e89786bbffe91a30f3139907fda9b2b73924890328d61f8e0dc4c9b64"
+      },
+      "ide/src/services/language_snapshot.c": {
+        "testedSource": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-point-reuse-20261110\\prototype-v1\\services\\language_snapshot.c",
+        "sha256": "6155bd7d8604fe933160f5792cfa2e7474d46862441839f389c4f4d2ea432004"
+      },
+      "ide/src/services/semantic_definition.c": {
+        "testedSource": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-point-reuse-20261110\\prototype-v1\\services\\semantic_definition.c",
+        "sha256": "f4089aa44a6877555544e7d174e259f60e668ffd2c552162f440793027d86352"
+      },
+      "ide/src/services/semantic_definition.h": {
+        "testedSource": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-point-reuse-20261110\\prototype-v1\\services\\semantic_definition.h",
+        "sha256": "df579cd63cc67977f484d7143555ed4cd396095f41fdfb96dddf8fbe0f3ede77"
+      },
+      "ide/src/services/semantic_native_points.inc": {
+        "testedSource": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-point-reuse-20261110\\prototype-v1\\services\\semantic_native_points.inc",
+        "sha256": "3b5e7e4d80bcf2ed2300c91361fcb0944b88852ef6d26a4c31d323178dd9b5be"
+      },
+      "ide/src/services/semantic_point_functions.inc": {
+        "testedSource": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-point-reuse-20261110\\no-overlap-v1\\services\\semantic_point_functions.inc",
+        "sha256": "67ef36e220045f57c98464687cc56821eccc3a8f81424c546c8e2f80859bea33"
+      },
+      "ide/tests/navigation_function_reuse_test.c": {
+        "testedSource": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-point-reuse-20261110\\tests\\navigation_function_reuse_extended_test.c",
+        "sha256": "b3cc98e661280a1797ed36df8ff869a11d381b6901f6aed5ebdb6ed0b3bebc22"
+      },
+      "ide/tests/navigation_function_budget_test.c": {
+        "testedSource": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-point-reuse-20261110\\tests\\navigation_function_budget_final_test.c",
+        "sha256": "4e9601aa799180f35de4bd1231482bc574605c78f155004a54d16c3220b72229"
+      },
+      "ide/tools/build_lsp_core.py": {
+        "testedSource": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-point-reuse-20261110\\tools-future\\build_lsp_core.py",
+        "sha256": "03e6ac785e5b1b1abbf14f2612d4bd4bdaf5ef40dbf1cb7403ff53bff0489d67"
+      },
+      "ide/tools/build_lsp_lifecycle_profile.py": {
+        "testedSource": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-point-reuse-20261110\\tools-future\\build_lsp_lifecycle_profile.py",
+        "sha256": "88206ac243c93c927f01d70cb2d4da4cff7b1019fc71fc9a74601edaacca27ca"
+      }
+    },
+    "runtimeReplaced": false
+  },
+  "correctness": {
+    "actualCompileClosures": 259,
+    "publicAndPrivateConsumersRecompiledFromBase": 52,
+    "originalNativeTestsRelinkedAndExecuted": 157,
+    "subsequentPrivateStages": [
+      {
+        "name": "bounded-build-v1",
+        "affectedRecompiles": 4,
+        "actualAffectedHostRuns": 35,
+        "report": {
+          "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-point-reuse-20261110\\bounded-build-v1\\result.json",
+          "sha256": "5d7c82d13389cab252a867ec46cee16f007d175183a7a51ce222d7cc20c8eff3"
+        }
+      },
+      {
+        "name": "no-overlap-build-v1",
+        "affectedRecompiles": 4,
+        "actualAffectedHostRuns": 35,
+        "report": {
+          "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-point-reuse-20261110\\no-overlap-build-v1\\result.json",
+          "sha256": "d651e52d2bb9b278bbc676574dca7fad6d3902c9fdbbaf3342a43427d5e42017"
+        }
+      }
+    ],
+    "newNativeFixtures": 2,
+    "rootSourceNavigationChecks": 218595,
+    "rootSourceBudgetAndLeaseChecks": 281,
+    "rootSourceReport": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-point-reuse-20261110\\root-native-v1\\result.json",
+      "sha256": "32934b126ce662cae00274aab2e18253861847333ba70b7a836dd5715a5ec22e"
+    },
+    "actualAllocationFaultPositions": 34,
+    "scopedOldLeaseRelease": true,
+    "knownInvalidPreviousOwnerLoanAndDestructorReentry": true,
+    "failedScanCapBytes": 8388608,
+    "actualCCheckFailures": [
+      {
+        "exit": 1,
+        "stderr": "navigation_function_budget_test:26:reuse.proofBytes==admitted*size && positions==2*admitted\r\n",
+        "programSha256": "eda8bd3ca371be5a7b7a7f410102ddddf50ef520f890af78bf33ef5e744cbae3"
+      },
+      {
+        "exit": 1,
+        "stderr": "navigation_function_budget_test:39:!data->functions && !data->cachedCursors && !data->cachedDeclarations && !data->cachedTypes && !data->reuse.functions\r\n",
+        "programSha256": "fb9c6828b47325f515f1e8407fdff25b956264e7edb17991a4ab59ff0d94a683"
+      }
+    ],
+    "finalProtocolSuites": 8,
+    "finalProtocolReport": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-point-reuse-20261110\\no-overlap-protocols-v1\\result.json",
+      "sha256": "c4ec396c93a131926d18df70a74afd47110ca7828726c5892835c5954289120e"
+    },
+    "newFixturesRegisteredInNormalBuilder": true,
+    "profileInputToolTests": 11
+  },
+  "gui": {
+    "fullObjectsRebuilt": 115,
+    "entryAndResourcesRebuilt": true,
+    "privateLsImplementationChangedAfterGuiBuild": "Public headers and GUI effective layouts unchanged;the same complete matching GUI object cohort was paired and all26 fixtures rerun for each LS implementation.",
+    "finalNativePairedFixtures": 26,
+    "sourceAndRuntimeReport": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-point-reuse-20261110\\no-overlap-gui-current-results-v1.json",
+      "sha256": "43c644b695633c1f232f8c49a808bc69696c9bbf0dfa85a51a7a5e62815f0915"
+    },
+    "pairedServerSha256": "af4d8fe902356b3efac1975a40f06e90e72c84cc2dc4b54520beffa5c4fda75a",
+    "guiCandidateSha256": "cff73e89a7b6880d013b3c57d10e5bfeba8a6862443c02d03c54a2f5b537c152",
+    "matchedRuntimeXgeSha256": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3",
+    "visualReview": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-point-reuse-20261110\\final-visual-review.json",
+      "sha256": "708cc18698b99df63c7e160c021e09cffa8730b0710aa7af0a092cea8427b77d"
+    }
+  },
+  "diagnosticTool": {
+    "scope": "New segmented layout verified on the bounded candidate before no-overlap private change;inclusive data is attribution only,not final-candidate speed evidence.",
+    "instrumentedObjects": 10,
+    "nativeTests": 4,
+    "processes": 16,
+    "queries": 240,
+    "report": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-point-reuse-20261110\\profile-production-v1\\result.json",
+      "sha256": "cc650b84d954dff61080f14ac26016ab6a9bcc5691c7b5870b912d809342ee5a"
+    }
+  },
+  "performance": {
+    "firstCandidate": {
+      "status": "gates-failed",
+      "passed": 40,
+      "total": 41,
+      "processes": 32,
+      "queries": 480,
+      "failedGates": [
+        {
+          "name": "512-imported-declaration/first/wireP50",
+          "actual": 483.8456,
+          "limit": 483.764505,
+          "passed": false,
+          "baseline": 460.7281,
+          "ratio": 1.05
+        }
+      ],
+      "decision": {
+        "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-point-reuse-20261110\\function-reuse-screen-v1\\decision.json",
+        "sha256": "ca9079231a8001c52314bd1715703f0f491c97a21789566668e47aed17c6c3e4"
+      },
+      "sameImageNotRerun": true
+    },
+    "finalCandidate": {
+      "status": "passed",
+      "passed": 41,
+      "total": 41,
+      "processes": 32,
+      "queries": 480,
+      "cpuEqualWeightGeometricMean": 0.9440228023472945,
+      "cpuMaximum": 0.98,
+      "decision": {
+        "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-point-reuse-20261110\\no-overlap-screen-v1\\decision.json",
+        "sha256": "014438576704e875884126e9230c9b7e0c620468237c9558171025f3f989f8d0"
+      },
+      "allMeasurements": {
+        "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-point-reuse-20261110\\no-overlap-screen-v1\\measurement\\result.json",
+        "sha256": "6293cd9218311003c337ef6ef03a65bffffc2a808dd1a9405558ca3c80cc1e58"
+      },
+      "registration": {
+        "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-point-reuse-20261110\\no-overlap-screen-v1\\registration.json",
+        "sha256": "c1f3c6f397b6fd09b7a5ef2dbc44745ef5342d1463796d0ce3aeb83b47308328"
+      },
+      "sameImageNotRerun": true
+    },
+    "priorGlobalMatrixAndAAFailuresPreserved": true,
+    "componentOnly": true,
+    "wholeGoalAccepted": false
+  },
+  "materials": {
+    "final": {
+      "source": {
+        "schema": 1,
+        "directory": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-function-point-reuse-20261110",
+        "archive": {
+          "path": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-function-point-reuse-20261110\\sources.tar.gz",
+          "sha256": "51f7f75f4d888b6a32538f0e7b053916438ae7d0819eeda5cf48a1ad65938bd8",
+          "bytes": 42995042
+        },
+        "bindings": {
+          "path": "D:\\GIT\\x-lang\\dev\\release-materials\\sources\\lsp-function-point-reuse-20261110\\source-bindings.json",
+          "sha256": "301832fa21bfbbc95080385bce21e5e46fa3b720333cd54e135eb3ee3486bd12"
+        },
+        "distinctSourceEntries": 1558,
+        "nativeInputBindings": 754,
+        "guiInputBindings": 677,
+        "matchedSdkFiles": 180
+      },
+      "provenance": {
+        "schema": 1,
+        "directory": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\lsp-function-point-reuse-20261110",
+        "archive": {
+          "path": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\lsp-function-point-reuse-20261110\\reports.tar.gz",
+          "sha256": "3666a970de08673ae43773ca901358e4866a4bf27690ff8277b084a61e42ddc8",
+          "bytes": 32518993
+        },
+        "screenshots": {
+          "path": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\lsp-function-point-reuse-20261110\\screenshots.tar.gz",
+          "sha256": "f7f6b9eac776a63a41d1706e7846416084f6ccb933dc900600529a35381618e9",
+          "bytes": 10489983,
+          "files": 87
+        },
+        "files": 3766,
+        "programs": {
+          "baseline": {
+            "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-persistence-20261110\\topology-build-v1\\xlang-ls.exe",
+            "sha256": "a0048ba973a491b30d08e097eecb7e90913968e39d1c606f5cb0e6ed06c7a4ad",
+            "archiveEntry": "programs/baseline.exe"
+          },
+          "initial-component": {
+            "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-point-reuse-20261110\\service-link-v1\\xlang-ls.exe",
+            "sha256": "a67f38a79cca85508c98d6939a24e9dbd555b2f68718969bafcc1c219ba59382",
+            "archiveEntry": "programs/initial-component.exe"
+          },
+          "bounded-component": {
+            "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-point-reuse-20261110\\bounded-build-v1\\xlang-ls.exe",
+            "sha256": "4d45f6080dec2afd0ec586c7f6c8ff7eb9f76a3252c8690b39b8c34575ec29ae",
+            "archiveEntry": "programs/bounded-component.exe"
+          },
+          "final-component": {
+            "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-point-reuse-20261110\\no-overlap-build-v1\\xlang-ls.exe",
+            "sha256": "af4d8fe902356b3efac1975a40f06e90e72c84cc2dc4b54520beffa5c4fda75a",
+            "archiveEntry": "programs/final-component.exe"
+          },
+          "matched-gui": {
+            "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-point-reuse-20261110\\function-point-reuse-gui-objects-v2\\xlang_ide.link.exe",
+            "sha256": "cff73e89a7b6880d013b3c57d10e5bfeba8a6862443c02d03c54a2f5b537c152",
+            "archiveEntry": "programs/matched-gui.exe"
+          },
+          "bounded-diagnostic": {
+            "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-point-reuse-20261110\\profile-v3\\profile-ls.exe",
+            "sha256": "1a2b947825b7df385dd4f9e44683072c914cb88632017c5e98780f07d30bd7e3",
+            "archiveEntry": "programs/bounded-diagnostic.exe"
+          }
+        },
+        "historicalReportPathsRewritten": false
+      }
+    }
+  },
+  "delivery": {
+    "defaultRuntimeReplaced": false,
+    "onlineChannelChanged": false,
+    "currentDeliveryIndexChanged": false,
+    "protectedRuntime": {
+      "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+      "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+      "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+      "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+      "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+      "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+    },
+    "temporaryAliasesRemoved": true
+  },
+  "next": "Continue end-to-end matrix/interaction responsiveness,semantic analysis,incremental analysis,static checks and edit-time completion. No DAP/runtime/debug completion."
+}

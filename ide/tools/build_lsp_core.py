@@ -114,7 +114,7 @@ CORE_TESTS = ("analysis_ir_parameters_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_function_pool_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_capacity_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_worker_snapshot_test", "analysis_worker_entry_mode_test", *CORE_TESTS)
-HOST_TESTS += ("navigation_cache_test", "semantic_reference_shard_test", "project_references_test", "project_reference_budget_test", "reference_path_index_test")
+HOST_TESTS += ("navigation_function_reuse_test", "navigation_function_budget_test", "navigation_cache_test", "semantic_reference_shard_test", "project_references_test", "project_reference_budget_test", "reference_path_index_test")
 HOST_TESTS += ("path_identity_batch_test", "reference_capture_test")
 HOST_TESTS += ("project_reference_parallel_test",)
 HOST_TESTS += ("project_reference_owner_test", "project_reference_owner_fault_test")
@@ -952,7 +952,7 @@ def main() -> None:
             if name=='analysis_type_constructor_test':
                 extra += ['-Wl,--wrap='+function for function in ('xrtCalloc','xrtStrDupN','xrtStrDup')]
             if name=='analysis_ir_derived_test' and '#define XLS_NATIVE_IR_DERIVED_PHASES 1' in (output/'frontend/xl6_ir.c').read_text(encoding='utf-8'):extra+=['-Wl,--wrap='+function for function in ('xrtCalloc','xrtArrayInit','xrtArrayResize','xrtArrayPush','xrtStrBufReserve')]
-            if name=='navigation_cache_test':extra+=['-Wl,--wrap='+function for function in ('xrtCalloc','xrtStrDup','xlsSemanticCheckRetain','malloc','calloc','free','xrtMalloc','xrtRealloc','xrtArrayInit','xrtArrayReserve','xrtArrayResize','xrtStrBufAppend','xlsTextCreate','xlsSemanticIndexPointFact')]
+            if name in ('navigation_cache_test','navigation_function_reuse_test'):extra+=['-Wl,--wrap='+function for function in ('xrtCalloc','xrtStrDup','xlsSemanticCheckRetain','malloc','calloc','free','xrtMalloc','xrtRealloc','xrtArrayInit','xrtArrayReserve','xrtArrayResize','xrtStrBufAppend','xlsTextCreate','xlsSemanticIndexPointFact')]
             if name=='analysis_selection_test':extra+=['-Wl,--wrap=xrtCalloc','-Wl,--wrap=xrtArrayInit','-Wl,--wrap=xrtArrayPush']
             if name == "analysis_index_limit_test":
                 extra.append(str(limited_index))
@@ -995,6 +995,7 @@ def main() -> None:
                     "xrtMalloc", "xrtCalloc", "xrtRealloc", "xrtFree", "xrtStrBufReserve", "xrtStrBufFree",
                     "xrtArrayPush", "xrtArrayResize", "xrtArrayReserve", "xrtArrayUnit", "xrtMapSet")]
                 if name == "analysis_typed_module_fault_test":extra.append("-Wl,--wrap=xl6AstFree")
+            if name=='navigation_function_reuse_test':extra+=['-Wl,--wrap=xlsProjectionAcquirePrevious','-Wl,--wrap=xlsProjectionRelease']
             if name in HOST_TESTS:
                 extra += [str(objects[Path(source).stem]) for source in SERVER_SOURCES
                           if Path(source).stem != "xlang_ls" and
@@ -1003,7 +1004,7 @@ def main() -> None:
                           not (name == "workspace_symbol_index_test" and Path(source).stem == "workspace_symbol_index") and
                           not (name in ("workspace_symbols_test", "workspace_symbol_refresh_test", "workspace_symbols_shared_test") and Path(source).stem == "workspace_symbols") and
                           not (name == "workspace_symbol_wire_test" and Path(source).stem == "workspace_symbol_wire") and
-                          not (name in ("semantic_lookup_test", "semantic_reference_shard_test", "declaration_symbols_test") and Path(source).stem == "semantic_definition") and
+                          not (name in ("semantic_lookup_test", "semantic_reference_shard_test", "declaration_symbols_test", "navigation_function_budget_test") and Path(source).stem == "semantic_definition") and
                           not (name in ("project_reference_budget_test", "reference_path_index_test", "project_reference_parallel_test", "project_reference_owner_fault_test") and Path(source).stem == "project_references")]
             if name == "project_reference_owner_fault_test":
                 extra.append(str(objects['owner_snapshot_fault']))

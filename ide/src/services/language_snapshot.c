@@ -62,7 +62,7 @@ static int captureDeclarations(xide_language_check* q,xls_semantic_check* checke
  if(proof){
   int ready;
   if(q->cachedCheck)ready=xideSemanticNavigationPrepareTransientPoints(proof,xlsWorkerProjectionStore(q->semanticActor),error);
-  else{xideSemanticNavigationBind(proof,xlsWorkerProjectionStore(q->semanticActor));ready=xideSemanticNavigationPreparePoints(proof,error);}
+  else ready=xideSemanticNavigationBindAndPreparePoints(proof,xlsWorkerProjectionStore(q->semanticActor),error);
   if(ready>=0)q->symbols=xideSemanticSymbolsFromNavigation(proof,symbolsCancelled,q,&q->symbolWork,error);
   xideSemanticNavigationDestroy(proof);
  }else if(!error->code)q->symbols=xideSemanticSymbolsCreateTyped(xlsSemanticCheckTypedIndex(checked),sources,count,symbolsCancelled,q,&q->symbolWork,error);
@@ -779,9 +779,8 @@ analysed:
     if(q->deferredNavigation){
      /* Retire obsolete resident work now,not after a shortened response.
       * The exact checked source owner remains alive for a later demand. */
-     xideSemanticNavigationBind(q->deferredNavigation,xlsWorkerProjectionStore(q->semanticActor));
      xide_model_error pointError={0};
-     if(xideSemanticNavigationPreparePoints(q->deferredNavigation,&pointError)<0){*e=pointError;goto done;}
+     if(xideSemanticNavigationBindAndPreparePoints(q->deferredNavigation,xlsWorkerProjectionStore(q->semanticActor),&pointError)<0){*e=pointError;goto done;}
      if(!q->queryPath && !q->nativeBridge)q->symbolNavigation=xideSemanticNavigationRetain(q->deferredNavigation);
     }else q->definitions=xideSemanticDefinitionsAcquireTyped(xlsWorkerProjectionStore(q->semanticActor),nativeCheck,sources,graph.count,&q->navigationProjection,&q->navigationWork,e);
    } else if(nativeCheck) q->definitions=xideSemanticDefinitionsAcquireTyped(xlsWorkerProjectionStore(q->semanticActor),nativeCheck,sources,graph.count,&q->navigationProjection,&q->navigationWork,e);
@@ -937,7 +936,10 @@ analysed:
  if(nativeCheck && retainedNative(q)) {
   xvalue* stats=get(result,"analysis"),*navigation=xrtValueObject(),*points=xrtValueObject();xls_projection_stats cached;xlsProjectionStoreStats(xlsWorkerProjectionStore(q->semanticActor),&cached);
   xide_navigation_work pointWork=xideSemanticNavigationPointWork(q->deferredNavigation);
-  int pointValid=points && put(points,"ready",xrtValueBool(xideSemanticNavigationPointsReady(q->deferredNavigation))) && put(points,"builds",xrtValueInt(pointWork.built)) && put(points,"cacheHits",xrtValueInt(pointWork.hit)) && put(points,"bytes",xrtValueInt((int64)pointWork.bytes));
+  xide_point_reuse_work reuseWork=xideSemanticNavigationPointReuseWork(q->deferredNavigation);
+  int pointValid=points && put(points,"ready",xrtValueBool(xideSemanticNavigationPointsReady(q->deferredNavigation))) && put(points,"builds",xrtValueInt(pointWork.built)) && put(points,"cacheHits",xrtValueInt(pointWork.hit)) && put(points,"bytes",xrtValueInt((int64)pointWork.bytes)) &&
+   put(points,"functionsReused",xrtValueInt((int64)reuseWork.functions)) && put(points,"factsReused",xrtValueInt((int64)reuseWork.facts)) &&
+   put(points,"cursorRowsReused",xrtValueInt((int64)reuseWork.cursors)) && put(points,"proofBytesCompared",xrtValueInt((int64)reuseWork.proofBytes));
   if(!pointValid){xrtValueRelease(points);xrtValueRelease(navigation);goto done;}
   int valid=stats && navigation && put(navigation,"builds",xrtValueInt(q->navigationWork.built)) && put(navigation,"cacheHits",xrtValueInt(q->navigationWork.hit)) && put(navigation,"bytes",xrtValueInt((int64)q->navigationWork.bytes)) && put(navigation,"residentBytes",xrtValueInt((int64)cached.bytes)) && put(navigation,"limit",xrtValueInt((int64)cached.limit)) &&
    put(navigation,"deferred",xrtValueBool(q->deferredNavigation!=NULL)) && put(navigation,"deferredBytes",xrtValueInt((int64)xideSemanticNavigationBytes(q->deferredNavigation))) && put(navigation,"storeHits",xrtValueInt((int64)cached.hits)) && put(navigation,"storeMisses",xrtValueInt((int64)cached.misses)) && put(navigation,"published",xrtValueInt((int64)cached.published)) && put(navigation,"retired",xrtValueInt((int64)cached.retired));

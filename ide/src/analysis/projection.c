@@ -35,6 +35,13 @@ xls_projection* xlsProjectionAcquire(xls_projection_store* s,xls_semantic_check*
  int valid=usable(owner);xrtMutexLock(&s->lock);xls_projection* p=valid && same(s->resident,owner,key,size) ? xlsProjectionRetain(s->resident) : NULL;
  increment(p ? &s->stats.hits : &s->stats.misses);xrtMutexUnlock(&s->lock);return p;
 }
+xls_projection* xlsProjectionAcquirePrevious(xls_projection_store* s,xls_semantic_check* current,const void* key,size_t size)
+{
+ if(!s || !current || !key || !size || size>XLS_PROJECTION_KEY_BYTES || !usable(current))return NULL;
+ xrtMutexLock(&s->lock);xls_projection* old=s->resident;
+ xls_projection* result=old && old->owner!=current && old->size==size && !memcmp(old->key,key,size) ? xlsProjectionRetain(old) : NULL;
+ xrtMutexUnlock(&s->lock);return result;
+}
 static xls_projection* publish(xls_projection_store* s,xls_projection* p,uint64_t revision,int fenced)
 {
  if(!s || !p)return p;

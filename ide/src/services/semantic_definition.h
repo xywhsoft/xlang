@@ -46,6 +46,11 @@ typedef struct xide_navigation_snapshot xide_navigation_snapshot;
  * status is independent of its presence or previous contents.
  * Bind before preparing to reuse the exact owner/source projection bank.
  * Queries borrow the snapshot;concurrent reads are allowed after preparation. */
+/* Synchronous construction loan only:retire previous residency,prepare the
+ * new owner's view,then release the old check before returning. */
+int xideSemanticNavigationBindAndPreparePoints(xide_navigation_snapshot*,xls_projection_store*,xide_model_error*);
+typedef struct xide_point_reuse_work {size_t functions,facts,cursors,proofBytes;} xide_point_reuse_work;
+xide_point_reuse_work xideSemanticNavigationPointReuseWork(const xide_navigation_snapshot*);
 int xideSemanticNavigationPreparePoints(xide_navigation_snapshot* snapshot,xide_model_error* error);
 /* Acquire an exact owner/source resident or build a privately owned table.
  * Does not bind, retire or publish cache residency. The cache need only outlive

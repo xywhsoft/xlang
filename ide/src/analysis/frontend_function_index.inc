@@ -1,3 +1,4 @@
+#include "analysis/index_segments.h"
 /* Original collector segments. AST/selection/type values and canonical text
  * keep their original producer. Only source metadata and range admission are
  * frozen here;no parser,semantic rule or independent canonicalizer is added. */
@@ -62,12 +63,24 @@ int xlsFrontendIndexBindFunctions(xls_semantic_index* index,const xls_typed_modu
         if(!asset->storage || !asset->count || asset->facts[0].node!=root->children[slot])continue;
         xls_typed_function* function=xlsTypedModuleFunction(module,slot);if(!function)continue;
         if(xlsTypedFunctionRoot(function)!=asset->facts[0].node){xlsTypedFunctionRelease(function);continue;}
-        size_t canonical=0;
+        size_t canonical=0;asset->pointFirst=SIZE_MAX;asset->pointEnd=0;asset->pointSource=0;
+        asset->pointReusable=asset->facts[0].parent==1;
+
         for(size_t i=0;i<asset->count;++i){XL6_IndexFact* f=&asset->facts[i];const XL6_AstNode* n=f->node;
             f->validRanges=(xlsFrontendRange(b->report,f->source,&n->range).known ? 1u : 0u) |
                 (xlsFrontendRange(b->report,f->source,&n->tokenRange).known ? 2u : 0u) |
                 (xlsFrontendRange(b->report,f->selectionSource,f->selection ? &f->selection->tokenRange : NULL).known ? 4u : 0u);
-            if(f->canonical)canonical+=strlen(f->canonical)+1;
+            const XL6_AstRange* ranges[3]={&n->range,&n->tokenRange,f->selection ? &f->selection->tokenRange : NULL};
+            unsigned sources[3]={f->source,f->source,f->selectionSource};
+            for(unsigned at=0;at<3;++at)if(ranges[at] && ranges[at]->known){
+                if(!(f->validRanges&(1u<<at)) || !sources[at] || sources[at]>count || !(b->report->items[sources[at]-1].kind&1))asset->pointReusable=0;
+                if(asset->pointSource && asset->pointSource!=sources[at])asset->pointReusable=0;
+                asset->pointSource=sources[at];
+                if(ranges[at]->startOffset<asset->pointFirst)asset->pointFirst=ranges[at]->startOffset;
+                if(ranges[at]->endOffset>asset->pointEnd)asset->pointEnd=ranges[at]->endOffset;
+            }
+            if(f->canonical){size_t length=strlen(f->canonical);canonical+=length+1;if(!length || length>8192)asset->pointReusable=0;}
+            if(!!f->canonical!=!!f->type)asset->pointReusable=0;
         }
         asset->function=function;asset->canonicalBytes=canonical;
     }
@@ -113,4 +126,17 @@ int xlsFunctionIndexAssetSource(const xls_function_index_asset* asset,size_t at,
     if(out)*out=(xls_function_index_source){0};
     if(!asset || !out || at>=asset->storage->sourceCount)return 0;
     *out=asset->storage->sources[at];return 1;
+}
+
+size_t xlsSemanticIndexSegmentCount(const xls_semantic_index* index)
+{return index && index->build.storage ? index->build.storage->slots : 0;}
+int xlsSemanticIndexSegment(const xls_semantic_index* index,size_t slot,xls_index_segment* out)
+{
+    if(out)*out=(xls_index_segment){0};
+    if(!index || !out || !index->build.storage || slot>=index->build.storage->slots)return 0;
+    const xls_function_index_asset* asset=&index->build.storage->chunks[slot];
+    if(!asset->storage)return 1;
+    *out=(xls_index_segment){asset->first,asset->count,asset->canonicalBytes,asset->pointFirst,asset->pointEnd,
+        asset->function,asset->pointSource,asset->function && asset->pointReusable && asset->pointSource && asset->pointFirst!=SIZE_MAX};
+    return 1;
 }

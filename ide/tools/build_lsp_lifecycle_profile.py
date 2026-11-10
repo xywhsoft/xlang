@@ -116,7 +116,7 @@ def main():
       copies['xl6_ir']=edit(copies['xl6_ir'],'xlsIrVerifyModuleOriginal',lambda body:calls(body,verifier_names,'verify.'))
       rec['verifierDetail']=dict(scope='Direct helper calls in the complete native verifier; inclusive diagnostic timers alter cost and are not performance qualification',functions=sorted(verifier_names))
      def adapter(body):
-      body=calls(body,{'nativeAnalysis','loadGraph','buildDiagnostics','buildNativeDiagnostics','xideSemanticDefinitionsAcquireTyped','validateGraph','xrtJsonRead','xrtJsonParse','xlsSemanticCheckValidate','xideSemanticNavigationCapture','xideSemanticNavigationBind','xideSemanticNavigationPreparePoints','xlsSemanticCheckDestroy','clearGraph'},'adapter.',{'xideSemanticNavigationBind','xlsSemanticCheckDestroy','clearGraph'})
+      body=calls(body,{'nativeAnalysis','loadGraph','buildDiagnostics','buildNativeDiagnostics','xideSemanticDefinitionsAcquireTyped','validateGraph','xrtJsonRead','xrtJsonParse','xlsSemanticCheckValidate','xideSemanticNavigationCapture','xideSemanticNavigationBind','xideSemanticNavigationBindAndPreparePoints','xideSemanticNavigationPreparePoints','xlsSemanticCheckDestroy','clearGraph'},'adapter.',{'xideSemanticNavigationBind','xlsSemanticCheckDestroy','clearGraph'})
       return body
      copies['language_snapshot']=edit(copies['language_snapshot'],'xideLanguageSnapshotRun',adapter)
      copies['language_snapshot']=surround(copies['language_snapshot'],'xideLanguageSnapshotRun','q,output,e','snapshot','adapter.total')
@@ -128,7 +128,11 @@ def main():
      copies['semantic_definition']=copies['semantic_definition'].replace(include,inc.read_text(encoding='utf8'),1)
      def point_detail(body):
       body=body.replace('{','{\n double pointDetail=xrtTimer();',1)
-      for marker,label in [(' for(size_t i=0;i<nodes;++i){\n  node n={0};xls_index_fact f;','setup'),(' int fast=budget ? convertDense','facts-and-ranges'),(' if(!xrtArrayInit(&d->cursors','coordinates'),(' qsort(d->declarations','cursors'),(' free(spans);free(ends);free(selections);return d;','sort-and-finish')]:
+      segmented='nativeFunctionsBegin' in body
+      setup=' size_t functionSlot=0;' if segmented else ' for(size_t i=0;i<nodes;++i){\n  node n={0};xls_index_fact f;'
+      cursors=' /* Scratch is no longer read.' if segmented else ' qsort(d->declarations'
+      finish=' xrtArrayUnit(&reuse.keys);free(spans);free(ends);free(selections);return d;' if segmented else ' free(spans);free(ends);free(selections);return d;'
+      for marker,label in [(setup,'setup'),(' int fast=budget ? convertDense','facts-and-ranges'),(' if(!xrtArrayInit(&d->cursors','coordinates'),(cursors,'cursors'),(finish,'sort-and-finish')]:
        assert body.count(marker)==1,(marker,body.count(marker))
        body=body.replace(marker,' xlsLifecycleStep('+str(slot('point.body.'+label))+',&pointDetail);\n'+marker,1)
       return body

@@ -18,6 +18,11 @@ typedef struct xls_projection_stats {size_t entries,bytes,limit;uint64_t hits,mi
  * are not the charged resident value/key bytes. A resident pins one check. */
 xls_projection_store* xlsProjectionStoreCreate(size_t bytes);
 void xlsProjectionStoreDestroy(xls_projection_store* store);
+/* Construction-only loan of the matching derived domain from another owner.
+ * May return a known-invalid OLD check's immutable view;that is never current
+ * input permission. Hold both checks and prove every reused asset against the
+ * new accepted owner. Does not mutate residency,revision or hit statistics. */
+xls_projection* xlsProjectionAcquirePrevious(xls_projection_store*,xls_semantic_check* current,const void* key,size_t size);
 xls_projection* xlsProjectionAcquire(xls_projection_store* store,xls_semantic_check* owner,const void* key,size_t size);
 /* Payload ownership transfers ONLY on success. Payload must be immutable,
  * independently owned and must NOT retain the check/worker/store (no cycles).
