@@ -79,7 +79,8 @@
         "source": "src/async_load.c",
         "providedSymbols": [
           "xl6Xge3AsyncImageCreateOwned",
-          "xl6Xge3AsyncTextureCreateOwned"
+          "xl6Xge3AsyncTextureCreateOwned",
+          "xl6Xge3AsyncFontCreateOwned"
         ],
         "requiredSymbols": [
           "xl6CodeLeaseAcquireScoped",

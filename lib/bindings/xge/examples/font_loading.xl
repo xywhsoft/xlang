@@ -1,0 +1,23 @@
+import xge
+
+// This generated font ships beside the examples; no OS font is required.
+xge.init(4,4,"Font loading",0,xge.XGE_RUN_MANUAL)
+try
+ auto load=xge.createFontLoad()
+ // Font loading currently completes on the caller thread, even when XGE's
+ // worker option is enabled. Register callbacks before calling start().
+ load.onComplete(func() as c_int
+  println("Font request completed")
+  return xge.XGE_OK
+ end)
+ load.start("data/font_fixture.ttf",c_float(20))
+ load.throwIfFailed()
+ auto font=load.take()
+ load.close()
+ // The Font has its own lifetime after leaving the request.
+ println("Font size: ",font.metrics().fPixelSize)
+ println("A advance: ",font.glyph(c_uint(65)).fAdvanceX)
+ font.close()
+finally
+ xge.unit()
+end

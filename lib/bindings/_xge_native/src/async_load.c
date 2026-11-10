@@ -15,4 +15,7 @@ int Name(xge_async_owned* output,const XL6_CodeOwner* owner) \
 }
 XL6_XGE_ASYNC_FACTORY(xl6Xge3AsyncImageCreateOwned,xgeAsyncImageCreateOwned)
 XL6_XGE_ASYNC_FACTORY(xl6Xge3AsyncTextureCreateOwned,xgeAsyncTextureCreateOwned)
+#if XGE_ENABLE_TEXT
+XL6_XGE_ASYNC_FACTORY(xl6Xge3AsyncFontCreateOwned,xgeAsyncFontCreateOwned)
+#endif
 #undef XL6_XGE_ASYNC_FACTORY

@@ -293,3 +293,17 @@ Windows EGL 配套及 TCC ELF 按需系统依赖仍未结项，其余阶段与�
 `F:/xlang-validation/xge-full-20261110/surface-text-r1/surface.json`。数量继续只作为人口
 和映射线索，不作为完成率；字体异步请求、音频、SVG/emoji/粒子、宿主调度、输入载荷、
 XUI/Document、3D/调试、最终完整主线集成和正式配套交付仍保留在长期任务范围内。
+
+2026-11-11 已继续补齐 [FontLoad 拥有请求](xge3-async-loading.md#font-loading-qualification)：
+原生提交 `dd6585ab`，按需分配稳定 Font 记录，`take` 无原生分配和记录复制；保持 FONT
+请求在调用线程同步完成的现有合同。两端原生动态/静态 O0/O2 与图片/纹理回归共通过
+232 项检查。语言普通方法直接调用原生入口，冷工厂只承接代码租约；新手范例、
+JIT/动态/静态 AOT、分配预算、严格 C/C++ 头及实际模块退役使用配套 SDK 验收。
+未领取 Font 时 Unit 必须 Busy；模块测试显式 reset 后才关闭。无需显式清理的模块
+全局资源/代码寿命门仍未通过，不由这一成功路径替代。正式 release/IDE 未安装。
+
+最新声明审计人口为 5,123 函数/969 类型，找到公开声明 3,476 函数/353 类型，见
+`F:/xlang-validation/xge-full-20261110/surface-font-load-r1/surface.json`。原生拥有工厂
+由冷代码准入适配承接，另记替代映射；数量继续不表示完成率。Sound 拥有加载、
+音频、SVG/emoji/粒子、宿主调度、输入载荷、XUI/Document、3D/调试和最终配套交付
+继续完整保留在任务内。

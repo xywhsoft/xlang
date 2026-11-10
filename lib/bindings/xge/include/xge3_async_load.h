@@ -25,6 +25,9 @@ static inline const XL6_ForeignViewDescriptorV1* Name##Get(void) \
 }
 XL6_XGE_ASYNC_POLICY(xl6Xge3ImageLoadPolicy,"xge.load.image")
 XL6_XGE_ASYNC_POLICY(xl6Xge3TextureLoadPolicy,"xge.load.texture")
+#if XGE_ENABLE_TEXT
+XL6_XGE_ASYNC_POLICY(xl6Xge3FontLoadPolicy,"xge.load.font")
+#endif
 #undef XL6_XGE_ASYNC_POLICY
 static inline bool xl6Xge3AsyncLoadResolve(xrtownershipref ref,const XL6_OwnershipPoliciesV1* policies,
  const xrtownershipadapterv1** adapter,const xrtownershippreparationv1** preparation,const XL6_OwnershipFinishV1** finish)
@@ -58,5 +61,8 @@ static inline const XL6_OwnershipDomainV1* xl6Xge3AsyncLoadDomainV1Get(void)
 }
 #define xl6Xge3ImageLoadPolicy (*xl6Xge3ImageLoadPolicyGet())
 #define xl6Xge3TextureLoadPolicy (*xl6Xge3TextureLoadPolicyGet())
+#if XGE_ENABLE_TEXT
+#define xl6Xge3FontLoadPolicy (*xl6Xge3FontLoadPolicyGet())
+#endif
 #define xl6Xge3AsyncLoadDomainV1 (*xl6Xge3AsyncLoadDomainV1Get())
 #endif

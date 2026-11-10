@@ -1,0 +1,23 @@
+// A native shared FontLoad keeps request and callback code live after Close.
+import xge
+extern "fixtureAsyncModuleTick" @header("test/cases/foreign_xge3_async_module.h") @no_raise func tick() as c_int
+extern "fixtureAsyncModuleCallbacks" @header("test/cases/foreign_xge3_async_module.h") @no_raise func useCallbacks() as c_int
+extern "fixtureAsyncModulePath" @header("test/cases/foreign_xge3_async_module.h") func fixturePath() as string
+extern "fixtureAsyncModulePublish" @header("test/cases/foreign_xge3_async_module.h") @no_raise func publish(xge.FontLoad request) as c_int
+xge.FontLoad? retained=null
+func main(...) as int
+ xge.init(4,4,"Font request module",0,xge.XGE_RUN_MANUAL)
+ auto request=xge.createFontLoad()
+ if useCallbacks()!=c_int(0) then
+  request.onComplete(func() as c_int
+   assert request.info().hasResult and not request.info().threaded
+   assert tick()>c_int(0)
+   return xge.XGE_OK
+  end)
+  request.start(fixturePath(),c_float(20))
+  assert request.info().hasResult
+ end
+ assert publish(request)==xge.XGE_OK
+ retained=request
+ return 0
+end

@@ -1,0 +1,94 @@
+// Valid generated font, exact callbacks, independent Font, reset and errors.
+import xge
+from xge import ResourcePath,ResourceOutput
+extern "fixtureFontLoadPath" @header("test/cases/foreign_xge3_font_load.h") func fixturePath() as string
+extern "fixtureFontLoadHeap" @header("test/cases/foreign_xge3_font_load.h") @no_raise @c_outputs(0,1) func heap() as (c_size,c_size)
+extern "fixtureFontLoadNativeCosts" @header("test/cases/foreign_xge3_font_load.h") @no_raise @c_result("status",0) func nativeCosts()
+extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func debugEnabled() as bool
+class FontLoadCounts
+ int done=0
+end
+func emptyCosts() as (c_size,c_size)
+ auto count0,bytes0=heap()
+ auto request=xge.createFontLoad()
+ auto count1,bytes1=heap()
+ request.close()
+ return count1-count0,bytes1-bytes0
+end
+func main(...) as int
+ assert debugEnabled()
+ xge.init(4,4,"Font loading CPU",0,xge.XGE_RUN_MANUAL)
+ string path=fixturePath()
+ assert path.length>0
+ auto data=file.readBytes(path)
+ xge.addResourceProvider("fontdemo",func(ResourcePath name,ResourceOutput output) as c_int
+  output.set(data)
+  return xge.XGE_OK
+ end)
+ try
+  auto counts=FontLoadCounts()
+  auto load=xge.createFontLoad()
+  load.onComplete(func() as c_int
+   assert load.info().status==xge.XGE_ASYNC_READY and not load.info().threaded
+   load.onComplete(null)
+   counts.done+=1
+   return xge.XGE_OK
+  end)
+  assert xge.asyncThreadingSet(c_int(1))==xge.XGE_OK
+  load.start("fontdemo://fixture",c_float(20))
+  assert counts.done==1 and load.info().hasResult and load.poll()==xge.XGE_ASYNC_READY
+  load.throwIfFailed()
+  auto takeCount0,takeBytes0=heap()
+  auto font=load.take()
+  auto takeCount1,takeBytes1=heap()
+  println("Language FontLoad take: ",takeCount1-takeCount0," allocations / ",takeBytes1-takeBytes0," bytes")
+  assert not load.info().hasResult
+  bool duplicate=false
+  try
+   auto unused=load.take()
+  catch Error error
+   duplicate=true
+  end
+  assert duplicate
+  auto shared=load.share()
+  load.close()
+  shared.reset()
+  shared.start(path,c_float(18))
+  assert shared.info().hasResult and not shared.info().threaded
+  shared.reset()
+  shared.close()
+  assert font.metrics().fPixelSize==c_float(20)
+  assert font.glyph(c_uint(65)).fAdvanceX>c_float(0)
+  font.close()
+  assert xge.graphicsResourceCount()==uint64(0)
+
+  auto failed=xge.createFontLoad()
+  failed.start(path,c_float(0))
+  assert failed.info().status==xge.XGE_ASYNC_FAILED and not failed.info().hasResult
+  bool refused=false
+  try
+   failed.throwIfFailed()
+  catch Error error
+   refused=true
+  end
+  assert refused
+  failed.reset()
+  failed.start(path,c_float(20))
+  auto recovered=failed.take()
+  failed.close()
+  recovered.close()
+
+  emptyCosts()
+  nativeCosts()
+  auto count0,bytes0=heap()
+  auto allocations,requested=emptyCosts()
+  auto count1,bytes1=heap()
+  assert count0==count1 and bytes0==bytes1
+  println("Language empty FontLoad: ",allocations," allocations / ",requested," bytes")
+  println("FontLoad direct owned transfer, sync callbacks and recovery passed")
+ finally
+  xge.resourceProviderClear()
+  xge.unit()
+ end
+ return 0
+end

@@ -33,12 +33,22 @@ int fixtureAsyncModulePublish(xge_async_owned request)
 }
 int main(int argc,char** argv)
 {
- assert(argc==8);callbacks=argv[6][0]=='1';engine=argv[5];assert(!loaded(engine));
+ #if defined(XGE_TEST_FONT_LOAD)
+ assert(argc==9);
+ #else
+ assert(argc==8);
+ #endif
+ callbacks=argv[6][0]=='1';engine=argv[5];assert(!loaded(engine));
+ #if defined(XGE_TEST_FONT_LOAD)
+ int length=snprintf(imagePath,sizeof(imagePath),"%s",argv[8]);
+ assert(length>0 && (size_t)length<sizeof(imagePath));
+ #else
  int length=snprintf(imagePath,sizeof(imagePath),"%s/input.tga",argv[4]);
  assert(length>0 && (size_t)length<sizeof(imagePath));
  static const unsigned char data[]={0,0,2,0,0,0,0,0,0,0,0,0,1,0,1,0,24,32,3,2,1};
  FILE* file=fopen(imagePath,"wb");assert(file);
  assert(fwrite(data,1,sizeof(data),file)==sizeof(data));assert(!fclose(file));
+ #endif
  XLC_ContextOptions options=xlcDefaultContextOptions();options.workDir=argv[2];options.tempDir=argv[4];
  XLC_Context* compiler=xlcCreateContext(&options);assert(compiler);
  assert(xlcAddIncludePath(compiler,argv[2]) && xlcAddIncludePath(compiler,argv[3]) && xlcAddIncludePath(compiler,argv[7]));
@@ -64,7 +74,12 @@ int main(int argc,char** argv)
  Callback clear=(Callback)address(engine,"xgeAsyncLoadCallbackSetOwned");
  Release release=(Release)address(engine,"xgeAsyncLoadReleaseOwnerChecked");
  Operation unit=(Operation)address(engine,"xgeUnitChecked");
- assert(poll && info && clear && release && unit && ticks==0);
+ assert(poll && info && clear && release && unit);
+ #if defined(XGE_TEST_FONT_LOAD)
+ assert(ticks==callbacks);
+ #else
+ assert(ticks==0);
+ #endif
  xlDestroyModule(module);
  assert(loaded(engine));
  if(callbacks){
@@ -75,6 +90,16 @@ int main(int argc,char** argv)
   xge_async_load_info_t state={0};state.size=sizeof(state);
   assert(info(retained,&state)==XGE_OK && state.status==XGE_ASYNC_PENDING && ticks==0);
  }
+ #if defined(XGE_TEST_FONT_LOAD)
+ if(callbacks){
+  /* An unclaimed Font is a live graphics owner, even after module Close.
+   * Explicitly discard it while the C publisher still owns the request.
+   * This is not the separately pending automatic module-global shutdown gate. */
+  assert(unit()==XGE_ERROR_BUSY);xrtClearError();
+  typedef int (*Reset)(xge_async_owned);
+  Reset reset=(Reset)address(engine,"xgeAsyncLoadResetOwned");assert(reset && reset(retained)==XGE_OK);
+ }
+ #endif
  assert(clear(retained,NULL,NULL,NULL)==XGE_OK);
  bool consumed=false;assert(release(retained,&consumed)==XGE_OK && consumed);retained=NULL;
  assert(unit()==XGE_OK);
@@ -82,6 +107,8 @@ int main(int argc,char** argv)
  if(!drain.ready || !drain.ok || loaded(engine) || xrtGetError()){
   fprintf(stderr,"Async final drain: ready=%d ok=%d loaded=%d kind=%d\n",drain.ready,drain.ok,loaded(engine),(int)xrtErrorKind(xrtGetError()));return 5;
  }
+ #if !defined(XGE_TEST_FONT_LOAD)
  assert(!remove(imagePath));
+ #endif
  puts("Async request kept real module/worker/callback code through Close; final drain unloaded the native image");return 0;
 }

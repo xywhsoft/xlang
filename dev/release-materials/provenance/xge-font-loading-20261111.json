@@ -1,0 +1,267 @@
+{
+  "schema": "xlang-xge-font-loading-1",
+  "scope": "Direct declarative FontLoad requests, existing graph/callback/factory protocols, normal/failure/OOM and matched compiler/SDK validation",
+  "shippingDelivery": false,
+  "passed": true,
+  "nativeCompiledRevision": "dd6585ab95d40ea7cbcbba33580fd25fe203541c",
+  "nativeQualification": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\async-font-owned-20261111.json",
+    "sha256": "20d17f7793743a9db429cd7e4c046d6e794ecff2970477e556d0a1793eab3b38",
+    "checks": 232
+  },
+  "bindingSource": {
+    "lib/bindings/xge/src/async_load.xl": "a229a19374bf4438ce6d4e288bcb27b546757272be663b734fc3febc367cf4ab",
+    "lib/bindings/xge/include/xge3_async_load.h": "0e700781b7f63e3d551512434806e1a003d1d810614eceba03b6a9bb8c1245c8",
+    "lib/bindings/_xge_native/src/async_load.c": "d44895e15e626dc7a8b481597f92064687518ab848f5b7aa6c64131c14c3a8b2",
+    "lib/bindings/_xge_native/include/xge3_runtime.h": "73316d6af3fa83e3650bf2b2e37280542ebe1731bfb873eb0983945a66836aae",
+    "lib/bindings/_xge_native/xlang.package.json": "65d3ee30276f1d90228dc031726e4b355b2d0c60d75249dad4d39477865e7fe2",
+    "lib/bindings/xge/examples/font_loading.xl": "8f568e75c09bcf9d74176b60c5bca92995755757aa5ad3023be7ae5afba5b05f"
+  },
+  "testSource": {
+    "test/cases/foreign_xge3_font_load.xl": "fab89a952cd7d1a7b534d4098001ae7bf214658ea406fd4c0cc25a27732647c3",
+    "test/cases/foreign_xge3_font_load.h": "c317d6d1aaca571bfef03b949a5c5a3b080f8dc09875710a3fd7784431f9a582",
+    "test/cases/foreign_xge3_font_load_oom.xl": "346df1683cf0cd2b3ecd53d84e7111483ee638192b22809f3b0479e68f3e928a",
+    "test/cases/foreign_xge3_font_load_module.xl": "be839cb88001ff4172817beecd27c62f5631f7e5be878c1a69db95dc13970fe2",
+    "test/cases/foreign_xge3_async_module_host.c": "1ebe97b821382abca388b3b52cdbc96feacd67a291c008b2a3b14ef71860b3a9",
+    "tools/check_xge3_font_load.py": "aabbf1b15af8a74ee22b54e2086d98f6f9398792f31173a1553c7d8cf05e1890",
+    "tools/check_xge3_async_module.py": "b70ee3b9ee05398a47b712421710ae9a56b6ebd8b3ec0537e401983e0330b0bc",
+    "tools/check_xge3_async_headers.py": "2555120076a685af79aee5a002a592917a2be2d25249406ce15304a73580aa16",
+    "tools/full_compiler_qualification.py": "1eebd601abfcc2c954bceb31ccedfe2794fc9b7fe893d79107ef25d4e5e17fcc"
+  },
+  "compilers": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r16\\build.json",
+      "sha256": "91babea9fee9a8e5c8af5e8d31e573be9aba0aaf5252801abe7fc6b6f699f8ba",
+      "products": {
+        "xl.exe": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r16\\source\\release\\win_x64\\xl.exe",
+          "sha256": "b06ecff88b5b9f438820a93f7ec7c8be5d605c5e55c8d6e6c58c8d2c2641ed80",
+          "bytes": 72704
+        },
+        "xl.dll": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r16\\source\\release\\win_x64\\xl.dll",
+          "sha256": "76717176a2fa9b15b110f991ba7b5ac9b59cfc3f4e3af5970de70cbc5f7a3a43",
+          "bytes": 15207424
+        },
+        "xlc.dll": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r16\\source\\release\\win_x64\\xlc.dll",
+          "sha256": "b067a7bf06db50cdea4cfbf02ffa66e53b2b9cef0e2008feb23641f195d7b59c",
+          "bytes": 21325824
+        }
+      }
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-linux-full-r8\\build.json",
+      "sha256": "dea71e989b91826cd17525e015c76c58dba381feda3492ce4c667aeb12622dc1",
+      "products": {
+        "xl": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-linux-full-r8/source/release/linux_x64/xl",
+          "sha256": "faa25e49bdf8c5ce8ccdb084810075b406cc6dd499a59577664616eb2a08265b",
+          "bytes": 47224
+        },
+        "libxl.so": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-linux-full-r8/source/release/linux_x64/libxl.so",
+          "sha256": "71e00fd87c629d9c2ff1d3b6ebd0b3cce64a7b6a53625e42bc0ee34f29e4ac40",
+          "bytes": 16476688
+        },
+        "libxlc.so": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-linux-full-r8/source/release/linux_x64/libxlc.so",
+          "sha256": "1c4eb0ec289ca4065f18f0f747163bfe60e0dcd1eb33b3b47578532389c5e6fc",
+          "bytes": 22477616
+        }
+      }
+    }
+  ],
+  "packages": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-font-load-host-win-r1.json",
+      "sha256": "81d691a9b24c582a27497fae12411458b8cf24beec584d30738b30c80ac1b4a0"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-font-load-static-win-r1.json",
+      "sha256": "0fda41016a299f8ed77e822243441beeded6b2ca56938a1c159399fba0c80fcc"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-font-load-host-linux-r1.json",
+      "sha256": "5e73d94719fb2bbee84c4feedb6b27d333b991cf9adb43c78e39dc69f0a16d57"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-font-load-static-linux-r1.json",
+      "sha256": "045b22793096e498dd279b4b32af957050559ab9ad6ca577acb5dae227876680"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\font-load-language-win-r5\\results.json",
+      "sha256": "d9096df2f4060a3dbc70a1b0eaf7c9f7964b5c84df337108aa16e9d001649cd1",
+      "checks": 24
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\font-load-language-linux-r3\\results.json",
+      "sha256": "3e8c288bf73d5930f71c77f9047bbe6dd7eaf34ad03005b0e1f9e23e04a9e492",
+      "checks": 24
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\font-load-headers-win-r2\\results.json",
+      "sha256": "e3fdf0935cccedff78d61bbd6ecb169ccbbf8161b56921e3fb5d3f9007771b44",
+      "checks": 8
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\font-load-headers-linux-r1\\results.json",
+      "sha256": "f1887ef5f06865a23fa2ed08826c47cdf58fd97cdbf00ae448c888a912bbbd1b",
+      "checks": 8
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\font-load-module-win-r2\\results.json",
+      "sha256": "224e504d87dd5c6356ce688552550c2d12a8043854e74ccb6d94b3466782e27b",
+      "checks": 12
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\font-load-module-linux-r1\\results.json",
+      "sha256": "7de7dcb4427d5dd12dd873834ef0e4e4cde60b4adff6a16ffaa40a59048fa25b",
+      "checks": 12
+    }
+  ],
+  "checks": 88,
+  "costs": {
+    "font-load-language-win-r5": {
+      "empty": {
+        "foreign_xge3_font_load-jit": {
+          "Native": {
+            "allocations": 1,
+            "bytes": 248
+          },
+          "Language": {
+            "allocations": 4,
+            "bytes": 840
+          }
+        },
+        "foreign_xge3_font_load-dynamic-run": {
+          "Native": {
+            "allocations": 1,
+            "bytes": 248
+          },
+          "Language": {
+            "allocations": 4,
+            "bytes": 840
+          }
+        },
+        "foreign_xge3_font_load-static-run": {
+          "Native": {
+            "allocations": 1,
+            "bytes": 248
+          },
+          "Language": {
+            "allocations": 4,
+            "bytes": 840
+          }
+        }
+      },
+      "take": {
+        "foreign_xge3_font_load-jit": {
+          "allocations": 2,
+          "bytes": 528
+        },
+        "foreign_xge3_font_load-dynamic-run": {
+          "allocations": 2,
+          "bytes": 528
+        },
+        "foreign_xge3_font_load-static-run": {
+          "allocations": 2,
+          "bytes": 528
+        }
+      }
+    },
+    "font-load-language-linux-r3": {
+      "empty": {
+        "foreign_xge3_font_load-jit": {
+          "Native": {
+            "allocations": 1,
+            "bytes": 248
+          },
+          "Language": {
+            "allocations": 4,
+            "bytes": 840
+          }
+        },
+        "foreign_xge3_font_load-dynamic-run": {
+          "Native": {
+            "allocations": 1,
+            "bytes": 248
+          },
+          "Language": {
+            "allocations": 4,
+            "bytes": 840
+          }
+        },
+        "foreign_xge3_font_load-static-run": {
+          "Native": {
+            "allocations": 1,
+            "bytes": 248
+          },
+          "Language": {
+            "allocations": 4,
+            "bytes": 840
+          }
+        }
+      },
+      "take": {
+        "foreign_xge3_font_load-jit": {
+          "allocations": 2,
+          "bytes": 528
+        },
+        "foreign_xge3_font_load-dynamic-run": {
+          "allocations": 2,
+          "bytes": 528
+        },
+        "foreign_xge3_font_load-static-run": {
+          "allocations": 2,
+          "bytes": 528
+        }
+      }
+    }
+  },
+  "surface": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-font-load-r1\\surface.json",
+    "sha256": "65a6b613da79ca0c657ef9d16c650981fab3dc343d5d52d0587cfddca63634b6",
+    "populationFunctions": 5123,
+    "populationTypes": 969,
+    "declarationFunctions": 3476,
+    "declarationTypes": 353,
+    "notCompletionRate": true
+  },
+  "failureControls": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\font-load-module-win-r1\\results.json",
+      "sha256": "8926b0160f519078ea192906ed4f3ea8a4e66fa235b031ab97d10ad9d3907d4a",
+      "expected": "Unit refuses an unclaimed native Font; automatic module-global resource/code shutdown remains pending"
+    }
+  ],
+  "sourceFreeze": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\native-freeze-r44.json",
+    "sha256": "3a8a1859cabf736e153e102bc345e0905c7df9a5cde2186762931c424bfe7d8d"
+  },
+  "deliveryGates": {
+    "moduleGlobalResourceShutdownPassed": false,
+    "explicitNativeResetBeforeModuleUnit": true,
+    "formalReleaseInstalled": false,
+    "hardwarePerformanceClaim": false,
+    "graphicsDeviceTest": false,
+    "audioDeviceTest": false,
+    "networkTest": false
+  },
+  "constraints": [
+    "FONT IO/completion is synchronous on creator even with ThreadingSet enabled",
+    "Only the cold create adapter admits a code lease; ordinary methods are direct native calls",
+    "Native Font record remains stable from Start through Take; native Take allocates nothing",
+    "Same frozen native SDK/XRT per build; current-mainline UI integration remains pending"
+  ],
+  "remaining": [
+    "Automatic module-global resource/code lifetime shutdown",
+    "Sound owning requests and full audio resources",
+    "Generic thread-safe leaf resource/sequence policy decision pending",
+    "SVG/emoji/particles, host scheduling and typed input payloads",
+    "Full XUI/Document, 3D/debug/platform configurations",
+    "Final coherent compiler/SDK/IDE/catalog/examples delivery"
+  ]
+}

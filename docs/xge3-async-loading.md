@@ -1,7 +1,7 @@
-# Owned image and texture loading
+# Owned image, texture and font loading
 
-`xge.createImageLoad()` and `xge.createTextureLoad()` return distinct owning
-request types. Both expose `share`, `info`, `start`, `poll`, `cancel`, `reset`,
+`xge.createImageLoad()`, `xge.createTextureLoad()` and `xge.createFontLoad()` return
+distinct owning request types. They expose `share`, `info`, `start`, `poll`, `cancel`, `reset`,
 `throwIfFailed`, `onComplete`, `take` and `close`. `LoadInfo` is the exact native
 record, including status/result, progress, result presence and threading state.
 
@@ -10,7 +10,10 @@ File-backed image/texture decoding can use a native worker; GPU submission and
 completion run when the creator polls. These are not Future methods and do not
 silently allocate language coroutines or promise that providers are nonblocking.
 The existing native implementation uses a system thread per active file request.
-Font/Sound requests remain in scope with their later resource families.
+Font requests preserve the native synchronous caller-thread behavior, including
+file paths when threading is enabled. `start(path, size)` can invoke completion
+before returning. This is an owning request API, not a promise of nonblocking
+font IO. Sound requests remain in scope with the audio resource family.
 
 See [the small image example](../lib/bindings/xge/examples/async_image.xl). It uses
 one TGA pixel so no asset installation is needed. Providers are cleared in
@@ -41,13 +44,22 @@ keeps the request's result. Neither transfer adds a pixel copy. Pending texture
 work and its unclaimed result hold the graphics lifetime, so checked engine
 shutdown reports Busy. Taking the texture transfers that obligation to Texture.
 
+Font requests allocate a private stable Font record on demand. `take()` adopts
+and detaches that record without moving it, copying its contents or performing
+a native allocation. The Font survives request close, with its own graphics
+lifetime obligation. Reset/close destroys an unclaimed font; admission allocation
+failure leaves the request Pending and releases its temporary graphics hold.
+The 96-byte native Font is not embedded into the common target union: empty
+ImageLoad/TextureLoad request storage retains its prior size. Language result
+ownership still needs its normal view metadata and code-lifetime bookkeeping.
+
 ## Native and language mapping
 
 Ordinary methods directly declare the native `xgeAsyncLoad*Owned`,
-`xgeAsyncImageStartOwned`/`TakeOwned` and Texture counterparts. The two cold
+`xgeAsyncImageStartOwned`/`TakeOwned` and Texture/Font counterparts. The three cold
 creation adapters only admit the module's code lease; they do not decode, poll,
 dispatch operations or wrap every method. Common native input symbols use the
-[generic input-policy rule](foreign-owned-policy-inputs.md); the two nominal
+[generic input-policy rule](foreign-owned-policy-inputs.md); the three nominal
 types and producer/rollback policies remain separate.
 
 Native Count/Trace, preparation, quiescence, finalization and completion describe
@@ -60,17 +72,17 @@ OS thread-ID reuse remain part of the broader thread-lifetime audit.
 
 | Native capability | Language entry or lifecycle replacement |
 | --- | --- |
-| AsyncRequestInit / Free | createImageLoad / createTextureLoad; close and automatic owning cleanup |
+| AsyncRequestInit / Free | createImageLoad / createTextureLoad / createFontLoad; close and automatic owning cleanup |
 | AsyncRequestCancel / AsyncPoll | cancel / poll on the typed request |
-| AsyncImageLoad / AsyncTextureLoad | matching request.start, with its private native result |
-| Image/TextureCreateOwned / ShareOwned | typed create and share, with separate nominal policies |
+| AsyncImageLoad / AsyncTextureLoad / AsyncFontLoad | matching request.start, with its private native result |
+| Image/Texture/FontCreateOwned / ShareOwned | typed create and share, with separate nominal policies |
 | LoadInfoGet / ResetOwned / ThrowIfFailed | info / reset / throwIfFailed |
 | LoadCallbackSetOwned | onComplete with an owned exact callback, or null to clear |
-| ImageTakeOwned / TextureTakeOwned | typed take factory and rollback contract |
+| ImageTakeOwned / TextureTakeOwned / FontTakeOwned | typed take factory and rollback contract |
 | ReleaseChecked / ReleaseOwnerChecked | rollback or consuming checked destruction, including Deferred |
 | Ownership / Adapter / Preparation / Quiescence / Completion / Finalization / ReadReady | native ownership domain used by the existing runtime graph protocols |
 | AsyncThreadingSet / Get | existing asyncThreadingSet / asyncThreadingGet declarations |
-| AsyncFontLoad / AsyncSoundLoad | pending owning resource integration; not replaced by an unsafe target pointer |
+| AsyncSoundLoad | pending owning audio resource integration; not replaced by an unsafe target pointer |
 
 Mutable raw request targets/payload/user pointers remain the native C protocol.
 They are not advertised as safe language fields; their business functions use
@@ -117,6 +129,42 @@ existing checked admission, error, reference and ownership bookkeeping around
 the direct native call, unlike an unchecked C pointer call.
 
 All results use isolated matched candidates. Full-source release/IDE delivery,
-Font/Sound requests and the remaining XGE/XUI/Document ecosystem are unfinished.
+Sound requests and the remaining XGE/XUI/Document ecosystem are unfinished.
 Exact input, package, build, failure-control and acceptance hashes are recorded in
 `dev/release-materials/provenance/xge-async-loading-20261110.json`.
+
+## Font loading qualification
+
+The Font extension uses native commit `dd6585ab` and matched frozen r44 SDKs.
+The three ordinary native font operations map to `createFontLoad`, `start`, and
+`take`; the create code-lease adapter is the only additional cold function.
+The shared request domain, exact callback and factory protocols are reused.
+See [the small font example](../lib/bindings/xge/examples/font_loading.xl), which
+uses the generated valid font already shipped with the examples.
+
+Windows/Linux native host/static O0/O2 tests pass 232 rows, including the existing
+Image/Texture gate. Language JIT, dynamic AOT and standalone static AOT test normal
+loading, synchronous callback self-clear, independent results, reuse, failures
+and 80 allocation budgets. Actual module Close tests cover an empty request and
+a ready request with a captured callback, followed by native reset, checked
+retirement and native image unload. Strict C11/C++11/C++17 headers and actual C++
+policy/domain linkage are checked against both matched SDK variants.
+
+These module tests explicitly discard the private ready Font while the external
+publisher still owns the request. Before that reset, checked Unit returns Busy as
+required. The earlier failing no-reset control remains in the evidence: the
+general module-global resource/code-lifetime shutdown gate is still **not passed**.
+Explicit reset is not counted as proof of automatic module-global cleanup.
+Formal release/IDE delivery, audio and the rest of the full coverage plan remain
+unfinished; this batch does not relax those gates.
+
+After warmup on both tested x64 ABIs, empty native Font/Image/Texture requests all
+retain 1 XRT allocation / 248 requested bytes. Language empty FontLoad retains
+4 allocations / 840 bytes. Native Font `take` succeeds under a zero-allocation
+budget, without copying the 96-byte record or font data; its language owning
+result adds 2 retained allocations / 528 bytes. These are requested live XRT
+allocations, not allocator capacity, complete system heap cost or timing results.
+The C baseline is process-resident without a JIT module lease; status/ownership
+checks, code lifetime, URI NUL validation/copy, decode work and callback activity
+remain costs. Exact pins are in
+`dev/release-materials/provenance/xge-font-loading-20261111.json`.
