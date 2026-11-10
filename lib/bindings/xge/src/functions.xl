@@ -63,7 +63,7 @@ export extern "xgeMiniProgramTouch" @header("xge3_runtime.h") @c_span(1,"const x
 export extern "xgeMiniProgramTouchOne" @header("xge3_runtime.h") func miniProgramTouchOne(c_int iPhase,c_int iId,c_float fX,c_float fY,c_float fForce) as c_int
 export extern "xgeMiniProgramText" @header("xge3_runtime.h") func miniProgramText(c_uint iCodepoint) as c_int
 export extern "xgeMiniProgramRequestFrame" @header("xge3_runtime.h") func miniProgramRequestFrame() as c_int
-export extern "xgeEGLCapsGet" @header("xge3_runtime.h") @no_raise @c_output(0,0) func eGLCapsGet() as EglCaps
+export extern "xgeEGLCapsGet" @header("xge3_runtime.h") @no_raise @c_output(0,0) func eglCapsGet() as EglCaps
 export extern "xgeAsyncThreadingSet" @header("xge3_runtime.h") func asyncThreadingSet(c_int bEnabled) as c_int
 export extern "xgeAsyncThreadingGet" @header("xge3_runtime.h") func asyncThreadingGet() as c_int
 export extern "xgeAudioInit" @header("xge3_runtime.h") func audioInit() as c_int

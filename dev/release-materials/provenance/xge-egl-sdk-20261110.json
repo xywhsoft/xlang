@@ -1,0 +1,179 @@
+{
+  "scope": "Declarative EGL capabilities with matched default Windows/default Linux/optional EGL Linux SDKs; native renderer/session remains pending",
+  "shippingDelivery": false,
+  "releaseOrIdeInstalled": false,
+  "nativeIndex": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\egl-sdk-20261110.json",
+    "sha256": "b6b65b7220a88f12bebe30f65e019b406a00eb03820aa1d1b7d06f8b471c4da5"
+  },
+  "freeze": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\native-freeze-r25.json",
+    "sha256": "694113db8dbe5d0e0a0d7e0e35b138b20f24b16b13606911b22d6505756e5b68"
+  },
+  "builds": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-host-win-r25\\build-report.json",
+      "sha256": "da79373961a48a4949883ce2051e719b4f6dd9f9bd9b1baed3bcbf5f52857e33"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-static-win-r25\\build-report.json",
+      "sha256": "3930ebace736cd3d8f78448afff6e66feab1b97f6f7baacaf000f41f7ea350aa"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-host-linux-r25\\build-report.json",
+      "sha256": "645927e56fe5f459aeb462fc556ee85837d185fa267ae883f4d73a39b071a63f"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-static-linux-r25\\build-report.json",
+      "sha256": "a55b1e195ead0dd9731fba2716f16f514452b03826c649b24d4fc137200fac37"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-egl-host-linux-r25\\build-report.json",
+      "sha256": "3fe0e4a9c66ee8f84132cf099cd2864c3b966c9cd76f0bcc69d7eee3bf226aeb"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-egl-static-linux-r25\\build-report.json",
+      "sha256": "cf420a0a6777ef19955ac13f6b2f5300a3ac09d47f54b9bd5f6b334444d327db"
+    }
+  ],
+  "packages": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-egl-host-win-r1.json",
+      "sha256": "88b8e47ab4890ca20e28d080337b47ba6e319377b01116a5cf0b7c824f4f7363"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-egl-static-win-r1.json",
+      "sha256": "bb18e7f1466db823e48aa0145dd3802f47b0ea4fb6403b4145792e6b21db43a2"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-egl-host-linux-r1.json",
+      "sha256": "53aa6f34ed138b33b4ea5b092ffa418bdfa7ad1c359556dcef1e3a5b10eb5dbd"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-egl-static-linux-r1.json",
+      "sha256": "b97312b6d9daba6bc56bdae4b3ac16ed3a7e63247ce1bdfda1411f7a3fd539bb"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-egl-default-host-linux-r1.json",
+      "sha256": "2c33618739096cfdc648ee38b9f1217db78dfac8f998479a8d931ddf08dbbb57"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-egl-default-static-linux-r1.json",
+      "sha256": "80e91de082c95e8cc717a8aa92e392c096855e0737c8ac2b18d56ce7746d6b5e"
+    }
+  ],
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\egl-sdk-win-default-r3\\results.json",
+      "sha256": "f3fa548ce17280e8502917282a2bbb4b32d0a3b1e387489210b15ea72df02ca0",
+      "checks": 12
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\egl-sdk-linux-enabled-r3\\results.json",
+      "sha256": "f1ccc5c5dab551e105268e4c36a17e6115a61dabf6c8eaff3773c36e80edc94b",
+      "checks": 49
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\egl-sdk-linux-default-r2\\results.json",
+      "sha256": "3ffa859263f3fdfc1d6e2f32dc6e396c381d80c94ed720fe6d39b1eeb787edc6",
+      "checks": 12
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\egl-build-policy-win-r1\\results.json",
+      "sha256": "ca8a19b3b3111af8823fe0efa9784fa7e7c406579318c39b77d86c23398e5761",
+      "checks": 7
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\egl-build-policy-linux-r1\\results.json",
+      "sha256": "394ae2c9d62bb46b49018abceab110e82225728e8016e6a165cfe3a33d118569",
+      "checks": 6
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\language-egl-win-r1\\results.json",
+      "sha256": "705b1d33f7d95df6194e43aa2b41c1de688ff71e122267988c016dfc7aaf93e2",
+      "checks": 30
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\language-egl-linux-enabled-r1\\results.json",
+      "sha256": "744a9088a890dbf7c9e05098a47cc0cc8b142ce00518d63308c9e497b2167719",
+      "checks": 24
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\language-egl-linux-default-r1\\results.json",
+      "sha256": "4e6040822fbb66f3e7fc9d0f637403ef22589850a31aa4abed95fc47627f78cd",
+      "checks": 24
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\egl-example-win-r1\\results.json",
+      "sha256": "85bc7559c49a3128719679d77616c8a53f48033468324e76c5989c3e940ce701",
+      "checks": 5
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\egl-example-linux-r1\\results.json",
+      "sha256": "9cf1e9531b34cd1ab7d6316390887d336b090d293b04b48c0778ad1b2e9bae61",
+      "checks": 8
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\egl-headers-win-default-r1\\results.json",
+      "sha256": "db9a441487300b6140bb172305e2babced2758777422e8fd10e947f89f30728a",
+      "checks": 8
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\egl-headers-linux-enabled-r1\\results.json",
+      "sha256": "966f73de3b5ea84486d56d1ce4290533a9898edaf11b52b79ee0e634fc12d36a",
+      "checks": 8
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\egl-headers-linux-default-r1\\results.json",
+      "sha256": "5c598730b847796e11c4e147d1638e99b5d3e0c83866f898075bb69e5e9152f1",
+      "checks": 8
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\egl-headless-linux-r1\\results.json",
+      "sha256": "209ea2db88ec228d8597ea07483c13e440a481c72e75b5ad1015fcace9765f47",
+      "checks": 10
+    }
+  ],
+  "buildRunChecks": 211,
+  "source": {
+    "lib/bindings/xge/src/functions.xl": "8e6d430e36b1d685c4d9299c43f54b3ec2d6e296976efd5a40dcd60e93bb6248",
+    "lib/bindings/xge/examples/backend_capabilities.xl": "8e885b64c9a7da558d8ae4c5c0a77f4594a966d866a2c35ef5f45792dc6b5585",
+    "test/cases/foreign_xge3_egl_caps.h": "f87f82ce78746cb4bf3b802d890203c5e7a4ea31df8da4656cfb683ae46fd168",
+    "test/cases/foreign_xge3_egl_caps.xl": "807058e564cb79d03ffd9c9809b721fb7de55a63ee3a2a904179f2983cede0c1",
+    "docs/xge3-egl-sdk.md": "cf469b115eda93efe733f2f26fdcff5b6af4b0ac0f758e1c95923bf9f990e11d"
+  },
+  "compilerBuilds": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r13\\build.json",
+      "sha256": "2804689b3b2bb234e3c970a98060c5614b393ae12be995c3295e7c8e0add62f9"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-linux-full-r5\\build.json",
+      "sha256": "35400cf7e77732e9fa0fdd85f4b13c02a262a3cdc4d091766c90ad7248a791ea"
+    }
+  ],
+  "sizes": {
+    "windowsDefaultSharedBytes": 9201077,
+    "linuxDefaultSharedBytes": 10009840,
+    "linuxEglSharedBytes": 10009968,
+    "linuxSharedDeltaBytes": 128,
+    "linuxDefaultArchiveBytes": 17083822,
+    "linuxEglArchiveBytes": 17090238,
+    "linuxArchiveDeltaBytes": 6416
+  },
+  "baseline": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\egl-offscreen-renderer-red-linux-r1\\results.json",
+    "sha256": "c1dacf16381e1a1b2e48971328bce2855f8ffce0dbc04489564b81f208e88f34"
+  },
+  "qualificationBoundaries": [
+    "Frozen compiler/native cohorts exclude concurrent LSP/XUI work; no final delivery installation",
+    "Raw EGL/GLES FBO pixels are qualified; owning XGE renderer/session is not",
+    "Windows EGL SDK remains unqualified and explicitly rejected by the builder",
+    "Capabilities describe compiled paths, not guaranteed machine availability",
+    "Headless uses explicit Mesa EGL_PLATFORM=surfaceless with DISPLAY/WAYLAND_DISPLAY absent",
+    "Capabilities-only enabled static TCC example still needs libEGL.so.1; generic ELF as-needed dependency trimming is pending",
+    "New source example is qualified independently; older tested Windows/enabled-Linux package snapshots predate its addition"
+  ],
+  "networkTests": false,
+  "nativeRevision": "1a4ceb0a"
+}

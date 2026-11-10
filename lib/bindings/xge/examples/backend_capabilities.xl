@@ -1,0 +1,11 @@
+// Capabilities can be queried before creating an engine or window.
+import xge
+
+auto egl=xge.eglCapsGet()
+println("EGL compiled into this SDK:",egl.bCompiled!=c_int(0))
+println("PBuffer creation compiled:",egl.bPBuffer!=c_int(0))
+println("Surfaceless creation compiled:",egl.bSurfaceless!=c_int(0))
+println("Native surface creation compiled:",egl.bNativeWindow!=c_int(0))
+
+// Compiled support is distinct from successful creation on this machine.
+// Context creation also depends on the installed EGL dispatcher and driver.

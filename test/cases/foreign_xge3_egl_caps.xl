@@ -1,0 +1,21 @@
+// One matched feature configuration is used by the compiler, SDK and native image.
+import xge
+extern "fixtureEglExpected" @header("test/cases/foreign_xge3_egl_caps.h") @no_raise func expected() as c_int
+extern "fixtureEglRawAttempt" @header("test/cases/foreign_xge3_egl_caps.h") @no_raise func rawAttempt(c_int surfaceless) as c_int
+func main(...) as int
+ auto caps=xge.eglCapsGet()
+ auto info=xge.getBuildInfo()
+ assert caps.bCompiled==expected()
+ assert caps.bPBuffer==expected() and caps.bSurfaceless==expected()
+ assert caps.bNativeWindow==expected()
+ assert ((info.features & c_uint(1024))!=c_uint(0))==(expected()!=c_int(0))
+ assert xge.checkBuildCompatibility(info.abi_fingerprint,info.features)==xge.XGE_OK
+ if expected()!=c_int(0) then
+  assert rawAttempt(c_int(0))==xge.XGE_OK
+  assert rawAttempt(c_int(1))==xge.XGE_OK
+ else
+  assert rawAttempt(c_int(0))==xge.XGE_ERROR_UNSUPPORTED
+  assert rawAttempt(c_int(1))==xge.XGE_ERROR_UNSUPPORTED
+ end
+ return 0
+end

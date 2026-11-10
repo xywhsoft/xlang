@@ -33,3 +33,12 @@ SDK／渲染器验收。Linux g_xge 私有 BSS 对象在本工具链前后均为
   拥有关系；尚未运行的跨模块边界不能由普通绘图回归代替。
 
 本批输入及报告见 `dev/release-materials/provenance/xge-context-foundation-20261110.json`。
+
+可选 [EGL SDK](xge3-egl-sdk.md) 已在 native r25 补齐正式构建开关、功能位、
+SDK 指纹、系统依赖来源和动态／静态包接线。默认 Windows/Linux 与启用 EGL 的
+Linux 通过配套验证；实际 PBuffer、Surfaceless、X11 窗口、无显示服务器路径及
+失败清理均有运行证据。211 项构建／运行检查通过，默认运行库不增加体积。
+
+旧 Offscreen 尚未接通 XGE 渲染器的情况已用实际启用 EGL 的库复现，不再只依赖
+源码推断。拥有式会话、GL 加载／激活、GPU 子资源关闭、真正的宿主调度仍需完成；
+Windows EGL SDK 交付及 TCC ELF 按需系统依赖裁剪也继续保留。
