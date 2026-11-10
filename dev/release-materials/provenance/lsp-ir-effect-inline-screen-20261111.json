@@ -1,0 +1,111 @@
+{
+  "schema": 1,
+  "date": "2026-11-11",
+  "stage": "M7b4s",
+  "scope": "Rejected native effect inlining screen; original full validation and exact IR-only performance comparison",
+  "measurementEvidenceAccepted": true,
+  "implementationAccepted": false,
+  "performanceQualified": false,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "14c75b88b354ac223e4244c6a6037ee25dffccf9",
+  "ownedSources": {
+    "ide/docs/lsp-ir-effect-inline-screen.md": "0c021a66d8adccbb65308fa1d80fdb3f38f1996c2e1c074b630e1e340a0598e4",
+    "ide/docs/lsp-analysis-latency.md": "3c92d6f78247c049cc565e87c02a980413e7ce6397faf10d11a55840aacd7683"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-ir-effect-inline-screen-20261111.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-ir-effect-inline-screen-20261111/screened-prototype-and-docs.tar.gz",
+      "sha256": "256f85efbb046eefc7e375a814274d611e16eed3aa080db3ec12f9c7b6bdf041",
+      "bytes": 38190,
+      "entries": 6,
+      "uniquePayloads": 6,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-ir-effect-inline-screen-20261111/screened-prototype-and-docs.tar.gz.manifest.json",
+      "sha256": "1ae35addf35acbed5c44aee14de331a97bde8c2a9dda4f2cc1dd57ba9372584f",
+      "bytes": 1452
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-ir-effect-inline-screen-20261111/raw-builds-checks-and-measurements.tar.gz",
+      "sha256": "6c5ddc09f0b4d708d62f26b1a932776299ce29652930628e855d7c53c0d83ec1",
+      "bytes": 998362364,
+      "entries": 8600,
+      "uniquePayloads": 5286,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-ir-effect-inline-screen-20261111/raw-builds-checks-and-measurements.tar.gz.manifest.json",
+      "sha256": "a065bd722fdd60dd7e6008ff4eeae63670db6de7d2bbd18b6dd7e8b2024b052c",
+      "bytes": 2948209
+    }
+  },
+  "prototype": {
+    "ide/tools/build_lsp_core.py": "883a6a947c6f5d76d6e6a16432c745c6af78b77d530b01c8b16d8d9ee2673c07",
+    "ide/tools/native_current_ir_overlay.py": "355fa41bf5251abee55ec80fc226b27b125a3f361d59379c7dff8e633ce39d71",
+    "ide/tools/native_ir_effect_inline_overlay.py": "ca4c1c752ecf7bd76636b6c958592b420ec4e948664e55f26639ebb7af46fe7e",
+    "ide/tests/analysis_ir_effect_inline_test.c": "aa2443541e62c989e85b2f96a9ed4d7d95efd98cd8deb3cc47cde792d112a41e"
+  },
+  "restoredProductSources": {
+    "ide/tools/build_lsp_core.py": "8b4060fbc40c7fdda0bcfba90d4c87ef344e775b362689bbb138f5a0cf8efe5d",
+    "ide/tools/native_current_ir_overlay.py": "b0b1f30368eeb2b211cf15756c54f1584ab261f5a12f41e845044f971b06daf2"
+  },
+  "images": {
+    "candidate": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-verifier-routing-20261111\\full-v1\\xlang-ls.exe",
+      "sha256": "7e685dac65d3c4855f6e2e71c6c141d4e8962ff6f6c696109dfb360f04b736e5"
+    },
+    "baseline": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ir-verifier-routing-20261111\\control-v2\\xlang-ls.exe",
+      "sha256": "2c541cc84611b3c8357d953468fe4eeca11afc34c8881f93f223dee069b7bd2a"
+    }
+  },
+  "correctness": {
+    "nativePrograms": 189,
+    "protocolSuites": 13,
+    "guiObjects": 116,
+    "guiFixtures": 29,
+    "effectAssertions": 5527,
+    "actualMutantsRejected": 3,
+    "sourceNegativeGuards": 14
+  },
+  "measurement": {
+    "checks": 2880,
+    "processes": 192,
+    "unchangedGates": 64,
+    "calibrationFailed": 0,
+    "controlledFailed": 1,
+    "allProcessesExitedCleanly": true,
+    "retry": false
+  },
+  "failedGate": {
+    "name": "32-imported-declaration/hot/wireP95",
+    "baselineMs": 28.977,
+    "candidateMs": 30.9357,
+    "limitMs": 30.42585
+  },
+  "diagnostic": {
+    "checks": 80,
+    "processes": 16,
+    "standardResultsAndNativeWorkParity": true,
+    "backgroundWorkspaceSymbols": false,
+    "inclusiveTimingNotFormal": true
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "knownMissing": [
+    "Typed final IR/function and cross-table incremental production",
+    "Complete latency/memory/large workspace/soak admission",
+    "Remaining applicable LSP, rename policy and IDE atomic transactions",
+    "Later concurrent engine family and final runtime alignment"
+  ]
+}
