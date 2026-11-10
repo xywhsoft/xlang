@@ -809,7 +809,12 @@ analysed:
    ) goto done;
 #ifdef XLS_COMPILER_XRT
    if(q->referenceMode){
-    q->referenceShard=xideSemanticReferenceShardCreate(xlsWorkerProjectionStore(q->semanticActor),nativeCheck,sources,graph.count,XIDE_REFERENCE_BYTES,e);
+    if(q->familyMode){
+     enum xide_reference_family_error why;
+     q->referenceGraph=xideSemanticReferenceGraphCreate(xlsWorkerProjectionStore(q->semanticActor),nativeCheck,sources,graph.count,XIDE_REFERENCE_BYTES,symbolsCancelled,q,&why);
+     if(!q->referenceGraph){char message[96];snprintf(message,sizeof(message),"Unable to capture bounded native declaration graph (%d).",(int)why);fail(e,message);goto done;}
+     q->referenceShard=xideSemanticReferenceGraphRetainShard(q->referenceGraph);
+    }else q->referenceShard=xideSemanticReferenceShardCreate(xlsWorkerProjectionStore(q->semanticActor),nativeCheck,sources,graph.count,XIDE_REFERENCE_BYTES,e);
     if(!q->referenceShard)goto done;
     if(q->referencePath){xide_model_error keyError={0};q->referenceKey=xideSemanticReferenceKeyCreate(xlsWorkerProjectionStore(q->semanticActor),nativeCheck,sources,graph.count,q->referencePath,q->referenceLine,q->referenceCharacter,XIDE_REFERENCE_BYTES,&keyError);if(keyError.code){*e=keyError;goto done;}}
    }

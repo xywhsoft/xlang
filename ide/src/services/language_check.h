@@ -100,6 +100,18 @@ xide_language_check* xideLanguageCheckStartReferenceCapture(xls_context* context
  const xls_analysis_document* documents,size_t count,const char* trigger,
  const char* keyPath,int line,int character,const xide_language_analysis_options* options,xide_model_error* error);
 int xideLanguageCheckCaptureReferences(xide_language_check* check,xide_reference_shard** shard,xide_reference_key** key);
+/* Explicit family-query mode. Same complete native check, detached input guard
+ * and reference bank; additionally capture all declaration components once.
+ * The graph and returned shard share one immutable source bank. Ordinary
+ * reference/diagnostic/completion capture remains graph-free. No workspace
+ * coverage, family fixed point, freshness or edit permission is implied. */
+xide_language_check* xideLanguageCheckStartFamilyCapture(xls_context* context,
+ xide_toolchains* cache,const char* compiler,xls_worker* actor,
+ const xls_analysis_document* documents,size_t count,const char* trigger,
+ const char* keyPath,int line,int character,const xide_language_analysis_options*,xide_model_error*);
+/* READY/accepted/still guarded only. Independent reference survives check and
+ * worker destruction; gate the corresponding detached guard before use. */
+int xideLanguageCheckCaptureReferenceGraph(xide_language_check*,xide_reference_graph**);
 /* Native guarded source rejection only;not infrastructure/quota/cancel. */
 int xideLanguageCheckReferenceSourceRejected(xide_language_check* check);
 /* Read-only work snapshots for the actual successful reference capture.

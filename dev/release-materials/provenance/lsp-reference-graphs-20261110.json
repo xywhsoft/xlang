@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "date": "2026-11-10",
+  "stage": "M7b4j",
+  "scope": "Reusable immutable all-declaration components sharing one reference/source bank, streaming enumeration and explicit detached worker capture; project cache and workspace closure still pending",
+  "stageAccepted": true,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "b0d22e3cf1fab7a5ccd53b12ce2cdd9ec33c3287",
+  "ownedSources": {
+    "ide/src/services/semantic_reference_shard.h": "0970f3452ef5455719d435685cde6b00e9a5db3fbe9f42f455b29af5fb4e13f4",
+    "ide/src/services/semantic_reference_shard.inc": "add2e90b7cdf6a1eab47d6a3290b478dcef16064da56491367017fc0727c60ff",
+    "ide/src/services/semantic_reference_family.inc": "f6392c7b18142b2dd94a751c1268936f30c84040c07a788d1da4d46fba805b46",
+    "ide/src/services/semantic_reference_graph.inc": "208ffac9ee165a6e04016adb79a53bd51ca8f062a8d0e61b4972f18f465721e1",
+    "ide/src/services/language_check.h": "206fce8efdbfe490ba17825ad5609c7b9e1aef9d29f5707854d8abf40656a6e7",
+    "ide/src/services/language_check_internal.h": "bb3d4d92b6451a0d4bee769b8c1e1a8bbaffa6c0544cc1b6227e737b2f6b28dd",
+    "ide/src/services/language_check.c": "c2b880bd696922a43702a3684b25986a86c5947c6b83f925fd5b8b372f0ffa23",
+    "ide/src/services/language_snapshot.c": "8cb2ef32e1d33588ff784ce49769231326e9ced2f52eb67e16fe1a3dc3a48f12",
+    "ide/tests/semantic_reference_graph_test.c": "f937c8e203b0340e523fc6df4477b3b452aa6689f6d9669124210cc2f7db6399",
+    "ide/tests/reference_graph_capture_test.c": "a5345e732249ec140d0136f50bd9ed98564683378fbad7fa7d3dc616b146f97e",
+    "ide/tools/build_lsp_core.py": "8bc78cb65f3a01b8c25299480a03ce5a4dbd1adcae52a93fe12cae8e05b3dd57",
+    "ide/docs/lsp-reference-graphs.md": "45c1e0ea883b1a867cb3af012139f32898eca876827d2f4aa27867fc89d98f3a",
+    "ide/docs/lsp-callable-families.md": "5faf23d1b47d062aa5579be728f4f11cfc95dec5dabb7a98182cfe7d151808c8"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-reference-graphs-20261110.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-reference-graphs-20261110/stage-sources.tar.gz",
+      "sha256": "8cd4f2abbfb3fa5be1fe4278db61d08be0904cbc02383302e56c9a3523cd548b",
+      "bytes": 100554,
+      "entries": 14,
+      "uniquePayloads": 14,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-reference-graphs-20261110/stage-sources.tar.gz.manifest.json",
+      "sha256": "e3d4eebc33edce4c1f9fa420a6e11cf744bdd069ce718068287a29b99f4312f9",
+      "bytes": 3370
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-reference-graphs-20261110/actual-builds-and-validation.tar.gz",
+      "sha256": "bf1365b13701e620950a3552f04dc32feae7f133b22e25bf7b8dab30c9a5e716",
+      "bytes": 1001729767,
+      "entries": 6496,
+      "uniquePayloads": 4353,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-reference-graphs-20261110/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "82cdccb7d8bd509954dfdf551e3eafeef2ba17cfbb83047986a651144f0494eb",
+      "bytes": 2243002
+    }
+  },
+  "candidate": {
+    "serverSha256": "1f4b0820a4d9d1a5063e79be6f728adeedcf8132b01451f790888de40d38254c",
+    "guiSha256": "498ac3df15eaf6e9caf283c2fabe15fe4994db433d4cf706ca6d678d3a0201b8",
+    "sdkDllSha256": "216c1f98f4d55cc5dff9c7d98425edbb08d470cdfc6b26ef4ad962af3431f560",
+    "guiObjects": 116,
+    "actualNativeConsumers": 287,
+    "nativePrograms": 177
+  },
+  "validation": {
+    "nativeFixtures": 176,
+    "referenceGraphAssertions": 1653,
+    "workerCaptureAssertions": 33,
+    "callableFamilyAssertions": 6001,
+    "dispatchFamilyAssertions": 950,
+    "actualImplementationMutantsRejected": 4,
+    "originalPureHelpersVerbatim": 6,
+    "unknownMissingOrDuplicateSeamsRejected": 7,
+    "protocolSuites": 12,
+    "guiFixtures": 29,
+    "currentSourcesAndAllLinksChecked": true,
+    "finalNativeMatrixFresh": true,
+    "allRegisteredSymbolAndTypeDeclarations": true,
+    "singletonAndUnknownGeneratedComponents": true,
+    "allKeyLegacyFamilyParity": true,
+    "sharedExactReferenceSourceBank": true,
+    "streamingEnumerationWithoutAllocation": true,
+    "fullSourceIdentityAndLexicalPathAliases": true,
+    "unicodeBomAndCrlf": true,
+    "graphConstructionAllocationRefusals": 5,
+    "leaseAllocationRefusal": true,
+    "exactObservedConcurrentAllocationBudget": true,
+    "everyObservedGraphAndLeaseCancellationBoundary": true,
+    "detachedFourReaderLifetime": true,
+    "explicitWorkerModeOnly": true,
+    "analysisAndNavigationActualCacheHits": true,
+    "noUnrelatedDiagnosticSnapshotHashing": true,
+    "noProjectGraphCacheYet": true,
+    "retainedNavigationNodeLayoutUnchanged": true,
+    "noNewOrdinaryAnalysisGraph": true,
+    "performanceAdmissionRun": false,
+    "priorFailuresAndRejectedImplicitAssociationFixturePreserved": true
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "knownMissing": [
+    "project cache storage and streaming entire-workspace fixed-point closure; all generic-origin families; OS writability/physical aliases and complete foreign/library policy",
+    "versioned edit construction, rename conflicts and post-rename binding proof",
+    "standard prepareRename/rename and IDE versioned edit transaction",
+    "remaining applicable LSP and current-engine cohort alignment",
+    "merge allocation and wide quota adversarial admission; whole-goal performance/large-workspace/soak/final delivery admission"
+  ]
+}

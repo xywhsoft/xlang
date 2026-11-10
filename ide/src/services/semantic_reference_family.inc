@@ -8,11 +8,12 @@ typedef struct family_location {uint32_t index,source,start,end;int units;} fami
 struct xide_reference_family {
  xatomic32 references;size_t bytes,count,sources,relations;unsigned kinds;
  reference_source* source;family_member* members;
+ xide_reference_graph* graph;
 };
 xide_reference_family* xideSemanticReferenceFamilyRetain(xide_reference_family* f)
 {if(f)xrtAtomic32FetchAdd(&f->references,1,XMEMORY_RELAXED);return f;}
 void xideSemanticReferenceFamilyRelease(xide_reference_family* f)
-{if(f && xrtAtomic32FetchSub(&f->references,1,XMEMORY_ACQ_REL)==1)xrtFree(f);}
+{if(f && xrtAtomic32FetchSub(&f->references,1,XMEMORY_ACQ_REL)==1){xideSemanticReferenceGraphRelease(f->graph);xrtFree(f);}}
 int xideSemanticReferenceFamilyInfo(const xide_reference_family* f,xide_reference_family_info* out)
 {if(out)*out=(xide_reference_family_info){0};if(!f || !out)return 0;*out=(xide_reference_family_info){f->count,f->sources,f->bytes,f->relations,f->kinds};return 1;}
 xide_reference_key* xideSemanticReferenceFamilyKey(xide_reference_family* f,size_t at)
@@ -99,3 +100,4 @@ xide_reference_family* xideSemanticReferenceFamilyCreate(xls_projection_store* c
 done:
  xrtFree(scratch);xlsCallableRelationsDestroy(groups);xideSemanticDefinitionsReleaseTyped(d,lease);if(why!=XIDE_REFERENCE_FAMILY_OK){xideSemanticReferenceFamilyRelease(family);family=NULL;}if(output)*output=why;return family;
 }
+#include "services/semantic_reference_graph.inc"
