@@ -11,6 +11,7 @@ static int draftResult(xide_reference_query* q,int ready,const char* reason,int 
  else{
   if(state!=XIDE_REFERENCES_READY)fprintf(stderr,"state=%d error=%s\n",state,error);
   CHECK(state==XIDE_REFERENCES_READY && rows && xrtValueCount(rows)==5 && stats.workspaceCompleted==4);if(warm)CHECK(!stats.captured && !stats.memberTasks && stats.reused>=4);
+  CHECK(stats.renameRechecks>=4 && stats.renameUnchanged>=1 && stats.renameSources>=5 && stats.renameReferences>=5);
   xide_rename_plan* plan=xideProjectReferencesRetainRenamePlan(q);xide_rename_plan_info info;CHECK(plan && xideRenamePlanInfo(plan,&info) && info.documents==5 && info.edits==5);size_t overlays=0,boms=0;
   for(size_t i=0;i<info.documents;++i){xide_rename_plan_document d;CHECK(xideRenamePlanDocumentAt(plan,i,&d) && d.count==1 && strstr(d.before.Data,"compute") && !strstr(d.after.Data,"compute") && strstr(d.after.Data,"renamed_😀"));if(d.hasVersion){++overlays;CHECK(d.version==INT_MAX && d.coordinatePrefix==1);}if(d.before.Size>=3 && !memcmp(d.before.Data,"\xef\xbb\xbf",3)){++boms;CHECK(d.after.Size>=3 && !memcmp(d.after.Data,"\xef\xbb\xbf",3));}xide_rename_plan_edit e;size_t mapped;CHECK(xideRenamePlanEditAt(plan,d.first,&e) && xideRenamePlanMapOffset(plan,i,(size_t)e.start.offset,&mapped) && mapped==e.afterStart);}
   CHECK(overlays==1 && boms==2);xvalue* wire=xideRenamePlanWorkspaceEdit(plan,1,NULL,NULL);CHECK(wire && xrtValueCount(testGet(wire,"documentChanges"))==5);xrtValueRelease(wire);if(keep)*keep=plan;else xideRenamePlanRelease(plan);
@@ -36,4 +37,6 @@ static int runDraft(void)
  for(size_t i=0;i<11;++i)xrtFree(paths[i]);
  xrtFree(dir);return 1;
 }
-int main(void){if(!runDraft())return 1;printf("project_rename_plan_test passed: %u checks; guarded all-scope versioned rename draft, exact raw BOM/newlines, Unicode replacement, warm zero-analysis collection, immutable inputs, final mutation/cancellation and detached ownership\n",checks);return 0;}
+#ifndef XIDE_RENAME_PLAN_TEST_NO_MAIN
+int main(void){if(!runDraft())return 1;printf("project_rename_plan_test passed: %u checks; guarded all-scope versioned rename candidate, complete affected native rechecks and unchanged guarded owners, BOM/newlines/Unicode, warm cached collection, immutable inputs, final mutation/cancellation and detached ownership\n",checks);return 0;}
+#endif

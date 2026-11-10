@@ -20,6 +20,9 @@ typedef struct xide_project_reference_stats {size_t roots,captured,reused,locati
  size_t coveredRoots,sourceRejections,coverageCacheRoots;
  /* Whole-workspace rename collection only; unrelated scopes also complete. */
  size_t workspaceScopes,workspaceCompleted,workspaceDuplicates,workspaceGuardBytes;
+ /* Candidate-only complete native checks versus unchanged guarded owners.
+  * Counters are query work, not ordinary worker-history/cache mutations. */
+ size_t renameRechecks,renameUnchanged,renameSources,renameReferences;
 } xide_project_reference_stats;
 enum xide_reference_query_state {XIDE_REFERENCES_FAILED=-1,XIDE_REFERENCES_PENDING=0,XIDE_REFERENCES_READY=1,XIDE_REFERENCES_CANCELLED=2};
 /* One independent XRT actor with separate retained key/member workers;borrowed toolchain cache outlives
@@ -105,9 +108,16 @@ xide_reference_family* xideProjectReferencesRetainFamily(xide_reference_query*);
  * OS writability, binding preservation or permission to apply an edit. */
 xide_reference_query* xideProjectReferencesSubmitFamilyReferences(xide_project_references*,
  xide_rename_scope*,xide_rename_target*,const xls_analysis_document*,size_t,const char* trigger);
-/* Same guarded family/reference collection plus a detached byte-exact draft
- * plan. No new semantic checks here: conflict/post-edit binding, physical
- * write policy and client epoch/transaction gates must follow before use. */
+/* Same guarded family/reference collection plus a detached byte-exact draft.
+ * Recheck each affected native provider with its exact context and complete
+ * hypothetical source bank; compare ALL captured source-bound references.
+ * Unchanged providers reuse original facts only under complete source/config/
+ * resolution guards and the independent no-missed-plan-file comparison.
+ * Revalidate every guard after checking, including zero-target scopes.
+ * Full generic/unbound/foreign coverage, physical write policy and client
+ * epoch/transaction gates remain necessary before editing/advertising rename. */
+/* A captured native target/scope also permits zero open documents and a NULL
+ * trigger; no synthetic overlay/editor version is created for a closed file. */
 xide_reference_query* xideProjectReferencesSubmitRenamePlan(xide_project_references*,
  xide_rename_scope*,xide_rename_target*,const xls_analysis_document*,size_t,const char* trigger,xstrview newName);
 xide_rename_plan* xideProjectReferencesRetainRenamePlan(xide_reference_query*);

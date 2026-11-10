@@ -114,6 +114,9 @@ def derive(frontend: Path, output: Path) -> list[dict]:
                     '    if (index < overlay->count) xlsFrontendInputUsageRead(overlay,index);\n    return index < overlay->count ? &overlay->items[index] : NULL;',
             }
             if current:
+                wide='    if (!path || !*path) goto failed;'
+                if source.count(wide)!=1:raise ValueError('complete frozen native source lookup seam changed')
+                source=source.replace(wide,wide+'\n    int frozen = xlsFrontendFrozenLookup(overlay,path,item);\n    if (frozen != 2) return frozen;',1)
                 changes={
                     '    if (!item) return -1;':'    if (!item) { xlsFrontendInputUsageFailure(overlay); return -1; }',
                     '    if (overlay && overlay->report && !overlay->report->complete) return -1;':
@@ -130,7 +133,7 @@ def derive(frontend: Path, output: Path) -> list[dict]:
             if source.count(old) != 1:
                 raise ValueError('original overlay lookup topology seam changed')
             source = source.replace(old,old.replace('    xrtFree(absolute);','    xlsInputTopologyLookup(overlay,absolute);\n    xrtFree(absolute);') if current else '    xlsInputTopologyLookup(overlay,absolute);\n' + old,1)
-            seams = 9
+            seams = 10 if current else 9
         elif original.stem == "xl6_source_report":
             old = '(char*)xrtEnvGet((str)"XLANG_PACKAGE_PATH")'
             if source.count(old) != 3 or source.count("xrtPathAbs(path)") != 3:
@@ -139,10 +142,40 @@ def derive(frontend: Path, output: Path) -> list[dict]:
             source = source.replace("xrtPathAbs(path)", "xlsFrontendContextAbsolute(path)")
             if current:
                 source='#include "analysis/frontend_input_usage.h"\n'+source
+                source='#include "src/compile/xl6_source_overlay.h"\n'+source
                 fail='static int xl6ReportFail(XL6_SourceReport* report, const char* path, const char* error)\n{'
                 if source.count(fail)!=1:raise ValueError('current report failure observer seam changed')
                 source=source.replace(fail,fail+'\n    xlsFrontendInputUsageReportFailure(report);')
-            seams = 8 if current else 7
+                read='''    item = xl6ReportFind(report, absolute);
+    if (!report->complete) { xrtFree(absolute); return NULL; }
+    if (item) {'''
+                frozen='''    const XL6_SourceOverlayItem* frozenItem = NULL;
+    int frozen = xlsFrontendFrozenReportLookup(report, absolute, &frozenItem);
+    if (frozen < 0) { xrtFree(absolute); return NULL; }
+    if (frozen == 1) {
+        item = xl6ReportFind(report, absolute);
+        if (!report->complete) { xrtFree(absolute); return NULL; }
+        if (item) {
+            if (strcmp(item->origin, "overlay") || item->size != frozenItem->size ||
+                memcmp(item->text, frozenItem->text, item->size)) {
+                xl6ReportFail(report, absolute, "frozen read conflicts with text snapshot");
+                xrtFree(absolute); return NULL;
+            }
+            item->kind |= kind;
+        } else item = xl6ReportAppend(report, absolute, frozenItem->text, frozenItem->size,
+            frozenItem->size, NULL, NULL, kind, "overlay");
+        copy = item ? xl6ReportCopy(item->text, item->size) : NULL;
+        if (copy && size) *size = item->size;
+        if (item && !copy) xl6ReportFail(report, absolute, "cannot copy frozen source snapshot");
+        xrtFree(absolute); return copy;
+    }
+'''
+                if source.count(read)!=1:raise ValueError('complete frozen source-report read seam changed')
+                source=source.replace(read,frozen+read,1)
+                role='    if (!ok) xl6ReportFail(report, absolute, "source path was read from different snapshots");'
+                if source.count(role)!=1:raise ValueError('frozen source-report source role seam changed')
+                source=source.replace(role,'    if (ok && item) item->kind |= XL6_SOURCE_REPORT_SOURCE;\n'+role,1)
+            seams = 10 if current else 7
         elif original.stem == "xl6_package":
             if native_selection:
                 variant=frontend/'src/package/xl6_package_native_variants.inc'

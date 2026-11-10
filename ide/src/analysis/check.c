@@ -2,6 +2,7 @@
 #include "analysis/function_unit_internal.h"
 #include "analysis/check.h"
 #include "analysis/frontend_overlay.h"
+#include "analysis/frozen_inputs.h"
 #include "analysis/check_ir.h"
 #include "analysis/frontend_context.h"
 #include "analysis/frontend_entry_cache.h"
@@ -36,6 +37,7 @@ struct xls_semantic_check {
     XL6_SourceReport report;
     XL6_SourceOverlay overlay;
     xls_input_batch* inputOwner;
+    xls_frozen_inputs* frozen;
     XL6_IrModule ir;
     xls_ir_result* cachedIr;
     xls_typed_module* typedModule;
@@ -77,11 +79,12 @@ void xlsSemanticCheckDestroy(xls_semantic_check* r)
     if(r->typedModule){r->parse.root=NULL;xlsTypedModuleRelease(r->typedModule);}
     xl6ParseResultFree(&r->parse);
     xl6ImportDepsFree(&r->deps); xlsFrontendOverlayClear(&r->overlay,r->inputOwner);xlsInputBatchDestroy(r->inputOwner); xl6SourceReportFree(&r->report);
+    xlsFrozenInputsRelease(r->frozen);
     xlsContextRelease(r->context); xrtFree(r->path); if(r->lockInitialized) xrtMutexUnit(&r->lock); xrtFree(r);
 }
 static xls_semantic_check* createBody(xls_context* context,const char* entry,
     const xls_semantic_input* inputs,size_t count,int dependenciesOnly,int captureIndex,const xls_syntax* syntax,
-    xls_semantic_check* previous,int memoEnabled,xls_module_graph_scope* moduleScope,int (*cancelled)(void*),void* user,char* error,size_t capacity,const xls_input_batch* batch,int allowBorrow,int* retry)
+    xls_semantic_check* previous,int memoEnabled,xls_module_graph_scope* moduleScope,int (*cancelled)(void*),void* user,char* error,size_t capacity,const xls_input_batch* batch,int allowBorrow,int* retry,xls_frozen_inputs* frozen)
 {
     xls_semantic_check* r=NULL;const xls_ir_result* irBaseline=NULL;const xls_semantic_check* indexBaseline=NULL;
     if(error && capacity) *error=0;
@@ -98,8 +101,11 @@ static xls_semantic_check* createBody(xls_context* context,const char* entry,
     xl6ParseResultInit(&r->parse); xl6ImportDepsInit(&r->deps); xl6SourceReportInit(&r->report); xl6IrModuleInit(&r->ir);
     r->path=xrtPathAbs(entry); r->captureIndex=captureIndex;
     r->inputOwner=xlsInputBatchRetain(batch);
+    r->frozen=xlsFrozenInputsRetain(frozen);
     if(!r->path) goto invalid;
-    if(batch) {
+    if(frozen) {
+        if(batch || count || syntax || previous || memoEnabled || !xlsFrontendFrozenBind(&r->overlay,frozen))goto invalid;
+    }else if(batch) {
         int captured=xlsFrontendOverlayBorrow(&r->overlay,batch,cancelled,user);
         if(captured<0)goto cancel;
         if(!captured)goto invalid;
@@ -112,7 +118,7 @@ static xls_semantic_check* createBody(xls_context* context,const char* entry,
         if(in->size>=3 && !memcmp(in->text,"\xef\xbb\xbf",3)) bom=3;
         if(!xl6SourceOverlaySet(&r->overlay,in->path,in->text+bom,in->size-bom)) goto invalid;
     }
-    xlsFrontendInputUsageBind(&r->overlay,r->overlay.count);
+    xlsFrontendInputUsageBind(&r->overlay,frozen ? SIZE_MAX : r->overlay.count);
     r->overlay.report=&r->report; r->overlay.semanticIndex=captureIndex; r->deps.sourceOverlay=&r->overlay;
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
     xls_raw_scope* raw=xlsRawBodyScopeCurrent();
@@ -245,7 +251,7 @@ static xls_semantic_check* createBody(xls_context* context,const char* entry,
     if(!r->accepted){xlsFrontendIndexDestroy(r->typedIndex);r->typedIndex=NULL;}
     if(stopped(cancelled,user)) goto cancel;
     if(!xlsSemanticCheckValidate(r)) {
-        fail(error,capacity,"semantic check inputs are incomplete or changed");
+        if(error && capacity)snprintf(error,capacity,"semantic check inputs are incomplete or changed: %.240s (%.240s)",r->report.error,r->report.errorPath ? r->report.errorPath : r->path);
         xlsSemanticCheckDestroy(r); return NULL;
     }
     if(r->accepted) r->phase="checked";
@@ -268,7 +274,7 @@ cancel:
 }
 static xls_semantic_check* createConfiguredInContext(xls_context* context,xls_entry_cache* cache,const char* entry,
     const xls_semantic_input* inputs,size_t count,int captureIndex,const xls_syntax* syntax,
-    xls_semantic_check* previous,int (*cancelled)(void*),void* user,char* error,size_t capacity,int dependenciesOnly,const xls_input_batch* batch)
+    xls_semantic_check* previous,int (*cancelled)(void*),void* user,char* error,size_t capacity,int dependenciesOnly,const xls_input_batch* batch,xls_frozen_inputs* frozen)
 {
     int retried=0;
     xls_ast_materialize_work totalMaterialization={0};
@@ -291,7 +297,7 @@ static xls_semantic_check* createConfiguredInContext(xls_context* context,xls_en
     xls_module_graph_scope modules;xlsModuleGraphBegin(&modules,(cache || syntax) ? xlsModuleScopeCurrent() : NULL,context,8u*1024u*1024u);
     xls_frontend_cancel_scope cancellation;xlsFrontendCancelBegin(&cancellation,cancelled,user);
     int retry=0;
-    xls_semantic_check* result=createBody(context,entry,inputs,count,dependenciesOnly,captureIndex,syntax,previous,cache || syntax,&modules,cancelled,user,error,capacity,batch,attempt==0,&retry);
+    xls_semantic_check* result=createBody(context,entry,inputs,count,dependenciesOnly,captureIndex,syntax,previous,cache || syntax,&modules,cancelled,user,error,capacity,batch,attempt==0,&retry,frozen);
     uint64_t used=0;int known=xlsFrontendInputUsageEnd(&usage,&used);
     xls_input_topology* captured=xlsInputTopologyEnd(&topology);
     if(result && known)result->topology=captured;else xlsInputTopologyDestroy(captured);
@@ -324,7 +330,17 @@ static xls_semantic_check* createConfiguredInContext(xls_context* context,xls_en
 xls_semantic_check* xlsSemanticCheckCreateCachedInContext(xls_context* context,xls_entry_cache* cache,const char* entry,
     const xls_semantic_input* inputs,size_t count,int captureIndex,const xls_syntax* syntax,
     xls_semantic_check* previous,int (*cancelled)(void*),void* user,char* error,size_t capacity)
-{return createConfiguredInContext(context,cache,entry,inputs,count,captureIndex,syntax,previous,cancelled,user,error,capacity,0,NULL);}
+{return createConfiguredInContext(context,cache,entry,inputs,count,captureIndex,syntax,previous,cancelled,user,error,capacity,0,NULL,NULL);}
+ /* Independent hypothetical checks intentionally bypass ordinary input
+  * sessions, previous roots, entry caches and64-bit usage/topology proofs. */
+xls_semantic_check* xlsSemanticCheckCreateFrozenInContext(xls_context* context,const char* entry,
+ const xls_semantic_input* inputs,size_t count,int captureIndex,
+ int (*cancelled)(void*),void* user,char* error,size_t capacity)
+{
+ xls_frozen_inputs* frozen=xlsFrozenInputsCreate(inputs,count,cancelled,user,error,capacity);if(!frozen)return NULL;
+ xls_semantic_check* result=createConfiguredInContext(context,NULL,entry,NULL,0,captureIndex,NULL,NULL,cancelled,user,error,capacity,0,NULL,frozen);
+ xlsFrozenInputsRelease(frozen);return result;
+}
 xls_semantic_check* xlsSemanticCheckCreateBatch(xls_entry_cache* cache,const xls_input_batch* batch,
  int captureIndex,const xls_syntax* syntax,xls_semantic_check* previous,
  int (*cancelled)(void*),void* user,char* error,size_t capacity)
@@ -332,7 +348,7 @@ xls_semantic_check* xlsSemanticCheckCreateBatch(xls_entry_cache* cache,const xls
  if(!batch){fail(error,capacity,"missing immutable check batch");return NULL;}
  xls_semantic_input inputs[64];size_t count=xlsInputBatchInputs(batch,inputs,64);
  return createConfiguredInContext((xls_context*)xlsInputBatchContext(batch),cache,xlsInputBatchEntry(batch),
-     inputs,count,captureIndex,syntax,previous,cancelled,user,error,capacity,0,batch);
+     inputs,count,captureIndex,syntax,previous,cancelled,user,error,capacity,0,batch,NULL);
 }
 struct xls_dependency_capture {xatomic32 references;xls_semantic_check* owner;};
 xls_dependency_capture* xlsDependencyCaptureCreateBatch(xls_entry_cache* cache,const xls_input_batch* batch,
@@ -342,7 +358,7 @@ xls_dependency_capture* xlsDependencyCaptureCreateBatch(xls_entry_cache* cache,c
  xls_dependency_capture* result=xrtCalloc(1,sizeof(*result));if(!result){fail(error,capacity,"cannot allocate dependency capture");return NULL;}
  xrtAtomic32Init(&result->references,1);xls_semantic_input inputs[64];size_t count=xlsInputBatchInputs(batch,inputs,64);
  result->owner=createConfiguredInContext((xls_context*)xlsInputBatchContext(batch),cache,xlsInputBatchEntry(batch),
-     inputs,count,0,syntax,NULL,cancelled,user,error,capacity,1,batch);
+     inputs,count,0,syntax,NULL,cancelled,user,error,capacity,1,batch,NULL);
  if(!result->owner){xrtFree(result);return NULL;}return result;
 }
 
@@ -351,7 +367,7 @@ xls_dependency_capture* xlsDependencyCaptureCreateParsedInContext(xls_context* c
 {
  xls_dependency_capture* result=xrtCalloc(1,sizeof(*result));if(!result){fail(error,capacity,"cannot allocate dependency capture");return NULL;}
  xrtAtomic32Init(&result->references,1);
- result->owner=createConfiguredInContext(context,cache,entry,inputs,count,0,syntax,NULL,cancelled,user,error,capacity,1,NULL);
+ result->owner=createConfiguredInContext(context,cache,entry,inputs,count,0,syntax,NULL,cancelled,user,error,capacity,1,NULL,NULL);
  if(!result->owner){xrtFree(result);return NULL;}return result;
 }
 xls_dependency_capture* xlsDependencyCaptureCreate(xls_context* context,xls_entry_cache* cache,const char* entry,

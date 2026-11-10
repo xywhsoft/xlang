@@ -1,10 +1,18 @@
 #include "analysis/frontend_context.h"
 #include "analysis/frontend_completion_pool.h"
+#include "analysis/frozen_inputs.h"
+#include "src/compile/xl6_source_overlay.h"
 #include <xrt.h>
 #include <stdio.h>
 #include <string.h>
 
 static _Thread_local xls_frontend_context_scope* current;
+int xlsFrontendFrozenBind(const struct XL6_SourceOverlay* overlay,const xls_frozen_inputs* inputs)
+{if(!current || !overlay || !inputs || current->frozen)return 0;current->frozen=inputs;current->frozenOverlay=overlay;return 1;}
+int xlsFrontendFrozenLookup(const struct XL6_SourceOverlay* overlay,const char* path,const struct XL6_SourceOverlayItem** item)
+{return current && current->frozen && current->frozenOverlay==overlay ? xlsFrozenInputsLookup(current->frozen,overlay,path,item) : 2;}
+int xlsFrontendFrozenReportLookup(const struct XL6_SourceReport* report,const char* path,const struct XL6_SourceOverlayItem** item)
+{return current && current->frozen && current->frozenOverlay && report && current->frozenOverlay->report==report ? xlsFrozenInputsLookup(current->frozen,current->frozenOverlay,path,item) : 2;}
 typedef struct namespace_entry { xarray names; } namespace_entry;
 typedef struct namespace_names { xmap entries; size_t count,bytes; } namespace_names;
 static void dropNamespaceEntry(xbytesview key,void* value,void* user)

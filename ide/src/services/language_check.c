@@ -41,6 +41,7 @@ int xideLanguageCheckRunCompiler(xide_language_check* q,const char* const* args,
 }
 static int source(xide_language_check* q,xide_file_snapshot* baseline,int compare,xide_model_error* e)
 {
+ if(!q || !q->path || !q->text)return fail(e,"保存后的源码快照不完整。");
  xide_file_snapshot now={0}; xide_text_file file={0}; int okay=xideFileSnapshotInspect(q->path,&now,e);
  if(okay && now.length>TEXT_LIMIT) okay=fail(e,"保存后检查的源码超过 8 MiB 限制。");
  if(okay) okay=xideTextFileRead(q->path,&file,e);
@@ -192,7 +193,7 @@ static DWORD WINAPI worker(void* user)
  xide_language_check* q=user; xide_model_error e={0}; xide_toolchain_stamp stamp={0}; xide_toolchain_profile profile={0}; xide_file_snapshot file={0}; char *help=NULL,*json=NULL; xvalue *raw=NULL,*result=NULL,*list=NULL; int code=0,success=0; uint64_t began=GetTickCount64();
  int snapshotRequest=q->snapshotCount!=0;
 #ifdef XLS_COMPILER_XRT
- snapshotRequest=snapshotRequest || q->declarationMode;
+ snapshotRequest=snapshotRequest || q->declarationMode || (q->referenceMode && q->retainedSnapshots && q->configuredEntry);
 #endif
  if(snapshotRequest) { success=xideLanguageSnapshotRun(q,&result,&e); goto done; }
  if(cancelled(q) || !source(q,&file,0,&e) || !xideToolchainCapture(q->compiler,&stamp,&e)) goto done;
@@ -584,8 +585,10 @@ static xide_language_check* startRetained(xls_context* context,int configured,in
  const xide_language_analysis_options* options,xide_model_error* e)
 {
  int declarations=captureMode==RETAIN_DECLARATIONS || captureMode==RETAIN_CACHED_DECLARATIONS;
+ int closedCapture=configured && actor && !target && !queryPath && !keyPath && !count &&
+  (captureMode==RETAIN_REFERENCES || captureMode==RETAIN_FAMILIES);
  if((configured && !context) || !cache || !compiler || !directory || (count && !documents) || count>64 ||
-    (!declarations && (!documents || !count || !retainedLabel(target))) || (declarations && (!configured || target || queryPath)) ||
+    (!declarations && !closedCapture && (!documents || !count || !retainedLabel(target))) || (declarations && (!configured || target || queryPath)) ||
     (!queryPath && !actor) || (queryPath && (line<0 || character<0)) || (options && !options->nativeBackend)) {
   fail(e,"Invalid retained native analysis request."); return NULL;
  }
@@ -599,7 +602,7 @@ static xide_language_check* startRetained(xls_context* context,int configured,in
  q->semanticTarget=configured ? NULL : copy(target);q->path=configured ? copy(xlsContextSpec(context)->entry) : NULL;
  q->snapshots=calloc(count ? count : 1,sizeof(*q->snapshots)); q->captureThread=xrtThreadCurrentId();
  if(!q->compiler || !q->directory || (!configured && !q->semanticTarget) || (configured && !q->path) || !q->snapshots) goto invalid;
- size_t bytes=0;int foundTarget=declarations;
+ size_t bytes=0;int foundTarget=declarations || closedCapture;
  for(size_t i=0;i<count;++i) {
   const xls_analysis_document* d=&documents[i]; size_t n=xlsTextSize(d->text);
   if(!d->text || !retainedLabel(d->key) || !retainedLabel(d->path) || !xrtPathIsAbs(d->path) ||

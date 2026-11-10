@@ -87,6 +87,7 @@ static void workspaceStats(xide_project_reference_stats* all,const xide_project_
 }
 #include "services/project_family_references.inc"
 #include "services/project_rename_plan.inc"
+#include "services/project_rename_recheck.inc"
 static xtaskoutcome executeWorkspace(xcancel* cancel,void* data,xtaskvalue* value)
 {
  reference_input* in=data;reference_output* out=xrtCalloc(1,sizeof(*out));if(!out)return XTASK_FAILED;
@@ -121,6 +122,7 @@ static xtaskoutcome executeWorkspace(xcancel* cancel,void* data,xtaskvalue* valu
   }
   if(in->familyMode==2 && !workspaceFamilyReferences(in,out,cancel))goto done;
   if(in->renameName && !workspaceRenamePlan(in,out,cancel))goto done;
+  if(in->renameName && !workspaceRecheckPlan(out,cancel))goto done;
   /* Composition may outlast the earlier validation. Publish only after a
    * final sweep of every scope's guard, including zero-target scopes. */
   XIDE_REFERENCE_WORKSPACE_FENCE(SIZE_MAX);

@@ -3,6 +3,12 @@
 #include <stddef.h>
 #include <stdint.h>
 struct XL6_SourceOverlay;
+/* Shared prepared ORIGINAL native lexical identity. XRT-owned data; release
+ * with xrtFree. absolute=0 applies the original xrtPathAbs first. Comparison
+ * reports resource failure separately from equality; no filesystem access. */
+typedef struct xls_input_path_key {void* data;size_t bytes;} xls_input_path_key;
+xls_input_path_key xlsInputPathPrepare(const char* path,int absolute);
+int xlsInputPathCompare(const xls_input_path_key*,const xls_input_path_key*,int* okay);
 typedef struct xls_input_topology xls_input_topology;
 typedef struct xls_input_topology_scope {
     struct xls_input_topology_scope* previous;

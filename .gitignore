@@ -73,6 +73,7 @@
 !/dev/release-materials/provenance/lsp-family-references-20261111.json
 !/dev/release-materials/provenance/lsp-rename-plans-20261111.json
 !/dev/release-materials/provenance/lsp-binding-checks-20261111.json
+!/dev/release-materials/provenance/lsp-frozen-recheck-20261111.json
 /out/
 /tmp/
 /logs/

@@ -102,6 +102,8 @@ xide_language_check* xideLanguageCheckStartReferenceCapture(xls_context* context
 int xideLanguageCheckCaptureReferences(xide_language_check* check,xide_reference_shard** shard,xide_reference_key** key);
 /* Explicit family-query mode. Same complete native check, detached input guard
  * and reference bank; additionally capture all declaration components once.
+ * Configured keyless reference/family captures may use zero overlays and a
+ * NULL trigger, preserving the real closed entry and original disk guards.
  * The graph and returned shard share one immutable source bank. Ordinary
  * reference/diagnostic/completion capture remains graph-free. No workspace
  * coverage, family fixed point, freshness or edit permission is implied. */

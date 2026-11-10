@@ -8,23 +8,29 @@
 #endif
 #define TOPOLOGY_BYTES (8u*1024u*1024u)
 #define TOPOLOGY_PATHS 65536u
-typedef struct topology_key {void* data;size_t bytes;} topology_key;
+typedef xls_input_path_key topology_key;
 struct xls_input_topology {xarray keys;size_t bytes;};
 typedef struct topology_pending {xmap paths;size_t bytes,limit;} topology_pending;
 static _Thread_local xls_input_topology_scope* active;
 static _Thread_local int comparisonFailed;
-static int compareKey(const void* a,const void* b)
+int xlsInputPathCompare(const xls_input_path_key* left,const xls_input_path_key* right,int* okay)
 {
-    const topology_key *left=a,*right=b;
+    if(okay)*okay=0;
+    if(!left || !right || !left->data || !right->data)return 0;
 #ifdef _WIN32
     /* Same prepared UTF-16/ordinal comparison as xl6SourceOverlayPathEquals;
      * no locale case folding,physical aliases or extra path normalization. */
     int order=CompareStringOrdinal(left->data,-1,right->data,-1,TRUE);
-    if(!order){comparisonFailed=1;return 0;}return order-CSTR_EQUAL;
+    if(!order)return 0;
+    if(okay)*okay=1;
+    return order-CSTR_EQUAL;
 #else
+    if(okay)*okay=1;
     return strcmp(left->data,right->data);
 #endif
 }
+static int compareKey(const void* a,const void* b)
+{int okay=0;int result=xlsInputPathCompare(a,b,&okay);if(!okay)comparisonFailed=1;return result;}
 static topology_key prepare(const char* path,int absolute)
 {
     topology_key key={0};size_t length=path ? strlen(path) : 0;
@@ -38,6 +44,8 @@ static topology_key prepare(const char* path,int absolute)
 #endif
     xrtFree(owned);return key;
 }
+xls_input_path_key xlsInputPathPrepare(const char* path,int absolute)
+{return prepare(path,absolute);}
 void xlsInputTopologyBegin(xls_input_topology_scope* scope,size_t bytes)
 {
     if(!scope)return;

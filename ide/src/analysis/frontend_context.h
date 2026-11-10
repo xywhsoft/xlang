@@ -5,6 +5,10 @@
  * keeps context alive. Nested/default calls restore the preceding scope. */
 struct xls_completion_pool_scope;
 struct xls_raw_scope;
+struct xls_frozen_inputs;
+struct XL6_SourceOverlay;
+struct XL6_SourceOverlayItem;
+struct XL6_SourceReport;
 typedef struct xls_frontend_context_scope {
     const xls_context* context;
     struct xls_frontend_context_scope* previous;
@@ -12,12 +16,20 @@ typedef struct xls_frontend_context_scope {
     void* namespaceNames;
     struct xls_completion_pool_scope* completionPool;
     struct xls_raw_scope* rawBodies;
+    const struct xls_frozen_inputs* frozen;
+    const struct XL6_SourceOverlay* frozenOverlay;
 } xls_frontend_context_scope;
 int xlsFrontendContextValid(const xls_context* context,const char* entry,char* error,size_t capacity);
 int xlsFrontendContextsEqual(const xls_context* a,const xls_context* b);
 void xlsFrontendContextBegin(xls_frontend_context_scope* scope,const xls_context* context);
 int xlsFrontendContextEnd(xls_frontend_context_scope* scope);
 const xls_context* xlsFrontendContextCurrent(void);
+/* Validation-only complete hypothetical source bank, scoped on the existing
+ * frontend call stack. No effect on another/nested ordinary check. Lookup
+ * returns2 when unbound, otherwise the original1/0/-1 overlay contract. */
+int xlsFrontendFrozenBind(const struct XL6_SourceOverlay*,const struct xls_frozen_inputs*);
+int xlsFrontendFrozenLookup(const struct XL6_SourceOverlay*,const char*,const struct XL6_SourceOverlayItem**);
+int xlsFrontendFrozenReportLookup(const struct XL6_SourceReport*,const char*,const struct XL6_SourceOverlayItem**);
 /* Actual selected compiler adapter reports support; unsupported versions reject
  * explicit choices before analysis. Initialization reads the existing TLS scope. */
 int xlsFrontendNativeSelectionAvailable(void);

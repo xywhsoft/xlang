@@ -74,6 +74,18 @@ xls_semantic_check* xlsSemanticCheckCreateInContext(xls_context* context,const c
     const xls_semantic_input* inputs,size_t count,int captureIndex,
     int (*cancelled)(void*),void* user,char* error,size_t capacity);
 const xls_context* xlsSemanticCheckContext(const xls_semantic_check* result);
+/* Demand-only complete hypothetical recheck, using the SAME original parser,
+ * import/stdlib resolution, semantic/index and typed-IR passes. Own1..512
+ * immutable overlays, original source-report8MiB/file and64MiB total text;128MiB
+ * known input-owner storage. No source writes, worker history, previous root,
+ * incremental memo, codegen or process launch. Usage/topology proofs are
+ * unavailable, never truncated into64 bits. Disk/probe/environment validation
+ * retains the original contract; caller also guards original source/config
+ * freshness before/after and compares the complete native source/binding bank.
+ * Ordinary Create/CreateInContext retain their0..64 input contract. */
+xls_semantic_check* xlsSemanticCheckCreateFrozenInContext(xls_context* context,const char* entry,
+ const xls_semantic_input* inputs,size_t count,int captureIndex,
+ int (*cancelled)(void*),void* user,char* error,size_t capacity);
 /* Each owner holds a reference. Destroy releases one reference. Immutable
  * facts may be read concurrently; input validation and lazy compatibility
  * exports are serialized internally. Invalidation remains permanent. */
