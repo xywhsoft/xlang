@@ -1,0 +1,181 @@
+{
+  "scope": "Transactional typed GL function loading, first-frame failure suppression/recovery and retryable raw EGL cleanup; owning renderer session still pending",
+  "shippingDelivery": false,
+  "releaseOrIdeInstalled": false,
+  "nativeIndex": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\graphics-context-safety-20261110.json",
+    "sha256": "23d6a4cf392f4339f7a68f00c41e3b66153451b607dde9340db86d1f7000c2a0"
+  },
+  "source": {
+    "docs/xge3-context-safety.md": "a46ace57dcf34430fefc88dfb68f306762e9f5e4fbc4c6d2ebd20ae1cb70170b",
+    "docs/xge3-host-backends.md": "2a887de78c86c7c0c71f851bfba85c0205b5b60967103dacf7e66920c1d3147c",
+    "docs/xge3-xui3-full-coverage-plan.md": "f7991021c9204b47c1066fc3d47316befe196603fc336b7b02990a9435884f8c",
+    "test/cases/foreign_xge3_egl_caps.h": "3f04873f4fb79195054226faeacb89a2d60035a4d90bdeb048fccebb14edec9c"
+  },
+  "compilerBuilds": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r13\\build.json",
+      "sha256": "2804689b3b2bb234e3c970a98060c5614b393ae12be995c3295e7c8e0add62f9"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-linux-full-r5\\build.json",
+      "sha256": "35400cf7e77732e9fa0fdd85f4b13c02a262a3cdc4d091766c90ad7248a791ea"
+    }
+  ],
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\egl-sdk-win-r27\\results.json",
+      "sha256": "69aaf12bd0b6d98131502e730c3207f2463f2b9e109b2b29428e6c4572129b09",
+      "checks": 12,
+      "inputsUnchanged": true
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\egl-cleanup-win-r27\\results.json",
+      "sha256": "470a8e30d482998252be91c10a8cb191e0907c6ceb63480c5c344b6d34c80ff5",
+      "checks": 8,
+      "inputsUnchanged": true
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\gl-transaction-graphics-win-r2\\results.json",
+      "sha256": "c36d0794845e1ce60edaf42b29b73a307092196c7c3dcf77800fc77830a98f3e",
+      "checks": 44,
+      "inputsUnchanged": true
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\gl-loader-frozen-win-r1\\results.json",
+      "sha256": "f54fa73fb2dfda8c5ff7d3de32b796e0163f266119c92706ed0e98bb187f415e",
+      "checks": 30,
+      "inputsUnchanged": true
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\language-gl-win-r1\\results.json",
+      "sha256": "7e69a9fb374c35882078bda80c878dcab3e238170d50a33187d5df25787a8273",
+      "checks": 35,
+      "inputsUnchanged": true
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\gl-headers-win-r1\\results.json",
+      "sha256": "ac6c0af5ead11cb198cdd80beef665df8acf33515f8d264f9696fd478cdee963",
+      "checks": 8,
+      "inputsUnchanged": true
+    },
+    {
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/egl-sdk-linux-r27/results.json",
+      "sha256": "c5ce11e5238d77206217db5c6bcfc41fe41bf79b08e801e1feef7d08b7afeba3",
+      "checks": 12,
+      "inputsUnchanged": true
+    },
+    {
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/egl-cleanup-linux-r27/results.json",
+      "sha256": "e7a5933b92b169c9beb44a030213a636161098b98457eb7b7ab7d0327a6ce5b8",
+      "checks": 8,
+      "inputsUnchanged": true
+    },
+    {
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/gl-transaction-graphics-linux-r2/results.json",
+      "sha256": "9cd1471fcc2304050ad5c987374d20f2e8480cfdf1fff106d491e90d279dfed0",
+      "checks": 44,
+      "inputsUnchanged": true
+    },
+    {
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/gl-loader-frozen-linux-r1/results.json",
+      "sha256": "9159172cdbc724d5db52e4156e526e22abbbdadf27b028a6f8adb61c74f38f42",
+      "checks": 48,
+      "inputsUnchanged": true
+    },
+    {
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/language-gl-linux-r1/results.json",
+      "sha256": "ab4443d7cfcb61742c8fe6883ae25eb4333e7010eb0d9ab24e7b1e5199dd7e55",
+      "checks": 28,
+      "inputsUnchanged": true
+    },
+    {
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/gl-headers-linux-r1/results.json",
+      "sha256": "81b8817aab4e16f792d4ac43ce517ac7551924b19d43c76740655631489e4b0c",
+      "checks": 8,
+      "inputsUnchanged": true
+    },
+    {
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/egl-sdk-egl-linux-r27/results.json",
+      "sha256": "da41c00cc1d2ea48437598c224e3350be6fdabbcd407f457133f923d097ece48",
+      "checks": 49,
+      "inputsUnchanged": true
+    },
+    {
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/egl-cleanup-egl-linux-r27/results.json",
+      "sha256": "6c96d6a8e98dae432cd3abd10ab87df274ea9196a92af6f80b40143cb1363da1",
+      "checks": 57,
+      "inputsUnchanged": true
+    },
+    {
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/gl-startup-fixed-linux-r2/results.json",
+      "sha256": "271f03af13a1511456d6f9cc4fce2996dcee1de64a4f9caa6202442197fbd1f1",
+      "checks": 6,
+      "inputsUnchanged": true
+    },
+    {
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/language-gl-egl-linux-r1/results.json",
+      "sha256": "cc5e25e6731374999f1172296164baf0dc68486be7d7d0ca2d8d9acea450d853",
+      "checks": 28,
+      "inputsUnchanged": true
+    },
+    {
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/gl-headers-egl-linux-r1/results.json",
+      "sha256": "8a93211e883f8105fd6a36b3e724208f01d5f7e0e26a329284fc610eeae9b5c5",
+      "checks": 8,
+      "inputsUnchanged": true
+    }
+  ],
+  "buildRunChecks": 433,
+  "evidenceRechecks": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\context-safety-evidence-win-r1.json",
+      "sha256": "77137490bd955a79f0a27aee7494c056434663e8580f8b469df531c053a06803"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\context-safety-evidence-linux-r2.json",
+      "sha256": "612b33a725acb7d497cc76d5db2de95888c1967aef84a25874c52205bbd5d0d7"
+    }
+  ],
+  "packages": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-gl-host-win-r2.json",
+      "sha256": "e6caed46561d738c8497398c30d91e3cc561b6b7e5f87cb400baf330d11c07c1"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-gl-static-win-r2.json",
+      "sha256": "17ab944a6d92132b05ea69e66c4625106136d2f47ba27e6d0899eda5f96ce880"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-gl-host-linux-r2.json",
+      "sha256": "6aad786840e7d45195d37a446980c26660244d48febf7fde8a2e7151b378a45b"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-gl-static-linux-r2.json",
+      "sha256": "a4ce5545edfdb6e0efe7d25dcc41348a8ee4e84f188b9f001baf728705bfd07c"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-gl-egl-host-linux-r2.json",
+      "sha256": "bf48b01b77bac8720dc84e02e39dec52fb7dc947abb7bbdddb4623000dbc4357"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-gl-egl-static-linux-r2.json",
+      "sha256": "5d378dd6a6352e9106d6de6026890059d6a4590fde6047b230ba97d402245328"
+    }
+  ],
+  "surface": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-context-safety-r1\\surface.json",
+    "sha256": "6471ca1afef7b7afcc9d53ff1767361e701562c2673516992d7da5174d1f9dcc"
+  },
+  "qualificationBoundaries": [
+    "No owning EGL renderer/session acceptance; old raw Offscreen is not the managed API",
+    "Windows EGL SDK and runtime delivery remain unqualified",
+    "Actual Mesa/llvmpipe and bounded Sokol windows; no hardware performance claim",
+    "No change to global checked Unit resource Busy contract",
+    "Loader itself adds no heap allocation or draw-call bookkeeping; legacy resolver has one extra indirect callback per slot",
+    "Raw EGL/offscreen records grow by eight bytes on both measured x64 ABIs",
+    "Frozen native/compiler cohorts exclude concurrent XUI/LSP changes; release/IDE not installed"
+  ],
+  "networkTests": false,
+  "nativeRevision": "fda7bb397a6272cbccd929d4d06cfcc669cdf280"
+}

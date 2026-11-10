@@ -1,5 +1,8 @@
 # 宿主后端与离屏接入
 
+后续的 [GL 启动事务与 EGL checked 清理](xge3-context-safety.md) 补齐了拥有式上下文
+所需的错误与重试前置。它不把原始 EGL 记录或旧 Offscreen 直接算作受管渲染会话。
+
 本文件记录基础修复和剩余合同，不代表完整后端接入已经完成。
 
 已把原生窗口状态与图形上下文就绪拆开。Texture、Font、Buffer、Shader、Mesh、

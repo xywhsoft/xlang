@@ -14,10 +14,13 @@ static inline int fixtureEglRawAttempt(int surfaceless)
  xge_egl_context_t context;memset(&context,0,sizeof(context));
  int result=xgeEGLInit(&context,&desc);
  if(result==XGE_OK){
-  if(!context.bInitialized)result=XGE_ERROR_INVALID_STATE;
+  if(!context.bInitialized || !context.bCleanupPending)result=XGE_ERROR_INVALID_STATE;
   else result=xgeEGLMakeCurrent(&context);
  }
- xgeEGLUnit(&context);xgePlatformBackendSet(&platform);xgeGraphicsBackendSet(&graphics);
+ int cleanup=xgeEGLUnitChecked(&context);
+ if(result==XGE_OK && cleanup!=XGE_OK)result=cleanup;
+ if(context.bInitialized || context.bCleanupPending)result=XGE_ERROR_INVALID_STATE;
+ xgePlatformBackendSet(&platform);xgeGraphicsBackendSet(&graphics);
  return result;
 }
 #endif
