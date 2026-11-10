@@ -1,0 +1,92 @@
+{
+  "schema": 1,
+  "date": "2026-11-11",
+  "stage": "M7b4t",
+  "scope": "Conservative foreign/compiled native declaration rename policy with immutable all-provider propagation; ordinary references preserved",
+  "implementationAccepted": true,
+  "performanceQualified": false,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "47ef374fbda394075a3b0440f10dd4c3df6144d3",
+  "ownedSources": {
+    "ide/src/analysis/rename_policy.h": "a21504dd11a687dca7914a1c5a9a80032c639b780dee226ffe475d7bf6c0fded",
+    "ide/src/analysis/frontend_rename_policy.inc": "7c9163fa433dfc08e886d4a22df7045820e324753c30f24ecf0a4d599ebcc6b9",
+    "ide/src/analysis/frontend_index.inc": "dde9446b4e4525d52d38b9fdc989e761ce05563ca348237fd94e39b1251250b3",
+    "ide/src/services/semantic_reference_shard.h": "1f945029c5f6285782f5fa2bea43a9ce931162a589a000399f5e96782f3f2e13",
+    "ide/src/services/semantic_reference_family.inc": "ac81d34b6a7f48f3f187c7799ce218c19edb22aec82224a9bbe637d4d3d42dab",
+    "ide/src/services/semantic_reference_graph.inc": "10ebb7f52e33fccb49bde635b277c2b545efc3f11c689cf86abd3fb190d78c0f",
+    "ide/src/services/semantic_reference_merge.inc": "5512041da2d6f137acf5ad3f5bd7fe9d735d34945706e1aab1b464c0bd3db131",
+    "ide/src/services/project_rename_workspace.inc": "3ea9ee81f33eecfd1808aa68642779a30e5daa4c56c27c5a8f9b9ee5161d9027",
+    "ide/tests/semantic_rename_policy_test.c": "d62ed146bfb6749a1c12180c5c068069ea37bbb5a1bcb2dfb6fb2f75f8932a7c",
+    "ide/tests/project_rename_recheck_test.c": "f6d17b17c0e97935582241f68648630d20b9eeecae00080224214392509c4d11",
+    "ide/tools/build_lsp_core.py": "a2187f57ee358ce67442486b597dd1b585f870070f91f1b54fd1d2862a7531c9",
+    "ide/docs/lsp-rename-foreign-policy.md": "e3771962e4c714ecca69f08e8014218fbc24715b028f281a040586e2fb3a153e",
+    "ide/docs/lsp-rename-native-recheck.md": "1433f0e5e5087798f172621519e82c1317708c2ed0aa749f0dba0d68059c6a1c"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-rename-foreign-policy-20261111.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-rename-foreign-policy-20261111/stage-sources.tar.gz",
+      "sha256": "e31ca81c4f66e4f376653f02f65f7236a15bbfd6e8e92ca415b5dd623e62c137",
+      "bytes": 63262,
+      "entries": 14,
+      "uniquePayloads": 14,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-rename-foreign-policy-20261111/stage-sources.tar.gz.manifest.json",
+      "sha256": "5e60b398fcea71196cbb98001ddbfc27bd06d09b4d740008d9f7fd7c66f2cb00",
+      "bytes": 3400
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-rename-foreign-policy-20261111/actual-builds-and-validation.tar.gz",
+      "sha256": "b46e189dc921e70ff33d0662d87d65c7b66341506f204dfa6107adfc9e386efb",
+      "bytes": 984535390,
+      "entries": 8626,
+      "uniquePayloads": 5129,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-rename-foreign-policy-20261111/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "aa067b39dca46f62df08fa23d0d2b655c0a810102ad352e88dd9d5ae64ebc00d",
+      "bytes": 2971778
+    }
+  },
+  "service": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-rename-foreign-policy-20261111\\qualified-v3\\xlang-ls.exe",
+    "sha256": "df290f266bb8882e95751487d146070ac854b2f8cd9c827d95fd44f049cb4d74"
+  },
+  "correctness": {
+    "selectedActualCompileConsumers": 305,
+    "fullBuild": "full-v2/build-result.json",
+    "qualified": "qualified-v3/build-result.json",
+    "nativePrograms": 189,
+    "inheritedUnaffected": 155,
+    "subsequentPrograms": 34,
+    "policyAssertions": 1112,
+    "actorAssertions": 418,
+    "protocolSuites": 13,
+    "guiObjects": 116,
+    "guiFixtures": 29,
+    "actualMutantsRejected": 4,
+    "mutantReceipt": "mutants-v3/result.json",
+    "specificFailedAssertionsVerified": true,
+    "compiledMarkerInjectionIsNotLoaderQualification": true,
+    "rawFailedFixtureAndAdapterAttemptsRetained": true
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "limits": [
+    "Conservative exclusion includes explicit foreign aliases and declarations below foreign ABI owners",
+    "Candidate actor still captures the complete observed declaration family before applying this policy",
+    "Complete generic/unbound/generated coverage, physical alias/write policy and IDE atomic edit transaction remain open; renameProvider remains disabled",
+    "Full interactive latency/memory/scale/soak and later concurrent frontend/runtime alignment remain open"
+  ]
+}

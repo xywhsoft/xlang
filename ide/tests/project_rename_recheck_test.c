@@ -56,9 +56,30 @@ static int conflictWorkspace(const char* base,const char* name,const char* raw,c
  CHECK(checkedCandidate(xideProjectReferencesSubmitRenamePlan(store,scope,seed,NULL,0,NULL,testView(replacement)),0,"bindings",1));
  xideProjectReferencesDestroy(store);xideToolchainsDestroy(cache);xideRenameTargetRelease(seed);xideRenameScopeRelease(scope);xlsContextRelease(ctx);xrtFree(entry);xrtFree(project);xrtFree(compiler);xrtFree(dir);return 1;
 }
+static int foreignWorkspace(const char* base)
+{
+ const char* raw="extern \"native_call\" func nativeCall(c_int number) as c_int\nfunc main(...) as int\n return int(nativeCall(c_int(1)))\nend\n";
+ char* dir=xrtPathJoin(base,"foreign-policy");CHECK(dir && xrtDirCreateAll(dir));
+ char *entry=xrtPathJoin(dir,"main.xl"),*project=xrtPathJoin(dir,"project.xlp"),*compiler=xrtPathJoin(dir,"absent-xl.exe");CHECK(entry && project && compiler && writeText(entry,raw));
+ const char* members[]={entry};xls_context* ctx=context(project,dir,entry,members,1);xide_rename_scope* scope=ctx?recheckScope(ctx):NULL;xide_rename_target* seed=recheckSeed(entry,raw,"nativeCall(c_int");CHECK(ctx && scope && seed);
+ xide_toolchains* cache=xideToolchainsCreate();xide_project_references* store=xideProjectReferencesCreate(cache,compiler,NULL);CHECK(cache && store);
+ /* The same cached provider remains usable for references; policy is a rename
+  * gate, before collecting edits or running hypothetical native checks. */
+ xls_text* text=xlsTextCreate(raw,strlen(raw),strlen(raw),NULL);CHECK(text);xls_analysis_document document={"entry",entry,text,1,1};
+ for(size_t pass=0;pass<2;++pass){
+  xide_reference_query* q=xideProjectReferencesSubmitFamilyReferences(store,scope,seed,&document,1,"entry");CHECK(q);const xvalue* rows=NULL;char error[512]={0};xide_project_reference_stats stats;enum xide_reference_query_state state;
+  for(size_t i=0;;++i){state=xideProjectReferencesResult(q,&rows,&stats,error,sizeof(error));if(state!=XIDE_REFERENCES_PENDING)break;if(i>=10000)CHECK(0);xrtSleep(1);}
+  CHECK(state==XIDE_REFERENCES_READY && rows && xrtValueCount(rows)==2);xide_reference_family* family=xideProjectReferencesRetainFamily(q);CHECK(family && xideSemanticReferenceFamilyRenamePolicy(family)==XLS_RENAME_POLICY_FOREIGN);xideSemanticReferenceFamilyRelease(family);xideProjectReferencesQueryDestroy(q);
+  q=xideProjectReferencesSubmitRenamePlan(store,scope,seed,NULL,0,NULL,testView("renamedCall"));CHECK(q);rows=NULL;memset(&stats,0,sizeof(stats));
+  for(size_t i=0;;++i){state=xideProjectReferencesResult(q,&rows,&stats,error,sizeof(error));if(state!=XIDE_REFERENCES_PENDING)break;if(i>=10000)CHECK(0);xrtSleep(1);}
+  CHECK(state==XIDE_REFERENCES_FAILED && !rows && strstr(error,"foreign ABI") && !stats.renameRechecks && !xideProjectReferencesRetainRenamePlan(q));xideProjectReferencesQueryDestroy(q);
+ }
+ size_t size=0;unsigned char* bytes=xrtFileReadAll(entry,&size);CHECK(bytes && size==strlen(raw) && !memcmp(bytes,raw,size));xrtFree(bytes);
+ xideProjectReferencesDestroy(store);xideToolchainsDestroy(cache);xideRenameTargetRelease(seed);xideRenameScopeRelease(scope);xlsContextRelease(ctx);xlsTextRelease(text);xrtFree(entry);xrtFree(project);xrtFree(compiler);xrtFree(dir);return 1;
+}
 int main(void)
 {
- char* dir=xrtPathAbs("build/project-recheck");if(!dir || !xrtDirCreateAll(dir) || !runDraft() || !wideWorkspace(dir,0) || !wideWorkspace(dir,1) ||
+ char* dir=xrtPathAbs("build/project-recheck");if(!dir || !xrtDirCreateAll(dir) || !runDraft() || !foreignWorkspace(dir) || !wideWorkspace(dir,0) || !wideWorkspace(dir,1) ||
   !conflictWorkspace(dir,"capture","func main(...) as int\n int kept=7\n if true\n int value=1\n print(kept)\n print(value)\n end\n return kept\nend\n","value=","kept") ||
   !conflictWorkspace(dir,"overload","func first(int x) as int\n return x\nend\nfunc second(float x) as int\n return 2\nend\nfunc main(...) as int\n return second(1)\nend\n","first(","second"))return 1;
  xrtFree(dir);printf("project_rename_recheck_test passed: %u checks; actual130-file actor candidate checks, complete binding capture/overload conflicts, guarded unchanged providers, cache reuse, no source writes and post-check source mutation rejection\n",checks);return 0;

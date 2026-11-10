@@ -3,7 +3,7 @@
 #define XIDE_GRAPH_ALLOC XIDE_REFERENCE_ALLOC
 #endif
 typedef struct graph_entry {uint32_t source,start,end,component,next;int units;} graph_entry;
-typedef struct graph_component {uint32_t first,members,relations;unsigned kinds,unsupported;} graph_component;
+typedef struct graph_component {uint32_t first,members,relations;unsigned kinds,unsupported,renamePolicy;} graph_component;
 struct xide_reference_graph {
  xatomic32 references;size_t ownedBytes,count,components,relations;
  xide_reference_shard* shard;graph_entry* entries;graph_component* groups;
@@ -20,9 +20,9 @@ int xideSemanticReferenceGraphComponentAt(const xide_reference_graph* g,size_t a
 {if(out)*out=(xide_reference_graph_component){0};if(!g || !out || at>=g->components)return 0;const graph_component* c=g->groups+at;*out=(xide_reference_graph_component){c->members,c->relations,c->kinds,(int)c->unsupported};return 1;}
 xide_reference_shard* xideSemanticReferenceGraphRetainShard(xide_reference_graph* g)
 {return g ? xideSemanticReferenceShardRetain(g->shard) : NULL;}
-static family_location graphDeclaration(const xide_semantic_definitions* d,const declaration* item,uint32_t ordinal)
+static family_location graphDeclaration(const xide_semantic_definitions* d,const xls_semantic_index* index,const declaration* item,uint32_t ordinal)
 {
- family_location loc={.index=ordinal};if(item->node!=SIZE_MAX){const span* s=&d->nodes[item->node].selection;if(s->source && s->startOffset>=0 && s->endOffset>s->startOffset){loc.source=(uint32_t)s->source;loc.start=(uint32_t)s->startOffset;loc.end=(uint32_t)s->endOffset;}}return loc;
+ family_location loc={.index=ordinal,.renamePolicy=XLS_RENAME_POLICY_UNSUPPORTED};if(item->node!=SIZE_MAX){loc.renamePolicy=familyRenamePolicy(index,item->node);const span* s=&d->nodes[item->node].selection;if(s->source && s->startOffset>=0 && s->endOffset>s->startOffset){loc.source=(uint32_t)s->source;loc.start=(uint32_t)s->startOffset;loc.end=(uint32_t)s->endOffset;}}return loc;
 }
 xide_reference_graph* xideSemanticReferenceGraphCreate(xls_projection_store* cache,xls_semantic_check* check,
  const xide_semantic_source* sources,size_t sourceCount,size_t limit,int (*cancelled)(void*),void* user,enum xide_reference_family_error* output)
@@ -32,6 +32,7 @@ xide_reference_graph* xideSemanticReferenceGraphCreate(xls_projection_store* cac
  if(!check || !sources || !sourceCount || limit>XIDE_REFERENCE_BYTES)goto done;
  if(familyStopped(cancelled,user)){why=XIDE_REFERENCE_FAMILY_CANCELLED;goto done;}
  d=xideSemanticDefinitionsAcquireTyped(cache,check,sources,sourceCount,&lease,NULL,NULL);if(!d || d->native)goto done;
+ const xls_semantic_index* index=xlsSemanticCheckTypedIndex(check);if(!index)goto done;
  int shardQuota=0;shard=referenceShardCapture(d,sources,sourceCount,limit,&shardQuota);why=shardQuota>0 ? XIDE_REFERENCE_FAMILY_LIMIT : shardQuota<0 ? XIDE_REFERENCE_FAMILY_INVALID : XIDE_REFERENCE_FAMILY_MEMORY;if(!shard)goto done;
  why=XIDE_REFERENCE_FAMILY_LIMIT;if(shard->bytes>=limit)goto done;
  enum xls_callable_error ce;size_t remaining=limit-shard->bytes;callables=xlsSemanticCheckCallableRelations(check,remaining>32u*1024u*1024u ? 32u*1024u*1024u : remaining,cancelled,user,&ce);
@@ -50,8 +51,8 @@ xide_reference_graph* xideSemanticReferenceGraphCreate(xls_projection_store* cac
  size_t idCount=0;
  for(size_t i=0;i<idsCap;++i){if(!(i%64) && familyStopped(cancelled,user)){why=XIDE_REFERENCE_FAMILY_CANCELLED;goto done;}if(!i || ids[i]!=ids[i-1])ids[idCount++]=ids[i];}
  size_t count=0;
- for(size_t i=0;i<idCount;++i){if(!(i%64) && familyStopped(cancelled,user)){why=XIDE_REFERENCE_FAMILY_CANCELLED;goto done;}loc[count]=familyDeclaration(d,ids[i],(uint32_t)count);++count;}
- for(size_t i=0;i<d->declCount+d->typeCount;++i){if(!(i%64) && familyStopped(cancelled,user)){why=XIDE_REFERENCE_FAMILY_CANCELLED;goto done;}const declaration* item=i<d->declCount ? d->declarations+i : d->typeDeclarations+i-d->declCount;family_location at=graphDeclaration(d,item,(uint32_t)count);if(at.source)loc[count++]=at;}
+ for(size_t i=0;i<idCount;++i){if(!(i%64) && familyStopped(cancelled,user)){why=XIDE_REFERENCE_FAMILY_CANCELLED;goto done;}loc[count]=familyDeclaration(d,index,ids[i],(uint32_t)count);++count;}
+ for(size_t i=0;i<d->declCount+d->typeCount;++i){if(!(i%64) && familyStopped(cancelled,user)){why=XIDE_REFERENCE_FAMILY_CANCELLED;goto done;}const declaration* item=i<d->declCount ? d->declarations+i : d->typeDeclarations+i-d->declCount;family_location at=graphDeclaration(d,index,item,(uint32_t)count);if(at.source)loc[count++]=at;}
  for(size_t i=0;i<count;++i){if(!(i%64) && familyStopped(cancelled,user)){why=XIDE_REFERENCE_FAMILY_CANCELLED;goto done;}parents[i]=(uint32_t)i;}
  if(count){memset(rank,0,count);qsort(loc,count,sizeof(*loc),familyLocationOrder);}
  for(size_t i=1;i<count;++i){if(!(i%64) && familyStopped(cancelled,user)){why=XIDE_REFERENCE_FAMILY_CANCELLED;goto done;}if(familySameLocation(loc+i-1,loc+i))familyJoin(parents,rank,loc[i-1].index,loc[i].index);}
@@ -68,7 +69,7 @@ xide_reference_graph* xideSemanticReferenceGraphCreate(xls_projection_store* cac
  size_t at=0;
  for(size_t i=0;i<count;++i){
   if(!(i%64) && familyStopped(cancelled,user)){why=XIDE_REFERENCE_FAMILY_CANCELLED;goto done;}
-  uint32_t component=parents[loc[i].index];graph_component* c=g->groups+component;
+  uint32_t component=parents[loc[i].index];graph_component* c=g->groups+component;c->renamePolicy|=loc[i].renamePolicy;
   if(!loc[i].source){c->unsupported=1;continue;}
   if(i && familySameLocation(loc+i-1,loc+i))continue;
   if(loc[i].source>shard->sources){why=XIDE_REFERENCE_FAMILY_INVALID;goto done;}reference_source* source=shard->source+loc[i].source-1;
@@ -104,7 +105,7 @@ xide_reference_family* xideSemanticReferenceGraphFamily(xide_reference_graph* g,
  why=XIDE_REFERENCE_FAMILY_ABSENT;if(low>=g->count)goto done;const graph_entry* selected=g->entries+low;if(selected->source!=source || selected->start!=key->start || selected->end!=key->end)goto done;
  const graph_component* c=g->groups+selected->component;why=XIDE_REFERENCE_FAMILY_UNSUPPORTED;if(c->unsupported || !c->members || selected->units!=key->identifierUnits)goto done;
  size_t bytes=sizeof(*f);why=XIDE_REFERENCE_FAMILY_LIMIT;if((size_t)c->members>limit/sizeof(family_member) || !referenceCharge(&bytes,(size_t)c->members*sizeof(family_member),limit) || bytes>SIZE_MAX-g->ownedBytes-g->shard->bytes)goto done;
- f=XIDE_GRAPH_ALLOC(bytes);why=XIDE_REFERENCE_FAMILY_MEMORY;if(!f)goto done;memset(f,0,sizeof(*f));xrtAtomic32Init(&f->references,1);f->graph=xideSemanticReferenceGraphRetain(g);f->bytes=bytes+g->ownedBytes+g->shard->bytes;f->count=c->members;f->relations=c->relations;f->kinds=c->kinds;f->source=g->shard->source;f->members=(family_member*)(f+1);size_t at=0;uint32_t previous=0;
+ f=XIDE_GRAPH_ALLOC(bytes);why=XIDE_REFERENCE_FAMILY_MEMORY;if(!f)goto done;memset(f,0,sizeof(*f));xrtAtomic32Init(&f->references,1);f->graph=xideSemanticReferenceGraphRetain(g);f->bytes=bytes+g->ownedBytes+g->shard->bytes;f->count=c->members;f->relations=c->relations;f->kinds=c->kinds;f->renamePolicy=c->renamePolicy;f->source=g->shard->source;f->members=(family_member*)(f+1);size_t at=0;uint32_t previous=0;
  for(uint32_t entry=c->first;entry!=UINT32_MAX;entry=g->entries[entry].next){if(!(at%64) && familyStopped(cancelled,user)){why=XIDE_REFERENCE_FAMILY_CANCELLED;goto done;}const graph_entry* e=g->entries+entry;if(at>=f->count || e->component!=selected->component){why=XIDE_REFERENCE_FAMILY_INVALID;goto done;}if(previous!=e->source){++f->sources;previous=e->source;}f->members[at++]=(family_member){e->source-1,e->start,e->end,e->units};}
  if(at!=f->count){why=XIDE_REFERENCE_FAMILY_INVALID;goto done;}
  why=familyStopped(cancelled,user) ? XIDE_REFERENCE_FAMILY_CANCELLED : XIDE_REFERENCE_FAMILY_OK;

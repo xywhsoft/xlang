@@ -1,6 +1,7 @@
 #ifndef XIDE_SEMANTIC_REFERENCE_SHARD_H
 #define XIDE_SEMANTIC_REFERENCE_SHARD_H
 #include "services/semantic_definition.h"
+#include "analysis/rename_policy.h"
 #ifdef XLS_COMPILER_XRT
 typedef struct xide_reference_shard xide_reference_shard;
 typedef struct xide_reference_key xide_reference_key;
@@ -110,6 +111,11 @@ xide_reference_family* xideSemanticReferenceFamilyCreate(xls_projection_store*,x
 xide_reference_family* xideSemanticReferenceFamilyRetain(xide_reference_family*);
 void xideSemanticReferenceFamilyRelease(xide_reference_family*);
 int xideSemanticReferenceFamilyInfo(const xide_reference_family*,xide_reference_family_info*);
+/* OR of conservative native exclusions from every connected provider member.
+ * Immutable after capture, including graph composition and detached readers.
+ * Nonzero rejects semantic rename; ordinary reference/family queries still work.
+ * NULL returns UNSUPPORTED. Zero is not authorization to apply an edit. */
+unsigned xideSemanticReferenceFamilyRenamePolicy(const xide_reference_family*);
 /* New independently owned key lease, borrowing the retained family payload.
  * Outlives the family handle and original check. KeyBytes conservatively
  * charges its header plus the ENTIRE retained family, not merely this source.

@@ -4,9 +4,9 @@
 #define XIDE_FAMILY_ALLOC XIDE_REFERENCE_ALLOC
 #endif
 typedef struct family_member {uint32_t source,start,end;int units;} family_member;
-typedef struct family_location {uint32_t index,source,start,end;int units;} family_location;
+typedef struct family_location {uint32_t index,source,start,end;int units;unsigned renamePolicy;} family_location;
 struct xide_reference_family {
- xatomic32 references;size_t bytes,count,sources,relations;unsigned kinds;
+ xatomic32 references;size_t bytes,count,sources,relations;unsigned kinds,renamePolicy;
  reference_source* source;family_member* members;
  xide_reference_graph* graph;
 };
@@ -25,6 +25,8 @@ int xideSemanticReferenceFamilyMember(const xide_reference_family* f,size_t at,x
  const family_member* m=f->members+at;const reference_source* s=f->source+m->source;
  *source=(xide_semantic_source){s->path,s->text,s->kind,s->prefix};*start=m->start;*end=m->end;return 1;
 }
+unsigned xideSemanticReferenceFamilyRenamePolicy(const xide_reference_family* f)
+{return f ? f->renamePolicy : XLS_RENAME_POLICY_UNSUPPORTED;}
 xide_reference_key* xideSemanticReferenceFamilyKey(xide_reference_family* f,size_t at)
 {
  if(!f || at>=f->count || f->bytes>SIZE_MAX-sizeof(xide_reference_key))return NULL;
@@ -44,10 +46,12 @@ static void familyJoin(uint32_t* parents,unsigned char* rank,uint32_t a,uint32_t
 {a=familyFind(parents,a);b=familyFind(parents,b);if(a==b)return;if(rank[a]<rank[b])parents[a]=b;else{parents[b]=a;if(rank[a]==rank[b])++rank[a];}}
 static uint32_t familyId(const uint32_t* ids,size_t count,uint32_t id)
 {size_t lo=0,hi=count;while(lo<hi){size_t mid=lo+(hi-lo)/2;if(ids[mid]<id)lo=mid+1;else hi=mid;}return lo<count && ids[lo]==id?(uint32_t)lo:UINT32_MAX;}
-static family_location familyDeclaration(const xide_semantic_definitions* d,uint32_t id,uint32_t ordinal)
+static unsigned familyRenamePolicy(const xls_semantic_index* index,size_t at)
+{unsigned policy=XLS_RENAME_POLICY_UNSUPPORTED;return xlsSemanticIndexRenamePolicy(index,at,&policy) ? policy : XLS_RENAME_POLICY_UNSUPPORTED;}
+static family_location familyDeclaration(const xide_semantic_definitions* d,const xls_semantic_index* index,uint32_t id,uint32_t ordinal)
 {
  declaration key={id,0};const declaration* found=bsearch(&key,d->declarations,d->declCount,sizeof(*d->declarations),compareDeclaration);
- family_location out={.index=ordinal};if(found && found->node!=SIZE_MAX){const span* s=&d->nodes[found->node].selection;if(s->source && s->startOffset>=0 && s->endOffset>s->startOffset){out.source=(uint32_t)s->source;out.start=(uint32_t)s->startOffset;out.end=(uint32_t)s->endOffset;}}return out;
+ family_location out={.index=ordinal,.renamePolicy=XLS_RENAME_POLICY_UNSUPPORTED};if(found && found->node!=SIZE_MAX){out.renamePolicy=familyRenamePolicy(index,found->node);const span* s=&d->nodes[found->node].selection;if(s->source && s->startOffset>=0 && s->endOffset>s->startOffset){out.source=(uint32_t)s->source;out.start=(uint32_t)s->startOffset;out.end=(uint32_t)s->endOffset;}}return out;
 }
 static int familyCopy(char* target,const char* source,size_t bytes,int (*cancelled)(void*),void* user)
 {while(bytes){if(familyStopped(cancelled,user))return 0;size_t n=bytes>65536?65536:bytes;memcpy(target,source,n);target+=n;source+=n;bytes-=n;}return 1;}
@@ -63,16 +67,17 @@ xide_reference_family* xideSemanticReferenceFamilyCreate(xls_projection_store* c
  if(familyStopped(cancelled,user)){why=XIDE_REFERENCE_FAMILY_CANCELLED;goto done;}
  if(key->identifierUnits<=0){why=XIDE_REFERENCE_FAMILY_UNSUPPORTED;goto done;}
  d=xideSemanticDefinitionsAcquireTyped(cache,check,sources,sourceCount,&lease,NULL,NULL);if(!d)goto done;
+ const xls_semantic_index* index=xlsSemanticCheckTypedIndex(check);if(!index)goto done;
  int source=sourceFor(d,key->path);why=XIDE_REFERENCE_FAMILY_ABSENT;if(!source)goto done;
  xls_input_source seedSource;if(!xlsSemanticCheckSource(check,(size_t)source-1,&seedSource) || sources[source-1].kind!=key->kind || seedSource.size!=key->size || memcmp(sources[source-1].text,key->text,key->size)){why=XIDE_REFERENCE_FAMILY_INVALID;goto done;}
  family_location seed={.source=(uint32_t)source,.start=key->start,.end=key->end,.units=key->identifierUnits};int foundSeed=0;
- for(size_t i=0;i<d->declCount+d->typeCount;++i){if(!(i%64) && familyStopped(cancelled,user)){why=XIDE_REFERENCE_FAMILY_CANCELLED;goto done;}const declaration* item=i<d->declCount?d->declarations+i:d->typeDeclarations+i-d->declCount;if(item->node==SIZE_MAX)continue;const span* s=&d->nodes[item->node].selection;if(s->source==source && s->startOffset==(int)key->start && s->endOffset==(int)key->end){foundSeed=1;break;}}
+ for(size_t i=0;i<d->declCount+d->typeCount;++i){if(!(i%64) && familyStopped(cancelled,user)){why=XIDE_REFERENCE_FAMILY_CANCELLED;goto done;}const declaration* item=i<d->declCount?d->declarations+i:d->typeDeclarations+i-d->declCount;if(item->node==SIZE_MAX)continue;const span* s=&d->nodes[item->node].selection;if(s->source==source && s->startOffset==(int)key->start && s->endOffset==(int)key->end){foundSeed=1;seed.renamePolicy|=familyRenamePolicy(index,item->node);}}
  if(!foundSeed)goto done;
  xls_dispatch_info info;if(!xlsSemanticCheckDispatchInfo(check,&info)){why=XIDE_REFERENCE_FAMILY_INVALID;goto done;}
  enum xls_callable_error groupError;groups=xlsSemanticCheckCallableRelations(check,limit>32u*1024u*1024u ? 32u*1024u*1024u : limit,cancelled,user,&groupError);
  if(!groups){why=groupError==XLS_CALLABLE_LIMIT ? XIDE_REFERENCE_FAMILY_LIMIT : groupError==XLS_CALLABLE_MEMORY ? XIDE_REFERENCE_FAMILY_MEMORY : groupError==XLS_CALLABLE_CANCELLED ? XIDE_REFERENCE_FAMILY_CANCELLED : XIDE_REFERENCE_FAMILY_INVALID;goto done;}
  size_t dispatch=info.classes+info.protocols,groupCount=xlsCallableRelationsCount(groups),groupBytes=xlsCallableRelationsBytes(groups);why=XIDE_REFERENCE_FAMILY_LIMIT;if(groupCount>SIZE_MAX-dispatch || groupBytes>limit)goto done;limit-=groupBytes;
- size_t edges=dispatch+groupCount,scratchBytes=0,members=1;family_location* locations=&seed;unsigned kinds=0;size_t connected=0;
+ size_t edges=dispatch+groupCount,scratchBytes=0,members=1;family_location* locations=&seed;unsigned kinds=0,renamePolicy=seed.renamePolicy;size_t connected=0;
  if(edges){
   why=XIDE_REFERENCE_FAMILY_LIMIT;if(edges>UINT32_MAX/2)goto done;size_t cap=edges*2;
   if(cap>(SIZE_MAX-sizeof(family_location))/(2*sizeof(uint32_t)+2+sizeof(family_location)))goto done;
@@ -82,13 +87,13 @@ xide_reference_family* xideSemanticReferenceFamilyCreate(xls_projection_store* c
   for(size_t i=0;i<edges;++i){if(!(i%64) && familyStopped(cancelled,user)){why=XIDE_REFERENCE_FAMILY_CANCELLED;goto done;}xls_dispatch_relation r;if(!familyRelation(check,dispatch,groups,i,&r)){why=XIDE_REFERENCE_FAMILY_INVALID;goto done;}ids[2*i]=r.declaration;ids[2*i+1]=r.implementation;}
   qsort(ids,cap,sizeof(*ids),familyIdOrder);size_t count=0;for(size_t i=0;i<cap;++i){if(!(i%64) && familyStopped(cancelled,user)){why=XIDE_REFERENCE_FAMILY_CANCELLED;goto done;}if(!i || ids[i]!=ids[i-1])ids[count++]=ids[i];}
   memset(rank,0,count);memset(wanted,0,count);
-  for(size_t i=0;i<count;++i){if(!(i%64) && familyStopped(cancelled,user)){why=XIDE_REFERENCE_FAMILY_CANCELLED;goto done;}parents[i]=(uint32_t)i;locations[i]=familyDeclaration(d,ids[i],(uint32_t)i);}
+  for(size_t i=0;i<count;++i){if(!(i%64) && familyStopped(cancelled,user)){why=XIDE_REFERENCE_FAMILY_CANCELLED;goto done;}parents[i]=(uint32_t)i;locations[i]=familyDeclaration(d,index,ids[i],(uint32_t)i);}
   qsort(locations,count,sizeof(*locations),familyLocationOrder);
   for(size_t i=1;i<count;++i){if(!(i%64) && familyStopped(cancelled,user)){why=XIDE_REFERENCE_FAMILY_CANCELLED;goto done;}if(familySameLocation(locations+i-1,locations+i))familyJoin(parents,rank,locations[i-1].index,locations[i].index);}
   for(size_t i=0;i<edges;++i){if(!(i%64) && familyStopped(cancelled,user)){why=XIDE_REFERENCE_FAMILY_CANCELLED;goto done;}xls_dispatch_relation r;if(!familyRelation(check,dispatch,groups,i,&r)){why=XIDE_REFERENCE_FAMILY_INVALID;goto done;}uint32_t a=familyId(ids,count,r.declaration),b=familyId(ids,count,r.implementation);if(a==UINT32_MAX || b==UINT32_MAX){why=XIDE_REFERENCE_FAMILY_INVALID;goto done;}familyJoin(parents,rank,a,b);}
   for(size_t i=0;i<count;++i){if(!(i%64) && familyStopped(cancelled,user)){why=XIDE_REFERENCE_FAMILY_CANCELLED;goto done;}if(familySameLocation(locations+i,&seed))wanted[familyFind(parents,locations[i].index)]=1;}
   members=0;
-  for(size_t i=0;i<count;++i){if(!(i%64) && familyStopped(cancelled,user)){why=XIDE_REFERENCE_FAMILY_CANCELLED;goto done;}if(!wanted[familyFind(parents,locations[i].index)])continue;if(!locations[i].source){why=XIDE_REFERENCE_FAMILY_UNSUPPORTED;goto done;}if(!members || !familySameLocation(locations+members-1,locations+i))locations[members++]=locations[i];}
+  for(size_t i=0;i<count;++i){if(!(i%64) && familyStopped(cancelled,user)){why=XIDE_REFERENCE_FAMILY_CANCELLED;goto done;}if(!wanted[familyFind(parents,locations[i].index)])continue;renamePolicy|=locations[i].renamePolicy;if(!locations[i].source){why=XIDE_REFERENCE_FAMILY_UNSUPPORTED;goto done;}if(!members || !familySameLocation(locations+members-1,locations+i))locations[members++]=locations[i];}
   if(!members){locations[0]=seed;members=1;}
   for(size_t i=0;i<edges;++i){if(!(i%64) && familyStopped(cancelled,user)){why=XIDE_REFERENCE_FAMILY_CANCELLED;goto done;}xls_dispatch_relation r;if(!familyRelation(check,dispatch,groups,i,&r)){why=XIDE_REFERENCE_FAMILY_INVALID;goto done;}uint32_t a=familyId(ids,count,r.declaration);if(a==UINT32_MAX){why=XIDE_REFERENCE_FAMILY_INVALID;goto done;}if(wanted[familyFind(parents,a)]){++connected;kinds|=r.kind;}}
  }
@@ -98,7 +103,7 @@ xide_reference_family* xideSemanticReferenceFamilyCreate(xls_projection_store* c
   if(previous!=at->source){xls_input_source captured;if(!xlsSemanticCheckSource(check,at->source-1,&captured)){why=XIDE_REFERENCE_FAMILY_INVALID;goto done;}sourceBytes=captured.size;++files;if(!referenceCharge(&bytes,sizeof(reference_source),limit-scratchBytes) || !referenceCharge(&bytes,strlen(s->path)+1,limit-scratchBytes) || !referenceCharge(&bytes,sourceBytes+1,limit-scratchBytes))goto done;previous=at->source;}
   if(!(s->kind&1) || at->end<=at->start || at->end>sourceBytes || at->end-at->start!=key->end-key->start || memcmp(s->text+at->start,key->text+key->start,key->end-key->start) || (at->units=referenceIdentifierUnits(s->text+at->start,at->end-at->start))!=key->identifierUnits){why=XIDE_REFERENCE_FAMILY_UNSUPPORTED;goto done;}
  }
- family=XIDE_FAMILY_ALLOC(bytes);why=XIDE_REFERENCE_FAMILY_MEMORY;if(!family)goto done;memset(family,0,sizeof(*family));xrtAtomic32Init(&family->references,1);family->bytes=bytes;family->count=members;family->sources=files;family->relations=connected;family->kinds=kinds;family->source=(reference_source*)(family+1);family->members=(family_member*)(family->source+files);char* text=(char*)(family->members+members);previous=0;size_t current=0;
+ family=XIDE_FAMILY_ALLOC(bytes);why=XIDE_REFERENCE_FAMILY_MEMORY;if(!family)goto done;memset(family,0,sizeof(*family));xrtAtomic32Init(&family->references,1);family->bytes=bytes;family->count=members;family->sources=files;family->relations=connected;family->kinds=kinds;family->renamePolicy=renamePolicy;family->source=(reference_source*)(family+1);family->members=(family_member*)(family->source+files);char* text=(char*)(family->members+members);previous=0;size_t current=0;
  for(size_t i=0;i<members;++i){if(!(i%64) && familyStopped(cancelled,user)){why=XIDE_REFERENCE_FAMILY_CANCELLED;goto done;}const family_location* at=locations+i;const xide_semantic_source* s=sources+at->source-1;
   if(previous!=at->source){xls_input_source captured;if(!xlsSemanticCheckSource(check,at->source-1,&captured)){why=XIDE_REFERENCE_FAMILY_INVALID;goto done;}reference_source* owned=family->source+current++;size_t pathBytes=strlen(s->path)+1;owned->path=text;owned->size=captured.size;owned->kind=s->kind;owned->prefix=s->utf16Prefix;why=XIDE_REFERENCE_FAMILY_CANCELLED;if(!familyCopy(text,s->path,pathBytes,cancelled,user))goto done;text+=pathBytes;owned->text=text;if(!familyCopy(text,s->text,owned->size+1,cancelled,user))goto done;text+=owned->size+1;previous=at->source;}
   family->members[i]=(family_member){(uint32_t)current-1,at->start,at->end,at->units};

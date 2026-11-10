@@ -1,6 +1,6 @@
 /* Batch union of original provider components; no binding/name inference. */
 typedef struct merge_source {const reference_source* source;wchar_t* key;uint32_t index;} merge_source;
-typedef struct merge_declaration {size_t relations;uint32_t source,start,end,index;int units;unsigned kinds,unsupported;} merge_declaration;
+typedef struct merge_declaration {size_t relations;uint32_t source,start,end,index;int units;unsigned kinds,unsupported,renamePolicy;} merge_declaration;
 static int mergeSourceOrder(const void* a,const void* b)
 {const merge_source *x=a,*y=b;int n=xidePathNativeKeyCompare(x->key,y->key);return n ? n : unsignedOrder(x->index,y->index);}
 static int mergeDeclarationOrder(const void* a,const void* b)
@@ -54,7 +54,7 @@ xide_reference_family* xideSemanticReferenceGraphsFamily(xide_reference_graph* c
   for(size_t j=0;j<g->count;++j){
    if(!(at%64) && familyStopped(cancelled,user)){why=XIDE_REFERENCE_FAMILY_CANCELLED;goto done;}
    const graph_entry* e=g->entries+j;const graph_component* c=g->groups+e->component;uint32_t* head=heads+componentBase+e->component;
-   rows[at]=(merge_declaration){.source=sourceMap[sourceBase+e->source-1],.start=e->start,.end=e->end,.index=(uint32_t)at,.units=e->units,.unsupported=c->unsupported};
+   rows[at]=(merge_declaration){.source=sourceMap[sourceBase+e->source-1],.start=e->start,.end=e->end,.index=(uint32_t)at,.units=e->units,.unsupported=c->unsupported,.renamePolicy=c->renamePolicy};
    if(*head==UINT32_MAX){*head=(uint32_t)at;rows[at].relations=c->relations;rows[at].kinds=c->kinds;}else familyJoin(parents,rank,*head,(uint32_t)at);
    ++at;
   }
@@ -68,19 +68,19 @@ xide_reference_family* xideSemanticReferenceGraphsFamily(xide_reference_graph* c
   if(rows[i].source==seedSource && rows[i].start==key->start && rows[i].end==key->end)selected=rows[i].index;
  }
  why=XIDE_REFERENCE_FAMILY_ABSENT;if(selected==UINT32_MAX)goto done;selected=familyFind(parents,selected);
- size_t members=0,fileCount=0,relations=0,bytes=sizeof(*f);unsigned kinds=0;uint32_t previous=UINT32_MAX;const merge_declaration* last=NULL;
+ size_t members=0,fileCount=0,relations=0,bytes=sizeof(*f);unsigned kinds=0,renamePolicy=0;uint32_t previous=UINT32_MAX;const merge_declaration* last=NULL;
  for(size_t i=0;i<declarations;++i){
   if(!(i%64) && familyStopped(cancelled,user)){why=XIDE_REFERENCE_FAMILY_CANCELLED;goto done;}
   merge_declaration* row=rows+i;if(familyFind(parents,row->index)!=selected)continue;
   const reference_source* s=files[row->source].source;why=XIDE_REFERENCE_FAMILY_UNSUPPORTED;
   if(row->unsupported || row->units!=key->identifierUnits || row->end<=row->start || row->end>s->size || row->end-row->start!=key->end-key->start || memcmp(s->text+row->start,key->text+key->start,row->end-row->start))goto done;
-  kinds|=row->kinds;why=XIDE_REFERENCE_FAMILY_LIMIT;if(!referenceCharge(&relations,row->relations,SIZE_MAX))goto done;
+  kinds|=row->kinds;renamePolicy|=row->renamePolicy;why=XIDE_REFERENCE_FAMILY_LIMIT;if(!referenceCharge(&relations,row->relations,SIZE_MAX))goto done;
   if(last && mergeSameDeclaration(last,row))continue;
   ++members;last=row;
   if(previous!=row->source){++fileCount;previous=row->source;if(!referenceCharge(&bytes,sizeof(reference_source),limit-known) || !referenceCharge(&bytes,strlen(s->path)+1,limit-known) || !referenceCharge(&bytes,s->size+1,limit-known))goto done;}
   if(!referenceCharge(&bytes,sizeof(family_member),limit-known))goto done;
  }
- f=XIDE_FAMILY_ALLOC(bytes);why=XIDE_REFERENCE_FAMILY_MEMORY;if(!f)goto done;memset(f,0,sizeof(*f));xrtAtomic32Init(&f->references,1);f->bytes=bytes;f->count=members;f->sources=fileCount;f->relations=relations;f->kinds=kinds;f->source=(reference_source*)(f+1);f->members=(family_member*)(f->source+fileCount);char* text=(char*)(f->members+members);at=0;size_t current=0;previous=UINT32_MAX;last=NULL;
+ f=XIDE_FAMILY_ALLOC(bytes);why=XIDE_REFERENCE_FAMILY_MEMORY;if(!f)goto done;memset(f,0,sizeof(*f));xrtAtomic32Init(&f->references,1);f->bytes=bytes;f->count=members;f->sources=fileCount;f->relations=relations;f->kinds=kinds;f->renamePolicy=renamePolicy;f->source=(reference_source*)(f+1);f->members=(family_member*)(f->source+fileCount);char* text=(char*)(f->members+members);at=0;size_t current=0;previous=UINT32_MAX;last=NULL;
  for(size_t i=0;i<declarations;++i){
   if(!(i%64) && familyStopped(cancelled,user)){why=XIDE_REFERENCE_FAMILY_CANCELLED;goto done;}
   const merge_declaration* row=rows+i;if(familyFind(parents,row->index)!=selected || (last && mergeSameDeclaration(last,row)))continue;last=row;

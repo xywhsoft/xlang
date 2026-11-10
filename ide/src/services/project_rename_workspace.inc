@@ -120,6 +120,7 @@ static xtaskoutcome executeWorkspace(xcancel* cancel,void* data,xtaskvalue* valu
    if(stopped(cancel))goto done;
    if(!xideSemanticReferenceFamilyMember(out->family,i,&source,&start,&end) || !(source.kind&1) || !xidePathHasExtension(source.path,".xl") || !xideRenameScopeOwners(in->renameScope,source.path,&owners) || !owners){fail(out,"A workspace family declaration is outside explicitly configured source membership.");goto done;}
   }
+  if(in->renameName && xideSemanticReferenceFamilyRenamePolicy(out->family)){fail(out,"Rename excludes foreign ABI declarations, compiled-package declarations and unsupported native origins.");goto done;}
   if(in->familyMode==2 && !workspaceFamilyReferences(in,out,cancel))goto done;
   if(in->renameName && !workspaceRenamePlan(in,out,cancel))goto done;
   if(in->renameName && !workspaceRecheckPlan(out,cancel))goto done;
