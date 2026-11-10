@@ -1,0 +1,44 @@
+// A request owns its private result, callback and worker code until settlement.
+// Register callbacks before start(): resource providers can finish immediately.
+export extern "xge_async_load_info_t" struct LoadInfo @header("xge3_async_load.h")
+ c_uint size
+ c_int kind
+ c_int status
+ c_int result
+ c_float progress
+ bool hasResult
+ bool cancelRequested
+ bool threaded
+end
+
+export extern "struct xge_async_owned_t*" class ImageLoad @header("xge3_async_load.h") @lifetime("owned") @policy("xl6Xge3ImageLoadPolicy") @domain("xl6Xge3AsyncLoadDomainV1")
+ native point handle
+ extern "xgeAsyncLoadShareOwned" @no_raise @c_result("owned_view") @factory(1,0,releaseImageLoad) func share() as ImageLoad
+ extern "xgeAsyncLoadInfoGet" @no_raise @c_output(1,0) @c_output_size(1,"size") func info() as LoadInfo
+ extern "xgeAsyncImageStartOwned" @no_raise @c_cstr(0) @c_result("status",0) func start(string path,c_uint flags=1)
+ extern "xgeAsyncLoadPollOwned" @no_raise @c_output(1,0) func poll() as c_int
+ extern "xgeAsyncLoadCancelOwned" @no_raise @c_result("status",0) func cancel()
+ extern "xgeAsyncLoadResetOwned" @no_raise @c_result("status",0) func reset()
+ extern "xgeAsyncLoadThrowIfFailed" @no_raise @c_result("status",0) func throwIfFailed()
+ extern "xgeAsyncLoadCallbackSetOwned" @no_raise @c_owned_callback(0,-1,"xge_callback_owner_t",-16) @c_result("status",0) func onComplete(FrameHandler? callback)
+ extern "xgeAsyncImageTakeOwned" @no_raise @c_result("owned_view") @factory(1,0,freeImage) @c_inplace("xge_image_t") func take() as Image
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xgeAsyncLoadReleaseChecked" @header("xge3_async_load.h") @no_raise @c_result("status",0) func releaseImageLoad(ImageLoad value)
+export extern "xl6Xge3AsyncImageCreateOwned" @header("xge3_async_load.h") @no_raise @c_code_owner(1) @c_result("owned_view") @factory(0,0,releaseImageLoad) func createImageLoad() as ImageLoad
+
+export extern "struct xge_async_owned_t*" class TextureLoad @header("xge3_async_load.h") @lifetime("owned") @policy("xl6Xge3TextureLoadPolicy") @domain("xl6Xge3AsyncLoadDomainV1")
+ native point handle
+ extern "xgeAsyncLoadShareOwned" @no_raise @c_result("owned_view") @factory(1,0,releaseTextureLoad) func share() as TextureLoad
+ extern "xgeAsyncLoadInfoGet" @no_raise @c_output(1,0) @c_output_size(1,"size") func info() as LoadInfo
+ extern "xgeAsyncTextureStartOwned" @no_raise @c_cstr(0) @c_result("status",0) func start(string path,c_uint flags=1)
+ extern "xgeAsyncLoadPollOwned" @no_raise @c_output(1,0) func poll() as c_int
+ extern "xgeAsyncLoadCancelOwned" @no_raise @c_result("status",0) func cancel()
+ extern "xgeAsyncLoadResetOwned" @no_raise @c_result("status",0) func reset()
+ extern "xgeAsyncLoadThrowIfFailed" @no_raise @c_result("status",0) func throwIfFailed()
+ extern "xgeAsyncLoadCallbackSetOwned" @no_raise @c_owned_callback(0,-1,"xge_callback_owner_t",-16) @c_result("status",0) func onComplete(FrameHandler? callback)
+ extern "xgeAsyncTextureTakeOwned" @no_raise @c_result("owned_view") @factory(1,0,freeTexture) func take() as Texture
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xgeAsyncLoadReleaseChecked" @header("xge3_async_load.h") @no_raise @c_result("status",0) func releaseTextureLoad(TextureLoad value)
+export extern "xl6Xge3AsyncTextureCreateOwned" @header("xge3_async_load.h") @no_raise @c_code_owner(1) @c_result("owned_view") @factory(0,0,releaseTextureLoad) func createTextureLoad() as TextureLoad

@@ -21,7 +21,8 @@
       "src/render_pipeline.xl",
       "src/input_actions.xl",
       "src/resource_loading.xl",
-      "src/scene.xl"
+      "src/scene.xl",
+      "src/async_load.xl"
     ],
     "includeDirs": [
       "include"

@@ -1,0 +1,33 @@
+import xge
+from xge import ResourcePath, ResourceOutput
+
+// One orange TGA pixel keeps this example independent of asset files.
+xge.addResourceProvider("color", func(ResourcePath path, ResourceOutput output) as c_int
+ if path.text!="color://orange" then
+  return xge.XGE_ERROR_FILE_NOT_FOUND
+ end
+ output.set(b"\0\0\x02\0\0\0\0\0\0\0\0\0\x01\0\x01\0\x18\x20\0\x80\xff")
+ return xge.XGE_OK
+end)
+
+try
+ xge.asyncThreadingSet(c_int(1))
+ auto load=xge.createImageLoad()
+ load.onComplete(func() as c_int
+  println("Image loading completed")
+  return xge.XGE_OK
+ end)
+ // Providers can complete inside start(). A file path can decode on a worker.
+ load.start("color://orange")
+ while load.poll()==xge.XGE_ASYNC_LOADING
+  xge.sleep(c_uint(1))
+ end
+ load.throwIfFailed()
+ auto image=load.take()
+ load.close()
+ println("Image size:", image.width, image.height)
+ image.close()
+finally
+ xge.resourceProviderClear()
+ xge.unit()
+end

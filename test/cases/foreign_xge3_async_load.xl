@@ -1,0 +1,71 @@
+// Private native results, owned sharing, callback self-clear and real worker IO.
+import xge
+from xge import ResourcePath,ResourceOutput
+extern "fixtureAsyncWrite" @header("test/cases/foreign_xge3_async_load.h") func fixturePath() as string
+extern "fixtureAsyncRemove" @header("test/cases/foreign_xge3_async_load.h") func removeFixture() as c_int
+class AsyncCounts
+ int done=0
+end
+func main(...) as int
+ xge.init(64,64,"Async load CPU",0,xge.XGE_RUN_MANUAL)
+ try
+ xge.addResourceProvider("demo",func(ResourcePath path,ResourceOutput output) as c_int
+  output.set(b"\0\0\x02\0\0\0\0\0\0\0\0\0\x01\0\x01\0\x18\x20\x03\x02\x01")
+  return c_int(0)
+ end)
+ auto counts=AsyncCounts()
+ auto request=xge.createImageLoad()
+ request.onComplete(func() as c_int
+  assert request.info().status==xge.XGE_ASYNC_READY
+  request.onComplete(null)
+  counts.done+=1
+  return c_int(0)
+ end)
+ request.start("demo://one")
+ assert counts.done==1 and request.info().hasResult
+ auto image=request.take()
+ assert image.width==c_int(1) and image.height==c_int(1) and not request.info().hasResult
+ bool rejected=false
+ try
+  auto duplicate=request.take()
+ catch error
+  rejected=true
+ end
+ assert rejected
+ auto shared=request.share()
+ request.close()
+ shared.reset()
+ assert shared.info().status==xge.XGE_ASYNC_PENDING
+ shared.close()
+ assert image.width==c_int(1)
+ image.close()
+
+ string path=fixturePath()
+ assert path!="" and xge.asyncThreadingSet(c_int(1))==c_int(0)
+ auto worker=xge.createImageLoad()
+ worker.onComplete(func() as c_int
+  counts.done+=1
+  return c_int(0)
+ end)
+ worker.start(path)
+ int polls=0
+ while worker.info().threaded and polls<5000
+  worker.poll()
+  xge.sleep(c_uint(1))
+  polls+=1
+ end
+ assert polls<5000 and worker.poll()==xge.XGE_ASYNC_READY and counts.done==2
+ worker.throwIfFailed()
+ image=worker.take()
+ worker.onComplete(null)
+ worker.close()
+ assert image.width==c_int(1)
+ image.close()
+ assert removeFixture()==c_int(0)
+ println("Async ImageLoad: private result, callbacks, independent move and worker passed")
+ return 0
+ finally
+  xge.resourceProviderClear()
+  xge.unit()
+ end
+end

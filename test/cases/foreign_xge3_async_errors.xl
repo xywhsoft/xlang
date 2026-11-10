@@ -1,0 +1,144 @@
+import xge
+from xge import ResourcePath,ResourceOutput
+class AsyncErrors
+ int calls=0
+end
+func forbiddenAsyncCalls(xge.ImageLoad request) as func() as int
+ return func() as int
+  int caught=0
+  try
+   auto value=request.info()
+  catch StateError
+   caught+=1
+  end
+  try
+   request.start("good://one")
+  catch StateError
+   caught+=1
+  end
+  try
+   request.poll()
+  catch StateError
+   caught+=1
+  end
+  try
+   request.cancel()
+  catch StateError
+   caught+=1
+  end
+  try
+   request.reset()
+  catch StateError
+   caught+=1
+  end
+  try
+   auto value=request.take()
+  catch StateError
+   caught+=1
+  end
+  try
+   request.onComplete(null)
+  catch StateError
+   caught+=1
+  end
+  try
+   request.close()
+  catch StateError
+   caught+=1
+  end
+  return caught
+ end
+end
+func main(...) as int
+ xge.init(64,64,"Async checked failures",0,xge.XGE_RUN_MANUAL)
+ try
+  auto state=AsyncErrors()
+  auto request=xge.createImageLoad()
+  xge.addResourceProvider("iofail",func(ResourcePath path,ResourceOutput output) as c_int
+   return xge.XGE_ERROR_FILE_NOT_FOUND
+  end)
+  xge.addResourceProvider("bad",func(ResourcePath path,ResourceOutput output) as c_int
+   throw ValueError "decode source failed"
+  end)
+  request.onComplete(func() as c_int
+   state.calls+=1
+   assert request.info().status==xge.XGE_ASYNC_FAILED
+   return c_int(0)
+  end)
+  request.start("iofail://one")
+  assert state.calls==1 and request.info().status==xge.XGE_ASYNC_FAILED
+  bool caught=false
+  try
+   request.throwIfFailed()
+  catch error
+   caught=true
+  end
+  assert caught and request.info().result==xge.XGE_ERROR_FILE_NOT_FOUND
+  request.reset()
+  caught=false
+  try
+   request.start("bad://one")
+  catch ValueError failure
+   caught=failure.message=="decode source failed"
+  end
+  assert caught and state.calls==1 and request.info().status==xge.XGE_ASYNC_FAILED
+  caught=false
+  try
+   request.throwIfFailed()
+  catch ValueError failure
+   caught=failure.message=="decode source failed"
+  end
+  assert caught
+  request.onComplete(null)
+  request.reset()
+  xge.addResourceProvider("good",func(ResourcePath path,ResourceOutput output) as c_int
+   output.set(b"\0\0\x02\0\0\0\0\0\0\0\0\0\x01\0\x01\0\x18\x20\x03\x02\x01")
+   return c_int(0)
+  end)
+  request.onComplete(func() as c_int
+   state.calls+=1
+   throw RuntimeError "completion callback failed"
+  end)
+  caught=false
+  try
+   request.start("good://one")
+  catch RuntimeError failure
+   caught=failure.message=="completion callback failed"
+  end
+  assert caught and state.calls==2 and request.info().status==xge.XGE_ASYNC_READY
+  assert request.poll()==xge.XGE_ASYNC_READY and state.calls==2
+  request.onComplete(null)
+  auto image=request.take()
+  image.close()
+  request.reset()
+  xge.addResourceProvider("cancel",func(ResourcePath path,ResourceOutput output) as c_int
+   request.cancel()
+   output.set(b"\0\0\x02\0\0\0\0\0\0\0\0\0\x01\0\x01\0\x18\x20\x03\x02\x01")
+   return c_int(0)
+  end)
+  request.onComplete(func() as c_int
+   state.calls+=100
+   return c_int(0)
+  end)
+  request.start("cancel://one")
+  assert state.calls==2 and request.info().status==xge.XGE_ASYNC_CANCELLED and not request.info().hasResult
+  caught=false
+  try
+   request.throwIfFailed()
+  catch CancelledError
+   caught=true
+  end
+  assert caught
+  auto worker=thread(forbiddenAsyncCalls(request))
+  assert worker.waitTimeout(30000) and worker.exitCode()==8
+  request.onComplete(null)
+  request.reset()
+  assert request.info().status==xge.XGE_ASYNC_PENDING
+  request.close()
+  println("Async errors: stored source failure, callback failure, cancellation and thread guards passed")
+  return 0
+ finally
+  xge.resourceProviderClear()
+  xge.unit()
+ end
+end

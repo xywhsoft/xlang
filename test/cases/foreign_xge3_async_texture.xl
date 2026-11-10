@@ -1,0 +1,56 @@
+import xge
+from xge import ResourcePath,ResourceOutput
+extern "fixtureAsyncWrite" @header("test/cases/foreign_xge3_async_texture.h") func fixturePath() as string
+extern "fixtureAsyncRemove" @header("test/cases/foreign_xge3_async_texture.h") func removeFixture() as c_int
+func checkTexture(string path)
+ auto request=xge.createTextureLoad()
+ try
+  request.start(path)
+  int polls=0
+  while request.info().threaded and polls<5000
+   request.poll()
+   xge.sleep(c_uint(1))
+   polls+=1
+  end
+  assert polls<5000 and request.poll()==xge.XGE_ASYNC_READY
+  bool busy=false
+  try
+   xge.unit()
+  catch error
+   busy=true
+  end
+  assert busy and request.info().hasResult
+  auto shared=request.share()
+  request.close()
+  auto texture=shared.take()
+  assert not shared.info().hasResult
+  shared.close()
+  auto pixels=Buffer(b"\0\0\0\0")
+  texture.readPixels(pixels)
+  assert texture.width==c_int(1) and texture.height==c_int(1) and pixels.toBytes()==b"\x01\x02\x03\xff"
+  texture.close()
+ finally
+  request.close()
+ end
+end
+func main(...) as int
+ xge.init(64,64,"Async texture ownership",0,xge.XGE_RUN_MANUAL)
+ string path=fixturePath()
+ try
+  assert path!=""
+  xge.addResourceProvider("texture",func(ResourcePath path,ResourceOutput output) as c_int
+   output.set(b"\0\0\x02\0\0\0\0\0\0\0\0\0\x01\0\x01\0\x18\x20\x03\x02\x01")
+   return xge.XGE_OK
+  end)
+  assert xge.asyncThreadingSet(c_int(0))==xge.XGE_OK
+  checkTexture("texture://one")
+  assert xge.asyncThreadingSet(c_int(1))==xge.XGE_OK
+  checkTexture(path)
+  println("Async TextureLoad: pending/private graphics admission and independent owned transfer passed")
+ finally
+  xge.resourceProviderClear()
+  xge.unit()
+  assert removeFixture()==c_int(0)
+ end
+ return 0
+end

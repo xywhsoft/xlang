@@ -1,0 +1,55 @@
+import xge
+from xge import ResourcePath,ResourceOutput
+extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func debugEnabled() as bool
+extern "fixtureAsyncHeap" @header("test/cases/foreign_xge3_async_oom.h") @no_raise @c_outputs(0,1) func heap() as (c_size,c_size)
+extern "fixtureAsyncFailAfter" @header("test/cases/foreign_xge3_async_oom.h") @no_raise func failAfter(c_int count)
+extern "fixtureAsyncFailClear" @header("test/cases/foreign_xge3_async_oom.h") @no_raise func failClear()
+func loadAndClose()
+ auto request=xge.createImageLoad()
+ try
+  request.start("oom://image")
+  request.throwIfFailed()
+  auto image=request.take()
+  image.close()
+ finally
+  request.close()
+ end
+end
+func main(...) as int
+ assert debugEnabled()
+ xge.addResourceProvider("oom",func(ResourcePath path,ResourceOutput output) as c_int
+  output.set(b"\0\0\x02\0\0\0\0\0\0\0\0\0\x01\0\x01\0\x18\x20\x03\x02\x01")
+  return xge.XGE_OK
+ end)
+ try
+  loadAndClose()
+  failAfter(c_int(0))
+  try
+   loadAndClose()
+  catch error
+  end
+  failClear()
+  int failed=0
+  int passed=0
+  for budget in range(48)
+   auto count0,bytes0=heap()
+   failAfter(c_int(budget))
+   try
+    loadAndClose()
+    passed+=1
+   catch error
+    failed+=1
+   end
+   failClear()
+   auto count1,bytes1=heap()
+   assert count1==count0 and bytes1==bytes0
+  end
+  assert failed>0 and passed>0
+  println("Async language allocation prefixes balanced all request, result, callback and code owners")
+ finally
+  failClear()
+  xge.resourceProviderClear()
+  xge.unit()
+ end
+ return 0
+end

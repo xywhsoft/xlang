@@ -1,0 +1,24 @@
+// A real native reference must keep even an empty request's code alive.
+// The second mode adds worker code and a request -> closure -> request cycle.
+import xge
+extern "fixtureAsyncModuleTick" @header("test/cases/foreign_xge3_async_module.h") @no_raise func tick() as c_int
+extern "fixtureAsyncModuleCallbacks" @header("test/cases/foreign_xge3_async_module.h") @no_raise func useCallbacks() as c_int
+extern "fixtureAsyncModulePath" @header("test/cases/foreign_xge3_async_module.h") func fixturePath() as string
+extern "fixtureAsyncModulePublish" @header("test/cases/foreign_xge3_async_module.h") @no_raise func publish(xge.ImageLoad request) as c_int
+xge.ImageLoad? retained=null
+func main(...) as int
+ auto request=xge.createImageLoad()
+ if useCallbacks()!=c_int(0) then
+  request.onComplete(func() as c_int
+   assert request.info().hasResult
+   assert tick()>c_int(0)
+   return c_int(0)
+  end)
+  assert xge.asyncThreadingSet(c_int(1))==xge.XGE_OK
+  request.start(fixturePath())
+  assert request.info().threaded
+ end
+ assert publish(request)==xge.XGE_OK
+ retained=request
+ return 0
+end
