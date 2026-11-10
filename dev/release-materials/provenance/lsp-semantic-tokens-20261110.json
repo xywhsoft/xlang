@@ -1,0 +1,126 @@
+{
+  "schema": 1,
+  "date": "2026-11-10",
+  "stage": "M7b1",
+  "scope": "Immutable checked semantic-token role producer only; protocol endpoint and IDE styling still pending",
+  "stageAccepted": true,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "externalPublishPerformed": false,
+  "base": {
+    "commit": "b2716011869ca3c35a11a3ca9a2041264d868ab2",
+    "index": {
+      "path": "dev/release-materials/provenance/lsp-function-point-reuse-20261110.json",
+      "sha256": "44332d76fc68753e4ef436c1b8c4d235d23cccb0309d7c95a3153f8b8ca69987",
+      "bytes": 17408
+    },
+    "cohortReceipt": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-function-point-reuse-20261110\\no-overlap-build-v1\\result.json",
+    "cohortReceiptSha256": "d651e52d2bb9b278bbc676574dca7fad6d3902c9fdbbaf3342a43427d5e42017"
+  },
+  "ownedSources": {
+    ".gitignore": "681b08ab2f60d29a7bf14a7294eca004cf64bd8c6217b68b0eb11f32f0425ae2",
+    "ide/src/analysis/semantic_tokens.c": "5005e40ccf964a3007fcc913d58368e2af7e73003da662a219f5e6a39984050f",
+    "ide/src/analysis/semantic_tokens.h": "995c342a35af419e5da0041c4657ee1ec82e521d6a688bbb50c5f7bdef67c256",
+    "ide/tests/analysis_semantic_tokens_test.c": "a3118977ed6d33765e9d1e69cb2865790bbe90e39c2f0757f8a25008d0175398",
+    "ide/tests/analysis_semantic_tokens_fault_test.c": "f8a120a58200d30635365b9b7ee8a28ea42e1329e8ffec45bbc01d567050d727",
+    "ide/tools/build_lsp_core.py": "b259ef6a2411264cb3ecb0f17abaeb914ab6edb3de893d283eedaa81e6b830d0",
+    "ide/docs/lsp-development.md": "643167f177c1be621f36d3aa311dae1168d97b5656500428ac02267037ad4a8b",
+    "ide/docs/lsp-semantic-tokens.md": "2887ef8f97756b28851e0ca0db7fa568f8d5d3bb8b7d3282802a7069672b2e42"
+  },
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-semantic-tokens-20261110/source-delta-and-new-closures.tar.gz",
+      "sha256": "4806a38631dbf615148ec03c065a1ed153851f94915bc37554db57162810259b",
+      "bytes": 2764964,
+      "entries": 99
+    },
+    "reports": {
+      "path": "dev/release-materials/provenance/lsp-semantic-tokens-20261110/reports-and-attempts.tar.gz",
+      "sha256": "f8ba61f7b20466d01fa5f4d39542cfc8b768f9b5bb7798e942c9ab4c98591f65",
+      "bytes": 70077,
+      "entries": 198
+    },
+    "qualifiedArtifacts": {
+      "path": "dev/release-materials/provenance/lsp-semantic-tokens-20261110/qualified-test-artifacts.tar.gz",
+      "sha256": "9648aee2c3013d7fd9b1363a1bb5ecf0e61eafc484402364dc72e256087a586c",
+      "bytes": 35531679,
+      "entries": 20
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-semantic-tokens-20261110/manifest.json",
+      "sha256": "6468b566d1f457df8cd9f6098b33247c1c041377f5fc3fa9c697683742d076ee",
+      "bytes": 30628
+    },
+    "reportManifest": {
+      "path": "dev/release-materials/provenance/lsp-semantic-tokens-20261110/manifest.json",
+      "sha256": "70183e36190cd56dfc30ef6102831111328a8da4b3916fa3c20934cab6ce2a24",
+      "bytes": 57596
+    }
+  },
+  "validation": {
+    "rootBuild": "ide/build/Release/lsp-semantic-tokens-20261110/root-v4/result.json",
+    "newNativeChecks": [
+      13187,
+      3027
+    ],
+    "refreshedDirectIncludeHosts": [
+      "snapshot_report_test",
+      "declaration_capture_test",
+      "reference_capture_test",
+      "language_native_cancel_test"
+    ],
+    "actualFailurePositions": 461,
+    "cancellationPositions": 16,
+    "actualCGuardOmissions": 2,
+    "originalCoreMembersUnchanged": true,
+    "allNewPublicHeaderConsumersRecompiled": true,
+    "protocolEndpointAdvertised": false,
+    "pairedGuiRebuildRequiredOnProtocolIntegration": true
+  },
+  "benchmark": {
+    "scope": "Bounded new producer microbenchmark, no protocol/UI/end-to-end admission and no before-after speed claim",
+    "cases": [
+      {
+        "case": "short",
+        "sourceBytes": 201,
+        "analysisMs": 1.5032,
+        "tokens": 23,
+        "factsRead": 121,
+        "atomBytes": 129,
+        "residentBytes": 1928,
+        "peakKnownBytes": 2120,
+        "stableFingerprint": "4460ff94eaec3284",
+        "p50Ms": 0.0068,
+        "p95Ms": 0.0069
+      },
+      {
+        "case": "long-unicode-line",
+        "sourceBytes": 29257,
+        "analysisMs": 15.1929,
+        "tokens": 1607,
+        "factsRead": 8041,
+        "atomBytes": 9633,
+        "residentBytes": 97880,
+        "peakKnownBytes": 98072,
+        "stableFingerprint": "998c72d0b7aa7214",
+        "p50Ms": 0.445,
+        "p95Ms": 0.4823
+      }
+    ],
+    "receipt": "ide/build/Release/lsp-semantic-tokens-20261110/bench-v2/result.json"
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "remaining": [
+    "UTF16 batch projection and guarded demand worker",
+    "LSP full/range/delta with negotiation and bounded history",
+    "IDE augmentation, paired build and editing verification",
+    "Whole-goal performance/large-workspace/soak acceptance; retain historical failures"
+  ]
+}
