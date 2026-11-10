@@ -1,0 +1,91 @@
+{
+  "scope": "Native window/graphics context foundation and EGL selection rollback; owning host session still pending",
+  "shippingDelivery": false,
+  "releaseOrIdeInstalled": false,
+  "nativeRevision": "c19da6fb",
+  "nativeIndex": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\backend-context-20261110.json",
+    "sha256": "9626189f1007e42fcd4b68847b5611cd729142c2f51ee7dcd6751ef6557261a9"
+  },
+  "source": {
+    "docs/xge3-host-backends.md": "d26e2e96288aff98ca39a4b265aec7aab4d60e15eac080b4f7dc792d9469ae36"
+  },
+  "freeze": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\native-freeze-r23.json",
+    "sha256": "416a38fdb04ca6a5c2717391f50d9c748bf24edaabf53430576a69c27d814222"
+  },
+  "builds": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-host-win-r23\\build-report.json",
+      "sha256": "d6cc3da682334420c2750551c367d6dde11ca525bc4946c9cd0acb34119ba2e1"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-host-linux-r23\\build-report.json",
+      "sha256": "c7e0b82f55fbf70050cbd5aa087cc7fe982c82ef62ba152a1976f69f8159d7a2"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-static-win-r23\\build-report.json",
+      "sha256": "49220f7351b358d12b1f07f6af1ddc860ddcb7d67c06dbdc13e73afb372435ba"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-static-linux-r23\\build-report.json",
+      "sha256": "c9e0283d1e3b537746253b5af2ddd8ced6158ce345323b597f452bf1a2cd984e"
+    }
+  ],
+  "packages": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-backend-host-win-r1.json",
+      "sha256": "30a13128bf23f0789e67c3703a4b82f9e0b44e95d794c6aeb2c5aea175a5ac88"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-backend-static-win-r1.json",
+      "sha256": "e9bb6feedb0cd652b02c124778379f5b24a9f1cb4210dd1356078e3a1bdb93b6"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-backend-host-linux-r1.json",
+      "sha256": "69ff915a9c4ad581db802bf4460b2164c5841504113148987a5193d25ef3444a"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-backend-static-linux-r1.json",
+      "sha256": "f983921ce9eff6c6061ac043fb72224baf0233dbd2e3c0685c253a8d279c0c8a"
+    }
+  ],
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\language-context-win-r1\\results.json",
+      "sha256": "ed7317e1ececbd683aa68e02eea2bc97867ee62e56f31d936daffe40088c1786",
+      "checks": 30
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\language-context-linux-r1\\results.json",
+      "sha256": "3082bcfd8d4a5b866487d3197f07f664af8811c1ef38ad2126c81649cc7a1e2a",
+      "checks": 24
+    }
+  ],
+  "compilerBuilds": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r13\\build.json",
+      "sha256": "2804689b3b2bb234e3c970a98060c5614b393ae12be995c3295e7c8e0add62f9"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-linux-full-r5\\build.json",
+      "sha256": "35400cf7e77732e9fa0fdd85f4b13c02a262a3cdc4d091766c90ad7248a791ea"
+    }
+  ],
+  "layout": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\context-layout-linux-r1\\results.json",
+    "sha256": "325d0ce75e0b2392b0098d512f7acd101b8aa23db37e911c763e5c4d1da2f966"
+  },
+  "compilerOrCgenChanges": false,
+  "networkTests": false,
+  "remaining": [
+    "Owning host/backend/session protocol and real dispatch",
+    "Enabled EGL matched builds and full rendering integration",
+    "Offscreen/context lifetime and exact GPU resource/code obligations",
+    "Optional 3D/debug and full remaining ecosystem",
+    "Current-mainline matched release/IDE delivery"
+  ],
+  "nativeChecks": 192,
+  "languageChecks": 54,
+  "scopeBoundary": "The actual EGL pbuffer unit control and the default matched XGE renderer checks are separate. No full enabled EGL SDK, new host dispatch or shipping claim."
+}
