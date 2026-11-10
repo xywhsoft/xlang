@@ -65,6 +65,10 @@ xide_color_decoder* xideColorDecoderCreate(void (*wake)(void*), void* user);
 int xideColorDecoderSubmit(xide_color_decoder*, uint64_t token, xvalue* message,
     xls_text* text, const xide_color_legend*, xide_color_result* base, size_t budget);
 int xideColorDecoderDiscard(xide_color_decoder*, xvalue* ownedMessage);
+/* Same pending slot, no decode/token change. Any nonempty combination; success
+ * TAKES all inputs. Retire a captured source lease even if its reply never came. */
+int xideColorDecoderDiscardInputs(xide_color_decoder*, xvalue* ownedMessage,
+    xls_text* ownedText, xide_color_result* ownedBase);
 int xideColorDecoderRetire(xide_color_decoder*, xide_color_result* ownedResult);
 void xideColorDecoderCancel(xide_color_decoder*);
 /* Takes a completion only if still current; cancelled answers retire on worker. */

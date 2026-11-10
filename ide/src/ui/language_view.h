@@ -4,6 +4,8 @@
 int xideLanguageViewCreate(xide_app* app);
 /* A model/selection change revokes results before another frame can use them. */
 void xideLanguageViewConfigurationChanged(xide_app* app);
+/* Revoke visible semantic colors before any source/model change can render. */
+void xideLanguageViewDocumentChanged(xide_app* app,xide_document* document);
 /* Background monitor metadata,not source bytes. type is the standard1..3;
  * NULL path requests one bounded full resync after monitor overflow. */
 void xideLanguageViewDiskChanged(xide_app* app,const char* path,int type);

@@ -199,7 +199,8 @@ def stage(args):
                'xuiProxyXgeVisitTextShape', 'xuiProxyXgeTextShapeCursorFree', 'xuiProxyXgeVisitTextShapeCached'}
     required_exports = [n for n in baseline['requiredExports'] if n not in retired]
     xui_header = (source / 'include/xui.h').read_text(encoding='utf8')
-    for name in ('xuiTerminalSetNewlineMode', 'xuiTerminalGetNewlineMode',
+    for name in ('xuiCodeEditSetTokenStyleResolver', 'xuiCodeEditGetTokenStyleResolver',
+                 'xuiTerminalSetNewlineMode', 'xuiTerminalGetNewlineMode',
                  'xuiDockPanelSetTabScrollButtonsVisible',
                  'xuiDockPanelGetTabScrollButtonsVisible', 'xuiDockPanelGetPaneTabScrollRects',
                  'xuiCodeFindScopeSetActiveEditor', 'xuiCodeFindScopeGetActiveEditor',

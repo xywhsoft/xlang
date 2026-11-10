@@ -1,0 +1,109 @@
+{
+  "schema": 1,
+  "date": "2026-11-10",
+  "stage": "M7b3b",
+  "scope": "IDE standard semantic color requests, guarded immutable visible-token overlay and matched XUI resolver",
+  "stageAccepted": true,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "3a6b473182e9d826bd9f9aa7986f5e0803ebf01a",
+  "ownedSources": {
+    "ide/src/services/semantic_color_result.c": "20bb89a4760bdc31a03d3e36e8c663232f44aa5c6a511c6f0dbe3ff38a231e56",
+    "ide/src/services/semantic_color_result.h": "d40a0b0515e7fc13223767da238728d1c373af6ee6a28280aa3a1f31563fdea3",
+    "ide/src/ui/language_view.c": "4e749cc6c50fb2ee6b85b349a182db396b14d1dda74066750494d6f249287270",
+    "ide/src/ui/language_view.h": "aa5375b99ce2d23c8093f0a1018c929e0a3be99bb46f663fcc1445efbe8b6eac",
+    "ide/src/ui/semantic_color_view.inc": "c53692ce90f9733d9136b2a61bc849538617fb719d6f18ca7cd899587038d026",
+    "ide/src/ui/automatic_diagnostics.inc": "1ea106de3f949a8d39849c7180ae141793bb06d329090a248031cca59366d5fb",
+    "ide/src/ui/editor_view.c": "6493f35917ea45e84be6555732883559b0c139f75a5dea9ffdb789f3a958b125",
+    "ide/tests/semantic_color_view_test.c": "fa6fca065e3d81232935aef3a8ea3ecbfade7aba095eeccd7c578fc51775a53f",
+    "ide/tests/semantic_color_worker_test.c": "e38bf1fe92b94c3bb2944e1acf84545e7fe028245fb736872a4ad7857b417e54",
+    "ide/tools/build.ps1": "487ae9dd935b70486f0cfdbe1ef7e3f32af5d05998b657482b358d39e85acccd",
+    "ide/tools/import_xge_sdk.py": "ffeddb02ce0c888c41149e9ee7d41f00ffcb8cc821bc1b284302d599a67736c3",
+    "ide/tools/xge_token_style_overlay.py": "02f6223cb3ee134543219bad603cb731c919d615e6f960b7c7a1045d8a192c74",
+    "ide/docs/lsp-development.md": "2fe3dd3dfc5669b3940c0511030058dd793d3ae576cfed43a94c4363e82e9150",
+    "ide/docs/lsp-semantic-color-renderer.md": "e72051bc1b110fae2ccb86296a59e3ad5a1badac21a824672628acfb144bce14"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-semantic-color-render-20261110.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-semantic-color-render-20261110/stage-and-upstream-sources.tar.gz",
+      "sha256": "3205746aa2665a90973100247a644ac6fa8c347b733ebe8c4485f6a68d4399db",
+      "bytes": 680911,
+      "entries": 19
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-semantic-color-render-20261110/stage-and-upstream-sources.tar.gz.manifest.json",
+      "sha256": "a231abe2762bb7a0e9db72f37dc691439960d4b2394728e9b8b3163467ab24d3",
+      "bytes": 4422
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-semantic-color-render-20261110/actual-builds-sdk-and-validation.tar.gz",
+      "sha256": "1753d68a7e14f27231dbe00af0e56938fda894d9362a363944c492d34f483516",
+      "bytes": 685193560,
+      "entries": 12011
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-semantic-color-render-20261110/actual-builds-sdk-and-validation.tar.gz.manifest.json",
+      "sha256": "43b07f32e70cb0963830694ebee9bf589116c1091364c9ce0894333e2ff98a79",
+      "bytes": 4500296
+    }
+  },
+  "upstream": {
+    "repository": "D:/GIT/xge",
+    "interfaceCommit": "cc3da5bebdca59db55a800997389f5d0f6cf49d5",
+    "documentOffsetFixCommit": "fb17797d0ab89fc280399123c66b4f266b6db895"
+  },
+  "candidate": {
+    "guiSha256": "49be1e6d4b3b6a5ea3c25ff9a1025f16f2f5017e8f004030d382d7ed76112d77",
+    "serverSha256": "39596f46bc453e3cac0ccdaf0ac961e58f068cb53eb38d1b1c1b2f2f84b6bba6",
+    "sdkDllSha256": "216c1f98f4d55cc5dff9c7d98425edbb08d470cdfc6b26ef4ad962af3431f560",
+    "guiObjectCount": 116,
+    "sdkCompiledUnits": 173
+  },
+  "validation": {
+    "sdkAssertions": 44,
+    "existingSdkStyleFixturePassed": true,
+    "existingDeclarationsPreserved": 8721,
+    "newDeclarations": 3,
+    "newExports": 2,
+    "newDllDependencies": 0,
+    "nativeChecks": [
+      175,
+      332391,
+      18
+    ],
+    "largeInputConstructionAssertionsIncluded": 327680,
+    "decoderCMutants": 4,
+    "paintCMutants": 4,
+    "guiFixtures": 27,
+    "colorViewChecks": 71,
+    "visualReviews": 2,
+    "functionWarmPixels": [
+      72,
+      72
+    ],
+    "oldFunctionWarmPixels": 0,
+    "oldImageRejectedByStrongerNativeAndGuiChecks": true,
+    "earlierGreen27GuiReportRejectedForInsufficientCoverage": true,
+    "serviceNativeFixturesInherited": 162,
+    "serviceNativeFixturesReexecuted": false,
+    "performanceAdmissionRun": false,
+    "historicalPerformanceFailuresPreserved": true
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "remaining": [
+    "remaining rename/formatting and other applicable LSP protocol",
+    "current engine cohort alignment",
+    "full end-to-end performance including old failed matrix and A/A calibration",
+    "large-workspace and long-running acceptance",
+    "final paired SDK/IDE/server delivery after whole-goal admission"
+  ]
+}

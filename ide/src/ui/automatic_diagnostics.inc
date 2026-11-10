@@ -132,6 +132,7 @@ static int automaticFence(xide_language_view* v,const char* path,int close,int w
 }
 void xideLanguageViewDiskChanged(xide_app* app,const char* path,int type)
 {
+ colorsInvalidate(app?app->languageView:NULL);
  xide_language_view* v=app?app->languageView:NULL;xide_automatic_diagnostics* a=v?v->autoView:NULL;if(!a)return;
  if(a->restarting){a->restartAt=GetTickCount64()+150;xgeRenderRequestAfter(.15f);return;}
  if(!v->autoEnabled || !v->client || !v->initialized){if(path && a->paused)automaticResume(v);return;}

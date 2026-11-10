@@ -122,6 +122,7 @@ static int syncFindScope(xide_app* app,xide_document* d)
 static void documentChanged(xide_document* document,void* user)
 {
     xide_app* app=user;
+    xideLanguageViewDocumentChanged(app,document);
     if(!document->open && app->activeDocument==document) app->activeDocument=NULL;
     int findResult=syncFindScope(app,document); if(findResult!=XUI_OK) app->frameError=findResult;
     xideFindViewChanged(app);

@@ -230,12 +230,13 @@ static int jobStopped(void* user)
 static void releaseJob(color_job* j)
 {xrtValueRelease(j->message);xlsTextRelease(j->text);xideColorResultRelease(j->base);}
 static int stale(const xide_color_decoder* d){return d->hasCompleted && d->completed.token!=d->current;}
+static int pending(const xide_color_decoder* d){return d->pending.message || d->pending.text || d->pending.base;}
 static int32 run(ptr user)
 {
     xide_color_decoder* d=user;
     for(;;){
         xrtMutexLock(&d->lock);
-        while(!d->stop && !d->pending.message && !d->retired && !stale(d))xrtCondWait(&d->changed,&d->lock);
+        while(!d->stop && !pending(d) && !d->retired && !stale(d))xrtCondWait(&d->changed,&d->lock);
         if(d->stop){xrtMutexUnlock(&d->lock);break;}
         color_job job=d->pending;memset(&d->pending,0,sizeof(d->pending));
         xide_color_result *retired=d->retired,*old=NULL;d->retired=NULL;
@@ -267,15 +268,17 @@ xide_color_decoder* xideColorDecoderCreate(void (*wake)(void*),void* user)
 int xideColorDecoderSubmit(xide_color_decoder* d,uint64_t token,xvalue* message,xls_text* text,const xide_color_legend* legend,xide_color_result* base,size_t budget)
 {
     if(!d || !token || !message || !text || !validLegend(legend))return 0;
-    xrtMutexLock(&d->lock);int okay=!d->stop && !d->pending.message && token>d->lastToken;
+    xrtMutexLock(&d->lock);int okay=!d->stop && !pending(d) && token>d->lastToken;
     if(okay){d->current=d->lastToken=token;d->pending=(color_job){token,message,text,*legend,base,budget};xrtCondSignal(&d->changed);}
     xrtMutexUnlock(&d->lock);return okay;
 }
 int xideColorDecoderDiscard(xide_color_decoder* d,xvalue* message)
+{return message && xideColorDecoderDiscardInputs(d,message,NULL,NULL);}
+int xideColorDecoderDiscardInputs(xide_color_decoder* d,xvalue* message,xls_text* text,xide_color_result* base)
 {
-    if(!d || !message)return 0;
-    xrtMutexLock(&d->lock);int okay=!d->stop && !d->pending.message;
-    if(okay){d->pending=(color_job){.message=message};xrtCondSignal(&d->changed);}
+    if(!d || (!message && !text && !base))return 0;
+    xrtMutexLock(&d->lock);int okay=!d->stop && !pending(d);
+    if(okay){d->pending=(color_job){.message=message,.text=text,.base=base};xrtCondSignal(&d->changed);}
     xrtMutexUnlock(&d->lock);return okay;
 }
 int xideColorDecoderRetire(xide_color_decoder* d,xide_color_result* result)

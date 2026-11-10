@@ -3,6 +3,9 @@
 #include <string.h>
 #include <windows.h>
 static xatomic32 hold,entered,freed;static void* tracked;static DWORD owner;
+static xls_text* trackedText;static xatomic32 textFreed;
+static void watchedTextRelease(xls_text* t)
+{if(t && t==trackedText)xrtAtomic32Store(&textFreed,GetCurrentThreadId()==owner?-1:1,XMEMORY_RELEASE);xlsTextRelease(t);}
 static const xvalue* gatedArrayGet(const xvalue* v,size_t i)
 {
     if(xrtAtomic32Load(&hold,XMEMORY_ACQUIRE) && GetCurrentThreadId()!=owner){
@@ -15,9 +18,11 @@ static void watchedFree(void* p)
 {if(p && p==tracked)xrtAtomic32Store(&freed,GetCurrentThreadId()==owner?-1:1,XMEMORY_RELEASE);xrtFree(p);}
 #define xrtValueArrayGet gatedArrayGet
 #define xrtFree watchedFree
+#define xlsTextRelease watchedTextRelease
 #include "services/semantic_color_result.c"
 #undef xrtValueArrayGet
 #undef xrtFree
+#undef xlsTextRelease
 static unsigned checks;
 #define CHECK(v) do{++checks;if(!(v)){fprintf(stderr,"semantic_color_worker_test:%d: %s\n",__LINE__,#v);return 0;}}while(0)
 static xvalue* parse(const char* s){return xrtJsonParse(xrtStrView(s));}
@@ -42,6 +47,10 @@ static int verify(void)
     CHECK(waitAnswer(d,&out) && out.token==2 && !out.error && out.result && out.result->count==1);
     CHECK(waitFlag(&freed) && xrtAtomic32Load(&freed,XMEMORY_ACQUIRE)==1);
     CHECK(xideColorDecoderRetire(d,out.result));
+    const char* captured="captured source whose response never arrived";
+    trackedText=xlsTextCreate(captured,strlen(captured),4096,NULL);CHECK(trackedText);
+    int accepted=0;for(int i=0;i<5000 && !accepted;++i){accepted=xideColorDecoderDiscardInputs(d,NULL,trackedText,NULL);if(!accepted)xrtSleep(1);}
+    CHECK(accepted && waitFlag(&textFreed) && xrtAtomic32Load(&textFreed,XMEMORY_ACQUIRE)==1);trackedText=NULL;
     /* Shutdown alone joins, and drains owned pending JSON/base/text as well. */
     extra=parse("{\"result\":null}");CHECK(extra && xideColorDecoderSubmit(d,3,extra,xlsTextRetain(text),&legend,NULL,0));xideColorDecoderDestroy(d);xlsTextRelease(text);tracked=NULL;return 1;
 }
