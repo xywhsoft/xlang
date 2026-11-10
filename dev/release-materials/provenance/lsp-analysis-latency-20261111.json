@@ -1,0 +1,368 @@
+{
+  "schema": 1,
+  "date": "2026-11-11",
+  "stage": "M7b4r",
+  "scope": "Full existing native-check analysis benchmark matrix and exact-candidate lifecycle attribution",
+  "measurementEvidenceAccepted": true,
+  "performanceQualified": false,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "e1f06c867b079b464c796a074c3cf8271d44c0cc",
+  "ownedSources": {
+    "ide/docs/lsp-analysis-latency.md": "311dc780c12aba83fef320aaf938c11204ed367856ec494f15e4298c3614f5df",
+    "ide/docs/lsp-current-projection.md": "8bec9064eaf2d3f33929add5d32f201bc20b474e947895f10b85087ea2e0d0ff"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-analysis-latency-20261111.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-analysis-latency-20261111/stage-sources.tar.gz",
+      "sha256": "5ef06e8334105a16231861f3e31f5817b4c0bcda8261b33df81ee19cdee870dd",
+      "bytes": 7108,
+      "entries": 3,
+      "uniquePayloads": 3,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-analysis-latency-20261111/stage-sources.tar.gz.manifest.json",
+      "sha256": "e3c75a68b79f01b75b9385cef9f422678da5af129ec142b83cd257e5a6ed5531",
+      "bytes": 656
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-analysis-latency-20261111/actual-measurements-and-profiles.tar.gz",
+      "sha256": "aec6d352744b6345b26e2187f0daa8b2a14aebfc58ae34edb316a2b0f4a72513",
+      "bytes": 65647430,
+      "entries": 1758,
+      "uniquePayloads": 1176,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-analysis-latency-20261111/actual-measurements-and-profiles.tar.gz.manifest.json",
+      "sha256": "d68c707ee8473b0b1303f1ad661e8f9d967e0c83dd97076b94cfe3f1d598e661",
+      "bytes": 575944
+    }
+  },
+  "images": {
+    "candidate": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-engine-alignment-20261111\\qualified-v4\\xlang-ls.exe",
+      "sha256": "d28415e9bff3fe5cdd2dde0f988f3672ee9d8bbf127203b55ca2695ce942a3a8"
+    },
+    "previous": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-report-index-20261111\\build-v3\\xlang-ls.exe",
+      "sha256": "73bada5a8586857f9a58bf3dceac74ae1e5a2b6542e51d68729f3849499cf9e5"
+    },
+    "shipping": {
+      "path": "D:\\GIT\\x-lang\\release\\win_x64\\xlang-ls.exe",
+      "sha256": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232"
+    }
+  },
+  "measurement": {
+    "checks": 5120,
+    "processes": 384,
+    "unchangedGates": 64,
+    "calibrationFailed": 9,
+    "previousComparisonFailed": 6,
+    "shippingComparisonFailed": 3,
+    "allResultsCompared": true,
+    "allProcessesExitedCleanly": true,
+    "isolatedProcessChains": true,
+    "wholePerformanceAdmissionPassed": false
+  },
+  "diagnostic": {
+    "checks": 80,
+    "processes": 16,
+    "cases": 8,
+    "standardResultsAndNativeWorkParity": true,
+    "producerObjectsAndCoreMembersBound": true,
+    "lifecycleUnitsRecompiled": 10,
+    "backgroundWorkspaceSymbols": false,
+    "inclusiveTimingNotFormal": true,
+    "rows": [
+      {
+        "case": "32-single-literal",
+        "bodyBytes": 21290,
+        "bodyLines": 1005,
+        "observations": 2,
+        "workerMs": 7.217899998,
+        "semanticMs": 1.111150006,
+        "indexMs": 0.978550001,
+        "irAndFinishMs": 4.6105499785,
+        "originalIrVerifierMs": 1.6229500035000002,
+        "irAstBuildMs": 1.178650011,
+        "adapterMs": 8.906899995,
+        "navigationMs": 1.294649992,
+        "destroyMs": 0.345450011
+      },
+      {
+        "case": "32-single-declaration",
+        "bodyBytes": 21318,
+        "bodyLines": 1006,
+        "observations": 2,
+        "workerMs": 9.191499994,
+        "semanticMs": 2.898000006,
+        "indexMs": 1.1085499865,
+        "irAndFinishMs": 4.502700016,
+        "originalIrVerifierMs": 1.574449998,
+        "irAstBuildMs": 1.195500008,
+        "adapterMs": 11.278500009,
+        "navigationMs": 1.7247499925,
+        "destroyMs": 0.3832500075
+      },
+      {
+        "case": "32-imported-literal",
+        "bodyBytes": 21244,
+        "bodyLines": 1001,
+        "observations": 2,
+        "workerMs": 7.66855001,
+        "semanticMs": 1.2406000025,
+        "indexMs": 0.9697499915000001,
+        "irAndFinishMs": 4.6174000015,
+        "originalIrVerifierMs": 1.607000013,
+        "irAstBuildMs": 1.1095999945,
+        "adapterMs": 10.2670500055,
+        "navigationMs": 1.649800004,
+        "destroyMs": 0.31230000599999996
+      },
+      {
+        "case": "32-imported-declaration",
+        "bodyBytes": 21272,
+        "bodyLines": 1002,
+        "observations": 2,
+        "workerMs": 10.046599986,
+        "semanticMs": 2.6656499975,
+        "indexMs": 1.091049984,
+        "irAndFinishMs": 5.251750015000001,
+        "originalIrVerifierMs": 1.6432500125,
+        "irAstBuildMs": 1.4961999984999999,
+        "adapterMs": 13.428450008999999,
+        "navigationMs": 2.3288500085,
+        "destroyMs": 0.4680500135
+      },
+      {
+        "case": "512-single-literal",
+        "bodyBytes": 338914,
+        "bodyLines": 15885,
+        "observations": 2,
+        "workerMs": 161.6424000095,
+        "semanticMs": 17.447649996,
+        "indexMs": 21.208549995,
+        "irAndFinishMs": 115.6430499975,
+        "originalIrVerifierMs": 37.449249997500004,
+        "irAstBuildMs": 23.824249991000002,
+        "adapterMs": 174.868749993,
+        "navigationMs": 11.054149988999999,
+        "destroyMs": 5.397400004
+      },
+      {
+        "case": "512-single-declaration",
+        "bodyBytes": 338942,
+        "bodyLines": 15886,
+        "observations": 2,
+        "workerMs": 184.124949999,
+        "semanticMs": 40.204350007,
+        "indexMs": 19.905399997,
+        "irAndFinishMs": 117.366150007,
+        "originalIrVerifierMs": 37.885249999500004,
+        "irAstBuildMs": 21.958850004,
+        "adapterMs": 206.014950003,
+        "navigationMs": 19.810800004,
+        "destroyMs": 5.9402999905
+      },
+      {
+        "case": "512-imported-literal",
+        "bodyBytes": 338868,
+        "bodyLines": 15881,
+        "observations": 2,
+        "workerMs": 201.327399991,
+        "semanticMs": 21.163700003000002,
+        "indexMs": 31.200600002,
+        "irAndFinishMs": 138.4934499945,
+        "originalIrVerifierMs": 42.4169999895,
+        "irAstBuildMs": 30.4756000115,
+        "adapterMs": 224.8073500085,
+        "navigationMs": 20.566600011,
+        "destroyMs": 5.89125001
+      },
+      {
+        "case": "512-imported-declaration",
+        "bodyBytes": 338896,
+        "bodyLines": 15882,
+        "observations": 2,
+        "workerMs": 188.498799995,
+        "semanticMs": 40.7851499915,
+        "indexMs": 21.109500011999998,
+        "irAndFinishMs": 118.18109998450001,
+        "originalIrVerifierMs": 39.589550011499995,
+        "irAstBuildMs": 21.8922500205,
+        "adapterMs": 221.32850000349998,
+        "navigationMs": 29.882600007,
+        "destroyMs": 5.6892999855
+      }
+    ],
+    "failedAttemptsRetained": true,
+    "streamedStderrBoundBytes": 16777216
+  },
+  "failures": {
+    "functional-previous": [],
+    "functional-shipping": [],
+    "aa": [
+      {
+        "name": "32-single-literal/first/wireP50",
+        "actual": 11.7577,
+        "limit": 11.526480000000001,
+        "passed": false,
+        "baseline": 10.9776,
+        "ratio": 1.05
+      },
+      {
+        "name": "32-single-literal/hot/wireP50",
+        "actual": 12.7741,
+        "limit": 12.554010000000002,
+        "passed": false,
+        "baseline": 11.9562,
+        "ratio": 1.05
+      },
+      {
+        "name": "32-single-literal/hot/wireP95",
+        "actual": 20.2789,
+        "limit": 18.995340000000002,
+        "passed": false,
+        "baseline": 18.0908
+      },
+      {
+        "name": "32-single-declaration/cold/wireP50",
+        "actual": 53.0494,
+        "limit": 51.823065,
+        "passed": false,
+        "baseline": 49.3553,
+        "ratio": 1.05
+      },
+      {
+        "name": "32-single-declaration/first/wireP50",
+        "actual": 26.4297,
+        "limit": 25.582305,
+        "passed": false,
+        "baseline": 24.3641,
+        "ratio": 1.05
+      },
+      {
+        "name": "32-imported-literal/hot/wireP50",
+        "actual": 14.6653,
+        "limit": 14.52213,
+        "passed": false,
+        "baseline": 13.8306,
+        "ratio": 1.05
+      },
+      {
+        "name": "32-imported-declaration/hot/wireP95",
+        "actual": 36.6646,
+        "limit": 32.707185,
+        "passed": false,
+        "baseline": 31.1497
+      },
+      {
+        "name": "512-single-literal/cold/wireP50",
+        "actual": 1112.9064,
+        "limit": 1109.017035,
+        "passed": false,
+        "baseline": 1056.2067,
+        "ratio": 1.05
+      },
+      {
+        "name": "512-imported-literal/hot/wireP95",
+        "actual": 327.8876,
+        "limit": 327.800445,
+        "passed": false,
+        "baseline": 312.1909
+      }
+    ],
+    "ab-previous": [
+      {
+        "name": "32-single-declaration/cold/wireP50",
+        "actual": 61.142,
+        "limit": 54.134535,
+        "passed": false,
+        "baseline": 51.5567,
+        "ratio": 1.05
+      },
+      {
+        "name": "32-single-declaration/hot/wireP95",
+        "actual": 26.8388,
+        "limit": 26.08452,
+        "passed": false,
+        "baseline": 24.8424
+      },
+      {
+        "name": "512-single-literal/cold/wireP50",
+        "actual": 901.1931,
+        "limit": 859.743045,
+        "passed": false,
+        "baseline": 818.8029,
+        "ratio": 1.05
+      },
+      {
+        "name": "512-single-literal/first/wireP50",
+        "actual": 199.7717,
+        "limit": 195.546855,
+        "passed": false,
+        "baseline": 186.2351,
+        "ratio": 1.05
+      },
+      {
+        "name": "512-imported-literal/hot/wireP95",
+        "actual": 328.4338,
+        "limit": 317.08404,
+        "passed": false,
+        "baseline": 301.9848
+      },
+      {
+        "name": "512-imported-declaration/exact/wireP50",
+        "actual": 3.638,
+        "limit": 3.5648,
+        "passed": false,
+        "baseline": 3.0648,
+        "ratio": 1.05
+      }
+    ],
+    "ab-shipping": [
+      {
+        "name": "32-single-literal/cold/wireP50",
+        "actual": 49.3647,
+        "limit": 48.770715,
+        "passed": false,
+        "baseline": 46.4483,
+        "ratio": 1.05
+      },
+      {
+        "name": "32-single-literal/hot/wireP95",
+        "actual": 16.9981,
+        "limit": 15.95874,
+        "passed": false,
+        "baseline": 15.1988
+      },
+      {
+        "name": "32-imported-literal/cold/wireP50",
+        "actual": 54.652,
+        "limit": 52.124625,
+        "passed": false,
+        "baseline": 49.6425,
+        "ratio": 1.05
+      }
+    ]
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "knownMissing": [
+    "IR and finish still116..138ms in diagnostic512 hot observations; preserve all original native checks while optimizing",
+    "same-image calibration and relative nonregression admission",
+    "completion/signature/navigation/GUI full latency, whole process memory, large workspace and soak admission",
+    "remaining applicable LSP, rename policy and IDE atomic transactions",
+    "later concurrent engine family and final runtime alignment"
+  ]
+}

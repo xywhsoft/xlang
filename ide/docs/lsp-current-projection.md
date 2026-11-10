@@ -24,3 +24,5 @@
 阶段索引为 `dev/release-materials/provenance/lsp-engine-alignment-20261111.json`；源码与原始验收材料在同名 sources／provenance 外部材料包中。默认 `release/win_x64` 的 IDE、语言服务与引擎文件保持原摘要，测试别名已清除；未推送更新。
 
 标准重命名与 IDE 原子编辑事务、其余适用 LSP、整体响应速度／内存／大工作区／长稳验收，以及后续引擎改动和正式运行时的整体验证仍待完成。
+
+后续完整静态检查矩阵与分段诊断见[当前静态检查性能](lsp-analysis-latency.md)；正式门槛尚未全部通过，原阶段功能验证不替代性能准入。
