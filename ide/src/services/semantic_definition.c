@@ -805,6 +805,7 @@ xvalue* xideSemanticDocumentSymbols(xide_semantic_definitions* d,const char* pat
 {return xideSemanticDocumentSymbolsForClient(d,path,NULL);}
 #ifdef XLS_COMPILER_XRT
 #include "services/semantic_reference_shard.inc"
+#include "services/semantic_binding_check.inc"
 #include "services/semantic_native_points.inc"
 #endif
 #include "services/semantic_symbols.inc"
