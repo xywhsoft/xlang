@@ -32,7 +32,7 @@ export extern "xgeGetFPS" @header("xge3_runtime.h") func getFPS() as c_int
 export extern "xgeTimer" @header("xge3_runtime.h") func timer() as c_double
 export extern "xgeTimeNow" @header("xge3_runtime.h") func timeNow() as int64
 export extern "xgeSleep" @header("xge3_runtime.h") func sleep(c_uint iMilliseconds)
-export extern "xgeSetTitle" @header("xge3_runtime.h") @c_cstr(0) func setTitle(string sTitle)
+export extern "xgeSetTitleChecked" @header("xge3_runtime.h") @no_raise @c_cstr(0) @c_result("status",0) func setTitle(string title)
 export extern "xgeBegin" @header("xge3_runtime.h") func begin() as c_int
 export extern "xgeEnd" @header("xge3_runtime.h") func nativeEnd() as c_int
 export extern "xgeFlush" @header("xge3_runtime.h") func flush() as c_int

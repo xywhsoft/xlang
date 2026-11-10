@@ -27,8 +27,9 @@ Importing a module never changes feature macros after a header was included.
 
 Names ending in `Native`, such as `initNative`, accept an explicitly caller
 managed C descriptor. A nullable descriptor default is exposed only where the
-native implementation accepts `NULL`. This does not make a descriptor's nested
-pointers owned or extend their lifetime.
+native implementation accepts `NULL`. Init copies the title; other nested
+pointers keep their explicit caller lifetime. Both forms retain an independent
+engine code owner until final checked shutdown.
 
 The inventory, remaining ownership contracts, measured costs and acceptance
 boundaries are described in `docs/xge3-xui3-api-map.md` in the source repository.
@@ -37,9 +38,14 @@ native engine subsystem has already passed managed runtime acceptance.
 
 ## Example resources
 
-`init(width,height,title)` packs a stack `xge_desc_t` and calls `xgeInit` once;
+`init(width,height,title)` packs a stack `xge_desc_t` and calls `xgeInitWithCode`
+through one cold code-lease admission;
 `initNative(descriptor=null)` preserves the explicit caller-owned descriptor API.
-The packed form uses a C macro alias to the same entry, without a forwarding function. `Font.drawText`
+Both declaration forms share that admission through a C macro alias. The title
+is copied natively; `setTitle` uses transactional native checked replacement.
+The measured language cold path adds one 64-byte code lease allocation compared
+with a process-resident C owner; ordinary drawing methods remain direct. See
+`docs/xge3-initialization.md` in the source repository. `Font.drawText`
 uses `xgeTextDraw`, and `drawTexture` packs one stack draw descriptor for `xgeDrawEx`.
 `Sound` shares one native sound record through a checked owned view; its policy
 frees the native sound and its outer record once, before engine shutdown.

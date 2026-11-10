@@ -1,0 +1,21 @@
+import xge
+extern "fixtureInitTitleMatches" @header("test/cases/foreign_xge3_init_title.h") @no_raise @c_cstr(0) func matches(string expected) as c_int
+extern "fixtureInitTitleAvailable" @header("test/cases/foreign_xge3_init_title.h") @no_raise func available() as c_int
+func main(...) as int
+ assert available()==c_int(0)
+ string title="temporary " + "window title"
+ xge.init(128,96,title,0,xge.XGE_RUN_MANUAL)
+ try
+  assert matches(title)==c_int(1)
+  title="caller changed"
+  assert matches("temporary window title")==c_int(1)
+  xge.setTitle("updated " + "window title")
+  assert matches("updated window title")==c_int(1)
+  xge.setTitle("third title")
+  assert matches("third title")==c_int(1)
+ finally
+  xge.unit()
+ end
+ assert available()==c_int(0)
+ return 0
+end

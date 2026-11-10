@@ -1,12 +1,12 @@
 // Native owned resources; admitted once and retired through the shared runtime policy.
 // Explicit C descriptor interoperability. NULL uses xgeInit's native defaults.
-// A supplied descriptor's borrowed pointers remain the C caller's responsibility.
+// Non-title descriptor pointers remain the C caller's responsibility.
 export extern "const xge_desc_t*" class NativeInitDescriptor @header("xge3_runtime.h") @lifetime("caller")
  native point handle
 end
-export extern "xgeInit" @header("xge3_runtime.h") @no_raise @c_result("status",0) func initNative(NativeInitDescriptor? descriptor=null)
-// Stack descriptor projection; one native call and no wrapper allocation.
-export extern "xl6Xge3InitPacked" @header("xge3_init.h") @no_raise @c_result("status",0) @c_pack(0,"xge_desc_t",0,5) @c_pack_field(0,"iWidth",0,"value") @c_pack_field(0,"iHeight",1,"value") @c_pack_field(0,"sTitle",2,"c_string") @c_pack_field(0,"iFlags",3,"value") @c_pack_field(0,"iRunMode",4,"value") func init(c_int width,c_int height,string title,c_int flags=0,c_int runMode=0)
+export extern "xl6Xge3InitWithCode" @header("xge3_runtime.h") @no_raise @c_code_owner(1) @c_result("status",0) func initNative(NativeInitDescriptor? descriptor=null)
+// Stack projection plus cold code admission; ordinary rendering stays direct.
+export extern "xl6Xge3InitPacked" @header("xge3_init.h") @no_raise @c_code_owner(1) @c_result("status",0) @c_pack(0,"xge_desc_t",0,5) @c_pack_field(0,"iWidth",0,"value") @c_pack_field(0,"iHeight",1,"value") @c_pack_field(0,"sTitle",2,"c_string") @c_pack_field(0,"iFlags",3,"value") @c_pack_field(0,"iRunMode",4,"value") func init(c_int width,c_int height,string title,c_int flags=0,c_int runMode=0)
 export extern "const void*" class Pixels @header("xge3_runtime.h") @lifetime("caller")
  native point handle
 end

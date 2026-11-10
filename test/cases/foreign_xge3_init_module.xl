@@ -1,0 +1,21 @@
+// The initialized engine is an independent native publisher, without callbacks.
+import xge
+extern "fixtureInitModuleMode" @header("test/cases/foreign_xge3_init_module.h") @no_raise func mode() as c_int
+func main(...) as int
+ if mode()==c_int(2) then
+  xge.initNative()
+ else
+  string title="owned engine 0"
+  if mode()==c_int(1) then
+   title="owned engine 1"
+  end
+  xge.init(128,96,title,0,xge.XGE_RUN_MANUAL)
+  title="changed caller value"
+  if mode()==c_int(1) then
+   auto texture=xge.createTexture(1,1)
+   texture.draw(0,0)
+   texture.close() // The private command queue now owns the only native ref.
+  end
+ end
+ return 0 // Host closes the module before flushing and retiring the engine.
+end

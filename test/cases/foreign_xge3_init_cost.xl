@@ -1,0 +1,21 @@
+import xge
+extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func debugEnabled() as bool
+extern "fixtureInitHeap" @header("test/cases/foreign_xge3_init_cost.h") @no_raise @c_outputs(0,1) func heap() as (c_size,c_size)
+func measure() as (c_size,c_size)
+ auto count0,bytes0=heap()
+ xge.init(128,96,"engine cost",0,xge.XGE_RUN_MANUAL)
+ auto count1,bytes1=heap()
+ xge.unit()
+ return count1-count0,bytes1-bytes0
+end
+func main(...) as int
+ assert debugEnabled()
+ measure()
+ auto count0,bytes0=heap()
+ auto allocations,requested=measure()
+ auto count1,bytes1=heap()
+ assert count1==count0 and bytes1==bytes0
+ println("Engine cold live allocations:",allocations)
+ println("Engine cold requested heap bytes:",requested)
+ return 0
+end
