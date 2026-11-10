@@ -81,7 +81,9 @@ static int xl6SemForeignManagedInputVariants(XL6_SemContext* ctx,const XL6_AstNo
     if(!left || !right || left->childCount!=right->childCount)return 0;
     for(size_t i=0;i<left->childCount;++i)
         if(left->children[i]->childCount && right->children[i]->childCount &&
-            xl6SemForeignManagedInputCompatible(ctx,left->children[i]->children[0],right->children[i]->children[0]))return 1;
+            (xl6SemForeignManagedInputCompatible(ctx,left->children[i]->children[0],right->children[i]->children[0]) ||
+             (!xl6SemExternCTypeCompatible(ctx,left->children[i]->children[0],right->children[i]->children[0]) &&
+              xl6SemExternOwnedPolicyInputCompatible(ctx,left->children[i]->children[0],right->children[i]->children[0]))))return 1;
     return 0;
 }
 static int xl6SemForeignHasSpans(const XL6_AstNode* node)

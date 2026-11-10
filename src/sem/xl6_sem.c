@@ -9157,6 +9157,21 @@ static int xl6SemExternCTypeCompatible(XL6_SemContext* ctx,const XL6_AstNode* a,
         !strcmp(left.policy,right.policy) && !strcmp(left.scope,right.scope) &&
         !strcmp(left.watch,right.watch) && !strcmp(left.domain,right.domain) && !strcmp(left.owner,right.owner);
 }
+/* An input can borrow either of two distinct owned language types whose
+ * authoritative C pointer and admission domain coincide. Policy identity
+ * stays attached to each value/call site; it is not part of the C parameter
+ * ABI. This does not equate return factories or nominal language values. */
+static int xl6SemExternOwnedPolicyInputCompatible(XL6_SemContext* ctx,const XL6_AstNode* a,const XL6_AstNode* b)
+{
+    a=xl6SemResolveAliasType(ctx,a);b=xl6SemResolveAliasType(ctx,b);
+    if(xl6SemTypeIsNullable(a) || xl6SemTypeIsNullable(b))return 0;
+    XL6_ForeignClassDecl left={0},right={0};
+    return xl6SemForeignViewDeclaration(ctx,a,&left) && xl6SemForeignViewDeclaration(ctx,b,&right) &&
+        left.lifetime==XL6_FOREIGN_LIFETIME_OWNED && right.lifetime==left.lifetime &&
+        !strcmp(left.cName,right.cName) && !strcmp(left.header,right.header) &&
+        !strcmp(left.scope,right.scope) && !strcmp(left.watch,right.watch) &&
+        !strcmp(left.domain,right.domain) && !strcmp(left.owner,right.owner);
+}
 static int xl6SemExternCReturnsCompatible(XL6_SemContext* ctx,const XL6_AstNode* a,const XL6_AstNode* b)
 {
     if (xl6SemTypeListEquals(ctx,a,b,0)) return 1;
@@ -9199,7 +9214,8 @@ static int xl6SemExternParameterListsCompatible(XL6_SemContext* ctx,const XL6_As
             if(xl6SemTypeIsNullable(lt))lt=xl6SemNullableInnerType(lt);
             if(xl6SemTypeIsNullable(rt))rt=xl6SemNullableInnerType(rt);
         }
-        if((!xl6SemExternCTypeCompatible(ctx,lt,rt) && !xl6SemForeignRegionInputCompatible(ctx,a,b,p,lt,rt) &&
+        if((!xl6SemExternCTypeCompatible(ctx,lt,rt) && !xl6SemExternOwnedPolicyInputCompatible(ctx,lt,rt) &&
+            !xl6SemForeignRegionInputCompatible(ctx,a,b,p,lt,rt) &&
             !xl6SemForeignManagedInputCompatible(ctx,lt,rt)) ||
             xl6SemParamMode(left->children[p])!=xl6SemParamMode(right->children[p]))return 0;
     }

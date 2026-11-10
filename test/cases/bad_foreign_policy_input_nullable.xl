@@ -1,0 +1,8 @@
+extern "PolicyInput*" class A @header("test/cases/foreign_policy_inputs.h") @lifetime("owned") @policy("policyInputPolicyA")
+ native point handle
+end
+extern "PolicyInput*" class B @header("test/cases/foreign_policy_inputs.h") @lifetime("owned") @policy("policyInputPolicyB")
+ native point handle
+end
+extern "policyInputKind" @header("test/cases/foreign_policy_inputs.h") @no_raise func first(A? value) as c_int
+extern "policyInputKind" @header("test/cases/foreign_policy_inputs.h") @no_raise func second(B? value) as c_int

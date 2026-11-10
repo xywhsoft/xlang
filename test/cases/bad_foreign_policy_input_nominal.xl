@@ -1,0 +1,11 @@
+extern "PolicyInput*" class A @header("test/cases/foreign_policy_inputs.h") @lifetime("owned") @policy("policyInputPolicyA")
+ native point handle
+end
+extern "PolicyInput*" class B @header("test/cases/foreign_policy_inputs.h") @lifetime("owned") @policy("policyInputPolicyB")
+ native point handle
+end
+func acceptsA(A value)
+end
+func rejectsB(B value)
+ acceptsA(value)
+end

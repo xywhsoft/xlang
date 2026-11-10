@@ -1,0 +1,42 @@
+// Distinct nominal types/policies, one exact native input pointer ABI.
+extern "PolicyInput*" class PolicyA @header("test/cases/foreign_policy_inputs.h") @lifetime("owned") @policy("policyInputPolicyA")
+ native point handle
+ extern "policyInputKind" @no_raise get kind() as c_int
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "PolicyInput*" class PolicyB @header("test/cases/foreign_policy_inputs.h") @lifetime("owned") @policy("policyInputPolicyB")
+ native point handle
+ extern "policyInputKind" @no_raise get kind() as c_int
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "policyInputRelease" @header("test/cases/foreign_policy_inputs.h") @no_raise @c_result("status",0) func releaseA(PolicyA value)
+extern "policyInputRelease" @header("test/cases/foreign_policy_inputs.h") @no_raise @c_result("status",0) func releaseB(PolicyB value)
+extern "policyInputCreateA" @header("test/cases/foreign_policy_inputs.h") @no_raise @c_result("owned_view") @factory(0,0,releaseA) func createA() as PolicyA
+extern "policyInputCreateB" @header("test/cases/foreign_policy_inputs.h") @no_raise @c_result("owned_view") @factory(0,0,releaseB) func createB() as PolicyB
+extern "policyInputKind" @header("test/cases/foreign_policy_inputs.h") @no_raise func peekA(PolicyA value) as c_int
+extern "policyInputKind" @header("test/cases/foreign_policy_inputs.h") @no_raise func peekB(PolicyB value) as c_int
+extern "policyInputBalanced" @header("test/cases/foreign_policy_inputs.h") @no_raise func balanced() as bool
+func erased(var value) as var
+ return value
+end
+func main(...) as int
+ auto a=createA()
+ auto b=createB()
+ assert a.kind==c_int(1) and b.kind==c_int(2)
+ assert peekA(a)==c_int(1) and peekB(b)==c_int(2)
+ func(PolicyA) as c_int first=peekA
+ func(PolicyB) as c_int second=peekB
+ assert first(a)==c_int(1) and second(b)==c_int(2)
+ var boxed=erased(a)
+ bool rejected=false
+ try
+  auto wrong=boxed as PolicyB
+ catch error
+  rejected=true
+ end
+ assert rejected and a.kind==c_int(1)
+ a.close()
+ b.close()
+ assert balanced()
+ return 0
+end

@@ -76,13 +76,18 @@ static int xl6IrForeignRegionEqual(const XL6_ForeignRegionContract* a,const XL6_
 static int xl6IrForeignManagedInputCompatible(const XL6_IrModule* module,const XL6_IrCallTarget* a,const XL6_IrCallTarget* b,size_t p)
 {
     const XL6_IrType* left=xl6IrTypeGet(&module->types,a->parameterTypes[p]);const XL6_IrType* right=xl6IrTypeGet(&module->types,b->parameterTypes[p]);
+    int ownedAliases=left && right && left->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNED && right->foreignLifetime==left->foreignLifetime &&
+        left->foreignOwner==right->foreignOwner &&
+        ((left->foreignScope==right->foreignScope) || (left->foreignScope && right->foreignScope && !strcmp(left->foreignScope,right->foreignScope))) &&
+        ((left->foreignWatch==right->foreignWatch) || (left->foreignWatch && right->foreignWatch && !strcmp(left->foreignWatch,right->foreignWatch))) &&
+        ((left->foreignDomain==right->foreignDomain) || (left->foreignDomain && right->foreignDomain && !strcmp(left->foreignDomain,right->foreignDomain)));
     return left && right && left->kind==XL6_IR_TYPE_CLASS && right->kind==XL6_IR_TYPE_CLASS &&
         a->parameterAbis[p]==XL6_IR_PARAMETER_ABI_BORROW && b->parameterAbis[p]==XL6_IR_PARAMETER_ABI_BORROW &&
         a->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VIEW_BORROW &&
         b->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_VIEW_BORROW &&
         xl6IrForeignManagedViewParameter(module,a,p) && xl6IrForeignManagedViewParameter(module,b,p) &&
         ((left->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNED && right->foreignLifetime==XL6_FOREIGN_LIFETIME_CALLBACK) ||
-         (right->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNED && left->foreignLifetime==XL6_FOREIGN_LIFETIME_CALLBACK)) &&
+         (right->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNED && left->foreignLifetime==XL6_FOREIGN_LIFETIME_CALLBACK) || ownedAliases) &&
         left->foreignHeader && right->foreignHeader && !strcmp(left->cName,right->cName) && !strcmp(left->foreignHeader,right->foreignHeader);
 }
 #include "src/ir/xl6_ir_foreign_null_compat.c"
@@ -138,11 +143,17 @@ static int xl6IrVerifyForeignOverloads(const XL6_IrModule* module,XL6_DiagList* 
             if(b->kind!=XL6_IR_CALL_TARGET_EXTERN_C || !right || a->declaration==b->declaration || strcmp(a->cName,b->cName) ||
                 left->sourceKind!=right->sourceKind || left->declarationOwnerType!=right->declarationOwnerType ||
                 a->foreignOperationAbi!=b->foreignOperationAbi)continue;
-            int lifetimeVariants=0;
+            int lifetimeVariants=0,policyInputVariants=0;
             if(b->kind==XL6_IR_CALL_TARGET_EXTERN_C && a->parameterCount==b->parameterCount)
                 for(size_t p=0;p<a->parameterCount;++p){
                     const XL6_IrType* lt=xl6IrTypeGet(&module->types,a->parameterTypes[p]);const XL6_IrType* rt=xl6IrTypeGet(&module->types,b->parameterTypes[p]);
                     if(lt && rt && lt->foreignHeader && rt->foreignHeader && lt->foreignLifetime!=rt->foreignLifetime)lifetimeVariants=1;
+                    /* Existing same-policy input/result specializations keep
+                     * their producer contract. New policy-only input aliases
+                     * need this separate physical/effect agreement check. */
+                    if(lt && rt && lt->foreignHeader && rt->foreignHeader && lt->foreignPolicy && rt->foreignPolicy &&
+                        strcmp(lt->foreignPolicy,rt->foreignPolicy) && lt->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNED &&
+                        rt->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNED)policyInputVariants=1;
                 }
             int retainedOutputs=0;
             for(size_t o=0;o<module->foreignOutputViewCount;++o)
@@ -157,7 +168,7 @@ static int xl6IrVerifyForeignOverloads(const XL6_IrModule* module,XL6_DiagList* 
                 !xl6ForeignInputHasPacks(right->foreignCall.inputMappingFacts) &&
                 !xl6ForeignInputHasFixedInputs(left->foreignCall.inputMappingFacts) && !xl6ForeignInputHasFixedInputs(right->foreignCall.inputMappingFacts) &&
                 !xl6ForeignValueOutputIsRecord(left->foreignCall.valueOutput) &&
-                !xl6ForeignValueOutputIsRecord(right->foreignCall.valueOutput) && !lifetimeVariants && !retainedOutputs)continue;
+                !xl6ForeignValueOutputIsRecord(right->foreignCall.valueOutput) && !lifetimeVariants && !policyInputVariants && !retainedOutputs)continue;
             if(!xl6IrForeignOverloadsCompatible(module,a,b))return xl6IrDiag(diags,NULL,"native target overloads disagree on their sealed physical, effect or ownership contract");
         }
     }

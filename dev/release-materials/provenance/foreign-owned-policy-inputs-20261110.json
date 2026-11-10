@@ -1,0 +1,65 @@
+{
+  "scope": "Distinct owning policies sharing an exact borrowed C parameter ABI; nominal values/results/effects/domains remain independent",
+  "shippingDelivery": false,
+  "source": {
+    "docs/foreign-owned-policy-inputs.md": "37a8f33eb62593fb228b1c9fd2e9ba51fac9e518dfa71e4cad52acbcf21eed21",
+    "src/ir/xl6_ir_foreign_compat.c": "8012436257a76af817de7c6831139fc6a32283c8ef1c8439cae0b442b3be5b72",
+    "src/sem/xl6_sem.c": "fe381b10ff3c2e6ccbdacf0f9f7997fb112f8f6b4e9a94f91665dbbb5a170d02",
+    "src/sem/xl6_sem_foreign_compat.c": "87a24201976b540983ebdfd10c5d7cfc75fe29f07532316ae50072bd83203003",
+    "test/cases/bad_foreign_policy_input_c_type.xl": "df2356b45b9a80ad2eab80096696eb850f1e0a532b0921ab578d03dcc02a3d29",
+    "test/cases/bad_foreign_policy_input_domain.xl": "4323bae05cfcb166e4f14a92ebc4e8b7c412db8908510c39fd6d6c5eb2372579",
+    "test/cases/bad_foreign_policy_input_effect.xl": "de4412957166883cce7ba930ed8fc719b7fd50f16eccbb8d26261e52a96f7fc8",
+    "test/cases/bad_foreign_policy_input_nominal.xl": "5c80a3aa4437f1b0fb9197683290b608cd1ba7109102167b5854b148a7640875",
+    "test/cases/bad_foreign_policy_input_nullable.xl": "03462f530ebe0d17480e1347a462fea30e415d77914dbc096b51d8ceb2ce5541",
+    "test/cases/foreign_policy_inputs.h": "a6cf80598d894e91de516c107155970c3317dd9bf0a196eef931bf1a2e7901af",
+    "test/cases/foreign_policy_inputs.xl": "6365a06c427e92ae1ceae3ba83577ad7d64ca7c615ad0fb1d4a5b786c5def1b4",
+    "test/cases/foreign_policy_inputs_ir.c": "7a62883405cf2ccfd41c885c885508e05bfeb86ab4ca0703e57eb5fd1daaca68",
+    "test/cases/foreign_policy_same_result.h": "d34be04b4c7d062dc3d848cc006623bd391c5006cd1d4b72ed42a877c8a00483",
+    "test/cases/foreign_policy_same_result.xl": "0754a2442d40f66e6a75fe0d53a0fcf85b3a5198b41703578b48585e4216af57",
+    "tools/check_foreign_policy_inputs.py": "ea8339b4a27949cc70708a2932d0021563d1a0df74227eba6449e5a6e05216cd"
+  },
+  "builds": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r13\\build.json",
+      "sha256": "2804689b3b2bb234e3c970a98060c5614b393ae12be995c3295e7c8e0add62f9",
+      "fullTccXrtAndVfs": true,
+      "optimization": "O2"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-linux-full-r5\\build.json",
+      "sha256": "35400cf7e77732e9fa0fdd85f4b13c02a262a3cdc4d091766c90ad7248a791ea",
+      "fullTccXrtAndVfs": true,
+      "optimization": "O2"
+    }
+  ],
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\policy-input-win-full-r1\\results.json",
+      "sha256": "72212484a101420dc3d596b50134a30b310ca405aae0420459a4568b99da2357",
+      "checks": 19
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\policy-input-linux-full-r1\\results.json",
+      "sha256": "1fa6571e2d2426803263b5308f358c8a06b1e29fdea5a2ee46b26c291d518c6c",
+      "checks": 19
+    }
+  ],
+  "sealedIrMutations": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\policy-input-ir-win-r2\\results.json",
+    "sha256": "2b02a06465d06238d12c9378bbb5be07b2fe98230adf2925597370d1275c53e5",
+    "mutations": 10,
+    "zeroCAndHeaderOnRejection": true,
+    "diagnosticObjectsOnly": true
+  },
+  "excludedDiagnosticAot": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\policy-aot-controls-r1\\results.json",
+    "sha256": "de35a189408f95756b70cb561d2e1aa8c868a3cf30bd694bd12b40d00747c858",
+    "reason": "Partial runtime replacement not qualified for standalone AOT"
+  },
+  "fixedRegression": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\policy-same-result-controls-r1\\results.json",
+    "sha256": "0f8ebca5016376121a6fc92cdc70cb473cf82f7e9be78a22ba44ca99a74d64d3",
+    "scope": "Same-policy producer positive restored; final full candidates pass"
+  },
+  "runtimeAndCgenChanges": false
+}

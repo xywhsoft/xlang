@@ -1,0 +1,28 @@
+// Existing aliases with the same policy may specialize both input and result.
+extern "PolicyInput*" class First @header("test/cases/foreign_policy_same_result.h") @lifetime("owned") @policy("policyInputPolicyA")
+ native point handle
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "PolicyInput*" class Second @header("test/cases/foreign_policy_same_result.h") @lifetime("owned") @policy("policyInputPolicyA")
+ native point handle
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "policyInputRelease" @header("test/cases/foreign_policy_same_result.h") @no_raise @c_result("status",0) func freeFirst(First value)
+extern "policyInputRelease" @header("test/cases/foreign_policy_same_result.h") @no_raise @c_result("status",0) func freeSecond(Second value)
+extern "policyInputCreateA" @header("test/cases/foreign_policy_same_result.h") @no_raise @c_result("owned_view") @factory(0,0,freeFirst) func first() as First
+extern "policyInputCreateSibling" @header("test/cases/foreign_policy_same_result.h") @no_raise @c_result("owned_view") @factory(0,0,freeSecond) func second() as Second
+extern "policyInputClone" @header("test/cases/foreign_policy_same_result.h") @no_raise @c_result("owned_view") @factory(1,0,freeFirst) func copyFirst(First value) as First
+extern "policyInputClone" @header("test/cases/foreign_policy_same_result.h") @no_raise @c_result("owned_view") @factory(1,0,freeSecond) func copySecond(Second value) as Second
+extern "policyInputAllReleased" @header("test/cases/foreign_policy_same_result.h") @no_raise func released() as bool
+func main(...) as int
+ auto a=first()
+ auto b=second()
+ auto aa=copyFirst(a)
+ auto bb=copySecond(b)
+ a.close()
+ b.close()
+ aa.close()
+ bb.close()
+ assert released()
+ return 0
+end
