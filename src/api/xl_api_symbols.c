@@ -756,6 +756,8 @@ static int xlVisitDefaultTccApiSymbols(XL_ApiSymbolVisit visit, void* user)
         !visit(user, "xl6CodeActivityEnterV1", (const void*)xl6CodeActivityEnterV1) ||
         !visit(user, "xl6CodeActivityLeaveV1", (const void*)xl6CodeActivityLeaveV1) ||
         !visit(user, "xl6CodeLeaseAcquireScoped", (const void*)xl6CodeLeaseAcquireScoped) ||
+        !visit(user, "xl6CodeLeaseHoldNativeV1", (const void*)xl6CodeLeaseHoldNativeV1) ||
+        !visit(user, "xl6CodeLeaseDropNativeV1", (const void*)xl6CodeLeaseDropNativeV1) ||
         !visit(user, "xl6CodeScopeEnter", (const void*)xl6CodeScopeEnter) ||
         !visit(user, "xl6CodeScopeLeave", (const void*)xl6CodeScopeLeave) ||
         !visit(user, "xl6CodeLeaseRetain", (const void*)xl6CodeLeaseRetain) ||

@@ -20,7 +20,8 @@
       "src/render_resources.xl",
       "src/render_pipeline.xl",
       "src/input_actions.xl",
-      "src/resource_loading.xl"
+      "src/resource_loading.xl",
+      "src/scene.xl"
     ],
     "includeDirs": [
       "include"

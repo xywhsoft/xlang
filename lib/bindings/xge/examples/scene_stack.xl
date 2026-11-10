@@ -1,0 +1,32 @@
+// A manual headless frame is enough to learn Scene activation and stack order.
+import xge
+
+xge.init(64,64,"Scene stack",0,xge.XGE_RUN_MANUAL)
+auto game=xge.createScene()
+auto menu=xge.createScene()
+
+game.onEnter(func() as c_int
+ println("Game entered")
+ return c_int(0)
+end)
+game.onPause(func() as c_int
+ println("Game paused by the menu")
+ return c_int(0)
+end)
+game.onResume(func() as c_int
+ println("Game resumed")
+ return c_int(0)
+end)
+menu.onDraw(func() as c_int
+ println("Menu frame")
+ return c_int(0)
+end)
+
+game.activate()
+menu.push()
+xge.frame()
+xge.popScene()
+xge.clearScenes()
+menu.close()
+game.close()
+xge.unit()

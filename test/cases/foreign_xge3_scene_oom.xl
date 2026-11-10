@@ -1,0 +1,53 @@
+import xge
+extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func debugEnabled() as bool
+extern "fixtureSceneHeap" @header("test/cases/foreign_xge3_scene_oom.h") @no_raise @c_outputs(0,1) func sceneHeap() as (c_size,c_size)
+extern "fixtureSceneFailAfter" @header("test/cases/foreign_xge3_scene_oom.h") @no_raise func failAfter(c_int value)
+extern "fixtureSceneFailClear" @header("test/cases/foreign_xge3_scene_oom.h") @no_raise func failClear()
+func createAndClose()
+ auto scene=xge.createScene()
+ scene.close()
+end
+func main(...) as int
+ assert debugEnabled()
+ createAndClose()
+ int failed=0
+ int passed=0
+ for budget in range(8)
+  auto count0,bytes0=sceneHeap()
+  failAfter(c_int(budget))
+  try
+   createAndClose()
+   passed+=1
+  catch error
+   failed+=1
+  end
+  failClear()
+  auto count1,bytes1=sceneHeap()
+  assert count1==count0 and bytes1==bytes0
+ end
+ assert failed>0 and passed>0
+ auto scene=xge.createScene()
+ func() as c_int callback=func() as c_int => c_int(0)
+ scene.onDraw(callback)
+ scene.onDraw(null)
+ failed=0
+ passed=0
+ for budget in range(8)
+  auto count0,bytes0=sceneHeap()
+  failAfter(c_int(budget))
+  try
+   scene.onDraw(callback)
+   passed+=1
+  catch error
+   failed+=1
+  end
+  failClear()
+  scene.onDraw(null)
+  auto count1,bytes1=sceneHeap()
+  assert count1==count0 and bytes1==bytes0
+ end
+ assert failed>0 and passed>0
+ scene.close()
+ println("Scene factory and callback allocation prefixes restored all native/code owners")
+ return 0
+end

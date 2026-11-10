@@ -32,7 +32,17 @@
     "modifiedSemAndIrMatchFullCompiler": true
   },
   "remaining": [
-    "Linux complete-source compiler and language qualification",
-    "Scene native-code-owner integration and final delivery"
-  ]
+    "Final matched compiler/SDK/IDE delivery; Scene integration tracked separately"
+  ],
+  "linux": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\nullable-factory-linux-full-r1\\results.json",
+    "sha256": "61bb169fd40279e7ede2871c3bff70de4ae856b3bcf4871cecf45f5a9668d162",
+    "checks": 6,
+    "compilerBuild": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-linux-full-r2\\build.json",
+      "sha256": "0318196982c156c1fe862ca46d6fdf687032969c9b1b4ba03f85767656601012",
+      "fullTccXrtAndVfs": true,
+      "optimization": "O2"
+    }
+  }
 }

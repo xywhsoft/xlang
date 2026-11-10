@@ -1,0 +1,138 @@
+// Real native stack, typed callback return tails and expired Event views.
+import xge
+from xge import SceneEvent as SavedSceneEvent
+from xge import Scene as SavedScene
+extern "fixtureSceneEvent" @header("test/cases/foreign_xge3_scene.h") @no_raise @c_result("status",0) func sendEvent(c_int type)
+class SceneCounts
+ int entered=0
+ int left=0
+ int paused=0
+ int resumed=0
+ int updates=0
+ int draws=0
+ int freed=0
+ int events=0
+end
+func forbiddenSceneCalls(xge.Scene scene) as func() as int
+ return func() as int
+  int rejected=0
+  try
+   auto entered=scene.entered
+  catch StateError
+   rejected+=1
+  end
+  try
+   scene.close()
+  catch StateError
+   rejected+=1
+  end
+  try
+   auto count=xge.sceneCount()
+  catch error
+   rejected+=1
+  end
+  try
+   auto current=xge.currentScene()
+  catch error
+   rejected+=1
+  end
+  try
+   auto mode,step,maximum=xge.sceneUpdateStrategy()
+  catch error
+   rejected+=1
+  end
+  return rejected
+ end
+end
+func main(...) as int
+ xge.init(64,64,"Scene CPU contract",0,xge.XGE_RUN_MANUAL)
+ assert xge.currentScene()==null and xge.sceneCount()==c_int(0)
+ auto counts=SceneCounts()
+ auto scene=xge.createScene()
+ auto other=xge.createScene()
+ xge.SceneEvent? saved=null
+ scene.onEnter(func() as c_int
+  counts.entered+=1
+  xge.setSceneUpdateStrategy(xge.XGE_UPDATE_VARIABLE,c_float(0.01),c_int(1))
+  return c_int(0)
+ end)
+ scene.onLeave(func() as c_int
+  counts.left+=1
+  return c_int(0)
+ end)
+ scene.onPause(func() as c_int
+  counts.paused+=1
+  return c_int(0)
+ end)
+ scene.onResume(func() as c_int
+  counts.resumed+=1
+  return c_int(0)
+ end)
+ scene.onFree(func() as c_int
+  counts.freed+=1
+  return c_int(0)
+ end)
+ scene.onEvent(func(xge.SceneEvent event) as c_int
+  assert event.type==xge.XGE_EVENT_KEY_DOWN and event.param1==c_int(42)
+  assert event.x==c_float(7.5) and event.pointerId==uint64(0xfedcba9876543210)
+  assert event.codepoint==c_uint(0x4f60) and event.time==c_double(1.25)
+  saved=event
+  counts.events+=1
+  return c_int(0)
+ end)
+ scene.onDraw(func() as c_int
+  counts.draws+=1
+  return c_int(0)
+ end)
+ scene.onUpdate(func(c_float delta) as c_int
+  assert delta>c_float(0)
+  counts.updates+=1
+  scene.onUpdate(null)
+  return c_int(0)
+ end)
+ scene.activate()
+ assert scene.entered and not scene.paused and counts.entered==1
+ auto worker=thread(forbiddenSceneCalls(scene))
+ assert worker.waitTimeout(30000) and worker.exitCode()==5
+ assert scene.entered and xge.sceneCount()==c_int(1)
+ auto mode,step,maximum=xge.sceneUpdateStrategy()
+ assert mode==xge.XGE_UPDATE_VARIABLE and step==c_float(0.01) and maximum==c_int(1)
+ other.push()
+ assert scene.paused and counts.paused==1 and xge.sceneCount()==c_int(2)
+ xge.popScene()
+ assert not scene.paused and counts.resumed==1
+ sendEvent(xge.XGE_EVENT_KEY_DOWN)
+ assert counts.events==1 and saved!=null
+ bool expired=false
+ try
+  auto eventType=(saved as SavedSceneEvent).type
+ catch StateError
+  expired=true
+ end
+ assert expired
+ assert xge.frame()==c_int(1)
+ assert counts.updates==1 and counts.draws==0
+ assert xge.frame()==c_int(1) and counts.draws==1
+ auto current=xge.currentScene() as SavedScene
+ scene.close()
+ assert current.entered and xge.sceneCount()==c_int(1)
+ assert xge.frame()==c_int(1) and counts.draws==2
+ current.onLeave(func() as c_int
+  return c_int(-71)
+ end)
+ bool rejected=false
+ try
+  xge.popScene()
+ catch error
+  rejected=true
+ end
+ assert rejected and current.entered and xge.sceneCount()==c_int(1)
+ current.onLeave(null)
+ xge.clearScenes()
+ assert counts.freed==1 and not current.entered and xge.currentScene()==null
+ current.close()
+ other.close()
+ xge.unit()
+ println("Scene native stack, callbacks, view expiry and checked retry passed")
+ return 0
+end

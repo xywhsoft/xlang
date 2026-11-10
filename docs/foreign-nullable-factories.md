@@ -28,8 +28,8 @@ Cgen 和驻留结果探针原本已实现这套空值分支，本次补齐前端
 `test/cases/foreign_nullable_factory_ir.c` 另拒绝 20 个伪造的 XLIR 合同，确保非法
 模块在 C 与公共头输出前被拒绝。
 
-Windows 完整 O2/TCC/XRT/VFS 候选通过六项公开 CLI/JIT/独立 AOT 检查；
+Windows、Linux 完整 O2/TCC/XRT/VFS 候选各通过六项公开 CLI/JIT/独立 AOT 检查；
 20 项 IR 变异检查使用明确标注的诊断编译器，两个被修改的编译单元与完整
-候选相同。完整 Linux 候选及后续 Native 代码拥有能力的配套构建仍在进行。
+候选相同。Linux 此项使用完整 r2 候选；后续 Scene 代码拥有能力由独立批次验收。
 本批没有替换正式 release/IDE，证据见
 `dev/release-materials/provenance/foreign-nullable-factories-20261110.json`。

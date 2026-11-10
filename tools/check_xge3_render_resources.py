@@ -15,6 +15,8 @@ import subprocess
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--root', type=Path, default=Path(__file__).resolve().parents[1])
+    p.add_argument('--working-release', type=Path,
+        help='Matched isolated compiler/SDK runtime directory; default is the repository runtime tree')
     p.add_argument('--extra-case', type=Path, action='append', default=[],
         help='Additional CPU-only resource fixture or example; same JIT/static checks')
     p.add_argument('--graphics-case', type=Path, action='append', default=[],
@@ -24,6 +26,8 @@ def main():
     a = p.parse_args()
     root, compiler, dynamic, static, out, objdump = [v.resolve() for v in
         (a.root, a.compiler, a.dynamic_packages, a.static_packages, a.out, a.objdump)]
+    working=a.working_release.resolve() if a.working_release else root/'release'/('win_x64' if os.name=='nt' else 'linux_x64')
+    assert working.is_dir()
     out.mkdir(parents=True, exist_ok=False)
     sha = lambda path: hashlib.sha256(Path(path).read_bytes()).hexdigest()
     inputs = {str(path): sha(path) for path in [Path(__file__).resolve(), compiler, objdump]}
@@ -38,11 +42,25 @@ def main():
     cases.extend(path.resolve() for path in a.graphics_case)
     assert len({path.stem for path in cases}) == len(cases), 'Duplicate output basename'
     inputs.update({str(path): sha(path) for path in cases})
+    sidecars=[]
     for case in cases:
         for suffix in ('.c', '.h'):
             sidecar = case.with_suffix(suffix)
             if sidecar.is_file():
-                inputs[str(sidecar)] = sha(sidecar)
+                sidecars.append(sidecar)
+    # Pin fixture helpers reached through literal includes too. SDK/package
+    # headers already belong to the complete inventories above.
+    while sidecars:
+        sidecar=sidecars.pop().resolve()
+        if str(sidecar) in inputs:
+            continue
+        inputs[str(sidecar)]=sha(sidecar)
+        for name in re.findall(r'^\s*#\s*include\s*[<"]([^>"\n]+)[>"]',sidecar.read_text(encoding='utf8'),re.M):
+            for candidate in (sidecar.parent/name,root/name):
+                candidate=candidate.resolve()
+                if candidate.is_relative_to(root) and candidate.is_file():
+                    sidecars.append(candidate)
+                    break
     report = dict(passed=False, graphicsContext=bool(a.graphics_case), gpuAcceptance=bool(a.graphics_case),
         graphicsScope='Bounded OpenGL API/readback; no hardware performance qualification' if a.graphics_case else None,
         shippingDelivery=False, compilerBuild='caller supplied; qualify cohort separately',
@@ -58,7 +76,7 @@ def main():
             env['XLANG_PACKAGE_PATH'] = str(packages)
         command = list(map(str, command))
         result = subprocess.run(command, env=env,
-            cwd=root / 'release' / ('win_x64' if os.name == 'nt' else 'linux_x64'),
+            cwd=working,
             capture_output=True, timeout=180)
         log = out / (name + '.log')
         log.write_bytes(result.stdout + result.stderr)

@@ -1,0 +1,157 @@
+{
+  "scope": "Native owned Scene stack, exact typed callbacks, nullable current query and independent resident code-owner lifetime",
+  "taskStatus": "active",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "nativeRevision": "8e40fbb6e624ff8d45145fe153260d50bcba1921",
+  "nativeSnapshot": "native-source-r18",
+  "nativeEvidence": [
+    {
+      "path": "D:\\GIT\\xge\\docs\\validation\\scene-owned-20261110.json",
+      "sha256": "80bad39189262944ab25780c662921b70d82dd29be191ebdbd688b80364861ab"
+    },
+    {
+      "path": "D:\\GIT\\xge\\docs\\validation\\scene-transitions-20261110.json",
+      "sha256": "a23258d74203a02b688ba406608fba54cec7be409973a22e9f5fe42ace90520e"
+    }
+  ],
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\language-scene-win-r5\\results.json",
+      "sha256": "45862f626100863b55504187d72c8ff50d73f07c0ba0d4622ca072b1ce79babb",
+      "checks": 40
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\language-scene-linux-r1\\results.json",
+      "sha256": "d87374760d1dd69eb010433a5b84f4c5c8e6cf6c2d8feff624c32479b3b4e9f6",
+      "checks": 32
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\scene-module-win-full-r2\\results.json",
+      "sha256": "cbfdd27ca3d5a464f13a41837e92066210643b8eed6409c5df36a7ba35a4f4c1",
+      "checks": 6
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\scene-module-linux-full-r1\\results.json",
+      "sha256": "f378b6d129b7f877334b6b65f90c07cd54045277257b23e57ed6f6e680dbd168",
+      "checks": 6
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-code-owner-win-full-r2\\results.json",
+      "sha256": "4b1d0c7a1d5d90cd26ac2d64a72d97a9800cb566d86fe182d25749e9bf2354c8",
+      "checks": 4
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-code-owner-linux-full-r1\\results.json",
+      "sha256": "ef72a3afb873442652a4ddc4569ca2c0ab9289b5f24f86fa623692c28ed28893",
+      "checks": 4
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\scene-headers-win-r2\\results.json",
+      "sha256": "1f6891eb4e92a8a9c26066a5b7559b4d419dcd0f15507d19f028add9a1ff3817",
+      "checks": 6
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\scene-headers-win-r2\\linked-results.json",
+      "sha256": "dc71e9e251f74f7efdb6db55849835e68504c838b8b03d014d4715c1d40841cb",
+      "checks": 0
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\scene-native-cost-win-r1\\results.json",
+      "sha256": "6aa232566fea1443201de550fbdc99389be5f581253ee46c3dd4aea550141efc",
+      "checks": 0
+    }
+  ],
+  "cohort": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r11\\build.json",
+      "sha256": "fb75c354ce719cb41b3b93c90fff7769120065eb37e6ed475eca30def12c1a9a"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-linux-full-r3\\build.json",
+      "sha256": "09983d712428840364fc63247caf461e894230bb65916246988afac5abe36c28"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-scene-host-win-r5.json",
+      "sha256": "451b641d614e70cdb32960a63857778c28e5a6bda9901a96acf5627d16f53608"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-scene-static-win-r3.json",
+      "sha256": "6d571b919544cc3d4027b1e7cf5d2adacedf63be33c078a5f1fbe6088ee7c686"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-scene-host-linux-r4.json",
+      "sha256": "67229b8b04de0c8075d9ec3aae4d5235fcd39cbe1d10bdd38827b30d7df83cc0"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-scene-static-linux-r3.json",
+      "sha256": "ec9fce6703169e4eec513218a249505c9e76404ac8c78b7b52424da5212b507b"
+    }
+  ],
+  "sourceInputs": {
+    "src/runtime/xl6_code_lease.h": "563ef7d18b214b8f50e9cd55e7d2745f8b2be906d8680609a4842f2732567a70",
+    "src/runtime/xl6_foreign_callback_scope.c": "f5bc1f631bc08f81a3e9cbde4849a499ca86d65387952b881fd744fe56e6343a",
+    "src/api/xl_api_symbols.c": "e618df98bb82b7e836ef95502138debd0d4f9c6d2fe0ced381cb8e6ed2bef249",
+    "src/compile/xl6_artifact_runtime_symbols.inc": "cb9fc6fdf17f7011a58e99801216ccdfaa5ff4164031024d41c5f6aaac4cfe2e",
+    "src/compile/xl6_compile_unit.c": "6bcb69e7aa4a64f976bd809c61a1e3065474654d8018725e54b9dd917cfc11cb",
+    "lib/bindings/_xge_native/src/scene.c": "06589e1970cd1c604beb045e687060e6293c0c8a57cccd5150f96125c8018647",
+    "lib/bindings/_xge_native/include/xge3_runtime.h": "78b7a4dc7021fe77e34424cc134fad18e274394c3201070a5e3c83a03445f7bf",
+    "lib/bindings/_xge_native/xlang.package.json": "5d465b8e0fc65a897e82cdea225d1716d52653acdde78839e63028a17e7f629d",
+    "lib/bindings/xge/include/xge3_scene.h": "6f9b0e16be0ce187dd49084abf4a1df1634db04a5a9417bd18287b69392098e1",
+    "lib/bindings/xge/src/scene.xl": "4a3dbbdf8fe1dc46bf524c8a2a9af9a1f5f53f061ac20fb67f218ba8ce286f4d",
+    "lib/bindings/xge/src/functions.xl": "b6b9be56681eb521f30f29387992d5f6e67e6a9ac7b68b65ac1176f136279fbc",
+    "lib/bindings/xge/xlang.package.json": "760983850fcfaecbc346b4ae05d60abcdc4c9452ccf848ace0e120be0c4a88f5",
+    "lib/bindings/xge/examples/scene_stack.xl": "acceaadefc68b970f9a5abd94311253c54385b58d179d1256c74017702995fa8",
+    "tools/check_xge3_scene_module.py": "c365fb131464f991771baeb549a7506b10361db4fd9870b46f30af6114678e65",
+    "tools/check_xge3_render_resources.py": "538dc485e170942de61eaf00961b544f47c46bde913aa0a88d503324d82df2ee",
+    "tools/check_code_lease_native_owner.py": "a3544d511f8be6898deb782004e15f3a2d61c8c9b69a00d90c62f94fd6518a32",
+    "test/cases/code_lease_native_owner.c": "e69f0ff207ed958630c0cf11d399b5b248d8795ce9e1881c3b7bace99f0de0de",
+    "test/cases/foreign_xge3_scene.h": "ac6f098b73df87bcf4a7e03da63b15bfa01a529151be9e1faa09650e2fd9b571",
+    "test/cases/foreign_xge3_scene.xl": "bfda7b28258c57924d7bfd7fadff6f6ce362257b7da3c9dfd0f4d6c482dcbfc0",
+    "test/cases/foreign_xge3_scene_cost.xl": "3a13ae8eb2f9b430f4d4bb0e4fc92ca00a20105b5a9653c0eb581b2a775867e0",
+    "test/cases/foreign_xge3_scene_errors.xl": "da45bdc727e9221d03a49324b34f1462a679eb04f97a1d9b29c6b2fb00cd7913",
+    "test/cases/foreign_xge3_scene_module.h": "e3b396c13f5808d6e983f71ff1382d19557e4fce48ebe5aa20b7de2dc928d390",
+    "test/cases/foreign_xge3_scene_module.xl": "a430a093b9743b13a10f8bae52133908eb0e0638324ecd94033baab92a8bcc7d",
+    "test/cases/foreign_xge3_scene_module_host.c": "2394388c25904f0535d359744770d4458e7ddbdedb35b1b7db5dc4dabe8a119f",
+    "test/cases/foreign_xge3_scene_oom.h": "532e9ad2fb650c2f8eddb093e4ed7dc4d00d4597bbf1dafcd3f924b6d2272e26",
+    "test/cases/foreign_xge3_scene_oom.xl": "d14950e35ea7355824954b773549266afa2b73f26348a0cbf024a8b20ee8b4ba"
+  },
+  "surface": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-scene-r1\\surface.json",
+    "sha256": "8b984da037dd94b77f6f9e8928c7c9be92c02ef88893f5a769490b2d4488605e",
+    "functions": 5062,
+    "types": 962,
+    "publicFunctionsDeclared": 3424,
+    "publicTypesDeclared": 345,
+    "completionRate": null
+  },
+  "cost": {
+    "windowsAndLinuxEmptySceneWarmBaseline": {
+      "allocations": 4,
+      "requestedBytes": 936,
+      "balancedAfterScope": true
+    },
+    "nativeWindowsX64": {
+      "ownedBodyBytes": 312,
+      "lifetimeBytes": 32,
+      "allocations": 1,
+      "callerOwnedRecordBytes": 80
+    },
+    "nativeCallbackFrames": 1000,
+    "nativeFrameAddedHeapAllocations": 0,
+    "zeroOverheadClaim": false,
+    "excluded": [
+      "allocator metadata",
+      "initialization",
+      "callback registration",
+      "hardware performance"
+    ]
+  },
+  "remaining": [
+    "Managed async target/result/callback ownership; subsequent backend/offscreen and phases 3-8",
+    "Typed SceneEvent pData payload families",
+    "Creator thread death and OS thread ID reuse recovery qualification",
+    "Final current-workspace compiler/SDK/IDE integration and release delivery"
+  ],
+  "cohortBoundary": "Frozen full O2 compiler/TCC/XRT/VFS candidates with recorded overrides; not all concurrent current-workspace LSP changes. Generated C/C++ signature checks precede final scalar query effect annotation correction; exact physical API unchanged."
+}

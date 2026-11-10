@@ -1007,7 +1007,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_log_queue_stats_policy.c",D(R(OWNERSHIP_CATALOG),R(NATIVE_HANDLE),R(FOREIGN_ERROR),R(LOG_CORE)),{NULL}},
     {"src/runtime/xl6_xlang_handler_policy.c",D(R(OWNERSHIP_CATALOG),R(NATIVE_HANDLE),R(FOREIGN_ERROR)),{NULL},XL6_ARTIFACT_HOST_XLANG_RUNTIME_V1},
     {"src/runtime/xl6_foreign_context.c",D(),{"XRT_MODULE_ONCE","XRT_MODULE_ERROR","XRT_MODULE_THREAD"}},
-    {"src/runtime/xl6_foreign_callback_scope.c",D(R(FOREIGN_CONTEXT)),{"XRT_MODULE_THREAD","XRT_MODULE_ERROR"}},
+    {"src/runtime/xl6_foreign_callback_scope.c",D(R(FOREIGN_CONTEXT),R(CODE_LEASE)),{"XRT_MODULE_THREAD","XRT_MODULE_ERROR"}},
     {"src/runtime/xl6_foreign_view.c",D(R(FOREIGN_CALLBACK_SCOPE),R(CODE_LEASE),R(OWNERSHIP_CATALOG),R(FOREIGN_ERROR),R(FOREIGN_SCOPE_VIEW)),
         {"XRT_MODULE_MEMORY","XRT_MODULE_ATOMIC","XRT_MODULE_MAP","XRT_MODULE_THREAD"}},
     {"src/runtime/xl6_native_capture_graph.c",D(),{NULL}},

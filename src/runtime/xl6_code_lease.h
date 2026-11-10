@@ -92,6 +92,15 @@ XL6_CODE_LEASE_API XL6_CodeLease* xl6CodeLeaseRetain(XL6_CodeLease*);
 /* Last release may unmap generated code. Only resident code, or a caller with
  * another independent entry/residency lease, may perform that release. */
 XL6_CODE_LEASE_API void xl6CodeLeaseRelease(XL6_CodeLease*);
+/* Exact resident callbacks for a native object's independent code owner.
+ * The publisher owns a real lease reference and traces CodeLeaseOwnership.
+ * Hold is RC-only. Drop consumes one duty; a resident foreign-callback marker
+ * keeps host native-return-tail retirement pending until a safe checked drain.
+ * This does not authorize unloading a DLL while its publisher is still active.
+ * Native publication must occur from an initialized foreign execution context;
+ * warmed Hold/Drop allocate nothing. NULL is the empty native duty. */
+XL6_CODE_LEASE_API bool xl6CodeLeaseHoldNativeV1(const void*);
+XL6_CODE_LEASE_API bool xl6CodeLeaseDropNativeV1(const void*);
 /* Resident physical-drop batch. Last releases detach into their own existing
  * lease records, so no allocation is required during destruction. The outer
  * End releases host acquisitions only after ALL native adapter Drop calls

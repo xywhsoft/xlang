@@ -36,6 +36,19 @@
           "xl6TransferServicesFromLeaseV1",
           "xl6TransferServicesProcessResidentV1"
         ]
+      },
+      {
+        "source": "src/scene.c",
+        "providedSymbols": [
+          "xl6Xge3SceneCreateOwned"
+        ],
+        "requiredSymbols": [
+          "xl6CodeLeaseAcquireScoped",
+          "xl6CodeLeaseRelease",
+          "xl6CodeLeaseOwnership",
+          "xl6CodeLeaseHoldNativeV1",
+          "xl6CodeLeaseDropNativeV1"
+        ]
       }
     ]
   },

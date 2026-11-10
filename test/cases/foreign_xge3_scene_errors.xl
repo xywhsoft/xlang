@@ -1,0 +1,58 @@
+// Callback exceptions cross one checked boundary; transitions keep their
+// documented consume/retry behavior independently of the diagnostic.
+import xge
+func main(...) as int
+ xge.init(64,64,"Scene checked callback errors",0,xge.XGE_RUN_MANUAL)
+ auto scene=xge.createScene()
+ scene.onEnter(func() as c_int
+  throw ValueError "enter"
+ end)
+ bool caught=false
+ try
+  scene.activate()
+ catch ValueError failure
+  caught=true
+ end
+ assert caught and not scene.entered and xge.sceneCount()==c_int(0)
+ scene.onEnter(null)
+ scene.activate()
+ scene.onLeave(func() as c_int
+  throw ValueError "leave"
+ end)
+ caught=false
+ try
+  xge.clearScenes()
+ catch ValueError failure
+  caught=true
+ end
+ assert caught and scene.entered and xge.sceneCount()==c_int(1)
+ scene.onLeave(null)
+ scene.onUpdate(func(c_float delta) as c_int
+  assert delta>c_float(0)
+  throw ValueError "update"
+ end)
+ caught=false
+ try
+  xge.frame()
+ catch ValueError failure
+  caught=true
+ end
+ assert caught and scene.entered
+ scene.onUpdate(null)
+ scene.onFree(func() as c_int
+  throw ValueError "free"
+ end)
+ caught=false
+ try
+  xge.popScene()
+ catch ValueError failure
+  caught=true
+ end
+ assert caught and not scene.entered and xge.sceneCount()==c_int(0)
+ scene.onFree(null)
+ xge.clearScenes()
+ scene.close()
+ xge.unit()
+ println("Scene callback exceptions preserved checked retry and consumption")
+ return 0
+end

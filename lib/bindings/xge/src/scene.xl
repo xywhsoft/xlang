@@ -1,0 +1,48 @@
+// Managed stack references and typed callback slots; native transitions do
+// not depend on the lifetime of a particular language variable or view.
+export extern "const xge_event_t*" class SceneEvent @header("xge3_scene.h") @lifetime("callback")
+ native point handle
+ extern "iType" @c_field get type() as c_int
+ extern "iParam1" @c_field get param1() as c_int
+ extern "iParam2" @c_field get param2() as c_int
+ extern "fX" @c_field get x() as c_float
+ extern "fY" @c_field get y() as c_float
+ extern "fDX" @c_field get dx() as c_float
+ extern "fDY" @c_field get dy() as c_float
+ extern "iPointerId" @c_field get pointerId() as uint64
+ extern "iCodepoint" @c_field get codepoint() as c_uint
+ extern "fTime" @c_field get time() as c_double
+end
+export typedef SceneEventHandler = func(SceneEvent) as c_int
+export typedef SceneUpdateHandler = func(c_float) as c_int
+
+export extern "struct xge_scene_owned_t*" class Scene @header("xge3_scene.h") @lifetime("owned") @policy("xl6Xge3ScenePolicy") @domain("xl6Xge3SceneDomainV1")
+ native point handle
+ extern "xgeSceneShareOwned" @no_raise @c_result("owned_view") @factory(1,0,releaseScene) func share() as Scene
+ extern "xgeSceneEnteredGet" @no_raise @c_output(1,0) get entered() as bool
+ extern "xgeScenePausedGet" @no_raise @c_output(1,0) get paused() as bool
+ extern "xgeSceneSetOwned" @no_raise @c_result("status",0) func activate()
+ extern "xgeScenePushOwned" @no_raise @c_result("status",0) func push()
+ extern "xgeSceneReplaceOwned" @no_raise @c_result("status",0) func replace()
+ extern "xgeSceneEnterCallbackSetOwned" @no_raise @c_owned_callback(0,-1,"xge_callback_owner_t",-16) @c_result("status",0) func onEnter(FrameHandler? callback)
+ extern "xgeSceneLeaveCallbackSetOwned" @no_raise @c_owned_callback(0,-1,"xge_callback_owner_t",-16) @c_result("status",0) func onLeave(FrameHandler? callback)
+ extern "xgeScenePauseCallbackSetOwned" @no_raise @c_owned_callback(0,-1,"xge_callback_owner_t",-16) @c_result("status",0) func onPause(FrameHandler? callback)
+ extern "xgeSceneResumeCallbackSetOwned" @no_raise @c_owned_callback(0,-1,"xge_callback_owner_t",-16) @c_result("status",0) func onResume(FrameHandler? callback)
+ extern "xgeSceneDrawCallbackSetOwned" @no_raise @c_owned_callback(0,-1,"xge_callback_owner_t",-16) @c_result("status",0) func onDraw(FrameHandler? callback)
+ extern "xgeSceneFreeCallbackSetOwned" @no_raise @c_owned_callback(0,-1,"xge_callback_owner_t",-16) @c_result("status",0) func onFree(FrameHandler? callback)
+ extern "xgeSceneEventCallbackSetOwned" @no_raise @c_owned_callback(0,-1,"xge_callback_owner_t",-16) @c_result("status",0) func onEvent(SceneEventHandler? callback)
+ extern "xgeSceneUpdateCallbackSetOwned" @no_raise @c_owned_callback(0,-1,"xge_callback_owner_t",-16) @c_result("status",0) func onUpdate(SceneUpdateHandler? callback)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xgeSceneReleaseChecked" @header("xge3_scene.h") @no_raise @c_result("status",0) func releaseScene(Scene value)
+export extern "xl6Xge3SceneCreateOwned" @header("xge3_scene.h") @no_raise @c_code_owner(1) @c_result("owned_view") @factory(0,0,releaseScene) func createScene() as Scene
+export extern "xgeSceneCurrentOwned" @header("xge3_scene.h") @no_raise @c_result("owned_view") @factory(0,0,releaseScene) func currentScene() as Scene?
+export extern "xgeSceneClear" @header("xge3_scene.h") @no_raise @c_result("status",0) func clearScenes()
+export extern "xgeScenePop" @header("xge3_scene.h") @no_raise @c_result("status",0) func popScene()
+// This scalar query can publish a native thread-admission error; retain the
+// ordinary checked extern boundary even though it has no status result.
+export extern "xgeSceneCount" @header("xge3_scene.h") func sceneCount() as c_int
+export extern "xgeSceneDispatchEvent" @header("xge3_scene.h") @no_raise @c_result("status",0) func dispatchSceneEvent(SceneEvent event)
+export extern "xgeSceneUpdateStrategySet" @header("xge3_scene.h") @no_raise @c_result("status",0) func setSceneUpdateStrategy(c_int mode,c_float step,c_int maximum)
+// c_outputs already checks the native diagnostic before publishing the tuple.
+export extern "xgeSceneUpdateStrategyGet" @header("xge3_scene.h") @no_raise @c_outputs(0,1,2) func sceneUpdateStrategy() as (c_int,c_float,c_int)

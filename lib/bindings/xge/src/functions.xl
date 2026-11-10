@@ -23,10 +23,6 @@ export extern "xgeDragIsActive" @header("xge3_runtime.h") func dragIsActive() as
 export extern "xgeGraphicsShaderHeaderGet" @header("xge3_runtime.h") @c_span(1,"char*","int") func graphicsShaderHeaderGet(c_int iBackend,Buffer sBuffer) as c_int
 export extern "xgeGraphicsLibraryNameGet" @header("xge3_runtime.h") @c_span(2,"char*","int") func graphicsLibraryNameGet(c_int iBackend,c_int iIndex,Buffer sBuffer) as c_int
 export extern "xgeGraphicsMappingGet" @header("xge3_runtime.h") @no_raise @c_output(1,0) func graphicsMappingGet(c_int iBackend) as GraphicsMapping
-export extern "xgeScenePop" @header("xge3_runtime.h") func scenePop() as c_int
-export extern "xgeSceneCount" @header("xge3_runtime.h") func sceneCount() as c_int
-export extern "xgeSceneUpdateStrategySet" @header("xge3_runtime.h") func sceneUpdateStrategySet(c_int iMode,c_float fFixedStep,c_int iMaxUpdates) as c_int
-export extern "xgeSceneUpdateStrategyGet" @header("xge3_runtime.h") @no_raise @c_outputs(0,1,2) func sceneUpdateStrategyGet() as (c_int,c_float,c_int)
 export extern "xgeGetWidth" @header("xge3_runtime.h") func getWidth() as c_int
 export extern "xgeGetHeight" @header("xge3_runtime.h") func getHeight() as c_int
 export extern "xgeSetCursor" @header("xge3_runtime.h") func setCursor(c_int iCursor) as c_int

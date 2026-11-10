@@ -1,0 +1,19 @@
+// Intentional Scene -> callback -> Scene and module-global ownership cycle.
+import xge
+extern "fixtureSceneModuleTick" @header("test/cases/foreign_xge3_scene_module.h") @no_raise func tick() as c_int
+extern "fixtureSceneModuleCallbacks" @header("test/cases/foreign_xge3_scene_module.h") @no_raise func useCallbacks() as c_int
+xge.Scene? retained=null
+func main(...) as int
+ xge.init(64,64,"Scene module retirement",0,xge.XGE_RUN_MANUAL)
+ auto scene=xge.createScene()
+ if useCallbacks()!=c_int(0) then
+  scene.onDraw(func() as c_int
+   assert scene.entered
+   assert tick()>c_int(0)
+   return c_int(0)
+  end)
+ end
+ scene.activate()
+ retained=scene
+ return 0
+end
