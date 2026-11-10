@@ -1,0 +1,60 @@
+{
+  "schema": "xlang-xge-audio-reference-preflight-1",
+  "scope": "Native Sound reference-count prerequisite and current audio integration ledger; not complete xlang audio delivery",
+  "passed": true,
+  "nativeRevision": "5d138435f1b8f9cf17afa90fb0a69a6a007889f5",
+  "nativeQualification": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\audio-references-20261111.json",
+    "sha256": "15aa430ef2470237fda96096b70684578613244628f562f4a4e469963b22869c",
+    "checks": 80
+  },
+  "sourceFreeze": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\native-freeze-r45.json",
+    "sha256": "719e2c6384bda3b2ac423633816273569a0f9b081a72375020eda872eb6e18b3"
+  },
+  "publicHeadersChanged": false,
+  "compilerRebuildRequiredForThisNativeGuard": false,
+  "shippingDelivery": false,
+  "languageAudioIntegrationComplete": false,
+  "existingFontDelivery": {
+    "commit": "38c6485b2",
+    "sourceSnapshot": "native-source-r44",
+    "unchanged": true
+  },
+  "checks": {
+    "platforms": [
+      "Windows x64",
+      "Linux x64"
+    ],
+    "variants": [
+      "host O0",
+      "host O2",
+      "static O0",
+      "static O2"
+    ],
+    "referenceBoundaryChecks": true,
+    "pcmOomSpanRegression": true,
+    "realEngineOrAudioDeviceStarted": false,
+    "networkTests": false
+  },
+  "auditedSource": {
+    "src/xge/audio/xge_audio.c": "7adf78ac01c8c576c1be8b362ac65df33e75400b6dba73a3495c0e51b22959d9",
+    "src/xge/audio/xge_audio_clip.inc": "c13949cebf842507671decd8862815d9265b778da2f2d75d3935db1be3c53895",
+    "src/xge/core/xge_core.c": "76f0b962683d2311904b7e013afa9c4c5758a2543b2dee6624f8ec98f829024b",
+    "include/xge.h": "9892a161c37bd1a0cd17f7b56e2a00498e9c60a42c5ed7f390a06b5b133d22d7"
+  },
+  "languageSource": {
+    "lib/bindings/xge/src/audio_resources.xl": "547ccc19a52260978984381283016621ff4d84d41921105ffa7bd7ead73f813d",
+    "lib/bindings/xge/include/xge3_audio_resources.h": "2130421e55959f2806bfa978d9a40547b848d949cf985efabbe585e45c2ae533",
+    "lib/bindings/xge/src/functions.xl": "2b1016858a4f1a96f7d356b4f851e71c5144806dca9e2bb90019ccdd831096c1",
+    "lib/bindings/xge/src/records.xl": "75f43f39f0aeb5bff6c3aab420dd6ac2b1eca47dcadb05d78deeacce8287a521"
+  },
+  "remaining": [
+    "Generic packed synchronous callback projection with sealed IR and exact C proof",
+    "Pending thread-safe immutable clip/sequence resource policy choice",
+    "Actual native engine/group/voice owning lifetimes and checked shutdown",
+    "Complete OOP audio/fallback/SoundLoad declarations and matched runtime acceptance",
+    "General module-global resource/code residency gate",
+    "Formal SDK/compiler/IDE/help/examples delivery"
+  ]
+}
