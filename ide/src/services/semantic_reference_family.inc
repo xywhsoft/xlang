@@ -111,3 +111,4 @@ done:
 }
 #include "services/semantic_reference_graph.inc"
 #include "services/semantic_reference_merge.inc"
+#include "services/semantic_family_references.inc"

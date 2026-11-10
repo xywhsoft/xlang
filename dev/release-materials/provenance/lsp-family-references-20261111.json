@@ -1,0 +1,114 @@
+{
+  "schema": 1,
+  "date": "2026-11-11",
+  "stage": "M7b4l",
+  "scope": "All-family exact native IDENT reference capture from guarded workspace providers, per-file complete-source proofs, global row deduplication and declaration coverage",
+  "stageAccepted": true,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "9a7d8b2f6165dd5a5e78f1c751592c421ba44ed7",
+  "ownedSources": {
+    "ide/src/services/semantic_reference_shard.h": "e17cde9b52dd3b1f1acd585615574114514ceb73b920dbe23a299a4ea3f3a7e5",
+    "ide/src/services/semantic_reference_family.inc": "bd531d62def9291018a19c5c163f07632c0f7514a47971c773331d9d7532ae03",
+    "ide/src/services/semantic_family_references.inc": "048973d0dbb4ed1116da398540c91f7b072c0ccaea881cd3f021e934325056a6",
+    "ide/src/services/project_references.c": "fcb148bdcf7920f867f7cd0644fa34e8f5e43b07f3c30ab411643a60eb0ba0ba",
+    "ide/src/services/project_references.h": "85d4e2b5626c2507a31bb8d2ba0e648782edb7333326cabef443d21db16fb367",
+    "ide/src/services/project_rename_workspace.inc": "8842aea824669a5c27b8aeda5ffc03ff98dd45749fceab58293990024060b0d9",
+    "ide/src/services/project_family_references.inc": "9293fc52b7f041f3c25587d217248ae07af96ca76a74674136ec93ac6b568f91",
+    "ide/tests/semantic_family_references_test.c": "52a63ca967a510b1b3d6184c644affb363b2a5233bc7de84337105057064afff",
+    "ide/tests/project_family_references_test.c": "15fdc03c77d4c8a1e3ff2e6d01391201ac06009efb988eda8c48299631f13d97",
+    "ide/tools/build_lsp_core.py": "7ca15571231c8c7f1135a69a62c2e183c5dda38bda8185a6800527599fe6178d",
+    "ide/docs/lsp-family-references.md": "92d9f12c6aedc87fb0b8cc7b259ebf4884ea0c3d0613dab7138f9d036f774ef0",
+    "ide/docs/lsp-workspace-families.md": "4a1b64b5be51dbfe0574b901dd476758bb7dac48a15e174c8e09ad856b98a484"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-family-references-20261111.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-family-references-20261111/stage-sources.tar.gz",
+      "sha256": "4c80d79d971dd402f8416f65f6dba073d1e6fc6495141807b70d93a458b762a5",
+      "bytes": 75058,
+      "entries": 13,
+      "uniquePayloads": 13,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-family-references-20261111/stage-sources.tar.gz.manifest.json",
+      "sha256": "eada21631ac35160d5d1e1233b508622ee3c7b10bcb8fd766929fbe4a9cdf0f2",
+      "bytes": 3167
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-family-references-20261111/actual-builds-and-validation.tar.gz",
+      "sha256": "75fd6a4bd53795f7948bce64bcf655f3b6b26560d0af707b5d50a4cfbbe13787",
+      "bytes": 1024968152,
+      "entries": 6433,
+      "uniquePayloads": 4375,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-family-references-20261111/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "30ae9ae17c4ff36db1a8aa4eb99a0b4059331d9f405371b2d4f61bd109c9a3a0",
+      "bytes": 2236442
+    }
+  },
+  "candidate": {
+    "serverSha256": "ce0d813feba1db46414dda0235591b162ebd6455523e528385069d8e01987db7",
+    "guiSha256": "f8f1509098c5558207e40418c990f1fc0d55f10c4a3718e58a0d65e2b2025db9",
+    "sdkDllSha256": "216c1f98f4d55cc5dff9c7d98425edbb08d470cdfc6b26ef4ad962af3431f560",
+    "guiObjects": 116,
+    "actualNativeConsumers": 291,
+    "nativePrograms": 181
+  },
+  "validation": {
+    "nativeFixtures": 180,
+    "familyReferenceAssertions": 425,
+    "workspaceReferenceAssertions": 293,
+    "actualImplementationMutantsRejected": 5,
+    "originalPureHelpersVerbatim": 6,
+    "unknownMissingOrDuplicateSeamsRejected": 7,
+    "protocolSuites": 12,
+    "guiFixtures": 29,
+    "currentSourcesAndAllLinksChecked": true,
+    "finalNativeMatrixFresh": true,
+    "allMemberLegacyIdentifierDifferentialParity": true,
+    "oncePerPresentDeclarationSourceComparison": true,
+    "noPerMemberAnalysisOrCompleteSourceComparison": true,
+    "twoActualRowScansReported": true,
+    "absentSourceZeroReferenceScans": true,
+    "ordinaryIndexedAndCompoundProperties": true,
+    "declarationIncludeExcludeParity": true,
+    "unrepresentableNativeOccurrenceRejectsWholeCapture": true,
+    "nativeLexicalAliasesAndExactSourceKindBomGuards": true,
+    "realScratchAndResultAllocationRefusals": 2,
+    "minimumQuotaBoundary": true,
+    "everyObservedCaptureCancellationBoundary": true,
+    "unicodePathsAndIdentifiersBomCrlf": true,
+    "detachedFourReaderLifetime": true,
+    "allScopesAndUnopenedStandaloneMembers": true,
+    "warmWorkspaceZeroCapturesAndMemberTasks": true,
+    "unconfiguredOccurrenceRejectsWholeResult": true,
+    "globalSingleSortDedupAndCompatiblePerFileProofs": true,
+    "allFamilyDeclarationsRequired": true,
+    "postWireInputGuards": true,
+    "lateMutationAndCancellationRejectWholeResult": true,
+    "queuedAndDetachedOutputLifetime": true,
+    "retainedNavigationNodeLayoutUnchanged": true,
+    "performanceAdmissionRun": false,
+    "priorPathSpellingFixtureFailurePreserved": true
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "knownMissing": [
+    "complete generic-origin coverage; OS writability/physical aliases and complete foreign/library policy",
+    "cross-configuration binding conflicts; rename conflicts and post-rename binding proof",
+    "versioned edit construction, standard prepareRename/rename and IDE versioned edit transaction",
+    "streaming global source sharing to reduce retained provider payloads; remaining applicable LSP and current-engine cohort alignment",
+    "whole-goal performance/large-workspace/soak/final delivery admission"
+  ]
+}

@@ -174,5 +174,23 @@ xide_reference_family* xideSemanticReferenceGraphFamily(xide_reference_graph*,co
  * and revalidate their guards/epochs before publishing. No edit permission. */
 xide_reference_family* xideSemanticReferenceGraphsFamily(xide_reference_graph* const*,size_t,
  const xide_reference_key*,size_t,int (*cancelled)(void*),void*,enum xide_reference_family_error*);
+typedef struct xide_family_references xide_family_references;
+typedef struct xide_family_reference_info {size_t locations,bytes,sourceComparisons,sourceBytesCompared,referenceRowsVisited;} xide_family_reference_info;
+/* Capture exact IDENT occurrences of every family member in one shard.
+ * Match lexical source identities in one sorted batch, prove each present
+ * declaration source once, then match retained native target spans. Reuse the
+ * original identifier projection; no parsing/checking/name-based rebinding or
+ * per-member complete-source comparison. Empty is success for absent targets.
+ * Result retains only the shard, not the family/check/cache. Default32MiB /
+ * max64MiB admits scratch, held native path keys and result concurrently;
+ * borrowed inputs and path conversion/sort/allocator internals are additional.
+ * Caller must retain/revalidate every provider guard and workspace epoch.
+ * This alone is not complete family/scope coverage or edit authorization. */
+xide_family_references* xideSemanticReferenceShardFamily(const xide_reference_shard*,
+ const xide_reference_family*,int includeDeclaration,size_t,
+ int (*cancelled)(void*),void*,enum xide_reference_family_error*);
+void xideSemanticFamilyReferencesRelease(xide_family_references*);
+int xideSemanticFamilyReferencesInfo(const xide_family_references*,xide_family_reference_info*);
+int xideSemanticFamilyReferenceAt(const xide_family_references*,size_t,xide_semantic_reference*);
 #endif
 #endif

@@ -94,6 +94,16 @@ xide_reference_query* xideProjectReferencesSubmitRenameWorkspace(xide_project_re
 xide_reference_query* xideProjectReferencesSubmitFamilyWorkspace(xide_project_references*,
  xide_rename_scope*,xide_rename_target*,const xls_analysis_document*,size_t,const char* trigger);
 xide_reference_family* xideProjectReferencesRetainFamily(xide_reference_query*);
+/* Same all-scope native family closure, additionally collect all family IDENT
+ * occurrences/declarations from its guarded provider shards. Sort/deduplicate
+ * the combined rows once, require compatible complete per-file proofs and
+ * explicit membership, and verify every member declaration is present.
+ * READY supplies both guarded Location rows and an independently retained
+ * family. All guards are checked after row/wire construction. No per-member
+ * source rechecking/analysis. Still not conflicts, full generic coverage,
+ * OS writability, binding preservation or permission to apply an edit. */
+xide_reference_query* xideProjectReferencesSubmitFamilyReferences(xide_project_references*,
+ xide_rename_scope*,xide_rename_target*,const xls_analysis_document*,size_t,const char* trigger);
 enum xide_reference_query_state xideProjectReferencesResult(xide_reference_query* query,
  const xvalue** locations,xide_project_reference_stats* stats,char* error,size_t capacity);
 xvalue* xideProjectReferencesTake(xide_reference_query* query);
