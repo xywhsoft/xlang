@@ -55,7 +55,21 @@ static int compareImplicit(const XL6_IrModule* module,XL6_IrNodeId id){for(unsig
         (mask&1)?NULL:&a,
         (mask&2)?NULL:&c),y=xlsClassifyOriginal_xl6IrClassifyImplicitNameAbi(module,id,
         (mask&1)?NULL:&b,
-        (mask&2)?NULL:&d);if(!mask && x!=XL6_IR_IMPLICIT_NAME_NONE)++implicitNonDefault;CHECK(x==y && a==b && c==d);}return 1;}
+        (mask&2)?NULL:&d);if(!mask && x!=XL6_IR_IMPLICIT_NAME_NONE)++implicitNonDefault;CHECK(x==y && a==b && c==d);}
+ const XL6_IrNode* name=xl6IrNodeGet(module,id);
+ const XL6_IrNode* field=name && name->targetSymbol && module->symbolNodes && name->targetSymbol<module->symbolNodeCapacity ? xl6IrNodeGet(module,module->symbolNodes[name->targetSymbol]) : NULL;
+ if(name && name->kind==XL6_IR_NODE_NAME && !name->symbol && field && field->kind==XL6_IR_NODE_FIELD_DECL){
+  XL6_IrModule legacy=*module;legacy.nodes=xrtMalloc(module->nodeCount*sizeof(*legacy.nodes));CHECK(legacy.nodes);memcpy(legacy.nodes,module->nodes,module->nodeCount*sizeof(*legacy.nodes));
+  legacy.nodes[id-1].targetSymbol=0;XL6_IrTypeId a,b;XL6_IrNodeId c,d;
+  CHECK(xl6IrClassifyImplicitNameAbi(module,id,&a,&c)==xlsClassifyOriginal_xl6IrClassifyImplicitNameAbi(&legacy,id,&b,&d) && a==b && c==d);
+  legacy.nodes[id-1].targetSymbol=UINT32_MAX;a=UINT32_MAX;c=UINT32_MAX;
+  CHECK(xl6IrClassifyImplicitNameAbi(&legacy,id,&a,&c)==XL6_IR_IMPLICIT_NAME_NONE && a==XL6_IR_TYPE_INVALID && c==XL6_IR_NODE_INVALID);
+  for(size_t i=0;i<module->nodeCount;++i){const XL6_IrNode* other=module->nodes+i;if(other->kind!=XL6_IR_NODE_FIELD_DECL || !other->symbol || other->symbol==name->targetSymbol || other->storageType!=name->storageType)continue;
+   legacy.nodes[id-1].targetSymbol=other->symbol;a=UINT32_MAX;c=UINT32_MAX;CHECK(xl6IrClassifyImplicitNameAbi(&legacy,id,&a,&c)==XL6_IR_IMPLICIT_NAME_NONE && a==XL6_IR_TYPE_INVALID && c==XL6_IR_NODE_INVALID);
+  }
+  xrtFree(legacy.nodes);
+ }
+ return 1;}
 #include "src/parser/xl6_parser_api.h"
 #include "src/stdlib/xl6_stdlib.h"
 #include "src/sem/xl6_sem.h"
@@ -99,7 +113,7 @@ static int corpus(const char* source)
 static int run(void)
 {
  const char* sources[]={
-  "class ImplicitBox\n string item = \"owned\"\n func value() as string\n return item\n end\nend\n",
+  "class ImplicitBox\n string item = \"owned\"\n string other = \"other\"\n func value() as string\n return item\n end\nend\n",
   "func leaf(int value) as int\n int result=value+1\n return result\nend\nfunc main(...) as int\n return leaf(7)\nend\n",
   "func values(int count) as generator<string>\n string suffix = \"owned\"\n for i in range(count)\n string item = suffix + string(i)\n yield item\n end\nend\n",
   "class Box\n string item = \"owned\"\n func value() as string\n string local = self.item\n return local\n end\nend\nfunc read(Box item) as string\n return item.value()\nend\n",

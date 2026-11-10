@@ -146,6 +146,7 @@ static enum xls_index_point_kind xlsFrontendPointKind(XL6_AstKind kind)
     switch(kind){
 #define XLS_INDEX_NATIVE_KIND(name,text) case XL6_AST_##name:return XLS_INDEX_POINT_##name;
         XLS_INDEX_POINT_NATIVE_KINDS(XLS_INDEX_NATIVE_KIND)
+        XLS_INDEX_POINT_ADDED_NATIVE_KINDS(XLS_INDEX_NATIVE_KIND)
 #undef XLS_INDEX_NATIVE_KIND
 #define XLS_INDEX_NATIVE_ALIAS(name,text,category) case XL6_AST_##name:return XLS_INDEX_POINT_##category;
         XLS_INDEX_POINT_ALIASES(XLS_INDEX_NATIVE_ALIAS)

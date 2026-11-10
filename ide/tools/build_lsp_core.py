@@ -28,6 +28,7 @@ from native_initializer_overlay import derive as derive_initializer_index
 from native_parser_ownership_overlay import derive as derive_parser_ownership
 from native_frontend_inputs import prepare as prepare_frontend_inputs
 from native_identifier_overlay import derive as derive_identifier
+from native_field_bindings_overlay import semantic as derive_field_semantic, index as derive_field_index, ir as derive_field_ir
 
 FRONTEND_SOURCES = (
     "src/lexer/xl6_token.c", "src/lexer/xl6_lexer_api.c", "src/lexer/xl6_lexer_gen.c",
@@ -130,6 +131,7 @@ HOST_TESTS += ("workspace_symbol_wire_test",)
 HOST_TESTS += ("language_native_cancel_test",)
 HOST_TESTS += ("semantic_tokens_wire_test", "semantic_token_guards_test")
 HOST_TESTS += ("semantic_rename_target_test",)
+HOST_TESTS += ("semantic_field_binding_test",)
 
 
 def sha(path: Path) -> str:
@@ -753,6 +755,15 @@ def main() -> None:
         original_index, generated_index, index_overlay = prepare_native_index(frontend, output)
         original_ir, generated_ir, ir_overlay = prepare_native_ir(frontend, output)
         original_sem, generated_sem, sem_overlay = prepare_native_sem(frontend, output)
+        for field_name,field_source,field_derive,field_metadata in (
+            ('semantic',generated_sem,derive_field_semantic,sem_overlay),
+            ('index',generated_index,derive_field_index,index_overlay),
+            ('ir',generated_ir,derive_field_ir,ir_overlay)):
+            field_path=output/'native_fields'/field_source.name
+            field_metadata['fieldBindings']=field_derive(field_source,field_path)
+            if field_name=='semantic':generated_sem=field_path
+            elif field_name=='index':generated_index=field_path
+            else:generated_ir=field_path
         original_stdlib, generated_stdlib, stdlib_overlay = prepare_native_stdlib(frontend, output)
         original_types, generated_types, types_overlay = prepare_native_types(frontend, output)
         original_ast, generated_ast, ast_overlay = prepare_native_ast(frontend, output)

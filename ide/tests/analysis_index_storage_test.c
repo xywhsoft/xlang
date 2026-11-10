@@ -95,5 +95,12 @@ static int run(void)
  xl6AstFree(deep); xl6AstFree(root); xl6SourceReportFree(&report); xrtFree(path);
  printf("index arena allocation seams=%zu,all independently failed/recovered;no live owned blocks\n",used); return 1;
 }
+static int fieldSelections(void)
+{
+ XL6_AstNode field={.kind=XL6_AST_FIELD,.semanticSymbolId=1,.semanticDeclaredSymbolId=1};
+ CHECK(!xl6IndexSelection(&field));field.text="";CHECK(!xl6IndexSelection(&field));
+ field.text="named";CHECK(xl6IndexSelection(&field)==&field);
+ field.semanticDeclaredSymbolId=0;CHECK(!xl6IndexSelection(&field));return 1;
+}
 int main(void)
-{ if(!run() || !ambiguousBindings()) return 1; printf("analysis_index_storage_test passed: %u checks; real collector growth,object/fact/source faults,cleanup,TLS restoration,depth,legacy JSON and symmetric ambiguous entity binding rejection.\n",checks); return 0; }
+{ if(!run() || !ambiguousBindings() || !fieldSelections()) return 1; printf("analysis_index_storage_test passed: %u checks; real collector growth,object/fact/source faults,cleanup,TLS restoration,depth,legacy JSON,anonymous field selection and symmetric ambiguous entity binding rejection.\n",checks); return 0; }

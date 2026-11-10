@@ -14,7 +14,8 @@
  * VARIANT kind. Preserve compatibility without inventing a native enum. */
 /* Append new query categories independently of the selected native AST ABI;
  * every consumer sees the same enum, including compatibility-only hosts. */
-#define XLS_INDEX_POINT_KINDS(X) XLS_INDEX_POINT_NATIVE_KINDS(X) X(VARIANT,"variant") X(C_RECORD,"C record")
+#define XLS_INDEX_POINT_ADDED_NATIVE_KINDS(X) X(FIELD,"field")
+#define XLS_INDEX_POINT_KINDS(X) XLS_INDEX_POINT_NATIVE_KINDS(X) X(VARIANT,"variant") X(C_RECORD,"C record") XLS_INDEX_POINT_ADDED_NATIVE_KINDS(X)
 /* Callable spelling aliases share the existing query category. Keep enum
  * values stable and classify native and compatibility facts identically. */
 #define XLS_INDEX_POINT_ALIASES(X) \

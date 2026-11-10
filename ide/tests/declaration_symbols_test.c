@@ -109,16 +109,16 @@ static int run(void)
  if(!xlsSemanticCheckInfo(check).accepted){for(size_t i=0;i<xlsSemanticCheckInfo(check).diagnostics;++i){xls_check_diagnostic d;if(xlsSemanticCheckDiagnostic(check,i,&d))fprintf(stderr,"%d:%d %s\n",d.line,d.column,d.message);}}
  CHECK(xlsSemanticCheckInfo(check).accepted);
  const xls_semantic_index* index=xlsSemanticCheckTypedIndex(check);CHECK(index);
- size_t fieldsWithoutIds=0,multi=0,scopes=0;
+ size_t fieldsWithIds=0,multi=0,scopes=0;
  for(size_t i=0;i<xlsSemanticIndexCount(index);++i){
   xls_declaration_fact f={0};xls_index_fact raw={0};CHECK(xlsSemanticIndexDeclarationFact(index,i,&f) && xlsSemanticIndexFact(index,i,&raw) && sameFact(&f.fact,&raw));
   if(f.fact.source!=1)continue;
-  if(f.shape.kind==XLS_DECL_FIELD && !f.fact.declaredSymbol)++fieldsWithoutIds;
+  if(f.shape.kind==XLS_DECL_FIELD){CHECK(f.fact.declaredSymbol && f.fact.declaredSymbol==f.fact.symbol && f.fact.selectionSource==f.nameSource && f.fact.selectionRange.known && f.fact.selectionRange.startOffset==f.nameRange.startOffset && f.fact.selectionRange.endOffset==f.nameRange.endOffset);++fieldsWithIds;}
   if(f.declarationNode!=f.fact.id){CHECK(f.shape.kind==XLS_DECL_VARIABLE && !strcmp(f.fact.kind,"name"));++multi;}
   if(f.shape.callable)++scopes;
   if(f.nameRange.known){xls_index_fact token;CHECK(symbolNativeName(index,&f,&token));}
  }
- CHECK(fieldsWithoutIds==5 && multi==2 && scopes>=13);
+ CHECK(fieldsWithIds==5 && multi==2 && scopes>=13);
  xls_declaration_fact invalid={0};CHECK(!xlsSemanticIndexDeclarationFact(index,xlsSemanticIndexCount(index),&invalid) && !invalid.fact.id && !xlsSemanticIndexDeclarationFact(NULL,0,&invalid) && !xlsSemanticIndexDeclarationFact(index,0,NULL));
  xls_inputs inputs;CHECK(xlsSemanticCheckInputs(check,&inputs) && inputs.sources==1);xls_input_source source;CHECK(xlsSemanticCheckSource(check,0,&source));
  xide_semantic_source sources[]={{source.path,source.text,source.kind,1}};xide_model_error error={0};

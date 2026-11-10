@@ -88,6 +88,7 @@ static int symbolKind(enum xls_index_point_kind kind)
  case XLS_INDEX_POINT_ENUM:return 10;case XLS_INDEX_POINT_TYPE_ALIAS:case XLS_INDEX_POINT_EXTERN_TYPE_ALIAS:return 26;
  case XLS_INDEX_POINT_UNION:case XLS_INDEX_POINT_C_RECORD:return 23;case XLS_INDEX_POINT_VARIANT:return 22;
  case XLS_INDEX_POINT_VAR_DECL:return 13;case XLS_INDEX_POINT_CONST_DECL:return 14;
+ case XLS_INDEX_POINT_FIELD:return 8;
  default:return 0;
  }
 }

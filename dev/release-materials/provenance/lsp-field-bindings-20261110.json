@@ -1,0 +1,99 @@
+{
+  "schema": 1,
+  "date": "2026-11-10",
+  "stage": "M7b4b",
+  "scope": "Native field declaration/use identity; exact field definitions,references,highlights,hover and outline; preserve implicit receiver-relative and function-field IR semantics",
+  "stageAccepted": true,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "3c4b563fe6edeea08e5d4974592fd90e6a04efa2",
+  "ownedSources": {
+    "ide/docs/lsp-field-bindings.md": "d22bd1bafc1604725534d7cab47991c1a64c2920ee0df9f578c537d5b6955eed",
+    "ide/docs/lsp-rename-target.md": "065dac1b37da8c727d041be5e2244262d94da135c0c532099f3d6c348bec4993",
+    "ide/src/analysis/frontend_field_bindings.inc": "c9770a548fc9cdb7ffd57ab2d52471daae5783a13f726323df709165394270c5",
+    "ide/src/analysis/frontend_field_ir.inc": "845dcec6c50f0b942309a7d72d2285f87f6849672ae08075bc71eb32177d8f3d",
+    "ide/src/analysis/frontend_index.inc": "4245fa8441bbc756084e23924ce7f38b243b2b500a095986552e0cc091047ec9",
+    "ide/src/analysis/index_kind.h": "b352759bee49997c642e9b3c9e0cee188766de9adbc847c397196c85bb026e57",
+    "ide/src/services/semantic_definition.c": "1fe4aaddae945223cab3cc14a91ac1b8db1e58f496f693cc9d649fac7c179554",
+    "ide/tests/analysis_index_storage_test.c": "43859b25ffaa2f6a4b384cad594da4ae712ab751962283f08f7897dae1c399f7",
+    "ide/tests/analysis_ir_classifier_test.c": "325a68f255332440eca6ccfd3510619791582db12414253c2d521abb7c47cd87",
+    "ide/tests/declaration_symbols_test.c": "6cf4225a2161f0975e48f18d22053c34cc44c21005a004fa01b39f8bc509d6fa",
+    "ide/tests/semantic_field_binding_test.c": "619cf5ed493ea4edc30d0da99e7b3299cf941a6012e5eff0c47c51c251af5faa",
+    "ide/tests/semantic_rename_target_test.c": "338c660dc4bf55d739bde86b4aa4a79c987cd0a846774d0edd189d66cbfe77d3",
+    "ide/tools/build_lsp_core.py": "092caf8f6f87bd4fa024c68a925c82d58055a20282c5666835eadeec51b297a0",
+    "ide/tools/check_lsp_field_bindings.py": "8d1668d5375690094e26f7fc4caf578a7876a1f3f99d1debe42cc976623b0297",
+    "ide/tools/check_native_receipt_bindings.py": "256d76d38bcae3b611b336e4c9ce735a858a2970244c9d1e5e0d2b7a9dd3741d",
+    "ide/tools/native_field_bindings_overlay.py": "48c53a5ab2c7f55868a5202277bfd4e496d3d7ba4812d16a08b267f04bce5f36"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-field-bindings-20261110.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-field-bindings-20261110/stage-sources.tar.gz",
+      "sha256": "392970d185f34e2fd6c54d57f47b51caedfb869d1d344ca9ad785248bf99aa98",
+      "bytes": 76137,
+      "entries": 17,
+      "uniquePayloads": 17,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-field-bindings-20261110/stage-sources.tar.gz.manifest.json",
+      "sha256": "d13fd6e1ca3a604410caa22439a716ebc4a1befef8a4ed03ee692f2ce958982e",
+      "bytes": 4035
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-field-bindings-20261110/actual-builds-and-validation.tar.gz",
+      "sha256": "a2d5554b1715de44eee514f52be58c08ef26f196a2b8a0838cb3aa751e17989c",
+      "bytes": 2527170911,
+      "entries": 14160,
+      "uniquePayloads": 4987,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-field-bindings-20261110/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "2924742287a1a2a845085ddc2a278e348ceff407b83bc9fcf5841a4d3373cb38",
+      "bytes": 5002962
+    }
+  },
+  "candidate": {
+    "serverSha256": "7faa1de86d001264b484d1e92d874dd03fab5ef4039d16e0824b42dd7205bc74",
+    "guiSha256": "226b6826b610dc7c90eaef6f88fe3762bb71d6e2b3337423c182a8cb9433c462",
+    "sdkDllSha256": "216c1f98f4d55cc5dff9c7d98425edbb08d470cdfc6b26ef4ad962af3431f560",
+    "guiObjects": 116,
+    "actualNativeConsumers": 272
+  },
+  "validation": {
+    "nativeFixtures": 165,
+    "fieldAssertions": 6048,
+    "targetAssertions": 642,
+    "implicitClassifierAssertions": 36308,
+    "declarationAssertions": 4360,
+    "indexStorageAssertions": 12655,
+    "actualCMutantsRejected": 5,
+    "protocolSuites": 10,
+    "newFieldWireCases": 6,
+    "guiFixtures": 27,
+    "actualPreviousServerRejected": true,
+    "currentSourcesAndAllLinksChecked": true,
+    "normalAnd1024ByteIndexVariantsBound": true,
+    "originalImplicitPositiveAdmissionPreserved": true,
+    "wrongImplicitFieldTargetRejected": true,
+    "performanceAdmissionRun": false,
+    "priorFailuresPreserved": true
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "knownMissing": [
+    "writable membership and full overload/inheritance family closure",
+    "rename conflicts and post-rename binding proof",
+    "standard prepareRename/rename and IDE versioned edit transaction",
+    "remaining applicable LSP and current-engine cohort alignment",
+    "whole-goal performance/large-workspace/soak/final delivery admission"
+  ]
+}
