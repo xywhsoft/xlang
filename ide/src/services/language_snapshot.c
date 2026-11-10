@@ -957,7 +957,12 @@ nativeValidation:
  q->guardResolution=xrtValueDeepClone(get(raw,"resolutionReport")); q->guardToolchain=stamp;
  if(!q->guardFiles || !q->guardResolution) { fail(e,"无法保留发布后的输入报告。"); goto done; }
  success=put(result,"ok",xrtValueBool(okay)) && put(result,"phase",xrtValueString(sv(phase))) && put(result,"version",xrtValueInt(q->queryPath ? q->queryVersion : q->version)) && put(result,"scope",xrtValueString(sv(q->nativeBridge ? "native-c-bridge" : q->queryPath ? "cursor-query" : "entry-with-open-overlays"))) && put(result,"guardScope",xrtValueString(sv("background-poll"))) && put(result,"durationMs",xrtValueInt((int64)(GetTickCount64()-began)));
- if(success) { *output=result; result=NULL; }
+ if(success) {
+#ifdef XLS_COMPILER_XRT
+  if(okay && nativeCheck && !q->queryPath && !q->nativeBridge && !q->referenceMode && !q->declarationMode)q->tokenCheck=xlsSemanticCheckRetain(nativeCheck);
+#endif
+  *output=result; result=NULL;
+ }
 done:
 #ifdef XLS_COMPILER_XRT
  xlsSemanticCheckDestroy(nativeCheck);

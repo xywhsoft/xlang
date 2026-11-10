@@ -48,6 +48,7 @@
 !/dev/release-materials/provenance/lsp-native-point-coordinate-screen-20261110.json
 !/dev/release-materials/provenance/lsp-function-point-reuse-20261110.json
 !/dev/release-materials/provenance/lsp-semantic-tokens-20261110.json
+!/dev/release-materials/provenance/lsp-semantic-token-wire-20261110.json
 /out/
 /tmp/
 /logs/

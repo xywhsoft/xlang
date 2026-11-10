@@ -1,0 +1,120 @@
+{
+  "schema": 1,
+  "date": "2026-11-10",
+  "stage": "M7b2",
+  "scope": "Negotiated standard semanticTokens full/range/delta with guarded off-owner construction; IDE color augmentation remains pending",
+  "stageAccepted": true,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "externalPublishPerformed": false,
+  "base": {
+    "commit": "752db11f17f3b50eb63bc30a979df248abaa5fcd",
+    "index": {
+      "path": "dev/release-materials/provenance/lsp-semantic-tokens-20261110.json",
+      "sha256": "64df8ef49f9e2bff4be58d089415cc7dd1518ba308fcfd51e177d24dd1f31bc1",
+      "bytes": 5489
+    }
+  },
+  "ownedSources": {
+    "ide/src/services/semantic_coordinate_sorted.inc": "af8fe072b50722cce5bb6e844d3c3d0237f9fd2f4dcaaa36a3ac5d0941ab550b",
+    "ide/src/services/semantic_token_positions.h": "fac4b97d27e33fa914e2ae490d44af712016ac53d03f082e355492743255ea4b",
+    "ide/src/services/semantic_token_positions.c": "57be566d37e6377bae0d157127649272565b5c0809426e622addd1c6c1eb100b",
+    "ide/src/protocol/semantic_tokens_wire.h": "b962b941344aa7fac6e7a80a47a632fe7d01d6646cf2d0efbedb0680569c3ff8",
+    "ide/src/protocol/semantic_tokens_wire.c": "a9073baac36d6901567f34a954866dc67b322a0093596a26caeeb8da71a7d07a",
+    "ide/src/services/semantic_token_job.h": "2b92a053fa23782859801c9fa89232412abad80dc638883ad5af618f8c3079ba",
+    "ide/src/services/semantic_token_job.c": "ee90c6d94f4484dc3119e1c46058d707eb5012c808a3dd9001c464f5356ff4b3",
+    "ide/src/services/language_check.h": "fe04b1a366b6b77d8cd09f0a03b8fe3d44f2216a09a20a410ca8537b0c006c5e",
+    "ide/src/services/language_check_internal.h": "47a7c7e57b53646fc7cdd6fcb2771b13b607b947a358251888686bda75cb579d",
+    "ide/src/services/language_check.c": "484ce62c90215bc723453b087d4e126fa0c706c120b7b89a76ae982046f57808",
+    "ide/src/services/language_snapshot.c": "6ffaa994b2b2f44e285b104948106b8c1465716839ffad32f4e2c78116c067ce",
+    "ide/src/server/xlang_ls.c": "8cedd28e2f90039c842f69d6f4de94a5c24f131e9bad9d787e5a74877b3fbe2e",
+    "ide/src/server/semantic_tokens.inc": "c0d1b22e596da1e4be6e0d9be4b732cd831e9ba198f1404e858006d07a3e5b8d",
+    "ide/tests/semantic_tokens_wire_test.c": "dd1bf16c004cacf6a30591eebad6c228462556f345fb5ba74ae3674c50c0ebe2",
+    "ide/tests/semantic_token_guards_test.c": "db1a28141a8de2ba7c55cd47aee67497ab898d47416ad6fcfcbcfed0092df8ea",
+    "ide/tools/check_lsp_semantic_tokens.py": "aa2ffa7f765a4c3e266f7130840a0f64d7a0c3a5271745555053109fcf2f077f",
+    "ide/tools/check_lsp_semantic_token_worker.py": "cb5f547de1a47e9ee81b95fa6dd47a4480a6371a47d80156f132b0f104608f0b",
+    "ide/tools/build_lsp_core.py": "a00d0f610d4bb844eff1fb308d1437694f24f5a515d3aea578dbff06471547f7",
+    "ide/docs/lsp-semantic-token-protocol.md": "7bc10d1c07ad6eb980cb43b058438a9d26150e90449484c92b34e0f946f0ca41",
+    "ide/docs/lsp-development.md": "c8b8ebdc756ace68f320c74212022618c8183cc31cefc838752a44e04809cdbc"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-semantic-token-wire-20261110.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-semantic-token-wire-20261110/source-and-actual-closures.tar.gz",
+      "sha256": "bb2fc45416815f999c47960cd83869b4e8f6b5dc7aa0e70b62a38992e919127c",
+      "bytes": 7512793,
+      "entries": 1283
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-semantic-token-wire-20261110/manifest.json",
+      "sha256": "1570293d36943c46c426abe3c222c71aaacb8a2dc0d17c59d84d44fc3e33d2e4",
+      "bytes": 416808
+    },
+    "matchedSdk": {
+      "path": "dev/release-materials/sources/lsp-semantic-token-wire-20261110/matched-gui-sdk.tar.gz",
+      "sha256": "63d64d7bf4e9762771f618ae427d5df259e1173808342aad4c67c6d2b27e0d80",
+      "bytes": 22996166,
+      "entries": 180
+    },
+    "reports": {
+      "path": "dev/release-materials/provenance/lsp-semantic-token-wire-20261110/reports-and-attempts.tar.gz",
+      "sha256": "bd11e7b828066a1363bfe291eafa381e8ff29775c7ffda340dd09498c2defef5",
+      "bytes": 40458936,
+      "entries": 2970
+    },
+    "reportManifest": {
+      "path": "dev/release-materials/provenance/lsp-semantic-token-wire-20261110/manifest.json",
+      "sha256": "26cbecbf0023c815507163c8ee465883525463f8be32b2d9cbbc3cc52c6e7f2c",
+      "bytes": 1020819
+    },
+    "programs": {
+      "path": "dev/release-materials/provenance/lsp-semantic-token-wire-20261110/programs-and-actual-objects.tar.gz",
+      "sha256": "1e48af825cf0ac656a1c3eabc13e3a30922299332c082fb91ddec8ea7fd6d514",
+      "bytes": 564844870,
+      "entries": 557
+    },
+    "screenshots": {
+      "path": "dev/release-materials/provenance/lsp-semantic-token-wire-20261110/gui-frames.tar.gz",
+      "sha256": "74a401ba65772156221796e6535c52651a821343c67b8d467d920dc3c1c7c8b7",
+      "bytes": 3523885,
+      "entries": 44
+    }
+  },
+  "candidate": {
+    "languageServerSha256": "39596f46bc453e3cac0ccdaf0ac961e58f068cb53eb38d1b1c1b2f2f84b6bba6",
+    "guiSha256": "59304d1fda52ae6f095cc794ac6b2a8e6ddba0ff2b320f4cd6a8a6ea3cd23897",
+    "coreSha256": "440f633fc407fc7a6f024fd93b84cdb4dabce08ffa073c3b81f87adc5cf97785",
+    "serverVersion": "0.101"
+  },
+  "validation": {
+    "actualConsumers": 268,
+    "updatedConsumers": 44,
+    "nativeFixtures": 162,
+    "nativeBaseReceipt": "build-v3/result.json",
+    "nativeRemainingReceipt": "core-regression-v1/result.json",
+    "finalLinkReceipt": "final-build-v1/result.json",
+    "wireChecks": 311,
+    "adversarialChecks": 32789,
+    "actualCGuardOmissions": 2,
+    "stdioSuites": 9,
+    "semanticTokenScenarios": 15,
+    "actualWorkerBarrierScenarios": 4,
+    "guiObjects": 115,
+    "pairedGuiFixtures": 26,
+    "reviewedFrames": 3,
+    "guardedInputsRevalidated": true
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "remaining": [
+    "IDE capability/request/off-owner decode and lexical augmentation with invalidation",
+    "Remaining complete applicable LSP including verified rename/formatting",
+    "Current engine asset alignment and whole-goal performance/large-workspace/soak acceptance; retain historical failures"
+  ]
+}

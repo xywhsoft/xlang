@@ -73,6 +73,45 @@ invalid: xrtValueRelease(out); fail(e,"编译器诊断位置、来源或字段�
 }
 #ifdef XLS_COMPILER_XRT
 static int symbolsCancelled(void* user){return cancelled(user);}
+static int tokenSourceCaptured(const xide_language_check* q,const char* path)
+{
+ if(!q->guardFiles || xrtValueType(q->guardFiles)!=XVALUE_ARRAY)return 0;
+ for(size_t i=0;i<xrtValueCount(q->guardFiles);++i){
+  const xvalue* row=xrtValueArrayGet(q->guardFiles,i);int64 kind=0;const char* captured=string(get(row,"path"));
+  if(captured && xrtValueGetInt(get(row,"kind"),&kind) && (kind&1) && xidePathLexicalEqual(path,captured))return 1;
+ }
+ return 0;
+}
+xide_semantic_token_job* xideLanguageCheckStartTokens(xide_language_check* q,const char* path,int version,
+ const xide_token_legend* legend,const xide_token_request* request,xide_token_data* previous,int* current,xide_model_error* error)
+{
+ if(current)*current=0;
+ if(error)memset(error,0,sizeof(*error));
+ if(!q || !path)return NULL;
+ xls_semantic_check* checked=NULL;int prefix=0,matched=0;void (*wake)(void*)=NULL;void* user=NULL;
+ EnterCriticalSection(&q->lock);
+ if(q->state==XIDE_CHECK_READY && q->nativeSemantic && !q->queryPath && !q->nativeBridge && !q->referenceMode && !q->declarationMode && !cancelled(q) && q->guardState==XIDE_GUARD_RUNNING){
+  for(size_t i=0;i<q->snapshotCount;++i)if(version==q->snapshots[i].version && xidePathLexicalEqual(path,q->snapshots[i].path) && tokenSourceCaptured(q,path)){
+   const unsigned char* text=(const unsigned char*)q->snapshots[i].text;
+   prefix=text[0]==0xef && text[1]==0xbb && text[2]==0xbf;
+   checked=xlsSemanticCheckRetain(q->tokenCheck);matched=1;wake=q->wake;user=q->wakeUser;break;
+  }
+ }
+ LeaveCriticalSection(&q->lock);
+ if(current)*current=matched;
+ if(!checked)return NULL;
+ char message[256]={0};xide_semantic_token_job* job=xideSemanticTokenJobStart(checked,path,prefix,legend,request,previous,wake,user,message,sizeof(message));
+ xlsSemanticCheckDestroy(checked);
+ if(!job)fail(error,*message?message:"Unable to capture semantic token query.");
+ return job;
+}
+int xideLanguageCheckMatchesTokenOwner(xide_language_check* q,const xide_semantic_token_job* job)
+{
+ if(!q || !job)return 0;
+ EnterCriticalSection(&q->lock);
+ int okay=q->state==XIDE_CHECK_READY && q->guardState==XIDE_GUARD_RUNNING && !cancelled(q) && q->tokenCheck && q->tokenCheck==xideSemanticTokenJobOwner(job);
+ LeaveCriticalSection(&q->lock);return okay;
+}
 static void buildRequestedSymbols(xide_language_check* q)
 {
  EnterCriticalSection(&q->lock);
@@ -470,6 +509,7 @@ void xideLanguageCheckDestroy(xide_language_check* q)
  xideSemanticDefinitionsReleaseTyped(q->definitions,q->navigationProjection);
  xideSemanticNavigationDestroy(q->deferredNavigation);
  xideSemanticNavigationDestroy(q->symbolNavigation);
+ xlsSemanticCheckDestroy(q->tokenCheck);
  if(q->navigationEvent)CloseHandle(q->navigationEvent);
 #else
  xideSemanticDefinitionsDestroy(q->definitions);

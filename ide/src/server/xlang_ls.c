@@ -31,7 +31,10 @@ typedef struct document { char *uri,*path; const char* text; xls_text* content; 
 typedef struct native_request { xvalue* id; xls_query* query; int document,version; unsigned long long identity,generation;int selection; } native_request;
 typedef struct semantic_request {
  xvalue *id,*bindingId; int document,version,line,character,kind,started,bound,waitingNavigation,navigationFailed;
- unsigned long long identity,generation,order;
+ unsigned long long identity,generation,order;int failureCode;
+#ifdef XLS_COMPILER_XRT
+ xide_semantic_token_job* tokenJob;xide_token_data* tokenPrevious;xide_token_request token;
+#endif
 } semantic_request;
 typedef struct server {
  CRITICAL_SECTION lock; HANDLE reader,event; volatile LONG stop; message *head,*tail; size_t queueBytes,queueCount,queueInputs; int eof,readFailed;
@@ -65,6 +68,9 @@ typedef struct server {
  int diagnosticResultRoot; unsigned long long diagnosticResultIdentity,diagnosticResultGeneration;
  uint64_t diagnosticChecks,diagnosticOperations,diagnosticWorkerThread; size_t diagnosticRecords; char diagnosticError[512];
 #ifdef XLS_COMPILER_XRT
+ xide_token_legend tokenLegend;xide_semantic_token_job* tokenJobs[4];
+ struct {xide_token_data* data;unsigned long long order;} tokenHistory[DOC_LIMIT][2];
+ size_t tokenHistoryBytes;unsigned long long tokenSerial,tokenHistoryClock;
  xls_dependency_stats diagnosticGraph;uint64_t diagnosticGraphFallbacks;int diagnosticGraphIndexed;
  xls_module_store* modules;
  xide_project_references* references;
@@ -79,6 +85,9 @@ typedef struct server {
 #endif
  xide_analysis_catalog* catalog;int64 configurationEpoch;
 } server;
+#ifdef XLS_COMPILER_XRT
+static void clearTokenHistory(server*,int);
+#endif
 static void cancelSemantic(server*,int,int,const char*);
 static void semanticCheckFinished(server*,int,unsigned long long,int,int,const char*,int);
 static void drainSemantic(server*);
@@ -161,7 +170,11 @@ static void cancel(server* s,int code,const char* reason)
 { if(s->check) { s->cancelCode=code; s->cancelReason=reason; xideLanguageCheckCancel(s->check); } }
 static int find(server* s,const char* uri) { if(uri) for(int i=0;i<DOC_LIMIT;++i) if(s->docs[i].uri && !strcmp(s->docs[i].uri,uri)) return i; return -1; }
 static void clearDocument(server* s,int i)
-{ document* d=&s->docs[i]; s->textBytes-=xlsTextSize(d->content); free(d->uri); free(d->path); xlsTextRelease(d->content);xlsContextRelease(d->context); memset(d,0,sizeof(*d)); }
+{
+#ifdef XLS_COMPILER_XRT
+ clearTokenHistory(s,i);
+#endif
+ document* d=&s->docs[i]; s->textBytes-=xlsTextSize(d->content); free(d->uri); free(d->path); xlsTextRelease(d->content);xlsContextRelease(d->context); memset(d,0,sizeof(*d)); }
 static void releaseNative(native_request* request)
 { xlsQueryDestroy(request->query); xrtValueRelease(request->id); memset(request,0,sizeof(*request)); }
 static void cancelNative(server* s,int documentIndex,int code,const char* reason)
@@ -569,8 +582,17 @@ static void documents(server* s,const char* method,const xvalue* params)
  }
 invalid: fprintf(stderr,"xlang-ls: rejected %s notification.\n",method);
 }
+#ifdef XLS_COMPILER_XRT
+#include "server/semantic_tokens.inc"
+#endif
 static void releaseSemantic(semantic_request* request)
-{ xrtValueRelease(request->id);xrtValueRelease(request->bindingId); memset(request,0,sizeof(*request)); }
+{
+ xrtValueRelease(request->id);xrtValueRelease(request->bindingId);
+#ifdef XLS_COMPILER_XRT
+ xideSemanticTokenJobCancel(request->tokenJob);xideTokenDataRelease(request->tokenPrevious);
+#endif
+ memset(request,0,sizeof(*request));
+}
 static int semanticCurrent(server* s,const semantic_request* request)
 {
  document* d=&s->docs[request->document];
@@ -579,11 +601,12 @@ static int semanticCurrent(server* s,const semantic_request* request)
 }
 static xvalue* semanticResult(server* s,semantic_request* request)
 {
- request->waitingNavigation=request->navigationFailed=0;
+ request->waitingNavigation=request->navigationFailed=request->failureCode=0;
  if(!s->guard || s->guardCancelled) return NULL;
  document* d=&s->docs[request->document];
  if(s->catalog && (d->binding<0 || ((!request->bound || d->binding==XIDE_ANALYSIS_PROJECT) && !xideLanguageCheckMatchesContext(s->guard,d->context)))) return NULL;
 #ifdef XLS_COMPILER_XRT
+ if(request->kind>=4)return tokenResult(s,request);
  int prepared=request->kind==2 ? xideLanguageCheckPrepareSymbols(s->guard,d->path,request->version,NULL,0) :
   request->kind<2 ? xideLanguageCheckPreparePointNavigation(s->guard,d->path,request->version,NULL,0) : xideLanguageCheckPrepareNavigation(s->guard,d->path,request->version,NULL,0);
  if(prepared!=1){request->waitingNavigation=prepared==0;request->navigationFailed=prepared==-1;return NULL;}
@@ -615,12 +638,15 @@ static void cancelSemantic(server* s,int index,int code,const char* reason)
 }
 static void drainSemantic(server* s)
 {
+#ifdef XLS_COMPILER_XRT
+ collectTokenJobs(s);
+#endif
  for(size_t i=0;i<DOC_LIMIT;++i) {
   semantic_request* request=&s->semantic[i]; if(!request->id) continue;
   if(!semanticCurrent(s,request)) { response(s,request->id,NULL,-32801,"Semantic request inputs changed."); releaseSemantic(request); continue; }
   xvalue* result=semanticResult(s,request);
   if(result) { response(s,request->id,result,0,NULL); releaseSemantic(request); }
-  else if(request->navigationFailed){response(s,request->id,NULL,-32603,"Unable to construct current semantic navigation.");releaseSemantic(request);}
+  else if(request->navigationFailed){response(s,request->id,NULL,request->failureCode?request->failureCode:-32603,"Unable to construct current semantic result.");releaseSemantic(request);}
  }
 }
 static void semanticCheckFinished(server* s,int index,unsigned long long generation,int current,int code,const char* reason,int indexed)
@@ -636,7 +662,7 @@ static void semanticCheckFinished(server* s,int index,unsigned long long generat
       standard results do not conceal infrastructure or resource failures. */
    xvalue* result=indexed ? semanticResult(s,request) : request->kind==2 ? xrtValueArray() : xrtValueNull();
    if(indexed && request->waitingNavigation){request->started=0;continue;}
-   if(request->navigationFailed){response(s,request->id,NULL,-32603,"Unable to construct current semantic navigation.");releaseSemantic(request);continue;}
+   if(request->navigationFailed){response(s,request->id,NULL,request->failureCode?request->failureCode:-32603,"Unable to construct current semantic result.");releaseSemantic(request);continue;}
    response(s,request->id,result,result ? 0 : indexed ? -32801 : -32603,result ? NULL : "Semantic result is unavailable.");
   }
   releaseSemantic(request);
@@ -661,10 +687,17 @@ static void semanticQuery(server* s,const xvalue* id,const xvalue* params,int qu
  int i=find(s,string(get(get(params,"textDocument"),"uri"))),version=i>=0 ? s->docs[i].version : 0,line=0,character=0; const xvalue* batch=get(params,"checkId"),*suppliedVersion=get(params,"version");
  const char* namedId=string(id);
  if(namedId && strlen(namedId)>65535) { response(s,id,NULL,-32602,"Semantic request ID exceeds 64 KiB."); return; }
- if(i<0 || (suppliedVersion && !integer(suppliedVersion,&version)) || version!=s->docs[i].version || (query!=2 && (!integer(get(get(params,"position"),"line"),&line) || line<0 || !integer(get(get(params,"position"),"character"),&character) || character<0)) || (batch && !validId(batch))) { response(s,id,NULL,-32602,"Open document and valid UTF-16 position are required; supplied version/checkId must be current."); return; }
- if(query!=2 && !validPosition(&s->docs[i],line,character)) { response(s,id,NULL,-32602,"Position is not a UTF-16 scalar boundary."); return; }
+ if(i<0 || (suppliedVersion && !integer(suppliedVersion,&version)) || version!=s->docs[i].version || (query<4 && query!=2 && (!integer(get(get(params,"position"),"line"),&line) || line<0 || !integer(get(get(params,"position"),"character"),&character) || character<0)) || (batch && !validId(batch))) { response(s,id,NULL,-32602,"Open document and valid UTF-16 position are required; supplied version/checkId must be current."); return; }
+ if(query<4 && query!=2 && !validPosition(&s->docs[i],line,character)) { response(s,id,NULL,-32602,"Position is not a UTF-16 scalar boundary."); return; }
  if(s->catalog && s->docs[i].binding<0) {response(s,id,NULL,-32602,"Semantic queries need an unambiguous configured analysis project.");return;}
  if(batch && (!s->guard || s->guardCancelled || !sameId(batch,s->guardId))) { response(s,id,NULL,-32801,"Checked compilation is no longer current."); return; }
+#ifdef XLS_COMPILER_XRT
+ xide_token_request token={0};
+ if(query>=4){
+  if(!s->tokenLegend.enabled || (query==4 && !s->tokenLegend.full) || (query==5 && !s->tokenLegend.range) || (query==6 && !s->tokenLegend.delta)){response(s,id,NULL,-32601,"Semantic token request was not negotiated.");return;}
+  if(!tokenOptions(s,i,query,params,&token)){response(s,id,NULL,-32602,"Semantic token range/resultId is invalid.");return;}
+ }
+#endif
  size_t slot=DOC_LIMIT;
  for(size_t j=0;j<DOC_LIMIT;++j) {
   if(s->semantic[j].id && sameId(s->semantic[j].id,id)) { releaseSemantic(&s->semantic[j]); response(s,id,NULL,-32600,"Request ID is already active."); cancelUnusedSemanticCheck(s); return; }
@@ -672,13 +705,16 @@ static void semanticQuery(server* s,const xvalue* id,const xvalue* params,int qu
  }
  semantic_request captured={.document=i,.version=version,.line=line,.character=character,.kind=query,
   .identity=s->docs[i].identity,.generation=s->generation,.order=++s->semanticOrder,.bound=batch!=NULL};
+#ifdef XLS_COMPILER_XRT
+ if(query>=4){captured.token=token;if(query==6)captured.tokenPrevious=previousTokenData(s,i,string(get(params,"previousResultId")));}
+#endif
  xvalue* result=semanticResult(s,&captured);
- if(result) { response(s,id,result,0,NULL); return; }
- if(captured.navigationFailed){response(s,id,NULL,-32603,"Unable to construct current semantic navigation.");return;}
- if((batch || s->cliDiagnostics) && !captured.waitingNavigation) { response(s,id,NULL,-32801,"No current semantic index; run a successful source check first."); return; }
- if(slot==DOC_LIMIT) { response(s,id,NULL,-32001,"The semantic request queue is full."); return; }
+ if(result) { response(s,id,result,0,NULL);releaseSemantic(&captured); return; }
+ if(captured.navigationFailed){response(s,id,NULL,captured.failureCode?captured.failureCode:-32603,"Unable to construct current semantic result.");releaseSemantic(&captured);return;}
+ if((batch || s->cliDiagnostics) && !captured.waitingNavigation) { response(s,id,NULL,-32801,"No current semantic index; run a successful source check first.");releaseSemantic(&captured); return; }
+ if(slot==DOC_LIMIT) { response(s,id,NULL,-32001,"The semantic request queue is full.");releaseSemantic(&captured); return; }
  captured.id=xrtValueDeepClone(id);
- if(!captured.id) { response(s,id,NULL,-32603,"Unable to retain semantic request."); return; }
+ if(!captured.id) { response(s,id,NULL,-32603,"Unable to retain semantic request.");releaseSemantic(&captured); return; }
  if(batch){captured.bindingId=xrtValueDeepClone(batch);if(!captured.bindingId){releaseSemantic(&captured);response(s,id,NULL,-32603,"Unable to retain checked navigation binding.");return;}}
  captured.started=s->check && (s->checkForSemantic || s->checkForDiagnostics) && !s->cancelCode && s->checkDocument==i && s->checkBatchGeneration==s->generation;
  s->semantic[slot]=captured;
@@ -802,6 +838,12 @@ static void dispatch(server* s,const xvalue* message)
   const xvalue* diagnosticsOption=get(options,"diagnosticsBackend"); const char* diagnostics=string(diagnosticsOption);
   if(diagnosticsOption && (!diagnostics || (strcmp(diagnostics,"native") && strcmp(diagnostics,"cli")))) { response(s,id,NULL,-32602,"diagnosticsBackend must be native or cli."); return; }
   s->cliDiagnostics=diagnostics && !strcmp(diagnostics,"cli");
+#ifdef XLS_COMPILER_XRT
+  xide_token_legend tokenLegend={0};
+  if(!xideTokenLegendParse(get(params,"capabilities"),&tokenLegend)){response(s,id,NULL,-32602,"Invalid semantic token capabilities.");return;}
+  if(s->cliDiagnostics)tokenLegend.enabled=0;
+  s->tokenLegend=tokenLegend;
+#endif
   bool nativeWorkspace=false;
 #ifdef XLS_COMPILER_XRT
   nativeWorkspace=!s->cliCompletion && !s->cliDiagnostics;
@@ -846,6 +888,10 @@ static void dispatch(server* s,const xvalue* message)
   put(scope,"nativeCursorCompletion",xrtValueBool(!s->cliCompletion)); put(scope,"completionBackend",xrtValueString(sv(s->cliCompletion ? "cli" : "native")));
   put(scope,"analysisConfiguration",xrtValueInt(!s->cliCompletion && !s->cliDiagnostics ? 1 : 0));put(scope,"analysisProfile",xrtValueString(sv(XIDE_ANALYSIS_PROFILE)));
 #ifdef XLS_COMPILER_XRT
+  if(s->tokenLegend.enabled){
+   xvalue* provider=xideTokenLegendProvider(&s->tokenLegend);
+   if(!provider || !put(cap,"semanticTokensProvider",provider)){xrtValueRelease(result);xrtValueRelease(cap);xrtValueRelease(info);xrtValueRelease(scope);response(s,id,NULL,-32603,"Unable to construct semantic token capability.");return;}
+  }
   put(scope,"nativePackageSelection",xrtValueBool(!s->cliCompletion && !s->cliDiagnostics && xlsFrontendNativeSelectionAvailable()));
 #endif
   put(scope,"retainedDiskEntry",xrtValueInt(!s->cliCompletion && !s->cliDiagnostics ? 1 : 0));
@@ -942,6 +988,11 @@ static void dispatch(server* s,const xvalue* message)
  if(!strcmp(method,"textDocument/hover")) { if(id) semanticQuery(s,id,params,1); return; }
  if(!strcmp(method,"textDocument/documentSymbol")) { if(id) semanticQuery(s,id,params,2); return; }
  if(!strcmp(method,"textDocument/documentHighlight")) { if(id) semanticQuery(s,id,params,3); return; }
+#ifdef XLS_COMPILER_XRT
+ if(!strcmp(method,"textDocument/semanticTokens/full")) {if(id)semanticQuery(s,id,params,4);return;}
+ if(!strcmp(method,"textDocument/semanticTokens/range")) {if(id)semanticQuery(s,id,params,5);return;}
+ if(!strcmp(method,"textDocument/semanticTokens/full/delta")) {if(id)semanticQuery(s,id,params,6);return;}
+#endif
  if(!strcmp(method,"xlang/checkSaved") || !strcmp(method,"xlang/check")) {
   int i=find(s,string(get(get(params,"textDocument"),"uri"))),version=0;
   if(!id) return;
@@ -996,6 +1047,7 @@ int main(void)
  for(size_t i=0;i<DOC_LIMIT;++i) if(s.native[i].query) { xlsQueryCancel(s.native[i].query); releaseNative(&s.native[i]); }
  for(size_t i=0;i<DOC_LIMIT;++i) if(s.semantic[i].id) releaseSemantic(&s.semantic[i]);
  #ifdef XLS_COMPILER_XRT
+ for(size_t i=0;i<4;++i){xideSemanticTokenJobDestroy(s.tokenJobs[i]);s.tokenJobs[i]=NULL;}
  cancelReferences(&s,NULL,0,"Server stopped.");xideProjectReferencesDestroy(s.references);
  workspaceRefreshCancel(&s,0);cancelWorkspaceSymbols(&s,NULL,0,"Server stopped.");xideWorkspaceSymbolsDestroy(s.workspaceSymbols);
 #endif

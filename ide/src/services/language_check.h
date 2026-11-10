@@ -35,6 +35,15 @@ xide_language_check* xideLanguageCheckStartCompletionSnapshots(xide_toolchains* 
 xide_language_check* xideLanguageCheckStartCompletionSnapshotsEx(xide_toolchains* cache,const char* compiler,const char* directory,const char* entry,const xide_language_snapshot* documents,size_t count,const char* queryPath,int line,int character,const xide_language_completion_options* options,xide_model_error* error);
 #ifdef XLS_COMPILER_XRT
 #include "analysis/worker.h"
+#include "services/semantic_token_job.h"
+/* Nonblocking capture for an independent background token request. current=1
+ * means a matching guarded envelope, including a source rejection with no
+ * index (NULL job and no error). No source scan/validation runs on this caller.
+ * The job independently retains the check; Destroy of this host is safe.
+ * Keep callback data alive until the separately owned job is destroyed. */
+xide_semantic_token_job* xideLanguageCheckStartTokens(xide_language_check*,const char* path,int version,
+ const xide_token_legend*,const xide_token_request*,xide_token_data* previous,int* current,xide_model_error*);
+int xideLanguageCheckMatchesTokenOwner(xide_language_check*,const xide_semantic_token_job*);
 /* Nonblocking demand on the existing guarded-check worker. 1=ready,
  * 0=queued/running, -1=construction failed, -2=no matching current envelope.
  * While pending, getters return no value;poll after the normal wake callback.

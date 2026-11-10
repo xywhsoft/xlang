@@ -40,6 +40,7 @@ FRONTEND_SOURCES = (
     "src/sem/xl6_sem_index.c", "src/ir/xl6_ir.c", "src/ir/xl6_ir_class_identity.c",
 )
 SERVER_SOURCES = (
+    "src/services/semantic_token_positions.c", "src/protocol/semantic_tokens_wire.c", "src/services/semantic_token_job.c",
     "src/protocol/analysis_context_wire.c", "src/protocol/signature_help.c", "src/services/analysis_catalog.c",
     "src/protocol/lsp_wire.c", "src/protocol/workspace_symbol_selection.c", "src/protocol/workspace_symbol_wire.c", "src/services/language_check.c", "src/services/language_snapshot.c", "src/services/diagnostic_store.c",
     "src/services/semantic_definition.c", "src/services/project_references.c", "src/services/workspace_symbol_index.c", "src/services/workspace_symbols.c", "src/services/semantic_completion.c", "src/services/c_bridge_map.c",
@@ -124,6 +125,7 @@ HOST_TESTS += ("workspace_symbol_index_test",)
 HOST_TESTS += ("workspace_symbols_test", "workspace_symbols_public_test", "workspace_symbol_refresh_test", "workspace_symbols_shared_test")
 HOST_TESTS += ("workspace_symbol_wire_test",)
 HOST_TESTS += ("language_native_cancel_test",)
+HOST_TESTS += ("semantic_tokens_wire_test", "semantic_token_guards_test")
 
 
 def sha(path: Path) -> str:
@@ -946,6 +948,7 @@ def main() -> None:
             extra = [str(objects["document_sync"])] if name in ("document_sync_test", "diagnostic_stream_test") else []
             if name == "analysis_source_text_test":extra.append("-Wl,--wrap=xlsInputBatchAt")
             if name == "analysis_ast_replacement_test":extra.append("-Wl,--wrap=xrtPoolFree")
+            if name == "semantic_token_guards_test":extra.append("-Wl,--wrap=xlsSemanticTokensData")
             if name=='analysis_current_provider_test' and ir_overlay.get('irDependencyCohort') in ('current-ed78373d',UNIFIED_COHORT,C_INTEROP_COHORT,FINAL_COHORT):extra+=[str(objects['xl6_ir_lower'])]
             if name=='analysis_current_loader_test' and loader_references:
                 extra += [str(objects[p.stem]) for p in loader_references]+['-Wl,--wrap=xrtMalloc']

@@ -19,6 +19,7 @@ struct xide_language_check {
  xide_semantic_definitions* definitions;
  xide_semantic_symbols* symbols;xide_symbol_work symbolWork;
 #ifdef XLS_COMPILER_XRT
+ xls_semantic_check* tokenCheck;
  char* referencePath;int referenceLine,referenceCharacter,referenceMode,declarationMode;
  struct xide_reference_shard* referenceShard;struct xide_reference_key* referenceKey;
  xls_projection* navigationProjection;xide_navigation_work navigationWork;
