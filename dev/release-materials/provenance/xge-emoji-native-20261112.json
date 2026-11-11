@@ -1,0 +1,256 @@
+{
+  "schema": "xlang-xge-emoji-native-prerequisite-1",
+  "passed": true,
+  "shippingDelivery": false,
+  "releaseIdeInstalled": false,
+  "completeEmojiLanguageIntegration": false,
+  "scope": "Qualified native prerequisites for later declarative Emoji bindings; no new language API, package publication policy or runtime retirement rule is implemented by this report.",
+  "upstreamCommit": "2574c579a7d5a7dd2695c56fc6f17daea0022a5c",
+  "nativeReport": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\emoji-lifetime-20261112.json",
+    "sha256": "2e628a95b97c27cd7fa3719b3aae0e08776ec5f2290249d42502f1cba2e6668c"
+  },
+  "nativeSourceTextSha256": {
+    "src/xge/text/xge_emoji.c": "249b4e9457aee80cf715cbfc6dcc6beb2bd6b29e9060ed6093b0ab39f3227e19",
+    "tests/xge/xge_emoji_ownership_test.c": "f60ecbf06b0797176e151cb50950ddf182ba115e398091aa99045ca65ed96020",
+    "tests/xge/xge_emoji_public_test.c": "369f8ec52550189e691228d4539b02d734d90a8286ca9e99921b61d48e9a3eb1",
+    "tools/test/check_emoji_ownership.py": "e2072a05d1698fdbeb595262aa4fc6ac4bdf9628db92f832ad774d9d820867c7"
+  },
+  "canonicalXrtHeaderSha256": "41bc24579f4b3207b0434755ca23dd06481af90c05f71e9b365848cf9a7c12d1",
+  "commandChecks": 109,
+  "translationUnitOccurrences": 876,
+  "freshTranslationUnitOccurrences": 875,
+  "products": [
+    {
+      "platform": "win",
+      "profile": "default",
+      "kind": "host",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-host-win-r65\\xge3_host.dll",
+      "sha256": "5f472aa8b42104094a75694501ae86b5ecb58ba5a212c0a6962a2a10395f7b8c",
+      "bytes": 9230261,
+      "metadata": "F:\\xlang-validation\\xge-full-20261110\\native-host-win-r65\\build-report.json",
+      "metadataSha256": "e24dc567c1d898bddad3d92e826dad4fbfc90404f86b6e66cf49334bba65debb",
+      "translationUnits": 146,
+      "fresh": 146,
+      "reused": []
+    },
+    {
+      "platform": "win",
+      "profile": "default",
+      "kind": "static",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-static-win-r65\\libxge3_static.a",
+      "sha256": "955d1d50d0d29c3f5dea96043eedb78022ec28d28108536b3c4ce0f62fc32ac2",
+      "bytes": 18922278,
+      "metadata": "F:\\xlang-validation\\xge-full-20261110\\native-static-win-r65\\build-report.json",
+      "metadataSha256": "5d17a972ea6ed71bf02e22a2a16ca56a279fc2c071379eb2e56ca641c982bc3e",
+      "translationUnits": 146,
+      "fresh": 146,
+      "reused": []
+    },
+    {
+      "platform": "linux",
+      "profile": "default",
+      "kind": "host",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-host-linux-r65\\libxge3_host.so",
+      "sha256": "4e5ae6ae73e6fc42100f1259995c77291d8564bb308a0f18c91ca677c4b6a8a3",
+      "bytes": 10046864,
+      "metadata": "F:\\xlang-validation\\xge-full-20261110\\native-host-linux-r65\\build-report.json",
+      "metadataSha256": "70fff0cdd12b6ff8b1a6ebb0f9ee36075a2101c605ba93fe64edc9cec69ed4de",
+      "translationUnits": 146,
+      "fresh": 146,
+      "reused": []
+    },
+    {
+      "platform": "linux",
+      "profile": "default",
+      "kind": "static",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-static-linux-r65\\libxge3_static.a",
+      "sha256": "bca9200aa976a9f22128d01759e7e237478617a4063eb9fd4e800b58ef29f959",
+      "bytes": 17150964,
+      "metadata": "F:\\xlang-validation\\xge-full-20261110\\native-static-linux-r65\\build-report.json",
+      "metadataSha256": "abb6915f74b5c88bfdf2627353e7be16dc6335a6dfb14966c28d8f95f93be5f0",
+      "translationUnits": 146,
+      "fresh": 146,
+      "reused": []
+    },
+    {
+      "platform": "linux",
+      "profile": "egl-",
+      "kind": "host",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-egl-host-linux-r65\\libxge3_host.so",
+      "sha256": "003afe4e22d01ae145f171f114c0010476638032650ee357b6dc46bc1e6d06ab",
+      "bytes": 10055184,
+      "metadata": "F:\\xlang-validation\\xge-full-20261110\\native-egl-host-linux-r65\\build-report.json",
+      "metadataSha256": "795c964bfb8a23c6e314488c0065f5bc0916706bbef1ffde0663027c0d77bee5",
+      "translationUnits": 146,
+      "fresh": 145,
+      "reused": [
+        "extlibs/harfbuzz/src/harfbuzz.cc"
+      ]
+    },
+    {
+      "platform": "linux",
+      "profile": "egl-",
+      "kind": "static",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-egl-static-linux-r65\\libxge3_static.a",
+      "sha256": "64742297adcaf167757c07622b4e4f5296cc555a01b65461ebff19836d36d239",
+      "bytes": 17165612,
+      "metadata": "F:\\xlang-validation\\xge-full-20261110\\native-egl-static-linux-r65\\build-report.json",
+      "metadataSha256": "dcbb09534dbb660af8f2c7d13956f7b8526d2f7972b8f329747f9eb292ab0cc6",
+      "translationUnits": 146,
+      "fresh": 146,
+      "reused": []
+    }
+  ],
+  "reports": [
+    {
+      "platform": "win",
+      "family": "ownership",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\emoji-ownership-win-r1\\results.json",
+      "sha256": "b9c9bed7854e84ed1ba00ce3a387931d481e5a0dc7e646c50120d6f73b3c3f84",
+      "commands": 20,
+      "inputsVerified": 900,
+      "inputVerification": "F:\\xlang-validation\\xge-full-20261110\\emoji-native-inputs-win-r1.json",
+      "inputVerificationSha256": "6b04661d7b2f2a07b097a6ea35a488340177d32efcc7c8bf647cd1a6722e32dd"
+    },
+    {
+      "platform": "win",
+      "family": "svg-public",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\emoji-svg-public-win-r1\\results.json",
+      "sha256": "1fe386b5621033e039681e2f3290b49ab62525c316ca1dc32ccf7c1f7d9dd41a",
+      "commands": 16,
+      "inputsVerified": 21,
+      "inputVerification": "F:\\xlang-validation\\xge-full-20261110\\emoji-native-inputs-win-r1.json",
+      "inputVerificationSha256": "6b04661d7b2f2a07b097a6ea35a488340177d32efcc7c8bf647cd1a6722e32dd"
+    },
+    {
+      "platform": "win",
+      "family": "shared-face",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\emoji-shared-face-win-r1\\results.json",
+      "sha256": "8bff26e91b412a1c346ce3c83d9444e87676d4c76c20fb18f0b99a6dfdd35d38",
+      "commands": 4,
+      "inputsVerified": 889,
+      "inputVerification": "F:\\xlang-validation\\xge-full-20261110\\emoji-native-inputs-win-r1.json",
+      "inputVerificationSha256": "6b04661d7b2f2a07b097a6ea35a488340177d32efcc7c8bf647cd1a6722e32dd"
+    },
+    {
+      "platform": "win",
+      "family": "svg-gpu",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\emoji-svg-gpu-win-r1\\results.json",
+      "sha256": "b4ddcdf7d8321e521b2a3d87ab7771fe130a9fdae25e578621b6e4d47fe60d91",
+      "commands": 12,
+      "inputsVerified": 899,
+      "inputVerification": "F:\\xlang-validation\\xge-full-20261110\\emoji-native-inputs-win-r1.json",
+      "inputVerificationSha256": "6b04661d7b2f2a07b097a6ea35a488340177d32efcc7c8bf647cd1a6722e32dd"
+    },
+    {
+      "platform": "linux",
+      "family": "ownership",
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/emoji-ownership-linux-r1/results.json",
+      "sha256": "35b627501aa78b42972bcdd08c134297e727a1db1087119773d9ad6b5c0369c0",
+      "commands": 25,
+      "inputsVerified": 858,
+      "inputVerification": "F:\\xlang-validation\\xge-full-20261110\\emoji-native-inputs-linux-r1.json",
+      "inputVerificationSha256": "564ace8e82fd5768a61e3fedb48be088bab1fde8086339e7582638b1939ac958"
+    },
+    {
+      "platform": "linux",
+      "family": "svg-public",
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/emoji-svg-public-linux-r1/results.json",
+      "sha256": "5e2e63b4a9e98dcce10de69686d84fc40a37beb2af7f4e91d3388e2226285585",
+      "commands": 16,
+      "inputsVerified": 20,
+      "inputVerification": "F:\\xlang-validation\\xge-full-20261110\\emoji-native-inputs-linux-r1.json",
+      "inputVerificationSha256": "564ace8e82fd5768a61e3fedb48be088bab1fde8086339e7582638b1939ac958"
+    },
+    {
+      "platform": "linux",
+      "family": "shared-face",
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/emoji-shared-face-linux-r1/results.json",
+      "sha256": "accfc298afcec68daca560130483a9f5927852199176161d03589173c15dbed9",
+      "commands": 4,
+      "inputsVerified": 847,
+      "inputVerification": "F:\\xlang-validation\\xge-full-20261110\\emoji-native-inputs-linux-r1.json",
+      "inputVerificationSha256": "564ace8e82fd5768a61e3fedb48be088bab1fde8086339e7582638b1939ac958"
+    },
+    {
+      "platform": "linux",
+      "family": "svg-gpu",
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/emoji-svg-gpu-linux-r1/results.json",
+      "sha256": "b1f8e235073ee7f873e438894296e7c0feae4014d0fe697c8a3885c0ef55dfd4",
+      "commands": 12,
+      "inputsVerified": 864,
+      "inputVerification": "F:\\xlang-validation\\xge-full-20261110\\emoji-native-inputs-linux-r1.json",
+      "inputVerificationSha256": "564ace8e82fd5768a61e3fedb48be088bab1fde8086339e7582638b1939ac958"
+    }
+  ],
+  "observations": {
+    "win": {
+      "addPrefixes": [
+        {
+          "kind": 0,
+          "failed": 3,
+          "passed": 61
+        },
+        {
+          "kind": 1,
+          "failed": 2,
+          "passed": 62
+        }
+      ],
+      "customCachePrefixes": {
+        "failed": 13,
+        "passed": 83
+      },
+      "builtinCachePrefixes": {
+        "failed": 34,
+        "passed": 62
+      },
+      "hotMatchIterations": 1000,
+      "hotXrtHeapOperationDelta": 0
+    },
+    "linux": {
+      "addPrefixes": [
+        {
+          "kind": 0,
+          "failed": 3,
+          "passed": 61
+        },
+        {
+          "kind": 1,
+          "failed": 2,
+          "passed": 62
+        }
+      ],
+      "customCachePrefixes": {
+        "failed": 13,
+        "passed": 83
+      },
+      "builtinCachePrefixes": {
+        "failed": 34,
+        "passed": 62
+      },
+      "hotMatchIterations": 1000,
+      "hotXrtHeapOperationDelta": 0
+    }
+  },
+  "linuxLayout": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\emoji-layout-linux.json",
+    "sha256": "2a8967902907e341d2eedfe64f29197bffe555ba0404a6e9ab296b1ce24e9d58",
+    "oldBytes": 112,
+    "newBytes": 112
+  },
+  "costs": [
+    "Retain uses an atomic bounded-CAS loop and release uses an atomic decrement; no plain refcount reads remain.",
+    "A warm builtin acquisition uses a short global slot lock and an atomic reference; Match still traverses UTF8/trie data.",
+    "Cold competing builtin builders can duplicate CRC/trie/context allocations and work; unused candidates are destroyed outside the global spin.",
+    "Add validates UTF8, computes C strlen once, copies the sequence/SVG, reserves metadata and publishes. Failed edits can retain reserved capacity, but cannot retain failed payloads or alter logical mappings.",
+    "XRT counters do not measure all third-party/system allocations; no throughput/RSS/whole-binding zero-cost claim."
+  ],
+  "remaining": [
+    "Choose immutable default publication versus serialization before safe Emoji language methods.",
+    "Review GetDefault cold error status and not-found mapping before language completion.",
+    "Pending pre-init/global cleanup, private queued GPU refs and module/code residency work.",
+    "Complete Emoji rendering/language/SDK/IDE delivery and all other remaining XGE/XUI/Document families."
+  ]
+}
