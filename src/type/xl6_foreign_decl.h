@@ -193,7 +193,7 @@ static inline int xl6ForeignParameterRead(const XL6_AstNode* attr,
         size_t headerIndex=3;
         if(attr->childCount>=4 && attr->children[3] && attr->children[3]->kind!=XL6_AST_STRING){
             int32 limit;
-            if(!xl6ForeignDecimalInt(attr->children[3],&limit) || limit!=index+1 || limit>=64)return 0;
+            if(!xl6ForeignDecimalInt(attr->children[3],&limit) || limit<0 || limit==index || limit>=64)return 0;
             result.spanLimitIndexPlusOne=(uint32)limit+1;headerIndex=4;
         }
         if(attr->childCount>headerIndex && (!xl6ForeignQuotedText(attr->children[headerIndex],result.header,sizeof(result.header)) ||
@@ -255,16 +255,15 @@ static inline int xl6ForeignParameterRead(const XL6_AstNode* attr,
     return 1;
 }
 
-/* Prefix indices refer to explicit inputs; the adjacent logical limit is
- * consumed by the same physical pair. Shared layout walkers never expose
- * either member as an unrelated region selector. */
-static inline uint64 xl6ForeignSpanPrefixParameters(const XL6_AstNode* node)
+/* Explicit language limit parameters have no independent physical C slot.
+ * Several spans may share one limit, each clamped to its own byte length. */
+static inline uint64 xl6ForeignSpanLimitParameters(const XL6_AstNode* node)
 {
     uint64 mask=0;const XL6_AstNode* attrs=xl6ForeignFunctionAttributes(node);
     for(size_t i=0;attrs && i<attrs->childCount;++i){
         XL6_ForeignParameterContract row;
         if(xl6ForeignParameterRead(attrs->children[i],&row) && row.spanLimitIndexPlusOne)
-            mask|=UINT64_C(1)<<row.parameter;
+            mask|=UINT64_C(1)<<(row.spanLimitIndexPlusOne-1);
     }
     return mask;
 }
@@ -478,7 +477,10 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             if(contract.kind==XL6_FOREIGN_PARAMETER_RETAINED_CALLBACK)facts.retainedCallbacks|=bit;
             else facts.physicalPairs|=bit;
             if(contract.kind!=XL6_FOREIGN_PARAMETER_SPAN)callbackParameters|=bit;
-            if(contract.spanLimitIndexPlusOne)spanLimits|=UINT64_C(1)<<(contract.spanLimitIndexPlusOne-1);
+            if(contract.spanLimitIndexPlusOne){
+                spanLimits|=UINT64_C(1)<<(contract.spanLimitIndexPlusOne-1);
+                ++facts.spanPrefixCount;
+            }
         } else if (!strcmp(attr->text, "c_text_view")) {
             uint64 bit = UINT64_C(1) << index;
             if (attr->childCount != 1 || (facts.textViews & bit)) return 0;
@@ -574,7 +576,6 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
                 facts.bytesViews|facts.constAggregateAddresses|facts.staticCallbackAddresses)) ||
             (node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || facts.receiverDereference)return 0;
         facts.inputMappingFacts|=XL6_FOREIGN_INPUT_SPAN_PREFIXES_PRESENT;
-        for(uint64 bits=spanLimits;bits;bits>>=1)facts.spanPrefixCount+=(uint8)(bits&1);
     }
     if (output) *output = facts;
     return 1;

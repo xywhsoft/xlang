@@ -7,14 +7,15 @@ from foreign_compiler_cohort import load_compiler_cohort
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     for name in ('root','compiler','out'):parser.add_argument('--'+name,type=Path,required=True)
+    parser.add_argument('--case',choices=('foreign_span_region_prefix','foreign_span_limit_positions'),default='foreign_span_region_prefix')
     cohort=parser.add_mutually_exclusive_group(required=True)
     cohort.add_argument('--compiler-report',type=Path);cohort.add_argument('--diagnostic-report',type=Path)
     a=parser.parse_args();root,compiler,out=[p.resolve()for p in(a.root,a.compiler,a.out)]
     partial=a.diagnostic_report is not None;build=(a.diagnostic_report or a.compiler_report).resolve()
     sdk,extra=load_compiler_cohort(root,compiler,build,partial)
     sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest();tools=Path(__file__).parent
-    fixture=root/'test/cases/foreign_span_region_prefix.xl';provider=fixture.with_name('foreign_span_region_prefix_native.c')
-    nested=fixture.with_name('foreign_span_region_prefix_nested.xl')
+    fixture=root/'test/cases'/(a.case+'.xl');provider=fixture.with_name(a.case+'_native.c')
+    nested=fixture.with_name(a.case+'_nested.xl')
     cc,cpp=[Path(shutil.which(v)).resolve()for v in('gcc','g++')]
     files=[Path(__file__).resolve(),tools/'foreign_compiler_cohort.py',tools/'full_compiler_qualification.py',build,
         compiler,cc,cpp,fixture,provider,fixture.with_suffix('.h'),nested,*extra]
@@ -25,7 +26,7 @@ def main():
     out.mkdir(parents=True,exist_ok=False);env={k:v for k,v in os.environ.items()if not k.startswith('XL6_')}
     env['XLANG_SPAN_REGION_ROOT']=str(root)
     report=dict(passed=False,shippingDelivery=False,fullCompilerBuild=not partial,embeddedCompilerTested=not partial,
-        scope=__doc__,inputs=inputs,rows=[])
+        scope=__doc__,case=a.case,inputs=inputs,rows=[])
     def save():(out/'results.json').write_text(json.dumps(report,indent=2)+'\n')
     def run(name,command,reject=False):
         command=list(map(str,command));z=subprocess.run(command,cwd=root,env=env,capture_output=True,timeout=240)
@@ -68,7 +69,7 @@ int main(int argc,char** argv){assert(argc==2);
  assert(dlclose(image)==0);
 #endif
  return 0;}
-''')
+'''.replace('prefixRegionSelfTest','limitPositionsSelfTest'if a.case=='foreign_span_limit_positions'else'prefixRegionSelfTest'))
     executable=out/('shared-host.exe'if os.name=='nt'else'shared-host')
     run('shared-host-build',[cpp,'-std=c++17','-Wall','-Wextra','-Werror','-DXL_STATIC_EMBED',
         '-I'+str(root),'-I'+str(sdk),host,*([]if os.name=='nt'else['-ldl']),'-o',executable])
@@ -78,8 +79,20 @@ int main(int argc,char** argv){assert(argc==2);
         'count-region':'@c_region(1,"write","2","3","5",1)',
         'span-overlap':'@c_region(0,"write","2","3","5",1)',
         'scalar-field':'@c_region(4,"write","2.width","3","5",1)'}
+    prefix='extern "prefix_region_render" @header("test/cases/foreign_span_region_prefix.h") @no_raise @c_span(0,"const uint8_t*","int",1) '
+    signature='func bad(bytes data,int size,c_int width,c_int height,Buffer output,c_int stride) as c_int'
+    if a.case=='foreign_span_limit_positions':
+        prefix='extern "limit_render" @header("test/cases/foreign_span_limit_positions.h") @no_raise @c_span(0,"const uint8_t*","int",5) @c_output(2,0) '
+        signature='func bad(bytes data,c_int width,c_int height,Buffer output,c_int stride,int size=-1) as c_int'
+        negatives={'count-selector':'@c_region(5,"write","1","4","6",1)',
+            'pointer-selector':'@c_region(5,"write","0","4","6",1)',
+            'count-region':'@c_region(1,"write","3","4","6",1)',
+            'span-overlap':'@c_region(0,"write","3","4","6",1)',
+            'scalar-field':'@c_region(5,"write","3.width","4","6",1)',
+            'missing-physical-input':'@c_region(5,"write","7","4","6",1)',
+            'mapped-limit':'@c_text_view(5) @c_region(5,"write","3","4","6",1)'}
     for name,region in negatives.items():
-        source=out/(name+'.xl');source.write_text('extern "prefix_region_render" @header("test/cases/foreign_span_region_prefix.h") @no_raise @c_span(0,"const uint8_t*","int",1) '+region+' func bad(bytes data,int size,c_int width,c_int height,Buffer output,c_int stride) as c_int\nfunc main(...) as int\n return 0\nend\n')
+        source=out/(name+'.xl');source.write_text(prefix+region+' '+signature+'\nfunc main(...) as int\n return 0\nend\n')
         inputs[str(source)]=sha(source);run('reject-'+name,[compiler,'cgen',source,'--emit',out/(name+'.c'),*include],True)
     for name in ('foreign_region','foreign_span_prefix'):
         case=root/'test/cases'/(name+'.xl');run('regression-'+name,[compiler,'run',case,case.with_name(name+'_native.c'),*include])

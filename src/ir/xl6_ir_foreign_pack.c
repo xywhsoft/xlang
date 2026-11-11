@@ -67,14 +67,29 @@ const XL6_ForeignPackContract* xl6IrForeignPackParameter(const XL6_IrModule* m,c
     }
     return found;
 }
+/* Limits are language inputs evaluated in ordinary argument order, but are
+ * consumed by their span(s) rather than forwarded as independent C inputs. */
+static int xl6IrForeignSpanLimitMask(const XL6_IrModule* m,const XL6_IrCallTarget* t,uint64* mask)
+{
+    const XL6_IrNode* node=t ? xl6IrNodeGet(m,t->declaration):NULL;
+    if(!node)return 0;
+    uint64 explicitLimits=xl6IrRegionSpanLimits(m,t->declaration);
+    if(explicitLimits==UINT64_MAX)return 0;
+    size_t receiver=(node->sourceKind==XL6_AST_NATIVE_EXTERN_FUNC || node->sourceKind==XL6_AST_GET || node->sourceKind==XL6_AST_LET) &&
+        !(node->flags&XL6_AST_FLAG_STATIC) ? 1:0;
+    if(receiver && (explicitLimits&(UINT64_C(1)<<63)))return 0;
+    uint64 limits=explicitLimits<<receiver;
+    if(limits && (t->parameterCount>64 || (t->parameterCount<64 && (limits>>t->parameterCount))))return 0;
+    *mask=limits;return 1;
+}
 size_t xl6IrForeignPhysicalStepCount(const XL6_IrModule* m,const XL6_IrCallTarget* t)
 {
     if(!t || !xl6IrPackArraysValid(m))return SIZE_MAX;
     const XL6_IrNode* node=xl6IrNodeGet(m,t->declaration);if(!node)return SIZE_MAX;
     size_t outputs=node->foreignCall.valueOutput ? xl6IrForeignPhysicalOutputCount(m,t):(node->foreignCall.outputIndexPlusOne ? 1:0);
     size_t count=t->parameterCount+outputs;
-    if(m->foreignParameterCount>m->foreignParameterCapacity || (m->foreignParameterCount && !m->foreignParameters))return SIZE_MAX;
-    for(size_t i=0;i<m->foreignParameterCount;++i)if(m->foreignParameters[i].declaration==t->declaration && m->foreignParameters[i].spanLimitIndexPlusOne){
+    uint64 limits;if(!xl6IrForeignSpanLimitMask(m,t,&limits))return SIZE_MAX;
+    for(;limits;limits&=limits-1){
         if(!count)return SIZE_MAX;
         --count;
     }
@@ -99,6 +114,7 @@ int xl6IrForeignPhysicalStepGet(const XL6_IrModule* m,const XL6_IrCallTarget* t,
     size_t outputs=node->foreignCall.valueOutput ? xl6IrForeignPhysicalOutputCount(m,t):(node->foreignCall.outputIndexPlusOne ? 1:0);
     size_t receiver=(node->sourceKind==XL6_AST_NATIVE_EXTERN_FUNC || node->sourceKind==XL6_AST_GET || node->sourceKind==XL6_AST_LET) &&
         !(node->flags&XL6_AST_FLAG_STATIC) ? 1:0;
+    uint64 limits;if(!xl6IrForeignSpanLimitMask(m,t,&limits))return 0;
     size_t physical=0,p=0,o=0;
     for(size_t event=0;event<=wanted;++event){
         const XL6_ForeignOutputContract* outRow=node->foreignCall.valueOutput ? xl6IrForeignOutputGet(m,t,o):NULL;
@@ -110,6 +126,7 @@ int xl6IrForeignPhysicalStepGet(const XL6_IrModule* m,const XL6_IrCallTarget* t,
         }else if(xl6IrForeignFixedInputGet(m,t,physical)){
             step.kind=XL6_FOREIGN_PHYSICAL_STEP_FIXED;step.parameter=UINT32_MAX;++physical;
         }else{
+            while(p<64 && (limits&(UINT64_C(1)<<p)))++p;
             if(p>=t->parameterCount || (o<outputs && slot<physical))return 0;
             const XL6_ForeignPackContract* pack=xl6IrForeignPackParameter(m,t,p);step.parameter=(uint32)p;
             const XL6_ForeignArrayGroupContract* arrays=xl6IrForeignArrayParameter(m,t,p);
@@ -126,10 +143,7 @@ int xl6IrForeignPhysicalStepGet(const XL6_IrModule* m,const XL6_IrCallTarget* t,
                 size_t width=explicitParameter<64 && (node->foreignCall.physicalPairs&(UINT64_C(1)<<explicitParameter)) ? 2:
                     explicitParameter<64 && (node->foreignCall.retainedCallbacks&(UINT64_C(1)<<explicitParameter)) ? 3:1;
                 if(o<outputs && slot>physical && slot<physical+width)return 0;
-                const XL6_ForeignParameterContract* span=xl6IrForeignParameterGet(m,t,p);
-                size_t inputs=span && span->spanLimitIndexPlusOne ? 2:1;
-                if(inputs>t->parameterCount-p)return 0;
-                physical+=width;p+=inputs;
+                physical+=width;++p;
             }
         }
         if(event==wanted){if(output)*output=step;return 1;}
@@ -140,12 +154,13 @@ size_t xl6IrForeignFirstOutputLogical(const XL6_IrModule* m,const XL6_IrCallTarg
 {
     size_t count=xl6IrForeignPhysicalStepCount(m,t),before=0;
     if(count>t->parameterCount+64)return SIZE_MAX;
+    uint64 limits;if(!xl6IrForeignSpanLimitMask(m,t,&limits))return SIZE_MAX;
     for(size_t i=0;i<count;++i){XL6_ForeignPhysicalStep step;
+        while(before<64 && (limits&(UINT64_C(1)<<before)))++before;
         if(!xl6IrForeignPhysicalStepGet(m,t,i,&step))return SIZE_MAX;
         if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_OUTPUT)return before;
         if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_INPUT){
-            const XL6_ForeignParameterContract* span=xl6IrForeignParameterGet(m,t,step.parameter);
-            before+=span && span->spanLimitIndexPlusOne ? 2:1;
+            before=step.parameter+1;
         }
         else if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_ARRAY_GROUP){const XL6_ForeignArrayGroupContract* group=xl6IrForeignArrayGroupGet(m,t,step.physicalIndex);if(!group)return SIZE_MAX;before+=group->arrayCount+1;}
         else if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_PACK){const XL6_ForeignPackContract* pack=xl6IrForeignPackGet(m,t,step.physicalIndex);if(!pack)return SIZE_MAX;before+=pack->parameterCount;}

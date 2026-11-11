@@ -45,7 +45,7 @@ static int xl6SemForeignRegionForParameter(const XL6_AstNode* node,size_t parame
     for(size_t i=0;attrs && i<attrs->childCount;++i){
         XL6_ForeignRegionContract row;
         if(xl6ForeignRegionRead(attrs->children[i],&row) &&
-            xl6ForeignRegionPhysicalInput(&facts,params->childCount+receiver,receiver,outputs,outputCount,xl6ForeignSpanPrefixParameters(node),row.physicalIndex)==parameter+receiver){
+            xl6ForeignRegionPhysicalInput(&facts,params->childCount+receiver,receiver,outputs,outputCount,xl6ForeignSpanLimitParameters(node),row.physicalIndex)==parameter+receiver){
             *result=row;return 1;
         }
     }

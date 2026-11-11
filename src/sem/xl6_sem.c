@@ -21759,7 +21759,7 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
                     facts.textViews|facts.bytesViews|facts.terminatedStrings|facts.physicalPairs|facts.retainedCallbacks)<<receiver);
                 if(!value || value->childCount || (!xl6TextEquals(value->text,"int64") && !xl6TextEquals(value->text,"int")) ||
                     ((limit+receiver)<64 && (mappings&(UINT64_C(1)<<(limit+receiver))))){
-                    xl6SemErrorNode(ctx,parameter,"C span byte prefix requires the adjacent unmapped int64 limit parameter");return 0;
+                    xl6SemErrorNode(ctx,parameter,"C span byte prefix requires a distinct unmapped int64 limit parameter");return 0;
                 }
             }
         } else {

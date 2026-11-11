@@ -575,7 +575,7 @@ static int xl6IrForeignParameterRowValid(const XL6_ForeignParameterContract* row
             (row->countAbi!=XL6_FOREIGN_SPAN_COUNT_SIZE && row->countAbi!=XL6_FOREIGN_SPAN_COUNT_INT) ||
             !memchr(row->pointerCName,0,sizeof(row->pointerCName)) || !memchr(row->elementCName,0,sizeof(row->elementCName)) ||
             !xl6ForeignPointerSpelling(row->pointerCName))return 0;
-        if(row->spanLimitIndexPlusOne && (row->spanLimitIndexPlusOne!=row->parameter+2 ||
+        if(row->spanLimitIndexPlusOne && (row->spanLimitIndexPlusOne==row->parameter+1 ||
             row->spanLimitIndexPlusOne>64 || !row->readOnly ||
             (strcmp(row->elementCName,"void") && strcmp(row->elementCName,"char") &&
              strcmp(row->elementCName,"unsigned char") && strcmp(row->elementCName,"uint8_t"))))return 0;
@@ -643,7 +643,8 @@ int xl6IrForeignSpanParameterMatches(const XL6_IrModule* module,const XL6_IrCall
         target->parameterAbis[parameter]!=((type->cAbi==XL6_IR_C_ABI_C_ARRAY || type->cAbi==XL6_IR_C_ABI_C_RECORD) ? XL6_IR_PARAMETER_ABI_VALUE : XL6_IR_PARAMETER_ABI_BORROW) ||
         target->parameterConstraintAbis[parameter])return 0;
     if(row->spanLimitIndexPlusOne){
-        size_t limit=parameter+1;
+        if(parameter<row->parameter)return 0;
+        size_t limit=parameter-row->parameter+row->spanLimitIndexPlusOne-1;
         const XL6_IrType* value=limit<target->parameterCount ? xl6IrTypeGet(&module->types,target->parameterTypes[limit]):NULL;
         if(!value || value->cAbi!=XL6_IR_C_ABI_I64 || value->integerTarget!=XL6_IR_INTEGER_TARGET_SIGNED_64 ||
             value->kind!=XL6_IR_TYPE_BUILTIN || value->paramCount || value->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_TRIVIAL ||

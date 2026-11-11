@@ -1,0 +1,20 @@
+import xlang
+func main(...) as int
+ auto root=env.get("XLANG_SPAN_REGION_ROOT")
+ if root==null then return 2 end
+ auto compiler=xlang.Context()
+ assert compiler.setWorkDir(root)
+ string source=r"""
+extern "prefix_region_inline" @header("test/cases/foreign_span_region_prefix.h") @no_raise @c_span(0,"const uint8_t*","int",5) @c_region(4,"write","2","3","5",1) @c_result("status",0) func render(bytes data,c_int width,c_int height,Buffer output,c_int stride,int size=-1)
+auto output=Buffer(b".....")
+render(b"a\0b",c_int(2),c_int(2),output,c_int(3),2)
+assert output.toBytes()==b"a\0.a\0" and output.len()==5
+render(b"a\0b",c_int(2),c_int(2),output,c_int(3))
+assert output.toBytes()==b"a\0.ba"
+"""
+ assert compiler.run(source),compiler.lastError
+ assert not compiler.run("int broken=missingNestedSpanLimitSymbol")
+ assert compiler.run(source),compiler.lastError
+ println("Nested nonadjacent span limits passed")
+ return 0
+end

@@ -1,0 +1,84 @@
+extern "LimitRoot*" class Reader @header("test/cases/foreign_span_limit_positions.h") @lifetime("owned") @policy("limitPolicy")
+ native point handle
+ extern "measure" @c_field_call @no_raise @c_span(0,"const uint8_t*","int",2) func measure(bytes data,c_int hint,int size=-1) as c_int
+ extern "render" @c_field_call @no_raise @c_span(0,"const uint8_t*","int",5) @c_region(5,"write","3","4","6",1) @c_result("status",0) func render(bytes data,c_int width,c_int height,Buffer output,c_int stride,int size=-1)
+end
+extern "limit_create" @header("test/cases/foreign_span_limit_positions.h") @no_raise @factory(0,0,rollback) @c_result("owned_view") func create() as Reader
+extern "limit_destroy" @header("test/cases/foreign_span_limit_positions.h") @no_raise func rollback(Reader value)
+extern "limit_before" @header("test/cases/foreign_span_limit_positions.h") @no_raise @c_span(1,"const uint8_t*","int",0) func before(int size,bytes data) as c_int
+extern "limit_shared" @header("test/cases/foreign_span_limit_positions.h") @no_raise @c_span(0,"const uint8_t*","int",2) @c_span(1,"const uint8_t*","int",2) func shared(string first,bytes second,int size=-1) as c_int
+extern "limit_distinct" @header("test/cases/foreign_span_limit_positions.h") @no_raise @c_span(1,"const uint8_t*","int",3) @c_span(2,"const uint8_t*","int",0) func distinct(int secondSize,string first,bytes second,int firstSize) as c_int
+extern "limit_render" @header("test/cases/foreign_span_limit_positions.h") @no_raise @c_span(0,"const uint8_t*","int",5) @c_output(2,0) @c_region(5,"write","3","4","6",1) func render(bytes data,c_int width,c_int height,Buffer output,c_int stride,int size=-1) as c_int
+extern "limit_calls" @header("test/cases/foreign_span_limit_positions.h") @no_raise func calls() as c_int
+extern "limit_counter_begin" @header("test/cases/foreign_span_limit_positions.h") @no_raise func counterBegin()
+extern "limit_counter_end" @header("test/cases/foreign_span_limit_positions.h") @no_raise func counterEnd()
+protocol Source
+ func measure(bytes data,c_int hint,int size) as c_int
+end
+int stage=0
+func firstSize() as int
+ assert stage==0
+ stage=1
+ return 2
+end
+func secondSize() as int
+ assert stage==1
+ stage=2
+ return 1
+end
+export func limitPositionsSelfTest() as c_int
+ assert shared("a\0b",b"x",2)==c_int(217)
+ return before(100,b"a\0b")
+end
+func main(...) as int
+ bytes data=b"a\0b"
+ string text="a\0b"
+ assert before(0,data)==c_int(0) and before(-1,data)==c_int(195)
+ assert before(100,data)==c_int(195)
+ assert shared(text,b"x")==c_int(315) and shared(text,b"x",2)==c_int(217)
+ assert distinct(firstSize(),text,b"xy",secondSize())==c_int(338) and stage==2
+ auto reader=create()
+ assert reader.measure(data,c_int(17))==c_int(195)
+ assert reader.measure(data,c_int(17),2)==c_int(97)
+ func(bytes,c_int,int) as c_int bound=reader.measure
+ assert bound(data,c_int(17),1)==c_int(97)
+ Source source=reader
+ assert source.measure(data,c_int(17),2)==c_int(97)
+ auto output=Buffer(b".....")
+ reader.render(data,c_int(2),c_int(2),output,c_int(3),2)
+ assert output.toBytes()==b"a\0.a\0"
+ assert render(data,c_int(2),c_int(2),output,c_int(3))==c_int(195)
+ assert output.toBytes()==b"a\0.ba"
+ int initial=int(calls())
+ bool rejected=false
+ try
+  shared(text,b"x",-2)
+ catch error
+  rejected=true
+ end
+ assert rejected and int(calls())==initial
+ rejected=false
+ try
+  render(data,c_int(2),c_int(2),output,c_int(3),-2)
+ catch error
+  rejected=true
+ end
+ assert rejected and int(calls())==initial and output.toBytes()==b"a\0.ba"
+ rejected=false
+ auto shortOutput=Buffer(b"....")
+ try
+  render(data,c_int(2),c_int(2),shortOutput,c_int(3))
+ catch error
+  rejected=true
+ end
+ assert rejected and int(calls())==initial and shortOutput.toBytes()==b"...."
+ counterBegin()
+ for i in range(1000)
+  assert shared(text,data,2)==c_int(194)
+  assert reader.measure(data,c_int(17),2)==c_int(97)
+  reader.render(data,c_int(2),c_int(2),output,c_int(3),2)
+ end
+ counterEnd()
+ assert output.toBytes()==b"a\0.a\0"
+ return 0
+end

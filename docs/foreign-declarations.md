@@ -960,7 +960,7 @@ table; safety admission and lifetime pins remain real binding costs.
 extern "consume" @header("consume.h") @no_raise @c_span(0,"const void*","size_t",1) func consume(bytes input,int size=-1) as c_int
 ```
 
-The numeric fourth argument of `c_span` identifies an adjacent explicit language
+The numeric fourth argument of `c_span` identifies a distinct explicit language
 parameter. That parameter must be `int`/`int64`; it supplies a byte limit and is
 consumed by the span projection, rather than becoming another C argument. The
 physical call remains `consume(pointer, count)`. The optional authoritative
@@ -978,14 +978,26 @@ The mapping supports readonly byte pointers (`const void*`, `const char*`,
 `const unsigned char*`, `const uint8_t*`) with the existing string/bytes/Buffer
 and POD span storage rules; only Buffer may be nullable. Null Buffer supplies
 `NULL,0` even for a larger requested prefix. Writable spans and multi-byte
-element counts do not acquire this byte-prefix meaning. Each limit must follow
-its span immediately and cannot carry another physical mapping. Multiple
-disjoint pairs are supported. Prefix declarations can also compose with
-rectangular regions. The shared physical-layout walk consumes the adjacent
-logical limit before resolving each region pointer and extent selector; neither
+element counts do not acquire this byte-prefix meaning. A limit may precede or
+follow its span, allowing required parameters before an optional `size=-1`.
+It cannot carry another physical mapping. Several spans may share one limit;
+each uses the smaller of that limit and its own byte length. The declaration's
+prefix count authenticates span rows, while physical layout removes each unique
+limit only once. Prefix declarations can also compose with rectangular regions.
+The shared physical-layout walk omits the logical limit when resolving each
+region pointer and extent selector; neither
 the span pointer nor its native count can serve as an unrelated region selector.
 Descriptor packs, array groups and inserted fixed input slots retain their
 current separate restrictions with prefix declarations.
+
+```xl
+extern "rasterize" @header("raster.h") @no_raise @c_span(0,"const uint8_t*","int",5) @c_region(4,"write","2","3","5",4) @c_result("status",0) func rasterize(bytes input,c_int width,c_int height,Buffer rgba,c_int stride,int size=-1)
+```
+
+This declaration calls `rasterize(pointer, count, width, height, rgba, stride)`.
+The optional language limit is evaluated once in normal argument order and
+does not add a C parameter. Nonadjacent/shared limits are a later compiler
+change; the historical adjacent-prefix cohorts below do not qualify it.
 
 The sealed IR records the prefix index in its sparse parameter contract and an
 exact count in existing declaration-fact padding. The declaration facts stay
@@ -1027,6 +1039,16 @@ staging buffer or business-method adapter is introduced; existing admission,
 Buffer/lifetime and bounds checks remain. Complete O2 and nested-compiler gates
 for this composition await the next integrated cohort. The basic-prefix r20/r12
 cohorts must not be presented as qualification of the later composition.
+
+`foreign-span-limit-positions-preflight-20261112.json` records the subsequent
+nonadjacent/shared-limit change: 149 O0 frontend command checks and 96 damaged
+IR rejections. It covers a leading limit, independent interleaved limits, a
+shared optional trailing limit, native field/bound/protocol calls, a scalar
+output before pixel dimensions, and strict C/C++ clients. A 1,000-iteration
+loop makes 4,000 native calls with unchanged XRT allocation/free/reallocation
+counters. Physical headers keep only the expected pointer/count pairs; no
+carrier or per-method forwarding implementation is added. This preflight does
+not qualify Linux, a rebuilt embedded compiler or final SDK/IDE delivery.
 
 ## Size-prefixed native record outputs
 

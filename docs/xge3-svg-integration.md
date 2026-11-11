@@ -262,3 +262,24 @@ The composition still needs integrated O2/embedded-compiler qualification.
 Safe Svg/SvgPaint/SvgCache declarations, callback/owner scopes, fallback/thread
 admission and final matched delivery remain separate gates. No release/IDE
 installation or full SVG completion is claimed by these compiler prerequisites.
+
+## Optional limits after required arguments
+
+SVG memory/raster interfaces need optional `size=-1` after required dimensions,
+outputs and stride. The general `c_span` mapping now accepts a distinct limit
+at any explicit argument index, including before its input. Several inputs can
+share one limit, clamped independently; the physical signature omits that limit
+only once. This is compile-time mapping rather than a new SVG forwarding body.
+
+`foreign-span-limit-positions-preflight-20261112.json` records 149 passing O0
+frontend command checks, 96 damaged-IR rejections and a bounded old-compiler
+rejection control. JIT, static and actual C++ dynamic clients cover leading,
+trailing, shared and interleaved limits, including output regions and method
+receivers. A warm 4,000-native-call loop changes no XRT heap counters. Metadata
+sizes remain 88-byte facts and 696-byte sparse rows. Complete O2/Linux/embedded
+acceptance remains for the integrated cohort; no release/IDE files are changed.
+
+Explicit creator-thread `SvgCache` remains the approved public model. A separate
+root-owned, non-independently-destructible node-view lifecycle proposal is still
+pending confirmation. The old resident runtime rejects it before attaching a
+native observer. That proposal is not implemented by the span changes above.

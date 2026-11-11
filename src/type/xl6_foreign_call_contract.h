@@ -313,7 +313,7 @@ typedef struct XL6_ForeignParameterContract {
     char header[256]; /* Optional authoritative header for span/callback C entry. */
     XL6_ForeignSpanCountAbi countAbi;
     bool readOnly;
-    uint32 spanLimitIndexPlusOne; /* Explicit adjacent int64 byte limit; 0 uses the complete span. */
+    uint32 spanLimitIndexPlusOne; /* Explicit int64 byte limit; 0 uses the complete span. */
     char callbackOwnerCName[64];
     char callbackTypeCName[80]; /* Sealed XLIR typedef, empty before normalization. */
     uint32 callbackOwnerIndexPlusOne; /* Includes the implicit receiver. */

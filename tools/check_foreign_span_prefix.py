@@ -90,7 +90,7 @@ int main(int argc,char** argv){assert(argc==2);
     prefix='extern "prefix_sum" @header("test/cases/foreign_span_prefix.h") @no_raise '
     bad={
         'backward':('@c_span(0,"const void*","size_t",0)','bytes data,int size=-1'),
-        'nonadjacent':('@c_span(0,"const void*","size_t",2)','bytes data,int unused,int size=-1'),
+        'mapped-limit':('@c_span(0,"const void*","size_t",2) @c_text_view(2)','bytes data,int unused,int size=-1'),
         'missing':('@c_span(0,"const void*","size_t",1)','bytes data'),
         'unsigned':('@c_span(0,"const void*","size_t",1)','bytes data,uint64 size=0'),
         'c-int':('@c_span(0,"const void*","size_t",1)','bytes data,c_int size=0'),

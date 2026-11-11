@@ -1,0 +1,94 @@
+{
+  "schema": "xlang-foreign-span-limit-positions-preflight-1",
+  "passed": true,
+  "shippingDelivery": false,
+  "releaseIdeInstalled": false,
+  "fullCompilerQualified": false,
+  "embeddedCompilerQualified": false,
+  "scope": "Windows O0 frontend overlay over complete r20: distinct nonadjacent and shared byte limits, normal logical evaluation order, unique hidden limits in physical C layout, receiver and output-region composition.",
+  "compilerDiagnostic": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-span-limits-diagnostic-r1\\diagnostic.json",
+    "sha256": "284d0f4155978d8c7e97ef96e52893025887ae0b9cc9bc5585bff8d94c707961"
+  },
+  "sources": {
+    "src/type/xl6_foreign_region_decl.h": "b336a9e5a811acb6545e1e0f300633c44282f70e38fc4a15c55444b074aab433",
+    "src/type/xl6_foreign_decl.h": "d0db9263f82d38a681b4af2952e85cf96d238cb70556c7d7b7850a9f8a7670e1",
+    "src/type/xl6_foreign_call_contract.h": "dc49e7da93565d9eefccffb256e2a6aa6911d4dba012e6d3860bee67dd678dd8",
+    "src/sem/xl6_sem.c": "184c05e3040b0e6b90e09934d76c09ff506e7abffebc306e5eac026b0a190f57",
+    "src/sem/xl6_sem_foreign_region.c": "ce659d055f76ba22780a42effaed86f81c565626fdef8d7a567401b671fb3f43",
+    "src/sem/xl6_sem_foreign_compat.c": "400a3ff905315c69158130bf4dee7c97584424f09a95be7ccfe3f48d726b5984",
+    "src/ir/xl6_ir_foreign_region.c": "b43fd9d287e36cf6a16179145246a6a014dc5a0c8a346d3052834aa14bb7f30c",
+    "src/ir/xl6_ir_foreign_parameter.c": "b7e9e5e0e520cbea41c0b93314002a79b25f957463ccb577d9361c91f65e68ee",
+    "src/ir/xl6_ir_foreign_pack.c": "1ce8af5945a46ba000d14bd158f163a53b26f3b331fe7330771bf0ac1b275f67",
+    "src/cgen/xl6_ir_cgen_foreign_span.c": "83897318757f8e6daae509d909857c08a598c75dc06f426a4f877bd21186953d",
+    "test/cases/foreign_span_limit_positions.h": "f8c97916c1dc1052ae2962ebea9dc532298a09fbff428b91a75d8ee7ec388678",
+    "test/cases/foreign_span_limit_positions.xl": "014d84409d566fa56915924147b2980f9413f9dd2a4903a1e43ba90b4c2c4504",
+    "test/cases/foreign_span_limit_positions_native.c": "a6d6b594fdadca0a9de681a4c1a48172656687da69f00398854f88c8d691323f",
+    "test/cases/foreign_span_limit_positions_ir.c": "d6eb443e327105141ccf546c38a22bc3d23e446e03846eb3d557b1aa2000c9f7",
+    "test/cases/foreign_span_limit_positions_nested.xl": "81222441fe7d9a0329ccaae326d183621ea1fdca6b30819e50ea8a49927ea910",
+    "tools/check_foreign_span_prefix.py": "27ca2ae804d0e50750e5f44651b97fa22dd1fcd2552cc42c157da1c36b640e8b",
+    "tools/check_foreign_span_region_prefix.py": "7d88d73d3e2228cecf99f4bd6c6805ba2d748f8b22145d9c8987cad78cf0cdfb",
+    "tools/foreign_compiler_cohort.py": "f0f1ef8c8d4c2e371a0ed76cb5850f2ef7e4e8f26419462924dba1eccc67fc05"
+  },
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\span-limits-diagnostic-win-r1\\results.json",
+      "sha256": "d3eee810a52fa111893e1ef0373476bbf70f352c156f374244ddedd2f4912c9b",
+      "commands": 19
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\span-region-limits-regression-win-r1\\results.json",
+      "sha256": "26eff925feb4101260d06ad94a85159e2f68a0929a719ac4cbaf7bbf69bd36bc",
+      "commands": 17
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\span-prefix-limits-regression-win-r1\\results.json",
+      "sha256": "05f583d15edea310b78fe21f2074d61445662bc5fc38c541639d96bb161edb5c",
+      "commands": 23
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\span-limits-borrowed-regression-win-r1\\results.json",
+      "sha256": "93408f6967961d1cb78ea2389321bbc8fb9b480511e3a625dc52ca49902ab99c",
+      "commands": 33
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\span-limits-cstring-regression-win-r1\\results.json",
+      "sha256": "57cf79574f0ac51d6a7981a41ec1af20c1c17c75a1cf689cc2c57393ee0c6547",
+      "commands": 21
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\span-limits-fixed-regression-win-r1\\results.json",
+      "sha256": "b9cad2f74d1d7de055f3dde2f40615895459377f5ed246931460ecb57d87fb07",
+      "commands": 36
+    }
+  ],
+  "commandChecks": 149,
+  "irGate": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\span-limits-ir-diagnostic-r1\\results.json",
+    "sha256": "aa36402242970f3cbc445a4eff9ff053c532253056670b7b411b771c4cb68465",
+    "mutations": 96,
+    "prefixRows": 8,
+    "physicalLayouts": 3
+  },
+  "oldControl": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\span-limits-old-control-win-r1\\results.json",
+    "sha256": "0bb5de9e5fa90838e350046dad7ad0f6d691c5a209c0df06f3d624d6616f4d7d",
+    "expectedRejected": true
+  },
+  "costs": {
+    "callFactsBytes": 88,
+    "sparseParameterBytes": 696,
+    "runtimeCarrierGrowthBytes": 0,
+    "hotIterations": 1000,
+    "hotNativeCalls": 4000,
+    "hotXrtAllocFreeReallocDelta": 0,
+    "extraForwardingBodies": 0,
+    "notes": "Declaration/schema/walker changes occur at compile time. Existing input preparation, Buffer guards, error/code and ownership checks remain real costs; no end-to-end zero-overhead or timing claim."
+  },
+  "remaining": [
+    "Integrated complete Windows/Linux O2, TCC/XRT/VFS and embedded-compiler acceptance for these later mappings.",
+    "Descriptor packs, array groups and inserted fixed inputs remain separate combinations.",
+    "Safe complete SVG/cache/node declarations, shared fallback Face threading, other XGE/XUI/Document families and matched final SDK/compiler/IDE delivery.",
+    "Root-owned nondestructible child-view runtime semantics are still pending user confirmation; this batch does not change the resident view lifecycle."
+  ]
+}
