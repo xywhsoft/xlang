@@ -433,3 +433,13 @@ O2 编译器（含 TinyCC/XRT/VFS/内嵌编译器）的 188 项命令检查通�
 缓存扩容会移动已被引用的 Font 记录，并在访问旧地址前停止；须先修复稳定存储，
 再压实字体/纹理缓存的 GPU 拥有规则。显式语言缓存、完整 SVG、其余模块与最终
 配套交付继续保留；release/IDE 未安装。
+
+2026-11-12 XGE `beefc241` 已修复 SVG 缓存扩容移动 Font 记录的问题，改为稳定的
+CPU 拥有记录；GlyphRun 可保留字体至文档清空后。缓存 raster/atlas 使用真实 GPU
+拥有引用，排队绘制和最后文档销毁不会提前释放纹理；CPU 字体不保活引擎，统计不被
+Init/Unit 重置。嵌入字体 OOM 保留源数据以便重试，文本加载/测量/绘制透明传递错误。
+完整两端 O2 host/static 与 Linux EGL、O0/O2/debug、实际 C/C++ 客户端、分配前缀
+和回归共 331 项通过，另有四个旧码断言控制。真实 Windows OpenGL/Linux 软件 EGL
+像素一致。缓存字体增加一次冷分配，1000 次命中无 XRT 堆操作，不宣称零总成本。
+证据见 `xge-svg-font-cache-20261112.json`。共享 fallback Face 的线程合同、显式语言
+缓存/完整 SVG、通用前缀长度映射及最终配套交付继续保留；release/IDE 未安装。

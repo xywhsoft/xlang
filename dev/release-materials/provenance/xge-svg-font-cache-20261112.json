@@ -1,0 +1,256 @@
+{
+  "schema": "xlang-xge-native-prerequisite-1",
+  "passed": true,
+  "shippingDelivery": false,
+  "releaseIdeInstalled": false,
+  "xlangSvgIntegrationComplete": false,
+  "scope": "Stable cache-owned CPU Font records, native atlas/raster GPU ownership, atomic font statistics and retryable/transparent SVG text OOM. No public ABI/function additions, no language SVG binding or final runtime delivery claim.",
+  "engineCommit": "beefc241b3fec1862b27b43c7b157528248ac1e7",
+  "engineProof": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\svg-font-cache-20261112.json",
+    "sha256": "6ce88cf085db75aba11189fed1f6fee57d0d2d117de2f4e8db40853370d3f97a"
+  },
+  "checks": 331,
+  "oldControlCommands": 6,
+  "builds": [
+    {
+      "platform": "win",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-font-native-r62-win.json",
+      "sha256": "e93aea6d01659adf5c686fcb85570ad94dc27bbaed18a5c095bf9eba9ce764a0",
+      "sourceFreeze": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\native-freeze-r62-win.json",
+        "sha256": "4f87a68f6815ef1c2902af7bc0a858d5211533e974aef2e149042dc276816b29"
+      },
+      "fullNativeRebuild": true,
+      "sourceInputsUnchanged": true
+    },
+    {
+      "kind": "host",
+      "platform": "win",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-host-win-r62\\build-report.json",
+      "sha256": "36586a98ca615461bfc916fafaaaa92e2ba30b3162eaa0b0569b3b3b331e6058",
+      "objectCount": 146,
+      "optimization": "O2"
+    },
+    {
+      "kind": "static",
+      "platform": "win",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-static-win-r62\\build-report.json",
+      "sha256": "07556dc937a9fac63668cb57ae159c7994fe49ea6961a890d8d3081619ef030c",
+      "objectCount": 146,
+      "optimization": "O2"
+    },
+    {
+      "platform": "linux",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-font-native-r62-linux.json",
+      "sha256": "4e08b9c9ac5f0012f9aa05021e33a24a538d9dfd17e31b37bbbc1c3a26caf191",
+      "sourceFreeze": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\native-freeze-r62-linux.json",
+        "sha256": "5ab7ca7c0fcd6d37306309c4dd4ad65199d260265dd11e3efb6c5ee2070e1c25"
+      },
+      "fullNativeRebuild": true,
+      "sourceInputsUnchanged": true
+    },
+    {
+      "kind": "host",
+      "platform": "linux",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-host-linux-r62\\build-report.json",
+      "sha256": "501002e1f8a527f12114b57645d60f8225617f649848e319bf60f3c79fff1921",
+      "objectCount": 146,
+      "optimization": "O2"
+    },
+    {
+      "kind": "static",
+      "platform": "linux",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-static-linux-r62\\build-report.json",
+      "sha256": "eb59d0122289767ced728e542c45dde2ca64217f1191e24d86fed000b6854d11",
+      "objectCount": 146,
+      "optimization": "O2"
+    },
+    {
+      "platform": "linux",
+      "kind": "egl",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-font-egl-native-r62-linux.json",
+      "sha256": "cec6a2476e6e5e47a6751fdeb6faa58f070ed0147bf0213d4baea7cf1ed1d55c"
+    },
+    {
+      "platform": "linux",
+      "kind": "egl-host",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-egl-host-linux-r62\\build-report.json",
+      "sha256": "213720ab6cc88d64f3af5697461717e5d4664b42853bae5942c015747f1875e8",
+      "objectCount": 146,
+      "optimization": "O2"
+    },
+    {
+      "platform": "linux",
+      "kind": "egl-static",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-egl-static-linux-r62\\build-report.json",
+      "sha256": "0c180cd58f870c5289c0fffcc3ac6f45a704f34771e5b05eb2575da1f16d55ac",
+      "objectCount": 146,
+      "optimization": "O2"
+    }
+  ],
+  "reports": [
+    {
+      "platform": "win",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-font-cpu-win-r1\\results.json",
+      "sha256": "16b374f6e24de08fca2a640d82c5d6c71e10fa819bd6bd7b473e3c5c4bad63e9",
+      "rows": 28
+    },
+    {
+      "platform": "win",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-font-gpu-win-r5\\results.json",
+      "sha256": "c0cd92cfde404764263c7edc9c2f570f37983abba19e4365c2b2f4e2a04682eb",
+      "rows": 12
+    },
+    {
+      "platform": "win",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-font-regression-lifetime-win-r1\\results.json",
+      "sha256": "26d7c422a1681573b4cadcdea2b75e06d80606151911761a5730b325ed8f0023",
+      "rows": 36
+    },
+    {
+      "platform": "win",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-font-regression-watch-win-r1\\results.json",
+      "sha256": "c5d0507fca753e1783f1bae4f67be5c3fa58d553beb123f10409600923e67e9c",
+      "rows": 18
+    },
+    {
+      "platform": "win",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-font-regression-cache-win-r1\\results.json",
+      "sha256": "d0b1f4235af67e4154bc90e9f9a1299321257249fce4084271c497a258b5189a",
+      "rows": 20
+    },
+    {
+      "platform": "win",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-font-regression-reset-win-r1\\results.json",
+      "sha256": "27aa47170fa404b0b235cf2f73f8c211a7f6b3c1db83e384c55a667951aef71e",
+      "rows": 4
+    },
+    {
+      "platform": "win",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-font-regression-public-win-r1\\results.json",
+      "sha256": "24c4af654941bc2fb49a34540d2924179ba9d060d561cbafde4ebf6622109087",
+      "rows": 16
+    },
+    {
+      "platform": "win",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-font-owned-regression-win-r1\\results.json",
+      "sha256": "f9e37ef6318b3aa0b471fde94b794e4fffcef5dc2cecf197acca65751c9b2e21",
+      "rows": 28
+    },
+    {
+      "platform": "linux",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-font-cpu-linux-r1\\results.json",
+      "sha256": "df6735a303f870573ecf7323148bfb02b20895011a0c4609b153f81ba2195a84",
+      "rows": 28
+    },
+    {
+      "platform": "linux",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-font-gpu-linux-r2\\results.json",
+      "sha256": "9059bca318f0b7972946c15c499e621400815d472224d80c295007ab31bc04e6",
+      "rows": 12
+    },
+    {
+      "platform": "linux",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-font-regression-lifetime-linux-r1\\results.json",
+      "sha256": "fb272b29e764876c97b863d3768dc65dcc88ec5092ce3f105eee877b63f7869d",
+      "rows": 36
+    },
+    {
+      "platform": "linux",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-font-regression-watch-linux-r1\\results.json",
+      "sha256": "647615e4669f5b05ca0a6c3dddf48aa59ba22fb888e3eda5c23216d6a84cd6df",
+      "rows": 18
+    },
+    {
+      "platform": "linux",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-font-regression-cache-linux-r1\\results.json",
+      "sha256": "dcc50108dc18be9f9b93709d6f359226e385b11374d442fd485d1d9b1befec28",
+      "rows": 20
+    },
+    {
+      "platform": "linux",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-font-regression-reset-linux-r1\\results.json",
+      "sha256": "8cf93db61f0c57b5bb10aaeebed33cc055d570e0a5152d339016b59c66455688",
+      "rows": 4
+    },
+    {
+      "platform": "linux",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-font-regression-public-linux-r1\\results.json",
+      "sha256": "8701c434608071e750fdb33cee31e70381962e8e29a17f6ff4c4e2ad06d20df0",
+      "rows": 16
+    },
+    {
+      "platform": "linux",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-font-owned-regression-linux-r1\\results.json",
+      "sha256": "409e39cdff62cb7ee9ffad1db3bf8d9ba7770aef74fa43209a49e2edd34ff964",
+      "rows": 28
+    },
+    {
+      "platform": "linux",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-font-sanitizer-linux-r1\\results.json",
+      "sha256": "19bc8123a3c10568c0c9a4ee5ff97563934ac373e0b15c2ac7e4b20fc99b1787",
+      "rows": 7,
+      "aggregateAsanUbsan": true
+    }
+  ],
+  "oldControls": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-font-baseline-win-r1\\results.json",
+      "sha256": "5b6e0335823c05e891515b9fc78fbd89b317794699fd1858f54c36a6d2f31d8a",
+      "rows": 4
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-font-oom-baseline-win-r1\\results.json",
+      "sha256": "595dd07a938c5927da24fce518d9314e6db2ff598943462c49ea2ef8678d7878",
+      "rows": 2
+    }
+  ],
+  "nativeCosts": {
+    "requestedSizes": {
+      "oldCacheEntry": 232,
+      "newCacheEntry": 144,
+      "fontRecord": 96,
+      "oldRasterImage": 88,
+      "newRasterImage": 48,
+      "textureRecord": 48
+    },
+    "notes": [
+      "One additional allocation/free per cached Font instance. At full cache capacity, entry plus Font requests 240 bytes versus the old 232; unused capacity is smaller. These are requested C structure bytes, excluding allocator headers/slack/RSS.",
+      "A GPU-materialized raster uses 48-byte image storage plus a 48-byte Texture record instead of the old 88-byte embedded layout; CPU-only raster storage shrinks by 40 bytes. The additional Texture allocation exists only after GPU materialization.",
+      "Real GPU atlas/raster textures add native graphics-owner admission/release and state/thread checks. Font create/final free add atomic statistics operations. No additional lock/allocation on the native cache-hit path; 1000 hits leave XRT alloc/free/realloc unchanged.",
+      "No complete xlang bridge/callback/code-residency timing or total-zero-overhead claim. Native implementation changes apply equally to handwritten C and later language bindings."
+    ]
+  },
+  "actualPixels": {
+    "red": 64,
+    "white": 33,
+    "platforms": [
+      "Windows OpenGL",
+      "Linux headless Mesa EGL"
+    ],
+    "hardwarePerformance": false
+  },
+  "prefixResults": {
+    "cache": {
+      "failed": 5,
+      "passed": 91
+    },
+    "textLoad": {
+      "failed": 50,
+      "passed": 78
+    },
+    "textBounds": {
+      "failed": 7,
+      "passed": 25
+    }
+  },
+  "limits": [
+    "Only the aggregate is ASan/UBSan-instrumented; remaining archive objects and host XRT are uninstrumented. CPU functional concurrency checks do not prove general race freedom.",
+    "Independent CPU caches are tested with separately loaded embedded faces. Process-global fallback/shared mutable faces retain existing native caller serialization; safe language threading must be qualified before full SVG delivery.",
+    "SVG can flush while restoring state. The aggregate GPU test deliberately queues a public draw of its actual private cached Texture after that restoration, and proves retention after last document destruction.",
+    "Default and EGL SDKs are complete O2 builds; the debug CPU test is an authoritative aggregate configuration, not a separately shipped full debug SDK.",
+    "Generic clamped input byte-prefix mapping, complete safe Svg/SvgPaint/SvgCache declarations/policies/callbacks, other integration families and final matched compiler/SDK/IDE delivery remain open."
+  ]
+}

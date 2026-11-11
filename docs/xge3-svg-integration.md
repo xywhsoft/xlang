@@ -1,4 +1,4 @@
-# SVG integration: native prerequisite batch
+# SVG integration: native prerequisite batches
 
 At native prerequisite revision `5c4c30b4`, the authoritative `XGE_ENABLE_SVG`
 block has 68 public functions.
@@ -200,3 +200,36 @@ safe complete SVG declarations/callbacks, actual rendering and final matched
 delivery remain open. The approved explicit cache keeps shared documents within
 one creator-thread cache and independent caches across threads. No release/IDE
 installation or complete SVG acceptance is claimed here.
+
+## Stable native cache storage and real GPU acceptance
+
+XGE `beefc241` fixes moving cached Font records and gives cached raster/atlas
+textures real native GPU ownership. GlyphRuns retain stable Fonts and Faces
+after document Clear/destruction. CPU-only font storage survives Init/Unit and
+does not itself reserve the renderer. Cached/queued GPU textures do reserve it.
+Font statistics are atomic and survive engine-state resets. Embedded-face OOM
+keeps source bytes for retry; text loading/bounds/drawing propagate allocation
+errors instead of silently changing fonts or returning zero advance.
+
+`xge-svg-font-cache-20261112.json` indexes 331 passing command rows from complete
+Windows/Linux O2 host/static and Linux EGL cohorts, aggregate O0/O2/debug,
+actual C/C++ clients, allocation sweeps, retained resources and regressions.
+Windows OpenGL and headless software EGL read back the same 64 red and 33 white
+pixels. Aggregate tests also queue a public draw of the actual cached Texture,
+then drop the last document before flushing. Four bounded old-code assertion
+controls reproduce moving records and swallowed OOM; no stale pointer access
+is executed. Linux sanitizer instrumentation covers the aggregate, not the
+remaining native archive or host XRT.
+
+Stable font storage adds one allocation/free per cached Font. Full occupied
+cache storage requests 240 rather than 232 bytes per font on x64; unused entry
+capacity shrinks. CPU-only raster storage shrinks by 40 bytes; materialized GPU
+storage adds a separate 48-byte Texture record. Owner/thread checks and atomic
+statistics remain real native costs. A 1,000-hit loop adds no XRT heap operation;
+no language timing or total-zero-overhead claim follows.
+
+Independent-thread tests use independent embedded Faces. Shared mutable global
+fallback Faces still need caller serialization; safe language fallback/thread
+admission must be qualified. This native prerequisite does not add the complete
+Svg/SvgPaint/SvgCache declarations, clamped byte-prefix mapping or final matched
+delivery. No release/IDE files were installed.
