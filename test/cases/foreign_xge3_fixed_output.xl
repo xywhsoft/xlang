@@ -1,0 +1,35 @@
+import xge
+func check(xge.Vec2[4] corners)
+ bool topLeft=false
+ bool topRight=false
+ bool bottomLeft=false
+ bool bottomRight=false
+ for i in range(4)
+  auto point=corners[i]
+  if point.fX==c_float(10) and point.fY==c_float(20) then topLeft=true end
+  if point.fX==c_float(40) and point.fY==c_float(20) then topRight=true end
+  if point.fX==c_float(10) and point.fY==c_float(60) then bottomLeft=true end
+  if point.fX==c_float(40) and point.fY==c_float(60) then bottomRight=true end
+ end
+ assert topLeft and topRight and bottomLeft and bottomRight
+end
+protocol Bounds
+ func getOBB(c_float tolerance) as xge.Vec2[4]
+end
+func main(...) as int
+ auto shape=xge.createShape()
+ shape.appendRect(10,20,30,40,0,0,1)
+ check(shape.getOBB(c_float(0.25)))
+ func(c_float) as xge.Vec2[4] bound=shape.getOBB
+ check(bound(c_float(0.25)))
+ Bounds reader=shape
+ check(reader.getOBB(c_float(0.25)))
+ auto scene=xge.createShapeScene()
+ scene.add(shape)
+ check(scene.getOBB(c_float(0.25)))
+ shape.close()
+ check(scene.getOBB(c_float(0.25)))
+ scene.close()
+ println("Shape and ShapeScene OBB: all four corners, bound/protocol calls and retained child")
+ return 0
+end

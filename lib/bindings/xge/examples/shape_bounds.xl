@@ -1,0 +1,15 @@
+import xge
+
+// Shape bounds are CPU queries; no window or graphics context is needed.
+auto shape=xge.createShape()
+try
+ shape.appendRect(10,20,30,40,0,0,1)
+
+ // getOBB returns four points as one fixed-size value, not a borrowed pointer.
+ auto corners=shape.getOBB(c_float(0.25))
+ for i in range(4)
+  println("Corner",i,":",corners[i].fX,corners[i].fY)
+ end
+finally
+ shape.close()
+end

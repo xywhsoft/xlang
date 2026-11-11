@@ -440,6 +440,13 @@ static int xl6IrVerifyForeignOutputs(const XL6_IrModule* module,XL6_DiagList* di
     return 1;
 invalid:return xl6IrDiag(diags,NULL,"native multi-output rows must exactly cover increasing complete C slots and language results");
 }
+static int xl6IrForeignFixedOutputType(const XL6_IrModule* module,XL6_IrTypeId id)
+{
+    const XL6_IrType* type=xl6IrTypeGet(&module->types,id);
+    if(!type || type->kind!=XL6_IR_TYPE_C_ARRAY || !xl6IrForeignConstAggregateTypeSupported(module,id))return 0;
+    const XL6_IrType* element=xl6IrTypeGet(&module->types,type->params[0]);
+    return element && (element->kind!=XL6_IR_TYPE_C_RECORD || element->foreignRecordAbi==XL6_IR_FOREIGN_RECORD_EXACT);
+}
 int xl6IrForeignOutputValueMatches(const XL6_IrModule* module,const XL6_IrCallTarget* target)
 {
     const XL6_IrNode* node=target ? xl6IrNodeGet(module,target->declaration) : NULL;
@@ -448,7 +455,8 @@ int xl6IrForeignOutputValueMatches(const XL6_IrModule* module,const XL6_IrCallTa
     size_t count=xl6IrForeignOutputCount(module,target);
     if(!count || count>64)return 0;
     for(size_t o=0;o<count;++o)if(!xl6IrForeignOutputViewGet(module,target,o) &&
-        !xl6IrRawCCallbackTrivialValueType(xl6IrTypeGet(&module->types,xl6IrForeignOutputType(module,target,o))))return 0;
+        !xl6IrRawCCallbackTrivialValueType(xl6IrTypeGet(&module->types,xl6IrForeignOutputType(module,target,o))) &&
+        !xl6IrForeignFixedOutputType(module,xl6IrForeignOutputType(module,target,o)))return 0;
     if(xl6IrForeignMultiOutput(node)){
         const XL6_IrType* result=xl6IrTypeGet(&module->types,target->returnType);
         if(count<2 || !result || result->kind!=XL6_IR_TYPE_TUPLE || result->paramCount!=count)return 0;

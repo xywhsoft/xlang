@@ -1,0 +1,86 @@
+extern "FixedVertex" struct Vertex @header("test/cases/foreign_fixed_output.h")
+ c_float x
+ c_float y
+end
+typedef Quad=Vertex[4]
+extern "fixed_vertices" @header("test/cases/foreign_fixed_output.h") @no_raise @c_output(1,0) func vertices(c_int code=0) as Quad
+extern "fixed_ints" @header("test/cases/foreign_fixed_output.h") @no_raise @c_output(0) func integers() as c_int[3]
+extern "fixed_mixed" @header("test/cases/foreign_fixed_output.h") @no_raise @c_outputs(0,1,2) @c_status(0) func mixed() as (Quad,c_int,c_float[3])
+extern "fixed_span" @header("test/cases/foreign_fixed_output.h") @no_raise @c_span(0,"const uint8_t*","int") @c_output(2,0) func fromBytes(bytes data,c_int code=0) as Quad
+extern "FixedRoot*" class Root @header("test/cases/foreign_fixed_output.h") @lifetime("owned") @policy("fixedRootPolicy")
+ native point handle
+ extern "fixed_method" @no_raise @c_output(1,0) func vertices() as Quad
+ extern "read" @c_field_call @no_raise @c_output(1,0) func field() as Quad
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "fixed_root_free" @header("test/cases/foreign_fixed_output.h") @no_raise func dropRoot(Root root)
+extern "fixed_root" @header("test/cases/foreign_fixed_output.h") @no_raise @c_result("owned_view") @factory(0,0,dropRoot) func create() as Root
+extern "fixed_calls" @header("test/cases/foreign_fixed_output.h") @no_raise func calls() as c_uint
+extern "fixed_counters_begin" @header("test/cases/foreign_fixed_output.h") @no_raise func countersBegin()
+extern "fixed_counters_end" @header("test/cases/foreign_fixed_output.h") @no_raise func countersEnd()
+extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func debugEnabled() as bool
+protocol Reader
+ func vertices() as Quad
+end
+func throughLanguage() as Quad
+ return vertices()
+end
+func check(Quad values)
+ assert values[0].x==c_float(1) and values[0].y==c_float(2)
+ assert values[3].x==c_float(7) and values[3].y==c_float(8)
+end
+func main(...) as int
+ assert debugEnabled()
+ check(vertices())
+ check(throughLanguage())
+ auto ints=integers()
+ assert ints[0]==c_int(10) and ints[2]==c_int(12)
+ auto points,tag,weights=mixed()
+ check(points)
+ assert tag==c_int(91) and weights[0]==c_float(1) and weights[2]==c_float(3)
+ check(fromBytes(b"a\0b"))
+ auto root=create()
+ check(root.vertices())
+ check(root.field())
+ func(c_int) as Quad freeValue=vertices
+ func() as Quad bound=root.vertices
+ func() as Quad fieldBound=root.field
+ Reader reader=root
+ check(freeValue(0))
+ check(bound())
+ check(fieldBound())
+ check(reader.vertices())
+ Quad kept=vertices()
+ auto copy=kept
+ auto first=copy[0]
+ first.x=c_float(99)
+ copy[0]=first
+ assert copy[0].x==c_float(99) and kept[0].x==c_float(1)
+ bool rejected=false
+ try
+  kept=vertices(c_int(17))
+ catch error
+  rejected=true
+  assert error.code==17 and error.operation=="fixed_vertices"
+ end
+ assert rejected
+ check(kept)
+ auto before=calls()
+ countersBegin()
+ for i in range(200)
+  check(vertices())
+  check(root.field())
+  check(bound())
+  check(fieldBound())
+  check(reader.vertices())
+ end
+ countersEnd()
+ assert calls()==before+c_uint(1000)
+ root.close()
+ println("Fixed outputs: exact arrays, tuples, values, bound/protocol calls, failure isolation and zero-allocation hot loop")
+ return 0
+end
+export func fixedOutputSelfTest() as int
+ assert main()==0
+ return 73
+end

@@ -1,0 +1,181 @@
+{
+  "format": "xlang-feature-qualification-1",
+  "date": "2026-11-11",
+  "complete": true,
+  "passed": true,
+  "scope": "General exact fixed C-array native output values and correction of Shape/ShapeScene four-corner OBB declarations; full XGE integration remains active.",
+  "shippingDelivery": false,
+  "latestMainlineDelivery": false,
+  "releaseIdeInstalled": false,
+  "pushed": false,
+  "compilerSources": {
+    "src/sem/xl6_sem.c": "3a2f1ac346879626829508f8690d3fc41a5736dd09e6b90a50877ccef0226c15",
+    "src/ir/xl6_ir_foreign_parameter.c": "e6c930f67377887337ceb4cc11c6dbbf726eb9cc12b0dabf5dd753771c690ca2",
+    "src/cgen/xl6_ir_cgen_foreign_output_view.c": "e93e4c44a3b6af2d18c389cb1a6752bd933e9ed0427c2c82d0af893b3706f381",
+    "src/cgen/xl6_ir_cgen_identity_closure.c": "83d4be9ada736994ee5f7b447f1dfefe5760c380ceb6caa14594e3dd94c6d419",
+    "src/cgen/xl6_ir_cgen_type_call.c": "315f3b378f1c0ceb63f5333c2d8a3ee7764c448879361976f19df072b611de0d"
+  },
+  "compilers": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r18\\build.json",
+      "sha256": "99e37a0c4cbddef9a326c5474e43c1bd77a4eb79b4f4ffb18490f3871669bbf3",
+      "optimization": "O2",
+      "fullTccXrtAndVfs": true,
+      "sourceFreezeSha256": "91daa71c6f12c6fa1d833fa4f237ceb2ce44cc8ec48831e153b23816f51d3df6",
+      "products": {
+        "xl.exe": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r18\\source\\release\\win_x64\\xl.exe",
+          "sha256": "b06ecff88b5b9f438820a93f7ec7c8be5d605c5e55c8d6e6c58c8d2c2641ed80",
+          "bytes": 72704
+        },
+        "xl.dll": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r18\\source\\release\\win_x64\\xl.dll",
+          "sha256": "9fb3ccc0805fa7fbdc0b5a9ffc93384b786df88d3ba4fc779075c5ec778b07d5",
+          "bytes": 15204864
+        },
+        "xlc.dll": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r18\\source\\release\\win_x64\\xlc.dll",
+          "sha256": "2eacd5902ff322f8db07336abc42e33917a1cab0dc15ea5ded2709b00e6a32dc",
+          "bytes": 21324800
+        }
+      }
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-linux-full-r10\\build.json",
+      "sha256": "21a3aef4248f8bafe8aaa817eddf424afdd528228c0563b761428c2215321ae9",
+      "optimization": "O2",
+      "fullTccXrtAndVfs": true,
+      "sourceFreezeSha256": "5247328f26bd1f486da6de5881848004c072e36a609e454e41a28be1bed441c9",
+      "products": {
+        "xl": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-linux-full-r10/source/release/linux_x64/xl",
+          "sha256": "faa25e49bdf8c5ce8ccdb084810075b406cc6dd499a59577664616eb2a08265b",
+          "bytes": 47224
+        },
+        "libxl.so": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-linux-full-r10/source/release/linux_x64/libxl.so",
+          "sha256": "190c52386d2a3cfb98ccf2d6a16df301303aedc5a58cbb1375d8e8d6a8ec26f7",
+          "bytes": 16476688
+        },
+        "libxlc.so": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-linux-full-r10/source/release/linux_x64/libxlc.so",
+          "sha256": "91c1c76c6c4e95ef900eaf48edc985fa345b2e73b62a9dbf178cd568abbce4f1",
+          "bytes": 22477616
+        }
+      }
+    }
+  ],
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\fixed-output-qualified-win-r9\\results.json",
+      "sha256": "445cf426905600302ef944ef7f1f95e7699372a23ba2cf1b8652da69289a1a91",
+      "checks": 36
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\fixed-output-qualified-linux-r1\\results.json",
+      "sha256": "41ac22d7161b9809538a9c64086fa4bcd73fba81b809d3efe20cb443230c6589",
+      "checks": 36
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\fixed-output-xge-qualified-win-r2\\results.json",
+      "sha256": "6cd8bbaa5de70f91bea1fa585a21acc684ab9a5b7be9ddcae2943437da95d20a",
+      "checks": 14
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\fixed-output-xge-qualified-linux-r1\\results.json",
+      "sha256": "f38a6f19c9f9f47fab1a6eb9ce5d90258d49e14b39227087c05f2a108d1b0713",
+      "checks": 14
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\fixed-output-sequence-regression-win-r1\\results.json",
+      "sha256": "134f75522805293e4660d40f8158d004ad07e550a61168576d72f93b03fbf607",
+      "checks": 41
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\fixed-output-sequence-regression-linux-r1\\results.json",
+      "sha256": "f1b2ffc6dbb7a85a61e0386f3909c46dcf6a7a67ca653c6a0afbc9608f7ca834",
+      "checks": 40
+    }
+  ],
+  "checks": 181,
+  "sealedIr": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\fixed-output-ir-diagnostic-r2\\results.json",
+    "sha256": "2ccec81fcaf36395e0592e4331aa5b895a60ca9b4521c64064c131b87cac3816",
+    "mutations": 54,
+    "optimization": "O0",
+    "fullCompilerBuild": false
+  },
+  "packages": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-fixed-output-dynamic-win-r2.json",
+      "sha256": "d46a48b1216ebcd483a6176be9e0c0c16f7c0590683014e939e31f5f3cd1a252"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-fixed-output-static-win-r2.json",
+      "sha256": "168dd7de3d530b54fd645b1439bc65ca9af07d93faf7ca6c77b17420500faa0d"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-fixed-output-dynamic-linux-r1.json",
+      "sha256": "b140932b527006c669cc5b29cae373dcdbaf09316893bae15fd2e5dbad4905f4"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-fixed-output-static-linux-r1.json",
+      "sha256": "00bf20501ca1c5e8efd8a9e9e4934b543a499d7c90e3a563f24dfcf2a6de257e"
+    }
+  ],
+  "sourceSha256": {
+    "test/cases/foreign_fixed_output.h": "0ceba0304e7005e9e6b1993d378545b69274846ab2ef3bcce90de701bd25e9fd",
+    "test/cases/foreign_fixed_output.xl": "2763372d58ef11e15ab38d6dabc1af41dc9991ad3ee79974882153849a7c6de7",
+    "test/cases/foreign_fixed_output_ir.c": "230edb805b5505f893d7680d44869ca203c0886c684ad413cff11d3c39934355",
+    "test/cases/foreign_fixed_output_nested.xl": "e002fe6e463823f61b8a3cce16affccb7684b9e7a4581dc2ae3de95405a2367c",
+    "test/cases/foreign_xge3_fixed_output.xl": "b303544b1c2ae99e86de2def8a62c53e8fed18bf2e9eb57761282cbe5fa5e498",
+    "tools/check_foreign_fixed_output.py": "338de35ec3d8fd15b9926fc9d8fdc6c5ff5b71f72161bb5a755720112daf18b5",
+    "tools/check_xge3_fixed_output.py": "fb84c5f54585fae0875214c5ec3b3fa5b3911e50623376023be1d63c5c958332",
+    "lib/bindings/xge/src/shapes.xl": "c8092b2c59e3adb38b1250372b28be93213520491e90803801dc7c02cca14383",
+    "lib/bindings/xge/examples/shape_bounds.xl": "174e1a394d8966927a614d44b77e0ccb8c9792da5f5cff72a44cc136ef677de2",
+    "lib/bindings/xge/examples/README.md": "184c84d756356df5f16df339605e537c475c4ce9ebb31cbb53b8956050274f7b",
+    "docs/foreign-declarations.md": "fc2094c541549bdedcd948e17681b25b259094cce84585bbba86198ecd265f13",
+    "docs/xge3-svg-integration.md": "7d077bc6415c2eb7e103fda527922fe96420bb82c841dece5f9f0284bb27c738",
+    "docs/xge3-xui3-full-coverage-plan.md": "2fa65e3c5d3c57984dda11f85a95ba0f673c2ab81790d0a1eb545163542cf9f7"
+  },
+  "implementation": {
+    "newRuntimeTypes": 0,
+    "newIrFields": 0,
+    "newSyntax": 0,
+    "nativeCallsPerInvocation": 1,
+    "fixedValueBytes": "four xge_vec2_t elements (32 bytes), in existing inline value storage",
+    "pointer": "native_raw.Elements or native_raw.eN.Elements",
+    "cardinality": "Trusted declaration; a C pointer signature cannot prove element count"
+  },
+  "costs": {
+    "hotLoopNativeCalls": 1000,
+    "extraXrtAllocations": 0,
+    "extraXrtFrees": 0,
+    "extraXrtReallocations": 0,
+    "measuredScope": "Fixed-output adapter on existing prepared receiver/callable paths",
+    "stillPresent": [
+      "complete inline zero initialization",
+      "ordinary fixed-value copies",
+      "callable and managed receiver preparation",
+      "error/producer/callback status validation",
+      "owner/code lifetime bookkeeping and ordinary cold allocations"
+    ],
+    "timingComparison": false,
+    "totalZeroOverheadClaim": false
+  },
+  "remaining": [
+    "safe complete SVG and actual rendering",
+    "SVG cache concurrency and retained outputs",
+    "automatic module-global resource/code lifetime",
+    "other XGE/XUI/Document coverage gates",
+    "final current-mainline SDK/compiler/IDE/help delivery"
+  ],
+  "testScope": {
+    "cpuOnly": true,
+    "window": false,
+    "gpu": false,
+    "audioDevice": false,
+    "network": false,
+    "securityTests": false
+  }
+}

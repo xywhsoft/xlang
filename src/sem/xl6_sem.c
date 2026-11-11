@@ -21220,6 +21220,21 @@ static int xl6SemIsCAbiConstAggregateType(XL6_SemContext* ctx,XL6_AstNode* typeN
          xl6SemIsBoolTypeName(element->text) || xl6SemIsIntegerTypeName(element->text) || xl6SemIsFloatTypeName(element->text));
 }
 
+/* Fixed output storage is a language inline value; its physical C slot is a
+ * mutable element pointer, not a by-value array or pointer to the wrapper. */
+static int xl6SemIsCAbiFixedOutputType(XL6_SemContext* ctx,const XL6_AstNode* typeNode)
+{
+    typeNode=xl6SemResolveAliasType(ctx,typeNode);
+    if(!typeNode || !xl6ForeignArrayExtent(typeNode->text,NULL) ||
+        !xl6SemIsCAbiConstAggregateType(ctx,(XL6_AstNode*)typeNode))return 0;
+    const XL6_AstNode* args=xl6SemTypeNodeGenericArgs(typeNode);
+    const XL6_AstNode* element=args && args->childCount==1 ? xl6SemResolveAliasType(ctx,args->children[0]):NULL;
+    const XL6_AstNode* declaration=element && element->text ? xl6SemFindTypeDecl(ctx,element->text):NULL;
+    XL6_ForeignClassDecl record={0};
+    return !declaration || declaration->kind!=XL6_AST_C_RECORD ||
+        (xl6ForeignRecordRead(declaration,&record,NULL)==1 && !record.recordProjection);
+}
+
 static int xl6SemIsCAbiEnumType(XL6_SemContext* ctx, XL6_AstNode* typeNode)
 {
     const XL6_TypeInfo* typeInfo;
@@ -21884,7 +21899,7 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
             const XL6_AstNode* value=xl6SemResolveAliasType(ctx,viewReturns->children[o]);
             XL6_ForeignClassDecl outputContract={0};
             const XL6_AstNode* outputDecl=xl6SemForeignViewDeclaration(ctx,value,&outputContract);
-            if(!value || !xl6SemIsCAbiCallbackValueType(ctx,value,1) ||
+            if(!value || (!xl6SemIsCAbiCallbackValueType(ctx,value,1) && !xl6SemIsCAbiFixedOutputType(ctx,value)) ||
                 (outputDecl && outputContract.lifetime!=XL6_FOREIGN_LIFETIME_CALLER)){
                 xl6SemErrorNode(ctx,node,"C value outputs accept only exact trivial C values without hidden ownership");return 0;
             }
@@ -22118,6 +22133,8 @@ static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node,const XL
         if(xl6ForeignValueOutputBase(viewFacts.valueOutput)==
             XL6_FOREIGN_VALUE_OUTPUT_NATIVE_SEQUENCE_STATUS)
             return ok; /* Exact POD, count and independent owner contract checked above. */
+        if(viewFacts.valueOutput && xl6SemIsCAbiFixedOutputType(ctx,typeNode))
+            return ok; /* Pointer output storage, never a raw by-value C array return. */
         if ( typeNode != NULL && xl6SemIsFutureLikeTypeName(typeNode->text) ) {
             return ok;
         }

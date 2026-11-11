@@ -77,7 +77,7 @@ export extern "xge_shape_ex" class Shape @header("xge3_runtime.h") @lifetime("ow
  extern "xgeShapeExMaskSceneSet" @no_raise @c_result("status",0) func maskSceneSet(ShapeScene pTarget,c_int iMethod)
  extern "xgeShapeExMaskClear" @no_raise @c_result("status",0) func maskClear()
  extern "xgeShapeExGetBounds" @no_raise @c_output(2,0) func getBounds(c_float fTolerance) as Rect
- extern "xgeShapeExGetOBB" @no_raise @c_output(2,0) func getOBB(c_float fTolerance) as Vec2
+ extern "xgeShapeExGetOBB" @no_raise @c_output(2,0) func getOBB(c_float fTolerance) as Vec2[4]
  extern "xgeShapeExBoundsIntersects" @no_raise @c_output(3,0) func boundsIntersects(Rect tRect,c_float fTolerance) as c_int
  extern "xgeShapeExIntersects" @no_raise @c_output(3,0) func intersects(Rect tRect,c_float fTolerance) as c_int
  extern "xgeShapeExIntersectsEx" @no_raise @c_ref(2) @c_output(4,0) func intersectsEx(Rect tRect,c_float fTolerance,ShapeExMatrix pParentMatrix) as c_int
@@ -157,7 +157,7 @@ export extern "xge_shape_ex_scene" class ShapeScene @header("xge3_runtime.h") @l
  extern "xgeShapeExSceneEffectGetCount" @no_raise @c_output(1,0) func effectGetCount() as c_int
  extern "xgeShapeExSceneEffectGetAt" @no_raise @c_output(2,0) func effectGetAt(c_int iIndex) as ShapeExSceneEffect
  extern "xgeShapeExSceneGetBounds" @no_raise @c_output(2,0) func getBounds(c_float fTolerance) as Rect
- extern "xgeShapeExSceneGetOBB" @no_raise @c_output(2,0) func getOBB(c_float fTolerance) as Vec2
+ extern "xgeShapeExSceneGetOBB" @no_raise @c_output(2,0) func getOBB(c_float fTolerance) as Vec2[4]
  extern "xgeShapeExSceneBoundsIntersects" @no_raise @c_output(3,0) func boundsIntersects(Rect tRect,c_float fTolerance) as c_int
  extern "xgeShapeExSceneIntersects" @no_raise @c_output(3,0) func intersects(Rect tRect,c_float fTolerance) as c_int
  extern "xgeShapeExSceneIntersectsEx" @no_raise @c_ref(2) @c_output(4,0) func intersectsEx(Rect tRect,c_float fTolerance,ShapeExMatrix pParentMatrix) as c_int

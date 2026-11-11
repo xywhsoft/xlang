@@ -1127,6 +1127,39 @@ There is no C forwarding wrapper, additional heap allocation or added content
 copy in this projection. Ordinary language fixed-array assignment/value
 semantics and callable preparation costs still apply.
 
+## Fixed C-array output values
+
+`c_output` and `c_outputs` also accept the existing inline fixed C-array
+value type. The same positive static extent and trivial element rules apply;
+record elements must describe the exact native record, without `c_projection`.
+Dynamic, nullable, nested, pointer-element and managed-element arrays remain
+excluded. This does not enable raw by-value C array returns.
+
+```xl
+extern "nativeGetCorners" @header("native.h") @no_raise
+    @c_output(1,0) func corners(c_float tolerance) as Vertex[4]
+```
+
+The corresponding physical signature is `int(float, NativeVertex*)`, where
+`Vertex` names `NativeVertex`. Cgen reserves the complete zero-initialized
+inline value and passes `native_raw.Elements`. A mixed multi-output result
+uses `native_raw.eN.Elements` for each array slot; scalar/record slots keep
+their ordinary addresses. There is one native call and no dynamic Array,
+Buffer, forwarding function or array-allocation adapter. Native code must
+write no more than the declared extent and must not retain the output pointer.
+The binding author must match the documented cardinality: C header proof can
+check element type, pointer depth and mutability, but cannot infer an element
+count from a pointer signature.
+
+Status/producer/callback validation happens before committing any result;
+failure leaves the destination language value unchanged even if the native
+function has already written its temporary output. Ordinary fixed-array
+value copies, zero initialization, callable preparation and managed receiver
+lifetime/error checks still apply. Direct calls, function values, bound
+methods, native function-pointer fields and protocol dispatch use the same
+verified output contract. Sealed XLIR closes extent, element, layout, physical
+output slots and status ABI before C or header bytes are emitted.
+
 ## Owned and callback-epoch variants of a native input
 
 A same-target overload may also accept either an owned-root view or a

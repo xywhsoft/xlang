@@ -1,6 +1,7 @@
 # SVG integration: native prerequisite batch
 
-The authoritative `XGE_ENABLE_SVG` block currently has 68 public functions.
+At native prerequisite revision `5c4c30b4`, the authoritative `XGE_ENABLE_SVG`
+block has 68 public functions.
 Only the two legacy cache namespace declarations are present in the xlang
 package; there is no complete safe Svg/SvgPaint API. This ledger does not mark
 that family complete or qualify a release installation.
@@ -50,11 +51,10 @@ Current-mainline XUI integration and final delivery still need their own gates.
 | Rasterize URI/memory | Writable output capacity, stride/extent/overflow checks and controlled failure; no arbitrary byte string masquerading as mutable storage. |
 | Texture load / Ex / memory / memory Ex | Existing stable owning Texture and creation flags, validated data extents, renderer ownership and real pixels. |
 
-## Confirmed fixed-output gap
+## Fixed-output migration
 
-The existing Shape and ShapeScene `getOBB` declarations both return one Vec2,
-although their native functions write four. With the complete Windows r17
-compiler the generated C contains:
+The old Shape and ShapeScene `getOBB` declarations returned one Vec2, although
+their native functions write four. The complete Windows r17 compiler generated:
 
 ```c
 xge_vec2_t native_raw = {0};
@@ -65,15 +65,34 @@ Only C generation was inspected; this unsafe program was not executed. Exact
 compiler/binding/output hashes are retained in the preflight index. The normal
 native pointer signature alone cannot prove the declared storage extent.
 
-An isolated probe replacing the return type with the existing inline value type
-`Vec2[4]` is rejected by current semantic checking. Complete the general fixed
-C-array output contract across semantic analysis, sealed XLIR, verification and
-C/header generation, then migrate both old OBB declarations and SVG OBB. Generated
-C must provide four contiguous native elements and pass their address directly.
-Use the existing language fixed-array value semantics; do not create an XGE
-forwarding function, reinterpret an undersized value or allocate a dynamic Array
-for this fixed native output. Include direct/bound/protocol paths, strict headers,
-damaged-IR rejection and actual Windows/Linux JIT/dynamic/static AOT acceptance.
+An isolated probe replacing the return type with the existing `Vec2[4]` was
+also rejected by that compiler. The general fixed C-array output contract now
+covers semantic analysis, sealed XLIR verification and C/header generation.
+Both old declarations return `Vec2[4]`; Cgen reserves four inline points and
+passes `native_raw.Elements` directly. No XGE forwarding function, undersized
+reinterpretation, Buffer or dynamic Array is introduced. SVG OBB will use the
+same contract when its safe paint surface is admitted.
 
-Native prerequisites do not pass that compiler gate, safe paint invalidation,
-automatic module-global resource/code lifetime, complete SVG or final delivery.
+`foreign-fixed-output-20261111.json` indexes complete Windows r18/Linux r10 O2
+compiler builds, including TinyCC, XRT, VFS and the embedded compiler. On each
+platform, 36 generic checks and 14 real XGE checks pass, plus 41 Windows and
+40 Linux readonly sequence regression checks: 181 command rows in total.
+The extra Windows row inspects PE imports. They include direct/bound/
+protocol/native-field calls, mixed outputs, status-failure isolation, all four
+rectangle corners, actual dynamic/static products, nested JIT/AOT compilers,
+strict C11/C++11/C++17 headers, an actual C++ shared-library client and rejected
+ABI declarations. The separate O0 frontend damage executable rejects 54 sealed
+IR mutations before C/header bytes; it is explicitly not a full compiler build.
+
+A 1,000-call hot loop adds no XRT heap allocation/free/reallocation. Complete
+inline zero initialization, ordinary value copies, callable preparation and
+managed receiver/error/code-lifetime work remain. There is no timing comparison
+or total-zero-overhead claim. C pointer type proof cannot prove cardinality;
+the declaration author must still match the documented native output count.
+The runnable `xge/examples/shape_bounds.xl` demonstrates the fixed result without
+opening a window or initializing a graphics context.
+
+This closes the fixed-output compiler/binding gate. Safe paint invalidation,
+cache ownership/concurrency, retained outputs, actual SVG rendering, automatic
+module-global resource/code lifetime, complete SVG and final matched delivery
+remain separate gates. No release/IDE installation is qualified by this batch.

@@ -14,6 +14,33 @@ static const char* xl6IrCgenOutputRawType(const XL6_IrModule* module,
         row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_BYTES ? "xbytesview":xl6IrTypeGet(&module->types,row->logicalType)->cName:
         xl6IrCgenType(module,xl6IrForeignOutputType(module,target,ordinal));
 }
+/* Consume only the verified output type. Fixed values retain their complete
+ * inline wrapper for storage/admission, but decay to an element pointer here. */
+static const XL6_IrType* xl6IrCgenOutputFixedArray(const XL6_IrModule* module,
+    const XL6_IrCallTarget* target,size_t ordinal)
+{
+    if(xl6IrForeignNativeSequenceGet(module,target) || xl6IrForeignOutputRecordGet(module,target) ||
+        xl6IrForeignOutputViewGet(module,target,ordinal))return NULL;
+    const XL6_IrType* type=xl6IrTypeGet(&module->types,xl6IrForeignOutputType(module,target,ordinal));
+    return type && type->kind==XL6_IR_TYPE_C_ARRAY ? type:NULL;
+}
+static const char* xl6IrCgenOutputPointeeType(const XL6_IrModule* module,
+    const XL6_IrCallTarget* target,size_t ordinal)
+{
+    const XL6_IrType* array=xl6IrCgenOutputFixedArray(module,target,ordinal);
+    return array ? xl6IrCgenType(module,array->params[0]):xl6IrCgenOutputRawType(module,target,ordinal);
+}
+static void xl6IrCgenOutputAddress(XL6_Output* out,const XL6_IrModule* module,
+    const XL6_IrCallTarget* target,size_t ordinal)
+{
+    int array=xl6IrCgenOutputFixedArray(module,target,ordinal)!=NULL;
+    int field=xl6IrForeignNativeSequenceGet(module,target) ||
+        (!xl6IrForeignOutputRecordGet(module,target) && xl6IrForeignOutputCount(module,target)>1);
+    if(!array)xl6OutputPutc('&',out);
+    xl6OutputPuts("native_raw",out);
+    if(field)xl6OutputPrintf(out,".e%lu",(unsigned long)ordinal);
+    if(array)xl6OutputPuts(".Elements",out);
+}
 static int xl6IrCgenOutputRecordProof(XL6_Output* out,const XL6_IrModule* module,
     const XL6_IrCallTarget* target)
 {

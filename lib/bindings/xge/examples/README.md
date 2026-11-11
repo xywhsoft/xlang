@@ -71,3 +71,9 @@ second voice. Expect the intentional missing-file diagnostic and two short
 tones. Run beside `data/tone.wav` with an output device. Its public production-
 SDK builds are checked; physical playback remains manual. The preset is cleared
 in `finally`, and a checked Unit also clears pre-init configuration.
+
+`shape_bounds.xl` creates a rectangle and prints all four corners from its owning
+Shape's `getOBB` fixed-array value. It requires the matched fixed-output compiler
+and SDK, but no window or graphics initialization. Expect corners `(10,20)`,
+`(40,20)`, `(40,60)` and `(10,60)` on separate lines, followed by clean cleanup.
+Run with `xl run examples/xge/shape_bounds.xl` from the runtime directory.

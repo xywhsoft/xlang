@@ -1,0 +1,19 @@
+// Verify the compiler embedded in both JIT and standalone AOT products.
+import xlang
+
+func main(...) as int
+    auto root=env.get("XLANG_FIXED_OUTPUT_ROOT")
+    auto context=xlang.Context()
+    string source=""
+    if root!=null then
+        assert context.setWorkDir(root)
+        source=file.readText(root+"/test/cases/foreign_fixed_output.xl")
+    else
+        return 2
+    end
+    assert context.run(source),context.lastError
+    assert not context.run("int broken=missingFixedOutputSymbol")
+    assert context.run(source),context.lastError
+    println("Nested fixed array outputs passed")
+    return 0
+end

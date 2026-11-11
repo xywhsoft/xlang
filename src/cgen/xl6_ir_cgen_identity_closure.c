@@ -476,7 +476,7 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
             xl6OutputPrintf(out,"const %s*",pack->recordCName);continue;
         }
         if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_OUTPUT && declaration->foreignCall.valueOutput){
-            xl6OutputPrintf(out,"%s*",xl6IrCgenOutputRawType(module,target,step.ordinal));continue;
+            xl6OutputPrintf(out,"%s*",xl6IrCgenOutputPointeeType(module,target,step.ordinal));continue;
         }else if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_OUTPUT){
             const XL6_IrType* result=xl6IrTypeGet(&module->types,target->returnType);
             xl6OutputPrintf(out,"%s%s",target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_FOREIGN_VIEW ? result->cName:xl6IrCgenType(module,target->returnType),storage ? "":"*");continue;
