@@ -1,4 +1,6 @@
+#ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0601
+#endif
 #include "platform/file_watch.h"
 #include "platform/path.h"
 #include <windows.h>
@@ -18,7 +20,7 @@ struct directory { char* path; HANDLE handle,namesHandle; OVERLAPPED operation,n
 _Static_assert(offsetof(directory,buffer)%4==0 && offsetof(directory,namesBuffer)%4==0,"Native notification buffers require DWORD alignment.");
 struct xide_file_watch {
     CRITICAL_SECTION mutex; HANDLE thread,port; volatile LONG stop;
-    batch pending; int pendingSet,rescan,sourceGap; uint64_t nextEpoch,sequence;
+    batch pending,suspendRetired; int pendingSet,rescan,sourceGap; uint64_t nextEpoch,sequence,suspendToken;
     xide_watch_event* events; size_t count,capacity,bytes,sourceBytes; xide_watch_stats stats;
     void (*wake)(void*); void* user;
 };
@@ -27,6 +29,15 @@ static char* copy(const char* s) { size_t n=strlen(s)+1; char* p=malloc(n); if(p
 static wchar_t* wide(const char* p) { int n=p ? MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,p,-1,NULL,0) : 0; wchar_t* w=n ? malloc((size_t)n*sizeof(*w)) : NULL; if(w) MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,p,-1,w,n); return w; }
 void xideFileWatchEventClear(xide_watch_event* e) { if(!e) return; free(e->path); free(e->bytes); memset(e,0,sizeof(*e)); }
 static void clearBatch(batch* b) { for(size_t i=0;i<b->count;++i) {free(b->items[i].path);free(b->items[i].key);} free(b->ordered);free(b->items); memset(b,0,sizeof(*b)); }
+static void retireSuspendedQueue(xide_file_watch* w,uint64_t epoch)
+{
+    xide_watch_event* events=NULL;size_t count=0;
+    EnterCriticalSection(&w->mutex);
+    if(w->suspendToken==epoch){events=w->events;count=w->count;w->events=NULL;w->count=w->capacity=w->bytes=w->sourceBytes=0;}
+    LeaveCriticalSection(&w->mutex);
+    for(size_t i=0;i<count;++i)xideFileWatchEventClear(events+i);
+    free(events);
+}
 static void wake(xide_file_watch* w) { if(w->wake) w->wake(w->user); }
 static uint64_t stamp(FILETIME t) { return ((uint64_t)t.dwHighDateTime<<32)|t.dwLowDateTime; }
 static int current(xide_file_watch* w,uint64_t epoch)
@@ -231,14 +242,16 @@ static DWORD WINAPI worker(void* data)
 {
     xide_file_watch* w=data; batch active={0}; directory** dirs=NULL; size_t count=0; uint64_t due=GetTickCount64()+2000;
     while(!InterlockedCompareExchange(&w->stop,0,0)) {
-        batch next={0}; int update=0,force=0;
-        EnterCriticalSection(&w->mutex); if(w->pendingSet) { next=w->pending; memset(&w->pending,0,sizeof(w->pending)); w->pendingSet=0; update=1; } force=w->rescan; w->rescan=0; LeaveCriticalSection(&w->mutex);
+        batch next={0},retired={0}; int update=0,force=0;
+        EnterCriticalSection(&w->mutex); if(w->pendingSet) { next=w->pending; memset(&w->pending,0,sizeof(w->pending)); retired=w->suspendRetired;memset(&w->suspendRetired,0,sizeof(w->suspendRetired));w->pendingSet=0; update=1; } force=w->rescan; w->rescan=0; LeaveCriticalSection(&w->mutex);
+        clearBatch(&retired);
         if(update) {
             int keep=active.sources && next.sources;
             if(!keep)clearDirectories(w,&dirs,&count);
             clearBatch(&active); active=next;prepareSourceIndex(w,&active);
             if(keep)reconcileSourceDirectories(w,&active,&dirs,&count);else buildDirectories(w,&active,&dirs,&count);
             scan(w,&active,NULL,1);
+            retireSuspendedQueue(w,active.epoch);
             EnterCriticalSection(&w->mutex); w->stats.readyEpoch=active.epoch; LeaveCriticalSection(&w->mutex); wake(w); due=GetTickCount64()+2000;
         } else if(force) scan(w,&active,NULL,1);
         EnterCriticalSection(&w->mutex);int gap=w->sourceGap && active.sources && w->stats.epoch==active.epoch;if(gap || !active.sources)w->sourceGap=0;LeaveCriticalSection(&w->mutex);
@@ -278,9 +291,13 @@ xide_file_watch* xideFileWatchCreate(void (*onWake)(void*),void* user,xide_model
 }
 uint64_t xideFileWatchSetTargets(xide_file_watch* w,const xide_watch_target* specs,size_t count,xide_model_error* e)
 {return xideFileWatchSetTargetsWithSources(w,specs,count,0,e);}
-uint64_t xideFileWatchSetTargetsWithSources(xide_file_watch* w,const xide_watch_target* specs,size_t count,int enabled,xide_model_error* e)
+static uint64_t setTargets(xide_file_watch* w,const xide_watch_target* specs,size_t count,int enabled,uint64_t resume,xide_model_error* e)
 {
     if(!w || count>MAX_TARGETS || (count && !specs)) { fail(e,XIDE_MODEL_INVALID,"Invalid file monitor targets."); return 0; }
+    EnterCriticalSection(&w->mutex);
+    int allowed=w->nextEpoch!=UINT64_MAX && (w->suspendToken ? resume==w->suspendToken && w->stats.readyEpoch==resume : resume==0);
+    LeaveCriticalSection(&w->mutex);
+    if(!allowed){fail(e,XIDE_MODEL_CONFLICT,"File monitor lease is held, stale, unacknowledged or exhausted.");return 0;}
     batch next={.sources=!!enabled}; next.items=count ? calloc(count,sizeof(*next.items)) : NULL; next.count=count;
     if(count && !next.items) { fail(e,XIDE_MODEL_MEMORY,"Cannot copy file monitor targets."); return 0; }
     for(size_t i=0;i<count;++i) {
@@ -288,7 +305,12 @@ uint64_t xideFileWatchSetTargetsWithSources(xide_file_watch* w,const xide_watch_
         if(!specs[i].token || !specs[i].path || specs[i].limit>BODY_LIMIT || !(next.items[i].path=xidePathResolve(NULL,specs[i].path))) { clearBatch(&next); fail(e,XIDE_MODEL_INVALID,"Invalid file monitor token, path or read limit."); return 0; }
         next.items[i].spec=specs[i]; next.items[i].spec.path=next.items[i].path;
     }
-    EnterCriticalSection(&w->mutex); clearBatch(&w->pending); next.epoch=++w->nextEpoch; w->pending=next; w->pendingSet=1; w->stats.epoch=next.epoch; w->stats.targets=count;
+    EnterCriticalSection(&w->mutex);
+    if(w->nextEpoch==UINT64_MAX || (w->suspendToken ? resume!=w->suspendToken || w->stats.readyEpoch!=resume : resume!=0)){
+        LeaveCriticalSection(&w->mutex);clearBatch(&next);fail(e,XIDE_MODEL_CONFLICT,"File monitor lease is held, stale, unacknowledged or exhausted.");return 0;
+    }
+    clearBatch(&w->pending); next.epoch=++w->nextEpoch; w->pending=next; w->pendingSet=1; w->stats.epoch=next.epoch; w->stats.targets=count;
+    if(resume){w->suspendToken=0;if(enabled)w->sourceGap=1;}
     size_t kept=0;w->bytes=w->sourceBytes=0;
     for(size_t i=0;i<w->count;++i){xide_watch_event* event=w->events+i;
         if(enabled && !event->token && (event->state==XIDE_WATCH_SOURCE_CHANGE || event->state==XIDE_WATCH_SOURCE_RESCAN)){event->epoch=next.epoch;w->sourceBytes+=sourceBytes(event);if(kept!=i){w->events[kept]=*event;memset(event,0,sizeof(*event));}++kept;}
@@ -297,12 +319,26 @@ uint64_t xideFileWatchSetTargetsWithSources(xide_file_watch* w,const xide_watch_
     w->count=kept;
     LeaveCriticalSection(&w->mutex); CancelSynchronousIo(w->thread); PostQueuedCompletionStatus(w->port,0,CONTROL_KEY,NULL); return next.epoch;
 }
+uint64_t xideFileWatchSetTargetsWithSources(xide_file_watch* w,const xide_watch_target* specs,size_t count,int enabled,xide_model_error* e)
+{return setTargets(w,specs,count,enabled,0,e);}
+uint64_t xideFileWatchResume(xide_file_watch* w,uint64_t token,const xide_watch_target* specs,size_t count,int enabled,xide_model_error* e)
+{if(!token){fail(e,XIDE_MODEL_INVALID,"Missing file monitor lease.");return 0;}return setTargets(w,specs,count,enabled,token,e);}
+uint64_t xideFileWatchSuspend(xide_file_watch* w,xide_model_error* e)
+{
+    if(!w){fail(e,XIDE_MODEL_INVALID,"Missing file monitor.");return 0;}
+    EnterCriticalSection(&w->mutex);
+    if(w->suspendToken || w->nextEpoch==UINT64_MAX){LeaveCriticalSection(&w->mutex);fail(e,XIDE_MODEL_CONFLICT,"File monitor lease is held or exhausted.");return 0;}
+    uint64_t token=++w->nextEpoch;w->suspendRetired=w->pending;w->pending=(batch){.epoch=token};w->pendingSet=1;w->suspendToken=token;w->stats.epoch=token;w->stats.targets=0;
+    LeaveCriticalSection(&w->mutex);CancelSynchronousIo(w->thread);PostQueuedCompletionStatus(w->port,0,CONTROL_KEY,NULL);return token;
+}
+int xideFileWatchSuspended(xide_file_watch* w,uint64_t token)
+{if(!w||!token)return 0;EnterCriticalSection(&w->mutex);int okay=w->suspendToken==token&&w->stats.readyEpoch==token;LeaveCriticalSection(&w->mutex);return okay;}
 void xideFileWatchRescan(xide_file_watch* w) { if(w) { EnterCriticalSection(&w->mutex); w->rescan=1; LeaveCriticalSection(&w->mutex); PostQueuedCompletionStatus(w->port,0,CONTROL_KEY,NULL); } }
 int xideFileWatchTake(xide_file_watch* w,xide_watch_event* e)
 {
     if(!w || !e) return 0;
     int okay=0; EnterCriticalSection(&w->mutex);
-    if(w->count) { *e=w->events[0]; --w->count; w->bytes-=e->length;w->sourceBytes-=sourceBytes(e); memmove(w->events,w->events+1,w->count*sizeof(*w->events)); okay=1; }
+    if(!w->suspendToken && w->count) { *e=w->events[0]; --w->count; w->bytes-=e->length;w->sourceBytes-=sourceBytes(e); memmove(w->events,w->events+1,w->count*sizeof(*w->events)); okay=1; }
     LeaveCriticalSection(&w->mutex); return okay;
 }
 void xideFileWatchStats(xide_file_watch* w,xide_watch_stats* stats)
@@ -312,7 +348,7 @@ void xideFileWatchDestroy(xide_file_watch* w)
     if(!w) return;
     InterlockedExchange(&w->stop,1);
     if(w->thread) { PostQueuedCompletionStatus(w->port,0,CONTROL_KEY,NULL); CancelSynchronousIo(w->thread); WaitForSingleObject(w->thread,INFINITE); CloseHandle(w->thread); }
-    clearBatch(&w->pending); for(size_t i=0;i<w->count;++i) xideFileWatchEventClear(&w->events[i]); free(w->events);
+    clearBatch(&w->pending);clearBatch(&w->suspendRetired);for(size_t i=0;i<w->count;++i) xideFileWatchEventClear(&w->events[i]); free(w->events);
     if(w->port) CloseHandle(w->port);
     DeleteCriticalSection(&w->mutex); free(w);
 }

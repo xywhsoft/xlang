@@ -32,7 +32,7 @@ Apply 期间失败、用户取消或宿主拒绝，在日志仍可确认时自�
 
 Stage 使用 `LockFileEx(EXCLUSIVE | FAIL_IMMEDIATELY)` 取得固定源码句柄的整文件字节范围锁，失败立即撤销已取得的前缀，不阻塞等待其他进程。普通、既有及同进程其他句柄不能读取中间状态，自己的固定句柄仍用于验证和写入。完成或成功回滚后释放；销毁 gate 也会关闭残留句柄。此功能只由显式混合事务调用，原有来源固定接口不自动取得字节锁。
 
-字节锁不隔离映射视图或应用内缓存。工作线程宿主策略仍必须覆盖完整来源集合、物理别名、连接/请求/项目/配置时效、注释同意，以及索引器、监视器、工具链、缓存/预准备打开操作的静默期。UI 宿主策略仍为必填；本地检查在回调前后重复，并防止回调重入。没有用固定返回 true 的产品策略或日志代替这些条件。Windows 行为依据 [LockFileEx](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-lockfileex) 和 [UnlockFileEx](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-unlockfileex)。
+字节锁不隔离映射视图或应用内缓存。工作线程宿主策略仍必须覆盖完整来源集合、物理别名、连接/请求/项目/配置时效、注释同意，以及索引器、监视器、工具链、缓存/预准备打开操作的静默期。后续 [M7b5g 文件监视器握手](lsp-edit-file-sync-lease.md)已提供监视线程停止与旧缓存失效这一参与者；完整宿主屏障仍待组合。UI 宿主策略仍为必填；本地检查在回调前后重复，并防止回调重入。没有用固定返回 true 的产品策略或日志代替这些条件。Windows 行为依据 [LockFileEx](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-lockfileex) 和 [UnlockFileEx](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-unlockfileex)。
 
 ## 准入与性能边界
 

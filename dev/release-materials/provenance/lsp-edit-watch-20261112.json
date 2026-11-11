@@ -1,0 +1,119 @@
+{
+  "schema": 1,
+  "date": "2026-11-12",
+  "stage": "M7b5g",
+  "scope": "Asynchronous IOCP monitor suspension handshake and FileSync source-write participant, with off-owner queue retirement and stale cached snapshot exclusion across resume/rebind",
+  "implementationAccepted": true,
+  "performanceQualified": false,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "46a609352ff2aae9acd30bb453a3498e601b4511",
+  "ownedSources": {
+    "ide/src/platform/file_watch.c": "92a80762dc298f9582306ac764cf74a6ababeaaf252af62552a90b2205e32e81",
+    "ide/src/platform/file_watch.h": "a289e395599d0af2b87a38620c70c3fd3a5b187a5888710fa155439827769fbe",
+    "ide/src/services/file_sync.c": "e5ae6ca1109abd30d24c94154513572729e89da93f51a58745a5ee51aae709bf",
+    "ide/src/services/file_sync.h": "119cd91c90819c7e0d0d9bd5264d963247fc09824be12c78ebb494de69d79bc0",
+    "ide/tests/file_watch_lease_test.c": "2d15b490ff213fa922dde2be5275cc94581382d7e8426b146b73a91906a8f9c3",
+    "ide/tests/file_sync_lease_test.c": "b1f257f10a900f55efa6d75ae1c06681db0bc1ce3a3822a647333ba0978b734a",
+    "ide/tools/build.ps1": "d6498aaa2281c607da68dafe6b2552a525812cb76241ccdfdfccfa6dc876ce6d",
+    "ide/tools/build_lsp_core.py": "40ea5cdb629d5ea4ee0567fef84657a368fa8dbf34573577ffbfa18764279a81",
+    "ide/docs/lsp-edit-file-sync-lease.md": "6b3557fc63747509f9706cdb17fc0662b83c3e65b7699f4d475e6058e12281e3",
+    "ide/docs/lsp-edit-mixed-transaction.md": "c3ec85c253cff2b069487bc875c098d3dafff944f702059abaacf9d9ab3d2bbd"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-edit-watch-20261112.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-edit-watch-20261112/stage-sources.tar.gz",
+      "sha256": "287fceb353b92d89524bc4259eb119b8d81e55901aa24724fc2a1c9ff38dbc6b",
+      "bytes": 68550,
+      "entries": 11,
+      "uniquePayloads": 11,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-edit-watch-20261112/stage-sources.tar.gz.manifest.json",
+      "sha256": "8edaa64993f7fb37924f461c2a1119b712d524f48968c12cd87d4932bc96f31e",
+      "bytes": 2398
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-edit-watch-20261112/actual-builds-and-validation.tar.gz",
+      "sha256": "fba62a6971f6d9637cdfa4fcceac0c1ead5b9e79815b44eaa8f2da0d3d98611e",
+      "bytes": 227966160,
+      "entries": 5524,
+      "uniquePayloads": 3127,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-edit-watch-20261112/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "6afbc82afd54f3a9523aad3a024cb8ce715a7e287ee3619e83d4398a8b833f00",
+      "bytes": 2121017
+    }
+  },
+  "currentBindings": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-edit-watch-20261112\\final-bindings.json",
+    "sha256": "11d1c6711597aefe40d1568007f4a499b47469aa13ae12e39ede086f343585f1"
+  },
+  "sdkInherited": {
+    "index": "dev/release-materials/provenance/lsp-edit-mixed-20261111.json",
+    "indexSha256": "0c25915efad311b8f0ca1957f9bfcf6d961951c7d8650c9be8aa909c06a046b5",
+    "dllSha256": "51cc62cb935e54ef16abcb8a4ae8ee845d64254123a822ba4004c63dad42359e",
+    "compiledSdkUnitsThisStage": 0,
+    "matchedSetPreserved": true
+  },
+  "correctness": {
+    "monitorLeaseNativeAssertions": 71,
+    "fileSyncLeaseIdeAssertions": 43,
+    "realBlockedWorkerRead": true,
+    "pauseRequestDirectOwnerMallocFreeCalls": 0,
+    "queuedBodyFreedOnWorker": true,
+    "pending128PathMetadataFreedOnWorker": true,
+    "monitorLeaseHandleBalance": true,
+    "failedResumeRetainsHold": true,
+    "realInterleavedCAndXlangModels": true,
+    "normalInputAndUndoDuringHold": true,
+    "beforeSaveBlockedDuringHold": true,
+    "cachedEpochZeroSurvivesNormalRebind": true,
+    "implementationMutantsRejected": 5,
+    "guiObjects": 124,
+    "guiFixtures": 51,
+    "existingRealIocpAndCrossProcessRegression": true,
+    "existingMonitor72Directories": true,
+    "existingMonitorQueueCount4096": true,
+    "existingMonitorQueueBytes": 134217728,
+    "existingMixedAssertions": 5132,
+    "existingJournalAssertions": 1156,
+    "existingSpoolGuardAssertions": 1410,
+    "actualBoundedGuiLanguages": [
+      "c",
+      "xlang"
+    ],
+    "actualBoundedGuiFramesEach": 24,
+    "visualScreenshotsInspected": true,
+    "guiHeapStatisticsAvailable": false,
+    "otherNativeAndProtocolProgramsNotRerun": true,
+    "rawFailuresRetained": true
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "serviceSha256": "df290f266bb8882e95751487d146070ac854b2f8cd9c827d95fd44f049cb4d74",
+  "limits": [
+    "This is one participant in the source-write barrier, not the complete production host controller; LSP, tasks, indexers and cached/prepared open operations still need coordinated admission",
+    "Standard renameProvider/workspace.applyEdit remain disabled; annotation consent, complete physical/source/request policies and startup recovery writes remain open",
+    "Lease tokens are scoped to the current monitor/service lifetime; caller cancels its external operation before Stop and does not reuse tokens with a replacement service",
+    "No body queue traversal/free or synchronous worker join occurs in the suspend request; existing mutex contention, kernel calls and resume subscription construction are not a hard realtime guarantee",
+    "No implicit source writes or permission grant; hold must stay until the enclosing transaction has a terminal result or explicit recovery coordination",
+    "Native wait/read/cancellation tests do not prove power-cut or physical Win7 certification",
+    "Only final standalone assertion counters changed to atomic LONG after GUI freeze; final71 native and43 IDE checks and all5 mutants were rerun with final bytes; product sources/headers stable",
+    "GUI tests cannot observe DLL-internal allocation/heap statistics; allocation/free request probes cover direct CRT calls in the real monitor producer",
+    "Native harness initially exposed a preincluded Windows version macro conflict; later harnesses corrected explicit UTF8 decoding/BOM handling; evidence revisions preserved",
+    "Default runtime, matched SDK, delivery index and unrelated work remain unchanged; whole-goal source coverage, scheduling, end-to-end performance and delivery remain open"
+  ]
+}

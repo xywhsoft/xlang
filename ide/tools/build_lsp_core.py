@@ -67,6 +67,7 @@ CLIENT_TEST_SOURCES += ("src/platform/workspace_edit_spool.c", "src/platform/sta
 CLIENT_TEST_SOURCES += ("src/platform/workspace_edit_write.c",)
 CLIENT_TEST_SOURCES += ("src/platform/workspace_edit_journal.c",)
 CLIENT_TEST_SOURCES += ("src/editor/workspace_edit_positions.c",)
+CLIENT_TEST_SOURCES += ("src/platform/file_watch.c",)
 HOST_TESTS += CLIENT_TESTS
 HOST_TESTS += ("workspace_symbol_navigation_test",)
 HOST_TESTS += ("diagnostic_reverse_fault_test",)
@@ -145,6 +146,7 @@ HOST_TESTS += ("semantic_rename_target_test",)
 HOST_TESTS += ("semantic_rename_policy_test",)
 HOST_TESTS += ("workspace_edit_test", "workspace_edit_fault_test", "workspace_edit_edge_test")
 HOST_TESTS += ("workspace_edit_select_test",)
+HOST_TESTS += ("file_watch_test", "file_watch_lease_test")
 HOST_TESTS += ("workspace_edit_files_test",)
 HOST_TESTS += ("workspace_edit_file_export_test", "workspace_edit_spool_test", "workspace_edit_spool_guard_test", "workspace_edit_spool_fault_test")
 HOST_TESTS += ("workspace_edit_write_test", "workspace_edit_write_fault_test")
@@ -1023,6 +1025,8 @@ def main() -> None:
         for name in (() if args.skip_tests else tests):
             program = output / (name + suffix)
             extra = [str(objects["document_sync"])] if name in ("document_sync_test", "diagnostic_stream_test") else []
+            if name in ("file_watch_test", "file_watch_lease_test"):extra += [str(objects["file_watch"])]
+            if name == "file_watch_lease_test":extra += ["-Wl,--wrap="+f for f in ("malloc", "free", "__imp_ReadFile")]
             if name == "workspace_edit_select_test":extra += ["-Wl,--wrap="+f for f in ("malloc","xrtCalloc","xrtArrayResize","xlsTextCreate","xlsTextData")]
             if name == "workspace_edit_test":extra += ["-Wl,--wrap=xlsTextCreate"]
             if name == "workspace_edit_fault_test":extra += ["-Wl,--wrap="+f for f in ("malloc","calloc","xrtMalloc","xrtCalloc","xrtArrayResize","xrtStrBufReserve","xlsTextCreate")]
@@ -1146,7 +1150,7 @@ def main() -> None:
             # fixture duration is separate from per-request performance gates.
             if not args.build_only:
                 test_arguments = []
-                if name in ("workspace_edit_journal_test", "workspace_edit_journal_fault_test", "workspace_edit_write_test", "workspace_edit_write_fault_test", "workspace_edit_file_export_test", "workspace_edit_spool_test", "workspace_edit_spool_guard_test", "workspace_edit_spool_fault_test"):
+                if name in ("file_watch_test", "file_watch_lease_test", "workspace_edit_journal_test", "workspace_edit_journal_fault_test", "workspace_edit_write_test", "workspace_edit_write_fault_test", "workspace_edit_file_export_test", "workspace_edit_spool_test", "workspace_edit_spool_guard_test", "workspace_edit_spool_fault_test"):
                     fixture_directory = output / (name + "-fixtures")
                     fixture_directory.mkdir()
                     test_arguments = [str(fixture_directory)]

@@ -13,6 +13,16 @@ int xideFileSyncStart(xide_app* app,xide_model_error* error);
 void xideFileSyncStop(xide_app* app);
 void xideFileSyncPoll(xide_app* app);
 int xideFileSyncSettled(xide_app* app);
+/* Owner-side monitor participant in a source-write barrier. No nested holds.
+ * Request returns without joining the worker or freeing queued bodies; wait by
+ * polling Suspended with this exact token. Automatic coordination, reload/keep,
+ * rebinding and before-save admission are disabled until successful Resume.
+ * Resume requires acknowledgement and installs fresh complete subscriptions;
+ * cached prior-epoch changes cannot be replayed. Failure retains the hold.
+ * Does not suspend other readers, task workers, prepared opens or the LSP. */
+uint64_t xideFileSyncSuspend(xide_app*,xide_model_error*);
+int xideFileSyncSuspended(xide_app*,uint64_t token);
+int xideFileSyncResume(xide_app*,uint64_t token,xide_model_error*);
 size_t xideFileSyncCount(xide_app* app);
 const xide_file_change* xideFileSyncAt(xide_app* app,size_t index);
 uint64_t xideFileSyncRevision(xide_app* app);
