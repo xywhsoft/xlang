@@ -5,6 +5,7 @@
 #include "platform/task_stage.h"
 #include "xui.h"
 typedef struct xide_document_store xide_document_store;
+typedef struct xide_document_baseline xide_document_baseline;
 typedef struct xide_document {
     xide_document_store* store;
     uint64_t id;
@@ -12,8 +13,13 @@ typedef struct xide_document {
      * Starts at1 per id;0 means closed/exhausted and cannot authorize a snapshot.
      * Every content notice advances even while model refresh is suppressed. */
     uint64_t revision;
+    uint32_t preparedVersion;
+    int preparedChange;
     char *path,*title,*language,*sessionId;
     xide_text_file baseline;
+    /* Read-only view while baselineLease exists; all replacement/clear belongs
+     * to documents.c. The lease owns the original malloc buffers, without copy. */
+    xide_document_baseline* baselineLease;
     xide_task_stage* stageReference;
     xui_widget editor; /* XUI owns this widget and its text/undo document. */
     int window,open,dirty,suppressChange,languageOverride,externalState;
@@ -57,6 +63,29 @@ int xideDocumentSetLanguage(xide_document* document,const char* language,xide_mo
 int xideDocumentCheckExternal(xide_document* document);
 int xideDocumentsDirty(const xide_document_store* store);
 int xideDocumentCContextValid(const xvalue* context);
+/* Owner capture: lazily shares the saved buffers with XRT's checked native
+ * reference counter; no body scan/copy or editor access on worker readers.
+ * Failure leaves the document baseline owned and unchanged. Subsequent save,
+ * reload, close and store destruction may replace the model view while leases
+ * keep the old bytes alive. Release on any thread, sequentially per owner.
+ * A returned snapshot is immutable and borrowed until that lease is released.
+ * Known bytes conservatively include both raw/text capacities plus wrapper;
+ * not allocator/RSS. It may keep up to16MiB raw+normalized bytes per baseline. */
+xide_document_baseline* xideDocumentRetainBaseline(xide_document* document);
+const xide_text_file* xideDocumentBaselineRead(const xide_document_baseline*);
+size_t xideDocumentBaselineStorage(const xide_document_baseline*);
+void xideDocumentBaselineRelease(xide_document_baseline*);
+/* Infallible model publication for the XUI batch published hook ONLY. Caller
+ * has validated/pinned this open document/core, nonzero/non-exhausted revision,
+ * baseline and dirty
+ * result, and publishes the entire group before allowing any change notice.
+ * No allocation, body comparison, syntax refresh or application callback.
+ * The expected toolkit notice consumes this marker instead of double-advancing
+ * revision/recomputing dirty. Every unrelated notice resumes ordinary behavior.
+ * Always Finish after Commit returns, including post-publication failure or a
+ * skipped notice. These helpers are not admission/consent or a transaction. */
+void xideDocumentPublishPrepared(xide_document*,xui_code_document core,int dirty);
+void xideDocumentFinishPrepared(xide_document*);
 /* Metadata-only batch for a physical move performed by the caller. NULL mapper
    captures an unchanged store baseline. Returned mapper paths use malloc/free.
    Validate immediately before moving, then Apply without dispatching events.

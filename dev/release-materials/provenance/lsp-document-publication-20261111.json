@@ -1,0 +1,98 @@
+{
+  "schema": 1,
+  "date": "2026-11-11",
+  "stage": "M7b5a",
+  "scope": "Zero-body-copy saved-baseline leases and atomic model publication before XUI document-batch notifications; not the full edit coordinator",
+  "implementationAccepted": true,
+  "performanceQualified": false,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "d87e90c3dedb62a94a64b5c3a3a893bfbb364840",
+  "ownedSources": {
+    "ide/src/editor/documents.c": "3ed8e039725e9c6aeed6855180067ab9857a159b7f12d84bf06cfed2e7f08898",
+    "ide/src/editor/documents.h": "4fa17a378da438912416c70196cf34a43751cb24916de3a5c56c83efed66b2d1",
+    "ide/tests/document_publication_test.c": "13e16da3428f269de9cd10c5e0c82af4a13499d55e5306bb425124120dfc37d8",
+    "ide/tools/build.ps1": "97a8e4bda26f29075647ef66bb4d5efd5af21bb282417427d78c7d0ad5063b20",
+    "ide/docs/lsp-document-publication.md": "e97291c78505d9e0d0d5558bc94345886b487f7656f61cb0b6746b72590e5df1",
+    "ide/docs/lsp-document-revision.md": "4a2468c43d7c7d42b42da89fdcff413340f50fe62874564d0046de4d82ae7ecf"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-document-publication-20261111.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-document-publication-20261111/stage-sources.tar.gz",
+      "sha256": "1a54841f5ddfb6d80b6a28a366b2cb117998f7bfbce376dc1173ad6ac051ac24",
+      "bytes": 30905,
+      "entries": 7,
+      "uniquePayloads": 7,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-document-publication-20261111/stage-sources.tar.gz.manifest.json",
+      "sha256": "7a6dc9f6aaf2e83f6ce9fb609d259729878f13f8e1667e1c45ae6c988151244b",
+      "bytes": 1551
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-document-publication-20261111/actual-builds-and-validation.tar.gz",
+      "sha256": "1b8af7d6effbd8b0b5a8ec27437b4ffae75ae5ef5b7756bb8d6f1d99d143bf28",
+      "bytes": 134124747,
+      "entries": 3279,
+      "uniquePayloads": 2511,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-document-publication-20261111/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "aa140020c2c7ec80dc7ba49c4fbb1af85fddd433a389cc7d6bf853850d4df6f7",
+      "bytes": 1258509
+    }
+  },
+  "sdkInherited": {
+    "index": "dev/release-materials/provenance/lsp-xui-batch-worker-20261111.json",
+    "indexSha256": "b8a01a3c802e92b2587e920fe3d4d7fd0baf4003f7dd9143dd1a5eafae0e228c",
+    "sdkDllSha256": "51cc62cb935e54ef16abcb8a4ae8ee845d64254123a822ba4004c63dad42359e",
+    "priorCompiledUnits": 173,
+    "compiledSdkUnitsThisStage": 0,
+    "priorValidation": {
+      "path": "dev/release-materials/provenance/lsp-xui-batch-worker-20261111/actual-builds-and-validation.tar.gz",
+      "sha256": "8a5228f69e34e7a623357c924e677322964602eb3a45a95971ae29636a620954",
+      "bytes": 272249818,
+      "entries": 5391,
+      "uniquePayloads": 4277,
+      "identicalBytesStoredAsTarHardlinks": true
+    }
+  },
+  "correctness": {
+    "targetedAssertions": 53,
+    "guiObjects": 119,
+    "guiFixtures": 41,
+    "actualMutantsRejected": 9,
+    "coldBaselineAllocationGate": 1,
+    "checkedXrtReferenceTransitionsObserved": true,
+    "baselineBufferIdentityAndWorkerReadObserved": true,
+    "actualWorkerPayloadStage": true,
+    "allModelsAndSdkDirtyReadyBeforeFirstNotice": true,
+    "baselineOnlyChangeRefusesBeforePublication": true,
+    "skippedNoticeContextCloseAndMarkerFinish": true,
+    "strictDocumentObjectIdentical": true,
+    "guiHeapStatisticsAvailable": false,
+    "wholeHeapLeakOrRssQualification": false,
+    "otherNativeAndProtocolProgramsNotRerun": true,
+    "rawFailuresRetained": true
+  },
+  "serviceSha256": "df290f266bb8882e95751487d146070ac854b2f8cd9c827d95fd44f049cb4d74",
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "limits": [
+    "Publication helper requires validated owner/pins and correct worker-computed dirty; it is not admission, consent or a transaction",
+    "Baseline leases keep original codec buffers immutable; callers cannot mutate/clear the model view directly",
+    "First capture allocates a wrapper; final release and notifications/syntax refresh still have costs; no overall latency/RSS claim",
+    "Complete IDE worker scheduling/retirement, identity/context/config/project gates, ranges, physical aliases, closed-file commit/recovery and annotation approval remain open",
+    "Standard rename/applyEdit and full source coverage, protocol activation, final engine/runtime alignment and goal-wide acceptance remain open"
+  ]
+}

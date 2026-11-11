@@ -21,14 +21,46 @@ static int failure(xide_model_error* error,int code,const char* message)
     if(error) { error->code=code; snprintf(error->message,sizeof(error->message),"%s",message); }
     return 0;
 }
+struct xide_document_baseline {volatile int32 references;xide_text_file file;};
+xide_document_baseline* xideDocumentRetainBaseline(xide_document* document)
+{
+    if(!document || !document->open || !document->baseline.raw || !document->baseline.text || document->baseline.rawLength>16u*1024u*1024u) return NULL;
+    if(!document->baselineLease) {
+        xide_document_baseline* lease=xrtCalloc(1,sizeof(*lease));
+        if(!lease) return NULL;
+        lease->references=1;lease->file=document->baseline;document->baselineLease=lease;
+    }
+    return xrtRefRetain(&document->baselineLease->references)>0 ? document->baselineLease : NULL;
+}
+const xide_text_file* xideDocumentBaselineRead(const xide_document_baseline* lease)
+{return lease ? &lease->file : NULL;}
+size_t xideDocumentBaselineStorage(const xide_document_baseline* lease)
+{return lease ? sizeof(*lease)+2*(lease->file.rawLength+1) : 0;}
+void xideDocumentBaselineRelease(xide_document_baseline* lease)
+{if(lease && xrtRefRelease(&lease->references)==0){xideTextFileClear(&lease->file);xrtFree(lease);}}
+static void clearBaseline(xide_document* document)
+{
+    if(document->baselineLease){xide_document_baseline* lease=document->baselineLease;document->baselineLease=NULL;memset(&document->baseline,0,sizeof(document->baseline));xideDocumentBaselineRelease(lease);}
+    else xideTextFileClear(&document->baseline);
+}
+static void advanceRevision(xide_document* document)
+{if(document->revision) document->revision=document->revision==UINT64_MAX ? 0 : document->revision+1;}
+void xideDocumentPublishPrepared(xide_document* document,xui_code_document core,int dirty)
+{
+    advanceRevision(document);document->dirty=dirty!=0;document->preparedVersion=xuiCodeDocumentGetVersion(core);document->preparedChange=1;
+    (void)xuiCodeDocumentSetDirty(core,document->dirty);
+}
+void xideDocumentFinishPrepared(xide_document* document)
+{if(document){document->preparedChange=0;document->preparedVersion=0;}}
 static void changed(xui_code_document core,xui_code_range_t range,uint32_t version,void* user)
 {
-    (void)range; (void)version; xide_document* document=user;
+    (void)range; xide_document* document=user;
     if(!document->open) return;
-    if(document->revision) document->revision=document->revision==UINT64_MAX ? 0 : document->revision+1;
+    int prepared=0;
+    if(document->preparedChange){prepared=document->preparedVersion==version;xideDocumentFinishPrepared(document);}
+    if(!prepared) advanceRevision(document);
     if(document->suppressChange) return;
-    const char* text=xuiCodeDocumentGetText(core);
-    document->dirty=!document->baseline.text || strcmp(text,document->baseline.text)!=0;
+    if(!prepared){const char* text=xuiCodeDocumentGetText(core);document->dirty=!document->baseline.text || strcmp(text,document->baseline.text)!=0;}
     xuiCodeDocumentSetDirty(core,document->dirty);
     if(xideRefreshEditorSyntax(document->editor)!=XUI_OK) fputs("Document syntax refresh failed.\n",stderr);
     if(document->store->onChanged) document->store->onChanged(document,document->store->user);
@@ -42,7 +74,7 @@ static void clearMetadata(xide_document* document)
     xrtValueRelease(document->cAnalysisContext); document->cAnalysisContext=NULL;
     xideTaskStageRelease(document->stageReference); document->stageReference=NULL;
     free(document->path); free(document->title); free(document->language); free(document->sessionId);
-    document->path=document->title=document->language=document->sessionId=NULL; xideTextFileClear(&document->baseline);
+    document->path=document->title=document->language=document->sessionId=NULL; clearBaseline(document);xideDocumentFinishPrepared(document);
     document->dirty=0; document->open=0; document->revision=0; document->languageOverride=0; document->externalState=0;
 }
 int xideDocumentCContextValid(const xvalue* context)
@@ -198,7 +230,7 @@ int xideDocumentSave(xide_document* document,const char* path,int flags,xide_mod
     xideTaskStageRelease(document->stageReference); document->stageReference=reference;
     free(document->path); free(document->title); free(document->language); document->path=target; document->title=title; document->language=language;
     xideConfigureEditorLanguage(document->editor,language);
-    xideTextFileClear(&document->baseline); document->baseline=encoded; document->dirty=0; document->externalState=0;
+    clearBaseline(document); document->baseline=encoded; document->dirty=0; document->externalState=0;
     xuiCodeDocumentSetDirty(xuiCodeEditGetDocument(document->editor),0);
     saveFinished(document,1);
     if(document->store->afterSave) document->store->afterSave(document,document->store->user);
@@ -252,7 +284,7 @@ int xideDocumentAcceptExternal(xide_document* document,xide_text_file* loaded,in
     int result=strcmp(before,loaded->text) ? xuiCodeDocumentReplace(core,0,xuiCodeDocumentGetLength(core),loaded->text) : XUI_OK;
     document->suppressChange=0;
     if(result!=XUI_OK) {free(savedFolds); free(saved); return failure(error,XIDE_MODEL_MEMORY,"Reload failed; the local text and disk baseline were retained."); }
-    xideTextFileClear(&document->baseline); document->baseline=*loaded; memset(loaded,0,sizeof(*loaded)); document->dirty=0; document->externalState=0;
+    clearBaseline(document); document->baseline=*loaded; memset(loaded,0,sizeof(*loaded)); document->dirty=0; document->externalState=0;
     xuiCodeDocumentSetDirty(core,0); xuiCodeEditSetEolMode(document->editor,document->baseline.eol); xideRefreshEditorSyntax(document->editor);
     xideRestoreEditorFolds(document->editor,savedFolds,foldCount);free(savedFolds);
     const char* after=xuiCodeDocumentGetText(core); xuiCodeSelectionClear(selection);
