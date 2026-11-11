@@ -63,6 +63,7 @@ HOST_TESTS = ("signature_help_test", "analysis_catalog_test", "language_context_
 CLIENT_TESTS = ("diagnostic_dependencies_test", "diagnostic_notice_test", "diagnostic_stream_test", "reference_results_test", "workspace_search_result_test")
 CLIENT_TEST_SOURCES = ("src/services/diagnostic_dependencies.c", "src/services/diagnostic_notice.c", "src/services/diagnostic_stream.c", "src/services/reference_results.c", "src/services/language_client.c", "src/services/workspace_search_result.c")
 CLIENT_TEST_SOURCES += ("src/platform/workspace_edit_files.c",)
+CLIENT_TEST_SOURCES += ("src/editor/workspace_edit_positions.c",)
 HOST_TESTS += CLIENT_TESTS
 HOST_TESTS += ("workspace_symbol_navigation_test",)
 HOST_TESTS += ("diagnostic_reverse_fault_test",)
@@ -141,6 +142,7 @@ HOST_TESTS += ("semantic_rename_target_test",)
 HOST_TESTS += ("semantic_rename_policy_test",)
 HOST_TESTS += ("workspace_edit_test", "workspace_edit_fault_test", "workspace_edit_edge_test")
 HOST_TESTS += ("workspace_edit_files_test",)
+HOST_TESTS += ("workspace_edit_positions_test", "workspace_edit_positions_fault_test")
 HOST_TESTS += ("semantic_field_binding_test",)
 HOST_TESTS += ("rename_scope_test",)
 HOST_TESTS += ("project_rename_scope_test",)
@@ -1017,6 +1019,7 @@ def main() -> None:
             if name == "workspace_edit_test":extra += ["-Wl,--wrap=xlsTextCreate"]
             if name == "workspace_edit_fault_test":extra += ["-Wl,--wrap="+f for f in ("malloc","calloc","xrtMalloc","xrtCalloc","xrtArrayResize","xrtStrBufReserve","xlsTextCreate")]
             if name == "workspace_edit_files_test":extra += ["-Wl,--wrap="+f for f in ("malloc","calloc","xrtCalloc","xrtArrayPush")]
+            if name == "workspace_edit_positions_fault_test":extra += ["-Wl,--wrap="+f for f in ("xrtMalloc","xrtCalloc")]
             if name == "analysis_source_text_test":extra.append("-Wl,--wrap=xlsInputBatchAt")
             if name == "analysis_ast_replacement_test":extra.append("-Wl,--wrap=xrtPoolFree")
             if name == "semantic_token_guards_test":extra.append("-Wl,--wrap=xlsSemanticTokensData")
@@ -1093,6 +1096,8 @@ def main() -> None:
                 extra.append(str(objects['owner_snapshot_fault']))
             if name == "language_native_cancel_test":
                 extra.append("-Wl,--wrap=xlsQueryCancel")
+            if name in ("workspace_edit_positions_test", "workspace_edit_positions_fault_test"):
+                extra.append(str(objects["workspace_edit_positions"]))
             if name in CLIENT_TESTS:
                 # The stream fixture privately owns its actor for deterministic
                 # gates. Other client fixtures need only the pure decoders.

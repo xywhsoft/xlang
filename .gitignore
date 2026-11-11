@@ -88,6 +88,7 @@
 !/dev/release-materials/provenance/lsp-xui-document-batch-20261111.json
 !/dev/release-materials/provenance/lsp-xui-batch-worker-20261111.json
 !/dev/release-materials/provenance/lsp-document-revision-20261111.json
+!/dev/release-materials/provenance/lsp-edit-positions-20261111.json
 /out/
 /tmp/
 /logs/

@@ -1,5 +1,7 @@
 # WorkspaceEdit 的不可变编辑准备层
 
+后续 [M7b4z 光标/选区映射](lsp-edit-positions.md)复用已准备编辑及文本差分首尾，为应用器提供不可变的位置查询；完整 GUI/模型/磁盘提交继续开发。
+
 后续的[关闭文件物理校验](lsp-workspace-edit-files.md)已接入原始/解码证明、实际句柄与祖先路径复核；编辑器提交及完整协议入口继续开发。
 
 后续又提供 [XUI 批量文档发布原语](lsp-xui-document-batch.md)，先准备撤销/正文再整组发布；IDE 映射、物理事务和协议启用仍需继续。

@@ -122,25 +122,17 @@ int xlsTextPosition(const xls_text* text, size_t offset, xls_position* position)
     *position=(xls_position){line,units}; return 1;
 }
 
-static int boundary(const char* bytes, size_t size, size_t offset)
-{
-    return offset==size || (!((unsigned char)bytes[offset]>=0x80 && (unsigned char)bytes[offset]<0xc0) &&
-        (!offset || bytes[offset-1]!='\r' || bytes[offset]!='\n'));
-}
+#include "analysis/text_span.h"
 
 int xlsTextDiff(const xls_text* base, const xls_text* updated, xls_text_edit* edit)
 {
     if(!base || !updated || !edit) return -1;
     memset(edit,0,sizeof(*edit));
     const char *left=xlsTextData(base),*right=xlsTextData(updated);
-    size_t before=xlsTextSize(base),after=xlsTextSize(updated),prefix=0,suffix=0;
-    while(prefix<before && prefix<after && left[prefix]==right[prefix]) ++prefix;
-    if(prefix==before && prefix==after) return 0;
-    while(prefix && (!boundary(left,before,prefix) || !boundary(right,after,prefix))) --prefix;
-    while(suffix<before-prefix && suffix<after-prefix && left[before-suffix-1]==right[after-suffix-1]) ++suffix;
-    while(suffix && (!boundary(left,before,before-suffix) || !boundary(right,after,after-suffix))) --suffix;
-    if(!xlsTextPosition(base,prefix,&edit->start) || !xlsTextPosition(base,before-suffix,&edit->end)) return -1;
-    edit->hasRange=1; edit->text=right+prefix; edit->length=after-prefix-suffix;
+    xls_text_span span;int changed=xlsTextSpanDiff(left,xlsTextSize(base),right,xlsTextSize(updated),NULL,NULL,&span);
+    if(changed<=0)return changed;
+    if(!xlsTextPosition(base,span.start,&edit->start) || !xlsTextPosition(base,span.beforeEnd,&edit->end)) return -1;
+    edit->hasRange=1; edit->text=right+span.start; edit->length=span.afterEnd-span.start;
     return 1;
 }
 
