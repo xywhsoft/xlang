@@ -181,7 +181,11 @@ def header_inventory(path,external_types=()):
         raw=m.group(2);before,args=raw.split('(',1);name=re.search(r'\w+\s*$',before).group().strip();ret=before[:before.rfind(name)]
         type_words=[ret]
         for arg in split(args[:-1]):type_words.append(re.sub(r'\b\w+\s*(?:\[[^\]]*\])?\s*$','',arg) if arg.strip() not in ('void','...') else '')
-        known=set(re.findall(r'\b[A-Za-z_]\w*\b',' '.join(type_words)))-KEYWORDS
+        # A callback declarator contains its parameter name as well as types.
+        # Inventing typedefs for every identifier turns (*cancelled)(void*)
+        # into a conflicting typedef name and can conceal genuine misspellings.
+        symbols=set(re.findall(r'\b[A-Za-z_]\w*\b',' '.join(type_words)))-KEYWORDS
+        known={x for x in symbols if x in names or re.fullmatch(r'(?:u?int(?:\d+|ptr)_t|size_t|wchar_t|va_list|bool|xtime|xarray|xvalue|xerror|xstrview|xbytesview|xatomic\d+|xrt\w+)',x)}
         pre='\n'.join('typedef int '+x+';' for x in known)
         try:
             line=text.count('\n',0,m.start())+1
