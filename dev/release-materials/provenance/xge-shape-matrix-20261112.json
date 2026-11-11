@@ -1,0 +1,236 @@
+{
+  "schema": 1,
+  "scope": "All eleven affine-matrix direct declarations; independent qualified value-only batch",
+  "passed": true,
+  "checks": 38,
+  "shippingDelivery": false,
+  "nativeRevision": "2574c579a7d5a7dd2695c56fc6f17daea0022a5c",
+  "hostXrtSha256": "41bc24579f4b3207b0434755ca23dd06481af90c05f71e9b365848cf9a7c12d1",
+  "sourceInputs": {
+    "lib/bindings/xge/src/shape_matrix.xl": "76135f6447dc3ef811159046e461895d062fb80cf248663ccf853a4f537c838e",
+    "lib/bindings/xge/src/functions.xl": "88fe810931878e7d363fc818bed6a65432f8073245d1d1d3c419e9c4d5f51e1a",
+    "lib/bindings/xge/xlang.package.json": "b06708c750d4fda2095b0bc1533c9b01d06f95372a976f2f2874b7ae7c6dad42",
+    "lib/bindings/xge/examples/shape_matrix.xl": "9e9f0e11b3f10648bf09e0ddb2ad0ecb63b1ecb075a62186f6cba238e7c993e2",
+    "test/cases/foreign_xge3_shape_matrix.xl": "b83fdcda5fb367a36873d04d46852263fc85bfc7d06b37c6cf5090663faf683f",
+    "test/cases/foreign_xge3_shape_matrix.c": "f3b7a07ad518f430b2806e1ee4ad411d9491288e8dfe62795e4dd646ca32231e",
+    "test/cases/foreign_xge3_shape_matrix.h": "236a858b34f5f6061602f46c9dfad4ff49e5b4d60477e38e1aad66087873f4ec",
+    "tools/check_xge3_shape_matrix.py": "04b52d6b3de7007fc4f4f72564a6b541eeed45ddfd7a34181d7a4d7e5eb87c67"
+  },
+  "cohorts": [
+    {
+      "platform": "win",
+      "report": "F:\\xlang-validation\\xge-full-20261110\\matrix-full-win-r1\\results.json",
+      "sha256": "4b86ba5ec28d1d28890b23bf07465f454aa4f28008e273f5fbd81783a7f7f034",
+      "checks": 19,
+      "inputVerification": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\matrix-inputs-win-r1.json",
+        "sha256": "b11ddb7edc649e253e279751e9a5a145b55f5ff36868a78324bfc8126a90416c",
+        "inputsRehashed": 1976
+      },
+      "compilerBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r21\\build.json",
+        "sha256": "586af7a071593e792737429cb67c62795ff8db38393acf173bfcc61737d79720"
+      },
+      "stages": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\packages-matrix-host-win-r1.json",
+          "sha256": "ba9e54c02f2f2d0a4104a8c6aac71fd4dce757aa159100af0e13026c14f4deb7",
+          "outputFiles": 202
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\packages-matrix-static-win-r1.json",
+          "sha256": "5a8e1471f67497a3f33c5a1b3a108ccbc64266d527cf359f58adb12bba7cb77b",
+          "outputFiles": 218
+        }
+      ],
+      "binaries": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\matrix-full-win-r1\\foreign_xge3_shape_matrix-dynamic.exe",
+          "sha256": "ccb4560e8d1eec8b4d57f98f0c5a9d9e021763b3de914cbe39a1e15a42efb2c1",
+          "bytes": 4482048,
+          "linkage": "dynamic",
+          "imports": [
+            "xge3_host.dll",
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\matrix-full-win-r1\\foreign_xge3_shape_matrix-static.exe",
+          "sha256": "9a621da75d567167332d9a321c5ffe13863d7b2fb8e3847f337253d2d5de2eb3",
+          "bytes": 4005376,
+          "linkage": "static",
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "USER32.dll",
+            "ole32.dll",
+            "OLEAUT32.dll",
+            "SHELL32.dll",
+            "GDI32.dll",
+            "IMM32.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\matrix-full-win-r1\\shape_matrix-dynamic.exe",
+          "sha256": "c24fe7824ba17a376242eb1f3291fcbdd4a452fb098e5460374c88db2d8939d7",
+          "bytes": 1202176,
+          "linkage": "dynamic",
+          "imports": [
+            "xge3_host.dll",
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\matrix-full-win-r1\\shape_matrix-static.exe",
+          "sha256": "7d71ee42ae8948eebf88bf8f5183947be0edc234a0533a2ef20bc0905f7b1633",
+          "bytes": 3684864,
+          "linkage": "static",
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "USER32.dll",
+            "ole32.dll",
+            "OLEAUT32.dll",
+            "SHELL32.dll",
+            "GDI32.dll",
+            "IMM32.dll"
+          ]
+        }
+      ]
+    },
+    {
+      "platform": "linux",
+      "report": "F:\\xlang-validation\\xge-full-20261110\\matrix-full-linux-r1\\results.json",
+      "sha256": "78ae94a32e365b10532055e86e1042c26eee635d5c1e1b3576b0ab1bfdd1f139",
+      "checks": 19,
+      "inputVerification": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\matrix-inputs-linux-r1.json",
+        "sha256": "8e2f46bbb63f0011a8a8d948c6823b1982f64602be20e9d5e0712177c454ad78",
+        "inputsRehashed": 1959
+      },
+      "compilerBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-linux-full-r13\\build.json",
+        "sha256": "6c7fab3454fd9d2636a7b3306934ab8d0b091619b553b2d38e2577a192d63af3"
+      },
+      "stages": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\packages-matrix-host-linux-r1.json",
+          "sha256": "7cabbc8bccf45860082ebde59585e2fe600b81fa3cf7c69c54c9cf85cec33109",
+          "outputFiles": 202
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\packages-matrix-static-linux-r1.json",
+          "sha256": "216f5cdd309b51c239e9fe74d277e106dc296ca8a5d8b6d9186bbd77b0934773",
+          "outputFiles": 201
+        }
+      ],
+      "binaries": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/matrix-full-linux-r1/foreign_xge3_shape_matrix-dynamic",
+          "sha256": "1ef0a83201812d1b51b3ba15175f9f7960bfa4fe627ed6970ed0082cafa9f836",
+          "bytes": 4543318,
+          "linkage": "dynamic",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/matrix-full-linux-r1/foreign_xge3_shape_matrix-static",
+          "sha256": "61303b0ba295c94fb4f8a3ea38eced2828b58a0dcacf1717d7d1ee57d882dbf5",
+          "bytes": 941126,
+          "linkage": "static",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/matrix-full-linux-r1/shape_matrix-dynamic",
+          "sha256": "504fc730639bb440c91e75762782a3c99ac849f6bfe01527f5fc147d7a8f2ad4",
+          "bytes": 1245427,
+          "linkage": "dynamic",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/matrix-full-linux-r1/shape_matrix-static",
+          "sha256": "b08042a2c03bbb566546ee309b8cfec329161f52f867846ed36765c4048e66ca",
+          "bytes": 788292,
+          "linkage": "static",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ]
+    }
+  ],
+  "symbols": [
+    "xgeShapeExMatrixIdentity",
+    "xgeShapeExMatrixTranslate",
+    "xgeShapeExMatrixScale",
+    "xgeShapeExMatrixRotate",
+    "xgeShapeExMatrixSkew",
+    "xgeShapeExMatrixMultiply",
+    "xgeShapeExMatrixInvert",
+    "xgeShapeExMatrixPoint",
+    "xgeShapeExMatrixVector",
+    "xgeShapeExMatrixRectBounds",
+    "xgeShapeExMatrixStrokeScale"
+  ],
+  "surface": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-matrix-r1\\surface.json",
+    "sha256": "69e6723e45ffd4a020f2254347612f097ff113f0bfd14929141643d7199158a5",
+    "zeroParseErrors": true
+  },
+  "costs": {
+    "matrixValueBytes": 24,
+    "hotIterations": 1000,
+    "hotXrtHeapOperations": 0,
+    "includes": "Stack/value moves, common error scopes/status checks, first-class invocation machinery; no matrix heap owner",
+    "cpuTimingClaim": false,
+    "allAllocatorClaim": false
+  },
+  "remaining": [
+    "Full xge shared-library package initializer contract",
+    "Other XGE/XUI/Document families and final matched delivery"
+  ],
+  "verifier": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\verify_matrix_inputs_r1.py",
+    "sha256": "82702d8fdd2d5e7b1334f3af7d564346c057478a920c1f7d061b5989374a5953"
+  },
+  "notes": [
+    "Native full products and complete compiler cohorts reused by exact hashes; no compiler/native source changes.",
+    "README documentation changed after qualification; tested staged README bytes preserved. Compile-facing sources still match.",
+    "Static executable imports exclude XGE host and xl/xlc images; dynamic executables retain XGE host."
+  ]
+}

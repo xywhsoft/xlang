@@ -1,0 +1,89 @@
+// CPU-only value semantics, composition order, checked failures and hot calls.
+import xge
+extern "fixtureMatrixHotBegin" @header("test/cases/foreign_xge3_shape_matrix.h") @no_raise func hotBegin()
+extern "fixtureMatrixHotEnd" @header("test/cases/foreign_xge3_shape_matrix.h") @no_raise func hotEnd()
+func near(c_float a,c_float b) as bool
+ return math.abs(float(a)-float(b))<0.0001
+end
+export func matrixFixturePoint(xge.ShapeExMatrix matrix,xge.Vec2 point) as xge.Vec2
+ return xge.shapeExMatrixPoint(matrix,point)
+end
+func main(...) as int
+ auto identity=xge.shapeExMatrixIdentity()
+ assert identity.fA==c_float(1) and identity.fD==c_float(1) and identity.fE==c_float(0)
+ auto scale=xge.shapeExMatrixScale(c_float(2),c_float(3))
+ auto translation=xge.shapeExMatrixTranslate(c_float(10),c_float(20))
+ auto combined=xge.shapeExMatrixMultiply(translation,scale)
+ xge.Vec2 point
+ point.fX=c_float(4)
+ point.fY=c_float(5)
+ auto transformed=xge.shapeExMatrixPoint(combined,point)
+ assert transformed.fX==c_float(18) and transformed.fY==c_float(35)
+ auto vector=xge.shapeExMatrixVector(combined,point)
+ assert vector.fX==c_float(8) and vector.fY==c_float(15)
+ auto inverse=xge.shapeExMatrixInvert(combined)
+ auto restored=xge.shapeExMatrixPoint(inverse,transformed)
+ assert near(restored.fX,point.fX) and near(restored.fY,point.fY)
+ assert translation.fA==c_float(1) and scale.fE==c_float(0)
+ auto copied=combined
+ copied.fE=c_float(99)
+ assert combined.fE==c_float(10)
+ xge.Rect rectangle
+ rectangle.fW=c_float(2)
+ rectangle.fH=c_float(1)
+ auto bounds=xge.shapeExMatrixRectBounds(combined,rectangle)
+ assert bounds.fX==c_float(10) and bounds.fY==c_float(20) and bounds.fW==c_float(4) and bounds.fH==c_float(3)
+ assert near(xge.shapeExMatrixStrokeScale(scale),c_float(math.sqrt(6.0)))
+ auto rotation=xge.shapeExMatrixRotate(c_float(math.pi/2))
+ xge.Vec2 unit
+ unit.fX=c_float(1)
+ auto rotated=xge.shapeExMatrixVector(rotation,unit)
+ assert near(rotated.fX,c_float(0)) and near(rotated.fY,c_float(1))
+ auto skew=xge.shapeExMatrixSkew(c_float(0),c_float(0))
+ assert skew.fA==c_float(1) and skew.fD==c_float(1)
+ auto tilted=xge.shapeExMatrixSkew(c_float(math.pi/4),c_float(0))
+ auto tiltedPoint=xge.shapeExMatrixPoint(tilted,point)
+ assert near(tiltedPoint.fX,c_float(9)) and near(tiltedPoint.fY,c_float(5))
+ auto rotatedBounds=xge.shapeExMatrixRectBounds(rotation,rectangle)
+ assert near(rotatedBounds.fX,c_float(-1)) and near(rotatedBounds.fY,c_float(0))
+ assert near(rotatedBounds.fW,c_float(1)) and near(rotatedBounds.fH,c_float(2))
+ bool rejected=false
+ try
+  auto singular=xge.shapeExMatrixInvert(xge.shapeExMatrixScale(c_float(0),c_float(1)))
+ catch error
+  rejected=true
+ end
+ assert rejected
+ int invalidCount=0
+ try
+  auto invalid=xge.shapeExMatrixTranslate(c_float(math.inf),c_float(0))
+ catch error
+  invalidCount+=1
+ end
+ try
+  auto invalid=xge.shapeExMatrixScale(c_float(1),c_float(math.nan))
+ catch error
+  invalidCount+=1
+ end
+ try
+  auto invalid=xge.shapeExMatrixRotate(c_float(math.inf))
+ catch error
+  invalidCount+=1
+ end
+ try
+  auto invalid=xge.shapeExMatrixSkew(c_float(math.nan),c_float(0))
+ catch error
+  invalidCount+=1
+ end
+ assert invalidCount==4
+ func(xge.ShapeExMatrix,xge.Vec2) as xge.Vec2 transform=xge.shapeExMatrixPoint
+ hotBegin()
+ for i in range(1000)
+  auto product=xge.shapeExMatrixMultiply(translation,scale)
+  auto result=transform(product,point)
+  assert result.fX==c_float(18) and result.fY==c_float(35)
+ end
+ hotEnd()
+ println("Shape matrix factories, composition, value isolation and checked inverse passed")
+ return 0
+end

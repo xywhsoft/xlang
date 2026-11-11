@@ -1,0 +1,20 @@
+// Compose local scale followed by world translation; no window is required.
+import xge
+func main(...) as int
+ auto scale=xge.shapeExMatrixScale(c_float(2),c_float(3))
+ auto translation=xge.shapeExMatrixTranslate(c_float(10),c_float(20))
+ auto matrix=xge.shapeExMatrixMultiply(translation,scale)
+
+ xge.Vec2 point
+ point.fX=c_float(4)
+ point.fY=c_float(5)
+ auto world=xge.shapeExMatrixPoint(matrix,point)
+ assert world.fX==c_float(18) and world.fY==c_float(35)
+ println("World:",world.fX,world.fY)
+
+ auto inverse=xge.shapeExMatrixInvert(matrix)
+ auto local=xge.shapeExMatrixPoint(inverse,world)
+ assert math.abs(float(local.fX)-4.0)<0.0001 and math.abs(float(local.fY)-5.0)<0.0001
+ println("Local:",local.fX,local.fY)
+ return 0
+end

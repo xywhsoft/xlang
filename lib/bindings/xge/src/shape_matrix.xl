@@ -1,0 +1,13 @@
+// Native functions construct/return complete value records. Transform factories
+// overwrite their C output; they do not mutate a caller-owned language matrix.
+export extern "xgeShapeExMatrixIdentity" @header("xge3_runtime.h") @no_raise @c_output(0,0) func shapeExMatrixIdentity() as ShapeExMatrix
+export extern "xgeShapeExMatrixTranslate" @header("xge3_runtime.h") @no_raise @c_output(0,0) func shapeExMatrixTranslate(c_float x,c_float y) as ShapeExMatrix
+export extern "xgeShapeExMatrixScale" @header("xge3_runtime.h") @no_raise @c_output(0,0) func shapeExMatrixScale(c_float x,c_float y) as ShapeExMatrix
+export extern "xgeShapeExMatrixRotate" @header("xge3_runtime.h") @no_raise @c_output(0,0) func shapeExMatrixRotate(c_float radians) as ShapeExMatrix
+export extern "xgeShapeExMatrixSkew" @header("xge3_runtime.h") @no_raise @c_output(0,0) func shapeExMatrixSkew(c_float xRadians,c_float yRadians) as ShapeExMatrix
+export extern "xgeShapeExMatrixMultiply" @header("xge3_runtime.h") @no_raise @c_ref(0) @c_ref(1) @c_output(0,0) func shapeExMatrixMultiply(ShapeExMatrix parent,ShapeExMatrix local) as ShapeExMatrix
+export extern "xgeShapeExMatrixInvert" @header("xge3_runtime.h") @no_raise @c_ref(0) @c_output(0,0) func shapeExMatrixInvert(ShapeExMatrix matrix) as ShapeExMatrix
+export extern "xgeShapeExMatrixPoint" @header("xge3_runtime.h") @no_raise @c_ref(0) @c_output(0,0) func shapeExMatrixPoint(ShapeExMatrix matrix,Vec2 point) as Vec2
+export extern "xgeShapeExMatrixVector" @header("xge3_runtime.h") @no_raise @c_ref(0) @c_output(0,0) func shapeExMatrixVector(ShapeExMatrix matrix,Vec2 vector) as Vec2
+export extern "xgeShapeExMatrixRectBounds" @header("xge3_runtime.h") @no_raise @c_ref(0) @c_output(0,0) func shapeExMatrixRectBounds(ShapeExMatrix matrix,Rect rectangle) as Rect
+export extern "xgeShapeExMatrixStrokeScale" @header("xge3_runtime.h") @no_raise @c_ref(0) @c_output(0,0) func shapeExMatrixStrokeScale(ShapeExMatrix matrix) as c_float

@@ -133,7 +133,6 @@ export extern "xgeShapePolygonFill" @header("xge3_runtime.h") @c_span(0,"const x
 export extern "xgeShapePolygonFillPx" @header("xge3_runtime.h") @c_span(0,"const xge_vec2_t*","int") func shapePolygonFillPx(Buffer pPoints,c_uint iColor)
 export extern "xgeShapeMeshFill" @header("xge3_runtime.h") @c_span(0,"const xge_shape_vertex_t*","int") @c_span(1,"const uint32_t*","int") func shapeMeshFill(Buffer pVertices,Buffer pIndices) as c_int
 export extern "xgeShapeMeshFillPx" @header("xge3_runtime.h") @c_span(0,"const xge_shape_vertex_t*","int") @c_span(1,"const uint32_t*","int") func shapeMeshFillPx(Buffer pVertices,Buffer pIndices) as c_int
-export extern "xgeShapeExMatrixIdentity" @header("xge3_runtime.h") @no_raise @c_output(0,0) func shapeExMatrixIdentity() as ShapeExMatrix
 export extern "xgeShapeExIdFromName" @header("xge3_runtime.h") @c_cstr(0) func shapeExIdFromName(string sName) as c_uint
 export extern "xgeShapeExStencilClipEnd" @header("xge3_runtime.h") func shapeExStencilClipEnd(c_int bApplied,c_int iRet) as c_int
 export extern "xgeViewportSet" @header("xge3_runtime.h") func viewportSet(Rect tRect)

@@ -64,6 +64,17 @@ uses `xgeTextDraw`, and `drawTexture` packs one stack draw descriptor for `xgeDr
 frees the native sound and its outer record once, before engine shutdown.
 `examples/games/` contains nine bounded, static-AOT game examples.
 
+## Affine matrices
+
+`examples/shape_matrix.xl` composes a scale and translation, transforms a point
+and restores it through the inverse. It requires no window. The eleven
+`shapeExMatrix*` functions return plain native value records/scalars through
+direct declarations. Translate/Scale/Rotate/Skew construct a complete matrix;
+use Multiply(parent, local) to compose them. Point includes translation; Vector
+does not. Angles are radians. A singular inverse reports a checked error.
+Matrix assignment copies six floats and creates no resource owner. See
+`docs/xge3-shape-matrix.md` in the source repository for measured boundaries.
+
 ## System fonts
 
 `loadSystemFont(role=..., size=..., weight=..., slant=..., language=null)`
