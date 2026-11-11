@@ -1,6 +1,6 @@
 # WorkspaceEdit 追加式事务日志
 
-M7b5e，2026-11-11。`platform/workspace_edit_journal` 把[恢复准备包](lsp-edit-spool.md)与[逐文件写入器](lsp-edit-file-write.md)连接起来，记录跨文件操作的意图、观测结果和整组阶段。实际测试已通过日志 fence 应用两个关闭文件并逆序恢复。它仍是工作线程基础模块，尚未启用标准重命名、`workspace/applyEdit` 或生产混合文档协调器。
+M7b5e，2026-11-11。`platform/workspace_edit_journal` 把[恢复准备包](lsp-edit-spool.md)与[逐文件写入器](lsp-edit-file-write.md)连接起来，记录跨文件操作的意图、观测结果和整组阶段。实际测试已通过日志 fence 应用两个关闭文件并逆序恢复。后续 [M7b5f 混合文档事务](lsp-edit-mixed-transaction.md) 已连接真实 GUI 发布结果与工作线程写入；标准重命名、`workspace/applyEdit` 和完整宿主请求控制器仍未启用。
 
 ## 存储与开销
 

@@ -29,8 +29,11 @@ static int observe(xide_edit_file_write* w,HANDLE* h,xide_file_snapshot* s,xide_
 }
 static int exact(xide_edit_file_write* w,HANDLE* h,const xide_file_snapshot* expected,xide_model_error* e)
 {xide_file_snapshot s={0};if(!observe(w,h,&s,e)){w->status.currentVerified=0;return 0;}if(!xideFileSnapshotEqual(&s,expected)){w->status.currentVerified=0;return fail(e,XIDE_MODEL_CONFLICT,"Pinned write source changed since its verified state.");}w->status.current=s;w->status.currentVerified=1;return 1;}
-void xideEditFileWriteDestroy(xide_edit_file_write* w){if(w){xrtFree(w->before);xrtFree(w->after);xrtFree(w);}}
+void xideEditFileWriteDestroy(xide_edit_file_write* w){if(w){if(w->after!=w->before)xrtFree(w->after);xrtFree(w->before);xrtFree(w);}}
 int xideEditFileWriteStatus(const xide_edit_file_write* w,xide_edit_file_status* out){if(out)memset(out,0,sizeof(*out));if(!w||!out)return 0;*out=w->status;return 1;}
+size_t xideEditFileWriteStorage(const xide_edit_file_write* w){return w?sizeof(*w)+w->beforeSize+1+(w->before==w->after?0:w->afterSize+1):0;}
+int xideEditFileWriteVerify(xide_edit_file_write* w,xide_model_error* e)
+{if(e)memset(e,0,sizeof(*e));if(!w||!w->status.currentVerified||w->status.phase==XIDE_EDIT_FILE_PARTIAL||w->status.phase==XIDE_EDIT_FILE_IN_DOUBT)return fail(e,XIDE_MODEL_CONFLICT,"No complete pinned write observation is available.");HANDLE h=INVALID_HANDLE_VALUE;xide_file_snapshot expected=w->status.current;return exact(w,&h,&expected,e);}
 xide_edit_file_write* xideEditFileWritePrepare(xide_edit_spool* spool,size_t document,size_t budget,xide_model_error* e)
 {
  if(e)memset(e,0,sizeof(*e));
@@ -42,9 +45,9 @@ xide_edit_file_write* xideEditFileWritePrepare(xide_edit_spool* spool,size_t doc
  if(!xrtValueGetString(field(a,"length"),&sa)||!xrtValueGetString(field(b,"length"),&sb))return(fail(e,XIDE_MODEL_INVALID,"Missing recovery body sizes."),NULL);
  /* Body lengths were strictly validated by Spool. Quota precedes body loads. */
  uint64_t as=0,bs=0;for(size_t i=0;i<sa.Size;++i)as=as*10+(unsigned)(sa.Data[i]-'0');for(size_t i=0;i<sb.Size;++i)bs=bs*10+(unsigned)(sb.Data[i]-'0');
- if(as>WRITE_BODY_LIMIT||bs>WRITE_BODY_LIMIT||sizeof(xide_edit_file_write)+as+bs+2>limit)return(fail(e,XIDE_MODEL_MEMORY,"Pinned file-write buffers exceed their known-storage budget."),NULL);
+ if(as>WRITE_BODY_LIMIT||bs>WRITE_BODY_LIMIT||sizeof(xide_edit_file_write)+as+1+(encoded==raw?0:bs+1)>limit)return(fail(e,XIDE_MODEL_MEMORY,"Pinned file-write buffers exceed their known-storage budget."),NULL);
  xide_edit_file_write* w=xrtCalloc(1,sizeof(*w));if(!w)return(fail(e,XIDE_MODEL_MEMORY,"Cannot allocate pinned file-write attempt."),NULL);w->files=files;w->file=at;w->status=(xide_edit_file_status){.phase=XIDE_EDIT_FILE_BEFORE,.document=document,.before=before,.current=before,.currentVerified=1};
- w->before=xideEditSpoolReadBody(spool,raw,&w->beforeSize,NULL,NULL,e);if(w->before)w->after=xideEditSpoolReadBody(spool,encoded,&w->afterSize,NULL,NULL,e);unsigned char hash[32]={0};HANDLE h=INVALID_HANDLE_VALUE;
+ w->before=xideEditSpoolReadBody(spool,raw,&w->beforeSize,NULL,NULL,e);if(w->before){if(raw==encoded){w->after=w->before;w->afterSize=w->beforeSize;}else w->after=xideEditSpoolReadBody(spool,encoded,&w->afterSize,NULL,NULL,e);}unsigned char hash[32]={0};HANDLE h=INVALID_HANDLE_VALUE;
  int okay=w->before&&w->after&&digest(w->before,w->beforeSize,hash)&&sameContent(&before,w->beforeSize,hash)&&digest(w->after,w->afterSize,w->afterHash)&&exact(w,&h,&before,e);
  if(!okay){if(e&&!e->code)fail(e,XIDE_MODEL_CONFLICT,"Pinned original bytes disagree with the recovery package.");xideEditFileWriteDestroy(w);return NULL;}w->status.changed=!sameContent(&before,w->afterSize,w->afterHash);return w;
 }

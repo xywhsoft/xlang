@@ -1,0 +1,133 @@
+{
+  "schema": 1,
+  "date": "2026-11-12",
+  "stage": "M7b5f",
+  "scope": "Owner/worker mixed open-editor and closed-file WorkspaceEdit transaction with byte leases, durable intents/outcomes, explicit GUI publication and reverse restoration",
+  "implementationAccepted": true,
+  "performanceQualified": false,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "3958b18587f769faed6991435d8c80b7a64a8578",
+  "ownedSources": {
+    "ide/src/protocol/workspace_edit.c": "0135b263eaf943eed3ed14cbf5440a2ce6623bc8900da77dbfed0c9f244c6856",
+    "ide/src/protocol/workspace_edit.h": "b0d7f8ce9313a9d2ce1e71625395784950194687ee34fe4f28d747023b83c44e",
+    "ide/src/editor/workspace_edit_documents.c": "300f5b7ba449cf085fea2d287ca62fd94785e35f06cb787861361676bf2238c8",
+    "ide/src/editor/workspace_edit_documents.h": "b03238df497c95606d903ec4dbc7f6ceea8ce2bf8b9c13c56062a92143f303c8",
+    "ide/src/editor/workspace_edit_transaction.c": "14730f9c06c340871e411d2cabd3da6c24cc4885e13814f006337fae90deaed8",
+    "ide/src/editor/workspace_edit_transaction.h": "ca57ccea19f1b3e410fa503e6762b8104f009f5a37161a01043fbec09ecddd48",
+    "ide/src/platform/workspace_edit_files.c": "60fbe6317cbc9c98ebc22f774d155c5d07a69d9361b4e913fa9b88997d2df65a",
+    "ide/src/platform/workspace_edit_files_internal.h": "7f11beb5c9288300d4d5e0635fc5cce9ef5ea8c19aa9d582cbe2e452c02c5e58",
+    "ide/src/platform/workspace_edit_spool.c": "def6730a38091680d424ace32e51ccd8f9ba76e7c053ee2ede5c29835658ed82",
+    "ide/src/platform/workspace_edit_spool_internal.h": "5ea383c4f4dbde41ac76291c7a9a7c5d8f5fd8010c106e359aa9ed4ba4d9415e",
+    "ide/src/platform/workspace_edit_write.c": "78a190bf234753f537567e636cb1a58bdcf1f1fe381c920700ac35e6718c1ca5",
+    "ide/src/platform/workspace_edit_write.h": "c9a1e0ad09ae811bb814121a6f04348f716665ffb9770c90d149c2100141bdfe",
+    "ide/tests/workspace_edit_select_test.c": "e220b1b02f0f64931b64750ca67bc9de800443da79bf33834c80556273255593",
+    "ide/tests/workspace_edit_transaction_test.c": "c7387bfa558d9cd84d32514a6bda865bd79a50e2f2e81f04461e1dca3ef9b2f9",
+    "ide/tools/build.ps1": "06dce70e93735a05c41f4f05b67b5b9e6be1d3056489763e36b5d2cbe054ccd1",
+    "ide/tools/build_lsp_core.py": "d200486da57e72534d95d950ecb04abc04ae74a943a4f288c00c70fe69943a26",
+    "ide/docs/lsp-edit-mixed-transaction.md": "b32a191fd3cd3b29c0a5922d28da83b536095706e05992e848c73e0546d65818",
+    "ide/docs/lsp-edit-transaction-journal.md": "d700b0fc2e5eff7d452b3fd4981fa91d17ae08510864c778be6092b6e8dbbf46"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-edit-mixed-20261111.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-edit-mixed-20261111/stage-sources.tar.gz",
+      "sha256": "6d2993511aca3bad3ba86d85ffc860a9ee42b69a905f6965e52343e619c28c5b",
+      "bytes": 96012,
+      "entries": 19,
+      "uniquePayloads": 19,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-edit-mixed-20261111/stage-sources.tar.gz.manifest.json",
+      "sha256": "899111a08e4d9287b07a5bc385b370e6a2464621b6d77b881320310e99d2fbab",
+      "bytes": 4482
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-edit-mixed-20261111/actual-builds-and-validation.tar.gz",
+      "sha256": "70c65ccb878e5adad51bd8cd9f7b460e1435f3da1d8f36c85fc0cd165a6f2afe",
+      "bytes": 284389468,
+      "entries": 16230,
+      "uniquePayloads": 3874,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-edit-mixed-20261111/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "e9cbee9ac444109813b3428b71b5163c86c6ffecb55c0798cd0522e672ed0849",
+      "bytes": 6209950
+    }
+  },
+  "currentBindings": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-edit-mixed-20261111\\final-bindings.json",
+    "sha256": "023c813428df51b196a86a7b9074653ec40f86a4fc43ecf509789592e1a118cf"
+  },
+  "sdkInherited": {
+    "index": "dev/release-materials/provenance/lsp-edit-journal-20261111.json",
+    "indexSha256": "94d7b68554eb1971c27dda20e47554e85c40f94f2de8dc35f2d0d7942e811e26",
+    "dllSha256": "51cc62cb935e54ef16abcb8a4ae8ee845d64254123a822ba4004c63dad42359e",
+    "compiledSdkUnitsThisStage": 0,
+    "matchedSetPreserved": true
+  },
+  "correctness": {
+    "mixedAssertions": 5132,
+    "mixedDirectIatColdAllocationGates": {
+      "prepare": 6,
+      "capture": 14,
+      "stage": 43
+    },
+    "selectorNativeAssertions": 91,
+    "selectorColdAllocationGates": 9,
+    "selectorCancellationPoints": 8,
+    "realSelectorNativeHeapStatisticsProbed": true,
+    "realInterleavedCAndXlangModels": true,
+    "realWorkerPipeline": true,
+    "closedOnlyAndOpenOnly": true,
+    "sourceReaderByteLeases": true,
+    "partialSourceWriteReverseRepair": true,
+    "explicitCommittedOutcomeSurvivesClosureAndJournalFailure": true,
+    "opaqueSdkPayloadQuotaReserved": true,
+    "implementationMutantsRejected": 6,
+    "guiObjects": 124,
+    "guiFixtures": 49,
+    "existingWriterAssertions": 877,
+    "existingWriterColdAllocationGates": 3,
+    "existingJournalAssertions": 1156,
+    "existingSpoolAssertions": 118,
+    "existingSpoolGuardAssertions": 1410,
+    "existingExportAssertions": 77,
+    "existingOpenEditAssertions": 2209,
+    "actualBoundedGuiLanguages": [
+      "c",
+      "xlang"
+    ],
+    "actualBoundedGuiFramesEach": 24,
+    "visualScreenshotsInspected": true,
+    "guiHeapStatisticsAvailable": false,
+    "otherNativeAndProtocolProgramsNotRerun": true,
+    "rawFailuresRetained": true
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "serviceSha256": "df290f266bb8882e95751487d146070ac854b2f8cd9c827d95fd44f049cb4d74",
+  "limits": [
+    "Module is not yet connected to the production host request controller; standard renameProvider/workspace.applyEdit remain disabled until full source/physical/request/config/project/consent/reader policies and recovery UI exist",
+    "Required detached worker and owner callbacks are explicit authorities; no default allow policy is installed",
+    "Byte locks block ordinary reads through other handles, not mapped views or application cached/prepared readers; caller must quiesce all relevant readers/watchers/indexers/toolchain",
+    "Restart remains readonly inspection; startup recovery writes, package retirement and durable recovery UI remain open",
+    "Default256/max512MiB conservative aggregate uses half of remaining quota as the entire opaque SDK editor staging reservation; shared leases can be charged twice; not RSS or a whole-IDE latency guarantee",
+    "Only final standalone quota witness changed after final GUI freeze, from64MiB to96MiB; the complete final fixture was recompiled and run against all124 final GUI producer objects; product sources and headers stable",
+    "GUI fault probes cover directly called IAT allocators, not DLL-internal allocations, and GUI heap statistics are unavailable; native selector/writer resource probes are separate",
+    "First native harness failures were missing inherited wrap flags and a junction-containing fixture path rejected by the source guard; successful native prefix and corrected remaining runs are explicitly retained",
+    "An initial weak quota witness allowed a mutant; corrected witness rejects the mutant and final full fixture passes; the earlier failure/survivor evidence is preserved",
+    "Fault/process tests do not establish power-cut or physical Win7 certification",
+    "Default runtime, matched SDK, delivery index and unrelated work remain unchanged; complete source coverage, production controller, scheduling, performance and final delivery remain open"
+  ]
+}

@@ -10,7 +10,7 @@
 #include <string.h>
 #define FILE_BYTES (8u*1024u*1024u)
 typedef struct pinned_directory {wchar_t* path;HANDLE handle;BY_HANDLE_FILE_INFORMATION identity;} pinned_directory;
-typedef struct pinned_file {wchar_t* path;HANDLE handle;size_t document;xide_file_snapshot snapshot;int bom,eol;} pinned_file;
+typedef struct pinned_file {wchar_t* path;HANDLE handle;size_t document;xide_file_snapshot snapshot;int bom,eol,readLocked;} pinned_file;
 struct xide_workspace_edit_files {xide_workspace_edit* plan;xarray directories,files;};
 static int fail(xide_model_error* e,int code,const char* s){if(e){e->code=code;snprintf(e->message,sizeof(e->message),"%s",s);}return 0;}
 static int stopped(int (*fn)(void*),void* user,xide_model_error* e){if(!fn || !fn(user))return 0;fail(e,XIDE_MODEL_CONFLICT,"Workspace edit file validation cancelled.");return 1;}
@@ -117,6 +117,22 @@ int xideWorkspaceEditFilesBorrowWriteHandle(xide_workspace_edit_files* p,size_t 
  pinned_file* f=p?xrtArrayGet(&p->files,at):NULL;if(!out || !f)return fail(e,XIDE_MODEL_INVALID,"Missing pinned workspace edit write target.");
  if(!locations(p,at,NULL,NULL,e))return 0;
  *out=f->handle;return 1;
+}
+int xideWorkspaceEditFilesUnlockReaders(xide_workspace_edit_files* p,xide_model_error* e)
+{
+ if(e)memset(e,0,sizeof(*e));
+ if(!p)return fail(e,XIDE_MODEL_INVALID,"Missing source reader lease.");
+ int okay=1;for(size_t i=p->files.Count;i;--i){pinned_file* f=xrtArrayGet(&p->files,i-1);if(!f->readLocked)continue;OVERLAPPED at={0};if(UnlockFileEx(f->handle,0,MAXDWORD,MAXDWORD,&at))f->readLocked=0;else okay=0;}
+ return okay||fail(e,XIDE_MODEL_IO,"Cannot release every source byte-range lease; retain its owner.");
+}
+int xideWorkspaceEditFilesLockReaders(xide_workspace_edit_files* p,xide_model_error* e)
+{
+ if(e)memset(e,0,sizeof(*e));
+ if(!p)return fail(e,XIDE_MODEL_INVALID,"Missing source reader lease.");
+ for(size_t i=0;i<p->files.Count;++i)if(((pinned_file*)xrtArrayGet(&p->files,i))->readLocked)return fail(e,XIDE_MODEL_CONFLICT,"Source readers are already leased.");
+ if(!locations(p,SIZE_MAX,NULL,NULL,e))return 0;
+ for(size_t i=0;i<p->files.Count;++i){pinned_file* f=xrtArrayGet(&p->files,i);OVERLAPPED at={0};if(!LockFileEx(f->handle,LOCKFILE_EXCLUSIVE_LOCK|LOCKFILE_FAIL_IMMEDIATELY,0,MAXDWORD,MAXDWORD,&at)){xide_model_error cleanup={0};(void)xideWorkspaceEditFilesUnlockReaders(p,&cleanup);return fail(e,XIDE_MODEL_CONFLICT,"Cannot obtain all exclusive source byte-range leases.");}f->readLocked=1;}
+ return 1;
 }
 static int sameSnapshotMetadata(const BY_HANDLE_FILE_INFORMATION* i,const xide_file_snapshot* s)
 {return i->dwVolumeSerialNumber==s->volume && (((uint64_t)i->nFileIndexHigh<<32)|i->nFileIndexLow)==s->index && (((uint64_t)i->nFileSizeHigh<<32)|i->nFileSizeLow)==s->length && (((uint64_t)i->ftLastWriteTime.dwHighDateTime<<32)|i->ftLastWriteTime.dwLowDateTime)==s->lastWrite && i->dwFileAttributes==s->attributes;}

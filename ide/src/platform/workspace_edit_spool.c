@@ -72,6 +72,7 @@ static void release(xide_edit_spool* p,int abandon)
 void xideEditSpoolDestroy(xide_edit_spool* p){release(p,0);}
 const xvalue* xideEditSpoolManifest(const xide_edit_spool* p){return p?p->marker.source:NULL;}
 xide_workspace_edit_files* xideEditSpoolSources(xide_edit_spool* p){return p?p->sources:NULL;}
+size_t xideEditSpoolReservation(const xide_edit_spool* p){return p?p->used:0;}
 int xideEditSpoolJournalIdentity(xide_edit_spool* p,const char** directory,unsigned char sha256[32],xide_model_error* e)
 {
  if(directory)*directory=NULL;

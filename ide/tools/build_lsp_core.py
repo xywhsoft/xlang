@@ -144,6 +144,7 @@ HOST_TESTS += ("semantic_tokens_wire_test", "semantic_token_guards_test")
 HOST_TESTS += ("semantic_rename_target_test",)
 HOST_TESTS += ("semantic_rename_policy_test",)
 HOST_TESTS += ("workspace_edit_test", "workspace_edit_fault_test", "workspace_edit_edge_test")
+HOST_TESTS += ("workspace_edit_select_test",)
 HOST_TESTS += ("workspace_edit_files_test",)
 HOST_TESTS += ("workspace_edit_file_export_test", "workspace_edit_spool_test", "workspace_edit_spool_guard_test", "workspace_edit_spool_fault_test")
 HOST_TESTS += ("workspace_edit_write_test", "workspace_edit_write_fault_test")
@@ -1022,6 +1023,7 @@ def main() -> None:
         for name in (() if args.skip_tests else tests):
             program = output / (name + suffix)
             extra = [str(objects["document_sync"])] if name in ("document_sync_test", "diagnostic_stream_test") else []
+            if name == "workspace_edit_select_test":extra += ["-Wl,--wrap="+f for f in ("malloc","xrtCalloc","xrtArrayResize","xlsTextCreate","xlsTextData")]
             if name == "workspace_edit_test":extra += ["-Wl,--wrap=xlsTextCreate"]
             if name == "workspace_edit_fault_test":extra += ["-Wl,--wrap="+f for f in ("malloc","calloc","xrtMalloc","xrtCalloc","xrtArrayResize","xrtStrBufReserve","xlsTextCreate")]
             if name == "workspace_edit_files_test":

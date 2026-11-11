@@ -67,6 +67,29 @@ int xideWorkspaceEditStillCurrent(const xide_workspace_edit* p,size_t at,const x
  const xide_workspace_edit_document* d=p?xrtArrayConstGet(&p->documents,at):NULL;
  return d && in && in->uri && in->text==d->before && in->identity==d->identity && in->revision==d->revision && in->hasVersion==d->hasVersion && (!in->hasVersion || in->version==d->version) && !strcmp(in->uri,d->uri);
 }
+xide_workspace_edit* xideWorkspaceEditSelect(const xide_workspace_edit* source,const size_t* selected,size_t count,size_t budget,int (*cancelled)(void*),void* user,enum xide_workspace_edit_error* output)
+{
+ preparation p={cancelled,user,0,0,budget?budget:128u*1024u*1024u};enum xide_workspace_edit_error why=XIDE_WORKSPACE_EDIT_ARGUMENT;xide_workspace_edit* plan=NULL;unsigned char used[4096]={0};size_t annotationMap[4096],edits=0,annotations=0;
+ if(!source||(count&&!selected)||count>source->info.documents||count>512||source->info.annotations>4096)goto done;
+ why=XIDE_WORKSPACE_EDIT_LIMIT;if(p.limit>EDIT_MAX_BYTES||!charge(&p,sizeof(*plan)))goto done;
+ for(size_t i=0;i<count;++i){why=XIDE_WORKSPACE_EDIT_CANCELLED;if(stop(&p))goto done;why=XIDE_WORKSPACE_EDIT_ARGUMENT;if(selected[i]>=source->info.documents||(i&&selected[i]<=selected[i-1]))goto done;const xide_workspace_edit_document* d=xrtArrayConstGet(&source->documents,selected[i]);if(!d||d->count>65536-edits)goto done;edits+=d->count;
+  for(size_t j=0;j<d->count;++j){if(stop(&p)){why=XIDE_WORKSPACE_EDIT_CANCELLED;goto done;}const xide_workspace_text_edit* e=xrtArrayConstGet(&source->edits,d->first+j);if(!e||e->document!=selected[i]||(e->annotation!=SIZE_MAX&&e->annotation>=source->info.annotations))goto done;if(e->annotation!=SIZE_MAX)used[e->annotation]=1;}
+ }
+ for(size_t i=0;i<source->info.annotations;++i)annotationMap[i]=used[i]?annotations++:SIZE_MAX;
+ why=XIDE_WORKSPACE_EDIT_MEMORY;plan=XIDE_WORKSPACE_EDIT_ALLOC(1,sizeof(*plan));if(!plan)goto done;xrtAtomic32Init(&plan->references,1);
+ if(!array(&plan->documents,count,sizeof(xide_workspace_edit_document),&p)||!array(&plan->edits,edits,sizeof(xide_workspace_text_edit),&p)||!array(&plan->annotations,annotations,sizeof(xide_workspace_edit_annotation),&p))goto done;
+ size_t at=0;
+ for(size_t i=0;i<count;++i){why=XIDE_WORKSPACE_EDIT_CANCELLED;if(stop(&p))goto done;const xide_workspace_edit_document* original=xrtArrayConstGet(&source->documents,selected[i]);xide_workspace_edit_document* d=xrtArrayGet(&plan->documents,i);*d=*original;d->uri=d->path=NULL;d->before=d->after=NULL;d->first=at;
+  why=XIDE_WORKSPACE_EDIT_LIMIT;size_t pathBytes=strlen(original->path)+1,before=xlsTextStorageBytes(original->before),after=original->after==original->before?0:xlsTextStorageBytes(original->after);if(!before||!charge(&p,before)||!charge(&p,after)||!charge(&p,pathBytes))goto done;
+  why=XIDE_WORKSPACE_EDIT_MEMORY;d->uri=copyString(xrtStrView(original->uri),&p);char* path=malloc(pathBytes);d->path=path;if(!d->uri||!path)goto done;memcpy(path,original->path,pathBytes);d->before=xlsTextRetain(original->before);d->after=xlsTextRetain(original->after);if(!d->before||!d->after)goto done;plan->info.changedDocuments+=d->changed;
+  for(size_t j=0;j<d->count;++j){why=XIDE_WORKSPACE_EDIT_CANCELLED;if(stop(&p))goto done;xide_workspace_text_edit* e=xrtArrayGet(&plan->edits,at++);*e=*(const xide_workspace_text_edit*)xrtArrayConstGet(&source->edits,original->first+j);e->document=i;if(e->annotation!=SIZE_MAX)e->annotation=annotationMap[e->annotation];}
+ }
+ for(size_t i=0;i<source->info.annotations;++i)if(used[i]){why=XIDE_WORKSPACE_EDIT_CANCELLED;if(stop(&p))goto done;const xide_workspace_edit_annotation* a=xrtArrayConstGet(&source->annotations,i);xide_workspace_edit_annotation* b=xrtArrayGet(&plan->annotations,annotationMap[i]);b->needsConfirmation=a->needsConfirmation;plan->info.needsConfirmation|=b->needsConfirmation;why=XIDE_WORKSPACE_EDIT_MEMORY;b->id=(xstrview){copyString(a->id,&p),a->id.Size};b->label=(xstrview){copyString(a->label,&p),a->label.Size};if(a->description.Data)b->description=(xstrview){copyString(a->description,&p),a->description.Size};if(!b->id.Data||!b->label.Data||(a->description.Data&&!b->description.Data))goto done;}
+ why=XIDE_WORKSPACE_EDIT_CANCELLED;if(stop(&p))goto done;plan->info.documents=count;plan->info.edits=edits;plan->info.annotations=annotations;plan->info.bytes=p.used;why=XIDE_WORKSPACE_EDIT_OK;
+done:
+ if(p.stopped)why=XIDE_WORKSPACE_EDIT_CANCELLED;
+ if(why!=XIDE_WORKSPACE_EDIT_OK){xideWorkspaceEditRelease(plan);plan=NULL;}if(output)*output=why;return plan;
+}
 xide_workspace_edit* xideWorkspaceEditPrepare(const xvalue* value,const xide_workspace_edit_input* inputs,size_t count,int requireProof,size_t budget,int (*cancelled)(void*),void* user,enum xide_workspace_edit_error* output)
 {
  enum xide_workspace_edit_error why=XIDE_WORKSPACE_EDIT_ARGUMENT;xide_workspace_edit* plan=NULL;capture* captured=NULL;pending_edit* pending=NULL;xide_lsp_position* positions=NULL;char* body=NULL;wchar_t* lookup=NULL;

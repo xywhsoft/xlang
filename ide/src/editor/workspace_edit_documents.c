@@ -133,6 +133,11 @@ static int beforePublish(void* user)
  int status=t->hostGuard(t->hostUser);if(status!=XUI_OK)return status;
  return current(t,t->work,1)?XUI_OK:XUI_ERROR_INVALID_STATE;
 }
+const xide_text_file* xideOpenEditBaselineAt(const xide_open_edit_work* w,size_t at)
+{return w&&at<w->count?xideDocumentBaselineRead(w->rows[at].baseline):NULL;}
+size_t xideOpenEditReservation(const xide_open_edit_work* w){return w?(w->attempted?w->limit:w->used):0;}
+int xideOpenEditValidate(xide_open_edit_ticket* t,xide_open_edit_work* w)
+{if(!t||!w||t->thread!=xrtThreadCurrentId()||t->busy)return XUI_ERROR_INVALID_ARGUMENT;if(t->attempted||!w->ready||t->serial!=w->layout.iCapture||t->count!=w->count)return XUI_ERROR_INVALID_STATE;return current(t,w,1)?XUI_OK:XUI_ERROR_INVALID_STATE;}
 static void publishModels(void* user)
 {
  xide_open_edit_ticket* t=user;

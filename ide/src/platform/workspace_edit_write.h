@@ -18,6 +18,12 @@ typedef struct xide_edit_file_status {
  * occur during construction. An open overlay or reopened package is refused. */
 xide_edit_file_write* xideEditFileWritePrepare(xide_edit_spool*,size_t document,size_t budget,xide_model_error*);
 int xideEditFileWriteStatus(const xide_edit_file_write*,xide_edit_file_status*);
+/* Worker-only fresh recheck of a verified before/after/restored observation.
+ * No write or callback. Never promotes an unknown partial state to permission. */
+int xideEditFileWriteVerify(xide_edit_file_write*,xide_model_error*);
+/* Own known buffers/wrapper; equal baseline/output share one immutable buffer.
+ * Does not include Spool, allocator internals or OS handles. */
+size_t xideEditFileWriteStorage(const xide_edit_file_write*);
 /* REQUIRED worker-safe host fence. Returning true must establish the enclosing
  * request/source/physical/consent policy AND durably record recoverable intent
  * before any mutation; a generic callback returning true is not a journal.

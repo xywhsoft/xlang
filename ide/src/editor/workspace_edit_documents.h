@@ -23,6 +23,14 @@ int xideOpenEditCapture(xide_document_store*,xide_workspace_edit*,size_t budget,
 /* Sequential worker operation, single attempt; cancel/user borrowed for this
  * call only. Even failure leaves Work caller-owned for off-UI retirement. */
 int xideOpenEditStage(xide_open_edit_work*,int (*cancelled)(void*),void*);
+/* Immutable worker view, borrowed until Work retirement. No GUI access. */
+const xide_text_file* xideOpenEditBaselineAt(const xide_open_edit_work*,size_t);
+/* Captured known bytes; once Stage is attempted, reserve its complete admitted
+ * quota, including opaque SDK staging/payload storage. Not an exact heap size. */
+size_t xideOpenEditReservation(const xide_open_edit_work*);
+/* Owner-only preflight for a staged, unconsumed ticket; no host callback,
+ * publication or disk access. Commit repeats its fences independently. */
+int xideOpenEditValidate(xide_open_edit_ticket*,xide_open_edit_work*);
 /* Host guard is REQUIRED and borrowed for this synchronous owner call. It must
  * fence connection/request/config/project/source/physical policy and annotation
  * consent. The module rechecks its own whole group after host callbacks, then

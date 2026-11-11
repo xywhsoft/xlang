@@ -48,6 +48,16 @@ enum xide_workspace_edit_error {
  * until the complete application transaction exists. No borrowed DOM survives. */
 xide_workspace_edit* xideWorkspaceEditPrepare(const xvalue*,const xide_workspace_edit_input*,size_t,
  int requireProof,size_t budget,int (*cancelled)(void*),void*,enum xide_workspace_edit_error*);
+/* Worker-only projection for mixed transactions. Select strictly increasing
+ * original document rows. Share existing immutable before/after text leases;
+ * do not scan/copy/rebuild their bodies or retain the parent/closed targets.
+ * Own copied metadata, remap document/edit/used-annotation indexes and recompute
+ * confirmation requirements. Document.input and edit.ordinal keep original
+ * request/wire identities. Same default128/max256MiB known-storage policy as
+ * Prepare; bounded stack scratch/allocator overhead are additional. No source
+ * recapture, approval or mutation. Empty selection is valid. */
+xide_workspace_edit* xideWorkspaceEditSelect(const xide_workspace_edit*,const size_t*,size_t,
+ size_t budget,int (*cancelled)(void*),void*,enum xide_workspace_edit_error*);
 xide_workspace_edit* xideWorkspaceEditRetain(xide_workspace_edit*);
 void xideWorkspaceEditRelease(xide_workspace_edit*);
 int xideWorkspaceEditInfo(const xide_workspace_edit*,xide_workspace_edit_info*);
