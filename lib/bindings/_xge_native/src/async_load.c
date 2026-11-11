@@ -18,4 +18,7 @@ XL6_XGE_ASYNC_FACTORY(xl6Xge3AsyncTextureCreateOwned,xgeAsyncTextureCreateOwned)
 #if XGE_ENABLE_TEXT
 XL6_XGE_ASYNC_FACTORY(xl6Xge3AsyncFontCreateOwned,xgeAsyncFontCreateOwned)
 #endif
+#if XGE_ENABLE_AUDIO
+XL6_XGE_ASYNC_FACTORY(xl6Xge3AsyncSoundCreateOwned,xgeAsyncSoundCreateOwned)
+#endif
 #undef XL6_XGE_ASYNC_FACTORY

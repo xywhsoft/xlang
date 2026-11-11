@@ -1,6 +1,7 @@
-# Owned image, texture and font loading
+# Owned image, texture, font and sound loading
 
-`xge.createImageLoad()`, `xge.createTextureLoad()` and `xge.createFontLoad()` return
+`xge.createImageLoad()`, `xge.createTextureLoad()`, `xge.createFontLoad()` and
+`xge.createSoundLoad()` return
 distinct owning request types. They expose `share`, `info`, `start`, `poll`, `cancel`, `reset`,
 `throwIfFailed`, `onComplete`, `take` and `close`. `LoadInfo` is the exact native
 record, including status/result, progress, result presence and threading state.
@@ -13,7 +14,10 @@ The existing native implementation uses a system thread per active file request.
 Font requests preserve the native synchronous caller-thread behavior, including
 file paths when threading is enabled. `start(path, size)` can invoke completion
 before returning. This is an owning request API, not a promise of nonblocking
-font IO. Sound requests remain in scope with the audio resource family.
+font IO. Sound requests likewise complete on the audio control thread, with
+`start(path)` potentially invoking completion before returning. They use file
+paths supported by the native sound loader; this does not add an arbitrary
+language resource-provider decoder or nonblocking sound IO.
 
 See [the small image example](../lib/bindings/xge/examples/async_image.xl). It uses
 one TGA pixel so no asset installation is needed. Providers are cleared in
@@ -53,13 +57,19 @@ The 96-byte native Font is not embedded into the common target union: empty
 ImageLoad/TextureLoad request storage retains its prior size. Language result
 ownership still needs its normal view metadata and code-lifetime bookkeeping.
 
+Sound requests keep a stable, native-owned Sound pointer in the existing target
+union. A ready unclaimed result holds the audio engine lifetime. `take()` moves
+that same record without a native allocation, AddRef, record copy or PCM copy.
+The Sound survives request close. Reset/close releases an unclaimed result,
+while closed aliases and a second take remain checked errors.
+
 ## Native and language mapping
 
 Ordinary methods directly declare the native `xgeAsyncLoad*Owned`,
-`xgeAsyncImageStartOwned`/`TakeOwned` and Texture/Font counterparts. The three cold
+`xgeAsyncImageStartOwned`/`TakeOwned` and Texture/Font/Sound counterparts. The four cold
 creation adapters only admit the module's code lease; they do not decode, poll,
 dispatch operations or wrap every method. Common native input symbols use the
-[generic input-policy rule](foreign-owned-policy-inputs.md); the three nominal
+[generic input-policy rule](foreign-owned-policy-inputs.md); the four nominal
 types and producer/rollback policies remain separate.
 
 Native Count/Trace, preparation, quiescence, finalization and completion describe
@@ -168,3 +178,48 @@ The C baseline is process-resident without a JIT module lease; status/ownership
 checks, code lifetime, URI NUL validation/copy, decode work and callback activity
 remain costs. Exact pins are in
 `dev/release-materials/provenance/xge-font-loading-20261111.json`.
+
+## Sound loading qualification
+
+SoundLoad reuses the same shared request domain, native ownership graph,
+completion callback and cold code-lease admission. Native `f4b0fbb8` and frozen
+r55 host/static SDKs add the three Sound request APIs. The full native host and
+static libraries are rebuilt after the public ABI fingerprint changes; neither
+the compiler nor a per-audio Cgen path is changed.
+
+The complete Windows r17/Linux r9 O2/TinyCC/XRT/VFS compiler checks SoundLoad
+through JIT, dynamic AOT and standalone static AOT. Tests cover real no-device
+PCM after request close, callback self-clear/throw, typed bound Start, ordinary
+stored failures, cancel/reset/retry, NUL rejection, duplicate Take, 96 allocation
+prefixes and preservation of an unclaimed result if its language view cannot be
+reserved. Strict C11/C++11/C++17 headers and real C++ linkage use production SDKs.
+The small [sound example](../lib/bindings/xge/examples/sound_loading.xl) builds
+against those SDKs; listening through a physical output device remains manual.
+
+Actual module Close tests retain a native shared SoundLoad and its closure code.
+They check empty and ready requests, then explicitly reset a ready result before
+shutting down the engine. The unclaimed Sound makes Unit Busy before reset.
+Because SOUND completes synchronously, the ready-request case also resets and
+starts the retained native request after real module Close, then checks that the
+language completion executes a second time. Polling an already-notified request
+alone is not used as proof of callback code execution after Close.
+Clearing callbacks and publishers permits checked collection and native image
+unload. This explicit-reset path does not pass the separate automatic module-
+global resource shutdown gate. The same cohort repeats Image/Font module tests.
+
+On both x64 platforms, an empty process-resident C SoundLoad retains 1 allocation/
+248 bytes; the language request retains 4/840, including its code lease and view
+bookkeeping. Native Take has zero allocations; its language result retains 2
+allocations/528 bytes. The native C baseline has no independent JIT module lease.
+URI validation/copy, decoder work, native kind branches, callback ownership and
+checked code/view/graph activity remain real costs. No per-method forwarding or
+extra PCM copy is added, and these counts are not a timing benchmark.
+
+Native qualification has 368 Sound/old-audio/FontLoad/Image/Texture rows. Language,
+header, module and example-build evidence is indexed separately in
+`dev/release-materials/provenance/xge-sound-loading-20261111.json`. Positive audio
+execution uses explicitly private SDK setup exports selecting miniaudio's real
+no-device mixer; production playback functions are unchanged and those test
+images are not shipped. The final current-mainline SDK/compiler/IDE/help set,
+automatic module-global retirement and the remaining audio/full-coverage items
+remain unfinished.

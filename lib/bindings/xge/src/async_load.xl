@@ -60,3 +60,21 @@ export extern "struct xge_async_owned_t*" class FontLoad @header("xge3_async_loa
 end
 extern "xgeAsyncLoadReleaseChecked" @header("xge3_async_load.h") @no_raise @c_result("status",0) func releaseFontLoad(FontLoad value)
 export extern "xl6Xge3AsyncFontCreateOwned" @header("xge3_async_load.h") @no_raise @c_code_owner(1) @c_result("owned_view") @factory(0,0,releaseFontLoad) func createFontLoad() as FontLoad
+
+// Sound file loading completes on the audio control thread. A ready request
+// owns a stable Sound until take/reset/close; take moves it without PCM copies.
+export extern "struct xge_async_owned_t*" class SoundLoad @header("xge3_async_load.h") @lifetime("owned") @policy("xl6Xge3SoundLoadPolicy") @domain("xl6Xge3AsyncLoadDomainV1")
+ native point handle
+ extern "xgeAsyncLoadShareOwned" @no_raise @c_result("owned_view") @factory(1,0,releaseSoundLoad) func share() as SoundLoad
+ extern "xgeAsyncLoadInfoGet" @no_raise @c_output(1,0) @c_output_size(1,"size") func info() as LoadInfo
+ extern "xgeAsyncSoundStartOwned" @no_raise @c_cstr(0) @c_result("status",0) func start(string path)
+ extern "xgeAsyncLoadPollOwned" @no_raise @c_output(1,0) func poll() as c_int
+ extern "xgeAsyncLoadCancelOwned" @no_raise @c_result("status",0) func cancel()
+ extern "xgeAsyncLoadResetOwned" @no_raise @c_result("status",0) func reset()
+ extern "xgeAsyncLoadThrowIfFailed" @no_raise @c_result("status",0) func throwIfFailed()
+ extern "xgeAsyncLoadCallbackSetOwned" @no_raise @c_owned_callback(0,-1,"xge_callback_owner_t",-16) @c_result("status",0) func onComplete(FrameHandler? callback)
+ extern "xgeAsyncSoundTakeOwned" @no_raise @c_result("owned_view") @factory(1,0,freeSound) func take() as Sound
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xgeAsyncLoadReleaseChecked" @header("xge3_async_load.h") @no_raise @c_result("status",0) func releaseSoundLoad(SoundLoad value)
+export extern "xl6Xge3AsyncSoundCreateOwned" @header("xge3_async_load.h") @no_raise @c_code_owner(1) @c_result("owned_view") @factory(0,0,releaseSoundLoad) func createSoundLoad() as SoundLoad

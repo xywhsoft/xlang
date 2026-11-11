@@ -5,4 +5,5 @@ int fixtureAsyncModuleTick(void);
 int fixtureAsyncModuleCallbacks(void);
 const char* fixtureAsyncModulePath(void);
 int fixtureAsyncModulePublish(xge_async_owned request);
+int fixtureAsyncModuleAudioBegin(void);
 #endif

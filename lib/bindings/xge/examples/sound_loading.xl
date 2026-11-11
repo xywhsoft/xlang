@@ -1,0 +1,24 @@
+import xge
+
+// Run beside data/tone.wav with a working audio output device.
+xge.init(4,4,"Owned sound loading",0,xge.XGE_RUN_MANUAL)
+try
+ assert xge.audioInit()==xge.XGE_OK
+ auto load=xge.createSoundLoad()
+ // XGE currently loads Sound on this thread. Register before start().
+ load.onComplete(func() as c_int
+  println("Sound request completed")
+  return xge.XGE_OK
+ end)
+ load.start("data/tone.wav")
+ load.throwIfFailed()
+ auto sound=load.take()
+ load.close()
+ // The Sound owns its data independently of the request.
+ sound.play()
+ time.sleep(300)
+ sound.close()
+finally
+ xge.audioUnit()
+ xge.unit()
+end

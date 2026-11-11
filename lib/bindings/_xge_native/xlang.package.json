@@ -80,7 +80,8 @@
         "providedSymbols": [
           "xl6Xge3AsyncImageCreateOwned",
           "xl6Xge3AsyncTextureCreateOwned",
-          "xl6Xge3AsyncFontCreateOwned"
+          "xl6Xge3AsyncFontCreateOwned",
+          "xl6Xge3AsyncSoundCreateOwned"
         ],
         "requiredSymbols": [
           "xl6CodeLeaseAcquireScoped",

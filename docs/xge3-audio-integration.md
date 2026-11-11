@@ -16,7 +16,8 @@ queries call their declared native symbols directly. `audioUnit()` now maps to
 checked native shutdown. Every resource has checked, creator-thread close.
 `AudioClipInfo` and a private clip destruction policy are not proof of a complete
 public clip API. Its thread/sequence contract, clip voices, remaining fallback
-surface and owning SoundLoad requests remain unfinished.
+surface remain unfinished. Owning SoundLoad is qualified separately through the
+[shared request protocol](xge3-async-loading.md#sound-loading-qualification).
 
 ## Native and compiler prerequisites
 
@@ -29,7 +30,8 @@ surface and owning SoundLoad requests remain unfinished.
 | Sound/Music/Stream | Stable owned native records, checked final release and direct OOP methods are qualified through Windows/Linux JIT and dynamic/static AOT. Public layouts remain unchanged. Shared scalar access proves types/offsets and avoids incompatible struct lvalues. Physical device and final module-global qualification remain separate. |
 | Allocation/path diagnostics | Shared allocation callbacks isolate recovered OOM, while typed paths stop fatal memory failures. A further resident-engine test exposed a miniaudio connector failure retaining a cache node until engine shutdown; native `84ce4b4f` returns the acquired node/base before failure. Every tested language prefix now balances while the engine stays alive. |
 | Sound references | `xgeSoundAddRef` previously revived zero/negative counts and overflowed at INT_MAX. Fixed by native `5d138435`; old Windows/Linux failures and 80 host/static O0/O2 boundary/PCM rows are pinned separately. No engine/device was initialized. |
-| SoundLoad | Native SOUND requests are synchronous on the caller, as FONT requests are. Reuse the owning request graph/code/callback/result protocol after the sound resource parent/storage contract exists. |
+| SoundLoad | Native `f4b0fbb8` and the language SoundLoad reuse the shared request graph/code/callback protocol. SOUND remains synchronous on the caller/control thread; Take transfers the existing stable Sound without allocating or copying it. Explicit-reset module retirement is separate from automatic global cleanup. |
+| Fallback | Set/Get/Clear still manipulate an unprotected global path. Complete the safe owning factory, Set/Clear/read synchronization, pre-init configuration and checked shutdown admission before advertising the full language surface. Qualify error precedence and failure cleanup independently; a successful SoundLoad does not prove these contracts. |
 | Code residency | The general module-global resource/code-lifetime gate remains false. Explicitly disposing an unclaimed result is a valid positive path, and is not evidence that automatic module-global shutdown is solved. |
 
 The native foundation is now reproduced and qualified with real no-device PCM
@@ -52,9 +54,10 @@ device playback or complete language-level ownership/module acceptance.
 3. Declare complete clip/group/Sound/Music/stream and fallback OOP APIs. Preserve
    exact byte/frame/sample and millisecond units, bounded output, independent
    cursors, sample retention, error/ordinary-state distinctions and native limits.
-4. Complete SoundLoad using the same request protocol, then qualify matched
-   Windows/Linux JIT, dynamic/static AOT, real modules, OOM, parent close/retry,
-   callbacks, cleanup, strict C/C++ headers and generated calls.
+4. SoundLoad uses the same request protocol and matched Windows/Linux JIT,
+   dynamic/static AOT, explicit-reset modules, OOM, parent close/retry, callbacks,
+   strict C/C++ headers and direct generated calls. Complete the remaining Clip,
+   fallback and automatic module-global lifetime gates independently.
 5. Measure copies, cold allocations, scans, calls, synchronization and lifetime
    bookkeeping against the same native workload. Add readable examples and
    include the complete matched SDK/compiler/IDE/help set in final delivery.
@@ -100,6 +103,6 @@ and code/lifetime ownership. These measurements agree across the six JIT/AOT
 executions, for this exact workload and cohort.
 
 The public immutable Clip/thread/PCM-sequence contract, clip voices, complete
-fallback surface, SoundLoad, automatic module-global code residency and final
+fallback surface, automatic module-global code residency and final
 current-mainline SDK/compiler/IDE/help delivery remain unfinished. The private
 setup fixture and explicitly drained worker references do not replace them.

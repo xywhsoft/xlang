@@ -350,3 +350,15 @@ SoundLoad、全局代码寿命、其他全量模块及最终主线配套交付�
 多 2 次分配/528 字节，仍有错误/线程/代码/视图维护，不宣称零总开销。
 Clip 公开线程/序列合同、clip voices、fallback、SoundLoad、模块全局代码寿命和
 最终当前主线 SDK/编译器/IDE/帮助交付仍在任务内；本批未替换 release/IDE。
+
+2026-11-11 SoundLoad 已沿用同一请求拥有图、回调与冷代码驻留准入接入，原生提交
+`f4b0fbb8`。SOUND 保持控制线程同步加载，`take` 转交原有稳定 Sound，不添加记录/
+PCM 复制或原生分配；原生目标联合字段不扩大。完整 r55 host/static O2 重建后，
+两端原生 Sound 请求、音频、FontLoad 与 Image/Texture 回归共 368 项通过。语言、
+头文件、模块和范例构建见 `xge-sound-loading-20261111.json`，包括 JIT、动态/静态
+AOT、96 档分配预算、Take 预留失败不丢结果、回调异常及真实 Close 后重新加载并
+再次执行语言回调。未领取 Sound 仍使 Unit Busy；显式 reset 后关闭/退役不替代
+自动模块全局资源寿命门。空请求 C 为 1 次分配/248 字节，语言为 4/840；领取结果
+的语言拥有视图增加 2/528。没有音频设备/窗口/网络测试，私有无设备初始化入口不
+进入正式 SDK。Clip 线程/只读序列、clip voices、fallback、通用全局代码寿命及最终
+当前主线配套交付继续保留；正式 release/IDE 未安装。

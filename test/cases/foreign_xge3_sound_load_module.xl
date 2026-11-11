@@ -1,0 +1,25 @@
+// The private SDK initializes a real no-device mixer; ordinary APIs are unchanged.
+import xge
+extern "fixtureAsyncModuleTick" @header("test/cases/foreign_xge3_async_module.h") @no_raise func tick() as c_int
+extern "fixtureAsyncModuleCallbacks" @header("test/cases/foreign_xge3_async_module.h") @no_raise func useCallbacks() as c_int
+extern "fixtureAsyncModulePath" @header("test/cases/foreign_xge3_async_module.h") func fixturePath() as string
+extern "fixtureAsyncModulePublish" @header("test/cases/foreign_xge3_async_module.h") @no_raise func publish(xge.SoundLoad request) as c_int
+extern "fixtureAsyncModuleAudioBegin" @header("test/cases/foreign_xge3_async_module.h") @no_raise @c_result("status",0) func beginAudio()
+xge.SoundLoad? retained=null
+func main(...) as int
+ xge.init(4,4,"Sound request module",0,xge.XGE_RUN_MANUAL)
+ beginAudio()
+ auto request=xge.createSoundLoad()
+ if useCallbacks()!=c_int(0) then
+  request.onComplete(func() as c_int
+   assert request.info().hasResult and not request.info().threaded
+   assert tick()>c_int(0)
+   return xge.XGE_OK
+  end)
+  request.start(fixturePath())
+  assert request.info().hasResult
+ end
+ assert publish(request)==xge.XGE_OK
+ retained=request
+ return 0
+end

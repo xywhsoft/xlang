@@ -1,0 +1,121 @@
+import xge
+extern "fixtureXgeAudioBegin" @header("test/cases/foreign_xge3_sound_load.h") @no_raise @c_result("status",0) func beginAudio()
+extern "fixtureXgeAudioMix" @header("test/cases/foreign_xge3_sound_load.h") @no_raise @c_result("status",0) func mix()
+extern "fixtureXgeAudioOwners" @header("test/cases/foreign_xge3_sound_load.h") @no_raise func owners() as uint64
+extern "fixtureXgeAudioPath" @header("test/cases/foreign_xge3_sound_load.h") func fixturePath() as string
+extern "fixtureXgeAudioHeap" @header("test/cases/foreign_xge3_sound_load.h") @no_raise @c_outputs(0,1) func heap() as (c_size,c_size)
+extern "fixtureSoundLoadNativeCosts" @header("test/cases/foreign_xge3_sound_load.h") @no_raise @c_result("status",0) func nativeCosts()
+extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func debugEnabled() as bool
+class SoundLoadCount
+ int done=0
+end
+func emptyCosts() as (c_size,c_size)
+ auto count0,bytes0=heap()
+ auto load=xge.createSoundLoad()
+ auto count1,bytes1=heap()
+ load.close()
+ return count1-count0,bytes1-bytes0
+end
+func main(...) as int
+ assert debugEnabled()
+ xge.init(4,4,"Sound loading CPU qualification",0,xge.XGE_RUN_MANUAL)
+ beginAudio()
+ string path=fixturePath()
+ try
+  auto count=SoundLoadCount()
+  auto load=xge.createSoundLoad()
+  assert load.info().kind==xge.XGE_ASYNC_SOUND
+  load.onComplete(func() as c_int
+   assert load.info().hasResult and not load.info().threaded
+   count.done+=1
+   load.onComplete(null)
+   return xge.XGE_OK
+  end)
+  assert xge.asyncThreadingSet(c_int(1))==xge.XGE_OK
+  func(string) start=load.start
+  start(path)
+  assert count.done==1 and load.poll()==xge.XGE_ASYNC_READY
+  load.throwIfFailed()
+  bool busy=false
+  try
+   xge.audioUnit()
+  catch Error error
+   busy=true
+  end
+  assert busy and owners()==uint64(1)
+  auto count0,bytes0=heap()
+  auto sound=load.take()
+  auto count1,bytes1=heap()
+  println("Language SoundLoad take: ",count1-count0," allocations / ",bytes1-bytes0," bytes")
+  assert not load.info().hasResult
+  bool duplicate=false
+  try
+   auto unused=load.take()
+  catch Error error
+   duplicate=true
+  end
+  assert duplicate
+  auto shared=load.share()
+  load.close()
+  shared.reset()
+  shared.start(path)
+  assert shared.info().hasResult and owners()==uint64(2)
+  shared.reset()
+  shared.close()
+  sound.setLoop(c_int(1))
+  sound.play()
+  mix()
+  sound.close()
+  assert owners()==uint64(0)
+
+  auto failed=xge.createSoundLoad()
+  failed.start(path+".missing")
+  assert failed.info().status==xge.XGE_ASYNC_FAILED and not failed.info().hasResult
+  bool stored=false
+  try
+   failed.throwIfFailed()
+  catch Error error
+   stored=true
+  end
+  assert stored and owners()==uint64(0)
+  failed.reset()
+  failed.cancel()
+  assert failed.poll()==xge.XGE_ASYNC_CANCELLED
+  failed.reset()
+  bool nul=false
+  try
+   failed.start(path+"\0suffix")
+  catch Error error
+   nul=true
+  end
+  assert nul and failed.info().status==xge.XGE_ASYNC_PENDING
+  failed.onComplete(func() as c_int
+   throw ValueError("sound completion failure")
+   return xge.XGE_OK
+  end)
+  bool callbackFailed=false
+  try
+   failed.start(path)
+  catch ValueError error
+   callbackFailed=error.message=="sound completion failure"
+  end
+  assert callbackFailed and failed.info().hasResult
+  failed.onComplete(null)
+  failed.reset()
+  failed.start(path)
+  auto recovered=failed.take()
+  failed.close()
+  recovered.close()
+  assert owners()==uint64(0)
+
+  emptyCosts()
+  nativeCosts()
+  auto allocations,requested=emptyCosts()
+  println("Language empty SoundLoad: ",allocations," allocations / ",requested," bytes")
+  println("SoundLoad direct calls, callbacks, move, recovery and real PCM passed")
+ finally
+  xge.audioUnit()
+  xge.unit()
+ end
+ return 0
+end

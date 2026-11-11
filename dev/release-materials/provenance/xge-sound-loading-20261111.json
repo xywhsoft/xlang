@@ -1,0 +1,272 @@
+{
+  "schema": "xlang-xge-sound-loading-1",
+  "scope": "Qualified owned SoundLoad and explicit-reset module retirement; not complete audio or final distribution",
+  "passed": true,
+  "soundLoadRequestQualified": true,
+  "languageAudioIntegrationComplete": false,
+  "shippingDelivery": false,
+  "moduleGlobalResourceShutdownGate": false,
+  "audioDevice": false,
+  "realMiniaudio": true,
+  "window": false,
+  "networkTests": false,
+  "source": {
+    "lib/bindings/_xge_native/include/xge3_runtime.h": "c10a7c8f310ed933437eba3192eb1bf0b5633ad0ee430119be3ffeee0c5b2204",
+    "lib/bindings/_xge_native/src/async_load.c": "79a2fd39378f9e5edd9c5d7192edd6a038c00397a7642a024bb03de3e8b465bf",
+    "lib/bindings/_xge_native/xlang.package.json": "56b66d8696cd99ffbd50528049eab6a5996946aea8b319bdcd9d18466f132de5",
+    "lib/bindings/xge/include/xge3_async_load.h": "65a78f4011e64550886a87281bb3cd3853c5a459f0604904511b072a0a43e1a6",
+    "lib/bindings/xge/src/async_load.xl": "35c0c61f9c666fcfd8aa1fbd6fe83939fca3eb9984adf181e71206db818e8736",
+    "lib/bindings/xge/examples/sound_loading.xl": "1628c56b8204c8eb520b5e3f1cfeb7577ecbe707edfc60850eae2461563b73a1",
+    "lib/bindings/xge/examples/data/tone.wav": "75651e2f1f475d7a15dcbd9ed67bb2cf0c3281d806e9834cc34eed9af91c5c45",
+    "test/cases/foreign_xge3_sound_load.h": "977d8c5de416a621df8f4726bbe9f7926a6dcc5cc17fcd1f33e364ab3057fad8",
+    "test/cases/foreign_xge3_sound_load.xl": "b1d4284fa2f2bc1deb31e13ba1af6206117601c054a0a400dffb67e99992321a",
+    "test/cases/foreign_xge3_sound_load_oom.xl": "d42462b245bf3a37ac5a930d30a6394c4e728e1c8c551ff8fb277d95b6450fe3",
+    "test/cases/foreign_xge3_sound_load_module.xl": "6bacffd5611a6dab7c43f39f75ea53cead719ebf02ba7e97f786812f59cf8e18",
+    "test/cases/foreign_xge3_async_module.h": "31161499341663f51d06e71b2801bb60a298abc9fdf21432f477f02e78f21622",
+    "test/cases/foreign_xge3_async_module_host.c": "ca6dff2fff18b65a1b7740885bf94d608928d9cdb895e4dc6e01ac9795e84d0b",
+    "test/cases/foreign_xge3_audio_resources.h": "48f6f87d81a6823a45a41f3037d3634c32b192e109b69392506402e3f675de48",
+    "test/support/xge3_audio_headless.inc": "217be430daafea079c74e27e6d2f673fb1ebc8dae3822806e07e6d2e9f0cc895",
+    "tools/check_xge3_audio_resources.py": "35c9d8544a45f825128e2a4dafbeb7e62f0172e9474210da1f67bb7eb96d2ee7",
+    "tools/check_xge3_async_module.py": "8d44cd6ae2be76e74e3f9d3db1008e0003a958e32268f3a0af26a6ce2b237bd3",
+    "tools/check_xge3_async_headers.py": "2fb95aa15f51c23203249b6ab7c40b39e45d2582277a6f7e9519bc99d9df2557",
+    "tools/build_xge3_audio_test_sdk.py": "acdbd1a89e71b10cb3d6ac3b09294d3bb07c9066defbc3821f2417acdc254f16"
+  },
+  "nativeCommit": "f4b0fbb89b2938aad1771f759b1e274b2a253c7f",
+  "nativeQualification": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\async-sound-owned-20261111.json",
+    "sha256": "1854a6623df44a3359a3d6e7cafde4467b7329384ee137cde84abb65884c4124"
+  },
+  "canonicalXrtSha256": "41bc24579f4b3207b0434755ca23dd06481af90c05f71e9b365848cf9a7c12d1",
+  "sourceFreeze": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\native-freeze-r55.json",
+    "sha256": "0fdf4de6e15823eccd7f27f64e06b396d4d4c16fab60049f690eacce6cc2f51b"
+  },
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\sound-language-win-r1\\results.json",
+      "sha256": "75d575e3f4f61fef78a5623479105998f8c7774d469ef9ccf7fd877d4b6a8460",
+      "checks": 16,
+      "execution": true
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\sound-headers-win-r1\\results.json",
+      "sha256": "08e6452a16a192aa9e7674f7cf056291336e9fa4156e0fa9da1a74a7beb3a060",
+      "checks": 8,
+      "execution": true
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\sound-modules-win-r2\\results.json",
+      "sha256": "d41fa777cc4741bf2b944ccc9065c520eef50068288048e56a31a205484971b9",
+      "checks": 18,
+      "execution": true
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\sound-example-win-r1\\results.json",
+      "sha256": "7b843491b507327b704ed54f905fab8eab7ef3c255c35c3f8dceec0359f24bd7",
+      "checks": 3,
+      "execution": false
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\sound-language-linux-r1\\results.json",
+      "sha256": "bd6a3c2c9a05708f071adfcaab2a2696026ead5b3ca1fe9c83de7eac2b44bc6c",
+      "checks": 16,
+      "execution": true
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\sound-headers-linux-r1\\results.json",
+      "sha256": "00570a3a9ac8ba464aba6cf010842861339d652151d926fa32762a2b3e72a1de",
+      "checks": 8,
+      "execution": true
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\sound-modules-linux-r2\\results.json",
+      "sha256": "7e2ccecb4edf3927fcdc9e5b41d46d9701ddf3f53236dc8337d29204dd18ca71",
+      "checks": 18,
+      "execution": true
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\sound-example-linux-r1\\results.json",
+      "sha256": "e3408dac7f20aa6c2843413a888a004d417e1d66175aecb0ebbe831e5c0604d2",
+      "checks": 3,
+      "execution": false
+    }
+  ],
+  "privateTestVariants": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\sound-load-test-sdk-win-r1\\test-variant.json",
+      "sha256": "c76ed28e13f07b06a28b05ad1ef7710af808934774f025c70b6efc9bee455b0e"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\sound-load-test-sdk-linux-r1\\test-variant.json",
+      "sha256": "f38642aba3c91a521fa1de177cf1aaba415d76785b3d28a1eecd0d1ae0a9cc73"
+    }
+  ],
+  "productionPackages": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-sound-dynamic-win-r1.json",
+      "sha256": "4b69a62d0b0a6c321a261c414c580de9db17ae5d9b1a3be3da2edd97e2f17d5d"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-sound-static-win-r1.json",
+      "sha256": "cae44eb06434be7ec9552f61dd15a91be557a1c08094844e13dfd77bac411b93"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-sound-dynamic-linux-r1.json",
+      "sha256": "8b8d8d9abdab4f3eeef5d75865f4a78829a81bf0101e826184760154c68382aa"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-sound-static-linux-r1.json",
+      "sha256": "bee25ff8a23846212fda3505bd094f267a26dde0c5e479f7dc538801d7623a95"
+    }
+  ],
+  "retainedCosts": {
+    "win": {
+      "foreign_xge3_sound_load-jit": {
+        "Native": {
+          "allocations": 1,
+          "bytes": 248
+        },
+        "Language": {
+          "allocations": 4,
+          "bytes": 840
+        }
+      },
+      "foreign_xge3_sound_load-dynamic-run": {
+        "Native": {
+          "allocations": 1,
+          "bytes": 248
+        },
+        "Language": {
+          "allocations": 4,
+          "bytes": 840
+        }
+      },
+      "foreign_xge3_sound_load-static-run": {
+        "Native": {
+          "allocations": 1,
+          "bytes": 248
+        },
+        "Language": {
+          "allocations": 4,
+          "bytes": 840
+        }
+      }
+    },
+    "linux": {
+      "foreign_xge3_sound_load-jit": {
+        "Native": {
+          "allocations": 1,
+          "bytes": 248
+        },
+        "Language": {
+          "allocations": 4,
+          "bytes": 840
+        }
+      },
+      "foreign_xge3_sound_load-dynamic-run": {
+        "Native": {
+          "allocations": 1,
+          "bytes": 248
+        },
+        "Language": {
+          "allocations": 4,
+          "bytes": 840
+        }
+      },
+      "foreign_xge3_sound_load-static-run": {
+        "Native": {
+          "allocations": 1,
+          "bytes": 248
+        },
+        "Language": {
+          "allocations": 4,
+          "bytes": 840
+        }
+      }
+    }
+  },
+  "transferCosts": {
+    "win": {
+      "foreign_xge3_sound_load-jit": {
+        "allocations": 2,
+        "bytes": 528
+      },
+      "foreign_xge3_sound_load-dynamic-run": {
+        "allocations": 2,
+        "bytes": 528
+      },
+      "foreign_xge3_sound_load-static-run": {
+        "allocations": 2,
+        "bytes": 528
+      }
+    },
+    "linux": {
+      "foreign_xge3_sound_load-jit": {
+        "allocations": 2,
+        "bytes": 528
+      },
+      "foreign_xge3_sound_load-dynamic-run": {
+        "allocations": 2,
+        "bytes": 528
+      },
+      "foreign_xge3_sound_load-static-run": {
+        "allocations": 2,
+        "bytes": 528
+      }
+    }
+  },
+  "allocationPrefixes": {
+    "win": {
+      "foreign_xge3_sound_load_oom-jit": {
+        "failures": 17,
+        "successes": 79
+      },
+      "foreign_xge3_sound_load_oom-dynamic-run": {
+        "failures": 17,
+        "successes": 79
+      },
+      "foreign_xge3_sound_load_oom-static-run": {
+        "failures": 17,
+        "successes": 79
+      }
+    },
+    "linux": {
+      "foreign_xge3_sound_load_oom-jit": {
+        "failures": 16,
+        "successes": 80
+      },
+      "foreign_xge3_sound_load_oom-dynamic-run": {
+        "failures": 16,
+        "successes": 80
+      },
+      "foreign_xge3_sound_load_oom-static-run": {
+        "failures": 16,
+        "successes": 80
+      }
+    }
+  },
+  "fullCompilers": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r17\\build.json",
+      "sha256": "f3049224a1e94337c0557d3626e4235bac23c2c2e1e6ae941fdcda70b19476a6"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-linux-full-r9\\build.json",
+      "sha256": "99a868fd95ba04bd3324490dd65a19621980432bf3af440115190f1d9f967dc5"
+    }
+  ],
+  "limitations": [
+    "SOUND IO/completion is synchronous on the audio control thread, including ThreadingSet enabled.",
+    "Positive PCM uses private SDK setup exports with unmodified production playback functions; no test image is shipped.",
+    "C baseline is process-resident without an independent JIT module lease; code/view/graph checks and URI validation/copy remain costs.",
+    "Module tests execute completion again after Close, then explicitly reset unclaimed Sound before Unit; automatic module-global cleanup gate remains false.",
+    "Caller-thread OOM injection only; physical audio playback is manual."
+  ],
+  "remaining": [
+    "Complete fallback owning factory and global-path concurrency/shutdown contracts",
+    "Public immutable AudioClip thread/sequence contract and clip voices",
+    "Automatic module-global code/resource residency",
+    "Other full-coverage subsystems and final current-mainline SDK/compiler/IDE/help delivery"
+  ],
+  "checks": 90
+}

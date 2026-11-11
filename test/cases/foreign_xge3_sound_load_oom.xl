@@ -1,0 +1,76 @@
+import xge
+extern "fixtureXgeAudioBegin" @header("test/cases/foreign_xge3_sound_load.h") @no_raise @c_result("status",0) func beginAudio()
+extern "fixtureXgeAudioOwners" @header("test/cases/foreign_xge3_sound_load.h") @no_raise func owners() as uint64
+extern "fixtureXgeAudioPath" @header("test/cases/foreign_xge3_sound_load.h") func fixturePath() as string
+extern "fixtureXgeAudioHeap" @header("test/cases/foreign_xge3_sound_load.h") @no_raise @c_outputs(0,1) func heap() as (c_size,c_size)
+extern "xrtMemDebugFailAfter" @header("xrt_decl.h") @no_raise func failAfter(uint64 budget) as bool
+extern "xrtMemDebugFailClear" @header("xrt_decl.h") @no_raise func failClear()
+extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func debugEnabled() as bool
+func loadAndClose(string path)
+ auto load=xge.createSoundLoad()
+ try
+  load.start(path)
+  load.throwIfFailed()
+  auto sound=load.take()
+  sound.close()
+ finally
+  load.close()
+ end
+end
+func main(...) as int
+ assert debugEnabled()
+ xge.init(4,4,"Sound loading allocation qualification",0,xge.XGE_RUN_MANUAL)
+ beginAudio()
+ string path=fixturePath()
+ try
+  loadAndClose(path)
+  assert failAfter(uint64(0))
+  try
+   loadAndClose(path)
+  catch Error error
+  end
+  failClear()
+  int failed=0
+  int passed=0
+  for budget in range(96)
+   auto count0,bytes0=heap()
+   assert failAfter(uint64(budget))
+   try
+    loadAndClose(path)
+    passed+=1
+   catch Error error
+    failed+=1
+   end
+   failClear()
+   auto count1,bytes1=heap()
+   assert count0==count1 and bytes0==bytes1 and owners()==uint64(0)
+  end
+  assert failed>0 and passed>0
+  println("SoundLoad language budgets: ",failed," failures / ",passed," successes")
+  int refused=0
+  for budget in range(6)
+   auto load=xge.createSoundLoad()
+   load.start(path)
+   assert failAfter(uint64(budget))
+   try
+    auto sound=load.take()
+    sound.close()
+   catch Error error
+    refused+=1
+    failClear()
+    assert load.info().hasResult
+    auto retained=load.take()
+    retained.close()
+   end
+   failClear()
+   load.close()
+   assert owners()==uint64(0)
+  end
+  assert refused>0
+ finally
+  failClear()
+  xge.audioUnit()
+  xge.unit()
+ end
+ return 0
+end
