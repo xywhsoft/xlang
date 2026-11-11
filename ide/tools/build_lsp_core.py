@@ -45,6 +45,7 @@ FRONTEND_SOURCES = (
     "src/sem/xl6_sem_index.c", "src/ir/xl6_ir.c", "src/ir/xl6_ir_class_identity.c",
 )
 SERVER_SOURCES = (
+    "src/protocol/workspace_edit.c",
     "src/services/rename_plan.c",
     "src/services/semantic_rename.c",
     "src/services/rename_scope.c",
@@ -137,6 +138,7 @@ HOST_TESTS += ("language_native_cancel_test",)
 HOST_TESTS += ("semantic_tokens_wire_test", "semantic_token_guards_test")
 HOST_TESTS += ("semantic_rename_target_test",)
 HOST_TESTS += ("semantic_rename_policy_test",)
+HOST_TESTS += ("workspace_edit_test", "workspace_edit_fault_test", "workspace_edit_edge_test")
 HOST_TESTS += ("semantic_field_binding_test",)
 HOST_TESTS += ("rename_scope_test",)
 HOST_TESTS += ("project_rename_scope_test",)
@@ -1010,6 +1012,8 @@ def main() -> None:
         for name in (() if args.skip_tests else tests):
             program = output / (name + suffix)
             extra = [str(objects["document_sync"])] if name in ("document_sync_test", "diagnostic_stream_test") else []
+            if name == "workspace_edit_test":extra += ["-Wl,--wrap=xlsTextCreate"]
+            if name == "workspace_edit_fault_test":extra += ["-Wl,--wrap="+f for f in ("malloc","calloc","xrtMalloc","xrtCalloc","xrtArrayResize","xrtStrBufReserve","xlsTextCreate")]
             if name == "analysis_source_text_test":extra.append("-Wl,--wrap=xlsInputBatchAt")
             if name == "analysis_ast_replacement_test":extra.append("-Wl,--wrap=xrtPoolFree")
             if name == "semantic_token_guards_test":extra.append("-Wl,--wrap=xlsSemanticTokensData")

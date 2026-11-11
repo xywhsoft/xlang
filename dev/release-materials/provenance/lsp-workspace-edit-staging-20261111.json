@@ -1,0 +1,93 @@
+{
+  "schema": 1,
+  "date": "2026-11-11",
+  "stage": "M7b4u",
+  "scope": "Immutable all-or-none preparation of versioned WorkspaceEdit text changes; no editor or disk mutation",
+  "implementationAccepted": true,
+  "performanceQualified": false,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "93a89218a1efd486b77f110c9071968486172a87",
+  "ownedSources": {
+    "ide/src/protocol/workspace_edit.c": "7d6011d1587549eade7ec0afb509a5e76d902a1466868859bb9222089adf650b",
+    "ide/src/protocol/workspace_edit.h": "cc851934020e09f54fad8dde31821c1bf246a3824ba6868e87758e6a943ecc3a",
+    "ide/tests/workspace_edit_fixture.h": "34311dd9cda083d45cb4bf082efb0992649359ccc84d20bbdba88a425881aff7",
+    "ide/tests/workspace_edit_test.c": "1e96237df5281ba3a32dbdb3f2d01c36309b15f361b8a3b28c6973b89dd7fb12",
+    "ide/tests/workspace_edit_fault_test.c": "7571894152f011317ff8534567fce958d8ad022ba41beb9c1f306116ce5d4591",
+    "ide/tests/workspace_edit_edge_test.c": "c0817a9e039f0218b23e887fc0d3dfb9fd16c6eba7f068de51887544e9fdb446",
+    "ide/tools/build.ps1": "482d3d685bdaac9de1d53430033c3783d6c06c5726be25893f75ad11cf097c9e",
+    "ide/tools/build_lsp_core.py": "1a1f3033a3b0efc81cd30d0394fc32b1d5fe6f3478bee26ec62bebe5b3dcd67c",
+    "ide/docs/lsp-workspace-edit-staging.md": "f5cfa4bab9d7d21ba45ae6c83fe059ca769fd105177fc035eba91d87bd968873",
+    "ide/docs/lsp-rename-foreign-policy.md": "f55a7a1b6d0bfcd1ed673a114e34f87edc171113f60e213b12091461238d14e3"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-workspace-edit-staging-20261111.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-workspace-edit-staging-20261111/stage-sources.tar.gz",
+      "sha256": "f65354cc4b21f9080f31830a7d8d63135f30fc10971ba0f179d26ad52df48a38",
+      "bytes": 56719,
+      "entries": 11,
+      "uniquePayloads": 11,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-workspace-edit-staging-20261111/stage-sources.tar.gz.manifest.json",
+      "sha256": "6b92a8410dc7df0a0898b38a88cf0f040250037c5ca81f77d247feac459bb4e9",
+      "bytes": 2516
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-workspace-edit-staging-20261111/actual-builds-and-validation.tar.gz",
+      "sha256": "3c5ad5f7e6ac645271809457e0b69f16b02610cc96238d12738bce4fb5cd1a0d",
+      "bytes": 204343291,
+      "entries": 4878,
+      "uniquePayloads": 3851,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-workspace-edit-staging-20261111/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "f753f3e52bc605f65a7b12a3f35887fe93f816403ca1fc572a229c0bebfccbfc",
+      "bytes": 1794223
+    }
+  },
+  "service": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-rename-foreign-policy-20261111\\qualified-v3\\xlang-ls.exe",
+    "sha256": "df290f266bb8882e95751487d146070ac854b2f8cd9c827d95fd44f049cb4d74",
+    "unchanged": true
+  },
+  "correctness": {
+    "newProductionUnits": 1,
+    "newTestPrograms": 3,
+    "selectedActualCompileConsumers": 4,
+    "mainAssertions": 24077,
+    "edgeAssertions": 97,
+    "coldAllocationGates": 38,
+    "cancellationPolls": 14,
+    "detachedReaderThreads": 4,
+    "inheritedNativeProgramsNotRerun": 189,
+    "inheritedProtocolSuitesNotRerun": 13,
+    "guiObjects": 117,
+    "guiFixtures": 31,
+    "inheritedGuiPassedPrefix": 28,
+    "subsequentGuiFixtures": 3,
+    "actualMutantsRejected": 5,
+    "mutantReceipt": "mutants-v3/result.json",
+    "rawFailuresRetained": true
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "limits": [
+    "Preparation only; no XUI commit, rollback, undo integration or physical file write performed",
+    "Closed raw source digests are retained unverified claims for later pinned-file checks",
+    "Outer connection/config/project/lifecycle fences and user annotation approval remain caller responsibilities",
+    "Known storage budget excludes allocator, path/position helpers and xlsTextCreate transient work; no end-to-end cancellation latency or peak RSS qualification",
+    "Standard renameProvider and workspace/applyEdit remain disabled until complete application transaction and source coverage are accepted",
+    "Whole performance/scale/soak and final default runtime alignment remain open"
+  ]
+}

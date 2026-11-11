@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param([ValidateSet('Debug','Release')][string]$Configuration='Debug', [switch]$Tests, [string]$FrontendRoot='', [string]$ReleaseDirectory='', [switch]$GuiOnly, [string]$LanguageServerPath='', [switch]$EnableCLsp, [switch]$CandidateOnly)
 $ErrorActionPreference='Stop'
 function Get-XideSha256([string]$Path) {
@@ -63,6 +63,7 @@ $sources += 'src\ui\message_box.c'
 $sources += 'src\ui\file_dialog.c'
 $sources += 'src\platform\failure_window.c'
 $sources += 'src\analysis\text.c'
+$sources += 'src\protocol\workspace_edit.c'
 $sources += 'src\analysis\context.c'
 $sources += 'src\services\analysis_context.c'
 $sources += 'src\protocol\analysis_context_wire.c'
