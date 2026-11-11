@@ -1,0 +1,406 @@
+{
+  "schema": 1,
+  "passed": true,
+  "checks": 54,
+  "shippingDelivery": false,
+  "scope": "Image metadata, exact-prefix owned loading, checked RGBA PNG file saving; not complete image integration.",
+  "nativeRevision": "b556034a4222d49c341b96efb02643c3528d4d0a",
+  "nativeQualification": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\image-png-20261112.json",
+    "sha256": "c66aa3d51f3be360c8d4c04f2323d9e086caefbb86fe454e2e08143c37547025"
+  },
+  "nativeChecks": 42,
+  "canonicalXrtSha256": "41bc24579f4b3207b0434755ca23dd06481af90c05f71e9b365848cf9a7c12d1",
+  "sourceNormalizedSha256": {
+    "lib/bindings/xge/src/resources.xl": "7f5cf734e7f12a6b33ff8f407d646c7376301652690dabe25ebed76e3217e545",
+    "lib/bindings/xge/src/image_io.xl": "c47fef3f52e5b2b727485f44d86d54cc74471c664ac943b13915bf319b95373e",
+    "lib/bindings/xge/xlang.package.json": "29dc1a7cc4a6ec1244345216beed91e23e56d8fcfd982a4a7edf3211d65390d2",
+    "lib/bindings/xge/examples/image_io.xl": "8198c6fd9374373ffaf9366d9ca83db14af8b4a53159d9315294e83f30530aae",
+    "test/cases/foreign_xge3_image_io.xl": "f0aa5987d9fc8beb93863610ecc145e6fb6b34907ae01ffe40136ab0e9127bf0",
+    "test/cases/foreign_xge3_image_io.c": "a39b000de26b346ceb60e3aff093c71436df36e6db3fd43d610a7890e073e410",
+    "test/cases/foreign_xge3_image_io.h": "745e8469efbd2eef64b7ba5426f2d4f16d29ea80eb86212e8f1e5e06988c3db0",
+    "test/cases/foreign_xge3_image_io_oom.xl": "39c8d9d12547ef4239275b6b307e3eddf69deb471e344e61f00fe05d585f8e7f",
+    "test/cases/foreign_xge3_image_io_oom.c": "0900908350aa8b75881f99219a611c0ebc482b918224802996af419dbce785c5",
+    "tools/check_xge3_image_io.py": "9ab93ef8b544bb2ff504061ab9dc7e6acc88438d460a693d2fbb957f32f5f3f8"
+  },
+  "sourceRawSha256": {
+    "lib/bindings/xge/src/resources.xl": "7f5cf734e7f12a6b33ff8f407d646c7376301652690dabe25ebed76e3217e545",
+    "lib/bindings/xge/src/image_io.xl": "c47fef3f52e5b2b727485f44d86d54cc74471c664ac943b13915bf319b95373e",
+    "lib/bindings/xge/xlang.package.json": "f8f4044a41ac1cc0be899a7a89f9b27e652eadb1602e7403fc491a2f34a01b3e",
+    "lib/bindings/xge/examples/image_io.xl": "8198c6fd9374373ffaf9366d9ca83db14af8b4a53159d9315294e83f30530aae",
+    "test/cases/foreign_xge3_image_io.xl": "f0aa5987d9fc8beb93863610ecc145e6fb6b34907ae01ffe40136ab0e9127bf0",
+    "test/cases/foreign_xge3_image_io.c": "a39b000de26b346ceb60e3aff093c71436df36e6db3fd43d610a7890e073e410",
+    "test/cases/foreign_xge3_image_io.h": "745e8469efbd2eef64b7ba5426f2d4f16d29ea80eb86212e8f1e5e06988c3db0",
+    "test/cases/foreign_xge3_image_io_oom.xl": "39c8d9d12547ef4239275b6b307e3eddf69deb471e344e61f00fe05d585f8e7f",
+    "test/cases/foreign_xge3_image_io_oom.c": "0900908350aa8b75881f99219a611c0ebc482b918224802996af419dbce785c5",
+    "tools/check_xge3_image_io.py": "6b5e9baf99be9b30d2a9ce1bba371c73c4d909f68f9b7958f92c76271109ec15"
+  },
+  "cohorts": [
+    {
+      "platform": "win",
+      "report": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\image-language-win-r2\\results.json",
+        "sha256": "47313528b99ad3f404aa7cd7d14376e57f232577661fb43dfcc5d2bcdb435852"
+      },
+      "checks": 27,
+      "inputVerification": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\image-inputs-win-r1.json",
+        "sha256": "ebbcf2614d989b445aeee8f11ba514e1fee7a3ef09d6efaca21324745c90796a"
+      },
+      "compilerBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r21\\build.json",
+        "sha256": "586af7a071593e792737429cb67c62795ff8db38393acf173bfcc61737d79720"
+      },
+      "stages": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\packages-image-host-win-r3.json",
+          "sha256": "517239232c63055265f79c04f9b22e2321bf0b29f800c62f25933e0b449d5ef1"
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\packages-image-static-win-r3.json",
+          "sha256": "7ccd67e21f7b2787cdb82419b40ab79520af70975afb9aeb51c848a9e7306cf2"
+        }
+      ],
+      "oomPrefixes": {
+        "jit": [
+          {
+            "kind": 0,
+            "failed": 7,
+            "passed": 89
+          },
+          {
+            "kind": 1,
+            "failed": 17,
+            "passed": 79
+          },
+          {
+            "kind": 2,
+            "failed": 6,
+            "passed": 90
+          }
+        ],
+        "dynamic": [
+          {
+            "kind": 0,
+            "failed": 7,
+            "passed": 89
+          },
+          {
+            "kind": 1,
+            "failed": 15,
+            "passed": 81
+          },
+          {
+            "kind": 2,
+            "failed": 6,
+            "passed": 90
+          }
+        ],
+        "static": [
+          {
+            "kind": 0,
+            "failed": 7,
+            "passed": 89
+          },
+          {
+            "kind": 1,
+            "failed": 15,
+            "passed": 81
+          },
+          {
+            "kind": 2,
+            "failed": 6,
+            "passed": 90
+          }
+        ]
+      },
+      "binaries": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\image-language-win-r2\\foreign_xge3_image_io-dynamic.exe",
+          "sha256": "04b84ffccb4105fa15353e7007cbb342d96c9e7f5acb5876fc06fe9632d14d49",
+          "bytes": 4582912,
+          "linkage": "dynamic",
+          "imports": [
+            "xge3_host.dll",
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\image-language-win-r2\\foreign_xge3_image_io-static.exe",
+          "sha256": "1c6fcd89abfede7f531587ea4c0e88053a36888880ad9dbd984f7d3fe0825c00",
+          "bytes": 4173824,
+          "linkage": "static",
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "USER32.dll",
+            "ole32.dll",
+            "OLEAUT32.dll",
+            "SHELL32.dll",
+            "GDI32.dll",
+            "IMM32.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\image-language-win-r2\\image_io-dynamic.exe",
+          "sha256": "725598cf1fae0020aa9f9c2aa3f50aef057a89c5f47a7061b152e2d2ee730ca5",
+          "bytes": 1294336,
+          "linkage": "dynamic",
+          "imports": [
+            "xge3_host.dll",
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\image-language-win-r2\\image_io-static.exe",
+          "sha256": "f83fa6d209726c98d7a708a8ebe6c0d9f3e6e39010e74ca5ca1b47b49464d021",
+          "bytes": 3786240,
+          "linkage": "static",
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "USER32.dll",
+            "ole32.dll",
+            "OLEAUT32.dll",
+            "SHELL32.dll",
+            "GDI32.dll",
+            "IMM32.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\image-language-win-r2\\foreign_xge3_image_io_oom-dynamic.exe",
+          "sha256": "b0f886797f4003a517f7b32411b15d1729f0c9406ad0d4e3eea8076b37433516",
+          "bytes": 4482560,
+          "linkage": "dynamic",
+          "imports": [
+            "xge3_host.dll",
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\image-language-win-r2\\foreign_xge3_image_io_oom-static.exe",
+          "sha256": "3c78c7ed49f78c6cccf6fb7d35d4b890e06de60e44a2bc09a43fe5cb617d4227",
+          "bytes": 4065280,
+          "linkage": "static",
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "USER32.dll",
+            "ole32.dll",
+            "OLEAUT32.dll",
+            "SHELL32.dll",
+            "GDI32.dll",
+            "IMM32.dll"
+          ]
+        }
+      ]
+    },
+    {
+      "platform": "linux",
+      "report": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\image-language-linux-r1\\results.json",
+        "sha256": "4aa2fad89d3c3fb27901dbba240913e2f475e9d594dcaad8e2f3a97d8406fe0e"
+      },
+      "checks": 27,
+      "inputVerification": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\image-inputs-linux-r1.json",
+        "sha256": "02a3aec6aa56902f569aecd56093eb5043b26135ba2a4f8d6a47a281b934f8c6"
+      },
+      "compilerBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-linux-full-r13\\build.json",
+        "sha256": "6c7fab3454fd9d2636a7b3306934ab8d0b091619b553b2d38e2577a192d63af3"
+      },
+      "stages": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\packages-image-host-linux-r3.json",
+          "sha256": "74f65e77d5235281f1f2308fc58424ca7b984307ceec5671e99f716f0e210bad"
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\packages-image-static-linux-r3.json",
+          "sha256": "a8ca88336b8dabefe63118559f367631ede37b48e620e76116fbb8be570d6199"
+        }
+      ],
+      "oomPrefixes": {
+        "jit": [
+          {
+            "kind": 0,
+            "failed": 7,
+            "passed": 89
+          },
+          {
+            "kind": 1,
+            "failed": 15,
+            "passed": 81
+          },
+          {
+            "kind": 2,
+            "failed": 6,
+            "passed": 90
+          }
+        ],
+        "dynamic": [
+          {
+            "kind": 0,
+            "failed": 7,
+            "passed": 89
+          },
+          {
+            "kind": 1,
+            "failed": 12,
+            "passed": 84
+          },
+          {
+            "kind": 2,
+            "failed": 6,
+            "passed": 90
+          }
+        ],
+        "static": [
+          {
+            "kind": 0,
+            "failed": 7,
+            "passed": 89
+          },
+          {
+            "kind": 1,
+            "failed": 12,
+            "passed": 84
+          },
+          {
+            "kind": 2,
+            "failed": 6,
+            "passed": 90
+          }
+        ]
+      },
+      "binaries": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/image-language-linux-r1/foreign_xge3_image_io-dynamic",
+          "sha256": "ccf497cc096945530fb32f87d4dfa87221475438f26512fa4c7c62225e36eaa6",
+          "bytes": 4785400,
+          "linkage": "dynamic",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/image-language-linux-r1/foreign_xge3_image_io-static",
+          "sha256": "05bfaa55fc9369f8c10d92617b173e314814286230c112c33e4592a6d95f53a2",
+          "bytes": 1339824,
+          "linkage": "static",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/image-language-linux-r1/image_io-dynamic",
+          "sha256": "9e8b464bcb66d0a63e5decc1e55b4b2f17d5726a035d82b7c28f921060418abd",
+          "bytes": 1357793,
+          "linkage": "dynamic",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/image-language-linux-r1/image_io-static",
+          "sha256": "c72ac7c8fb7c74d88663c47031d8b363b328d4c73298a4f6d9781b7cc471f783",
+          "bytes": 1172122,
+          "linkage": "static",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/image-language-linux-r1/foreign_xge3_image_io_oom-dynamic",
+          "sha256": "158613df7d864d0ac7cc276fbd5281e16b08106803a7d2d67dbf043d46c0ceb0",
+          "bytes": 4686228,
+          "linkage": "dynamic",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/image-language-linux-r1/foreign_xge3_image_io_oom-static",
+          "sha256": "f500dcb1fdadaadd2b139259750c2e94ec5f08b54e6b40efd9afd891d1fa0e52",
+          "bytes": 1231270,
+          "linkage": "static",
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ]
+    }
+  ],
+  "costs": {
+    "pngMetadataHotIterations": 1000,
+    "pngMetadataHotXrtHeapOperations": 0,
+    "common": "Read span/region validation, native scopes and status checks; owned image admission/control and native decode allocations.",
+    "native": "PNG filtering/compression and file I/O; premultiplied input converts tight rows. CPU timing and allocation counters are separate.",
+    "nativeCostReport": {
+      "path": "D:\\GIT\\xge\\docs\\validation\\image-png-20261112.json",
+      "sha256": "c66aa3d51f3be360c8d4c04f2323d9e086caefbb86fe454e2e08143c37547025"
+    },
+    "unusedStaticSampleDeltaBytes": {
+      "win": 6144,
+      "linux": 22240
+    },
+    "noCpuOrAllAllocatorZeroClaim": true
+  },
+  "remaining": [
+    "Generic owned byte output for memory PNG encoding; explicit design decision pending.",
+    "Full pixel access and mutation/view contract.",
+    "Attribute and trim unused static growth before final delivery.",
+    "Actual shared-library package initializer and full XGE/XUI/Document delivery."
+  ],
+  "notes": [
+    "Compiler/runtime sources are unchanged by this declaration batch.",
+    "Production native changes are committed separately and match normalized frozen source hashes.",
+    "Binding README documentation is updated after qualification; compile-facing package sources remain byte-identical to the tested stages."
+  ]
+}

@@ -1,0 +1,69 @@
+// CPU-only PNG I/O, exact prefixes and native owned image admission.
+import xge
+extern "fixtureImageHotBegin" @header("test/cases/foreign_xge3_image_io.h") @no_raise func hotBegin()
+extern "fixtureImageHotEnd" @header("test/cases/foreign_xge3_image_io.h") @no_raise func hotEnd()
+func main(...) as int
+ string path="image-language-fixture.png"
+ bytes rgba=b"\x40\0\0\x80\0\0\0\0\0\x40\0\x80"
+ xge.saveImagePng(path,c_int(1),c_int(2),rgba,c_int(8),c_uint(xge.XGE_IMAGE_PREMULTIPLIED))
+ try
+  auto encoded=file.readBytes(path)
+  auto width,height=xge.imageInfo(encoded)
+  assert width==c_int(1) and height==c_int(2)
+  auto w2,h2=xge.imageInfo(Buffer(encoded),encoded.length+100)
+  assert w2==width and h2==height
+  auto fromBytes=xge.loadImage(encoded,c_uint(xge.XGE_IMAGE_STRAIGHT_ALPHA),encoded.length+100)
+  auto fromBuffer=xge.loadImage(Buffer(encoded))
+  auto fromFile=xge.loadImage(path)
+  assert fromBytes.width==width and fromBytes.height==height and fromBytes.stride==c_int(4)
+  assert fromBytes.format==xge.XGE_PIXEL_RGBA8
+  assert fromBytes.flags==c_uint(xge.XGE_IMAGE_STRAIGHT_ALPHA)
+  assert fromBuffer.flags==c_uint(xge.XGE_IMAGE_PREMULTIPLIED)
+  assert fromFile.width==width and fromFile.height==height
+  fromBytes.close()
+  fromBuffer.close()
+  fromFile.close()
+  int rejected=0
+  try
+   auto iw,ih=xge.imageInfo(encoded,1)
+  catch error
+   rejected+=1
+  end
+  try
+   auto iw,ih=xge.imageInfo(encoded,-2)
+  catch error
+   rejected+=1
+  end
+  try
+   auto bad=xge.loadImage(encoded,c_uint(1),1)
+  catch error
+   rejected+=1
+  end
+  try
+   xge.saveImagePng(path,c_int(1),c_int(2),b"short",c_int(8))
+  catch error
+   rejected+=1
+  end
+  try
+   xge.saveImagePng(path,c_int(1),c_int(2),rgba,c_int(3))
+  catch error
+   rejected+=1
+  end
+  assert rejected==5
+  // Invalid inputs must fail before opening/replacing the existing file.
+  assert file.readBytes(path)==encoded
+  hotBegin()
+  for i in range(1000)
+   auto iw,ih=xge.imageInfo(encoded)
+   assert iw==width and ih==height
+  end
+  hotEnd()
+  xge.saveImagePng(path,c_int(1),c_int(2),Buffer(rgba),c_int(8))
+  auto iw,ih=xge.imageInfo(file.readBytes(path))
+  assert iw==width and ih==height
+ finally
+  assert file.delete(path)
+ end
+ println("Image I/O prefixes, alpha flags and checked regions passed")
+ return 0
+end

@@ -1,0 +1,6 @@
+// Encoded input uses an exact byte span. Raw RGBA input is checked row by row
+// against the complete backing size; final-row stride padding is not required.
+export extern "xgeImageInfoMemory" @header("xge3_runtime.h") @no_raise @c_span(0,"const void*","int",1) @c_outputs(2,3) @c_status(0) func imageInfo(bytes data,int size=-1) as (c_int,c_int)
+export extern "xgeImageInfoMemory" @header("xge3_runtime.h") @no_raise @c_span(0,"const void*","int",1) @c_outputs(2,3) @c_status(0) func imageInfo(Buffer data,int size=-1) as (c_int,c_int)
+export extern "xgeImageSavePNGEx" @header("xge3_runtime.h") @no_raise @c_cstr(0) @c_region(3,"read","1","2","4",4) @c_result("status",0) func saveImagePng(string path,c_int width,c_int height,bytes pixels,c_int stride=0,c_uint flags=2)
+export extern "xgeImageSavePNGEx" @header("xge3_runtime.h") @no_raise @c_cstr(0) @c_region(3,"read","1","2","4",4) @c_result("status",0) func saveImagePng(string path,c_int width,c_int height,Buffer pixels,c_int stride=0,c_uint flags=2)

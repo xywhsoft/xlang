@@ -71,9 +71,14 @@ export extern "xge_image_t*" class Image @header("xge3_runtime.h") @lifetime("ow
  native point handle
  extern "iWidth" @c_field get width() as c_int
  extern "iHeight" @c_field get height() as c_int
+ extern "iStride" @c_field get stride() as c_int
+ extern "iFormat" @c_field get format() as c_int
+ extern "iFlags" @c_field get flags() as c_uint
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
-export extern "xgeImageLoadMemory" @no_raise @c_span(0,"const void*","int") @c_result("owned_view") @factory(0,0,freeImage) @c_inplace("xge_image_t") func loadImage(bytes data) as Image
+export extern "xgeImageLoadMemoryEx" @no_raise @c_span(0,"const void*","int",2) @c_result("owned_view") @factory(0,0,freeImage) @c_inplace("xge_image_t") func loadImage(bytes data,c_uint flags=1,int size=-1) as Image
+export extern "xgeImageLoadMemoryEx" @no_raise @c_span(0,"const void*","int",2) @c_result("owned_view") @factory(0,0,freeImage) @c_inplace("xge_image_t") func loadImage(Buffer data,c_uint flags=1,int size=-1) as Image
+export extern "xgeImageLoadEx" @no_raise @c_cstr(0) @c_result("owned_view") @factory(0,0,freeImage) @c_inplace("xge_image_t") func loadImage(string path,c_uint flags=1) as Image
 extern "xgeImageFree" @no_raise func freeImage(Image value)
 export extern "xgeMaterialInit" @no_raise @c_result("owned_view") @factory(0,freeMaterial) @c_inplace("xge_material_t") func createMaterial() as Material
 extern "xgeMaterialFree" @no_raise func freeMaterial(Material value)

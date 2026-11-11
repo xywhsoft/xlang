@@ -1,0 +1,53 @@
+import xge
+from xge import Image
+extern "fixtureImagePrefixBegin" @header("test/cases/foreign_xge3_image_io.h") @no_raise func prefixBegin(c_int budget)
+extern "fixtureImagePrefixEnd" @header("test/cases/foreign_xge3_image_io.h") @no_raise func prefixEnd()
+extern "fixtureImageHeapEqual" @header("test/cases/foreign_xge3_image_io.h") @no_raise func heapEqual()
+func attempt(bytes encoded,bytes pixels,string source,int kind,int budget) as bool
+ Image? image=null
+ string target="image-language-prefix.png"
+ bool success=false
+ prefixBegin(c_int(budget))
+ try
+  if kind==0
+   image=xge.loadImage(encoded)
+  elseif kind==1
+   image=xge.loadImage(source)
+  else
+   xge.saveImagePng(target,c_int(1),c_int(2),pixels,c_int(4),c_uint(xge.XGE_IMAGE_PREMULTIPLIED))
+  end
+  success=true
+ catch Error error
+  if budget<0 then throw error.message end
+ end
+ prefixEnd()
+ if image!=null
+  auto current=image as Image
+  current.close()
+  image=null
+ end
+ if kind==2 and file.exists(target) then file.delete(target) end
+ heapEqual()
+ return success
+end
+func main(...) as int
+ string path="image-language-prefix-source.png"
+ bytes pixels=b"\x40\0\0\x80\0\x40\0\x80"
+ xge.saveImagePng(path,c_int(1),c_int(2),pixels)
+ try
+  auto encoded=file.readBytes(path)
+  for kind in range(3)
+   assert attempt(encoded,pixels,path,kind,-1)
+   int failed=0
+   int passed=0
+   for budget in range(96)
+    if attempt(encoded,pixels,path,kind,budget) then passed+=1 else failed+=1 end
+   end
+   println("Image language prefixes:",kind,failed,passed)
+   assert failed>0 and passed>0
+  end
+ finally
+  assert file.delete(path)
+ end
+ return 0
+end

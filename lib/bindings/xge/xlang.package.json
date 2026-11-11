@@ -16,6 +16,7 @@
       "src/callbacks.xl",
       "src/shapes.xl",
       "src/shape_matrix.xl",
+      "src/image_io.xl",
       "src/data_object.xl",
       "src/audio_resources.xl",
       "src/render_resources.xl",

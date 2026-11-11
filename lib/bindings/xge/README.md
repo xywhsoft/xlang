@@ -75,6 +75,19 @@ does not. Angles are radians. A singular inverse reports a checked error.
 Matrix assignment copies six floats and creates no resource owner. See
 `docs/xge3-shape-matrix.md` in the source repository for measured boundaries.
 
+## Image I/O
+
+`examples/image_io.xl` saves two RGBA pixels as PNG, queries their dimensions
+and loads an owned Image, without opening a window. `imageInfo(bytes/Buffer,
+size=-1)` returns width/height. `loadImage(bytes/Buffer, flags=1, size=-1)` and
+`loadImage(path, flags=1)` return the same checked Image owner; close it after
+use. Its width/height/stride/format/flags fields are readonly native queries.
+Loading defaults to premultiplied alpha; `saveImagePng` defaults to straight
+RGBA and accepts bytes or Buffer with explicit width/height/optional stride.
+Bad input regions fail before file opening. A later I/O/encoding failure may
+leave a partial file. Memory PNG output and full pixel views remain separate
+work. See `docs/xge3-image-io.md` for prefix rules, costs and qualification.
+
 ## System fonts
 
 `loadSystemFont(role=..., size=..., weight=..., slant=..., language=null)`
