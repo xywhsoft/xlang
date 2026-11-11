@@ -338,3 +338,15 @@ IR 在 C/头输出前拒绝。真实 XGE CPU 解码的取消、抛错、输出�
 仍有冷拥有记录、线程/计数检查和分配诊断维护成本，不宣称零总开销。语言声明已
 形成工作区候选，尚待匹配 SDK/JIT/AOT 与模块验收，未计为接入完成；Clip 线程合同、
 SoundLoad、全局代码寿命、其他全量模块及最终主线配套交付继续保留。
+
+2026-11-11 普通音频资源已完成两端配套验收，见
+[音频进度](xge3-audio-integration.md#ordinary-audio-resources-language-qualification)
+及 `xge-audio-resources-20261111.json`。AudioGroup、Sound、Music、AudioStream
+直接声明、稳定拥有工厂、checked 关闭与引擎 Busy、方法、线程和最后引用退役
+均通过 Windows/Linux JIT、动态/静态 AOT；语言、严格头和范例构建共 70 项。
+分配预算保持引擎不关闭，发现并在 XGE `84ce4b4f` 修复 miniaudio 连接器失败
+时滞留缓存节点；额外原生回归 148 项、旧码预期失败控制 8 项。真实无设备混音
+使用隔离私有初始化入口，正式 SDK 没有加入测试函数。AudioGroup 比同负载 C
+多 2 次分配/528 字节，仍有错误/线程/代码/视图维护，不宣称零总开销。
+Clip 公开线程/序列合同、clip voices、fallback、SoundLoad、模块全局代码寿命和
+最终当前主线 SDK/编译器/IDE/帮助交付仍在任务内；本批未替换 release/IDE。

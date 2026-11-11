@@ -1,0 +1,307 @@
+{
+  "schema": "xlang-xge-audio-resources-1",
+  "scope": "Qualified ordinary AudioGroup/Sound/Music/AudioStream; not complete audio family or final shipping distribution",
+  "passed": true,
+  "shippingDelivery": false,
+  "languageAudioIntegrationComplete": false,
+  "audioDevice": false,
+  "realMiniaudio": true,
+  "networkTests": false,
+  "source": {
+    "lib/bindings/xge/src/audio_resources.xl": "b80cfae460b87583d2e1cd970f03fb4be70b4a802025d3cea806caf579c57333",
+    "lib/bindings/xge/include/xge3_audio_resources.h": "4e627d6a79b2df156f849cb715cc27e1d28e01298b07fae825cc82acbaba935b",
+    "lib/bindings/xge/src/functions.xl": "501ab84dd61ff30d0bf30327ef03ddce47dc5d3579433595b76221f40fe72a42",
+    "lib/bindings/xge/examples/audio_playback.xl": "fc513617ae4ee8ff013de40b883e9650f91a0dfd046c039a1ade62ad4400a4de",
+    "lib/bindings/xge/examples/data/tone.wav": "75651e2f1f475d7a15dcbd9ed67bb2cf0c3281d806e9834cc34eed9af91c5c45",
+    "test/cases/foreign_xge3_audio_resources.h": "48f6f87d81a6823a45a41f3037d3634c32b192e109b69392506402e3f675de48",
+    "test/cases/foreign_xge3_audio_resources.xl": "37247e06c948bbad483217510ac474dc50c62fe9c03b17ca3ebe9ce39444226d",
+    "test/cases/foreign_xge3_audio_resources_oom.xl": "eee057cad2cd9796d294e5e9a4abb680b30c8654f1075e6e6a400aba79aecbb6",
+    "test/cases/foreign_xge3_audio_threads.h": "7a1d1f56801a8d22456cb4d4cb7cc122490bd3f6e8c70801055b23f9b9328cc6",
+    "test/cases/foreign_xge3_audio_threads.xl": "7e10b12e3b1e65ce2bdc7dfc8272303f9effceaf47031794fc51f91b82ccf574",
+    "test/support/xge3_audio_headless.inc": "217be430daafea079c74e27e6d2f673fb1ebc8dae3822806e07e6d2e9f0cc895",
+    "tools/build_xge3_audio_test_sdk.py": "acdbd1a89e71b10cb3d6ac3b09294d3bb07c9066defbc3821f2417acdc254f16",
+    "tools/check_xge3_audio_resources.py": "78a1ba9a7bcd1099ddd4a06eb988b98caed9a50055d88f1e9b7f8d768f03a874",
+    "tools/check_xge3_async_headers.py": "89442a0cd450212343289230d395f50271b174cff7ad9849ee72fae13db3a9bf",
+    "tools/gen_xge_audio_example.py": "8d7dea8deed469cc8c679e72cea641bd422b5034bcdd8d57791b97cd89cfe159"
+  },
+  "nativeCommit": "84ce4b4fce245e6bc7092f546143b50105025f28",
+  "nativeQualification": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\audio-resident-20261111.json",
+    "sha256": "74916f4720333ab70612d39ab43efd3c9431d14a6df8774f433013918ca1511b"
+  },
+  "canonicalXrtSha256": "41bc24579f4b3207b0434755ca23dd06481af90c05f71e9b365848cf9a7c12d1",
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\audio-language-win-r5\\results.json",
+      "sha256": "5f4a9e25c71bfebda03f3414545ee46316930ca5fea81bd030f7f800b5e1743b",
+      "checks": 24,
+      "execution": true
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\audio-headers-win-r2\\results.json",
+      "sha256": "9ca0d2cd892cacfefffbe1ddeabd678edaf8f2cd62402c4f970f763dbe46d6d9",
+      "checks": 8,
+      "execution": true
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\audio-example-win-r1\\results.json",
+      "sha256": "5103c6e0200b990f2e7660a9039f4c9a907f4fd5d433bb9fcb9218c3d202ac6c",
+      "checks": 3,
+      "execution": false
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\audio-language-linux-r5\\results.json",
+      "sha256": "edb81ac27792643d0ef65a177bf0612aca147d39cefeee45404551a060acdc04",
+      "checks": 24,
+      "execution": true
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\audio-headers-linux-r2\\results.json",
+      "sha256": "4e85efab796941f8608b4998ba8eb5a9f9d50c615852334d63cb24a7a8320fda",
+      "checks": 8,
+      "execution": true
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\audio-example-linux-r1\\results.json",
+      "sha256": "658ac719a103bc97bf6fc74ac603a40ff6521b8d72c5809ce2b1e27cff1018e0",
+      "checks": 3,
+      "execution": false
+    }
+  ],
+  "privateTestVariants": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\audio-test-sdk-win-r3\\test-variant.json",
+      "sha256": "c35fb5fa70c7c8b20b9301cdd63edeb822707d468ac6d5034b6fb094ab45724b"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\audio-test-sdk-linux-r3\\test-variant.json",
+      "sha256": "48a13bdba0bcf98369140df6bdeda6bc12910dbb27100587897de898a1ece164"
+    }
+  ],
+  "packages": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-audio-dynamic-win-r2.json",
+      "sha256": "45f7b33e96a2b4326732c77f8fb2e85562f925ef44c687e830ccb9e9d3d9bbba"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-audio-static-win-r2.json",
+      "sha256": "7b16d07621802ecd9f45e22f4319915bc6551afd7dc4ccf4656358be7e482205"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-audio-dynamic-linux-r2.json",
+      "sha256": "6d0e14689faa6d9ba2483dbd9c3a7f01d7626785535b56ec5383cfbb96818ede"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-audio-static-linux-r2.json",
+      "sha256": "5206690db42751486645b740c0e3c1e67642870318b6895852d977103c63b60f"
+    }
+  ],
+  "fullCompilers": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r17\\build.json",
+      "sha256": "f3049224a1e94337c0557d3626e4235bac23c2c2e1e6ae941fdcda70b19476a6"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-linux-full-r9\\build.json",
+      "sha256": "99a868fd95ba04bd3324490dd65a19621980432bf3af440115190f1d9f967dc5"
+    }
+  ],
+  "retainedCosts": {
+    "win": {
+      "foreign_xge3_audio_resources-jit": {
+        "Native": {
+          "allocations": 3,
+          "bytes": 8776
+        },
+        "Language": {
+          "allocations": 5,
+          "bytes": 9304
+        }
+      },
+      "foreign_xge3_audio_resources-dynamic-run": {
+        "Native": {
+          "allocations": 3,
+          "bytes": 8776
+        },
+        "Language": {
+          "allocations": 5,
+          "bytes": 9304
+        }
+      },
+      "foreign_xge3_audio_resources-static-run": {
+        "Native": {
+          "allocations": 3,
+          "bytes": 8776
+        },
+        "Language": {
+          "allocations": 5,
+          "bytes": 9304
+        }
+      }
+    },
+    "linux": {
+      "foreign_xge3_audio_resources-jit": {
+        "Native": {
+          "allocations": 3,
+          "bytes": 8776
+        },
+        "Language": {
+          "allocations": 5,
+          "bytes": 9304
+        }
+      },
+      "foreign_xge3_audio_resources-dynamic-run": {
+        "Native": {
+          "allocations": 3,
+          "bytes": 8776
+        },
+        "Language": {
+          "allocations": 5,
+          "bytes": 9304
+        }
+      },
+      "foreign_xge3_audio_resources-static-run": {
+        "Native": {
+          "allocations": 3,
+          "bytes": 8776
+        },
+        "Language": {
+          "allocations": 5,
+          "bytes": 9304
+        }
+      }
+    }
+  },
+  "allocationPrefixes": {
+    "win": {
+      "foreign_xge3_audio_resources_oom-jit": {
+        "0": {
+          "failures": 5,
+          "successes": 59
+        },
+        "1": {
+          "failures": 12,
+          "successes": 52
+        },
+        "2": {
+          "failures": 10,
+          "successes": 54
+        },
+        "3": {
+          "failures": 10,
+          "successes": 54
+        }
+      },
+      "foreign_xge3_audio_resources_oom-dynamic-run": {
+        "0": {
+          "failures": 5,
+          "successes": 59
+        },
+        "1": {
+          "failures": 12,
+          "successes": 52
+        },
+        "2": {
+          "failures": 10,
+          "successes": 54
+        },
+        "3": {
+          "failures": 10,
+          "successes": 54
+        }
+      },
+      "foreign_xge3_audio_resources_oom-static-run": {
+        "0": {
+          "failures": 5,
+          "successes": 59
+        },
+        "1": {
+          "failures": 12,
+          "successes": 52
+        },
+        "2": {
+          "failures": 10,
+          "successes": 54
+        },
+        "3": {
+          "failures": 10,
+          "successes": 54
+        }
+      }
+    },
+    "linux": {
+      "foreign_xge3_audio_resources_oom-jit": {
+        "0": {
+          "failures": 5,
+          "successes": 59
+        },
+        "1": {
+          "failures": 11,
+          "successes": 53
+        },
+        "2": {
+          "failures": 9,
+          "successes": 55
+        },
+        "3": {
+          "failures": 9,
+          "successes": 55
+        }
+      },
+      "foreign_xge3_audio_resources_oom-dynamic-run": {
+        "0": {
+          "failures": 5,
+          "successes": 59
+        },
+        "1": {
+          "failures": 11,
+          "successes": 53
+        },
+        "2": {
+          "failures": 9,
+          "successes": 55
+        },
+        "3": {
+          "failures": 9,
+          "successes": 55
+        }
+      },
+      "foreign_xge3_audio_resources_oom-static-run": {
+        "0": {
+          "failures": 5,
+          "successes": 59
+        },
+        "1": {
+          "failures": 11,
+          "successes": 53
+        },
+        "2": {
+          "failures": 9,
+          "successes": 55
+        },
+        "3": {
+          "failures": 9,
+          "successes": 55
+        }
+      }
+    }
+  },
+  "remaining": [
+    "Public immutable AudioClip thread/sequence contract and clip voices",
+    "Complete fallback APIs and owning SoundLoad",
+    "Automatic module-global code/resource residency",
+    "Final current-mainline SDK/compiler/IDE/help integration and delivery"
+  ],
+  "pipelines": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\audio-r54-win-pipeline.json",
+      "sha256": "44c7537f430be54b7acb9b8350e806f34e61f90c8a429c0be263723171a6a9b6"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\audio-r54-linux-pipeline.json",
+      "sha256": "8754875e7b2358943acc9d28a95e0a52177398659020ac1966b398aa80f591d2"
+    }
+  ],
+  "checks": 70,
+  "costsScope": "Same native/language AudioGroup workload; existing scopes/admission/code/view bookkeeping and c_cstr validation retained; no per-method forwarding or extra PCM-array copy. Caller-thread allocation injection only."
+}

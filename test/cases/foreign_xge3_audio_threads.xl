@@ -1,0 +1,80 @@
+import xge
+extern "fixtureXgeAudioBegin" @header("test/cases/foreign_xge3_audio_resources.h") @no_raise @c_result("status",0) func beginAudio()
+extern "fixtureXgeAudioOwners" @header("test/cases/foreign_xge3_audio_resources.h") @no_raise func owners() as uint64
+extern "fixtureXgeAudioPath" @header("test/cases/foreign_xge3_audio_resources.h") func fixturePath() as string
+extern "fixtureXgeAudioWorkerRelease" @header("test/cases/foreign_xge3_audio_threads.h") @no_raise @c_code_owner(1) func releaseOnWorker(c_int kind) as bool
+extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func debugEnabled() as bool
+func workerCalls(xge.AudioGroup group,xge.Sound sound,xge.Music music,xge.AudioStream stream) as func() as int
+ return func() as int
+  int rejected=0
+  try
+   group.volume()
+  catch StateError
+   rejected+=1
+  end
+  try
+   group.close()
+  catch StateError
+   rejected+=1
+  end
+  try
+   sound.play()
+  catch StateError
+   rejected+=1
+  end
+  try
+   sound.close()
+  catch StateError
+   rejected+=1
+  end
+  try
+   music.play()
+  catch StateError
+   rejected+=1
+  end
+  try
+   music.close()
+  catch StateError
+   rejected+=1
+  end
+  try
+   stream.play()
+  catch StateError
+   rejected+=1
+  end
+  try
+   stream.close()
+  catch StateError
+   rejected+=1
+  end
+  return rejected
+ end
+end
+func main(...) as int
+ assert debugEnabled()
+ xge.init(4,4,"Audio creator-thread qualification",0,xge.XGE_RUN_MANUAL)
+ beginAudio()
+ string path=fixturePath()
+ try
+  auto group=xge.createAudioGroup()
+  auto sound=xge.loadSound(path,group)
+  auto music=xge.loadMusic(path,group)
+  auto stream=xge.openAudioStream(path,group)
+  auto worker=thread(workerCalls(group,sound,music,stream))
+  assert worker.waitTimeout(30000) and worker.exitCode()==8
+  assert group.volume()==c_float(1) and owners()==uint64(4)
+  sound.close()
+  music.close()
+  stream.close()
+  group.close()
+  for kind in range(4)
+   assert releaseOnWorker(c_int(kind))
+  end
+  assert owners()==uint64(0)
+  println("Audio creator-thread calls and four deferred final releases passed")
+ finally
+  xge.audioUnit()
+  xge.unit()
+ end
+ return 0
+end

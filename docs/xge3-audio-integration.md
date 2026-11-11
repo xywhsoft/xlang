@@ -6,12 +6,14 @@ separately in [owned loading](xge3-async-loading.md).
 
 ## Existing language surface
 
-The committed baseline declares global audio init/unit/readiness, volume,
-listener and fallback-path operations, plus the earlier in-place Sound
-load/play/stop/volume/close. Working-tree candidates now declare AudioGroup,
-Music, AudioStream and the remaining ordinary Sound controls directly, with
-stable native factory/checked destruction policies. Those language candidates
-are not yet committed or qualified against the new matched packages.
+Global init/unit/readiness, volume, listener and fallback-path operations are
+joined by qualified AudioGroup, Sound, Music and AudioStream OOP declarations.
+`createAudioGroup`, `loadSound`, `loadMusic` and `openAudioStream` create owned
+resources; file factories accept an optional nullable group. Sound now uses a
+stable native-owned record rather than the old in-place language allocation.
+Playback, pause/resume/stop, loop, volume, fade, applicable position and state
+queries call their declared native symbols directly. `audioUnit()` now maps to
+checked native shutdown. Every resource has checked, creator-thread close.
 `AudioClipInfo` and a private clip destruction policy are not proof of a complete
 public clip API. Its thread/sequence contract, clip voices, remaining fallback
 surface and owning SoundLoad requests remain unfinished.
@@ -24,8 +26,8 @@ surface and owning SoundLoad requests remain unfinished.
 | Decode input | `xge_audio_clip_decode_t` packs data, byte count, output limit and synchronous cancellation callback/user fields. The [generic paired callback projection](foreign-packed-callbacks.md) now composes sealed `c_pack` with existing scoped callbacks and exact C signature proofs. The real CPU decoder is tested through a private Clip fixture; this does not publish a provisional AudioClip thread policy or complete playback ownership. |
 | Engine lifetime | Native `29e6e561` adds audio-specific parent reservations, including in-flight constructors. AudioUnitChecked and global Unit reject live audio without teardown. These reservations are separate from graphics-context owners. |
 | Group lifetime | Each voice now retains the private group backend. Free clears the public group handle; the last voice releases the actual mixer node and parent reservation. No language keep-alive field substitutes for native ownership. |
-| Sound/Music/Stream | New native factories produce stable owned records, with checked final release. Public layouts remain unchanged. Shared scalar access proves types/offsets and avoids incompatible struct lvalues. Native qualification is complete for this foundation; the working-tree OOP declarations still need matching runtime acceptance. |
-| Allocation/path diagnostics | A valid file constructor previously returned success with a residual OOM. Shared miniaudio allocation callbacks now follow C NULL semantics, preserve ambient/severe diagnostics and isolate recovered OOM. Typed path resolution stops memory failures and is also used by FontSaveXRF. |
+| Sound/Music/Stream | Stable owned native records, checked final release and direct OOP methods are qualified through Windows/Linux JIT and dynamic/static AOT. Public layouts remain unchanged. Shared scalar access proves types/offsets and avoids incompatible struct lvalues. Physical device and final module-global qualification remain separate. |
+| Allocation/path diagnostics | Shared allocation callbacks isolate recovered OOM, while typed paths stop fatal memory failures. A further resident-engine test exposed a miniaudio connector failure retaining a cache node until engine shutdown; native `84ce4b4f` returns the acquired node/base before failure. Every tested language prefix now balances while the engine stays alive. |
 | Sound references | `xgeSoundAddRef` previously revived zero/negative counts and overflowed at INT_MAX. Fixed by native `5d138435`; old Windows/Linux failures and 80 host/static O0/O2 boundary/PCM rows are pinned separately. No engine/device was initialized. |
 | SoundLoad | Native SOUND requests are synchronous on the caller, as FONT requests are. Reuse the owning request graph/code/callback/result protocol after the sound resource parent/storage contract exists. |
 | Code residency | The general module-global resource/code-lifetime gate remains false. Explicitly disposing an unclaimed result is a valid positive path, and is not evidence that automatic module-global shutdown is solved. |
@@ -65,3 +67,39 @@ The native parent/storage/error foundation is indexed in
 `dev/release-materials/provenance/xge-audio-ownership-20261111.json`; its language
 source candidate hashes are recorded explicitly as unqualified/uncommitted.
 Formal release installation and full audio integration remain pending.
+
+## Ordinary audio resources: language qualification
+
+`xge-audio-resources-20261111.json` indexes 70 Windows/Linux language/header/
+example rows using the complete Windows r17/Linux r9 O2/TinyCC/XRT/VFS compiler.
+JIT, dynamic AOT and static AOT exercise actual PCM mixing, all ordinary resource
+methods, typed bound calls, nullable groups, group-close-before-voice, checked
+Busy/retry, closed aliases, missing/NUL paths and four 64-budget allocation
+sweeps. A live audio engine is retained throughout the sweeps. Creator-thread
+checks reject eight language operations on workers. Four separately owned test
+views exercise final worker release: no failure-injection allocation, native
+resource preserved until the creator drains the real runtime retirement queue.
+
+Positive playback uses explicitly private SDK variants: their production
+aggregate gets only setup/mix/inspection exports for a real miniaudio no-device
+engine. Playback and destruction functions are unmodified. These images are
+not shipped. Production host/static SDKs are separately covered by 148 native
+lifetime/reference/PCM rows, 8 expected old-code control rows and strict
+C11/C++11/C++17 generated headers/linkage. The public example builds against
+those production SDKs; actual output-device listening remains manual. No
+window, audio device or network tests run in automated qualification.
+
+Ordinary methods generate one direct native function call, with existing
+checked error scopes, creator-thread admission, view/code activity and lifetime
+bookkeeping around it. File-path `c_cstr` validation still checks NUL boundaries.
+There is no per-method C forwarding layer, dynamic operation dispatch or extra
+PCM-array copy. That does not make the complete language call free of cost.
+One AudioGroup retains 3 native allocations/8,776 bytes versus 5 allocations/
+9,304 bytes through xlang: 2 extra allocations/528 bytes for the managed view
+and code/lifetime ownership. These measurements agree across the six JIT/AOT
+executions, for this exact workload and cohort.
+
+The public immutable Clip/thread/PCM-sequence contract, clip voices, complete
+fallback surface, SoundLoad, automatic module-global code residency and final
+current-mainline SDK/compiler/IDE/help delivery remain unfinished. The private
+setup fixture and explicitly drained worker references do not replace them.

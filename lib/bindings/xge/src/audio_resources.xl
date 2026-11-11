@@ -1,10 +1,58 @@
-// Sound playback methods call the authoritative C functions directly.
+// Groups and playback resources use creator-thread native ownership. A voice
+// retains its group backend, so closing the group view does not stop the voice.
+export extern "xge_audio_group" class AudioGroup @header("xge3_audio_resources.h") @lifetime("owned") @policy("xl6Xge3AudioGroupPolicy")
+ native point handle
+ extern "xgeAudioGroupSetVolume" func setVolume(c_float volume)
+ extern "xgeAudioGroupGetVolume" func volume() as c_float
+ extern "xgeAudioGroupFade" func fade(c_float from,c_float to,c_int milliseconds)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+
+// Ordinary methods call the authoritative C function once. Owning factories
+// produce stable native records; the native final release also frees the record.
 export extern "xge_sound" class Sound @header("xge3_audio_resources.h") @lifetime("owned") @policy("xl6Xge3SoundPolicy")
  native point handle
  extern "xgeSoundPlay" @no_raise @c_result("status",0) func play()
  extern "xgeSoundStop" @no_raise @c_result("status",0) func stop()
+ extern "xgeSoundPause" @no_raise @c_result("status",0) func pause()
+ extern "xgeSoundResume" @no_raise @c_result("status",0) func resume()
+ extern "xgeSoundSetLoop" func setLoop(c_int enabled)
  extern "xgeSoundSetVolume" func setVolume(c_float volume)
+ extern "xgeSoundSetPosition" func setPosition(c_float x,c_float y,c_float z)
+ extern "xgeSoundFade" func fade(c_float from,c_float to,c_int milliseconds)
+ extern "xgeSoundIsPlaying" func isPlaying() as c_int
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
+export extern "xge_music" class Music @header("xge3_audio_resources.h") @lifetime("owned") @policy("xl6Xge3MusicPolicy")
+ native point handle
+ extern "xgeMusicPlay" @no_raise @c_result("status",0) func play()
+ extern "xgeMusicStop" @no_raise @c_result("status",0) func stop()
+ extern "xgeMusicPause" @no_raise @c_result("status",0) func pause()
+ extern "xgeMusicResume" @no_raise @c_result("status",0) func resume()
+ extern "xgeMusicSetLoop" func setLoop(c_int enabled)
+ extern "xgeMusicSetVolume" func setVolume(c_float volume)
+ extern "xgeMusicFade" func fade(c_float from,c_float to,c_int milliseconds)
+ extern "xgeMusicIsPlaying" func isPlaying() as c_int
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+export extern "xge_stream" class AudioStream @header("xge3_audio_resources.h") @lifetime("owned") @policy("xl6Xge3AudioStreamPolicy")
+ native point handle
+ extern "xgeStreamPlay" @no_raise @c_result("status",0) func play()
+ extern "xgeStreamStop" @no_raise @c_result("status",0) func stop()
+ extern "xgeStreamPause" @no_raise @c_result("status",0) func pause()
+ extern "xgeStreamResume" @no_raise @c_result("status",0) func resume()
+ extern "xgeStreamSetLoop" func setLoop(c_int enabled)
+ extern "xgeStreamSetVolume" func setVolume(c_float volume)
+ extern "xgeStreamSetPosition" func setPosition(c_float x,c_float y,c_float z)
+ extern "xgeStreamFade" func fade(c_float from,c_float to,c_int milliseconds)
+ extern "xgeStreamIsPlaying" func isPlaying() as c_int
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xgeAudioGroupFree" @header("xge3_audio_resources.h") @no_raise func freeAudioGroup(AudioGroup group)
 extern "xgeSoundFree" @header("xge3_audio_resources.h") @no_raise func freeSound(Sound sound)
-export extern "xgeSoundLoad" @header("xge3_audio_resources.h") @no_raise @c_cstr(0) @c_result("owned_view") @factory(0,0,freeSound) @c_inplace("xge_sound_t") func loadSound(string path) as Sound
+extern "xgeMusicFree" @header("xge3_audio_resources.h") @no_raise func freeMusic(Music music)
+extern "xgeStreamClose" @header("xge3_audio_resources.h") @no_raise func freeAudioStream(AudioStream stream)
+export extern "xgeAudioGroupInit" @header("xge3_audio_resources.h") @no_raise @c_result("owned_view") @factory(0,0,freeAudioGroup) @c_inplace("xge_audio_group_t") func createAudioGroup() as AudioGroup
+export extern "xgeSoundCreateOwned" @header("xge3_audio_resources.h") @no_raise @c_cstr(0) @c_result("owned_view") @factory(0,0,freeSound) func loadSound(string path,AudioGroup? group=null) as Sound
+export extern "xgeMusicCreateOwned" @header("xge3_audio_resources.h") @no_raise @c_cstr(0) @c_result("owned_view") @factory(0,0,freeMusic) func loadMusic(string path,AudioGroup? group=null) as Music
+export extern "xgeStreamCreateOwned" @header("xge3_audio_resources.h") @no_raise @c_cstr(0) @c_result("owned_view") @factory(0,0,freeAudioStream) func openAudioStream(string path,AudioGroup? group=null) as AudioStream

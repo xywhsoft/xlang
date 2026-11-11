@@ -1,0 +1,67 @@
+import xge
+extern "fixtureXgeAudioBegin" @header("test/cases/foreign_xge3_audio_resources.h") @no_raise @c_result("status",0) func beginAudio()
+extern "fixtureXgeAudioOwners" @header("test/cases/foreign_xge3_audio_resources.h") @no_raise func owners() as uint64
+extern "fixtureXgeAudioPath" @header("test/cases/foreign_xge3_audio_resources.h") func fixturePath() as string
+extern "fixtureXgeAudioHeap" @header("test/cases/foreign_xge3_audio_resources.h") @no_raise @c_outputs(0,1) func heap() as (c_size,c_size)
+extern "xrtMemDebugFailAfter" @header("xrt_decl.h") @no_raise func failAfter(uint64 budget) as bool
+extern "xrtMemDebugFailClear" @header("xrt_decl.h") @no_raise func failClear()
+extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func debugEnabled() as bool
+func createAndClose(int kind,string path)
+ if kind==0 then
+  auto group=xge.createAudioGroup()
+  group.close()
+ elseif kind==1 then
+  auto sound=xge.loadSound(path)
+  sound.close()
+ elseif kind==2 then
+  auto music=xge.loadMusic(path)
+  music.close()
+ else
+  auto stream=xge.openAudioStream(path)
+  stream.close()
+ end
+end
+func main(...) as int
+ assert debugEnabled()
+ xge.init(4,4,"Audio language allocation prefixes",0,xge.XGE_RUN_MANUAL)
+ beginAudio()
+ string path=fixturePath()
+ try
+  for kind in range(4)
+   createAndClose(kind,path)
+   // Warm the generic error path before taking the balanced heap snapshots.
+   assert failAfter(uint64(0))
+   try
+    createAndClose(kind,path)
+   catch Error error
+   end
+   failClear()
+   int failed=0
+   int succeeded=0
+   for budget in range(64)
+    auto count0,bytes0=heap()
+    assert failAfter(uint64(budget))
+    try
+     createAndClose(kind,path)
+     succeeded+=1
+    catch Error error
+     failed+=1
+    end
+    failClear()
+    auto count1,bytes1=heap()
+    if count0!=count1 or bytes0!=bytes1 or owners()!=uint64(0) then
+     println("Audio imbalance kind=",kind," budget=",budget," before=",count0,"/",bytes0," after=",count1,"/",bytes1," owners=",owners())
+    end
+    assert count0==count1 and bytes0==bytes1
+    assert owners()==uint64(0)
+   end
+   assert failed>0 and succeeded>0
+   println("Audio language budgets ",kind,": ",failed," failures / ",succeeded," successes")
+  end
+ finally
+  failClear()
+  xge.audioUnit()
+  xge.unit()
+ end
+ return 0
+end

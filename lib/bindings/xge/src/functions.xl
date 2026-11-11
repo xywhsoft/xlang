@@ -67,7 +67,7 @@ export extern "xgeEGLCapsGet" @header("xge3_runtime.h") @no_raise @c_output(0,0)
 export extern "xgeAsyncThreadingSet" @header("xge3_runtime.h") func asyncThreadingSet(c_int bEnabled) as c_int
 export extern "xgeAsyncThreadingGet" @header("xge3_runtime.h") func asyncThreadingGet() as c_int
 export extern "xgeAudioInit" @header("xge3_runtime.h") func audioInit() as c_int
-export extern "xgeAudioUnit" @header("xge3_runtime.h") func audioUnit()
+export extern "xgeAudioUnitChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func audioUnit()
 export extern "xgeAudioIsReady" @header("xge3_runtime.h") func audioIsReady() as c_int
 export extern "xgeAudioSetVolume" @header("xge3_runtime.h") func audioSetVolume(c_float fVolume)
 export extern "xgeAudioGetVolume" @header("xge3_runtime.h") func audioGetVolume() as c_float

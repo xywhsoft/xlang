@@ -44,3 +44,17 @@ asserts the readback bytes without a window. `system_font.xl` resolves the
 platform monospace font through the corrected native owned factory. Both have
 Windows JIT/static AOT execution evidence in `docs/xge3-texture-operations.md`;
 use the matched SDK/engine/compiler cohort rather than an older installed DLL.
+
+`audio_playback.xl` plays the bundled short tone through Sound, Music and
+AudioStream, using one AudioGroup at quarter volume. Run it from this examples
+directory with a matching audio-enabled SDK and a working system output device:
+
+```powershell
+& "$runtime\xl.exe" "$runtime\examples\xge\audio_playback.xl"
+```
+
+Expect three short tones, then clean exit. Every voice closes before its group
+and checked audio/engine shutdown. Its generated C and dynamic/static builds
+are checked; physical output-device playback is a manual example check. The
+automated audio suite instead exercises the same public APIs with an explicitly
+private, real no-device mixer SDK. It does not install those test images.

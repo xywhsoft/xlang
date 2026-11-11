@@ -1,0 +1,32 @@
+import xge
+
+// Run beside data/tone.wav with an available system audio output device.
+// Audio control and resource destruction stay on this main thread.
+xge.init(4,4,"Audio playback",0,xge.XGE_RUN_MANUAL)
+try
+ assert xge.audioInit()==xge.XGE_OK
+ auto effects=xge.createAudioGroup()
+ effects.setVolume(c_float(0.25))
+
+ // Sound loads a reusable short effect. The group controls its volume.
+ auto sound=xge.loadSound("data/tone.wav",effects)
+ sound.play()
+ time.sleep(300)
+ sound.close()
+
+ // Music and AudioStream read their file through the native stream backend.
+ auto music=xge.loadMusic("data/tone.wav",effects)
+ music.play()
+ time.sleep(300)
+ music.close()
+
+ auto stream=xge.openAudioStream("data/tone.wav",effects)
+ stream.play()
+ time.sleep(300)
+ stream.close()
+ effects.close()
+finally
+ // These checked calls reject live children, so release voices/groups first.
+ xge.audioUnit()
+ xge.unit()
+end

@@ -20,6 +20,7 @@ def main():
     p.add_argument('--font-resources',action='store_true',help='Also link the native FontFace and FontFamily policies')
     p.add_argument('--text-resources',action='store_true',help='Also link immutable GlyphRun and GlyphBitmap policies')
     p.add_argument('--font-load',action='store_true',help='Also link the owning FontLoad policy')
+    p.add_argument('--audio-resources',action='store_true',help='Also link checked AudioGroup/Sound/Music/AudioStream policies')
     for name in ('root','compiler','compiler-report','dynamic-packages','static-packages','header','out'):
         p.add_argument('--'+name,type=Path,required=True)
     a=p.parse_args()
@@ -51,9 +52,11 @@ def main():
     textInclude='#include <xge3_text_resources.h>\n' if a.text_resources else ''
     textCheck=' || !xl6Xge3GlyphRunPolicyGet()->Destroy || !xl6Xge3GlyphBitmapPolicyGet()->Destroy' if a.text_resources else ''
     loadCheck=' || !xl6Xge3FontLoadPolicyGet()->Destroy' if a.font_load else ''
-    linked.write_text('#include "'+header.as_posix()+'"\n#include <xge3_async_load.h>\n'+contextInclude+fontInclude+textInclude+
+    audioInclude='#include <xge3_audio_resources.h>\n' if a.audio_resources else ''
+    audioCheck=' || !xl6Xge3AudioGroupPolicyGet()->Destroy || !xl6Xge3SoundPolicyGet()->Destroy || !xl6Xge3MusicPolicyGet()->Destroy || !xl6Xge3AudioStreamPolicyGet()->Destroy' if a.audio_resources else ''
+    linked.write_text('#include "'+header.as_posix()+'"\n#include <xge3_async_load.h>\n'+contextInclude+fontInclude+textInclude+audioInclude+
         'int main(){auto* image=xl6Xge3ImageLoadPolicyGet();auto* texture=xl6Xge3TextureLoadPolicyGet();'
-        'auto* domain=xl6Xge3AsyncLoadDomainV1Get();return !image->Destroy || !texture->Destroy || !domain'+contextCheck+fontCheck+textCheck+loadCheck+';}\n',encoding='utf8')
+        'auto* domain=xl6Xge3AsyncLoadDomainV1Get();return !image->Destroy || !texture->Destroy || !domain'+contextCheck+fontCheck+textCheck+loadCheck+audioCheck+';}\n',encoding='utf8')
     inputs.update({str(v):sha(v) for v in (probe,linked)})
     env=dict(os.environ)
     if os.name=='nt':

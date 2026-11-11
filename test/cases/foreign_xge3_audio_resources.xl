@@ -1,0 +1,156 @@
+// Real CPU mixer supplied by the private qualification SDK; no audio device.
+import xge
+extern "fixtureXgeAudioBegin" @header("test/cases/foreign_xge3_audio_resources.h") @no_raise @c_result("status",0) func beginAudio()
+extern "fixtureXgeAudioMix" @header("test/cases/foreign_xge3_audio_resources.h") @no_raise @c_result("status",0) func mix()
+extern "fixtureXgeAudioOwners" @header("test/cases/foreign_xge3_audio_resources.h") @no_raise func owners() as uint64
+extern "fixtureXgeAudioPath" @header("test/cases/foreign_xge3_audio_resources.h") func fixturePath() as string
+extern "fixtureXgeAudioHeap" @header("test/cases/foreign_xge3_audio_resources.h") @no_raise @c_outputs(0,1) func heap() as (c_size,c_size)
+extern "fixtureXgeAudioNativeCosts" @header("test/cases/foreign_xge3_audio_resources.h") @no_raise @c_result("status",0) func nativeCosts()
+extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func debugEnabled() as bool
+
+func checkSound(string path)
+ auto sound=xge.loadSound(path)
+ sound.setLoop(c_int(1))
+ sound.setVolume(c_float(0.5))
+ sound.setPosition(c_float(0),c_float(0),c_float(0))
+ sound.fade(c_float(0.5),c_float(0.5),c_int(0))
+ func() play=sound.play
+ play()
+ assert sound.isPlaying()!=c_int(0)
+ mix()
+ sound.pause()
+ assert sound.isPlaying()==c_int(0)
+ sound.resume()
+ mix()
+ sound.stop()
+ assert sound.isPlaying()==c_int(0)
+ auto alias=sound
+ sound.close()
+ bool refused=false
+ try
+  alias.play()
+ catch Error error
+  refused=true
+ end
+ assert refused and owners()==uint64(0)
+end
+
+func checkMusic(string path)
+ auto music=xge.loadMusic(path)
+ music.setLoop(c_int(1))
+ music.setVolume(c_float(0.5))
+ music.fade(c_float(0.5),c_float(0.5),c_int(0))
+ music.play()
+ assert music.isPlaying()!=c_int(0)
+ mix()
+ music.pause()
+ assert music.isPlaying()==c_int(0)
+ music.resume()
+ mix()
+ music.stop()
+ assert music.isPlaying()==c_int(0)
+ music.close()
+ assert owners()==uint64(0)
+end
+
+func checkStream(string path)
+ auto stream=xge.openAudioStream(path)
+ stream.setLoop(c_int(1))
+ stream.setVolume(c_float(0.5))
+ stream.setPosition(c_float(0),c_float(0),c_float(0))
+ stream.fade(c_float(0.5),c_float(0.5),c_int(0))
+ stream.play()
+ assert stream.isPlaying()!=c_int(0)
+ mix()
+ stream.pause()
+ assert stream.isPlaying()==c_int(0)
+ stream.resume()
+ mix()
+ stream.stop()
+ assert stream.isPlaying()==c_int(0)
+ stream.close()
+ assert owners()==uint64(0)
+end
+
+func checkGroup(string path)
+ auto group=xge.createAudioGroup()
+ group.setVolume(c_float(0.75))
+ assert group.volume()==c_float(0.75)
+ group.fade(c_float(0.75),c_float(0.75),c_int(0))
+ auto sound=xge.loadSound(path,group)
+ auto music=xge.loadMusic(path,group)
+ auto stream=xge.openAudioStream(path,group)
+ assert owners()==uint64(4)
+ bool busy=false
+ try
+  xge.audioUnit()
+ catch Error error
+  busy=true
+ end
+ assert busy and xge.audioIsReady()!=c_int(0)
+ busy=false
+ try
+  xge.unit()
+ catch Error error
+  busy=true
+ end
+ assert busy and owners()==uint64(4)
+ group.close()
+ assert owners()==uint64(4)
+ bool closed=false
+ try
+  group.volume()
+ catch Error error
+  closed=true
+ end
+ assert closed
+ sound.setLoop(c_int(1))
+ sound.play()
+ mix()
+ sound.close()
+ assert owners()==uint64(3)
+ music.setLoop(c_int(1))
+ music.play()
+ mix()
+ music.close()
+ assert owners()==uint64(2)
+ stream.setLoop(c_int(1))
+ stream.play()
+ mix()
+ stream.close()
+ assert owners()==uint64(0)
+end
+
+func main(...) as int
+ assert debugEnabled()
+ xge.init(4,4,"Audio language CPU qualification",0,xge.XGE_RUN_MANUAL)
+ beginAudio()
+ string path=fixturePath()
+ assert path.length>0
+ try
+  checkSound(path)
+  checkMusic(path)
+  checkStream(path)
+  checkGroup(path)
+  for name in [path+".missing",path+"\0suffix"]
+   bool refused=false
+   try
+    auto unused=xge.loadSound(name)
+   catch Error error
+    refused=true
+   end
+   assert refused and owners()==uint64(0)
+  end
+  nativeCosts()
+  auto count0,bytes0=heap()
+  auto group=xge.createAudioGroup()
+  auto count1,bytes1=heap()
+  println("Language AudioGroup: ",count1-count0," allocations / ",bytes1-bytes0," bytes")
+  group.close()
+  println("Audio direct factories, methods, real PCM, parent ownership and close passed")
+ finally
+  xge.audioUnit()
+  xge.unit()
+ end
+ return 0
+end
