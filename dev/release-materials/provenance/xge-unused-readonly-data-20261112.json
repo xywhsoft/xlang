@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "scope": "Readonly data retention diagnosis; no compiler fix or final delivery",
+  "diagnosisComplete": true,
+  "implementationComplete": false,
+  "shippingDelivery": false,
+  "evidence": [
+    {
+      "platform": "win",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\png-trim-sections-win-r1\\results.json",
+      "sha256": "250c5588154fb5d630aa028d45326d46baa52276efab5869cda410e37ad87d6f",
+      "fileDeltaBytes": 6144,
+      "sectionDeltaBytes": 5844
+    },
+    {
+      "platform": "linux",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\png-trim-sections-linux-r1\\results.json",
+      "sha256": "6e07d93cd9baf4052e2a2c7ade0fd4d09e991277d58f2e87e64c6388ad34288f",
+      "fileDeltaBytes": 22240,
+      "sectionDeltaBytes": 22224
+    }
+  ],
+  "detail": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\png-trim-sections-linux-r1\\normalized.json",
+      "sha256": "0b55b21668d4bdeaf2e3c95282a3d2a99e27fac893d78b10df87615c3b79706e"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\png-trim-sections-linux-r1\\strings.json",
+      "sha256": "3e06728a435c4abb29926ed1dc25d9daf99f6c5a36084e1bd6a5fc5218987b95"
+    }
+  ],
+  "sourceInputs": {
+    "lib/tcc/tccgen.c": "8c09f62dd77383f07fdf96e975a0f0330ef7b82a63004907ae3ba5b696f181a3",
+    "lib/tcc/tccelf.c": "260328a4a5a2a5f70d97db729c2b1b1f7b9f4169ddf6b47ef300235119daa078",
+    "src/api/xl_api.c": "48150767b8f8ce0263045ef2a91216fea2fab68c920a735990e79f2a209f388b"
+  },
+  "linuxCodeBytesBefore": 434726,
+  "linuxCodeBytesAfter": 434726,
+  "linuxAddedPrintableStringBytes": 1511,
+  "linuxRemovedPrintableStringBytes": 27,
+  "notes": [
+    "String and floating literals explicitly use the shared readonly section, bypassing the data section split.",
+    "Remaining non-string readonly bytes are not yet attributed to exact symbols.",
+    "A general literal collection fix needs compact final output to avoid per-section header growth."
+  ]
+}
