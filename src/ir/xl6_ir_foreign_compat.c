@@ -129,7 +129,8 @@ static int xl6IrForeignOverloadsCompatible(const XL6_IrModule* module,const XL6_
         if((xp!=NULL)!=(yp!=NULL) || (xp && (xp->kind!=yp->kind || strcmp(xp->pointerCName,yp->pointerCName) ||
             strcmp(xp->elementCName,yp->elementCName) || strcmp(xp->header,yp->header) || xp->countAbi!=yp->countAbi || xp->readOnly!=yp->readOnly ||
             strcmp(xp->callbackOwnerCName,yp->callbackOwnerCName) || xp->callbackOwnerIndexPlusOne!=yp->callbackOwnerIndexPlusOne ||
-            xp->callbackFailureCode!=yp->callbackFailureCode || xp->callbackUserFirst!=yp->callbackUserFirst || xp->callbackResultKind!=yp->callbackResultKind)))return 0;
+            xp->callbackFailureCode!=yp->callbackFailureCode || xp->callbackUserFirst!=yp->callbackUserFirst || xp->callbackResultKind!=yp->callbackResultKind ||
+            xp->spanLimitIndexPlusOne!=yp->spanLimitIndexPlusOne)))return 0;
     }
     return 1;
 }

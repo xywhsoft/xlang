@@ -1,0 +1,66 @@
+extern "PrefixRoot*" class Reader @header("test/cases/foreign_span_prefix.h") @lifetime("owned") @policy("prefixRootPolicy")
+ native point handle
+ extern "measure" @c_field_call @no_raise @c_span(0,"const void*","size_t",1) func measure(string data,int size=-1) as c_int
+ extern "measure" @c_field_call @no_raise @c_span(0,"const void*","size_t",1) func measure(bytes data,int size=-1) as c_int
+ extern "measure" @c_field_call @no_raise @c_span(0,"const void*","size_t",1) func measure(Buffer? data,int size=-1) as c_int
+end
+extern "prefix_create" @header("test/cases/foreign_span_prefix.h") @no_raise @factory(0,0,rollback) @c_result("owned_view") func create() as Reader
+extern "prefix_destroy" @header("test/cases/foreign_span_prefix.h") @no_raise func rollback(Reader value)
+extern "prefix_sum" @header("test/cases/foreign_span_prefix.h") @no_raise @c_span(0,"const void*","size_t",1) func sum(string data,int size=-1) as c_int
+extern "prefix_sum" @header("test/cases/foreign_span_prefix.h") @no_raise @c_span(0,"const void*","size_t",1) func sum(bytes data,int size=-1) as c_int
+extern "prefix_sum" @header("test/cases/foreign_span_prefix.h") @no_raise @c_span(0,"const void*","size_t",1) func sum(Buffer? data,int size=-1) as c_int
+extern "prefix_sum_int" @no_raise @c_span(0,"const uint8_t*","int",1,"test/cases/foreign_span_prefix.h") func sumInt(bytes data,int size=-1) as c_int
+extern "prefix_mix" @header("test/cases/foreign_span_prefix.h") @no_raise @c_span(0,"const char*","int",1) @c_outputs(2,3) @c_status(0) func pair(string data,int size=-1) as (c_int,c_size)
+extern "prefix_two" @header("test/cases/foreign_span_prefix.h") @no_raise @c_span(0,"const void*","size_t",1) @c_span(2,"const void*","size_t",3) func two(string first,int firstSize,string second,int secondSize) as c_int
+extern "prefix_calls" @header("test/cases/foreign_span_prefix.h") @no_raise func calls() as c_int
+extern "prefix_counter_begin" @header("test/cases/foreign_span_prefix.h") @no_raise func counterBegin()
+extern "prefix_counter_end" @header("test/cases/foreign_span_prefix.h") @no_raise func counterEnd()
+protocol Source
+ func measure(string data,int size) as c_int
+end
+int sizeCalls=0
+func nextSize() as int
+ sizeCalls+=1
+ return 2
+end
+export func prefixSelfTest() as c_int
+ assert sum(b"a\0b",1)==c_int(97)
+ return sum(b"a\0b",100)
+end
+func main(...) as int
+ string text="a\0b"
+ bytes data=b"a\0b"
+ Buffer buffer=Buffer(data)
+ Buffer? absent=null
+ assert sum(text)==c_int(195) and sum(data)==c_int(195)
+ assert sum(text,1)==c_int(97) and sum(data,0)==c_int(0)
+ assert sum(text,100)==c_int(195) and sum(data,9223372036854775807)==c_int(195)
+ assert sum(buffer,2)==c_int(97) and sum(absent,100)==c_int(0)
+ assert sumInt(data,2)==c_int(97)
+ assert sum(data,nextSize())==c_int(97) and sizeCalls==1
+ assert two(text,1,text,100)==c_int(292)
+ assert sum("你",1)==c_int(228)
+ auto total,length=pair(text,2)
+ assert total==c_int(97) and length==c_size(2)
+ auto reader=create()
+ assert reader.measure(text,2)==c_int(97) and reader.measure(data)==c_int(195)
+ func(string,int) as c_int bound=reader.measure
+ assert bound(text,100)==c_int(195)
+ Source source=reader
+ assert source.measure(text,1)==c_int(97)
+ int initial=int(calls())
+ bool rejected=false
+ try
+  sum(data,-2)
+ catch error
+  rejected=true
+ end
+ assert rejected and int(calls())==initial
+ counterBegin()
+ for i in range(1000)
+  assert sum(text,2)==c_int(97)
+  assert sumInt(data,100)==c_int(195)
+ end
+ counterEnd()
+ return 0
+end

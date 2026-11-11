@@ -187,11 +187,18 @@ static inline int xl6ForeignParameterRead(const XL6_AstNode* attr,
     result.parameter=(uint32)index;
     if(!strcmp(attr->text,"c_span")) {
         char count[32];
-        if((attr->childCount!=3 && attr->childCount!=4) || !xl6ForeignQuotedText(attr->children[1],result.pointerCName,sizeof(result.pointerCName)) ||
+        if((attr->childCount<3 || attr->childCount>5) || !xl6ForeignQuotedText(attr->children[1],result.pointerCName,sizeof(result.pointerCName)) ||
             !xl6ForeignPointerSpelling(result.pointerCName) ||
             !xl6ForeignQuotedText(attr->children[2],count,sizeof(count)))return 0;
-        if(attr->childCount==4 && (!xl6ForeignQuotedText(attr->children[3],result.header,sizeof(result.header)) ||
+        size_t headerIndex=3;
+        if(attr->childCount>=4 && attr->children[3] && attr->children[3]->kind!=XL6_AST_STRING){
+            int32 limit;
+            if(!xl6ForeignDecimalInt(attr->children[3],&limit) || limit!=index+1 || limit>=64)return 0;
+            result.spanLimitIndexPlusOne=(uint32)limit+1;headerIndex=4;
+        }
+        if(attr->childCount>headerIndex && (!xl6ForeignQuotedText(attr->children[headerIndex],result.header,sizeof(result.header)) ||
             !xl6ForeignHeaderName(result.header)))return 0;
+        if(attr->childCount>headerIndex+1)return 0;
         result.kind=XL6_FOREIGN_PARAMETER_SPAN;
         if(!strcmp(count,"size_t"))result.countAbi=XL6_FOREIGN_SPAN_COUNT_SIZE;
         else if(!strcmp(count,"int"))result.countAbi=XL6_FOREIGN_SPAN_COUNT_INT;
@@ -204,6 +211,9 @@ static inline int xl6ForeignParameterRead(const XL6_AstNode* attr,
         while(bytes && element[bytes-1]==' ')--bytes;
         if(!bytes || bytes>=sizeof(result.elementCName))return 0;
         memcpy(result.elementCName,element,bytes);result.elementCName[bytes]=0;
+        if(result.spanLimitIndexPlusOne && (!result.readOnly ||
+            (strcmp(result.elementCName,"void") && strcmp(result.elementCName,"char") &&
+             strcmp(result.elementCName,"unsigned char") && strcmp(result.elementCName,"uint8_t"))))return 0;
     } else if(!strcmp(attr->text,"c_owned_callback")) {
         int32 owner;
         if((attr->childCount<4 || attr->childCount>6) ||
@@ -288,7 +298,7 @@ static inline int xl6ForeignFunctionFieldCall(const XL6_AstNode* node)
 static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
     XL6_ForeignCallFacts* output)
 {
-    XL6_ForeignCallFacts facts = {0};int countedField=0,retainedResult=0,voidFactory=0,outputStatus=0,fieldCall=0;uint64 callbackSpans=0,callbackParameters=0,outputSizes=0,outputViews=0,regions=0,regionObservers=0,packs=0,packText=0,packCstrings=0,nulls=0;size_t callbackSpanCount=0,packFields=0;
+    XL6_ForeignCallFacts facts = {0};int countedField=0,retainedResult=0,voidFactory=0,outputStatus=0,fieldCall=0;uint64 callbackSpans=0,callbackParameters=0,outputSizes=0,outputViews=0,regions=0,regionObservers=0,packs=0,packText=0,packCstrings=0,nulls=0,spanLimits=0;size_t callbackSpanCount=0,packFields=0;
     uint64 recordFields=0,recordRetains=0,arrayGroups=0,arrayRecords=0;size_t arrayInputs=0,arrayFields=0;
     const XL6_AstNode* attributes = xl6ForeignFunctionAttributes(node);
     for (size_t i = 0; attributes && i < attributes->childCount; ++i) {
@@ -454,6 +464,7 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             if(contract.kind==XL6_FOREIGN_PARAMETER_RETAINED_CALLBACK)facts.retainedCallbacks|=bit;
             else facts.physicalPairs|=bit;
             if(contract.kind!=XL6_FOREIGN_PARAMETER_SPAN)callbackParameters|=bit;
+            if(contract.spanLimitIndexPlusOne)spanLimits|=UINT64_C(1)<<(contract.spanLimitIndexPlusOne-1);
         } else if (!strcmp(attr->text, "c_text_view")) {
             uint64 bit = UINT64_C(1) << index;
             if (attr->childCount != 1 || (facts.textViews & bit)) return 0;
@@ -543,6 +554,14 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
         (arrayGroups && (packs || regions || (node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || facts.receiverDereference)))return 0;
     if(arrayGroups)facts.inputMappingFacts|=XL6_FOREIGN_INPUT_ARRAY_GROUPS_PRESENT;
     if(nulls)facts.inputMappingFacts|=XL6_FOREIGN_INPUT_FIXED_PRESENT;
+    if(spanLimits){
+        if(packs || regions || arrayGroups || nulls ||
+            (spanLimits&(facts.physicalPairs|facts.retainedCallbacks|facts.terminatedStrings|facts.textViews|
+                facts.bytesViews|facts.constAggregateAddresses|facts.staticCallbackAddresses)) ||
+            (node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || facts.receiverDereference)return 0;
+        facts.inputMappingFacts|=XL6_FOREIGN_INPUT_SPAN_PREFIXES_PRESENT;
+        for(uint64 bits=spanLimits;bits;bits>>=1)facts.spanPrefixCount+=(uint8)(bits&1);
+    }
     if (output) *output = facts;
     return 1;
 }

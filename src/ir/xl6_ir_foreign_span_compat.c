@@ -11,7 +11,7 @@ static int xl6IrForeignReadonlySpanByteInputCompatible(const XL6_IrModule* m,
     const XL6_IrType* left=xl6IrTypeGet(&m->types,a->parameterTypes[p]);const XL6_IrType* right=xl6IrTypeGet(&m->types,b->parameterTypes[p]);
     if(!x || !y || !x->readOnly || !y->readOnly || x->kind!=XL6_FOREIGN_PARAMETER_SPAN || y->kind!=x->kind ||
         strcmp(x->pointerCName,y->pointerCName) || strcmp(x->elementCName,y->elementCName) || strcmp(x->header,y->header) || x->countAbi!=y->countAbi ||
-        !left || !right)return 0;
+        x->spanLimitIndexPlusOne!=y->spanLimitIndexPlusOne || !left || !right)return 0;
     /* ParameterMatches first proves each preparation contract independently:
      * only protected Buffer may be nullable; string/bytes remain nonnullable.
      * Null produces (NULL,0), while a present Buffer keeps its span guard. */

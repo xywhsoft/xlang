@@ -21751,6 +21751,17 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
             if(!xl6SemForeignSpanType(ctx,type,&contract)) {
                 xl6SemErrorNode(ctx,parameter,"C span requires readonly string/bytes/fixed C array, or a declared Buffer resource");return 0;
             }
+            if(contract.spanLimitIndexPlusOne){
+                size_t limit=contract.spanLimitIndexPlusOne-1;
+                const XL6_AstNode* value=limit<count && params->children[limit]->childCount ?
+                    xl6SemResolveAliasType(ctx,params->children[limit]->children[0]):NULL;
+                uint64 mappings=facts.controlViews|((facts.constAggregateAddresses|facts.staticCallbackAddresses|
+                    facts.textViews|facts.bytesViews|facts.terminatedStrings|facts.physicalPairs|facts.retainedCallbacks)<<receiver);
+                if(!value || value->childCount || (!xl6TextEquals(value->text,"int64") && !xl6TextEquals(value->text,"int")) ||
+                    ((limit+receiver)<64 && (mappings&(UINT64_C(1)<<(limit+receiver))))){
+                    xl6SemErrorNode(ctx,parameter,"C span byte prefix requires the adjacent unmapped int64 limit parameter");return 0;
+                }
+            }
         } else {
             if(contract.callbackResultKind==XL6_FOREIGN_CALLBACK_RESULT_OWNED_TEXT && contract.callbackFailureCode){
                 xl6SemErrorNode(ctx,parameter,"owned text callback requires the empty failure result (0)");return 0;
@@ -21886,7 +21897,7 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
             int found=0;
             for(size_t a=0;attrs && a<attrs->childCount;++a)
                 if(xl6ForeignMultiOutputRead(attrs->children[a],slots,&outputs))++found;
-            if(found!=1 || (!xl6ForeignInputHasPacks(facts.inputMappingFacts) && !xl6ForeignInputHasArrayGroups(facts.inputMappingFacts) && !xl6ForeignInputHasFixedInputs(facts.inputMappingFacts) && !xl6ForeignMultiOutputSlotsValid(&facts,count+receiver,receiver,slots,outputs))){
+            if(found!=1 || (!xl6ForeignInputHasPacks(facts.inputMappingFacts) && !xl6ForeignInputHasArrayGroups(facts.inputMappingFacts) && !xl6ForeignInputHasFixedInputs(facts.inputMappingFacts) && !xl6ForeignInputHasSpanPrefixes(facts.inputMappingFacts) && !xl6ForeignMultiOutputSlotsValid(&facts,count+receiver,receiver,slots,outputs))){
                 xl6SemErrorNode(ctx,node,"@c_outputs requires complete increasing physical slots outside expanded parameter groups");return 0;
             }
         }

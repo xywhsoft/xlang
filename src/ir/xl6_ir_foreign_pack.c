@@ -73,6 +73,11 @@ size_t xl6IrForeignPhysicalStepCount(const XL6_IrModule* m,const XL6_IrCallTarge
     const XL6_IrNode* node=xl6IrNodeGet(m,t->declaration);if(!node)return SIZE_MAX;
     size_t outputs=node->foreignCall.valueOutput ? xl6IrForeignPhysicalOutputCount(m,t):(node->foreignCall.outputIndexPlusOne ? 1:0);
     size_t count=t->parameterCount+outputs;
+    if(m->foreignParameterCount>m->foreignParameterCapacity || (m->foreignParameterCount && !m->foreignParameters))return SIZE_MAX;
+    for(size_t i=0;i<m->foreignParameterCount;++i)if(m->foreignParameters[i].declaration==t->declaration && m->foreignParameters[i].spanLimitIndexPlusOne){
+        if(!count)return SIZE_MAX;
+        --count;
+    }
     for(size_t i=0;i<m->foreignFixedInputCount;++i)count+=m->foreignFixedInputs[i].declaration==t->declaration;
     for(size_t i=0;i<m->foreignPackCount;++i){const XL6_ForeignPackContract* row=&m->foreignPacks[i];
         if(row->declaration!=t->declaration)continue;
@@ -118,9 +123,13 @@ int xl6IrForeignPhysicalStepGet(const XL6_IrModule* m,const XL6_IrCallTarget* t,
                 step.kind=XL6_FOREIGN_PHYSICAL_STEP_PACK;p+=pack->parameterCount;++physical;
             }else{
                 step.kind=XL6_FOREIGN_PHYSICAL_STEP_INPUT;size_t explicitParameter=p>=receiver ? p-receiver:SIZE_MAX;
-                physical+=explicitParameter<64 && (node->foreignCall.physicalPairs&(UINT64_C(1)<<explicitParameter)) ? 2:
+                size_t width=explicitParameter<64 && (node->foreignCall.physicalPairs&(UINT64_C(1)<<explicitParameter)) ? 2:
                     explicitParameter<64 && (node->foreignCall.retainedCallbacks&(UINT64_C(1)<<explicitParameter)) ? 3:1;
-                ++p;
+                if(o<outputs && slot>physical && slot<physical+width)return 0;
+                const XL6_ForeignParameterContract* span=xl6IrForeignParameterGet(m,t,p);
+                size_t inputs=span && span->spanLimitIndexPlusOne ? 2:1;
+                if(inputs>t->parameterCount-p)return 0;
+                physical+=width;p+=inputs;
             }
         }
         if(event==wanted){if(output)*output=step;return 1;}
@@ -134,7 +143,10 @@ size_t xl6IrForeignFirstOutputLogical(const XL6_IrModule* m,const XL6_IrCallTarg
     for(size_t i=0;i<count;++i){XL6_ForeignPhysicalStep step;
         if(!xl6IrForeignPhysicalStepGet(m,t,i,&step))return SIZE_MAX;
         if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_OUTPUT)return before;
-        if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_INPUT)++before;
+        if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_INPUT){
+            const XL6_ForeignParameterContract* span=xl6IrForeignParameterGet(m,t,step.parameter);
+            before+=span && span->spanLimitIndexPlusOne ? 2:1;
+        }
         else if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_ARRAY_GROUP){const XL6_ForeignArrayGroupContract* group=xl6IrForeignArrayGroupGet(m,t,step.physicalIndex);if(!group)return SIZE_MAX;before+=group->arrayCount+1;}
         else if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_PACK){const XL6_ForeignPackContract* pack=xl6IrForeignPackGet(m,t,step.physicalIndex);if(!pack)return SIZE_MAX;before+=pack->parameterCount;}
     }
@@ -297,10 +309,10 @@ static int xl6IrVerifyPacks(const XL6_IrModule* m,XL6_DiagList* diags)
         if((packs!=0)!=xl6ForeignInputHasPacks(m->nodes[n].foreignCall.inputMappingFacts) || (packs!=0)!=(fields!=0))goto invalid;
         size_t nulls=0;for(size_t i=0;i<m->foreignFixedInputCount;++i)nulls+=m->foreignFixedInputs[i].declaration==n+1;
         if((nulls!=0)!=xl6ForeignInputHasFixedInputs(m->nodes[n].foreignCall.inputMappingFacts))goto invalid;
-        if(!packs && !nulls)continue;
+        if(!packs && !nulls && !xl6ForeignInputHasSpanPrefixes(m->nodes[n].foreignCall.inputMappingFacts))continue;
         const XL6_IrNode* params;size_t receiver,outputs;uint32 slots[64]={0};
         const XL6_IrNode* node=xl6IrRegionSignature(m,(uint32)n+1,&params,&receiver,slots,&outputs);if(!node)goto invalid;
-        XL6_IrCallTarget target={0};target.declaration=(uint32)n+1;target.parameterCount=params->childCount+receiver;
+        XL6_IrCallTarget target={0};target.kind=XL6_IR_CALL_TARGET_EXTERN_C;target.declaration=(uint32)n+1;target.parameterCount=params->childCount+receiver;
         size_t count=xl6IrForeignPhysicalStepCount(m,&target);if(count>target.parameterCount+outputs+64)goto invalid;
         for(size_t i=0;i<count;++i)if(!xl6IrForeignPhysicalStepGet(m,&target,i,NULL))goto invalid;
         for(size_t i=0;i<m->foreignFixedInputCount;++i){const XL6_ForeignFixedInputContract* row=&m->foreignFixedInputs[i];if(row->declaration!=n+1)continue;

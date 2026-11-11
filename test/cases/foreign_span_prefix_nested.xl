@@ -1,0 +1,26 @@
+// This also runs inside an independently built, self-contained compiler host.
+import xlang
+func main(...) as int
+ string source=r"""
+extern "xrtHash32" @header("xrt_decl.h") @no_raise @c_span(0,"const void*","size_t",1) func digest(bytes data,int size=-1) as c_uint
+extern "xrtHash32" @header("xrt_decl.h") @no_raise @c_span(0,"const void*","size_t",1) func digest(Buffer? data,int size=-1) as c_uint
+Buffer? input=Buffer(b"a\0b")
+Buffer? absent=null
+assert digest(input,1)==digest(b"a")
+assert digest(input,100)==digest(b"a\0b")
+assert digest(absent,100)==digest(b"")
+bool rejected=false
+try
+ digest(input,-2)
+catch error
+ rejected=true
+end
+assert rejected
+"""
+ auto compiler=xlang.Context()
+ assert compiler.run(source),compiler.lastError
+ assert not compiler.run("int broken=missingNestedPrefixSymbol")
+ assert compiler.run(source),compiler.lastError
+ println("Nested span prefixes passed")
+ return 0
+end

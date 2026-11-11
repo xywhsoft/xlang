@@ -435,7 +435,7 @@ static int xl6IrVerifyForeignOutputs(const XL6_IrModule* module,XL6_DiagList* di
             slots[o]=row->physicalIndex;
         }
         if(node->foreignCall.outputIndexPlusOne!=slots[0]+1 ||
-            (!xl6ForeignInputHasPacks(node->foreignCall.inputMappingFacts) && !xl6ForeignInputHasArrayGroups(node->foreignCall.inputMappingFacts) && !xl6ForeignInputHasFixedInputs(node->foreignCall.inputMappingFacts) && !xl6ForeignMultiOutputSlotsValid(&node->foreignCall,params->childCount+receiver,receiver,slots,count)))goto invalid;
+            (!xl6ForeignInputHasPacks(node->foreignCall.inputMappingFacts) && !xl6ForeignInputHasArrayGroups(node->foreignCall.inputMappingFacts) && !xl6ForeignInputHasFixedInputs(node->foreignCall.inputMappingFacts) && !xl6ForeignInputHasSpanPrefixes(node->foreignCall.inputMappingFacts) && !xl6ForeignMultiOutputSlotsValid(&node->foreignCall,params->childCount+receiver,receiver,slots,count)))goto invalid;
     }
     return 1;
 invalid:return xl6IrDiag(diags,NULL,"native multi-output rows must exactly cover increasing complete C slots and language results");
@@ -575,6 +575,10 @@ static int xl6IrForeignParameterRowValid(const XL6_ForeignParameterContract* row
             (row->countAbi!=XL6_FOREIGN_SPAN_COUNT_SIZE && row->countAbi!=XL6_FOREIGN_SPAN_COUNT_INT) ||
             !memchr(row->pointerCName,0,sizeof(row->pointerCName)) || !memchr(row->elementCName,0,sizeof(row->elementCName)) ||
             !xl6ForeignPointerSpelling(row->pointerCName))return 0;
+        if(row->spanLimitIndexPlusOne && (row->spanLimitIndexPlusOne!=row->parameter+2 ||
+            row->spanLimitIndexPlusOne>64 || !row->readOnly ||
+            (strcmp(row->elementCName,"void") && strcmp(row->elementCName,"char") &&
+             strcmp(row->elementCName,"unsigned char") && strcmp(row->elementCName,"uint8_t"))))return 0;
         const char* element=row->pointerCName;
         bool readOnly=!strncmp(element,"const ",6);
         if(readOnly)element+=6;
@@ -586,7 +590,7 @@ static int xl6IrForeignParameterRowValid(const XL6_ForeignParameterContract* row
     }
     return (row->kind==XL6_FOREIGN_PARAMETER_RETAINED_CALLBACK || row->kind==XL6_FOREIGN_PARAMETER_SYNC_CALLBACK) && !row->pointerCName[0] && !row->elementCName[0] &&
         (row->callbackResultKind==XL6_FOREIGN_CALLBACK_RESULT_TRIVIAL || row->callbackResultKind==XL6_FOREIGN_CALLBACK_RESULT_OWNED_TEXT) &&
-        !row->countAbi && !row->readOnly && row->callbackOwnerIndexPlusOne<=64 &&
+        !row->countAbi && !row->readOnly && !row->spanLimitIndexPlusOne && row->callbackOwnerIndexPlusOne<=64 &&
         (row->kind==XL6_FOREIGN_PARAMETER_SYNC_CALLBACK ? !row->callbackOwnerCName[0] && !row->callbackResultKind :
          memchr(row->callbackOwnerCName,0,sizeof(row->callbackOwnerCName)) && xl6ForeignIdentifier(row->callbackOwnerCName));
 }
@@ -604,12 +608,22 @@ static int xl6IrVerifyForeignParameters(const XL6_IrModule* module,XL6_DiagList*
         uint64 bit=UINT64_C(1)<<row->parameter;
         if(!(bit&(row->kind!=XL6_FOREIGN_PARAMETER_RETAINED_CALLBACK ? declaration->foreignCall.physicalPairs : declaration->foreignCall.retainedCallbacks)))goto invalid;
         const XL6_IrNode* params=xl6IrNodeGet(module,module->children[declaration->firstChild+1]);
-        if(!params || params->kind!=XL6_IR_NODE_LIST || row->parameter>=params->childCount)goto invalid;
+        if(!params || params->kind!=XL6_IR_NODE_LIST || row->parameter>=params->childCount ||
+            row->spanLimitIndexPlusOne>params->childCount)goto invalid;
         for(size_t j=0;j<i;++j)
             if(module->foreignParameters[j].declaration==row->declaration && module->foreignParameters[j].parameter==row->parameter)goto invalid;
     }
     for(size_t n=0;n<module->nodeCount;++n) {
         const XL6_IrNode* declaration=&module->nodes[n];
+        size_t prefixes=0;
+        for(size_t i=0;i<module->foreignParameterCount;++i)
+            prefixes+=module->foreignParameters[i].declaration==n+1 && module->foreignParameters[i].spanLimitIndexPlusOne!=0;
+        if(prefixes!=declaration->foreignCall.spanPrefixCount ||
+            (prefixes!=0)!=xl6ForeignInputHasSpanPrefixes(declaration->foreignCall.inputMappingFacts))goto invalid;
+        if(prefixes && (xl6ForeignInputHasRegions(declaration->foreignCall.inputMappingFacts) ||
+            xl6ForeignInputHasPacks(declaration->foreignCall.inputMappingFacts) ||
+            xl6ForeignInputHasArrayGroups(declaration->foreignCall.inputMappingFacts) ||
+            xl6ForeignInputHasFixedInputs(declaration->foreignCall.inputMappingFacts)))goto invalid;
         uint64 mask=declaration->foreignCall.physicalPairs|declaration->foreignCall.retainedCallbacks;
         for(size_t p=0;p<64;++p)if(mask&(UINT64_C(1)<<p)) {
             int found=0;
@@ -629,6 +643,15 @@ int xl6IrForeignSpanParameterMatches(const XL6_IrModule* module,const XL6_IrCall
     if(!row || row->kind!=XL6_FOREIGN_PARAMETER_SPAN || !type ||
         target->parameterAbis[parameter]!=((type->cAbi==XL6_IR_C_ABI_C_ARRAY || type->cAbi==XL6_IR_C_ABI_C_RECORD) ? XL6_IR_PARAMETER_ABI_VALUE : XL6_IR_PARAMETER_ABI_BORROW) ||
         target->parameterConstraintAbis[parameter])return 0;
+    if(row->spanLimitIndexPlusOne){
+        size_t limit=parameter+1;
+        const XL6_IrType* value=limit<target->parameterCount ? xl6IrTypeGet(&module->types,target->parameterTypes[limit]):NULL;
+        if(!value || value->cAbi!=XL6_IR_C_ABI_I64 || value->integerTarget!=XL6_IR_INTEGER_TARGET_SIGNED_64 ||
+            value->kind!=XL6_IR_TYPE_BUILTIN || value->paramCount || value->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
+            target->parameterPhysicalAbis[limit]!=XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT ||
+            target->parameterAbis[limit]!=XL6_IR_PARAMETER_ABI_VALUE || target->parameterConstraintAbis[limit] ||
+            target->parameterPhysicalFieldDeclarations[limit] || xl6IrForeignParameterGet(module,target,limit))return 0;
+    }
     const XL6_IrClassField* buffer=xl6IrForeignSpanBufferField(module,target,parameter);
     if(buffer){
         if(type->kind==XL6_IR_TYPE_NULLABLE && type->paramCount==1 && type->params)type=xl6IrTypeGet(&module->types,type->params[0]);

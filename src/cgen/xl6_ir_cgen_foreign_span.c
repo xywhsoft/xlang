@@ -43,6 +43,13 @@ static int xl6IrCgenForeignSpansBegin(XL6_Output* out,const XL6_IrModule* module
             xl6OutputPrintf(out,".Elements; native_span_bytes_%lu=sizeof(",(unsigned long)p);xl6IrCgenForeignViewArgument(out,operands,p,NULL);
             xl6OutputPuts(".Elements);\n",out);
         } else return -1;
+        if(row->spanLimitIndexPlusOne){
+            xl6OutputPuts("    if (native_spans_ok) { int64_t limit = ",out);
+            xl6IrCgenForeignViewArgument(out,operands,p+1,NULL);
+            xl6OutputPrintf(out,"; if (limit < -1) { native_spans_ok=false; xrtSetErrorKind(XERR_RANGE); xl6ErrorScopeCaptureFailure(&%s); }\n"
+                "    else if (limit >= 0 && (uint64_t)limit < native_span_bytes_%lu) native_span_bytes_%lu=(size_t)limit; }\n",
+                scope,(unsigned long)p,(unsigned long)p);
+        }
         xl6OutputPrintf(out,"    if (native_spans_ok) { size_t unit = ");
         if(!strcmp(row->elementCName,"void"))xl6OutputPuts("1",out);
         else xl6OutputPrintf(out,"sizeof(%s)",row->elementCName);

@@ -1,0 +1,75 @@
+{
+  "schema": "xlang-foreign-span-prefix-preflight-1",
+  "passed": true,
+  "shippingDelivery": false,
+  "releaseIdeInstalled": false,
+  "fullCompilerQualified": false,
+  "embeddedCompilerQualified": false,
+  "scope": "Frontend-only O0 overlay over verified complete r19. Direct clamped byte-prefix mapping and behavior gates; complete Windows r20/Linux r12 O2/TCC/XRT/VFS/embedded builds are in progress and require separate acceptance.",
+  "sources": {
+    "src/type/xl6_foreign_call_contract.h": "7a4a5d5400b00d3a1b92f47488cdd5b908eb094c4cece123163db7116d2a6d9c",
+    "src/type/xl6_foreign_decl.h": "a8d57f1a2cdd58ca336e9aee7ee7574a5f3a6369568e2d0112618d2cc01b542f",
+    "src/sem/xl6_sem.c": "cd9a7027674114f7aa4f78dd9352b69a52efdccc06949b8b11595d92b39a82f9",
+    "src/sem/xl6_sem_foreign_compat.c": "1c9aa85a24195deb2951ce0a091eba89118068fd888a40701e4d2bb2c6262fbb",
+    "src/ir/xl6_ir_foreign_parameter.c": "3d01ba1da73f7dc9932425bc39cde907064c4bd417702b80bd56cce1e9c6732b",
+    "src/ir/xl6_ir_foreign_pack.c": "f2bbe097c9ccb1da223598383448bf4e8aea4f3f3fc268376063242f3df985ef",
+    "src/ir/xl6_ir_foreign_compat.c": "69b79730f0e21d26c5f480c89aeebcb7254e68b6bafd778bda5000dc48a4150b",
+    "src/ir/xl6_ir_foreign_span_compat.c": "400d40e3266d28e44071b5b6c33a03d6d178e43de3cd496f543473e0a37f0b42",
+    "src/cgen/xl6_ir_cgen_foreign_span.c": "4598ef918087fb50861c3652d210dc398d5df1e4c5aa8b6df1f50655dd43707a",
+    "test/cases/foreign_span_prefix.h": "e747ff5bc8a329e303b8b902081c731c1eae867348fa756dd1e54581bfbda82a",
+    "test/cases/foreign_span_prefix.xl": "126c719dc5b8236986b38b196ab70f91dae25f6522336b4288d5e4f6bd044fa5",
+    "test/cases/foreign_span_prefix_native.c": "aea624304e9e1d9e6b8dbf8a989986efaa1d589000c509824e8080466260743a",
+    "test/cases/foreign_span_prefix_ir.c": "a2b36b32c02634a4ea628c23c3e804a411c2a4bbe1336ad6191a376dfc909c87",
+    "test/cases/foreign_span_prefix_nested.xl": "bf30639b3be704e688ac6093c4cf9b718bc00befcfc23c88c0d5e2b6d74fbd44",
+    "tools/check_foreign_span_prefix.py": "988408de315fdb1e5311ef5d7e1c48a2677c03133c6f7807d606dbe232217032"
+  },
+  "compilerDiagnostic": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-span-prefix-diagnostic-r3\\diagnostic.json",
+    "sha256": "ed6a6df71c35cd0e04b8d48d50698a79b382bf59b2bee9b603abe1fd9682e022"
+  },
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\span-prefix-diagnostic-win-r3\\results.json",
+      "sha256": "9ea8050a2d11b0fd23be9efee3f96993f2a078a609e705eb064c591145709cd2",
+      "commands": 23
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\span-prefix-regression-borrowed-diagnostic-win-r1\\results.json",
+      "sha256": "8e8ae48fdaff15f208141dea17d62ce8ccccf41e6892dddf90862dc94caebec1",
+      "commands": 33
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\span-prefix-regression-cstring-diagnostic-win-r1\\results.json",
+      "sha256": "4486d6d48002fe1babc78d5a1885bfe821289d6bf3b91b90d8a2030b12319597",
+      "commands": 21
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\span-prefix-regression-fixed-diagnostic-win-r1\\results.json",
+      "sha256": "2fd1b9db6a10ff7d2f81402b4bb45eb604fbf142aba5e60625ddbb0ae882e8d2",
+      "commands": 36
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\span-prefix-ir-diagnostic-r2\\results.json",
+      "sha256": "3d29484597ec97259e77509331198d0154a898ba7a81b6bcb1303ec57c921d80",
+      "commands": 1
+    }
+  ],
+  "commandChecks": 113,
+  "irMutations": 130,
+  "layout": {
+    "declarationFactsBefore": 88,
+    "declarationFactsAfter": 88,
+    "sparseParameterBefore": 692,
+    "sparseParameterAfter": 696
+  },
+  "costs": [
+    "One int64 logical limit; -1 full length, nonnegative clamp, other negatives rejected before native entry. Argument evaluated once. Byte-prefix selection precedes physical int count overflow checking.",
+    "No runtime carrier or per-function forwarding implementation. Existing span admission, Buffer guards, error/code lifetime and logical preparation remain. Cgen adds conditional bounds arithmetic.",
+    "The 1000-iteration test makes 2000 native string/bytes prefix calls with no additional XRT alloc/free/realloc; no timing or total-zero-overhead claim."
+  ],
+  "remaining": [
+    "Complete O2 Windows r20/Linux r12 builds and nested JIT/AOT acceptance.",
+    "Prefix plus rectangular output-region composition is currently rejected; implement its shared physical parameter walk before SVG RasterizeMemory admission.",
+    "Complete safe SVG bindings, native fallback/thread policy, other integration families and matched final delivery."
+  ]
+}

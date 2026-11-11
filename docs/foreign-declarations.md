@@ -954,6 +954,54 @@ Existing span, callback, factory and output contracts retain their meaning.
 The native call is indirect because the authoritative C API is a function
 table; safety admission and lifetime pins remain real binding costs.
 
+## Optional clamped byte prefixes
+
+```xl
+extern "consume" @header("consume.h") @no_raise @c_span(0,"const void*","size_t",1) func consume(bytes input,int size=-1) as c_int
+```
+
+The numeric fourth argument of `c_span` identifies an adjacent explicit language
+parameter. That parameter must be `int`/`int64`; it supplies a byte limit and is
+consumed by the span projection, rather than becoming another C argument. The
+physical call remains `consume(pointer, count)`. The optional authoritative
+header can follow as a fifth argument. The original three-argument span and
+fourth-argument header spelling retain their complete-span behavior.
+
+`-1` means the complete input, zero selects an empty prefix, and a nonnegative
+limit is clamped to the available byte length. Other negatives raise a checked
+range error before the native function runs. Clamping precedes the physical
+`int` count overflow check; a small prefix of a larger input is representable.
+Limits are bytes, so a UTF-8 prefix can end inside an encoded character. Embedded
+NUL is ordinary data. Every logical argument is evaluated once.
+
+The mapping supports readonly byte pointers (`const void*`, `const char*`,
+`const unsigned char*`, `const uint8_t*`) with the existing string/bytes/Buffer
+and POD span storage rules; only Buffer may be nullable. Null Buffer supplies
+`NULL,0` even for a larger requested prefix. Writable spans and multi-byte
+element counts do not acquire this byte-prefix meaning. Each limit must follow
+its span immediately and cannot carry another physical mapping. Multiple
+disjoint pairs are supported. Prefix declarations currently reject descriptor
+packs, rectangular regions, array groups and inserted fixed input slots; those
+retain their existing independent contracts.
+
+The sealed IR records the prefix index in its sparse parameter contract and an
+exact count in existing declaration-fact padding. The declaration facts stay
+88 bytes on the tested x64 ABI. Cgen emits bounds arithmetic at the direct call
+site, with no per-function forwarding implementation or new runtime carrier.
+Buffer access, error/code lifetime, ordinary value preparation and the limit
+checks still have costs. Qualification is tracked separately from final SDK
+and IDE delivery.
+
+`foreign-span-prefix-preflight-20261112.json` records the O0 frontend-only
+preflight over the complete r19 parent: 113 command checks, including direct
+JIT/static/shared C++ clients and previous output-contract regressions, plus
+130 damaged-IR rejections before C/header bytes. Sparse parameter rows grow
+from 692 to 696 bytes on x64; the per-declaration facts remain 88 bytes and
+runtime carriers do not grow. The 2,000-call hot string/bytes loop adds no XRT
+heap operations. Complete Windows r20/Linux r12 O2/TCC/XRT/VFS and embedded
+compiler acceptance is still pending; this preflight does not install release
+or IDE binaries.
+
 ## Size-prefixed native record outputs
 
 `@c_output_size(physicalOutput,"field")` initializes the named C member of an

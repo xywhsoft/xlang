@@ -99,7 +99,7 @@ static int xl6SemForeignReadonlySpanInputCompatible(XL6_SemContext* ctx,
 {
     if(!a->readOnly || !b->readOnly || a->kind!=XL6_FOREIGN_PARAMETER_SPAN || b->kind!=a->kind ||
         strcmp(a->pointerCName,b->pointerCName) || strcmp(a->elementCName,b->elementCName) ||
-        strcmp(a->header,b->header) || a->countAbi!=b->countAbi)return 0;
+        strcmp(a->header,b->header) || a->countAbi!=b->countAbi || a->spanLimitIndexPlusOne!=b->spanLimitIndexPlusOne)return 0;
     left=xl6SemResolveAliasType(ctx,left);right=xl6SemResolveAliasType(ctx,right);
     if(!left || !right || !xl6SemForeignSpanType(ctx,left,a) || !xl6SemForeignSpanType(ctx,right,b))return 0;
     int ln=xl6SemTypeIsNullable(left),rn=xl6SemTypeIsNullable(right);
