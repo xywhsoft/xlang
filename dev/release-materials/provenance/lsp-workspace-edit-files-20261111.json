@@ -1,0 +1,89 @@
+{
+  "schema": 1,
+  "date": "2026-11-11",
+  "stage": "M7b4v",
+  "scope": "Windows worker-side physical admission and retained file/ancestor pins for closed WorkspaceEdit targets; no source writes",
+  "implementationAccepted": true,
+  "performanceQualified": false,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "83efcaf29675ceda73d1253bfaaf240386c2085e",
+  "ownedSources": {
+    "ide/src/platform/workspace_edit_files.c": "5b20882bb6cca214c9294048c42b773a4c03412c70986bce51e9c41e2400c1fa",
+    "ide/src/platform/workspace_edit_files.h": "da308e3a667e62f10f286b52bb8214fd086585e99e5599e3a1ac4159de2005e4",
+    "ide/tests/workspace_edit_files_test.c": "10c64979e875c6cd1cb850ef8a5c4f047e80d5e9694fe26d64e30b78b95f7bd2",
+    "ide/tools/build.ps1": "7c5e7bc2f31699ee08c6c7b7cfd694c4f00a2881fac18728bb814e111d1bd98e",
+    "ide/tools/build_lsp_core.py": "ded1e110769b174c1f9e0482202031b84fabb02fac5b7c30aa3c085fd9969b93",
+    "ide/docs/lsp-workspace-edit-files.md": "600cd839275a2fcc6825bef05f2d3e1d5a43cdd7b9c76f8408834a6c8f55d13c",
+    "ide/docs/lsp-workspace-edit-staging.md": "49c2bbb411769193beea85794b18726b0cda8eb5f639a278d1d4bb9644e0b2c7"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-workspace-edit-files-20261111.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-workspace-edit-files-20261111/stage-sources.tar.gz",
+      "sha256": "afc76c0ecf68e6cc6b8fdd4d45f69a7f8c8c1ba7905f8c859f8ae81c36052a84",
+      "bytes": 50857,
+      "entries": 8,
+      "uniquePayloads": 8,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-workspace-edit-files-20261111/stage-sources.tar.gz.manifest.json",
+      "sha256": "79ed873c4b10e7574c5acda485a678ddcb359f329d48d36475f3b6fe9d690e73",
+      "bytes": 1835
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-workspace-edit-files-20261111/actual-builds-and-validation.tar.gz",
+      "sha256": "b611fc094fa96c929b6d486342cff9eb49c2b55442b8131a23074283b5323513",
+      "bytes": 180413737,
+      "entries": 4537,
+      "uniquePayloads": 3730,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-workspace-edit-files-20261111/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "feb288119c25c5cebf93a09f203009f1535fb3a0cfb4a5fae4b26253b8bc7b7f",
+      "bytes": 1677929
+    }
+  },
+  "service": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-rename-foreign-policy-20261111\\qualified-v3\\xlang-ls.exe",
+    "sha256": "df290f266bb8882e95751487d146070ac854b2f8cd9c827d95fd44f049cb4d74",
+    "unchanged": true
+  },
+  "correctness": {
+    "newProductionUnits": 1,
+    "newTestPrograms": 1,
+    "selectedActualCompileConsumers": 2,
+    "mainAssertions": 65,
+    "coldAllocationGates": 39,
+    "cancellationPolls": 29,
+    "inheritedNativeProgramsNotRerun": 192,
+    "inheritedProtocolSuitesNotRerun": 13,
+    "guiObjects": 118,
+    "guiFixtures": 32,
+    "actualMutantsRejected": 5,
+    "mutantReceipt": "mutants-v1/result.json",
+    "actualJunctionAndWriterTests": true,
+    "metadataAttributeChangeWhilePinnedRejected": true,
+    "rawFailuresRetained": true
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "limits": [
+    "Windows local fixed drives only; no portable server dependency was introduced",
+    "Open overlays skipped; all-open/closed physical uniqueness and UI revision fencing remain caller responsibilities",
+    "This only pins and validates; no file bytes, editor contents, undo or recovery records are committed",
+    "Ordinary user-mode sharing is not a filesystem transaction or a guarantee against preexisting mapped writers, filters or drive remapping; final handles/path identities/digests are rechecked",
+    "Full-hash existing snapshot helper and text decoder have non-preemptible sections; no end-to-end cancellation/RSS/latency guarantee",
+    "Standard renameProvider and workspace/applyEdit remain disabled until complete transaction/source coverage acceptance",
+    "Whole performance/scale/soak and final default runtime alignment remain open"
+  ]
+}

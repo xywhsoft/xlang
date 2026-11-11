@@ -62,6 +62,7 @@ CORE_TESTS = ("analysis_native_borrow_test", "analysis_final_annotations_test", 
 HOST_TESTS = ("signature_help_test", "analysis_catalog_test", "language_context_test", "semantic_lookup_test", "analysis_index_view_test", "language_input_guard_test", "diagnostic_store_test", "language_definition_proof_test", "snapshot_report_test")
 CLIENT_TESTS = ("diagnostic_dependencies_test", "diagnostic_notice_test", "diagnostic_stream_test", "reference_results_test", "workspace_search_result_test")
 CLIENT_TEST_SOURCES = ("src/services/diagnostic_dependencies.c", "src/services/diagnostic_notice.c", "src/services/diagnostic_stream.c", "src/services/reference_results.c", "src/services/language_client.c", "src/services/workspace_search_result.c")
+CLIENT_TEST_SOURCES += ("src/platform/workspace_edit_files.c",)
 HOST_TESTS += CLIENT_TESTS
 HOST_TESTS += ("workspace_symbol_navigation_test",)
 HOST_TESTS += ("diagnostic_reverse_fault_test",)
@@ -139,6 +140,7 @@ HOST_TESTS += ("semantic_tokens_wire_test", "semantic_token_guards_test")
 HOST_TESTS += ("semantic_rename_target_test",)
 HOST_TESTS += ("semantic_rename_policy_test",)
 HOST_TESTS += ("workspace_edit_test", "workspace_edit_fault_test", "workspace_edit_edge_test")
+HOST_TESTS += ("workspace_edit_files_test",)
 HOST_TESTS += ("semantic_field_binding_test",)
 HOST_TESTS += ("rename_scope_test",)
 HOST_TESTS += ("project_rename_scope_test",)
@@ -1014,6 +1016,7 @@ def main() -> None:
             extra = [str(objects["document_sync"])] if name in ("document_sync_test", "diagnostic_stream_test") else []
             if name == "workspace_edit_test":extra += ["-Wl,--wrap=xlsTextCreate"]
             if name == "workspace_edit_fault_test":extra += ["-Wl,--wrap="+f for f in ("malloc","calloc","xrtMalloc","xrtCalloc","xrtArrayResize","xrtStrBufReserve","xlsTextCreate")]
+            if name == "workspace_edit_files_test":extra += ["-Wl,--wrap="+f for f in ("malloc","calloc","xrtCalloc","xrtArrayPush")]
             if name == "analysis_source_text_test":extra.append("-Wl,--wrap=xlsInputBatchAt")
             if name == "analysis_ast_replacement_test":extra.append("-Wl,--wrap=xrtPoolFree")
             if name == "semantic_token_guards_test":extra.append("-Wl,--wrap=xlsSemanticTokensData")
