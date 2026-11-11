@@ -1,0 +1,357 @@
+{
+  "schema": "xlang-xge-svg-root-platforms-1",
+  "passed": true,
+  "scope": "Two-platform complete compiler and direct owned Svg/SvgCache/raster/Texture factory JIT/static AOT qualification. XGE shared-library bootstrap and non-destructible node views remain separate open gates.",
+  "shippingDelivery": false,
+  "releaseIdeInstalled": false,
+  "completeSvgIntegration": false,
+  "sharedLibraryAcceptance": false,
+  "qualifiedPlatforms": [
+    "Windows x64",
+    "Linux x64"
+  ],
+  "sourceCommit": "370a63054",
+  "sourceTextSha256": {
+    "lib/bindings/_xge_native/include/xge3_runtime.h": "fcd39afff21c530fb0b59fc0e408243925920f2a02b8595f1f91086961c2d176",
+    "lib/bindings/_xge_native/src/runtime.c": "20da0fb583fde0f46b66defaabea418a52101374bb8cfb4f0038064b5717bbc9",
+    "lib/bindings/xge/src/svg.xl": "0dc0303f2de588d8ca0eb468677b75300eb4d25c515d1abc382edbb296c0f474",
+    "lib/bindings/xge/src/functions.xl": "86efd3ab979f49e51836bff422bfc3e3e7af73ddb173080d7c475e43a5153486",
+    "lib/bindings/xge/xlang.package.json": "e853ad483774e97987c35793a9f627459b49b677cf751b0a9dfb74cd0de1944e",
+    "lib/bindings/xge/examples/README.md": "e30475a0cf88615d1ae74520f58b383629c4e5eb3e3d2a9da4a2fbe152db1d4c",
+    "lib/bindings/xge/examples/data/vector.svg": "28b13630b1a0a7f8dd1ff437a79cbc6104da38ccf2912fcbd66bc9835d94dbd5",
+    "lib/bindings/xge/examples/svg_documents.xl": "c2ece3d16f938e474c85a2d49bb43af7f39665d7ab428e256a995efd4b3ecb01",
+    "tools/check_xge3_svg.py": "01b9bd1edc4f79a865b5dfe142c814cdd8c38b082347d89c48696a3302130fb0",
+    "test/cases/foreign_xge3_svg.xl": "a641cabc03bd6d2515310571f126953ba3ce9eb97c5837074de06917f5893a78",
+    "test/cases/foreign_xge3_svg.h": "eea241158ceb69dc19ceeaad2f69601997ef6c29cde0240d646d9ddf4be8f9bc",
+    "test/cases/foreign_xge3_svg.c": "e738d59fb7c267d5277c92a8bb3e93f27c0e307cb456f2987d2268264843e2c2",
+    "test/cases/foreign_xge3_svg_callbacks.xl": "ebf41f10ea134648bc4a601f0a60c859851b06cfb086052aadbf053c8218f25a",
+    "test/cases/foreign_xge3_svg_invalid.xl": "283bf1b4fe82be9d51e57f0059abc067db9c74e0b1da19c1305b0ed526467325",
+    "test/cases/foreign_xge3_svg_gpu.xl": "fb3a66b45232655448e656548d2fa0bcaa7970b086d292347021962ad9acfa3a",
+    "test/cases/foreign_xge3_svg_gpu.h": "cfd91aba5e8c743e5a3655a07ddf089cedadd47f22d7851539556d8cf2e409f5",
+    "test/cases/foreign_xge3_svg_gpu.c": "92de8d0016c4566e015f45c7ccd590c18aa1b457140742e75e31f2446c8f77bb",
+    "test/cases/foreign_xge3_svg_oom.xl": "643275643d378ce699460092e2ea67bbfb07d39a62ed900465542213a764b952",
+    "test/cases/foreign_xge3_svg_oom.c": "dbef8787937905808bb0e43b4d55ca9bceb6331585596fdb914ef54217d8d452"
+  },
+  "upstreamCommit": "093252537b0ab9e32ed17b6fce127bc4d1b811b1",
+  "nativePrerequisite": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\svg-owned-texture-20261112.json",
+    "sha256": "210ba80f3a2ed05dc2fc82e36741b0d93994a703c7e07f29ea9b53682ea84a78",
+    "commandChecks": 56,
+    "nativeTranslationUnitOccurrences": 876,
+    "recompiledTranslationUnitOccurrences": 875
+  },
+  "nativeCommandChecks": 56,
+  "priorWindowsIndex": {
+    "path": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\xge-svg-root-cache-20261112.json",
+    "sha256": "d321e6dcff4a1ff7a857a60c3ac7a5a61b7cce77682c10086819f2d67993e952",
+    "historicalBytesPreserved": true
+  },
+  "linuxInputVerification": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\svg-full-linux-inputs-20261112.json",
+    "sha256": "fe11cc0a635343a6f404ed5b7dccabb2e661a9da06cbb7a2660a07b8c4c2a1a2",
+    "sourceInputsVerified": 15054,
+    "inputOccurrences": 14524
+  },
+  "compilers": [
+    {
+      "platform": "Windows x64",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r21\\build.json",
+      "sha256": "586af7a071593e792737429cb67c62795ff8db38393acf173bfcc61737d79720",
+      "sourceFreeze": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r21\\freeze.json",
+      "sourceFreezeSha256": "e0ac0680646f03f08a0e6db4982cb5276e4e1e7f9f5fa78ec32b4cd1f84da67d",
+      "sourceInputsUnchanged": true,
+      "fullO2TccXrtVfsAndEmbeddedBuild": true,
+      "products": {
+        "xl.exe": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r21\\source\\release\\win_x64\\xl.exe",
+          "sha256": "b06ecff88b5b9f438820a93f7ec7c8be5d605c5e55c8d6e6c58c8d2c2641ed80",
+          "bytes": 72704
+        },
+        "xl.dll": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r21\\source\\release\\win_x64\\xl.dll",
+          "sha256": "ac6d89e74df1a53e59ab9b1090ac519201819684a0379ad21a39edf47b5529df",
+          "bytes": 15217152
+        },
+        "xlc.dll": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r21\\source\\release\\win_x64\\xlc.dll",
+          "sha256": "b891619bd65783e5c22ab1b850214ce698de13e4ef08b66492a2a279fa5c5776",
+          "bytes": 21340160
+        }
+      }
+    },
+    {
+      "platform": "Linux x64",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-linux-full-r13\\build.json",
+      "sha256": "6c7fab3454fd9d2636a7b3306934ab8d0b091619b553b2d38e2577a192d63af3",
+      "sourceFreeze": "F:\\xlang-validation\\xge-full-20261110\\compiler-linux-full-r13\\freeze.json",
+      "sourceFreezeSha256": "d81042fdd276fd80becc3a60c8b1cbbaae44a15d02403b19945d6d9cb7c64697",
+      "fullO2TccXrtVfsAndEmbeddedBuild": true,
+      "sourceInputsUnchanged": true,
+      "products": {
+        "xl": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-linux-full-r13/source/release/linux_x64/xl",
+          "sha256": "faa25e49bdf8c5ce8ccdb084810075b406cc6dd499a59577664616eb2a08265b",
+          "bytes": 47224
+        },
+        "libxl.so": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-linux-full-r13/source/release/linux_x64/libxl.so",
+          "sha256": "7f0ba387555be1e5e4ae2d28d8e56753c7f3a3e45f90c3bcc1fa95df5c36c430",
+          "bytes": 16480784
+        },
+        "libxlc.so": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-linux-full-r13/source/release/linux_x64/libxlc.so",
+          "sha256": "33221e62e2d798704a8a837f98e2ce20a282aaf3ab776f2336d8933632bebd8b",
+          "bytes": 22489904
+        }
+      }
+    }
+  ],
+  "packages": [
+    {
+      "platform": "Windows x64",
+      "kind": "host",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-svg-host-win-r2.json",
+      "sha256": "567df4cb739357af22a4ed51cfa65ef270d13d7147bf29126f8d572eba9613df"
+    },
+    {
+      "platform": "Windows x64",
+      "kind": "static",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-svg-static-win-r2.json",
+      "sha256": "b00a447ba780d4d0c37eb0fe40d4176a78556d14211528ff274c35d2b75af3a3"
+    },
+    {
+      "platform": "Linux x64",
+      "profile": "default",
+      "kind": "host",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-svg-host-linux-r2.json",
+      "sha256": "6fc4ffa01d3effb9e68c83e372547ab07383c30568cf7344b924c0c9a09d0f6a"
+    },
+    {
+      "platform": "Linux x64",
+      "profile": "default",
+      "kind": "static",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-svg-static-linux-r2.json",
+      "sha256": "c72dc72dc88ab1faae34bd818581b72d4fb4f47b532ed47387d3d8ff5ba11a0d"
+    },
+    {
+      "platform": "Linux x64",
+      "profile": "egl-",
+      "kind": "host",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-svg-egl-host-linux-r2.json",
+      "sha256": "f618edf768252040d5fa9bdc3edfc0f907d70249328291d9983de5dd97fda43a"
+    },
+    {
+      "platform": "Linux x64",
+      "profile": "egl-",
+      "kind": "static",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-svg-egl-static-linux-r2.json",
+      "sha256": "f65a4f6c5e7b815a04f2362cabf0d6ec79da93c84bec0ac4334c05ec8fb05702"
+    }
+  ],
+  "reports": [
+    {
+      "name": "span-limit-full-win-r1",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\span-limit-full-win-r1\\results.json",
+      "sha256": "b25212c3ad7443bf8b7b73a132fe8d6d5b44e9b794ff56d3e906edfc0e4d261f",
+      "commandChecks": 22,
+      "platform": "Windows x64"
+    },
+    {
+      "name": "span-region-full-win-r1",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\span-region-full-win-r1\\results.json",
+      "sha256": "122907e55315bc25db815878d0e82ffe5782be6e9cc5c58eef97f37421f8dd6a",
+      "commandChecks": 20,
+      "platform": "Windows x64"
+    },
+    {
+      "name": "svg-regression-prefix-win-r2",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-regression-prefix-win-r2\\results.json",
+      "sha256": "2ec2ebe27f7b28140eb8ef005ed64e19844e40f7201234999ac1b7974ea8246c",
+      "commandChecks": 26,
+      "platform": "Windows x64"
+    },
+    {
+      "name": "svg-regression-fixed-win-r2",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-regression-fixed-win-r2\\results.json",
+      "sha256": "aaa43696e337255b11307a06e7b6e251c90d55b938ad781d292596fc788784b3",
+      "commandChecks": 36,
+      "platform": "Windows x64"
+    },
+    {
+      "name": "svg-regression-borrowed-win-r2",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-regression-borrowed-win-r2\\results.json",
+      "sha256": "82f55aea3c8100e59ad6e72a0fa820bed7bfb5af120cb5ba25d77c8b5206e57e",
+      "commandChecks": 37,
+      "platform": "Windows x64"
+    },
+    {
+      "name": "svg-regression-cstring-win-r2",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-regression-cstring-win-r2\\results.json",
+      "sha256": "849598a6c9280c532b111c6c587b60722486c33af7aa94c85da75b15a89cd217",
+      "commandChecks": 21,
+      "platform": "Windows x64"
+    },
+    {
+      "name": "svg-language-full-win-r5",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-language-full-win-r5\\results.json",
+      "sha256": "e65c653f733b7d967a7c71a21515a7ce58cd57f64ee0e866452d6048dcd8212d",
+      "commandChecks": 33,
+      "platform": "Windows x64"
+    },
+    {
+      "platform": "Linux x64",
+      "name": "svg-regression-prefix-linux-r1",
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/svg-regression-prefix-linux-r1/results.json",
+      "sha256": "afdf0516181a07efeb9f91a9413395b4fbeb4c9c55e8b967f9fffed223ecc37b",
+      "commandChecks": 26,
+      "inputsVerified": 1562
+    },
+    {
+      "platform": "Linux x64",
+      "name": "svg-regression-fixed-linux-r1",
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/svg-regression-fixed-linux-r1/results.json",
+      "sha256": "eac8a1e490d4e2112705693ab65042e1e902a7dd4e8b5bfd15d3db6a443bfdf0",
+      "commandChecks": 36,
+      "inputsVerified": 1573
+    },
+    {
+      "platform": "Linux x64",
+      "name": "svg-regression-borrowed-linux-r1",
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/svg-regression-borrowed-linux-r1/results.json",
+      "sha256": "022d7ea90f47c2355dffe9d7c44de967405788b0eb46fdc1b52301d0afaf39d2",
+      "commandChecks": 37,
+      "inputsVerified": 2170
+    },
+    {
+      "platform": "Linux x64",
+      "name": "svg-regression-cstring-linux-r1",
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/svg-regression-cstring-linux-r1/results.json",
+      "sha256": "6181c2b56154c9876f5f9729679b62c9bc4500304590fbf9919b2ab1777f819f",
+      "commandChecks": 21,
+      "inputsVerified": 2158
+    },
+    {
+      "platform": "Linux x64",
+      "name": "span-limit-full-linux-r1",
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/span-limit-full-linux-r1/results.json",
+      "sha256": "beeecff0e0afa225806909282e5d7543560c76df7c10184d455d33318c753af7",
+      "commandChecks": 22,
+      "inputsVerified": 1570
+    },
+    {
+      "platform": "Linux x64",
+      "name": "span-region-full-linux-r1",
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/span-region-full-linux-r1/results.json",
+      "sha256": "f4032da243ac56741bb7d8f3230319342df07d62dc702a2e4198f240b2645064",
+      "commandChecks": 20,
+      "inputsVerified": 1568
+    },
+    {
+      "platform": "Linux x64",
+      "name": "svg-language-full-linux-r5",
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/svg-language-full-linux-r5/results.json",
+      "sha256": "13ce840f40a51e53252247b5c7ae34dde2fc8617222ca1da63183561d32c99be",
+      "commandChecks": 23,
+      "inputsVerified": 1960
+    },
+    {
+      "platform": "Linux x64",
+      "name": "svg-language-egl-full-linux-r5",
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/svg-language-egl-full-linux-r5/results.json",
+      "sha256": "0b9ee7f54eeb79d3025ec1b34a61b12b77e212c9c8d9c9b0739cfad49a5ed392",
+      "commandChecks": 27,
+      "inputsVerified": 1963
+    }
+  ],
+  "commandChecks": 407,
+  "behavior": [
+    "Caches and documents admit calls only on their creating language thread. Same-cache documents share mutation; clone is independent.",
+    "Cache remove/reset/close retain independently owned documents, including close during resource-provider callbacks.",
+    "Provider exceptions preserve the original language error, invalidate callback outputs, do not populate cache, and allow retry.",
+    "String/bytes/Buffer prefixes use exact byte lengths; default -1 uses full input, excessive size clamps, other negatives reject before native entry.",
+    "RGBA stride validation preserves Buffer length/padding. Native owned Texture retains the engine after drawing ends; checked Unit reports Busy until close."
+  ],
+  "costs": {
+    "hotScalarTupleIterations": 1000,
+    "hotXrtHeapOperationDelta": 0,
+    "nativeFactoryOomBudgets": 96,
+    "languageOomPrefixes": {
+      "documentClone": {
+        "failed": 26,
+        "passed": 70
+      },
+      "cacheLoad": {
+        "failed": 28,
+        "passed": 68
+      }
+    },
+    "notes": "Direct native calls still perform resident creator-thread/state and call-scope guards, scalar/output admission and closure bookkeeping when applicable. Cache/document/factory acquisition allocates native and language owners. No total-zero-cost, throughput or hardware-performance claim.",
+    "languageOomPrefixesScope": "Windows x64; see linuxLanguageOomPrefixes for independently observed Linux counts",
+    "linuxLanguageOomPrefixes": {
+      "default": {
+        "jit": [
+          {
+            "kind": 0,
+            "failed": 26,
+            "passed": 70
+          },
+          {
+            "kind": 1,
+            "failed": 28,
+            "passed": 68
+          }
+        ],
+        "static": [
+          {
+            "kind": 0,
+            "failed": 26,
+            "passed": 70
+          },
+          {
+            "kind": 1,
+            "failed": 28,
+            "passed": 68
+          }
+        ]
+      },
+      "egl-": {
+        "jit": [
+          {
+            "kind": 0,
+            "failed": 26,
+            "passed": 70
+          },
+          {
+            "kind": 1,
+            "failed": 28,
+            "passed": 68
+          }
+        ],
+        "static": [
+          {
+            "kind": 0,
+            "failed": 26,
+            "passed": 70
+          },
+          {
+            "kind": 1,
+            "failed": 28,
+            "passed": 68
+          }
+        ]
+      }
+    }
+  },
+  "qualificationNotes": [
+    "Windows uses actual OpenGL and Linux uses headless software EGL for pixel/stride/owned-context checks; hardware throughput is not qualified.",
+    "C11/C++11/C++17 generated SVG headers are checked. Actual C++ shared clients in compiler-regression families do not substitute for the currently rejected xge package shared build.",
+    "Normal Linux SDK is qualified separately for CPU-only ownership, callbacks and OOM. Its graphics-disabled branch is not used instead of the real EGL gate.",
+    "Native r64 snapshot is pinned to 09325253; subsequent in-progress Emoji source changes are outside this qualification.",
+    "No release/IDE/current-delivery bytes were replaced, and no network/security test ran."
+  ],
+  "remaining": [
+    "Explicit --shared-client XGE DLL/DSO import gate: package-initializer declaration contract is pending a decision.",
+    "SvgPaint/traversal needs the separately pending non-independently-destructible node-view runtime contract.",
+    "Engine/module-global ownership and code-residency decisions, remaining XGE/XUI/Document families and matched final SDK/compiler/IDE/help delivery."
+  ]
+}

@@ -344,14 +344,18 @@ closes its cache, measures the surviving document and modifies a clone.
 outputs, failed-cache retry, close inside provider callbacks, thread rejection,
 96 allocation budgets per ownership path and actual graphics when requested.
 
-The current `xge-svg-root-cache-20261112.json` index qualifies 195 Windows
-command checks using a complete r21 O2/TinyCC/XRT/VFS/embedded-compiler build,
+The current `xge-svg-root-cache-platforms-20261112.json` index qualifies 407
+command checks: 195 Windows and 212 Linux, using complete r21/r13
+O2/TinyCC/XRT/VFS/embedded-compiler builds,
 including the general prefix/region, borrowed output, string output and fixed
 output regressions. The language tests include JIT, standalone static AOT and
 strict C11/C++11/C++17 public headers. Native XGE `09325253` independently passes
 56 Windows/Linux checks, including actual OpenGL/software-EGL pixels and
-owned-factory allocation rollback. Linux language qualification is still in
-progress; copied older compiler images are not accepted as current builds.
+owned-factory allocation rollback. Linux uses separate normal CPU and actual
+software-EGL language gates. All 15,054 frozen Linux source inputs and the
+individual test inputs/logs were reverified after acceptance; copied older
+compiler images were not accepted as current builds. The previous Windows-only
+report keeps its original bytes and is referenced by the new platform index.
 
 The hot 1,000-iteration direct/bound scalar and tuple loop performs no XRT heap
 operations. Resident thread/state/call guards and output/closure admission still
