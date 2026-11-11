@@ -1,0 +1,474 @@
+{
+  "schema": "xlang-xge-svg-preflight-1",
+  "scope": "Qualified native SVG prerequisites and confirmed language output/ownership gaps; not complete SVG integration",
+  "nativePrerequisitesQualified": true,
+  "xlangSvgIntegrationComplete": false,
+  "fixedArrayOutputGate": false,
+  "paintInvalidationGate": false,
+  "moduleGlobalResourceShutdownGate": false,
+  "shippingDelivery": false,
+  "nativeCommit": "5c4c30b48a0a21118e9c71ffe461af426915a02f",
+  "nativeQualification": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\svg-lifetime-20261111.json",
+    "sha256": "1ec33c7e9e4a8bf8d80275377b5779d83c6ff8b5abaa7defb2e80c1b4c727eca"
+  },
+  "nativeChecks": 122,
+  "nativeControlChecks": 36,
+  "sourceFreeze": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\native-freeze-r59.json",
+    "sha256": "d0cb8dfa0ff9b3cbbe8c76317d570af0352be1923738bea3dc60e2f9cc0ec140"
+  },
+  "canonicalXrtSha256": "41bc24579f4b3207b0434755ca23dd06481af90c05f71e9b365848cf9a7c12d1",
+  "nativePublicHeader": {
+    "path": "D:\\GIT\\xge\\include\\xge.h",
+    "sha256": "5a2c98717f9e2fa874934b0ec8055a9b04834e95efb08b72358a2e4efd18ac27"
+  },
+  "nativeSvgFunctionCount": 68,
+  "languageDeclarationCount": 2,
+  "surface": [
+    {
+      "nativeFunction": "xgeSvgCreate",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgDestroy",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgClear",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgClone",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgLoad",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgLoadCached",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgLoadMemory",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgAddRef",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgRefCountGet",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgCacheInvalidate",
+      "language": {
+        "file": "lib/bindings/xge/src/functions.xl",
+        "line": 139,
+        "status": "legacy declaration; contract review pending"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgCacheClear",
+      "language": {
+        "file": "lib/bindings/xge/src/functions.xl",
+        "line": 140,
+        "status": "legacy declaration; contract review pending"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgSetSize",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgGetSize",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgSetOrigin",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgGetOrigin",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgGetViewBox",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintGetById",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintGetByName",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintGetPicture",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintIdGet",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintNameGet",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintTypeGet",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintTransformSet",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintTransformIdentity",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintTransformGet",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintTransformTranslate",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintTransformScale",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintTransformRotate",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintOpacitySet",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintOpacityGet",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintVisibleSet",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintVisibleGet",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintBlendSet",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintBlendGet",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintMaskShapeSet",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintMaskSceneSet",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintMaskClear",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintMaskGet",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintClipShapeSet",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintClipClear",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintClipRectGet",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintClipShapeGetCount",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintClipShapeGetAt",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintClipShapeGetAtEx",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintShapeGet",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintOwnerGet",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintParentGet",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintChildGetCount",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintChildGetAt",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintTraverse",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintGetBounds",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintGetOBB",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgPaintIntersects",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgSetPreserveAspectRatio",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgGetPreserveAspectRatio",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgGetDrawViewport",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgGetBounds",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgGetDrawBounds",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgContainsPoint",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgDrawContainsPoint",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgDraw",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgDrawPx",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgRasterize",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgRasterizeMemory",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgTextureLoad",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgTextureLoadEx",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgTextureLoadMemory",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    },
+    {
+      "nativeFunction": "xgeSvgTextureLoadMemoryEx",
+      "language": {
+        "status": "missing safe declaration"
+      }
+    }
+  ],
+  "source": {
+    "lib/bindings/xge/src/shapes.xl": "a20456775c010ebd2f6a15ea7c5b8faaa5dadd27bf68ff8e5c299953ccdd893e",
+    "lib/bindings/xge/src/functions.xl": "a1f1f7f37dfc6760268136a81d6b708bb17b401c6b28e95961027e2a2d130f9b",
+    "lib/bindings/xge/xlang.package.json": "5a7e42feda8fc5406c3354849083415945240adb140b734d247aff0c51891fed"
+  },
+  "unsafeShapeObbCgen": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\svg-shape-output-preflight-r2\\results.json",
+    "sha256": "474e974a86f1fc884ab1afab0530c1929a26b0e73be799719a26e230d996c6d0"
+  },
+  "fixedArrayReturnProbe": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\svg-shape-fixed-output-preflight-r1\\results.json",
+    "sha256": "daeffbf469b1b9b8424808e50ece18c6a781a46a8d15c2941fa216e3b8368d6f"
+  },
+  "compilerQualification": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r17\\build.json",
+    "sha256": "f3049224a1e94337c0557d3626e4235bac23c2c2e1e6ae941fdcda70b19476a6"
+  },
+  "privateNativeDocumentRequestedByteDelta": 8,
+  "remaining": [
+    "Generic fixed C-array output contract and correction of Shape/ShapeScene OBB declarations",
+    "Svg/SvgPaint OOP, native invalidation, retained output references and cache concurrency/identity",
+    "All remaining SVG declaration/ABI/JIT/dynamic/static AOT/OOM/actual rendering and examples",
+    "Automatic module-global code/resource retirement and all other full-coverage subsystems",
+    "Final current-mainline matched SDK/compiler/IDE/help delivery"
+  ],
+  "limitations": [
+    "Native checks are CPU-only; actual SVG rendering is not qualified.",
+    "Aggregate ASan/UBSan leaves remaining archive objects and host XRT uninstrumented.",
+    "Unsafe OBB program was only emitted as C; it was never executed.",
+    "The fixed-array experiment changes only an isolated package copy and is rejected by the existing complete compiler.",
+    "No language bindings or formal release binaries are installed by this native prerequisite batch."
+  ]
+}
