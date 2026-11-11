@@ -283,3 +283,28 @@ Explicit creator-thread `SvgCache` remains the approved public model. A separate
 root-owned, non-independently-destructible node-view lifecycle proposal is still
 pending confirmation. The old resident runtime rejects it before attaching a
 native observer. That proposal is not implemented by the span changes above.
+
+## Shared fallback Face prerequisite qualified
+
+XGE `952eb0f9` closes the shared-Face race: atomic Face references, immutable
+outline-list publication and protected fallback snapshots/replacement. A
+snapshot holds the selected Face while the Font is constructed outside the
+global slot lock. Init keeps its reset behavior and releases the old fallback;
+independent document Fonts continue to use their retained Face. Mutable Fonts,
+families and engine objects keep their existing caller/thread contracts.
+
+`xge-shared-font-faces-20261112.json` pins complete Windows/Linux O2 host/static
+builds (584 translation units) and 255 passing command checks. Linux TSan also
+instruments canonical XRT allocator/locks/atomics; remaining archive objects
+are uninstrumented. The old implementation reproduces the reference race in
+the same instrumented environment. Nonempty outline, fallback replacement and
+acquisition OOM paths retain/retry/clean correctly. Existing SVG ownership,
+cache/reset and C/C++ public clients pass; Linux verifies 12,915 input-file
+occurrences after acceptance.
+
+Font source bytes remain shared. Linux x64 Face storage shrinks 280 to 272
+requested bytes; 1,000 warm outline hits perform no XRT heap operation. Two
+atomic pointer loads per hit, atomic Face references and a cold fallback slot
+lock/temporary reference are real native costs. This is not an end-to-end speed
+or zero-overhead claim. Complete language declarations, confirmed node-view
+semantics, integrated compiler gates and matched final delivery remain open.

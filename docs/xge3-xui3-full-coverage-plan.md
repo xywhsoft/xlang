@@ -468,3 +468,12 @@ Linux r12 的基本前缀 O2/TCC/XRT/VFS/内嵌编译器验收随后完成，两
 SVG 转发函数。证据见 `foreign-span-limit-positions-preflight-20261112.json`。
 完整 O2/Linux/内嵌编译器、完整 SVG/fallback/节点视图和配套交付仍未完成。
 显式 SvgCache 已获批准；非独立销毁的节点视图生命周期扩展仍待设计确认。
+
+2026-11-12 XGE `952eb0f9` 补齐共享 Face 的原子引用、不可变轮廓缓存发布和全局
+fallback 快照／替换；Init 保持清空 fallback 的语义，并释放旧 Font，其他文档的
+真实 Face 引用仍可继续使用。两端 O2 host/static 共 584 个编译单元、255 项命令
+验收通过。Linux TSan 同时插桩规范 XRT 的分配器、锁和原子操作，旧码同环境可复现
+共享引用竞争。非空轮廓及 getter/setter 的 OOM 保留、重试与堆基线检查通过；既有
+SVG 拥有、观察、缓存和 C/C++ 公共接口回归通过。新字体源不按文档复制，热点有
+明确的原子读取成本。证据见 `xge-shared-font-faces-20261112.json`。本批是原生
+前置，完整 SVG 语言接入、节点视图、编译器整合与配套交付继续保留，release/IDE 未安装。
