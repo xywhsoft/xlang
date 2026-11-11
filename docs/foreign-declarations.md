@@ -1001,17 +1001,20 @@ JIT/static/shared C++ clients and previous output-contract regressions, plus
 130 damaged-IR rejections before C/header bytes. Sparse parameter rows grow
 from 692 to 696 bytes on x64; the per-declaration facts remain 88 bytes and
 runtime carriers do not grow. The 2,000-call hot string/bytes loop adds no XRT
-heap operations. Complete Windows r20/Linux r12 O2/TCC/XRT/VFS and embedded
-compiler acceptance is still pending; this preflight does not install release
-or IDE binaries.
+heap operations. At that preflight stage, complete O2/TCC/XRT/VFS and embedded
+compiler acceptance was still pending; the preflight installed no release or
+IDE binaries.
 
 The later Windows r20 complete O2 build passed 120 command checks, including
 the new prefix fixture, nested JIT and an independently built embedded-compiler
 host, native ABI headers/shared C++ clients, and borrowed/C-string/fixed output
 regressions. `foreign-span-prefix-windows-20261112.json` records the exact full
-build, source freeze and tests. Linux r12 is a separate pending cohort. Neither
-report qualifies prefix/region composition, the whole SVG package or final
-compiler/SDK/IDE delivery.
+build, source freeze and tests. The subsequent Linux r12 cohort also passes
+120 command checks. `foreign-span-prefix-20261112.json` records the combined
+240 checks, both complete O2/TCC/XRT/VFS/embedded builds and their exact source
+mapping to `3958b1858`. Later prefix/region composition is a separate change;
+none of these basic-prefix reports qualifies that composition, the whole SVG
+package or final compiler/SDK/IDE delivery.
 
 The later prefix/region composition preflight is recorded separately in
 `foreign-span-region-prefix-preflight-20261112.json`: 17 O0 frontend command

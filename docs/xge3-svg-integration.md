@@ -243,8 +243,10 @@ pointer/count pair. Declaration facts remain 88 bytes; only sparse parameter
 rows add four bytes on x64. The preflight records 113 command checks and 130
 damaged-IR rejections. The later complete Windows r20 O2/TCC/XRT/VFS build
 passes 120 checks, including its embedded JIT and independently built compiler
-host. Linux r12 is a separate cohort. These are basic-prefix gates, not the
-later region-composition gate.
+host. Linux r12 subsequently passes the same 120 checks. The combined
+`foreign-span-prefix-20261112.json` pins 240 checks and verifies both compiled
+source overrides against `3958b1858`. These basic-prefix cohorts do not qualify
+the later region-composition change.
 
 `46a609352` composes that input with a fixed output pixel region in the shared
 physical-signature walk. The adjacent logical limit is consumed before mapping

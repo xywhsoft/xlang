@@ -455,3 +455,8 @@ O0 预检 17 项、损坏 IR 55 次拒绝通过，含实际 C++ 共享库、绑�
 整合 O2/内嵌编译器验收、完整 SVG 安全声明、fallback/线程合同和最终配套交付仍在
 任务内。证据见两份 `foreign-span-prefix-*` 与 `foreign-span-region-prefix-preflight`
 索引；正式 release/IDE 未安装。
+
+Linux r12 的基本前缀 O2/TCC/XRT/VFS/内嵌编译器验收随后完成，两端各 120 项，
+合计 240 项通过。`foreign-span-prefix-20261112.json` 保留两个精确源码冻结、产品、
+当前输入核验及对应 `3958b1858` 的源码证明；不把此批验收归给后续 `46a609352`
+区域组合。完整 SVG、组合的整合验收和最终配套交付继续保留，release/IDE 未安装。
