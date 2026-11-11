@@ -308,3 +308,8 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 /dev/release-materials/materials-index.json -text -whitespace
 /dev/release-materials/provenance/git-slim-20261109/** -text -whitespace
 /tools/hooks/pre-push text eol=lf
+
+# Exact-byte semantic-color and document-batch SDK source captures.
+/ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-919a9f0b7953/** -text -whitespace
+/ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-49cb3961efc3/** -text -whitespace
+/ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-087c300340c8/** -text -whitespace

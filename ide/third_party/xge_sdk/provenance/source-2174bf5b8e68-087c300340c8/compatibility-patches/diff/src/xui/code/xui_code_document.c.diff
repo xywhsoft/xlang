@@ -1,0 +1,369 @@
+--- upstream/src/xui/code/xui_code_document.c
++++ matched/src/xui/code/xui_code_document.c
+@@ -872,7 +872,7 @@
+ static int __xuiCodeDocumentActionInit(xui_code_document pDocument, xui_code_edit_action_t* pAction,
+ 	int iStart, const char* sDeleted, int iDeletedLength, const char* sInserted, int iInsertedLength)
+ {
+-	if ( pDocument == NULL || pAction == NULL || iStart < 0 || iDeletedLength < 0 || iInsertedLength < 0 ) {
++	if ( pAction == NULL || iStart < 0 || iDeletedLength < 0 || iInsertedLength < 0 || (pDocument == NULL && iDeletedLength > 0 && sDeleted == NULL) ) {
+ 		return XUI_ERROR_INVALID_ARGUMENT;
+ 	}
+ 	memset(pAction, 0, sizeof(*pAction));
+@@ -1780,4 +1780,357 @@
+     return __xuiCodeDocumentCallEnd(&call,status);
+ }
+ 
++/* Additive XUI document primitive. Included in the Document implementation,
++ * after its existing helpers; the IDE never inspects private document storage. */
++typedef struct xui_document_batch_row_t {
++    xui_code_document document;
++    xui_lifetime_link_t lifetime;
++    xui_code_document_call_t call;
++    uint32_t version,changeVersion;
++    uint64_t state,nextState;
++    int beforeLength,beforeLines,afterLength,afterLines,undoCount,changed;
++    char *buffer,*snapshot,*proof;
++    xui_code_line_t* lines;
++    xui_code_edit_group_t *undo,group;
++} xui_document_batch_row_t;
++struct xui_code_document_batch_t {
++    uint64_t thread,serial;
++    size_t count,used,limit;
++    bool busy,attempted,ready;
++    xui_document_batch_row_t* rows;
++};
++static void __xuiDocumentBatchGone(void* user)
++{ ((xui_document_batch_row_t*)user)->document=NULL; }
++static int __xuiDocumentBatchAllocate(size_t* used,size_t limit,size_t bytes,void** out,bool clear)
++{
++    *out=NULL;
++    if(bytes>limit-*used)return XUI_ERROR_OUT_OF_MEMORY;
++    void* memory=xrtMalloc(bytes);
++    if(!memory)return XUI_ERROR_OUT_OF_MEMORY;
++    if(clear)memset(memory,0,bytes);
++    *used+=bytes;*out=memory;return XUI_OK;
++}
++static void __xuiDocumentBatchFreePayloadRow(xui_document_batch_row_t* row)
++{
++    xrtFree(row->proof);xrtFree(row->buffer);xrtFree(row->snapshot);xrtFree(row->lines);
++    xrtFree(row->undo);__xuiCodeDocumentGroupClear(&row->group);
++}
++static void __xuiDocumentBatchFree(xui_code_document_batch batch)
++{
++    if(!batch)return;
++    for(size_t i=0;i<batch->count;++i){
++        xui_document_batch_row_t* row=batch->rows+i;
++        xuiLifetimeUnwatch(&row->lifetime);
++        __xuiDocumentBatchFreePayloadRow(row);
++    }
++    xrtFree(batch->rows);xrtFree(batch);
++}
++static int __xuiDocumentBatchFinishCalls(xui_code_document_batch batch,int status)
++{
++    xui_cleanup_receipt_t receipt={0};xuiInternalCleanupStart(&receipt,status);
++    for(size_t i=batch->count;i;--i)
++        xuiInternalCleanupAdd(&receipt,__xuiCodeDocumentCallEnd(&batch->rows[i-1].call,XUI_OK));
++    return xuiInternalCleanupEnd(NULL,&receipt);
++}
++static bool __xuiDocumentBatchLive(const xui_document_batch_row_t* row)
++{
++    xui_code_document d=row->document;
++    return d && !d->bDestroyPending && !d->bDestroying &&
++        (!d->pInternalOwner || xuiInternalWidgetIsValid(d->pInternalOwner)) &&
++        (!row->call.context || (!row->call.context->bDestroyPending &&
++            !row->call.context->bDestroying && !row->call.context->bCloseRequested));
++}
++static bool __xuiDocumentBatchCurrent(const xui_document_batch_row_t* row)
++{
++    xui_code_document d=row->document;
++    return __xuiDocumentBatchLive(row) && d->iVersion==row->version &&
++        d->iChangeVersion==row->changeVersion && d->iState==row->state &&
++        d->iNextState==row->nextState && d->iLength==row->beforeLength &&
++        d->iUndoCount==row->undoCount && !d->iEditDepth && !d->bApplyingHistory;
++}
++/* Capture/Describe are owner-only; Stage/DestroyPayload own no live GUI links.
++ * A payload moves exactly once into Accept. No worker dereferences the ticket. */
++struct xui_code_document_batch_payload_t {
++    uint64_t serial;
++    size_t count,used,limit;
++    xui_document_batch_row_t* rows;
++};
++static xatomic64 __xuiDocumentBatchSerial={0};
++static uint64_t __xuiDocumentBatchNextSerial(void)
++{
++    uint64 value=xrtAtomic64Load(&__xuiDocumentBatchSerial,XMEMORY_RELAXED);
++    do{if(value==UINT64_MAX)return 0;}
++    while(!xrtAtomic64CompareExchange(&__xuiDocumentBatchSerial,&value,value+1,XMEMORY_RELAXED,XMEMORY_RELAXED));
++    return value+1;
++}
++static size_t __xuiDocumentBatchCaptureBytes(size_t count)
++{return sizeof(struct xui_code_document_batch_t)+(count?count:1)*sizeof(xui_document_batch_row_t);}
++XUI_API int xuiCodeDocumentBatchCapture(const xui_code_document_batch_item_t* items,
++    size_t count,size_t budget,xui_code_document_batch* output)
++{
++    if(!output)return XUI_ERROR_INVALID_ARGUMENT;
++    *output=NULL;
++    if((count && !items) || count>512 || budget>256u*1024u*1024u)return XUI_ERROR_INVALID_ARGUMENT;
++    size_t limit=budget?budget:128u*1024u*1024u;
++    if(__xuiDocumentBatchCaptureBytes(count)>limit)return XUI_ERROR_OUT_OF_MEMORY;
++    xui_code_document_batch batch=xrtMalloc(sizeof(*batch));
++    if(!batch)return XUI_ERROR_OUT_OF_MEMORY;
++    memset(batch,0,sizeof(*batch));batch->thread=xrtThreadCurrentId();batch->limit=limit;
++    batch->used=sizeof(*batch);batch->busy=true;
++    int status=__xuiDocumentBatchAllocate(&batch->used,limit,(count?count:1)*sizeof(*batch->rows),(void**)&batch->rows,true);
++    if(status!=XUI_OK){__xuiDocumentBatchFree(batch);return status;}
++    batch->count=count;batch->serial=__xuiDocumentBatchNextSerial();
++    if(!batch->serial)status=XUI_ERROR_LIMIT_EXCEEDED;
++    for(size_t i=0;status==XUI_OK && i<count;++i){
++        xui_document_batch_row_t* row=batch->rows+i;row->document=items[i].pDocument;
++        for(size_t j=0;j<i;++j)if(row->document==batch->rows[j].document)status=XUI_ERROR_INVALID_ARGUMENT;
++        if(status==XUI_OK)status=__xuiCodeDocumentCallBegin(row->document,&row->call);
++    }
++    size_t total=0;
++    for(size_t i=0;status==XUI_OK && i<count;++i){
++        xui_document_batch_row_t* row=batch->rows+i;xui_code_document d=row->document;
++        if(d->iEditDepth || d->bApplyingHistory || d->iNextState==UINT64_MAX ||
++            d->iUndoCount<0 || d->iUndoCount==INT_MAX || d->iChangeVersion!=items[i].iChangeVersion){status=XUI_ERROR_INVALID_STATE;break;}
++        if(d->iLength<0 || d->iLength>8*1024*1024 || (size_t)d->iLength>64u*1024u*1024u-total){status=XUI_ERROR_INVALID_ARGUMENT;break;}
++        total+=(size_t)d->iLength;row->version=d->iVersion;row->changeVersion=d->iChangeVersion;
++        row->state=d->iState;row->nextState=d->iNextState;row->beforeLength=d->iLength;
++        row->beforeLines=d->iLineCount;row->undoCount=d->iUndoCount;
++        status=xuiCodeDocumentLifetimeWatch(d,&row->lifetime,__xuiDocumentBatchGone,row);
++    }
++    status=__xuiDocumentBatchFinishCalls(batch,status);batch->busy=false;
++    for(size_t i=0;status==XUI_OK && i<count;++i)if(!batch->rows[i].document)status=XUI_ERROR_INVALID_STATE;
++    if(status!=XUI_OK){__xuiDocumentBatchFree(batch);return status;}
++    *output=batch;return XUI_OK;
++}
++XUI_API int xuiCodeDocumentBatchDescribe(xui_code_document_batch batch,
++    xui_code_document_batch_layout_t* layout,xui_code_document_batch_source_t* sources,size_t capacity)
++{
++    if(!batch || !layout || (batch->count && !sources))return XUI_ERROR_INVALID_ARGUMENT;
++    if(batch->thread!=xrtThreadCurrentId() || batch->busy)return XUI_ERROR_BUSY;
++    if(batch->attempted || batch->ready)return XUI_ERROR_INVALID_STATE;
++    if(capacity<batch->count)return XUI_ERROR_BUFFER_TOO_SMALL;
++    *layout=(xui_code_document_batch_layout_t){sizeof(*layout),batch->serial,batch->count,__xuiDocumentBatchCaptureBytes(batch->count)};
++    for(size_t i=0;i<batch->count;++i)sources[i]=(xui_code_document_batch_source_t){sizeof(*sources),batch->rows[i].beforeLength,batch->rows[i].undoCount};
++    return XUI_OK;
++}
++static int __xuiDocumentBatchStopped(int (*cancelled)(void*),void* user)
++{return cancelled && cancelled(user);}
++static int __xuiDocumentBatchCopy(char* destination,const char* source,size_t size,
++    int (*cancelled)(void*),void* user)
++{
++    for(size_t at=0;at<size;){
++        if(__xuiDocumentBatchStopped(cancelled,user))return XUI_ERROR_INVALID_STATE;
++        size_t step=size-at>65536?65536:size-at;memcpy(destination+at,source+at,step);at+=step;
++    }
++    return XUI_OK;
++}
++static int __xuiDocumentBatchBuildRow(xui_code_document_batch_payload payload,
++    xui_document_batch_row_t* row,const xui_code_document_batch_source_t* source,
++    const xui_code_document_batch_text_t* text,int (*cancelled)(void*),void* user)
++{
++    if(source->iSize!=sizeof(*source) || text->iSize!=sizeof(*text) || source->iLength<0 ||
++        source->iLength>8*1024*1024 || source->iUndoCount<0 || source->iUndoCount==INT_MAX ||
++        text->Before.Size>8u*1024u*1024u || text->After.Size>8u*1024u*1024u ||
++        (text->Before.Size && !text->Before.Data) || (text->After.Size && !text->After.Data))return XUI_ERROR_INVALID_ARGUMENT;
++    if((size_t)source->iLength!=text->Before.Size)return XUI_ERROR_INVALID_STATE;
++    const char *before=text->Before.Data?text->Before.Data:"",*after=text->After.Data?text->After.Data:"";
++    if(memchr(before,0,text->Before.Size) || memchr(after,0,text->After.Size) ||
++        memchr(before,'\r',text->Before.Size) || memchr(after,'\r',text->After.Size))return XUI_ERROR_INVALID_ARGUMENT;
++    if(__xuiCodeDocumentValidateUtf8(NULL,before,(int)text->Before.Size)!=XUI_OK ||
++        __xuiCodeDocumentValidateUtf8(NULL,after,(int)text->After.Size)!=XUI_OK)return XUI_ERROR_INVALID_ARGUMENT;
++    row->beforeLength=source->iLength;row->undoCount=source->iUndoCount;row->afterLength=(int)text->After.Size;
++    row->changed=text->Before.Size!=text->After.Size || memcmp(before,after,text->Before.Size);
++    int status=XUI_OK;
++    if(!row->changed){
++        if(text->Before.Size){
++            status=__xuiDocumentBatchAllocate(&payload->used,payload->limit,text->Before.Size+1,(void**)&row->proof,false);
++            if(status==XUI_OK){status=__xuiDocumentBatchCopy(row->proof,before,text->Before.Size,cancelled,user);row->proof[text->Before.Size]=0;}
++        }
++        return status;
++    }
++    row->afterLines=__xuiCodeDocumentTextLineBreaks(after,row->afterLength)+1;
++    if(__xuiDocumentBatchStopped(cancelled,user))return XUI_ERROR_INVALID_STATE;
++    status=__xuiDocumentBatchAllocate(&payload->used,payload->limit,text->After.Size+4096,(void**)&row->buffer,false);
++    if(status==XUI_OK)status=__xuiDocumentBatchAllocate(&payload->used,payload->limit,text->After.Size+1,(void**)&row->snapshot,false);
++    if(status==XUI_OK)status=__xuiDocumentBatchAllocate(&payload->used,payload->limit,(size_t)row->afterLines*sizeof(*row->lines),(void**)&row->lines,false);
++    if(status==XUI_OK && (size_t)row->undoCount+1>SIZE_MAX/sizeof(*row->undo))status=XUI_ERROR_OUT_OF_MEMORY;
++    if(status==XUI_OK)status=__xuiDocumentBatchAllocate(&payload->used,payload->limit,((size_t)row->undoCount+1)*sizeof(*row->undo),(void**)&row->undo,false);
++    if(status==XUI_OK)status=__xuiDocumentBatchAllocate(&payload->used,payload->limit,sizeof(*row->group.pActions),(void**)&row->group.pActions,true);
++    size_t strings=(text->Before.Size?text->Before.Size+1:0)+(text->After.Size?text->After.Size+1:0);
++    if(status==XUI_OK && strings>payload->limit-payload->used)status=XUI_ERROR_OUT_OF_MEMORY;
++    if(status!=XUI_OK)return status;
++    payload->used+=strings;row->group.iActionCount=row->group.iActionCapacity=1;
++    status=__xuiCodeDocumentActionInit(NULL,row->group.pActions,0,before,row->beforeLength,after,row->afterLength);
++    if(status==XUI_OK)status=__xuiDocumentBatchCopy(row->buffer,after,text->After.Size,cancelled,user);
++    if(status==XUI_OK)status=__xuiDocumentBatchCopy(row->snapshot,after,text->After.Size,cancelled,user);
++    if(status!=XUI_OK)return status;
++    row->snapshot[text->After.Size]=0;
++    int line=0,start=0;
++    for(int j=0;j<row->afterLength;++j){
++        if(!(j%65536) && __xuiDocumentBatchStopped(cancelled,user))return XUI_ERROR_INVALID_STATE;
++        if(after[j]=='\n'){row->lines[line++]=(xui_code_line_t){start,j+1,j};start=j+1;}
++    }
++    row->lines[line]=(xui_code_line_t){start,row->afterLength,row->afterLength};return XUI_OK;
++}
++XUI_API void xuiCodeDocumentBatchPayloadDestroy(xui_code_document_batch_payload payload)
++{
++    if(!payload)return;
++    for(size_t i=0;i<payload->count;++i)__xuiDocumentBatchFreePayloadRow(payload->rows+i);
++    xrtFree(payload->rows);xrtFree(payload);
++}
++XUI_API int xuiCodeDocumentBatchStage(const xui_code_document_batch_layout_t* layout,
++    const xui_code_document_batch_source_t* sources,const xui_code_document_batch_text_t* texts,
++    size_t budget,int (*cancelled)(void*),void* user,xui_code_document_batch_payload* output)
++{
++    if(!output)return XUI_ERROR_INVALID_ARGUMENT;
++    *output=NULL;
++    if(!layout || layout->iSize!=sizeof(*layout) || !layout->iCapture || layout->iDocuments>512 ||
++        layout->iCaptureBytes!=__xuiDocumentBatchCaptureBytes(layout->iDocuments) ||
++        (layout->iDocuments && (!sources || !texts)) || budget>256u*1024u*1024u)return XUI_ERROR_INVALID_ARGUMENT;
++    size_t limit=budget?budget:128u*1024u*1024u;
++    if(layout->iCaptureBytes>limit || sizeof(struct xui_code_document_batch_payload_t)>limit-layout->iCaptureBytes)return XUI_ERROR_OUT_OF_MEMORY;
++    if(__xuiDocumentBatchStopped(cancelled,user))return XUI_ERROR_INVALID_STATE;
++    xui_code_document_batch_payload payload=xrtMalloc(sizeof(*payload));
++    if(!payload)return XUI_ERROR_OUT_OF_MEMORY;
++    memset(payload,0,sizeof(*payload));payload->serial=layout->iCapture;payload->limit=limit;
++    payload->used=layout->iCaptureBytes+sizeof(*payload);
++    int status=__xuiDocumentBatchAllocate(&payload->used,limit,(layout->iDocuments?layout->iDocuments:1)*sizeof(*payload->rows),(void**)&payload->rows,true);
++    if(status==XUI_OK)payload->count=layout->iDocuments;
++    size_t beforeBytes=0,afterBytes=0;
++    for(size_t i=0;status==XUI_OK && i<payload->count;++i){
++        if(__xuiDocumentBatchStopped(cancelled,user)){status=XUI_ERROR_INVALID_STATE;break;}
++        if(texts[i].Before.Size>64u*1024u*1024u-beforeBytes || texts[i].After.Size>64u*1024u*1024u-afterBytes){status=XUI_ERROR_INVALID_ARGUMENT;break;}
++        beforeBytes+=texts[i].Before.Size;afterBytes+=texts[i].After.Size;
++        status=__xuiDocumentBatchBuildRow(payload,payload->rows+i,sources+i,texts+i,cancelled,user);
++    }
++    if(status==XUI_OK && __xuiDocumentBatchStopped(cancelled,user))status=XUI_ERROR_INVALID_STATE;
++    if(status!=XUI_OK){xuiCodeDocumentBatchPayloadDestroy(payload);return status;}
++    *output=payload;return XUI_OK;
++}
++static const char* __xuiDocumentBatchBefore(const xui_document_batch_row_t* row)
++{return row->changed?(row->group.pActions->sDeleted?row->group.pActions->sDeleted:""):(row->proof?row->proof:"");}
++static bool __xuiDocumentBatchBeforeMatches(xui_code_document d,const xui_document_batch_row_t* staged)
++{
++    if(d->iLength!=staged->beforeLength)return false;
++    const char* before=__xuiDocumentBatchBefore(staged);int prefix=d->iGapStart;
++    return (!prefix || !memcmp(d->sBuffer,before,(size_t)prefix)) &&
++        (prefix==d->iLength || !memcmp(d->sBuffer+d->iGapEnd,before+prefix,(size_t)(d->iLength-prefix)));
++}
++XUI_API int xuiCodeDocumentBatchAccept(xui_code_document_batch batch,
++    xui_code_document_batch_payload payload,bool* taken)
++{
++    if(!taken)return XUI_ERROR_INVALID_ARGUMENT;
++    *taken=false;
++    if(!batch || !payload)return XUI_ERROR_INVALID_ARGUMENT;
++    if(batch->thread!=xrtThreadCurrentId() || batch->busy)return XUI_ERROR_BUSY;
++    if(batch->ready || batch->attempted || batch->serial!=payload->serial || batch->count!=payload->count || payload->used>batch->limit)return XUI_ERROR_INVALID_STATE;
++    batch->busy=true;int status=XUI_OK;
++    for(size_t i=0;status==XUI_OK && i<batch->count;++i){
++        xui_document_batch_row_t* row=batch->rows+i;const xui_document_batch_row_t* staged=payload->rows+i;
++        status=__xuiCodeDocumentCallBegin(row->document,&row->call);
++        if(status==XUI_OK && (!__xuiDocumentBatchCurrent(row) || row->beforeLength!=staged->beforeLength ||
++            row->undoCount!=staged->undoCount || !__xuiDocumentBatchBeforeMatches(row->document,staged)))status=XUI_ERROR_INVALID_STATE;
++    }
++    if(status==XUI_OK){
++        for(size_t i=0;i<batch->count;++i){
++            xui_document_batch_row_t *row=batch->rows+i,*staged=payload->rows+i;
++            row->changed=staged->changed;row->afterLength=staged->afterLength;row->afterLines=staged->afterLines;
++            row->proof=staged->proof;row->buffer=staged->buffer;row->snapshot=staged->snapshot;
++            row->lines=staged->lines;row->undo=staged->undo;row->group=staged->group;
++            staged->proof=staged->buffer=staged->snapshot=NULL;staged->lines=NULL;staged->undo=NULL;
++            memset(&staged->group,0,sizeof(staged->group));
++        }
++        batch->used=payload->used;batch->ready=true;*taken=true;
++        xuiCodeDocumentBatchPayloadDestroy(payload);
++    }
++    status=__xuiDocumentBatchFinishCalls(batch,status);batch->busy=false;return status;
++}
++
++XUI_API int xuiCodeDocumentBatchPrepare(const xui_code_document_batch_item_t* items,
++    size_t count,size_t budget,xui_code_document_batch* output)
++{
++    if(!output)return XUI_ERROR_INVALID_ARGUMENT;
++    *output=NULL;
++    xui_code_document_batch batch=NULL;
++    int status=xuiCodeDocumentBatchCapture(items,count,budget,&batch);
++    if(status!=XUI_OK)return status;
++    xui_code_document_batch_layout_t layout;
++    xui_code_document_batch_source_t sources[512];
++    xui_code_document_batch_text_t texts[512];
++    status=xuiCodeDocumentBatchDescribe(batch,&layout,sources,512);
++    if(status==XUI_OK)for(size_t i=0;i<count;++i)
++        texts[i]=(xui_code_document_batch_text_t){sizeof(texts[i]),items[i].Before,items[i].After};
++    xui_code_document_batch_payload payload=NULL;
++    if(status==XUI_OK)status=xuiCodeDocumentBatchStage(&layout,sources,texts,budget,NULL,NULL,&payload);
++    bool taken=false;
++    if(status==XUI_OK)status=xuiCodeDocumentBatchAccept(batch,payload,&taken);
++    if(!taken)xuiCodeDocumentBatchPayloadDestroy(payload);
++    if(status!=XUI_OK){__xuiDocumentBatchFree(batch);return status;}
++    *output=batch;return XUI_OK;
++}
++XUI_API int xuiCodeDocumentBatchCommitChecked(xui_code_document_batch batch,
++    const xui_code_document_batch_callbacks_t* callbacks,bool* committed)
++{
++    if(!committed)return XUI_ERROR_INVALID_ARGUMENT;
++    *committed=false;
++    if(!batch)return XUI_ERROR_INVALID_ARGUMENT;
++    if(batch->busy || batch->thread!=xrtThreadCurrentId())return XUI_ERROR_BUSY;
++    if(batch->attempted || !batch->ready)return XUI_ERROR_INVALID_STATE;
++    xui_code_document_batch_callbacks_t hooks={0};
++    if(callbacks){if(callbacks->iSize!=sizeof(*callbacks))return XUI_ERROR_INVALID_ARGUMENT;hooks=*callbacks;}
++    batch->busy=true;batch->attempted=true;int status=XUI_OK;
++    for(size_t i=0;status==XUI_OK && i<batch->count;++i){
++        xui_document_batch_row_t* row=batch->rows+i;
++        status=__xuiCodeDocumentCallBegin(row->document,&row->call);
++        if(status==XUI_OK && !__xuiDocumentBatchCurrent(row))status=XUI_ERROR_INVALID_STATE;
++    }
++    for(size_t i=0;status==XUI_OK && i<batch->count;++i){
++        xui_document_batch_row_t* row=batch->rows+i;
++        if(row->changed)status=__xuiCodeDocumentPrepareEdit(row->document,0,row->beforeLength,
++            row->group.pActions->sInserted?row->group.pActions->sInserted:"",row->afterLength,true);
++    }
++    /* Every callback has finished before the final group fence. No allocation,
++     * fallible operation or user callback occurs in the publication loop. */
++    for(size_t i=0;status==XUI_OK && i<batch->count;++i)
++        if(!__xuiDocumentBatchCurrent(batch->rows+i))status=XUI_ERROR_INVALID_STATE;
++    if(status==XUI_OK && hooks.beforePublish)status=hooks.beforePublish(hooks.pUser);
++    for(size_t i=0;status==XUI_OK && i<batch->count;++i)
++        if(!__xuiDocumentBatchCurrent(batch->rows+i))status=XUI_ERROR_INVALID_STATE;
++    if(status==XUI_OK){
++        for(size_t i=0;i<batch->count;++i){
++            xui_document_batch_row_t* row=batch->rows+i;xui_code_document d=row->document;
++            if(!row->changed)continue;
++            if(row->undoCount)memcpy(row->undo,d->pUndo,(size_t)row->undoCount*sizeof(*row->undo));
++            row->group.iBeforeState=d->iState;row->group.iAfterState=d->iNextState+1;
++            row->undo[row->undoCount]=row->group;memset(&row->group,0,sizeof(row->group));
++            xrtFree(d->pUndo);d->pUndo=row->undo;row->undo=NULL;d->iUndoCount=row->undoCount+1;d->iUndoCapacity=d->iUndoCount;
++            __xuiCodeDocumentClearRedo(d);
++            xrtFree(d->sBuffer);xrtFree(d->sSnapshot);xrtFree(d->pLines);
++            d->sBuffer=row->buffer;row->buffer=NULL;d->iLength=row->afterLength;d->iBufferCapacity=row->afterLength+4096;
++            d->iGapStart=row->afterLength;d->iGapEnd=d->iBufferCapacity;
++            d->sSnapshot=row->snapshot;row->snapshot=NULL;d->iSnapshotCapacity=row->afterLength+1;d->bSnapshotValid=1;
++            d->pLines=row->lines;row->lines=NULL;d->iLineCount=d->iLineCapacity=row->afterLines;
++            d->iPendingLineShiftStart=d->iPendingLineShiftDelta=0;
++            ++d->iVersion;++d->iChangeVersion;d->iState=++d->iNextState;
++            __xuiCodeDocumentUpdateDirty(d);__xuiCodeDocumentSetLastEditRange(d,0,d->iLength);
++        }
++        *committed=true;
++        if(hooks.published)hooks.published(hooks.pUser);
++        for(size_t i=0;i<batch->count;++i){
++            xui_document_batch_row_t* row=batch->rows+i;if(!row->changed || !__xuiDocumentBatchLive(row))continue;
++            __xuiCodeDocumentEdited(row->document,0,row->beforeLength,row->afterLength,0,row->beforeLines-1,row->afterLines-1,false);
++            if(__xuiDocumentBatchLive(row))__xuiCodeDocumentNotifyChanged(row->document);
++        }
++    }
++    status=__xuiDocumentBatchFinishCalls(batch,status);batch->busy=false;return status;
++}
++XUI_API int xuiCodeDocumentBatchCommit(xui_code_document_batch batch,bool* committed)
++{return xuiCodeDocumentBatchCommitChecked(batch,NULL,committed);}
++XUI_API int xuiCodeDocumentBatchDestroy(xui_code_document_batch batch)
++{
++    if(!batch)return XUI_OK;
++    if(batch->busy || batch->thread!=xrtThreadCurrentId())return XUI_ERROR_BUSY;
++    __xuiDocumentBatchFree(batch);return XUI_OK;
++}
++
+ #endif

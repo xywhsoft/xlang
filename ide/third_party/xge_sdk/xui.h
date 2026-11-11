@@ -2756,6 +2756,16 @@ struct xui_code_virtual_text_t {
 };
 
 typedef int (*xui_code_lexer_proc)(xui_code_document_t* pDocument, int iStartLine, int iEndLine, xui_code_token_t* pTokens, int iTokenCapacity, int* pTokenCount, void* pUser);
+/* Optional owner/render-thread foreground override for a visible lexical token.
+ * Token offsets are document-wide UTF-8 bytes, including on later lines.
+ * Document/token are borrowed for this call only. Do not retain them, mutate
+ * UI/document state or reenter rendering. User data lives until uninstalled or
+ * the editor is destroyed. Return XUI_OK with a defined nontransparent style
+ * id to override; all other outcomes preserve lexical theme/CSS foreground. */
+#define XUI_CODE_TOKEN_STYLE_RESOLVER 1
+typedef int (*xui_code_token_style_proc)(xui_code_document_t* pDocument,
+    const xui_code_token_t* pToken, int* pStyleId, void* pUser);
+
 typedef int (*xui_code_fold_proc)(xui_code_document_t* pDocument, xui_code_fold_range_t* pRanges, int iRangeCapacity, int* pRangeCount, void* pUser);
 
 struct xui_code_language_t {
@@ -7689,6 +7699,100 @@ XUI_API int xuiCodeDocumentRedo(xui_code_document pDocument);
 XUI_API int xuiCodeDocumentCanUndo(xui_code_document pDocument);
 /* 是否可重做。 */
 XUI_API int xuiCodeDocumentCanRedo(xui_code_document pDocument);
+
+/* Owner-thread, single-attempt prepared document batch. Input views live only
+ * during Prepare; Before must match the current LF UTF8 document and its exact
+ * change version. Duplicate documents, nested edits, invalid UTF8/NUL/CR and
+ * stale/closed owners are refused. Max512 documents,8MiB/body,64MiB before/after
+ * totals; default128MiB/max256MiB known staging storage. The caller's inputs,
+ * allocator and observer/cache work are additional, not an RSS/latency bound.
+ * Prepare allocates replacement buffers, full line indexes and one undo group
+ * per changed document without changing content, versions, dirty or history.
+ * Commit pins all documents, runs preflight observers and rechecks the group;
+ * it publishes every payload without allocation before any edit/change notice.
+ * Preflight may invalidate derived caches. Each document gains one undo step;
+ * its earlier undo history is preserved and normal edit semantics clear redo.
+ * Commit core does not allocate. Observers/cleanup may allocate, close owners
+ * or fail after publication: ALWAYS inspect *committed, even on an error return.
+ * true means all payloads committed, including an empty/no-op accepted batch.
+ * false means none committed. The batch is single-attempt and must be destroyed
+ * after either outcome. Destroy/Commit reentry or another thread returns BUSY.
+ * Document destruction invalidates prepared rows without retaining the owner.
+ * No disk transaction, caret mapping, global undo or IDE revision policy is
+ * implied. Normal Document observer/callback and owner lifetime rules apply. */
+#define XUI_CODE_DOCUMENT_BATCH 2
+typedef struct xui_code_document_batch_t* xui_code_document_batch;
+typedef struct xui_code_document_batch_item_t {
+    xui_code_document pDocument;
+    uint32_t iChangeVersion;
+    xstrview Before,After;
+} xui_code_document_batch_item_t;
+XUI_API int xuiCodeDocumentBatchPrepare(const xui_code_document_batch_item_t* pItems,
+    size_t iCount,size_t iBudget,xui_code_document_batch* ppBatch);
+XUI_API int xuiCodeDocumentBatchCommit(xui_code_document_batch pBatch,bool* pCommitted);
+XUI_API int xuiCodeDocumentBatchDestroy(xui_code_document_batch pBatch);
+
+/* Split preparation. Capture/Describe run on the owner and copy metadata only;
+ * Capture ignores the legacy item's Before/After fields. Describe outputs a
+ * detached, copyable layout/source description with no GUI pointer or lease.
+ * Stage may run on any thread from immutable views held for that call only.
+ * It owns every body/index/history allocation, no live Document/Context links.
+ * Pass one payload owner between threads with external synchronization.
+ * Accept is owner-only: recheck capture identity, versions/states and exact
+ * before bytes (at most two memcmp spans/document), then move allocations.
+ * Accept allocates/copies no body or index; it DOES scan before bytes. Undo
+ * prefix metadata is copied in Commit. ALWAYS inspect *taken: true consumes
+ * the payload even if a later call-scope cleanup returns an error. Failed
+ * acceptance leaves it caller-owned. A capture cannot commit until accepted.
+ * Retire unaccepted payloads with PayloadDestroy on any thread, sequentially.
+ * Never concurrently stage from mutable inputs, accept/destroy one payload,
+ * or call owner APIs from the worker. Cancelled Stage returns INVALID_STATE
+ * and NULL output; local polls are not an end-to-end cancellation bound.
+ * Existing Prepare remains a synchronous convenience over this same pipeline.
+ * The known staging quota includes Capture storage and transient payload rows;
+ * raw body/index arrays are fully written without redundant zero-filling. */
+typedef struct xui_code_document_batch_layout_t {
+    uint32_t iSize;
+    uint64_t iCapture;
+    size_t iDocuments,iCaptureBytes;
+} xui_code_document_batch_layout_t;
+typedef struct xui_code_document_batch_source_t {
+    uint32_t iSize;
+    int iLength,iUndoCount;
+} xui_code_document_batch_source_t;
+typedef struct xui_code_document_batch_text_t {
+    uint32_t iSize;
+    xstrview Before,After;
+} xui_code_document_batch_text_t;
+typedef struct xui_code_document_batch_payload_t* xui_code_document_batch_payload;
+XUI_API int xuiCodeDocumentBatchCapture(const xui_code_document_batch_item_t* pTargets,
+    size_t iCount,size_t iBudget,xui_code_document_batch* ppBatch);
+XUI_API int xuiCodeDocumentBatchDescribe(xui_code_document_batch pBatch,
+    xui_code_document_batch_layout_t* pLayout,xui_code_document_batch_source_t* pSources,size_t iCapacity);
+XUI_API int xuiCodeDocumentBatchStage(const xui_code_document_batch_layout_t* pLayout,
+    const xui_code_document_batch_source_t* pSources,const xui_code_document_batch_text_t* pTexts,
+    size_t iBudget,int (*cancelled)(void*),void* pUser,xui_code_document_batch_payload* ppPayload);
+XUI_API int xuiCodeDocumentBatchAccept(xui_code_document_batch pBatch,
+    xui_code_document_batch_payload pPayload,bool* pTaken);
+XUI_API void xuiCodeDocumentBatchPayloadDestroy(xui_code_document_batch_payload pPayload);
+
+/* Optional synchronous host gates; callbacks/user are borrowed for Commit only.
+ * beforePublish runs after toolkit preflight, may refuse without publication,
+ * and is followed by another whole-group toolkit fence. published runs after
+ * all payloads and *committed=true, before any toolkit edit/change observer.
+ * published must be an infallible, preallocated model publication: do not
+ * allocate, dispatch callbacks or close owners there. It is not rollback.
+ * This permits the IDE's identity/config fences and dirty/store metadata to
+ * surround publication, without interleaving per-document change notices. */
+typedef struct xui_code_document_batch_callbacks_t {
+    uint32_t iSize;
+    int (*beforePublish)(void*);
+    void (*published)(void*);
+    void* pUser;
+} xui_code_document_batch_callbacks_t;
+XUI_API int xuiCodeDocumentBatchCommitChecked(xui_code_document_batch pBatch,
+    const xui_code_document_batch_callbacks_t* pCallbacks,bool* pCommitted);
+
 /* 读取文档版本号（任意修改自增）。 */
 XUI_API uint32_t xuiCodeDocumentGetVersion(xui_code_document pDocument);
 /* 读取内容变更版本号（撤销/重做同样推进）。 */
@@ -8075,6 +8179,10 @@ XUI_API xui_code_theme xuiCodeEditGetTheme(xui_widget pWidget);
 XUI_API int xuiCodeEditSetTheme(xui_widget pWidget, xui_code_theme pTheme);
 /* 按样式 id 覆盖主题某样式颜色。 */
 XUI_API int xuiCodeEditSetStyle(xui_widget pWidget, int iStyleId, const xui_code_style_t* pStyle);
+/* O(1) callback/user switch: repaint only; lexical cache and layout are intact.
+ * NULL callback uninstalls and clears user. Getter requires at least one output. */
+XUI_API int xuiCodeEditSetTokenStyleResolver(xui_widget pWidget, xui_code_token_style_proc onStyle, void* pUser);
+XUI_API int xuiCodeEditGetTokenStyleResolver(xui_widget pWidget, xui_code_token_style_proc* pStyle, void** pUser);
 /* 取折叠状态（展开/折叠记录，编辑器持有）。 */
 XUI_API xui_code_fold_state xuiCodeEditGetFoldState(xui_widget pWidget);
 /* 取注释存储（标记/指示器/诊断，编辑器持有）。 */

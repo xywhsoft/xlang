@@ -4445,6 +4445,10 @@
     "67aac557a4b28a34a24efbce07a800f08884cf72": {
       "bytes": 3429810,
       "path": "资料/The Definitive ANTLR Reference - PDF Room.pdf"
+    },
+    "c8b189a67991de59fd243713a67a10c5469c4e44": {
+      "bytes": 11182856,
+      "path": "ide/third_party/xge_sdk/xge.dll"
     }
   }
 }

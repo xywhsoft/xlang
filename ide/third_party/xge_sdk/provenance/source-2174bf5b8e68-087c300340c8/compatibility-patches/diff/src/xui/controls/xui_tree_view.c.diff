@@ -1,0 +1,53 @@
+--- upstream/src/xui/controls/xui_tree_view.c
++++ matched/src/xui/controls/xui_tree_view.c
+@@ -50,6 +50,8 @@
+ 	int bRefreshingAdapter;
+ 	xui_tree_view_item_proc onRenderItem;
+ 	void* pRenderItemUser;
++	xui_tree_view_icon_proc onRenderIcon;
++	void* pRenderIconUser;
+ 	int iSelectedId;
+ 	int iHoverVisible;
+ 	int iFocusVisible;
+@@ -2106,8 +2108,20 @@
+ 		}
+ 		if ( pNode->bIconReserved ) {
+ 			tIcon = xuiInternalSnapRect((xui_rect_t){fTextX, tRow.fY + (tRow.fH - 14.0f) * 0.5f, 15.0f, 14.0f});
+-			iRet = __xuiTreeViewDrawIcon(pProxy, pDraw, tIcon, pNode->bHasChildren, ((iState & XUI_TREE_ITEM_DISABLED) != 0) ? tResolved.iDisabledTextColor : tResolved.iIconColor, &tResolved);
+-			if ( iRet != XUI_OK ) return iRet;
++            int handled = 0;
++            if ( pData->onRenderIcon != NULL ) {
++                xui_tree_view_icon_proc callback = pData->onRenderIcon;
++                void* user = pData->pRenderIconUser;
++                int generation = pData->iChangeCount;
++                handled = callback(pWidget, pNode->iId, pDraw, tIcon, iState, user);
++                if ( handled < 0 ) return handled;
++                if ( !__xuiTreeViewWidgetAlive(pWidget, pData) ) return XUI_OK;
++                if ( pData->iChangeCount != generation || pData->onRenderIcon != callback || pData->pRenderIconUser != user ) return XUI_OK;
++            }
++            if ( !handled ) {
++                iRet = __xuiTreeViewDrawIcon(pProxy, pDraw, tIcon, pNode->bHasChildren, ((iState & XUI_TREE_ITEM_DISABLED) != 0) ? tResolved.iDisabledTextColor : tResolved.iIconColor, &tResolved);
++                if ( iRet != XUI_OK ) return iRet;
++            }
+ 			fTextX = tIcon.fX + tIcon.fW + 6.0f;
+ 		}
+ 		iTextColor = ((iState & XUI_TREE_ITEM_DISABLED) != 0) ? tResolved.iDisabledTextColor : tResolved.iTextColor;
+@@ -2727,6 +2741,18 @@
+ 	return XUI_OK;
+ }
+ 
++XUI_API int xuiTreeViewSetIconRenderer(xui_widget widget, xui_tree_view_icon_proc callback, void* user)
++{
++    xui_tree_view_data_t* data = __xuiTreeViewGetData(widget);
++    if ( !data ) return XUI_ERROR_INVALID_ARGUMENT;
++    if ( data->onRenderIcon == callback && data->pRenderIconUser == user ) return XUI_OK;
++    int result = __xuiTreeViewInvalidateRows(widget, data);
++    if ( result != XUI_OK || !__xuiTreeViewWidgetAlive(widget, data) ) return result;
++    data->onRenderIcon = callback;
++    data->pRenderIconUser = user;
++    return XUI_OK;
++}
++
+ static int __xuiTreeViewSetAdapter(xui_widget widget,xui_tree_view_count_proc count,void* countUser,
+     const xui_callback_owner_t* countOwner,xui_tree_view_node_proc rawNode,
+     xui_tree_view_node_owned_proc ownedNode,void* nodeUser,const xui_callback_owner_t* nodeOwner)

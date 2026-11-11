@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "root": "F:\\xlang-validation\\ide-templates-20261109\\source",
+  "root": "F:\\codex-builds-xlang-lsp-20261111\\xui-batch-worker\\source-v1",
   "sourceCommit": "2174bf5b8e68a9069bd9788bd2f73444b9a0d722",
   "sourceFileCount": 791,
   "files": [
@@ -2536,8 +2536,8 @@
     },
     {
       "path": "include/xui.h",
-      "sha256": "b0f048522b1e2c19d65bfa68f04c4ce066f3c4762f4ab54c1df3341732537893",
-      "size": 697263
+      "sha256": "7e01f668823cbd2198d030fe3407f0811e38185a0b3655cc6bf93ce5e6523e2f",
+      "size": 704283
     },
     {
       "path": "include/xui_config.h",
@@ -2986,8 +2986,8 @@
     },
     {
       "path": "src/xui/code/xui_code_document.c",
-      "sha256": "e7a89a9234d27e684434e659fee2ce50eaaacb239677886104821bd93517d63f",
-      "size": 64883
+      "sha256": "91f09ba62af2f40674b34431cf8c4229db78ff621c7fadc658dfbf9645b1dcc7",
+      "size": 86455
     },
     {
       "path": "src/xui/code/xui_code_document_internal.h",
@@ -2996,8 +2996,8 @@
     },
     {
       "path": "src/xui/code/xui_code_edit.c",
-      "sha256": "fa86a2be94150c73b0e2ea377ab75cb7c95338c3f97b9755c10d03b7994942a2",
-      "size": 371381
+      "sha256": "b5fcf8a4cdb5fe082eecdb9c1720e5b72bd42a6d09dbc2724792eabd7d0c8b40",
+      "size": 373020
     },
     {
       "path": "src/xui/code/xui_code_editing.c",
@@ -3964,7 +3964,7 @@
   "compatibilityPatches": {
     "format": "xlang-ide-xge-source-patches-1",
     "baseCommit": "2174bf5b8e68a9069bd9788bd2f73444b9a0d722",
-    "purpose": "Qualified GL startup and canonical sole-host XRT overlays; CodeEdit wrap fix committed upstream.",
+    "purpose": "Retain matched IDE source cohort and stage prepared multi-document payloads on a worker and preserve old public layouts; all173 header/fingerprint consumers rebuilt",
     "files": [
       {
         "path": "extlibs/sokol/sokol_app.h",
@@ -4026,7 +4026,7 @@
         "path": "include/xui.h",
         "upstreamExists": true,
         "upstreamSha256": "14e17b65e684d407bd0969e7838972a8a414c1078472295c63ca9cc20a19b0c7",
-        "sha256": "b0f048522b1e2c19d65bfa68f04c4ce066f3c4762f4ab54c1df3341732537893",
+        "sha256": "7e01f668823cbd2198d030fe3407f0811e38185a0b3655cc6bf93ce5e6523e2f",
         "payload": "payload/include/xui.h",
         "diff": "diff/include/xui.h.diff"
       },
@@ -4037,10 +4037,24 @@
         "sha256": "8fbe4f9172772e6af043e59926c47f32f2748d9d24ee0c58775270072d0b1272",
         "payload": "payload/src/xui/controls/xui_tree_view.c",
         "diff": "diff/src/xui/controls/xui_tree_view.c.diff"
+      },
+      {
+        "path": "src/xui/code/xui_code_edit.c",
+        "upstreamExists": true,
+        "upstreamSha256": "fa86a2be94150c73b0e2ea377ab75cb7c95338c3f97b9755c10d03b7994942a2",
+        "sha256": "b5fcf8a4cdb5fe082eecdb9c1720e5b72bd42a6d09dbc2724792eabd7d0c8b40",
+        "payload": "payload/src/xui/code/xui_code_edit.c",
+        "diff": "diff/src/xui/code/xui_code_edit.c.diff"
+      },
+      {
+        "path": "src/xui/code/xui_code_document.c",
+        "upstreamExists": true,
+        "upstreamSha256": "e7a89a9234d27e684434e659fee2ce50eaaacb239677886104821bd93517d63f",
+        "sha256": "91f09ba62af2f40674b34431cf8c4229db78ff621c7fadc658dfbf9645b1dcc7",
+        "payload": "payload/src/xui/code/xui_code_document.c",
+        "diff": "diff/src/xui/code/xui_code_document.c.diff"
       }
-    ],
-    "gridFixCommit": "381cd2273d6ba8f70255beb0142312c42c3ac9b1",
-    "treeIconHook": true
+    ]
   },
-  "compatibilityPatchRoot": "provenance/source-2174bf5b8e68-431e42320088/compatibility-patches"
+  "compatibilityPatchRoot": "provenance/source-2174bf5b8e68-087c300340c8/compatibility-patches"
 }

@@ -23,3 +23,5 @@ M7b5a，2026-11-11。后续 WorkspaceEdit 应用需要在工作线程比较候�
 构建必须匹配修改后的文档布局，全部 IDE 消费者重编。专项需要 batch-v2 SDK；旧 SDK 下明确返回 77，不冒称通过。最终构建、GUI 回归、实现变异及完整输入/库身份见材料索引 `dev/release-materials/provenance/lsp-document-publication-20261111.json`。默认发布程序、SDK、交付索引及服务镜像保持。
 
 继续开发实际协调器的文档/请求/配置/项目围栏、读取位置映射、后台构造与退休、物理别名和关闭文件写入恢复、注释批准及标准协议启用。这里的 published 助手依赖有效的 owner/pin 前提，不能被当作可随意调用的编辑命令。
+
+M7b5b 的实际打开文件协调器见 [lsp-open-edit-documents.md](lsp-open-edit-documents.md)，覆盖后台构造、宿主围栏、整组发布和回调后位置恢复。

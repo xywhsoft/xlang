@@ -13,6 +13,8 @@ typedef struct xide_edit_selection {size_t anchor,caret;} xide_edit_selection;
 xide_edit_positions* xideEditPositionsPrepare(xide_workspace_edit*,size_t budget,
  int (*cancelled)(void*),void*,enum xide_workspace_edit_error*);
 void xideEditPositionsDestroy(xide_edit_positions*);
+/* Known retained plan + map allocations, for a combined preparation quota. */
+size_t xideEditPositionsStorage(const xide_edit_positions*);
 /* Read concurrently under externally held lifetime. Constant scalar-boundary
  * checks and O(log edits) lookups, no allocation/whole-line/body scan.
  * Offsets are original UTF8 bytes. Reject out-of-range/continuation interiors

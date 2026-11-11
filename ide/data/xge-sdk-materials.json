@@ -1,8 +1,8 @@
 {
   "format": "xlang-ide-sdk-materials-1",
-  "sourceManifestSha256": "8b0e92db1fa95dae2c472335d7fed882b62a39b63501ff81dc445594fbe66ca9",
-  "sdkDllSha256": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3",
-  "sourceScope": "XGE 3.0.0 IDE-profile compiler dependency closure, build inputs, public headers and notices; explicit compatibility patches recorded in provenance",
+  "sourceManifestSha256": "cf9627f6dbce271206eb79424c98210170ab7dd19ff2df7fcb70b799b3a0cace",
+  "sdkDllSha256": "51cc62cb935e54ef16abcb8a4ae8ee845d64254123a822ba4004c63dad42359e",
+  "sourceScope": "Exact matched XGE IDE-profile source inventory, actual 173-unit producer dependency closure, build inputs, public headers and notices; explicit batch-v2 and semantic-color compatibility patches retained in the SDK provenance",
   "translationUnits": [
     "single/xge.c",
     "modules/xlayout/xlayout.c",
@@ -3571,8 +3571,8 @@
     },
     {
       "path": "include/xui.h",
-      "sha256": "b0f048522b1e2c19d65bfa68f04c4ce066f3c4762f4ab54c1df3341732537893",
-      "size": 697263
+      "sha256": "7e01f668823cbd2198d030fe3407f0811e38185a0b3655cc6bf93ce5e6523e2f",
+      "size": 704283
     },
     {
       "path": "include/xui_config.h",
@@ -4021,8 +4021,8 @@
     },
     {
       "path": "src/xui/code/xui_code_document.c",
-      "sha256": "e7a89a9234d27e684434e659fee2ce50eaaacb239677886104821bd93517d63f",
-      "size": 64883
+      "sha256": "91f09ba62af2f40674b34431cf8c4229db78ff621c7fadc658dfbf9645b1dcc7",
+      "size": 86455
     },
     {
       "path": "src/xui/code/xui_code_document_internal.h",
@@ -4031,8 +4031,8 @@
     },
     {
       "path": "src/xui/code/xui_code_edit.c",
-      "sha256": "fa86a2be94150c73b0e2ea377ab75cb7c95338c3f97b9755c10d03b7994942a2",
-      "size": 371381
+      "sha256": "b5fcf8a4cdb5fe082eecdb9c1720e5b72bd42a6d09dbc2724792eabd7d0c8b40",
+      "size": 373020
     },
     {
       "path": "src/xui/code/xui_code_editing.c",
@@ -4997,5 +4997,12 @@
   ],
   "legalDistributionReviewComplete": false,
   "formalRelease": false,
-  "sourceCommit": "2174bf5b8e68a9069bd9788bd2f73444b9a0d722"
+  "sourceCommit": "2174bf5b8e68a9069bd9788bd2f73444b9a0d722",
+  "privateCandidate": true,
+  "producerEvidence": {
+    "index": "dev/release-materials/provenance/lsp-xui-batch-worker-20261111.json",
+    "indexSha256": "b8a01a3c802e92b2587e920fe3d4d7fd0baf4003f7dd9143dd1a5eafae0e228c",
+    "upstreamBatchCommit": "8d69816a0224474bebf3779765315078a9a157a9",
+    "actualBuildTranslationUnits": 173
+  }
 }

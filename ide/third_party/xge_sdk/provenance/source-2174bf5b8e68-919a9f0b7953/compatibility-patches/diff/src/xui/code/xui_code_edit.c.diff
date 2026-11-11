@@ -1,0 +1,140 @@
+--- upstream/src/xui/code/xui_code_edit.c
++++ matched/src/xui/code/xui_code_edit.c
+@@ -111,6 +111,8 @@
+ 	xui_code_fold_state pFoldState;
+ 	xui_code_annotation_store pAnnotations;
+ 	xui_code_token_buffer pTokenBuffer;
++	xui_code_token_style_proc onTokenStyle;
++	void* pTokenStyleUser;
+ 	xui_code_token_t* pTokenScratch;
+ 	int iTokenScratchCapacity;
+ 	xui_code_diagnostic_t* pDiagnosticScratch;
+@@ -5770,10 +5772,32 @@
+ 	return xuiCodeThemeGetTokenStyle(pTheme, tToken.iKind, pStyle);
+ }
+ 
+-static int __xuiCodeEditRenderTokenSpan(xui_widget pWidget, xui_proxy pProxy, xui_draw_context pDraw, xui_font pFont, xui_code_edit_data_t* pData, const char* sText, int iLineStart, int iLineEnd, xui_code_token_t tToken, float fTextX, float fY, float fColumnWidth, float fLineHeight)
+-{
+-	xui_code_style_t tStyle;
+-	const char* sProperty;
++static int __xuiCodeEditTokenForeground(xui_widget pWidget,
++    xui_code_edit_data_t* pData, const xui_code_token_t* pToken, int iDocumentStart, uint32_t* pColor)
++{
++    xui_code_style_t tStyle;
++    const char* sProperty;
++    int iStyleId = pToken->iStyle;
++    xui_code_token_t tGlobal = *pToken;
++    tGlobal.iStartOffset += iDocumentStart;
++    tGlobal.iEndOffset += iDocumentStart;
++    if ( pData->onTokenStyle != NULL &&
++         pData->onTokenStyle(pData->pDocument, &tGlobal, &iStyleId, pData->pTokenStyleUser) == XUI_OK &&
++         xuiCodeThemeGetStyle(pData->pTheme, iStyleId, &tStyle) == XUI_OK &&
++         __xuiCodeEditAlpha(tStyle.iForeground) != 0 ) {
++        *pColor = tStyle.iForeground;
++        return XUI_OK;
++    }
++    memset(&tStyle, 0, sizeof(tStyle));
++    if ( __xuiCodeEditGetTokenStyle(pData->pTheme, *pToken, &tStyle) != XUI_OK ||
++         __xuiCodeEditAlpha(tStyle.iForeground) == 0 ) return XUI_ERROR_NOT_FOUND;
++    sProperty = __xuiCodeEditSyntaxColorProperty(pToken->iKind);
++    *pColor = sProperty != NULL ? __xuiCodeEditColor(pWidget, sProperty, tStyle.iForeground) : tStyle.iForeground;
++    return XUI_OK;
++}
++
++static int __xuiCodeEditRenderTokenSpan(xui_widget pWidget, xui_proxy pProxy, xui_draw_context pDraw, xui_font pFont, xui_code_edit_data_t* pData, const char* sText, int iLineStart, int iLineEnd, int iDocumentStart, xui_code_token_t tToken, float fTextX, float fY, float fColumnWidth, float fLineHeight)
++{
+ 	uint32_t iColor;
+ 	int iStart;
+ 	int iEnd;
+@@ -5783,17 +5807,14 @@
+ 	iStart = (tToken.iStartOffset > iLineStart) ? tToken.iStartOffset : iLineStart;
+ 	iEnd = (tToken.iEndOffset < iLineEnd) ? tToken.iEndOffset : iLineEnd;
+ 	if ( iEnd <= iStart ) return XUI_OK;
+-	memset(&tStyle, 0, sizeof(tStyle));
+-	iRet = __xuiCodeEditGetTokenStyle(pData->pTheme, tToken, &tStyle);
+-	if ( iRet != XUI_OK || __xuiCodeEditAlpha(tStyle.iForeground) == 0 ) return XUI_OK;
+-	sProperty = __xuiCodeEditSyntaxColorProperty(tToken.iKind);
+-	iColor = (sProperty != NULL) ? __xuiCodeEditColor(pWidget, sProperty, tStyle.iForeground) : tStyle.iForeground;
++	iRet = __xuiCodeEditTokenForeground(pWidget, pData, &tToken, iDocumentStart, &iColor);
++	if ( iRet != XUI_OK ) return XUI_OK;
+ 	return __xuiCodeEditRenderLineTextVisual(pProxy, pDraw, pFont, pData, sText, iLineStart, iStart, iEnd, fTextX, fY, fColumnWidth, fLineHeight, iColor);
+ }
+ 
+ static int __xuiCodeEditRenderStyledLine(xui_widget pWidget, xui_proxy pProxy,
+ 	xui_draw_context pDraw, xui_font pFont, xui_code_edit_data_t* pData,
+-	const char* sText, int iLineStart, int iRenderStart, int iRenderEnd,
++	const char* sText, int iLineStart, int iDocumentStart, int iRenderStart, int iRenderEnd,
+ 	const xui_code_token_t* pTokens, int iTokenCount, xui_rect_t tViewport,
+ 	float fTextX, float fY, float fColumnWidth, float fLineHeight,
+ 	uint32_t iTextColor)
+@@ -5849,20 +5870,15 @@
+ 				}
+ 				iSpanOrigin = pSegment->bChunked ? pSegment->iStart : iPaintStart;
+ 				for ( iToken = 0; iToken < iTokenCount && iSpanCount < (int)(sizeof(arrSpans) / sizeof(arrSpans[0])); iToken++ ) {
+-					xui_code_style_t tStyle;
+-					const char* sProperty;
++					uint32_t iTokenColor;
+ 					int iSpanStart = pTokens[iToken].iStartOffset;
+ 					int iSpanEnd = pTokens[iToken].iEndOffset;
+ 					if ( iSpanEnd <= iPaintStart || iSpanStart >= iPaintEnd ) continue;
+-					memset(&tStyle, 0, sizeof(tStyle));
+-					if ( __xuiCodeEditGetTokenStyle(pData->pTheme, pTokens[iToken], &tStyle) != XUI_OK ||
+-					     __xuiCodeEditAlpha(tStyle.iForeground) == 0 ) continue;
+-					sProperty = __xuiCodeEditSyntaxColorProperty(pTokens[iToken].iKind);
++					if ( __xuiCodeEditTokenForeground(pWidget, pData, &pTokens[iToken], iDocumentStart, &iTokenColor) != XUI_OK ) continue;
+ 					arrSpans[iSpanCount].iSize = sizeof(arrSpans[iSpanCount]);
+ 					arrSpans[iSpanCount].iStart = (iSpanStart > iPaintStart ? iSpanStart : iPaintStart) - iSpanOrigin;
+ 					arrSpans[iSpanCount].iEnd = (iSpanEnd < iPaintEnd ? iSpanEnd : iPaintEnd) - iSpanOrigin;
+-					arrSpans[iSpanCount].iColor = sProperty != NULL ?
+-						__xuiCodeEditColor(pWidget, sProperty, tStyle.iForeground) : tStyle.iForeground;
++					arrSpans[iSpanCount].iColor = iTokenColor;
+ 					iSpanCount++;
+ 				}
+ 				if ( pSegment->bChunked ) {
+@@ -5904,7 +5920,7 @@
+ 			tToken = pTokens[iToken];
+ 			tToken.iStartOffset = iStart;
+ 			tToken.iEndOffset = iEnd;
+-			iRet = __xuiCodeEditRenderTokenSpan(pWidget, pProxy, pDraw, pFont, pData, sText, iLineStart, iRenderEnd, tToken, fTextX, fY, fColumnWidth, fLineHeight);
++			iRet = __xuiCodeEditRenderTokenSpan(pWidget, pProxy, pDraw, pFont, pData, sText, iLineStart, iRenderEnd, iDocumentStart, tToken, fTextX, fY, fColumnWidth, fLineHeight);
+ 			if ( iRet != XUI_OK ) return iRet;
+ 			if ( iEnd > iCursor ) iCursor = iEnd;
+ 		}
+@@ -6731,7 +6747,7 @@
+ 			}
+ 			if ( iRet == XUI_OK ) {
+ 				iRet = __xuiCodeEditRenderStyledLine(pWidget, pProxy, pDraw, pFont,
+-					pData, sText, 0, iRenderStart - iStart, iRenderEnd - iStart,
++					pData, sText, 0, iStart, iRenderStart - iStart, iRenderEnd - iStart,
+ 					arrTokens, iTokenCount, tTextContent, fTextBaseX, fTextY,
+ 					fColumnWidth, fLineHeight, iTextColor);
+ 			}
+@@ -7102,6 +7118,28 @@
+ 	return xuiWidgetInvalidate(pWidget, XUI_WIDGET_DIRTY_STYLE | XUI_WIDGET_DIRTY_CACHE | XUI_WIDGET_DIRTY_RENDER);
+ }
+ 
++XUI_API int xuiCodeEditSetTokenStyleResolver(xui_widget pWidget,
++    xui_code_token_style_proc onStyle, void* pUser)
++{
++    xui_code_edit_data_t* pData = __xuiCodeEditGetData(pWidget);
++    if ( pData == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
++    pData->onTokenStyle = onStyle;
++    pData->pTokenStyleUser = onStyle != NULL ? pUser : NULL;
++    return xuiWidgetInvalidate(pWidget, XUI_WIDGET_DIRTY_CACHE | XUI_WIDGET_DIRTY_RENDER);
++}
++
++XUI_API int xuiCodeEditGetTokenStyleResolver(xui_widget pWidget,
++    xui_code_token_style_proc* pStyle, void** pUser)
++{
++    xui_code_edit_data_t* pData = __xuiCodeEditGetData(pWidget);
++    if ( pStyle != NULL ) *pStyle = NULL;
++    if ( pUser != NULL ) *pUser = NULL;
++    if ( pData == NULL || (pStyle == NULL && pUser == NULL) ) return XUI_ERROR_INVALID_ARGUMENT;
++    if ( pStyle != NULL ) *pStyle = pData->onTokenStyle;
++    if ( pUser != NULL ) *pUser = pData->pTokenStyleUser;
++    return XUI_OK;
++}
++
+ XUI_API xui_code_fold_state xuiCodeEditGetFoldState(xui_widget pWidget)
+ {
+ 	xui_code_edit_data_t* pData = __xuiCodeEditGetData(pWidget);

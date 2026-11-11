@@ -19,3 +19,5 @@ M7b4z，2026-11-11。`editor/workspace_edit_positions` 为后续 IDE 批量应�
 抽取差分核心后重新编译的 Text 对象有变化，不能称对象等同；使用原有精确依赖重新链接的语言服务与已验收 df290f26 镜像逐字节一致。新映射为客户端单元，没有加入独立服务的链接。原有其他原生及协议材料不在本阶段重跑冒领。匹配 SDK 沿用前阶段，最终 GUI 编译/回归和完整输入身份以材料索引为准。
 
 材料索引：`dev/release-materials/provenance/lsp-edit-positions-20261111.json`。保留严格告警、测试 API 名称、分配失败多发一次分配、变异断言定位等早期尝试；默认发布程序、SDK 和交付索引保持。后续继续实际控件/模型原子应用、物理别名与关闭文件写入恢复、注释批准、协议入口、来源覆盖和全目标性能验收。
+
+后续协调器通过 `xideEditPositionsStorage` 读取包含原计划的已知存储，用于避免组合预算重复计入 plan；空对象返回 0。打开文件应用接入见 [lsp-open-edit-documents.md](lsp-open-edit-documents.md)。

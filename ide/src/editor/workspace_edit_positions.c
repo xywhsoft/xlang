@@ -3,7 +3,8 @@
 #include <string.h>
 typedef struct position_edit {size_t start,end,afterStart,afterEnd;} position_edit;
 typedef struct position_document {const xls_text *before,*after;size_t first,count;} position_document;
-struct xide_edit_positions {xide_workspace_edit* plan;position_document* documents;position_edit* edits;size_t count;};
+struct xide_edit_positions {xide_workspace_edit* plan;position_document* documents;position_edit* edits;size_t count,bytes;};
+size_t xideEditPositionsStorage(const xide_edit_positions* p){return p?p->bytes:0;}
 void xideEditPositionsDestroy(xide_edit_positions* p)
 {if(p){xideWorkspaceEditRelease(p->plan);xrtFree(p->documents);xrtFree(p->edits);xrtFree(p);}}
 xide_edit_positions* xideEditPositionsPrepare(xide_workspace_edit* plan,size_t budget,
@@ -17,7 +18,7 @@ xide_edit_positions* xideEditPositionsPrepare(xide_workspace_edit* plan,size_t b
  if(documentBytes>limit-bytes)goto done;
  bytes+=documentBytes;if(editBytes>limit-bytes)goto done;
  why=XIDE_WORKSPACE_EDIT_CANCELLED;if(cancelled && cancelled(user))goto done;
- why=XIDE_WORKSPACE_EDIT_MEMORY;p=xrtCalloc(1,sizeof(*p));if(!p)goto done;p->plan=xideWorkspaceEditRetain(plan);p->count=info.documents;
+ why=XIDE_WORKSPACE_EDIT_MEMORY;p=xrtCalloc(1,sizeof(*p));if(!p)goto done;p->plan=xideWorkspaceEditRetain(plan);p->count=info.documents;p->bytes=bytes+editBytes;
  p->documents=xrtCalloc(1,documentBytes);if(!p->documents)goto done;
  p->edits=xrtMalloc(editBytes);if(!p->edits)goto done;
  size_t rows=0;
