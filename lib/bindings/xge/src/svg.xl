@@ -1,0 +1,52 @@
+// Owned documents and explicit creator-thread caches. Native document refs
+// preserve cached documents after cache reset/close. No shared global cache.
+export extern "xge_svg" class Svg @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xge3SvgPolicy")
+ native point handle
+ extern "xgeSvgRefCountGet" @no_raise @c_output(1,0) func refCountGet() as c_int
+ extern "xgeSvgClear" @no_raise @c_result("status",0) func clear()
+ extern "xgeSvgClone" @no_raise @factory(1,0,rollbackSvg) @c_result("owned_view") func clone() as Svg
+ extern "xgeSvgLoad" @no_raise @c_cstr(0) @c_result("status",0) func load(string uri)
+ extern "xgeSvgLoadMemory" @no_raise @c_span(0,"const void*","int",1) @c_result("status",0) func loadMemory(string data,int size=-1)
+ extern "xgeSvgLoadMemory" @no_raise @c_span(0,"const void*","int",1) @c_result("status",0) func loadMemory(bytes data,int size=-1)
+ extern "xgeSvgLoadMemory" @no_raise @c_span(0,"const void*","int",1) @c_result("status",0) func loadMemory(Buffer data,int size=-1)
+ extern "xgeSvgSetSize" @no_raise @c_result("status",0) func setSize(c_float width,c_float height)
+ extern "xgeSvgGetSize" @no_raise @c_outputs(1,2) @c_status(0) func getSize() as (c_float,c_float)
+ extern "xgeSvgSetOrigin" @no_raise @c_result("status",0) func setOrigin(c_float x,c_float y)
+ extern "xgeSvgGetOrigin" @no_raise @c_outputs(1,2) @c_status(0) func getOrigin() as (c_float,c_float)
+ extern "xgeSvgGetViewBox" @no_raise @c_output(1,0) func getViewBox() as Rect
+ extern "xgeSvgSetPreserveAspectRatio" @no_raise @c_cstr(0) @c_result("status",0) func setPreserveAspectRatio(string value)
+ extern "xgeSvgGetPreserveAspectRatio" @no_raise @c_outputs(1,2,3) @c_status(0) func getPreserveAspectRatio() as (c_int,c_int,c_int)
+ extern "xgeSvgGetDrawViewport" @no_raise @c_output(2,0) func getDrawViewport(Rect destination) as Rect
+ extern "xgeSvgGetBounds" @no_raise @c_output(2,0) func getBounds(c_float tolerance) as Rect
+ extern "xgeSvgGetDrawBounds" @no_raise @c_output(3,0) func getDrawBounds(Rect destination,c_float tolerance) as Rect
+ extern "xgeSvgContainsPoint" @no_raise @c_output(4,0) func containsPoint(c_float x,c_float y,c_float tolerance) as c_int
+ extern "xgeSvgDrawContainsPoint" @no_raise @c_output(5,0) func drawContainsPoint(Rect destination,c_float x,c_float y,c_float tolerance) as c_int
+ extern "xgeSvgDraw" @no_raise @c_result("status",0) func draw(Rect destination,c_float tolerance)
+ extern "xgeSvgDrawPx" @no_raise @c_result("status",0) func drawPx(Rect destination,c_float tolerance)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xgeSvgDestroy" @no_raise func rollbackSvg(Svg value)
+export extern "xgeSvgCreate" @header("xge3_runtime.h") @no_raise @factory(0,0,rollbackSvg) @c_result("owned_view") func createSvg() as Svg
+
+export extern "xge_svg_cache" class SvgCache @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xge3SvgCachePolicy")
+ native point handle
+ extern "xgeSvgCacheLoad" @no_raise @c_cstr(0) @factory(2,0,rollbackSvg) @c_result("owned_view") func load(string uri) as Svg
+ extern "xgeSvgCacheRemove" @no_raise @c_cstr(0) @c_result("status",0) func remove(string uri)
+ extern "xgeSvgCacheReset" @no_raise @c_result("status",0) func reset()
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xgeSvgCacheDestroy" @no_raise func rollbackSvgCache(SvgCache value)
+export extern "xgeSvgCacheCreate" @header("xge3_runtime.h") @no_raise @factory(0,0,rollbackSvgCache) @c_result("owned_view") func createSvgCache() as SvgCache
+
+// Output is RGBA8. Buffer length/capacity and stride are checked before native
+// entry; existing padding and logical length remain unchanged.
+export extern "xgeSvgRasterize" @header("xge3_runtime.h") @no_raise @c_cstr(0) @c_region(3,"write","1","2","4",4) @c_result("status",0) func svgRasterize(string uri,c_int width,c_int height,Buffer output,c_int stride=0)
+export extern "xgeSvgRasterizeMemory" @header("xge3_runtime.h") @no_raise @c_span(0,"const void*","int",5) @c_region(4,"write","2","3","5",4) @c_result("status",0) func svgRasterizeMemory(string data,c_int width,c_int height,Buffer output,c_int stride=0,int size=-1)
+export extern "xgeSvgRasterizeMemory" @header("xge3_runtime.h") @no_raise @c_span(0,"const void*","int",5) @c_region(4,"write","2","3","5",4) @c_result("status",0) func svgRasterizeMemory(bytes data,c_int width,c_int height,Buffer output,c_int stride=0,int size=-1)
+export extern "xgeSvgRasterizeMemory" @header("xge3_runtime.h") @no_raise @c_span(0,"const void*","int",5) @c_region(4,"write","2","3","5",4) @c_result("status",0) func svgRasterizeMemory(Buffer data,c_int width,c_int height,Buffer output,c_int stride=0,int size=-1)
+// The native factory initializes a new record and reserves the real graphics
+// obligation. Compression defaults match the native lossless SVG entry point.
+export extern "xgeSvgTextureLoadExOwned" @header("xge3_runtime.h") @no_raise @c_cstr(0) @factory(0,0,freeTexture) @c_result("owned_view") func loadSvgTexture(string uri,c_int width,c_int height,c_uint flags=0) as Texture
+export extern "xgeSvgTextureLoadMemoryExOwned" @header("xge3_runtime.h") @no_raise @c_span(0,"const void*","int",4) @factory(0,0,freeTexture) @c_result("owned_view") func loadSvgTextureMemory(string data,c_int width,c_int height,c_uint flags=0,int size=-1) as Texture
+export extern "xgeSvgTextureLoadMemoryExOwned" @header("xge3_runtime.h") @no_raise @c_span(0,"const void*","int",4) @factory(0,0,freeTexture) @c_result("owned_view") func loadSvgTextureMemory(bytes data,c_int width,c_int height,c_uint flags=0,int size=-1) as Texture
+export extern "xgeSvgTextureLoadMemoryExOwned" @header("xge3_runtime.h") @no_raise @c_span(0,"const void*","int",4) @factory(0,0,freeTexture) @c_result("owned_view") func loadSvgTextureMemory(Buffer data,c_int width,c_int height,c_uint flags=0,int size=-1) as Texture

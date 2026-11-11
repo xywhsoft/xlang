@@ -77,3 +77,11 @@ Shape's `getOBB` fixed-array value. It requires the matched fixed-output compile
 and SDK, but no window or graphics initialization. Expect corners `(10,20)`,
 `(40,20)`, `(40,60)` and `(10,60)` on separate lines, followed by clean cleanup.
 Run with `xl run examples/xge/shape_bounds.xl` from the runtime directory.
+
+`svg_documents.xl` loads `data/vector.svg` through an explicit `SvgCache`, closes
+the cache while keeping its document, prints the 64x32 canvas and content bounds,
+then changes a clone without changing the original. Run beside this examples
+directory's `data/` folder with the matched SVG-enabled SDK. No window, graphics
+device or engine initialization is required. Each owned document closes before
+exit. Documents from one cache share mutable state; use `clone()` for independent
+editing, and create a separate cache on each language thread.

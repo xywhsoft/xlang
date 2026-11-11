@@ -526,6 +526,15 @@ RESOURCE_POLICY(xl6Xge3FontPolicyGet,"xge.font",destroy_font,destroy_unadopted_f
 RESOURCE_POLICY(xl6Xge3TexturePolicyGet,"xge.texture",destroy_texture,destroy_unadopted_texture)
 RESOURCE_POLICY(xl6Xge3ImagePolicyGet,"xge.image",destroy_image,destroy_image)
 RESOURCE_POLICY(xl6Xge3MaterialPolicyGet,"xge.material",destroy_material,destroy_material)
+#if XGE_ENABLE_SVG
+static bool destroy_svg(void* raw){xgeSvgDestroy(raw);return true;}
+static bool destroy_svg_cache(void* raw){xgeSvgCacheDestroy(raw);return true;}
+RESOURCE_POLICY(xl6Xge3SvgPolicyGet,"xge.svg",destroy_svg,NULL)
+RESOURCE_POLICY(xl6Xge3SvgCachePolicyGet,"xge.svg_cache",destroy_svg_cache,NULL)
+#else
+const XL6_ForeignViewDescriptorV1* xl6Xge3SvgPolicyGet(void){return NULL;}
+const XL6_ForeignViewDescriptorV1* xl6Xge3SvgCachePolicyGet(void){return NULL;}
+#endif
 #if XGE_ENABLE_SHAPE_EX
 static bool destroy_shape(void* raw){xgeShapeExDestroy(raw);return true;}
 static bool destroy_scene(void* raw){xgeShapeExSceneDestroy(raw);return true;}

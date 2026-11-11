@@ -1,0 +1,149 @@
+// CPU-only document/cache operations, including real language callbacks.
+import xge
+from xge import ResourcePath,ResourceOutput,SvgCache
+extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func debugEnabled() as bool
+extern "fixtureSvgHotBegin" @header("test/cases/foreign_xge3_svg.h") @no_raise func hotBegin()
+extern "fixtureSvgHotEnd" @header("test/cases/foreign_xge3_svg.h") @no_raise func hotEnd()
+class Reads
+ int count=0
+ xge.SvgCache? closeCache
+end
+func workerCalls(xge.Svg drawing,xge.SvgCache cache) as func() as int
+ return func() as int
+  int rejected=0
+  try
+   auto width,height=drawing.getSize()
+  catch StateError
+   rejected+=1
+  end
+  try
+   cache.reset()
+  catch StateError
+   rejected+=1
+  end
+  return rejected
+ end
+end
+export func svgRootSelfTest() as c_int
+ auto drawing=xge.createSvg()
+ drawing.loadMemory("<svg width='16' height='16'><rect width='8' height='8'/></svg>")
+ auto width,height=drawing.getSize()
+ drawing.close()
+ assert width==c_float(16) and height==c_float(16)
+ return c_int(16)
+end
+func main(...) as int
+ assert debugEnabled()
+ string source="<svg width='16' height='16' viewBox='0 0 16 16'><rect x='2' y='3' width='6' height='4' fill='red'/></svg>"
+ auto drawing=xge.createSvg()
+ drawing.loadMemory(source)
+ auto width,height=drawing.getSize()
+ assert width==c_float(16) and height==c_float(16)
+ auto box=drawing.getViewBox()
+ assert box.fW==c_float(16) and box.fH==c_float(16)
+ auto bounds=drawing.getBounds(c_float(0.25))
+ assert bounds.fW>c_float(0) and bounds.fH>c_float(0)
+ assert drawing.containsPoint(c_float(4),c_float(5),c_float(0.25))!=c_int(0)
+ drawing.setOrigin(c_float(1),c_float(2))
+ auto x,y=drawing.getOrigin()
+ assert x==c_float(1) and y==c_float(2)
+ drawing.setOrigin(c_float(0),c_float(0))
+ drawing.setSize(c_float(24),c_float(12))
+ drawing.setPreserveAspectRatio("none")
+ auto alignX,alignY,meetOrSlice=drawing.getPreserveAspectRatio()
+ xge.Rect destination
+ destination.fW=c_float(32)
+ destination.fH=c_float(16)
+ auto viewport=drawing.getDrawViewport(destination)
+ assert viewport.fW==destination.fW and viewport.fH==destination.fH
+ auto drawBounds=drawing.getDrawBounds(destination,c_float(0.25))
+ assert drawBounds.fW>c_float(0) and drawBounds.fH>c_float(0)
+ assert drawing.drawContainsPoint(destination,c_float(8),c_float(5),c_float(0.25))!=c_int(0)
+ auto clone=drawing.clone()
+ clone.setSize(c_float(40),c_float(30))
+ auto originalWidth,originalHeight=drawing.getSize()
+ assert originalWidth==c_float(24) and originalHeight==c_float(12)
+ clone.clear()
+ clone.loadMemory(Buffer(source).toBytes())
+ clone.loadMemory(Buffer(source))
+ clone.loadMemory(source+"\0trailing data",string.byteLen(source))
+ bool rejected=false
+ try
+  clone.loadMemory(source,-2)
+ catch error
+  rejected=true
+ end
+ assert rejected
+ clone.loadMemory(source,9223372036854775807)
+ func() as (c_float,c_float) size=drawing.getSize
+ hotBegin()
+ for i in range(1000)
+  auto a,b=drawing.getSize()
+  auto c,d=size()
+  assert a==c and b==d and drawing.refCountGet()==c_int(1)
+ end
+ hotEnd()
+ clone.close()
+
+ auto reads=Reads()
+ xge.addResourceProvider("svgtest",func(ResourcePath path,ResourceOutput output) as c_int
+  reads.count+=1
+  assert path.text=="svgtest://document"
+  if reads.closeCache!=null
+   auto closing=reads.closeCache as SvgCache
+   closing.close()
+  end
+  output.set(source)
+  return c_int(0)
+ end)
+ auto cache=xge.createSvgCache()
+ auto separate=xge.createSvgCache()
+ try
+  auto first=cache.load("svgtest://document")
+  auto second=cache.load("svgtest://document")
+  assert reads.count==1 and first.refCountGet()==c_int(3)
+  first.setSize(c_float(42),c_float(43))
+  auto sharedWidth,sharedHeight=second.getSize()
+  assert sharedWidth==c_float(42) and sharedHeight==c_float(43)
+  auto independent=separate.load("svgtest://document")
+  auto independentWidth,independentHeight=independent.getSize()
+  assert reads.count==2 and independentWidth==c_float(16) and independentHeight==c_float(16)
+  separate.close()
+  assert independent.refCountGet()==c_int(1)
+  independent.close()
+  cache.remove("svgtest://document")
+  assert first.refCountGet()==c_int(2)
+  auto fresh=cache.load("svgtest://document")
+  assert reads.count==3
+  cache.reset()
+  assert fresh.refCountGet()==c_int(1)
+  fresh.close()
+  first.close()
+  assert second.refCountGet()==c_int(1)
+  second.close()
+  auto worker=thread(workerCalls(drawing,cache))
+  assert worker.waitTimeout(30000) and worker.exitCode()==2
+  // Closing during a provider callback retires the cache after its active
+  // call. The returned document owns an independent native reference.
+  reads.closeCache=cache
+  auto surviving=cache.load("svgtest://document")
+  reads.closeCache=null
+  auto survivingWidth,survivingHeight=surviving.getSize()
+  assert survivingWidth==c_float(16) and survivingHeight==c_float(16)
+  surviving.close()
+ finally
+  cache.close()
+  separate.close()
+  xge.resourceProviderClear()
+  drawing.close()
+ end
+ rejected=false
+ try
+  auto a,b=drawing.getSize()
+ catch StateError
+  rejected=true
+ end
+ assert rejected and xge.graphicsResourceCount()==uint64(0)
+ println("SVG documents, explicit caches, ownership and creator-thread calls passed")
+ return 0
+end

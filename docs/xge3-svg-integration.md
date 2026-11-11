@@ -308,3 +308,60 @@ atomic pointer loads per hit, atomic Face references and a cold fallback slot
 lock/temporary reference are real native costs. This is not an end-to-end speed
 or zero-overhead claim. Complete language declarations, confirmed node-view
 semantics, integrated compiler gates and matched final delivery remain open.
+
+## Owned documents and explicit caches
+
+`xge.createSvg()` returns an owned `Svg`; `xge.createSvgCache()` returns an
+explicit owned `SvgCache`. Both admit language calls only on their creating
+thread. Cache `load(uri)` returns an independent native reference to the cached
+document. Repeated loads from the same cache share its mutable document;
+`clone()` produces an independent document. Different caches are independent.
+Remove, reset and close release cache references while outside documents remain
+usable. The old process-global language cache functions have been removed.
+
+Svg exposes load/clear/clone, size/origin/viewBox/aspect ratio, draw viewport,
+bounds, containment, draw and pixel draw. Memory loading accepts string, bytes
+or Buffer with optional `size=-1`: actual byte length is preserved, oversized
+limits clamp, and other negatives reject before native entry. Prefixes are byte
+counts; SVG syntax remains the native parser's responsibility. URI parameters
+use explicit checked C-string conversion.
+
+`svgRasterize` / `svgRasterizeMemory` write RGBA8 into an existing Buffer.
+Physical dimensions, capacity and stride are checked before calling native;
+Buffer length and row padding are preserved. Nonpositive stride follows the
+native tight-row rule. Memory overloads place optional size after required
+arguments and stride, using the general compiler span/region mapping.
+
+`loadSvgTexture` / `loadSvgTextureMemory` directly call the new native owned
+factories. They initialize a new resource and retain its real graphics-owner
+obligation, rather than treating old caller-record initializers as mutation
+methods. A retained Texture keeps checked Unit busy until it closes; the EGL
+context likewise defers physical release. Native flags/defaults are preserved.
+
+`svg_documents.xl` is the CPU-only example; it loads the bundled 64x32 vector,
+closes its cache, measures the surviving document and modifies a clone.
+`tools/check_xge3_svg.py` additionally covers provider errors and expired callback
+outputs, failed-cache retry, close inside provider callbacks, thread rejection,
+96 allocation budgets per ownership path and actual graphics when requested.
+
+The current `xge-svg-root-cache-20261112.json` index qualifies 195 Windows
+command checks using a complete r21 O2/TinyCC/XRT/VFS/embedded-compiler build,
+including the general prefix/region, borrowed output, string output and fixed
+output regressions. The language tests include JIT, standalone static AOT and
+strict C11/C++11/C++17 public headers. Native XGE `09325253` independently passes
+56 Windows/Linux checks, including actual OpenGL/software-EGL pixels and
+owned-factory allocation rollback. Linux language qualification is still in
+progress; copied older compiler images are not accepted as current builds.
+
+The hot 1,000-iteration direct/bound scalar and tuple loop performs no XRT heap
+operations. Resident thread/state/call guards and output/closure admission still
+execute. Document, cache and Texture creation allocate native and language
+owners; URI conversion and native parsing/rasterization retain their costs.
+There is no claim of zero total binding cost or hardware throughput.
+
+Actual shared-library import is a separate open gate: the current package's
+top-level bootstrap call is rejected by DLL/DSO builds. The generic package
+initializer proposal awaits a decision. This batch does not alter that rule or
+the separately pending non-destructible node-view runtime contract. SvgPaint,
+traversal and remaining full-ecosystem work are not complete. Matched final
+release/IDE/help delivery remains open; these candidates are not installed.

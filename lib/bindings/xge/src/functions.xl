@@ -136,8 +136,6 @@ export extern "xgeShapeMeshFillPx" @header("xge3_runtime.h") @c_span(0,"const xg
 export extern "xgeShapeExMatrixIdentity" @header("xge3_runtime.h") @no_raise @c_output(0,0) func shapeExMatrixIdentity() as ShapeExMatrix
 export extern "xgeShapeExIdFromName" @header("xge3_runtime.h") @c_cstr(0) func shapeExIdFromName(string sName) as c_uint
 export extern "xgeShapeExStencilClipEnd" @header("xge3_runtime.h") func shapeExStencilClipEnd(c_int bApplied,c_int iRet) as c_int
-export extern "xgeSvgCacheInvalidate" @header("xge3_runtime.h") @c_cstr(0) func svgCacheInvalidate(string sURI) as c_int
-export extern "xgeSvgCacheClear" @header("xge3_runtime.h") func svgCacheClear()
 export extern "xgeViewportSet" @header("xge3_runtime.h") func viewportSet(Rect tRect)
 export extern "xgeViewportGet" @header("xge3_runtime.h") func viewportGet() as Rect
 export extern "xgeViewportClear" @header("xge3_runtime.h") func viewportClear()

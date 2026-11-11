@@ -1,0 +1,202 @@
+{
+  "schema": "xlang-xge-svg-roots-1",
+  "passed": true,
+  "scope": "Qualified Windows owned Svg/SvgCache, strided RGBA raster and native owned Texture factories; explicit creator-thread cache replaces the global language cache entries. Integrated compiler prefix/region regressions are qualified independently of XGE bootstrap.",
+  "shippingDelivery": false,
+  "releaseIdeInstalled": false,
+  "completeSvgIntegration": false,
+  "qualifiedPlatforms": [
+    "Windows x64"
+  ],
+  "pendingPlatforms": [
+    "Linux x64"
+  ],
+  "sharedLibraryAcceptance": false,
+  "sources": {
+    "lib/bindings/_xge_native/include/xge3_runtime.h": "fcd39afff21c530fb0b59fc0e408243925920f2a02b8595f1f91086961c2d176",
+    "lib/bindings/_xge_native/src/runtime.c": "20da0fb583fde0f46b66defaabea418a52101374bb8cfb4f0038064b5717bbc9",
+    "lib/bindings/xge/src/svg.xl": "0dc0303f2de588d8ca0eb468677b75300eb4d25c515d1abc382edbb296c0f474",
+    "lib/bindings/xge/src/functions.xl": "2f4dd3976c84d9debe97447928a921393167edb79ed7fa077a77c85efd207054",
+    "lib/bindings/xge/xlang.package.json": "bd0dffd173f3709dd69b5a09dd637ee3f44f699a1d69a077c07270817b0734af",
+    "lib/bindings/xge/examples/README.md": "d116a9e4108adfe16fbabc59103df23fcc35ccbe6eccce2b465faf40ee03d42f",
+    "lib/bindings/xge/examples/data/vector.svg": "28b13630b1a0a7f8dd1ff437a79cbc6104da38ccf2912fcbd66bc9835d94dbd5",
+    "lib/bindings/xge/examples/svg_documents.xl": "c2ece3d16f938e474c85a2d49bb43af7f39665d7ab428e256a995efd4b3ecb01",
+    "tools/check_xge3_svg.py": "01b9bd1edc4f79a865b5dfe142c814cdd8c38b082347d89c48696a3302130fb0",
+    "test/cases/foreign_xge3_svg.xl": "a641cabc03bd6d2515310571f126953ba3ce9eb97c5837074de06917f5893a78",
+    "test/cases/foreign_xge3_svg.h": "eea241158ceb69dc19ceeaad2f69601997ef6c29cde0240d646d9ddf4be8f9bc",
+    "test/cases/foreign_xge3_svg.c": "e738d59fb7c267d5277c92a8bb3e93f27c0e307cb456f2987d2268264843e2c2",
+    "test/cases/foreign_xge3_svg_callbacks.xl": "ebf41f10ea134648bc4a601f0a60c859851b06cfb086052aadbf053c8218f25a",
+    "test/cases/foreign_xge3_svg_invalid.xl": "283bf1b4fe82be9d51e57f0059abc067db9c74e0b1da19c1305b0ed526467325",
+    "test/cases/foreign_xge3_svg_gpu.xl": "fb3a66b45232655448e656548d2fa0bcaa7970b086d292347021962ad9acfa3a",
+    "test/cases/foreign_xge3_svg_gpu.h": "cfd91aba5e8c743e5a3655a07ddf089cedadd47f22d7851539556d8cf2e409f5",
+    "test/cases/foreign_xge3_svg_gpu.c": "92de8d0016c4566e015f45c7ccd590c18aa1b457140742e75e31f2446c8f77bb",
+    "test/cases/foreign_xge3_svg_oom.xl": "643275643d378ce699460092e2ea67bbfb07d39a62ed900465542213a764b952",
+    "test/cases/foreign_xge3_svg_oom.c": "dbef8787937905808bb0e43b4d55ca9bceb6331585596fdb914ef54217d8d452"
+  },
+  "sourceTextSha256": {
+    "lib/bindings/_xge_native/include/xge3_runtime.h": "fcd39afff21c530fb0b59fc0e408243925920f2a02b8595f1f91086961c2d176",
+    "lib/bindings/_xge_native/src/runtime.c": "20da0fb583fde0f46b66defaabea418a52101374bb8cfb4f0038064b5717bbc9",
+    "lib/bindings/xge/src/svg.xl": "0dc0303f2de588d8ca0eb468677b75300eb4d25c515d1abc382edbb296c0f474",
+    "lib/bindings/xge/src/functions.xl": "86efd3ab979f49e51836bff422bfc3e3e7af73ddb173080d7c475e43a5153486",
+    "lib/bindings/xge/xlang.package.json": "e853ad483774e97987c35793a9f627459b49b677cf751b0a9dfb74cd0de1944e",
+    "lib/bindings/xge/examples/README.md": "e30475a0cf88615d1ae74520f58b383629c4e5eb3e3d2a9da4a2fbe152db1d4c",
+    "lib/bindings/xge/examples/data/vector.svg": "28b13630b1a0a7f8dd1ff437a79cbc6104da38ccf2912fcbd66bc9835d94dbd5",
+    "lib/bindings/xge/examples/svg_documents.xl": "c2ece3d16f938e474c85a2d49bb43af7f39665d7ab428e256a995efd4b3ecb01",
+    "tools/check_xge3_svg.py": "01b9bd1edc4f79a865b5dfe142c814cdd8c38b082347d89c48696a3302130fb0",
+    "test/cases/foreign_xge3_svg.xl": "a641cabc03bd6d2515310571f126953ba3ce9eb97c5837074de06917f5893a78",
+    "test/cases/foreign_xge3_svg.h": "eea241158ceb69dc19ceeaad2f69601997ef6c29cde0240d646d9ddf4be8f9bc",
+    "test/cases/foreign_xge3_svg.c": "e738d59fb7c267d5277c92a8bb3e93f27c0e307cb456f2987d2268264843e2c2",
+    "test/cases/foreign_xge3_svg_callbacks.xl": "ebf41f10ea134648bc4a601f0a60c859851b06cfb086052aadbf053c8218f25a",
+    "test/cases/foreign_xge3_svg_invalid.xl": "283bf1b4fe82be9d51e57f0059abc067db9c74e0b1da19c1305b0ed526467325",
+    "test/cases/foreign_xge3_svg_gpu.xl": "fb3a66b45232655448e656548d2fa0bcaa7970b086d292347021962ad9acfa3a",
+    "test/cases/foreign_xge3_svg_gpu.h": "cfd91aba5e8c743e5a3655a07ddf089cedadd47f22d7851539556d8cf2e409f5",
+    "test/cases/foreign_xge3_svg_gpu.c": "92de8d0016c4566e015f45c7ccd590c18aa1b457140742e75e31f2446c8f77bb",
+    "test/cases/foreign_xge3_svg_oom.xl": "643275643d378ce699460092e2ea67bbfb07d39a62ed900465542213a764b952",
+    "test/cases/foreign_xge3_svg_oom.c": "dbef8787937905808bb0e43b4d55ca9bceb6331585596fdb914ef54217d8d452"
+  },
+  "upstreamCommit": "093252537b0ab9e32ed17b6fce127bc4d1b811b1",
+  "nativePrerequisite": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\svg-owned-texture-20261112.json",
+    "sha256": "210ba80f3a2ed05dc2fc82e36741b0d93994a703c7e07f29ea9b53682ea84a78",
+    "commandChecks": 56,
+    "nativeTranslationUnitOccurrences": 876,
+    "recompiledTranslationUnitOccurrences": 875
+  },
+  "compiler": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r21\\build.json",
+    "sha256": "586af7a071593e792737429cb67c62795ff8db38393acf173bfcc61737d79720",
+    "sourceFreeze": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r21\\freeze.json",
+    "sourceFreezeSha256": "e0ac0680646f03f08a0e6db4982cb5276e4e1e7f9f5fa78ec32b4cd1f84da67d",
+    "sourceInputsUnchanged": true,
+    "fullO2TccXrtVfsAndEmbeddedBuild": true,
+    "products": {
+      "xl.exe": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r21\\source\\release\\win_x64\\xl.exe",
+        "sha256": "b06ecff88b5b9f438820a93f7ec7c8be5d605c5e55c8d6e6c58c8d2c2641ed80",
+        "bytes": 72704
+      },
+      "xl.dll": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r21\\source\\release\\win_x64\\xl.dll",
+        "sha256": "ac6d89e74df1a53e59ab9b1090ac519201819684a0379ad21a39edf47b5529df",
+        "bytes": 15217152
+      },
+      "xlc.dll": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r21\\source\\release\\win_x64\\xlc.dll",
+        "sha256": "b891619bd65783e5c22ab1b850214ce698de13e4ef08b66492a2a279fa5c5776",
+        "bytes": 21340160
+      }
+    }
+  },
+  "reports": [
+    {
+      "name": "span-limit-full-win-r1",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\span-limit-full-win-r1\\results.json",
+      "sha256": "b25212c3ad7443bf8b7b73a132fe8d6d5b44e9b794ff56d3e906edfc0e4d261f",
+      "commandChecks": 22
+    },
+    {
+      "name": "span-region-full-win-r1",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\span-region-full-win-r1\\results.json",
+      "sha256": "122907e55315bc25db815878d0e82ffe5782be6e9cc5c58eef97f37421f8dd6a",
+      "commandChecks": 20
+    },
+    {
+      "name": "svg-regression-prefix-win-r2",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-regression-prefix-win-r2\\results.json",
+      "sha256": "2ec2ebe27f7b28140eb8ef005ed64e19844e40f7201234999ac1b7974ea8246c",
+      "commandChecks": 26
+    },
+    {
+      "name": "svg-regression-fixed-win-r2",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-regression-fixed-win-r2\\results.json",
+      "sha256": "aaa43696e337255b11307a06e7b6e251c90d55b938ad781d292596fc788784b3",
+      "commandChecks": 36
+    },
+    {
+      "name": "svg-regression-borrowed-win-r2",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-regression-borrowed-win-r2\\results.json",
+      "sha256": "82f55aea3c8100e59ad6e72a0fa820bed7bfb5af120cb5ba25d77c8b5206e57e",
+      "commandChecks": 37
+    },
+    {
+      "name": "svg-regression-cstring-win-r2",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-regression-cstring-win-r2\\results.json",
+      "sha256": "849598a6c9280c532b111c6c587b60722486c33af7aa94c85da75b15a89cd217",
+      "commandChecks": 21
+    },
+    {
+      "name": "svg-language-full-win-r5",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-language-full-win-r5\\results.json",
+      "sha256": "e65c653f733b7d967a7c71a21515a7ce58cd57f64ee0e866452d6048dcd8212d",
+      "commandChecks": 33
+    }
+  ],
+  "commandChecks": 195,
+  "packages": [
+    {
+      "kind": "host",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-svg-host-win-r2.json",
+      "sha256": "567df4cb739357af22a4ed51cfa65ef270d13d7147bf29126f8d572eba9613df"
+    },
+    {
+      "kind": "static",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-svg-static-win-r2.json",
+      "sha256": "b00a447ba780d4d0c37eb0fe40d4176a78556d14211528ff274c35d2b75af3a3"
+    }
+  ],
+  "behavior": [
+    "Caches and documents admit calls only on their creating language thread. Same-cache documents share mutation; clone is independent.",
+    "Cache remove/reset/close retain independently owned documents, including close during resource-provider callbacks.",
+    "Provider exceptions preserve the original language error, invalidate callback outputs, do not populate cache, and allow retry.",
+    "String/bytes/Buffer prefixes use exact byte lengths; default -1 uses full input, excessive size clamps, other negatives reject before native entry.",
+    "RGBA stride validation preserves Buffer length/padding. Native owned Texture retains the engine after drawing ends; checked Unit reports Busy until close."
+  ],
+  "costs": {
+    "hotScalarTupleIterations": 1000,
+    "hotXrtHeapOperationDelta": 0,
+    "nativeFactoryOomBudgets": 96,
+    "languageOomPrefixes": {
+      "documentClone": {
+        "failed": 26,
+        "passed": 70
+      },
+      "cacheLoad": {
+        "failed": 28,
+        "passed": 68
+      }
+    },
+    "notes": "Direct native calls still perform resident creator-thread/state and call-scope guards, scalar/output admission and closure bookkeeping when applicable. Cache/document/factory acquisition allocates native and language owners. No total-zero-cost, throughput or hardware-performance claim."
+  },
+  "inventory": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-svg-roots-r3\\surface.json",
+    "sha256": "89ecc7d041682880401cc4453917fc7e037be7f72a8c0d2c490b86016ffa2ccf",
+    "population": {
+      "functions": 5152,
+      "types": 979,
+      "constants": 1837,
+      "functionMacros": 7,
+      "callableFields": 184,
+      "enums": 40,
+      "enumConstants": 316
+    },
+    "declarationPresent": {
+      "functions": 3534,
+      "types": 358,
+      "constants": 1820,
+      "callableFields": 66,
+      "enumConstants": 316
+    },
+    "meaning": "Declaration inventory only; no functional completion percentage. Named callback parser regression fixed in 17631bc94; malformed undeclared types are rejected."
+  },
+  "pending": [
+    "Linux full O2 compiler and language gates are in progress; no claim is derived from the copied older r12 images.",
+    "Real shared build importing xge is currently rejected because package bootstrap is a top-level call. General package-initializer contract proposal is pending a separate decision.",
+    "Non-independently-destructible SVG node-view runtime semantics, SvgPaint/traversal and their callback lifetime gates.",
+    "Whole-goal module/code-residency decisions, remaining XGE/XUI/Document families and final matched release/IDE/help delivery."
+  ],
+  "historicalFailures": [
+    "Raw diagnostics preserve a fixture with 25-byte storage versus a 24-byte assertion; pixel/padding bytes were correct.",
+    "Early language gate omitted transitive package include directories for foreign C/C++ header clients; final gate resolves them explicitly.",
+    "First Windows regression supervisor omitted UTF-8 mode for a child Python process. The corrected complete batch retains old diagnostic bytes."
+  ]
+}

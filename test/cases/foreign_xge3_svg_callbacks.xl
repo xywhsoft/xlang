@@ -1,0 +1,67 @@
+// Failed providers preserve the original language error and cannot populate a cache.
+import xge
+from xge import ResourcePath,ResourceOutput
+class Provider
+ bool fail=true
+ int calls=0
+ ResourceOutput? saved=null
+end
+func main(...) as int
+ auto provider=Provider()
+ xge.addResourceProvider("svgcallback",func(ResourcePath path,ResourceOutput output) as c_int
+  provider.calls+=1
+  provider.saved=output
+  output.set("<svg width='7' height='9'><rect width='7' height='9'/></svg>")
+  if provider.fail then throw RuntimeError "SVG provider failed" end
+  return c_int(0)
+ end)
+ auto drawing=xge.createSvg()
+ auto cache=xge.createSvgCache()
+ try
+  bool rejected=false
+  try
+   drawing.load("svgcallback://drawing")
+  catch error
+   rejected=error.message=="SVG provider failed"
+  end
+  assert rejected and provider.calls==1
+  rejected=false
+  try
+   auto unused=cache.load("svgcallback://cached")
+  catch error
+   rejected=error.message=="SVG provider failed"
+  end
+  assert rejected and provider.calls==2
+  rejected=false
+  try
+   auto expired=provider.saved as ResourceOutput
+   expired.set("late write")
+  catch StateError
+   rejected=true
+  end
+  assert rejected
+  provider.saved=null
+  provider.fail=false
+  auto retry=cache.load("svgcallback://cached")
+  assert provider.calls==3
+  auto width,height=retry.getSize()
+  assert width==c_float(7) and height==c_float(9)
+  auto hit=cache.load("svgcallback://cached")
+  assert provider.calls==3
+  retry.close()
+  cache.close()
+  auto retainedWidth,retainedHeight=hit.getSize()
+  assert retainedWidth==width and retainedHeight==height
+  hit.close()
+  drawing.load("svgcallback://drawing")
+  assert provider.calls==4
+ finally
+  provider.saved=null
+  cache.close()
+  drawing.close()
+  xge.resourceProviderClear()
+ end
+ assert xge.graphicsResourceCount()==uint64(0)
+ println("SVG provider errors, expired outputs and failed-cache retry passed")
+ return 0
+end

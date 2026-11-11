@@ -1,0 +1,43 @@
+// Invalid inputs reject before graphics work and cannot strand a GPU owner.
+import xge
+func main(...) as int
+ string source="<svg width='2' height='2'><rect width='2' height='2' fill='red'/></svg>"
+ auto input=Buffer(source)
+ auto output=Buffer()
+ assert output.resize(16)
+ int rejected=0
+ try
+  auto texture=xge.loadSvgTextureMemory(source,2,2,0,-2)
+ catch RangeError
+  rejected+=1
+ end
+ try
+  auto texture=xge.loadSvgTextureMemory(input.toBytes(),0,2)
+ catch error
+  rejected+=1
+ end
+ try
+  auto texture=xge.loadSvgTextureMemory(input,2,0)
+ catch error
+  rejected+=1
+ end
+ try
+  xge.svgRasterizeMemory(source,2,2,output,0,-2)
+ catch RangeError
+  rejected+=1
+ end
+ try
+  xge.svgRasterizeMemory(input.toBytes(),0,2,output)
+ catch RangeError
+  rejected+=1
+ end
+ try
+  xge.svgRasterizeMemory(input,2,2,Buffer())
+ catch RangeError
+  rejected+=1
+ end
+ assert rejected==6 and xge.graphicsResourceCount()==uint64(0)
+ assert output.len()==16
+ println("SVG prefix/factory/region failures preserve graphics ownership")
+ return 0
+end

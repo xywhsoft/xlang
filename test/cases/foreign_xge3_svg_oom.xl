@@ -1,0 +1,75 @@
+import xge
+from xge import Svg,SvgCache,ResourcePath,ResourceOutput
+extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func debugEnabled() as bool
+extern "fixtureSvgPrefixBegin" @header("test/cases/foreign_xge3_svg.h") @no_raise func prefixBegin(c_int budget)
+extern "fixtureSvgPrefixEnd" @header("test/cases/foreign_xge3_svg.h") @no_raise func prefixEnd()
+extern "fixtureSvgHeapEqual" @header("test/cases/foreign_xge3_svg.h") @no_raise func heapEqual()
+func attempt(int kind,int budget) as bool
+ Svg? first=null
+ Svg? second=null
+ SvgCache? cache=null
+ bool success=false
+ string source="<svg width='16' height='16'><rect width='8' height='8'/></svg>"
+ prefixBegin(c_int(budget))
+ try
+  if kind==0
+   first=xge.createSvg()
+   auto drawing=first as Svg
+   drawing.loadMemory(source)
+   second=drawing.clone()
+  else
+   cache=xge.createSvgCache()
+   auto current=cache as SvgCache
+   first=current.load("svgfault://document")
+   second=current.load("svgfault://document")
+  end
+  success=true
+ catch Error error
+  if budget<0 then throw error.message end
+ end
+ prefixEnd()
+ if second!=null
+  auto value=second as Svg
+  value.close()
+  second=null
+ end
+ if first!=null
+  auto value=first as Svg
+  value.close()
+  first=null
+ end
+ if cache!=null
+  auto value=cache as SvgCache
+  value.close()
+  cache=null
+ end
+ heapEqual()
+ return success
+end
+func main(...) as int
+ assert debugEnabled()
+ xge.addResourceProvider("svgfault",func(ResourcePath path,ResourceOutput output) as c_int
+  output.set("<svg width='16' height='16'><rect width='8' height='8'/></svg>")
+  return c_int(0)
+ end)
+ try
+  bool warmDocument=attempt(0,-1)
+  bool warmCache=attempt(1,-1)
+  println("SVG warm results:",warmDocument,warmCache)
+  console.flush()
+  assert warmDocument and warmCache
+  for kind in range(2)
+   int failed=0
+   int passed=0
+   for budget in range(96)
+    if attempt(kind,budget) then passed+=1 else failed+=1 end
+   end
+   println("SVG language prefixes:",kind,failed,passed)
+   console.flush()
+   assert failed>0 and passed>0
+  end
+ finally
+  xge.resourceProviderClear()
+ end
+ return 0
+end

@@ -1,0 +1,105 @@
+// One bounded OpenGL frame on Windows, or headless software EGL on Linux.
+import xge
+from xge import Texture
+extern "fixtureSvgEglEnabled" @header("test/cases/foreign_xge3_svg_gpu.h") @no_raise func eglEnabled() as bool
+class Held
+ xge.Texture? texture
+end
+func green(bytes pixels,int stride)
+ for y in range(2)
+  for x in range(2)
+   int index=y*stride+x*4
+   assert pixels[index]<20 and pixels[index+1]>200 and pixels[index+2]<20 and pixels[index+3]>200
+  end
+ end
+end
+func exercise() as xge.Texture
+ string source="<svg width='2' height='2'><rect width='2' height='2' fill='#00ff00'/></svg>"
+ auto raw=Buffer(source)
+ auto output=Buffer.fromHex("a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5")
+ xge.svgRasterizeMemory(source,2,2,output,12)
+ auto bytesOut=output.toBytes()
+ green(bytesOut,12)
+ assert output.len()==24
+ for i in range(8,12)
+  assert bytesOut[i]==165
+ end
+ for i in range(20,24)
+  assert bytesOut[i]==165
+ end
+ xge.svgRasterizeMemory(raw.toBytes(),2,2,output)
+ green(output.toBytes(),8)
+ xge.svgRasterizeMemory(raw,2,2,output,0,string.byteLen(source))
+ green(output.toBytes(),8)
+
+ auto texture=xge.loadSvgTextureMemory(source,2,2)
+ texture.readPixels(output)
+ green(output.toBytes(),8)
+ auto fromBytes=xge.loadSvgTextureMemory(raw.toBytes(),2,2)
+ fromBytes.readPixels(output)
+ green(output.toBytes(),8)
+ fromBytes.close()
+ auto fromBuffer=xge.loadSvgTextureMemory(raw,2,2,0,string.byteLen(source))
+ fromBuffer.readPixels(output)
+ green(output.toBytes(),8)
+ fromBuffer.close()
+
+ auto drawing=xge.createSvg()
+ drawing.loadMemory(source)
+ auto target=xge.createRenderTarget(2,2)
+ auto pass=xge.createPass(target)
+ xge.Rect destination
+ destination.fW=c_float(2)
+ destination.fH=c_float(2)
+ pass.begin()
+ drawing.draw(destination,c_float(0.25))
+ assert xge.flush()==c_int(0)
+ pass.finish()
+ target.readPixels(output)
+ green(output.toBytes(),8)
+ pass.begin()
+ drawing.drawPx(destination,c_float(0.25))
+ assert xge.flush()==c_int(0)
+ pass.finish()
+ target.readPixels(output)
+ green(output.toBytes(),8)
+ pass.close()
+ target.close()
+ drawing.close()
+ return texture
+end
+func main(...) as int
+ auto held=Held()
+ if eglEnabled()
+  xge.init(16,16,"SVG EGL",0,xge.XGE_RUN_MANUAL)
+  auto context=xge.createEglContext(16,16,true)
+  held.texture=exercise()
+  // Context closure is logically deferred while the owned Texture remains.
+  context.close()
+  auto texture=held.texture as Texture
+  texture.close()
+  held.texture=null
+  context.close()
+ else
+  xge.init(32,32,"Bounded SVG API qualification")
+  xge.run(func() as c_int
+   held.texture=exercise()
+   return c_int(1)
+  end)
+  xge.setFrameCallback(null)
+  bool busy=false
+  try
+   xge.unit()
+  catch error
+   busy=true
+  end
+  assert busy and xge.graphicsResourceCount()==uint64(1)
+  auto texture=held.texture as Texture
+  texture.close()
+  held.texture=null
+ end
+ assert xge.graphicsResourceCount()==uint64(0)
+ xge.unit()
+ println("SVG RGBA/stride/direct draw and owned Texture close passed")
+ return 0
+end

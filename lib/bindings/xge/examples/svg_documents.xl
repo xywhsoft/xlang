@@ -1,0 +1,22 @@
+// Run from this directory: xl run svg_documents.xl
+// Loads and measures a vector document; no window or renderer is required.
+import xge
+func main(...) as int
+ auto cache=xge.createSvgCache()
+ auto drawing=cache.load("data/vector.svg")
+ cache.close() // The document keeps its own native reference.
+
+ auto width,height=drawing.getSize()
+ auto bounds=drawing.getBounds(c_float(0.25))
+ assert width==c_float(64) and height==c_float(32)
+ assert bounds.fW>c_float(0) and bounds.fH>c_float(0)
+ println("Canvas:",width,height,"Content:",bounds.fW,bounds.fH)
+
+ auto copy=drawing.clone()
+ copy.setSize(c_float(128),c_float(64))
+ auto originalWidth,originalHeight=drawing.getSize()
+ assert originalWidth==c_float(64) and originalHeight==c_float(32)
+ copy.close()
+ drawing.close()
+ return 0
+end
