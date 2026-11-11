@@ -34,9 +34,9 @@
 #define SNAPSHOT_DOCS 64u
 #define SNAPSHOT_GROUPS 576u
 #define TEXT_LIMIT (8u*1024u*1024u)
-typedef struct document_binding { xide_document* document; uint64_t id; uint32_t version; int wireVersion,externalState; char *path,*uri,*language;wchar_t* key; const char* text; xvalue* textValue; size_t length; } document_binding;
+typedef struct document_binding { xide_document* document; uint64_t id,revision; uint32_t version; int wireVersion,externalState; char *path,*uri,*language;wchar_t* key; const char* text; xvalue* textValue; size_t length; } document_binding;
 typedef struct xide_automatic_diagnostics xide_automatic_diagnostics;
-typedef struct annotation_binding { xide_document* document; uint64_t id; uint32_t version; int externalState; } annotation_binding;
+typedef struct annotation_binding { xide_document* document; uint64_t id,revision; uint32_t version; int externalState; } annotation_binding;
 typedef int (*color_style_proc)(xui_code_document_t*,const xui_code_token_t*,int*,void*);
 typedef struct semantic_editor_binding { struct semantic_editor_binding* next; xide_app* app; xui_widget editor; xui_widget_event_proc handlers[8]; void* users[8]; int composing,colorBound; color_style_proc previousColor;void* previousColorUser; } semantic_editor_binding;
 typedef struct highlight_intent { xide_document* document; uint64_t id,stamp; uint32_t version; int offset,check,wire; } highlight_intent;
@@ -50,7 +50,7 @@ struct xide_language_view {
  xvalue *snapshotResult,*analysisCatalog; int snapshotMode,snapshotSupported,syncKind,nativeBackend; xls_sync* sync; uint64_t recheckAt,observedEdits;
  int onDemandMode,onDemandSupported,receiptRequest,receiptReady,checkRetries; char receiptDigest[65]; size_t receiptDocuments; uint64_t semanticRefreshAt,checkRetryAt,preemptDeadline;
  xide_language_client* client; char *compiler,*directory,*uri,*path; xide_document *document,*pendingSave;
- xvalue* diagnostics; uint64_t documentId; uint32_t version; int wireVersion,requestId,nextId,initialized,busy,waitingInitialize,invalidated,automatic;
+ xvalue* diagnostics; uint64_t documentId,documentRevision; uint32_t version; int wireVersion,requestId,nextId,initialized,busy,waitingInitialize,invalidated,automatic;
  int definitionRequest,definitionPending,definitionCheck,definitionSupported,definitionProofSupported; xide_document* definitionDocument; uint64_t definitionDocumentId; uint32_t definitionDocumentVersion; int definitionCaret;
  xui_widget outline; char* outlineTitle; xvalue *outlineResult,*hoverResult; outline_item* outlineItems; size_t outlineCount;
  xide_document *outlineDocument,*hoverDocument; uint64_t outlineId,hoverId; uint32_t outlineVersion,hoverVersion;
@@ -80,6 +80,8 @@ static char* copy(const char* s) { size_t n=strlen(s)+1; char* p=malloc(n); if(p
 static int number(const xvalue* value,int* n) { int64 x=0; if(!value || !xideMetaInt(value,&x) || x<0 || x>INT_MAX) return 0; *n=(int)x; return 1; }
 static int eligible(xide_document* d) { return d && d->open && d->path && !d->dirty && !d->externalState && !strcmp(d->language,"xlang") && xidePathHasExtension(d->path,".xl") && xuiCodeDocumentGetLength(xuiCodeEditGetDocument(d->editor))>=0 && xuiCodeDocumentGetLength(xuiCodeEditGetDocument(d->editor))<=8*1024*1024; }
 static int namedXlang(xide_document* d) { return d && d->open && d->path && xidePathHasExtension(d->path,".xl"); }
+static int bindingRevisionCurrent(const document_binding* b)
+{return b && b->document && b->revision && b->revision==b->document->revision;}
 static int snapshotConflict(xide_document* d) { return d->externalState && d->externalState!=XIDE_WATCH_MISSING; }
 static int canSnapshot(xide_app* app,xide_document* root)
 {
@@ -96,7 +98,7 @@ static uint64_t editStamp(xide_app* app)
 {
  uint64_t stamp=UINT64_C(14695981039346656037);
  for(size_t i=0;i<app->documents.count;++i) { xide_document* d=app->documents.items[i]; if(!namedXlang(d)) continue;
-  stamp=(stamp^d->id)*UINT64_C(1099511628211); stamp=(stamp^xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(d->editor)))*UINT64_C(1099511628211); stamp=(stamp^(unsigned)d->externalState)*UINT64_C(1099511628211);
+  stamp=(stamp^d->id)*UINT64_C(1099511628211); stamp=(stamp^d->revision)*UINT64_C(1099511628211); stamp=(stamp^(unsigned)d->externalState)*UINT64_C(1099511628211);
   for(const unsigned char* p=(const unsigned char*)d->path;*p;++p) stamp=(stamp^*p)*UINT64_C(1099511628211);
   for(const unsigned char* p=(const unsigned char*)d->language;*p;++p) stamp=(stamp^*p)*UINT64_C(1099511628211);
  } return stamp;
@@ -110,13 +112,13 @@ static int snapshotCurrent(xide_language_view* v)
  for(size_t i=0;i<v->app->documents.count;++i) if(namedXlang(v->app->documents.items[i])) ++count;
  if(count!=v->inputCount) return 0;
  for(size_t i=0;i<v->inputCount;++i) { document_binding* b=&v->inputs[i]; xide_document* d=b->document;
-  if(!namedXlang(d) || d->id!=b->id || d->externalState!=b->externalState || strcmp(d->path,b->path) || strcmp(d->language,b->language) || b->version!=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(d->editor))) return 0;
+  if(!namedXlang(d) || d->id!=b->id || !bindingRevisionCurrent(b) || d->externalState!=b->externalState || strcmp(d->path,b->path) || strcmp(d->language,b->language) || b->version!=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(d->editor))) return 0;
  }
  for(size_t i=0;i<v->annotationCount;++i) { annotation_binding* b=&v->annotations[i]; xide_document* d=b->document;
-  if(!d->open || d->id!=b->id || d->externalState!=b->externalState || b->version!=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(d->editor))) return 0;
+  if(!d->open || d->id!=b->id || !b->revision || d->revision!=b->revision || d->externalState!=b->externalState || b->version!=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(d->editor))) return 0;
  } return 1;
 }
-static int current(xide_language_view* v) { return v->document && v->document->open && !v->invalidated && (v->snapshotMode ? snapshotCurrent(v) : eligible(v->document)) && v->document->id==v->documentId && v->path && !strcmp(v->path,v->document->path) && v->version==xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(v->document->editor)); }
+static int current(xide_language_view* v) { return v->document && v->document->open && !v->invalidated && v->documentRevision && v->documentRevision==v->document->revision && (v->snapshotMode ? snapshotCurrent(v) : eligible(v->document)) && v->document->id==v->documentId && v->path && !strcmp(v->path,v->document->path) && v->version==xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(v->document->editor)); }
 static int sendMessage(xide_language_view* v,const char* method,xvalue* params,int id)
 {
  xvalue* m=xrtValueObject(); int okay=m && put(m,"jsonrpc",xrtValueString(sv("2.0"))) && put(m,"method",xrtValueString(sv(method)));
@@ -259,7 +261,8 @@ static int finishSavedSync(xide_app* app)
 }
 static int captureInput(xide_document* d,document_binding* b)
 {
- b->document=d;b->id=d->id;b->externalState=d->externalState;b->version=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(d->editor));
+ if(!d->revision)return 0;
+ b->document=d;b->id=d->id;b->revision=d->revision;b->externalState=d->externalState;b->version=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(d->editor));
  b->path=copy(d->path);b->uri=xideLspPathToUri(d->path,NULL);b->language=copy(d->language);b->key=xidePathNativeWide(d->path);
  const char* text=xuiCodeEditGetText(d->editor);b->length=strlen(text);
  if(b->length!=(size_t)xuiCodeDocumentGetLength(xuiCodeEditGetDocument(d->editor))) return 0;
@@ -276,7 +279,7 @@ static int captureInputsMode(xide_app* app,int allowEmpty)
  for(size_t i=0;i<app->documents.count && okay;++i) { xide_document* d=app->documents.items[i]; if(!namedXlang(d) || (v->autoEnabled && snapshotConflict(d))) continue;
   if(v->inputCount>=SNAPSHOT_DOCS) { okay=0; break; }
   document_binding* b=&v->inputs[v->inputCount++]; uint32_t version=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(d->editor));
-  for(size_t j=0;j<count;++j) if(previous[j].document==d && previous[j].id==d->id && previous[j].version==version &&
+  for(size_t j=0;j<count;++j) if(d->revision && previous[j].document==d && previous[j].id==d->id && previous[j].revision==d->revision && previous[j].version==version &&
       previous[j].externalState==d->externalState && !strcmp(previous[j].path,d->path) && !strcmp(previous[j].language,d->language)) {
    *b=previous[j]; memset(&previous[j],0,sizeof(previous[j])); break;
   }
@@ -352,7 +355,7 @@ static int checkMode(xide_app* app,int snapshots,xide_document* d)
  if(!(snapshots ? canSnapshot(app,d) : eligible(d)) || v->busy || !connectClient(app,d)) return 0;
  if(v->autoEnabled) return automaticPrepare(app,snapshots ? 1 : 2);
  v->pendingSave=NULL; v->onDemandMode=0; v->semanticRefreshAt=v->checkRetryAt=0; v->checkRetries=0; v->preemptDeadline=wasOnDemand ? GetTickCount64()+3000 : 0;
- clearDiagnostics(app); free(v->uri); v->uri=NULL; if(!snapshots) freeInputs(v); v->snapshotMode=snapshots; v->recheckAt=0; v->observedEdits=editStamp(app); free(v->path); v->path=copy(d->path); v->document=d; v->documentId=d->id; v->version=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(d->editor)); v->invalidated=0; v->busy=1; v->automatic=1;
+ clearDiagnostics(app); free(v->uri); v->uri=NULL; if(!snapshots) freeInputs(v); v->snapshotMode=snapshots; v->recheckAt=0; v->observedEdits=editStamp(app); free(v->path); v->path=copy(d->path); v->document=d; v->documentId=d->id; v->documentRevision=d->revision; v->version=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(d->editor)); v->invalidated=0; v->busy=1; v->automatic=1;
  if(!v->path || (snapshots && !captureInputs(app)) || (!snapshots && !(v->inputCount=1,captureInput(d,&v->inputs[0]))) || (v->initialized && !beginCheck(app))) { reset(app); v->automatic=0; v->recheckAt=0; return 0; }
  snprintf(v->message,sizeof(v->message),"%s",snapshots ? "后台检查 xlang 文档与未保存依赖…" : "后台检查保存后的 xlang 单入口源码…"); xgeRenderRequest(); return 1;
 }
@@ -395,6 +398,12 @@ static void failSyncPlan(xide_app* app)
  reset(app);automaticPause(app->languageView);
  snprintf(app->languageView->message,sizeof(app->languageView->message),"文档同步准备失败或发送队列持续拥塞；再次查询会重新连接。");
 }
+static int submitSyncInputs(xide_language_view* v)
+{
+ xide_sync_input inputs[SNAPSHOT_DOCS];
+ for(size_t i=0;i<v->inputCount;++i) inputs[i]=(xide_sync_input){v->inputs[i].uri,v->inputs[i].textValue,v->inputs[i].id,v->inputs[i].revision};
+ return xideSyncPlannerSubmit(v->syncPlanner,v->syncToken,v->sync,inputs,v->inputCount);
+}
 static void pollSyncPlan(xide_app* app)
 {
  xide_language_view* v=app->languageView;
@@ -405,9 +414,7 @@ static void pollSyncPlan(xide_app* app)
  if(!v->syncMode) return;
  if(v->syncSession!=v->highlightSession || (v->syncMode==6 ? !automaticWatchCurrent(v) : v->syncMode==5 ? !workspaceSearchInputsCurrent(app) : v->syncMode==4 ? !automaticInputsCurrent(v) : !current(v))) {cancelSyncPlan(v);return;}
  if(!v->syncSubmitted) {
-  xide_sync_input inputs[SNAPSHOT_DOCS];
-  for(size_t i=0;i<v->inputCount;++i) inputs[i]=(xide_sync_input){v->inputs[i].uri,v->inputs[i].textValue,v->inputs[i].id,v->inputs[i].version};
-  int submitted=v->syncMode==6 ? automaticWatchSubmit(v) : xideSyncPlannerSubmit(v->syncPlanner,v->syncToken,v->sync,inputs,v->inputCount);
+  int submitted=v->syncMode==6 ? automaticWatchSubmit(v) : submitSyncInputs(v);
   if(submitted<0 || (!submitted && GetTickCount64()>=v->syncDeadline)) {failSyncPlan(app);return;}
   if(!submitted) {xgeRenderRequestAfter(.02f);return;}
   v->syncSubmitted=1;v->syncDeadline=0;
@@ -453,7 +460,7 @@ static int prepareSymbolsDocument(xide_app* app,xide_document* d)
  if(v->automatic) return 0;
  if(!connectClient(app,d)) return 0;
  clearDiagnostics(app); v->pendingSave=NULL; v->snapshotMode=1; v->onDemandMode=1; v->lastSnapshotId=0; v->automatic=0; v->recheckAt=v->semanticRefreshAt=0;
- free(v->path); v->path=copy(d->path); v->document=d; v->documentId=d->id; v->version=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(d->editor)); v->invalidated=0; v->observedEdits=editStamp(app);
+ free(v->path); v->path=copy(d->path); v->document=d; v->documentId=d->id; v->documentRevision=d->revision; v->version=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(d->editor)); v->invalidated=0; v->observedEdits=editStamp(app);
  if(!v->path || !captureInputs(app) || (v->initialized && !beginOnDemand(app))) { v->invalidated=1; return 0; }
  snprintf(v->message,sizeof(v->message),"正在准备 xlang 悬停与大纲…");
  xgeRenderRequest(); return 1;
@@ -663,7 +670,7 @@ static int applySnapshots(xide_app* app,const xvalue* result)
  if(okay) {
   clearDiagnostics(app); v->snapshotResult=owned; owned=NULL; v->diagnostics=flat; flat=NULL;
   for(size_t i=0;okay && i<groupsCount;++i) if(batches[i].document) {
-   xide_document* d=batches[i].document; v->annotations[v->annotationCount++]=(annotation_binding){d,d->id,xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(d->editor)),d->externalState};
+   xide_document* d=batches[i].document; v->annotations[v->annotationCount++]=(annotation_binding){d,d->id,d->revision,xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(d->editor)),d->externalState};
    okay=xuiCodeAnnotationSetDiagnostics(xuiCodeEditGetAnnotations(d->editor),batches[i].diagnostics,(int)batches[i].count)==XUI_OK;
   }
   if(okay) okay=xideTaskViewShowLanguageProblemsScoped(app,"xlang 文档快照检查（含打开文档的未保存依赖）",(const char* const*)titles,at,1)==XUI_OK;

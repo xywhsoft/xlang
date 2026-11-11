@@ -8,6 +8,10 @@ typedef struct xide_document_store xide_document_store;
 typedef struct xide_document {
     xide_document_store* store;
     uint64_t id;
+    /* Owner-thread body clock, independent of the toolkit's wrapping uint32.
+     * Starts at1 per id;0 means closed/exhausted and cannot authorize a snapshot.
+     * Every content notice advances even while model refresh is suppressed. */
+    uint64_t revision;
     char *path,*title,*language,*sessionId;
     xide_text_file baseline;
     xide_task_stage* stageReference;

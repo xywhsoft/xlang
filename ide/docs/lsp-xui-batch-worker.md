@@ -1,5 +1,7 @@
 # XUI 批量文档载荷的工作线程准备
 
+后续 [M7b4y IDE 正文修订](lsp-document-revision.md)已补齐快照缓存、同步投影和各查询绑定的独立 64 位正文时钟；事务应用和范围映射继续开发。
+
 M7b4x，2026-11-11。在[批量发布原语](lsp-xui-document-batch.md)上拆出载荷构建，避免把全文复制、完整行索引和撤销字符串构造留在 UI 线程。接口由 XGE 的 Document 生产者实现；IDE 没有复制其私有结构，也没有增加普通输入路径的分支或 Document 字段。
 
 调用流程为所有者线程 `Capture/Describe` → 工作线程 `Stage` → 所有者线程 `Accept/CommitChecked/Destroy`。Capture 只捕获版本、状态、长度和历史数量等有限元数据并登记弱生命周期观察；忽略旧 item 的 Before/After 字段。Describe 返回可复制的普通描述，不含 GUI 指针或租约，也不表示此刻仍新鲜。工作任务只持有这份描述和调用期间不变的 before/after 文本，不能访问活 Document 或捕获票据。

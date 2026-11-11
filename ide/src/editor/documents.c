@@ -24,7 +24,9 @@ static int failure(xide_model_error* error,int code,const char* message)
 static void changed(xui_code_document core,xui_code_range_t range,uint32_t version,void* user)
 {
     (void)range; (void)version; xide_document* document=user;
-    if(!document->open || document->suppressChange) return;
+    if(!document->open) return;
+    if(document->revision) document->revision=document->revision==UINT64_MAX ? 0 : document->revision+1;
+    if(document->suppressChange) return;
     const char* text=xuiCodeDocumentGetText(core);
     document->dirty=!document->baseline.text || strcmp(text,document->baseline.text)!=0;
     xuiCodeDocumentSetDirty(core,document->dirty);
@@ -41,7 +43,7 @@ static void clearMetadata(xide_document* document)
     xideTaskStageRelease(document->stageReference); document->stageReference=NULL;
     free(document->path); free(document->title); free(document->language); free(document->sessionId);
     document->path=document->title=document->language=document->sessionId=NULL; xideTextFileClear(&document->baseline);
-    document->dirty=0; document->open=0; document->languageOverride=0; document->externalState=0;
+    document->dirty=0; document->open=0; document->revision=0; document->languageOverride=0; document->externalState=0;
 }
 int xideDocumentCContextValid(const xvalue* context)
 {
@@ -75,6 +77,7 @@ xide_document* xideDocumentsFind(xide_document_store* store,const char* path)
 }
 static xide_document* acquire(xide_document_store* store,xide_model_error* error)
 {
+    if(store->nextId==UINT64_MAX) { failure(error,XIDE_MODEL_CONFLICT,"Document identity exhausted; restart the IDE before opening another document."); return NULL; }
     for(size_t i=0;i<store->count;++i) if(!store->items[i]->open) return store->items[i];
     if(store->count==store->capacity) {
         size_t capacity=store->capacity ? store->capacity*2 : 8;
@@ -101,6 +104,7 @@ static xide_document* acquire(xide_document_store* store,xide_model_error* error
 }
 static int initialize(xide_document* document,char* path,const char* title,const char* language,xide_text_file* file,xide_model_error* error)
 {
+    if(document->store->nextId==UINT64_MAX) return failure(error,XIDE_MODEL_CONFLICT,"Document identity exhausted; restart the IDE before opening another document.");
     char* name=copy(title),*mode=copy(language),*sessionId=xideCreateId("doc");
     if(!name || !mode || !sessionId) { free(name); free(mode); free(sessionId); return failure(error,XIDE_MODEL_MEMORY,"Document metadata allocation failed."); }
     document->suppressChange=1;
@@ -109,7 +113,7 @@ static int initialize(xide_document* document,char* path,const char* title,const
     document->suppressChange=0;
     if(result!=XUI_OK) { free(name); free(mode); free(sessionId); return failure(error,XIDE_MODEL_MEMORY,"Document initialization failed."); }
     clearMetadata(document); document->path=path; document->title=name; document->language=mode; document->sessionId=sessionId;
-    document->baseline=*file; memset(file,0,sizeof(*file)); document->id=++document->store->nextId; document->open=1;
+    document->baseline=*file; memset(file,0,sizeof(*file)); document->id=++document->store->nextId; document->revision=1; document->open=1;
     xuiCodeDocumentSetDirty(xuiCodeEditGetDocument(document->editor),0);
     xuiCodeEditSetEolMode(document->editor,document->baseline.eol);
     xuiCodeSelectionSetRange(xuiCodeEditGetSelection(document->editor),xuiCodeEditGetDocument(document->editor),0,0);

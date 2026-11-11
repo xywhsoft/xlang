@@ -22,14 +22,15 @@ static int referenceInputsCapture(xide_app* app)
 {
  struct xide_reference_view* r=app->languageView->references;referenceInputsFree(r);
  for(size_t i=0;i<app->documents.count;++i){xide_document* d=app->documents.items[i];if(!namedXlang(d))continue;if(r->count>=SNAPSHOT_DOCS)return 0;
-  document_binding* b=r->inputs+r->count++;*b=(document_binding){.document=d,.id=d->id,.version=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(d->editor)),.externalState=d->externalState,.path=copy(d->path),.language=copy(d->language)};if(!b->path || !b->language)return 0;
+  if(!d->revision)return 0;
+  document_binding* b=r->inputs+r->count++;*b=(document_binding){.document=d,.id=d->id,.revision=d->revision,.version=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(d->editor)),.externalState=d->externalState,.path=copy(d->path),.language=copy(d->language)};if(!b->path || !b->language)return 0;
  }return 1;
 }
 static int referenceInputsCurrent(xide_app* app)
 {
  struct xide_reference_view* r=app->languageView->references;size_t count=0;for(size_t i=0;i<app->documents.count;++i)if(namedXlang(app->documents.items[i]))++count;if(count!=r->count)return 0;
  for(size_t i=0;i<r->count;++i){document_binding* b=r->inputs+i;xide_document* d=b->document;
-  if(!namedXlang(d) || d->id!=b->id || d->externalState!=b->externalState || strcmp(d->path,b->path) || strcmp(d->language,b->language) || xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(d->editor))!=b->version)return 0;
+  if(!namedXlang(d) || d->id!=b->id || !bindingRevisionCurrent(b) || d->externalState!=b->externalState || strcmp(d->path,b->path) || strcmp(d->language,b->language) || xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(d->editor))!=b->version)return 0;
  }return r->source && r->source->open && r->source->id==r->sourceId && xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(r->source->editor))==r->sourceVersion;
 }
 static void referenceJumpFree(struct xide_reference_view* r){free(r->jumpPath);free(r->jumpKey);r->jumpPath=NULL;r->jumpKey=NULL;}

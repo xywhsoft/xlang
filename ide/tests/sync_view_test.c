@@ -41,8 +41,7 @@ static int marked(xide_document* d,int offset,int id)
 static int holdPlan(xide_language_view* v)
 {
  if(!v->syncMode || v->syncSubmitted || v->syncReady) return 0;
- xide_sync_input inputs[64];for(size_t i=0;i<v->inputCount;++i) inputs[i]=(xide_sync_input){v->inputs[i].uri,v->inputs[i].textValue,v->inputs[i].id,v->inputs[i].version};
- if(xideSyncPlannerSubmit(v->syncPlanner,v->syncToken,v->sync,inputs,v->inputCount)!=1) return 0;
+ if(submitSyncInputs(v)!=1) return 0;
  v->syncSubmitted=1;v->syncDeadline=0;uint64_t until=GetTickCount64()+10000;
  do {v->syncReady=xideSyncPlannerTake(v->syncPlanner);if(v->syncReady) return v->syncReady->valid && v->syncReady->token==v->syncToken;Sleep(1);}while(GetTickCount64()<until);return 0;
 }

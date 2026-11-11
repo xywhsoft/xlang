@@ -137,7 +137,7 @@ void xideLanguageViewDocumentChanged(xide_app* app,xide_document* d)
  xide_language_view* v=app?app->languageView:NULL;struct xide_color_view* c=v?v->colors:NULL;if(!c || !d)return;
  if(!namedXlang(d) && c->applied.document!=d && c->wanted.document!=d)return;
  document_binding* b=d->path?inputPath(v,d->path):NULL;
- if(!d->open || !b || b->document!=d || b->id!=d->id || b->version!=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(d->editor)) ||
+ if(!d->open || !b || b->document!=d || b->id!=d->id || !bindingRevisionCurrent(b) || b->version!=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(d->editor)) ||
     b->externalState!=d->externalState || !d->language || strcmp(b->language,d->language))colorsInvalidate(v);
  c->paused=0;
 }
@@ -170,7 +170,7 @@ static void pollColors(xide_app* app)
  if(!colorIdentityEqual(identity,c->scheduled)){c->scheduled=identity;c->at=GetTickCount64()+75;xgeRenderRequestAfter(.075f);return;}
  if(GetTickCount64()<c->at)return;
  if(c->serial==UINT64_MAX){c->supported=0;return;}
- document_binding* b=inputPath(v,identity.document->path);if(!b || b->id!=identity.id || b->version!=identity.version || xlsSyncVersion(v->sync,b->uri)!=b->wireVersion)return;
+ document_binding* b=inputPath(v,identity.document->path);if(!b || b->id!=identity.id || !bindingRevisionCurrent(b) || b->version!=identity.version || xlsSyncVersion(v->sync,b->uri)!=b->wireVersion)return;
  c->lease=xlsSyncRetainText(v->sync,b->uri,b->wireVersion);if(!c->lease)return;
  xvalue *params=xrtValueObject(),*document=xrtValueObject();int okay=params && document && put(document,"uri",xrtValueString(sv(b->uri)));
  if(okay){okay=put(params,"textDocument",document);document=NULL;}

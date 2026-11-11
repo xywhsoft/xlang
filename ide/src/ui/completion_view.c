@@ -23,7 +23,7 @@
 #include <math.h>
 #define COMPLETION_DOCS 64u
 #define COMPLETION_ITEMS 4096u
-typedef struct completion_input { xide_document* document; uint64_t id; uint32_t version; int wireVersion,externalState; char *path,*uri,*language; const char* text; xvalue* textValue; size_t length; } completion_input;
+typedef struct completion_input { xide_document* document; uint64_t id,revision; uint32_t version; int wireVersion,externalState; char *path,*uri,*language; const char* text; xvalue* textValue; size_t length; } completion_input;
 typedef struct completion_binding { struct completion_binding* next; xide_app* app; xui_widget editor; xui_widget_event_proc handlers[5]; void* users[5]; } completion_binding;
 typedef struct signature_view {
  xide_document* document;uint64_t id,epoch,decodeToken,serial,session;uint32_t version;
@@ -84,7 +84,7 @@ static int cvinputsCurrent(xide_completion_view* v)
  size_t count=0; for(size_t i=0;i<v->app->documents.count;++i) if(cvnamed(v->app->documents.items[i])) ++count;
  if(count!=v->inputCount || !count) return 0;
  for(size_t i=0;i<v->inputCount;++i) { completion_input* b=&v->inputs[i]; xide_document* d=b->document;
-  if(!cvnamed(d) || d->id!=b->id || d->externalState!=b->externalState || strcmp(d->path,b->path) || strcmp(d->language,b->language) || b->version!=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(d->editor))) return 0;
+  if(!cvnamed(d) || d->id!=b->id || !b->revision || d->revision!=b->revision || d->externalState!=b->externalState || strcmp(d->path,b->path) || strcmp(d->language,b->language) || b->version!=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(d->editor))) return 0;
  } return 1;
 }
 static int cvsend(xide_completion_view* v,const char* method,xvalue* params,int id)
@@ -194,14 +194,15 @@ static int cvcapture(xide_completion_view* v)
  int okay=1;
  for(size_t i=0;i<v->app->documents.count && okay;++i) {
   xide_document* d=v->app->documents.items[i]; if(!cvnamed(d)) continue;
+  if(!d->revision){okay=0;break;}
   if(v->inputCount>=COMPLETION_DOCS) { okay=0; break; }
   completion_input* b=&v->inputs[v->inputCount++]; uint32_t version=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(d->editor));
-  for(size_t j=0;j<count;++j) if(previous[j].document==d && previous[j].id==d->id && previous[j].version==version &&
+  for(size_t j=0;j<count;++j) if(previous[j].document==d && previous[j].id==d->id && previous[j].revision==d->revision && previous[j].version==version &&
       previous[j].externalState==d->externalState && !strcmp(previous[j].path,d->path) && !strcmp(previous[j].language,d->language)) {
    *b=previous[j]; memset(&previous[j],0,sizeof(previous[j])); break;
   }
   if(b->document) continue;
-  b->document=d; b->id=d->id; b->version=version; b->externalState=d->externalState;
+  b->document=d; b->id=d->id; b->revision=d->revision; b->version=version; b->externalState=d->externalState;
   b->path=cvcopy(d->path); b->uri=xideLspPathToUri(d->path,NULL); b->language=cvcopy(d->language);
   const char* text=xuiCodeEditGetText(d->editor);b->length=strlen(text);xstrview owned={0};
   okay=b->length==(size_t)xuiCodeDocumentGetLength(xuiCodeEditGetDocument(d->editor));
@@ -243,13 +244,18 @@ static int cvfinishSync(xide_completion_view* v)
 }
 static void cvfailSync(xide_completion_view* v)
 { cvstopClient(v); }
+static int cvsubmitSyncInputs(xide_completion_view* v)
+{
+ xide_sync_input inputs[COMPLETION_DOCS];
+ for(size_t i=0;i<v->inputCount;++i) inputs[i]=(xide_sync_input){v->inputs[i].uri,v->inputs[i].textValue,v->inputs[i].id,v->inputs[i].revision};
+ return xideSyncPlannerSubmit(v->syncPlanner,v->syncToken,v->sync,inputs,v->inputCount);
+}
 static void cvpollSync(xide_completion_view* v)
 {
  if(!cvretireSync(v) || !v->syncToken) return;
  if(v->syncSession!=v->session || (!v->wanted && !v->signature.wanted) || !cvinputsCurrent(v) || !cvconnectionCurrent(v)) {cvcancelSync(v);if(v->wanted)cvdismiss(v);return;}
  if(!v->syncSubmitted) {
-  xide_sync_input inputs[COMPLETION_DOCS];for(size_t i=0;i<v->inputCount;++i) inputs[i]=(xide_sync_input){v->inputs[i].uri,v->inputs[i].textValue,v->inputs[i].id,v->inputs[i].version};
-  int accepted=xideSyncPlannerSubmit(v->syncPlanner,v->syncToken,v->sync,inputs,v->inputCount);
+  int accepted=cvsubmitSyncInputs(v);
   if(accepted<0 || (!accepted && GetTickCount64()>=v->syncDeadline)) {cvfailSync(v);return;}
   if(!accepted) {xgeRenderRequestAfter(.02f);return;}v->syncSubmitted=1;v->syncDeadline=0;
  }

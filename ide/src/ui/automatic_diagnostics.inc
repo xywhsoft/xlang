@@ -5,7 +5,7 @@
 #define AUTO_CACHE_BYTES (64u*1024u*1024u)
 #define AUTO_ROUTE_BASE ((size_t)0x10000000u)
 typedef struct automatic_model {
- xide_document* document;uint64_t id;uint32_t version;int open,dirty,externalState;
+ xide_document* document;uint64_t id,revision;uint32_t version;int open,dirty,externalState;
  char *path,*language;wchar_t* key;
 } automatic_model;
 typedef struct automatic_group {
@@ -153,7 +153,7 @@ static int automaticModels(xide_language_view* v)
  for(size_t i=0;i<a->modelCount;++i) {
   automatic_model* m=a->models+i;xide_document* d=i<app->documents.count ? app->documents.items[i] : NULL;
   int open=d && d->open;uint32_t version=open ? xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(d->editor)) : 0;
-  if(m->document==d && m->open==open && (!open || (m->id==d->id && m->version==version && m->dirty==d->dirty && m->externalState==d->externalState &&
+  if(m->document==d && m->open==open && (!open || (m->id==d->id && m->revision==d->revision && m->version==version && m->dirty==d->dirty && m->externalState==d->externalState &&
       (m->path && d->path ? !strcmp(m->path,d->path) : m->path==d->path) && m->language && !strcmp(m->language,d->language)))) continue;
   int oldOnline=m->open && m->path && xidePathHasExtension(m->path,".xl") && (!m->externalState || m->externalState==XIDE_WATCH_MISSING);
   int newOnline=open && namedXlang(d) && !snapshotConflict(d);
@@ -163,12 +163,12 @@ static int automaticModels(xide_language_view* v)
    if(!automaticFence(v,m->path,oldOnline,!oldOnline,2)) return 0;
   }
   if(v->autoEnabled && a->modelsReady && m->open && m->path && open && samePath && !namedXlang(d) && !d->dirty &&
-     (m->version!=version || m->dirty || m->externalState!=d->externalState)) {
+     (m->revision!=d->revision || m->version!=version || m->dirty || m->externalState!=d->externalState)) {
    if(!automaticFence(v,d->path,0,1,2)) return 0;
   }
   automaticModelClear(m);m->document=d;m->open=open;
   if(open) {
-   m->id=d->id;m->version=version;m->dirty=d->dirty;m->externalState=d->externalState;m->path=d->path ? copy(d->path) : NULL;m->language=copy(d->language);m->key=d->path ? xidePathNativeWide(d->path) : NULL;
+   m->id=d->id;m->revision=d->revision;m->version=version;m->dirty=d->dirty;m->externalState=d->externalState;m->path=d->path ? copy(d->path) : NULL;m->language=copy(d->language);m->key=d->path ? xidePathNativeWide(d->path) : NULL;
    if(!m->language || (d->path && (!m->path || !m->key))) {automaticFault(v,"无法捕获文档路径");return 0;}
    automaticInvalidate(a,m->key);
   }
@@ -184,7 +184,7 @@ static int automaticInputsCurrent(xide_language_view* v)
  for(size_t i=0;i<v->app->documents.count;++i) {xide_document* d=v->app->documents.items[i];if(namedXlang(d) && !snapshotConflict(d)) ++count;}
  if(count!=v->inputCount) return 0;
  for(size_t i=0;i<v->inputCount;++i) {document_binding* b=v->inputs+i;xide_document* d=b->document;
-  if(!namedXlang(d) || snapshotConflict(d) || b->id!=d->id || b->version!=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(d->editor)) || b->externalState!=d->externalState || strcmp(b->path,d->path) || strcmp(b->language,d->language)) return 0;
+  if(!namedXlang(d) || snapshotConflict(d) || b->id!=d->id || !bindingRevisionCurrent(b) || b->version!=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(d->editor)) || b->externalState!=d->externalState || strcmp(b->path,d->path) || strcmp(b->language,d->language)) return 0;
  }
  return 1;
 }
@@ -202,8 +202,8 @@ static int automaticPrepare(xide_app* app,int manual)
  xide_document* root=manual ? app->activeDocument : automaticRoot(v);
  if(manual && !(manual==1 ? canSnapshot(app,root) : eligible(root))) return 0;
  a->paused=0;v->snapshotMode=v->onDemandMode=1;v->automatic=0;v->invalidated=0;v->recheckAt=v->semanticRefreshAt=0;
- if(root) {if(!v->path || strcmp(v->path,root->path)) {free(v->path);v->path=copy(root->path);if(!v->path) return 0;}v->document=root;v->documentId=root->id;v->version=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(root->editor));}
- else {v->document=NULL;v->documentId=0;free(v->path);v->path=NULL;}
+ if(root) {if(!v->path || strcmp(v->path,root->path)) {free(v->path);v->path=copy(root->path);if(!v->path) return 0;}v->document=root;v->documentId=root->id;v->documentRevision=root->revision;v->version=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(root->editor));}
+ else {v->document=NULL;v->documentId=v->documentRevision=0;free(v->path);v->path=NULL;}
  if(manual) {v->autoManual=manual;v->busy=1;}
  if(automaticInputsCurrent(v) && (v->syncMode==4 || v->syncMode==5)) return 1;
  if(!automaticInputsCurrent(v) || !a->syncAdopted || manual) {
@@ -273,7 +273,7 @@ static int automaticCurrent(xide_language_view* v,const xide_diagnostic_notice* 
   for(size_t j=0;j<v->inputCount;++j) if(!strcmp(v->inputs[j].uri,binding->uri)) {b=v->inputs+j;break;}
   if(!b || b->wireVersion!=binding->version || xlsSyncVersion(v->sync,b->uri)!=binding->version) return 0;
   xide_document* d=b->document;
-  if(!namedXlang(d) || snapshotConflict(d) || d->id!=b->id || b->version!=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(d->editor)) || b->externalState!=d->externalState || strcmp(b->path,d->path) || strcmp(b->language,d->language)) return 0;
+  if(!namedXlang(d) || snapshotConflict(d) || d->id!=b->id || !bindingRevisionCurrent(b) || b->version!=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(d->editor)) || b->externalState!=d->externalState || strcmp(b->path,d->path) || strcmp(b->language,d->language)) return 0;
  }
  for(size_t i=0;i<a->modelCount;++i) {
   const automatic_model* m=a->models+i;if(!m->open || !m->key || !xideDiagnosticDependencyContainsKey(n->dependency,m->key)) continue;
@@ -454,7 +454,7 @@ static void automaticPoll(xide_app* app)
   for(size_t i=0;!path && i<app->workspaceModel.projectCount;++i){xide_project* project=app->workspaceModel.projects+i;if(project->available && project->entry && xidePathHasExtension(project->entry,".xl"))path=project->manifest;}
   if(!path)return;
   if(!connectClientPath(app,path)) {automaticPause(v);return;}
-  v->snapshotMode=1;v->document=root;v->documentId=root?root->id:0;v->version=root?xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(root->editor)):0;free(v->path);v->path=root?copy(root->path):NULL;v->invalidated=1;
+ v->snapshotMode=1;v->document=root;v->documentId=root?root->id:0;v->documentRevision=root?root->revision:0;v->version=root?xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(root->editor)):0;free(v->path);v->path=root?copy(root->path):NULL;v->invalidated=1;
  }
  if(!v->autoEnabled) return;
  if(!automaticInputsCurrent(v) || !a->syncAdopted) {
