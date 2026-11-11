@@ -2,6 +2,7 @@
 #define _WIN32_WINNT 0x0601
 #endif
 #include "platform/workspace_edit_files.h"
+#include "platform/workspace_edit_files_internal.h"
 #include "platform/path.h"
 #include <windows.h>
 #include <stdlib.h>
@@ -87,19 +88,35 @@ xide_workspace_edit_files* xideWorkspaceEditFilesPin(const xide_workspace_edit* 
  else{xideWorkspaceEditRelease(p->plan);p->plan=NULL;}
  return p;
 }
-int xideWorkspaceEditFilesValidate(xide_workspace_edit_files* p,int (*cancelled)(void*),void* user,xide_model_error* e)
+static int locations(xide_workspace_edit_files* p,size_t selected,int (*cancelled)(void*),void* user,xide_model_error* e)
 {
  if(e){memset(e,0,sizeof(*e));}if(!p)return fail(e,XIDE_MODEL_INVALID,"Missing workspace edit file gate.");
+ const pinned_file* target=selected==SIZE_MAX?NULL:xrtArrayConstGet(&p->files,selected);size_t targetLength=target?wcslen(target->path):0;
  for(size_t i=0;i<p->directories.Count;++i){
-  if(stopped(cancelled,user,e)){return 0;}pinned_directory* d=xrtArrayGet(&p->directories,i);BY_HANDLE_FILE_INFORMATION held={0},named={0};HANDLE h=CreateFileW(d->path,FILE_READ_ATTRIBUTES,FILE_SHARE_READ,NULL,OPEN_EXISTING,FILE_FLAG_BACKUP_SEMANTICS|FILE_FLAG_OPEN_REPARSE_POINT,NULL);
+  pinned_directory* d=xrtArrayGet(&p->directories,i);if(target){size_t n=wcslen(d->path);if(n>=targetLength||CompareStringOrdinal(target->path,(int)n,d->path,(int)n,TRUE)!=CSTR_EQUAL||(d->path[n-1]!=L'\\'&&target->path[n]!=L'\\'))continue;}
+  if(stopped(cancelled,user,e)){return 0;}BY_HANDLE_FILE_INFORMATION held={0},named={0};HANDLE h=CreateFileW(d->path,FILE_READ_ATTRIBUTES,FILE_SHARE_READ,NULL,OPEN_EXISTING,FILE_FLAG_BACKUP_SEMANTICS|FILE_FLAG_OPEN_REPARSE_POINT,NULL);
   int okay=ordinary(d->handle,1,&held) && sameFile(&held,&d->identity) && ordinary(h,1,&named) && sameFile(&held,&named);if(h!=INVALID_HANDLE_VALUE)CloseHandle(h);if(!okay)return fail(e,XIDE_MODEL_CONFLICT,"Workspace edit ancestor identity changed.");
  }
  for(size_t i=0;i<p->files.Count;++i){
+  if(target&&i!=selected)continue;
   if(stopped(cancelled,user,e)){return 0;}pinned_file* f=xrtArrayGet(&p->files,i);BY_HANDLE_FILE_INFORMATION held={0},named={0};HANDLE h=CreateFileW(f->path,FILE_READ_ATTRIBUTES,FILE_SHARE_READ|FILE_SHARE_WRITE,NULL,OPEN_EXISTING,FILE_FLAG_OPEN_REPARSE_POINT,NULL);
-  int okay=ordinary(f->handle,0,&held) && ordinary(h,0,&named) && sameFile(&held,&named) && (((uint64_t)held.nFileSizeHigh<<32)|held.nFileSizeLow)==f->snapshot.length;if(h!=INVALID_HANDLE_VALUE)CloseHandle(h);if(!okay)return fail(e,XIDE_MODEL_CONFLICT,"Workspace edit source identity or write attributes changed.");
-  xide_file_snapshot current={0};if(!xideFileSnapshotInspectHandle(f->handle,&current,e) || !xideFileSnapshotEqual(&f->snapshot,&current))return fail(e,XIDE_MODEL_CONFLICT,"Workspace edit source bytes or metadata changed.");
+  int okay=ordinary(f->handle,0,&held) && ordinary(h,0,&named) && sameFile(&held,&named) && held.dwVolumeSerialNumber==f->snapshot.volume && (((uint64_t)held.nFileIndexHigh<<32)|held.nFileIndexLow)==f->snapshot.index;if(h!=INVALID_HANDLE_VALUE)CloseHandle(h);if(!okay)return fail(e,XIDE_MODEL_CONFLICT,"Workspace edit source identity or write attributes changed.");
  }
  return !stopped(cancelled,user,e);
+}
+int xideWorkspaceEditFilesValidate(xide_workspace_edit_files* p,int (*cancelled)(void*),void* user,xide_model_error* e)
+{
+ if(!locations(p,SIZE_MAX,cancelled,user,e))return 0;
+ for(size_t i=0;i<p->files.Count;++i){if(stopped(cancelled,user,e))return 0;pinned_file* f=xrtArrayGet(&p->files,i);xide_file_snapshot current={0};if(!xideFileSnapshotInspectHandle(f->handle,&current,e) || !xideFileSnapshotEqual(&f->snapshot,&current))return fail(e,XIDE_MODEL_CONFLICT,"Workspace edit source bytes or metadata changed.");}
+ return !stopped(cancelled,user,e);
+}
+int xideWorkspaceEditFilesBorrowWriteHandle(xide_workspace_edit_files* p,size_t at,void** out,xide_model_error* e)
+{
+ if(out)*out=NULL;
+ if(e)memset(e,0,sizeof(*e));
+ pinned_file* f=p?xrtArrayGet(&p->files,at):NULL;if(!out || !f)return fail(e,XIDE_MODEL_INVALID,"Missing pinned workspace edit write target.");
+ if(!locations(p,at,NULL,NULL,e))return 0;
+ *out=f->handle;return 1;
 }
 static int sameSnapshotMetadata(const BY_HANDLE_FILE_INFORMATION* i,const xide_file_snapshot* s)
 {return i->dwVolumeSerialNumber==s->volume && (((uint64_t)i->nFileIndexHigh<<32)|i->nFileIndexLow)==s->index && (((uint64_t)i->nFileSizeHigh<<32)|i->nFileSizeLow)==s->length && (((uint64_t)i->ftLastWriteTime.dwHighDateTime<<32)|i->ftLastWriteTime.dwLowDateTime)==s->lastWrite && i->dwFileAttributes==s->attributes;}

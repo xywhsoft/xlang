@@ -64,6 +64,7 @@ CLIENT_TESTS = ("diagnostic_dependencies_test", "diagnostic_notice_test", "diagn
 CLIENT_TEST_SOURCES = ("src/services/diagnostic_dependencies.c", "src/services/diagnostic_notice.c", "src/services/diagnostic_stream.c", "src/services/reference_results.c", "src/services/language_client.c", "src/services/workspace_search_result.c")
 CLIENT_TEST_SOURCES += ("src/platform/workspace_edit_files.c",)
 CLIENT_TEST_SOURCES += ("src/platform/workspace_edit_spool.c", "src/platform/state_file.c", "src/platform/recovery_store.c", "src/platform/recovery_backup.c")
+CLIENT_TEST_SOURCES += ("src/platform/workspace_edit_write.c",)
 CLIENT_TEST_SOURCES += ("src/editor/workspace_edit_positions.c",)
 HOST_TESTS += CLIENT_TESTS
 HOST_TESTS += ("workspace_symbol_navigation_test",)
@@ -144,6 +145,7 @@ HOST_TESTS += ("semantic_rename_policy_test",)
 HOST_TESTS += ("workspace_edit_test", "workspace_edit_fault_test", "workspace_edit_edge_test")
 HOST_TESTS += ("workspace_edit_files_test",)
 HOST_TESTS += ("workspace_edit_file_export_test", "workspace_edit_spool_test", "workspace_edit_spool_guard_test", "workspace_edit_spool_fault_test")
+HOST_TESTS += ("workspace_edit_write_test", "workspace_edit_write_fault_test")
 HOST_TESTS += ("workspace_edit_positions_test", "workspace_edit_positions_fault_test")
 HOST_TESTS += ("semantic_field_binding_test",)
 HOST_TESTS += ("rename_scope_test",)
@@ -1023,9 +1025,12 @@ def main() -> None:
             if name == "workspace_edit_files_test":
                 extra += [str(objects["workspace_edit_files"])]
                 extra += ["-Wl,--wrap="+f for f in ("malloc","calloc","xrtCalloc","xrtArrayPush")]
-            if name in ("workspace_edit_file_export_test", "workspace_edit_spool_test", "workspace_edit_spool_guard_test", "workspace_edit_spool_fault_test"):
+            if name in ("workspace_edit_write_test", "workspace_edit_write_fault_test", "workspace_edit_file_export_test", "workspace_edit_spool_test", "workspace_edit_spool_guard_test", "workspace_edit_spool_fault_test"):
                 extra += [str(objects[n]) for n in ("workspace_edit_files", "workspace_edit_spool", "state_file", "recovery_store", "recovery_backup")]
                 extra += ["-Wl,--wrap="+f for f in ("malloc","calloc","xrtCalloc","xrtArrayPush")]
+            if name in ("workspace_edit_write_test", "workspace_edit_write_fault_test"):
+                extra += [str(objects["workspace_edit_write"])] + ["-Wl,--wrap=__imp_"+n for n in ("WriteFile", "FlushFileBuffers", "SetEndOfFile", "SetFileTime")]
+            if name == "workspace_edit_write_fault_test":extra += ["-Wl,--wrap=xrtMalloc"]
             if name == "workspace_edit_file_export_test":extra += ["-Wl,--wrap=__imp_ReadFile", "-Wl,--wrap=__imp_WriteFile"]
             if name == "workspace_edit_spool_guard_test":extra += ["-Wl,--wrap=xrtFileWriteAtomic", "-Wl,--wrap=__imp_FlushFileBuffers", "-Wl,--wrap=__imp_WriteFile"]
             if name == "workspace_edit_positions_fault_test":extra += ["-Wl,--wrap="+f for f in ("xrtMalloc","xrtCalloc")]
@@ -1132,11 +1137,11 @@ def main() -> None:
             # fixture duration is separate from per-request performance gates.
             if not args.build_only:
                 test_arguments = []
-                if name in ("workspace_edit_file_export_test", "workspace_edit_spool_test", "workspace_edit_spool_guard_test", "workspace_edit_spool_fault_test"):
+                if name in ("workspace_edit_write_test", "workspace_edit_write_fault_test", "workspace_edit_file_export_test", "workspace_edit_spool_test", "workspace_edit_spool_guard_test", "workspace_edit_spool_fault_test"):
                     fixture_directory = output / (name + "-fixtures")
                     fixture_directory.mkdir()
                     test_arguments = [str(fixture_directory)]
-                    if name == "workspace_edit_spool_fault_test":test_arguments.append("0")
+                    if name in ("workspace_edit_spool_fault_test", "workspace_edit_write_fault_test"):test_arguments.append("0")
                 result = run([str(program), *test_arguments], name + "-run", 180 if name == "analysis_ir_persistent_fault_test" else 120 if name in ("analysis_ir_scan_test", "analysis_index_canonical_test", "workspace_edit_spool_guard_test") else 30, working_directory=output)
                 if b"passed:" not in result.stdout:
                     raise RuntimeError(f"missing test completion receipt: {name}")

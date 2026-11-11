@@ -1,0 +1,115 @@
+{
+  "schema": 1,
+  "date": "2026-11-11",
+  "stage": "M7b5d",
+  "scope": "Pinned single-closed-file WorkspaceEdit apply and explicit restore with partial-write proofs and required durable host fences; not a multi-file transaction",
+  "implementationAccepted": true,
+  "performanceQualified": false,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "2cdbf81f33c1168d81202da4660d04c9a42a898e",
+  "ownedSources": {
+    "ide/src/platform/workspace_edit_files.c": "553fe4c91252701242257e9d5147d537fbe3e65052811b2d6e291718a55779a0",
+    "ide/src/platform/workspace_edit_files_internal.h": "bc21c5200d04917cbee4b5072a1cc6c6e0c1e8dbf00bcf146ad8a67dfc051940",
+    "ide/src/platform/workspace_edit_write.c": "2e8195159b163d4b5af246c3e7418b8c74dd52de5223ba8a8cbca7acfc2d3fa3",
+    "ide/src/platform/workspace_edit_write.h": "8ddc2c79031f29b6562ac867cb19947bf72660ce9df069da56a1de8a397e7197",
+    "ide/tests/workspace_edit_write_test.c": "229b3bae561b9954700346d78561f5b840926d07187dd378ae8d48a0ff46977e",
+    "ide/tests/workspace_edit_write_fault_test.c": "5ea740be983eaa687280a4ed10c2b812f37e7b12f9181eb205534ef6ec204591",
+    "ide/tools/build.ps1": "f1f076ba45d382aa642da33c1dd3d449294bb2550ab2846401216d75561007ab",
+    "ide/tools/build_lsp_core.py": "204ef4c724d3136c678a411941bbc122ace5b3052d330290923b37914235542c",
+    "ide/docs/lsp-edit-file-write.md": "af95ebaf6964fcf8e4483c54c064c0f6e9818c0aa338e6b7c4433674cece43ff",
+    "ide/docs/lsp-edit-spool.md": "cce1ccf8c2f4de3f39000a13eddbfad95df2a249f72b18513baeaf4eeba2d600"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-edit-write-20261111.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-edit-write-20261111/stage-sources.tar.gz",
+      "sha256": "ceb71d6becbd49465f0c34906b4412835f4ff31eca3acdd1bf9ea3b4c2003772",
+      "bytes": 59770,
+      "entries": 11,
+      "uniquePayloads": 11,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-edit-write-20261111/stage-sources.tar.gz.manifest.json",
+      "sha256": "40046ceee1e1e04f4b924dc569baa96d97227c6cc21f6dde6ef1620a0aa71ed2",
+      "bytes": 2496
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-edit-write-20261111/actual-builds-and-validation.tar.gz",
+      "sha256": "33977d394c77261552e83ec37554e4fcc9020f5b6f63ffa76ca99497fa2d57ac",
+      "bytes": 335397331,
+      "entries": 16253,
+      "uniquePayloads": 4525,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-edit-write-20261111/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "3e8d03d51718ad2fb89eabf1e7d3abcd4c778046da884964c0126cb6d1a8408b",
+      "bytes": 5867243
+    }
+  },
+  "currentBindings": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-edit-write-20261111\\final-bindings.json",
+    "sha256": "07d8342f6e1fb102e492131e8a479f1bbf22cd3592a6cec1fc81b8f061b2883c"
+  },
+  "sdkInherited": {
+    "index": "dev/release-materials/provenance/lsp-edit-spool-20261111.json",
+    "indexSha256": "d9969c5bc839596d90e179daf7794f922169cb6d91c854f07e45f15b7df09ff6",
+    "dllSha256": "51cc62cb935e54ef16abcb8a4ae8ee845d64254123a822ba4004c63dad42359e",
+    "compiledSdkUnitsThisStage": 0,
+    "matchedSetPreserved": true
+  },
+  "correctness": {
+    "writerAssertions": 877,
+    "writerCancellationPoints": 6,
+    "writerColdAllocationGates": 3,
+    "realNativeHeapStatisticsProbed": true,
+    "spoolAssertions": 118,
+    "exportAssertions": 77,
+    "spoolGuardAssertions": 1410,
+    "spoolCancellationPoints": 104,
+    "spoolColdAllocationGates": 349,
+    "filegateAssertions": 68,
+    "filegateCancellationPoints": 32,
+    "filegateColdAllocationGates": 38,
+    "deepExactPathOldAndNewObservedGates": 47,
+    "deepExactPathColdAllocationGates": 47,
+    "actualMutantsRejected": 10,
+    "guiObjects": 122,
+    "guiFixtures": 46,
+    "existingOpenEditAssertions": 2209,
+    "actualBoundedGuiLanguages": [
+      "c",
+      "xlang"
+    ],
+    "actualBoundedGuiFramesEach": 24,
+    "visualScreenshotsInspected": true,
+    "independentExistingStateReplacementControl": true,
+    "guiHeapStatisticsAvailable": false,
+    "otherNativeAndProtocolProgramsNotRerun": true,
+    "rawFailuresRetained": true
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "serviceSha256": "df290f266bb8882e95751487d146070ac854b2f8cd9c827d95fd44f049cb4d74",
+  "limits": [
+    "Single closed target and live pinned package only; no complete mixed-file transaction, restart recovery writes, protocol or GUI activation",
+    "Required host callback must durably record intent and establish whole request/source/physical/consent policy; test state-file callbacks do not implement a production transaction journal",
+    "In-place writes preserve identity, but ordinary read sharers can see intermediate bytes; actor must coordinate readers, opens, watchers, toolchain and UI publication",
+    "A failed Restore remains in-doubt and is not retried or silently executed during destruction; prepared recovery data remains",
+    "Current status is a recorded observation, not an implicit fresh physical proof or authority to write",
+    "Per-object known storage excludes combined plan/spool/multi-target and allocator/OS overhead; no total RSS or whole IDE performance qualification",
+    "Timestamp freeze and explicit final time are tested on this machine, not Win7 physical hardware or a power-cut/filesystem durability certification",
+    "Independent native control isolates existing-state replacement startup handles; no whole XRT shutdown or GUI heap-statistics claim",
+    "Default runtime, delivery index and matched SDK remain unchanged; protocol activation, global source coverage, scheduling, mixed apply/recovery and goal-wide performance/delivery remain open"
+  ]
+}
