@@ -1,5 +1,6 @@
 #include "services/workspace_symbols.h"
 #ifdef XLS_COMPILER_XRT
+#include "analysis/pool_idle.h"
 #include "platform/path.h"
 #include "analysis/worker_modules.h"
 #include "analysis/input_batch.h"
@@ -224,6 +225,13 @@ xide_workspace_symbols* xideWorkspaceSymbolsCreate(xide_toolchains* cache,const 
 {return create(cache,compiler,modules,NULL);}
 xide_workspace_symbols* xideWorkspaceSymbolsCreateWithActor(xide_toolchains* cache,const char* compiler,xls_module_store* modules,xls_worker* foreground)
 {return foreground ? create(cache,compiler,modules,foreground):NULL;}
+int xideWorkspaceSymbolsIdle(xide_workspace_symbols* store)
+{
+ if(!store)return 1;
+ if(!xlsRuntimeTaskPoolIdle(store->pool))return 0;
+ return (!store->actor || xlsWorkerIdle(store->actor)) &&
+  (!store->foreground || xlsWorkerIdle(store->foreground));
+}
 void xideWorkspaceSymbolsDestroy(xide_workspace_symbols* store)
 {if(!store)return;if(store->pool){xrtTaskPoolCancel(store->pool);xrtTaskPoolDestroy(store->pool);}recordsUnit(&store->records);xlsInputBatchDestroy(store->history);xlsWorkerDestroy(store->actor);xlsModuleStoreRelease(store->modules);xideWorkspaceSymbolIndexDestroy(store->index);xrtFree(store->compiler);xrtFree(store);}
 static xide_workspace_symbol_query* submit(xide_workspace_symbols* store,xls_context* const* contexts,size_t contextCount,const xls_analysis_document* docs,size_t count,const char* query,size_t limit,int wire,uint32_t kindMask,const xvalue* selection,int refresh)

@@ -1,4 +1,5 @@
 #include "analysis/worker.h"
+#include "analysis/pool_idle.h"
 #include "analysis/worker_modules.h"
 #include "analysis/frontend_context.h"
 #include "analysis/session_state.h"
@@ -118,6 +119,8 @@ void xlsWorkerDestroy(xls_worker* worker)
     xlsModuleStoreRelease(worker->modules);
     xrtFree(worker);
 }
+int xlsWorkerIdle(xls_worker* worker)
+{ return worker && xlsRuntimeTaskPoolIdle(worker->pool); }
 int xlsWorkerLoad(xls_worker* worker,xls_worker_load* load)
 {
     if(!load) return 0;

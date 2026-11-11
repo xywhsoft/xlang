@@ -35,6 +35,10 @@ xls_worker* xlsWorkerCreate(const xls_session_limits* limits,size_t queueLimit);
 xls_worker* xlsWorkerCreateWithCache(const xls_session_limits* limits,size_t queueLimit,const xls_worker_cache_limits* cache);
 void xlsWorkerDestroy(xls_worker* worker);
 int xlsWorkerLoad(xls_worker* worker,xls_worker_load* load);
+/* Nonblocking physical quiescence, including task cleanup/finalizers. Caller
+ * must exclude new submissions until its protected operation finishes. Does
+ * not cancel work or discard retained caches; NULL is not an idle actor. */
+int xlsWorkerIdle(xls_worker* worker);
 /* Capture a complete immutable open-document input set. No body is copied;
  * each text snapshot is retained. The worker prunes closed documents, updates
  * current inputs and parses the target. Failure consumes none of the inputs. */

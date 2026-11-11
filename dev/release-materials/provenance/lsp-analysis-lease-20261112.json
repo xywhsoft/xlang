@@ -1,0 +1,133 @@
+{
+  "schema": 1,
+  "date": "2026-11-12",
+  "stage": "M7b5i",
+  "scope": "Cache-preserving external language-server analysis reader suspension and exact resume, native XRT physical idle adapter, ordered bounded input deferral",
+  "implementationAccepted": true,
+  "performanceQualified": false,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "859ae25fbca576b120501a3751f8757e7411c53a",
+  "ownedSources": {
+    "ide/src/analysis/pool_idle.h": "fcf0124d8213c62c004547fd39504290814764eedeb620f2e6f4510d793e1e70",
+    "ide/src/analysis/runtime.c": "90673688ae40c1d888edfb049da3a1bd192325dd5991e8e4eb93f71dab3fefe7",
+    "ide/src/analysis/worker.c": "0341b5f9c3a8e497d4a5e5716a50f58b830038c7a9fa990b6ea59ceb18fe0842",
+    "ide/src/analysis/worker.h": "e4f4555bdc3ffa366107abdee81818c2877e14782500869b1fd3b36d55e94e35",
+    "ide/src/services/diagnostic_store.c": "1eb173223b5041fff9e6791aa8df363aeb296d2e5db964f4ec40f9676b5d23ca",
+    "ide/src/services/diagnostic_store.h": "b514f303789d5cfadbfdde36a86536bbea0b198dca40656dfbbe8f7716b43eca",
+    "ide/src/services/project_references.c": "a52fa60a3d2799114b0c57616adf41875eb66639b2091179d0c91d5c9b8446da",
+    "ide/src/services/project_references.h": "186f2808c8bb89cd41cb4a71a85cc6e231f67486517484a81fcb7587e629bf7a",
+    "ide/src/services/workspace_symbols.c": "c21d5790ffea141459cb235a60650ae6f64d7abd654876f2f1ba0da9042c2b3b",
+    "ide/src/services/workspace_symbols.h": "e474ad57ed01a15fc77857a8c13d6cf89a4b574f6a59f4b0ad6b7841d626de22",
+    "ide/src/server/xlang_ls.c": "7ac8137182d63bd96b865e1fabf60c6b9325fdc56b46b03f2c3108fb11e6035e",
+    "ide/src/server/analysis_lease.inc": "8ac2c187ab4c5b993e5af002ad48bbd7fd64d81257ee48b5e83f94953a3a874f",
+    "ide/src/server/automatic_diagnostics.inc": "e1e1d9eda88638314088e46c24ec763adbc47a1cb396a6c540a9049b069ffa7a",
+    "ide/src/server/workspace_symbol_refresh.inc": "766f85438f11d6343b921cc7015352d8098046bb7ddd1d73d47b675cbf2b307d",
+    "ide/tests/analysis_lease_test.c": "2a390f78cffea59f62b29edde19eae3970cb9e2c249826224aa0f4b7ff869028",
+    "ide/tools/check_lsp_analysis_lease.py": "b7a4652eba6bdae5290525ecbb5b335f4156f7b597a06b7496a32a72e8cdcb74",
+    "ide/tools/check_lsp_analysis_lease_native.py": "3e106538610cdb23035c1bc7861e99ccb8bc3c182a25c2bafd871eb470aa6d83",
+    "ide/docs/lsp-analysis-lease.md": "24c9f33d1b29fcb4ca1d0bc9b0fb568a1338ea87185b9ab20056653f9f7d936d",
+    "ide/docs/lsp-edit-task-lease.md": "9f083f8da1ed549ecc6f739a2a765dcc1e4f0fad10845f750566f6af2c3e738b"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-analysis-lease-20261112.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-analysis-lease-20261112/stage-sources.tar.gz",
+      "sha256": "14285a1db6b134b9e042f225e15cabcaa54fa1c6012713d9a0b66c1ecad7f75a",
+      "bytes": 106171,
+      "entries": 20,
+      "uniquePayloads": 20,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-analysis-lease-20261112/stage-sources.tar.gz.manifest.json",
+      "sha256": "3f66d87353fa1ac02db6b0357d2b7782b14fcd804bbaad9ee35f5e874fdcf76a",
+      "bytes": 4650
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-analysis-lease-20261112/actual-builds-and-validation.tar.gz",
+      "sha256": "41875db096ba141951f109eaaddeb630b81d0bb6fc278eee04555bf6d5c20328",
+      "bytes": 241979031,
+      "entries": 12138,
+      "uniquePayloads": 4414,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-analysis-lease-20261112/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "60efad54138337ddc7902574d2d8c2e3562037cc9cc1a8f0fda9ee56d498b523",
+      "bytes": 4200169
+    }
+  },
+  "currentBindings": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-analysis-lease-20261112\\final-bindings.json",
+    "sha256": "81b81b442d63371127903ebd7cf7d16beb8300a2e6fd9e9ec841002b4421d58f"
+  },
+  "sdkInherited": {
+    "index": "dev/release-materials/provenance/lsp-edit-tasks-20261112.json",
+    "indexSha256": "8bbcaaadc6312953a651d8fc5a0b96fb96810f8b4abe154ad1da86e15d2bd07e",
+    "dllSha256": "51cc62cb935e54ef16abcb8a4ae8ee845d64254123a822ba4004c63dad42359e",
+    "compiledSdkUnitsThisStage": 0,
+    "matchedSetPreserved": true
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "serviceSha256": "8301c3a9441c263c3487e889afe73db5f2e00cae0942359a3ee3c6ca8a9d3c18",
+  "correctness": {
+    "nativeProducerUnits": 101,
+    "nativeDependencyInputs": 709,
+    "leaseProtocolCases": 8,
+    "physicalObservedAssertions": 1174,
+    "actualFinalizerPoolKinds": 13,
+    "ordinaryLoadZeroDoesNotImplyQuiescence": true,
+    "actualTaskAndDataCleanupHeld": true,
+    "noCacheDestructionOrPoolClosure": true,
+    "exactIncreasingConnectionTokens": true,
+    "pendingCancelOnly": true,
+    "allAnalysisAndReinitializeAdmissionGated": true,
+    "automaticDiagnosticAndIndexTimersGated": true,
+    "notificationsShare256Frame64MiBEncodedQuota": true,
+    "orderedLifecycleWatchedAndValidConfigurationReplay": true,
+    "retainedSyntaxAndSemanticCacheHits": true,
+    "closedDiskSourcesRevalidatedAfterResume": true,
+    "implementationMutantsRejected": 9,
+    "guiProductionUnits": 124,
+    "guiSuites": 52,
+    "actualGuiLanguages": [
+      "c",
+      "xlang"
+    ],
+    "actualGuiFramesEach": 24,
+    "visualScreenshotsInspected": true,
+    "legacyProtocolProgramsPassed": 11,
+    "legacyProtocolKnownBaselineFailure": {
+      "name": "analysis_configuration",
+      "line": 184,
+      "baselineSha256": "df290f266bb8882e95751487d146070ac854b2f8cd9c827d95fd44f049cb4d74",
+      "candidateAndBaselineFailedSameExpectedCachedBuildCount": true,
+      "functionalPackageSelectionCorrectInBoth": true,
+      "unresolved": true
+    },
+    "rawFailuresRetained": true
+  },
+  "limits": [
+    "Server participant only: IDE must compose both language-service connections, tasks, file watching, indexers, toolchain and prepared/open operations before writes",
+    "Native XRT adapter uses its matched implementation entry/lock/idle predicate; public WaitFor requires Closed and is not used to certify reusable actors; no XRT ABI change",
+    "Older narrow GUI SDK lacks native actor TaskPool APIs; attempted actor fixture compilation is retained, and disabled native translation units plus actual GUI closure are verified",
+    "Existing configuration regression line184 fails the same cache-build-count expectation on candidate and previous accepted server; real package/export/declaration selection remains correct; unresolved and not counted as passed",
+    "Standard renameProvider/workspace.applyEdit, full source/physical/request/consent policies, startup recovery UI and final delivery remain open",
+    "256 frames/64MiB are aggregate encoded transport+deferred input bounds, not DOM/RSS limits; overflow fails connection without silently dropping edits",
+    "Host must abort stale prepared writes on input invalidation and fail closed on transport errors; no automatic unlock after acknowledged cancellation",
+    "Native pool idle and real thread retirement are queried nonblockingly; locks/control encoding/cancellation cleanup and existing polling are not hard realtime guarantees",
+    "Exact final native include-guard placements rebuilt; absent from GUI production closure; final server byte-identical to the server used in all52 GUI suites and protocol programs",
+    "Only final standalone fixture/timer assertions and validation tool verification were strengthened after early source snapshots; final direct public helper, final physical adapters and9 mutants use final fixtures",
+    "No whole-goal throughput, input-latency or RSS performance claim; historical baseline and current runtime/SDK/delivery index plus unrelated Git work preserved"
+  ]
+}

@@ -112,7 +112,7 @@ static void diagnosticCheckFailed(server* s,int index,int code,const char* reaso
 }
 static void diagnosticInput(server* s,int index,const char* path,int bindingsChanged)
 {
- if(!s->automaticDiagnostics || s->shutdown) return;
+ if(!s->automaticDiagnostics || s->shutdown || s->analysisLeaseToken) return;
  s->diagnosticBindingsChanged|=bindingsChanged; s->diagnosticNeedsSnapshot=1;
  if(s->diagnosticResult) {
   int root=s->diagnosticResultRoot;
@@ -197,7 +197,7 @@ static void diagnosticInvalidatedRoots(server* s,const xvalue* invalidated,int k
 }
 static void diagnosticPoll(server* s)
 {
- if(!s->automaticDiagnostics || s->shutdown) return;
+ if(!s->automaticDiagnostics || s->shutdown || s->analysisLeaseToken) return;
  uint64_t now=GetTickCount64();
  EnterCriticalSection(&s->lock); int incoming=s->queueInputs!=0; LeaveCriticalSection(&s->lock);
  if(s->diagnosticQuery) {

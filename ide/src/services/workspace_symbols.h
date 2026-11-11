@@ -35,6 +35,9 @@ xide_workspace_symbols* xideWorkspaceSymbolsCreate(xide_toolchains* cache,const 
  * never destroys foreground, including on constructor failure. */
 xide_workspace_symbols* xideWorkspaceSymbolsCreateWithActor(xide_toolchains* cache,const char* compiler,xls_module_store* modules,xls_worker* foreground);
 void xideWorkspaceSymbolsDestroy(xide_workspace_symbols* store);
+/* Owner excludes submissions. Nonblocking coordinator, owned and borrowed
+ * analysis actor quiescence, including cleanup; absent service is quiet. */
+int xideWorkspaceSymbolsIdle(xide_workspace_symbols* store);
 /* Prepared contexts,not manifests: at most64 full project/file scopes and
  *65536 total entry/member bindings. Every .xl member is covered by its own
  * checked entry or a checked importer. Configured primary entries always

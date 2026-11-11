@@ -38,6 +38,10 @@ typedef struct semantic_request {
 } semantic_request;
 typedef struct server {
  CRITICAL_SECTION lock; HANDLE reader,event; volatile LONG stop; message *head,*tail; size_t queueBytes,queueCount,queueInputs; int eof,readFailed;
+ /* Deferred notifications share the reader queue's aggregate quotas. Lease
+    state is owner-only; the reader touches queue accounting under lock. */
+ message *deferredHead,*deferredTail;size_t deferredCount;
+ int64 analysisLeaseToken,analysisLeaseLast; xvalue* analysisLeaseId;int analysisLeaseHeld,analysisLeaseInvalidated;
  int initialized,shutdown,exitRequested,exitCode,writeFailed,checkOnSave,cliCompletion,cliDiagnostics,definitionInputProof,referenceInputProof; char *compiler,*directory; xide_toolchains* cache;
  document docs[DOC_LIMIT]; size_t textBytes; unsigned long long generation; xide_language_check* check; xvalue* checkId;
  int checkDocument,checkVersion,cancelCode,pending; unsigned long long checkGeneration; const char* cancelReason;
@@ -283,6 +287,7 @@ static void analysisStats(server* s,const xvalue* id)
 }
 static void startCheck(server* s,int index,const xvalue* id,int snapshots)
 {
+ if(s->analysisLeaseToken)return;
  document* d=&s->docs[index]; xide_model_error e={0};
  if(s->check) { if(id) response(s,id,NULL,-32001,"A source check is still stopping; retry after its response."); else s->pending=index; return; }
  if(s->catalog && d->binding<0) {
@@ -380,7 +385,7 @@ static void cancelCompletion(server* s,int code,const char* reason,int pending)
 }
 static void startCompletion(server* s)
 {
- if(s->completion || !s->completionPendingId || s->shutdown) return;
+ if(s->completion || !s->completionPendingId || s->shutdown || s->analysisLeaseToken) return;
  int i=s->completionPendingDocument,entry=s->completionPendingEntry; document* d=&s->docs[i]; xide_model_error e={0};
  if(!d->uri || !s->docs[entry].uri || s->completionPendingGeneration!=s->generation || d->version!=s->completionPendingVersion) { response(s,s->completionPendingId,NULL,-32801,"Open-document cursor inputs changed before starting."); goto discard; }
  char* uri=copy(d->uri);
@@ -453,7 +458,7 @@ static void cancelSignature(server* s,int code,const char* reason,int pending)
 }
 static void startSignature(server* s)
 {
- if(s->signature || !s->signaturePendingId || s->shutdown) return;
+ if(s->signature || !s->signaturePendingId || s->shutdown || s->analysisLeaseToken) return;
  int i=s->signaturePendingDocument,entry=s->signaturePendingEntry; document* d=&s->docs[i]; xide_model_error e={0};
  if(!d->uri || !s->docs[entry].uri || s->signaturePendingGeneration!=s->generation || d->version!=s->signaturePendingVersion) { response(s,s->signaturePendingId,NULL,-32801,"Open-document cursor inputs changed before starting."); goto discard; }
  char* uri=copy(d->uri);
@@ -641,6 +646,7 @@ static void drainSemantic(server* s)
 #ifdef XLS_COMPILER_XRT
  collectTokenJobs(s);
 #endif
+ if(s->analysisLeaseToken)return;
  for(size_t i=0;i<DOC_LIMIT;++i) {
   semantic_request* request=&s->semantic[i]; if(!request->id) continue;
   if(!semanticCurrent(s,request)) { response(s,request->id,NULL,-32801,"Semantic request inputs changed."); releaseSemantic(request); continue; }
@@ -672,7 +678,7 @@ static void semanticCheckFinished(server* s,int index,unsigned long long generat
 static void pollSemantic(server* s)
 {
  drainSemantic(s); cancelUnusedSemanticCheck(s);
- if(s->check || s->shutdown) return;
+ if(s->check || s->shutdown || s->analysisLeaseToken) return;
  semantic_request* next=NULL;
  for(size_t i=0;i<DOC_LIMIT;++i) if(s->semantic[i].id && !s->semantic[i].waitingNavigation && (!next || s->semantic[i].order<next->order)) next=&s->semantic[i];
  if(!next) return;
@@ -814,14 +820,13 @@ static void referenceStats(server* s,const xvalue* id)
 }
 #include "server/workspace_symbols.inc"
 #endif
+#include "server/analysis_lease.inc"
 static void dispatch(server* s,const xvalue* message)
 {
  const xvalue* id=get(message,"id"); const char *rpc=string(get(message,"jsonrpc")),*method=string(get(message,"method")); const xvalue* params=get(message,"params");
  if(!rpc || strcmp(rpc,"2.0") || !method || (id && !validId(id))) { response(s,NULL,NULL,-32600,"Invalid JSON-RPC request."); return; }
-#ifdef XLS_COMPILER_XRT
- workspaceRefreshActivity(s,method,id);
-#endif
  if(!strcmp(method,"exit")) { if(!id) { s->exitRequested=1; s->exitCode=s->shutdown ? 0 : 1; } else response(s,id,NULL,-32600,"exit must be a notification."); return; }
+ if(s->initialized && !s->shutdown && analysisLeaseDispatch(s,method,id,params))return;
  if(!strcmp(method,"initialize")) {
   if(!id || s->initialized || s->shutdown || !params || xrtValueType(params)!=XVALUE_OBJECT) { if(id) response(s,id,NULL,-32600,"Invalid or duplicate initialize request."); return; }
   xvalue* enc=get(get(params,"capabilities"),"general"); enc=get(enc,"positionEncodings"); int utf16=!enc;
@@ -905,6 +910,11 @@ static void dispatch(server* s,const xvalue* message)
   put(scope,"diagnosticDependencyProof",xrtValueBool(true));
   put(scope,"diagnosticOverlayProof",xrtValueBool(true));
   put(scope,"inputState",xrtValueBool(true));
+#ifdef XLS_COMPILER_XRT
+  put(scope,"analysisLease",xrtValueInt(1));
+#else
+  put(scope,"analysisLease",xrtValueInt(0));
+#endif
   put(scope,"definitionInputProof",xrtValueBool(true));
   put(scope,"referenceInputProof",xrtValueBool(!s->cliCompletion && !s->cliDiagnostics));
   put(scope,"nativeSnapshotDiagnostics",xrtValueBool(!s->cliDiagnostics)); put(scope,"diagnosticsBackend",xrtValueString(sv(s->cliDiagnostics ? "cli" : "native")));
@@ -926,6 +936,9 @@ static void dispatch(server* s,const xvalue* message)
  }
  if(!s->initialized) { if(id) response(s,id,NULL,-32002,"Server not initialized."); return; }
  if(s->shutdown) { if(id) response(s,id,NULL,-32600,"Server has shut down."); return; }
+#ifdef XLS_COMPILER_XRT
+ if(!s->analysisLeaseToken)workspaceRefreshActivity(s,method,id);
+#endif
  if(!strcmp(method,"shutdown")) { if(id) { s->shutdown=1; s->pending=-1;
 #ifdef XLS_COMPILER_XRT
  cancelReferences(s,NULL,-32800,"Server shutting down.");
@@ -1018,15 +1031,18 @@ int main(void)
  InitializeCriticalSection(&s.lock); s.event=CreateEventW(NULL,FALSE,FALSE,NULL);
  if(s.compiler && s.directory && s.cache && s.analysis && s.semanticAnalysis && s.cursorAnalysis && s.signatureAnalysis && s.event) s.reader=CreateThread(NULL,0,reader,&s,0,NULL);
  if(s.reader) while(!s.exitRequested && !s.writeFailed) {
-  EnterCriticalSection(&s.lock); message* m=s.head; if(m) { s.head=m->next; if(!s.head) s.tail=NULL; s.queueBytes-=m->size; --s.queueCount; s.queueInputs-=(size_t)m->input; } int eof=s.eof,failed=s.readFailed; LeaveCriticalSection(&s.lock);
-  if(m) { dispatch(&s,m->value); xrtValueRelease(m->value); free(m); } else if(eof) { s.exitCode=failed ? 2 : 1; break; }
+  int deferred=0;message* m=analysisLeaseNext(&s,&deferred);
+  EnterCriticalSection(&s.lock);int eof=s.eof,failed=s.readFailed;LeaveCriticalSection(&s.lock);
+  if(deferred)analysisLeaseInvalidate(&s);
+  if(m) { dispatch(&s,m->value); xrtValueRelease(m->value); free(m); } else if(eof && !deferred) { s.exitCode=failed ? 2 : 1; break; }
   pollGuard(&s); pollCheck(&s); pollCompletion(&s); pollSignature(&s); pollNative(&s); pollSemantic(&s); diagnosticPoll(&s);
 #ifdef XLS_COMPILER_XRT
   pollReferences(&s);
   pollWorkspaceSymbols(&s);
   pollWorkspaceRefresh(&s);
 #endif
-  if(!m) {
+  analysisLeasePoll(&s);
+  if(!m && !deferred) {
    HANDLE waits[5]={s.event}; DWORD count=1;
    if(s.signatureCancelled){HANDLE h=xideLanguageCheckWorkerSignal(s.signature);if(h)waits[count++]=h;}
    if(s.completionCancelled) { HANDLE h=xideLanguageCheckWorkerSignal(s.completion); if(h) waits[count++]=h; }
@@ -1059,6 +1075,8 @@ int main(void)
  xlsModuleStoreRelease(s.modules);
 #endif
  while(s.head) { message* m=s.head; s.head=m->next; xrtValueRelease(m->value); free(m); }
+ while(s.deferredHead) {message* m=s.deferredHead;s.deferredHead=m->next;xrtValueRelease(m->value);free(m);}
+ xrtValueRelease(s.analysisLeaseId);
  for(int i=0;i<DOC_LIMIT;++i) clearDocument(&s,i);
  xideAnalysisCatalogDestroy(s.catalog);
  if(s.event) { CloseHandle(s.event); } DeleteCriticalSection(&s.lock); free(s.compiler); free(s.directory); return s.writeFailed ? 2 : s.exitCode;

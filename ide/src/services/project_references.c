@@ -1,5 +1,6 @@
 #include "services/project_references.h"
 #ifdef XLS_COMPILER_XRT
+#include "analysis/pool_idle.h"
 #include "platform/path.h"
 #include "analysis/worker_modules.h"
 #include "analysis/identifier.h"
@@ -447,6 +448,16 @@ xide_project_references* xideProjectReferencesCreate(xide_toolchains* cache,cons
     navigation table. Separate bounded workers share neutral module assets. */
  xls_worker_cache_limits keyLimits={2,64u*1024u*1024u};store->keys=xlsWorkerCreateWithModules(NULL,8,&keyLimits,modules);
  xtaskpoolconfig config={.Threads=1,.QueueLimit=8};store->pool=xrtTaskPoolCreate(&config);int initialized=xrtArrayInit(&store->records,sizeof(reference_record*));if(!initialized || !store->compiler || !store->analysis || !store->keys || !store->pool){xideProjectReferencesDestroy(store);return NULL;}return store;
+}
+int xideProjectReferencesIdle(xide_project_references* store)
+{
+ if(!store)return 1;
+ /* First synchronize with physical coordinator completion before inspecting
+    its retained child actors. */
+ if(!xlsRuntimeTaskPoolIdle(store->pool))return 0;
+ if(!xlsWorkerIdle(store->analysis) || !xlsWorkerIdle(store->keys))return 0;
+ for(size_t i=0;i<store->memberCount;++i)if(!xlsWorkerIdle(store->members[i]))return 0;
+ return 1;
 }
 void xideProjectReferencesDestroy(xide_project_references* store)
 {if(!store)return;if(store->pool){xrtTaskPoolCancel(store->pool);xrtTaskPoolDestroy(store->pool);}for(size_t i=0;i<store->records.Count;++i)releaseRecord(records(store)[i]);xrtArrayUnit(&store->records);for(size_t i=0;i<store->memberCount;++i)xlsWorkerDestroy(store->members[i]);xlsWorkerDestroy(store->keys);xrtFree(store->compiler);xrtFree(store);}

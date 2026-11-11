@@ -42,6 +42,9 @@ xide_diagnostic_store* xideDiagnosticStoreCreateWithDependencies(const xide_diag
    Completed query snapshots can outlive the store. */
 void xideDiagnosticStoreDestroy(xide_diagnostic_store* store);
 int xideDiagnosticStoreLoad(xide_diagnostic_store* store,xide_diagnostic_load* load);
+/* Nonblocking, includes task cleanup/finalizers. Owner excludes submissions.
+ * An absent optional store is quiet. Retains all cached records. */
+int xideDiagnosticStoreIdle(xide_diagnostic_store* store);
 /* ALWAYS consumes checkedResult, including submission failure. It must be an
    exclusively owned, verified snapshot result from the same producing check
    as guard. Captures one guard reference and a key copy, without cloning JSON,

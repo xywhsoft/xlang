@@ -34,7 +34,7 @@ static void workspaceRefreshFailed(server* s,const char* error)
 }
 static void pollWorkspaceRefresh(server* s)
 {
- if(!s->workspaceRefresh.enabled || !s->workspaceRefresh.ready || s->shutdown){workspaceRefreshCancel(s,0);return;}
+ if(!s->workspaceRefresh.enabled || !s->workspaceRefresh.ready || s->shutdown || s->analysisLeaseToken){workspaceRefreshCancel(s,0);return;}
  if(!s->workspaceRefresh.seen || s->workspaceRefresh.seenSerial!=s->inputSerial || s->workspaceRefresh.seenEpoch!=s->configurationEpoch){
   workspaceRefreshCancel(s,1);s->workspaceRefresh.seen=1;s->workspaceRefresh.seenSerial=s->inputSerial;s->workspaceRefresh.seenEpoch=s->configurationEpoch;s->workspaceRefresh.pending=1;workspaceRefreshIncrement(&s->workspaceRefresh.scheduled);
  }

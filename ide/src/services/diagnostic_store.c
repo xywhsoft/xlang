@@ -1,4 +1,5 @@
 #include "services/diagnostic_store.h"
+#include "analysis/pool_idle.h"
 #include "platform/path.h"
 #include "protocol/diagnostic_paths.h"
 #include <xrt.h>
@@ -362,6 +363,8 @@ void xideDiagnosticStoreDestroy(xide_diagnostic_store* store)
 #endif
  xrtFree(store);
 }
+int xideDiagnosticStoreIdle(xide_diagnostic_store* store)
+{ return !store || xlsRuntimeTaskPoolIdle(store->pool); }
 int xideDiagnosticStoreLoad(xide_diagnostic_store* store,xide_diagnostic_load* load)
 {
  if(!load) return 0;

@@ -46,6 +46,9 @@ enum xide_reference_query_state {XIDE_REFERENCES_FAILED=-1,XIDE_REFERENCES_PENDI
  * Destroy cancels/joins work;retained READY result values survive the store. */
 xide_project_references* xideProjectReferencesCreate(xide_toolchains* cache,const char* compiler,xls_module_store* modules);
 void xideProjectReferencesDestroy(xide_project_references* store);
+/* Owner excludes submissions. Nonblocking coordinator and all child actor
+ * quiescence, including cleanup; absent optional service is quiet. */
+int xideProjectReferencesIdle(xide_project_references* store);
 /* Captures immutable text references and bounded labels only;no caller disk
  * reads or compiler work. Source/config freshness is rechecked on the actor.
  * Caller still gates the result on current input/catalog/publication epochs.
