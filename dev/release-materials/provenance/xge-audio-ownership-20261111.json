@@ -1,0 +1,52 @@
+{
+  "schema": "xlang-xge-audio-ownership-foundation-1",
+  "scope": "Qualified native audio parent/record/error foundation; working-tree OOP declarations await matched runtime qualification",
+  "passed": true,
+  "checks": 464,
+  "nativeCommit": "29e6e561cad5513ac6653d05ac8c422a642bf2f8",
+  "nativeQualification": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\audio-ownership-20261111.json",
+    "sha256": "cc354aab637537d5f86a4491c26103d642038cc57d62fd0eb6cc6f8c0a496493"
+  },
+  "sourceFreeze": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\native-freeze-r53.json",
+    "sha256": "d17ffd507bcdd244bf1fddf03b28c612961b68b5158657806d1b4110ffaabf35"
+  },
+  "canonicalXrtSha256": "41bc24579f4b3207b0434755ca23dd06481af90c05f71e9b365848cf9a7c12d1",
+  "shippingDelivery": false,
+  "languageAudioIntegrationComplete": false,
+  "languageCandidateCommitted": false,
+  "languageCandidateSource": {
+    "lib/bindings/xge/src/audio_resources.xl": "b80cfae460b87583d2e1cd970f03fb4be70b4a802025d3cea806caf579c57333",
+    "lib/bindings/xge/include/xge3_audio_resources.h": "4e627d6a79b2df156f849cb715cc27e1d28e01298b07fae825cc82acbaba935b",
+    "lib/bindings/xge/src/functions.xl": "501ab84dd61ff30d0bf30327ef03ddce47dc5d3579433595b76221f40fe72a42"
+  },
+  "checksScope": "Default matched native Windows/Linux host/static O0/O2, private real no-device mixing, existing font/async/PCM/reference regressions and lifetime-domain kernel; not full xlang playback",
+  "costs": {
+    "publicRecordBytes": {
+      "sound": 24,
+      "group": 16
+    },
+    "privateBackendExtraBytes": {
+      "sound": 8,
+      "group": 8
+    },
+    "ownedOuterRecordBytes": 24,
+    "ownedOuterRecordAllocations": 1,
+    "extraBackendAllocations": 0,
+    "extraPcmCopies": 0,
+    "lifetimeBytes": {
+      "before": 32,
+      "after": 40
+    },
+    "additionalDeclaredGlobals": 1,
+    "allocatorFastPath": "One error-context lookup per allocation; ambient diagnostics additionally retain/release; failed allocations filter diagnostic ownership"
+  },
+  "remaining": [
+    "Complete matched xlang audio declarations/runtime acceptance and readable examples",
+    "SoundLoad stable result ownership",
+    "Pending immutable clip/sequence thread-policy choice",
+    "Module-global resource/code residency gate",
+    "Remaining XGE/XUI/Document scope and final coherent mainline SDK/compiler/IDE delivery"
+  ]
+}
