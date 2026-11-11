@@ -1,0 +1,75 @@
+{
+  "schema": "xlang-foreign-span-prefix-windows-1",
+  "passed": true,
+  "shippingDelivery": false,
+  "releaseIdeInstalled": false,
+  "featureCommit": "3958b1858",
+  "platform": "win_x64",
+  "scope": "Complete Windows O2 compiler/runtime/TinyCC/XRT/VFS and embedded compiler qualification of clamped byte prefixes; Linux and the remaining SVG/region integration gates are separate.",
+  "build": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r20\\build.json",
+    "sha256": "1ad60565447664159d3c91be40f2b1477792950d291c6c5f22c7a8563f9f3c2d",
+    "sourceFreeze": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r20\\freeze.json",
+      "sha256": "f9bb0e6e6291988ac77bbc01a2f56dac35ef47f482e086359d4ff7c3fb15c0a7"
+    },
+    "seconds": 858.0469999999623,
+    "products": {
+      "xl.exe": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r20\\source\\release\\win_x64\\xl.exe",
+        "sha256": "b06ecff88b5b9f438820a93f7ec7c8be5d605c5e55c8d6e6c58c8d2c2641ed80",
+        "bytes": 72704
+      },
+      "xl.dll": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r20\\source\\release\\win_x64\\xl.dll",
+        "sha256": "57f959f5e5838d2ede732103aeae94cd5a624ae20871923b1e38dbd85870a98b",
+        "bytes": 15211008
+      },
+      "xlc.dll": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r20\\source\\release\\win_x64\\xlc.dll",
+        "sha256": "cec9fb17dec5ffa1632209c703ef9431f4fba93d3eb080a38ff0179af43a9016",
+        "bytes": 21330944
+      }
+    }
+  },
+  "sourceOverrides": {
+    "src/type/xl6_foreign_call_contract.h": "7a4a5d5400b00d3a1b92f47488cdd5b908eb094c4cece123163db7116d2a6d9c",
+    "src/type/xl6_foreign_decl.h": "a8d57f1a2cdd58ca336e9aee7ee7574a5f3a6369568e2d0112618d2cc01b542f",
+    "src/sem/xl6_sem.c": "cd9a7027674114f7aa4f78dd9352b69a52efdccc06949b8b11595d92b39a82f9",
+    "src/sem/xl6_sem_foreign_compat.c": "1c9aa85a24195deb2951ce0a091eba89118068fd888a40701e4d2bb2c6262fbb",
+    "src/ir/xl6_ir_foreign_parameter.c": "3d01ba1da73f7dc9932425bc39cde907064c4bd417702b80bd56cce1e9c6732b",
+    "src/ir/xl6_ir_foreign_pack.c": "f2bbe097c9ccb1da223598383448bf4e8aea4f3f3fc268376063242f3df985ef",
+    "src/ir/xl6_ir_foreign_compat.c": "69b79730f0e21d26c5f480c89aeebcb7254e68b6bafd778bda5000dc48a4150b",
+    "src/ir/xl6_ir_foreign_span_compat.c": "400d40e3266d28e44071b5b6c33a03d6d178e43de3cd496f543473e0a37f0b42",
+    "src/cgen/xl6_ir_cgen_foreign_span.c": "4598ef918087fb50861c3652d210dc398d5df1e4c5aa8b6df1f50655dd43707a"
+  },
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\span-prefix-qualified-win-r1\\results.json",
+      "sha256": "c3aaed17ff06c4f9af7235aa8678c7ebcb2263b21cb6678b8e556d0abd3ca81d",
+      "commands": 26
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\span-prefix-regression-borrowed-qualified-win-r1\\results.json",
+      "sha256": "3fb25d2ac125579573efd8b657aab4eac4acac782f9be6e3c2d9d568cc9274bd",
+      "commands": 37
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\span-prefix-regression-cstring-qualified-win-r1\\results.json",
+      "sha256": "e3694341ab82b353feec397705498820ea6fd69345e971dd28160bfc40150742",
+      "commands": 21
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\span-prefix-regression-fixed-qualified-win-r1\\results.json",
+      "sha256": "6b7d25d5536a4c946799848884f83b54a39917c24543814a231a424b79cde26f",
+      "commands": 36
+    }
+  ],
+  "commandChecks": 120,
+  "embeddedJitAotQualified": true,
+  "remaining": [
+    "Linux complete r12 cohort still building.",
+    "Safe SVG declarations, prefix/region composition and fallback/thread admission.",
+    "Final matched compiler/SDK/IDE delivery."
+  ]
+}

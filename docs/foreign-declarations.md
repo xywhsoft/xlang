@@ -1002,6 +1002,14 @@ heap operations. Complete Windows r20/Linux r12 O2/TCC/XRT/VFS and embedded
 compiler acceptance is still pending; this preflight does not install release
 or IDE binaries.
 
+The later Windows r20 complete O2 build passed 120 command checks, including
+the new prefix fixture, nested JIT and an independently built embedded-compiler
+host, native ABI headers/shared C++ clients, and borrowed/C-string/fixed output
+regressions. `foreign-span-prefix-windows-20261112.json` records the exact full
+build, source freeze and tests. Linux r12 is a separate pending cohort. Neither
+report qualifies prefix/region composition, the whole SVG package or final
+compiler/SDK/IDE delivery.
+
 ## Size-prefixed native record outputs
 
 `@c_output_size(physicalOutput,"field")` initializes the named C member of an
