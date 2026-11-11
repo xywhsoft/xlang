@@ -9,7 +9,7 @@
 #include <string.h>
 #define FILE_BYTES (8u*1024u*1024u)
 typedef struct pinned_directory {wchar_t* path;HANDLE handle;BY_HANDLE_FILE_INFORMATION identity;} pinned_directory;
-typedef struct pinned_file {wchar_t* path;HANDLE handle;size_t document;xide_file_snapshot snapshot;} pinned_file;
+typedef struct pinned_file {wchar_t* path;HANDLE handle;size_t document;xide_file_snapshot snapshot;int bom,eol;} pinned_file;
 struct xide_workspace_edit_files {xide_workspace_edit* plan;xarray directories,files;};
 static int fail(xide_model_error* e,int code,const char* s){if(e){e->code=code;snprintf(e->message,sizeof(e->message),"%s",s);}return 0;}
 static int stopped(int (*fn)(void*),void* user,xide_model_error* e){if(!fn || !fn(user))return 0;fail(e,XIDE_MODEL_CONFLICT,"Workspace edit file validation cancelled.");return 1;}
@@ -34,19 +34,22 @@ void xideWorkspaceEditFilesDestroy(xide_workspace_edit_files* p)
 size_t xideWorkspaceEditFilesCount(const xide_workspace_edit_files* p){return p?p->files.Count:0;}
 int xideWorkspaceEditFilesAt(const xide_workspace_edit_files* p,size_t at,size_t* document,xide_file_snapshot* out)
 {if(document)*document=SIZE_MAX;if(out)memset(out,0,sizeof(*out));const pinned_file* f=p?xrtArrayConstGet(&p->files,at):NULL;if(!f || !document || !out)return 0;*document=f->document;*out=f->snapshot;return 1;}
-static int readBody(HANDLE file,const xide_workspace_edit_document* document,int (*cancelled)(void*),void* user,xide_model_error* e)
+int xideWorkspaceEditFilesCodecAt(const xide_workspace_edit_files* p,size_t at,int* bom,int* eol)
+{if(bom)*bom=0;if(eol)*eol=0;const pinned_file* f=p?xrtArrayConstGet(&p->files,at):NULL;if(!f || !bom || !eol)return 0;*bom=f->bom;*eol=f->eol;return 1;}
+static int readBody(HANDLE file,const xide_workspace_edit_document* document,int* bom,int* eol,int (*cancelled)(void*),void* user,xide_model_error* e)
 {
  size_t size=document->proof.rawSize;unsigned char* raw=xrtCalloc(size+1,1);if(!raw)return fail(e,XIDE_MODEL_MEMORY,"Cannot allocate closed source validation buffer.");
  LARGE_INTEGER zero={0};int okay=SetFilePointerEx(file,zero,NULL,FILE_BEGIN)!=0;size_t at=0;
  while(okay && at<size){if(stopped(cancelled,user,e)){okay=0;break;}DWORD got=0,want=size-at>65536?65536:(DWORD)(size-at);okay=ReadFile(file,raw+at,want,&got,NULL) && got==want;at+=got;}
  xide_text_file decoded={0};if(okay)okay=xideTextFileDecode(raw,size,&decoded,e) && strlen(decoded.text)==xlsTextSize(document->before) && !memcmp(decoded.text,xlsTextData(document->before),xlsTextSize(document->before));
+ if(okay){*bom=decoded.bom;*eol=decoded.eol;}
  xideTextFileClear(&decoded);xrtFree(raw);return okay?1:fail(e,e && e->code?e->code:XIDE_MODEL_CONFLICT,"Closed source does not decode to the captured workspace edit text.");
 }
 xide_workspace_edit_files* xideWorkspaceEditFilesPin(const xide_workspace_edit* plan,int (*cancelled)(void*),void* user,xide_model_error* e)
 {
  if(e){memset(e,0,sizeof(*e));}xide_workspace_edit_info info;if(!xideWorkspaceEditInfo(plan,&info)){fail(e,XIDE_MODEL_INVALID,"Missing prepared workspace edit.");return NULL;}
  xide_workspace_edit_files* p=xrtCalloc(1,sizeof(*p));if(!p){fail(e,XIDE_MODEL_MEMORY,"Cannot allocate workspace edit file gate.");return NULL;}
- p->plan=xideWorkspaceEditRetain((xide_workspace_edit*)plan);size_t total=0,pathBytes=0;int okay=xrtArrayInit(&p->directories,sizeof(pinned_directory)) && xrtArrayInit(&p->files,sizeof(pinned_file));
+ p->plan=xideWorkspaceEditRetain((xide_workspace_edit*)plan);size_t total=0,pathBytes=0;int okay=p->plan && xrtArrayInit(&p->directories,sizeof(pinned_directory)) && xrtArrayInit(&p->files,sizeof(pinned_file));
  for(size_t i=0;okay && i<info.documents;++i){
   if(stopped(cancelled,user,e)){okay=0;break;}xide_workspace_edit_document doc;okay=xideWorkspaceEditDocumentAt(plan,i,&doc);if(!okay)break;if(doc.hasVersion)continue;
   if(!doc.proof.present || doc.proof.overlay || doc.proof.rawSize>FILE_BYTES || doc.proof.rawSize>64u*1024u*1024u-total){okay=fail(e,XIDE_MODEL_INVALID,"Closed source requires a bounded validated disk proof.");break;}total+=doc.proof.rawSize;
@@ -75,12 +78,14 @@ xide_workspace_edit_files* xideWorkspaceEditFilesPin(const xide_workspace_edit* 
   if(!ordinary(f->handle,0,&identity)){okay=fail(e,XIDE_MODEL_CONFLICT,"Cannot pin a writable single-link workspace edit source.");break;}
   xide_workspace_edit_document doc;xideWorkspaceEditDocumentAt(plan,f->document,&doc);
   if((((uint64_t)identity.nFileSizeHigh<<32)|identity.nFileSizeLow)!=doc.proof.rawSize){okay=fail(e,XIDE_MODEL_CONFLICT,"Closed source raw size no longer matches.");break;}
-  okay=xideFileSnapshotInspectHandle(f->handle,&f->snapshot,e) && f->snapshot.length==doc.proof.rawSize && !memcmp(f->snapshot.sha256,doc.proof.rawSha256,32) && readBody(f->handle,&doc,cancelled,user,e);
+  okay=xideFileSnapshotInspectHandle(f->handle,&f->snapshot,e) && f->snapshot.length==doc.proof.rawSize && !memcmp(f->snapshot.sha256,doc.proof.rawSha256,32) && readBody(f->handle,&doc,&f->bom,&f->eol,cancelled,user,e);
   if(!okay){fail(e,e && e->code?e->code:XIDE_MODEL_CONFLICT,"Closed source raw digest or decoded snapshot no longer matches.");break;}
   for(size_t j=0;j<i;++j){const pinned_file* old=xrtArrayConstGet(&p->files,j);if(f->snapshot.volume==old->snapshot.volume && f->snapshot.index==old->snapshot.index){okay=fail(e,XIDE_MODEL_CONFLICT,"Workspace edit paths identify the same physical source.");break;}}
  }
  if(okay)okay=xideWorkspaceEditFilesValidate(p,cancelled,user,e);
- if(!okay){if(e && !e->code)fail(e,XIDE_MODEL_MEMORY,"Cannot prepare workspace edit file gate.");xideWorkspaceEditFilesDestroy(p);p=NULL;}return p;
+ if(!okay){if(e && !e->code)fail(e,XIDE_MODEL_MEMORY,"Cannot prepare workspace edit file gate.");xideWorkspaceEditFilesDestroy(p);p=NULL;}
+ else{xideWorkspaceEditRelease(p->plan);p->plan=NULL;}
+ return p;
 }
 int xideWorkspaceEditFilesValidate(xide_workspace_edit_files* p,int (*cancelled)(void*),void* user,xide_model_error* e)
 {
@@ -95,4 +100,25 @@ int xideWorkspaceEditFilesValidate(xide_workspace_edit_files* p,int (*cancelled)
   xide_file_snapshot current={0};if(!xideFileSnapshotInspectHandle(f->handle,&current,e) || !xideFileSnapshotEqual(&f->snapshot,&current))return fail(e,XIDE_MODEL_CONFLICT,"Workspace edit source bytes or metadata changed.");
  }
  return !stopped(cancelled,user,e);
+}
+static int sameSnapshotMetadata(const BY_HANDLE_FILE_INFORMATION* i,const xide_file_snapshot* s)
+{return i->dwVolumeSerialNumber==s->volume && (((uint64_t)i->nFileIndexHigh<<32)|i->nFileIndexLow)==s->index && (((uint64_t)i->nFileSizeHigh<<32)|i->nFileSizeLow)==s->length && (((uint64_t)i->ftLastWriteTime.dwHighDateTime<<32)|i->ftLastWriteTime.dwLowDateTime)==s->lastWrite && i->dwFileAttributes==s->attributes;}
+int xideWorkspaceEditFilesCopyBefore(xide_workspace_edit_files* p,size_t at,void* destination,int (*cancelled)(void*),void* user,xide_model_error* e)
+{
+ if(e)memset(e,0,sizeof(*e));
+ pinned_file* f=p?xrtArrayGet(&p->files,at):NULL;BY_HANDLE_FILE_INFORMATION target={0},before={0},after={0};
+ if(!f || !destination || !ordinary((HANDLE)destination,0,&target) || target.nFileSizeHigh || target.nFileSizeLow)return fail(e,XIDE_MODEL_INVALID,"Before-byte export requires a new empty ordinary destination.");
+ for(size_t i=0;i<p->files.Count;++i){const pinned_file* source=xrtArrayConstGet(&p->files,i);if(source->snapshot.volume==target.dwVolumeSerialNumber && source->snapshot.index==(((uint64_t)target.nFileIndexHigh<<32)|target.nFileIndexLow))return fail(e,XIDE_MODEL_CONFLICT,"A before-byte export cannot target any pinned source.");}
+ if(!ordinary(f->handle,0,&before) || !sameSnapshotMetadata(&before,&f->snapshot))return fail(e,XIDE_MODEL_CONFLICT,"Before-byte source metadata changed.");
+ if(stopped(cancelled,user,e))return 0;
+ LARGE_INTEGER zero={0};if(!SetFilePointerEx(f->handle,zero,NULL,FILE_BEGIN) || !SetFilePointerEx((HANDLE)destination,zero,NULL,FILE_BEGIN))return fail(e,XIDE_MODEL_IO,"Cannot seek before-byte export handles.");
+ unsigned char block[65536],digest[32];xsha256 hash;xrtSha256Init(&hash);int okay=1;uint64_t copied=0;
+ while(okay && copied<f->snapshot.length){
+  if(stopped(cancelled,user,e))return 0;
+  DWORD got=0,written=0,want=f->snapshot.length-copied>sizeof(block)?sizeof(block):(DWORD)(f->snapshot.length-copied);
+  okay=ReadFile(f->handle,block,want,&got,NULL) && got==want && xrtSha256Update(&hash,block,got) && WriteFile((HANDLE)destination,block,got,&written,NULL) && written==got;copied+=got;
+ }
+ if(!okay)return fail(e,XIDE_MODEL_IO,"Before-byte export I/O or hashing failed; partial destination is caller-owned.");
+ okay=xrtSha256Final(&hash,digest) && !memcmp(digest,f->snapshot.sha256,32) && ordinary(f->handle,0,&after) && sameSnapshotMetadata(&after,&f->snapshot);
+ return okay?!stopped(cancelled,user,e):fail(e,XIDE_MODEL_CONFLICT,"Before-byte source digest/metadata changed; partial destination is caller-owned.");
 }

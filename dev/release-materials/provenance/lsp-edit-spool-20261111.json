@@ -1,0 +1,137 @@
+{
+  "schema": 1,
+  "date": "2026-11-11",
+  "stage": "M7b5c",
+  "scope": "Durable prepared WorkspaceEdit recovery package for complete disk/overlay text plans; not a mixed-file apply transaction",
+  "implementationAccepted": true,
+  "performanceQualified": false,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "264471dd7c2ade85a2c8981a517e4898602667b5",
+  "ownedSources": {
+    "ide/src/platform/workspace_edit_files.c": "dfde17e8392eec687b4cc57d0053f14300f0d2cccf1dbf990ce8d24fbe9a05f3",
+    "ide/src/platform/workspace_edit_files.h": "b857dc3dfa0f775ce4ef2af279cccc1179cf3799c07a6f6fcda7d99f59c00acc",
+    "ide/src/platform/workspace_edit_spool.c": "e252b8f92fa9116dc6e1412f5da0335a6bc7e743078c89e2adfe8bb6b80afe90",
+    "ide/src/platform/workspace_edit_spool.h": "bf8aa02bffacbd418837c120f6f6b9c98a9edadbfb3f4905c5761a0e5c4c1b4a",
+    "ide/tests/workspace_edit_files_test.c": "c21b9be13225f39a6f7d81e677b875df190c290a42e6b0b7a081d4d2c34d9348",
+    "ide/tests/workspace_edit_file_export_test.c": "7ed787b54c3887c50581670179b9803d0e51f8beba0083701cb64fbb94df4d70",
+    "ide/tests/workspace_edit_spool_test.c": "692713c9b589d87cbb5459cd0a698797e9304bc85ed29c01a9ab46fb97fb03e1",
+    "ide/tests/workspace_edit_spool_fixture.h": "5f9fde223f210891c7bc8e51662013ed52509d392f8f0709557e6b4750488138",
+    "ide/tests/workspace_edit_spool_guard_test.c": "2c0fdcdf4743e4bca78d09f7b0dc16cdbe9523ac08461298ef8fe7715ee3f633",
+    "ide/tests/workspace_edit_spool_fault_test.c": "ef71799cbfdf442d59b35ddb526dea58449d5247003c3327643c6d228fe91f2c",
+    "ide/tools/build.ps1": "c568a57e08a8c23214f65bcf35106790a6b2bebeb6d3c17daf5b6ba2fe18caaa",
+    "ide/tools/build_lsp_core.py": "f709eb6c0b95c104f69331d754b87aa26865a120d954a38911d360b3a7a7e8de",
+    "ide/docs/lsp-edit-spool.md": "201f53244a54ff8a01661e714ec947d0c72e0ee1e652bc922b1ddc7a07faf286",
+    "ide/docs/lsp-workspace-edit-files.md": "f5554ae1315b179bcadb770bbb4e8817aa844056ee6a9eb2195603d604a4bd2a"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-edit-spool-20261111.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-edit-spool-20261111/stage-sources.tar.gz",
+      "sha256": "69112e415b59c3d808962c5107a6af1aa1e08da49588c8564b18eea747b1f0be",
+      "bytes": 71970,
+      "entries": 15,
+      "uniquePayloads": 15,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-edit-spool-20261111/stage-sources.tar.gz.manifest.json",
+      "sha256": "3f6231c9305fdfd62ca6f7dc32bc5c7d973f1f0aa70b063dc2a2f83451e405ac",
+      "bytes": 3460
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-edit-spool-20261111/actual-builds-and-validation.tar.gz",
+      "sha256": "bb61279e86f34bcb309833aaf3bcca472450b9e3a7cee73bef94b63dd36132c4",
+      "bytes": 255548635,
+      "entries": 14629,
+      "uniquePayloads": 3482,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-edit-spool-20261111/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "f57b8c40164d8f7377eac4e901814b17592d7abcc8ad5e70ad61d0ea8b99d299",
+      "bytes": 5094783
+    },
+    "linkClosure": {
+      "path": "dev/release-materials/provenance/lsp-edit-spool-20261111/actual-link-closure.tar.gz",
+      "sha256": "1ecc9094e0f0978e7e89d500c9c5b6e02f603cd994af4962e6b9ffa487c83f12",
+      "bytes": 4724388,
+      "entries": 7,
+      "uniquePayloads": 7,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "linkClosureManifest": {
+      "path": "dev/release-materials/provenance/lsp-edit-spool-20261111/actual-link-closure.tar.gz.manifest.json",
+      "sha256": "1aa4210eadfca625537123c042fb7d7d3bf05d6e970de0b3d3248d97f8fbc16f",
+      "bytes": 2066
+    }
+  },
+  "currentBindings": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-edit-spool-20261111\\final-bindings.json",
+    "sha256": "55dde22566eb44c3f09088f3450dcf1b6dd5cdbd3d686eaa90d3ac8fc8800bf1"
+  },
+  "sdkInherited": {
+    "index": "dev/release-materials/provenance/lsp-open-edit-20261111.json",
+    "indexSha256": "a61477f527ecfbe5b1760038af8d71e908be08585731c6871e5fd85019fc8616",
+    "dllSha256": "51cc62cb935e54ef16abcb8a4ae8ee845d64254123a822ba4004c63dad42359e",
+    "compiledSdkUnitsThisStage": 0,
+    "matchedSetPreserved": true
+  },
+  "correctness": {
+    "spoolAssertions": 118,
+    "exportAssertions": 77,
+    "guardAssertions": 1374,
+    "oldFilegateAssertions": 65,
+    "oldFilegateColdAllocationGates": 39,
+    "coldSpoolAllocationGates": 348,
+    "allocationControlObserved": 348,
+    "sameArgumentPathForAllColdGates": true,
+    "realNativeMemoryStatsProbed": true,
+    "resourceBalanceAfterIndependentServiceWarmup": true,
+    "spoolCancellationPoints": 98,
+    "exportCancellationPoints": 6,
+    "actualWorkerPrepare": true,
+    "independentProcessExitReopen": true,
+    "actualMutantsRejected": 8,
+    "guiObjects": 121,
+    "guiFixtures": 45,
+    "existingOpenEditAssertions": 2209,
+    "actualBoundedGuiLanguages": [
+      "c",
+      "xlang"
+    ],
+    "actualBoundedGuiFramesEach": 24,
+    "visualScreenshotsInspected": true,
+    "guiHeapStatisticsAvailable": false,
+    "otherNativeAndProtocolProgramsNotRerun": true,
+    "rawFailuresRetained": true
+  },
+  "serviceSha256": "df290f266bb8882e95751487d146070ac854b2f8cd9c827d95fd44f049cb4d74",
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "limits": [
+    "Prepared recovery data only; no editor/source writes, mixed-file commit/rollback, recovery writes or protocol activation",
+    "No package retirement/discard API, actor scheduling, UI confirmation, whole source/physical alias or external request/config/project fences yet",
+    "Binding is untrusted context, never consent; reopened packages do not pin or recapture original sources",
+    "Body hashes ignore last-write finalization time; original source gates still require complete snapshot metadata",
+    "Known-storage reservation is not whole process/RSS; generic JSON/map/allocator internals, source gate and handles are additional",
+    "Multiple hashing/codec passes and existing noninterruptible helpers remain; no complete cancellation/latency/performance qualification",
+    "Cold fault wrappers exercise observed direct malloc/calloc/xrtCalloc/xrtArrayPush gates, not every possible internal/OS failure",
+    "Native service-startup control isolates lazy GUID/RNG/atomic-I/O handles; no whole XRT global-shutdown or GUI heap-statistics proof",
+    "Process exit is not power-cut/filesystem durability certification; no Win7 physical-hardware claim",
+    "Final native test link registration and docs changed after GUI source freeze; actual product dependencies and standalone test source/header bytes verified unchanged",
+    "Matched private/candidate SDK inherited, not rebuilt or formally released this stage; default runtime/delivery index unchanged"
+  ],
+  "additionalBindings": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-edit-spool-20261111\\link-closure.json",
+    "sha256": "0f7be7c9022d71f8c1df786d7208b6b491a6a8204151f36c78f3e32dc84328ad"
+  }
+}
