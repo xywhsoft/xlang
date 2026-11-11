@@ -233,3 +233,30 @@ fallback Faces still need caller serialization; safe language fallback/thread
 admission must be qualified. This native prerequisite does not add the complete
 Svg/SvgPaint/SvgCache declarations, clamped byte-prefix mapping or final matched
 delivery. No release/IDE files were installed.
+
+## Clamped input and output-region prerequisites
+
+`3958b1858` adds the general adjacent `int64` byte limit to `c_span`: `-1`
+selects the complete input, nonnegative values clamp to the real byte length,
+and other negatives reject before native entry. The direct call still has one
+pointer/count pair. Declaration facts remain 88 bytes; only sparse parameter
+rows add four bytes on x64. The preflight records 113 command checks and 130
+damaged-IR rejections. The later complete Windows r20 O2/TCC/XRT/VFS build
+passes 120 checks, including its embedded JIT and independently built compiler
+host. Linux r12 is a separate cohort. These are basic-prefix gates, not the
+later region-composition gate.
+
+`46a609352` composes that input with a fixed output pixel region in the shared
+physical-signature walk. The adjacent logical limit is consumed before mapping
+the region pointer, dimensions or stride; pointer/count members cannot become
+unrelated scalar selectors. No SVG-specific forwarding function is added.
+`foreign-span-region-prefix-preflight-20261112.json` records 17 O0 frontend
+checks and 55 damaged-IR rejections. Strided output preserves padding and length;
+bad prefixes/capacity/stride preserve the destination and do not call native.
+Field/bound/protocol paths, exact C/C++ headers and a real shared-library client
+pass; 200 warmed field calls succeed with a zero XRT allocation budget.
+
+The composition still needs integrated O2/embedded-compiler qualification.
+Safe Svg/SvgPaint/SvgCache declarations, callback/owner scopes, fallback/thread
+admission and final matched delivery remain separate gates. No release/IDE
+installation or full SVG completion is claimed by these compiler prerequisites.
