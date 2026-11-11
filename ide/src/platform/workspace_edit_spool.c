@@ -2,6 +2,7 @@
 #define _WIN32_WINNT 0x0601
 #endif
 #include "platform/workspace_edit_spool.h"
+#include "platform/workspace_edit_spool_internal.h"
 #include "platform/recovery_store.h"
 #include "platform/state_file.h"
 #include "platform/path.h"
@@ -71,6 +72,15 @@ static void release(xide_edit_spool* p,int abandon)
 void xideEditSpoolDestroy(xide_edit_spool* p){release(p,0);}
 const xvalue* xideEditSpoolManifest(const xide_edit_spool* p){return p?p->marker.source:NULL;}
 xide_workspace_edit_files* xideEditSpoolSources(xide_edit_spool* p){return p?p->sources:NULL;}
+int xideEditSpoolJournalIdentity(xide_edit_spool* p,const char** directory,unsigned char sha256[32],xide_model_error* e)
+{
+ if(directory)*directory=NULL;
+ if(sha256)memset(sha256,0,32);
+ if(e)memset(e,0,sizeof(*e));
+ xide_file_snapshot snapshot={0};if(!p||!directory||!sha256||!p->markerHandle||p->markerHandle==INVALID_HANDLE_VALUE)return fail(e,XIDE_MODEL_INVALID,"Missing pinned recovery marker for journal binding.");
+ if(!xideFileSnapshotInspectHandle(p->markerHandle,&snapshot,e))return 0;
+ *directory=p->guard.directory;memcpy(sha256,snapshot.sha256,32);return 1;
+}
 static xide_edit_spool* begin(const char* directory,size_t limit,xide_model_error* e)
 {
  xide_edit_spool* p=xrtCalloc(1,sizeof(*p));if(!p){fail(e,XIDE_MODEL_MEMORY,"Cannot allocate edit recovery package.");return NULL;}p->limit=limit;p->used=sizeof(*p);

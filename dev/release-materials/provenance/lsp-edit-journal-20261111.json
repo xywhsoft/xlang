@@ -1,0 +1,117 @@
+{
+  "schema": 1,
+  "date": "2026-11-11",
+  "stage": "M7b5e",
+  "scope": "Append-only WorkspaceEdit write-ahead transaction journal, bound to exact prepared package and real closed-file writer; recovery inspection remains readonly",
+  "implementationAccepted": true,
+  "performanceQualified": false,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "7bdc85986a2b82636323db7d7489a615f5199880",
+  "ownedSources": {
+    "ide/src/platform/workspace_edit_spool.c": "fd75d6ccd86ae6495876f8c70d5a817a17bd979d734616309370637190197acb",
+    "ide/src/platform/workspace_edit_spool_internal.h": "356ddb618d2c70c56fd4eb008faad2096ac6a65f5f7ff3c6d09e710d60b5fb2a",
+    "ide/src/platform/workspace_edit_journal.c": "73ddf02277cb4a1e9e41bf2726b12d863f9da0b71422c4b9bffa86dbeed59d05",
+    "ide/src/platform/workspace_edit_journal.h": "59dbe27f5dedd5bc0ca8bea06a1cd02bd8679fa600a76018048698271db42794",
+    "ide/tests/workspace_edit_journal_test.c": "97631dabc1f541349aeb4324ab9381dbeb3c845fa19c0c9927cf390ca287ac0e",
+    "ide/tests/workspace_edit_journal_fault_test.c": "bfb8f9f8eceab065d6797819a2c5bb63ea792f132358411483d4b94ea1058d83",
+    "ide/tools/build.ps1": "c71b5864d29bd7a070a6b1dd33847f1b6f456672bc81e0ab618677a7f9d19989",
+    "ide/tools/build_lsp_core.py": "ca6fbdaa8a737ddbf6a30f933c6350ba3665b8e3737a3ba4eccb35d9605aab33",
+    "ide/docs/lsp-edit-transaction-journal.md": "b6ddd7a4e4e622dca5decdb6e14af6dde252ede47524028d6ec1741fc4d11287",
+    "ide/docs/lsp-edit-file-write.md": "f17f7fe7057376f1235c4c0974ed9b5533b8527c9819a26f5281784167c08ce4"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-edit-journal-20261111.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-edit-journal-20261111/stage-sources.tar.gz",
+      "sha256": "a10a3a31f1ffcbcb41019d7dd6aee9442c81d86793900fcc55d4500679dcc043",
+      "bytes": 67756,
+      "entries": 11,
+      "uniquePayloads": 11,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-edit-journal-20261111/stage-sources.tar.gz.manifest.json",
+      "sha256": "8d96e2970e2d8b0e38014190f5b0a1846242c6294780572c0c7ce5ffa8867543",
+      "bytes": 2540
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-edit-journal-20261111/actual-builds-and-validation.tar.gz",
+      "sha256": "c5e59307e978afc6c3eb36e44509999895203ac1399ee68a6f4fc7f3a513372b",
+      "bytes": 268838330,
+      "entries": 12548,
+      "uniquePayloads": 3737,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-edit-journal-20261111/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "9c8aed17dd0e8116bd2b8f7c9346577ebd2e2e50867fb41b9f6f961c0551546a",
+      "bytes": 4614910
+    }
+  },
+  "currentBindings": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-edit-journal-20261111\\final-bindings.json",
+    "sha256": "bc78950cd89c84292f3287258dd3af7f13232cbc5b2ccc3de9b8c3b331329110"
+  },
+  "sdkInherited": {
+    "index": "dev/release-materials/provenance/lsp-edit-write-20261111.json",
+    "indexSha256": "5d59dc371caa894ffbac524bb09fdebc2a097a0fa33a15ba8b293481e1398e66",
+    "dllSha256": "51cc62cb935e54ef16abcb8a4ae8ee845d64254123a822ba4004c63dad42359e",
+    "compiledSdkUnitsThisStage": 0,
+    "matchedSetPreserved": true
+  },
+  "correctness": {
+    "journalAssertions": 1156,
+    "constructorColdAllocationGates": 13,
+    "appendColdAllocationGates": 1,
+    "realNativeHeapStatisticsProbed": true,
+    "realTwoFileApplyAndReverseRestore": true,
+    "partialSourceWriteRecovery": true,
+    "resealedSemanticMutations": 10,
+    "tornTailCuts": 36,
+    "independentProcessExitPoints": 4,
+    "wholeFixtureHandleBalanceAfterProcessWarmup": true,
+    "pureWin32AndMatchedRuntimeControls": true,
+    "actualImplementationMutantsRejected": 10,
+    "guiObjects": 123,
+    "guiFixtures": 47,
+    "existingWriterAssertions": 877,
+    "existingSpoolAssertions": 118,
+    "existingSpoolGuardAssertions": 1410,
+    "existingExportAssertions": 77,
+    "existingOpenEditAssertions": 2209,
+    "actualBoundedGuiLanguages": [
+      "c",
+      "xlang"
+    ],
+    "actualBoundedGuiFramesEach": 24,
+    "visualScreenshotsInspected": true,
+    "guiHeapStatisticsAvailable": false,
+    "otherNativeAndProtocolProgramsNotRerun": true,
+    "rawFailuresRetained": true
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "serviceSha256": "df290f266bb8882e95751487d146070ac854b2f8cd9c827d95fd44f049cb4d74",
+  "limits": [
+    "Journal is not the production mixed-file actor or an implicit host/physical/source/consent fence; standard protocol entries remain disabled",
+    "All reopening is frozen/inspection-only; restart source writes, recovery UI, package retirement and source-reader/toolchain coordination remain open",
+    "GUI publishing/commit events are tested as state transitions; production XUI outcome coordination has not been wired",
+    "SHA chain detects binding/order/corruption, not malicious-local authentication or permission",
+    "Recorded file verification is historical, not fresh physical proof after restart",
+    "Single worker sequential use; parent Spool/guard/bodies/source pins must outlive journal; no destruction-time writes",
+    "Bounded log/frame/target storage is not peak RSS or whole latency qualification;4096-record/8MiB stress and platform fault coverage remain incomplete",
+    "Process exit is not power-cut or Win7 physical-hardware certification",
+    "Only final standalone process-warm and append-OOM fixtures changed after GUI freeze; actual product sources/headers and final test inputs reverified",
+    "Native process controls isolate one-time process creation startup handles; no whole XRT shutdown or GUI heap-statistics proof",
+    "Default runtime, matched SDK, delivery index and unrelated work remain unchanged; whole-goal source coverage, scheduling, performance and delivery remain open"
+  ]
+}
