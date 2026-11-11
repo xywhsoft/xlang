@@ -362,3 +362,18 @@ AOT、96 档分配预算、Take 预留失败不丢结果、回调异常及真实
 的语言拥有视图增加 2/528。没有音频设备/窗口/网络测试，私有无设备初始化入口不
 进入正式 SDK。Clip 线程/只读序列、clip voices、fallback、通用全局代码寿命及最终
 当前主线配套交付继续保留；正式 release/IDE 未安装。
+
+2026-11-11 fallback 已单独完成[原生和语言验收](xge3-audio-integration.md#sound-fallback-language-qualification)，
+XGE 提交 `2fbc387d`。不可变路径快照保留初始化前配置，Set/Clear/读取并发安全，
+冷 Unit 清除配置；新增 `loadFallbackSound()` 直接返回独立拥有的 Sound。错误或
+OOM 不替换原配置，fallback 的严重错误不被最初文件错误遮盖。最终清理前须停止
+配置发布者，重叠 Set 可以合法地在线性化于先前 Unit 返回之后。
+
+完整 r56 O2 host/static 重建后，两端通过 412 项原生检查、16 项旧码失败控制和
+118 项语言/头/模块/范例构建检查，包括 JIT、动态/静态 AOT、真实无设备 PCM、
+80 档语言分配预算及并发发布。实际生产 DLL 的冷模块检查无需音频/引擎初始化，
+通过显式 Unit 后再释放保活请求并卸载；不替代自动模块全局寿命门。实测配置
+Set 与 C 同为一次路径分配，拥有式 fallback voice 比同负载 C 多 2 次分配/528
+字节，另有锁、计数、错误/路径与代码寿命成本。证据为
+`xge-audio-fallback-20261111.json`。公开 Clip 线程/序列、clip voices、通用全局
+代码寿命、其他全量模块及最终当前主线配套交付仍在范围内；正式 release/IDE 未安装。

@@ -54,5 +54,7 @@ extern "xgeMusicFree" @header("xge3_audio_resources.h") @no_raise func freeMusic
 extern "xgeStreamClose" @header("xge3_audio_resources.h") @no_raise func freeAudioStream(AudioStream stream)
 export extern "xgeAudioGroupInit" @header("xge3_audio_resources.h") @no_raise @c_result("owned_view") @factory(0,0,freeAudioGroup) @c_inplace("xge_audio_group_t") func createAudioGroup() as AudioGroup
 export extern "xgeSoundCreateOwned" @header("xge3_audio_resources.h") @no_raise @c_cstr(0) @c_result("owned_view") @factory(0,0,freeSound) func loadSound(string path,AudioGroup? group=null) as Sound
+// Each call owns an independent voice from one immutable path snapshot.
+export extern "xgeSoundFallbackCreateOwned" @header("xge3_audio_resources.h") @no_raise @c_result("owned_view") @factory(0,0,freeSound) func loadFallbackSound() as Sound
 export extern "xgeMusicCreateOwned" @header("xge3_audio_resources.h") @no_raise @c_cstr(0) @c_result("owned_view") @factory(0,0,freeMusic) func loadMusic(string path,AudioGroup? group=null) as Music
 export extern "xgeStreamCreateOwned" @header("xge3_audio_resources.h") @no_raise @c_cstr(0) @c_result("owned_view") @factory(0,0,freeAudioStream) func openAudioStream(string path,AudioGroup? group=null) as AudioStream

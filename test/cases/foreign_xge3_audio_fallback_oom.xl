@@ -1,0 +1,63 @@
+import xge
+extern "fixtureXgeAudioBegin" @header("test/cases/foreign_xge3_audio_fallback.h") @no_raise @c_result("status",0) func beginAudio()
+extern "fixtureXgeAudioOwners" @header("test/cases/foreign_xge3_audio_fallback.h") @no_raise func owners() as uint64
+extern "fixtureXgeAudioPath" @header("test/cases/foreign_xge3_audio_fallback.h") func fixturePath() as string
+extern "fixtureXgeAudioHeap" @header("test/cases/foreign_xge3_audio_fallback.h") @no_raise @c_outputs(0,1) func heap() as (c_size,c_size)
+extern "xrtMemDebugFailAfter" @header("xrt_decl.h") @no_raise func failAfter(uint64 budget) as bool
+extern "xrtMemDebugFailClear" @header("xrt_decl.h") @no_raise func failClear()
+extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func debugEnabled() as bool
+func loadAndClose()
+ auto voice=xge.loadFallbackSound()
+ voice.close()
+end
+func main(...) as int
+ assert debugEnabled()
+ string path=fixturePath()
+ xge.init(4,4,"Fallback allocation checks",0,xge.XGE_RUN_MANUAL)
+ beginAudio()
+ try
+  xge.soundFallbackSet(path)
+  loadAndClose()
+  string replacement=path+".unpublished"
+  bool rejected=false
+  assert failAfter(uint64(0))
+  try
+   xge.soundFallbackSet(replacement)
+  catch Error error
+   rejected=true
+  end
+  failClear()
+  assert rejected
+  // A failed replacement leaves the previous path usable.
+  loadAndClose()
+  assert failAfter(uint64(0))
+  try
+   loadAndClose()
+  catch Error error
+  end
+  failClear()
+  int failed=0
+  int passed=0
+  for budget in range(80)
+   auto count0,bytes0=heap()
+   assert failAfter(uint64(budget))
+   try
+    loadAndClose()
+    passed+=1
+   catch Error error
+    failed+=1
+   end
+   failClear()
+   auto count1,bytes1=heap()
+   assert count0==count1 and bytes0==bytes1 and owners()==uint64(0)
+  end
+  assert failed>0 and passed>0
+  println("Fallback language budgets: ",failed," failures / ",passed," successes")
+ finally
+  failClear()
+  xge.soundFallbackClear()
+  xge.audioUnit()
+  xge.unit()
+ end
+ return 0
+end

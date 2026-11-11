@@ -73,8 +73,8 @@ export extern "xgeAudioSetVolume" @header("xge3_runtime.h") func audioSetVolume(
 export extern "xgeAudioGetVolume" @header("xge3_runtime.h") func audioGetVolume() as c_float
 export extern "xgeAudioListenerSet" @header("xge3_runtime.h") @c_ref(0) func audioListenerSet(AudioListener pListener)
 export extern "xgeAudioListenerGet" @header("xge3_runtime.h") func audioListenerGet() as AudioListener
-export extern "xgeSoundFallbackSet" @header("xge3_runtime.h") @c_cstr(0) func soundFallbackSet(string sPath) as c_int
-export extern "xgeSoundFallbackClear" @header("xge3_runtime.h") func soundFallbackClear()
+export extern "xgeSoundFallbackSet" @header("xge3_runtime.h") @no_raise @c_cstr(0) @c_result("status",0) func soundFallbackSet(string path)
+export extern "xgeSoundFallbackClear" @header("xge3_runtime.h") @no_raise func soundFallbackClear()
 export extern "xgeFontFallbackClear" @header("xge3_runtime.h") func fontFallbackClear()
 export extern "xgeEmojiPackClearDefault" @header("xge3_runtime.h") func emojiPackClearDefault()
 export extern "xgeSamplerDefault" @header("xge3_runtime.h") func samplerDefault() as Sampler

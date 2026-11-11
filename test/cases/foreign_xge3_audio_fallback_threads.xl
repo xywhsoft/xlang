@@ -1,0 +1,49 @@
+import xge
+extern "fixtureXgeAudioBegin" @header("test/cases/foreign_xge3_audio_fallback.h") @no_raise @c_result("status",0) func beginAudio()
+extern "fixtureXgeAudioMix" @header("test/cases/foreign_xge3_audio_fallback.h") @no_raise @c_result("status",0) func mix()
+extern "fixtureXgeAudioOwners" @header("test/cases/foreign_xge3_audio_fallback.h") @no_raise func owners() as uint64
+extern "fixtureXgeAudioPath" @header("test/cases/foreign_xge3_audio_fallback.h") func fixturePath() as string
+extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func debugEnabled() as bool
+func writer(string path) as func() as int
+ return func() as int
+  for i in range(256)
+   xge.soundFallbackSet(path)
+   if i%5==0 then xge.soundFallbackClear() end
+  end
+  return 0
+ end
+end
+func main(...) as int
+ assert debugEnabled()
+ string path=fixturePath()
+ xge.init(4,4,"Concurrent fallback configuration",0,xge.XGE_RUN_MANUAL)
+ beginAudio()
+ try
+  auto left=thread(writer(path))
+  auto right=thread(writer(path))
+  for i in range(64)
+   try
+    auto sound=xge.loadFallbackSound()
+    sound.close()
+   catch Error error
+    // A concurrent Clear may linearize before this snapshot is acquired.
+    assert error.code==int(xge.XGE_ERROR_RESOURCE_FAILED) and error.operation=="xgeSoundFallbackCreateOwned"
+   end
+  end
+  assert left.waitTimeout(30000) and right.waitTimeout(30000)
+  assert left.exitCode()==0 and right.exitCode()==0
+  xge.soundFallbackSet(path)
+  auto sound=xge.loadFallbackSound()
+  sound.setLoop(c_int(1))
+  sound.play()
+  mix()
+  sound.close()
+  assert owners()==uint64(0)
+  println("Fallback language workers and creator-thread voices passed")
+ finally
+  xge.soundFallbackClear()
+  xge.audioUnit()
+  xge.unit()
+ end
+ return 0
+end

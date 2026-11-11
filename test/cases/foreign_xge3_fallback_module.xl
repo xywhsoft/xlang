@@ -1,0 +1,20 @@
+// Configuration and an empty owning request need no engine/audio Init.
+import xge
+extern "fixtureAsyncModuleTick" @header("test/cases/foreign_xge3_async_module.h") @no_raise func tick() as c_int
+extern "fixtureAsyncModuleCallbacks" @header("test/cases/foreign_xge3_async_module.h") @no_raise func useCallbacks() as c_int
+extern "fixtureAsyncModulePath" @header("test/cases/foreign_xge3_async_module.h") func fixturePath() as string
+extern "fixtureAsyncModulePublish" @header("test/cases/foreign_xge3_async_module.h") @no_raise func publish(xge.SoundLoad request) as c_int
+xge.SoundLoad? retained=null
+func main(...) as int
+ xge.soundFallbackSet(fixturePath())
+ auto request=xge.createSoundLoad()
+ if useCallbacks()!=c_int(0) then
+  request.onComplete(func() as c_int
+   assert request.info().status==xge.XGE_ASYNC_PENDING
+   return tick()
+  end)
+ end
+ assert publish(request)==xge.XGE_OK
+ retained=request
+ return 0
+end

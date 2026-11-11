@@ -11,7 +11,9 @@ from full_compiler_qualification import verify_full_compiler
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--sound-load',action='store_true',help='Qualify the owning SoundLoad request instead of ordinary playback resources')
+    family=p.add_mutually_exclusive_group()
+    family.add_argument('--sound-load',action='store_true',help='Qualify the owning SoundLoad request instead of ordinary playback resources')
+    family.add_argument('--fallback',action='store_true',help='Qualify immutable fallback configuration and independent owned voices')
     for name in ('root', 'compiler', 'compiler-report', 'test-variant', 'out', 'objdump'):
         p.add_argument('--'+name, type=Path, required=True)
     a = p.parse_args()
@@ -23,7 +25,8 @@ def main():
     assert private['passed'] and private['inputsUnchanged'] and not private['shippingDelivery']
     assert not private['audioDevice']
     dynamic, static = variant/'packages-host', variant/'packages-static'
-    names = ('foreign_xge3_sound_load','foreign_xge3_sound_load_oom') if a.sound_load else (
+    names = ('foreign_xge3_audio_fallback','foreign_xge3_audio_fallback_oom','foreign_xge3_audio_fallback_threads') if a.fallback else (
+        'foreign_xge3_sound_load','foreign_xge3_sound_load_oom') if a.sound_load else (
         'foreign_xge3_audio_resources','foreign_xge3_audio_resources_oom','foreign_xge3_audio_threads')
     cases = [root/'test/cases'/(name+'.xl') for name in names]
     sdk = compiler.parent/'include'
@@ -31,7 +34,7 @@ def main():
              Path(metadata['sourceFreeze']), compiler, cohort, objdump, *cases,
              cases[0].with_suffix('.h'), root/'test/cases/foreign_xge3_audio_resources.h',
              root/'test/support/xge3_audio_headless.inc', variant/'test-variant.json']
-    if not a.sound_load:files.append(cases[2].with_suffix('.h'))
+    if not a.sound_load and not a.fallback:files.append(cases[2].with_suffix('.h'))
     for folder in (sdk, dynamic, static):
         files.extend(v for v in folder.rglob('*') if v.is_file())
     for name in ('xl.dll', 'xlc.dll') if os.name=='nt' else ('libxl.so', 'libxlc.so'):
@@ -48,7 +51,7 @@ def main():
     assert sha(image)==manifest['native']['sha256']
     report = dict(passed=False, scope=__doc__, fullCompilerBuild=True, shippingDelivery=False,
                   audioDevice=False, realMiniaudio=True, privateSetupExports=True,
-                  window=False, networkTests=False, soundLoad=a.sound_load, inputs=inputs, rows=[])
+                  window=False, networkTests=False, soundLoad=a.sound_load, fallback=a.fallback, inputs=inputs, rows=[])
     def save():
         (out/'results.json').write_text(json.dumps(report, indent=2)+'\n')
     def run(name, args, packages=None):
@@ -69,7 +72,22 @@ def main():
         print(name, result.returncode, flush=True)
         assert not result.returncode, log
         if name.endswith('-jit') or name.endswith('-run'):
-            if a.sound_load and '_oom-' in name:
+            if a.fallback and '_oom-' in name:
+                budgets=re.findall(rb'Fallback language budgets:\s*(\d+)\s+failures /\s*(\d+)\s+successes',result.stdout)
+                assert len(budgets)==1 and all(int(n)>0 and int(s)>0 and int(n)+int(s)==80 for n,s in budgets)
+                report.setdefault('allocationPrefixes',{})[name]=dict(failures=int(budgets[0][0]),successes=int(budgets[0][1]))
+            elif a.fallback and '_threads-' in name:
+                assert b'Fallback language workers and creator-thread voices passed' in result.stdout
+            elif a.fallback:
+                for label,key in [('path','configurationCosts'),('voice','retainedCosts')]:
+                    costs={k.decode():dict(allocations=int(n),bytes=int(b))for k,n,b in re.findall(
+                        rb'(Native|Language) fallback '+label.encode()+rb':\s*(\d+)\s+allocations /\s*(\d+)\s+bytes',result.stdout)}
+                    assert set(costs)=={'Native','Language'}
+                    if label=='path':assert costs['Native']==costs['Language'] and costs['Native']['allocations']==1
+                    else:assert costs['Language']['allocations']>=costs['Native']['allocations']
+                    report.setdefault(key,{})[name]=costs
+                assert b'Fallback pre-init, cold cleanup, owned voices and real PCM passed' in result.stdout
+            elif a.sound_load and '_oom-' in name:
                 budgets=re.findall(rb'SoundLoad language budgets:\s*(\d+)\s+failures /\s*(\d+)\s+successes',result.stdout)
                 assert len(budgets)==1 and all(int(n)>0 and int(s)>0 and int(n)+int(s)==96 for n,s in budgets)
                 report.setdefault('allocationPrefixes',{})[name]=dict(failures=int(budgets[0][0]),successes=int(budgets[0][1]))
@@ -115,9 +133,10 @@ def main():
             report.setdefault('binaries', []).append(dict(path=str(binary), variant=mode, sha256=sha(binary),
                 bytes=binary.stat().st_size, imports=[v.decode('ascii') for v in dependencies]))
         generated = cfile.read_text(encoding='utf8')
-        methods = ['xl6Xge3AsyncSoundCreateOwned','xgeAsyncSoundStartOwned','xgeAsyncSoundTakeOwned'] if a.sound_load else [
+        methods = ['xgeSoundFallbackSet','xgeSoundFallbackClear','xgeSoundFallbackCreateOwned'] if a.fallback else [
+            'xl6Xge3AsyncSoundCreateOwned','xgeAsyncSoundStartOwned','xgeAsyncSoundTakeOwned'] if a.sound_load else [
             'xgeAudioGroupInit','xgeSoundCreateOwned','xgeMusicCreateOwned','xgeStreamCreateOwned']
-        if not a.sound_load and case==cases[0]:
+        if not a.sound_load and not a.fallback and case==cases[0]:
             methods += ['xgeAudioUnitChecked','xgeUnitChecked','xgeAudioGroupSetVolume','xgeAudioGroupGetVolume',
                 'xgeAudioGroupFade']
             methods += ['xge'+kind+method for kind in ('Sound','Music','Stream') for method in

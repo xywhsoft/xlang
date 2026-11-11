@@ -1,0 +1,93 @@
+import xge
+extern "fixtureXgeAudioBegin" @header("test/cases/foreign_xge3_audio_fallback.h") @no_raise @c_result("status",0) func beginAudio()
+extern "fixtureXgeAudioMix" @header("test/cases/foreign_xge3_audio_fallback.h") @no_raise @c_result("status",0) func mix()
+extern "fixtureXgeAudioOwners" @header("test/cases/foreign_xge3_audio_fallback.h") @no_raise func owners() as uint64
+extern "fixtureXgeAudioPath" @header("test/cases/foreign_xge3_audio_fallback.h") func fixturePath() as string
+extern "fixtureXgeAudioHeap" @header("test/cases/foreign_xge3_audio_fallback.h") @no_raise @c_outputs(0,1) func heap() as (c_size,c_size)
+extern "fixtureFallbackUsed" @header("test/cases/foreign_xge3_audio_fallback.h") @no_raise func used(xge.Sound sound) as bool
+extern "fixtureFallbackNativePathCosts" @header("test/cases/foreign_xge3_audio_fallback.h") @no_raise @c_result("status",0) func nativePathCosts()
+extern "fixtureFallbackNativeVoiceCosts" @header("test/cases/foreign_xge3_audio_fallback.h") @no_raise @c_result("status",0) func nativeVoiceCosts()
+extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func debugEnabled() as bool
+func warmVoice()
+ auto voice=xge.loadFallbackSound()
+ voice.close()
+end
+func main(...) as int
+ assert debugEnabled()
+ string path=fixturePath()
+ // Warm the cold binding path, then measure the persistent configuration.
+ xge.soundFallbackSet(path)
+ xge.soundFallbackClear()
+ nativePathCosts()
+ auto count0,bytes0=heap()
+ xge.soundFallbackSet(path)
+ auto count1,bytes1=heap()
+ println("Language fallback path: ",count1-count0," allocations / ",bytes1-bytes0," bytes")
+ assert count1==count0+c_size(1)
+ // Pre-init configuration survives Init; both constructors use it directly.
+ xge.init(4,4,"Fallback language CPU",0,xge.XGE_RUN_MANUAL)
+ beginAudio()
+ try
+  auto fallback=xge.loadFallbackSound()
+  assert used(fallback)
+  fallback.setLoop(c_int(1))
+  fallback.play()
+  mix()
+  fallback.close()
+  auto group=xge.createAudioGroup()
+  auto automatic=xge.loadSound(path+".missing",group)
+  assert used(automatic)
+  group.close()
+  xge.soundFallbackClear()
+  automatic.setLoop(c_int(1))
+  automatic.play()
+  mix()
+  automatic.close()
+  assert owners()==uint64(0)
+  bool absent=false
+  try
+   auto unused=xge.loadFallbackSound()
+  catch Error error
+   absent=true
+  end
+  assert absent
+  bool nul=false
+  try
+   xge.soundFallbackSet(path+"\0suffix")
+  catch Error error
+   nul=true
+  end
+  assert nul
+  xge.soundFallbackSet(path)
+  warmVoice()
+  nativeVoiceCosts()
+  auto voiceCount0,voiceBytes0=heap()
+  auto voice=xge.loadFallbackSound()
+  auto voiceCount1,voiceBytes1=heap()
+  println("Language fallback voice: ",voiceCount1-voiceCount0," allocations / ",voiceBytes1-voiceBytes0," bytes")
+  voice.close()
+ finally
+  xge.soundFallbackClear()
+  xge.audioUnit()
+  xge.unit()
+ end
+ // A cold Unit must also clear configuration, without needing audio Init.
+ xge.soundFallbackSet(path)
+ xge.unit()
+ xge.init(4,4,"Cold fallback cleanup",0,xge.XGE_RUN_MANUAL)
+ beginAudio()
+ try
+  bool empty=false
+  try
+   auto unused=xge.loadFallbackSound()
+  catch Error error
+   empty=true
+  end
+  assert empty and owners()==uint64(0)
+ finally
+  xge.audioUnit()
+  xge.unit()
+ end
+ println("Fallback pre-init, cold cleanup, owned voices and real PCM passed")
+ return 0
+end

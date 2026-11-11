@@ -1,6 +1,8 @@
 /* Private qualification-only suffix for the production aggregate. Never ship
  * this file or these entry points in an engine SDK. All playback/destruction
  * still uses the unmodified production functions and real miniaudio mixer. */
+static ma_result fixtureXgeAudioReady(ma_job* job)
+{ ma_atomic_store_32((ma_uint32*)job->data.custom.data0,1);return MA_SUCCESS; }
 XGE_API int fixtureXgeAudioBegin(void)
 {
     if (!g_xge.bInitialized || g_xge.bAudioInitialized ||
@@ -19,6 +21,22 @@ XGE_API int fixtureXgeAudioBegin(void)
     if (result != MA_SUCCESS) {
         xrtFree(engine);
         return result == MA_OUT_OF_MEMORY ? XGE_ERROR_OUT_OF_MEMORY : XGE_ERROR_INVALID_STATE;
+    }
+    /* Wait for actual worker entry: its proxy allocation is freed before jobs
+     * run. A late startup free must not pollute allocation-prefix snapshots. */
+    ma_uint32 ready=0;
+    if(engine->pResourceManager->config.jobThreadCount!=1)result=MA_INVALID_OPERATION;
+    else{
+        ma_job job=ma_job_init(MA_JOB_TYPE_CUSTOM);
+        job.data.custom.proc=fixtureXgeAudioReady;job.data.custom.data0=(ma_uintptr)&ready;
+        result=ma_resource_manager_post_job(engine->pResourceManager,&job);
+        if(result==MA_SUCCESS){
+            unsigned attempt=0;while(!ma_atomic_load_32(&ready) && attempt++<1000)ma_sleep(1);
+            if(!ma_atomic_load_32(&ready))result=MA_INVALID_OPERATION;
+        }
+    }
+    if(result!=MA_SUCCESS){
+        ma_engine_uninit(engine);xrtFree(engine);return XGE_ERROR_INVALID_STATE;
     }
     g_xge.pAudioEngine = engine;
     g_xge.bAudioInitialized = 1;

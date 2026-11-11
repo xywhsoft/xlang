@@ -1,0 +1,26 @@
+import xge
+
+// The preset can be configured before Init and survives initialization.
+// Run beside data/tone.wav with a working system audio output device.
+xge.soundFallbackSet("data/tone.wav")
+try
+ xge.init(4,4,"Sound fallback",0,xge.XGE_RUN_MANUAL)
+ assert xge.audioInit()==xge.XGE_OK
+ xge.audioSetVolume(c_float(0.25))
+
+ // This optional effect is absent in the example, so the preset tone plays.
+ auto effect=xge.loadSound("data/optional-effect.wav")
+ effect.play()
+ time.sleep(300)
+ effect.close()
+
+ // Create another independent voice directly from the current preset.
+ auto fallback=xge.loadFallbackSound()
+ fallback.play()
+ time.sleep(300)
+ fallback.close()
+finally
+ xge.soundFallbackClear()
+ xge.audioUnit()
+ xge.unit()
+end

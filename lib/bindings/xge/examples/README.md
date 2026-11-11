@@ -64,3 +64,10 @@ completion callback, start on the control thread, inspect failure and take an
 independent Sound. Expect a completion line and one short tone. Run it beside
 `data/tone.wav` with the matched audio SDK and a working output device; its
 physical playback is manual. The request and result close before audio shutdown.
+
+`audio_fallback.xl` configures the bundled tone before Init. A missing optional
+effect uses it automatically; `loadFallbackSound()` creates an independent
+second voice. Expect the intentional missing-file diagnostic and two short
+tones. Run beside `data/tone.wav` with an output device. Its public production-
+SDK builds are checked; physical playback remains manual. The preset is cleared
+in `finally`, and a checked Unit also clears pre-init configuration.

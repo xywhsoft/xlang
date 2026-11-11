@@ -8,7 +8,9 @@
 static int loaded(const char* path){return GetModuleHandleA(path)!=NULL;}
 static void* address(const char* path,const char* name)
 {HMODULE h=GetModuleHandleA(path);return h ? (void*)GetProcAddress(h,name):NULL;}
+#if !defined(XGE_TEST_FALLBACK_CONFIG)
 static void sleepOne(void){Sleep(1);}
+#endif
 #else
 #include <dlfcn.h>
 #include <time.h>
@@ -16,7 +18,9 @@ static int loaded(const char* path)
 {void* h=dlopen(path,RTLD_NOLOAD|RTLD_NOW);if(!h)return 0;dlclose(h);return 1;}
 static void* address(const char* path,const char* name)
 {void* h=dlopen(path,RTLD_NOLOAD|RTLD_NOW);if(!h)return NULL;void* p=dlsym(h,name);dlclose(h);return p;}
+#if !defined(XGE_TEST_FALLBACK_CONFIG)
 static void sleepOne(void){const struct timespec delay={0,1000000};nanosleep(&delay,NULL);}
+#endif
 #endif
 static int ticks,callbacks;
 static const char* engine;
@@ -35,13 +39,13 @@ int fixtureAsyncModulePublish(xge_async_owned request)
 }
 int main(int argc,char** argv)
 {
- #if defined(XGE_TEST_FONT_LOAD) || defined(XGE_TEST_SOUND_LOAD)
+ #if defined(XGE_TEST_FONT_LOAD) || defined(XGE_TEST_SOUND_LOAD) || defined(XGE_TEST_FALLBACK_CONFIG)
  assert(argc==9);
  #else
  assert(argc==8);
  #endif
  callbacks=argv[6][0]=='1';engine=argv[5];assert(!loaded(engine));
- #if defined(XGE_TEST_FONT_LOAD) || defined(XGE_TEST_SOUND_LOAD)
+ #if defined(XGE_TEST_FONT_LOAD) || defined(XGE_TEST_SOUND_LOAD) || defined(XGE_TEST_FALLBACK_CONFIG)
  int length=snprintf(imagePath,sizeof(imagePath),"%s",argv[8]);
  assert(length>0 && (size_t)length<sizeof(imagePath));
  #else
@@ -85,6 +89,16 @@ int main(int argc,char** argv)
  #endif
  xlDestroyModule(module);
  assert(loaded(engine));
+ #if defined(XGE_TEST_FALLBACK_CONFIG)
+ /* A retained empty request pins the actual provider image. Observe the
+  * pre-init configuration through its public native getter, then prove cold
+  * Unit clears it without opening a window or an audio device. */
+ typedef int (*FallbackGet)(xge_sound);
+ FallbackGet getFallback=(FallbackGet)address(engine,"xgeSoundFallbackGet");assert(getFallback);
+ xge_sound_t empty={0};assert(getFallback(&empty)==XGE_ERROR_NOT_INITIALIZED);
+ assert(unit()==XGE_OK && getFallback(&empty)==XGE_ERROR_RESOURCE_FAILED && !ticks);
+ puts("Cold Unit cleared pre-init fallback after real module Close");
+ #else
  if(callbacks){
   int status=XGE_ASYNC_LOADING,count=0;
   while(status==XGE_ASYNC_LOADING && count++<5000){assert(poll(retained,&status)==XGE_OK);sleepOne();}
@@ -106,6 +120,7 @@ int main(int argc,char** argv)
   xge_async_load_info_t state={0};state.size=sizeof(state);
   assert(info(retained,&state)==XGE_OK && state.status==XGE_ASYNC_PENDING && ticks==0);
  }
+ #endif
  #if defined(XGE_TEST_FONT_LOAD) || defined(XGE_TEST_SOUND_LOAD)
  if(callbacks){
   /* An unclaimed Font/Sound is a live engine owner, even after module Close.
@@ -123,7 +138,7 @@ int main(int argc,char** argv)
  if(!drain.ready || !drain.ok || loaded(engine) || xrtGetError()){
   fprintf(stderr,"Async final drain: ready=%d ok=%d loaded=%d kind=%d\n",drain.ready,drain.ok,loaded(engine),(int)xrtErrorKind(xrtGetError()));return 5;
  }
- #if !defined(XGE_TEST_FONT_LOAD) && !defined(XGE_TEST_SOUND_LOAD)
+ #if !defined(XGE_TEST_FONT_LOAD) && !defined(XGE_TEST_SOUND_LOAD) && !defined(XGE_TEST_FALLBACK_CONFIG)
  assert(!remove(imagePath));
  #endif
  puts("Async request kept real module/worker/callback code through Close; final drain unloaded the native image");return 0;

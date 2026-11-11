@@ -20,6 +20,7 @@ def main():
         parser.add_argument('--'+name,type=Path,required=True)
     parser.add_argument('--font-load',action='store_true',help='Also qualify owning Font requests with a generated valid font')
     parser.add_argument('--sound-load',action='store_true',help='Also qualify owning Sound requests with the private real no-device SDK')
+    parser.add_argument('--fallback-config',action='store_true',help='Only qualify pre-init fallback and cold Unit through the production SDK; no audio Init')
     a=parser.parse_args();root,compiler,cohort,packages,stage,out=[v.resolve() for v in
         (a.root,a.compiler,a.compiler_report,a.packages,a.stage_report,a.out)]
     sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest()
@@ -38,11 +39,15 @@ def main():
     if a.font_load:cases.append(('font',root/'test/cases/foreign_xge3_font_load_module.xl'))
     sound=root/'lib/bindings/xge/examples/data/tone.wav'
     if a.sound_load:cases.append(('sound',root/'test/cases/foreign_xge3_sound_load_module.xl'))
+    if a.fallback_config:
+        assert not a.font_load and not a.sound_load
+        cases=[('fallback',root/'test/cases/foreign_xge3_fallback_module.xl')]
     cc=Path(shutil.which('gcc'));assert cc.is_file()
     library=compiler.parent/('xlc.dll' if os.name=='nt' else 'libxlc.so')
     files=[Path(__file__).resolve(),Path(__file__).with_name('full_compiler_qualification.py'),Path(metadata['sourceFreeze']),cohort,stage,cc,host,case,sidecar,library]
     if a.font_load:files.extend([font,cases[1][1]])
     if a.sound_load:files.extend([sound,root/'test/cases/foreign_xge3_sound_load_module.xl'])
+    if a.fallback_config:files.extend([sound,cases[0][1]])
     files.extend(p for p in sdk.rglob('*') if p.is_file())
     files.extend(p for p in packages.rglob('*') if p.is_file())
     inputs={str(p):sha(p) for p in files}
@@ -54,6 +59,7 @@ def main():
         networkTests=False,graphicsDevice=False,inputs=inputs,rows=[])
     if a.font_load:report.update(explicitFontResultResetBeforeShutdown=True,moduleGlobalResourceShutdownGate=False)
     if a.sound_load:report.update(explicitSoundResultResetBeforeShutdown=True,moduleGlobalResourceShutdownGate=False,privateNoDeviceAudioSetup=True,audioDevice=False)
+    if a.fallback_config:report.update(explicitColdUnitCleanup=True,moduleGlobalResourceShutdownGate=False,privateNoDeviceAudioSetup=False,audioDevice=False,engineInitialization=False)
     def save():(out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf8')
     def run(name,command):
         command=list(map(str,command));r=subprocess.run(command,cwd=compiler.parent,env=env,capture_output=True,timeout=90)
@@ -65,14 +71,14 @@ def main():
         '-I'+str(private/'include'),'-include',private/'include/xge_build_config.h']
     systems=['-DXRT_USE_SHARED'] if os.name=='nt' else ['-Wl,-rpath,'+str(compiler.parent),'-pthread','-ldl','-lm']
     for kind,case in cases:
-        extra=['-DXGE_TEST_FONT_LOAD=1'] if kind=='font' else ['-DXGE_TEST_SOUND_LOAD=1'] if kind=='sound' else []
+        extra=['-DXGE_TEST_FONT_LOAD=1'] if kind=='font' else ['-DXGE_TEST_SOUND_LOAD=1'] if kind=='sound' else ['-DXGE_TEST_FALLBACK_CONFIG=1'] if kind=='fallback' else []
         for optimization in ('O0','O2'):
             tag=kind+'-'+optimization
             binary=out/('host-'+tag+('.exe' if os.name=='nt' else ''))
             run(tag+'-build',[cc,*flags,*extra,'-'+optimization,host,library,*systems,'-o',binary])
             for callbacks in ('0','1'):
                 temp=out/(tag+'-tmp-'+callbacks);temp.mkdir()
-                run(tag+'-callbacks-'+callbacks,[binary,case,compiler.parent,sdk,temp,image,callbacks,root,*([font] if kind=='font' else [sound] if kind=='sound' else [])])
+                run(tag+'-callbacks-'+callbacks,[binary,case,compiler.parent,sdk,temp,image,callbacks,root,*([font] if kind=='font' else [sound] if kind in ('sound','fallback') else [])])
     report.update(passed=True,inputsUnchanged=all(sha(p)==digest for p,digest in inputs.items()))
     assert report['inputsUnchanged'];save()
 
