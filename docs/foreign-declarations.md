@@ -1197,12 +1197,20 @@ text. Nullable views preserve NULL. `int` text lengths are checked before the
 native call. `@c_pack_size(physical,"size","uint32_t")` initializes an exact
 unsigned size field with `sizeof(NativeRecord)` and proves representability.
 
+Paired `callback` / `callback_user` fields use the same logical source and an
+existing `@c_sync_callback` contract. The function field must exactly match the
+generated callback typedef; the userdata field must be `void*`. A nullable
+closure writes NULL to both fields. Nested record paths and multiple independent
+callback parameters use the same mapping; retained/escaping callbacks are not
+allowed. See [packed synchronous callbacks](foreign-packed-callbacks.md) for
+the declaration, failure ordering and qualification boundaries.
+
 The native record is stack storage with zero-initialized unspecified fields.
 It is a physical schema rather than a new managed record or public pointer.
 The authoritative header proves a complete tagged struct and the exact type
 of every mapped field. All logical sources must be covered; groups, native
 fields and mappings must be disjoint. Writable spans, arbitrary expressions,
-unions, nested managed records, function-pointer fields, variadic functions
+unions, nested managed records, arbitrary function-pointer fields, variadic functions
 and escaping descriptor/data pointers are excluded. Pack and Region input
 schemas cannot currently coexist in one declaration. A declaration uses
 `no_raise` for its native producer; checked preparation failures still prevent

@@ -78,6 +78,10 @@ static int xl6IrCgenForeignPacksBegin(XL6_Output* out,const XL6_IrModule* module
             case XL6_FOREIGN_PACK_FIELD_TEXT_SIZE:xl6OutputPrintf(out,"(%s)",field->physicalCName);xl6IrCgenForeignViewArgument(out,operands,p,NULL);xl6OutputPuts(".Size",out);break;
             case XL6_FOREIGN_PACK_FIELD_SPAN_DATA:xl6OutputPrintf(out,"(%s)native_span_data_%lu",field->physicalCName,(unsigned long)p);break;
             case XL6_FOREIGN_PACK_FIELD_SPAN_COUNT:xl6OutputPrintf(out,"(%s)native_span_count_%lu",field->physicalCName,(unsigned long)p);break;
+            case XL6_FOREIGN_PACK_FIELD_SYNC_CALLBACK:
+                xl6OutputPrintf(out,"native_callback_%lu.invocation.self ? %s_thunk : NULL",(unsigned long)p,field->physicalCName);break;
+            case XL6_FOREIGN_PACK_FIELD_CALLBACK_USER:
+                xl6OutputPrintf(out,"native_callback_%lu.invocation.self ? &native_callback_%lu : NULL",(unsigned long)p,(unsigned long)p);break;
             default:return -1;
             }
             xl6OutputPuts(";\n",out);

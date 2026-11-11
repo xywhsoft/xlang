@@ -18,7 +18,11 @@ typedef enum XL6_ForeignPackFieldKind {
     XL6_FOREIGN_PACK_FIELD_SPAN_COUNT,
     XL6_FOREIGN_PACK_FIELD_C_STRING,
     XL6_FOREIGN_PACK_FIELD_SIZEOF,
-    XL6_FOREIGN_PACK_FIELD_RECORD
+    XL6_FOREIGN_PACK_FIELD_RECORD,
+    /* A synchronous callback and its userdata share one logical parameter.
+     * The invocation remains scoped by the existing callback contract. */
+    XL6_FOREIGN_PACK_FIELD_SYNC_CALLBACK,
+    XL6_FOREIGN_PACK_FIELD_CALLBACK_USER
 } XL6_ForeignPackFieldKind;
 
 typedef struct XL6_ForeignPackFieldContract {

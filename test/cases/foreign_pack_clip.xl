@@ -1,0 +1,86 @@
+// Private fixture type uses the existing creator-thread policy. This does not
+// decide the pending public AudioClip/NativeSequence cross-thread contract.
+import xge
+typedef Poll=func() as c_int
+extern "xge_audio_clip*" class Clip @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xge3AudioClipPolicy")
+ native point handle
+ extern "xgeAudioClipInfo" @no_raise @c_const(0) func info() as xge.AudioClipInfo
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xgeAudioClipFree" @no_raise func releaseClip(Clip value)
+extern "xgeAudioClipDecodeMemory" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(1,0,releaseClip) @c_span(0,"const void*","size_t") @c_sync_callback(2,-1,-19) @c_pack(0,"xge_audio_clip_decode_t",0,3) @c_pack_field(0,"data",0,"span_data") @c_pack_field(0,"bytes",0,"span_count") @c_pack_field(0,"max_decoded_bytes",1,"value") @c_pack_field(0,"cancelled",2,"callback") @c_pack_field(0,"user",2,"callback_user") func decode(bytes data,uint64 limit,Poll? cancelled) as Clip
+extern "packClipHeap" @header("test/cases/foreign_pack_clip.h") @no_raise @c_outputs(0,1) func heap() as (c_size,c_size)
+extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func debugEnabled() as bool
+extern "xrtMemDebugFailAfter" @header("xrt_decl.h") @no_raise func failAfter(uint64 budget) as bool
+extern "xrtMemDebugFailClear" @header("xrt_decl.h") @no_raise func failClear()
+class Counter
+ int polls=0
+end
+func consume(bytes wave,Poll? poll)
+ auto clip=decode(wave,uint64(64),poll)
+ auto info=clip.info()
+ assert info.channels==c_uint(2) and info.sample_rate==c_uint(8000)
+ assert info.frames==uint64(8) and info.bytes==uint64(64)
+ clip.close()
+end
+func main(...) as int
+ assert debugEnabled()
+ bytes wave=b"RIFFD\0\0\0WAVEfmt \x10\0\0\0\x01\0\x02\0\x40\x1f\0\0\x00\x7d\0\0\x04\0\x10\0data\x20\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+ assert wave.length==76
+ consume(wave,null)
+ auto count=Counter()
+ consume(wave,func() as c_int
+  count.polls+=1
+  return c_int(0)
+ end)
+ assert count.polls>=3
+ bool refused=false
+ try
+  auto ignored=decode(wave,uint64(64),func() as c_int
+   return c_int(1)
+  end)
+ catch error
+  refused=true
+ end
+ assert refused
+ refused=false
+ try
+  auto ignored=decode(wave,uint64(64),func() as c_int
+   throw Error("clip-poll-failed")
+  end)
+ catch error
+  assert error.message=="clip-poll-failed"
+  refused=true
+ end
+ assert refused
+ refused=false
+ try
+  auto ignored=decode(wave,uint64(63),null)
+ catch error
+  refused=true
+ end
+ assert refused
+ Poll keepGoing=func() as c_int
+  return c_int(0)
+ end
+ consume(wave,keepGoing)
+ int failed=0
+ int passed=0
+ for budget in range(24)
+  auto count0,bytes0=heap()
+  assert failAfter(uint64(budget))
+  try
+   consume(wave,keepGoing)
+   passed+=1
+  catch error
+   failed+=1
+  end
+  failClear()
+  auto count1,bytes1=heap()
+  assert count0==count1 and bytes0==bytes1
+ end
+ assert failed>0 and passed>0
+ println("Real XGE clip descriptor: ",failed," checked allocation failures, ",passed," successes; PCM/limit/cancellation/throw/owners passed")
+ xge.unit()
+ return 0
+end

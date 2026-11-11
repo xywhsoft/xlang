@@ -1,0 +1,198 @@
+typedef Handler=func(c_int) as c_int
+typedef Action=func()
+extern "pc_call" @header("test/cases/foreign_pack_callback.h") @no_raise @c_output(1,0) @c_sync_callback(2,-1,-19) @c_pack(0,"PcDesc",0,3) @c_pack_size(0,"size","uint32_t") @c_pack_field(0,"seed",0,"value") @c_pack_field(0,"count",1,"value") @c_pack_field(0,"callback",2,"callback") @c_pack_field(0,"user",2,"callback_user") func call(c_int seed,c_int count,Handler? callback) as c_int
+extern "pc_scalar" @header("test/cases/foreign_pack_callback.h") @no_raise @c_sync_callback(2,-1,-19) @c_pack(0,"PcDesc",0,3) @c_pack_size(0,"size","uint32_t") @c_pack_field(0,"seed",0,"value") @c_pack_field(0,"count",1,"value") @c_pack_field(0,"callback",2,"callback") @c_pack_field(0,"user",2,"callback_user") func scalar(c_int seed,c_int count,Handler? callback) as c_int
+extern "pc_worker" @header("test/cases/foreign_pack_callback.h") @no_raise @c_sync_callback(2,-1,-19) @c_pack(0,"PcDesc",0,3) @c_pack_size(0,"size","uint32_t") @c_pack_field(0,"seed",0,"value") @c_pack_field(0,"count",1,"value") @c_pack_field(0,"callback",2,"callback") @c_pack_field(0,"user",2,"callback_user") func worker(c_int seed,c_int count,Handler? callback) as c_int
+extern "pc_pair" @header("test/cases/foreign_pack_callback.h") @no_raise @c_sync_callback(2,-1,-19) @c_sync_callback(5,-1,-27,"first") @c_pack(0,"PcPair",0,6) @c_pack_record(0,"left","PcDesc") @c_pack_size(0,"left.size","uint32_t","left") @c_pack_field(0,"left.seed",0,"value") @c_pack_field(0,"left.count",1,"value") @c_pack_field(0,"left.callback",2,"callback") @c_pack_field(0,"left.user",2,"callback_user") @c_pack_record(0,"right","PcFirst") @c_pack_size(0,"right.size","uint32_t","right") @c_pack_field(0,"right.seed",3,"value") @c_pack_field(0,"right.count",4,"value") @c_pack_field(0,"right.callback",5,"callback") @c_pack_field(0,"right.user",5,"callback_user") func pair(c_int left,c_int leftCount,Handler? leftCallback,c_int right,c_int rightCount,Handler? rightCallback) as c_int
+extern "pc_action" @header("test/cases/foreign_pack_callback.h") @no_raise @c_sync_callback(0,-1,0) @c_pack(0,"PcAction",0,2) @c_pack_field(0,"callback",0,"callback") @c_pack_field(0,"user",0,"callback_user") @c_pack_field(0,"count",1,"value") func action(Action? callback,c_int count)
+extern "pc_two" @header("test/cases/foreign_pack_callback.h") @no_raise @c_sync_callback(2,-1,-19) @c_sync_callback(5,-1,-27,"first") @c_pack(0,"PcDesc",0,3) @c_pack_size(0,"size","uint32_t") @c_pack_field(0,"seed",0,"value") @c_pack_field(0,"count",1,"value") @c_pack_field(0,"callback",2,"callback") @c_pack_field(0,"user",2,"callback_user") @c_pack(1,"PcFirst",3,3) @c_pack_size(1,"size","uint32_t") @c_pack_field(1,"seed",3,"value") @c_pack_field(1,"count",4,"value") @c_pack_field(1,"callback",5,"callback") @c_pack_field(1,"user",5,"callback_user") func two(c_int left,c_int leftCount,Handler? leftCallback,c_int right,c_int rightCount,Handler? rightCallback) as c_int
+extern "const PcEvent*" class Event @header("test/cases/foreign_pack_callback.h") @lifetime("callback")
+ native point handle
+ extern "value" @c_field @no_raise get value() as c_int
+end
+typedef EventHandler=func(Event) as c_int
+extern "pc_event" @header("test/cases/foreign_pack_callback.h") @no_raise @c_sync_callback(1,-1,-19) @c_pack(0,"PcEventDesc",0,2) @c_pack_field(0,"seed",0,"value") @c_pack_field(0,"callback",1,"callback") @c_pack_field(0,"user",1,"callback_user") func eventCall(c_int seed,EventHandler? callback) as c_int
+extern "PcRoot*" class Root @header("test/cases/foreign_pack_callback.h") @lifetime("owned") @policy("pcPolicy")
+ native point handle
+ extern "apply" @c_field_call @no_raise @c_output(2,0) @c_sync_callback(2,0,-19) @c_pack(1,"PcDesc",0,3) @c_pack_size(1,"size","uint32_t") @c_pack_field(1,"seed",0,"value") @c_pack_field(1,"count",1,"value") @c_pack_field(1,"callback",2,"callback") @c_pack_field(1,"user",2,"callback_user") func apply(c_int seed,c_int count,Handler? callback) as c_int
+ extern "pc_value" @no_raise func value() as c_int
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "pc_make" @header("test/cases/foreign_pack_callback.h") @no_raise @c_result("owned_view") @factory(1,0,dropRoot) @c_sync_callback(2,-1,-19) @c_pack(0,"PcDesc",0,3) @c_pack_size(0,"size","uint32_t") @c_pack_field(0,"seed",0,"value") @c_pack_field(0,"count",1,"value") @c_pack_field(0,"callback",2,"callback") @c_pack_field(0,"user",2,"callback_user") func make(c_int seed,c_int count,Handler? callback) as Root
+extern "pc_drop" @header("test/cases/foreign_pack_callback.h") @no_raise func dropRoot(Root root)
+extern "PcReceipt*" class Receipt @header("test/cases/foreign_pack_callback.h") @lifetime("owned") @policy("pcReceiptPolicy")
+ native point handle
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "pc_receipt_rollback" @header("test/cases/foreign_pack_callback.h") @no_raise func releaseReceipt(Receipt value)
+extern "pc_receipt_adopt" @no_raise func adoptReceipt(Receipt value) as c_int
+extern "pc_receipt" @header("test/cases/foreign_pack_callback.h") @no_raise @c_result("owned_view") @factory(0,releaseReceipt) @c_inplace("PcReceipt",adoptReceipt,0) @c_sync_callback(2,-1,-19) @c_pack(1,"PcDesc",0,3) @c_pack_size(1,"size","uint32_t") @c_pack_field(1,"seed",0,"value") @c_pack_field(1,"count",1,"value") @c_pack_field(1,"callback",2,"callback") @c_pack_field(1,"user",2,"callback_user") func receipt(c_int seed,c_int count,Handler? callback) as Receipt
+extern "pc_live" @header("test/cases/foreign_pack_callback.h") @no_raise func live() as c_int
+extern "pc_heap" @header("test/cases/foreign_pack_callback.h") @no_raise @c_outputs(0,1) func heap() as (c_size,c_size)
+extern "pc_tail_calls" @header("test/cases/foreign_pack_callback.h") @no_raise func tailCalls() as c_int
+extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func debugEnabled() as bool
+extern "xrtMemDebugFailAfter" @header("xrt_decl.h") @no_raise func failAfter(uint64 budget) as bool
+extern "xrtMemDebugFailClear" @header("xrt_decl.h") @no_raise func failClear()
+extern "xrtMemDebugFailTriggered" @header("xrt_decl.h") @no_raise func failTriggered() as bool
+protocol Evaluator
+ func apply(c_int seed,c_int count,Handler? callback) as c_int
+end
+class State
+ int calls=0
+ Event? saved=null
+end
+func consume(Handler callback)
+ auto root=make(c_int(2),c_int(1),callback)
+ root.close()
+end
+func main(...) as int
+ assert debugEnabled()
+ auto state=State()
+ Handler plus=func(c_int value) as c_int
+  state.calls+=1
+  return value+c_int(4)
+ end
+ assert call(c_int(1),c_int(3),plus)==c_int(18)
+ assert scalar(c_int(1),c_int(3),null)==c_int(6)
+ assert pair(c_int(1),c_int(2),plus,c_int(10),c_int(2),plus)==c_int(40)
+ assert pair(c_int(1),c_int(2),null,c_int(10),c_int(2),null)==c_int(24)
+ assert two(c_int(1),c_int(2),plus,c_int(10),c_int(2),plus)==c_int(40)
+ action(func()
+  state.calls+=1
+ end,c_int(2))
+ action(null,c_int(2))
+ assert state.calls==13
+ auto root=make(c_int(20),c_int(1),null)
+ assert root.apply(c_int(1),c_int(3),plus)==c_int(38)
+ func(c_int,c_int,Handler?) as c_int bound=root.apply
+ assert bound(c_int(1),c_int(3),plus)==c_int(38)
+ Evaluator virtual=root
+ assert virtual.apply(c_int(1),c_int(3),plus)==c_int(38)
+ root.close()
+ assert eventCall(c_int(71),func(Event event) as c_int
+  state.saved=event
+  return event.value
+ end)==c_int(71)
+ bool expired=false
+ try
+  auto ignored=(state.saved as Event).value
+ catch Error error
+  expired=true
+ end
+ assert expired
+ int before=state.calls
+ bool refused=false
+ try
+  auto ignored=worker(c_int(1),c_int(1),plus)
+ catch Error error
+  refused=true
+ end
+ assert refused and state.calls==before
+ Handler throws=func(c_int value) as c_int
+  state.calls+=1
+  throw Error("packed-first-error")
+ end
+ refused=false
+ try
+  auto ignored=call(c_int(1),c_int(3),throws)
+ catch Error error
+  assert error.message=="packed-first-error"
+  refused=true
+ end
+ assert refused and state.calls==before+1,"same callback continued after failure"
+ before=state.calls
+ refused=false
+ try
+  auto ignored=pair(c_int(1),c_int(2),throws,c_int(10),c_int(2),plus)
+ catch error
+  assert error.message=="packed-first-error"
+  refused=true
+ end
+ // Failure is latched per logical callback parameter. A distinct parameter
+ // keeps the native call order, while the earliest error remains primary.
+ assert refused and state.calls==before+3,"independent callback order/error contract changed"
+ before=state.calls
+ refused=false
+ try
+  action(func()
+   state.calls+=1
+   throw Error("packed-void-error")
+  end,c_int(3))
+ catch error
+  assert error.message=="packed-void-error"
+  refused=true
+ end
+ assert refused and state.calls==before+1,"void callback continued after failure"
+ assert live()==c_int(0)
+ refused=false
+ try
+  auto ignored=make(c_int(1),c_int(3),throws)
+ catch Error error
+  assert error.message=="packed-first-error"
+  refused=true
+ end
+ assert refused and live()==c_int(0)
+ Handler nested=func(c_int value) as c_int
+  return scalar(value,c_int(1),plus)
+ end
+ assert call(c_int(1),c_int(3),nested)==c_int(18)
+ auto closing=make(c_int(20),c_int(1),null)
+ assert closing.apply(c_int(1),c_int(1),func(c_int value) as c_int
+  closing.close()
+  return value
+ end)==c_int(21)
+ assert live()==c_int(0)
+
+ println("packed callbacks: functional/epoch/error cases passed")
+ // Warm scoped code/closure admission, then compare live heap and prohibit
+ // every allocation during repeated scalar descriptor/callback invocations.
+ Handler hot=func(c_int value) as c_int
+  return value+c_int(4)
+ end
+ assert call(c_int(1),c_int(1),hot)==c_int(5)
+ auto count0,bytes0=heap()
+ int hotIndex=0
+ assert failAfter(uint64(0))
+ while hotIndex<1000
+  assert call(c_int(1),c_int(1),hot)==c_int(5)
+  hotIndex+=1
+ end
+ bool triggered=failTriggered()
+ failClear()
+ auto count1,bytes1=heap()
+ assert not triggered and count0==count1 and bytes0==bytes1
+ println("packed scalar callback hot allocations: 0")
+
+ consume(plus)
+ println("packed callbacks: factory warmup passed")
+ int failed=0
+ int passed=0
+ for budget in range(24)
+  auto oldCount,oldBytes=heap()
+  assert failAfter(uint64(budget))
+  try
+   consume(plus)
+   passed+=1
+  catch error
+   failed+=1
+  end
+  failClear()
+  auto newCount,newBytes=heap()
+  assert oldCount==newCount and oldBytes==newBytes and live()==c_int(0)
+ end
+ assert failed>0 and passed>0
+ println("packed callback allocation budgets: ",failed," checked failures, ",passed," successes")
+ before=state.calls
+ println("packed callbacks: checking completed callback during failed adoption")
+ refused=false
+ try
+  auto rejected=receipt(c_int(2),c_int(1),plus)
+ catch error
+  refused=true
+  println("packed callbacks: completed attempt caught")
+ end
+ failClear()
+ assert refused and tailCalls()==c_int(1) and state.calls==before+1 and live()==c_int(0)
+ println("packed synchronous callbacks: nested descriptors, fields, factories, epochs and cleanup passed")
+ return 0
+end

@@ -1,0 +1,165 @@
+{
+  "schema": "xlang-native-packed-callbacks-1",
+  "scope": "Generic paired synchronous callbacks in stack native descriptors, including a real XGE CPU decoder; not complete public audio or final XGE delivery",
+  "passed": true,
+  "shippingDelivery": false,
+  "networkTests": false,
+  "graphicsDevice": false,
+  "audioDevice": false,
+  "compiledSource": {
+    "src/type/xl6_foreign_pack_contract.h": "56a20902bbd49bc17d07cda05d6c492d5380ed5fd2bd94e5519b18c8c77923a6",
+    "src/type/xl6_foreign_pack_decl.h": "4b892ed8279aebffc3020b4dde67d204276e4feb7347d00202233e895d92f890",
+    "src/sem/xl6_sem_foreign_pack.c": "c8f07d7d9cd2555cf7f96a4ac58d8ac5a40ec8153ce1aa4f09f6eeb92fc3114f",
+    "src/ir/xl6_ir_foreign_pack.c": "517c706bf6022882bc94c8ed3440c7ad79a7a9e985fd561d0cc30018dca39242",
+    "src/cgen/xl6_ir_cgen_foreign_pack.c": "07e066deb938ffd778fe4e6b9e5e2d2a0cef9b338562a06ca65d0692f1ee3db0"
+  },
+  "testSource": {
+    "test/cases/foreign_pack_callback.xl": "ab2c29a2e4dabeff87a900ba074ead8e409afb0d5547f163c23806db2b9a51b6",
+    "test/cases/foreign_pack_callback.c": "b205a63e57fd1fcced663a48a31af9fa0a9288a391b953b1fe5b49de32e9f33d",
+    "test/cases/foreign_pack_callback.h": "170d7e601ea83b48428c971691787cea267466f953e7fc01ec5d6203e6d91f40",
+    "test/cases/foreign_pack_callback_ir.c": "bc7e0c75acd116e4f0b8411b78307f90e7cb4680e6a7bfb779eebccf9f26b7d2",
+    "test/cases/foreign_pack_callback_nested.xl": "cd91705bb88f6dd254bbdce85ea73b10bd1bad16b2d25ca5c8bde9febb92e0da",
+    "test/cases/foreign_pack_callback_nested.h": "4143c58c65392ca02abec43f84d674c53a501193d8d5ae60bd771426d18a974d",
+    "test/cases/foreign_pack_clip.xl": "b9aa4b2714b051086134c721392a4c4a0da0f3b61a5ee87656d0e34d4747ac01",
+    "test/cases/foreign_pack_clip.c": "85762b973094b2e8875c0bd428762838dae8c762c9e26140cd53d95d82b76558",
+    "test/cases/foreign_pack_clip.h": "741778f7b86ef31bbae4df2c1d9834f37dadea0e74a078c45421c212e2b487c9",
+    "tools/check_foreign_pack_callbacks.py": "867d2cd2cbdd50fc1285024348538e5b2d4977a6152955230a679bdd762a7bac"
+  },
+  "compilers": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r17\\build.json",
+      "sha256": "f3049224a1e94337c0557d3626e4235bac23c2c2e1e6ae941fdcda70b19476a6",
+      "freeze": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r17\\freeze.json",
+      "freezeSha256": "98286053607d55b254b36bc40cde2118532a0b2d3daee07ff7d6b1b2a73a215f",
+      "optimization": "O2",
+      "fullTccXrtAndVfs": true,
+      "products": {
+        "xl.exe": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r17\\source\\release\\win_x64\\xl.exe",
+          "sha256": "b06ecff88b5b9f438820a93f7ec7c8be5d605c5e55c8d6e6c58c8d2c2641ed80",
+          "bytes": 72704
+        },
+        "xl.dll": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r17\\source\\release\\win_x64\\xl.dll",
+          "sha256": "9354dfdcdf826b142a6c0375b0e7a5f4f942a8233ae7eba26136165e6c9701e2",
+          "bytes": 15207936
+        },
+        "xlc.dll": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r17\\source\\release\\win_x64\\xlc.dll",
+          "sha256": "5e3e4726bd97dd5bbe95e8327d1202e4708a0456b89c6c742e7a457fd6496ced",
+          "bytes": 21329920
+        }
+      }
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-linux-full-r9\\build.json",
+      "sha256": "99a868fd95ba04bd3324490dd65a19621980432bf3af440115190f1d9f967dc5",
+      "freeze": "F:\\xlang-validation\\xge-full-20261110\\compiler-linux-full-r9\\freeze.json",
+      "freezeSha256": "cc370ed7574bdd93508704c21a727ad121e80063576f6fed07b0069a34829679",
+      "optimization": "O2",
+      "fullTccXrtAndVfs": true,
+      "products": {
+        "xl": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-linux-full-r9/source/release/linux_x64/xl",
+          "sha256": "faa25e49bdf8c5ce8ccdb084810075b406cc6dd499a59577664616eb2a08265b",
+          "bytes": 47224
+        },
+        "libxl.so": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-linux-full-r9/source/release/linux_x64/libxl.so",
+          "sha256": "bb3c6900be0e46a8fd87b31fdc88afb3216efc0eb09aa33a17689b08c6810314",
+          "bytes": 16476688
+        },
+        "libxlc.so": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-linux-full-r9/source/release/linux_x64/libxlc.so",
+          "sha256": "a5ef4b794e7fda42caddb694933ee3628ab9691b1b6cbfc35ae99ed4e41a4d8f",
+          "bytes": 22481712
+        }
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\pack-callback-qualified-win-r3\\results.json",
+      "sha256": "fadacfce885fc066f9dcf03ab6d2f6f556db5a45ad69d24a7582626ffed2367c",
+      "checks": 58,
+      "irMutations": 349
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\pack-callback-qualified-linux-r1\\results.json",
+      "sha256": "a759d4b8cc93adbfe074ca7926b90dd131d4f38666a7b729a8a420495a38ac95",
+      "checks": 57,
+      "irMutations": 0
+    }
+  ],
+  "packages": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-pack-callback-host-win-r1.json",
+      "sha256": "5a6c71068f71b8140a57513a1fa218ab6b4bf695291b23b91a611c235917777f"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-pack-callback-static-win-r1.json",
+      "sha256": "dc5f2d1f15364b6ea79e7fede67b55d222f6c4b68e36fff55504df95fa3caf6d"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-pack-callback-host-linux-r1.json",
+      "sha256": "4a22e51164a2dd5ad6837bd29c1ab59f25a1b88daadc4356b09acbbd97db3108"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\packages-pack-callback-static-linux-r1.json",
+      "sha256": "0897f148e7cd29b253d4f71ef945ef13c4e1927169ad84c0d2926ab6090e4a08"
+    }
+  ],
+  "checks": 115,
+  "irMutations": 349,
+  "irGate": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\pack-callback-ir-diagnostic-r1\\results.json",
+    "sha256": "160556206470c966b01ae6b1a716343d61631ea482f898d104cbcfc67922dcbd",
+    "standaloneDiagnostic": true,
+    "matchedFullCompilerOverrides": true,
+    "mutations": 349
+  },
+  "canonicalXrtSha256": "41bc24579f4b3207b0434755ca23dd06481af90c05f71e9b365848cf9a7c12d1",
+  "nativeSourceFreeze": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\native-freeze-r45.json",
+    "sha256": "719e2c6384bda3b2ac423633816273569a0f9b081a72375020eda872eb6e18b3"
+  },
+  "nativeRevision": "5d138435f1b8f9cf17afa90fb0a69a6a007889f5",
+  "runtimeAbiChanged": false,
+  "metadataRowBytes": {
+    "foreignCallFacts": 88,
+    "foreignPackField": 220
+  },
+  "warmedScalarCalls": 1000,
+  "warmedScalarExtraHeapAllocations": 0,
+  "allocationBudgetsPerFixture": 24,
+  "allocationResultsPerFixture": {
+    "checkedFailures": 3,
+    "successes": 21
+  },
+  "nestedJitAndStaticCompiler": true,
+  "existingPackAndSyncCallbackRegressions": true,
+  "sourceRejectionsPerPlatform": 12,
+  "nativeFieldTypeRejectionsPerPlatform": 2,
+  "firstErrorContract": "Failure is latched per logical callback parameter; independent parameters retain native call order; the earliest observed error remains primary",
+  "tailBoundary": "Completed callback rejected during failed result adoption while its stack invocation still exists; no use after scope teardown",
+  "costs": "Zero-initialized native stack descriptor and typed field stores reuse existing scoped callback contexts; closure, checked, owner/code pin and user-body costs remain; no blanket zero-overhead claim",
+  "remaining": [
+    "Public AudioClip and NativeSequence cross-thread policy decision",
+    "Native audio engine/group/voice owning lifetimes and checked retryable shutdown",
+    "Complete clip/group/Sound/Music/stream/SoundLoad public APIs",
+    "General module-global resource/code residency gate",
+    "Remaining full XGE/XUI/Document capabilities and coherent mainline SDK/compiler/IDE/help/examples delivery"
+  ],
+  "preservedHarnessFailures": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\pack-callback-qualified-win-r1\\results.json",
+      "sha256": "a61a36d3400f54f6863910d1cb7f0ba1c9a8972008bf850dd036c026ff70add6",
+      "reason": "Nested outer C contains virtual source rather than an outer callback body; corrected the generated-code assertion scope"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\pack-callback-qualified-win-r2\\results.json",
+      "sha256": "41af87ebe4959dc8d80bcddd614626e1beee46aba64a69d7ebe40f494e8117fe",
+      "reason": "Regression provider already includes its span implementation; removed duplicate translation unit while retaining its input hash"
+    }
+  ]
+}

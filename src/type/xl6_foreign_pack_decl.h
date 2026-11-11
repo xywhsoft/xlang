@@ -98,7 +98,9 @@ static inline int xl6ForeignPackFieldRead(const XL6_AstNode* attr,XL6_ForeignPac
             !strcmp(mode,"text_size") ? XL6_FOREIGN_PACK_FIELD_TEXT_SIZE :
             !strcmp(mode,"span_data") ? XL6_FOREIGN_PACK_FIELD_SPAN_DATA :
             !strcmp(mode,"span_count") ? XL6_FOREIGN_PACK_FIELD_SPAN_COUNT :
-            !strcmp(mode,"c_string") ? XL6_FOREIGN_PACK_FIELD_C_STRING : XL6_FOREIGN_PACK_FIELD_INVALID;
+            !strcmp(mode,"c_string") ? XL6_FOREIGN_PACK_FIELD_C_STRING :
+            !strcmp(mode,"callback") ? XL6_FOREIGN_PACK_FIELD_SYNC_CALLBACK :
+            !strcmp(mode,"callback_user") ? XL6_FOREIGN_PACK_FIELD_CALLBACK_USER : XL6_FOREIGN_PACK_FIELD_INVALID;
         if(!row.kind)return 0;
         if(row.kind==XL6_FOREIGN_PACK_FIELD_TEXT_SIZE){
             if(attr->childCount!=5 || !xl6ForeignQuotedText(attr->children[4],count,sizeof(count)))return 0;

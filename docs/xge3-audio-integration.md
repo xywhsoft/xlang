@@ -19,7 +19,7 @@ and owning SoundLoad requests remain unfinished.
 | Area | Confirmed source contract / remaining work |
 | --- | --- |
 | Immutable clip | Native decode/info/atomic retain/free and exact PCM span exist. The optional-shrink diagnostic bug and typed span were fixed in `4d0c686d` / `88a61edc`. A general cross-thread resource/sequence policy decision is pending; do not silently pick a provisional public policy. |
-| Decode input | `xge_audio_clip_decode_t` packs data, byte count, output limit and synchronous cancellation callback/user fields. Existing packed descriptors do not support callback fields. Extend the generic sealed declaration/IR/Cgen contract, with scoped callback lifetime and exact C signature proofs; do not add an AudioClip forwarding function. |
+| Decode input | `xge_audio_clip_decode_t` packs data, byte count, output limit and synchronous cancellation callback/user fields. The [generic paired callback projection](foreign-packed-callbacks.md) now composes sealed `c_pack` with existing scoped callbacks and exact C signature proofs. The real CPU decoder is tested through a private Clip fixture; this does not publish a provisional AudioClip thread policy or complete playback ownership. |
 | Engine lifetime | Legacy `xgeAudioUnit` unconditionally uninitializes the engine. Core Unit's graphics admission does not describe live audio resources. A checked close/real parent lifetime must precede exposing more owning audio objects. The existing raw functions do not establish that contract. |
 | Group lifetime | `xge_sound_clip_desc_t.group` is explicitly borrowed and must outlive the sound. `xge_audio_group_t` currently has volume/backend only, with no owned reference protocol. Safe groups and child voices need actual native owning references and defined release behavior. |
 | Sound/Music/Stream | Raw records share the ref/type/flags/backend prefix. Their methods call the same native audio implementation. Add native owned storage/parent contracts, then direct OOP declarations, preserving file/decode/stream, trim, volume/loop/fade/position and ordinary playback states. |
@@ -36,9 +36,12 @@ already qualified runtime reproductions.
 
 ## Acceptance order
 
-1. Finish the generic synchronous callback-in-descriptor projection, including
-   nullable callback, reentry, throw/error delivery, return tail, invalid source
-   and damaged IR rejection. Ordinary code still calls the native decoder once.
+1. Generic synchronous callback-in-descriptor projection is qualified: Windows
+   r17/Linux r9 complete O2/TinyCC/XRT/VFS builds, 115 language/header/regression
+   checks and 349 damaged IR rejections. Nullable callback, reentry, throw/error
+   delivery, return tail, invalid source and the real decoder are covered.
+   Ordinary code still calls the native decoder once. The paired callback fields
+   reuse the existing invocation ABI; no per-audio forwarding method is added.
 2. Establish native engine/group/voice/owned record lifetimes and checked retryable
    shutdown. Use a device-independent real mixing setup where possible; retain
    separate actual device acceptance rather than counting CPU decode as playback.
@@ -54,4 +57,6 @@ already qualified runtime reproductions.
 
 Native prerequisites are recorded in
 `dev/release-materials/provenance/xge-audio-reference-preflight-20261111.json`.
+The generic decoder callback qualification is separately indexed in
+`dev/release-materials/provenance/xge-packed-callbacks-20261111.json`.
 Formal release installation and full audio integration remain pending.

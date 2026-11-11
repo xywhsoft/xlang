@@ -1,0 +1,28 @@
+// Both outer JIT and standalone AOT must embed the updated compiler.
+import xlang
+func main(...) as int
+ auto root=env.get("XLANG_PACK_CALLBACK_ROOT")
+ auto context=xlang.Context()
+ if root!=null then
+  assert context.setWorkDir(root)
+ else
+  return 2
+ end
+ string source=r"""
+typedef Handler=func(c_int) as c_int
+extern "pcNestedCall" @header("test/cases/foreign_pack_callback_nested.h") @no_raise @c_sync_callback(1,-1,-19) @c_pack(0,"PcNestedDesc",0,2) @c_pack_field(0,"value",0,"value") @c_pack_field(0,"callback",1,"callback") @c_pack_field(0,"user",1,"callback_user") func call(c_int value,Handler? callback) as c_int
+func main(...) as int
+ int extra=5
+ assert call(c_int(7),func(c_int value) as c_int
+  return value+c_int(extra)
+ end)==c_int(12)
+ assert call(c_int(7),null)==c_int(7)
+ return 0
+end
+"""
+ assert context.run(source),context.lastError
+ assert not context.run("int broken=missingPackedCallbackSymbol")
+ assert context.run(source),context.lastError
+ println("nested packed callback compiler passed")
+ return 0
+end

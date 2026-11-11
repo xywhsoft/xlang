@@ -155,7 +155,7 @@ static int xl6IrPackExpected(const XL6_IrModule* m,const XL6_ForeignPackContract
     if(!header || !xl6ForeignHeaderName(header) || strlen(header)>=sizeof(row->header))return 0;
     *expected=*row;strcpy(expected->header,header);return 1;
 }
-static const XL6_ForeignParameterContract* xl6IrPackSpan(const XL6_IrModule* m,uint32 declaration,size_t p,size_t receiver)
+static const XL6_ForeignParameterContract* xl6IrPackParameter(const XL6_IrModule* m,uint32 declaration,size_t p,size_t receiver)
 {
     if(p<receiver || m->foreignParameterCount>m->foreignParameterCapacity || (m->foreignParameterCount && !m->foreignParameters))return NULL;
     const XL6_ForeignParameterContract* found=NULL;
@@ -164,7 +164,7 @@ static const XL6_ForeignParameterContract* xl6IrPackSpan(const XL6_IrModule* m,u
         if(found)return NULL;
         found=row;
     }
-    return found && found->kind==XL6_FOREIGN_PARAMETER_SPAN && found->readOnly ? found:NULL;
+    return found;
 }
 static int xl6IrPackFieldExpected(const XL6_IrModule* m,const XL6_ForeignPackFieldContract* row,XL6_ForeignPackFieldContract* expected)
 {
@@ -212,14 +212,19 @@ static int xl6IrPackFieldExpected(const XL6_IrModule* m,const XL6_ForeignPackFie
             type->foreignLifetime!=inner->foreignLifetime || type->cAbi!=inner->cAbi || (node->foreignCall.controlViews&(UINT64_C(1)<<p)))return 0;
         cName=inner->cName;
     }else if(row->kind==XL6_FOREIGN_PACK_FIELD_SPAN_DATA || row->kind==XL6_FOREIGN_PACK_FIELD_SPAN_COUNT){
-        const XL6_ForeignParameterContract* span=xl6IrPackSpan(m,row->declaration,p,receiver);
-        if(!span || !type)return 0;
+        const XL6_ForeignParameterContract* span=xl6IrPackParameter(m,row->declaration,p,receiver);
+        if(!span || span->kind!=XL6_FOREIGN_PARAMETER_SPAN || !span->readOnly || !type)return 0;
         if(type->kind==XL6_IR_TYPE_NULLABLE){
             const XL6_IrClassField* buffer=type->paramCount==1 && type->params ? xl6IrManagedNativeConstructorField(m,type->params[0]):NULL;
             if(!buffer || !buffer->nativeHandlePolicyCName || strcmp(buffer->nativeHandlePolicyCName,"xl6BufferHandlePolicyV1Get"))return 0;
         }
         cName=row->kind==XL6_FOREIGN_PACK_FIELD_SPAN_DATA ? span->pointerCName:span->countAbi==XL6_FOREIGN_SPAN_COUNT_INT ? "int":"size_t";
         if(row->kind==XL6_FOREIGN_PACK_FIELD_SPAN_COUNT)countAbi=span->countAbi;
+    }else if(row->kind==XL6_FOREIGN_PACK_FIELD_SYNC_CALLBACK || row->kind==XL6_FOREIGN_PACK_FIELD_CALLBACK_USER){
+        const XL6_ForeignParameterContract* callback=xl6IrPackParameter(m,row->declaration,p,receiver);
+        if(!type || !inner || inner->kind!=XL6_IR_TYPE_FUNCTION || !callback || callback->kind!=XL6_FOREIGN_PARAMETER_SYNC_CALLBACK ||
+            !memchr(callback->callbackTypeCName,0,sizeof(callback->callbackTypeCName)) || !xl6ForeignIdentifier(callback->callbackTypeCName))return 0;
+        cName=row->kind==XL6_FOREIGN_PACK_FIELD_SYNC_CALLBACK ? callback->callbackTypeCName:"void*";
     }else{
         if(!type || !inner || inner->kind!=XL6_IR_TYPE_BUILTIN || inner->paramCount || inner->cAbi!=XL6_IR_C_ABI_MANAGED_STRING ||
             type->cAbi!=inner->cAbi || type->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED)return 0;
@@ -265,7 +270,7 @@ static int xl6IrVerifyPacks(const XL6_IrModule* m,XL6_DiagList* diags)
         for(size_t j=0;j<i;++j){const XL6_ForeignPackContract* old=&m->foreignPacks[j];if(old->declaration!=pack->declaration)continue;
             if(old->physicalIndex==pack->physicalIndex || (old->firstParameter<pack->firstParameter+pack->parameterCount && pack->firstParameter<old->firstParameter+old->parameterCount))goto invalid;
         }
-        uint64 used=0,textData=0,textSize=0,spanData=0,spanCount=0;size_t fields=0;
+        uint64 used=0,textData=0,textSize=0,spanData=0,spanCount=0,callbacks=0,callbackUsers=0;size_t fields=0;
         for(size_t f=0;f<m->foreignPackFieldCount;++f){const XL6_ForeignPackFieldContract* field=&m->foreignPackFields[f];
             if(field->declaration!=pack->declaration || field->packPhysicalIndex!=pack->physicalIndex)continue;
             ++fields;
@@ -273,11 +278,12 @@ static int xl6IrVerifyPacks(const XL6_IrModule* m,XL6_DiagList* diags)
             if(field->parameter>=64)goto invalid;
             uint64 bit=UINT64_C(1)<<field->parameter;used|=bit;
             uint64* paired=field->kind==XL6_FOREIGN_PACK_FIELD_TEXT_DATA ? &textData:field->kind==XL6_FOREIGN_PACK_FIELD_TEXT_SIZE ? &textSize:
-                field->kind==XL6_FOREIGN_PACK_FIELD_SPAN_DATA ? &spanData:field->kind==XL6_FOREIGN_PACK_FIELD_SPAN_COUNT ? &spanCount:NULL;
+                field->kind==XL6_FOREIGN_PACK_FIELD_SPAN_DATA ? &spanData:field->kind==XL6_FOREIGN_PACK_FIELD_SPAN_COUNT ? &spanCount:
+                field->kind==XL6_FOREIGN_PACK_FIELD_SYNC_CALLBACK ? &callbacks:field->kind==XL6_FOREIGN_PACK_FIELD_CALLBACK_USER ? &callbackUsers:NULL;
             if(paired){if(*paired&bit)goto invalid;*paired|=bit;}
         }
         uint64 mask=pack->parameterCount==64 ? UINT64_MAX:((UINT64_C(1)<<pack->parameterCount)-1)<<pack->firstParameter;
-        if(!fields || used!=mask || textData!=textSize || spanData!=spanCount)goto invalid;
+        if(!fields || used!=mask || textData!=textSize || spanData!=spanCount || callbacks!=callbackUsers)goto invalid;
     }
     for(size_t i=0;i<m->foreignPackFieldCount;++i){const XL6_ForeignPackFieldContract* row=&m->foreignPackFields[i];XL6_ForeignPackFieldContract expected;
         if(!xl6IrPackFieldExpected(m,row,&expected) || row->logicalType!=expected.logicalType || row->countAbi!=expected.countAbi ||
@@ -322,7 +328,11 @@ int xl6IrForeignPacksMatch(const XL6_IrModule* m,const XL6_IrCallTarget* t)
         for(size_t p=pack->firstParameter;p<pack->firstParameter+pack->parameterCount;++p){
             if(t->parameterAbis[p]!=XL6_IR_PARAMETER_ABI_BORROW && t->parameterAbis[p]!=XL6_IR_PARAMETER_ABI_VALUE)return 0;
             for(size_t f=0;f<m->foreignPackFieldCount;++f){const XL6_ForeignPackFieldContract* field=&m->foreignPackFields[f];
-                if(field->declaration==t->declaration && field->packPhysicalIndex==pack->physicalIndex && field->parameter==p && field->logicalType!=t->parameterTypes[p])return 0;}
+                if(field->declaration!=t->declaration || field->packPhysicalIndex!=pack->physicalIndex || field->parameter!=p)continue;
+                if(field->logicalType!=t->parameterTypes[p])return 0;
+                if((field->kind==XL6_FOREIGN_PACK_FIELD_SYNC_CALLBACK || field->kind==XL6_FOREIGN_PACK_FIELD_CALLBACK_USER) &&
+                    (!t->parameterPhysicalAbis || t->parameterPhysicalAbis[p]!=XL6_IR_CALL_PARAMETER_PHYSICAL_SYNC_C_CALLBACK))return 0;
+            }
         }
     }
     if((found!=0)!=xl6ForeignInputHasPacks(node->foreignCall.inputMappingFacts))return 0;

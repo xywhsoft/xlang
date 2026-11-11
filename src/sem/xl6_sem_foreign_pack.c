@@ -58,7 +58,7 @@ static int xl6SemForeignPacks(XL6_SemContext* ctx,XL6_AstNode* node,const XL6_As
         }
         for(size_t b=0;b<a;++b){XL6_ForeignPackContract previous;
             if(xl6ForeignPackRead(attrs->children[b],&previous) && previous.physicalIndex==pack.physicalIndex)goto invalid;}
-        uint64 used=0,textData=0,textSize=0,spanData=0,spanCount=0;
+        uint64 used=0,textData=0,textSize=0,spanData=0,spanCount=0,callbacks=0,callbackUsers=0;
         size_t fields=0;
         for(size_t f=0;f<attrs->childCount;++f){
             XL6_ForeignPackFieldContract field;if(!xl6ForeignPackFieldRead(attrs->children[f],&field) || field.packPhysicalIndex!=pack.physicalIndex)continue;
@@ -84,6 +84,12 @@ static int xl6SemForeignPacks(XL6_SemContext* ctx,XL6_AstNode* node,const XL6_As
                 uint64* bits=field.kind==XL6_FOREIGN_PACK_FIELD_SPAN_DATA ? &spanData:&spanCount;
                 if(*bits&(UINT64_C(1)<<p))goto invalid;
                 *bits|=UINT64_C(1)<<p;
+            }else if(field.kind==XL6_FOREIGN_PACK_FIELD_SYNC_CALLBACK || field.kind==XL6_FOREIGN_PACK_FIELD_CALLBACK_USER){
+                XL6_ForeignParameterContract callback;
+                if(!xl6SemExternParameterExpansion(node,p,&callback) || callback.kind!=XL6_FOREIGN_PARAMETER_SYNC_CALLBACK)goto invalid;
+                uint64* bits=field.kind==XL6_FOREIGN_PACK_FIELD_SYNC_CALLBACK ? &callbacks:&callbackUsers;
+                if(*bits&(UINT64_C(1)<<p))goto invalid;
+                *bits|=UINT64_C(1)<<p;
             }else{
                 if(!inner || inner->childCount || !xl6TextEquals(inner->text,"string"))goto invalid;
                 if(field.kind==XL6_FOREIGN_PACK_FIELD_TEXT_DATA || field.kind==XL6_FOREIGN_PACK_FIELD_TEXT_SIZE){
@@ -94,7 +100,7 @@ static int xl6SemForeignPacks(XL6_SemContext* ctx,XL6_AstNode* node,const XL6_As
             }
         }
         uint64 expected=pack.parameterCount==64 ? UINT64_MAX:((UINT64_C(1)<<pack.parameterCount)-1)<<pack.firstParameter;
-        if(!fields || used!=expected || textData!=textSize || spanData!=spanCount)goto invalid;
+        if(!fields || used!=expected || textData!=textSize || spanData!=spanCount || callbacks!=callbackUsers)goto invalid;
     }
     if((packCount!=0)!=(fieldCount!=0))goto invalid;
     {
