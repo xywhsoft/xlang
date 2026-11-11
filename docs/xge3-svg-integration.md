@@ -68,14 +68,42 @@ returned documents follow the creator-thread rule; independent threads use
 independent caches. Entries within one cache intentionally share documents.
 Clearing/closing a cache releases its references while externally held documents
 remain usable. This replaces unsafe process-global sharing in the safe language
-surface; it is a decision awaiting implementation, not a completed cache gate.
+surface. Its native prerequisite is implemented below; the safe language object
+and its complete ownership/renderer policy still await their own gates.
+
+## Native explicit cache prerequisite
+
+XGE `05bc4768` adds `xgeSvgCacheCreate`/`Destroy`/`Load`/`Remove`/`Reset`, raising
+the native SVG family to 75 functions. Shared internal algorithms serve both
+explicit caches and legacy global calls. Active operations pin their cache
+through provider/invalidation tails and reject recursive operations before
+allocation; removing/clearing/closing a cache preserves independent document
+owners. Legacy global Clear now detaches its old list before notifications and
+preserves new entries published during reentry. The global API remains
+caller-serialized; it is not a cross-thread safe language cache.
+
+`xge-svg-cache-20261111.json` pins 198 command rows over complete Windows/Linux
+O2 host/static products, aggregate O0/O2 cache/watch/lifetime regressions, actual
+C/C++ clients, independent cache threads and Linux aggregate ASan/UBSan. Two
+old-code assertion controls stop before unsafe reentry. Each 96-prefix allocation
+sweep has 26 failures and 70 successes with exact heap equality. A cache requests
+24 bytes and one creation allocation; hits allocate nothing. URI scans,
+O(entries) lookup, parser/document/entry allocations on misses and reference/
+state checks remain. Language-view costs have not yet been measured.
+
+The full-tree inventory had copied two generated HarfBuzz `.d`/`.json` files.
+Separate proofs preserve the original failed inventory reports and freezes,
+classify only those generated outputs, and verify every other byte unchanged.
+Both native builds had succeeded; no rebuild/source change was needed for the
+inventory correction. Native/source material remains external. No release/IDE
+was installed, and no complete language SVG/renderer/lifetime gate is claimed.
 
 ## Remaining public surface
 
 | Native capability | Language design / acceptance still required |
 | --- | --- |
 | Create/Destroy/AddRef/RefCount/Clear/Clone | Owning Svg with the existing checked view/code lifetime protocol; no per-method business wrappers. |
-| Load/LoadMemory/LoadCached/CacheInvalidate/CacheClear | Exact input lengths/path validation and checked errors. Implement the approved explicit SvgCache object; retain sharing within a cache and isolate independent threads. The old native global cache must not silently become cross-thread language views. |
+| Load/LoadMemory/LoadCached/CacheInvalidate/CacheClear | Exact input lengths/path validation and checked errors. The native explicit cache is ready; bind the approved creator-thread SvgCache object and preserve independent document owners. The old native global cache must not silently become cross-thread language views. |
 | Size/Origin/ViewBox/Aspect/Viewport | Direct typed scalar/record and multiple output projections. Preserve ordinary not-found/not-set distinctions. |
 | Paint lookup/owner/parent/children/traversal | Owner-bounded SvgPaint views with native invalidation before reload/Clear/destruction; existing generic observation/callback machinery, not unowned point handles. |
 | Paint identity/name/transform/opacity/visibility/blend | Direct calls and copied text output, with checked owner/thread/expiration admission. |

@@ -1,0 +1,139 @@
+{
+  "schema": "xlang-xge-native-prerequisite-1",
+  "passed": true,
+  "shippingDelivery": false,
+  "releaseIdeInstalled": false,
+  "xlangSvgIntegrationComplete": false,
+  "scope": "Approved explicit SvgCache native prerequisite; language API and renderer ownership still open",
+  "engineCommit": "05bc4768dd13873d9d9ba382005fc2d64349c8c0",
+  "engineProof": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\svg-cache-20261111.json",
+    "sha256": "8fd09536a2879410ecdc8b3b0b9740155439f63805fa43f39f8b1f01c3d17311"
+  },
+  "checks": 198,
+  "nativeBuilds": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-cache-native-r61-win-qualified.json",
+      "sha256": "ad96d7479c496d78b529f74236054cae0fb23b9213867d9ea7f3b780f4f74bf8"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-cache-native-r61-linux-qualified.json",
+      "sha256": "edc3616aa461fc1b8b72d3f89aedfb23f5db5fd1d2f980866bf81df53afd2803"
+    }
+  ],
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-cache-lifetime-win-r1\\results.json",
+      "sha256": "044e2a47f925e8fcc04ab7789085d8261f53edc9357dcfe21593965af64a9c1b",
+      "checks": 36
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-cache-watch-win-r1\\results.json",
+      "sha256": "db9554f95187eee574ffd22ce51ec1a19590159d3f8b65d438bdf5f4c1373a13",
+      "checks": 18
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-cache-aggregate-win-r1\\results.json",
+      "sha256": "24e5d60bc20b0179750f37470797af18bfe72d6de9aa22591982ac7cb92cd2dd",
+      "checks": 20
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-cache-reset-win-r1\\results.json",
+      "sha256": "5f8188c14428b86d03e28f7bde1910f5458ff583d56854bcb8183ce5cfb0581b",
+      "checks": 4
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-cache-public-win-r1\\results.json",
+      "sha256": "ed3bfea607ee273cc0631446c0c9465d7a57b7b0c510824dc38b402f72c76340",
+      "checks": 16
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-cache-lifetime-linux-r1\\results.json",
+      "sha256": "3d17f2bf62338e418ec3ef79eee9fe9e3648f00b0966aad5376a46250ec771e0",
+      "checks": 36
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-cache-watch-linux-r1\\results.json",
+      "sha256": "ce7043f81eb3151debd410901553690557be98c07ed4999a2fb1ef1907135e08",
+      "checks": 18
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-cache-aggregate-linux-r1\\results.json",
+      "sha256": "e117033b3be511d96c09c1b73376998cbca455d15f089762ee5ee512319db4c6",
+      "checks": 20
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-cache-reset-linux-r1\\results.json",
+      "sha256": "dc6ebd77730aa4c3c475447d6532022e50980784383351c45bfe33b124db0ad9",
+      "checks": 4
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-cache-public-linux-r1\\results.json",
+      "sha256": "f5a2918e8a60f20cca39a9e8c004a6344f1020bcfb4508ef4c21fb9e00a40f90",
+      "checks": 16
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\svg-cache-sanitizer-linux-r1\\results.json",
+      "sha256": "40a929f53210d0470d438a210dcb8a90ec82acc71a743c89d7b29f0073089b9e",
+      "checks": 10,
+      "instrumentedAggregateOnly": true
+    }
+  ],
+  "oldControls": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\svg-cache-reset-old-control-win-r1\\results.json",
+    "sha256": "016c422ba0031e2544805ff852e7a2ff3f359b06dc5c535dbee568458ba62834",
+    "expectedAssertionFailures": 2,
+    "commandRows": 4,
+    "stopBeforeUnsafeReentry": true
+  },
+  "costs": {
+    "privateCacheBytes": 24,
+    "createAllocations": 1,
+    "hitAllocations": 0,
+    "lookup": "O(entries) and URI comparison",
+    "operations": "native reference/state checks, no mutex or per-call heap adapter",
+    "misses": "original document/parser/entry/URI allocations and copies",
+    "languageCostsMeasured": false,
+    "timingComparison": false,
+    "totalZeroOverheadClaim": false
+  },
+  "inventoryCorrection": "Two copied generated HarfBuzz .d/.json outputs changed during successful builds. Original failures/freezes preserved; exact generated paths reclassified in separate proofs, every other inventoried byte unchanged. Future freezes must exclude the root build/ output tree.",
+  "allocationPrefixes": {
+    "win-O0": {
+      "failed": 26,
+      "passed": 70,
+      "total": 96
+    },
+    "win-O2": {
+      "failed": 26,
+      "passed": 70,
+      "total": 96
+    },
+    "linux-O0": {
+      "failed": 26,
+      "passed": 70,
+      "total": 96
+    },
+    "linux-O2": {
+      "failed": 26,
+      "passed": 70,
+      "total": 96
+    }
+  },
+  "sourceSha256": {
+    "docs/xge3-svg-integration.md": "2f3d5e299a5182d85b919595a0bbf4f03e89aeaf68cc3a328e0fab2a97f570cb",
+    "docs/xge3-xui3-full-coverage-plan.md": "e4932947f6c2de774558aece7243e26783c4f4cf133becea0169cb8959ab8e2d"
+  },
+  "remaining": [
+    "creator-thread safe SvgCache policy/declarations",
+    "general borrowed owner status/output contract",
+    "complete Svg/SvgPaint and GPU/renderer ownership",
+    "automatic module-global resource/code lifetime",
+    "other full-coverage families and final matched SDK/compiler/IDE/help delivery"
+  ],
+  "window": false,
+  "gpu": false,
+  "audioDevice": false,
+  "networkTests": false,
+  "securityTests": false
+}
