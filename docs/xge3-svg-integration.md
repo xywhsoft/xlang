@@ -36,12 +36,46 @@ claim follows from these native checks. Public function signatures are unchanged
 only the aggregate is rebuilt against the original matched full r56 cohort.
 Current-mainline XUI integration and final delivery still need their own gates.
 
+## Native paint observation prerequisite
+
+XGE `1811dd9c` adds `xgeSvgPaintLifetimeWatch`/`LifetimeUnwatch`, bringing the
+native SVG function count to 70. Clear, reload and destruction detach observers
+before notifying them and before resetting/freeing paint storage. Self/peer
+removal is safe; Clear pins the document while an invalidator may release the
+last external owner. Accepted replacement invalidates old paints even if a
+later allocation fails. Invalid arguments preserve the old generation.
+
+Full Windows/Linux O2 host/static builds compile all 146 native translation
+units each. Authoritative aggregate O0/O2 checks, actual host/static C11/C++11/
+C++17 clients, existing embedded-font sweeps and Linux aggregate ASan/UBSan pass
+149 command rows, indexed in `xge-svg-watches-20261111.json`. The remaining native
+archive and host XRT are uninstrumented in the sanitizer gate. The private
+document adds 8 bytes (9,416 to 9,424); one caller-owned observer uses 32 bytes on
+x64. Register/unregister are O(1), with no heap allocation or lock; notification
+is O(observers), and Clear adds a native reference acquire/release pair. Existing
+resource and language lifetime work remains. No timing/total-zero-cost claim or
+release installation follows from this native prerequisite.
+
+The complete r18 compiler still rejects a status/output borrowed owner-view
+query without a rollback helper. The same declaration with a rollback helper
+passes its control. This is a general interop gap: native SVG paint lookup does
+not transfer a new native owner to destroy on admission failure. Complete that
+borrowed-output contract rather than invent a no-op destroy helper or wrap every
+SVG query. The C-generation-only probes never execute an unsafe program.
+
+The approved public cache design is an explicit `SvgCache` object. It and its
+returned documents follow the creator-thread rule; independent threads use
+independent caches. Entries within one cache intentionally share documents.
+Clearing/closing a cache releases its references while externally held documents
+remain usable. This replaces unsafe process-global sharing in the safe language
+surface; it is a decision awaiting implementation, not a completed cache gate.
+
 ## Remaining public surface
 
 | Native capability | Language design / acceptance still required |
 | --- | --- |
 | Create/Destroy/AddRef/RefCount/Clear/Clone | Owning Svg with the existing checked view/code lifetime protocol; no per-method business wrappers. |
-| Load/LoadMemory/LoadCached/CacheInvalidate/CacheClear | Exact input lengths and path validation, checked errors and full cache threading/identity review. The native global cache is caller-serialized; independent language views must not silently permit races on one cached document. |
+| Load/LoadMemory/LoadCached/CacheInvalidate/CacheClear | Exact input lengths/path validation and checked errors. Implement the approved explicit SvgCache object; retain sharing within a cache and isolate independent threads. The old native global cache must not silently become cross-thread language views. |
 | Size/Origin/ViewBox/Aspect/Viewport | Direct typed scalar/record and multiple output projections. Preserve ordinary not-found/not-set distinctions. |
 | Paint lookup/owner/parent/children/traversal | Owner-bounded SvgPaint views with native invalidation before reload/Clear/destruction; existing generic observation/callback machinery, not unowned point handles. |
 | Paint identity/name/transform/opacity/visibility/blend | Direct calls and copied text output, with checked owner/thread/expiration admission. |
