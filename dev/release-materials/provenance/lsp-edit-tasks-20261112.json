@@ -1,0 +1,113 @@
+{
+  "schema": 1,
+  "date": "2026-11-12",
+  "stage": "M7b5h",
+  "scope": "Passive task-manager source-write lease with real worker exit acknowledgement, queue/admission fences and UI pre-save refusal",
+  "implementationAccepted": true,
+  "performanceQualified": false,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "cc8fc76429da114e706e9af81c0395330edeefa1",
+  "ownedSources": {
+    "ide/src/services/tasks.c": "9fc3af20ef4b8bf427d4acf594440f44972836125db3f75ccbf4a9f1f20663fd",
+    "ide/src/services/tasks.h": "a9408dfd2115ff68aed488f5727297ec9496cdef6e59f194c9f56f60cc8a5131",
+    "ide/src/services/execution_target.c": "59b5eb44cc14cc010263ffa5e4615cd41d00004e8156b17128a38d59e1d1cc3e",
+    "ide/src/ui/task_view.c": "ff54d1c558eca2a76d1699f29b1381b1f7d13e6fc917c54b0ca3b2df9cecb51e",
+    "ide/tests/tasks_lease_test.c": "99d94aa8be5f157e6770d1921c4432642235ead885fda99e4a8fa911db645421",
+    "ide/tools/build.ps1": "1cb9204d673839c6a714ffdf901d5086187564470a5d97d96eb1333d9baf5e23",
+    "ide/docs/lsp-edit-task-lease.md": "15e4dcdd2db4bb830d04c6340826bd96f37072fc591c45ef44ae47318a7d5268",
+    "ide/docs/lsp-edit-file-sync-lease.md": "1d2df27864ae17969a37851f701bab58fdc8d60e3026600c0be3d498171f2a6f"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-edit-tasks-20261112.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-edit-tasks-20261112/stage-sources.tar.gz",
+      "sha256": "b579079215e8d25a78e2328119d4a826d7ee785efd36cf74aa2dbbb759c8a6c3",
+      "bytes": 53421,
+      "entries": 9,
+      "uniquePayloads": 9,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-edit-tasks-20261112/stage-sources.tar.gz.manifest.json",
+      "sha256": "f5cfb9fd19b8a867441151924ab254347f64390c1180595973e4b47121511a1d",
+      "bytes": 1916
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-edit-tasks-20261112/actual-builds-and-validation.tar.gz",
+      "sha256": "9d09950381fd0558909cf624ffc4ed325241a79f1981d2cd1d703dded15c16f6",
+      "bytes": 184466782,
+      "entries": 5469,
+      "uniquePayloads": 3149,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-edit-tasks-20261112/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "8c5d3b5c66a96188bc8a57a0575d42fd135fbfb3369781381f657215bf5db48f",
+      "bytes": 2113362
+    }
+  },
+  "currentBindings": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-edit-tasks-20261112\\final-bindings.json",
+    "sha256": "5e1b63b37ae8508004d076c4d8f2331cc0c16a17c69616d7738ba22f93141e9c"
+  },
+  "sdkInherited": {
+    "index": "dev/release-materials/provenance/lsp-edit-watch-20261112.json",
+    "indexSha256": "7d0e1c37399914d430235635fa8dcce705188f156e8be0f0291319fb4c4cbdbe",
+    "dllSha256": "51cc62cb935e54ef16abcb8a4ae8ee845d64254123a822ba4004c63dad42359e",
+    "compiledSdkUnitsThisStage": 0,
+    "matchedSetPreserved": true
+  },
+  "correctness": {
+    "taskLeaseObservedAssertions": 90,
+    "realCompilerAndInteractiveChild": true,
+    "realTerminalPublicationBeforeThreadExit": true,
+    "passiveActiveWorkPreserved": true,
+    "queuePreservedUntilExplicitUserCancelOrInputInvalidation": true,
+    "allSubmissionApisRefusedBeforeRequestPreparation": true,
+    "directOwnerAllocationFreeOnSuspendAndRefusedSubmissions": true,
+    "normalSerialDispatchWaitsForActualThreadExit": true,
+    "uiExecutionQueryAndPreSaveAdmission": true,
+    "earlyAbandonmentAndExactExhaustedTokens": true,
+    "implementationMutantsRejected": 6,
+    "legacyTaskMatrixPassed": true,
+    "guiObjects": 124,
+    "guiFixtures": 52,
+    "existingFileWatchLeaseNativeAssertions": 71,
+    "existingFileSyncLeaseIdeAssertions": 43,
+    "existingMixedAssertions": 5132,
+    "actualBoundedGuiLanguages": [
+      "c",
+      "xlang"
+    ],
+    "actualBoundedGuiFramesEach": 24,
+    "visualScreenshotsInspected": true,
+    "guiHeapStatisticsAvailable": false,
+    "otherNativeAndProtocolProgramsNotRerun": true,
+    "rawFailuresRetained": true
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "serviceSha256": "df290f266bb8882e95751487d146070ac854b2f8cd9c827d95fd44f049cb4d74",
+  "limits": [
+    "This is the task-manager participant, not the complete production source-write controller; independent LSP/toolchain/indexer readers and open-operation admission still require coordination",
+    "Standard renameProvider/workspace.applyEdit remain disabled; full source/physical/request policies, annotation consent and startup recovery UI/writes remain open",
+    "Task lease tokens are bound to one live manager; caller cancels external operations before Destroy and does not reuse old tokens on a new manager",
+    "Pause preserves active work and queued requests; holder must settle source changes and call existing input invalidation before releasing a write barrier",
+    "Pause and early rejected submissions have zero observed direct owner malloc/calloc/free calls; polling/retirement, lock contention and kernel checks do not carry a hard realtime/RSS guarantee",
+    "Final standalone fixture strengthened allocation and terminal-only history witnesses after GUI freeze; final fixture and6 mutants used final bytes against complete124-unit final GUI cohort; product TUs/headers stable",
+    "Task assertion count is one observed run and includes asynchronous polling checks; counts are not timing measurements",
+    "The controlled compiler and pure Win32 interactive child exercise real task/worker/process machinery but are not end-to-end real-engine compilation or whole-LSP performance tests",
+    "First fixture attempt incorrectly expected run configuration environment in the build process; corrected fixture reads controls from the actual request manifest without changing product environment semantics",
+    "Fault mutants release only their owned compiler gate after failed parent exit; no user process cancellation or data cleanup is performed",
+    "Default runtime, matched SDK, delivery index and unrelated work remain unchanged; full goal performance, production controller, protocol activation and delivery remain open"
+  ]
+}

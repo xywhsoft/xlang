@@ -299,6 +299,7 @@ int xideTaskViewSettled(xide_app* app)
 }
 int xideTaskViewCanBuildFile(xide_app* app)
 {
+    if(xideTasksAdmissionHeld(app?app->tasks:NULL))return 0;
     xide_document* d=app ? app->activeDocument : NULL;
     return d && d->open && (d->path ? xidePathHasExtension(d->path,".c") || xidePathHasExtension(d->path,".xl") :
         !xuiCodeEditIsReadonly(d->editor) && (!strcmp(d->language,"c") || !strcmp(d->language,"xlang")));
@@ -314,6 +315,7 @@ int xideTaskViewAction(xide_app* app,int action)
         char* compiler=xideMessageChoosePath(app,XUI_FILE_DIALOG_MODE_OPEN_FILE,"选择 xlang 编译器","可执行程序|*.exe;*|所有文件|*.*",view->compiler,NULL,UINT64_C(720),0);
         if(compiler) { xide_model_error error={0}; if(!xideSettingsSetCompiler(&app->preferences,compiler,&error)) { report(app,error.message);free(compiler); } else { free(view->compiler); view->compiler=compiler; } } return 1;
     }
+    if(xideTasksAdmissionHeld(app->tasks)){report(app,"源码事务期间暂停提交构建、运行和测试任务。");app->taskExit=1;return 1;}
     int run=action==XIDE_ACTION_RUN || action==XIDE_ACTION_RUN_FILE,test=action==XIDE_ACTION_TEST;
     xide_execution_context context;xideExecutionResolve(app,action==XIDE_ACTION_BUILD_FILE || action==XIDE_ACTION_RUN_FILE,&context);
     xide_action_state allowed=xideExecutionQuery(app,action);

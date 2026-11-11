@@ -39,7 +39,7 @@ struct xide_task {
     uint64_t inputRevision,checkedInputRevision; size_t checkedChanges;
     ULONGLONG began;
 };
-struct xide_tasks { xide_toolchains* toolchains; xide_task** items; size_t count,capacity; uint64_t nextId; xide_task* active; char* maintenanceRoots[64]; ULONGLONG maintenanceTimes[64]; size_t maintenanceCount; };
+struct xide_tasks { xide_toolchains* toolchains; xide_task** items; size_t count,capacity; uint64_t nextId,nextLease,holdToken; xide_task* active; char* maintenanceRoots[64]; ULONGLONG maintenanceTimes[64]; size_t maintenanceCount; };
 static char* copy(const char* text)
 {
     if(!text) return NULL;
@@ -577,6 +577,7 @@ static int claimMaintenance(xide_tasks* tasks,const char* directory)
 static xide_task* startTask(xide_tasks* tasks,const xide_project* project,const char* configurationId,const char* compiler,int run,int test,int singleFile,const xide_strings* pendingInputs,xide_model_error* error)
 {
     if(error) memset(error,0,sizeof(*error));
+    if(tasks&&tasks->holdToken){fail(error,"Task admission is paused for a source transaction");if(error)error->code=XIDE_MODEL_CONFLICT;return NULL;}
     if(!tasks || !project || !project->available || project->dirty || (!test && (!compiler || !*compiler))) { fail(error,"A saved available project and an explicit task configuration are required"); return NULL; }
     if(run && strcmp(project->kind,"exe")) { fail(error,"A DLL project needs an explicit host and cannot be run directly"); return NULL; }
     const xide_configuration* config=NULL;
@@ -654,6 +655,7 @@ xide_task* xideTasksTest(xide_tasks* tasks,const xide_project* project,const cha
 xide_task* xideTasksBuildFileGuarded(xide_tasks* tasks,const char* path,const char* compiler,int run,const xide_strings* pendingInputs,xide_model_error* error)
 {
     if(error) memset(error,0,sizeof(*error));
+    if(tasks&&tasks->holdToken){fail(error,"Task admission is paused for a source transaction");if(error)error->code=XIDE_MODEL_CONFLICT;return NULL;}
     if(!path || (!xidePathHasExtension(path,".c") && !xidePathHasExtension(path,".xl"))) { fail(error,"Single-file builds require a saved .c or .xl source file"); return NULL; }
     char* entry=xidePathResolve(NULL,path); char* directory=entry ? xidePathDirectory(entry) : NULL;
     char* cache=directory ? xidePathResolve(directory,".xlang-ide/single-file") : NULL;
@@ -672,7 +674,8 @@ void xideTasksPoll(xide_tasks* tasks)
 {
     if(!tasks) return;
     for(size_t i=0;i<tasks->count;++i) retireRequest(tasks->items[i]);
-    if(tasks->active) { xide_task_info info={0}; xideTaskInfo(tasks->active,&info); if(info.state<=XIDE_TASK_CANCELLING) return; tasks->active=NULL; }
+    if(tasks->active) { if(!completedWorker(tasks->active)) return; tasks->active=NULL; }
+    if(tasks->holdToken)return;
     for(size_t i=0;i<tasks->count;++i) {
         xide_task* task=tasks->items[i]; xide_task_info info={0}; xideTaskInfo(task,&info);
         if(info.state!=XIDE_TASK_QUEUED) continue;
@@ -687,7 +690,26 @@ void xideTasksPoll(xide_tasks* tasks)
 int xideTasksBusy(const xide_tasks* tasks)
 {
     if(!tasks) return 0;
-    for(size_t i=0;i<tasks->count;++i) { xide_task_info info={0}; xideTaskInfo(tasks->items[i],&info); if(info.state<=XIDE_TASK_CANCELLING) return 1; } return 0;
+    for(size_t i=0;i<tasks->count;++i) { xide_task* t=tasks->items[i];xide_task_info info={0};xideTaskInfo(t,&info);if(info.state<=XIDE_TASK_CANCELLING || (t->worker&&WaitForSingleObject(t->worker,0)!=WAIT_OBJECT_0))return 1;}return 0;
+}
+int xideTasksAdmissionHeld(const xide_tasks* tasks){return tasks&&tasks->holdToken;}
+uint64_t xideTasksSuspend(xide_tasks* tasks,xide_model_error* error)
+{
+    if(error)memset(error,0,sizeof(*error));
+    if(!tasks||tasks->holdToken||tasks->nextLease==UINT64_MAX){fail(error,"Task lease is missing, already held or exhausted");if(error)error->code=XIDE_MODEL_CONFLICT;return 0;}
+    tasks->holdToken=++tasks->nextLease;return tasks->holdToken;
+}
+int xideTasksSuspended(const xide_tasks* tasks,uint64_t token)
+{
+    if(!tasks||!token||tasks->holdToken!=token)return 0;
+    for(size_t i=0;i<tasks->count;++i){xide_task* task=tasks->items[i];xide_task_info info={0};xideTaskInfo(task,&info);if(info.state==XIDE_TASK_EXECUTING||info.state==XIDE_TASK_CANCELLING||(task->worker&&WaitForSingleObject(task->worker,0)!=WAIT_OBJECT_0))return 0;}
+    return 1;
+}
+int xideTasksResume(xide_tasks* tasks,uint64_t token,xide_model_error* error)
+{
+    if(error)memset(error,0,sizeof(*error));
+    if(!tasks||!token||tasks->holdToken!=token){fail(error,"Task lease is stale or missing");if(error)error->code=XIDE_MODEL_CONFLICT;return 0;}
+    tasks->holdToken=0;return 1;
 }
 size_t xideTasksCount(const xide_tasks* tasks) { return tasks ? tasks->count : 0; }
 xide_task* xideTasksAt(xide_tasks* tasks,size_t index) { return tasks && index<tasks->count ? tasks->items[index] : NULL; }

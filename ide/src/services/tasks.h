@@ -42,6 +42,19 @@ xide_task* xideTasksBuildFileGuarded(xide_tasks* tasks,const char* path,const ch
 xide_task* xideTasksTest(xide_tasks* tasks,const xide_project* project,const char* configurationId,xide_model_error* error);
 void xideTasksPoll(xide_tasks* tasks);
 int xideTasksBusy(const xide_tasks* tasks);
+/* Owner-only source-barrier participant. Request is allocation-free and never
+ * cancels/joins active work. Existing queued requests remain queued; new build,
+ * run and test submissions are refused. Poll keeps retiring completed workers
+ * but cannot dispatch another while held. Suspended requires every actual
+ * worker handle to have exited, not just a published terminal task state.
+ * Exact instance-scoped tokens, no nesting. Resume may abandon an unacknowledged
+ * request, but a holder that started source writes must settle them first and
+ * invalidate changed inputs using xideTasksInvalidateInput before resuming.
+ * This does not suspend independent toolchain/LSP/indexer workers. */
+uint64_t xideTasksSuspend(xide_tasks*,xide_model_error*);
+int xideTasksSuspended(const xide_tasks*,uint64_t token);
+int xideTasksResume(xide_tasks*,uint64_t token,xide_model_error*);
+int xideTasksAdmissionHeld(const xide_tasks*);
 size_t xideTasksCount(const xide_tasks* tasks);
 xide_task* xideTasksAt(xide_tasks* tasks,size_t index);
 int xideTasksContains(const xide_tasks* tasks,const xide_task* task);

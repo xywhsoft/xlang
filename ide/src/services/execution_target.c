@@ -100,6 +100,7 @@ void xideExecutionResolve(xide_app* app,int forceFile,xide_execution_context* c)
 }
 xide_action_state xideExecutionQuery(xide_app* app,int action)
 {
+    if(xideTasksAdmissionHeld(app?app->tasks:NULL))return (xide_action_state){0,0,"源码事务期间暂停提交构建、运行和测试任务"};
     xide_action_state state={0,0,NULL};xide_execution_context c;xideExecutionResolve(app,action==XIDE_ACTION_BUILD_FILE || action==XIDE_ACTION_RUN_FILE,&c);
     if(c.reason)state.reason=c.reason;
     else if(!app->tasks)state.reason="任务服务尚未就绪";
