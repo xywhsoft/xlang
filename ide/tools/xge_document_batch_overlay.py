@@ -28,7 +28,7 @@ HEADER = '''
  * Document destruction invalidates prepared rows without retaining the owner.
  * No disk transaction, caret mapping, global undo or IDE revision policy is
  * implied. Normal Document observer/callback and owner lifetime rules apply. */
-#define XUI_CODE_DOCUMENT_BATCH 1
+#define XUI_CODE_DOCUMENT_BATCH 2
 typedef struct xui_code_document_batch_t* xui_code_document_batch;
 typedef struct xui_code_document_batch_item_t {
     xui_code_document pDocument;
@@ -39,23 +39,112 @@ XUI_API int xuiCodeDocumentBatchPrepare(const xui_code_document_batch_item_t* pI
     size_t iCount,size_t iBudget,xui_code_document_batch* ppBatch);
 XUI_API int xuiCodeDocumentBatchCommit(xui_code_document_batch pBatch,bool* pCommitted);
 XUI_API int xuiCodeDocumentBatchDestroy(xui_code_document_batch pBatch);
+
+/* Split preparation. Capture/Describe run on the owner and copy metadata only;
+ * Capture ignores the legacy item's Before/After fields. Describe outputs a
+ * detached, copyable layout/source description with no GUI pointer or lease.
+ * Stage may run on any thread from immutable views held for that call only.
+ * It owns every body/index/history allocation, no live Document/Context links.
+ * Pass one payload owner between threads with external synchronization.
+ * Accept is owner-only: recheck capture identity, versions/states and exact
+ * before bytes (at most two memcmp spans/document), then move allocations.
+ * Accept allocates/copies no body or index; it DOES scan before bytes. Undo
+ * prefix metadata is copied in Commit. ALWAYS inspect *taken: true consumes
+ * the payload even if a later call-scope cleanup returns an error. Failed
+ * acceptance leaves it caller-owned. A capture cannot commit until accepted.
+ * Retire unaccepted payloads with PayloadDestroy on any thread, sequentially.
+ * Never concurrently stage from mutable inputs, accept/destroy one payload,
+ * or call owner APIs from the worker. Cancelled Stage returns INVALID_STATE
+ * and NULL output; local polls are not an end-to-end cancellation bound.
+ * Existing Prepare remains a synchronous convenience over this same pipeline.
+ * The known staging quota includes Capture storage and transient payload rows;
+ * raw body/index arrays are fully written without redundant zero-filling. */
+typedef struct xui_code_document_batch_layout_t {
+    uint32_t iSize;
+    uint64_t iCapture;
+    size_t iDocuments,iCaptureBytes;
+} xui_code_document_batch_layout_t;
+typedef struct xui_code_document_batch_source_t {
+    uint32_t iSize;
+    int iLength,iUndoCount;
+} xui_code_document_batch_source_t;
+typedef struct xui_code_document_batch_text_t {
+    uint32_t iSize;
+    xstrview Before,After;
+} xui_code_document_batch_text_t;
+typedef struct xui_code_document_batch_payload_t* xui_code_document_batch_payload;
+XUI_API int xuiCodeDocumentBatchCapture(const xui_code_document_batch_item_t* pTargets,
+    size_t iCount,size_t iBudget,xui_code_document_batch* ppBatch);
+XUI_API int xuiCodeDocumentBatchDescribe(xui_code_document_batch pBatch,
+    xui_code_document_batch_layout_t* pLayout,xui_code_document_batch_source_t* pSources,size_t iCapacity);
+XUI_API int xuiCodeDocumentBatchStage(const xui_code_document_batch_layout_t* pLayout,
+    const xui_code_document_batch_source_t* pSources,const xui_code_document_batch_text_t* pTexts,
+    size_t iBudget,int (*cancelled)(void*),void* pUser,xui_code_document_batch_payload* ppPayload);
+XUI_API int xuiCodeDocumentBatchAccept(xui_code_document_batch pBatch,
+    xui_code_document_batch_payload pPayload,bool* pTaken);
+XUI_API void xuiCodeDocumentBatchPayloadDestroy(xui_code_document_batch_payload pPayload);
+
+/* Optional synchronous host gates; callbacks/user are borrowed for Commit only.
+ * beforePublish runs after toolkit preflight, may refuse without publication,
+ * and is followed by another whole-group toolkit fence. published runs after
+ * all payloads and *committed=true, before any toolkit edit/change observer.
+ * published must be an infallible, preallocated model publication: do not
+ * allocate, dispatch callbacks or close owners there. It is not rollback.
+ * This permits the IDE's identity/config fences and dirty/store metadata to
+ * surround publication, without interleaving per-document change notices. */
+typedef struct xui_code_document_batch_callbacks_t {
+    uint32_t iSize;
+    int (*beforePublish)(void*);
+    void (*published)(void*);
+    void* pUser;
+} xui_code_document_batch_callbacks_t;
+XUI_API int xuiCodeDocumentBatchCommitChecked(xui_code_document_batch pBatch,
+    const xui_code_document_batch_callbacks_t* pCallbacks,bool* pCommitted);
 '''
 
 def derive(root):
     root=Path(root)
     header=root/'include/xui.h';source=root/'src/xui/code/xui_code_document.c'
-    payload=Path(__file__).with_name('xge_document_batch.inc').read_bytes()
+    payload=Path(__file__).with_name('xge_document_batch.inc').read_text(encoding='utf8')
+    marker='/* XUI_DOCUMENT_BATCH_WORKER */'
+    if payload.count(marker)!=1:
+        raise ValueError('Missing worker implementation marker')
+    payload=payload.replace(marker,Path(__file__).with_name('xge_document_batch_worker.inc').read_text(encoding='utf8'),1)
     changes={}
-    for path,anchor,replacement in (
-        (header,b'XUI_API int xuiCodeDocumentCanRedo(xui_code_document pDocument);',
-         b'XUI_API int xuiCodeDocumentCanRedo(xui_code_document pDocument);\n'+HEADER.encode()),
-        (source,b'\n#endif\n',b'\n'+payload+b'\n#endif\n')):
-        original=path.read_bytes();newline=b'\r\n'if b'\r\n'in original else b'\n'
-        a=anchor.replace(b'\n',newline);b=replacement.replace(b'\n',newline)
-        if b'XUI_CODE_DOCUMENT_BATCH'in original or original.count(a)!=1:
-            raise ValueError(f'{path}: unexpected or already modified source')
-        result=original.replace(a,b,1);path.write_bytes(result)
+    planned=[]
+    def canonical(text):return (text.replace('\r\n','\n').strip()+'\n').encode()
+    for path in (header,source):
+        original=path.read_bytes();text=original.decode('utf8');newline='\r\n'if '\r\n'in text else '\n'
+        if path==header:
+            if '#define XUI_CODE_DOCUMENT_BATCH 1'in text:
+                a=text.index('/* Owner-thread, single-attempt prepared document batch.')
+                end='XUI_API int xuiCodeDocumentBatchDestroy(xui_code_document_batch pBatch);'
+                b=text.index(end,a)+len(end)
+                if hashlib.sha256(canonical(text[a:b])).hexdigest()!='7f4baa9a876457c5c00ac925a11fa8dfee5c08e2b6ba9408cf2eb1051afbcbc5':
+                    raise ValueError('Version1 public block differs from qualified source')
+                text=text[:a]+HEADER.strip().replace('\n',newline)+text[b:]
+            elif 'XUI_CODE_DOCUMENT_BATCH'not in text:
+                anchor='XUI_API int xuiCodeDocumentCanRedo(xui_code_document pDocument);'
+                if text.count(anchor)!=1:raise ValueError('Missing public anchor')
+                text=text.replace(anchor,anchor+HEADER.replace('\n',newline),1)
+            else:raise ValueError('Unexpected/already upgraded public source')
+        else:
+            start='/* Additive XUI document primitive.';end=newline+'#endif'+newline
+            if text.count(end)!=1:raise ValueError('Unrecognized Document end')
+            b=text.index(end)
+            if start in text:
+                a=text.index(start)
+                if hashlib.sha256(canonical(text[a:b])).hexdigest()!='fa632d31d99e3d8f6fb318f12e5d632091e9c5bc22c5fab5124dabc97e6c7283':
+                    raise ValueError('Version1 implementation differs from qualified source')
+                text=text[:a]+payload.replace('\n',newline)+text[b:]
+            else:text=text[:b]+newline+payload.replace('\n',newline)+text[b:]
+            before='if ( pDocument == NULL || pAction == NULL || iStart < 0 || iDeletedLength < 0 || iInsertedLength < 0 ) {'
+            after='if ( pAction == NULL || iStart < 0 || iDeletedLength < 0 || iInsertedLength < 0 || (pDocument == NULL && iDeletedLength > 0 && sDeleted == NULL) ) {'
+            if text.count(before)!=1:raise ValueError('Unrecognized shared action initializer')
+            text=text.replace(before,after,1)
+        result=text.encode('utf8');planned.append((path,result))
         changes[path.relative_to(root).as_posix()]=dict(before=hashlib.sha256(original).hexdigest(),after=hashlib.sha256(result).hexdigest())
+    for path,result in planned:path.write_bytes(result)
     return changes
 
 if __name__=='__main__':

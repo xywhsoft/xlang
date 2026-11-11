@@ -1,0 +1,326 @@
+{
+  "schema": 1,
+  "date": "2026-11-11",
+  "stage": "M7b4x",
+  "scope": "Detached worker-side XUI document payload construction, owner acceptance and host publication hooks; no IDE/disk transaction activation",
+  "implementationAccepted": true,
+  "performanceQualified": false,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "309400e239f8801371769ad99ff68b79635d31b0",
+  "ownedSources": {
+    "ide/tools/xge_document_batch_overlay.py": "0cd8b675d9ab73c693cff70c3cd7cb1ba4a75046b99af7d9b11a9bb2b8350a99",
+    "ide/tools/xge_document_batch.inc": "e2cfd1529113f9c46f00932f8f9b434cc3eb8fdf5b627b61c04d47e002c8a5ba",
+    "ide/tools/xge_document_batch_worker.inc": "30d80c7027046769790b68d363446ca1feccfe959318cadc902636f63961f639",
+    "ide/tools/import_xge_sdk.py": "b08cf1d2308b192348387866285c3acb62be59c81d9a23c717be7d485d4373cc",
+    "ide/tests/xui_document_batch_dll_test.c": "8b8bd560c6236ffc82e0460aca49262451ee4c7ec6b76115fddc25a52162dc81",
+    "ide/tests/xui_batch_worker_test.c": "4cd8f63e08d5e30749468cff0b14371a4db9ba9a1f1e84c01bcf326bd0fb2d9d",
+    "ide/tests/xui_batch_worker_bench.c": "b87925d614f7dcc706e84d08db02d8dacf483dfc50dfb6253068db87c85d1e57",
+    "ide/docs/lsp-xui-document-batch.md": "b932e77f0fe6e2786c16784f3c5e268f04e8b8a9d4f06c80cbbdc1d04738c8a5",
+    "ide/docs/lsp-xui-batch-worker.md": "5247d753386b68ce8df7d3138d9e593ea3b713d21704465974f895e99bbe1a1d"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-xui-batch-worker-20261111.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-xui-batch-worker-20261111/stage-sources.tar.gz",
+      "sha256": "b33c14208ccc0ee604a349c0b6cf8da7b43e2c96c24a67832f4c536c18869e69",
+      "bytes": 31719,
+      "entries": 10,
+      "uniquePayloads": 10,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-xui-batch-worker-20261111/stage-sources.tar.gz.manifest.json",
+      "sha256": "2d1b3f0b96ebd96cbfdabf2f469c3eedbcb896a09c5de117f9e8a8d7f4af8186",
+      "bytes": 2314
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-xui-batch-worker-20261111/actual-builds-and-validation.tar.gz",
+      "sha256": "8a5228f69e34e7a623357c924e677322964602eb3a45a95971ae29636a620954",
+      "bytes": 272249818,
+      "entries": 5391,
+      "uniquePayloads": 4277,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-xui-batch-worker-20261111/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "020e69a99a963a8a7f4a57706e0af3d039a90e82743b404adafc6494c5b934d2",
+      "bytes": 1935828
+    }
+  },
+  "upstream": {
+    "commit": "8d69816a0224474bebf3779765315078a9a157a9",
+    "parent": "1500955299631e80ad91f95b34b0b2d288304515",
+    "paths": [
+      "include/xui.h",
+      "src/xui/code/xui_code_document.c"
+    ],
+    "isolatedIndexAndAtomicFastForward": true,
+    "otherIndexEntriesPreserved": true,
+    "currentUpstreamStrictProducerCompilationOnly": true,
+    "matchedDocumentProducerIdentical": true
+  },
+  "sdk": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-xui-batch-worker-20261111\\matched-sdk-v1\\sdk",
+    "dllSha256": "51cc62cb935e54ef16abcb8a4ae8ee845d64254123a822ba4004c63dad42359e",
+    "compiledUnits": 173,
+    "documentWerrorObjectIdentical": true,
+    "wholeSdkWerror": false,
+    "defaultInstalled": false
+  },
+  "correctness": {
+    "legacyAssertions": 677,
+    "workerAssertions": 323,
+    "synchronousColdGates": 18,
+    "workerColdGates": 16,
+    "captureColdGates": 2,
+    "cancelPoints": 12,
+    "nativeExecutions": 40,
+    "publicDllCodeEditAssertionsPerMode": 32,
+    "publicModes": [
+      "synchronous",
+      "real-worker"
+    ],
+    "currentAndBaselineDocumentRegression": true,
+    "guiObjects": 118,
+    "guiFixtures": 34,
+    "actualMutantsRejected": 8,
+    "unchangedDeclarations": 8729,
+    "addedDeclarations": 11,
+    "addedExports": 6,
+    "existingNativeProgramsNotRerun": 192,
+    "existingProtocolSuitesNotRerun": 13,
+    "rawFailuresRetained": true
+  },
+  "componentCostScreen": {
+    "samples": 48,
+    "pairedSamplesPerModePerCase": 4,
+    "actualPublicDll": true,
+    "wholePerformanceQualified": false,
+    "fixtureJoinsWorker": true,
+    "summaries": [
+      {
+        "bytes": 1048576,
+        "denseLines": 0,
+        "commit": 0,
+        "mode": "synchronous",
+        "samples": 4,
+        "medians": {
+          "prepareMs": 3.1048,
+          "captureMs": 0.0,
+          "workerStageMs": 0.0,
+          "acceptMs": 0.0,
+          "commitMs": 0.0,
+          "destroyMs": 0.2025,
+          "ownerSdkWorkMs": 3.3034,
+          "wallMsIncludingTestJoin": 3.3034499999999998
+        }
+      },
+      {
+        "bytes": 1048576,
+        "denseLines": 0,
+        "commit": 0,
+        "mode": "split",
+        "samples": 4,
+        "medians": {
+          "prepareMs": 0.0,
+          "captureMs": 0.00435,
+          "workerStageMs": 3.4284499999999998,
+          "acceptMs": 0.108,
+          "commitMs": 0.0,
+          "destroyMs": 0.2215,
+          "ownerSdkWorkMs": 0.3338,
+          "wallMsIncludingTestJoin": 3.9132999999999996
+        }
+      },
+      {
+        "bytes": 1048576,
+        "denseLines": 0,
+        "commit": 1,
+        "mode": "synchronous",
+        "samples": 4,
+        "medians": {
+          "prepareMs": 3.16305,
+          "captureMs": 0.0,
+          "workerStageMs": 0.0,
+          "acceptMs": 0.0,
+          "commitMs": 0.07035,
+          "destroyMs": 0.00145,
+          "ownerSdkWorkMs": 3.23675,
+          "wallMsIncludingTestJoin": 3.2372
+        }
+      },
+      {
+        "bytes": 1048576,
+        "denseLines": 0,
+        "commit": 1,
+        "mode": "split",
+        "samples": 4,
+        "medians": {
+          "prepareMs": 0.0,
+          "captureMs": 0.00415,
+          "workerStageMs": 3.1369,
+          "acceptMs": 0.12869999999999998,
+          "commitMs": 0.08324999999999999,
+          "destroyMs": 0.0017499999999999998,
+          "ownerSdkWorkMs": 0.21500000000000002,
+          "wallMsIncludingTestJoin": 3.45425
+        }
+      },
+      {
+        "bytes": 8388608,
+        "denseLines": 0,
+        "commit": 0,
+        "mode": "synchronous",
+        "samples": 4,
+        "medians": {
+          "prepareMs": 24.65015,
+          "captureMs": 0.0,
+          "workerStageMs": 0.0,
+          "acceptMs": 0.0,
+          "commitMs": 0.0,
+          "destroyMs": 2.2063,
+          "ownerSdkWorkMs": 26.789900000000003,
+          "wallMsIncludingTestJoin": 26.790399999999998
+        }
+      },
+      {
+        "bytes": 8388608,
+        "denseLines": 0,
+        "commit": 0,
+        "mode": "split",
+        "samples": 4,
+        "medians": {
+          "prepareMs": 0.0,
+          "captureMs": 0.01115,
+          "workerStageMs": 23.4085,
+          "acceptMs": 0.886,
+          "commitMs": 0.0,
+          "destroyMs": 2.2561,
+          "ownerSdkWorkMs": 3.15325,
+          "wallMsIncludingTestJoin": 26.66955
+        }
+      },
+      {
+        "bytes": 8388608,
+        "denseLines": 0,
+        "commit": 1,
+        "mode": "synchronous",
+        "samples": 4,
+        "medians": {
+          "prepareMs": 24.118000000000002,
+          "captureMs": 0.0,
+          "workerStageMs": 0.0,
+          "acceptMs": 0.0,
+          "commitMs": 0.6277999999999999,
+          "destroyMs": 0.00185,
+          "ownerSdkWorkMs": 24.780450000000002,
+          "wallMsIncludingTestJoin": 24.78085
+        }
+      },
+      {
+        "bytes": 8388608,
+        "denseLines": 0,
+        "commit": 1,
+        "mode": "split",
+        "samples": 4,
+        "medians": {
+          "prepareMs": 0.0,
+          "captureMs": 0.01225,
+          "workerStageMs": 24.7747,
+          "acceptMs": 0.9168499999999999,
+          "commitMs": 0.6426000000000001,
+          "destroyMs": 0.0021,
+          "ownerSdkWorkMs": 1.5469,
+          "wallMsIncludingTestJoin": 26.5077
+        }
+      },
+      {
+        "bytes": 8388608,
+        "denseLines": 1,
+        "commit": 0,
+        "mode": "synchronous",
+        "samples": 4,
+        "medians": {
+          "prepareMs": 47.0278,
+          "captureMs": 0.0,
+          "workerStageMs": 0.0,
+          "acceptMs": 0.0,
+          "commitMs": 0.0,
+          "destroyMs": 8.4709,
+          "ownerSdkWorkMs": 56.049350000000004,
+          "wallMsIncludingTestJoin": 56.0497
+        }
+      },
+      {
+        "bytes": 8388608,
+        "denseLines": 1,
+        "commit": 0,
+        "mode": "split",
+        "samples": 4,
+        "medians": {
+          "prepareMs": 0.0,
+          "captureMs": 0.011300000000000001,
+          "workerStageMs": 45.88435,
+          "acceptMs": 0.9073,
+          "commitMs": 0.0,
+          "destroyMs": 8.540949999999999,
+          "ownerSdkWorkMs": 9.47295,
+          "wallMsIncludingTestJoin": 55.552499999999995
+        }
+      },
+      {
+        "bytes": 8388608,
+        "denseLines": 1,
+        "commit": 1,
+        "mode": "synchronous",
+        "samples": 4,
+        "medians": {
+          "prepareMs": 45.79245,
+          "captureMs": 0.0,
+          "workerStageMs": 0.0,
+          "acceptMs": 0.0,
+          "commitMs": 0.67665,
+          "destroyMs": 0.0022,
+          "ownerSdkWorkMs": 46.47835,
+          "wallMsIncludingTestJoin": 46.4786
+        }
+      },
+      {
+        "bytes": 8388608,
+        "denseLines": 1,
+        "commit": 1,
+        "mode": "split",
+        "samples": 4,
+        "medians": {
+          "prepareMs": 0.0,
+          "captureMs": 0.0119,
+          "workerStageMs": 41.262950000000004,
+          "acceptMs": 0.84645,
+          "commitMs": 0.6633,
+          "destroyMs": 0.00265,
+          "ownerSdkWorkMs": 1.5395500000000002,
+          "wallMsIncludingTestJoin": 42.9594
+        }
+      }
+    ]
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "limits": [
+    "Owner Accept still scans before bytes; Commit copies old undo metadata, clears redo and frees old allocations; accepted discard destroys payloads on owner",
+    "Worker cancellation has nonpreemptible UTF8/line/action construction sections; storage quotas are not RSS bounds",
+    "Public component timing excludes fixture join from owner SDK work but includes join in wall time; no interactive IDE or overall LSP performance claim",
+    "Only the toolkit payload layer; IDE identity/config/connection/project gates, model/range mapping, physical aliases, closed-file commit/recovery and annotation consent remain open",
+    "Current upstream producer compiled strictly but whole current upstream SDK/runtime qualification is not claimed",
+    "Standard renameProvider/workspace.applyEdit remain disabled; complete source coverage and protocol/IDE activation remain open",
+    "Whole performance/memory/scale/soak and final engine/default runtime alignment remain open"
+  ]
+}

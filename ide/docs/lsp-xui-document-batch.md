@@ -1,5 +1,7 @@
 # XUI 的预备批量文档发布
 
+后续 [M7b4x 工作线程准备](lsp-xui-batch-worker.md)已拆分 Capture/Describe、Stage 和 Accept，新增宿主提交围栏与模型发布钩子。本文保留第一版阶段记录；其所有者线程 Prepare 成本及三个导出的描述只对应该历史阶段。
+
 M7b4w，2026-11-11。XUI 新增 `xuiCodeDocumentBatchPrepare/Commit/Destroy`。实现位于 XGE 的 Document 生产者，IDE 不复制其私有结构，也不使用“逐文件修改，失败再 Undo”来模拟原子应用。上游提交和精确匹配的 SDK/消费者身份记录在阶段材料索引中。
 
 Prepare 接收每个文档的 before/after LF UTF-8 视图及精确内容变更版本。先取得全部文档调用保护，拒绝重复文档、嵌套编辑、版本/正文失配、无效 UTF-8、NUL/CR 与额度超限，再准备替换缓冲、完整行索引、可直接读取的快照、一个完整撤销组和撤销表容量。原有正文、版本、脏标记及历史不改变；输入不在调用结束后借用。每一行通过 XUI 原有弱生命周期观察失效，不因准备对象延长控件/文档所有权。
