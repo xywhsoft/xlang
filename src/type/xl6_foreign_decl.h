@@ -90,7 +90,8 @@ static inline int xl6ForeignOutputViewRead(const XL6_AstNode* attr,XL6_ForeignOu
         !xl6ForeignDecimalInt(attr->children[0],&index) || index<0 || index>=64 ||
         !xl6ForeignQuotedText(attr->children[1],kind,sizeof(kind)))return 0;
     row.conversion=!strcmp(kind,"text") ? XL6_FOREIGN_OUTPUT_CONVERSION_TEXT :
-        !strcmp(kind,"bytes") ? XL6_FOREIGN_OUTPUT_CONVERSION_BYTES : XL6_FOREIGN_OUTPUT_CONVERSION_INVALID;
+        !strcmp(kind,"bytes") ? XL6_FOREIGN_OUTPUT_CONVERSION_BYTES :
+        !strcmp(kind,"cstring") ? XL6_FOREIGN_OUTPUT_CONVERSION_CSTRING : XL6_FOREIGN_OUTPUT_CONVERSION_INVALID;
     if(!row.conversion)return 0;
     row.physicalIndex=(uint32)index;if(output)*output=row;return 1;
 }
@@ -531,7 +532,8 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
         (facts.textViews & (facts.constAggregateAddresses | facts.staticCallbackAddresses | facts.bytesViews)) ||
         (facts.bytesViews & (facts.constAggregateAddresses | facts.staticCallbackAddresses)) ||
         (facts.borrowedViewResult && facts.borrowedViewResult<=XL6_FOREIGN_VIEW_RESULT_BYTES && facts.outputIndexPlusOne) ||
-        (facts.valueOutput && facts.borrowedViewResult)) return 0;
+        (facts.valueOutput && facts.borrowedViewResult && !xl6ForeignBorrowedOwnerOutput(&facts))) return 0;
+    if(xl6ForeignBorrowedOwnerOutput(&facts) && (outputSizes || outputViews))return 0;
     if(outputSizes)facts.valueOutput|=XL6_FOREIGN_VALUE_OUTPUT_SIZE_INITIALIZED;
     if(outputViews || recordRetains)facts.valueOutput|=XL6_FOREIGN_VALUE_OUTPUT_VIEW_CONVERTED;
     if((regionObservers&~regions) || (regions && ((node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || facts.receiverDereference)) ||

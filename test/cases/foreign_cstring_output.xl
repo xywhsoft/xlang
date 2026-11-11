@@ -1,0 +1,123 @@
+extern "ManagedRoot*" class Root @header("test/cases/foreign_cstring_output.h") @lifetime("owned") @policy("managedRootPolicy") @watch("ManagedWatch") @scope("ManagedScope")
+ native point handle
+ extern "cstr_seed" @no_raise @c_result("status",0) func seed()
+ extern "cstr_read" @no_raise @c_output(2,0) @c_output_view(2,"cstring") func read(c_int mode=0) as string
+ extern "cstr_optional" @no_raise @c_output(2,0) @c_output_view(2,"cstring") func optional(c_int mode=0) as string?
+ extern "cstr_get" @no_raise @c_output(1,0) @c_output_view(1,"cstring") get label() as string
+ extern "cstr_pair" @no_raise @c_outputs(1,2) @c_status(0) @c_output_view(1,"cstring") func pair() as (string,c_int)
+ extern "cstr_pair_text" @no_raise @c_outputs(1,2) @c_status(0) @c_output_view(1,"cstring") @c_output_view(2,"cstring") func pairText() as (string,string)
+ extern "cstr_span" @no_raise @c_span(0,"const uint8_t*","int") @c_output(3,0) @c_output_view(3,"cstring") func fromBytes(bytes input) as string
+ extern "cstr_change" @no_raise func change()
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "CstrReader*" class Reader @header("test/cases/foreign_cstring_output.h") @lifetime("caller")
+ native point handle
+ extern "read" @c_field_call @no_raise @c_output(2,0) @c_output_view(2,"cstring") func read(Root root) as string
+end
+extern "cstr_reader" @header("test/cases/foreign_cstring_output.h") @no_raise func reader() as Reader
+extern "managed_root_create" @header("test/cases/foreign_cstring_output.h") @no_raise @factory(1,0,rollback) @c_result("owned_view") func create(c_int mode=0) as Root
+extern "managed_root_destroy" @header("test/cases/foreign_cstring_output.h") @no_raise func rollback(Root root)
+extern "cstr_first" @header("test/cases/foreign_cstring_output.h") @no_raise @c_output(0,0) @c_output_view(0,"cstring") func first(c_int mode=0) as string
+extern "cstr_void" @header("test/cases/foreign_cstring_output.h") @no_raise @c_output(0) @c_output_view(0,"cstring") func readVoid(c_int mode=0) as string
+extern "cstr_fail_after" @header("test/cases/foreign_cstring_output.h") @no_raise func failAfter(c_int count)
+extern "managed_reset_failure" @header("test/cases/foreign_cstring_output.h") @no_raise func resetFailure()
+extern "managed_roots_live" @header("test/cases/foreign_cstring_output.h") @no_raise func roots() as c_int
+extern "managed_children_live" @header("test/cases/foreign_cstring_output.h") @no_raise func children() as c_int
+extern "managed_counter_begin" @header("test/cases/foreign_cstring_output.h") @no_raise func counterBegin()
+extern "cstr_counter_end" @header("test/cases/foreign_cstring_output.h") @no_raise func counterEnd(c_int copies)
+extern "cstr_heap_end" @header("test/cases/foreign_cstring_output.h") @no_raise func heapEnd()
+protocol TextSource
+ func read(c_int mode) as string
+end
+func allocationFailures()
+ int accepted=0
+ int rejected=0
+ auto root=create()
+ root.seed()
+ for budget in range(64)
+  string kept="unchanged"
+  failAfter(c_int(budget))
+  try
+   kept=root.read()
+   resetFailure()
+   assert kept=="A你好"
+   accepted+=1
+  catch error
+   resetFailure()
+   assert kept=="unchanged"
+   rejected+=1
+  finally
+   resetFailure()
+  end
+  assert roots()==c_int(1) and children()==c_int(1)
+  string left="left"
+  string right="right"
+  failAfter(c_int(budget))
+  try
+   left,right=root.pairText()
+   resetFailure()
+   assert left=="A你好" and right=="second"
+  catch error
+   resetFailure()
+   assert left=="left" and right=="right"
+  finally
+   resetFailure()
+  end
+ end
+ assert accepted>0 and rejected>0
+ root.close()
+end
+func main(...) as int
+ allocationFailures()
+ counterBegin()
+ allocationFailures()
+ heapEnd()
+ auto root=create()
+ root.seed()
+ assert root.read()=="A你好" and root.label=="A你好"
+ assert root.optional(2)==null
+ auto empty=root.optional(3)
+ assert empty!=null and (empty as string)==""
+ string kept=root.read()
+ func(c_int) as string bound=root.read
+ TextSource through=root
+ assert bound(0)==kept and through.read(0)==kept
+ auto source=reader()
+ func(Root) as string field=source.read
+ assert field(root)==kept and source.read(root)==kept and root.fromBytes(b"a\0b")==kept
+ auto text,number=root.pair()
+ assert text==kept and number==c_int(83)
+ assert first()=="free" and readVoid()=="void"
+ bool failed=false
+ try
+  kept=root.read(1)
+ catch error
+  failed=true
+  assert error.code==-29 and error.operation=="cstr_read"
+ end
+ assert failed and kept=="A你好"
+ failed=false
+ try
+  kept=root.read(2)
+ catch error
+  failed=true
+ end
+ assert failed and kept=="A你好"
+ // Each independent owned string needs one allocation, copy and later free.
+ // NUL scanning is required by the C producer's terminating-text contract.
+ counterBegin()
+ for i in range(200)
+  auto copy=root.read()
+ end
+ counterEnd(200)
+ root.change()
+ assert kept=="A你好" and root.read()=="changed"
+ root.close()
+ assert kept=="A你好" and roots()==c_int(0) and children()==c_int(0)
+ println("C-string outputs: owned copies, nullable, empty, UTF-8, errors, OOM, tuple, getter and bound/protocol paths")
+ return 0
+end
+export func cstringOutputSelfTest() as int
+ assert main()==0
+ return 73
+end

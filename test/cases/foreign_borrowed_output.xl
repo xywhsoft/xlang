@@ -1,0 +1,160 @@
+extern "ManagedRoot*" class Root @header("test/cases/foreign_borrowed_output.h") @lifetime("owned") @policy("managedRootPolicy") @watch("ManagedWatch") @scope("ManagedScope")
+ native point handle
+ extern "borrowed_seed" @no_raise @c_result("status",0) func seed()
+ extern "borrowed_status" @no_raise @c_output(2,0) @c_result("owner_view",0) func query(c_int mode=0) as Child
+ extern "borrowed_optional" @no_raise @c_output(2,0) @c_result("owner_view",0) func optional(c_int mode=0) as Child?
+ extern "borrowed_get" @no_raise @c_output(1,0) @c_result("owner_view",0) get first() as Child
+ extern "borrowed_void" @no_raise @c_output(1) @c_result("owner_view",0) func readVoid() as Child
+ extern "borrowed_span" @no_raise @c_span(0,"const uint8_t*","int") @c_output(3,0) @c_result("owner_view",0) func fromBytes(bytes data,c_int mode=0) as Child
+ extern "managed_child_create" @no_raise @factory(2,0,rollbackChild) @c_result("owner_view",0) func construct(c_int mode=0) as Child
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "ManagedChild*" class Child @header("test/cases/foreign_borrowed_output.h") @lifetime("owner") @owner(Root) @policy("borrowedChildPolicy") @watch("ManagedWatch")
+ native point handle
+ extern "managed_child_read" @no_raise get value() as c_int
+ extern "borrowed_owner" @no_raise @c_output(1,0) @c_result("owner_view",0) func owner() as Root
+end
+extern "BorrowedReader*" class Reader @header("test/cases/foreign_borrowed_output.h") @lifetime("caller")
+ native point handle
+ extern "read" @c_field_call @no_raise @c_output(2,0) @c_result("owner_view",1) func read(Root root) as Child
+end
+extern "managed_root_create" @header("test/cases/foreign_borrowed_output.h") @no_raise @factory(1,0,rollbackRoot) @c_result("owned_view") func create(c_int mode=0) as Root
+extern "managed_root_destroy" @header("test/cases/foreign_borrowed_output.h") @no_raise func rollbackRoot(Root root)
+extern "borrowed_child_destroy" @header("test/cases/foreign_borrowed_output.h") @no_raise func rollbackChild(Child child)
+extern "borrowed_free" @header("test/cases/foreign_borrowed_output.h") @no_raise @c_output(2,0) @c_result("owner_view",1) func freeQuery(c_int mode,Root root) as Child
+extern "borrowed_reader" @header("test/cases/foreign_borrowed_output.h") @no_raise func reader() as Reader
+extern "borrowed_calls" @header("test/cases/foreign_borrowed_output.h") @no_raise func calls() as c_uint
+extern "borrowed_watches" @header("test/cases/foreign_borrowed_output.h") @no_raise func watches() as c_uint
+extern "borrowed_destroys" @header("test/cases/foreign_borrowed_output.h") @no_raise func destroys() as c_uint
+extern "managed_roots_live" @header("test/cases/foreign_borrowed_output.h") @no_raise func roots() as c_int
+extern "managed_children_live" @header("test/cases/foreign_borrowed_output.h") @no_raise func children() as c_int
+extern "managed_counter_begin" @header("test/cases/foreign_borrowed_output.h") @no_raise func countersBegin()
+extern "managed_counter_end" @header("test/cases/foreign_borrowed_output.h") @no_raise func countersEnd()
+extern "borrowed_fail_after" @header("test/cases/foreign_borrowed_output.h") @no_raise func failAfter(c_int count)
+extern "managed_reset_failure" @header("test/cases/foreign_borrowed_output.h") @no_raise func resetFailure()
+protocol Query
+ func query(c_int mode) as Child
+end
+func check(Child child)
+ assert child.value==c_int(17)
+end
+func allocationFailures()
+ int accepted=0
+ int rejected=0
+ for budget in range(64)
+  auto root=create()
+  root.seed()
+  auto before=destroys()
+  failAfter(c_int(budget))
+  try
+   auto view=root.query()
+   resetFailure()
+   check(view)
+   accepted+=1
+  catch error
+   rejected+=1
+  finally
+   resetFailure()
+  end
+  // Failed language admission must never destroy a borrowed native child.
+  assert destroys()==before and roots()==c_int(1) and children()==c_int(1)
+  check(root.query())
+  root.close()
+  assert roots()==c_int(0) and children()==c_int(0)
+ end
+ assert accepted>0 and rejected>0
+end
+func keptChild() as Child
+ auto root=create()
+ root.seed()
+ return root.query()
+end
+func retainedOwner()
+ auto child=keptChild()
+ check(child)
+ assert roots()==c_int(1) and children()==c_int(1)
+ auto root=child.owner()
+ root.close()
+ assert roots()==c_int(0) and children()==c_int(0)
+ bool failed=false
+ try
+  check(child)
+ catch error
+  failed=true
+ end
+ assert failed
+end
+func main(...) as int
+ allocationFailures()
+ retainedOwner()
+ auto root=create()
+ root.seed()
+ auto kept=root.query()
+ check(kept)
+ assert kept.owner()==root
+ check(root.first)
+ check(root.readVoid())
+ check(root.fromBytes(b"a\0b"))
+ assert root.optional(2)==null
+ auto watchBefore=watches()
+ auto destroyBefore=destroys()
+ bool failed=false
+ try
+  kept=root.query(1)
+ catch error
+  failed=true
+  assert error.code==-17 and error.operation=="borrowed_status"
+ end
+ assert failed and watches()==watchBefore and destroys()==destroyBefore
+ check(kept)
+ failed=false
+ try
+  kept=root.query(2)
+ catch error
+  failed=true
+ end
+ assert failed and destroys()==destroyBefore
+ check(kept)
+ func(c_int) as Child bound=root.query
+ func(c_int,Root) as Child freeValue=freeQuery
+ Query through=root
+ auto source=reader()
+ func(Root) as Child fieldBound=source.read
+ check(bound(0))
+ check(freeValue(0,root))
+ check(through.query(0))
+ check(fieldBound(root))
+ auto before=calls()
+ countersBegin()
+ for i in range(200)
+  check(root.query())
+  check(bound(0))
+  check(through.query(0))
+  check(freeValue(0,root))
+  check(fieldBound(root))
+ end
+ countersEnd()
+ assert calls()==before+c_uint(1000) and destroys()==destroyBefore
+ failed=false
+ try
+  auto invalid=root.construct(1)
+ catch error
+  failed=true
+ end
+ assert failed and children()==c_int(1) and destroys()==destroyBefore+c_uint(1)
+ failed=false
+ try
+  kept=root.query(3)
+ catch error
+  failed=true
+  assert error.code==-17
+ end
+ assert failed and roots()==c_int(0) and children()==c_int(0)
+ root.close()
+ println("Borrowed owner outputs: direct, nullable, void, getter, span, bound/free/field/protocol; no native transfer or hot allocations")
+ return 0
+end
+export func borrowedOutputSelfTest() as int
+ assert main()==0
+ return 73
+end

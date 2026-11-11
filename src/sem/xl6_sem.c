@@ -21880,6 +21880,7 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
             if(!xl6SemForeignOutputRecord(ctx,node,attrs,ownerClass,&facts,count+receiver,receiver))return 0;
         }else{
         size_t outputs=1;uint32 slots[64]={facts.outputIndexPlusOne-1};
+        int borrowedOutput=xl6ForeignBorrowedOwnerOutput(&facts);
         int multi=xl6ForeignValueOutputBase(facts.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_MULTI_STATUS || xl6ForeignValueOutputBase(facts.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID;
         if(multi){
             int found=0;
@@ -21890,7 +21891,8 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
             }
         }
         if(!viewReturns || viewReturns->childCount!=outputs || !(node->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) ||
-            (node->flags&XL6_AST_FLAG_FOREIGN_OWNED_STRING) || facts.borrowedViewResult || facts.rollbackSymbol ||
+            (node->flags&XL6_AST_FLAG_FOREIGN_OWNED_STRING) ||
+            (facts.borrowedViewResult && !borrowedOutput) || facts.rollbackSymbol ||
             !facts.outputIndexPlusOne || (!multi && xl6ForeignOutputLogicalForDeclaration(node,&facts,count+receiver,receiver)==SIZE_MAX)){
             xl6SemErrorNode(ctx,node,"C value outputs require matching exact trivial C results, explicit @no_raise and complete physical slots");return 0;
         }
@@ -21899,7 +21901,14 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
             const XL6_AstNode* value=xl6SemResolveAliasType(ctx,viewReturns->children[o]);
             XL6_ForeignClassDecl outputContract={0};
             const XL6_AstNode* outputDecl=xl6SemForeignViewDeclaration(ctx,value,&outputContract);
-            if(!value || (!xl6SemIsCAbiCallbackValueType(ctx,value,1) && !xl6SemIsCAbiFixedOutputType(ctx,value)) ||
+            if(borrowedOutput){
+                if(outputs!=1 || !outputDecl ||
+                    (outputContract.lifetime!=XL6_FOREIGN_LIFETIME_OWNED && outputContract.lifetime!=XL6_FOREIGN_LIFETIME_OWNER) ||
+                    !(node->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) ||
+                    (node->flags&(XL6_AST_FLAG_FOREIGN_PURE|XL6_AST_FLAG_FOREIGN_OWNED_STRING|XL6_AST_FLAG_FOREIGN_FIELD))){
+                    xl6SemErrorNode(ctx,node,"borrowed owner output requires one managed owner_view result and a no-raise native pointer-output producer without owning or pure adaptation");return 0;
+                }
+            }else if(!value || (!xl6SemIsCAbiCallbackValueType(ctx,value,1) && !xl6SemIsCAbiFixedOutputType(ctx,value)) ||
                 (outputDecl && outputContract.lifetime!=XL6_FOREIGN_LIFETIME_CALLER)){
                 xl6SemErrorNode(ctx,node,"C value outputs accept only exact trivial C values without hidden ownership");return 0;
             }

@@ -158,3 +158,45 @@ This closes the fixed-output compiler/binding gate. Safe paint invalidation,
 cache ownership/concurrency, retained outputs, actual SVG rendering, automatic
 module-global resource/code lifetime, complete SVG and final matched delivery
 remain separate gates. No release/IDE installation is qualified by this batch.
+
+## Borrowed pointer and C-string output prerequisite
+
+The generic compiler now distinguishes physical output storage from logical
+result admission. `c_output` plus `c_result("owner_view",source)` borrows an
+existing native root/child without pretending to construct it or requiring a
+destructor rollback. An unsuccessful producer's output can be unspecified and
+is never observed. Owning factories still require their original rollback.
+This supports the native SVG paint/owner/parent/child pointer-output pattern.
+
+`c_output_view(slot,"cstring")` maps `const char**` to an independent owned
+string, using the existing terminating-text admission while input scopes remain
+active. It supports nullable/empty values, getters and mixed/converted tuples;
+a failed later copy releases earlier copies without changing prior assignments.
+It cannot preserve text after an embedded NUL; counted `xstrview*` outputs retain
+their separate length-aware contract. Neither feature adds a SVG wrapper.
+
+`foreign-output-ownership-20261111.json` indexes complete Windows r19/Linux r11
+O2 builds with TinyCC/XRT/VFS and the embedded compiler, and 188 command checks.
+They exercise JIT, independent static binaries, strict C/C++ generated headers,
+actual C++ shared-library clients, embedded JIT/AOT compilers, negative ABI and
+semantic declarations, and existing managed/retained/counted/fixed-output paths.
+Separate pinned O0 frontend executables reject 172 damaged-IR variants before
+any C/header bytes. Their scope is explicitly different from the full builds.
+
+Borrowed cold admission still allocates observation/control records when needed.
+The 1,000-call repeated-exposure loop adds no XRT heap operation. For C-string
+outputs, 200 result materializations/drops allocate and free exactly 200 times,
+with no reallocations, plus a NUL scan and copy each. Existing ordinary string
+comparison can add operand copies: an earlier comparison-containing loop used
+600 allocations for the same 200 producer calls. The isolated counter does not
+claim to remove that compiler cost or establish total zero overhead. Repeated
+64-budget string/tuple failure sweeps return to the exact warmed heap baseline.
+
+This closes only these output-contract prerequisites. A bounded native CPU
+control also confirmed that SVG font-cache growth moves an externally retained
+Font record; it stops before stale-pointer access. Native stable font storage,
+font/raster GPU-cache engine ownership, optional clamped byte-prefix mapping,
+safe complete SVG declarations/callbacks, actual rendering and final matched
+delivery remain open. The approved explicit cache keeps shared documents within
+one creator-thread cache and independent caches across threads. No release/IDE
+installation or complete SVG acceptance is claimed here.

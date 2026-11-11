@@ -1,0 +1,28 @@
+// The standalone host must rebuild the compiler's new mappings into its VFS.
+import xlang
+func main(...) as int
+ auto root=env.get("XLANG_OUTPUT_OWNERSHIP_ROOT")
+ if root==null then return 2 end
+ auto context=xlang.Context()
+ assert context.setWorkDir(root)
+ string source=r"""
+extern "NestedOutputRoot*" class Root @header("test/cases/foreign_output_ownership_nested.h") @lifetime("owned") @policy("nestedOutputPolicy")
+ native point handle
+ extern "nested_output_self" @no_raise @c_output(1,0) @c_result("owner_view",0) func selfView() as Root
+ extern "nested_output_name" @no_raise @c_output(1,0) @c_output_view(1,"cstring") get name() as string
+ extern "nested_output_value" @no_raise get value() as c_int
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "nested_output_create" @header("test/cases/foreign_output_ownership_nested.h") @no_raise @factory(0,0,rollback) @c_result("owned_view") func create() as Root
+extern "nested_output_free" @header("test/cases/foreign_output_ownership_nested.h") @no_raise func rollback(Root root)
+auto root=create()
+assert root.selfView()==root and root.value==c_int(97)
+assert root.name=="nested UTF-8 你"
+root.close()
+"""
+ assert context.run(source),context.lastError
+ assert not context.run("int broken=missingOutputOwnershipSymbol")
+ assert context.run(source),context.lastError
+ println("Nested native output ownership passed")
+ return 0
+end

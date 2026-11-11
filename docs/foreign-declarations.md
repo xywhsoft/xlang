@@ -986,6 +986,36 @@ function-value, bound and protocol calls use the same verified initializer.
 The output-mode byte contains a closed kind/presence flag set; unknown bits or
 a presence flag without its rows are rejected before C or header output.
 
+## Borrowed owner pointer outputs
+
+`@c_output(physicalOutput[,successCode]) @c_result("owner_view",ownerParameter)`
+maps one native `Child**` output to an owner-bounded managed view. The output
+position counts complete physical C parameters; the owner index counts logical
+parameters including an instance receiver. The returned child and source must
+have the same declared native root. Returning the existing root itself is also
+valid. Nullable results admit NULL; required results reject it with a checked
+value error. A void C producer omits the success code.
+
+```xl
+extern "nativeFind" @no_raise @c_output(2,0) @c_result("owner_view",0)
+    func find(c_int index) as Child
+```
+
+This contract transfers no native reference. It has no rollback helper and
+cannot be substituted for an owning `@factory`: a real constructor must still
+declare cleanup for an output that it transfers before returning failure.
+Borrowed outputs require `@no_raise`; preparation, status checking and managed
+admission remain fallible. A failed producer may leave the pointer unspecified:
+generated code checks the outcome before observing or admitting that pointer.
+The owner/native call scope stays active through admission and failure cleanup.
+
+The existing sparse output mapping and owner-view result ABI describe this
+combination; no new runtime carrier or per-method forwarding body is introduced.
+Cold exposure can allocate an observed view/control record. A repeated exposure
+reuses the live view, but still performs root/thread/liveness checks, ownership,
+code residency and checked call bookkeeping. No blanket zero-cost claim follows
+from a warmed allocation counter.
+
 ## Borrowed text and byte output slots
 
 `@c_output_view(physicalOutput,"text")` declares an exact native `xstrview*`
@@ -993,6 +1023,16 @@ output and an owned logical `string` or `string?` result. The `"bytes"` form
 declares `xbytesview*` and `bytes` or `bytes?`. It combines with `c_output` or
 `c_outputs` and counts the same complete physical slots; it cannot overlap a
 size initializer, input span or callback group.
+
+The `"cstring"` form declares an exact `const char**` output and an owned
+`string` or `string?` result. It reuses ordinary borrowed C-string return
+admission: a terminating NUL scan and independent copy occur while native input
+scopes are active. NULL is absence for a nullable result and a checked value
+error for a required result; a non-NULL empty C string is an empty value. This
+explicit terminating-text contract cannot preserve bytes after an embedded NUL.
+Use `"text"` and native `xstrview*` for length-aware text. Neither form adopts or
+frees the producer's borrowed storage. Failed status/callback outcomes skip the
+scan and copy, since unsuccessful output slots need not contain valid pointers.
 
 ```xl
 extern "nativeReadItem" @header("native.h") @no_raise

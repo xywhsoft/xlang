@@ -11,7 +11,7 @@ static int xl6IrOutputViewType(const XL6_IrModule* module,XL6_IrTypeId id,
             inner->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNED && !inner->foreignWatch &&
             type->cAbi==inner->cAbi && type->ownershipAbi==inner->ownershipAbi &&
             type->foreignLifetime==inner->foreignLifetime;
-    XL6_IrCAbi abi=conversion==XL6_FOREIGN_OUTPUT_CONVERSION_TEXT ? XL6_IR_C_ABI_MANAGED_STRING:
+    XL6_IrCAbi abi=(conversion==XL6_FOREIGN_OUTPUT_CONVERSION_TEXT || conversion==XL6_FOREIGN_OUTPUT_CONVERSION_CSTRING) ? XL6_IR_C_ABI_MANAGED_STRING:
         conversion==XL6_FOREIGN_OUTPUT_CONVERSION_BYTES ? XL6_IR_C_ABI_MANAGED_BYTES:XL6_IR_C_ABI_UNSUPPORTED;
     return type && inner && abi!=XL6_IR_C_ABI_UNSUPPORTED && inner->kind==XL6_IR_TYPE_BUILTIN &&
         !inner->paramCount && type->cAbi==abi && inner->cAbi==abi &&

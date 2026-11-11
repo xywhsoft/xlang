@@ -129,6 +129,19 @@ typedef struct XL6_ForeignCallFacts {
     uint32 rollbackSymbol;
 } XL6_ForeignCallFacts;
 
+/* One physical pointer-output slot borrows an existing managed owner graph.
+ * It transfers no native reference, and therefore has no rollback operation.
+ * Keep this distinct from trivial outputs and owning/constructing factories. */
+static inline int xl6ForeignBorrowedOwnerOutput(const XL6_ForeignCallFacts* facts)
+{
+    return facts && (facts->valueOutput==XL6_FOREIGN_VALUE_OUTPUT_STATUS ||
+        facts->valueOutput==XL6_FOREIGN_VALUE_OUTPUT_VOID) &&
+        facts->borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNER_NATIVE &&
+        facts->outputIndexPlusOne && facts->resultOwnerIndexPlusOne &&
+        !facts->rollbackSymbol && !facts->inplaceOutput && !facts->receiverDereference &&
+        (facts->valueOutput!=XL6_FOREIGN_VALUE_OUTPUT_VOID || !facts->successCode);
+}
+
 static inline int xl6ForeignCallFactsEqual(const XL6_ForeignCallFacts* a,const XL6_ForeignCallFacts* b)
 {
     return a->constAggregateAddresses==b->constAggregateAddresses && a->staticCallbackAddresses==b->staticCallbackAddresses &&
@@ -182,9 +195,10 @@ typedef enum XL6_ForeignOutputConversion {
     XL6_FOREIGN_OUTPUT_CONVERSION_INVALID=0,
     XL6_FOREIGN_OUTPUT_CONVERSION_TEXT,
     XL6_FOREIGN_OUTPUT_CONVERSION_BYTES,
-    XL6_FOREIGN_OUTPUT_CONVERSION_RETAINED_NATIVE
+    XL6_FOREIGN_OUTPUT_CONVERSION_RETAINED_NATIVE,
+    XL6_FOREIGN_OUTPUT_CONVERSION_CSTRING
 } XL6_ForeignOutputConversion;
-/* Physical xstrview/xbytesview outputs become owned logical values before
+/* Physical xstrview/xbytesview/const char* outputs become owned logical values before
  * native input/callback scopes end. Ordinary outputs occupy no row. */
 typedef struct XL6_ForeignOutputViewContract {
     uint32 declaration,physicalIndex,ordinal,logicalType;

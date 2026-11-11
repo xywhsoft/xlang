@@ -452,9 +452,10 @@ int xl6IrForeignOutputValueMatches(const XL6_IrModule* module,const XL6_IrCallTa
     const XL6_IrNode* node=target ? xl6IrNodeGet(module,target->declaration) : NULL;
     if(!node || !node->foreignCall.valueOutput)return 0;
     if(xl6ForeignValueOutputBase(node->foreignCall.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_NATIVE_SEQUENCE_STATUS)return xl6IrForeignNativeSequenceMatches(module,target);
+    int borrowedOutput=xl6ForeignBorrowedOwnerOutput(&node->foreignCall);
     size_t count=xl6IrForeignOutputCount(module,target);
-    if(!count || count>64)return 0;
-    for(size_t o=0;o<count;++o)if(!xl6IrForeignOutputViewGet(module,target,o) &&
+    if(!count || count>64 || (borrowedOutput && count!=1))return 0;
+    for(size_t o=0;!borrowedOutput && o<count;++o)if(!xl6IrForeignOutputViewGet(module,target,o) &&
         !xl6IrRawCCallbackTrivialValueType(xl6IrTypeGet(&module->types,xl6IrForeignOutputType(module,target,o))) &&
         !xl6IrForeignFixedOutputType(module,xl6IrForeignOutputType(module,target,o)))return 0;
     if(xl6IrForeignMultiOutput(node)){
@@ -470,13 +471,15 @@ int xl6IrForeignOutputValueMatches(const XL6_IrModule* module,const XL6_IrCallTa
         xl6IrForeignOutputSizesMatch(module,target) &&
         xl6IrForeignOutputViewsMatch(module,target) &&
         target->outputResultAbi==xl6IrCallOutputResultAbiForTarget(module,target) && node->foreignCall.outputIndexPlusOne &&
-        !node->foreignCall.rollbackSymbol && !node->foreignCall.borrowedViewResult &&
+        !node->foreignCall.rollbackSymbol && (!node->foreignCall.borrowedViewResult || borrowedOutput) &&
         (node->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) && !(node->flags&(XL6_AST_FLAG_FOREIGN_FIELD|XL6_AST_FLAG_FOREIGN_OWNED_STRING)) &&
+        (!borrowedOutput || !(node->flags&XL6_AST_FLAG_FOREIGN_PURE)) &&
         target->kind==XL6_IR_CALL_TARGET_EXTERN_C && !target->runtimeBridge &&
         !target->nativeServicesRequired && !target->nativeContextAbi && !target->nativeResultAbi && !target->nativeArrayResultAbi &&
         target->variadicAbi==XL6_IR_CALL_VARIADIC_NONE &&
-        target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_STORAGE && target->resultPhysicalAbi==XL6_IR_CALL_RESULT_PHYSICAL_DIRECT &&
-        target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_NATIVE_OUTPUT_VALUE;
+        target->resultCAbi==(borrowedOutput ? XL6_IR_CALL_RESULT_C_ABI_FOREIGN_VIEW:XL6_IR_CALL_RESULT_C_ABI_STORAGE) &&
+        target->resultPhysicalAbi==XL6_IR_CALL_RESULT_PHYSICAL_DIRECT &&
+        target->resultConversionAbi==(borrowedOutput ? XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT:XL6_IR_CALL_RESULT_CONVERSION_NATIVE_OUTPUT_VALUE);
 }
 int xl6IrForeignManagedPointeeWrite(const XL6_IrModule* module,const XL6_IrCallTarget* target)
 {

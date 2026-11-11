@@ -38,7 +38,7 @@ static int xl6SemForeignOutputViews(XL6_SemContext* ctx,XL6_AstNode* node,
             attr->children[3]->semanticSymbolId=rollback->semanticSymbolId;
             continue;
         }
-        const char* name=row.conversion==XL6_FOREIGN_OUTPUT_CONVERSION_TEXT ? "string":"bytes";
+        const char* name=row.conversion==XL6_FOREIGN_OUTPUT_CONVERSION_BYTES ? "bytes":"string";
         if(!inner || inner->childCount || !xl6TextEquals(inner->text,name))goto invalid;
     }
     return 1;
