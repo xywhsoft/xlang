@@ -77,7 +77,7 @@ static int xl6SemForeignRegions(XL6_SemContext* ctx,XL6_AstNode* node,const XL6_
     for(size_t a=0;attrs && a<attrs->childCount;++a){
         const XL6_AstNode* attr=attrs->children[a];XL6_ForeignRegionContract row;
         if(!xl6ForeignRegionRead(attr,&row))continue;
-        size_t parameter=xl6ForeignRegionPhysicalInput(facts,inputs,receiver,slots,outputCount,row.physicalIndex);
+        size_t parameter=xl6ForeignRegionPhysicalInput(facts,inputs,receiver,slots,outputCount,xl6ForeignSpanPrefixParameters(node),row.physicalIndex);
         if(parameter==SIZE_MAX || parameter<receiver)goto invalid;
         uint64 explicitBit=UINT64_C(1)<<(parameter-receiver);
         if((facts->constAggregateAddresses|facts->staticCallbackAddresses|facts->textViews|facts->bytesViews|
@@ -125,7 +125,7 @@ static int xl6SemForeignRegions(XL6_SemContext* ctx,XL6_AstNode* node,const XL6_
                 !xl6SemIsCAbiRecordType(ctx,returns->children[0]))goto invalid;
             observed=returns->children[0];
             for(size_t p=0;p<observer.inputCount;++p){
-                size_t source=xl6ForeignRegionPhysicalInput(facts,inputs,receiver,slots,outputCount,observer.physicalInputs[p]);
+                size_t source=xl6ForeignRegionPhysicalInput(facts,inputs,receiver,slots,outputCount,xl6ForeignSpanPrefixParameters(node),observer.physicalInputs[p]);
                 if(source==SIZE_MAX || source==parameter || (p<queryReceiver && source>=receiver))goto invalid;
                 if(p<queryReceiver)continue;
                 const XL6_AstNode* actual=xl6SemForeignRegionInputType(ctx,params,owner,receiver,source);
@@ -145,7 +145,7 @@ static int xl6SemForeignRegions(XL6_SemContext* ctx,XL6_AstNode* node,const XL6_
                 if(!observed || !xl6SemForeignRegionField(ctx,observed,select->field))goto invalid;
                 ++observedSelectors;continue;
             }
-            size_t source=xl6ForeignRegionPhysicalInput(facts,inputs,receiver,slots,outputCount,select->physicalIndex);
+            size_t source=xl6ForeignRegionPhysicalInput(facts,inputs,receiver,slots,outputCount,xl6ForeignSpanPrefixParameters(node),select->physicalIndex);
             if(source==SIZE_MAX || source==parameter)goto invalid;
             const XL6_AstNode* type=xl6SemForeignRegionInputType(ctx,params,owner,receiver,source);
             if(select->kind==XL6_FOREIGN_REGION_SELECTOR_INPUT ? !xl6SemForeignRegionInteger(ctx,type):
@@ -167,7 +167,7 @@ static int xl6SemForeignRegionParameter(const XL6_AstNode* node,size_t wanted)
     for(size_t i=0;attrs && i<attrs->childCount;++i){
         XL6_ForeignRegionContract row;
         if(xl6ForeignRegionRead(attrs->children[i],&row) &&
-            xl6ForeignRegionPhysicalInput(&facts,params->childCount+receiver,receiver,slots,outputs,row.physicalIndex)==wanted+receiver)return 1;
+            xl6ForeignRegionPhysicalInput(&facts,params->childCount+receiver,receiver,slots,outputs,xl6ForeignSpanPrefixParameters(node),row.physicalIndex)==wanted+receiver)return 1;
     }
     return 0;
 }

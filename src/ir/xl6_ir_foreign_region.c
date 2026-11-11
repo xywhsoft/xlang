@@ -1,4 +1,17 @@
 /* Fixed physical data pointers and their typed extent/observer contracts. */
+static uint64 xl6IrRegionSpanPrefixes(const XL6_IrModule* module,uint32 declaration)
+{
+    if(module->foreignParameterCount>module->foreignParameterCapacity ||
+        (module->foreignParameterCount && !module->foreignParameters))return UINT64_MAX;
+    uint64 mask=0;
+    for(size_t i=0;i<module->foreignParameterCount;++i){
+        const XL6_ForeignParameterContract* row=&module->foreignParameters[i];
+        if(row->declaration!=declaration || !row->spanLimitIndexPlusOne)continue;
+        if(row->parameter>=64)return UINT64_MAX;
+        mask|=UINT64_C(1)<<row->parameter;
+    }
+    return mask;
+}
 static const XL6_IrNode* xl6IrRegionSignature(const XL6_IrModule* module,uint32 declaration,
     const XL6_IrNode** parameters,size_t* receiver,uint32* outputs,size_t* outputCount)
 {
@@ -89,7 +102,7 @@ static int xl6IrRegionObserverExpected(const XL6_IrModule* module,const XL6_Fore
     *expected=*row;expected->queryDeclaration=queryDeclaration;expected->recordType=result->type;
     for(size_t p=0;p<XL6_FOREIGN_REGION_OBSERVER_MAX_INPUTS;++p){
         if(p>=row->inputCount){if(row->physicalInputs[p] || row->parameters[p])return 0;continue;}
-        size_t parameter=xl6ForeignRegionPhysicalInput(&node->foreignCall,parameters->childCount+receiver,receiver,outputs,outputsCount,row->physicalInputs[p]);
+        size_t parameter=xl6ForeignRegionPhysicalInput(&node->foreignCall,parameters->childCount+receiver,receiver,outputs,outputsCount,xl6IrRegionSpanPrefixes(module,row->declaration),row->physicalInputs[p]);
         if(parameter==SIZE_MAX || row->physicalInputs[p]==row->regionPhysicalIndex ||
             xl6IrRegionInputType(module,node,parameters,receiver,parameter)!=xl6IrRegionInputType(module,query,queryParameters,queryReceiver,p))return 0;
         expected->parameters[p]=(uint32)parameter;
@@ -110,7 +123,7 @@ static int xl6IrRegionSelectorExpected(const XL6_IrModule* module,const XL6_IrNo
         type=observer->recordType;
     }else{
         if(selector->physicalIndex>=64 || selector->physicalIndex==region->physicalIndex)return 0;
-        size_t parameter=xl6ForeignRegionPhysicalInput(&function->foreignCall,params->childCount+receiver,receiver,outputs,outputCount,selector->physicalIndex);
+        size_t parameter=xl6ForeignRegionPhysicalInput(&function->foreignCall,params->childCount+receiver,receiver,outputs,outputCount,xl6IrRegionSpanPrefixes(module,(uint32)(function-module->nodes+1)),selector->physicalIndex);
         if(parameter==SIZE_MAX)return 0;
         expected->parameter=(uint32)parameter;type=xl6IrRegionInputType(module,function,params,receiver,parameter);
     }
@@ -140,7 +153,7 @@ static int xl6IrRegionExpected(const XL6_IrModule* module,const XL6_ForeignRegio
         !(node->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) || (node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || node->foreignCall.receiverDereference ||
         (row->access==XL6_FOREIGN_REGION_ACCESS_WRITE && (row->nullable || (node->flags&XL6_AST_FLAG_FOREIGN_PURE))))return 0;
     if(node->sourceKind==XL6_AST_EXTERN_FUNC && !xl6IrForeignFunctionHeaderIndex(module,row->declaration))return 0;
-    size_t parameter=xl6ForeignRegionPhysicalInput(&node->foreignCall,params->childCount+receiver,receiver,outputs,outputCount,row->physicalIndex);
+    size_t parameter=xl6ForeignRegionPhysicalInput(&node->foreignCall,params->childCount+receiver,receiver,outputs,outputCount,xl6IrRegionSpanPrefixes(module,row->declaration),row->physicalIndex);
     if(parameter==SIZE_MAX || parameter<receiver)return 0;
     uint64 bit=UINT64_C(1)<<(parameter-receiver);
     if((node->foreignCall.constAggregateAddresses|node->foreignCall.staticCallbackAddresses|node->foreignCall.textViews|node->foreignCall.bytesViews|

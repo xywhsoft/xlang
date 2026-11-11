@@ -1,0 +1,73 @@
+extern "PrefixRegionRoot*" class Painter @header("test/cases/foreign_span_region_prefix.h") @lifetime("owned") @policy("prefixRegionPolicy")
+ native point handle
+ extern "render" @c_field_call @no_raise @c_span(0,"const uint8_t*","int",1) @c_region(5,"write","3","4","6",1) @c_result("status",0) func render(bytes data,int size,c_int width,c_int height,Buffer output,c_int stride)
+end
+extern "prefix_region_create" @header("test/cases/foreign_span_region_prefix.h") @no_raise @factory(0,0,rollback) @c_result("owned_view") func create() as Painter
+extern "prefix_region_destroy" @header("test/cases/foreign_span_region_prefix.h") @no_raise func rollback(Painter painter)
+extern "prefix_region_render" @header("test/cases/foreign_span_region_prefix.h") @no_raise @c_span(0,"const uint8_t*","int",1) @c_region(4,"write","2","3","5",1) @c_result("status",0) func render(bytes data,int size,c_int width,c_int height,Buffer output,c_int stride)
+extern "prefix_region_render" @header("test/cases/foreign_span_region_prefix.h") @no_raise @c_span(0,"const uint8_t*","int",1) @c_region(4,"write","2","3","5",1) @c_result("status",0) func render(string data,int size,c_int width,c_int height,Buffer output,c_int stride)
+extern "prefix_region_render" @header("test/cases/foreign_span_region_prefix.h") @no_raise @c_span(0,"const uint8_t*","int",1) @c_region(4,"write","2","3","5",1) @c_result("status",0) func render(Buffer? data,int size,c_int width,c_int height,Buffer output,c_int stride)
+extern "prefix_region_sum" @header("test/cases/foreign_span_region_prefix.h") @no_raise @c_span(0,"const uint8_t*","int",1) @c_output(2,0) @c_region(5,"write","3","4","6",1) func renderSum(bytes data,int size,c_int width,c_int height,Buffer output,c_int stride) as c_int
+extern "prefix_region_calls" @header("test/cases/foreign_span_region_prefix.h") @no_raise func calls() as c_int
+extern "prefix_region_budget" @header("test/cases/foreign_span_region_prefix.h") @no_raise func budget(c_int count)
+protocol Canvas
+ func render(bytes data,int size,c_int width,c_int height,Buffer output,c_int stride)
+end
+export func prefixRegionSelfTest() as c_int
+ auto output=Buffer(b".....")
+ render(b"a\0b",2,c_int(2),c_int(2),output,c_int(3))
+ assert output.len()==5 and output.toBytes()==b"a\0.a\0"
+ return c_int(195)
+end
+func main(...) as int
+ bytes data=b"a\0b"
+ auto output=Buffer(b".....")
+ render(data,2,c_int(2),c_int(2),output,c_int(3))
+ assert output.toBytes()==b"a\0.a\0" and output.len()==5
+ render("a\0b",100,c_int(2),c_int(2),output,c_int(3))
+ assert output.toBytes()==b"a\0.ba"
+ Buffer? absent=null
+ render(absent,100,c_int(2),c_int(2),output,c_int(3))
+ assert output.toBytes()==b"\0\0.\0\0"
+ assert renderSum(data,-1,c_int(2),c_int(2),output,c_int(3))==c_int(195)
+ auto painter=create()
+ painter.render(data,2,c_int(2),c_int(2),output,c_int(3))
+ func(bytes,int,c_int,c_int,Buffer,c_int) bound=painter.render
+ bound(data,2,c_int(2),c_int(2),output,c_int(3))
+ Canvas canvas=painter
+ canvas.render(data,2,c_int(2),c_int(2),output,c_int(3))
+ assert output.toBytes()==b"a\0.a\0"
+ int before=int(calls())
+ bool rejected=false
+ try
+  render(data,-2,c_int(2),c_int(2),output,c_int(3))
+ catch error
+  rejected=true
+ end
+ assert rejected and int(calls())==before and output.toBytes()==b"a\0.a\0"
+ rejected=false
+ auto shortOutput=Buffer(b"....")
+ try
+  render(data,2,c_int(2),c_int(2),shortOutput,c_int(3))
+ catch error
+  rejected=true
+ end
+ assert rejected and int(calls())==before and shortOutput.toBytes()==b"...."
+ rejected=false
+ try
+  render(data,2,c_int(2),c_int(2),output,c_int(1))
+ catch error
+  rejected=true
+ end
+ assert rejected and int(calls())==before
+ budget(c_int(0))
+ try
+  for i in range(200)
+   painter.render(data,2,c_int(2),c_int(2),output,c_int(3))
+  end
+ finally
+  budget(c_int(-1))
+ end
+ assert output.toBytes()==b"a\0.a\0"
+ return 0
+end

@@ -255,6 +255,20 @@ static inline int xl6ForeignParameterRead(const XL6_AstNode* attr,
     return 1;
 }
 
+/* Prefix indices refer to explicit inputs; the adjacent logical limit is
+ * consumed by the same physical pair. Shared layout walkers never expose
+ * either member as an unrelated region selector. */
+static inline uint64 xl6ForeignSpanPrefixParameters(const XL6_AstNode* node)
+{
+    uint64 mask=0;const XL6_AstNode* attrs=xl6ForeignFunctionAttributes(node);
+    for(size_t i=0;attrs && i<attrs->childCount;++i){
+        XL6_ForeignParameterContract row;
+        if(xl6ForeignParameterRead(attrs->children[i],&row) && row.spanLimitIndexPlusOne)
+            mask|=UINT64_C(1)<<row.parameter;
+    }
+    return mask;
+}
+
 /* No output may split a pointer/count or callback/userdata/owner group. */
 static inline int xl6ForeignMultiOutputRead(const XL6_AstNode* attr,uint32 slots[64],size_t* count)
 {
@@ -555,7 +569,7 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
     if(arrayGroups)facts.inputMappingFacts|=XL6_FOREIGN_INPUT_ARRAY_GROUPS_PRESENT;
     if(nulls)facts.inputMappingFacts|=XL6_FOREIGN_INPUT_FIXED_PRESENT;
     if(spanLimits){
-        if(packs || regions || arrayGroups || nulls ||
+        if(packs || arrayGroups || nulls ||
             (spanLimits&(facts.physicalPairs|facts.retainedCallbacks|facts.terminatedStrings|facts.textViews|
                 facts.bytesViews|facts.constAggregateAddresses|facts.staticCallbackAddresses)) ||
             (node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || facts.receiverDereference)return 0;

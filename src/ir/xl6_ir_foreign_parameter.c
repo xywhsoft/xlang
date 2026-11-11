@@ -620,8 +620,7 @@ static int xl6IrVerifyForeignParameters(const XL6_IrModule* module,XL6_DiagList*
             prefixes+=module->foreignParameters[i].declaration==n+1 && module->foreignParameters[i].spanLimitIndexPlusOne!=0;
         if(prefixes!=declaration->foreignCall.spanPrefixCount ||
             (prefixes!=0)!=xl6ForeignInputHasSpanPrefixes(declaration->foreignCall.inputMappingFacts))goto invalid;
-        if(prefixes && (xl6ForeignInputHasRegions(declaration->foreignCall.inputMappingFacts) ||
-            xl6ForeignInputHasPacks(declaration->foreignCall.inputMappingFacts) ||
+        if(prefixes && (xl6ForeignInputHasPacks(declaration->foreignCall.inputMappingFacts) ||
             xl6ForeignInputHasArrayGroups(declaration->foreignCall.inputMappingFacts) ||
             xl6ForeignInputHasFixedInputs(declaration->foreignCall.inputMappingFacts)))goto invalid;
         uint64 mask=declaration->foreignCall.physicalPairs|declaration->foreignCall.retainedCallbacks;

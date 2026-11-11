@@ -1,0 +1,53 @@
+{
+  "schema": "xlang-foreign-span-region-prefix-preflight-1",
+  "passed": true,
+  "shippingDelivery": false,
+  "releaseIdeInstalled": false,
+  "fullCompilerQualified": false,
+  "embeddedCompilerQualified": false,
+  "scope": "O0 frontend-only composition gate over the verified complete Windows r20 parent. The input prefix consumes its logical limit in the shared physical-layout walk. Rectangular pointer/width/height/stride projections remain exact; the span pointer/count cannot be reused as unrelated region selectors.",
+  "compilerDiagnostic": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-span-region-diagnostic-r1\\diagnostic.json",
+    "sha256": "6719dcde29350ed10da01595c06d9806bd25f7002329645251acf0df9f891443"
+  },
+  "sources": {
+    "src/type/xl6_foreign_region_decl.h": "69e650d99ea461781de70050432866bd69d2d3a7b3ae59ed91425bda247f702b",
+    "src/type/xl6_foreign_decl.h": "8648c077a295a574498f76c3ef08420c35654de120ff63350440c397ca53c6fe",
+    "src/sem/xl6_sem_foreign_region.c": "6a919d3a7b4b6bb764c0bbdd210e91daf3705832f654dfdde2adc47e0a7f2258",
+    "src/sem/xl6_sem_foreign_compat.c": "782be10b8707cb4df166f43ce6641fc144c4aa21227201deca919a4ceea4078d",
+    "src/ir/xl6_ir_foreign_region.c": "cae35f019810d6a29a3e21102d45d488c77d6c1372798832c83778e92e1777fe",
+    "src/ir/xl6_ir_foreign_parameter.c": "b4d675223217e4eb370915803bde910b3119adcd638225825d6c66943de1185c",
+    "test/cases/foreign_span_region_prefix.h": "665f128b5feb644d2b6613f505d9f536c01e869a0967ac50f817e50657bce585",
+    "test/cases/foreign_span_region_prefix.xl": "680ae75c4af2ecd35a6e96dd4ddf4be66c9c47fb3aae42bc7308f4e6471b00ce",
+    "test/cases/foreign_span_region_prefix_native.c": "85a99ffa62cae3ae51442d63078d09be440e2c7fd2c63564320fce729e6bf1b4",
+    "test/cases/foreign_span_region_prefix_ir.c": "d6a34a6ccb044feb19b1b340620a281957d64fd3e8ac19bcf0b18700cf237ce4",
+    "test/cases/foreign_span_region_prefix_nested.xl": "f4289e180e3af403d586e3315d58c1eb2ef5817fc27b70e3c7bb032f47449d80",
+    "tools/check_foreign_span_region_prefix.py": "cada87c2224ad39c784c0b8d8ac718539730fd21977700a1fd33bee81d951c94",
+    "tools/foreign_compiler_cohort.py": "f0f1ef8c8d4c2e371a0ed76cb5850f2ef7e4e8f26419462924dba1eccc67fc05"
+  },
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\span-region-diagnostic-win-r2\\results.json",
+      "sha256": "894475df92cbab9c77456434eaf090c8dfe16a01c62cf01fd4a68c9dd0cc16b5",
+      "commands": 17
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\span-region-ir-diagnostic-r1\\results.json",
+      "sha256": "68763d37981259356223a3fd91c90e4fc950115a6b41c2fc9441d4dbe5846533",
+      "commands": 2
+    }
+  ],
+  "commandChecks": 17,
+  "irMutations": 55,
+  "behavior": [
+    "Byte input and writable strided Buffer output in one direct native call, including native field, bound and protocol calls, scalar output inserted before dimensions, string/bytes/nullable Buffer inputs and NUL data.",
+    "Invalid prefix, short output and invalid stride reject before native entry and preserve output contents and length. Padding bytes are preserved on successful output.",
+    "200 warm native field calls succeed under a zero XRT allocation budget. No per-function adapter, new runtime carrier or heap output staging is added; existing scope/lifetime and bounds-check costs remain.",
+    "Native C11/C++11/C++17 function/field ABI proofs and an actual C++ shared-library consumer pass. Prior rectangular-region and basic-prefix JIT fixtures pass."
+  ],
+  "remaining": [
+    "Complete Linux/Windows O2 and nested embedded-compiler acceptance for this composition is pending the next integrated cohort.",
+    "Descriptor-pack/array-group/fixed-input combinations retain their current separate restrictions.",
+    "Complete safe SVG declarations, native fallback/thread admission and matched final delivery remain open."
+  ]
+}

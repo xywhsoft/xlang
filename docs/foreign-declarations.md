@@ -980,9 +980,12 @@ and POD span storage rules; only Buffer may be nullable. Null Buffer supplies
 `NULL,0` even for a larger requested prefix. Writable spans and multi-byte
 element counts do not acquire this byte-prefix meaning. Each limit must follow
 its span immediately and cannot carry another physical mapping. Multiple
-disjoint pairs are supported. Prefix declarations currently reject descriptor
-packs, rectangular regions, array groups and inserted fixed input slots; those
-retain their existing independent contracts.
+disjoint pairs are supported. Prefix declarations can also compose with
+rectangular regions. The shared physical-layout walk consumes the adjacent
+logical limit before resolving each region pointer and extent selector; neither
+the span pointer nor its native count can serve as an unrelated region selector.
+Descriptor packs, array groups and inserted fixed input slots retain their
+current separate restrictions with prefix declarations.
 
 The sealed IR records the prefix index in its sparse parameter contract and an
 exact count in existing declaration-fact padding. The declaration facts stay
@@ -1009,6 +1012,18 @@ regressions. `foreign-span-prefix-windows-20261112.json` records the exact full
 build, source freeze and tests. Linux r12 is a separate pending cohort. Neither
 report qualifies prefix/region composition, the whole SVG package or final
 compiler/SDK/IDE delivery.
+
+The later prefix/region composition preflight is recorded separately in
+`foreign-span-region-prefix-preflight-20261112.json`: 17 O0 frontend command
+checks and 55 damaged-IR rejections before C/header bytes. They cover exact
+strided output, padding/length preservation, capacity/stride/prefix failure
+before native entry, native field/bound/protocol calls, strict C/C++ ABI proofs
+and an actual shared-library consumer. Two hundred warmed field calls succeed
+with the XRT allocation budget set to zero. No new runtime carrier, output
+staging buffer or business-method adapter is introduced; existing admission,
+Buffer/lifetime and bounds checks remain. Complete O2 and nested-compiler gates
+for this composition await the next integrated cohort. The basic-prefix r20/r12
+cohorts must not be presented as qualification of the later composition.
 
 ## Size-prefixed native record outputs
 

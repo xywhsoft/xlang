@@ -58,7 +58,7 @@ static inline int xl6ForeignRegionObserverRead(const XL6_AstNode* attr,XL6_Forei
 /* Shared physical signature walk. An input selector never denotes an output
  * or the middle of a pointer/count/callback group. */
 static inline size_t xl6ForeignRegionPhysicalInput(const XL6_ForeignCallFacts* facts,
-    size_t parameters,size_t receiver,const uint32* outputs,size_t outputCount,uint32 wanted)
+    size_t parameters,size_t receiver,const uint32* outputs,size_t outputCount,uint64 spanPrefixes,uint32 wanted)
 {
     size_t physical=0,output=0;
     for(size_t parameter=0;parameter<parameters;++parameter){
@@ -66,9 +66,12 @@ static inline size_t xl6ForeignRegionPhysicalInput(const XL6_ForeignCallFacts* f
         size_t explicitIndex=parameter>=receiver ? parameter-receiver:SIZE_MAX;
         size_t width=explicitIndex<64 && (facts->physicalPairs&(UINT64_C(1)<<explicitIndex)) ? 2:
             explicitIndex<64 && (facts->retainedCallbacks&(UINT64_C(1)<<explicitIndex)) ? 3:1;
+        int prefix=explicitIndex<64 && (spanPrefixes&(UINT64_C(1)<<explicitIndex));
+        if(prefix && (width!=2 || parameter+1>=parameters))return SIZE_MAX;
         if(physical==wanted)return width==1 ? parameter:SIZE_MAX;
         if(physical>wanted || wanted-physical<width)return SIZE_MAX;
         physical+=width;
+        if(prefix)++parameter; /* The adjacent logical limit belongs to this C pair. */
     }
     return SIZE_MAX;
 }
