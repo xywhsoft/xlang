@@ -1,0 +1,102 @@
+{
+  "schema": 1,
+  "date": "2026-11-11",
+  "stage": "M7b4w",
+  "scope": "Additive XUI prepared multi-document payload publication with preserved prior undo and explicit post-publication outcome; no IDE/disk transaction activation",
+  "implementationAccepted": true,
+  "performanceQualified": false,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "e8fb0efc8647e3b52f40736e62294892e3516e80",
+  "ownedSources": {
+    "ide/tools/xge_document_batch_overlay.py": "1b7987860954b6159a8cfeddea8d20ba22f38cd59a8f2ddf61755a74ce585077",
+    "ide/tools/xge_document_batch.inc": "fa632d31d99e3d8f6fb318f12e5d632091e9c5bc22c5fab5124dabc97e6c7283",
+    "ide/tools/import_xge_sdk.py": "b46299d004133e8129f6831f68d36ada65884d0f661fd3b784a0c6042c2d5804",
+    "ide/tests/xui_document_batch_test.c": "d1b440db9cce4b619ac2208aad8c17f7b01753ed7c31101bceb6293877c6f63a",
+    "ide/tests/xui_document_batch_dll_test.c": "d1331a80914e7998ef712518b31d99ef036c90379c49278190b81191283439b0",
+    "ide/docs/lsp-xui-document-batch.md": "a8a68ffd107e2b247f5dbbf1a05404a768ab20ce6be30a50a06bcc8fa788908a",
+    "ide/docs/lsp-workspace-edit-staging.md": "61468d13c609c12e038999da49be0e4dd6ee5042c8bca2284a0c8c9e02395d5c"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-xui-document-batch-20261111.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-xui-document-batch-20261111/stage-sources.tar.gz",
+      "sha256": "b38aab181fe344fecfc2d610bd6c1c13963d7c950451283de80f307203dc05e0",
+      "bytes": 24066,
+      "entries": 8,
+      "uniquePayloads": 8,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-xui-document-batch-20261111/stage-sources.tar.gz.manifest.json",
+      "sha256": "14237492f34fe40be1bec20d24b2048481b8d022b4d9efc71c46bea012e9b9cc",
+      "bytes": 1850
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-xui-document-batch-20261111/actual-builds-and-validation.tar.gz",
+      "sha256": "8e756d1d1bcee35a514db218ed1003db65b0da6eb51e3cb8a6fac6a0f08ef600",
+      "bytes": 271622220,
+      "entries": 6101,
+      "uniquePayloads": 4286,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-xui-document-batch-20261111/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "d24793085fe0f0c287573c2d446b8086a3f4a64ac87df396d73bc814dd49107b",
+      "bytes": 2164159
+    }
+  },
+  "upstream": {
+    "commit": "1500955299631e80ad91f95b34b0b2d288304515",
+    "parent": "5d138435f1b8f9cf17afa90fb0a69a6a007889f5",
+    "paths": [
+      "include/xui.h",
+      "src/xui/code/xui_code_document.c"
+    ],
+    "isolatedIndexAndAtomicFastForward": true,
+    "otherIndexEntriesPreserved": true,
+    "currentUpstreamStrictProducerCompilationOnly": true,
+    "matchedDocumentProducerIdentical": true
+  },
+  "sdk": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-xui-document-batch-20261111\\matched-sdk-v1\\sdk",
+    "dllSha256": "1aedbaa232359c40b24c84eae14158386c13bb6ae1842cc622e16bcb8e1ad61c",
+    "compiledUnits": 173,
+    "documentWerrorObjectIdentical": true,
+    "wholeSdkWerror": false,
+    "defaultInstalled": false
+  },
+  "correctness": {
+    "mainAssertions": 677,
+    "coldAllocationGates": 16,
+    "publicDllCodeEditAssertions": 32,
+    "currentAndBaselineDocumentRegression": true,
+    "guiObjects": 118,
+    "guiFixtures": 33,
+    "actualMutantsRejected": 6,
+    "unchangedDeclarations": 8724,
+    "addedDeclarations": 5,
+    "addedExports": 3,
+    "existingNativeProgramsNotRerun": 192,
+    "existingProtocolSuitesNotRerun": 13,
+    "rawFailuresRetained": true
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "limits": [
+    "Prepare currently scans and copies full texts/line indexes on the owner thread; worker payload construction and UI binding performance remain open",
+    "Observer preflight may invalidate derived caches; committed output is independent of post-publication return status",
+    "Whole-document notifications do not imply caret/range-state mapping or cross-document global undo",
+    "Only a Document payload primitive; IDE identity/config/connection/project gates, physical aliases, closed-file commit/recovery and annotation consent remain open",
+    "Current upstream producer compiled strictly but whole current upstream SDK/runtime qualification is not claimed",
+    "Standard renameProvider/workspace.applyEdit remain disabled; complete source coverage and protocol/IDE activation remain open",
+    "Whole performance/memory/scale/soak and final engine/default runtime alignment remain open"
+  ]
+}

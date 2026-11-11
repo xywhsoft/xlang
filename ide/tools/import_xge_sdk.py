@@ -200,6 +200,8 @@ def stage(args):
     required_exports = [n for n in baseline['requiredExports'] if n not in retired]
     xui_header = (source / 'include/xui.h').read_text(encoding='utf8')
     for name in ('xuiCodeEditSetTokenStyleResolver', 'xuiCodeEditGetTokenStyleResolver',
+                 'xuiCodeDocumentBatchPrepare', 'xuiCodeDocumentBatchCommit',
+                 'xuiCodeDocumentBatchDestroy',
                  'xuiTerminalSetNewlineMode', 'xuiTerminalGetNewlineMode',
                  'xuiDockPanelSetTabScrollButtonsVisible',
                  'xuiDockPanelGetTabScrollButtonsVisible', 'xuiDockPanelGetPaneTabScrollRects',
