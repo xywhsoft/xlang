@@ -12,6 +12,7 @@
 
 typedef struct template_output {char* path;unsigned char* data;size_t size;char* kind;BY_HANDLE_FILE_INFORMATION identity;int written;} template_output;
 struct xide_template_job {
+    xide_source_job source;
     HANDLE thread;volatile LONG done,cancel;
     xide_template_definition definition;xvalue *values,*fieldErrors;
     char *name,*location,*workspaceName,*compiler,*scratch,*project,*workspace,*text;
@@ -160,16 +161,20 @@ static DWORD WINAPI generate(void* user){
     j->success=1;
 done:outputsClear(files,count);xrtValueRelease(context);xrtValueRelease(plan);xideProjectClear(&project);xideWorkspaceClear(&workspace);free(base);free(directory);free(entry);xrtErrorFree(xrtTakeError());InterlockedExchange(&j->done,1);return 0;
 }
-xide_template_job* xideTemplateJobStart(const xide_template_request* q,xide_model_error* e){
-    if(e){memset(e,0,sizeof(*e));}xide_template_job* j=calloc(1,sizeof(*j));if(!j)return NULL;
+xide_template_job* xideTemplateJobStart(xide_source_jobs* sources,const xide_template_request* q,xide_model_error* e){
+    if(!xideSourceJobsBegin(sources,e))return NULL;
+    if(e){memset(e,0,sizeof(*e));}xide_template_job* j=calloc(1,sizeof(*j));if(!j){xideSourceJobsEnd(sources);return NULL;}
+    if(!xideSourceJobLink(sources,&j->source)){free(j);xideSourceJobsEnd(sources);return NULL;}
     int okay=q&&q->definition&&xideTemplateDefinitionCopy(&j->definition,q->definition);xvalue* checked=NULL;
     if(okay)okay=xideTemplateFieldsValidate(q->definition->fields,q->values,&checked,e);
     j->values=checked;j->name=copy(q&&q->name ? q->name:"");j->location=copy(q&&q->location ? q->location:"");j->workspaceName=copy(q&&q->workspaceName ? q->workspaceName:"");j->compiler=copy(q&&q->compiler ? q->compiler:"");j->scratch=copy(q&&q->scratch ? q->scratch:"");
     if(q){j->projectDirectory=q->projectDirectory;j->workspaceDirectory=q->workspaceDirectory;j->workspaceMode=q->workspaceMode;}
     if(okay&&j->name&&j->location&&j->workspaceName&&j->compiler&&j->scratch)j->thread=CreateThread(NULL,0,generate,j,0,NULL);
-    if(!j->thread){if(e&&!e->message[0]){e->code=XIDE_MODEL_MEMORY;snprintf(e->message,sizeof(e->message),"无法准备或启动模板任务。");}xideTemplateJobDestroy(j);return NULL;}return j;
+    if(j->thread && !xideSourceJobBind(&j->source,j->thread)){xideTemplateJobDestroy(j);xideSourceJobsEnd(sources);return NULL;}
+    if(!j->thread){if(e&&!e->message[0]){e->code=XIDE_MODEL_MEMORY;snprintf(e->message,sizeof(e->message),"无法准备或启动模板任务。");}xideTemplateJobDestroy(j);xideSourceJobsEnd(sources);return NULL;}xideSourceJobsEnd(sources);return j;
 }
 int xideTemplateJobDone(xide_template_job* j){return j&&InterlockedCompareExchange(&j->done,0,0);}
+int xideTemplateJobStopped(const xide_template_job* j){return j&&xideSourceJobStopped(&j->source);}
 void xideTemplateJobCancel(xide_template_job* j){if(j)InterlockedExchange(&j->cancel,1);}
 const char* xideTemplateJobProject(const xide_template_job* j){return j&&j->project ? j->project:"";}
 const char* xideTemplateJobWorkspace(const xide_template_job* j){return j&&j->workspace ? j->workspace:"";}
@@ -177,4 +182,4 @@ const char* xideTemplateJobText(const xide_template_job* j){return j&&j->text ? 
 const char* xideTemplateJobError(const xide_template_job* j){return j ? j->error:"";}
 const xvalue* xideTemplateJobFieldErrors(const xide_template_job* j){return j ? j->fieldErrors:NULL;}
 int xideTemplateJobSucceeded(const xide_template_job* j){return j&&j->success;}
-void xideTemplateJobDestroy(xide_template_job* j){if(!j)return;if(j->thread){xideTemplateJobCancel(j);WaitForSingleObject(j->thread,INFINITE);CloseHandle(j->thread);}xideTemplateDefinitionClear(&j->definition);xrtValueRelease(j->values);xrtValueRelease(j->fieldErrors);free(j->name);free(j->location);free(j->workspaceName);free(j->compiler);free(j->scratch);free(j->project);free(j->workspace);free(j->text);free(j);}
+void xideTemplateJobDestroy(xide_template_job* j){if(!j)return;if(j->thread){xideTemplateJobCancel(j);WaitForSingleObject(j->thread,INFINITE);xideSourceJobUnlink(&j->source);CloseHandle(j->thread);}xideSourceJobUnlink(&j->source);xideTemplateDefinitionClear(&j->definition);xrtValueRelease(j->values);xrtValueRelease(j->fieldErrors);free(j->name);free(j->location);free(j->workspaceName);free(j->compiler);free(j->scratch);free(j->project);free(j->workspace);free(j->text);free(j);}

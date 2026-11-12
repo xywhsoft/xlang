@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-struct xide_recovery_service { char* directory; HANDLE thread; volatile LONG cancel; xide_recovery_result result; };
+struct xide_recovery_service { xide_source_jobs* sources; xide_source_job source; char* directory; HANDLE thread; volatile LONG cancel; xide_recovery_result result; };
 static char* copy(const char* s) { size_t n=strlen(s)+1; char* p=malloc(n); if(p) memcpy(p,s,n); return p; }
 static int fail(xide_model_error* e,const char* s) { if(e) { e->code=XIDE_MODEL_IO; snprintf(e->message,sizeof(e->message),"%s",s); } return 0; }
 static DWORD WINAPI worker(void* data)
@@ -32,22 +32,28 @@ static DWORD WINAPI worker(void* data)
     }
     return 0;
 }
-xide_recovery_service* xideRecoveryServiceCreate(const char* directory)
-{ xide_recovery_service* s=calloc(1,sizeof(*s)); if(!s) return NULL; s->directory=directory ? copy(directory) : NULL; if(directory && !s->directory) { free(s); return NULL; } return s; }
+xide_recovery_service* xideRecoveryServiceCreate(xide_source_jobs* sources,const char* directory)
+{ if(!sources || xideSourceJobsHeld(sources))return NULL; xide_recovery_service* s=calloc(1,sizeof(*s)); if(!s) return NULL; s->sources=sources; s->directory=directory ? copy(directory) : NULL; if(directory && !s->directory) { free(s); return NULL; } return s; }
 int xideRecoveryServiceStart(xide_recovery_service* s,int job,const char* ref,xide_model_error* e)
 {
-    if(!s || s->thread || job<XIDE_RECOVERY_SCAN || job>XIDE_RECOVERY_MIGRATIONS || (job!=XIDE_RECOVERY_GLOBAL && job!=XIDE_RECOVERY_MIGRATIONS && !s->directory) || ((job==XIDE_RECOVERY_PREVIEW || job==XIDE_RECOVERY_GLOBAL || job==XIDE_RECOVERY_MIGRATIONS) && !ref)) return fail(e,"Recovery service is unavailable or already working.");
+    if(!s || !xideSourceJobsBegin(s->sources,e))return 0;
+    int okay=0;
+    if(s->thread || job<XIDE_RECOVERY_SCAN || job>XIDE_RECOVERY_MIGRATIONS || (job!=XIDE_RECOVERY_GLOBAL && job!=XIDE_RECOVERY_MIGRATIONS && !s->directory) || ((job==XIDE_RECOVERY_PREVIEW || job==XIDE_RECOVERY_GLOBAL || job==XIDE_RECOVERY_MIGRATIONS) && !ref)){fail(e,"Recovery service is unavailable or already working.");goto done;}
     xideRecoveryResultClear(&s->result,1); s->result.job=job; s->result.reference=ref ? copy(ref) : NULL;
-    if(ref && !s->result.reference) return fail(e,"Cannot retain the preview identity.");
+    if(ref && !s->result.reference){fail(e,"Cannot retain the preview identity.");goto done;}
+    if(!xideSourceJobLink(s->sources,&s->source)){fail(e,"Cannot register recovery worker.");goto done;}
     InterlockedExchange(&s->cancel,0); s->thread=CreateThread(NULL,0,worker,s,0,NULL);
-    return s->thread ? 1 : fail(e,"Cannot start the recovery worker.");
+    if(!s->thread){xideSourceJobUnlink(&s->source);fail(e,"Cannot start the recovery worker.");goto done;}
+    okay=xideSourceJobBind(&s->source,s->thread);
+    if(!okay){xideRecoveryServiceCancel(s);WaitForSingleObject(s->thread,INFINITE);xideSourceJobUnlink(&s->source);CloseHandle(s->thread);s->thread=NULL;fail(e,"Cannot bind recovery worker.");}
+done:xideSourceJobsEnd(s->sources);return okay;
 }
 int xideRecoveryServiceBusy(xide_recovery_service* s) { return s && s->thread; }
 void xideRecoveryServiceCancel(xide_recovery_service* s) { if(s && s->thread) { InterlockedExchange(&s->cancel,1); CancelSynchronousIo(s->thread); } }
 int xideRecoveryServiceTake(xide_recovery_service* s,xide_recovery_result* out)
 {
-    if(!s || !s->thread || WaitForSingleObject(s->thread,0)!=WAIT_OBJECT_0) return 0;
-    CloseHandle(s->thread); s->thread=NULL; *out=s->result; memset(&s->result,0,sizeof(s->result)); return 1;
+    if(!s || xideSourceJobsHeld(s->sources) || !s->thread || WaitForSingleObject(s->thread,0)!=WAIT_OBJECT_0) return 0;
+    xideSourceJobUnlink(&s->source); CloseHandle(s->thread); s->thread=NULL; *out=s->result; memset(&s->result,0,sizeof(s->result)); return 1;
 }
 void xideRecoveryResultClear(xide_recovery_result* r,int undo)
 {
@@ -56,4 +62,4 @@ void xideRecoveryResultClear(xide_recovery_result* r,int undo)
     free(r->reference); xideRecoveryListClear(&r->list); xideTextFileClear(&r->preview); xideRecoveryBackupClear(&r->backup); xideStateRepairClear(&r->global); memset(r,0,sizeof(*r));
 }
 void xideRecoveryServiceDestroy(xide_recovery_service* s)
-{ if(!s) return; if(s->thread) { xideRecoveryServiceCancel(s); WaitForSingleObject(s->thread,INFINITE); CloseHandle(s->thread); } xideRecoveryResultClear(&s->result,1); free(s->directory); free(s); }
+{ if(!s) return; if(s->thread) { xideRecoveryServiceCancel(s); WaitForSingleObject(s->thread,INFINITE); xideSourceJobUnlink(&s->source); CloseHandle(s->thread); } xideRecoveryResultClear(&s->result,1); free(s->directory); free(s); }

@@ -21,6 +21,7 @@ static int age(const char* p)
 }
 int main(int argc,char** argv)
 {
+    xide_source_jobs sourceJobs={0};
     int failed=0; xide_model_error error={0}; xide_recovery_guard guard={0}; xide_recovery_backup backup={0}; xide_recovery_list list={0}; xide_text_file preview={0}; xide_recovery_stats stats={0};
     char *root=NULL,*metadata=NULL,*layout=NULL,*previous=NULL,*body=NULL,*base=NULL,*invalid=NULL,*foreign=NULL,*archive=NULL,*copyPath=NULL; unsigned char* large=NULL; HANDLE locked=INVALID_HANDLE_VALUE; volatile LONG cancel=0; xide_recovery_service* service=NULL;
     CHECK(argc==2 || (argc==3 && !strcmp(argv[2],"--deep"))); char* id=xideCreateId("backup-test"); root=id ? xidePathResolve(argv[1],id) : NULL; free(id); CHECK(root);
@@ -52,12 +53,12 @@ int main(int argc,char** argv)
     wchar_t* w=xidePathNativeWide(metadata); CHECK(w); locked=CreateFileW(w,GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL); free(w); CHECK(locked!=INVALID_HANDLE_VALUE);
     CHECK(!xideRecoveryBackupCreate(root,&cancel,&backup,&error) && same(metadata,large,size) && xidePathExists(layout)); CloseHandle(locked); locked=INVALID_HANDLE_VALUE; xideRecoveryBackupClear(&backup);
     /* Destroy a completed but unconsumed repair: the UI never committed it. */
-    service=xideRecoveryServiceCreate(root); CHECK(service && xideRecoveryServiceStart(service,XIDE_RECOVERY_REBUILD,NULL,&error));
+    service=xideRecoveryServiceCreate(&sourceJobs,root); CHECK(service && xideRecoveryServiceStart(service,XIDE_RECOVERY_REBUILD,NULL,&error));
     uint64_t deadline=GetTickCount64()+10000;
     while(xidePathExists(metadata) && GetTickCount64()<deadline) Sleep(2);
     CHECK(!xidePathExists(metadata)); xideRecoveryServiceDestroy(service); service=NULL;
     CHECK(same(metadata,large,size) && same(layout,rawLayout,sizeof(rawLayout)));
-    service=xideRecoveryServiceCreate(root); CHECK(service && xideRecoveryServiceStart(service,XIDE_RECOVERY_REBUILD,NULL,&error));
+    service=xideRecoveryServiceCreate(&sourceJobs,root); CHECK(service && xideRecoveryServiceStart(service,XIDE_RECOVERY_REBUILD,NULL,&error));
     xideRecoveryServiceCancel(service); xideRecoveryServiceDestroy(service); service=NULL;
     CHECK(same(metadata,large,size) && same(layout,rawLayout,sizeof(rawLayout)));
     CHECK(writeText(metadata,"{\"format\":\"xlang-ide-session-1\"}") && writeText(previous,"{\"format\":\"xlang-ide-session-1\"}") && age(body) && age(base));

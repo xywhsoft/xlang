@@ -1,0 +1,288 @@
+{
+  "schema": 1,
+  "date": "2026-11-12",
+  "stage": "M7b5o",
+  "scope": "Mandatory owner registry, passive admission and physical quiescence for real template and recovery source jobs, including UI publication",
+  "implementationAccepted": true,
+  "goalComplete": false,
+  "performanceQualified": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "f7f34051fe2d527deaa9a4ac1eebb283ce6f7e1a",
+  "ownedSources": {
+    "ide/src/app/xide_app.h": "7566ef58533d2292673665af741073e6f2f4cb55e3a4714f6932fa6166c35da9",
+    "ide/src/services/recovery.c": "a073e8e0d924ac650fb2a699d3d640a888e79ee286eb0c6ad74686a598c2605f",
+    "ide/src/services/recovery.h": "9bd696d7485275c1cd1b685b6d6404c2096702b3e071163c313a3dfa23518d16",
+    "ide/src/services/session.c": "f562cbfd66a31690cef484d8fa6db6aa51c455259689a7d83b86e997c9e2afbb",
+    "ide/src/services/source_jobs.c": "86edc0c99587d4f2b029b099026ddda353fc0138aaaed4c52e06bc8dfd9f1ecb",
+    "ide/src/services/source_jobs.h": "1bab2627ab1ca6f38bde05516658f97d99633c5836826cce4743b69115de485a",
+    "ide/src/services/template_generation.c": "600582e6d8467b449c5b7ba5d3b56a40d230ffc5808a741d0427c7a51ce90684",
+    "ide/src/services/template_generation.h": "d49a35b4bcde44db20044f98b8102d9f292c2b30373c1b32ab920c70bd5fafb0",
+    "ide/src/ui/recovery_view.c": "f70a8152fac07de290633cdabb5712b192a891c7a7be3c2ee5b83c24e37c3e53",
+    "ide/src/ui/template_view.c": "c229ca6428483a90107f92510f9ea0792e26c2291dfeed346be24b871814e831",
+    "ide/tests/global_recovery_view_test.c": "447b1b004a4018c74169da5b71ff00f1ef4411e5f1729059d99e403240de4a14",
+    "ide/tests/migration_store_test.c": "28df53999993c7cb62efe29bf3060a633897976778cd1372830bc7f3168a9a9f",
+    "ide/tests/recovery_backup_test.c": "a0ca27107d02b82042ee5e15ab1a02b4cdd6a3366e7c0d0b3163134a08c62226",
+    "ide/tests/source_jobs_lease_test.c": "d8c35b3c40aebf59ba1710e13004ce5e3b39f18512650658204a1404e2c02c37",
+    "ide/tests/source_jobs_view_test.c": "8c55be8525a963a517d0adb617f579d54aa6480b0cb240ebb4f9ab324fe013a7",
+    "ide/tests/state_repair_test.c": "115ce4ffd604ffb0ddaf77a04f821fd8024a1287058b6866ffa1cde0720f6aa2",
+    "ide/tests/template_registry_test.c": "9a46c2c7f80c7c7dd3a90cc63184aedb29968fe989c84bab7e5dbaacfb4e6ba4",
+    "ide/tools/build.ps1": "3292039c69bb6b22c68606459f89d049f5731c07b4531f33bb7aebe8ff614601",
+    "ide/docs/lsp-source-job-lease.md": "65fb4a825322a17330f302d70c011d936724a95aafe21842efac81a00865b05c"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-source-job-lease-20261112.json",
+  "materials": {
+    "sourceBeforeWhitespaceRefinement": {
+      "path": "dev/release-materials/sources/lsp-source-job-lease-20261112/stage-sources.tar.gz",
+      "sha256": "81d8dc6e518fcb2f476e1a8ea56551ad01acbb0f4fab37b26a0f47f28062bf0b",
+      "bytes": 93264,
+      "entries": 20,
+      "uniquePayloads": 20,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifestBeforeWhitespaceRefinement": {
+      "path": "dev/release-materials/sources/lsp-source-job-lease-20261112/stage-sources.tar.gz.manifest.json",
+      "sha256": "918f45a28a3306974859ada6fcde8d31d4d5a2e3d18eb9e5ed428225a0564614",
+      "bytes": 4528
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-source-job-lease-20261112/actual-builds-and-validation.tar.gz",
+      "sha256": "415f2b830a942fdc35b63f02cdb67cebd91aede602226df15087e525b622e22c",
+      "bytes": 417044258,
+      "entries": 22125,
+      "uniquePayloads": 4587,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-source-job-lease-20261112/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "8ebad3c7bfa413d8ac13c6201cd6dbd866868c75a82e2a4e7a3ff77646148932",
+      "bytes": 12983739
+    },
+    "source": {
+      "path": "dev/release-materials/sources/lsp-source-job-lease-20261112/stage-sources-final.tar.gz",
+      "sha256": "84dd24d146a093c47ee1eb9cdaae41f894a4a1247aa39737b61ea33338e710d0",
+      "bytes": 93410,
+      "entries": 20,
+      "uniquePayloads": 20,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-source-job-lease-20261112/stage-sources-final.tar.gz.manifest.json",
+      "sha256": "93399204cbf6aa6b150ddca1688b27dc6af92145f849ed7ddbd8c394ea335598",
+      "bytes": 4528
+    },
+    "finalRefinement": {
+      "path": "dev/release-materials/provenance/lsp-source-job-lease-20261112/final-whitespace-refinement.tar.gz",
+      "sha256": "5e862ff434f08a3ff266c6fd44bc6ac094459d522985e0a2259e36c42b4bb2ad",
+      "bytes": 897862,
+      "entries": 16,
+      "uniquePayloads": 15,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "finalRefinementManifest": {
+      "path": "dev/release-materials/provenance/lsp-source-job-lease-20261112/final-whitespace-refinement.tar.gz.manifest.json",
+      "sha256": "4521b789ad82ae302a5876af9c8225352c6c1c36a430a88defb5915b7b7aff6a",
+      "bytes": 4354
+    }
+  },
+  "currentBindings": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-source-job-lease-20261112\\final-bindings.json",
+    "sha256": "0cec5069c1ff77355f7bac9270619299490197bd88eabe61fabd696cdf8851c9"
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "sdkInherited": {
+    "index": "dev/release-materials/provenance/lsp-dpi-startup-20261112.json",
+    "indexSha256": "727ae55e191b104683a756dbe85a03f0add12ed40e60c4d6166face2f50f4e5d",
+    "dllSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "compiledUnitsThisStage": 0,
+    "matchedSetPreserved": true
+  },
+  "serviceInherited": {
+    "index": "dev/release-materials/provenance/lsp-completion-error-isolation-20261112.json",
+    "indexSha256": "a88a46245da2ead8d828816f0dbadfa991999a553408c112ae0338e62e48b08b",
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-completion-error-isolation-20261112\\native-v2\\xlang-ls.exe",
+    "sha256": "9d683a472dce0c2f8fac74b39df7b782fb0eac03ba14ccb377e330691c75aafc",
+    "compiledUnitsThisStage": 0
+  },
+  "correctness": {
+    "guiProductionUnits": 125,
+    "guiRegressionSuites": 55,
+    "legacyTemplateRecoverySessionSuites": 9,
+    "focusedRealWorkerAssertions": 128,
+    "focusedActualIdeAssertions": 67,
+    "rejectedGuardMutants": 7,
+    "realRecoveryReadsAndTemplateWrites": true,
+    "actualPhysicalWorkerTailGates": true,
+    "passiveNoAutomaticCancellationJoinOrDrain": true,
+    "pendingResultsHeldUntilExplicitResume": true,
+    "constructorAndUiPublicationReentrantHoldsRefused": true,
+    "cancelledCompletedResultsNeverAutoAssociateOrOpen": true,
+    "completedGeneratedFilesRetained": true,
+    "exactAndExhaustedTokens": true,
+    "allocationAndThreadFailurePrefixes": true,
+    "directOwnerNoAllocationOnSuspendOrRejectedConstruction": true,
+    "actualCAndXlangTypingDeleteUndoImeFocus": true,
+    "actualGuiFramesEach": 24,
+    "currentProductionAndActualDependenciesBound": true,
+    "finalFocusedFixturesIdenticalToMutantFixtures": true,
+    "allRuntimeTestAliasesRemoved": true,
+    "userTemporaryDirectoriesPreserved": true,
+    "rawFailedAttemptsPreserved": true,
+    "finalWhitespaceProductionObjectByteIdentical": true,
+    "finalIncludeBasedFixturePreprocessingByteIdentical": true
+  },
+  "externalHelper": {
+    "proxy": {
+      "archive": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\lsp-completion-error-isolation-20261112\\actual-builds-and-validation.tar.gz",
+      "entry": "bound-inputs/20c68dabd23c25637a08/xui_test_proxy.c",
+      "sha256": "740c86aee90b1373324909c74d3ae6c9f446b0c52c84c3ea84cea141c53bdc48"
+    },
+    "header": {
+      "repository": "D:/GIT/xge",
+      "commit": "1ba93e6b3ea49e80d9d821894811caef599634f3",
+      "path": "tests/xui/xui_test_proxy.h",
+      "sha256": "b42cd48cd68966d969575f717ade56f357dacbcabce746730c9bfb275dd0a80a"
+    },
+    "liveXgeUnmodified": true
+  },
+  "evidenceNotes": [
+    "Rejected earlier full GUI run because a live external XGE test helper changed; final suite uses exact frozen matching C/header and binds both",
+    "Original corrupt-preferences null-object assertion failed with previous accepted and current GUI; corrected test verifies owned default object plus original corrupt disk bytes and warning",
+    "Focused test preparations corrected for real template manifest, saved workspace and short paths; every unsuccessful attempt retained",
+    "Final focused fixture may be newer than frozen GUI snapshot tests; exact focused-v11 source, dependencies and program hashes are bound separately; production stays canonical to gui-source-v4",
+    "Final trailing-space-only template source refinement was separately recompiled and yielded the exact prior production object bytes; include-based fixture preprocessor bytes also identical. Full GUI snapshot and original archives remain immutable; final source and supplemental bindings are separately archived."
+  ],
+  "limits": [
+    "Registry quiet covers these registered jobs only; full source transaction host, all readers and request/config/project/physical/consent policies remain open",
+    "Standard LSP rename/applyEdit and end-to-end recovery activation remain open",
+    "No new per-key scan; explicit State scans registered workers, UI hold transitions refresh metadata; no zero-overhead or whole-process heap claim",
+    "Whole-goal performance/resource/longevity, latest engine alignment and default final delivery remain open",
+    "Existing compiler deep unprefixed xlp path limitation and analysis-configuration cache-count regression remain open",
+    "C LSP stays disabled; no DAP/debug/runtime-object completion; no Linux/sanitizer qualification in this stage"
+  ],
+  "postCommitReceipt": "dev/release-materials/provenance/lsp-source-job-lease-20261112/postcommit.json",
+  "finalWhitespaceRefinement": {
+    "status": "passed",
+    "change": "Remove exactly one trailing ASCII space after embedded registry field; no other source changes",
+    "originalSource": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-source-job-lease-20261112\\gui-source-v4\\ide\\src\\services\\template_generation.c",
+    "originalSha256": "faf1a06bbf55f8d94d0e46db63ada478ff767e34d0bd0145633b5abb413a17e7",
+    "currentSource": "D:\\GIT\\x-lang\\ide\\src\\services\\template_generation.c",
+    "currentSha256": "600582e6d8467b449c5b7ba5d3b56a40d230ffc5808a741d0427c7a51ce90684",
+    "actualSource": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-source-job-lease-20261112\\whitespace-refinement\\src\\services\\template_generation.c",
+    "actualSha256": "600582e6d8467b449c5b7ba5d3b56a40d230ffc5808a741d0427c7a51ce90684",
+    "command": [
+      "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "-std=c11",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-Wno-unused-parameter",
+      "-DXGE_DLL",
+      "-DXUI_DLL",
+      "-DXGE_XRT_PROFILE_IDE=",
+      "-DXGE_DEBUGMODE=0",
+      "-finput-charset=UTF-8",
+      "-fexec-charset=UTF-8",
+      "-I",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-source-job-lease-20261112\\gui-source-v4\\ide\\src",
+      "-I",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-source-job-lease-20261112\\gui-source-v4\\ide\\third_party\\xge_sdk",
+      "-I",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-source-job-lease-20261112\\gui-source-v4\\ide\\third_party\\xge_sdk\\lib\\xrt",
+      "-ID:\\GIT\\x-lang\\ide\\build\\Release\\lsp-source-job-lease-20261112\\gui-source-v4\\ide\\third_party\\xge_sdk\\extlibs\\xrt",
+      "-include",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-source-job-lease-20261112\\gui-source-v4\\ide\\third_party\\xge_sdk\\xge_build_config.h",
+      "-DXIDE_ENABLE_C_LSP=0",
+      "-ID:\\GIT\\x-lang\\ide\\build\\Release\\lsp-source-job-lease-20261112\\gui-objects-v4",
+      "-O2",
+      "-c",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-source-job-lease-20261112\\whitespace-refinement\\src\\services\\template_generation.c",
+      "-o",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-source-job-lease-20261112\\whitespace-refinement\\template_generation.o"
+    ],
+    "originalObject": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-source-job-lease-20261112\\gui-objects-v4\\src_services_template_generation.c.o",
+    "originalObjectSha256": "f1e177c84cc9b897ccea4cf25b056d19e2b73f7d590dfa6da835ac5166514f90",
+    "actualObject": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-source-job-lease-20261112\\whitespace-refinement\\template_generation.o",
+    "actualObjectSha256": "f1e177c84cc9b897ccea4cf25b056d19e2b73f7d590dfa6da835ac5166514f90",
+    "objectBytesIdentical": true,
+    "includeBasedFocusedFixture": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-source-job-lease-20261112\\focused-v11\\tests\\source_jobs_lease_test.c",
+    "preprocessedChecks": [
+      {
+        "command": [
+          "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "-std=c11",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Wno-unused-parameter",
+          "-DXGE_DLL",
+          "-DXUI_DLL",
+          "-DXGE_XRT_PROFILE_IDE=",
+          "-DXGE_DEBUGMODE=0",
+          "-finput-charset=UTF-8",
+          "-fexec-charset=UTF-8",
+          "-I",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-source-job-lease-20261112\\gui-source-v4\\ide\\src",
+          "-I",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-source-job-lease-20261112\\gui-source-v4\\ide\\third_party\\xge_sdk",
+          "-I",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-source-job-lease-20261112\\gui-source-v4\\ide\\third_party\\xge_sdk\\lib\\xrt",
+          "-ID:\\GIT\\x-lang\\ide\\build\\Release\\lsp-source-job-lease-20261112\\gui-source-v4\\ide\\third_party\\xge_sdk\\extlibs\\xrt",
+          "-include",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-source-job-lease-20261112\\gui-source-v4\\ide\\third_party\\xge_sdk\\xge_build_config.h",
+          "-DXIDE_ENABLE_C_LSP=0",
+          "-ID:\\GIT\\x-lang\\ide\\build\\Release\\lsp-source-job-lease-20261112\\gui-objects-v4",
+          "-O2",
+          "-ID:\\GIT\\x-lang\\ide\\tests",
+          "-E",
+          "-P",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-source-job-lease-20261112\\focused-v11\\tests\\source_jobs_lease_test.c"
+        ],
+        "preprocessedSha256": "8d3a225693ff4856d99087a85046b4ddfde4ce5a29d21735c81a174ea8731e1d"
+      },
+      {
+        "command": [
+          "E:\\software\\w64devkit\\bin\\gcc.exe",
+          "-ID:\\GIT\\x-lang\\ide\\build\\Release\\lsp-source-job-lease-20261112\\whitespace-refinement\\src",
+          "-std=c11",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Wno-unused-parameter",
+          "-DXGE_DLL",
+          "-DXUI_DLL",
+          "-DXGE_XRT_PROFILE_IDE=",
+          "-DXGE_DEBUGMODE=0",
+          "-finput-charset=UTF-8",
+          "-fexec-charset=UTF-8",
+          "-I",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-source-job-lease-20261112\\gui-source-v4\\ide\\src",
+          "-I",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-source-job-lease-20261112\\gui-source-v4\\ide\\third_party\\xge_sdk",
+          "-I",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-source-job-lease-20261112\\gui-source-v4\\ide\\third_party\\xge_sdk\\lib\\xrt",
+          "-ID:\\GIT\\x-lang\\ide\\build\\Release\\lsp-source-job-lease-20261112\\gui-source-v4\\ide\\third_party\\xge_sdk\\extlibs\\xrt",
+          "-include",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-source-job-lease-20261112\\gui-source-v4\\ide\\third_party\\xge_sdk\\xge_build_config.h",
+          "-DXIDE_ENABLE_C_LSP=0",
+          "-ID:\\GIT\\x-lang\\ide\\build\\Release\\lsp-source-job-lease-20261112\\gui-objects-v4",
+          "-O2",
+          "-ID:\\GIT\\x-lang\\ide\\tests",
+          "-E",
+          "-P",
+          "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-source-job-lease-20261112\\focused-v11\\tests\\source_jobs_lease_test.c"
+        ],
+        "preprocessedSha256": "8d3a225693ff4856d99087a85046b4ddfde4ce5a29d21735c81a174ea8731e1d"
+      }
+    ],
+    "includePreprocessedBytesIdentical": true
+  }
+}

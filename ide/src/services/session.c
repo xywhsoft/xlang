@@ -780,13 +780,13 @@ void xideSessionRelocate(xide_app* app)
 }
 void xideSessionPoll(xide_app* app)
 {
-    if(xideDocumentsSourcesHeld(&app->documents))return;
+    if(xideDocumentsSourcesHeld(&app->documents) || xideSourceJobsHeld(&app->sourceJobs))return;
     xide_session* s=app->session; if(!s) return;
     if(xideRecoveryViewBusy(app)) return;
     xide_model_error windowError={0}; if(!xideWindowStatePoll(&s->window,&windowError)) report(app,windowError.message);
     if(!s->ready || s->restoring || s->blocked || xideRecoveryViewBusy(app) || !xideCatalogViewSettled(app)) return;
     uint64_t fingerprint=current(app),now=GetTickCount64();
-    if(!s->migrationMaintenance) s->migrationMaintenance=xideRecoveryServiceCreate(NULL);
+    if(!s->migrationMaintenance) s->migrationMaintenance=xideRecoveryServiceCreate(&app->sourceJobs,NULL);
     if(s->migrationMaintenance) {
         xide_recovery_result result={0};
         if(xideRecoveryServiceTake(s->migrationMaintenance,&result)) { if(!result.okay) fprintf(stderr,"migration maintenance: %s\n",result.error.message); xideRecoveryResultClear(&result,0); }

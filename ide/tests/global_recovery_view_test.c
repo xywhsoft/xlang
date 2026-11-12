@@ -48,7 +48,10 @@ static int verify(void* data)
     CHECK(storage && settings && index && window && a && b && path && xrtDirCreateAll(path) && xrtDirCreateAll(storage)); free(path); path=NULL;
     CHECK(writeText(settings,damaged) && writeText(index,badIndex) && writeText(window,badWindow) && writeText(a,c) && writeText(b,xl));
     app.maxFrames=10000; app.highDpi=1; app.dpiOverride=1.25f; app.sessionRoot=storage; app.settingsPath=settings;
-    CHECK(xideAppCreate(&app)==XUI_OK && xgeBegin()==XGE_OK); began=1; CHECK(!app.preferences.source && strstr(xideSessionIssue(&app),"index"));
+    CHECK(xideAppCreate(&app)==XUI_OK && xgeBegin()==XGE_OK); began=1;
+    /* An unreadable preferences file now opens with owned built-in defaults.
+       The damaged disk identity must remain available for explicit repair. */
+    CHECK(app.preferences.source && xrtValueIs(app.preferences.source,XVALUE_OBJECT) && app.preferences.existed && equals(settings,damaged) && strstr(xideSessionIssue(&app),"index"));
     CHECK(xideEditorOpen(&app,a,&error)); xide_document* cd=app.activeDocument; CHECK(!xuiCodeDocumentInsert(xuiCodeEditGetDocument(cd->editor),0,"// unsaved C\n"));
     CHECK(xideEditorOpen(&app,b,&error)); xide_document* xd=app.activeDocument; CHECK(!xuiCodeDocumentInsert(xuiCodeEditGetDocument(xd->editor),0,"// unsaved xlang\n"));
     xui_code_selection_t cs={0},xs={0}; cs.iCaretOffset=8; cs.iAnchorOffset=2; xs.iCaretOffset=12; xs.iAnchorOffset=4;

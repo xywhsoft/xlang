@@ -26,7 +26,7 @@ struct xide_template_view {
     xui_widget window,controls[XIDE_TEMPLATE_CONTROL_COUNT],message,title;
     xide_template_definition definition;template_field fields[80];size_t fieldCount;
     xvalue *descriptions,*baseline;xide_template_job* job;
-    int syncing,workspaceNameEdited,completed,jobMode,jobStartup;
+    int syncing,workspaceNameEdited,completed,jobMode,jobStartup,sourceHeld,cancelRequested;
     char messageText[512];
 };
 static xstrview sv(const char* s){return (xstrview){s,strlen(s)};}
@@ -92,7 +92,7 @@ static const char* workspaceFields="["
  "{\"id\":\"workspace.name\",\"type\":\"text\",\"label\":\"工作空间名称\",\"default\":\"MyWorkspace\"},"
  "{\"id\":\"workspace.location\",\"type\":\"directory\",\"label\":\"存放位置\"},"
  "{\"id\":\"workspace.subdirectory\",\"type\":\"boolean\",\"label\":\"为工作空间创建子目录\",\"inlineAfter\":\"workspace.name\",\"default\":true}]";
-static void cancelForm(xui_widget w,void* user){(void)w;xide_app* a=user;xide_template_view* v=a->templateView;if(v->job){xideTemplateJobCancel(v->job);message(v,"正在取消创建，请稍候…");return;}xideDialogSetOpen(v->window,0);xideActionsRefresh(a);xgeRenderRequest();}
+static void cancelForm(xui_widget w,void* user){(void)w;xide_app* a=user;xide_template_view* v=a->templateView;if(v->job){v->cancelRequested=1;xideTemplateJobCancel(v->job);message(v,"正在取消创建，请稍候…");return;}xideDialogSetOpen(v->window,0);xideActionsRefresh(a);xgeRenderRequest();}
 static void createClick(xui_widget w,void* user){(void)w;xideActionExecute(user,XIDE_ACTION_TEMPLATE_CREATE);}
 static int buildForm(xide_app* a){
     xide_template_view* v=a->templateView;v->syncing=1;TRY(xideDialogCreate(a,&v->window,createTitle(v),720,560,14));TRY(xuiWidgetAddChild(a->root,v->window));TRY(xideDialogSetCancel(v->window,cancelForm,a));TRY(xideDialogFormBegin(v->window,600,420));TRY(xideDialogFormText(v->window,v->definition.title));
@@ -111,9 +111,10 @@ int xideTemplateViewRefresh(xide_app* a){
     for(size_t i=0;i<v->fieldCount;++i){template_field* f=&v->fields[i];int visible=xideTemplateFieldActive(f->description,"visibleWhen",values);if(!strcmp(f->id,"project.startup")&&!strcmp(xideTemplateString(values,"workspace.mode","none"),"none"))visible=0;if(f->label)xuiWidgetSetVisible(f->label,visible);xuiWidgetSetVisible(f->widget,visible);if(f->browse)xuiWidgetSetVisible(f->browse,visible);xuiWidgetSetEnabled(f->widget,!v->job&&xideTemplateFieldActive(f->description,"enabledWhen",values));if(f->browse)xuiWidgetSetEnabled(f->browse,!v->job);if(!visible)xuiWidgetSetVisible(f->error,0);}
     if((v->definition.kind==XIDE_TEMPLATE_PROJECT)){const char* name=xideTemplateString(values,"project.name",""),*parent=xideTemplateString(values,"project.location",""),*workspaceName=xideTemplateString(values,"workspace.name",""),*mode=xideTemplateString(values,"workspace.mode","");char* base=xidePathResolve(NULL,parent);if(!strcmp(mode,"create")&&truth(get(values,"workspace.subdirectory"))){char* next=base ? xidePathResolve(base,workspaceName):NULL;free(base);base=next;}char* project=base ? (truth(get(values,"project.subdirectory")) ? xidePathResolve(base,name):xidePathResolve(NULL,base)):NULL;char preview[1536];snprintf(preview,sizeof(preview),"工程位置：%s%s%s%s",project ? project:"",!strcmp(mode,"create") ? "\n工作空间位置：":"",!strcmp(mode,"create")&&base ? base:"",!strcmp(mode,"current") ? "\n将加入当前工作空间；工作空间修改按正常保存流程处理。":"");xuiLabelSetText(v->controls[XIDE_TEMPLATE_DESTINATION],preview);free(project);free(base);okay=okay&&xideTemplateNameValid(name)&&*parent&&(!strcmp(mode,"none")||!strcmp(mode,"current")||xideTemplateNameValid(workspaceName));}
     if(v->definition.kind==XIDE_TEMPLATE_WORKSPACE){const char* name=xideTemplateString(values,"workspace.name",""),*location=xideTemplateString(values,"workspace.location","");char* dir=truth(get(values,"workspace.subdirectory")) ? xidePathResolve(location,name):xidePathResolve(NULL,location);char text[1536];snprintf(text,sizeof(text),"工作空间位置：%s/%s.xlw",dir ? dir:"",name);xuiLabelSetText(v->controls[XIDE_TEMPLATE_DESTINATION],text);free(dir);okay=okay&&xideTemplateNameValid(name)&&*location;}
-    xuiWidgetSetEnabled(v->controls[XIDE_TEMPLATE_CREATE],okay&&!v->job&&!v->completed);xuiButtonSetText(v->controls[XIDE_TEMPLATE_CANCEL],v->job ? "取消创建":"关闭");xrtValueRelease(values);v->syncing=0;xgeRenderRequest();return okay;
+    xuiWidgetSetEnabled(v->controls[XIDE_TEMPLATE_CREATE],okay&&!v->job&&!v->completed&&!xideSourceJobsHeld(&a->sourceJobs));xuiButtonSetText(v->controls[XIDE_TEMPLATE_CANCEL],v->job ? "取消创建":"关闭");xrtValueRelease(values);v->syncing=0;xgeRenderRequest();return okay;
 }
 int xideTemplateViewApply(xide_app* a,xide_model_error* e){
+    if(xideSourceJobsHeld(&a->sourceJobs))return fail(e,XIDE_MODEL_CONFLICT,"源码操作期间暂停模板创建。");
     xide_template_view* v=a->templateView;if(!v||!xideTemplateViewIsOpen(a)||v->job||v->completed)return fail(e,XIDE_MODEL_INVALID,"创建窗口不可用或已有创建任务。");
     xvalue* values=readFields(v,1);if(!values)return fail(e,XIDE_MODEL_MEMORY,"无法读取表单。");
     const char* mode=xideTemplateString(values,"workspace.mode","none");int selectedMode=v->definition.kind==XIDE_TEMPLATE_WORKSPACE ? 1:!strcmp(mode,"current") ? 2:!strcmp(mode,"create") ? 1:0;
@@ -122,25 +123,31 @@ int xideTemplateViewApply(xide_app* a,xide_model_error* e){
     if(!xideTemplateViewRefresh(a)){xrtValueRelease(values);return fail(e,XIDE_MODEL_INVALID,"请检查工程名称、已有存放位置和工作空间名称。");}
     char* settings=a->preferences.path ? xidePathDirectory(a->preferences.path):NULL;char* scratch=settings ? xidePathResolve(settings,"template-jobs"):NULL;free(settings);
     xide_template_request q={0};q.definition=&v->definition;q.values=values;q.name=xideTemplateString(values,"project.name","");q.location=xideTemplateString(values,v->definition.kind==XIDE_TEMPLATE_WORKSPACE ? "workspace.location":"project.location",".");q.workspaceName=selectedMode==2 ? a->workspaceModel.name:selectedMode==1 ? xideTemplateString(values,"workspace.name",""):"";q.compiler=a->compilerPath;q.scratch=scratch;q.projectDirectory=truth(get(values,"project.subdirectory"));q.workspaceMode=selectedMode;q.workspaceDirectory=truth(get(values,"workspace.subdirectory"));
-    v->job=xideTemplateJobStart(&q,e);v->jobMode=selectedMode;v->jobStartup=selectedMode!=0&&truth(get(values,"project.startup"));free(scratch);xrtValueRelease(values);
+    v->cancelRequested=0;v->job=xideTemplateJobStart(&a->sourceJobs,&q,e);v->jobMode=selectedMode;v->jobStartup=selectedMode!=0&&truth(get(values,"project.startup"));free(scratch);xrtValueRelease(values);
     if(!v->job){return 0;}message(v,"正在后台生成，请稍候…");xideTemplateViewRefresh(a);xgeRenderRequestAfter(30);return 1;
 }
 int xideTemplateViewAction(xide_app* a,int id){(void)id;xide_model_error error={0};if(!xideTemplateViewApply(a,&error)&&*error.message)message(a->templateView,error.message);return 1;}
-static void poll(xide_app* a){
-    xide_template_view* v=a->templateView;if(!v||!v->job)return;if(!xideTemplateJobDone(v->job)){xgeRenderRequestAfter(30);return;}
-    xide_model_error error={0};int okay=xideTemplateJobSucceeded(v->job);v->completed=*xideTemplateJobProject(v->job)!=0||*xideTemplateJobWorkspace(v->job)!=0;
+static void publishJob(xide_app* a){
+    xide_template_view* v=a->templateView;
+    xide_model_error error={0};int okay=xideTemplateJobSucceeded(v->job)&&!v->cancelRequested;v->completed=*xideTemplateJobProject(v->job)!=0||*xideTemplateJobWorkspace(v->job)!=0;
     if(okay&&v->definition.kind!=XIDE_TEMPLATE_FILE){xvalue* now=baseline(a);okay=now&&v->baseline&&xrtValueEqual(now,v->baseline);xrtValueRelease(now);
         if(!okay)snprintf(error.message,sizeof(error.message),"工程已生成，但当前工作空间已变化，未自动关联：%s",xideTemplateJobProject(v->job));
         else if(v->jobMode==2){okay=xideWorkspaceAddProject(&a->workspaceModel,xideTemplateJobProject(v->job),NULL,&error);if(okay){xide_project* p=&a->workspaceModel.projects[a->workspaceModel.projectCount-1];if(v->jobStartup)okay=xideWorkspaceSetStartup(&a->workspaceModel,p->id,&error);xideWorkspaceViewRefresh(a);xideWorkspaceViewSelectProject(a,p->id);}}
         else {a->sessionSwitchConfirmed=1;const char* workspace=xideTemplateJobWorkspace(v->job);okay=xideWorkspaceOpen(a,*workspace ? workspace:xideTemplateJobProject(v->job),!*workspace,&error);a->sessionSwitchConfirmed=0;}
         if(okay){xide_project* project=xideWorkspaceFindProject(&a->workspaceModel,a->selectedProject);if(project)xideEditorOpen(a,project->entry,&error);const char* artifact=xideTemplateJobWorkspace(v->job);xideHomeRemember(a,*artifact ? artifact:xideTemplateJobProject(v->job));}
     }else if(okay){xide_document* doc=xideDocumentNew(&a->documents,v->definition.language,&error);okay=doc&&xideEditorShow(a,doc)==XUI_OK;if(okay)okay=xuiCodeEditSetText(doc->editor,xideTemplateJobText(v->job))==XUI_OK;if(!okay&&doc)xideEditorClose(a,doc,1,NULL);}
-    if(okay){message(v,"创建完成。");xideDialogSetOpen(v->window,0);}else message(v,*error.message ? error.message:xideTemplateJobError(v->job));
+    if(okay){message(v,"创建完成。");xideDialogSetOpen(v->window,0);}else if(v->cancelRequested)message(v,v->completed ? "创建已取消。已生成的文件仍保留，未自动打开或关联。":"创建已取消。");else message(v,*error.message ? error.message:xideTemplateJobError(v->job));
     const xvalue* errors=xideTemplateJobFieldErrors(v->job);if(errors){for(size_t i=0;i<v->fieldCount;++i){const char* text=xideTemplateString(errors,v->fields[i].id,"");if(*text){xuiLabelSetText(v->fields[i].error,text);xuiWidgetSetVisible(v->fields[i].error,1);}}}
     xideTemplateJobDestroy(v->job);v->job=NULL;xideTemplateViewRefresh(a);xideActionsRefresh(a);xgeRenderRequest();
 }
+static void poll(xide_app* a){
+    xide_template_view* v=a->templateView;if(!v||!v->job||xideSourceJobsHeld(&a->sourceJobs))return;
+    if(!xideTemplateJobDone(v->job)||!xideTemplateJobStopped(v->job)){xgeRenderRequestAfter(30);return;}
+    if(!xideSourceJobsBegin(&a->sourceJobs,NULL))return;
+    publishJob(a);xideSourceJobsEnd(&a->sourceJobs);
+}
 int xideTemplateViewOpenDefinition(xide_app* a,const xide_template_definition* definition){
-    xide_template_view* v=a->templateView;if(!v||v->job||xideWorkspaceViewHasDraft(a)){fprintf(stderr,"template open blocked: view=%d job=%d draft=%d\n",v!=NULL,v&&v->job,xideWorkspaceViewHasDraft(a));return 0;}
+    xide_template_view* v=a->templateView;if(!v||xideSourceJobsHeld(&a->sourceJobs)||v->job||xideWorkspaceViewHasDraft(a)){fprintf(stderr,"template open blocked: view=%d job=%d draft=%d\n",v!=NULL,v&&v->job,xideWorkspaceViewHasDraft(a));return 0;}
     if(!v->window||!v->definition.id||strcmp(v->definition.id,definition->id)){if(v->window)xideDialogDestroy(v->window);v->window=NULL;v->message=NULL;v->fieldCount=0;memset(v->controls,0,sizeof(v->controls));xrtValueRelease(v->descriptions);v->descriptions=NULL;xideTemplateDefinitionClear(&v->definition);int copied=xideTemplateDefinitionCopy(&v->definition,definition);int built=copied ? buildForm(a):XUI_ERROR_OUT_OF_MEMORY;if(built!=XUI_OK){fprintf(stderr,"template form build failed: %d fields=%zu\n",built,v->fieldCount);if(v->window)xideDialogDestroy(v->window);v->window=NULL;return 0;}}
     if(v->completed){message(v,"这个工程已生成；请更换工程名称后创建另一个工程。");v->completed=0;}
     if((v->definition.kind==XIDE_TEMPLATE_PROJECT)){int enabled[]={1,1,(a->workspaceModel.source!=NULL && !a->projectSessionPath)};v->syncing=1;xuiComboBoxSetEnabledItems(v->controls[XIDE_TEMPLATE_WORKSPACE_MODE],enabled,3);xuiComboBoxSetSelected(v->controls[XIDE_TEMPLATE_WORKSPACE_MODE],(a->workspaceModel.source && !a->projectSessionPath) ? 2:0);v->syncing=0;}
@@ -149,7 +156,7 @@ int xideTemplateViewOpenDefinition(xide_app* a,const xide_template_definition* d
 int xideTemplateViewCreate(xide_app* a){a->templateView=calloc(1,sizeof(*a->templateView));return a->templateView ? XUI_OK:XUI_ERROR_OUT_OF_MEMORY;}
 int xideTemplateViewOpen(xide_app* a){return xideActionExecute(a,XIDE_ACTION_NEW)==XIDE_ACTION_DISPATCHED;}
 int xideTemplateViewIsOpen(xide_app* a){return a&&a->templateView&&xideDialogIsOpen(a->templateView->window);}
-void xideTemplateViewLayout(xide_app* a){poll(a);if(a->templateView&&a->templateView->window)xideDialogSetMaxSize(a->templateView->window,a->viewportWidth-32,a->viewportHeight-32);}
+void xideTemplateViewLayout(xide_app* a){poll(a);xide_template_view* v=a->templateView;if(v&&v->sourceHeld!=xideSourceJobsHeld(&a->sourceJobs)){v->sourceHeld=xideSourceJobsHeld(&a->sourceJobs);xideTemplateViewRefresh(a);}if(v&&v->window)xideDialogSetMaxSize(v->window,a->viewportWidth-32,a->viewportHeight-32);}
 int xideTemplateViewCodeFont(xide_app* a){(void)a;return XUI_OK;}
 void xideTemplateViewDestroy(xide_app* a){xide_template_view* v=a->templateView;if(v){xideTemplateJobDestroy(v->job);xideTemplateDefinitionClear(&v->definition);xrtValueRelease(v->descriptions);xrtValueRelease(v->baseline);free(v);a->templateView=NULL;}}
 xui_widget xideTemplateViewWindow(xide_app* a){return a&&a->templateView ? a->templateView->window:NULL;}

@@ -23,7 +23,7 @@
 #define TRY(call) do { int result_=(call); if(result_!=XUI_OK) return result_; } while(0)
 struct xide_recovery_view {
     xui_widget window,content,title,scope,path,message,confirmText,globalPath,controls[XIDE_RECOVERY_CONTROL_COUNT];
-    xide_ui_layout layout; float scale; int confirm,updating,closing,previewValid,contentWidth,contentHeight,repairKind;
+    xide_ui_layout layout; float scale; int confirm,updating,closing,previewValid,contentWidth,contentHeight,repairKind,sourceHeld;
     xide_recovery_service* service; xide_recovery_list list; xide_text_file preview; char* previewKey; char* backupPath; char messageText[1024];
 };
 static char* copy(const char* s) { size_t n=strlen(s)+1; char* p=malloc(n); if(p) memcpy(p,s,n); return p; }
@@ -41,7 +41,7 @@ static void message(xide_recovery_view* v,const char* s)
 { snprintf(v->messageText,sizeof(v->messageText),"%s",s); xuiLabelSetText(v->message,v->messageText); }
 static void enabled(xide_app* app)
 {
-    xide_recovery_view* v=app->recoveryView; int busy=xideRecoveryServiceBusy(v->service),available=v->service!=NULL;
+    xide_recovery_view* v=app->recoveryView; int busy=xideRecoveryServiceBusy(v->service)||xideSourceJobsHeld(&app->sourceJobs),available=v->service!=NULL;
     for(int i=0;i<XIDE_RECOVERY_CONTROL_COUNT;++i) xuiWidgetSetEnabled(v->controls[i],available && xideSessionDirectory(app) && !busy && !v->confirm);
     char* target=xideSessionGlobalPath(app,xuiComboBoxGetSelected(v->controls[XIDE_RECOVERY_GLOBAL_KIND]));
     xuiWidgetSetEnabled(v->controls[XIDE_RECOVERY_GLOBAL_KIND],!busy && !v->confirm);
@@ -66,6 +66,7 @@ static void enabled(xide_app* app)
 }
 static int begin(xide_app* app,int job,const char* ref)
 {
+    if(xideSourceJobsHeld(&app->sourceJobs))return 0;
     xide_recovery_view* v=app->recoveryView; xide_model_error e={0};
     char* global=NULL;
     if(job==XIDE_RECOVERY_MAINTAIN && !xideSessionMaintenanceRoot(app,&global,&e)) { message(v,e.message); return 0; }
@@ -82,7 +83,7 @@ static int begin(xide_app* app,int job,const char* ref)
 static void selectItem(xui_widget widget,int index,void* user)
 {
     (void)widget; (void)index; xide_app* app=user; xide_recovery_view* v=app->recoveryView;
-    if(v->updating || xideRecoveryServiceBusy(v->service)) return;
+    if(v->updating || xideSourceJobsHeld(&app->sourceJobs) || xideRecoveryServiceBusy(v->service)) return;
     v->previewValid=0; xideTextFileClear(&v->preview); free(v->previewKey); v->previewKey=NULL;
     xuiCodeEditSetText(v->controls[XIDE_RECOVERY_CODE],""); const char* ref=selected(v); xuiEditSetText(v->path,ref ? ref : "");
     if(ref) begin(app,XIDE_RECOVERY_PREVIEW,ref); else enabled(app);
@@ -98,7 +99,7 @@ static void clicked(xui_widget widget,void* user)
         if(xideRecoveryServiceBusy(v->service)) { v->closing=1; xideRecoveryServiceCancel(v->service); message(v,"正在取消并回退尚未提交的恢复任务…"); }
         else { v->confirm=0; xideDialogSetOpen(v->window,0); } xgeRenderRequest(); return;
     }
-    if(xideRecoveryServiceBusy(v->service)) return;
+    if(xideSourceJobsHeld(&app->sourceJobs) || xideRecoveryServiceBusy(v->service)) return;
     if(widget==v->controls[XIDE_RECOVERY_CANCEL_REPAIR]) v->confirm=0;
     else if(widget==v->controls[XIDE_RECOVERY_CONFIRM] && v->confirm) {
         int global=v->confirm==2; v->confirm=0;
@@ -172,22 +173,22 @@ int xideRecoveryViewCreate(xide_app* app)
 }
 int xideRecoveryViewOpen(xide_app* app)
 {
-    xide_recovery_view* v=app->recoveryView; if(!v || xideToolchainViewIsOpen(app) || xideResourceViewIsOpen(app) || xideImportViewIsOpen(app) || xideRenameViewIsOpen(app) || xideTemplateViewIsOpen(app) || xideReferencesViewIsOpen(app) || xideFileChangesViewIsOpen(app) || xideFontViewIsOpen(app) || xideConfigurationViewIsOpen(app) || xideRecoveryViewBusy(app)) return 0;
+    xide_recovery_view* v=app->recoveryView; if(!v || xideSourceJobsHeld(&app->sourceJobs) || xideToolchainViewIsOpen(app) || xideResourceViewIsOpen(app) || xideImportViewIsOpen(app) || xideRenameViewIsOpen(app) || xideTemplateViewIsOpen(app) || xideReferencesViewIsOpen(app) || xideFileChangesViewIsOpen(app) || xideFontViewIsOpen(app) || xideConfigurationViewIsOpen(app) || xideRecoveryViewBusy(app)) return 0;
     xideRecoveryServiceDestroy(v->service); v->service=NULL;
     v->updating=1; xuiListViewSetItems(v->controls[XIDE_RECOVERY_LIST],NULL,0); v->updating=0;
     xideRecoveryListClear(&v->list); xideTextFileClear(&v->preview); free(v->previewKey); v->previewKey=NULL; v->previewValid=0;
     free(v->backupPath); v->backupPath=NULL; xuiCodeEditSetText(v->controls[XIDE_RECOVERY_CODE],""); xuiEditSetText(v->path,"");
     const char* directory=xideSessionDirectory(app);
-    v->service=xideRecoveryServiceCreate(directory); if(!v->service) return 0;
+    v->service=xideRecoveryServiceCreate(&app->sourceJobs,directory); if(!v->service) return 0;
     v->closing=0; v->confirm=0; globalTarget(app); xuiEditSetText(v->scope,directory ? directory : "会话持久化未启用；可单独修复程序偏好"); xideRecoveryViewLayout(app); xideDialogSetOpen(v->window,1);
     if(!directory) { message(v,"当前会话持久化未启用；在全局文件中选择程序偏好可单独备份与修复。"); enabled(app); xgeRenderRequest(); return 1; }
     const char* issue=xideSessionIssue(app); if(issue && *issue) message(v,issue); return begin(app,XIDE_RECOVERY_SCAN,NULL);
 }
 int xideRecoveryViewIsOpen(xide_app* app) { return app && app->recoveryView && xideDialogIsOpen(app->recoveryView->window); }
 int xideRecoveryViewBusy(xide_app* app) { return app && app->recoveryView && xideRecoveryServiceBusy(app->recoveryView->service); }
-void xideRecoveryViewPoll(xide_app* app)
+static void publishRecovery(xide_app* app)
 {
-    xide_recovery_view* v=app->recoveryView; if(!v || !v->service) return;
+    xide_recovery_view* v=app->recoveryView; if(!v || !v->service || xideSourceJobsHeld(&app->sourceJobs)) return;
     xide_recovery_result r={0};
     if(!xideRecoveryServiceTake(v->service,&r)) { if(xideRecoveryViewBusy(app)) xgeRenderRequest(); return; }
     if(v->closing) { xideRecoveryResultClear(&r,1); v->closing=0; xideDialogSetOpen(v->window,0); enabled(app); return; }
@@ -239,9 +240,18 @@ void xideRecoveryViewPoll(xide_app* app)
     if(repairFinished) xideDialogSetScroll(v->window,0,0);
     xgeRenderRequest();
 }
+void xideRecoveryViewPoll(xide_app* app)
+{
+    xide_recovery_view* v=app->recoveryView;
+    if(!v || !v->service || xideSourceJobsHeld(&app->sourceJobs) || !xideRecoveryServiceBusy(v->service))return;
+    if(!xideSourceJobsBegin(&app->sourceJobs,NULL))return;
+    publishRecovery(app);xideSourceJobsEnd(&app->sourceJobs);
+}
+
 void xideRecoveryViewLayout(xide_app* app)
 {
  if(!app->recoveryView)return;
+ if(app->recoveryView->sourceHeld!=xideSourceJobsHeld(&app->sourceJobs)){app->recoveryView->sourceHeld=xideSourceJobsHeld(&app->sourceJobs);enabled(app);}
  xideDialogSetMaxSize(app->recoveryView->window,app->viewportWidth-32,app->viewportHeight-32);
 }
 int xideRecoveryViewCodeFont(xide_app* app) { return app->recoveryView ? xideCodeWidgetSetFont(app,app->recoveryView->controls[XIDE_RECOVERY_CODE],app->codeFont) : XUI_OK; }

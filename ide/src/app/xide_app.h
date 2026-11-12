@@ -12,6 +12,7 @@
 #include "editor/documents.h"
 #include "services/tasks.h"
 #include "services/command_catalog.h"
+#include "services/source_jobs.h"
 #include "platform/settings.h"
 #include "platform/dpi_proxy.h"
 #include "platform/runtime_failure.h"
@@ -52,6 +53,7 @@ enum xide_window_id {
     XIDE_HELP, XIDE_PROBLEMS, XIDE_OUTPUT, XIDE_TERMINAL, XIDE_TASKS, XIDE_OUTLINE, XIDE_USAGES, XIDE_WINDOW_COUNT
 };
 typedef struct xide_app {
+    xide_source_jobs sourceJobs;
     xide_dialog* dialogs;
     xide_messages* messages;
     struct xide_update* updater;

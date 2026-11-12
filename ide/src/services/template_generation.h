@@ -1,6 +1,7 @@
 #ifndef XIDE_TEMPLATE_GENERATION_H
 #define XIDE_TEMPLATE_GENERATION_H
 #include "services/template_registry.h"
+#include "services/source_jobs.h"
 typedef struct xide_template_job xide_template_job;
 typedef struct xide_template_request {
     const xide_template_definition* definition;
@@ -9,8 +10,11 @@ typedef struct xide_template_request {
     int projectDirectory,workspaceMode,workspaceDirectory; /* none=0, new=1, current=2 */
 } xide_template_request;
 /* Deep-copies inputs; all generation and writes happen off the UI thread. */
-xide_template_job* xideTemplateJobStart(const xide_template_request*,xide_model_error*);
+xide_template_job* xideTemplateJobStart(xide_source_jobs*,const xide_template_request*,xide_model_error*);
 int xideTemplateJobDone(xide_template_job*);
+/* Done publishes immutable results. Stopped additionally proves the actual
+ * thread has returned; owner Poll must establish both before Destroy. */
+int xideTemplateJobStopped(const xide_template_job*);
 void xideTemplateJobCancel(xide_template_job*);
 /* Valid after Done. Owned by job. Project may exist when workspace save fails;
  * projectPath remains available so the UI can recover without regenerating. */

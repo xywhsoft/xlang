@@ -39,6 +39,7 @@ static int tJunction(const char* path,const char* target)
 }
 int main(int argc,char** argv)
 {
+    xide_source_jobs sourceJobs={0};
     int failed=0,checks=0; xide_model_error error={0}; xide_state_repair repair={0}; xide_state_file state={0}; xide_file_snapshot snap={0};
     char *root=NULL,*path=NULL,*other=NULL,*lockPath=NULL,*rawPath=NULL,*manifestPath=NULL,*staging=NULL; unsigned char* large=NULL; HANDLE locked=INVALID_HANDLE_VALUE;
     xide_recovery_service* service=NULL; xide_recovery_result result={0}; xvalue* desired=xrtValueObject();
@@ -68,7 +69,7 @@ int main(int argc,char** argv)
     w=wide(other); wchar_t* original=wide(path); CHECK(CreateHardLinkW(w,original,NULL)); free(original);
     CHECK(!xideStateRepairPrepare(path,NULL,&repair,&error)); xideStateRepairClear(&repair); CHECK(DeleteFileW(w)); free(w);
     /* All native resources unwind when a completed worker result is discarded. */
-    service=xideRecoveryServiceCreate(NULL); CHECK(service && xideRecoveryServiceStart(service,XIDE_RECOVERY_GLOBAL,path,&error));
+    service=xideRecoveryServiceCreate(&sourceJobs,NULL); CHECK(service && xideRecoveryServiceStart(service,XIDE_RECOVERY_GLOBAL,path,&error));
     uint64_t deadline=GetTickCount64()+10000; while(GetTickCount64()<deadline && !xideRecoveryServiceTake(service,&result)) Sleep(2);
     CHECK(result.okay && result.global.complete && !result.global.retired); xideRecoveryResultClear(&result,1); xideRecoveryServiceDestroy(service); service=NULL;
     CHECK(tSame(path,(unsigned char*)damaged,strlen(damaged)) && xideStateRepairPrepare(path,NULL,&repair,&error));
@@ -91,7 +92,7 @@ int main(int argc,char** argv)
     w=wide(symbolic); CHECK(RemoveDirectoryW(w)); free(w); free(symbolic); free(linkedChild);
     symbolic=xidePathResolve(root,"target-link.json"); CHECK(symbolic && tJunction(symbolic,root));
     CHECK(!xideStateRepairPrepare(symbolic,NULL,&repair,&error)); xideStateRepairClear(&repair); w=wide(symbolic); CHECK(RemoveDirectoryW(w)); free(w); free(symbolic);
-    service=xideRecoveryServiceCreate(NULL); CHECK(service && xideRecoveryServiceStart(service,XIDE_RECOVERY_GLOBAL,path,&error));
+    service=xideRecoveryServiceCreate(&sourceJobs,NULL); CHECK(service && xideRecoveryServiceStart(service,XIDE_RECOVERY_GLOBAL,path,&error));
     xideRecoveryServiceCancel(service); xideRecoveryServiceDestroy(service); service=NULL;
     CHECK(tSame(path,(unsigned char*)damaged,strlen(damaged)) && xideStateRepairPrepare(path,NULL,&repair,&error)); xideStateRepairClear(&repair);
     printf("state_repair_test passed: %d checks; raw oversize/invalid UTF-8 backup SHA-256, exclusive common writer lock, read-only/hard-link/locked preservation, cancellation/pending disposal, real retirement rollback after injected OS publish failure, missing-file race and staging collision\n",checks);
