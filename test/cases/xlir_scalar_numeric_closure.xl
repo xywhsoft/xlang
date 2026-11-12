@@ -1,0 +1,160 @@
+extern "ScalarFloatFields" struct FloatFields @header("test/cases/xlir_scalar_numeric_closure.h")
+ c_float value
+ c_float samples[2]
+end
+extern "fixtureScalarFromBits" @header("test/cases/xlir_scalar_numeric_closure.h") @pure @no_raise @nonblocking func fromBits(c_uint value) as c_float
+extern "fixtureScalarFloatBits" @header("test/cases/xlir_scalar_numeric_closure.h") @pure @no_raise @nonblocking func bits(c_float value) as c_uint
+extern "fixtureScalarIsInf" @header("test/cases/xlir_scalar_numeric_closure.h") @pure @no_raise @nonblocking func infinite(c_float value) as bool
+extern "fixtureScalarIsNan" @header("test/cases/xlir_scalar_numeric_closure.h") @pure @no_raise @nonblocking func notNumber(c_float value) as bool
+
+export "scalar_f32_step" func step32(float32 value) as float32
+ value+=float32(2)
+ value-=float32(3)
+ value*=float32(4)
+ value/=float32(2)
+ return value
+end
+export "scalar_c_float_step" func stepCFloat(c_float value) as c_float
+ value+=c_float(2)
+ value-=c_float(3)
+ value*=c_float(4)
+ value/=c_float(2)
+ return value
+end
+export "scalar_c_double_step" func stepCDouble(c_double value) as c_double
+ value+=c_double(2)
+ value-=c_double(3)
+ value*=c_double(4)
+ value/=c_double(2)
+ return value
+end
+export "scalar_f64_step" func step64(float value) as float
+ value+=2.0
+ value-=3.0
+ value*=4.0
+ value/=2.0
+ return value
+end
+
+int indexCalls=0
+int rhsCalls=0
+int getterCalls=0
+int setterCalls=0
+func indexOnce() as int
+ indexCalls+=1
+ return 0
+end
+func rhsOnce() as c_float
+ rhsCalls+=1
+ return c_float(3)
+end
+func failingRhs() as c_float
+ throw "scalar RHS failure"
+end
+class ScalarProperty
+ c_float stored=1
+ get sample() as c_float
+  getterCalls+=1
+  return self.stored
+ end
+ let sample(c_float value)
+  setterCalls+=1
+  self.stored=value
+ end
+end
+class ScalarField
+ float32 value=1
+end
+FloatFields shared=FloatFields()
+func reentrantRhs() as c_float
+ shared.value=c_float(99)
+ shared.samples[1]=c_float(11)
+ return c_float(3)
+end
+func outOfRange() as int
+ indexCalls+=1
+ return 2
+end
+
+func main(...) as int
+ assert step32(float32(8))==float32(14)
+ assert stepCFloat(c_float(8))==c_float(14)
+ assert stepCDouble(c_double(8))==c_double(14)
+ assert step64(8.0)==14.0
+ auto mixed=float32(1)+c_float(2)
+ assert mixed==float32(3)
+ float32 value=float32(16777216)
+ auto rounded=value+float32(1)
+ assert rounded==value and -value<float32(0)
+ value+=float32(1)
+ assert value==rounded
+ assert value>float32(1) and value>=rounded and value<=rounded and value!=float32(0)
+ float32 zero=-float32(0)
+ assert bits(c_float(zero))==c_uint(0x80000000)
+ float32 maximum=float32(fromBits(c_uint(0x7f7fffff)))
+ auto overflow=maximum*float32(2)
+ assert infinite(c_float(overflow))
+ auto nan=overflow-overflow
+ assert notNumber(c_float(nan)) and nan!=nan
+ array<c_float> values=[c_float(1),c_float(2)]
+ values[indexOnce()]+=rhsOnce()
+ assert indexCalls==1 and rhsCalls==1 and values[0]==c_float(4)
+ array<float32> singles=[float32(1)]
+ singles[0]+=float32(2)
+ assert singles[0]==float32(3)
+ var sparse=[-3:c_double(1)]
+ list<c_double> doubles=sparse
+ doubles[-3]*=c_double(4)
+ assert doubles[-3]==c_double(4)
+ auto record=FloatFields()
+ record.value=c_float(2)
+ record.value*=c_float(3)
+ record.samples[0]=c_float(1)
+ record.samples[indexOnce()]+=rhsOnce()
+ assert record.value==c_float(6) and record.samples[0]==c_float(4)
+ assert indexCalls==2 and rhsCalls==2
+ auto property=ScalarProperty()
+ property.sample+=rhsOnce()
+ assert getterCalls==1 and setterCalls==1 and property.stored==c_float(4) and rhsCalls==3
+ bool caught=false
+ try
+  property.sample+=failingRhs()
+ catch error
+  caught=true
+ end
+ assert caught and getterCalls==2 and setterCalls==1 and property.stored==c_float(4)
+ auto field=ScalarField()
+ field.value+=float32(2)
+ assert field.value==float32(3)
+ shared.samples[0]=c_float(7)
+ shared.samples[indexOnce()]+=reentrantRhs()
+ assert shared.samples[0]==c_float(10) and shared.samples[1]==c_float(11) and shared.value==c_float(99)
+ int before=indexCalls
+ int rhsBefore=rhsCalls
+ caught=false
+ try
+  shared.samples[outOfRange()]+=rhsOnce()
+ catch error
+  caught=true
+ end
+ assert caught and indexCalls==before+1 and rhsCalls==rhsBefore and shared.samples[0]==c_float(10)
+ caught=false
+ try
+  shared.samples[0]+=failingRhs()
+ catch error
+  caught=true
+ end
+ assert caught and shared.samples[0]==c_float(10) and shared.samples[1]==c_float(11)
+ int8 signedBits=-1
+ signedBits&=int8(127)
+ signedBits|=int8(-128)
+ signedBits^=int8(-1)
+ assert signedBits==int8(0)
+ uint8 unsignedBits=255
+ unsignedBits&=uint8(15)
+ unsignedBits|=uint8(32)
+ unsignedBits^=uint8(33)
+ assert unsignedBits==uint8(14)
+ println("Scalar numeric closure: float widths, IEEE values, compound targets and single evaluation passed")
+ return 0
+end

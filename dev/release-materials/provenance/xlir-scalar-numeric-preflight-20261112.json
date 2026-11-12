@@ -1,0 +1,82 @@
+{
+  "schema": 1,
+  "sourcePreflightQualified": true,
+  "fullCompilerBuild": false,
+  "shippingDelivery": false,
+  "scope": "Floating scalar arithmetic/compound closure, typed collection read and C aggregate value-place transactions. C integer arithmetic policy remains pending.",
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\scalar-frontend-win-r6\\build.json",
+      "sha256": "7d6f69c7aacc4e04c027627fa90d8995067671c4ffd8512250cdf040a9faa011"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\scalar-frontend-win-r6\\freeze.json",
+      "sha256": "1c5e47adc07b51b65f6cd7802edb2fd7440f396cd84a2d8e63ee747366e8b84c"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\scalar-numeric-preflight-win-r4\\results.json",
+      "sha256": "a77c19de96d2da71008f9cafba1c5a5ac55759eed59099339584bad9b91e37f9"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\scalar-frontend-linux-r6\\build.json",
+      "sha256": "e34f4011afdd3dcd818e57422c944b4f8329aec52f85560dc48c2f855ea57f2b"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\scalar-frontend-linux-r6\\freeze.json",
+      "sha256": "d36eb9735a55c9bff3e651af86012d8ab239d9c8bee5f5e5234a6a5d86efc53d"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\scalar-numeric-preflight-linux-r4\\results.json",
+      "sha256": "bcc58af4488364ceecb7895bbdc9bda478e97ad478b324e6077d3acc8c0810ba"
+    }
+  ],
+  "sourceInputs": {
+    "src/ir/xl6_ir.c": "43ea5297f4ddc75c2b924694438d5f581db0101ac6a1792a9947318941ba872c",
+    "src/ir/xl6_ir_lower.c": "bbbed7e9bff9634e2b36566c310e98bea1c5db4c427a2e920d6d96197433a025",
+    "src/ir/xl6_ir_lower_aggregate_place.c": "20a0df1ddd076fd7c1881293b66799127137bf3f35d25fa3dd4721210e1f7c09",
+    "tools/check_xlir_scalar_numeric_closure.py": "c9e2da70df0a1ac5530dd6a527d49f5f8456cd534ee267e07716772ca8b5ef3c",
+    "test/cases/xlir_scalar_numeric_closure.xl": "2832aa344ce82222b5e29532f0d6b79986d7ccf35a2688ccfa555ebcd3814300",
+    "test/cases/xlir_scalar_numeric_closure.h": "bbb707e2f344bc973f3205f5a87dc6ec4662dfce44c38f12cd9f786d062590ee",
+    "test/cases/xlir_scalar_numeric_closure.c": "a5341cee3522b30d4e8be5caa606b2f49a55789c8e37601ff18c694519d94504",
+    "test/cases/xlir_scalar_numeric_closure_host.c": "a9e886057ab3fc610b074b98e48ec1df796c71e12a9e259bbcf442a1557736b3",
+    "test/cases/xlir_scalar_numeric_closure_ir.c": "8d396a24af06842740bfebffac00b07c6abcb8d6e5fecdac55e306439f8a5c04"
+  },
+  "verification": {
+    "win": {
+      "commands": 19,
+      "sealedIrMutations": 42,
+      "emptyCAndHeaderRefusals": 84,
+      "optimization": [
+        "O0",
+        "O2"
+      ],
+      "jit": true,
+      "publicHeaderStandards": [
+        "c11",
+        "c++11",
+        "c++17"
+      ]
+    },
+    "linux": {
+      "commands": 19,
+      "sealedIrMutations": 42,
+      "emptyCAndHeaderRefusals": 84,
+      "optimization": [
+        "O0",
+        "O2"
+      ],
+      "jit": true,
+      "publicHeaderStandards": [
+        "c11",
+        "c++11",
+        "c++17"
+      ]
+    }
+  },
+  "pending": [
+    "Matched complete O2 compiler/TCC/XRT/fixed-object/VFS/embedded-source rebuild",
+    "Full shipping CLI and nested compiler acceptance",
+    "Native C integer arithmetic policy",
+    "Other full-scope XGE/XUI/Document work and final ecosystem delivery"
+  ]
+}

@@ -136,6 +136,7 @@
 !/dev/release-materials/provenance/foreign-owned-bytes-output-20261112.json
 !/dev/release-materials/provenance/foreign-owned-bytes-windows-20261112.json
 !/dev/release-materials/provenance/tcc-elf-tls-preflight-20261112.json
+!/dev/release-materials/provenance/xlir-scalar-numeric-preflight-20261112.json
 /out/
 /tmp/
 /logs/

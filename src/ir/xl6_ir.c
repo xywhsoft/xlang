@@ -19003,6 +19003,9 @@ static XL6_IrMemberAbi xl6IrClassifyMemberAbi(
  * owned box, even when its arithmetic itself cannot fail.
  * Protocol operators carry their effect on the resolved CallSite and
  * therefore do not duplicate it here. */
+static int xl6IrReadIsWriteTarget(
+    const XL6_IrModule* module, XL6_IrNodeId indexId);
+
 static XL6_IrErrorAbi xl6IrClassifyOperatorErrorAbi(
     const XL6_IrModule* module, const XL6_IrNode* node)
 {
@@ -19011,7 +19014,8 @@ static XL6_IrErrorAbi xl6IrClassifyOperatorErrorAbi(
     int operatorNode;
     if ( module == NULL || node == NULL ) return XL6_IR_ERROR_ABI_INVALID;
     if (node->kind == XL6_IR_NODE_INDEX && node->sourceKind == XL6_AST_INDEX &&
-        node->lvalueKind != XL6_SEM_LVALUE_INDEX && node->childCount == 2) {
+        !xl6IrReadIsWriteTarget(module, (XL6_IrNodeId)(node - module->nodes + 1)) &&
+        node->childCount == 2) {
         const XL6_IrNode* receiver = xl6IrNodeGet(module, module->children[node->firstChild]);
         const XL6_IrType* type = receiver ? xl6IrTypeGet(&module->types, receiver->storageType) : NULL;
         if (type && type->cAbi == XL6_IR_C_ABI_C_ARRAY) return XL6_IR_ERROR_ABI_MAY_RAISE;
@@ -20246,7 +20250,8 @@ static XL6_IrIndexWriteAbi xl6IrClassifyIndexWriteAbi(
         receiverType->params[0] == indexNode->storageType &&
         (keyType->integerTarget != XL6_IR_INTEGER_TARGET_INVALID ||
          (keyType->cAbi >= XL6_IR_C_ABI_C_CHAR && keyType->cAbi <= XL6_IR_C_ABI_C_UINTPTR)) &&
-        ((receiver->kind == XL6_IR_NODE_NAME && receiver->targetSymbol) ||
+        (xl6IrAggregatePlaceRootGet(module, indexNode) ||
+         (receiver->kind == XL6_IR_NODE_NAME && receiver->targetSymbol) ||
          (receiver->kind == XL6_IR_NODE_MEMBER &&
           (receiver->memberAbi == XL6_IR_MEMBER_ABI_UNION_FIELD_DIRECT_STORAGE_WRITE ||
            receiver->memberAbi == XL6_IR_MEMBER_ABI_UNION_FIELD_CLASS_FIELD_WRITE ||
@@ -26073,6 +26078,7 @@ static int xl6IrCAbiIsIntegerScalar(XL6_IrCAbi abi)
 static int xl6IrCAbiIsNumericScalar(XL6_IrCAbi abi)
 {
     return xl6IrCAbiIsIntegerScalar(abi) || abi == XL6_IR_C_ABI_F64 ||
+           abi == XL6_IR_C_ABI_F32 ||
            abi == XL6_IR_C_ABI_C_FLOAT || abi == XL6_IR_C_ABI_C_DOUBLE;
 }
 

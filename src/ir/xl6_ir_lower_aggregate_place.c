@@ -25,8 +25,14 @@ static XL6_IrValueId xl6IrLowerAggregatePlaceRead(
     return value;
 }
 
+static XL6_IrValueId xl6IrLowerCompoundValue(
+    XL6_IrLowerContext* ctx, XL6_IrNodeId origin, const XL6_IrNode* node,
+    const XL6_IrNode* previousNode, XL6_IrValueId previous,
+    XL6_IrNodeId rhsId, const XL6_IrNode* rhs);
+
 static int xl6IrLowerAggregatePlaceAssign(XL6_IrLowerContext* ctx,
-    XL6_IrNodeId origin,const XL6_IrNode* lhs,XL6_IrValueId replacement)
+    XL6_IrNodeId origin,const XL6_IrNode* lhs,XL6_IrValueId replacement,
+    const XL6_IrNode* compound,XL6_IrNodeId rhsId,const XL6_IrNode* rhs)
 {
     XL6_IrNodeId rootId=xl6IrAggregatePlaceRootGet(ctx->module,lhs);
     if(!rootId || lhs->kind==XL6_IR_NODE_NAME)return 0;
@@ -74,6 +80,19 @@ static int xl6IrLowerAggregatePlaceAssign(XL6_IrLowerContext* ctx,
     }
     current=indexed ? xl6IrLowerReadStorageTargetPlan(ctx,origin,&storage):original;
     if(!current)goto done;
+    if(compound) {
+        /* Freeze the leaf before evaluating the RHS, then rebuild from the
+         * latest root. Reentrant RHS changes to unrelated fields survive;
+         * throwing RHS code publishes no leaf update. Keys are not rerun. */
+        for(size_t i=count;i>0;--i) {
+            current=xl6IrLowerAggregatePlaceRead(ctx,origin,&steps[i-1],current);
+            if(!current)goto done;
+        }
+        replacement=xl6IrLowerCompoundValue(ctx,origin,compound,lhs,current,rhsId,rhs);
+        if(!replacement)goto done;
+        current=xl6IrLowerReadStorageTargetPlan(ctx,origin,&storage);
+        if(!current)goto done;
+    }
     for(size_t i=count;i>0;--i) {
         XL6_IrLowerAggregatePlaceStep* step=&steps[i-1];
         step->container=current;

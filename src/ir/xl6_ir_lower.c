@@ -5717,6 +5717,19 @@ static XL6_IrValueId xl6IrLowerReadElementTargetPlan(
     operation = plan != NULL
         ? xl6IrLowerElementTargetReadOp(ctx->module, plan)
         : XL6_IR_RUNTIME_NONE;
+    /* Keep the native fast reads for their exact scalar domains. Other typed
+     * Array/List elements use the same owned projection as an ordinary index
+     * read; in particular, C scalars must preserve their domain and width. */
+    if ( receiverType != NULL && itemType != NULL &&
+         receiverType->paramCount == 1 && receiverType->params != NULL &&
+         receiverType->params[0] == plan->lhs->storageType &&
+         operation == XL6_IR_RUNTIME_NONE &&
+         xl6IrOwnedIndexReadRuntimeOpIs(plan->borrowOperation) ) {
+        operands[0] = plan->receiverValue;
+        operands[1] = plan->keyValue;
+        return xl6IrLowerOwnedIndexRead(ctx, origin, plan->borrowOperation,
+            operands, plan->lhs->storageType);
+    }
     if ( receiverType == NULL || itemType == NULL ||
          receiverType->paramCount != 1 || receiverType->params == NULL ||
          receiverType->params[0] != plan->lhs->storageType ||
@@ -29253,13 +29266,16 @@ static XL6_IrValueId xl6IrLowerScalarCompoundValue(
 {
     const XL6_IrType* targetType = xl6IrTypeGet(&ctx->module->types, type);
     XL6_IrValueId result = XL6_IR_VALUE_INVALID;
+    int floating = targetType != NULL &&
+        (targetType->cAbi == XL6_IR_C_ABI_F64 || targetType->cAbi == XL6_IR_C_ABI_F32 ||
+         targetType->cAbi == XL6_IR_C_ABI_C_FLOAT || targetType->cAbi == XL6_IR_C_ABI_C_DOUBLE);
     int valid = node != NULL && node->opcode != XL6_IR_OPCODE_INVALID &&
         targetType != NULL &&
         targetType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
         (targetType->cAbi == XL6_IR_C_ABI_I64 ||
          targetType->cAbi == XL6_IR_C_ABI_U64 ||
-         targetType->cAbi == XL6_IR_C_ABI_F64) &&
-        !(targetType->cAbi == XL6_IR_C_ABI_F64 &&
+         floating) &&
+        !(floating &&
           node->opcode != XL6_IR_OPCODE_ADD &&
           node->opcode != XL6_IR_OPCODE_SUB &&
           node->opcode != XL6_IR_OPCODE_MUL &&
@@ -29307,12 +29323,16 @@ static XL6_IrValueId xl6IrLowerScalarCompoundValue(
             &ctx->module->types, rhsType);
         XL6_IrValueId promotedPrevious;
         XL6_IrValueId promotedRhs = rhs;
-        /* Add/sub/mul are closed under final modulo normalization.  Division,
+        /* Add/sub/mul and bit operations are closed under final modulo
+         * normalization. Division,
          * remainder and shifts need separately fixed promotion/failure ABIs. */
         valid = promotedType != XL6_IR_TYPE_INVALID &&
             (node->opcode == XL6_IR_OPCODE_ADD ||
              node->opcode == XL6_IR_OPCODE_SUB ||
-             node->opcode == XL6_IR_OPCODE_MUL) &&
+             node->opcode == XL6_IR_OPCODE_MUL ||
+             node->opcode == XL6_IR_OPCODE_BIT_AND ||
+             node->opcode == XL6_IR_OPCODE_BIT_OR ||
+             node->opcode == XL6_IR_OPCODE_BIT_XOR) &&
             rhsInteger != NULL && rhsInteger->cAbi == XL6_IR_C_ABI_I64;
         promotedPrevious = valid
             ? xl6IrLowerEmitScalarConvert(
@@ -30976,6 +30996,9 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
                         xl6IrLowerDiag(ctx, id, "XLIR property update was not materialized as a destination transaction");
                     return lowered > 0 ? 0 : XL6_IR_VALUE_INVALID;
                 }
+                int aggregate = xl6IrLowerAggregatePlaceAssign(ctx, id, lhs,
+                    XL6_IR_VALUE_INVALID, node, rhsId, rhs);
+                if (aggregate != 0) return aggregate > 0 ? 0 : XL6_IR_VALUE_INVALID;
                 int storage = xl6IrLowerStorageCompoundAssign(ctx, id, node, lhs, rhsId, rhs);
                 if (storage != 0) return storage > 0 ? 0 : XL6_IR_VALUE_INVALID;
                 if ( node->lvalueKind == XL6_SEM_LVALUE_INDEX ||
@@ -31009,7 +31032,7 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
                 : XL6_IR_VALUE_INVALID;
             if ( lhs == NULL || values[0] == 0 ) { xl6IrLowerDiag(ctx, id, "XLIR assignment lacks a resolved target or value"); return 0; }
             {
-                int aggregate=xl6IrLowerAggregatePlaceAssign(ctx,id,lhs,values[0]);
+                int aggregate=xl6IrLowerAggregatePlaceAssign(ctx,id,lhs,values[0],NULL,0,NULL);
                 if(aggregate!=0)return aggregate>0 ? 0:XL6_IR_VALUE_INVALID;
                 if(lhs->kind==XL6_IR_NODE_MEMBER &&
                    lhs->memberAbi==XL6_IR_MEMBER_ABI_UNION_FIELD) {

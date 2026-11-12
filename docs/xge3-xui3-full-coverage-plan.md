@@ -592,3 +592,15 @@ Windows r28 完整 O2／TCC／XRT／固定对象／VFS／内嵌源码候选随�
 增量均为零；生产者 xl.dll／xlc.dll 分别增长 4,608／8,704 字节，CLI 不变。
 见 `foreign-owned-bytes-windows-20261112.json`。Linux 完整重建仍在进行，原有源码
 预验收索引保留历史状态；实际 XGE 包的 DLL／DSO 初始化和最终配套交付仍未结项。
+
+Linux r20 完整构建成功，新的嵌套共享库运行验证随后暴露 AMD64 ELF 原生线程局部
+存储缺陷：TCC 将共享库 TLS 访问错误地改写为主程序固定偏移，C 宿主可能表面通过，
+Python 宿主则检测到线程状态损坏。通用动态重定位、模板对齐及零初始化范围已修复，
+见 [ELF TLS 源码验收](tcc-elf-tls.md)。两端重定位回归及 59 项原生专项通过；
+原失败场景仍须由完整重建复验，不把 r20 的共享调用列为通过。
+
+同时补齐 [标量数值和 C 值位置事务](xlir-scalar-numeric-closure.md)：float32、
+c_float／c_double 复合运算、Typed Array／List 读取、定长 C 数组复合赋值及精确错误
+边界。两端源码 JIT、O0／O2 C 调用、三种公开头和 42 项 IR 破坏检查通过；C 整数
+算术的新规则仍待用户决定。Windows r29／Linux r21 配套 O2／TCC／XRT／VFS／内嵌
+源码完整重建已启动，正式 release／IDE 保持原状，全量目标继续进行。
