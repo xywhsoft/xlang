@@ -403,7 +403,7 @@ static int xl6IrCgenEmitCallPlace(XL6_Output* out, const XL6_IrModule* module,
         const XL6_ForeignParameterContract* row=xl6IrForeignParameterGet(module,target,parameter);
         if(!row)return 0;
         xl6OutputPrintf(out,"(%s)native_span_data_%lu, (%s)native_span_count_%lu",row->pointerCName,
-            (unsigned long)parameter,row->countAbi==XL6_FOREIGN_SPAN_COUNT_INT ? "int" : "size_t",(unsigned long)parameter);
+            (unsigned long)parameter,xl6ForeignSpanCountCName(row->countAbi),(unsigned long)parameter);
         break;
     }
     case XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_REGION_BORROW:{

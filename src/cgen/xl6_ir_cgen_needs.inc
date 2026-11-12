@@ -3,6 +3,7 @@
 XL6_IR_CGEN_NEED(int, needsModuleOwnershipViews, NONE)
 XL6_IR_CGEN_NEED(int, needsCOwnedRuntime, NONE)
 XL6_IR_CGEN_NEED(int, needsOwnedBytesOutput, NONE)
+XL6_IR_CGEN_NEED(int, needsOwnedTextOutput, NONE)
 XL6_IR_CGEN_NEED(int, needsCOwnedPrintRuntime, NONE)
 XL6_IR_CGEN_NEED(int, needsLogAdapterDeclarations, NONE)
 XL6_IR_CGEN_NEED(int, needsTextAdapterDeclarations, NONE)

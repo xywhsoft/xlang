@@ -500,7 +500,7 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
             xl6OutputPrintf(out,", void*, const %s*",expanded->callbackOwnerCName);
         if(expanded && expanded->kind==XL6_FOREIGN_PARAMETER_SYNC_CALLBACK)xl6OutputPuts(", void*",out);
         if(expanded && expanded->kind==XL6_FOREIGN_PARAMETER_SPAN)
-            xl6OutputPrintf(out,", %s",expanded->countAbi==XL6_FOREIGN_SPAN_COUNT_INT ? "int" : "size_t");
+            xl6OutputPrintf(out,", %s",xl6ForeignSpanCountCName(expanded->countAbi));
     }
     if ( target->variadicAbi == XL6_IR_CALL_VARIADIC_C )
         xl6OutputPuts(", ...", out);

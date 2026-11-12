@@ -46,7 +46,14 @@ static int xl6IrForeignOverloadMetadataEqual(const XL6_IrModule* m,const XL6_IrC
     uint32 a=left->declaration,b=right->declaration;
 #define XL6_EQUAL_ROWS(field,count) if(!xl6IrForeignRowsEqual(m->field,m->count,sizeof(*m->field),a,b))return 0
     XL6_EQUAL_ROWS(foreignOutputs,foreignOutputCount);
-    XL6_EQUAL_ROWS(foreignOwnedBytes,foreignOwnedBytesCount);
+    const XL6_ForeignOwnedOutputContract* ao=xl6IrForeignOwnedOutputGet(m,left);
+    const XL6_ForeignOwnedOutputContract* bo=xl6IrForeignOwnedOutputGet(m,right);
+    if((ao!=NULL)!=(bo!=NULL))return 0;
+    if(ao){
+        XL6_ForeignOwnedOutputContract x=*ao,y=*bo;
+        x.declaration=y.declaration=0;x.kind=y.kind=XL6_FOREIGN_OWNED_OUTPUT_BYTES;
+        if(memcmp(&x,&y,sizeof(x)))return 0;
+    }
     XL6_EQUAL_ROWS(foreignOutputSizes,foreignOutputSizeCount);
     XL6_EQUAL_ROWS(foreignOutputViews,foreignOutputViewCount);
     XL6_EQUAL_ROWS(foreignOutputRecords,foreignOutputRecordCount);
@@ -95,15 +102,23 @@ static int xl6IrForeignManagedInputCompatible(const XL6_IrModule* module,const X
 #include "src/ir/xl6_ir_foreign_projection_compat.c"
 static int xl6IrForeignOverloadsCompatible(const XL6_IrModule* module,const XL6_IrCallTarget* a,const XL6_IrCallTarget* b)
 {
+    const XL6_ForeignOwnedOutputContract* ao=xl6IrForeignOwnedOutputGet(module,a);
+    const XL6_ForeignOwnedOutputContract* bo=xl6IrForeignOwnedOutputGet(module,b);
+    int ownedAdmissions=ao && bo && ao->kind!=bo->kind;
+    if(!ownedAdmissions){
     int nullCompatibility=xl6IrForeignNullPhysicalCompatible(module,a,b);
     if(nullCompatibility>=0)return nullCompatibility;
     int projectionCompatibility=xl6IrForeignProjectionCompatible(module,a,b);
     if(projectionCompatibility>=0)return projectionCompatibility;
+    }
     const XL6_IrNode* left=xl6IrNodeGet(module,a->declaration);const XL6_IrNode* right=xl6IrNodeGet(module,b->declaration);
-    if(!left || !right || !xl6ForeignCallFactsEqual(&left->foreignCall,&right->foreignCall) ||
+    if(!left || !right)return 0;
+    XL6_ForeignCallFacts af=left->foreignCall,bf=right->foreignCall;
+    if(ownedAdmissions)af.valueOutput=bf.valueOutput=XL6_FOREIGN_VALUE_OUTPUT_OWNED_BYTES_STATUS;
+    if(!xl6ForeignCallFactsEqual(&af,&bf) ||
         ((left->flags^right->flags)&(XL6_AST_FLAG_STATIC|XL6_AST_FLAG_FOREIGN_OWNED_STRING|XL6_AST_FLAG_FOREIGN_PURE|
             XL6_AST_FLAG_FOREIGN_NO_RAISE|XL6_AST_FLAG_FOREIGN_NONBLOCKING)) ||
-        a->foreignOperationAbi!=b->foreignOperationAbi || a->returnType!=b->returnType || a->resultPhysicalAbi!=b->resultPhysicalAbi ||
+        a->foreignOperationAbi!=b->foreignOperationAbi || (!ownedAdmissions && a->returnType!=b->returnType) || a->resultPhysicalAbi!=b->resultPhysicalAbi ||
         a->resultConversionAbi!=b->resultConversionAbi || a->resultCAbi!=b->resultCAbi || a->outputResultAbi!=b->outputResultAbi ||
         a->nativeSuccessCode!=b->nativeSuccessCode || a->resultPhysicalFieldDeclaration!=b->resultPhysicalFieldDeclaration ||
         a->resultPhysicalDestroySymbol!=b->resultPhysicalDestroySymbol || a->errorAbi!=b->errorAbi || a->effectAbi!=b->effectAbi ||

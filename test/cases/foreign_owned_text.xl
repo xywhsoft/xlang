@@ -1,0 +1,56 @@
+extern "fixtureOwnedText" @header("test/cases/foreign_owned_text.h") @no_raise @c_output_text(1,2,"char*","uint64_t","xrt",0) func produceText(c_int mode=0) as string
+extern "fixtureOwnedText" @header("test/cases/foreign_owned_text.h") @no_raise @c_output_bytes(1,2,"char*","uint64_t","xrt",0) func produceBytes(c_int mode=0) as bytes
+extern "fixtureOwnedTextFromSpan" @header("test/cases/foreign_owned_text.h") @no_raise @c_span(0,"const char*","uint64_t",1) @c_pack(0,"fixture_owned_options",2,1) @c_pack_field(0,"marker",2,"value") @c_output_text(3,4,"char*","uint64_t","xrt",0) func projectText(string data,int size=-1,c_int marker=31) as string
+extern "fixtureOwnedTextFromSpan" @header("test/cases/foreign_owned_text.h") @no_raise @c_span(0,"const char*","uint64_t",1) @c_pack(0,"fixture_owned_options",2,1) @c_pack_field(0,"marker",2,"value") @c_output_text(3,4,"char*","uint64_t","xrt",0) func projectText(bytes data,int size=-1,c_int marker=31) as string
+extern "fixtureOwnedTextFromSpan" @header("test/cases/foreign_owned_text.h") @no_raise @c_span(0,"const char*","uint64_t",1) @c_pack(0,"fixture_owned_options",2,1) @c_pack_field(0,"marker",2,"value") @c_output_text(3,4,"char*","uint64_t","xrt",0) func projectText(Buffer data,int size=-1,c_int marker=31) as string
+extern "fixtureOwnedTextIdentity" @header("test/cases/foreign_owned_text.h") @no_raise @c_span(0,"const char*","size_t") func identity(string data) as c_int
+extern "fixtureOwnedTextCString" @header("test/cases/foreign_owned_text.h") @no_raise @c_cstr(0) func emptyCString(string data) as c_int
+extern "fixtureOwnedTextReset" @header("test/cases/foreign_owned_text.h") @no_raise func resetFailure()
+extern "fixtureOwnedTextBegin" @header("test/cases/foreign_owned_text.h") @no_raise func beginCounter()
+extern "fixtureOwnedTextEnd" @header("test/cases/foreign_owned_text.h") @no_raise func endCounter()
+extern "fixtureOwnedTextNativeReference" @header("test/cases/foreign_owned_text.h") @no_raise func nativeReference()
+extern "fixtureOwnedTextLanguageReference" @header("test/cases/foreign_owned_text.h") @no_raise func languageReference()
+func oneTake()
+ auto data=produceText()
+ assert identity(data)==c_int(1)
+end
+func main(...) as int
+ auto data=produceText()
+ assert identity(data)==c_int(1) and data=="A\0你Z"
+ auto copy=data
+ copy[0]='B'
+ assert data=="A\0你Z" and copy=="B\0你Z"
+ assert produceBytes()==b"A\0\xe4\xbd\xa0Z"
+ assert projectText("A\0你Z")=="A\0你Z"
+ assert projectText(b"A\0Z",99)=="A\0Z"
+ assert projectText(Buffer(b"A\0Z"),2)=="A\0"
+ assert emptyCString(produceText(c_int(1)))==c_int(1)
+ assert produceText(c_int(7))==""
+ string kept="keep"
+ for mode in [2,3,4,5,6,8]
+  beginCounter()
+  bool caught=false
+  try
+   kept=produceText(c_int(mode))
+  catch error
+   caught=true
+   if mode==4 then
+    assert error.code==-17
+   end
+  end
+  assert caught and kept=="keep"
+  endCounter()
+ end
+ // Adoption itself allocates nothing after the producer returns.
+ auto noExtraAllocation=produceText(c_int(9))
+ resetFailure()
+ assert noExtraAllocation=="A\0你Z"
+ oneTake()
+ nativeReference()
+ beginCounter()
+ for i in range(100)
+  oneTake()
+ end
+ languageReference()
+ return 0
+end

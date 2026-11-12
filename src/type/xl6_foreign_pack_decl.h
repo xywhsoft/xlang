@@ -132,9 +132,9 @@ static inline int xl6ForeignPhysicalOutputSlots(const XL6_AstNode* node,const XL
     if(!facts->outputIndexPlusOne)return 1;
     slots[0]=facts->outputIndexPlusOne-1;*outputCount=1;
     XL6_ForeignValueOutputKind kind=xl6ForeignValueOutputBase(facts->valueOutput);
-    if(kind==XL6_FOREIGN_VALUE_OUTPUT_OWNED_BYTES_STATUS){
-        const XL6_AstNode* attrs=xl6ForeignFunctionAttributes(node);size_t found=0;XL6_ForeignOwnedBytesContract row={0};
-        for(size_t i=0;attrs && i<attrs->childCount;++i)found+=xl6ForeignOwnedBytesRead(attrs->children[i],&row);
+    if(xl6ForeignValueOutputIsOwned(kind)){
+        const XL6_AstNode* attrs=xl6ForeignFunctionAttributes(node);size_t found=0;XL6_ForeignOwnedOutputContract row={0};
+        for(size_t i=0;attrs && i<attrs->childCount;++i)found+=xl6ForeignOwnedOutputRead(attrs->children[i],&row);
         if(found!=1)return 0;
         slots[0]=row.dataIndex;slots[1]=row.sizeIndex;*outputCount=2;return 1;
     }
@@ -153,6 +153,8 @@ static inline int xl6ForeignPhysicalOutputSlots(const XL6_AstNode* node,const XL
 static inline size_t xl6ForeignPhysicalStepCount(const XL6_AstNode* node,size_t parameters,size_t outputs)
 {
     const XL6_AstNode* attrs=xl6ForeignFunctionAttributes(node);size_t count=parameters+outputs;
+    uint64 limits=xl6ForeignSpanLimitParameters(node);
+    for(size_t p=0;p<64;++p)if(limits&(UINT64_C(1)<<p)){if(!count)return SIZE_MAX;--count;}
     for(size_t i=0;attrs && i<attrs->childCount;++i){XL6_ForeignPackContract pack;
         if(xl6ForeignPackRead(attrs->children[i],&pack)){
             if(pack.parameterCount-1>count)return SIZE_MAX;
@@ -164,19 +166,36 @@ static inline size_t xl6ForeignPhysicalStepCount(const XL6_AstNode* node,size_t 
         }XL6_ForeignFixedInputContract nullRow;if(xl6ForeignFixedInputRead(attrs->children[i],&nullRow))++count;}
     return count;
 }
+static inline int xl6ForeignPackAtPhysical(const XL6_AstNode* node,size_t physical,XL6_ForeignPackContract* output)
+{
+    const XL6_AstNode* attrs=xl6ForeignFunctionAttributes(node);size_t found=0;XL6_ForeignPackContract row={0};
+    for(size_t i=0;attrs && i<attrs->childCount;++i){XL6_ForeignPackContract candidate;
+        if(xl6ForeignPackRead(attrs->children[i],&candidate) && candidate.physicalIndex==physical){row=candidate;++found;}}
+    if(found!=1)return 0;
+    if(output)*output=row;
+    return 1;
+}
 static inline int xl6ForeignPhysicalStepRead(const XL6_AstNode* node,const XL6_ForeignCallFacts* facts,
     size_t parameters,size_t receiver,const uint32* slots,size_t outputs,size_t wanted,XL6_ForeignPhysicalStep* output)
 {
     size_t parameter=0,ordinal=0,physical=0;
+    uint64 limits=xl6ForeignSpanLimitParameters(node);
     if(wanted>=xl6ForeignPhysicalStepCount(node,parameters,outputs))return 0;
     for(size_t event=0;event<=wanted;++event){
         XL6_ForeignPhysicalStep step={0};step.physicalIndex=(uint32)physical;
+        XL6_ForeignPackContract physicalPack;
         if(ordinal<outputs && slots[ordinal]==physical){
             step.kind=XL6_FOREIGN_PHYSICAL_STEP_OUTPUT;step.ordinal=(uint32)ordinal;step.parameter=UINT32_MAX;
             ++ordinal;++physical;
         }else if(xl6ForeignFixedInputAt(node,physical,NULL)){
             step.kind=XL6_FOREIGN_PHYSICAL_STEP_FIXED;step.parameter=UINT32_MAX;++physical;
+        }else if(xl6ForeignPackAtPhysical(node,physical,&physicalPack)){
+            if(physicalPack.firstParameter+receiver>parameters || physicalPack.parameterCount>parameters-physicalPack.firstParameter-receiver)return 0;
+            step.kind=XL6_FOREIGN_PHYSICAL_STEP_PACK;step.parameter=physicalPack.firstParameter+(uint32)receiver;++physical;
         }else{
+            while(parameter<parameters && parameter>=receiver && parameter-receiver<64 &&
+                ((limits&(UINT64_C(1)<<(parameter-receiver))) ||
+                 xl6ForeignPackForParameter(node,parameter-receiver,NULL)))++parameter;
             if(parameter>=parameters || (ordinal<outputs && slots[ordinal]<physical))return 0;
             XL6_ForeignPackContract pack;size_t explicitParameter=parameter>=receiver ? parameter-receiver:SIZE_MAX;
             step.parameter=(uint32)parameter;
@@ -208,23 +227,27 @@ static inline size_t xl6ForeignOutputLogicalForDeclaration(const XL6_AstNode* no
     if(!xl6ForeignPhysicalOutputSlots(node,facts,slots,&outputs) || !outputs)return SIZE_MAX;
     size_t steps=xl6ForeignPhysicalStepCount(node,parameters,outputs);
     if(steps>parameters+outputs+64)return SIZE_MAX;
+    size_t before=0;
     for(size_t i=0;i<steps;++i){XL6_ForeignPhysicalStep step;
         if(!xl6ForeignPhysicalStepRead(node,facts,parameters,receiver,slots,outputs,i,&step))return SIZE_MAX;
         if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_OUTPUT){
-            size_t before=0;
-            for(size_t old=0;old<i;++old){XL6_ForeignPhysicalStep previous;
-                if(!xl6ForeignPhysicalStepRead(node,facts,parameters,receiver,slots,outputs,old,&previous))return SIZE_MAX;
-                if(previous.kind==XL6_FOREIGN_PHYSICAL_STEP_INPUT)++before;
-                else if(previous.kind==XL6_FOREIGN_PHYSICAL_STEP_PACK){XL6_ForeignPackContract pack;
-                    if(previous.parameter<receiver || !xl6ForeignPackForParameter(node,previous.parameter-receiver,&pack))return SIZE_MAX;
-                    before+=pack.parameterCount;
-                }else if(previous.kind==XL6_FOREIGN_PHYSICAL_STEP_ARRAY_GROUP){XL6_ForeignArrayGroupContract group;
-                    if(previous.parameter<receiver || !xl6ForeignArrayForParameter(node,previous.parameter-receiver,&group))return SIZE_MAX;
-                    before+=(size_t)group.arrayCount+1;
-                }
-            }
             return before;
         }
+        size_t consumed=0;
+        if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_INPUT)consumed=1;
+        else if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_PACK){XL6_ForeignPackContract pack;
+            if(step.parameter<receiver || !xl6ForeignPackForParameter(node,step.parameter-receiver,&pack))return SIZE_MAX;
+            consumed=pack.parameterCount;
+        }else if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_ARRAY_GROUP){XL6_ForeignArrayGroupContract group;
+            if(step.parameter<receiver || !xl6ForeignArrayForParameter(node,step.parameter-receiver,&group))return SIZE_MAX;
+            consumed=group.arrayCount+1;
+        }
+        before+=consumed;
+        const XL6_AstNode* attrs=xl6ForeignFunctionAttributes(node);
+        for(size_t a=0;attrs && a<attrs->childCount;++a){XL6_ForeignParameterContract span;
+            if(xl6ForeignParameterRead(attrs->children[a],&span) && span.kind==XL6_FOREIGN_PARAMETER_SPAN &&
+                span.spanLimitIndexPlusOne && span.parameter+receiver>=step.parameter &&
+                span.parameter+receiver-step.parameter<consumed)++before;}
     }
     return SIZE_MAX;
 }

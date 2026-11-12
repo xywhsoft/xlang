@@ -1,0 +1,98 @@
+{
+  "schema": 1,
+  "sourceQualified": true,
+  "fullCompilerBuild": false,
+  "shippingDelivery": false,
+  "scope": "General resident-XRT owned UTF-8 output; shared byte/text typed IR metadata, explicit U64 readonly spans and descriptor physical order. Source frontend, actual JIT, O0/O2 and byte regression; runtime diagnostic-OOM check is separate. Document real SDK artifacts and full O2/VFS qualification are later receipts.",
+  "source": {
+    "src/cgen/xl6_ir_cgen_emit_support.c": "c34b9c22f40363f63c30fbe9e4ff2a888a35566daa4f81aae6004bf96452b251",
+    "src/cgen/xl6_ir_cgen_foreign_output_view.c": "12e38d562dac82e4fd335f36b1937489b4ad7e49cdfb5d0fec5f48ff4e1f6539",
+    "src/cgen/xl6_ir_cgen_identity_closure.c": "0281437a2ee9fd423e26bfb0b819dd794bc2b2cbaa32c2bb26be18597e607d10",
+    "src/cgen/xl6_ir_cgen_module_emit.c": "62847bd7d691f696049d20bcf0b673e38444bf930f426598019cdeb5163b552d",
+    "src/cgen/xl6_ir_cgen_native_dependencies.c": "a34e642d553bee7f00ef987be4dd432bcabc5bc777e0fbb776103542ecee00c2",
+    "src/cgen/xl6_ir_cgen_needs.inc": "edfad2114f0e9a5016c50adcbb6f75a7e114744c8487b5ba46d32051309bf1a2",
+    "src/cgen/xl6_ir_cgen_type_call.c": "3c1d639c8a0164d59e8f3aa751581a72f1d1546b858f0d7c7e5172733e257418",
+    "src/ir/xl6_ir.c": "9bafe89c29d77521d0aef5d79de7564ec4ab2c52128d3f4a91b8acad9d0488a3",
+    "src/ir/xl6_ir.h": "be4aabeeffda559a1c1314cdb4aa3d4323b636f5e261441cf87c0ffa22a3735d",
+    "src/ir/xl6_ir_foreign_compat.c": "8c28e57d8e5721d332d220b94afe3d5069966316166e235c03dc632cab65e6c2",
+    "src/ir/xl6_ir_foreign_owned_bytes.c": null,
+    "src/ir/xl6_ir_foreign_pack.c": "6392fa06a1af374d589cdf20c3dfae9727a5e3f565134d34ab4344dfcd03f920",
+    "src/ir/xl6_ir_foreign_parameter.c": "c04400518495cee7f63169623fddf3903fc951a58bbe1eeb13fde7015ad1931c",
+    "src/sem/xl6_sem.c": "8d16412bf594ef6c160c228915d1b9e61e337b7b36d97a12429011236ae8af24",
+    "src/sem/xl6_sem_foreign_owned_bytes.c": null,
+    "src/type/xl6_foreign_call_contract.h": "4c9cfca57f618767c498b2525833c46106c846643d8544f2219decdee7ab80ce",
+    "src/type/xl6_foreign_decl.h": "9f42494e2648ca67e5df249f7298ad1fd3a687d1a27677163651dae3a1b6a2e2",
+    "src/type/xl6_foreign_owned_bytes_contract.h": null,
+    "src/type/xl6_foreign_owned_bytes_decl.h": null,
+    "src/type/xl6_foreign_pack_decl.h": "4d6bd3253ba53dc9259fb511efd222bf9311338d6f359807fc87aa2d2301f6d8",
+    "src/ir/xl6_ir_foreign_owned_output.c": "09cb7072d151d536998c5995cd94ee6d33350a71019e6317fa6fb6fc2afceba6",
+    "src/runtime/xl6_c_output_text.h": "fd14d40595407eec795d8587ae1ab1eda0700045246910bcb6c5bea6e68dbeb6",
+    "src/sem/xl6_sem_foreign_owned_output.c": "60fad1abac6afdbe9cad43f147e78b5df908eb07a7df8e08659aaa51443c14d5",
+    "src/sem/xl6_sem_foreign_owned_output_compat.c": "b2955dc507063f043d1d34f0f043007c177755dde2e3120d8d15245084838850",
+    "src/type/xl6_foreign_owned_output_contract.h": "96ac9642a9e66c3f0b38c8a96f5f940f4948df4feb5e9973f3420fd41443239b",
+    "src/type/xl6_foreign_owned_output_decl.h": "7d50a467d8f1643758155c87e60f2bbbdd193c0a8e22d74aeb3b68d106afb2cd"
+  },
+  "commands": {
+    "owned-text-language-win-r6": 29,
+    "owned-output-bytes-regression-win-r6": 29,
+    "owned-text-runtime-win-r2": 7,
+    "owned-text-language-linux-r6": 29,
+    "owned-output-bytes-regression-linux-r6": 29,
+    "owned-text-runtime-linux-r2": 7
+  },
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\owned-text-language-win-r6\\results.json",
+      "sha256": "358ded3998af222bdafbcd3b3b8e1a9ff4b2a25ef9ee62cb6ae0f64e64cc51f5"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\owned-output-bytes-regression-win-r6\\results.json",
+      "sha256": "1f8490972246656b6a31bbbbe8d9adf0ee1a4d406a3fcfea2379142bc4eae013"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\owned-text-runtime-win-r2\\results.json",
+      "sha256": "8b712ad675ec92859a5098653d97da266533708c48f554ee532c1a4c2993fad2"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\owned-text-frontend-win-r6\\build.json",
+      "sha256": "9d52821ad5efcd14763346c8c90ed4ce114ff1eb1cd7992896b1bd269a492b52"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\owned-text-frontend-win-r6\\freeze.json",
+      "sha256": "a925eb8560ca3517b8562e4f5555574457de9b772fffed2ab4d838064a91240c"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\owned-text-language-linux-r6\\results.json",
+      "sha256": "e0436d36e2835fca9f0068fd016d0e82e573dcd930d84d65d76ececb634a0641"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\owned-output-bytes-regression-linux-r6\\results.json",
+      "sha256": "5d7911cfa4314625e9577fc553fc88e13cc3802d714a6a0c7c119a3b93f30c0c"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\owned-text-runtime-linux-r2\\results.json",
+      "sha256": "5ac076f866b547fdcee1bd5e1b0dfb3da63ddc845eb5c4d800cd86cb9c82afdb"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\owned-text-frontend-linux-r6\\build.json",
+      "sha256": "18191f7f14e197c5d21cdff38b11f23cd18a9025f5c1541d7885999372c1e030"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\owned-text-frontend-linux-r6\\freeze.json",
+      "sha256": "224c22870015b8a22e09c25b45e1a4d53977ce4da5d458e5b8c50fc837cffebe"
+    }
+  ],
+  "cost": {
+    "declarationFactBytes": 88,
+    "sparseOutputRowBytes": 28,
+    "priorByteOnlyRowBytes": 24,
+    "payloadAllocationDelta": 0,
+    "payloadCopyBytes": 0,
+    "utf8Validation": "one full payload scan"
+  },
+  "pending": [
+    "Actual Document matched SDK artifact acceptance",
+    "Complete shipping O2/TCC/XRT/fixed object/VFS/embedded compiler cohorts",
+    "Rest of XGE integration and final matched SDK/IDE installation"
+  ]
+}

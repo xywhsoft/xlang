@@ -396,7 +396,7 @@ size_t xl6IrForeignPhysicalOutputCount(const XL6_IrModule* module,const XL6_IrCa
 {
     const XL6_IrNode* node=target ? xl6IrNodeGet(module,target->declaration):NULL;
     if(xl6IrForeignNativeSequenceGet(module,target))return 2;
-    if(xl6IrForeignOwnedBytesGet(module,target))return 2;
+    if(xl6IrForeignOwnedOutputGet(module,target))return 2;
     if(node && xl6ForeignValueOutputIsRecord(node->foreignCall.valueOutput))return 1;
     return xl6IrForeignOutputCount(module,target);
 }
@@ -454,9 +454,9 @@ int xl6IrForeignOutputValueMatches(const XL6_IrModule* module,const XL6_IrCallTa
     if(!node || !node->foreignCall.valueOutput)return 0;
     if(xl6ForeignValueOutputBase(node->foreignCall.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_NATIVE_SEQUENCE_STATUS)return xl6IrForeignNativeSequenceMatches(module,target);
     int borrowedOutput=xl6ForeignBorrowedOwnerOutput(&node->foreignCall);
-    const XL6_ForeignOwnedBytesContract* ownedBytes=xl6IrForeignOwnedBytesGet(module,target);
-    if((ownedBytes!=NULL)!=(node->foreignCall.valueOutput==XL6_FOREIGN_VALUE_OUTPUT_OWNED_BYTES_STATUS) ||
-       (ownedBytes && !xl6IrOwnedBytesValid(module,ownedBytes)))return 0;
+    const XL6_ForeignOwnedOutputContract* ownedBytes=xl6IrForeignOwnedOutputGet(module,target);
+    if((ownedBytes!=NULL)!=(xl6ForeignValueOutputIsOwned(node->foreignCall.valueOutput)) ||
+       (ownedBytes && !xl6IrOwnedOutputValid(module,ownedBytes)))return 0;
     size_t count=xl6IrForeignOutputCount(module,target);
     if(!count || count>64 || (borrowedOutput && count!=1))return 0;
     for(size_t o=0;!borrowedOutput && !ownedBytes && o<count;++o)if(!xl6IrForeignOutputViewGet(module,target,o) &&
@@ -576,7 +576,7 @@ static int xl6IrForeignParameterRowValid(const XL6_ForeignParameterContract* row
         (row->header[0] && ((row->kind!=XL6_FOREIGN_PARAMETER_SPAN && row->kind!=XL6_FOREIGN_PARAMETER_SYNC_CALLBACK) || !xl6ForeignHeaderName(row->header))))return 0;
     if(row->kind==XL6_FOREIGN_PARAMETER_SPAN) {
         if(row->callbackOwnerCName[0] || row->callbackOwnerIndexPlusOne || row->callbackFailureCode || row->callbackUserFirst || row->callbackResultKind ||
-            (row->countAbi!=XL6_FOREIGN_SPAN_COUNT_SIZE && row->countAbi!=XL6_FOREIGN_SPAN_COUNT_INT) ||
+            !xl6ForeignSpanCountCName(row->countAbi) ||
             !memchr(row->pointerCName,0,sizeof(row->pointerCName)) || !memchr(row->elementCName,0,sizeof(row->elementCName)) ||
             !xl6ForeignPointerSpelling(row->pointerCName))return 0;
         if(row->spanLimitIndexPlusOne && (row->spanLimitIndexPlusOne==row->parameter+1 ||
@@ -624,9 +624,16 @@ static int xl6IrVerifyForeignParameters(const XL6_IrModule* module,XL6_DiagList*
             prefixes+=module->foreignParameters[i].declaration==n+1 && module->foreignParameters[i].spanLimitIndexPlusOne!=0;
         if(prefixes!=declaration->foreignCall.spanPrefixCount ||
             (prefixes!=0)!=xl6ForeignInputHasSpanPrefixes(declaration->foreignCall.inputMappingFacts))goto invalid;
-        if(prefixes && (xl6ForeignInputHasPacks(declaration->foreignCall.inputMappingFacts) ||
-            xl6ForeignInputHasArrayGroups(declaration->foreignCall.inputMappingFacts) ||
-            xl6ForeignInputHasFixedInputs(declaration->foreignCall.inputMappingFacts)))goto invalid;
+        if(prefixes){
+            size_t receiver=declaration->sourceKind==XL6_AST_NATIVE_EXTERN_FUNC && !(declaration->flags&XL6_AST_FLAG_STATIC) ? 1:0;
+            XL6_IrCallTarget target={0};target.declaration=(uint32)n+1;
+            for(size_t i=0;i<module->foreignParameterCount;++i){
+                const XL6_ForeignParameterContract* span=&module->foreignParameters[i];
+                if(span->declaration!=n+1 || !span->spanLimitIndexPlusOne)continue;
+                size_t limit=receiver+span->spanLimitIndexPlusOne-1;
+                if(xl6IrForeignPackParameter(module,&target,limit) || xl6IrForeignArrayParameter(module,&target,limit))goto invalid;
+            }
+        }
         uint64 mask=declaration->foreignCall.physicalPairs|declaration->foreignCall.retainedCallbacks;
         for(size_t p=0;p<64;++p)if(mask&(UINT64_C(1)<<p)) {
             int found=0;

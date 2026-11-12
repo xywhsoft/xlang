@@ -46,7 +46,7 @@ static inline int xl6ForeignPointerSpelling(const char*);
 static inline int xl6ForeignHeaderName(const char*);
 #include "src/type/xl6_foreign_region_decl.h"
 #include "src/type/xl6_foreign_native_sequence_decl.h"
-#include "src/type/xl6_foreign_owned_bytes_decl.h"
+#include "src/type/xl6_foreign_owned_output_decl.h"
 static inline int xl6ForeignFunctionHeaderRead(const XL6_AstNode* attr,char* output,size_t capacity)
 {
     return attr && attr->text && !strcmp(attr->text,"header") && attr->childCount==1 &&
@@ -203,6 +203,7 @@ static inline int xl6ForeignParameterRead(const XL6_AstNode* attr,
         result.kind=XL6_FOREIGN_PARAMETER_SPAN;
         if(!strcmp(count,"size_t"))result.countAbi=XL6_FOREIGN_SPAN_COUNT_SIZE;
         else if(!strcmp(count,"int"))result.countAbi=XL6_FOREIGN_SPAN_COUNT_INT;
+        else if(!strcmp(count,"uint64_t"))result.countAbi=XL6_FOREIGN_SPAN_COUNT_U64;
         else return 0;
         const char* element=result.pointerCName;
         if(!strncmp(element,"const ",6)){result.readOnly=true;element+=6;}
@@ -380,11 +381,11 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             if(outputStatus || attr->childCount!=1 || !xl6ForeignDecimalInt(attr->children[0],&facts.successCode))return 0;
             outputStatus=1;continue;
         }
-        if(attr && attr->text && !strcmp(attr->text,"c_output_bytes")){
-            XL6_ForeignOwnedBytesContract row;
-            if(facts.outputIndexPlusOne || !xl6ForeignOwnedBytesRead(attr,&row))return 0;
+        if(attr && attr->text && (!strcmp(attr->text,"c_output_bytes") || !strcmp(attr->text,"c_output_text"))){
+            XL6_ForeignOwnedOutputContract row;
+            if(facts.outputIndexPlusOne || !xl6ForeignOwnedOutputRead(attr,&row))return 0;
             facts.outputIndexPlusOne=row.dataIndex+1;
-            facts.valueOutput=XL6_FOREIGN_VALUE_OUTPUT_OWNED_BYTES_STATUS;
+            facts.valueOutput=row.kind==XL6_FOREIGN_OWNED_OUTPUT_TEXT ? XL6_FOREIGN_VALUE_OUTPUT_OWNED_TEXT_STATUS:XL6_FOREIGN_VALUE_OUTPUT_OWNED_BYTES_STATUS;
             facts.successCode=row.successCode;continue;
         }
         if(attr && attr->text && !strcmp(attr->text,"c_owned_sequence")){
@@ -550,7 +551,7 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
         (retainedResult && !nativeSequence && (facts.outputIndexPlusOne || facts.inplaceOutput || facts.receiverDereference || facts.valueOutput)))return 0;
     if(nativeSequence && (facts.borrowedViewResult || facts.inplaceOutput || facts.receiverDereference ||
         outputSizes || outputViews || recordFields || outputStatus))return 0;
-    if(xl6ForeignValueOutputBase(facts.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_OWNED_BYTES_STATUS &&
+    if(xl6ForeignValueOutputIsOwned(facts.valueOutput) &&
         (facts.borrowedViewResult || facts.inplaceOutput || facts.receiverDereference ||
          outputSizes || outputViews || recordFields || outputStatus || retainedResult ||
          (node->flags&(XL6_AST_FLAG_FOREIGN_PURE|XL6_AST_FLAG_FOREIGN_FIELD|XL6_AST_FLAG_FOREIGN_OWNED_STRING))))return 0;
@@ -583,10 +584,18 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
     if(arrayGroups)facts.inputMappingFacts|=XL6_FOREIGN_INPUT_ARRAY_GROUPS_PRESENT;
     if(nulls)facts.inputMappingFacts|=XL6_FOREIGN_INPUT_FIXED_PRESENT;
     if(spanLimits){
-        if(packs || arrayGroups || nulls ||
-            (spanLimits&(facts.physicalPairs|facts.retainedCallbacks|facts.terminatedStrings|facts.textViews|
+        if((spanLimits&(facts.physicalPairs|facts.retainedCallbacks|facts.terminatedStrings|facts.textViews|
                 facts.bytesViews|facts.constAggregateAddresses|facts.staticCallbackAddresses)) ||
             (node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || facts.receiverDereference)return 0;
+        for(size_t i=0;attributes && i<attributes->childCount;++i){
+            XL6_ForeignPackContract pack;XL6_ForeignArrayGroupContract group;
+            if(xl6ForeignPackRead(attributes->children[i],&pack))
+                for(size_t p=pack.firstParameter;p<pack.firstParameter+pack.parameterCount;++p)
+                    if(p<64 && (spanLimits&(UINT64_C(1)<<p)))return 0;
+            if(xl6ForeignArrayGroupRead(attributes->children[i],&group))
+                for(size_t p=group.firstParameter;p<=group.firstParameter+group.arrayCount;++p)
+                    if(p<64 && (spanLimits&(UINT64_C(1)<<p)))return 0;
+        }
         facts.inputMappingFacts|=XL6_FOREIGN_INPUT_SPAN_PREFIXES_PRESENT;
     }
     if (output) *output = facts;

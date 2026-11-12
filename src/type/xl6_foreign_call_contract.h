@@ -49,7 +49,8 @@ typedef enum XL6_ForeignValueOutputKind {
     XL6_FOREIGN_VALUE_OUTPUT_RECORD_STATUS,
     XL6_FOREIGN_VALUE_OUTPUT_RECORD_VOID,
     XL6_FOREIGN_VALUE_OUTPUT_NATIVE_SEQUENCE_STATUS,
-    XL6_FOREIGN_VALUE_OUTPUT_OWNED_BYTES_STATUS
+    XL6_FOREIGN_VALUE_OUTPUT_OWNED_BYTES_STATUS,
+    XL6_FOREIGN_VALUE_OUTPUT_OWNED_TEXT_STATUS
 } XL6_ForeignValueOutputKind;
 
 /* The output-mode byte authenticates sparse sizeof initializers and borrowed
@@ -67,10 +68,12 @@ static inline int xl6ForeignValueOutputIsRecord(uint8 mode)
 {return xl6ForeignValueOutputBase(mode)==XL6_FOREIGN_VALUE_OUTPUT_RECORD_STATUS || xl6ForeignValueOutputBase(mode)==XL6_FOREIGN_VALUE_OUTPUT_RECORD_VOID;}
 static inline int xl6ForeignValueOutputIsVoid(uint8 mode)
 {return xl6ForeignValueOutputBase(mode)==XL6_FOREIGN_VALUE_OUTPUT_VOID || xl6ForeignValueOutputBase(mode)==XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID || xl6ForeignValueOutputBase(mode)==XL6_FOREIGN_VALUE_OUTPUT_RECORD_VOID;}
+static inline int xl6ForeignValueOutputIsOwned(uint8 mode)
+{return xl6ForeignValueOutputBase(mode)==XL6_FOREIGN_VALUE_OUTPUT_OWNED_BYTES_STATUS || xl6ForeignValueOutputBase(mode)==XL6_FOREIGN_VALUE_OUTPUT_OWNED_TEXT_STATUS;}
 static inline int xl6ForeignValueOutputBitsValid(uint8 mode)
 {
     return !(mode&~(XL6_FOREIGN_VALUE_OUTPUT_KIND_MASK|XL6_FOREIGN_VALUE_OUTPUT_SIZE_INITIALIZED|XL6_FOREIGN_VALUE_OUTPUT_VIEW_CONVERTED)) &&
-        xl6ForeignValueOutputBase(mode)<=XL6_FOREIGN_VALUE_OUTPUT_OWNED_BYTES_STATUS &&
+        xl6ForeignValueOutputBase(mode)<=XL6_FOREIGN_VALUE_OUTPUT_OWNED_TEXT_STATUS &&
         (xl6ForeignValueOutputBase(mode)<XL6_FOREIGN_VALUE_OUTPUT_NATIVE_SEQUENCE_STATUS ||
          !(mode&(XL6_FOREIGN_VALUE_OUTPUT_SIZE_INITIALIZED|XL6_FOREIGN_VALUE_OUTPUT_VIEW_CONVERTED))) &&
         (!(xl6ForeignValueOutputHasSize(mode)||xl6ForeignValueOutputHasView(mode)) || xl6ForeignValueOutputBase(mode)!=XL6_FOREIGN_VALUE_OUTPUT_NONE);
@@ -251,8 +254,11 @@ typedef enum XL6_ForeignParameterKind {
 } XL6_ForeignParameterKind;
 typedef enum XL6_ForeignSpanCountAbi {
     XL6_FOREIGN_SPAN_COUNT_SIZE = 1,
-    XL6_FOREIGN_SPAN_COUNT_INT
+    XL6_FOREIGN_SPAN_COUNT_INT,
+    XL6_FOREIGN_SPAN_COUNT_U64
 } XL6_ForeignSpanCountAbi;
+static inline const char* xl6ForeignSpanCountCName(XL6_ForeignSpanCountAbi kind)
+{return kind==XL6_FOREIGN_SPAN_COUNT_INT ? "int":kind==XL6_FOREIGN_SPAN_COUNT_SIZE ? "size_t":kind==XL6_FOREIGN_SPAN_COUNT_U64 ? "uint64_t":NULL;}
 #include "src/type/xl6_foreign_pack_contract.h"
 #include "src/type/xl6_foreign_array_contract.h"
 /* Only counted native field projections allocate a row. Ordinary fields,
@@ -324,5 +330,5 @@ typedef struct XL6_ForeignParameterContract {
 } XL6_ForeignParameterContract;
 
 #include "src/type/xl6_foreign_native_sequence_contract.h"
-#include "src/type/xl6_foreign_owned_bytes_contract.h"
+#include "src/type/xl6_foreign_owned_output_contract.h"
 #endif

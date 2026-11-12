@@ -28,7 +28,7 @@ static int xl6IrCgenEmitRuntimeSupport(
             "static xlir_string xlir_string_take_known(char* source, size_t size)\n"
             "{ return source != NULL ? (xlir_string){ source, size } : (xlir_string){0}; }\n"
             "static const char* xlir_string_cstr(xlir_string source)\n"
-            "{ if (source.Data == NULL) { xrtSetErrorKind(XERR_ARGUMENT); return NULL; }\n"
+            "{ if (source.Data == NULL) { if (!source.Size) return \"\"; xrtSetErrorKind(XERR_ARGUMENT); return NULL; }\n"
             "  if (memchr(source.Data, 0, source.Size) != NULL) { xrtSetErrorKind(XERR_VALUE); return NULL; }\n"
             "  return source.Data; }\n"
             "static void xlir_string_drop(xlir_string value)\n"

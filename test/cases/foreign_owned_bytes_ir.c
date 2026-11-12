@@ -15,18 +15,18 @@ static void refused(XL6_IrModule* m)
 }
 int main(int argc,char** argv)
 {
-    assert(argc==2 && sizeof(XL6_ForeignCallFacts)==88 && sizeof(XL6_ForeignOwnedBytesContract)==24);
+    assert(argc==2 && sizeof(XL6_ForeignCallFacts)==88 && sizeof(XL6_ForeignOwnedOutputContract)==28);
     XL6_CompileUnit unit;xl6CompileUnitInit(&unit);
     assert(xl6CompileUnitLoadFile(&unit,argv[1],1) && xl6IrLowerModule(&unit.ir,&unit.parse.diags));
     XL6_IrModule* m=&unit.ir;assert(xl6IrVerifyModule(m,NULL));
-    size_t count=m->foreignOwnedBytesCount,capacity=m->foreignOwnedBytesCapacity;assert(count==5);
-    XL6_ForeignOwnedBytesContract* rows=m->foreignOwnedBytes;
-    m->foreignOwnedBytesCount=capacity+1;refused(m);m->foreignOwnedBytesCount=count;
-    m->foreignOwnedBytesCapacity=count-1;refused(m);m->foreignOwnedBytesCapacity=capacity;
-    m->foreignOwnedBytes=NULL;refused(m);m->foreignOwnedBytes=rows;
-    m->foreignOwnedBytesCount=0;refused(m);m->foreignOwnedBytesCount=count;
+    size_t count=m->foreignOwnedOutputsCount,capacity=m->foreignOwnedOutputsCapacity;assert(count==5);
+    XL6_ForeignOwnedOutputContract* rows=m->foreignOwnedOutputs;
+    m->foreignOwnedOutputsCount=capacity+1;refused(m);m->foreignOwnedOutputsCount=count;
+    m->foreignOwnedOutputsCapacity=count-1;refused(m);m->foreignOwnedOutputsCapacity=capacity;
+    m->foreignOwnedOutputs=NULL;refused(m);m->foreignOwnedOutputs=rows;
+    m->foreignOwnedOutputsCount=0;refused(m);m->foreignOwnedOutputsCount=count;
     for(size_t i=0;i<count;++i){
-        XL6_ForeignOwnedBytesContract saved=rows[i];XL6_IrNode* n=&m->nodes[saved.declaration-1];
+        XL6_ForeignOwnedOutputContract saved=rows[i];XL6_IrNode* n=&m->nodes[saved.declaration-1];
         XL6_ForeignCallFacts facts=n->foreignCall;uint32 flags=n->flags;
         rows[i].declaration=0;refused(m);rows[i]=saved;
         rows[i].dataIndex=64;refused(m);rows[i]=saved;
@@ -37,18 +37,18 @@ int main(int argc,char** argv)
         rows[i].sizeAbi=0;refused(m);rows[i]=saved;
         rows[i].sizeAbi=99;refused(m);rows[i]=saved;
         rows[i].successCode=saved.successCode^1;refused(m);rows[i]=saved;
-        if(i>=3){rows[i].pointerAbi=XL6_FOREIGN_OWNED_BYTES_CHAR;refused(m);rows[i]=saved;}
+        if(i>=3){rows[i].pointerAbi=XL6_FOREIGN_OWNED_OUTPUT_CHAR;refused(m);rows[i]=saved;}
         n->foreignCall.valueOutput=0;refused(m);n->foreignCall=facts;
         n->foreignCall.valueOutput|=XL6_FOREIGN_VALUE_OUTPUT_VIEW_CONVERTED;refused(m);n->foreignCall=facts;
         n->foreignCall.outputIndexPlusOne=0;refused(m);n->foreignCall=facts;
         n->flags|=XL6_AST_FLAG_FOREIGN_PURE;refused(m);n->flags=flags;
         n->flags&=~XL6_AST_FLAG_FOREIGN_NO_RAISE;refused(m);n->flags=flags;
     }
-    XL6_ForeignOwnedBytesContract saved=rows[1];rows[1]=rows[0];refused(m);rows[1]=saved;
+    XL6_ForeignOwnedOutputContract saved=rows[1];rows[1]=rows[0];refused(m);rows[1]=saved;
     unsigned targets=0;
     for(size_t i=0;i<m->callTargetCount;++i){
         XL6_IrCallTarget* t=&m->callTargets[i];
-        if(!xl6IrForeignOwnedBytesGet(m,t))continue;
+        if(!xl6IrForeignOwnedOutputGet(m,t))continue;
         ++targets;XL6_IrCallTarget original=*t;
         t->returnType=0;refused(m);*t=original;
         t->resultCAbi=XL6_IR_CALL_RESULT_C_ABI_INT_STATUS;refused(m);*t=original;

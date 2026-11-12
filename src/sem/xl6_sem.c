@@ -9223,6 +9223,7 @@ static int xl6SemExternParameterListsCompatible(XL6_SemContext* ctx,const XL6_As
 }
 #include "src/sem/xl6_sem_foreign_null_compat.c"
 #include "src/sem/xl6_sem_foreign_projection_compat.c"
+#include "src/sem/xl6_sem_foreign_owned_output_compat.c"
 static int xl6SemExternCDeclsCompatible(XL6_SemContext* ctx, const XL6_AstNode* a, const XL6_AstNode* b,const XL6_AstNode* ownerClass)
 {
     if ( a == NULL || b == NULL ) {
@@ -9231,6 +9232,8 @@ static int xl6SemExternCDeclsCompatible(XL6_SemContext* ctx, const XL6_AstNode* 
     if ( a->kind == XL6_AST_EXTERN_FUNC || a->kind == XL6_AST_NATIVE_EXTERN_FUNC ) {
         XL6_ForeignCallFacts left, right;
         if (!xl6ForeignFunctionRead(a, &left) || !xl6ForeignFunctionRead(b, &right))return 0;
+        int ownedCompatibility=xl6SemForeignOwnedOutputCompatible(ctx,a,b,ownerClass);
+        if(ownedCompatibility>=0)return ownedCompatibility;
         int nullCompatibility=xl6SemForeignNullPhysicalCompatible(ctx,a,b,ownerClass);
         if(nullCompatibility>=0)return nullCompatibility;
         int projectionCompatibility=xl6SemForeignProjectionCompatible(ctx,a,b,ownerClass);
@@ -21578,7 +21581,7 @@ static const XL6_AstNode* xl6SemForeignOwnershipHelper(XL6_SemContext* ctx,
 #include "src/sem/xl6_sem_foreign_array.c"
 #include "src/sem/xl6_sem_foreign_output_record.c"
 #include "src/sem/xl6_sem_foreign_native_sequence.c"
-#include "src/sem/xl6_sem_foreign_owned_bytes.c"
+#include "src/sem/xl6_sem_foreign_owned_output.c"
 static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNode* node,const XL6_AstNode* ownerClass)
 {
     XL6_ForeignCallFacts facts;
@@ -21886,8 +21889,8 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
         xl6SemErrorNode(ctx,node,"native view result contract requires a managed external class");return 0;
     }
     if(facts.valueOutput){
-        if(xl6ForeignValueOutputBase(facts.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_OWNED_BYTES_STATUS){
-            if(!xl6SemForeignOwnedBytes(ctx,node,attrs,ownerClass,&facts,count+receiver,receiver))return 0;
+        if(xl6ForeignValueOutputIsOwned(facts.valueOutput)){
+            if(!xl6SemForeignOwnedOutput(ctx,node,attrs,ownerClass,&facts,count+receiver,receiver))return 0;
         }else if(xl6ForeignValueOutputBase(facts.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_NATIVE_SEQUENCE_STATUS){
             if(!xl6SemForeignNativeSequence(ctx,node,attrs,ownerClass,&facts,count+receiver,receiver))return 0;
         }else if(xl6ForeignValueOutputIsRecord(facts.valueOutput)){
@@ -22156,7 +22159,7 @@ static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node,const XL
         if(xl6ForeignValueOutputBase(viewFacts.valueOutput)==
             XL6_FOREIGN_VALUE_OUTPUT_NATIVE_SEQUENCE_STATUS)
             return ok; /* Exact POD, count and independent owner contract checked above. */
-        if(xl6ForeignValueOutputBase(viewFacts.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_OWNED_BYTES_STATUS)
+        if(xl6ForeignValueOutputIsOwned(viewFacts.valueOutput))
             return ok; /* Exact byte output ownership contract checked above. */
         if(viewFacts.valueOutput && xl6SemIsCAbiFixedOutputType(ctx,typeNode))
             return ok; /* Pointer output storage, never a raw by-value C array return. */
