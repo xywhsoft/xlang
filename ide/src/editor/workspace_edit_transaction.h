@@ -2,6 +2,7 @@
 #define XIDE_WORKSPACE_EDIT_TRANSACTION_H
 #include "editor/workspace_edit_documents.h"
 #include "platform/workspace_edit_journal.h"
+#include "platform/workspace_edit_aliases.h"
 typedef struct xide_edit_transaction xide_edit_transaction;
 typedef struct xide_edit_transaction_ticket xide_edit_transaction_ticket;
 enum xide_edit_transaction_phase {XIDE_MIX_PREPARED=1,XIDE_MIX_CAPTURED,XIDE_MIX_STAGED,XIDE_MIX_ARMED,XIDE_MIX_READY,XIDE_MIX_UI_COMMITTED,XIDE_MIX_UI_REJECTED,XIDE_MIX_COMMITTED,XIDE_MIX_ROLLED_BACK,XIDE_MIX_IN_DOUBT,XIDE_MIX_FAILED};
@@ -13,10 +14,16 @@ typedef struct xide_edit_transaction_status {int phase,committed,rolledBack,need
  * preserved; half the remaining quota is the editor Stage partition, charged
  * in full because the SDK payload is opaque. Includes shared-lease charges,
  * Spool's codec reservation,
- *16MiB file-gate and1MiB journal reserve. Allocator/cache/OS overhead additional.
+ *16MiB file-gate,16MiB alias gate and1MiB journal reserves. Allocator/cache/OS overhead additional.
  * Worker projection shares bodies; dedicated recovery directory is never reused. */
 xide_edit_transaction* xideEditTransactionPrepare(xide_workspace_edit*,const char* directory,size_t budget,int (*cancelled)(void*),void*,xide_model_error*);
-/* Owner capture/preflight; no source I/O. Store storage outlives the ticket,
+/* Worker, PREPARED/unattached only: copy additional protected file/root paths.
+ * Dedicated recovery root is always protected. Max256 including that root,
+ *1MiB copied path bytes per call; no source I/O. Failure adds none. These paths
+ * do not replace complete host source/request/configuration/consent policy. */
+int xideEditTransactionProtect(xide_edit_transaction*,const xide_edit_alias_exclusion*,size_t,xide_model_error*);
+/* Owner capture/preflight; no source I/O. Capture all named open model IDs/paths (4096/1MiB),
+ * recheck the complete roster at Arm/Publish. Store storage outlives the ticket,
  * even if Clear/context destruction cancels the pending work. */
 int xideEditTransactionCapture(xide_document_store*,xide_edit_transaction*,xide_edit_transaction_ticket**);
 int xideEditTransactionStage(xide_edit_transaction*,int (*cancelled)(void*),void*,xide_model_error*);

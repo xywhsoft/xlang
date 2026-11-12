@@ -108,6 +108,10 @@ static int opening(void* user)
  xide_model_error e={0};xide_text_file text={0};CHECK(xideTextFileDecode((const unsigned char*)raw[0],strlen(raw[0]),&text,&e));
  CHECK(xideDocumentOpenPrepared(&f->store,f->paths[0],&text,xideDocumentsSourceEpoch(&f->store),&e));xideTextFileClear(&text);return XUI_OK;
 }
+static int unrelatedOpening(void* user)
+{
+ fixture* f=user;xide_model_error e={0};char* directory=xidePathDirectory(f->directory);char* path=directory?xidePathResolveLexical(directory,"unrelated.c"):NULL;free(directory);CHECK(path&&xrtFileWriteAtomic(path,(xbytesview){(const unsigned char*)"int extra;\n",11})&&xideDocumentOpen(&f->store,path,&e));free(path);return XUI_OK;
+}
 static void captured(fixture* f)
 {worker w=job(f,0);CHECK(execute(&w)&&!w.error.code);f->work=w.work;CHECK(xideEditTransactionCapture(&f->store,f->work,&f->ticket)==XUI_OK);}
 static void staged(fixture* f)
@@ -154,6 +158,12 @@ int main(int argc,char** argv)
  }
  /* Cached target appears during a host callback: repeat local fences. */
  init(&f,argv[1],serial++,10);staged(&f);CHECK(xideEditTransactionArm(f.ticket,opening,&f)!=XUI_OK);CHECK(state(&f).phase==XIDE_MIX_STAGED);clear(&f);
+ /* The complete named-model roster also fences a new unrelated open. */
+ init(&f,argv[1],serial++,10);staged(&f);CHECK(xideEditTransactionArm(f.ticket,unrelatedOpening,&f)!=XUI_OK&&state(&f).phase==XIDE_MIX_STAGED);clear(&f);
+ init(&f,argv[1],serial++,10);staged(&f);CHECK(xideEditTransactionArm(f.ticket,hostAccept,&f)==XUI_OK);worker rosterJob=job(&f,2);CHECK(execute(&rosterJob));xide_open_edit_outcome rosterOut={0};CHECK(xideEditTransactionPublish(f.ticket,unrelatedOpening,&f,&rosterOut)!=XUI_OK&&!rosterOut.committed);rosterJob=job(&f,3);CHECK(execute(&rosterJob)&&state(&f).rolledBack);closedDisk(&f,0);clear(&f);
+ /* Protect can be supplied only before capture, and actually denies a target
+  * root on the worker before any source mutation. */
+ init(&f,argv[1],serial++,10);worker protectedJob=job(&f,0);CHECK(execute(&protectedJob));f.work=protectedJob.work;char* protectedRoot=xidePathDirectory(f.directory);xide_edit_alias_exclusion protectedPath={protectedRoot,1};xide_model_error protectedError={0};CHECK(protectedRoot&&xideEditTransactionProtect(f.work,&protectedPath,1,&protectedError)&&xideEditTransactionCapture(&f.store,f.work,&f.ticket)==XUI_OK&&!xideEditTransactionProtect(f.work,&protectedPath,1,&protectedError));free(protectedRoot);protectedJob=job(&f,1);CHECK(!execute(&protectedJob)&&state(&f).phase==XIDE_MIX_FAILED);closedDisk(&f,0);clear(&f);
  /* Ticket abandonment after disk writes is a definite nonpublication. */
  init(&f,argv[1],serial++,10);staged(&f);CHECK(xideEditTransactionArm(f.ticket,hostAccept,&f)==XUI_OK);worker w=job(&f,2);CHECK(execute(&w));CHECK(xideEditTransactionTicketDestroy(f.ticket)==XUI_OK);f.ticket=NULL;CHECK(state(&f).phase==XIDE_MIX_UI_REJECTED);w=job(&f,3);CHECK(execute(&w)&&state(&f).rolledBack);closedDisk(&f,0);clear(&f);
  /* Acquisition conflict on second member unwinds the first byte lease. */

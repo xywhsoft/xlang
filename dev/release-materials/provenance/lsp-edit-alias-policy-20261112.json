@@ -1,0 +1,147 @@
+{
+  "schema": 1,
+  "date": "2026-11-13",
+  "stage": "M7b5q",
+  "scope": "Whole named-model physical alias and protected path policy consumed by the mixed IDE edit transaction",
+  "implementationAccepted": true,
+  "goalComplete": false,
+  "performanceQualified": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "ec31edca4904279d7ff7995bdeefde53b9763fe3",
+  "ownedSources": {
+    "ide/src/editor/workspace_edit_transaction.c": "5a90574bde9324b9cffd11819ca7d49d6560df503bb5f13b899afed1734a10dd",
+    "ide/src/editor/workspace_edit_transaction.h": "b9eeffcaef263c3f82f42c9566692c35540c28dbe37433f443e7094b67c03d43",
+    "ide/src/platform/workspace_edit_aliases.c": "812fd096723f3b12ad647dae533c0bd8dcff8eca81c9800164102901320a7863",
+    "ide/src/platform/workspace_edit_aliases.h": "9157590f3cb284384c3d802aa68c83d55af7ca07fb755535d18473f2a7013d43",
+    "ide/src/platform/workspace_edit_files.c": "5d8c4f4b86a09022de56784a96ab27e30975d8ef4980d945a289473f6a15ec65",
+    "ide/src/platform/workspace_edit_physical_internal.h": "e24c478b834363744139f21444b11b32d7cdc78f1ba71bb4e213277396fe7e38",
+    "ide/tests/workspace_edit_aliases_test.c": "3c8340ee3abcce5b041fc54c8a72479de088b3724fb3653c5e3bdbf6794373c0",
+    "ide/tests/workspace_edit_transaction_test.c": "cc9963344a4daa884bc0d9d873155d6e1f6503c694cd35f752a9dbb34caa901a",
+    "ide/tools/build.ps1": "1d98249061758a644e8b29eda1ceed0c33ebe593b756b6c55d55414ecad3a8cc",
+    "ide/docs/lsp-edit-alias-policy.md": "35e373515fa38b59014157c72502124dc16d9d0c4b604f04117fe3c77d58803f"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-edit-alias-policy-20261112.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-edit-alias-policy-20261112/stage-sources.tar.gz",
+      "sha256": "351123da3d61e86a36754c8558fc35653f5f6f6cfcba016491e94ca263befaf2",
+      "bytes": 42463,
+      "entries": 11,
+      "uniquePayloads": 11,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-edit-alias-policy-20261112/stage-sources.tar.gz.manifest.json",
+      "sha256": "b36d5b5f4c37b390e247ced91f7ff27530e6f46e9a7eaf24b567e5d307a45857",
+      "bytes": 2656
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-edit-alias-policy-20261112/actual-builds-and-validation.tar.gz",
+      "sha256": "17da505b3d530225cb064b99f11df191094b86b6aaa89b21cf6a3a178815fa67",
+      "bytes": 220666687,
+      "entries": 14708,
+      "uniquePayloads": 3324,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-edit-alias-policy-20261112/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "592cc45d2d386c5e44f3f4d1338fbda22b3c623f6e4da71a6c799bee1af3e6b8",
+      "bytes": 5833575
+    }
+  },
+  "currentBindings": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-edit-alias-policy-20261112\\final-bindings.json",
+    "sha256": "be66a73f3e86f938c476ad57ed61ebfc2f6f3cd770eb306b1b6cec215ab64789"
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "sdkInherited": {
+    "index": "dev/release-materials/provenance/lsp-dpi-startup-20261112.json",
+    "indexSha256": "727ae55e191b104683a756dbe85a03f0add12ed40e60c4d6166face2f50f4e5d",
+    "dllSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "compiledUnitsThisStage": 0,
+    "matchedSetPreserved": true
+  },
+  "serviceInherited": {
+    "index": "dev/release-materials/provenance/lsp-completion-error-isolation-20261112.json",
+    "indexSha256": "a88a46245da2ead8d828816f0dbadfa991999a553408c112ae0338e62e48b08b",
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-completion-error-isolation-20261112\\native-v2\\xlang-ls.exe",
+    "sha256": "9d683a472dce0c2f8fac74b39df7b782fb0eac03ba14ccb377e330691c75aafc",
+    "compiledUnitsThisStage": 0
+  },
+  "correctness": {
+    "guiProductionUnits": 127,
+    "guiRegressionSuites": 55,
+    "physicalAliasAssertions": 4258,
+    "mixedTransactionAssertions": 5485,
+    "closedFileAssertions": 67,
+    "observedDirectAllocationFailures": 18,
+    "physicalCancellationBoundaries": 30,
+    "mixedColdIatAllocations": [
+      7,
+      17,
+      42
+    ],
+    "rejectedGuardMutants": 8,
+    "actualVolumeGuidModelFileAndRootAliases": true,
+    "allNamedModelsAndActual4096Bound": true,
+    "actualParentRenameDenied": true,
+    "readonlyAndMissingOverlays": true,
+    "missingNameClaims": true,
+    "noBodyReadInPhysicalPin": true,
+    "physicalValidationIsNotContentProof": true,
+    "protectedMetadataRetainedAcrossStage": true,
+    "armAndPublishRejectNewUnrelatedModel": true,
+    "workerRollbackAndCommittedSemanticsPreserved": true,
+    "actualCAndXlangTypingDeleteUndoImeFocus": true,
+    "actualGuiFramesEach": 24,
+    "currentProductionAndActualDependenciesBound": true,
+    "finalFocusedFixturesIdenticalToMutantFixtures": true,
+    "shortPathFixtureFilesRetained": 1462,
+    "allRuntimeTestAliasesRemoved": true,
+    "userTemporaryDirectoriesPreserved": true,
+    "rawFailedAndInterruptedAttemptsPreserved": true
+  },
+  "externalHelper": {
+    "proxy": {
+      "archive": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\lsp-completion-error-isolation-20261112\\actual-builds-and-validation.tar.gz",
+      "entry": "bound-inputs/20c68dabd23c25637a08/xui_test_proxy.c",
+      "sha256": "740c86aee90b1373324909c74d3ae6c9f446b0c52c84c3ea84cea141c53bdc48"
+    },
+    "header": {
+      "repository": "D:/GIT/xge",
+      "commit": "1ba93e6b3ea49e80d9d821894811caef599634f3",
+      "path": "tests/xui/xui_test_proxy.h",
+      "sha256": "b42cd48cd68966d969575f717ade56f357dacbcabce746730c9bfb275dd0a80a"
+    },
+    "liveXgeUnmodified": true
+  },
+  "evidenceNotes": [
+    "focused-v6 has two actual passing executions (4258 physical and 5485 mixed assertions); its third files test failed before producer entry because the driver precreated the fixture directory. Raw overall receipt remains failed. Corrected files-v1 passed all 67 checks separately. focused-acceptance.json composes these actual records explicitly.",
+    "Production and public headers match frozen gui-source-v3 canonically; the final alias fixture is newer than that snapshot and is separately bound at focused-v6/tests and in all mutant receipts.",
+    "Initial attribute-only directory pins allowed actual MoveFile; final GENERIC_READ without delete sharing denies it without any body ReadFile. The rejected mutant reproduces the deficiency.",
+    "An initial fixture tried to modify a pinned name by atomic replacement. Corrected in-place writes verify that content is outside the identity policy. SDK control separately observed 8 then 1 new process handles followed by three stable replacements; this is an observation, not a claim about its underlying cause or the whole IDE resource profile.",
+    "Prior broad-v2 process handle was missing, process scan showed no live stage process, and the final receipt was absent. Its incomplete logs and exact verified aliases were retained/cleaned. A fresh broad-v3 run completed all 55 suites. An early launcher raced preparation, failed before starting validation, and is retained.",
+    "Native server and SDK are inherited exact accepted cohorts, not newly compiled in this stage. All 127 GUI production units were rebuilt together."
+  ],
+  "limits": [
+    "The physical gate does not establish source content, full source closure, resolver candidates, request/connection/project/configuration validity, user consent or global write authority.",
+    "Only the dedicated recovery directory is a mandatory default exclusion. The complete transaction host must supply runtime/config/project/cache/protected paths explicitly.",
+    "All named models are copied on the UI; their bounded metadata is rechecked at Arm and Publish. Gate construction/identity validation run on the worker; no new normal keypress/startup call is added. No measured end-to-end latency/RSS/whole heap or hard realtime claim.",
+    "16MiB known gate storage plus 32KiB sorting scratch does not include allocator/kernel/OS resource costs. Direct failure probes do not intercept DLL-internal xarray growth.",
+    "Name handles and repeated checks are not a global filesystem transaction and do not exclude mapped writers or all external changes after the final worker check.",
+    "Complete transaction host/controller, remaining synchronous source readers, recovery UI/startup replay and standard rename/applyEdit activation remain open.",
+    "Whole-goal performance/resource/longevity, latest engine alignment and default final delivery remain open.",
+    "Existing compiler deep unprefixed xlp path limitation and analysis-configuration cache-count regression remain open.",
+    "C LSP stays disabled; no DAP/debug/runtime-object completion; no Linux/sanitizer qualification in this stage."
+  ],
+  "postCommitReceipt": "dev/release-materials/provenance/lsp-edit-alias-policy-20261112/postcommit.json"
+}
