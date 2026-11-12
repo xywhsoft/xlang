@@ -28,14 +28,33 @@ int xideToolchainStampEqual(const xide_toolchain_stamp* a,const xide_toolchain_s
 int xideToolchainValidate(const char* compiler,const xide_toolchain_stamp* stamp,xide_model_error* error);
 xide_toolchains* xideToolchainsCreate(void);
 void xideToolchainsDestroy(xide_toolchains* cache);
+/* Owner-only source-reader participant. Suspend closes new query admission
+   without allocation, cancellation, cache eviction or waiting. Existing query
+   requests remain owned by their callers and finish normally. Suspended checks
+   every registered request's actual thread handle, including cleanup after a
+   terminal state publication. Exact instance-lifetime tokens, no nesting.
+   Resume can abandon a pending hold; callers must first settle any source
+   writes/recovery. It does not start work or reauthorize an old source plan.
+   The host must separately suspend tasks: their direct Capture/Validate/Observe
+   calls and any other independent callers are not query requests. */
+uint64_t xideToolchainsSuspend(xide_toolchains*,xide_model_error*);
+int xideToolchainsSuspended(const xide_toolchains*,uint64_t token);
+int xideToolchainsResume(xide_toolchains*,uint64_t token,xide_model_error*);
+int xideToolchainsAdmissionHeld(const xide_toolchains*);
 /* Called after an actual successful --help process, compares post-query files
    with before, copies all data, and records the observation in the cache. */
 int xideToolchainObserve(xide_toolchains* cache,const char* compiler,const char* directory,const xide_toolchain_stamp* before,const char* help,size_t length,xide_toolchain_profile* out,xide_model_error* error);
+/* Request and Destroy share the cache's single owner. Cache storage outlives
+   every request; workers only access its separately locked profile entries. */
 xide_toolchain_request* xideToolchainRequest(xide_toolchains* cache,const char* compiler,const char* directory,int force,xide_model_error* error);
 /* Owner thread polls; copied output strings use malloc/free. Cache must outlive
    requests. Cancellation never calls UI and close can retain a pending job. */
 enum xide_toolchain_request_state xideToolchainRequestState(xide_toolchain_request* request,char* message,size_t capacity);
 int xideToolchainRequestResult(xide_toolchain_request* request,xide_toolchain_profile* out);
 void xideToolchainRequestCancel(xide_toolchain_request* request);
+/* Nonblocking physical completion. State/result publication alone does not
+   imply this; owner polling must wait for it before Destroy to avoid UI joins.
+   Destroy retains its explicit cancel-and-join lifetime contract. */
+int xideToolchainRequestStopped(const xide_toolchain_request* request);
 void xideToolchainRequestDestroy(xide_toolchain_request* request);
 #endif

@@ -14,9 +14,10 @@ struct xide_toolchain_view {
 };
 static void message(xide_toolchain_view* v,const char* text)
 { snprintf(v->messageText,sizeof(v->messageText),"%s",text); xuiLabelSetText(v->message,v->messageText); xgeRenderRequest(); }
-static void buttons(xide_toolchain_view* v)
+static void buttons(xide_app* a)
 {
- xuiWidgetSetEnabled(v->controls[XIDE_TOOL_REFRESH],v->request==NULL); xuiWidgetSetEnabled(v->controls[XIDE_TOOL_CANCEL],v->request!=NULL);
+ xide_toolchain_view* v=a->toolchainView;
+ xuiWidgetSetEnabled(v->controls[XIDE_TOOL_REFRESH],v->request==NULL && !xideToolchainsAdmissionHeld(xideTasksToolchains(a->tasks))); xuiWidgetSetEnabled(v->controls[XIDE_TOOL_CANCEL],v->request!=NULL);
  const uint32_t states[]={XUI_WIDGET_STATE_DISABLED,XUI_WIDGET_STATE_ACTIVE,XUI_WIDGET_STATE_HOVER,XUI_WIDGET_STATE_FOCUS};
  for(int i=XIDE_TOOL_REFRESH;i<=XIDE_TOOL_CLOSE;++i) {
   xui_widget w=v->controls[i]; uint32_t input=xuiWidgetGetInputState(w),visual=0;
@@ -50,8 +51,8 @@ static int query(xide_app* a,int force)
 {
  xide_toolchain_view* v=a->toolchainView; if(v->request) return 0; xide_model_error e={0};
  v->request=xideToolchainRequest(xideTasksToolchains(a->tasks),v->compiler,v->directory,force,&e);
- if(!v->request) { message(v,e.message); buttons(v); return 0; }
- message(v,v->profile.compiler ? "正在后台查询；下方保留上次有效观察，完成后更新。" : "正在后台读取文件指纹并查询编译器帮助…"); buttons(v); return 1;
+ if(!v->request) { message(v,e.message); buttons(a); return 0; }
+ message(v,v->profile.compiler ? "正在后台查询；下方保留上次有效观察，完成后更新。" : "正在后台读取文件指纹并查询编译器帮助…"); buttons(a); return 1;
 }
 static void clicked(xui_widget widget,void* user)
 {
@@ -86,14 +87,14 @@ int xideToolchainViewCreate(xide_app* a)
  TRY(label(a,"原始 --help 输出",(xui_rect_t){0,352,850,28},NULL)); TRY(text(a,XIDE_TOOL_HELP,"原始编译器帮助，只读",(xui_rect_t){0,390,850,280}));
  TRY(label(a,"尚未查询。",(xui_rect_t){0,682,850,80},&v->message));
  TRY(button(a,XIDE_TOOL_REFRESH,"重新查询",(xui_rect_t){414,780,140,32})); TRY(button(a,XIDE_TOOL_CANCEL,"取消查询",(xui_rect_t){566,780,140,32})); TRY(button(a,XIDE_TOOL_CLOSE,"关闭",(xui_rect_t){718,780,132,32}));
- buttons(v); TRY(xideDialogFormBegin(v->window,560,400));
+ buttons(a); TRY(xideDialogFormBegin(v->window,560,400));
  TRY(xideDialogFormText(v->window,"工具链版本、能力和文件指纹"));TRY(xideDialogFormBlock(v->window,v->controls[XIDE_TOOL_INFO],200,1));
  TRY(xideDialogFormText(v->window,"原始 --help 输出"));TRY(xideDialogFormBlock(v->window,v->controls[XIDE_TOOL_HELP],180,1));TRY(xideDialogFormBlock(v->window,v->message,0,0));
  { const xui_widget actions[]={v->controls[XIDE_TOOL_REFRESH],v->controls[XIDE_TOOL_CANCEL],v->controls[XIDE_TOOL_CLOSE]};TRY(xideDialogFormActions(v->window,actions,sizeof(actions)/sizeof(*actions))); }
  return xideDialogFormEnd(v->window);
 }
 int xideToolchainViewCanOpen(xide_app* a)
-{ const char* compiler=a ? xideTaskViewCompiler(a) : NULL; return a && a->toolchainView && a->tasks && !a->toolchainView->request && compiler && *compiler; }
+{ const char* compiler=a ? xideTaskViewCompiler(a) : NULL; return a && a->toolchainView && a->tasks && !xideToolchainsAdmissionHeld(xideTasksToolchains(a->tasks)) && !a->toolchainView->request && compiler && *compiler; }
 int xideToolchainViewOpen(xide_app* a)
 {
  if(!a || xideActionsHasModal(a)) return 0;
@@ -107,13 +108,13 @@ int xideToolchainViewOpen(xide_app* a)
 }
 void xideToolchainViewPoll(xide_app* a)
 {
- xide_toolchain_view* v=a->toolchainView; if(!v) return; buttons(v); if(!v->request) return; char error[512]={0}; enum xide_toolchain_request_state state=xideToolchainRequestState(v->request,error,sizeof(error));
- if(state==XIDE_TOOL_QUERY_RUNNING) return;
+ xide_toolchain_view* v=a->toolchainView; if(!v) return; buttons(a); if(!v->request) return; char error[512]={0}; enum xide_toolchain_request_state state=xideToolchainRequestState(v->request,error,sizeof(error));
+ if(state==XIDE_TOOL_QUERY_RUNNING || !xideToolchainRequestStopped(v->request)) return;
  if(xideToolchainViewIsOpen(a)) {
   if(state==XIDE_TOOL_QUERY_READY && xideToolchainRequestResult(v->request,&v->profile)) { describe(v); message(v,v->profile.cached ? "已复核三个文件指纹并读取缓存；可重新查询以检查外部依赖变化。" : "工具链观察已更新。文件版本来自 PE 资源，能力来自本次 --help。"); }
   else { char detail[768]; snprintf(detail,sizeof(detail),"%s%s",*error ? error : "无法读取查询结果。",v->profile.compiler ? " 下方为上次有效观察；未更新。" : " 尚无有效工具链观察。"); message(v,detail); }
  }
- xideToolchainRequestDestroy(v->request); v->request=NULL; buttons(v); xgeRenderRequest();
+ xideToolchainRequestDestroy(v->request); v->request=NULL; buttons(a); xgeRenderRequest();
 }
 int xideToolchainViewIsOpen(xide_app* a) { return a && a->toolchainView && xideDialogIsOpen(a->toolchainView->window); }
 int xideToolchainViewBusy(xide_app* a) { return a && a->toolchainView && a->toolchainView->request; }

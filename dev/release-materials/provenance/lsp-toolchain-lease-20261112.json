@@ -1,0 +1,143 @@
+{
+  "schema": 1,
+  "date": "2026-11-12",
+  "stage": "M7b5k",
+  "scope": "Independent toolchain query source-reader suspension, physical worker retirement and nonblocking toolchain-window Poll",
+  "implementationAccepted": true,
+  "performanceQualified": false,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "83d567c55b2c4e97e851852e87bab64c649ccc0c",
+  "ownedSources": {
+    "ide/src/services/toolchain.c": "7ca38a540b9d37c645b521a455d053576907a0527593ba012fc2f09f6077f565",
+    "ide/src/services/toolchain.h": "d2c1b7a96f5bd9fa85b0b5cb6722bfa879eacfecdaee75ff88bf5314f1088f09",
+    "ide/src/ui/toolchain_view.c": "11dbfe4610ecce9699accd118d94f849844deba52d70f18325195270aee2f05c",
+    "ide/tests/toolchain_lease_test.c": "fe852f918c84330712c4c46cade4891db2827fa814d3f35d70cb37fbbf433224",
+    "ide/tools/build.ps1": "d9ae713d93b2a0eedd7652957bf25c9336671d124d8ef1fcecb9717635ce6609",
+    "ide/docs/lsp-edit-toolchain-lease.md": "79bbb903db0e7f0eb0c70303a8b7fd0cdbe5c83dc66a2da7cd12f86f7874555f",
+    "ide/docs/lsp-ide-analysis-lease.md": "fb8cd21225a869f3d161aef04572ae05c5337eda8d41c0fc4e70c29b66f4e532"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-toolchain-lease-20261112.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-toolchain-lease-20261112/stage-sources.tar.gz",
+      "sha256": "ed0f56bd9648c805ce2f8b44dfeece8a693398d1c6691347f6ca5012a002a650",
+      "bytes": 34094,
+      "entries": 8,
+      "uniquePayloads": 8,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-toolchain-lease-20261112/stage-sources.tar.gz.manifest.json",
+      "sha256": "11091d8123e0249acd912b82d2b55ca41e6459aab27fcf94ff3069dfff3835a6",
+      "bytes": 1774
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-toolchain-lease-20261112/actual-builds-and-validation.tar.gz",
+      "sha256": "56dfbb442a5b6fd2704c3e3052fdde338123c36849c094024aa3ac8833239a55",
+      "bytes": 190638827,
+      "entries": 12689,
+      "uniquePayloads": 4291,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-toolchain-lease-20261112/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "cd13e858ddf69c461a5c262c55c5295dfbfe533867641e6e83b7b8004448ba90",
+      "bytes": 4646740
+    }
+  },
+  "currentBindings": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-toolchain-lease-20261112\\final-bindings.json",
+    "sha256": "e5fb1153cfef931474a64effc23841e9145754ac4021088d0459adcde6dabdb9"
+  },
+  "sdkInherited": {
+    "index": "dev/release-materials/provenance/lsp-ide-analysis-lease-20261112.json",
+    "indexSha256": "b68ea898c5fb00f22e09bc83124601f83f468f35b955bb648ed29f3899d3ff37",
+    "dllSha256": "51cc62cb935e54ef16abcb8a4ae8ee845d64254123a822ba4004c63dad42359e",
+    "compiledSdkUnitsThisStage": 0,
+    "matchedSetPreserved": true
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "serviceSha256": "bbd4b2571cd24696771091f9d24863099ac581110cacb47066f9607ac89987db",
+  "correctness": {
+    "guiProductionUnits": 124,
+    "guiSuites": 52,
+    "nativeObjectOutputs": 109,
+    "guiCurrentProductionInputsCompared": 527,
+    "actualSourceInputBindings": 2682,
+    "dependencyInputs": 923,
+    "focusedObservedAssertions": 175,
+    "nativeDiagnosticAssertions": 1385,
+    "nativeSymbolNavigationAssertions": 306,
+    "actualReadFileGateInsideToolchainSnapshot": true,
+    "actualQueryWorkerTailGate": true,
+    "ownerQueriesRefusedBeforePathsAllocationAndThreadCreation": true,
+    "passiveWaitingNoCancellation": true,
+    "cacheRetainedAndValidatedOnNextQuery": true,
+    "multipleRequestAndOutOfOrderDestruction": true,
+    "directCallerAllocationAndCreateThreadFailureTested": true,
+    "exactExhaustedAndStaleTokens": true,
+    "uiPollDoesNotJoinBeforePhysicalExit": true,
+    "typingDeleteUndoImeAndFocusDuringHold": true,
+    "implementationMutantsRejected": 6,
+    "standardFixtureRegistryLinks": 1,
+    "serviceProtocolLeaseCases": 8,
+    "actualGuiLanguages": [
+      "C",
+      "xlang"
+    ],
+    "actualGuiFramesEach": 24,
+    "visualScreenshotsInspected": true,
+    "legacyComprehensiveProgramPassed": false,
+    "legacyBaselineFailure": {
+      "status": "observed-baseline-failure",
+      "checks": [
+        {
+          "name": "legacy-v1",
+          "receiptSha256": "a817357095908d05f84dd7c744803db92847fd8d2ae6330c7a054b60c24d7134",
+          "programSha256": "ce1382c8d2fbd81f98dd64beb19661636cb84fe6a92554c82877b22ad79d5a2f",
+          "logSha256": "be91abbb506729e88ba098b55a93daaea1803c89c1934677e00482bec3be1b0e",
+          "programPassed": false
+        },
+        {
+          "name": "legacy-baseline-v1",
+          "receiptSha256": "f9dcb8540a3ba44a4c7c0ecbb54e33e5244d346e65a12cd62050ec0160308762",
+          "programSha256": "a69a6892504858be342d1ac4bb6162c9b067f19e8f2e5d2ddf1c17c56ad81d87",
+          "logSha256": "e7ebc459b4a1c8f472451bd29bd77d2c21bed645d9080bc8c23f82079d1f35c1",
+          "programPassed": false
+        }
+      ],
+      "exactFixtureBodyUnchangedExceptOwnedHelperBasename": true,
+      "matchedSdkIdentical": true,
+      "code": -16,
+      "label": "XUI_ERROR_CALLBACK_FAILED",
+      "location": "Initial workspace creation, toolchain_test.c:109",
+      "rootCauseUnknown": true,
+      "unresolved": true,
+      "countedAsPassed": false
+    },
+    "rawFailuresRetained": true,
+    "terminalStateDoesNotAuthorizeQuiescence": true
+  },
+  "limits": [
+    "Query participant only: direct task-worker Capture/Validate/Observe calls need the separate task service hold; unrelated callers remain the full host responsibility",
+    "Complete source transaction host, document/prepared-open admission, cached source/physical/configuration/request/consent policy, recovery UI and standard rename/applyEdit remain open",
+    "Legacy toolchain_test initial workspace creation fails at109 with XUI_ERROR_CALLBACK_FAILED on both this build and the previous committed GUI cohort; whole program is unresolved, not counted as passed; root cause and final-delivery qualification remain open",
+    "Earlier analysis configuration cached-count regression and imported-dependency semantic-error empty completion also remain unresolved",
+    "Request/Destroy/control calls share one owner and cache storage outlives every request; tokens cannot survive cache destruction",
+    "Explicit Destroy/Stop retain cancel-and-join lifetime semantics; only ordinary UI Poll retirement is made physically nonblocking",
+    "Suspend/refused-query probes observed zero direct owner malloc/calloc/free calls; DLL internals, registry traversal and kernel probes are outside that claim",
+    "Test-only private desktop can remain busy with SDK background threads until bounded test process exit; no complete handle-balance claim",
+    "First unpaired GUI and preparation failure retained only as raw attempts; final full build pairs the current native service and exact final production/registry/fixture bytes",
+    "No full-goal input-latency, throughput, RSS, startup-recovery or delivery qualification; root runtime, SDK, current delivery and unrelated work preserved"
+  ]
+}

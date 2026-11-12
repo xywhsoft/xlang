@@ -12,11 +12,15 @@
 #define CACHE_AGE_MS (5u*60u*1000u)
 #define QUERY_TIMEOUT_MS 15000u
 typedef struct cache_item { xide_toolchain_profile profile; uint64_t tick; } cache_item;
-struct xide_toolchains { CRITICAL_SECTION lock; cache_item items[CACHE_COUNT]; size_t next; };
+struct xide_toolchains { CRITICAL_SECTION lock; cache_item items[CACHE_COUNT]; size_t next;
+ /* Query registry/admission belong to the single request owner, not workers. */
+ xide_toolchain_request* requests; uint64_t holdToken,holdSerial;
+};
 struct xide_toolchain_request {
  CRITICAL_SECTION lock; HANDLE worker; volatile LONG cancel;
  xide_toolchains* cache; char *compiler,*directory; int force;
  enum xide_toolchain_request_state state; char error[512]; xide_toolchain_profile result;
+ xide_toolchain_request *previous,*next;
 };
 static int fail(xide_model_error* error,const char* message) { if(error) { error->code=XIDE_MODEL_INVALID; snprintf(error->message,sizeof(error->message),"%s",message); } return 0; }
 static char* copy(const char* s) { if(!s) return NULL; size_t n=strlen(s)+1; char* p=malloc(n); if(p) memcpy(p,s,n); return p; }
@@ -85,6 +89,23 @@ int xideToolchainValidate(const char* compiler,const xide_toolchain_stamp* stamp
 { xide_toolchain_stamp now={0}; if(!xideToolchainCapture(compiler,&now,error)) return 0; return xideToolchainStampEqual(stamp,&now) ? 1 : fail(error,"Compiler or sibling runtime files changed; request a fresh toolchain query/build."); }
 xide_toolchains* xideToolchainsCreate(void) { xide_toolchains* cache=calloc(1,sizeof(*cache)); if(cache) InitializeCriticalSection(&cache->lock); return cache; }
 void xideToolchainsDestroy(xide_toolchains* cache) { if(cache) { for(size_t i=0;i<CACHE_COUNT;++i) xideToolchainProfileClear(&cache->items[i].profile); DeleteCriticalSection(&cache->lock); free(cache); } }
+uint64_t xideToolchainsSuspend(xide_toolchains* c,xide_model_error* e)
+{
+ if(!c || c->holdToken || c->holdSerial==UINT64_MAX){fail(e,"Toolchain queries cannot acquire another source-reader hold.");return 0;}
+ return c->holdToken=++c->holdSerial;
+}
+int xideToolchainsSuspended(const xide_toolchains* c,uint64_t token)
+{
+ if(!c || !token || c->holdToken!=token)return 0;
+ for(const xide_toolchain_request* q=c->requests;q;q=q->next)if(!xideToolchainRequestStopped(q))return 0;
+ return 1;
+}
+int xideToolchainsResume(xide_toolchains* c,uint64_t token,xide_model_error* e)
+{
+ if(!c || !token || c->holdToken!=token)return fail(e,"Toolchain source-reader hold is stale.");
+ c->holdToken=0;return 1;
+}
+int xideToolchainsAdmissionHeld(const xide_toolchains* c){return c && c->holdToken!=0;}
 static void fileVersion(const char* compiler,char result[64])
 {
  wchar_t* w=wide(compiler); if(!w) return; DWORD ignored=0,n=GetFileVersionInfoSizeW(w,&ignored); void* data=n && n<=4u*1024u*1024u ? malloc(n) : NULL;
@@ -141,9 +162,11 @@ done:
 }
 xide_toolchain_request* xideToolchainRequest(xide_toolchains* cache,const char* compiler,const char* directory,int force,xide_model_error* error)
 {
+ if(xideToolchainsAdmissionHeld(cache)){fail(error,"Toolchain queries are suspended for a source operation.");return NULL;}
  if(error) { memset(error,0,sizeof(*error)); } if(!cache || !compiler || !*compiler || !directory || !*directory) { fail(error,"Select a compiler before querying its profile."); return NULL; }
  xide_toolchain_request* q=calloc(1,sizeof(*q)); if(!q) { fail(error,"Cannot allocate toolchain query."); return NULL; }
  InitializeCriticalSection(&q->lock); q->cache=cache; q->compiler=xidePathResolve(NULL,compiler); q->directory=xidePathResolve(NULL,directory); q->force=!!force;
+ q->next=cache->requests;if(q->next)q->next->previous=q;cache->requests=q;
  if(q->compiler && q->directory) q->worker=CreateThread(NULL,0,queryWorker,q,0,NULL);
  if(!q->worker) { xideToolchainRequestDestroy(q); fail(error,"Cannot prepare the background toolchain query."); return NULL; } return q;
 }
@@ -152,4 +175,6 @@ enum xide_toolchain_request_state xideToolchainRequestState(xide_toolchain_reque
 int xideToolchainRequestResult(xide_toolchain_request* q,xide_toolchain_profile* out)
 { if(!q || !out) return 0; EnterCriticalSection(&q->lock); int okay=q->state==XIDE_TOOL_QUERY_READY && xideToolchainProfileCopy(out,&q->result); LeaveCriticalSection(&q->lock); return okay; }
 void xideToolchainRequestCancel(xide_toolchain_request* q) { if(q) InterlockedExchange(&q->cancel,1); }
-void xideToolchainRequestDestroy(xide_toolchain_request* q) { if(q) { xideToolchainRequestCancel(q); if(q->worker) { WaitForSingleObject(q->worker,INFINITE); CloseHandle(q->worker); } free(q->compiler); free(q->directory); xideToolchainProfileClear(&q->result); DeleteCriticalSection(&q->lock); free(q); } }
+int xideToolchainRequestStopped(const xide_toolchain_request* q)
+{return !q || !q->worker || WaitForSingleObject(q->worker,0)==WAIT_OBJECT_0;}
+void xideToolchainRequestDestroy(xide_toolchain_request* q) { if(q) { xideToolchainRequestCancel(q); if(q->worker) { WaitForSingleObject(q->worker,INFINITE); CloseHandle(q->worker); } if(q->previous)q->previous->next=q->next;else q->cache->requests=q->next;if(q->next)q->next->previous=q->previous;free(q->compiler); free(q->directory); xideToolchainProfileClear(&q->result); DeleteCriticalSection(&q->lock); free(q); } }
