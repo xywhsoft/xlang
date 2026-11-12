@@ -1,0 +1,110 @@
+// CPU-only value/ABI checks. World/renderer ownership is a separate integration.
+import xge
+extern "fixtureParticleHotBegin" @header("test/cases/foreign_xge3_particle_values.h") @no_raise func hotBegin()
+extern "fixtureParticleHotEnd" @header("test/cases/foreign_xge3_particle_values.h") @no_raise func hotEnd(c_int nativeReference)
+extern "fixtureParticleNativeHot" @header("test/cases/foreign_xge3_particle_values.h") @no_raise @c_ref(0) @c_ref(1) func nativeHot(xge.ParticleCurve curve,xge.ParticleGradient gradient) as float
+extern "fixtureParticleEmitterSentinels" @header("test/cases/foreign_xge3_particle_values.h") @no_raise @c_ref(0) func sentinels(xge.ParticleEmitter emitter) as c_int
+extern "fixtureParticleCurveCpp" @header("test/cases/foreign_xge3_particle_values_cpp.h") @pure @no_raise @nonblocking func cppCurve(xge.ParticleCurve value) as xge.ParticleCurve
+extern "fixtureParticleGradientCpp" @header("test/cases/foreign_xge3_particle_values_cpp.h") @pure @no_raise @nonblocking func cppGradient(xge.ParticleGradient value) as xge.ParticleGradient
+extern "fixtureParticleEmitterCpp" @header("test/cases/foreign_xge3_particle_values_cpp.h") @pure @no_raise @nonblocking func cppEmitter(xge.ParticleEmitter value) as xge.ParticleEmitter
+extern "fixtureParticleEventCpp" @header("test/cases/foreign_xge3_particle_values_cpp.h") @pure @no_raise @nonblocking func cppEvent(xge.ParticleEvent value) as xge.ParticleEvent
+
+func main(...) as int
+ auto curve=xge.ParticleCurve()
+ assert xge.particleCurveEval(curve,c_float(0.5),c_float(-17))==c_float(-17)
+ curve.iCount=c_int(2)
+ curve.iInterpolation=xge.XGE_PARTICLE_CURVE_LINEAR
+ curve.arrKeys[0].fTime=c_float(0)
+ curve.arrKeys[0].fValue=c_float(2)
+ curve.arrKeys[1].fTime=c_float(1)
+ curve.arrKeys[1].fValue=c_float(6)
+ assert xge.particleCurveEval(curve,c_float(0.5),c_float(-17))==c_float(4)
+ assert xge.particleCurveEval(curve,c_float(-1),c_float(-17))==c_float(2)
+ assert xge.particleCurveEval(curve,c_float(2),c_float(-17))==c_float(6)
+ curve.iInterpolation=xge.XGE_PARTICLE_CURVE_STEP
+ assert xge.particleCurveEval(curve,c_float(0.5),c_float(-17))==c_float(2)
+ curve.iInterpolation=xge.XGE_PARTICLE_CURVE_HERMITE
+ assert xge.particleCurveEval(curve,c_float(0.25),c_float(-17))==c_float(2.625)
+ curve.arrKeys[0].fOutTangent=c_float(8)
+ assert xge.particleCurveEval(curve,c_float(0.5),c_float(-17))==c_float(5)
+ curve.iInterpolation=xge.XGE_PARTICLE_CURVE_LINEAR
+ assert xge.particleCurveEval(curve,c_float(math.nan),c_float(-17))==c_float(-17)
+ auto invalid=curve
+ invalid.iCount=c_int(9)
+ assert xge.particleCurveEval(invalid,c_float(0.5),c_float(-17))==c_float(-17)
+ invalid=curve
+ invalid.arrKeys[1].fTime=c_float(0)
+ assert xge.particleCurveEval(invalid,c_float(0.5),c_float(-17))==c_float(-17)
+ auto copy=curve
+ copy.arrKeys[0].fValue=c_float(99)
+ assert curve.arrKeys[0].fValue==c_float(2) and copy.arrKeys[0].fValue==c_float(99)
+
+ auto gradient=xge.ParticleGradient()
+ assert xge.particleGradientEval(gradient,c_float(0.5),c_uint(0xDEADBEEF))==c_uint(0xDEADBEEF)
+ gradient.iCount=c_int(2)
+ gradient.arrKeys[0].fTime=c_float(0)
+ gradient.arrKeys[0].iColor=c_uint(0x10203040)
+ gradient.arrKeys[1].fTime=c_float(1)
+ gradient.arrKeys[1].iColor=c_uint(0x50607080)
+ assert xge.particleGradientEval(gradient,c_float(0.5),c_uint(0))==c_uint(0x30405060)
+ assert xge.particleGradientEval(gradient,c_float(-1),c_uint(0))==c_uint(0x10203040)
+ assert xge.particleGradientEval(gradient,c_float(2),c_uint(0))==c_uint(0x50607080)
+ auto invalidGradient=gradient
+ invalidGradient.iCount=c_int(-1)
+ assert xge.particleGradientEval(invalidGradient,c_float(0.5),c_uint(0xDEADBEEF))==c_uint(0xDEADBEEF)
+ assert xge.particleGradientEval(gradient,c_float(math.nan),c_uint(0xDEADBEEF))==c_uint(0xDEADBEEF)
+
+ auto emitter=xge.particleEmitterInit()
+ assert emitter.iMaxParticles==c_uint(512) and emitter.bLoop==c_int(1) and emitter.bAutomatic==c_int(1)
+ assert emitter.tLife.fMin==c_float(1) and emitter.tSpeed.fMax==c_float(40)
+ assert emitter.arrSubEmitters[0].iEmitter==c_int(-1) and emitter.arrSubEmitters[2].iEmitter==c_int(-1)
+ assert emitter.arrBursts[15].iCount==c_uint(0) and emitter.sTexture[127]==c_char(0)
+ emitter.sName[63]=c_char(65)
+ emitter.sTexture[127]=c_char(66)
+ emitter.sMaterial[63]=c_char(67)
+ emitter.tSizeOverLife.arrKeys[7].fValue=c_float(33)
+ emitter.tSpeedOverLife.arrKeys[6].fInTangent=c_float(34)
+ emitter.tAlphaOverLife.arrKeys[5].fOutTangent=c_float(35)
+ emitter.tColorOverLife.arrKeys[7].iColor=c_uint(0x12345678)
+ emitter.arrBursts[15].fTime=c_float(36)
+ emitter.arrBursts[15].iCount=c_uint(37)
+ emitter.arrSubEmitters[2].iEmitter=c_int(3)
+ emitter.arrSubEmitters[2].iCount=c_uint(38)
+ emitter.arrSubEmitters[2].fInheritVelocity=c_float(39)
+ emitter.tTextureRect.fW=c_float(40)
+ emitter.fFriction=c_float(41)
+ assert sentinels(emitter)==c_int(1)
+ auto emitterCopy=emitter
+ emitterCopy.arrSubEmitters[2].iCount=c_uint(100)
+ assert emitter.arrSubEmitters[2].iCount==c_uint(38)
+ auto returnedCurve=cppCurve(curve)
+ assert returnedCurve.arrKeys[7].fValue==c_float(123) and curve.arrKeys[7].fValue==c_float(0)
+ auto returnedGradient=cppGradient(gradient)
+ assert returnedGradient.arrKeys[7].iColor==c_uint(0x87654321) and gradient.arrKeys[7].iColor==c_uint(0)
+ auto returnedEmitter=cppEmitter(emitter)
+ assert returnedEmitter.arrBursts[15].iCount==c_uint(38) and emitter.arrBursts[15].iCount==c_uint(37)
+ auto event=xge.ParticleEvent()
+ event.iEffect=uint64(9007199254740993)
+ event.iParticle=uint64(9007199254740995)
+ auto returnedEvent=cppEvent(event)
+ assert returnedEvent.iEffect==uint64(9007199254740993) and returnedEvent.iParticle==uint64(9007199254740996)
+ assert event.iParticle==uint64(9007199254740995) and returnedEvent.tPosition.fX==c_float(12)
+ auto play=xge.particlePlayInit()
+ assert play.iSeed==uint64(1) and play.tTransform.tScale.fX==c_float(1)
+
+ hotBegin()
+ auto expected=nativeHot(curve,gradient)
+ hotEnd(c_int(1))
+ hotBegin()
+ float actual=0.0
+ for i in range(1000)
+  auto defaults=xge.particleEmitterInit()
+  actual+=float(defaults.iMaxParticles)
+  actual+=float(xge.particleCurveEval(curve,c_float(0.5),c_float(-17)))
+  actual+=float(xge.particleGradientEval(gradient,c_float(0.5),c_uint(0)) & c_uint(255))
+ end
+ hotEnd(c_int(0))
+ assert actual==expected and expected==612000.0
+ println("Particle values, native defaults, fixed-array isolation and ABI passed")
+ return 0
+end

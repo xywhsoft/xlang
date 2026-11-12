@@ -1,0 +1,25 @@
+// Sample a particle's size over its normalized lifetime. No window is needed.
+import xge
+
+func main(...) as int
+ auto size = xge.ParticleCurve()
+ size.iCount = c_int(2)
+ size.iInterpolation = xge.XGE_PARTICLE_CURVE_LINEAR
+ size.arrKeys[0].fTime = c_float(0)
+ size.arrKeys[0].fValue = c_float(2)
+ size.arrKeys[1].fTime = c_float(1)
+ size.arrKeys[1].fValue = c_float(6)
+
+ auto middle = xge.particleCurveEval(size, c_float(0.5), c_float(1))
+ assert middle == c_float(4)
+ println("Size halfway through lifetime:", middle)
+
+ // Initialize every emitter field with the native defaults, then customize it.
+ auto emitter = xge.particleEmitterInit()
+ emitter.tSizeOverLife = size
+ emitter.fRate = c_float(60)
+ assert emitter.iMaxParticles == c_uint(512)
+ assert emitter.tSizeOverLife.arrKeys[1].fValue == c_float(6)
+ println("Configured emitter rate:", emitter.fRate)
+ return 0
+end

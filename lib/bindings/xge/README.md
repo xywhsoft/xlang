@@ -100,3 +100,25 @@ See `examples/system_font.xl`.
 `init(width,height,title,flags=0,runMode=0)` now also projects flags and run mode
 into the same stack descriptor. Manual mode initializes engine state without
 creating a native window; interactive controls require the normal `run` loop.
+
+## Particle values
+
+`examples/particle_curves.xl` samples a curve and configures a native emitter
+without a window or simulation world. `ParticleCurve`, `ParticleGradient`,
+`ParticleEmitter` and `ParticleEvent` are exact C value records. Assignment
+copies their fixed arrays as part of the value. Curves/gradients have eight key
+slots; emitters have sixteen burst slots and three subemitter slots.
+
+`particleCurveEval(curve,time,fallback)` and
+`particleGradientEval(gradient,time,fallback)` directly call the native bounded
+samplers. Times are normalized lifetime values. Invalid/empty keys or nonfinite
+sample times return the supplied fallback; this is not a checked failure.
+`particleEmitterInit()` returns all native defaults, while `ParticleEmitter()`
+only constructs a zero value. Names remain fixed UTF-8 C byte arrays and must
+contain a NUL terminator before passing a description to a native definition.
+`ParticleEvent.iEffect` is a world-scoped numeric identity, not an owned resource.
+
+These declarations require `XGE_ENABLE_PARTICLES`. World/definition/renderer
+ownership, persistent collision callbacks and simulation operations are a
+separate unfinished integration. The value helper example does not certify
+those paths or whole-engine performance.

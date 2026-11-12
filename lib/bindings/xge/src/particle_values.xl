@@ -1,0 +1,84 @@
+// Exact pointer-free particle descriptions. Fixed arrays retain C value semantics.
+export extern "xge_particle_curve_t" struct ParticleCurve @header("xge3_runtime.h")
+ c_int iCount
+ c_int iInterpolation
+ ParticleKey arrKeys[8]
+end
+
+export extern "xge_particle_gradient_t" struct ParticleGradient @header("xge3_runtime.h")
+ c_int iCount
+ ParticleColorKey arrKeys[8]
+end
+
+export extern "xge_particle_emitter_t" struct ParticleEmitter @header("xge3_runtime.h")
+ c_char sName[64]
+ c_char sTexture[128]
+ c_char sMaterial[64]
+ c_uint iMaxParticles
+ c_int bAutomatic
+ c_int bLoop
+ c_int iSpace
+ c_int iShape
+ c_float fDelay
+ c_float fDuration
+ c_float fRate
+ c_float fRateOverDistance
+ Vec2 tOffset
+ Vec2 tShapeSize
+ c_float fRadius
+ c_float fInnerRadius
+ c_float fDirection
+ c_float fSpread
+ ParticleRange tLife
+ ParticleRange tSpeed
+ ParticleRange tSize
+ ParticleRange tRotation
+ ParticleRange tAngularVelocity
+ ParticleRange tStartFrame
+ c_uint iColorMin
+ c_uint iColorMax
+ ParticleCurve tSizeOverLife
+ ParticleCurve tSpeedOverLife
+ ParticleCurve tAlphaOverLife
+ ParticleGradient tColorOverLife
+ Vec2 tGravity
+ c_float fDrag
+ c_float fRadialAcceleration
+ c_float fTangentialAcceleration
+ c_float fInheritVelocity
+ c_float fNoiseStrength
+ c_float fNoiseFrequency
+ c_float fNoiseScroll
+ c_float fAspect
+ c_float fStretch
+ c_int bAlignVelocity
+ c_int bScreenSpace
+ c_int iBlend
+ c_int iLayer
+ c_int iOrder
+ Rect tTextureRect
+ c_int iColumns
+ c_int iRows
+ c_float fFramesPerSecond
+ c_int iCollision
+ c_float fCollisionRadius
+ c_float fRestitution
+ c_float fFriction
+ c_int iBurstCount
+ ParticleBurst arrBursts[16]
+ ParticleSubemitter arrSubEmitters[3]
+end
+
+export extern "xge_particle_event_t" struct ParticleEvent @header("xge3_runtime.h")
+ c_int iType
+ c_int iEmitter
+ uint64 iEffect
+ uint64 iParticle
+ Vec2 tPosition
+ Vec2 tVelocity
+end
+
+// Eval preserves the native fallback contract, including invalid/empty curves.
+export extern "xgeParticleCurveEval" @header("xge3_runtime.h") @pure @no_raise @nonblocking @c_ref(0) func particleCurveEval(ParticleCurve curve,c_float time,c_float fallback) as c_float
+export extern "xgeParticleGradientEval" @header("xge3_runtime.h") @pure @no_raise @nonblocking @c_ref(0) func particleGradientEval(ParticleGradient gradient,c_float time,c_uint fallback) as c_uint
+export extern "xgeParticleEmitterInit" @header("xge3_runtime.h") @pure @no_raise @nonblocking @c_output(0) func particleEmitterInit() as ParticleEmitter

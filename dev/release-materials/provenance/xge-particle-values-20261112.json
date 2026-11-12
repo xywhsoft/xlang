@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "passed": true,
+  "shippingDelivery": false,
+  "scope": "Four exact pointer-free particle value records and three direct native declarations; CPU JIT/dynamic/static and C++ archive ABI. No particle simulation/world/renderer qualification.",
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\particle-values-win-r2\\results.json",
+      "sha256": "53a5a4975c05d96a1aa7edeec8f81cf92b4df400cf59f2765e04c2b517cff0e4"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\particle-values-linux-r2\\results.json",
+      "sha256": "f9f2487c39a7065975b8ff47996a30c3573f6448c2d25bb748342ad56edd8ecd"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\particle-values-package-stage-r2.json",
+      "sha256": "67e5db100108cbcda2eb95e63f78660be13aba530e0c3a462259267bd3c51069"
+    }
+  ],
+  "verification": {
+    "win": {
+      "commands": 27,
+      "unusedFileDeltaBytes": 0,
+      "unusedCodeDeltaBytes": 0
+    },
+    "linux": {
+      "commands": 27,
+      "unusedFileDeltaBytes": 0,
+      "unusedCodeDeltaBytes": 0
+    }
+  },
+  "payloadCopies": false,
+  "heapOperationsInSampledLoop": 0,
+  "cpuThroughputQualified": false,
+  "largeRecordStackCopiesEliminated": false
+}
