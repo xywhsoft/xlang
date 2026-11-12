@@ -85,3 +85,11 @@ See `dev/release-materials/provenance/foreign-owned-text-windows-20261113.json`.
 The host reboot interrupted the first qualification report; its zero-filled
 bytes are preserved and were not counted. Linux and final installation remain
 separate requirements.
+
+The Linux r24 successor has now passed 77 top-level commands plus five
+continuation checks, including independent nested EXE/shared hosts and both
+Document link modes. Its 15,076 frozen input files and three products were
+rechecked unchanged. Relative to Linux r22, the CLI is unchanged and both
+shared libraries add 12,288 bytes. See
+`dev/release-materials/provenance/foreign-owned-text-linux-20261113.json`.
+Final SDK/compiler/IDE installation remains separate.

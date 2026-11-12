@@ -1,0 +1,64 @@
+{
+  "date": "2026-11-13",
+  "complete": true,
+  "passed": true,
+  "scope": "Linux full O2 compiler/TCC/XRT/fixed objects/VFS/embedded sources; actual CLI owned UTF-8 and bytes, Document hosted/static programs, nested compiler EXE/shared invocation, checked integer continuation and related existing regressions. Not full XGE/Document or shipping delivery.",
+  "shippingDelivery": false,
+  "evidence": {
+    "build": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-owned-text-linux-full-r24\\build.json",
+      "sha256": "a45998a5454e26a1d71c0d6a98ecd0a4c79be5a9ed3c09edb22c3d3cb1e3c065"
+    },
+    "qualification": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\owned-text-full-qualification-linux-r2\\results.json",
+      "sha256": "21190b017d89fe68c29757b3ccb0704b16509d00ba57adbdf64b63a5446ff361",
+      "commands": 77
+    },
+    "continuation": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\owned-text-continuation-full-linux-r1\\results.json",
+      "sha256": "6beb7cea4fd2fc2216f78f5d9205d60009dc262db2f697787fdee23ff9705f3f",
+      "commands": 5
+    }
+  },
+  "products": {
+    "xl": {
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-owned-text-linux-full-r23/source/release/linux_x64/xl",
+      "sha256": "faa25e49bdf8c5ce8ccdb084810075b406cc6dd499a59577664616eb2a08265b",
+      "bytes": 47224
+    },
+    "libxl.so": {
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-owned-text-linux-full-r23/source/release/linux_x64/libxl.so",
+      "sha256": "4d6254bb02bae0918f9df832934c8e8367dc03ef2aa930c721c3b92f7ef7e9e8",
+      "bytes": 16513616
+    },
+    "libxlc.so": {
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-owned-text-linux-full-r23/source/release/linux_x64/libxlc.so",
+      "sha256": "f4852a10e43380757aaedbe81d5a5639aab8be590d82239eeeebba73aedcd0de",
+      "bytes": 22526800
+    }
+  },
+  "frozenInputs": 15076,
+  "fixtureHashes": {
+    "test/cases/foreign_owned_text.xl": "1eca3f10c44b79456ab5226edb0d5819a64e52809659e1716824f29fedec462b",
+    "test/cases/foreign_owned_bytes.xl": "f319f38721ecc6c3ec7dcfd76afca8478840ddc8aeaf59071a6babd17f41509e",
+    "test/cases/xlir_scalar_numeric_closure.xl": "2832aa344ce82222b5e29532f0d6b79986d7ccf35a2688ccfa555ebcd3814300",
+    "test/cases/xlir_c_integer_arithmetic.xl": "b2ef66b2de2f0da6d82822bc9fcd9f876d3fa1d214175ef16b486be582d9d8e0",
+    "test/cases/foreign_xui_document_exports.xl": "ecd663dc7b3257c6b03c6fab2fe289acd7dc659559f8b8ab11fcc1c2c6a575e2",
+    "lib/bindings/xui/examples/document_exports.xl": "f1227b9fc945f7add284fc07a3484ae35f744abd621e4cf4e9895e0fb627abfc"
+  },
+  "limits": [
+    "Actual XGE package shared-library initialization remains separate",
+    "No GPU/rendering certification",
+    "Final SDK/compiler/IDE not installed"
+  ],
+  "interruptedEvidencePreserved": true,
+  "producerByteDeltasFromLinuxR22": {
+    "xl": 0,
+    "libxl.so": 12288,
+    "libxlc.so": 12288
+  },
+  "sourceFreeze": {
+    "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-owned-text-linux-full-r23/freeze.json",
+    "sha256": "eab800007fa0fa2d550ba3a85c4320f2d4a2b231bffe2cb3913d2fcf86b50804"
+  }
+}
