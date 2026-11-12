@@ -306,7 +306,12 @@ ST_FUNC void relocate(TCCState *s1, ElfW_Rel *rel, int type, unsigned char *ptr,
             add64le(ptr, s1->got->sh_addr - addr + rel->r_addend);
             break;
         case R_X86_64_GOTTPOFF:
+#ifndef TCC_TARGET_PE
+            add32le(ptr, s1->got->sh_addr +
+                get_sym_attr(s1, sym_index, 0)->tls_ie_offset + rel->r_addend - addr);
+#else
             add32le(ptr, val - s1->got->sh_addr);
+#endif
             break;
         case R_X86_64_GOT32:
             /* we load the got offset */
@@ -321,6 +326,13 @@ ST_FUNC void relocate(TCCState *s1, ElfW_Rel *rel, int type, unsigned char *ptr,
             break;
         case R_X86_64_TLSGD:
             {
+#ifndef TCC_TARGET_PE
+                if (s1->output_type == TCC_OUTPUT_DLL) {
+                    add32le(ptr, s1->got->sh_addr +
+                        get_sym_attr(s1, sym_index, 0)->tls_gd_offset + rel->r_addend - addr);
+                    break;
+                }
+#endif
                 static const unsigned char expect[] = {
                     /* .byte 0x66; lea 0(%rip),%rdi */
                     0x66, 0x48, 0x8d, 0x3d, 0x00, 0x00, 0x00, 0x00,
@@ -334,14 +346,14 @@ ST_FUNC void relocate(TCCState *s1, ElfW_Rel *rel, int type, unsigned char *ptr,
 
                 if (memcmp (ptr-4, expect, sizeof(expect)) == 0) {
                     ElfW(Sym) *sym;
-                    Section *sec;
                     int32_t x;
+                    addr_t size, align, start;
 
                     memcpy(ptr-4, replace, sizeof(replace));
                     rel[1].r_info = ELFW(R_INFO)(0, R_X86_64_NONE);
                     sym = &((ElfW(Sym) *)symtab_section->data)[sym_index];
-                    sec = s1->sections[sym->st_shndx];
-                    x = sym->st_value - sec->sh_addr - sec->data_offset;
+                    start = tcc_elf_tls_start(s1, &size, &align);
+                    x = sym->st_value - start - ((size + align - 1) & ~(align - 1));
                     add32le(ptr + 8, x);
                 }
                 else
@@ -350,6 +362,13 @@ ST_FUNC void relocate(TCCState *s1, ElfW_Rel *rel, int type, unsigned char *ptr,
             break;
         case R_X86_64_TLSLD:
             {
+#ifndef TCC_TARGET_PE
+                if (s1->output_type == TCC_OUTPUT_DLL) {
+                    add32le(ptr, s1->got->sh_addr +
+                        get_sym_attr(s1, 0, 0)->tls_gd_offset + rel->r_addend - addr);
+                    break;
+                }
+#endif
                 static const unsigned char expect[] = {
                     /* lea 0(%rip),%rdi */
                     0x48, 0x8d, 0x3d, 0x00, 0x00, 0x00, 0x00,
@@ -371,67 +390,27 @@ ST_FUNC void relocate(TCCState *s1, ElfW_Rel *rel, int type, unsigned char *ptr,
         case R_X86_64_DTPOFF32:
         case R_X86_64_TPOFF32:
             {
-                ElfW(Sym) *sym;
-                Section *sec;
-                int32_t x;
-                addr_t tls_start = 0, tls_end = 0, tls_align = 1;
-                int i;
-
-                sym = &((ElfW(Sym) *)symtab_section->data)[sym_index];
-                sec = s1->sections[sym->st_shndx];
-
-                for (i = 1; i < s1->nb_sections; i++) {
-                    Section *s = s1->sections[i];
-                    if (s->sh_flags & SHF_TLS && s->sh_size) {
-                        if (!tls_start || s->sh_addr < tls_start)
-                            tls_start = s->sh_addr;
-                        if (s->sh_addr + s->sh_size > tls_end)
-                            tls_end = s->sh_addr + s->sh_size;
-                        if (s->sh_addralign > tls_align)
-                            tls_align = s->sh_addralign;
-                    }
-                }
-                if (tls_end > tls_start) {
-                    addr_t tls_size = tls_end - tls_start;
-                    addr_t aligned_size = (tls_size + tls_align - 1) & ~(tls_align - 1);
-                    x = val - (tls_start + aligned_size);
-                } else {
-                    x = val - sec->sh_addr - sec->data_offset;
-                }
-                add32le(ptr, x);
+                addr_t size, align, start, offset;
+                start = tcc_elf_tls_start(s1, &size, &align);
+                offset = val - start;
+                /* DLL local-dynamic offsets are module-relative. Executable
+                   TLSLD sequences above were relaxed to the thread pointer. */
+                if (type == R_X86_64_TPOFF32 || s1->output_type != TCC_OUTPUT_DLL)
+                    offset -= (size + align - 1) & ~(align - 1);
+                if ((addr_t)(int32_t)offset != offset)
+                    tcc_error_noabort("ELF TLS displacement exceeds signed 32-bit range");
+                add32le(ptr, offset);
             }
             break;
         case R_X86_64_DTPOFF64:
         case R_X86_64_TPOFF64:
             {
-                ElfW(Sym) *sym;
-                Section *sec;
-                int32_t x;
-                addr_t tls_start = 0, tls_end = 0, tls_align = 1;
-                int i;
-
-                sym = &((ElfW(Sym) *)symtab_section->data)[sym_index];
-                sec = s1->sections[sym->st_shndx];
-
-                for (i = 1; i < s1->nb_sections; i++) {
-                    Section *s = s1->sections[i];
-                    if (s->sh_flags & SHF_TLS && s->sh_size) {
-                        if (!tls_start || s->sh_addr < tls_start)
-                            tls_start = s->sh_addr;
-                        if (s->sh_addr + s->sh_size > tls_end)
-                            tls_end = s->sh_addr + s->sh_size;
-                        if (s->sh_addralign > tls_align)
-                            tls_align = s->sh_addralign;
-                    }
-                }
-                if (tls_end > tls_start) {
-                    addr_t tls_size = tls_end - tls_start;
-                    addr_t aligned_size = (tls_size + tls_align - 1) & ~(tls_align - 1);
-                    x = val - (tls_start + aligned_size);
-                } else {
-                    x = val - sec->sh_addr - sec->data_offset;
-                }
-                add64le(ptr, x);
+                addr_t size, align, start, offset;
+                start = tcc_elf_tls_start(s1, &size, &align);
+                offset = val - start;
+                if (type == R_X86_64_TPOFF64 || s1->output_type != TCC_OUTPUT_DLL)
+                    offset -= (size + align - 1) & ~(align - 1);
+                add64le(ptr, offset);
             }
             break;
         case R_X86_64_NONE:

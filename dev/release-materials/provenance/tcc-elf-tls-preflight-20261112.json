@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "sourcePreflightQualified": true,
+  "fullCompilerBuild": false,
+  "shippingDelivery": false,
+  "scope": "AMD64 ELF TLS shared loader isolation, executable relaxation, template layout and checked rejection; original full Linux nested shared failure still requires a matched complete rebuild.",
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\elf-tls-source-r5\\results.json",
+      "sha256": "a453892d0e411dbaa189bc884f253f6913eaafa2abce2a2c8dcf157568dc0efa"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\elf-tls-relocation-win-r1\\results.json",
+      "sha256": "e9705df691436ccc0fb09db68665980cf7f14ea8ba2abbaf7dd25a285b22813c"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\elf-tls-relocation-linux-r1\\results.json",
+      "sha256": "87a0e855c8df12ba9c2c1b5e6d220afa3fc674c48e295627cad217c5bc155650"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\owned-shared-python-gdb-r1.log",
+      "sha256": "a5fe0148a31ff2e94ed0952c8a1420dac098163d4ca401b01ba27100d5fe351b"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\elf-tls-repro-r1\\inspect-tcc.so.log",
+      "sha256": "737d9d7605a660da53d49f190e562253e7cbdb3364bb6d418bd56c7602a851fa"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\elf-tls-repro-r1\\inspect-reference.so.log",
+      "sha256": "245ace7adb9e1a587c86285402bc48e219b59df982ec77c2ae123319721d408a"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\elf-tls-win-compile-r1.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "sourceInputs": {
+    "lib/tcc/tcc.h": "9f0b90e5cbd7236bd63f0e692afc2899fb90f2b9bbdcf1f371201e661be89505",
+    "lib/tcc/tccelf.c": "9d1ceb120336cb78f2dd89d51a6a7931f611a14179384f30fd281d8ab4881c0d",
+    "lib/tcc/x86_64-link.c": "f2b075911958ffeeaee73698c407f5424e85970665a6a562c1038602d5f2be6f",
+    "test/cases/tcc_elf_tls_driver.c": "cef99c66aeb432f000e1f1b0923703f680fb0e03a4cbf15ea5b04dbd4f0b8a80",
+    "test/cases/tcc_elf_tls_native.c": "0a2f660e8ed2eeab3cd6c80a949107774630a3a38c18573384bc33bfffa88ba1",
+    "test/cases/tcc_elf_tls_host.c": "d94c612e3507330b4d356e493c708ea968f26352d7eb265149f532e936eb67af",
+    "tools/check_tcc_elf_tls.py": "961c50b534e046176970f0923ae6723ac3040852204cc7b7f69adc26a7274e55"
+  },
+  "verification": {
+    "commands": 59,
+    "templates": 14,
+    "producerOptimization": [
+      "O0",
+      "O2"
+    ],
+    "nativeIterationsPerThread": 10000,
+    "pythonIterations": 1000,
+    "windowsSourceCompiled": true
+  },
+  "pending": [
+    "Complete compiler/TCC/XRT/fixed-object/VFS/embedded-source rebuild",
+    "Original nested compiler shared-library execution in Python and native hosts",
+    "Other full-scope XGE/XUI/Document work and final matched delivery"
+  ]
+}

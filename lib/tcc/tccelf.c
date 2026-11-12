@@ -1161,6 +1161,23 @@ static void update_gnu_hash(TCCState *s1, Section *gnu_hash)
 
 /* relocate symbol table, resolve undefined symbols if do_resolve is
    true and output error if undefined symbol. */
+ST_FUNC addr_t tcc_elf_tls_start(TCCState *s1, addr_t *size, addr_t *align)
+{
+    addr_t first = (addr_t)-1, end = 0, alignment = 1;
+    int i;
+    for (i = 1; i < s1->nb_sections; ++i) {
+        Section *s = s1->sections[i];
+        if (!(s->sh_flags & SHF_TLS) || !s->sh_size)
+            continue;
+        if (s->sh_addr < first) first = s->sh_addr;
+        if (s->sh_addr + s->sh_size > end) end = s->sh_addr + s->sh_size;
+        if (s->sh_addralign > alignment) alignment = s->sh_addralign;
+    }
+    if (size) *size = end ? end - first : 0;
+    if (align) *align = alignment;
+    return end ? first : 0;
+}
+
 ST_FUNC void relocate_syms(TCCState *s1, Section *symtab, int do_resolve)
 {
     ElfW(Sym) *sym;
@@ -1217,6 +1234,13 @@ ST_FUNC void relocate_syms(TCCState *s1, Section *symtab, int do_resolve)
         } else if (sh_num < SHN_LORESERVE) {
             /* add section base */
             sym->st_value += s1->sections[sym->st_shndx]->sh_addr;
+#ifndef TCC_TARGET_PE
+            /* ELF dynamic TLS symbols describe offsets in this module's TLS
+               block, never virtual addresses in its PT_LOAD mapping. Keep
+               the ordinary symtab addresses for static relocation below. */
+            if (symtab == s1->dynsym && ELFW(ST_TYPE)(sym->st_info) == STT_TLS)
+                sym->st_value -= tcc_elf_tls_start(s1, NULL, NULL);
+#endif
         }
     found: ;
     }
@@ -1500,6 +1524,63 @@ static struct sym_attr * put_got_entry(TCCState *s1, int dyn_reloc_type,
     return attr;
 }
 
+#if defined(TCC_TARGET_X86_64) && !defined(TCC_TARGET_PE)
+static int elf_tls_local_symbol(TCCState *s1, const ElfW(Sym) *sym)
+{
+    return sym->st_shndx != SHN_UNDEF &&
+        (ELFW(ST_BIND)(sym->st_info) == STB_LOCAL ||
+         ELFW(ST_VISIBILITY)(sym->st_other) != STV_DEFAULT || s1->symbolic);
+}
+
+/* General/local-dynamic TLS uses a real loader-assigned module ID. A DLL
+   cannot relax these references to offsets in its caller's TLS block. */
+static void put_elf_tls_got_entry(TCCState *s1, int type, int sym_index)
+{
+    struct sym_attr *attr;
+    ElfW(Sym) *sym;
+    unsigned offset, dyn_index = 0;
+    int local, ld = type == R_X86_64_TLSLD;
+    int ie = type == R_X86_64_GOTTPOFF;
+    attr = get_sym_attr(s1, ld ? 0 : sym_index, 1);
+    if (ie ? attr->tls_ie_offset : attr->tls_gd_offset)
+        return;
+    sym = &((ElfW(Sym) *)symtab_section->data)[sym_index];
+    local = ld || elf_tls_local_symbol(s1, sym);
+    if (!ld && ELFW(ST_TYPE)(sym->st_info) != STT_TLS) {
+        tcc_error_noabort("ELF TLS relocation requires a TLS symbol");
+        return;
+    }
+    if (!local && s1->dynsym) {
+        if (!attr->dyn_index)
+            attr->dyn_index = set_elf_sym(s1->dynsym, sym->st_value,
+                sym->st_size, sym->st_info, sym->st_other, sym->st_shndx,
+                (char *)symtab_section->link->data + sym->st_name);
+        dyn_index = attr->dyn_index;
+    }
+    if (!s1->got) build_got(s1);
+    offset = s1->got->data_offset;
+    section_ptr_add(s1->got, ie ? PTR_SIZE : 2 * PTR_SIZE);
+    if (ie) {
+        attr->tls_ie_offset = offset;
+        if (!s1->dynsym) {
+            put_elf_reloc(symtab_section, s1->got, offset, R_X86_64_TPOFF64, sym_index);
+            return;
+        }
+    } else {
+        attr->tls_gd_offset = offset;
+        put_elf_reloc(s1->dynsym, s1->got, offset, R_X86_64_DTPMOD64, dyn_index);
+        if (ld) return; /* second word is the zero module-relative base */
+        offset += PTR_SIZE;
+    }
+    /* Record the slot by byte index before layout. Local addends are filled
+       after static symbols have acquired their final section addresses. */
+    if (ie) attr->tls_ie_reloc = s1->got->reloc ? s1->got->reloc->data_offset : 0;
+    else attr->tls_gd_reloc = s1->got->reloc->data_offset;
+    put_elf_reloc(s1->dynsym, s1->got, offset,
+        ie ? R_X86_64_TPOFF64 : R_X86_64_DTPOFF64, dyn_index);
+}
+#endif
+
 /* build GOT and PLT entries */
 /* Two passes because R_JMP_SLOT should become first. Some targets
    (arm, arm64) do not allow mixing R_JMP_SLOT and R_GLOB_DAT. */
@@ -1528,6 +1609,31 @@ redo:
             }
             sym_index = ELFW(R_SYM)(rel->r_info);
             sym = &((ElfW(Sym) *)symtab_section->data)[sym_index];
+
+#if defined(TCC_TARGET_X86_64) && !defined(TCC_TARGET_PE)
+            if (type == R_X86_64_TLSGD || type == R_X86_64_TLSLD ||
+                type == R_X86_64_GOTTPOFF || type == R_X86_64_TPOFF32 ||
+                type == R_X86_64_TPOFF64 || type == R_X86_64_DTPOFF32 ||
+                type == R_X86_64_DTPOFF64) {
+                if (s1->output_type == TCC_OUTPUT_MEMORY) {
+                    if (pass == 0)
+                        tcc_error_noabort("native ELF TLS input requires file output; JIT TLS is unsupported");
+                    continue;
+                }
+                if (s1->output_type == TCC_OUTPUT_DLL &&
+                    (type == R_X86_64_TPOFF32 || type == R_X86_64_TPOFF64)) {
+                    if (pass == 0)
+                        tcc_error_noabort("local-exec ELF TLS cannot be linked into a shared library");
+                    continue;
+                }
+                if (type == R_X86_64_GOTTPOFF ||
+                    (s1->output_type == TCC_OUTPUT_DLL &&
+                     (type == R_X86_64_TLSGD || type == R_X86_64_TLSLD))) {
+                    if (pass == 1) put_elf_tls_got_entry(s1, type, sym_index);
+                    continue;
+                }
+            }
+#endif
 
             if (gotplt_entry == NO_GOTPLT_ENTRY) {
                 continue;
@@ -2105,6 +2211,25 @@ static void fill_local_got_entries(TCCState *s1)
 #endif
 	}
     }
+#if defined(TCC_TARGET_X86_64) && !defined(TCC_TARGET_PE)
+    {
+        ElfW(Sym) *sym;
+        addr_t start = tcc_elf_tls_start(s1, NULL, NULL);
+        for_each_elem(symtab_section, 1, sym, ElfW(Sym)) {
+            struct sym_attr *attr;
+            if (!elf_tls_local_symbol(s1, sym)) continue;
+            attr = get_sym_attr(s1, sym - (ElfW(Sym) *)symtab_section->data, 0);
+            if (attr->tls_gd_offset) {
+                rel = (ElfW_Rel *)(s1->got->reloc->data + attr->tls_gd_reloc);
+                rel->r_addend = sym->st_value - start;
+            }
+            if (attr->tls_ie_offset) {
+                rel = (ElfW_Rel *)(s1->got->reloc->data + attr->tls_ie_reloc);
+                rel->r_addend = sym->st_value - start;
+            }
+        }
+    }
+#endif
 }
 
 /* Bind symbols of executable: resolve undefined symbols from exported symbols
@@ -2527,6 +2652,21 @@ static int layout_sections(TCCState *s1, int *sec_order, struct dyn_inf *d)
     addr += file_offset;
 
     n = 0;
+    /* Every TLS symbol offset is relative to the start of its template. The
+       first section must therefore honor the maximum alignment of the whole
+       block, including later zero-filled sections. */
+    {
+        addr_t tls_align;
+        int tls_first = 1;
+        tcc_elf_tls_start(s1, NULL, &tls_align);
+        for (i = 1; i < s1->nb_sections; ++i) {
+            Section *tls = s1->sections[sec_order[i]];
+            if (tls_first && (tls->sh_flags & SHF_TLS) && tls->sh_size) {
+                if (tls->sh_addralign < tls_align) tls->sh_addralign = tls_align;
+                tls_first = 0;
+            }
+        }
+    }
     for(i = 1; i < s1->nb_sections; i++) {
         s = s1->sections[sec_order[i]];
         f = sec_order[i + s1->nb_sections];
@@ -2615,7 +2755,7 @@ static int layout_sections(TCCState *s1, int *sec_order, struct dyn_inf *d)
     {
         /* Create PT_TLS segment covering all TLS sections */
         Section *tls_start_sec = NULL;
-        addr_t tls_start = 0, tls_end = 0;
+        addr_t tls_start = 0, tls_end = 0, tls_file_end = 0, tls_align = 1;
         for (i = 1; i < s1->nb_sections; i++) {
             s = s1->sections[i];
             if (s->sh_flags & SHF_TLS && s->sh_size) {
@@ -2624,20 +2764,25 @@ static int layout_sections(TCCState *s1, int *sec_order, struct dyn_inf *d)
                     tls_start = s->sh_addr;
                     tls_end = s->sh_addr + s->sh_size;
                 } else {
-                    if (s->sh_addr < tls_start)
+                    if (s->sh_addr < tls_start) {
                         tls_start = s->sh_addr;
+                        tls_start_sec = s;
+                    }
                     if (s->sh_addr + s->sh_size > tls_end)
                         tls_end = s->sh_addr + s->sh_size;
                 }
+                if (s->sh_type != SHT_NOBITS && s->sh_addr + s->sh_size > tls_file_end)
+                    tls_file_end = s->sh_addr + s->sh_size;
+                if (s->sh_addralign > tls_align) tls_align = s->sh_addralign;
             }
         }
         if (tls_start_sec) {
             ph = fill_phdr(++ph, PT_TLS, tls_start_sec);
             ph->p_vaddr = tls_start;
             ph->p_paddr = tls_start;
-            ph->p_filesz = tls_end - tls_start;
-            ph->p_memsz = ph->p_filesz;
-            ph->p_align = tls_start_sec->sh_addralign;
+            ph->p_filesz = tls_file_end ? tls_file_end - tls_start : 0;
+            ph->p_memsz = tls_end - tls_start;
+            ph->p_align = tls_align;
         }
     }
     ph = fill_phdr(++ph, PT_GNU_STACK, NULL);

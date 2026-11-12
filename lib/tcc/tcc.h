@@ -746,6 +746,10 @@ struct sym_attr {
     unsigned plt_offset;
     int plt_sym;
     int dyn_index;
+#if defined(TCC_TARGET_X86_64) && !defined(TCC_TARGET_PE)
+    unsigned tls_gd_offset, tls_gd_reloc;
+    unsigned tls_ie_offset, tls_ie_reloc;
+#endif
 #ifdef TCC_TARGET_ARM
     unsigned char plt_thumb_stub:1;
 #endif
@@ -1622,6 +1626,7 @@ ST_FUNC addr_t get_sym_addr(TCCState *s, const char *name, int err, int forc);
 ST_FUNC void list_elf_symbols(TCCState *s, void *ctx,
     void (*symbol_cb)(void *ctx, const char *name, const void *val));
 ST_FUNC int set_global_sym(TCCState *s1, const char *name, Section *sec, addr_t offs);
+ST_FUNC addr_t tcc_elf_tls_start(TCCState *s1, addr_t *size, addr_t *align);
 
 /* Browse each elem of type <type> in section <sec> starting at elem <startoff>
    using variable <elem> */
