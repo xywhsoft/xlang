@@ -25,8 +25,11 @@ static/global object, preserving an explicit `section` attribute. Unique names
 include a per-state serial; independent input contributions and their relocation
 tables remain separate even if two object files use the same static helper name.
 Common symbols requested with `-fcommon` keep their existing shared allocation.
-Other preexisting shared literal pools remain shared; this is section reachability,
-not string/constant deduplication or whole-program optimization.
+Compiler-created string and floating literals also have independent collection
+units with `-fdata-sections`; retained literals are packed into one readonly pool
+for final output. Relocatable objects retain their independent records, including
+embedded NULs and interior offsets. This is section reachability, not whole-program
+optimization. See [literal collection and qualification](tcc-literal-gc.md).
 
 GC runs after runtime/archive/common loading and before final undefined-symbol
 resolution, GOT/PLT construction, or PE imports. It follows actual relocation

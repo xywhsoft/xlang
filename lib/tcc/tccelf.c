@@ -3521,7 +3521,8 @@ invalid:
             sh->sh_addralign = 1;
         /* Function/data sections are independent input contributions, even
            when two translation units chose the same static symbol name. */
-        if ((s1->gc_sections || s1->function_sections || s1->data_sections)
+        if ((s1->gc_sections || s1->function_sections || s1->data_sections ||
+             ((sh->sh_flags & SHF_MERGE) && gc_literal_name(sh_name)))
             && !tcc_elf_pdata_header(shdr, ehdr.e_shnum, strsec, i)) {
             if (((sh->sh_flags & SHF_ALLOC) && tcc_independent_input_section(sh_name))
                 || (sh->sh_type == SHT_RELX && sh->sh_info < ehdr.e_shnum

@@ -1,0 +1,100 @@
+{
+  "schema": 1,
+  "passed": true,
+  "cpuPreflightQualified": true,
+  "fullCompilerQualified": false,
+  "shippingDelivery": false,
+  "scope": "Readonly string/float literal collection and compact final sections; focused preflight only",
+  "checks": 1274,
+  "evidence": [
+    {
+      "name": "tcc-literals-owned-prefix-win-r1",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-literals-owned-prefix-win-r1\\results.json",
+      "sha256": "297356b901d13751f532a96272d244b9f7341131f447139cce7b9c9b207770f3",
+      "checks": 182
+    },
+    {
+      "name": "tcc-literals-owned-prefix-linux-r1",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-literals-owned-prefix-linux-r1\\results.json",
+      "sha256": "97e313bf7a7438398695856c4f9fcecbde3160e4ee3b02d94a096c26cb873496",
+      "checks": 184
+    },
+    {
+      "name": "tcc-literals-section-reg-win-r2",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-literals-section-reg-win-r2\\results.json",
+      "sha256": "716de73a3eaa9cd6ecb54b53d3181fd2f301a81aa6da07be487256d8c7ed574b",
+      "checks": 268
+    },
+    {
+      "name": "tcc-literals-section-reg-linux-r2",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-literals-section-reg-linux-r2\\results.json",
+      "sha256": "203eccbc3c5e06016cf1e1829af99ed5d76f529dba515b8fb7255fe6e20b5236",
+      "checks": 264
+    },
+    {
+      "name": "tcc-literals-pdata-win-r2",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-literals-pdata-win-r2\\results.json",
+      "sha256": "99a54cfe502bad0c53bfaf058a467cd236a638cd3f7b6ebcb6fdac10cb91fd01",
+      "checks": 274
+    },
+    {
+      "name": "tcc-literals-copy-linux-r2",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-literals-copy-linux-r2\\results.json",
+      "sha256": "c2776d98b81e0e9d35b10e6b1cfe16e61a089418a64074b205f6358eed95b64e",
+      "checks": 34
+    },
+    {
+      "name": "tcc-literals-budget-linux-r2",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-literals-budget-linux-r2\\results.json",
+      "sha256": "9d8efd3f57c7124d8762869705fd3ccbbcbe7f06786ae67fe3ba1a306bed3913",
+      "checks": 68
+    }
+  ],
+  "controls": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-literals-before-win-r2\\results.json",
+      "sha256": "526f324d0974f1b415416efa428df5d4f32f3ead842d1725f659c743a39fb18b",
+      "acceptance": false
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-literals-before-linux-r2\\results.json",
+      "sha256": "848c19f3aab1afe897424aa6fbf5cdbc480465a44d5d96311cd6171801fd4224",
+      "acceptance": false
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-literals-linker-stack-control-win-r1\\O0-run.log",
+      "sha256": "b594fa5f3df6cffaed700d5eea5235ec94094e5a038a00350eceae71d6061324",
+      "acceptance": false
+    }
+  ],
+  "sourceRawSha256": {
+    "lib/tcc/tcc.h": "c4169862852708d1c4562f4f36c3852c6c104c683931019f661bc84a0b06faca",
+    "lib/tcc/tccgen.c": "94e5e05fe37c8bfc3b58fa86b87e2a6d4715a2d5531f5552a47c7d924a894c9b",
+    "lib/tcc/tcc-gc.inc": "d24f8b9bb7b46d5138c2ec469da1e414970e0de44a39b376f0010a8dc13005bc",
+    "lib/tcc/tccelf.c": "3638b16a848a4fd7519ba5500da155fe7e741f45afa246863a37e81135dea16c",
+    "test/cases/tcc_literal_gc.c": "125f0ae4eeb0fd00c642ab0f511381d70ab48e1b28a70865e3ebcdeb3ffed118",
+    "tools/check_tcc_literal_gc.py": "65abebd3697577565319580ea28f839ba5aed74e74de1756635b676e1c0ad1bb"
+  },
+  "sourceNormalizedSha256": {
+    "lib/tcc/tcc.h": "c4169862852708d1c4562f4f36c3852c6c104c683931019f661bc84a0b06faca",
+    "lib/tcc/tccgen.c": "d7e13e6b7a22acab86fcffda9766eb8ce6228bd4b6f8c843d1518050d3719178",
+    "lib/tcc/tcc-gc.inc": "d24f8b9bb7b46d5138c2ec469da1e414970e0de44a39b376f0010a8dc13005bc",
+    "lib/tcc/tccelf.c": "3638b16a848a4fd7519ba5500da155fe7e741f45afa246863a37e81135dea16c",
+    "test/cases/tcc_literal_gc.c": "125f0ae4eeb0fd00c642ab0f511381d70ab48e1b28a70865e3ebcdeb3ffed118",
+    "tools/check_tcc_literal_gc.py": "65abebd3697577565319580ea28f839ba5aed74e74de1756635b676e1c0ad1bb"
+  },
+  "fullBuildsPending": [
+    "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r23",
+    "F:\\xlang-validation\\xge-full-20261110\\compiler-linux-full-r15"
+  ],
+  "costs": [
+    "Per-literal compilation section/symbol metadata and names when data sections are enabled.",
+    "One lazy offset/movement ledger, existing cleanup registry storage and retained-byte copies during final linking.",
+    "One symbol-table pass; no new generated-program runtime operation."
+  ],
+  "limitations": [
+    "Actual matched XGE binary savings and embedded compiler delivery remain pending.",
+    "Default TinyCC allocation failure policy is unchanged; tests inject failures within its existing parser-protected allocator boundary.",
+    "No claim of lower compiler peak memory, graphics qualification, or full ecosystem completion."
+  ]
+}

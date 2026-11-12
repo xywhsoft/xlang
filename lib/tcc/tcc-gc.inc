@@ -17,6 +17,91 @@ ST_FUNC Section *tcc_split_section(TCCState *s1, Section *base, const char *symb
     return s;
 }
 
+/* One mergeable record per compiler-created literal. A complete string is a
+   record, including embedded NULs: SHF_STRINGS would allow a foreign linker to
+   split it into independently merged substrings and break interior pointers.
+   Explicit user section attributes never go through this route. */
+ST_FUNC Section *tcc_literal_section(TCCState *s1, Section *base)
+{
+    Section *s;
+    if (!s1->data_sections ||
+        !(tcc_native_link_features() & TCC_NATIVE_LINK_DATA_SECTIONS))
+        return base;
+    s = tcc_split_section(s1, base, "__tcc_literal");
+    /* Each literal's real type alignment is supplied by section_add. Do not
+       inherit the shared pool's pointer alignment for individual strings. */
+    s->sh_addralign = 1;
+    s->sh_flags |= SHF_MERGE;
+    return s;
+}
+
+static int gc_literal_name(const char *name)
+{
+    return !strncmp(name, ".data.ro.__tcc_literal.", sizeof(".data.ro.__tcc_literal.") - 1)
+        || !strncmp(name, ".rdata.__tcc_literal.", sizeof(".rdata.__tcc_literal.") - 1);
+}
+
+/* Collect first, then pack only the surviving literal records. Final images
+   need one compact readonly pool, not a section header per tiny constant.
+   Symbol indices and relocation addends stay stable; only section-relative
+   symbol values gain the aligned pool offset. Relocatable output stays split.
+   Imported literal objects also compact when the consumer did not request
+   data sections. Records carrying their own relocations/extra flags are left
+   alone, preserving unrelated input section contracts. */
+static void gc_pack_literals(TCCState *s1)
+{
+    Section *base;
+    unsigned long *offsets = NULL;
+    unsigned char *moved = NULL;
+    ElfW(Sym) *sym;
+    int i, count = 0, nsec = s1->nb_sections;
+    if (s1->output_type == TCC_OUTPUT_OBJ)
+        return;
+    base = have_section(s1, rdata);
+    if (!base)
+        return;
+    for (i = 1; i < nsec; ++i) {
+        Section *s = s1->sections[i];
+        unsigned long offset;
+        if (s->sh_type != SHT_PROGBITS ||
+            s->sh_flags != (SHF_ALLOC | SHF_MERGE) ||
+            !s->data_offset || s->sh_entsize != s->data_offset ||
+            !gc_literal_name(s->name) ||
+            (s->reloc && s->reloc->data_offset))
+            continue;
+        if (!offsets) {
+            /* One lazy temporary allocation. The parser's existing error
+               stack frees it if pool growth reports a nonlocal OOM error. */
+            stk_push(&offsets);
+            offsets = tcc_mallocz(nsec * (sizeof(*offsets) + 1));
+            moved = (unsigned char *)(offsets + nsec);
+        }
+        base->sh_flags |= SHF_ALLOC;
+        offset = section_add(base, s->data_offset, s->sh_addralign);
+        memcpy(base->data + offset, s->data, s->data_offset);
+        offsets[i] = offset;
+        moved[i] = 1;
+        ++count;
+        s->data_offset = s->sh_size = 0;
+        s->sh_flags &= ~SHF_ALLOC;
+    }
+    if (count) {
+        for_each_elem(s1->symtab, 1, sym, ElfW(Sym)) {
+            if (sym->st_shndx < nsec && moved[sym->st_shndx]) {
+                sym->st_value += offsets[sym->st_shndx];
+                sym->st_shndx = base->sh_num;
+            }
+        }
+    }
+    if (offsets) {
+        tcc_free(offsets);
+        stk_pop();
+        /* A final link need not be followed by another parse/finish cycle. */
+        if (!nb_stk_data)
+            dynarray_reset(&stk_data, &nb_stk_data);
+    }
+}
+
 typedef struct TCCGCFrame {
     unsigned long old, size, dst;
     int cie, owner, active, reloc_head;
@@ -408,8 +493,12 @@ ST_FUNC void tcc_gc_sections(TCCState *s1, const char *entry, int keep_exports)
     TCCGC g;
     int i, n;
     ElfW(Sym) *sym;
-    if (!s1->gc_sections || s1->gc_sections_done || s1->output_type == TCC_OUTPUT_OBJ)
+    if (s1->output_type == TCC_OUTPUT_OBJ)
         return;
+    if (!s1->gc_sections || s1->gc_sections_done) {
+        gc_pack_literals(s1);
+        return;
+    }
     if (!(tcc_native_link_features() & TCC_NATIVE_LINK_GC_SECTIONS)) {
         tcc_error_noabort("gc-sections is not implemented for this target backend");
         return;
@@ -460,4 +549,5 @@ ST_FUNC void tcc_gc_sections(TCCState *s1, const char *entry, int keep_exports)
     rebuild_hash(s1->symtab, 0);
     s1->gc_sections_done = 1;
     gc_release(&g);
+    gc_pack_literals(s1);
 }

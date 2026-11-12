@@ -46,3 +46,8 @@ The small evidence index is
 `dev/release-materials/provenance/xge-unused-readonly-data-20261112.json`.
 Native PNG/image qualification remains valid, but perfect unused-code/data
 trimming and full matched delivery remain unfinished.
+
+Follow-up: the generic literal collection/compaction implementation and focused
+CPU regressions are now described in [TinyCC readonly literal collection](tcc-literal-gc.md).
+The diagnosis above and its historical raw reports remain unchanged. Full matched
+compiler builds and the actual XGE size comparison are still pending.

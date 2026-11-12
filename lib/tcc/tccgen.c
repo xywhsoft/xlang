@@ -1891,10 +1891,14 @@ ST_FUNC int gv(int rc)
             size = type_size(&vtop->type, &align);
             if (NODATA_WANTED)
                 size = 0, align = 1;
+            if (size)
+                p.sec = tcc_literal_section(tcc_state, p.sec);
             offset = section_add(p.sec, size, align);
             vpush_ref(&vtop->type, p.sec, offset, size);
 	    vswap();
 	    init_putv(&p, &vtop->type, offset);
+	    if (p.sec != rodata_section)
+	        p.sec->sh_entsize = p.sec->data_offset;
 	    vtop->r |= VT_LVAL;
         }
 #ifdef CONFIG_TCC_BCHECK
@@ -5679,7 +5683,11 @@ ST_FUNC void unary(void)
         type.t |= VT_ARRAY;
         memset(&ad, 0, sizeof(AttributeDef));
         ad.section = rodata_section;
+        if (!NODATA_WANTED)
+            ad.section = tcc_literal_section(tcc_state, ad.section);
         decl_initializer_alloc(&type, &ad, VT_CONST, 2, 0, 0);
+        if (ad.section != rodata_section)
+            ad.section->sh_entsize = ad.section->data_offset;
         break;
     case TOK_SOTYPE:
     case '(':

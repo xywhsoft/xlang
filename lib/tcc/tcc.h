@@ -1587,6 +1587,7 @@ ST_FUNC void tccelf_begin_file(TCCState *s1);
 ST_FUNC void tccelf_end_file(TCCState *s1);
 ST_FUNC Section *new_section(TCCState *s1, const char *name, int sh_type, int sh_flags);
 ST_FUNC Section *tcc_split_section(TCCState *s1, Section *base, const char *symbol);
+ST_FUNC Section *tcc_literal_section(TCCState *s1, Section *base);
 ST_FUNC void tcc_gc_sections(TCCState *s1, const char *entry, int keep_exports);
 ST_FUNC int tcc_gc_live_undefined(TCCState *s1, unsigned char **used, int *length);
 ST_FUNC int tcc_pdata_name(const char *name);
