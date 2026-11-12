@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "complete": true,
+  "passed": true,
+  "scope": "Reproduce current Document declarations and records from matched native header and its real XUI typedef context; check mode writes neither file.",
+  "generatorSha256": "0db5c5eb194c226441ed4aee8091b54321a0cecf26cc7221cb99824225af049a",
+  "inventoryToolSha256": "e6f68660f36d3643f93dfcf5fc37ab31a43db610fb3cda4ee30762fce31aedfd",
+  "source": {
+    "D:\\GIT\\x-lang\\lib\\bindings\\xui\\src\\document.xl": "c0e553c3ef094e6d4b823ba7e1ff09e0f4d20eacde6e75a898d99d5d8886000a",
+    "D:\\GIT\\x-lang\\lib\\bindings\\xui\\src\\document_records.xl": "aa6e9d36ce9ebd07317aa616e32cfb35f19206365b345543d22f3350f5b27727"
+  },
+  "authorities": {
+    "xui_document.h": "b163fa5448dc811926c28edf9001319b10148b07407882b72ecbacee14a02a38",
+    "xui.h": "8dcc7efb904092779f185318f11dfd13ca8f5da5b64fdbe22f10efebd2e31ffc"
+  },
+  "command": [
+    "C:\\Program Files\\Python312\\python.exe",
+    "-B",
+    "D:\\GIT\\x-lang\\tools\\gen_xge3_document_bindings.py",
+    "--root",
+    "D:\\GIT\\x-lang",
+    "--native-root",
+    "F:\\xlang-validation\\xge-full-20261110\\native-document-export-source-r6",
+    "--check"
+  ],
+  "log": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\document-generator-current-check.log",
+    "sha256": "e727637ede9c054d754d4a111f84a146b2135f43b02ce39dca0b8ec8c90572f8"
+  },
+  "runtimeQualification": "Separate source/compiler/native acceptance receipts; this is generation consistency only.",
+  "shippingDelivery": false
+}

@@ -1,6 +1,6 @@
 # Default Document model bindings
 
-The authoritative machine map is [xge3-xui3-document-api-map.json](xge3-xui3-document-api-map.json). It pins `xui_document.h`, all 218 functions, 26 pointer-free C records and 255 native constants. It distinguishes a declared function from an ABI-compiled or executed path. The default package declares 152 native business entries, seven resource `close` controls and callback-view methods. No per-method C forwarding functions are added.
+The authoritative machine map is [xge3-xui3-document-api-map.json](xge3-xui3-document-api-map.json). It pins `xui_document.h`, all 218 functions, 26 pointer-free C records and 255 language constants. The allocator marker is compiler/provider ABI metadata. The map distinguishes declarations from compiled or executed paths. The default package declares 159 native business entries, seven resource `close` controls and callback-view methods. No per-method C forwarding functions are added.
 
 The classes are `Document`, `DocumentSnapshot`, `DocumentChangeSet`, `DocumentPrepare`, `DocumentFragment`, `DocumentSourceIndex` and `DocumentTransaction`. The first six share actual native references; `share()` calls the native status/output factory once and reserves its language owner before that call. The transaction has one unique owner. `commit()` and `abort()` end its writer but do not consume its shell; `close()` releases that owner. Default-provenance Owned factories are required. Raw custom-allocator objects cannot be promoted to managed roots.
 
@@ -25,7 +25,7 @@ Some native capabilities remain explicit C interoperability:
 |---|---|
 | `SnapshotAnalyzeMarkdownConversion`, `SnapshotFind`, `SnapshotFindEx` | Caller output arrays plus capacity. A single result record would be unsafe when capacity exceeds one; no writable typed-array output declaration is fabricated. |
 | `PrepareSource`, `PrepareContinueSource` | Arrays of size-prefixed patches with per-element counted text. Existing column projection cannot initialize each size and pair each text with its byte length. `prepareStreamSource` supports safe append/chunk input, with different semantics. |
-| `FragmentSerialize`, `FragmentExportHtml`, `SnapshotCopyRange`, `SnapshotCopyTableMatrix`, `SnapshotCopyPlainText`, `DocumentSerialize`, `DocumentExportHtml`, `DocumentFreeBuffer` | Producer-owned libc/default-allocator `char**` plus length. Only `xuiDocumentFreeBuffer` is compatible; no `take_cstr`/`xrtFree` adoption is claimed. Scoped Copy/Read Buffer methods cover text/source reads. |
+| `FragmentSerialize`, `FragmentExportHtml`, `SnapshotCopyRange`, `SnapshotCopyTableMatrix`, `SnapshotCopyPlainText`, `DocumentSerialize`, `DocumentExportHtml` | Direct owned bytes outputs; HTML/plain/range/matrix also have UTF-8 string outputs. The actual resident-XRT allocation is transferred with its explicit byte count. The matched SDK allocator marker is required. Native `DocumentFreeBuffer` stays internal to language cleanup. |
 | Node-info resource/info/title/link strings; nested attributes language | Borrowed pointers require explicit output-record text conversion, which this contract does not declare. No pointer is disguised as POD. Copy/Read methods expose node text/source safely; pointer metadata remains C-only. |
 | Change-info `pOperations` | A borrowed array behind a record field. `operationCount` is available, but no raw pointer is exposed and no zero-copy sequence is invented. |
 | Link-info URI/title strings | Only linked/mixed POD state is projected; borrowed string fields stay C-only. |
@@ -36,6 +36,19 @@ Some native capabilities remain explicit C interoperability:
 | Source-index constructor cancellation callback inside the descriptor | The ordinary constructor configures its working-memory limit. A nested raw callback/userdata pair is not synthesized. |
 
 The machine map records every omitted function and pointer-bearing record field separately. The table is an interoperability boundary, not a promise that these native operations have been implemented as language conveniences.
+
+Owned export additions pass source-compiler JIT, a readable example, independent
+dynamic/static artifacts on Windows/Linux and public C/C++ header checks. Their
+index is `dev/release-materials/provenance/xui-document-exports-source-20261112.json`.
+This does not mean every declared entry executes in that fixture or certify
+the complete O2/VFS/embedded compiler and final IDE delivery. Earlier family
+qualification remains explicitly historical in the machine map.
+
+`tools/gen_xge3_document_bindings.py --check` verifies both declaration files
+without writing source. Generation uses matching XUI typedef context as well
+as the Document header, and reproduces owned output, exact U64 prefix and
+descriptor-order contracts. It cannot silently restore the old CRT output
+boundary.
 
 Direct declarations eliminate C forwarding wrappers. Resource controls, code leases, checked scopes, native RC operations and callbacks still cost work. Descriptor packs add stack initialization and assignments; NUL strings require scans/validation, while counted inputs retain exact byte lengths. Copy methods perform their documented native byte copy. POD output projection copies fields; it does not box pointer payloads. This package does not claim equality with raw C execution time.
 

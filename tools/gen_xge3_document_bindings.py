@@ -4,8 +4,11 @@ import argparse
 parser=argparse.ArgumentParser(description='Generate audited default Model A direct declarations, exact POD/constant inventory and explicit C interoperability boundary')
 parser.add_argument('--root',type=Path,default=Path(__file__).resolve().parents[1])
 parser.add_argument('--native-root',type=Path,required=True,help='Exact frozen Native source whose xui_document.h is the authority')
+parser.add_argument('--check',action='store_true',help='Check generated declaration/record bytes without writing source')
 args=parser.parse_args();r=args.root.resolve();native=args.native_root.resolve();sys.path.insert(0,str(r/'tools'));import check_xge3_bindings as inv
-h=inv.header_inventory(native/'include/xui_document.h');assert not h['parseErrors'];types={t['name']:t['type'] for t in h['types']};records={};primitive=dict(inv.SCALARS,xui_doc_node_id='uint64')
+ui=inv.header_inventory(native/'include/xui.h');external_types={t['name']for t in ui['types']}
+assert 'xui_callback_owner_t'in external_types
+h=inv.header_inventory(native/'include/xui_document.h',external_types=external_types);assert not h['parseErrors'];types={t['name']:t['type'] for t in h['types']};records={};primitive=dict(inv.SCALARS,xui_doc_node_id='uint64')
 models={'xui_document':('Document','xui_document_t','xuiDocument','Document'), 'xui_document_snapshot':('DocumentSnapshot','xui_doc_snapshot_t','xuiDocumentSnapshot','DocumentSnapshot'),'xui_document_change_set':('DocumentChangeSet','xui_doc_change_set_t','xuiDocumentChangeSet','DocumentChangeSet'),'xui_document_prepare':('DocumentPrepare','xui_doc_prepare_t','xuiDocumentPrepare','DocumentPrepare'),'xui_document_fragment':('DocumentFragment','xui_doc_fragment_t','xuiDocumentFragment','DocumentFragment'),'xui_document_source_index':('DocumentSourceIndex','xui_doc_source_index_t','xuiDocumentSourceIndex','DocumentSourceIndex'),'xui_document_transaction':('DocumentTransaction','xui_doc_transaction_t','xuiDocumentTxn','DocumentTxn')}
 reserved=set(re.findall(r'\{"([A-Za-z_]\w*)", XL6_KW_', (r/'src/lexer/xl6_lexer_gen.c').read_text(encoding='utf-8')))
 def named(t):return ' '.join(t.get('names',[])) if t.get('kind')=='named' else None
@@ -41,6 +44,7 @@ for enum in h['enums']:
  for e in enum['type']['values']:
   n=e['name'];v=inv.integer(e['expression'],known) if e['expression'] else v+1;known[n]=v;constantRows.append((n,v))
 for m in h['constants']:
+ if m['name']=='XUI_DOCUMENT_EXPORT_XRT_ALLOCATOR':continue # Compiler/provider ABI promise, not a language option.
  n=m['name'];exp=re.sub(r'UINT64_C\(([^)]+)\)',r'\1',m['expression']);v=inv.integer(exp,known);known[n]=v;constantRows.append((n,v))
 for n,v in constantRows:recordLines.append('export const '+('uint64' if n in ('XUI_DOCUMENT_ROOT','XUI_DOCUMENT_APPEND') or v>2147483647 else 'c_int')+' '+n+' = '+str(v))
 
@@ -101,6 +105,26 @@ for f in h['functions']:
   if any(('func '+mn+'(') in old for old in classes[models[owner][0]]):raise ValueError('logical name conflict needs explicit review')
   classes[models[owner][0]].append(line);mapped[name]=models[owner][0]+'.'+mn
  except (ValueError,AssertionError,TypeError) as e:reasons[name]=str(e)
+# Exact resident-XRT export producers. Text and bytes are separate admissions.
+exportPositions={}
+for cl,nativeName,mn,slots,params,extra in [
+ ('DocumentSnapshot','xuiDocumentSerialize','serialize',(1,2),'',''),
+ ('DocumentSnapshot','xuiDocumentExportHtml','exportHtml',(1,2),'',''),
+ ('DocumentSnapshot','xuiDocumentSnapshotCopyPlainText','plainText',(1,2),'',''),
+ ('DocumentSnapshot','xuiDocumentSnapshotCopyRange','range',(2,3),'DocumentRange range','@c_ref(0) '),
+ ('DocumentSnapshot','xuiDocumentSnapshotCopyTableMatrix','tableMatrix',(6,7),'uint64 table,c_uint row,c_uint column,c_uint rows,c_uint columns',''),
+ ('DocumentFragment','xuiDocumentFragmentSerialize','serialize',(1,2),'',''),
+ ('DocumentFragment','xuiDocumentFragmentExportHtml','exportHtml',(1,2),'','')]:
+ modes=[('bytes',mn)]if mn=='serialize'else [('bytes',mn+'Bytes'),('text',mn)]
+ exported=[]
+ for mode,name in modes:
+  exported.append(' extern "'+nativeName+'" @header("xge3_document_xrt.h") @no_raise '+extra+'@c_output_'+mode+'('+str(slots[0])+','+str(slots[1])+',"char*","uint64_t","xrt",0) func '+name+'('+params+') as '+('string'if mode=='text'else'bytes'))
+ position=exportPositions.get(cl,0);classes[cl][position:position]=exported;exportPositions[cl]=position+len(exported)
+ mapped[nativeName]=cl+'.'+mn;reasons.pop(nativeName,None)
+# Prefix length is logical-only; uint64_t is the actual native ABI.
+for i,line in enumerate(classes['Document']):
+ if 'extern "xuiDocumentLoadMarkdown"'in line:
+  classes['Document'][i:i+1]=[' extern "xuiDocumentLoadMarkdown" @no_raise @c_span(0,"const char*","uint64_t",1) @c_result("status",0) func loadMarkdown('+kind+' utf8,int size=-1)'for kind in('string','bytes','Buffer')];break
 # explicit safe descriptor constructors; callbacks/custom allocators remain zero.
 functions.append('export extern "xuiDocumentCreateOwned" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(1,0,rollbackDocument) @c_pack(0,"xui_doc_desc_t",0,8) @c_pack_size(0,"iSize","uint32_t") '+ ' '.join('@c_pack_field(0,"'+field+'",'+str(i)+',"value")' for i,field in enumerate(['iProfile','iMarkdownDialect','iHistoryLimit','iHistoryMaxBytes','bDisableHistory','iMaxTextBytes','iMaxNodes','iMaxSyntaxRecords']))+' func createDocument(c_uint profile=1,c_uint markdownDialect=0,c_uint historyLimit=0,uint64 historyMaxBytes=0,c_int disableHistory=0,uint64 maxTextBytes=0,uint64 maxNodes=0,uint64 maxSyntaxRecords=0) as Document')
 mapped['xuiDocumentCreateOwned']='createDocument';reasons.pop('xuiDocumentCreateOwned',None)
@@ -159,17 +183,20 @@ for nativeName,(cl,tag,prefix,policy) in models.items():
  lines+=['export extern "struct '+tag+'*" class '+cl+' @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3'+policy+'Policy") @domain("xl6Xui3DocumentModelDomainV1")',' native point handle',*classes[cl], ' extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()','end','extern "'+prefix+'ReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func rollback'+cl+'('+cl+' value)','']
 # Factories without descriptor/callback escape; native Owned entry preserves provenance.
 for nativeName,logical in [('xuiDocumentFragmentImportHtmlOwned','importDocumentFragmentHtml'),('xuiDocumentFragmentDeserializeOwned','deserializeDocumentFragment')]:
- functions.append('export extern "'+nativeName+'" @header("xge3_runtime.h") @no_raise @c_span(0,"const char*","size_t") @c_result("owned_view") @factory(2,0,rollbackDocumentFragment) func '+logical+'('+('bytes' if nativeName=='xuiDocumentFragmentDeserializeOwned' else 'string')+' data) as DocumentFragment')
+ for kind in (('bytes','Buffer')if nativeName=='xuiDocumentFragmentDeserializeOwned'else('string','bytes','Buffer')):
+  functions.append('export extern "'+nativeName+'" @header("xge3_runtime.h") @no_raise @c_span(0,"const char*","uint64_t",1) @c_result("owned_view") @factory(2,0,rollbackDocumentFragment) func '+logical+'('+kind+' data,int size=-1) as DocumentFragment')
  mapped[nativeName]=logical;reasons.pop(nativeName,None)
 # Each descriptor is stack-packed; allocator callbacks remain NULL.
 fields=['iProfile','iMarkdownDialect','iHistoryLimit','iHistoryMaxBytes','bDisableHistory','iMaxTextBytes','iMaxNodes','iMaxSyntaxRecords']
 config='c_uint profile=1,c_uint markdownDialect=0,c_uint historyLimit=0,uint64 historyMaxBytes=0,c_int disableHistory=0,uint64 maxTextBytes=0,uint64 maxNodes=0,uint64 maxSyntaxRecords=0'
-for nativeName,logical,first,packSlot,outSlot,baseParameters in [('xuiDocumentOpenFileOwned','openDocument',2,2,4,'string path,c_uint format'),('xuiDocumentDeserializeOwned','deserializeDocument',0,0,3,'')]:
+for nativeName,logical,first,packSlot,outSlot,baseParameters in [('xuiDocumentOpenFileOwned','openDocument',2,2,4,'string path,c_uint format'),('xuiDocumentDeserializeOwned','deserializeDocument',2,0,3,'')]:
  attrs=['@no_raise','@c_result("owned_view")','@factory('+str(outSlot)+',0,rollbackDocument)']
- attrs+=['@c_cstr(0)'] if packSlot==2 else ['@c_span(8,"const char*","size_t")']
+ attrs+=['@c_cstr(0)'] if packSlot==2 else ['@c_span(0,"const char*","uint64_t",1)']
  attrs+=['@c_pack('+str(packSlot)+',"xui_doc_desc_t",'+str(first)+',8)','@c_pack_size('+str(packSlot)+',"iSize","uint32_t")']
  attrs+=['@c_pack_field('+str(packSlot)+',"'+field+'",'+str(first+i)+',"value")' for i,field in enumerate(fields)]
- functions.append('export extern "'+nativeName+'" @header("xge3_runtime.h") '+' '.join(attrs)+' func '+logical+'('+((baseParameters+',') if baseParameters else '')+config+(',uint64 maxFileBytes=0' if packSlot==2 else ',string data=""')+') as Document')
+ for kind in (('',)if packSlot==2 else('string','bytes','Buffer')):
+  parameters=baseParameters+','+config+',uint64 maxFileBytes=0'if packSlot==2 else kind+' data,int size=-1,'+config
+  functions.append('export extern "'+nativeName+'" @header("xge3_runtime.h") '+' '.join(attrs)+' func '+logical+'('+parameters+') as Document')
  mapped[nativeName]=logical;reasons.pop(nativeName,None)
 for n in ('xui_document','xui_document_change_set'):
 
@@ -177,7 +204,10 @@ for n in ('xui_document','xui_document_change_set'):
  lines+=['export extern "struct '+tag+'*" class '+cb+' @header("xge3_runtime.h") @lifetime("callback")',' native point handle',' extern "'+prefix+'ShareOwned" @no_raise @c_result("owned_view") @factory(1,0,rollback'+cl+') func share() as '+cl,*[line for line in classes[cl] if any(('func '+mn+'(') in line for mn in (('identity','revision','profile','markdownDialect') if cl=='Document' else ('info',)))],'end','']
 lines+=['export extern "const xui_doc_source_binding_t*" class CallbackDocumentSourceBinding @header("xge3_runtime.h") @lifetime("callback")',' native point handle',' extern "value" @c_deref get value() as DocumentSourceBinding','end','export typedef DocumentSourceBindingProc = func(uint64,CallbackDocumentSourceBinding) as c_int','']
 lines+=['export typedef DocumentChangeProc = func(CallbackDocument,CallbackDocumentChangeSet) as c_int','',*functions,'']
-src=r/'lib/bindings/xui/src';(src/'document_records.xl').write_text('\n'.join(recordLines)+'\n',encoding='utf-8',newline='\n');(src/'document.xl').write_text('\n'.join(lines),encoding='utf-8',newline='\n')
+src=r/'lib/bindings/xui/src'
+for name,text in [('document_records.xl','\n'.join(recordLines)+'\n'),('document.xl','\n'.join(lines))]:
+ if args.check:assert (src/name).read_text(encoding='utf-8')==text,'generated declarations differ: '+name
+ else:(src/name).write_text(text,encoding='utf-8',newline='\n')
 report=dict(scope='Default-provenance Model A direct declaration coverage; declarations are not ABI/runtime qualification',authority=h['header'],authoritySha256=h['sha256'],roots={k:dict(logical=v[0],cName='struct '+v[1]+'*',policy='xl6Xui3'+v[3]+'Policy') for k,v in models.items()},records=records,pointerBearingRecords=list(pending),entries=[dict(native=f['name'],declaration=f['declaration'],line=f['line'],logical=mapped.get(f['name']),state='declared-needs-ABI' if f['name'] in mapped else 'explicit-C-interoperability',reason=reasons.get(f['name'])) for f in h['functions']],counts=dict(publicFunctions=len(h['functions']),declared=len(mapped),ownedRoots=7,pointerFreeRecords=len(records),constants=len(constantRows)))
 
 replacements={
@@ -199,7 +229,7 @@ for entry in report['entries']:
  if any(x in name for x in ('AddRef','ReleaseOwnerChecked','ReleaseChecked','Ownership','Retain','Release')):
   entry['state']='policy-or-legacy-C-infrastructure';entry['reason']='Real ownership metadata/cleanup is consumed by the private policy. Raw Retain/Release is not exposed as an extra language owner.'
  elif 'char** out' in entry['declaration']:
-  entry['reason']='Producer-owned libc/default-allocator text + explicit byte count; must release through xuiDocumentFreeBuffer. No compatible allocator-aware owned-buffer output contract is declared.'
+  entry['reason']='Owned resident-XRT export; ordinary paired byte/text declarations consume exact length. FreeBuffer remains internal to language cleanup.'if entry['native']!='xuiDocumentFreeBuffer'else'Resident-XRT release is handled by language value cleanup; no public raw output pointer.'
  if name in replacements:entry['reason']=replacements[name]
 report['fields']={
  'xui_doc_node_info_t':dict(projectedPOD=['iKind','iId','iParentId','iChildCount','iTextBytes','iSourceStart','iSourceEnd','bSourceExact','iSyntaxStart','iSyntaxEnd','iSourceSegmentCount','iExtensionPayloadBytes','iExtensionVersion','bExtensionRequired'],notProjected=dict(tAttributes='Contains borrowed sLanguage plus fixed font-family bytes; not pointer-free POD.',sResource='Borrowed NUL text, unsupported output-record field conversion.',sInfo='Borrowed NUL text.',sTitle='Borrowed NUL text.',sLinkTarget='Borrowed NUL text.',sLinkTitle='Borrowed NUL text.'),safeTextAlternative='copyText/readText and copySource/readSource write into scoped Buffer storage.'),
@@ -212,6 +242,16 @@ report['fields']={
  'xui_doc_desc_t':dict(input='Owned constructors pack size and all eight ordinary settings.',notProjected=dict(onAlloc='Custom allocator callback lifetime is C-only.',onFree='Must be paired with allocator, outlives all handles.',pAllocatorUser='No raw userdata exposed.')),
  'xui_doc_source_patch_t':dict(notProjected=dict(iSize='Per-element sizeof initialization needs a checked array-record field contract.',sText='Per-element counted string lifetime/byte length cannot be replaced by NUL scanning.',iTextBytes='Must be paired with its actual element text source.'))}
 report['costs']=dict(nativeForwardingFunctions=0,descriptorPacks='Stack initialization and field assignments; counted inputs are pinned; NUL strings require validation/scans.',owningRoots='One resident control/code lease and real native owner per independent root; share/factories reserve before producer.',POD='Exact native values or stack output-record field copies; no arbitrary pointer projection.',buffers='Scope/pin/length checks; Native Copy performs its documented bytes copy; lengths remain unchanged.',callbacks='Native Owned capture ownership plus checked epoch admission; explicit share acquires a real separate owner.',overallZeroOverheadClaim=False)
+report['externalTypeAuthority']=dict(header=ui['header'],sha256=ui['sha256'])
+report['costs']['ownedExports']='Text adopts the actual resident-XRT allocation after one UTF-8 scan; bytes adds its ordinary owning value carrier. No payload copy or strlen.'
+previous=r/'docs/xge3-xui3-document-api-map.json'
+if previous.is_file():
+ old=json.loads(previous.read_text(encoding='utf-8'))
+ if 'qualification'in old:report['previousQualification']=old['qualification']
+ elif 'previousQualification'in old:report['previousQualification']=old['previousQualification']
+receipt=r/'dev/release-materials/provenance/xui-document-exports-source-20261112.json'
+if receipt.is_file():
+ report['ownedExportQualification']=dict(index=str(receipt.relative_to(r)).replace('\\','/'),sha256=hashlib.sha256(receipt.read_bytes()).hexdigest(),scope='Only owned export additions, not every declared Document entry; complete O2/VFS and final delivery tracked separately.')
 
-(r/'docs/xge3-xui3-document-api-map.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8',newline='\n')
+if not args.check:(r/'docs/xge3-xui3-document-api-map.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8',newline='\n')
 print(report['counts']);print('records pending',list(pending))

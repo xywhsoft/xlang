@@ -631,3 +631,17 @@ IR 破坏和 106 次空 C／头拒绝。真实生成 C 中强制错误对象分�
 表达式的提升规则，也不新增 generator<c_int> 或复合移位语法。完整 Windows r30／
 Linux r22 O2／TCC／XRT／VFS／内嵌源码重建及随后验收正在进行，正式配套发布
 保持未交付状态。证据为 `checked-c-integer-preflight-20261112.json`。
+
+上述 checked C 整数的完整 Windows r30／Linux r22 候选现已通过正式 CLI、
+真实内嵌 EXE／共享库、异步／生成器及图像／粒子／字面量／源码无关交付回归，
+后继索引为 `checked-c-integer-windows-20261112.json` 与
+`checked-c-integer-linux-20261112.json`，原预验收索引保持不变。
+
+已批准的 [拥有 UTF-8 输出](foreign-owned-text-output.md)现已补齐文本／字节共用的
+显式类型 IR 合同、U64 输入计数与描述符物理顺序；两端源码专项及旧 bytes 回归通过。
+Document HTML／纯文本等直接声明和示例通过真实 JIT、动态／静态程序、三种公共头及
+旧分配器 SDK 拒绝。XGE 原生七个导出的分配／释放已统一到同份驻留 XRT，原生 O0/O2、
+Linux ASan/UBSan 及完整 UI 消费者验证通过，最终活动分配归零。
+见 `foreign-owned-text-source-20261112.json` 与 `xui-document-exports-source-20261112.json`。
+后继完整 O2 r31／r23 重建正在进行；这些源码／SDK 专项不替代其验收，也不代表
+GPU、有状态 3D、其余未决合同或最终 SDK／IDE 交付已完成。
