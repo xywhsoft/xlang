@@ -1,0 +1,242 @@
+{
+  "schema": 1,
+  "date": "2026-11-13",
+  "stage": "M7b5s",
+  "scope": "Bounded read-only disk source proof streaming in the actual LSP input guard, shared XRT SHA and UTF8 primitives",
+  "implementationAccepted": true,
+  "goalComplete": false,
+  "performanceQualified": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "a272c1cd1135edf0b7bcfbfd8461775d635d4083",
+  "ownedSources": {
+    "ide/src/services/language_snapshot.c": "de9f743ff7795d232fa573b80d7daf45cdd9214574d35fcc26508505eacdda54",
+    "ide/tests/language_disk_guard_test.c": "e1f13f647170324403b4d42858ea0aac7b74144f31aae6971b55cf2849f84667",
+    "ide/tests/language_disk_guard_bench.c": "ae000d0970746399b613a1fdec7adf5d37edacb101f06e02637cb2f3c9f4baf0",
+    "ide/tools/build.ps1": "e9b38dcaa440ee8801f0a3bcd92de1e35e6cf9048698fd4d6043248a63a95385",
+    "ide/docs/lsp-stream-input-guard.md": "3e146a9bb75c9a07e28a8b04a3640a42a6034153d4d8f82b8fe65bea48eae590"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-stream-input-guard-20261113.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-stream-input-guard-20261113/stage-sources.tar.gz",
+      "sha256": "84f4779a747d566f5d2624876181e43d0c6a062f0fc7c696a4036107bc80b23a",
+      "bytes": 41695,
+      "entries": 6,
+      "uniquePayloads": 6,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-stream-input-guard-20261113/stage-sources.tar.gz.manifest.json",
+      "sha256": "8aaeb568c85d58970121da733b2fc715b84c53c90304fc1755c6095b909ccc6a",
+      "bytes": 1353
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-stream-input-guard-20261113/actual-builds-and-validation.tar.gz",
+      "sha256": "83f1be98e77c7c48b80db870877c1bf833d1ee4f6be6fb643cdf330349c2bbe2",
+      "bytes": 228665610,
+      "entries": 6607,
+      "uniquePayloads": 3867,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-stream-input-guard-20261113/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "8998cfeb6af5db50919b663acba5458f1525ce8e186a76ef0b1073f64ed1dda5",
+      "bytes": 2537029
+    }
+  },
+  "currentBindings": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-stream-input-guard-20261113\\final-bindings.json",
+    "sha256": "a75499627c4919ce72d4c6c58fd9b8b560b5f3f129f2ad159a8cea560329a27a"
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "sdkInherited": {
+    "index": "dev/release-materials/provenance/lsp-dpi-startup-20261112.json",
+    "indexSha256": "727ae55e191b104683a756dbe85a03f0add12ed40e60c4d6166face2f50f4e5d",
+    "dllSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "compiledUnitsThisStage": 0,
+    "matchedSetPreserved": true
+  },
+  "nativeService": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-stream-input-guard-20261113\\native-v1\\xlang-ls.exe",
+    "sha256": "aef77647368d5344574a167632f25086d60753bac38726889da38dd5d836a878",
+    "unitsRebuilt": 1,
+    "coreUnitsRebuilt": 0,
+    "publicLayoutsChanged": false,
+    "inheritedObjectCount": 108,
+    "baseReceipt": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-completion-error-isolation-20261112\\native-v2\\result.json",
+    "baseReceiptSha256": "0c23c2a6ac692604a268c4ed1e269a63259901723abd5bbeb51da02a43b97e23",
+    "coreArchive": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-completion-error-isolation-20261112\\native-v2\\xlang-analysis-core.a",
+    "coreArchiveSha256": "837d93d7b101113433efb879e0a737faf3527b3b77671618cd61772881a79592",
+    "allInheritedObjectsRechecked": true
+  },
+  "correctness": {
+    "nativeReaderAssertions": 757,
+    "guiDllReaderAssertions": 757,
+    "nativeInputGuardAssertions": 104,
+    "nativeInputConcurrentValidations": 320,
+    "sourceReportAssertions": 4508,
+    "guiProductionUnits": 128,
+    "guiRegressionSuites": 55,
+    "protocolSuites": 3,
+    "protocolCases": 50,
+    "actualGuardConsumer": true,
+    "rejectedGuardMutants": 8,
+    "all128ReadFailuresAndShortReads": true,
+    "all131ObservedCancellationPoints": true,
+    "utf8ScalarSplitsWithAndWithoutBom": true,
+    "metadataSchemas1And2": true,
+    "finalHandleNamedIdentityEofAndCloseErrors": true,
+    "sameBytePhysicalReplacementRejected": true,
+    "actualCAndXlangTypingDeleteUndoImeFocus": true,
+    "actualGuiFramesEach": 24,
+    "currentProductionAndActualDependenciesBound": true,
+    "allInheritedNativeObjectsAndCoreArchiveRechecked": true,
+    "finalFocusedFixturesIdenticalToMutantFixtures": true,
+    "shortPathFixtureFilesRetained": 21,
+    "allRuntimeTestAliasesRemoved": true,
+    "userTemporaryDirectoriesPreserved": true,
+    "rawFailedAttemptsPreserved": true
+  },
+  "scopedBenchmark": {
+    "processes": 4,
+    "rawRows": 768,
+    "samplesPerMethodAndScenario": 64,
+    "order": "ABBA",
+    "warmOsCache": true,
+    "nativeXrtOwner": true,
+    "producerBodyAllocationsBefore": 2,
+    "producerBodyAllocationsAfter": 0,
+    "rawReadBlockLimit": 65536,
+    "pendingUtf8Limit": 3,
+    "noBomHashBytesBefore": "2N",
+    "noBomHashBytesAfter": "N",
+    "bomHashBytesBoth": "2N-3",
+    "summary": [
+      {
+        "bytes": 1024,
+        "bom": 0,
+        "retainedReader": {
+          "samples": 64,
+          "medianMs": 0.0505,
+          "p95Ms": 0.0626
+        },
+        "streamingReader": {
+          "samples": 64,
+          "medianMs": 0.0457,
+          "p95Ms": 0.0597
+        }
+      },
+      {
+        "bytes": 1024,
+        "bom": 1,
+        "retainedReader": {
+          "samples": 64,
+          "medianMs": 0.05155,
+          "p95Ms": 0.0707
+        },
+        "streamingReader": {
+          "samples": 64,
+          "medianMs": 0.051500000000000004,
+          "p95Ms": 0.0844
+        }
+      },
+      {
+        "bytes": 1048576,
+        "bom": 0,
+        "retainedReader": {
+          "samples": 64,
+          "medianMs": 8.335049999999999,
+          "p95Ms": 11.7373
+        },
+        "streamingReader": {
+          "samples": 64,
+          "medianMs": 4.17915,
+          "p95Ms": 7.6549
+        }
+      },
+      {
+        "bytes": 1048576,
+        "bom": 1,
+        "retainedReader": {
+          "samples": 64,
+          "medianMs": 8.611450000000001,
+          "p95Ms": 14.175
+        },
+        "streamingReader": {
+          "samples": 64,
+          "medianMs": 8.0861,
+          "p95Ms": 11.7214
+        }
+      },
+      {
+        "bytes": 8388608,
+        "bom": 0,
+        "retainedReader": {
+          "samples": 64,
+          "medianMs": 67.59685,
+          "p95Ms": 88.7567
+        },
+        "streamingReader": {
+          "samples": 64,
+          "medianMs": 33.71575,
+          "p95Ms": 45.0549
+        }
+      },
+      {
+        "bytes": 8388608,
+        "bom": 1,
+        "retainedReader": {
+          "samples": 64,
+          "medianMs": 70.02655,
+          "p95Ms": 87.1019
+        },
+        "streamingReader": {
+          "samples": 64,
+          "medianMs": 67.42044999999999,
+          "p95Ms": 81.6883
+        }
+      }
+    ],
+    "tinyBomP95RiseRetained": true,
+    "wholeGoalPerformanceQualified": false
+  },
+  "externalHelper": {
+    "proxy": {
+      "archive": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\lsp-completion-error-isolation-20261112\\actual-builds-and-validation.tar.gz",
+      "entry": "bound-inputs/20c68dabd23c25637a08/xui_test_proxy.c",
+      "sha256": "740c86aee90b1373324909c74d3ae6c9f446b0c52c84c3ea84cea141c53bdc48"
+    },
+    "header": {
+      "repository": "D:/GIT/xge",
+      "commit": "1ba93e6b3ea49e80d9d821894811caef599634f3",
+      "path": "tests/xui/xui_test_proxy.h",
+      "sha256": "b42cd48cd68966d969575f717ade56f357dacbcabce746730c9bfb275dd0a80a"
+    },
+    "liveXgeUnmodified": true
+  },
+  "evidenceNotes": [
+    "Native component build recompiles only language_snapshot.c and links the exact accepted native host/core cohort and archive. No public header or layout changes. All inherited object hashes and actual compiled header closure are rechecked. Unrelated GUI files inside the inherited native source snapshot are historical, not claimed current.",
+    "GUI is a complete128-unit current source cohort. Final correctness fixture gained additional injected metadata/name/EOF failures and oneshot SHA observation after the GUI snapshot; exact final fixtures and their actual include closures are separately bound.",
+    "native-tests-v1 is an initial compile failure due a fixture _WIN32_WINNT redefinition; the fixture now uses ifndef. Raw failed bytes and earlier accepted iterations remain. Final native-tests-v4 and gui-reader-v2 each pass757 checks.",
+    "All eight mutants failed actual implementation assertions with exit1; compile failures/crashes are not accepted mutation evidence. The retained text reader is the compatibility oracle, not substituted in production.",
+    "Benchmark records all768 samples including the worse1KiB BOM P95. Direct producer allocation observations exclude internal XRT/DLL/OS allocations and surrounding small environment buffers."
+  ],
+  "limits": [
+    "This is a read-only observed proof, not a filesystem name pin, byte lock, complete source/resolver closure or source-write authority.",
+    "Existing retained/normalized reader remains for callers needing text. Remaining synchronous readers and UI scheduling/transaction controller costs are not resolved by this optimization.",
+    "No whole-service/IDE latency, cold-disk, whole-heap/RSS or universal speedup claim. Full performance/resource/longevity acceptance remains open.",
+    "Complete transaction host/controller, source and resolver candidates and protocol binding, consent/recovery UI and startup replay, standard rename/applyEdit activation and final delivery remain open.",
+    "Latest engine alignment and existing compiler deep unprefixed xlp path and analysis-configuration cache-count regression remain open.",
+    "C LSP remains disabled. No DAP/debug/runtime completion and no Linux/sanitizer qualification in this stage."
+  ],
+  "postCommitReceipt": "dev/release-materials/provenance/lsp-stream-input-guard-20261113/postcommit.json"
+}

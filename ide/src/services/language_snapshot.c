@@ -273,13 +273,15 @@ static int nativeAnalysis(xide_language_check* q,char** json,int* code,xls_seman
 }
 #endif
 static int integer(const xvalue* v,int64* n,int64 min,int64 max) { return xrtValueGetInt(v,n) && *n>=min && *n<=max; }
-static int hash(const void* bytes,size_t size,const xvalue* value)
+static int digestEqual(const unsigned char digest[32],const xvalue* value)
 {
- const char* expected=string(value); unsigned char digest[32]; char hex[65];
- if(!expected || strlen(expected)!=64 || !xrtSha256(bytes,size,digest)) return 0;
+ const char* expected=string(value); char hex[65];
+ if(!expected || strlen(expected)!=64) return 0;
  for(int i=0;i<32;++i) snprintf(hex+2*i,3,"%02x",digest[i]);
  return !strcmp(expected,hex);
 }
+static int hash(const void* bytes,size_t size,const xvalue* value)
+{unsigned char digest[32];return xrtSha256(bytes,size,digest) && digestEqual(digest,value);}
 /* Overlay raw/text reports describe the same post-BOM bytes. Require both
    complete digests to agree before verifying that one digest against input;
    neither an unchecked second field nor a second full-source hash is needed. */
@@ -344,6 +346,38 @@ int xideLanguageReadDiskSnapshot(const char* path,const xvalue* input,int (*stop
 static int diskProofCancelled(void* user) {return cancelled(user);}
 static char* diskText(xide_language_check* q,const char* path,const xvalue* item,char** original,xide_model_error* e)
 {return xideLanguageReadDiskProof(path,item,diskProofCancelled,q,original,e);}
+/* Read-only revalidation never needs a retained/normalized source body. Hash
+ * raw and post-BOM bytes during one bounded read, keeping at most three pending
+ * UTF8 bytes across chunks. XRT supplies all encoding and digest primitives.
+ * This proves the same metadata, identity, hashes and strict text convention
+ * as ReadDiskProof; it is not a name pin, byte lock or source-write authority. */
+static int diskProofValid(xide_language_check* q,const char* path,const xvalue* item,xide_model_error* e)
+{
+ int64 rawSize=0,textSize=0;
+ if(!integer(get(item,"rawSize"),&rawSize,0,FILE_LIMIT) || !integer(get(item,"textSize"),&textSize,0,FILE_LIMIT))return fail(e,"源码报告长度无效。");
+ unsigned char block[65540],rawDigest[32],textDigest[32],extra;xfileinfo first,last,named;
+ xsha256 rawHash,textHash;xrtSha256Init(&rawHash);xrtSha256Init(&textHash);
+ xfile file=cancelled(q)?NULL:xideIoOpen(path,XFILE_READ);size_t at=0,bom=0,pending=0,probe=0;
+ int okay=file && xideIoReceiptFileStat(file,&first) && infoEqual(&first,&first) && first.Size==(uint64)rawSize && metadata(item,&first);
+ while(okay && at<(size_t)rawSize){
+  size_t want=(size_t)rawSize-at;if(want>65536)want=65536;size_t got=0;unsigned char* bytes=block+pending;
+  okay=!cancelled(q) && xrtReadFull(file,bytes,want,&got) && got==want;if(!okay)break;
+  size_t skip=!at && got>=3 && !memcmp(bytes,"\xef\xbb\xbf",3)?3:0;if(!at)bom=skip;
+  okay=xrtSha256Update(&rawHash,bytes,got) && (!bom || xrtSha256Update(&textHash,bytes+skip,got-skip)) && !memchr(bytes+skip,0,got-skip);
+  size_t length=pending+got-skip,error=0;unsigned char* text=block+skip;pending=0;
+  if(okay && !xrtUtf8Valid((xstrview){(const char*)text,length},&error)){
+   size_t read=0;uint32 scalar=0;
+   if(error>=length || length-error>3 || xrtUtf8Decode((xstrview){(const char*)text+error,length-error},&scalar,&read)!=XUTF_MORE)okay=0;
+   else {pending=length-error;memmove(block,text+error,pending);}
+  }
+  at+=got;
+ }
+ okay=okay && !pending && (size_t)rawSize-bom==(size_t)textSize && !cancelled(q) && xrtRead(file,&extra,1,&probe) && !probe &&
+  xideIoReceiptFileStat(file,&last) && infoEqual(&first,&last) && xideIoReceiptStat(path,&named) && infoEqual(&first,&named) &&
+  xrtSha256Final(&rawHash,rawDigest) && digestEqual(rawDigest,get(item,"rawSha256")) && (!bom || xrtSha256Final(&textHash,textDigest)) && digestEqual(bom?textDigest:rawDigest,get(item,"textSha256"));
+ if(file && !xrtClose(file))okay=0;
+ return okay && !cancelled(q) ? 1 : fail(e,"磁盘输入与编译器使用的源码摘要、身份或编码不一致。");
+}
 int xideLanguageCheckPackagePath(char** out,xide_model_error* e)
 {
  SetLastError(ERROR_SUCCESS); DWORD n=GetEnvironmentVariableW(L"XLANG_PACKAGE_PATH",NULL,0),code=GetLastError(); *out=NULL;
@@ -533,7 +567,7 @@ int xideLanguageSnapshotGuard(xide_language_check* q,xide_model_error* e)
   if(cancelled(q)) return 0;
   const xvalue* item=xrtValueArrayGet(q->guardFiles,i);
   if(formatted(get(item,"origin"),"overlay")) continue;
-  char* text=diskText(q,string(get(item,"path")),item,NULL,e); if(!text) return 0; free(text);
+  if(!diskProofValid(q,string(get(item,"path")),item,e))return 0;
  }
  if(!packageCurrent(q,e,"发布后包搜索环境已变化。")) return 0;
  const xvalue* probes=get(q->guardResolution,"probes");
