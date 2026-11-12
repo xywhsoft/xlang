@@ -1,0 +1,158 @@
+{
+  "schema": 1,
+  "focusedQualified": true,
+  "fullCompilerQualified": false,
+  "shippingDelivery": false,
+  "scope": "x86-64 Windows/Linux private ordinary final-link relocation metadata; real JIT/OS-loader/COFF/TLS/GOT and frozen unique actual object population preflight; complete language caller acceptance pending",
+  "sourceSha256": "ca364973fdcc11df0d517727a90474641c5a9a74627f18f7257e633e0f5d46bd",
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-private-metadata-unique-win-r8\\results.json",
+      "sha256": "ca28894f16addf13a189555e137c8ad7353de9198cef8449beab0d86ee6dd8ed",
+      "control": "fixed",
+      "checks": 138
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-private-metadata-linux-r8\\results.json",
+      "sha256": "ed608800aae6f7756461d8ba344463ada21c95b7856060b235fe60eab7544124",
+      "control": "fixed",
+      "checks": 116
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-private-metadata-unique-before-win-r8\\results.json",
+      "sha256": "2ef1fc49794814225384331e6426dd89c1f9ee52d039a2118f92e390d7b4cfd1",
+      "control": "before",
+      "checks": 132
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-private-metadata-before-linux-r7\\results.json",
+      "sha256": "f2f51ffa54ce91c3b1c394f08385ec3212e0b5c16241f040058a26825aa12436",
+      "control": "before",
+      "checks": 116
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-private-reloc-core-win-r7\\results.json",
+      "sha256": "99b7c1941fc285bf920f17a146b2b4f67434a2dbb0a867eebd9331be5b8dbe5b",
+      "control": "fixed",
+      "checks": null
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-private-reloc-core-linux-r7\\results.json",
+      "sha256": "6875db14660acd5a09fec5bf42a9b038c5be6f50388b080125cbb24eae38610b",
+      "control": "fixed",
+      "checks": null
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-private-reloc-backends-win-r7\\results.json",
+      "sha256": "ffe9e7602d49f9a19f2c0f5d46e381252a9f319c4882f7741c7e1c35a3668ab6",
+      "control": "fixed",
+      "checks": null
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-private-reloc-backends-linux-r7\\results.json",
+      "sha256": "f19811c4d03e6575e463e5b40d1f7de005b7f58f9aa4e9641d12516e3d3beccf",
+      "control": "fixed",
+      "checks": null
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-private-reloc-core-win-r7\\literal_gc\\results.json",
+      "sha256": "d44e89d2eac6a49a0e2d9ca3350df173818041b06ce0a4c96127e33a145ddbe1",
+      "checks": null
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-private-reloc-core-linux-r7\\literal_gc\\results.json",
+      "sha256": "54c0a6d6908717cc1e8b2dd39f39381ffe428eb6c2d985d95dfaf0b265935863",
+      "checks": null
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-private-reloc-core-win-r7\\section_gc\\results.json",
+      "sha256": "6be38fc48f81a61773e832a83d1af82ba31493387283d16f4af92e4924d8f2b3",
+      "checks": null
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-private-reloc-core-linux-r7\\section_gc\\results.json",
+      "sha256": "3d0a33b4433502a7f388dc1eb23c65ad3bf96d5248f6908ef3b1968a4a5a4135",
+      "checks": null
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-private-reloc-core-win-r7\\elf_section_budget\\results.json",
+      "sha256": "a4a5a43c734a1dc0905b02d7098aaf9f71124e4220b1c22b6aa6d407d316432b",
+      "checks": 128
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-private-reloc-core-linux-r7\\elf_section_budget\\results.json",
+      "sha256": "1bb2633585dcafed36fcf4348ce34cd0ae158e8a8c97051215bfaa0c90c509f9",
+      "checks": 114
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-private-reloc-core-win-r7\\pdata_gc\\results.json",
+      "sha256": "fcb539cf433b0325ac148c6bf1aa07235e8435b9bba362f1d476f9d66fb870ed",
+      "checks": null
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-private-reloc-core-linux-r7\\elf_copy_gc\\results.json",
+      "sha256": "7543dbc6a066ef8d16d2ac65ae63261e59bdb5f633f610f9f9619878dd2bd133",
+      "checks": 34
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-private-reloc-backends-win-r7\\coff\\results.json",
+      "sha256": "c993b4936abf34ce1dd7ce31ec711649c72bba5916f89e851b3b1dd012a45084",
+      "checks": null
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-private-reloc-backends-win-r7\\iat\\results.json",
+      "sha256": "509e73781268ea22611d453ff420a463c49260e0cd8f8561cf095aa165f2e323",
+      "checks": null
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-private-reloc-backends-win-r7\\tls\\results.json",
+      "sha256": "ff889586937fe8c7d27c48ed7709867f72279b2f405cfa4cbc7cbfccfd39e36d",
+      "checks": null
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-private-reloc-backends-win-r7\\archive\\results.json",
+      "sha256": "9295f2a3b6b7eac3c7b6775a8925cd530cd191221ce6f43c59dea6e482e851df",
+      "checks": 260
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-private-reloc-backends-linux-r7\\archive\\results.json",
+      "sha256": "59a35b3347404ae980052b55fcfc7cf94bd7968c3ce7cd727d7b34571bff9645",
+      "checks": 240
+    }
+  ],
+  "capturedObjectPreflight": {
+    "originalCalls": 1431,
+    "uniqueObjects": 1423,
+    "repeatedCallsNotReplayed": 8,
+    "indexedSections": 43299,
+    "privateRelocationTables": 29030,
+    "linkerErrors": 0,
+    "fullCallerProtocolQualified": false
+  },
+  "layoutBytes": {
+    "windows": {
+      "tccState": 1920,
+      "section": 128,
+      "merge": 16
+    },
+    "linux": {
+      "tccState": 1832,
+      "section": 144,
+      "merge": 24
+    },
+    "growth": 0
+  },
+  "failedHarnessExperiments": [
+    "tcc-private-metadata-fixed-win-r1",
+    "tcc-private-metadata-fixed-win-r2",
+    "tcc-private-metadata-fixed-win-r3",
+    "tcc-private-reloc-backends-linux-r1",
+    "tcc-private-reloc-backends-linux-r2",
+    "tcc-private-metadata-before-linux-r6"
+  ],
+  "limits": [
+    "Full O2 toolchain rebuild and actual nested compiler EXE/shared delivery remain pending.",
+    "No new SHN_XINDEX, Mach-O or non-x86-64 representation qualification.",
+    "No CPU or peak-memory improvement claim."
+  ]
+}

@@ -18,7 +18,7 @@ def run(label,args):
  t=time.monotonic();p=subprocess.run([str(x) for x in args],cwd=out,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,timeout=180);log=out/(label+'.log');log.write_bytes(p.stdout);steps.append({'label':label,'command':[str(x) for x in args],'exitCode':p.returncode,'seconds':time.monotonic()-t,'log':str(log),'logSha256':sha(log)})
  if p.returncode:raise RuntimeError(label+' failed: '+str(log))
  return p.stdout.decode('utf-8',errors='replace')
-def object_file(path,count):
+def object_file(path,count,relocations=True):
  ident=b'\x7fELF'+bytes([2,1,1,0])+b'\0'*8
  if not count:
   path.write_bytes(struct.pack('<16sHHIQQQIHHHHHH',ident,1,62,1,0,0,64,0,64,0,0,64,0,0));return
@@ -31,7 +31,7 @@ def object_file(path,count):
  remain=count-4;index=0
  while remain:
   target=len(headers);at=add_bytes(b'A');headers.append([name('.data.budget.'+str(index)),1,3,0,at,1,0,0,1,0]);remain-=1
-  if remain:
+  if remain and relocations:
    headers.append([name('.rela.data.budget.'+str(index)),4,0,0,len(data),0,0,target,8,24]);remain-=1
   index+=1
  sym=len(headers);headers.append([name('.symtab'),2,0,0,add_bytes(b'\0'*24,8),24,sym+1,1,8,24])
@@ -47,6 +47,7 @@ def object_file(path,count):
 try:
  run('compiler-version',[cc,'--version']);obj=out/'objects';obj.mkdir()
  for name,count in [('large.o',20189),('small.o',5),('extended.o',0)]:object_file(obj/name,count)
+ object_file(obj/'payload-only.o',20189,False)
  report['generatedObjects']=[{'path':str(p),'sha256':sha(p),'bytes':p.stat().st_size} for p in obj.iterdir()]
  actual=[]
  if a.actual_object:

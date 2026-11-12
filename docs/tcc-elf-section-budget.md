@@ -30,3 +30,18 @@ object, rejects unsupported zero/extended counts, and exercises the unchanged
 hard-limit jump and subsequent state cleanup. `--actual-object` also loads the
 exact full sectioned runtime object into a state with 25,000 existing sections.
 GCC builds the host fixture; it emits and executes no PE file.
+
+The subsequent x86-64 final-link representation keeps unaddressed ordinary
+relocation tables privately attached to their indexed targets. Its bound
+subtracts only those eligible metadata headers, after reading defining symbols.
+Referenced metadata and runtime/other flagged records retain numbered identity;
+OBJ output retains its previous wire format. See
+[relocation metadata](tcc-relocation-metadata.md).
+
+The updated fixture also admits the paired 20,189-header input on top of 50,000
+sections, and at the new conservative indexed boundary: it adds 10,093 numbered
+data sections, while its 10,092 ordinary tables remain private. A separate input
+with 20,185 real data sections still overflows and is refused without partial
+publication. OBJ mode separately retains the old boundary and overflow checks.
+The hard guard, unsupported extended counts, recovery, and actual runtime input
+checks remain active.

@@ -1,8 +1,8 @@
 # Relocation metadata and the numbered section directory
 
-Status: implementation plan based on the actual r25 nested-compiler failure.
-The source has not yet gained this representation. Keep the current hard index
-checks and the failing full-language-compiler acceptance case.
+Status: implemented and focused-qualified on x86-64 Windows/Linux. Complete
+compiler rebuilds and the actual nested-language-compiler caller remain pending.
+Keep the current hard index checks and the failing r25 acceptance evidence.
 
 ## Required behavior
 
@@ -73,3 +73,50 @@ preserving the true bound.
 Record cold compile/link allocations, scans, metadata storage, and any changed
 output bytes. Runtime GUI/drawing calls must not acquire a new wrapper or
 bookkeeping path from this internal compiler correction.
+
+## Focused implementation qualification, 2026-11-12
+
+Ordinary final-link metadata now uses the existing private container. The shared
+accessor covers symbol rewrites, relocation execution, GOT creation and fill.
+ELF output classifies runtime tables, checks the required directory capacity,
+then transfers each required table's sole ownership to the numbered container.
+Output sorting also parks discarded public sections in the teardown container;
+those records are deliberately excluded from private metadata lookup/promotion.
+No `TCCState` or `Section` fields were added. The input classification byte fits
+existing `SectionMergeInfo` padding: Windows remains 16 bytes and Linux 24 bytes.
+
+The focused O0/O2 results, frozen under
+`F:/xlang-validation/xge-full-20261110/`, include:
+
+- Windows/Linux source and object JIT, repeated common contributions, genuine
+  GNU object clients, metadata addressed by a symbol in a later input, allocated
+  and nonordinary metadata flags, exact contribution offsets, checked promotion
+  budget refusal, and real OS-loader shared-library execution.
+- Full literal/GC/debug/unwind, PE record-level exception, ELF COPY, indexed
+  budget and unchanged hard-limit regression gates.
+- Real GCC COFF archives, native callback/aggregate ABI and COMDAT/lifecycle,
+  emitted PE execution, IAT ordering, static TLS process/thread callbacks, Linux
+  PIC/GOT execution with a genuine conflicting GOT definition still refused,
+  and non-mutating archive selection.
+
+The captured Windows population preflight admits 1423 unique real object files,
+including the 9674496-byte XRT object, with zero linker errors: 43299 numbered
+sections and 29030 private relocation tables. The before provider still refuses
+the same unique population at its real index guard. All object hashes are pinned.
+This is **not** a replay of the full language caller: its 1431 captured object
+calls include eight repeated objects. Bare replay of those repeated calls emitted
+duplicate-definition diagnostics and is retained as a failed harness experiment.
+The qualifier reports the eight removed repetitions explicitly. It checks both
+the load return code and the internal error count; return code alone is inadequate.
+The original complete parent/child acceptance remains mandatory.
+
+The small immutable index is
+`dev/release-materials/provenance/tcc-relocation-metadata-preflight-20261112.json`.
+Large raw logs and frozen work copies stay external. The report does not qualify
+the complete compiler, final SDK/IDE installation, or the whole XGE integration.
+
+Cold linking adds a symbol-definition classification pass before the input
+budget check and private-metadata name lookups for common-section merging.
+Promotions use existing vectors and a checked ownership transfer; the table
+payloads still occupy memory. No cold CPU/peak-memory improvement is claimed.
+Runtime drawing/resource calls gain no wrapper from this internal linker change.

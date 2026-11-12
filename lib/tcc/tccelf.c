@@ -174,6 +174,9 @@ ST_FUNC void tccelf_begin_file(TCCState *s1)
     for (i = 1; i < s1->nb_sections; i++) {
         s = s1->sections[i];
         s->sh_offset = s->data_offset;
+        if (s->reloc && s->reloc->sh_type == SHT_RELX &&
+            (s->reloc->sh_flags & SHF_PRIVATE))
+            s->reloc->sh_offset = s->reloc->data_offset;
     }
     /* disable symbol hashing during compilation */
     s = s1->symtab, s->reloc = s->hash, s->hash = NULL;
@@ -368,7 +371,66 @@ static Section *have_section(TCCState *s1, const char *name)
         if (!strcmp(name, sec->name))
             return sec;
     }
+    /* Ordinary final-link relocation metadata is not in the numbered
+       directory. Do not expose unrelated private hashes through this lookup. */
+    for (i = 0; i < s1->nb_priv_sections; ++i) {
+        sec = s1->priv_sections[i];
+        if (sec->sh_type == SHT_RELX && (sec->sh_flags & SHF_PRIVATE) &&
+            !strcmp(name, sec->name))
+            return sec;
+    }
     return NULL;
+}
+
+/* Only unaddressed ordinary records may use this representation. Object
+   producers retain their existing wire section numbering. Other targets keep
+   their established representation until separately qualified. */
+static int private_reloc_eligible(TCCState *s1, unsigned flags)
+{
+#if defined(TCC_TARGET_X86_64) && !defined(TCC_TARGET_MACHO)
+    return s1->output_type != TCC_OUTPUT_OBJ &&
+        !(flags & ~(SHF_INFO_LINK | SHF_GROUP));
+#else
+    (void)s1;
+    (void)flags;
+    return 0;
+#endif
+}
+
+/* Each numbered relocation table, or a target's private table, exactly once.
+   The directory remains stable throughout an iteration; promotion is separate. */
+static Section *section_reloc(TCCState *s1, int index)
+{
+    Section *s = s1->sections[index];
+    if (s->sh_type == SHT_RELX)
+        return s;
+    s = s->reloc;
+    return s && s->sh_type == SHT_RELX && (s->sh_flags & SHF_PRIVATE) ? s : NULL;
+}
+
+/* Preserve one owner while publishing metadata needed by a symbol or an ELF
+   runtime relocation table. Check the same real index boundary as new_section. */
+static Section *index_private_reloc(TCCState *s1, Section *s)
+{
+    int i;
+    if (!(s->sh_flags & SHF_PRIVATE))
+        return s;
+    if (s1->nb_sections >= SHN_LORESERVE) {
+        tcc_error_noabort("too many sections (16-bit section index limit)");
+        return NULL;
+    }
+    for (i = 0; i < s1->nb_priv_sections; ++i)
+        if (s1->priv_sections[i] == s)
+            break;
+    if (i == s1->nb_priv_sections) {
+        tcc_error_noabort("invalid private relocation ownership");
+        return NULL;
+    }
+    dynarray_add(&s1->sections, &s1->nb_sections, s);
+    s->sh_num = s1->nb_sections - 1;
+    s->sh_flags &= ~SHF_PRIVATE;
+    s1->priv_sections[i] = s1->priv_sections[--s1->nb_priv_sections];
+    return s;
 }
 
 static void rebuild_hash(Section *s, unsigned int nb_buckets);
@@ -806,13 +868,19 @@ ST_FUNC void put_elf_reloca(Section *symtab, Section *s, unsigned long offset,
     Section *sr;
     ElfW_Rel *rel;
 
+    if (s->sh_type == SHT_RELX && (s->sh_flags & SHF_PRIVATE) &&
+        !index_private_reloc(s1, s))
+        return;
     sr = s->reloc;
     if (!sr) {
         /* if no relocation section, create it */
         snprintf(buf, sizeof(buf), REL_SECTION_FMT, s->name);
         /* if the symtab is allocated, then we consider the relocation
            are also */
-        sr = new_section(s->s1, buf, SHT_RELX, symtab->sh_flags);
+        sr = new_section(s->s1, buf, SHT_RELX, symtab->sh_flags |
+            (symtab == s1->symtab && s->sh_type != SHT_RELX &&
+             private_reloc_eligible(s1, symtab->sh_flags)
+                ? SHF_PRIVATE : 0));
         sr->sh_entsize = sizeof(ElfW_Rel);
         sr->link = symtab;
         sr->sh_info = s->sh_num;
@@ -862,8 +930,8 @@ static void update_relocs(TCCState *s1, Section *s, int *old_to_new_syms, int fi
     ElfW_Rel *rel;
 
     for(i = 1; i < s1->nb_sections; i++) {
-        sr = s1->sections[i];
-        if (sr->sh_type == SHT_RELX && sr->link == s) {
+        sr = section_reloc(s1, i);
+        if (sr && sr->link == s) {
             for_each_elem(sr, 0, rel, ElfW_Rel) {
                 sym_index = ELFW(R_SYM)(rel->r_info);
                 type = ELFW(R_TYPE)(rel->r_info);
@@ -1217,8 +1285,8 @@ ST_FUNC void relocate_sections(TCCState *s1)
     Section *s, *sr;
 
     for (i = 1; i < s1->nb_sections; ++i) {
-        sr = s1->sections[i];
-        if (sr->sh_type != SHT_RELX)
+        sr = section_reloc(s1, i);
+        if (!sr)
             continue;
         s = s1->sections[sr->sh_info];
 #ifndef TCC_TARGET_MACHO
@@ -1445,8 +1513,8 @@ ST_FUNC void build_got_entries(TCCState *s1, int got_sym)
     int pass = 0;
 redo:
     for(i = 1; i < s1->nb_sections; i++) {
-        s = s1->sections[i];
-        if (s->sh_type != SHT_RELX)
+        s = section_reloc(s1, i);
+        if (!s)
             continue;
         /* no need to handle got relocations */
         if (s->link != symtab_section)
@@ -1993,8 +2061,8 @@ ST_FUNC void fill_got(TCCState *s1)
     int i;
 
     for(i = 1; i < s1->nb_sections; i++) {
-        s = s1->sections[i];
-        if (s->sh_type != SHT_RELX)
+        s = section_reloc(s1, i);
+        if (!s)
             continue;
         /* no need to handle got relocations */
         if (s->link != symtab_section)
@@ -2172,31 +2240,36 @@ static void export_global_syms(TCCState *s1)
     }
 }
 
+/* Select the runtime subset of an ordinary relocation table, independently
+   from whether the table is currently in the numbered directory. */
+static int set_reloc_size(TCCState *s1, Section *s)
+{
+    if (!(s->sh_flags & SHF_ALLOC) && (s1->output_type & TCC_OUTPUT_DYN) &&
+        (s1->sections[s->sh_info]->sh_flags & SHF_ALLOC)) {
+        int count = prepare_dynamic_rel(s1, s);
+        if (count) {
+            s->sh_flags |= SHF_ALLOC;
+            s->sh_size = count * sizeof(ElfW_Rel);
+            if (s1->sections[s->sh_info]->sh_flags & SHF_EXECINSTR)
+                return count;
+        }
+    }
+    return 0;
+}
+
 /* decide if an unallocated section should be output. */
 static int set_sec_sizes(TCCState *s1)
 {
     int i;
     Section *s;
     int textrel = 0;
-    int file_type = s1->output_type;
+    int required = 0;
 
     /* Allocate strings for section names */
     for(i = 1; i < s1->nb_sections; i++) {
         s = s1->sections[i];
         if (s->sh_type == SHT_RELX && !(s->sh_flags & SHF_ALLOC)) {
-            /* when generating a DLL, we include relocations but
-               we may patch them */
-            if ((file_type & TCC_OUTPUT_DYN)
-                && (s1->sections[s->sh_info]->sh_flags & SHF_ALLOC)) {
-                int count = prepare_dynamic_rel(s1, s);
-                if (count) {
-                    /* allocate the section */
-                    s->sh_flags |= SHF_ALLOC;
-                    s->sh_size = count * sizeof(ElfW_Rel);
-                    if (s1->sections[s->sh_info]->sh_flags & SHF_EXECINSTR)
-                        textrel += count;
-                }
-            }
+            textrel += set_reloc_size(s1, s);
         } else if ((s->sh_flags & SHF_ALLOC)
 #ifdef TCC_TARGET_ARM
                    || s->sh_type == SHT_ARM_ATTRIBUTES
@@ -2204,6 +2277,31 @@ static int set_sec_sizes(TCCState *s1)
                    || s1->do_debug) {
             s->sh_size = s->data_offset;
         }
+    }
+    /* Do not substitute metadata for its target above: the target still needs
+       its ordinary size. Classify all private tables before publishing any. */
+    for (i = 1; i < s1->nb_sections; ++i) {
+        s = s1->sections[i]->reloc;
+        if (s && s->sh_type == SHT_RELX && (s->sh_flags & SHF_PRIVATE))
+            textrel += set_reloc_size(s1, s);
+    }
+    for (i = 0; i < s1->nb_priv_sections; ++i) {
+        s = s1->priv_sections[i];
+        if (s->sh_type == SHT_RELX &&
+            (s->sh_flags & (SHF_PRIVATE | SHF_ALLOC)) == (SHF_PRIVATE | SHF_ALLOC))
+            ++required;
+    }
+    if (required > SHN_LORESERVE - s1->nb_sections) {
+        tcc_error_noabort("too many runtime relocation sections (16-bit section index limit)");
+        return -1;
+    }
+    for (i = 0; i < s1->nb_priv_sections;) {
+        s = s1->priv_sections[i];
+        if (s->sh_type == SHT_RELX &&
+            (s->sh_flags & (SHF_PRIVATE | SHF_ALLOC)) == (SHF_PRIVATE | SHF_ALLOC)) {
+            if (!index_private_reloc(s1, s))
+                return -1;
+        } else ++i;
     }
     return textrel;
 }
@@ -2872,6 +2970,9 @@ static void reorder_sections(TCCState *s1, int *sec_order)
     for (i = 1; i < nnew; i++) {
 	s = snew[i];
         s->sh_num = i;
+        if (s->reloc && s->reloc->sh_type == SHT_RELX &&
+            (s->reloc->sh_flags & SHF_PRIVATE))
+            s->reloc->sh_info = i;
         if (s->sh_type == SHT_RELX)
             s->sh_info = backmap[s->sh_info];
         else if (s->sh_type == SHT_SYMTAB || s->sh_type == SHT_DYNSYM)
@@ -3097,6 +3198,8 @@ static int elf_output_file(TCCState *s1, const char *filename)
 	version_add (s1);
 
     textrel = set_sec_sizes(s1);
+    if (textrel < 0)
+        goto the_end;
 
     if (!s1->static_link) {
         /* add a list of needed dlls */
@@ -3288,6 +3391,7 @@ typedef struct SectionMergeInfo {
     unsigned long offset;  /* offset of the new section in the existing section */
     uint8_t new_section;       /* true if section 's' was added */
     uint8_t link_once;         /* true if link once section */
+    uint8_t indexed_reloc;     /* input symbol defines a relocation-section address */
 } SectionMergeInfo;
 
 ST_FUNC int tcc_object_type(int fd, ElfW(Ehdr) *h)
@@ -3412,38 +3516,33 @@ invalid:
     stab_index = stabstr_index = 0;
     ret = -1;
 
-    /* The original header count is a safe 1x bound except that packed PE
-       pdata contributions and their relocation tables share two canonical
-       sections. Compute this before publishing any input sections/symbols. */
-    new_section_bound = ehdr.e_shnum - 1;
-    {
-        int have_pdata = 0, have_pdata_reloc = 0;
-        char reloc_name[32];
-        snprintf(reloc_name, sizeof reloc_name, REL_SECTION_FMT, ".pdata");
-        for (i = 1; i < ehdr.e_shnum; ++i) {
-            sh = shdr + i;
-            if (sh->sh_name >= strsec_size
-                || !memchr(strsec + sh->sh_name, 0, strsec_size - sh->sh_name)) {
-                tcc_error_noabort("invalid object section name");
-                goto the_end;
-            }
-            if (sh->sh_type == SHT_RELX && sh->sh_info >= ehdr.e_shnum) {
-                tcc_error_noabort("invalid object relocation target");
-                goto the_end;
-            }
+    /* Validate and classify before publishing any contributions. Metadata
+       that a symbol addresses must retain its ordinary numbered identity. */
+    for (i = 1; i < ehdr.e_shnum; ++i) {
+        sh = shdr + i;
+        if (sh->sh_name >= strsec_size ||
+            !memchr(strsec + sh->sh_name, 0, strsec_size - sh->sh_name)) {
+            tcc_error_noabort("invalid object section name");
+            goto the_end;
         }
-        for (i = 1; i < ehdr.e_shnum; ++i)
-            if (tcc_elf_pdata_header(shdr, ehdr.e_shnum, strsec, i)) {
-                --new_section_bound;
-                if (shdr[i].sh_type == SHT_RELX) have_pdata_reloc = 1;
-                else have_pdata = 1;
-            }
-        if (have_pdata && !have_section(s1, ".pdata")) ++new_section_bound;
-        if (have_pdata_reloc && !have_section(s1, reloc_name)) ++new_section_bound;
-    }
-    if (new_section_bound > (unsigned)(SHN_LORESERVE - s1->nb_sections - 32)) {
-        tcc_error_noabort("object exceeds 16-bit section index limit");
-        goto the_end;
+        if (sh->sh_link >= ehdr.e_shnum) {
+            tcc_error_noabort("invalid object section link");
+            goto the_end;
+        }
+        if (sh->sh_type == SHT_RELX && sh->sh_info >= ehdr.e_shnum) {
+            tcc_error_noabort("invalid object relocation target");
+            goto the_end;
+        }
+        if (sh->sh_type == SHT_RELX && (sh->sh_flags & SHF_PRIVATE)) {
+            tcc_error_noabort("unsupported object relocation section flag");
+            goto the_end;
+        }
+        if (sh->sh_type == SHT_RELX && shdr[sh->sh_info].sh_type == SHT_RELX) {
+            /* A relocation table that itself has relocations is addressable
+               metadata. Keep both tables numbered, including their owner walk. */
+            sm_table[i].indexed_reloc = 1;
+            sm_table[sh->sh_info].indexed_reloc = 1;
+        }
     }
 
     for(i = 1; i < ehdr.e_shnum; i++) {
@@ -3451,6 +3550,11 @@ invalid:
         if (sh->sh_type == SHT_SYMTAB) {
             if (symtab) {
                 tcc_error_noabort("object must contain only one symtab");
+                goto the_end;
+            }
+            if (sh->sh_link >= ehdr.e_shnum ||
+                sh->sh_size % sizeof(ElfW(Sym))) {
+                tcc_error_noabort("invalid object symbol table");
                 goto the_end;
             }
             nb_syms = sh->sh_size / sizeof(ElfW(Sym));
@@ -3463,6 +3567,53 @@ invalid:
         }
 	if (sh->sh_flags & SHF_COMPRESSED)
 	    seencompressed = 1;
+    }
+
+    for (i = 1; i < nb_syms; ++i) {
+        sym = symtab + i;
+        if (sym->st_shndx == SHN_XINDEX) {
+            tcc_error_noabort("extended object symbol section index is not supported");
+            goto the_end;
+        }
+        if (sym->st_shndx < SHN_LORESERVE) {
+            if (sym->st_shndx >= ehdr.e_shnum) {
+                tcc_error_noabort("invalid object symbol section index");
+                goto the_end;
+            }
+            if (shdr[sym->st_shndx].sh_type == SHT_RELX)
+                sm_table[sym->st_shndx].indexed_reloc = 1;
+        }
+    }
+
+    /* One indexed contribution per input header is conservative. Ordinary
+       unaddressed final-link relocation metadata uses the private container;
+       packed PE pdata still shares its canonical indexed data/metadata pair. */
+    new_section_bound = ehdr.e_shnum - 1;
+    {
+        int have_pdata = 0, have_pdata_reloc = 0;
+        char reloc_name[32];
+        snprintf(reloc_name, sizeof reloc_name, REL_SECTION_FMT, ".pdata");
+        for (i = 1; i < ehdr.e_shnum; ++i) {
+            sh = shdr + i;
+            if (sh->sh_type == SHT_RELX && !sm_table[i].indexed_reloc &&
+                private_reloc_eligible(s1, sh->sh_flags)) {
+                --new_section_bound;
+            } else if (tcc_elf_pdata_header(shdr, ehdr.e_shnum, strsec, i)) {
+                --new_section_bound;
+                if (sh->sh_type == SHT_RELX) have_pdata_reloc = 1;
+                else have_pdata = 1;
+            }
+        }
+        if (have_pdata && !have_section(s1, ".pdata")) ++new_section_bound;
+        if (have_pdata_reloc) {
+            Section *existing = have_section(s1, reloc_name);
+            if (!existing || (existing->sh_flags & SHF_PRIVATE))
+                ++new_section_bound;
+        }
+    }
+    if (new_section_bound > (unsigned)(SHN_LORESERVE - s1->nb_sections - 32)) {
+        tcc_error_noabort("object exceeds 16-bit section index limit");
+        goto the_end;
     }
 
     /* now examine each section and try to merge its content with the
@@ -3558,9 +3709,25 @@ invalid:
             }
             goto found;
         }
+        /* Check private metadata names as well when merging common inputs.
+           Independent function/data contributions still use fresh tables. */
+        if (sh->sh_type == SHT_RELX) {
+            s = have_section(s1, sh_name);
+            if (s && (s->sh_flags & SHF_PRIVATE)) {
+                if (sm_table[i].indexed_reloc ||
+                    !private_reloc_eligible(s1, sh->sh_flags)) {
+                    if (!index_private_reloc(s1, s))
+                        goto the_end;
+                }
+                s->sh_flags |= sh->sh_flags & ~SHF_GROUP;
+                goto found;
+            }
+        }
         /* not found: create new section */
     new_input_section:
-        s = new_section(s1, sh_name, sh->sh_type, sh->sh_flags & ~SHF_GROUP);
+        s = new_section(s1, sh_name, sh->sh_type, (sh->sh_flags & ~SHF_GROUP) |
+            (sh->sh_type == SHT_RELX && !sm_table[i].indexed_reloc &&
+             private_reloc_eligible(s1, sh->sh_flags) ? SHF_PRIVATE : 0));
         /* take as much info as possible from the section. sh_link and
            sh_info will be updated later */
         s->sh_addralign = sh->sh_addralign;

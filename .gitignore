@@ -125,6 +125,7 @@
 !/dev/release-materials/provenance/tcc-literal-owner-preflight-20261112.json
 !/dev/release-materials/provenance/tcc-literal-windows-20261112.json
 !/dev/release-materials/provenance/tcc-literal-linux-20261112.json
+!/dev/release-materials/provenance/tcc-relocation-metadata-preflight-20261112.json
 /out/
 /tmp/
 /logs/
