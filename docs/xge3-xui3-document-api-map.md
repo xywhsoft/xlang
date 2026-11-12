@@ -50,6 +50,18 @@ as the Document header, and reproduces owned output, exact U64 prefix and
 descriptor-order contracts. It cannot silently restore the old CRT output
 boundary.
 
+The later full Windows r31 boundary gate executes all seven native producers
+through language ownership, including range and table-matrix text/bytes and
+the reference-valued range argument. It checks empty/reversed ranges, invalid
+document identity/table extents, retained assignment on failure and 448
+allocation budgets. JIT and independent hosted/static executables plus three
+public header modes pass 11 commands. In 100 iterations of five text exports,
+native C and xlang each make 600 allocations, 600 frees and no reallocations.
+Text still adds its UTF-8 scan and language scope/status checks; stack/value
+transfer and CPU throughput are not equated. The Windows receipt is
+`xui-document-exports-boundaries-windows-20261113.json`; Linux and the remaining
+Document interfaces remain separate qualification requirements.
+
 Direct declarations eliminate C forwarding wrappers. Resource controls, code leases, checked scopes, native RC operations and callbacks still cost work. Descriptor packs add stack initialization and assignments; NUL strings require scans/validation, while counted inputs retain exact byte lengths. Copy methods perform their documented native byte copy. POD output projection copies fields; it does not box pointer payloads. This package does not claim equality with raw C execution time.
 
 The focused gate is `tools/check_foreign_xge3_document.py`: it emits exported compile-only probes for every method, callback reads/shares and every POD record, checks C11/C++11/C++17 headers and compiles at O0/O2. A separate actual script executes all seven resource families, notification share preservation, checked notification delivery, POD projections, scoped buffers, source/index ownership, prepare publication and unique transaction cleanup against a matched CPU-only native engine. GUI, filesystem and network operations are not executed by that gate.

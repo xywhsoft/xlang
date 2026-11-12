@@ -1,0 +1,70 @@
+{
+  "date": "2026-11-13",
+  "complete": true,
+  "passed": true,
+  "platform": "win_x64",
+  "scope": "Exercise Document ownership through the actual full compiler and native SDK.\n\nSeven producers, reference-valued range arguments, invalid output transactions,\n448 language allocation budgets, equal-workload C/text heap counts, JIT and\nindependent hosted/static executables. Does not certify renderer/GPU behavior,\nthe complete Document API, package shared-library initialization or CPU speed.\n",
+  "shippingDelivery": false,
+  "evidence": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\document-export-boundaries-win-r2\\results.json",
+    "sha256": "a0df60e7e64a433f84d4163e065651f3dbc28dd1e6efb9277e3ccb1b65b3811d",
+    "commands": 11
+  },
+  "heapCountsPer100IterationsOfFiveTextExports": {
+    "jit": [
+      600,
+      600,
+      0
+    ],
+    "dynamic": [
+      600,
+      600,
+      0
+    ],
+    "static": [
+      600,
+      600,
+      0
+    ]
+  },
+  "languageAllocationBudgets": 448,
+  "producers": 7,
+  "artifacts": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\document-export-boundaries-win-r2\\dynamic.exe",
+      "sha256": "bfedc4609660bb7e353157454cf7586c469223cb102baac5e4d6623ee1a9ef82",
+      "bytes": 4966912,
+      "imports": [
+        "msvcrt.dll",
+        "xge3_host.dll",
+        "kernel32.dll",
+        "SHELL32.dll",
+        "ws2_32.dll",
+        "IPHLPAPI.dll",
+        "ucrtbase.dll"
+      ]
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\document-export-boundaries-win-r2\\static.exe",
+      "sha256": "b18c46ac7de916904c218733cf1b40e629d057882a364a6cde440056f9b3c19e",
+      "bytes": 1703936,
+      "imports": [
+        "msvcrt.dll",
+        "kernel32.dll",
+        "SHELL32.dll"
+      ]
+    }
+  ],
+  "sourceFiles": {
+    "test/cases/foreign_xui_document_export_boundaries.xl": "938bbec7c790ccbb661f7b997a8634484de04f3f1f95f6f6e18e75fc5790e7e9",
+    "test/cases/foreign_xui_document_export_boundaries.c": "2c1ace4f1a5b2cdb89e5ec9a74c97e72a652c607aa76067f7af60d29dc077f22",
+    "test/cases/foreign_xui_document_export_boundaries.h": "0272986c73228869238b7360ab189a13d2352ded3749897a1fdf0754435e9a14",
+    "tools/check_xui_document_export_boundaries.py": "8dd0d9477b128e7f59ee90e0d5b7bdee7ce1fce471f88c56d69f99ebeb4c3887"
+  },
+  "limits": [
+    "Linux follower waits for its complete full compiler build",
+    "Text requires an additional UTF-8 scan",
+    "No CPU timing or complete Document/rendering certification",
+    "No final SDK/compiler/IDE installation"
+  ]
+}

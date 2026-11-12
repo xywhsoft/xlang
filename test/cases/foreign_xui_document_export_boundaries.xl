@@ -1,0 +1,128 @@
+// Real model, exact record/reference ABI, output rollback and heap accounting.
+import xui
+extern "fixtureDocumentFirstBlock" @header("test/cases/foreign_xui_document_export_boundaries.h") @no_raise func firstBlock(xui.DocumentSnapshot snapshot) as xui.DocumentRange
+extern "fixtureDocumentExportBudget" @header("test/cases/foreign_xui_document_export_boundaries.h") @no_raise func budgetBegin(c_int budget)
+extern "fixtureDocumentExportBudgetEnd" @header("test/cases/foreign_xui_document_export_boundaries.h") @no_raise func budgetEnd()
+extern "fixtureDocumentExportBalanced" @header("test/cases/foreign_xui_document_export_boundaries.h") @no_raise func balanced()
+extern "fixtureDocumentExportNative" @header("test/cases/foreign_xui_document_export_boundaries.h") @no_raise func nativeReference(xui.DocumentSnapshot snapshot,xui.DocumentFragment fragment,xui.DocumentRange range,uint64 table)
+extern "fixtureDocumentExportHotBegin" @header("test/cases/foreign_xui_document_export_boundaries.h") @no_raise func hotBegin()
+extern "fixtureDocumentExportHotEnd" @header("test/cases/foreign_xui_document_export_boundaries.h") @no_raise func hotEnd()
+
+func main(...) as int
+ auto document=xui.createDocument()
+ auto edit=document.beginTransaction()
+ uint64 paragraph=edit.insertNode(xui.XUI_DOCUMENT_ROOT,xui.XUI_DOCUMENT_APPEND,c_uint(xui.XUI_DOC_PARAGRAPH))
+ edit.insertNode(paragraph,xui.XUI_DOCUMENT_APPEND,c_uint(xui.XUI_DOC_TEXT),text="Unicode 中 & < >")
+ uint64 table=edit.insertNode(xui.XUI_DOCUMENT_ROOT,xui.XUI_DOCUMENT_APPEND,c_uint(xui.XUI_DOC_TABLE))
+ uint64 row=edit.insertNode(table,xui.XUI_DOCUMENT_APPEND,c_uint(xui.XUI_DOC_ROW))
+ for value in ["left 中","right"]
+  uint64 cell=edit.insertNode(row,xui.XUI_DOCUMENT_APPEND,c_uint(xui.XUI_DOC_CELL))
+  uint64 child=edit.insertNode(cell,xui.XUI_DOCUMENT_APPEND,c_uint(xui.XUI_DOC_PARAGRAPH))
+  edit.insertNode(child,xui.XUI_DOCUMENT_APPEND,c_uint(xui.XUI_DOC_TEXT),text=value)
+ end
+ auto changes=edit.commit()
+ changes.close()
+ edit.close()
+ auto snapshot=document.snapshot()
+ auto selected=firstBlock(snapshot)
+ auto fragment=snapshot.fragmentCreateRange(selected)
+ assert snapshot.range(selected)=="Unicode 中 & < >\n"
+ assert encoding.decodeUtf8(snapshot.rangeBytes(selected))==snapshot.range(selected)
+ assert snapshot.tableMatrix(table,c_uint(0),c_uint(0),c_uint(1),c_uint(2))=="left 中\tright"
+ assert encoding.decodeUtf8(snapshot.tableMatrixBytes(table,c_uint(0),c_uint(0),c_uint(1),c_uint(2)))=="left 中\tright"
+ auto empty=selected
+ empty.tCaret=empty.tAnchor
+ assert snapshot.range(empty)=="" and snapshot.rangeBytes(empty).length==0
+ auto reversed=selected
+ reversed.tAnchor=selected.tCaret
+ reversed.tCaret=selected.tAnchor
+ assert snapshot.range(reversed)==snapshot.range(selected)
+ auto invalid=selected
+ invalid.tCaret.iDocumentId+=uint64(1)
+ string kept="keep"
+ bytes keptBytes=b"keep"
+ int rejected=0
+ try
+  kept=snapshot.range(invalid)
+ catch error
+  rejected+=1
+ end
+ try
+  keptBytes=snapshot.rangeBytes(invalid)
+ catch error
+  rejected+=1
+ end
+ try
+  kept=snapshot.tableMatrix(table,c_uint(0),c_uint(0),c_uint(0),c_uint(2))
+ catch error
+  rejected+=1
+ end
+ try
+  keptBytes=snapshot.tableMatrixBytes(table,c_uint(0),c_uint(2),c_uint(1),c_uint(1))
+ catch error
+  rejected+=1
+ end
+ assert rejected==4 and kept=="keep" and keptBytes==b"keep"
+
+ // Every producer crosses the language adoption/error boundary under OOM.
+ int failures=0
+ int successes=0
+ for kind in range(7)
+  int kindFailures=0
+  int kindSuccesses=0
+  for budget in range(64)
+   budgetBegin(c_int(budget))
+   try
+    if kind==0
+     auto output=snapshot.serialize()
+     assert output.length>0
+    elseif kind==1
+     auto output=snapshot.exportHtml()
+     assert output.length>0
+    elseif kind==2
+     auto output=snapshot.plainText()
+     assert output.length>0
+    elseif kind==3
+     auto output=snapshot.range(selected)
+     assert output.length>0
+    elseif kind==4
+     auto output=snapshot.tableMatrix(table,c_uint(0),c_uint(0),c_uint(1),c_uint(2))
+     assert output.length>0
+    elseif kind==5
+     auto output=fragment.serialize()
+     assert output.length>0
+    else
+     auto output=fragment.exportHtml()
+     assert output.length>0
+    end
+    kindSuccesses+=1
+   catch error
+    kindFailures+=1
+   finally
+    budgetEnd()
+   end
+   balanced()
+  end
+  assert kindFailures>0 and kindSuccesses>0
+  failures+=kindFailures
+  successes+=kindSuccesses
+ end
+ assert failures+successes==448
+ nativeReference(snapshot,fragment,selected,table)
+ hotBegin()
+ for i in range(100)
+  auto html=snapshot.exportHtml()
+  auto plain=snapshot.plainText()
+  auto rangeText=snapshot.range(selected)
+  auto matrix=snapshot.tableMatrix(table,c_uint(0),c_uint(0),c_uint(1),c_uint(2))
+  auto fragmentHtml=fragment.exportHtml()
+  assert html.length>0 and plain.length>0 and rangeText.length>0 and matrix.length>0 and fragmentHtml.length>0
+ end
+ hotEnd()
+ fragment.close()
+ snapshot.close()
+ document.close()
+ assert kept=="keep" and keptBytes==b"keep"
+ println("Document export boundaries: seven producers, 448 language OOM budgets and range/matrix reference ABI passed")
+ return 0
+end
