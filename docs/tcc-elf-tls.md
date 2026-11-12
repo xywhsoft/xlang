@@ -20,6 +20,14 @@ alignment of all its sections, including `.tbss`; `PT_TLS` distinguishes stored
 initializer bytes from zero-filled memory. Public TLS imports retain normal ELF
 symbol resolution. No per-access language wrapper is added.
 
+The current ELF AMD64 implementation adds four 32-bit fields to TinyCC's
+internal per-symbol attribute record (`16 -> 32` bytes); Windows retains the
+old layout. This is compiler/linker memory, not a language-object or per-call
+allocation. A general-dynamic symbol needs a 16-byte GOT pair, local-dynamic
+uses one such module pair, and initial-exec uses an 8-byte GOT slot. Loader TLS
+storage and alignment padding are additional native costs. These changes do
+not establish a total zero-overhead or CPU-performance claim.
+
 Unsafe combinations are rejected before producing an image: a local-exec object
 cannot be linked into a DSO, and native ELF TLS input cannot be JIT-relocated by
 the current in-memory loader. The latter has no per-module thread-data allocator;
