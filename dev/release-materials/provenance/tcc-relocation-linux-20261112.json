@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "fullCompilerBuild": true,
+  "windowsFullCompilerEmbeddingQualified": true,
+  "linuxFullCompilerEmbeddingQualified": true,
+  "shippingDelivery": false,
+  "scope": "Complete O2 Linux r19 combined private relocation, canonical embedded rosters and binary loader error correction. Actual nested CLI/EXE/shared compiler execution; Windows r27 evidence retained separately. Not final ecosystem delivery.",
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-linux-full-r19\\build.json",
+      "sha256": "6d3bd90945ecfeaa9f15b859955da4ddc08284a73ae371f97095a4844968aa01"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\relocation-full-qualification-linux-r2\\results.json",
+      "sha256": "2b00f400f9ad3cd3e88b05ca69f4d3dc4d9968a34041c9b7396ed72c7f5bdc60"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\relocation-full-qualification-linux-r2\\comparison.json",
+      "sha256": "897febdee4e735711dc215b10f5cadf5e601b95b29b5998f5efa2b399ca497bf"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\matrix-relocation-linux-r2\\results.json",
+      "sha256": "f02b61b80849eab66d0a45b7319a968c97d56586ff7f0c43acaa29c5ca2f1672"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\image-relocation-linux-r2\\results.json",
+      "sha256": "17b5f507efd2a7141032f86241f44405a5d10e2ccd9e76ad246b4dd80c8fbf4c"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-literal-delivery-relocation-linux-r2\\results.json",
+      "sha256": "47328104b980b826d7f80e335820e670714c21bc20312544f127075c466402ad"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\precompiled-relocation-linux-r2\\results.json",
+      "sha256": "970b7a2672528a77496422aa2e1b06c9576fc4755c2d3a1d936bfb7581cc3441"
+    }
+  ],
+  "sourceFreeze": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-linux-full-r19\\freeze.json",
+    "sha256": "4281d6ffa4dc1aec19a91083c487b65ab5de94a95654e89f6de801cf2c9c8117",
+    "overrides": {
+      "lib/tcc/tcc.h": "c4169862852708d1c4562f4f36c3852c6c104c683931019f661bc84a0b06faca",
+      "lib/tcc/tccgen.c": "5afd9d918b2d9695993a8bf47c56295737e25c0936b6b2a67d31fa7315fc9f36",
+      "lib/tcc/tcc-gc.inc": "d8e6dec7c5a1ae215ecfee89f3b1df593b15695c51b3abe0311e34253585bf13",
+      "lib/tcc/tccelf.c": "ca364973fdcc11df0d517727a90474641c5a9a74627f18f7257e633e0f5d46bd",
+      "lib/tcc/libtcc.c": "49cacf26c5c9650d43b018738c314a2c16882d4280208f3f83cc8a7f240a2cc7",
+      "src/api/xl_api.c": "53b43ec4493b488d5a46476e697caecb3f04749019fe309977948dacaf9db289",
+      "tools/precompile_builtin.py": "b5c9c8acb829ce064a6af54ab86cb95135512aa9b3be0df416b762a755cd3eb8"
+    }
+  },
+  "consumerMatrix": {
+    "fileSavingBytes": 0,
+    "codeDeltaBytes": 0,
+    "readonlyDataSavingBytes": 0
+  },
+  "producerProducts": {
+    "xl": {
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-linux-full-r19/source/release/linux_x64/xl",
+      "sha256": "faa25e49bdf8c5ce8ccdb084810075b406cc6dd499a59577664616eb2a08265b",
+      "bytes": 47224
+    },
+    "libxl.so": {
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-linux-full-r19/source/release/linux_x64/libxl.so",
+      "sha256": "1c5f2c9263a61bf716afea47d109ae4d975f06b5f4572872e823911b826f1d26",
+      "bytes": 16484880
+    },
+    "libxlc.so": {
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-linux-full-r19/source/release/linux_x64/libxlc.so",
+      "sha256": "69fb3458c65471062cea17bb535acf940bfdb482f7f1d256b0c97e29c3309199",
+      "bytes": 22489904
+    }
+  },
+  "persistedPrecompiledInputs": {
+    "original": "/tmp/xlang-xge-full-reloc-errors-r19/build/precompiled",
+    "copy": "/mnt/f/xlang-validation/xge-full-20261110/compiler-linux-full-r19/native-build-materials/precompiled",
+    "manifestSha256": "9cbf8352f8f2a1942bb278ed915c95a09f0bc228328dbb8771a077ccb9075de2"
+  }
+}

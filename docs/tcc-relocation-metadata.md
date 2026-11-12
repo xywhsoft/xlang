@@ -167,3 +167,18 @@ not add consumer code to that sample. The build and measured producer sizes are
 pinned in `dev/release-materials/provenance/tcc-relocation-windows-20261112.json`.
 Linux r19 combined qualification and the full XGE/XUI/Document delivery remain
 open; this Windows cohort is not the final SDK/IDE installation.
+
+## Complete Linux combined cohort
+
+The successor Linux r19 O2 build and all four combined gates now pass too,
+including the real source-free parent/child language compiler in executable and
+shared-library callers. With the same image SDK and matrix-only source, its
+consumer file, code and allocated read-only data sizes match r17 exactly.
+Producer sizes are 47,224 bytes for `xl`, 16,484,880 for `libxl.so` and
+22,489,904 for `libxlc.so`. Precompiled build inputs were preserved outside the
+temporary Linux build directory before qualification. The immutable successor
+index is `dev/release-materials/provenance/tcc-relocation-linux-20261112.json`;
+the earlier Windows report retains its historical Linux-pending statement.
+Both combined compiler cohorts are qualified for these gates. Full ecosystem
+coverage, pending ownership contracts and final matched SDK/IDE delivery remain
+open; neither cohort has been installed into the normal release runtime.
