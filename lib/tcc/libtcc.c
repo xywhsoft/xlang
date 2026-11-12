@@ -1094,6 +1094,7 @@ static int tcc_add_binary(TCCState *s1, int flags, const char *filename, int fd)
     ElfW(Ehdr) ehdr;
     int obj_type;
     const char *saved_filename = s1->current_filename;
+    int saved_errors = s1->nb_errors;
     int ret = 0;
 
     s1->current_filename = filename;
@@ -1193,6 +1194,10 @@ static int tcc_add_binary(TCCState *s1, int flags, const char *filename, int fd)
     s1->current_filename = saved_filename;
     if (ret == FILE_NOT_RECOGNIZED)
         return tcc_error_noabort("%s: unrecognized file type", filename);
+    /* Some loaders diagnose symbol conflicts without aborting their scan.
+       A successful transport/scan must not hide a new linker error. */
+    if (!ret && s1->nb_errors != saved_errors)
+        ret = -1;
     return ret;
 }
 

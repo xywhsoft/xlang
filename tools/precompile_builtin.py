@@ -64,6 +64,21 @@ def defined_symbols(path):
     return names
 
 
+def validate_embedded_source_rosters(arrays, components):
+    """The host-entry and resident catalogs must load each implementation once.
+
+    Producer-side object deduplication alone cannot fix duplicate consumer loads,
+    especially when host-entry and resident objects use different ABI profiles.
+    """
+    owners={};conflicts=[]
+    for owner, sources in [*arrays.items(), ('residentComponents', components)]:
+        for source in sources:
+            if source in owners:conflicts.append(source)
+            else:owners[source]=owner
+    if conflicts:
+        raise ValueError('Duplicate embedded implementation source: '+', '.join(sorted(set(conflicts))))
+
+
 def component_sources(text):
     """Separate complete C initializers, including nested dependency arrays.
 
@@ -91,6 +106,7 @@ def component_sources(text):
                 group.append(match[1])
             depth-=1
     if depth or quoted:raise RuntimeError('Incomplete runtime component catalog')
+    validate_embedded_source_rosters({}, fixed)
     return list(dict.fromkeys(fixed)),list(dict.fromkeys(placed))
 
 
@@ -121,6 +137,7 @@ def main():
     text=catalog.read_text(encoding="utf-8",errors="replace");text=text[text.index("static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[]"):];text=text[:text.index("_Static_assert")]
     while re.search(r'"\s+"',text):text=re.sub(r'"\s+"',"",text)
     components,placed_components=component_sources(text)
+    validate_embedded_source_rosters(arrays, components)
     assert len(components)>1000,"expanded artifact catalog is incomplete"
     tcc_sources=["lib/tcc/libtcc.c","lib/tcc/tcctools.c","lib/tcc/tcc_builtin_vfs.c","lib/lzma/LzmaDec.c","src/api/xl_tcc_standalone_env.c"]
     if os.name=="nt":tcc_sources.append("lib/tcc/tcc_utf8_io.c")

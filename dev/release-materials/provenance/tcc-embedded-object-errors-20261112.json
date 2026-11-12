@@ -1,0 +1,107 @@
+{
+  "schema": 1,
+  "focusedQualified": true,
+  "fullCompilerQualified": false,
+  "shippingDelivery": false,
+  "scope": "Actual nested-caller duplicate object error diagnosis; canonical host/resident source ownership and binary-loader error propagation. Complete matched O2 rebuild remains mandatory.",
+  "sourceInputs": {
+    "lib/tcc/libtcc.c": "49cacf26c5c9650d43b018738c314a2c16882d4280208f3f83cc8a7f240a2cc7",
+    "lib/tcc/tccelf.c": "ca364973fdcc11df0d517727a90474641c5a9a74627f18f7257e633e0f5d46bd",
+    "src/api/xl_api.c": "53b43ec4493b488d5a46476e697caecb3f04749019fe309977948dacaf9db289",
+    "tools/precompile_builtin.py": "b5c9c8acb829ce064a6af54ab86cb95135512aa9b3be0df416b762a755cd3eb8",
+    "test/cases/tcc_binary_error_propagation.c": "0feabc8e5936e6043314214bd4c26e3f6a413f294ab2488aab7acf01057267a8",
+    "tools/check_tcc_binary_errors.py": "24f33fb836856f2caf131b10e77d59e0a03d46cab79b34d094a62fe474642ae1",
+    "tools/check_embedded_source_rosters.py": "8b62f019b6c81d6f5898a3eb4942123d23c2a76f0d9fd4cfbc403a0e76ea1e10"
+  },
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-binary-errors-fixed-win-r2\\results.json",
+      "sha256": "db608d9959d885c2181c09f885187d1adfb6f9ad52cd040e0b2a5ee37629ea88",
+      "checks": 68,
+      "control": "fixed"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-binary-errors-before-win-r2\\results.json",
+      "sha256": "460c4fc4df4fb1600266934bf61d27da49516a90b34531a907d778d086d32c7f",
+      "checks": 68,
+      "control": "before"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-binary-errors-fixed-linux-r2\\results.json",
+      "sha256": "95fd1a489c5603b5555eb367d7061ca39bde0a4db69e2b30e3ab689a18e746d0",
+      "checks": 68,
+      "control": "fixed"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-binary-errors-before-linux-r2\\results.json",
+      "sha256": "10cfef366c269a46963223a138e7596357f1ba955e4e83b41666006a1d6a8f14",
+      "checks": 68,
+      "control": "before"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\embedded-source-roster-win-r3\\results.json",
+      "sha256": "d069c2c0b54daa0cc8aae2b5a934edd7e0eb5fb26d5950bfd305b8f3b45fb77c",
+      "checks": null,
+      "control": "fixed"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-private-reloc-core-win-r9\\results.json",
+      "sha256": "7c5ad3c751ced9676708b71ec85d2dd9cd6c26f3b5dca5497fabfaeeac4833ed",
+      "checks": null,
+      "control": "fixed"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-private-reloc-core-linux-r9\\results.json",
+      "sha256": "118f0da62dc65d3d445661fd9a612324798a1f5b371247a0e9b9827f933060aa",
+      "checks": null,
+      "control": "fixed"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-private-reloc-backends-win-r9\\results.json",
+      "sha256": "f7dcb4145423c521fc877337dd08eda1f489a8adf6bfa4e4d8209179cee33e0b",
+      "checks": null,
+      "control": "fixed"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-private-reloc-backends-linux-r9\\results.json",
+      "sha256": "f29d651648c2a05f6988d88ee882081b8c14178acfc813287275f98cf0387d5d",
+      "checks": null,
+      "control": "fixed"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-private-metadata-unique-win-r9\\results.json",
+      "sha256": "3aa294d44ebb922a2ecf7e01a34d1918dbb027a1b1c7cb418c9b929324c451f4",
+      "checks": 138,
+      "control": "fixed"
+    }
+  ],
+  "actualBeforeTrace": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\literal-section-limit-nested-win-r4\\trace.log",
+    "sha256": "ed75eb101970d9b27337a361a0e1d37a4d2630b122b47614095c3725cdedcf66",
+    "repeatedObjects": 8,
+    "recordedDuplicateErrors": 18
+  },
+  "abortedSupersededCohorts": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r26\\build.json",
+      "sha256": "7f2e61798a6a2cb84a47e318776fd7e522df641e44b320eddb6200a5cbe96e25"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-linux-full-r18\\build.json",
+      "sha256": "b0e67e5f99dc90e9a5857339848e2cacebb0d3b4dbfd38ea4b3cdec935a10b71"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\relocation-full-qualification-win-r1\\results.json",
+      "sha256": "3b38b70557a6742bba8b5621ff32608fa1115975d3b982350758994eb115a848"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\relocation-full-qualification-linux-r1\\results.json",
+      "sha256": "0547e4b858bc0fa8887fcce29adb774ac7b0e9fe4e1057af5b470e3d917cfc1a"
+    }
+  ],
+  "limits": [
+    "No complete combined compiler or final SDK/IDE delivery claim.",
+    "Linux roster smoke attempts against already-cleared temporary build directories did not run; normal full producer checks a fresh catalog.",
+    "No CPU/peak-memory improvement claim."
+  ]
+}

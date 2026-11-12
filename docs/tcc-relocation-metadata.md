@@ -120,3 +120,33 @@ budget check and private-metadata name lookups for common-section merging.
 Promotions use existing vectors and a checked ownership transfer; the table
 payloads still occupy memory. No cold CPU/peak-memory improvement is claimed.
 Runtime drawing/resource calls gain no wrapper from this internal linker change.
+
+## Actual caller errors found after the metadata preflight
+
+A subsequent debugger trace of the real r25 compiler confirms that the eight
+repeated object calls also accumulate 18 duplicate-definition errors in its
+actual state. The early raw-replay diagnostics therefore exposed a second real
+caller defect; they were not merely an artifact of the harness. The original
+summary's unique-population preflight remains correctly limited to that scope.
+Only the last index-limit message had been visible to the user.
+
+Eight legacy entries in `xlAddEmbeddedXlangRuntimeSources.runtimeSources` now
+come exclusively from the canonical resident catalog. The precompiler checks
+host-entry and resident source rosters for overlap, including duplicate raw
+component rows before producer deduplication can hide them. It rejects the real
+old eight-source overlap and five duplicated-layout controls.
+
+`tcc_add_binary` also records the incoming error count. A new non-aborting loader
+diagnostic now makes a nominally successful object/archive/library load return
+failure. An earlier diagnosed error does not poison a later successful load;
+the existing error recovery and public ABI remain intact. O0/O2 tests reproduce
+the old incorrect success return on both platforms, require the new failure
+return through all three public loading paths, and run a fresh valid JIT object.
+They add no production allocation, copying, or runtime drawing work.
+
+Both complete r26/r18 build attempts were superseded before qualification once
+this real caller defect was confirmed. Their aborted reports and prior results
+remain intact. The successor must rebuild the loader, host API, fixed objects,
+VFS and embedded compiler together. Focused evidence is indexed in
+`dev/release-materials/provenance/tcc-embedded-object-errors-20261112.json`;
+complete nested caller qualification is still pending.

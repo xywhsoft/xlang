@@ -2110,14 +2110,8 @@ static int xlAddEmbeddedXlangRuntimeSources(
         "src/sem/xl6_sem_field_attrs.c",
         "src/sem/xl6_completion.c",
         "src/sem/xl6_sem.c",
-        "src/runtime/xl6_fs_path_parts.c",
-        "src/runtime/xl6_ownership_domain_resource_fs_path_parts.c",
-        "src/runtime/xl6_fs_path_iter.c",
-        "src/runtime/xl6_ownership_domain_resource_fs_path_iter.c",
-        "src/runtime/xl6_ownership_domain_resource_async_file.c",
-        "src/runtime/xl6_siphash_state.c",
-        "src/runtime/xl6_ownership_domain_resource_siphasher64.c",
-        "src/runtime/xl6_os_process_args.c",
+        /* Resident runtime implementations come exclusively from the
+         * canonical component catalog below, with their internal ABI. */
     };
     static const char* compilerSources[] = {
         "src/resource/xl6_win_resource.c",

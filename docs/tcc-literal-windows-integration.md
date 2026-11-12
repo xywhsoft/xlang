@@ -70,3 +70,11 @@ The next correction is described in
 [relocation metadata design](tcc-relocation-metadata.md). It is not implemented
 by this report. Windows full embedding, Linux integration, and final matched
 delivery remain unfinished.
+
+Subsequent focused work implements the private-metadata representation and
+finds a second actual r25 defect: eight repeated resident-object calls produce
+18 duplicate-definition errors that the loader incorrectly reports as success.
+Both source-roster ownership and binary-loader error propagation are corrected;
+see the relocation-metadata document and successor evidence indexes. Linux r17's
+literal-storage full qualification is complete, but the new combined correction
+still requires its own complete compiler/nested-caller builds and final delivery.
