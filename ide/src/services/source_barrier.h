@@ -1,6 +1,7 @@
 #ifndef XIDE_SOURCE_BARRIER_H
 #define XIDE_SOURCE_BARRIER_H
 #include "model/workspace.h"
+#include "services/edit_request.h"
 #include <stdint.h>
 typedef struct xide_app xide_app;
 enum xide_source_participant {
@@ -14,6 +15,7 @@ enum xide_source_participant {
  * its participant tokens with another caller. Not a global source-write lock. */
 typedef struct xide_source_barrier {
  xide_app* app;
+ xide_edit_request* request;
  void* identities[7];
  uint64_t serial,token,leases[6];
  unsigned held;
@@ -30,6 +32,11 @@ typedef struct xide_source_barrier_status {
  * UI events. State.ready proves these participants only; request/project/config,
  * full source/physical-alias policy, consent and recovery are still required. */
 uint64_t xideSourceBarrierBegin(xide_source_barrier*,xide_app*,xide_model_error*);
+/* Edit-specific admission first validates the exact captured request scope.
+ * Owns a shared immutable request until Release; invalidation/End while held
+ * permanently prevents ready, without changing the participant-release duties.
+ * Full source/physical/consent/recovery policies are still mandatory. */
+uint64_t xideSourceBarrierBeginEdit(xide_source_barrier*,xide_app*,xide_edit_request*,xide_model_error*);
 int xideSourceBarrierState(xide_source_barrier*,uint64_t,xide_source_barrier_status*);
 /* Call only after writes, rollback or explicit recovery are settled. Caller
  * invalidates affected task inputs first. May abandon a still-pending Begin.

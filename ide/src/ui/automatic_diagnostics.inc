@@ -132,6 +132,7 @@ static int automaticFence(xide_language_view* v,const char* path,int close,int w
 }
 void xideLanguageViewDiskChanged(xide_app* app,const char* path,int type)
 {
+ if(app&&app->languageView)xideEditRequestInvalidate(app->languageView->editRequest,XIDE_EDIT_REQUEST_DISK);
  if(app && app->languageView && (app->languageView->sourceToken || app->languageView->sourceDrain)){sourceChanged(app->languageView,0);return;}
  colorsInvalidate(app?app->languageView:NULL);
  xide_language_view* v=app?app->languageView:NULL;xide_automatic_diagnostics* a=v?v->autoView:NULL;if(!a)return;
@@ -173,7 +174,7 @@ static int automaticModels(xide_language_view* v)
    if(!m->language || (d->path && (!m->path || !m->key))) {automaticFault(v,"无法捕获文档路径");return 0;}
    automaticInvalidate(a,m->key);
   }
-  changed=1;
+  changed=1;xideEditRequestInvalidate(v->editRequest,XIDE_EDIT_REQUEST_DOCUMENT);
  }
  if(changed) {if(v->autoEnabled) clearSemantic(app);a->paused=0;}
  a->modelsReady=1;return 1;
@@ -254,6 +255,10 @@ static int automaticWatchSubmit(xide_language_view* v)
 static int automaticWatchSent(xide_language_view* v,const xide_sync_result* result)
 {
  xide_automatic_diagnostics* a=v->autoView;if(!automaticWatchCurrent(v) || a->sentSerial==UINT64_MAX)return 0;
+ /* A receipt requested before this accepted watch batch cannot acknowledge
+    its new serial, even if URI/wire versions remain identical. Retire its ID
+    before an already queued old response can set receiptReady again. */
+ cancelQuery(v,v->receiptRequest);v->receiptRequest=v->receiptReady=0;
  ++a->sentSerial;++a->validityEpoch;for(size_t i=0;i<result->operationCount;++i){const xide_sync_operation* op=result->operations+i;const char* uri=automaticText(op->uri);if(!uri)return 0;
   for(size_t j=0;j<a->fenceCount;++j){automatic_fence* f=a->fences+j;if(f->watch && f->revision==op->revision && !strcmp(f->uri,uri)){f->watch=0;f->serial=a->sentSerial;break;}}
  }return 1;

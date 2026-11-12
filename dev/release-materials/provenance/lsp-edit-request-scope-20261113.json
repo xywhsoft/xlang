@@ -1,0 +1,145 @@
+{
+  "schema": 1,
+  "date": "2026-11-13",
+  "stage": "M7b5r",
+  "scope": "Retained primary IDE edit request scope with exact native synchronization, irreversible lifecycle invalidation and six-participant edit admission; retire stale watch receipts",
+  "implementationAccepted": true,
+  "goalComplete": false,
+  "performanceQualified": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "a77af9b87461078d9460572e2eb8bffab21181a7",
+  "ownedSources": {
+    "ide/src/services/edit_request.c": "3db3909d2db4f671668455fd4aff85adc39a96fb8953b6ddffba1179c2777f62",
+    "ide/src/services/edit_request.h": "951bac5a23ca5dfa89ea677e0b2bd14a4469a47eb0a34d94a14931e5083878be",
+    "ide/src/services/source_barrier.c": "f0375bee7e8fcec37d0e2bfd8d3869d535b0b8d5d131f0c2c27cb2475ec9f0fa",
+    "ide/src/services/source_barrier.h": "c22ed530b0913558c28e2191fdbd4c4c5544dc54bee7672aed1c8936e24f4c0a",
+    "ide/src/ui/automatic_diagnostics.inc": "ccfcdc404e114db072faadded22fbcc99437f2f5fb22f34c27847df618c71f9e",
+    "ide/src/ui/edit_request_view.h": "08ca432ee47233d0c571940b33b217e5753ffb82ee96eb8cb9116475a572ecee",
+    "ide/src/ui/edit_request_view.inc": "a1bdeeecca7fa1f757848f052a6ac21f624905100e8efb005ecf144697a291d1",
+    "ide/src/ui/language_view.c": "049a7c45a0d442c8f62fe25bb6938f08a4c7dec5738d85bf94d7c20945ff2579",
+    "ide/src/ui/semantic_color_view.inc": "762ddc9631ef4ffcd1694f1d15a1d7da6d7c25281fc05504176b1155eed8c0b6",
+    "ide/tests/edit_request_test.c": "26e0baba6e98ac0abddb2bf915341ad8f9ffb3cc01870dcccad63bdc946a8f99",
+    "ide/tests/edit_request_view_test.c": "9f77aee993443f06291a7b50c6a0e98d1e26f0b0ed71e23c1328c6a926c7e585",
+    "ide/tools/build.ps1": "f378035432380bfac3cec4ec0e7251afe65357cc22214ad450824c4c5666c407",
+    "ide/docs/lsp-edit-request-scope.md": "0cf405c9291df7b06f2c279336f9bdaa1a026b19278bf89d8d5f0055a201c7d3"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-edit-request-scope-20261113.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-edit-request-scope-20261113/stage-sources.tar.gz",
+      "sha256": "af5f421ce6eb9a0538802d96ab8d9a1f28d2330cee03c0c39c3f5188df4e0d09",
+      "bytes": 77569,
+      "entries": 14,
+      "uniquePayloads": 14,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-edit-request-scope-20261113/stage-sources.tar.gz.manifest.json",
+      "sha256": "65777e700797c3bc859821296ab206c2ed99cdcfa0457466c8f276d3da0d1d72",
+      "bytes": 3181
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-edit-request-scope-20261113/actual-builds-and-validation.tar.gz",
+      "sha256": "c0a1ef7bb3ba0a8fe0fd3ec6b78250dbbe529649a5b951b1f2b34f9c4991fa3b",
+      "bytes": 207886349,
+      "entries": 8213,
+      "uniquePayloads": 2970,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-edit-request-scope-20261113/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "bda90c1ac9b8d46f7a2a6d1c1a42a502c5c8aa7ef0652a2da1d38b41657429d8",
+      "bytes": 3183594
+    }
+  },
+  "currentBindings": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-edit-request-scope-20261113\\final-bindings.json",
+    "sha256": "e8a7e4fd4245f01047eb6f1f70c853db9246a2e8449cf569c6e16709712dd8dd"
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "sdkInherited": {
+    "index": "dev/release-materials/provenance/lsp-dpi-startup-20261112.json",
+    "indexSha256": "727ae55e191b104683a756dbe85a03f0add12ed40e60c4d6166face2f50f4e5d",
+    "dllSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "compiledUnitsThisStage": 0,
+    "matchedSetPreserved": true
+  },
+  "serviceInherited": {
+    "index": "dev/release-materials/provenance/lsp-completion-error-isolation-20261112.json",
+    "indexSha256": "a88a46245da2ead8d828816f0dbadfa991999a553408c112ae0338e62e48b08b",
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-completion-error-isolation-20261112\\native-v2\\xlang-ls.exe",
+    "sha256": "9d683a472dce0c2f8fac74b39df7b782fb0eac03ba14ccb377e330691c75aafc",
+    "compiledUnitsThisStage": 0
+  },
+  "correctness": {
+    "guiProductionUnits": 128,
+    "guiRegressionSuites": 55,
+    "requestCoreAssertions": 58,
+    "requestViewAssertions": 127,
+    "existingBarrierAssertions": 503,
+    "countsIncludeVariablePollingLoops": true,
+    "observedDirectAllocationFailures": 2,
+    "rejectedGuardMutants": 6,
+    "actual8MiBTextPointerSharing": true,
+    "producerCatalogRetainedWithoutClone": true,
+    "fourRetainedReadersAfterOriginalOwnersExit": true,
+    "actual4096Models": true,
+    "allModelMetadataAndSilentRevisionFence": true,
+    "actualNativeInputReceiptAndReservedRequestId": true,
+    "configurationAndProjectAbaRejected": true,
+    "displayOnlyRefreshPreservesRequestAndClient": true,
+    "cancelAndEndWhileHeldCannotBecomeReady": true,
+    "failedBarrierPrefixRetainsRequestAndForeignHold": true,
+    "oldWatchReceiptIdRetiredBeforeFreshAck": true,
+    "actualCAndXlangTypingDeleteUndoImeFocus": true,
+    "uiDestructionFollowedByWorkerRetirement": true,
+    "actualGuiFramesEach": 24,
+    "currentProductionAndActualDependenciesBound": true,
+    "finalFocusedFixturesIdenticalToMutantFixtures": true,
+    "shortPathFixtureFilesRetained": 54,
+    "allRuntimeTestAliasesRemoved": true,
+    "userTemporaryDirectoriesPreserved": true,
+    "rawFailedAttemptsPreserved": true
+  },
+  "externalHelper": {
+    "proxy": {
+      "archive": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\lsp-completion-error-isolation-20261112\\actual-builds-and-validation.tar.gz",
+      "entry": "bound-inputs/20c68dabd23c25637a08/xui_test_proxy.c",
+      "sha256": "740c86aee90b1373324909c74d3ae6c9f446b0c52c84c3ea84cea141c53bdc48"
+    },
+    "header": {
+      "repository": "D:/GIT/xge",
+      "commit": "1ba93e6b3ea49e80d9d821894811caef599634f3",
+      "path": "tests/xui/xui_test_proxy.h",
+      "sha256": "b42cd48cd68966d969575f717ade56f357dacbcabce746730c9bfb275dd0a80a"
+    },
+    "liveXgeUnmodified": true
+  },
+  "evidenceNotes": [
+    "focused-v4 has two passing real executions (58 core and127 IDE assertions) and an overall failed status because the third historical barrier fixture still searched the old private process basename. regression-v1 only corrects that fixture alias and passed503 checks with the same final producer cohort. Explicit focused-acceptance.json composes actual passing records and preserves the raw failed status.",
+    "The input fixture initially omitted key down/up. After restoring the established full event sequence, the strict capture exposed a genuine watch receipt serial lag (receipt3 versus sent4) after edit/undo/resume. Raw failures remain. Final automaticWatchSent retires prior receipt IDs and obtains a new real server acknowledgement; final full gui-source-v2 was rebuilt after this production fix.",
+    "Final request-view fixture adds an early End while the barrier remains held after gui-source-v2 was frozen. Production/headers match canonically; exact focused-v4 and mutant fixtures are separately bound.",
+    "All six mutants failed actual implementation assertions; compile failures/crashes are not accepted mutation evidence. The main engine, native service and SDK are inherited accepted bytes, not newly built here."
+  ],
+  "limits": [
+    "Capture reserves an unused primary transport ID but sends no rename request, validates no response or candidate plan and enables no standard rename/applyEdit capability. Future controller must bind method,ID,token and source proofs.",
+    "The core constructor trusts the stable complete model callback; primary capture establishes its actual sync/model association. The worker atomic flag only reflects observed invalidations. Explicit owner Current checks remain necessary at admission/Arm/Publish.",
+    "Current checks complete canonical analysis configuration/package and the selected compiler path, not new on-disk compiler binary hashes or the whole source/resolver closure.",
+    "One active request per view; caller keeps app/view stable through End and barrier release, owns a separate worker reference and retires potentially last shared text/catalog references off-owner or at final shutdown.",
+    "1MiB known model storage excludes sync clone metadata, shared texts/catalog, allocator and OS resources. No whole heap/RSS/latency claim; DLL-internal allocations are outside direct probes.",
+    "Owner Current has bounded metadata/configuration/path costs. Ordinary mutations add the nullable active-request/atomic invalidation operation; no new per-key body scan or background thread. Full end-to-end performance remains unqualified.",
+    "Full transaction host/controller, source and resolver candidates, remaining synchronous readers, consent and recovery UI/startup replay, standard protocol activation and final delivery remain open.",
+    "Whole-goal performance/resource/longevity and latest engine alignment remain open; existing compiler deep unprefixed xlp path and analysis-configuration cache-count regression remain open.",
+    "C LSP remains disabled. No DAP/debug/runtime completion and no Linux/sanitizer qualification in this stage."
+  ],
+  "postCommitReceipt": "dev/release-materials/provenance/lsp-edit-request-scope-20261113/postcommit.json"
+}

@@ -3,6 +3,7 @@
 #include "services/file_sync.h"
 #include "services/toolchain.h"
 #include "ui/language_source_lease.h"
+#include "ui/edit_request_view.h"
 #include <stdio.h>
 #include <string.h>
 enum {DOCUMENTS,JOBS,TASKS,TOOLS,WATCH,LANGUAGE};
@@ -33,11 +34,18 @@ uint64_t xideSourceBarrierBegin(xide_source_barrier* b,xide_app* a,xide_model_er
  return b->token;
 failed:barrierFailed(b,&error);if(e)*e=b->failure;return b->token;
 }
+uint64_t xideSourceBarrierBeginEdit(xide_source_barrier* b,xide_app* a,xide_edit_request* request,xide_model_error* e)
+{
+ if(!b||b->token||!xideLanguageEditRequestCurrent(a,request)){barrierError(e,"Edit request scope is stale or the barrier is already held.");return 0;}
+ xide_edit_request* retained=xideEditRequestRetain(request);if(!retained){barrierError(e,"Cannot retain edit request scope.");return 0;}
+ uint64_t token=xideSourceBarrierBegin(b,a,e);if(token)b->request=retained;else xideEditRequestRelease(retained);return token;
+}
 int xideSourceBarrierState(xide_source_barrier* b,uint64_t token,xide_source_barrier_status* out)
 {
  if(out)*out=(xide_source_barrier_status){0};
  if(!out||!barrierToken(b,token))return 0;
  xide_app* a=b->app;void* identities[7];barrierIdentity(a,identities);unsigned lost=0,pending=0;
+ if(b->request&&!xideLanguageEditRequestOwned(a,b->request))b->invalidated=1;
  for(unsigned i=0;i<6;++i)if((b->held&(1u<<i))&&(identities[i]!=b->identities[i]||(i==LANGUAGE&&identities[6]!=b->identities[6])))lost|=1u<<i;
  if((b->held&XIDE_SOURCE_DOCUMENTS)&&!(lost&XIDE_SOURCE_DOCUMENTS)&&!xideDocumentsSourcesSuspended(&a->documents,b->leases[DOCUMENTS]))lost|=XIDE_SOURCE_DOCUMENTS;
  if((b->held&XIDE_SOURCE_JOBS)&&!(lost&XIDE_SOURCE_JOBS)){
@@ -83,5 +91,5 @@ int xideSourceBarrierRelease(xide_source_barrier* b,uint64_t token,xide_model_er
  if(b->held&XIDE_SOURCE_TASKS){if(!xideTasksResume(a->tasks,b->leases[TASKS],e))return -1;b->held&=~XIDE_SOURCE_TASKS;}
  if(b->held&XIDE_SOURCE_JOBS){if(!xideSourceJobsResume(&a->sourceJobs,b->leases[JOBS],e))return -1;b->held&=~XIDE_SOURCE_JOBS;}
  if(b->held&XIDE_SOURCE_DOCUMENTS){if(!xideDocumentsResumeSources(&a->documents,b->leases[DOCUMENTS],e))return -1;b->held&=~XIDE_SOURCE_DOCUMENTS;}
- b->token=0;b->app=NULL;return 1;
+ xideEditRequestRelease(b->request);b->request=NULL;b->token=0;b->app=NULL;return 1;
 }
