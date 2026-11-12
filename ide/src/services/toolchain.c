@@ -106,6 +106,8 @@ int xideToolchainsResume(xide_toolchains* c,uint64_t token,xide_model_error* e)
  c->holdToken=0;return 1;
 }
 int xideToolchainsAdmissionHeld(const xide_toolchains* c){return c && c->holdToken!=0;}
+int xideToolchainsSourceLeaseCurrent(const xide_toolchains* c,uint64_t token)
+{return c&&token&&c->holdToken==token;}
 static void fileVersion(const char* compiler,char result[64])
 {
  wchar_t* w=wide(compiler); if(!w) return; DWORD ignored=0,n=GetFileVersionInfoSizeW(w,&ignored); void* data=n && n<=4u*1024u*1024u ? malloc(n) : NULL;

@@ -693,6 +693,8 @@ int xideTasksBusy(const xide_tasks* tasks)
     for(size_t i=0;i<tasks->count;++i) { xide_task* t=tasks->items[i];xide_task_info info={0};xideTaskInfo(t,&info);if(info.state<=XIDE_TASK_CANCELLING || (t->worker&&WaitForSingleObject(t->worker,0)!=WAIT_OBJECT_0))return 1;}return 0;
 }
 int xideTasksAdmissionHeld(const xide_tasks* tasks){return tasks&&tasks->holdToken;}
+int xideTasksSourceLeaseCurrent(const xide_tasks* tasks,uint64_t token)
+{return tasks&&token&&tasks->holdToken==token;}
 uint64_t xideTasksSuspend(xide_tasks* tasks,xide_model_error* error)
 {
     if(error)memset(error,0,sizeof(*error));

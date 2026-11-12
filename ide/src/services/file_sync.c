@@ -222,6 +222,8 @@ uint64_t xideFileSyncSuspend(xide_app* app,xide_model_error* e)
 }
 int xideFileSyncSuspended(xide_app* app,uint64_t token)
 {xide_file_sync* s=app?app->fileSync:NULL;return s&&token&&s->holdToken==token&&xideFileWatchSuspended(s->watch,token);}
+int xideFileSyncSourceLeaseCurrent(const xide_app* app,uint64_t token)
+{const xide_file_sync* s=app?app->fileSync:NULL;return s&&token&&s->holdToken==token;}
 int xideFileSyncResume(xide_app* app,uint64_t token,xide_model_error* e)
 {
     xide_file_sync* s=app?app->fileSync:NULL;

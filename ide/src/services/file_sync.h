@@ -22,6 +22,7 @@ int xideFileSyncSettled(xide_app* app);
  * Does not suspend other readers, task workers, prepared opens or the LSP. */
 uint64_t xideFileSyncSuspend(xide_app*,xide_model_error*);
 int xideFileSyncSuspended(xide_app*,uint64_t token);
+int xideFileSyncSourceLeaseCurrent(const xide_app*,uint64_t token);
 int xideFileSyncResume(xide_app*,uint64_t token,xide_model_error*);
 size_t xideFileSyncCount(xide_app* app);
 const xide_file_change* xideFileSyncAt(xide_app* app,size_t index);

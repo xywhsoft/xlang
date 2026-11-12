@@ -55,6 +55,8 @@ uint64_t xideTasksSuspend(xide_tasks*,xide_model_error*);
 int xideTasksSuspended(const xide_tasks*,uint64_t token);
 int xideTasksResume(xide_tasks*,uint64_t token,xide_model_error*);
 int xideTasksAdmissionHeld(const xide_tasks*);
+/* Owner metadata only; unlike Suspended, does not wait for physical quiet. */
+int xideTasksSourceLeaseCurrent(const xide_tasks*,uint64_t);
 size_t xideTasksCount(const xide_tasks* tasks);
 xide_task* xideTasksAt(xide_tasks* tasks,size_t index);
 int xideTasksContains(const xide_tasks* tasks,const xide_task* task);

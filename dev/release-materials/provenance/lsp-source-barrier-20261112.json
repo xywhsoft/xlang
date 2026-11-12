@@ -1,0 +1,138 @@
+{
+  "schema": 1,
+  "date": "2026-11-12",
+  "stage": "M7b5p",
+  "scope": "Compose six real IDE source barrier participants with exact ownership, failed admission prefixes and retryable explicit asynchronous resume",
+  "implementationAccepted": true,
+  "goalComplete": false,
+  "performanceQualified": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "d2761732e6308f62144a83fee006664e988a0096",
+  "ownedSources": {
+    "ide/src/services/file_sync.c": "58140b54c89f41b33e811f9bb9cd904f7ce57967328fe1577f375da194c498a1",
+    "ide/src/services/file_sync.h": "396c38762a2f78ee4657fe3816fbadc1e8fe609a5758853bb00fd41a7b12c310",
+    "ide/src/services/source_barrier.c": "4d957d8933d92ecb65b1262410ca0e0fc5f08ddbfc003864a1b4f111813e8a08",
+    "ide/src/services/source_barrier.h": "068ffbe9d3c239e76785bfcae5a5db243fdb8eca721da59cde1e75b971776d5c",
+    "ide/src/services/tasks.c": "a94875ad3cbe19be1ac9ab558bbe431d1505128f842a47a47b43e516b1d2edf2",
+    "ide/src/services/tasks.h": "49d4e5e0245e17276f88d16059506e57be69113fc7525837d5e30452f6c2a9d4",
+    "ide/src/services/toolchain.c": "d8dc0aa97e1ed902d23de30a0e8fe8860f5f2240c6fa03593ecaa45cdf844972",
+    "ide/src/services/toolchain.h": "610057272714b685bc418165008a157274c278ac0cf04c3f4a58f0c6d3a9b57b",
+    "ide/tests/source_barrier_view_test.c": "456364d3a3d8fa76bd7aa7ed5ed5b0d2395173f98001da1199ded7c10cf25a56",
+    "ide/tools/build.ps1": "cf160d987bd9daf55b407a5a4a80d06586645638d2c4d15b83acf4e584b83bf3",
+    "ide/docs/lsp-source-barrier.md": "6fd335187069af5d8927ba511dc4aa62494663f6d227e5e73ad3b73fc0b9b7b3"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-source-barrier-20261112.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-source-barrier-20261112/stage-sources.tar.gz",
+      "sha256": "4d2897a0d3c7ea1bd25482de9fa35332648a36afbc2d91a4176b1a2443924e95",
+      "bytes": 63035,
+      "entries": 12,
+      "uniquePayloads": 12,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-source-barrier-20261112/stage-sources.tar.gz.manifest.json",
+      "sha256": "b89a19404b94fb98b8a590b765ab448f8ab98d03d62c8d76a5c4f86e865d6672",
+      "bytes": 2662
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-source-barrier-20261112/actual-builds-and-validation.tar.gz",
+      "sha256": "ef1fe3662600ca413770c00d74c3d824bec26579b735ec9ad2fec32290428fbc",
+      "bytes": 165965628,
+      "entries": 5354,
+      "uniquePayloads": 2938,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-source-barrier-20261112/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "9097865f4dcaf66227f061516eac91d87bec520dbdf50c4f08ec3ad81cd6f60e",
+      "bytes": 2119057
+    }
+  },
+  "currentBindings": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-source-barrier-20261112\\final-bindings.json",
+    "sha256": "e01e0d00900fcfc121f27620879e8428edcb4d499e83e0747b5b68f7bfbca0ea"
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "sdkInherited": {
+    "index": "dev/release-materials/provenance/lsp-dpi-startup-20261112.json",
+    "indexSha256": "727ae55e191b104683a756dbe85a03f0add12ed40e60c4d6166face2f50f4e5d",
+    "dllSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "compiledUnitsThisStage": 0,
+    "matchedSetPreserved": true
+  },
+  "serviceInherited": {
+    "index": "dev/release-materials/provenance/lsp-completion-error-isolation-20261112.json",
+    "indexSha256": "a88a46245da2ead8d828816f0dbadfa991999a553408c112ae0338e62e48b08b",
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-completion-error-isolation-20261112\\native-v2\\xlang-ls.exe",
+    "sha256": "9d683a472dce0c2f8fac74b39df7b782fb0eac03ba14ccb377e330691c75aafc",
+    "compiledUnitsThisStage": 0
+  },
+  "correctness": {
+    "guiProductionUnits": 126,
+    "guiRegressionSuites": 55,
+    "additionalRegressionSuites": 3,
+    "reportedFocusedAssertions": 494,
+    "focusedAssertionCountIncludesVariablePollingLoops": true,
+    "rejectedGuardMutants": 5,
+    "actualSixParticipants": true,
+    "actualDualNativeLanguageProcesses": true,
+    "threeSimultaneouslyRetainedPhysicalWorkerTails": true,
+    "allSixRefusalPointsAndPrefixes": true,
+    "foreignParticipantHoldPreserved": true,
+    "actualMonitorAllocationFailureRetainsUnopenedGates": true,
+    "completedResumePrefixRetainedForRetry": true,
+    "failedPeerNeverBecomesWriteAuthority": true,
+    "healthyNativePeerRetained": true,
+    "earlyAbandonmentDoesNotJoinOrCancelWorkers": true,
+    "exactAndExhaustedTokens": true,
+    "actualCAndXlangTypingDeleteUndoImeFocus": true,
+    "undoDoesNotReauthorizeOldInput": true,
+    "actualGuiFramesEach": 24,
+    "currentProductionAndActualDependenciesBound": true,
+    "finalFocusedFixturesIdenticalToMutantFixtures": true,
+    "allRuntimeTestAliasesRemoved": true,
+    "userTemporaryDirectoriesPreserved": true,
+    "rawFailedAttemptsPreserved": true
+  },
+  "externalHelper": {
+    "proxy": {
+      "archive": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\lsp-completion-error-isolation-20261112\\actual-builds-and-validation.tar.gz",
+      "entry": "bound-inputs/20c68dabd23c25637a08/xui_test_proxy.c",
+      "sha256": "740c86aee90b1373324909c74d3ae6c9f446b0c52c84c3ea84cea141c53bdc48"
+    },
+    "header": {
+      "repository": "D:/GIT/xge",
+      "commit": "1ba93e6b3ea49e80d9d821894811caef599634f3",
+      "path": "tests/xui/xui_test_proxy.h",
+      "sha256": "b42cd48cd68966d969575f717ade56f357dacbcabce746730c9bfb275dd0a80a"
+    },
+    "liveXgeUnmodified": true
+  },
+  "evidenceNotes": [
+    "Focused-v2 binds exact final fixtures even though the full GUI source snapshot captured the earlier test draft; production and headers remain canonical to gui-source-v1",
+    "Initial focused fixture captured a task thread after submission, but real task submission immediately polls; fixed the capture point to precede submission and retained all raw attempts",
+    "Initial broad suite lacked the private import library and failed before executing tests; final suite binds the unchanged hash-verified prior import library and all 55 suites passed",
+    "Final dependency discovery handles two source translation units emitted by gcc -MM; initial parser failure retained"
+  ],
+  "limits": [
+    "Ready proves only these six registered participants, not full source/physical/request/project/config/consent policy or global write authority",
+    "Caller storage borrows one stable app/context/participant graph and must explicitly finish resume/release before teardown; no cross-lifetime token reuse",
+    "Other synchronous source readers, complete transaction host/controller, recovery UI and standard rename/applyEdit activation remain open",
+    "No new per-key path or registry scan, but existing participant metadata, cleanup, locks and nonblocking kernel probes retain costs; no whole-process zero-allocation/latency claim",
+    "Whole-goal performance/resource/longevity, latest engine alignment and default final delivery remain open",
+    "Existing compiler deep unprefixed xlp path limitation and analysis-configuration cache-count regression remain open",
+    "C LSP stays disabled; no DAP/debug/runtime-object completion; no Linux/sanitizer qualification in this stage"
+  ],
+  "postCommitReceipt": "dev/release-materials/provenance/lsp-source-barrier-20261112/postcommit.json"
+}

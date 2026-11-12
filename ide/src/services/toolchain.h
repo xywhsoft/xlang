@@ -41,6 +41,7 @@ uint64_t xideToolchainsSuspend(xide_toolchains*,xide_model_error*);
 int xideToolchainsSuspended(const xide_toolchains*,uint64_t token);
 int xideToolchainsResume(xide_toolchains*,uint64_t token,xide_model_error*);
 int xideToolchainsAdmissionHeld(const xide_toolchains*);
+int xideToolchainsSourceLeaseCurrent(const xide_toolchains*,uint64_t);
 /* Called after an actual successful --help process, compares post-query files
    with before, copies all data, and records the observation in the cache. */
 int xideToolchainObserve(xide_toolchains* cache,const char* compiler,const char* directory,const xide_toolchain_stamp* before,const char* help,size_t length,xide_toolchain_profile* out,xide_model_error* error);
