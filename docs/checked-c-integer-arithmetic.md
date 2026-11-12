@@ -70,3 +70,13 @@ TCC, XRT, fixed-object, VFS and embedded-source candidates are being rebuilt.
 Source preflight does not certify or install those final runtime bytes. Evidence
 is indexed in `checked-c-integer-preflight-20261112.json` under
 `dev/release-materials/provenance/`.
+
+Windows r30 complete O2 acceptance subsequently passed all 47 main commands and
+five continuation follow-up commands. CLI, independent programs, actual embedded
+compilers in parent EXE/Python shared hosts, image/particle/literal and source-free
+gates pass. Async outcomes execute in CLI JIT and native EXE; the follow-up shared
+fixture exercises a valid synchronous generator body, preserving the language's
+existing restrictions on top-level execution/main/await in shared exports. Relative
+to r29, xl.dll and xlc.dll each grow 7,168 bytes and xl.exe is unchanged. Linux r22
+remains in progress. See `checked-c-integer-windows-20261112.json`; this qualifies
+the isolated cohort and does not install final release/IDE products.

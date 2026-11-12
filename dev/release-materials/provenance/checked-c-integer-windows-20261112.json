@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "windowsFullQualified": true,
+  "linuxFullQualified": false,
+  "shippingDelivery": false,
+  "scope": "Complete r30 O2 compiler/TCC/XRT/fixed objects/VFS/embedded-source checked native integer acceptance. Actual embedded C integer compiler executes inside parent executable and Python shared host. Continuation follow-up uses CLI JIT/native async and a valid generator-body shared export.",
+  "mainCommands": 47,
+  "continuationCommands": 5,
+  "products": {
+    "xl.exe": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-c-integer-full-r30\\source\\release\\win_x64\\xl.exe",
+      "sha256": "b06ecff88b5b9f438820a93f7ec7c8be5d605c5e55c8d6e6c58c8d2c2641ed80",
+      "bytes": 72704
+    },
+    "xl.dll": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-c-integer-full-r30\\source\\release\\win_x64\\xl.dll",
+      "sha256": "cbff82702588a2e0ea5d499c4d8d1f6a302193f751136c1ed6850d83eacfeb7b",
+      "bytes": 15289856
+    },
+    "xlc.dll": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-c-integer-full-r30\\source\\release\\win_x64\\xlc.dll",
+      "sha256": "2f22a10003a4b23acf891cd33d486d9d8be95445692f36850d428fc98bacbec2",
+      "bytes": 21499904
+    }
+  },
+  "producerFileDeltaBytes": {
+    "xl.exe": 0,
+    "xl.dll": 7168,
+    "xlc.dll": 7168
+  },
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-c-integer-full-r30\\build.json",
+      "sha256": "8ccb21968d44e44086942659c2cf105e7bbe53e45be63fd71c8d50977df8eaa7"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-c-integer-full-r30\\freeze.json",
+      "sha256": "df71b0edc39c6b0bd6f3e0c4808768d97b39d73b021550541d6a874c89994929"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\c-integer-full-qualification-win-r1\\results.json",
+      "sha256": "21ff337c53f448013fabf8f6db337a6706e784117e9a7e02b1fd49bfc7ac82db"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\c-integer-continuation-full-win-r3\\results.json",
+      "sha256": "377b920550a1b2235be3f530d4002cb411f7b027ee276a83b4111e7fb05dd48e"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\c-integer-qualification-follow-win-r1.json",
+      "sha256": "879ac8c98f8594b95da798e12a42b8e96a652f631bc8b98c7f032bdc12e729ca"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\qualify_c_integer_full.py",
+      "sha256": "c56c5a2d1679248abfa70ffcd8e0e2ed5907aab1de124224cdb9d2db589bdd9f"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\qualify_c_integer_continuation_full_r3.py",
+      "sha256": "044cd17e0dcced204b3d8c5c7d4580cebb08274a54499376e7c71e091f08a283"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\c-integer-full-qualification-win-r1\\image-regression\\results.json",
+      "sha256": "b71b67bad6c73b1604a09544a5c21307f47562c8ee6954802382a51bc7ea5ee5"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\c-integer-full-qualification-win-r1\\literal-nested\\results.json",
+      "sha256": "f0aef242bb0293a7cfdb6cde944b545f399c5e13a816696ffb9afd5c28f4d36c"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\c-integer-full-qualification-win-r1\\particle-and-unused-png\\results.json",
+      "sha256": "e716a6b813803f3453c27a2862776bc62a36c0863e49c50fa9f0716d1af0786a"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\c-integer-full-qualification-win-r1\\source-free\\results.json",
+      "sha256": "c32937777c12712b0a6ffd958c16c74214242274afc04504fe2958f93e60a920"
+    }
+  ],
+  "pending": [
+    "Linux r22 complete build and actual nested host qualification",
+    "Remaining full XGE ecosystem and final matched delivery"
+  ]
+}
