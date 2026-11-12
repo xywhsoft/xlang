@@ -79,7 +79,8 @@ def main():
                 assert (b'Title snapshots: null, UTF-8, empty and independent copies passed' if source==case
                     else b'My xlang application') in output
             if source==case:
-                native_includes=['-I'+str(p) for p in (root,sdk,sdk/'include',dynamic/'_xge_native/include')]
+                native_includes=['-I'+str(p) for p in
+                    (root,sdk,sdk/'include',*sorted(dynamic.glob('*/include')))]
                 for standard,tool,language in (('c11','gcc','c'),('c++11','g++','c++'),('c++17','g++','c++')):
                     run('public-header-'+standard,[tools[tool],'-std='+standard,'-Wall','-Wextra','-Werror',
                         *native_includes,'-x',language,'-fsyntax-only',header],dynamic)

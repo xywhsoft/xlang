@@ -667,3 +667,9 @@ Document 动态／静态程序均通过。相对 r22，CLI 不变，两份共享
 示例通过，各 14 项；关闭引擎后快照仍可读取。源码索引为
 `foreign-cstring-source-20261113.json` 和 `xge-title-snapshot-source-20261113.json`。
 完整 O2／VFS／内嵌编译器后继构建正在运行，尚未替换正式 SDK／IDE。
+
+Windows 后继 r32 完整 O2／TinyCC／XRT／预编译输入／VFS 构建及 13,525 个
+冻结输入复核通过。借用字符串的 17 项独立与真实嵌套 EXE／共享库、标题的
+19 项、旧 text／bytes 的 6 项 CLI 回归及 10 项源码无关交付门全部通过。
+相对 r31，两份 DLL 各增加 2,048 字节，CLI 不变；证据为
+`foreign-cstring-windows-20261113.json`。Linux 后继与正式安装仍另行验收。

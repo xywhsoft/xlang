@@ -37,3 +37,10 @@ AOT 为 Windows 30 项、Linux 24 项；冷成本另有两端测量。这里的�
 调度、拥有式会话／离屏、EGL 配置和两阶段关闭仍需继续开发。
 
 证据索引：`dev/release-materials/provenance/xge-initialization-20261110.json`。
+
+2026-11-13 后继：用户批准的[通用借用字符串结果合同](foreign-cstring-results.md)
+已补齐上述全局 getter 缺口，公开 `xge.getTitle() as string?`。返回内容在原生调用
+结束前复制，区分 NULL／空标题，修改标题或关闭引擎后快照仍有效；一次读取需
+扫描、分配和复制。两端源码专项及 Windows 完整 O2 r32 的 19 项实际 JIT／动态／
+静态程序、示例和公共头检查通过。完整编译器后继见
+`foreign-cstring-windows-20261113.json`；Linux 完整后继及最终安装另行记录。

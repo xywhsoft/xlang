@@ -45,3 +45,11 @@ Windows and Linux source cohorts each passed 29 commands, including 55 IR
 mutations and 110 refused C/header emissions at each optimization level.
 The successor receipt is
 `dev/release-materials/provenance/foreign-cstring-source-20261113.json`.
+
+Windows full O2 r32 subsequently passes the 17-command actual delivery gate,
+including independent and nested EXE/shared hosts. `getTitle()` passes 19
+checks; old text/bytes CLI regressions and the ten-command source-free gate
+also pass. All 13,525 frozen inputs and three products remain unchanged.
+Compared with r31, the CLI is unchanged and each DLL adds 2,048 bytes.
+See `foreign-cstring-windows-20261113.json`; Linux full qualification and final
+installation remain separate.

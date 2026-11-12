@@ -1,0 +1,68 @@
+{
+  "date": "2026-11-13",
+  "complete": true,
+  "passed": true,
+  "scope": "Windows full O2 compiler/TCC/XRT/fixed objects/VFS/embedded-source borrowed CString qualification, real nested EXE/shared hosts, getTitle and related text/bytes/source-free regressions.",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "evidence": {
+    "build": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-cstring-full-r32\\build.json",
+      "sha256": "356670d257b59c818a73fe9defe56dc2d7ae759577b68b3be5b5f50b593b01f7",
+      "commands": 0
+    },
+    "generic": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\cstring-full-qualification-win-r1\\cstring\\results.json",
+      "sha256": "04ace1ce405a61fe2109b025b231838dfbcfef74c6271d96e323a3e9612b58ba",
+      "commands": 17
+    },
+    "qualification": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\cstring-full-qualification-win-r2\\results.json",
+      "sha256": "5bbe644227e8ab8fa444dbbe79bd67b1148682015ce456b10edeb6d1557b57ca",
+      "commands": 10
+    },
+    "title": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\cstring-full-qualification-win-r2\\title\\results.json",
+      "sha256": "1256b93ef579cb1a55011911fd3238082cf7f775e668a45983947f2b6e3415f6",
+      "commands": 19
+    },
+    "sourceFree": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\cstring-full-qualification-win-r2\\source-free\\results.json",
+      "sha256": "6178a91e478aebc3c318ceaf6750c8e536ff9456322864a046e3914c7d96d4f4",
+      "commands": 10
+    }
+  },
+  "products": {
+    "xl.exe": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-cstring-full-r32\\source\\release\\win_x64\\xl.exe",
+      "sha256": "b06ecff88b5b9f438820a93f7ec7c8be5d605c5e55c8d6e6c58c8d2c2641ed80",
+      "bytes": 72704
+    },
+    "xl.dll": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-cstring-full-r32\\source\\release\\win_x64\\xl.dll",
+      "sha256": "0fc0f6c66c80d09381a5a9b39499bf7d52c58ffd7fe89de4e9f571ac486a5a08",
+      "bytes": 15296512
+    },
+    "xlc.dll": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-cstring-full-r32\\source\\release\\win_x64\\xlc.dll",
+      "sha256": "7eaeae67aa10a292524ba67bbfb49b4582953b669a32ff6eb25c325454632442",
+      "bytes": 21513728
+    }
+  },
+  "frozenInputs": 13525,
+  "sourceFreeze": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-cstring-full-r32\\freeze.json",
+    "sha256": "09287813a938720f3531d4f25523f0cda43f570e2b97214c9c6532b148de00fe"
+  },
+  "byteDeltasFromOwnedTextR31": {
+    "xl.exe": 0,
+    "xl.dll": 2048,
+    "xlc.dll": 2048
+  },
+  "limits": [
+    "Linux full successor still running",
+    "Package shared-library initialization remains separate",
+    "No GPU/platform-window certification",
+    "No final SDK/compiler/IDE installation"
+  ]
+}
