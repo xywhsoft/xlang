@@ -155,6 +155,8 @@
 !/dev/release-materials/provenance/xge-spatial-values-linux-20261113.json
 !/dev/release-materials/provenance/xui-document-exports-boundaries-linux-20261113.json
 !/dev/release-materials/provenance/foreign-owned-text-linux-20261113.json
+!/dev/release-materials/provenance/foreign-cstring-source-20261113.json
+!/dev/release-materials/provenance/xge-title-snapshot-source-20261113.json
 /out/
 /tmp/
 /logs/

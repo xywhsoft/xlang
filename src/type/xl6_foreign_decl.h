@@ -459,6 +459,7 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             const XL6_AstNode* value = attr->childCount ? attr->children[0] : NULL;
             if (facts.borrowedViewResult || !value || value->kind != XL6_AST_STRING || !value->text) return 0;
             if (!strcmp(value->text, "\"text_view\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_TEXT;
+            else if (!strcmp(value->text, "\"cstring\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_CSTRING;
             else if (!strcmp(value->text, "\"bytes_view\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_BYTES;
             else if (!strcmp(value->text, "\"borrowed_value\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_BORROWED_VALUE;
             else if (!strcmp(value->text, "\"owned_view\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_OWNED_NATIVE;

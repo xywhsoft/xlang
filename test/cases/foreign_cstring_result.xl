@@ -1,0 +1,65 @@
+extern "foreign_cstring_result" @header("test/cases/foreign_cstring_result.h") @no_raise @nonblocking @c_result("cstring") func result(c_int mode) as string
+extern "foreign_cstring_optional" @no_raise @nonblocking @c_result("cstring") func optional(c_int mode) as string?
+extern "foreign_cstring_echo" @no_raise @nonblocking @c_cstr(0) @c_result("cstring") func echo(string input) as string
+extern "foreign_cstring_begin" @no_raise @nonblocking func beginCheck()
+extern "foreign_cstring_allocations" @no_raise @nonblocking func allocations() as c_int
+extern "foreign_cstring_calls" @no_raise @nonblocking func calls() as c_int
+extern "foreign_cstring_reset" @no_raise @nonblocking func resetFailures()
+extern "foreign_cstring_widget*" class Widget @header("test/cases/foreign_cstring_result.h") @lifetime("caller")
+    native point handle
+    extern "foreign_cstring_widget_text" @no_raise @nonblocking @c_result("cstring") get text() as string
+    extern "foreign_cstring_widget_set" @no_raise @nonblocking @c_cstr(0) let text(string input)
+    extern "foreign_cstring_widget_echo" @no_raise @nonblocking @c_cstr(0) @c_result("cstring") func echo(string input) as string
+end
+extern "foreign_cstring_widget_get" @no_raise @nonblocking func widget() as Widget
+func main(...) as int
+    string input = "owned input"
+    beginCheck()
+    string copied = echo(input)
+    assert allocations() == 1
+    assert calls() == 1
+    assert copied == input
+    assert result(0) == "borrowed 你"
+    assert result(1) == ""
+    assert optional(1) != null
+    assert (optional(1) as string) == ""
+    assert optional(2) == null
+    assert result(5) == "a"
+    auto saved = optional
+    assert saved(2) == null
+    assert (saved(1) as string) == ""
+    assert echo("temporary " + "你") == "temporary 你"
+    Widget w = widget()
+    string snapshot = w.text
+    w.text = "changed"
+    assert snapshot == "original"
+    assert w.text == "changed"
+    func(string) as string bound = w.echo
+    assert bound("bound " + "你") == "bound 你"
+    string stable = "preserved"
+    for mode in [2, 3, 4]
+        bool rejected = false
+        try
+            stable = result(c_int(mode))
+        catch error
+            rejected = true
+        end
+        resetFailures()
+        assert rejected
+        assert stable == "preserved"
+    end
+    string? nullable = "also preserved"
+    for mode in [3, 4]
+        bool rejected = false
+        try
+            nullable = saved(c_int(mode))
+        catch error
+            rejected = true
+        end
+        resetFailures()
+        assert rejected
+        assert (nullable as string) == "also preserved"
+    end
+    println("CSTRING_RESULT_OK")
+    return 0
+end

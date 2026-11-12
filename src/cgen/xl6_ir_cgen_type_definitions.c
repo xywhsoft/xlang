@@ -54,6 +54,18 @@ static void xl6IrCgenEmitBorrowedOwnedAdmission(XL6_Output* out,
             xl6OutputPrintf(out,"        else if (%s.Data == NULL) { xrtSetErrorKind(XERR_VALUE); xl6ErrorScopeCaptureFailure(&%s); }\n",raw,scope);
         xl6OutputPuts("        }\n    }\n",out);return;
     }
+    if(resultAbi==XL6_IR_CALL_RESULT_C_ABI_CONST_CHAR_POINTER){
+        xl6OutputPrintf(out,"    if (!%s.failed && xrtGetError() == NULL) {\n"
+            "        size_t cstring_size = %s != NULL ? strlen(%s) : 0;\n"
+            "        if (cstring_size > INT64_MAX) { xrtSetErrorKind(XERR_RANGE); xl6ErrorScopeCaptureFailure(&%s); }\n"
+            "        else if (%s != NULL) { %s = xlir_string_from_utf8(%s, cstring_size);\n"
+            "            if (%s.Data == NULL) xl6ErrorScopeCaptureFailure(&%s);\n"
+            "        }\n",
+            scope,raw,raw,scope,raw,place,raw,place,scope);
+        if(type->kind!=XL6_IR_TYPE_NULLABLE)
+            xl6OutputPrintf(out,"            else if (%s == NULL) { xrtSetErrorKind(XERR_VALUE); xl6ErrorScopeCaptureFailure(&%s); }\n",raw,scope);
+        xl6OutputPuts("    }\n",out);return;
+    }
     xl6OutputPrintf(out,"    if (!%s.failed && xrtGetError() == NULL) {\n"
         "        %s = xlir_string_from_cstr(%s);\n"
         "        if (%s != NULL && %s.Data == NULL) xl6ErrorScopeCaptureFailure(&%s);\n",

@@ -1,0 +1,61 @@
+{
+  "date": "2026-11-13",
+  "complete": true,
+  "passed": true,
+  "scope": "Borrowed C-string result contract source preflight only; explicit const char* ABI, nullable snapshots and checked fallible copies.",
+  "fullCompilerBuild": false,
+  "shippingDelivery": false,
+  "networkTests": false,
+  "platforms": {
+    "win": {
+      "build": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cstring-frontend-win-r2\\build.json",
+        "sha256": "42cae602de52b4ea6db3489aaa9cb7f1abefa78ebb04912bfa325b763575ec29"
+      },
+      "qualification": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cstring-source-win-r4\\results.json",
+        "sha256": "0558e7d4cddc2ee1948811bf8d9a5b60855988cb62367fb5e442e080fe5a5d85"
+      },
+      "commands": 29
+    },
+    "linux": {
+      "build": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cstring-frontend-linux-r2\\build.json",
+        "sha256": "616f571685e438c42c55ec5809c120d10ee5bcd4802003c0c9f7f11ab480ad00"
+      },
+      "qualification": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cstring-source-linux-r2\\results.json",
+        "sha256": "d1c5ffc7eb96ed5e62da1415bf64824ac1e14083d973d09bd84f7ab68644127d"
+      },
+      "commands": 29
+    }
+  },
+  "sourceHashes": {
+    "src/type/xl6_foreign_call_contract.h": "741ebcbd7aee1c92c04c83983413e5c449078964772af398c0ffd2b84d318a30",
+    "src/type/xl6_foreign_decl.h": "a3550913af92db37960faa46c2583c14ee9f3ce1b73c403684d7473145939bc2",
+    "src/sem/xl6_sem.c": "3b6889a977b62294c5f34dc043abc189ccc500f443419ebf2e204646139fb406",
+    "src/ir/xl6_ir.h": "0b30d4c791c379807a10f31cf5fae8415f778239f03386931a54ad7a6257b25b",
+    "src/ir/xl6_ir.c": "c14f5ce7752c750ebdc3affaa4ecbac0159d88b7ae5d7199f7e167a46469a5c6",
+    "src/cgen/xl6_ir_cgen_identity_closure.c": "8189c2172fdc67c910676429d00e9ef7b924d49b1435886804d0d2330a1bcc2d",
+    "src/cgen/xl6_ir_cgen_type_definitions.c": "ad1d3327926c67badd4995e897da7e3e43936beb43a691fa259ba16556a8491c",
+    "test/cases/foreign_cstring_result.h": "e475e28d91db9e2d2b22751e3a6fec5e21f673552f070ad1ae9adc0524137195",
+    "test/cases/foreign_cstring_result.xl": "fbd1dc14da4d2af2c37573a859205dea4e853beb4c7d26e709296bfa3b508817",
+    "test/cases/foreign_cstring_result_ir.c": "d99dce5ad1fd2fc3a620417a2bab0b350cb3df8a1ffedef93daceab8c8920696",
+    "test/cases/foreign_cstring_result_native.c": "97871971b4efbd7208df4541eff3c82c4458dca02122eb83f4f3bdf3e2531ee9",
+    "tools/check_foreign_cstring_results.py": "48efae71bdb331cdd05894739c6b1527406f38637e6ea5e43022e20539418b20"
+  },
+  "measuredResultCosts": {
+    "nativeCalls": 1,
+    "allocations": 1,
+    "reallocations": 0,
+    "lengthScan": true,
+    "byteCopy": true
+  },
+  "irMutationsPerOptimization": 55,
+  "refusedOutputEmissionsPerOptimization": 110,
+  "limits": [
+    "Frozen consumer trees with explicitly rebuilt compiler units; no claim of current full workspace acceptance",
+    "Full O2/VFS/embedded compiler builds and getTitle final qualification running separately",
+    "No final SDK/compiler/IDE installation"
+  ]
+}

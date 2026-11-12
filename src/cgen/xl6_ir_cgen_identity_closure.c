@@ -405,6 +405,7 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
             : target->resultCAbi == XL6_IR_CALL_RESULT_C_ABI_TEXT_VIEW ? "xstrview"
             : target->resultCAbi == XL6_IR_CALL_RESULT_C_ABI_BYTES_VIEW ? "xbytesview"
             : target->resultCAbi == XL6_IR_CALL_RESULT_C_ABI_CONST_XVALUE_POINTER ? "const xvalue*"
+            : target->resultCAbi == XL6_IR_CALL_RESULT_C_ABI_CONST_CHAR_POINTER ? "const char*"
             : target->resultCAbi == XL6_IR_CALL_RESULT_C_ABI_FOREIGN_VIEW ? xl6IrTypeGet(&module->types,target->returnType)->cName
             : target->resultCAbi == XL6_IR_CALL_RESULT_C_ABI_BOOL_STATUS ? "bool"
             : target->resultCAbi == XL6_IR_CALL_RESULT_C_ABI_CHAR_POINTER ? "char*"
