@@ -47,3 +47,10 @@ The immutable evidence index is
 `dev/release-materials/provenance/tcc-elf-tls-preflight-20261112.json`.
 Complete compiler/VFS/embedded-source rebuild and the original failing nested
 shared-library scenario remain required before qualified delivery.
+
+Windows r29 complete O2/TCC/XRT/fixed-object/VFS/embedded-source acceptance
+subsequently passed all 38 top-level commands, including owned-byte and scalar
+transactions inside actual parent executables and Python-loaded shared-library
+callers. Image, particle, literal-nested and source-free delivery gates passed.
+Linux r21 is still building; Windows results do not certify the original Linux
+host corruption scenario. See `tcc-elf-tls-scalar-windows-20261112.json`.

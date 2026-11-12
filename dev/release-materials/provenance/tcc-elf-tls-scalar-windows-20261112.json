@@ -1,0 +1,94 @@
+{
+  "schema": 1,
+  "windowsFullQualified": true,
+  "linuxFullQualified": false,
+  "fullCompilerBuild": true,
+  "shippingDelivery": false,
+  "scope": "Matched Windows r29 O2 TCC/XRT/fixed-object/VFS/embedded-source ELF linker and scalar value-place closure. C integer checked arithmetic is a newly approved separate upcoming batch. Original Linux shared-host failure remains pending full r21 acceptance.",
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-elf-tls-scalar-full-r29\\build.json",
+      "sha256": "30c4e69794f9e239ad051a51d1a09faaf814544594e7e80ddacb47d6b4ae9a32"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-elf-tls-scalar-full-r29\\freeze.json",
+      "sha256": "8eb772fe2e9e2a5cf552d87687d9743c98719cffc81a13d4c7b7b6d0c6c31d78"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\elf-tls-scalar-full-qualification-win-r1\\results.json",
+      "sha256": "1fa2b9dae5b033a68ebb2e4c362d654de6360a11fa489617c745ac57e451f8a3"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\qualification-follow-win-r1.json",
+      "sha256": "547d85afda6d19c5b5ded1b48d5162ebaa14a2f3b1f7b49419e4b6f09979b5cf"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\qualify_elf_tls_scalar_full.py",
+      "sha256": "5d6ac9258e7d74845b98f3be42662cd0f1296c58c343d3da8a8e3d088b975200"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\elf-tls-scalar-full-qualification-win-r1\\image-regression\\results.json",
+      "sha256": "470b36f4e6fb133aa1af0034ddd2d2fe05fa0ac957cf308fd2f71cb44d013246"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\elf-tls-scalar-full-qualification-win-r1\\particle-and-unused-png\\results.json",
+      "sha256": "19e4f08af42140f4a58a4abd04e63debdd5db991dbbed882183c9205c4bb3439"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\elf-tls-scalar-full-qualification-win-r1\\literal-nested\\results.json",
+      "sha256": "c07a1fabab157d6a2daa1fe1b56751b65650bc5df37e0b32d7ced2de449fb397"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\elf-tls-scalar-full-qualification-win-r1\\source-free\\results.json",
+      "sha256": "1a9fade3dae371c0fbe0afb9f34ed765c1a0f0ae77393f7e1aa0d7d054c88649"
+    }
+  ],
+  "sourceFreeze": {
+    "files": 13500,
+    "overrides": {
+      "lib/tcc/tcc.h": "9f0b90e5cbd7236bd63f0e692afc2899fb90f2b9bbdcf1f371201e661be89505",
+      "lib/tcc/tccelf.c": "9d1ceb120336cb78f2dd89d51a6a7931f611a14179384f30fd281d8ab4881c0d",
+      "lib/tcc/x86_64-link.c": "f2b075911958ffeeaee73698c407f5424e85970665a6a562c1038602d5f2be6f",
+      "src/ir/xl6_ir.c": "43ea5297f4ddc75c2b924694438d5f581db0101ac6a1792a9947318941ba872c",
+      "src/ir/xl6_ir_lower.c": "bbbed7e9bff9634e2b36566c310e98bea1c5db4c427a2e920d6d96197433a025",
+      "src/ir/xl6_ir_lower_aggregate_place.c": "20a0df1ddd076fd7c1881293b66799127137bf3f35d25fa3dd4721210e1f7c09"
+    }
+  },
+  "verification": {
+    "topLevelCommands": 38,
+    "nestedOwnedBytesShared": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\elf-tls-scalar-full-qualification-win-r1\\nested-owned-shared.dll",
+      "sha256": "ea0d2338462a5af7d1704fad5df632c455e9c24c929ba3d788998ea916eba702"
+    },
+    "nestedScalarShared": true,
+    "publicCliScalar": true
+  },
+  "products": {
+    "xl.exe": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-elf-tls-scalar-full-r29\\source\\release\\win_x64\\xl.exe",
+      "sha256": "b06ecff88b5b9f438820a93f7ec7c8be5d605c5e55c8d6e6c58c8d2c2641ed80",
+      "bytes": 72704
+    },
+    "xl.dll": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-elf-tls-scalar-full-r29\\source\\release\\win_x64\\xl.dll",
+      "sha256": "be0c24172bfae92ea46cb1860149831921aa55755d9c84f9eca1bf7065340613",
+      "bytes": 15282688
+    },
+    "xlc.dll": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-elf-tls-scalar-full-r29\\source\\release\\win_x64\\xlc.dll",
+      "sha256": "0cbda4d289bf32383a2e80b51ffdf2cdf838b6db44440df549e5c8258f500b33",
+      "bytes": 21492736
+    }
+  },
+  "producerFileDeltaBytes": {
+    "xl.exe": 0,
+    "xl.dll": 4608,
+    "xlc.dll": 3584
+  },
+  "pending": [
+    "Linux r21 original failing Python shared-host and native-host acceptance",
+    "Newly approved checked C integer arithmetic",
+    "Actual XGE package shared-library initialization contract",
+    "Remaining XGE/XUI/Document/3D integration and final matched delivery"
+  ]
+}
