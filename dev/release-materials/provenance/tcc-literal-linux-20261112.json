@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "fullCompilerBuild": true,
+  "fullCompilerEmbeddingQualified": true,
+  "shippingDelivery": false,
+  "scope": "Complete O2 Linux r17 literal-storage compiler cohort; matrix/image, embedded TCC and independent nested compiler EXE/shared execution. Does not qualify future relocation-metadata changes.",
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-linux-full-r17\\build.json",
+      "sha256": "4e01673266e4b56a2680c0658e095af8af7c6fe12bfe2506ba85e41147858f89"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\matrix-literals-linux-r2\\results.json",
+      "sha256": "72a1fca9986c9a354c5e50e7c952b2b6bb53bb59cb2fc11b120f62ddbb4b7200"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\image-literals-linux-r2\\results.json",
+      "sha256": "907a0b7c454467e634b852d6095d9d42f5e7cd3f66e11f1ec0185499135c021a"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-literal-delivery-fixed-linux-r2\\results.json",
+      "sha256": "ea724ac63fb81cdda72ce89dc3628ee67fc8708b3fd73ce2b2711c3e832cfa1c"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\precompiled-literals-linux-r2\\results.json",
+      "sha256": "fe910836684365509a8c00a5380c060169b50580793395b58a825cca10d34db6"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\literal-full-qualification-linux-r2\\results.json",
+      "sha256": "38be2600217148b4fcb0e3128204ca439cd2d8f2c35930db7024b720c0727d43"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\png-matched-storage-linux-r1\\results.json",
+      "sha256": "bdd383b00e9ea27f49b91a1745b29a432ec8d2c363ea1077cce42c8f9a9cd23f"
+    }
+  ],
+  "consumer": {
+    "matrixFileSavingBytes": 59901,
+    "machineCodeDeltaBytes": 0,
+    "allocatedReadonlyDataSavingBytes": 59932,
+    "sameCurrentCompilerPngSdkFileDeltaBytes": 0,
+    "sameCurrentCompilerPngSdkCodeDeltaBytes": 0
+  },
+  "windowsFullEmbeddingQualified": false
+}

@@ -125,3 +125,15 @@ The complete Windows r25 build and its actual consumer sizes are now recorded in
 embedded-TCC execution pass, but deeper source-free language-compiler embedding
 still exceeds the numbered directory budget. That remaining failure is retained
 and requires the separate relocation-metadata correction; it is not full delivery.
+
+The complete Linux r17 O2 cohort passes matrix/image, embedded-TCC children,
+and the source-free parent/child language-compiler EXE and shared-library cases.
+The same current image SDK's matrix sample shrinks from 810532 to 750631 bytes
+(59901 bytes), with unchanged 435422 machine-code bytes. Allocated readonly
+data decreases by 59932 bytes. A separate comparison using this same r17
+compiler and the pre-PNG/current SDKs has zero file and code size delta. These
+are measured sample results, not CPU/peak-memory or whole-engine claims.
+The immutable Linux evidence index is
+`dev/release-materials/provenance/tcc-literal-linux-20261112.json`.
+It qualifies the literal-storage cohort, not the subsequent relocation-metadata
+implementation or a matched final release/IDE installation.
