@@ -128,6 +128,7 @@
 !/dev/release-materials/provenance/tcc-literal-linux-20261112.json
 !/dev/release-materials/provenance/tcc-relocation-metadata-preflight-20261112.json
 !/dev/release-materials/provenance/tcc-embedded-object-errors-20261112.json
+!/dev/release-materials/provenance/tcc-relocation-windows-20261112.json
 /out/
 /tmp/
 /logs/

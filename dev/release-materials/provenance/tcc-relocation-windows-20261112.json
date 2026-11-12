@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "fullCompilerBuild": true,
+  "windowsFullCompilerEmbeddingQualified": true,
+  "linuxCombinedQualified": false,
+  "shippingDelivery": false,
+  "scope": "Complete Windows r27 private-relocation, canonical embedded roster and binary error propagation cohort; actual native/nested language compiler EXE/shared execution. No final ecosystem or SDK/IDE delivery claim.",
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r27\\build.json",
+      "sha256": "574d8b2d683086140820722b11f83aa5d2635fcad472d5c660080006304bcefb"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\relocation-full-qualification-win-r2\\results.json",
+      "sha256": "62e5cdaed590faf0d5e9b8c1bc6dbc34595e2ffd8d12c57444bb5705e8fe66b7"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\relocation-full-qualification-win-r2\\comparison.json",
+      "sha256": "a052c2422621a3ac6f16a4b4460e3fe34d71ada2007f417fb2d684c65fbee79a"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\matrix-relocation-win-r2\\results.json",
+      "sha256": "be3d308c74d985f6807a034f16a0331d161c80c4bca709ef14ff33acf9cc31ef"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\image-relocation-win-r2\\results.json",
+      "sha256": "5694b987096cdc428d82c074835daf78b2c341eaa0291085a417323b139402f8"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-literal-delivery-relocation-win-r2\\results.json",
+      "sha256": "bbb84947c890cd2ee9bfe40244f00489e673b8cbb52ad8df028f992333167f42"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\precompiled-relocation-win-r2\\results.json",
+      "sha256": "fc9e61bc84adafbb4c6adeed83ff07d75e2bdab2aefdc5c1325489424b7d6c0d"
+    }
+  ],
+  "sourceFreeze": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r27\\freeze.json",
+    "sha256": "6446e55dd439e8c63fee73ed6beed4cf57ace5c8317128f08bdcef21f616a638",
+    "files": 13495,
+    "overrides": {
+      "lib/tcc/tcc.h": "c4169862852708d1c4562f4f36c3852c6c104c683931019f661bc84a0b06faca",
+      "lib/tcc/tccgen.c": "5afd9d918b2d9695993a8bf47c56295737e25c0936b6b2a67d31fa7315fc9f36",
+      "lib/tcc/tcc-gc.inc": "d8e6dec7c5a1ae215ecfee89f3b1df593b15695c51b3abe0311e34253585bf13",
+      "lib/tcc/tccelf.c": "ca364973fdcc11df0d517727a90474641c5a9a74627f18f7257e633e0f5d46bd",
+      "lib/tcc/libtcc.c": "49cacf26c5c9650d43b018738c314a2c16882d4280208f3f83cc8a7f240a2cc7",
+      "src/api/xl_api.c": "53b43ec4493b488d5a46476e697caecb3f04749019fe309977948dacaf9db289",
+      "tools/precompile_builtin.py": "b5c9c8acb829ce064a6af54ab86cb95135512aa9b3be0df416b762a755cd3eb8"
+    }
+  },
+  "consumerMatrix": {
+    "fileDeltaBytes": 0,
+    "codeDeltaBytes": 0,
+    "readonlyDataDeltaBytes": 0
+  },
+  "producerProducts": {
+    "xl.exe": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r27\\source\\release\\win_x64\\xl.exe",
+      "sha256": "b06ecff88b5b9f438820a93f7ec7c8be5d605c5e55c8d6e6c58c8d2c2641ed80",
+      "bytes": 72704
+    },
+    "xl.dll": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r27\\source\\release\\win_x64\\xl.dll",
+      "sha256": "30a0893c563cec80a91e0d5c9db04570a0ff929ade1d67ea23865d5d53c7df9b",
+      "bytes": 15273472
+    },
+    "xlc.dll": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r27\\source\\release\\win_x64\\xlc.dll",
+      "sha256": "5f6ca4a121dbbe680d3bbc4cddbfeb93bb2bb611c455ec156fe17671147a0309",
+      "bytes": 21480448
+    }
+  }
+}

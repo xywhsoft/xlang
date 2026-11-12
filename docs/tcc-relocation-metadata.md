@@ -150,3 +150,20 @@ remain intact. The successor must rebuild the loader, host API, fixed objects,
 VFS and embedded compiler together. Focused evidence is indexed in
 `dev/release-materials/provenance/tcc-embedded-object-errors-20261112.json`;
 complete nested caller qualification is still pending.
+
+## Complete Windows combined cohort
+
+The r27 O2 build now rebuilds TinyCC, XRT, fixed objects, both VFS catalogs,
+the compiler/runtime DLLs and CLI together. Its 13495 frozen input files include
+the private-metadata implementation, binary error propagation and corrected host
+source rosters. The four complete Windows gates pass: matrix, image, literal
+children through CLI/EXE/shared embedded TCC, and actual source-free parent/child
+language compiler EXE/shared execution. The last case had failed in r25 and is
+now executed successfully rather than replaced by a unique-object preflight.
+
+With the same image SDK and matrix-only source, r25 and r27 produce identical
+file and machine-code sizes. This internal representation/correctness work does
+not add consumer code to that sample. The build and measured producer sizes are
+pinned in `dev/release-materials/provenance/tcc-relocation-windows-20261112.json`.
+Linux r19 combined qualification and the full XGE/XUI/Document delivery remain
+open; this Windows cohort is not the final SDK/IDE installation.
