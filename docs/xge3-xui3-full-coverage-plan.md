@@ -645,3 +645,11 @@ Linux ASan/UBSan 及完整 UI 消费者验证通过，最终活动分配归零�
 见 `foreign-owned-text-source-20261112.json` 与 `xui-document-exports-source-20261112.json`。
 后继完整 O2 r31／r23 重建正在进行；这些源码／SDK 专项不替代其验收，也不代表
 GPU、有状态 3D、其余未决合同或最终 SDK／IDE 交付已完成。
+
+2026-11-13 主机重启中断上述后继验收，Windows 未完成的 r1 报告变为全零字节，
+原件保留且未采信。r31 的三个完整构建产物及 13,517 个冻结输入重新核验一致后，
+新的 Windows r2 验收通过全部 72 项顶层命令及另 5 项异步／生成器检查，包含真实
+EXE／共享库内嵌编译器执行拥有文本合同，及 Document 动态／静态程序。生产者
+xl.dll／xlc.dll 相对 r30 分别增加 4,608／11,776 字节，CLI 不变。后继证据为
+`foreign-owned-text-windows-20261113.json`。Linux 中断的 r23 未列为通过，使用同份
+冻结源码重新执行 r24 完整构建；没有安装正式 release／IDE。

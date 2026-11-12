@@ -1,0 +1,65 @@
+{
+  "date": "2026-11-13",
+  "complete": true,
+  "passed": true,
+  "scope": "Windows full O2 compiler/TCC/XRT/fixed objects/VFS/embedded sources; actual CLI owned UTF-8 and bytes, Document hosted/static programs, nested compiler EXE/shared invocation, checked integer continuation and related existing regressions. Not full XGE/Document or shipping delivery.",
+  "shippingDelivery": false,
+  "evidence": {
+    "build": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-owned-text-full-r31\\build.json",
+      "sha256": "7bbed7ca4588dfc0379441bda53a55510a13a19cfb0858e805a2c9f15d0a530d"
+    },
+    "qualification": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\owned-text-full-qualification-win-r2\\results.json",
+      "sha256": "5339ccc06201ebd05c928455a82a8f0495a3d3c8a7385aa3f3b074adcd065a32",
+      "commands": 72
+    },
+    "continuation": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\owned-text-continuation-full-win-r1\\results.json",
+      "sha256": "b0801d41eaa01895cf48d7dca580637e044fa817ae4b03f05c6e35bd80b326e4",
+      "commands": 5
+    },
+    "rebootRecovery": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\owned-text-reboot-recovery-20261113.json",
+      "sha256": "2604313944dd7fd5087a9387cd58f36e57cfa984afd4cbcbbd6eda9439c22b73"
+    }
+  },
+  "products": {
+    "xl.exe": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-owned-text-full-r31\\source\\release\\win_x64\\xl.exe",
+      "sha256": "b06ecff88b5b9f438820a93f7ec7c8be5d605c5e55c8d6e6c58c8d2c2641ed80",
+      "bytes": 72704
+    },
+    "xl.dll": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-owned-text-full-r31\\source\\release\\win_x64\\xl.dll",
+      "sha256": "73ffd0dd5e25b826055dcc71ea9e2615befc7f798c5bf87f028a97b7cd330c40",
+      "bytes": 15294464
+    },
+    "xlc.dll": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-owned-text-full-r31\\source\\release\\win_x64\\xlc.dll",
+      "sha256": "5d6462941e412e27dd92f02aaf50c1e7231997e3fa9434831de9d1c9c207d8a2",
+      "bytes": 21511680
+    }
+  },
+  "producerByteDeltasFromR30": {
+    "xl.exe": 0,
+    "xl.dll": 4608,
+    "xlc.dll": 11776
+  },
+  "frozenInputs": 13517,
+  "fixtureHashes": {
+    "test/cases/foreign_owned_text.xl": "1eca3f10c44b79456ab5226edb0d5819a64e52809659e1716824f29fedec462b",
+    "test/cases/foreign_owned_bytes.xl": "f319f38721ecc6c3ec7dcfd76afca8478840ddc8aeaf59071a6babd17f41509e",
+    "test/cases/xlir_scalar_numeric_closure.xl": "2832aa344ce82222b5e29532f0d6b79986d7ccf35a2688ccfa555ebcd3814300",
+    "test/cases/xlir_c_integer_arithmetic.xl": "b2ef66b2de2f0da6d82822bc9fcd9f876d3fa1d214175ef16b486be582d9d8e0",
+    "test/cases/foreign_xui_document_exports.xl": "ecd663dc7b3257c6b03c6fab2fe289acd7dc659559f8b8ab11fcc1c2c6a575e2",
+    "lib/bindings/xui/examples/document_exports.xl": "f1227b9fc945f7add284fc07a3484ae35f744abd621e4cf4e9895e0fb627abfc"
+  },
+  "limits": [
+    "Linux restarted cohort still pending",
+    "Actual XGE package shared-library initialization remains separate",
+    "No GPU/rendering certification",
+    "Final SDK/compiler/IDE not installed"
+  ],
+  "interruptedEvidencePreserved": true
+}

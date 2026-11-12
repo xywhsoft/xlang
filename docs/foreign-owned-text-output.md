@@ -76,3 +76,12 @@ recorded in XGE commit `d902e6b8`.
 The initial source acceptance does not certify shipping O2/VFS/embedded
 compiler products or final SDK/IDE installation. Their evidence must be
 recorded separately before delivery is declared complete.
+
+The Windows r31 full O2 build subsequently passed 72 top-level qualification
+commands plus five continuation checks after its three products and 13,517
+frozen inputs were reverified. This includes the actual nested language
+compiler in independent EXE/shared-library hosts, not only a frontend overlay.
+See `dev/release-materials/provenance/foreign-owned-text-windows-20261113.json`.
+The host reboot interrupted the first qualification report; its zero-filled
+bytes are preserved and were not counted. Linux and final installation remain
+separate requirements.
