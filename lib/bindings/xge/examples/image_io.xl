@@ -1,0 +1,19 @@
+// Two RGBA pixels become a PNG; read its dimensions before decoding it.
+import xge
+func main(...) as int
+ string path="image-example.png"
+ bytes pixels=b"\xff\0\0\xff\0\xff\0\xff"
+ xge.saveImagePng(path,c_int(2),c_int(1),pixels)
+ try
+  auto encoded=file.readBytes(path)
+  auto width,height=xge.imageInfo(encoded)
+  assert width==c_int(2) and height==c_int(1)
+  println("PNG dimensions:",width,height)
+  auto image=xge.loadImage(encoded)
+  assert image.width==width and image.height==height
+  image.close()
+ finally
+  assert file.delete(path)
+ end
+ return 0
+end
