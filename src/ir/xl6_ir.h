@@ -7098,6 +7098,8 @@ typedef struct XL6_IrModule {
     size_t foreignOutputSizeCount,foreignOutputSizeCapacity;
     XL6_ForeignNativeSequenceContract* foreignNativeSequences;
     size_t foreignNativeSequenceCount,foreignNativeSequenceCapacity;
+    XL6_ForeignOwnedBytesContract* foreignOwnedBytes;
+    size_t foreignOwnedBytesCount,foreignOwnedBytesCapacity;
     XL6_ForeignOutputViewContract* foreignOutputViews;
     size_t foreignOutputViewCount,foreignOutputViewCapacity;
     XL6_ForeignOutputRecordContract* foreignOutputRecords;
@@ -8124,6 +8126,7 @@ int xl6IrNativeSequenceResourceSignature(const XL6_IrModule*,XL6_IrRuntimeResour
 int xl6IrNativeSequenceInstructionCompatible(const XL6_IrModule*,const XL6_IrInstruction*);
 const XL6_ForeignNativeSequenceContract* xl6IrForeignNativeSequenceGet(const XL6_IrModule*,const XL6_IrCallTarget*);
 int xl6IrForeignNativeSequenceMatches(const XL6_IrModule*,const XL6_IrCallTarget*);
+const XL6_ForeignOwnedBytesContract* xl6IrForeignOwnedBytesGet(const XL6_IrModule*,const XL6_IrCallTarget*);
 const XL6_ForeignOutputViewContract* xl6IrForeignOutputViewGet(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);
 int xl6IrForeignOutputViewsMatch(const XL6_IrModule*,const XL6_IrCallTarget*);
 const XL6_ForeignPackContract* xl6IrForeignPackGet(const XL6_IrModule*,const XL6_IrCallTarget*,size_t);

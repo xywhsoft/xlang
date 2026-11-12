@@ -28,6 +28,9 @@ static int xl6IrCgenBuildNeeds(const XL6_IrModule* module, XL6_IrCgenNeeds* need
     for(size_t i=0;i<module->callTargetCount;++i) {
         const XL6_IrCallTarget* target=&module->callTargets[i];
         if(target->reachability==XL6_IR_REACHABILITY_UNREACHABLE)continue;
+        if(xl6IrForeignOwnedBytesGet(module,target)){
+            needs->needsOwnedBytesOutput=1;needs->needsBytesRuntime=1;needs->needsXValueRuntime=1;
+        }
         /* Borrowed xvalue results retain through XRT's value implementation.
          * They are native algorithm dependencies, not resident helper symbols. */
         if(target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_CONST_XVALUE_POINTER)needs->needsXValueRuntime=1;

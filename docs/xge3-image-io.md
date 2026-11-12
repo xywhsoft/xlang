@@ -90,3 +90,17 @@ Neither is replaced with an unsafe pointer or a per-method copying wrapper.
 Actual shared-library imports still need the general package-initializer
 contract. Matched final SDK/runtime/IDE delivery remains part of the full XGE
 goal; this batch does not install release files.
+
+## Owned memory encoding source preflight
+
+`encodeImagePng(width,height,bytes/Buffer,stride=0,flags=2)` now maps
+`xgeImageEncodePNGEx` directly through the generic `@c_output_bytes` contract.
+It admits the exact resident-XRT block as language bytes without copying the
+encoded payload; the ordinary xvalue shell still allocates. Both platforms'
+source JIT and dynamic/static executables pass memory roundtrip, Buffer parity,
+copy/mutation isolation, row-bound rejection and forty allocation budgets with
+balanced live allocation/byte and invalid/double-free counters. The new readable
+memory example also runs in all three modes. See
+`docs/foreign-owned-bytes-output.md` for the exact allocator promise and source
+qualification boundaries. Full O2 compiler/VFS rebuilds and matched final
+delivery remain pending; earlier reports above retain their historical status.

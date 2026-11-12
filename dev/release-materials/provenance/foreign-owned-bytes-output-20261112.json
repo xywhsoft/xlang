@@ -1,0 +1,91 @@
+{
+  "schema": 1,
+  "sourcePreflightPassed": true,
+  "fullCompilerBuildQualified": false,
+  "shippingDelivery": false,
+  "scope": "Generic exact resident-XRT owning pointer/length output and direct PNG memory encoder. Both source compilers, explicit IR closure/diagnostic driver corrections, JIT and generated-C O0/O2, real PNG dynamic/static programs. Full O2/VFS/nested and final ecosystem delivery pending.",
+  "verification": {
+    "win": {
+      "genericCommands": 29,
+      "pngCommands": 16,
+      "irMutations": 102,
+      "rejectedEmissions": 204,
+      "pngAllocationBudgets": 40,
+      "allocationsFor100Takes": 200,
+      "freesFor100Takes": 200,
+      "reallocationsFor100Takes": 0,
+      "fullCompilerBuild": false
+    },
+    "linux": {
+      "genericCommands": 29,
+      "pngCommands": 16,
+      "irMutations": 102,
+      "rejectedEmissions": 204,
+      "pngAllocationBudgets": 40,
+      "allocationsFor100Takes": 200,
+      "freesFor100Takes": 200,
+      "reallocationsFor100Takes": 0,
+      "fullCompilerBuild": false
+    }
+  },
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\owned-bytes-preflight-win-r9\\results.json",
+      "sha256": "8026d5f0a9eaedaba4a6752ecc86092db1116ca7cad7d21d863f699b627472f2"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\image-owned-bytes-preflight-win-r3\\results.json",
+      "sha256": "cf6d0762f68ce96db2e123a9a2c772fd8e8a5af51994f2173b3e45744a2d7f98"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\owned-bytes-source-win-r1\\freeze.json",
+      "sha256": "b71813dc4f229f97494ef23e2904e966938382d3e38a130457237135f59f3bfd"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\owned-bytes-source-win-r1\\public-r3\\build.json",
+      "sha256": "cc976d1d6aeded269f43ecf04d943b03eb4c70017c74865d128bdc3260404869"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\owned-bytes-closed-win-r2\\build.json",
+      "sha256": "c74821ac62672482f401353a6d1ff13bd3ddd8169104382edc8bcd9d1de760d4"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\owned-bytes-preflight-linux-r2\\results.json",
+      "sha256": "9db02a417d10c9a1a44b8e9e61cdd6a16d12e6349f373b8a5fb463315ff87f58"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\image-owned-bytes-preflight-linux-r2\\results.json",
+      "sha256": "f45e66e7b2d9a3fb433d6883b34388b81a4bdc8f66b58ea811ed5954ae071ef0"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\owned-bytes-source-linux-r1\\freeze.json",
+      "sha256": "8a90909966135b1311285d7d7a53a2cd697454d1de55be887ed00a350e682dbc"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\owned-bytes-source-linux-r1\\public-r3\\build.json",
+      "sha256": "a960e2406c7c6a33ac0bced6d1bf7b36f9dc983bca1d0119dbb509ed50a45d83"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\owned-bytes-closed-linux-r3\\build.json",
+      "sha256": "73de695f26743445cd37010845e0af55058827d722630940ced120a824357e96"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\owned-bytes-package-stage-r1.json",
+      "sha256": "db2f83dc20bda0a6c8034505a731eddae9558acda706cd719cd50840d623e581"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\close_owned_bytes_overloads.py",
+      "sha256": "d459f40869560b784c589b578f1a80f87dc0fb4e2af393e4e869ea2799e8051a"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\finish_owned_bytes_linux.py",
+      "sha256": "91ed38a72c60cd9e90c18b07e5cef3fb69c0ac87e914206ce742b14e39c61581"
+    }
+  ],
+  "pending": [
+    "Complete O2 compiler/TCC/XRT/fixed objects/VFS/embedded-source qualification on both systems",
+    "Actual nested compiler delivery with the new contract",
+    "Final matched SDK/compiler/IDE delivery",
+    "Remaining XGE/XUI/Document integration and unresolved ownership contracts"
+  ]
+}

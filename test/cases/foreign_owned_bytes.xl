@@ -1,0 +1,62 @@
+extern "fixtureOwnedBytes" @header("test/cases/foreign_owned_bytes.h") @no_raise @c_output_bytes(2,3,"void*","size_t","xrt",0) func produce(c_int mode=0,c_int failAfter=-1) as bytes
+extern "fixtureOwnedChars" @header("test/cases/foreign_owned_bytes.h") @no_raise @c_output_bytes(0,2,"char*","uint64_t","xrt",17) func chars(c_int marker=31) as bytes
+extern "fixtureOwnedUChars" @header("test/cases/foreign_owned_bytes.h") @no_raise @c_output_bytes(0,1,"unsigned char*","size_t","xrt",0) func unsignedChars() as bytes
+extern "fixtureOwnedPrefix" @header("test/cases/foreign_owned_bytes.h") @no_raise @c_span(0,"const uint8_t*","size_t",1) @c_output_bytes(2,3,"void*","size_t","xrt",0) func prefix(bytes data,int size=-1) as bytes
+extern "fixtureOwnedPrefix" @header("test/cases/foreign_owned_bytes.h") @no_raise @c_span(0,"const uint8_t*","size_t",1) @c_output_bytes(2,3,"void*","size_t","xrt",0) func prefix(Buffer data,int size=-1) as bytes
+extern "fixtureOwnedBytesIdentity" @header("test/cases/foreign_owned_bytes.h") @no_raise @c_span(0,"const uint8_t*","size_t") func identity(bytes data) as c_int
+extern "fixtureOwnedBytesReset" @header("test/cases/foreign_owned_bytes.h") @no_raise func resetFailure()
+extern "fixtureOwnedBytesBegin" @header("test/cases/foreign_owned_bytes.h") @no_raise func beginCounter()
+extern "fixtureOwnedBytesEnd" @header("test/cases/foreign_owned_bytes.h") @no_raise func endCounter()
+extern "fixtureOwnedBytesNativeReference" @header("test/cases/foreign_owned_bytes.h") @no_raise func nativeReference()
+extern "fixtureOwnedBytesLanguageReference" @header("test/cases/foreign_owned_bytes.h") @no_raise func languageReference()
+
+func oneTake()
+ auto data=produce()
+ assert identity(data)==c_int(1)
+end
+func main(...) as int
+ auto data=produce()
+ assert identity(data)==c_int(1) and data==b"A\0\xffZ"
+ auto copy=data
+ copy[0]=uint8(7)
+ assert data[0]==uint8(65) and copy[0]==uint8(7)
+ assert identity(data)==c_int(1)
+ assert chars()==data and unsignedChars()==data
+ assert prefix(b"A\0\xffZ",3)==b"A\0\xff" and prefix(b"A\0\xffZ",20)==data
+ assert prefix(Buffer(b"A\0\xffZ"),3)==b"A\0\xff"
+ assert produce(c_int(2))==b"" and produce(c_int(4))==b""
+ bytes kept=b"keep"
+ for mode in [1,3,5,6]
+  beginCounter()
+  bool caught=false
+  try
+   kept=produce(c_int(mode))
+  catch error
+   caught=true
+   if mode==1 then
+    assert error.code==-17
+   end
+  end
+  assert caught and kept==b"keep"
+  endCounter()
+ end
+ beginCounter()
+ bool caught=false
+ try
+  kept=produce(c_int(0),c_int(0))
+ catch error
+  caught=true
+ finally
+  resetFailure()
+ end
+ assert caught and kept==b"keep"
+ endCounter()
+ oneTake()
+ nativeReference()
+ beginCounter()
+ for i in range(100)
+  oneTake()
+ end
+ languageReference()
+ return 0
+end

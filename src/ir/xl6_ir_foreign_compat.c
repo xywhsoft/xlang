@@ -46,6 +46,7 @@ static int xl6IrForeignOverloadMetadataEqual(const XL6_IrModule* m,const XL6_IrC
     uint32 a=left->declaration,b=right->declaration;
 #define XL6_EQUAL_ROWS(field,count) if(!xl6IrForeignRowsEqual(m->field,m->count,sizeof(*m->field),a,b))return 0
     XL6_EQUAL_ROWS(foreignOutputs,foreignOutputCount);
+    XL6_EQUAL_ROWS(foreignOwnedBytes,foreignOwnedBytesCount);
     XL6_EQUAL_ROWS(foreignOutputSizes,foreignOutputSizeCount);
     XL6_EQUAL_ROWS(foreignOutputViews,foreignOutputViewCount);
     XL6_EQUAL_ROWS(foreignOutputRecords,foreignOutputRecordCount);

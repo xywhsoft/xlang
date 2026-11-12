@@ -7,6 +7,8 @@ static const char* xl6IrCgenOutputRawType(const XL6_IrModule* module,
 {
     if(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT)
         return xl6IrTypeGet(&module->types,target->returnType)->cName;
+    const XL6_ForeignOwnedBytesContract* ownedBytes=xl6IrForeignOwnedBytesGet(module,target);
+    if(ownedBytes)return ordinal ? xl6ForeignOwnedBytesSizeCName(ownedBytes->sizeAbi):xl6ForeignOwnedBytesPointerCName(ownedBytes->pointerAbi);
     const XL6_ForeignNativeSequenceContract* sequence=xl6IrForeignNativeSequenceGet(module,target);
     if(sequence)return ordinal ? (sequence->countAbi==XL6_FOREIGN_SPAN_COUNT_INT ? "int":"size_t"):sequence->dataCName;
     const XL6_ForeignOutputRecordContract* record=xl6IrForeignOutputRecordGet(module,target);
@@ -22,7 +24,7 @@ static const char* xl6IrCgenOutputRawType(const XL6_IrModule* module,
 static const XL6_IrType* xl6IrCgenOutputFixedArray(const XL6_IrModule* module,
     const XL6_IrCallTarget* target,size_t ordinal)
 {
-    if(xl6IrForeignNativeSequenceGet(module,target) || xl6IrForeignOutputRecordGet(module,target) ||
+    if(xl6IrForeignOwnedBytesGet(module,target) || xl6IrForeignNativeSequenceGet(module,target) || xl6IrForeignOutputRecordGet(module,target) ||
         xl6IrForeignOutputViewGet(module,target,ordinal))return NULL;
     const XL6_IrType* type=xl6IrTypeGet(&module->types,xl6IrForeignOutputType(module,target,ordinal));
     return type && type->kind==XL6_IR_TYPE_C_ARRAY ? type:NULL;
@@ -37,7 +39,7 @@ static void xl6IrCgenOutputAddress(XL6_Output* out,const XL6_IrModule* module,
     const XL6_IrCallTarget* target,size_t ordinal)
 {
     int array=xl6IrCgenOutputFixedArray(module,target,ordinal)!=NULL;
-    int field=xl6IrForeignNativeSequenceGet(module,target) ||
+    int field=xl6IrForeignOwnedBytesGet(module,target) || xl6IrForeignNativeSequenceGet(module,target) ||
         (!xl6IrForeignOutputRecordGet(module,target) && xl6IrForeignOutputCount(module,target)>1);
     if(!array)xl6OutputPutc('&',out);
     xl6OutputPuts("native_raw",out);
@@ -85,6 +87,12 @@ static int xl6IrCgenOutputRawDeclare(XL6_Output* out,const XL6_IrModule* module,
     const XL6_IrNode* declaration=xl6IrNodeGet(module,target->declaration);
     size_t count=xl6IrForeignOutputCount(module,target);
     if(!xl6IrForeignOutputViewsMatch(module,target))return 0;
+    const XL6_ForeignOwnedBytesContract* ownedBytes=xl6IrForeignOwnedBytesGet(module,target);
+    if(ownedBytes){
+        xl6OutputPrintf(out,"    struct { %s e0; %s e1; } native_raw={0};\n",
+            xl6ForeignOwnedBytesPointerCName(ownedBytes->pointerAbi),xl6ForeignOwnedBytesSizeCName(ownedBytes->sizeAbi));
+        return !xl6OutputHasFailed(out);
+    }
     const XL6_ForeignNativeSequenceContract* sequence=xl6IrForeignNativeSequenceGet(module,target);
     if(sequence){
         xl6OutputPrintf(out,"    struct { %s e0; %s e1; } native_raw={0};\n",sequence->dataCName,sequence->countAbi==XL6_FOREIGN_SPAN_COUNT_INT ? "int":"size_t");return !xl6OutputHasFailed(out);
@@ -150,6 +158,11 @@ static int xl6IrCgenOutputValuesAdmit(XL6_Output* out,const XL6_IrModule* module
     const XL6_IrCallTarget* target,const char* place,const char* scope)
 {
     const XL6_IrNode* declaration=xl6IrNodeGet(module,target->declaration);
+    if(xl6IrForeignOwnedBytesGet(module,target)){
+        xl6OutputPrintf(out,"    %s=xl6COutputBytesTakeV1(native_raw.e0,(uint64_t)native_raw.e1,!%s.failed && !xrtGetError());\n"
+            "    if(!%s.failed && (!%s || xrtGetError()))xl6ErrorScopeCaptureFailure(&%s);\n",place,scope,scope,place,scope);
+        return !xl6OutputHasFailed(out);
+    }
     if(xl6IrForeignNativeSequenceGet(module,target)){xl6IrCgenNativeSequenceOutputAdmit(out,module,target,place,scope);return !xl6OutputHasFailed(out);}
     const XL6_ForeignOutputRecordContract* record=xl6IrForeignOutputRecordGet(module,target);
     if(!record && !xl6ForeignValueOutputHasView(declaration->foreignCall.valueOutput)){

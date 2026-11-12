@@ -21578,6 +21578,7 @@ static const XL6_AstNode* xl6SemForeignOwnershipHelper(XL6_SemContext* ctx,
 #include "src/sem/xl6_sem_foreign_array.c"
 #include "src/sem/xl6_sem_foreign_output_record.c"
 #include "src/sem/xl6_sem_foreign_native_sequence.c"
+#include "src/sem/xl6_sem_foreign_owned_bytes.c"
 static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNode* node,const XL6_AstNode* ownerClass)
 {
     XL6_ForeignCallFacts facts;
@@ -21885,7 +21886,9 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
         xl6SemErrorNode(ctx,node,"native view result contract requires a managed external class");return 0;
     }
     if(facts.valueOutput){
-        if(xl6ForeignValueOutputBase(facts.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_NATIVE_SEQUENCE_STATUS){
+        if(xl6ForeignValueOutputBase(facts.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_OWNED_BYTES_STATUS){
+            if(!xl6SemForeignOwnedBytes(ctx,node,attrs,ownerClass,&facts,count+receiver,receiver))return 0;
+        }else if(xl6ForeignValueOutputBase(facts.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_NATIVE_SEQUENCE_STATUS){
             if(!xl6SemForeignNativeSequence(ctx,node,attrs,ownerClass,&facts,count+receiver,receiver))return 0;
         }else if(xl6ForeignValueOutputIsRecord(facts.valueOutput)){
             if(!xl6SemForeignOutputRecord(ctx,node,attrs,ownerClass,&facts,count+receiver,receiver))return 0;
@@ -22153,6 +22156,8 @@ static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node,const XL
         if(xl6ForeignValueOutputBase(viewFacts.valueOutput)==
             XL6_FOREIGN_VALUE_OUTPUT_NATIVE_SEQUENCE_STATUS)
             return ok; /* Exact POD, count and independent owner contract checked above. */
+        if(xl6ForeignValueOutputBase(viewFacts.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_OWNED_BYTES_STATUS)
+            return ok; /* Exact byte output ownership contract checked above. */
         if(viewFacts.valueOutput && xl6SemIsCAbiFixedOutputType(ctx,typeNode))
             return ok; /* Pointer output storage, never a raw by-value C array return. */
         if ( typeNode != NULL && xl6SemIsFutureLikeTypeName(typeNode->text) ) {

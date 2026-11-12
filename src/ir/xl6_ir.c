@@ -2489,6 +2489,7 @@ void xl6IrModuleFree(XL6_IrModule* module)
     xrtFree(module->foreignOutputSizes);
     xrtFree(module->foreignOutputViews);
     xrtFree(module->foreignNativeSequences);
+    xrtFree(module->foreignOwnedBytes);
     xrtFree(module->foreignOutputRecords);
     xrtFree(module->foreignOutputFields);
     xrtFree(module->foreignRegions);
@@ -4611,6 +4612,12 @@ static XL6_IrNodeId xl6IrBuildAstNode(
                     module->foreignCallbackSpanCount,sizeof(*module->foreignCallbackSpans))){*ok=0;return 0;}
             row.declaration=id;module->foreignCallbackSpans[module->foreignCallbackSpanCount++]=row;continue;
         }
+        if(declaration && declaration->text && !strcmp(declaration->text,"c_output_bytes")){
+            XL6_ForeignOwnedBytesContract row={0};
+            if(!xl6ForeignOwnedBytesRead(declaration,&row) ||
+                !xl6IrGrow((void**)&module->foreignOwnedBytes,&module->foreignOwnedBytesCapacity,module->foreignOwnedBytesCount,sizeof(*module->foreignOwnedBytes))){*ok=0;return 0;}
+            row.declaration=id;module->foreignOwnedBytes[module->foreignOwnedBytesCount++]=row;continue;
+        }
         if(declaration && declaration->text && !strcmp(declaration->text,"c_owned_sequence")){
             XL6_ForeignNativeSequenceContract row={0};XL6_ForeignRetainContract retain={0};size_t found=0;
             for(size_t r=0;foreignAttributes && r<foreignAttributes->childCount;++r)if(xl6ForeignRetainRead(foreignAttributes->children[r],&retain))++found;
@@ -5969,6 +5976,7 @@ static int xl6IrBuildUnionLayouts(XL6_IrModule* module)
 #include "src/ir/xl6_ir_foreign_output_record.c"
 #include "src/ir/xl6_ir_foreign_output_view.c"
 #include "src/ir/xl6_ir_foreign_native_sequence.c"
+#include "src/ir/xl6_ir_foreign_owned_bytes.c"
 
 typedef struct XL6_IrBuildFieldPersistence {
     int skip;
@@ -37512,7 +37520,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             (target->foreignHeaderIndexPlusOne && target->kind!=XL6_IR_CALL_TARGET_EXTERN_C))
             return xl6IrDiag(diags,NULL,"native function header index disagrees with its declaration");
     }
-    if (!xl6IrVerifyNativeSequences(module,diags) || !xl6IrVerifyNativeSequenceReads(module,diags) || !xl6IrVerifyForeignOutputs(module,diags) || !xl6IrVerifyOutputRecords(module,diags) || !xl6IrVerifyOutputSizes(module,diags) || !xl6IrVerifyOutputViews(module,diags) || !xl6IrVerifyRegions(module,diags) || !xl6IrVerifyPacks(module,diags) || !xl6IrVerifyArrayGroups(module,diags) || !xl6IrVerifyForeignParameters(module,diags) || !xl6IrVerifyForeignFieldLengths(module,diags) ||
+    if (!xl6IrVerifyOwnedBytes(module,diags) || !xl6IrVerifyNativeSequences(module,diags) || !xl6IrVerifyNativeSequenceReads(module,diags) || !xl6IrVerifyForeignOutputs(module,diags) || !xl6IrVerifyOutputRecords(module,diags) || !xl6IrVerifyOutputSizes(module,diags) || !xl6IrVerifyOutputViews(module,diags) || !xl6IrVerifyRegions(module,diags) || !xl6IrVerifyPacks(module,diags) || !xl6IrVerifyArrayGroups(module,diags) || !xl6IrVerifyForeignParameters(module,diags) || !xl6IrVerifyForeignFieldLengths(module,diags) ||
         !xl6IrVerifyForeignStorage(module,diags) || !xl6IrVerifyForeignRetains(module,diags) ||
         !xl6IrVerifyForeignCallbackSpans(module,diags) || !xl6IrVerifyForeignValues(module,diags) ||
         !xl6IrVerifyPointerQualifiers(module,diags) || !xl6IrVerifyFunctionHeaders(module,diags) ||
@@ -54489,6 +54497,13 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
         const XL6_ForeignOutputViewContract* row=&module->foreignOutputViews[i];
         xl6OutputPrintf(out,"    {\"declaration\":%u,\"physicalIndex\":%u,\"ordinal\":%u,\"logicalType\":%u,\"conversion\":%u,\"retainSymbol\":%u,\"rollbackSymbol\":%u,\"retainSuccess\":%u}%s\n",
             row->declaration,row->physicalIndex,row->ordinal,row->logicalType,(unsigned)row->conversion,row->retainSymbol,row->rollbackSymbol,(unsigned)row->retainSuccess,i+1==module->foreignOutputViewCount ? "":",");
+    }
+    xl6OutputPuts("  ],\n  \"foreignOwnedBytes\": [\n",out);
+    for(i=0;i<module->foreignOwnedBytesCount;++i){
+        const XL6_ForeignOwnedBytesContract* row=&module->foreignOwnedBytes[i];
+        xl6OutputPrintf(out,"    {\"declaration\":%u,\"dataIndex\":%u,\"sizeIndex\":%u,\"pointerAbi\":%u,\"sizeAbi\":%u,\"successCode\":%d}%s\n",
+            row->declaration,row->dataIndex,row->sizeIndex,(unsigned)row->pointerAbi,(unsigned)row->sizeAbi,row->successCode,
+            i+1==module->foreignOwnedBytesCount ? "":",");
     }
     xl6OutputPuts("  ],\n  \"foreignNativeSequences\": [\n",out);
     for(i=0;i<module->foreignNativeSequenceCount;++i){

@@ -48,14 +48,15 @@ typedef enum XL6_ForeignValueOutputKind {
     XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID,
     XL6_FOREIGN_VALUE_OUTPUT_RECORD_STATUS,
     XL6_FOREIGN_VALUE_OUTPUT_RECORD_VOID,
-    XL6_FOREIGN_VALUE_OUTPUT_NATIVE_SEQUENCE_STATUS
+    XL6_FOREIGN_VALUE_OUTPUT_NATIVE_SEQUENCE_STATUS,
+    XL6_FOREIGN_VALUE_OUTPUT_OWNED_BYTES_STATUS
 } XL6_ForeignValueOutputKind;
 
 /* The output-mode byte authenticates sparse sizeof initializers and borrowed
  * output conversions. No additional fact slot is attached to every IR node. */
 #define XL6_FOREIGN_VALUE_OUTPUT_SIZE_INITIALIZED 128u
 #define XL6_FOREIGN_VALUE_OUTPUT_VIEW_CONVERTED 64u
-#define XL6_FOREIGN_VALUE_OUTPUT_KIND_MASK 7u
+#define XL6_FOREIGN_VALUE_OUTPUT_KIND_MASK 15u
 static inline XL6_ForeignValueOutputKind xl6ForeignValueOutputBase(uint8 mode)
 {return (XL6_ForeignValueOutputKind)(mode&XL6_FOREIGN_VALUE_OUTPUT_KIND_MASK);}
 static inline int xl6ForeignValueOutputHasSize(uint8 mode)
@@ -69,8 +70,8 @@ static inline int xl6ForeignValueOutputIsVoid(uint8 mode)
 static inline int xl6ForeignValueOutputBitsValid(uint8 mode)
 {
     return !(mode&~(XL6_FOREIGN_VALUE_OUTPUT_KIND_MASK|XL6_FOREIGN_VALUE_OUTPUT_SIZE_INITIALIZED|XL6_FOREIGN_VALUE_OUTPUT_VIEW_CONVERTED)) &&
-        xl6ForeignValueOutputBase(mode)<=XL6_FOREIGN_VALUE_OUTPUT_NATIVE_SEQUENCE_STATUS &&
-        (xl6ForeignValueOutputBase(mode)!=XL6_FOREIGN_VALUE_OUTPUT_NATIVE_SEQUENCE_STATUS ||
+        xl6ForeignValueOutputBase(mode)<=XL6_FOREIGN_VALUE_OUTPUT_OWNED_BYTES_STATUS &&
+        (xl6ForeignValueOutputBase(mode)<XL6_FOREIGN_VALUE_OUTPUT_NATIVE_SEQUENCE_STATUS ||
          !(mode&(XL6_FOREIGN_VALUE_OUTPUT_SIZE_INITIALIZED|XL6_FOREIGN_VALUE_OUTPUT_VIEW_CONVERTED))) &&
         (!(xl6ForeignValueOutputHasSize(mode)||xl6ForeignValueOutputHasView(mode)) || xl6ForeignValueOutputBase(mode)!=XL6_FOREIGN_VALUE_OUTPUT_NONE);
 }
@@ -323,4 +324,5 @@ typedef struct XL6_ForeignParameterContract {
 } XL6_ForeignParameterContract;
 
 #include "src/type/xl6_foreign_native_sequence_contract.h"
+#include "src/type/xl6_foreign_owned_bytes_contract.h"
 #endif

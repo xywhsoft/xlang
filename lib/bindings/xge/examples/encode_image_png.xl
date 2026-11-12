@@ -1,0 +1,12 @@
+// Encode two RGBA pixels to owned bytes, without a temporary file or window.
+import xge
+
+func main(...) as int
+ bytes pixels=b"\xff\0\0\xff\0\xff\0\xff"
+ auto png=xge.encodeImagePng(c_int(2),c_int(1),pixels)
+ auto width,height=xge.imageInfo(png)
+ assert width==c_int(2) and height==c_int(1)
+ println("PNG dimensions:",width,height)
+ println("Encoded bytes:",png.length)
+ return 0
+end

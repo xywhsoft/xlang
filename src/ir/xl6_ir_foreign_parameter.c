@@ -396,6 +396,7 @@ size_t xl6IrForeignPhysicalOutputCount(const XL6_IrModule* module,const XL6_IrCa
 {
     const XL6_IrNode* node=target ? xl6IrNodeGet(module,target->declaration):NULL;
     if(xl6IrForeignNativeSequenceGet(module,target))return 2;
+    if(xl6IrForeignOwnedBytesGet(module,target))return 2;
     if(node && xl6ForeignValueOutputIsRecord(node->foreignCall.valueOutput))return 1;
     return xl6IrForeignOutputCount(module,target);
 }
@@ -453,9 +454,12 @@ int xl6IrForeignOutputValueMatches(const XL6_IrModule* module,const XL6_IrCallTa
     if(!node || !node->foreignCall.valueOutput)return 0;
     if(xl6ForeignValueOutputBase(node->foreignCall.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_NATIVE_SEQUENCE_STATUS)return xl6IrForeignNativeSequenceMatches(module,target);
     int borrowedOutput=xl6ForeignBorrowedOwnerOutput(&node->foreignCall);
+    const XL6_ForeignOwnedBytesContract* ownedBytes=xl6IrForeignOwnedBytesGet(module,target);
+    if((ownedBytes!=NULL)!=(node->foreignCall.valueOutput==XL6_FOREIGN_VALUE_OUTPUT_OWNED_BYTES_STATUS) ||
+       (ownedBytes && !xl6IrOwnedBytesValid(module,ownedBytes)))return 0;
     size_t count=xl6IrForeignOutputCount(module,target);
     if(!count || count>64 || (borrowedOutput && count!=1))return 0;
-    for(size_t o=0;!borrowedOutput && o<count;++o)if(!xl6IrForeignOutputViewGet(module,target,o) &&
+    for(size_t o=0;!borrowedOutput && !ownedBytes && o<count;++o)if(!xl6IrForeignOutputViewGet(module,target,o) &&
         !xl6IrRawCCallbackTrivialValueType(xl6IrTypeGet(&module->types,xl6IrForeignOutputType(module,target,o))) &&
         !xl6IrForeignFixedOutputType(module,xl6IrForeignOutputType(module,target,o)))return 0;
     if(xl6IrForeignMultiOutput(node)){

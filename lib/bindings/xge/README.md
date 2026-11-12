@@ -85,8 +85,12 @@ use. Its width/height/stride/format/flags fields are readonly native queries.
 Loading defaults to premultiplied alpha; `saveImagePng` defaults to straight
 RGBA and accepts bytes or Buffer with explicit width/height/optional stride.
 Bad input regions fail before file opening. A later I/O/encoding failure may
-leave a partial file. Memory PNG output and full pixel views remain separate
-work. See `docs/xge3-image-io.md` for prefix rules, costs and qualification.
+leave a partial file. `encodeImagePng(width,height,pixels,stride=0,flags=2)`
+encodes bytes or Buffer input directly to owned bytes without a temporary file
+or encoded-payload copy. It requires the matching compiler's generic owning
+byte-output declaration support. `examples/encode_image_png.xl` needs no window.
+Full pixel views remain separate work. See `docs/xge3-image-io.md` and
+`docs/foreign-owned-bytes-output.md` for costs and qualification boundaries.
 
 ## System fonts
 

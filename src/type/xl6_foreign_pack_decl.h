@@ -132,6 +132,12 @@ static inline int xl6ForeignPhysicalOutputSlots(const XL6_AstNode* node,const XL
     if(!facts->outputIndexPlusOne)return 1;
     slots[0]=facts->outputIndexPlusOne-1;*outputCount=1;
     XL6_ForeignValueOutputKind kind=xl6ForeignValueOutputBase(facts->valueOutput);
+    if(kind==XL6_FOREIGN_VALUE_OUTPUT_OWNED_BYTES_STATUS){
+        const XL6_AstNode* attrs=xl6ForeignFunctionAttributes(node);size_t found=0;XL6_ForeignOwnedBytesContract row={0};
+        for(size_t i=0;attrs && i<attrs->childCount;++i)found+=xl6ForeignOwnedBytesRead(attrs->children[i],&row);
+        if(found!=1)return 0;
+        slots[0]=row.dataIndex;slots[1]=row.sizeIndex;*outputCount=2;return 1;
+    }
     if(kind==XL6_FOREIGN_VALUE_OUTPUT_NATIVE_SEQUENCE_STATUS){
         const XL6_AstNode* attrs=xl6ForeignFunctionAttributes(node);size_t found=0;XL6_ForeignNativeSequenceContract row={0};
         for(size_t i=0;attrs && i<attrs->childCount;++i)found+=xl6ForeignNativeSequenceRead(attrs->children[i],&row);

@@ -1,0 +1,55 @@
+// CPU-only memory encoder. No GL context, files, network or window required.
+import xge
+extern "fixtureImagePrefixBegin" @header("test/cases/foreign_xge3_image_io.h") @no_raise func prefixBegin(c_int budget)
+extern "fixtureImagePrefixEnd" @header("test/cases/foreign_xge3_image_io.h") @no_raise func prefixEnd()
+extern "fixtureImageHeapEqual" @header("test/cases/foreign_xge3_image_io.h") @no_raise func heapEqual()
+func main(...) as int
+ bytes rgba=b"\x40\0\0\x80\0\0\0\0\0\x40\0\x80"
+ auto png=xge.encodeImagePng(c_int(1),c_int(2),rgba,c_int(8),c_uint(xge.XGE_IMAGE_PREMULTIPLIED))
+ auto width,height=xge.imageInfo(png)
+ assert width==c_int(1) and height==c_int(2)
+ auto bufferPng=xge.encodeImagePng(c_int(1),c_int(2),Buffer(rgba),c_int(8),c_uint(xge.XGE_IMAGE_PREMULTIPLIED))
+ assert png==bufferPng
+ auto image=xge.loadImage(png,c_uint(xge.XGE_IMAGE_STRAIGHT_ALPHA))
+ assert image.width==width and image.height==height
+ image.close()
+ auto copy=png
+ copy[0]=uint8(0)
+ assert png[0]==uint8(137) and copy[0]==uint8(0)
+ bytes kept=b"keep"
+ int rejected=0
+ try
+  kept=xge.encodeImagePng(c_int(1),c_int(2),b"short",c_int(8))
+ catch error
+  rejected+=1
+ end
+ try
+  kept=xge.encodeImagePng(c_int(1),c_int(2),rgba,c_int(3))
+ catch error
+  rejected+=1
+ end
+ try
+  kept=xge.encodeImagePng(c_int(0),c_int(2),rgba)
+ catch error
+  rejected+=1
+ end
+ assert rejected==3 and kept==b"keep"
+ int failures=0
+ int successes=0
+ for budget in range(40)
+  prefixBegin(c_int(budget))
+  try
+   auto result=xge.encodeImagePng(c_int(1),c_int(2),rgba,c_int(8),c_uint(xge.XGE_IMAGE_PREMULTIPLIED))
+   assert result==png
+   successes+=1
+  catch error
+   failures+=1
+  finally
+   prefixEnd()
+  end
+  heapEqual()
+ end
+ assert failures>0 and successes>0
+ println("PNG owned bytes: memory roundtrip, Buffer parity and failure transaction passed")
+ return 0
+end
