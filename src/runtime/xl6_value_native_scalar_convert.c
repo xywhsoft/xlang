@@ -4,7 +4,7 @@
 bool xl6ValueConvertNativeScalarV2(const xvalue* source,unsigned targetProfile,uint64_t reflectionIdentity,void* output)
 {
     xl6_error_scope scope={0};XL6_NativeScalarScratchV1 input={0};bool ok=false;unsigned profile=0;
-    if(!xl6ErrorScopeBegin(&scope)) { xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()});return false; }
+    if(!xl6ErrorScopeBegin(&scope))return false;
     if(!source || !output || !reflectionIdentity || !targetProfile || targetProfile>XL6_NATIVE_SCALAR_WCHAR)xrtSetErrorKind(XERR_ARGUMENT);
     else {
         xvaluetype tag=xrtValueType(source);
@@ -23,6 +23,6 @@ bool xl6ValueConvertNativeScalarV2(const xvalue* source,unsigned targetProfile,u
     }
     if(!ok || xrtGetError())xl6ErrorScopeCaptureFailure(&scope);
     xl6_error_result result=xl6ErrorScopeEnd(&scope);
-    if(!result.ok) { xl6ErrorScopePropagateFailure(result);return false; }
+    if(!result.ok) { xrtSetErrorTake(result.error);return false; }
     return true;
 }

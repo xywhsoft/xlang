@@ -685,7 +685,10 @@ static int xl6IrCgenRuntimeIntegerWrappingAbi(
 
 static int xl6IrCgenCheckedIntegerRuntimeOpIs(XL6_IrRuntimeOp operation)
 {
-    return operation == XL6_IR_RUNTIME_INTEGER_DIV_CHECKED ||
+    return operation == XL6_IR_RUNTIME_INTEGER_ADD_CHECKED ||
+        operation == XL6_IR_RUNTIME_INTEGER_SUB_CHECKED ||
+        operation == XL6_IR_RUNTIME_INTEGER_MUL_CHECKED ||
+        operation == XL6_IR_RUNTIME_INTEGER_DIV_CHECKED ||
            operation == XL6_IR_RUNTIME_INTEGER_MOD_CHECKED ||
            operation == XL6_IR_RUNTIME_INTEGER_SHL_CHECKED ||
            operation == XL6_IR_RUNTIME_INTEGER_SHR_CHECKED;
@@ -796,8 +799,8 @@ static int xl6IrCgenRuntimeCheckedIntegerArithmeticAbi(
          instruction->payloadType != XL6_IR_TYPE_INVALID ||
          instruction->runtimeIdentityType != XL6_IR_TYPE_INVALID ||
          instruction->opcode != XL6_IR_OPCODE_INVALID ||
-         instruction->integerTarget < XL6_IR_INTEGER_TARGET_SIGNED_8 ||
-         instruction->integerTarget > XL6_IR_INTEGER_TARGET_UNSIGNED_64 ||
+         instruction->firstOperand > module->operandCount ||
+         module->operandCount - instruction->firstOperand < 2 ||
          instruction->integerSourceAbi != XL6_IR_INTEGER_SOURCE_INVALID ) return 0;
     left = xl6IrCgenValueDefinition(
         module, module->operands[instruction->firstOperand], NULL);
@@ -805,12 +808,8 @@ static int xl6IrCgenRuntimeCheckedIntegerArithmeticAbi(
         module, module->operands[instruction->firstOperand + 1], NULL);
     resultType = xl6IrTypeGet(&module->types, instruction->type);
     return left != NULL && right != NULL && resultType != NULL &&
-        left->type == instruction->type && right->type == instruction->type &&
-        resultType->integerTarget == instruction->integerTarget &&
-        resultType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
-        resultType->cAbi ==
-            (instruction->integerTarget == XL6_IR_INTEGER_TARGET_UNSIGNED_64
-                ? XL6_IR_C_ABI_U64 : XL6_IR_C_ABI_I64);
+        xl6IrCheckedIntegerArithmeticSignatureValid(module,instruction->runtimeOp,
+            instruction->integerTarget,instruction->type,left->type,right->type);
 }
 
 static int xl6IrCgenEmitCheckedIntegerArithmetic(
@@ -821,6 +820,28 @@ static int xl6IrCgenEmitCheckedIntegerArithmetic(
     int operation;
     if ( !xl6IrCgenRuntimeCheckedIntegerArithmeticAbi(module, instruction) )
         return 0;
+    if(xl6IrArithmeticIntegerTargetIsNative(instruction->integerTarget)) {
+        static const char* const names[]={NULL,"Char","SChar","UChar","Short","UShort",
+            "Int","UInt","Long","ULong","LongLong","ULongLong","Size","SSize",
+            "Ptrdiff","Intptr","Uintptr",NULL,NULL,NULL,"Wchar"};
+        unsigned profile=(unsigned)instruction->integerTarget-XL6_IR_INTEGER_TARGET_NATIVE_BASE;
+        const char* name=profile<sizeof(names)/sizeof(names[0]) ? names[profile]:NULL;
+        if(!name)return 0;
+        int shift=instruction->runtimeOp==XL6_IR_RUNTIME_INTEGER_SHL_CHECKED ||
+            instruction->runtimeOp==XL6_IR_RUNTIME_INTEGER_SHR_CHECKED;
+        const char* op=instruction->runtimeOp==XL6_IR_RUNTIME_INTEGER_ADD_CHECKED ? "XL6_C_INTEGER_ADD":
+            instruction->runtimeOp==XL6_IR_RUNTIME_INTEGER_SUB_CHECKED ? "XL6_C_INTEGER_SUB":
+            instruction->runtimeOp==XL6_IR_RUNTIME_INTEGER_MUL_CHECKED ? "XL6_C_INTEGER_MUL":
+            instruction->runtimeOp==XL6_IR_RUNTIME_INTEGER_DIV_CHECKED ? "XL6_C_INTEGER_DIV":
+            instruction->runtimeOp==XL6_IR_RUNTIME_INTEGER_MOD_CHECKED ? "XL6_C_INTEGER_MOD":
+            instruction->runtimeOp==XL6_IR_RUNTIME_INTEGER_SHR_CHECKED ? "true":"false";
+        xl6OutputPrintf(out,"    bool projection_ok_%u = xl6C%s%sV1(v%u, %sv%u, %s, %d, %d, &v%u);\n",
+            (unsigned)instruction->result,name,shift ? "Shift":"Arithmetic",
+            (unsigned)module->operands[instruction->firstOperand],shift ? "(uint64_t)":"",
+            (unsigned)module->operands[instruction->firstOperand+1],op,
+            instruction->sourceSpan.line,instruction->sourceSpan.column,(unsigned)instruction->result);
+        return !xl6OutputHasFailed(out);
+    }
     helper = instruction->integerTarget == XL6_IR_INTEGER_TARGET_UNSIGNED_64
         ? "xlir_u64_binary_checked" : "xlir_i64_binary_checked";
     operation = instruction->runtimeOp == XL6_IR_RUNTIME_INTEGER_DIV_CHECKED ? 0

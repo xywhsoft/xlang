@@ -26,17 +26,47 @@ Linux also passes undefined-behavior sanitization. The public foundation header
 passes C++11/C++17 syntax checks. Evidence is pinned in
 `checked-c-integer-foundation-20261112.json`.
 
-Compiler integration is **not complete**. It must carry the execution domain
-through Typed/Lowered XLIR, include unary negation and compound transactions,
-validate failure CFG and malformed IR, and serialize calls through a shared
-runtime contract. Cgen must not recover semantic information from source ASTs.
-The current typed probe also shows a critical shift issue: `c_int << uint64`
-currently narrows its count to `c_int`. Integration must preserve the original
-count until validation, so a count of `2^32` cannot become zero. Mixed numeric
-promotion must remain an explicit semantic decision.
+The source compiler now carries an exact native integer execution domain in
+Typed/Lowered XLIR, emits explicit checked RuntimeOps for ordinary arithmetic,
+negation and compound updates, and verifies an adjacent failure CFG. Native
+C type rows retain their actual C ABI. No AST recovery or C spelling lookup is
+needed by Cgen. Shift counts keep the original integer width until validation.
+Native helpers use the target C compiler's actual widths and signedness.
 
-Required subsequent gates include all C integer aliases on LLP64 and LP64,
-normal/unary/compound expressions and every destination kind, OOM/error
-propagation, exported C ABI, generated C, JIT, independent programs, and actual
-embedded compilers. The foundation gate does not certify those paths or change
-the current compiler's behavior by itself.
+Arithmetic helpers return an explicit bool and write their output only on
+success. ERROR_TEST uses that bool in ordinary, async and generator machines.
+A missing allocated Error cannot turn a failed operation into a committed
+write. Error creation is deliberately failed in actual generated C; global
+storage remains unchanged and a following valid call succeeds. C ABI callers
+also verify that caught conversion/arithmetic errors do not poison an outer
+checked scope. Static and dynamic native conversion providers were corrected
+to publish their diagnostic and false result without prematurely latching the
+parent scope.
+
+The existing semantic promotion rules remain authoritative: these checks apply
+when the selected execution type is a native C integer. A mixed expression
+promoted to a language numeric type retains that type's existing rules. This
+batch does not introduce C's usual integer promotions or change language int
+arithmetic. The language has no compound shift assignment syntax; ordinary
+shift expressions and assignments are checked without adding that syntax.
+
+Windows and Linux source preflights each pass 29 checks: all 17 native integer
+aliases with target-derived bounds, JIT, O0/O2 generated C and real C ABI
+callers, transactional property/field/fixed-array writes, conversion failure,
+error allocation failure, three exported/runtime header standards, and
+existing scalar/builtin integer regressions. At each optimization level,
+53 IR mutations cause 106 empty C/header refusals. The pure 4,710,526-assertion
+arithmetic oracle and UBSan foundation remain separately qualified.
+
+A separate continuation gate verifies checked native arithmetic in async
+functions and in a generator body with an int result carrier, including failure
+after an await/yield. It does not add or certify generator<c_int>, which is
+currently rejected by the existing type-pool contract.
+
+Success-path helpers allocate nothing and introduce no dynamic value boxing.
+Checks, output/status temporaries and ordinary C calls/stack storage still have
+costs; no CPU throughput or zero-overhead claim is made. Complete O2 compiler,
+TCC, XRT, fixed-object, VFS and embedded-source candidates are being rebuilt.
+Source preflight does not certify or install those final runtime bytes. Evidence
+is indexed in `checked-c-integer-preflight-20261112.json` under
+`dev/release-materials/provenance/`.

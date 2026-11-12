@@ -19039,6 +19039,12 @@ static XL6_IrErrorAbi xl6IrClassifyOperatorErrorAbi(
         if ( target != NULL ) operatorType = target->storageType;
     }
     resultType = xl6IrTypeGet(&module->types, operatorType);
+    if (xl6IrArithmeticIntegerTargetIsNative(xl6IrArithmeticIntegerTarget(resultType)) &&
+        (node->opcode == XL6_IR_OPCODE_ADD || node->opcode == XL6_IR_OPCODE_SUB ||
+         node->opcode == XL6_IR_OPCODE_MUL || node->opcode == XL6_IR_OPCODE_DIV ||
+         node->opcode == XL6_IR_OPCODE_MOD || node->opcode == XL6_IR_OPCODE_SHL ||
+         node->opcode == XL6_IR_OPCODE_SHR || node->opcode == XL6_IR_OPCODE_NEG))
+        return XL6_IR_ERROR_ABI_MAY_RAISE;
     if (resultType && resultType->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
         resultType->collectionAbi == XL6_IR_COLLECTION_NONE &&
         (node->opcode == XL6_IR_OPCODE_ADD || node->opcode == XL6_IR_OPCODE_SUB ||
@@ -24153,6 +24159,15 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
             return XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT;
         return XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE;
     }
+    if(xl6IrArithmeticIntegerTargetIsNative(instruction->integerTarget) &&
+       (instruction->runtimeOp==XL6_IR_RUNTIME_INTEGER_ADD_CHECKED ||
+        instruction->runtimeOp==XL6_IR_RUNTIME_INTEGER_SUB_CHECKED ||
+        instruction->runtimeOp==XL6_IR_RUNTIME_INTEGER_MUL_CHECKED ||
+        instruction->runtimeOp==XL6_IR_RUNTIME_INTEGER_DIV_CHECKED ||
+        instruction->runtimeOp==XL6_IR_RUNTIME_INTEGER_MOD_CHECKED ||
+        instruction->runtimeOp==XL6_IR_RUNTIME_INTEGER_SHL_CHECKED ||
+        instruction->runtimeOp==XL6_IR_RUNTIME_INTEGER_SHR_CHECKED))
+        return XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT;
     stringAbi=xl6IrTreeQueryErrorPhysicalAbi(instruction->runtimeOp);
     if(stringAbi!=XL6_IR_CALL_ERROR_PHYSICAL_INVALID) return stringAbi;
     stringAbi=xl6IrSlotMapErrorPhysicalAbi(instruction->runtimeOp);
@@ -25415,7 +25430,10 @@ static int xl6IrRuntimeOpIsCheckedDynamicArithmetic(XL6_IrRuntimeOp operation)
 
 static int xl6IrRuntimeOpIsCheckedIntegerArithmetic(XL6_IrRuntimeOp operation)
 {
-    return operation == XL6_IR_RUNTIME_INTEGER_DIV_CHECKED ||
+    return operation == XL6_IR_RUNTIME_INTEGER_ADD_CHECKED ||
+           operation == XL6_IR_RUNTIME_INTEGER_SUB_CHECKED ||
+           operation == XL6_IR_RUNTIME_INTEGER_MUL_CHECKED ||
+           operation == XL6_IR_RUNTIME_INTEGER_DIV_CHECKED ||
            operation == XL6_IR_RUNTIME_INTEGER_MOD_CHECKED ||
            operation == XL6_IR_RUNTIME_INTEGER_SHL_CHECKED ||
            operation == XL6_IR_RUNTIME_INTEGER_SHR_CHECKED;
@@ -25522,6 +25540,55 @@ XL6_NativeScalarProfileV1 xl6IrNativeScalarProfileForCAbi(XL6_IrCAbi abi)
     default: return XL6_NATIVE_SCALAR_NONE;
     }
 }
+int xl6IrArithmeticIntegerTargetIsNative(XL6_IrIntegerTarget target)
+{
+    unsigned profile=(unsigned)target-(unsigned)XL6_IR_INTEGER_TARGET_NATIVE_BASE;
+    return (profile>=XL6_NATIVE_SCALAR_CHAR && profile<=XL6_NATIVE_SCALAR_UINTPTR) ||
+        profile==XL6_NATIVE_SCALAR_WCHAR;
+}
+XL6_IrIntegerTarget xl6IrArithmeticIntegerTarget(const XL6_IrType* type)
+{
+    if(!type || type->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
+       type->nullAbi!=XL6_IR_NULL_ABI_NONE)return XL6_IR_INTEGER_TARGET_INVALID;
+    if(type->integerTarget>=XL6_IR_INTEGER_TARGET_SIGNED_8 &&
+       type->integerTarget<=XL6_IR_INTEGER_TARGET_UNSIGNED_64)return type->integerTarget;
+    XL6_NativeScalarProfileV1 profile=xl6IrNativeScalarProfileForCAbi(type->cAbi);
+    XL6_IrIntegerTarget target=(XL6_IrIntegerTarget)(XL6_IR_INTEGER_TARGET_NATIVE_BASE+profile);
+    return xl6IrArithmeticIntegerTargetIsNative(target) ? target:XL6_IR_INTEGER_TARGET_INVALID;
+}
+XL6_IrRuntimeOp xl6IrCheckedIntegerRuntimeOperation(XL6_IrOpcode opcode)
+{
+    switch(opcode) {
+    case XL6_IR_OPCODE_ADD:return XL6_IR_RUNTIME_INTEGER_ADD_CHECKED;
+    case XL6_IR_OPCODE_NEG:case XL6_IR_OPCODE_SUB:return XL6_IR_RUNTIME_INTEGER_SUB_CHECKED;
+    case XL6_IR_OPCODE_MUL:return XL6_IR_RUNTIME_INTEGER_MUL_CHECKED;
+    case XL6_IR_OPCODE_DIV:return XL6_IR_RUNTIME_INTEGER_DIV_CHECKED;
+    case XL6_IR_OPCODE_MOD:return XL6_IR_RUNTIME_INTEGER_MOD_CHECKED;
+    case XL6_IR_OPCODE_SHL:return XL6_IR_RUNTIME_INTEGER_SHL_CHECKED;
+    case XL6_IR_OPCODE_SHR:return XL6_IR_RUNTIME_INTEGER_SHR_CHECKED;
+    default:return XL6_IR_RUNTIME_NONE;
+    }
+}
+int xl6IrCheckedIntegerArithmeticSignatureValid(const XL6_IrModule* module,
+    XL6_IrRuntimeOp operation,XL6_IrIntegerTarget target,XL6_IrTypeId result,
+    XL6_IrTypeId left,XL6_IrTypeId right)
+{
+    if(!module)return 0;
+    const XL6_IrType* type=xl6IrTypeGet(&module->types,result);
+    const XL6_IrType* count=xl6IrTypeGet(&module->types,right);
+    if(!type || !count || left!=result || target==XL6_IR_INTEGER_TARGET_INVALID ||
+       target!=xl6IrArithmeticIntegerTarget(type) || !xl6IrRuntimeOpIsCheckedIntegerArithmetic(operation))return 0;
+    if(xl6IrArithmeticIntegerTargetIsNative(target)) {
+        if(operation==XL6_IR_RUNTIME_INTEGER_SHL_CHECKED || operation==XL6_IR_RUNTIME_INTEGER_SHR_CHECKED)
+            return xl6IrArithmeticIntegerTarget(count)!=XL6_IR_INTEGER_TARGET_INVALID ||
+                (count->cAbi==XL6_IR_C_ABI_CHAR_U32 && count->nullAbi==XL6_IR_NULL_ABI_NONE);
+        return right==result;
+    }
+    return right==result &&
+        (operation==XL6_IR_RUNTIME_INTEGER_DIV_CHECKED || operation==XL6_IR_RUNTIME_INTEGER_MOD_CHECKED ||
+         operation==XL6_IR_RUNTIME_INTEGER_SHL_CHECKED || operation==XL6_IR_RUNTIME_INTEGER_SHR_CHECKED) &&
+        type->cAbi==(target==XL6_IR_INTEGER_TARGET_UNSIGNED_64 ? XL6_IR_C_ABI_U64:XL6_IR_C_ABI_I64);
+}
 unsigned xl6IrNativeScalarConversionInput(const XL6_IrType* type)
 {
     if(!type || type->kind==XL6_IR_TYPE_NULLABLE)return XL6_SCALAR_INPUT_INVALID;
@@ -25597,6 +25664,20 @@ int xl6IrNativeScalarIntrinsicCompatible(const XL6_IrModule* module,const XL6_Ir
             xl6IrNativeScalarGenericSignature(module,intrinsic->origin,operand->type,intrinsic->resultType) :
             xl6IrNativeScalarConversionSignature(module,operand->type,intrinsic->resultType));
 }
+int xl6IrContextualNativeIntegerConversionAllowed(const XL6_IrModule* module,
+    XL6_IrNodeId originId,XL6_IrNodeId sourceId,XL6_IrTypeId target)
+{
+    const XL6_IrNode* origin=xl6IrNodeGet(module,originId);
+    const XL6_IrNode* source=xl6IrNodeGet(module,sourceId);
+    if(!origin || !source || origin->kind!=XL6_IR_NODE_ASSIGN || origin->childCount!=2 ||
+       origin->compoundOperatorSymbol || origin->operatorErrorAbi!=XL6_IR_ERROR_ABI_MAY_RAISE ||
+       xl6IrCheckedIntegerRuntimeOperation(origin->opcode)==XL6_IR_RUNTIME_NONE ||
+       module->children[origin->firstChild+1]!=sourceId)return 0;
+    const XL6_IrNode* lhs=xl6IrNodeGet(module,module->children[origin->firstChild]);
+    return lhs && lhs->storageType==target &&
+        xl6IrArithmeticIntegerTargetIsNative(xl6IrArithmeticIntegerTarget(xl6IrTypeGet(&module->types,target))) &&
+        xl6IrNativeScalarConversionSignature(module,source->storageType,target);
+}
 int xl6IrNativeScalarInstructionCompatible(const XL6_IrModule* module,const XL6_IrInstruction* instruction)
 {
     if(!module || !instruction || instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL || instruction->operandCount!=1 ||
@@ -25606,15 +25687,22 @@ int xl6IrNativeScalarInstructionCompatible(const XL6_IrModule* module,const XL6_
         instruction->collectionAbi || instruction->runtimeResourcePayloadAbi)return 0;
     const XL6_IrNode* origin=xl6IrNodeGet(module,instruction->origin);
     const XL6_IrInstruction* source=xl6IrValueDefinition(module,module->operands[instruction->firstOperand],NULL);
-    if(!origin || !source || origin->storageType!=instruction->type)return 0;
+    if(!origin || !source)return 0;
     if(instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_SCALAR_CONVERT_CHECKED) {
+        if(instruction->contextualIntegerConversionSource) {
+            const XL6_IrNode* rhs=xl6IrNodeGet(module,instruction->contextualIntegerConversionSource);
+            return xl6IrContextualNativeIntegerConversionAllowed(module,instruction->origin,
+                    instruction->contextualIntegerConversionSource,instruction->type) &&
+                rhs && rhs->storageType==source->type && !instruction->castAbi &&
+                instruction->payloadType==source->type && instruction->runtimeIdentityType==instruction->type;
+        }
         const XL6_IrIntrinsicCall* intrinsic=xl6IrIntrinsicCallGet(module,instruction->origin);
-        return xl6IrNativeScalarIntrinsicCompatible(module,intrinsic) && !instruction->castAbi &&
+        return origin->storageType==instruction->type && xl6IrNativeScalarIntrinsicCompatible(module,intrinsic) && !instruction->castAbi &&
             instruction->payloadType==source->type && instruction->runtimeIdentityType==instruction->type &&
             module->intrinsicOperands[intrinsic->firstOperand].type==source->type &&
             xl6IrNativeScalarConversionSignature(module,source->type,instruction->type);
     }
-    if(instruction->runtimeOp!=XL6_IR_RUNTIME_NATIVE_SCALAR_AS_CHECKED || origin->sourceKind!=XL6_AST_TYPE_AS ||
+    if(origin->storageType!=instruction->type || instruction->runtimeOp!=XL6_IR_RUNTIME_NATIVE_SCALAR_AS_CHECKED || origin->sourceKind!=XL6_AST_TYPE_AS ||
         origin->castErrorAbi!=XL6_IR_ERROR_ABI_MAY_RAISE || origin->castAbi!=instruction->castAbi ||
         !xl6IrTypeIsDynamicXValueBuiltin(module,source->type))return 0;
     XL6_IrTypeId identity=xl6IrNativeScalarAsIdentity(module,instruction->type);
@@ -27559,6 +27647,12 @@ static int xl6IrVerifyOperatorAbi(
     if ( module == NULL || instruction == NULL ) return 0;
     result = xl6IrTypeGet(&module->types, instruction->type);
     if ( result == NULL ) return 0;
+    /* Native integer arithmetic has a checked RuntimeOp and an explicit error
+     * edge. A physical C operator must never bypass that contract, including
+     * injected same-type operations which would otherwise look well formed. */
+    if(xl6IrArithmeticIntegerTargetIsNative(xl6IrArithmeticIntegerTarget(result)) &&
+       xl6IrCheckedIntegerRuntimeOperation(instruction->opcode)!=XL6_IR_RUNTIME_NONE)
+        return 0;
     if ( instruction->kind == XL6_IR_INSTR_UNARY ) {
         if ( instruction->operandCount != 1 ||
              (left = xl6IrValueDefinition(module, module->operands[instruction->firstOperand], NULL)) == NULL ||
@@ -45335,6 +45429,11 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             xl6IrTypeGet(&module->types, instruction->type);
                         const XL6_IrNode* origin = xl6IrNodeGet(
                             module, instruction->origin);
+                        XL6_IrTypeId executionType=origin ? origin->storageType:XL6_IR_TYPE_INVALID;
+                        if(origin && origin->kind==XL6_IR_NODE_ASSIGN && origin->childCount==2) {
+                            const XL6_IrNode* lhs=xl6IrNodeGet(module,module->children[origin->firstChild]);
+                            executionType=lhs ? lhs->storageType:XL6_IR_TYPE_INVALID;
+                        }
                         if ( instruction->operandCount != 2 ||
                              instruction->immediateText != NULL ||
                              instruction->targetSymbol != 0 ||
@@ -45348,14 +45447,14 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                              instruction->integerSourceAbi !=
                                  XL6_IR_INTEGER_SOURCE_INVALID ||
                              resultType == NULL ||
-                             resultType->integerTarget != instruction->integerTarget ||
-                             resultType->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
-                             (resultType->cAbi != XL6_IR_C_ABI_I64 &&
-                              resultType->cAbi != XL6_IR_C_ABI_U64) ||
                              left == NULL || right == NULL ||
-                             left->type != instruction->type ||
-                             right->type != instruction->type ||
+                             !xl6IrCheckedIntegerArithmeticSignatureValid(module,instruction->runtimeOp,
+                                 instruction->integerTarget,instruction->type,left->type,right->type) ||
                              origin == NULL ||
+                             executionType!=instruction->type ||
+                             (origin->kind!=XL6_IR_NODE_BINARY && origin->kind!=XL6_IR_NODE_UNARY &&
+                              origin->kind!=XL6_IR_NODE_ASSIGN) ||
+                             xl6IrCheckedIntegerRuntimeOperation(origin->opcode)!=instruction->runtimeOp ||
                              origin->operatorErrorAbi !=
                                  XL6_IR_ERROR_ABI_MAY_RAISE )
                             return xl6IrDiag(diags, NULL,
@@ -48107,13 +48206,13 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     return xl6IrDiag(diags, NULL, "XLIR contextual cast source has no exact verified boundary");
                 if ( instruction->contextualIntegerConversionSource !=
                          XL6_IR_NODE_INVALID &&
-                     (instruction->kind != XL6_IR_INSTR_RUNTIME_CALL ||
-                      instruction->runtimeOp !=
-                          XL6_IR_RUNTIME_INTEGER_CONVERT_CHECKED ||
-                      !xl6IrContextualCheckedIntegerConversionAllowed(
-                          module, instruction->origin,
-                          instruction->contextualIntegerConversionSource,
-                          instruction->type)) )
+                      (instruction->kind != XL6_IR_INSTR_RUNTIME_CALL ||
+                       !((instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_SCALAR_CONVERT_CHECKED &&
+                          xl6IrContextualNativeIntegerConversionAllowed(module,instruction->origin,
+                              instruction->contextualIntegerConversionSource,instruction->type)) ||
+                         (instruction->runtimeOp==XL6_IR_RUNTIME_INTEGER_CONVERT_CHECKED &&
+                          xl6IrContextualCheckedIntegerConversionAllowed(module,instruction->origin,
+                              instruction->contextualIntegerConversionSource,instruction->type)))) )
                     return xl6IrDiag(diags, NULL,
                         "XLIR contextual integer source has no exact verified boundary");
                 if ( ((instruction->runtimeOp == XL6_IR_RUNTIME_INTEGER_CONVERT_CHECKED ||
@@ -50606,6 +50705,12 @@ static const char* xl6IrFutureContinuationKindName(
 
 static const char* xl6IrIntegerTargetName(XL6_IrIntegerTarget target)
 {
+    if(xl6IrArithmeticIntegerTargetIsNative(target)) {
+        static const char* const names[]={"none","c-char","c-schar","c-uchar","c-short","c-ushort",
+            "c-int","c-uint","c-long","c-ulong","c-longlong","c-ulonglong","c-size","c-ssize",
+            "c-ptrdiff","c-intptr","c-uintptr","none","none","none","c-wchar"};
+        return names[(unsigned)target-XL6_IR_INTEGER_TARGET_NATIVE_BASE];
+    }
     switch ( target ) {
     case XL6_IR_INTEGER_TARGET_SIGNED_8: return "i8";
     case XL6_IR_INTEGER_TARGET_UNSIGNED_8: return "u8";
@@ -51694,6 +51799,9 @@ static const char* xl6IrRuntimeOpName(XL6_IrRuntimeOp runtimeOp)
     case XL6_IR_RUNTIME_TIME_TO_STRING: return "time-to-string";
     case XL6_IR_RUNTIME_INTEGER_CONVERT_CHECKED: return "integer-convert-checked";
     case XL6_IR_RUNTIME_INTEGER_DIV_CHECKED: return "integer-div-checked";
+    case XL6_IR_RUNTIME_INTEGER_ADD_CHECKED: return "integer-add-checked";
+    case XL6_IR_RUNTIME_INTEGER_SUB_CHECKED: return "integer-sub-checked";
+    case XL6_IR_RUNTIME_INTEGER_MUL_CHECKED: return "integer-mul-checked";
     case XL6_IR_RUNTIME_INTEGER_MOD_CHECKED: return "integer-mod-checked";
     case XL6_IR_RUNTIME_INTEGER_SHL_CHECKED: return "integer-shl-checked";
     case XL6_IR_RUNTIME_INTEGER_SHR_CHECKED: return "integer-shr-checked";

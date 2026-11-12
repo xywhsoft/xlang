@@ -284,7 +284,9 @@ static int xl6IrCgenAnalyzeInstructionNeeds(const XL6_IrModule* module,
         if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
              xl6IrCgenCheckedIntegerRuntimeOpIs(
                  module->instructions[i].runtimeOp) ) {
-            needs->needsCheckedIntegerArithmeticRuntime = 1;
+            if(xl6IrArithmeticIntegerTargetIsNative(module->instructions[i].integerTarget))
+                needs->needsNativeCheckedIntegerArithmeticRuntime=1;
+            else needs->needsCheckedIntegerArithmeticRuntime = 1;
             needs->needsErrorRuntime = 1;
         }
         if ( instructionType != NULL &&

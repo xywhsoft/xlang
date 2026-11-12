@@ -1,0 +1,1785 @@
+// All native integer domains use their actual target C width and signedness.
+// Bounds originate in an independent native provider, not language conversion.
+extern "fixtureCIntegerMax_char" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeMax_char() as c_char
+extern "fixtureCIntegerMin_char" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeMin_char() as c_char
+extern "fixtureCIntegerWidth_char" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeWidth_char() as int
+extern "fixtureCIntegerSigned_char" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeSigned_char() as bool
+func check_char()
+ c_char one=c_char(1)
+ c_char two=c_char(2)
+ c_char zero=c_char(0)
+ c_char high=nativeMax_char()
+ c_char low=nativeMin_char()
+ assert one+two==c_char(3) and two-one==one and two*two==c_char(4)
+ assert two/one==two and two%two==zero and (two<<one)==c_char(4) and (two>>one)==one
+ c_char current=c_char(8)
+ current+=c_char(2)
+ current-=c_char(3)
+ current*=c_char(4)
+ current/=c_char(2)
+ current%=c_char(5)
+ current=current<<one
+ current=current>>one
+ assert current==c_char(4)
+ int caught=0
+ try
+  auto rejected=high+one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=low-one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=high*two
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=one/zero
+ catch ZeroDivisionError error
+  caught+=1
+ end
+ try
+  auto rejected=one%zero
+ catch ZeroDivisionError error
+  caught+=1
+ end
+ try
+  auto rejected=one<<nativeWidth_char()
+ catch RangeError error
+  caught+=1
+ end
+ try
+  auto rejected=one>>uint64(4294967296)
+ catch RangeError error
+  caught+=1
+ end
+ try
+  auto rejected=one<<int(-1)
+ catch RangeError error
+  caught+=1
+ end
+ try
+  current=high
+  current+=one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  current=high
+  current*=two
+ catch OverflowError error
+  caught+=1
+ end
+ assert caught==10 and current==high
+ if nativeSigned_char()
+  try
+   auto rejected=-low
+  catch OverflowError error
+   caught+=1
+  end
+  try
+   auto rejected=low/c_char(-1)
+  catch OverflowError error
+   caught+=1
+  end
+  assert caught==12
+ else
+  try
+   auto rejected=-one
+  catch OverflowError error
+   caught+=1
+  end
+  assert caught==11
+ end
+ assert -zero==zero
+end
+
+extern "fixtureCIntegerMax_schar" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeMax_schar() as c_schar
+extern "fixtureCIntegerMin_schar" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeMin_schar() as c_schar
+extern "fixtureCIntegerWidth_schar" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeWidth_schar() as int
+extern "fixtureCIntegerSigned_schar" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeSigned_schar() as bool
+func check_schar()
+ c_schar one=c_schar(1)
+ c_schar two=c_schar(2)
+ c_schar zero=c_schar(0)
+ c_schar high=nativeMax_schar()
+ c_schar low=nativeMin_schar()
+ assert one+two==c_schar(3) and two-one==one and two*two==c_schar(4)
+ assert two/one==two and two%two==zero and (two<<one)==c_schar(4) and (two>>one)==one
+ c_schar current=c_schar(8)
+ current+=c_schar(2)
+ current-=c_schar(3)
+ current*=c_schar(4)
+ current/=c_schar(2)
+ current%=c_schar(5)
+ current=current<<one
+ current=current>>one
+ assert current==c_schar(4)
+ int caught=0
+ try
+  auto rejected=high+one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=low-one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=high*two
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=one/zero
+ catch ZeroDivisionError error
+  caught+=1
+ end
+ try
+  auto rejected=one%zero
+ catch ZeroDivisionError error
+  caught+=1
+ end
+ try
+  auto rejected=one<<nativeWidth_schar()
+ catch RangeError error
+  caught+=1
+ end
+ try
+  auto rejected=one>>uint64(4294967296)
+ catch RangeError error
+  caught+=1
+ end
+ try
+  auto rejected=one<<int(-1)
+ catch RangeError error
+  caught+=1
+ end
+ try
+  current=high
+  current+=one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  current=high
+  current*=two
+ catch OverflowError error
+  caught+=1
+ end
+ assert caught==10 and current==high
+ if nativeSigned_schar()
+  try
+   auto rejected=-low
+  catch OverflowError error
+   caught+=1
+  end
+  try
+   auto rejected=low/c_schar(-1)
+  catch OverflowError error
+   caught+=1
+  end
+  assert caught==12
+ else
+  try
+   auto rejected=-one
+  catch OverflowError error
+   caught+=1
+  end
+  assert caught==11
+ end
+ assert -zero==zero
+end
+
+extern "fixtureCIntegerMax_uchar" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeMax_uchar() as c_uchar
+extern "fixtureCIntegerMin_uchar" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeMin_uchar() as c_uchar
+extern "fixtureCIntegerWidth_uchar" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeWidth_uchar() as int
+extern "fixtureCIntegerSigned_uchar" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeSigned_uchar() as bool
+func check_uchar()
+ c_uchar one=c_uchar(1)
+ c_uchar two=c_uchar(2)
+ c_uchar zero=c_uchar(0)
+ c_uchar high=nativeMax_uchar()
+ c_uchar low=nativeMin_uchar()
+ assert one+two==c_uchar(3) and two-one==one and two*two==c_uchar(4)
+ assert two/one==two and two%two==zero and (two<<one)==c_uchar(4) and (two>>one)==one
+ c_uchar current=c_uchar(8)
+ current+=c_uchar(2)
+ current-=c_uchar(3)
+ current*=c_uchar(4)
+ current/=c_uchar(2)
+ current%=c_uchar(5)
+ current=current<<one
+ current=current>>one
+ assert current==c_uchar(4)
+ int caught=0
+ try
+  auto rejected=high+one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=low-one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=high*two
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=one/zero
+ catch ZeroDivisionError error
+  caught+=1
+ end
+ try
+  auto rejected=one%zero
+ catch ZeroDivisionError error
+  caught+=1
+ end
+ try
+  auto rejected=one<<nativeWidth_uchar()
+ catch RangeError error
+  caught+=1
+ end
+ try
+  auto rejected=one>>uint64(4294967296)
+ catch RangeError error
+  caught+=1
+ end
+ try
+  auto rejected=one<<int(-1)
+ catch RangeError error
+  caught+=1
+ end
+ try
+  current=high
+  current+=one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  current=high
+  current*=two
+ catch OverflowError error
+  caught+=1
+ end
+ assert caught==10 and current==high
+ if nativeSigned_uchar()
+  try
+   auto rejected=-low
+  catch OverflowError error
+   caught+=1
+  end
+  try
+   auto rejected=low/c_uchar(-1)
+  catch OverflowError error
+   caught+=1
+  end
+  assert caught==12
+ else
+  try
+   auto rejected=-one
+  catch OverflowError error
+   caught+=1
+  end
+  assert caught==11
+ end
+ assert -zero==zero
+end
+
+extern "fixtureCIntegerMax_short" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeMax_short() as c_short
+extern "fixtureCIntegerMin_short" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeMin_short() as c_short
+extern "fixtureCIntegerWidth_short" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeWidth_short() as int
+extern "fixtureCIntegerSigned_short" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeSigned_short() as bool
+func check_short()
+ c_short one=c_short(1)
+ c_short two=c_short(2)
+ c_short zero=c_short(0)
+ c_short high=nativeMax_short()
+ c_short low=nativeMin_short()
+ assert one+two==c_short(3) and two-one==one and two*two==c_short(4)
+ assert two/one==two and two%two==zero and (two<<one)==c_short(4) and (two>>one)==one
+ c_short current=c_short(8)
+ current+=c_short(2)
+ current-=c_short(3)
+ current*=c_short(4)
+ current/=c_short(2)
+ current%=c_short(5)
+ current=current<<one
+ current=current>>one
+ assert current==c_short(4)
+ int caught=0
+ try
+  auto rejected=high+one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=low-one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=high*two
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=one/zero
+ catch ZeroDivisionError error
+  caught+=1
+ end
+ try
+  auto rejected=one%zero
+ catch ZeroDivisionError error
+  caught+=1
+ end
+ try
+  auto rejected=one<<nativeWidth_short()
+ catch RangeError error
+  caught+=1
+ end
+ try
+  auto rejected=one>>uint64(4294967296)
+ catch RangeError error
+  caught+=1
+ end
+ try
+  auto rejected=one<<int(-1)
+ catch RangeError error
+  caught+=1
+ end
+ try
+  current=high
+  current+=one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  current=high
+  current*=two
+ catch OverflowError error
+  caught+=1
+ end
+ assert caught==10 and current==high
+ if nativeSigned_short()
+  try
+   auto rejected=-low
+  catch OverflowError error
+   caught+=1
+  end
+  try
+   auto rejected=low/c_short(-1)
+  catch OverflowError error
+   caught+=1
+  end
+  assert caught==12
+ else
+  try
+   auto rejected=-one
+  catch OverflowError error
+   caught+=1
+  end
+  assert caught==11
+ end
+ assert -zero==zero
+end
+
+extern "fixtureCIntegerMax_ushort" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeMax_ushort() as c_ushort
+extern "fixtureCIntegerMin_ushort" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeMin_ushort() as c_ushort
+extern "fixtureCIntegerWidth_ushort" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeWidth_ushort() as int
+extern "fixtureCIntegerSigned_ushort" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeSigned_ushort() as bool
+func check_ushort()
+ c_ushort one=c_ushort(1)
+ c_ushort two=c_ushort(2)
+ c_ushort zero=c_ushort(0)
+ c_ushort high=nativeMax_ushort()
+ c_ushort low=nativeMin_ushort()
+ assert one+two==c_ushort(3) and two-one==one and two*two==c_ushort(4)
+ assert two/one==two and two%two==zero and (two<<one)==c_ushort(4) and (two>>one)==one
+ c_ushort current=c_ushort(8)
+ current+=c_ushort(2)
+ current-=c_ushort(3)
+ current*=c_ushort(4)
+ current/=c_ushort(2)
+ current%=c_ushort(5)
+ current=current<<one
+ current=current>>one
+ assert current==c_ushort(4)
+ int caught=0
+ try
+  auto rejected=high+one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=low-one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=high*two
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=one/zero
+ catch ZeroDivisionError error
+  caught+=1
+ end
+ try
+  auto rejected=one%zero
+ catch ZeroDivisionError error
+  caught+=1
+ end
+ try
+  auto rejected=one<<nativeWidth_ushort()
+ catch RangeError error
+  caught+=1
+ end
+ try
+  auto rejected=one>>uint64(4294967296)
+ catch RangeError error
+  caught+=1
+ end
+ try
+  auto rejected=one<<int(-1)
+ catch RangeError error
+  caught+=1
+ end
+ try
+  current=high
+  current+=one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  current=high
+  current*=two
+ catch OverflowError error
+  caught+=1
+ end
+ assert caught==10 and current==high
+ if nativeSigned_ushort()
+  try
+   auto rejected=-low
+  catch OverflowError error
+   caught+=1
+  end
+  try
+   auto rejected=low/c_ushort(-1)
+  catch OverflowError error
+   caught+=1
+  end
+  assert caught==12
+ else
+  try
+   auto rejected=-one
+  catch OverflowError error
+   caught+=1
+  end
+  assert caught==11
+ end
+ assert -zero==zero
+end
+
+extern "fixtureCIntegerMax_int" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeMax_int() as c_int
+extern "fixtureCIntegerMin_int" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeMin_int() as c_int
+extern "fixtureCIntegerWidth_int" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeWidth_int() as int
+extern "fixtureCIntegerSigned_int" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeSigned_int() as bool
+func check_int()
+ c_int one=c_int(1)
+ c_int two=c_int(2)
+ c_int zero=c_int(0)
+ c_int high=nativeMax_int()
+ c_int low=nativeMin_int()
+ assert one+two==c_int(3) and two-one==one and two*two==c_int(4)
+ assert two/one==two and two%two==zero and (two<<one)==c_int(4) and (two>>one)==one
+ c_int current=c_int(8)
+ current+=c_int(2)
+ current-=c_int(3)
+ current*=c_int(4)
+ current/=c_int(2)
+ current%=c_int(5)
+ current=current<<one
+ current=current>>one
+ assert current==c_int(4)
+ int caught=0
+ try
+  auto rejected=high+one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=low-one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=high*two
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=one/zero
+ catch ZeroDivisionError error
+  caught+=1
+ end
+ try
+  auto rejected=one%zero
+ catch ZeroDivisionError error
+  caught+=1
+ end
+ try
+  auto rejected=one<<nativeWidth_int()
+ catch RangeError error
+  caught+=1
+ end
+ try
+  auto rejected=one>>uint64(4294967296)
+ catch RangeError error
+  caught+=1
+ end
+ try
+  auto rejected=one<<int(-1)
+ catch RangeError error
+  caught+=1
+ end
+ try
+  current=high
+  current+=one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  current=high
+  current*=two
+ catch OverflowError error
+  caught+=1
+ end
+ assert caught==10 and current==high
+ if nativeSigned_int()
+  try
+   auto rejected=-low
+  catch OverflowError error
+   caught+=1
+  end
+  try
+   auto rejected=low/c_int(-1)
+  catch OverflowError error
+   caught+=1
+  end
+  assert caught==12
+ else
+  try
+   auto rejected=-one
+  catch OverflowError error
+   caught+=1
+  end
+  assert caught==11
+ end
+ assert -zero==zero
+end
+
+extern "fixtureCIntegerMax_uint" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeMax_uint() as c_uint
+extern "fixtureCIntegerMin_uint" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeMin_uint() as c_uint
+extern "fixtureCIntegerWidth_uint" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeWidth_uint() as int
+extern "fixtureCIntegerSigned_uint" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeSigned_uint() as bool
+func check_uint()
+ c_uint one=c_uint(1)
+ c_uint two=c_uint(2)
+ c_uint zero=c_uint(0)
+ c_uint high=nativeMax_uint()
+ c_uint low=nativeMin_uint()
+ assert one+two==c_uint(3) and two-one==one and two*two==c_uint(4)
+ assert two/one==two and two%two==zero and (two<<one)==c_uint(4) and (two>>one)==one
+ c_uint current=c_uint(8)
+ current+=c_uint(2)
+ current-=c_uint(3)
+ current*=c_uint(4)
+ current/=c_uint(2)
+ current%=c_uint(5)
+ current=current<<one
+ current=current>>one
+ assert current==c_uint(4)
+ int caught=0
+ try
+  auto rejected=high+one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=low-one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=high*two
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=one/zero
+ catch ZeroDivisionError error
+  caught+=1
+ end
+ try
+  auto rejected=one%zero
+ catch ZeroDivisionError error
+  caught+=1
+ end
+ try
+  auto rejected=one<<nativeWidth_uint()
+ catch RangeError error
+  caught+=1
+ end
+ try
+  auto rejected=one>>uint64(4294967296)
+ catch RangeError error
+  caught+=1
+ end
+ try
+  auto rejected=one<<int(-1)
+ catch RangeError error
+  caught+=1
+ end
+ try
+  current=high
+  current+=one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  current=high
+  current*=two
+ catch OverflowError error
+  caught+=1
+ end
+ assert caught==10 and current==high
+ if nativeSigned_uint()
+  try
+   auto rejected=-low
+  catch OverflowError error
+   caught+=1
+  end
+  try
+   auto rejected=low/c_uint(-1)
+  catch OverflowError error
+   caught+=1
+  end
+  assert caught==12
+ else
+  try
+   auto rejected=-one
+  catch OverflowError error
+   caught+=1
+  end
+  assert caught==11
+ end
+ assert -zero==zero
+end
+
+extern "fixtureCIntegerMax_long" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeMax_long() as c_long
+extern "fixtureCIntegerMin_long" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeMin_long() as c_long
+extern "fixtureCIntegerWidth_long" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeWidth_long() as int
+extern "fixtureCIntegerSigned_long" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeSigned_long() as bool
+func check_long()
+ c_long one=c_long(1)
+ c_long two=c_long(2)
+ c_long zero=c_long(0)
+ c_long high=nativeMax_long()
+ c_long low=nativeMin_long()
+ assert one+two==c_long(3) and two-one==one and two*two==c_long(4)
+ assert two/one==two and two%two==zero and (two<<one)==c_long(4) and (two>>one)==one
+ c_long current=c_long(8)
+ current+=c_long(2)
+ current-=c_long(3)
+ current*=c_long(4)
+ current/=c_long(2)
+ current%=c_long(5)
+ current=current<<one
+ current=current>>one
+ assert current==c_long(4)
+ int caught=0
+ try
+  auto rejected=high+one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=low-one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=high*two
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=one/zero
+ catch ZeroDivisionError error
+  caught+=1
+ end
+ try
+  auto rejected=one%zero
+ catch ZeroDivisionError error
+  caught+=1
+ end
+ try
+  auto rejected=one<<nativeWidth_long()
+ catch RangeError error
+  caught+=1
+ end
+ try
+  auto rejected=one>>uint64(4294967296)
+ catch RangeError error
+  caught+=1
+ end
+ try
+  auto rejected=one<<int(-1)
+ catch RangeError error
+  caught+=1
+ end
+ try
+  current=high
+  current+=one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  current=high
+  current*=two
+ catch OverflowError error
+  caught+=1
+ end
+ assert caught==10 and current==high
+ if nativeSigned_long()
+  try
+   auto rejected=-low
+  catch OverflowError error
+   caught+=1
+  end
+  try
+   auto rejected=low/c_long(-1)
+  catch OverflowError error
+   caught+=1
+  end
+  assert caught==12
+ else
+  try
+   auto rejected=-one
+  catch OverflowError error
+   caught+=1
+  end
+  assert caught==11
+ end
+ assert -zero==zero
+end
+
+extern "fixtureCIntegerMax_ulong" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeMax_ulong() as c_ulong
+extern "fixtureCIntegerMin_ulong" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeMin_ulong() as c_ulong
+extern "fixtureCIntegerWidth_ulong" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeWidth_ulong() as int
+extern "fixtureCIntegerSigned_ulong" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeSigned_ulong() as bool
+func check_ulong()
+ c_ulong one=c_ulong(1)
+ c_ulong two=c_ulong(2)
+ c_ulong zero=c_ulong(0)
+ c_ulong high=nativeMax_ulong()
+ c_ulong low=nativeMin_ulong()
+ assert one+two==c_ulong(3) and two-one==one and two*two==c_ulong(4)
+ assert two/one==two and two%two==zero and (two<<one)==c_ulong(4) and (two>>one)==one
+ c_ulong current=c_ulong(8)
+ current+=c_ulong(2)
+ current-=c_ulong(3)
+ current*=c_ulong(4)
+ current/=c_ulong(2)
+ current%=c_ulong(5)
+ current=current<<one
+ current=current>>one
+ assert current==c_ulong(4)
+ int caught=0
+ try
+  auto rejected=high+one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=low-one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=high*two
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=one/zero
+ catch ZeroDivisionError error
+  caught+=1
+ end
+ try
+  auto rejected=one%zero
+ catch ZeroDivisionError error
+  caught+=1
+ end
+ try
+  auto rejected=one<<nativeWidth_ulong()
+ catch RangeError error
+  caught+=1
+ end
+ try
+  auto rejected=one>>uint64(4294967296)
+ catch RangeError error
+  caught+=1
+ end
+ try
+  auto rejected=one<<int(-1)
+ catch RangeError error
+  caught+=1
+ end
+ try
+  current=high
+  current+=one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  current=high
+  current*=two
+ catch OverflowError error
+  caught+=1
+ end
+ assert caught==10 and current==high
+ if nativeSigned_ulong()
+  try
+   auto rejected=-low
+  catch OverflowError error
+   caught+=1
+  end
+  try
+   auto rejected=low/c_ulong(-1)
+  catch OverflowError error
+   caught+=1
+  end
+  assert caught==12
+ else
+  try
+   auto rejected=-one
+  catch OverflowError error
+   caught+=1
+  end
+  assert caught==11
+ end
+ assert -zero==zero
+end
+
+extern "fixtureCIntegerMax_longlong" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeMax_longlong() as c_longlong
+extern "fixtureCIntegerMin_longlong" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeMin_longlong() as c_longlong
+extern "fixtureCIntegerWidth_longlong" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeWidth_longlong() as int
+extern "fixtureCIntegerSigned_longlong" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeSigned_longlong() as bool
+func check_longlong()
+ c_longlong one=c_longlong(1)
+ c_longlong two=c_longlong(2)
+ c_longlong zero=c_longlong(0)
+ c_longlong high=nativeMax_longlong()
+ c_longlong low=nativeMin_longlong()
+ assert one+two==c_longlong(3) and two-one==one and two*two==c_longlong(4)
+ assert two/one==two and two%two==zero and (two<<one)==c_longlong(4) and (two>>one)==one
+ c_longlong current=c_longlong(8)
+ current+=c_longlong(2)
+ current-=c_longlong(3)
+ current*=c_longlong(4)
+ current/=c_longlong(2)
+ current%=c_longlong(5)
+ current=current<<one
+ current=current>>one
+ assert current==c_longlong(4)
+ int caught=0
+ try
+  auto rejected=high+one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=low-one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=high*two
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=one/zero
+ catch ZeroDivisionError error
+  caught+=1
+ end
+ try
+  auto rejected=one%zero
+ catch ZeroDivisionError error
+  caught+=1
+ end
+ try
+  auto rejected=one<<nativeWidth_longlong()
+ catch RangeError error
+  caught+=1
+ end
+ try
+  auto rejected=one>>uint64(4294967296)
+ catch RangeError error
+  caught+=1
+ end
+ try
+  auto rejected=one<<int(-1)
+ catch RangeError error
+  caught+=1
+ end
+ try
+  current=high
+  current+=one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  current=high
+  current*=two
+ catch OverflowError error
+  caught+=1
+ end
+ assert caught==10 and current==high
+ if nativeSigned_longlong()
+  try
+   auto rejected=-low
+  catch OverflowError error
+   caught+=1
+  end
+  try
+   auto rejected=low/c_longlong(-1)
+  catch OverflowError error
+   caught+=1
+  end
+  assert caught==12
+ else
+  try
+   auto rejected=-one
+  catch OverflowError error
+   caught+=1
+  end
+  assert caught==11
+ end
+ assert -zero==zero
+end
+
+extern "fixtureCIntegerMax_ulonglong" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeMax_ulonglong() as c_ulonglong
+extern "fixtureCIntegerMin_ulonglong" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeMin_ulonglong() as c_ulonglong
+extern "fixtureCIntegerWidth_ulonglong" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeWidth_ulonglong() as int
+extern "fixtureCIntegerSigned_ulonglong" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeSigned_ulonglong() as bool
+func check_ulonglong()
+ c_ulonglong one=c_ulonglong(1)
+ c_ulonglong two=c_ulonglong(2)
+ c_ulonglong zero=c_ulonglong(0)
+ c_ulonglong high=nativeMax_ulonglong()
+ c_ulonglong low=nativeMin_ulonglong()
+ assert one+two==c_ulonglong(3) and two-one==one and two*two==c_ulonglong(4)
+ assert two/one==two and two%two==zero and (two<<one)==c_ulonglong(4) and (two>>one)==one
+ c_ulonglong current=c_ulonglong(8)
+ current+=c_ulonglong(2)
+ current-=c_ulonglong(3)
+ current*=c_ulonglong(4)
+ current/=c_ulonglong(2)
+ current%=c_ulonglong(5)
+ current=current<<one
+ current=current>>one
+ assert current==c_ulonglong(4)
+ int caught=0
+ try
+  auto rejected=high+one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=low-one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=high*two
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=one/zero
+ catch ZeroDivisionError error
+  caught+=1
+ end
+ try
+  auto rejected=one%zero
+ catch ZeroDivisionError error
+  caught+=1
+ end
+ try
+  auto rejected=one<<nativeWidth_ulonglong()
+ catch RangeError error
+  caught+=1
+ end
+ try
+  auto rejected=one>>uint64(4294967296)
+ catch RangeError error
+  caught+=1
+ end
+ try
+  auto rejected=one<<int(-1)
+ catch RangeError error
+  caught+=1
+ end
+ try
+  current=high
+  current+=one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  current=high
+  current*=two
+ catch OverflowError error
+  caught+=1
+ end
+ assert caught==10 and current==high
+ if nativeSigned_ulonglong()
+  try
+   auto rejected=-low
+  catch OverflowError error
+   caught+=1
+  end
+  try
+   auto rejected=low/c_ulonglong(-1)
+  catch OverflowError error
+   caught+=1
+  end
+  assert caught==12
+ else
+  try
+   auto rejected=-one
+  catch OverflowError error
+   caught+=1
+  end
+  assert caught==11
+ end
+ assert -zero==zero
+end
+
+extern "fixtureCIntegerMax_size" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeMax_size() as c_size
+extern "fixtureCIntegerMin_size" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeMin_size() as c_size
+extern "fixtureCIntegerWidth_size" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeWidth_size() as int
+extern "fixtureCIntegerSigned_size" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeSigned_size() as bool
+func check_size()
+ c_size one=c_size(1)
+ c_size two=c_size(2)
+ c_size zero=c_size(0)
+ c_size high=nativeMax_size()
+ c_size low=nativeMin_size()
+ assert one+two==c_size(3) and two-one==one and two*two==c_size(4)
+ assert two/one==two and two%two==zero and (two<<one)==c_size(4) and (two>>one)==one
+ c_size current=c_size(8)
+ current+=c_size(2)
+ current-=c_size(3)
+ current*=c_size(4)
+ current/=c_size(2)
+ current%=c_size(5)
+ current=current<<one
+ current=current>>one
+ assert current==c_size(4)
+ int caught=0
+ try
+  auto rejected=high+one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=low-one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=high*two
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=one/zero
+ catch ZeroDivisionError error
+  caught+=1
+ end
+ try
+  auto rejected=one%zero
+ catch ZeroDivisionError error
+  caught+=1
+ end
+ try
+  auto rejected=one<<nativeWidth_size()
+ catch RangeError error
+  caught+=1
+ end
+ try
+  auto rejected=one>>uint64(4294967296)
+ catch RangeError error
+  caught+=1
+ end
+ try
+  auto rejected=one<<int(-1)
+ catch RangeError error
+  caught+=1
+ end
+ try
+  current=high
+  current+=one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  current=high
+  current*=two
+ catch OverflowError error
+  caught+=1
+ end
+ assert caught==10 and current==high
+ if nativeSigned_size()
+  try
+   auto rejected=-low
+  catch OverflowError error
+   caught+=1
+  end
+  try
+   auto rejected=low/c_size(-1)
+  catch OverflowError error
+   caught+=1
+  end
+  assert caught==12
+ else
+  try
+   auto rejected=-one
+  catch OverflowError error
+   caught+=1
+  end
+  assert caught==11
+ end
+ assert -zero==zero
+end
+
+extern "fixtureCIntegerMax_ssize" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeMax_ssize() as c_ssize
+extern "fixtureCIntegerMin_ssize" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeMin_ssize() as c_ssize
+extern "fixtureCIntegerWidth_ssize" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeWidth_ssize() as int
+extern "fixtureCIntegerSigned_ssize" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeSigned_ssize() as bool
+func check_ssize()
+ c_ssize one=c_ssize(1)
+ c_ssize two=c_ssize(2)
+ c_ssize zero=c_ssize(0)
+ c_ssize high=nativeMax_ssize()
+ c_ssize low=nativeMin_ssize()
+ assert one+two==c_ssize(3) and two-one==one and two*two==c_ssize(4)
+ assert two/one==two and two%two==zero and (two<<one)==c_ssize(4) and (two>>one)==one
+ c_ssize current=c_ssize(8)
+ current+=c_ssize(2)
+ current-=c_ssize(3)
+ current*=c_ssize(4)
+ current/=c_ssize(2)
+ current%=c_ssize(5)
+ current=current<<one
+ current=current>>one
+ assert current==c_ssize(4)
+ int caught=0
+ try
+  auto rejected=high+one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=low-one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=high*two
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=one/zero
+ catch ZeroDivisionError error
+  caught+=1
+ end
+ try
+  auto rejected=one%zero
+ catch ZeroDivisionError error
+  caught+=1
+ end
+ try
+  auto rejected=one<<nativeWidth_ssize()
+ catch RangeError error
+  caught+=1
+ end
+ try
+  auto rejected=one>>uint64(4294967296)
+ catch RangeError error
+  caught+=1
+ end
+ try
+  auto rejected=one<<int(-1)
+ catch RangeError error
+  caught+=1
+ end
+ try
+  current=high
+  current+=one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  current=high
+  current*=two
+ catch OverflowError error
+  caught+=1
+ end
+ assert caught==10 and current==high
+ if nativeSigned_ssize()
+  try
+   auto rejected=-low
+  catch OverflowError error
+   caught+=1
+  end
+  try
+   auto rejected=low/c_ssize(-1)
+  catch OverflowError error
+   caught+=1
+  end
+  assert caught==12
+ else
+  try
+   auto rejected=-one
+  catch OverflowError error
+   caught+=1
+  end
+  assert caught==11
+ end
+ assert -zero==zero
+end
+
+extern "fixtureCIntegerMax_ptrdiff" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeMax_ptrdiff() as c_ptrdiff
+extern "fixtureCIntegerMin_ptrdiff" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeMin_ptrdiff() as c_ptrdiff
+extern "fixtureCIntegerWidth_ptrdiff" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeWidth_ptrdiff() as int
+extern "fixtureCIntegerSigned_ptrdiff" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeSigned_ptrdiff() as bool
+func check_ptrdiff()
+ c_ptrdiff one=c_ptrdiff(1)
+ c_ptrdiff two=c_ptrdiff(2)
+ c_ptrdiff zero=c_ptrdiff(0)
+ c_ptrdiff high=nativeMax_ptrdiff()
+ c_ptrdiff low=nativeMin_ptrdiff()
+ assert one+two==c_ptrdiff(3) and two-one==one and two*two==c_ptrdiff(4)
+ assert two/one==two and two%two==zero and (two<<one)==c_ptrdiff(4) and (two>>one)==one
+ c_ptrdiff current=c_ptrdiff(8)
+ current+=c_ptrdiff(2)
+ current-=c_ptrdiff(3)
+ current*=c_ptrdiff(4)
+ current/=c_ptrdiff(2)
+ current%=c_ptrdiff(5)
+ current=current<<one
+ current=current>>one
+ assert current==c_ptrdiff(4)
+ int caught=0
+ try
+  auto rejected=high+one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=low-one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=high*two
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=one/zero
+ catch ZeroDivisionError error
+  caught+=1
+ end
+ try
+  auto rejected=one%zero
+ catch ZeroDivisionError error
+  caught+=1
+ end
+ try
+  auto rejected=one<<nativeWidth_ptrdiff()
+ catch RangeError error
+  caught+=1
+ end
+ try
+  auto rejected=one>>uint64(4294967296)
+ catch RangeError error
+  caught+=1
+ end
+ try
+  auto rejected=one<<int(-1)
+ catch RangeError error
+  caught+=1
+ end
+ try
+  current=high
+  current+=one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  current=high
+  current*=two
+ catch OverflowError error
+  caught+=1
+ end
+ assert caught==10 and current==high
+ if nativeSigned_ptrdiff()
+  try
+   auto rejected=-low
+  catch OverflowError error
+   caught+=1
+  end
+  try
+   auto rejected=low/c_ptrdiff(-1)
+  catch OverflowError error
+   caught+=1
+  end
+  assert caught==12
+ else
+  try
+   auto rejected=-one
+  catch OverflowError error
+   caught+=1
+  end
+  assert caught==11
+ end
+ assert -zero==zero
+end
+
+extern "fixtureCIntegerMax_intptr" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeMax_intptr() as c_intptr
+extern "fixtureCIntegerMin_intptr" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeMin_intptr() as c_intptr
+extern "fixtureCIntegerWidth_intptr" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeWidth_intptr() as int
+extern "fixtureCIntegerSigned_intptr" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeSigned_intptr() as bool
+func check_intptr()
+ c_intptr one=c_intptr(1)
+ c_intptr two=c_intptr(2)
+ c_intptr zero=c_intptr(0)
+ c_intptr high=nativeMax_intptr()
+ c_intptr low=nativeMin_intptr()
+ assert one+two==c_intptr(3) and two-one==one and two*two==c_intptr(4)
+ assert two/one==two and two%two==zero and (two<<one)==c_intptr(4) and (two>>one)==one
+ c_intptr current=c_intptr(8)
+ current+=c_intptr(2)
+ current-=c_intptr(3)
+ current*=c_intptr(4)
+ current/=c_intptr(2)
+ current%=c_intptr(5)
+ current=current<<one
+ current=current>>one
+ assert current==c_intptr(4)
+ int caught=0
+ try
+  auto rejected=high+one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=low-one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=high*two
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=one/zero
+ catch ZeroDivisionError error
+  caught+=1
+ end
+ try
+  auto rejected=one%zero
+ catch ZeroDivisionError error
+  caught+=1
+ end
+ try
+  auto rejected=one<<nativeWidth_intptr()
+ catch RangeError error
+  caught+=1
+ end
+ try
+  auto rejected=one>>uint64(4294967296)
+ catch RangeError error
+  caught+=1
+ end
+ try
+  auto rejected=one<<int(-1)
+ catch RangeError error
+  caught+=1
+ end
+ try
+  current=high
+  current+=one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  current=high
+  current*=two
+ catch OverflowError error
+  caught+=1
+ end
+ assert caught==10 and current==high
+ if nativeSigned_intptr()
+  try
+   auto rejected=-low
+  catch OverflowError error
+   caught+=1
+  end
+  try
+   auto rejected=low/c_intptr(-1)
+  catch OverflowError error
+   caught+=1
+  end
+  assert caught==12
+ else
+  try
+   auto rejected=-one
+  catch OverflowError error
+   caught+=1
+  end
+  assert caught==11
+ end
+ assert -zero==zero
+end
+
+extern "fixtureCIntegerMax_uintptr" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeMax_uintptr() as c_uintptr
+extern "fixtureCIntegerMin_uintptr" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeMin_uintptr() as c_uintptr
+extern "fixtureCIntegerWidth_uintptr" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeWidth_uintptr() as int
+extern "fixtureCIntegerSigned_uintptr" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeSigned_uintptr() as bool
+func check_uintptr()
+ c_uintptr one=c_uintptr(1)
+ c_uintptr two=c_uintptr(2)
+ c_uintptr zero=c_uintptr(0)
+ c_uintptr high=nativeMax_uintptr()
+ c_uintptr low=nativeMin_uintptr()
+ assert one+two==c_uintptr(3) and two-one==one and two*two==c_uintptr(4)
+ assert two/one==two and two%two==zero and (two<<one)==c_uintptr(4) and (two>>one)==one
+ c_uintptr current=c_uintptr(8)
+ current+=c_uintptr(2)
+ current-=c_uintptr(3)
+ current*=c_uintptr(4)
+ current/=c_uintptr(2)
+ current%=c_uintptr(5)
+ current=current<<one
+ current=current>>one
+ assert current==c_uintptr(4)
+ int caught=0
+ try
+  auto rejected=high+one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=low-one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=high*two
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=one/zero
+ catch ZeroDivisionError error
+  caught+=1
+ end
+ try
+  auto rejected=one%zero
+ catch ZeroDivisionError error
+  caught+=1
+ end
+ try
+  auto rejected=one<<nativeWidth_uintptr()
+ catch RangeError error
+  caught+=1
+ end
+ try
+  auto rejected=one>>uint64(4294967296)
+ catch RangeError error
+  caught+=1
+ end
+ try
+  auto rejected=one<<int(-1)
+ catch RangeError error
+  caught+=1
+ end
+ try
+  current=high
+  current+=one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  current=high
+  current*=two
+ catch OverflowError error
+  caught+=1
+ end
+ assert caught==10 and current==high
+ if nativeSigned_uintptr()
+  try
+   auto rejected=-low
+  catch OverflowError error
+   caught+=1
+  end
+  try
+   auto rejected=low/c_uintptr(-1)
+  catch OverflowError error
+   caught+=1
+  end
+  assert caught==12
+ else
+  try
+   auto rejected=-one
+  catch OverflowError error
+   caught+=1
+  end
+  assert caught==11
+ end
+ assert -zero==zero
+end
+
+extern "fixtureCIntegerMax_wchar" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeMax_wchar() as c_wchar
+extern "fixtureCIntegerMin_wchar" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeMin_wchar() as c_wchar
+extern "fixtureCIntegerWidth_wchar" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeWidth_wchar() as int
+extern "fixtureCIntegerSigned_wchar" @header("test/cases/xlir_c_integer_arithmetic.h") @no_raise func nativeSigned_wchar() as bool
+func check_wchar()
+ c_wchar one=c_wchar(1)
+ c_wchar two=c_wchar(2)
+ c_wchar zero=c_wchar(0)
+ c_wchar high=nativeMax_wchar()
+ c_wchar low=nativeMin_wchar()
+ assert one+two==c_wchar(3) and two-one==one and two*two==c_wchar(4)
+ assert two/one==two and two%two==zero and (two<<one)==c_wchar(4) and (two>>one)==one
+ c_wchar current=c_wchar(8)
+ current+=c_wchar(2)
+ current-=c_wchar(3)
+ current*=c_wchar(4)
+ current/=c_wchar(2)
+ current%=c_wchar(5)
+ current=current<<one
+ current=current>>one
+ assert current==c_wchar(4)
+ int caught=0
+ try
+  auto rejected=high+one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=low-one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=high*two
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  auto rejected=one/zero
+ catch ZeroDivisionError error
+  caught+=1
+ end
+ try
+  auto rejected=one%zero
+ catch ZeroDivisionError error
+  caught+=1
+ end
+ try
+  auto rejected=one<<nativeWidth_wchar()
+ catch RangeError error
+  caught+=1
+ end
+ try
+  auto rejected=one>>uint64(4294967296)
+ catch RangeError error
+  caught+=1
+ end
+ try
+  auto rejected=one<<int(-1)
+ catch RangeError error
+  caught+=1
+ end
+ try
+  current=high
+  current+=one
+ catch OverflowError error
+  caught+=1
+ end
+ try
+  current=high
+  current*=two
+ catch OverflowError error
+  caught+=1
+ end
+ assert caught==10 and current==high
+ if nativeSigned_wchar()
+  try
+   auto rejected=-low
+  catch OverflowError error
+   caught+=1
+  end
+  try
+   auto rejected=low/c_wchar(-1)
+  catch OverflowError error
+   caught+=1
+  end
+  assert caught==12
+ else
+  try
+   auto rejected=-one
+  catch OverflowError error
+   caught+=1
+  end
+  assert caught==11
+ end
+ assert -zero==zero
+end
+
+extern "CheckedNativeFields" struct NativeFields @header("test/cases/xlir_c_integer_arithmetic.h")
+ c_int value
+ c_int samples[2]
+end
+int getters=0
+int setters=0
+int keys=0
+int rhsCalls=0
+class CheckedProperty
+ c_int stored=c_int(127)
+ get value() as c_int
+  getters+=1
+  return self.stored
+ end
+ let value(c_int value)
+  setters+=1
+  self.stored=value
+ end
+end
+func keyOnce() as int
+ keys+=1
+ return 0
+end
+func rhsOnce() as c_int
+ rhsCalls+=1
+ return c_int(1)
+end
+func failRhs() as c_int
+ throw "RHS failure"
+end
+c_int oomTarget=c_int(7)
+export "checked_native_oom_read" func readOomTarget() as c_int
+ return oomTarget
+end
+export "checked_native_oom_add" func addOomTarget(c_int delta)
+ oomTarget+=delta
+end
+export "checked_native_add" func exportedAdd(c_int a,c_int b) as c_int
+ return a+b
+end
+func main(...) as int
+ check_char()
+ check_schar()
+ check_uchar()
+ check_short()
+ check_ushort()
+ check_int()
+ check_uint()
+ check_long()
+ check_ulong()
+ check_longlong()
+ check_ulonglong()
+ check_size()
+ check_ssize()
+ check_ptrdiff()
+ check_intptr()
+ check_uintptr()
+ check_wchar()
+ auto object=CheckedProperty()
+ object.stored=nativeMax_int()
+ bool caught=false
+ try
+  object.value+=rhsOnce()
+ catch OverflowError error
+  caught=true
+ end
+ assert caught and getters==1 and setters==0 and rhsCalls==1 and object.stored==nativeMax_int()
+ auto fields=NativeFields()
+ fields.value=nativeMax_int()
+ fields.samples[0]=nativeMax_int()
+ caught=false
+ try
+  fields.samples[keyOnce()]+=rhsOnce()
+ catch OverflowError error
+  caught=true
+ end
+ assert caught and keys==1 and rhsCalls==2 and fields.samples[0]==nativeMax_int()
+ caught=false
+ try
+  fields.value+=c_int(1)
+ catch OverflowError error
+  caught=true
+ end
+ assert caught and fields.value==nativeMax_int()
+ c_uchar small=c_uchar(1)
+ caught=false
+ try
+  small+=300
+ catch RangeError error
+  caught=true
+ end
+ assert caught and small==c_uchar(1)
+ caught=false
+ try
+  small=small<<uint64(4294967296)
+ catch RangeError error
+  caught=true
+ end
+ assert caught and small==c_uchar(1)
+ caught=false
+ try
+  object.value+=failRhs()
+ catch error
+  caught=true
+ end
+ assert caught and getters==2 and setters==0 and object.stored==nativeMax_int()
+ var dynamicTooWide=uint64(18446744073709551615)
+ caught=false
+ try
+  auto rejected=c_int(dynamicTooWide)
+ catch RangeError error
+  caught=true
+ end
+ assert caught
+ println("Checked C integer arithmetic: 17 domains, operators, widths and atomic destinations passed")
+ return 0
+end

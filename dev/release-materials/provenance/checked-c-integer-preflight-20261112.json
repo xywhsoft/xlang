@@ -1,0 +1,73 @@
+{
+  "schema": 1,
+  "passed": true,
+  "fullCompilerBuild": false,
+  "shippingDelivery": false,
+  "scope": "Checked native C integer execution types, exact typed IR and explicit status outputs; static/dynamic native conversion catch-boundary isolation; actual generated C diagnostic-OOM rollback. Source overlay rebuilds five units, existing IR struct layout and old RuntimeOp IDs preserved.",
+  "verification": [
+    {
+      "platform": "win",
+      "sourceCommands": 29,
+      "continuationCommands": 6,
+      "domains": 17,
+      "irMutationsPerOptimization": 53,
+      "emptyCHeaderRefusalsPerOptimization": 106,
+      "actualGeneratedErrorAllocationFailure": true,
+      "caughtErrorsLeaveOuterScopeSuccessful": true
+    },
+    {
+      "platform": "linux",
+      "sourceCommands": 29,
+      "continuationCommands": 6,
+      "domains": 17,
+      "irMutationsPerOptimization": 53,
+      "emptyCHeaderRefusalsPerOptimization": 106,
+      "actualGeneratedErrorAllocationFailure": true,
+      "caughtErrorsLeaveOuterScopeSuccessful": true
+    }
+  ],
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\c-integer-language-win-r5\\results.json",
+      "sha256": "300e9618c7f349ce0ffbc244fc17745a9af42efe199e88b01190b75dc94afa61"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\c-integer-continuation-win-r5\\results.json",
+      "sha256": "5a4417e768a29a97c9be2cc531819e7813a1e71c35a506f9881e73ef39cdd979"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\c-integer-frontend-win-r7\\build.json",
+      "sha256": "473471a271649927fc33203280ae365050dfb7220cea64c831838ed36a49a562"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\c-integer-frontend-win-r7\\freeze.json",
+      "sha256": "fb3143f31f225658c1e4dda99c27a78d90586b1aee792c01b0bee0b5a32503e0"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\c-integer-language-linux-r5\\results.json",
+      "sha256": "ed49641fac2caf515a20fa5d5c99b4dc99ba0b84fe9f9d99d3dc6b3182477206"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\c-integer-continuation-linux-r5\\results.json",
+      "sha256": "44af96034f582773d1a247833414e6f49899a5e49826b952b5f79f8e3d4a669c"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\c-integer-frontend-linux-r7\\build.json",
+      "sha256": "f926b0078680e5b1a70ac09cbbea96b7e54b2ee29fbbb4037559e00d70b093d8"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\c-integer-frontend-linux-r7\\freeze.json",
+      "sha256": "e141c3538fdfa2a4a5445d2fb9e3107c867e10f4484718ce712a7edc7266bf43"
+    }
+  ],
+  "pending": [
+    "Complete Windows r30 and Linux r22 compiler/XRT/TCC/fixed-object/VFS/embedded-source qualification",
+    "Final matched XGE ecosystem and IDE delivery"
+  ],
+  "limitations": [
+    "Existing mixed numeric promotion retained",
+    "No new compound shift syntax",
+    "generator<c_int> result carrier remains rejected; generator body native arithmetic is tested with int output",
+    "No throughput or zero-total-overhead claim"
+  ]
+}

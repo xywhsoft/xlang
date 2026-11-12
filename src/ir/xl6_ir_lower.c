@@ -8628,7 +8628,8 @@ static XL6_IrValueId xl6IrLowerNativeContainerProjectionCast(
 }
 
 static XL6_IrValueId xl6IrLowerCheckedScalarRuntime(XL6_IrLowerContext* ctx,XL6_IrNodeId id,const XL6_IrNode* node,
-    XL6_IrNodeId sourceId,XL6_IrRuntimeOp operation,XL6_IrTypeId payload,XL6_IrTypeId identity,XL6_IrCastAbi cast)
+    XL6_IrNodeId sourceId,XL6_IrRuntimeOp operation,XL6_IrTypeId payload,XL6_IrTypeId identity,XL6_IrCastAbi cast,
+    XL6_IrTypeId resultType,XL6_IrNodeId contextualSource)
 {
     const XL6_IrNode* source=xl6IrNodeGet(ctx->module,sourceId);
     const XL6_IrExitPlan* plan=xl6IrLowerExitPlan(ctx,id,XL6_SEM_EXIT_THROW);
@@ -8638,10 +8639,11 @@ static XL6_IrValueId xl6IrLowerCheckedScalarRuntime(XL6_IrLowerContext* ctx,XL6_
     XL6_SymbolId temporary=0;
     if(xl6IrLowerTypeIsDynamicXValueBuiltin(ctx->module,source->storageType))
         value=xl6IrLowerBorrowRuntimeXValueOperand(ctx,id,source,value,&temporary);
-    XL6_IrValueId result=value ? xl6IrLowerEmitRuntimeCall(ctx,id,node->storageType,operation,&value,1) : XL6_IR_VALUE_INVALID;
+    XL6_IrValueId result=value ? xl6IrLowerEmitRuntimeCall(ctx,id,resultType,operation,&value,1) : XL6_IR_VALUE_INVALID;
     if(!result)return result;
     XL6_IrInstruction* call=(XL6_IrInstruction*)xl6IrLowerValueDefinition(ctx->module,result);
     call->castAbi=cast;call->payloadType=payload;call->runtimeIdentityType=identity;
+    call->contextualIntegerConversionSource=contextualSource;
     XL6_IrBlockId success,failure;
     if(!xl6IrLowerNewBlock(ctx,&success) || !xl6IrLowerNewBlock(ctx,&failure) ||
         !xl6IrLowerEmit(ctx,XL6_IR_INSTR_ERROR_TEST,id,XL6_IR_TYPE_INVALID,0,&result,1,NULL))return XL6_IR_VALUE_INVALID;
@@ -8686,12 +8688,12 @@ static XL6_IrValueId xl6IrLowerCast(
         XL6_IrTypeId base=xl6IrNativeScalarAsIdentity(ctx->module,node->storageType);
         return base && node->castErrorAbi==XL6_IR_ERROR_ABI_MAY_RAISE ?
             xl6IrLowerCheckedScalarRuntime(ctx,id,node,ctx->module->children[node->firstChild],
-                XL6_IR_RUNTIME_NATIVE_SCALAR_AS_CHECKED,base,base,node->castAbi) : XL6_IR_VALUE_INVALID;
+                XL6_IR_RUNTIME_NATIVE_SCALAR_AS_CHECKED,base,base,node->castAbi,node->storageType,0) : XL6_IR_VALUE_INVALID;
     }
     case XL6_IR_CAST_XVALUE_TO_F32_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_NULLABLE_F32_TRY:
         return node->castErrorAbi==XL6_IR_ERROR_ABI_MAY_RAISE ? xl6IrLowerCheckedScalarRuntime(ctx,id,node,
-            ctx->module->children[node->firstChild],XL6_IR_RUNTIME_F32_AS_CHECKED,0,0,node->castAbi) : XL6_IR_VALUE_INVALID;
+            ctx->module->children[node->firstChild],XL6_IR_RUNTIME_F32_AS_CHECKED,0,0,node->castAbi,node->storageType,0) : XL6_IR_VALUE_INVALID;
     case XL6_IR_CAST_XVALUE_TO_NATIVE_CONTAINER_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_CONTAINER_TRY:
         return xl6IrLowerNativeContainerProjectionCast(ctx,id,node);
@@ -29192,13 +29194,7 @@ static int xl6IrLowerIntrinsicDynamicCollectionMember(
 
 static XL6_IrRuntimeOp xl6IrLowerCheckedIntegerRuntimeOp(XL6_IrOpcode opcode)
 {
-    switch ( opcode ) {
-    case XL6_IR_OPCODE_DIV: return XL6_IR_RUNTIME_INTEGER_DIV_CHECKED;
-    case XL6_IR_OPCODE_MOD: return XL6_IR_RUNTIME_INTEGER_MOD_CHECKED;
-    case XL6_IR_OPCODE_SHL: return XL6_IR_RUNTIME_INTEGER_SHL_CHECKED;
-    case XL6_IR_OPCODE_SHR: return XL6_IR_RUNTIME_INTEGER_SHR_CHECKED;
-    default: return XL6_IR_RUNTIME_NONE;
-    }
+    return xl6IrCheckedIntegerRuntimeOperation(opcode);
 }
 
 /* Checked scalar arithmetic owns its failure CFG in Lowered XLIR.  The
@@ -29220,11 +29216,11 @@ static XL6_IrValueId xl6IrLowerEmitCheckedIntegerArithmetic(
     XL6_IrInstruction* operation;
     XL6_IrInstruction* errorTest;
     if ( ctx == NULL || node == NULL || integerType == NULL ||
-         integerType->integerTarget == XL6_IR_INTEGER_TARGET_INVALID ||
          runtimeOp == XL6_IR_RUNTIME_NONE ||
          node->operatorErrorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
-         xl6IrLowerValueType(ctx, left) != type ||
-         xl6IrLowerValueType(ctx, right) != type ) {
+         !xl6IrCheckedIntegerArithmeticSignatureValid(ctx->module,runtimeOp,
+             xl6IrArithmeticIntegerTarget(integerType),type,
+             xl6IrLowerValueType(ctx,left),xl6IrLowerValueType(ctx,right)) ) {
         xl6IrLowerDiag(ctx, origin,
             "XLIR checked integer arithmetic has no exact operand, target and failure ABI");
         return XL6_IR_VALUE_INVALID;
@@ -29235,7 +29231,7 @@ static XL6_IrValueId xl6IrLowerEmitCheckedIntegerArithmetic(
         ctx, origin, type, runtimeOp, operands, 2);
     if ( result == XL6_IR_VALUE_INVALID ) return XL6_IR_VALUE_INVALID;
     operation = &ctx->module->instructions[ctx->module->instructionCount - 1];
-    operation->integerTarget = integerType->integerTarget;
+    operation->integerTarget = xl6IrArithmeticIntegerTarget(integerType);
     errorPlan = xl6IrLowerExitPlan(ctx, origin, XL6_SEM_EXIT_THROW);
     if ( errorPlan == NULL ||
          !xl6IrLowerNewBlock(ctx, &successBlock) ||
@@ -29274,6 +29270,7 @@ static XL6_IrValueId xl6IrLowerScalarCompoundValue(
         targetType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
         (targetType->cAbi == XL6_IR_C_ABI_I64 ||
          targetType->cAbi == XL6_IR_C_ABI_U64 ||
+          xl6IrArithmeticIntegerTargetIsNative(xl6IrArithmeticIntegerTarget(targetType)) ||
          floating) &&
         !(floating &&
           node->opcode != XL6_IR_OPCODE_ADD &&
@@ -29298,8 +29295,10 @@ static XL6_IrValueId xl6IrLowerScalarCompoundValue(
                 node->operatorErrorAbi == XL6_IR_ERROR_ABI_MAY_RAISE &&
                 xl6IrLowerCheckedIntegerRuntimeOp(node->opcode) !=
                     XL6_IR_RUNTIME_NONE &&
-                targetType->integerTarget != XL6_IR_INTEGER_TARGET_INVALID ) {
-        valid = xl6IrLowerValueType(ctx, rhs) == type;
+                 xl6IrArithmeticIntegerTarget(targetType) != XL6_IR_INTEGER_TARGET_INVALID ) {
+        valid = xl6IrCheckedIntegerArithmeticSignatureValid(ctx->module,
+            xl6IrLowerCheckedIntegerRuntimeOp(node->opcode),xl6IrArithmeticIntegerTarget(targetType),
+            type,xl6IrLowerValueType(ctx,previous),xl6IrLowerValueType(ctx,rhs));
         if ( valid )
             result = xl6IrLowerEmitCheckedIntegerArithmetic(
                 ctx, origin, node, type, node->opcode, previous, rhs);
@@ -29517,7 +29516,17 @@ static XL6_IrValueId xl6IrLowerCompoundValue(
             if (operands[1] == XL6_IR_VALUE_INVALID) return XL6_IR_VALUE_INVALID;
             return xl6IrLowerEmitRuntimeCall(ctx, origin, type, operation, operands, 2);
         }
-        XL6_IrValueId rhsValue = xl6IrLowerNodeAsType(ctx, origin, rhsId, rhs, type);
+        XL6_IrValueId rhsValue;
+        int nativeChecked=xl6IrArithmeticIntegerTargetIsNative(xl6IrArithmeticIntegerTarget(info)) &&
+            node->operatorErrorAbi==XL6_IR_ERROR_ABI_MAY_RAISE;
+        if(nativeChecked && (node->opcode==XL6_IR_OPCODE_SHL || node->opcode==XL6_IR_OPCODE_SHR))
+            rhsValue=xl6IrLowerNode(ctx,rhsId);
+        else if(nativeChecked && rhs->storageType!=type &&
+                xl6IrContextualNativeIntegerConversionAllowed(ctx->module,origin,rhsId,type))
+            rhsValue=xl6IrLowerCheckedScalarRuntime(ctx,origin,node,rhsId,
+                XL6_IR_RUNTIME_NATIVE_SCALAR_CONVERT_CHECKED,rhs->storageType,type,XL6_IR_CAST_INVALID,type,rhsId);
+        else
+            rhsValue=xl6IrLowerNodeAsType(ctx,origin,rhsId,rhs,type);
         if (!managed && xl6IrLowerTypeIsRuntimeXValue(ctx->module, xl6IrLowerValueType(ctx, rhsValue))) {
             rhsValue = xl6IrLowerProtectOwnedBorrow(ctx, origin, rhsValue);
             rhsValue = rhsValue != XL6_IR_VALUE_INVALID
@@ -31525,7 +31534,7 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
                     if(xl6IrNativeScalarIntrinsicCompatible(ctx->module,intrinsic)) {
                         const XL6_IrIntrinsicOperand* source=&ctx->module->intrinsicOperands[intrinsic->firstOperand];
                         result=xl6IrLowerCheckedScalarRuntime(ctx,id,node,source->expression,
-                            XL6_IR_RUNTIME_NATIVE_SCALAR_CONVERT_CHECKED,source->type,node->storageType,XL6_IR_CAST_INVALID);
+                            XL6_IR_RUNTIME_NATIVE_SCALAR_CONVERT_CHECKED,source->type,node->storageType,XL6_IR_CAST_INVALID,node->storageType,0);
                     }
                     break;
                 case XL6_IR_INTRINSIC_CHECKED_INTEGER_CONVERT:
@@ -32589,16 +32598,19 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
         }
         {
             XL6_IrTypeId executionType = node->operatorExecutionType;
+            int nativeShift=(opcode==XL6_IR_OPCODE_SHL || opcode==XL6_IR_OPCODE_SHR) &&
+                xl6IrArithmeticIntegerTargetIsNative(xl6IrArithmeticIntegerTarget(
+                    xl6IrTypeGet(&ctx->module->types,node->storageType)));
             size_t operandIndex;
             for ( operandIndex = 0; operandIndex < 2; ++operandIndex ) {
                 XL6_IrNodeId operandId =
                     ctx->module->children[node->firstChild + operandIndex];
-                values[operandIndex] = executionType != XL6_IR_TYPE_INVALID
+                values[operandIndex] = executionType != XL6_IR_TYPE_INVALID && !(nativeShift && operandIndex==1)
                     ? xl6IrLowerOperatorOperandAsExecutionType(
                         ctx, id, node, operandIndex, operandId,
                         operandNodes[operandIndex], executionType)
                     : xl6IrLowerNode(ctx, operandId);
-                if ( executionType != XL6_IR_TYPE_INVALID &&
+                if ( executionType != XL6_IR_TYPE_INVALID && !(nativeShift && operandIndex==1) &&
                      values[operandIndex] != XL6_IR_VALUE_INVALID &&
                      xl6IrLowerValueType(ctx, values[operandIndex]) != executionType ) {
                     xl6IrLowerDiag(ctx, id,
@@ -32615,8 +32627,7 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
         }
         if ( node->operatorErrorAbi == XL6_IR_ERROR_ABI_MAY_RAISE &&
              xl6IrLowerCheckedIntegerRuntimeOp(opcode) != XL6_IR_RUNTIME_NONE &&
-             xl6IrTypeGet(&ctx->module->types, node->storageType) != NULL &&
-             xl6IrTypeGet(&ctx->module->types, node->storageType)->integerTarget !=
+             xl6IrArithmeticIntegerTarget(xl6IrTypeGet(&ctx->module->types,node->storageType)) !=
                  XL6_IR_INTEGER_TARGET_INVALID ) {
             return xl6IrLowerEmitCheckedIntegerArithmetic(
                 ctx, id, node, node->storageType, opcode, values[0], values[1]);
@@ -32758,6 +32769,13 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
             }
         }
         if ( values[0] == XL6_IR_VALUE_INVALID ) return 0;
+        if(node->opcode==XL6_IR_OPCODE_NEG &&
+           xl6IrArithmeticIntegerTargetIsNative(xl6IrArithmeticIntegerTarget(
+               xl6IrTypeGet(&ctx->module->types,node->storageType)))) {
+            XL6_IrValueId zero=xl6IrLowerEmitIntConst(ctx,id,node->storageType,"0");
+            return zero ? xl6IrLowerEmitCheckedIntegerArithmetic(ctx,id,node,node->storageType,
+                XL6_IR_OPCODE_NEG,zero,values[0]) : XL6_IR_VALUE_INVALID;
+        }
         if ( xl6IrLowerTypeIsRuntimeXValue(ctx->module, node->storageType) &&
              xl6IrLowerTypeIsRuntimeXValue(
                  ctx->module, xl6IrLowerValueType(ctx, values[0])) &&

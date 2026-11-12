@@ -49,6 +49,8 @@ static int xl6IrCgenEmitRuntimePrelude(
                 target->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_FOREIGN_SPAN_BORROW;
     }
     if(retainedHeader)xl6OutputPuts("#include <__xl_runtime/xl6_native_callback.h>\n#include <stdlib.h>\n",out);
+    if(needs->needsNativeCheckedIntegerArithmeticRuntime)
+        xl6OutputPuts("#include <__xl_runtime/xl6_c_integer_arithmetic.h>\n",out);
     if(syncHeader)xl6OutputPuts("#include <__xl_runtime/xl6_sync_callback.h>\n#include <stdlib.h>\n",out);
     if(arrayHeader)xl6OutputPuts("#include <__xl_runtime/xl6_sequence.h>\n#include <__xl_runtime/xl6_foreign_view_abi.h>\n#include <limits.h>\n#include <string.h>\n",out);
     if(accessHeader)xl6OutputPuts("#include <__xl_runtime/xl6_native_handle.h>\n#include <limits.h>\n",out);

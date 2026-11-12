@@ -619,7 +619,10 @@ typedef enum XL6_IrIntegerTarget {
      * code points and values above U+10FFFF are excluded.  Keep this as an
      * explicit checked-conversion target instead of approximating char as
      * uint32 and asking a backend to recover the language invariant. */
-    XL6_IR_INTEGER_TARGET_UNICODE_SCALAR
+    XL6_IR_INTEGER_TARGET_UNICODE_SCALAR,
+    /* Instruction-only native execution domains: BASE + NativeScalarProfile.
+     * Native Type rows keep their own C ABI instead of pretending to be I64. */
+    XL6_IR_INTEGER_TARGET_NATIVE_BASE = 128
 } XL6_IrIntegerTarget;
 
 /* Conservative effect of releasing one storage owner. Trivial storage,
@@ -2302,6 +2305,9 @@ typedef enum XL6_IrRuntimeOp {
     XL6_IR_RUNTIME_NATIVE_SEQUENCE_ADVANCE,
     XL6_IR_RUNTIME_NATIVE_SEQUENCE_ITEM,
     XL6_IR_RUNTIME_NATIVE_SEQUENCE_ORDINAL,
+    XL6_IR_RUNTIME_INTEGER_ADD_CHECKED,
+    XL6_IR_RUNTIME_INTEGER_SUB_CHECKED,
+    XL6_IR_RUNTIME_INTEGER_MUL_CHECKED,
     XL6_IR_RUNTIME_COUNT
 } XL6_IrRuntimeOp;
 
@@ -7766,6 +7772,13 @@ XL6_IrErrorAbi xl6IrRuntimeResourceErrorAbiForOwnerType(
 XL6_IrNativeSlotAbi xl6IrNativeSlotAbiForType(const XL6_IrTypePool*, const XL6_IrType*);
 int xl6IrArrayTrivialExtractResult(const XL6_IrType*);
 XL6_NativeScalarProfileV1 xl6IrNativeScalarProfileForCAbi(XL6_IrCAbi);
+XL6_IrIntegerTarget xl6IrArithmeticIntegerTarget(const XL6_IrType*);
+int xl6IrArithmeticIntegerTargetIsNative(XL6_IrIntegerTarget);
+XL6_IrRuntimeOp xl6IrCheckedIntegerRuntimeOperation(XL6_IrOpcode);
+int xl6IrCheckedIntegerArithmeticSignatureValid(const XL6_IrModule*,
+    XL6_IrRuntimeOp,XL6_IrIntegerTarget,XL6_IrTypeId,XL6_IrTypeId,XL6_IrTypeId);
+int xl6IrContextualNativeIntegerConversionAllowed(const XL6_IrModule*,
+    XL6_IrNodeId,XL6_IrNodeId,XL6_IrTypeId);
 XL6_ValueAdmissionV1 xl6IrValueAdmissionAbiForType(const XL6_IrTypePool*, const XL6_IrType*);
 XL6_ValueDefaultAbiV1 xl6IrValueDefaultAbiForType(const XL6_IrTypePool*, const XL6_IrType*);
 XL6_IrErrorAbi xl6IrTypedCollectionErrorAbi(XL6_IrTypedCollectionOp);

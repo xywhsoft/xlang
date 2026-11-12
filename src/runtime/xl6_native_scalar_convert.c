@@ -32,7 +32,7 @@ static bool explicitNumericConvert(const xrttype* source,const XL6_NativeScalarS
 bool xl6NativeScalarConvertV1(const void* source,unsigned inputProfile,unsigned targetProfile,void* output)
 {
     xl6_error_scope scope={0};XL6_NativeScalarScratchV1 input={0},value={0};bool ok=false;
-    if(!xl6ErrorScopeBegin(&scope)) { xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()});return false; }
+    if(!xl6ErrorScopeBegin(&scope))return false;
     const xrttype* from=conversionInputType(inputProfile);
     const xrttype* to=targetProfile && targetProfile<=XL6_NATIVE_SCALAR_WCHAR ? xl6NativeScalarTypeV1(targetProfile) : NULL;
     if(!source || !output || !from || !to || from->Size>sizeof(input) || to->Size>sizeof(value))xrtSetErrorKind(XERR_ARGUMENT);
@@ -44,6 +44,9 @@ bool xl6NativeScalarConvertV1(const void* source,unsigned inputProfile,unsigned 
     }
     if(!ok || xrtGetError())xl6ErrorScopeCaptureFailure(&scope);
     xl6_error_result result=xl6ErrorScopeEnd(&scope);
-    if(!result.ok) { xl6ErrorScopePropagateFailure(result);return false; }
+    /* The bool is the language failure carrier. A conversion can be caught
+     * before escaping this language call, so do not latch its failure into
+     * an enclosing foreign/callback scope. */
+    if(!result.ok) { xrtSetErrorTake(result.error);return false; }
     memcpy(output,&value,to->Size);return true;
 }
