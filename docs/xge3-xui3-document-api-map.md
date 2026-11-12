@@ -62,6 +62,14 @@ transfer and CPU throughput are not equated. The Windows receipt is
 `xui-document-exports-boundaries-windows-20261113.json`; Linux and the remaining
 Document interfaces remain separate qualification requirements.
 
+Linux full r24 subsequently passes the same 11 boundary commands, all seven
+producers, 448 language allocation budgets and real hosted/static ELF execution.
+Native C and language text loops each make 600 allocations, 600 frees and no
+reallocations there as well. The successor receipt is
+`xui-document-exports-boundaries-linux-20261113.json`. Other Document operations,
+rendering and the final delivery remain separate; the earlier Windows receipt
+keeps its historical pending-platform note.
+
 Direct declarations eliminate C forwarding wrappers. Resource controls, code leases, checked scopes, native RC operations and callbacks still cost work. Descriptor packs add stack initialization and assignments; NUL strings require scans/validation, while counted inputs retain exact byte lengths. Copy methods perform their documented native byte copy. POD output projection copies fields; it does not box pointer payloads. This package does not claim equality with raw C execution time.
 
 The focused gate is `tools/check_foreign_xge3_document.py`: it emits exported compile-only probes for every method, callback reads/shares and every POD record, checks C11/C++11/C++17 headers and compiles at O0/O2. A separate actual script executes all seven resource families, notification share preservation, checked notification delivery, POD projections, scoped buffers, source/index ownership, prepare publication and unique transaction cleanup against a matched CPU-only native engine. GUI, filesystem and network operations are not executed by that gate.
