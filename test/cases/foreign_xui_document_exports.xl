@@ -1,0 +1,35 @@
+// Headless data model and resident-XRT output ownership; no window or network.
+import xui
+func main(...) as int
+ auto document=xui.createDocument(profile=c_uint(xui.XUI_DOCUMENT_MARKDOWN))
+ string markdown="# Hello\n\nUnicode 中 & text\n"
+ document.loadMarkdown(markdown,2000)
+ auto snapshot=document.snapshot()
+ auto wire=snapshot.serialize()
+ auto restored=xui.deserializeDocument(wire)
+ auto restoredSnapshot=restored.snapshot()
+ assert restoredSnapshot.serialize()==wire
+ auto fromBuffer=xui.deserializeDocument(Buffer(wire))
+ auto bufferSnapshot=fromBuffer.snapshot()
+ assert bufferSnapshot.serialize()==wire
+ assert encoding.decodeUtf8(snapshot.exportHtmlBytes()).length>0
+ assert encoding.decodeUtf8(snapshot.plainTextBytes()).length>0
+ assert snapshot.exportHtml()==encoding.decodeUtf8(snapshot.exportHtmlBytes())
+ assert snapshot.plainText()==encoding.decodeUtf8(snapshot.plainTextBytes())
+ auto fragment=xui.importDocumentFragmentHtml("<p>Fragment 中</p>")
+ auto fragmentWire=fragment.serialize()
+ auto decoded=xui.deserializeDocumentFragment(Buffer(fragmentWire))
+ assert decoded.serialize()==fragmentWire
+ assert decoded.exportHtmlBytes()==fragment.exportHtmlBytes()
+ assert decoded.exportHtml()==encoding.decodeUtf8(fragment.exportHtmlBytes())
+ decoded.close()
+ fragment.close()
+ bufferSnapshot.close()
+ fromBuffer.close()
+ restoredSnapshot.close()
+ restored.close()
+ snapshot.close()
+ document.close()
+ println("Document text/byte exports: model/fragment roundtrip, exact spans and native ownership passed")
+ return 0
+end

@@ -1,0 +1,25 @@
+// No window is needed to load, save or export a Document model.
+// Run from a matched runtime: xl run examples/xui/document_exports.xl
+import xui
+
+auto document = xui.createDocument(profile=c_uint(xui.XUI_DOCUMENT_MARKDOWN))
+document.loadMarkdown("# Hello, xlang\n\n中文与 **Markdown**。\n")
+auto snapshot = document.snapshot()
+
+// Text outputs own their UTF-8 data. Bytes expose the same native export format.
+string html = snapshot.exportHtml()
+string text = snapshot.plainText()
+println(html)
+println(text)
+assert html == encoding.decodeUtf8(snapshot.exportHtmlBytes())
+
+// Serialized bytes restore a separate model; no raw pointers are exposed.
+bytes saved = snapshot.serialize()
+auto restored = xui.deserializeDocument(saved)
+auto restoredSnapshot = restored.snapshot()
+assert restoredSnapshot.serialize() == saved
+
+restoredSnapshot.close()
+restored.close()
+snapshot.close()
+document.close()

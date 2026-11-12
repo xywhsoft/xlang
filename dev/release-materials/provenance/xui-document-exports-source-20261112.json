@@ -1,0 +1,110 @@
+{
+  "schema": 1,
+  "sourceQualified": true,
+  "fullCompilerBuild": false,
+  "shippingDelivery": false,
+  "nativeCommit": "d902e6b8c2c40adbc612ddb59c1d170689702fd9",
+  "genericContractCommit": "44bb98684",
+  "scope": "Direct Document HTML/plain/range/matrix text and bytes output, model/fragment serialization and exact input spans. Actual JIT, readable example, independent dynamic/static artifacts, no compiler dependency, static no XGE host dependency, C/C++ public headers and obsolete allocator SDK refusal.",
+  "source": {
+    "lib/bindings/xui/src/document.xl": "c0e553c3ef094e6d4b823ba7e1ff09e0f4d20eacde6e75a898d99d5d8886000a",
+    "lib/bindings/_xge_native/include/xge3_document_xrt.h": "d857e987373958dd44bb003bbf35602b4cd43df657ea0c6e64fd6f60ffaae5b8",
+    "lib/bindings/xui/examples/document_exports.xl": "f1227b9fc945f7add284fc07a3484ae35f744abd621e4cf4e9895e0fb627abfc",
+    "lib/bindings/xui/examples/README.md": "404bbda806670c07e9a514a38fedab6899096f293cf40409a06f6564ae38bc78",
+    "test/cases/foreign_xui_document_exports.xl": "ecd663dc7b3257c6b03c6fab2fe289acd7dc659559f8b8ab11fcc1c2c6a575e2",
+    "tools/check_xui_document_exports.py": "f67317cb6e1cf080151960f38992c8b10bf570f2afba58618c3b25153085eccb"
+  },
+  "commands": {
+    "win": 11,
+    "linux": 11
+  },
+  "artifacts": {
+    "win": [
+      {
+        "linkage": "host",
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-export-language-win-r5\\host.exe",
+        "sha256": "4410a978a18accc22128ca3aab8d7e99df5c667d02673b804328d8c66f32a4c2",
+        "bytes": 1689088
+      },
+      {
+        "linkage": "static",
+        "path": "F:\\xlang-validation\\xge-full-20261110\\document-export-language-win-r5\\static.exe",
+        "sha256": "2d5bfc8675c84bb969e9fb0efeb87c19bce575f79f57e52220cfd6eccf9fff14",
+        "bytes": 1682944
+      }
+    ],
+    "linux": [
+      {
+        "linkage": "host",
+        "path": "/mnt/f/xlang-validation/xge-full-20261110/document-export-language-linux-r5/host",
+        "sha256": "de51ca22a1d3da027eca20cf36fba5312aaa8eb5cb00b65f419aa9d049078f33",
+        "bytes": 1742057
+      },
+      {
+        "linkage": "static",
+        "path": "/mnt/f/xlang-validation/xge-full-20261110/document-export-language-linux-r5/static",
+        "sha256": "f0580d6df1d45a5017b7ee1b48ac7d8e593edc35ae539ee7898496fa1886a0f1",
+        "bytes": 2048958
+      }
+    ]
+  },
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\document-export-language-win-r5\\results.json",
+      "sha256": "c4f45743fd9512ad42356bc8ae66a8cd74ebccf73041b36f311c5f6f2253dab1"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\document-export-native-win-r6\\results.json",
+      "sha256": "73d253ea08e68ce4cd098f0d6270b36b333fdb96b81ab2a73090e165af960d61"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\document-export-ui-win-r7\\results.json",
+      "sha256": "dedee26a47500589c1bf899bb4b00060a5e95f2802038cb981a63a999988dd56"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\document-export-sdk-win-r2\\results.json",
+      "sha256": "644e98851b46f9b2ec56d54266802e43dc4c21708963b0ec2c5718f927526e91"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\document-export-sdk-win-r2\\packages-host.json",
+      "sha256": "e33b89fb849630e125e074600c6f6448c1f1c2df9d4fb77c95685e5535888631"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\document-export-sdk-win-r2\\packages-static.json",
+      "sha256": "1d718f98bdb5c91d7c1c91c851e98ad10cb19c16c25f54aea49902a308f9fe15"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\document-export-language-linux-r5\\results.json",
+      "sha256": "6bba728eb87edd1b7ebed015fec2b9e78a665eb388029c646febc00213b24f39"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\document-export-native-linux-r6\\results.json",
+      "sha256": "30a7d527342913bf0f7923d964e1871b1b16f164cad2303158aa2a6095de4ed9"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\document-export-ui-linux-r7\\results.json",
+      "sha256": "a586510eacc702d8f0539d52ae815e90b5b7ae192cad2085abf720e2bffabdc1"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\document-export-sdk-linux-r2\\results.json",
+      "sha256": "c1386110529b6ec47d363bfbc4c20e007cf9310a2bf39cc32c339f3ade47160e"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\document-export-sdk-linux-r2\\packages-host.json",
+      "sha256": "ecd6ed9493e429244565bf301f1d4c06eec8aab21381f7f92c060d52483b9385"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\document-export-sdk-linux-r2\\packages-static.json",
+      "sha256": "2ffe8e8b8b8bd6a9c9fc75cad156aad806f8bc200bff4a620116ea26ed5a2750"
+    }
+  ],
+  "pending": [
+    "Complete O2 compiler/TCC/XRT/fixed objects/VFS/embedded source cohorts r31/r23 are in progress.",
+    "Remaining XGE ecosystem and final matched SDK/IDE delivery."
+  ],
+  "notes": [
+    "Successful prior emit/JIT and artifact builds are reused only after input, driver, object, SDK, binary and log hash validation. The two native artifacts are executed again in the final gate.",
+    "The dynamic form requires its native XGE host library beside the executable or on the loader path. The static form has no such import.",
+    "No raw material or release payload is committed."
+  ]
+}
