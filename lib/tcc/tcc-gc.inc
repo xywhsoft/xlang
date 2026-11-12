@@ -17,8 +17,9 @@ ST_FUNC Section *tcc_split_section(TCCState *s1, Section *base, const char *symb
     return s;
 }
 
-/* One mergeable record per compiler-created literal. A complete string is a
-   record, including embedded NULs: SHF_STRINGS would allow a foreign linker to
+/* One mergeable record per compiler-created literal unit (ordinary function
+   literals can share one unit). Complete strings include embedded NULs:
+   SHF_STRINGS would allow a foreign linker to
    split it into independently merged substrings and break interior pointers.
    Explicit user section attributes never go through this route. */
 ST_FUNC Section *tcc_literal_section(TCCState *s1, Section *base)

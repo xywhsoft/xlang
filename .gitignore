@@ -122,6 +122,7 @@
 !/dev/release-materials/provenance/xge-image-io-20261112.json
 !/dev/release-materials/provenance/xge-unused-readonly-data-20261112.json
 !/dev/release-materials/provenance/tcc-literal-gc-preflight-20261112.json
+!/dev/release-materials/provenance/tcc-literal-owner-preflight-20261112.json
 /out/
 /tmp/
 /logs/

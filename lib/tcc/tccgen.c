@@ -73,6 +73,8 @@ ST_DATA int func_var; /* true if current function is variadic (used by return in
 ST_DATA int func_vc; /* stack address for implicit struct return storage */
 ST_DATA int func_ind; /* function start address */
 static int func_old;
+static Section *function_literal_section;
+static Section **active_literal_section;
 ST_DATA const char *funcname;
 ST_DATA CType int_type, func_old_type, char_type, char_pointer_type;
 static CString initstr;
@@ -400,6 +402,8 @@ ST_FUNC void tccgen_init(TCCState *s1)
 ST_FUNC int tccgen_compile(TCCState *s1)
 {
     funcname = "";
+    function_literal_section = NULL;
+    active_literal_section = NULL;
     func_ind = -1;
     anon_sym = SYM_FIRST_ANOM;
     nocode_wanted = DATA_ONLY_WANTED; /* no code outside of functions */
@@ -450,6 +454,8 @@ ST_FUNC void tccgen_finish(TCCState *s1)
     global_label_stack = NULL;
     local_label_stack = NULL;
     cur_text_section = NULL;
+    function_literal_section = NULL;
+    active_literal_section = NULL;
     sym_free_first = NULL;
 }
 
@@ -1841,6 +1847,29 @@ static int adjust_bf(SValue *sv, int bit_pos, int bit_size)
 /* store vtop a register belonging to class 'rc'. lvalues are
    converted to values. Cannot be used if cannot be converted to
    register value (such as structures). */
+/* Code/data and their literals have the same collection granularity. One
+   literal per section can exhaust ELF's section index space in large runtime
+   objects long before code does. Static initializers select their own slot:
+   their storage may survive even when the enclosing function is discarded. */
+static Section *literal_section(void)
+{
+    if (active_literal_section) {
+        if (!*active_literal_section)
+            *active_literal_section = tcc_literal_section(tcc_state, rodata_section);
+        return *active_literal_section;
+    }
+    return tcc_literal_section(tcc_state, rodata_section);
+}
+
+static void finish_literal_section(Section *s)
+{
+    if (s && s != rodata_section) {
+        /* One whole merge record, including any final alignment padding. */
+        section_add(s, 0, s->sh_addralign);
+        s->sh_entsize = s->data_offset;
+    }
+}
+
 ST_FUNC int gv(int rc)
 {
     int r, r2, r_ok, r2_ok, rc2, bt;
@@ -1892,7 +1921,7 @@ ST_FUNC int gv(int rc)
             if (NODATA_WANTED)
                 size = 0, align = 1;
             if (size)
-                p.sec = tcc_literal_section(tcc_state, p.sec);
+                p.sec = literal_section();
             offset = section_add(p.sec, size, align);
             vpush_ref(&vtop->type, p.sec, offset, size);
 	    vswap();
@@ -5684,7 +5713,7 @@ ST_FUNC void unary(void)
         memset(&ad, 0, sizeof(AttributeDef));
         ad.section = rodata_section;
         if (!NODATA_WANTED)
-            ad.section = tcc_literal_section(tcc_state, ad.section);
+            ad.section = literal_section();
         decl_initializer_alloc(&type, &ad, VT_CONST, 2, 0, 0);
         if (ad.section != rodata_section)
             ad.section->sh_entsize = ad.section->data_offset;
@@ -8254,6 +8283,9 @@ static void decl_initializer_alloc(CType *type, AttributeDef *ad, int r,
     Sym *flexible_array;
     Sym *sym = NULL;
     int saved_nocode_wanted = nocode_wanted;
+    int owns_literals = v && has_init && (r & VT_VALMASK) == VT_CONST;
+    Section *initializer_literals = NULL;
+    Section **saved_literal_section = active_literal_section;
 #ifdef CONFIG_TCC_BCHECK
     int bcheck = tcc_state->do_bounds_check && !NODATA_WANTED;
 #endif
@@ -8270,6 +8302,9 @@ static void decl_initializer_alloc(CType *type, AttributeDef *ad, int r,
             type = &sym->type;
         }
     }
+
+    if (owns_literals)
+        active_literal_section = &initializer_literals;
 
     /* Always allocate static or global variables */
     if (v && (r & VT_VALMASK) == VT_CONST)
@@ -8511,6 +8546,10 @@ static void decl_initializer_alloc(CType *type, AttributeDef *ad, int r,
     }
 
     nocode_wanted = saved_nocode_wanted;
+    if (owns_literals) {
+        finish_literal_section(initializer_literals);
+        active_literal_section = saved_literal_section;
+    }
 }
 
 /* generate vla code saved in post_type() */
@@ -8585,6 +8624,8 @@ static void gen_function(Sym *sym)
     struct scope f = { 0 };
 
     cur_scope = root_scope = &f;
+    function_literal_section = NULL;
+    active_literal_section = &function_literal_section;
     nocode_wanted = 0;
     if (tcc_state->function_sections && cur_text_section == text_section)
         cur_text_section = tcc_split_section(tcc_state, text_section,
@@ -8640,6 +8681,7 @@ static void gen_function(Sym *sym)
     /* patch symbol size */
     elfsym(sym)->st_size = ind - func_ind;
     cur_text_section->data_offset = ind;
+    finish_literal_section(function_literal_section);
 
     sym_pop(&local_stack, NULL, 0);
     label_pop(&global_label_stack, NULL, 0);
@@ -8648,6 +8690,8 @@ static void gen_function(Sym *sym)
 
     /* It's better to crash than to generate wrong code */
     cur_text_section = NULL;
+    function_literal_section = NULL;
+    active_literal_section = NULL;
     funcname = ""; /* for safety */
     func_vt.t = VT_VOID; /* for safety */
     func_var = 0; /* for safety */

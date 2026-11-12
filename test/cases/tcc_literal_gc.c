@@ -55,6 +55,17 @@ static int literal_sections(TCCState *s)
     }
     return count;
 }
+static unsigned long literal_storage(TCCState *s)
+{
+    int i;
+    unsigned long bytes = 0;
+    for (i = 1; i < s->nb_sections; ++i) {
+        Section *section = s->sections[i];
+        if ((section->sh_flags & SHF_ALLOC) && strstr(section->name, ".__tcc_literal."))
+            bytes += section->data_offset;
+    }
+    return bytes;
+}
 /* Public relocation releases section metadata after copying. Inspect final
  * reachability before that copy; this no-libc program adds no runtime roots. */
 static void collect(TCCState *s)
@@ -124,7 +135,7 @@ static void test_objects(const char *directory, int gc)
     check(contains(s, marker, sizeof marker - 1), "object-only emission does not discard literal storage");
     tcc_delete(s);
     s = make_state(TCC_OUTPUT_OBJ, 1);
-    check(tcc_compile_string(s, "extern const char*first(void); static const char*second(void){return \"longer\\0Y\";} int entry(void){return first()[2]=='Z' && second()[7]=='Y' ? 59 : 0;}") == 0,
+    check(tcc_compile_string(s, "extern const char*first(void); static const char*second(void){return \"longer\\0Y\";} int entry(void){volatile double n=3.75;const char*q=\"Q\";return first()[2]=='Z' && second()[7]=='Y' && q[0]=='Q' && n==3.75 && \"x\"[0]=='x' ? 59 : 0;}") == 0,
         "second object with repeated compiler literal ordinals compiled");
     check(tcc_output_file(s, second) == 0, "second object emitted"); tcc_delete(s);
     s = make_state(TCC_OUTPUT_MEMORY, gc);
@@ -160,6 +171,88 @@ static void test_final_image(const char *directory)
     tcc_delete(s);
 }
 #ifdef TCC_LITERAL_GC_QUALIFY
+static void test_large_function(void)
+{
+    const int count = 35000;
+    const int remainder = count % 26;
+    const int expected = (count / 26) * (26 * 'A' + 325)
+        + remainder * 'A' + remainder * (remainder - 1) / 2;
+    char *source = tcc_malloc((unsigned long)count * 64 + 256);
+    size_t used = 0;
+    int at, result, (*entry)(void);
+    TCCState *s = make_state(TCC_OUTPUT_MEMORY, 1);
+    used += sprintf(source + used, "int entry(void){const char*volatile p;int sum=0;\n");
+    for (at = 0; at < count; ++at)
+        used += sprintf(source + used, "p=\"%c-literal-%d\";sum+=p[0];\n", 'A' + at % 26, at);
+    sprintf(source + used, "return sum;}\n");
+    result = tcc_compile_string(s, source);
+    check(result == 0, "35000-literal function compiled without section-index exhaustion");
+    tcc_free(source);
+    if (result) { tcc_delete(s); return; }
+    check(s->nb_sections < 64 && literal_sections(s) == 1,
+        "one function's literal count does not multiply section metadata");
+    check(literal_storage(s) == 548890, "large function stores each unique literal once, including its NUL");
+    result = tcc_relocate(s);
+    check(result == 0, "large function JIT relocated");
+    entry = result ? NULL : tcc_get_symbol(s, "entry");
+    check(entry && entry() == expected, "35000 varying literal values contribute the expected checksum");
+    tcc_delete(s);
+}
+static void test_static_initializer_owner(void)
+{
+    TCCState *s = make_state(TCC_OUTPUT_MEMORY, 1);
+    Section *keep;
+    int relocated;
+    int (*entry)(void);
+    check(tcc_compile_string(s,
+        "extern const char*pinned;"
+        "static const char*dead(void){static const char*p __attribute__((section(\"keep\")))=\"PINNED\";"
+        "return \"UNREACHABLE_LITERAL_PAYLOAD_OWNER\";}"
+        "int entry(void){return pinned[0]=='P'?71:0;}") == 0,
+        "static initializer retained independently of its enclosing function compiled");
+    /* Export the local registration slot as a normal object definition; the
+     * live code references its storage, not the enclosing function. */
+    keep = have_section(s, "keep");
+    check(keep && keep->data_offset == PTR_SIZE, "static registration storage emitted");
+    if (!keep) { tcc_delete(s); return; }
+    set_elf_sym(s->symtab, 0, PTR_SIZE, ELFW(ST_INFO)(STB_GLOBAL, STT_OBJECT),
+        0, keep->sh_num, "pinned");
+    collect(s);
+    check(!contains(s, marker, sizeof marker - 1),
+        "retained static initializer does not pin unrelated literals from a dead function");
+    relocated = tcc_relocate(s);
+    check(relocated == 0, "independent static initializer JIT relocated");
+    entry = relocated ? NULL : tcc_get_symbol(s, "entry");
+    check(entry && entry() == 71, "retained static initializer literal remains live");
+    tcc_delete(s);
+}
+static void test_large_initializer(void)
+{
+    const int count = 35000, remainder = count % 26;
+    const int expected = (count / 26) * (26 * 'A' + 325)
+        + remainder * 'A' + remainder * (remainder - 1) / 2;
+    char *source = tcc_malloc((unsigned long)count * 40 + 256);
+    size_t used = 0;
+    int at, result, (*entry)(void);
+    TCCState *s = make_state(TCC_OUTPUT_MEMORY, 1);
+    used += sprintf(source + used, "static const char*const words[]={");
+    for (at = 0; at < count; ++at)
+        used += sprintf(source + used, "%s\"%c-global-%d\"", at ? "," : "", 'A' + at % 26, at);
+    sprintf(source + used, "};int entry(void){int i,sum=0;for(i=0;i<%d;++i)sum+=words[i][0];return sum;}", count);
+    result = tcc_compile_string(s, source);
+    check(result == 0, "35000-literal incomplete-array initializer compiled");
+    tcc_free(source);
+    if (result) { tcc_delete(s); return; }
+    check(s->nb_sections < 64 && literal_sections(s) == 1,
+        "one data initializer's literal count does not multiply section metadata");
+    check(literal_storage(s) == 513890,
+        "incomplete-array sizing pass does not duplicate literal storage");
+    result = tcc_relocate(s);
+    check(result == 0, "large initializer JIT relocated");
+    entry = result ? NULL : tcc_get_symbol(s, "entry");
+    check(entry && entry() == expected, "35000 initializer pointers preserve their expected checksum");
+    tcc_delete(s);
+}
 /* Exercise the existing parser-protected allocator error path, not a new
  * public promise that a failed final link can be resumed in place. */
 #undef _tcc_error
@@ -242,6 +335,9 @@ int main(int argc, char **argv)
     test_final_image(argv[2]);
     check(!stk_data && !nb_stk_data, "literal final linking releases temporary error-stack storage");
 #ifdef TCC_LITERAL_GC_QUALIFY
+    test_large_function();
+    test_large_initializer();
+    test_static_initializer_owner();
     test_allocation_prefixes();
     test_parent_cleanup();
 #endif

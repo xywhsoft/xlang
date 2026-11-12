@@ -1,0 +1,146 @@
+{
+  "schema": 1,
+  "passed": true,
+  "cpuPreflightQualified": true,
+  "fullCompilerQualified": false,
+  "shippingDelivery": false,
+  "scope": "Code/data-owned literal units, exact static initializer isolation, preserved whole-record object ABI and bounded compilation metadata",
+  "checks": 1358,
+  "evidence": [
+    {
+      "name": "tcc-literals-storage-owner-win-r2",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-literals-storage-owner-win-r2\\results.json",
+      "sha256": "af2472e1b020dbfde91ace057b590f0ec4286aa7bbc8ac9ca1735a4487788eb6",
+      "checks": 224
+    },
+    {
+      "name": "tcc-literals-storage-owner-linux-r2",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-literals-storage-owner-linux-r2\\results.json",
+      "sha256": "ba6ca35c9774833b18715cc5c99a4ddbed3d2cb9deaad3405d29a2f8767775bc",
+      "checks": 226
+    },
+    {
+      "name": "tcc-storage-owner-section-win-r1",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-storage-owner-section-win-r1\\results.json",
+      "sha256": "0e6130214e0e5dd90b8ea37f3bbe49a7d0b867e3e789e923674aa0bf5fa1cbcc",
+      "checks": 268
+    },
+    {
+      "name": "tcc-storage-owner-section-linux-r1",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-storage-owner-section-linux-r1\\results.json",
+      "sha256": "b78aefac344f9d8967768532577710c8b03ba9621edede3b81b09baa303d6fa8",
+      "checks": 264
+    },
+    {
+      "name": "tcc-storage-owner-pdata-win-r1",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-storage-owner-pdata-win-r1\\results.json",
+      "sha256": "a224d913e4f36496545ed5f2146a1d0c11c16125d7e8822b22b13780468bbd5a",
+      "checks": 274
+    },
+    {
+      "name": "tcc-storage-owner-copy-linux-r1",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-storage-owner-copy-linux-r1\\results.json",
+      "sha256": "07309aeb45f275daa2533f471859e53c825c6f3e9c84278f56159308f437c343",
+      "checks": 34
+    },
+    {
+      "name": "tcc-storage-owner-budget-linux-r1",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-storage-owner-budget-linux-r1\\results.json",
+      "sha256": "a53ba60742254da1eab20dea382c37b572e0495247025f9fe5dc1e68c7d8c464",
+      "checks": 68
+    }
+  ],
+  "actualObjectEvidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\literal-native-object-storage-owner-win-r1\\results.json",
+      "sha256": "ea6f0fa56c42e9fed028d7f25e8db9ed37f8870f76cc77d68d01e02cff107362",
+      "checks": null,
+      "sections": 24141
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-storage-owner-actual-budget-win-r1\\results.json",
+      "sha256": "f527cf7a2b192e49caf44add2ea7987907edc9163df5ce0552e620308c5a4aae",
+      "checks": 82,
+      "sections": null
+    }
+  ],
+  "controls": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\literal-full-qualification-win-r1\\results.json",
+      "sha256": "77d6baff2863ba1e95f46a6a5d34fd5402eb53b518c5e7262fa3b439373f4cd0",
+      "acceptance": false
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\matrix-literals-win-r1\\foreign_xge3_shape_matrix-static-build.log",
+      "sha256": "e7e7557789966364dc8fc78bae8944d14195b6ab48194f67d3dfa7de38d4a7e7",
+      "acceptance": false
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\literal-section-limit-diagnosis-win-r1\\trace.log",
+      "sha256": "a14b2497838029028f649b814d9ab54bf48c105b202fe5314fb8b038e9c36b93",
+      "acceptance": false
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-literal-delivery-before-win-r2\\results.json",
+      "sha256": "6417ff2481776e0f941423e17380d367a44ee0f813cd791cae71196d00c48685",
+      "acceptance": false
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-literal-delivery-before-linux-r2\\results.json",
+      "sha256": "9bf54f6e57167f51801ae6d7c98324e193bdc451f8fadf71dc4070a539635c63",
+      "acceptance": false
+    }
+  ],
+  "fullBeforeObjectObservations": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r21\\source\\build\\tmp\\precompiled\\static-native.o",
+      "sha256": "f75f257077832b186299f41dc5428dd61451be8ac68188a0dc551a4a61cce512",
+      "bytes": 9338383,
+      "sectionHeaders": 20715
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r23\\source\\build\\tmp\\precompiled\\static-native.o",
+      "sha256": "1c1cd7a76a646a5a8d683daa5cff9a85ef11d63fba00c45f84c0154e25894dc5",
+      "bytes": 10539753,
+      "sectionHeaders": 32963
+    }
+  ],
+  "sourceRawSha256": {
+    "lib/tcc/tccgen.c": "5afd9d918b2d9695993a8bf47c56295737e25c0936b6b2a67d31fa7315fc9f36",
+    "lib/tcc/tcc-gc.inc": "d8e6dec7c5a1ae215ecfee89f3b1df593b15695c51b3abe0311e34253585bf13",
+    "lib/tcc/tcc.h": "c4169862852708d1c4562f4f36c3852c6c104c683931019f661bc84a0b06faca",
+    "lib/tcc/tccelf.c": "3638b16a848a4fd7519ba5500da155fe7e741f45afa246863a37e81135dea16c",
+    "test/cases/tcc_literal_gc.c": "bded9c0c174814f72c8cc0fc7a1f15f934b520bdebec60d923d1027e2401ab0e",
+    "tools/check_tcc_literal_gc.py": "77ca6c74443945fefb3d523bf904d34e156ee63cf7ba7656a5ba40d5bfcfa200",
+    "tools/check_tcc_literal_delivery.py": "89d18a7129c242b477fc6f346c3de56569f5d69fbe4d33e5460ff7decc01b79f"
+  },
+  "sourceNormalizedSha256": {
+    "lib/tcc/tccgen.c": "80b51aa221d016faaeab77a2cb479798fe2cf81a6f03424f13d7bf3eca458747",
+    "lib/tcc/tcc-gc.inc": "d8e6dec7c5a1ae215ecfee89f3b1df593b15695c51b3abe0311e34253585bf13",
+    "lib/tcc/tcc.h": "c4169862852708d1c4562f4f36c3852c6c104c683931019f661bc84a0b06faca",
+    "lib/tcc/tccelf.c": "3638b16a848a4fd7519ba5500da155fe7e741f45afa246863a37e81135dea16c",
+    "test/cases/tcc_literal_gc.c": "bded9c0c174814f72c8cc0fc7a1f15f934b520bdebec60d923d1027e2401ab0e",
+    "tools/check_tcc_literal_gc.py": "77ca6c74443945fefb3d523bf904d34e156ee63cf7ba7656a5ba40d5bfcfa200",
+    "tools/check_tcc_literal_delivery.py": "89d18a7129c242b477fc6f346c3de56569f5d69fbe4d33e5460ff7decc01b79f"
+  },
+  "realIntegrationFailure": {
+    "platform": "win",
+    "existingSections": 39238,
+    "inputUpperBound": 32962,
+    "sectionIndexLimit": 65280
+  },
+  "pendingFullBuilds": [
+    "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r25",
+    "F:\\xlang-validation\\xge-full-20261110\\compiler-linux-full-r17"
+  ],
+  "costs": [
+    "One readonly unit per function/static data initializer rather than one per literal, plus exact symbols for individual offsets.",
+    "Two private parser pointers and scoped initializer slots, with final unit alignment padding; no TCCState/Section or language object layout growth.",
+    "Existing final retained-unit copies, temporary packing ledger and symbol remapping remain; no new generated-program runtime operation."
+  ],
+  "limitations": [
+    "Actual full CLI/static/embedded qualification and XGE byte savings remain pending.",
+    "The existing ELF section index bound is preserved; this is not SHN_XINDEX support.",
+    "Historical failed candidate reports and raw logs are preserved; they are not acceptance."
+  ]
+}

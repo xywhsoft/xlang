@@ -55,6 +55,7 @@ for opt in ('O0','O2'):
     if b'.__tcc_literal.'in name:
      assert header[2]&0x10 and not header[2]&0x20
      assert header[5]>0 and header[5]==header[9]
+     assert header[5]%header[8]==0
      literals.append(name.decode())
    assert literals
    report.setdefault('literalObjects',[]).append(dict(path=str(obj),sha256=sha(obj),records=literals))
