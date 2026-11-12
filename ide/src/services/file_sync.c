@@ -19,10 +19,10 @@
 #define PENDING_BYTES (128u*1024u*1024u)
 #define PENDING_COUNT 4096u
 enum { DOCUMENT=1,WORKSPACE=2,PROJECT=4,FILE_ENTRY=8 };
-typedef struct subscription { xide_watch_target target; char* path; uint64_t documentId,savedAt; int roles,seen; xide_watch_event last; } subscription;
+typedef struct subscription { xide_watch_target target; char* path; uint64_t documentId,savedAt,documentEpoch; int roles,seen; xide_watch_event last; } subscription;
 struct xide_file_sync {
     xide_file_watch* watch; subscription* targets; size_t count,capacity;
-    uint64_t epoch,nextToken,fingerprint,revision,dropped,holdToken; xide_file_change* changes; size_t changeCount,changeCapacity,bytes;
+    uint64_t documentEpoch,epoch,nextToken,fingerprint,revision,dropped,holdToken; xide_file_change* changes; size_t changeCount,changeCapacity,bytes;
     int refreshTree,retryDropped; uint64_t nextRescan,languageDropped,languageStoreDropped; char status[192];
 };
 static int fail(xide_model_error* e,int code,const char* s) { if(e) { e->code=code; snprintf(e->message,sizeof(e->message),"%s",s); } return 0; }
@@ -31,7 +31,7 @@ static uint64_t hash(uint64_t h,const void* p,size_t n) { const unsigned char* s
 static uint64_t textHash(uint64_t h,const char* s) { return hash(h,s ? s : "",s ? strlen(s)+1 : 1); }
 static uint64_t fingerprint(xide_app* app)
 {
-    uint64_t h=UINT64_C(14695981039346656037); xide_workspace* w=&app->workspaceModel; h=textHash(h,w->manifest);
+    uint64_t h=UINT64_C(14695981039346656037),epoch=xideDocumentsSourceEpoch(&app->documents);h=hash(h,&epoch,sizeof(epoch)); xide_workspace* w=&app->workspaceModel; h=textHash(h,w->manifest);
     for(size_t i=0;i<app->documents.count;++i) { xide_document* d=app->documents.items[i]; if(d->open && d->path) { h=hash(h,&d->id,sizeof(d->id)); h=textHash(h,d->path); } }
     for(size_t i=0;i<w->projectCount;++i) { xide_project* p=&w->projects[i]; h=textHash(h,p->id); h=textHash(h,p->manifest);h=textHash(h,p->entry); for(size_t j=0;j<p->files.count;++j) h=textHash(h,p->files.items[j].path); }
     for(size_t i=0;i<w->files.count;++i) h=textHash(h,w->files.items[i].path);
@@ -46,7 +46,7 @@ static int addTarget(xide_file_sync* s,const char* path,int roles,uint64_t docum
     for(size_t i=0;i<s->count;++i) if(!_stricmp(s->targets[i].path,path)) { s->targets[i].roles|=roles; if(documentId) s->targets[i].documentId=documentId; if(roles&(DOCUMENT|WORKSPACE|PROJECT)) s->targets[i].target.limit=LIMIT; return 1; }
     if(s->count==s->capacity) { size_t cap=s->capacity ? s->capacity*2 : 64; subscription* p=realloc(s->targets,cap*sizeof(*p)); if(!p) return 0; s->targets=p; s->capacity=cap; }
     char* p=copy(path); if(!p) return 0;
-    s->targets[s->count++]=(subscription){.target={++s->nextToken,p,roles&(DOCUMENT|WORKSPACE|PROJECT) ? LIMIT : 0},.path=p,.documentId=documentId,.roles=roles}; return 1;
+    s->targets[s->count++]=(subscription){.target={++s->nextToken,p,roles&(DOCUMENT|WORKSPACE|PROJECT) ? LIMIT : 0},.path=p,.documentId=documentId,.documentEpoch=s->documentEpoch,.roles=roles}; return 1;
 }
 static subscription* targetByToken(xide_file_sync* s,uint64_t token)
 { for(size_t i=0;i<s->count;++i) if(s->targets[i].target.token==token) return &s->targets[i]; return NULL; }
@@ -105,6 +105,7 @@ static int isManifest(xide_app* app,const char* path)
 }
 static int apply(xide_app* app,const subscription* t,const xide_watch_event* e,int discard,xide_model_error* error)
 {
+    if(xideDocumentsSourcesHeld(&app->documents) || t->documentEpoch!=xideDocumentsSourceEpoch(&app->documents))return fail(error,XIDE_MODEL_CONFLICT,"File snapshot predates a document source transaction.");
     xide_document* d=t->documentId ? documentById(app,t->documentId) : NULL;
     if(e->state!=XIDE_WATCH_READY) {
         const char* message=e->state==XIDE_WATCH_MISSING ? "File was removed or moved on disk; the local contents and project reference are retained." : e->state==XIDE_WATCH_TOO_LARGE ? "File exceeds the 16 MiB background read limit; the local contents are retained." : e->state==XIDE_WATCH_DIRECTORY ? "The watched file path now names a directory." : e->state==XIDE_WATCH_UNSTABLE ? "The file changed during reading; waiting for a stable disk snapshot." : "Cannot read the disk file; the local contents are retained.";
@@ -115,7 +116,7 @@ static int apply(xide_app* app,const subscription* t,const xide_watch_event* e,i
     if(isManifest(app,e->path)) { xvalue* root=json(e->bytes,e->length,error); if(!root) return 0; int okay=coordinate(app,e->path,root,discard,1,error); xrtValueRelease(root); if(!okay) return 0; }
     if(different) {
         xide_text_file loaded={0}; if(!xideTextFileDecode(e->bytes,e->length,&loaded,error)) return 0;
-        int okay=xideDocumentAcceptExternal(d,&loaded,discard,error); xideTextFileClear(&loaded); return okay;
+        int okay=xideDocumentAcceptExternal(d,&loaded,discard,t->documentEpoch,error); xideTextFileClear(&loaded); return okay;
     }
     if(d) d->externalState=0;
     return 1;
@@ -171,7 +172,7 @@ static int subscriptionPathCompare(const void* left,const void* right)
 {return strcmp((*(subscription* const*)left)->path,(*(subscription* const*)right)->path);}
 static int retainSubscriptionStamps(xide_file_sync* fresh,const xide_file_sync* previous)
 {
-    if(!previous->count)return 1;
+    if(!previous->count || previous->documentEpoch!=fresh->documentEpoch)return 1;
     subscription** sorted=malloc(previous->count*sizeof(*sorted));if(!sorted)return 0;
     for(size_t i=0;i<previous->count;++i)sorted[i]=previous->targets+i;
     qsort(sorted,previous->count,sizeof(*sorted),subscriptionPathCompare);
@@ -191,7 +192,7 @@ static int retainSubscriptionStamps(xide_file_sync* fresh,const xide_file_sync* 
 static int subscribe(xide_app* app,xide_model_error* e)
 {
     xide_file_sync* s=app->fileSync; uint64_t f=fingerprint(app); if(f==s->fingerprint && s->epoch) return 1;
-    xide_file_sync fresh={.nextToken=s->nextToken}; xide_workspace* w=&app->workspaceModel; int okay=addTarget(&fresh,w->manifest,WORKSPACE,0);
+    xide_file_sync fresh={.nextToken=s->nextToken,.documentEpoch=xideDocumentsSourceEpoch(&app->documents)}; xide_workspace* w=&app->workspaceModel; int okay=addTarget(&fresh,w->manifest,WORKSPACE,0);
     for(size_t i=0;okay && i<app->documents.count;++i) { xide_document* d=app->documents.items[i]; if(d->open && d->path) okay=addTarget(&fresh,d->path,DOCUMENT,d->id); }
     for(size_t i=0;okay && i<w->projectCount;++i) { xide_project* p=&w->projects[i]; okay=addTarget(&fresh,p->manifest,PROJECT,0) && addTarget(&fresh,p->entry,FILE_ENTRY,0); for(size_t j=0;okay && j<p->files.count;++j) okay=addTarget(&fresh,p->files.items[j].path,FILE_ENTRY,0); }
     for(size_t i=0;okay && i<w->files.count;++i) okay=addTarget(&fresh,w->files.items[i].path,FILE_ENTRY,0);
@@ -201,16 +202,17 @@ static int subscribe(xide_app* app,xide_model_error* e)
     int sources=0;for(size_t i=0;i<fresh.count;++i)if(xidePathHasExtension(fresh.targets[i].path,".xl")){sources=1;break;}
     uint64_t epoch=okay ? (s->holdToken ? xideFileWatchResume(s->watch,s->holdToken,targets,fresh.count,sources,e) : xideFileWatchSetTargetsWithSources(s->watch,targets,fresh.count,sources,e)) : 0; free(targets);
     if(!epoch) { clearTargets(&fresh); return fail(e,XIDE_MODEL_MEMORY,"Cannot update file watch subscriptions; current subscriptions retained."); }
+    uint64_t previousDocumentEpoch=s->documentEpoch;s->documentEpoch=fresh.documentEpoch;
     clearTargets(s); s->targets=fresh.targets; s->count=fresh.count; s->capacity=fresh.capacity; s->nextToken=fresh.nextToken; s->epoch=epoch; s->fingerprint=f;
     for(size_t i=0;i<s->changeCount;) {
         xide_file_change* c=&s->changes[i]; subscription* match=NULL;
         for(size_t j=0;j<s->count;++j) if((s->targets[j].documentId==c->documentId || ((c->roles&s->targets[j].roles)&(WORKSPACE|PROJECT))) && !strcmp(s->targets[j].path,c->snapshot.path)) { match=&s->targets[j]; break; }
-        if(!match) removeChange(s,i); else { c->snapshot.token=match->target.token;c->snapshot.epoch=s->holdToken||!c->snapshot.epoch?0:epoch;c->documentId=match->documentId;c->roles=match->roles;++i; }
+        if(!match || previousDocumentEpoch!=s->documentEpoch) removeChange(s,i); else { c->snapshot.token=match->target.token;c->snapshot.epoch=s->holdToken||!c->snapshot.epoch?0:epoch;c->documentId=match->documentId;c->roles=match->roles;++i; }
     }
     ++s->revision; return 1;
 }
 int xideFileSyncRebind(xide_app* app,xide_model_error* e)
-{ if(app->fileSync&&app->fileSync->holdToken)return fail(e,XIDE_MODEL_CONFLICT,"File synchronization is suspended for a source transaction.");return !app->fileSync||subscribe(app,e); }
+{ if(xideDocumentsSourcesHeld(&app->documents) || (app->fileSync&&app->fileSync->holdToken))return fail(e,XIDE_MODEL_CONFLICT,"File synchronization is suspended for a source transaction.");return !app->fileSync||subscribe(app,e); }
 uint64_t xideFileSyncSuspend(xide_app* app,xide_model_error* e)
 {
     xide_file_sync* s=app?app->fileSync:NULL;
@@ -230,7 +232,7 @@ int xideFileSyncResume(xide_app* app,uint64_t token,xide_model_error* e)
 }
 void xideFileSyncPoll(xide_app* app)
 {
-    xide_file_sync* s=app->fileSync; if(!s||s->holdToken) return; xide_model_error error={0};
+    xide_file_sync* s=app->fileSync; if(!s||s->holdToken || xideDocumentsSourcesHeld(&app->documents)) return; xide_model_error error={0};
     if(!subscribe(app,&error)) { snprintf(s->status,sizeof(s->status),"%.180s",error.message); xuiStatusBarSetItemText(app->statusBar,0,s->status); return; }
     size_t bytes=0; int count=0; xide_watch_event event={0};
     while(count++<16 && bytes<4u*1024u*1024u && xideFileWatchTake(s->watch,&event)) {
@@ -298,7 +300,7 @@ void xideFileSyncPoll(xide_app* app)
     if(pending || s->dropped || stats.dropped) { snprintf(s->status,sizeof(s->status),"磁盘变化：%zu 待处理%s",pending,s->dropped || stats.dropped ? " · 队列曾达上限，请刷新检查" : ""); xuiStatusBarSetItemText(app->statusBar,0,s->status); }
 }
 int xideFileSyncSettled(xide_app* app)
-{ if(!app->fileSync) return 1;if(app->fileSync->holdToken)return 0;xide_watch_stats s={0};xideFileWatchStats(app->fileSync->watch,&s);return app->fileSync->epoch&&s.readyEpoch==app->fileSync->epoch&&!s.queued; }
+{ if(!app->fileSync) return 1;if(app->fileSync->holdToken || xideDocumentsSourcesHeld(&app->documents) || app->fileSync->documentEpoch!=xideDocumentsSourceEpoch(&app->documents))return 0;xide_watch_stats s={0};xideFileWatchStats(app->fileSync->watch,&s);return app->fileSync->epoch&&s.readyEpoch==app->fileSync->epoch&&!s.queued; }
 size_t xideFileSyncCount(xide_app* app)
 { size_t n=0; if(app->fileSync) for(size_t i=0;i<app->fileSync->changeCount;++i) if(!app->fileSync->changes[i].acknowledged) ++n; return n; }
 const xide_file_change* xideFileSyncAt(xide_app* app,size_t index)
@@ -307,11 +309,11 @@ uint64_t xideFileSyncRevision(xide_app* app) { return app->fileSync ? app->fileS
 void xideFileSyncRefresh(xide_app* app)
 { if(app->fileSync) { for(size_t i=0;i<app->fileSync->changeCount;++i) app->fileSync->changes[i].acknowledged=0; ++app->fileSync->revision; xideFileWatchRescan(app->fileSync->watch); } }
 int xideFileSyncKeep(xide_app* app,uint64_t token,uint64_t sequence)
-{ if(app->fileSync&&!app->fileSync->holdToken) for(size_t i=0;i<app->fileSync->changeCount;++i) { xide_file_change* c=&app->fileSync->changes[i]; if(c->snapshot.epoch==app->fileSync->epoch&&c->snapshot.token==token && c->snapshot.sequence==sequence) { c->acknowledged=1; ++app->fileSync->revision; return 1; } } return 0; }
+{ if(app->fileSync&&!app->fileSync->holdToken&&!xideDocumentsSourcesHeld(&app->documents)) for(size_t i=0;i<app->fileSync->changeCount;++i) { xide_file_change* c=&app->fileSync->changes[i]; if(c->snapshot.epoch==app->fileSync->epoch&&c->snapshot.token==token && c->snapshot.sequence==sequence) { c->acknowledged=1; ++app->fileSync->revision; return 1; } } return 0; }
 int xideFileSyncReload(xide_app* app,uint64_t token,uint64_t sequence,uint32_t version,int discard,xide_model_error* e)
 {
     xide_file_sync* s=app->fileSync;
-    if(s&&s->holdToken)return fail(e,XIDE_MODEL_CONFLICT,"File synchronization is suspended for a source transaction.");
+    if(xideDocumentsSourcesHeld(&app->documents) || (s&&s->holdToken))return fail(e,XIDE_MODEL_CONFLICT,"File synchronization is suspended for a source transaction.");
     if(s) for(size_t i=0;i<s->changeCount;++i) {
         xide_file_change* c=&s->changes[i]; subscription* t=targetByToken(s,token);
         if(c->snapshot.epoch!=s->epoch || c->snapshot.token!=token || c->snapshot.sequence!=sequence || !t) continue;

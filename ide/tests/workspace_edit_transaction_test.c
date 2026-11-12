@@ -106,7 +106,7 @@ static int opening(void* user)
  fixture* f=user;/* Cached/prepared app readers are governed by the required host fence.
                  * Simulate a host callback opening a prepared closed target. */
  xide_model_error e={0};xide_text_file text={0};CHECK(xideTextFileDecode((const unsigned char*)raw[0],strlen(raw[0]),&text,&e));
- CHECK(xideDocumentOpenPrepared(&f->store,f->paths[0],&text,&e));xideTextFileClear(&text);return XUI_OK;
+ CHECK(xideDocumentOpenPrepared(&f->store,f->paths[0],&text,xideDocumentsSourceEpoch(&f->store),&e));xideTextFileClear(&text);return XUI_OK;
 }
 static void captured(fixture* f)
 {worker w=job(f,0);CHECK(execute(&w)&&!w.error.code);f->work=w.work;CHECK(xideEditTransactionCapture(&f->store,f->work,&f->ticket)==XUI_OK);}

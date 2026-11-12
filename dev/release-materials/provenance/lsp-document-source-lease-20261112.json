@@ -1,0 +1,138 @@
+{
+  "schema": 1,
+  "date": "2026-11-12",
+  "stage": "M7b5m",
+  "scope": "Document model source admission and generation-bound prepared/recovery/watch/navigation/relocation acceptance",
+  "implementationAccepted": true,
+  "goalComplete": false,
+  "performanceQualified": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "f4a5251a10cef9cff4094770c3d1813363e5d68a",
+  "ownedSources": {
+    "ide/src/editor/documents.c": "5fbae4ac62dbfb944b70d8e1929171547dbb1db2cc644347f3181190100dc42d",
+    "ide/src/editor/documents.h": "7d937f81bf4056ea1c2063ef47a7247be9118c87011dd167cd3a5e3d1b0493aa",
+    "ide/src/services/file_sync.c": "42c6536fc47662f2df9cd20d16ff5d221717b78e9fd5e66cc6b3190bdfc70097",
+    "ide/src/services/session.c": "f95c2e9cdc4d2e5e1e4be9011105356766b795de2ef83c6355a2f4ef6e1a9738",
+    "ide/src/ui/workspace_search_view.inc": "65751c454abeb7d8e889a5570e16e6450e16739468a173a79fcadf35fbd1e537",
+    "ide/tests/c_bridge_definition_view_test.c": "cc5666be0a0521153eacbe1c31988acce144a29020a6e83411a3d738075cf576",
+    "ide/tests/data_language_view_test.c": "43a28177c6d393ceeab6a36c1415b831aec60cf0d6ffde88eae1fe8578bc9b78",
+    "ide/tests/document_revision_test.c": "81408eb68b6e5615139b2a43cf27cc95de9f2e7886dee9e9789eb5d91140bbee",
+    "ide/tests/document_test.c": "09e30b1d6dfb7b0cefed844e89d8c7a69da613372481f61acdc86588a154e675",
+    "ide/tests/file_sync_lease_test.c": "7ce5f8b07694d29a78f83b85deb8087c401b53035427878b344d19b48e0f5f81",
+    "ide/tests/project_migration_view_test.c": "ccc7ca3fae88c492342b84457210be3629675dd0c2537a9a7514f4c8685c115b",
+    "ide/tests/snapshot_view_test.c": "41e996092186390c5734a8d40a1067e7c6cede3cf29c859a797028ffb0c4e968",
+    "ide/tests/workspace_edit_documents_test.c": "49f90289e79862679cbeb8bd645541fc0e5b0edb2bf39546d66d8570f6a8b551",
+    "ide/tests/workspace_edit_transaction_test.c": "026d76b789e69863f8f345204a1a35651e8419bc520f955e3671ce596525368c",
+    "ide/tests/workspace_search_view_test.c": "527100b25e699ed956b18b284acf0ed6f88964b159ee8544c184fed0317ae895",
+    "ide/tests/task_test.c": "6c6473f54fb026b886b67aa622026760662f082490c7afa932b9db8b6042a9c4",
+    "ide/tests/document_source_lease_test.c": "f7c91b392884b2b76065cbbf05c358897298150caab9613ab2bf01a8ef4f4d04",
+    "ide/tools/build.ps1": "96bd2ff0b8c1984dc4488417a3770a93c193858c5cec3f616e26b99228bcde3c",
+    "ide/docs/lsp-document-source-lease.md": "a91904a0e7d3c3e98e24b8654d91df1af5258c30f777e4dfcec80f4c1fefd587"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-document-source-lease-20261112.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-document-source-lease-20261112/stage-sources.tar.gz",
+      "sha256": "eda62ffe9423d5b4f2c8f721079f4c8f7e8efe81ecbaabe206453bc55d3d94cb",
+      "bytes": 119796,
+      "entries": 20,
+      "uniquePayloads": 20,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-document-source-lease-20261112/stage-sources.tar.gz.manifest.json",
+      "sha256": "2f1721698ab25fb104e4256b868ce6eb8fbc004d19437ede232c5baaa0a9f9d0",
+      "bytes": 4612
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-document-source-lease-20261112/actual-builds-and-validation.tar.gz",
+      "sha256": "45693057dfaad9aa8da71b133e0284c0dab545ffb69c1e0af8f1f9ca6437774d",
+      "bytes": 189221447,
+      "entries": 10677,
+      "uniquePayloads": 3333,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-document-source-lease-20261112/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "d1e1c797b0d0143187a216771143d02612904605d172a63e489c8ccaebe196d5",
+      "bytes": 4305356
+    }
+  },
+  "currentBindings": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-document-source-lease-20261112\\final-bindings.json",
+    "sha256": "46696ff8e62b3ba496ac7e8feb4f55548f7f426a5d4d652e3d018ea23bb7aa43"
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "sdkInherited": {
+    "index": "dev/release-materials/provenance/lsp-dpi-startup-20261112.json",
+    "indexSha256": "727ae55e191b104683a756dbe85a03f0add12ed40e60c4d6166face2f50f4e5d",
+    "dllSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "compiledUnitsThisStage": 0,
+    "matchedSetPreserved": true
+  },
+  "serviceInherited": {
+    "index": "dev/release-materials/provenance/lsp-toolchain-lease-20261112.json",
+    "sha256": "bbd4b2571cd24696771091f9d24863099ac581110cacb47066f9607ac89987db",
+    "compiledUnitsThisStage": 0
+  },
+  "correctness": {
+    "guiProductionUnits": 124,
+    "guiSuites": 55,
+    "reportedDocumentLeaseAssertions": 57,
+    "reportedFileSyncLeaseAssertions": 62,
+    "registryCases": 1,
+    "registeredProgramExecuted": true,
+    "rejectedImplementationMutants": 6,
+    "heldOperationsBeforePathAllocationCallbacksAndIO": true,
+    "oldSnapshotsNotReauthorizedByResume": true,
+    "synchronousCallbackSuspendRefused": true,
+    "failedAdmissionPrefixRetired": true,
+    "emptyStoreAndHeldClear": true,
+    "exactAndExhaustedOwnerTokens": true,
+    "actualCAndXlangTypingDeleteUndoImeFocus": true,
+    "actualIocpReadGate": true,
+    "postWriteSubscriptionBeforeDocumentRelease": true,
+    "staleCacheNotReissued": true,
+    "workspacePreparedNavigationFencedAtUnchangedWatchRevision": true,
+    "sessionRestoreAndDataLanguageRegression": true,
+    "normalProjectMigrationAndActualMixedBuildRun": true,
+    "legacyToolchainComprehensivePassed": true,
+    "actualGuiLanguages": [
+      "C",
+      "xlang"
+    ],
+    "actualGuiFramesEach": 24,
+    "fullBuildInputsAndCanonicalProductionCompared": true,
+    "rawFailedAttemptsRetained": true,
+    "deepMaterialPathsPreservedWithNativePrefix": true
+  },
+  "knownCompilerFailure": {
+    "kind": "Existing root xl.exe cannot read deep unprefixed staged request.xlp paths",
+    "priorCommittedGuiAlsoReproduces": true,
+    "programPassed": false,
+    "comparison": "migration-paired-v1/result.json",
+    "currentAttempt": "migration-diagnostic-v3/result.json",
+    "normalMigrationPassed": true,
+    "notCountedAsQualifiedLongPathSupport": true
+  },
+  "limits": [
+    "Synchronous model participant only; complete source/request/project/physical/consent policy, independent readers, prepared-open worker ownership, global host composition and recovery remain open",
+    "No global read/write lock, background application controller, standard rename/applyEdit activation or final LSP performance/delivery qualification",
+    "Metadata lookup may still open existing file-attribute handles; zero direct allocation/I/O probes apply only to hold requests and refused/stale model operations, not DLL internals or every query",
+    "Tokens/stamps cannot cross initialized store lifetime, different owners or destroyed storage; owner/model calls and destruction remain serialized",
+    "Clear invalidates the lease; it does not settle pending writes or authorize other participants to resume",
+    "Test helper now converts manifest/entry/copy paths to native form; the real root compiler still has an independently reproduced deep-input limitation",
+    "Earlier analysis-configuration cache-count and imported-dependency semantic-error completion issues remain open",
+    "Optional C LSP stays disabled; no Linux, sanitizer, whole-heap or hard-latency qualification"
+  ],
+  "postCommitReceipt": "dev/release-materials/provenance/lsp-document-source-lease-20261112/postcommit.json"
+}

@@ -20,9 +20,9 @@ int main(int argc,char** argv)
  uint64_t revision=d->revision;CHECK(xideDocumentSave(d,NULL,0,&error) && d->revision==revision && !d->dirty);
  CHECK(xideDocumentSetLanguage(d,"c",&error) && xideDocumentSetLanguage(d,"xlang",&error) && d->revision==revision);
  const char* reload="// external\n";CHECK(xideTextFileDecode((const unsigned char*)reload,strlen(reload),&file,&error));
- CHECK(xideDocumentAcceptExternal(d,&file,0,&error) && d->revision==revision+1 && !d->dirty);revision=d->revision;
+ CHECK(xideDocumentAcceptExternal(d,&file,0,xideDocumentsSourceEpoch((d)->store),&error) && d->revision==revision+1 && !d->dirty);revision=d->revision;
  CHECK(xideTextFileDecode((const unsigned char*)reload,strlen(reload),&file,&error));
- CHECK(xideDocumentAcceptExternal(d,&file,0,&error) && d->revision==revision);
+ CHECK(xideDocumentAcceptExternal(d,&file,0,xideDocumentsSourceEpoch((d)->store),&error) && d->revision==revision);
  d->suppressChange=1;int status=xuiCodeDocumentInsert(core,0,"// suppressed\n");d->suppressChange=0;
  CHECK(status==XUI_OK && d->revision==revision+1 && !d->dirty);
  d->revision=UINT32_MAX;CHECK(xuiCodeDocumentInsert(core,0,"// high\n")==XUI_OK && d->revision==UINT64_C(4294967296));
@@ -30,7 +30,7 @@ int main(int argc,char** argv)
  d->revision=UINT64_MAX;CHECK(xuiCodeDocumentInsert(core,0,"// exhausted\n")==XUI_OK && !d->revision);
  CHECK(xuiCodeDocumentUndo(core)==XUI_OK && !d->revision && xuiCodeDocumentRedo(core)==XUI_OK && !d->revision);
  CHECK(xideDocumentSave(d,NULL,XIDE_DOCUMENT_OVERWRITE_EXTERNAL,&error) && !d->revision);
- CHECK(xideTextFileDecode((const unsigned char*)reload,strlen(reload),&file,&error) && xideDocumentAcceptExternal(d,&file,0,&error) && !d->revision);
+ CHECK(xideTextFileDecode((const unsigned char*)reload,strlen(reload),&file,&error) && xideDocumentAcceptExternal(d,&file,0,xideDocumentsSourceEpoch((d)->store),&error) && !d->revision);
  uint64_t id=d->id;CHECK(xideDocumentClose(d,1,&error) && !d->revision);
  CHECK(xideDocumentOpen(&store,path,&error)==d && d->id!=id && d->revision==1);
  CHECK(xideDocumentClose(c,1,&error));size_t count=store.count;uint64_t clock=store.nextId;store.nextId=UINT64_MAX;

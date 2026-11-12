@@ -33,6 +33,8 @@ struct xide_document_store {
     xide_document** items;
     size_t count,capacity;
     uint64_t nextId;
+    /* Owner-only source admission; stamps cannot cross Init/Clear lifetime. */
+    uint64_t sourceEpoch,sourceToken; unsigned sourceActivity;
     xide_document_changed_proc onChanged;
     int (*beforeSave)(xide_document* document,const char* target,xide_model_error* error,void* user);
     void (*afterSave)(xide_document* document,void* user);
@@ -45,18 +47,38 @@ enum { XIDE_DOCUMENT_OVERWRITE_EXTERNAL=1, XIDE_DOCUMENT_OVERWRITE_TARGET=2 };
 void xideDocumentsInit(xide_document_store* store,xui_context context,xui_font font,xide_document_changed_proc onChanged,void* user);
 /* Call before xuiDestroy: callbacks are detached, widget ownership remains with XUI. */
 void xideDocumentsClear(xide_document_store* store);
+/* Owner-only participant, not a complete source-write barrier. Refuses new
+ * open/prepared/recovery/save/reload/rename/close/language/model creation and
+ * relocation operations before path work, allocation, callbacks or source I/O.
+ * Existing text input/undo/IME, baseline leases and explicit batch publication
+ * remain available. Suspend fails inside a model operation/callback; accepted
+ * holds are immediately quiescent for these synchronous owner operations.
+ * No allocation, body scan, wait, nesting or automatic release. Exact tokens
+ * belong to this initialized store lifetime. Clear terminates that lifetime.
+ * The host separately drains actual workers and settles writes/recovery before
+ * Resume. These APIs do not authorize disk writes or approve a WorkspaceEdit. */
+uint64_t xideDocumentsSuspendSources(xide_document_store*,xide_model_error*);
+int xideDocumentsSourcesSuspended(const xide_document_store*,uint64_t);
+int xideDocumentsResumeSources(xide_document_store*,uint64_t,xide_model_error*);
+int xideDocumentsSourcesHeld(const xide_document_store*);
+/* Metadata stamp, not permission to start a read. Capture before preparing an
+ * external/recovery snapshot, carry it unchanged and check admission separately.
+ * Suspend advances it once; Resume never reauthorizes pre-hold snapshots or
+ * relocation plans. Raw current epoch remains observable while held so already
+ * settled host participants can prepare their new subscriptions before release. */
+uint64_t xideDocumentsSourceEpoch(const xide_document_store*);
 xide_document* xideDocumentsFind(xide_document_store* store,const char* path);
 xide_document* xideDocumentOpen(xide_document_store* store,const char* path,xide_model_error* error);
 /* Verified worker snapshot;no source read,decode or hash here. Moves buffers
  * only on success. Existing open paths are refused to preserve their undo. */
-xide_document* xideDocumentOpenPrepared(xide_document_store* store,const char* path,xide_text_file* snapshot,xide_model_error* error);
+xide_document* xideDocumentOpenPrepared(xide_document_store* store,const char* path,xide_text_file* snapshot,uint64_t sourceEpoch,xide_model_error* error);
 xide_document* xideDocumentNew(xide_document_store* store,const char* language,xide_model_error* error);
-xide_document* xideDocumentRecover(xide_document_store* store,const char* path,const char* title,const char* language,xide_text_file* baseline,const char* recovered,xide_model_error* error);
+xide_document* xideDocumentRecover(xide_document_store* store,const char* path,const char* title,const char* language,xide_text_file* baseline,const char* recovered,uint64_t sourceEpoch,xide_model_error* error);
 int xideDocumentSave(xide_document* document,const char* path,int flags,xide_model_error* error);
 int xideDocumentRenameSource(xide_document* document,const char* source,const char* target,const xide_file_snapshot* sourceBaseline,xide_model_error* error);
 int xideDocumentRename(xide_document* document,const char* target,xide_model_error* error);
 /* Moves a decoded worker snapshot only on success; preserves identity, undo and reading positions. */
-int xideDocumentAcceptExternal(xide_document* document,xide_text_file* snapshot,int discardChanges,xide_model_error* error);
+int xideDocumentAcceptExternal(xide_document* document,xide_text_file* snapshot,int discardChanges,uint64_t sourceEpoch,xide_model_error* error);
 int xideDocumentReload(xide_document* document,int discardChanges,xide_model_error* error);
 int xideDocumentClose(xide_document* document,int discardChanges,xide_model_error* error);
 int xideDocumentSetLanguage(xide_document* document,const char* language,xide_model_error* error);

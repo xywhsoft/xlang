@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <limits.h>
 _Static_assert(XIDE_TEXT_EOL_LF==XUI_CODE_EOL_LF && XIDE_TEXT_EOL_CRLF==XUI_CODE_EOL_CRLF &&
                XIDE_TEXT_EOL_CR==XUI_CODE_EOL_CR,"Storage and editor EOL metadata must agree");
 static char* copy(const char* text)
@@ -21,6 +22,34 @@ static int failure(xide_model_error* error,int code,const char* message)
     if(error) { error->code=code; snprintf(error->message,sizeof(error->message),"%s",message); }
     return 0;
 }
+static int sourceBegin(xide_document_store* store,xide_model_error* error)
+{
+    if(!store || !store->context || !store->sourceEpoch)return failure(error,XIDE_MODEL_INVALID,"Document store is not initialized.");
+    if(store->sourceToken)return failure(error,XIDE_MODEL_CONFLICT,"Document source operations are suspended for a source transaction.");
+    if(store->sourceActivity==UINT_MAX)return failure(error,XIDE_MODEL_CONFLICT,"Document source operation depth exhausted.");
+    ++store->sourceActivity;return 1;
+}
+static void sourceEnd(xide_document_store* store)
+{if(store->sourceActivity)--store->sourceActivity;}
+uint64_t xideDocumentsSourceEpoch(const xide_document_store* store)
+{return store && store->context ? store->sourceEpoch:0;}
+int xideDocumentsSourcesHeld(const xide_document_store* store)
+{return store && store->sourceToken!=0;}
+uint64_t xideDocumentsSuspendSources(xide_document_store* store,xide_model_error* error)
+{
+    if(!store || !store->context || !store->sourceEpoch){failure(error,XIDE_MODEL_INVALID,"Document store is not initialized.");return 0;}
+    if(store->sourceToken || store->sourceActivity || store->sourceEpoch==UINT64_MAX){failure(error,XIDE_MODEL_CONFLICT,"Document source suspension is busy or exhausted.");return 0;}
+    store->sourceToken=++store->sourceEpoch;return store->sourceToken;
+}
+int xideDocumentsSourcesSuspended(const xide_document_store* store,uint64_t token)
+{return store && store->context && token && store->sourceToken==token && !store->sourceActivity;}
+int xideDocumentsResumeSources(xide_document_store* store,uint64_t token,xide_model_error* error)
+{
+    if(!xideDocumentsSourcesSuspended(store,token))return failure(error,XIDE_MODEL_CONFLICT,"Document source suspension token is stale or invalid.");
+    store->sourceToken=0;return 1;
+}
+static int sourceStamp(xide_document_store* store,uint64_t epoch,xide_model_error* error)
+{return epoch && epoch==store->sourceEpoch ? 1:failure(error,XIDE_MODEL_CONFLICT,"Prepared document input predates a source transaction; prepare it again.");}
 struct xide_document_baseline {volatile int32 references;xide_text_file file;};
 xide_document_baseline* xideDocumentRetainBaseline(xide_document* document)
 {
@@ -67,7 +96,7 @@ static void changed(xui_code_document core,xui_code_range_t range,uint32_t versi
 }
 void xideDocumentsInit(xide_document_store* store,xui_context context,xui_font font,xide_document_changed_proc onChanged,void* user)
 {
-    memset(store,0,sizeof(*store)); store->context=context; store->font=font; store->onChanged=onChanged; store->user=user;
+    memset(store,0,sizeof(*store)); store->context=context; store->font=font; store->onChanged=onChanged; store->user=user; store->sourceEpoch=1;
 }
 static void clearMetadata(xide_document* document)
 {
@@ -152,7 +181,7 @@ static int initialize(xide_document* document,char* path,const char* title,const
     xuiCodeEditSetScroll(document->editor,0,0);
     return 1;
 }
-xide_document* xideDocumentOpen(xide_document_store* store,const char* path,xide_model_error* error)
+static xide_document* xideDocumentOpenImpl(xide_document_store* store,const char* path,xide_model_error* error)
 {
     char* resolved=xidePathResolve(NULL,path);
     if(!resolved) { failure(error,XIDE_MODEL_INVALID,"Invalid document path."); return NULL; }
@@ -169,7 +198,7 @@ xide_document* xideDocumentOpen(xide_document_store* store,const char* path,xide
     document->stageReference=reference;
     return document;
 }
-xide_document* xideDocumentOpenPrepared(xide_document_store* store,const char* path,xide_text_file* snapshot,xide_model_error* error)
+static xide_document* xideDocumentOpenPreparedImpl(xide_document_store* store,const char* path,xide_text_file* snapshot,xide_model_error* error)
 {
  if(!store || !path || !snapshot || !snapshot->raw || !snapshot->text || snapshot->rawLength>16u*1024u*1024u){failure(error,XIDE_MODEL_INVALID,"Invalid prepared document.");return NULL;}
  char* resolved=xidePathResolve(NULL,path);if(!resolved){failure(error,XIDE_MODEL_INVALID,"Invalid prepared path.");return NULL;}
@@ -179,7 +208,7 @@ xide_document* xideDocumentOpenPrepared(xide_document_store* store,const char* p
  if(!document || !initialize(document,resolved,xidePathFilename(resolved),xideLanguageForPath(resolved),snapshot,error)){xideTaskStageRelease(reference);free(resolved);return NULL;}
  document->stageReference=reference;return document;
 }
-xide_document* xideDocumentNew(xide_document_store* store,const char* language,xide_model_error* error)
+static xide_document* xideDocumentNewImpl(xide_document_store* store,const char* language,xide_model_error* error)
 {
     if(!xideLanguageSupported(language)) {
         failure(error,XIDE_MODEL_INVALID,"Unsupported document language."); return NULL;
@@ -189,7 +218,7 @@ xide_document* xideDocumentNew(xide_document_store* store,const char* language,x
     if(!document || !xideTextFileEncode("",0,0,XUI_CODE_EOL_LF,&file,error) || !initialize(document,NULL,title,language,&file,error)) { xideTextFileClear(&file); return NULL; }
     return document;
 }
-int xideDocumentCheckExternal(xide_document* document)
+static int xideDocumentCheckExternalImpl(xide_document* document)
 {
     if(!document || !document->open || !document->path) return 0;
     unsigned char* data=NULL; size_t size=0;
@@ -200,7 +229,7 @@ int xideDocumentCheckExternal(xide_document* document)
 }
 static int saveFinished(xide_document* document,int saved)
 { if(document->store->saveFinished) document->store->saveFinished(document,saved,document->store->user); return saved; }
-int xideDocumentSave(xide_document* document,const char* path,int flags,xide_model_error* error)
+static int xideDocumentSaveImpl(xide_document* document,const char* path,int flags,xide_model_error* error)
 {
     if(!document || !document->open || (!path && !document->path)) return failure(error,XIDE_MODEL_INVALID,"Choose a path before saving this document.");
     char* target=xidePathResolve(NULL,path ? path : document->path);
@@ -237,7 +266,7 @@ int xideDocumentSave(xide_document* document,const char* path,int flags,xide_mod
     if(document->store->onChanged) document->store->onChanged(document,document->store->user);
     return 1;
 }
-int xideDocumentRenameSource(xide_document* document,const char* source,const char* path,const xide_file_snapshot* expected,xide_model_error* error)
+static int xideDocumentRenameSourceImpl(xide_document* document,const char* source,const char* path,const xide_file_snapshot* expected,xide_model_error* error)
 {
     if(!document || !document->open || !document->path || !path) return failure(error,XIDE_MODEL_INVALID,"重命名需要已保存的打开文档。");
     if(!source || !xidePathEqual(source,document->path)) return failure(error,XIDE_MODEL_CONFLICT,"选中文件已不再指向当前编辑文档。");
@@ -262,7 +291,7 @@ int xideDocumentRename(xide_document* document,const char* path,xide_model_error
 { return xideDocumentRenameSource(document,document ? document->path : NULL,path,NULL,error); }
 
 typedef struct saved_selection { xui_code_selection_t state; int anchorLine,anchorColumn,caretLine,caretColumn; } saved_selection;
-int xideDocumentAcceptExternal(xide_document* document,xide_text_file* loaded,int discardChanges,xide_model_error* error)
+static int xideDocumentAcceptExternalImpl(xide_document* document,xide_text_file* loaded,int discardChanges,xide_model_error* error)
 {
     if(!document || !document->open || !document->path || !loaded || !loaded->raw || !loaded->text) return failure(error,XIDE_MODEL_INVALID,"Invalid external document snapshot.");
     if(document->dirty && !discardChanges) return failure(error,XIDE_MODEL_CONFLICT,"Reload would discard unsaved changes.");
@@ -297,15 +326,15 @@ int xideDocumentAcceptExternal(xide_document* document,xide_text_file* loaded,in
     if(document->store->onChanged) document->store->onChanged(document,document->store->user);
     return 1;
 }
-int xideDocumentReload(xide_document* document,int discardChanges,xide_model_error* error)
+static int xideDocumentReloadImpl(xide_document* document,int discardChanges,xide_model_error* error)
 {
     if(!document || !document->open || !document->path) return failure(error,XIDE_MODEL_INVALID,"This document has no saved file.");
     if(document->dirty && !discardChanges) return failure(error,XIDE_MODEL_CONFLICT,"Reload would discard unsaved changes.");
     xide_text_file loaded={0};
     if(!xideTextFileRead(document->path,&loaded,error)) return 0;
-    int result=xideDocumentAcceptExternal(document,&loaded,discardChanges,error); xideTextFileClear(&loaded); return result;
+    int result=xideDocumentAcceptExternal(document,&loaded,discardChanges,xideDocumentsSourceEpoch(document->store),error); xideTextFileClear(&loaded); return result;
 }
-int xideDocumentClose(xide_document* document,int discardChanges,xide_model_error* error)
+static int xideDocumentCloseImpl(xide_document* document,int discardChanges,xide_model_error* error)
 {
     if(!document || !document->open) return 1;
     if(document->dirty && !discardChanges) return failure(error,XIDE_MODEL_CONFLICT,"Closing would discard unsaved changes.");
@@ -315,7 +344,7 @@ int xideDocumentClose(xide_document* document,int discardChanges,xide_model_erro
     if(document->store->onChanged) document->store->onChanged(document,document->store->user);
     return 1;
 }
-int xideDocumentSetLanguage(xide_document* document,const char* language,xide_model_error* error)
+static int xideDocumentSetLanguageImpl(xide_document* document,const char* language,xide_model_error* error)
 {
     if(!document || !document->open || !xideLanguageSupported(language)) return failure(error,XIDE_MODEL_INVALID,"Unsupported document language.");
     char* mode=copy(language); if(!mode) return failure(error,XIDE_MODEL_MEMORY,"Language allocation failed.");
@@ -329,7 +358,7 @@ int xideDocumentsDirty(const xide_document_store* store)
     for(size_t i=0;i<store->count;++i) if(store->items[i]->open && store->items[i]->dirty) return 1;
     return 0;
 }
-xide_document* xideDocumentRecover(xide_document_store* store,const char* path,const char* title,const char* language,xide_text_file* baseline,const char* recovered,xide_model_error* error)
+static xide_document* xideDocumentRecoverImpl(xide_document_store* store,const char* path,const char* title,const char* language,xide_text_file* baseline,const char* recovered,xide_model_error* error)
 {
     if(!store || !title || !xideLanguageSupported(language) || !baseline || !baseline->text || !recovered) { failure(error,XIDE_MODEL_INVALID,"Invalid recovery document."); return NULL; }
     char* resolved=path && *path ? xidePathResolve(NULL,path) : NULL;
@@ -353,7 +382,7 @@ typedef struct relocation_item {
     unsigned char* raw; size_t rawLength;
     xide_task_stage* stageReference;
 } relocation_item;
-struct xide_document_relocation { xide_document_store* store; relocation_item* items; size_t count; int applied; };
+struct xide_document_relocation { xide_document_store* store; relocation_item* items; size_t count; uint64_t sourceEpoch; int applied; };
 static int sameText(const char* a,const char* b) { return (!a && !b) || (a && b && !strcmp(a,b)); }
 void xideDocumentsDestroyRelocation(xide_document_relocation* plan)
 {
@@ -366,12 +395,12 @@ void xideDocumentsDestroyRelocation(xide_document_relocation* plan)
     }
     free(plan->items); free(plan);
 }
-xide_document_relocation* xideDocumentsPrepareRelocation(xide_document_store* store,xide_document_path_mapper mapper,void* user,xide_model_error* error)
+static xide_document_relocation* xideDocumentsPrepareRelocationImpl(xide_document_store* store,xide_document_path_mapper mapper,void* user,xide_model_error* error)
 {
     if(!store) { failure(error,XIDE_MODEL_INVALID,"无效文档集合。"); return NULL; }
     xide_document_relocation* plan=calloc(1,sizeof(*plan));
     if(!plan) { failure(error,XIDE_MODEL_MEMORY,"无法准备文档迁移。"); return NULL; }
-    plan->store=store;
+    plan->store=store;plan->sourceEpoch=store->sourceEpoch;
     for(size_t i=0;i<store->count;++i) if(store->items[i]->open) ++plan->count;
     plan->items=plan->count ? calloc(plan->count,sizeof(*plan->items)) : NULL;
     if(plan->count && !plan->items) goto memory;
@@ -404,7 +433,7 @@ memory:
 failed:
     xideDocumentsDestroyRelocation(plan); return NULL;
 }
-int xideDocumentsValidateRelocation(const xide_document_relocation* plan,xide_model_error* error)
+static int xideDocumentsValidateRelocationImpl(const xide_document_relocation* plan,xide_model_error* error)
 {
     if(!plan || plan->applied) return failure(error,XIDE_MODEL_INVALID,"文档迁移事务已结束。");
     size_t count=0;
@@ -418,7 +447,7 @@ int xideDocumentsValidateRelocation(const xide_document_relocation* plan,xide_mo
     }
     return count==plan->count ? 1 : failure(error,XIDE_MODEL_CONFLICT,"文档已关闭，请重新准备迁移。");
 }
-void xideDocumentsApplyRelocation(xide_document_relocation* plan)
+static void xideDocumentsApplyRelocationImpl(xide_document_relocation* plan)
 {
     if(!plan || plan->applied) return;
     /* Bind the whole batch before notifying UI; code/undo/selection are untouched. */
@@ -437,4 +466,111 @@ void xideDocumentsApplyRelocation(xide_document_relocation* plan)
         if(plan->store->pathChanged) plan->store->pathChanged(d,p->before,d->path,plan->store->user);
         if(plan->store->onChanged) plan->store->onChanged(d,plan->store->user);
     }
+}
+
+/* The store address must outlive each owner call, including its callbacks. */
+
+xide_document* xideDocumentOpen(xide_document_store* store,const char* path,xide_model_error* error)
+{
+    xide_document_store* sourceStore=store;
+    if(!sourceBegin(sourceStore,error))return NULL;
+    xide_document* result=xideDocumentOpenImpl(store,path,error);sourceEnd(sourceStore);return result;
+}
+
+xide_document* xideDocumentOpenPrepared(xide_document_store* store,const char* path,xide_text_file* snapshot,uint64_t epoch,xide_model_error* error)
+{
+    xide_document_store* sourceStore=store;
+    if(!sourceBegin(sourceStore,error))return NULL;
+    if(!sourceStamp(sourceStore,epoch,error)){sourceEnd(sourceStore);return NULL;}
+    xide_document* result=xideDocumentOpenPreparedImpl(store,path,snapshot,error);sourceEnd(sourceStore);return result;
+}
+
+xide_document* xideDocumentNew(xide_document_store* store,const char* language,xide_model_error* error)
+{
+    xide_document_store* sourceStore=store;
+    if(!sourceBegin(sourceStore,error))return NULL;
+    xide_document* result=xideDocumentNewImpl(store,language,error);sourceEnd(sourceStore);return result;
+}
+
+int xideDocumentCheckExternal(xide_document* document)
+{
+    if(!document || !document->open || !document->path)return 0;
+    xide_document_store* sourceStore=document ? document->store:NULL;
+    if(!sourceBegin(sourceStore,NULL))return 1;
+    int result=xideDocumentCheckExternalImpl(document);sourceEnd(sourceStore);return result;
+}
+
+int xideDocumentSave(xide_document* document,const char* path,int flags,xide_model_error* error)
+{
+    xide_document_store* sourceStore=document ? document->store:NULL;
+    if(!sourceBegin(sourceStore,error))return 0;
+    int result=xideDocumentSaveImpl(document,path,flags,error);sourceEnd(sourceStore);return result;
+}
+
+int xideDocumentRenameSource(xide_document* document,const char* source,const char* path,const xide_file_snapshot* expected,xide_model_error* error)
+{
+    xide_document_store* sourceStore=document ? document->store:NULL;
+    if(!sourceBegin(sourceStore,error))return 0;
+    int result=xideDocumentRenameSourceImpl(document,source,path,expected,error);sourceEnd(sourceStore);return result;
+}
+
+int xideDocumentAcceptExternal(xide_document* document,xide_text_file* loaded,int discardChanges,uint64_t epoch,xide_model_error* error)
+{
+    xide_document_store* sourceStore=document ? document->store:NULL;
+    if(!sourceBegin(sourceStore,error))return 0;
+    if(!sourceStamp(sourceStore,epoch,error)){sourceEnd(sourceStore);return 0;}
+    int result=xideDocumentAcceptExternalImpl(document,loaded,discardChanges,error);sourceEnd(sourceStore);return result;
+}
+
+int xideDocumentReload(xide_document* document,int discardChanges,xide_model_error* error)
+{
+    xide_document_store* sourceStore=document ? document->store:NULL;
+    if(!sourceBegin(sourceStore,error))return 0;
+    int result=xideDocumentReloadImpl(document,discardChanges,error);sourceEnd(sourceStore);return result;
+}
+
+int xideDocumentClose(xide_document* document,int discardChanges,xide_model_error* error)
+{
+    if(!document || !document->open)return 1;
+    xide_document_store* sourceStore=document ? document->store:NULL;
+    if(!sourceBegin(sourceStore,error))return 0;
+    int result=xideDocumentCloseImpl(document,discardChanges,error);sourceEnd(sourceStore);return result;
+}
+
+int xideDocumentSetLanguage(xide_document* document,const char* language,xide_model_error* error)
+{
+    xide_document_store* sourceStore=document ? document->store:NULL;
+    if(!sourceBegin(sourceStore,error))return 0;
+    int result=xideDocumentSetLanguageImpl(document,language,error);sourceEnd(sourceStore);return result;
+}
+
+xide_document* xideDocumentRecover(xide_document_store* store,const char* path,const char* title,const char* language,xide_text_file* baseline,const char* recovered,uint64_t epoch,xide_model_error* error)
+{
+    xide_document_store* sourceStore=store;
+    if(!sourceBegin(sourceStore,error))return NULL;
+    if(!sourceStamp(sourceStore,epoch,error)){sourceEnd(sourceStore);return NULL;}
+    xide_document* result=xideDocumentRecoverImpl(store,path,title,language,baseline,recovered,error);sourceEnd(sourceStore);return result;
+}
+
+xide_document_relocation* xideDocumentsPrepareRelocation(xide_document_store* store,xide_document_path_mapper mapper,void* user,xide_model_error* error)
+{
+    xide_document_store* sourceStore=store;
+    if(!sourceBegin(sourceStore,error))return NULL;
+    xide_document_relocation* result=xideDocumentsPrepareRelocationImpl(store,mapper,user,error);sourceEnd(sourceStore);return result;
+}
+
+int xideDocumentsValidateRelocation(const xide_document_relocation* plan,xide_model_error* error)
+{
+    xide_document_store* sourceStore=plan ? plan->store:NULL;
+    if(!sourceBegin(sourceStore,error))return 0;
+    if(!sourceStamp(sourceStore,plan->sourceEpoch,error)){sourceEnd(sourceStore);return 0;}
+    int result=xideDocumentsValidateRelocationImpl(plan,error);sourceEnd(sourceStore);return result;
+}
+
+void xideDocumentsApplyRelocation(xide_document_relocation* plan)
+{
+    xide_document_store* sourceStore=plan ? plan->store:NULL;
+    if(!sourceBegin(sourceStore,NULL))return;
+    if(!sourceStamp(sourceStore,plan->sourceEpoch,NULL)){sourceEnd(sourceStore);return;}
+    xideDocumentsApplyRelocationImpl(plan);sourceEnd(sourceStore);
 }

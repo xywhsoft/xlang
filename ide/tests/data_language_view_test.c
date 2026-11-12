@@ -52,7 +52,7 @@ static int run(void* raw)
     for(int i=0;i<4;++i){docs[i]=xideDocumentsFind(&a.documents,paths[i]);CHECK(docs[i] && !strcmp(docs[i]->language,modes[i]) && cached(docs[i]->editor));CHECK(docs[i]->dirty==(i==2));}
     /* Explicitly changing a normal file's format also survives recovery. */
     xide_text_file baseline={0};CHECK(xideTextFileEncode(text[1],0,0,XUI_CODE_EOL_LF,&baseline,&error));
-    xide_document* recovered=xideDocumentRecover(&a.documents,NULL,"恢复 XLON","xlon",&baseline,text[1],&error);xideTextFileClear(&baseline);CHECK(recovered && !strcmp(recovered->language,"xlon") && cached(recovered->editor));
+    xide_document* recovered=xideDocumentRecover(&a.documents,NULL,"恢复 XLON","xlon",&baseline,text[1],xideDocumentsSourceEpoch(&a.documents),&error);xideTextFileClear(&baseline);CHECK(recovered && !strcmp(recovered->language,"xlon") && cached(recovered->editor));
     puts("data_language_view_test: native four-format screenshots, real files, manual modes, cache after edits/undo, no source completion, clean/dirty restart and typed recovery");
 cleanup:
     if(began)xgeEnd();

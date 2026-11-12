@@ -92,7 +92,7 @@ int main(int argc,char** argv)
   if(mode==8)++f.docs[1]->revision;
   if(mode==9){xide_model_error e={0};CHECK(xideDocumentClose(f.docs[1],1,&e) && xideDocumentOpen(&f.store,f.paths[1],&e)==f.docs[1]);}
   if(mode==10)++f.docs[1]->id;
-  if(mode==11){const unsigned char raw[]="abcDEFghi\r\n";xide_text_file decoded={0};xide_model_error e={0};uint64_t revision=f.docs[0]->revision;uint32_t version=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(f.docs[0]->editor));CHECK(xideTextFileDecode(raw,sizeof(raw)-1,&decoded,&e) && xideDocumentAcceptExternal(f.docs[0],&decoded,0,&e));CHECK(f.docs[0]->revision==revision && xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(f.docs[0]->editor))==version && !f.docs[0]->dirty);}
+  if(mode==11){const unsigned char raw[]="abcDEFghi\r\n";xide_text_file decoded={0};xide_model_error e={0};uint64_t revision=f.docs[0]->revision;uint32_t version=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(f.docs[0]->editor));CHECK(xideTextFileDecode(raw,sizeof(raw)-1,&decoded,&e) && xideDocumentAcceptExternal(f.docs[0],&decoded,0,xideDocumentsSourceEpoch((f.docs[0])->store),&e));CHECK(f.docs[0]->revision==revision && xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(f.docs[0]->editor))==version && !f.docs[0]->dirty);}
   CHECK(xideOpenEditCommit(f.ticket,f.work,check,&f,&out)!=XUI_OK && !out.committed);if(mode==8)--f.docs[1]->revision;if(mode==9){CHECK(!f.notices && !strcmp(xuiCodeEditGetText(f.docs[0]->editor),before[0]));}else unchanged(&f);clear(&f);
  }
  for(int mode=0;mode<2;++mode){init(&f,argv[1],serial++,mode==0,mode==1);CHECK(xideOpenEditCapture(&f.store,f.plan,0,&f.ticket,&f.work)!=XUI_OK && !f.ticket && !f.work);unchanged(&f);clear(&f);}

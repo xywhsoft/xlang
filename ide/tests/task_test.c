@@ -21,10 +21,10 @@ static int helper(int count,char** arguments)
 {
     if(count==2 && !strcmp(arguments[1],"--help")) { emit("xl build <file.xlp> -o <output> --inc-path --lib-path --link\n"); return 0; }
     if(count>=5 && !strcmp(arguments[1],"build")) {
-        xvalue* manifest=xrtJsonParseFile(arguments[2]); xstrview source={0};
+        char* nativeManifest=xidePathNativeUtf8(arguments[2]);xvalue* manifest=nativeManifest ? xrtJsonParseFile(nativeManifest):NULL;free(nativeManifest); xstrview source={0};
         if(!manifest || !xrtValueGetString(xrtValueObjectGet(manifest,(xstrview){"entry",5}),&source)) return 2;
         char* entry=malloc(source.Size+1); if(!entry) return 3; memcpy(entry,source.Data,source.Size); entry[source.Size]=0;
-        size_t size=0; unsigned char* raw=xrtFileReadAll(entry,&size); if(!raw) return 4;
+        char* nativeEntry=xidePathNativeUtf8(entry);size_t size=0;unsigned char* raw=nativeEntry ? xrtFileReadAll(nativeEntry,&size):NULL;free(nativeEntry);if(!raw) {free(entry);xrtValueRelease(manifest);return 4;}
         char* text=malloc(size+1); if(!text) { xrtFree(raw); return 6; } memcpy(text,raw,size); text[size]=0; xrtFree(raw);
         int result=0;
         if(strstr(text,"FAKE_GATE")) {
@@ -37,7 +37,9 @@ static int helper(int count,char** arguments)
         if(strstr((char*)text,"FAKE_SLOW")) { emit("BUILD_STARTED\n"); Sleep(800); }
         if(strstr((char*)text,"FAKE_FAIL")) { emit(entry); emit(":3:5: [semantic] 真实失败 fixture\n"); result=9; }
         else if(!strstr((char*)text,"FAKE_NONE")) { char* binaryDirectory=xidePathDirectory(arguments[0]); char* binary=binaryDirectory ? xidePathResolve(binaryDirectory,"xide_task_program.exe") : NULL;
-            if(!binary || !xrtFileCopy(binary,arguments[4],true)) result=5;
+            char *nativeBinary=binary ? xidePathNativeUtf8(binary):NULL,*nativeOutput=xidePathNativeUtf8(arguments[4]);
+            if(!nativeBinary || !nativeOutput || !xrtFileCopy(nativeBinary,nativeOutput,true)) result=5;
+            free(nativeBinary);free(nativeOutput);
             free(binaryDirectory); free(binary); }
 finished:
         free(entry); free(text); xrtValueRelease(manifest); return result;

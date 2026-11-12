@@ -539,13 +539,15 @@ static xide_project* findProject(xide_app* app,const xvalue* entry)
 }
 static int restoreDocument(xide_app* app,const xvalue* entry)
 {
+    if(xideDocumentsSourcesHeld(&app->documents))return 0;
+    uint64_t documentEpoch=xideDocumentsSourceEpoch(&app->documents);
     xide_session* s=app->session; const char* relative=string(entry,"path",""); char* path=*relative ? xidePathResolve(s->base,relative) : NULL; xide_model_error error={0}; xide_document* d=NULL;
     if(path && xideDocumentsFind(&app->documents,path)) { free(path); return 1; }
     const char* language=string(entry,"language",path ? xideLanguageForPath(path) : "text");
     if(get(entry,"recoveryText")) {
         char* bodyPath=xideRecoveryPath(s->directory,string(entry,"recoveryText",""),&error),*basePath=xideRecoveryPath(s->directory,string(entry,"recoveryBaseline",""),&error); xide_text_file body={0},baseline={0};
         if(bodyPath && basePath && xideTextFileRead(bodyPath,&body,&error) && xideTextFileRead(basePath,&baseline,&error))
-            d=xideDocumentRecover(&app->documents,path,string(entry,"title",path ? xidePathFilename(path) : "恢复的未命名文件"),language,&baseline,body.text,&error);
+            d=xideDocumentRecover(&app->documents,path,string(entry,"title",path ? xidePathFilename(path) : "恢复的未命名文件"),language,&baseline,body.text,documentEpoch,&error);
         free(bodyPath); free(basePath); xideTextFileClear(&body); xideTextFileClear(&baseline);
     } else if(path) d=xideDocumentOpen(&app->documents,path,&error);
     else fail(&error,XIDE_MODEL_INVALID,"Untitled session document has no recovery text.");
@@ -778,6 +780,7 @@ void xideSessionRelocate(xide_app* app)
 }
 void xideSessionPoll(xide_app* app)
 {
+    if(xideDocumentsSourcesHeld(&app->documents))return;
     xide_session* s=app->session; if(!s) return;
     if(xideRecoveryViewBusy(app)) return;
     xide_model_error windowError={0}; if(!xideWindowStatePoll(&s->window,&windowError)) report(app,windowError.message);

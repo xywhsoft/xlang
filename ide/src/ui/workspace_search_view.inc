@@ -4,7 +4,7 @@ struct xide_workspace_search_view {
  xui_widget window,input,tree,search,status,pathPreview;
  xide_workspace_search_decoder* decoder;xide_workspace_search_result* result;xide_language_batch* batch;
  document_binding inputs[SNAPSHOT_DOCS];size_t count,selected;
- uint64_t serial,token,session,watch,due,deadline;int supported,stage,request,usable,navigation,keepSelection,composing;
+ uint64_t serial,token,session,watch,due,deadline,documentEpoch;int supported,stage,request,usable,navigation,keepSelection,composing;
  char query[513],message[512];
  xui_widget_event_proc inputKey,inputIme,treeKey,treeDouble;void *inputKeyUser,*inputImeUser,*treeKeyUser,*treeDoubleUser;
 };
@@ -27,6 +27,7 @@ static void workspaceInputsFree(struct xide_workspace_search_view* r)
 {for(size_t i=0;i<r->count;++i)freeInput(r->inputs+i);r->count=0;}
 static int workspaceEligible(xide_app* app)
 {
+ if(app && xideDocumentsSourcesHeld(&app->documents))return 0;
  if(app && app->languageView && (app->languageView->sourceToken || app->languageView->sourceDrain))return 0;
  size_t count=0,bytes=0;for(size_t i=0;i<app->documents.count;++i){xide_document* d=app->documents.items[i];if(!namedXlang(d))continue;int n=xuiCodeDocumentGetLength(xuiCodeEditGetDocument(d->editor));if(snapshotConflict(d) || ++count>SNAPSHOT_DOCS || n<0 || (size_t)n>TEXT_LIMIT || (size_t)n>32u*1024u*1024u-bytes)return 0;bytes+=(size_t)n;}return 1;
 }
@@ -34,11 +35,11 @@ static int workspaceInputsCapture(xide_app* app)
 {
  struct xide_workspace_search_view* r=app->languageView->workspaceSearch;workspaceInputsFree(r);if(!workspaceEligible(app))return 0;
  for(size_t i=0;i<app->documents.count;++i){xide_document* d=app->documents.items[i];if(!namedXlang(d))continue;if(!d->revision)return 0;document_binding* b=r->inputs+r->count++;*b=(document_binding){.document=d,.id=d->id,.revision=d->revision,.version=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(d->editor)),.externalState=d->externalState,.path=copy(d->path),.language=copy(d->language)};if(!b->path || !b->language)return 0;}
- r->watch=xideFileSyncRevision(app);r->session=app->languageView->highlightSession;return 1;
+ r->documentEpoch=xideDocumentsSourceEpoch(&app->documents);r->watch=xideFileSyncRevision(app);r->session=app->languageView->highlightSession;return 1;
 }
 static int workspaceSearchInputsCurrent(xide_app* app)
 {
- struct xide_workspace_search_view* r=app->languageView->workspaceSearch;if(!r || r->session!=app->languageView->highlightSession || r->watch!=xideFileSyncRevision(app))return 0;size_t count=0;
+ struct xide_workspace_search_view* r=app->languageView->workspaceSearch;if(!r || r->documentEpoch!=xideDocumentsSourceEpoch(&app->documents) || xideDocumentsSourcesHeld(&app->documents) || r->session!=app->languageView->highlightSession || r->watch!=xideFileSyncRevision(app))return 0;size_t count=0;
  for(size_t i=0;i<app->documents.count;++i)if(namedXlang(app->documents.items[i]))++count;
  if(count!=r->count)return 0;
  for(size_t i=0;i<r->count;++i){document_binding* b=r->inputs+i;xide_document* d=b->document;if(!namedXlang(d) || snapshotConflict(d) || d->id!=b->id || !bindingRevisionCurrent(b) || d->externalState!=b->externalState || strcmp(d->path,b->path) || strcmp(d->language,b->language) || xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(d->editor))!=b->version)return 0;}return 1;
@@ -82,7 +83,7 @@ static int workspaceApplyNavigation(xide_app* app,xide_workspace_search_result* 
  xide_language_view* v=app->languageView;if(!workspaceSearchInputsCurrent(app) || incoming->count!=1)return 0;xide_workspace_search_item* item=incoming->items;document_binding* binding=NULL;
  for(size_t i=0;i<v->inputCount;++i)if(!xidePathNativeKeyCompare(item->key,v->inputs[i].key)){binding=v->inputs+i;break;}
  xide_document* target=openPath(app,item->path);int disk=incoming->snapshot.raw!=NULL;
- if(disk){if(binding || target || !diskIdentity(item->path,item->document))return 0;xide_model_error e={0};target=xideDocumentOpenPrepared(&app->documents,item->path,&incoming->snapshot,&e);if(!target)return 0;if(!diskIdentity(item->path,item->document)){xideDocumentClose(target,0,&e);return 0;}}
+ if(disk){if(binding || target || !diskIdentity(item->path,item->document))return 0;xide_model_error e={0};target=xideDocumentOpenPrepared(&app->documents,item->path,&incoming->snapshot,v->workspaceSearch->documentEpoch,&e);if(!target)return 0;if(!diskIdentity(item->path,item->document)){xideDocumentClose(target,0,&e);return 0;}}
  else if(!binding || target!=binding->document || !target || target->id!=binding->id || !bindingRevisionCurrent(binding) || snapshotConflict(target) || xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(target->editor))!=binding->version)return 0;
  if(item->start.offset<0 || item->end.offset> xuiCodeDocumentGetLength(xuiCodeEditGetDocument(target->editor)) || item->end.offset<=item->start.offset || xideEditorShow(app,target)!=XUI_OK || xideGotoRevealLine(target->editor,item->start.line)!=XUI_OK)return 0;
  if(xuiCodeSelectionSetRange(xuiCodeEditGetSelection(target->editor),xuiCodeEditGetDocument(target->editor),item->start.offset,item->end.offset)!=XUI_OK)return 0;

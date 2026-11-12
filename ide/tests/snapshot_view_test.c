@@ -113,7 +113,7 @@ static int verify(void* user)
  CHECK(replace(dependency,bad) && settle(&app) && ready(&app,1));
  /* Close/reuse of an unsaved virtual dependency clears its borrowed annotations. */
  CHECK(xideTextFileEncode(good,(int)strlen(good),0,XUI_CODE_EOL_LF,&baseline,&error));
- xide_document* virtualDoc=xideDocumentRecover(&app.documents,virtualPath,"virtual.xl","xlang",&baseline,bad,&error);
+ xide_document* virtualDoc=xideDocumentRecover(&app.documents,virtualPath,"virtual.xl","xlang",&baseline,bad,xideDocumentsSourceEpoch(&app.documents),&error);
  CHECK(virtualDoc && !xidePathExists(virtualPath) && replace(xl,"import dep\nimport virtual\nfunc main(...) as int\n    return dep.value()+virtual.value()\nend\n") && settle(&app) && ready(&app,2));
  CHECK(xuiCodeAnnotationGetDiagnosticCount(xuiCodeEditGetAnnotations(dependency->editor))==1 && xuiCodeAnnotationGetDiagnosticCount(xuiCodeEditGetAnnotations(virtualDoc->editor))==1);
  CHECK(replace(xl,mainText) && xideDocumentClose(virtualDoc,1,&error) && settle(&app) && ready(&app,1));
@@ -163,7 +163,7 @@ static int verify(void* user)
  xide_document* extras[63]={0};
  for(int i=0;i<63;++i) {
   char leaf[48]; snprintf(leaf,sizeof(leaf),"unused-%d.xl",i); char* name=xidePathResolve(root,leaf);
-  CHECK(name && xideTextFileEncode("",0,0,XUI_CODE_EOL_LF,&baseline,&error)); extras[i]=xideDocumentRecover(&app.documents,name,leaf,"xlang",&baseline,good,&error); free(name); CHECK(extras[i]);
+  CHECK(name && xideTextFileEncode("",0,0,XUI_CODE_EOL_LF,&baseline,&error)); extras[i]=xideDocumentRecover(&app.documents,name,leaf,"xlang",&baseline,good,xideDocumentsSourceEpoch(&app.documents),&error); free(name); CHECK(extras[i]);
   if(i==61) { CHECK(xideEditorShow(&app,xl)==XUI_OK && settle(&app) && xideActionQuery(&app,XIDE_ACTION_CHECK_CURRENT).enabled && menuCheck(&app) && ready(&app,1) && strstr(xideLanguageViewMessage(&app),"64 份打开文档") && menuCheck(&app) && ready(&app,1)); }
  }
  CHECK(settle(&app) && !xideLanguageViewDiagnosticCount(&app) && !xideActionQuery(&app,XIDE_ACTION_CHECK_CURRENT).enabled);
