@@ -1,0 +1,15 @@
+// Initialize engine state without starting a native window or rendering frame.
+import xge
+
+xge.init(640,480,"My xlang application",0,xge.XGE_RUN_MANUAL)
+try
+ string original=xge.getTitle() as string
+ assert original=="My xlang application"
+ xge.setTitle("Updated title")
+ assert (xge.getTitle() as string)=="Updated title"
+ // The returned string owns a copy and remains valid after a title change.
+ assert original=="My xlang application"
+ println(original)
+finally
+ xge.unit()
+end

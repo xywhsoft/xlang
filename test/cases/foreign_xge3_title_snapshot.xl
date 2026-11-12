@@ -1,0 +1,24 @@
+import xge
+
+func main(...) as int
+ assert xge.getTitle()==null
+ xge.init(128,96,"初始标题",0,xge.XGE_RUN_MANUAL)
+ string? first=null
+ string? second=null
+ try
+  first=xge.getTitle()
+  assert (first as string)=="初始标题"
+  xge.setTitle("updated window title")
+  second=xge.getTitle()
+  assert (second as string)=="updated window title"
+  assert (first as string)=="初始标题"
+  xge.setTitle("")
+  assert (xge.getTitle() as string)==""
+ finally
+  xge.unit()
+ end
+ assert xge.getTitle()==null
+ assert (first as string)=="初始标题" and (second as string)=="updated window title"
+ println("Title snapshots: null, UTF-8, empty and independent copies passed")
+ return 0
+end

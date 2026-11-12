@@ -1,0 +1,40 @@
+{
+  "date": "2026-11-13",
+  "complete": true,
+  "passed": true,
+  "scope": "Creator-thread getTitle nullable snapshot with actual matched XGE, source compiler JIT and hosted/static independent programs; no GPU/platform window.",
+  "fullCompilerBuild": false,
+  "shippingDelivery": false,
+  "networkTests": false,
+  "sourceHashes": {
+    "lib/bindings/xge/src/functions.xl": "4ac81799f5e5fd532d5cc154b561cacf8b6ed38dba2fa006dd74131d02499771",
+    "lib/bindings/xge/examples/window_title.xl": "0fb3dd3d8580eea2ddb84dee206d03f82267a989d3a4a67d6489767fc62e9404",
+    "test/cases/foreign_xge3_title_snapshot.xl": "f3f9eaa42e9828c4802115239b9f8e1814a27c33b3a083a3d07559d851e75b1a",
+    "tools/check_xge3_title_snapshot.py": "17310a6857aaf9972f92aee747c6048effc1ec47f21a13ef2228910155a7fe1d"
+  },
+  "platforms": {
+    "win": {
+      "qualification": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\title-snapshot-source-win-r2\\results.json",
+        "sha256": "ce4ff46854a669c2c7b81c56ecce3cd5256bbb4d54288abe2f172120bb471257"
+      },
+      "commands": 14,
+      "sourceCompilerBuild": "F:\\xlang-validation\\xge-full-20261110\\cstring-frontend-win-r2\\build.json",
+      "sourceCompilerBuildSha256": "42cae602de52b4ea6db3489aaa9cb7f1abefa78ebb04912bfa325b763575ec29"
+    },
+    "linux": {
+      "qualification": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\title-snapshot-source-linux-r2\\results.json",
+        "sha256": "d05ee956fe3f35e2bd3f48037ac21d43c7c621a0d6d2eb9bdcdd4a2b47a8234e"
+      },
+      "commands": 14,
+      "sourceCompilerBuild": "/mnt/f/xlang-validation/xge-full-20261110/cstring-frontend-linux-r2/build.json",
+      "sourceCompilerBuildSha256": "616f571685e438c42c55ec5809c120d10ee5bcd4802003c0c9f7f11ab480ad00"
+    }
+  },
+  "limits": [
+    "Full O2/VFS/embedded successor qualification still required",
+    "No package shared-library initialization qualification",
+    "No final SDK/compiler/IDE installation"
+  ]
+}

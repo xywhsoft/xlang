@@ -659,3 +659,11 @@ Linux r24 完整构建及其 77 项顶层命令、另 5 项异步／生成器验
 Document 动态／静态程序均通过。相对 r22，CLI 不变，两份共享库各增加
 12,288 字节。后继索引为 `foreign-owned-text-linux-20261113.json`；
 这不改变 GPU、其余未决合同和最终配套交付仍待完成的状态。
+
+已批准的借用 C 字符串返回合同见 [说明](foreign-cstring-results.md)：自由函数、
+方法、getter 和函数值的原生返回统一认证为 `const char*`，在参数清理前复制，
+保留 NULL／空文本，复制失败 checked 回滚。两端各 29 项源码检查通过。
+`xge.getTitle()` 已复用该合同，两端真实 XGE 源码候选 JIT／动态／静态程序及
+示例通过，各 14 项；关闭引擎后快照仍可读取。源码索引为
+`foreign-cstring-source-20261113.json` 和 `xge-title-snapshot-source-20261113.json`。
+完整 O2／VFS／内嵌编译器后继构建正在运行，尚未替换正式 SDK／IDE。

@@ -126,3 +126,15 @@ These declarations require `XGE_ENABLE_PARTICLES`. World/definition/renderer
 ownership, persistent collision callbacks and simulation operations are a
 separate unfinished integration. The value helper example does not certify
 those paths or whole-engine performance.
+
+## Window title snapshots
+
+`getTitle()` directly calls `xgeGetTitle` and returns an independent `string?`
+snapshot. Native NULL means the engine/title is unavailable on this thread;
+an initialized empty title is a present empty string. Call from the engine
+creator thread. The copy survives `setTitle()` and engine shutdown.
+
+`setTitle(text)` uses the checked native setter. A read performs a length scan,
+one allocation and a copy; keep a snapshot when reading repeatedly. See
+`examples/window_title.xl` and `docs/foreign-cstring-results.md`. No forwarding
+C wrapper or borrowed pointer escapes into language code.
