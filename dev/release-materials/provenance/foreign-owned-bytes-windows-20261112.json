@@ -1,0 +1,107 @@
+{
+  "schema": 1,
+  "fullCompilerBuild": true,
+  "windowsFullOwnedBytesQualified": true,
+  "linuxFullOwnedBytesQualified": false,
+  "shippingDelivery": false,
+  "scope": "Complete Windows r28 O2 compiler/TCC/XRT/fixed objects/VFS/embedded-source owned-byte contract. Actual new contract in standalone/JIT, PNG dynamic/static and nested language EXE/shared callers; full regressions. Actual XGE package shared-library initializer and final ecosystem delivery remain open.",
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-owned-bytes-full-r28\\build.json",
+      "sha256": "13dad0835502fca861be8a158f433262f7b009ecda151ee464e154e1c59bcfff"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-owned-bytes-full-r28\\freeze.json",
+      "sha256": "3b0e88f6f0ac7e64b11d48a3d65e2c398842fced762c8b08b8643ab030e18054"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\owned-bytes-full-qualification-win-r1\\results.json",
+      "sha256": "7f1d5ca82b9222affd91b6a472e708c885ce21a0e8d31712c9e45826023dbe97"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\owned-bytes-full-qualification-win-r1\\image-regression\\results.json",
+      "sha256": "0bbe803b3668b8eb6dd4416055260204d23e240993b824b590bb8c26997991e5"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\owned-bytes-full-qualification-win-r1\\particle-and-unused-png\\results.json",
+      "sha256": "d6e7b2bd5451b94495c95ad62e70c6434251b273f612483011f5e717e1432c56"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\owned-bytes-full-qualification-win-r1\\literal-nested\\results.json",
+      "sha256": "b34d58c7ca440e04f644448b61ba193a07422bffeea171da7b290eb3b8d9d7fc"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\owned-bytes-full-qualification-win-r1\\source-free\\results.json",
+      "sha256": "4235b2503500c239a65541030828281fe6da5d20e04cf5627aa3a3d5501cd870"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\qualify_owned_bytes_full.py",
+      "sha256": "b964a9850d70d19e38dd29032ed8e770a7151165132d0184844dbacdbd786ae1"
+    }
+  ],
+  "sourceFreeze": {
+    "files": 13500,
+    "overrides": {
+      "src/cgen/xl6_ir_cgen_foreign_output_view.c": "23218027ecffbc0638692015d9f03b3721d6b89dcbaf492fc5ddfaf0382d4eba",
+      "src/cgen/xl6_ir_cgen_module_emit.c": "171682e5d86bca64e2182a160fbae8ba8ebaa23ce62752f41d1198561340f41a",
+      "src/cgen/xl6_ir_cgen_native_dependencies.c": "2644937cb15afd8ff354d6ff904b9e46c4465d5a1a58a923f99e8de109ea42ac",
+      "src/cgen/xl6_ir_cgen_needs.inc": "7aed397fceb4757d44af072a2959171cf448a3ecd843d682e9da7f06c775de06",
+      "src/ir/xl6_ir.c": "9fce5d266b289137c719e6fda107368d9e4bd1e2d2f721bf50f1518cdea615e6",
+      "src/ir/xl6_ir.h": "0f36d8435bdbf6dbd28318bdcf1f54d4a305c2bf61d8ee1c1381d17e16864c6b",
+      "src/ir/xl6_ir_foreign_compat.c": "3157058fffe9c1b33072c464489d1771418d229aa50eb18d4f5476825267e32a",
+      "src/ir/xl6_ir_foreign_pack.c": "46e301aaaa5a696eb93f48ce4dada2e60c5e5cc331245030ffed820acc0bf6f6",
+      "src/ir/xl6_ir_foreign_parameter.c": "ad3293a74ea6a4d187fd399dbe10adfde7814af484b17c85c488a2de5aa41ac4",
+      "src/sem/xl6_sem.c": "82e3d9d3986b1d41ad72cad1b9e5242dc70306eb89fdc8365fb8d54e6f5131bb",
+      "src/type/xl6_foreign_call_contract.h": "9932df7a2a6faa553fc5e42bc22faed5779f7cccd01ee7c893d272954a5e64d0",
+      "src/type/xl6_foreign_decl.h": "e79f340e347543dacb79e3e9cb9d09bce1f623730d9fc384820dad65e797a9b8",
+      "src/type/xl6_foreign_pack_decl.h": "c9bd57603ca04d2eaaaae450c4e851fe3023a412d18f6f0b2061be695e7b1144",
+      "src/ir/xl6_ir_foreign_owned_bytes.c": "6b5980162da0c247fd925ae728a94bebb1e976c63416160f78a6cec6f313298e",
+      "src/runtime/xl6_c_output_bytes.h": "9b4055f847bb55b6965611922c1a23b78b1f046cf069bbe03b484106e0349365",
+      "src/sem/xl6_sem_foreign_owned_bytes.c": "ef82115aafe16c116767e2156bb0c7f80ed6adc8d75384bf2074f299abe170eb",
+      "src/type/xl6_foreign_owned_bytes_contract.h": "df526faf302593a9c733a452a2c0519624139a7abedfa352ac535e5ae701574c",
+      "src/type/xl6_foreign_owned_bytes_decl.h": "6dac7479f4fbf7f5c4553cc199ec1d3053d8ae109b19118724ad5f0ecb9530d6"
+    }
+  },
+  "verification": {
+    "topLevelCommands": 28,
+    "imageRegressionCommands": 27,
+    "particleRegressionCommands": 27,
+    "sourceFreeCommands": 10,
+    "newContractNestedShared": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\owned-bytes-full-qualification-win-r1\\nested-owned-shared.dll",
+      "sha256": "6502e06775ca3e6b066c69d3ab1930fc5f45aeeafe82a2989fe07d3cb32fe20a"
+    }
+  },
+  "unusedPng": {
+    "fileDeltaBytes": 0,
+    "codeDeltaBytes": 0
+  },
+  "products": {
+    "xl.exe": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-owned-bytes-full-r28\\source\\release\\win_x64\\xl.exe",
+      "sha256": "b06ecff88b5b9f438820a93f7ec7c8be5d605c5e55c8d6e6c58c8d2c2641ed80",
+      "bytes": 72704
+    },
+    "xl.dll": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-owned-bytes-full-r28\\source\\release\\win_x64\\xl.dll",
+      "sha256": "c7cfd4596e5f153b4d746f1cc7c101e749d8c66dc03e95000b336f712bb43ced",
+      "bytes": 15278080
+    },
+    "xlc.dll": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-owned-bytes-full-r28\\source\\release\\win_x64\\xlc.dll",
+      "sha256": "d1f8c6006922932774c92c06ed92a12c6cd481f2f8c548b115e5a438b8db6f8c",
+      "bytes": 21489152
+    }
+  },
+  "producerFileDeltaBytes": {
+    "xl.exe": 0,
+    "xl.dll": 4608,
+    "xlc.dll": 8704
+  },
+  "pending": [
+    "Linux full O2 qualification",
+    "Actual XGE package shared-library initialization contract",
+    "Final matched SDK/compiler/IDE/help installation",
+    "Other full-scope XGE/XUI/Document work and unanswered ownership contracts"
+  ]
+}

@@ -76,3 +76,26 @@ These are source preflights, not a rebuilt shipping compiler/VFS certification.
 Both full O2 builds, actual nested compiler delivery, final SDK/IDE installation
 and the rest of XGE/XUI/Document integration remain open. The normal release
 runtime has not been replaced by this batch.
+
+## Complete Windows O2 cohort
+
+The Windows r28 build now rebuilds the complete compiler, TinyCC, XRT, fixed
+objects, VFS and embedded source together. All 13,500 frozen files and the 18
+current source overrides are pinned. The actual CLI passes generic byte output
+and PNG/example JIT plus independent native/dynamic/static executables. The new
+contract also executes inside an embedded language compiler in an independent
+parent executable and a real shared-library caller, followed by checked module
+cleanup. Existing image, particle, literal-child and source-free compiler
+delivery gates pass with these rebuilt products.
+
+With the same compiler/native payload, adding the unused PNG declarations to
+the particle SDK changes the matrix sample's file and machine-code sizes by
+zero bytes. Producer costs are retained: relative to r27, `xl.dll` grows 4,608
+bytes and `xlc.dll` grows 8,704; `xl.exe` is unchanged. These are observed file
+deltas, not a CPU performance claim. The immutable full Windows successor index
+is `dev/release-materials/provenance/foreign-owned-bytes-windows-20261112.json`.
+
+Linux's complete O2 cohort and final matched installation remain pending.
+The shared caller above imports the embedded compiler and tests generic FFI;
+it does not substitute for the separately pending XGE package initializer in
+user DLLs/DSOs. The earlier source-preflight index keeps its original bytes.
