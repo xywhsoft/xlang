@@ -119,3 +119,9 @@ The fixture includes frozen production libtcc; it is not a replacement for full
 compiler and nested-compiler delivery tests. Emitted PE files are inspected, not
 executed by this gate. Graphics, network, and whole-engine performance are outside
 its scope.
+
+The complete Windows r25 build and its actual consumer sizes are now recorded in
+[Windows integration](tcc-literal-windows-integration.md). Matrix, image, and
+embedded-TCC execution pass, but deeper source-free language-compiler embedding
+still exceeds the numbered directory budget. That remaining failure is retained
+and requires the separate relocation-metadata correction; it is not full delivery.

@@ -1,0 +1,122 @@
+{
+  "schema": 1,
+  "fullCompilerBuild": true,
+  "windowsVerifiedSubset": true,
+  "fullCompilerEmbeddingQualified": false,
+  "shippingDelivery": false,
+  "scope": "Complete Windows r25 O2 build, matrix/image and embedded TCC execution; deeper embedded language compiler remains blocked",
+  "successfulCommandChecks": 57,
+  "build": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-full-r25\\build.json",
+    "sha256": "664b31420668861b5613b61e1a9cc2b965ca3cf9a212d5f3aaeaf537e4fea3b5"
+  },
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\matrix-literals-win-r2\\results.json",
+      "sha256": "b43195e3a7fa798a777e32d90944187aff4458408a275af5dd2e6eecfd4d6f39",
+      "commands": 19
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\image-literals-win-r2\\results.json",
+      "sha256": "4de72e5bb280d6ee96f384550ed422c9586a14940df91d7ef7046f030470e7a4",
+      "commands": 27
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tcc-literal-delivery-fixed-win-r2\\results.json",
+      "sha256": "8a9f5830161d9c8221d08d938015916f0239c5bebc15ed8a8567bf88f2b12ecb",
+      "commands": 11
+    }
+  ],
+  "failedAcceptance": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\precompiled-literals-win-r2\\results.json",
+      "sha256": "3ec888f28a5410bb5222d04e85485c9b779644288ae9ec7434fc64ce7ff05c77",
+      "acceptance": false
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\literal-full-qualification-win-r2\\source-free-delivery.log",
+      "sha256": "cd082ccbf09a4548317ab10d4e3bb4596ba0644a23d7d1d550b317be5d8bdf10",
+      "acceptance": false
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\literal-section-limit-nested-win-r1\\trace.log",
+      "sha256": "ac25a6b237f1980daf3697c27f24b120be43d92b74ebdee996da71c2bec81f10",
+      "acceptance": false
+    }
+  ],
+  "measurements": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\literal-windows-result-r1\\results.json",
+      "sha256": "d4c7c865e0b59707431ab8943bc0f283cd4c0d5198323dfa6b4dd3bbb9cb0e4e"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\png-matched-storage-win-r1\\results.json",
+      "sha256": "ddafb5d3531b18d5882ac4e1af7007ee75da399dfd99a31719696bff73608a24"
+    }
+  ],
+  "consumer": {
+    "matrixFileSavingBytes": 53760,
+    "matrixCodeDeltaBytes": 0,
+    "matrixRdataSavingBytes": 53808,
+    "matrixRelocGrowthBytes": 12,
+    "sameCurrentCompilerPngSdkFileDeltaBytes": 0,
+    "sameCurrentCompilerPngSdkCodeDeltaBytes": 0,
+    "nestedCChildBeforeBytes": 308224,
+    "nestedCChildAfterBytes": 5120
+  },
+  "producerProductBytes": {
+    "xl.exe": {
+      "before": 72704,
+      "after": 72704,
+      "delta": 0
+    },
+    "xl.dll": {
+      "before": 15217152,
+      "after": 15271424,
+      "delta": 54272
+    },
+    "xlc.dll": {
+      "before": 21340160,
+      "after": 21480448,
+      "delta": 140288
+    }
+  },
+  "blockingCase": {
+    "existingSections": 42198,
+    "xrtInputBudget": 24140,
+    "combined": 66338,
+    "indexBoundary": 65280,
+    "unaddressedNonallocatedRelocationHeadersInAuditedManifestPopulation": 30456
+  },
+  "surface": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-storage-owner-r2\\surface.json",
+    "sha256": "e86d59237529a12c9cfde62c2a412655f71cfc5b539163dcadc656e2a04136c9",
+    "population": {
+      "functions": 5152,
+      "types": 979,
+      "constants": 1837,
+      "functionMacros": 7,
+      "callableFields": 184,
+      "enums": 40,
+      "enumConstants": 316
+    },
+    "declarationPresent": {
+      "functions": 3547,
+      "types": 358,
+      "constants": 1820,
+      "callableFields": 66,
+      "enumConstants": 316
+    },
+    "runtimeCertification": false
+  },
+  "nextImplementation": "Separate eligible ordinary nonallocated relocation metadata from the numbered final-link directory, preserving symbol-addressed/runtime tables and standard OBJ output.",
+  "notes": [
+    "Whole goal is incomplete; matrix/image/TCC success does not prove deeper language compiler embedding.",
+    "Producer DLL growth is measured and reported, not inferred to be solely embedded-object data.",
+    "Actual native/SDK/API coverage and matching shipping delivery remain required."
+  ],
+  "relocationMetadataInventory": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\relocation-metadata-population-win-r2\\results.json",
+    "sha256": "3540830a2be35a0307b6ea9c0e5d6d8090edc0d05d36a6f150dde779ac499ea6"
+  }
+}
