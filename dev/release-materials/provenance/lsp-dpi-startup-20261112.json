@@ -1,0 +1,178 @@
+{
+  "schema": 1,
+  "date": "2026-11-12",
+  "stage": "M7b5l",
+  "scope": "IDE startup, widget constructor/control diagnostic ownership and integration error boundaries",
+  "implementationAccepted": true,
+  "goalComplete": false,
+  "performanceQualified": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": true,
+  "externalPublishPerformed": false,
+  "base": "0a022e1d3318483ac7c487df1b7e54ce384a5fa8",
+  "ownedSources": {
+    "ide/src/services/ui_font.c": "7057cea97f879625f06b12174ba0713940ca66fbb77b1971a5c96125b635f1c8",
+    "ide/src/services/workspace_search_result.c": "585cc81cf467b3bf5f70b61d877e294b759618301dcc2184f087f6f47e516f61",
+    "ide/tests/goto_view_test.c": "d5d19ad61179531ab31b516d7c8418ac9536ffab78a243fe04302fe6ed12a66a",
+    "ide/tests/toolchain_test.c": "0314245b485324ef5952082db6fb1eff030c2bc41614985f97848cfecec09a58",
+    "ide/tests/workspace_search_result_test.c": "75f64afa2d0c98e87cbbc1bceb699dbd3a6b4f6f0ef9baa057d7331c89fb5ab5",
+    "ide/tests/workspace_search_view_test.c": "05c8071bdeb77471e0cb7ab5924db10e7d6fa4ae33c164629153d82e7d9ee096",
+    "ide/docs/lsp-xui-startup-error-boundaries.md": "48e244d189b5749badd2781af8861117c67dbd4a0f5e31cd4e2a071e592dcd36",
+    ".gitattributes": "193ffadedf01734d75fd19b58515147c2c83f5291bc54dd3c231af761b4c0a16",
+    "ide/third_party/xge_sdk/sdk_manifest.json": "791e74e8b9e73523984a5362b35f8bce3d8da594b27e338c632334da29e98bbf",
+    "ide/third_party/xge_sdk/xge-source-files.json": "8ea2d8cac46b225d16cd41d476efaf21d620820abbc3c14573b896caa89a8c10",
+    "ide/third_party/xge_sdk/xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "ide/third_party/xge_sdk/xge.lib": "8d5e0794b799ab02ed036cbc4bd28029f6a51721c963325c20021346fbbf7fad",
+    "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f8d4593bb4ba/parent-sdk-manifest.json": "6910e3f1327f9a72e376f6a48bda0d0fef33bea7f84429da3206a618afc78b88",
+    "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f8d4593bb4ba/source-build-manifest.json": "1ca98412f305e25b3f9c33bb19385fd26262fb470abe11a7107bdfadcaf2b71e",
+    "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f8d4593bb4ba/source-build-report.json": "4cb1a2bcd7b4355ed11be812f0f4ddb222e332ecdee5bed4096b3c98ea9ccac6",
+    "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f8d4593bb4ba/xrt-declarations.json": "76835d98e81b4f56507ca2845ba782c0ba147c9bbe00543578aabb534a6a141e",
+    "ide/third_party/xge_sdk/provenance/compatibility-patches/diff/src/xui/controls/xui_message_list.c.diff": "c172025e1d76ff6feaf44d5a5f999636875da23263c7fe63c7a2236820ee531a",
+    "ide/third_party/xge_sdk/provenance/compatibility-patches/diff/src/xui/core/xui_text_edit.c.diff": "38c1127001cc51801b38978ed95660bfb5b7f0ef5ed483c5980fee8fe33d4210",
+    "ide/third_party/xge_sdk/provenance/compatibility-patches/payload/src/xui/controls/xui_message_list.c": "212d887196589d4203d9feefb84f5e37b830fa0b58b6642ab722f9ffc87dbc73",
+    "ide/third_party/xge_sdk/provenance/compatibility-patches/payload/src/xui/core/xui_text_edit.c": "e9b4d0544509465a78c5048ec13651cb1c28a3dfc6ce57629aa8c83953330d9f",
+    "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f8d4593bb4ba/compatibility-patches/patch-manifest.json": "e7bed990908836da565da838e01dd47c9375b92cbe955400f6ac87ed91f929c3",
+    "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f8d4593bb4ba/compatibility-patches/diff/include/xge.h.diff": "53173e90552d55139b82027177445f992eaf0f040ebcfb148d632397a7bc9483",
+    "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f8d4593bb4ba/compatibility-patches/diff/include/xui.h.diff": "398205df397ad16c8ea21ba55d7d52c0125973989d0efb9be05d0b153da46bdd",
+    "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f8d4593bb4ba/compatibility-patches/diff/extlibs/sokol/sokol_app.h.diff": "d2451492311ec3326deb8ddf4897a7066bcb3c4802cc22d9059eb674dc59afe1",
+    "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f8d4593bb4ba/compatibility-patches/diff/extlibs/xrt/xrt.h.diff": "579ef4175cc2ffa1d8c1cc952f3c7df02ba8ee0babe896ac8277c771710bbac2",
+    "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f8d4593bb4ba/compatibility-patches/diff/src/xge/core/xge_core.c.diff": "e76b5fa9d8f5f50b2b858d7591174b4b555e34a2ebe7a2504284940f24e3c279",
+    "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f8d4593bb4ba/compatibility-patches/diff/src/xge/core/xge_impl.c.diff": "d79979ac20502cc26e7bf58d65f564e653954dab94c5d19cb51b277f5d2566ee",
+    "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f8d4593bb4ba/compatibility-patches/diff/src/xui/code/xui_code_document.c.diff": "a93d8dd3e1ea80f0b66c767be08b9cc000bd0e93dde0f581b4553e3b97ae9ef2",
+    "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f8d4593bb4ba/compatibility-patches/diff/src/xui/code/xui_code_edit.c.diff": "d9675c19f697f071de3229b1ff90e27fbfb71bf75ab1f6208b82bd684999dc26",
+    "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f8d4593bb4ba/compatibility-patches/diff/src/xui/controls/xui_message_list.c.diff": "c172025e1d76ff6feaf44d5a5f999636875da23263c7fe63c7a2236820ee531a",
+    "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f8d4593bb4ba/compatibility-patches/diff/src/xui/controls/xui_table_view.c.diff": "d43540425dc291cd18cb024a9e4a68867af9cebd522558e80231eb4f192090b7",
+    "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f8d4593bb4ba/compatibility-patches/diff/src/xui/controls/xui_tree_view.c.diff": "5a3d61c10ea8a41ca6381df2adf10f76e946b0cdb20989c4e0b1ed4dc8fc2632",
+    "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f8d4593bb4ba/compatibility-patches/diff/src/xui/core/xui_internal.h.diff": "66272adfcffd16f10588911aac0f3359dc5ed53026d8a0345e6457dba061078a",
+    "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f8d4593bb4ba/compatibility-patches/diff/src/xui/core/xui_text_edit.c.diff": "38c1127001cc51801b38978ed95660bfb5b7f0ef5ed483c5980fee8fe33d4210",
+    "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f8d4593bb4ba/compatibility-patches/diff/src/xui/core/xui_widget.c.diff": "c151cc9f777a41bc955fac8347ee6fa1eb53540257afb0ce1b3b1a2a2a234697",
+    "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f8d4593bb4ba/compatibility-patches/diff/tools/build/build.py.diff": "fa5f2de1de444e5a603cdda865711d1edff1d6930179875f2cdf504bcb4da8dd",
+    "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f8d4593bb4ba/compatibility-patches/payload/include/xge.h": "1821696314a82530f0fb06290a9ef4483083881444ebf1d00fc362a4426c68a5",
+    "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f8d4593bb4ba/compatibility-patches/payload/include/xui.h": "7e01f668823cbd2198d030fe3407f0811e38185a0b3655cc6bf93ce5e6523e2f",
+    "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f8d4593bb4ba/compatibility-patches/payload/extlibs/sokol/sokol_app.h": "7d725c8f3b5eb52a9dba4f5ba1c9d6cbc603a2f5c5dc712a8f0fa3b4dd5378e2",
+    "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f8d4593bb4ba/compatibility-patches/payload/extlibs/xrt/xrt.h": "41bc24579f4b3207b0434755ca23dd06481af90c05f71e9b365848cf9a7c12d1",
+    "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f8d4593bb4ba/compatibility-patches/payload/src/xge/core/xge_core.c": "b87d72adc887352629ccba72bbfb642276fc68e64d283eb77391c0cc23acdf0b",
+    "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f8d4593bb4ba/compatibility-patches/payload/src/xge/core/xge_impl.c": "07fb8b684e7d2d48cb24da2dca23b9038e998e95f7e72da15b095ea9036fbcee",
+    "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f8d4593bb4ba/compatibility-patches/payload/src/xui/code/xui_code_document.c": "91f09ba62af2f40674b34431cf8c4229db78ff621c7fadc658dfbf9645b1dcc7",
+    "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f8d4593bb4ba/compatibility-patches/payload/src/xui/code/xui_code_edit.c": "4f8b6f18b219aeaf89957033920bc5e9962b7797b2d66fa8aef83255ee796331",
+    "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f8d4593bb4ba/compatibility-patches/payload/src/xui/controls/xui_message_list.c": "212d887196589d4203d9feefb84f5e37b830fa0b58b6642ab722f9ffc87dbc73",
+    "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f8d4593bb4ba/compatibility-patches/payload/src/xui/controls/xui_table_view.c": "2eca10781dac61e8b8bd3c54ac5919868183f643269c874f7e3276bb5c64caef",
+    "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f8d4593bb4ba/compatibility-patches/payload/src/xui/controls/xui_tree_view.c": "8fbe4f9172772e6af043e59926c47f32f2748d9d24ee0c58775270072d0b1272",
+    "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f8d4593bb4ba/compatibility-patches/payload/src/xui/core/xui_internal.h": "be5b71c9a5f910723a41c9e429edff4709113eabea59f42eebd19ee5c39e7481",
+    "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f8d4593bb4ba/compatibility-patches/payload/src/xui/core/xui_text_edit.c": "e9b4d0544509465a78c5048ec13651cb1c28a3dfc6ce57629aa8c83953330d9f",
+    "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f8d4593bb4ba/compatibility-patches/payload/src/xui/core/xui_widget.c": "2114b4449e06778fafccc4872c23f622acfe4fff7bd55e07a379375deb21beac",
+    "ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f8d4593bb4ba/compatibility-patches/payload/tools/build/build.py": "5db5a93e77dbc39e7520f83d7dba02edd1d4c3c74f1574a8cffe0ed59d7719f7",
+    "tools/git_repository_policy.json": "1f37053e0646f7a42bdd37d14c1decd3e1c3704afdc295be75d5bc7e473cd20a"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-dpi-startup-20261112.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-dpi-startup-20261112/stage-sources-and-sdk.tar.gz",
+      "sha256": "159f2c77d40531e72cedde6e1c895510f8b07fd9ebde7f026057f1eccf37b592",
+      "bytes": 11256403,
+      "entries": 62,
+      "uniquePayloads": 53,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-dpi-startup-20261112/stage-sources-and-sdk.tar.gz.manifest.json",
+      "sha256": "9f1c53d4d617fec13aa6cdab8f8c9e5c59b4fed9ec2f55e518f939df79cf892f",
+      "bytes": 21440
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-dpi-startup-20261112/actual-builds-and-validation.tar.gz",
+      "sha256": "97ee35838a007754867cbcd87440c417d081b5149c19307219264df894f5c3df",
+      "bytes": 540793451,
+      "entries": 17337,
+      "uniquePayloads": 5516,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-dpi-startup-20261112/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "cb3324ac4ef45216ce6a0e24ae15071246d3d4176ee6830ab346a2faf2d05095",
+      "bytes": 6643310
+    }
+  },
+  "currentBindings": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-dpi-startup-20261112\\final-bindings.json",
+    "sha256": "b52c89e155b2fb6f2281ee0f8a8bc6d1d51e6eb070654e2e3cec2946f3be952e"
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "serviceSha256": "bbd4b2571cd24696771091f9d24863099ac581110cacb47066f9607ac89987db",
+  "serviceInheritedFrom": "dev/release-materials/provenance/lsp-toolchain-lease-20261112.json",
+  "sdk": {
+    "dllSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "sourceBase": "2174bf5b8e68a9069bd9788bd2f73444b9a0d722",
+    "upstreamFixCommit": "1ba93e6b3ea49e80d9d821894811caef599634f3",
+    "sourceFiles": 791,
+    "compiledUnits": 173,
+    "strictWarningCUnits": 172,
+    "vendorCppUnitsWithOwnFlags": 1,
+    "publicHeadersUnchanged": true,
+    "explicitCompatibilityOverlay": true,
+    "matchedSetAdopted": true,
+    "dependencyOwnedMetadataPreserved": true
+  },
+  "correctness": {
+    "guiProductionUnits": 124,
+    "guiSuites": 52,
+    "creationAssertionsEachOptimization": 191,
+    "creationOptimizationLevels": [
+      "O0",
+      "O2"
+    ],
+    "rejectedImplementationMutants": 4,
+    "nativeSearchAssertions": 307,
+    "toolchainLeaseAssertions": 179,
+    "strongerGotoAssertions": 97,
+    "legacyComprehensiveToolchainProgramPassed": true,
+    "actualCAndXlangBuildRun": true,
+    "inheritedDiagnosticPointerIdentity": true,
+    "integerOnlyFailureAndFirstDiagnostic": true,
+    "parentInitRefusalStopsChildAndRetiresCompletedPrefix": true,
+    "nativePartOutputOwnerInvalidation": true,
+    "ambientErrorsDoNotRefuseWorkspaceTextEditCreation": true,
+    "nullableSearchInputsDoNotSetAnError": true,
+    "handledFontRollbackRestoresEntryDiagnostic": true,
+    "typingDeleteUndoImeAndFocus": true,
+    "actualGuiLanguages": [
+      "C",
+      "xlang"
+    ],
+    "actualGuiFramesEach": 24,
+    "visualScreenshotsInspected": true,
+    "rawFailedAttemptsRetained": true,
+    "finalGuiSuiteInputsUnchanged": true
+  },
+  "baselineFailures": [
+    {
+      "fixture": "native CodeEdit find-scope table",
+      "candidate": "native-regression-v3/code_edit.log",
+      "baseline": "code-baseline-v2/test.log",
+      "claim": "Same assertion with the preceding SDK object set; private helper addition does not change consumed layout; unresolved and not counted as passed"
+    },
+    {
+      "fixture": "lifetime observer pending-scope notification",
+      "candidate": "lifetime-current-v4/results.json",
+      "baseline": "lifetime-baseline-v1/results.json",
+      "claim": "Same assertion at O0/O2 with the preceding widget implementation; unresolved and not counted as passed"
+    }
+  ],
+  "limits": [
+    "No full LSP goal, whole-application latency, RSS, Linux, sanitizer or final delivery qualification",
+    "Selected lifecycle, drag/drop, callback and payload tests pass O0/O2; the default whole lifetime suite remains unqualified",
+    "The native stage uses a pinned SDK base and explicit overlays; it does not adopt unrelated newer MessageList producer changes",
+    "A stronger test-only precondition was added during an earlier GUI pass; that pass was correctly rejected by its final identity gate; the final frozen pass reruns all 52 suites",
+    "The complete source transaction host, prepared/open admission, remaining source/physical/request/consent policy, recovery UI and standard rename/applyEdit activation remain open",
+    "Earlier cached analysis-configuration build-count and import-dependency semantic-error completion issues remain open",
+    "Default runtime and active current-delivery bytes are preserved; runtime execution uses exact private aliases solely for matched SDK and baseline comparison"
+  ],
+  "postCommitReceipt": "dev/release-materials/provenance/lsp-dpi-startup-20261112/postcommit.json"
+}

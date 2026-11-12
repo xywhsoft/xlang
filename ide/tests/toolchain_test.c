@@ -1,6 +1,7 @@
 #define _WIN32_WINNT 0x0601
 #include "app/xide_app.h"
 #include "ui/toolchain_view.h"
+#include "ui/main_toolbar.h"
 #include "ui/workspace_view.h"
 #include "ui/editor_view.h"
 #include "ui/task_view.h"
@@ -38,8 +39,11 @@ static int settle(xide_app* a) { if(xuiDispatchPendingEvents(a->context)!=XUI_OK
 static int pointer(xide_app* a,xui_rect_t r) { float x=r.fX+r.fW/2,y=r.fY+r.fH/2; return xuiInputPointerMove(a->context,x,y,0)==XUI_OK && xuiInputPointerDown(a->context,x,y,XUI_POINTER_BUTTON_LEFT,XUI_POINTER_BUTTON_LEFT)==XUI_OK && xuiInputPointerUp(a->context,x,y,XUI_POINTER_BUTTON_LEFT,0)==XUI_OK && settle(a); }
 static int click(xide_app* a,int id)
 {
- xui_widget w=xideToolchainViewControl(a,id),scroll=xideDialogGetScrollViewWidget(xideToolchainViewWindow(a)); if(xuiScrollViewEnsureChildVisible(scroll,w)!=XUI_OK || !settle(a)) return 0;
- xui_rect_t r=xuiWidgetGetWorldRect(w),visible=xuiWidgetGetWorldRect(scroll); float right=r.fX+r.fW,bottom=r.fY+r.fH;
+ xui_widget window=xideToolchainViewWindow(a),w=xideToolchainViewControl(a,id),scroll=xideDialogGetScrollViewWidget(window),parent=w;
+ while(parent && parent!=scroll) parent=xuiWidgetGetParent(parent);
+ /* Form actions live in the fixed footer, outside the scrolling content. */
+ if((parent && xuiScrollViewEnsureChildVisible(scroll,w)!=XUI_OK) || !settle(a)) return 0;
+ xui_rect_t r=xuiWidgetGetWorldRect(w),visible=xuiWidgetGetWorldRect(parent ? scroll:window); float right=r.fX+r.fW,bottom=r.fY+r.fH;
  if(r.fX<visible.fX) r.fX=visible.fX;
  if(r.fY<visible.fY) r.fY=visible.fY;
  if(right>visible.fX+visible.fW) right=visible.fX+visible.fW;
@@ -60,9 +64,12 @@ static int waitView(xide_app* a) { uint64_t until=GetTickCount64()+25000; do { i
 static int waitTask(xide_tasks* tasks,xide_task* task,xide_task_info* info) { uint64_t until=GetTickCount64()+25000; do { xideTasksPoll(tasks); xideTaskInfo(task,info); if(info->state>=XIDE_TASK_SUCCEEDED) return 1; Sleep(5); } while(GetTickCount64()<until); return 0; }
 static int menuOpen(xide_app* a)
 {
- int i=-1; for(int j=0;j<xuiMenuGetItemCount(a->fileMenu);++j) if(xuiMenuGetItem(a->fileMenu,j)->iValue==XIDE_ACTION_TOOLCHAIN_INFO) i=j;
- if(i<0 || xuiMenuOpenAt(a->fileMenu,a->root,80,40)!=XUI_OK || !settle(a)) return 0;
- xui_rect_t r=xuiMenuGetItemRect(a->fileMenu,i),world=xuiWidgetGetWorldRect(a->fileMenu); r.fX+=world.fX; r.fY+=world.fY; return pointer(a,r);
+ xui_widget more=xideMainToolbarControl(a,XIDE_TB_MORE);
+ if(!more || !pointer(a,xuiWidgetGetWorldRect(more))) return 0;
+ xui_widget menu=xideMainToolbarMenu(a);const xide_action_info* action=xideActionFind(XIDE_ACTION_TOOLCHAIN_INFO);
+ int i=-1; for(int j=0;menu && action && j<xuiMenuGetItemCount(menu);++j) if(!strcmp(xuiMenuGetItem(menu,j)->sText,action->title)) i=j;
+ if(i<0 || !settle(a)) return 0;
+ xui_rect_t r=xuiMenuGetItemRect(menu,i),world=xuiWidgetGetWorldRect(menu); r.fX+=world.fX; r.fY+=world.fY; return pointer(a,r);
 }
 static int sameBytes(const char* path,const char* expected) { size_t n=0; char* s=(char*)xrtFileReadAll(path,&n); int okay=s && n==strlen(expected) && !memcmp(s,expected,n); xrtFree(s); return okay; }
 static int verify(void* user)
@@ -112,9 +119,21 @@ static int verify(void* user)
  CHECK(menuOpen(&app) && xideToolchainViewIsOpen(&app) && waitView(&app) && strstr(xuiTextEditGetText(xideToolchainViewControl(&app,XIDE_TOOL_INFO)),"1.2.3.4") && xuiTextEditIsReadonly(xideToolchainViewControl(&app,XIDE_TOOL_HELP)) && capture(&app,image));
  CHECK(xideActionsHasModal(&app) && xideActionExecute(&app,XIDE_ACTION_NEW)==XIDE_ACTION_DISABLED && !xideReferencesViewOpen(&app) && !xideResourceViewOpen(&app) && !xideConfigurationViewOpen(&app) && !xideFontViewOpen(&app) && !xideImportViewOpen(&app) && !xideTemplateViewOpen(&app) && !xideRecoveryViewOpen(&app) && !xideFileChangesViewOpen(&app));
  char* help=KEEP(copy(xuiTextEditGetText(xideToolchainViewControl(&app,XIDE_TOOL_HELP)))); CHECK(xuiSetFocusWidget(app.context,xideToolchainViewControl(&app,XIDE_TOOL_HELP))==XUI_OK && xuiInputText(app.context,'X')==XUI_OK && settle(&app) && !strcmp(help,xuiTextEditGetText(xideToolchainViewControl(&app,XIDE_TOOL_HELP))));
- CHECK(writeText(mode,"nonzero") && click(&app,XIDE_TOOL_REFRESH) && waitView(&app) && strstr(xideToolchainViewMessage(&app),"上次有效") && !strcmp(help,xuiTextEditGetText(xideToolchainViewControl(&app,XIDE_TOOL_HELP))) && xuiWidgetGetEnabled(xideToolchainViewControl(&app,XIDE_TOOL_REFRESH)) && !(xuiWidgetGetStateId(xideToolchainViewControl(&app,XIDE_TOOL_REFRESH))&XUI_WIDGET_STATE_DISABLED) && !xuiWidgetGetEnabled(xideToolchainViewControl(&app,XIDE_TOOL_CANCEL)) && capture(&app,imageFailed));
+ CHECK(writeText(mode,"nonzero"));
+ CHECK(click(&app,XIDE_TOOL_REFRESH));
+ CHECK(waitView(&app));
+ CHECK(strstr(xideToolchainViewMessage(&app),"上次有效"));
+ CHECK(!strcmp(help,xuiTextEditGetText(xideToolchainViewControl(&app,XIDE_TOOL_HELP))));
+ CHECK(xuiWidgetGetEnabled(xideToolchainViewControl(&app,XIDE_TOOL_REFRESH)));
+ CHECK(!(xuiWidgetGetStateId(xideToolchainViewControl(&app,XIDE_TOOL_REFRESH))&XUI_WIDGET_STATE_DISABLED));
+ CHECK(!xuiWidgetGetEnabled(xideToolchainViewControl(&app,XIDE_TOOL_CANCEL)));
+ CHECK(capture(&app,imageFailed));
  CHECK(writeText(mode,"slow") && click(&app,XIDE_TOOL_REFRESH) && xideToolchainViewBusy(&app) && click(&app,XIDE_TOOL_CANCEL) && waitView(&app) && strstr(xideToolchainViewMessage(&app),"取消"));
- CHECK(xideUiFontApply(&app,app.uiFontPath,40,&error) && resize(&app,700,460) && xuiTextEditGetFont(xideToolchainViewControl(&app,XIDE_TOOL_HELP))==app.uiFont && xuiScrollViewEnsureChildVisible(xideDialogGetScrollViewWidget(xideToolchainViewWindow(&app)),xideToolchainViewControl(&app,XIDE_TOOL_CLOSE))==XUI_OK && capture(&app,imageLarge));
+ CHECK(xideUiFontApply(&app,app.uiFontPath,40,&error));
+ CHECK(resize(&app,700,460));
+ CHECK(xuiTextEditGetFont(xideToolchainViewControl(&app,XIDE_TOOL_HELP))==app.uiFont);
+ CHECK(xuiWidgetGetParent(xideToolchainViewControl(&app,XIDE_TOOL_CLOSE))==xuiWidgetGetParent(xideToolchainViewControl(&app,XIDE_TOOL_REFRESH)));
+ CHECK(capture(&app,imageLarge));
  CHECK(click(&app,XIDE_TOOL_CLOSE) && !xideToolchainViewIsOpen(&app) && xideUiFontApply(&app,app.uiFontPath,16,&error) && resize(&app,1280,800));
  CHECK(xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(xlDoc->editor))==xlVersion && xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(cDoc->editor))==cVersion && !xlDoc->dirty && !cDoc->dirty); xvalue* after=xideProjectExport(&app.workspaceModel.projects[0],&error); CHECK(after && xrtValueEqual(after,baseline)); xrtValueRelease(after);
  CHECK(writeText(mode,"normal") && xideToolchainViewOpen(&app) && waitView(&app) && writeText(mode,"slow") && click(&app,XIDE_TOOL_REFRESH) && xideToolchainViewBusy(&app)); uint64_t closing=GetTickCount64(); CHECK(click(&app,XIDE_TOOL_CLOSE) && GetTickCount64()-closing<2000 && !xideToolchainViewIsOpen(&app) && waitView(&app));

@@ -122,7 +122,8 @@ static int verify(void* user) {
  CHECK(xideUiFontApply(&app,app.uiFontPath,16,&error) && settle(&app) && key(&app,'G',XUI_MOD_CTRL));
  wchar_t lockedPath[32768];CHECK(MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,settings,-1,lockedPath,32768));
  HANDLE lock=CreateFileW(lockedPath,GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL);CHECK(lock!=INVALID_HANDLE_VALUE);
- xui_font font=app.uiFont;int blocked=!xideUiFontApply(&app,app.uiFontPath,24,&error);CloseHandle(lock);
+ xui_font font=app.uiFont;CHECK(!xrtGetError());xrtSetErrorInfo(XERR_STATE,"font-rollback-test",73,"earlier handled error");const xerror* previous=xrtGetError();int blocked=!xideUiFontApply(&app,app.uiFontPath,24,&error);CloseHandle(lock);
+ CHECK(blocked && previous && xrtGetError()==previous);xrtClearError();
  CHECK(blocked && app.uiFont==font && app.uiFontSize==16 && xuiInputGetFont(xideGotoViewControl(&app,XIDE_GOTO_POSITION))==font && settle(&app) && key(&app,XUI_KEY_ESCAPE,0));
  size_t fileSize=0;unsigned char* bytes=xrtFileReadAllLimit(source,1024,&fileSize);int unchanged=bytes && fileSize==strlen(original) && !memcmp(bytes,original,fileSize);xrtFree(bytes);CHECK(unchanged);
  printf("goto_view_test passed: %d assertions; real menu/context/Ctrl+G/Enter/Escape/button routing, native Unicode grapheme columns, trailing empty line and invalid bounds, native empty/nonempty IME, modal and ordinary-field isolation, C/xlang/plain/untitled/read-only navigation, stable document identity/version, undo/redo and dirty/disk preservation, enclosing fold reveal and unchanged sibling fold, viewport scrolling, UIFont rollback, 125/200%% DPI and four native screenshots\n",f->checks);

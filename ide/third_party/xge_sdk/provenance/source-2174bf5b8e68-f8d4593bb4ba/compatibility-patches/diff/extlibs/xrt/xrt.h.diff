@@ -1,0 +1,136 @@
+--- upstream/extlibs/xrt/xrt.h
++++ matched/extlibs/xrt/xrt.h
+@@ -13563,6 +13563,34 @@
+ /* Exact byte key, including embedded NUL. A missing field returns NULL without
+  * an error; NULL data with a nonzero key size is an invalid argument. */
+ XRT_API const xvalue* xrtValueObjectReadGetV1(const xvalueobjectreadv1* pView, xstrview Key);
++/* Allocation-free read scope for wire Array/Object containers. Caller owns
++ * the real receiver for the complete synchronous scope and serializes access
++ * to it. Begin borrows, never retains/clones/boxes any value or backing. The
++ * receiver is BUSY until End: mutation, retain, clone and release through that
++ * shell fail; independently owned aliases retain normal COW behavior. Children
++ * and key/text bytes are borrowed only until End; open child containers before
++ * invoking code that could change their contents. No suspend, thread transfer,
++ * copying a live scope, or accessing raw receiver APIs while it is active.
++ * Storage starts zeroed. End clears it and is idempotent on a cleared scope.
++ * Scope guards add no fields or checks to ordinary values or operations. */
++#ifndef XRT_VALUE_VIEW_V1_DEFINED
++#define XRT_VALUE_VIEW_V1_DEFINED
++typedef struct xvalueviewv1 {
++    const struct xvalueviewv1* Self;
++    const xvalue* Value;
++    const void* Backing;
++    size_t Count;
++    xvaluetype Type;
++} xvalueviewv1;
++XRT_API bool xrtValueViewBeginV1(const xvalue* pValue, xvalueviewv1* pView);
++XRT_API bool xrtValueViewEndV1(xvalueviewv1* pView);
++XRT_API size_t xrtValueViewCountV1(const xvalueviewv1* pView);
++/* At is checked, zero-based; Object keys retain insertion order. Find is
++ * Object-only, with exact byte keys. Missing Find returns NULL without error. */
++XRT_API const xvalue* xrtValueViewAtV1(const xvalueviewv1* pView, size_t iIndex, xstrview* pKey);
++XRT_API const xvalue* xrtValueViewFindV1(const xvalueviewv1* pView, xstrview Key);
++#endif
++
+ /* Borrowed discovery anchors for this instance's live, explicitly certified
+  * Object backings. Policy identity is exact; COW/deep-clone backings are each
+  * visited once, with their shared Lifetime UserData (possibly NULL). Ordinary
+@@ -113405,6 +113433,78 @@
+ 
+ 
+ 
++/* Read scopes reuse the existing shell callback guard. The caller's actual
++ * owner is the lifetime root; no manufactured shell or hidden allocation. */
++static bool __xrtValueViewValidV1(const xvalueviewv1* pView)
++{
++    if (pView == NULL || pView->Self != pView || pView->Value == NULL ||
++        pView->Backing == NULL || pView->Value->Data.Backing != pView->Backing ||
++        (pView->Value->Flags & XRT_VALUE_FLAG_BUSY) == 0 ||
++        pView->Value->Type != pView->Type ||
++        (pView->Type != XVALUE_ARRAY && pView->Type != XVALUE_OBJECT)) {
++        __xrtErrorSetInvalidState(); return false;
++    }
++    return true;
++}
++static bool __xrtOwnershipBody_ValueViewBeginV1(const xvalue* pValue, xvalueviewv1* pView)
++{
++    if (pValue == NULL || pView == NULL || pView->Self || pView->Value || pView->Backing ||
++        pView->Count || pView->Type) { __xrtErrorSetInvalidArgument(); return false; }
++    if (pValue->Type != XVALUE_ARRAY && pValue->Type != XVALUE_OBJECT) {
++        __xrtErrorSetType(); return false;
++    }
++    xvaluebacking* pBacking = __xrtValueBacking(pValue, (xvaluetype)pValue->Type);
++    if (pBacking == NULL) return false;
++    if (__xrtAtomicRefLoad(&pValue->RefCount) <= 0 || pValue->OwnershipClaim || pBacking->OwnershipClaim ||
++        (pValue->Flags & (XRT_VALUE_FLAG_STATIC | XRT_VALUE_FLAG_FINALIZING | XRT_VALUE_FLAG_OWNERSHIP_CLEARED)) ||
++        (pBacking->Flags & (XRT_VALUE_BACKING_FINALIZING | XRT_VALUE_BACKING_OWNERSHIP_CLEARED))) {
++        __xrtErrorSetInvalidState(); return false;
++    }
++    size_t iCount = __xrtValueContainerCount(pValue);
++    ((xvalue*)pValue)->Flags |= XRT_VALUE_FLAG_BUSY;
++    *pView = (xvalueviewv1){pView, pValue, pBacking, iCount, (xvaluetype)pValue->Type};
++    return true;
++}
++XRT_API bool xrtValueViewBeginV1(const xvalue* pValue, xvalueviewv1* pView)
++{ XRT_VALUE_MUTATION_RETURN(bool, __xrtOwnershipBody_ValueViewBeginV1(pValue, pView)); }
++static bool __xrtOwnershipBody_ValueViewEndV1(xvalueviewv1* pView)
++{
++    if (pView && !pView->Self && !pView->Value && !pView->Backing && !pView->Count && !pView->Type) return true;
++    if (!__xrtValueViewValidV1(pView)) return false;
++    ((xvalue*)pView->Value)->Flags &= (uint16)(UINT16_MAX ^ XRT_VALUE_FLAG_BUSY);
++    *pView = (xvalueviewv1){0}; return true;
++}
++XRT_API bool xrtValueViewEndV1(xvalueviewv1* pView)
++{ XRT_VALUE_MUTATION_RETURN(bool, __xrtOwnershipBody_ValueViewEndV1(pView)); }
++XRT_API size_t xrtValueViewCountV1(const xvalueviewv1* pView)
++{ return __xrtValueViewValidV1(pView) ? pView->Count : 0; }
++XRT_API const xvalue* xrtValueViewAtV1(const xvalueviewv1* pView, size_t iIndex, xstrview* pKey)
++{
++    if (!__xrtValueViewValidV1(pView)) return NULL;
++    if (iIndex >= pView->Count) { __xrtErrorSetRange(); return NULL; }
++    if (pView->Type == XVALUE_ARRAY) {
++        const xvaluearraybacking* pArray = pView->Backing;
++        if (pKey) *pKey = (xstrview){0};
++        return xrtPtrArrayGet(&pArray->Items, iIndex);
++    }
++    const xvalueobjectbacking* pObject = pView->Backing;
++    xmapiter Iterator = {0}; xbytesview Key = {0}; const xvalue* const* pSlot = NULL;
++    if (!xrtMapIterBegin((xmap*)&pObject->Items, &Iterator)) return NULL;
++    for (size_t i = 0; i <= iIndex; ++i) pSlot = (const xvalue* const*)xrtMapIterNext(&Iterator, &Key);
++    xrtMapIterEnd(&Iterator);
++    if (pKey) *pKey = (xstrview){(const char*)Key.Data, Key.Size};
++    return pSlot ? *pSlot : NULL;
++}
++XRT_API const xvalue* xrtValueViewFindV1(const xvalueviewv1* pView, xstrview Key)
++{
++    if (!__xrtValueViewValidV1(pView)) return NULL;
++    if (pView->Type != XVALUE_OBJECT) { __xrtErrorSetType(); return NULL; }
++    if (!__xrtValueObjectKeyValid(Key)) return NULL;
++    const xvalueobjectbacking* pObject = pView->Backing;
++    const xvalue* const* pSlot = xrtMapConstGet(&pObject->Items, __xrtValueObjectKey(Key));
++    return pSlot ? *pSlot : NULL;
++}
++
+ /* 返回已经沿 COW 路径分离的可变 Object 子容器。 */
+ static xvalue* __xrtOwnershipBody_ValueObjectEdit(xvalue* pObject, xstrview Key)
+ {
+@@ -113607,8 +113707,17 @@
+ 	xrtownershipscope Mutation = {0};
+ 	xvalue* pOld = NULL;
+ 	if (!xrtOwnershipMutationBegin(&Mutation)) abort();
+-	xvalue* pPin = xrtValueRetain(pObject);
+-	bool bResult = pPin != NULL && __xrtValueObjectExchangeOwned(pObject, Key, pItem, &pOld);
++	/* Finalize already borrows the last-live real shell under the backing's
++	 * release guard. Pinning that shell would resurrect it and is forbidden.
++	 * Only this authenticated finalizing receiver may reuse that borrow; all
++	 * normal replacements keep their independent receiver pin. */
++	bool bFinalizerBorrow = pObject != NULL && pObject->Type == XVALUE_OBJECT &&
++		(pObject->Flags & (XRT_VALUE_FLAG_FINALIZING | XRT_VALUE_FLAG_BUSY)) == XRT_VALUE_FLAG_FINALIZING &&
++		pObject->Data.Backing != NULL &&
++		(pObject->Data.Backing->Flags & XRT_VALUE_BACKING_FINALIZING) != 0;
++	xvalue* pPin = bFinalizerBorrow ? NULL : xrtValueRetain(pObject);
++	bool bResult = (bFinalizerBorrow || pPin != NULL) &&
++		__xrtValueObjectExchangeOwned(pObject, Key, pItem, &pOld);
+ 	if (!xrtOwnershipScopeEnd(&Mutation)) abort();
+ 	/* On failure retire the unaccepted input, on success the detached field.
+  * A pinned receiver survives arbitrary old-value cleanup. Preserve the first

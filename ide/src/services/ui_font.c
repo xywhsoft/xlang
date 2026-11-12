@@ -205,7 +205,7 @@ static void restoreScroll(const ui_scrolls* list)
         else xuiCodeEditSetScroll(value->widget,value->x,value->y);
     }
 }
-int xideUiFontApply(xide_app* app,const char* path,int size,xide_model_error* error)
+static int applyFont(xide_app* app,const char* path,int size,xide_model_error* error)
 {
     if(error) memset(error,0,sizeof(*error));
     if(!app || !app->context) return fail(error,XIDE_MODEL_INVALID,"A native workbench is required to change fonts.");
@@ -243,4 +243,17 @@ int xideUiFontApply(xide_app* app,const char* path,int size,xide_model_error* er
     restoreScroll(&scroll); xideReadingRestore(app,reading,1); xrtValueRelease(reading); free(scroll.items); free(scroll.scan.items);
     if(previous && previous!=app->codeFont) app->proxy.fontDestroy(&app->proxy,previous);
     free(app->uiFontPath); app->uiFontPath=resolved; xgeRenderRequest(); return 1;
+}
+
+/* A refused UI change is reported through the model error and has already
+ * rolled back. Consume its native diagnostic so a handled settings/file error
+ * cannot escape the frame callback as a second fatal failure. */
+int xideUiFontApply(xide_app* app,const char* path,int size,xide_model_error* error)
+{
+    xerror* previous=xrtTakeError();
+    int okay=applyFont(app,path,size,error);
+    xerror* fresh=xrtTakeError();
+    if(!okay || !fresh) { xrtErrorFree(fresh);xrtSetErrorTake(previous); }
+    else { xrtErrorFree(previous);xrtSetErrorTake(fresh); }
+    return okay;
 }

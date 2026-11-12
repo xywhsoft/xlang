@@ -313,3 +313,8 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 /ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-919a9f0b7953/** -text -whitespace
 /ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-49cb3961efc3/** -text -whitespace
 /ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-087c300340c8/** -text -whitespace
+
+# Exact-byte startup diagnostic SDK/source captures.
+/ide/third_party/xge_sdk/provenance/source-2174bf5b8e68-f8d4593bb4ba/** -text -whitespace
+/ide/third_party/xge_sdk/provenance/compatibility-patches/diff/src/xui/core/xui_text_edit.c.diff -text -whitespace
+/ide/third_party/xge_sdk/provenance/compatibility-patches/diff/src/xui/controls/xui_message_list.c.diff -text -whitespace

@@ -4449,6 +4449,11 @@
     "c8b189a67991de59fd243713a67a10c5469c4e44": {
       "bytes": 11182856,
       "path": "ide/third_party/xge_sdk/xge.dll"
+    },
+    "077fae6d0906e9b32df808b40f798866ec1e78ed": {
+      "bytes": 11185416,
+      "path": "ide/third_party/xge_sdk/xge.dll",
+      "reason": "Matched XGE SDK startup/error-boundary fix; full native and GUI qualification in lsp-dpi-startup-20261112"
     }
   }
 }

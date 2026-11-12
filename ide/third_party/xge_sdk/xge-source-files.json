@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "root": "F:\\codex-builds-xlang-lsp-20261111\\xui-batch-worker\\source-v1",
+  "root": "F:\\codex-builds-xlang-lsp-20261112\\dpi-startup\\source-v1",
   "sourceCommit": "2174bf5b8e68a9069bd9788bd2f73444b9a0d722",
   "sourceFileCount": 791,
   "files": [
@@ -2996,8 +2996,8 @@
     },
     {
       "path": "src/xui/code/xui_code_edit.c",
-      "sha256": "b5fcf8a4cdb5fe082eecdb9c1720e5b72bd42a6d09dbc2724792eabd7d0c8b40",
-      "size": 373020
+      "sha256": "4f8b6f18b219aeaf89957033920bc5e9962b7797b2d66fa8aef83255ee796331",
+      "size": 382420
     },
     {
       "path": "src/xui/code/xui_code_editing.c",
@@ -3196,8 +3196,8 @@
     },
     {
       "path": "src/xui/controls/xui_message_list.c",
-      "sha256": "3109cdc222f95c2c90fe4e5a9926a970fc1db87d06988be9f91e343300e46f96",
-      "size": 263523
+      "sha256": "212d887196589d4203d9feefb84f5e37b830fa0b58b6642ab722f9ffc87dbc73",
+      "size": 269386
     },
     {
       "path": "src/xui/controls/xui_msgbox.c",
@@ -3451,8 +3451,8 @@
     },
     {
       "path": "src/xui/core/xui_internal.h",
-      "sha256": "e527813c222444f925b48ab5625eeb77868ef571441ccb64780e99edb9205eaf",
-      "size": 61012
+      "sha256": "be5b71c9a5f910723a41c9e429edff4709113eabea59f42eebd19ee5c39e7481",
+      "size": 62818
     },
     {
       "path": "src/xui/core/xui_layout.c",
@@ -3546,8 +3546,8 @@
     },
     {
       "path": "src/xui/core/xui_text_edit.c",
-      "sha256": "2b914e629a58256c5998f4bf7d90db88994cbad037159d4c9eb44ea021176eb0",
-      "size": 238566
+      "sha256": "e9b4d0544509465a78c5048ec13651cb1c28a3dfc6ce57629aa8c83953330d9f",
+      "size": 244709
     },
     {
       "path": "src/xui/core/xui_text_internal.h",
@@ -3581,8 +3581,8 @@
     },
     {
       "path": "src/xui/core/xui_widget.c",
-      "sha256": "4a19fbd994920c1dd10e0eeafa72d68fa89bda75f3483bb60e08e6450bcae4cf",
-      "size": 326643
+      "sha256": "2114b4449e06778fafccc4872c23f622acfe4fff7bd55e07a379375deb21beac",
+      "size": 328659
     },
     {
       "path": "src/xui/core/xui_xrt_port.h",
@@ -3941,8 +3941,8 @@
     },
     {
       "path": "tools/build/build.py",
-      "sha256": "754840e4a884f5d24e73cfa1e2b16a111ecd906d3354a207dd77b9a00dfe41dd",
-      "size": 17200
+      "sha256": "5db5a93e77dbc39e7520f83d7dba02edd1d4c3c74f1574a8cffe0ed59d7719f7",
+      "size": 17226
     },
     {
       "path": "tools/build/build_dll.bat",
@@ -3964,7 +3964,7 @@
   "compatibilityPatches": {
     "format": "xlang-ide-xge-source-patches-1",
     "baseCommit": "2174bf5b8e68a9069bd9788bd2f73444b9a0d722",
-    "purpose": "Retain matched IDE source cohort and stage prepared multi-document payloads on a worker and preserve old public layouts; all173 header/fingerprint consumers rebuilt",
+    "purpose": "Inherit pinned matched IDE producer cohort and repair constructor ambient/new-error boundaries and20 TextEdit,15 MessageList and1 CodeEdit receipt restorations; public layouts unchanged; all173 producers rebuilt,172 C units with-Werror and the existing HarfBuzz C++ options retained",
     "files": [
       {
         "path": "extlibs/sokol/sokol_app.h",
@@ -4010,7 +4010,7 @@
         "path": "tools/build/build.py",
         "upstreamExists": true,
         "upstreamSha256": "15f60f70709dceea1b2e35eda959834378f699ef8cf34d9a9360a46503783d7e",
-        "sha256": "754840e4a884f5d24e73cfa1e2b16a111ecd906d3354a207dd77b9a00dfe41dd",
+        "sha256": "5db5a93e77dbc39e7520f83d7dba02edd1d4c3c74f1574a8cffe0ed59d7719f7",
         "payload": "payload/tools/build/build.py",
         "diff": "diff/tools/build/build.py.diff"
       },
@@ -4042,7 +4042,7 @@
         "path": "src/xui/code/xui_code_edit.c",
         "upstreamExists": true,
         "upstreamSha256": "fa86a2be94150c73b0e2ea377ab75cb7c95338c3f97b9755c10d03b7994942a2",
-        "sha256": "b5fcf8a4cdb5fe082eecdb9c1720e5b72bd42a6d09dbc2724792eabd7d0c8b40",
+        "sha256": "4f8b6f18b219aeaf89957033920bc5e9962b7797b2d66fa8aef83255ee796331",
         "payload": "payload/src/xui/code/xui_code_edit.c",
         "diff": "diff/src/xui/code/xui_code_edit.c.diff"
       },
@@ -4053,8 +4053,40 @@
         "sha256": "91f09ba62af2f40674b34431cf8c4229db78ff621c7fadc658dfbf9645b1dcc7",
         "payload": "payload/src/xui/code/xui_code_document.c",
         "diff": "diff/src/xui/code/xui_code_document.c.diff"
+      },
+      {
+        "path": "src/xui/core/xui_internal.h",
+        "upstreamExists": true,
+        "upstreamSha256": "e527813c222444f925b48ab5625eeb77868ef571441ccb64780e99edb9205eaf",
+        "sha256": "be5b71c9a5f910723a41c9e429edff4709113eabea59f42eebd19ee5c39e7481",
+        "payload": "payload/src/xui/core/xui_internal.h",
+        "diff": "diff/src/xui/core/xui_internal.h.diff"
+      },
+      {
+        "path": "src/xui/core/xui_widget.c",
+        "upstreamExists": true,
+        "upstreamSha256": "4a19fbd994920c1dd10e0eeafa72d68fa89bda75f3483bb60e08e6450bcae4cf",
+        "sha256": "2114b4449e06778fafccc4872c23f622acfe4fff7bd55e07a379375deb21beac",
+        "payload": "payload/src/xui/core/xui_widget.c",
+        "diff": "diff/src/xui/core/xui_widget.c.diff"
+      },
+      {
+        "path": "src/xui/core/xui_text_edit.c",
+        "upstreamExists": true,
+        "upstreamSha256": "2b914e629a58256c5998f4bf7d90db88994cbad037159d4c9eb44ea021176eb0",
+        "sha256": "e9b4d0544509465a78c5048ec13651cb1c28a3dfc6ce57629aa8c83953330d9f",
+        "payload": "payload/src/xui/core/xui_text_edit.c",
+        "diff": "diff/src/xui/core/xui_text_edit.c.diff"
+      },
+      {
+        "path": "src/xui/controls/xui_message_list.c",
+        "upstreamExists": true,
+        "upstreamSha256": "3109cdc222f95c2c90fe4e5a9926a970fc1db87d06988be9f91e343300e46f96",
+        "sha256": "212d887196589d4203d9feefb84f5e37b830fa0b58b6642ab722f9ffc87dbc73",
+        "payload": "payload/src/xui/controls/xui_message_list.c",
+        "diff": "diff/src/xui/controls/xui_message_list.c.diff"
       }
     ]
   },
-  "compatibilityPatchRoot": "provenance/source-2174bf5b8e68-087c300340c8/compatibility-patches"
+  "compatibilityPatchRoot": "provenance/source-2174bf5b8e68-f8d4593bb4ba/compatibility-patches"
 }

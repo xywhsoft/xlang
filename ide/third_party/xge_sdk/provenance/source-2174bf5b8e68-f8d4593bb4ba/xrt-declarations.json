@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "source": "extlibs/xrt/xrt.h",
+  "sourceSha256": "41bc24579f4b3207b0434755ca23dd06481af90c05f71e9b365848cf9a7c12d1",
+  "operation": "matched xrt_config.h include followed by exact byte prefix before the single implementation boundary",
+  "output": "extlibs/xrt/xrt.h",
+  "outputSha256": "fcca8e92dc4f04384ec39ce35dfdbfbe676c21e363c4b311ecd12165fc6ef5fc",
+  "outputBytes": 1155153,
+  "upstreamDeclarationSha256": "daa2184b9ada9a56a240625d050ffadc7f89aa9dbe8ce1122ff6e32e086dca4a"
+}

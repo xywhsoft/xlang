@@ -1,0 +1,122 @@
+--- upstream/src/xui/core/xui_widget.c
++++ matched/src/xui/core/xui_widget.c
+@@ -3074,6 +3074,10 @@
+ 	if ( pType->onInit != NULL ) {
+ 		iRet = pType->onInit(pWidget, pWidget->pTypeData, pCreateData, pType->pUser);
+ 		if ( iRet != XUI_OK ) return iRet;
++		/* A successful native return completed this stage even if its semantic
++		 * diagnostic refuses construction; rollback must destroy that stage. */
++		pWidget->pInitializedType=pType;
++		if(xrtGetError())return XUI_ERROR_CALLBACK_FAILED;
+ 	}
+     pWidget->pInitializedType=pType;
+ 	return XUI_OK;
+@@ -4123,48 +4127,75 @@
+ 	return XUI_OK;
+ }
+ 
++static void __xuiCreatedWidgetGone(void* value)
++{*(xui_widget*)value=NULL;}
++typedef struct xui_created_owner_output_t {xui_widget owner; xui_widget* output;} xui_created_owner_output_t;
++static void __xuiCreatedOwnerGone(void* value)
++{
++    xui_created_owner_output_t* state=value;
++    /* A native part slot may live in this owner's type data. Clear it during
++     * logical invalidation, while that storage still exists. */
++    state->owner=NULL;*state->output=NULL;
++}
++
++/* Constructor callbacks see only this operation's diagnostics. Keep a weak
++ * output through End, which may run deferred cleanup and destroy that output. */
++static int __xuiWidgetCreateScoped(xui_context context,xui_widget_type type,
++    xui_widget* output,const void* data,const void* owner)
++{
++    if(!output)return XUI_ERROR_INVALID_ARGUMENT;
++    *output=NULL;
++    xui_call_scope_t scope={0};int status=xuiCallScopeBegin(context,&scope);
++    if(status!=XUI_OK)return status;
++    xui_lifetime_link_t ownerLife={0};
++    xui_created_owner_output_t ownerOutput={(xui_widget)owner,output};
++    if(owner)status=xuiWidgetLifetimeWatch((xui_widget)owner,&ownerLife,__xuiCreatedOwnerGone,&ownerOutput);
++    if(status==XUI_OK)status=__xuiWidgetCreateInternal(context,type,output,data,owner);
++    xui_widget candidate=status==XUI_OK ? *output:NULL;
++    xui_lifetime_link_t life={0};
++    if(status==XUI_OK && (!__xuiWidgetValid(candidate) ||
++        (owner && !__xuiWidgetValid((xui_widget)owner)) || context->bCloseRequested ||
++        context->bDestroyPending || context->bDestroying))status=owner ? XUI_ERROR_INVALID_STATE:XUI_ERROR;
++    if(candidate){
++        int watched=xuiWidgetLifetimeWatch(candidate,&life,__xuiCreatedWidgetGone,&candidate);
++        if(status==XUI_OK && watched!=XUI_OK)status=watched;
++        if(watched!=XUI_OK){
++            /* A closing Context can refuse the weak watch. Retire while the
++             * construction scope still pins memory, then forget the pointer. */
++            xerror* before=xrtTakeError();
++            (void)xuiInternalWidgetRequestDestroy(candidate,owner);candidate=NULL;
++            xrtErrorFree(xrtTakeError());xrtSetErrorTake(before);
++        }
++    }
++    if(status!=XUI_OK)*output=NULL;
++    xerror* first=xrtTakeError();
++    status=xuiInternalCallScopeEndOutcome(&scope,status,&first);
++    if(status==XUI_OK && !candidate){
++        /* A deferred close is a new integer-only failure, not the entry error. */
++        xrtErrorFree(first);first=NULL;status=XUI_ERROR_INVALID_STATE;
++    }
++    if(status!=XUI_OK && candidate){
++        (void)xuiInternalWidgetRequestDestroy(candidate,owner);
++        xrtErrorFree(xrtTakeError()); /* cleanup cannot replace the first failure */
++    }
++    xuiLifetimeUnwatch(&life);
++    if(!owner || ownerOutput.owner)*output=status==XUI_OK ? candidate:NULL;
++    xuiLifetimeUnwatch(&ownerLife);
++    xrtSetErrorTake(first);return status;
++}
++
+ XUI_API int xuiWidgetCreate(xui_context pContext, xui_widget* ppWidget)
+-{
+-	int iRet;
+-	xuiInternalOperationEnter(pContext);
+-	iRet = __xuiWidgetCreateInternal(pContext, &g_xuiWidgetBaseType, ppWidget, NULL, NULL);
+-	if ( (iRet == XUI_OK) && (ppWidget != NULL) &&
+-		(!__xuiWidgetValid(*ppWidget) || pContext->bCloseRequested || pContext->bDestroyPending || pContext->bDestroying) ) {
+-		*ppWidget = NULL;
+-		iRet = XUI_ERROR;
+-	}
+-	xuiInternalOperationLeave(pContext);
+-	return iRet;
+-}
++{return __xuiWidgetCreateScoped(pContext,&g_xuiWidgetBaseType,ppWidget,NULL,NULL);}
+ 
+ XUI_API int xuiWidgetCreateTyped(xui_context pContext, xui_widget_type pType, xui_widget* ppWidget, const void* pCreateData)
+-{
+-	int iRet;
+-	xuiInternalOperationEnter(pContext);
+-	iRet = __xuiWidgetCreateInternal(pContext, pType, ppWidget, pCreateData, NULL);
+-	if ( (iRet == XUI_OK) && (ppWidget != NULL) &&
+-		(!__xuiWidgetValid(*ppWidget) || pContext->bCloseRequested || pContext->bDestroyPending || pContext->bDestroying) ) {
+-		*ppWidget = NULL;
+-		iRet = XUI_ERROR;
+-	}
+-	xuiInternalOperationLeave(pContext);
+-	return iRet;
+-}
++{return __xuiWidgetCreateScoped(pContext,pType,ppWidget,pCreateData,NULL);}
+ 
+ /* Construction identity is installed before any native/type init callback. */
+ int xuiInternalWidgetCreatePart(xui_widget owner,xui_widget_type type,xui_widget* output,const void* data)
+ {
+     if(output)*output=NULL;
+     if(!__xuiWidgetValid(owner) || !output)return XUI_ERROR_INVALID_ARGUMENT;
+-    xui_context context=owner->pContext;
+-    xuiInternalOperationEnter(context);
+-    int status=__xuiWidgetCreateInternal(context,type,output,data,owner);
+-    if(status==XUI_OK && (!__xuiWidgetValid(owner) || !__xuiWidgetValid(*output) || context->bCloseRequested || context->bDestroyPending || context->bDestroying)) {
+-        if(__xuiWidgetMemoryValid(*output))(void)xuiInternalWidgetRequestDestroy(*output,owner);
+-        *output=NULL;status=XUI_ERROR_INVALID_STATE;
+-    }
+-    xuiInternalOperationLeave(context);
+-    return status;
++    return __xuiWidgetCreateScoped(owner->pContext,type,output,data,owner);
+ }
+ 
+ static int __xuiDragAdornerRender(xui_widget pWidget, xui_draw_context pDraw, uint32_t iStateId, void* pUser)
