@@ -149,6 +149,7 @@
 !/dev/release-materials/provenance/checked-c-integer-preflight-20261112.json
 !/dev/release-materials/provenance/checked-c-integer-windows-20261112.json
 !/dev/release-materials/provenance/xge-debug-capabilities-windows-20261113.json
+!/dev/release-materials/provenance/xge-spatial-values-windows-20261113.json
 /out/
 /tmp/
 /logs/

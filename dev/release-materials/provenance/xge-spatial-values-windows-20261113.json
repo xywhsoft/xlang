@@ -1,0 +1,79 @@
+{
+  "schema": 1,
+  "passed": true,
+  "shippingDelivery": false,
+  "scope": "Two stateless 3D functions: double-precision world position and screen ray. JIT/example/dynamic/static executables, independent C++17 ABI and three public header modes; checked rollback and equal-workload zero XRT heap operations.",
+  "nativeBuildFixCommit": "4c0d6b19",
+  "fullCompilerBuild": true,
+  "commands": 21,
+  "productionAndTests": {
+    "lib/bindings/xge/three_d/src/functions.xl": "37d9a4a1fb8a2c186adb101d64535b348d5ecdeb620135b75de21f08857d2a49",
+    "lib/bindings/xge/three_d/examples/screen_ray.xl": "8445c5363e7e793de2d1bf79b96f74229c40292cd9cb0c52e33ecb8036a9eae6",
+    "test/cases/foreign_xge3_spatial_values.xl": "0900d34341b8480fcab6e8b65ecf6951a2457481d72f5c445f63f8b15ec80c5a",
+    "test/cases/foreign_xge3_spatial_values.c": "95c3650e3735f8972a59eec1fefe625e3f3d1cbc35b9c67d9a58a100c8647c18",
+    "test/cases/foreign_xge3_spatial_values.h": "3d77a676c035622db4eaf16ced4aee79493e93bc7e8b85b109e2fb52d059b6b5",
+    "test/cases/foreign_xge3_spatial_values_oracle.cpp": "682076e348cc569931845a5a8f079cfca7deb75ee206990ffd76646e5a7a0b7c",
+    "tools/check_xge3_spatial_values.py": "42a946dd67c61e753560122971c26d29f4ea71ffa6eb248f4ed6963fc79528a7"
+  },
+  "programs": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\spatial-capabilities-language-win-r6\\foreign_xge3_spatial_values-dynamic.exe",
+      "sha256": "73c7eafebce43bd41ad494a7ca66ffadcf7637cf602aa155ad3ae65d5807579a",
+      "bytes": 4459008,
+      "imports": [
+        "xge3_hostdbg.dll",
+        "msvcrt.dll",
+        "kernel32.dll",
+        "SHELL32.dll",
+        "ws2_32.dll",
+        "IPHLPAPI.dll",
+        "ucrtbase.dll"
+      ]
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\spatial-capabilities-language-win-r6\\foreign_xge3_spatial_values-static.exe",
+      "sha256": "f1b742e75b73f9fa78bb7d4e3f55d8ef1e300ba243089e6854991fc097e70855",
+      "bytes": 630784,
+      "imports": [
+        "msvcrt.dll",
+        "kernel32.dll",
+        "SHELL32.dll"
+      ]
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\spatial-capabilities-language-win-r6\\screen_ray-dynamic.exe",
+      "sha256": "918a82ecf91cf7d8ab1c3052bdd728e681f027180e6f3e0bfcb12c30b6d97992",
+      "bytes": 1203200,
+      "imports": [
+        "xge3_hostdbg.dll",
+        "msvcrt.dll",
+        "kernel32.dll",
+        "ucrtbase.dll"
+      ]
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\spatial-capabilities-language-win-r6\\screen_ray-static.exe",
+      "sha256": "2bbddd14c20ca8c0a695c58f456f07481069fae15fab738d1f0aaa03e9fb8f71",
+      "bytes": 542208,
+      "imports": [
+        "msvcrt.dll",
+        "kernel32.dll"
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\spatial-capabilities-language-win-r6\\results.json",
+      "sha256": "456ed7d0de0cec3fad720776671096a8774752360fed633b16c392b328f1b67d"
+    }
+  ],
+  "costs": [
+    "Two direct native calls per pair; C and language 1000-pair loops have zero XRT heap operations.",
+    "POD value/stack transfer, scalar conversion and checked error machinery remain; CPU throughput is not equated."
+  ],
+  "limitations": [
+    "Linux language qualification is a separate pending receipt.",
+    "No live GPU/stateful 3D or package DLL/DSO initializer qualification.",
+    "No final runtime/IDE installation."
+  ]
+}

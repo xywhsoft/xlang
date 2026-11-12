@@ -15,3 +15,6 @@ export extern "xge3dParticlesDefault" @header("xge3_runtime.h") func threeDParti
 export extern "xge3dTransformMatrix" @header("xge3_runtime.h") @no_raise @c_ref(0) @c_output(1,0) func transformMatrix(Xge3dTransform transform) as Xge3dMat4
 export extern "xge3dCameraPerspective" @header("xge3_runtime.h") @no_raise @c_output(0,0) func perspectiveCamera(c_float verticalFov,c_float aspect,c_float nearPlane,c_float farPlane) as Xge3dCamera
 export extern "xge3dCameraOrthographic" @header("xge3_runtime.h") @no_raise @c_output(0,0) func orthographicCamera(c_float width,c_float height,c_float nearPlane,c_float farPlane) as Xge3dCamera
+// Preserve double-precision world subtraction before producing a float vector.
+export extern "xge3dRelativePosition" @header("xge3_runtime.h") @no_raise @c_output(2,0) func relativePosition(Xge3dDvec3 origin,Xge3dDvec3 globalPosition) as Xge3dVec3
+export extern "xge3dCameraScreenRay" @header("xge3_runtime.h") @no_raise @c_ref(0) @c_output(5,0) func screenRay(Xge3dCamera camera,c_float x,c_float y,c_float width,c_float height) as Xge3dRay

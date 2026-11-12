@@ -1,0 +1,65 @@
+import xge3d
+extern "fixtureSpatialPosition" @header("test/cases/foreign_xge3_spatial_values.h") @no_raise func nativePosition(xge3d.Xge3dDvec3 origin,xge3d.Xge3dDvec3 globalPosition) as xge3d.Xge3dVec3
+extern "fixtureSpatialRay" @header("test/cases/foreign_xge3_spatial_values.h") @no_raise func nativeRay(xge3d.Xge3dCamera camera) as xge3d.Xge3dRay
+extern "fixtureSpatialNative" @header("test/cases/foreign_xge3_spatial_values.h") @no_raise func nativeReference()
+extern "fixtureSpatialHotBegin" @header("test/cases/foreign_xge3_spatial_values.h") @no_raise func hotBegin()
+extern "fixtureSpatialHotEnd" @header("test/cases/foreign_xge3_spatial_values.h") @no_raise func hotEnd()
+
+func main(...) as int
+ auto origin=xge3d.Xge3dDvec3()
+ origin.x=c_double(1e12)
+ origin.y=c_double(-1e12)
+ origin.z=c_double(2e12)
+ auto globalPosition=origin
+ globalPosition.x+=c_double(0.25)
+ globalPosition.y-=c_double(0.5)
+ globalPosition.z+=c_double(4)
+ auto point=xge3d.relativePosition(origin,globalPosition)
+ auto reference=nativePosition(origin,globalPosition)
+ assert point.x==reference.x and point.y==reference.y and point.z==reference.z
+ assert point.x==c_float(0.25) and point.y==c_float(-0.5) and point.z==c_float(4)
+ auto camera=xge3d.perspectiveCamera(c_float(1),c_float(1.5),c_float(0.1),c_float(100))
+ auto ray=xge3d.screenRay(camera,c_float(400),c_float(300),c_float(800),c_float(600))
+ auto expected=nativeRay(camera)
+ assert ray.origin.x==expected.origin.x and ray.origin.y==expected.origin.y and ray.origin.z==expected.origin.z
+ assert ray.direction.x==expected.direction.x and ray.direction.y==expected.direction.y and ray.direction.z==expected.direction.z
+ assert ray.direction.z==c_float(-1)
+ auto corner=xge3d.screenRay(camera,c_float(0),c_float(0),c_float(800),c_float(600))
+ assert corner.direction.x < c_float(0)
+ assert corner.direction.y > c_float(0)
+ int rejected=0
+ auto invalidPosition=globalPosition
+ invalidPosition.x=c_double(1e308)
+ try
+  point=xge3d.relativePosition(origin,invalidPosition)
+ catch error
+  rejected+=1
+ end
+ try
+  ray=xge3d.screenRay(camera,c_float(1),c_float(1),c_float(0),c_float(600))
+ catch error
+  rejected+=1
+ end
+ auto singular=camera
+ for i in range(16)
+  singular.projection.m[i]=c_float(0)
+ end
+ try
+  ray=xge3d.screenRay(singular,c_float(1),c_float(1),c_float(800),c_float(600))
+ catch error
+  rejected+=1
+ end
+ assert rejected==3 and point.x==c_float(0.25) and ray.direction.z==c_float(-1)
+ assert camera.projection.m[11]==c_float(-1)
+ nativeReference()
+ hotBegin()
+ for i in range(1000)
+  auto relative=xge3d.relativePosition(origin,globalPosition)
+  auto screen=xge3d.screenRay(camera,c_float(400),c_float(300),c_float(800),c_float(600))
+  assert relative.x==c_float(0.25) and relative.y==c_float(-0.5) and relative.z==c_float(4)
+  assert screen.direction.z==c_float(-1)
+ end
+ hotEnd()
+ println("Spatial values: double world origin, screen rays, C++ ABI and checked rollback passed")
+ return 0
+end

@@ -1,0 +1,14 @@
+// Convert a point in a large world and construct a ray through the screen centre.
+import xge3d
+
+auto origin=xge3d.Xge3dDvec3()
+origin.x=c_double(1e12)
+auto position=origin
+position.x+=c_double(0.25)
+auto local=xge3d.relativePosition(origin,position)
+assert local.x==c_float(0.25)
+
+auto camera=xge3d.perspectiveCamera(c_float(1),c_float(1.5),c_float(0.1),c_float(100))
+auto ray=xge3d.screenRay(camera,c_float(400),c_float(300),c_float(800),c_float(600))
+assert ray.direction.z==c_float(-1)
+println("Screen ray points along negative Z; local X =",local.x)
