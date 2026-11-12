@@ -1,0 +1,163 @@
+{
+  "schema": 1,
+  "passed": true,
+  "shippingDelivery": false,
+  "scope": "Three stateless exact-value 3D constructors. Canonical qualified xlang XRT shared with host engine; native XGE 1ba93 plus matched XRT override. No scene/model/GPU resource qualification.",
+  "verification": [
+    {
+      "platform": "win",
+      "commands": 21,
+      "programs": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\three-d-values-win-r2\\foreign_xge3_camera_values-dynamic.exe",
+          "sha256": "e1a7b00157ad301afbc6331989afe4405d1efcf84f2f0cd6108275c1fba94b36",
+          "bytes": 4497408,
+          "imports": [
+            "xge3_host.dll",
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\three-d-values-win-r2\\foreign_xge3_camera_values-static.exe",
+          "sha256": "14e27087d2090621db6f32b780c6d327cdecb714950f409a072b67ccddaa694f",
+          "bytes": 660480,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\three-d-values-win-r2\\camera_values-dynamic.exe",
+          "sha256": "6f136b5e198baca577621214ffbb96937cf25bc0cb59ee071692e4989f123792",
+          "bytes": 1208832,
+          "imports": [
+            "xge3_host.dll",
+            "msvcrt.dll",
+            "kernel32.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\three-d-values-win-r2\\camera_values-static.exe",
+          "sha256": "9198e18bbfa6ebf68be3688498afb88cd1052e5fa57a86a98d95fb049805ef1b",
+          "bytes": 546816,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll"
+          ]
+        }
+      ]
+    },
+    {
+      "platform": "linux",
+      "commands": 21,
+      "programs": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/three-d-values-linux-r2/foreign_xge3_camera_values-dynamic",
+          "sha256": "b1bff0adcc89837d30a079946c0506437b7db19a13bab039243e8c1d2bb490a0",
+          "bytes": 4526978,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/three-d-values-linux-r2/foreign_xge3_camera_values-static",
+          "sha256": "97f862bcbf0858c5378c8d61f036475bfbe818bd657bb2d94f6bd16bbea3e716",
+          "bytes": 915847,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/three-d-values-linux-r2/camera_values-dynamic",
+          "sha256": "de4fe5c49aa26329c51fbd21b4eead5366260cd3efdad43d0411b458d57a5e72",
+          "bytes": 1249858,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/three-d-values-linux-r2/camera_values-static",
+          "sha256": "188c6bbf801b3b6cf0f0fb2b1c90bc93e7836259bfb91b101b7dd74e64f7b4c5",
+          "bytes": 724526,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\three-d-values-win-r2\\results.json",
+      "sha256": "abaf8d872fb940291653b56f6fe1b7bafbcb78ada25cd6cda7026e028e316198"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\three-d-sdk-win-r3\\packages-host.json",
+      "sha256": "f520d9282570fbc4c3b48168c3287b75801efebf69c3671c0a3c03dcd4385085"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\three-d-sdk-win-r3\\packages-static.json",
+      "sha256": "2368f03d5d361db4fea188f25da41002f764ec29c9b79858ff7231f3678c56ec"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\three-d-values-linux-r2\\results.json",
+      "sha256": "182b0ea1ed10d95e8f5021e4a992ec8bd1d88caafd77e35c5b340d4512adb3da"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\three-d-sdk-linux-r3\\packages-host.json",
+      "sha256": "a41c2aa219bb2d493ff67f639a4cacfe76ecab03baa1b7d41d0adff24346ab92"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\three-d-sdk-linux-r3\\packages-static.json",
+      "sha256": "6f8b7f99dbb6fef4b471199782d3f92e9364af4891554aeeb23c3cbfd72818bc"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\three-d-sdk-r3-source-audit.json",
+      "sha256": "f08010036a83025bdddabd2c4c3ab3b5e8f8588d66c6dc0d30ccf0313b0866a3"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-three-d-freeze-r3.json",
+      "sha256": "95a22292be9d3f7962ac7bf9bf1164242314b887f8e830e7f233990d2e30db07"
+    }
+  ],
+  "costs": {
+    "nativeAndLanguageHeapOperations": 0,
+    "loopIterations": 1000,
+    "cpuThroughputMeasured": false,
+    "stackCopiesEliminated": false
+  },
+  "remaining": [
+    "3D owned resources and renderer callbacks",
+    "Actual XGE package shared-library initialization",
+    "Remaining full capability map and final matched delivery"
+  ]
+}

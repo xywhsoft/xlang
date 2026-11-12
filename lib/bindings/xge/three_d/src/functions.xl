@@ -10,3 +10,8 @@ export extern "xge3dCameraIntersectsAabb" @header("xge3_runtime.h") @c_ref(0) @c
 export extern "xge3dRendererOptionsDefault" @header("xge3_runtime.h") func threeDRendererOptionsDefault() as Xge3dRendererOptions
 export extern "xge3dMotionDefault" @header("xge3_runtime.h") func threeDMotionDefault() as Xge3dMotionSettings
 export extern "xge3dParticlesDefault" @header("xge3_runtime.h") func threeDParticlesDefault() as Xge3dParticleDesc
+// Constructors return independent values. Native status failure follows the
+// checked output contract; no partially initialized matrix/camera is published.
+export extern "xge3dTransformMatrix" @header("xge3_runtime.h") @no_raise @c_ref(0) @c_output(1,0) func transformMatrix(Xge3dTransform transform) as Xge3dMat4
+export extern "xge3dCameraPerspective" @header("xge3_runtime.h") @no_raise @c_output(0,0) func perspectiveCamera(c_float verticalFov,c_float aspect,c_float nearPlane,c_float farPlane) as Xge3dCamera
+export extern "xge3dCameraOrthographic" @header("xge3_runtime.h") @no_raise @c_output(0,0) func orthographicCamera(c_float width,c_float height,c_float nearPlane,c_float farPlane) as Xge3dCamera

@@ -1,0 +1,69 @@
+import xge3d
+extern "fixtureCameraIdentity" @header("test/cases/foreign_xge3_camera_values.h") @no_raise func identity() as xge3d.Xge3dTransform
+extern "fixtureCameraMatrix" @header("test/cases/foreign_xge3_camera_values.h") @no_raise func nativeMatrix(xge3d.Xge3dTransform value) as xge3d.Xge3dMat4
+extern "fixtureCameraNativeLoop" @header("test/cases/foreign_xge3_camera_values.h") @no_raise func nativeLoop()
+extern "fixtureCameraHotBegin" @header("test/cases/foreign_xge3_camera_values.h") @no_raise func hotBegin()
+extern "fixtureCameraHotEnd" @header("test/cases/foreign_xge3_camera_values.h") @no_raise func hotEnd()
+
+func main(...) as int
+ auto transform=xge3d.Xge3dTransform()
+ transform.rotation.w=c_float(2)
+ transform.scale.x=c_float(2)
+ transform.scale.y=c_float(3)
+ transform.scale.z=c_float(4)
+ transform.position.x=c_float(5)
+ auto fromCpp=identity()
+ assert fromCpp.rotation.w==c_float(1) and fromCpp.scale.x==c_float(1)
+ auto matrix=xge3d.transformMatrix(transform)
+ auto reference=nativeMatrix(transform)
+ for i in range(16)
+  assert matrix.m[i]==reference.m[i]
+ end
+ assert matrix.m[0]==c_float(2) and matrix.m[5]==c_float(3) and matrix.m[10]==c_float(4)
+ assert matrix.m[12]==c_float(5) and matrix.m[15]==c_float(1)
+ matrix.m[12]+=c_float(7)
+ assert matrix.m[12]==c_float(12) and transform.position.x==c_float(5)
+ auto perspective=xge3d.perspectiveCamera(c_float(1),c_float(1.5),c_float(0.1),c_float(100))
+ auto orthographic=xge3d.orthographicCamera(c_float(8),c_float(4),c_float(0),c_float(100))
+ assert perspective.view.m[0]==c_float(1) and perspective.view.m[15]==c_float(1)
+ assert perspective.projection.m[11]==c_float(-1) and perspective.projection.m[15]==c_float(0)
+ assert orthographic.projection.m[0]==c_float(0.25) and orthographic.projection.m[5]==c_float(0.5)
+ assert perspective.near_z==c_float(0.1) and perspective.far_z==c_float(100)
+ int failures=0
+ auto invalid=transform
+ invalid.rotation.w=c_float(0)
+ try
+  auto rejected=xge3d.transformMatrix(invalid)
+ catch error
+  failures+=1
+ end
+ try
+  auto rejected=xge3d.perspectiveCamera(c_float(0),c_float(1),c_float(0.1),c_float(100))
+ catch error
+  failures+=1
+ end
+ try
+  auto rejected=xge3d.perspectiveCamera(c_float(1),c_float(1),c_float(2),c_float(1))
+ catch error
+  failures+=1
+ end
+ try
+  auto rejected=xge3d.orthographicCamera(c_float(0),c_float(4),c_float(0),c_float(100))
+ catch error
+  failures+=1
+ end
+ assert failures==4
+ assert matrix.m[12]==c_float(12) and transform.rotation.w==c_float(2)
+ nativeLoop()
+ hotBegin()
+ for i in range(1000)
+  auto m=xge3d.transformMatrix(transform)
+  auto p=xge3d.perspectiveCamera(c_float(1),c_float(1.5),c_float(0.1),c_float(100))
+  auto o=xge3d.orthographicCamera(c_float(8),c_float(4),c_float(0),c_float(100))
+  assert m.m[0]==c_float(2) and m.m[5]==c_float(3) and m.m[10]==c_float(4) and m.m[12]==c_float(5)
+  assert p.projection.m[11]==c_float(-1) and o.projection.m[0]==c_float(0.25)
+ end
+ hotEnd()
+ println("3D value constructors: normalized rotation, matrix copy, cameras and checked failures passed")
+ return 0
+end

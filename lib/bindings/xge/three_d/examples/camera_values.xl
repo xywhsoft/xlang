@@ -1,0 +1,21 @@
+// Requires an XGE SDK built with XGE_ENABLE_3D=1. No window or GPU is needed.
+// Run: xl run camera_values.xl
+import xge3d
+
+auto transform=xge3d.Xge3dTransform()
+transform.rotation.w=c_float(1)
+transform.scale.x=c_float(2)
+transform.scale.y=c_float(3)
+transform.scale.z=c_float(4)
+transform.position.x=c_float(5)
+
+auto matrix=xge3d.transformMatrix(transform)
+assert matrix.m[0]==c_float(2) and matrix.m[5]==c_float(3) and matrix.m[10]==c_float(4)
+assert matrix.m[12]==c_float(5) and matrix.m[15]==c_float(1)
+
+auto perspective=xge3d.perspectiveCamera(c_float(1.0),c_float(1.5),c_float(0.1),c_float(100))
+auto orthographic=xge3d.orthographicCamera(c_float(8),c_float(4),c_float(0),c_float(100))
+assert perspective.projection.m[11]==c_float(-1)
+assert orthographic.projection.m[0]==c_float(0.25)
+assert orthographic.projection.m[5]==c_float(0.5)
+println("3D matrix and camera values passed")
