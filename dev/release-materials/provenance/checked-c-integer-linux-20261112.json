@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "linuxFullQualified": true,
+  "windowsFullQualified": true,
+  "shippingDelivery": false,
+  "scope": "Complete Linux r22 O2 compiler/TCC/XRT/fixed objects/VFS/embedded-source qualification; real embedded compiler in executable and Python shared host. Async CLI/native and generator shared follow-up.",
+  "mainCommands": 51,
+  "continuationCommands": 5,
+  "products": {
+    "xl": {
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-c-integer-linux-full-r22/source/release/linux_x64/xl",
+      "sha256": "faa25e49bdf8c5ce8ccdb084810075b406cc6dd499a59577664616eb2a08265b",
+      "bytes": 47224
+    },
+    "libxl.so": {
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-c-integer-linux-full-r22/source/release/linux_x64/libxl.so",
+      "sha256": "8afdb9255a4f8efc5da7259a6a903e929c317c59f9cea01d5f2ba9bfefb08b49",
+      "bytes": 16501328
+    },
+    "libxlc.so": {
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-c-integer-linux-full-r22/source/release/linux_x64/libxlc.so",
+      "sha256": "3f853640c70c99b5448bb8612d34663fce64d2892e3d7ffc062586d39a076b38",
+      "bytes": 22514512
+    }
+  },
+  "producerFileDeltaBytes": {
+    "xl": 0,
+    "libxl.so": 4128,
+    "libxlc.so": 12320
+  },
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-c-integer-linux-full-r22\\build.json",
+      "sha256": "a53f9bda6c889fca0594f0e341ee3464568cf7d386aad1afeea59b4d2b40a4aa"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-c-integer-linux-full-r22\\freeze.json",
+      "sha256": "3d4b83378221168238cb95f607bc313d6a21a06c7b3e4f2dbd9d8ca6337f45ea"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\c-integer-full-qualification-linux-r1\\results.json",
+      "sha256": "a72a2a39936380cdc055a6c347b62966668cb9e619f385ad62eb56527d29c46b"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\c-integer-continuation-full-linux-r3\\results.json",
+      "sha256": "9d8893245b4048a5f03284ddcfb23221dea7d3eb59f502f74659f06139d509ff"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\qualify_c_integer_full.py",
+      "sha256": "c56c5a2d1679248abfa70ffcd8e0e2ed5907aab1de124224cdb9d2db589bdd9f"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\qualify_c_integer_continuation_full_r3.py",
+      "sha256": "044cd17e0dcced204b3d8c5c7d4580cebb08274a54499376e7c71e091f08a283"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\c-integer-full-qualification-linux-r1\\image-regression\\results.json",
+      "sha256": "5dbe524ca1789bae4a132f8a6a5e0f3402ee6c30704b6f13e1fd9f942f90fd61"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\c-integer-full-qualification-linux-r1\\literal-nested\\results.json",
+      "sha256": "74f8ead46e6c1a7413ffac6e8940993b1f8b172739cd1066ccd8750b1e0f542c"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\c-integer-full-qualification-linux-r1\\particle-and-unused-png\\results.json",
+      "sha256": "6b2afcd1196d274d63a5d43ec7ebe3f2454fa351cdc52a56981d8728d4d837fd"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\c-integer-full-qualification-linux-r1\\source-free\\results.json",
+      "sha256": "ff41445e0738e524b8b9dc3821f8647a478401247454d662d5afca759d126ffb"
+    }
+  ],
+  "windowsIndex": "dev/release-materials/provenance/checked-c-integer-windows-20261112.json",
+  "pending": [
+    "Owned UTF-8 output and Document allocator/export work is a later cohort, not covered here.",
+    "Remaining XGE ecosystem and final matched delivery"
+  ]
+}

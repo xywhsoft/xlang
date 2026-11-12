@@ -1572,3 +1572,15 @@ C 提供方包含 `xl_foreign_net.h`，使用 `xl6ForeignTcpVisitV1(owner,visit,
 运行时检查精确策略，固定拥有者并进入原生调用作用域；回调只能在本次同步调用内
 使用 xnetstream 指针，不能保存它。包的 `artifact.runtimeSymbols` 显式登记 C 使用的
 驻留入口。普通原生错误继续走现有 checked 边界；额外调用、引用和作用域成本应计入评估。
+
+### Complete Linux checked C integer cohort
+
+The complete Linux r22 O2 compiler, TinyCC, XRT, fixed objects, VFS and embedded
+source now pass the checked native integer qualification in CLI JIT, native
+executables, actual nested executable/shared hosts and checked retirement.
+The separate continuation follow-up covers async CLI/native and a generator
+body in a real shared caller. It does not add async multi-return or await in
+a synchronous export. The immutable index is
+`dev/release-materials/provenance/checked-c-integer-linux-20261112.json`.
+Owned UTF-8 output and the current Document allocator changes are later
+candidates; this qualification does not certify them or final SDK/IDE delivery.
