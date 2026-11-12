@@ -52,5 +52,10 @@ Windows r29 complete O2/TCC/XRT/fixed-object/VFS/embedded-source acceptance
 subsequently passed all 38 top-level commands, including owned-byte and scalar
 transactions inside actual parent executables and Python-loaded shared-library
 callers. Image, particle, literal-nested and source-free delivery gates passed.
-Linux r21 is still building; Windows results do not certify the original Linux
-host corruption scenario. See `tcc-elf-tls-scalar-windows-20261112.json`.
+Linux r21 subsequently passed all 41 top-level commands, including the original
+Python CDLL owned-byte scenario and an independent native C dlopen caller.
+Both full cohorts include VFS, embedded compiler sources and fixed runtime
+objects; neither is an installation of the final XGE delivery. They predate
+the new checked C integer integration. See the immutable evidence indices
+`tcc-elf-tls-scalar-windows-20261112.json` and
+`tcc-elf-tls-scalar-linux-20261112.json`.

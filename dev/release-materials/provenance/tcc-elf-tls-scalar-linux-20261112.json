@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "linuxFullQualified": true,
+  "windowsFullQualified": true,
+  "shippingDelivery": false,
+  "scope": "Linux r21 complete O2 compiler, TCC, runtime, fixed objects, VFS and embedded sources. Original failing Python CDLL owned-byte scenario and independent C dlopen host both execute successfully. Frozen cohort predates newly approved checked C integer integration.",
+  "commands": 41,
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-elf-tls-scalar-linux-full-r21\\build.json",
+      "sha256": "4e974acf2b53b961f1bcc396265294b83c75925fd8b7270075c48ad2abd1661d"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-elf-tls-scalar-linux-full-r21\\freeze.json",
+      "sha256": "39812f395162a4be8cb4a4295343209f0d2d522a25c5a454014bd1e26904bed2"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\elf-tls-scalar-full-qualification-linux-r1\\results.json",
+      "sha256": "26d8a945205facce1fea4f3cbdd0e2af7558ccc74cb74a11451fef7f4076ac17"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\qualification-follow-linux-r1.json",
+      "sha256": "e8169cb4f12362a0a8ea40f5ead5ec11f91cfcd3ddb054edba3db4daed385726"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\qualify_elf_tls_scalar_full.py",
+      "sha256": "5d6ac9258e7d74845b98f3be42662cd0f1296c58c343d3da8a8e3d088b975200"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\elf-tls-scalar-full-qualification-linux-r1\\image-regression\\results.json",
+      "sha256": "008e8d759316bd8acc5006fd709ab655b162363ac33840d534005503abdc5f92"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\elf-tls-scalar-full-qualification-linux-r1\\literal-nested\\results.json",
+      "sha256": "bc85fce157919e60f43d2014d14c0f3756f5d76acc10136b99dbdbc3b26d0c51"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\elf-tls-scalar-full-qualification-linux-r1\\particle-and-unused-png\\results.json",
+      "sha256": "307cddeaea3a869d3e2bc725fee988c503319603f7f6020e8e0e3bac98ed9826"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\elf-tls-scalar-full-qualification-linux-r1\\source-free\\results.json",
+      "sha256": "003cf665f6dcfe198215b1e063320a9335c72bb5a60aa99036843d481b1b7298"
+    }
+  ],
+  "nestedSharedExecuted": {
+    "path": "/mnt/f/xlang-validation/xge-full-20261110/elf-tls-scalar-full-qualification-linux-r1/nested-owned-shared.so",
+    "sha256": "a581117237629c92b5fa823b1e884d010e3d69214b706ee51b36e10508ec5f6a"
+  },
+  "pending": [
+    "New checked C integer Typed/Lowered IR and backend integration",
+    "Remaining XGE/XUI/Document/3D capabilities and matched delivery"
+  ]
+}
