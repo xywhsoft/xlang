@@ -1,0 +1,92 @@
+{
+  "schema": 1,
+  "passed": true,
+  "shippingDelivery": false,
+  "scope": "Five actual debug APIs, bounded caller Buffer output, explicit native truncation status, JIT/example/dynamic/static executables and three public header modes before platform/GPU startup.",
+  "nativeBuildFixCommit": "4c0d6b19",
+  "fullCompilerBuild": true,
+  "commands": 19,
+  "productionAndTests": {
+    "tools/stage_xge3_packages.py": "0e01b2619507876d029b37494467f017002bd48e6258be28588db995b7d176a5",
+    "lib/bindings/xge/debug/src/functions.xl": "a7ddb31af2fe9041dff113530d577b8d01d58c347e0c8dcdbda5ddf82cdef615",
+    "lib/bindings/xge/debug/examples/capabilities.xl": "229938d117f8b4d04e53046da72b91477cb4c0e42ec4af40defd4353e4da488e",
+    "test/cases/foreign_xge3_debug_capabilities.xl": "fc4c395ed1a6c4f405582d8addcace670b4a1eebc1ce329e15caa4c2ed38768a",
+    "tools/check_xge3_debug_capabilities.py": "2126a38b9326de85ef9daea4e53de6cbef8cf40ddb0c0b5abb66f3168a733752"
+  },
+  "programs": [
+    {
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/debug-capabilities-language-linux-r4/foreign_xge3_debug_capabilities-dynamic",
+      "sha256": "df16a0dd2aea739fcc0ed93311b51cf7f64d0c5fcc3a7d119b4383e5607f203a",
+      "bytes": 1385226,
+      "imports": [
+        "libm.so.6",
+        "libmvec.so.1",
+        "libxge3_hostdbg.so",
+        "libc.so.6",
+        "ld-linux-x86-64.so.2"
+      ]
+    },
+    {
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/debug-capabilities-language-linux-r4/foreign_xge3_debug_capabilities-static",
+      "sha256": "1f9856f29d35093cb43fb7f4664573fbc35c13aae988affc29a2c2fd2908f6f1",
+      "bytes": 851444,
+      "imports": [
+        "libm.so.6",
+        "libmvec.so.1",
+        "libX11.so.6",
+        "libXi.so.6",
+        "libXcursor.so.1",
+        "libGL.so.1",
+        "libc.so.6",
+        "ld-linux-x86-64.so.2"
+      ]
+    },
+    {
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/debug-capabilities-language-linux-r4/capabilities-dynamic",
+      "sha256": "c5049b224dd1022762db325f19cc06f606baeeb9568afdf55e3e5dd195c0db5e",
+      "bytes": 1305784,
+      "imports": [
+        "libm.so.6",
+        "libmvec.so.1",
+        "libxge3_hostdbg.so",
+        "libc.so.6",
+        "ld-linux-x86-64.so.2"
+      ]
+    },
+    {
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/debug-capabilities-language-linux-r4/capabilities-static",
+      "sha256": "5beba2c934bf077aa7a1cef2ffa9bb225a19e6fc65f2e1cc09d8f80cd4279bdb",
+      "bytes": 693965,
+      "imports": [
+        "libm.so.6",
+        "libmvec.so.1",
+        "libX11.so.6",
+        "libXi.so.6",
+        "libXcursor.so.1",
+        "libGL.so.1",
+        "libc.so.6",
+        "ld-linux-x86-64.so.2"
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\debug-capabilities-language-linux-r4\\results.json",
+      "sha256": "91b991bc5d3dcb271145eff963107e5103b7dbbb4b9ea3d9e0f30eaf92a14654"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-owned-text-linux-full-r24\\build.json",
+      "sha256": "a45998a5454e26a1d71c0d6a98ecd0a4c79be5a9ed3c09edb22c3d3cb1e3c065"
+    }
+  ],
+  "costs": [
+    "One direct native call into existing Buffer storage; no output payload allocation, copy or automatic growth.",
+    "The example explicitly converts its Buffer to text and slices at the NUL terminator."
+  ],
+  "limitations": [
+    "No live GPU/stateful 3D or package DLL/DSO initializer qualification.",
+    "No final runtime/IDE installation."
+  ],
+  "platform": "linux_x64",
+  "windowsQualification": "xge-debug-capabilities-windows-20261113.json"
+}

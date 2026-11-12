@@ -1,0 +1,94 @@
+{
+  "schema": 1,
+  "passed": true,
+  "shippingDelivery": false,
+  "scope": "Two stateless 3D functions: double-precision world position and screen ray. JIT/example/dynamic/static executables, independent C++17 ABI and three public header modes; checked rollback and equal-workload zero XRT heap operations.",
+  "nativeBuildFixCommit": "4c0d6b19",
+  "fullCompilerBuild": true,
+  "commands": 21,
+  "productionAndTests": {
+    "lib/bindings/xge/three_d/src/functions.xl": "37d9a4a1fb8a2c186adb101d64535b348d5ecdeb620135b75de21f08857d2a49",
+    "lib/bindings/xge/three_d/examples/screen_ray.xl": "8445c5363e7e793de2d1bf79b96f74229c40292cd9cb0c52e33ecb8036a9eae6",
+    "test/cases/foreign_xge3_spatial_values.xl": "0900d34341b8480fcab6e8b65ecf6951a2457481d72f5c445f63f8b15ec80c5a",
+    "test/cases/foreign_xge3_spatial_values.c": "95c3650e3735f8972a59eec1fefe625e3f3d1cbc35b9c67d9a58a100c8647c18",
+    "test/cases/foreign_xge3_spatial_values.h": "3d77a676c035622db4eaf16ced4aee79493e93bc7e8b85b109e2fb52d059b6b5",
+    "test/cases/foreign_xge3_spatial_values_oracle.cpp": "682076e348cc569931845a5a8f079cfca7deb75ee206990ffd76646e5a7a0b7c",
+    "tools/check_xge3_spatial_values.py": "42a946dd67c61e753560122971c26d29f4ea71ffa6eb248f4ed6963fc79528a7"
+  },
+  "programs": [
+    {
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/spatial-capabilities-language-linux-r4/foreign_xge3_spatial_values-dynamic",
+      "sha256": "2e3e2a65503577f815419bd05def2992be50b4576ff0452cffcadf3220e07b57",
+      "bytes": 4498281,
+      "imports": [
+        "libm.so.6",
+        "libmvec.so.1",
+        "libxge3_hostdbg.so",
+        "libc.so.6",
+        "ld-linux-x86-64.so.2"
+      ]
+    },
+    {
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/spatial-capabilities-language-linux-r4/foreign_xge3_spatial_values-static",
+      "sha256": "c42cfee94faf9df8f63d4469a1a070bfc8356e41ec7a6f3f4f3e4efcfd0d7cd1",
+      "bytes": 889273,
+      "imports": [
+        "libm.so.6",
+        "libmvec.so.1",
+        "libX11.so.6",
+        "libXi.so.6",
+        "libXcursor.so.1",
+        "libGL.so.1",
+        "libc.so.6",
+        "ld-linux-x86-64.so.2"
+      ]
+    },
+    {
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/spatial-capabilities-language-linux-r4/screen_ray-dynamic",
+      "sha256": "77ce9a312ee64ebba15ea6347731bc958fa6adb146af1b095a3ce6b1ee1b72c6",
+      "bytes": 1245903,
+      "imports": [
+        "libm.so.6",
+        "libmvec.so.1",
+        "libxge3_hostdbg.so",
+        "libc.so.6",
+        "ld-linux-x86-64.so.2"
+      ]
+    },
+    {
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/spatial-capabilities-language-linux-r4/screen_ray-static",
+      "sha256": "da1e4d47de616a4ab650d22b7d9df082c75331b86737f15f77f591616082d07d",
+      "bytes": 719863,
+      "imports": [
+        "libm.so.6",
+        "libmvec.so.1",
+        "libX11.so.6",
+        "libXi.so.6",
+        "libXcursor.so.1",
+        "libGL.so.1",
+        "libc.so.6",
+        "ld-linux-x86-64.so.2"
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\spatial-capabilities-language-linux-r4\\results.json",
+      "sha256": "efd795fad1f317c77399c49aaefc2388a4d553fa8941020994d6d4c096c12dd5"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-owned-text-linux-full-r24\\build.json",
+      "sha256": "a45998a5454e26a1d71c0d6a98ecd0a4c79be5a9ed3c09edb22c3d3cb1e3c065"
+    }
+  ],
+  "costs": [
+    "Two direct native calls per pair; C and language 1000-pair loops have zero XRT heap operations.",
+    "POD value/stack transfer, scalar conversion and checked error machinery remain; CPU throughput is not equated."
+  ],
+  "limitations": [
+    "No live GPU/stateful 3D or package DLL/DSO initializer qualification.",
+    "No final runtime/IDE installation."
+  ],
+  "platform": "linux_x64",
+  "windowsQualification": "xge-spatial-values-windows-20261113.json"
+}

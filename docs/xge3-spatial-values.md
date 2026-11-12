@@ -24,3 +24,9 @@ work; CPU throughput is not equated. The receipt is
 `dev/release-materials/provenance/xge-spatial-values-windows-20261113.json`.
 Linux, GPU/stateful 3D, package shared-library initialization and final delivery
 remain separate qualification work.
+
+Linux full r24 subsequently passes all 21 corresponding checks, including the
+actual C++17 oracle and hosted/static ELF execution. Its successor receipt is
+`xge-spatial-values-linux-20261113.json`. This completes both-platform CPU
+qualification for these two value functions; the GPU, stateful resources,
+package initialization and delivery limits remain.

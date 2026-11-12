@@ -32,3 +32,9 @@ engine initialization belong on its creator thread. Live rendering, concurrent
 global debug calls, Linux language execution and actual package DLL/DSO
 initialization require their own qualification. The final release/IDE has not
 been replaced.
+
+Linux full r24 subsequently passes the same 19 language checks against its
+matched hosted/static SDK, including actual ELF execution and dependency
+inspection. Its successor evidence is
+`xge-debug-capabilities-linux-20261113.json`; the Windows receipt retains its
+historical limits. Live GPU and package shared initialization remain separate.
