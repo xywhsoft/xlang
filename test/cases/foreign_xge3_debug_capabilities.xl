@@ -1,0 +1,34 @@
+// Debug configuration and bounded writes, before starting any platform/GPU.
+import xgeDebug
+import xge
+
+func main(...) as int
+ auto empty=Buffer()
+ assert xgeDebug.debugDumpCaps(empty)==xge.XGE_ERROR_INVALID_ARGUMENT
+ auto tiny=Buffer()
+ tiny.resize(1)
+ assert xgeDebug.debugDumpCaps(tiny)==xge.XGE_ERROR_BUFFER_TOO_SMALL
+ assert tiny.text()=="\0"
+ tiny.resize(8)
+ assert xgeDebug.debugDumpCaps(tiny)==xge.XGE_ERROR_BUFFER_TOO_SMALL
+ assert tiny.text(4)=="XGE "
+ auto output=Buffer()
+ output.resize(8192)
+ assert xgeDebug.debugDumpCaps(output)==xge.XGE_OK
+ assert output.text(4)=="XGE "
+ auto stats=xgeDebug.debugGetStats()
+ assert stats.iTextureCount==c_int(0) and stats.iAudioCount==c_int(0)
+ assert stats.iTextureMemoryBytes==uint64(0) and stats.iLastGLError==c_int(0)
+ assert xgeDebug.dbgDirtyRectCount()==c_int(0)
+ xgeDebug.dbgDirtyRectClear()
+ assert xgeDebug.dbgDirtyRectCount()==c_int(0)
+ bool rejected=false
+ try
+  auto rect=xgeDebug.dbgDirtyRectGet(c_int(0))
+ catch error
+  rejected=true
+ end
+ assert rejected
+ println("Debug capabilities: bounded Buffer writes, explicit status, stats and dirty rectangles passed")
+ return 0
+end

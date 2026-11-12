@@ -1,4 +1,6 @@
 export extern "xgeDebugGetStats" @header("xge3_runtime.h") @no_raise @c_output(0,0) func debugGetStats() as DebugStats
+// Preserve BUFFER_TOO_SMALL so the caller can resize its own output buffer.
+export extern "xgeDebugDumpCaps" @header("xge3_runtime.h") @no_raise @c_span(0,"char*","int") func debugDumpCaps(Buffer output) as c_int
 export extern "xgedbgDirtyRectCount" @header("xge3_runtime.h") func dbgDirtyRectCount() as c_int
 export extern "xgedbgDirtyRectGet" @header("xge3_runtime.h") @no_raise @c_output(1,0) func dbgDirtyRectGet(c_int iIndex) as xge.Rect
 export extern "xgedbgDirtyRectClear" @header("xge3_runtime.h") func dbgDirtyRectClear()

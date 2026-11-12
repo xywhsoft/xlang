@@ -1,0 +1,15 @@
+// Use the matched debug SDK (XGE_HAS_DEBUGMODE=1). No window is required.
+import xgeDebug
+import xge
+
+auto output=Buffer()
+output.resize(8192)
+c_int status=xgeDebug.debugDumpCaps(output)
+assert status==xge.XGE_OK
+// Buffer.text preserves its explicit length; remove the unused NUL tail.
+string text=output.text()
+int terminator=string.indexOf(text,"\0")
+if terminator>=0
+ text=string.slice(text,0,terminator)
+end
+println(text)

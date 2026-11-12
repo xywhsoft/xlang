@@ -1,0 +1,106 @@
+{
+  "schema": 1,
+  "passed": true,
+  "shippingDelivery": false,
+  "scope": "Five actual debug APIs, bounded caller Buffer output, explicit native truncation status, JIT/example/dynamic/static executables and three public header modes before platform/GPU startup.",
+  "nativeBuildFixCommit": "4c0d6b19",
+  "fullCompilerBuild": true,
+  "commands": 19,
+  "productionAndTests": {
+    "tools/stage_xge3_packages.py": "0e01b2619507876d029b37494467f017002bd48e6258be28588db995b7d176a5",
+    "lib/bindings/xge/debug/src/functions.xl": "a7ddb31af2fe9041dff113530d577b8d01d58c347e0c8dcdbda5ddf82cdef615",
+    "lib/bindings/xge/debug/examples/capabilities.xl": "229938d117f8b4d04e53046da72b91477cb4c0e42ec4af40defd4353e4da488e",
+    "test/cases/foreign_xge3_debug_capabilities.xl": "fc4c395ed1a6c4f405582d8addcace670b4a1eebc1ce329e15caa4c2ed38768a",
+    "tools/check_xge3_debug_capabilities.py": "2126a38b9326de85ef9daea4e53de6cbef8cf40ddb0c0b5abb66f3168a733752"
+  },
+  "programs": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\debug-capabilities-language-win-r4\\foreign_xge3_debug_capabilities-dynamic.exe",
+      "sha256": "cd11fadfe092e88a8b94a0806ed42eba8ce89ecc4d8716b7e4c1c111cb8134a2",
+      "bytes": 1325056,
+      "imports": [
+        "xge3_hostdbg.dll",
+        "msvcrt.dll",
+        "kernel32.dll",
+        "SHELL32.dll",
+        "ucrtbase.dll"
+      ]
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\debug-capabilities-language-win-r4\\foreign_xge3_debug_capabilities-static.exe",
+      "sha256": "695fe2d27af870954ff1dfe9efa6b37304b4bb53a90e8784e39c3b2b982f4c4b",
+      "bytes": 3734528,
+      "imports": [
+        "msvcrt.dll",
+        "kernel32.dll",
+        "USER32.dll",
+        "ole32.dll",
+        "OLEAUT32.dll",
+        "SHELL32.dll",
+        "GDI32.dll",
+        "IMM32.dll"
+      ]
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\debug-capabilities-language-win-r4\\capabilities-dynamic.exe",
+      "sha256": "d1be7f16dd6928f07bda40c0051c66a1d7af120b09885185f54f9e6aba2043f6",
+      "bytes": 1229312,
+      "imports": [
+        "xge3_hostdbg.dll",
+        "msvcrt.dll",
+        "kernel32.dll",
+        "ucrtbase.dll"
+      ]
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\debug-capabilities-language-win-r4\\capabilities-static.exe",
+      "sha256": "a8cd1238be7338aa019d734e3f40222de5f7915af2f66c9e8bcf75c48de91e25",
+      "bytes": 3581440,
+      "imports": [
+        "msvcrt.dll",
+        "kernel32.dll",
+        "USER32.dll",
+        "ole32.dll",
+        "OLEAUT32.dll",
+        "SHELL32.dll",
+        "GDI32.dll",
+        "IMM32.dll"
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\debug-capabilities-language-win-r4\\results.json",
+      "sha256": "a865744bbf1e52cb007db9ef3d17a3b4f25f32b730002a944cd4dbee45a13f5e"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\debug-capabilities-sdk-win-r3\\results.json",
+      "sha256": "c17a34808945819805c86d9ed939ea09336408bcd5bf150e77dd7838daad9c00"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\debug-capabilities-sdk-linux-r3\\results.json",
+      "sha256": "3e90e47a25f536eaaa53d314aa2a38d08f34bc4f530024252c34b3ecb54abe66"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\debug-sdk-native-header-win-r5\\results.json",
+      "sha256": "e95c63056b235f3690112d26c026d13c6512d9c7ab1e25a048fd993261dce50e"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\debug-sdk-native-header-linux-r5\\results.json",
+      "sha256": "ad3c1906c78c7375959a2e59d4df80caf630335df763ffcdc57fc20ebfdbc45e"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\normal-sdk-stage-regression-win-r1\\staging.json",
+      "sha256": "df3b64ace869a583ab3f09123bb9488386f3dcffdf2f300ada347a8738cdae6f"
+    }
+  ],
+  "costs": [
+    "One direct native call into existing Buffer storage; no output payload allocation, copy or automatic growth.",
+    "The example explicitly converts its Buffer to text and slices at the NUL terminator."
+  ],
+  "limitations": [
+    "Linux language qualification is a separate pending receipt.",
+    "No live GPU/stateful 3D or package DLL/DSO initializer qualification.",
+    "No final runtime/IDE installation."
+  ]
+}

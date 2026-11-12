@@ -30,6 +30,8 @@ def main():
     parser.add_argument('--update-host-catalog',action='store_true',help='Regenerate the module-filtered resolver catalog only')
     for name in ("engine-root", "engine-build", "out", "report"):
         parser.add_argument("--" + name, type=Path)
+    parser.add_argument('--debug', action='store_true',
+                        help='Select the native debug build report and require its matching debug SDK')
     parser.add_argument("--bootstrap-only", action="store_true",
                         help="Stage only _xge_native while the public declarations are being generated")
     parser.add_argument("--static-variant", help="Installed manifest path relative to _xge_native; declare only when delivering that SDK")
@@ -51,7 +53,8 @@ def main():
     for target in (out, report):
         if target == root / "release" or root / "release" in target.parents:
             raise SystemExit("Stage in an isolated directory; release delivery is a separate operation")
-    metadata = json.loads((build / "build-report.json").read_text(encoding="utf-8"))
+    engine_report=build/('build-report-debug.json' if args.debug else 'build-report.json')
+    metadata = json.loads(engine_report.read_text(encoding="utf-8"))
     if metadata.get("xrt_mode") != "host" or not metadata.get("linked"):
         raise SystemExit("The engine must be a linked shared-host-XRT build")
     if metadata.get("public_abi_schema") != 2:
@@ -63,6 +66,8 @@ def main():
     if len(debug_flags)!=1 or debug_flags[0] not in ('-DXGE_DEBUGMODE=0','-DXGE_DEBUGMODE=1'):
         raise SystemExit('The engine build does not identify its exact debug ABI input')
     debug=debug_flags[0][-1]=='1'
+    if debug!=args.debug:
+        raise SystemExit('The selected engine report does not match --debug; select its actual build configuration')
     # The IDE's embedded-XRT image is also shipped beside the CLI. A distinct
     # host image name is required in the actual PE export table / ELF SONAME;
     # merely renaming a copy of xge.dll leaves GNU AOT imports as xge.dll.
@@ -122,7 +127,7 @@ def main():
     package_sources={name:sources/({'xge3d':'xge/three_d','xgeDebug':'xge/debug'}.get(name,name)) for name in packages}
     xrt_config = native / "extlibs/xrt/xrt_config.h"
     inputs = {str(p): sha(p) for p in [Path(__file__).resolve(), Path(__file__).with_name('gen_host_xrt_catalog.py'), catalog, resolver_catalog, root / "lib/xrt/xrt.h", xrt_config,*abi_files,
-                                      build / "build-report.json", binary,
+                                      engine_report, binary,
                                       build / "xge_build_config.h", *headers, *generated]}
     for package in packages:
         package_source=package_sources[package]
@@ -170,7 +175,7 @@ def main():
                   hostXrtSha256=canonical_xrt, hostSymbolCount=len(slots),
                   nativeAbiFingerprint=actual_abi,
                   nativeImageName=binary.name,
-                  xrtModules=modules, engineBuild=str(build / "build-report.json"),
+                  xrtModules=modules, engineBuild=str(engine_report),
                   inputs=inputs, outputs=output, inputsUnchanged=True,
                   testsRun=False, shippingDelivery=False)
     report.parent.mkdir(parents=True, exist_ok=True)
