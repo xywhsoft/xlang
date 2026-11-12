@@ -1117,6 +1117,7 @@ static xls_typed_function* xlsSemNativeAcquire(const xls_sem_memo*,size_t,int*);
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
 #include "analysis/frontend_sem_native.inc"
 #endif
+#include "analysis/frontend_sem_import_errors.inc"
 static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
 {
     if(xlsFrontendCancelPoint(XLS_CANCEL_SEM_FUNCTION,1))return 0;

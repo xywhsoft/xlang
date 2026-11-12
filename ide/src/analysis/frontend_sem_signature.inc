@@ -127,7 +127,7 @@ static int xlsSemSignatureCaptureCall(XL6_SemContext* ctx,XL6_AstNode* node)
     if(!scope || !node || node->kind!=XL6_AST_CALL || !node->tokenRange.known || node->tokenRange.startOffset!=scope->data->site.argumentsStart-1 || !node->source || !node->source->completionQuery ||
        node->source->completionStart!=query->replacement.startOffset || node->source->completionEnd!=query->replacement.endOffset || !xlsCompletionPathEqual(xl6AstSourcePath(node),scope->data->path))return 0;
     if(++query->reached!=1){query->error="signature call checked more than once";return 1;}
-    if(query->error || (ctx->diags && ctx->diags->count)){if(!query->error)query->error="signature prerequisites contain errors";return 1;}
+    if(query->error || xlsSemQueryErrors(ctx)){if(!query->error)query->error="signature prerequisites contain errors";return 1;}
     scope->call=node;XL6_AstNode* callee=node->childCount ? node->children[0] : NULL;
     if(!callee){query->error="signature call has no callee";return 1;}
     XL6_AstNode* base=callee;if(callee->kind==XL6_AST_GENERIC_INSTANT){base=callee->childCount ? callee->children[0] : NULL;scope->typeArgs=callee->childCount>1 ? callee->children[1] : NULL;}

@@ -1,0 +1,132 @@
+{
+  "schema": 1,
+  "date": "2026-11-12",
+  "stage": "M7b5n",
+  "scope": "Current native semantic completion and signature help despite isolated foreign free-function body errors",
+  "implementationAccepted": true,
+  "goalComplete": false,
+  "performanceQualified": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "d43192fd83d78cabee2213d2ae5d33e7175392db",
+  "ownedSources": {
+    "ide/src/analysis/frontend_sem.inc": "dd27b816de6deb3e389aa76464d689e2ee2076c72de196dd73884244d7aadebe",
+    "ide/src/analysis/frontend_sem_signature.inc": "c20dcfcf0f324bb3e4da9a2919193c441e361abf3be3d20ec067d2a598e55fff",
+    "ide/src/analysis/frontend_sem_import_errors.inc": "868122bd91d55643ee3cd4be503b7dbccc96f384aa894e321eaeec79db1905d8",
+    "ide/tests/analysis_completion_import_errors_test.c": "a820651301c01e4eac592f933abbb224c0ed2230cd8918ecd06b8ea94c8d6be6",
+    "ide/tests/language_source_lease_test.c": "ffcbd3a5cda8870ba6f361df8b6266f3880df94d328288252701d155500392cc",
+    "ide/tools/build_lsp_core.py": "5a8bbe49f24abfd6be16437d6e4604d8d25fe6265d051495bc49c94eabd61697",
+    "ide/tools/native_completion_errors_overlay.py": "2c0c42f45a345c8ae3785e277c30591041e0175a2a171a40c234c92d469b7845",
+    "ide/tools/check_lsp_completion_import_errors.py": "62ae781524f1faf149363c29c303e9e397022fe674638edc7115a309f8261250",
+    "ide/docs/lsp-completion-import-errors.md": "e9a7b98c25b61f7aa3f16f8b7a94d6abca2774a7d8375431c09cf59370abc7b1"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-completion-error-isolation-20261112.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-completion-error-isolation-20261112/stage-sources.tar.gz",
+      "sha256": "ae4556268149e436759a72d20430d4e6a344b78ad8f2f173e19d483b80274f26",
+      "bytes": 75400,
+      "entries": 10,
+      "uniquePayloads": 10,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-completion-error-isolation-20261112/stage-sources.tar.gz.manifest.json",
+      "sha256": "fdaf582acb56e0cb98c8a6dc7e3ced226cc8cbb3542dcb702eda1205e6b2566d",
+      "bytes": 2440
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-completion-error-isolation-20261112/actual-builds-and-validation.tar.gz",
+      "sha256": "8f5085b88c3a442e42ac4b1171049b5fa2380a11ec233fffb11b138c115a91ca",
+      "bytes": 262359903,
+      "entries": 8977,
+      "uniquePayloads": 4322,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-completion-error-isolation-20261112/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "e65603dd42acc3fd1a375c0784b165c6b562fb17bccc1641802cb9d12c827096",
+      "bytes": 3331537
+    }
+  },
+  "currentBindings": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-completion-error-isolation-20261112\\final-bindings.json",
+    "sha256": "c94e5aa643c6ec7c0b973a974b1f6557d28cfe77f2aacaa43501008e18f1aadb"
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "sdkInherited": {
+    "index": "dev/release-materials/provenance/lsp-dpi-startup-20261112.json",
+    "indexSha256": "727ae55e191b104683a756dbe85a03f0add12ed40e60c4d6166face2f50f4e5d",
+    "dllSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "compiledUnitsThisStage": 0,
+    "matchedSetPreserved": true
+  },
+  "service": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-completion-error-isolation-20261112\\native-v2\\xlang-ls.exe",
+    "sha256": "9d683a472dce0c2f8fac74b39df7b782fb0eac03ba14ccb377e330691c75aafc",
+    "freshObjectUnits": 109,
+    "refinedPrivateSemanticUnits": 1,
+    "frontendFamily": "pinned native current projection 20261111; original engine source untouched"
+  },
+  "correctness": {
+    "reproducedUnchangedAcceptedServiceFailure": true,
+    "reportedFocusedAssertions": 216,
+    "focusedReleaseAndNativeO0": true,
+    "nativeRegressionSuites": 12,
+    "rejectedImplementationMutants": 4,
+    "addedRealProtocolCases": 8,
+    "existingRealProtocolCases": 50,
+    "guiProductionUnits": 124,
+    "guiRegressionSuites": 55,
+    "actualIdeAssertions": 122,
+    "actualIdeDualNativeProcesses": true,
+    "dependencyDiagnosticAndCompletionCoexist": true,
+    "actualCAndXlangTypingDeleteUndoImeFocus": true,
+    "actualGuiFramesEach": 24,
+    "staticCheckStillRejectsSameError": true,
+    "declarationAndDefaultErrorsStillReject": true,
+    "globalValueAndQuerySourceErrorsStillReject": true,
+    "currentSourceAndLifetimeCacheParity": true,
+    "pathComparisonFailureNeverProvesDifferentSources": true,
+    "compilerUnavailableProtocolTests": true,
+    "canonicalSourceAndActualDependenciesBound": true,
+    "allRuntimeTestAliasesRemoved": true,
+    "userTemporaryDirectoriesPreserved": true,
+    "failedRawAttemptsPreserved": true
+  },
+  "timingObservation": {
+    "scope": "ABBA native API;64 valid imported functions;5 cold plus40 changed dependency queries per process;not full performance qualification",
+    "values": {
+      "baseline": {
+        "coldMedianMs": 1.8685,
+        "changedDependencyMedianMs": 1.1511,
+        "changedDependencyP95Ms": 1.7184
+      },
+      "candidate": {
+        "coldMedianMs": 1.7062,
+        "changedDependencyMedianMs": 1.12865,
+        "changedDependencyP95Ms": 1.4766
+      }
+    },
+    "noObservedRegressionInThisSample": true
+  },
+  "limits": [
+    "Conservative isolation: module has no global values; foreign top-level ordinary/async/exported free-function body only; original header must be valid and current shared state unmodified",
+    "Class methods, query-file errors, module values, shared declaration/type effects and more general error recovery remain unavailable domains",
+    "Normal error-free query adds scalar/stack checks; error-only native path comparison may allocate long-path buffers and scans global symbols/root membership; no zero-overhead claim",
+    "Native test receipt cwd field describes an unused fixture directory; executed CWD is native-tests-v1 as bound by the unchanged runner; all raw files retained",
+    "Whole-goal performance/resource/longevity and latest engine/default runtime alignment remain open",
+    "Global source transaction host, request/config/project/physical/consent policy, recovery and standard rename/applyEdit activation remain open",
+    "Existing root compiler long unprefixed xlp path limitation and analysis-configuration cache-count regression remain open",
+    "C LSP stays disabled; no DAP/debug/runtime-object completion; no Linux/sanitizer qualification in this stage"
+  ],
+  "postCommitReceipt": "dev/release-materials/provenance/lsp-completion-error-isolation-20261112/postcommit.json"
+}

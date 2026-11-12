@@ -58,7 +58,7 @@ SERVER_SOURCES = (
     "src/server/xlang_ls.c",
 )
 CORE_TESTS = ("analysis_context_fault_test", "analysis_context_resolution_test", "analysis_input_view_test", "analysis_context_test", "analysis_check_test", "analysis_check_session_test", "analysis_incremental_check_test", "analysis_semantic_memo_test", "analysis_check_worker_test", "analysis_index_test", "analysis_index_limit_test", "analysis_ir_scan_test", "analysis_stdlib_scan_test", "analysis_overload_scan_test", "analysis_completion_candidates_test", "analysis_ast_clone_test", "analysis_semantic_test", "analysis_completion_session_test", "analysis_folding_test", "analysis_worker_test", "analysis_session_test", "analysis_incremental_syntax_test", "analysis_cursor_syntax_test", "analysis_text_test", "document_sync_test")
-CORE_TESTS = ("analysis_native_borrow_test", "analysis_final_annotations_test", "analysis_final_environment_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_completion_import_errors_test", "analysis_native_borrow_test", "analysis_final_annotations_test", "analysis_final_environment_test", *CORE_TESTS)
 HOST_TESTS = ("signature_help_test", "analysis_catalog_test", "language_context_test", "semantic_lookup_test", "analysis_index_view_test", "language_input_guard_test", "diagnostic_store_test", "language_definition_proof_test", "snapshot_report_test")
 CLIENT_TESTS = ("diagnostic_dependencies_test", "diagnostic_notice_test", "diagnostic_stream_test", "reference_results_test", "workspace_search_result_test")
 CLIENT_TEST_SOURCES = ("src/services/diagnostic_dependencies.c", "src/services/diagnostic_notice.c", "src/services/diagnostic_stream.c", "src/services/reference_results.c", "src/services/language_client.c", "src/services/workspace_search_result.c")
@@ -475,6 +475,8 @@ def prepare_native_sem(frontend: Path, output: Path, *, _current_unit_probe=Fals
     source = derive_type_sources(source)
     from native_aggregate_completion_overlay import derive as derive_aggregate_completion
     source,aggregate_completion=derive_aggregate_completion(source,frontend)
+    from native_completion_errors_overlay import derive as derive_completion_errors
+    source,completion_errors=derive_completion_errors(source)
     compiled.write_text(source, encoding='utf-8', newline='\n')
     return original, compiled, dict(source=str(original), sourceSha256=hashlib.sha256(body).hexdigest(),
         compiledSource=str(compiled), compiledSha256=sha(compiled),
@@ -488,6 +490,7 @@ def prepare_native_sem(frontend: Path, output: Path, *, _current_unit_probe=Fals
         syntheticTypeOrigins='eight explicit at-node constructors retain original AST source/ranges;original type rules unchanged',
         observedTypeQueries=type_queries, projectedAliasQueries=1 if current else 0,
         aggregateCompletion=aggregate_completion,
+        importedBodyErrors=completion_errors,
         typeConstructor=type_constructor,
         currentUnitProbe=bool(current and _current_unit_probe), declarationEffects=effect_overlay,
         finalAnnotations=final_annotation_overlay,
@@ -906,7 +909,7 @@ def main() -> None:
     inputs[str(Path(__file__).with_name('native_ir_derived_overlay.py').resolve())] = sha(Path(__file__).with_name('native_ir_derived_overlay.py'))
     inputs[str(Path(__file__).with_name('native_current_ir_profile.py').resolve())] = sha(Path(__file__).with_name('native_current_ir_profile.py'))
     inputs[str(Path(__file__).with_name('native_current_retirement_profile.py').resolve())] = sha(Path(__file__).with_name('native_current_retirement_profile.py'))
-    for name in ('native_frontend_inputs.py','native_c_interop_profile.py','native_current_unified_profile.py','native_current_semantic_profile.py','native_semantic_effects_overlay.py','native_current_stdlib_profile.py','native_current_context_profile.py','native_type_constructor_overlay.py','native_aggregate_completion_overlay.py'):
+    for name in ('native_frontend_inputs.py','native_c_interop_profile.py','native_current_unified_profile.py','native_current_semantic_profile.py','native_semantic_effects_overlay.py','native_current_stdlib_profile.py','native_current_context_profile.py','native_type_constructor_overlay.py','native_aggregate_completion_overlay.py','native_completion_errors_overlay.py'):
         controller=Path(__file__).with_name(name).resolve()
         inputs[str(controller)]=sha(controller)
     for overlay in (ir_overlay,sem_overlay,stdlib_overlay,completion_overlay,*context_overlays):
