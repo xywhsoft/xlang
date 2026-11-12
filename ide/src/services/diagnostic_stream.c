@@ -18,7 +18,7 @@ typedef struct diagnostic_job {
 } diagnostic_job;
 typedef struct retirement {void* value;void (*release)(void*);} retirement;
 struct xide_diagnostic_stream {
- xmutex lock;xcond changed;xthread* worker;int stop;
+ xmutex lock;xcond changed;xthread* worker;int stop,active;
  uint64_t session,serial;
  diagnostic_job* jobs[SLOTS];size_t jobHead,jobCount;
  xide_diagnostic_result* ready[SLOTS];size_t readyHead,readyCount;
@@ -137,30 +137,39 @@ static int32 run(ptr user)
   while(!s->stop && !s->jobCount && !s->retired.value && s->registrySession==s->session &&
         !(s->readyCount && s->ready[s->readyHead]->session!=s->session)) xrtCondWait(&s->changed,&s->lock);
   if(s->stop) {xrtMutexUnlock(&s->lock);break;}
+  s->active=1;
   if(s->registrySession!=s->session) {
    uint64_t session=s->session;xrtMutexUnlock(&s->lock);
-   xideDiagnosticDependenciesDestroy(s->registry);s->registry=NULL;s->registrySession=session;s->poisoned=0;notify(s);continue;
+   xideDiagnosticDependenciesDestroy(s->registry);s->registry=NULL;s->poisoned=0;
+   xrtMutexLock(&s->lock);s->registrySession=session;xrtMutexUnlock(&s->lock);goto settled;
   }
   if(s->readyCount && s->ready[s->readyHead]->session!=s->session) {
-   xide_diagnostic_result* old=popReady(s);--s->stats.outstanding;++s->stats.discarded;xrtMutexUnlock(&s->lock);xideDiagnosticResultRelease(old);notify(s);continue;
+   xide_diagnostic_result* old=popReady(s);--s->stats.outstanding;++s->stats.discarded;xrtMutexUnlock(&s->lock);xideDiagnosticResultRelease(old);goto settled;
   }
   if(s->jobCount && s->jobs[s->jobHead]->session!=s->session) {
-   diagnostic_job* old=popJob(s);--s->stats.outstanding;++s->stats.cancelled;++s->stats.finished;xrtMutexUnlock(&s->lock);releaseJob(old);notify(s);continue;
+   diagnostic_job* old=popJob(s);--s->stats.outstanding;++s->stats.cancelled;++s->stats.finished;xrtMutexUnlock(&s->lock);releaseJob(old);goto settled;
   }
   if(s->retired.value) {
-   retirement old=s->retired;s->retired=(retirement){0};xrtMutexUnlock(&s->lock);old.release(old.value);notify(s);continue;
+   retirement old=s->retired;s->retired=(retirement){0};xrtMutexUnlock(&s->lock);old.release(old.value);goto settled;
   }
   diagnostic_job* job=popJob(s);s->stats.running=1;xrtMutexUnlock(&s->lock);
   process(s,job);uint64_t session=job->session;xide_diagnostic_result* result=job->result;job->result=NULL;releaseJob(job);
   xrtMutexLock(&s->lock);s->stats.running=0;++s->stats.finished;
   if(!s->stop && s->session==session) {s->ready[(s->readyHead+s->readyCount)%SLOTS]=result;++s->readyCount;result=NULL;}
   else {--s->stats.outstanding;++s->stats.cancelled;}
-  xrtMutexUnlock(&s->lock);xideDiagnosticResultRelease(result);notify(s);
+  xrtMutexUnlock(&s->lock);xideDiagnosticResultRelease(result);
+settled:
+  xrtMutexLock(&s->lock);s->active=0;xrtMutexUnlock(&s->lock);notify(s);
  }
  for(size_t i=0;i<s->jobCount;++i) releaseJob(s->jobs[(s->jobHead+i)%SLOTS]);
  for(size_t i=0;i<s->readyCount;++i) xideDiagnosticResultRelease(s->ready[(s->readyHead+i)%SLOTS]);
  if(s->retired.value) s->retired.release(s->retired.value);
  xideDiagnosticDependenciesDestroy(s->registry);s->registry=NULL;return 0;
+}
+int xideDiagnosticStreamIdle(xide_diagnostic_stream* s)
+{
+ if(!s)return 1;
+ xrtMutexLock(&s->lock);int idle=!s->stop && !s->active && !s->jobCount && !s->readyCount && !s->retired.value && s->registrySession==s->session;xrtMutexUnlock(&s->lock);return idle;
 }
 xide_diagnostic_stream* xideDiagnosticStreamCreate(void (*wake)(void*),void* user)
 {

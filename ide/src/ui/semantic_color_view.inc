@@ -134,6 +134,7 @@ static int takeColors(xide_language_view* v,xvalue* message)
 }
 void xideLanguageViewDocumentChanged(xide_app* app,xide_document* d)
 {
+ if(app && app->languageView && (app->languageView->sourceToken || app->languageView->sourceDrain)){sourceChanged(app->languageView,0);return;}
  xide_language_view* v=app?app->languageView:NULL;struct xide_color_view* c=v?v->colors:NULL;if(!c || !d)return;
  if(!namedXlang(d) && c->applied.document!=d && c->wanted.document!=d)return;
  document_binding* b=d->path?inputPath(v,d->path):NULL;

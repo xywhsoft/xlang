@@ -4,11 +4,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <limits.h>
 #define QUEUE_BYTES (64u*1024u*1024u)
 #define QUEUE_COUNT 2048u
 typedef struct node { struct node* next; char* bytes; size_t length,offset; xvalue* value; } node;
 struct xide_language_batch { node *head,*tail;size_t bytes,count; };
-struct xide_language_client { CRITICAL_SECTION lock; HANDLE worker; volatile LONG stop; xmutex changedLock;xcond changed;int changedLockReady,changedReady,signaled; char *program,*directory; char** arguments; size_t argumentCount; enum xide_language_client_state state; char error[768]; node *sendHead,*sendTail,*receiveHead,*receiveTail; size_t sendBytes,receiveBytes,sendCount,receiveCount; void (*wake)(void*); void* wakeUser; xide_language_receive_proc receiver;void* receiverUser; };
+struct xide_language_client { CRITICAL_SECTION lock; HANDLE worker; volatile LONG stop; xmutex changedLock;xcond changed;int changedLockReady,changedReady,signaled; char *program,*directory; char** arguments; size_t argumentCount; enum xide_language_client_state state; char error[768]; node *sendHead,*sendTail,*receiveHead,*receiveTail; size_t sendBytes,receiveBytes,sendCount,receiveCount; void (*wake)(void*); void* wakeUser; xide_language_receive_proc receiver;void* receiverUser;
+ struct {int known,supported,invalidated,suspendQueued,resumeQueued,wantResume,resumeAck,failed;int64_t token,last;enum xide_language_lease_state phase;} lease;
+};
 static void signalTransport(void* user)
 { xide_language_client* c=user;if(c->changedReady) {xrtMutexLock(&c->changedLock);c->signaled=1;xrtCondSignal(&c->changed);xrtMutexUnlock(&c->changedLock);} }
 static xwaitresult waitTransport(xide_language_client* c,int64 timeout)
@@ -47,7 +50,7 @@ int xideLanguageBatchSend(xide_language_client* c,xide_language_batch* batch)
 {
  if(!c || !batch) return 0;
  EnterCriticalSection(&c->lock);
- int okay=c->state<=XIDE_LS_RUNNING && batch->count<=QUEUE_COUNT-c->sendCount && batch->bytes<=QUEUE_BYTES-c->sendBytes;
+ int okay=!c->lease.token && !InterlockedCompareExchange(&c->stop,0,0) && c->state<=XIDE_LS_RUNNING && batch->count<=QUEUE_COUNT-c->sendCount && batch->bytes<=QUEUE_BYTES-c->sendBytes;
  if(okay && batch->head) {
   if(c->sendTail) c->sendTail->next=batch->head;else c->sendHead=batch->head;
   c->sendTail=batch->tail;c->sendCount+=batch->count;c->sendBytes+=batch->bytes;
@@ -66,19 +69,21 @@ int xideLanguageClientSetReceiver(xide_language_client* c,xide_language_receive_
  if(okay) {c->receiver=receiver;c->receiverUser=user;}
  LeaveCriticalSection(&c->lock);return okay;
 }
+#include "services/language_client_lease.inc"
 static int receive(xvalue* value,size_t length,void* user)
 {
  xide_language_client* c=user;
- EnterCriticalSection(&c->lock);xide_language_receive_proc receiver=c->receiver;void* receiverUser=c->receiverUser;LeaveCriticalSection(&c->lock);
+ if(leaseReceive(c,value))return 1;
+ EnterCriticalSection(&c->lock);xide_language_receive_proc receiver=c->lease.token?NULL:c->receiver;void* receiverUser=c->receiverUser;LeaveCriticalSection(&c->lock);
  if(receiver && receiver(value,length,receiverUser)>0) return 1;
  node* n=calloc(1,sizeof(*n));if(!n) return 0;
  n->value=value;n->length=length;
- EnterCriticalSection(&c->lock); int okay=c->receiveCount<QUEUE_COUNT && length<=QUEUE_BYTES-c->receiveBytes;
+ EnterCriticalSection(&c->lock);int held=c->lease.token && !c->lease.resumeAck; int okay=!held && c->receiveCount<QUEUE_COUNT && length<=QUEUE_BYTES-c->receiveBytes;
  if(okay) { if(c->receiveTail) c->receiveTail->next=n; else c->receiveHead=n; c->receiveTail=n; ++c->receiveCount; c->receiveBytes+=length; }
  LeaveCriticalSection(&c->lock);
  /* Only success takes the root. The stream releases rejected frames after
     this callback returns, outside the queue lock. Count original wire bytes. */
- if(!okay) {n->value=NULL;clear(n);}else wakeOwner(c);return okay;
+ if(!okay) {if(!held)n->value=NULL;clear(n);}else wakeOwner(c);return held || okay;
 }
 static DWORD WINAPI worker(void* user)
 {
@@ -86,6 +91,7 @@ static DWORD WINAPI worker(void* user)
  xide_process_spec spec={.program=c->program,.directory=c->directory,.arguments=(const char* const*)c->arguments,.argumentCount=c->argumentCount,.interactive=1,.separateStderr=1,.stdoutCapacity=8u*1024u*1024u+16384u}; xide_process* p=xideProcessStart(&spec,e.message,sizeof(e.message)); int okay=p!=NULL;
  if(p) xideProcessSetWake(p,signalTransport,c);
  while(okay && !InterlockedCompareExchange(&c->stop,0,0)) {
+  leasePrepare(c);
   xideProcessGetInfo(p,&info); if(info.started) { EnterCriticalSection(&c->lock); c->state=XIDE_LS_RUNNING; LeaveCriticalSection(&c->lock); }
   int writing=0;node* sent=NULL;EnterCriticalSection(&c->lock); node* n=c->sendHead;
   if(n) { size_t k=n->length-n->offset; if(k>16384) k=16384; if(xideProcessWrite(p,n->bytes+n->offset,k)) {n->offset+=k;writing=1;}
@@ -103,6 +109,11 @@ static DWORD WINAPI worker(void* user)
   if(!k && !warning && !writing && waitTransport(c,XIDE_XRT_TIMEOUT_MS(1))==XWAIT_ERROR) {fail(&e,"Stdio transport notification failed.");okay=0;break;}
  }
  if(p) { xideProcessDestroy(p); } xideLspStreamClear(&stream);
+ /* Explicit stop and held-lease recovery retire queued bodies before physical
+    worker completion. The UI's later final Stop only releases small metadata. */
+ EnterCriticalSection(&c->lock);node *abandonedSend=NULL,*abandonedReceive=NULL;
+ if(c->lease.token || InterlockedCompareExchange(&c->stop,0,0)){abandonedSend=c->sendHead;abandonedReceive=c->receiveHead;c->sendHead=c->sendTail=c->receiveHead=c->receiveTail=NULL;c->sendBytes=c->sendCount=c->receiveBytes=c->receiveCount=0;}
+ LeaveCriticalSection(&c->lock);clear(abandonedSend);clear(abandonedReceive);
  EnterCriticalSection(&c->lock); c->state=okay || InterlockedCompareExchange(&c->stop,0,0) ? XIDE_LS_STOPPED : XIDE_LS_FAILED; snprintf(c->error,sizeof(c->error),"%s",e.message); LeaveCriticalSection(&c->lock); wakeOwner(c); return 0;
 }
 static int validArgument(const char* text,size_t* bytes,int required)
@@ -132,8 +143,9 @@ xide_language_client* xideLanguageClientStart(const char* program,const char* co
 }
 int xideLanguageClientSend(xide_language_client* c,const xvalue* message,xide_model_error* e)
 {
+ if(c){EnterCriticalSection(&c->lock);int blocked=c->lease.token || c->state>=XIDE_LS_STOPPED || InterlockedCompareExchange(&c->stop,0,0);LeaveCriticalSection(&c->lock);if(blocked)return fail(e,"语言服务已暂停或结束。");}
  if(!c) { return fail(e,"语言服务未启动。"); } node* n=calloc(1,sizeof(*n)); if(!n) return fail(e,"无法分配语言服务发送队列。"); n->bytes=xideLspFrame(message,&n->length,e); if(!n->bytes) { clear(n); return 0; }
- EnterCriticalSection(&c->lock); int okay=c->state<=XIDE_LS_RUNNING && c->sendCount<QUEUE_COUNT && n->length<=QUEUE_BYTES-c->sendBytes;
+ EnterCriticalSection(&c->lock); int okay=!c->lease.token && !InterlockedCompareExchange(&c->stop,0,0) && c->state<=XIDE_LS_RUNNING && c->sendCount<QUEUE_COUNT && n->length<=QUEUE_BYTES-c->sendBytes;
  if(okay) { if(c->sendTail) c->sendTail->next=n; else c->sendHead=n; c->sendTail=n; ++c->sendCount; c->sendBytes+=n->length; } LeaveCriticalSection(&c->lock);
  if(!okay) { clear(n); return fail(e,"语言服务已结束或发送队列达到上限。"); } signalTransport(c);return 1;
 }
@@ -142,8 +154,9 @@ xvalue* xideLanguageClientNextSized(xide_language_client* c,size_t* bytes)
  if(bytes) *bytes=0;
  if(!c) return NULL;
  EnterCriticalSection(&c->lock);node* n=c->receiveHead;xvalue* value=NULL;
- if(n) {c->receiveHead=n->next;if(!c->receiveHead)c->receiveTail=NULL;--c->receiveCount;c->receiveBytes-=n->length;
+ if(n && !c->lease.token) {c->receiveHead=n->next;if(!c->receiveHead)c->receiveTail=NULL;--c->receiveCount;c->receiveBytes-=n->length;
   value=n->value;n->value=NULL;n->next=NULL;if(bytes)*bytes=n->length;}
+ else n=NULL;
  LeaveCriticalSection(&c->lock);clear(n);return value;
 }
 xvalue* xideLanguageClientNext(xide_language_client* c)

@@ -41,6 +41,7 @@ static void svqueue(xide_completion_view* v,xide_document* d,int offset,int kind
 void xideSignatureViewRequest(xide_app* app,xui_widget editor,int offset,int force)
 {
  xide_completion_view* v=app ? app->completionView : NULL;xide_document* d=app ? app->activeDocument : NULL;
+ if(v && (v->sourceToken || v->sourceDrain))return;
  if(!v || !d || (!force && !xideSettingsOptions(&app->preferences)->signatureHelp) || d->editor!=editor || !cveligible(app,d) || xuiGetFocusWidget(app->context)!=editor)return;
  xui_code_selection_t selection={0};if(xuiCodeSelectionGetState(xuiCodeEditGetSelection(editor),&selection)!=XUI_OK || selection.iCaretOffset!=offset || selection.iAnchorOffset!=offset)return;
  signature_view* s=&v->signature;if(!force && s->wanted && s->document==d && s->version==xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(editor)) && s->offset==offset)return;

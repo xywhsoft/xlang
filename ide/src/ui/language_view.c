@@ -1,5 +1,6 @@
 #include "platform/receipt_time.h"
 #include "ui/language_view.h"
+#include "ui/language_source_lease.h"
 #include "model/metadata_read.h"
 #include "services/analysis_configuration.h"
 #include "services/execution_target.h"
@@ -42,6 +43,7 @@ typedef struct semantic_editor_binding { struct semantic_editor_binding* next; x
 typedef struct highlight_intent { xide_document* document; uint64_t id,stamp; uint32_t version; int offset,check,wire; } highlight_intent;
 typedef struct outline_item { const xvalue* symbol; int parent; char* title; } outline_item;
 struct xide_language_view {
+ uint64_t sourceToken,sourceSerial;int64_t sourceClientToken;int sourceInvalid,sourceReset,sourceFailed,sourceResuming,sourceDrain,sourceStop,sourceAutoPaused,sourceColorPaused;
  struct xide_reference_view* references;
  struct xide_workspace_search_view* workspaceSearch;
  xide_app* app; document_binding inputs[SNAPSHOT_DOCS]; size_t inputCount;
@@ -70,6 +72,9 @@ struct xide_language_view {
  struct xide_color_view* colors;
  char message[768];
 };
+static void sourceChanged(xide_language_view* v,int resetClient)
+{if(v && v->sourceToken){v->sourceInvalid=1;v->sourceReset|=resetClient;xideLanguageClientInvalidateAnalysis(v->client,v->sourceClientToken);}}
+static int sourceCleanup(xide_language_view*);
 static xstrview sv(const char* s) { return (xstrview){s,strlen(s)}; }
 static xvalue* get(const xvalue* o,const char* key) { return o && xrtValueType(o)==XVALUE_OBJECT ? xrtValueObjectGet(o,sv(key)) : NULL; }
 static const char* string(const xvalue* v) { xstrview s={0}; return v && xideMetaString(v,&s) && !memchr(s.Data,0,s.Size) && s.Size<=INT_MAX && (!s.Size || MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,s.Data,(int)s.Size,NULL,0)) ? s.Data : NULL; }
@@ -85,6 +90,7 @@ static int bindingRevisionCurrent(const document_binding* b)
 static int snapshotConflict(xide_document* d) { return d->externalState && d->externalState!=XIDE_WATCH_MISSING; }
 static int canSnapshot(xide_app* app,xide_document* root)
 {
+ if(app && app->languageView && (app->languageView->sourceToken || app->languageView->sourceDrain))return 0;
  if(!namedXlang(root) || strcmp(root->language,"xlang") || snapshotConflict(root)) return 0;
  size_t count=0,bytes=0;
  for(size_t i=0;i<app->documents.count;++i) { xide_document* d=app->documents.items[i]; if(!namedXlang(d)) continue;
@@ -217,6 +223,7 @@ static void closeDocument(xide_language_view* v)
 }
 static void reset(xide_app* app)
 {
+ if(app->languageView->sourceToken || app->languageView->sourceDrain){sourceChanged(app->languageView,1);return;}
  ++app->languageView->highlightSession;
  colorsReset(app->languageView);
  xide_language_view* v=app->languageView;resetWorkspaceSearch(v);resetReferences(v);automaticReset(v); clearDiagnostics(app); xideLanguageClientStop(v->client); v->client=NULL;xrtValueRelease(v->analysisCatalog);v->analysisCatalog=NULL; free(v->compiler); free(v->directory); free(v->uri); free(v->path);
@@ -227,6 +234,7 @@ static void reset(xide_app* app)
 void xideLanguageViewConfigurationChanged(xide_app* app)
 {
  if(!app || !app->languageView) return;
+ if(app->languageView->sourceToken){sourceChanged(app->languageView,1);return;}
  xide_language_view* v=app->languageView;
  /* A tree/status refresh can accompany a source change without changing
     any semantic configuration. Compare the complete canonical catalog,not
@@ -311,6 +319,7 @@ static int finishSnapshotSync(xide_app* app)
 static void languageWake(void* user) { (void)user; xgeRenderRequest(); }
 static int connectClientPath(xide_app* app,const char* path)
 {
+ if(app->languageView->sourceToken || app->languageView->sourceDrain)return 0;
  xide_language_view* v=app->languageView;
  automaticResume(v);
  const char* compiler=xideTaskViewCompiler(app); char* directory=path?xidePathDirectory(path):NULL; if(!compiler || !directory) { free(directory); return 0; }
@@ -478,10 +487,10 @@ int xideLanguageViewCreate(xide_app* app)
 }
 void xideLanguageViewSettingsChanged(xide_app* app)
 {if(app && app->languageView){reset(app);automaticResume(app->languageView);xgeRenderRequest();}}
-void xideLanguageViewStop(xide_app* app) { if(app->languageView) {automaticPause(app->languageView); suppressHighlights(app->languageView); reset(app); colorsStop(app->languageView); } }
+void xideLanguageViewStop(xide_app* app) { if(app->languageView) {if(app->languageView->sourceToken || app->languageView->sourceDrain){app->languageView->sourceStop=1;sourceChanged(app->languageView,1);return;}automaticPause(app->languageView); suppressHighlights(app->languageView); reset(app); colorsStop(app->languageView); } }
 void xideLanguageViewDestroy(xide_app* app)
 { xide_language_view* v=app->languageView; if(v) { xideLanguageClientStop(v->client);destroyWorkspaceSearch(v);colorsDestroy(v);automaticDestroy(v); xideSyncPlannerDestroy(v->syncPlanner);xideSyncResultRelease(v->syncReady);destroyReferences(v);xideHighlightDecoderDestroy(v->highlightDecoder); xrtValueRelease(v->deferredMessage); xideHighlightResultRelease(v->highlightResult); xlsSyncDestroy(v->sync); free(v->compiler); free(v->directory); free(v->uri); free(v->path); free(v->packagePath); xrtValueRelease(v->diagnostics); xrtValueRelease(v->snapshotResult);xrtValueRelease(v->analysisCatalog); freeInputs(v); while(v->bindings) { semantic_editor_binding* next=v->bindings->next; free(v->bindings); v->bindings=next; } free(v); app->languageView=NULL; } }
-int xideLanguageViewCanCheck(xide_app* app) { return app && app->languageView && !app->languageView->busy && eligible(app->activeDocument) && xideTaskViewCompiler(app); }
+int xideLanguageViewCanCheck(xide_app* app) { return app && app->languageView && !app->languageView->sourceToken && !app->languageView->sourceDrain && !app->languageView->busy && eligible(app->activeDocument) && xideTaskViewCompiler(app); }
 int xideLanguageViewCanCheckCurrent(xide_app* app) {
 #if XIDE_ENABLE_C_LSP
  if(app && app->activeDocument && !strcmp(app->activeDocument->language,"c")) return xideCLanguageViewCanCheck(app);
@@ -551,6 +560,7 @@ static int showOutline(xide_app* app);
 static int requestCaretHover(xide_app* app);
 int xideLanguageViewAction(xide_app* app,int action)
 {
+ if(app && app->languageView && (app->languageView->sourceToken || app->languageView->sourceDrain))return 0;
  if(action==XIDE_ACTION_FIND_REFERENCES)return requestReferences(app);
  if(action==XIDE_ACTION_WORKSPACE_SYMBOLS)return xideLanguageViewWorkspaceSymbolsOpen(app);
 
@@ -775,6 +785,8 @@ static int deferPreemptedCheck(xide_language_view* v,const xvalue* error)
 void xideLanguageViewPoll(xide_app* app)
 {
  xide_language_view* v=app->languageView; if(!v) return;
+ if(v->sourceDrain){if(!xideLanguageClientStopped(v->client)){xgeRenderRequestAfter(.02f);return;}v->sourceDrain=0;reset(app);if(!v->sourceStop && !v->sourceAutoPaused)automaticResume(v);else automaticPause(v);if(v->sourceStop || v->sourceColorPaused)colorsStop(v);}
+ if(v->sourceToken){if(!sourceCleanup(v))xgeRenderRequestAfter(.02f);return;}
  automaticPoll(app);
  if(!v->autoEnabled && v->snapshotMode && v->document && !v->invalidated && v->compiler) {
   const char* compiler=xideTaskViewCompiler(app); char* package=NULL; xide_model_error e={0}; int captured=xideLanguageCheckPackagePath(&package,&e);
@@ -812,7 +824,8 @@ void xideLanguageViewPoll(xide_app* app)
   else if(number(get(m,"id"),&id)) {
    const xvalue* result=get(m,"result"),*error=get(m,"error"); const char* reason=boundedString(get(error,"message"),4096);
    if(id==1 && !v->initialized) {
-    const xvalue* cap=get(result,"capabilities"); const char* encoding=string(get(cap,"positionEncoding")); bool supported=false;int configurationSchema=0;
+    const xvalue* cap=get(result,"capabilities"); const char* encoding=string(get(cap,"positionEncoding")); bool supported=false;int configurationSchema=0,leaseSchema=0;
+    xideLanguageClientSetAnalysisLease(v->client,number(get(get(cap,"experimental"),"analysisLease"),&leaseSchema) && leaseSchema==1 && !error);
     if(error || !encoding || strcmp(encoding,"utf-16") || !xideMetaBool(get(get(cap,"experimental"),"savedEntryDiagnostics"),&supported) || !supported) { snprintf(v->message,sizeof(v->message),"语言服务初始化失败：%s",reason ? reason : "诊断能力不兼容"); reset(app);automaticPause(v); }
     else if(v->analysisRequired && (!number(get(get(cap,"experimental"),"analysisConfiguration"),&configurationSchema) || configurationSchema!=1)) {
      automaticFault(v,"当前语言服务不支持工程分析配置，请更新语言服务。");
@@ -920,6 +933,7 @@ static int jumpRange(xide_app* app,const char* path,const xvalue* range)
 }
 int xideLanguageViewJump(xide_app* app,size_t index)
 {
+ if(app && app->languageView && (app->languageView->sourceToken || app->languageView->sourceDrain))return 0;
  int routed=automaticJump(app,index);if(routed>=0) return routed;
  xide_language_view* v=app->languageView; if(!v || !v->diagnostics || index>=xideMetaCount(v->diagnostics)) return 0;
  const xvalue* d=xrtValueArrayGet(v->diagnostics,index); return jumpRange(app,string(get(d,"file")),get(d,"range"));
@@ -1257,3 +1271,4 @@ static void pollHighlights(xide_app* app)
 #include "language_references.inc"
 #include "workspace_search_view.inc"
 #include "semantic_color_view.inc"
+#include "language_source_lease.inc"

@@ -69,6 +69,10 @@ void xideDiagnosticResultRelease(xide_diagnostic_result* result);
  * False takes nothing. Release callbacks must not destroy/reenter the stream. */
 int xideDiagnosticStreamRetire(xide_diagnostic_stream* stream,void* value,void (*release)(void*));
 int xideDiagnosticStreamLoad(xide_diagnostic_stream* stream,xide_diagnostic_stream_stats* stats);
+/* Nonblocking physical worker quiescence, including registry/reset and
+ * retirement callbacks/cleanup. Owner must exclude new submissions. Reset to
+ * a new session first to cancel pending source reads and stale ready data. */
+int xideDiagnosticStreamIdle(xide_diagnostic_stream* stream);
 /* Final shutdown only: cancels/joins and frees internally owned jobs/results.
  * Already taken results/notices outlive the stream until caller release. */
 void xideDiagnosticStreamDestroy(xide_diagnostic_stream* stream);

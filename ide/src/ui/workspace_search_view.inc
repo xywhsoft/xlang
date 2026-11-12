@@ -27,6 +27,7 @@ static void workspaceInputsFree(struct xide_workspace_search_view* r)
 {for(size_t i=0;i<r->count;++i)freeInput(r->inputs+i);r->count=0;}
 static int workspaceEligible(xide_app* app)
 {
+ if(app && app->languageView && (app->languageView->sourceToken || app->languageView->sourceDrain))return 0;
  size_t count=0,bytes=0;for(size_t i=0;i<app->documents.count;++i){xide_document* d=app->documents.items[i];if(!namedXlang(d))continue;int n=xuiCodeDocumentGetLength(xuiCodeEditGetDocument(d->editor));if(snapshotConflict(d) || ++count>SNAPSHOT_DOCS || n<0 || (size_t)n>TEXT_LIMIT || (size_t)n>32u*1024u*1024u-bytes)return 0;bytes+=(size_t)n;}return 1;
 }
 static int workspaceInputsCapture(xide_app* app)
@@ -144,7 +145,7 @@ static int createWorkspaceSearch(xide_app* app)
  WS_TRY(xuiWidgetGetEventHandler(r->tree,XUI_EVENT_KEY_DOWN,&r->treeKey,&r->treeKeyUser));WS_TRY(xuiWidgetSetEventHandler(r->tree,XUI_EVENT_KEY_DOWN,workspaceKey,app));WS_TRY(xuiWidgetGetEventHandler(r->tree,XUI_EVENT_POINTER_DOUBLE_CLICK,&r->treeDouble,&r->treeDoubleUser));WS_TRY(xuiWidgetSetEventHandler(r->tree,XUI_EVENT_POINTER_DOUBLE_CLICK,workspaceDouble,app));workspaceRows(v);return XUI_OK;
 #undef WS_TRY
 }
-int xideLanguageViewCanSearchWorkspace(xide_app* app){return app && app->dock && app->languageView && !app->languageView->busy && xideTaskViewCompiler(app)!=NULL;}
+int xideLanguageViewCanSearchWorkspace(xide_app* app){return app && app->dock && app->languageView && !app->languageView->sourceToken && !app->languageView->sourceDrain && !app->languageView->busy && xideTaskViewCompiler(app)!=NULL;}
 int xideLanguageViewWorkspaceSymbolsIsOpen(xide_app* app){return app && app->languageView && app->languageView->workspaceSearch && xideDialogIsOpen(app->languageView->workspaceSearch->window);}
 int xideLanguageViewWorkspaceSymbolsOpen(xide_app* app)
 {if(!xideLanguageViewCanSearchWorkspace(app) || xideActionsHasModal(app))return 0;struct xide_workspace_search_view* r=app->languageView->workspaceSearch;xideDialogSetMaxSize(r->window,app->viewportWidth-32,app->viewportHeight-32);xideDialogSetOpen(r->window,1);xuiSetFocusWidget(app->context,r->input);xuiEditSelectAll(r->input);r->composing=0;r->due=GetTickCount64();xgeRenderRequest();xideActionsRefresh(app);return 1;}

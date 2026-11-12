@@ -127,6 +127,7 @@ static void retirementAndBounds(void)
 {
  gateSet(&retireGate,0);xide_diagnostic_stream* s=xideDiagnosticStreamCreate(NULL,NULL);CHECK(s && xideDiagnosticStreamReset(s,1));retired_value values[3]={0};values[0].block=1;for(size_t i=0;i<3;++i) xrtAtomic32Init(&values[i].life.dropped,0);
  CHECK(xideDiagnosticStreamRetire(s,&values[0],disposeRetired) && gateEntered(&retireGate));CHECK(xrtMutexTryLock(&s->lock));xrtMutexUnlock(&s->lock);
+ xide_diagnostic_stream_stats heldLoad={0};CHECK(xideDiagnosticStreamLoad(s,&heldLoad) && !heldLoad.queued && !heldLoad.running && !heldLoad.retired && !xideDiagnosticStreamIdle(s));
  CHECK(xideDiagnosticStreamRetire(s,&values[1],disposeRetired) && !xideDiagnosticStreamRetire(s,&values[2],disposeRetired) && xideDiagnosticStreamReset(s,2));
  xide_diagnostic_batch* b=makeBatch(1,0,NULL);CHECK(xideDiagnosticStreamSubmit(s,2,1,b,NULL,NULL)==1);b=makeBatch(0,1,hashA);CHECK(xideDiagnosticStreamSubmit(s,2,2,b,NULL,NULL)==1);gateSet(&retireGate,1);
  xide_diagnostic_result* a=waitResult(s),*r=waitResult(s);CHECK(a->valid && r->valid && a->serial<r->serial);uint64_t worker=r->workerThreadId;xideDiagnosticResultRelease(a);CHECK(xideDiagnosticStreamRetire(s,r,releaseResult));

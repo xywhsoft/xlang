@@ -39,5 +39,28 @@ xvalue* xideLanguageClientNext(xide_language_client* client);
 xvalue* xideLanguageClientNextSized(xide_language_client* client,size_t* bytes);
 int xideLanguageClientHasPending(xide_language_client* client);
 enum xide_language_client_state xideLanguageClientState(xide_language_client* client,char* error,size_t capacity);
+/* Owner-serialized source-reader control. Suspension immediately closes ALL
+ * ordinary send/batch/receive admission; its small protocol requests are
+ * encoded on the transport worker after previously accepted sends. Parsed
+ * old replies are discarded there, before decoder callbacks. No UI join or
+ * body scan. Normal keyboard/model edits remain the host's responsibility. */
+enum xide_language_lease_state {XIDE_LS_LEASE_STALE=-1,XIDE_LS_LEASE_PENDING,
+ XIDE_LS_LEASE_HELD,XIDE_LS_LEASE_RESUMING,XIDE_LS_LEASE_RESUMED,XIDE_LS_LEASE_FAILED};
+/* Set once after validating this connection's initialize response. */
+int xideLanguageClientSetAnalysisLease(xide_language_client*,int supported);
+int xideLanguageClientCanSuspendAnalysis(xide_language_client*);
+int64_t xideLanguageClientSuspendAnalysis(xide_language_client*,xide_model_error*);
+enum xide_language_lease_state xideLanguageClientAnalysisState(xide_language_client*,int64_t token,int* invalidated);
+void xideLanguageClientInvalidateAnalysis(xide_language_client*,int64_t token);
+/* Explicit caller assertion that source changes are settled. May abandon a
+ * pending suspension. On prior failure requests asynchronous process stop;
+ * never auto-restarts or unlocks on timeout/connection loss. */
+int xideLanguageClientResumeAnalysis(xide_language_client*,int64_t token);
+/* Reopens admission only after exact resume acknowledgement, or actual stopped
+ * worker/process after explicit recovery/resume. Token remains held otherwise. */
+int xideLanguageClientReleaseAnalysis(xide_language_client*,int64_t token);
+int xideLanguageClientAnalysisCanRelease(xide_language_client*,int64_t token);
+void xideLanguageClientRequestStop(xide_language_client*);
+int xideLanguageClientStopped(xide_language_client*);
 void xideLanguageClientStop(xide_language_client* client);
 #endif

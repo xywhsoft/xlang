@@ -51,7 +51,7 @@ xide_workspace_search_result* xideWorkspaceSearchDecode(xvalue* message,const xv
  if(!stopped(stop,user)){r->valid=1;r->error[0]=0;}return r;
 }
 typedef struct search_job {uint64_t token;int request,version,prepared,failed;size_t bytes;xvalue *selection,*text,*message;xide_workspace_search_result* emergency;xide_language_batch* batch;char query[513];} search_job;
-struct xide_workspace_search_decoder {xthread* thread;xmutex lock;xcond changed;int stop,request,received;uint64_t current;search_job* pending;xide_workspace_search_result *completed,*retired;xide_language_batch* retiredBatch;void (*wake)(void*);void* user;};
+struct xide_workspace_search_decoder {xthread* thread;xmutex lock;xcond changed;int stop,active,request,received;uint64_t current;search_job* pending;xide_workspace_search_result *completed,*retired;xide_language_batch* retiredBatch;void (*wake)(void*);void* user;};
 typedef struct cancel_state {xide_workspace_search_decoder* d;uint64_t token;} cancel_state;
 static int cancelled(void* p){cancel_state* c=p;xrtMutexLock(&c->d->lock);int stop=c->d->stop || c->d->current!=c->token;xrtMutexUnlock(&c->d->lock);return stop;}
 static void jobFree(search_job* j){if(j){xrtValueRelease(j->selection);xrtValueRelease(j->text);xrtValueRelease(j->message);xideWorkspaceSearchResultRelease(j->emergency);xideLanguageBatchDestroy(j->batch);xrtFree(j);}}
@@ -66,15 +66,17 @@ static int32 run(ptr p)
 {
  xide_workspace_search_decoder* d=p;
  for(;;){xrtMutexLock(&d->lock);while(!d->stop && !d->retired && !d->retiredBatch && !(d->completed && d->completed->token!=d->current) && !(d->pending && (!d->pending->prepared || d->pending->failed || d->pending->message || d->pending->token!=d->current)))xrtCondWait(&d->changed,&d->lock);
-  if(d->stop){xrtMutexUnlock(&d->lock);break;}xide_workspace_search_result* garbage=d->retired;d->retired=NULL;search_job* job=NULL;
+  if(d->stop){xrtMutexUnlock(&d->lock);break;}d->active=1;xide_workspace_search_result* garbage=d->retired;d->retired=NULL;search_job* job=NULL;
   xide_language_batch* batchGarbage=d->retiredBatch;d->retiredBatch=NULL;
   if(!garbage && d->completed && d->completed->token!=d->current){garbage=d->completed;d->completed=NULL;}
-  if(!garbage && !batchGarbage && d->pending && !d->pending->prepared && d->pending->token==d->current){job=d->pending;xrtMutexUnlock(&d->lock);xide_language_batch* batch=prepare(job);xrtMutexLock(&d->lock);job->batch=batch;job->prepared=1;job->failed=batch==NULL;xrtMutexUnlock(&d->lock);if(d->wake)d->wake(d->user);continue;}
+  if(!garbage && !batchGarbage && d->pending && !d->pending->prepared && d->pending->token==d->current){job=d->pending;xrtMutexUnlock(&d->lock);xide_language_batch* batch=prepare(job);xrtMutexLock(&d->lock);job->batch=batch;job->prepared=1;job->failed=batch==NULL;xrtMutexUnlock(&d->lock);goto settled;}
   if(!garbage && !batchGarbage){job=d->pending;d->pending=NULL;}xrtMutexUnlock(&d->lock);xideLanguageBatchDestroy(batchGarbage);
-  xideWorkspaceSearchResultRelease(garbage);if(!job){if(d->wake)d->wake(d->user);continue;}
+  xideWorkspaceSearchResultRelease(garbage);if(!job)goto settled;
   cancel_state c={d,job->token};xide_workspace_search_result* result=NULL;if(job->message && job->bytes<=XIDE_LSP_BODY_BYTES && !cancelled(&c)){xvalue* message=job->message;job->message=NULL;result=xideWorkspaceSearchDecode(message,job->selection,job->text,job->version,cancelled,&c);}
   if(!result && !cancelled(&c)){result=job->emergency;job->emergency=NULL;snprintf(result->error,sizeof(result->error),"无法分配符号结果或响应超过限制。");result->navigation=job->selection!=NULL;result->workerThread=xrtThreadCurrentId();}
-  uint64_t token=job->token;jobFree(job);xrtMutexLock(&d->lock);if(result && !d->stop && d->current==token){result->token=token;garbage=d->completed;d->completed=result;result=NULL;}else garbage=NULL;xrtMutexUnlock(&d->lock);xideWorkspaceSearchResultRelease(garbage);xideWorkspaceSearchResultRelease(result);if(d->wake)d->wake(d->user);
+  uint64_t token=job->token;jobFree(job);xrtMutexLock(&d->lock);if(result && !d->stop && d->current==token){result->token=token;garbage=d->completed;d->completed=result;result=NULL;}else garbage=NULL;xrtMutexUnlock(&d->lock);xideWorkspaceSearchResultRelease(garbage);xideWorkspaceSearchResultRelease(result);
+settled:
+  xrtMutexLock(&d->lock);d->active=0;xrtMutexUnlock(&d->lock);if(d->wake)d->wake(d->user);
  }jobFree(d->pending);xideWorkspaceSearchResultRelease(d->completed);xideWorkspaceSearchResultRelease(d->retired);xideLanguageBatchDestroy(d->retiredBatch);return 0;
 }
 xide_workspace_search_decoder* xideWorkspaceSearchDecoderCreate(void (*wake)(void*),void* user)
@@ -89,6 +91,8 @@ int xideWorkspaceSearchDecoderSubmit(xide_workspace_search_decoder* d,uint64_t t
 {if(!d || !message)return 0;int id=0;if(!integer(field(message,"id"),&id))return 0;xrtMutexLock(&d->lock);int take=!d->stop && token==d->current && id==d->request && d->pending && !d->pending->message && !d->received;if(take){d->pending->message=message;d->pending->bytes=bytes;d->received=1;xrtCondSignal(&d->changed);}xrtMutexUnlock(&d->lock);return take;}
 int xideWorkspaceSearchDecoderReceive(xvalue* message,size_t bytes,void* p)
 {xide_workspace_search_decoder* d=p;int id=0;const char* rpc=string(field(message,"jsonrpc"));if(!d || !rpc || strcmp(rpc,"2.0") || field(message,"method") || !integer(field(message,"id"),&id))return 0;xrtMutexLock(&d->lock);int match=!d->stop && d->current && id==d->request;int duplicate=match && d->received;int take=match && !duplicate && d->pending && !d->pending->message;if(take){d->pending->message=message;d->pending->bytes=bytes;d->received=1;xrtCondSignal(&d->changed);}xrtMutexUnlock(&d->lock);if(duplicate)xrtValueRelease(message);return take || duplicate;}
+int xideWorkspaceSearchDecoderIdle(xide_workspace_search_decoder* d)
+{if(!d)return 1;xrtMutexLock(&d->lock);int idle=!d->stop && !d->active && !d->pending && !d->completed && !d->retired && !d->retiredBatch;xrtMutexUnlock(&d->lock);return idle;}
 void xideWorkspaceSearchDecoderCancel(xide_workspace_search_decoder* d){if(d){xrtMutexLock(&d->lock);d->current=0;d->request=0;d->received=0;xrtCondSignal(&d->changed);xrtMutexUnlock(&d->lock);}}
 xide_workspace_search_result* xideWorkspaceSearchDecoderTake(xide_workspace_search_decoder* d){if(!d)return NULL;xrtMutexLock(&d->lock);xide_workspace_search_result* r=d->completed;if(r)d->completed=NULL;xrtMutexUnlock(&d->lock);return r;}
 int xideWorkspaceSearchDecoderRetire(xide_workspace_search_decoder* d,xide_workspace_search_result* r){if(!d || !r)return 0;xrtMutexLock(&d->lock);int okay=!d->stop && !d->retired;if(okay){d->retired=r;xrtCondSignal(&d->changed);}xrtMutexUnlock(&d->lock);return okay;}

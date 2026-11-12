@@ -32,6 +32,9 @@ int xideWorkspaceSearchDecoderRetireBatch(xide_workspace_search_decoder*,xide_la
 int xideWorkspaceSearchDecoderReceive(xvalue* message,size_t bytes,void* decoder);
 int xideWorkspaceSearchDecoderSubmit(xide_workspace_search_decoder*,uint64_t token,xvalue* message,size_t bytes);
 void xideWorkspaceSearchDecoderCancel(xide_workspace_search_decoder*);
+/* Nonblocking worker quiescence, including preparation and disposal tails.
+ * Owner cancels and excludes Prepare/Submit/Retire until its barrier ends. */
+int xideWorkspaceSearchDecoderIdle(xide_workspace_search_decoder*);
 xide_workspace_search_result* xideWorkspaceSearchDecoderTake(xide_workspace_search_decoder*);
 int xideWorkspaceSearchDecoderRetire(xide_workspace_search_decoder*,xide_workspace_search_result*);
 void xideWorkspaceSearchDecoderDestroy(xide_workspace_search_decoder*);

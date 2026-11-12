@@ -1,0 +1,131 @@
+{
+  "schema": 1,
+  "date": "2026-11-12",
+  "stage": "M7b5j",
+  "scope": "IDE cache-preserving dual-language-service and local language-feature disk-reader source suspension, strict worker transport control and explicit coordinated resume",
+  "implementationAccepted": true,
+  "performanceQualified": false,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "de19046db19db5183bdd799cb0cf53b76f44761e",
+  "ownedSources": {
+    "ide/src/services/diagnostic_stream.c": "cc43077d3bd4e194954b5469a7ce9fb0c8b3b39d3171b45198267351ead52929",
+    "ide/src/services/diagnostic_stream.h": "abf228dfd03b14a930eabc1b4d8ba8546acbe41440f3ccfac0d002802ff7b2ba",
+    "ide/src/services/language_client.c": "a14e9e7816c926105af9740342efb9f963436b96e320bd3fb042405fe4afb6d8",
+    "ide/src/services/language_client.h": "beb6e8687a31b3a334f0c6e5f3b6edb50b1b1f75beaadb0ca1baf2f25ba3eec5",
+    "ide/src/services/language_client_lease.inc": "9d0429eaebe3493da3a0b3d3f0e6fe0cc175b21c549a8fea5745741b15e32626",
+    "ide/src/services/workspace_search_result.c": "c62c9def62136fde8a72771a53b4cca3b895ec92350cc3051b47809f1d3068fa",
+    "ide/src/services/workspace_search_result.h": "275c42b4cb296af20c8bce90def9fd279e146dcdbf09fb090729d0c2ef9732f6",
+    "ide/src/ui/automatic_diagnostics.inc": "ef4cbe63213f7742fe4487913852e7947a7a6f064295e93d684a7ab7d645932b",
+    "ide/src/ui/completion_view.c": "4941b8c4405d220c7d26998c3e62d76ae5797f99e9843d7e8917319f5de9e418",
+    "ide/src/ui/language_view.c": "022b20921894c5d4fc23a0feb6346e07c2663ec02ee60d9d83acd5f88af5a501",
+    "ide/src/ui/semantic_color_view.inc": "abd81527432aad12523c685789223a4bd38295c7dd0934de9a58feceac0afe95",
+    "ide/src/ui/signature_view.inc": "ef06f0b0c22e9d20e4cb74a1b94d55bee647948e6fbe310a9e0d0b15e89b714c",
+    "ide/src/ui/workspace_search_view.inc": "5085a5b5a0310a8b962185ed33f21b3f165e92e5c449a852c69a523df13a7f66",
+    "ide/src/ui/completion_source_lease.inc": "6556f2c00c142bdd2d17f8ea7736d9b7720450902b1e8c4b014a641e03079e8a",
+    "ide/src/ui/language_source_lease.h": "b720d4be183f7ac55a14e2cd9f9cdf2140e3b72392c6ed4849b95f4c8e7e1e0b",
+    "ide/src/ui/language_source_lease.inc": "23ce6da6ed737707fe65776961bb564d8961e1d261f7b548beb1e444ee7f61c8",
+    "ide/tests/diagnostic_stream_test.c": "ccce21bb2f331a34f0a4abbcd3fc4a571c7c5e1b6a3b1a015d0f7222481eb96a",
+    "ide/tests/workspace_search_result_test.c": "315229d4dd8bd3166e11b15c7231fe6431245d2d3a5a3945879e9da04e03c843",
+    "ide/tests/language_client_lease_test.c": "fec921bea6e640b4bec2596b71fc678c3b8ed2cb4431981530c272b0194d19f6",
+    "ide/tests/language_source_lease_test.c": "3365104dc3594afa9d8339d2639b47b9a84ceabf90f97eb6e126b4817f6fecb0",
+    "ide/tests/language_source_completion_probe.c": "1398de86deebfb8219b9e4f44f5d1a6255c34e08b13ebc431f5de072241fb71c",
+    "ide/tools/build.ps1": "e9514cf2c680a18d5c24bd15e1eca509cb2646cb45b7b75570ec19ce01632525",
+    "ide/docs/lsp-analysis-lease.md": "a360d5691647ac0852aa38dd0055c307a8f7ed1b81d207fad4a0251f6a0dc4db",
+    "ide/docs/lsp-ide-analysis-lease.md": "6dbe00b3ddee2d4f17a2dfd0215caba362ddcaf21a6c2542490230d92c9de196"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-ide-analysis-lease-20261112.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-ide-analysis-lease-20261112/stage-sources.tar.gz",
+      "sha256": "84fc32c21786d561ef2c870085f042c51aa23380f81f1fe18e6bbaf2c27e0404",
+      "bytes": 137613,
+      "entries": 25,
+      "uniquePayloads": 25,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-ide-analysis-lease-20261112/stage-sources.tar.gz.manifest.json",
+      "sha256": "3db02b2db593ca2e7c5bfc0c90c8f90cf2071cc775d0e6ab39d38ebf1f7e06be",
+      "bytes": 5908
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-ide-analysis-lease-20261112/actual-builds-and-validation.tar.gz",
+      "sha256": "83b360e99ec52ae403376257515326c74e53c07a45b2f28cb6cc106c848f575a",
+      "bytes": 275813875,
+      "entries": 17944,
+      "uniquePayloads": 4599,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-ide-analysis-lease-20261112/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "47eaa298dfa6eff3f04ecb0e589f5bb01836ffb463a9e690044e7669e2ca2bc1",
+      "bytes": 6807800
+    }
+  },
+  "currentBindings": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ide-analysis-lease-20261112\\final-bindings.json",
+    "sha256": "0aabd6a0fe3805a50114815ea8e81c90b6fe8689308fa534ebfb1cde28a3b6fb"
+  },
+  "sdkInherited": {
+    "index": "dev/release-materials/provenance/lsp-analysis-lease-20261112.json",
+    "indexSha256": "5c721cdb9a8a5758dfde9ff1943b8a2ac1b78c0a0ad175fefb8e4414cb5b9c30",
+    "dllSha256": "51cc62cb935e54ef16abcb8a4ae8ee845d64254123a822ba4004c63dad42359e",
+    "compiledSdkUnitsThisStage": 0,
+    "matchedSetPreserved": true
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "serviceSha256": "8301c3a9441c263c3487e889afe73db5f2e00cae0942359a3ee3c6ca8a9d3c18",
+  "correctness": {
+    "guiProductionUnits": 124,
+    "guiSuites": 52,
+    "nativeObjectOutputs": 109,
+    "guiCurrentProductionInputsCompared": 527,
+    "nativeAndFixtureDependencyInputs": 861,
+    "actualSourceInputBindings": 1789,
+    "clientObservedAssertions": 2387,
+    "sourceGroupObservedAssertions": 122,
+    "nativeDiagnosticAssertions": 1385,
+    "nativeSymbolNavigationAssertions": 306,
+    "actualBothNativeProcessesRemainWarm": true,
+    "postResumeDiagnosticsRetained": true,
+    "actualDiagnosticAndNavigationDiskReadGates": true,
+    "typingDeleteUndoImeAndFocusDuringHold": true,
+    "healthyPrimarySurvivesCompletionPeerFailure": true,
+    "noOwnerJoinBeforeActualWorkerExit": true,
+    "ordinaryAdmissionAndAutoReconnectExcluded": true,
+    "strictConnectionTokensAndReplies": true,
+    "ordinaryQueue2048Frames64MiBPlusTwo512ByteControlReserve": true,
+    "workerEncodesAndDisposesHeldBodies": true,
+    "implementationMutantsRejected": 13,
+    "standardNewFixtureRegistryLinks": 2,
+    "actualGuiLanguages": [
+      "C",
+      "xlang"
+    ],
+    "actualGuiFramesEach": 24,
+    "visualScreenshotsInspected": true,
+    "rawFailuresRetained": true
+  },
+  "limits": [
+    "Import dependency semantic error returns unavailable empty native completion; independently reproduced with unchanged accepted service; improve in a later stage",
+    "Prior configuration regression cached build count remains unresolved and was not counted as passed",
+    "IDE language participant only; combine tasks, file watching, indexers, toolchain, source coverage and prepared/open document operations in the full transaction host",
+    "Standard renameProvider/workspace.applyEdit, complete source/physical/configuration/request/consent policies, recovery UI and final delivery remain open",
+    "Optional C LSP profile refuses source suspension until it has a third-reader participant; default profile remains disabled",
+    "Tokens belong to the current live views and same UI owner; they cannot survive view destruction",
+    "No automatic unlock or timeout recovery during an active source transaction; failures require explicit resume/recovery",
+    "Exact final production bodies used by124 GUI producers are unchanged; final registry-only test edits independently linked; native service remains byte-identical to previously accepted8301 build",
+    "Transport Suspend and held-send rejection observed no direct owner malloc/calloc/free; DLL internals, UI cancellation/metadata cleanup, locks and encoding retain costs",
+    "No whole-IDE input-latency, throughput, RSS or hard realtime performance qualification; working runtime, matched SDK, current delivery index and unrelated work preserved"
+  ]
+}
