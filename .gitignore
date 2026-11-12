@@ -138,6 +138,7 @@
 !/dev/release-materials/provenance/tcc-elf-tls-preflight-20261112.json
 !/dev/release-materials/provenance/xlir-scalar-numeric-preflight-20261112.json
 !/dev/release-materials/provenance/tcc-elf-tls-scalar-windows-20261112.json
+!/dev/release-materials/provenance/checked-c-integer-foundation-20261112.json
 /out/
 /tmp/
 /logs/

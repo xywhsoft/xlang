@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "foundationQualified": true,
+  "compilerIntegration": false,
+  "shippingDelivery": false,
+  "scope": "Pure checked C integer arithmetic, no error allocation, no compiler behavior change yet. User approved checked arithmetic. Full uint64 shift counts must survive until validation.",
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\c-integer-arithmetic-native-win-r1\\results.json",
+      "sha256": "3ea58e67c68c77b007fbc15040afb768fdb0bf6cb7dd6d9203fff69c16239f05"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\c-integer-arithmetic-native-linux-r1\\results.json",
+      "sha256": "76309a25c8599a7b5596b384c4cab202270f2ed587e7c8539ac87d0adb4db7e7"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\c-integer-typed-design-r1\\typed.json",
+      "sha256": "0c4c1f346251a9e0bc893a27e0bb6055d3fdd8186205d01cac8ec077f2f6fe81"
+    }
+  ],
+  "inputs": {
+    "src/runtime/xl6_checked_c_integer.h": "b4fcedd3de391200f16aec13dd75f2d6196fd076e232c4330efd39e66a87487f",
+    "test/cases/xlir_checked_c_integer.c": "4d56eaf1dc871f454eb7071e99bd35e12fd17464a8fe55c2ad0c7a02ffad6e5a",
+    "tools/check_checked_c_integer.py": "03307fc02aa7c7c45e6801cf0492405526b6db1edd3446359889317efdf4bba2"
+  },
+  "assertionsPerExecution": 4710526,
+  "optimization": [
+    "O0",
+    "O2"
+  ],
+  "linuxUbsanPassed": true,
+  "headerStandards": [
+    "c11",
+    "c++11",
+    "c++17"
+  ],
+  "pending": [
+    "Typed/Lowered XLIR execution-domain and full shift-count contract",
+    "Unary/binary/compound arithmetic integration with checked failure CFG",
+    "All target C integer aliases and destination transactions",
+    "JIT/AOT/embedded compiler qualification"
+  ]
+}
