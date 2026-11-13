@@ -1,0 +1,316 @@
+{
+  "date": "2026-11-14",
+  "qualified": true,
+  "shippingDelivery": false,
+  "networkTests": false,
+  "nativeCommit": "b0948c3743b2e4e9f909224550f79dc0f3d4bd3d",
+  "nativePrerequisite": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\image-alpha-20261114.json",
+    "sha256": "b329e34a52008122a939c5922c276b0d124fccb175bad157f92ecaaf9afeca4f"
+  },
+  "sources": {
+    "lib/bindings/xge/src/resources.xl": "411cb46cc26a20372de698004585594ca71432bbc4f3c3173b311c9d6739bf73",
+    "lib/bindings/xge/examples/image_alpha.xl": "9ef000692b0c4cb51dd3f2f6043c9d5394262195a0d37a19391ff81c78dd35e2",
+    "lib/bindings/xge/examples/README.md": "cc4217d0d566e13c7c53ca6a6593f735f43de58aa0e38938b4f9b3ca3d1c0104",
+    "test/cases/foreign_xge3_image_alpha.xl": "9b087511a1f817b53fce1a6374e6643d87302eb91ecfe5e4f31d726026f0c94d",
+    "test/cases/foreign_xge3_image_alpha.h": "be193b03a0f92b55bb1da5ced272b620ba4f6e51bb4232f24f72d349e8bd069d",
+    "test/cases/foreign_xge3_image_alpha.c": "b5543aceca6bec4fcae1f54106b5007a75f51c91605a39b957d7f7d902f7cf8f",
+    "tools/check_xge3_image_alpha.py": "e98457535381a82886b0839a68bd47ffc5d42688cf20d4879579ab7eb9b574d8",
+    "docs/xge3-image-io.md": "c02b22be31c8550f9cb62fc6411121505f243b403b563903aed66ca3de4e4274"
+  },
+  "platforms": {
+    "win": {
+      "alpha": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\image-alpha-direct-win-r3\\results.json",
+        "sha256": "86dd2308f04a9922bec1e17ca9476d4ed4277f506b25bd90996c67b126487767",
+        "commands": 24
+      },
+      "heap": [
+        {
+          "mode": "jit",
+          "rounds": 1000,
+          "nativeCalls": 1000,
+          "idempotentNoOp": true,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        },
+        {
+          "mode": "dynamic",
+          "rounds": 1000,
+          "nativeCalls": 1000,
+          "idempotentNoOp": true,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        },
+        {
+          "mode": "static",
+          "rounds": 1000,
+          "nativeCalls": 1000,
+          "idempotentNoOp": true,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        }
+      ],
+      "programs": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\image-alpha-direct-win-r3\\foreign_xge3_image_alpha-dynamic.exe",
+          "sha256": "33a23b3ef021fb94c734281da1353deabea6bb6e7cc99f3d21496d9837a24817",
+          "bytes": 4627456,
+          "imports": [
+            "xge3_host.dll",
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\image-alpha-direct-win-r3\\foreign_xge3_image_alpha-static.exe",
+          "sha256": "57b6a885c663fccf32dbca3ca1bfc04a69aec79db26e6aa6dd551d11e5161adc",
+          "bytes": 3887104,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "USER32.dll",
+            "ole32.dll",
+            "OLEAUT32.dll",
+            "SHELL32.dll",
+            "GDI32.dll",
+            "IMM32.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\image-alpha-direct-win-r3\\image_alpha-dynamic.exe",
+          "sha256": "112f96b60add496e0d91301c309235576f9b326f7cd6b6cac94cbb153574c8a3",
+          "bytes": 1260544,
+          "imports": [
+            "xge3_host.dll",
+            "msvcrt.dll",
+            "kernel32.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\image-alpha-direct-win-r3\\image_alpha-static.exe",
+          "sha256": "5c9c7351341ea2e9fb214b87d6bb3d485e55d0307b2df2c62c2bd47549e4519e",
+          "bytes": 3697152,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "USER32.dll",
+            "ole32.dll",
+            "OLEAUT32.dll",
+            "SHELL32.dll",
+            "GDI32.dll",
+            "IMM32.dll"
+          ]
+        }
+      ],
+      "imageIoRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\image-alpha-language-win-r3\\results.json",
+        "sha256": "3c8b343e2a44713284e743f97a633e4b7ea0e04bf0d4165ced5d1f6b53531b54",
+        "commands": 27
+      },
+      "borrowedTextRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\text-read-current-alpha-language-win-r1\\results.json",
+        "sha256": "e6c7d966b3f510e9feb47a9eecef08c08c7a18f93e0f018601ca6e4c87bc8c23",
+        "commands": 29
+      },
+      "matchedSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\image-alpha-sdk-win-r3\\results.json",
+        "sha256": "f081cb97d1922d7d63ff0efd313f959338effb5f71ac77310c9d5034f38b323d",
+        "commands": 4
+      },
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-signed-output-full-r35\\build.json",
+        "sha256": "e0deb488903de73dc249bca25b66731955b842cacd665ca2868d51cf3f9bc1a5"
+      }
+    },
+    "linux": {
+      "alpha": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\image-alpha-direct-linux-r4\\results.json",
+        "sha256": "b4c94c0ab21fe322e4da99ba8df6ad8b894fa8bd3c858cccae2093d5453cc3ee",
+        "commands": 24
+      },
+      "heap": [
+        {
+          "mode": "jit",
+          "rounds": 1000,
+          "nativeCalls": 1000,
+          "idempotentNoOp": true,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        },
+        {
+          "mode": "dynamic",
+          "rounds": 1000,
+          "nativeCalls": 1000,
+          "idempotentNoOp": true,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        },
+        {
+          "mode": "static",
+          "rounds": 1000,
+          "nativeCalls": 1000,
+          "idempotentNoOp": true,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        }
+      ],
+      "programs": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/image-alpha-direct-linux-r4/foreign_xge3_image_alpha-dynamic",
+          "sha256": "8ab6addcc8a82e895b7e02b4dfad3fc88df436b342c9da0922da1d3f65347865",
+          "bytes": 4834691,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/image-alpha-direct-linux-r4/foreign_xge3_image_alpha-static",
+          "sha256": "27699d44b6bf36f004766cf250089184b0f0ec07e8351d4b8c10d0e2dac8552c",
+          "bytes": 1348121,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/image-alpha-direct-linux-r4/image_alpha-dynamic",
+          "sha256": "8a8a0637a30a327fee67d3c86d82396c880445b041387fe074d9314d67101453",
+          "bytes": 1327407,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/image-alpha-direct-linux-r4/image_alpha-static",
+          "sha256": "133b1faa9ed7fb6f8151991a5b13cd54dda0991f3c12ee6761127a31cef50b89",
+          "bytes": 1081518,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ],
+      "imageIoRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\image-alpha-language-linux-r4\\results.json",
+        "sha256": "5a8be7aa649bb7a668088b86ebdda1ca4e637120ad710e5bab9e757a9452a549",
+        "commands": 27
+      },
+      "borrowedTextRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\text-read-current-alpha-language-linux-r2\\results.json",
+        "sha256": "d61e96d043a23a21a9fb83171455af8dc508f5760c7c9cb5483fc3284fc980ab",
+        "commands": 29
+      },
+      "matchedSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\image-alpha-sdk-linux-r3\\results.json",
+        "sha256": "37b18b2a7c3269a0bb3d6a8721df313b8b2327658540c00ab6df73f90eab1788",
+        "commands": 4
+      },
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-signed-output-linux-full-r28\\build.json",
+        "sha256": "f41fc7cf2348efbd0ed73e08035d1accd713d9f537f261d174e6c0e15136cfdf"
+      }
+    }
+  },
+  "contracts": {
+    "alpha": "One direct native checked conversion, existing managed Image lifecycle and creator-thread policy; already PRE is unchanged, malformed state is rejected before writing.",
+    "borrowedText": "Existing b0c7bb496 migration and generic c_output_view reused without new syntax. Status plus xstrview extent is copied in receiver scope; NULL/empty/NUL, native/copy failure and expiry revalidated.",
+    "optionalPreference": "New unpublished Image method currently uses the recommended idempotent default; raw C repeat-conversion semantics remain unchanged."
+  },
+  "costs": {
+    "firstConversion": "Succeeds under XRT allocation budget zero; validates geometry and writes pixels in place.",
+    "hotNoOp": "1000 already-PRE calls per path; language and same native operation have zero alloc/free/realloc in every execution mode.",
+    "remaining": "Existing language receiver/thread/lifetime/error bookkeeping still runs; factories, PNG encoding/decoding and text snapshots allocate separately. No CPU equivalence or whole-engine zero-overhead claim."
+  },
+  "preservedFailures": [
+    "F:\\xlang-validation\\xge-full-20261110\\image-alpha-qualification-linux-r3\\results.json",
+    "F:\\xlang-validation\\xge-full-20261110\\text-read-current-alpha-sdk-linux-r1\\results.json"
+  ],
+  "correction": "An overbroad validation-script label replacement changed Linux compiler cohort r28 to nonexistent r38. Successors retain SDK r3, use actual full compiler r28, reuse the passed public-alpha report, and execute remaining gates; historical reports stay unchanged.",
+  "remaining": "Full XGE/XUI/Document integration and actual backends, pending ownership/interface decisions, and final matched runtime/SDK/compiler/IDE/help delivery remain active. No runtime installation or push in this batch."
+}

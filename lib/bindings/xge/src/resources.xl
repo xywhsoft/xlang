@@ -77,6 +77,7 @@ export extern "xge_image_t*" class Image @header("xge3_runtime.h") @lifetime("ow
  extern "iStride" @c_field get stride() as c_int
  extern "iFormat" @c_field get format() as c_int
  extern "iFlags" @c_field get flags() as c_uint
+ extern "xgeImagePremultiplyChecked" @no_raise @c_result("status",0) func premultiply()
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
 export extern "xgeImageLoadMemoryEx" @no_raise @c_span(0,"const void*","int",2) @c_result("owned_view") @factory(0,0,freeImage) @c_inplace("xge_image_t") func loadImage(bytes data,c_uint flags=1,int size=-1) as Image

@@ -16,6 +16,35 @@ alpha; PNG saving defaults to straight RGBA. Pass the explicit native flag for
 premultiplied raw input. The source example `examples/image_io.xl` writes two
 pixels, reads dimensions, loads an Image, and cleans up its own file.
 
+## Checked in-place alpha conversion
+
+`Image.premultiply()` directly calls `xgeImagePremultiplyChecked` once using
+the existing managed receiver, creator-thread and checked-status scope. It
+converts straight or unmarked RGBA8 pixels, then marks the image premultiplied.
+Repeated calls on valid premultiplied storage succeed unchanged. Invalid layout,
+contradictory alpha flags and unsupported formats fail before changing pixels.
+Image aliases observe the same in-place change. Expired or wrong-thread access
+is rejected by the existing Image policy. No engine initialization is needed.
+
+The raw native `xgeImagePremultiply` retains its historical repeat-conversion
+semantics for C users. Both routes now honor row stride and leave padding
+untouched. Their shared pixel loop allocates nothing; the managed call still
+has receiver and error-scope costs. The new safe method's idempotent behavior
+is an unpublished default pending the optional interface preference, rather
+than a claimed change to the raw C operation.
+
+`tools/check_xge3_image_alpha.py` checks exact channel rounding, default decoded
+alpha state, aliasing, native error preservation, first-conversion allocation
+failure injection, creator-thread and expired access. Its warmed 1000-call
+language/C heap comparison measures the already-premultiplied no-op route;
+it does not measure conversion throughput or prove zero CPU overhead. Native
+row/format/overflow boundaries are checked separately in XGE, together with
+pure static C/C++ clients that need no XRT or graphics link libraries.
+The small acceptance index is `xge-image-alpha-20261114.json`; test evidence
+and temporary SDKs are external, with final runtime/SDK/IDE delivery separate.
+
+## Sized image I/O
+
 The new memory overloads follow the shared byte-prefix convention: omitted
 size uses the whole input, an oversized nonnegative size clamps to its actual
 length, and values below -1 fail before native entry. No strlen is used for
@@ -83,10 +112,11 @@ final delivery. This batch does not claim perfect unused-code elimination.
 
 ## Remaining image work
 
-This is a qualified subfamily, not full image integration. Native PNG memory
-encoding still needs the proposed generic owned-byte output contract; mutable
-premultiplication and pixel access need their full mutation/view contract.
-Neither is replaced with an unsafe pointer or a per-method copying wrapper.
+This is a qualified subfamily, not full image integration. PNG memory encoding
+uses the generic owned-byte contract described below; checked in-place
+premultiplication is covered above. Direct pixel access still needs its full
+mutation/view contract rather than an unsafe pointer or a per-method copying
+wrapper.
 Actual shared-library imports still need the general package-initializer
 contract. Matched final SDK/runtime/IDE delivery remains part of the full XGE
 goal; this batch does not install release files.

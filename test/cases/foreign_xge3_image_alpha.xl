@@ -1,0 +1,68 @@
+// Real Image storage and direct native checked alpha conversion, without an engine.
+import xge
+extern "fixtureAlphaPixels" @header("test/cases/foreign_xge3_image_alpha.h") @no_raise func pixels(xge.Image image,c_int converted) as c_int
+extern "fixtureAlphaInvalid" @header("test/cases/foreign_xge3_image_alpha.h") @no_raise func invalid(xge.Image image,c_int invalid)
+extern "fixtureAlphaBudget" @header("test/cases/foreign_xge3_image_alpha.h") @no_raise func budget(c_int allowance)
+extern "fixtureAlphaHeapBegin" @header("test/cases/foreign_xge3_image_alpha.h") @no_raise func beginHeap()
+extern "fixtureAlphaHeapReport" @header("test/cases/foreign_xge3_image_alpha.h") @no_raise func reportHeap(c_int native)
+extern "fixtureAlphaNativePerformance" @header("test/cases/foreign_xge3_image_alpha.h") @no_raise func nativePerformance(xge.Image image)
+func main(...) as int
+    bytes rgba=b"\xc8\x64\x32\x80\xff\x80\x40\0\xff\x80\x40\x01\x09\x11\x1f\xff"
+    auto png=xge.encodeImagePng(2,2,rgba)
+    auto image=xge.loadImage(png,c_uint(xge.XGE_IMAGE_STRAIGHT_ALPHA))
+    assert pixels(image,0)==1
+    auto alias=image
+    // Conversion itself allocates nothing, including its first invocation.
+    budget(0)
+    try
+        image.premultiply()
+    finally
+        budget(-1)
+    end
+    assert pixels(alias,1)==1 and image.flags==c_uint(xge.XGE_IMAGE_PREMULTIPLIED)
+    image.premultiply()
+    assert pixels(image,1)==1
+    auto decoded=xge.loadImage(png)
+    assert pixels(decoded,1)==1
+    decoded.premultiply()
+    assert pixels(decoded,1)==1
+    // Even an already-premultiplied image validates its native layout.
+    invalid(image,1)
+    bool rejected=false
+    try
+        image.premultiply()
+    catch error
+        rejected=true
+    finally
+        invalid(image,0)
+    end
+    assert rejected and pixels(image,1)==1
+    auto worker=thread(func() as int
+        try
+            image.premultiply()
+        catch StateError
+            return 1
+        end
+        return 0
+    end)
+    assert worker.waitTimeout(30000) and worker.exitCode()==1
+    beginHeap()
+    for i in range(1000)
+        image.premultiply()
+    end
+    reportHeap(0)
+    beginHeap()
+    nativePerformance(decoded)
+    reportHeap(1)
+    image.close()
+    rejected=false
+    try
+        alias.premultiply()
+    catch StateError
+        rejected=true
+    end
+    assert rejected
+    decoded.close()
+    println("Image alpha: exact pixels, idempotence, checked state and lifetime passed")
+    return 0
+end

@@ -90,6 +90,12 @@ the source Font, loads the bytes into another Font and prints the encoded size
 and positive A advance. Run from this examples directory. It creates no file,
 window or graphics device; baking copies native atlas pages into the XRF blob.
 
+`image_alpha.xl` encodes two RGBA pixels in memory, loads straight-alpha Image
+storage and calls `premultiply()` twice. The second call succeeds without
+changing already-premultiplied pixels. Expect `Premultiplied image: 2 1`.
+It needs the matched checked-alpha SDK, no file, window or engine initialization,
+and runs from any working directory. The owned Image closes before exit.
+
 `svg_documents.xl` loads `data/vector.svg` through an explicit `SvgCache`, closes
 the cache while keeping its document, prints the 64x32 canvas and content bounds,
 then changes a clone without changing the original. Run beside this examples

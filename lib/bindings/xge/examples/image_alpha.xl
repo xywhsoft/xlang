@@ -1,0 +1,12 @@
+// CPU-only: convert straight RGBA once before using premultiplied drawing.
+import xge
+
+bytes rgba=b"\xc8\x64\x32\x80\xff\x80\x40\xff"
+auto png=xge.encodeImagePng(2,1,rgba)
+auto image=xge.loadImage(png,c_uint(xge.XGE_IMAGE_STRAIGHT_ALPHA))
+
+image.premultiply()
+assert image.flags==c_uint(xge.XGE_IMAGE_PREMULTIPLIED)
+image.premultiply() // Already converted: succeeds without changing the pixels.
+println("Premultiplied image:",image.width,image.height)
+image.close()
