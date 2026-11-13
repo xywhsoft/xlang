@@ -12,5 +12,9 @@ Window.show("图标选择",func(xui.Context ui,xui.Widget root)
  auto picker=xui.createIconPicker(ui)
  picker.setCategory(category)
  picker.setSelectedId(triangle.id)
+ picker.setTextMode(xui.XUI_ICON_PICKER_TEXT_CUSTOM)
+ picker.setFormatter(func(xui.CallbackWidget sender,xui.CallbackIcon icon) as string
+  return icon.displayName
+ end)
  Window.place(root,picker,24,24,260,42)
 end)

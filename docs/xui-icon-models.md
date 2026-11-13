@@ -129,10 +129,73 @@ The prior and successor CPU Proxy workload each performs 1000 allocations and
 1000 frees for 1000 warm Picker renders, with zero reallocations. This is an
 unchanged native allocation budget, not an allocation-free renderer. The
 Windows DLL's total bytes are unchanged; the Linux DSO grows by 4048 bytes.
-Two reused internal helper functions currently become ELF-visible/PLT calls;
-localized internal visibility is a separate performance follow-up. No timing
+At that checkpoint two reused internal helper functions became ELF-visible/PLT
+calls; localized internal visibility was a separate performance follow-up. No timing
 equivalence is claimed.
 
 `xui-icon-picker-format-lifetime-20261113.json` records this floor. It does not
 yet expose retained language custom-Icon/formatter closures, prove reentrant
 cache freshness/mutation safety or install the final SDK/IDE.
+
+## Retained text formatter
+
+`IconPicker.setFormatter(IconPickerTextProc?)` now calls the native
+`xuiIconPickerSetFormatterOwned` directly using the existing `owned_text`
+callback declaration. There is no business-operation C wrapper, new syntax or
+compiler change. The callback returns an owned XRT `xstrview` by value. Native
+code holds the selected callback owner and Icon/Context reader until it has
+copied the preview, frees the returned text with `xrtFree`, then drops the
+callback snapshot. Failed status/diagnostics are handled before reading the
+text extent; cleanup cannot overwrite the first outcome. Publication uses the
+existing transactional callback directory, and replaces the legacy formatter
+slot rather than maintaining two independent active callbacks.
+
+The language arguments are callback-epoch `CallbackWidget` and `CallbackIcon`
+views. `CallbackIcon` exposes copied name/displayName/tags, ID/source type and
+checked unregister. A view saved beyond the invocation throws on access; it
+does not acquire a registry owner by pretending to be a normal `Icon` view.
+The callback can copy metadata or resolve an independently checked registry
+view for longer use. The existing native preview is still at most 255 bytes,
+with an incomplete UTF-8 tail trimmed and embedded NUL ending visible text.
+
+The private Picker record remains 856 bytes before/after on both qualified
+x64 platforms: a union shares the callback pointer, and a tag uses existing
+alignment space. The two reused internal operation helpers now have localized
+hidden ELF visibility; dynamic exports and their internal PLT indirection are
+removed. This does not change optimization from O2. The matched Windows host
+grows by 1024 bytes; the matched Linux host's total size is unchanged relative
+to the preceding reader/outcome floor. This includes both the new API and
+visibility change and does not isolate their individual machine-code sizes.
+
+`tools/check_xui_icon_formatter.py` executes full-compiler JIT and independent
+dynamic/static programs on Windows/Linux. A test-only CPU provider maps public
+owned resource handles to the native raw test renderer. It uses actual native
+Proxy/Font/Surface/Draw factories and ownership edges; no private resource
+header offsets or fabricated managed handles are used. Every resource-sensitive
+backend callback is adapted; optional retained text shaping is disabled. It
+does not qualify provider module unloading or real GPU/pixel correctness.
+
+The language tests cover nine normal/replacement/unregister/close/error/OOM/
+empty/NUL scenarios, callback-epoch escape rejection, captured owner references
+released by explicit Context close, and twenty registration OOM budgets that
+preserve the previous closure. Native O0/O2 tests add twenty exact outcome,
+reentry and extent cases, eight OOM budgets, failed/reentrant Hold, consuming
+Drop errors and complete Context graph visitation. The earlier 36 Icon/cache,
+16 editor and 15 language-model checks remain in the qualified successor.
+
+The performance observation compares the same CPU provider, native revision,
+owned callback contract and constant `"owned"` result over 100 warm forced
+redraws. Language and handwritten C callbacks each perform 400 allocations,
+400 frees and zero reallocations in all three execution modes on both targets.
+The difference is zero heap operations in this workload, not zero total bridge
+cost. The generated thunk still admits the callback/code owner, establishes
+error and native scopes, creates two checked ephemeral argument views, invokes
+the closure, ends its epoch and delivers checked failure. The returned text is
+allocated/copied once in both callbacks. Reading metadata inside the callback
+adds its normal independent string copy; escaping an argument can additionally
+materialize epoch storage. No CPU timing equivalence is asserted.
+
+`xui-icon-picker-owned-formatter-20261113.json` indexes the frozen sources,
+matched SDKs and acceptance receipts. Custom Icon callback groups, arbitrary
+cache mutation/freshness, real rendering and final SDK/IDE delivery remain
+separate unfinished work in the full integration goal.

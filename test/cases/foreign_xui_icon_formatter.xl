@@ -1,0 +1,207 @@
+// Actual owned native CPU frames; no GPU, window, network or OS input.
+import xui
+from xui import CallbackIcon
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
+extern "fixtureRenderFont" @no_raise @c_result("owned_view") @factory(1,0,dropFont) func cpuFont(xui.Proxy proxy) as xui.Font
+extern "xuiFontReleaseChecked" @no_raise @c_result("status",0) func dropFont(xui.Font value)
+extern "fixtureRenderSurface" @no_raise @c_result("owned_view") @factory(1,0,dropSurface) func cpuSurface(xui.Proxy proxy) as xui.Surface
+extern "xuiSurfaceReleaseChecked" @no_raise @c_result("status",0) func dropSurface(xui.Surface value)
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "fixtureRenderSawText" @no_raise @c_cstr(0) func sawText(string text) as c_int
+extern "fixtureRenderResetText" @no_raise func resetText()
+extern "fixtureRenderBudget" @no_raise func budget(c_int allowance)
+extern "fixtureRenderNativeFormatter" @no_raise @c_result("status",0) func nativeFormatter(xui.IconPicker picker)
+extern "fixtureRenderHeapBegin" @no_raise func heapBegin()
+extern "fixtureRenderHeapResult" @no_raise func heapResult(c_int native)
+CallbackIcon? savedIcon=null
+int calls=0
+
+func rectangle(c_int x,c_int y,c_int width,c_int height) as xui.Rect
+    xui.Rect value
+    value.fX=x
+    value.fY=y
+    value.fW=width
+    value.fH=height
+    return value
+end
+
+func scenario(int mode)
+    auto proxy=cpuProxy()
+    auto font=cpuFont(proxy)
+    auto target=cpuSurface(proxy)
+    auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    context.setDefaultFont(font)
+    auto root=context.widget()
+    assert root.setRect(rectangle(0,0,640,480))==0
+    assert context.setRootWidget(root)==0
+    auto category=xui.createIconCategory(context,"icons",xui.iconCategoryDescDefault())
+    auto icon=category.addSvgPath("owned","M0 0 H16 V16 H0 Z",rectangle(0,0,16,16))
+    auto picker=xui.createIconPicker(context)
+    picker.setCategory(category)
+    picker.setSelectedId(icon.id)
+    picker.setTextMode(xui.XUI_ICON_PICKER_TEXT_CUSTOM)
+    assert picker.setRect(rectangle(24,24,220,40))==0 and root.addChild(picker)==0
+    calls=0
+    picker.setFormatter(func(xui.CallbackWidget sender,CallbackIcon selected) as string
+        calls+=1
+        savedIcon=selected
+        assert sender.rect().fW==220 and selected.name=="owned"
+        if mode==1
+            picker.setFormatter(null)
+        elseif mode==2
+            assert selected.unregister()
+            assert selected.name=="owned", "native reader keeps selection alive during callback"
+        elseif mode==3
+            picker.close()
+        elseif mode==4
+            context.close()
+        elseif mode==5
+            throw "formatter failure"
+        elseif mode==6
+            budget(0)
+        elseif mode==7
+            return ""
+        elseif mode==8
+            return "ow\0ed"
+        end
+        return "owned"
+    end)
+    assert context.layout()==0 and context.update(0.016)==0
+    resetText()
+    bool rejected=false
+    try
+        context.render(target)
+    catch error
+        rejected=true
+    finally
+        budget(-1)
+    end
+    assert calls==1
+    assert rejected==(mode==5 or mode==6)
+    if mode==0 or mode==1 or mode==2
+        assert sawText("owned")==1
+    elseif mode==8
+        assert sawText("ow")==1
+    end
+    bool expired=false
+    try
+        auto invalid=(savedIcon as CallbackIcon).name
+    catch error
+        expired=true
+    end
+    assert expired, "saved callback argument must not escape its epoch"
+    savedIcon=null
+    context.close()
+    target.close()
+    font.close()
+    proxy.close()
+    assert balanced()==1
+end
+
+func registration()
+    // Failure must preserve the previous formatter, including its closure.
+    int allowance=0
+    while allowance<20
+        auto proxy=cpuProxy()
+        auto font=cpuFont(proxy)
+        auto target=cpuSurface(proxy)
+        auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+        context.setDefaultFont(font)
+        auto root=context.widget()
+        assert root.setRect(rectangle(0,0,640,480))==0 and context.setRootWidget(root)==0
+        auto category=xui.createIconCategory(context,"icons",xui.iconCategoryDescDefault())
+        auto icon=category.addSvgPath("owned","M0 0 H16 V16 H0 Z",rectangle(0,0,16,16))
+        auto picker=xui.createIconPicker(context)
+        picker.setCategory(category)
+        picker.setSelectedId(icon.id)
+        picker.setTextMode(xui.XUI_ICON_PICKER_TEXT_CUSTOM)
+        assert picker.setRect(rectangle(24,24,220,40))==0 and root.addChild(picker)==0
+        picker.setFormatter(func(xui.CallbackWidget sender,CallbackIcon selected) as string
+            return "previous"
+        end)
+        xui.IconPickerTextProc next=func(xui.CallbackWidget sender,CallbackIcon selected) as string
+            return "replacement"
+        end
+        bool rejected=false
+        budget(c_int(allowance))
+        try
+            picker.setFormatter(next)
+        catch error
+            rejected=true
+        finally
+            budget(-1)
+        end
+        assert context.layout()==0 and context.update(0.016)==0
+        resetText()
+        context.render(target)
+        if rejected
+            assert sawText("previous")==1
+        else
+            assert sawText("replacement")==1
+        end
+        picker.setFormatter(null)
+        context.close()
+        target.close()
+        font.close()
+        proxy.close()
+        assert balanced()==1
+        allowance+=1
+    end
+end
+
+func performance()
+    auto proxy=cpuProxy()
+    auto font=cpuFont(proxy)
+    auto target=cpuSurface(proxy)
+    auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    context.setDefaultFont(font)
+    auto root=context.widget()
+    assert root.setRect(rectangle(0,0,640,480))==0 and context.setRootWidget(root)==0
+    auto category=xui.createIconCategory(context,"icons",xui.iconCategoryDescDefault())
+    auto icon=category.addSvgPath("owned","M0 0 H16 V16 H0 Z",rectangle(0,0,16,16))
+    auto picker=xui.createIconPicker(context)
+    picker.setCategory(category)
+    picker.setSelectedId(icon.id)
+    picker.setTextMode(xui.XUI_ICON_PICKER_TEXT_CUSTOM)
+    assert picker.setRect(rectangle(24,24,220,40))==0 and root.addChild(picker)==0
+    assert context.layout()==0 and context.update(0.016)==0
+    int native=0
+    while native<2
+        if native==0
+            picker.setFormatter(func(xui.CallbackWidget sender,CallbackIcon selected) as string
+                return "owned"
+            end)
+        else
+            nativeFormatter(picker)
+        end
+        context.render(target)
+        heapBegin()
+        int count=0
+        while count<100
+            assert picker.invalidate(c_uint(xui.XUI_WIDGET_DIRTY_CACHE | xui.XUI_WIDGET_DIRTY_RENDER))==0
+            context.render(target)
+            count+=1
+        end
+        heapResult(c_int(native))
+        native+=1
+    end
+    picker.setFormatter(null)
+    context.close()
+    target.close()
+    font.close()
+    proxy.close()
+    assert balanced()==1
+end
+
+func main(...) as int
+    int mode=0
+    while mode<9
+        scenario(mode)
+        mode+=1
+    end
+    registration()
+    performance()
+    println("Icon formatter: owned CPU frames, closure replacement, expiry, reentry, errors and 20 OOM budgets passed")
+    return 0
+end

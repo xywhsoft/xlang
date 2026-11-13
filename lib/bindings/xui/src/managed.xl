@@ -5615,6 +5615,8 @@ export extern "xui_widget_t*" class IconPicker @header("xge3_runtime.h") @lifeti
 
  extern "xuiIconPickerSetChangeOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setChange(IconPickerChangeProc? onChange)
 
+ extern "xuiIconPickerSetFormatterOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0,"owned_text") @c_result("status",0) func setFormatter(IconPickerTextProc? onFormat)
+
  extern "xuiIconPickerClearSelection" @no_raise func clearSelection() as c_int
 
  extern "xuiIconPickerSetTextMode" @no_raise @c_result("status",0) func setTextMode(c_int iMode)

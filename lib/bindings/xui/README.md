@@ -274,7 +274,7 @@ which may be delayed by a picker or alias. Closing the Context expires all its
 views. Cross-Context edges are rejected.
 
 See `examples/icon_picker.xl`. This batch covers SVG-path/alias models and typed
-picker edges; file/memory/custom sources, formatter closure ownership and every
+picker edges; file/memory/custom sources and every
 same-object reentry path remain tracked separately. Lifetime watches use one
 native pointer per Category/Icon (8 bytes on both qualified x64 targets), and
 cold binding storage. They do not add a per-business-method C wrapper. String
@@ -288,3 +288,18 @@ the SVG-path/alias fixture, 1000 rounds of these three language calls allocate,
 free and reallocate no XRT memory, including a zero-allocation budget. Other
 source types may decode or allocate native resources during size/prepare work;
 the source-specific costs still apply.
+
+`IconPicker.setFormatter(callback)` directly registers an owned native text
+formatter; passing `null` clears it. Set the text mode to
+`XUI_ICON_PICKER_TEXT_CUSTOM`. The callback receives `CallbackWidget` and
+`CallbackIcon` views valid only during that invocation and returns a string.
+Saved callback views throw after the callback ends. The callback closure is
+part of the Context ownership graph; replacement and explicit Context close
+release it safely, including replacement or close inside the callback.
+The native display preview is limited to 255 UTF-8 bytes, trims an incomplete
+trailing code point and stops at the first embedded NUL. This does not change
+the language string's byte-preserving storage rules.
+
+See `docs/xui-icon-models.md` and `tools/check_xui_icon_formatter.py` for the
+checked error, OOM and real owned CPU-frame acceptance boundaries and measured
+costs. This does not certify every custom Icon/cache mutation or real graphics.

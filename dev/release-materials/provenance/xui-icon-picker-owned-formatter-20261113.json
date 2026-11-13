@@ -1,0 +1,310 @@
+{
+  "date": "2026-11-13",
+  "qualified": true,
+  "goalComplete": false,
+  "shippingDelivery": false,
+  "networkTests": false,
+  "compilerChanged": false,
+  "nativeCommit": "6102535c076f0d540b042e000e1466661c8bd4cf",
+  "nativeReceipt": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\icon-picker-owned-formatter-20261113.json",
+    "sha256": "2aa0c495599d3e7233fa7ddd83cf961661806a260f99bed96ab990f0455873ec"
+  },
+  "scope": "Direct owned IconPicker formatter declaration and epoch Icon view, real owned CPU-frame language acceptance, existing checked text snapshot contract retained. Full XGE/XUI/Document goal remains active.",
+  "sources": {
+    "lib/bindings/xui/src/icons.xl": "eb8b62733cc6f959584933e39abfa989e9b6a0b820155f21f2f441efcec95341",
+    "lib/bindings/xui/src/managed.xl": "90d689615d55ea1bb1024c4f20610c4ceaeb930c1eda1fa86ae7b3974e576da1",
+    "lib/bindings/xui/examples/icon_picker.xl": "0a51d34cc2d9b9945408a8c9f53074ff702b651fe44c9aa28c18420b214154c1",
+    "lib/bindings/xui/README.md": "6f00e68546c2ef707cce09e229329bca862a6ba8df4610397720f3db9cad0c05",
+    "docs/xui-icon-models.md": "f69a1739e3821dc2161b004d5e1c17ef3f666233e9f909aa6f942a2616a96696",
+    "docs/xge3-xui3-full-coverage-plan.md": "4862a137e3aca437ed090e6d5a9374270175e30ac04350004a36c1c525eae6a1",
+    "test/cases/foreign_xui_icon_formatter.xl": "e2791dd213891e024ab4d3989f7b3ef950b447303a82de6ba56e9363dfa6b474",
+    "test/cases/foreign_xui_render_backend.c": "2311913d1190e99b9c2ccb942ed0e2c95c519fcec9abe3be16517b4566ca183c",
+    "test/cases/foreign_xui_render_backend.h": "aefc892e64fff9903097d511843303050ad532038638e51f6a92ade14ce1b995",
+    "test/cases/foreign_xui_render_adapters.inc": "b54a15b0295c93a59be72b93acacfb1eefd335a7ec28d6290b18be213770711e",
+    "tools/check_xui_icon_formatter.py": "12c1efd9ba4a1ee854aea43fd29df824ac67e72891dacbda886a1d28dc71a549",
+    "tools/gen_xui_render_fixture.py": "da0f87706b5fd16cf91f078a630dd5eee491f5c4cff35f6b7166079a1d8fea27"
+  },
+  "platforms": {
+    "win": {
+      "producer": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\picker-owned-sdk-win-r1\\results.json",
+        "sha256": "185c638cd71efd5faf990c1ddd79c5ee38dbb0103e81f0d0984a3b0506433203",
+        "commands": 4
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\picker-owned-native-win-r2\\results.json",
+        "sha256": "5e2a0e4785bf8bcdfce9bd13f3df6e9f4f772184113113562c61c4ac0670358b",
+        "commands": 40
+      },
+      "editRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\picker-owned-edit-win-r2\\results.json",
+        "sha256": "bb8a654e7265090f8a59389174aed6f013c22201a9ba244e9629df0cc5ece652",
+        "commands": 16
+      },
+      "languageModels": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\picker-owned-models-win-r2\\results.json",
+        "sha256": "61186c12f5adecffbc694d768299879b86202e1e025e62a7eda068917d5abf0b",
+        "commands": 15
+      },
+      "languageFormatter": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\picker-owned-language-win-r3\\results.json",
+        "sha256": "0cbe76e40cb7fd9229ee0aa75498d5438775d3af3a28f717916c8671e2d204c0",
+        "commands": 14
+      },
+      "heap": [
+        {
+          "mode": "jit",
+          "frames": 100,
+          "counts": {
+            "language": {
+              "alloc": 400,
+              "free": 400,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 400,
+              "free": 400,
+              "realloc": 0
+            }
+          },
+          "additional": {
+            "alloc": 0,
+            "free": 0,
+            "realloc": 0
+          }
+        },
+        {
+          "mode": "dynamic",
+          "frames": 100,
+          "counts": {
+            "language": {
+              "alloc": 400,
+              "free": 400,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 400,
+              "free": 400,
+              "realloc": 0
+            }
+          },
+          "additional": {
+            "alloc": 0,
+            "free": 0,
+            "realloc": 0
+          }
+        },
+        {
+          "mode": "static",
+          "frames": 100,
+          "counts": {
+            "language": {
+              "alloc": 400,
+              "free": 400,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 400,
+              "free": 400,
+              "realloc": 0
+            }
+          },
+          "additional": {
+            "alloc": 0,
+            "free": 0,
+            "realloc": 0
+          }
+        }
+      ],
+      "freeze": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\native-picker-owned-win-freeze-r2.json",
+        "sha256": "1772fde2434b15a14ef751b01441843d14eedc4ee18dd796db33fc42c4b6bd08",
+        "inputs": 12073,
+        "inputsUnchanged": true,
+        "sdkUsesProductionIdenticalR1": true,
+        "testOnlySuccessor": "Use full xuiContextTraceOwnership; legacy event-slot-only tracing is not the owned callback directory."
+      },
+      "host": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\picker-owned-sdk-win-r1\\host\\xge3_host.dll",
+        "sha256": "f76d7ab963c3df4dfb5bf1a59240d71be98019aeb65a175df91b395c2de79833",
+        "bytes": 9587759,
+        "previousBytes": 9586735,
+        "delta": 1024
+      }
+    },
+    "linux": {
+      "producer": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\picker-owned-sdk-linux-r1\\results.json",
+        "sha256": "ac39da095d96a9ad1ef28e772574b72ed1a7cdfd726414a2f7f13634f303604d",
+        "commands": 4
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\picker-owned-native-linux-r2\\results.json",
+        "sha256": "50a624de1248cd9159760613bb03d37825c9cd3a9b4114561e1b8c478e40d64c",
+        "commands": 40
+      },
+      "editRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\picker-owned-edit-linux-r2\\results.json",
+        "sha256": "130811f9a942dd02ed2567b06b92bee7bf5edbe45a161fa2fd51cb88d1255758",
+        "commands": 16
+      },
+      "languageModels": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\picker-owned-models-linux-r2\\results.json",
+        "sha256": "625eece6f171813de6a21acef9b6bacaf82308ad1fb9c2291a49e87e6c6608b1",
+        "commands": 15
+      },
+      "languageFormatter": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\picker-owned-language-linux-r3\\results.json",
+        "sha256": "07515b42a32f0a1f1d1aaf6c8567f2d0ff342b8af3f8cf77aaebe186eb353d78",
+        "commands": 14
+      },
+      "heap": [
+        {
+          "mode": "jit",
+          "frames": 100,
+          "counts": {
+            "language": {
+              "alloc": 400,
+              "free": 400,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 400,
+              "free": 400,
+              "realloc": 0
+            }
+          },
+          "additional": {
+            "alloc": 0,
+            "free": 0,
+            "realloc": 0
+          }
+        },
+        {
+          "mode": "dynamic",
+          "frames": 100,
+          "counts": {
+            "language": {
+              "alloc": 400,
+              "free": 400,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 400,
+              "free": 400,
+              "realloc": 0
+            }
+          },
+          "additional": {
+            "alloc": 0,
+            "free": 0,
+            "realloc": 0
+          }
+        },
+        {
+          "mode": "static",
+          "frames": 100,
+          "counts": {
+            "language": {
+              "alloc": 400,
+              "free": 400,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 400,
+              "free": 400,
+              "realloc": 0
+            }
+          },
+          "additional": {
+            "alloc": 0,
+            "free": 0,
+            "realloc": 0
+          }
+        }
+      ],
+      "freeze": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\native-picker-owned-linux-freeze-r2.json",
+        "sha256": "c14f9f654a823d0d707ccd32234977ae9234d1d4f09a9c80b814082f5d68fa75",
+        "inputs": 12073,
+        "inputsUnchanged": true,
+        "sdkUsesProductionIdenticalR1": true,
+        "testOnlySuccessor": "Use full xuiContextTraceOwnership; legacy event-slot-only tracing is not the owned callback directory."
+      },
+      "host": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\picker-owned-sdk-linux-r1\\host\\libxge3_host.so",
+        "sha256": "52bc010b4cf16d1d0fdc9aae409f265a34dfa7f47bffe625223f45b1214aaa9e",
+        "bytes": 10445520,
+        "previousBytes": 10445520,
+        "delta": 0
+      }
+    }
+  },
+  "layout": {
+    "source": "F:\\xlang-validation\\xge-full-20261110\\owned-formatter-layout-r1.c",
+    "sha256": "a93415eb2c8388183e2ac5dbedec9dcaaf2e5cf97e2025f26e549f363e657732",
+    "runs": [
+      {
+        "platform": "win",
+        "command": [
+          "F:\\xlang-validation\\xge-full-20261110\\owned-formatter-layout-win-r1.exe"
+        ],
+        "exitCode": 0,
+        "output": "Picker bytes: before=856 after=856",
+        "executableSha256": "b0d23146e05f97b3bf89acc057c5eb59c49590f891e4ae7ce6b49d42a480321c"
+      },
+      {
+        "platform": "linux",
+        "command": [
+          "wsl",
+          "-d",
+          "Ubuntu",
+          "--",
+          "/mnt/f/xlang-validation/xge-full-20261110/owned-formatter-layout-linux-r1"
+        ],
+        "exitCode": 0,
+        "output": "Picker bytes: before=856 after=856",
+        "executableSha256": "c087fae156f67f93ec7790dfd40c366705fd23c877bb28890fb8c709fbd666de"
+      }
+    ]
+  },
+  "hiddenElfHelpers": [
+    {
+      "command": [
+        "wsl",
+        "-d",
+        "Ubuntu",
+        "--",
+        "nm",
+        "-D",
+        "/mnt/f/xlang-validation/xge-full-20261110/picker-owned-sdk-linux-r1/host/libxge3_host.so"
+      ],
+      "exitCode": 0,
+      "path": "F:\\xlang-validation\\xge-full-20261110\\owned-formatter-hidden-elf-0-r1.log",
+      "sha256": "fad45aec96f4a29a4f12b1fb9e6e878324ac8cba74ee43f83f0c4d9425ac5939"
+    },
+    {
+      "command": [
+        "wsl",
+        "-d",
+        "Ubuntu",
+        "--",
+        "objdump",
+        "-d",
+        "--disassemble=xuiIconGetIntrinsicSize",
+        "/mnt/f/xlang-validation/xge-full-20261110/picker-owned-sdk-linux-r1/host/libxge3_host.so"
+      ],
+      "exitCode": 0,
+      "path": "F:\\xlang-validation\\xge-full-20261110\\owned-formatter-hidden-elf-1-r1.log",
+      "sha256": "7b5d043d116bdb69ec9c54ef7cb7fb2f3ceb7be953470b2b2e0dca61116b61f6"
+    }
+  ],
+  "deliveryBoundary": "Isolated matched SDKs only. No final release SDK/compiler/IDE installation or push.",
+  "limitations": [
+    "Custom Icon callback groups and arbitrary cache mutation/freshness remain unfinished.",
+    "The CPU provider uses real owned controls over deterministic raw rendering, not GPU/window/pixel correctness or provider unloading.",
+    "Warm allocation equality is not zero CPU/synchronization/call overhead.",
+    "Final matched SDK/compiler/IDE/help shipping delivery remains unfinished."
+  ]
+}

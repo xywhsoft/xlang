@@ -1,5 +1,16 @@
 // Registry-owned views retain the real Context. Native physical deletion
 // expires every alias; dropping a language view does not remove the registry.
+export extern "xui_icon_t*" class CallbackIcon @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "xuiIconGetName" @no_raise @c_result("cstring") get name() as string
+ extern "xuiIconGetDisplayName" @no_raise @c_result("cstring") get displayName() as string
+ extern "xuiIconGetTags" @no_raise @c_result("cstring") get tags() as string?
+ extern "xuiIconGetId" @no_raise get id() as c_uint
+ extern "xuiIconGetSourceType" @no_raise get sourceType() as c_int
+ extern "xuiIconRemoveOwnerChecked" @no_raise @c_output(1,0) func unregister() as bool
+end
+export typedef IconPickerTextProc = func(CallbackWidget,CallbackIcon) as string
+
 export extern "xui_icon_category_t*" class IconCategory @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3IconCategoryPolicy") @watch("xui_lifetime_link_t")
  native point handle
  extern "xuiIconCategoryGetName" @no_raise @c_result("cstring") get name() as string
