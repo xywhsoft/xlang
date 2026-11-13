@@ -10,7 +10,8 @@ typedef enum XL6_ForeignOwnedOutputPointer {
 } XL6_ForeignOwnedOutputPointer;
 typedef enum XL6_ForeignOwnedOutputSize {
     XL6_FOREIGN_OWNED_OUTPUT_SIZE=1,
-    XL6_FOREIGN_OWNED_OUTPUT_U64
+    XL6_FOREIGN_OWNED_OUTPUT_U64,
+    XL6_FOREIGN_OWNED_OUTPUT_INT
 } XL6_ForeignOwnedOutputSize;
 typedef enum XL6_ForeignOwnedOutputKind {
     XL6_FOREIGN_OWNED_OUTPUT_BYTES=1,
@@ -26,5 +27,5 @@ typedef struct XL6_ForeignOwnedOutputContract {
 static inline const char* xl6ForeignOwnedOutputPointerCName(XL6_ForeignOwnedOutputPointer abi)
 {return abi==XL6_FOREIGN_OWNED_OUTPUT_VOID ? "void*":abi==XL6_FOREIGN_OWNED_OUTPUT_CHAR ? "char*":abi==XL6_FOREIGN_OWNED_OUTPUT_UCHAR ? "unsigned char*":NULL;}
 static inline const char* xl6ForeignOwnedOutputSizeCName(XL6_ForeignOwnedOutputSize abi)
-{return abi==XL6_FOREIGN_OWNED_OUTPUT_SIZE ? "size_t":abi==XL6_FOREIGN_OWNED_OUTPUT_U64 ? "uint64_t":NULL;}
+{return abi==XL6_FOREIGN_OWNED_OUTPUT_SIZE ? "size_t":abi==XL6_FOREIGN_OWNED_OUTPUT_U64 ? "uint64_t":abi==XL6_FOREIGN_OWNED_OUTPUT_INT ? "int":NULL;}
 #endif

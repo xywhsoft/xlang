@@ -7,10 +7,10 @@ extern "nativeEncode" @header("provider.h") @no_raise @c_output_bytes(2,3,"void*
 ```
 
 The six arguments specify the physical data slot, physical length slot, exact
-pointee type, unsigned length type, allocator and success status. The data slot
+pointee type, integer length type, allocator and success status. The data slot
 must precede the length slot, but intervening input slots are allowed. Instance
 indices include the native receiver. Pointer spellings are `void*`, `char*` and
-`unsigned char*`; lengths are `size_t` and `uint64_t`. The native header supplies
+`unsigned char*`; lengths are `size_t`, `uint64_t` and exact C `int`. The native header supplies
 the authoritative prototype and generated C checks it. Exactly one nonnullable
 language `bytes` is returned. This contract does not compose with a second
 output mapping, borrowed result admission or native retain/release helpers.
@@ -38,10 +38,19 @@ No encoded payload is copied at admission. Creating an `xvalue` shell still
 allocates; error scopes, range checks, ownership transfer and later ordinary
 value-copy/mutation work remain costs. There is no user release callback,
 provider dispatch or extra provider-code lease stored in the bytes value.
-All mapping facts reside in one sparse 24-byte XLIR row per declaration;
+All mapping facts reside in one sparse 28-byte XLIR row per declaration;
 the module adds one vector pointer/count/capacity (24 bytes on 64-bit targets),
 and existing per-node call facts keep their size. Cgen consumes the sealed contract
 and does not search the source declaration to recover output meanings.
+
+For an `int*` length slot, Cgen preserves the exact native `int` storage and
+passes its value to the existing unsigned admission check. On supported targets,
+every negative `int`, including `INT_MIN`, converts above `INT64_MAX` and fails
+with `RangeError` before any output-memory read. The block is still consumed.
+A failed producer status remains primary even if its length is negative.
+This adds an enum variant, not a wider contract row, new runtime helper, signed
+length sentinel or implicit C cast of an incompatible output pointer. Other
+signed/unsigned C type spellings remain unsupported by this declaration.
 
 The first consumer is `xge.encodeImagePng(width,height,pixels,stride=0,flags=2)`
 for bytes and Buffer. It reuses the native row-capacity checks and PNG encoder.

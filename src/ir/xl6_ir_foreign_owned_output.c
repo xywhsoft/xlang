@@ -1,4 +1,4 @@
-/* A pointer/unsigned-length pair becomes one owning language bytes value.
+/* A pointer/integer-length pair becomes one owning language bytes/text value.
  * All physical and ownership facts close here, before C emission. */
 const XL6_ForeignOwnedOutputContract* xl6IrForeignOwnedOutputGet(const XL6_IrModule* m,const XL6_IrCallTarget* t)
 {
@@ -44,5 +44,5 @@ static int xl6IrVerifyOwnedOutputs(const XL6_IrModule* m,XL6_DiagList* diags)
         if(count!=(xl6ForeignValueOutputIsOwned(m->nodes[n].foreignCall.valueOutput) ? 1u:0u))goto invalid;
     }
     return 1;
-invalid:return xl6IrDiag(diags,NULL,"owned bytes output needs one sealed resident-XRT allocation contract, exact bytes result, header and pointer/unsigned-length slots");
+invalid:return xl6IrDiag(diags,NULL,"owned output needs one sealed resident-XRT allocation contract, exact bytes/text result, header and pointer/integer-length slots");
 }

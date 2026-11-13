@@ -10,7 +10,9 @@ extern "exportText" @header("provider.h") @no_raise
 
 The C prototype is `int exportText(int, char**, uint64_t*)`. The two indices
 are physical C output positions; the last value is the success status. Counts
-can be `size_t` or `uint64_t`. Text requires `char*`; arbitrary output bytes
+can be `size_t`, `uint64_t` or exact C `int`. Negative `int` lengths fail the
+existing range check before terminator/UTF-8 access and still release the block.
+Text requires `char*`; arbitrary output bytes
 use the existing `@c_output_bytes` contract. Both can name the same producer
 when their physical ABI, allocator, status, effects and inputs match exactly.
 Each language result retains its own admission and cleanup contract.

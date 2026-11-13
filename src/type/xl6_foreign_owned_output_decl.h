@@ -14,7 +14,8 @@ static inline int xl6ForeignOwnedOutputRead(const XL6_AstNode* attr,XL6_ForeignO
         !strcmp(pointer,"char*") ? XL6_FOREIGN_OWNED_OUTPUT_CHAR:
         !strcmp(pointer,"unsigned char*") ? XL6_FOREIGN_OWNED_OUTPUT_UCHAR:0;
     row.sizeAbi=!strcmp(count,"size_t") ? XL6_FOREIGN_OWNED_OUTPUT_SIZE:
-        !strcmp(count,"uint64_t") ? XL6_FOREIGN_OWNED_OUTPUT_U64:0;
+        !strcmp(count,"uint64_t") ? XL6_FOREIGN_OWNED_OUTPUT_U64:
+        !strcmp(count,"int") ? XL6_FOREIGN_OWNED_OUTPUT_INT:0;
     row.kind=!strcmp(attr->text,"c_output_text") ? XL6_FOREIGN_OWNED_OUTPUT_TEXT:XL6_FOREIGN_OWNED_OUTPUT_BYTES;
     if(!row.pointerAbi || !row.sizeAbi || (row.kind==XL6_FOREIGN_OWNED_OUTPUT_TEXT && row.pointerAbi!=XL6_FOREIGN_OWNED_OUTPUT_CHAR))return 0;
     row.dataIndex=(uint32)data;row.sizeIndex=(uint32)size;if(output)*output=row;return 1;

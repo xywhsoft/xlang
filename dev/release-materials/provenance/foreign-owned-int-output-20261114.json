@@ -1,0 +1,256 @@
+{
+  "date": "2026-11-14",
+  "qualified": true,
+  "shippingDelivery": false,
+  "nativeCommit": "2a95629ce282a7de27c492168a2237ff7c8b2500",
+  "sources": {
+    "src/type/xl6_foreign_owned_output_contract.h": "a8510486aa2f8e27462d8db3e792adb80e1421f7471e5c1856f1cbd98ac1cdd8",
+    "src/type/xl6_foreign_owned_output_decl.h": "e56eeaa56aff51a893a1559fdf39f5ed4a5efa7138e2d6fb69f48628962875f2",
+    "src/ir/xl6_ir_foreign_owned_output.c": "9a7f9a277db575f302a8cff38e222874328a450317956ae889bda627662534e7",
+    "test/cases/foreign_owned_signed_output.xl": "9bf313f0ff64e8f8cfe80596e4ffa5ccd24e6a954bce71a099082ddb25f7b1a2",
+    "test/cases/foreign_owned_signed_output.h": "72f125ababdfbc22fde235c5b295c4556b86c6b82162f22587e1faf569377bdd",
+    "test/cases/foreign_owned_signed_output.c": "c81fb4a18fab9aab7e8bae3c56a357c129ac10fcc3f146780af1d4f4208c2845",
+    "test/cases/foreign_owned_signed_output_ir.c": "56894381f7ae92f29e53128493d5c2264a1700ea3b5865347ccf9910224b84ca",
+    "tools/check_foreign_owned_signed_output.py": "2af30e84e590d76ed9086262a383a1ce4bf279970f9fd7d0b851d628ea8855f8",
+    "docs/foreign-owned-bytes-output.md": "4d2f1e881e5fe1119b87847436f9fbfc7e5a55da3e294ba3a7123a9589ba2d83",
+    "docs/foreign-owned-text-output.md": "a330893d34005bc1f30b4726083b0e9ca170f3fa206376f6ab7eda84611ff1ca"
+  },
+  "platforms": {
+    "win": {
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-signed-output-full-r35\\build.json",
+        "sha256": "e0deb488903de73dc249bca25b66731955b842cacd665ca2868d51cf3f9bc1a5"
+      },
+      "products": {
+        "xl.exe": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-signed-output-full-r35\\source\\release\\win_x64\\xl.exe",
+          "sha256": "b06ecff88b5b9f438820a93f7ec7c8be5d605c5e55c8d6e6c58c8d2c2641ed80",
+          "bytes": 72704
+        },
+        "xl.dll": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-signed-output-full-r35\\source\\release\\win_x64\\xl.dll",
+          "sha256": "9d3fe68ca1d6745658cb2aa66b4a75949c113b2270ac7730de9cc8ac586a82f3",
+          "bytes": 15299584
+        },
+        "xlc.dll": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-signed-output-full-r35\\source\\release\\win_x64\\xlc.dll",
+          "sha256": "9a93c3bf38baf84de03f7fb9970a22e23e4738cabce640676e330275d7f0c48d",
+          "bytes": 21517824
+        }
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\owned-signed-language-win-r1\\results.json",
+        "sha256": "a16286265b6f63b8a1d788bdde379143d83bd839b7168772630b5da235de9ac3",
+        "commands": 38
+      },
+      "programs": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\owned-signed-language-win-r1\\foreign_owned_signed_output.exe",
+          "sha256": "f5dd67775a9e1c01545cf4e71c120bfe72c60a796fc8bf23b8150e409c67b16d",
+          "bytes": 4232704,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\owned-signed-language-win-r1\\foreign_owned_bytes.exe",
+          "sha256": "b958997db5c47169f4dd3c73a8b7a4cd36b69ac657d51a0facab17d70a5e4540",
+          "bytes": 4175872,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\owned-signed-language-win-r1\\foreign_owned_text.exe",
+          "sha256": "76fc0fc8e6eda693946619ef727ff83dff70f8792c36589f5e6b1177ab3b61c3",
+          "bytes": 4204032,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\owned-signed-language-win-r1\\nested-signed-parent.exe",
+          "sha256": "f473e5089df930802b1ee93dafc548847c5c0960d0f1121e09668388dec06986",
+          "bytes": 24887296,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ucrtbase.dll",
+            "Ole32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\owned-signed-language-win-r1\\nested-signed-shared.dll",
+          "sha256": "f41440b4eca3b2f618d3bd2b753e8e73d0cada316c96f4bb688bf4ff1fa40f4f",
+          "bytes": 25007104,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ucrtbase.dll",
+            "Ole32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll"
+          ]
+        }
+      ],
+      "irSourcePreflight": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\signed-output-ir-win-r1\\results.json",
+        "sha256": "fa79036c5e5dd8a611a49f4eeaaf17ae9facc51ac3d545ed4959a062d6a03df6",
+        "commands": 8
+      },
+      "irPrograms": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\signed-output-ir-win-r1\\foreign_owned_signed_output-O0.exe",
+          "sha256": "16d882467be07d7617842f7168d2b53d4e059f6bb7fbe654fc161813804066c8"
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\signed-output-ir-win-r1\\foreign_owned_signed_output-O2.exe",
+          "sha256": "d6699c3608482c232fb255d2a70fdbc5824e115ddf339de6e96a5c7d4c49a5d4"
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\signed-output-ir-win-r1\\foreign_owned_bytes-O0.exe",
+          "sha256": "4b9e326ec1e839b7ad822df01907726982716590e7fa68d487f7b418a8c5d77a"
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\signed-output-ir-win-r1\\foreign_owned_bytes-O2.exe",
+          "sha256": "73a2cd3a38be2a664c22e1241a8945aead4aaf154a30461d88cd36ff521aaa85"
+        }
+      ]
+    },
+    "linux": {
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-signed-output-linux-full-r28\\build.json",
+        "sha256": "f41fc7cf2348efbd0ed73e08035d1accd713d9f537f261d174e6c0e15136cfdf"
+      },
+      "products": {
+        "xl": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-signed-output-linux-full-r28/source/release/linux_x64/xl",
+          "sha256": "faa25e49bdf8c5ce8ccdb084810075b406cc6dd499a59577664616eb2a08265b",
+          "bytes": 47224
+        },
+        "libxl.so": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-signed-output-linux-full-r28/source/release/linux_x64/libxl.so",
+          "sha256": "a84dbc2a0a05536a815b694024c7629b207c4124881bddc3562a57122bd840df",
+          "bytes": 16513616
+        },
+        "libxlc.so": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-signed-output-linux-full-r28/source/release/linux_x64/libxlc.so",
+          "sha256": "1fd0628a8fdaa129ae8e8b44311c35400345ac845ea09b492776169fd8cb125f",
+          "bytes": 22526800
+        }
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\owned-signed-language-linux-r1\\results.json",
+        "sha256": "8bec1ba7d48f25aab49862eda419bef863e25820ca2adf6039d1896c5a2a8f32",
+        "commands": 38
+      },
+      "programs": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/owned-signed-language-linux-r1/foreign_owned_signed_output",
+          "sha256": "f69050944511b8804ee937227a82a4af9655cf700ed784a3aaa3663ed110fff8",
+          "bytes": 4333999,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/owned-signed-language-linux-r1/foreign_owned_bytes",
+          "sha256": "21f0abc710b3c0a0f5ad17fd7ddaf180053db350da4c8c5369b1bf348624ce37",
+          "bytes": 4280412,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/owned-signed-language-linux-r1/foreign_owned_text",
+          "sha256": "70f8c69bba881220b347761d5220d44f70a2e3786241eed1630b71c87c269d82",
+          "bytes": 4305788,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/owned-signed-language-linux-r1/nested-signed-parent",
+          "sha256": "1ebcd77bf2c7d7fe7af2b1e47608f665e7a84c5be5671617c1de45e463bc9da2",
+          "bytes": 24000587,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/owned-signed-language-linux-r1/nested-signed-shared.so",
+          "sha256": "190c29a5c8201f2d4a1d132a93c5317e1469c81349738d39539cb6dab035135a",
+          "bytes": 26748070,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ],
+      "irSourcePreflight": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\signed-output-ir-linux-r1\\results.json",
+        "sha256": "fd6be8296558df598cf42dde602a36d2ae41bbaed87e597f0ff4a4782238306c",
+        "commands": 8
+      },
+      "irPrograms": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\signed-output-ir-linux-r1\\foreign_owned_signed_output-O0.out",
+          "sha256": "e768445ed06caa23f3ef9278ffc6adbc1e30dfdf4f503059a187a474d0fe6416"
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\signed-output-ir-linux-r1\\foreign_owned_signed_output-O2.out",
+          "sha256": "8a09870222d81c4d1c82acfabae6a136511baad3199e417b814b5d8dd01f1a08"
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\signed-output-ir-linux-r1\\foreign_owned_bytes-O0.out",
+          "sha256": "4bfced2242fcaf9a68954983dd3dbd19426389d905b7641be42b8c830633e1d3"
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\signed-output-ir-linux-r1\\foreign_owned_bytes-O2.out",
+          "sha256": "9c8ce0f6d76b93a1bc49f9be0a1b0164cb91ba76e6cad77d3e4c459deb108e08"
+        }
+      ]
+    }
+  },
+  "scope": "Exact native C int count variant for existing owning bytes/text output. Negative values including INT_MIN use existing uint64/INT64_MAX admission rejection before payload/terminator reads, while consuming output blocks and preserving primary native errors. No new runtime helper, new syntax or contract-row growth.",
+  "contractRowBytes": 28,
+  "qualificationNotes": [
+    "Generic signed fixture span spelling corrected from unsupported const unsigned char* to existing const uint8_t* after full compiler freeze; actual accepted root source hashes are pinned by gates. Production compiler/binding sources match both full build freezes.",
+    "Diagnostic r1 compiled units succeeded, then rejected that fixture span spelling. Diagnostic r2 passed emit but redundantly supplied automatically discovered companion C. Corrected r3 on Windows and r2 Linux execute the actual current fixture; historical failures preserved externally.",
+    "IR source overlays recompile sem/IR/Cgen over a complete pinned source parent, whose src diff has only six changed files and no layout change. They are source preflights, separate from complete O2 CLI/nested EXE/DSO acceptance.",
+    "Other count descriptor spellings and incompatible signedness/rank pointer prototypes remain rejected; complete programs import no xlang/TCC compiler libraries."
+  ]
+}

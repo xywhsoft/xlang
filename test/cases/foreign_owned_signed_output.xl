@@ -1,0 +1,91 @@
+extern "signedOutputBytes" @header("test/cases/foreign_owned_signed_output.h") @no_raise @c_output_bytes(1,2,"void*","int","xrt",0) func produceBytes(c_int mode=0) as bytes
+extern "signedOutputText" @header("test/cases/foreign_owned_signed_output.h") @no_raise @c_output_text(1,2,"char*","int","xrt",0) func produceText(c_int mode=0) as string
+extern "signedOutputBytesIdentity" @header("test/cases/foreign_owned_signed_output.h") @no_raise @c_span(0,"const uint8_t*","size_t") func identity(bytes data) as c_int
+extern "signedOutputTextIdentity" @header("test/cases/foreign_owned_signed_output.h") @no_raise @c_span(0,"const char*","size_t") func identityText(string data) as c_int
+extern "signedOutputCalls" @header("test/cases/foreign_owned_signed_output.h") @no_raise func calls() as c_uint
+extern "signedOutputReset" @header("test/cases/foreign_owned_signed_output.h") @no_raise func resetFailure()
+extern "signedOutputBegin" @header("test/cases/foreign_owned_signed_output.h") @no_raise func beginCounter()
+extern "signedOutputEnd" @header("test/cases/foreign_owned_signed_output.h") @no_raise func endCounter()
+
+func main(...) as int
+    auto data=produceBytes()
+    assert data==b"A\0BZ" and identity(data)==c_int(1)
+    auto text=produceText()
+    assert text=="A\0BZ" and identityText(text)==c_int(1)
+    assert produceBytes(5)==b"" and produceBytes(6)==b""
+    assert produceText(5)=="" and produceText(6)==""
+    bytes kept=b"keep"
+    string keptText="keep"
+    for mode in [1,2,3]
+        beginCounter()
+        bool rejected=false
+        try
+            kept=produceBytes(c_int(mode))
+        catch RangeError error
+            rejected=true
+        end
+        assert rejected and kept==b"keep"
+        rejected=false
+        try
+            keptText=produceText(c_int(mode))
+        catch RangeError error
+            rejected=true
+        end
+        assert rejected and keptText=="keep"
+        endCounter()
+    end
+    // A native failure remains primary even if its output count is negative.
+    for mode in [4,8,9]
+        beginCounter()
+        bool rejected=false
+        try
+            kept=produceBytes(c_int(mode))
+        catch error
+            rejected=true
+            if mode==4 then
+                assert error.code==-17
+            end
+        end
+        assert rejected and kept==b"keep"
+        rejected=false
+        try
+            keptText=produceText(c_int(mode))
+        catch error
+            rejected=true
+            if mode==4 then
+                assert error.code==-17
+            end
+        end
+        assert rejected and keptText=="keep"
+        endCounter()
+    end
+    // Bytes still needs its value shell; failure must free the produced block.
+    beginCounter()
+    bool rejected=false
+    try
+        kept=produceBytes(7)
+    catch error
+        rejected=true
+    finally
+        resetFailure()
+    end
+    assert rejected and kept==b"keep"
+    endCounter()
+    // Text adoption adds no allocation after the producer returns.
+    auto noExtraAllocation=produceText(7)
+    resetFailure()
+    assert noExtraAllocation=="A\0BZ"
+    func(c_int) as bytes callback=produceBytes
+    c_uint count=calls()
+    auto viaCallback=callback(0)
+    assert calls()==count+c_uint(1) and viaCallback==b"A\0BZ"
+    rejected=false
+    try
+        kept=callback(1)
+    catch RangeError error
+        rejected=true
+    end
+    assert rejected and kept==b"keep"
+    println("Owned signed output: exact int ABI, payload identity, NUL, negative bounds, error priority and rollback passed")
+    return 0
+end
