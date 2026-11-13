@@ -1,0 +1,199 @@
+{
+  "date": "2026-11-13",
+  "qualified": true,
+  "goalComplete": false,
+  "shippingDelivery": false,
+  "compilerChanged": false,
+  "networkTests": false,
+  "nativeCommit": "d0b0f03af7ce1a17d89ab0983432e79e4db34d77",
+  "nativeReceipt": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\icon-cache-clear-reentry-20261113.json",
+    "sha256": "babf5b47a27d24528d606c91f93aa7a70785365221e381f7bdecaac477196896"
+  },
+  "scope": "Direct memory-source factories and checked cache mutation calls; reentrant finalizer cache-clear lifetime floor. Active Surface reader snapshots remain pending.",
+  "sources": {
+    "lib/bindings/xui/src/icons.xl": "e7dca2752684c86c8a7dd977d21389abbe7932f02b6139fe8bfd2e79644a3d3d",
+    "lib/bindings/xui/examples/icon_memory.xl": "ac52c74a6593208529bae8978d1298e6868a741b3c472db3f8209f323c9f08ea",
+    "lib/bindings/xui/README.md": "dd589b5ec4f516675268c72d212b2cf020853a159459a994d2dee9ea548d3f01",
+    "docs/xui-icon-models.md": "dcf1cd470260fa02471a359c58ad1e13f89501fc40bc9de2ac419aa104051a83",
+    "docs/xge3-xui3-full-coverage-plan.md": "b5b1e9e0bd336364b418405cf2fe49d7b6205b4f49fc9bdb9f60defc7463732b",
+    "test/cases/foreign_xui_icon_cache.xl": "1c7da2097215f1412cc2514b4c466911691bc643f642667e9bda48278bcc9ef2",
+    "test/cases/foreign_xui_icon_cache.c": "f0dca25a3c054bc4705738c15bd4032c3326eb398c2d3644e004019d4cde1cb9",
+    "test/cases/foreign_xui_icon_cache.h": "a0975af882a60ef7026da12074a5382f01c084f289c00513ee72edfd75522908",
+    "tools/check_xui_icon_cache.py": "38fc18be6614bcc3b6d8f4026b73da383c37611cda3cca52b42914de7863fcfc"
+  },
+  "platforms": {
+    "win": {
+      "producer": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cache-clear-sdk-win-r1\\results.json",
+        "sha256": "d582bdcfe988d627aa226a0ccd966f3cafd10a21459c5016e1439d6895ce6992",
+        "commands": 4
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cache-clear-native-win-r2\\results.json",
+        "sha256": "e6d9083951641c6453799f39da40f6ad5d209cae8d440e60cb03c097f07ea3f9",
+        "commands": 48
+      },
+      "editorRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cache-clear-edit-win-r1\\results.json",
+        "sha256": "ff7f35be8ad0812ed92194da25722bdfc9ce4405b4587cf8fce107a8e32d35a5",
+        "commands": 16
+      },
+      "languageModels": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cache-clear-models-win-r1\\results.json",
+        "sha256": "53e462becae1026629af9e2214e272a192e60061fa0f9e1023b625f7c89ecfac",
+        "commands": 15
+      },
+      "ownedFormatter": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cache-clear-formatter-win-r1\\results.json",
+        "sha256": "5131c7e765107b086707658e4f3526304d20b6d46e1f021e338aed47c11e5072",
+        "commands": 14
+      },
+      "apiStage": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cache-clear-api-win-r3\\results.json",
+        "sha256": "e1095381265c820237cbc96b774df18203110126f97978e2826caa8ea0fdb76a",
+        "commands": 2
+      },
+      "cacheLanguage": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cache-clear-language-win-r3\\results.json",
+        "sha256": "8868029d285b6c53f10490e6c7719d8ffe963faa82c2aeb0ced7216e1c3a23ce",
+        "commands": 18
+      },
+      "clearBaseline": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cache-clear-baseline-win-r2\\results.json",
+        "sha256": "e34b7b2687a407cb61725c145d79bf3971cec92922c0f752b07fb21ccac4a4ae",
+        "commands": 8,
+        "controlledExitBeforePhysicalMisuse": 81
+      },
+      "readerBefore": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cache-reader-baseline-win-r1\\results.json",
+        "sha256": "0d9b87d6789bb6d90b42f911e325cc1c0161a049f442887f582dbe7e4e5eb258",
+        "commands": 4,
+        "controlledExitBeforePhysicalMisuse": 83
+      },
+      "readerStillPending": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cache-reader-baseline-win-r2\\results.json",
+        "sha256": "3ccd78bbd011e93d9f6be21a885a54b4d392911dce1a8ea378dbd039b03d77a4",
+        "commands": 4,
+        "controlledExitBeforePhysicalMisuse": 83
+      },
+      "baselineSdkAuthority": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\picker-owned-native-win-r2\\results.json",
+        "sha256": "5e2a0e4785bf8bcdfce9bd13f3df6e9f4f772184113113562c61c4ac0670358b",
+        "allRecordedInputsStillMatch": true
+      },
+      "freeze": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\native-cache-clear-win-freeze-r2.json",
+        "sha256": "9dcbef9c3ca24298374e8d8bb568cf5706cc7e928ba2679139ffd493f0d309c6",
+        "inputs": 12076,
+        "inputsUnchanged": true,
+        "sdkUsesProductionIdenticalR1": true,
+        "testOnlySuccessor": "Add actual-owned-Surface error cases; production unchanged."
+      },
+      "publicHeadersUnchanged": true,
+      "host": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cache-clear-sdk-win-r1\\host\\xge3_host.dll",
+        "sha256": "93c1d10a0f69df6df2f5f650123a287d2d5120a00602759e3022366e1afa27e9",
+        "bytes": 9587759,
+        "previousBytes": 9587759,
+        "delta": 0
+      }
+    },
+    "linux": {
+      "producer": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cache-clear-sdk-linux-r1\\results.json",
+        "sha256": "ae47026e75409e304c38ba6104e749e72a87ae3ab996f64df3bfbf93eaebf471",
+        "commands": 4
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cache-clear-native-linux-r2\\results.json",
+        "sha256": "c9a5c339d6ad6062f8dddcdbb20e453c625c985068d617e816d4ea3f5931e180",
+        "commands": 48
+      },
+      "editorRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cache-clear-edit-linux-r1\\results.json",
+        "sha256": "afe31f9c2960e8109de30af8fc3e9c2760138b3f72254ea204fee1aeb88b8d3a",
+        "commands": 16
+      },
+      "languageModels": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cache-clear-models-linux-r1\\results.json",
+        "sha256": "465128708ae26526becbcb36fe328c2c255af6d7400cd834e3967a079d19bc91",
+        "commands": 15
+      },
+      "ownedFormatter": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cache-clear-formatter-linux-r1\\results.json",
+        "sha256": "f45f8964a6645d55b62e660ef8f7417ff9f9a2e4d9fbd7808df7cf29f14ecb5c",
+        "commands": 14
+      },
+      "apiStage": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cache-clear-api-linux-r3\\results.json",
+        "sha256": "1dce701b3d99c2a9e1aaf1ddaaff92e7cbc28a6f471a3a9cd829cff0e6dc698e",
+        "commands": 2
+      },
+      "cacheLanguage": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cache-clear-language-linux-r3\\results.json",
+        "sha256": "940af549fdedcf06bc0365dc1ce8a43597fa1c4372705ea312d1906c8d52177f",
+        "commands": 18
+      },
+      "clearBaseline": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cache-clear-baseline-linux-r2\\results.json",
+        "sha256": "1f1d4c1b40a4c1ee41ae92dfa3026b918f652b657b2ba43e130f622a43349671",
+        "commands": 8,
+        "controlledExitBeforePhysicalMisuse": 81
+      },
+      "readerBefore": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cache-reader-baseline-linux-r1\\results.json",
+        "sha256": "bd0bd207f6268258b76b07c7dcbfae0bceb19066beabc02d8d25dab31d237f48",
+        "commands": 4,
+        "controlledExitBeforePhysicalMisuse": 83
+      },
+      "readerStillPending": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cache-reader-baseline-linux-r2\\results.json",
+        "sha256": "6d6b90f81dd7a82eb1bfe735656e0306e47e923d370b6c2589d4397dba2e5c01",
+        "commands": 4,
+        "controlledExitBeforePhysicalMisuse": 83
+      },
+      "baselineSdkAuthority": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\picker-owned-native-linux-r2\\results.json",
+        "sha256": "50a624de1248cd9159760613bb03d37825c9cd3a9b4114561e1b8c478e40d64c",
+        "allRecordedInputsStillMatch": true
+      },
+      "freeze": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\native-cache-clear-linux-freeze-r2.json",
+        "sha256": "95cf3a0be9274d0c630e0e70cf3bc06610bbeb6fcf3a8758923c5dad39a2bb06",
+        "inputs": 12076,
+        "inputsUnchanged": true,
+        "sdkUsesProductionIdenticalR1": true,
+        "testOnlySuccessor": "Add actual-owned-Surface error cases; production unchanged."
+      },
+      "publicHeadersUnchanged": true,
+      "host": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\cache-clear-sdk-linux-r1\\host\\libxge3_host.so",
+        "sha256": "37e82e7828b044e9c4fab035fda3c06fbf53e50a2ac58b9d0357b5f7af7f2a51",
+        "bytes": 10445520,
+        "previousBytes": 10445520,
+        "delta": 0
+      }
+    }
+  },
+  "privateRecordDeclarations": {
+    "xui_icon_t": {
+      "unchanged": true,
+      "sha256": "5b83819590269441fbcbaf146aa15555cc4e0e912f38e157fceec0e201c38be7"
+    },
+    "xui_icon_category_t": {
+      "unchanged": true,
+      "sha256": "e8144bed43891cac0915b05c5d22f2a33ee1ea2bad012a1602d6f36185303220"
+    }
+  },
+  "readerSnapshotPendingUserChoice": true,
+  "boundaries": [
+    "Raw CPU cache tests cover 60 combinations; actual owned cache controls cover 72; neither is full graphics acceptance.",
+    "The owned frame consumer checks normal cache reuse and mutation between frames, not active reader mutation.",
+    "The CPU provider verifies complete NUL input bytes/native input copies but does not decode its opaque test markers.",
+    "The valid SVG learning example is compiled/public-header checked, not executed here.",
+    "2000 empty mutation calls make no XRT heap operations; no zero total scope/call/CPU cost claim.",
+    "The independent current-floor reader proof still exits83 before premature release; reader snapshots await user choice.",
+    "Full XGE/XUI/Document integration and matched final SDK/compiler/IDE/help shipping remain active."
+  ]
+}

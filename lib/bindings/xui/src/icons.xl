@@ -18,11 +18,14 @@ export extern "xui_icon_category_t*" class IconCategory @header("xge3_runtime.h"
  extern "xuiIconCategoryGetIconCount" @no_raise get count() as c_int
  extern "xuiIconCategoryGetIconSlotCount" @no_raise get slotCount() as c_uint
  extern "xuiIconCategoryGetDesc" @no_raise @c_output(1,0) func description() as IconCategoryDesc
+ extern "xuiIconCategorySetDesc" @no_raise @c_ref(0) @c_result("status",0) func setDescription(IconCategoryDesc description)
  extern "xuiIconCategoryPreload" @no_raise @c_result("status",0) func preload(c_float width=0,c_float height=0)
  extern "xuiIconCategoryGetIconAt" @no_raise @c_result("owner_view",0) func iconAt(c_int index) as Icon?
  extern "xuiIconFind" @no_raise @c_cstr(0) @c_result("owner_view",0) func find(string name) as Icon?
  extern "xuiIconFindById" @no_raise @c_result("owner_view",0) func findById(c_uint id) as Icon?
  extern "xuiIconAddSvgPath" @no_raise @c_cstr(0) @c_cstr(1) @c_null(4,"const xui_path_style_t*") @c_null(5,"const xui_icon_desc_t*") @c_result("owner_view",0) @factory(6,0,rollbackIcon) func addSvgPath(string name,string path,Rect viewBox) as Icon
+ extern "xuiIconAddSvgMemory" @no_raise @c_cstr(0) @c_span(1,"const void*","int") @c_null(4,"const xui_icon_desc_t*") @c_result("owner_view",0) @factory(5,0,rollbackIcon) func addSvgMemory(string name,bytes data) as Icon
+ extern "xuiIconAddRasterMemory" @no_raise @c_cstr(0) @c_span(1,"const void*","int") @c_null(4,"const xui_icon_desc_t*") @c_result("owner_view",0) @factory(5,0,rollbackIcon) func addRasterMemory(string name,bytes data) as Icon
  extern "xuiIconAddAlias" @no_raise @c_cstr(0) @c_null(3,"const xui_icon_desc_t*") @c_result("owner_view",0) @factory(4,0,rollbackIcon) func addAlias(string name,Icon target) as Icon
  extern "xuiIconCategoryRemoveOwnerChecked" @no_raise @c_output(1,0) func unregister() as bool
 end
@@ -36,6 +39,7 @@ export extern "xui_icon_t*" class Icon @header("xge3_runtime.h") @lifetime("owne
  extern "xuiIconGetGeneration" @no_raise get generation() as c_uint
  extern "xuiIconGetIntrinsicSize" @no_raise @c_output(1,0) func intrinsicSize() as Vec2
  extern "xuiIconPrepare" @no_raise @c_result("status",0) func prepare(c_float width=0,c_float height=0)
+ extern "xuiIconTouch" @no_raise @c_result("status",0) func touch()
  extern "xuiIconRemoveOwnerChecked" @no_raise @c_output(1,0) func unregister() as bool
 end
 export extern "xuiIconCategoryCreate" @header("xge3_runtime.h") @no_raise @c_cstr(1) @c_ref(2) @c_result("owner_view",0) @factory(3,0,rollbackIconCategory) func createIconCategory(Context context,string name,IconCategoryDesc description) as IconCategory

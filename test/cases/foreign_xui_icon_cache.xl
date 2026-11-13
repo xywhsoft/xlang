@@ -1,0 +1,144 @@
+// Cache changes between actual owned CPU frames; no reentrant reader policy
+// is assumed. The deterministic backend does not decode real image formats.
+import xui
+from xui import Icon
+extern "fixtureCacheProxy" @header("test/cases/foreign_xui_icon_cache.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
+extern "fixtureRenderFont" @no_raise @c_result("owned_view") @factory(1,0,dropFont) func cpuFont(xui.Proxy proxy) as xui.Font
+extern "xuiFontReleaseChecked" @no_raise @c_result("status",0) func dropFont(xui.Font value)
+extern "fixtureRenderSurface" @no_raise @c_result("owned_view") @factory(1,0,dropSurface) func cpuSurface(xui.Proxy proxy) as xui.Surface
+extern "xuiSurfaceReleaseChecked" @no_raise @c_result("status",0) func dropSurface(xui.Surface value)
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "fixtureRenderBudget" @no_raise func budget(c_int allowance)
+extern "fixtureCacheLoads" @no_raise func loads(c_int raster) as c_int
+extern "fixtureCacheHeapBegin" @no_raise func heapBegin()
+extern "fixtureCacheHeapUnchanged" @no_raise func heapUnchanged() as c_int
+extern "fixtureCacheObserveInput" @no_raise @c_span(1,"const void*","int") func observeInput(c_int raster,bytes value)
+extern "fixtureCacheCopiedInputs" @no_raise func copiedInputs() as c_int
+
+func rectangle(c_int x,c_int y,c_int width,c_int height) as xui.Rect
+    xui.Rect value
+    value.fX=x
+    value.fY=y
+    value.fW=width
+    value.fH=height
+    return value
+end
+
+func redraw(xui.Context context,xui.IconPicker picker,xui.Surface target)
+    assert picker.invalidate(c_uint(xui.XUI_WIDGET_DIRTY_CACHE | xui.XUI_WIDGET_DIRTY_RENDER))==0
+    context.render(target)
+end
+
+func main(...) as int
+    auto proxy=cpuProxy()
+    auto font=cpuFont(proxy)
+    auto target=cpuSurface(proxy)
+    auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    context.setDefaultFont(font)
+    auto root=context.widget()
+    assert root.setRect(rectangle(0,0,640,480))==0 and context.setRootWidget(root)==0
+    auto category=xui.createIconCategory(context,"images",xui.iconCategoryDescDefault())
+    // The backend checks every byte (including NUL) and verifies that native
+    // Icon storage copied the caller input. These are opaque CPU test markers.
+    bytes svgInput=b"svg\0cache"
+    bytes rasterInput=b"raster\0cache"
+    observeInput(0,svgInput)
+    observeInput(1,rasterInput)
+    auto svg=category.addSvgMemory("svg",svgInput)
+    auto raster=category.addRasterMemory("raster",rasterInput)
+    auto picker=xui.createIconPicker(context)
+    picker.setCategory(category)
+    picker.setSelectedId(svg.id)
+    assert picker.setRect(rectangle(24,24,220,40))==0 and root.addChild(picker)==0
+    assert context.layout()==0 and context.update(0.016)==0
+    redraw(context,picker,target)
+    c_int first=loads(0)
+    assert first>0
+    redraw(context,picker,target)
+    assert loads(0)==first
+    svg.touch()
+    redraw(context,picker,target)
+    assert loads(0)==first+1
+    auto description=category.description()
+    description.iCacheCapacity=2
+    category.setDescription(description)
+    assert category.description().iCacheCapacity==2
+    redraw(context,picker,target)
+    assert loads(0)==first+2
+    bool rejected=false
+    description.iCacheCapacity=-1
+    try
+        category.setDescription(description)
+    catch error
+        rejected=true
+    end
+    assert rejected and category.description().iCacheCapacity==2
+
+    picker.setSelectedId(raster.id)
+    redraw(context,picker,target)
+    c_int rasterFirst=loads(1)
+    assert rasterFirst>0
+    redraw(context,picker,target)
+    assert loads(1)==rasterFirst
+    raster.touch()
+    redraw(context,picker,target)
+    assert loads(1)==rasterFirst+1
+    assert copiedInputs()==1
+
+    // Native admission and the direct POD config calls need no heap storage
+    // when no image cache is present. Real image reloads allocate natively.
+    auto paths=xui.createIconCategory(context,"paths",xui.iconCategoryDescDefault())
+    auto path=paths.addSvgPath("path","M0 0 H16 V16 H0 Z",rectangle(0,0,16,16))
+    auto config=paths.description()
+    heapBegin()
+    budget(0)
+    try
+        int count=0
+        while count<1000
+            path.touch()
+            config.fWidth=c_float(16+(count%2))
+            paths.setDescription(config)
+            count+=1
+        end
+    finally
+        budget(-1)
+    end
+    assert heapUnchanged()==1
+
+    // Both native input copies and managed result publication roll back on
+    // allocation failure. A failed factory must leave no registry entry.
+    int source=0
+    while source<2
+        int allowance=0
+        while allowance<32
+            Icon? created=null
+            budget(c_int(allowance))
+            try
+                if source==0
+                    created=category.addSvgMemory("oom",b"<svg></svg>")
+                else
+                    created=category.addRasterMemory("oom",b"cpu")
+                end
+            catch error
+                assert created==null
+            finally
+                budget(-1)
+            end
+            if created!=null
+                assert (created as Icon).unregister()
+                created=null
+            end
+            assert category.find("oom")==null and category.count==2
+            allowance+=1
+        end
+        source+=1
+    end
+    context.close()
+    target.close()
+    font.close()
+    proxy.close()
+    assert balanced()==1
+    println("Icon cache: owned SVG/raster frames, invalidation, checked config, 2000 zero-heap mutations and 64 OOM budgets passed")
+    return 0
+end

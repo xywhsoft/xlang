@@ -1,0 +1,22 @@
+// 图标从 bytes 创建，原生库复制输入，不需要额外图片文件。
+import xui
+from "./_window.xl" import Window
+
+Window.show("内存中的 SVG 图标",func(xui.Context ui,xui.Widget root)
+ auto category=xui.createIconCategory(ui,"shapes",xui.iconCategoryDescDefault())
+ auto description=category.description()
+ description.fWidth=32
+ description.fHeight=32
+ category.setDescription(description)
+
+ bytes circle=b"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"32\" height=\"32\"><circle cx=\"16\" cy=\"16\" r=\"12\" fill=\"#e66a45\"/></svg>"
+ bytes square=b"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"32\" height=\"32\"><rect x=\"4\" y=\"4\" width=\"24\" height=\"24\" fill=\"#3689d6\"/></svg>"
+ auto first=category.addSvgMemory("圆形",circle)
+ category.addSvgMemory("正方形",square)
+
+ auto picker=xui.createIconPicker(ui)
+ picker.setCategory(category)
+ picker.setSelectedId(first.id)
+ picker.setTextMode(xui.XUI_ICON_PICKER_TEXT_DISPLAY_NAME)
+ Window.place(root,picker,24,24,260,48)
+end)

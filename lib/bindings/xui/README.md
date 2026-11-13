@@ -274,7 +274,7 @@ which may be delayed by a picker or alias. Closing the Context expires all its
 views. Cross-Context edges are rejected.
 
 See `examples/icon_picker.xl`. This batch covers SVG-path/alias models and typed
-picker edges; file/memory/custom sources and every
+picker edges; file/custom sources and every
 same-object reentry path remain tracked separately. Lifetime watches use one
 native pointer per Category/Icon (8 bytes on both qualified x64 targets), and
 cold binding storage. They do not add a per-business-method C wrapper. String
@@ -303,3 +303,17 @@ the language string's byte-preserving storage rules.
 See `docs/xui-icon-models.md` and `tools/check_xui_icon_formatter.py` for the
 checked error, OOM and real owned CPU-frame acceptance boundaries and measured
 costs. This does not certify every custom Icon/cache mutation or real graphics.
+
+`IconCategory.addSvgMemory(name,bytes)` and `addRasterMemory(name,bytes)` now
+declare the native byte-length factories directly. Native Icon storage copies
+the input; later caller-buffer lifetime is independent. `Icon.touch()` clears
+cached image data, while `IconCategory.setDescription(desc)` updates the native
+configuration and clears its SVG caches. These are checked calls with no
+business wrappers. Empty-cache mutations need no heap allocation; image reload
+and decoder costs remain native. See the readable `examples/icon_memory.xl`.
+
+The cache-clear successor detaches old slots before running backend finalizers
+and holds the Icon/category/Context until all cleanup readers finish. This
+prevents duplicate destruction and preserves a reentrantly published replacement.
+The full goal still includes the separate protocol for mutation while a backend
+is actively reading a Surface; that controlled reader gap is not yet closed.

@@ -44,9 +44,9 @@ neither independent program imports the compiler or TinyCC library.
 Evidence is indexed by
 `dev/release-materials/provenance/xui-icon-models-20261113.json`. The graphical
 `lib/bindings/xui/examples/icon_picker.xl` is compiled, not executed by this
-CPU-only gate. File/memory/custom sources, owned formatter/custom closures,
+CPU-only gate. At that checkpoint, file/memory/custom sources, owned formatter/custom closures,
 same-object reentry across loaders/drawing, full graphics and final matching
-SDK/compiler/IDE installation remain separate work. Full XGE/XUI/Document
+SDK/compiler/IDE installation remained separate work. Full XGE/XUI/Document
 integration remains active.
 
 The successor native SDK includes `7f167dd1`: `IconClear` temporarily retains
@@ -199,3 +199,52 @@ materialize epoch storage. No CPU timing equivalence is asserted.
 matched SDKs and acceptance receipts. Custom Icon callback groups, arbitrary
 cache mutation/freshness, real rendering and final SDK/IDE delivery remain
 separate unfinished work in the full integration goal.
+
+## Memory sources and cache clear
+
+`IconCategory.addSvgMemory(name,bytes)` and `addRasterMemory(name,bytes)` map
+directly to the existing native length-aware factories. The input span is
+admitted for one C call; native Icon storage copies it. There is no temporary
+Buffer or extra language adaptation copy. This is not a claim that image input
+or decoder storage is zero-copy. `Icon.touch()` invalidates its cached image,
+and `IconCategory.setDescription(IconCategoryDesc)` directly passes a typed POD
+configuration. Invalid settings throw without changing the prior descriptor.
+`examples/icon_memory.xl` shows two self-contained valid SVG inputs and category
+sizing; it needs no separate image files. Its source/public header are compiled
+in this batch; actual window/decoder rendering remains separate acceptance.
+
+Native cache clear used to call backend destructors while the old array or
+loaded-Surface slot was still attached. A destructor reentering Touch could
+destroy the same Surface again; removing its carrier or closing Context could
+also retire a cleanup reader. The successor detaches the old slots first and
+uses existing Icon/category/Context operation receipts. Reentrantly created
+replacement slots survive outer cleanup. No native public header or private
+object layout changes. A category descriptor clear holds each current Icon
+while calling its backend, and does not keep a pointer into a mutable registry
+array across that call.
+
+The 48-command native gate retains the preceding 40 checks and adds 60 raw
+cache reentry/lifetime/error cases, 72 actual-owned-Surface outcome cases, and
+2000 zero-heap empty mutations at O0/O2. Owned finalizer failure keeps its exact
+first negative status and nullable diagnostic, even with an ambient error and
+a later cleanup error. Controlled prior-runtime guards stop with exit 81 before
+duplicate physical destruction on both platforms. No double-free/UAF is
+deliberately executed.
+
+The full-compiler cache consumer executes JIT and independent dynamic/static
+programs on Windows/Linux. Real owned CPU frames check reuse, Touch reload,
+descriptor invalidation, checked rejection and balanced resource teardown. The
+test backend verifies complete NUL-containing input bytes and a distinct native
+input copy. It deliberately does not decode those opaque test markers as real
+SVG/raster formats. Each execution also checks 64 memory-factory OOM budgets
+and 2000 empty typed mutation calls under a zero-allocation budget with unchanged
+allocation/free/realloc counters. Receiver admission, POD passing and checked
+scope bookkeeping remain; no CPU timing equivalence is asserted.
+
+The matched floor retains all 16 editor, 15 Icon model and 14 owned formatter
+checks on each platform. `xui-icon-cache-clear-20261113.json` indexes snapshots,
+SDKs and receipts. This fixes finalizer-driven clear reentry; it does not yet
+fix a backend Touch during an active Surface read. That independent controlled
+probe still exits 83 before physical release on the successor. Reader snapshot
+semantics are pending user choice. Custom Icon callbacks, cache reader/freshness
+work, real graphics and final matched delivery remain unfinished.
