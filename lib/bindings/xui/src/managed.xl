@@ -2230,6 +2230,21 @@ export extern "xui_widget_t*" class CodeEdit @header("xge3_runtime.h") @lifetime
 
  extern "xuiCodeEditGetActivePlaceholder" @no_raise @c_output(1,0) func getActivePlaceholder() as CodePlaceholder
 
+ // Direct native options: byte offsets; status-returning navigation keeps ordinary misses.
+ extern "xuiCodeEditFindNext" @no_raise @c_pack(1,"xui_find_options_t",0,6) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sPattern",0,"c_string") @c_pack_field(1,"iFlags",1,"value") @c_pack_field(1,"iStartOffset",2,"value") @c_pack_field(1,"iRangeStart",3,"value") @c_pack_field(1,"iRangeEnd",4,"value") @c_pack_field(1,"iMaxResults",5,"value") func findNext(string query,c_uint flags=0,c_int start=-1,c_int rangeStart=0,c_int rangeEnd=-1,c_int maxResults=0) as c_int
+
+ extern "xuiCodeEditFindPrevious" @no_raise @c_pack(1,"xui_find_options_t",0,6) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sPattern",0,"c_string") @c_pack_field(1,"iFlags",1,"value") @c_pack_field(1,"iStartOffset",2,"value") @c_pack_field(1,"iRangeStart",3,"value") @c_pack_field(1,"iRangeEnd",4,"value") @c_pack_field(1,"iMaxResults",5,"value") func findPrevious(string query,c_uint flags=0,c_int start=-1,c_int rangeStart=0,c_int rangeEnd=-1,c_int maxResults=0) as c_int
+
+ extern "xuiCodeEditReplaceCurrent" @no_raise @c_pack(1,"xui_find_options_t",0,7) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sPattern",0,"c_string") @c_pack_field(1,"sReplacement",1,"c_string") @c_pack_field(1,"iFlags",2,"value") @c_pack_field(1,"iStartOffset",3,"value") @c_pack_field(1,"iRangeStart",4,"value") @c_pack_field(1,"iRangeEnd",5,"value") @c_pack_field(1,"iMaxResults",6,"value") func replaceCurrent(string query,string replacement,c_uint flags=0,c_int start=-1,c_int rangeStart=0,c_int rangeEnd=-1,c_int maxResults=0) as c_int
+
+ extern "xuiCodeEditReplaceAll" @no_raise @c_output(2,0) @c_pack(1,"xui_find_options_t",0,7) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sPattern",0,"c_string") @c_pack_field(1,"sReplacement",1,"c_string") @c_pack_field(1,"iFlags",2,"value") @c_pack_field(1,"iStartOffset",3,"value") @c_pack_field(1,"iRangeStart",4,"value") @c_pack_field(1,"iRangeEnd",5,"value") @c_pack_field(1,"iMaxResults",6,"value") func replaceAll(string query,string replacement,c_uint flags=0,c_int start=-1,c_int rangeStart=0,c_int rangeEnd=-1,c_int maxResults=0) as c_int
+
+ extern "xuiCodeEditFindAll" @no_raise @c_output(2,0) @c_pack(1,"xui_find_options_t",0,6) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sPattern",0,"c_string") @c_pack_field(1,"iFlags",1,"value") @c_pack_field(1,"iStartOffset",2,"value") @c_pack_field(1,"iRangeStart",3,"value") @c_pack_field(1,"iRangeEnd",4,"value") @c_pack_field(1,"iMaxResults",5,"value") func findAll(string query,c_uint flags=0,c_int start=-1,c_int rangeStart=0,c_int rangeEnd=-1,c_int maxResults=0) as c_int
+
+ extern "xuiCodeEditReplaceAllPlain" @no_raise @c_cstr(0) @c_cstr(1) @c_output(4,0) func replaceAllPlain(string query,string replacement,c_uint flags=0) as c_int
+
+ extern "xuiCodeEditReplaceAllRegex" @no_raise @c_cstr(0) @c_cstr(1) @c_output(4,0) func replaceAllRegex(string query,string replacement,c_uint flags=0) as c_int
+
  extern "xuiCodeEditOpenFind" @no_raise func openFind() as c_int
 
  extern "xuiCodeEditOpenReplace" @no_raise func openReplace() as c_int
@@ -2605,6 +2620,15 @@ export extern "xui_widget_t*" class TextEdit @header("xge3_runtime.h") @lifetime
  extern "xuiTextEditPaste" @no_raise func paste() as c_int
 
  extern "xuiTextEditDeleteSelection" @no_raise @c_result("status",0) func deleteSelection()
+
+ // Direct native options: byte offsets; status-returning navigation keeps ordinary misses.
+ extern "xuiTextEditFindNext" @no_raise @c_pack(1,"xui_find_options_t",0,6) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sPattern",0,"c_string") @c_pack_field(1,"iFlags",1,"value") @c_pack_field(1,"iStartOffset",2,"value") @c_pack_field(1,"iRangeStart",3,"value") @c_pack_field(1,"iRangeEnd",4,"value") @c_pack_field(1,"iMaxResults",5,"value") func findNext(string query,c_uint flags=0,c_int start=-1,c_int rangeStart=0,c_int rangeEnd=-1,c_int maxResults=0) as c_int
+
+ extern "xuiTextEditFindPrevious" @no_raise @c_pack(1,"xui_find_options_t",0,6) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sPattern",0,"c_string") @c_pack_field(1,"iFlags",1,"value") @c_pack_field(1,"iStartOffset",2,"value") @c_pack_field(1,"iRangeStart",3,"value") @c_pack_field(1,"iRangeEnd",4,"value") @c_pack_field(1,"iMaxResults",5,"value") func findPrevious(string query,c_uint flags=0,c_int start=-1,c_int rangeStart=0,c_int rangeEnd=-1,c_int maxResults=0) as c_int
+
+ extern "xuiTextEditReplaceCurrent" @no_raise @c_pack(1,"xui_find_options_t",0,7) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sPattern",0,"c_string") @c_pack_field(1,"sReplacement",1,"c_string") @c_pack_field(1,"iFlags",2,"value") @c_pack_field(1,"iStartOffset",3,"value") @c_pack_field(1,"iRangeStart",4,"value") @c_pack_field(1,"iRangeEnd",5,"value") @c_pack_field(1,"iMaxResults",6,"value") func replaceCurrent(string query,string replacement,c_uint flags=0,c_int start=-1,c_int rangeStart=0,c_int rangeEnd=-1,c_int maxResults=0) as c_int
+
+ extern "xuiTextEditReplaceAll" @no_raise @c_output(2,0) @c_pack(1,"xui_find_options_t",0,7) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sPattern",0,"c_string") @c_pack_field(1,"sReplacement",1,"c_string") @c_pack_field(1,"iFlags",2,"value") @c_pack_field(1,"iStartOffset",3,"value") @c_pack_field(1,"iRangeStart",4,"value") @c_pack_field(1,"iRangeEnd",5,"value") @c_pack_field(1,"iMaxResults",6,"value") func replaceAll(string query,string replacement,c_uint flags=0,c_int start=-1,c_int rangeStart=0,c_int rangeEnd=-1,c_int maxResults=0) as c_int
 
  extern "xuiTextEditOpenFind" @no_raise func openFind() as c_int
 

@@ -42,6 +42,15 @@ outputs so CodeEdit's embedded NUL is preserved and native snapshot OOM is not
 reported as empty text. See [text snapshot contracts](../../../docs/xui-text-snapshots.md)
 for copying costs and verification boundaries.
 
+CodeEdit and TextEdit expose native find/replace options directly. Count
+methods return zero on an ordinary miss and throw before publishing a failed
+output. Navigation and replaceCurrent return the original native status, so
+callers can distinguish a miss from a successful operation. Positions are
+UTF-8 byte offsets; C-string queries reject embedded NUL. See
+[search contracts](../../../docs/xui-edit-search.md) and the short
+[model-only lesson](examples/edit_search.xl). These declarations create no
+additional search engine or widget forwarding layer.
+
 The zero-argument `radioGroup()` and `scrollFrame()` select native NULL
 descriptor defaults. `webView(userDataFolder)` packs a sized native descriptor
 with no raw callback/user pointers. `Cascader.setItems` projects equal-length

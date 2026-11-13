@@ -1,0 +1,142 @@
+// Actual CPU-Proxy models, no graphics window or external service.
+import xui
+extern "fixtureIconProxy" @header("test/cases/foreign_xui_icon_models.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
+extern "fixtureIconBudget" @no_raise func budget(c_int allowance)
+extern "fixtureIconHostReferences" @no_raise func hostReferences() as c_int
+extern "fixtureEditSearchSelection" @header("test/cases/foreign_xui_edit_search.h") @no_raise func selection(xui.CodeEdit editor,c_int start,c_int finish) as c_int
+extern "fixtureEditSearchHeapBegin" @no_raise func beginHeap()
+extern "fixtureEditSearchHeapReport" @no_raise func heapReport(c_int native)
+extern "fixtureEditSearchNativePerformance" @no_raise func nativePerformance(xui.CodeEdit editor)
+
+func main(...) as int
+    auto proxy=cpuProxy()
+    auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto editor=context.codeEditNative()
+    auto multi=context.textEditNative()
+    c_uint sensitive=c_uint(xui.XUI_FIND_CASE_SENSITIVE)
+    c_uint words=c_uint(xui.XUI_FIND_WHOLE_WORD)
+    c_uint regex=c_uint(xui.XUI_FIND_REGEX)
+    assert editor.setText("alpha beta alpha\n你 alpha ALPHA")==0
+    assert editor.findAll("alpha")==4 and editor.getFindResultCount()==4
+    assert editor.findAll("alpha",sensitive)==3
+    assert editor.findAll("alpha",sensitive,-1,11,16)==1
+    assert editor.findAll("missing")==0
+    assert editor.findNext("missing")==xui.XUI_ERROR_UNSUPPORTED
+    assert editor.findPrevious("missing")==xui.XUI_ERROR_UNSUPPORTED
+    assert editor.findNext("alpha",sensitive,0)==0 and selection(editor,0,5)==1
+    assert editor.findNext("alpha",sensitive)==0 and selection(editor,11,16)==1
+    assert editor.findPrevious("alpha",sensitive)==0 and selection(editor,0,5)==1
+    assert editor.findNext("你",sensitive,0)==0 and selection(editor,17,20)==1
+    assert editor.setText("cat dog cat")==0
+    assert editor.findNext("cat",sensitive,0)==0
+    assert editor.replaceCurrent("cat","fox",sensitive)==0
+    assert (editor.getText() as string)=="fox dog cat"
+    assert editor.replaceAll("cat","fox",sensitive)==1
+    assert (editor.getText() as string)=="fox dog fox"
+    assert editor.replaceAll("absent","!")==0
+    assert editor.setText("cat cat outside")==0
+    assert editor.replaceAll("cat","x",sensitive,-1,0,7)==2
+    assert (editor.getText() as string)=="x x outside"
+    assert editor.setText("foo food foo")==0
+    assert editor.replaceAllPlain("foo","bar",words)==2
+    assert (editor.getText() as string)=="bar food bar"
+    assert editor.setText("int a = 1;\nint b = 2;")==0
+    assert editor.replaceAllRegex("int ([a-z]) = ([0-9]);","long $1 = $2;",sensitive)==2
+    assert (editor.getText() as string)=="long a = 1;\nlong b = 2;"
+    assert editor.setText("a1 b2")==0
+    assert editor.replaceAll("([a-z])([0-9])","$2$1",regex)==2
+    assert (editor.getText() as string)=="1a 2b"
+    // Count-producing calls must not publish outputs after native failure.
+    c_int count=91
+    bool failed=false
+    try
+        count=editor.replaceAllRegex("[","x")
+    catch error
+        failed=true
+    end
+    assert failed and count==91
+    editor.setReadonly(1)
+    failed=false
+    try
+        count=editor.replaceAllPlain("1a","x")
+    catch error
+        failed=true
+    end
+    assert failed and count==91 and (editor.getText() as string)=="1a 2b"
+    assert editor.replaceCurrent("1a","x")==xui.XUI_ERROR_UNSUPPORTED
+    editor.setReadonly(0)
+    failed=false
+    try
+        count=editor.findAll("a\0b")
+    catch error
+        failed=true
+    end
+    assert failed and count==91
+    // Plain TextEdit uses the same declarative options, its native selection.
+    assert multi.setText("cat dog cat")==0
+    multi.setSelection(0,0)
+    assert multi.findNext("cat",sensitive)==0
+    assert multi.findNext("cat",sensitive)==0
+    assert multi.findPrevious("cat",sensitive)==0
+    assert multi.replaceCurrent("cat","fox",sensitive)==0
+    assert multi.replaceAll("cat","fox",sensitive)==1
+    assert (multi.getText() as string)=="fox dog fox"
+    assert multi.findNext("absent")==xui.XUI_ERROR_UNSUPPORTED
+    assert multi.findPrevious("absent")==xui.XUI_ERROR_UNSUPPORTED
+    assert multi.setText("cat cat outside")==0
+    assert multi.replaceAll("cat","x",sensitive,-1,0,7)==2
+    assert (multi.getText() as string)=="x x outside"
+    multi.setReadonly(1)
+    failed=false
+    try
+        count=multi.replaceAll("x","y")
+    catch error
+        failed=true
+    end
+    assert failed and count==91 and (multi.getText() as string)=="x x outside"
+    multi.setReadonly(0)
+    assert multi.setText("a1 b2")==0
+    assert multi.replaceAll("([a-z])([0-9])","$2$1",regex)==2
+    assert (multi.getText() as string)=="1a 2b"
+    // Warm no-match searches compare against the same native workload.
+    assert editor.setText("warm plain document")==0
+    assert editor.findAll("absent")==0
+    string query="absent"
+    beginHeap()
+    for i in range(1000)
+        assert editor.findAll("absent")==0
+    end
+    heapReport(0)
+    beginHeap()
+    for i in range(1000)
+        assert editor.findAll(query)==0
+    end
+    heapReport(1)
+    beginHeap()
+    nativePerformance(editor)
+    heapReport(2)
+    // Native allocation and language result failure remain checked.
+    failed=false
+    budget(0)
+    try
+        count=editor.findAll("a-longer-query-for-forced-allocation")
+    catch error
+        failed=true
+    finally
+        budget(-1)
+    end
+    assert failed and count==91
+    context.close()
+    failed=false
+    try
+        count=editor.findAll("absent")
+    catch error
+        failed=true
+    end
+    assert failed and count==91
+    proxy.close()
+    assert hostReferences()==1
+    println("Edit search: native options, counts, UTF-8 ranges, regex, misses and checked failure passed")
+    return 0
+end

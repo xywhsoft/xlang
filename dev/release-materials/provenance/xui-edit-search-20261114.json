@@ -1,0 +1,343 @@
+{
+  "date": "2026-11-14",
+  "qualified": true,
+  "shippingDelivery": false,
+  "nativeCommit": "2a95629ce282a7de27c492168a2237ff7c8b2500",
+  "nativeChangedForThisBatch": false,
+  "scope": "Eleven direct CodeEdit/TextEdit search/replace methods using existing compiler options packs and checked count outputs. Raw navigation statuses preserve ordinary misses.",
+  "sources": {
+    "lib/bindings/xui/src/managed.xl": "89689e141e8b317f775277c8e1a193d882e3a893e6a043a0b0da33c1caa03992",
+    "lib/bindings/xui/README.md": "cfdac37cc07fc28e5a821a583c4aac9943195e92f3fdb87d65ce3e357f9b51c7",
+    "lib/bindings/xui/examples/README.md": "12bf9d841ec396ced9008139416ae10fa6c6664842f820719df37d5d9a99a38d",
+    "lib/bindings/xui/examples/edit_search.xl": "1e88f82f875ad9d160b4615a83cebf4724e9aed98e2b7eef5dbe29b2e3b95f1f",
+    "test/cases/foreign_xui_edit_search.c": "bbb6a353605410267f7a5067ba5945a39942e6120c10b705d8bc2074947ac687",
+    "test/cases/foreign_xui_edit_search.h": "aed1487478ce2ac55b5319564acba36f08628a2c6bf669cd0251811698e61b33",
+    "test/cases/foreign_xui_edit_search.xl": "bf0f7e26df126630393d6cbeab9ba8aef93ecd41213069c5e4d54b09989f77ac",
+    "tools/check_xui_edit_search.py": "049ec0430469b04736b5613bca265ab248c018f5079f36c1566bfebee01f7c40",
+    "docs/xui-edit-search.md": "e82fe195bb66f6a08cfb266f4ae6e5a641a8e802fbf2a6a40ff7c644aa2b99e5",
+    "docs/xge3-xui3-full-coverage-plan.md": "9768d7a4ed35d0bd4a0872bd8eed5384dd3aeb00d29515f992cfbfd8ccc13e25"
+  },
+  "platforms": {
+    "win": {
+      "gate": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\edit-search-language-win-r4\\results.json",
+        "sha256": "0422a8bd801a545b8a4cabcad9e175e3a5e344e051b5c94061cd42c82295bc6d",
+        "commands": 24
+      },
+      "stage": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\edit-search-api-win-r2\\results.json",
+        "sha256": "c46e629f3ea1bcb74a4ce4a7da122e24d4f287ea3d24b64a86459d69d5011aae",
+        "commands": 3
+      },
+      "heap": [
+        {
+          "mode": "jit",
+          "calls": 1000,
+          "counts": {
+            "literal": {
+              "alloc": 3000,
+              "free": 3000,
+              "realloc": 0
+            },
+            "language": {
+              "alloc": 2000,
+              "free": 2000,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 2000,
+              "free": 2000,
+              "realloc": 0
+            }
+          }
+        },
+        {
+          "mode": "dynamic",
+          "calls": 1000,
+          "counts": {
+            "literal": {
+              "alloc": 3000,
+              "free": 3000,
+              "realloc": 0
+            },
+            "language": {
+              "alloc": 2000,
+              "free": 2000,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 2000,
+              "free": 2000,
+              "realloc": 0
+            }
+          }
+        },
+        {
+          "mode": "static",
+          "calls": 1000,
+          "counts": {
+            "literal": {
+              "alloc": 3000,
+              "free": 3000,
+              "realloc": 0
+            },
+            "language": {
+              "alloc": 2000,
+              "free": 2000,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 2000,
+              "free": 2000,
+              "realloc": 0
+            }
+          }
+        }
+      ],
+      "programs": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\edit-search-language-win-r4\\foreign_xui_edit_search-dynamic.exe",
+          "sha256": "f3409e550aa235ba75fc73f26e1b49cf09923977e4f203126bc9acd004213111",
+          "bytes": 5111296,
+          "imports": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\edit-search-language-win-r4\\foreign_xui_edit_search-static.exe",
+          "sha256": "4ee4f164a4327658bab94365940eec0f84a2e00e57510ac7ca13c09057715714",
+          "bytes": 2752512,
+          "imports": [
+            "msvcrt.dll",
+            "USER32.dll",
+            "kernel32.dll",
+            "OLEAUT32.dll",
+            "ole32.dll",
+            "SHELL32.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\edit-search-language-win-r4\\edit_search-dynamic.exe",
+          "sha256": "56c9d2dfd0c5e64a426e46a6588f9a7218f26ba991d83dcbf1dbf643de6cc273",
+          "bytes": 1480192,
+          "imports": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\edit-search-language-win-r4\\edit_search-static.exe",
+          "sha256": "d10c61ff818d376f5957216176ec0108014a2a253efd4ab96885365fcb4074bb",
+          "bytes": 6918656,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "USER32.dll",
+            "ole32.dll",
+            "OLEAUT32.dll",
+            "SHELL32.dll",
+            "GDI32.dll",
+            "IMM32.dll",
+            "DWrite.dll"
+          ]
+        }
+      ],
+      "borrowedTextSuccessor": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\decode-budget-text-win-r1\\results.json",
+        "sha256": "f3ff0ca48e8959b064e37810dc8efb987232ba8fd7becf8cdf63cdbfafc4d08d",
+        "commands": 29
+      },
+      "hostPackage": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\edit-search-api-win-r2\\packages-host.json",
+        "sha256": "bddd3f0f1bc4a73c69bd39b5f80ecd7aabe9a7efcf87c4d14da81b13f557b76f"
+      },
+      "staticPackage": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\edit-search-api-win-r2\\packages-static.json",
+        "sha256": "cb9c0c2723295521607d5af54d82f84d1b4376e78c2501aaa3ca863c852d20cc"
+      }
+    },
+    "linux": {
+      "gate": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\edit-search-language-linux-r4\\results.json",
+        "sha256": "de9b60be8d4175bdc74cf22ed62ea9f860685634ebe9ffe3f62feb56d97c062f",
+        "commands": 24
+      },
+      "stage": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\edit-search-api-linux-r2\\results.json",
+        "sha256": "e6aba5c3a5ff74f724332796d8142c87797649feda1ddc217f80504c5e834814",
+        "commands": 3
+      },
+      "heap": [
+        {
+          "mode": "jit",
+          "calls": 1000,
+          "counts": {
+            "literal": {
+              "alloc": 3000,
+              "free": 3000,
+              "realloc": 0
+            },
+            "language": {
+              "alloc": 2000,
+              "free": 2000,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 2000,
+              "free": 2000,
+              "realloc": 0
+            }
+          }
+        },
+        {
+          "mode": "dynamic",
+          "calls": 1000,
+          "counts": {
+            "literal": {
+              "alloc": 3000,
+              "free": 3000,
+              "realloc": 0
+            },
+            "language": {
+              "alloc": 2000,
+              "free": 2000,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 2000,
+              "free": 2000,
+              "realloc": 0
+            }
+          }
+        },
+        {
+          "mode": "static",
+          "calls": 1000,
+          "counts": {
+            "literal": {
+              "alloc": 3000,
+              "free": 3000,
+              "realloc": 0
+            },
+            "language": {
+              "alloc": 2000,
+              "free": 2000,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 2000,
+              "free": 2000,
+              "realloc": 0
+            }
+          }
+        }
+      ],
+      "programs": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/edit-search-language-linux-r4/foreign_xui_edit_search-dynamic",
+          "sha256": "7b053c2b07205fdd0587f599b04e30e57accd23b45421ac467814990eb748f5a",
+          "bytes": 5294996,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/edit-search-language-linux-r4/foreign_xui_edit_search-static",
+          "sha256": "2dbcd3aead9bce154cf9ca289b4f7e7133be84abb515525e4d27ae6411d3b5bc",
+          "bytes": 3309876,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/edit-search-language-linux-r4/edit_search-dynamic",
+          "sha256": "c3e12560b4af906bd83a0291162462d73fd702c6da57b2f485c5f69a5f909d90",
+          "bytes": 1542440,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/edit-search-language-linux-r4/edit_search-static",
+          "sha256": "a61069119a63bff02958b9776b1470b404e4599580ddf4b068b33998a4929dee",
+          "bytes": 5988982,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ],
+      "borrowedTextSuccessor": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\decode-budget-text-linux-r1\\results.json",
+        "sha256": "aa779b44eb496af54f2c157e4e082004878415521e5c2224cdaba8f221f6a811",
+        "commands": 29
+      },
+      "hostPackage": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\edit-search-api-linux-r2\\packages-host.json",
+        "sha256": "f47a050409d58c8709e703ff2a9868c6673ba8ec432525f365b4441a9a8171b9"
+      },
+      "staticPackage": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\edit-search-api-linux-r2\\packages-static.json",
+        "sha256": "7b544b4e64ea35883dac77f0450764638490e11459b750e5d9d0cd87c7426b47"
+      }
+    }
+  },
+  "declarationInventory": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\full-surface-after-edit-search-20261114-r1\\surface.json",
+    "sha256": "59043eba4acd710a470f444ea67ba400598ff92f735620bfe264c6ab01c4f1a2",
+    "population": {
+      "functions": 5162,
+      "types": 980,
+      "constants": 1838,
+      "functionMacros": 7,
+      "callableFields": 184,
+      "enums": 40,
+      "enumConstants": 316
+    },
+    "declarationPresent": {
+      "functions": 3637,
+      "types": 368,
+      "constants": 1820,
+      "callableFields": 66,
+      "enumConstants": 316
+    },
+    "runtimeCompletenessClaim": false
+  },
+  "boundaries": [
+    "No new compiler/runtime syntax or native search implementation; receiver/error scopes, stack options, C-string validation and count-result assignment remain.",
+    "Native plain warmed search uses two allocations/frees per query in this workload, same for prepared language query. Re-evaluated language string literal adds one allocation/free per query; all three paths are recorded for JIT/dynamic/static on both OS. No equal CPU-throughput or universal zero-overhead claim.",
+    "Byte positions and native selection/range behavior retained. maxResults is a native options field not currently applied by these widget methods; CodeFindScope has separate behavior.",
+    "Count failure preserves destination assignment, not a universal promise of native document rollback. Navigation/current replacement use raw native statuses; callers must check them.",
+    "All eleven declarations execute on actual CPU-Proxy models. Visual rendering, full code-provider/callback integration, remaining native-resource lifetimes and final SDK/IDE installation are separate.",
+    "Original Win r1/r2 parser mistakes and Win r3/Linux r1 literal-vs-C heap assumption failures are preserved externally. Formal r4 uses separate literal/prepared/C counters and all input hashes remain unchanged."
+  ]
+}

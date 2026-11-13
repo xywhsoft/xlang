@@ -1,0 +1,22 @@
+// Run with a matching XGE SDK: xl run edit_search.xl
+// Uses real document models without opening a graphics window.
+import xui
+
+auto proxy=xui.createProxy()
+try
+    auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    try
+        auto editor=ui.codeEditNative()
+        assert editor.setText("cat dog cat")==0
+        assert editor.findAll("cat")==2
+        assert editor.replaceAll("cat","fox")==2
+        assert (editor.getText() as string)=="fox dog fox"
+        // A miss is an ordinary native status; it does not throw.
+        assert editor.findNext("cat")==xui.XUI_ERROR_UNSUPPORTED
+        println(editor.getText())
+    finally
+        ui.close()
+    end
+finally
+    proxy.close()
+end
