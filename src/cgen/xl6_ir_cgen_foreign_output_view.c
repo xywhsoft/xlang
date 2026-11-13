@@ -35,14 +35,32 @@ static const char* xl6IrCgenOutputPointeeType(const XL6_IrModule* module,
     const XL6_IrType* array=xl6IrCgenOutputFixedArray(module,target,ordinal);
     return array ? xl6IrCgenType(module,array->params[0]):xl6IrCgenOutputRawType(module,target,ordinal);
 }
+/* A verified trivial result lives in a fresh SSA/carrier payload, never a
+ * caller's named destination. Native writes may therefore target it directly.
+ * Managed conversion/retention/record projection still requires separate raw
+ * storage and transactional admission. Reset a failed trivial output to keep
+ * the carrier's existing empty-payload convention. */
+static int xl6IrCgenOutputDirectStorage(const XL6_IrModule* module,
+    const XL6_IrCallTarget* target)
+{
+    const XL6_IrNode* node=xl6IrNodeGet(module,target->declaration);
+    const XL6_IrType* type=xl6IrTypeGet(&module->types,target->returnType);
+    return node && node->foreignCall.valueOutput && type &&
+        type->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
+        target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_NATIVE_OUTPUT_VALUE &&
+        !xl6ForeignValueOutputHasView(node->foreignCall.valueOutput) &&
+        !xl6IrForeignOwnedOutputGet(module,target) &&
+        !xl6IrForeignNativeSequenceGet(module,target) &&
+        !xl6IrForeignOutputRecordGet(module,target);
+}
 static void xl6IrCgenOutputAddress(XL6_Output* out,const XL6_IrModule* module,
-    const XL6_IrCallTarget* target,size_t ordinal)
+    const XL6_IrCallTarget* target,size_t ordinal,const char* raw)
 {
     int array=xl6IrCgenOutputFixedArray(module,target,ordinal)!=NULL;
     int field=xl6IrForeignOwnedOutputGet(module,target) || xl6IrForeignNativeSequenceGet(module,target) ||
         (!xl6IrForeignOutputRecordGet(module,target) && xl6IrForeignOutputCount(module,target)>1);
     if(!array)xl6OutputPutc('&',out);
-    xl6OutputPuts("native_raw",out);
+    xl6OutputPuts(raw,out);
     if(field)xl6OutputPrintf(out,".e%lu",(unsigned long)ordinal);
     if(array)xl6OutputPuts(".Elements",out);
 }
@@ -82,11 +100,18 @@ static int xl6IrCgenOutputRecordProof(XL6_Output* out,const XL6_IrModule* module
     return !xl6OutputHasFailed(out);
 }
 static int xl6IrCgenOutputRawDeclare(XL6_Output* out,const XL6_IrModule* module,
-    const XL6_IrCallTarget* target)
+    const XL6_IrCallTarget* target,const char* raw)
 {
     const XL6_IrNode* declaration=xl6IrNodeGet(module,target->declaration);
     size_t count=xl6IrForeignOutputCount(module,target);
     if(!xl6IrForeignOutputViewsMatch(module,target))return 0;
+    if(xl6IrCgenOutputDirectStorage(module,target)){
+        /* NATIVE_OUTPUT_VALUE has fallible admission: the direct call has
+         * already cleared its SSA result before entry. Both witness callers
+         * initialize their local result carrier. Do not add a second typed
+         * zero assignment (it can itself copy a compound literal in TCC). */
+        return xl6IrCgenOutputSizeInitialize(out,module,target,raw);
+    }
     const XL6_ForeignOwnedOutputContract* ownedBytes=xl6IrForeignOwnedOutputGet(module,target);
     if(ownedBytes){
         xl6OutputPrintf(out,"    struct { %s e0; %s e1; } native_raw={0};\n",
@@ -101,7 +126,7 @@ static int xl6IrCgenOutputRawDeclare(XL6_Output* out,const XL6_IrModule* module,
     if(record){
         if(!xl6IrForeignOutputRecordsMatch(module,target))return 0;
         xl6OutputPrintf(out,"    %s native_raw = {0};\n",record->recordCName);
-        return xl6IrCgenOutputSizeInitialize(out,module,target) && !xl6OutputHasFailed(out);
+        return xl6IrCgenOutputSizeInitialize(out,module,target,raw) && !xl6OutputHasFailed(out);
     }else if(!xl6ForeignValueOutputHasView(declaration->foreignCall.valueOutput))
         xl6OutputPrintf(out,"    %s native_raw = {0};\n",count==1 ?
             xl6IrCgenOutputRawType(module,target,0):xl6IrCgenType(module,target->returnType));
@@ -112,7 +137,7 @@ static int xl6IrCgenOutputRawDeclare(XL6_Output* out,const XL6_IrModule* module,
             xl6OutputPrintf(out," %s e%lu;",xl6IrCgenOutputRawType(module,target,ordinal),(unsigned long)ordinal);
         xl6OutputPuts(" } native_raw = {0};\n",out);
     }
-    return xl6IrCgenOutputSizeInitialize(out,module,target);
+    return xl6IrCgenOutputSizeInitialize(out,module,target,raw);
 }
 /* Reserve every retained output before the producer can have side effects.
  * A tuple failure does not let a later field force allocation after an earlier
@@ -157,6 +182,10 @@ static void xl6IrCgenOutputProbesEnd(XL6_Output* out,const XL6_IrModule* module,
 static int xl6IrCgenOutputValuesAdmit(XL6_Output* out,const XL6_IrModule* module,
     const XL6_IrCallTarget* target,const char* place,const char* scope)
 {
+    if(xl6IrCgenOutputDirectStorage(module,target)){
+        xl6OutputPrintf(out,"    if (%s.failed || xrtGetError()) %s = (%s){0};\n",scope,place,xl6IrCgenType(module,target->returnType));
+        return !xl6OutputHasFailed(out);
+    }
     const XL6_IrNode* declaration=xl6IrNodeGet(module,target->declaration);
     if(xl6IrForeignOwnedOutputGet(module,target)){
         if(xl6IrForeignOwnedOutputGet(module,target)->kind==XL6_FOREIGN_OWNED_OUTPUT_TEXT){

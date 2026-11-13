@@ -627,9 +627,10 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
     int storagePrepared=0;
     /* Physical output storage does not select its logical admission. */
     int mappedOutputs=declaration->foreignCall.valueOutput!=0;
+    const char* rawOutput=xl6IrCgenOutputDirectStorage(module,target) ? result:"native_raw";
     int outputProbes=0;
     if(mappedOutputs){
-        if(!xl6IrCgenOutputRawDeclare(out,module,target))return 0;
+        if(!xl6IrCgenOutputRawDeclare(out,module,target,rawOutput))return 0;
         outputProbes=xl6IrCgenOutputProbesBegin(out,module,target,scope);
         xl6OutputPuts("    ",out);
         if(target->outputResultAbi==XL6_IR_CALL_OUTPUT_RESULT_INT_STATUS)xl6OutputPuts("int native_status = ",out);
@@ -681,7 +682,7 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
         if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_PACK){xl6OutputPrintf(out,"&native_pack_%u",step.physicalIndex);continue;}
         if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_OUTPUT){
             if(mappedOutputs){
-                xl6IrCgenOutputAddress(out,module,target,step.ordinal);
+                xl6IrCgenOutputAddress(out,module,target,step.ordinal,rawOutput);
             }else xl6OutputPuts(storagePrepared ? "native_raw":"&native_raw",out);
             continue;
         }
@@ -1069,9 +1070,10 @@ static int xl6IrCgenEmitDirectCall(
     int storagePrepared=0;
     /* Physical output storage does not select its logical admission. */
     int mappedOutputs=foreignDeclaration->foreignCall.valueOutput!=0;
+    const char* rawOutput=xl6IrCgenOutputDirectStorage(module,target) ? nativeResult:"native_raw";
     int outputProbes=0;
     if(mappedOutputs){
-        if(!xl6IrCgenOutputRawDeclare(out,module,target))return 0;
+        if(!xl6IrCgenOutputRawDeclare(out,module,target,rawOutput))return 0;
         outputProbes=xl6IrCgenOutputProbesBegin(out,module,target,nativeScope);
         xl6OutputPuts("    ",out);
         if(target->outputResultAbi==XL6_IR_CALL_OUTPUT_RESULT_INT_STATUS)xl6OutputPuts("int native_status = ",out);
@@ -1138,7 +1140,7 @@ static int xl6IrCgenEmitDirectCall(
             if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_PACK){xl6OutputPrintf(out,"&native_pack_%u",step.physicalIndex);continue;}
             if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_OUTPUT){
                 if(mappedOutputs){
-                    xl6IrCgenOutputAddress(out,module,target,step.ordinal);
+                    xl6IrCgenOutputAddress(out,module,target,step.ordinal,rawOutput);
                 }else xl6OutputPuts(storagePrepared ? "native_raw":"&native_raw",out);
                 continue;
             }

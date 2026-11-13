@@ -16,21 +16,21 @@ static int xl6IrCgenOutputSizeProof(XL6_Output* out,const XL6_IrModule* module,
     return 1;
 }
 static int xl6IrCgenOutputSizeInitialize(XL6_Output* out,const XL6_IrModule* module,
-    const XL6_IrCallTarget* target)
+    const XL6_IrCallTarget* target,const char* raw)
 {
     size_t count=xl6IrForeignOutputCount(module,target);
     if(!xl6IrForeignOutputSizesMatch(module,target))return 0;
     if(xl6IrForeignOutputRecordGet(module,target)){
         const XL6_ForeignOutputSizeContract* row=xl6IrForeignOutputSizeGet(module,target,0);
-        if(row)xl6OutputPrintf(out,"    native_raw.%s = sizeof(native_raw);\n",row->field);
+        if(row)xl6OutputPrintf(out,"    %s.%s = sizeof(%s);\n",raw,row->field,raw);
         return !xl6OutputHasFailed(out);
     }
     for(size_t ordinal=0;ordinal<count;++ordinal){
         const XL6_ForeignOutputSizeContract* row=xl6IrForeignOutputSizeGet(module,target,ordinal);
         if(!row)continue;
-        if(count>1)xl6OutputPrintf(out,"    native_raw.e%lu.%s = sizeof(native_raw.e%lu);\n",
-            (unsigned long)ordinal,row->field,(unsigned long)ordinal);
-        else xl6OutputPrintf(out,"    native_raw.%s = sizeof(native_raw);\n",row->field);
+        if(count>1)xl6OutputPrintf(out,"    %s.e%lu.%s = sizeof(%s.e%lu);\n",
+            raw,(unsigned long)ordinal,row->field,raw,(unsigned long)ordinal);
+        else xl6OutputPrintf(out,"    %s.%s = sizeof(%s);\n",raw,row->field,raw);
     }
     return 1;
 }

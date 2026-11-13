@@ -33,8 +33,10 @@ language share creates another control/lease. The backing allocator's native
 creation failure is not injected by the managed publication test.
 
 No universal zero-overhead claim is made: checked receiver/error scopes and
-ownership bookkeeping remain; the current generated info call also copies
-the 48-byte stack result to its SSA value before field extraction. Native lock
-work remains in both paths. General POD output-copy optimization, language
-thread transfer, model/GPU integration, package DLL initialization and final
+ownership bookkeeping remain. With the direct-output compiler, info writes
+the exact 48-byte record into its independent SSA value; earlier compilers
+also copy a raw stack result into that value. Native lock work remains in both
+paths. The generic optimization is documented in
+[direct output storage](../../../../docs/foreign-direct-output-storage.md).
+Language thread transfer, model/GPU integration, package DLL initialization and final
 matched delivery are separate remaining work.

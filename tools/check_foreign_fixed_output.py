@@ -5,7 +5,7 @@ Generated headers and actual shared-library C++ clients are separate checks.
 No window, GPU, network or security tests are run.
 """
 from pathlib import Path
-import argparse,hashlib,json,os,shutil,subprocess
+import argparse,hashlib,json,os,re,shutil,subprocess,sys
 from full_compiler_qualification import verify_full_compiler
 
 
@@ -21,13 +21,14 @@ def main():
     sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest()
     full=args.compiler_report is not None
     sdk=compiler.parent/'include'
-    if full:verify_full_compiler(cohort,compiler)
+    if full:
+        qualified=verify_full_compiler(cohort,compiler);source_root=Path(qualified['source'])
     else:
         diagnostic=json.loads(cohort.read_text());assert diagnostic['passed']and diagnostic['inputsUnchanged']and not diagnostic['fullCompilerBuild']
         assert all(sha(p)==h for p,h in diagnostic['inputs'].items())
         assert compiler.parent==cohort.parent/'runtime'
         parent=json.loads(Path(diagnostic['parent']).read_text())
-        sdk=Path(parent['source'])/'release'/('win_x64'if os.name=='nt'else'linux_x64')/'include'
+        source_root=Path(parent['source']);sdk=source_root/'release'/('win_x64'if os.name=='nt'else'linux_x64')/'include'
     source=root/'test/cases/foreign_fixed_output.xl';native=root/'test/cases/foreign_fixed_output.h'
     nested=root/'test/cases/foreign_fixed_output_nested.xl'
     regressions={
@@ -58,10 +59,22 @@ def main():
         report['rows'].append(dict(name=name,command=command,cwd=str(working),exitCode=r.returncode,expectedFailure=reject,logSha256=sha(log)))
         save();print(name,r.returncode,flush=True);assert bool(r.returncode)==reject,log
         return r.stdout+r.stderr
+    # Public SDK headers are not the complete generated-C private runtime.
+    # Export from this compiler's immutable sources/VFS manifest, never root.
+    header_sdk=out/'runtime-sdk'
+    stage=source_root/'tools/stage_runtime_headers.py'
+    manifest=source_root/'tools'/('tcc_vfs_manifest_win64_xlc.txt'if os.name=='nt'else'tcc_vfs_manifest_linux_xlc.txt')
+    for path in(stage,source_root/'tools/gen_tcc_vfs_resources.py',manifest):inputs[str(path)]=sha(path)
+    run('stage-runtime-headers',[sys.executable,'-B',stage,'--root',source_root,'--out',header_sdk])
+    for path in header_sdk.rglob('*'):
+        if path.is_file():inputs[str(path)]=sha(path)
+    report['headersDerivedFromShippingVfsManifest']=True;save()
     include=['--inc-path',root,'--inc-path',sdk]
     c=out/'generated.c';h=out/'public.h'
     run('emit',[compiler,'cgen',source,'--emit',c,'--emit-header',h,*include])
-    text=c.read_text();assert 'native_raw.Elements' in text and 'native_raw.e0.Elements' in text and 'native_raw.e2.Elements'in text
+    text=c.read_text(encoding='utf-8-sig')
+    for field in ('Elements','e0.Elements','e2.Elements'):
+        assert re.search(r'\b(?:native_raw|v\d+|result(?:\.value)?)\.'+re.escape(field),text),field
     assert 'FixedVertex*'in text and 'fixed_vertices('in text
     run('jit',[compiler,'run',source,*include])
     binary=out/('standalone.exe'if os.name=='nt'else'standalone')
@@ -71,7 +84,7 @@ def main():
     system=['-ldl']if os.name!='nt'else[]
     for standard in ('c11','c++11','c++17'):
         compilerC=cpp if standard.startswith('c++')else cc;language='c++'if standard.startswith('c++')else'c'
-        run('header-'+standard,[compilerC,'-std='+standard,'-Wall','-Wextra','-Werror','-DXL_STATIC_EMBED','-I'+str(root),'-I'+str(sdk),'-x',language,'-fsyntax-only',h])
+        run('header-'+standard,[compilerC,'-std='+standard,'-Wall','-Wextra','-Werror','-DXL_STATIC_EMBED','-I'+str(root),'-I'+str(header_sdk/'include'),'-I'+str(sdk),'-x',language,'-fsyntax-only',h])
     library=out/('values.dll'if os.name=='nt'else'libvalues.so');header=out/'shared.h'
     librarySource=out/'library.xl'
     libraryCode=source.read_text().replace('func main(...) as int','func fixedOutputBody() as int',1).replace('assert main()==0','assert fixedOutputBody()==0',1)
@@ -105,7 +118,7 @@ int main(int argc,char** argv){assert(argc==2);
  return 0;}
 ''')
     executable=out/('shared-host.exe'if os.name=='nt'else'shared-host')
-    run('shared-host-build',[cpp,'-std=c++17','-Wall','-Wextra','-Werror','-DXL_STATIC_EMBED','-I'+str(root),'-I'+str(sdk),host,*system,'-o',executable])
+    run('shared-host-build',[cpp,'-std=c++17','-Wall','-Wextra','-Werror','-DXL_STATIC_EMBED','-I'+str(root),'-I'+str(header_sdk/'include'),'-I'+str(sdk),host,*system,'-o',executable])
     raw=run('shared-host-run',[executable,library]);assert raw.count(b'Fixed outputs: exact arrays')==2
     original=source.read_text();old='func vertices(c_int code=0) as Quad';assert old in original
     negatives={name:original.replace(old,'func vertices(c_int code=0) as '+value,1)for name,value in
@@ -133,7 +146,7 @@ unsigned fixed_calls(void);void fixed_counters_begin(void);void fixed_counters_e
     for name,pointee in [('const','const FixedVertex*'),('pointer-to-array','FixedVertex (*)[4]'),('element','int*')]:
         folder=out/('wrong-'+name);path=folder/'test/cases/foreign_fixed_output.h';path.parent.mkdir(parents=True)
         path.write_text(prefix+declarations.replace('POINTEE',pointee))
-        raw=run('reject-header-'+name,[cc,'-std=c11','-I'+str(folder),'-I'+str(root),'-I'+str(sdk),'-fsyntax-only',c],True)
+        raw=run('reject-header-'+name,[cc,'-std=c11','-I'+str(folder),'-I'+str(root),'-I'+str(header_sdk/'include'),'-I'+str(sdk),'-fsyntax-only',c],True)
         assert b'declared C function ABI'in raw
     run('nested-jit',[compiler,'run',nested,*include],working=root)
     nestedBinary=out/('nested.exe'if os.name=='nt'else'nested')

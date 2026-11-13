@@ -4,7 +4,7 @@ Uses a verified complete compiler and production native SDKs. CPU only; no
 window, GPU, device, network, benchmark or private setup entry point.
 """
 from pathlib import Path
-import argparse,hashlib,json,os,subprocess
+import argparse,hashlib,json,os,re,subprocess
 from full_compiler_qualification import verify_full_compiler
 
 
@@ -37,7 +37,7 @@ def main():
         text=c.read_text()
         for name in ('xgeShapeExGetOBB','xgeShapeExSceneGetOBB')if label=='obb'else('xgeShapeExGetOBB',):
             calls=[line for line in text.splitlines()if ' = '+name+'('in line]
-            assert calls and all('native_raw.Elements)'in line for line in calls),name
+            assert calls and all(re.search(r'\b(?:native_raw|v\d+|result(?:\.value)?)\.Elements\)',line)for line in calls),name
         run(label+'-jit',[compiler,'run',source,*include],dynamic)
         for kind,packages in [('dynamic',dynamic),('static',static)]:
             binary=out/(label+'-'+kind+('.exe'if os.name=='nt'else''))

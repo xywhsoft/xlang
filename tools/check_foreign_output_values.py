@@ -56,8 +56,8 @@ def main():
     run('ir', [driver, source, 'ir-lowered', out/'ir.json'])
     text = generated.read_text(encoding='utf-8-sig')
     assert 'xl6ForeignStatusFailureV1' in text and 'native_status != 17' in text
-    assert 'output_first(&native_raw,' in text
-    assert 'output_record(' in text and '&native_raw)' in text
+    assert re.search(r'output_first\(&(?:native_raw|v\d+|result(?:\.value)?),',text)
+    assert 'output_record(' in text and re.search(r'&(?:native_raw|v\d+|result(?:\.value)?)\)',text)
     assert 'xl6ForeignViewCallBeginV1' in text
     runtime = runtime_directory(root)/'xl.dll' if os.name=='nt' else Path(build['RuntimeLibrary'])
     sdk=runtime_directory(root) if os.name=='nt' else Path(build.get('SdkDirectory',root/'release/win_x64'))

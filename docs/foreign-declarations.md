@@ -1075,8 +1075,8 @@ even when its C layout otherwise matches.
 
 The compiler stores only declarations that request this operation in sparse,
 typed XLIR rows. Output position, return ordinal, record type and member
-declaration/type are verified together. Generated C assigns
-`native_raw.size = sizeof(native_raw)`, or the corresponding tuple element,
+declaration/type are verified together. Generated C initializes the size field
+of the actual output storage, or the corresponding tuple element,
 without an extra call, heap allocation or per-function wrapper. Direct,
 function-value, bound and protocol calls use the same verified initializer.
 The output-mode byte contains a closed kind/presence flag set; unknown bits or
@@ -1278,8 +1278,8 @@ extern "nativeGetCorners" @header("native.h") @no_raise
 
 The corresponding physical signature is `int(float, NativeVertex*)`, where
 `Vertex` names `NativeVertex`. Cgen reserves the complete zero-initialized
-inline value and passes `native_raw.Elements`. A mixed multi-output result
-uses `native_raw.eN.Elements` for each array slot; scalar/record slots keep
+inline value and passes its `Elements` array. A mixed multi-output result
+uses the corresponding tuple member's `Elements` for each array slot; scalar/record slots keep
 their ordinary addresses. There is one native call and no dynamic Array,
 Buffer, forwarding function or array-allocation adapter. Native code must
 write no more than the declared extent and must not retain the output pointer.
@@ -1289,7 +1289,10 @@ count from a pointer signature.
 
 Status/producer/callback validation happens before committing any result;
 failure leaves the destination language value unchanged even if the native
-function has already written its temporary output. Ordinary fixed-array
+function has already written the independent result storage. Trivial outputs
+can use their SSA/witness payload directly; converted or acquired outputs
+retain separate transactional raw storage. See
+[direct output storage](foreign-direct-output-storage.md). Ordinary fixed-array
 value copies, zero initialization, callable preparation and managed receiver
 lifetime/error checks still apply. Direct calls, function values, bound
 methods, native function-pointer fields and protocol dispatch use the same

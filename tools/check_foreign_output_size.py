@@ -4,7 +4,7 @@ Includes a real Native XGE BuildInfo call. No window/GPU/network operations.
 The parent full source objects are pinned; the compiler-only overlay is explicit.
 """
 from pathlib import Path
-import argparse,hashlib,json,os,shutil,subprocess,sys,time
+import argparse,hashlib,json,os,re,shutil,subprocess,sys,time
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
@@ -35,7 +35,10 @@ def main():
         log=out/(name+'.log');log.write_bytes(r.stdout+r.stderr);report['rows'].append(dict(name=name,exitCode=r.returncode,accepted=accepted,logSha256=sha(log),seconds=round(time.monotonic()-started,3)));save()
         print(name,r.returncode,flush=True);assert (r.returncode==0)==accepted,log
     generated=out/'generated.c';run('cgen',[driver,fixture,'cgen-default',generated]);run('ir',[driver,fixture,'ir-lowered',out/'lowered.json']);run('header',[driver,fixture,'emit',out/'public'])
-    text=generated.read_text(encoding='utf-8-sig');assert 'native_raw.size = sizeof(native_raw)' in text and 'native_raw.e1.size = sizeof(native_raw.e1)' in text and 'native_raw.e2.size = sizeof(native_raw.e2)' in text
+    text=generated.read_text(encoding='utf-8-sig')
+    for field in ('','e1','e2'):
+        suffix=(r'\.'+field) if field else ''
+        assert re.search(r'((?:native_raw|v\d+|result(?:\.value)?)'+suffix+r')\.size = sizeof\(\1\)',text),field
     sdk=Path(base.get('RuntimeDirectory',base.get('SdkDirectory','')))
     # Only test headers overlay the frozen compiler source, never live core headers.
     headers=out/'fixture-inputs/test/cases';headers.mkdir(parents=True)

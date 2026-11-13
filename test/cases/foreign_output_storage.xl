@@ -1,0 +1,64 @@
+// Full-sized outputs, initialized every call; independent of the destination.
+extern "StorageValue" struct Value @header("test/cases/foreign_output_storage.h")
+    c_size size
+    c_uint tag
+    uint64 words[4]
+end
+extern "storage_read" @no_raise @c_ref(2) @c_output(3,17) @c_output_size(3,"size") func read(c_int code,c_int partial,Value input) as Value
+extern "storage_pair" @no_raise @c_ref(1) @c_outputs(2,3) @c_status(17) @c_output_size(2,"size") @c_output_size(3,"size") func pair(c_int code,Value input) as (Value,Value)
+extern "storage_calls" @no_raise func calls() as c_uint
+extern "storage_heap_begin" @no_raise func beginHeap()
+extern "storage_heap_end" @no_raise func endHeap()
+
+func main(...) as int
+    Value source
+    source.tag=c_uint(7)
+    source.words[0]=uint64(9)
+    auto first=read(17,0,source)
+    assert first.tag==c_uint(31) and first.words[0]==uint64(10) and first.words[3]==uint64(99)
+    auto partial=read(17,1,source)
+    assert partial.tag==c_uint(31) and partial.words[0]==uint64(10) and partial.words[3]==uint64(0)
+    // Passing a named destination as input cannot alias the native output.
+    Value kept=source
+    kept=read(17,1,kept)
+    assert kept.tag==c_uint(31) and source.tag==c_uint(7)
+    kept=source
+    bool rejected=false
+    try
+        kept=read(-19,0,kept)
+    catch error
+        rejected=true
+        assert error.code==-19
+    end
+    assert rejected and kept.tag==c_uint(7) and kept.words[0]==uint64(9)
+    func(c_int,c_int,Value) as Value callback=read
+    auto throughCallback=callback(17,1,source)
+    assert throughCallback.tag==c_uint(31) and throughCallback.words[3]==uint64(0)
+    rejected=false
+    try
+        kept=callback(-19,0,source)
+    catch error
+        rejected=true
+    end
+    assert rejected and kept.tag==c_uint(7)
+    auto left,right=pair(17,source)
+    assert left.tag==c_uint(41) and left.words[0]==uint64(9)
+    assert right.tag==c_uint(51) and right.words[0]==uint64(0)
+    c_uint discarded=calls()
+    read(17,1,source)
+    assert calls()==discarded+c_uint(1)
+    c_uint before=calls()
+    beginHeap()
+    for i in range(1000)
+        auto full=read(17,0,source)
+        auto limited=read(17,1,source)
+        auto viaClosure=callback(17,1,source)
+        auto a,b=pair(17,source)
+        assert full.words[3]==uint64(99) and limited.words[3]==uint64(0)
+        assert viaClosure.words[3]==uint64(0) and a.words[0]==uint64(9) and b.words[0]==uint64(0)
+    end
+    endHeap()
+    assert calls()==before+c_uint(4000)
+    println("Direct output storage: sized records, tuple initialization, aliases, failures and 4000 zero-heap native calls passed")
+    return 0
+end

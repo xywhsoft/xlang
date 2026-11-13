@@ -1,0 +1,280 @@
+{
+  "date": "2026-11-14",
+  "qualified": true,
+  "shippingDelivery": false,
+  "nativeCommit": "2a95629ce282a7de27c492168a2237ff7c8b2500",
+  "sources": {
+    "src/cgen/xl6_ir_cgen_foreign_output_size.c": "605092b3bc59140471bb223c6646cc965e1c6e1e0b60c7fb3776e329c640da2b",
+    "src/cgen/xl6_ir_cgen_foreign_output_view.c": "7358ad8e0fbe291e3ab26f4e7680c1d37ab3401ade1adce23ad691c46ae298dd",
+    "src/cgen/xl6_ir_cgen_type_call.c": "fa8b36f1c6225f9c667eba92c031c2a384a0808cbb9cbd035f1ea71b1148913e",
+    "tools/check_foreign_output_values.py": "86f7bcb421059299f607877536e1fb3844be59d73a654e2ec1418850268579d3",
+    "tools/check_foreign_output_size.py": "035e8a87fafcb401d4085ee0e786d2f361e2270c2483a6c2f77dd22739206dbc",
+    "tools/check_foreign_fixed_output.py": "01525b0228be5fa5fc643a7d83d6e908e4628a9dcfafdb656d859cbb8d5cdfcb",
+    "tools/check_xge3_fixed_output.py": "b0226287e078301867f393a6a0d1a41ba18ba3a894f01183d230932de703ad46",
+    "tools/check_foreign_output_storage.py": "34b27d54cce7e9d949c5af77f9977425a66e3c789342bd9c46f4b6e733b8b5e2",
+    "test/cases/foreign_output_storage.xl": "d05e96cc64042e1ccd241d6c80c4cb861f35349990102b672db4ef059f7b02fc",
+    "test/cases/foreign_output_storage.c": "8f1f1f33a509fb6eab3a7ca0a81849dad163887ef0f238b867b1d00c9cc49881",
+    "test/cases/foreign_output_storage.h": "b17f42f719b3197008623d1e466357d4738e159de418cfd4c1a8f41a22516142",
+    "docs/foreign-declarations.md": "af1918abaa2854faf4c7158a9bc5106e5600793a25a12e1c0cd6fbe523c3b4ab",
+    "docs/foreign-direct-output-storage.md": "0ca3ba8dcaf8a6a639ee98141b52bac2fa6e0760f9ca8f356e749d72a2accc8e",
+    "lib/bindings/xge/three_d/README.md": "dbe3995273350d12e3c7af5137aee4eb2216a952e5f4219130ff707fba857bb5"
+  },
+  "platforms": {
+    "win": {
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-direct-output-full-r34\\build.json",
+        "sha256": "013252af70875958b3a896b546bde0229012f8142574bf4d7b6e332bd5255581"
+      },
+      "products": {
+        "xl.exe": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-direct-output-full-r34\\source\\release\\win_x64\\xl.exe",
+          "sha256": "b06ecff88b5b9f438820a93f7ec7c8be5d605c5e55c8d6e6c58c8d2c2641ed80",
+          "bytes": 72704
+        },
+        "xl.dll": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-direct-output-full-r34\\source\\release\\win_x64\\xl.dll",
+          "sha256": "5f90613f176e934f957e3079b3ae6915e2bc73d4e343bc30a1235d99db2fc048",
+          "bytes": 15300096
+        },
+        "xlc.dll": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-direct-output-full-r34\\source\\release\\win_x64\\xlc.dll",
+          "sha256": "70852dfa41fc38b70b7a287e151f0e665199fdda3e62efc574d4a35268cf4883",
+          "bytes": 21517312
+        }
+      },
+      "oracles": [
+        {
+          "case": "foreign_output_storage",
+          "directSizedRecordAndTuple": true,
+          "noRawResultTemporary": true
+        },
+        {
+          "case": "foreign_fixed_output",
+          "directFixedArrays": true
+        },
+        {
+          "case": "foreign_output_record",
+          "projectionTransactionRetained": true
+        },
+        {
+          "case": "foreign_xge3_binding_output_view",
+          "borrowedViewTransactionRetained": true
+        },
+        {
+          "case": "foreign_owned_bytes",
+          "ownedOutputTransactionRetained": true
+        },
+        {
+          "case": "foreign_owned_text",
+          "ownedOutputTransactionRetained": true
+        }
+      ],
+      "decodeBudgetDirectSizedOutputSites": 11,
+      "gates": {
+        "generic": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\direct-output-generic-win-r2\\results.json",
+          "sha256": "6ec27582b8987df925bbd8e02d6e8dd9e560fafe9840dd81616ba021f1bd7179",
+          "commands": 58
+        },
+        "fixed": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\direct-output-fixed-win-r3\\results.json",
+          "sha256": "1902db8d6803f1c239de0eb60ac51f1a418aebb74bc7fb0a5110c35c4332139c",
+          "commands": 37
+        },
+        "budget": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\direct-output-budget-win-r3\\results.json",
+          "sha256": "291f8e12fcab6454c083112213d7e6b5caf061c8f4ddf9f01151a96baf14f717",
+          "commands": 24
+        },
+        "shapes": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\direct-output-shapes-win-r3\\results.json",
+          "sha256": "a121043fbc4d3e489d928c0539525de2589f52675f0fdab697eb0a71d573f7fc",
+          "commands": 14
+        },
+        "search": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\direct-output-search-win-r3\\results.json",
+          "sha256": "9b753f96a38cbced0cb1983ff88428a49de67809335a77dcb69f5c9704140190",
+          "commands": 24
+        },
+        "text": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\direct-output-text-win-r3\\results.json",
+          "sha256": "e54a2e84b66d4a3f73eaec8b1a659f7de47e4b245735d6ec8e5b3fd226a3bace",
+          "commands": 29
+        }
+      },
+      "commands": 186
+    },
+    "linux": {
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-direct-output-linux-full-r27\\build.json",
+        "sha256": "43e6a3a64c46054618a144a87f4c6934786cb49f3b44dfb1b5ea3f914a8b866d"
+      },
+      "products": {
+        "xl": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-direct-output-linux-full-r27/source/release/linux_x64/xl",
+          "sha256": "faa25e49bdf8c5ce8ccdb084810075b406cc6dd499a59577664616eb2a08265b",
+          "bytes": 47224
+        },
+        "libxl.so": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-direct-output-linux-full-r27/source/release/linux_x64/libxl.so",
+          "sha256": "01009cc4a84970eca1205faf40b45595f5ee7f3bd77b54aba2657b0f8a75f357",
+          "bytes": 16513616
+        },
+        "libxlc.so": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-direct-output-linux-full-r27/source/release/linux_x64/libxlc.so",
+          "sha256": "f629cc2cbc600860fe39a1d031dc8f426187517cc95e68ee6585df7e93639df8",
+          "bytes": 22530896
+        }
+      },
+      "oracles": [
+        {
+          "case": "foreign_output_storage",
+          "directSizedRecordAndTuple": true,
+          "noRawResultTemporary": true
+        },
+        {
+          "case": "foreign_fixed_output",
+          "directFixedArrays": true
+        },
+        {
+          "case": "foreign_output_record",
+          "projectionTransactionRetained": true
+        },
+        {
+          "case": "foreign_xge3_binding_output_view",
+          "borrowedViewTransactionRetained": true
+        },
+        {
+          "case": "foreign_owned_bytes",
+          "ownedOutputTransactionRetained": true
+        },
+        {
+          "case": "foreign_owned_text",
+          "ownedOutputTransactionRetained": true
+        }
+      ],
+      "decodeBudgetDirectSizedOutputSites": 11,
+      "gates": {
+        "generic": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\direct-output-generic-linux-r2\\results.json",
+          "sha256": "4a997b17c296e0386add37d7c488c2e71ab8c134f987a206c01111c4496029d0",
+          "commands": 58
+        },
+        "fixed": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\direct-output-fixed-linux-r2\\results.json",
+          "sha256": "51de2eebeae951f918c4d02a1d32dc5a9864b5ce7231b674d63db38a853e6f86",
+          "commands": 37
+        },
+        "budget": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\direct-output-budget-linux-r2\\results.json",
+          "sha256": "101b33dcfe729b4dd42aa6ed3e2e0cd40fc8e0f0272fe1e4d622f5c8933fb84c",
+          "commands": 24
+        },
+        "shapes": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\direct-output-shapes-linux-r2\\results.json",
+          "sha256": "c7aba1cdb8f521dd22a8c8dc95639d47b88358ace7823d4c49c69dc971b25d30",
+          "commands": 14
+        },
+        "search": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\direct-output-search-linux-r2\\results.json",
+          "sha256": "2bedb53391fe5561ed6c7a9e03ac7167295d40d61037ef54d710070fd6b96764",
+          "commands": 24
+        },
+        "text": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\direct-output-text-linux-r2\\results.json",
+          "sha256": "cce1acc4ca02b33bcbf1395c18dd3a9b6417cb10782d30df5b93443ba7e41ec5",
+          "commands": 29
+        }
+      },
+      "commands": 186
+    }
+  },
+  "scope": "Generic verified trivial native outputs target independent SSA/local payload storage. No caller destination aliasing or new language/IR/runtime ABI. Converted views, acquired owners, projected records and owned bytes/text retain transactional raw storage.",
+  "copyOracle": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\direct-output-copy-oracle-win-r3\\results.json",
+    "sha256": "e2f2977da7e831a60a95aef2a8879729574a2340c81f78bfbc511b26eea75c67",
+    "commands": 9
+  },
+  "sourceCopyCounts": {
+    "before": {
+      "rawMentions": 56,
+      "rawToSSA": 10,
+      "rawRecordDeclarations": 8
+    },
+    "after": {
+      "rawMentions": 0,
+      "rawToSSA": 0,
+      "rawRecordDeclarations": 0
+    }
+  },
+  "sourceCopyProof": {
+    "recordBytes": 48,
+    "tupleBytes": 96,
+    "sourceExtraRawCopyBytesPer1000HotRoundsBefore": 240000,
+    "sourceExtraRawCopyBytesPer1000HotRoundsAfter": 0,
+    "actualCPUClaim": false
+  },
+  "gccSamples": [
+    {
+      "kind": "before",
+      "optimization": "O0",
+      "objectBytes": 67210,
+      "objectSha256": "c2b887a6d45f211947d19ee5e544d9caa95b1492908bbb100ba77f344f72d8c8",
+      "wrapper": "xlir_fn_4294967288",
+      "stackUsage": [
+        "F:\\xlang-validation\\xge-full-20261110\\direct-output-copy-oracle-win-r3\\before.c:2729:23:xlir_fn_4294967288\t512\tstatic"
+      ],
+      "symbol": [
+        "000000000000b35c 00000000000002e5 t xlir_fn_4294967288"
+      ]
+    },
+    {
+      "kind": "before",
+      "optimization": "O2",
+      "objectBytes": 34165,
+      "objectSha256": "2d7cdf45d36edadbbddb32ca57a7ec9dc190ee351505947c7a1a2309361e641c",
+      "wrapper": "xlir_fn_4294967288",
+      "stackUsage": [
+        "F:\\xlang-validation\\xge-full-20261110\\direct-output-copy-oracle-win-r3\\before.c:2729:23:xlir_fn_4294967288.isra\t288\tstatic"
+      ],
+      "symbol": [
+        "0000000000000006 0000000000000006 t xlir_fn_4294967288.isra.0.cold",
+        "0000000000004b10 0000000000000210 t xlir_fn_4294967288.isra.0"
+      ]
+    },
+    {
+      "kind": "after",
+      "optimization": "O0",
+      "objectBytes": 66570,
+      "objectSha256": "3865c5d6ea44aa4133784af4325323f0f9d301cb55758a0a1fdfcc92f59ea6dc",
+      "wrapper": "xlir_fn_4294967288",
+      "stackUsage": [
+        "F:\\xlang-validation\\xge-full-20261110\\direct-output-copy-oracle-win-r3\\after.c:2720:23:xlir_fn_4294967288\t512\tstatic"
+      ],
+      "symbol": [
+        "000000000000b10b 00000000000002af t xlir_fn_4294967288"
+      ]
+    },
+    {
+      "kind": "after",
+      "optimization": "O2",
+      "objectBytes": 34269,
+      "objectSha256": "a74d1ebf9338b649db1f1e82978d8a08cf47a7f12a7b5cb9b0e11d84730bd2a1",
+      "wrapper": "xlir_fn_4294967288",
+      "stackUsage": [
+        "F:\\xlang-validation\\xge-full-20261110\\direct-output-copy-oracle-win-r3\\after.c:2720:23:xlir_fn_4294967288.isra\t256\tstatic"
+      ],
+      "symbol": [
+        "0000000000000006 0000000000000006 t xlir_fn_4294967288.isra.0.cold",
+        "0000000000004b90 0000000000000200 t xlir_fn_4294967288.isra.0"
+      ]
+    }
+  ],
+  "qualificationNotes": [
+    "Fixed-output negative ABI gate now exports private runtime headers from the exact compiler frozen source/VFS manifest; prior win-r2 harness failure is preserved externally. Successor win-r3 reaches and passes intended ABI rejection checks.",
+    "Current fixed-output gate/docs were corrected after compiler freeze; compiler Cgen source hashes match both qualified full O2 builds.",
+    "Full compilers include matching source binding resources at build time; Font glyph method was staged later without compiler feature changes.",
+    "No release runtime, SDK or IDE installation, publication or network-security tests."
+  ],
+  "performanceBoundary": "Ten source-level raw-to-SSA assignments removed; 240000 explicit raw-copy bytes per 1000 fixture rounds removed, not measured hardware traffic. Selected GCC O2 closure stack 288->256 bytes, hot code 528->512; whole O2 object grows 104 bytes. No universal throughput/size or zero-cost claim."
+}
