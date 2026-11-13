@@ -1,8 +1,10 @@
 #include "editor/workspace_edit_transaction.h"
+#include "editor/workspace_edit_transaction_internal.h"
 #include "platform/workspace_edit_spool_internal.h"
 #include "platform/workspace_edit_files_internal.h"
 #include "platform/path.h"
 #include "platform/workspace_edit_aliases.h"
+#include "platform/workspace_edit_write_internal.h"
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,7 +18,7 @@ struct xide_edit_transaction {
  xide_edit_alias_exclusion* excluded;size_t exclusions;
  xide_edit_spool* spool;xide_edit_journal* journal;xide_edit_file_write* files[512];
  size_t openRows[512],closedRows[512];wchar_t* keys[512];char* directory;
- size_t limit,metadata;int attached,busy,readers;xatomic32 cancel;
+ size_t limit,metadata;int attached,busy,readers,allNamed;xatomic32 cancel;
  xide_edit_transaction_status status;
 };
 struct xide_edit_transaction_ticket {uint64_t thread;xide_document_store* store;xui_context context;xui_lifetime_link_t life;xide_open_edit_ticket* editors;xide_edit_transaction* work;int busy,attempted;int(*guard)(void*);void* user;};
@@ -25,6 +27,14 @@ static int keyOrder(const void* a,const void* b){return xidePathNativeKeyCompare
 static int charge(xide_edit_transaction* w,size_t n,xide_model_error* e){if(n>w->limit-w->status.knownBytes)return fail(e,XIDE_MODEL_MEMORY,"Mixed edit known-storage admission exceeded.");w->status.knownBytes+=n;return 1;}
 void xideEditTransactionCancel(xide_edit_transaction* w){if(w)xrtAtomic32Store(&w->cancel,1,XMEMORY_RELEASE);}
 static int stopped(xide_edit_transaction* w,int(*fn)(void*),void* user){return xrtAtomic32Load(&w->cancel,XMEMORY_ACQUIRE)||(fn&&fn(user));}
+int xideEditTransactionAllNamed(xide_edit_transaction* w)
+{if(!w||w->attached||w->busy||w->status.phase!=XIDE_MIX_PREPARED)return 0;w->allNamed=1;return 1;}
+const xide_edit_aliases* xideEditTransactionAliases(const xide_edit_transaction* w){return w?w->aliases:NULL;}
+size_t xideEditTransactionClosed(const xide_edit_transaction* w){return w?w->status.closed:0;}
+int xideEditTransactionFileAt(const xide_edit_transaction* w,size_t at,xide_edit_file_status* out)
+{if(out)*out=(xide_edit_file_status){0};return w&&at<w->status.closed&&w->files[at]&&xideEditFileWriteStatus(w->files[at],out);}
+int xideEditTransactionVerifyPinned(xide_edit_transaction* w,int content,int (*cancel)(void*),void* user,xide_model_error* e)
+{if(!w||!w->aliases||!w->journal||(w->status.closed&&!w->readers)||stopped(w,cancel,user))return fail(e,XIDE_MODEL_CONFLICT,"Missing active transaction source pins.");if(!xideEditAliasesValidate(w->aliases,cancel,user,e))return 0;for(size_t i=0;i<w->status.closed;++i)if(stopped(w,cancel,user)||!(content?xideEditFileWriteVerify(w->files[i],e):xideEditFileWriteVerifyMetadata(w->files[i],e)))return 0;return !stopped(w,cancel,user);}
 typedef struct cancellation {xide_edit_transaction* work;int(*callback)(void*);void* user;} cancellation;
 static int cancelled(void* user){cancellation* c=user;return stopped(c->work,c->callback,c->user);}
 static void gone(void* user){xide_edit_transaction_ticket* t=user;t->context=NULL;xideEditTransactionCancel(t->work);}
@@ -64,16 +74,16 @@ static void modelsClear(xide_edit_transaction* w)
 static int modelsCapture(xide_edit_transaction* w,const xide_document_store* store)
 {
  if(store->count>4096)return 0;
- size_t count=0,bytes=0;for(size_t i=0;i<store->count;++i){const xide_document* d=store->items[i];if(d->open&&d->path&&*d->path)++count;}
+ size_t count=0,bytes=0;for(size_t i=0;i<store->count;++i){const xide_document* d=store->items[i];if((w->allNamed||d->open)&&d->path&&*d->path)++count;}
  if(count){w->models=xrtCalloc(count,sizeof(*w->models));if(!w->models)return 0;}bytes=count*sizeof(*w->models);
- for(size_t i=0;i<store->count;++i){const xide_document* d=store->items[i];if(!d->open||!d->path||!*d->path)continue;size_t n=strlen(d->path);if(!d->id||n>65535||n+1>1024u*1024u-bytes)return 0;char* path=xrtMalloc(n+1);if(!path)return 0;memcpy(path,d->path,n+1);w->models[w->modelCount++]=(xide_edit_alias_model){path,d->id};bytes+=n+1;}
+ for(size_t i=0;i<store->count;++i){const xide_document* d=store->items[i];if((!w->allNamed&&!d->open)||!d->path||!*d->path)continue;size_t n=strlen(d->path);if(!d->id||n>65535||n+1>1024u*1024u-bytes)return 0;char* path=xrtMalloc(n+1);if(!path)return 0;memcpy(path,d->path,n+1);w->models[w->modelCount++]=(xide_edit_alias_model){path,d->id};bytes+=n+1;}
  if(!charge(w,bytes,NULL))return 0;
  w->metadata+=bytes;w->modelsCaptured=1;return 1;
 }
 static int modelsCurrent(const xide_edit_transaction* w,const xide_document_store* store)
 {
  if(!w->modelsCaptured)return 1;
- size_t at=0;for(size_t i=0;i<store->count;++i){const xide_document* d=store->items[i];if(!d->open||!d->path||!*d->path)continue;if(at>=w->modelCount||d->id!=w->models[at].identity||strcmp(d->path,w->models[at].path))return 0;++at;}return at==w->modelCount;
+ size_t at=0;for(size_t i=0;i<store->count;++i){const xide_document* d=store->items[i];if((!w->allNamed&&!d->open)||!d->path||!*d->path)continue;if(at>=w->modelCount||d->id!=w->models[at].identity||strcmp(d->path,w->models[at].path))return 0;++at;}return at==w->modelCount;
 }
 static int local(xide_edit_transaction_ticket* t)
 {

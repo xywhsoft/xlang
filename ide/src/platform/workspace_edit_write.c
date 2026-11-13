@@ -2,6 +2,7 @@
 #define _WIN32_WINNT 0x0601
 #endif
 #include "platform/workspace_edit_write.h"
+#include "platform/workspace_edit_write_internal.h"
 #include "platform/workspace_edit_files_internal.h"
 #include <windows.h>
 #include <stdio.h>
@@ -29,6 +30,12 @@ static int observe(xide_edit_file_write* w,HANDLE* h,xide_file_snapshot* s,xide_
 }
 static int exact(xide_edit_file_write* w,HANDLE* h,const xide_file_snapshot* expected,xide_model_error* e)
 {xide_file_snapshot s={0};if(!observe(w,h,&s,e)){w->status.currentVerified=0;return 0;}if(!xideFileSnapshotEqual(&s,expected)){w->status.currentVerified=0;return fail(e,XIDE_MODEL_CONFLICT,"Pinned write source changed since its verified state.");}w->status.current=s;w->status.currentVerified=1;return 1;}
+int xideEditFileWriteVerifyMetadata(xide_edit_file_write* w,xide_model_error* e)
+{
+ if(!w||!w->status.currentVerified||w->status.phase==XIDE_EDIT_FILE_PARTIAL||w->status.phase==XIDE_EDIT_FILE_IN_DOUBT)return fail(e,XIDE_MODEL_CONFLICT,"No complete pinned writer observation.");
+ HANDLE h=INVALID_HANDLE_VALUE;BY_HANDLE_FILE_INFORMATION i={0};if(!handle(w,&h,e)||!GetFileInformationByHandle(h,&i))return 0;const xide_file_snapshot* s=&w->status.current;
+ return (i.dwVolumeSerialNumber==s->volume&&(((uint64_t)i.nFileIndexHigh<<32)|i.nFileIndexLow)==s->index&&(((uint64_t)i.nFileSizeHigh<<32)|i.nFileSizeLow)==s->length&&(((uint64_t)i.ftLastWriteTime.dwHighDateTime<<32)|i.ftLastWriteTime.dwLowDateTime)==s->lastWrite&&i.dwFileAttributes==s->attributes)||fail(e,XIDE_MODEL_CONFLICT,"Pinned writer metadata differs from its verified state.");
+}
 void xideEditFileWriteDestroy(xide_edit_file_write* w){if(w){if(w->after!=w->before)xrtFree(w->after);xrtFree(w->before);xrtFree(w);}}
 int xideEditFileWriteStatus(const xide_edit_file_write* w,xide_edit_file_status* out){if(out)memset(out,0,sizeof(*out));if(!w||!out)return 0;*out=w->status;return 1;}
 size_t xideEditFileWriteStorage(const xide_edit_file_write* w){return w?sizeof(*w)+w->beforeSize+1+(w->before==w->after?0:w->afterSize+1):0;}

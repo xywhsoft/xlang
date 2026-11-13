@@ -1,4 +1,4 @@
-typedef struct proof_memo_item {xvalue* report;xls_text* text;} proof_memo_item;
+typedef struct proof_memo_item {xvalue* report;xls_text* text;int owned;} proof_memo_item;
 struct xide_language_proof_memo {xmap index;xarray items;size_t keyBytes;int failed;};
 static int proofMemoInit(struct xide_language_proof_memo* m)
 {return xrtMapInit(&m->index,sizeof(size_t)) && xrtArrayInit(&m->items,sizeof(proof_memo_item));}
@@ -23,11 +23,21 @@ int xideLanguageProofMemoMatch(struct xide_language_proof_memo* m,const xvalue* 
 {
  if(!m)return 0;
  proof_memo_item* row=proofMemoSlot(m,item,error);if(!row)return -1;
- return row->report && row->text==text && xrtValueEqual(row->report,item);
+ if(!row->report || row->text!=text)return 0;
+ if(xrtValueEqual(row->report,item))return 1;
+ if(!row->owned || text || !xrtValueIs(item,XVALUE_OBJECT) || xrtValueCount(row->report)!=xrtValueCount(item))return 0;
+ for(size_t i=0;i<xrtValueCount(item);++i){xstrview key={0};const xvalue* value=xrtValueObjectAt(item,i,&key);if(key.Size==4&&!memcmp(key.Data,"path",4))continue;if(!xrtValueEqual(value,xrtValueObjectGet(row->report,key)))return 0;}return 1;
 }
 int xideLanguageProofMemoRemember(struct xide_language_proof_memo* m,const xvalue* item,const xls_text* text,xide_model_error* error)
 {
  if(!m)return 1;
  proof_memo_item* row=proofMemoSlot(m,item,error);if(!row)return 0;
- xvalue* retained=xrtValueRetain(item);xls_text* body=xlsTextRetain((xls_text*)text);xrtValueRelease(row->report);xlsTextRelease(row->text);row->report=retained;row->text=body;return 1;
+ xvalue* retained=xrtValueRetain(item);xls_text* body=xlsTextRetain((xls_text*)text);xrtValueRelease(row->report);xlsTextRelease(row->text);row->report=retained;row->text=body;row->owned=0;return 1;
+}
+static int proofMemoSeed(struct xide_language_proof_memo* m,const xvalue* report,xide_model_error* error)
+{
+ const char* origin=string(get(report,"origin"));if(!xrtValueIs(report,XVALUE_OBJECT)||!origin||strcmp(origin,"disk"))return fail(error,"Owned source seed requires an original disk report.");
+ proof_memo_item* row=proofMemoSlot(m,report,error);if(!row)return 0;
+ if(row->report)return xideLanguageProofMemoMatch(m,report,NULL,error)==1;
+ row->report=xrtValueRetain(report);row->owned=1;return row->report!=NULL;
 }

@@ -1,3 +1,4 @@
+#include "services/language_input_owned.h"
 #include "platform/receipt_time.h"
 /* Immutable open-document overlays and verified per-file diagnostics.
    Runtime is owned by XGE in the GUI, compiler XRT in the standalone LS. */
@@ -311,6 +312,8 @@ static int metadata(const xvalue* item,const xfileinfo* info)
  snprintf(text,sizeof(text),"%016llx",(unsigned long long)info->Identity); if(!formatted(get(m,"identity"),text)) return 0;
  return xideReceiptMetadataTimesMatch(m,info);
 }
+int xideLanguageInputFileMatchesInfo(const xvalue* report,const xfileinfo* info)
+{int64 size=0;return info&&formatted(get(report,"origin"),"disk")&&integer(get(report,"rawSize"),&size,0,FILE_LIMIT)&&info->Type==XFILE_TYPE_FILE&&info->Size==(uint64)size&&metadata(report,info);}
 /* Compiler positions count Unicode scalars; CRLF/CR are one line break. */
 static char* normalized(const char* text,size_t size)
 {

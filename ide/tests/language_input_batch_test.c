@@ -1,5 +1,6 @@
 #define XIDE_INPUT_IMPORT_NO_MAIN
 #include "language_input_import_test.c"
+#include "services/language_input_owned.h"
 #undef CHECK
 #define CHECK(v) do{++checks;if(!(v)){fprintf(stderr,"input-batch:%d:%s\n",__LINE__,#v);return 0;}}while(0)
 static void resetObservation(void)
@@ -31,6 +32,19 @@ static int batch(const char* root)
  resetObservation();observing=1;okay=xideLanguageInputGuardsImport(pair,expected,2,&overlay,1,pairGuards,NULL,NULL,&error);observing=0;CHECK(okay && bytesRead==2*strlen(dep));for(size_t i=0;i<2;++i)xideLanguageInputGuardRelease(pairGuards[i]);
  CHECK(put((xvalue*)xrtValueArrayGet(get(changed,"files"),1),"rawSha256",xrtValueString(xrtStrView("0000000000000000000000000000000000000000000000000000000000000000"))));
  CHECK(!xideLanguageInputGuardsImport(pair,expected,2,&overlay,1,pairGuards,NULL,NULL,&error) && !pairGuards[0] && !pairGuards[1]);xrtValueRelease(pair);xrtValueRelease(changed);
+ /* Trusted host substitutions are exact original reports, operation-local.
+  * They do not create their own physical authority; the native transaction
+  * fixture separately proves the actual pins/locks/owned-write contract. */
+ const xvalue* known=xrtValueArrayGet(xideLanguageInputGuardFiles(guards[0]),1);CHECK(known);
+ resetObservation();observing=1;okay=xideLanguageInputGuardsValidateOwned(guards,8,&known,1,NULL,NULL,&error);observing=0;CHECK(okay&&!reads&&!hashBytes);
+ xvalue* spelling=xrtValueDeepClone(known);CHECK(spelling);char* path=malloc(strlen(disk)+1);CHECK(path);strcpy(path,disk);for(char* p=path;*p;++p)if(*p=='/')*p='\\';CHECK(put(spelling,"path",xrtValueString(xrtStrView(path))));free(path);const xvalue* alternate=spelling;
+ resetObservation();observing=1;okay=xideLanguageInputGuardsValidateOwned(guards,8,&alternate,1,NULL,NULL,&error);observing=0;CHECK(okay&&!reads&&!hashBytes);xrtValueRelease(spelling);
+ const xvalue* overlaySeed=xrtValueArrayGet(xideLanguageInputGuardFiles(guards[0]),0);CHECK(!xideLanguageInputGuardsValidateOwned(guards,8,&overlaySeed,1,NULL,NULL,&error)&&xideLanguageInputGuardCurrent(guards[0]));
+ xfileinfo actual={0};CHECK(xideIoReceiptStat(disk,&actual)&&xideLanguageInputFileMatchesInfo(known,&actual));xfileinfo altered=actual;++altered.Identity;CHECK(!xideLanguageInputFileMatchesInfo(known,&altered));altered=actual;++altered.Size;CHECK(!xideLanguageInputFileMatchesInfo(known,&altered));altered=actual;altered.Modified+=1000;CHECK(!xideLanguageInputFileMatchesInfo(known,&altered));
+ xide_language_input_guard* isolated=xideLanguageInputGuardImport(wire,context,&overlay,1,NULL,NULL,&error);xvalue* forged=xrtValueDeepClone(known);CHECK(isolated&&forged&&put(forged,"futureOwned",xrtValueBool(true)));const xvalue* fake=forged;
+ resetObservation();readFault=1;observing=1;okay=xideLanguageInputGuardsValidateOwned(&isolated,1,&fake,1,NULL,NULL,&error);observing=0;readFault=0;CHECK(!okay&&reads&&!xideLanguageInputGuardCurrent(isolated));xideLanguageInputGuardRelease(isolated);xrtValueRelease(forged);
+ isolated=xideLanguageInputGuardImport(wire,context,&overlay,1,NULL,NULL,&error);CHECK(isolated&&writeBytes(missing,"shadow",6)&&!xideLanguageInputGuardsValidateOwned(&isolated,1,&known,1,NULL,NULL,&error));wchar_t* remove=xidePathNativeWide(missing);CHECK(remove&&DeleteFileW(remove));free(remove);xideLanguageInputGuardRelease(isolated);
+ resetObservation();observing=1;okay=xideLanguageInputGuardsValidate(guards,8,NULL,NULL,&error);observing=0;CHECK(okay&&bytesRead==strlen(dep)&&hashBytes==validateHash);
  /* Replacement with identical bytes still changes the captured physical ID. */
  CHECK(writeBytes(disk,dep,strlen(dep)) && !xideLanguageInputGuardsValidate(guards,8,NULL,NULL,&error) && !xideLanguageInputGuardCurrent(guards[0]));
  for(size_t i=0;i<8;++i)xideLanguageInputGuardRelease(guards[i]);

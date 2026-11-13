@@ -1,4 +1,5 @@
 #include "services/rename_evidence.h"
+#include "services/language_input_owned.h"
 #include "platform/path.h"
 #include <stdlib.h>
 #include <string.h>
@@ -38,6 +39,8 @@ void xideRenameEvidenceRelease(xide_rename_evidence* e)
 {if(!e)return;if(e->guards)for(size_t i=0;i<e->count;++i)xideLanguageInputGuardRelease(e->guards[i]);xrtFree(e->guards);for(size_t i=0;i<e->files.Count;++i)free(((evidence_file*)e->files.Data)[i].key);for(size_t i=0;i<e->touches.Count;++i)free(((wchar_t**)e->touches.Data)[i]);xrtArrayUnit(&e->touches);xrtArrayUnit(&e->files);xideRenameScopeRelease(e->scope);xrtFree(e);}
 size_t xideRenameEvidenceBytes(const xide_rename_evidence* e){return e?e->bytes:0;}
 size_t xideRenameEvidenceFiles(const xide_rename_evidence* e){return e?e->files.Count:0;}
+const xvalue* xideRenameEvidenceFileAt(const xide_rename_evidence* e,size_t at)
+{return e&&at<e->files.Count?((const evidence_file*)e->files.Data)[at].report:NULL;}
 const xvalue* xideRenameEvidenceFile(const xide_rename_evidence* e,const char* path,uint64_t* providers)
 {if(providers)*providers=0;wchar_t* key=e && path?xidePathNativeWide(path):NULL;if(!key)return NULL;const evidence_file* row=find(e,key);free(key);if(row && providers)*providers=row->providers;return row?row->report:NULL;}
 int xideRenameEvidenceTouches(const xide_rename_evidence* e,const char* path)
@@ -46,6 +49,8 @@ int xideRenameEvidenceCurrent(const xide_rename_evidence* e)
 {return e && !xrtAtomic32Load(&e->invalid,XMEMORY_ACQUIRE);}
 int xideRenameEvidenceValidate(xide_rename_evidence* e,int (*cancelled)(void*),void* user,xide_model_error* error)
 {if(!xideRenameEvidenceCurrent(e) || stop(cancelled,user))return fail(error,"Rename evidence is invalidated or cancelled.");int okay=xideLanguageInputGuardsValidate(e->guards,e->count,cancelled,user,error);if(!okay || stop(cancelled,user))xrtAtomic32Store(&e->invalid,1,XMEMORY_RELEASE);return okay && !stop(cancelled,user);}
+int xideRenameEvidenceValidateOwned(xide_rename_evidence* e,const xvalue* const* reports,size_t count,int (*cancelled)(void*),void* user,xide_model_error* error)
+{if(!xideRenameEvidenceCurrent(e)||stop(cancelled,user))return fail(error,"Rename evidence is invalidated or cancelled.");int okay=xideLanguageInputGuardsValidateOwned(e->guards,e->count,reports,count,cancelled,user,error);if(!okay||stop(cancelled,user))xrtAtomic32Store(&e->invalid,1,XMEMORY_RELEASE);return okay&&!stop(cancelled,user);}
 xide_rename_evidence* xideRenameEvidenceCreate(xide_rename_scope* scope,const xvalue* wire,const xide_language_proof_overlay* overlays,size_t overlayCount,size_t budget,int (*cancelled)(void*),void* user,xide_model_error* error)
 {
  xide_rename_evidence* e=NULL;xls_context** expected=NULL;uint64_t* owners=NULL;size_t count=xrtValueCount(wire),scopes=xideRenameScopeCount(scope);uint64_t programs=0;

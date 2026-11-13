@@ -2,6 +2,7 @@
 #define _WIN32_WINNT 0x0601
 #endif
 #include "platform/workspace_edit_aliases.h"
+#include "platform/workspace_edit_aliases_internal.h"
 #include "platform/workspace_edit_physical_internal.h"
 #include <stdlib.h>
 #include <string.h>
@@ -12,6 +13,9 @@ typedef struct alias_row {
  uint64_t model;int roles,directory,missing,follow;
 } alias_row;
 struct xide_edit_aliases {xarray rows,ancestors;size_t pathBytes;};
+size_t xideEditAliasesRows(const xide_edit_aliases* p){return p?p->rows.Count:0;}
+int xideEditAliasesTargetAt(const xide_edit_aliases* p,size_t at,xide_edit_alias_target* out)
+{if(out)*out=(xide_edit_alias_target){0};if(!p||!out||at>=p->rows.Count)return -1;const alias_row* row=xrtArrayConstGet(&p->rows,at);if(!(row->roles&ALIAS_TARGET))return 0;*out=(xide_edit_alias_target){row->path,row->info.dwVolumeSerialNumber,((uint64_t)row->info.nFileIndexHigh<<32)|row->info.nFileIndexLow,row->missing};return 1;}
 static int fail(xide_model_error* e,int code,const char* text)
 {if(e){e->code=code;snprintf(e->message,sizeof(e->message),"%s",text);}return 0;}
 static int stopped(int(*fn)(void*),void* user,xide_model_error* e)

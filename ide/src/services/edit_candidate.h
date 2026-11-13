@@ -19,6 +19,7 @@ typedef struct xide_edit_candidate xide_edit_candidate;
 xide_edit_candidate* xideEditCandidatePrepare(xide_edit_call*,const xide_edit_reply*,
  size_t budget,int (*cancelled)(void*),void*,xide_model_error*);
 void xideEditCandidateRelease(xide_edit_candidate*);
+xide_edit_candidate* xideEditCandidateRetain(xide_edit_candidate*);
 const xide_workspace_edit* xideEditCandidatePlan(const xide_edit_candidate*);
 xide_workspace_edit* xideEditCandidateRetainPlan(const xide_edit_candidate*);
 const xide_edit_call* xideEditCandidateCall(const xide_edit_candidate*);

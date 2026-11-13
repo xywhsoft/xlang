@@ -1,4 +1,5 @@
 #include "services/edit_candidate.h"
+#include "services/edit_candidate_internal.h"
 #include "platform/file_io.h"
 #include "platform/text_file.h"
 #include "services/reference_document.h"
@@ -6,7 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 #define CANDIDATE_BYTES (256u*1024u*1024u)
-struct xide_edit_candidate {xide_edit_call* call;xide_rename_evidence* evidence;xide_workspace_edit* plan;};
+struct xide_edit_candidate {volatile int32 references;xide_edit_call* call;xide_rename_evidence* evidence;xide_workspace_edit* plan;};
 static const xvalue* get(const xvalue* v,const char* k){return xideReferenceDocumentField(v,k);}
 static const char* string(const xvalue* v){return xideReferenceDocumentString(v,262144);}
 static int object(const xvalue* v,size_t n){return xrtValueIs(v,XVALUE_OBJECT) && xrtValueCount(v)==n;}
@@ -35,13 +36,20 @@ static int edits(const xvalue* rows,xstrview name,xide_edit_call* call,int (*sto
   if(cancelled(call,stop,user) || !object(row,2) || !object(range,2) || !position(get(range,"start")) || !position(get(range,"end")) || !xrtValueGetString(get(row,"newText"),&replacement) || replacement.Size!=name.Size || memcmp(replacement.Data,name.Data,name.Size))return 0;
  }return 1;
 }
-void xideEditCandidateRelease(xide_edit_candidate* c){if(c){xideWorkspaceEditRelease(c->plan);xideRenameEvidenceRelease(c->evidence);xideEditCallRelease(c->call);xrtFree(c);}}
+xide_edit_candidate* xideEditCandidateRetain(xide_edit_candidate* c){return c&&xrtRefRetain(&c->references)>0?c:NULL;}
+void xideEditCandidateRelease(xide_edit_candidate* c){if(c&&xrtRefRelease(&c->references)==0){xideWorkspaceEditRelease(c->plan);xideRenameEvidenceRelease(c->evidence);xideEditCallRelease(c->call);xrtFree(c);}}
+size_t xideEditCandidateSourceCount(const xide_edit_candidate* c){return c?xideRenameEvidenceFiles(c->evidence):0;}
+size_t xideEditCandidateStorage(const xide_edit_candidate* c){xide_workspace_edit_info i;return c&&xideWorkspaceEditInfo(c->plan,&i)?sizeof(*c)+i.bytes+xideRenameEvidenceBytes(c->evidence):0;}
+const xvalue* xideEditCandidateSourceAt(const xide_edit_candidate* c,size_t i){return c?xideRenameEvidenceFileAt(c->evidence,i):NULL;}
+const xvalue* xideEditCandidateSource(const xide_edit_candidate* c,const char* path){return c?xideRenameEvidenceFile(c->evidence,path,NULL):NULL;}
 const xide_workspace_edit* xideEditCandidatePlan(const xide_edit_candidate* c){return c?c->plan:NULL;}
 xide_workspace_edit* xideEditCandidateRetainPlan(const xide_edit_candidate* c){return c?xideWorkspaceEditRetain(c->plan):NULL;}
 const xide_edit_call* xideEditCandidateCall(const xide_edit_candidate* c){return c?c->call:NULL;}
 int xideEditCandidateCurrent(const xide_edit_candidate* c){return c && !cancelled(c->call,NULL,NULL) && xideRenameEvidenceCurrent(c->evidence);}
 int xideEditCandidateValidate(xide_edit_candidate* c,int (*stop)(void*),void* user,xide_model_error* error)
 {candidate_stop state={c?c->call:NULL,stop,user};return c && !cancelled(c->call,stop,user) && xideRenameEvidenceValidate(c->evidence,stopped,&state,error) && !cancelled(c->call,stop,user);}
+int xideEditCandidateValidateOwned(xide_edit_candidate* c,const xvalue* const* reports,size_t count,int (*stop)(void*),void* user,xide_model_error* error)
+{candidate_stop state={c?c->call:NULL,stop,user};return c&&!cancelled(c->call,stop,user)&&xideRenameEvidenceValidateOwned(c->evidence,reports,count,stopped,&state,error)&&!cancelled(c->call,stop,user);}
 xide_edit_candidate* xideEditCandidatePrepare(xide_edit_call* call,const xide_edit_reply* reply,size_t budget,int (*stop)(void*),void* user,xide_model_error* error)
 {
  xide_edit_candidate* result=NULL;xide_language_proof_overlay overlays[64]={0};size_t overlayCount=0,targetCount=0,rawTotal=0;char* overlayPaths[64]={0};
@@ -56,7 +64,7 @@ xide_edit_candidate* xideEditCandidatePrepare(xide_edit_call* call,const xide_ed
   overlayPaths[overlayCount]=xideLspUriToPath(binding.uri,NULL);xls_text* text=xlsSyncRetainText(sync,binding.uri,binding.version);
   overlays[overlayCount]=(xide_language_proof_overlay){overlayPaths[overlayCount],text};++overlayCount;if(!text || !overlays[overlayCount-1].path)goto failure;
  }
- result=xrtCalloc(1,sizeof(*result));if(!result)goto failure;result->call=xideEditCallRetain(call);
+ result=xrtCalloc(1,sizeof(*result));if(!result)goto failure;result->references=1;result->call=xideEditCallRetain(call);
  result->evidence=xideRenameEvidenceCreate((xide_rename_scope*)xideEditCallScope(call),get(candidate,"inputGuards"),overlays,overlayCount,budget,stopped,&stopping,error);if(!result->evidence)goto failure;
  const xide_edit_request* request=xideEditCallRequest(call);
  for(size_t i=0;i<xideEditRequestModelCount(request);++i){

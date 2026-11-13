@@ -18,6 +18,7 @@ xide_rename_evidence* xideRenameEvidenceCreate(xide_rename_scope*,const xvalue* 
 void xideRenameEvidenceRelease(xide_rename_evidence*);
 size_t xideRenameEvidenceBytes(const xide_rename_evidence*);
 size_t xideRenameEvidenceFiles(const xide_rename_evidence*);
+const xvalue* xideRenameEvidenceFileAt(const xide_rename_evidence*,size_t);
 /* Borrow exact imported report, plus union of compatible checked provider
  * roles for that file. This may include readonly/unconfigured dependencies;
  * caller must separately require explicit target membership and source origin.

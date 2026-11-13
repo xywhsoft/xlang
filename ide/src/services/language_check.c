@@ -14,6 +14,7 @@
 #define TEXT_LIMIT (8u*1024u*1024u)
 #define CHECK_OUTPUT_LIMIT (1024u*1024u)
 #include "services/language_check_internal.h"
+#include "services/language_input_owned.h"
 #ifdef XLS_COMPILER_XRT
 #include "analysis/frontend_context.h"
 #endif
@@ -409,6 +410,14 @@ int xideLanguageInputGuardsValidate(xide_language_input_guard* const* guards,siz
  struct xide_language_proof_memo memo={0};int okay=proofMemoInit(&memo);
  for(size_t i=0;okay && i<count;++i)okay=validateGuard(guards[i],&memo,stopped,user,error);
  proofMemoUnit(&memo);return okay && !(stopped && stopped(user));
+}
+int xideLanguageInputGuardsValidateOwned(xide_language_input_guard* const* guards,size_t count,const xvalue* const* reports,size_t known,int (*stopped)(void*),void* user,xide_model_error* error)
+{
+ if(!guards||!count||count>65536||known>65536||(known&&!reports)||(stopped&&stopped(user)))return fail(error,"Invalid owned source validation.");
+ struct xide_language_proof_memo memo={0};int okay=proofMemoInit(&memo);guard_export_charge size={0,XIDE_LSP_BODY_BYTES-1024u*1024u,stopped,user};xjsonwriteconfig json;xrtJsonWriteConfigInit(&json);json.MaxOutputBytes=size.limit;
+ for(size_t i=0;okay&&i<known;++i)okay=xrtJsonWrite(reports[i],&json,guardExportCharge,&size)&&proofMemoSeed(&memo,reports[i],error);
+ for(size_t i=0;okay&&i<count;++i)okay=validateGuard(guards[i],&memo,stopped,user,error);
+ proofMemoUnit(&memo);return okay&&!(stopped&&stopped(user));
 }
 int xideLanguageCheckWorkerFinished(xide_language_check* q) { return !q || !q->worker || WaitForSingleObject(q->worker,0)==WAIT_OBJECT_0; }
 void* xideLanguageCheckWorkerSignal(xide_language_check* q) { return q ? q->worker : NULL; }

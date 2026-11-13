@@ -1,0 +1,136 @@
+{
+  "schema": 1,
+  "date": "2026-11-14",
+  "stage": "M7b6c",
+  "scope": "C/XRT native admitted candidate to mixed edit transaction: pinned dependencies, original-proof substitutions, full named-model/physical policy and owned-write/rollback compatibility",
+  "implementationAccepted": true,
+  "goalComplete": false,
+  "performanceQualified": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "538d2c48c77eef85568aa00fd7d76b073de632f5",
+  "buildBase": "538d2c48c77eef85568aa00fd7d76b073de632f5",
+  "ownedSources": {
+    "ide/docs/lsp-native-edit-policy.md": "cd48ec5b87d1018caff04eea7fdfa618fb59af1b698f504bb455f9d0da6f7375",
+    "ide/src/editor/native_edit.c": "70a0d70d34edd55a410d4835ecd6cf15777057aa8dc8777263ec2495b44ef061",
+    "ide/src/editor/native_edit.h": "af4dd0a420cd919c293b7f80fe16c85e61dfdd1ccbf9611e9a7b1569daf28c15",
+    "ide/src/editor/workspace_edit_transaction.c": "e58478b033c9e6bd3db1f838ba3627f72281cdccbe292aa5defcd78cd4ee13c3",
+    "ide/src/editor/workspace_edit_transaction_internal.h": "d2bba102c9221bfb4b493f8c5a8fc4fe3f6f7f79fd6e9de0473824fd416bd7cd",
+    "ide/src/platform/workspace_edit_aliases.c": "5f5bfc05062a7936da23f291940db1053386c2628722430bad48b20dc029849b",
+    "ide/src/platform/workspace_edit_aliases_internal.h": "0575ac6eaf015609ff7c8f6b021fb9804df681e426e1812f5008c2a05c6b3155",
+    "ide/src/platform/workspace_edit_write.c": "a0a72f7c9bb7e1bcc314560bcbef89cb13face5ca93be5b7a71b3fcbd24881f3",
+    "ide/src/platform/workspace_edit_write_internal.h": "b8d05339e177634334011bdd5c2dc492753f76566bd2b91e7bbff2ac6bf6a6fd",
+    "ide/src/services/edit_candidate.c": "6e01c125625a96094e38e36ae89e302b75e396f67a92e6ec9fe8491de6e704d9",
+    "ide/src/services/edit_candidate.h": "7d2bc1f1bb9817289aad5fc5b2f47c0f00ce8d71d1ab305c35518d6a0c96e7dd",
+    "ide/src/services/edit_candidate_internal.h": "e06650e79e2ab685cb27a77cd29e40585235ea1fd9de59ab3f66937b0c1714c8",
+    "ide/src/services/language_check.c": "a2f3f9cdc79aaf228878358b356e3ad68929b7d904c027a82b714d273879a411",
+    "ide/src/services/language_input_owned.h": "2c06244cf4b3b67e9d3f8ebc1dabe4c37a681125e970c71d53fbb0d33c6b4fbe",
+    "ide/src/services/language_proof_memo.inc": "8846dce1d3b7118d06df978bedf76af1a64fce9ef69ea1f1016ba57fadec423c",
+    "ide/src/services/language_snapshot.c": "910cfbaa2bce0ac60ff5175860e8cd1dfed941bcd28307e956ecc190b3eb54ef",
+    "ide/src/services/rename_evidence.c": "299a45660dc338da8c51ec87a9a11b3201023e778f3bfa825aa6ba4eb3b744aa",
+    "ide/src/services/rename_evidence.h": "627528c81674aaa0104014cabae6d4c023117173a572ea6c11c7dac7022559f4",
+    "ide/tests/language_input_batch_test.c": "8d602dcb2daee36051ff0b759b97986c2fdda8f9f6f1a5b337c60db45251326b",
+    "ide/tests/native_edit_test.c": "4d9ae2588b80c81ce36ce96b9cb01c959eebcbc0bd3cb72cc91dcbd2f7cf1713",
+    "ide/tools/build.ps1": "ae5511ba6346f13fc385363d3c45e877740782e2f2f9f55885e4659c9b983c5b"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-native-edit-policy-20261114.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-native-edit-policy-20261114/stage-sources.tar.gz",
+      "sha256": "b0c01796518244cd4de82561ee717dda4ce0e5c0e6dc3fdf6b76536e8c17ce12",
+      "bytes": 77599,
+      "entries": 21,
+      "uniquePayloads": 21
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-native-edit-policy-20261114/stage-sources.tar.gz.manifest.json",
+      "sha256": "86645f25608d0447dc9e9c592eb8f93c3729cef2e4bda88edcdac4a7480cb61a",
+      "bytes": 5570
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-native-edit-policy-20261114/actual-builds-and-validation.tar.gz",
+      "sha256": "989b8afe0a96934155baf58c8f95523ab24cfc2909ab35b0851bbf54c76932bc",
+      "bytes": 214590774,
+      "entries": 15629,
+      "uniquePayloads": 4388
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-native-edit-policy-20261114/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "58a584a3ca8828f8d0a9498b88b6c9c86beea425177ef0abcc2f02c131479881",
+      "bytes": 7212106
+    },
+    "sharingObservation": {
+      "path": "dev/release-materials/provenance/lsp-native-edit-policy-20261114/read-sharing-probe.json",
+      "sha256": "188ec65369f8f1b9497d5df0e2251dc137c1f909e364248d12ab6ae2fe2881f3",
+      "bytes": 646
+    }
+  },
+  "externalPaths": {
+    "build": "F:\\codex-builds-xlang-lsp-20261114\\native-edit-policy",
+    "fixtures": "F:\\xl-native-edit-policy-20261114",
+    "materials": "F:\\codex-builds-xlang-lsp-20261114\\native-edit-policy-materials"
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "sdkSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+  "currentDeliverySha256": "dbc9e09ddfaeced7c675d0540589319f20d03e08f5b43abe08dd33354ecaa9fd",
+  "candidate": {
+    "servicePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-edit-policy-20261114\\native-v1\\xlang-ls.exe",
+    "serviceSha256": "4c53c08a481173cc9c70ac6649becac7633d8395066268da92393b908e8f2296",
+    "guiPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-edit-policy-20261114\\gui-objects-v1\\xlang_ide.link.exe",
+    "guiSha256": "d4f000673994695182845189f8e369d6d56273d74ae87b29f30af019d8bcb3b0"
+  },
+  "verification": {
+    "distinctFinalNativeObjects": 118,
+    "fullGuiObjects": 135,
+    "guiSuites": 55,
+    "protocolCasesExecuted": 85,
+    "nativeTransactionAssertions": 747,
+    "knownProofAssertionsEachProfile": 1378,
+    "controllerAssertionsEachProfile": 76,
+    "cancelAssertionsEachProfile": 11,
+    "actualIdeAssertions": 237,
+    "sourceJobLeaseObservedAssertions": 130,
+    "sourceJobViewAssertions": 67,
+    "sourceBarrierObservedAssertions": 613,
+    "languageSourceLeaseObservedAssertions": 128,
+    "existingMixedTransactionAssertions": 5485,
+    "existingWriteAssertions": 877,
+    "existingAliasAssertions": 4258,
+    "existingCandidateAssertions": 250,
+    "rejectedActualMutants": 8,
+    "actualGuiFramesEach": 24,
+    "actualCompileClosures": 283,
+    "rawArchiveMembers": 72,
+    "allRuntimeAliasesRemoved": true,
+    "existingUserTemporaryDirectoriesPreserved": true,
+    "rawFailuresPreserved": true
+  },
+  "evidenceNotes": [
+    "The new GUI-only native_edit module retains an actual data-admitted candidate and coordinates existing worker prepare/stage/apply/finish with owner capture/arm/publish. It does not add a menu or enable standard rename/applyEdit. The implementation and an actual real-RPC/XUI multi-thread fixture are accepted; production asynchronous host dispatch and complete policy/UI/recovery remain open.",
+    "Non-target original disk inputs are held by XRT read-only share handles before a complete fresh evidence sweep. Stage binds actual target pins, metadata, raw size and SHA to the original source bank. Group fences validate current actual writer/pin metadata, all non-target metadata and the original complete reports using an operation-local trusted host substitution. Generic writers still fully read and hash their own before/after contents.",
+    "Trusted substitutions require an independently owning host and exact original reports; they cannot grant coverage, pins or authorization. Unknown/differing fields cannot be ignored. Only equivalent path spelling can vary. Negative resolution probes still revalidate and normal later validation reopens/rehashes. Schema2 wire timestamps are Common Era milliseconds, so a one-microsecond test delta was corrected to a one-millisecond delta without changing production comparison semantics.",
+    "The actual native context package path is immutable captured input, not an instruction to reread the IDE process environment. The detached host policy must reject live environment/configuration changes. The fixture now explicitly performs that host check after a per-file environment change; the earlier run expecting the native context guard itself to detect the IDE process mutation failed and is retained.",
+    "All named models, including adversarial retained closed slots, enter the actual physical alias gate. The full original model roster is fenced on owner. Ordinary Open canonicalized a volume-GUID alias and the original candidate correctly rejected that touched C model; ordinary Close clears its path. The final adversarial fixture deliberately retains a valid alternate spelling and a closed slot, then verifies the later physical host boundary without weakening candidate admission.",
+    "The final747-check fixture uses actual five-target RPC results, real XUI documents and a held real language-process lease; worker functions execute on joined worker threads. It proves retained candidate lifetime after caller release, dependency write sharing, original-identity gap, protected root, hidden physical alias, full C model revision, zero Apply source ReadFull calls, real closed and open edits, unchanged open disk baseline, cancellation and partial write reverse restore, committed cancellation, frozen commit journal and release of dependency handles. IN_DOUBT uses final shutdown rather than resuming source readers.",
+    "Existing5485 mixed transaction,877 writer,4258 physical alias and250 candidate assertions pass. Both native and matched GUI aggregate proof fixtures pass1378 checks; both controller profiles pass76 and cancellation11. The current IDE view passes237 plus source-job/six-participant/two-connection barrier regressions. Counts dependent on scheduling are observations, not fixed capability quantities.",
+    "Seven final-fixture native policy mutants and one actual proof-memo mutant are rejected by assertions. They remove original identity, dependency share protection, all-named models, full owner model checks, cancelled-undo permission, required host group policy, owned-source compatibility or report-field completeness. The first memo mutation helper selected the unchanged production include due to its include-root argument and exited0; it is rejected as non-mutation evidence. The corrected actual compile closure proves the changed include was selected before counting that rejection.",
+    "All118 native and135 matched GUI production objects were rebuilt. The newly built service differs from the preceding stage and therefore all85 protocol scenarios executed this round. Full55 GUI suites and actual C/xlang24-frame renders passed, with both screenshots inspected. A first GUI build attempted before the server link existed; later full build passed. Full-GUI helper retries supplied its missing unchanged import alias and historical fixed proxy. No failed or precursor run is presented as the final accepted fixture.",
+    "Actual source/header closures, object identities and72 raw archive members are bound. The working runtime, developer SDK and active delivery are preserved, all exact owned runtime aliases removed and pre-existing user temporary directories retained. No online publication or whole-goal performance qualification is claimed."
+  ],
+  "limits": [
+    "The production IDE has no native transaction dispatcher or confirmation/application/recovery UI yet; complete host protected paths, live configuration/consent and six-reader barrier composition must still be wired before standard rename/applyEdit activation.",
+    "Pins and exclusive byte locks cover normal local fixed-file operations, not an OS-wide atomic transaction, pre-existing writable mappings, kernel filters or malicious volume remapping. IN_DOUBT requires an explicit recovery policy or final shutdown; destruction never replays the journal or authorizes reader resume.",
+    "Candidate/policy/transaction known quotas are not total RSS. Shared snapshots, XRT/OS handles and allocator/semantic compiler resources are additional. Native guard context environment is explicit captured state; live IDE environment admission is the host responsibility.",
+    "Engine/native asset alignment, full generic/unbound/foreign qualification, other synchronous readers, deep unprefixed xlp handling and analysis-configuration cache-count regression, whole-goal latency/RSS/endurance, Linux and sanitizers remain open.",
+    "C LSP remains disabled; no DAP, runtime or debug completion. Default runtime programs, developer SDK and active delivery index are not replaced."
+  ],
+  "postCommitReceipt": "dev/release-materials/provenance/lsp-native-edit-policy-20261114/postcommit.json"
+}
