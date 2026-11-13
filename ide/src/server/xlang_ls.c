@@ -853,6 +853,8 @@ static void dispatch(server* s,const xvalue* message)
   if(diagnosticsOption && (!diagnostics || (strcmp(diagnostics,"native") && strcmp(diagnostics,"cli")))) { response(s,id,NULL,-32602,"diagnosticsBackend must be native or cli."); return; }
   s->cliDiagnostics=diagnostics && !strcmp(diagnostics,"cli");
 #ifdef XLS_COMPILER_XRT
+  bool prepareSupport=false;const xvalue* prepareCapability=get(get(get(get(params,"capabilities"),"textDocument"),"rename"),"prepareSupport");
+  if(prepareCapability && (xrtValueType(prepareCapability)!=XVALUE_BOOL || !xrtValueGetBool(prepareCapability,&prepareSupport))){response(s,id,NULL,-32602,"rename.prepareSupport must be boolean.");return;}
   bool documentChanges=false;const xvalue* editCapability=get(get(get(params,"capabilities"),"workspace"),"workspaceEdit");const xvalue* documentChangesValue=get(editCapability,"documentChanges");
   if(documentChangesValue && (xrtValueType(documentChangesValue)!=XVALUE_BOOL || !xrtValueGetBool(documentChangesValue,&documentChanges))){response(s,id,NULL,-32602,"workspaceEdit.documentChanges must be boolean.");return;}
   const xvalue *folders=get(params,"workspaceFolders"),*rootUri=get(params,"rootUri"),*rootPath=get(params,"rootPath");
@@ -944,7 +946,7 @@ static void dispatch(server* s,const xvalue* message)
   put(signature,"triggerCharacters",signatureTriggers);put(signature,"retriggerCharacters",retriggers);put(cap,"signatureHelpProvider",signature);put(scope,"signatureInputGuard",xrtValueString(sv("background-poll")));
   put(cap,"documentHighlightProvider",xrtValueBool(true));
 #ifdef XLS_COMPILER_XRT
-  if(!s->cliCompletion && !s->cliDiagnostics){put(cap,"renameProvider",xrtValueBool(true));put(cap,"referencesProvider",xrtValueBool(true));put(cap,"workspaceSymbolProvider",xrtValueBool(true));put(scope,"workspaceSymbolInputProof",xrtValueBool(true));put(scope,"workspaceSymbolBackgroundIndex",xrtValueBool(true));workspaceSymbolCapabilities(s,params);}
+  if(!s->cliCompletion && !s->cliDiagnostics){xvalue* rename=prepareSupport ? xrtValueObject() : xrtValueBool(true);if(prepareSupport)put(rename,"prepareProvider",xrtValueBool(true));put(cap,"renameProvider",rename);put(cap,"referencesProvider",xrtValueBool(true));put(cap,"workspaceSymbolProvider",xrtValueBool(true));put(scope,"workspaceSymbolInputProof",xrtValueBool(true));put(scope,"workspaceSymbolBackgroundIndex",xrtValueBool(true));workspaceSymbolCapabilities(s,params);}
   put(scope,"referenceCompilationOwners",xrtValueBool(!s->cliCompletion && !s->cliDiagnostics));
   put(scope,"renameCandidate",xrtValueInt(!s->cliCompletion && !s->cliDiagnostics?1:0));
 #endif
@@ -1011,6 +1013,7 @@ static void dispatch(server* s,const xvalue* message)
  #ifdef XLS_COMPILER_XRT
  if(!strcmp(method,"textDocument/references")){if(id)requestReferences(s,id,params);return;}
  if(!strcmp(method,XIDE_NATIVE_RENAME_METHOD)){if(id)requestRename(s,id,params,0);return;}
+ if(!strcmp(method,"textDocument/prepareRename")){if(id)requestRename(s,id,params,2);return;}
  if(!strcmp(method,"textDocument/rename")){if(id)requestRename(s,id,params,1);return;}
  if(!strcmp(method,"workspace/didChangeWorkspaceFolders")){if(id){response(s,id,NULL,-32600,"Workspace folder changes are notifications.");return;}s->renameWorkspaceScope=1;s->renameWorkspaceDirty=1;cancelRenames(s,NULL,-32801,"Workspace folder membership changed; refresh analysisConfiguration.");return;}
  if(!strcmp(method,"workspace/symbol")){if(id)requestWorkspaceSymbols(s,id,params,0);return;}

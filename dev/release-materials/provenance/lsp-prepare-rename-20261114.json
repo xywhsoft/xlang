@@ -1,0 +1,202 @@
+{
+  "schema": 1,
+  "date": "2026-11-14",
+  "stage": "M7b6h",
+  "scope": "Native standard prepareRename with exact range/placeholder, local eligibility, original routing proof freshness and retained semantic key cache",
+  "implementationAccepted": true,
+  "goalComplete": false,
+  "performanceQualified": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "715b5215b9a6e5e95e58685f398bb2d773f2c46b",
+  "buildBase": "32d1d6b0ae9b888ed7227f5d7fa1d1709e88d93a",
+  "publicationRebase": {
+    "verifiedNoIDEOrIgnoreCommitChanges": true,
+    "commits": [
+      "715b5215b9a6e5e95e58685f398bb2d773f2c46b",
+      "fb144adae92d9ab91c88e98d3eacda2efed5b77c",
+      "03ead585b9ed508fca14ec8d6fb9199ecc11a665"
+    ],
+    "previousPublicationBase": "fb144adae92d9ab91c88e98d3eacda2efed5b77c",
+    "allCanonicalBoundInputsReverifiedAfterMove": true
+  },
+  "ownedSources": {
+    "ide/docs/lsp-development.md": "4e08781757057c0ee4310528f2b40e0747bc3010419e1ced9d97d19930863c37",
+    "ide/docs/lsp-prepare-rename.md": "2159d69e3d321ebdb50e02e546232d9ef74c8915e0d163fee304e01cb4c8ce57",
+    "ide/docs/lsp-standard-rename.md": "f88ab21db351fd92c684c8b24bb59c12d906866bc9f2e71dc58646ab0911369d",
+    "ide/src/server/rename_candidate.inc": "babf304482ddb75c519b901366d1774f020b24adacdcf87452b632ddb6cf74ab",
+    "ide/src/server/xlang_ls.c": "ad83f36bdb074283f8b213210feb82e3c906dc3751d1d698d27ad3ca342d1f51",
+    "ide/src/services/project_prepare_rename.inc": "076911f91924b5008142706ec15ef6f1e3a5fd095ac055d97f25be7a4d93d392",
+    "ide/src/services/project_references.c": "b13ecf15b68905c2675e4f4569011982754ae70cf39d2bc0c00b47e376900ce3",
+    "ide/src/services/project_references.h": "2446dd3d87071145b095bd2d27fea75aa48b141b1d78d350341f1d9481e79c2d",
+    "ide/src/services/project_rename_at.inc": "06b0a8c6af952a0539a1ae8caf776592743d3222ee603478316fe8a33cb0c18d",
+    "ide/src/services/rename_candidate.c": "66692a4a334454a5b30448246242b280c2768c8e3d2fbd5f68b0d48c484e3ac5",
+    "ide/src/services/rename_candidate.h": "b4694e16e70fbd6c5f7fb8cc36517d855b0ebb8ecd98188d625eab3dc1c8f7c3",
+    "ide/tests/project_prepare_rename_test.c": "77458e250510fdc032b27f3ec8934a0dd961d4991ed85f5e701273a74961fa0d",
+    "ide/tests/rename_candidate_test.c": "983378182d12f51cdd69882e00c088c4ca10fdeb3537388a9f29e2efcc4c27b1",
+    "ide/tools/check_lsp_prepare_rename.py": "a051384d9bcd753d5d5a8621e0a9070cc48a9f944c9f1db6e6103e09a509c263",
+    "ide/tools/check_lsp_standard_rename.py": "285b5c2a5dfc84d21977ddd405d78873f94436454226daf75aa399decd2cc266"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-prepare-rename-20261114.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-prepare-rename-20261114/stage-sources.tar.gz",
+      "sha256": "051b03c94fe0dc748a144b9ccff28de27f20fdb96ee9a30e05d7fd50c99e3216",
+      "bytes": 353792,
+      "entries": 15,
+      "uniquePayloads": 15
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-prepare-rename-20261114/stage-sources.tar.gz.manifest.json",
+      "sha256": "1f661431cd18f03d7290a56404ebf30261b881add874693eaa3dac88a710de33",
+      "bytes": 3947
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-prepare-rename-20261114/actual-builds-and-validation.tar.gz",
+      "sha256": "4f160ff87b4dc1934a6e013018c3b4b4c8865febc98ec80ee566e6fecbabd582",
+      "bytes": 220359270,
+      "entries": 11742,
+      "uniquePayloads": 4105
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-prepare-rename-20261114/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "691d9a3444ee9e4a65cbba6c12a98bd39ecb4aac3dd027e7d51f28553bc95e85",
+      "bytes": 5151779
+    }
+  },
+  "materialDependencies": [
+    {
+      "index": "dev/release-materials/provenance/lsp-standard-rename-20261114.json",
+      "sha256": "8497d4997fa72b6eb62398b943f429294df005f408e22ebfa55236fbb7218246",
+      "purpose": "Previous standard rename/native IDE UI and frozen frontend/XRT cohort, inherited historical dialog failures; source/SDK bytes preserved"
+    }
+  ],
+  "externalPaths": {
+    "build": "F:\\codex-builds-xlang-lsp-20261114\\prepare-rename",
+    "fixtures": "F:\\xl-prepare-rename-20261114",
+    "materials": "F:\\codex-builds-xlang-lsp-20261114\\prepare-rename-materials"
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "sdkSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+  "currentDeliverySha256": "dbc9e09ddfaeced7c675d0540589319f20d03e08f5b43abe08dd33354ecaa9fd",
+  "candidate": {
+    "servicePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-prepare-rename-20261114\\native-v2\\xlang-ls.exe",
+    "serviceSha256": "62cb58d1ccfb68771f8b24d5d1a55e8ecb1836e571ad19ee1bb1fc83819ef3dd",
+    "guiPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-prepare-rename-20261114\\gui-objects-v1\\xlang_ide.link.exe",
+    "guiSha256": "40bbcfa083faace34c06561a939a71fe9b9f8be170b88bc092899284b08e9918",
+    "nativeUniqueObjectsFreshlyCompiled": 118,
+    "nativeCompileInvocations": 119,
+    "latestCoordinatorUnitsCompiled": 1,
+    "nativeOtherUnitsReused": 117,
+    "guiObjectsFreshlyCompiled": 137,
+    "rawCoreArchiveMembers": 72
+  },
+  "verification": {
+    "protocolCasesExecuted": 158,
+    "prepareRenameCases": 24,
+    "standardRenameCases": 31,
+    "privateCandidateCases": 35,
+    "protocolTools": [
+      "check_lsp_prepare_rename",
+      "check_lsp_standard_rename",
+      "check_lsp_rename_candidate",
+      "check_lsp_field_bindings",
+      "check_lsp_generic_navigation",
+      "check_lsp_properties",
+      "check_lsp_native_completion",
+      "check_lsp_native_analysis",
+      "check_lsp_automatic_diagnostics"
+    ],
+    "nativeObservedAssertions": [
+      {
+        "name": "rename_plan_test",
+        "checks": 3131
+      },
+      {
+        "name": "rename_candidate_test",
+        "checks": 103
+      },
+      {
+        "name": "project_prepare_rename_test",
+        "checks": 31
+      }
+    ],
+    "semanticWarmCache": {
+      "beforeCorrection": {
+        "coldBuilds": 1,
+        "warmBuilds": 2,
+        "warmHits": 0
+      },
+      "accepted": {
+        "coldBuilds": 1,
+        "coldHits": 0,
+        "coldSessions": 1,
+        "warmBuilds": 1,
+        "warmHits": 1,
+        "warmSessions": 1
+      },
+      "endToEndLatencyQualified": false
+    },
+    "pairedGuiSuites": 55,
+    "explicitOldCapabilityGuiFixture": 1,
+    "actualIdeCases": 29,
+    "actualIdeObservedAssertions": 3861,
+    "actualGuiFramesEach": 24,
+    "actualCompileClosures": 333,
+    "rejectedActualMutants": 9,
+    "testAliasesRemoved": true,
+    "existingUserTemporaryDirectoriesPreserved": true,
+    "visualReview": {
+      "status": "passed",
+      "serviceSha256": "62cb58d1ccfb68771f8b24d5d1a55e8ecb1836e571ad19ee1bb1fc83819ef3dd",
+      "images": [
+        {
+          "path": "F:\\xl-prepare-rename-20261114\\gui-async-view-v1\\15\\symbol-preview.png",
+          "sha256": "a9c47cad1c8df254454c42fad8b69869022e68e86e7c107b1cc1981d30530937"
+        },
+        {
+          "path": "F:\\xl-prepare-rename-20261114\\gui-async-view-v1\\27\\symbol-large.png",
+          "sha256": "169f406cfd17e2f514f21331f24a1168b930ff7414afa3553df553a1a173bb5f"
+        },
+        {
+          "path": "F:\\codex-builds-xlang-lsp-20261114\\prepare-rename\\actual-gui-smoke-v1\\c.png",
+          "sha256": "13b0d918e1d15f2da250ccaf8f981278ccb013fc10806f462e48010ffcc4ce1c"
+        },
+        {
+          "path": "F:\\codex-builds-xlang-lsp-20261114\\prepare-rename\\actual-gui-smoke-v1\\xl.png",
+          "sha256": "16f094e0a058b6131a72207b0f9a829c8c4fe1b2745c7cc26dfcdfa2d639f0c2"
+        }
+      ],
+      "notes": "Actual native rename UI remains visible at default and40DIP; actual C/xlang bounded GUI renders inspected. No latency qualification."
+    },
+    "rawFailuresPreserved": true
+  },
+  "evidenceNotes": [
+    "Implement standard prepareRename with exact semantic IDENT range and original name. Negotiate RenameOptions only for clients declaring prepareSupport; keep boolean renameProvider for older clients and no native capability for CLI backends. Typed IDs, optional progress tokens, bounded snapshots, queue capacity, cancellation and owner epoch/identity/input gates reuse the existing coordinator.",
+    "Prepare captures the actual selected native provider and local declaration component, verifies source membership and conservative foreign exclusions, and returns range/placeholder without a fake newName, full workspace reference sweep, hypothetical text bank or edits. Actual24-case stdio matrix includes qualified suffixes, first-line BOM, CRLF, non-BMP names, surrogate refusal, reserved/comment/string rejection, explicit library policy, old clients and source/config/folder/lease invalidation.",
+    "Retain both positive and negative importer routing proofs until after actual response framing. Cold dependency capture and cached guard paths independently reject same-byte replacement of an unsuccessful importer, while the selected source is unchanged. Existing128MiB known preparation admission counts retained source/row/component/target/guard metadata; opaque native/cache/allocator internals remain additional. Nothing authorizes applying edits.",
+    "An actual native warm test first exposed key builds1 ->2/hits0 when dependency ownership and semantic checks switched contexts on the same key worker. Use the already existing first member worker for preparation routing, with no new worker or route cache. Final identical-input warm test records builds1 ->1/hits1/sessions1 and no workspace/member-semantic/hypothetical checks. This is cache-work evidence, not whole-goal latency or a fix for all other configuration-cache regressions.",
+    "Fresh native fixtures pass3131 plan,103 worker framing and31 preparation assertions. Native preparation also demonstrates a successful local result with an unrelated broken project while final rename still fails full scope. Detached target storage survives all original owners; this does not imply current semantic authority. Worker framing covers post-encoding source replacement, failed encoding and cancellation versus physical quiet.",
+    "Nine actually compiled bad implementations are rejected: whole-workspace preparation, omitted cold negative routing, omitted cached negative guards, eviction of the semantic cache, allowed foreign components, skipped final prepare guard, invented placeholder, collapsed range and unnegotiated options. Their fixture source hashes, compiler/link inputs, concrete failing assertions and process exits are bound.",
+    "Build118 complete native units, then recompile the one reference coordinator after the measured cache failure; the final117 other object bytes and72 core members are exact reuse. Rebuild137 matched GUI units against that same service;55 GUI suites and29 real IDE cases pass, including an explicitly separate old-capability fixture. Actual C/xlang GUI renders24 hidden frames each; normal/40DIP rename and C/xlang images were inspected.",
+    "Preserve the initial native fixture path-string comparison failure, subsequent warm-cache failures and debug counters. Correct the test to the existing lexical path contract, then fix the production worker selection rather than weakening the warm-build assertion. All final fixtures use the corrected exact cohort. Earlier successful protocol samples are not added to final158 counts.",
+    "Canonical source/header and actual link identities, private basename-only GUI adapters, matched SDK, frozen external frontend/XRT inputs,72 raw archive members and retained test programs are verified. Header scans reconstructed from the frozen55-suite helper are dependency coverage, not extra test runs or invented observed compiler calls. Three unrelated intervening commits are preserved after checking no IDE/ignore history changes and all canonical bound inputs.",
+    "All test EXEs execute from owned aliases inside root release/win_x64, then are hash-checked and removed. Preserve working runtime, developer SDK, delivery index, user temporary data and unrelated staged/worktree state. Source/build/report payloads remain external and indexed."
+  ],
+  "limits": [
+    "IDE semantic name prefill/preparation admission is not implemented in this phase; its existing native candidate preview/consent/mixed-transaction flow remains. Complete project/workspace/standalone scope bootstrap and closed loose-file discovery remain open; root sessions without complete configuration still fail.",
+    "Preparation validates only current provider/local eligibility, not complete workspace families, every generic/unbound/generated/foreign fact or any proposed new name. Final rename repeats the complete existing checks. No generic workspace/applyEdit or filesystem write authority is enabled.",
+    "No whole-goal cold/incremental latency, RSS, endurance, Linux or sanitizer qualification. Context-switch cache issues outside this preparation path and existing owner blocking stdout writes remain open. Known retained charge is not total RSS.",
+    "The3 additional legacy dialog failures previously recorded are not rerun/fixed/counted as passing. Existing physical alias/write policy and manual uncertain recovery limitations remain.",
+    "Current engine/native asset alignment remains open. C LSP stays disabled. No DAP/runtime/debug completion. Working release/SDK/delivery/update channel are not replaced or published."
+  ],
+  "postCommitReceipt": "dev/release-materials/provenance/lsp-prepare-rename-20261114/postcommit.json"
+}

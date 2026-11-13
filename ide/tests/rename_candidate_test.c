@@ -16,7 +16,7 @@ char* __real_xideLspFrame(const xvalue*,size_t*,xide_model_error*);
 char* __wrap_xideLspFrame(const xvalue* value,size_t* bytes,xide_model_error* error)
 {
  char* frame=__real_xideLspFrame(value,bytes,error);if(!frame)return NULL;
- if(get(get(value,"result"),"binding") || get(get(value,"result"),"documentChanges") || get(get(value,"result"),"changes")){
+ if(get(get(value,"result"),"binding") || get(get(value,"result"),"documentChanges") || get(get(value,"result"),"changes") || get(get(value,"result"),"range")){
   xrtAtomic32FetchAdd(&frameCalls,1,XMEMORY_RELAXED);xrtAtomic64Store(&frameThread,xrtThreadCurrentId(),XMEMORY_RELEASE);
   uint32 mode=xrtAtomic32Load(&frameMode,XMEMORY_ACQUIRE);
   if(mode==1)xrtAtomic32Store(&mutationOkay,xrtFileWriteAtomic(mutationPath,(xbytesview){(const unsigned char*)mutationBody,strlen(mutationBody)}),XMEMORY_RELEASE);
@@ -85,6 +85,10 @@ static int standard(void)
  mutationPath=dependency;mutationBody=other;xrtAtomic32Store(&frameMode,1,XMEMORY_RELEASE);xide_rename_candidate_query* q=xideRenameStandardSubmit(service,id,1,params,NULL,&doc,1);CHECK(await(q,-1,-32801) && xrtAtomic32Load(&mutationOkay,XMEMORY_ACQUIRE));xideRenameCandidateDestroy(q);CHECK(quiet(service));
  xrtAtomic32Store(&frameMode,3,XMEMORY_RELEASE);q=xideRenameStandardSubmit(service,id,0,params,NULL,&doc,1);CHECK(await(q,-1,-32603));xideRenameCandidateDestroy(q);CHECK(quiet(service));
  entered=xrtEventCreate(false,false);resume=xrtEventCreate(false,false);CHECK(entered && resume);xrtAtomic32Store(&frameMode,2,XMEMORY_RELEASE);q=xideRenameStandardSubmit(service,id,1,params,NULL,&doc,1);CHECK(q && xrtEventWaitFor(entered,XIDE_XRT_TIMEOUT_MS(10000))==XWAIT_OK);xideRenameCandidateCancel(q);CHECK(!xideRenameCandidatesIdle(service));xrtEventSet(resume);CHECK(quiet(service) && await(q,-1,-32800));xideRenameCandidateDestroy(q);xrtEventDestroy(entered);xrtEventDestroy(resume);entered=resume=NULL;
+ xrtAtomic32Store(&frameMode,0,XMEMORY_RELEASE);q=xideRenamePrepareSubmit(service,id,params,NULL,&doc,1);CHECK(await(q,1,0));size_t prepareBytes=0;char* prepareFrame=xideRenameCandidateTakeFrame(q,&prepareBytes);CHECK(prepareFrame && strstr(prepareFrame,"placeholder") && strstr(prepareFrame,"amount") && strstr(prepareFrame,"range") && !strstr(prepareFrame,"documentChanges"));free(prepareFrame);xideRenameCandidateDestroy(q);CHECK(quiet(service));
+ xrtAtomic32Store(&frameMode,1,XMEMORY_RELEASE);q=xideRenamePrepareSubmit(service,id,params,NULL,&doc,1);CHECK(await(q,-1,-32801));xideRenameCandidateDestroy(q);CHECK(quiet(service));
+ xrtAtomic32Store(&frameMode,3,XMEMORY_RELEASE);q=xideRenamePrepareSubmit(service,id,params,NULL,&doc,1);CHECK(await(q,-1,-32603));xideRenameCandidateDestroy(q);CHECK(quiet(service));
+ entered=xrtEventCreate(false,false);resume=xrtEventCreate(false,false);CHECK(entered && resume);xrtAtomic32Store(&frameMode,2,XMEMORY_RELEASE);q=xideRenamePrepareSubmit(service,id,params,NULL,&doc,1);CHECK(q && xrtEventWaitFor(entered,XIDE_XRT_TIMEOUT_MS(10000))==XWAIT_OK);xideRenameCandidateCancel(q);CHECK(!xideRenameCandidatesIdle(service));xrtEventSet(resume);CHECK(quiet(service) && await(q,-1,-32800));xideRenameCandidateDestroy(q);xrtEventDestroy(entered);xrtEventDestroy(resume);entered=resume=NULL;
  xrtAtomic32Store(&frameMode,0,XMEMORY_RELEASE);q=xideRenameStandardSubmit(service,id,1,params,NULL,&doc,1);CHECK(q);xrtValueRelease(id);xrtValueRelease(params);xlsTextRelease(text);free(uri);CHECK(await(q,1,0));xideRenameCandidateDestroy(q);CHECK(quiet(service));
  CHECK(xrtAtomic64Load(&frameThread,XMEMORY_ACQUIRE)!=xrtThreadCurrentId());xideRenameCandidatesDestroy(service);xideProjectReferencesDestroy(references);xideToolchainsDestroy(cache);size_t size=0;unsigned char* disk=xrtFileReadAll(path,&size);CHECK(disk && size==strlen(body) && !memcmp(disk,body,size));xrtFree(disk);xrtFree(path);xrtFree(dependency);xrtFree(compiler);xrtFree(dir);return 1;
 }

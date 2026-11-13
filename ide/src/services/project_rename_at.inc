@@ -7,6 +7,7 @@ static xtaskoutcome executeRenameAt(xcancel* cancel,void* data,xtaskvalue* value
  xarray roots={0};size_t bytes=0,requested=SIZE_MAX;owner_proof proof={0};
  reference_job job={0};reference_record* record=NULL;xide_reference_key* key=NULL;
  seed->stats.thread=xrtThreadCurrentId();seed->stats.memberWorkers=in->store->memberCount;
+ if(in->renameAt==2 && (!xrtArrayInit(&seed->guards,sizeof(xide_language_input_guard*)) || !xrtArrayInit(&seed->prepareDependencies,sizeof(xls_dependency_capture*))))goto failed;
  const xls_context_spec* spec=xlsContextSpec(in->scope);
  if(!xrtArrayInit(&roots,sizeof(root)) || !addRoot(&roots,spec->directory,spec->entry,&bytes))goto failed;
  for(size_t i=0;i<spec->lists[XLS_CONTEXT_MEMBERS].count;++i){
@@ -29,6 +30,10 @@ static xtaskoutcome executeRenameAt(xcancel* cancel,void* data,xtaskvalue* value
  if(!xideRenameScopeTarget(in->renameScope,in->renameTarget,&owners) || !owners){fail(seed,"Rename declaration is outside explicitly configured membership.");goto done;}
  cacheRecord(in->store,record);++seed->stats.roots;
  if(stopped(cancel))goto done;
+ if(in->renameAt==2){
+  if(completePrepare(in,seed,record,key,cancel)){*value=(xtaskvalue){seed,freeOutput,NULL};seed=NULL;}
+  goto done;
+ }
  /* Ordinary scope children now consume the exact immutable target. */
  in->renameAt=0;
  xtaskoutcome state=executeWorkspace(cancel,in,value);

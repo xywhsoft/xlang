@@ -22,7 +22,7 @@ static void requestRename(server* s,const xvalue* id,const xvalue* params,int st
  if(!s->renames)s->renames=xideRenameCandidatesCreate(s->references);
  xls_analysis_document docs[DOC_LIMIT];size_t count=0;
  for(size_t j=0;j<DOC_LIMIT;++j)if(s->docs[j].uri){document* d=s->docs+j;docs[count++]=(xls_analysis_document){d->uri,d->path,d->content,d->identity,(uint64_t)((int64_t)d->version-INT_MIN)};}
- xvalue* saved=xrtValueRetain(id);xide_rename_candidate_query* query=saved ? (standard ? xideRenameStandardSubmit(s->renames,id,s->renameDocumentChanges,params,s->catalog,docs,count) : xideRenameCandidateSubmit(s->renames,number,params,s->catalogValue,s->catalog,docs,count)) : NULL;
+ xvalue* saved=xrtValueRetain(id);xide_rename_candidate_query* query=saved ? (standard==2 ? xideRenamePrepareSubmit(s->renames,id,params,s->catalog,docs,count) : standard ? xideRenameStandardSubmit(s->renames,id,s->renameDocumentChanges,params,s->catalog,docs,count) : xideRenameCandidateSubmit(s->renames,number,params,s->catalogValue,s->catalog,docs,count)) : NULL;
  if(!query || !xideRenameCandidateSetWake(query,nativeWake,s)){xideRenameCandidateCancel(query);xideRenameCandidateDestroy(query);xrtValueRelease(saved);response(s,id,NULL,-32603,"Cannot start native rename orchestration.");return;}
  s->renameRequests[slot].query=query;s->renameRequests[slot].id=saved;s->renameRequests[slot].document=i;s->renameRequests[slot].version=s->docs[i].version;s->renameRequests[slot].identity=s->docs[i].identity;s->renameRequests[slot].serial=s->inputSerial;s->renameRequests[slot].epoch=s->configurationEpoch;
 }

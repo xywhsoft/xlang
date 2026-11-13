@@ -132,6 +132,20 @@ xide_reference_query* xideProjectReferencesSubmitRenamePlan(xide_project_referen
 xide_reference_query* xideProjectReferencesSubmitRenameAt(xide_project_references*,
  xide_rename_scope*,xls_context* selected,const xls_analysis_document*,size_t,
  const char* trigger,const char* path,int line,int character,xstrview newName);
+/* Preparation checks only the exact selected provider/local declaration
+ * component and explicit source membership, with no new name, workspace walk
+ * or hypothetical source check. It is not permission to apply an edit. Retain
+ * all positive/negative owner routing captures and original provider guards;
+ * caller must validate again after framing and gate input/config epochs.
+ * Existing bounded native source/component storage and a128MiB known retained
+ * preparation charge apply; opaque capture/cache/allocator internals are extra.
+ * Unsupported/absent cursors fail rather than guessing a lexical word. */
+xide_reference_query* xideProjectReferencesSubmitPrepareRenameAt(xide_project_references*,
+ xide_rename_scope*,xls_context* selected,const xls_analysis_document*,size_t,
+ const char* trigger,const char* path,int line,int character);
+xide_rename_target* xideProjectReferencesRetainPreparedRenameTarget(xide_reference_query*);
+int xideProjectReferencesPrepareRenameValidate(xide_reference_query*,
+ int (*cancelled)(void*),void*,xide_model_error*);
 xide_rename_plan* xideProjectReferencesRetainRenamePlan(xide_reference_query*);
 /* Worker-only full candidate envelope: schema1,workspaceEdit,inputGuards,
  * scopeCount. Export EVERY contributing guard, including zero-target scopes,

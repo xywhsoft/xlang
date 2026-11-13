@@ -88,7 +88,7 @@ def main():
         caps = reply['result']['capabilities']
         assert bool(caps.get('renameProvider')) == (backend == 'native'), caps
         # No fake prepare provider or defaultBehavior without actual preparation.
-        assert not isinstance(caps.get('renameProvider'), dict), caps
+        assert caps.get('renameProvider') == ({'prepareProvider': True} if backend == 'native' else None), caps
         c.send('initialized', {})
         for name in opened:
             c.open(paths[name], bodies[name], -2147483648)
@@ -145,8 +145,9 @@ def main():
         extended.update(workDoneToken='progress-😀', futureExtension=dict(ignored=True))
         verify(call(c, 'textDocument/rename', extended))
         done('optional-progress-token-and-forward-compatible-unknown-fields')
-        call(c, 'textDocument/prepareRename', {k: p[k] for k in ('textDocument', 'position')}, -32601)
-        done('prepare-remains-explicitly-unimplemented')
+        prepared = call(c, 'textDocument/prepareRename', {k: p[k] for k in ('textDocument', 'position')})
+        assert prepared == dict(range=modern[paths['main'].as_uri()][0]['range'], placeholder='compute'), prepared
+        done('negotiated-prepare-uses-real-semantic-range-and-original-name')
         c.stop()
         c = start(modern=False)
         legacy = verify(call(c, 'textDocument/rename', p), modern=False)

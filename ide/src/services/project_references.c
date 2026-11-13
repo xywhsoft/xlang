@@ -27,7 +27,7 @@ struct xide_project_references {xtaskpool* pool;xls_worker *analysis,*keys,*memb
 struct xide_reference_query {xfuture* future;xfuturewatch watch;int initialized,linked;void (*wake)(void*);void* user;};
 typedef struct reference_input {xide_project_references* store;xls_context* scope;xls_analysis_document docs[64];path_index paths;size_t count;char *trigger,*path,*renameName;int line,character,include,proof,workspacePart,familyMode,renameAt;xide_rename_scope* renameScope;xide_rename_target* renameTarget;} reference_input;
 typedef struct result_row {char* path;wchar_t* key;xide_lsp_position start,end;const xvalue* proof;int ownedProof;} result_row;
-typedef struct reference_output {xvalue* locations;xide_reference_family* family;xide_rename_plan* plan;xide_project_reference_stats stats;uint64_t memberThreads[XIDE_REFERENCE_MEMBER_WORKERS];char error[512];xarray rows,proofs,guards,graphs;size_t guardBytes,graphBytes;} reference_output;
+typedef struct reference_output {xvalue* locations;xide_reference_family* family;xide_rename_plan* plan;xide_rename_target* prepareTarget;xarray prepareDependencies;size_t prepareBytes;xide_project_reference_stats stats;uint64_t memberThreads[XIDE_REFERENCE_MEMBER_WORKERS];char error[512];xarray rows,proofs,guards,graphs;size_t guardBytes,graphBytes;} reference_output;
 typedef struct reference_job {const char* path;xevent* event;xide_language_check* check;reference_record* record;int fresh,sourceRejected;char error[512];} reference_job;
 typedef struct root {char* path;wchar_t* key;int covered,mustAnalyze;char* rejection;reference_record* cached;} root;
 static xstrview sv(const char* s){return (xstrview){s,strlen(s)};}
@@ -81,7 +81,8 @@ static void freeOutput(void* data,void* user)
  xrtArrayUnit(&out->proofs);
  for(size_t i=0;i<out->guards.Count;++i)xideLanguageInputGuardRelease(((xide_language_input_guard**)out->guards.Data)[i]);
  for(size_t i=0;i<out->graphs.Count;++i)xideSemanticReferenceGraphRelease(((xide_reference_graph**)out->graphs.Data)[i]);
- xrtArrayUnit(&out->graphs);xideRenamePlanRelease(out->plan);xideSemanticReferenceFamilyRelease(out->family);xrtArrayUnit(&out->guards);xrtFree(out);
+ for(size_t i=0;i<out->prepareDependencies.Count;++i)xlsDependencyCaptureRelease(((xls_dependency_capture**)out->prepareDependencies.Data)[i]);
+ xrtArrayUnit(&out->prepareDependencies);xideRenameTargetRelease(out->prepareTarget);xrtArrayUnit(&out->graphs);xideRenamePlanRelease(out->plan);xideSemanticReferenceFamilyRelease(out->family);xrtArrayUnit(&out->guards);xrtFree(out);
 }
 static int compareRoot(const void* a,const void* b){return xidePathNativeKeyCompare(((const root*)a)->key,((const root*)b)->key);}
 static int compareRow(const void* a,const void* b)
@@ -300,17 +301,21 @@ static int planCachedOwners(reference_input* in,root* all,size_t count,size_t re
  }
  return !stopped(cancel);
 }
+#include "services/project_prepare_rename.inc"
 typedef struct owner_proof {xls_dependency_capture* dependency;xide_language_input_guard* guard;} owner_proof;
 static int ownerProofValid(owner_proof* proof,xcancel* cancel)
 {xide_model_error error={0};return !stopped(cancel) && (!proof->dependency || xlsDependencyCaptureValidate(proof->dependency)) && (!proof->guard || xideLanguageInputGuardValidate(proof->guard,stopped,cancel,&error));}
 static int probeOwner(reference_input* in,const root* candidate,xcancel* cancel,owner_proof* proof,reference_output* out)
 {
  reference_record* cached=findRecord(in->store,in,candidate,cancel);
- if(cached){int owns=ownsSource(cached,in->path);if(owns<0){fail(out,"Invalid cached owner source vector.");return -1;}++out->stats.ownerRouteHits;if(owns)proof->guard=xideLanguageInputGuardRetain(cached->guard);return owns;}
+ if(cached){int owns=ownsSource(cached,in->path);if(owns<0){fail(out,"Invalid cached owner source vector.");return -1;}++out->stats.ownerRouteHits;if(in->renameAt==2 && !prepareGuard(out,cached->guard))return -1;if(owns)proof->guard=xideLanguageInputGuardRetain(cached->guard);return owns;}
  if(stopped(cancel))return -1;
  xls_context_spec spec=*xlsContextSpec(in->scope);spec.entry=candidate->path;spec.lists[XLS_CONTEXT_MEMBERS]=(xls_context_strings){0};
  xls_context* context=xlsContextCreate(&spec,16u*1024u*1024u,NULL);xevent* event=xrtEventCreate(false,false);
- xls_query* query=context && event ? xlsWorkerDependenciesInContext(in->store->keys,context,in->docs,in->count,NULL) : NULL;xlsContextRelease(context);
+ /* Preparation keeps routing context switches off the retained semantic key
+  * actor. The already existing first member lane is idle during these probes. */
+ xls_worker* routing=in->renameAt==2 ? in->store->analysis : in->store->keys;
+ xls_query* query=context && event ? xlsWorkerDependenciesInContext(routing,context,in->docs,in->count,NULL) : NULL;xlsContextRelease(context);
  if(!query){if(event)xrtEventDestroy(event);fail(out,"Cannot start original dependency owner capture.");return -1;}
  ++out->stats.ownerProbes;
  int linked=xlsQuerySetWake(query,childWake,event);xcancelwatch* wake=cancel ? xrtCancelWatch(cancel,childWake,event) : NULL;
@@ -324,6 +329,7 @@ static int probeOwner(reference_input* in,const root* candidate,xcancel* cancel,
  xls_check_inputs inputs;int owns=0;
  if(!xlsDependencyCaptureInputs(value,&inputs)){xlsDependencyCaptureRelease(value);fail(out,"Missing original dependency owner inputs.");return -1;}
  for(size_t i=0;i<inputs.sources;++i){xls_check_source source;if(!xlsDependencyCaptureSource(value,i,&source)){xlsDependencyCaptureRelease(value);fail(out,"Invalid original dependency owner source.");return -1;}if((source.kind&1) && same(source.path,in->path))owns=1;}
+ if(in->renameAt==2 && !prepareDependency(out,value,cancel)){xlsDependencyCaptureRelease(value);return -1;}
  if(owns)proof->dependency=value;else xlsDependencyCaptureRelease(value);return owns;
 }
 static int selectOwner(reference_input* in,root* roots,size_t count,size_t* requested,xcancel* cancel,owner_proof* proof,reference_output* out)
@@ -469,7 +475,7 @@ static xide_reference_query* submitReference(xide_project_references* store,xls_
  if(!store || !context || (count && !docs) || (!closed && (!docs || !count || !trigger)) || count>64 || !path || line<0 || character<0 || (include!=0 && include!=1) || (proof!=0 && proof!=1))return NULL;
  reference_input* in=xrtCalloc(1,sizeof(*in));xide_reference_query* q=xrtCalloc(1,sizeof(*q));if(!in || !q){xrtFree(in);xrtFree(q);return NULL;}in->store=store;in->scope=xlsContextRetain(context);in->trigger=trigger ? xrtStrDup(trigger) : NULL;in->path=xrtStrDup(path);in->line=line;in->character=character;in->include=include;in->proof=proof;in->familyMode=workspace>=3 ? 2 : workspace==2;in->renameScope=xideRenameScopeRetain(renameScope);in->renameTarget=xideRenameTargetRetain(renameTarget);if(newName)in->renameName=xrtStrDupN(newName->Data,newName->Size);int okay=(closed || in->trigger) && in->path && (!newName || in->renameName);
  for(size_t i=0;okay && i<count;++i){in->docs[i]=docs[i];in->docs[i].key=docs[i].key ? xrtStrDup(docs[i].key) : NULL;in->docs[i].path=docs[i].path ? xrtStrDup(docs[i].path) : NULL;in->docs[i].text=xlsTextRetain(docs[i].text);++in->count;okay=in->docs[i].key && in->docs[i].path && in->docs[i].text;}
- in->renameAt=workspace==5;
+ in->renameAt=workspace==6 ? 2 : workspace==5;
  xtaskargs args={.Destroy=freeInput};if(okay)q->future=xrtTaskSubmit(store->pool,in->renameAt ? executeRenameAt : workspace ? executeWorkspace : execute,in,&args);if(!q->future){freeInput(in,NULL);xrtFree(q);return NULL;}return q;
 }
 xide_reference_query* xideProjectReferencesSubmitWithProof(xide_project_references* store,xls_context* context,const xls_analysis_document* docs,size_t count,const char* trigger,const char* path,int line,int character,int include,int proof)
@@ -515,6 +521,15 @@ xide_reference_query* xideProjectReferencesSubmitRenameAt(xide_project_reference
  int found=0;for(size_t i=0;i<xideRenameScopeCount(scope);++i)if((owners&(UINT64_C(1)<<i)) && xlsContextEqual(selected,xideRenameScopeAt(scope,i))){found=1;break;}
  return found ? submitReference(store,selected,docs,count,trigger,path,line,character,1,1,scope,NULL,5,&newName) : NULL;
 }
+xide_reference_query* xideProjectReferencesSubmitPrepareRenameAt(xide_project_references* store,
+ xide_rename_scope* scope,xls_context* selected,const xls_analysis_document* docs,size_t count,
+ const char* trigger,const char* path,int line,int character)
+{
+ if(!scope || !selected || !path)return NULL;
+ uint64_t owners=0;if(!xideRenameScopeOwners(scope,path,&owners))return NULL;
+ int found=0;for(size_t i=0;i<xideRenameScopeCount(scope);++i)if((owners&(UINT64_C(1)<<i)) && xlsContextEqual(selected,xideRenameScopeAt(scope,i))){found=1;break;}
+ return found ? submitReference(store,selected,docs,count,trigger,path,line,character,1,1,scope,NULL,6,NULL) : NULL;
+}
 enum xide_reference_query_state xideProjectReferencesResult(xide_reference_query* q,const xvalue** locationsOut,xide_project_reference_stats* stats,char* error,size_t capacity)
 {
  if(locationsOut)*locationsOut=NULL;
@@ -527,6 +542,10 @@ xide_reference_family* xideProjectReferencesRetainFamily(xide_reference_query* q
 {if(xideProjectReferencesResult(q,NULL,NULL,NULL,0)!=XIDE_REFERENCES_READY)return NULL;const reference_output* out=xrtFutureValue(q->future);return xideSemanticReferenceFamilyRetain(out->family);}
 xide_rename_plan* xideProjectReferencesRetainRenamePlan(xide_reference_query* q)
 {if(xideProjectReferencesResult(q,NULL,NULL,NULL,0)!=XIDE_REFERENCES_READY)return NULL;const reference_output* out=xrtFutureValue(q->future);return xideRenamePlanRetain(out->plan);}
+xide_rename_target* xideProjectReferencesRetainPreparedRenameTarget(xide_reference_query* q)
+{if(xideProjectReferencesResult(q,NULL,NULL,NULL,0)!=XIDE_REFERENCES_READY)return NULL;const reference_output* out=xrtFutureValue(q->future);return xideRenameTargetRetain(out->prepareTarget);}
+int xideProjectReferencesPrepareRenameValidate(xide_reference_query* q,int (*cancelled)(void*),void* user,xide_model_error* error)
+{const reference_output* out=xideProjectReferencesResult(q,NULL,NULL,NULL,0)==XIDE_REFERENCES_READY ? xrtFutureValue(q->future) : NULL;return prepareInputsValid(out,cancelled,user,error);}
 #include "services/project_rename_result.inc"
 xvalue* xideProjectReferencesTake(xide_reference_query* q)
 {if(xideProjectReferencesResult(q,NULL,NULL,NULL,0)!=XIDE_REFERENCES_READY)return NULL;reference_output* out=xrtFutureValue(q->future);xvalue* v=out->locations;out->locations=NULL;return v;}

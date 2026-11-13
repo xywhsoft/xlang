@@ -1,5 +1,7 @@
 # 标准重命名协议
 
+后续 M7b6h 已接入[prepareRename](lsp-prepare-rename.md)及客户端协商；下文保留 M7b6g 当时的范围与验收说明。
+
 M7b6g，2026-11-14。原生后端提供 `textDocument/rename` 和布尔能力 `renameProvider: true`。CLI 后端不声明这项能力。`textDocument/prepareRename` 尚未实现，也没有声明 `prepareProvider`；后续将复用原生目标捕获建立轻量检查入口，不通过虚构新名称执行一次完整重命名来代替准备操作。
 
 标准请求使用 `textDocument.uri`、UTF-16 `position` 和 `newName`，支持字符串、零及负整数请求 ID。可选 `workDoneToken` 接受整数或字符串；当前不发送进度通知。未知扩展字段不影响标准请求。原来的 `xlang/renameCandidate` 继续使用严格的私有意图、正整数 ID、输入回执和完整证明，不改变 IDE 的预览、确认与安全写入路径。

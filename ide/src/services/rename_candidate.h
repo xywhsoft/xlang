@@ -29,6 +29,13 @@ xide_rename_candidate_query* xideRenameCandidateSubmit(xide_rename_candidates*,i
 xide_rename_candidate_query* xideRenameStandardSubmit(xide_rename_candidates*,
  const xvalue* id,int documentChanges,const xvalue* params,xide_analysis_catalog*,
  const xls_analysis_document*,size_t);
+/* Same owner/cancel/physical-quiescence contract and scope roster as standard
+ * rename. Return exact native range/placeholder, no full workspace candidate,
+ * no fake newName or lexical fallback. <=64KiB placeholder. Local component
+ * eligibility is preparation only; final rename rechecks every scope/conflict. */
+xide_rename_candidate_query* xideRenamePrepareSubmit(xide_rename_candidates*,
+ const xvalue* id,const xvalue* params,xide_analysis_catalog*,
+ const xls_analysis_document*,size_t);
 int xideRenameCandidateSetWake(xide_rename_candidate_query*,void (*wake)(void*),void*);
 void xideRenameCandidateCancel(xide_rename_candidate_query*);
 void xideRenameCandidateDestroy(xide_rename_candidate_query*);
