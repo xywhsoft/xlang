@@ -682,3 +682,9 @@ XUI 的 `builtinAssetGetName`／`vectorIconGetName` 已复用借用字符串合�
 找到 3,567 函数声明／362 类型；完整来源保存在
 `F:/xlang-validation/xge-full-20261110/surface-cstring-assets-r1/surface.json`，
 数量不表示全量接入完成率。Linux 后继、图集解码／绘制和最终交付仍分别记录。
+
+Linux r25 后继已完成完整 O2／TinyCC／XRT／VFS／内嵌编译器构建，15,084 个
+冻结输入及三份产物复核一致。字符串／真实嵌套编译 17 项、标题 19 项、旧接口
+6 项和源码无关交付 10 项，以及 XUI 资产名称 19 项全部通过。相对 r24，三份
+产物总字节数不变。后继索引为 `foreign-cstring-linux-20261113.json` 和
+`xui-asset-names-linux-20261113.json`；正式 SDK／IDE 尚未替换，全量目标继续。

@@ -1,0 +1,67 @@
+{
+  "date": "2026-11-13",
+  "complete": true,
+  "passed": true,
+  "scope": "Linux full O2 compiler/TCC/XRT/fixed objects/VFS/embedded-source borrowed CString qualification, real nested EXE/shared hosts, getTitle and related text/bytes/source-free regressions.",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "evidence": {
+    "build": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-cstring-linux-full-r25\\build.json",
+      "sha256": "5591c0764fc97f58a997e1e4f67624a539b28cb821d79db725fe4df2fd10010e",
+      "commands": 0
+    },
+    "generic": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\cstring-full-qualification-linux-r1\\cstring\\results.json",
+      "sha256": "3365120c5e0ecd39803edf0f66b2480a1e1f6330e303635c3fdabd2c52f6f234",
+      "commands": 17
+    },
+    "qualification": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\cstring-full-qualification-linux-r1\\results.json",
+      "sha256": "8c2d39649c368d8dda2feb4ceab91b96731d216882c8aa1697d5bea0a96ab415",
+      "commands": 11
+    },
+    "title": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\cstring-full-qualification-linux-r1\\title\\results.json",
+      "sha256": "9ee459db6cb8d8c54e495aef11e16728a73b8515c7fcada6f3a858e27d9ae90c",
+      "commands": 19
+    },
+    "sourceFree": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\cstring-full-qualification-linux-r1\\source-free\\results.json",
+      "sha256": "2c3586405a4b8e1023c4d9c74b5ffbfbe73d8138e85074a5780313740b2d1f94",
+      "commands": 10
+    }
+  },
+  "products": {
+    "xl": {
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-cstring-linux-full-r25/source/release/linux_x64/xl",
+      "sha256": "faa25e49bdf8c5ce8ccdb084810075b406cc6dd499a59577664616eb2a08265b",
+      "bytes": 47224
+    },
+    "libxl.so": {
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-cstring-linux-full-r25/source/release/linux_x64/libxl.so",
+      "sha256": "b9dc5111c1d0e21042876dc30e11acf6045f4dc537905fc8fa65f957a0bbd6af",
+      "bytes": 16513616
+    },
+    "libxlc.so": {
+      "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-cstring-linux-full-r25/source/release/linux_x64/libxlc.so",
+      "sha256": "dd3cc7c34bbf0bb33b2b21c4c02100d33a17c98ed5a9d1bb3fdda349ef2b0ea0",
+      "bytes": 22526800
+    }
+  },
+  "frozenInputs": 15084,
+  "sourceFreeze": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-cstring-linux-full-r25\\freeze.json",
+    "sha256": "2376047484498499fa4d9c8303dae96aa7f6bc11185e04ed9390b6a2c8bd70eb"
+  },
+  "limits": [
+    "Package shared-library initialization remains separate",
+    "No GPU/platform-window certification",
+    "No final SDK/compiler/IDE installation"
+  ],
+  "byteDeltasFromOwnedTextLinuxR24": {
+    "xl": 0,
+    "libxl.so": 0,
+    "libxlc.so": 0
+  }
+}

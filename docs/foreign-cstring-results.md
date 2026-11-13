@@ -53,3 +53,10 @@ also pass. All 13,525 frozen inputs and three products remain unchanged.
 Compared with r31, the CLI is unchanged and each DLL adds 2,048 bytes.
 See `foreign-cstring-windows-20261113.json`; Linux full qualification and final
 installation remain separate.
+
+Linux full O2 r25 subsequently passes the same 17/19/6/10 checks. Its 15,084
+frozen inputs and all products remain unchanged; total executable/shared
+library sizes equal Linux r24. See `foreign-cstring-linux-20261113.json`.
+Both-platform CPU/compiler qualification for this contract is complete;
+package shared initialization, graphics and final installation retain their
+separate gates.
