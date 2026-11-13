@@ -152,7 +152,13 @@ WebView 范例只加载源码中的本地 HTML。它需要启用 WebView2 的 Wi
 
 ## 当前覆盖范围
 
-共 75 个独立入口文件，其中综合画廊可浏览 57 个场景。`icon_picker.xl` 展示 SVG 图标分类与选择；自绘图标／格式化回调仍在接入中。FlowGraphWidget 和 WorkflowWidget 仍缺少可安全使用的数据模型声明，暂不提供空白控件范例；相关缺口保留在覆盖清单中。
+共 78 个独立入口文件，其中现有综合画廊可浏览 57 个场景。图标专题入口包括
+`icon_picker.xl`（分类与格式化）、`icon_memory.xl`（内存 SVG）、
+`icon_custom.xl`（回调期 Painter 自绘）和 `icon_file.xl`（SVG／PNG 文件与批量更新）。
+文件范例附带两份小型 `assets/icon_file.*` 资源；保留 assets 目录，公共窗口助手会
+从范例目录、发布根目录或仓库根目录定位它们。新增接口需要本轮匹配 SDK；最终
+正式发布树仍待统一交付。FlowGraphWidget 和 WorkflowWidget 仍缺少可安全使用的
+完整数据模型声明，相关缺口保留在覆盖清单中。
 
 `asset_names.xl` 不创建窗口或 Context，直接列出内建图集资产和矢量图标名称；
 读取结果为独立文本快照，索引越界返回 null。

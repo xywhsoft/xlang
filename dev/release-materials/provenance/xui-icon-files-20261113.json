@@ -1,0 +1,255 @@
+{
+  "date": "2026-11-13",
+  "qualified": true,
+  "goalComplete": false,
+  "shippingDelivery": false,
+  "compilerChanged": false,
+  "nativeChanged": false,
+  "networkTests": false,
+  "nativeCommit": "a14c83bb62d852d58bd59314a7c8ab9eb8c9ca1a",
+  "scope": "Seven direct declarations for file Icons, category batches/checked clear and Picker visibility/metrics. Same qualified engine and full compiler reused.",
+  "sources": {
+    "lib/bindings/xui/src/icons.xl": "01ec45e2258266b029ebdc8dc5883ed4b90c742e90ba04aabdd4d4afd3ebece3",
+    "lib/bindings/xui/src/managed.xl": "b22ab218fa179c8418e88ac82f02b31973d820c51d437742dfc25631e5e414f7",
+    "lib/bindings/xui/README.md": "36ac8d827a64f7cbd1d19409b809bc0109e1bab5cd8a7673268133cee14a46ab",
+    "lib/bindings/xui/examples/_window.xl": "02233ea36eba47fd1cbf321e36c7eec4eefafe6df39ba8744d0b08eeeb4024a6",
+    "lib/bindings/xui/examples/icon_file.xl": "cb28141a6e2fb88fd5271bcfb36e5002353ed6a73323ce37cc333fa5d88899ea",
+    "lib/bindings/xui/examples/assets/icon_file.svg": "712f3696864d567c842f65dc4b6afd47c446937c75dd4c1bd0ba133827280ad5",
+    "lib/bindings/xui/examples/assets/icon_file.png": "ecbc3c5844d51ca7e56f06366dcc4aac621519ac014253d13292282d0c9b11dd",
+    "lib/bindings/xui/examples/README.md": "10a552f80cecd643f7ac01cead5115be2170ae09f5c281cbd78ba50783a81894",
+    "test/cases/foreign_xui_icon_files.xl": "f930c7c95a40f0080150b646ed0f72e1acdb88dc5689af46f6f12e1d8ff09e87",
+    "test/cases/foreign_xui_icon_files.c": "38d2d84614f2d9592eda81161b94ee0bd408c0d4bc096fd3d92fe49f6ed5caf9",
+    "test/cases/foreign_xui_icon_files.h": "ba3521a1026d4d7f8a6cde71d2f2e887989709ab8fe66572120d0f6ed41abb8e",
+    "tools/check_xui_icon_files.py": "3102dd45988882e03bf3c74a15e017de26f1e9b9bde41dc40bfd1173f766104f",
+    "docs/xui-icon-models.md": "2cf20591f310479c9198c82899c9b4a34bcf1af202f78706b92a2c801bc896c5",
+    "docs/xge3-xui3-full-coverage-plan.md": "abbead547c46619f704ea42c0f996d4301210f201078fce124fccbcaec387ba3"
+  },
+  "platforms": {
+    "win": {
+      "consumer": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\icon-files-language-win-r1\\results.json",
+        "sha256": "2585887a77f543c6ddea1257d1b7bfe5fa9e7b99fc51ff8b670d18c961562ce7",
+        "commands": 22,
+        "programs": [
+          {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\icon-files-language-win-r1\\icon-files-dynamic.exe",
+            "sha256": "e32ec4ccb80b81819abafc0306b372df3e8a99975334555b95549c966a30c7a1",
+            "bytes": 5381632,
+            "imports": [
+              "xge3_host.dll",
+              "msvcrt.dll",
+              "kernel32.dll",
+              "SHELL32.dll",
+              "ws2_32.dll",
+              "IPHLPAPI.dll",
+              "ucrtbase.dll"
+            ]
+          },
+          {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\icon-files-language-win-r1\\icon-files-static.exe",
+            "sha256": "5fb0da74b07bfa0f49bf86cbd49b8fc41f87de09576fc8e8e533c18fc855f48e",
+            "bytes": 2019328,
+            "imports": [
+              "msvcrt.dll",
+              "USER32.dll",
+              "kernel32.dll",
+              "OLEAUT32.dll",
+              "ole32.dll",
+              "SHELL32.dll"
+            ]
+          }
+        ],
+        "heap": [
+          {
+            "mode": "jit",
+            "calls": 4000,
+            "counts": {
+              "language": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              }
+            },
+            "zeroAllocationBudget": true
+          },
+          {
+            "mode": "dynamic",
+            "calls": 4000,
+            "counts": {
+              "language": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              }
+            },
+            "zeroAllocationBudget": true
+          },
+          {
+            "mode": "static",
+            "calls": 4000,
+            "counts": {
+              "language": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              }
+            },
+            "zeroAllocationBudget": true
+          }
+        ]
+      },
+      "stage": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\icon-files-api-win-r1\\results.json",
+        "sha256": "05479b1837ed3e6ddcaf68a97dc9a04403461622e58d65c8fa7c997d38556cf3",
+        "commands": 3,
+        "reused": false
+      },
+      "unchangedNativeProducer": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\custom-icon-sdk-win-r3\\results.json",
+        "sha256": "667a3d25c0e851eb5896c4b9c8b1a7b3e6f684f484c06b3af0e30d68f7eeb280",
+        "commands": 4,
+        "reused": true
+      },
+      "dynamicPackages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\icon-files-api-win-r1\\packages-host.json",
+        "sha256": "b80dbd26a062f8f357841a25760928db59e9cd42cbafad0eb68b9183a505993b"
+      },
+      "staticPackages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\icon-files-api-win-r1\\packages-static.json",
+        "sha256": "f563c4f7e9411468ba291e3c2e03f40bb415f3099acb1daacdb26bea793e849d"
+      }
+    },
+    "linux": {
+      "consumer": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\icon-files-language-linux-r1\\results.json",
+        "sha256": "d5d88a28fc00cbbfaa996413bdde3b774ec6728e14b6033e18a10437b3c75689",
+        "commands": 22,
+        "programs": [
+          {
+            "path": "/mnt/f/xlang-validation/xge-full-20261110/icon-files-language-linux-r1/icon-files-dynamic",
+            "sha256": "6fe796c70fc2b1f43115d3a3312ed84be55014eb498ad72dbdfad8bf6d59ce53",
+            "bytes": 5574299,
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          {
+            "path": "/mnt/f/xlang-validation/xge-full-20261110/icon-files-language-linux-r1/icon-files-static",
+            "sha256": "4a21783e851f42b42337c6854d9275ebba4a5e3bf668869741fe2df332cba8c2",
+            "bytes": 2504960,
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libX11.so.6",
+              "libXi.so.6",
+              "libXcursor.so.1",
+              "libGL.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        ],
+        "heap": [
+          {
+            "mode": "jit",
+            "calls": 4000,
+            "counts": {
+              "language": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              }
+            },
+            "zeroAllocationBudget": true
+          },
+          {
+            "mode": "dynamic",
+            "calls": 4000,
+            "counts": {
+              "language": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              }
+            },
+            "zeroAllocationBudget": true
+          },
+          {
+            "mode": "static",
+            "calls": 4000,
+            "counts": {
+              "language": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              }
+            },
+            "zeroAllocationBudget": true
+          }
+        ]
+      },
+      "stage": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\icon-files-api-linux-r1\\results.json",
+        "sha256": "ea59f9f16642523873a89bed9e0bd932668e5cf3c6db11dfd8a1cf18d68ca8ef",
+        "commands": 3,
+        "reused": false
+      },
+      "unchangedNativeProducer": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\custom-icon-sdk-linux-r3\\results.json",
+        "sha256": "aa4ea30e9597e3837becf9fdaccf86adfda4a697c79ed555d2fe586088a99be1",
+        "commands": 4,
+        "reused": true
+      },
+      "dynamicPackages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\icon-files-api-linux-r1\\packages-host.json",
+        "sha256": "617fb863645caea114517cdc316f62743c9f924121a9efc382b842685550353f"
+      },
+      "staticPackages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\icon-files-api-linux-r1\\packages-static.json",
+        "sha256": "e20074f5ec4c83453281b958ed0cdf5ba777d6b51d1e97ef6d34938870245766"
+      }
+    }
+  },
+  "boundaries": [
+    "CPU backend validates complete UTF-8 path copies and lazy native loader calls, not decoding or image filesystem I/O.",
+    "Graphical file example emitted/header-checked; real window/GPU acceptance remains.",
+    "4000 language/native batch/query calls zero heap; cold registration, native path copy, image decoding and asset lookup retain costs.",
+    "Void native clear failure is carried by actual Context call receipt, including consuming failed-with-NULL Drop.",
+    "Metadata must preserve opaque host pUser; Surface factory must prevent TAKE from consuming a language owner. Not hidden by point placeholders.",
+    "Existing pending generic/native lifetime decisions, broad XGE/XUI/Document work and final matched delivery remain."
+  ]
+}

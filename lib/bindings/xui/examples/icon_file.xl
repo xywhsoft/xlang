@@ -1,0 +1,19 @@
+// 两种文件图标：SVG 圆形与 PNG 方形。图片在第一次绘制时才加载。
+import xui
+from "./_window.xl" import Window
+
+Window.show("从文件加载图标",func(xui.Context ui,xui.Widget root)
+ auto category=xui.createIconCategory(ui,"files",xui.iconCategoryDescDefault())
+ category.beginUpdate()
+ try
+  category.addSvgFile("圆形 SVG",Window.asset("icon_file.svg"))
+  category.addRasterFile("方形 PNG",Window.asset("icon_file.png"))
+ finally
+  category.endUpdate()
+ end
+
+ auto picker=xui.createIconPicker(ui)
+ picker.setCategory(category)
+ picker.setTextMode(xui.XUI_ICON_PICKER_TEXT_DISPLAY_NAME)
+ Window.place(root,picker,24,24,260,48)
+end)

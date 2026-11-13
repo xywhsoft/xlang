@@ -5613,6 +5613,8 @@ export extern "xui_widget_t*" class IconPicker @header("xge3_runtime.h") @lifeti
  extern "xuiIconPickerGetSelectedId" @no_raise func selectedId() as c_uint
  extern "xuiIconPickerGetSelectedIcon" @no_raise @c_result("owner_view",0) func selectedIcon() as Icon?
 
+ extern "xuiIconPickerEnsureVisible" @no_raise @c_result("status",0) func ensureVisible(c_uint id)
+
  extern "xuiIconPickerSetChangeOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setChange(IconPickerChangeProc? onChange)
 
  extern "xuiIconPickerSetFormatterOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0,"owned_text") @c_result("status",0) func setFormatter(IconPickerTextProc? onFormat)
@@ -5656,6 +5658,8 @@ export extern "xui_widget_t*" class IconPicker @header("xge3_runtime.h") @lifeti
  extern "xuiIconPickerIsOpen" @no_raise func isOpen() as c_int
 
  extern "xuiIconPickerSetMetrics" @no_raise @c_result("status",0) func setMetrics(c_float fBorderWidth,c_float fScrollbarSize)
+
+ extern "xuiIconPickerGetMetrics" @no_raise @c_outputs(1,2) @c_status(0) func getMetrics() as (c_float,c_float)
 
  extern "xuiIconPickerSetColors" @no_raise @c_result("status",0) func setColors(c_uint iText,c_uint iPlaceholder,c_uint iDisabledText,c_uint iBackground,c_uint iHoverBackground,c_uint iOpenBackground,c_uint iDisabledBackground)
 

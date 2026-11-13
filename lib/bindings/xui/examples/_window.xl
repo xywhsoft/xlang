@@ -8,6 +8,15 @@ export typedef Build = func(xui.Context,xui.Widget)
 export typedef BuildWithProxy = func(xui.Context,xui.Widget,xui.Proxy)
 
 export class Window
+ // Find bundled lesson assets from the example folder, runtime or source root.
+ static func asset(string name) as string
+  for folder in ["assets","examples/xui/assets","lib/bindings/xui/examples/assets"]
+   auto candidate=path.join(folder,name)
+   if file.exists(candidate) then return path.abs(candidate) end
+  end
+  throw "找不到 XUI 范例资源："+name
+ end
+
  static func rect(int x,int y,int width,int height) as xui.Rect
   auto result=xui.Rect()
   result.fX=c_int(x)

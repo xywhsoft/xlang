@@ -345,3 +345,19 @@ epoch tracking, retained callback bookkeeping and resource capability checks
 still apply. Callback string reads, captures and drawing operations retain
 their own costs. Manual Painter sessions, per-Icon configuration overloads and
 native fixed-array literal construction are separate remaining work.
+
+`IconCategory.addSvgFile(name,path)` and `addRasterFile(name,path)` directly
+register native file sources. Names/paths are checked C strings; native storage
+copies the path and loading remains lazy. Empty paths and embedded NUL are
+rejected. `beginUpdate()`/`endUpdate()` coalesce nested registry changes into
+one native revision update. Balance the pair with `try`/`finally`; an unmatched
+end is a checked error. `clear()` removes the registry owners and expires
+physically deleted Icon views. The enclosing Context scope carries cleanup
+failures even when the original void C entry has no diagnostic object.
+
+`IconPicker.ensureVisible(id)` preserves native invalid-ID rejection;
+`getMetrics()` returns border width and scrollbar size from one native call.
+See `examples/icon_file.xl` and its two bundled assets. The shared asset helper
+accepts the lesson, runtime or source working directory. Metadata updates and
+Surface/resource-source factories still need their complete safe contracts;
+the current language entry does not overwrite opaque host user data.

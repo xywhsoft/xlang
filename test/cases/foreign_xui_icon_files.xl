@@ -1,0 +1,232 @@
+// File sources, category batches, checked clear and typed Picker queries.
+import xui
+from xui import Icon,CallbackIcon,CallbackPainter,CallbackIconDrawDesc
+from "../../lib/bindings/xui/examples/_window.xl" import Window
+extern "fixtureIconFilesProxy" @header("test/cases/foreign_xui_icon_files.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
+extern "fixtureRenderFont" @no_raise @c_result("owned_view") @factory(1,0,dropFont) func cpuFont(xui.Proxy proxy) as xui.Font
+extern "xuiFontReleaseChecked" @no_raise @c_result("status",0) func dropFont(xui.Font value)
+extern "fixtureRenderSurface" @no_raise @c_result("owned_view") @factory(1,0,dropSurface) func cpuSurface(xui.Proxy proxy) as xui.Surface
+extern "xuiSurfaceReleaseChecked" @no_raise @c_result("status",0) func dropSurface(xui.Surface value)
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "fixtureRenderBudget" @no_raise func budget(c_int allowance)
+extern "fixtureIconFilesObserve" @no_raise @c_cstr(1) func observePath(c_int raster,string path)
+extern "fixtureIconFilesLoaded" @no_raise func loaded() as c_int
+extern "fixtureIconFilesHeapBegin" @no_raise func heapBegin()
+extern "fixtureIconFilesHeapUnchanged" @no_raise func heapUnchanged() as c_int
+extern "fixtureIconFilesHeapReport" @no_raise func heapReport(c_int native)
+extern "fixtureIconFilesNativePerformance" @no_raise func nativePerformance(xui.IconCategory category,xui.IconPicker picker)
+extern "fixtureIconFilesFailingIcon" @no_raise @c_result("owner_view",0) @factory(1,0,dropIcon) func failingIcon(xui.IconCategory category) as Icon
+extern "xl6Xui3RollbackIcon" @no_raise func dropIcon(Icon value)
+extern "fixtureIconFilesDropBalanced" @no_raise func dropBalanced() as c_int
+
+func rectangle(c_int x,c_int y,c_int width,c_int height) as xui.Rect
+    xui.Rect value
+    value.fX=x
+    value.fY=y
+    value.fW=width
+    value.fH=height
+    return value
+end
+
+func filesAndBatches()
+    auto proxy=cpuProxy()
+    auto font=cpuFont(proxy)
+    auto target=cpuSurface(proxy)
+    auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    context.setDefaultFont(font)
+    auto root=context.widget()
+    assert root.setRect(rectangle(0,0,640,480))==0 and context.setRootWidget(root)==0
+    auto category=xui.createIconCategory(context,"files",xui.iconCategoryDescDefault())
+    c_uint initial=category.generation
+    string svgPath="目录/矢量图标.svg"
+    string rasterPath="目录/位图图标.png"
+    observePath(0,svgPath)
+    observePath(1,rasterPath)
+    category.beginUpdate()
+    category.beginUpdate()
+    auto svg=category.addSvgFile("svg",svgPath)
+    auto raster=category.addRasterFile("raster",rasterPath)
+    assert category.generation==initial and category.count==2
+    category.endUpdate()
+    assert category.generation==initial
+    category.endUpdate()
+    assert category.generation==initial+1
+    bool rejected=false
+    try
+        category.endUpdate()
+    catch error
+        rejected=true
+    end
+    assert rejected
+    svg.prepare(16,16)
+    assert raster.intrinsicSize().fX==8
+    assert loaded()==1
+    auto picker=xui.createIconPicker(context)
+    picker.setCategory(category)
+    picker.setSelectedId(svg.id)
+    picker.setMetrics(2,6)
+    auto border,scrollbar=picker.getMetrics()
+    assert border==c_float(2) and scrollbar==c_float(6)
+    assert picker.setRect(rectangle(24,24,220,40))==0 and root.addChild(picker)==0
+    assert context.layout()==0 and context.update(0.016)==0
+    picker.ensureVisible(svg.id)
+    context.render(target)
+    picker.setSelectedId(raster.id)
+    context.render(target)
+    rejected=false
+    try
+        picker.ensureVisible(c_uint(0xFFFFFFFF))
+    catch error
+        rejected=true
+    end
+    assert rejected
+    // Clear expires registry views; the Picker keeps the empty Category alive.
+    category.clear()
+    assert category.count==0
+    rejected=false
+    try
+        auto expired=svg.name
+    catch error
+        rejected=true
+    end
+    assert rejected
+    heapBegin()
+    budget(0)
+    try
+        int count=0
+        while count<1000
+            category.beginUpdate()
+            category.endUpdate()
+            category.clear()
+            auto width,scroll=picker.getMetrics()
+            assert width==c_float(2) and scroll==c_float(6)
+            count+=1
+        end
+    finally
+        budget(-1)
+    end
+    assert heapUnchanged()==1
+    heapReport(0)
+    heapBegin()
+    budget(0)
+    try
+        nativePerformance(category,picker)
+    finally
+        budget(-1)
+    end
+    assert heapUnchanged()==1
+    heapReport(1)
+    // No failed file factory may leave a published registry entry.
+    int rasterSource=0
+    while rasterSource<2
+        int allowance=0
+        while allowance<32
+            Icon? created=null
+            budget(c_int(allowance))
+            try
+                if rasterSource==0
+                    created=category.addSvgFile("oom",svgPath)
+                else
+                    created=category.addRasterFile("oom",rasterPath)
+                end
+            catch error
+                assert created==null
+            finally
+                budget(-1)
+            end
+            if created!=null
+                assert (created as Icon).unregister()
+                created=null
+            end
+            assert category.find("oom")==null and category.count==0
+            allowance+=1
+        end
+        rasterSource+=1
+    end
+    rejected=false
+    try
+        category.addSvgFile("nul","prefix\0suffix.svg")
+    catch error
+        rejected=true
+    end
+    assert rejected and category.count==0
+    rejected=false
+    try
+        category.addRasterFile("empty","")
+    catch error
+        rejected=true
+    end
+    assert rejected and category.count==0
+    context.close()
+    target.close()
+    font.close()
+    proxy.close()
+    assert balanced()==1
+end
+
+func clearOutcome(int mode)
+    auto proxy=cpuProxy()
+    auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto category=xui.createIconCategory(context,"clear",xui.iconCategoryDescDefault())
+    int destroyed=0
+    auto icon=category.addCustom("custom",func(CallbackIcon selected,CallbackPainter painter,xui.Rect rect,CallbackIconDrawDesc? style) as c_int
+        return 0
+    end,null,null,func(CallbackIcon selected)
+        destroyed+=1
+        if mode==1
+            assert category.unregister()
+        elseif mode==2
+            context.close()
+        elseif mode==3
+            throw "clear destructor failure"
+        elseif mode==4
+            budget(0)
+            throw "clear destructor failure without allocation"
+        end
+    end)
+    bool rejected=false
+    try
+        category.clear()
+    catch error
+        rejected=true
+    finally
+        budget(-1)
+    end
+    assert destroyed==1 and rejected==(mode>=3)
+    context.close()
+    proxy.close()
+    assert balanced()==1
+end
+
+func nativeDropFailure()
+    auto proxy=cpuProxy()
+    auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto category=xui.createIconCategory(context,"failed-drop",xui.iconCategoryDescDefault())
+    auto icon=failingIcon(category)
+    bool rejected=false
+    try
+        category.clear()
+    catch error
+        rejected=true
+    end
+    assert rejected and category.count==0 and dropBalanced()==1
+    context.close()
+    proxy.close()
+    assert balanced()==1
+end
+
+func main(...) as int
+    assert file.exists(Window.asset("icon_file.svg"))
+    assert file.exists(Window.asset("icon_file.png"))
+    filesAndBatches()
+    int mode=0
+    while mode<5
+        clearOutcome(mode)
+        mode+=1
+    end
+    nativeDropFailure()
+    println("Icon files: retained UTF-8 paths, batches, typed metrics, 4000 zero-heap calls and 64 OOM budgets passed")
+    println("Icon clear: callback reentry, consuming Drop without a diagnostic, and OOM errors passed")
+    return 0
+end

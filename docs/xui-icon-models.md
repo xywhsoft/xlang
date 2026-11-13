@@ -310,3 +310,43 @@ Painter ownership, per-Icon configuration overloads, generic fixed-array
 literal construction, active cache-reader snapshots, module/global callback
 cycles, remaining XGE/XUI/Document APIs and final delivery remain work in the
 full goal. This batch does not claim a completed zero-overhead binding.
+
+## File sources, category batches and checked clear
+
+Seven additional declarations reuse the same native SDK and existing generic
+contracts: SVG/raster file factories, category begin/end update and clear,
+Picker ensureVisible and the two-float metrics query. File sources retain an
+independent path copy, and native loading stays lazy. The owned CPU provider
+checks the full UTF-8 path bytes and a distinct native path address. It tests
+dispatch and ownership, not image decoder correctness or actual image I/O.
+
+Nested begin/end updates defer the revision until the outer end. A failed
+factory leaves no registry entry. Empty/NUL paths and unmatched ends reject;
+the 64 file-factory OOM budgets include result publication rollback. Clear
+removes registry owners and invalidates physically deleted views. Language
+Context call receipts also preserve a consuming native Drop failure with no
+diagnostic, although the legacy C clear function returns void. Reentrant
+category unregister/Context close, throwing destructors and diagnostic OOM
+are checked separately. No per-method clear wrapper or guessed success status
+was introduced.
+
+The matched full compilers pass 22 checks on each platform: C11/C++11/C++17
+headers, provider O0/O2 syntax, JIT and independent dynamic/static programs,
+imports, and asset resolution from source, lesson and deployed runtime roots.
+The SVG/PNG resources are copied and hash-checked in both SDK variants; the
+108-byte PNG is a 32x32 RGBA square. The graphical learning example is emitted,
+not window-executed by this CPU gate. Actual image rendering still belongs
+to the full real-backend acceptance.
+
+1000 rounds of begin/end/empty clear/metrics execute 4000 direct calls in both
+language and C paths under zero-allocation budgets with unchanged XRT counters.
+This excludes file registration/loading, native string copies, cold language
+controls and asset path lookup. It does not equate CPU time or synchronization.
+`xui-icon-files-20261113.json` pins the unchanged engine, staged packages and
+consumer evidence. The final runtime tree has not been replaced.
+
+Metadata remains under review: `xui_icon_desc_t` includes opaque native pUser.
+A language-only text/flag update must not silently reset a host pointer.
+Likewise Surface factories must not expose TAKE_OWNERSHIP against a reference
+still held by the language. These remain real gaps; no raw-pointer placeholder
+or duplicate business implementation has been published to hide them.
