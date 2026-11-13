@@ -14,7 +14,11 @@ static int draftResult(xide_reference_query* q,int ready,const char* reason,int 
   CHECK(stats.renameRechecks>=4 && stats.renameUnchanged>=1 && stats.renameSources>=5 && stats.renameReferences>=5);
   xide_rename_plan* plan=xideProjectReferencesRetainRenamePlan(q);xide_rename_plan_info info;CHECK(plan && xideRenamePlanInfo(plan,&info) && info.documents==5 && info.edits==5);size_t overlays=0,boms=0;
   for(size_t i=0;i<info.documents;++i){xide_rename_plan_document d;CHECK(xideRenamePlanDocumentAt(plan,i,&d) && d.count==1 && strstr(d.before.Data,"compute") && !strstr(d.after.Data,"compute") && strstr(d.after.Data,"renamed_😀"));if(d.hasVersion){++overlays;CHECK(d.version==INT_MAX && d.coordinatePrefix==1);}if(d.before.Size>=3 && !memcmp(d.before.Data,"\xef\xbb\xbf",3)){++boms;CHECK(d.after.Size>=3 && !memcmp(d.after.Data,"\xef\xbb\xbf",3));}xide_rename_plan_edit e;size_t mapped;CHECK(xideRenamePlanEditAt(plan,d.first,&e) && xideRenamePlanMapOffset(plan,i,(size_t)e.start.offset,&mapped) && mapped==e.afterStart);}
-  CHECK(overlays==1 && boms==2);xvalue* wire=xideRenamePlanWorkspaceEdit(plan,1,NULL,NULL);CHECK(wire && xrtValueCount(testGet(wire,"documentChanges"))==5);xrtValueRelease(wire);if(keep)*keep=plan;else xideRenamePlanRelease(plan);
+  CHECK(overlays==1 && boms==2);xvalue* wire=xideRenamePlanWorkspaceEdit(plan,1,NULL,NULL);CHECK(wire && xrtValueCount(testGet(wire,"documentChanges"))==5);xrtValueRelease(wire);
+#ifdef XIDE_RENAME_PLAN_READY_TEST
+  CHECK(XIDE_RENAME_PLAN_READY_TEST(q));
+#endif
+  if(keep)*keep=plan;else xideRenamePlanRelease(plan);
  }
  xideProjectReferencesQueryDestroy(q);return 1;
 }

@@ -515,6 +515,7 @@ xide_reference_family* xideProjectReferencesRetainFamily(xide_reference_query* q
 {if(xideProjectReferencesResult(q,NULL,NULL,NULL,0)!=XIDE_REFERENCES_READY)return NULL;const reference_output* out=xrtFutureValue(q->future);return xideSemanticReferenceFamilyRetain(out->family);}
 xide_rename_plan* xideProjectReferencesRetainRenamePlan(xide_reference_query* q)
 {if(xideProjectReferencesResult(q,NULL,NULL,NULL,0)!=XIDE_REFERENCES_READY)return NULL;const reference_output* out=xrtFutureValue(q->future);return xideRenamePlanRetain(out->plan);}
+#include "services/project_rename_result.inc"
 xvalue* xideProjectReferencesTake(xide_reference_query* q)
 {if(xideProjectReferencesResult(q,NULL,NULL,NULL,0)!=XIDE_REFERENCES_READY)return NULL;reference_output* out=xrtFutureValue(q->future);xvalue* v=out->locations;out->locations=NULL;return v;}
 static void wakeQuery(void* user){xide_reference_query* q=user;q->wake(q->user);}

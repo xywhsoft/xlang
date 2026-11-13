@@ -14,6 +14,7 @@
 #include "services/language_check_internal.h"
 #ifdef XLS_COMPILER_XRT
 #include "analysis/frontend_context.h"
+#include "protocol/analysis_context_wire.h"
 #endif
 static xstrview sv(const char* s) { return (xstrview){s,strlen(s)}; }
 static xvalue* get(const xvalue* o,const char* k) { return o ? xrtValueObjectGet(o,sv(k)) : NULL; }
@@ -283,6 +284,24 @@ const xvalue* xideLanguageInputGuardFiles(const xide_language_input_guard* guard
 #ifdef XLS_COMPILER_XRT
 const xvalue* xideLanguageInputGuardProbes(const xide_language_input_guard* guard)
 { return guard ? get(guard->resolution,"probes") : NULL; }
+typedef struct guard_export_charge {size_t bytes,limit;int (*stopped)(void*);void* user;} guard_export_charge;
+static bool guardExportCharge(xbytesview bytes,void* user)
+{guard_export_charge* q=user;if((q->stopped && q->stopped(q->user)) || bytes.Size>q->limit-q->bytes)return false;q->bytes+=bytes.Size;return true;}
+xvalue* xideLanguageInputGuardExport(const xide_language_input_guard* guard,size_t budget,int (*stopped)(void*),void* user,xide_model_error* error)
+{
+ const size_t limit=XIDE_LSP_BODY_BYTES-1024u*1024u;if(!budget)budget=limit;
+ if(budget>limit || !guard || !guard->nativeBackend || !guard->context || !xideLanguageInputGuardCurrent(guard) || (stopped && stopped(user))){fail(error,"No current explicit native input proof is available.");return NULL;}
+ xvalue *out=xrtValueObject(),*context=xideAnalysisContextWrite(guard->context);guard_export_charge size={0,budget,stopped,user};
+ xjsonwriteconfig config;xrtJsonWriteConfigInit(&config);config.MaxOutputBytes=budget;
+ /* Preflight borrowed reports before cloning. The final envelope is charged
+  * too; independent DOM ownership never exposes the producer's mutable values. */
+ int okay=out && context && xrtJsonWrite(context,&config,guardExportCharge,&size) && xrtJsonWrite(guard->files,&config,guardExportCharge,&size) && xrtJsonWrite(guard->resolution,&config,guardExportCharge,&size);
+ if(okay)okay=put(out,"schema",xrtValueInt(1));
+ if(okay){okay=put(out,"context",context);context=NULL;}
+ okay=okay && put(out,"files",xrtValueDeepClone(guard->files)) && put(out,"resolution",xrtValueDeepClone(guard->resolution));
+ size.bytes=0;okay=okay && xrtJsonWrite(out,&config,guardExportCharge,&size) && xideLanguageInputGuardCurrent(guard) && !(stopped && stopped(user));
+ xrtValueRelease(context);if(!okay){xrtValueRelease(out);out=NULL;fail(error,"Native input proof export was cancelled or exceeded encoding/allocation limits.");}return out;
+}
 #endif
 int xideLanguageInputGuardSameContext(const xide_language_input_guard* left,const xide_language_input_guard* right)
 {

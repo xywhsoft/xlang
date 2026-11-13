@@ -124,6 +124,16 @@ xide_reference_query* xideProjectReferencesSubmitFamilyReferences(xide_project_r
 xide_reference_query* xideProjectReferencesSubmitRenamePlan(xide_project_references*,
  xide_rename_scope*,xide_rename_target*,const xls_analysis_document*,size_t,const char* trigger,xstrview newName);
 xide_rename_plan* xideProjectReferencesRetainRenamePlan(xide_reference_query*);
+/* Worker-only full candidate envelope: schema1,workspaceEdit,inputGuards,
+ * scopeCount. Export EVERY contributing guard, including zero-target scopes,
+ * then revalidate all originals after final encoding. Exact unknown report
+ * fields and explicit contexts survive. Default/max7MiB aggregate wire limit;
+ * DOM/codec/allocator and the retained query/plan are additional memory.
+ * Caller keeps query alive and excludes Take/Destroy during the call. The
+ * owned result survives all original owners. No transport/request binding,
+ * client overlay/configuration freshness, consent or write permission. */
+xvalue* xideProjectReferencesRenameResult(xide_reference_query*,size_t,
+ int (*cancelled)(void*),void*,xide_model_error*);
 enum xide_reference_query_state xideProjectReferencesResult(xide_reference_query* query,
  const xvalue** locations,xide_project_reference_stats* stats,char* error,size_t capacity);
 xvalue* xideProjectReferencesTake(xide_reference_query* query);

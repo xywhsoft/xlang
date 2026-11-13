@@ -1,0 +1,141 @@
+{
+  "schema": 1,
+  "date": "2026-11-13",
+  "stage": "M7b5t",
+  "scope": "Worker-only complete native rename candidate/input proof export with final source revalidation and aggregate wire admission",
+  "implementationAccepted": true,
+  "goalComplete": false,
+  "performanceQualified": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "cb8f55927b378f7f1b473e133ea6835308e27385",
+  "ownedSources": {
+    "ide/src/services/language_check.h": "f5c4a05d0e1233bdc8026cfeb769c0dc29c98c7297478aea9201682946f4cb0d",
+    "ide/src/services/language_check.c": "23636caab9f96b8f13a60ed178334427d3e9ccfc5b3bf00c528507c8e22795fb",
+    "ide/src/services/project_references.h": "568ea234b475278d38ae9659503c2060da38cdcee26736e1fa31632675245993",
+    "ide/src/services/project_references.c": "5ec5c9d9bd63b5b285932c6a2d74c3c7f2d525dceb7bfccc193d26b10a8a8999",
+    "ide/src/services/project_rename_result.inc": "9a256c43d19d2f6c46bfde63f8f4c0e5314f4807ba329daeac1e38cadeaaaf66",
+    "ide/tests/project_rename_plan_test.c": "404ca884a7cf361ef138c684b0d885c5ac9527885d05b49366ce44e296c2a88e",
+    "ide/tests/project_rename_result_test.c": "12dd1be70dcf49a03590c5710a1fb6390e70b1134ea519f92e8a6096a1f8f16b",
+    "ide/tools/build_lsp_core.py": "df60ad5a1dabbbc9b4a12ab44b52e212614464aece2a663287aba1cadf0ace81",
+    "ide/docs/lsp-rename-input-export.md": "e52e7a0bbcf4fc1076a8d3a983507b456db626ce340cb232c2332599a50c51a9"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-rename-input-export-20261113.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-rename-input-export-20261113/stage-sources.tar.gz",
+      "sha256": "34f346f738371d6316405cabff32310d3e3ec985cb2323554b3edcec915ae776",
+      "bytes": 83664,
+      "entries": 10,
+      "uniquePayloads": 10,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-rename-input-export-20261113/stage-sources.tar.gz.manifest.json",
+      "sha256": "a9f0658daa280540bfa172face58fa619a51968de450df110b4937f742925181",
+      "bytes": 2340
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-rename-input-export-20261113/actual-builds-and-validation.tar.gz",
+      "sha256": "06209a349fc040913bc848f310b777d3d6c7e1d319184d5c8c4f0fd216061c7d",
+      "bytes": 205770347,
+      "entries": 7527,
+      "uniquePayloads": 4130,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-rename-input-export-20261113/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "8b3dc0afbdbf6b2cba6a68cc8d1aa945819febeffa47331dc2ff0c28d52fd704",
+      "bytes": 2887350
+    }
+  },
+  "currentBindings": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-rename-input-export-20261113\\final-bindings.json",
+    "sha256": "ad62b01bc79b83663c25493853614cfc101a6314665788c2659623491a2ea8fe"
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "sdkInherited": {
+    "index": "dev/release-materials/provenance/lsp-dpi-startup-20261112.json",
+    "indexSha256": "727ae55e191b104683a756dbe85a03f0add12ed40e60c4d6166face2f50f4e5d",
+    "dllSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "compiledUnitsThisStage": 0,
+    "matchedSetPreserved": true
+  },
+  "nativeService": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-rename-input-export-20261113\\native-v1\\xlang-ls.exe",
+    "sha256": "ae78ccfd3b9c0f621a6cfb40101b1c7aef6ed7aa8a09f4158152aac82fc37d34",
+    "compilationUnits": 109,
+    "archiveMembers": 72,
+    "allArchiveMembersMatchNewObjects": true,
+    "allPublicHeaderConsumersRebuilt": true,
+    "compilerAssetsInherited": true
+  },
+  "correctness": {
+    "candidateAssertions": 656,
+    "existing130FileCandidateAssertions": 418,
+    "nativeInputGuardAssertions": 104,
+    "nativeInputConcurrentValidations": 320,
+    "sourceReportAssertions": 4508,
+    "guiProductionUnits": 128,
+    "guiRegressionSuites": 55,
+    "protocolSuites": 3,
+    "protocolCases": 50,
+    "rejectedMutants": 4,
+    "observedTopLevelCloneFailures": 19,
+    "observedConsumingInsertionFailures": 248,
+    "actualFourScopeCandidate": true,
+    "zeroTargetScopeAndAbsentProbesExported": true,
+    "completeContextAndReportFields": true,
+    "exactSingleAndAggregateEncodingBounds": true,
+    "returnedNestedDomCannotMutateGuards": true,
+    "independentResultSurvivesAllOriginalOwners": true,
+    "cancellationDoesNotPoisonGuards": true,
+    "sameBytePhysicalReplacementDuringEncodingRejected": true,
+    "actualCAndXlangTypingDeleteUndoImeFocus": true,
+    "actualGuiFramesEach": 24,
+    "currentProductionAndActualDependenciesBound": true,
+    "shortPathFixtureFilesRetained": 586,
+    "allRuntimeTestAliasesRemoved": true,
+    "userTemporaryDirectoriesPreserved": true,
+    "rawFailedAttemptsPreserved": true
+  },
+  "externalHelper": {
+    "proxy": {
+      "archive": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\lsp-completion-error-isolation-20261112\\actual-builds-and-validation.tar.gz",
+      "entry": "bound-inputs/20c68dabd23c25637a08/xui_test_proxy.c",
+      "sha256": "740c86aee90b1373324909c74d3ae6c9f446b0c52c84c3ea84cea141c53bdc48"
+    },
+    "header": {
+      "repository": "D:/GIT/xge",
+      "commit": "1ba93e6b3ea49e80d9d821894811caef599634f3",
+      "path": "tests/xui/xui_test_proxy.h",
+      "sha256": "b42cd48cd68966d969575f717ade56f357dacbcabce746730c9bfb275dd0a80a"
+    },
+    "liveXgeUnmodified": true
+  },
+  "evidenceNotes": [
+    "Native rebuild109 compilation units includes the accepted native core/host cohort and two pre-existing auxiliary fixture objects. Every archive member is compared byte-for-byte with its newly compiled object; all actual source/header dependencies are bound. No reuse of older consumer objects across the public API addition.",
+    "The compiler assets/compatibility fixes remain the previously accepted pinned cohort; latest engine alignment is a separate outstanding gate. SDK bytes are inherited and unchanged; GUI128 units are rebuilt against the same new service.",
+    "The first archive verifier compared ar.exe p stdout, which converts binary LF through Windows text mode. Its failed script and observed member sizes/digests remain. Final verifier reads raw archive headers and payloads, resolves GNU long names and compares every unmodified payload with the new object; no binary normalization is used.",
+    "focused-v1 preserves an actual compile failure caused by assuming a one-argument XRT JSON stringify function. Final fixtures use the authoritative three-argument API. focused-v2 passes386 candidate checks; final focused-v3 adds19 top-level clone and248 consuming insertion fault boundaries and passes656 checks, plus418 existing candidate rechecks.",
+    "Final test fixture is newer than frozen native/GUI test snapshots; production is unchanged. Exact focused-v3 fixture/include closure is separately retained and used by all four rejected mutants. Consuming insertion faults release the passed owned value according to the XRT API contract.",
+    "Ordinary analysis/reference/completion does not eagerly invoke export. Serialization deep-copies metadata and uses the existing final streaming input guard; no whole-service latency, memory/RSS or exhaustive allocator OOM qualification is claimed."
+  ],
+  "limits": [
+    "This is a candidate data boundary, not transport request binding, IDE source/configuration approval, a source lock or write permission. Standard rename/applyEdit remains gated.",
+    "7MiB is a serialized payload bound for the whole envelope, not per proof and not a heap/RSS bound. DOM/context/codec/allocator and coexisting query/plan/temporary data are additional.",
+    "File guards are observed sequentially after encoding, not an atomic cross-file snapshot. Host barriers, cached-reader quiescence and physical publication/rollback policies remain necessary.",
+    "Full source-proof decoder and request/method/ID/token binding, complete transaction host/controller, consent/recovery UI and startup replay, remaining synchronous readers and final delivery remain open.",
+    "Whole-goal performance/resource/longevity, latest engine alignment, compiler deep unprefixed xlp path and analysis-configuration cache-count regression remain open.",
+    "C LSP remains disabled. No DAP/debug/runtime completion and no Linux/sanitizer qualification in this stage."
+  ],
+  "postCommitReceipt": "dev/release-materials/provenance/lsp-rename-input-export-20261113/postcommit.json"
+}

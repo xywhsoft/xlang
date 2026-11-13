@@ -224,6 +224,14 @@ const xvalue* xideLanguageInputGuardFiles(const xide_language_input_guard* guard
    Same lifetime as Files;no sorting,canonicalization,allocation or I/O. Native
    reverse indexing applies the existing lexical policy and owns its keys. */
 const xvalue* xideLanguageInputGuardProbes(const xide_language_input_guard* guard);
+/* Worker-only native proof export. Own a deep-independent schema1 DOM with
+ * the complete explicit context, actual file reports and resolution report,
+ * including unknown future report fields. No source bodies, filesystem work,
+ * freshness or host/request authority. Current explicit native guards only.
+ * Default/max7MiB serialized output; DOM/codec/allocator overhead is extra.
+ * Cancellation or allocation/size failure returns no partial proof. */
+xvalue* xideLanguageInputGuardExport(const xide_language_input_guard*,size_t,
+ int (*cancelled)(void*),void*,xide_model_error*);
 #endif
 /* Immutable semantic scope equality, without I/O or allocation. Distinct
    explicit contexts must not contribute to one file's merged diagnostics.
