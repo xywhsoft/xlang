@@ -26,7 +26,7 @@ def main():
         key=lambda x:(x['uri'],x['range']['start']['line'],x['range']['start']['character'])
         assert sorted(actual,key=key)==sorted(expected,key=key),(needle,actual,expected)
     try:
-        c.send('initialize',dict(capabilities={},initializationOptions=dict(automaticDiagnostics=False,checkOnSave=False,backgroundWorkspaceSymbols=False)),1);reply,_=c.reply(1);assert 'error'not in reply;assert 'renameProvider'not in reply['result']['capabilities'];c.send('initialized',{})
+        c.send('initialize',dict(capabilities={},initializationOptions=dict(automaticDiagnostics=False,checkOnSave=False,backgroundWorkspaceSymbols=False)),1);reply,_=c.reply(1);assert 'error'not in reply;assert reply['result']['capabilities']['renameProvider'] is True;c.send('initialized',{})
         c.open(entry,source,version);c.open(dep,lib,1);assert check()['ok']
         get=loc(dep,lib,lib.index('get '+name+'()')+4,name);indexGet=loc(dep,lib,lib.index('get '+name+'(int index)')+4,name)
         let=loc(dep,lib,lib.index('let '+name+'(int value)')+4,name);indexLet=loc(dep,lib,lib.index('let '+name+'(int index,')+4,name)

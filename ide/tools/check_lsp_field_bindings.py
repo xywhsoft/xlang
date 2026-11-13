@@ -33,7 +33,7 @@ def main():
         caps=dict(textDocument=dict(documentSymbol=dict(hierarchicalDocumentSymbolSupport=True)))
         c.send('initialize',dict(capabilities=caps,initializationOptions=dict(automaticDiagnostics=False,checkOnSave=False,backgroundWorkspaceSymbols=False)),1)
         reply,_=c.reply(1);assert 'error'not in reply,reply
-        assert 'renameProvider'not in reply['result']['capabilities']
+        assert reply['result']['capabilities']['renameProvider'] is True
         c.send('initialized',{})
         lib='\ufeffexport class Box\r\n int 😀值\r\nend\r\nexport class Other\r\n int 😀值\r\nend\r\n'
         source='\ufeffimport dep\r\nfunc main(...) as int\r\n auto box=dep.Box()\r\n auto other=dep.Other()\r\n box.😀值=3\r\n string text="😀"; return box.😀值+other.😀值\r\nend\r\n'

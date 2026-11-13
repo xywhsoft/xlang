@@ -140,20 +140,22 @@ int xideRenamePlanMapOffset(const xide_rename_plan* p,size_t document,size_t off
 }
 static int planPut(xvalue* value,const char* key,xvalue* child){return child && xrtValueObjectSetNew(value,xrtStrView(key),child);}
 static xvalue* planPosition(xide_lsp_position position){xvalue* p=xrtValueObject();if(p && planPut(p,"line",xrtValueInt(position.line)) && planPut(p,"character",xrtValueInt(position.character)))return p;xrtValueRelease(p);return NULL;}
-xvalue* xideRenamePlanWorkspaceEdit(const xide_rename_plan* p,int inputProof,int (*cancelled)(void*),void* user)
+xvalue* xideRenamePlanWorkspaceEditFormat(const xide_rename_plan* p,int documentChanges,int inputProof,int (*cancelled)(void*),void* user)
 {
- if(!p || (inputProof!=0 && inputProof!=1))return NULL;
- plan_stop stop={cancelled,user,0};xvalue *result=xrtValueObject(),*documents=xrtValueArray();int okay=result && documents;
+ if(!p || (documentChanges!=0 && documentChanges!=1) || (inputProof!=0 && inputProof!=1) || (inputProof && !documentChanges))return NULL;
+ plan_stop stop={cancelled,user,0};xvalue *result=xrtValueObject(),*documents=documentChanges ? xrtValueArray() : xrtValueObject();int okay=result && documents;
  plan_count admission={0,7u*1024u*1024u,&stop};xjsonwriteconfig limits;xrtJsonWriteConfigInit(&limits);limits.MaxOutputBytes=admission.limit;
  for(size_t i=0;okay && i<p->info.documents;++i){
   if(planStopped(&stop)){okay=0;break;}
   const xide_rename_plan_document* d=&p->documents[i].view;xvalue *row=xrtValueObject(),*document=xrtValueObject(),*changes=xrtValueArray();okay=row && document && changes && planPut(document,"uri",xrtValueString(xrtStrView(d->uri))) && planPut(document,"version",d->hasVersion ? xrtValueInt(d->version) : xrtValueNull()) && xrtJsonWrite(document,&limits,planCount,&admission);
   for(size_t j=0;okay && j<d->count;++j){if(planStopped(&stop)){okay=0;break;}const xide_rename_plan_edit* e=p->edits+d->first+j;xvalue *change=xrtValueObject(),*range=xrtValueObject();okay=change && range && planPut(range,"start",planPosition(e->start)) && planPut(range,"end",planPosition(e->end));if(okay){okay=planPut(change,"range",range);range=NULL;}if(okay)okay=planPut(change,"newText",xrtValueString(p->replacement)) && xrtJsonWrite(change,&limits,planCount,&admission);if(okay){okay=xrtValueArrayAppendNew(changes,change);change=NULL;}xrtValueRelease(range);xrtValueRelease(change);}
-  if(okay){okay=planPut(row,"textDocument",document);document=NULL;}if(okay){okay=planPut(row,"edits",changes);changes=NULL;}
+  if(okay && documentChanges){okay=planPut(row,"textDocument",document);document=NULL;}if(okay && documentChanges){okay=planPut(row,"edits",changes);changes=NULL;}
   if(okay && inputProof){okay=xrtJsonWrite(d->proof,&limits,planCount,&admission);xvalue* proof=okay ? xrtValueObject() : NULL;okay=okay && proof && planPut(proof,"schema",xrtValueInt(1)) && planPut(proof,"document",xrtValueDeepClone(d->proof));if(okay){okay=planPut(row,"xlang",proof);proof=NULL;}xrtValueRelease(proof);}
-  if(okay){okay=xrtValueArrayAppendNew(documents,row);row=NULL;}xrtValueRelease(row);xrtValueRelease(document);xrtValueRelease(changes);
+  if(okay){if(documentChanges){okay=xrtValueArrayAppendNew(documents,row);row=NULL;}else{okay=planPut(documents,d->uri,changes);changes=NULL;}}xrtValueRelease(row);xrtValueRelease(document);xrtValueRelease(changes);
  }
- if(okay){okay=planPut(result,"documentChanges",documents);documents=NULL;}xrtValueRelease(documents);
+ if(okay){okay=planPut(result,documentChanges ? "documentChanges" : "changes",documents);documents=NULL;}xrtValueRelease(documents);
  plan_count bytes={0,7u*1024u*1024u,&stop};xjsonwriteconfig config;xrtJsonWriteConfigInit(&config);config.MaxOutputBytes=bytes.limit;if(okay)okay=xrtJsonWrite(result,&config,planCount,&bytes);if(!okay || planStopped(&stop)){xrtValueRelease(result);result=NULL;}return result;
 }
+xvalue* xideRenamePlanWorkspaceEdit(const xide_rename_plan* p,int inputProof,int (*cancelled)(void*),void* user)
+{return xideRenamePlanWorkspaceEditFormat(p,1,inputProof,cancelled,user);}
 #endif

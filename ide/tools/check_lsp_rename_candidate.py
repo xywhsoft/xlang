@@ -71,7 +71,7 @@ def main():
         reply, _ = c.reply(1)
         caps = reply['result']['capabilities']
         assert caps['experimental']['renameCandidate'] == (1 if backend == 'native' else 0), caps
-        assert not caps.get('renameProvider'), caps
+        assert bool(caps.get('renameProvider')) == (backend == 'native'), caps
         c.send('initialized', {})
         if config is not None:
             call(c, 'xlang/configureAnalysis', dict(epoch=1, catalog=config))
@@ -151,8 +151,9 @@ def main():
             c.send('xlang/renameCandidate', p, invalid_id)
             assert c.reply(invalid_id)[0].get('error', {}).get('code') == -32602
         done('custom-candidate-method-requires-positive-integer-id')
-        call(c, 'textDocument/rename', p, -32601)
-        done('standard-rename-remains-unadvertised-and-unimplemented')
+        standard = call(c, 'textDocument/rename', p)
+        assert set(standard) == {'changes'} and len(standard['changes']) == 4, standard
+        done('standard-rename-uses-server-scope-without-native-proof-envelope')
         c.open(paths['standalone'], bodies['standalone'], 2147483647)
         omitted = intent(c, roots=[], count=3)
         call(c, 'xlang/renameCandidate', omitted, -32602)

@@ -80,6 +80,7 @@ typedef struct server {
  xls_module_store* modules;
  xide_project_references* references;
  xide_rename_candidates* renames;
+ int renameDocumentChanges,renameWorkspaceScope,renameWorkspaceDirty;
  struct {xide_rename_candidate_query* query;xvalue* id;int document,version;unsigned long long identity,serial;int64 epoch;} renameRequests[4];
  struct {xide_reference_query* query;xvalue* id;int document,version;unsigned long long identity,serial;int64 epoch;} referenceRequests[8];
  xide_project_reference_stats referenceStats;
@@ -520,7 +521,7 @@ static int receive(const xvalue* value,void* user)
  server* s=user; message* m=calloc(1,sizeof(*m)); size_t n=0; char* encoded=xrtJsonStringify(value,false,&n); xrtFree(encoded);
  if(!m || !n || !(m->value=xrtValueDeepClone(value))) { if(m) { xrtValueRelease(m->value); free(m); } return 0; } m->size=n;
  const char* method=string(get(m->value,"method"));
- m->input=method && (!strcmp(method,"textDocument/didOpen") || !strcmp(method,"textDocument/didChange") || !strcmp(method,"textDocument/didClose") || !strcmp(method,"textDocument/didSave") || !strcmp(method,"workspace/didChangeWatchedFiles") || !strcmp(method,"workspace/didChangeConfiguration") || !strcmp(method,"xlang/configureAnalysis"));
+ m->input=method && (!strcmp(method,"textDocument/didOpen") || !strcmp(method,"textDocument/didChange") || !strcmp(method,"textDocument/didClose") || !strcmp(method,"textDocument/didSave") || !strcmp(method,"workspace/didChangeWatchedFiles") || !strcmp(method,"workspace/didChangeWorkspaceFolders") || !strcmp(method,"workspace/didChangeConfiguration") || !strcmp(method,"xlang/configureAnalysis"));
  EnterCriticalSection(&s->lock); int okay=s->queueCount<256 && n<=QUEUE_LIMIT-s->queueBytes;
  if(okay) { if(s->tail) s->tail->next=m; else s->head=m; s->tail=m; s->queueBytes+=n; ++s->queueCount; s->queueInputs+=(size_t)m->input; SetEvent(s->event); }
  LeaveCriticalSection(&s->lock); if(!okay) { xrtValueRelease(m->value); free(m); } return okay;
@@ -746,7 +747,11 @@ static int configureAnalysis(server* s,const xvalue* value,xide_model_error* err
   if(s->automaticDiagnostics) diagnosticResetState(s,NULL);
  }
  for(size_t i=0;i<DOC_LIMIT;++i) {xlsContextRelease(s->docs[i].context);s->docs[i].context=contexts[i];s->docs[i].binding=bindings[i];}
- xideAnalysisCatalogDestroy(s->catalog);s->catalog=catalog;xrtValueRelease(s->catalogValue);s->catalogValue=xrtValueRetain(get(value,"catalog"));s->configurationEpoch=epoch;return 1;
+ xideAnalysisCatalogDestroy(s->catalog);s->catalog=catalog;xrtValueRelease(s->catalogValue);s->catalogValue=xrtValueRetain(get(value,"catalog"));s->configurationEpoch=epoch;
+#ifdef XLS_COMPILER_XRT
+ s->renameWorkspaceDirty=0;
+#endif
+ return 1;
 }
 static xvalue* configurationStamp(const server* s,int index)
 {
@@ -848,6 +853,12 @@ static void dispatch(server* s,const xvalue* message)
   if(diagnosticsOption && (!diagnostics || (strcmp(diagnostics,"native") && strcmp(diagnostics,"cli")))) { response(s,id,NULL,-32602,"diagnosticsBackend must be native or cli."); return; }
   s->cliDiagnostics=diagnostics && !strcmp(diagnostics,"cli");
 #ifdef XLS_COMPILER_XRT
+  bool documentChanges=false;const xvalue* editCapability=get(get(get(params,"capabilities"),"workspace"),"workspaceEdit");const xvalue* documentChangesValue=get(editCapability,"documentChanges");
+  if(documentChangesValue && (xrtValueType(documentChangesValue)!=XVALUE_BOOL || !xrtValueGetBool(documentChangesValue,&documentChanges))){response(s,id,NULL,-32602,"workspaceEdit.documentChanges must be boolean.");return;}
+  const xvalue *folders=get(params,"workspaceFolders"),*rootUri=get(params,"rootUri"),*rootPath=get(params,"rootPath");
+  if((folders && xrtValueType(folders)!=XVALUE_NULL && xrtValueType(folders)!=XVALUE_ARRAY) || (rootUri && xrtValueType(rootUri)!=XVALUE_NULL && !string(rootUri)) || (rootPath && xrtValueType(rootPath)!=XVALUE_NULL && !string(rootPath))){response(s,id,NULL,-32602,"Invalid workspace folder/root metadata.");return;}
+  for(size_t i=0;xrtValueType(folders)==XVALUE_ARRAY && i<xrtValueCount(folders);++i)if(!string(get(xrtValueArrayGet(folders,i),"uri")) || !*string(get(xrtValueArrayGet(folders,i),"uri"))){response(s,id,NULL,-32602,"Workspace folders require nonempty URIs.");return;}
+  s->renameDocumentChanges=documentChanges;s->renameWorkspaceScope=(xrtValueType(folders)==XVALUE_ARRAY && xrtValueCount(folders)) || (string(rootUri) && *string(rootUri)) || (string(rootPath) && *string(rootPath));
   xide_token_legend tokenLegend={0};
   if(!xideTokenLegendParse(get(params,"capabilities"),&tokenLegend)){response(s,id,NULL,-32602,"Invalid semantic token capabilities.");return;}
   if(s->cliDiagnostics)tokenLegend.enabled=0;
@@ -933,7 +944,7 @@ static void dispatch(server* s,const xvalue* message)
   put(signature,"triggerCharacters",signatureTriggers);put(signature,"retriggerCharacters",retriggers);put(cap,"signatureHelpProvider",signature);put(scope,"signatureInputGuard",xrtValueString(sv("background-poll")));
   put(cap,"documentHighlightProvider",xrtValueBool(true));
 #ifdef XLS_COMPILER_XRT
-  if(!s->cliCompletion && !s->cliDiagnostics){put(cap,"referencesProvider",xrtValueBool(true));put(cap,"workspaceSymbolProvider",xrtValueBool(true));put(scope,"workspaceSymbolInputProof",xrtValueBool(true));put(scope,"workspaceSymbolBackgroundIndex",xrtValueBool(true));workspaceSymbolCapabilities(s,params);}
+  if(!s->cliCompletion && !s->cliDiagnostics){put(cap,"renameProvider",xrtValueBool(true));put(cap,"referencesProvider",xrtValueBool(true));put(cap,"workspaceSymbolProvider",xrtValueBool(true));put(scope,"workspaceSymbolInputProof",xrtValueBool(true));put(scope,"workspaceSymbolBackgroundIndex",xrtValueBool(true));workspaceSymbolCapabilities(s,params);}
   put(scope,"referenceCompilationOwners",xrtValueBool(!s->cliCompletion && !s->cliDiagnostics));
   put(scope,"renameCandidate",xrtValueInt(!s->cliCompletion && !s->cliDiagnostics?1:0));
 #endif
@@ -999,7 +1010,9 @@ static void dispatch(server* s,const xvalue* message)
  }
  #ifdef XLS_COMPILER_XRT
  if(!strcmp(method,"textDocument/references")){if(id)requestReferences(s,id,params);return;}
- if(!strcmp(method,XIDE_NATIVE_RENAME_METHOD)){if(id)requestRename(s,id,params);return;}
+ if(!strcmp(method,XIDE_NATIVE_RENAME_METHOD)){if(id)requestRename(s,id,params,0);return;}
+ if(!strcmp(method,"textDocument/rename")){if(id)requestRename(s,id,params,1);return;}
+ if(!strcmp(method,"workspace/didChangeWorkspaceFolders")){if(id){response(s,id,NULL,-32600,"Workspace folder changes are notifications.");return;}s->renameWorkspaceScope=1;s->renameWorkspaceDirty=1;cancelRenames(s,NULL,-32801,"Workspace folder membership changed; refresh analysisConfiguration.");return;}
  if(!strcmp(method,"workspace/symbol")){if(id)requestWorkspaceSymbols(s,id,params,0);return;}
  if(!strcmp(method,"xlang/workspaceSymbolNavigation")){if(id)requestWorkspaceSymbols(s,id,params,1);return;}
  if(!strcmp(method,"xlang/workspaceSymbolStats")){if(id)workspaceSymbolStats(s,id);return;}

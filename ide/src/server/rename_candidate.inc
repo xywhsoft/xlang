@@ -10,18 +10,19 @@ static void cancelRenames(server* s,const xvalue* id,int code,const char* reason
  }
  xrtValueRelease(retained);
 }
-static void requestRename(server* s,const xvalue* id,const xvalue* params)
+static void requestRename(server* s,const xvalue* id,const xvalue* params,int standard)
 {
  int number=0,i=find(s,string(get(get(params,"textDocument"),"uri")));
  if(s->cliCompletion || s->cliDiagnostics){response(s,id,NULL,-32601,"Rename candidates require native analysis.");return;}
- if(xrtValueType(id)!=XVALUE_INT || !integer(id,&number) || number<=0 || i<0 || !s->catalog || !s->catalogValue || s->docs[i].binding<0){response(s,id,NULL,-32602,"Rename needs a positive integer request ID, current open document and acknowledged unambiguous analysis configuration.");return;}
+ if((!standard && (xrtValueType(id)!=XVALUE_INT || !integer(id,&number) || number<=0 || !s->catalog || !s->catalogValue || (i>=0 && s->docs[i].binding<0))) || (standard && xrtValueType(id)!=XVALUE_INT && (!string(id) || strlen(string(id))>65535)) || i<0){response(s,id,NULL,-32602,"Rename needs a valid request ID and current open document; native candidate requests also require an acknowledged unambiguous configuration.");return;}
+ if(standard && (s->renameWorkspaceDirty || (s->renameWorkspaceScope && !s->catalog))){response(s,id,NULL,-32803,"Workspace rename requires a current complete analysisConfiguration; open documents alone do not establish workspace membership.");return;}
  size_t slot=4;for(size_t j=0;j<4;++j){if(s->renameRequests[j].query && sameId(id,s->renameRequests[j].id)){cancelRenames(s,id,-32600,"Rename request ID is already active.");return;}if(!s->renameRequests[j].query && slot==4)slot=j;}
  if(slot==4){response(s,id,NULL,-32603,"Rename request queue is full.");return;}
  if(!s->references)s->references=xideProjectReferencesCreate(s->cache,s->compiler,s->modules);
  if(!s->renames)s->renames=xideRenameCandidatesCreate(s->references);
  xls_analysis_document docs[DOC_LIMIT];size_t count=0;
  for(size_t j=0;j<DOC_LIMIT;++j)if(s->docs[j].uri){document* d=s->docs+j;docs[count++]=(xls_analysis_document){d->uri,d->path,d->content,d->identity,(uint64_t)((int64_t)d->version-INT_MIN)};}
- xvalue* saved=xrtValueRetain(id);xide_rename_candidate_query* query=saved?xideRenameCandidateSubmit(s->renames,number,params,s->catalogValue,s->catalog,docs,count):NULL;
+ xvalue* saved=xrtValueRetain(id);xide_rename_candidate_query* query=saved ? (standard ? xideRenameStandardSubmit(s->renames,id,s->renameDocumentChanges,params,s->catalog,docs,count) : xideRenameCandidateSubmit(s->renames,number,params,s->catalogValue,s->catalog,docs,count)) : NULL;
  if(!query || !xideRenameCandidateSetWake(query,nativeWake,s)){xideRenameCandidateCancel(query);xideRenameCandidateDestroy(query);xrtValueRelease(saved);response(s,id,NULL,-32603,"Cannot start native rename orchestration.");return;}
  s->renameRequests[slot].query=query;s->renameRequests[slot].id=saved;s->renameRequests[slot].document=i;s->renameRequests[slot].version=s->docs[i].version;s->renameRequests[slot].identity=s->docs[i].identity;s->renameRequests[slot].serial=s->inputSerial;s->renameRequests[slot].epoch=s->configurationEpoch;
 }

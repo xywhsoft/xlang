@@ -39,8 +39,16 @@ static int oracle(xide_rename_plan* plan,const char* replacement)
  }
  for(int guarded=0;guarded<2;++guarded){xvalue* wire=xideRenamePlanWorkspaceEdit(plan,guarded,NULL,NULL);const xvalue* docs=get(wire,"documentChanges");CHECK(wire && xrtValueCount(docs)==2);for(size_t i=0;i<2;++i){xide_rename_plan_document d;CHECK(xideRenamePlanDocumentAt(plan,i,&d));const xvalue* row=xrtValueArrayGet(docs,i),*document=get(row,"textDocument");CHECK(xrtValueCount(get(row,"edits"))==d.count && (!!get(row,"xlang"))==guarded);if(d.hasVersion){int64 version=0;CHECK(xrtValueGetInt(get(document,"version"),&version) && version==INT_MAX);}else CHECK(xrtValueType(get(document,"version"))==XVALUE_NULL);}
   xrtValueRelease(wire);
- }return 1;
+ }
+ xvalue* modern=xideRenamePlanWorkspaceEditFormat(plan,1,0,NULL,NULL),*legacy=xideRenamePlanWorkspaceEditFormat(plan,0,0,NULL,NULL);
+ CHECK(modern && legacy && xrtValueCount(legacy)==1 && !get(legacy,"documentChanges") && xrtValueType(get(legacy,"changes"))==XVALUE_OBJECT && xrtValueCount(get(legacy,"changes"))==info.documents);
+ for(size_t i=0;i<info.documents;++i){xide_rename_plan_document d;CHECK(xideRenamePlanDocumentAt(plan,i,&d));const xvalue* row=xrtValueArrayGet(get(modern,"documentChanges"),i);CHECK(xrtValueEqual(get(get(legacy,"changes"),d.uri),get(row,"edits")) && !get(row,"xlang"));}
+ xrtValueRelease(modern);xrtValueRelease(legacy);CHECK(!xideRenamePlanWorkspaceEditFormat(plan,0,1,NULL,NULL) && !xideRenamePlanWorkspaceEditFormat(plan,2,0,NULL,NULL));
+ cancellation stop={0,SIZE_MAX};legacy=xideRenamePlanWorkspaceEditFormat(plan,0,0,cancelPlan,&stop);CHECK(legacy && stop.polls);xrtValueRelease(legacy);size_t polls=stop.polls;
+ for(size_t i=0;i<polls;++i){uint64_t before=blocks();stop=(cancellation){0,i};CHECK(!xideRenamePlanWorkspaceEditFormat(plan,0,0,cancelPlan,&stop) && blocks()==before);}
+ return 1;
 }
+
 typedef struct reader {xide_rename_plan* plan;int okay;} reader;
 static int32 readPlan(void* user){reader* r=user;r->okay=1;for(size_t n=0;n<100;++n){xide_rename_plan_document d;xide_rename_plan_edit e;if(!xideRenamePlanDocumentAt(r->plan,n%2,&d) || !xideRenamePlanEditAt(r->plan,n%5,&e) || !d.proof || !d.before.Data || !d.after.Data)r->okay=0;}xideRenamePlanRelease(r->plan);return 0;}
 static int wireLimit(void)

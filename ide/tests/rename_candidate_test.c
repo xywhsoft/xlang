@@ -16,7 +16,7 @@ char* __real_xideLspFrame(const xvalue*,size_t*,xide_model_error*);
 char* __wrap_xideLspFrame(const xvalue* value,size_t* bytes,xide_model_error* error)
 {
  char* frame=__real_xideLspFrame(value,bytes,error);if(!frame)return NULL;
- if(get(get(value,"result"),"binding")){
+ if(get(get(value,"result"),"binding") || get(get(value,"result"),"documentChanges") || get(get(value,"result"),"changes")){
   xrtAtomic32FetchAdd(&frameCalls,1,XMEMORY_RELAXED);xrtAtomic64Store(&frameThread,xrtThreadCurrentId(),XMEMORY_RELEASE);
   uint32 mode=xrtAtomic32Load(&frameMode,XMEMORY_ACQUIRE);
   if(mode==1)xrtAtomic32Store(&mutationOkay,xrtFileWriteAtomic(mutationPath,(xbytesview){(const unsigned char*)mutationBody,strlen(mutationBody)}),XMEMORY_RELEASE);
@@ -69,4 +69,23 @@ static int run(void)
  size_t size=0;unsigned char* disk=xrtFileReadAll(path,&size);CHECK(disk && size==strlen(body) && !memcmp(disk,body,size));xrtFree(disk);
  xrtFree(path);xrtFree(unrelated);xrtFree(compiler);xrtFree(dir);return 1;
 }
-int main(void){if(!run())return 1;printf("PASS rename candidate orchestration: %u checks; actual worker frame, original post-frame disk identity, encoding failure, cancellation versus physical quiescence, detached inputs and read-only native candidate\n",checks);return 0;}
+static int standard(void)
+{
+ char* dir=xrtPathAbs("build/native-standard-rename/源码😀");CHECK(dir && xrtDirCreateAll(dir));
+ char *path=xrtPathJoin(dir,"single.xl"),*dependency=xrtPathJoin(dir,"dependency.xl"),*compiler=xrtPathJoin(dir,"absent-xl.exe");
+ const char *body="import dependency\nfunc main(...) as int\n int amount = 0\n return amount\nend\n",*other="export func value() as int\n return 0\nend\n";
+ CHECK(path && dependency && compiler && xrtFileWriteAtomic(path,(xbytesview){(const unsigned char*)body,strlen(body)}) && xrtFileWriteAtomic(dependency,(xbytesview){(const unsigned char*)other,strlen(other)}));
+ char* uri=xideLspPathToUri(path,NULL);xls_text* text=xlsTextCreate(body,strlen(body),strlen(body),NULL);CHECK(uri && text);
+ xls_analysis_document doc={uri,path,text,88,0};xvalue* params=xrtJsonParse(xrtStrView("{\"textDocument\":{},\"position\":{\"line\":2,\"character\":6},\"newName\":\"renamed_amount\"}"));
+ CHECK(params && put((xvalue*)get(params,"textDocument"),"uri",xrtValueString(xrtStrView(uri))));
+ xide_toolchains* cache=xideToolchainsCreate();xide_project_references* references=xideProjectReferencesCreate(cache,compiler,NULL);xide_rename_candidates* service=xideRenameCandidatesCreate(references);CHECK(cache && references && service);
+ xvalue* id=xrtValueString(xrtStrView("typed-😀"));CHECK(id && !xideRenameStandardSubmit(service,NULL,1,params,NULL,&doc,1));
+ xrtAtomic32Store(&frameMode,0,XMEMORY_RELEASE);
+ for(int format=0;format<2;++format){xide_rename_candidate_query* q=xideRenameStandardSubmit(service,id,format,params,NULL,&doc,1);CHECK(await(q,1,0));size_t bytes=0;char* frame=xideRenameCandidateTakeFrame(q,&bytes);CHECK(frame && bytes);size_t at=0;while(at+4<=bytes && memcmp(frame+at,"\r\n\r\n",4))++at;CHECK(at+4<bytes);at+=4;xvalue* result=xrtJsonParse((xstrview){frame+at,bytes-at});CHECK(result && xrtValueEqual(get(result,"id"),id) && xrtValueCount(get(result,"result"))==1 && get(get(result,"result"),format ? "documentChanges" : "changes"));xrtValueRelease(result);free(frame);xideRenameCandidateDestroy(q);CHECK(quiet(service));}
+ mutationPath=dependency;mutationBody=other;xrtAtomic32Store(&frameMode,1,XMEMORY_RELEASE);xide_rename_candidate_query* q=xideRenameStandardSubmit(service,id,1,params,NULL,&doc,1);CHECK(await(q,-1,-32801) && xrtAtomic32Load(&mutationOkay,XMEMORY_ACQUIRE));xideRenameCandidateDestroy(q);CHECK(quiet(service));
+ xrtAtomic32Store(&frameMode,3,XMEMORY_RELEASE);q=xideRenameStandardSubmit(service,id,0,params,NULL,&doc,1);CHECK(await(q,-1,-32603));xideRenameCandidateDestroy(q);CHECK(quiet(service));
+ entered=xrtEventCreate(false,false);resume=xrtEventCreate(false,false);CHECK(entered && resume);xrtAtomic32Store(&frameMode,2,XMEMORY_RELEASE);q=xideRenameStandardSubmit(service,id,1,params,NULL,&doc,1);CHECK(q && xrtEventWaitFor(entered,XIDE_XRT_TIMEOUT_MS(10000))==XWAIT_OK);xideRenameCandidateCancel(q);CHECK(!xideRenameCandidatesIdle(service));xrtEventSet(resume);CHECK(quiet(service) && await(q,-1,-32800));xideRenameCandidateDestroy(q);xrtEventDestroy(entered);xrtEventDestroy(resume);entered=resume=NULL;
+ xrtAtomic32Store(&frameMode,0,XMEMORY_RELEASE);q=xideRenameStandardSubmit(service,id,1,params,NULL,&doc,1);CHECK(q);xrtValueRelease(id);xrtValueRelease(params);xlsTextRelease(text);free(uri);CHECK(await(q,1,0));xideRenameCandidateDestroy(q);CHECK(quiet(service));
+ CHECK(xrtAtomic64Load(&frameThread,XMEMORY_ACQUIRE)!=xrtThreadCurrentId());xideRenameCandidatesDestroy(service);xideProjectReferencesDestroy(references);xideToolchainsDestroy(cache);size_t size=0;unsigned char* disk=xrtFileReadAll(path,&size);CHECK(disk && size==strlen(body) && !memcmp(disk,body,size));xrtFree(disk);xrtFree(path);xrtFree(dependency);xrtFree(compiler);xrtFree(dir);return 1;
+}
+int main(void){if(!run() || !standard())return 1;printf("PASS rename candidate orchestration: %u checks; actual worker frame, original post-frame disk identity, encoding failure, cancellation versus physical quiescence, detached inputs and read-only native candidate\n",checks);return 0;}

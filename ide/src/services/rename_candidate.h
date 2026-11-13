@@ -22,6 +22,13 @@ int xideRenameCandidatesIdle(xide_rename_candidates*);
 xide_rename_candidate_query* xideRenameCandidateSubmit(xide_rename_candidates*,int id,
  const xvalue* params,const xvalue* expectedCatalog,xide_analysis_catalog*,
  const xls_analysis_document*,size_t);
+/* Standard read-only rename proposal. Typed int/string ID, caller-captured
+ * catalog (NULL only for an explicitly standalone session), and roster. No
+ * receipt/proof extension on the wire; same complete native plan/guard gates.
+ * Caller rejects unknown workspace roots without explicit configuration. */
+xide_rename_candidate_query* xideRenameStandardSubmit(xide_rename_candidates*,
+ const xvalue* id,int documentChanges,const xvalue* params,xide_analysis_catalog*,
+ const xls_analysis_document*,size_t);
 int xideRenameCandidateSetWake(xide_rename_candidate_query*,void (*wake)(void*),void*);
 void xideRenameCandidateCancel(xide_rename_candidate_query*);
 void xideRenameCandidateDestroy(xide_rename_candidate_query*);

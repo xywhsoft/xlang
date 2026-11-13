@@ -44,5 +44,9 @@ int xideRenamePlanMapOffset(const xide_rename_plan*,size_t,size_t,size_t*);
  * not conflict/binding approval or a command to write files. */
 xvalue* xideRenamePlanWorkspaceEdit(const xide_rename_plan*,int inputProof,
  int (*cancelled)(void*),void*);
+/* Standard clients without documentChanges receive the URI-keyed changes map.
+ * It cannot carry document versions or private proofs. No resource operations. */
+xvalue* xideRenamePlanWorkspaceEditFormat(const xide_rename_plan*,int documentChanges,
+ int inputProof,int (*cancelled)(void*),void*);
 #endif
 #endif

@@ -1,5 +1,7 @@
 # 原生候选 RPC 与后台协调
 
+后续 M7b6g 已接入[标准只读重命名协议](lsp-standard-rename.md)；下文保留本阶段当时的范围及验收结论。
+
 M7b5z，2026-11-13。外部服务现在实现 `xlang/renameCandidate`，初始化时以 `experimental.renameCandidate: 1` 表示原生后端支持；CLI 后端为 0。它返回只读候选，不启用标准 `textDocument/rename`、WorkspaceEdit 应用或 IDE 菜单操作。
 
 参数沿用已实现的编辑调用：正整数请求 ID、精确 URI/版本、UTF-16 位置、新名称，以及 `xlang` 中的 schema、16 位小写十六进制令牌、原始 catalog、在线输入回执、独立根列表和范围数量。服务独立保留已经确认的 catalog；后台要求请求副本与之相同，再从该确认配置和独立根重建范围。独立根必须是绝对、未被项目拥有的 `.xl` 路径，不得重复；所有在线 xlang 文档都必须在完整范围内。被选文档按原来的项目选择规则绑定，不能用请求自证项目归属。

@@ -33,7 +33,7 @@ def main():
         assert sorted(actual,key=key)==sorted(wanted,key=key),(actual,wanted)
     try:
         c.send('initialize',dict(capabilities={},initializationOptions=dict(automaticDiagnostics=False,checkOnSave=False,backgroundWorkspaceSymbols=False)),1)
-        reply,_=c.reply(1);assert 'error'not in reply,reply;assert 'renameProvider'not in reply['result']['capabilities'];c.send('initialized',{})
+        reply,_=c.reply(1);assert 'error'not in reply,reply;assert reply['result']['capabilities']['renameProvider'] is True;c.send('initialized',{})
         lib='\ufeffexport class 😀盒<T>\r\n T value\r\n create(T value)\r\n self.value=value\r\n end\r\nend\r\nexport class Marker\r\nend\r\n'
         source='\ufeffimport dep\r\nfunc identity<T>(T value) as T\r\n return value\r\nend\r\nfunc choose<T>(T value) as int\r\n return 1\r\nend\r\nfunc choose<T>(T first,T second) as int\r\n return 2\r\nend\r\nfunc main(...) as int\r\n auto box=dep.😀盒::<int>(3)\r\n auto other=dep.😀盒::<dep.Marker>(dep.Marker())\r\n auto callback=identity::<int>\r\n return identity::<int>(box.value)+callback(3)+choose::<int>(1)+choose::<int>(2,3)\r\nend\r\n'
         c.open(entry,source,1);c.open(dep,lib,1);result=check();assert result['ok'],result
