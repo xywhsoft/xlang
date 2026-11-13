@@ -3,6 +3,7 @@
 #include "app/xide_app.h"
 #include "services/edit_request.h"
 #include "services/edit_call.h"
+#include "services/edit_controller.h"
 /* UI owner, one outstanding edit request per primary view. Capture only an
  * acknowledged, exact native sync/catalog and reserve an unused transport ID.
  * Return owns a reference for worker handoff; this does NOT send a request or
@@ -25,4 +26,14 @@ int xideLanguageEditRequestEnd(xide_app*,xide_edit_request*);
  * and reserved ID on that exact connection. No encoding or body scan here. */
 uint64_t xideLanguageEditRequestConnection(xide_app*,const xide_edit_request*);
 int xideLanguageEditCallSend(xide_app*,xide_edit_call*);
+/* Negotiated native candidate controller, one primary-view operation. These
+ * prepare/read only; menus, consent and transactional application are separate.
+ * Begin captures the current acknowledged scope and copies bounded intent.
+ * Polling progresses on the ordinary language frame. Candidate returns a
+ * borrowed data-admitted result only after a fresh full owner Current fence;
+ * it does not pin files or authorize writes. End cancels asynchronously and
+ * retires assets off owner. Borrows end at End/reset/another mutating UI event. */
+int xideLanguageEditCandidateBegin(xide_app*,const char* uri,int line,int character,xstrview name,xide_model_error*);
+const xide_edit_candidate* xideLanguageEditCandidate(xide_app*);
+int xideLanguageEditCandidateEnd(xide_app*);
 #endif

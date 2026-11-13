@@ -5,10 +5,13 @@
 static volatile LONG checks;
 #define CHECK(v) do{InterlockedIncrement(&checks);if(!(v)){fprintf(stderr,"sync-lease:%d: %s\n",__LINE__,#v);exit(1);}}while(0)
 static HANDLE arrived,releaseRead;static volatile LONG blocked,failMalloc;
-static DWORD volume,indexLow,indexHigh;
+static DWORD volume,indexLow,indexHigh,faultOwner;
 extern BOOL (WINAPI* __real___imp_ReadFile)(HANDLE,LPVOID,DWORD,LPDWORD,LPOVERLAPPED);
 void* __real_malloc(size_t);
-void* __wrap_malloc(size_t n){return InterlockedCompareExchange(&failMalloc,0,1)==1?NULL:__real_malloc(n);}
+/* Fail the resubscription caller, never an unrelated monitor allocation. */
+void* __wrap_malloc(size_t n){return GetCurrentThreadId()==faultOwner&&InterlockedCompareExchange(&failMalloc,0,1)==1?NULL:__real_malloc(n);}
+static DWORD WINAPI unrelatedAllocation(void* unused)
+{(void)unused;void*(*volatile allocate)(size_t)=malloc;void* p=allocate(37);int okay=p!=NULL;if(p)memset(p,0x5a,37);free(p);return okay?0:1;}
 static BOOL WINAPI readProbe(HANDLE h,LPVOID b,DWORD n,LPDWORD got,LPOVERLAPPED at)
 {
  BY_HANDLE_FILE_INFORMATION i={0};if(n&&InterlockedCompareExchange(&blocked,0,0)&&GetFileInformationByHandle(h,&i)&&i.dwVolumeSerialNumber==volume&&i.nFileIndexLow==indexLow&&i.nFileIndexHigh==indexHigh&&InterlockedCompareExchange(&blocked,0,1)==1){CHECK(SetEvent(arrived)&&WaitForSingleObject(releaseRead,30000)==WAIT_OBJECT_0);}return __real___imp_ReadFile(h,b,n,got,at);
@@ -21,6 +24,7 @@ static void waitHold(xide_app* app,uint64_t token)
 {uint64_t end=GetTickCount64()+12000;do{xideFileSyncPoll(app);if(xideFileSyncSuspended(app,token))return;Sleep(5);}while(GetTickCount64()<end);CHECK(0);}
 int main(int argc,char** argv)
 {
+ faultOwner=GetCurrentThreadId();
  CHECK(argc==2&&xrtDirCreateAll(argv[1]));xide_app app={.hidden=1,.noSession=1,.disableAutomaticDiagnostics=1,.viewportWidth=1280,.viewportHeight=800};xide_model_error e={0};
  char* a=xidePathResolveLexical(argv[1],"main.c");char* b=xidePathResolveLexical(argv[1],"helper.xl");CHECK(a&&b);writeText(a,"int before;\n");writeText(b,"func before()\nend\n");
  CHECK(xuiCreate(&app.context)==XUI_OK&&ideThemeInit(app.context,IDE_THEME_CLASSIC)==XUI_OK&&xuiInputViewport(app.context,1280,800)==XUI_OK&&xideWorkbenchCreate(&app)==XUI_OK);CHECK(xideEditorOpen(&app,a,&e));xide_document* c=app.activeDocument;CHECK(xideEditorOpen(&app,b,&e));xide_document* xl=app.activeDocument;
@@ -31,7 +35,7 @@ int main(int argc,char** argv)
   * writes even for nonmanifest C files with explicit overwrite permission. */
  CHECK(xuiCodeDocumentInsert(xuiCodeEditGetDocument(xl->editor),0,"// user\n")==XUI_OK&&xl->dirty);CHECK(!xideDocumentSave(xl,NULL,XIDE_DOCUMENT_OVERWRITE_EXTERNAL,&e)&&e.code==XIDE_MODEL_CONFLICT);CHECK(xuiCodeDocumentUndo(xuiCodeEditGetDocument(xl->editor))==XUI_OK&&!xl->dirty);
  writeText(a,"int committed;\n");xideFileSyncRefresh(&app);xideFileSyncPoll(&app);CHECK(!strcmp(xuiCodeEditGetText(c->editor),"int before;\n"));
- InterlockedExchange(&failMalloc,1);CHECK(!xideFileSyncResume(&app,token,&e)&&!InterlockedCompareExchange(&failMalloc,0,0)&&xideFileSyncSuspended(&app,token));
+ InterlockedExchange(&failMalloc,1);HANDLE unrelated=CreateThread(NULL,0,unrelatedAllocation,NULL,0,NULL);CHECK(unrelated&&WaitForSingleObject(unrelated,10000)==WAIT_OBJECT_0);DWORD unrelatedCode=1;CHECK(GetExitCodeThread(unrelated,&unrelatedCode)&&!unrelatedCode&&CloseHandle(unrelated)&&InterlockedCompareExchange(&failMalloc,0,0)==1);CHECK(!xideFileSyncResume(&app,token,&e)&&!InterlockedCompareExchange(&failMalloc,0,0)&&xideFileSyncSuspended(&app,token));
  wchar_t* path=xidePathNativeWide(a);HANDLE h=CreateFileW(path,FILE_READ_ATTRIBUTES,FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,NULL,OPEN_EXISTING,0,NULL);free(path);BY_HANDLE_FILE_INFORMATION i;CHECK(h!=INVALID_HANDLE_VALUE&&GetFileInformationByHandle(h,&i)&&CloseHandle(h));volume=i.dwVolumeSerialNumber;indexLow=i.nFileIndexLow;indexHigh=i.nFileIndexHigh;
  arrived=CreateEventW(NULL,TRUE,FALSE,NULL);releaseRead=CreateEventW(NULL,TRUE,FALSE,NULL);CHECK(arrived&&releaseRead);InterlockedExchange(&blocked,1);CHECK(xideFileSyncResume(&app,token,&e));CHECK(WaitForSingleObject(arrived,12000)==WAIT_OBJECT_0);
  /* Fresh worker data is definitely unavailable here. A stale cached change

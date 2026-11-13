@@ -34,6 +34,11 @@ enum xide_edit_call_state xideEditCallState(const xide_edit_call*);
 int xideEditCallSend(xide_edit_call*,xide_language_client*);
 /* Thread-safe local irreversible invalidation, no protocol cancellation send. */
 void xideEditCallCancel(xide_edit_call*);
+/* One sending owner. Irreversibly cancel locally, then queue the worker-built
+ * $/cancelRequest on the exact original connection if a request was admitted.
+ * No encoding/body scan. Idempotent success; queue-full failure keeps the
+ * packet for retry. A foreign connection always fails and never gets the ID. */
+int xideEditCallCancelSend(xide_edit_call*,xide_language_client*);
 /* Worker-only ROUTING admission. peer and bytes come from the actual transport
  * and original parser Content-Length. Require strict2.0 integer-ID response,
  * queued call, current local token, exact result method/token/input receipt and

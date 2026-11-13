@@ -45,6 +45,7 @@ typedef struct highlight_intent { xide_document* document; uint64_t id,stamp; ui
 typedef struct outline_item { const xvalue* symbol; int parent; char* title; } outline_item;
 struct xide_language_view {
  xide_edit_request* editRequest;xide_language_client* editClient;uint64_t editSerial;
+ xide_edit_controller* editController;xide_source_job editJob;int editManaged,editPublished,renameSupported;
  uint64_t sourceToken,sourceSerial;int64_t sourceClientToken;int sourceInvalid,sourceReset,sourceFailed,sourceResuming,sourceDrain,sourceStop,sourceAutoPaused,sourceColorPaused;
  struct xide_reference_view* references;
  struct xide_workspace_search_view* workspaceSearch;
@@ -77,6 +78,8 @@ struct xide_language_view {
 static void sourceChanged(xide_language_view* v,int resetClient)
 {if(v&&resetClient)xideEditRequestInvalidate(v->editRequest,XIDE_EDIT_REQUEST_CONNECTION);if(v && v->sourceToken){v->sourceInvalid=1;v->sourceReset|=resetClient;xideLanguageClientInvalidateAnalysis(v->client,v->sourceClientToken);}}
 static int sourceCleanup(xide_language_view*);
+static void pollEditController(xide_language_view*);
+static void resetEditController(xide_language_view*);
 static xstrview sv(const char* s) { return (xstrview){s,strlen(s)}; }
 static xvalue* get(const xvalue* o,const char* key) { return o && xrtValueType(o)==XVALUE_OBJECT ? xrtValueObjectGet(o,sv(key)) : NULL; }
 static const char* string(const xvalue* v) { xstrview s={0}; return v && xideMetaString(v,&s) && !memchr(s.Data,0,s.Size) && s.Size<=INT_MAX && (!s.Size || MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,s.Data,(int)s.Size,NULL,0)) ? s.Data : NULL; }
@@ -227,6 +230,7 @@ static void reset(xide_app* app)
 {
  xideEditRequestInvalidate(app->languageView->editRequest,XIDE_EDIT_REQUEST_CONNECTION);
  if(app->languageView->sourceToken || app->languageView->sourceDrain){sourceChanged(app->languageView,1);return;}
+ resetEditController(app->languageView);app->languageView->renameSupported=0;
  ++app->languageView->highlightSession;
  colorsReset(app->languageView);
  xide_language_view* v=app->languageView;resetWorkspaceSearch(v);resetReferences(v);automaticReset(v); clearDiagnostics(app); xideLanguageClientStop(v->client); v->client=NULL;xrtValueRelease(v->analysisCatalog);v->analysisCatalog=NULL; free(v->compiler); free(v->directory); free(v->uri); free(v->path);
@@ -485,16 +489,16 @@ int xideLanguageViewCreate(xide_app* app)
 {
  app->languageView=calloc(1,sizeof(*app->languageView)); xide_language_view* v=app->languageView;
  if(!v) return XUI_ERROR_OUT_OF_MEMORY;
- v->app=app; v->highlightDecoder=xideHighlightDecoderCreate(languageWake,app);v->syncPlanner=xideSyncPlannerCreate(languageWake,app);
+ v->app=app; v->highlightDecoder=xideHighlightDecoderCreate(languageWake,app);v->syncPlanner=xideSyncPlannerCreate(languageWake,app);v->editController=xideEditControllerCreate(languageWake,app);
  colorsCreate(v);
- if(!v->highlightDecoder || !v->syncPlanner || !automaticCreate(v) || !QueryPerformanceFrequency(&v->highlightClock)) return XUI_ERROR_OUT_OF_MEMORY;
+ if(!v->highlightDecoder || !v->syncPlanner || !v->editController || !automaticCreate(v) || !QueryPerformanceFrequency(&v->highlightClock)) return XUI_ERROR_OUT_OF_MEMORY;
  int created=createOutline(app);if(created==XUI_OK)created=createReferences(app);return created==XUI_OK?createWorkspaceSearch(app):created;
 }
 void xideLanguageViewSettingsChanged(xide_app* app)
 {if(app && app->languageView){reset(app);automaticResume(app->languageView);xgeRenderRequest();}}
 void xideLanguageViewStop(xide_app* app) { if(app->languageView) {if(app->languageView->sourceToken || app->languageView->sourceDrain){app->languageView->sourceStop=1;sourceChanged(app->languageView,1);return;}automaticPause(app->languageView); suppressHighlights(app->languageView); reset(app); colorsStop(app->languageView); } }
 void xideLanguageViewDestroy(xide_app* app)
-{ xide_language_view* v=app->languageView; if(v) { xideEditRequestInvalidate(v->editRequest,XIDE_EDIT_REQUEST_CONNECTION|XIDE_EDIT_REQUEST_ENDED);xideEditRequestRelease(v->editRequest);v->editRequest=NULL;xideLanguageClientStop(v->client);destroyWorkspaceSearch(v);colorsDestroy(v);automaticDestroy(v); xideSyncPlannerDestroy(v->syncPlanner);xideSyncResultRelease(v->syncReady);destroyReferences(v);xideHighlightDecoderDestroy(v->highlightDecoder); xrtValueRelease(v->deferredMessage); xideHighlightResultRelease(v->highlightResult); xlsSyncDestroy(v->sync); free(v->compiler); free(v->directory); free(v->uri); free(v->path); free(v->packagePath); xrtValueRelease(v->diagnostics); xrtValueRelease(v->snapshotResult);xrtValueRelease(v->analysisCatalog); freeInputs(v); while(v->bindings) { semantic_editor_binding* next=v->bindings->next; free(v->bindings); v->bindings=next; } free(v); app->languageView=NULL; } }
+{ xide_language_view* v=app->languageView; if(v) { xideEditRequestInvalidate(v->editRequest,XIDE_EDIT_REQUEST_CONNECTION|XIDE_EDIT_REQUEST_ENDED);xideEditRequestRelease(v->editRequest);v->editRequest=NULL;xideLanguageClientStop(v->client);xideSourceJobUnlink(&v->editJob);xideEditControllerDestroy(v->editController);destroyWorkspaceSearch(v);colorsDestroy(v);automaticDestroy(v); xideSyncPlannerDestroy(v->syncPlanner);xideSyncResultRelease(v->syncReady);destroyReferences(v);xideHighlightDecoderDestroy(v->highlightDecoder); xrtValueRelease(v->deferredMessage); xideHighlightResultRelease(v->highlightResult); xlsSyncDestroy(v->sync); free(v->compiler); free(v->directory); free(v->uri); free(v->path); free(v->packagePath); xrtValueRelease(v->diagnostics); xrtValueRelease(v->snapshotResult);xrtValueRelease(v->analysisCatalog); freeInputs(v); while(v->bindings) { semantic_editor_binding* next=v->bindings->next; free(v->bindings); v->bindings=next; } free(v); app->languageView=NULL; } }
 int xideLanguageViewCanCheck(xide_app* app) { return app && app->languageView && !app->languageView->sourceToken && !app->languageView->sourceDrain && !app->languageView->busy && eligible(app->activeDocument) && xideTaskViewCompiler(app); }
 int xideLanguageViewCanCheckCurrent(xide_app* app) {
 #if XIDE_ENABLE_C_LSP
@@ -790,6 +794,7 @@ static int deferPreemptedCheck(xide_language_view* v,const xvalue* error)
 void xideLanguageViewPoll(xide_app* app)
 {
  xide_language_view* v=app->languageView; if(!v) return;
+ pollEditController(v);
  if(v->sourceDrain){if(!xideLanguageClientStopped(v->client)){xgeRenderRequestAfter(.02f);return;}v->sourceDrain=0;reset(app);if(!v->sourceStop && !v->sourceAutoPaused)automaticResume(v);else automaticPause(v);if(v->sourceStop || v->sourceColorPaused)colorsStop(v);}
  if(v->sourceToken){if(!sourceCleanup(v))xgeRenderRequestAfter(.02f);return;}
  automaticPoll(app);
@@ -850,6 +855,7 @@ void xideLanguageViewPoll(xide_app* app)
      else {
       bool snapshots=false,fingerprint=false; v->snapshotSupported=xideMetaBool(get(get(cap,"experimental"),"snapshotDiagnostics"),&snapshots) && snapshots && xideMetaBool(get(get(cap,"experimental"),"snapshotDocumentFingerprint"),&fingerprint) && fingerprint;
       bool native=false; v->nativeBackend=xideMetaBool(get(get(cap,"experimental"),"nativeSnapshotDiagnostics"),&native) && native;
+      int renameSchema=0;v->renameSupported=v->nativeBackend&&number(get(get(cap,"experimental"),"renameCandidate"),&renameSchema)&&renameSchema==1;
       colorsCapabilities(v,cap);
       bool definition=false; v->definitionSupported=xideMetaBool(get(get(cap,"experimental"),"snapshotDefinition"),&definition) && definition;
       bool definitionProof=false; v->definitionProofSupported=xideMetaBool(get(get(cap,"experimental"),"definitionInputProof"),&definitionProof) && definitionProof;
@@ -1278,3 +1284,4 @@ static void pollHighlights(xide_app* app)
 #include "semantic_color_view.inc"
 #include "language_source_lease.inc"
 #include "edit_request_view.inc"
+#include "edit_controller_view.inc"

@@ -1,4 +1,6 @@
+#ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0601
+#endif
 #include "services/source_jobs.h"
 #include "model/workspace.h"
 #include <windows.h>
@@ -18,17 +20,19 @@ void xideSourceJobsEnd(xide_source_jobs* jobs)
 int xideSourceJobLink(xide_source_jobs* jobs,xide_source_job* job)
 {
  if(!jobs || !jobs->admissions || jobs->token || !job || job->owner || jobs->count==SIZE_MAX)return 0;
- job->owner=jobs;job->previous=NULL;job->next=jobs->first;job->thread=NULL;
+ job->owner=jobs;job->previous=NULL;job->next=jobs->first;job->thread=NULL;job->quiet=NULL;job->quietUser=NULL;
  if(job->next)job->next->previous=job;
  jobs->first=job;++jobs->count;return 1;
 }
 int xideSourceJobBind(xide_source_job* job,void* thread)
 {
- if(!job || !job->owner || !job->owner->admissions || job->thread || !thread || thread==INVALID_HANDLE_VALUE)return 0;
+ if(!job || !job->owner || !job->owner->admissions || job->thread || job->quiet || !thread || thread==INVALID_HANDLE_VALUE)return 0;
  job->thread=thread;return 1;
 }
+int xideSourceJobBindProbe(xide_source_job* job,int (*quiet)(void*),void* user)
+{if(!job||!job->owner||!job->owner->admissions||job->thread||job->quiet||!quiet)return 0;job->quiet=quiet;job->quietUser=user;return 1;}
 int xideSourceJobStopped(const xide_source_job* job)
-{return job && job->owner && job->thread && WaitForSingleObject(job->thread,0)==WAIT_OBJECT_0;}
+{return job && job->owner && (job->quiet?job->quiet(job->quietUser):job->thread && WaitForSingleObject(job->thread,0)==WAIT_OBJECT_0);}
 void xideSourceJobUnlink(xide_source_job* job)
 {
  if(!job || !job->owner)return;

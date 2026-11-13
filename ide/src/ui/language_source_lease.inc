@@ -23,6 +23,7 @@ uint64_t xideLanguageSourcesSuspend(xide_app* app,xide_model_error* error)
   if(error){error->code=XIDE_MODEL_INVALID;snprintf(error->message,sizeof(error->message),"Language sources are not ready for a coordinated native analysis lease.");}return 0;
  }
  ++v->highlightSession;if(v->deferredMessage)v->deferredDiscard=1;
+ xideEditControllerSuspend(v->editController);
  uint64_t token=++v->sourceSerial;v->sourceToken=token;v->sourceClientToken=0;v->sourceInvalid=v->sourceReset=v->sourceResuming=v->sourceFailed=v->sourceStop=0;
  v->sourceAutoPaused=v->autoView && v->autoView->paused;v->sourceColorPaused=v->colors && v->colors->paused;
  if(v->client && !(v->sourceClientToken=xideLanguageClientSuspendAnalysis(v->client,error)))v->sourceFailed=1;
@@ -48,7 +49,7 @@ int xideLanguageSourcesState(xide_app* app,uint64_t token,xide_language_sources_
  if(v->client){int remoteInvalid=0;enum xide_language_lease_state s=xideLanguageClientAnalysisState(v->client,v->sourceClientToken,&remoteInvalid);invalid|=remoteInvalid;failed|=s==XIDE_LS_LEASE_FAILED || s==XIDE_LS_LEASE_STALE;quiet=s==XIDE_LS_LEASE_HELD || (failed && xideLanguageClientStopped(v->client));resumed=v->sourceResuming && (v->sourceClientToken?xideLanguageClientAnalysisCanRelease(v->client,v->sourceClientToken):xideLanguageClientStopped(v->client));}
  xide_automatic_diagnostics* a=v->autoView;
  int local=(!a || (!a->batch && !a->held && !a->incoming && !a->retirement && !a->garbage.notices && !a->garbage.batch && !a->garbage.root && !a->garbage.result && xideDiagnosticStreamIdle(a->stream))) &&
-  (!v->workspaceSearch || xideWorkspaceSearchDecoderIdle(v->workspaceSearch->decoder));
+  (!v->workspaceSearch || xideWorkspaceSearchDecoderIdle(v->workspaceSearch->decoder)) && xideEditControllerQuiet(v->editController);
  *out=(xide_language_sources_status){.quiet=!v->sourceResuming && quiet && child.quiet && local,.resumed=v->sourceResuming && resumed && child.resumed && local,
   .invalidated=invalid || child.invalidated,.failed=failed || child.failed,.resuming=v->sourceResuming};return 1;
 }
@@ -69,6 +70,7 @@ int xideLanguageSourcesRelease(xide_app* app,uint64_t token)
     event dispatch/reentrancy occurs between the two admission releases. */
  if(v->client && v->sourceClientToken && !xideLanguageClientReleaseAnalysis(v->client,v->sourceClientToken))return 0;
  if(!xideCompletionSourceRelease(app,token))return 0;
+ if(!xideEditControllerResume(v->editController))return 0;
  v->sourceToken=0;v->sourceClientToken=0;v->sourceResuming=0;
  if(resetClient){xideLanguageClientRequestStop(v->client);if(xideLanguageClientStopped(v->client))reset(app);else v->sourceDrain=1;}
  if(!v->sourceStop && !v->sourceAutoPaused)automaticResume(v);else automaticPause(v);if(v->colors)v->colors->paused=v->sourceStop || v->sourceColorPaused;

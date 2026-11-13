@@ -4,8 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 struct xide_edit_call {
- volatile int32 references;xatomic32 state;xide_edit_request* request;xide_rename_scope* scope;
- uint64_t connection;xide_language_batch* batch;char token[17],digest[65];size_t documents;
+ volatile int32 references;xatomic32 state,sent,cancelSent;xide_edit_request* request;xide_rename_scope* scope;
+ uint64_t connection;xide_language_batch *batch,*cancelBatch;char token[17],digest[65];size_t documents;
  xide_edit_call_intent intent;
 };
 struct xide_edit_reply {xide_edit_call* call;xvalue* root;int error,code;xstrview message;};
@@ -16,7 +16,7 @@ static int eq(const xvalue* v,const char* s){xstrview raw={0};size_t n=strlen(s)
 static int number(const xvalue* v,int64 expected){int64 value=0;return xrtValueIs(v,XVALUE_INT)&&xrtValueGetInt(v,&value)&&value==expected;}
 static int stopped(const xide_edit_request* p,int(*cancelled)(void*),void* user){return xideEditRequestInvalidated(p)||(cancelled&&cancelled(user));}
 xide_edit_call* xideEditCallRetain(xide_edit_call* p){return p&&xrtRefRetain(&p->references)>0?p:NULL;}
-void xideEditCallRelease(xide_edit_call* p){if(p&&xrtRefRelease(&p->references)==0){xideLanguageBatchDestroy(p->batch);xideRenameScopeRelease(p->scope);xideEditRequestRelease(p->request);xrtFree(p);}}
+void xideEditCallRelease(xide_edit_call* p){if(p&&xrtRefRelease(&p->references)==0){xideLanguageBatchDestroy(p->batch);xideLanguageBatchDestroy(p->cancelBatch);xideRenameScopeRelease(p->scope);xideEditRequestRelease(p->request);xrtFree(p);}}
 const xide_edit_request* xideEditCallRequest(const xide_edit_call* p){return p?p->request:NULL;}
 const xide_rename_scope* xideEditCallScope(const xide_edit_call* p){return p?p->scope:NULL;}
 uint64_t xideEditCallConnection(const xide_edit_call* p){return p?p->connection:0;}
@@ -44,21 +44,31 @@ xide_edit_call* xideEditCallCreate(xide_edit_request* request,uint64_t connectio
  int bound=0;for(size_t i=0;i<xideEditRequestModelCount(request);++i){xide_edit_request_model m={0};if(!xideEditRequestModelAt(request,i,&m))goto done;if(m.identity==selected.identity&&m.revision==selected.revision&&m.open&&m.path&&m.language&&!strcmp(m.language,"xlang")&&xidePathLexicalEqual(m.path,path)){bound=1;break;}}
  if(!bound)goto done;
  text=xlsSyncRetainText(xideEditRequestSync(request),uri,selected.version);size_t offset=0;if(!text||!xlsTextOffset(text,(xls_position){(size_t)line,(size_t)character},&offset))goto done;
- size_t uriBytes=strlen(uri)+1;error=XIDE_EDIT_CALL_MEMORY;call=xrtCalloc(1,sizeof(*call)+uriBytes+name.Size+1);if(!call)goto done;call->references=1;xrtAtomic32Init(&call->state,0);call->connection=connection;call->request=xideEditRequestRetain(request);if(!call->request)goto done;
+ size_t uriBytes=strlen(uri)+1;error=XIDE_EDIT_CALL_MEMORY;call=xrtCalloc(1,sizeof(*call)+uriBytes+name.Size+1);if(!call)goto done;call->references=1;xrtAtomic32Init(&call->state,0);xrtAtomic32Init(&call->sent,0);xrtAtomic32Init(&call->cancelSent,0);call->connection=connection;call->request=xideEditRequestRetain(request);if(!call->request)goto done;
  char* own=(char*)(call+1);memcpy(own,uri,uriBytes);call->intent.uri=own;own+=uriBytes;memcpy(own,name.Data,name.Size);own[name.Size]=0;call->intent.newName=(xstrview){own,name.Size};call->intent.position=(xide_lsp_position){line,character,(int)offset};call->intent.version=selected.version;call->intent.identity=selected.identity;call->intent.revision=selected.revision;
  enum xide_rename_scope_error cause;call->scope=xideEditRequestScope(request,0,cancelled,user,&cause);if(!call->scope){error=cause==XIDE_RENAME_SCOPE_CANCELLED?XIDE_EDIT_CALL_STALE:XIDE_EDIT_CALL_ARGUMENT;goto done;}
  uint64_t owners=0;if(!xideRenameScopeOwners(call->scope,path,&owners)||!owners){error=XIDE_EDIT_CALL_ARGUMENT;goto done;}
  snprintf(call->token,sizeof(call->token),"%016llx",(unsigned long long)xideEditRequestToken(request));if(!xlsSyncInputState(xideEditRequestSync(request),call->digest,&call->documents))goto done;
  params=parameters(call,call->intent.uri,selected.version,line,character,call->intent.newName);call->batch=params?xideLanguageBatchCreate():NULL;
  if(!call->batch||!xideLanguageBatchAppendRequest(call->batch,XIDE_RENAME_CANDIDATE_METHOD,params,xideEditRequestId(request)))goto done;
+ xrtValueRelease(params);params=xrtValueObject();call->cancelBatch=xideLanguageBatchCreate();
+ if(!params||!call->cancelBatch||!put(params,"id",xrtValueInt(xideEditRequestId(request)))||!xideLanguageBatchAppend(call->cancelBatch,"$/cancelRequest",params))goto done;
  if(stopped(request,cancelled,user)){error=XIDE_EDIT_CALL_STALE;goto done;}
  if(!xideEditRequestClaimCall(request)){error=XIDE_EDIT_CALL_REPLAY;goto done;}error=XIDE_EDIT_CALL_OK;
 done:
  free(path);xlsTextRelease(text);xrtValueRelease(params);if(error){xideEditCallRelease(call);call=NULL;}if(why)*why=error;return call;
 }
 int xideEditCallSend(xide_edit_call* call,xide_language_client* client)
-{if(!call||!call->batch||xideEditRequestInvalidated(call->request))return 0;if(!xideLanguageBatchSendBound(client,call->batch,call->connection,&call->state))return 0;call->batch=NULL;return 1;}
+{if(!call||!call->batch||xideEditRequestInvalidated(call->request))return 0;if(!xideLanguageBatchSendBound(client,call->batch,call->connection,&call->state))return 0;call->batch=NULL;xrtAtomic32Store(&call->sent,1,XMEMORY_RELEASE);return 1;}
 void xideEditCallCancel(xide_edit_call* call){if(call){xrtAtomic32Exchange(&call->state,XIDE_EDIT_CALL_CANCELLED,XMEMORY_ACQ_REL);xideEditRequestInvalidate(call->request,XIDE_EDIT_REQUEST_CANCELLED);}}
+int xideEditCallCancelSend(xide_edit_call* call,xide_language_client* client)
+{
+ if(!call)return 0;
+ xideEditCallCancel(call);if(xideLanguageClientIdentity(client)!=call->connection)return 0;
+ if(!xrtAtomic32Load(&call->sent,XMEMORY_ACQUIRE)||xrtAtomic32Load(&call->cancelSent,XMEMORY_ACQUIRE))return 1;
+ if(!call->cancelBatch||!xideLanguageBatchSendBound(client,call->cancelBatch,call->connection,&call->cancelSent))return 0;
+ call->cancelBatch=NULL;return 1;
+}
 xide_edit_reply* xideEditCallReply(xide_edit_call* call,uint64_t peer,xvalue* root,size_t bytes,enum xide_edit_call_error* why)
 {
  enum xide_edit_call_error error=XIDE_EDIT_CALL_ARGUMENT;xide_edit_reply* reply=NULL;

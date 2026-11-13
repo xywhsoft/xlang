@@ -11,6 +11,8 @@ typedef struct xide_source_job {
     struct xide_source_job *previous,*next;
     xide_source_jobs* owner;
     void* thread;
+    int (*quiet)(void*);
+    void* quietUser;
 } xide_source_job;
 struct xide_source_jobs {
     xide_source_job* first;
@@ -28,6 +30,11 @@ int xideSourceJobLink(xide_source_jobs*,xide_source_job*);
 /* Bind the actual borrowed Win32 worker HANDLE before ending admission.
  * Unlink before closing it, only after its worker has physically stopped. */
 int xideSourceJobBind(xide_source_job*,void* thread);
+/* Alternative for a persistent worker. Probe must be constant bounded metadata
+ * only, outlive the link, and prove physical no-reader activity PLUS closed
+ * admission; a cancelled future or momentarily idle runnable worker is not
+ * quiet. Owner closes this producer before polling the global barrier. */
+int xideSourceJobBindProbe(xide_source_job*,int (*quiet)(void*),void*);
 void xideSourceJobUnlink(xide_source_job*);
 int xideSourceJobStopped(const xide_source_job*);
 int xideSourceJobsHeld(const xide_source_jobs*);

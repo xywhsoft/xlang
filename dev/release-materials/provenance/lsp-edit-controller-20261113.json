@@ -1,0 +1,135 @@
+{
+  "schema": 1,
+  "date": "2026-11-14",
+  "buildStartedDate": "2026-11-13",
+  "stage": "M7b6b",
+  "scope": "Persistent C/XRT IDE native-candidate controller, actual receiver/owner fences, preencoded original-connection cancellation and sourceJobs physical quiescence",
+  "implementationAccepted": true,
+  "goalComplete": false,
+  "performanceQualified": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "e61d37faec7d6842405e47731cf812ab6fdb7a00",
+  "ownedSources": {
+    "ide/src/services/edit_call.c": "8a680a9ef85945a2e2e12aa85131d21623fb42a555f4af90676efc418b7a5d23",
+    "ide/src/services/edit_call.h": "a294cfd896bb4100c760b09a2316187caff0ba95ab429a2eb56e69c9832dd66e",
+    "ide/src/services/edit_controller.c": "ac15c20242245fd922606fc0bc6458e9c1a41d981981cb3cb3254c8077543e8b",
+    "ide/src/services/edit_controller.h": "230dde106e323d08af250705bcc96f6353d9fc24d27e41dfca1ea421f71d9a3f",
+    "ide/src/services/source_jobs.c": "bc6d5a6678fae8b5ccb89c8b962da60cdf6657b134664e296954f7a0c4d7cca4",
+    "ide/src/services/source_jobs.h": "652dff31dac5d760723785a1354de55a91c98df8c119b87839ae8cc72627f337",
+    "ide/src/ui/edit_request_view.h": "e96f37d0d4df2ede68602b34e5eff04745da18f07766b130c00dab7af3c884c0",
+    "ide/src/ui/edit_controller_view.inc": "3149a6bfa751063d249211e19f0e81395232b68af5005ebd11115cc8f41a37d8",
+    "ide/src/ui/language_view.c": "0b0810a73f9b83db57ccb3b8db1d8c386082dd088b0d46d4932e115fead16ee4",
+    "ide/src/ui/language_source_lease.inc": "6f46ef3424f490a1fc7a7b64553cb916670146d99ae9072ed45b77b1a18b1aa6",
+    "ide/src/ui/workspace_search_view.inc": "96b577cf020302176df431cb99cc7b08fbda0251bc13d203413890a6893943fd",
+    "ide/tests/edit_controller_test.c": "6e49f6c8db573f30ceeffadcd45960f88726b30b4ba4cc2a62cf0f855ef45bd1",
+    "ide/tests/edit_cancel_test.c": "18323d574c7edf0a947707381d59cee68e960c1c75f59ed0d5986608d768f3b6",
+    "ide/tests/edit_request_view_test.c": "6ec35c5bdd029e18899b171590d45638a7745e21fdc62ffa7430e6dd6be6e16f",
+    "ide/tests/file_sync_lease_test.c": "aef66b5ea248b489a64c21dcb638f2b11eb017681efec58a9a85b6f26cb58714",
+    "ide/tools/build.ps1": "12e1af739d73041951ca7578d8cdb5eebb9b77571f2bfd5cf9fe223b9886d66c",
+    "ide/tools/build_lsp_core.py": "1ab1958c0f45e91450f4ecbf596797d384f5b6d6897ddfcf709dd7a182ba4ac5",
+    "ide/docs/lsp-edit-controller.md": "b91378e01e0484715cbcd5315e4c802f35a4aab11451bfc118ba4448c01162c7"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-edit-controller-20261113.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-edit-controller-20261113/stage-sources.tar.gz",
+      "sha256": "a09ffa834534987276e16e60641689ee9b407fb6b9671dec36199ad8d13c8c2d",
+      "bytes": 91843,
+      "entries": 18,
+      "uniquePayloads": 18
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-edit-controller-20261113/stage-sources.tar.gz.manifest.json",
+      "sha256": "28102a94dfe6711b119e4e2dafb848117728c25b2a6bcc4200506414db868927",
+      "bytes": 4566
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-edit-controller-20261113/actual-builds-and-validation.tar.gz",
+      "sha256": "61c090e359220ba15b82eae4d16d4cce225a5e0f3d32b7c9f40539030a882a58",
+      "bytes": 214130449,
+      "entries": 7964,
+      "uniquePayloads": 4004
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-edit-controller-20261113/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "1e627eddfa38eaa0864ca16460463a9e5ea0658a289fc10384000425a1a5786e",
+      "bytes": 3650081
+    }
+  },
+  "externalPaths": {
+    "build": "F:\\codex-builds-xlang-lsp-20261113\\edit-controller",
+    "fixtures": "F:\\xl-edit-controller-20261113",
+    "materials": "F:\\codex-builds-xlang-lsp-20261113\\edit-controller-materials"
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "sdkSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+  "currentDeliverySha256": "dbc9e09ddfaeced7c675d0540589319f20d03e08f5b43abe08dd33354ecaa9fd",
+  "candidate": {
+    "servicePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-edit-controller-20261113\\native-v3\\xlang-ls.exe",
+    "serviceSha256": "ca1ed5f491d92795c955c0b4b13830e12cbffc15b895ff51d11b6231f04f8e6f",
+    "guiPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-edit-controller-20261113\\gui-objects-v1\\xlang_ide.link.exe",
+    "guiSha256": "fc0f9c22ee7fa972c456cdcfea85a12bb87b8c8d29009e62a881ebee29717a91"
+  },
+  "verification": {
+    "distinctFinalNativeObjects": 118,
+    "fullGuiObjects": 134,
+    "guiSuites": 55,
+    "controllerAssertionsEachProfile": 76,
+    "cancelAssertionsEachProfile": 11,
+    "actualIdeAssertions": 237,
+    "sourceJobLeaseObservedAssertions": 130,
+    "sourceJobViewAssertions": 67,
+    "sourceBarrierObservedAssertions": 409,
+    "languageSourceLeaseObservedAssertions": 122,
+    "existingCallRegressionAssertions": 65,
+    "rejectedActualMutants": 8,
+    "actualGuiFramesEach": 24,
+    "actualCompileClosures": 282,
+    "rawArchiveMembers": 72,
+    "reusedProtocolEvidence": {
+      "index": "dev/release-materials/provenance/lsp-edit-candidate-admission-20261113.json",
+      "indexSha256": "11cebb7bee150f5ef4e88a2522ab9a41fd649fec298c7a82c11a7fcd90e03e6a",
+      "sameServiceSha256": "ca1ed5f491d92795c955c0b4b13830e12cbffc15b895ff51d11b6231f04f8e6f",
+      "cases": 85,
+      "tools": {
+        "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_rename_candidate.py": "2241cf1a6b5a612e91978638d5ba5da713e057c4eaa799575a4f68ca265dc738",
+        "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_native_analysis.py": "f195ffe54749a3afa662b6b545504f74265cebc81152423e235578f556ab9fe1",
+        "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_native_completion.py": "2b3cd24b3fc79a54f0361889c53628202881ed53f0eb9129a41d16b4963dba41",
+        "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_automatic_diagnostics.py": "a40124a9b712974048612a7eef76d8f3ce5915b13200e8d78fa6e0783ce678ec"
+      }
+    },
+    "allRuntimeAliasesRemoved": true,
+    "existingUserTemporaryDirectoriesPreserved": true,
+    "rawFailuresPreserved": true
+  },
+  "evidenceNotes": [
+    "A persistent XRT worker now prepares calls, routes real stdio responses, admits complete candidate data and retires large assets. One operation and one reply are retained at a time. Actual connection identity, typed ID and original Content-Length bound the receiver; unmatched or late replies use the existing background discard.",
+    "The actual IDE view negotiates experimental.renameCandidate1 for native backends, captures acknowledged immutable inputs, registers its source reader and repeats complete owner Current before send and first publication. Borrowing the candidate repeats Current too. No menu, standard rename/applyEdit or file writes are enabled.",
+    "edit_call preencodes both its main request and original-ID cancellation packet. Owner cancellation is irreversible, only sends to the original connection, suppresses unsent requests and duplicate cancellation, and preserves the packet after queue backpressure. The actual fake stdio peer verifies ordering and counts while a frame wrapper rejects any attempted owner encoding.",
+    "SourceJobs gains an alternative physical-quiescence probe while retaining existing HANDLE rules. The view registers active operations under balanced admission and keeps the registration through worker retirement. The explicit language lease pauses the controller, preserving an already READY candidate, cancelling in-flight work and refusing physical quiet until the thread leaves queued/active work. Resume remains explicit and participates in the existing six-participant barrier.",
+    "Both native and matched GUI/XRT controller programs pass76 checks, including real five-target results, exact peer/type/capacity, READY preservation, held call/validator entry and an actual positive source ReadFull held after the read returns. Cancellation alone cannot make the source probe quiet, and large assets retire on the persistent worker.",
+    "The actual IDE237-check fixture exercises capability refusal, a named C model changed before send and before publication, positive real candidate preparation, READY barrier preservation, C input invalidation while held, plan survival, cancellation and retry, along with prior C/xlang typing/delete/undo/IME/focus. Existing source-job and two-connection barrier/lease fixtures pass against the same current view and service.",
+    "Eight independently compiled mutants fail assertions: omit physical-active check, accept a foreign receiver peer or oversized frame, omit cancellation send or foreign cancellation check, or bypass capability/send-Current/publication-Current. The mutants execute the passed65-check precursor fixture; its exact bytes remain immutable. The final76-check fixture independently adds a source-read boundary and is explicitly bound to its native and GUI executions.",
+    "The first native replay used stale concatenated include flags and failed before linking; that cohort is rejected. The corrected full build117 objects uses fresh current headers; source_jobs then exposed its old unconditional Windows target define under the native forced-header profile. Guarding that define produced the118th final object and a successful core archive/service link without another ABI change. All134 GUI units were freshly built together.",
+    "The first targeted GUI helper did not translate the existing process-name probes to its private service alias, so a two-peer count assertion failed. The corrected helper changes only those expected basenames, patches both connection entry literals and preserves all actual peer-count/PID checks. Original raw failure and corrected passed runs remain.",
+    "The first full55 GUI helper stopped at the old global malloc-injection resume assertion. Its consuming thread was not captured, so a concrete original cause is unproven. A diagnostic run failed allocation on the expected owner and retained the lease. The test now targets the resume owner and proves a controlled unrelated-thread allocation cannot consume the injection; the final full55 run passes. Production file-sync code is unchanged.",
+    "Actual final source/header dependency scans and72 raw archive member payloads are bound. Later changes to build.ps1 only register validation wrappers/tests and do not alter the frozen GUI production compile flags or source cohort. The final controller fixture and deterministic file-sync fixture are independently compiled from explicit current sources.",
+    "The newly rebuilt service is byte-identical to the prior accepted ca1ed5f service. Its prior85 protocol cases are referenced with exact committed protocol-tool and compiler/runtime identities, not presented as this rounds executions. New controller/cancel and65 existing-call checks execute this round. The working runtime, developer SDK, current delivery and user temporary directories remain unchanged; all owned private runtime aliases are removed."
+  ],
+  "limits": [
+    "Data-admitted candidate only: physical path/alias and full named-model policy, original guards versus owned writes, confirmation/apply/rollback/recovery and standard rename/applyEdit activation remain open.",
+    "Unsynced C/hidden models still fail conservatively when touched. Full generic/unbound/foreign qualification, latest engine/native asset alignment, other synchronous readers, deep unprefixed xlp handling and analysis-configuration cache-count regression remain open.",
+    "No whole-goal latency, RSS, resource/endurance, sanitizer or Linux qualification. Known quotas are not total memory bounds. The existing owner-serialized blocking stdout writer and cold codec copies remain.",
+    "C LSP remains disabled. No DAP/runtime/debug completion. Default runtime programs, developer SDK and active delivery index are not replaced."
+  ],
+  "postCommitReceipt": "dev/release-materials/provenance/lsp-edit-controller-20261113/postcommit.json"
+}

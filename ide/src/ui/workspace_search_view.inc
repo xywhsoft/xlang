@@ -57,7 +57,7 @@ static int workspaceSearchBusy(xide_language_view* v)
 static void workspaceSearchCapabilities(xide_language_view* v,const xvalue* cap)
 {bool list=false,proof=false;if(v->workspaceSearch)v->workspaceSearch->supported=xideMetaBool(get(cap,"workspaceSymbolProvider"),&list) && list && xideMetaBool(get(get(cap,"experimental"),"workspaceSymbolInputProof"),&proof) && proof;}
 static int workspaceSearchReceive(xvalue* message,size_t bytes,void* user)
-{xide_language_view* v=user;if(v->workspaceSearch && xideWorkspaceSearchDecoderReceive(message,bytes,v->workspaceSearch->decoder))return 1;return v->references?xideReferenceDecoderReceive(message,bytes,v->references->decoder):0;}
+{xide_language_view* v=user;if(xideEditControllerReceive(v->editController,xideLanguageClientIdentity(v->client),message,bytes))return 1;if(v->workspaceSearch && xideWorkspaceSearchDecoderReceive(message,bytes,v->workspaceSearch->decoder))return 1;return v->references?xideReferenceDecoderReceive(message,bytes,v->references->decoder):0;}
 static int takeWorkspaceSearch(xide_language_view* v,xvalue* message,size_t bytes)
 {struct xide_workspace_search_view* r=v->workspaceSearch;int id=0;if(!r || !r->request || !number(get(message,"id"),&id) || id!=r->request)return 0;if(xideWorkspaceSearchDecoderSubmit(r->decoder,r->token,message,bytes))return 1;v->deferredMessage=message;v->deferredDiscard=0;v->deferredSession=v->highlightSession;return 1;}
 static void workspaceSearchSynced(xide_language_view* v)
