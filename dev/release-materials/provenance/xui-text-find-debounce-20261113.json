@@ -1,0 +1,66 @@
+{
+  "date": "2026-11-13",
+  "qualified": true,
+  "shippingDelivery": false,
+  "nativeCommit": "25598bcf1892fdd5ffcb946d4bac3a8f9f421995",
+  "nativeReceipt": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\text-read-find-debounce-20261113.json",
+    "sha256": "9f298a0d65ec3d0c9c4bd7c5315dc8d72916e4208cc14222084d41962d77efe0"
+  },
+  "priorLanguageReceipt": {
+    "path": "dev/release-materials/provenance/xui-text-reads-20261113.json",
+    "sha256": "18692f5c53788032a331f89dbeb5d4f17d6c3699dd8a55d828006563e60d7550"
+  },
+  "scope": "Resolve the historical native CodeEdit UI test gap by driving its existing debounce update; native production/SDK and xlang bindings unchanged, no compiler rebuild or language regression repetition needed.",
+  "sources": {
+    "docs/xui-text-snapshots.md": "5c29d9adf4e04fcfa2b6d9a91bc96f7a1c0fa4d17b8137f03b43f4cdd599c70b",
+    "docs/xge3-xui3-full-coverage-plan.md": "3ddd1678f22ac5c0d289f0aeabc4c5a18401c70820928b0c549e2c9d93dab472"
+  },
+  "platforms": {
+    "win": {
+      "gate": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\text-read-native-find-win-r2\\results.json",
+        "sha256": "cd56609ab5260727f594787efb3231c0dece09e59c8e51a6647266f3398464b6",
+        "commands": 16
+      },
+      "freeze": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\native-find-debounce-win-freeze-r2.json",
+        "sha256": "6246dfd1e999f60055a34200b6c9a74ae8e0bd8c66f02effea791c870597a524",
+        "inputs": 12068
+      },
+      "workspaceVariant": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\find-debounce-probe-win-r1\\results.json",
+        "sha256": "f5c4f6c824a366dd54e82e23d4b52942ee78bf5949cd2bcc5a7f34c4c40d6352",
+        "commands": 4
+      },
+      "oldFailure": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\text-read-legacy-baseline-win-r1\\results.json",
+        "sha256": "dd7645aade877fef1eea6a99a65004accf4ada681598da9df405d019c2c1111a"
+      },
+      "productionUnchanged": true
+    },
+    "linux": {
+      "gate": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\text-read-native-find-linux-r2\\results.json",
+        "sha256": "0229a46354e8bea3cb11f012e928a7073752d134a8183775c6a04d2d0bf70583",
+        "commands": 16
+      },
+      "freeze": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\native-find-debounce-linux-freeze-r2.json",
+        "sha256": "ceda822d1b6db4e23397f9fd2c3499c7f23b53f543e01b0b21d2b4bfd5e98553",
+        "inputs": 12068
+      },
+      "workspaceVariant": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\find-debounce-probe-linux-r1\\results.json",
+        "sha256": "80b8e7bfed5c2d5042bd116f2365986fcdf414f8f3fdd3b3d593ca2626afdeff",
+        "commands": 4
+      },
+      "oldFailure": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\text-read-legacy-baseline-linux-r1\\results.json",
+        "sha256": "a42e7969b583a767cab12c540014fdea518e5973a6bdf72d39fb3c3b95931d48"
+      },
+      "productionUnchanged": true
+    }
+  },
+  "remaining": "Other full-integration models/callbacks, actual graphics/platform acceptance and final matched SDK/compiler/IDE delivery."
+}

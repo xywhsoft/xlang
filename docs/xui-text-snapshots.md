@@ -76,10 +76,12 @@ poison output on failed status, multi-output atomicity and OOM. The native gate
 existing generic edit/TextEdit regressions at GCC O0/O2. It measures 1000
 cached native document reads without XRT heap operations.
 
-The broad existing native CodeEdit UI suite has a separate baseline failure
-at `find scope result table columns`. Both previous and new SDKs reproduce it
-at O0/O2 on Windows/Linux: status 0, two columns and zero rows, while the test
-expects three columns and three rows. Its original failure and comparison
-reports are preserved. It is not counted as a passed text-read check and still
-needs separate resolution. No graphics acceptance or final SDK/IDE delivery is
-claimed by these CPU checks.
+The broad native CodeEdit UI suite originally asserted its find table before
+the native 80 ms debounce update. Both previous and new SDKs reproduced that
+failure; those historical reports remain unchanged. Native test successor
+`25598bcf` advances the update loop by 40 ms (still pending) and another 50 ms
+(three columns/three rows). The expanded native gate now passes all 16 commands
+on Windows/Linux, including the complete CPU-Proxy CodeEdit suite at O0/O2.
+Only the test drive changes; native find behavior and SDK bytes are unchanged.
+See `xui-text-find-debounce-20261113.json`. Real graphics acceptance and final
+SDK/IDE delivery remain separate from these CPU checks.
