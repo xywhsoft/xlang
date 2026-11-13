@@ -1,0 +1,127 @@
+{
+  "date": "2026-11-13",
+  "qualified": true,
+  "shippingDelivery": false,
+  "nativeCommit": "b4409240",
+  "nativeEvidence": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\icon-watches-20261113.json",
+    "sha256": "daad7c62cdec5a7184841cfb21570a3ad975a853927fa04b17110275599742ac"
+  },
+  "scope": "Direct registry-owned IconCategory/Icon models, SVG path/alias factories and typed IconPicker model edges. CPU-only full compiler consumption, not full IconPicker/custom callbacks or final graphics delivery.",
+  "sources": {
+    "lib/bindings/_xge_native/include/xge3_runtime.h": "1e42196aa78eb2d3462951151211c413ed13ff72d937e513f22ee3ac83980a21",
+    "lib/bindings/_xge_native/src/runtime.c": "2fbd4b2dbc7143861ff6b519355413e80e33440ce0002fe55252c115693705a5",
+    "lib/bindings/xui/src/icons.xl": "4496d2d3ea0fbc3627413eeff6fddada5b31cfe10bdbdf12a4a4f26c180075a3",
+    "lib/bindings/xui/src/managed.xl": "bf327641ac4a515f2528cb24e5020d89ed0dbf7e4432588fc8ca067b0bc69ff9",
+    "lib/bindings/xui/xlang.package.json": "419fe4551d98d94f92b800ec324aeba91bb2ead1f2fedc65cc8919a8d17b968d",
+    "lib/bindings/xui/examples/icon_picker.xl": "503f3f95b304d2106a7c65e081c870001dfad9a92f6ae2d0086cdface5d4b71b",
+    "test/cases/foreign_xui_icon_models.xl": "882d7bd0a6dcc747366e224d577f1accf70752ed22972d04bd4ed3140a411faf",
+    "test/cases/foreign_xui_icon_models.c": "4322339f945e9a680aa0370001212d0edcf1db8b34c17a1173ecf93451477f41",
+    "test/cases/foreign_xui_icon_models.h": "bbe0f93a88200e9dad249379218dbd35dd0309a0bdac317901a43d6cd2106e8f",
+    "tools/check_xui_icon_models.py": "99985ebacef754ad489e24901ba1eadc98d2fd0124d1fe50d5c2adac27e9468b"
+  },
+  "platforms": {
+    "win": {
+      "report": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\icon-model-qualified-win-r1\\results.json",
+        "sha256": "41edd77771c73fa1f1ce20e2bc579bfb954f374b40dfa67f83b12f7703b434cb",
+        "commands": 15
+      },
+      "programs": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\icon-model-qualified-win-r1\\foreign_xui_icon_models-dynamic.exe",
+          "sha256": "a3878d9170783f2704ae6ca35c8d1347112cebe89619815fd83db1483265fd14",
+          "bytes": 5235712,
+          "imports": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\icon-model-qualified-win-r1\\foreign_xui_icon_models-static.exe",
+          "sha256": "ff51d37070ece2ebfdfae3ce47a2d5b971cec5eeeb73628c0eab2a48b2ed11fb",
+          "bytes": 1788928,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "ole32.dll",
+            "SHELL32.dll"
+          ]
+        }
+      ],
+      "runtimeCases": "JIT and independent dynamic/static: expiry, native retention, cross-Context rejection, 96 allocation budgets each; example compile only.",
+      "packages": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\icon-model-qualified-win-r1-packages-host.json",
+          "sha256": "a21758ee0b125bafff7c61383c2120326c6d1752f1fac180856a90d991ec0f5f"
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\icon-model-qualified-win-r1-packages-static.json",
+          "sha256": "4d2ea55b8c992ee67696e2546ed4f0ed18c2f617e04b4ecc3e6119c89254349a"
+        }
+      }
+    },
+    "linux": {
+      "report": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\icon-model-qualified-linux-r1\\results.json",
+        "sha256": "3159746b0aca304b01dfea067428b822058b5fa971e36929ccc8d439afc5f1d5",
+        "commands": 15
+      },
+      "programs": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/icon-model-qualified-linux-r1/foreign_xui_icon_models-dynamic",
+          "sha256": "1652e0f71c28985d48b66c7e2fd218ec7917b281b9baef52dd141d53e21f81d1",
+          "bytes": 5414500,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/icon-model-qualified-linux-r1/foreign_xui_icon_models-static",
+          "sha256": "ede19ba84135f49982233084438fb7d0c5afe58a2690607b5c3c038c0cef3c87",
+          "bytes": 2237408,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ],
+      "runtimeCases": "JIT and independent dynamic/static: expiry, native retention, cross-Context rejection, 96 allocation budgets each; example compile only.",
+      "packages": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\icon-model-qualified-linux-r1-packages-host.json",
+          "sha256": "f225c80088ff99f576f799d797bae3e2cb941360a5f7ea4421b434ed7cb8be89"
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\icon-model-qualified-linux-r1-packages-static.json",
+          "sha256": "f78c6df1af23b01c4f99595a451ea46a5aab68998dbfca60b567b14760cbb020"
+        }
+      }
+    }
+  },
+  "costs": [
+    "Native private Category/Icon each add exactly 8 bytes on both x64 targets. Watch/unwatch storage has zero XRT heap operations over 1000 pairs.",
+    "Business operations remain direct declarations. Two cold rollback functions and lifetime policy callbacks adapt registry ownership and diagnostics.",
+    "Borrowed names require a length scan, one result allocation and copy. View scopes and C-string inputs retain existing costs; no whole-binding zero-overhead claim."
+  ],
+  "limits": [
+    "Graphical example emitted/header-checked but not executed.",
+    "File/memory/custom icon sources, owned custom/formatter callbacks and every same-object reentry path remain.",
+    "No final SDK/compiler/IDE installation, network tests or publication."
+  ]
+}

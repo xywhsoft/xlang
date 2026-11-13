@@ -251,3 +251,25 @@ return null. Use the existing count functions to enumerate them; no Context or
 window is needed. Each present name costs a length scan, one allocation and a
 copy. See `examples/asset_names.xl`. Atlas decode and icon rendering keep their
 existing resource contracts.
+
+`createIconCategory(context,name,iconCategoryDescDefault())` creates a registry
+owned `IconCategory`. `addSvgPath` and `addAlias` create typed `Icon` views;
+`find`, `findById`, `iconAt` and `iconCategoryAt` preserve nullable lookup results.
+Enumeration indices are zero based; native IDs remain stable, including holes
+after removals. Names are independent string snapshots.
+
+`createIconPicker(context)` supplies native defaults. Its typed `setCategory`,
+`category`, `setSelectedId`, `selectedId` and `selectedIcon` methods call the
+native functions directly. A picker retains its category, and an alias retains
+its target. Dropping a language view does not unregister native data. Explicit
+`unregister()` removes the registry owner; views expire at physical deletion,
+which may be delayed by a picker or alias. Closing the Context expires all its
+views. Cross-Context edges are rejected.
+
+See `examples/icon_picker.xl`. This batch covers SVG-path/alias models and typed
+picker edges; file/memory/custom sources, formatter closure ownership and every
+same-object reentry path remain tracked separately. Lifetime watches use one
+native pointer per Category/Icon (8 bytes on both qualified x64 targets), and
+cold binding storage. They do not add a per-business-method C wrapper. String
+reads still scan, allocate and copy; C-string inputs and checked view scopes
+retain their existing costs.

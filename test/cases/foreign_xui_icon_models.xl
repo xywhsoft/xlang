@@ -1,0 +1,144 @@
+import xui
+from xui import Icon as IconModel
+from xui import IconCategory as IconCategoryModel
+extern "fixtureIconProxy" @header("test/cases/foreign_xui_icon_models.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
+extern "fixtureIconBudget" @no_raise func budget(c_int allowance)
+extern "fixtureIconHostReferences" @no_raise func hostReferences() as c_int
+
+func main(...) as int
+    auto proxy=cpuProxy()
+    auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto description=xui.iconCategoryDescDefault()
+    auto category=xui.createIconCategory(context,"tools",description)
+    assert category.name=="tools"
+    assert category.count==0
+    auto box=xui.Rect()
+    box.fW=16
+    box.fH=16
+    auto icon=category.addSvgPath("triangle","M0 0 L16 0 L8 16 Z",box)
+    assert icon.name=="triangle"
+    assert icon.displayName=="triangle"
+    assert icon.tags==null
+    auto alias=category.addAlias("copy",icon)
+    assert category.count==2
+    assert (category.find("triangle") as IconModel).id==icon.id
+    assert (category.findById(alias.id) as IconModel).name=="copy"
+    assert category.find("missing")==null
+    assert category.iconAt(-1)==null
+    assert (category.iconAt(0) as IconModel).id==icon.id
+    assert category.iconAt(2)==null
+    assert category.description().fWidth==description.fWidth
+    assert (xui.findIconCategory(context,"tools") as IconCategoryModel).name=="tools"
+    assert (xui.iconCategoryAt(context,0) as IconCategoryModel).name=="tools"
+    string savedName=icon.name
+    assert icon.unregister()
+    assert category.find("triangle")==null
+    assert icon.name=="triangle", "the native alias retains its unregistered target"
+    assert alias.unregister()
+    bool expired=false
+    try
+        auto gone=icon.id
+    catch error
+        expired=true
+    end
+    assert expired
+    assert savedName=="triangle", "copied metadata outlives the native object"
+    icon=category.addSvgPath("replacement","M0 0 L16 0 L8 16 Z",box)
+    auto picker=xui.createIconPicker(context)
+    picker.setCategory(category)
+    picker.setSelectedId(icon.id)
+    assert picker.selectedId()==icon.id
+    assert (picker.selectedIcon() as IconModel).name=="replacement"
+    auto other=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto otherCategory=xui.createIconCategory(other,"other",description)
+    bool rejected=false
+    try
+        picker.setCategory(otherCategory)
+    catch error
+        rejected=true
+    end
+    assert rejected and (picker.category() as IconCategoryModel).name=="tools"
+    rejected=false
+    try
+        auto invalid=otherCategory.addAlias("cross-context",icon)
+    catch error
+        rejected=true
+    end
+    assert rejected and otherCategory.count==0
+    other.close()
+    assert category.unregister()
+    assert (picker.category() as IconCategoryModel).name=="tools"
+    picker.setCategory()
+    expired=false
+    try
+        auto gone=category.name
+    catch error
+        expired=true
+    end
+    assert expired
+    c_int allowance=0
+    int failures=0
+    int successes=0
+    while allowance<48
+        IconCategoryModel? result=null
+        rejected=false
+        budget(allowance)
+        try
+            result=xui.createIconCategory(context,"allocation",description)
+        catch error
+            rejected=true
+        end
+        budget(-1)
+        if rejected then
+            failures+=1
+            assert result==null
+            assert xui.findIconCategory(context,"allocation")==null
+        else
+            successes+=1
+            assert (result as IconCategoryModel).unregister()
+        end
+        assert context.iconCategoryGetCount()==0
+        allowance+=1
+    end
+    assert failures>0 and successes>0
+    category=xui.createIconCategory(context,"output",description)
+    allowance=0
+    failures=0
+    successes=0
+    while allowance<48
+        IconModel? result=null
+        rejected=false
+        budget(allowance)
+        try
+            result=category.addSvgPath("allocation","M0 0 L16 0 L8 16 Z",box)
+        catch error
+            rejected=true
+        end
+        budget(-1)
+        if rejected then
+            failures+=1
+            assert result==null
+            assert category.find("allocation")==null
+        else
+            successes+=1
+            assert (result as IconModel).unregister()
+        end
+        assert category.count==0
+        allowance+=1
+    end
+    assert failures>0 and successes>0
+    icon=category.addSvgPath("last","M0 0 L16 0 L8 16 Z",box)
+    context.close()
+    expired=false
+    try
+        auto gone=icon.name
+    catch error
+        expired=true
+    end
+    assert expired
+    proxy.close()
+    assert hostReferences()==1
+    println("Icon models: registry views, picker ownership, expiry and 96 OOM budgets passed")
+    return 0
+end

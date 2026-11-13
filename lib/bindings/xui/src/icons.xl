@@ -1,0 +1,32 @@
+// Registry-owned views retain the real Context. Native physical deletion
+// expires every alias; dropping a language view does not remove the registry.
+export extern "xui_icon_category_t*" class IconCategory @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3IconCategoryPolicy") @watch("xui_lifetime_link_t")
+ native point handle
+ extern "xuiIconCategoryGetName" @no_raise @c_result("cstring") get name() as string
+ extern "xuiIconCategoryGetGeneration" @no_raise get generation() as c_uint
+ extern "xuiIconCategoryGetIconCount" @no_raise get count() as c_int
+ extern "xuiIconCategoryGetIconSlotCount" @no_raise get slotCount() as c_uint
+ extern "xuiIconCategoryGetDesc" @no_raise @c_output(1,0) func description() as IconCategoryDesc
+ extern "xuiIconCategoryGetIconAt" @no_raise @c_result("owner_view",0) func iconAt(c_int index) as Icon?
+ extern "xuiIconFind" @no_raise @c_cstr(0) @c_result("owner_view",0) func find(string name) as Icon?
+ extern "xuiIconFindById" @no_raise @c_result("owner_view",0) func findById(c_uint id) as Icon?
+ extern "xuiIconAddSvgPath" @no_raise @c_cstr(0) @c_cstr(1) @c_null(4,"const xui_path_style_t*") @c_null(5,"const xui_icon_desc_t*") @c_result("owner_view",0) @factory(6,0,rollbackIcon) func addSvgPath(string name,string path,Rect viewBox) as Icon
+ extern "xuiIconAddAlias" @no_raise @c_cstr(0) @c_null(3,"const xui_icon_desc_t*") @c_result("owner_view",0) @factory(4,0,rollbackIcon) func addAlias(string name,Icon target) as Icon
+ extern "xuiIconCategoryRemoveOwnerChecked" @no_raise @c_output(1,0) func unregister() as bool
+end
+export extern "xui_icon_t*" class Icon @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3IconPolicy") @watch("xui_lifetime_link_t")
+ native point handle
+ extern "xuiIconGetName" @no_raise @c_result("cstring") get name() as string
+ extern "xuiIconGetDisplayName" @no_raise @c_result("cstring") get displayName() as string
+ extern "xuiIconGetTags" @no_raise @c_result("cstring") get tags() as string?
+ extern "xuiIconGetId" @no_raise get id() as c_uint
+ extern "xuiIconGetSourceType" @no_raise get sourceType() as c_int
+ extern "xuiIconGetGeneration" @no_raise get generation() as c_uint
+ extern "xuiIconRemoveOwnerChecked" @no_raise @c_output(1,0) func unregister() as bool
+end
+export extern "xuiIconCategoryCreate" @header("xge3_runtime.h") @no_raise @c_cstr(1) @c_ref(2) @c_result("owner_view",0) @factory(3,0,rollbackIconCategory) func createIconCategory(Context context,string name,IconCategoryDesc description) as IconCategory
+export extern "xuiIconCategoryFind" @header("xge3_runtime.h") @no_raise @c_cstr(1) @c_result("owner_view",0) func findIconCategory(Context context,string name) as IconCategory?
+export extern "xuiIconCategoryGetAt" @header("xge3_runtime.h") @no_raise @c_result("owner_view",0) func iconCategoryAt(Context context,c_int index) as IconCategory?
+export extern "xuiIconPickerCreate" @header("xge3_runtime.h") @no_raise @c_null(2,"const xui_icon_picker_desc_t*") @c_result("owner_view",0) @factory(1,0,rollbackIconPicker) func createIconPicker(Context context) as IconPicker
+extern "xl6Xui3RollbackIconCategory" @header("xge3_runtime.h") @no_raise func rollbackIconCategory(IconCategory value)
+extern "xl6Xui3RollbackIcon" @header("xge3_runtime.h") @no_raise func rollbackIcon(Icon value)

@@ -89,6 +89,26 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3WidgetPolicyGet(void)
         sizeof(xui_lifetime_link_t),_Alignof(xui_lifetime_link_t),watch_widget,unwatch,destroy_widget,0,1,NULL,NULL,NULL,NULL,0,NULL,NULL};
     return &value;
 }
+/* Registry-owned children share their Context's real ownership directory.
+ * The adapter is lifetime bookkeeping, not a business-method forwarding layer.
+ * Rollback removes the registry owner and separately reports callback errors. */
+#define XL6_XUI_ICON_POLICY(Name,Prefix) \
+static bool watch_##Name(void* raw,void* storage,void(*invalidate)(void*),void* user) \
+{int status=Prefix##LifetimeWatch(raw,storage,invalidate,user);if(status!=XUI_OK)report_resource_failure(status,#Prefix "LifetimeWatch");return status==XUI_OK;} \
+static bool destroy_##Name(void* raw) \
+{bool accepted=false;int status=Prefix##RemoveOwnerChecked(raw,&accepted);if(status!=XUI_OK)report_resource_failure(status,#Prefix "RemoveOwnerChecked");return accepted;} \
+const XL6_ForeignViewDescriptorV1* xl6Xui3##Name##PolicyGet(void) \
+{static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui." #Name, \
+sizeof(xui_lifetime_link_t),_Alignof(xui_lifetime_link_t),watch_##Name,unwatch,destroy_##Name, \
+0,1,NULL,NULL,NULL,NULL,0,NULL,NULL};return &value;}
+XL6_XUI_ICON_POLICY(IconCategory,xuiIconCategory)
+XL6_XUI_ICON_POLICY(Icon,xuiIcon)
+#undef XL6_XUI_ICON_POLICY
+void xl6Xui3RollbackIconCategory(xui_icon_category raw)
+{(void)destroy_IconCategory(raw);}
+void xl6Xui3RollbackIcon(xui_icon raw)
+{(void)destroy_Icon(raw);}
+
 /* Context owns each manager exactly once. These are distinct composite child
  * views, not Widget casts and not independent native RC roots. Context's real
  * directory traces their callback/font/layout edges; tracing them again from

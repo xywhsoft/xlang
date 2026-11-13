@@ -21,6 +21,13 @@ safe model bindings, so they do not get empty placeholder lessons. WebView shows
 its actual unsupported-backend result on this cohort; webpage rendering is not
 claimed as accepted.
 
+November 13 successor: `icon_picker.xl` now demonstrates SVG-path categories and
+typed picker edges. Windows/Linux each pass C generation and C11/C++11/C++17
+public-header checks with the matched model SDK. The CPU model fixture runs in
+JIT and independent dynamic/static programs, including 96 OOM budgets. This
+does not certify graphical interaction or retained custom/formatter callbacks;
+the preceding complete-71-program graphics evidence is unchanged.
+
 Windows validation combines the complete initial 71-program build/execution
 batch with 13 targeted successors. Both dynamic and static galleries execute
 all 57 scenes. Linux has 71 semantic checks, nine representative AOT builds and

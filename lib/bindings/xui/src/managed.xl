@@ -5606,6 +5606,13 @@ end
 
 export extern "xui_widget_t*" class IconPicker @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
 
+ // Typed model edges; the native picker retains its category independently.
+ extern "xuiIconPickerSetCategory" @no_raise @c_result("status",0) func setCategory(IconCategory? category=null)
+ extern "xuiIconPickerGetCategory" @no_raise @c_result("owner_view",0) func category() as IconCategory?
+ extern "xuiIconPickerSetSelectedId" @no_raise @c_result("status",0) func setSelectedId(c_uint id)
+ extern "xuiIconPickerGetSelectedId" @no_raise func selectedId() as c_uint
+ extern "xuiIconPickerGetSelectedIcon" @no_raise @c_result("owner_view",0) func selectedIcon() as Icon?
+
  extern "xuiIconPickerSetChangeOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setChange(IconPickerChangeProc? onChange)
 
  extern "xuiIconPickerClearSelection" @no_raise func clearSelection() as c_int
