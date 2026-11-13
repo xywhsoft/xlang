@@ -1,0 +1,10 @@
+// A real shared XRT quota. This is CPU allocation accounting, not RSS/VRAM.
+export extern "xge3d_decode_budget*" class DecodeBudget @header("xge3d_decode_budget.h") @lifetime("owned") @policy("xl6Xge3dDecodeBudgetPolicy")
+ native point handle
+ extern "xge3dDecodeBudgetInfo" @no_raise @c_output(1,0) @c_output_size(1,"size") func info() as Xge3dDecodeBudgetInfo
+ extern "xge3dDecodeBudgetSetLimit" @no_raise @c_result("status",0) func setLimit(uint64 bytes)
+ extern "xge3dDecodeBudgetShareOwned" @no_raise @c_result("owned_view") @factory(1,0,freeDecodeBudget) func share() as DecodeBudget
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xge3dDecodeBudgetFree" @header("xge3d_decode_budget.h") @no_raise func freeDecodeBudget(DecodeBudget value)
+export extern "xge3dDecodeBudgetCreate" @header("xge3d_decode_budget.h") @no_raise @c_result("owned_view") @factory(1,0,freeDecodeBudget) func createDecodeBudget(uint64 bytes) as DecodeBudget

@@ -1,0 +1,16 @@
+// 配额跟随解码分配；它不代表进程内存或显卡内存。此例不需要窗口／GPU。
+import xge3d
+
+auto budget=xge3d.createDecodeBudget(uint64(1024*1024))
+auto shared=budget.share()
+budget.close()
+
+try
+ shared.setLimit(uint64(2*1024*1024))
+ auto usage=shared.info()
+ assert usage.limit==uint64(2*1024*1024)
+ assert usage.live_bytes==0 and usage.live_allocations==0
+ println("解码配额：",usage.limit," bytes；已用：",usage.live_bytes)
+finally
+ shared.close()
+end

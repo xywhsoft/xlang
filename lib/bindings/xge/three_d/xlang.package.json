@@ -10,7 +10,11 @@
     "xlSources": [
       "src/bootstrap.xl",
       "src/records.xl",
-      "src/functions.xl"
+      "src/functions.xl",
+      "src/decode_budget.xl"
+    ],
+    "includeDirs": [
+      "include"
     ]
   },
   "links": [],

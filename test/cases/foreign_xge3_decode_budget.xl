@@ -1,0 +1,148 @@
+import xge3d
+from xge3d import DecodeBudget
+extern "fixtureBudgetAttach" @header("test/cases/foreign_xge3_decode_budget.h") @no_raise @c_result("status",0) func attach(DecodeBudget value)
+extern "fixtureBudgetTry" @no_raise @c_result("status",0) func allocateWithin(DecodeBudget value,uint64 bytes)
+extern "fixtureBudgetHeldInfo" @no_raise func heldInfo() as xge3d.Xge3dDecodeBudgetInfo
+extern "fixtureBudgetDetach" @no_raise func detach()
+extern "fixtureBudgetDuringCall" @no_raise @c_sync_callback(1,0,0) @c_result("status",0) func duringCall(DecodeBudget value,func() callback)
+extern "fixtureBudgetFail" @no_raise func failAfter(c_int allowance)
+extern "fixtureBudgetHeapBegin" @no_raise func heapBegin()
+extern "fixtureBudgetHeapReport" @no_raise func heapReport(c_int native)
+extern "fixtureBudgetNativePerformance" @no_raise func nativePerformance(DecodeBudget value)
+
+func ownership()
+    auto original=xge3d.createDecodeBudget(uint64(64))
+    auto shared=original.share()
+    original.close()
+    bool rejected=false
+    try
+        auto invalid=original.info()
+    catch error
+        rejected=true
+    end
+    assert rejected and shared.info().limit==64
+    attach(shared)
+    auto usage=shared.info()
+    assert usage.live_bytes==40 and usage.live_allocations==1 and usage.peak_bytes>=40
+    rejected=false
+    try
+        shared.setLimit(uint64(39))
+    catch error
+        rejected=true
+    end
+    assert rejected and shared.info().limit==64
+    uint64 previous=shared.info().rejections
+    rejected=false
+    try
+        allocateWithin(shared,uint64(25))
+    catch error
+        rejected=true
+    end
+    assert rejected and shared.info().rejections>previous
+    shared.setLimit(uint64(128))
+    shared.close()
+    auto nativeHeld=heldInfo()
+    assert nativeHeld.limit==128 and nativeHeld.live_bytes==40
+    detach()
+    auto large=xge3d.createDecodeBudget(uint64(0xFFFFFFFFFFFFFFFF))
+    assert large.info().limit==uint64(0xFFFFFFFFFFFFFFFF)
+    large.close()
+    rejected=false
+    try
+        xge3d.createDecodeBudget(uint64(0))
+    catch error
+        rejected=true
+    end
+    assert rejected
+end
+
+func activeClose()
+    auto value=xge3d.createDecodeBudget(uint64(128))
+    int calls=0
+    duringCall(value,func()
+        calls+=1
+        value.close()
+        bool rejected=false
+        try
+            auto invalid=value.info()
+        catch error
+            rejected=true
+        end
+        assert rejected
+    end)
+    assert calls==1
+end
+
+func publicationFailures()
+    int allowance=0
+    while allowance<32
+        DecodeBudget? created=null
+        failAfter(c_int(allowance))
+        try
+            created=xge3d.createDecodeBudget(uint64(256))
+        catch error
+            assert created==null
+        finally
+            failAfter(-1)
+        end
+        if created!=null
+            assert (created as DecodeBudget).info().limit==256
+            (created as DecodeBudget).close()
+        end
+        allowance+=1
+    end
+    auto original=xge3d.createDecodeBudget(uint64(256))
+    allowance=0
+    while allowance<32
+        DecodeBudget? shared=null
+        failAfter(c_int(allowance))
+        try
+            shared=original.share()
+        catch error
+            assert shared==null
+        finally
+            failAfter(-1)
+        end
+        assert original.info().limit==256
+        if shared!=null
+            (shared as DecodeBudget).close()
+        end
+        allowance+=1
+    end
+    original.close()
+end
+
+func performance()
+    auto value=xge3d.createDecodeBudget(uint64(128))
+    heapBegin()
+    failAfter(0)
+    try
+        int count=0
+        while count<1000
+            value.setLimit(uint64(64+(count%2)))
+            assert value.info().limit==uint64(64+(count%2))
+            count+=1
+        end
+    finally
+        failAfter(-1)
+    end
+    heapReport(0)
+    heapBegin()
+    failAfter(0)
+    try
+        nativePerformance(value)
+    finally
+        failAfter(-1)
+    end
+    heapReport(1)
+    value.close()
+end
+
+func main(...) as int
+    ownership()
+    activeClose()
+    publicationFailures()
+    performance()
+    println("DecodeBudget: independent ownership, live charges, active close, limits and 64 publication OOM budgets passed")
+    return 0
+end
