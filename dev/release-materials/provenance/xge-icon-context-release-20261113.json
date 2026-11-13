@@ -1,0 +1,58 @@
+{
+  "date": "2026-11-13",
+  "qualified": true,
+  "shippingDelivery": false,
+  "nativeCommit": "380f2f0e",
+  "nativeEvidence": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\icon-context-release-20261113.json",
+    "sha256": "cd3554709717a5b1186c04d7cf17823283bf1465f393243f61e0554e8a9cc58c"
+  },
+  "scope": "Native Icon/Category Context-close finalizer floor for future IconPicker models; explicit matched Windows/Linux host/static SDKs consumed by existing full O2 compilers.",
+  "platforms": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\icon-release-sdk-win-r1\\results.json",
+        "sha256": "0ecc1dc2a6fbcefefc5d3e4bf89be73e8431a202b78c1959f096126743320fd0",
+        "commands": 4
+      },
+      "nativeClients": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\icon-context-native-win-r3\\results.json",
+        "sha256": "c94ccdb9a94b9c4976c94db10b969477adafad59901f65f4811a6b08554d1de3",
+        "commands": 16
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\icon-context-qualified-win-r1\\results.json",
+        "sha256": "edfc332626c96a888ac3805e9d3e5225de849bb7e19aeff1eac741d51b9562e3",
+        "commands": 15
+      },
+      "nativeRuntimeBytes": 9581103,
+      "nativeRuntimeByteDelta": 2560
+    },
+    "linux": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\icon-release-sdk-linux-r1\\results.json",
+        "sha256": "893009d602c6a729897529800bb4d36942947260bc507b598079fb274ed0c84b",
+        "commands": 4
+      },
+      "nativeClients": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\icon-context-native-linux-r3\\results.json",
+        "sha256": "fb9cea654f3cf2ffbc22e25189263888e185c9d540826dd04e04543ddfd48521",
+        "commands": 16
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\icon-context-qualified-linux-r1\\results.json",
+        "sha256": "9a1b41d462510f623eb9e33ccd35b67400c705dba2f92c55833453a7f3143bac",
+        "commands": 15
+      },
+      "nativeRuntimeBytes": 10437296,
+      "nativeRuntimeByteDelta": 0
+    }
+  },
+  "limits": [
+    "No actual window/GPU/audio/network tests",
+    "O0/O2 are client optimization levels; native engine is O2, not a sanitized producer",
+    "Category/Icon lifetime watches, owning data models and retained custom/formatter callbacks remain unfinished",
+    "Same-object callback reentry and bulk mutation are separate remaining contracts",
+    "Final runtime/SDK/IDE not installed"
+  ]
+}
