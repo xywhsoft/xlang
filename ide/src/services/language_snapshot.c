@@ -9,6 +9,7 @@
 #include "editor/coordinates.h"
 #include "protocol/lsp_wire.h"
 #include "analysis/input_view.h"
+#include "services/reference_document.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -391,13 +392,11 @@ int xideLanguageCheckPackagePath(char** out,xide_model_error* e)
 }
 static int packageCurrent(xide_language_check* q,xide_model_error* e,const char* message)
 {
-#ifdef XLS_COMPILER_XRT
  if(q->context) {
   const char* expected=xlsContextSpec(q->context)->packagePath;
   int same=q->nativeSemantic && (expected && q->packagePath ? !strcmp(expected,q->packagePath) : expected==q->packagePath);
   return same ? 1 : fail(e,"原生上下文与捕获的包搜索输入不一致。");
  }
-#endif
  char* now=NULL; if(!xideLanguageCheckPackagePath(&now,e)) return 0;
  int same=now && q->packagePath ? !strcmp(now,q->packagePath) : now==q->packagePath; free(now);
  return same ? 1 : fail(e,message);
@@ -444,6 +443,7 @@ resolutionDone:
  free(keys);
  return okay?1:cancelled(q)?0:fail(e,message);
 }
+#include "services/language_snapshot_import.inc"
 static void clearGraph(source_graph* g)
 {
  for(size_t i=0;i<g->count;++i) { free(g->items[i].path); free(g->items[i].text); if(!g->items[i].borrowed) free((char*)g->items[i].original); }

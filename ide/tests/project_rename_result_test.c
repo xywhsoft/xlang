@@ -28,6 +28,9 @@ static int checkResultProof(xide_reference_query* q)
   char* encoded=xrtJsonStringify(row,false,NULL);CHECK(encoded);size_t n=strlen(encoded);xrtFree(encoded);xvalue* exact=xideLanguageInputGuardExport(guard,n,NULL,NULL,&error);CHECK(exact&&xrtValueEqual(exact,row)&&!xideLanguageInputGuardExport(guard,n-1,NULL,NULL,&error));xrtValueRelease(exact);
  }
  CHECK(absent&&unrelated&&isolated);
+#ifdef XIDE_RENAME_INPUT_IMPORT_TEST
+ CHECK(XIDE_RENAME_INPUT_IMPORT_TEST(q,wire));
+#endif
  char* encoded=xrtJsonStringify(wire,false,NULL);CHECK(encoded);size_t n=strlen(encoded);xrtFree(encoded);xvalue* exact=xideProjectReferencesRenameResult(q,n,NULL,NULL,&error);CHECK(exact&&xrtValueEqual(exact,wire)&&!xideProjectReferencesRenameResult(q,n-1,NULL,NULL,&error)&&!xideProjectReferencesRenameResult(q,8u*1024u*1024u,NULL,NULL,&error));xrtValueRelease(exact);
  /* Mutating returned nested metadata never changes the retained guard. */
  xvalue* first=(xvalue*)xrtValueArrayGet(guards,0);CHECK(testPut(first,"files",xrtValueArray()));exact=xideProjectReferencesRenameResult(q,0,NULL,NULL,&error);CHECK(exact&&xrtValueCount(testGet(xrtValueArrayGet(testGet(exact,"inputGuards"),0),"files")));xrtValueRelease(exact);xrtValueRelease(wire);
@@ -42,5 +45,7 @@ static int checkResultProof(xide_reference_query* q)
  if(proofPasses==3){size_t size=0;unsigned char* body=xrtFileReadAll(isolated,&size);CHECK(body);exportMutationPath=isolated;exportMutationBody=(const char*)body;exportMutationOkay=0;exportPolls=0;CHECK(!xideProjectReferencesRenameResult(q,0,exportCancelled,NULL,&error)&&exportMutationOkay&&!exportMutationPath&&strstr(error.message,"changed"));xrtFree(body);exportMutationBody=NULL;}
  return 1;
 }
+#ifndef XIDE_RENAME_RESULT_TEST_NO_MAIN
 int main(void)
 {if(xideProjectReferencesRenameResult(NULL,0,NULL,NULL,NULL)||!runDraft()||!detachedProof)return 1;char* encoded=xrtJsonStringify(detachedProof,false,NULL);if(!encoded)return 1;xrtFree(encoded);xrtValueRelease(detachedProof);printf("project_rename_result_test passed: %u checks; complete actual four-scope candidate envelope, zero-target inputs, absent probes, full contexts, exact aggregate bounds, deep ownership after all originals exit, cancellation and post-encoding physical identity rejection\n",checks);return 0;}
+#endif

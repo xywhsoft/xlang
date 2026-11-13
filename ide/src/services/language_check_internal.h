@@ -16,6 +16,7 @@ struct xide_language_check {
  char* packagePath; int packagePathCaptured;
  HANDLE stopEvent; enum xide_guard_state guardState; char guardError[512];
  xvalue *guardFiles,*guardResolution; xide_toolchain_stamp guardToolchain;
+ xls_context* context;
  xide_semantic_definitions* definitions;
  xide_semantic_symbols* symbols;xide_symbol_work symbolWork;
 #ifdef XLS_COMPILER_XRT
@@ -27,7 +28,6 @@ struct xide_language_check {
  xide_navigation_snapshot* deferredNavigation;
  xide_navigation_snapshot* symbolNavigation;int symbolState;char symbolError[512];
  HANDLE navigationEvent;int navigationState;char navigationError[512];
- xls_context* context;
  int signatureMode; unsigned signatureFlags; xls_signature_stats signatureStats;
  xls_worker_cache_stats sessionCache;
  /* Borrowed while the helper owns a native query; protected by lock. */
@@ -41,5 +41,6 @@ struct xide_language_check {
 };
 int xideLanguageCheckRunCompiler(xide_language_check* check,const char* const* args,size_t count,size_t limit,char** output,int* exitCode,xide_model_error* error);
 int xideLanguageSnapshotGuard(xide_language_check* check,xide_model_error* error);
+int xideLanguageSnapshotImport(xide_language_check*,const xide_language_proof_overlay*,size_t,xide_model_error*);
 int xideLanguageSnapshotRun(xide_language_check* check,xvalue** result,xide_model_error* error);
 #endif

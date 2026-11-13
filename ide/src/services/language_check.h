@@ -3,6 +3,7 @@
 #include "services/toolchain.h"
 #include "analysis/context.h"
 #include "platform/text_file.h"
+#include "analysis/text.h"
 typedef struct xide_language_check xide_language_check;
 typedef struct xide_language_snapshot { const char *path,*text; int version; } xide_language_snapshot;
 typedef struct xide_language_analysis_options {
@@ -212,6 +213,18 @@ enum xide_guard_state xideLanguageCheckGuardState(xide_language_check* check,cha
    reuses the exact snapshot guard rules. A cancelled validation does not
    poison the proof; an observed input failure permanently invalidates it. */
 typedef struct xide_language_input_guard xide_language_input_guard;
+typedef struct xide_language_proof_overlay {const char* path;const xls_text* text;} xide_language_proof_overlay;
+/* Worker-only strict import of one schema1 native input proof. expected is a
+ * separately established exact provider context, never decoded from this same
+ * untrusted proof. Verify all files/resolver candidates and match every overlay
+ * to the immutable request-time text (max64/32MiB), rejecting disk shadowing.
+ * No editor access, analysis approval, request/catalog coverage or write rights.
+ * Input DOM and overlay array stay stable during the call, then may be released.
+ * Own full report clones/context; future Validate checks disk/resolver inputs,
+ * while the host separately fences request overlays/configuration/lifecycle.
+ *7MiB encoded proof,512files,8MiB/file,64MiB total; DOM/codec overhead additional. */
+xide_language_input_guard* xideLanguageInputGuardImport(const xvalue*,const xls_context*,
+ const xide_language_proof_overlay*,size_t,int (*cancelled)(void*),void*,xide_model_error*);
 xide_language_input_guard* xideLanguageCheckCaptureInputGuard(xide_language_check* check,xide_model_error* error);
 xide_language_input_guard* xideLanguageInputGuardRetain(xide_language_input_guard* guard);
 void xideLanguageInputGuardRelease(xide_language_input_guard* guard);
@@ -238,7 +251,8 @@ xvalue* xideLanguageInputGuardExport(const xide_language_input_guard*,size_t,
    Both default/legacy guards are equal in scope. NULL guards are invalid.
    Equality checks complete context bytes, not pointer/hash identity alone. */
 int xideLanguageInputGuardSameContext(const xide_language_input_guard* left,const xide_language_input_guard* right);
-/* Borrowed native context, NULL for legacy/GUI proofs. No I/O or allocation. */
+/* Borrowed explicit context, also retained for native proofs imported by the
+ * GUI. NULL for legacy proofs. No I/O or allocation. */
 const xls_context* xideLanguageInputGuardContext(const xide_language_input_guard* guard);
 /* Worker-only exact invalidation scope: actual inputs and every observed
    import candidate, including absent paths and manifests. Sorted/deduplicated

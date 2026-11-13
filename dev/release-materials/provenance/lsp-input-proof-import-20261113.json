@@ -1,0 +1,157 @@
+{
+  "schema": 1,
+  "date": "2026-11-13",
+  "stage": "M7b5u",
+  "scope": "Worker-only strict import of native input proofs in standalone and GUI runtimes, with independently expected context and request overlays",
+  "implementationAccepted": true,
+  "goalComplete": false,
+  "performanceQualified": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "cd65029e8e3fd084a58a42c8da643e5dd5b9dc4b",
+  "ownedSources": {
+    "ide/src/services/language_check.h": "f319c4ab32dd3085244dabbf28f23221f4070ac319901b79d713aa4541b3f96c",
+    "ide/src/services/language_check.c": "c2e122a158ef8381fa725c6874ccbf4a059a7988521e615c82dfe8badbddf946",
+    "ide/src/services/language_check_internal.h": "80ff5baaf880ba2c7c1b6815a9212476a4103ec5ea840202a6571def3504e081",
+    "ide/src/services/language_snapshot.c": "fc90f8d0f47f1954bff2ed17e2fc9bc862c2b552d79e054ca0edad91483132bf",
+    "ide/src/services/language_input_import.inc": "1b1d9554bd9286fc4831384f521f4b0e5cd0139c00ed0e89c5e5c7b0fc40aeae",
+    "ide/src/services/language_snapshot_import.inc": "88e580fcdfcd9fe737deac847499549dda9e418aabf52710f75ab30f42193c1a",
+    "ide/tests/language_input_import_test.c": "4e90dc881443cfd7eb7bdff6dc1a3d65fa92d669882384b0d4fee74220decf2a",
+    "ide/tests/project_rename_input_import_test.c": "8506d52854bdab4f73ff37b6f6f993a31556c6b2d2a685a7f1c592d87eacd635",
+    "ide/tests/project_rename_result_test.c": "b53d8ca20c2844d257f366216eedf0efd144c4b852073a4868fbe24f72599951",
+    "ide/tools/build.ps1": "8fbd08272f08300e8424775fd1fe27527e87ffeff43c84bb0c24aaaa77b55222",
+    "ide/tools/build_lsp_core.py": "7da1295755b25a05614e7bd4fb79498a6c741356f21d0980f1fc0dd2ad6ea159",
+    "ide/docs/lsp-input-proof-import.md": "ddcf6b3f18a62c9881f25deab8eea7eeb1690b5859341bc63b042d21f0e6d3b6"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-input-proof-import-20261113.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-input-proof-import-20261113/stage-sources.tar.gz",
+      "sha256": "dba573ebf4ca9b04c589cbf93860b5446c63a7a7eb09cdde094a1a47374f4991",
+      "bytes": 100470,
+      "entries": 13,
+      "uniquePayloads": 13,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-input-proof-import-20261113/stage-sources.tar.gz.manifest.json",
+      "sha256": "b3237d51bfb94770cc571e0777090c12ff1f9ed366d40903955e290da3d5e055",
+      "bytes": 3069
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-input-proof-import-20261113/actual-builds-and-validation.tar.gz",
+      "sha256": "b16d6159ac10d6ee0a27873df77e1ceaf385a89927d06d2839e9f9f83ad0f95a",
+      "bytes": 365841382,
+      "entries": 15076,
+      "uniquePayloads": 4569,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-input-proof-import-20261113/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "1f33494c608903e94f66da47659702ae5286908bf72497eb5f0c930f4f7ababe",
+      "bytes": 5705451
+    }
+  },
+  "currentBindings": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-input-proof-import-20261113\\final-bindings.json",
+    "sha256": "e3607387bb7622b70203323902488d3af6dc400ac6248c37b7c57984ee697881"
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "sdkInherited": {
+    "index": "dev/release-materials/provenance/lsp-dpi-startup-20261112.json",
+    "indexSha256": "727ae55e191b104683a756dbe85a03f0add12ed40e60c4d6166face2f50f4e5d",
+    "dllSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "compiledUnitsThisStage": 0,
+    "matchedSetPreserved": true
+  },
+  "nativeService": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-input-proof-import-20261113\\native-v3\\xlang-ls.exe",
+    "sha256": "f0afa342e2310b133e17ca48340cd52092beda1258cb03309055e7c33ac4a9d1",
+    "fullCohortCompilationUnits": 109,
+    "finalPrivateComponentCompilationUnits": 1,
+    "archiveMembers": 72,
+    "allArchiveMembersMatchNewObjects": true,
+    "allPublicHeaderAndLayoutConsumersRebuilt": true,
+    "compilerAssetsInherited": true,
+    "privateUpdatePreservesFullCohortHeadersAndLayouts": true
+  },
+  "correctness": {
+    "importCombinedAssertionsPerOwner": 1321,
+    "includedExistingDiskReaderAssertionsPerOwner": 757,
+    "nativeCandidateRoundtripCombinedAssertions": 689,
+    "existing130FileCandidateAssertions": 418,
+    "nativeInputGuardAssertions": 104,
+    "nativeInputConcurrentValidations": 320,
+    "sourceReportAssertions": 4508,
+    "guiProductionUnitsFinal": 128,
+    "guiRegressionSuitesFinal": 55,
+    "protocolSuitesFinal": 3,
+    "protocolCasesFinal": 50,
+    "rejectedMutants": 9,
+    "mutantsAcceptance": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-input-proof-import-20261113\\mutants-acceptance.json",
+      "sha256": "08aabdd337e41143d9dc94a9675c3bdb6741713358865adf44df5955f348a6d8",
+      "rawFailedBatchPreserved": true
+    },
+    "independentExpectedContextRequired": true,
+    "requestOverlayBodyBomCrLfUnicodeAndDiskShadowChecked": true,
+    "duplicateAndMissingEntryRejected": true,
+    "exact7MiBAndOneMoreByteAdmission": true,
+    "longUnicodeOverlayPathWithoutUtf8ByteTruncation": true,
+    "existingMetadataSchemas1And2": true,
+    "unknownReportFieldsDeepOwned": true,
+    "allObservedImportCancellationPoints": true,
+    "cancelledValidationDoesNotPoisonProof": true,
+    "negativeProbeCreationPermanentlyInvalidates": true,
+    "actualFourScopeNativeExportImportRoundtrip": true,
+    "independentProofAfterOriginalOwnersExit": true,
+    "sharedExplicitNativeContextWorksInGui": true,
+    "actualCAndXlangTypingDeleteUndoImeFocus": true,
+    "actualGuiFramesEach": 24,
+    "currentProductionAndActualDependenciesBound": true,
+    "shortPathFixtureFilesRetained": 623,
+    "allRuntimeTestAliasesRemoved": true,
+    "userTemporaryDirectoriesPreserved": true,
+    "rawFailedAttemptsPreserved": true
+  },
+  "externalHelper": {
+    "proxy": {
+      "archive": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\lsp-completion-error-isolation-20261112\\actual-builds-and-validation.tar.gz",
+      "entry": "bound-inputs/20c68dabd23c25637a08/xui_test_proxy.c",
+      "sha256": "740c86aee90b1373324909c74d3ae6c9f446b0c52c84c3ea84cea141c53bdc48"
+    },
+    "header": {
+      "repository": "D:/GIT/xge",
+      "commit": "1ba93e6b3ea49e80d9d821894811caef599634f3",
+      "path": "tests/xui/xui_test_proxy.h",
+      "sha256": "b42cd48cd68966d969575f717ade56f357dacbcabce746730c9bfb275dd0a80a"
+    },
+    "liveXgeUnmodified": true
+  },
+  "evidenceNotes": [
+    "Native-v1 preserves a real -Werror misleading-indentation compile failure. Native-v2 recompiles109 units after the shared layout change. Private Unicode path byte-bound review then produces native-v3 by rebuilding only language_snapshot.c against identical final public headers/layouts and the exact full native-v2 cohort/archive. Final GUI source-v2 recompiles128 units against this same final service and matched SDK.",
+    "Native-import-v1 and v2 preserve fixture failures from a zero context allocation limit and a standalone context configuration field that violates the constructor contract. Native-import-v5 and gui-import-v3 use the final fixture and pass1321 combined checks each;757 are the included existing disk-reader checks, not additional new import checks.",
+    "Focused-v3 preserves a nested main macro compile failure in the new native roundtrip fixture. Focused-v5 uses explicit conditional test entry points and passes689 combined roundtrip checks plus418 existing candidate rechecks. Inherited export fault probes19 clone/248 consuming insertions are not claimed as exhaustive OOM coverage of the new importer.",
+    "Mutants-v1 raw batch remains failed: its first seven actual implementation assertion rejections are accepted; the subsequent constructor include override was behind the original include path, ran the unchanged producer and exited0. Mutants-v2 only corrects the override and verifies the remaining context/budget variants. Explicit acceptance composes exactly nine actual exit1 assertion rejections; no baseline execution, compile failure or crash is counted.",
+    "Final importer fixtures differ from earlier frozen unused test copies; exact final fixtures, actual source/header closures and each linked program are separately bound. The direct compile-and-link GUI import fixture has an additional explicit -MM closure receipt.",
+    "The final long Unicode path test checks overlay metadata/key acceptance, not compiler or deep project manifest support. Existing engine deep unprefixed xlp limitations remain.",
+    "Single-proof import performs bounded metadata cloning plus actual worker-side file/overlay validation. It does not approve complete compiler analysis, transport origin or request/model freshness. No whole-service latency/RSS or exhaustive allocator-failure qualification is claimed."
+  ],
+  "limits": [
+    "Expected provider context must be independently established by the host, never learned from the same untrusted proof. Complete message decoding, scope/catalog association and method/ID/token/connection binding remain open.",
+    "Future Validate checks retained disk/resolution proofs; the host separately fences overlays, model revisions, configuration and lifecycle. Validation observes files sequentially, not an atomic snapshot or source lock.",
+    "7MiB is encoded admission, not a heap/RSS bound. Context/DOM/codec/allocator/OS and temporary work are additional. Full clone/hash and some platform helpers are not preemptible; all work stays off the GUI owner.",
+    "Complete transaction host/controller, physical publication policy, consent/recovery UI and startup replay, standard rename/applyEdit activation, remaining synchronous readers and final delivery remain open.",
+    "Whole-goal performance/resource/longevity, latest engine alignment, compiler deep unprefixed xlp path and analysis-configuration cache-count regression remain open.",
+    "C LSP remains disabled. No DAP/debug/runtime completion and no Linux/sanitizer qualification in this stage."
+  ],
+  "postCommitReceipt": "dev/release-materials/provenance/lsp-input-proof-import-20261113/postcommit.json"
+}

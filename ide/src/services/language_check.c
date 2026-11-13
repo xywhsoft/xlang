@@ -4,6 +4,7 @@
 #include "editor/coordinates.h"
 #include "protocol/lsp_wire.h"
 #include "analysis/input_view.h"
+#include "protocol/analysis_context_wire.h"
 #include <windows.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -14,7 +15,6 @@
 #include "services/language_check_internal.h"
 #ifdef XLS_COMPILER_XRT
 #include "analysis/frontend_context.h"
-#include "protocol/analysis_context_wire.h"
 #endif
 static xstrview sv(const char* s) { return (xstrview){s,strlen(s)}; }
 static xvalue* get(const xvalue* o,const char* k) { return o ? xrtValueObjectGet(o,sv(k)) : NULL; }
@@ -242,9 +242,7 @@ enum xide_guard_state xideLanguageCheckGuardState(xide_language_check* q,char* m
 struct xide_language_input_guard {
  xatomic32 references,invalid; char *compiler,*directory,*packagePath;
  int nativeBackend; xvalue *files,*resolution; xide_toolchain_stamp toolchain;
-#ifdef XLS_COMPILER_XRT
  xls_context* context;
-#endif
 };
 xide_language_input_guard* xideLanguageInputGuardRetain(xide_language_input_guard* guard)
 { if(guard) xrtAtomic32FetchAdd(&guard->references,1,XMEMORY_RELAXED); return guard; }
@@ -252,9 +250,7 @@ void xideLanguageInputGuardRelease(xide_language_input_guard* guard)
 {
  if(!guard || xrtAtomic32FetchSub(&guard->references,1,XMEMORY_ACQ_REL)!=1) return;
  xrtFree(guard->compiler); xrtFree(guard->directory); xrtFree(guard->packagePath);
-#ifdef XLS_COMPILER_XRT
  xlsContextRelease(guard->context);
-#endif
  xrtValueRelease(guard->files); xrtValueRelease(guard->resolution); xrtFree(guard);
 }
 xide_language_input_guard* xideLanguageCheckCaptureInputGuard(xide_language_check* q,xide_model_error* error)
@@ -270,9 +266,7 @@ xide_language_input_guard* xideLanguageCheckCaptureInputGuard(xide_language_chec
   if(q->packagePath) guard->packagePath=xrtStrDup(q->packagePath);
   guard->files=xrtValueDeepClone(q->guardFiles); guard->resolution=xrtValueDeepClone(q->guardResolution);
   guard->nativeBackend=q->nativeSemantic; guard->toolchain=q->guardToolchain;
-#ifdef XLS_COMPILER_XRT
   guard->context=xlsContextRetain(q->context);
-#endif
   okay=guard->compiler && guard->directory && (!q->packagePath || guard->packagePath) && guard->files && guard->resolution;
  }
  LeaveCriticalSection(&q->lock);
@@ -281,12 +275,12 @@ xide_language_input_guard* xideLanguageCheckCaptureInputGuard(xide_language_chec
 }
 const xvalue* xideLanguageInputGuardFiles(const xide_language_input_guard* guard)
 { return guard ? guard->files : NULL; }
-#ifdef XLS_COMPILER_XRT
-const xvalue* xideLanguageInputGuardProbes(const xide_language_input_guard* guard)
-{ return guard ? get(guard->resolution,"probes") : NULL; }
 typedef struct guard_export_charge {size_t bytes,limit;int (*stopped)(void*);void* user;} guard_export_charge;
 static bool guardExportCharge(xbytesview bytes,void* user)
 {guard_export_charge* q=user;if((q->stopped && q->stopped(q->user)) || bytes.Size>q->limit-q->bytes)return false;q->bytes+=bytes.Size;return true;}
+#ifdef XLS_COMPILER_XRT
+const xvalue* xideLanguageInputGuardProbes(const xide_language_input_guard* guard)
+{ return guard ? get(guard->resolution,"probes") : NULL; }
 xvalue* xideLanguageInputGuardExport(const xide_language_input_guard* guard,size_t budget,int (*stopped)(void*),void* user,xide_model_error* error)
 {
  const size_t limit=XIDE_LSP_BODY_BYTES-1024u*1024u;if(!budget)budget=limit;
@@ -309,17 +303,14 @@ int xideLanguageInputGuardSameContext(const xide_language_input_guard* left,cons
 #ifdef XLS_COMPILER_XRT
  return xlsFrontendContextsEqual(left->context,right->context);
 #else
- return 1;
+ return left->context==right->context || (left->context && right->context && xlsContextEqual(left->context,right->context));
 #endif
 }
 const xls_context* xideLanguageInputGuardContext(const xide_language_input_guard* guard)
 {
-#ifdef XLS_COMPILER_XRT
  return guard ? guard->context : NULL;
-#else
- (void)guard;return NULL;
-#endif
 }
+#include "services/language_input_import.inc"
 typedef struct guard_path { const xvalue* value; wchar_t* native; } guard_path;
 static int compareGuardPath(const void* a,const void* b)
 {
@@ -386,11 +377,9 @@ size_t xideLanguageInputGuardReportBytes(const xide_language_input_guard* guard)
  xjsonwriteconfig config; xrtJsonWriteConfigInit(&config); config.MaxOutputBytes=SIZE_MAX;
  size_t bytes=0;
  if(!xrtJsonWrite(guard->files,&config,countGuardBytes,&bytes) || !xrtJsonWrite(guard->resolution,&config,countGuardBytes,&bytes)) return SIZE_MAX;
-#ifdef XLS_COMPILER_XRT
  size_t contextBytes=guard->context ? xlsContextBytes(guard->context) : 0;
  if(contextBytes>SIZE_MAX-bytes) return SIZE_MAX;
  bytes+=contextBytes;
-#endif
  return bytes;
 }
 int xideLanguageInputGuardValidate(xide_language_input_guard* guard,int (*stopped)(void*),void* user,xide_model_error* error)
@@ -401,9 +390,7 @@ int xideLanguageInputGuardValidate(xide_language_input_guard* guard,int (*stoppe
     consumers never mutate a producer check or share its worker lifetime. */
  xide_language_check view={0}; view.compiler=guard->compiler; view.directory=guard->directory;
  view.packagePath=guard->packagePath; view.nativeSemantic=guard->nativeBackend;
-#ifdef XLS_COMPILER_XRT
  view.context=guard->context;
-#endif
  view.guardFiles=guard->files; view.guardResolution=guard->resolution; view.guardToolchain=guard->toolchain;
  view.externalCancel=stopped; view.externalUser=user;
  int okay=xideLanguageSnapshotGuard(&view,error);
@@ -521,7 +508,7 @@ void xideLanguageCheckDestroy(xide_language_check* q)
   free((char*)q->snapshots[i].text);
  }
 #ifdef XLS_COMPILER_XRT
- free(q->semanticTarget); xlsContextRelease(q->context);free(q->referencePath);
+ free(q->semanticTarget);free(q->referencePath);
  xideSemanticReferenceShardRelease(q->referenceShard);xideSemanticReferenceKeyRelease(q->referenceKey);
  xideSemanticReferenceGraphRelease(q->referenceGraph);
 #endif
@@ -536,7 +523,7 @@ void xideLanguageCheckDestroy(xide_language_check* q)
 #else
  xideSemanticDefinitionsDestroy(q->definitions);
 #endif
- free(q->queryPath); free(q->packagePath); free(q->compiler); free(q->directory); free(q->path); free(q->text); xrtValueRelease(q->result); DeleteCriticalSection(&q->lock); free(q);
+ xlsContextRelease(q->context);free(q->queryPath); free(q->packagePath); free(q->compiler); free(q->directory); free(q->path); free(q->text); xrtValueRelease(q->result); DeleteCriticalSection(&q->lock); free(q);
 }
 
 static xide_language_check* createSnapshots(xide_toolchains* cache,const char* compiler,const char* directory,const char* entry,const xide_language_snapshot* documents,size_t count,const char* queryPath,int line,int character,int diskEntry,xide_model_error* e)

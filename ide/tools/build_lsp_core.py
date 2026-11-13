@@ -59,7 +59,7 @@ SERVER_SOURCES = (
 )
 CORE_TESTS = ("analysis_context_fault_test", "analysis_context_resolution_test", "analysis_input_view_test", "analysis_context_test", "analysis_check_test", "analysis_check_session_test", "analysis_incremental_check_test", "analysis_semantic_memo_test", "analysis_check_worker_test", "analysis_index_test", "analysis_index_limit_test", "analysis_ir_scan_test", "analysis_stdlib_scan_test", "analysis_overload_scan_test", "analysis_completion_candidates_test", "analysis_ast_clone_test", "analysis_semantic_test", "analysis_completion_session_test", "analysis_folding_test", "analysis_worker_test", "analysis_session_test", "analysis_incremental_syntax_test", "analysis_cursor_syntax_test", "analysis_text_test", "document_sync_test")
 CORE_TESTS = ("analysis_completion_import_errors_test", "analysis_native_borrow_test", "analysis_final_annotations_test", "analysis_final_environment_test", *CORE_TESTS)
-HOST_TESTS = ("signature_help_test", "analysis_catalog_test", "language_context_test", "semantic_lookup_test", "analysis_index_view_test", "language_input_guard_test", "diagnostic_store_test", "language_definition_proof_test", "snapshot_report_test")
+HOST_TESTS = ("signature_help_test", "analysis_catalog_test", "language_context_test", "semantic_lookup_test", "analysis_index_view_test", "language_input_guard_test", "language_input_import_test", "diagnostic_store_test", "language_definition_proof_test", "snapshot_report_test")
 CLIENT_TESTS = ("diagnostic_dependencies_test", "diagnostic_notice_test", "diagnostic_stream_test", "reference_results_test", "workspace_search_result_test")
 CLIENT_TEST_SOURCES = ("src/services/diagnostic_dependencies.c", "src/services/diagnostic_notice.c", "src/services/diagnostic_stream.c", "src/services/reference_results.c", "src/services/language_client.c", "src/services/workspace_search_result.c")
 CLIENT_TEST_SOURCES += ("src/platform/workspace_edit_files.c",)
@@ -167,7 +167,7 @@ HOST_TESTS += ("semantic_family_references_test", "project_family_references_tes
 HOST_TESTS += ("rename_plan_test", "project_rename_plan_test")
 HOST_TESTS += ("semantic_binding_check_test",)
 HOST_TESTS += ("analysis_frozen_check_test",)
-HOST_TESTS += ("project_rename_recheck_test", "project_rename_result_test")
+HOST_TESTS += ("project_rename_recheck_test", "project_rename_result_test", "project_rename_input_import_test")
 HOST_TESTS += ("analysis_report_index_test",)
 
 
@@ -1115,13 +1115,15 @@ def main() -> None:
                           not (name == "semantic_rename_target_test" and Path(source).stem == "semantic_rename") and
                           not (name == "rename_plan_test" and Path(source).stem == "rename_plan") and
                           not (name == "rename_scope_test" and Path(source).stem == "rename_scope") and
-                          not (name in ("snapshot_report_test", "reference_capture_test", "reference_graph_capture_test", "declaration_capture_test", "project_reference_owner_fault_test", "language_native_cancel_test") and Path(source).stem == "language_snapshot") and
+                          not (name in ("language_input_import_test", "snapshot_report_test", "reference_capture_test", "reference_graph_capture_test", "declaration_capture_test", "project_reference_owner_fault_test", "language_native_cancel_test") and Path(source).stem == "language_snapshot") and
                           not (name == "path_identity_batch_test" and Path(source).stem == "path") and
                           not (name == "workspace_symbol_index_test" and Path(source).stem == "workspace_symbol_index") and
                           not (name in ("workspace_symbols_test", "workspace_symbol_refresh_test", "workspace_symbols_shared_test") and Path(source).stem == "workspace_symbols") and
                           not (name == "workspace_symbol_wire_test" and Path(source).stem == "workspace_symbol_wire") and
                           not (name in ("semantic_dispatch_family_test", "semantic_callable_family_test", "semantic_reference_graph_test", "semantic_reference_merge_test", "semantic_family_references_test", "semantic_binding_check_test", "semantic_lookup_test", "semantic_reference_shard_test", "declaration_symbols_test", "navigation_function_budget_test") and Path(source).stem == "semantic_definition") and
-                          not (name in ("project_reference_budget_test", "reference_path_index_test", "project_reference_parallel_test", "project_reference_owner_fault_test", "project_rename_workspace_test", "project_reference_family_test", "project_family_references_test", "project_rename_plan_test", "project_rename_recheck_test", "project_rename_result_test") and Path(source).stem == "project_references")]
+                          not (name in ("project_reference_budget_test", "reference_path_index_test", "project_reference_parallel_test", "project_reference_owner_fault_test", "project_rename_workspace_test", "project_reference_family_test", "project_family_references_test", "project_rename_plan_test", "project_rename_recheck_test", "project_rename_result_test", "project_rename_input_import_test") and Path(source).stem == "project_references")]
+            if name in ("project_rename_result_test", "project_rename_input_import_test"):
+                extra.extend(("-Wl,--wrap=xrtValueDeepClone", "-Wl,--wrap=xrtValueObjectSetNew"))
             if name == "project_reference_owner_fault_test":
                 extra.append(str(objects['owner_snapshot_fault']))
             if name == "language_native_cancel_test":
