@@ -110,16 +110,21 @@ static xvalue* captureIndex(xide_app* app)
     if(!root || !setText(root,"format","xlang-ide-session-index-1") || !setText(root,"kind",ownerKind(app)) || !setText(root,"path",owner(app))) { xrtValueRelease(root); return NULL; }
     return root;
 }
-static char* globalDirectory(xide_app* app)
+static char* globalDirectoryPath(xide_app* app,int lexical)
 {
-    if(app->sessionRoot) return xidePathResolve(NULL,app->sessionRoot);
+    if(app->sessionRoot) return lexical ? xidePathResolveLexical(NULL,app->sessionRoot) : xidePathResolve(NULL,app->sessionRoot);
     DWORD length=GetEnvironmentVariableW(L"LOCALAPPDATA",NULL,0); if(!length) return NULL;
-    wchar_t* wide=malloc(length*sizeof(*wide)); if(!wide) return NULL; GetEnvironmentVariableW(L"LOCALAPPDATA",wide,length);
+    if(length>32768) return NULL;
+    wchar_t* wide=malloc(length*sizeof(*wide)); if(!wide) return NULL;
+    DWORD got=GetEnvironmentVariableW(L"LOCALAPPDATA",wide,length);
+    if(!got || got>=length) { free(wide); return NULL; }
     int size=WideCharToMultiByte(CP_UTF8,0,wide,-1,NULL,0,NULL,NULL); char* utf8=size ? malloc(size) : NULL;
     if(utf8) WideCharToMultiByte(CP_UTF8,0,wide,-1,utf8,size,NULL,NULL);
     free(wide);
-    char* path=utf8 ? xidePathResolve(utf8,"xlang-ide") : NULL; free(utf8); return path;
+    char* path=utf8 ? (lexical ? xidePathResolveLexical(utf8,"xlang-ide") : xidePathResolve(utf8,"xlang-ide")) : NULL; free(utf8); return path;
 }
+char* xideSessionStorageRoot(xide_app* app)
+{ return !app ? NULL : app->session && app->session->globalDirectory ? copy(app->session->globalDirectory) : globalDirectoryPath(app,1); }
 static int safeId(const char* s)
 { if(!s || !*s || strlen(s)>100) return 0; for(;*s;++s) if(!isalnum((unsigned char)*s) && *s!='-' && *s!='_') return 0; return 1; }
 static int recoveryRef(const char* s)
@@ -719,7 +724,7 @@ int xideSessionStart(xide_app* app)
 {
     if(app->session || app->noSession || (app->hidden && !app->sessionRoot)) return 1;
     xide_session* s=calloc(1,sizeof(*s)); if(!s) return 0; app->session=s; s->restoring=1;
-    s->globalDirectory=globalDirectory(app); if(!s->globalDirectory) { report(app,"无法定位会话目录；本次会话持久化不可用。"); return 1; }
+    s->globalDirectory=globalDirectoryPath(app,0); if(!s->globalDirectory) { report(app,"无法定位会话目录；本次会话持久化不可用。"); return 1; }
     char* path=xidePathResolve(s->globalDirectory,"recent.json"); xide_model_error error={0};
     if(!app->hidden && xgePlatformNativeHandle() && !xideWindowStateOpen(&s->window,xgePlatformNativeHandle(),s->globalDirectory,!app->windowSizeExplicit,xgeRenderRequest,&error)) report(app,error.message);
     s->indexReady=path && xideStateOpen(&s->index,path,"xlang-ide-session-index-1",&error); free(path); if(!s->indexReady) report(app,error.message);

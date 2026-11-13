@@ -17,6 +17,9 @@ typedef struct xide_edit_alias_exclusion {const char* path;int directory;} xide_
  * a different drive/volume spelling); protected files reject physical aliases.
  * Missing named overlays/models/protected paths are retained as absence claims,
  * not silently skipped; all names and handles are revalidated.
+ * IDE-owned .xlang-ide/.xlang-ide-build/.xlang-ide-edits/.xlang-update and
+ * .git/.hg/.svn components are never source targets, including normalized
+ * physical names and the held ancestors of absent overlays.
  * Max512 targets,4096 models,256 exclusions,4096 unique target ancestors from
  *32768 candidates,8MiB native path bytes,16MiB known retained storage. Bounded
  *32KiB ID-sort scratch, allocator/OS resources are additional. No body reads,

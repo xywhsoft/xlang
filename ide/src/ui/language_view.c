@@ -5,6 +5,8 @@
 #include "ui/native_edit_view.h"
 #include "editor/native_edit_async.h"
 #include "services/source_barrier.h"
+#include "services/native_edit_protection.h"
+#include "services/session.h"
 #include "model/metadata_read.h"
 #include "services/analysis_configuration.h"
 #include "services/execution_target.h"

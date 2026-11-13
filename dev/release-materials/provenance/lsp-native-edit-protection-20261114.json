@@ -1,0 +1,232 @@
+{
+  "schema": 1,
+  "date": "2026-11-14",
+  "stage": "M7b6e",
+  "scope": "Host-derived native edit protection metadata, unique storage scopes, repeated consent/publication checks and held normalized reserved-path policy",
+  "implementationAccepted": true,
+  "goalComplete": false,
+  "performanceQualified": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "8f0bcd9a75db917f2ecf225c55646db1c00f323b",
+  "buildBase": "8f0bcd9a75db917f2ecf225c55646db1c00f323b",
+  "ownedSources": {
+    "ide/docs/lsp-native-edit-protection.md": "540e08e1a0122dad358515fa0dffb17638beb6240941389409ebefbd440300ae",
+    "ide/src/platform/workspace_edit_aliases.c": "cfe9db289b1b29d291fbbdab797cc126a9d1214d1b79023a43bf80a9ae1587b6",
+    "ide/src/platform/workspace_edit_aliases.h": "e71ebe5ed8aeaf3bffbc98f63fe51c3fa4531898f5cc496557d6625261852acf",
+    "ide/src/services/native_edit_protection.c": "fe745486d2b1111bae81321c1c1bc742de58dae29e7dd373cffc821ad5edfc16",
+    "ide/src/services/native_edit_protection.h": "7fd3cdbb46d451d824e0b93562b1697454daf18a7162278d3ec7086f1f0131b0",
+    "ide/src/services/session.c": "3762ea3a4348d0cf9279d2536a006b8dcff18790da2ef26d63bedd4d681e905d",
+    "ide/src/services/session.h": "c2829a8db5d080b14d67051f357110bff9a905722b12de44dc3eef91649f4294",
+    "ide/src/ui/language_view.c": "8366247fd79b102d2bc0ba2bcd8d026e645b6cbdcb63ebba0f56a1d051e14e84",
+    "ide/src/ui/native_edit_view.h": "51556e2fa6bcc131071b1d0adefea4b0ec561c38213aef9fc4ccee76902416ca",
+    "ide/src/ui/native_edit_view.inc": "9025b81d8cd394d58a1b023b0cdb2ecad4ffa5efc82242e88015de145e7f0810",
+    "ide/tests/native_edit_protection_test.c": "fcfcf416f5c8784a4d20383fea6771b694a7f8b76dc49191098a907744e1035d",
+    "ide/tests/native_edit_view_test.c": "9832d082c1e368b08aae5945e86d81f862d6b6645612919eb46851cc967b34f6",
+    "ide/tests/workspace_edit_aliases_test.c": "caf37768fed353a96c43b8801c3b2ead761cdfda33c6c33a85b7a88fced16ded",
+    "ide/tools/build.ps1": "be3938ef5b462d5b10df656f349478213208b74b6f9341e2671c8641a7460679"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-native-edit-protection-20261114.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-native-edit-protection-20261114/stage-sources.tar.gz",
+      "sha256": "cacdad53feec38a1689d2f30a98be1d5f55d6887e2a56cab868d86e6bd134892",
+      "bytes": 72569,
+      "entries": 14,
+      "uniquePayloads": 14
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-native-edit-protection-20261114/stage-sources.tar.gz.manifest.json",
+      "sha256": "3f968ad80dffb0548ed48e9e415ec1864cb158306c2d002c63303d6b53df3e91",
+      "bytes": 3660
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-native-edit-protection-20261114/actual-builds-and-validation.tar.gz",
+      "sha256": "1a3edd28e487968f1ee5a28fa3c827d2407a8750eef0eeb68c3a283d0506a953",
+      "bytes": 174977364,
+      "entries": 10537,
+      "uniquePayloads": 3499
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-native-edit-protection-20261114/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "627c8e66a8b32e0b8ce18141951ef2a54e37875fbc73b4776db392aff2abf498",
+      "bytes": 4966236
+    }
+  },
+  "materialDependencies": [
+    {
+      "index": "dev/release-materials/provenance/lsp-native-edit-policy-20261114.json",
+      "sha256": "f4c9f6c6ba0c7d81cce09d569916513eef77f78708759fbe2b24bdf1544386f2",
+      "purpose": "Exact unchanged native service,118 objects,72 core archive members and prior85 protocol cases; not rebuilt or rerun this stage"
+    }
+  ],
+  "externalPaths": {
+    "build": "F:\\codex-builds-xlang-lsp-20261114\\native-edit-protection",
+    "fixtures": "F:\\xl-native-edit-protection-20261114",
+    "materials": "F:\\codex-builds-xlang-lsp-20261114\\native-edit-protection-materials"
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "sdkSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+  "currentDeliverySha256": "dbc9e09ddfaeced7c675d0540589319f20d03e08f5b43abe08dd33354ecaa9fd",
+  "candidate": {
+    "servicePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-edit-policy-20261114\\native-v1\\xlang-ls.exe",
+    "serviceSha256": "4c53c08a481173cc9c70ac6649becac7633d8395066268da92393b908e8f2296",
+    "nativeRecompiled": false,
+    "guiPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-edit-protection-20261114\\gui-objects-v2\\xlang_ide.link.exe",
+    "guiSha256": "f83e287831390f4892f8881b68866270b9f39bebc2e147bb24487a6848b3d265"
+  },
+  "verification": {
+    "nativeObjectsReverified": 118,
+    "nativeObjectsRecompiled": 0,
+    "fullGuiObjects": 137,
+    "guiSuites": 55,
+    "asyncDriverCases": 9,
+    "asyncDriverObservedAssertions": 1723,
+    "actualIdeCases": 15,
+    "actualIdeObservedAssertions": [
+      {
+        "mode": 0,
+        "checks": 325
+      },
+      {
+        "mode": 1,
+        "checks": 180
+      },
+      {
+        "mode": 2,
+        "checks": 159
+      },
+      {
+        "mode": 3,
+        "checks": 66
+      },
+      {
+        "mode": 4,
+        "checks": 125
+      },
+      {
+        "mode": 5,
+        "checks": 66
+      },
+      {
+        "mode": 6,
+        "checks": 67
+      },
+      {
+        "mode": 7,
+        "checks": 151
+      },
+      {
+        "mode": 8,
+        "checks": 70
+      },
+      {
+        "mode": 9,
+        "checks": 239
+      },
+      {
+        "mode": 10,
+        "checks": 67
+      },
+      {
+        "mode": 11,
+        "checks": 166
+      },
+      {
+        "mode": 12,
+        "checks": 98
+      },
+      {
+        "mode": 13,
+        "checks": 100
+      },
+      {
+        "mode": 14,
+        "checks": 89
+      }
+    ],
+    "hostProtectionObservedAssertions": 348,
+    "hostProtectionAllocationFailurePoints": 334,
+    "physicalAliasObservedAssertions": 4462,
+    "actualShortNameCases": 7,
+    "missingOverlayShortNameCases": 7,
+    "existingNativeTransactionAssertions": 747,
+    "controllerObservedAssertions": [
+      {
+        "name": "edit_request_view_test",
+        "checks": 237
+      },
+      {
+        "name": "edit_controller_test",
+        "checks": 76
+      },
+      {
+        "name": "edit_cancel_test",
+        "checks": 11
+      },
+      {
+        "name": "source_jobs_lease_test",
+        "checks": 126
+      },
+      {
+        "name": "source_jobs_view_test",
+        "checks": 67
+      },
+      {
+        "name": "source_barrier_view_test",
+        "checks": 381
+      },
+      {
+        "name": "language_source_lease_test",
+        "checks": 123
+      }
+    ],
+    "rejectedActualMutants": 8,
+    "actualGuiFramesEach": 24,
+    "actualCompileClosures": 286,
+    "rawArchiveMembers": 72,
+    "reusedProtocolEvidence": {
+      "index": "dev/release-materials/provenance/lsp-native-edit-policy-20261114.json",
+      "indexSha256": "f4c9f6c6ba0c7d81cce09d569916513eef77f78708759fbe2b24bdf1544386f2",
+      "serviceSha256": "4c53c08a481173cc9c70ac6649becac7633d8395066268da92393b908e8f2296",
+      "tools": {
+        "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_rename_candidate.py": "2241cf1a6b5a612e91978638d5ba5da713e057c4eaa799575a4f68ca265dc738",
+        "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_native_analysis.py": "f195ffe54749a3afa662b6b545504f74265cebc81152423e235578f556ab9fe1",
+        "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_native_completion.py": "2b3cd24b3fc79a54f0361889c53628202881ed53f0eb9129a41d16b4963dba41",
+        "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_automatic_diagnostics.py": "a40124a9b712974048612a7eef76d8f3ce5915b13200e8d78fa6e0783ce678ec"
+      }
+    },
+    "allRuntimeAliasesRemoved": true,
+    "existingUserTemporaryDirectoriesPreserved": true,
+    "rawFailuresPreserved": true
+  },
+  "evidenceNotes": [
+    "The host builder protects IDE and selected compiler runtime data/extlibs/include/notices/option roots and exact runtime binaries, current settings, workspace/project/session manifests and session data storage. Complete Unicode ordinal metadata is deduplicated and role conflicts reject. It does not blanket-protect runtime/examples/projects or arbitrary user include/project roots. Missing/unavailable project manifests cannot be silently skipped.",
+    "Managed Begin works without a workspace or a session object, creates a unique lexical storage-root/.xlang-ide-edits/edit-GUID path, copies complete exclusions and enters existing confirmation without source bodies, directory creation, barriers or transaction work. The current effective session root is exposed by a metadata-only API. The ordinary session path lookup also rejects environment growth/truncation rather than converting an uninitialized buffer.",
+    "Confirm repeats complete host metadata; Capture/Arm/Publish guards recapture and compare it. Normalized path order/case duplicates do not matter. A changed effective settings/storage/manifest set rejects consent or publication; already written, unpublished source files restore under the separately owned restoration authority. All original candidate/current/identity/body/barrier checks remain required.",
+    "The physical alias gate classifies actual held normalized target and ancestor names after pinning. Complete reserved IDE/VCS components are denied, including missing overlays below a short-name parent. No source body is read for this rule. Similar user names remain allowed. Actual volume-GUID protection aliases and7 supplied DOS short directory aliases, each with existing and absent target cases, are exercised. This is a normal local filesystem identity policy, not arbitrary volume/kernel mapping protection.",
+    "Fifteen actual IDE cases include the original9 coordination cases and6 new managed cases: two successful five-file renames with independent recovery scopes and one worker; changed storage before confirmation; changed storage after a positive held source write leading to complete rollback; a closed xl target protected as the current settings file; a source tree protected by an explicit session data root; and standalone local-symbol rename without any workspace or session object. C/xlang typing/deletion/undo/Unicode-IME/click-focus checks remain active.",
+    "The standalone case changes only its unsaved editor and verifies disk source bytes remain unchanged. Protected-target cases leave editor/disk originals intact. Managed Begin is checked before any recovery directory exists. Ordinary owner project ReadFull/CondWait counters remain zero in the checked flows; no blanket claim is made about all OS/SDK metadata I/O, GUID generation waits or whole-IDE latency.",
+    "Eight independently compiled erroneous implementations are rejected by assertions: omitted project manifests, protecting the entire runtime source root, ignored metadata equality, omitted confirmation metadata check, omitted publication metadata check, dropping exclusions at the driver boundary, ignoring normalized held file names and ignoring normalized held ancestor names for absent overlays. Invalid mutant compilation attempts are preserved but not counted as rejected implementations.",
+    "The first full GUI compile stopped at a misleading-indentation warning; final production modules then compiled and all137 GUI units rebuilt together. Initial generated mutant variants also stopped at compile diagnostics; the final three view and five policy mutants all compiled, executed and failed assertions as required. The final short-parent absence test was added to current test copies after the GUI source snapshot froze; it changes no production object and was explicitly compiled/executed with those exact GUI objects. Historical snapshots/logs are retained unchanged.",
+    "The fresh747-check NativeWork,9-mode async driver, original7 controller/barrier integration groups,55 matched GUI suites and both actual24-frame C/xlang renders pass. Both screenshots were inspected. Allocation/fault/assertion counts are observed test quantities, not distinct-feature or end-to-end performance claims.",
+    "The exact accepted4c53 native service was not rebuilt. Reverify its118 objects,72 raw archive members, actual native input closure and four unchanged protocol tools; reference the prior committed85-case protocol evidence explicitly. The GUI and test programs execute through exact matched private aliases inside root release/win_x64 to protect the working default runtime cohort; owned aliases are hash-checked and removed.",
+    "Source/header/build/link identities and actual mutant dependency selection are bound. Working runtime binaries, developer SDK, active delivery and existing user temporary directories remain unchanged. External source/evidence bundles are indexed without force-adding runtime or archive payloads. Other staged/worktree changes are outside this phase."
+  ],
+  "limits": [
+    "Managed internal execution only. Public symbol-rename consent/progress/recovery windows, interactive save/close coordination and public standard rename/applyEdit activation remain unfinished; a host metadata snapshot alone grants no arbitrary WorkspaceEdit permission.",
+    "Existing native scope and ordinary local fixed-drive/single-link/ancestor pin restrictions remain. The six-reader barrier is not every possible independent reader or an OS-wide atomic transaction. IN_DOUBT and stolen-graph holds still require explicit recovery or final shutdown.",
+    "Metadata admission bounds and NativeWork budgets are not total memory/RSS bounds. Complete Current retains existing configuration/path preparation costs. Full end-to-end latency/RSS/endurance and all synchronous reader audits remain open.",
+    "Engine/native asset alignment, generic/unbound/foreign qualification, deep unprefixed xlp handling, analysis-configuration cache-count regression, Linux and sanitizer coverage remain open.",
+    "C LSP stays disabled. No DAP/runtime/debug completion. Default runtime, developer SDK and active delivery are not replaced."
+  ],
+  "postCommitReceipt": "dev/release-materials/provenance/lsp-native-edit-protection-20261114/postcommit.json"
+}

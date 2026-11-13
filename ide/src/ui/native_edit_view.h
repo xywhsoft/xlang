@@ -17,6 +17,10 @@ typedef struct xide_native_apply_status {uint64_t token;int phase,active,barrier
  * holds or writes. Plan is borrowed preview data, never write permission. */
 uint64_t xideLanguageEditApplyBegin(xide_app*,const char* directory,
  const xide_edit_alias_exclusion*,size_t,size_t budget,xide_model_error*);
+/* Host-derived complete protection metadata and unique session storage scope.
+ * No workspace/session required. Still internal until consent/recovery and
+ * interactive save/close coordination are connected to the public UI. */
+uint64_t xideLanguageEditApplyBeginManaged(xide_app*,size_t budget,xide_model_error*);
 const xide_workspace_edit* xideLanguageEditApplyPlan(xide_app*,uint64_t);
 /* Explicit consent for this exact token/candidate. Begin the actual six-reader
  * barrier; ordinary language Poll performs all asynchronous worker handoffs,

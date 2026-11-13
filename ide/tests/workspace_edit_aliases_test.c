@@ -55,6 +55,19 @@ int main(int argc,char** argv)
  xide_edit_alias_exclusion fileAlias={av,0};expectDenied(open,models,2,&fileAlias,1);
  xide_workspace_edit* protectedPlan=plan(c,0);expectDenied(protectedPlan,NULL,0,roots,1);char* pv=volumeName(protected);xide_edit_alias_exclusion physicalRoot={pv,1};expectDenied(protectedPlan,NULL,0,&physicalRoot,1);xideWorkspaceEditRelease(protectedPlan);
  traceHandles("after-volume");
+ /* Reserved metadata is classified from held normalized names, including
+  * the existing parent of an absent overlay. Ordinary similarly named user
+  * source directories remain editable. Short-name coverage is reported only
+  * when this volume actually supplies a different DOS spelling. */
+ unsigned shortCases=0;const char* reservedNames[]={".xlang-ide",".xlang-ide-build",".xlang-ide-edits",".xlang-update",".git",".hg",".svn"};
+ for(size_t i=0;i<sizeof(reservedNames)/sizeof(*reservedNames);++i){
+  char* root=xidePathResolveLexical(directory,reservedNames[i]);char* path=root?xidePathResolveLexical(root,"source.xl"):NULL;CHECK(root&&path&&xideIoCreateDirectories(root)&&writeText(path,"abc\n"));xide_workspace_edit* protectedEdit=plan(path,0);expectDenied(protectedEdit,NULL,0,NULL,0);xideWorkspaceEditRelease(protectedEdit);
+  wchar_t* wide=xidePathNativeWide(root);wchar_t shortRoot[32768];DWORD length=GetShortPathNameW(wide,shortRoot,32768);free(wide);
+  if(length&&length<32768){int size=WideCharToMultiByte(CP_UTF8,0,shortRoot,-1,NULL,0,NULL,NULL);char* alias=size?malloc((size_t)size):NULL;CHECK(alias&&WideCharToMultiByte(CP_UTF8,0,shortRoot,-1,alias,size,NULL,NULL));if(!xidePathLexicalEqual(alias,root)){char* target=xidePathResolveLexical(alias,"source.xl");CHECK(target);protectedEdit=plan(target,0);expectDenied(protectedEdit,NULL,0,NULL,0);xideWorkspaceEditRelease(protectedEdit);free(target);target=xidePathResolveLexical(alias,"absent.xl");CHECK(target);protectedEdit=plan(target,1);xide_edit_alias_model missingAlias={target,1};expectDenied(protectedEdit,&missingAlias,1,NULL,0);xideWorkspaceEditRelease(protectedEdit);free(target);++shortCases;}free(alias);}
+  char* absent=xidePathResolveLexical(root,"absent.xl");CHECK(absent);protectedEdit=plan(absent,1);xide_edit_alias_model m={absent,1};expectDenied(protectedEdit,&m,1,NULL,0);xideWorkspaceEditRelease(protectedEdit);free(absent);free(path);free(root);
+ }
+ char* ordinary=xidePathResolveLexical(directory,".git-sources");char* ordinaryPath=ordinary?xidePathResolveLexical(ordinary,"source.xl"):NULL;CHECK(ordinary&&ordinaryPath&&xideIoCreateDirectories(ordinary)&&writeText(ordinaryPath,"abc\n"));xide_workspace_edit* userEdit=plan(ordinaryPath,0);gate=xideEditAliasesPin(userEdit,NULL,0,NULL,0,NULL,NULL,&e);CHECK(gate&&xideEditAliasesValidate(gate,NULL,NULL,&e));xideEditAliasesDestroy(gate);xideWorkspaceEditRelease(userEdit);free(ordinaryPath);free(ordinary);
+ fprintf(stderr,"reserved physical policy: %u actual short-name cases\n",shortCases);
  /* Single-link policy is independent of the model/physical collision check. */
  wchar_t *wa=xidePathNativeWide(a),*wl=xidePathNativeWide(link),*wd=xidePathNativeWide(directory),*wm=xidePathNativeWide(moved);CHECK(wa&&wl&&wd&&wm&&CreateHardLinkW(wl,wa,NULL));expectDenied(open,models,2,NULL,0);CHECK(DeleteFileW(wl));traceHandles("after-hardlink");
  CHECK(SetFileAttributesW(wa,FILE_ATTRIBUTE_READONLY));gate=xideEditAliasesPin(open,models,2,NULL,0,NULL,NULL,&e);CHECK(gate&&xideEditAliasesValidate(gate,NULL,NULL,&e));xideEditAliasesDestroy(gate);traceHandles("after-readonly-destroy");CHECK(SetFileAttributesW(wa,FILE_ATTRIBUTE_NORMAL));

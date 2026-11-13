@@ -38,5 +38,8 @@ void xideSessionAfterWorkspace(xide_app* app);
 void xideSessionRelocate(xide_app* app);
 void xideSessionDestroy(xide_app* app);
 const char* xideSessionDirectory(xide_app* app);
+/* Owned lexical storage path, also available without a live session. Metadata
+ * only: does not create directories or open/stat/read session files. */
+char* xideSessionStorageRoot(xide_app* app);
 const char* xideSessionIssue(xide_app* app);
 #endif

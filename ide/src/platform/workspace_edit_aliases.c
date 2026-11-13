@@ -51,6 +51,32 @@ static int beneath(const wchar_t* file,const wchar_t* root,int directory)
  size_t n=wcslen(root),length=wcslen(file);if(length<n||CompareStringOrdinal(file,(int)n,root,(int)n,TRUE)!=CSTR_EQUAL)return 0;
  return length==n||(directory&&(root[n-1]==L'\\'||file[n]==L'\\'));
 }
+static int reserved(const wchar_t* path)
+{
+ static const wchar_t* names[]={L".xlang-ide",L".xlang-ide-build",L".xlang-ide-edits",L".xlang-update",L".git",L".hg",L".svn"};
+ const wchar_t* begin=path;
+ for(const wchar_t* at=path;;++at)if(*at==L'\\'||!*at){
+  size_t length=(size_t)(at-begin);
+  for(size_t i=0;i<sizeof(names)/sizeof(*names);++i)if(length==wcslen(names[i])&&CompareStringOrdinal(begin,(int)length,names[i],(int)length,TRUE)==CSTR_EQUAL)return 1;
+  if(!*at)return 0;
+  begin=at+1;
+ }
+}
+/* Evaluate the held object's normalized physical name, after all target
+ * ancestors are pinned. A lexical-only check misses DOS/volume aliases.
+ * Existing ancestors cover absent overlay leaves and short parent spellings.
+ * No project bodies are read and no write handle is exposed. */
+static int reservedRow(const alias_row* row,xide_model_error* e)
+{
+ if(reserved(row->path))return fail(e,XIDE_MODEL_CONFLICT,"Edit target is IDE-managed storage or version-control metadata.");
+ if(row->missing)return 1;
+ DWORD size=GetFinalPathNameByHandleW(row->handle,NULL,0,FILE_NAME_NORMALIZED|VOLUME_NAME_DOS);
+ if(!size||size>32768)return fail(e,XIDE_MODEL_CONFLICT,"Cannot inspect the held target's normalized physical name.");
+ wchar_t* path=malloc(((size_t)size+1)*sizeof(*path));if(!path)return fail(e,XIDE_MODEL_MEMORY,"Cannot inspect held target protection metadata.");
+ DWORD n=GetFinalPathNameByHandleW(row->handle,path,size+1,FILE_NAME_NORMALIZED|VOLUME_NAME_DOS);
+ int okay=n&&n<=size&&!reserved(path);free(path);
+ return okay||fail(e,XIDE_MODEL_CONFLICT,"Held target resolves to managed storage or an unavailable physical name.");
+}
 static HANDLE openRow(const alias_row* row)
 {return CreateFileW(row->path,GENERIC_READ,FILE_SHARE_READ|FILE_SHARE_WRITE,NULL,OPEN_EXISTING,FILE_FLAG_BACKUP_SEMANTICS|(row->follow?0:FILE_FLAG_OPEN_REPARSE_POINT),NULL);}
 static int absent(DWORD error){return error==ERROR_FILE_NOT_FOUND||error==ERROR_PATH_NOT_FOUND;}
@@ -116,6 +142,8 @@ xide_edit_aliases* xideEditAliasesPin(const xide_workspace_edit* plan,const xide
  }
  for(size_t i=0;okay&&i<p->rows.Count;++i){alias_row* row=xrtArrayGet(&p->rows,i);if(stopped(cancel,user,e)||!pin(row,e)){okay=0;break;}}
  for(size_t i=0;okay&&i<p->ancestors.Count;++i){alias_row* row=xrtArrayGet(&p->ancestors,i);if(stopped(cancel,user,e)||!pin(row,e)){okay=0;break;}}
+ for(size_t i=0;okay&&i<p->rows.Count;++i){const alias_row* row=xrtArrayConstGet(&p->rows,i);if((row->roles&ALIAS_TARGET)&&(stopped(cancel,user,e)||!reservedRow(row,e)))okay=0;}
+ for(size_t i=0;okay&&i<p->ancestors.Count;++i)if(stopped(cancel,user,e)||!reservedRow(xrtArrayConstGet(&p->ancestors,i),e))okay=0;
  /* Check exclusions before the physical sort; no body read/hash is needed. */
  for(size_t i=0;okay&&i<p->rows.Count;++i){const alias_row* root=xrtArrayConstGet(&p->rows,i);if(!(root->roles&ALIAS_EXCLUDED))continue;
   for(size_t j=0;okay&&j<p->rows.Count;++j){const alias_row* target=xrtArrayConstGet(&p->rows,j);if((target->roles&ALIAS_TARGET)&&beneath(target->path,root->path,root->directory))okay=fail(e,XIDE_MODEL_CONFLICT,"Edit target is a protected path or descendant.");}

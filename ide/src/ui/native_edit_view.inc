@@ -2,7 +2,31 @@ typedef struct xide_native_apply_view {
  xide_native_edit_async* worker;xide_source_barrier barrier;uint64_t token,hold;
  char* directory;int phase,confirmed,cancelled,resuming,closing,taskInputsInvalidated;
  xide_edit_transaction_status transaction;xide_model_error error;
+ xide_native_protection* protection;
 } xide_native_apply_view;
+static xide_native_protection* nativeEditProtection(xide_app* app,char** storage,xide_model_error* error)
+{
+ if(storage)*storage=NULL;
+ if(!app||app->workspaceModel.projectCount>255){if(error){error->code=XIDE_MODEL_INVALID;snprintf(error->message,sizeof(error->message),"Complete project metadata exceeds native protection capacity.");}return NULL;}
+ wchar_t module[32768];DWORD n=GetModuleFileNameW(NULL,module,32768);
+ const wchar_t* resource=n&&n<32768?xideStartupResourceModule(module):NULL;
+ int size=resource?WideCharToMultiByte(CP_UTF8,WC_ERR_INVALID_CHARS,resource,-1,NULL,0,NULL,NULL):0;
+ char* text=size?malloc((size_t)size):NULL;
+ if(text&&!WideCharToMultiByte(CP_UTF8,WC_ERR_INVALID_CHARS,resource,-1,text,size,NULL,NULL)){free(text);text=NULL;}
+ char* runtime=text?xidePathDirectory(text):NULL;free(text);
+ char* root=xideSessionStorageRoot(app);char* settings=app->preferences.path?copy(app->preferences.path):app->settingsPath?xidePathResolveLexical(NULL,app->settingsPath):runtime?xidePathResolveLexical(runtime,"option/settings.json"):NULL;
+ const char* manifests[255];for(size_t i=0;i<app->workspaceModel.projectCount;++i)manifests[i]=app->workspaceModel.projects[i].manifest;
+ xide_native_protection_seed seed={runtime,xideTaskViewCompiler(app),root,xideSessionDirectory(app),settings,app->workspaceModel.manifest,app->projectSessionPath,manifests,app->workspaceModel.projectCount};
+ xide_native_protection* result=runtime&&root&&settings?xideNativeProtectionCreate(&seed,error):NULL;
+ free(runtime);free(settings);if(result&&storage)*storage=root;else free(root);
+ if(!result&&error&&!error->code){error->code=XIDE_MODEL_MEMORY;snprintf(error->message,sizeof(error->message),"Cannot capture complete native host protection metadata.");}return result;
+}
+static int nativeEditProtectionCurrent(xide_language_view* v,xide_model_error* error)
+{
+ xide_native_protection* previous=v->nativeEdit->protection;if(!previous)return 1;
+ xide_native_protection* current=nativeEditProtection(v->app,NULL,error);int okay=xideNativeProtectionEqual(previous,current);xideNativeProtectionRelease(current);
+ if(!okay&&error&&!error->code){error->code=XIDE_MODEL_CONFLICT;snprintf(error->message,sizeof(error->message),"Protected host metadata changed after native edit consent.");}return okay;
+}
 static int nativeEditHeld(const xide_language_view* v)
 {return v&&v->nativeEdit&&v->nativeEdit->hold!=0;}
 static int nativeEditBusy(const xide_native_apply_view* n)
@@ -13,7 +37,7 @@ static int nativeEditGuard(void* raw)
 {
  xide_language_view* v=raw;xide_native_apply_view* n=v->nativeEdit;xide_source_barrier_status b={0};xide_native_async_status s={0};
  if(!n||!n->confirmed||n->cancelled||n->closing||!n->hold||!xideNativeAsyncStatus(n->worker,&s)||s.token!=n->token||!s.candidate||!xideEditCandidateCurrent(s.candidate)||!xideSourceBarrierState(&n->barrier,n->hold,&b)||!b.ready)return XUI_ERROR_INVALID_STATE;
- return xideLanguageEditRequestCurrent(v->app,(xide_edit_request*)xideEditCallRequest(xideEditCandidateCall(s.candidate)))?XUI_OK:XUI_ERROR_INVALID_STATE;
+ return nativeEditProtectionCurrent(v,&n->error)&&xideLanguageEditRequestCurrent(v->app,(xide_edit_request*)xideEditCallRequest(xideEditCandidateCall(s.candidate)))?XUI_OK:XUI_ERROR_INVALID_STATE;
 }
 uint64_t xideLanguageEditApplyBegin(xide_app* app,const char* directory,const xide_edit_alias_exclusion* excluded,size_t count,size_t budget,xide_model_error* error)
 {
@@ -24,7 +48,16 @@ uint64_t xideLanguageEditApplyBegin(xide_app* app,const char* directory,const xi
  xide_native_apply_view* n=v->nativeEdit;xide_native_async_status s={0};if(!xideNativeAsyncStatus(n->worker,&s)||s.state!=XIDE_NATIVE_IDLE||s.active||n->hold)return 0;
  size_t length=0;while(length<65536&&directory[length])++length;if(!length||length>=65536)return 0;char* owned=malloc(length+1);if(!owned)return 0;memcpy(owned,directory,length+1);
  uint64_t token=xideNativeAsyncSubmit(n->worker,(xide_edit_candidate*)candidate,directory,excluded,count,budget);if(!token){free(owned);return 0;}
- free(n->directory);n->directory=owned;n->token=token;n->phase=XIDE_APPLY_CONFIRM;n->confirmed=n->cancelled=n->resuming=n->closing=n->taskInputsInvalidated=0;n->error=(xide_model_error){0};n->transaction=(xide_edit_transaction_status){0};xgeRenderRequest();return token;
+ xideNativeProtectionRelease(n->protection);n->protection=NULL;free(n->directory);n->directory=owned;n->token=token;n->phase=XIDE_APPLY_CONFIRM;n->confirmed=n->cancelled=n->resuming=n->closing=n->taskInputsInvalidated=0;n->error=(xide_model_error){0};n->transaction=(xide_edit_transaction_status){0};xgeRenderRequest();return token;
+}
+uint64_t xideLanguageEditApplyBeginManaged(xide_app* app,size_t budget,xide_model_error* error)
+{
+ if(error)*error=(xide_model_error){0};
+ char* root=NULL;
+ xide_native_protection* policy=nativeEditProtection(app,&root,error);if(!policy)return 0;
+ char* parent=xidePathResolveLexical(root,".xlang-ide-edits");char* id=xideCreateId("edit");char* directory=parent&&id?xidePathResolveLexical(parent,id):NULL;free(root);free(parent);free(id);
+ uint64_t token=directory?xideLanguageEditApplyBegin(app,directory,xideNativeProtectionPaths(policy),xideNativeProtectionCount(policy),budget,error):0;free(directory);
+ if(token)app->languageView->nativeEdit->protection=policy;else xideNativeProtectionRelease(policy);return token;
 }
 const xide_workspace_edit* xideLanguageEditApplyPlan(xide_app* app,uint64_t token)
 {
@@ -36,7 +69,7 @@ int xideLanguageEditApplyConfirm(xide_app* app,uint64_t token,xide_model_error* 
  if(error)*error=(xide_model_error){0};
  xide_language_view* v=app?app->languageView:NULL;xide_native_apply_view* n=v?v->nativeEdit:NULL;xide_native_async_status s={0};
  if(!n||!token||token!=n->token||n->phase!=XIDE_APPLY_CONFIRM||n->cancelled||n->hold||!xideNativeAsyncStatus(n->worker,&s)||s.state!=XIDE_NATIVE_NEW||s.active||!s.candidate||!xideEditCandidateCurrent(s.candidate))return 0;
- xide_edit_request* request=(xide_edit_request*)xideEditCallRequest(xideEditCandidateCall(s.candidate));if(!xideLanguageEditRequestCurrent(app,request))return 0;
+ xide_edit_request* request=(xide_edit_request*)xideEditCallRequest(xideEditCandidateCall(s.candidate));if(!nativeEditProtectionCurrent(v,error)||!xideLanguageEditRequestCurrent(app,request))return 0;
  n->hold=xideSourceBarrierBeginEdit(&n->barrier,app,request,error);if(!n->hold)return 0;
  n->confirmed=1;n->phase=XIDE_APPLY_HOLDING;nativeEditError(n,error);xgeRenderRequest();return 1;
 }
@@ -127,5 +160,5 @@ int xideLanguageEditApplyShutdown(xide_app* app)
  xide_language_view* v=app?app->languageView:NULL;xide_native_apply_view* n=v?v->nativeEdit:NULL;if(!n)return XUI_OK;
  n->closing=1;xide_source_barrier_status b={0};int restore=n->hold&&!n->resuming&&xideSourceBarrierState(&n->barrier,n->hold,&b)&&b.quiet&&!b.lost;
  xideNativeAsyncAuthorize(n->worker,n->token,0,restore);int status=xideNativeAsyncDestroy(n->worker);if(status!=XUI_OK)return status;
- n->worker=NULL;xideSourceBarrierAbandonFinal(&n->barrier);free(n->directory);free(n);v->nativeEdit=NULL;return XUI_OK;
+ n->worker=NULL;xideSourceBarrierAbandonFinal(&n->barrier);xideNativeProtectionRelease(n->protection);free(n->directory);free(n);v->nativeEdit=NULL;return XUI_OK;
 }
