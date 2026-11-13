@@ -78,6 +78,13 @@ and SDK, but no window or graphics initialization. Expect corners `(10,20)`,
 `(40,20)`, `(40,60)` and `(10,60)` on separate lines, followed by clean cleanup.
 Run with `xl run examples/xge/shape_bounds.xl` from the runtime directory.
 
+`glyph_outline.xl` converts A from the bundled fixture font into a Shape and
+prints positive outline width/height. Run from this examples directory so
+`data/font_fixture.ttf` resolves. It uses no OS font or graphics device. The
+glyph index must belong to the exact Font; shaped fallback text can instead
+use `GlyphRun.appendOutline()`. The Shape owns copied commands and remains
+usable after closing the Font; it is closed before checked engine shutdown.
+
 `svg_documents.xl` loads `data/vector.svg` through an explicit `SvgCache`, closes
 the cache while keeping its document, prints the 64x32 canvas and content bounds,
 then changes a clone without changing the original. Run beside this examples

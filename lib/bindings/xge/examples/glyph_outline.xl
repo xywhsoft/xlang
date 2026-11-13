@@ -1,0 +1,17 @@
+// Run from this examples directory: xl run glyph_outline.xl
+// The bundled font and path geometry need no graphics device or OS font.
+import xge
+
+xge.init(4,4,"Glyph outline",0,xge.XGE_RUN_MANUAL)
+auto face=xge.loadFontFace("data/font_fixture.ttf")
+auto font=face.createFont(20)
+face.close()
+auto letter=font.glyph(c_uint(65)) // This fixture contains A in this Font.
+auto shape=xge.createShape()
+font.appendGlyphOutline(letter.iGlyph,shape,10,40)
+font.close() // Shape stores independent path commands.
+auto bounds=shape.getBounds(0.25)
+assert bounds.fW>c_float(0) and bounds.fH>c_float(0)
+println("Outline width:",bounds.fW,"height:",bounds.fH)
+shape.close()
+xge.unit()

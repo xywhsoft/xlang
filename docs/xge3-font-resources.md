@@ -57,3 +57,27 @@ provider 回调失败、状态错误及非预期诊断不能变成成功；调�
 字节的自行生成字体，无系统字体依赖。它从示例目录运行，观察输出并显式清理。
 验收夹具还在禁止新 XRT 分配的条件下重复进行度量和字形查询。
 最终源码和构建／运行证据见 `xge-font-resources-20261111.json` 小索引。
+
+## 单字形矢量轮廓
+
+`Font.appendGlyphOutline(glyph, shape, penX=0, baselineY=0)` 直接调用
+`xgeFontGlyphOutlineAppendShapeEx`，将指定字形的轮廓追加到现有 Shape。它不重置
+Shape；需要替换路径时先调用 `Shape.reset()`。坐标沿用字体实例的像素缩放与向下
+的 Y 方向，`baselineY` 表示基线。Shape 保存原生复制的路径命令，Font 关闭后仍可
+查询或使用已有几何。原生分配失败可能留下部分追加内容，不承诺原子替换。
+
+`glyph` 是当前 Font 的字形索引，不是 Unicode 码点。特别注意 `Font.glyph(cp)`
+可以经过 fallback 返回其他字体的索引，不能把该索引再交给错误的 Font。已排版
+文本优先使用现有 `GlyphRun.appendOutline()`；需要逐字形处理时，将只读 glyph
+记录与同位置 `GlyphRun.font(index)` 返回的独立字体 owner 配对。单文件范例
+`glyph_outline.xl` 使用自带字体已包含的 A，避免隐藏 fallback 条件。
+
+业务调用不增加包装函数。语言仍执行 Font／Shape 的有效期和线程检查；冷轮廓
+缓存与 Shape 容量增长是原生分配。热循环对比复用同一缓存与各自的 Shape 容量，
+不代表冷路径或 CPU 时间相同。故障注入使用独立冷 Face，并要求同时观察到失败
+和成功，避免热缓存掩盖分配失败。
+
+Windows／Linux 完整 O2 编译器各通过 24 项消费检查，包括 JIT、独立动态／静态
+程序、公共 C/C++ 头及上述冷分配故障。每种模式下，语言和 C 的 1000 轮热
+reset／append 均为零 XRT 堆操作。匹配包、源码、程序和日志的哈希索引为
+`xge-glyph-outline-20261114.json`；最终正式 SDK／运行库／IDE 安装另行完成。

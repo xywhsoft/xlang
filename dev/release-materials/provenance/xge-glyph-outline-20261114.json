@@ -1,0 +1,336 @@
+{
+  "date": "2026-11-14",
+  "qualified": true,
+  "shippingDelivery": false,
+  "nativeCommit": "2a95629ce282a7de27c492168a2237ff7c8b2500",
+  "sources": {
+    "lib/bindings/xge/src/resources.xl": "b36987870485d923a91fec297683057fd7828cf21618eb797df3fb70745f8c24",
+    "lib/bindings/xge/examples/glyph_outline.xl": "efc280d66a44eaa1fbd086177b8c51565a6140ac51e517d2951c3b4f610b9782",
+    "lib/bindings/xge/examples/README.md": "7122f04a6d23f4b325262d6662f9ce37314f9d538c3568043209cf48b2c10550",
+    "test/cases/foreign_xge3_glyph_outline.xl": "4c28129f25c3998e174c2a1a03cb67cbe1ae867a64ef9c67ed08ef0c55d280cf",
+    "test/cases/foreign_xge3_glyph_outline.c": "2f1abb9e57a41d1e16f175e249eccbd2ee6150a593d2ac316bbbd768f02464a4",
+    "test/cases/foreign_xge3_glyph_outline.h": "0521568d513608a4e6cd66396a5b7acfa355a65fae8ec4c823b098572199c9a7",
+    "tools/check_xge3_glyph_outline.py": "ce255b7bd4932f8391ed2c2cb50a194af23ab8d53d53f9589aef016128d83e04",
+    "docs/xge3-font-resources.md": "cf1c41c5bac691b1fec704d8f2e8d584699cfd1de6f04aa3cb50dee26c1478f1"
+  },
+  "platforms": {
+    "win": {
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-direct-output-full-r34\\build.json",
+        "sha256": "013252af70875958b3a896b546bde0229012f8142574bf4d7b6e332bd5255581"
+      },
+      "products": {
+        "xl.exe": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-direct-output-full-r34\\source\\release\\win_x64\\xl.exe",
+          "sha256": "b06ecff88b5b9f438820a93f7ec7c8be5d605c5e55c8d6e6c58c8d2c2641ed80",
+          "bytes": 72704
+        },
+        "xl.dll": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-direct-output-full-r34\\source\\release\\win_x64\\xl.dll",
+          "sha256": "5f90613f176e934f957e3079b3ae6915e2bc73d4e343bc30a1235d99db2fc048",
+          "bytes": 15300096
+        },
+        "xlc.dll": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-direct-output-full-r34\\source\\release\\win_x64\\xlc.dll",
+          "sha256": "70852dfa41fc38b70b7a287e151f0e665199fdda3e62efc574d4a35268cf4883",
+          "bytes": 21517312
+        }
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\glyph-outline-language-win-r2\\results.json",
+        "sha256": "5d210eb2d354bb696bdda2526880437735a404015197822b94f147b0a635558b",
+        "commands": 24
+      },
+      "heap": [
+        {
+          "mode": "jit",
+          "rounds": 1000,
+          "nativeCalls": 2000,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        },
+        {
+          "mode": "dynamic",
+          "rounds": 1000,
+          "nativeCalls": 2000,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        },
+        {
+          "mode": "static",
+          "rounds": 1000,
+          "nativeCalls": 2000,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        }
+      ],
+      "programs": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\glyph-outline-language-win-r2\\foreign_xge3_glyph_outline-dynamic.exe",
+          "sha256": "1d9b0b3b2e2a4e3aed9013883c2cf1e268bdc86522629747f20ed85234e7c3c2",
+          "bytes": 4561920,
+          "imports": [
+            "xge3_host.dll",
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\glyph-outline-language-win-r2\\foreign_xge3_glyph_outline-static.exe",
+          "sha256": "f7f5e753ae1f763948949d20f26892ae78e02bd2393285b39443e7d302746804",
+          "bytes": 4003328,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "USER32.dll",
+            "ole32.dll",
+            "OLEAUT32.dll",
+            "SHELL32.dll",
+            "GDI32.dll",
+            "IMM32.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\glyph-outline-language-win-r2\\glyph_outline-dynamic.exe",
+          "sha256": "d9a28c0f24f36b279ccf3b5ba902747ea2bf96027e4ce8d7156c7c587b8cfaf4",
+          "bytes": 1265664,
+          "imports": [
+            "xge3_host.dll",
+            "msvcrt.dll",
+            "kernel32.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\glyph-outline-language-win-r2\\glyph_outline-static.exe",
+          "sha256": "b1a08f7322a2fd2d34e8be9c1c74bb0e2ecf2dd3b9a881cab3eba75dacf88490",
+          "bytes": 3878912,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "USER32.dll",
+            "ole32.dll",
+            "OLEAUT32.dll",
+            "SHELL32.dll",
+            "GDI32.dll",
+            "IMM32.dll"
+          ]
+        }
+      ],
+      "staging": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\glyph-outline-docs-win-r3\\results.json",
+        "sha256": "84588eb0eaf1b05a09a8888efe42ccdf0cfc6f8302f8cea72d3cfcd8003cf596",
+        "commands": 2
+      },
+      "documentationOnlySuccessor": [
+        {
+          "kind": "host",
+          "changed": [
+            "xge/examples/README.md",
+            "xge/examples/glyph_outline.xl",
+            "xge/src/resources.xl"
+          ],
+          "languageCodeUnchanged": true,
+          "otherBytesIdentical": true
+        },
+        {
+          "kind": "static",
+          "changed": [
+            "xge/examples/README.md",
+            "xge/examples/glyph_outline.xl",
+            "xge/src/resources.xl"
+          ],
+          "languageCodeUnchanged": true,
+          "otherBytesIdentical": true
+        }
+      ]
+    },
+    "linux": {
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-direct-output-linux-full-r27\\build.json",
+        "sha256": "43e6a3a64c46054618a144a87f4c6934786cb49f3b44dfb1b5ea3f914a8b866d"
+      },
+      "products": {
+        "xl": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-direct-output-linux-full-r27/source/release/linux_x64/xl",
+          "sha256": "faa25e49bdf8c5ce8ccdb084810075b406cc6dd499a59577664616eb2a08265b",
+          "bytes": 47224
+        },
+        "libxl.so": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-direct-output-linux-full-r27/source/release/linux_x64/libxl.so",
+          "sha256": "01009cc4a84970eca1205faf40b45595f5ee7f3bd77b54aba2657b0f8a75f357",
+          "bytes": 16513616
+        },
+        "libxlc.so": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-direct-output-linux-full-r27/source/release/linux_x64/libxlc.so",
+          "sha256": "f629cc2cbc600860fe39a1d031dc8f426187517cc95e68ee6585df7e93639df8",
+          "bytes": 22530896
+        }
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\glyph-outline-language-linux-r2\\results.json",
+        "sha256": "ef6b98f0f7b20965986113d0913c5d5f8b737d91aad9c3a68df08c933985cd90",
+        "commands": 24
+      },
+      "heap": [
+        {
+          "mode": "jit",
+          "rounds": 1000,
+          "nativeCalls": 2000,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        },
+        {
+          "mode": "dynamic",
+          "rounds": 1000,
+          "nativeCalls": 2000,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        },
+        {
+          "mode": "static",
+          "rounds": 1000,
+          "nativeCalls": 2000,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        }
+      ],
+      "programs": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/glyph-outline-language-linux-r2/foreign_xge3_glyph_outline-dynamic",
+          "sha256": "c622fdba6913be15cc9341eb477a17bc2b8a126df740b35e86592ab5f6b27903",
+          "bytes": 4762548,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/glyph-outline-language-linux-r2/foreign_xge3_glyph_outline-static",
+          "sha256": "aba280dcc3f9c37f8a308736dca034c3df83d0b8fbc708164ea7bcdd1d05ca16",
+          "bytes": 1650612,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/glyph-outline-language-linux-r2/glyph_outline-dynamic",
+          "sha256": "6dc8dfd148e3a0f1ecf1da97bcdd77971fa67bd2cf27079daaa559c1a045b5d1",
+          "bytes": 1332287,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/glyph-outline-language-linux-r2/glyph_outline-static",
+          "sha256": "a3ab9f1e8628b61563f3a3ffcbc1baec134690d4a3bec23c3105926dda2c1ddb",
+          "bytes": 1472986,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ],
+      "staging": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\glyph-outline-api-linux-r2\\results.json",
+        "sha256": "71143101cec93d013595a36be3cd2ce86f9d82a4f0cd26918d697c69e2ba1f9d",
+        "commands": 3
+      }
+    }
+  },
+  "scope": "Font.appendGlyphOutline directly maps xgeFontGlyphOutlineAppendShapeEx with existing checked Font/Shape ownership and thread scopes; no native change, per-method wrapper or new language syntax.",
+  "fullSurface": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-glyph-outline-r1\\surface.json",
+    "sha256": "34230aacbb79ac5db760169131c4d64f46a34da302dd70049ad5190bb6a35569"
+  },
+  "contracts": [
+    "Glyph index must belong to the supplied Font; fallback glyphs require actual resolved Font, or use existing GlyphRun.appendOutline.",
+    "Native commands are copied to Shape and survive Font closure; failure may partially append, without transactional native mutation guarantee.",
+    "64 independent cold Face/Font allocation budgets require both failure and success; invalid index, translation and expired Font are checked."
+  ],
+  "performanceBoundary": "1000 warmed reset/append rounds (2000 native calls) per mode compare C and language: zero XRT alloc/free/realloc on both platforms. Cold caches, capacity growth, common checked scopes and CPU time remain separate costs; no end-to-end zero-cost claim."
+}

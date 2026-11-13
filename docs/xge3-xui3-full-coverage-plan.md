@@ -842,3 +842,12 @@ C++ 客户端及实际 DecodeBudget／Shape／编辑器调用。负原型检查�
 O2 闭包栈为 288→256 字节、热代码为 528→512 字节，但完整 O2 对象增加 104 字节，
 不声称普遍缩小或加速。详见 foreign-direct-output-storage.md 和
 foreign-direct-output-storage-20261114.json。最终发布配套与全量接入继续。
+
+Font 又补入 appendGlyphOutline 的直接声明与线性学习范例；Shape 保存复制的
+路径命令，Font 关闭后几何仍有效。字形索引必须与实际 Font 配对，fallback
+文本优先使用既有 GlyphRun.appendOutline；原生 OOM 可能部分追加，不承诺回滚。
+两端完整 O2 编译器各 24 项检查覆盖真实自带字体、基线平移、过期、64 档独立
+冷 Face／Font 分配故障及 JIT／独立动态／静态和 C/C++ 头。1000 轮热 reset／
+append 的语言／C 各 2000 次原生调用均零堆操作，冷缓存和 checked 作用域成本
+另计，不宣称 CPU 等价。索引为 xge-glyph-outline-20261114.json。没有改动原生
+SDK 字节或安装正式发布包；其他字形／模型／后端及全量配套工作继续。

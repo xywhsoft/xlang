@@ -1,0 +1,86 @@
+import xge
+extern "fixtureOutlinePath" @header("test/cases/foreign_xge3_glyph_outline.h") @no_raise @c_result("cstring") func fixturePath() as string?
+extern "fixtureOutlineBudget" @no_raise func budget(c_int allowance)
+extern "fixtureOutlineHeapBegin" @no_raise func beginHeap()
+extern "fixtureOutlineHeapReport" @no_raise func reportHeap(c_int native)
+extern "fixtureOutlineNativePerformance" @no_raise func nativePerformance(xge.Font font,xge.Shape shape,c_int glyph)
+
+func main(...) as int
+    xge.init(4,4,"Glyph outline model",0,xge.XGE_RUN_MANUAL)
+    string path=fixturePath() as string
+    auto face=xge.loadFontFace(path)
+    auto font=face.createFont(20)
+    face.close()
+    auto letter=font.glyph(c_uint(65))
+    auto shape=xge.createShape()
+    font.appendGlyphOutline(letter.iGlyph,shape,10,40)
+    auto first=shape.getBounds(0.25)
+    assert first.fW>c_float(0) and first.fH>c_float(0)
+    auto other=xge.createShape()
+    font.appendGlyphOutline(letter.iGlyph,other,17,49)
+    auto shifted=other.getBounds(0.25)
+    float dx=float(shifted.fX)-float(first.fX)
+    float dy=float(shifted.fY)-float(first.fY)
+    assert dx>6.999 and dx<7.001 and dy>8.999 and dy<9.001
+    assert shifted.fW==first.fW and shifted.fH==first.fH
+    bool rejected=false
+    try
+        font.appendGlyphOutline(-1,shape)
+    catch error
+        rejected=true
+    end
+    auto unchanged=shape.getBounds(0.25)
+    assert rejected and unchanged.fW==first.fW and unchanged.fH==first.fH
+    // Independent cold faces ensure the allocation budgets hit outline decode,
+    // not an outline already held in the shared font cache.
+    int failures=0
+    int successes=0
+    for allowance in range(64)
+        auto candidateFace=xge.loadFontFace(path)
+        auto candidateFont=candidateFace.createFont(20)
+        candidateFace.close()
+        auto target=xge.createShape()
+        budget(c_int(allowance))
+        try
+            candidateFont.appendGlyphOutline(letter.iGlyph,target)
+            successes+=1
+        catch error
+            failures+=1
+        finally
+            budget(-1)
+        end
+        target.close()
+        candidateFont.close()
+    end
+    assert failures>0 and successes>0
+    // Both paths reuse their capacities and the same cached font outline.
+    shape.reset()
+    font.appendGlyphOutline(letter.iGlyph,shape,10,40)
+    other.reset()
+    font.appendGlyphOutline(letter.iGlyph,other,10,40)
+    beginHeap()
+    for i in range(1000)
+        shape.reset()
+        font.appendGlyphOutline(letter.iGlyph,shape,10,40)
+    end
+    reportHeap(0)
+    beginHeap()
+    nativePerformance(font,other,letter.iGlyph)
+    reportHeap(1)
+    // The Shape contains copied commands and survives the Font's final owner.
+    font.close()
+    auto retained=shape.getBounds(0.25)
+    assert retained.fW==first.fW and retained.fH==first.fH
+    rejected=false
+    try
+        font.appendGlyphOutline(letter.iGlyph,shape)
+    catch error
+        rejected=true
+    end
+    assert rejected
+    other.close()
+    shape.close()
+    xge.unit()
+    println("Glyph outline: copied Shape geometry, baseline translation, checked expiry and 64 cold allocation budgets passed")
+    return 0
+end
