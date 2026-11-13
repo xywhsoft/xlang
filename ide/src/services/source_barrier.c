@@ -93,3 +93,5 @@ int xideSourceBarrierRelease(xide_source_barrier* b,uint64_t token,xide_model_er
  if(b->held&XIDE_SOURCE_DOCUMENTS){if(!xideDocumentsResumeSources(&a->documents,b->leases[DOCUMENTS],e))return -1;b->held&=~XIDE_SOURCE_DOCUMENTS;}
  xideEditRequestRelease(b->request);b->request=NULL;b->token=0;b->app=NULL;return 1;
 }
+void xideSourceBarrierAbandonFinal(xide_source_barrier* b)
+{if(b){xideEditRequestRelease(b->request);b->request=NULL;b->token=0;b->app=NULL;b->serial=UINT64_MAX;}}

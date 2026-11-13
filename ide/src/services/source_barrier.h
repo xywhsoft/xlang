@@ -50,4 +50,9 @@ int xideSourceBarrierResume(xide_source_barrier*,uint64_t,xide_model_error*);
  * not become valid when its gates finish reopening. A broken participant graph
  * or stolen token is an error, never authority to release a different hold. */
 int xideSourceBarrierRelease(xide_source_barrier*,uint64_t,xide_model_error*);
+/* Final shutdown only, after this owner's writes have settled or IN_DOUBT has
+ * explicitly entered final shutdown. Drop the request reference and retire this
+ * storage permanently; do NOT resume/release any participant gate. Destroy all
+ * participants next. This is not a normal error/cancellation/recovery escape. */
+void xideSourceBarrierAbandonFinal(xide_source_barrier*);
 #endif

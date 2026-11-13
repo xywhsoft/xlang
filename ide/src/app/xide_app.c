@@ -1,3 +1,4 @@
+#include "ui/native_edit_view.h"
 #include "ui/association_view.h"
 #include "ui/about_view.h"
 #include "ui/home_view.h"
@@ -150,6 +151,7 @@ int xideAppCreate(xide_app* app)
 }
 void xideAppDestroy(xide_app* app)
 {
+    if(xideLanguageEditApplyShutdown(app)!=XUI_OK)return;
     xideUpdateDestroy(app);xideAssociationViewDestroy(app);
 
 #if XIDE_ENABLE_C_LSP

@@ -1,0 +1,182 @@
+{
+  "schema": 1,
+  "date": "2026-11-14",
+  "stage": "M7b6d",
+  "scope": "Lazy persistent C/XRT transaction dispatcher and actual IDE owner/worker/barrier integration, exact consent tokens, independently authorized rollback, asynchronous resource and snapshot retirement, reader-safe final shutdown",
+  "implementationAccepted": true,
+  "goalComplete": false,
+  "performanceQualified": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "b3e84e43f4967df9fcf1c313058bb135158e3990",
+  "buildBase": "a03ca1702a567eaa182e5f5cc135779130413190",
+  "ownedSources": {
+    "ide/docs/lsp-native-edit-async.md": "05a846d36d4ae124608079f2e75e4d510d2773f57c09627b23a9ab0f80904843",
+    "ide/src/app/xide_app.c": "e548d030d341a42a4094751664ccbf931a42a70a0bb621f832ebb9d4eb0bea01",
+    "ide/src/editor/native_edit_async.c": "ca4b9b03017b4c08e9322bd62b5f371fde676f5d72fa6c71fbf34ea5dde5cdb0",
+    "ide/src/editor/native_edit_async.h": "7eeb461068380fe68b8c886ff2c4efe6dbb770425bc691a100ae3cfb507f296a",
+    "ide/src/services/source_barrier.c": "82555568a4565dc94993d266b36b609cadfb46fcc6b62b4c204cc248624fb978",
+    "ide/src/services/source_barrier.h": "7d2911bb1192d7b260e2a6f483b488724c1eac8521525cb05f25b99089f64efa",
+    "ide/src/ui/edit_controller_view.inc": "afec11ce9a40c47ec3ad79f97791bfb0eb91062eba12ab2f5d793f367f45cbdc",
+    "ide/src/ui/language_view.c": "b83d34120cfdf6739fd400510a5832814032e35ae4d7e83e50c8f1b2fc5fb8f5",
+    "ide/src/ui/native_edit_view.h": "44bebe1ae43334ec52d798f8ea3be96e23d19177ec3a49ee2459ebc457c79bc1",
+    "ide/src/ui/native_edit_view.inc": "01beb5562b9243e5cb62cb0cd1183a8c7a1cfabea76ed3a50e16bb2b65ed9cdc",
+    "ide/tests/native_edit_async_test.c": "ee95130b1dd5a5b9dbbe719a0f7f127fedd709406bb2cd1e4574a0aa9a96b6f1",
+    "ide/tests/native_edit_view_test.c": "60cfd6345f08c5e4c5cb69ba98a5489d58f8a34fe46c0c99fe1143b807893057",
+    "ide/tools/build.ps1": "1102fe51281179432550572c2568870c48cd7b1126983ceeb917ddc53ef0696a"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-native-edit-async-20261114.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-native-edit-async-20261114/stage-sources.tar.gz",
+      "sha256": "9d0aabe7970316f5ed203360ed56041e1ab6792f357ad4b4b241676fc7379481",
+      "bytes": 62128,
+      "entries": 13,
+      "uniquePayloads": 13
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-native-edit-async-20261114/stage-sources.tar.gz.manifest.json",
+      "sha256": "2cbf96bdb7119d8621b0e820e611a80e8ce74bafff13849f9581e675ad460ed6",
+      "bytes": 3326
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-native-edit-async-20261114/actual-builds-and-validation.tar.gz",
+      "sha256": "61b75077bf15179b7954571b39eb45515008da8a8800b6d479f1e0525ca141e7",
+      "bytes": 272898249,
+      "entries": 18083,
+      "uniquePayloads": 4382
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-native-edit-async-20261114/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "cb489e6e6e26e90534a6441e5a945bb9fd7e735c1888d4c5bb0e366b90826bba",
+      "bytes": 8528888
+    }
+  },
+  "materialDependencies": [
+    {
+      "index": "dev/release-materials/provenance/lsp-native-edit-policy-20261114.json",
+      "sha256": "f4c9f6c6ba0c7d81cce09d569916513eef77f78708759fbe2b24bdf1544386f2",
+      "purpose": "Restore/reverify the exact previously accepted native service, native objects/core archive and its original external input paths; not rebuilt this stage"
+    }
+  ],
+  "externalPaths": {
+    "build": "F:\\codex-builds-xlang-lsp-20261114\\native-edit-async",
+    "fixtures": "F:\\xl-native-edit-async-20261114",
+    "materials": "F:\\codex-builds-xlang-lsp-20261114\\native-edit-async-materials"
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "sdkSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+  "currentDeliverySha256": "dbc9e09ddfaeced7c675d0540589319f20d03e08f5b43abe08dd33354ecaa9fd",
+  "candidate": {
+    "servicePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-edit-policy-20261114\\native-v1\\xlang-ls.exe",
+    "serviceSha256": "4c53c08a481173cc9c70ac6649becac7633d8395066268da92393b908e8f2296",
+    "nativeRecompiled": false,
+    "guiPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-edit-async-20261114\\gui-objects-v2\\xlang_ide.link.exe",
+    "guiSha256": "49af8df3b6f5bddf20a5faf2bd8941c4dfa5d0979ceaefc7365dec588739b97f"
+  },
+  "verification": {
+    "nativeObjectsReverified": 118,
+    "nativeObjectsRecompiled": 0,
+    "fullGuiObjects": 136,
+    "guiSuites": 55,
+    "asyncDriverCases": 9,
+    "asyncDriverObservedAssertions": 2079,
+    "actualIdeCases": 9,
+    "actualIdeObservedAssertions": [
+      {
+        "mode": 0,
+        "checks": 352
+      },
+      {
+        "mode": 1,
+        "checks": 149
+      },
+      {
+        "mode": 2,
+        "checks": 162
+      },
+      {
+        "mode": 3,
+        "checks": 66
+      },
+      {
+        "mode": 4,
+        "checks": 134
+      },
+      {
+        "mode": 5,
+        "checks": 66
+      },
+      {
+        "mode": 6,
+        "checks": 68
+      },
+      {
+        "mode": 7,
+        "checks": 163
+      },
+      {
+        "mode": 8,
+        "checks": 70
+      }
+    ],
+    "guiCandidateControllerAssertions": 76,
+    "guiCancellationAssertions": 11,
+    "actualIdeScopeAssertions": 237,
+    "sourceJobLeaseObservedAssertions": 126,
+    "sourceJobViewAssertions": 67,
+    "sourceBarrierObservedAssertions": 480,
+    "languageSourceLeaseObservedAssertions": 123,
+    "existingNativeTransactionAssertions": 747,
+    "rejectedActualMutants": 9,
+    "actualGuiFramesEach": 24,
+    "actualCompileClosures": 284,
+    "rawArchiveMembers": 72,
+    "reusedProtocolEvidence": {
+      "index": "dev/release-materials/provenance/lsp-native-edit-policy-20261114.json",
+      "indexSha256": "f4c9f6c6ba0c7d81cce09d569916513eef77f78708759fbe2b24bdf1544386f2",
+      "serviceSha256": "4c53c08a481173cc9c70ac6649becac7633d8395066268da92393b908e8f2296",
+      "tools": {
+        "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_rename_candidate.py": "2241cf1a6b5a612e91978638d5ba5da713e057c4eaa799575a4f68ca265dc738",
+        "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_native_analysis.py": "f195ffe54749a3afa662b6b545504f74265cebc81152423e235578f556ab9fe1",
+        "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_native_completion.py": "2b3cd24b3fc79a54f0361889c53628202881ed53f0eb9129a41d16b4963dba41",
+        "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_automatic_diagnostics.py": "a40124a9b712974048612a7eef76d8f3ce5915b13200e8d78fa6e0783ce678ec"
+      }
+    },
+    "allRuntimeAliasesRemoved": true,
+    "existingUserTemporaryDirectoriesPreserved": true,
+    "rawFailuresPreserved": true
+  },
+  "evidenceNotes": [
+    "The actual primary language view now owns a lazy native_edit_async XRT dispatcher and a source barrier. Internal Begin enters confirmation without source reads, holds or writes. Explicit confirmation binds the exact token and current admitted candidate before acquiring the real six-reader barrier. Prepare/Stage/Apply/Finish, source-resource closure and last large candidate retirement run on the persistent worker.",
+    "Owner capture/arm/publication use the existing NativeWork ticket and repeat complete local Current. Worker jobs contain no GUI/store/ticket/app pointers; the owner-only ticket is outside the job. Cached state never reads an active work, and only physical completion publishes each next handoff. The required live original package environment is compared independently at worker group boundaries.",
+    "APPLY and RESTORE receipts are separate: cancellation or the original scope invalidation caused by a UI commit cannot revoke already authorized undo under a still owned physical barrier. A definite committed editor outcome is never rolled back. Actual uncertainty keeps all holds and recovery bytes; stolen participant tokens expose a recovery state rather than a busy loop or automatic release.",
+    "The READY candidate producer is preserved through the transaction hold, including after editor input invalidates its original request. Otherwise ordinary candidate reset would queue retirement inside the same sourceJobs barrier. Once source resources close, changed task inputs are invalidated and language/watch resume proceeds asynchronously. A candidate lease remains through the final barrier request release; only afterward does the worker drop large snapshots.",
+    "Metadata paths are scanned only up to64KiB, max255 extra protected paths and1MiB total copied text. Lengths are recorded for the single copy. Submit only retains immutable bodies and does not begin I/O. NativeWork budgets, native/XRT/OS/SDK/thread-stack and allocator resources remain additional; no total RSS bound is claimed.",
+    "The final nine-case driver fixture uses real five-target RPC and XUI documents. It holds an actual positive source read, actual source WriteFile and the return tail after real resource destruction. It checks metadata limits, foreign owner rejection, original IDs, physical activity, cancellation undo, model changes, group environment changes, committed cancellation, journal uncertainty, final shutdown and resource unpinning. Project ReadFull/CondWait imports record no normal owner calls; this is not a blanket OS/SDK I/O or latency claim.",
+    "Nine actual IDE cases execute real native candidates, confirmation and the full participant graph. They cover a second semantic candidate and rename after first commit with the same worker and increasing tokens/barrier serials, C input/delete/undo/IME/focus during a held write, post-operation C/xlang input, normal cancellation, suppressed callbacks, prefix admission failure, a failed watch-resubscription retry, final-close rollback, frozen commit journal and stolen-token preservation. Candidate retention at watch resume is asserted before barrier release.",
+    "Final shutdown is wired before any app participant, store or context is destroyed. It may wait only in this final path, detaches owner tickets, settles definite unpublished or committed work on worker, preserves uncertainty and abandons barrier storage without resuming any participant. Ordinary cancellation always uses asynchronous polling. Interactive save/close consent integration remains a later UI step.",
+    "Nine independently compiled erroneous implementations are rejected by assertions: wrong-thread admission, false physical-active reporting, cancellation blocking undo, omitted live environment check, candidate retirement before barrier release, foreign consent token, producer drop inside hold, ready rather than quiet required for restoration, or composite bypass of both IN_DOUBT hold/retirement protections. Each changed source/include is selected by its actual compile closure; crashes/compile failures are not counted.",
+    "All136 final GUI production units were rebuilt together. The accepted actual-scope/candidate/cancel and sourceJobs/barrier/two-connection fixtures, the747-check NativeWork fixture, full55 matched GUI suites and C/xlang24-frame renders pass. Both screenshots were inspected. Timing-dependent assertion counts are run observations, not distinct-capability or performance quantities.",
+    "The first quick module/fixture compiles stopped at misleading indentation; corrected sources compiled before acceptance. The first actual IDE cancellation case compared normalized decoded LF text to a CRLF oracle; the oracle was corrected without weakening production checks. String scan bounds and permanent lost-barrier status handling were then included in the final136-unit build and all final scenarios re-executed. Earlier build/test/failed raw bytes are immutable.",
+    "All seven original GUI integration groups passed in the first current helper, but Windows rejected its first unlink of the last temporary EXE with WinError5; the consuming process or cause was not recorded. Subsequent authoritative process/file inventory found no remaining owned entry. The helper now verifies the exact owned hash and retries PermissionError briefly; the complete seven-group replay passed. Raw failed-helper status is not rewritten or counted as a successful helper execution.",
+    "The service executable remains the exact accepted4c53c08a481173cc9c70ac6649becac7633d8395066268da92393b908e8f2296. Its118 native objects,72 raw core members, actual header/source closure and the four unchanged protocol tools are reverified. The prior85 protocol cases are explicitly reused through the committed prior index, not presented as current executions or a new native service build.",
+    "Final build/link/input identities, private service-basename-only sources and compiled mutant sources are bound. The working runtime, matched developer SDK and active delivery remain unchanged. All exact owned runtime aliases were removed and existing user temporary directories preserved. External materials are indexed without force-adding runtime/archive payloads or staging concurrent unrelated work."
+  ],
+  "limits": [
+    "Internal execution API only: production complete protected-path builder, user confirmation/application/recovery windows, interactive close/save integration and public standard rename/applyEdit activation remain unfinished. No generic arbitrary WorkspaceEdit/write permission is granted by this dispatcher.",
+    "The barrier covers the existing six participants, not every possible independent reader or an OS-wide atomic filesystem transaction. IN_DOUBT and stolen-graph holds require explicit recovery or final shutdown; no implicit release or replay exists.",
+    "Complete Current retains existing configuration/path metadata preparation costs and XUI capture/publication stays on owner. The counters cover named project imports, not every OS or SDK internal operation. Source resources and known metadata quotas are not total memory bounds.",
+    "Engine/native asset alignment, full generic/unbound/foreign qualification, other synchronous readers, deep unprefixed xlp handling and analysis-configuration cache-count regression, end-to-end latency/RSS/endurance, Linux and sanitizers remain open.",
+    "C LSP remains disabled; no DAP, runtime or debug completion. Default runtime programs, developer SDK and active delivery index are not replaced."
+  ],
+  "postCommitReceipt": "dev/release-materials/provenance/lsp-native-edit-async-20261114/postcommit.json"
+}

@@ -6,6 +6,9 @@ static void resetEditController(xide_language_view* v)
 }
 static void pollEditController(xide_language_view* v)
 {
+ /* The transaction retains the READY producer through its owned barrier.
+  * Dropping it here would queue source-job retirement inside that barrier. */
+ if(nativeEditHeld(v))return;
  xide_edit_controller_status s={0};if(!xideEditControllerStatus(v->editController,&s))return;
  if(s.state==XIDE_EDIT_IDLE&&!s.active&&v->editJob.owner&&!xideSourceJobsHeld(&v->app->sourceJobs))xideSourceJobUnlink(&v->editJob);
  if(!v->editManaged)return;

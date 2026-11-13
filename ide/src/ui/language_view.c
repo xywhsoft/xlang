@@ -2,6 +2,9 @@
 #include "ui/language_view.h"
 #include "ui/language_source_lease.h"
 #include "ui/edit_request_view.h"
+#include "ui/native_edit_view.h"
+#include "editor/native_edit_async.h"
+#include "services/source_barrier.h"
 #include "model/metadata_read.h"
 #include "services/analysis_configuration.h"
 #include "services/execution_target.h"
@@ -45,6 +48,7 @@ typedef struct highlight_intent { xide_document* document; uint64_t id,stamp; ui
 typedef struct outline_item { const xvalue* symbol; int parent; char* title; } outline_item;
 struct xide_language_view {
  xide_edit_request* editRequest;xide_language_client* editClient;uint64_t editSerial;
+ struct xide_native_apply_view* nativeEdit;
  xide_edit_controller* editController;xide_source_job editJob;int editManaged,editPublished,renameSupported;
  uint64_t sourceToken,sourceSerial;int64_t sourceClientToken;int sourceInvalid,sourceReset,sourceFailed,sourceResuming,sourceDrain,sourceStop,sourceAutoPaused,sourceColorPaused;
  struct xide_reference_view* references;
@@ -78,6 +82,8 @@ struct xide_language_view {
 static void sourceChanged(xide_language_view* v,int resetClient)
 {if(v&&resetClient)xideEditRequestInvalidate(v->editRequest,XIDE_EDIT_REQUEST_CONNECTION);if(v && v->sourceToken){v->sourceInvalid=1;v->sourceReset|=resetClient;xideLanguageClientInvalidateAnalysis(v->client,v->sourceClientToken);}}
 static int sourceCleanup(xide_language_view*);
+static int nativeEditHeld(const xide_language_view*);
+static void pollNativeEdit(xide_language_view*);
 static void pollEditController(xide_language_view*);
 static void resetEditController(xide_language_view*);
 static xstrview sv(const char* s) { return (xstrview){s,strlen(s)}; }
@@ -498,7 +504,7 @@ void xideLanguageViewSettingsChanged(xide_app* app)
 {if(app && app->languageView){reset(app);automaticResume(app->languageView);xgeRenderRequest();}}
 void xideLanguageViewStop(xide_app* app) { if(app->languageView) {if(app->languageView->sourceToken || app->languageView->sourceDrain){app->languageView->sourceStop=1;sourceChanged(app->languageView,1);return;}automaticPause(app->languageView); suppressHighlights(app->languageView); reset(app); colorsStop(app->languageView); } }
 void xideLanguageViewDestroy(xide_app* app)
-{ xide_language_view* v=app->languageView; if(v) { xideEditRequestInvalidate(v->editRequest,XIDE_EDIT_REQUEST_CONNECTION|XIDE_EDIT_REQUEST_ENDED);xideEditRequestRelease(v->editRequest);v->editRequest=NULL;xideLanguageClientStop(v->client);xideSourceJobUnlink(&v->editJob);xideEditControllerDestroy(v->editController);destroyWorkspaceSearch(v);colorsDestroy(v);automaticDestroy(v); xideSyncPlannerDestroy(v->syncPlanner);xideSyncResultRelease(v->syncReady);destroyReferences(v);xideHighlightDecoderDestroy(v->highlightDecoder); xrtValueRelease(v->deferredMessage); xideHighlightResultRelease(v->highlightResult); xlsSyncDestroy(v->sync); free(v->compiler); free(v->directory); free(v->uri); free(v->path); free(v->packagePath); xrtValueRelease(v->diagnostics); xrtValueRelease(v->snapshotResult);xrtValueRelease(v->analysisCatalog); freeInputs(v); while(v->bindings) { semantic_editor_binding* next=v->bindings->next; free(v->bindings); v->bindings=next; } free(v); app->languageView=NULL; } }
+{ xide_language_view* v=app->languageView; if(v) { if(xideLanguageEditApplyShutdown(app)!=XUI_OK)return;xideEditRequestInvalidate(v->editRequest,XIDE_EDIT_REQUEST_CONNECTION|XIDE_EDIT_REQUEST_ENDED);xideEditRequestRelease(v->editRequest);v->editRequest=NULL;xideLanguageClientStop(v->client);xideSourceJobUnlink(&v->editJob);xideEditControllerDestroy(v->editController);destroyWorkspaceSearch(v);colorsDestroy(v);automaticDestroy(v); xideSyncPlannerDestroy(v->syncPlanner);xideSyncResultRelease(v->syncReady);destroyReferences(v);xideHighlightDecoderDestroy(v->highlightDecoder); xrtValueRelease(v->deferredMessage); xideHighlightResultRelease(v->highlightResult); xlsSyncDestroy(v->sync); free(v->compiler); free(v->directory); free(v->uri); free(v->path); free(v->packagePath); xrtValueRelease(v->diagnostics); xrtValueRelease(v->snapshotResult);xrtValueRelease(v->analysisCatalog); freeInputs(v); while(v->bindings) { semantic_editor_binding* next=v->bindings->next; free(v->bindings); v->bindings=next; } free(v); app->languageView=NULL; } }
 int xideLanguageViewCanCheck(xide_app* app) { return app && app->languageView && !app->languageView->sourceToken && !app->languageView->sourceDrain && !app->languageView->busy && eligible(app->activeDocument) && xideTaskViewCompiler(app); }
 int xideLanguageViewCanCheckCurrent(xide_app* app) {
 #if XIDE_ENABLE_C_LSP
@@ -794,7 +800,7 @@ static int deferPreemptedCheck(xide_language_view* v,const xvalue* error)
 void xideLanguageViewPoll(xide_app* app)
 {
  xide_language_view* v=app->languageView; if(!v) return;
- pollEditController(v);
+ pollNativeEdit(v);pollEditController(v);
  if(v->sourceDrain){if(!xideLanguageClientStopped(v->client)){xgeRenderRequestAfter(.02f);return;}v->sourceDrain=0;reset(app);if(!v->sourceStop && !v->sourceAutoPaused)automaticResume(v);else automaticPause(v);if(v->sourceStop || v->sourceColorPaused)colorsStop(v);}
  if(v->sourceToken){if(!sourceCleanup(v))xgeRenderRequestAfter(.02f);return;}
  automaticPoll(app);
@@ -1285,3 +1291,4 @@ static void pollHighlights(xide_app* app)
 #include "language_source_lease.inc"
 #include "edit_request_view.inc"
 #include "edit_controller_view.inc"
+#include "native_edit_view.inc"
