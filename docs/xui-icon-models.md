@@ -100,3 +100,39 @@ checks. Other source kinds may decode/allocate during intrinsic-size or prepare
 work; this measured workload does not remove those native costs. No new native
 or compiler build was needed: the calls consume the preceding qualified SDK.
 See `xui-icon-queries-20261113.json`.
+
+Native successor `91b68742` retains the Picker's selected Icon through its
+complete formatter/draw reader. A formatter may unregister the selection,
+clear its category, switch categories or request Widget/Context destruction
+without retiring the Icon inside that callback. The final native reference
+is released only after the body stops using its output. This reuses the
+existing Icon/Context operation receipt and adds no object fields.
+
+The same review found that best-effort cache preparation could discard a
+negative callback status before a checked frame saw it, especially when no
+diagnostic object existed. The common cache callback consumer now seals that
+status before draw cleanup or pending destruction. A subsequent error-report
+hook cannot replace the first status or its exact nullable diagnostic. Raw
+render remains best-effort; checked native callers balance their frame
+receipt, as the language receiver scope does.
+
+Both platforms pass 36 Icon/cache commands, including 40 selection/alias/
+close/error and 24 generic outcome combinations, plus the complete 16-command
+CodeEdit/TextEdit read and CPU-rendering regression gate. Both full compiler
+consumers pass the existing 15-command model gate in JIT and independent
+dynamic/static programs. Four fresh O2 SDK producer commands per platform
+and all 12,071 pinned source inputs verify unchanged. Controlled old-runtime
+guards exit before a retired Icon is reused, or after a status-only cache
+failure is lost; their evidence remains intact.
+
+The prior and successor CPU Proxy workload each performs 1000 allocations and
+1000 frees for 1000 warm Picker renders, with zero reallocations. This is an
+unchanged native allocation budget, not an allocation-free renderer. The
+Windows DLL's total bytes are unchanged; the Linux DSO grows by 4048 bytes.
+Two reused internal helper functions currently become ELF-visible/PLT calls;
+localized internal visibility is a separate performance follow-up. No timing
+equivalence is claimed.
+
+`xui-icon-picker-format-lifetime-20261113.json` records this floor. It does not
+yet expose retained language custom-Icon/formatter closures, prove reentrant
+cache freshness/mutation safety or install the final SDK/IDE.

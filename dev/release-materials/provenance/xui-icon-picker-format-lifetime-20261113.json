@@ -1,0 +1,199 @@
+{
+  "date": "2026-11-13",
+  "qualified": true,
+  "shippingDelivery": false,
+  "nativeCommit": "91b6874243c8df833d040d3a6e5eea9a584fbed4",
+  "nativeReceipt": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\icon-picker-format-lifetime-20261113.json",
+    "sha256": "e52e07397c43fc5f4e829885b8a4826ec29b3cc8bb1e17a7d5c0d9ae74bc286c"
+  },
+  "scope": "Keep the selected Icon and Context through the complete picker formatter/draw body; seal negative cache-render callback outcomes before cleanup/pending close, including NULL diagnostics. No new public API or object fields. Not owned custom Icon/formatter closure or arbitrary cache mutation acceptance.",
+  "sources": {
+    "docs/xui-icon-models.md": "c242f7ba0e144bc2d02811ac16222c8cf53d1c15086358d30ae0b0a4ad16e199",
+    "docs/xge3-xui3-full-coverage-plan.md": "10e50ae3de8906d0a0638f8f056cfafeaac600670b267303a82a1e243cd72ea6"
+  },
+  "platforms": {
+    "win": {
+      "producer": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\picker-format-sdk-win-r3\\results.json",
+        "sha256": "5d15525be6dbf22bfc0619af574ec878419b55d825fd7236f7a88f4ddc81bc2a",
+        "commands": 4
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\picker-format-native-win-r3\\results.json",
+        "sha256": "c42a502d7b1eae9ad1bda845e20dbe6f7f378537d942e1d3723a9a93b7a9aca5",
+        "commands": 36
+      },
+      "editors": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\picker-format-edit-win-r3\\results.json",
+        "sha256": "c50ab9854f8e0ed19b5d83e705de169940e4bddf136f7ade64dbd5ef7b541f7e",
+        "commands": 16
+      },
+      "models": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\picker-format-models-win-r3\\results.json",
+        "sha256": "dc09ad2c5d6684093b6bcb1f83f5396389a2aaaf544d3ee4999d8366753b05df",
+        "commands": 15
+      },
+      "freeze": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\native-picker-format-win-freeze-r3.json",
+        "sha256": "ea253db983105f0031dac0994776cb101a60fe9558b35f7eed8a1fbf9329d882",
+        "inputs": 12071
+      },
+      "baselines": {
+        "picker-format-baseline": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\picker-format-baseline-win-r1\\results.json",
+          "sha256": "6dd22377dec63604df6dc90cd649b4d6e35cde57f610cbfe1285309e3c4c66dd"
+        },
+        "cache-outcome-baseline": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\cache-outcome-baseline-win-r1\\results.json",
+          "sha256": "62ea8a577f32248730c5f15f9239b139b6595fb56f51e9c63cb21860d0b3378e"
+        }
+      },
+      "heap": {
+        "O0": {
+          "prior": {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\picker-format-heap-baseline-win-r2\\O0-run.log",
+            "sha256": "4c4afea85a466f5e71a6e5e560e709d44429222051bc6522beb426d3144c435d",
+            "counts": [
+              1000,
+              1000,
+              1000,
+              0
+            ]
+          },
+          "current": {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\picker-format-native-win-r3\\xui_icon_picker_format_lifetime_test-O0-run.log",
+            "sha256": "ba5e667fe2a8f84284a3d0e990cda76d8b5bbd5818fe9b2236024774de925622",
+            "counts": [
+              1000,
+              1000,
+              1000,
+              0
+            ]
+          }
+        },
+        "O2": {
+          "prior": {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\picker-format-heap-baseline-win-r2\\O2-run.log",
+            "sha256": "4c4afea85a466f5e71a6e5e560e709d44429222051bc6522beb426d3144c435d",
+            "counts": [
+              1000,
+              1000,
+              1000,
+              0
+            ]
+          },
+          "current": {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\picker-format-native-win-r3\\xui_icon_picker_format_lifetime_test-O2-run.log",
+            "sha256": "ba5e667fe2a8f84284a3d0e990cda76d8b5bbd5818fe9b2236024774de925622",
+            "counts": [
+              1000,
+              1000,
+              1000,
+              0
+            ]
+          }
+        }
+      },
+      "image": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\picker-format-sdk-win-r3\\host\\xge3_host.dll",
+        "sha256": "8ed042167daeeed0058ddad47bc18bbec234ec929e245d1694fbbc6dc4c06a6b",
+        "bytes": 9586735,
+        "deltaBytes": 0
+      },
+      "publicHeadersAndPrivateRecordDeclarationsUnchanged": true
+    },
+    "linux": {
+      "producer": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\picker-format-sdk-linux-r3\\results.json",
+        "sha256": "48685e8771917115812080f6f1802f2da5fc2f8f637e6705ba04dc72faa83f35",
+        "commands": 4
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\picker-format-native-linux-r3\\results.json",
+        "sha256": "27bf3ea1a3406f7348c3d1cfefdcd025935da3e62c545b8caf82928a2994ce2c",
+        "commands": 36
+      },
+      "editors": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\picker-format-edit-linux-r3\\results.json",
+        "sha256": "4822143de3eab7f99402ea5709a0229b99bfd04b0f4631610ef51f3f3c87a0c9",
+        "commands": 16
+      },
+      "models": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\picker-format-models-linux-r3\\results.json",
+        "sha256": "6e6182736018bf7bc33397a910b006022d94b3a58dd49178f40a31fece11370a",
+        "commands": 15
+      },
+      "freeze": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\native-picker-format-linux-freeze-r3.json",
+        "sha256": "0b588f7c31a63af3f4544b7613631f25ea30bd17ccbe59c91bc0e380d4f20acc",
+        "inputs": 12071
+      },
+      "baselines": {
+        "picker-format-baseline": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\picker-format-baseline-linux-r1\\results.json",
+          "sha256": "c6554469bbe9f24d378c2b16026314741e8ef1ac35b7c4e07d146603a5066b31"
+        },
+        "cache-outcome-baseline": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\cache-outcome-baseline-linux-r1\\results.json",
+          "sha256": "52682fb6f4bf199ffa0c8e22fd847726b69a846aaea2a7cb868523600d45fceb"
+        }
+      },
+      "heap": {
+        "O0": {
+          "prior": {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\picker-format-heap-baseline-linux-r2\\O0-run.log",
+            "sha256": "6b4a4d86ef332f7242d159dd5fc2d1ebcdc697e00af746f1de6329b315dd9292",
+            "counts": [
+              1000,
+              1000,
+              1000,
+              0
+            ]
+          },
+          "current": {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\picker-format-native-linux-r3\\xui_icon_picker_format_lifetime_test-O0-run.log",
+            "sha256": "04392273557e487f431eaeab772494db2fad6ec993a0c462c538a38f20a18306",
+            "counts": [
+              1000,
+              1000,
+              1000,
+              0
+            ]
+          }
+        },
+        "O2": {
+          "prior": {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\picker-format-heap-baseline-linux-r2\\O2-run.log",
+            "sha256": "6b4a4d86ef332f7242d159dd5fc2d1ebcdc697e00af746f1de6329b315dd9292",
+            "counts": [
+              1000,
+              1000,
+              1000,
+              0
+            ]
+          },
+          "current": {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\picker-format-native-linux-r3\\xui_icon_picker_format_lifetime_test-O2-run.log",
+            "sha256": "04392273557e487f431eaeab772494db2fad6ec993a0c462c538a38f20a18306",
+            "counts": [
+              1000,
+              1000,
+              1000,
+              0
+            ]
+          }
+        }
+      },
+      "image": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\picker-format-sdk-linux-r3\\host\\libxge3_host.so",
+        "sha256": "a4e528413dcbed2ba564e8d730c890748516af0c3e2111842d70f2eea9480395",
+        "bytes": 10445520,
+        "deltaBytes": 0
+      },
+      "publicHeadersAndPrivateRecordDeclarationsUnchanged": true
+    }
+  },
+  "costs": "Existing selected render adds the established Context receipt and temporary Icon reference; no fields or heap metadata. Prior/new CPU warm renders each1000 allocations/frees, zero reallocations; no timing equivalence. Reusing Begin/End across translation units currently gives two ELF-visible internal helpers/PLT calls on Linux; localized hidden visibility is the next performance follow-up, not a claimed zero-overhead result.",
+  "remaining": "Owned custom Icon/formatter closures, cache mutation/freshness, ELF internal visibility follow-up, full graphics/platform and final matched delivery."
+}
