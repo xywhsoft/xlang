@@ -1,4 +1,4 @@
-/* A fixed typed NULL can omit one const POD reference/descriptor input only.
+/* A fixed typed NULL can omit one exact const POD/descriptor or c_cstr input.
  * This does not equate arbitrary logical signatures or consume an owner. */
 static int xl6SemForeignTrivialCValue(XL6_SemContext*,const XL6_AstNode*,size_t);
 typedef struct XL6_SemNullPhysical {
@@ -51,10 +51,13 @@ static int xl6SemNullOmittedType(XL6_SemContext* ctx,const XL6_SemNullPhysical* 
         snprintf(expected,sizeof(expected),"const %s*",pack.recordCName);
         return !strcmp(pointer,expected);
     }
-    if(step->kind!=XL6_FOREIGN_PHYSICAL_STEP_INPUT || step->parameter<full->receiver ||
-        xl6SemNullFlags(full,step->parameter)!=1)return 0;
+    if(step->kind!=XL6_FOREIGN_PHYSICAL_STEP_INPUT || step->parameter<full->receiver)return 0;
     const XL6_AstNode* parameter=full->params->children[step->parameter-full->receiver];
     const XL6_AstNode* type=parameter && parameter->childCount ? xl6SemResolveAliasType(ctx,parameter->children[0]):NULL;
+    if(xl6SemNullFlags(full,step->parameter)==16)
+        return type && !type->childCount && xl6TextEquals(type->text,"string") &&
+            !xl6SemParamMode(parameter) && !strcmp(pointer,"const char*");
+    if(xl6SemNullFlags(full,step->parameter)!=1)return 0;
     const XL6_AstNode* record=type && type->text && !type->childCount ? xl6SemFindTypeDecl(ctx,type->text):NULL;
     XL6_ForeignClassDecl native={0};
     if(!type || xl6SemTypeIsNullable(type) || !record || xl6ForeignRecordRead(record,&native,NULL)!=1 ||

@@ -1,0 +1,44 @@
+extern "CstrRoot*" class Root @header("test/cases/foreign_null_cstr.h") @lifetime("owned") @policy("cstrPolicy")
+ native point handle
+ extern "cstrMethod" @no_raise @c_cstr(1) @c_output(4,0) func text(c_int prefix,string value,c_int suffix) as c_int
+ extern "cstrMethod" @no_raise @c_null(2,"const char*") @c_output(4,0) func clear(c_int prefix,c_int suffix) as c_int
+ extern "apply" @c_field_call @no_raise @c_cstr(1) @c_output(4,0) func apply(c_int prefix,string value,c_int suffix) as c_int
+ extern "apply" @c_field_call @no_raise @c_null(2,"const char*") @c_output(4,0) func clearApply(c_int prefix,c_int suffix) as c_int
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "cstrCreate" @header("test/cases/foreign_null_cstr.h") @no_raise @c_result("owned_view") @factory(0,0,rollback) func create() as Root
+extern "cstrDrop" @header("test/cases/foreign_null_cstr.h") @no_raise func rollback(Root value)
+extern "cstrFree" @header("test/cases/foreign_null_cstr.h") @no_raise @c_cstr(1) @c_output(3,0) func text(c_int prefix,string value,c_int suffix) as c_int
+extern "cstrFree" @header("test/cases/foreign_null_cstr.h") @no_raise @c_null(1,"const char*") @c_output(3,0) func clear(c_int prefix,c_int suffix) as c_int
+extern "cstrCalls" @header("test/cases/foreign_null_cstr.h") @no_raise func calls() as c_int
+protocol Clearer
+ func clear(c_int prefix,c_int suffix) as c_int
+end
+func main(...) as int
+    assert text(2,"abc",3)==8 and text(2,"",3)==5 and clear(2,3)==105
+    auto root=create()
+    assert root.text(2,"abc",3)==15 and root.clear(2,3)==112
+    assert root.apply(2,"abc",3)==15 and root.clearApply(2,3)==112
+    func(c_int,c_int) as c_int bound=root.clear
+    assert bound(2,3)==112
+    Clearer protocolValue=root
+    assert protocolValue.clear(2,3)==112
+    auto before=calls()
+    bool rejected=false
+    try
+        auto invalid=text(2,"a\0b",3)
+    catch error
+        rejected=true
+    end
+    assert rejected and calls()==before
+    root.close()
+    rejected=false
+    try
+        auto invalid=bound(2,3)
+    catch StateError
+        rejected=true
+    end
+    assert rejected and calls()==before
+    println("NULL CString: direct, bound, protocol and native function field calls passed")
+    return 0
+end

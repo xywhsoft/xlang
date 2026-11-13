@@ -1,0 +1,145 @@
+{
+  "date": "2026-11-14",
+  "qualified": true,
+  "shippingDelivery": false,
+  "networkTests": false,
+  "scope": "Exact typed const-char NULL aliases for existing explicit terminated-string inputs; separate semantic and sealed IR verification. No new syntax, schema, emitter or runtime adaptation.",
+  "sources": {
+    "src/sem/xl6_sem_foreign_null_compat.c": "6e36514664688bb6c89fdfeab2f1313ca5be75a99e3689204b046195cf1219de",
+    "src/ir/xl6_ir_foreign_null_compat.c": "bf36a1e9cd7d6f1ee003616794ffa24db9d4854511e5e75ae2c72f167a6a43bf",
+    "test/cases/foreign_null_cstr.xl": "6eae01b6f17b260c61a1bd35f7939065fddf9d4d0644657e1a07f012809c7626",
+    "test/cases/foreign_null_cstr.h": "eafb79f138449d3d165145193f398146619340d2cc197aac92b5f8cbac2a3574",
+    "test/cases/foreign_null_cstr_native.c": "b38ed8735f2bf68286cd16bc8cdc028e0a9ec3a99ae786254f94780561573923",
+    "test/cases/foreign_null_cstr_ir.c": "4528a6d027fa4ff89714340f756a48aaf805ee127fc33bc183fc4dc1d5ed4363",
+    "tools/check_foreign_null_cstr.py": "3c6ebb8584707c7fc76295c09875e416bc0d0e6abab474febc2faa7637cf7e0b",
+    "tools/check_foreign_null_cstr_cli.py": "0654bd6360a13ca1968bbcdcde5d445071db1e4f9c128b2fa22fb88cfe102d71",
+    "docs/foreign-null-compat.md": "5d7a68ea280e400bf1999551a490bc21fdc842747995746ce0063e11842c8260"
+  },
+  "platforms": {
+    "win": {
+      "compilerBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-null-cstr-full-r36\\build.json",
+        "sha256": "85dc294b283f3b774172a0de877ad86d34398689de17a6260f08900db030d931",
+        "optimization": "O2",
+        "products": {
+          "xl.exe": {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-null-cstr-full-r36\\source\\release\\win_x64\\xl.exe",
+            "sha256": "b06ecff88b5b9f438820a93f7ec7c8be5d605c5e55c8d6e6c58c8d2c2641ed80",
+            "bytes": 72704
+          },
+          "xl.dll": {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-null-cstr-full-r36\\source\\release\\win_x64\\xl.dll",
+            "sha256": "2fa873ac46d78b7d7be3cce046675c9c86cb5c702e140e12b100b6dc42c62643",
+            "bytes": 15300608
+          },
+          "xlc.dll": {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-null-cstr-full-r36\\source\\release\\win_x64\\xlc.dll",
+            "sha256": "0cab2db715a6c95eb818819939c2a3e4962f23f6c56eeee6a5e01a8baefdc787",
+            "bytes": 21516800
+          }
+        }
+      },
+      "reports": {
+        "frontendOverlay": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\null-cstr-gate-win-r2\\results.json",
+          "sha256": "768babb0113ab57f3a9de6cc795c768d2971ce74d78ab0a99079479e6be887f1",
+          "commands": 37,
+          "fullCompilerBuild": false
+        },
+        "existingPodRegression": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\null-cstr-pod-regression-win-r1\\results.json",
+          "sha256": "874ae957677f175745d8e8db06cbf563d4894736093f81708eff2ba2d8f08971",
+          "commands": 44,
+          "fullCompilerBuild": false
+        },
+        "completeCompilerConsumer": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\null-cstr-cli-win-r2\\results.json",
+          "sha256": "1272fe8a00b763d08a47d430ffa2e898988c66f186c51d8d592e45cc16b49b0a",
+          "commands": 10,
+          "fullCompilerBuild": true
+        }
+      },
+      "programs": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\null-cstr-cli-win-r2\\foreign_null_cstr-standalone.exe",
+          "sha256": "3771af1066ca2375e397050210ff8e8b300e7ba024bc3acff2d2f8ea93f37c64",
+          "bytes": 4221440,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        }
+      ]
+    },
+    "linux": {
+      "compilerBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-null-cstr-linux-full-r29\\build.json",
+        "sha256": "3fb08e3ed8b6166e39bdb66955cea42c0db45d648697ce0e74914bac4adaf723",
+        "optimization": "O2",
+        "products": {
+          "xl": {
+            "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-null-cstr-linux-full-r29/source/release/linux_x64/xl",
+            "sha256": "faa25e49bdf8c5ce8ccdb084810075b406cc6dd499a59577664616eb2a08265b",
+            "bytes": 47224
+          },
+          "libxl.so": {
+            "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-null-cstr-linux-full-r29/source/release/linux_x64/libxl.so",
+            "sha256": "057024b1533e4a6e4847f92541e4e0c6c1a0fd4659401356d793349a13c0d634",
+            "bytes": 16513616
+          },
+          "libxlc.so": {
+            "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-null-cstr-linux-full-r29/source/release/linux_x64/libxlc.so",
+            "sha256": "91faf18bac6724a4370fa7533ea9ea613a17e9137103177a8faa64e0b3823524",
+            "bytes": 22530896
+          }
+        }
+      },
+      "reports": {
+        "frontendOverlay": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\null-cstr-gate-linux-r1\\results.json",
+          "sha256": "84488f3b4f82a859e617f4252c1a367887f8a4390ba1a6b6b05232abb6b51636",
+          "commands": 37,
+          "fullCompilerBuild": false
+        },
+        "existingPodRegression": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\null-cstr-pod-regression-linux-r1\\results.json",
+          "sha256": "25c6759f2ad4f447e41065c056d23fe1e05c1d0be3ade1b77b5b3a89417e254d",
+          "commands": 44,
+          "fullCompilerBuild": false
+        },
+        "completeCompilerConsumer": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\null-cstr-cli-linux-r1\\results.json",
+          "sha256": "27ecedae3fc5a1fbf7a45eb7138daedfa1fca2d25109777e8b5de102bf654e08",
+          "commands": 10,
+          "fullCompilerBuild": true
+        }
+      },
+      "programs": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/null-cstr-cli-linux-r1/foreign_null_cstr-standalone",
+          "sha256": "1b715146d3a61f150c1c676ea876724eb878d32c41ecb69e79d22e06bf2cc6fa",
+          "bytes": 4338565,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ]
+    }
+  },
+  "commands": 182,
+  "sealedIrMutationsPerOptimization": 27,
+  "limitations": [
+    "Exact explicit nonnullable string c_cstr inputs and const char* NULL only.",
+    "Existing ownership, epoch, code-lease, C-string scan/preparation and error checks remain; this compatibility check adds no runtime work.",
+    "Deep mutation/negative gates use identified partial frontend overlays; actual JIT and independent AOT use separately qualified full O2 builds.",
+    "No CPU equivalence or whole-binding zero-overhead claim. Final matching runtime/SDK/IDE delivery is separate.",
+    "Earlier driver/provider failures are retained externally; successful reports are not retroactively rewritten."
+  ]
+}

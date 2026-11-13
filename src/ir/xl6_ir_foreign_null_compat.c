@@ -15,10 +15,16 @@ static int xl6IrNullOmittedType(const XL6_IrModule* m,const XL6_IrCallTarget* fu
         snprintf(expected,sizeof(expected),"const %s*",pack->recordCName);return !strcmp(pointer,expected);
     }
     if(step->kind!=XL6_FOREIGN_PHYSICAL_STEP_INPUT || step->parameter>=full->parameterCount ||
-        full->parameterPhysicalAbis[step->parameter]!=XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_AGGREGATE_BORROW ||
-        full->parameterAbis[step->parameter]!=XL6_IR_PARAMETER_ABI_VALUE || full->parameterPhysicalFieldDeclarations[step->parameter] ||
+        full->parameterPhysicalFieldDeclarations[step->parameter] ||
         full->parameterConstraintAbis[step->parameter])return 0;
     const XL6_IrType* type=xl6IrTypeGet(&m->types,full->parameterTypes[step->parameter]);
+    if(full->parameterPhysicalAbis[step->parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_TERMINATED_STRING_BORROW)
+        return type && type->kind==XL6_IR_TYPE_BUILTIN && !type->paramCount &&
+            type->cAbi==XL6_IR_C_ABI_MANAGED_STRING && type->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED &&
+            full->parameterAbis[step->parameter]==XL6_IR_PARAMETER_ABI_BORROW &&
+            xl6IrForeignTerminatedStringParameter(m,full,step->parameter) && !strcmp(pointer,"const char*");
+    if(full->parameterPhysicalAbis[step->parameter]!=XL6_IR_CALL_PARAMETER_PHYSICAL_CONST_C_AGGREGATE_BORROW ||
+        full->parameterAbis[step->parameter]!=XL6_IR_PARAMETER_ABI_VALUE)return 0;
     if(!type || type->kind!=XL6_IR_TYPE_C_RECORD || !xl6IrForeignTrivialCValue(m,full->parameterTypes[step->parameter],0))return 0;
     snprintf(expected,sizeof(expected),"const %s*",type->cName);return !strcmp(pointer,expected);
 }
