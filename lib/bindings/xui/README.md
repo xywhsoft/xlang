@@ -274,8 +274,8 @@ which may be delayed by a picker or alias. Closing the Context expires all its
 views. Cross-Context edges are rejected.
 
 See `examples/icon_picker.xl`. This batch covers SVG-path/alias models and typed
-picker edges; file/custom sources and every
-same-object reentry path remain tracked separately. Lifetime watches use one
+picker edges; file sources and the remaining
+same-object reentry paths are tracked separately. Lifetime watches use one
 native pointer per Category/Icon (8 bytes on both qualified x64 targets), and
 cold binding storage. They do not add a per-business-method C wrapper. String
 reads still scan, allocate and copy; C-string inputs and checked view scopes
@@ -317,3 +317,31 @@ and holds the Icon/category/Context until all cleanup readers finish. This
 prevents duplicate destruction and preserves a reentrantly published replacement.
 The full goal still includes the separate protocol for mutation while a backend
 is actively reading a Surface; that controlled reader gap is not yet closed.
+
+`IconCategory.addCustom(name,draw,measure=null,prepare=null,destroy=null)`
+registers four independently retained, immutable callback slots directly with
+the native owned factory. `measure` writes the callback `Vec2`; `prepare`
+receives actual integer pixel dimensions. `destroy` runs once after published
+registration is retired, including explicit Context close. Pre-publication
+failure releases acquired closures without invoking the business destructor.
+Explicit close remains necessary for objects captured in retained callbacks;
+this does not certify general module/global callback-cycle retirement.
+
+The draw callback receives a `CallbackPainter`, `Rect` and nullable
+`CallbackIconDrawDesc`. Painter methods directly call native drawing functions;
+`drawContext()` derives a view in the same callback epoch. Saved Painter/Icon/
+size/style/Draw views are rejected after return. A callback Painter cannot end
+the enclosing native drawing session. See `examples/icon_custom.xl`.
+
+Native resource checks reject foreign-backend Font/Surface inputs before the
+backend sees their payload. Native owned custom groups add one 160-byte x64
+allocation plus four optional owner slots on registration, with no Icon or
+Category layout growth. Hot callbacks use the existing operation pin and a
+private descriptor-tag branch; they do not acquire four owners per invocation.
+The qualified 1000 size/prepare rounds (2000 callbacks), both native C and xlang,
+allocate/free/reallocate no XRT memory even with a zero-allocation budget. This
+is an allocation result, not an equal-CPU-time claim: language checked scopes,
+epoch tracking, retained callback bookkeeping and resource capability checks
+still apply. Callback string reads, captures and drawing operations retain
+their own costs. Manual Painter sessions, per-Icon configuration overloads and
+native fixed-array literal construction are separate remaining work.

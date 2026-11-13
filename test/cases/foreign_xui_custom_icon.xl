@@ -1,0 +1,387 @@
+// Real owning CPU frames, typed callbacks and direct Painter declarations.
+import xui
+from xui import CallbackIcon,CallbackPainter,CallbackIconDrawDesc,CallbackDrawContext,CallbackVec2,Icon
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_custom_icon.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "fixtureCustomOtherProxy" @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func otherProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
+extern "fixtureRenderFont" @no_raise @c_result("owned_view") @factory(1,0,dropFont) func cpuFont(xui.Proxy proxy) as xui.Font
+extern "xuiFontReleaseChecked" @no_raise @c_result("status",0) func dropFont(xui.Font value)
+extern "fixtureRenderSurface" @no_raise @c_result("owned_view") @factory(1,0,dropSurface) func cpuSurface(xui.Proxy proxy) as xui.Surface
+extern "xuiSurfaceReleaseChecked" @no_raise @c_result("status",0) func dropSurface(xui.Surface value)
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "fixtureRenderBudget" @no_raise func budget(c_int allowance)
+extern "fixtureCustomMesh" @no_raise @c_span(0,"void*","size_t") @c_span(1,"void*","size_t") func meshData(Buffer vertices,Buffer indices)
+extern "fixtureCustomDashes" @no_raise @c_span(0,"void*","size_t") func dashData(Buffer output)
+extern "fixtureCustomDrawBegin" @no_raise func observeDraw()
+extern "fixtureCustomDrawEnd" @no_raise func verifyDraw()
+extern "fixtureCustomHeapBegin" @no_raise func heapBegin()
+extern "fixtureCustomHeapUnchanged" @no_raise func heapUnchanged() as c_int
+extern "fixture_custom_quad" struct NativeQuad @header("test/cases/foreign_xui_custom_icon.h")
+    xui.SurfaceVertex vertices[4]
+end
+extern "fixtureCustomQuad" @no_raise func nativeQuad() as NativeQuad
+extern "fixtureCustomNative" @no_raise @c_result("owner_view",0) @factory(1,0,dropIcon) func nativeIcon(xui.IconCategory category) as Icon
+extern "xl6Xui3RollbackIcon" @header("xge3_runtime.h") @no_raise func dropIcon(Icon value)
+extern "fixtureCustomPerformanceResult" @no_raise func heapResult(c_int native)
+CallbackIcon? savedIcon=null
+CallbackPainter? savedPainter=null
+CallbackDrawContext? savedDraw=null
+CallbackVec2? savedSize=null
+CallbackIconDrawDesc? savedStyle=null
+int measures=0
+int prepares=0
+int draws=0
+int destroys=0
+string destroyedName=""
+
+func rectangle(c_int x,c_int y,c_int width,c_int height) as xui.Rect
+    xui.Rect value
+    value.fX=x
+    value.fY=y
+    value.fW=width
+    value.fH=height
+    return value
+end
+func expireChecks(xui.Proxy proxy)
+    bool rejected=false
+    try
+        auto value=(savedIcon as CallbackIcon).name
+    catch error
+        rejected=true
+    end
+    assert rejected
+    rejected=false
+    try
+        proxy.drawPoint(savedDraw as CallbackDrawContext,0,0,1,0xFFFFFFFF)
+    catch error
+        rejected=true
+    end
+    assert rejected
+    rejected=false
+    try
+        (savedPainter as CallbackPainter).fillRect(rectangle(0,0,1,1))
+    catch error
+        rejected=true
+    end
+    assert rejected
+    rejected=false
+    try
+        auto value=(savedSize as CallbackVec2).fX
+    catch error
+        rejected=true
+    end
+    assert rejected
+    if savedStyle!=null
+        rejected=false
+        try
+            auto value=(savedStyle as CallbackIconDrawDesc).color
+        catch error
+            rejected=true
+        end
+        assert rejected
+    end
+    savedIcon=null
+    savedPainter=null
+    savedDraw=null
+    savedSize=null
+    savedStyle=null
+end
+
+func painterMethods()
+    auto proxy=cpuProxy()
+    auto font=cpuFont(proxy)
+    auto target=cpuSurface(proxy)
+    auto image=cpuSurface(proxy)
+    auto foreignProxy=otherProxy()
+    auto foreignImage=cpuSurface(foreignProxy)
+    auto foreignFont=cpuFont(foreignProxy)
+    auto path=xui.createPath()
+    path.moveTo(0,0)
+    path.lineTo(16,0)
+    path.lineTo(0,16)
+    path.closePath()
+    auto vertices=Buffer(b"....................................")
+    auto indices=Buffer(b"............")
+    auto dashes=Buffer(b"........")
+    meshData(vertices,indices)
+    dashData(dashes)
+    // The native-result fixed array exercises @c_ref independently of the
+    // separately tracked fixed-array literal construction language gap.
+    auto quad=nativeQuad().vertices
+    auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    context.setDefaultFont(font)
+    auto root=context.widget()
+    assert root.setRect(rectangle(0,0,640,480))==0 and context.setRootWidget(root)==0
+    auto category=xui.createIconCategory(context,"custom",xui.iconCategoryDescDefault())
+    string vectorName=xui.vectorIconGetName(0) as string
+    auto icon=category.addCustom("custom",func(CallbackIcon selected,CallbackPainter painter,xui.Rect rect,CallbackIconDrawDesc? style) as c_int
+        draws+=1
+        savedIcon=selected
+        savedPainter=painter
+        savedStyle=style
+        savedDraw=painter.drawContext()
+        assert savedDraw!=null and selected.name=="custom"
+        observeDraw()
+        auto box=rectangle(0,0,16,16)
+        painter.clearRect(box)
+        painter.fillRect(box,0xFFFFFFFF)
+        painter.strokeRect(box,1,0xFFFFFFFF)
+        painter.drawSurface(image,box,box)
+        painter.drawSurfaceQuad(image,quad)
+        painter.drawMeshTriangles(vertices,indices)
+        painter.fillPath(path)
+        painter.drawPath(path,dashes,0,0xFFFFFFFF,1)
+        painter.drawSvgPath("M0 0 H16 V16 H0 Z",box,box,dashes,0,0xFFFFFFFF,1)
+        // Also execute the bytes/default overloads with an empty dash span.
+        painter.drawPath(path)
+        painter.drawSvgPath("M0 0 H16 V16 H0 Z",box,box)
+        painter.drawVectorIcon(vectorName,box)
+        painter.drawText(font,"text",box)
+        xui.Thickness slices
+        slices.fLeft=4
+        slices.fTop=4
+        slices.fRight=4
+        slices.fBottom=4
+        painter.drawNinePatch(image,box,box,slices)
+        verifyDraw()
+        proxy.drawPoint(savedDraw as CallbackDrawContext,1,1,1,0xFFFFFFFF)
+        int rejected=0
+        try
+            painter.drawSurface(foreignImage,box,box)
+        catch error
+            rejected+=1
+        end
+        try
+            painter.drawSurfaceQuad(foreignImage,quad)
+        catch error
+            rejected+=1
+        end
+        try
+            painter.drawText(foreignFont,"text",box)
+        catch error
+            rejected+=1
+        end
+        try
+            painter.drawNinePatch(foreignImage,box,box,slices)
+        catch error
+            rejected+=1
+        end
+        assert rejected==4
+        return 0
+    end,func(CallbackIcon selected,CallbackVec2 size) as c_int
+        measures+=1
+        savedSize=size
+        size.fX=16
+        size.fY=16
+        return 0
+    end,func(CallbackIcon selected,c_int width,c_int height) as c_int
+        prepares+=1
+        assert width==16 and height==16
+        return 0
+    end,func(CallbackIcon selected)
+        destroys+=1
+        destroyedName=selected.name
+    end)
+    assert icon.intrinsicSize().fX==16
+    icon.prepare(16,16)
+    auto picker=xui.createIconPicker(context)
+    picker.setCategory(category)
+    picker.setSelectedId(icon.id)
+    assert picker.setRect(rectangle(24,24,220,40))==0 and root.addChild(picker)==0
+    assert context.layout()==0 and context.update(0.016)==0
+    context.render(target)
+    assert measures>0 and prepares==1 and draws==1
+    expireChecks(proxy)
+    context.close()
+    assert destroys==1 and destroyedName=="custom"
+    path.close()
+    target.close()
+    image.close()
+    font.close()
+    foreignImage.close()
+    foreignFont.close()
+    foreignProxy.close()
+    proxy.close()
+    assert balanced()==1
+end
+
+int scenarioCalls=0
+int scenarioDestroyed=0
+func action(int mode,xui.Context context,CallbackIcon icon)
+    scenarioCalls+=1
+    assert scenarioCalls==1
+    if mode==1
+        assert icon.unregister()
+        assert icon.name=="custom", "native operation pins the unregistered model through return"
+    elseif mode==2
+        context.close()
+        assert icon.name=="custom", "callback scope survives physical close request"
+    elseif mode==3
+        throw "custom callback failure"
+    elseif mode==4
+        budget(0)
+        throw "custom callback failure without allocation"
+    end
+end
+
+func scenario(int operation,int mode)
+    auto proxy=cpuProxy()
+    auto font=cpuFont(proxy)
+    auto target=cpuSurface(proxy)
+    auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    context.setDefaultFont(font)
+    auto root=context.widget()
+    assert root.setRect(rectangle(0,0,640,480))==0 and context.setRootWidget(root)==0
+    auto category=xui.createIconCategory(context,"custom",xui.iconCategoryDescDefault())
+    scenarioCalls=0
+    scenarioDestroyed=0
+    auto icon=category.addCustom("custom",func(CallbackIcon selected,CallbackPainter painter,xui.Rect box,CallbackIconDrawDesc? style) as c_int
+        if operation==2
+            action(mode,context,selected)
+        end
+        return 0
+    end,func(CallbackIcon selected,CallbackVec2 size) as c_int
+        if operation==0
+            action(mode,context,selected)
+        end
+        size.fX=16
+        size.fY=16
+        return 0
+    end,func(CallbackIcon selected,c_int width,c_int height) as c_int
+        if operation==1
+            action(mode,context,selected)
+        end
+        return 0
+    end,func(CallbackIcon selected)
+        scenarioDestroyed+=1
+        assert selected.name=="custom"
+        if operation==3
+            action(mode,context,selected)
+        end
+    end)
+    bool rejected=false
+    try
+        if operation==0
+            assert icon.intrinsicSize().fX==16
+        elseif operation==1
+            icon.prepare(16,16)
+        elseif operation==2
+            auto picker=xui.createIconPicker(context)
+            picker.setCategory(category)
+            picker.setSelectedId(icon.id)
+            assert picker.setRect(rectangle(24,24,220,40))==0 and root.addChild(picker)==0
+            assert context.layout()==0 and context.update(0.016)==0
+            context.render(target)
+        else
+            context.close()
+        end
+    catch error
+        rejected=true
+    finally
+        budget(-1)
+    end
+    assert scenarioCalls==1
+    assert rejected==(mode>=3)
+    context.close()
+    assert scenarioDestroyed==1
+    target.close()
+    font.close()
+    proxy.close()
+    assert balanced()==1
+end
+
+func registration()
+    int allowance=0
+    while allowance<80
+        auto proxy=cpuProxy()
+        auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+        auto category=xui.createIconCategory(context,"custom",xui.iconCategoryDescDefault())
+        int destroyed=0
+        xui.IconDrawProc draw=func(CallbackIcon icon,CallbackPainter painter,xui.Rect box,CallbackIconDrawDesc? style) as c_int
+            return 0
+        end
+        xui.IconDestroyProc destroy=func(CallbackIcon icon)
+            destroyed+=1
+        end
+        bool rejected=false
+        budget(c_int(allowance))
+        try
+            category.addCustom("custom",draw,null,null,destroy)
+        catch error
+            rejected=true
+        finally
+            budget(-1)
+        end
+        assert category.count==(rejected?0:1)
+        context.close()
+        // Published-prefix factory rollback may invoke Destroy; pre-publication
+        // failure does not. Neither path can leave an Icon in the registry.
+        assert destroyed>=0 and destroyed<=1
+        proxy.close()
+        assert balanced()==1
+        allowance+=1
+    end
+end
+
+func performance()
+    auto proxy=cpuProxy()
+    auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto category=xui.createIconCategory(context,"custom",xui.iconCategoryDescDefault())
+    int calls=0
+    auto icon=category.addCustom("language",func(CallbackIcon selected,CallbackPainter painter,xui.Rect box,CallbackIconDrawDesc? style) as c_int
+        return 0
+    end,func(CallbackIcon selected,CallbackVec2 size) as c_int
+        calls+=1
+        size.fX=16
+        size.fY=16
+        return 0
+    end,func(CallbackIcon selected,c_int width,c_int height) as c_int
+        calls+=1
+        assert width==16 and height==16
+        return 0
+    end)
+    auto native=nativeIcon(category)
+    int kind=0
+    while kind<2
+        auto current=kind==0?icon:native
+        heapBegin()
+        budget(0)
+        int count=0
+        while count<1000
+            assert current.intrinsicSize().fX==16
+            current.prepare(16,16)
+            count+=1
+        end
+        budget(-1)
+        heapResult(c_int(kind))
+        kind+=1
+    end
+    assert calls==2000
+    // Optional callback positions omitted: no empty language record is kept.
+    category.addCustom("draw-only",func(CallbackIcon selected,CallbackPainter painter,xui.Rect box,CallbackIconDrawDesc? style) as c_int
+        return 0
+    end)
+    context.close()
+    proxy.close()
+    assert balanced()==1
+end
+
+func main(...) as int
+    painterMethods()
+    int operation=0
+    while operation<3
+        int mode=0
+        while mode<5
+            scenario(operation,mode)
+            mode+=1
+        end
+        operation+=1
+    end
+    scenario(3,3)
+    scenario(3,4)
+    registration()
+    performance()
+    println("Custom Icon: four owned callbacks, thirteen Painter methods, backend checks and epoch expiry passed")
+    println("Custom Icon: reentrant unregister/close, callback failures and 80 registration OOM budgets passed")
+    return 0
+end

@@ -27,6 +27,7 @@ export extern "xui_icon_category_t*" class IconCategory @header("xge3_runtime.h"
  extern "xuiIconAddSvgMemory" @no_raise @c_cstr(0) @c_span(1,"const void*","int") @c_null(4,"const xui_icon_desc_t*") @c_result("owner_view",0) @factory(5,0,rollbackIcon) func addSvgMemory(string name,bytes data) as Icon
  extern "xuiIconAddRasterMemory" @no_raise @c_cstr(0) @c_span(1,"const void*","int") @c_null(4,"const xui_icon_desc_t*") @c_result("owner_view",0) @factory(5,0,rollbackIcon) func addRasterMemory(string name,bytes data) as Icon
  extern "xuiIconAddAlias" @no_raise @c_cstr(0) @c_null(3,"const xui_icon_desc_t*") @c_result("owner_view",0) @factory(4,0,rollbackIcon) func addAlias(string name,Icon target) as Icon
+ extern "xuiIconAddCustomOwned" @no_raise @c_cstr(0) @c_owned_callback(1,-1,"xui_callback_owner_t",-16) @c_owned_callback(2,-1,"xui_callback_owner_t",-16) @c_owned_callback(3,-1,"xui_callback_owner_t",-16) @c_owned_callback(4,-1,"xui_callback_owner_t",0) @c_null(14,"const xui_icon_desc_t*") @c_result("owner_view",0) @factory(15,0,rollbackIcon) func addCustom(string name,IconDrawProc draw,IconMeasureProc? measure=null,IconPrepareProc? prepare=null,IconDestroyProc? destroy=null) as Icon
  extern "xuiIconCategoryRemoveOwnerChecked" @no_raise @c_output(1,0) func unregister() as bool
 end
 export extern "xui_icon_t*" class Icon @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3IconPolicy") @watch("xui_lifetime_link_t")

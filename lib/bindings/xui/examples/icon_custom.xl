@@ -1,0 +1,17 @@
+// 自绘图标：Painter 只在本次回调中有效，退出时由 XUI 结束绘制。
+import xui
+from "./_window.xl" import Window
+
+Window.show("自绘图标",func(xui.Context ui,xui.Widget root)
+ auto category=xui.createIconCategory(ui,"custom",xui.iconCategoryDescDefault())
+ auto icon=category.addCustom("蓝色方块",func(xui.CallbackIcon selected,xui.CallbackPainter painter,xui.Rect box,xui.CallbackIconDrawDesc? style) as c_int
+  painter.fillRect(box,0x3388EEFF)
+  painter.strokeRect(box,1,0xFFFFFFFF)
+  return 0
+ end)
+
+ auto picker=xui.createIconPicker(ui)
+ picker.setCategory(category)
+ picker.setSelectedId(icon.id)
+ Window.place(root,picker,24,24,260,42)
+end)

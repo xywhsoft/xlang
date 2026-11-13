@@ -17,6 +17,7 @@
       "src/cell.xl",
       "src/proxy.xl",
       "src/draw.xl",
+      "src/painter.xl",
       "src/text_shape.xl",
       "src/managers.xl",
       "src/document_records.xl",

@@ -248,3 +248,65 @@ fix a backend Touch during an active Surface read. That independent controlled
 probe still exits 83 before physical release on the successor. Reader snapshot
 semantics are pending user choice. Custom Icon callbacks, cache reader/freshness
 work, real graphics and final matched delivery remain unfinished.
+
+## Owned custom Icons and callback Painter
+
+`IconCategory.addCustom(name,draw,measure=null,prepare=null,destroy=null)`
+directly declares `xuiIconAddCustomOwned`. It creates four independent retained
+callback records, passes four native owner descriptors, and calls the native
+factory once. No operation-code dispatcher or business forwarding wrapper is
+introduced. Measure writes `CallbackVec2`, prepare receives integer pixel
+dimensions, and destroy runs once for a published Icon, including Context close.
+Pre-publication failure releases the acquired prefix without calling destroy;
+post-publication factory rollback may invoke it. Factory rollback also observes
+native result expiry, so queued retirement cannot deliver a dangling result.
+
+The actual Context ownership graph traces all four group slots, including a
+legacy Context without an owned Proxy. The immutable group is held by the
+native Icon operation; there are no four new native owner Holds per hot call.
+On Windows/Linux x64, compiler-derived layouts remain Icon=312, Category=272;
+the cold group is 160 bytes, with four 40-byte slots. This is one additional
+native allocation for custom registration and no growth for ordinary Icons.
+
+`CallbackPainter` exposes thirteen direct native methods: derived Draw view,
+clear, Surface, Surface quad, mesh, fill/draw Path, SVG path, fill/stroke Rect,
+vector icon, text and nine-patch. Both bytes/default and Buffer dash overloads
+execute in the fixture. Callback Icon/Painter/Vec2/style/derived Draw views
+expire on return. Painter cannot end an enclosing callback session. Owned
+Painter resource calls check backend identity/readiness before dispatch;
+foreign Surface/Font inputs are rejected even if the drawing would be a no-op.
+These native checks add capability lookup/readiness work, without resource
+copying or fresh retains. The controlled old SDK exits 84 before interpreting
+a foreign payload on all four routes at O0/O2 on both platforms.
+
+`tools/check_xui_custom_icon.py` qualifies the real owning CPU frame backend
+with a full compiler, JIT and independent dynamic/static programs, C11/C++11/
+C++17 public headers, derived-view expiry, callback-side unregister/close,
+status/void callback errors with and without allocation, and 80 registration
+OOM budgets. A simple draw-only learning example is emitted and its header
+checked. No real GPU/window action or network test is run here.
+
+Each execution compares 1000 size/prepare rounds (2000 callbacks) between
+language and C callbacks: both run under a zero-allocation budget with zero
+XRT allocation/free/reallocation. This measures hot heap activity, not CPU
+equivalence. Callback admission, code/closure scopes, epoch tracking and
+checked results remain. Native callbacks also keep their existing operation
+pins and direct function-pointer calls.
+
+A separate cold comparison runs identical source in two independent fresh JIT
+processes, each with a new empty Category. Four callback values are constructed
+before measurement; the C branch uses four explicit native owners and the same
+typed output-view factory contract. Both platforms measure language=18 alloc/
+1 free/0 realloc and C=9 alloc/0 free/0 realloc. The measured language branch
+includes name-literal argument preparation and retained callback setup; this
+is not a pure callback-record allocation count. Closure construction/capture
+costs are outside that interval and depend on user code. The earlier sequential
+comparison reused registry storage and is preserved as an unqualified baseline;
+the independent-process successor is the authoritative cold comparison.
+
+The small `xui-custom-icons-20261113.json` receipt indexes native controlled
+baselines, layouts, source freezes, matched SDKs and all consumer gates. Manual
+Painter ownership, per-Icon configuration overloads, generic fixed-array
+literal construction, active cache-reader snapshots, module/global callback
+cycles, remaining XGE/XUI/Document APIs and final delivery remain work in the
+full goal. This batch does not claim a completed zero-overhead binding.

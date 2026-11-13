@@ -1,0 +1,416 @@
+{
+  "date": "2026-11-13",
+  "qualified": true,
+  "goalComplete": false,
+  "shippingDelivery": false,
+  "compilerChanged": false,
+  "networkTests": false,
+  "nativeCommit": "a14c83bb62d852d58bd59314a7c8ab9eb8c9ca1a",
+  "nativeReceipt": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\icon-custom-owned-20261113.json",
+    "sha256": "9b2405ad2e1c405404176a69265a258c60441ca743479fc54ed0a8266401da49"
+  },
+  "scope": "Four retained custom Icon callbacks, thirteen direct callback Painter methods, derived epoch views, checked backend admission and native lifetime/error floor.",
+  "sources": {
+    "lib/bindings/xui/src/icons.xl": "a2295028fb8ab574202948f1688cce9bfb472b6f5969b6710e7221f057f69da4",
+    "lib/bindings/xui/src/painter.xl": "50923a98875f362ce2a116f3af8eb08757ec3439ad78fae13c0b45a48ee8e77a",
+    "lib/bindings/xui/xlang.package.json": "4431bb11b67678eba46be74bd98e25238d084f1ebc6eb0bc1fa0c0ced5d6b407",
+    "lib/bindings/xui/README.md": "8f5b0db0d230b6b2eb826cf2de688e12be4ddb8df6df1504b7bfa9028813eada",
+    "lib/bindings/xui/examples/icon_custom.xl": "38cd99362368c6d4a6c48c107ecdf8c3e750c5b3da7367b207ed602a1b2de8a7",
+    "test/cases/foreign_xui_custom_icon.xl": "82922a0834f12573fc2c8e8600af139412205c4248b60ee10189a3d922b7292f",
+    "test/cases/foreign_xui_custom_icon.c": "59affa7a9e784cbeffe792e71488051db4e9da5cf4bb165c37a8aad7b912ff7d",
+    "test/cases/foreign_xui_custom_icon.h": "ad9d46088956abc94a9ea0934f5ebebe1fecc27eac74f76e9663aa2b50a1acd4",
+    "tools/check_xui_custom_icon.py": "64082eede1af4e73fddbd28054e7cb2f189155bc3a4679d265e2119e837a9d43",
+    "docs/xui-icon-models.md": "ac8893cffdcfe53e5202435c8744f5e5590a2d41c2c0f3dcf292c60f9d2718a0",
+    "docs/xge3-xui3-full-coverage-plan.md": "e14009c75c62d7c77789dd50d4d1a4297a0230b259b08aeecb715ce60d3a771b"
+  },
+  "platforms": {
+    "win": {
+      "producer": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\custom-icon-sdk-win-r3\\results.json",
+        "sha256": "667a3d25c0e851eb5896c4b9c8b1a7b3e6f684f484c06b3af0e30d68f7eeb280",
+        "commands": 4
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\custom-icon-native-win-r3\\results.json",
+        "sha256": "cc761b9b6ff97e9f9bc4f2a368d0a943ed297abc32fc4b894892164289e544fb",
+        "commands": 56
+      },
+      "editorRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\custom-icon-edit-win-r3\\results.json",
+        "sha256": "380454ac1c51b8d30f3d705acd6ec3413cd3b2940f7808061b5910d6a91a220a",
+        "commands": 16
+      },
+      "languageModels": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\custom-icon-models-win-r3\\results.json",
+        "sha256": "c17c1cf30510e0d70376be5e90ed4d6f1ab52c080f7914d027eb2669c687ef37",
+        "commands": 15
+      },
+      "ownedFormatter": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\custom-icon-formatter-win-r3\\results.json",
+        "sha256": "68c1b839f718f695b9d0c087f529740eb1244c02917a078b7e3524e8974e8914",
+        "commands": 14
+      },
+      "customLanguage": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\custom-icon-language-win-r2\\results.json",
+        "sha256": "7d6d1b1a4170a8ad23e0577cffb19f68933ef6a2cc0ee03f0850243ad99d2844",
+        "commands": 18,
+        "heap": [
+          {
+            "mode": "jit",
+            "calls": 2000,
+            "counts": {
+              "language": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              }
+            },
+            "zeroAllocationBudget": true
+          },
+          {
+            "mode": "dynamic",
+            "calls": 2000,
+            "counts": {
+              "language": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              }
+            },
+            "zeroAllocationBudget": true
+          },
+          {
+            "mode": "static",
+            "calls": 2000,
+            "counts": {
+              "language": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              }
+            },
+            "zeroAllocationBudget": true
+          }
+        ],
+        "programs": [
+          {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\custom-icon-language-win-r2\\custom-icon-dynamic.exe",
+            "sha256": "92ba628b3a48abc77141bfd770174382665461732ec5e8ba80bdc9ef1f84126d",
+            "bytes": 5486592,
+            "imports": [
+              "msvcrt.dll",
+              "xge3_host.dll",
+              "kernel32.dll",
+              "SHELL32.dll",
+              "ws2_32.dll",
+              "IPHLPAPI.dll",
+              "ucrtbase.dll"
+            ]
+          },
+          {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\custom-icon-language-win-r2\\custom-icon-static.exe",
+            "sha256": "2c1db3df2803ff20d98dad2536f787bbdef7f5e36f530a059b8d8190aaf93bfb",
+            "bytes": 2114048,
+            "imports": [
+              "msvcrt.dll",
+              "USER32.dll",
+              "kernel32.dll",
+              "OLEAUT32.dll",
+              "ole32.dll",
+              "SHELL32.dll"
+            ]
+          }
+        ],
+        "bothBytesDefaultAndBufferStyles": true
+      },
+      "backendBaseline": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\painter-backend-baseline-win-r1\\results.json",
+        "sha256": "dbb5054d89c1080aaae70598150a692e9cccec66ccdc84a5d3a38e29e05e1246",
+        "commands": 10,
+        "controlledExitBeforeForeignPayloadUse": 84
+      },
+      "layout": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\custom-icon-layout-win-r1\\results.json",
+        "sha256": "da58c9cc9a54fa1c73f9d568df7af6b7d80b9fb0d8480bb6c24aff0b1d359f67",
+        "commands": 2,
+        "bytes": {
+          "before": [
+            312,
+            272
+          ],
+          "after": [
+            312,
+            272,
+            160,
+            40
+          ]
+        }
+      },
+      "freeze": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\native-custom-icon-win-freeze-r3.json",
+        "sha256": "8848dcf3addd1274a4175aafcab7742d92bc1f9b03b079758778baad5c745c7b",
+        "inputs": 12079,
+        "rootOverridesStillMatch": true
+      },
+      "host": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\custom-icon-sdk-win-r3\\host\\xge3_host.dll",
+        "sha256": "aa2302ff58fc1b724926279c7c0fbdbd6d0b9130b02143738c59d603e0172e52",
+        "bytes": 9592367,
+        "changeFromCacheClear": 4608
+      },
+      "apiStage": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\custom-icon-api-win-r1\\results.json",
+        "sha256": "ad73dbf35ae90a48ab45afe216d7ce467bce3339383db23ca2357199bb9f0b0f",
+        "commands": 3
+      },
+      "coldComparison": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\custom-icon-cold-win-r2\\results.json",
+        "sha256": "2eead02f1b8e1cbb3ee92b35e35ce227d1f33dd516822801c42d7a0602803898",
+        "commands": 2,
+        "metrics": {
+          "language": {
+            "alloc": 18,
+            "free": 1,
+            "realloc": 0
+          },
+          "native": {
+            "alloc": 9,
+            "free": 0,
+            "realloc": 0
+          }
+        },
+        "additional": {
+          "alloc": 9,
+          "free": 1,
+          "realloc": 0
+        },
+        "boundary": "Two independent fresh JIT processes of identical source. Each has a new empty Category, four preconstructed callback values outside the measured interval, and identical owned output-view factory admission. Native callbacks have four explicit native owners. No registry reuse from the first experiment. Does not qualify closure construction, CPU timing, arbitrary captures or all platforms."
+      },
+      "dynamicPackages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\custom-icon-api-win-r1\\packages-host.json",
+        "sha256": "4d81680065ae27f26b466b5fe714ec058118cc1982136492491fa4ffafdecebb"
+      },
+      "staticPackages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\custom-icon-api-win-r1\\packages-static.json",
+        "sha256": "a43dcc5b92e3a1388769e36c7193d343800844a3586457ce28fdea9dd297d222"
+      }
+    },
+    "linux": {
+      "producer": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\custom-icon-sdk-linux-r3\\results.json",
+        "sha256": "aa4ea30e9597e3837becf9fdaccf86adfda4a697c79ed555d2fe586088a99be1",
+        "commands": 4
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\custom-icon-native-linux-r3\\results.json",
+        "sha256": "faac5834dcf86bccf98d3fe8db13641bd7ac6388e06d92947f2967fe072374fb",
+        "commands": 56
+      },
+      "editorRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\custom-icon-edit-linux-r3\\results.json",
+        "sha256": "e4dc4423998eed3a8c1dc3f99cf0fcae2a19eed4e099d06a5c8c8b914577ebfc",
+        "commands": 16
+      },
+      "languageModels": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\custom-icon-models-linux-r3\\results.json",
+        "sha256": "89671e2a902e7c419762e7099cb945ef4bb0eacc0317767f57facd0b5563389a",
+        "commands": 15
+      },
+      "ownedFormatter": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\custom-icon-formatter-linux-r3\\results.json",
+        "sha256": "07046fbf8c69e220e30d5f9000aac708ce42c874ae1f36975df960d9457d07e8",
+        "commands": 14
+      },
+      "customLanguage": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\custom-icon-language-linux-r2\\results.json",
+        "sha256": "f34eb14301a10161de83d26ccf77a264dd64947d061d9cc6c3dd8a125cdff65e",
+        "commands": 18,
+        "heap": [
+          {
+            "mode": "jit",
+            "calls": 2000,
+            "counts": {
+              "language": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              }
+            },
+            "zeroAllocationBudget": true
+          },
+          {
+            "mode": "dynamic",
+            "calls": 2000,
+            "counts": {
+              "language": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              }
+            },
+            "zeroAllocationBudget": true
+          },
+          {
+            "mode": "static",
+            "calls": 2000,
+            "counts": {
+              "language": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              },
+              "native": {
+                "alloc": 0,
+                "free": 0,
+                "realloc": 0
+              }
+            },
+            "zeroAllocationBudget": true
+          }
+        ],
+        "programs": [
+          {
+            "path": "/mnt/f/xlang-validation/xge-full-20261110/custom-icon-language-linux-r2/custom-icon-dynamic",
+            "sha256": "352a5723c8e67f1ce01400af090b29e307480c6b6c0ccd28d6ed2d30a4458cca",
+            "bytes": 5679818,
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libxge3_host.so",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          {
+            "path": "/mnt/f/xlang-validation/xge-full-20261110/custom-icon-language-linux-r2/custom-icon-static",
+            "sha256": "00df9ff4e56cc4988bd6f0bcedc5563d60bf848d1bf0ac39ef340146d4fb10ef",
+            "bytes": 2570169,
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libX11.so.6",
+              "libXi.so.6",
+              "libXcursor.so.1",
+              "libGL.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        ],
+        "bothBytesDefaultAndBufferStyles": true
+      },
+      "backendBaseline": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\painter-backend-baseline-linux-r1\\results.json",
+        "sha256": "35de0f0603619dd7cd89b183c4ca7f5f5eb42ff1cde3b28f487a1f06a2aab3db",
+        "commands": 10,
+        "controlledExitBeforeForeignPayloadUse": 84
+      },
+      "layout": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\custom-icon-layout-linux-r1\\results.json",
+        "sha256": "4da0e89d7f3fe3ff8b635005a88d18c9d4f4b1d8a538902148c5cd6afe5faf23",
+        "commands": 2,
+        "bytes": {
+          "before": [
+            312,
+            272
+          ],
+          "after": [
+            312,
+            272,
+            160,
+            40
+          ]
+        }
+      },
+      "freeze": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\native-custom-icon-linux-freeze-r3.json",
+        "sha256": "3f6208c6892a8fb3fe06f6ebef74d53950d19e0571baec4cf7a2d815577dc613",
+        "inputs": 12079,
+        "rootOverridesStillMatch": true
+      },
+      "host": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\custom-icon-sdk-linux-r3\\host\\libxge3_host.so",
+        "sha256": "df084e871eb0177ed5a6c3079841baef3b559dd3f40429d8c9fe90af8c7c28ee",
+        "bytes": 10449616,
+        "changeFromCacheClear": 4096
+      },
+      "apiStage": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\custom-icon-api-linux-r1\\results.json",
+        "sha256": "90a8e3dd778712e8de70c0023820434029c2f69eb5952d1d623acdbf9ea8d857",
+        "commands": 3
+      },
+      "coldComparison": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\custom-icon-cold-linux-r2\\results.json",
+        "sha256": "3d60e2d63b302fad9bacc3fc653c997aca861686190bf40d92baf1bf1e9d28c1",
+        "commands": 2,
+        "metrics": {
+          "language": {
+            "alloc": 18,
+            "free": 1,
+            "realloc": 0
+          },
+          "native": {
+            "alloc": 9,
+            "free": 0,
+            "realloc": 0
+          }
+        },
+        "additional": {
+          "alloc": 9,
+          "free": 1,
+          "realloc": 0
+        },
+        "boundary": "Two independent fresh JIT processes of identical source. Each has a new empty Category, four preconstructed callback values outside the measured interval, and identical owned output-view factory admission. Native callbacks have four explicit native owners. No registry reuse from the first experiment. Does not qualify closure construction, CPU timing, arbitrary captures or all platforms."
+      },
+      "dynamicPackages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\custom-icon-api-linux-r1\\packages-host.json",
+        "sha256": "5b41080b86bed4540607c5db20af4b10966b5a21f4c99192876e1295d81b1456"
+      },
+      "staticPackages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\custom-icon-api-linux-r1\\packages-static.json",
+        "sha256": "d13af5cb3f43946a43b93e584af0a368cc0159d86e16114b7c753cae374f075f"
+      }
+    }
+  },
+  "costs": [
+    "Native custom group: one 160-byte registration allocation, four 40-byte slots, no Icon/Category size growth.",
+    "Cold four preconstructed callback values in independent fresh JIT processes: language 18 alloc/1 free; explicit owned C callbacks 9 alloc/0 free; no realloc. Name-literal argument preparation included, closure construction excluded.",
+    "2000 language and C hot query/prepare callbacks each: zero XRT alloc/free/realloc under zero-allocation budget, in JIT/dynamic/static modes.",
+    "Native operation pins, direct function pointers plus tag branch; no four owner acquisitions per callback.",
+    "Language callback/code/closure admission and epoch bookkeeping remain. Owned Painter resource calls add capability lookup and readiness checks; string inputs still scan. No equal CPU-time claim."
+  ],
+  "remaining": [
+    "Full XGE/XUI/Document integration goal remains active.",
+    "Active cache Surface reader snapshots await the existing pending choice.",
+    "Generic C fixed-array literal initialization awaits the new pending choice; this fixture uses an exact native-result fixed array.",
+    "Manual Painter owning/End protocol and full per-Icon configuration overloads.",
+    "Existing pending module/global callback cycles, GPU prepareClose, AudioClip, SVG owner, initializer, Emoji and Document array decisions.",
+    "Real backend/visual acceptance and final matched SDK/compiler/IDE/help delivery."
+  ]
+}
