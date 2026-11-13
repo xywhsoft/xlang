@@ -12,6 +12,7 @@
       "src/records.xl",
       "src/constants.xl",
       "src/managed.xl",
+      "src/assets.xl",
       "src/cell.xl",
       "src/proxy.xl",
       "src/draw.xl",

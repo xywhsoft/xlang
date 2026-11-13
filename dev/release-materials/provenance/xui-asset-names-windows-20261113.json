@@ -1,0 +1,38 @@
+{
+  "date": "2026-11-13",
+  "complete": true,
+  "passed": true,
+  "scope": "Windows full O2 compiler and actual XUI builtin atlas/vector names, complete tables and bounds, independent snapshots, single-copy allocation checks, six OOM budgets and NULL under OOM.",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "compiler": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-cstring-full-r32\\build.json",
+    "sha256": "356670d257b59c818a73fe9defe56dc2d7ae759577b68b3be5b5f50b593b01f7"
+  },
+  "qualification": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\xui-asset-names-win-r2\\language\\results.json",
+    "sha256": "eafa6259f3562d6f9161b72d84d80f033b64a4e5cf99092658a324a70247052a"
+  },
+  "commands": 19,
+  "sourceHashes": {
+    "lib/bindings/xui/xlang.package.json": "e1b3bd8eee2d2377cc863c70bbc0202ae3caddb9c94793b25d9b2c813416fcae",
+    "lib/bindings/xui/src/assets.xl": "e49923db8fe566e6ea5f0d8018c6e74a7c3899c650e3fd818069a908dd909ca1",
+    "lib/bindings/xui/examples/asset_names.xl": "94997f1a88dae2a26ee210bccdabba938342e9f0e32430c78aaaf6d462576f21",
+    "test/cases/foreign_xui_asset_names.xl": "940da26cba44a028365f2ec30158a22ec99bcd6eb85d3607c1954aa220362719",
+    "test/cases/foreign_xui_asset_names.c": "37a289e9138cb5e4a993ef95920964fdb57e403b3d770549cc064698f6d612bc",
+    "test/cases/foreign_xui_asset_names.h": "90803671c417236180c51336259cbbb4e3b0ab3145c081b7394440781875722b",
+    "tools/check_xui_asset_names.py": "4ff20fa639a25bb16fa9770f1f384e2bc225f70c369b9a756ec4f90cf075b5d4"
+  },
+  "resultCosts": {
+    "allocations": 1,
+    "reallocations": 0,
+    "lengthScan": true,
+    "byteCopy": true
+  },
+  "declarations": "Direct C producer call via generic cstring result; no forwarding wrappers.",
+  "limits": [
+    "Linux full successor still running",
+    "No atlas decode, draw/renderer or package shared-library initialization certification",
+    "No final SDK/compiler/IDE installation"
+  ]
+}

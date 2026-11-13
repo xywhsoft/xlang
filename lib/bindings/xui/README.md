@@ -244,3 +244,10 @@ These APIs use direct native calls, stack descriptor projection or a direct
 Proxy function-pointer call. Resource creation, scope storage, text conversion
 and the existing checked resource lifetime bookkeeping still have their normal
 cost; no per-method forwarding C implementation is added.
+
+`builtinAssetGetName(index)` and `vectorIconGetName(index)` return independent
+`string?` snapshots of the built-in read-only name tables. Out-of-range indices
+return null. Use the existing count functions to enumerate them; no Context or
+window is needed. Each present name costs a length scan, one allocation and a
+copy. See `examples/asset_names.xl`. Atlas decode and icon rendering keep their
+existing resource contracts.

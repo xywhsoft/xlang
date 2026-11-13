@@ -1,0 +1,74 @@
+import xui
+extern "fixtureAssetNamesBegin" @header("test/cases/foreign_xui_asset_names.h") @no_raise func beginCheck()
+extern "fixtureAssetNamesAllocations" @no_raise func allocations() as c_int
+extern "fixtureAssetNameMatches" @no_raise @c_text_view(1) func assetMatches(c_int index,string name) as c_int
+extern "fixtureVectorNameMatches" @no_raise @c_text_view(1) func vectorMatches(c_int index,string name) as c_int
+extern "fixtureAssetNamesBudget" @no_raise func budget(c_int count)
+
+func main(...) as int
+    c_int assets=xui.builtinAssetGetCount()
+    c_int vectors=xui.vectorIconGetCount()
+    assert assets>0 and vectors>0
+    assert xui.builtinAssetGetName(-1)==null
+    assert xui.builtinAssetGetName(assets)==null
+    assert xui.vectorIconGetName(-1)==null
+    assert xui.vectorIconGetName(vectors)==null
+    beginCheck()
+    string? first=xui.builtinAssetGetName(0)
+    assert allocations()==1
+    assert assetMatches(0,first as string)==1
+    beginCheck()
+    string? vector=xui.vectorIconGetName(0)
+    assert allocations()==1
+    assert vectorMatches(0,vector as string)==1
+    auto assetName=xui.builtinAssetGetName
+    auto vectorName=xui.vectorIconGetName
+    c_int index=0
+    while index<assets
+        assert assetMatches(index,assetName(index) as string)==1
+        index+=1
+    end
+    index=0
+    while index<vectors
+        assert vectorMatches(index,vectorName(index) as string)==1
+        index+=1
+    end
+    for allowance in [0,1,2]
+        string? stable="preserved"
+        bool rejected=false
+        budget(c_int(allowance))
+        try
+            stable=xui.builtinAssetGetName(0)
+        catch error
+            rejected=true
+        end
+        budget(-1)
+        assert rejected==(allowance==0)
+        if rejected then
+            assert (stable as string)=="preserved"
+        else
+            assert assetMatches(0,stable as string)==1
+        end
+        stable="preserved"
+        rejected=false
+        budget(c_int(allowance))
+        try
+            stable=xui.vectorIconGetName(0)
+        catch error
+            rejected=true
+        end
+        budget(-1)
+        assert rejected==(allowance==0)
+        if rejected then
+            assert (stable as string)=="preserved"
+        else
+            assert vectorMatches(0,stable as string)==1
+        end
+    end
+    budget(0)
+    string? absent=xui.builtinAssetGetName(-1)
+    budget(-1)
+    assert absent==null
+    println("Asset names: complete tables, bounds and independent snapshots passed")
+    return 0
+end

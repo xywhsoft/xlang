@@ -673,3 +673,12 @@ Windows 后继 r32 完整 O2／TinyCC／XRT／预编译输入／VFS 构建及 13
 19 项、旧 text／bytes 的 6 项 CLI 回归及 10 项源码无关交付门全部通过。
 相对 r31，两份 DLL 各增加 2,048 字节，CLI 不变；证据为
 `foreign-cstring-windows-20261113.json`。Linux 后继与正式安装仍另行验收。
+
+XUI 的 `builtinAssetGetName`／`vectorIconGetName` 已复用借用字符串合同，补齐
+只读名称表查询和无窗口枚举示例。Windows r32 配套 JIT、动态／静态程序、
+三种公共头及示例共 19 项通过；完整表逐项与原生比对，正常结果一次分配，
+六档 OOM 和 OOM 下的 NULL 返回均通过。索引为
+`xui-asset-names-windows-20261113.json`。本轮清单为 5,152 函数／979 类型，
+找到 3,567 函数声明／362 类型；完整来源保存在
+`F:/xlang-validation/xge-full-20261110/surface-cstring-assets-r1/surface.json`，
+数量不表示全量接入完成率。Linux 后继、图集解码／绘制和最终交付仍分别记录。

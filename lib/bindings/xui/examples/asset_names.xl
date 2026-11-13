@@ -1,0 +1,16 @@
+// Enumerate the built-in names without opening a window or creating a Context.
+import xui
+
+println("Built-in atlas assets:")
+c_int index=0
+while index<xui.builtinAssetGetCount()
+    println(xui.builtinAssetGetName(index) as string)
+    index+=1
+end
+
+println("Built-in vector icons:")
+index=0
+while index<xui.vectorIconGetCount()
+    println(xui.vectorIconGetName(index) as string)
+    index+=1
+end

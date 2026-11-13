@@ -152,7 +152,10 @@ WebView 范例只加载源码中的本地 HTML。它需要启用 WebView2 的 Wi
 
 ## 当前覆盖范围
 
-共 71 个独立程序，其中综合画廊可浏览 57 个场景。IconPicker、FlowGraphWidget 和 WorkflowWidget 仍缺少可安全使用的数据模型声明，暂不提供空白控件范例；这三项的绑定缺口保留在覆盖清单中。
+共 74 个独立入口文件，其中综合画廊可浏览 57 个场景。IconPicker、FlowGraphWidget 和 WorkflowWidget 仍缺少可安全使用的数据模型声明，暂不提供空白控件范例；这三项的绑定缺口保留在覆盖清单中。
+
+`asset_names.xl` 不创建窗口或 Context，直接列出内建图集资产和矢量图标名称；
+读取结果为独立文本快照，索引越界返回 null。
 
 ## 开发和验证
 
