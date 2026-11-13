@@ -1,0 +1,311 @@
+{
+  "date": "2026-11-14",
+  "qualified": true,
+  "shippingDelivery": false,
+  "networkTests": false,
+  "compilerChanges": false,
+  "bindingChanges": false,
+  "scope": "Consume native checked XOpenDisplay failure through existing declarations and real XUI window helper; repeated lifecycle and positive window regressions. Not complete platform-fatal recovery or whole XGE integration.",
+  "nativeCommit": "e1089362beebdf46899ad29dfa609fa532530848",
+  "nativePrerequisite": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\x11-startup-20261114.json",
+    "sha256": "100fe19e4b1251851c26d67b5f8cd759642773cdfa5d40de4e7a8fd0c02712ed"
+  },
+  "sources": {
+    "test/cases/foreign_xge3_x11_failure.xl": "71edc00fcfef41c05ebc9b6bbf49eac72cf8c217ba1908547dad5f0ad33acd14",
+    "test/cases/foreign_xui_x11_failure.xl": "85ca2d20eb185dc8fff1cc0dfb6cab6b2f999f2b9a9d03a90cdb853685299a76",
+    "tools/check_xge3_x11_failure.py": "7cdaee584fd18882d548235df3fb623a9417894854930632c18720b2c2b60f41",
+    "docs/xge3-platform-startup.md": "96dba777af2cd1f75fc6d023156c1c3ce1ab01df10ef9627637520b11ad7abb3",
+    "docs/xui-localization.md": "3b64e414ff1bf604301daf044cc376fcdb68669f0107f2d92d4a89740a146a84",
+    "docs/xge3-xui3-full-coverage-plan.md": "9620714c7faa454b0b93f8c997e17939d8e0c5c05e94bfb81ea6161c5f8683b6"
+  },
+  "failureCases": {
+    "engine": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\x11-startup-language-linux-r2\\results.json",
+      "sha256": "ac36b0dcdf8575343fe0ef1201a20a5c3d07df3c28e7714a4d2e8276a59da635",
+      "commands": 11,
+      "programs": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/x11-startup-language-linux-r2/dynamic",
+          "sha256": "b1a742c71a9ac7efe12c1179d083799718aa2ca49aafc28e443cb726c00c7c60",
+          "bytes": 1447134,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/x11-startup-language-linux-r2/static",
+          "sha256": "a6915f30d8b3184e7bd732bcf74fd6cd2b6d3265a881f021de9ee43587db6221",
+          "bytes": 1563025,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ],
+      "modes": [
+        "jit",
+        "dynamic",
+        "static"
+      ],
+      "frameCallbacksOnFailure": 0,
+      "exactCheckedError": {
+        "code": -8,
+        "domain": "xlang.foreign",
+        "operation": "xl6Xge3RunOwned"
+      },
+      "gateSourceSnapshot": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\x11-startup-language-linux-r2\\tool-source-r2.py",
+        "sha256": "ae859c4c9be0cb2c71916344d5e9842cab5600f81d8806225ea39ec2457b2735"
+      }
+    },
+    "uiHelper": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\x11-startup-ui-helper-linux-r1\\results.json",
+      "sha256": "24512308fc5eb765b8673512075df34d697cabafd072732927cb99e9b7bb7074",
+      "commands": 11,
+      "programs": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/x11-startup-ui-helper-linux-r1/dynamic",
+          "sha256": "eb4c2735f7673e10336c8620459ba34b647563c2599559ff6ee8422839106346",
+          "bytes": 2137515,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/x11-startup-ui-helper-linux-r1/static",
+          "sha256": "3b54740f4796dc7b23905c4bc89ee46fd1f425d86a137c52a497e158ac2200f4",
+          "bytes": 8849832,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ],
+      "modes": [
+        "jit",
+        "dynamic",
+        "static"
+      ],
+      "frameCallbacksOnFailure": 0,
+      "exactCheckedError": {
+        "code": -8,
+        "domain": "xlang.foreign",
+        "operation": "xl6Xge3RunOwned"
+      }
+    }
+  },
+  "windowRegressions": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\x11-startup-window-win-r1\\results.json",
+      "sha256": "8e058776bcb7e893dd44a044d39269ee8f2af1e5e195f1e45aa7aa1e9565ab1a",
+      "commands": 24,
+      "programs": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\x11-startup-window-win-r1\\foreign_xui_localization-dynamic.exe",
+          "sha256": "8a70263fc212711291801e1dd65dbc88087805d064615c0a1c5d279aabf436b5",
+          "bytes": 5108224,
+          "imports": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\x11-startup-window-win-r1\\foreign_xui_localization-static.exe",
+          "sha256": "b2ce484b965e7727126691dc4077561c8a38dbd85b095f23cc7af8fdad089b50",
+          "bytes": 1476096,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "ole32.dll",
+            "SHELL32.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\x11-startup-window-win-r1\\localization-dynamic.exe",
+          "sha256": "610a16a346ad70041e717e2d84a208b1186c4a74e49cb770482790d8b54678a2",
+          "bytes": 2066432,
+          "imports": [
+            "xge3_host.dll",
+            "msvcrt.dll",
+            "kernel32.dll",
+            "Ole32.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\x11-startup-window-win-r1\\localization-static.exe",
+          "sha256": "1353058ccd77859edbab10db4cbabf0170a5b9fd880b3c3f69396b7ca8b1cec1",
+          "bytes": 7751168,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "USER32.dll",
+            "GDI32.dll",
+            "ole32.dll",
+            "OLEAUT32.dll",
+            "SHELL32.dll",
+            "IMM32.dll",
+            "DWrite.dll"
+          ]
+        }
+      ],
+      "readbacks": [
+        {
+          "mode": "jit",
+          "width": 800,
+          "height": 600,
+          "path": "F:\\xlang-validation\\xge-full-20261110\\x11-startup-window-win-r1\\localization-jit.rgba",
+          "sha256": "d77c26fdd96c17016c5ff54398e39841e0b43ca9a941484c5fb41a9977f6e911"
+        },
+        {
+          "mode": "dynamic",
+          "width": 800,
+          "height": 600,
+          "path": "F:\\xlang-validation\\xge-full-20261110\\x11-startup-window-win-r1\\localization-dynamic-execute.rgba",
+          "sha256": "d77c26fdd96c17016c5ff54398e39841e0b43ca9a941484c5fb41a9977f6e911"
+        },
+        {
+          "mode": "static",
+          "width": 800,
+          "height": 600,
+          "path": "F:\\xlang-validation\\xge-full-20261110\\x11-startup-window-win-r1\\localization-static-execute.rgba",
+          "sha256": "d77c26fdd96c17016c5ff54398e39841e0b43ca9a941484c5fb41a9977f6e911"
+        }
+      ],
+      "identicalToPreviousCohort": true,
+      "hardwareGpuAcceptance": false,
+      "scope": "Existing CPU registry/lifetime/64 allocation budgets and actual 2-frame localization window in all 3 modes; Linux Xvfb software GL. Not all backends/controls."
+    },
+    "linux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\x11-startup-window-linux-r1\\results.json",
+      "sha256": "1d35c2d82227dbe622e25ffcfdc07ad74ff1650ab3e3babb49b1f3febd4373e1",
+      "commands": 24,
+      "programs": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/x11-startup-window-linux-r1/foreign_xui_localization-dynamic",
+          "sha256": "a651cccefa3dfdcc1f6111703b31de1fdd25675f86bb99eeee1c95de2337020c",
+          "bytes": 5302115,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/x11-startup-window-linux-r1/foreign_xui_localization-static",
+          "sha256": "22f3c798a72137c8882d16687c865033fc9a0c21b23c730c35bb1aaf94713ab4",
+          "bytes": 1876247,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/x11-startup-window-linux-r1/localization-dynamic",
+          "sha256": "64bd04d165bcdf58cc001975674201024bc0b0790045ab850914d94065b53f39",
+          "bytes": 2120351,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/x11-startup-window-linux-r1/localization-static",
+          "sha256": "0b443ca71a08e1fd72fe6d181497475df3b314ae1c53db8e60dd4b21d68fe5dd",
+          "bytes": 8840715,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ],
+      "readbacks": [
+        {
+          "mode": "jit",
+          "width": 800,
+          "height": 600,
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/x11-startup-window-linux-r1/localization-jit.rgba",
+          "sha256": "d4c903d604e8c19f27a76cf4c1455e7aedc1bc672982aaf341c0c065cbdc208c"
+        },
+        {
+          "mode": "dynamic",
+          "width": 800,
+          "height": 600,
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/x11-startup-window-linux-r1/localization-dynamic-execute.rgba",
+          "sha256": "d4c903d604e8c19f27a76cf4c1455e7aedc1bc672982aaf341c0c065cbdc208c"
+        },
+        {
+          "mode": "static",
+          "width": 800,
+          "height": 600,
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/x11-startup-window-linux-r1/localization-static-execute.rgba",
+          "sha256": "d4c903d604e8c19f27a76cf4c1455e7aedc1bc672982aaf341c0c065cbdc208c"
+        }
+      ],
+      "identicalToPreviousCohort": true,
+      "hardwareGpuAcceptance": false,
+      "scope": "Existing CPU registry/lifetime/64 allocation budgets and actual 2-frame localization window in all 3 modes; Linux Xvfb software GL. Not all backends/controls."
+    }
+  },
+  "languageCommands": 70,
+  "languageCommandsExpected": 70,
+  "priorFixtureAttempt": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\x11-startup-language-linux-r1\\results.json",
+    "sha256": "2d71d04187a94a8994c49ce558ff99bf74b54080cf1e47da07b79de238c39271",
+    "reason": "Initial fixture expected a provider-specific native.status domain. Actual no-diagnostic resident status contract is xlang.foreign; source and debug fixture retained. No compiler/runtime semantic change."
+  },
+  "nativeSizes": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\x11-startup-binary-sizes-r1.json",
+    "sha256": "def6328f0dbf98637e5b12a282ac267f05db5fba9fe3debefe9ca958d4921272"
+  },
+  "limitations": [
+    "Only the failed XOpenDisplay stage unwinds; later window/GLX/EGL, allocator panic and display disconnect remain separate work.",
+    "Native prerequisite uses 1-TU host + qualified 163-object reuse and 2-TU static + 163-object reuse; no full native source rebuild claim.",
+    "Existing full O2 compiler builds reused unchanged. Source/helper/error tests use their explicit current external inputs.",
+    "Sokol allocator sanitizer gate is standalone; no claim that the entire native SDK, XRT or driver is instrumented.",
+    "No equal-CPU or whole-binding zero-cost claim, final runtime/SDK/IDE installation or push. Complete XGE/XUI/Document goal remains active."
+  ]
+}

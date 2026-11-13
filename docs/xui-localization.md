@@ -82,9 +82,11 @@ two-frame JIT checks of its initial scene; this does not re-exercise all 57
 scenes or interactions.
 
 The first Linux window attempt without DISPLAY logged XOpenDisplay failure
-and then SIGSEGV. Source inspection shows the existing Sokol fatal logger
-returns to a path which requires successful platform initialization. That
-backend-failure/unwind gap remains open; the Xvfb success is not a fix for it.
-Earlier failure reports and the diagnostic trace remain outside the repository.
-This batch does not install a final runtime, SDK or IDE delivery and does not
-complete the full XGE/XUI/Document goal.
+and then SIGSEGV. The original Xvfb success did not fix that native gap. Native
+commit `e1089362` subsequently adds proper cleanup/return at that exact failed
+connection stage and preserves checked Run status; the matched successor SDK
+has separate no-display and actual-window regressions. See
+[platform startup](xge3-platform-startup.md) for scope and remaining fatal-stage
+limits. Earlier failure reports and the diagnostic trace remain unchanged
+outside the repository. These batches do not install a final runtime, SDK or
+IDE delivery or complete the full XGE/XUI/Document goal.

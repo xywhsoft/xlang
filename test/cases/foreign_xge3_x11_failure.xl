@@ -1,0 +1,40 @@
+// Linux-only missing-display acceptance; the harness clears DISPLAY.
+import xge
+int frames=0
+func frame() as c_int
+    frames+=1
+    return c_int(1)
+end
+func main(...) as int
+    for cycle in range(3)
+        xge.initNative()
+        try
+            for attempt in range(4)
+                bool rejected=false
+                try
+                    xge.run(frame)
+                catch Error failure
+                    rejected=true
+                    assert failure.code==-8 and failure.domain=="xlang.foreign"
+                    assert failure.operation=="xl6Xge3RunOwned"
+                finally
+                    xge.setFrameCallback(null)
+                end
+                assert rejected and frames==0
+            end
+        finally
+            xge.unit()
+        end
+    end
+    // An explicitly manual engine has no display-service prerequisite.
+    xge.init(128,96,"Manual CPU engine",runMode=xge.XGE_RUN_MANUAL)
+    try
+        xge.run(frame)
+        assert frames==0
+    finally
+        xge.setFrameCallback(null)
+        xge.unit()
+    end
+    println("X11 startup: 12 checked failures, no frames, cleanup/reinitialize and manual mode passed")
+    return 0
+end

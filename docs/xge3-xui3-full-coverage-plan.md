@@ -903,3 +903,13 @@ Linux 图形门采用 Xvfb／Mesa llvmpipe，不能代替硬件 GPU 或全部后
 逐场景交互验收。此前缺少 DISPLAY 时的原生致命日志返回后 SIGSEGV 保留为
 后端失败展开缺口，成功的虚拟显示门没有修复它。详见 xui-localization.md 与
 xui-localization-20261114.json；全量范围和最终配套发布交付继续，release 未安装。
+
+后续原生 e1089362 已修复 XOpenDisplay 失败的精确分支：在任何 X11／GL 资源
+和应用初始化回调出现前，释放 Sokol 启动缓冲并返回；致命日志保留 checked Run
+错误。独立 Sokol 和真实静态引擎的旧代码均在 C O0／O2 复现 SIGSEGV，新代码
+通过连续 12 次失败、两次分配／两次释放、同进程恢复到实际 Xvfb 窗口和手动
+模式检查；独立 Sokol 无显示路径另通过 ASan／UBSan／泄漏检查。公开 ABI 与
+语言声明未变，健康帧没有新增调用／分配；日志错误路径的锁和状态保留仍单列。
+后续 GLX／EGL／窗口失败、分配 panic 和显示服务器断连仍需各自按阶段展开，
+不以本批代替全部后端恢复。匹配 SDK 及语言回归见 xge3-platform-startup.md 和
+xge-x11-startup-20261114.json；没有安装最终 SDK／IDE，完整目标继续。

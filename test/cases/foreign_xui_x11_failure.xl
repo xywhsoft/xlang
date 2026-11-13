@@ -1,0 +1,34 @@
+// The real shared window helper must close its Context/Proxy after Run fails.
+import xge
+import xui
+from "../../lib/bindings/xui/examples/_window.xl" import Window
+int frames=0
+func main(...) as int
+    for cycle in range(4)
+        bool rejected=false
+        try
+            Window.show("Unavailable display",func(xui.Context ui,xui.Widget root)
+                frames+=1
+            end)
+        catch Error failure
+            rejected=true
+            assert failure.code==-8 and failure.domain=="xlang.foreign"
+            assert failure.operation=="xl6Xge3RunOwned"
+        end
+        assert rejected and frames==0
+    end
+    // This init also verifies that the last failed helper actually closed.
+    xge.init(128,96,"Manual CPU engine",runMode=xge.XGE_RUN_MANUAL)
+    try
+        xge.run(func() as c_int
+            frames+=1
+            return c_int(1)
+        end)
+        assert frames==0
+    finally
+        xge.setFrameCallback(null)
+        xge.unit()
+    end
+    println("XUI window failure: 4 checked failures, Context/Proxy cleanup and manual reinitialize passed")
+    return 0
+end
