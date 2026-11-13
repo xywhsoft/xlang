@@ -8,6 +8,7 @@ static int analysisLeaseQuiet(server* s)
  collectTokenJobs(s);
  for(size_t i=0;i<4;++i)if(s->tokenJobs[i])return 0;
  if(!xideProjectReferencesIdle(s->references) || !xideWorkspaceSymbolsIdle(s->workspaceSymbols))return 0;
+ if(!xideRenameCandidatesIdle(s->renames))return 0;
 #endif
  return xlsWorkerIdle(s->analysis) && xlsWorkerIdle(s->semanticAnalysis) &&
   xlsWorkerIdle(s->cursorAnalysis) && xlsWorkerIdle(s->signatureAnalysis) && xideDiagnosticStoreIdle(s->diagnostics);
@@ -97,6 +98,7 @@ static int analysisLeaseDispatch(server* s,const char* method,const xvalue* id,c
   s->analysisLeaseToken=s->analysisLeaseLast=token;s->analysisLeaseId=saved;s->analysisLeaseHeld=s->analysisLeaseInvalidated=0;s->pending=-1;
 #ifdef XLS_COMPILER_XRT
   cancelReferences(s,NULL,-32800,"Analysis suspended.");cancelWorkspaceSymbols(s,NULL,-32800,"Analysis suspended.");workspaceRefreshCancel(s,0);
+  cancelRenames(s,NULL,-32800,"Analysis suspended.");
   for(size_t i=0;i<4;++i)xideSemanticTokenJobCancel(s->tokenJobs[i]);
 #endif
   diagnosticStop(s);cancelNative(s,-1,-32800,"Analysis suspended.");clearPublished(s);cancel(s,-32800,"Analysis suspended.");

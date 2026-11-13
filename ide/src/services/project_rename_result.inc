@@ -1,4 +1,12 @@
 typedef struct rename_result_charge {size_t bytes,limit;int (*stopped)(void*);void* user;} rename_result_charge;
+int xideProjectReferencesRenameValidate(xide_reference_query* q,int (*cancelled)(void*),void* user,xide_model_error* error)
+{
+ const reference_output* source=xideProjectReferencesResult(q,NULL,NULL,NULL,0)==XIDE_REFERENCES_READY?xrtFutureValue(q->future):NULL;
+ if(!source || !source->plan || !source->guards.Count || !source->stats.workspaceScopes || source->stats.workspaceCompleted!=source->stats.workspaceScopes)return 0;
+ for(size_t i=0;i<source->guards.Count;++i)
+  if((cancelled && cancelled(user)) || !xideLanguageInputGuardValidate(((xide_language_input_guard**)source->guards.Data)[i],cancelled,user,error))return 0;
+ return !cancelled || !cancelled(user);
+}
 static bool renameResultCharge(xbytesview bytes,void* user)
 {rename_result_charge* q=user;if((q->stopped && q->stopped(q->user)) || !charge(&q->bytes,bytes.Size,q->limit))return false;return true;}
 xvalue* xideProjectReferencesRenameResult(xide_reference_query* q,size_t budget,int (*cancelled)(void*),void* user,xide_model_error* error)

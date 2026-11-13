@@ -143,6 +143,10 @@ xide_rename_plan* xideProjectReferencesRetainRenamePlan(xide_reference_query*);
  * client overlay/configuration freshness, consent or write permission. */
 xvalue* xideProjectReferencesRenameResult(xide_reference_query*,size_t,
  int (*cancelled)(void*),void*,xide_model_error*);
+/* Worker-only final publication sweep after a surrounding response is framed.
+ * Same complete original guard set, without a second DOM export/encoding. */
+int xideProjectReferencesRenameValidate(xide_reference_query*,
+ int (*cancelled)(void*),void*,xide_model_error*);
 enum xide_reference_query_state xideProjectReferencesResult(xide_reference_query* query,
  const xvalue** locations,xide_project_reference_stats* stats,char* error,size_t capacity);
 xvalue* xideProjectReferencesTake(xide_reference_query* query);

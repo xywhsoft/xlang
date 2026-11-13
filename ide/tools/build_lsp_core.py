@@ -47,6 +47,7 @@ FRONTEND_SOURCES = (
 SERVER_SOURCES = (
     "src/protocol/workspace_edit.c",
     "src/services/rename_plan.c",
+    "src/services/rename_candidate.c",
     "src/services/semantic_rename.c",
     "src/services/rename_scope.c",
     "src/services/semantic_token_positions.c", "src/protocol/semantic_tokens_wire.c", "src/services/semantic_token_job.c",
@@ -165,6 +166,7 @@ HOST_TESTS += ("semantic_reference_graph_test", "reference_graph_capture_test")
 HOST_TESTS += ("semantic_reference_merge_test", "project_reference_family_test")
 HOST_TESTS += ("semantic_family_references_test", "project_family_references_test")
 HOST_TESTS += ("rename_plan_test", "project_rename_plan_test", "project_rename_at_test")
+HOST_TESTS += ("rename_candidate_test",)
 HOST_TESTS += ("semantic_binding_check_test",)
 HOST_TESTS += ("analysis_frozen_check_test",)
 HOST_TESTS += ("project_rename_recheck_test", "project_rename_result_test", "project_rename_input_import_test", "project_rename_provider_test")
@@ -1126,6 +1128,8 @@ def main() -> None:
                 extra.extend(("-Wl,--wrap=xrtValueDeepClone", "-Wl,--wrap=xrtValueObjectSetNew"))
             if name == "project_reference_owner_fault_test":
                 extra.append(str(objects['owner_snapshot_fault']))
+            if name == "rename_candidate_test":
+                extra.append("-Wl,--wrap=xideLspFrame")
             if name == "language_native_cancel_test":
                 extra.append("-Wl,--wrap=xlsQueryCancel")
             if name in ("workspace_edit_positions_test", "workspace_edit_positions_fault_test"):

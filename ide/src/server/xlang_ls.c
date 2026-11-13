@@ -11,6 +11,7 @@
 #include "analysis/frontend_context.h"
 #include "analysis/entity_store.h"
 #include "services/project_references.h"
+#include "services/rename_candidate.h"
 #include "services/workspace_symbols.h"
 #include "protocol/workspace_symbol_wire.h"
 #endif
@@ -78,6 +79,8 @@ typedef struct server {
  xls_dependency_stats diagnosticGraph;uint64_t diagnosticGraphFallbacks;int diagnosticGraphIndexed;
  xls_module_store* modules;
  xide_project_references* references;
+ xide_rename_candidates* renames;
+ struct {xide_rename_candidate_query* query;xvalue* id;int document,version;unsigned long long identity,serial;int64 epoch;} renameRequests[4];
  struct {xide_reference_query* query;xvalue* id;int document,version;unsigned long long identity,serial;int64 epoch;} referenceRequests[8];
  xide_project_reference_stats referenceStats;
  xide_workspace_symbols* workspaceSymbols;
@@ -87,7 +90,7 @@ typedef struct server {
   unsigned long long serial,seenSerial;int64 epoch,seenEpoch;uint64_t due,scheduled,started,completed,cancelled,failed;
   int enabled,ready,seen,pending;char error[512];} workspaceRefresh;
 #endif
- xide_analysis_catalog* catalog;int64 configurationEpoch;
+ xide_analysis_catalog* catalog;xvalue* catalogValue;int64 configurationEpoch;
 } server;
 #ifdef XLS_COMPILER_XRT
 static void clearTokenHistory(server*,int);
@@ -743,7 +746,7 @@ static int configureAnalysis(server* s,const xvalue* value,xide_model_error* err
   if(s->automaticDiagnostics) diagnosticResetState(s,NULL);
  }
  for(size_t i=0;i<DOC_LIMIT;++i) {xlsContextRelease(s->docs[i].context);s->docs[i].context=contexts[i];s->docs[i].binding=bindings[i];}
- xideAnalysisCatalogDestroy(s->catalog);s->catalog=catalog;s->configurationEpoch=epoch;return 1;
+ xideAnalysisCatalogDestroy(s->catalog);s->catalog=catalog;xrtValueRelease(s->catalogValue);s->catalogValue=xrtValueRetain(get(value,"catalog"));s->configurationEpoch=epoch;return 1;
 }
 static xvalue* configurationStamp(const server* s,int index)
 {
@@ -819,6 +822,7 @@ static void referenceStats(server* s,const xvalue* id)
  if(okay)response(s,id,out,0,NULL);else{ xrtValueRelease(out);response(s,id,NULL,-32603,"Cannot encode reference work counters.");}
 }
 #include "server/workspace_symbols.inc"
+#include "server/rename_candidate.inc"
 #endif
 #include "server/analysis_lease.inc"
 static void dispatch(server* s,const xvalue* message)
@@ -931,6 +935,7 @@ static void dispatch(server* s,const xvalue* message)
 #ifdef XLS_COMPILER_XRT
   if(!s->cliCompletion && !s->cliDiagnostics){put(cap,"referencesProvider",xrtValueBool(true));put(cap,"workspaceSymbolProvider",xrtValueBool(true));put(scope,"workspaceSymbolInputProof",xrtValueBool(true));put(scope,"workspaceSymbolBackgroundIndex",xrtValueBool(true));workspaceSymbolCapabilities(s,params);}
   put(scope,"referenceCompilationOwners",xrtValueBool(!s->cliCompletion && !s->cliDiagnostics));
+  put(scope,"renameCandidate",xrtValueInt(!s->cliCompletion && !s->cliDiagnostics?1:0));
 #endif
   put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.101"))); put(result,"serverInfo",info); s->hierarchicalSymbols=hierarchical;s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
  }
@@ -942,6 +947,7 @@ static void dispatch(server* s,const xvalue* message)
  if(!strcmp(method,"shutdown")) { if(id) { s->shutdown=1; s->pending=-1;
 #ifdef XLS_COMPILER_XRT
  cancelReferences(s,NULL,-32800,"Server shutting down.");
+ cancelRenames(s,NULL,-32800,"Server shutting down.");
  cancelWorkspaceSymbols(s,NULL,-32800,"Server shutting down.");
  workspaceRefreshCancel(s,0);
 #endif
@@ -957,6 +963,7 @@ static void dispatch(server* s,const xvalue* message)
    const xvalue* cancelledId=get(params,"id");
 #ifdef XLS_COMPILER_XRT
    if(cancelledId)cancelReferences(s,cancelledId,-32800,"Request cancelled.");
+   if(cancelledId)cancelRenames(s,cancelledId,-32800,"Request cancelled.");
    if(cancelledId)cancelWorkspaceSymbols(s,cancelledId,-32800,"Request cancelled.");
 #endif
    for(size_t i=0;i<DOC_LIMIT;++i) if(s->native[i].query && sameId(s->native[i].id,cancelledId)) { xlsQueryCancel(s->native[i].query); response(s,s->native[i].id,NULL,-32800,"Request cancelled."); releaseNative(&s->native[i]); }
@@ -992,6 +999,7 @@ static void dispatch(server* s,const xvalue* message)
  }
  #ifdef XLS_COMPILER_XRT
  if(!strcmp(method,"textDocument/references")){if(id)requestReferences(s,id,params);return;}
+ if(!strcmp(method,XIDE_NATIVE_RENAME_METHOD)){if(id)requestRename(s,id,params);return;}
  if(!strcmp(method,"workspace/symbol")){if(id)requestWorkspaceSymbols(s,id,params,0);return;}
  if(!strcmp(method,"xlang/workspaceSymbolNavigation")){if(id)requestWorkspaceSymbols(s,id,params,1);return;}
  if(!strcmp(method,"xlang/workspaceSymbolStats")){if(id)workspaceSymbolStats(s,id);return;}
@@ -1038,6 +1046,7 @@ int main(void)
   pollGuard(&s); pollCheck(&s); pollCompletion(&s); pollSignature(&s); pollNative(&s); pollSemantic(&s); diagnosticPoll(&s);
 #ifdef XLS_COMPILER_XRT
   pollReferences(&s);
+  pollRenames(&s);
   pollWorkspaceSymbols(&s);
   pollWorkspaceRefresh(&s);
 #endif
@@ -1064,6 +1073,7 @@ int main(void)
  for(size_t i=0;i<DOC_LIMIT;++i) if(s.semantic[i].id) releaseSemantic(&s.semantic[i]);
  #ifdef XLS_COMPILER_XRT
  for(size_t i=0;i<4;++i){xideSemanticTokenJobDestroy(s.tokenJobs[i]);s.tokenJobs[i]=NULL;}
+ cancelRenames(&s,NULL,0,"Server stopped.");xideRenameCandidatesDestroy(s.renames);
  cancelReferences(&s,NULL,0,"Server stopped.");xideProjectReferencesDestroy(s.references);
  workspaceRefreshCancel(&s,0);cancelWorkspaceSymbols(&s,NULL,0,"Server stopped.");xideWorkspaceSymbolsDestroy(s.workspaceSymbols);
 #endif
@@ -1079,5 +1089,6 @@ int main(void)
  xrtValueRelease(s.analysisLeaseId);
  for(int i=0;i<DOC_LIMIT;++i) clearDocument(&s,i);
  xideAnalysisCatalogDestroy(s.catalog);
+ xrtValueRelease(s.catalogValue);
  if(s.event) { CloseHandle(s.event); } DeleteCriticalSection(&s.lock); free(s.compiler); free(s.directory); return s.writeFailed ? 2 : s.exitCode;
 }
