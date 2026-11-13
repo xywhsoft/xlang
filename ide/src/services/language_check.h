@@ -234,6 +234,20 @@ typedef struct xide_language_proof_overlay {const char* path;const xls_text* tex
  *7MiB encoded proof,512files,8MiB/file,64MiB total; DOM/codec overhead additional. */
 xide_language_input_guard* xideLanguageInputGuardImport(const xvalue*,const xls_context*,
  const xide_language_proof_overlay*,size_t,int (*cancelled)(void*),void*,xide_model_error*);
+/* Worker-only all-or-none import of a complete <=7MiB proof array. expected
+ * supplies independent provider contexts; out has count empty slots. Max65536
+ * guards. Within THIS call only, identical complete file reports and overlay
+ * leases reuse one source validation. Resolver/context rules still run for
+ * every guard. Temporary memo: <=65536 entries/64MiB path-key charge, retained
+ * shared DOM/text plus map/allocator internals extra. No persistent cache or
+ * mutation of caller DOM. Failure releases/zeros every constructed output. */
+int xideLanguageInputGuardsImport(const xvalue* array,const xls_context* const* expected,
+ size_t count,const xide_language_proof_overlay*,size_t overlays,
+ xide_language_input_guard** out,int (*cancelled)(void*),void*,xide_model_error*);
+/* Fresh per-call memo, same complete original guards. Never reuse prior call
+ * source hashes. Cancellation does not poison otherwise current proofs. */
+int xideLanguageInputGuardsValidate(xide_language_input_guard* const*,size_t,
+ int (*cancelled)(void*),void*,xide_model_error*);
 xide_language_input_guard* xideLanguageCheckCaptureInputGuard(xide_language_check* check,xide_model_error* error);
 xide_language_input_guard* xideLanguageInputGuardRetain(xide_language_input_guard* guard);
 void xideLanguageInputGuardRelease(xide_language_input_guard* guard);
@@ -241,11 +255,11 @@ int xideLanguageInputGuardValidate(xide_language_input_guard* guard,int (*cancel
 /* Borrowed immutable actual-input file reports, not all captured overlays.
    Valid until the caller releases its reference; safe across validations. */
 const xvalue* xideLanguageInputGuardFiles(const xide_language_input_guard* guard);
-#ifdef XLS_COMPILER_XRT
 /* Borrowed complete immutable resolution candidates,including absent paths.
    Same lifetime as Files;no sorting,canonicalization,allocation or I/O. Native
    reverse indexing applies the existing lexical policy and owns its keys. */
 const xvalue* xideLanguageInputGuardProbes(const xide_language_input_guard* guard);
+#ifdef XLS_COMPILER_XRT
 /* Worker-only native proof export. Own a deep-independent schema1 DOM with
  * the complete explicit context, actual file reports and resolution report,
  * including unknown future report fields. No source bodies, filesystem work,

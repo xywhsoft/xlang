@@ -167,6 +167,8 @@ HOST_TESTS += ("semantic_reference_merge_test", "project_reference_family_test")
 HOST_TESTS += ("semantic_family_references_test", "project_family_references_test")
 HOST_TESTS += ("rename_plan_test", "project_rename_plan_test", "project_rename_at_test")
 HOST_TESTS += ("rename_candidate_test",)
+HOST_TESTS += ("language_input_batch_test",)
+CLIENT_TEST_SOURCES += ("src/services/edit_request.c", "src/services/edit_request_scope.c", "src/services/edit_call.c", "src/services/rename_evidence.c", "src/services/edit_candidate.c")
 HOST_TESTS += ("semantic_binding_check_test",)
 HOST_TESTS += ("analysis_frozen_check_test",)
 HOST_TESTS += ("project_rename_recheck_test", "project_rename_result_test", "project_rename_input_import_test", "project_rename_provider_test")
@@ -1117,7 +1119,7 @@ def main() -> None:
                           not (name == "semantic_rename_target_test" and Path(source).stem == "semantic_rename") and
                           not (name == "rename_plan_test" and Path(source).stem == "rename_plan") and
                           not (name in ("rename_scope_test", "rename_provider_test") and Path(source).stem == "rename_scope") and
-                          not (name in ("language_input_import_test", "snapshot_report_test", "reference_capture_test", "reference_graph_capture_test", "declaration_capture_test", "project_reference_owner_fault_test", "language_native_cancel_test") and Path(source).stem == "language_snapshot") and
+                          not (name in ("language_input_import_test", "language_input_batch_test", "snapshot_report_test", "reference_capture_test", "reference_graph_capture_test", "declaration_capture_test", "project_reference_owner_fault_test", "language_native_cancel_test") and Path(source).stem == "language_snapshot") and
                           not (name == "path_identity_batch_test" and Path(source).stem == "path") and
                           not (name == "workspace_symbol_index_test" and Path(source).stem == "workspace_symbol_index") and
                           not (name in ("workspace_symbols_test", "workspace_symbol_refresh_test", "workspace_symbols_shared_test") and Path(source).stem == "workspace_symbols") and

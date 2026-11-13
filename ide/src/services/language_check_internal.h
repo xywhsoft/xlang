@@ -17,6 +17,7 @@ struct xide_language_check {
  HANDLE stopEvent; enum xide_guard_state guardState; char guardError[512];
  xvalue *guardFiles,*guardResolution; xide_toolchain_stamp guardToolchain;
  xls_context* context;
+ struct xide_language_proof_memo* proofMemo;
  xide_semantic_definitions* definitions;
  xide_semantic_symbols* symbols;xide_symbol_work symbolWork;
 #ifdef XLS_COMPILER_XRT
@@ -43,5 +44,9 @@ struct xide_language_check {
 int xideLanguageCheckRunCompiler(xide_language_check* check,const char* const* args,size_t count,size_t limit,char** output,int* exitCode,xide_model_error* error);
 int xideLanguageSnapshotGuard(xide_language_check* check,xide_model_error* error);
 int xideLanguageSnapshotImport(xide_language_check*,const xide_language_proof_overlay*,size_t,xide_model_error*);
+/* One explicit worker operation; never shared through TLS or persisted across
+ * validation calls. Exact complete file report plus immutable overlay lease. */
+int xideLanguageProofMemoMatch(struct xide_language_proof_memo*,const xvalue*,const xls_text*,xide_model_error*);
+int xideLanguageProofMemoRemember(struct xide_language_proof_memo*,const xvalue*,const xls_text*,xide_model_error*);
 int xideLanguageSnapshotRun(xide_language_check* check,xvalue** result,xide_model_error* error);
 #endif

@@ -9,6 +9,7 @@ struct xide_edit_call {
  xide_edit_call_intent intent;
 };
 struct xide_edit_reply {xide_edit_call* call;xvalue* root;int error,code;xstrview message;};
+const xide_edit_call* xideEditReplyCall(const xide_edit_reply* p){return p?p->call:NULL;}
 static const xvalue* get(const xvalue* v,const char* k){return xrtValueIs(v,XVALUE_OBJECT)?xrtValueObjectGet(v,xrtStrView(k)):NULL;}
 static int put(xvalue* v,const char* k,xvalue* item){return item&&xrtValueObjectSetNew(v,xrtStrView(k),item);}
 static int eq(const xvalue* v,const char* s){xstrview raw={0};size_t n=strlen(s);return xrtValueGetString(v,&raw)&&raw.Size==n&&(!n||!memcmp(raw.Data,s,n));}

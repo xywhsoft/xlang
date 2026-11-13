@@ -1,0 +1,128 @@
+{
+  "schema": 1,
+  "date": "2026-11-13",
+  "stage": "M7b6a",
+  "scope": "Client data admission for bound native rename candidates: independent provider/member/source coverage, original overlays/model/intent gates, normalized WorkspaceEdit preparation and per-operation proof memo",
+  "implementationAccepted": true,
+  "goalComplete": false,
+  "performanceQualified": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "e4b250a939e1c3a2df6462cbcfb0e412cfe18b1f",
+  "ownedSources": {
+    "ide/src/services/edit_call.c": "f4f67d183252f3c4073036a6558e57a8ed53a029ca8aaeb16914a24baa25bb6f",
+    "ide/src/services/edit_call.h": "40905c0793480c1197f269a204e0e7808677cb64dff1003dee024f0a9905a399",
+    "ide/src/services/edit_candidate.c": "3ab045a15ad699450d02aacef3b55c0820c620c32fc0a6a594346af734ac1e42",
+    "ide/src/services/edit_candidate.h": "5945942e10bb3fd55a17f33ad5614a90a62eed123c3562f134bcc0ca2de4f094",
+    "ide/src/services/language_check.c": "59c65482ab1b3f90a977b27cc0318d06ba17fd56f56b549a0a6fbcf3184fa098",
+    "ide/src/services/language_check.h": "5711a17014792e23e7091e2b0ade1f424d6df14713f21d47b83725c043d83b31",
+    "ide/src/services/language_check_internal.h": "ea10ae164877778e789de71db0a6bbd97de243694da99bcc7bdbcaecd2b4111c",
+    "ide/src/services/language_input_import.inc": "11049afdbfa99eb4ce223df0564e5ef92ec85c096efd7ed2694ec21eb447c459",
+    "ide/src/services/language_proof_memo.inc": "e71c3e5bd5d5bd37afe42fcec9e676d0f5333088df00f37b2d25112625d4fe48",
+    "ide/src/services/language_snapshot.c": "47fe408da4eb0f9eb94125f52e9d45e0a62a28e5034df997d6d7b2a0f3b32fff",
+    "ide/src/services/language_snapshot_import.inc": "b187a97c5833d0a9c9a8d2e060e9a7af5b5f8f3b9b8b52c3fb7cf5febf60e634",
+    "ide/src/services/rename_evidence.c": "0487f4eb1d372b205469ffd7965c592d5d47d2a966124d962d666e47a0251316",
+    "ide/src/services/rename_evidence.h": "9d3ba95d53d2280c9e9828031cccb61b9645d03c2d8ee3bbf9b2c1d025f5f3da",
+    "ide/tests/edit_candidate_test.c": "12811c49b37829e8dec5130fd010c6916d0c063e1a6e9c65c17987890e55f731",
+    "ide/tests/edit_request_view_test.c": "39ffccae2b15bc1a8d889810a04d357b41b9dff904d90ce3b24e9a1f53e94518",
+    "ide/tests/language_input_batch_test.c": "0c8d61f727c48e011969617900a9fcf88b744f077b4579f1ae6419fd323bc9a0",
+    "ide/tests/language_input_import_test.c": "46b55a5c0888c2408f322de21ca03a59849248929d39fc6231bc5ba5962b9b04",
+    "ide/tools/build.ps1": "05b546295ce62057c0cd2bf369bc1235c5dbc2472fa83786b7275c569dcfea92",
+    "ide/tools/build_lsp_core.py": "91fc82c24587c0f9917b6a8f2709f2fe0aa717b512861d5bb8501a191fe1a40c",
+    "ide/docs/lsp-edit-candidate-admission.md": "bbfef9601859d5f2dba60c69049a7b2a028003a76815fc99613752545e4c8cf3"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-edit-candidate-admission-20261113.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-edit-candidate-admission-20261113/stage-sources.tar.gz",
+      "sha256": "d8fc5b0ea7f94e822566a477ae178fff483ced27ec50fc02ccb74ef1c0f49b51",
+      "bytes": 103520,
+      "entries": 20,
+      "uniquePayloads": 20
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-edit-candidate-admission-20261113/stage-sources.tar.gz.manifest.json",
+      "sha256": "212cddadeb388c2b91d662b241be1b4205b1a1b0e58cc4a5c23fa4b3529e6484",
+      "bytes": 5217
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-edit-candidate-admission-20261113/actual-builds-and-validation.tar.gz",
+      "sha256": "543cd597e088bae9ad515f346d9f46bb3470645a72b933c7cb4b6660ca65101b",
+      "bytes": 318466153,
+      "entries": 16277,
+      "uniquePayloads": 4277
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-edit-candidate-admission-20261113/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "2c1ae5fbbe432474c24376f91a56d9c9922ea5f1785f3883eef7f46661310ef1",
+      "bytes": 7799567
+    }
+  },
+  "externalPaths": {
+    "build": "F:\\codex-builds-xlang-lsp-20261113\\edit-candidate-admission",
+    "fixtures": "F:\\xl-edit-candidate-admission-20261113",
+    "materials": "F:\\codex-builds-xlang-lsp-20261113\\edit-candidate-admission-materials"
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "sdkSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+  "currentDeliverySha256": "dbc9e09ddfaeced7c675d0540589319f20d03e08f5b43abe08dd33354ecaa9fd",
+  "candidate": {
+    "servicePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-edit-candidate-admission-20261113\\native-v3\\xlang-ls.exe",
+    "serviceSha256": "ca1ed5f491d92795c955c0b4b13830e12cbffc15b895ff51d11b6231f04f8e6f",
+    "guiPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-edit-candidate-admission-20261113\\final-cohorts\\xlang_ide.link.exe",
+    "guiSha256": "eb4123eeac7a52219a1c0f844f456e007a0972a003da5ac95d4ee52404f9fae2"
+  },
+  "verification": {
+    "fullNativeCompiledUnits": 115,
+    "distinctFinalNativeObjects": 116,
+    "fullGuiObjects": 133,
+    "guiSuites": 55,
+    "renameProtocolCases": 35,
+    "existingProtocolCases": 50,
+    "cursorCombinedAssertions": 207,
+    "candidateAssertionsEachProfile": 310,
+    "batchCombinedAssertions": 1362,
+    "actualIdeAssertions": 169,
+    "observedMapRefusalPoints": 33,
+    "guardAssertions": 104,
+    "concurrentGuardChecks": 320,
+    "sourceReportAssertions": 4508,
+    "providerAssertions": 732,
+    "recheckAssertions": 418,
+    "rejectedActualMutants": 8,
+    "actualGuiFramesEach": 24,
+    "actualCompileClosures": 270,
+    "rawArchiveMembers": 72,
+    "allRuntimeAliasesRemoved": true,
+    "existingUserTemporaryDirectoriesPreserved": true,
+    "rawFailuresPreserved": true
+  },
+  "evidenceNotes": [
+    "The actual client/request/call/stdio/router path receives genuine native candidates; the worker then admits all source guards and coverage and prepares a detached WorkspaceEdit. The real IDE fixture now requires an admitted one-document/two-edit plan while keeping original editor bytes unchanged.",
+    "Provider contexts derive independently from the captured complete local scope, with every configured primary entry and explicit XL member covered under each compatible role. Files and resolver probe paths share a sorted touch index. Named models not exactly represented by the captured xlang sync, or marked externally changed, fail conservatively when touched.",
+    "The new explicit per-call XRT map/array memo requires complete report equality and identical immutable overlay lease. Actual counters prove eight duplicate reports do not multiply source reads/hashes; each new validation starts fresh. Different full reports cannot hit an earlier successful proof. This is not a persistent cache, OS pin or transaction authority.",
+    "Actual native and matched GUI/XRT integration each pass310 checks including five opened/closed targets, BOM/CRLF/Unicode normalization, omitted original-cursor target, mismatched name/range/version/context/report/model, stale same-byte physical replacement, cancellation, detached ownership and all33 observed map allocation refusals. A dedicated wrapped touch query forces path allocation failure and proves conservative rejection.",
+    "The final matched GUI aggregate proof program passes1362 combined streaming/import/batch checks; the independent native1362-check program also passed before the final client-only touch fix, which does not change the proof implementation. Final fixture copies and exact executed program hashes are explicit; early fixtures are not substituted for acceptance.",
+    "Eight actual independently compiled mutants fail assertions: bypass unrepresented-model gate, independent provider reconstruction, requested new name, requested cursor, closed full input report, fresh evidence validation, touch-path failure rejection, or complete memo report equality. An earlier member-loop-only mutant survived overlapping checks and is retained as a failed test experiment, not counted as a caught mutant.",
+    "The first hand-replayed native link accidentally included client-only facets in the server, failed with unresolved client support, and is retained. All115 full-cohort object compiles succeeded. The corrected service excludes five client-only modules; workspace-edit support and subsequent small source fixes produce116 distinct final native objects. A real stale-file test found a null optional error-pointer dereference; its debugger stack and explicit rebuilt language-check object are retained.",
+    "Two early fixture main variants were briefly overwritten during CLI argument troubleshooting, then restored from their original forms; the intermediate variants and exact mapping are retained in failed-test-source-variants.json. Final acceptance uses independently frozen final-fixtures-v2 and final-admission-tests-v2 sources, which match the committed tests. Unicode paths are created inside C fixtures so narrow test argv does not corrupt them; the actual service decodes its command line as Unicode.",
+    "Full133-unit GUI build precedes a single body-only evidence touch fix, recompiled against the same headers and relinked. The final55 GUI suites,169-check actual IDE path and two24-frame rendered launches use the final cohort. Older evidence-header consumers differ only by the newly added return-value comment; declarations/layouts are identical and this exact nonsemantic delta is recorded.",
+    "270 actual/reconstructed dependency scans bind final native/GUI object cohorts and executed fixture inputs; raw archive parsing verifies72 core members. SDK files, runtime binaries, current delivery and user temporary directories remain unchanged. Test aliases load private matched SDK DLLs under the real root runtime solely to protect the working SDK/runtime mismatch."
+  ],
+  "limits": [
+    "This is client data admission, not independent recomputation of arbitrary untrusted semantic results. It relies on the actual bound native service static-analysis contract. No production result controller, menu activation, standard rename/applyEdit or source write is enabled.",
+    "Background controller/receiver, negotiated activation and protocol cancellation, physical source-reader quiescence registration, full named-model/alias policy, owned-write guards, transaction host/confirmation/recovery remain open.",
+    "Current conservative rejection does not qualify semantic overlays for unsynced C or hidden models. Full generic/unbound/foreign source qualification, latest engine alignment, other synchronous readers, deep unprefixed xlp paths and analysis-configuration cache-count regression remain open.",
+    "Proof/import/output quotas are retained-byte or wire/row limits, not RSS limits. DOM/map/allocator/codec/shared snapshots and OS resources add overhead. Closed-file normalization still makes bounded cold copies. No whole-goal latency, memory, endurance, sanitizer or Linux qualification.",
+    "C LSP stays disabled; C syntax and xlang-driven build/run remain. No DAP/runtime/debug completion. Default release binaries, developer SDK and active delivery index are not replaced."
+  ],
+  "postCommitReceipt": "dev/release-materials/provenance/lsp-edit-candidate-admission-20261113/postcommit.json"
+}

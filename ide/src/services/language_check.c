@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
+#include <wchar.h>
 #define TEXT_LIMIT (8u*1024u*1024u)
 #define CHECK_OUTPUT_LIMIT (1024u*1024u)
 #include "services/language_check_internal.h"
@@ -278,9 +279,9 @@ const xvalue* xideLanguageInputGuardFiles(const xide_language_input_guard* guard
 typedef struct guard_export_charge {size_t bytes,limit;int (*stopped)(void*);void* user;} guard_export_charge;
 static bool guardExportCharge(xbytesview bytes,void* user)
 {guard_export_charge* q=user;if((q->stopped && q->stopped(q->user)) || bytes.Size>q->limit-q->bytes)return false;q->bytes+=bytes.Size;return true;}
-#ifdef XLS_COMPILER_XRT
 const xvalue* xideLanguageInputGuardProbes(const xide_language_input_guard* guard)
 { return guard ? get(guard->resolution,"probes") : NULL; }
+#ifdef XLS_COMPILER_XRT
 xvalue* xideLanguageInputGuardExport(const xide_language_input_guard* guard,size_t budget,int (*stopped)(void*),void* user,xide_model_error* error)
 {
  const size_t limit=XIDE_LSP_BODY_BYTES-1024u*1024u;if(!budget)budget=limit;
@@ -310,6 +311,7 @@ const xls_context* xideLanguageInputGuardContext(const xide_language_input_guard
 {
  return guard ? guard->context : NULL;
 }
+#include "services/language_proof_memo.inc"
 #include "services/language_input_import.inc"
 typedef struct guard_path { const xvalue* value; wchar_t* native; } guard_path;
 static int compareGuardPath(const void* a,const void* b)
@@ -382,8 +384,9 @@ size_t xideLanguageInputGuardReportBytes(const xide_language_input_guard* guard)
  bytes+=contextBytes;
  return bytes;
 }
-int xideLanguageInputGuardValidate(xide_language_input_guard* guard,int (*stopped)(void*),void* user,xide_model_error* error)
+static int validateGuard(xide_language_input_guard* guard,struct xide_language_proof_memo* memo,int (*stopped)(void*),void* user,xide_model_error* error)
 {
+ xide_model_error ignored={0};if(!error)error=&ignored;
  if(!guard || xrtAtomic32Load(&guard->invalid,XMEMORY_ACQUIRE)) return fail(error,"Checked diagnostic inputs are no longer current.");
  if(stopped && stopped(user)) return fail(error,"Input validation was cancelled.");
  /* Each validation owns its cancellation view. Reports remain read-only;
@@ -392,11 +395,20 @@ int xideLanguageInputGuardValidate(xide_language_input_guard* guard,int (*stoppe
  view.packagePath=guard->packagePath; view.nativeSemantic=guard->nativeBackend;
  view.context=guard->context;
  view.guardFiles=guard->files; view.guardResolution=guard->resolution; view.guardToolchain=guard->toolchain;
- view.externalCancel=stopped; view.externalUser=user;
+ view.externalCancel=stopped; view.externalUser=user;view.proofMemo=memo;
  int okay=xideLanguageSnapshotGuard(&view,error);
  if(stopped && stopped(user)) return fail(error,"Input validation was cancelled.");
  if(!okay) xrtAtomic32Store(&guard->invalid,1,XMEMORY_RELEASE);
  return okay && !xrtAtomic32Load(&guard->invalid,XMEMORY_ACQUIRE);
+}
+int xideLanguageInputGuardValidate(xide_language_input_guard* guard,int (*stopped)(void*),void* user,xide_model_error* error)
+{return validateGuard(guard,NULL,stopped,user,error);}
+int xideLanguageInputGuardsValidate(xide_language_input_guard* const* guards,size_t count,int (*stopped)(void*),void* user,xide_model_error* error)
+{
+ if(!guards || !count || count>65536 || (stopped && stopped(user)))return fail(error,"Invalid aggregate guard validation.");
+ struct xide_language_proof_memo memo={0};int okay=proofMemoInit(&memo);
+ for(size_t i=0;okay && i<count;++i)okay=validateGuard(guards[i],&memo,stopped,user,error);
+ proofMemoUnit(&memo);return okay && !(stopped && stopped(user));
 }
 int xideLanguageCheckWorkerFinished(xide_language_check* q) { return !q || !q->worker || WaitForSingleObject(q->worker,0)==WAIT_OBJECT_0; }
 void* xideLanguageCheckWorkerSignal(xide_language_check* q) { return q ? q->worker : NULL; }

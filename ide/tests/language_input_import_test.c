@@ -70,5 +70,7 @@ static int runImport(const char* root)
  CHECK(writeBytes(missing,"created",7)&&!xideLanguageInputGuardValidate(keep,NULL,NULL,&error)&&!xideLanguageInputGuardCurrent(keep));xideLanguageInputGuardRelease(keep);
  free(entry);free(disk);free(missing);printf("PASS strict native input proof import: %u combined checks; actual disk SHA/identity, request BOM/CRLF/Unicode overlays, context equality, unknown metadata ownership, every observed cancellation and negative probes\n",checks);return 1;
 }
+#ifndef XIDE_INPUT_IMPORT_NO_MAIN
 int main(int argc,char** argv)
 {char* root=xidePathResolve(NULL,argc==2?argv[1]:"build/language-input-import");int okay=root&&xideIoCreateDirectories(root)&&run(root)&&runImport(root);free(root);return okay?0:1;}
+#endif

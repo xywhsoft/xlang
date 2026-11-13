@@ -30,8 +30,10 @@ int xideLanguageSnapshotImport(xide_language_check* q,const xide_language_proof_
   free(key);
   if(formatted(get(item,"origin"),"overlay")){
    if(!found || !(kind&1) || raw!=size)goto done;
+   int memo=q->proofMemo?xideLanguageProofMemoMatch(q->proofMemo,item,overlays[lo].text,error):0;if(memo<0)goto done;if(memo>0)continue;
    const char* text=xlsTextData(overlays[lo].text);size_t length=xlsTextSize(overlays[lo].text),bom=length>=3&&!memcmp(text,"\xef\xbb\xbf",3)?3:0;
    if((size_t)size!=length-bom || !overlayHash(text+bom,length-bom,get(item,"textSha256"),get(item,"rawSha256")))goto done;
+   if(q->proofMemo && !xideLanguageProofMemoRemember(q->proofMemo,item,overlays[lo].text,error))goto done;
   }else if(found || !diskProofValid(q,path,item,error))goto done;
  }
  okay=entry && resolution(q,q->guardResolution,error) && !cancelled(q);

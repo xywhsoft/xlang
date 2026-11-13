@@ -354,6 +354,7 @@ static char* diskText(xide_language_check* q,const char* path,const xvalue* item
  * as ReadDiskProof; it is not a name pin, byte lock or source-write authority. */
 static int diskProofValid(xide_language_check* q,const char* path,const xvalue* item,xide_model_error* e)
 {
+ int memo=q->proofMemo?xideLanguageProofMemoMatch(q->proofMemo,item,NULL,e):0;if(memo)return memo>0;
  int64 rawSize=0,textSize=0;
  if(!integer(get(item,"rawSize"),&rawSize,0,FILE_LIMIT) || !integer(get(item,"textSize"),&textSize,0,FILE_LIMIT))return fail(e,"源码报告长度无效。");
  unsigned char block[65540],rawDigest[32],textDigest[32],extra;xfileinfo first,last,named;
@@ -377,7 +378,7 @@ static int diskProofValid(xide_language_check* q,const char* path,const xvalue* 
   xideIoReceiptFileStat(file,&last) && infoEqual(&first,&last) && xideIoReceiptStat(path,&named) && infoEqual(&first,&named) &&
   xrtSha256Final(&rawHash,rawDigest) && digestEqual(rawDigest,get(item,"rawSha256")) && (!bom || xrtSha256Final(&textHash,textDigest)) && digestEqual(bom?textDigest:rawDigest,get(item,"textSha256"));
  if(file && !xrtClose(file))okay=0;
- return okay && !cancelled(q) ? 1 : fail(e,"磁盘输入与编译器使用的源码摘要、身份或编码不一致。");
+ return okay && !cancelled(q) ? (!q->proofMemo || xideLanguageProofMemoRemember(q->proofMemo,item,NULL,e)) : fail(e,"磁盘输入与编译器使用的源码摘要、身份或编码不一致。");
 }
 int xideLanguageCheckPackagePath(char** out,xide_model_error* e)
 {

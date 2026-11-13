@@ -47,5 +47,7 @@ xide_edit_reply* xideEditCallReply(xide_edit_call*,uint64_t peer,xvalue* root,si
 int xideEditReplyCurrent(const xide_edit_reply*);
 int xideEditReplyError(const xide_edit_reply*,int* code,xstrview* message);
 const xvalue* xideEditReplyCandidate(const xide_edit_reply*);
+/* Borrow the original bound call while reply remains alive; no new authority. */
+const xide_edit_call* xideEditReplyCall(const xide_edit_reply*);
 void xideEditReplyRelease(xide_edit_reply*);
 #endif
