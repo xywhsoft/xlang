@@ -1,0 +1,167 @@
+{
+  "date": "2026-11-13",
+  "qualified": true,
+  "shippingDelivery": false,
+  "nativeCommit": "7f167dd1",
+  "nativeEvidence": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\icon-clear-reentry-20261113.json",
+    "sha256": "9b98c38a61b0d7fc645b57b863b2fd35f8d8b275cd4857ded96809b12a37d75a"
+  },
+  "scope": "Successor native IconClear category-retention floor consumed by the complete existing Icon model gate; not full IconPicker/custom callback/graphics acceptance.",
+  "platforms": {
+    "win": {
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\icon-clear-models-win-r2\\results.json",
+        "sha256": "34650a5343b1e8cc58323b8f12f7b3e829e5f194aa04407e32a30fab4ce6dc1c",
+        "commands": 15
+      },
+      "programs": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\icon-clear-models-win-r2\\foreign_xui_icon_models-dynamic.exe",
+          "sha256": "a3878d9170783f2704ae6ca35c8d1347112cebe89619815fd83db1483265fd14",
+          "bytes": 5235712,
+          "imports": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\icon-clear-models-win-r2\\foreign_xui_icon_models-static.exe",
+          "sha256": "ff51d37070ece2ebfdfae3ce47a2d5b971cec5eeeb73628c0eab2a48b2ed11fb",
+          "bytes": 1788928,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "ole32.dll",
+            "SHELL32.dll"
+          ]
+        }
+      ],
+      "native": {
+        "sourceQualification": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\icon-clear-sdk-win-r1-source-qualification.json",
+          "sha256": "4af68ee60b834996fa7003a78e37f50aab0ed4a6945bf6d48414bf4577a47a38",
+          "inputCount": 12063
+        },
+        "sdk": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\icon-clear-sdk-win-r1\\results.json",
+          "sha256": "107b094f735d61c78098276d6c8a79b5e2e869d3b2cd0d4b86c973ed1240a631",
+          "commands": 4
+        },
+        "nativeClients": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\icon-clear-native-win-r2\\results.json",
+          "sha256": "7043e10487598d1b8e90e0a41a9c188f0844c37ae0b157571e024e91b7173010",
+          "commands": 24
+        },
+        "runtime": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\icon-clear-sdk-win-r1\\host\\xge3_host.dll",
+          "sha256": "465f5a5eb27c1f7f66a6e6c78136f71f02b729e7414fdb41225b057a89c99e17",
+          "bytes": 9583663,
+          "byteDelta": 512
+        }
+      },
+      "sourceQualification": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\icon-clear-sdk-win-r1-source-qualification.json",
+        "sha256": "4af68ee60b834996fa7003a78e37f50aab0ed4a6945bf6d48414bf4577a47a38",
+        "inputCount": 12063
+      }
+    },
+    "linux": {
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\icon-clear-models-linux-r1\\results.json",
+        "sha256": "a93f6a70638d6dc566ececac5e4da427cd19dea3e060c60195562d34d242c499",
+        "commands": 15
+      },
+      "programs": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/icon-clear-models-linux-r1/foreign_xui_icon_models-dynamic",
+          "sha256": "597c45d3d026641ac84ce50dcb6a2f65783fedf952562432b008d6d8697bb6d4",
+          "bytes": 5414500,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/icon-clear-models-linux-r1/foreign_xui_icon_models-static",
+          "sha256": "7be7f099530c5b3d2c754e6e61068d16e9cd1c7faae90af84dd7308e5d71586e",
+          "bytes": 2237408,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ],
+      "native": {
+        "sourceQualification": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\icon-clear-sdk-linux-r1-source-qualification.json",
+          "sha256": "d726f7e0b57c8798a392f1afc776bc5c21c8631f25845ecc546eb1e74ff66cbc",
+          "inputCount": 12063
+        },
+        "sdk": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\icon-clear-sdk-linux-r1\\results.json",
+          "sha256": "3d36ce6e528d2cf07e4587c3e5ac26737e9631cbc63a0f0d016509da045bd930",
+          "commands": 4
+        },
+        "nativeClients": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\icon-clear-native-linux-r1\\results.json",
+          "sha256": "640f3d5b4f8741833751cfe3769bb403a82f437c050d46dbe2f416bfb3158e24",
+          "commands": 24
+        },
+        "runtime": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\icon-clear-sdk-linux-r1\\host\\libxge3_host.so",
+          "sha256": "1aff8bd5393d881d8a6879accca1419380c43d96053f6fe5c693ca910a987426",
+          "bytes": 10441392,
+          "byteDelta": 0
+        }
+      },
+      "sourceQualification": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\icon-clear-sdk-linux-r1-source-qualification.json",
+        "sha256": "d726f7e0b57c8798a392f1afc776bc5c21c8631f25845ecc546eb1e74ff66cbc",
+        "inputCount": 12063
+      }
+    }
+  },
+  "sourceBoundary": "Both original all-file producer checks included three generated HarfBuzz .o/.d/.json shared-cache outputs. Their raw failures are preserved. Independent source qualifications exclude only these exact compiler outputs, verify every other original frozen byte and every staged runtime/SDK output, and record the corrected 12063 source inputs unchanged. No native source was changed or rebuilt for that harness correction.",
+  "limits": [
+    "No retained custom/formatter closure integration claim.",
+    "Loader/draw/prepare callbacks and other mutation paths still require their own reentry qualification.",
+    "Native engine O2 and GCC O0/O2 clients; no sanitizer, device/window/network or final-delivery claim."
+  ],
+  "declarationInventory": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-icon-models-r2\\surface.json",
+    "sha256": "70b0fe4a9e44cf848b5ad3d0554828881e0b1c3a68bc1e2b295f53268d13198e",
+    "declarationPresenceOnly": true,
+    "nativeTrackedTreeDirty": true,
+    "population": {
+      "functions": 5156,
+      "types": 979,
+      "constants": 1838,
+      "functionMacros": 7,
+      "callableFields": 184,
+      "enums": 40,
+      "enumConstants": 316
+    },
+    "declarationPresent": {
+      "functions": 3593,
+      "types": 366,
+      "constants": 1820,
+      "callableFields": 66,
+      "enumConstants": 316
+    }
+  }
+}

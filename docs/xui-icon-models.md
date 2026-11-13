@@ -48,3 +48,19 @@ CPU-only gate. File/memory/custom sources, owned formatter/custom closures,
 same-object reentry across loaders/drawing, full graphics and final matching
 SDK/compiler/IDE installation remain separate work. Full XGE/XUI/Document
 integration remains active.
+
+The successor native SDK includes `7f167dd1`: `IconClear` temporarily retains
+its category through finalizers which unregister that category or clear the
+registry. The existing Context receipt alone did not protect the category
+array. Four reentry routes, 16 diagnostic combinations and 1000 zero-heap empty
+clears pass in both platforms' 24-command native gate; this document's
+15-command language gate also passes against both successor SDKs. There is no
+public ABI or private layout change in that fix. The native DLL/DSO each grows
+by 512 bytes relative to the watch SDK.
+
+`xui-icon-clear-reentry-20261113.json` indexes the successor. The initial
+producer's broad freeze incorrectly included three generated HarfBuzz cache
+outputs. Those failures are preserved. Independent receipts exclude only the
+three exact compiler outputs, verify all remaining 12,063 original inputs and
+all staged output hashes, and record them unchanged. This does not change the
+scope of the runtime tests or turn declaration presence into full acceptance.
