@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 struct xide_edit_request {
- volatile int32 references;xatomic32 reasons;uint64_t token;int request;
+ volatile int32 references;xatomic32 reasons,callClaimed;uint64_t token;int request;
  size_t count,bytes,files;const char** paths;xls_sync* sync;xvalue* catalog;
  xide_edit_request_model models[];
 };
@@ -22,7 +22,7 @@ xide_edit_request* xideEditRequestCreate(uint64_t token,int request,const xls_sy
   if(n>262145||n>2u*1024u*1024u-pathBytes){fail(e,XIDE_MODEL_MEMORY,"Edit request workspace metadata limit exceeded.");return NULL;}pathBytes+=n;}
  bytes+=pathBytes;
  xide_edit_request* p=xrtCalloc(1,bytes);if(!p){fail(e,XIDE_MODEL_MEMORY,"Cannot allocate edit request metadata.");return NULL;}
- p->references=1;xrtAtomic32Init(&p->reasons,0);p->token=token;p->request=request;p->count=count;p->files=files;p->bytes=bytes;p->paths=(const char**)(p->models+count);char* next=(char*)(p->paths+files);size_t left=bytes-(size_t)(next-(char*)p);int okay=1;
+ p->references=1;xrtAtomic32Init(&p->reasons,0);xrtAtomic32Init(&p->callClaimed,0);p->token=token;p->request=request;p->count=count;p->files=files;p->bytes=bytes;p->paths=(const char**)(p->models+count);char* next=(char*)(p->paths+files);size_t left=bytes-(size_t)(next-(char*)p);int okay=1;
  for(size_t i=0;okay&&i<count;++i){xide_edit_request_model m={0};okay=modelAt(user,i,&m)&&(!m.open||(m.identity&&m.revision));p->models[i]=m;
   const char* strings[]={m.path,m.language};const char** targets[]={&p->models[i].path,&p->models[i].language};for(size_t j=0;okay&&j<2;++j)if(strings[j]){size_t n=strlen(strings[j])+1;if(n>left){okay=0;break;}memcpy(next,strings[j],n);*targets[j]=next;next+=n;left-=n;}}
  for(size_t i=0;okay&&i<files;++i){const char* path=workspace->items[i].path;size_t n=path?strlen(path)+1:0;if(!n||n>262145||n>left){okay=0;break;}memcpy(next,path,n);p->paths[i]=next;next+=n;left-=n;}
@@ -38,6 +38,8 @@ void xideEditRequestInvalidate(xide_edit_request* p,unsigned reasons)
 {if(p&&reasons)xrtAtomic32FetchOr(&p->reasons,(int32)reasons,XMEMORY_RELEASE);}
 unsigned xideEditRequestInvalidated(const xide_edit_request* p)
 {return p?(unsigned)xrtAtomic32Load(&p->reasons,XMEMORY_ACQUIRE):XIDE_EDIT_REQUEST_ENDED;}
+int xideEditRequestClaimCall(xide_edit_request* p)
+{uint32 expected=0;return p&&!xideEditRequestInvalidated(p)&&xrtAtomic32CompareExchange(&p->callClaimed,&expected,1,XMEMORY_ACQ_REL,XMEMORY_ACQUIRE)&&!xideEditRequestInvalidated(p);}
 uint64_t xideEditRequestToken(const xide_edit_request* p){return p?p->token:0;}
 int xideEditRequestId(const xide_edit_request* p){return p?p->request:0;}
 size_t xideEditRequestModelCount(const xide_edit_request* p){return p?p->count:0;}

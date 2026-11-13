@@ -2,6 +2,7 @@
 #define XIDE_EDIT_REQUEST_VIEW_H
 #include "app/xide_app.h"
 #include "services/edit_request.h"
+#include "services/edit_call.h"
 /* UI owner, one outstanding edit request per primary view. Capture only an
  * acknowledged, exact native sync/catalog and reserve an unused transport ID.
  * Return owns a reference for worker handoff; this does NOT send a request or
@@ -19,4 +20,9 @@ int xideLanguageEditRequestOwned(xide_app*,const xide_edit_request*);
 /* Exact active request only. Invalidates, unlinks and drops the view reference;
  * caller keeps its reference and releases large immutable assets off-thread. */
 int xideLanguageEditRequestEnd(xide_app*,xide_edit_request*);
+/* Copy the independently owned transport identity before worker preparation.
+ * Send repeats the complete owner fence, then uses the call's private packet
+ * and reserved ID on that exact connection. No encoding or body scan here. */
+uint64_t xideLanguageEditRequestConnection(xide_app*,const xide_edit_request*);
+int xideLanguageEditCallSend(xide_app*,xide_edit_call*);
 #endif

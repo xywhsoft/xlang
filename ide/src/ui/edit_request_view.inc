@@ -46,3 +46,7 @@ int xideLanguageEditRequestEnd(xide_app* app,xide_edit_request* request)
  xide_language_view* v=app?app->languageView:NULL;if(!request||!v||v->editRequest!=request)return 0;
  xideEditRequestInvalidate(request,XIDE_EDIT_REQUEST_ENDED);v->editRequest=NULL;v->editClient=NULL;xideEditRequestRelease(request);return 1;
 }
+uint64_t xideLanguageEditRequestConnection(xide_app* app,const xide_edit_request* request)
+{return xideLanguageEditRequestOwned(app,request)?xideLanguageClientIdentity(app->languageView->client):0;}
+int xideLanguageEditCallSend(xide_app* app,xide_edit_call* call)
+{xide_edit_request* request=(xide_edit_request*)xideEditCallRequest(call);return xideLanguageEditRequestCurrent(app,request)&&xideEditCallSend(call,app->languageView->client);}

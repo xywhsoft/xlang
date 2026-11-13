@@ -24,10 +24,19 @@ int xideLanguageBatchAppend(xide_language_batch* batch,const char* method,const 
 int xideLanguageBatchAppendRequest(xide_language_batch* batch,const char* method,const xvalue* params,int request);
 void xideLanguageBatchDestroy(xide_language_batch* batch);
 int xideLanguageBatchSend(xide_language_client* client,xide_language_batch* batch);
+/* Same atomic splice, bound to this process-lifetime connection identity.
+ * Nonempty batch only. Admission CASes caller's stable flag0->1 under the
+ * transport lock BEFORE exposing bytes to the sender. Failure takes neither
+ * batch nor flag. No callback, encoding or allocation under this lock. Caller
+ * retains flag storage through the call; transport keeps no flag pointer. */
+int xideLanguageBatchSendBound(xide_language_client*,xide_language_batch*,uint64_t,xatomic32* admitted);
 enum xide_language_client_state { XIDE_LS_STARTING,XIDE_LS_RUNNING,XIDE_LS_STOPPED,XIDE_LS_FAILED };
 xide_language_client* xideLanguageClientStart(const char* program,const char* compiler,const char* directory,xide_model_error* error);
 /* Deep-copies up to 64 literal arguments before starting the stdio worker. */
 xide_language_client* xideLanguageClientStartProcess(const xide_language_client_spec* spec,xide_model_error* error);
+/* Immutable nonzero process-lifetime identity, never reused or wrapped. Copy
+ * on the owner before worker handoff; no pointer or client lifetime is loaned. */
+uint64_t xideLanguageClientIdentity(const xide_language_client*);
 /* Worker callback only wakes the owner; it must not mutate UI. User data must
    remain valid until Stop joins the worker, including during callback removal. */
 void xideLanguageClientSetWake(xide_language_client* client,void (*wake)(void*),void* user);

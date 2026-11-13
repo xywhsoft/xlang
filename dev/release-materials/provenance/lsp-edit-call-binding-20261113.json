@@ -1,0 +1,158 @@
+{
+  "schema": 1,
+  "date": "2026-11-13",
+  "stage": "M7b5x",
+  "scope": "Connection-bound one-shot edit calls with immutable captured intent, worker-encoded metadata packet, queue admission publication and strict owned-response routing",
+  "implementationAccepted": true,
+  "goalComplete": false,
+  "performanceQualified": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "e154197eac487f1dada35ad0a08b8c61bea59ee2",
+  "ownedSources": {
+    "ide/src/services/language_client.c": "e05c8984c87cd2ab0b40e1addd4e53ff4ca04a9d33d32787e500432db6847703",
+    "ide/src/services/language_client.h": "20974e3997b9a5d7a645c4e2898abc6676852a7237cbf6c1cefcfcaae132b3a5",
+    "ide/src/services/edit_request.c": "0f44c83d99041b4ee07e022efecc0e89056649d6b739ff2d72033aa4431e692a",
+    "ide/src/services/edit_request.h": "469865474e9e4aabfe35c7b58fcf46bac0e34e89c060292dbc79bac9df084b59",
+    "ide/src/services/edit_call.c": "4305692f7b8a1d1eb33c8d68ca136fa023eb7583de89075207c3273182c1e930",
+    "ide/src/services/edit_call.h": "511063744a54a937d5003eded9fc2621f95c2e734b526b9ab5df0d2ba05ef879",
+    "ide/src/ui/edit_request_view.h": "96e5d55551642464eb29280b5b55b58161de58d0e0c9c155c10a67a8961ba0f1",
+    "ide/src/ui/edit_request_view.inc": "3d5cba9b20c6a11e4c7c65c480f0340e45d50f43985f9ce6cabc382879da06c7",
+    "ide/tests/edit_request_view_test.c": "a956a07a9a59e323f8c2b9435e68a659e15ea1735bac37542fee2588aca1fcb7",
+    "ide/tests/language_client_binding_test.c": "1592996c5075f0296c288ad7394dfe264dd370e6764d0b86f5a2321345fb63c0",
+    "ide/tests/edit_call_test.c": "cb17b5c497cb1849151e115e10d2f8ed7a6226c10d533321f3dee1d396a74089",
+    "ide/tools/build.ps1": "5be770e12e963e92c5d26be7952792523e66b0a2a9d3186afbf87fafcb276087",
+    "ide/docs/lsp-edit-call-binding.md": "2febee9aa70a21789e19261d433f07d58253dcf5634bf90dd825188ce241b3ae"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-edit-call-binding-20261113.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-edit-call-binding-20261113/stage-sources.tar.gz",
+      "sha256": "e311f799375dfc99ec4017ae428a850bc38a3dc1101e1042997af25f24f02406",
+      "bytes": 45815,
+      "entries": 14,
+      "preservedFromInitialCollection": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-edit-call-binding-20261113/stage-sources.tar.gz.manifest.json",
+      "sha256": "25e13a6e69c2d570f778bd50bf74555bebc414b63c4c7205e5f77c8a2aee34b9",
+      "bytes": 3175
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-edit-call-binding-20261113/actual-builds-and-validation.tar.gz",
+      "sha256": "05664440babca6041522fd61da84668366d0ac7793d9ad5b4893c8f4336483dc",
+      "bytes": 211055726,
+      "entries": 7423,
+      "uniquePayloads": 3862,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-edit-call-binding-20261113/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "5850290a222a9df7f39c27a6682a53aab5853b2203f8a1422dfa7cbc258eeed7",
+      "bytes": 2791164
+    }
+  },
+  "currentBindings": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-edit-call-binding-20261113\\final-bindings.json",
+    "sha256": "11832421c557d8d3af598905d7041b5c0a62ac18500f5879ee9a6ca54f2061c8"
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "sdkInherited": {
+    "index": "dev/release-materials/provenance/lsp-dpi-startup-20261112.json",
+    "indexSha256": "727ae55e191b104683a756dbe85a03f0add12ed40e60c4d6166face2f50f4e5d",
+    "dllSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "compiledUnitsThisStage": 0,
+    "matchedSetPreserved": true
+  },
+  "nativeService": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-edit-call-binding-20261113\\native-v1\\xlang-ls.exe",
+    "sha256": "266128ea502c3979ef595c25244523e7d6b4dfd153dabca09fe7e1d0838faa3f",
+    "serviceUnitsRebuiltThisStage": 0,
+    "actualLinkedObjectsRechecked": 101,
+    "actualCurrentSourceHeaderEntries": 284,
+    "unusedHistoricalClientAndAuxiliaryObjectsExcluded": 8,
+    "reuseProof": {
+      "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-edit-call-binding-20261113\\native-reuse-proof.json",
+      "sha256": "400c9bc8d597af971586787834dad3b61a6759c20336257da00a54adb1624e62"
+    },
+    "finalStandaloneFixtureUnits": 8,
+    "fullNativeFrontendAssetAlignmentQualified": false
+  },
+  "correctness": {
+    "connectionAssertionsPerOwner": 1047,
+    "concurrentIdentitiesPerOwner": 1024,
+    "callAssertionsPerOwner": 65,
+    "requestScopeAssertions": 69,
+    "requestAssertions": 58,
+    "requestViewAssertions": 167,
+    "receiverAssertions": 3426,
+    "analysisLeaseAssertionsThisRun": 2387,
+    "guiProductionUnitsFinal": 131,
+    "guiRegressionSuitesFinal": 55,
+    "rejectedMutants": 12,
+    "actualGuiFramesEach": 24,
+    "nonzeroSaturatingProcessConnectionIdentities": true,
+    "onePreparedCallPerRequest": true,
+    "queuedFlagBeforeByteExposure": true,
+    "sameEncodedQueueNodeOwnership": true,
+    "exactSyncedUriVersionModelAndUtf16Intent": true,
+    "maxUint64TokenWithoutJsonNumericLoss": true,
+    "methodIdTokenConnectionAndInputReceiptBinding": true,
+    "strictTypedResponseAndOneReply": true,
+    "unmatchedRootOwnershipPreserved": true,
+    "noResponseCloneOrReencoding": true,
+    "actualIdeFullCurrentRejectionAndRealMethodNotFoundReply": true,
+    "rawCandidateNotAnalysisOrWriteApproval": true,
+    "standardErrorCodeZeroAndEmptyMessage": true,
+    "independentCancelledAndErrorLifetime": true,
+    "actualCAndXlangTypingDeleteUndoImeFocus": true,
+    "allRuntimeTestAliasesRemoved": true,
+    "userTemporaryDirectoriesPreserved": true,
+    "currentProductionAndActualDependenciesBound": true,
+    "nativeFixtureFilesRetained": 0,
+    "guiFixtureFilesRetained": 4,
+    "rawFailedTestBatchesPreserved": true
+  },
+  "externalHelper": {
+    "proxy": {
+      "archive": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\lsp-completion-error-isolation-20261112\\actual-builds-and-validation.tar.gz",
+      "entry": "bound-inputs/20c68dabd23c25637a08/xui_test_proxy.c",
+      "sha256": "740c86aee90b1373324909c74d3ae6c9f446b0c52c84c3ea84cea141c53bdc48"
+    },
+    "header": {
+      "repository": "D:/GIT/xge",
+      "commit": "1ba93e6b3ea49e80d9d821894811caef599634f3",
+      "path": "tests/xui/xui_test_proxy.h",
+      "sha256": "b42cd48cd68966d969575f717ade56f357dacbcabce746730c9bfb275dd0a80a"
+    },
+    "liveXgeUnmodified": true
+  },
+  "evidenceNotes": [
+    "Production GUI recompiles131 units after the opaque transport layout and request/call interfaces change. Native server bytes are unchanged. Reuse checks recompute actual compiler closures for101 service-linked objects including core members, with284 current source/header entries. Eight old client/auxiliary objects from the prior109-unit build are excluded. All current client/support/test consumers linked into the new native programs are newly built.",
+    "The first preparation helper fails its test-registration anchor assertion. The production build proceeds from its frozen complete production sources. Registration is corrected only inside the Tests branch after freezing; that branch is not used by the production command. Final audit proves the entire production sources/flags prefix identical and accounts for exactly the private object-root and test-registration deltas.",
+    "GUI-targeted-v1 preserves two real Werror misleading-indentation fixture diagnostics. GUI-targeted-v2 passes all five programs. Native-test-v1 passes identity checks but preserves a call-fixture Windows-version macro redefinition diagnostic after forced native headers. A conditional platform guard yields native-test-v2 success. Later test-owned client cleanup changes only the call fixture; final GUI-v4/native-final-v3 programs are separately frozen and executed.",
+    "Acceptance composes four unchanged GUI programs and the final call program, plus the unchanged native identity program/support objects and final native call program. Exact final sources and actual linked executables are bound. No unexecuted earlier snapshot copy is substituted for the final fixture.",
+    "Transport-v1 passes3426 receiver checks but invokes the existing lease fixture without its required arguments; that failed invocation remains raw. Transport-v2 supplies data directory, actual root-runtime server alias and compiler, passing2387 lease checks. Explicit acceptance counts only the two actually passed programs.",
+    "Twelve actual implementation mutants exit1 at fixture assertions. Cases remove peer/ID/method/token/input/scope binding, one-call claim, reply replay gates, UTF16 checking, cancellation/current flags, send peer checking or atomic send admission. Compile failures and crashes do not count.",
+    "The initial collector incorrectly required a disk file in the native fixture working directories. Native metadata/stdIO fixtures intentionally leave these directories file-empty. Its raw log and verified source archive are preserved unchanged; the corrected collection retains all GUI disk fixtures and the actual program/log evidence.",
+    "Positive routing uses an explicitly controlled stdio peer whose candidate contains intentionally invalid source proofs; routing success is not source admission. Actual IDE integration instead receives the unchanged real server standard -32601 error because no candidate RPC exists yet. No new native rename method or standard capability is claimed.",
+    "New identities add immutable storage and constructor atomic work. The bound path adds an admission CAS and immutable call metadata/encoding. Existing queue ownership and response roots are reused, but no whole-IDE latency/RSS, internal allocator failure matrix or zero-overhead claim is inferred."
+  ],
+  "limits": [
+    "The candidate RPC, full proof/source/member/static-analysis/WorkspaceEdit decoder, background host/controller, negotiated capability and protocol cancellation still need implementation. Routing Candidate returns untrusted metadata only.",
+    "Source/physical identity, closed-target and owned-write publication policy, full owner Current gates, confirmation/recovery/startup replay, transactions and standard rename/applyEdit activation remain open.",
+    "Connection identities are process-lifetime metadata, not authentication; the caller must obtain peer identity and raw byte length from the actual transport/parser. Local ReplyCurrent is not the complete owner or disk fence.",
+    "Existing8MiB frame, context/scope and shared snapshot limits apply; encoder/DOM/allocator/temporary work and OS resources are additional. Failure before successful preparation may be retried, but a successfully claimed request never resets.",
+    "Other synchronous readers, latest engine/native frontend asset alignment, deep unprefixed xlp paths, analysis-configuration cache-count regression and full performance/resource/longevity qualification remain open.",
+    "C LSP remains disabled. No DAP/debug/runtime completion or Linux/sanitizer qualification in this stage."
+  ],
+  "postCommitReceipt": "dev/release-materials/provenance/lsp-edit-call-binding-20261113/postcommit.json"
+}

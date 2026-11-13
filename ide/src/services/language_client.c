@@ -9,9 +9,17 @@
 #define QUEUE_COUNT 2048u
 typedef struct node { struct node* next; char* bytes; size_t length,offset; xvalue* value; } node;
 struct xide_language_batch { node *head,*tail;size_t bytes,count; };
-struct xide_language_client { CRITICAL_SECTION lock; HANDLE worker; volatile LONG stop; xmutex changedLock;xcond changed;int changedLockReady,changedReady,signaled; char *program,*directory; char** arguments; size_t argumentCount; enum xide_language_client_state state; char error[768]; node *sendHead,*sendTail,*receiveHead,*receiveTail; size_t sendBytes,receiveBytes,sendCount,receiveCount; void (*wake)(void*); void* wakeUser; xide_language_receive_proc receiver;void* receiverUser;
+struct xide_language_client { uint64_t identity;CRITICAL_SECTION lock; HANDLE worker; volatile LONG stop; xmutex changedLock;xcond changed;int changedLockReady,changedReady,signaled; char *program,*directory; char** arguments; size_t argumentCount; enum xide_language_client_state state; char error[768]; node *sendHead,*sendTail,*receiveHead,*receiveTail; size_t sendBytes,receiveBytes,sendCount,receiveCount; void (*wake)(void*); void* wakeUser; xide_language_receive_proc receiver;void* receiverUser;
  struct {int known,supported,invalidated,suspendQueued,resumeQueued,wantResume,resumeAck,failed;int64_t token,last;enum xide_language_lease_state phase;} lease;
 };
+static xatomic64 connectionSerial=XRT_ATOMIC64_INIT(0);
+static uint64_t nextConnection(void)
+{
+ uint64 value=xrtAtomic64Load(&connectionSerial,XMEMORY_RELAXED);
+ while(value!=UINT64_MAX){uint64 next=value+1;if(xrtAtomic64CompareExchange(&connectionSerial,&value,next,XMEMORY_RELAXED,XMEMORY_RELAXED))return next;}
+ return 0;
+}
+uint64_t xideLanguageClientIdentity(const xide_language_client* c){return c?c->identity:0;}
 static void signalTransport(void* user)
 { xide_language_client* c=user;if(c->changedReady) {xrtMutexLock(&c->changedLock);c->signaled=1;xrtCondSignal(&c->changed);xrtMutexUnlock(&c->changedLock);} }
 static xwaitresult waitTransport(xide_language_client* c,int64 timeout)
@@ -46,11 +54,12 @@ int xideLanguageBatchAppend(xide_language_batch* batch,const char* method,const 
 {return batchAppend(batch,method,params,0);}
 int xideLanguageBatchAppendRequest(xide_language_batch* batch,const char* method,const xvalue* params,int request)
 {return request>0 && batchAppend(batch,method,params,request);}
-int xideLanguageBatchSend(xide_language_client* c,xide_language_batch* batch)
+static int sendBatch(xide_language_client* c,xide_language_batch* batch,uint64_t identity,xatomic32* admitted)
 {
  if(!c || !batch) return 0;
  EnterCriticalSection(&c->lock);
- int okay=!c->lease.token && !InterlockedCompareExchange(&c->stop,0,0) && c->state<=XIDE_LS_RUNNING && batch->count<=QUEUE_COUNT-c->sendCount && batch->bytes<=QUEUE_BYTES-c->sendBytes;
+ int okay=(!identity||identity==c->identity) && !c->lease.token && !InterlockedCompareExchange(&c->stop,0,0) && c->state<=XIDE_LS_RUNNING && batch->count<=QUEUE_COUNT-c->sendCount && batch->bytes<=QUEUE_BYTES-c->sendBytes;
+ if(okay&&admitted){uint32 pending=0;okay=batch->head&&xrtAtomic32CompareExchange(admitted,&pending,1,XMEMORY_RELEASE,XMEMORY_RELAXED);}
  if(okay && batch->head) {
   if(c->sendTail) c->sendTail->next=batch->head;else c->sendHead=batch->head;
   c->sendTail=batch->tail;c->sendCount+=batch->count;c->sendBytes+=batch->bytes;
@@ -58,6 +67,9 @@ int xideLanguageBatchSend(xide_language_client* c,xide_language_batch* batch)
  int queued=okay && batch->head!=NULL;
  LeaveCriticalSection(&c->lock);if(queued) signalTransport(c);if(okay) free(batch);return okay;
 }
+int xideLanguageBatchSend(xide_language_client* c,xide_language_batch* batch){return sendBatch(c,batch,0,NULL);}
+int xideLanguageBatchSendBound(xide_language_client* c,xide_language_batch* batch,uint64_t identity,xatomic32* admitted)
+{return identity&&admitted?sendBatch(c,batch,identity,admitted):0;}
 static void wakeOwner(xide_language_client* c)
 { EnterCriticalSection(&c->lock); void (*wake)(void*)=c->wake; void* user=c->wakeUser; LeaveCriticalSection(&c->lock); if(wake) wake(user); }
 void xideLanguageClientSetWake(xide_language_client* c,void (*wake)(void*),void* user)
@@ -128,6 +140,7 @@ xide_language_client* xideLanguageClientStartProcess(const xide_language_client_
  if(!spec || spec->argumentCount>64 || (spec->argumentCount && !spec->arguments) || !validArgument(spec->program,&bytes,1) || !validArgument(spec->directory,&bytes,1)) { fail(e,"Invalid stdio server specification."); return NULL; }
  for(size_t i=0;i<spec->argumentCount;++i) if(!validArgument(spec->arguments[i],&bytes,0)) { fail(e,"Invalid stdio server argument."); return NULL; }
  xide_language_client* c=calloc(1,sizeof(*c)); if(!c) { fail(e,"Cannot allocate stdio client."); return NULL; }
+ c->identity=nextConnection();if(!c->identity){free(c);fail(e,"Stdio connection identity exhausted.");return NULL;}
  InitializeCriticalSection(&c->lock);c->changedLockReady=xrtMutexInit(&c->changedLock);c->changedReady=c->changedLockReady && xrtCondInit(&c->changed);
  if(!c->changedReady) {xideLanguageClientStop(c);fail(e,"Cannot initialize stdio transport notification.");return NULL;}
  c->program=copy(spec->program); c->directory=copy(spec->directory); c->argumentCount=spec->argumentCount;

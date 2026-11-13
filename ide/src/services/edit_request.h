@@ -29,6 +29,10 @@ void xideEditRequestRelease(xide_edit_request*);
 /* Thread-safe irreversible invalidation. Existing reasons are never cleared. */
 void xideEditRequestInvalidate(xide_edit_request*,unsigned reasons);
 unsigned xideEditRequestInvalidated(const xide_edit_request*);
+/* Worker preparation reserves this request's one transport call exactly once.
+ * No reset, even if the prepared call is later released without sending it.
+ * Does not authorize transport or source edits. */
+int xideEditRequestClaimCall(xide_edit_request*);
 uint64_t xideEditRequestToken(const xide_edit_request*);
 int xideEditRequestId(const xide_edit_request*);
 size_t xideEditRequestModelCount(const xide_edit_request*);
