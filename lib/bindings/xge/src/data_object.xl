@@ -23,7 +23,7 @@ export extern "struct xge_data_object_t*" class CallbackDataObject @header("xge3
  native point handle
  extern "xgeDataObjectShareOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackDataObject) func share() as DataObject
  extern "xgeDataObjectFormatCount" @no_raise get formatCount() as c_int
- extern "xgeDataObjectFormatAt" @no_raise func formatAt(c_int index) as string?
+ extern "xgeDataObjectFormatAt" @no_raise @c_result("cstring") func formatAt(c_int index) as string?
  extern "xgeDataObjectHas" @no_raise @c_cstr(0) func has(string format) as c_int
  extern "xgeDataObjectGet" @no_raise @c_cstr(0) @c_span(1,"void*","size_t") @c_output(4,0) func readInto(string format,Buffer? output=null) as c_size
 end
@@ -32,7 +32,7 @@ export extern "xge_data_object" class DataObject @header("xge3_runtime.h") @life
  extern "xgeDataObjectShareOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackDataObject) func share() as DataObject
  extern "xgeDataObjectIsOwned" @no_raise func isOwned() as bool
  extern "xgeDataObjectFormatCount" @no_raise get formatCount() as c_int
- extern "xgeDataObjectFormatAt" @no_raise func formatAt(c_int index) as string?
+ extern "xgeDataObjectFormatAt" @no_raise @c_result("cstring") func formatAt(c_int index) as string?
  extern "xgeDataObjectHas" @no_raise @c_cstr(0) func has(string format) as c_int
  extern "xgeDataObjectSet" @no_raise @c_cstr(0) @c_span(1,"const void*","size_t") @c_result("status",0) func set(string format,string data)
  extern "xgeDataObjectSet" @no_raise @c_cstr(0) @c_span(1,"const void*","size_t") @c_result("status",0) func set(string format,bytes data)

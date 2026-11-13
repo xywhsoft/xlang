@@ -1,0 +1,600 @@
+{
+  "scope": "Generate compile/ABI probes for declared direct borrowed C-string results.\n\nThe declaration itself records the reviewed return contract. This generator\ndoes not infer borrowing from a native pointer or certify runtime lifetimes.\n",
+  "rows": [
+    {
+      "probe": "cstringProbe0",
+      "symbol": "xgeDataObjectFormatAt",
+      "language": "xge.CallbackDataObject.formatAt",
+      "source": "lib/bindings/xge/src/data_object.xl",
+      "line": 26
+    },
+    {
+      "probe": "cstringProbe1",
+      "symbol": "xgeDataObjectFormatAt",
+      "language": "xge.DataObject.formatAt",
+      "source": "lib/bindings/xge/src/data_object.xl",
+      "line": 35
+    },
+    {
+      "probe": "cstringProbe2",
+      "symbol": "xgeGetTitle",
+      "language": "xge.getTitle",
+      "source": "lib/bindings/xge/src/functions.xl",
+      "line": 35
+    },
+    {
+      "probe": "cstringProbe3",
+      "symbol": "xuiAccordionGetSectionTitle",
+      "language": "xui.Accordion.getSectionTitle",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 3734
+    },
+    {
+      "probe": "cstringProbe4",
+      "symbol": "xuiBreadcrumbGetItemText",
+      "language": "xui.Breadcrumb.getItemText",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 1688
+    },
+    {
+      "probe": "cstringProbe5",
+      "symbol": "xuiBreadcrumbGetSeparator",
+      "language": "xui.Breadcrumb.getSeparator",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 1696
+    },
+    {
+      "probe": "cstringProbe6",
+      "symbol": "xuiBuiltinAssetGetName",
+      "language": "xui.builtinAssetGetName",
+      "source": "lib/bindings/xui/src/assets.xl",
+      "line": 2
+    },
+    {
+      "probe": "cstringProbe7",
+      "symbol": "xuiButtonGetText",
+      "language": "xui.Button.getText",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 2675
+    },
+    {
+      "probe": "cstringProbe8",
+      "symbol": "xuiCascaderGetPlaceholder",
+      "language": "xui.Cascader.getPlaceholder",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 5475
+    },
+    {
+      "probe": "cstringProbe9",
+      "symbol": "xuiCascaderGetSelectedText",
+      "language": "xui.Cascader.getSelectedText",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 5409
+    },
+    {
+      "probe": "cstringProbe10",
+      "symbol": "xuiCascaderGetSeparator",
+      "language": "xui.Cascader.getSeparator",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 5479
+    },
+    {
+      "probe": "cstringProbe11",
+      "symbol": "xuiChartGetTitle",
+      "language": "xui.Chart.getTitle",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 2042
+    },
+    {
+      "probe": "cstringProbe12",
+      "symbol": "xuiCheckBoxGetText",
+      "language": "xui.CheckBox.getText",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 2760
+    },
+    {
+      "probe": "cstringProbe13",
+      "symbol": "xuiCodeEditGetInlineCompletion",
+      "language": "xui.CodeEdit.getInlineCompletion",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 2189
+    },
+    {
+      "probe": "cstringProbe14",
+      "symbol": "xuiCodeEditGetLanguage",
+      "language": "xui.CodeEdit.getLanguage",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 2163
+    },
+    {
+      "probe": "cstringProbe15",
+      "symbol": "xuiCodeEditGetLastError",
+      "language": "xui.CodeEdit.getLastError",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 2297
+    },
+    {
+      "probe": "cstringProbe16",
+      "symbol": "xuiCodeEditGetMenuTitle",
+      "language": "xui.CodeEdit.getMenuTitle",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 2169
+    },
+    {
+      "probe": "cstringProbe17",
+      "symbol": "xuiCodeFindScopeGetEditorName",
+      "language": "xui.CodeFindScope.editorName",
+      "source": "lib/bindings/xui/src/find.xl",
+      "line": 15
+    },
+    {
+      "probe": "cstringProbe18",
+      "symbol": "xuiCodeFindScopeGetResultEditorName",
+      "language": "xui.CodeFindScope.resultEditorName",
+      "source": "lib/bindings/xui/src/find.xl",
+      "line": 26
+    },
+    {
+      "probe": "cstringProbe19",
+      "symbol": "xuiColorPickerGetHex",
+      "language": "xui.ColorPicker.getHex",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 5521
+    },
+    {
+      "probe": "cstringProbe20",
+      "symbol": "xuiComboBoxGetInputMenuTitle",
+      "language": "xui.ComboBox.getInputMenuTitle",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 5326
+    },
+    {
+      "probe": "cstringProbe21",
+      "symbol": "xuiComboBoxGetItemText",
+      "language": "xui.ComboBox.getItemText",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 5294
+    },
+    {
+      "probe": "cstringProbe22",
+      "symbol": "xuiComboBoxGetPlaceholder",
+      "language": "xui.ComboBox.getPlaceholder",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 5318
+    },
+    {
+      "probe": "cstringProbe23",
+      "symbol": "xuiComboBoxGetText",
+      "language": "xui.ComboBox.getText",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 5314
+    },
+    {
+      "probe": "cstringProbe24",
+      "symbol": "xuiDataObjectFormatAt",
+      "language": "xui.CallbackDataObject.formatAt",
+      "source": "lib/bindings/xui/src/data_object.xl",
+      "line": 34
+    },
+    {
+      "probe": "cstringProbe25",
+      "symbol": "xuiDataObjectFormatAt",
+      "language": "xui.DataObject.formatAt",
+      "source": "lib/bindings/xui/src/data_object.xl",
+      "line": 43
+    },
+    {
+      "probe": "cstringProbe26",
+      "symbol": "xuiDatePickerGetFormat",
+      "language": "xui.DatePicker.getFormat",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 5748
+    },
+    {
+      "probe": "cstringProbe27",
+      "symbol": "xuiDatePickerGetRangeSeparator",
+      "language": "xui.DatePicker.getRangeSeparator",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 5752
+    },
+    {
+      "probe": "cstringProbe28",
+      "symbol": "xuiDatePickerGetText",
+      "language": "xui.DatePicker.getText",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 5806
+    },
+    {
+      "probe": "cstringProbe29",
+      "symbol": "xuiDockPanelGetMenuTitle",
+      "language": "xui.DockPanel.getMenuTitle",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 4018
+    },
+    {
+      "probe": "cstringProbe30",
+      "symbol": "xuiDockPanelGetTooltipText",
+      "language": "xui.DockPanel.getTooltipText",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 4022
+    },
+    {
+      "probe": "cstringProbe31",
+      "symbol": "xuiDockPanelGetWindowTitle",
+      "language": "xui.DockPanel.getWindowTitle",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 3920
+    },
+    {
+      "probe": "cstringProbe32",
+      "symbol": "xuiFileDialogGetDirectory",
+      "language": "xui.FileDialog.directory",
+      "source": "lib/bindings/xui/src/managers.xl",
+      "line": 121
+    },
+    {
+      "probe": "cstringProbe33",
+      "symbol": "xuiFileDialogGetEntryName",
+      "language": "xui.FileDialog.entryName",
+      "source": "lib/bindings/xui/src/managers.xl",
+      "line": 145
+    },
+    {
+      "probe": "cstringProbe34",
+      "symbol": "xuiFileDialogGetEntryPath",
+      "language": "xui.FileDialog.entryPath",
+      "source": "lib/bindings/xui/src/managers.xl",
+      "line": 146
+    },
+    {
+      "probe": "cstringProbe35",
+      "symbol": "xuiFileDialogGetFilter",
+      "language": "xui.FileDialog.filterPattern",
+      "source": "lib/bindings/xui/src/managers.xl",
+      "line": 119
+    },
+    {
+      "probe": "cstringProbe36",
+      "symbol": "xuiFileDialogGetFilterName",
+      "language": "xui.FileDialog.filterName",
+      "source": "lib/bindings/xui/src/managers.xl",
+      "line": 142
+    },
+    {
+      "probe": "cstringProbe37",
+      "symbol": "xuiFileDialogGetFilterPattern",
+      "language": "xui.FileDialog.filterAt",
+      "source": "lib/bindings/xui/src/managers.xl",
+      "line": 143
+    },
+    {
+      "probe": "cstringProbe38",
+      "symbol": "xuiFileDialogGetResultPath",
+      "language": "xui.FileDialog.resultPath",
+      "source": "lib/bindings/xui/src/managers.xl",
+      "line": 128
+    },
+    {
+      "probe": "cstringProbe39",
+      "symbol": "xuiHyperlinkGetText",
+      "language": "xui.Hyperlink.getText",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 1620
+    },
+    {
+      "probe": "cstringProbe40",
+      "symbol": "xuiIconCategoryGetName",
+      "language": "xui.IconCategory.name",
+      "source": "lib/bindings/xui/src/icons.xl",
+      "line": 5
+    },
+    {
+      "probe": "cstringProbe41",
+      "symbol": "xuiIconGetDisplayName",
+      "language": "xui.Icon.displayName",
+      "source": "lib/bindings/xui/src/icons.xl",
+      "line": 21
+    },
+    {
+      "probe": "cstringProbe42",
+      "symbol": "xuiIconGetName",
+      "language": "xui.Icon.name",
+      "source": "lib/bindings/xui/src/icons.xl",
+      "line": 20
+    },
+    {
+      "probe": "cstringProbe43",
+      "symbol": "xuiIconGetTags",
+      "language": "xui.Icon.tags",
+      "source": "lib/bindings/xui/src/icons.xl",
+      "line": 22
+    },
+    {
+      "probe": "cstringProbe44",
+      "symbol": "xuiIconPickerGetPlaceholder",
+      "language": "xui.IconPicker.getPlaceholder",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 5626
+    },
+    {
+      "probe": "cstringProbe45",
+      "symbol": "xuiInputGetMenuTitle",
+      "language": "xui.Input.getMenuTitle",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 2383
+    },
+    {
+      "probe": "cstringProbe46",
+      "symbol": "xuiInputGetPlaceholder",
+      "language": "xui.Input.getPlaceholder",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 2311
+    },
+    {
+      "probe": "cstringProbe47",
+      "symbol": "xuiInputGetText",
+      "language": "xui.Input.getText",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 2307
+    },
+    {
+      "probe": "cstringProbe48",
+      "symbol": "xuiLabelGetText",
+      "language": "xui.Label.getText",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 1578
+    },
+    {
+      "probe": "cstringProbe49",
+      "symbol": "xuiListViewGetItemText",
+      "language": "xui.ListView.getItemText",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 4264
+    },
+    {
+      "probe": "cstringProbe50",
+      "symbol": "xuiMsgBoxGetMessage",
+      "language": "xui.MsgBox.message",
+      "source": "lib/bindings/xui/src/managers.xl",
+      "line": 43
+    },
+    {
+      "probe": "cstringProbe51",
+      "symbol": "xuiMsgBoxGetPresetButtonTitle",
+      "language": "xui.MsgBox.presetButtonTitle",
+      "source": "lib/bindings/xui/src/managers.xl",
+      "line": 52
+    },
+    {
+      "probe": "cstringProbe52",
+      "symbol": "xuiMsgBoxGetTitle",
+      "language": "xui.MsgBox.title",
+      "source": "lib/bindings/xui/src/managers.xl",
+      "line": 41
+    },
+    {
+      "probe": "cstringProbe53",
+      "symbol": "xuiMsgTipGetText",
+      "language": "xui.MsgTip.text",
+      "source": "lib/bindings/xui/src/managers.xl",
+      "line": 158
+    },
+    {
+      "probe": "cstringProbe54",
+      "symbol": "xuiNumericInputGetMenuTitle",
+      "language": "xui.NumericInput.getMenuTitle",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 2531
+    },
+    {
+      "probe": "cstringProbe55",
+      "symbol": "xuiNumericInputGetText",
+      "language": "xui.NumericInput.getText",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 2527
+    },
+    {
+      "probe": "cstringProbe56",
+      "symbol": "xuiPanelGetTitle",
+      "language": "xui.Panel.getTitle",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 1824
+    },
+    {
+      "probe": "cstringProbe57",
+      "symbol": "xuiProgressGetDisplayText",
+      "language": "xui.Progress.getDisplayText",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 1942
+    },
+    {
+      "probe": "cstringProbe58",
+      "symbol": "xuiProgressGetTextTemplate",
+      "language": "xui.Progress.getTextTemplate",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 1940
+    },
+    {
+      "probe": "cstringProbe59",
+      "symbol": "xuiPropertyGridGetValue",
+      "language": "xui.PropertyGrid.getValue",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 4851
+    },
+    {
+      "probe": "cstringProbe60",
+      "symbol": "xuiQrCodeGetValue",
+      "language": "xui.QrCode.getValue",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 1774
+    },
+    {
+      "probe": "cstringProbe61",
+      "symbol": "xuiRadioGetText",
+      "language": "xui.Radio.getText",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 2856
+    },
+    {
+      "probe": "cstringProbe62",
+      "symbol": "xuiStepBarGetTitle",
+      "language": "xui.StepBar.getTitle",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 2000
+    },
+    {
+      "probe": "cstringProbe63",
+      "symbol": "xuiTabsGetItemText",
+      "language": "xui.Tabs.getItemText",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 3612
+    },
+    {
+      "probe": "cstringProbe64",
+      "symbol": "xuiTagInputGetPlaceholder",
+      "language": "xui.TagInput.getPlaceholder",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 2423
+    },
+    {
+      "probe": "cstringProbe65",
+      "symbol": "xuiTagInputGetTag",
+      "language": "xui.TagInput.getTag",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 2413
+    },
+    {
+      "probe": "cstringProbe66",
+      "symbol": "xuiTagInputGetText",
+      "language": "xui.TagInput.getText",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 2417
+    },
+    {
+      "probe": "cstringProbe67",
+      "symbol": "xuiTerminalGetMenuTitle",
+      "language": "xui.Terminal.getMenuTitle",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 3516
+    },
+    {
+      "probe": "cstringProbe68",
+      "symbol": "xuiTextEditGetMenuTitle",
+      "language": "xui.TextEdit.getMenuTitle",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 2651
+    },
+    {
+      "probe": "cstringProbe69",
+      "symbol": "xuiTextEditGetPlaceholder",
+      "language": "xui.TextEdit.getPlaceholder",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 2567
+    },
+    {
+      "probe": "cstringProbe70",
+      "symbol": "xuiTextEditGetText",
+      "language": "xui.TextEdit.getText",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 2563
+    },
+    {
+      "probe": "cstringProbe71",
+      "symbol": "xuiTimeLineViewGetLayerName",
+      "language": "xui.TimeLineView.getLayerName",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 4732
+    },
+    {
+      "probe": "cstringProbe72",
+      "symbol": "xuiTimeLineViewGetMenuTitle",
+      "language": "xui.TimeLineView.getMenuTitle",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 4786
+    },
+    {
+      "probe": "cstringProbe73",
+      "symbol": "xuiToggleGetCheckedText",
+      "language": "xui.Toggle.getCheckedText",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 2944
+    },
+    {
+      "probe": "cstringProbe74",
+      "symbol": "xuiToggleGetText",
+      "language": "xui.Toggle.getText",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 2938
+    },
+    {
+      "probe": "cstringProbe75",
+      "symbol": "xuiToggleGetUncheckedText",
+      "language": "xui.Toggle.getUncheckedText",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 2942
+    },
+    {
+      "probe": "cstringProbe76",
+      "symbol": "xuiToolbarGetHoverTooltip",
+      "language": "xui.Toolbar.getHoverTooltip",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 5169
+    },
+    {
+      "probe": "cstringProbe77",
+      "symbol": "xuiToolbarGetItemTooltip",
+      "language": "xui.Toolbar.getItemTooltip",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 5167
+    },
+    {
+      "probe": "cstringProbe78",
+      "symbol": "xuiTranslate",
+      "language": "xui.Context.translate",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 1017
+    },
+    {
+      "probe": "cstringProbe79",
+      "symbol": "xuiVectorIconGetName",
+      "language": "xui.vectorIconGetName",
+      "source": "lib/bindings/xui/src/assets.xl",
+      "line": 3
+    },
+    {
+      "probe": "cstringProbe80",
+      "symbol": "xuiWidgetGetAccessibleDescription",
+      "language": "xui.Widget.getAccessibleDescription",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 1483
+    },
+    {
+      "probe": "cstringProbe81",
+      "symbol": "xuiWidgetGetAccessibleName",
+      "language": "xui.Widget.getAccessibleName",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 1479
+    },
+    {
+      "probe": "cstringProbe82",
+      "symbol": "xuiWidgetGetStyleClass",
+      "language": "xui.Widget.getStyleClass",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 1535
+    },
+    {
+      "probe": "cstringProbe83",
+      "symbol": "xuiWidgetGetStyleName",
+      "language": "xui.Widget.getStyleName",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 1523
+    },
+    {
+      "probe": "cstringProbe84",
+      "symbol": "xuiWindowGetTitle",
+      "language": "xui.Window.getTitle",
+      "source": "lib/bindings/xui/src/managed.xl",
+      "line": 3806
+    }
+  ]
+}

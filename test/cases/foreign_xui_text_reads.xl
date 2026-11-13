@@ -1,0 +1,135 @@
+// CPU-only model checks: these are independent snapshots, never raw pointers.
+import xge
+import xui
+extern "fixtureIconProxy" @header("test/cases/foreign_xui_icon_models.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
+extern "fixtureIconBudget" @no_raise func budget(c_int allowance)
+extern "fixtureIconHostReferences" @no_raise func hostReferences() as c_int
+extern "fixtureTextReadBegin" @header("test/cases/foreign_xui_text_reads.h") @no_raise func beginCount()
+extern "fixtureTextReadAllocations" @no_raise func allocations() as c_int
+extern "fixtureTextReadWarm" @no_raise @c_result("status",0) func warm(xui.CodeEdit editor)
+extern "fixtureTextReadSnapshot" @no_raise @c_text_view(1) func independent(xui.CodeEdit editor,string value) as c_int
+
+func requiredText(string? value) as string
+    assert value!=null
+    return value as string
+end
+
+func main(...) as int
+    auto proxy=cpuProxy()
+    auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto label=context.labelNative()
+    auto button=context.buttonNative()
+    auto input=context.inputNative()
+    auto multi=context.textEditNative()
+    auto editor=context.codeEditNative()
+    label.setText("label 你好")
+    button.setText("button")
+    input.setText("input")
+    assert multi.setText("line one\nline two")==0
+    assert requiredText(label.getText())=="label 你好" and requiredText(input.getText())=="input"
+    assert requiredText(multi.getText())=="line one\nline two"
+    beginCount()
+    string? buttonResult=button.getText()
+    assert allocations()==1
+    string oldButton=requiredText(buttonResult)
+    button.setText("changed")
+    assert oldButton=="button" and requiredText(button.getText())=="changed"
+    func() as string? readButton=button.getText
+    assert requiredText(readButton())=="changed"
+    button.setText("")
+    assert requiredText(button.getText())==""
+    assert label.setAccessibleName("caption")==0
+    assert label.setAccessibleDescription("description")==0
+    assert requiredText(label.getAccessibleName())=="caption" and requiredText(label.getAccessibleDescription())=="description"
+    auto message=xui.createMsgBox(context,"title","message")
+    string oldTitle=requiredText(message.title())
+    message.setTitle("new title")
+    message.setMessage("")
+    assert oldTitle=="title" and requiredText(message.title())=="new title" and requiredText(message.message())==""
+    auto scope=xui.createCodeFindScope()
+    assert requiredText(scope.editorName(-1))=="" and requiredText(scope.resultEditorName(-1))==""
+    scope.addEditorNamed(editor,"source.xl")
+    string oldName=requiredText(scope.editorName(0))
+    scope.setEditorName(editor,"renamed.xl")
+    assert oldName=="source.xl" and requiredText(scope.editorName(0))=="renamed.xl"
+    auto engineData=xge.createDataObject()
+    auto uiData=xui.createDataObject()
+    assert engineData.formatAt(0)==null and uiData.formatAt(0)==null
+    engineData.set("text/plain",b"data")
+    uiData.set("application/x-test",b"data")
+    string engineFormat=requiredText(engineData.formatAt(0))
+    string uiFormat=requiredText(uiData.formatAt(0))
+    assert engineFormat=="text/plain" and uiFormat=="application/x-test"
+    assert engineData.formatAt(-1)==null and uiData.formatAt(1)==null
+    engineData.close()
+    uiData.close()
+    assert engineFormat=="text/plain" and uiFormat=="application/x-test"
+
+    // Full byte extent survives both the specific and the generic edit route.
+    assert requiredText(editor.getText())==""
+    assert editor.setTextLength("A\0你B")==0
+    warm(editor)
+    beginCount()
+    string? editorResult=editor.getText()
+    assert allocations()==1
+    string full=requiredText(editorResult)
+    assert full=="A\0你B" and independent(editor,full)==1
+    assert requiredText(editor.editGetText())=="A\0你B"
+    func() as string? readEditor=editor.getText
+    assert requiredText(readEditor())=="A\0你B"
+    assert requiredText(input.editGetText())=="input" and label.editGetText()==null
+
+    // A cached native view still needs one checked language string copy.
+    string? preserved="preserved"
+    bool rejected=false
+    budget(0)
+    try
+        preserved=editor.getText()
+    catch error
+        rejected=true
+    finally
+        budget(-1)
+    end
+    assert rejected and requiredText(preserved)=="preserved"
+    assert requiredText(editor.getText())=="A\0你B"
+    rejected=false
+    budget(0)
+    try
+        preserved=label.getText()
+    catch error
+        rejected=true
+    finally
+        budget(-1)
+    end
+    assert rejected and requiredText(preserved)=="preserved"
+
+    // Mutating the document invalidates its cached snapshot. Failure to rebuild
+    // it is an error; it must not be mistaken for successful empty text.
+    assert editor.setTextLength("cold\0snapshot")==0
+    rejected=false
+    budget(0)
+    try
+        preserved=editor.editGetText()
+    catch error
+        rejected=true
+    finally
+        budget(-1)
+    end
+    assert rejected and requiredText(preserved)=="preserved"
+    assert requiredText(editor.getText())=="cold\0snapshot"
+    assert full=="A\0你B"
+    scope.close()
+    context.close()
+    rejected=false
+    try
+        auto expired=editor.getText()
+    catch error
+        rejected=true
+    end
+    assert rejected and full=="A\0你B" and oldButton=="button" and oldTitle=="title"
+    proxy.close()
+    assert hostReferences()==1
+    println("Text reads: sized NUL snapshots, CString queries, checked native/copy OOM and lifetime passed")
+    return 0
+end

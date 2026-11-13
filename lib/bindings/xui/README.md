@@ -35,6 +35,13 @@ ending in `Native` expose caller managed descriptors. A default `null`
 descriptor is available only after checking native validation. Such an API
 does not imply safe ownership of nested font, surface or callback pointers.
 
+Text getters return independent snapshots. Reviewed C-string queries preserve
+native NULL/empty behavior and copy within the receiver scope.
+`CodeEdit.getText()` and `Widget.editGetText()` use checked status/extent
+outputs so CodeEdit's embedded NUL is preserved and native snapshot OOM is not
+reported as empty text. See [text snapshot contracts](../../../docs/xui-text-snapshots.md)
+for copying costs and verification boundaries.
+
 The zero-argument `radioGroup()` and `scrollFrame()` select native NULL
 descriptor defaults. `webView(userDataFolder)` packs a sized native descriptor
 with no raw callback/user pointers. `Cascader.setItems` projects equal-length

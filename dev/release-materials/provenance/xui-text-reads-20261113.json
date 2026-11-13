@@ -1,0 +1,236 @@
+{
+  "date": "2026-11-13",
+  "qualified": true,
+  "shippingDelivery": false,
+  "nativeCommit": "46289a17fb25c2b21c873e8b8c12f75598906762",
+  "dependency": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\text-read-views-20261113.json",
+    "sha256": "29131b34a73a93cd075015cdd49c0994174eb6af9c85c30e59aff35af7364406"
+  },
+  "scope": "Explicit borrowed CString results for 78 further declarations / 76 symbols; all 85 declarations / 83 symbols link as ABI probes. Two safe full-text getters consume checked native text views. Existing generic output-view framework reused without compiler core changes.",
+  "sources": {
+    "lib/bindings/xge/src/data_object.xl": "0cd024fc238b48fe3edd20b6f9b4b9ab0bd78e032f071b37aa5d3c7abe970c83",
+    "lib/bindings/xui/src/data_object.xl": "c27851a84a759ac3e65fc26b4b115b0d0c82aac49e82af7943142b5b18bbd911",
+    "lib/bindings/xui/src/find.xl": "0362ce028ad98cf68bf88fb949e4f0d1a7879e5260a14d16bfcfa72be597e344",
+    "lib/bindings/xui/src/managed.xl": "e9b6454319be063a5b16354c759f1468e8c787efd264b0a3e07b6b4570e9e9af",
+    "lib/bindings/xui/src/managers.xl": "c4b572a87e9b540895e5f6a07b8977ec8f292a07ec9367232b166dc44681cf64",
+    "lib/bindings/xui/README.md": "3e90384ed12ebeeaf648b6851a6bcffd5373fcdefb5bd1c1bfcde6f925ef4f55",
+    "tools/gen_xge_cstring_probes.py": "186b476e25d60c46b2aab873f781cef3f9e7554dfd98ef8e549deeb401daf7d8",
+    "tools/check_xui_text_reads.py": "fa25a3fce3660d1ef9a9574ecf9000157a395f7d29df80c3838edd12df96f295",
+    "test/fixtures/foreign_xge_cstrings/declared_getters.xl": "9707d62869de5755aba3d37e4c4361d2c852cbabcdec2249fbd54361772fad35",
+    "test/fixtures/foreign_xge_cstrings/declared_getters.json": "e3aaf61774e5a8b675d37c3e7e08e1bc0e844de759cb92ed23889a4e138b8acd",
+    "test/cases/foreign_xui_text_reads.xl": "09c9d974754193789f4e2ac02b58d804a1e1a8ca994140cdf47d93febcde6790",
+    "test/cases/foreign_xui_text_reads.c": "5a3e536ea582692e8e1a8fa902a58b84b56fc0a6cf452b58e2d3ff8fa5056b9f",
+    "test/cases/foreign_xui_text_reads.h": "60010b6369b95ec07411c8b5a90294203f46467c1aced2a5ae508f886d52b728",
+    "docs/xui-text-snapshots.md": "2cb65ed44d5109613a2a5e801dfd633eb7c0168f6a83bb2416f7c2adff35ef29",
+    "docs/xge3-xui3-full-coverage-plan.md": "0096df08022627030d856e6c54560f711019a1f4609d53e65d4f6f1f807d9ae6"
+  },
+  "platforms": {
+    "win": {
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\text-read-language-win-r3\\results.json",
+        "sha256": "389b2480358e8d59a521c779cb01b462aa3154b4f49a20495128e99ecf068c1b",
+        "commands": 29
+      },
+      "generatedC": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\text-read-generated-c-win-r2\\results.json",
+        "sha256": "904423dc2e7f987f1df440bf273a375a425eb0e0ded9ec3f920b7ed614abb7fd",
+        "commands": 3
+      },
+      "producer": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\text-read-sdk-win-r1\\results.json",
+        "sha256": "37915745cc444b1f63f489c6b9010345969645b9debe13878518ec6f604dc480",
+        "commands": 4
+      },
+      "baselineGap": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\text-read-legacy-baseline-win-r1\\results.json",
+        "sha256": "dd7645aade877fef1eea6a99a65004accf4ada681598da9df405d019c2c1111a"
+      },
+      "programs": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\text-read-language-win-r3\\cstring-getters.exe",
+          "sha256": "c7ee0b844051469a0dba76be5b97fed0c87cee34e784d3d53171bce1b7f433e2",
+          "bytes": 1772544,
+          "imports": [
+            "xge3_host.dll",
+            "msvcrt.dll",
+            "kernel32.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\text-read-language-win-r3\\foreign_xui_text_reads-dynamic.exe",
+          "sha256": "8ad159e63c2105d9604fa5f9afeba2c42dd71b0fce18f3e86fc9a9ff93fb34b8",
+          "bytes": 5711872,
+          "imports": [
+            "xge3_host.dll",
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\text-read-language-win-r3\\foreign_xui_text_reads-static.exe",
+          "sha256": "b710dc0a873546827fdcde0d2cd45aaf35ed376d805df4dce93ffd518fcba0fa",
+          "bytes": 3325440,
+          "imports": [
+            "msvcrt.dll",
+            "USER32.dll",
+            "kernel32.dll",
+            "OLEAUT32.dll",
+            "ole32.dll",
+            "SHELL32.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\text-read-language-win-r3\\foreign_xge3_binding_output_view-dynamic.exe",
+          "sha256": "63397bb5ecf2a709f07c050b3ad62ba1a03f7782704af403a011248f18f46e03",
+          "bytes": 4508160,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\text-read-language-win-r3\\foreign_xge3_binding_output_view-static.exe",
+          "sha256": "63397bb5ecf2a709f07c050b3ad62ba1a03f7782704af403a011248f18f46e03",
+          "bytes": 4508160,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        }
+      ]
+    },
+    "linux": {
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\text-read-language-linux-r1\\results.json",
+        "sha256": "2212e01f90119a90fbe18a3f300684f62908368ed6ae8ecdc5f0b6d5855469b4",
+        "commands": 29
+      },
+      "generatedC": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\text-read-generated-c-linux-r2\\results.json",
+        "sha256": "16b2b057d81be263b2e6dc7b9ba96359a9129b181cd0d300827a1938bf00d417",
+        "commands": 3
+      },
+      "producer": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\text-read-sdk-linux-r1\\results.json",
+        "sha256": "fba5fd71b2fa5cb9fe297dc749c120c15a6500beb5ecf9aa25e75a949b0daea1",
+        "commands": 4
+      },
+      "baselineGap": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\text-read-legacy-baseline-linux-r1\\results.json",
+        "sha256": "a42e7969b583a767cab12c540014fdea518e5973a6bdf72d39fb3c3b95931d48"
+      },
+      "programs": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/text-read-language-linux-r1/cstring-getters",
+          "sha256": "07b65d63fb92b369cfe27c370b4e8305ebc99a483fc693b4ae89743589898008",
+          "bytes": 1829806,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/text-read-language-linux-r1/foreign_xui_text_reads-dynamic",
+          "sha256": "61008dd4dc53fe3697c4d5d46de143810a6e97efdbe6694b50b46185577e9242",
+          "bytes": 5882226,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/text-read-language-linux-r1/foreign_xui_text_reads-static",
+          "sha256": "8ebf791527419eded21841a0dd9cad422ea74c6b233619a13abd9bcbec8e2c65",
+          "bytes": 3941261,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/text-read-language-linux-r1/foreign_xge3_binding_output_view-dynamic",
+          "sha256": "5e743d49df5216bdfd9a00848fdccd278d1e3c4dad32f5409be27ba467a1676c",
+          "bytes": 4611679,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/text-read-language-linux-r1/foreign_xge3_binding_output_view-static",
+          "sha256": "5e743d49df5216bdfd9a00848fdccd278d1e3c4dad32f5409be27ba467a1676c",
+          "bytes": 4611679,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ]
+    }
+  },
+  "measuredCosts": {
+    "nonemptyCString": "One NUL scan, one independent language string allocation and copy; normal Button read measured separately from ordinary language helper calls.",
+    "cachedCodeEdit": "No NUL scan, one independent language allocation/copy; native document cache has zero heap activity for 1000 reads.",
+    "coldCodeEdit": "Native snapshot allocation/flattening plus independent language copy; both failure stages tested.",
+    "genericEdit": "Native delegate resolution and CodeEdit widget-type lookup; legacy C-string adapters retain strlen.",
+    "scope": "Managed receiver admission/retirement and owned-result checks remain; no timing equivalence or whole-binding zero-overhead claim."
+  },
+  "preservedFailures": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\text-read-native-win-r1\\results.json",
+      "sha256": "fbe800bc9bc0fe5447d0c1c4b1d96d6f9fb2768220850a8f7913bff744d78009"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\text-read-native-linux-r1\\results.json",
+      "sha256": "605bf4d6efc1b200fd1711700285bdca52d88d6f22ae3dbd3533705f2f28f2ba"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\text-read-language-win-r1\\results.json",
+      "sha256": "4f40505265dfd66f4d02de289407133f817a48c769a5c12035bba9e5b34af10f"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\text-read-language-win-r2\\results.json",
+      "sha256": "788032bf1918361cf2ed1ed4938ffcdcd739c7b169444514ae330bc5a43f79aa"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\text-read-generated-c-win-r1\\results.json",
+      "sha256": "06c83819d950ebf2b40b4bba4ee684732a6c63b8c20c3f1b3940f006eaa39e0d"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\text-read-generated-c-linux-r1\\results.json",
+      "sha256": "b3630051a6c3adfe3a498c78b366e888aa4ee37fb2ac71a37203b7668cac45fa"
+    }
+  ],
+  "qualificationCorrections": "The broad unchanged CodeEdit suite fails identically on previous/new SDKs and remains separate. CString probes link as an executable bootstrap because actual shared package initialization is separate work. Same-stem C companions are discovered once, extra provider listed once. Allocation measurements exclude ordinary requiredText helper calls. Strict C generic fixture requires private runtime headers exported from its same frozen compiler shipping VFS manifest; initial missing-header harness attempts remain recorded.",
+  "remaining": "Existing find-scope UI baseline gap, complete model/custom callback and cache-mutation coverage, other full-integration work and final matched SDK/compiler/IDE delivery; no push or runtime installation in this batch."
+}

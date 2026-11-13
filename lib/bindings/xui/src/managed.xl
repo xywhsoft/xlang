@@ -1014,7 +1014,7 @@ export extern "xui_context_t*" class Context @header("xge3_runtime.h") @lifetime
 
  extern "xuiGetLanguageRevision" @no_raise func getLanguageRevision() as c_uint
 
- extern "xuiTranslate" @no_raise func translate(c_int iTextId) as string?
+ extern "xuiTranslate" @no_raise @c_result("cstring") func translate(c_int iTextId) as string?
 
 
  extern "xuiGetProxyCaps" @no_raise @c_output(1,0) func getProxyCaps() as ProxyCaps
@@ -1258,7 +1258,7 @@ export extern "xui_widget_t*" class Widget @header("xge3_runtime.h") @lifetime("
 
  extern "xuiEditSetText" @no_raise @c_cstr(0) func editSetText(string sText) as c_int
 
- extern "xuiEditGetText" @no_raise func editGetText() as string?
+ extern "xuiEditGetTextView" @no_raise @c_output(1,0) @c_output_view(1,"text") func editGetText() as string?
 
  extern "xuiEditSetSelection" @no_raise func editSetSelection(c_int iStart,c_int iEnd) as c_int
 
@@ -1476,11 +1476,11 @@ export extern "xui_widget_t*" class Widget @header("xge3_runtime.h") @lifetime("
 
  extern "xuiWidgetSetAccessibleName" @no_raise @c_cstr(0) func setAccessibleName(string sName) as c_int
 
- extern "xuiWidgetGetAccessibleName" @no_raise func getAccessibleName() as string?
+ extern "xuiWidgetGetAccessibleName" @no_raise @c_result("cstring") func getAccessibleName() as string?
 
  extern "xuiWidgetSetAccessibleDescription" @no_raise @c_cstr(0) func setAccessibleDescription(string sDescription) as c_int
 
- extern "xuiWidgetGetAccessibleDescription" @no_raise func getAccessibleDescription() as string?
+ extern "xuiWidgetGetAccessibleDescription" @no_raise @c_result("cstring") func getAccessibleDescription() as string?
 
  extern "xuiWidgetGetAccessibleNodeCount" @no_raise func getAccessibleNodeCount() as c_int
 
@@ -1520,7 +1520,7 @@ export extern "xui_widget_t*" class Widget @header("xge3_runtime.h") @lifetime("
 
  extern "xuiWidgetSetStyleName" @no_raise @c_cstr(0) @c_result("status",0) func setStyleName(string sName)
 
- extern "xuiWidgetGetStyleName" @no_raise func getStyleName() as string?
+ extern "xuiWidgetGetStyleName" @no_raise @c_result("cstring") func getStyleName() as string?
 
  extern "xuiWidgetAddStyleClass" @no_raise @c_cstr(0) @c_result("status",0) func addStyleClass(string sClass)
 
@@ -1532,7 +1532,7 @@ export extern "xui_widget_t*" class Widget @header("xge3_runtime.h") @lifetime("
 
  extern "xuiWidgetGetStyleClassCount" @no_raise func getStyleClassCount() as c_int
 
- extern "xuiWidgetGetStyleClass" @no_raise func getStyleClass(c_int iIndex) as string?
+ extern "xuiWidgetGetStyleClass" @no_raise @c_result("cstring") func getStyleClass(c_int iIndex) as string?
 
  extern "xuiWidgetResolveStyle" @no_raise @c_result("status",0) func resolveStyle()
 
@@ -1575,7 +1575,7 @@ export extern "xui_widget_t*" class Label @header("xge3_runtime.h") @lifetime("o
 
  extern "xuiLabelSetText" @no_raise @c_cstr(0) @c_result("status",0) func setText(string sText)
 
- extern "xuiLabelGetText" @no_raise func getText() as string?
+ extern "xuiLabelGetText" @no_raise @c_result("cstring") func getText() as string?
 
  extern "xuiLabelSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
 
@@ -1617,7 +1617,7 @@ export extern "xui_widget_t*" class Hyperlink @header("xge3_runtime.h") @lifetim
 
  extern "xuiHyperlinkSetText" @no_raise @c_cstr(0) @c_result("status",0) func setText(string sText)
 
- extern "xuiHyperlinkGetText" @no_raise func getText() as string?
+ extern "xuiHyperlinkGetText" @no_raise @c_result("cstring") func getText() as string?
 
  extern "xuiHyperlinkSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
 
@@ -1685,7 +1685,7 @@ export extern "xui_widget_t*" class Breadcrumb @header("xge3_runtime.h") @lifeti
 
  extern "xuiBreadcrumbGetItemCount" @no_raise func getItemCount() as c_int
 
- extern "xuiBreadcrumbGetItemText" @no_raise func getItemText(c_int iIndex) as string?
+ extern "xuiBreadcrumbGetItemText" @no_raise @c_result("cstring") func getItemText(c_int iIndex) as string?
 
  extern "xuiBreadcrumbGetItemClickable" @no_raise func getItemClickable(c_int iIndex) as c_int
 
@@ -1693,7 +1693,7 @@ export extern "xui_widget_t*" class Breadcrumb @header("xge3_runtime.h") @lifeti
 
  extern "xuiBreadcrumbSetSeparator" @no_raise @c_cstr(0) @c_result("status",0) func setSeparator(string sSeparator)
 
- extern "xuiBreadcrumbGetSeparator" @no_raise func getSeparator() as string?
+ extern "xuiBreadcrumbGetSeparator" @no_raise @c_result("cstring") func getSeparator() as string?
 
  extern "xuiBreadcrumbGetSeparatorIconSource" @no_raise func getSeparatorIconSource() as Rect
 
@@ -1771,7 +1771,7 @@ export extern "xui_widget_t*" class QrCode @header("xge3_runtime.h") @lifetime("
 
  extern "xuiQrCodeSetValue" @no_raise @c_cstr(0) @c_result("status",0) func setValue(string sValue)
 
- extern "xuiQrCodeGetValue" @no_raise func getValue() as string?
+ extern "xuiQrCodeGetValue" @no_raise @c_result("cstring") func getValue() as string?
 
  extern "xuiQrCodeSetColors" @no_raise @c_result("status",0) func setColors(c_uint iForegroundColor,c_uint iBackgroundColor)
 
@@ -1821,7 +1821,7 @@ export extern "xui_widget_t*" class Panel @header("xge3_runtime.h") @lifetime("o
 
  extern "xuiPanelSetTitle" @no_raise @c_cstr(0) @c_result("status",0) func setTitle(string sTitle)
 
- extern "xuiPanelGetTitle" @no_raise func getTitle() as string?
+ extern "xuiPanelGetTitle" @no_raise @c_result("cstring") func getTitle() as string?
 
  extern "xuiPanelSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
 
@@ -1937,9 +1937,9 @@ export extern "xui_widget_t*" class Progress @header("xge3_runtime.h") @lifetime
 
  extern "xuiProgressSetTextTemplate" @no_raise @c_cstr(0) @c_result("status",0) func setTextTemplate(string sTextTemplate)
 
- extern "xuiProgressGetTextTemplate" @no_raise func getTextTemplate() as string?
+ extern "xuiProgressGetTextTemplate" @no_raise @c_result("cstring") func getTextTemplate() as string?
 
- extern "xuiProgressGetDisplayText" @no_raise func getDisplayText() as string?
+ extern "xuiProgressGetDisplayText" @no_raise @c_result("cstring") func getDisplayText() as string?
 
  extern "xuiProgressSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
 
@@ -1997,7 +1997,7 @@ export extern "xui_widget_t*" class StepBar @header("xge3_runtime.h") @lifetime(
 
  extern "xuiStepBarGetStepCount" @no_raise func getStepCount() as c_int
 
- extern "xuiStepBarGetTitle" @no_raise func getTitle(c_int iIndex) as string?
+ extern "xuiStepBarGetTitle" @no_raise @c_result("cstring") func getTitle(c_int iIndex) as string?
 
  extern "xuiStepBarSetCurrent" @no_raise @c_result("status",0) func setCurrent(c_int iCurrent)
 
@@ -2039,7 +2039,7 @@ export extern "xui_widget_t*" class Chart @header("xge3_runtime.h") @lifetime("o
 
  extern "xuiChartSetTitle" @no_raise @c_cstr(0) @c_result("status",0) func setTitle(string sTitle)
 
- extern "xuiChartGetTitle" @no_raise func getTitle() as string?
+ extern "xuiChartGetTitle" @no_raise @c_result("cstring") func getTitle() as string?
 
  extern "xuiChartSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
 
@@ -2160,13 +2160,13 @@ export extern "xui_widget_t*" class CodeEdit @header("xge3_runtime.h") @lifetime
 
  extern "xuiCodeEditSetLanguage" @no_raise @c_cstr(0) func setLanguage(string sLanguage) as c_int
 
- extern "xuiCodeEditGetLanguage" @no_raise func getLanguage() as string?
+ extern "xuiCodeEditGetLanguage" @no_raise @c_result("cstring") func getLanguage() as string?
 
  extern "xuiCodeEditGetMenuWidget" @no_raise @c_result("owner_view",0) func getMenuWidget() as Widget?
 
  extern "xuiCodeEditSetMenuTitle" @no_raise @c_cstr(1) @c_result("status",0) func setMenuTitle(c_int iCommand,string sTitle)
 
- extern "xuiCodeEditGetMenuTitle" @no_raise func getMenuTitle(c_int iCommand) as string?
+ extern "xuiCodeEditGetMenuTitle" @no_raise @c_result("cstring") func getMenuTitle(c_int iCommand) as string?
 
  extern "xuiCodeEditSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
 
@@ -2178,7 +2178,7 @@ export extern "xui_widget_t*" class CodeEdit @header("xge3_runtime.h") @lifetime
 
  extern "xuiCodeEditLoadTextFile" @no_raise @c_cstr(0) func loadTextFile(string sPath,c_int iCharset) as c_int
 
- extern "xuiCodeEditGetText" @no_raise func getText() as string?
+ extern "xuiCodeEditGetTextView" @no_raise @c_output(1,0) @c_output_view(1,"text") func getText() as string?
 
  extern "xuiCodeEditSetInlineCompletion" @no_raise @c_cstr(1) func setInlineCompletion(c_int iOffset,string sText) as c_int
 
@@ -2186,7 +2186,7 @@ export extern "xui_widget_t*" class CodeEdit @header("xge3_runtime.h") @lifetime
 
  extern "xuiCodeEditHasInlineCompletion" @no_raise func hasInlineCompletion() as c_int
 
- extern "xuiCodeEditGetInlineCompletion" @no_raise func getInlineCompletion() as string?
+ extern "xuiCodeEditGetInlineCompletion" @no_raise @c_result("cstring") func getInlineCompletion() as string?
 
  extern "xuiCodeEditAcceptInlineCompletion" @no_raise func acceptInlineCompletion() as c_int
 
@@ -2294,7 +2294,7 @@ export extern "xui_widget_t*" class CodeEdit @header("xge3_runtime.h") @lifetime
 
  extern "xuiCodeEditOpenMenu" @no_raise func openMenu(c_float fX,c_float fY) as c_int
 
- extern "xuiCodeEditGetLastError" @no_raise func getLastError() as string?
+ extern "xuiCodeEditGetLastError" @no_raise @c_result("cstring") func getLastError() as string?
 
 end
 
@@ -2304,11 +2304,11 @@ export extern "xui_widget_t*" class Input @header("xge3_runtime.h") @lifetime("o
 
  extern "xuiInputSetText" @no_raise @c_cstr(0) func setText(string sText) as c_int
 
- extern "xuiInputGetText" @no_raise func getText() as string?
+ extern "xuiInputGetText" @no_raise @c_result("cstring") func getText() as string?
 
  extern "xuiInputSetPlaceholder" @no_raise @c_cstr(0) func setPlaceholder(string sText) as c_int
 
- extern "xuiInputGetPlaceholder" @no_raise func getPlaceholder() as string?
+ extern "xuiInputGetPlaceholder" @no_raise @c_result("cstring") func getPlaceholder() as string?
 
  extern "xuiInputSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
 
@@ -2380,7 +2380,7 @@ export extern "xui_widget_t*" class Input @header("xge3_runtime.h") @lifetime("o
 
  extern "xuiInputSetMenuTitle" @no_raise @c_cstr(1) @c_result("status",0) func setMenuTitle(c_int iCommand,string sTitle)
 
- extern "xuiInputGetMenuTitle" @no_raise func getMenuTitle(c_int iCommand) as string?
+ extern "xuiInputGetMenuTitle" @no_raise @c_result("cstring") func getMenuTitle(c_int iCommand) as string?
 
  extern "xuiInputOpenMenu" @no_raise func openMenu(c_float fX,c_float fY) as c_int
 
@@ -2410,17 +2410,17 @@ export extern "xui_widget_t*" class TagInput @header("xge3_runtime.h") @lifetime
 
  extern "xuiTagInputGetTagCount" @no_raise func getTagCount() as c_int
 
- extern "xuiTagInputGetTag" @no_raise func getTag(c_int iIndex) as string?
+ extern "xuiTagInputGetTag" @no_raise @c_result("cstring") func getTag(c_int iIndex) as string?
 
  extern "xuiTagInputSetText" @no_raise @c_cstr(0) func setText(string sText) as c_int
 
- extern "xuiTagInputGetText" @no_raise func getText() as string?
+ extern "xuiTagInputGetText" @no_raise @c_result("cstring") func getText() as string?
 
  extern "xuiTagInputCommit" @no_raise @c_result("status",0) func commit()
 
  extern "xuiTagInputSetPlaceholder" @no_raise @c_cstr(0) @c_result("status",0) func setPlaceholder(string sText)
 
- extern "xuiTagInputGetPlaceholder" @no_raise func getPlaceholder() as string?
+ extern "xuiTagInputGetPlaceholder" @no_raise @c_result("cstring") func getPlaceholder() as string?
 
  extern "xuiTagInputSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
 
@@ -2524,11 +2524,11 @@ export extern "xui_widget_t*" class NumericInput @header("xge3_runtime.h") @life
 
  extern "xuiNumericInputSetText" @no_raise @c_cstr(0) func setText(string sText) as c_int
 
- extern "xuiNumericInputGetText" @no_raise func getText() as string?
+ extern "xuiNumericInputGetText" @no_raise @c_result("cstring") func getText() as string?
 
  extern "xuiNumericInputSetMenuTitle" @no_raise @c_cstr(1) func setMenuTitle(c_int iCommand,string sTitle) as c_int
 
- extern "xuiNumericInputGetMenuTitle" @no_raise func getMenuTitle(c_int iCommand) as string?
+ extern "xuiNumericInputGetMenuTitle" @no_raise @c_result("cstring") func getMenuTitle(c_int iCommand) as string?
 
  extern "xuiNumericInputOpenMenu" @no_raise func openMenu(c_float fX,c_float fY) as c_int
 
@@ -2560,11 +2560,11 @@ export extern "xui_widget_t*" class TextEdit @header("xge3_runtime.h") @lifetime
 
  extern "xuiTextEditSetText" @no_raise @c_cstr(0) func setText(string sText) as c_int
 
- extern "xuiTextEditGetText" @no_raise func getText() as string?
+ extern "xuiTextEditGetText" @no_raise @c_result("cstring") func getText() as string?
 
  extern "xuiTextEditSetPlaceholder" @no_raise @c_cstr(0) @c_result("status",0) func setPlaceholder(string sText)
 
- extern "xuiTextEditGetPlaceholder" @no_raise func getPlaceholder() as string?
+ extern "xuiTextEditGetPlaceholder" @no_raise @c_result("cstring") func getPlaceholder() as string?
 
  extern "xuiTextEditSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
 
@@ -2648,7 +2648,7 @@ export extern "xui_widget_t*" class TextEdit @header("xge3_runtime.h") @lifetime
 
  extern "xuiTextEditSetMenuTitle" @no_raise @c_cstr(1) @c_result("status",0) func setMenuTitle(c_int iCommand,string sTitle)
 
- extern "xuiTextEditGetMenuTitle" @no_raise func getMenuTitle(c_int iCommand) as string?
+ extern "xuiTextEditGetMenuTitle" @no_raise @c_result("cstring") func getMenuTitle(c_int iCommand) as string?
 
  extern "xuiTextEditOpenMenu" @no_raise func openMenu(c_float fX,c_float fY) as c_int
 
@@ -2672,7 +2672,7 @@ export extern "xui_widget_t*" class Button @header("xge3_runtime.h") @lifetime("
 
  extern "xuiButtonSetText" @no_raise @c_cstr(0) @c_result("status",0) func setText(string sText)
 
- extern "xuiButtonGetText" @no_raise func getText() as string?
+ extern "xuiButtonGetText" @no_raise @c_result("cstring") func getText() as string?
 
  extern "xuiButtonSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
 
@@ -2757,7 +2757,7 @@ export extern "xui_widget_t*" class CheckBox @header("xge3_runtime.h") @lifetime
 
  extern "xuiCheckBoxSetText" @no_raise @c_cstr(0) @c_result("status",0) func setText(string sText)
 
- extern "xuiCheckBoxGetText" @no_raise func getText() as string?
+ extern "xuiCheckBoxGetText" @no_raise @c_result("cstring") func getText() as string?
 
  extern "xuiCheckBoxSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
 
@@ -2853,7 +2853,7 @@ export extern "xui_widget_t*" class Radio @header("xge3_runtime.h") @lifetime("o
 
  extern "xuiRadioSetText" @no_raise @c_cstr(0) @c_result("status",0) func setText(string sText)
 
- extern "xuiRadioGetText" @no_raise func getText() as string?
+ extern "xuiRadioGetText" @no_raise @c_result("cstring") func getText() as string?
 
  extern "xuiRadioSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
 
@@ -2935,13 +2935,13 @@ export extern "xui_widget_t*" class Toggle @header("xge3_runtime.h") @lifetime("
 
  extern "xuiToggleSetText" @no_raise @c_cstr(0) @c_result("status",0) func setText(string sText)
 
- extern "xuiToggleGetText" @no_raise func getText() as string?
+ extern "xuiToggleGetText" @no_raise @c_result("cstring") func getText() as string?
 
  extern "xuiToggleSetInnerText" @no_raise @c_cstr(0) @c_cstr(1) @c_result("status",0) func setInnerText(string sUncheckedText,string sCheckedText)
 
- extern "xuiToggleGetUncheckedText" @no_raise func getUncheckedText() as string?
+ extern "xuiToggleGetUncheckedText" @no_raise @c_result("cstring") func getUncheckedText() as string?
 
- extern "xuiToggleGetCheckedText" @no_raise func getCheckedText() as string?
+ extern "xuiToggleGetCheckedText" @no_raise @c_result("cstring") func getCheckedText() as string?
 
  extern "xuiToggleSetInnerTextColor" @no_raise @c_result("status",0) func setInnerTextColor(c_uint iUncheckedColor,c_uint iCheckedColor)
 
@@ -3513,7 +3513,7 @@ export extern "xui_widget_t*" class Terminal @header("xge3_runtime.h") @lifetime
 
  extern "xuiTerminalSetMenuTitle" @no_raise @c_cstr(1) @c_result("status",0) func setMenuTitle(c_int iCommand,string sTitle)
 
- extern "xuiTerminalGetMenuTitle" @no_raise func getMenuTitle(c_int iCommand) as string?
+ extern "xuiTerminalGetMenuTitle" @no_raise @c_result("cstring") func getMenuTitle(c_int iCommand) as string?
 
  extern "xuiTerminalDetachSession" @no_raise @c_result("status",0) func detachSession()
 
@@ -3609,7 +3609,7 @@ export extern "xui_widget_t*" class Tabs @header("xge3_runtime.h") @lifetime("ow
 
  extern "xuiTabsGetItemCount" @no_raise func getItemCount() as c_int
 
- extern "xuiTabsGetItemText" @no_raise func getItemText(c_int iIndex) as string?
+ extern "xuiTabsGetItemText" @no_raise @c_result("cstring") func getItemText(c_int iIndex) as string?
 
  extern "xuiTabsGetTabBarWidget" @no_raise @c_result("owner_view",0) func getTabBarWidget() as Widget?
 
@@ -3731,7 +3731,7 @@ export extern "xui_widget_t*" class Accordion @header("xge3_runtime.h") @lifetim
 
  extern "xuiAccordionSetSectionTitle" @no_raise @c_cstr(1) @c_result("status",0) func setSectionTitle(c_int iIndex,string sTitle)
 
- extern "xuiAccordionGetSectionTitle" @no_raise func getSectionTitle(c_int iIndex) as string?
+ extern "xuiAccordionGetSectionTitle" @no_raise @c_result("cstring") func getSectionTitle(c_int iIndex) as string?
 
  extern "xuiAccordionSetSectionId" @no_raise @c_result("status",0) func setSectionId(c_int iIndex,c_int iId)
 
@@ -3803,7 +3803,7 @@ export extern "xui_widget_t*" class Window @header("xge3_runtime.h") @lifetime("
 
  extern "xuiWindowSetTitle" @no_raise @c_cstr(0) @c_result("status",0) func setTitle(string sTitle)
 
- extern "xuiWindowGetTitle" @no_raise func getTitle() as string?
+ extern "xuiWindowGetTitle" @no_raise @c_result("cstring") func getTitle() as string?
 
  extern "xuiWindowSetFont" @no_raise @c_result("status",0) func setFont(Font? pFont)
 
@@ -3917,7 +3917,7 @@ export extern "xui_widget_t*" class DockPanel @header("xge3_runtime.h") @lifetim
 
  extern "xuiDockPanelSetWindowTitle" @no_raise @c_cstr(1) @c_result("status",0) func setWindowTitle(c_int iWindow,string sTitle)
 
- extern "xuiDockPanelGetWindowTitle" @no_raise func getWindowTitle(c_int iWindow) as string?
+ extern "xuiDockPanelGetWindowTitle" @no_raise @c_result("cstring") func getWindowTitle(c_int iWindow) as string?
 
  extern "xuiDockPanelSetWindowFlags" @no_raise @c_result("status",0) func setWindowFlags(c_int iWindow,c_int bClosable,c_int bDockable)
 
@@ -4015,11 +4015,11 @@ export extern "xui_widget_t*" class DockPanel @header("xge3_runtime.h") @lifetim
 
  extern "xuiDockPanelSetMenuTitle" @no_raise @c_cstr(1) @c_result("status",0) func setMenuTitle(c_int iCommand,string sTitle)
 
- extern "xuiDockPanelGetMenuTitle" @no_raise func getMenuTitle(c_int iCommand) as string?
+ extern "xuiDockPanelGetMenuTitle" @no_raise @c_result("cstring") func getMenuTitle(c_int iCommand) as string?
 
  extern "xuiDockPanelSetTooltipText" @no_raise @c_cstr(1) @c_result("status",0) func setTooltipText(c_int iTooltip,string sText)
 
- extern "xuiDockPanelGetTooltipText" @no_raise func getTooltipText(c_int iTooltip) as string?
+ extern "xuiDockPanelGetTooltipText" @no_raise @c_result("cstring") func getTooltipText(c_int iTooltip) as string?
 
  extern "xuiDockPanelOpenPaneMenu" @no_raise func openPaneMenu(c_int iPane) as c_int
 
@@ -4261,7 +4261,7 @@ export extern "xui_widget_t*" class ListView @header("xge3_runtime.h") @lifetime
 
  extern "xuiListViewGetItemCount" @no_raise func getItemCount() as c_int
 
- extern "xuiListViewGetItemText" @no_raise func getItemText(c_int iIndex) as string?
+ extern "xuiListViewGetItemText" @no_raise @c_result("cstring") func getItemText(c_int iIndex) as string?
 
  extern "xuiListViewIsItemEnabled" @no_raise func isItemEnabled(c_int iIndex) as c_int
 
@@ -4729,7 +4729,7 @@ export extern "xui_widget_t*" class TimeLineView @header("xge3_runtime.h") @life
 
  extern "xuiTimeLineViewSetLayerName" @no_raise @c_cstr(1) @c_result("status",0) func setLayerName(c_int iLayer,string sName)
 
- extern "xuiTimeLineViewGetLayerName" @no_raise func getLayerName(c_int iLayer) as string?
+ extern "xuiTimeLineViewGetLayerName" @no_raise @c_result("cstring") func getLayerName(c_int iLayer) as string?
 
  extern "xuiTimeLineViewSetLayerVisible" @no_raise @c_result("status",0) func setLayerVisible(c_int iLayer,c_int bVisible)
 
@@ -4783,7 +4783,7 @@ export extern "xui_widget_t*" class TimeLineView @header("xge3_runtime.h") @life
 
  extern "xuiTimeLineViewSetMenuTitle" @no_raise @c_cstr(1) @c_result("status",0) func setMenuTitle(c_int iCommand,string sTitle)
 
- extern "xuiTimeLineViewGetMenuTitle" @no_raise func getMenuTitle(c_int iCommand) as string?
+ extern "xuiTimeLineViewGetMenuTitle" @no_raise @c_result("cstring") func getMenuTitle(c_int iCommand) as string?
 
  extern "xuiTimeLineViewRunContextCommand" @no_raise func runContextCommand(c_int iCommand) as c_int
 
@@ -4848,7 +4848,7 @@ export extern "xui_widget_t*" class PropertyGrid @header("xge3_runtime.h") @life
 
  extern "xuiPropertyGridSetValue" @no_raise @c_cstr(1) @c_result("status",0) func setValue(c_int iProperty,string sValue)
 
- extern "xuiPropertyGridGetValue" @no_raise func getValue(c_int iProperty) as string?
+ extern "xuiPropertyGridGetValue" @no_raise @c_result("cstring") func getValue(c_int iProperty) as string?
 
  extern "xuiPropertyGridGetBool" @no_raise func getBool(c_int iProperty,c_int bDefault) as c_int
 
@@ -5164,9 +5164,9 @@ export extern "xui_widget_t*" class Toolbar @header("xge3_runtime.h") @lifetime(
 
  extern "xuiToolbarSetItemTooltip" @no_raise @c_cstr(1) @c_result("status",0) func setItemTooltip(c_int iIndex,string sText)
 
- extern "xuiToolbarGetItemTooltip" @no_raise func getItemTooltip(c_int iIndex) as string?
+ extern "xuiToolbarGetItemTooltip" @no_raise @c_result("cstring") func getItemTooltip(c_int iIndex) as string?
 
- extern "xuiToolbarGetHoverTooltip" @no_raise func getHoverTooltip() as string?
+ extern "xuiToolbarGetHoverTooltip" @no_raise @c_result("cstring") func getHoverTooltip() as string?
 
  extern "xuiToolbarSetItemEnabled" @no_raise @c_result("status",0) func setItemEnabled(c_int iIndex,c_int bEnabled)
 
@@ -5291,7 +5291,7 @@ export extern "xui_widget_t*" class ComboBox @header("xge3_runtime.h") @lifetime
 
  extern "xuiComboBoxGetItemCount" @no_raise func getItemCount() as c_int
 
- extern "xuiComboBoxGetItemText" @no_raise func getItemText(c_int iIndex) as string?
+ extern "xuiComboBoxGetItemText" @no_raise @c_result("cstring") func getItemText(c_int iIndex) as string?
 
  extern "xuiComboBoxGetItemValue" @no_raise func getItemValue(c_int iIndex) as c_int
 
@@ -5311,11 +5311,11 @@ export extern "xui_widget_t*" class ComboBox @header("xge3_runtime.h") @lifetime
 
  extern "xuiComboBoxSetText" @no_raise @c_cstr(0) @c_result("status",0) func setText(string sText)
 
- extern "xuiComboBoxGetText" @no_raise func getText() as string?
+ extern "xuiComboBoxGetText" @no_raise @c_result("cstring") func getText() as string?
 
  extern "xuiComboBoxSetPlaceholder" @no_raise @c_cstr(0) func setPlaceholder(string sText) as c_int
 
- extern "xuiComboBoxGetPlaceholder" @no_raise func getPlaceholder() as string?
+ extern "xuiComboBoxGetPlaceholder" @no_raise @c_result("cstring") func getPlaceholder() as string?
 
  extern "xuiComboBoxSetMaxLength" @no_raise @c_result("status",0) func setMaxLength(c_int iMaxLength)
 
@@ -5323,7 +5323,7 @@ export extern "xui_widget_t*" class ComboBox @header("xge3_runtime.h") @lifetime
 
  extern "xuiComboBoxSetInputMenuTitle" @no_raise @c_cstr(1) func setInputMenuTitle(c_int iCommand,string sTitle) as c_int
 
- extern "xuiComboBoxGetInputMenuTitle" @no_raise func getInputMenuTitle(c_int iCommand) as string?
+ extern "xuiComboBoxGetInputMenuTitle" @no_raise @c_result("cstring") func getInputMenuTitle(c_int iCommand) as string?
 
  extern "xuiComboBoxOpenInputMenu" @no_raise @c_result("status",0) func openInputMenu(c_float fX,c_float fY)
 
@@ -5406,7 +5406,7 @@ export extern "xui_widget_t*" class Cascader @header("xge3_runtime.h") @lifetime
 
  extern "xuiCascaderGetSelectedLeaf" @no_raise func getSelectedLeaf() as c_int
 
- extern "xuiCascaderGetSelectedText" @no_raise func getSelectedText() as string?
+ extern "xuiCascaderGetSelectedText" @no_raise @c_result("cstring") func getSelectedText() as string?
 
  extern "xuiCascaderClear" @no_raise func clear() as c_int
 
@@ -5472,11 +5472,11 @@ export extern "xui_widget_t*" class Cascader @header("xge3_runtime.h") @lifetime
 
  extern "xuiCascaderSetPlaceholder" @no_raise @c_cstr(0) @c_result("status",0) func setPlaceholder(string sPlaceholder)
 
- extern "xuiCascaderGetPlaceholder" @no_raise func getPlaceholder() as string?
+ extern "xuiCascaderGetPlaceholder" @no_raise @c_result("cstring") func getPlaceholder() as string?
 
  extern "xuiCascaderSetSeparator" @no_raise @c_cstr(0) @c_result("status",0) func setSeparator(string sSeparator)
 
- extern "xuiCascaderGetSeparator" @no_raise func getSeparator() as string?
+ extern "xuiCascaderGetSeparator" @no_raise @c_result("cstring") func getSeparator() as string?
 
  extern "xuiCascaderGetPopupWidget" @no_raise @c_result("owner_view",0) func getPopupWidget() as Widget?
 
@@ -5518,7 +5518,7 @@ export extern "xui_widget_t*" class ColorPicker @header("xge3_runtime.h") @lifet
 
  extern "xuiColorPickerSetHex" @no_raise @c_cstr(0) func setHex(string sHex) as c_int
 
- extern "xuiColorPickerGetHex" @no_raise func getHex() as string?
+ extern "xuiColorPickerGetHex" @no_raise @c_result("cstring") func getHex() as string?
 
  extern "xuiColorPickerSetPalette" @no_raise @c_span(0,"const uint32_t*","int") @c_result("status",0) func setPalette(Buffer arrColors)
 
@@ -5623,7 +5623,7 @@ export extern "xui_widget_t*" class IconPicker @header("xge3_runtime.h") @lifeti
 
  extern "xuiIconPickerSetPlaceholder" @no_raise @c_cstr(0) @c_result("status",0) func setPlaceholder(string sText)
 
- extern "xuiIconPickerGetPlaceholder" @no_raise func getPlaceholder() as string?
+ extern "xuiIconPickerGetPlaceholder" @no_raise @c_result("cstring") func getPlaceholder() as string?
 
  extern "xuiIconPickerSetGrid" @no_raise @c_result("status",0) func setGrid(c_int iRows,c_int iColumns)
 
@@ -5745,11 +5745,11 @@ export extern "xui_widget_t*" class DatePicker @header("xge3_runtime.h") @lifeti
 
  extern "xuiDatePickerSetFormat" @no_raise @c_cstr(0) @c_result("status",0) func setFormat(string sFormat)
 
- extern "xuiDatePickerGetFormat" @no_raise func getFormat() as string?
+ extern "xuiDatePickerGetFormat" @no_raise @c_result("cstring") func getFormat() as string?
 
  extern "xuiDatePickerSetRangeSeparator" @no_raise @c_cstr(0) @c_result("status",0) func setRangeSeparator(string sSeparator)
 
- extern "xuiDatePickerGetRangeSeparator" @no_raise func getRangeSeparator() as string?
+ extern "xuiDatePickerGetRangeSeparator" @no_raise @c_result("cstring") func getRangeSeparator() as string?
 
  extern "xuiDatePickerSetShowSecond" @no_raise @c_result("status",0) func setShowSecond(c_int bShowSecond)
 
@@ -5803,7 +5803,7 @@ export extern "xui_widget_t*" class DatePicker @header("xge3_runtime.h") @lifeti
 
  extern "xuiDatePickerGetFont" @no_raise @c_result("retained_view") @c_retain(retainFont,"zero",rollbackFont) func getFont() as Font?
 
- extern "xuiDatePickerGetText" @no_raise func getText() as string?
+ extern "xuiDatePickerGetText" @no_raise @c_result("cstring") func getText() as string?
 
  extern "xuiDatePickerGetPopupWidget" @no_raise @c_result("owner_view",0) func getPopupWidget() as Widget?
 

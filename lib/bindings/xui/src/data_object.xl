@@ -31,7 +31,7 @@ export extern "struct xui_data_object_t*" class CallbackDataObject @header("xge3
  native point handle
  extern "xuiDataObjectShareOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackDataObject) func share() as DataObject
  extern "xuiDataObjectFormatCount" @no_raise get formatCount() as c_int
- extern "xuiDataObjectFormatAt" @no_raise func formatAt(c_int index) as string?
+ extern "xuiDataObjectFormatAt" @no_raise @c_result("cstring") func formatAt(c_int index) as string?
  extern "xuiDataObjectHas" @no_raise @c_cstr(0) func has(string format) as c_int
  extern "xuiDataObjectGet" @no_raise @c_cstr(0) @c_span(1,"void*","size_t") @c_output(4,0) func readInto(string format,Buffer? output=null) as c_size
 end
@@ -40,7 +40,7 @@ export extern "xui_data_object" class DataObject @header("xge3_runtime.h") @life
  extern "xuiDataObjectShareOwned" @no_raise @c_result("owned_view") @factory(1,0,rollbackDataObject) func share() as DataObject
  extern "xuiDataObjectIsOwned" @no_raise func isOwned() as bool
  extern "xuiDataObjectFormatCount" @no_raise get formatCount() as c_int
- extern "xuiDataObjectFormatAt" @no_raise func formatAt(c_int index) as string?
+ extern "xuiDataObjectFormatAt" @no_raise @c_result("cstring") func formatAt(c_int index) as string?
  extern "xuiDataObjectHas" @no_raise @c_cstr(0) func has(string format) as c_int
  extern "xuiDataObjectSet" @no_raise @c_cstr(0) @c_span(1,"const void*","size_t") @c_result("status",0) func set(string format,string data)
  extern "xuiDataObjectSet" @no_raise @c_cstr(0) @c_span(1,"const void*","size_t") @c_result("status",0) func set(string format,bytes data)

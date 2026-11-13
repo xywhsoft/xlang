@@ -38,9 +38,9 @@ export extern "xui_msgbox_t*" class MsgBox @header("xge3_runtime.h") @lifetime("
  native point handle
  extern "xuiMsgBoxSetText" @no_raise @c_cstr(0) @c_cstr(1) @c_result("status",0) func setText(string title,string message)
  extern "xuiMsgBoxSetTitle" @no_raise @c_cstr(0) @c_result("status",0) func setTitle(string title)
- extern "xuiMsgBoxGetTitle" @no_raise func title() as string?
+ extern "xuiMsgBoxGetTitle" @no_raise @c_result("cstring") func title() as string?
  extern "xuiMsgBoxSetMessage" @no_raise @c_cstr(0) @c_result("status",0) func setMessage(string message)
- extern "xuiMsgBoxGetMessage" @no_raise func message() as string?
+ extern "xuiMsgBoxGetMessage" @no_raise @c_result("cstring") func message() as string?
  extern "xuiMsgBoxSetType" @no_raise @c_result("status",0) func setType(c_int iconType)
  extern "xuiMsgBoxGetType" @no_raise func iconType() as c_int
  extern "xuiMsgBoxSetIconSurface" @no_raise @c_result("status",0) func setIcon(Surface? surface,Rect source)
@@ -49,7 +49,7 @@ export extern "xui_msgbox_t*" class MsgBox @header("xge3_runtime.h") @lifetime("
  // Columnar bulk input: strict equal lengths by default, bounded common prefix for explicit size.
  extern "xuiMsgBoxSetCustomButtons" @no_raise @c_result("status",0) @c_array_group(1,0,3,"int",3) @c_array_record(1,"xui_msgbox_button_t") @c_array_field(1,"sText",0,"c_string") @c_array_field(1,"iResult",1,"value") @c_array_field(1,"iSemantic",2,"value") func setCustomButtonsColumns(array<string> texts,array<c_int> results,array<c_int> semantics,int size=-1)
  extern "xuiMsgBoxSetPresetButtonTitle" @no_raise @c_cstr(1) @c_result("status",0) func setPresetButtonTitle(c_int index,string title)
- extern "xuiMsgBoxGetPresetButtonTitle" @no_raise func presetButtonTitle(c_int index) as string?
+ extern "xuiMsgBoxGetPresetButtonTitle" @no_raise @c_result("cstring") func presetButtonTitle(c_int index) as string?
  extern "xuiMsgBoxSetResultOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setResult(MsgBoxResultProc? callback)
  extern "xuiMsgBoxSetModal" @no_raise @c_result("status",0) func setModal(c_int modal)
  extern "xuiMsgBoxIsModal" @no_raise func isModal() as c_int
@@ -116,16 +116,16 @@ export extern "xui_file_dialog_t*" class FileDialog @header("xge3_runtime.h") @l
  extern "xuiFileDialogSetResultOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setResult(FileDialogResultProc? callback)
  extern "xuiFileDialogSetContextMenuOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setContextMenu(FileDialogContextProc? callback)
  extern "xuiFileDialogSetFilter" @no_raise @c_cstr(0) @c_result("status",0) func setFilter(string filterPattern)
- extern "xuiFileDialogGetFilter" @no_raise func filterPattern() as string?
+ extern "xuiFileDialogGetFilter" @no_raise @c_result("cstring") func filterPattern() as string?
  extern "xuiFileDialogSetDirectory" @no_raise @c_cstr(0) @c_result("status",0) func setDirectory(string directory)
- extern "xuiFileDialogGetDirectory" @no_raise func directory() as string?
+ extern "xuiFileDialogGetDirectory" @no_raise @c_result("cstring") func directory() as string?
  extern "xuiFileDialogGoUp" @no_raise @c_result("status",0) func goUp()
  extern "xuiFileDialogRefresh" @no_raise @c_result("status",0) func refresh()
  extern "xuiFileDialogSelectIndex" @no_raise @c_result("status",0) func selectIndex(c_int index)
  extern "xuiFileDialogCommit" @no_raise @c_result("status",0) func commit()
  extern "xuiFileDialogCancel" @no_raise @c_result("status",0) func cancel()
  extern "xuiFileDialogGetResult" @no_raise func result() as c_int
- extern "xuiFileDialogGetResultPath" @no_raise func resultPath() as string?
+ extern "xuiFileDialogGetResultPath" @no_raise @c_result("cstring") func resultPath() as string?
  extern "xuiFileDialogGetWindowWidget" @no_raise @c_result("owner_view",0) func window() as Widget?
  extern "xuiFileDialogGetRootListWidget" @no_raise @c_result("owner_view",0) func rootList() as Widget?
  extern "xuiFileDialogGetFileListWidget" @no_raise @c_result("owner_view",0) func fileList() as Widget?
@@ -139,11 +139,11 @@ export extern "xui_file_dialog_t*" class FileDialog @header("xge3_runtime.h") @l
  extern "xuiFileDialogGetCancelButtonWidget" @no_raise @c_result("owner_view",0) func cancelButton() as Widget?
  extern "xuiFileDialogGetOverwriteMsgBox" @no_raise @c_result("owner_view",0) func overwriteBox() as MsgBox?
  extern "xuiFileDialogGetFilterCount" @no_raise func filterCount() as c_int
- extern "xuiFileDialogGetFilterName" @no_raise func filterName(c_int index) as string?
- extern "xuiFileDialogGetFilterPattern" @no_raise func filterAt(c_int index) as string?
+ extern "xuiFileDialogGetFilterName" @no_raise @c_result("cstring") func filterName(c_int index) as string?
+ extern "xuiFileDialogGetFilterPattern" @no_raise @c_result("cstring") func filterAt(c_int index) as string?
  extern "xuiFileDialogGetEntryCount" @no_raise func entryCount() as c_int
- extern "xuiFileDialogGetEntryName" @no_raise func entryName(c_int index) as string?
- extern "xuiFileDialogGetEntryPath" @no_raise func entryPath(c_int index) as string?
+ extern "xuiFileDialogGetEntryName" @no_raise @c_result("cstring") func entryName(c_int index) as string?
+ extern "xuiFileDialogGetEntryPath" @no_raise @c_result("cstring") func entryPath(c_int index) as string?
  extern "xuiFileDialogEntryIsDir" @no_raise func entryIsDirectory(c_int index) as c_int
  extern "xuiFileDialogGetContext" @no_raise @c_result("owner_view",0) func context() as Context?
  extern "xuiFileDialogDestroyChecked" @no_raise @c_result("status",0) func close()
@@ -155,7 +155,7 @@ export extern "xui_msgtip_t*" class MsgTip @header("xge3_runtime.h") @lifetime("
  extern "xuiMsgTipClose" @no_raise @c_result("status",0) func dismiss()
  extern "xuiMsgTipIsOpen" @no_raise func isOpen() as c_int
  extern "xuiMsgTipSetText" @no_raise @c_cstr(0) @c_result("status",0) func setText(string text)
- extern "xuiMsgTipGetText" @no_raise func text() as string?
+ extern "xuiMsgTipGetText" @no_raise @c_result("cstring") func text() as string?
  extern "xuiMsgTipSetType" @no_raise @c_result("status",0) func setType(c_int iconType)
  extern "xuiMsgTipGetType" @no_raise func iconType() as c_int
  extern "xuiMsgTipSetDuration" @no_raise @c_result("status",0) func setDuration(c_float duration)
