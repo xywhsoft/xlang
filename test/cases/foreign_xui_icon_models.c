@@ -23,3 +23,10 @@ void fixtureIconBudget(int allowance)
     else {assert(xrtMemDebugEnabled() || xrtMemDebugEnable(true));assert(xrtMemDebugFailAfter(allowance));}
 }
 int fixtureIconHostReferences(void){return (int)references;}
+static xmemdebugsnapshot heapBefore;
+void fixtureIconHeapBegin(void){xrtMemDebugSnapshot(&heapBefore);}
+int fixtureIconHeapUnchanged(void)
+{
+    xmemdebugsnapshot now;xrtMemDebugSnapshot(&now);
+    return now.AllocCount==heapBefore.AllocCount && now.FreeCount==heapBefore.FreeCount && now.ReallocCount==heapBefore.ReallocCount;
+}

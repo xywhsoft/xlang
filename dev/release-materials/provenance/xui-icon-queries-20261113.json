@@ -1,0 +1,102 @@
+{
+  "date": "2026-11-13",
+  "qualified": true,
+  "shippingDelivery": false,
+  "nativeCommit": "7a91ec09",
+  "dependencyQualification": {
+    "path": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\xui-icon-operation-lifetime-20261113.json",
+    "sha256": "4956eac9c267b5dea635cca33973902f4cea6fca5dd8ae06797f41159eae1180"
+  },
+  "scope": "Direct checked typed Icon intrinsic-size/prepare and Category preload queries. Full existing Icon model gate plus 3000 zero-heap language calls in the SVG-path/alias fixture. Not every image source/cache mutation or full IconPicker acceptance.",
+  "sources": {
+    "lib/bindings/xui/src/icons.xl": "f73ce521f1da59cbe427b0356d2de93dc4d478f976428b4be6badad3dd0e28d2",
+    "test/cases/foreign_xui_icon_models.xl": "7117b9f3251d8943b1015badd91bb38519d01d1e3b4d1fb20ec7f5d7b6d9b467",
+    "test/cases/foreign_xui_icon_models.c": "7e587ee26a792cbd567a4bc167f069b9afa4185934ca8cd13fddc2ac503ed862",
+    "test/cases/foreign_xui_icon_models.h": "e95d4b233cc7d8ebfd011b950e856fdf71454781d4df9c0ea9444d450d13ea25",
+    "tools/check_xui_icon_models.py": "a42c66768a8aecbe19641dd3298ef6914eaf36154524a0281ef7d5c4eb52ea63"
+  },
+  "platforms": {
+    "win": {
+      "report": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\icon-queries-qualified-win-r1\\results.json",
+        "sha256": "bc5f8d86cb9ad220425f1520314ae603d3e1e58204aeac9e3c9d4dfa78ae0612",
+        "commands": 15
+      },
+      "programs": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\icon-queries-qualified-win-r1\\foreign_xui_icon_models-dynamic.exe",
+          "sha256": "7aee254ce9ec917133cf3f1d269216666f4574498b747be283015efffb22213e",
+          "bytes": 5258752,
+          "imports": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\icon-queries-qualified-win-r1\\foreign_xui_icon_models-static.exe",
+          "sha256": "5e9aa25c2dce54abe25acb1c25d265d3619df47e2caba1e7e3c6a0fab3a64dc5",
+          "bytes": 1815552,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "ole32.dll",
+            "SHELL32.dll"
+          ]
+        }
+      ],
+      "runtimeCases": "JIT + independent dynamic/static: each 3000 zero-heap language calls, invalid sizes, 96 factory OOM budgets and prior model lifetime cases."
+    },
+    "linux": {
+      "report": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\icon-queries-qualified-linux-r1\\results.json",
+        "sha256": "ac4fb68864b58b642a5595fa1b9b5237cfc4d9f04f9ed50dea7ab125858a6be6",
+        "commands": 15
+      },
+      "programs": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/icon-queries-qualified-linux-r1/foreign_xui_icon_models-dynamic",
+          "sha256": "f97a3ee37cfdd94a21ffdfde7ce106bc5bf41993903bb9f6e6c59d93efbb53ee",
+          "bytes": 5436564,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/icon-queries-qualified-linux-r1/foreign_xui_icon_models-static",
+          "sha256": "66faf56d5bf84c00db872fb96d3cf3ac4afaf3cee564df265fcba080316bb8ec",
+          "bytes": 2264101,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ],
+      "runtimeCases": "JIT + independent dynamic/static: each 3000 zero-heap language calls, invalid sizes, 96 factory OOM budgets and prior model lifetime cases."
+    }
+  },
+  "costs": [
+    "Typed Vec2 output and normal SVG-path/alias queries show no XRT heap box/allocation/free/reallocation under zero budget across 3000 language calls.",
+    "Native decoding/cache creation for other source kinds retains its source-specific costs.",
+    "Direct native entry calls; existing language view/checked-scope and native Context/reference bookkeeping remains. No instruction/time equivalence claim."
+  ],
+  "limits": [
+    "No new source-kind decoder/rendering qualification.",
+    "No cache mutation or owned custom/formatter closure completion claim.",
+    "Graphical example compiled/header-checked only; no final runtime/IDE installation or publication."
+  ]
+}

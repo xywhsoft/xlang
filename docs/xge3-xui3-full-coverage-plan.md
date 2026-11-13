@@ -725,3 +725,9 @@ Context 作用域与临时载体引用。两端各 28 项原生、56 种存活�
 Windows DLL 增加 2,560 字节，Linux DSO 总大小不变。原始 Painter 的测试显式
 持有 Context 会话作用域。索引为 `xui-icon-operation-lifetime-20261113.json`。
 该底座不包含缓存重入、自绘／格式化闭包或最终完整发布验收，全量任务继续。
+
+类型化的 `Icon.intrinsicSize()`、`Icon.prepare()`、`IconCategory.preload()` 已
+接入上述底座。两端各 15 项门通过，SVG 路径／别名工作负载的 3,000 次语言
+调用在零分配预算下执行，XRT 分配／释放／重分配计数不变；POD 输出没有引入
+堆装箱。96 档工厂 OOM 和负尺寸 checked 拒绝仍通过。其他源类型的解码／缓存
+分配成本保留。证据为 `xui-icon-queries-20261113.json`；完整接入目标继续。

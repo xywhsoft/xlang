@@ -1,7 +1,8 @@
 """XUI registry-owned Icon/Category views and typed IconPicker model edges.
 
 An explicit full compiler, matched native SDK and CPU test Proxy are required.
-Checks expiry/aliases/Context retention/cross-Context rejection and 96 factory
+Checks expiry/aliases/Context retention/cross-Context rejection, 3000 zero-heap
+typed query/prepare/preload calls and 96 factory
 OOM budgets in JIT and independent dynamic/static programs. The graphical
 learning example is emitted and its public header checked, not executed here.
 Retained custom callbacks and every same-object reentry path are separate work.
@@ -49,6 +50,8 @@ def main():
             for symbol in ('xuiIconCategoryCreate','xuiIconAddSvgPath','xuiIconPickerCreate','xuiIconPickerSetCategory'):
                 assert re.search(r'\b'+symbol+r'\(',text),symbol
             if source==case:
+                for symbol in ('xuiIconGetIntrinsicSize','xuiIconPrepare','xuiIconCategoryPreload'):
+                    assert re.search(r'\b'+symbol+r'\(',text),symbol
                 for kind,packages in (('jit',dynamic),('dynamic',dynamic),('static',static)):
                     if kind=='jit':output=run(name+'-'+kind,[compiler,'run',source,*includes],packages)
                     else:
@@ -62,6 +65,7 @@ def main():
                         assert any(b'xge3_host'in n for n in lower)==(kind=='dynamic')
                         report['programs'].append(dict(path=str(program),sha256=sha(program),bytes=program.stat().st_size,imports=[n.decode()for n in imports]))
                     assert b'Icon models: registry views, picker ownership, expiry and 96 OOM budgets passed'in output
+                    assert b'Icon model queries: 3000 zero-heap calls passed'in output
             native_includes=['-I'+str(p)for p in(root,sdk,sdk/'include',*sorted(dynamic.glob('*/include')))]
             for standard,tool,language in (('c11','gcc','c'),('c++11','g++','c++'),('c++17','g++','c++')):
                 run(name+'-public-header-'+standard,[tools[tool],'-std='+standard,'-Wall','-Wextra','-Werror',*native_includes,'-x',language,'-fsyntax-only',header],dynamic)

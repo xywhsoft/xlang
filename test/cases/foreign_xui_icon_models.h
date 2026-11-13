@@ -4,4 +4,6 @@
 int fixtureIconProxy(xui_proxy* output);
 void fixtureIconBudget(int count);
 int fixtureIconHostReferences(void);
+void fixtureIconHeapBegin(void);
+int fixtureIconHeapUnchanged(void);
 #endif

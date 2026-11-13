@@ -85,3 +85,18 @@ The raw Painter fixture explicitly holds the Context for its session.
 `xui-icon-operation-lifetime-20261113.json` indexes this floor. Cache mutation
 from callbacks, retained formatter/custom closures and complete graphics/UI
 acceptance remain separate requirements for the full integration.
+
+The language declarations now expose `Icon.intrinsicSize()` as a checked `Vec2`
+output, `Icon.prepare(width=0,height=0)` and
+`IconCategory.preload(width=0,height=0)`. Each calls its native entry directly.
+With the SVG-path/alias model fixture, 1000 rounds (3000 language calls) pass
+under an allocation budget of zero, with unchanged XRT allocation/free/realloc
+counters. The POD output introduces no heap box on this typed path. Invalid
+negative dimensions produce checked failure and leave the model usable.
+
+Both Windows/Linux 15-command gates pass the new calls in JIT and independent
+dynamic/static programs, retaining the 96 factory OOM budgets and public header
+checks. Other source kinds may decode/allocate during intrinsic-size or prepare
+work; this measured workload does not remove those native costs. No new native
+or compiler build was needed: the calls consume the preceding qualified SDK.
+See `xui-icon-queries-20261113.json`.

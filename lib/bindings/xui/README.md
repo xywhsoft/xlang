@@ -273,3 +273,11 @@ native pointer per Category/Icon (8 bytes on both qualified x64 targets), and
 cold binding storage. They do not add a per-business-method C wrapper. String
 reads still scan, allocate and copy; C-string inputs and checked view scopes
 retain their existing costs.
+
+`Icon.intrinsicSize()` returns a typed `Vec2` using the native checked output;
+`Icon.prepare(width=0,height=0)` and `IconCategory.preload(width=0,height=0)` use
+the category/native sizing defaults. Invalid sizes are checked failures. With
+the SVG-path/alias fixture, 1000 rounds of these three language calls allocate,
+free and reallocate no XRT memory, including a zero-allocation budget. Other
+source types may decode or allocate native resources during size/prepare work;
+the source-specific costs still apply.

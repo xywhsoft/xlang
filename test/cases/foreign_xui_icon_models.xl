@@ -5,6 +5,8 @@ extern "fixtureIconProxy" @header("test/cases/foreign_xui_icon_models.h") @no_ra
 extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
 extern "fixtureIconBudget" @no_raise func budget(c_int allowance)
 extern "fixtureIconHostReferences" @no_raise func hostReferences() as c_int
+extern "fixtureIconHeapBegin" @no_raise func heapBegin()
+extern "fixtureIconHeapUnchanged" @no_raise func heapUnchanged() as c_int
 
 func main(...) as int
     auto proxy=cpuProxy()
@@ -31,6 +33,26 @@ func main(...) as int
     assert category.description().fWidth==description.fWidth
     assert (xui.findIconCategory(context,"tools") as IconCategoryModel).name=="tools"
     assert (xui.iconCategoryAt(context,0) as IconCategoryModel).name=="tools"
+    budget(0)
+    heapBegin()
+    c_int iteration=0
+    while iteration<1000
+        auto size=icon.intrinsicSize()
+        assert size.fX==16 and size.fY==16
+        icon.prepare()
+        category.preload()
+        iteration+=1
+    end
+    assert heapUnchanged()==1
+    budget(-1)
+    println("Icon model queries: 3000 zero-heap calls passed")
+    bool invalid=false
+    try
+        icon.prepare(-1,0)
+    catch error
+        invalid=true
+    end
+    assert invalid and icon.intrinsicSize().fX==16
     string savedName=icon.name
     assert icon.unregister()
     assert category.find("triangle")==null
