@@ -9,6 +9,10 @@ void xideDialogDestroyAll(xide_app*);
 void xideDialogLayoutAll(xide_app*);
 int xideDialogSetOpen(xui_widget,int);
 int xideDialogIsOpen(xui_widget);
+/* Change modality while closed. Existing business dialogs default to modal;
+ * an asynchronous operation may reopen without a backdrop during progress. */
+int xideDialogSetModal(xui_widget,int);
+int xideDialogIsModal(xui_widget);
 xui_widget xideDialogGetContentWidget(xui_widget);
 xui_widget xideDialogGetScrollViewWidget(xui_widget);
 int xideDialogSetContentSize(xui_widget,float,float);

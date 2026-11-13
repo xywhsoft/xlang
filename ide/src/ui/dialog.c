@@ -18,7 +18,7 @@ struct xide_dialog {
     xui_widget_event_proc event; void* eventUser;
     xui_popup_change_proc change; void* changeUser;
     float width,height,padding,maxWidth,maxHeight,lastWidth,lastHeight;
-    int open,placed,resized,maximized;
+    int open,placed,resized,maximized,modal;
     xui_widget footer,divider; dialog_row *rows,*tail;
     float minWidth,minHeight,bodyWidth,bodyHeight;
     int form,fixedBody;
@@ -57,7 +57,7 @@ static void cancel(xui_widget w,void* user) {
 int xideDialogCreate(xide_app* a,xui_widget* out,const char* title,float width,float height,float padding) {
     if(!a || !out) return XUI_ERROR_INVALID_ARGUMENT;
     *out=NULL; xide_dialog* d=calloc(1,sizeof(*d)); if(!d) return XUI_ERROR_OUT_OF_MEMORY;
-    d->app=a; d->width=width; d->height=height; d->padding=padding;
+    d->app=a; d->width=width; d->height=height; d->padding=padding;d->modal=1;
     xui_window_desc_t desc={0}; desc.iSize=sizeof(desc); desc.sTitle=title; desc.pFont=a->uiFont;
     desc.bClosed=1; desc.bHideCollapse=1;
     desc.fTitleBarHeight=32; desc.fBorderWidth=1; desc.fResizeGrip=6; desc.fButtonSize=24; desc.fMinWidth=240; desc.fMinHeight=160;
@@ -131,8 +131,8 @@ int xideDialogSetOpen(xui_widget w,int open) {
     if(open) {
         if(!d->restore) d->restore=xuiGetFocusWidget(d->app->context);
         layout(d); d->placed=1;
-        xuiWidgetSetVisible(d->backdrop,1); xuiWidgetSetEnabled(d->backdrop,1);
-        xuiOverlayAttach(d->app->context,w,d->backdrop,XUI_LAYER_FLOATING,DIALOG_BACKDROP_Z);
+        if(d->modal){xuiWidgetSetVisible(d->backdrop,1); xuiWidgetSetEnabled(d->backdrop,1);
+        xuiOverlayAttach(d->app->context,w,d->backdrop,XUI_LAYER_FLOATING,DIALOG_BACKDROP_Z);}
         xuiOverlayAttach(d->app->context,NULL,w,XUI_LAYER_FLOATING,DIALOG_WINDOW_Z);
         xuiWindowSetOpen(w,1); xuiWindowBringToFront(w); layers(w);xuiOverlayBringToFront(w);
     } else {
@@ -144,6 +144,8 @@ int xideDialogSetOpen(xui_widget w,int open) {
     d->open=open; if(d->change) d->change(w,open,d->changeUser); xgeRenderRequest(); return XUI_OK;
 }
 int xideDialogIsOpen(xui_widget w) { xide_dialog* d=dialog(w); return d && d->open; }
+int xideDialogSetModal(xui_widget w,int modal) {xide_dialog* d=dialog(w);if(!d)return XUI_ERROR_INVALID_ARGUMENT;if(d->open)return XUI_ERROR_INVALID_STATE;d->modal=!!modal;return XUI_OK;}
+int xideDialogIsModal(xui_widget w) {xide_dialog* d=dialog(w);return d&&d->open&&d->modal;}
 xui_widget xideDialogGetContentWidget(xui_widget w) { xide_dialog* d=dialog(w); return d ? d->content : NULL; }
 xui_widget xideDialogGetScrollViewWidget(xui_widget w) { xide_dialog* d=dialog(w); return d ? d->scroll : NULL; }
 int xideDialogSetContentSize(xui_widget w,float width,float height) { xide_dialog* d=dialog(w); if(!d) return XUI_ERROR_INVALID_ARGUMENT; if(d->form)return XUI_OK;d->width=width;d->height=height; return xuiScrollViewSetContentSize(d->scroll,width,height); }

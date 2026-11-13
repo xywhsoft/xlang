@@ -1,6 +1,7 @@
 #include "ui/import_view.h"
 #include "ui/template_view.h"
 #include "ui/rename_view.h"
+#include "ui/symbol_rename_view.h"
 #include "app/actions.h"
 #if XIDE_ENABLE_C_LSP
 #include "ui/c_completion_view.h"
@@ -43,6 +44,7 @@ static int toolchainAction(xide_app* a,int id) { (void)id; return xideToolchainV
 static int resourceAction(xide_app* a,int id) { return id==XIDE_ACTION_NEW_RESOURCE ? xideResourceViewOpenNew(a) : xideResourceViewOpen(a); }
 static int referencesAction(xide_app* a,int id) { (void)id; return xideReferencesViewOpen(a); }
 static int renameAction(xide_app* a,int id) { (void)id; return xideRenameViewOpen(a); }
+static int symbolRenameAction(xide_app* a,int id) { (void)id; return xideSymbolRenameOpen(a); }
 static int importAction(xide_app* a,int id) { (void)id; return xideImportViewOpen(a); }
 static int changesAction(xide_app* a,int id) { (void)id; return xideFileChangesViewOpen(a); }
 static int gotoAction(xide_app* a,int id) { (void)id; return xideGotoViewOpen(a); }
@@ -109,6 +111,7 @@ static const action_def definitions[]={
     E(XIDE_ACTION_SAVE_ALL_FILES,"file.saveAll","保存所有文件","Ctrl+Shift+Alt+S",'S',XUI_MOD_CTRL|XUI_MOD_SHIFT|XUI_MOD_ALT,DIRTY_DOCUMENTS,XIDE_SHORTCUT_GLOBAL,0),
     E(XIDE_ACTION_CLOSE_FILE,"file.close","关闭文件","Ctrl+W",'W',XUI_MOD_CTRL,DOCUMENT,XIDE_SHORTCUT_GLOBAL,0),
     A(XIDE_ACTION_RENAME_FILE,"file.rename","重命名当前文件…",NULL,"F2",XUI_KEY_F2,0,XIDE_SHORTCUT_EDITOR,0,RENAME_DOCUMENT,NO_CHECK,renameAction),
+    A(XIDE_ACTION_RENAME_SYMBOL,"editor.renameSymbol","重命名符号…",NULL,"Ctrl+F2",XUI_KEY_F2,XUI_MOD_CTRL,XIDE_SHORTCUT_EDITOR,0,DOCUMENT,NO_CHECK,symbolRenameAction),
     E(XIDE_ACTION_RELOAD_FILE,"file.reload","重新加载文件",NULL,0,0,NAMED_DOCUMENT,XIDE_SHORTCUT_GLOBAL,0),
     A(XIDE_ACTION_LANGUAGE_C,"editor.language.c","当前文件使用 C 语法",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,DOCUMENT,LANGUAGE_CHECK,xideEditorAction),
     A(XIDE_ACTION_LANGUAGE_XLANG,"editor.language.xlang","当前文件使用 xlang 语法",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,DOCUMENT,LANGUAGE_CHECK,xideEditorAction),
@@ -185,7 +188,7 @@ static const action_def* definition(int id) { for(size_t i=0;i<xideActionCount()
 const xide_action_info* xideActionFind(int id) { const action_def* d=definition(id); return d ? &d->info : NULL; }
 const xide_action_info* xideActionNamed(const char* name) { if(name) for(size_t i=0;i<xideActionCount();++i) if(!strcmp(name,definitions[i].info.name)) return &definitions[i].info; return NULL; }
 int xideActionsHasOtherModal(xide_app* a)
-{ return a && ( xideLanguageViewWorkspaceSymbolsIsOpen(a) || xideDialogIsOpen(xideHomeNewWindow(a)) || xideAssociationViewIsOpen(a) || xideSettingsViewIsOpen(a) || xideAboutViewIsOpen(a) || xideFileDialogBusy(a) || xideMessageBusy(a) || xideCatalogSourceIsOpen(a) || xideGotoViewIsOpen(a) || xideToolchainViewIsOpen(a) || xideResourceViewIsOpen(a) || xideImportViewIsOpen(a) || xideRenameViewIsOpen(a) || xideRenameViewHasPending(a) || xideTemplateViewIsOpen(a) || xideReferencesViewIsOpen(a) || xideConfigurationViewIsOpen(a) || xideFontViewIsOpen(a) || xideRecoveryViewIsOpen(a) || xideFileChangesViewIsOpen(a)); }
+{ return a && ( xideSymbolRenameIsModal(a) || xideLanguageViewWorkspaceSymbolsIsOpen(a) || xideDialogIsOpen(xideHomeNewWindow(a)) || xideAssociationViewIsOpen(a) || xideSettingsViewIsOpen(a) || xideAboutViewIsOpen(a) || xideFileDialogBusy(a) || xideMessageBusy(a) || xideCatalogSourceIsOpen(a) || xideGotoViewIsOpen(a) || xideToolchainViewIsOpen(a) || xideResourceViewIsOpen(a) || xideImportViewIsOpen(a) || xideRenameViewIsOpen(a) || xideRenameViewHasPending(a) || xideTemplateViewIsOpen(a) || xideReferencesViewIsOpen(a) || xideConfigurationViewIsOpen(a) || xideFontViewIsOpen(a) || xideRecoveryViewIsOpen(a) || xideFileChangesViewIsOpen(a)); }
 int xideActionsHasModal(xide_app* a)
 { return a && (xideUpdateIsModal(a) || xideActionsHasOtherModal(a)); }
 const char* xideActionLanguage(int id)
@@ -214,7 +217,9 @@ xide_action_state xideActionQuery(xide_app* a,int id)
     else if(d->check==STARTUP_CHECK) state.checked=project && startup==project;
     else if(d->check==WINDOW_CHECK) state.checked=windowState>0;
     int templateCreate=id==XIDE_ACTION_TEMPLATE_CREATE && xideTemplateViewIsOpen(a) && !xideMessageBusy(a) && !xideFileDialogBusy(a);
+    if(!xideSymbolRenameAllowsAction(a,id)){state.reason="符号修改正在应用或等待恢复；收尾后可继续保存、文件操作和构建";return state;}
     if(id!=XIDE_ACTION_STOP && id!=XIDE_ACTION_STOP_ALL && !templateCreate && xideActionsHasModal(a)) { state.reason="请先完成或关闭当前设置窗口"; return state; }
+    if(id==XIDE_ACTION_RENAME_SYMBOL){state.enabled=xideSymbolRenameCanOpen(a);state.reason=state.enabled?NULL:"请将光标放在已同步的可编辑 .xl 文件中，并使用支持符号重命名的语言服务";return state;}
     int loaded=a->workspaceView && a->workspaceModel.source,available=project && project->available;
     if(id==XIDE_ACTION_TARGET_CONFIGURATIONS) {
         xide_execution_context target;xideExecutionResolve(a,0,&target);

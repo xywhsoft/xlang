@@ -1,0 +1,301 @@
+{
+  "schema": 1,
+  "date": "2026-11-14",
+  "stage": "M7b6f",
+  "scope": "IDE native symbol rename action, XUI preview/consent/nonmodal application/manual recovery, asynchronous main-window quit coordination and scaled scrollable file review",
+  "implementationAccepted": true,
+  "goalComplete": false,
+  "performanceQualified": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "855c5080be0f4240b7a45e6c213b98053fed2289",
+  "buildBase": "975fb04a94c520fe1cd065c10a61f9b64c09c9b5",
+  "ownedSources": {
+    "ide/docs/lsp-symbol-rename-ui.md": "ad723d16f15c44b42e02df5a32a251c446b731f16de24e60444719a4a7a34b44",
+    "ide/src/app/actions.c": "09044180f44f53d270c9a3da5cd245e316cdfd8abe8893525871ff66ea39cf0e",
+    "ide/src/app/actions.h": "90dee736a00e00e05f0effc542d2a4f5d69fdb7aa2d88cf7d751f3b4f3280546",
+    "ide/src/app/xide_app.c": "9e3e09f7abf1cdc5900f274fde1126bf3c1cdf4aaf64a146c4976a3f4308a999",
+    "ide/src/ui/dialog.c": "ed8de8ce241b1fc918347101dbbcf9d0984554946e5538949dd4895b3cf9b8ba",
+    "ide/src/ui/dialog.h": "87e90c0631d770d86f41347c5f2b34917def16bf7c45ee9810a081247e2ce054",
+    "ide/src/ui/language_view.c": "82c7c68fe3c43ee989e3794c376867c2d49d9f00ec5432e461d5e8058dcb693f",
+    "ide/src/ui/symbol_rename_view.h": "11ce65483f2bd50d9e8a107dc1fc8c42b28a02d6c9993bc2338b9deaf94c9199",
+    "ide/src/ui/symbol_rename_view.inc": "4fa8cb9d909a687542ba272114da3551dcbb808456d4c5b8640f553df92408c7",
+    "ide/src/ui/workbench.c": "671039ecb578f06ccb2751956e8caa669840be685cc03cf91ed731b35703da77",
+    "ide/tests/native_edit_view_test.c": "52ba626de839c0ec26d38de523a09517e2c3ec53a9ae7938787902b053cfe319",
+    "ide/tests/symbol_rename_ui_test.inc": "f0c3c954e7f96075da9723bfafe3bfa3084473dfe532b9906239055c37a572c8",
+    "ide/tools/build.ps1": "b44333bf1b1b666929ad359a229787fe68722082f7919a05eb58233480195ff6"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-symbol-rename-ui-20261114.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-symbol-rename-ui-20261114/stage-sources.tar.gz",
+      "sha256": "2abf4bad27fa1938d05f79b0c36abbb3935f213683da9b3e20579283728ef055",
+      "bytes": 77766,
+      "entries": 13,
+      "uniquePayloads": 13
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-symbol-rename-ui-20261114/stage-sources.tar.gz.manifest.json",
+      "sha256": "706585bb056fdce2e3445729a3d7b12c60fa1638b7e4261084f795b03b5e82b2",
+      "bytes": 3202
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-symbol-rename-ui-20261114/actual-builds-and-validation.tar.gz",
+      "sha256": "9334b50b997de959133cdb85915b6ee6014260d7721f566dc4c5a3dbe9c17e62",
+      "bytes": 345534987,
+      "entries": 30151,
+      "uniquePayloads": 4680
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-symbol-rename-ui-20261114/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "8c670ee9ec4b168dabc9f7bc9e6443f1f72353a6b98e8cad7e2bc1a48f470820",
+      "bytes": 14503763
+    }
+  },
+  "materialDependencies": [
+    {
+      "index": "dev/release-materials/provenance/lsp-native-edit-policy-20261114.json",
+      "sha256": "f4c9f6c6ba0c7d81cce09d569916513eef77f78708759fbe2b24bdf1544386f2",
+      "purpose": "Exact unchanged native service,118 objects,72 core archive members and prior85 protocol cases; not rebuilt/rerun this stage"
+    },
+    {
+      "index": "dev/release-materials/provenance/lsp-native-edit-protection-20261114.json",
+      "sha256": "7ca48538b0b092d6b6e1a6421b407c9d81d18a62250a58282b5ccbdb7ce3b9c2",
+      "purpose": "Exact prior137-unit GUI and matched SDK used to reproduce the3 additional legacy fixture failures"
+    }
+  ],
+  "externalPaths": {
+    "build": "F:\\codex-builds-xlang-lsp-20261114\\symbol-rename-ui",
+    "fixtures": "F:\\xl-symbol-rename-ui-20261114",
+    "materials": "F:\\codex-builds-xlang-lsp-20261114\\symbol-rename-ui-materials"
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "sdkSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+  "currentDeliverySha256": "dbc9e09ddfaeced7c675d0540589319f20d03e08f5b43abe08dd33354ecaa9fd",
+  "candidate": {
+    "servicePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-native-edit-policy-20261114\\native-v1\\xlang-ls.exe",
+    "serviceSha256": "4c53c08a481173cc9c70ac6649becac7633d8395066268da92393b908e8f2296",
+    "nativeRecompiled": false,
+    "guiPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-symbol-rename-ui-20261114\\gui-objects-v6\\xlang_ide.link.exe",
+    "guiSha256": "8bcfdeb20dd4e3ed97c24dbd93a151288d43176be90f2fe2775ff8ccfd442a56"
+  },
+  "verification": {
+    "nativeObjectsReverified": 118,
+    "nativeObjectsRecompiled": 0,
+    "fullGuiObjects": 137,
+    "guiSuites": 55,
+    "asyncDriverCases": 9,
+    "asyncDriverObservedAssertions": 1993,
+    "actualIdeCases": 29,
+    "actualIdeObservedAssertions": [
+      {
+        "mode": 0,
+        "checks": 256
+      },
+      {
+        "mode": 1,
+        "checks": 153
+      },
+      {
+        "mode": 2,
+        "checks": 144
+      },
+      {
+        "mode": 3,
+        "checks": 66
+      },
+      {
+        "mode": 4,
+        "checks": 116
+      },
+      {
+        "mode": 5,
+        "checks": 66
+      },
+      {
+        "mode": 6,
+        "checks": 67
+      },
+      {
+        "mode": 7,
+        "checks": 151
+      },
+      {
+        "mode": 8,
+        "checks": 70
+      },
+      {
+        "mode": 9,
+        "checks": 280
+      },
+      {
+        "mode": 10,
+        "checks": 68
+      },
+      {
+        "mode": 11,
+        "checks": 168
+      },
+      {
+        "mode": 12,
+        "checks": 104
+      },
+      {
+        "mode": 13,
+        "checks": 98
+      },
+      {
+        "mode": 14,
+        "checks": 98
+      },
+      {
+        "mode": 15,
+        "checks": 157
+      },
+      {
+        "mode": 16,
+        "checks": 165
+      },
+      {
+        "mode": 17,
+        "checks": 166
+      },
+      {
+        "mode": 18,
+        "checks": 60
+      },
+      {
+        "mode": 19,
+        "checks": 65
+      },
+      {
+        "mode": 20,
+        "checks": 175
+      },
+      {
+        "mode": 21,
+        "checks": 162
+      },
+      {
+        "mode": 22,
+        "checks": 65
+      },
+      {
+        "mode": 23,
+        "checks": 98
+      },
+      {
+        "mode": 24,
+        "checks": 64
+      },
+      {
+        "mode": 25,
+        "checks": 59
+      },
+      {
+        "mode": 26,
+        "checks": 277
+      },
+      {
+        "mode": 27,
+        "checks": 158
+      },
+      {
+        "mode": 28,
+        "checks": 159
+      }
+    ],
+    "hostProtectionObservedAssertions": 348,
+    "physicalAliasObservedAssertions": 4462,
+    "existingNativeTransactionAssertions": 747,
+    "controllerObservedAssertions": [
+      {
+        "name": "edit_request_view_test",
+        "checks": 237
+      },
+      {
+        "name": "edit_controller_test",
+        "checks": 76
+      },
+      {
+        "name": "edit_cancel_test",
+        "checks": 11
+      },
+      {
+        "name": "source_jobs_lease_test",
+        "checks": 134
+      },
+      {
+        "name": "source_jobs_view_test",
+        "checks": 67
+      },
+      {
+        "name": "source_barrier_view_test",
+        "checks": 440
+      },
+      {
+        "name": "language_source_lease_test",
+        "checks": 121
+      }
+    ],
+    "rejectedActualMutants": 9,
+    "additionalLegacyTestsPassed": 0,
+    "additionalLegacyTestsFailed": 3,
+    "additionalLegacyFailuresMatchPriorBaseline": 3,
+    "actualGuiFramesEach": 24,
+    "actualCompileClosures": 306,
+    "rawArchiveMembers": 72,
+    "reusedProtocolEvidence": {
+      "index": "dev/release-materials/provenance/lsp-native-edit-policy-20261114.json",
+      "indexSha256": "f4c9f6c6ba0c7d81cce09d569916513eef77f78708759fbe2b24bdf1544386f2",
+      "serviceSha256": "4c53c08a481173cc9c70ac6649becac7633d8395066268da92393b908e8f2296",
+      "tools": {
+        "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_rename_candidate.py": "2241cf1a6b5a612e91978638d5ba5da713e057c4eaa799575a4f68ca265dc738",
+        "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_native_analysis.py": "f195ffe54749a3afa662b6b545504f74265cebc81152423e235578f556ab9fe1",
+        "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_native_completion.py": "2b3cd24b3fc79a54f0361889c53628202881ed53f0eb9129a41d16b4963dba41",
+        "D:\\GIT\\x-lang\\ide\\tools\\check_lsp_automatic_diagnostics.py": "a40124a9b712974048612a7eef76d8f3ce5915b13200e8d78fa6e0783ce678ec"
+      }
+    },
+    "allRuntimeAliasesRemoved": true,
+    "existingUserTemporaryDirectoriesPreserved": true,
+    "rawFailuresPreserved": true
+  },
+  "evidenceNotes": [
+    "Add editor.renameSymbol action98 and Ctrl+F2 to the Edit menu; file.rename keeps F2. A lazily created XUI window captures source document identity/revision/caret, obtains actual negotiated native RPC candidates, admits the complete managed host protection policy and presents all affected files, edit counts and editor-versus-disk effects before exact-token consent. The API remains limited to verified native candidates; standard rename/applyEdit are not enabled.",
+    "Preview/name/confirmation stays modal. The application window reopens without a backdrop, preserves editor focus and allows typing/undo/IME while source operations and new builds are disabled by action policy and existing underlying document/source barriers. Large body/candidate assets stay in existing worker-owned leases. UI review is bounded to512 rows and1MiB known label text, with no silent truncation or partial approval on allocation/SDK-list failure.",
+    "Main-window close first requests asynchronous cancellation. Only after physical completion, closed source resources and reader release does it replay the ordinary quit callback once, using existing unsaved-state decisions. A held source write and direct Save/Close rejection are exercised; ordinary quit never reaches workspace save/discard before that barrier ends.",
+    "Uncertainty exposes an explicit manual recovery window without releasing holds or replaying frozen logs. It retains/copies the dedicated recovery path, offers directory opening and editor return, and requires a fresh explicit discard confirmation before exiting. That confirmation binds the native token and current document revision/model metadata; later edits invalidate prior approval. Recovery data is not claimed to contain every unsaved body. Automatic verification/resumption remains open.",
+    "Business dialogs still default to modal. SetModal only accepts a closed managed window. When preview controls become disabled, focus is explicitly moved to the enabled modal Cancel control so Escape stays within the window. Nonmodal progress/results do not steal editor focus. Creation failure destroys attached/orphaned controls and leaves no false-ready view, allowing retry.",
+    "Large-font screenshot review found that the initial footer-only geometry assertion missed a zero-height file list. The final body uses natural-height scrolling with fixed action footer, and file-row metrics scale at lazy creation through existing UI font metrics. The final40DIP case asserts list height, scaled row height, actual visible intersection after scrolling and footer bounds; normal preview, held progress, recovery and large-font screenshots plus two actual C/xlang GUI renders were inspected.",
+    "Final29 IDE cases include the original15 internal managed/barrier cases and14 public UI cases: real Ctrl+F2/menu identity, normal five-file commit and C/xlang input, C input while an actual positive source write is held, main-window close deferral and one ordinary replay, preview-generation close button, confirmation Escape, frozen committed journal with repeated/invalidated exit consent, tree-construction failure/retry, stale preview cancellation, no-workspace single-file rename, complete-list failure cancellation, rejected invalid name, two successive public renames on the same worker with distinct scopes/tokens,40DIP review and an actual Cancel click during held writing.",
+    "Fresh747-check NativeWork,9-mode async driver,7 original controller/barrier integration groups and55 matched GUI suites pass against final137 rebuilt GUI units and the same native service. Counts are observed assertions, not distinct-feature or performance quantities. Source ReadFull/CondWait counters cover named project imports only; existing full Current/path/configuration preparation and cold UI/OS/SDK work remain outside any zero-I/O or latency claim.",
+    "Nine actual compiled bad implementations fail assertions: modal progress, abandoned modal focus, quit before drain, skipped uncertainty consent, stale discard approval, accepted incomplete preview, reenabled source actions, hidden large-font file list and unscaled rows. Every changed include is proven selected by its actual compile dependency closure; compile errors/crashes are not counted as rejected implementations.",
+    "Three extra legacy fixtures fail on the final candidate and on the exact prior GUI baseline. dialog_layout_test reports the references-window footer outside its client at40DIP; dialog_message_test fails its first new-project window assertion; modal_open_latency_test refuses its second About opening. Raw failed statuses/logs/programs are retained, their matching assertions are recorded and none is counted as a passing test or timing qualification.",
+    "Early quick fixture compilation used a nonexistent SDK getter and was corrected. A held-uncertainty fixture initially attempted disk reads before teardown; the original exclusive handles correctly refused them, so the oracle was moved after app destruction without weakening production policy. A real Escape focus bug and actual large-font list disappearance were then fixed and the complete final UI cases rerun. A later scaled-row compile lacked its explicit header and failed; final source has the declaration and all137 units rebuilt. Intermediate snapshots and failed logs remain immutable.",
+    "Two independent helper runs initially collided on reused private DLL aliases and rejected before overwrite. Final helpers use independent names or sequential ownership; exact hash cleanup and final inventory pass. A read-only identity collector was explicitly stopped after detecting an invalid generated row filter before final evidence publication; its corrected replacement completed all actual dependency/hash checks. These failed/helper attempts are not counted as successful acceptance.",
+    "The unchanged accepted4c53 native service was not rebuilt. Its118 objects,72 raw core members, actual source/header closure and four unchanged protocol tools are reverified. Prior85 protocol cases are explicitly referenced through their committed index, not presented as fresh runs. All executables execute through root release/win_x64 matched private aliases to protect the user working cohort.",
+    "Canonical production source/header parity, compiler inputs, private service-basename-only units, actual test/mutant/baseline link inputs and runtime/SDK identities are bound. The normal runtime, matched developer SDK, active delivery and existing user temporary directories are unchanged. Large source/evidence bundles stay external and indexed; concurrent unrelated staged/worktree state is preserved."
+  ],
+  "limits": [
+    "Native IDE rename UI is enabled in the qualified candidate only; standard textDocument/rename, generic workspace/applyEdit and arbitrary-client write activation remain open. This window provides manual uncertain recovery/discard exit, not automatic journal replay or verified in-session resumption.",
+    "The3 additional legacy dialog failures remain unresolved, including references layout at40DIP. The55 passing matched suites and29 IDE cases do not establish that every IDE feature/test is green.",
+    "Existing ordinary local fixed-drive/single-link/ancestor pin rules and source budgets remain. The6-reader graph does not represent every possible independent reader or an OS-wide transaction. No implicit resume of lost/uncertain state is allowed.",
+    "UI metadata/body budgets are not total RSS bounds. Complete Current retains existing path/configuration costs. Whole-goal cold/incremental latency, memory and endurance qualification remains open.",
+    "Engine/native asset alignment, complete generic/unbound/foreign qualification, other synchronous readers, deep unprefixed xlp handling, configuration-cache count regression, Linux and sanitizer validation remain open.",
+    "C LSP stays disabled. No DAP/runtime/debug completion. Working runtime, developer SDK and active delivery are not replaced or published."
+  ],
+  "postCommitReceipt": "dev/release-materials/provenance/lsp-symbol-rename-ui-20261114/postcommit.json",
+  "publicationRebase": {
+    "fromCommit": "975fb04a94c520fe1cd065c10a61f9b64c09c9b5",
+    "toCommit": "855c5080be0f4240b7a45e6c213b98053fed2289",
+    "ownedPathsAndAllBoundProductionInputsUnchanged": true
+  }
+}

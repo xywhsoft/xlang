@@ -1,4 +1,5 @@
 #include "ui/native_edit_view.h"
+#include "ui/symbol_rename_view.h"
 #include "ui/association_view.h"
 #include "ui/about_view.h"
 #include "ui/home_view.h"
@@ -69,7 +70,9 @@ static int createTarget(xide_app* app, int width, int height)
 }
 static int quitRequest(void* user)
 {
-    xide_app* app=user; if(xideActionsHasModal(app) || xideAssociationViewBusy(app)) return 0;
+    xide_app* app=user;int native=xideSymbolRenameBeforeQuit(app);if(!native)return 0;
+    if(xideActionsHasModal(app) || xideAssociationViewBusy(app)) return 0;
+    if(native==2)return xideUpdateOnQuit(app);
     xideMessageBeginQuit(app);
     if(!xideWorkspaceQuitRequest(app)) { xideMessageEndOperation(app);return 0; }
     xideMessageEndOperation(app);
