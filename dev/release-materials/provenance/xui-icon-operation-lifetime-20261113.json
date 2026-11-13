@@ -1,0 +1,150 @@
+{
+  "date": "2026-11-13",
+  "qualified": true,
+  "shippingDelivery": false,
+  "nativeCommit": "7a91ec09",
+  "nativeEvidence": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\icon-operation-lifetime-20261113.json",
+    "sha256": "d92de727bb6804572243cf5834b412b38205ff46c99ba9d54670fa679d7092e2"
+  },
+  "scope": "Native Icon callback-bearing operation survival floor consumed by the existing complete Icon model gate. No cache mutation or full IconPicker/graphics completion claim.",
+  "platforms": {
+    "win": {
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\icon-operation-models-win-r2\\results.json",
+        "sha256": "ab0b748a3f5f457fa7c88dda2b1e1e937c30c55b28da43411315c9525428a826",
+        "commands": 15
+      },
+      "programs": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\icon-operation-models-win-r2\\foreign_xui_icon_models-dynamic.exe",
+          "sha256": "a3878d9170783f2704ae6ca35c8d1347112cebe89619815fd83db1483265fd14",
+          "bytes": 5235712,
+          "imports": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\icon-operation-models-win-r2\\foreign_xui_icon_models-static.exe",
+          "sha256": "ba296b39a44222dbc689dd9a5ffbc9cb2d54954a62d55738093d66f534ffb31d",
+          "bytes": 1790464,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "ole32.dll",
+            "SHELL32.dll"
+          ]
+        }
+      ],
+      "native": {
+        "sdk": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\icon-operation-sdk-win-r2\\results.json",
+          "sha256": "d80740a104a3799792daee914ee068345d926b0a67cedcf8601e53377a856bb6",
+          "commands": 4
+        },
+        "nativeClients": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\icon-operation-native-win-r2\\results.json",
+          "sha256": "edb2b07b6d9fe457b95cffc3301de66acac5f6c0629a6c2887e20bc502756630",
+          "commands": 28
+        },
+        "productionFreeze": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\native-icon-operation-win-freeze-r2.json",
+          "sha256": "30504523b512eb14f6a755bfad02b2c6f9f0b0d61bce3a9d942cfda6eec67ef8",
+          "inputs": 12066
+        },
+        "testOverlayFreeze": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\native-icon-operation-win-freeze-r3.json",
+          "sha256": "d80da2055faf0cf52fb4460c891ce8dacf50b407c960c41c5f84d359751548e9",
+          "inputs": 12066
+        },
+        "runtime": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\icon-operation-sdk-win-r2\\host\\xge3_host.dll",
+          "sha256": "aaad3f0dc03b42cbfdd63d8caf39ff595240b8f067289db87a079aec70fa74e7",
+          "bytes": 9586223,
+          "byteDelta": 2560
+        }
+      }
+    },
+    "linux": {
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\icon-operation-models-linux-r2\\results.json",
+        "sha256": "b0ca941dbff7c0f1a5842c20bde1b68aafda4f9e526ee86809384f266a71c887",
+        "commands": 15
+      },
+      "programs": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/icon-operation-models-linux-r2/foreign_xui_icon_models-dynamic",
+          "sha256": "597c45d3d026641ac84ce50dcb6a2f65783fedf952562432b008d6d8697bb6d4",
+          "bytes": 5414500,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/icon-operation-models-linux-r2/foreign_xui_icon_models-static",
+          "sha256": "adfdfe77689cfd4a6ec3ae24416393338e66b905ec782a8afe97bfcd62233109",
+          "bytes": 2238874,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ],
+      "native": {
+        "sdk": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\icon-operation-sdk-linux-r2\\results.json",
+          "sha256": "6c33ecbae327107dfd3ed685343a576c48033e29b6bf580570b68017d770d1a2",
+          "commands": 4
+        },
+        "nativeClients": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\icon-operation-native-linux-r2\\results.json",
+          "sha256": "fd077409cb5f8411deea32f66563bc4ff70d4b8c17eb74a53e32b8aaa6f07719",
+          "commands": 28
+        },
+        "productionFreeze": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\native-icon-operation-linux-freeze-r2.json",
+          "sha256": "36eeb9afd9f36ab598ea3f574efa7fe7d764962606467df73f907962757b0ef9",
+          "inputs": 12066
+        },
+        "testOverlayFreeze": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\native-icon-operation-linux-freeze-r3.json",
+          "sha256": "5cefab50b921598364d2ddd2d045f73d32071385552143b22713ab82196ca39a",
+          "inputs": 12066
+        },
+        "runtime": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\icon-operation-sdk-linux-r2\\host\\libxge3_host.so",
+          "sha256": "a7a8e9ed78b9de900f0dc2c958f44da1008c92c832ae4b1891ec422a29810e2b",
+          "bytes": 10441392,
+          "byteDelta": 0
+        }
+      }
+    }
+  },
+  "costs": [
+    "One Context call receipt and one temporary native carrier reference per public callback-bearing operation. Category preload additionally invokes each normal Icon prepare operation.",
+    "No new private fields or public declarations. Stack receipts and reference bookkeeping; 4000 normal operations show zero XRT allocations/frees/reallocations.",
+    "Native business entry points stay direct calls. These safety operations are in XGE itself; no per-method language C forwarding body is added."
+  ],
+  "limits": [
+    "No cache-invalidation/mutation reentry safety claim.",
+    "No retained custom/formatter closure qualification.",
+    "Raw Painter requires caller-held Context lifetime for its session; fixture explicitly provides it.",
+    "Native engine O2, GCC clients O0/O2; no sanitizer/device/window/network/final-install claim."
+  ]
+}

@@ -64,3 +64,24 @@ outputs. Those failures are preserved. Independent receipts exclude only the
 three exact compiler outputs, verify all remaining 12,063 original inputs and
 all staged output hashes, and record them unchanged. This does not change the
 scope of the runtime tests or turn declaration presence into full acceptance.
+
+Native successor `7a91ec09` holds an Icon/Context receipt through intrinsic-size,
+prepare and draw callbacks, and a Category receipt through preload iteration.
+Callbacks may unregister their active data or request Context destruction;
+physical retirement follows the complete native reader. Alias roots preserve
+their immutable target chain. Original owned diagnostics survive a failed
+return and final cleanup.
+
+Both platforms pass 28 native commands (56 lifetime/error combinations and
+4000 normal operations with zero XRT heap activity), four fresh O2 SDK producer
+commands and the complete 15-command language consumption gate. Each platform
+now has a separate source/cache tree, excluding generated build caches from
+its 12,066 pinned inputs. All those inputs remain unchanged. Public/private
+layouts stay the same. Relative to the clear SDK, the Windows DLL grows by
+2560 bytes and the Linux DSO total is unchanged. Normal operations add Context
+scope and temporary reference bookkeeping; no timing equivalence is claimed.
+The raw Painter fixture explicitly holds the Context for its session.
+
+`xui-icon-operation-lifetime-20261113.json` indexes this floor. Cache mutation
+from callbacks, retained formatter/custom closures and complete graphics/UI
+acceptance remain separate requirements for the full integration.
