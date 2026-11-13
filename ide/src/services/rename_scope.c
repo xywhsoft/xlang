@@ -1,11 +1,16 @@
 #include "services/rename_scope.h"
-#ifdef XLS_COMPILER_XRT
 #include "platform/path.h"
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
 #ifndef XIDE_RENAME_SCOPE_ALLOC
 #define XIDE_RENAME_SCOPE_ALLOC(bytes) xrtCalloc(1,(bytes))
+#endif
+#ifndef XIDE_RENAME_PROVIDER_CREATE
+#define XIDE_RENAME_PROVIDER_CREATE xlsContextCreate
+#endif
+#ifndef XIDE_RENAME_PROVIDER_RELEASE
+#define XIDE_RENAME_PROVIDER_RELEASE xlsContextRelease
 #endif
 typedef struct file_owner {wchar_t* key;size_t owner;} file_owner;
 struct xide_rename_scope {
@@ -84,6 +89,8 @@ int xideRenameScopeOwners(const xide_rename_scope* s,const char* path,uint64_t* 
  wchar_t* key=xidePathNativeWide(path);if(!key)return 0;
  int okay=xideRenameScopeOwnersNative(s,key,owners);free(key);return okay;
 }
+#include "services/rename_scope_provider.inc"
+#ifdef XLS_COMPILER_XRT
 int xideRenameScopeTarget(const xide_rename_scope* s,const xide_rename_target* target,uint64_t* owners)
 {
  if(owners)*owners=0;

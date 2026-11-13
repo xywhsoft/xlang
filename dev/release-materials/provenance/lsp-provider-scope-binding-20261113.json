@@ -1,0 +1,154 @@
+{
+  "schema": 1,
+  "date": "2026-11-13",
+  "stage": "M7b5v",
+  "scope": "Worker-only provider context and all-owner membership binding to an independently captured workspace scope, shared by GUI and standalone XRT",
+  "implementationAccepted": true,
+  "goalComplete": false,
+  "performanceQualified": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "f5bfbadd01d61e6f4a9e3bdfb17bc3c79088b36e",
+  "ownedSources": {
+    "ide/src/services/rename_scope.h": "3ee61fcf96609919e87f70ebe286022487f9b8038626f696f2a77b500eec2004",
+    "ide/src/services/rename_scope.c": "ab2b4e6f1799def8d179c05ca6aa5ae8a188825fe5d2506df4c03dce05f41c90",
+    "ide/src/services/rename_scope_provider.inc": "b3c17af8ffce6dae01bbceaeed97edc981bc75577e0f4e0a00f53c46b2073ac3",
+    "ide/tests/rename_provider_test.c": "8d9f2fa732ea590b16b3d629c51fc6ac92e233ebbc3f73d2a0d9435dc067e3b0",
+    "ide/tests/project_rename_provider_test.c": "fb1fd8befda96b579876d88c25f8c7734160bf5ccb3f066f7cc19a8a7d929b67",
+    "ide/tests/project_rename_plan_test.c": "47c9ecb0a49d93cb1c6c457fcb6daf8a99c7a94f13afbbc639e456899de73e26",
+    "ide/tools/build.ps1": "03d054b1ee3937ffdb78026873612dde3eaa89571b4d3f015f92f69115628fc5",
+    "ide/tools/build_lsp_core.py": "802d31cfb30bf2324eadb74bb98365457d6b1206976a9e6eb5189492a315a866",
+    "ide/docs/lsp-provider-scope-binding.md": "f64416a2fa3a078cf2801c279476d819a634548636f377897fe8363068d9efb9"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-provider-scope-binding-20261113.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-provider-scope-binding-20261113/stage-sources.tar.gz",
+      "sha256": "41b15108f27a74c83ee08cf92cf01e361dcf0c8435a8ae68535bcaf47e81b75b",
+      "bytes": 54317,
+      "entries": 10,
+      "uniquePayloads": 10,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-provider-scope-binding-20261113/stage-sources.tar.gz.manifest.json",
+      "sha256": "538260f91c99f7f773a9ca749874f24d407e831930ac1b08c37fe3fabcf724df",
+      "bytes": 2292
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-provider-scope-binding-20261113/actual-builds-and-validation.tar.gz",
+      "sha256": "2f94a902612f96c1cb74247645b71e8fd5069218b34719b7c5426010b97d0f07",
+      "bytes": 319829338,
+      "entries": 12297,
+      "uniquePayloads": 4516,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-provider-scope-binding-20261113/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "dfc87be447a91357a6c3ab9ba23842427e5acd3d0622ba336b456b4a8672b133",
+      "bytes": 4744365
+    }
+  },
+  "currentBindings": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-provider-scope-binding-20261113\\final-bindings.json",
+    "sha256": "3f8d6bd7126af39a06a286d574d3fd59e20fba5e52f493a2fc7e21457e955566"
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "sdkInherited": {
+    "index": "dev/release-materials/provenance/lsp-dpi-startup-20261112.json",
+    "indexSha256": "727ae55e191b104683a756dbe85a03f0add12ed40e60c4d6166face2f50f4e5d",
+    "dllSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "compiledUnitsThisStage": 0,
+    "matchedSetPreserved": true
+  },
+  "nativeService": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-provider-scope-binding-20261113\\native-v4\\xlang-ls.exe",
+    "sha256": "266128ea502c3979ef595c25244523e7d6b4dfd153dabca09fe7e1d0838faa3f",
+    "fullCohortCompilationUnits": 109,
+    "finalPrivateComponentCompilationUnits": 1,
+    "archiveMembers": 72,
+    "allArchiveMembersMatchNewObjects": true,
+    "allPublicHeaderAndLayoutConsumersRebuilt": true,
+    "compilerAssetsInherited": true,
+    "scopePrivateUpdatePreservesFullCohortHeadersAndLayouts": true,
+    "additionalAdditiveHeaderConsumerCompilationUnits": 19,
+    "finalScopeObjectAndServiceByteIdenticalToPassedCohort": true,
+    "allAdditiveHeaderConsumersRebuilt": true
+  },
+  "correctness": {
+    "providerAssertionsPerOwner": 318,
+    "nativeCandidateRoundtripCombinedAssertions": 732,
+    "existingNativeScopeAssertions": 1121,
+    "existing130FileCandidateAssertions": 418,
+    "nativeInputGuardAssertions": 104,
+    "nativeInputConcurrentValidations": 320,
+    "sourceReportAssertions": 4508,
+    "guiProductionUnitsFinal": 129,
+    "guiRegressionSuitesFinal": 55,
+    "protocolSuitesFinal": 3,
+    "protocolCasesFinal": 50,
+    "rejectedMutants": 10,
+    "allContextOptionsAndOrderedLists": true,
+    "independentlyExpectedProviderContext": true,
+    "allOwnersRegardlessOfSelectedProject": true,
+    "registeredXlangEntryOnly": true,
+    "explicitOutsideMembersSupported": true,
+    "bit63And64IdenticalStandaloneRoles": true,
+    "exactContextReuseWithZeroProviderConstructorCalls": true,
+    "allObservedConstructorFailureAndCancellationPrefixes": true,
+    "finalCancellationDuringLastConstructor": true,
+    "noPartialOwnersOnFailure": true,
+    "ownedReferenceReleaseObserved": true,
+    "fourConcurrentReadersAfterOriginalOwnersExit": true,
+    "actualFourScopeNativeExportImportRoundtrip": true,
+    "zeroTargetScopesIncluded": true,
+    "independentProofAfterOriginalOwnersExit": true,
+    "actualCAndXlangTypingDeleteUndoImeFocus": true,
+    "actualGuiFramesEach": 24,
+    "currentProductionAndActualDependenciesBound": true,
+    "nativeActualSourceAndHeaderParityEntries": 299,
+    "shortPathFixtureFilesRetained": 562,
+    "allRuntimeTestAliasesRemoved": true,
+    "userTemporaryDirectoriesPreserved": true,
+    "rawAttemptsPreserved": true
+  },
+  "externalHelper": {
+    "proxy": {
+      "archive": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\lsp-completion-error-isolation-20261112\\actual-builds-and-validation.tar.gz",
+      "entry": "bound-inputs/20c68dabd23c25637a08/xui_test_proxy.c",
+      "sha256": "740c86aee90b1373324909c74d3ae6c9f446b0c52c84c3ea84cea141c53bdc48"
+    },
+    "header": {
+      "repository": "D:/GIT/xge",
+      "commit": "1ba93e6b3ea49e80d9d821894811caef599634f3",
+      "path": "tests/xui/xui_test_proxy.h",
+      "sha256": "b42cd48cd68966d969575f717ade56f357dacbcabce746730c9bfb275dd0a80a"
+    },
+    "liveXgeUnmodified": true
+  },
+  "evidenceNotes": [
+    "Full native-v1 recompiles109 units after the common scope API exposure. Native-v2 rebuilds only the private rename_scope implementation to add immutable exact-context reuse, using the identical public headers/layouts and the exact newly built full archive. The final identity review additionally synchronizes an existing toolchain source-lease helper/declaration omitted by the inherited native snapshot and rebuilds18 affected consumers, including auxiliary fixture units, then the remaining scope consumer. The last object and relinked service are byte-identical to the passed cohort; all19 additive-header consumers have current-source counterparts. GUI retains its fully rebuilt129-unit cohort/matched SDK and is requalified against the final service; historical initial build pairing and final qualification pairing identities are separately retained.",
+    "Initial provider fixtures passed317 checks. An additional deterministic cancellation during the last constructor yields318 final checks in both XRT owners. These final independently frozen test fixtures, rather than earlier unused snapshot copies, are bound to the actual linked programs.",
+    "Native candidate fixture uses the original independently captured scope for each wire proof, verifies all four owner bits including zero-target scopes and imports against independent request overlays. Its732 combined checks include existing producer export fault probes19 clone/248 consuming insertions; these are not exhaustive importer/internal allocator OOM coverage.",
+    "Ten actual private implementation mutants exit1 at fixture assertions. Compile failures and crashes are not counted. Raw logs, actual linked programs and source/header closures are retained.",
+    "The first identity audit bound dependency bytes but its lexical D-drive junction prefix comparison produced an empty native source parity map. The second audit resolves both prefixes and rejects the missing existing toolchain helper. The final audit resolves both native dependency and snapshot prefixes to the same F-drive identity, requires more than100 mapped entries and the actual public scope header/private implementation, and verifies each against current source after all19 affected consumers are rebuilt. The intermediate audit after18 consumers still rejects the remaining old scope header; the final scope rebuild and relink produce byte-identical accepted program bytes. Original receipts and failed audits are preserved.",
+    "One GUI helper invocation occurred before its Python driver file was generated; no program was compiled or launched by that invocation. The sequential invocation passed. This is not counted as a rejected implementation variant.",
+    "Exact-context reuse avoids provider constructors only; path preparation, lookup, comparison, reference counts and other allocations remain. Allocation/release observations cover the provider interface, not exhaustive XRT internals or measured process leak freedom."
+  ],
+  "limits": [
+    "This stage binds provider entry membership and full configuration. It does not establish complete member/source coverage, checked analysis, transport method/ID/token/connection origin, model freshness, consent or write authority.",
+    "GUI capture of all unopened standalone workspace files, full message and request binding, source closure coverage, transaction host/controller, physical alias and owned-target publication policy, consent/recovery/startup replay and standard rename/applyEdit activation remain open.",
+    "The metadata worker uses existing64-scope/128MiB retained scope and16MiB context admission limits; temporary context/path/allocator work is additional. No whole-service latency/RSS, exhaustive allocator-failure or long-run qualification is claimed.",
+    "Other synchronous readers, final latest engine/native asset alignment, deep unprefixed xlp compiler paths, analysis-configuration cache-count regression and final delivery remain open.",
+    "C LSP remains disabled. No DAP/debug/runtime completion or Linux/sanitizer qualification in this stage."
+  ],
+  "postCommitReceipt": "dev/release-materials/provenance/lsp-provider-scope-binding-20261113/postcommit.json"
+}

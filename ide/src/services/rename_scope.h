@@ -1,8 +1,6 @@
 #ifndef XIDE_RENAME_SCOPE_H
 #define XIDE_RENAME_SCOPE_H
 #include "services/analysis_catalog.h"
-#include "services/semantic_rename.h"
-#ifdef XLS_COMPILER_XRT
 typedef struct xide_rename_scope xide_rename_scope;
 #define XIDE_RENAME_SCOPE_BYTES (128u*1024u*1024u)
 enum xide_rename_scope_error {
@@ -34,6 +32,21 @@ const xls_context* xideRenameScopeAt(const xide_rename_scope*,size_t);
  * a claim that all their files have been checked. */
 int xideRenameScopeOwnersNative(const xide_rename_scope*,const wchar_t*,uint64_t*);
 int xideRenameScopeOwners(const xide_rename_scope*,const char*,uint64_t*);
+/* Worker metadata binding, no source/manifest/body I/O. claimed is untrusted
+ * decoded metadata. Its .xl entry must be explicitly registered in the captured
+ * scope. Build expected context from EACH matching local scope, replacing only
+ * the validated entry spelling and clearing MEMBERS as the original actor does.
+ * Full core context equality checks every remaining option, not just a hash,
+ * selected project or project/name prefix. Return an independently owned context
+ * and all compatible owner bits; failure clears bits and returns no prefix.
+ * Existing64-scope/128MiB retained-scope and16MiB context limits apply. Temporary
+ * contexts/path keys/allocator overhead are additional. Keep scope/claim stable.
+ * This is provider membership/configuration, not scope coverage, a checked
+ * analysis, transport/request freshness, physical identity or write approval. */
+xls_context* xideRenameScopeProvider(const xide_rename_scope*,const xls_context* claimed,
+ uint64_t* owners,int (*cancelled)(void*),void*,enum xide_rename_scope_error*);
+#ifdef XLS_COMPILER_XRT
+#include "services/semantic_rename.h"
 /* A source declaration must be in an explicitly configured .xl file. Reject
  * unlisted imports, library-only sources and C/manifest declarations. Missing
  * membership is success with zero bits. This only selects scopes to prove:

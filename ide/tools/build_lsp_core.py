@@ -153,7 +153,7 @@ HOST_TESTS += ("workspace_edit_write_test", "workspace_edit_write_fault_test")
 HOST_TESTS += ("workspace_edit_journal_test", "workspace_edit_journal_fault_test")
 HOST_TESTS += ("workspace_edit_positions_test", "workspace_edit_positions_fault_test")
 HOST_TESTS += ("semantic_field_binding_test",)
-HOST_TESTS += ("rename_scope_test",)
+HOST_TESTS += ("rename_scope_test", "rename_provider_test")
 HOST_TESTS += ("project_rename_scope_test",)
 HOST_TESTS += ("project_rename_workspace_test",)
 HOST_TESTS += ("semantic_rename_identifier_test",)
@@ -167,7 +167,7 @@ HOST_TESTS += ("semantic_family_references_test", "project_family_references_tes
 HOST_TESTS += ("rename_plan_test", "project_rename_plan_test")
 HOST_TESTS += ("semantic_binding_check_test",)
 HOST_TESTS += ("analysis_frozen_check_test",)
-HOST_TESTS += ("project_rename_recheck_test", "project_rename_result_test", "project_rename_input_import_test")
+HOST_TESTS += ("project_rename_recheck_test", "project_rename_result_test", "project_rename_input_import_test", "project_rename_provider_test")
 HOST_TESTS += ("analysis_report_index_test",)
 
 
@@ -1114,15 +1114,15 @@ def main() -> None:
                           if Path(source).stem != "xlang_ls" and
                           not (name == "semantic_rename_target_test" and Path(source).stem == "semantic_rename") and
                           not (name == "rename_plan_test" and Path(source).stem == "rename_plan") and
-                          not (name == "rename_scope_test" and Path(source).stem == "rename_scope") and
+                          not (name in ("rename_scope_test", "rename_provider_test") and Path(source).stem == "rename_scope") and
                           not (name in ("language_input_import_test", "snapshot_report_test", "reference_capture_test", "reference_graph_capture_test", "declaration_capture_test", "project_reference_owner_fault_test", "language_native_cancel_test") and Path(source).stem == "language_snapshot") and
                           not (name == "path_identity_batch_test" and Path(source).stem == "path") and
                           not (name == "workspace_symbol_index_test" and Path(source).stem == "workspace_symbol_index") and
                           not (name in ("workspace_symbols_test", "workspace_symbol_refresh_test", "workspace_symbols_shared_test") and Path(source).stem == "workspace_symbols") and
                           not (name == "workspace_symbol_wire_test" and Path(source).stem == "workspace_symbol_wire") and
                           not (name in ("semantic_dispatch_family_test", "semantic_callable_family_test", "semantic_reference_graph_test", "semantic_reference_merge_test", "semantic_family_references_test", "semantic_binding_check_test", "semantic_lookup_test", "semantic_reference_shard_test", "declaration_symbols_test", "navigation_function_budget_test") and Path(source).stem == "semantic_definition") and
-                          not (name in ("project_reference_budget_test", "reference_path_index_test", "project_reference_parallel_test", "project_reference_owner_fault_test", "project_rename_workspace_test", "project_reference_family_test", "project_family_references_test", "project_rename_plan_test", "project_rename_recheck_test", "project_rename_result_test", "project_rename_input_import_test") and Path(source).stem == "project_references")]
-            if name in ("project_rename_result_test", "project_rename_input_import_test"):
+                          not (name in ("project_reference_budget_test", "reference_path_index_test", "project_reference_parallel_test", "project_reference_owner_fault_test", "project_rename_workspace_test", "project_reference_family_test", "project_family_references_test", "project_rename_plan_test", "project_rename_recheck_test", "project_rename_result_test", "project_rename_input_import_test", "project_rename_provider_test") and Path(source).stem == "project_references")]
+            if name in ("project_rename_result_test", "project_rename_input_import_test", "project_rename_provider_test"):
                 extra.extend(("-Wl,--wrap=xrtValueDeepClone", "-Wl,--wrap=xrtValueObjectSetNew"))
             if name == "project_reference_owner_fault_test":
                 extra.append(str(objects['owner_snapshot_fault']))

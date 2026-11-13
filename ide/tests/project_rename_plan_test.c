@@ -31,6 +31,9 @@ static int runDraft(void)
  CHECK(writeText(paths[0],raw) && writeText(paths[1],consumer) && writeText(paths[2],unrelated) && writeText(paths[3],consumer) && writeText(paths[4],dep) && writeText(paths[5],consumer) && writeText(paths[6],unrelated));
  const char *am[]={paths[0],paths[4]},*bm[]={paths[1],paths[4],paths[5],paths[3]},*cm[]={paths[6]};xls_context* contexts[]={context(paths[7],dir,paths[0],am,2),context(paths[8],dir,paths[1],bm,4),context(paths[9],dir,paths[2],cm,1)};xls_context* single=context(NULL,dir,paths[3],NULL,0);CHECK(contexts[0] && contexts[1] && contexts[2] && single);xide_rename_scope* scope=membership(contexts,single);xide_rename_target* seed=target(paths[0],raw,paths[4],dep);xls_text* text=xlsTextCreate(raw,strlen(raw),strlen(raw),NULL);CHECK(scope && seed && text);xls_analysis_document docs[]={{"entry",paths[0],text,41,UINT_MAX}};
  xide_toolchains* cache=xideToolchainsCreate();xide_project_references* store=xideProjectReferencesCreate(cache,paths[10],NULL);CHECK(cache && store);xstrview name=xrtStrView("renamed_😀");
+#ifdef XIDE_RENAME_SCOPE_CAPTURE_TEST
+ CHECK(XIDE_RENAME_SCOPE_CAPTURE_TEST(scope));
+#endif
  CHECK(!xideProjectReferencesSubmitRenamePlan(store,scope,seed,docs,1,"entry",xrtStrView("return")));
  CHECK(draftResult(xideProjectReferencesSubmitRenamePlan(store,scope,seed,docs,1,"entry",name),1,NULL,0,NULL));CHECK(draftResult(xideProjectReferencesSubmitRenamePlan(store,scope,seed,docs,1,"entry",name),1,NULL,1,NULL));
  /* Draft construction writes neither source files nor editor snapshots. */
