@@ -1,0 +1,16 @@
+// Run from this examples directory: xl run font_xrf_memory.xl
+// Bake A into an in-memory XRF; no file output, window or OS font is needed.
+import xge
+
+xge.init(4,4,"Memory font",0,xge.XGE_RUN_MANUAL)
+auto face=xge.loadFontFace("data/font_fixture.ttf")
+auto source=face.createFont(20)
+face.close()
+auto encoded=source.encodeXRF(c_uint(65),c_uint(1))
+source.close()
+auto restored=xge.loadFontXRF(encoded)
+auto letter=restored.glyph(c_uint(65))
+assert letter.fAdvanceX>c_float(0)
+println("XRF bytes:",encoded.length,"A advance:",letter.fAdvanceX)
+restored.close()
+xge.unit()

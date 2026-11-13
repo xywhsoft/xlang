@@ -1,0 +1,294 @@
+{
+  "date": "2026-11-14",
+  "qualified": true,
+  "shippingDelivery": false,
+  "nativeCommit": "2a95629ce282a7de27c492168a2237ff7c8b2500",
+  "sources": {
+    "lib/bindings/xge/src/resources.xl": "acd699d3d1e206ef9c95035c429241b7ce9d38950a24cb8eafc61976cb3b991c",
+    "lib/bindings/xge/examples/font_xrf_memory.xl": "9abb763f1b4352011ae9bfbb6f7d44c175aef0123dd7f0625179ebafa16290c2",
+    "lib/bindings/xge/examples/README.md": "adc5b7284faafee4577db402d8241c2d86293cdc18b52d2a9e5225a2bdfccf09",
+    "test/cases/foreign_xge3_font_xrf_bytes.xl": "a01a8fd9487f57342c0a6d52eeae3856d889ff92c526f62ac25afb05bb5c0c94",
+    "test/cases/foreign_xge3_font_xrf_bytes.h": "25fe5bc599faeb35d2a635bf914315c100b4f93f90474b846bfa7654d4a4df4e",
+    "test/cases/foreign_xge3_font_xrf_bytes.c": "e5b14231ba7573ebaadc37ea6e3960cb0aae20444b9960b8303c2930eec3b0d6",
+    "tools/check_xge3_font_xrf_bytes.py": "9388d119fc938a4fdb0c19a4fe2896cb350a1b5285f351762008322eded07d97",
+    "docs/xge3-font-resources.md": "fc7d634e5e67318ab92523c78bf6464d870718145dc748d6c6ab717b4ac68ed4"
+  },
+  "platforms": {
+    "win": {
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-signed-output-full-r35\\build.json",
+        "sha256": "e0deb488903de73dc249bca25b66731955b842cacd665ca2868d51cf3f9bc1a5"
+      },
+      "products": {
+        "xl.exe": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-signed-output-full-r35\\source\\release\\win_x64\\xl.exe",
+          "sha256": "b06ecff88b5b9f438820a93f7ec7c8be5d605c5e55c8d6e6c58c8d2c2641ed80",
+          "bytes": 72704
+        },
+        "xl.dll": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-signed-output-full-r35\\source\\release\\win_x64\\xl.dll",
+          "sha256": "9d3fe68ca1d6745658cb2aa66b4a75949c113b2270ac7730de9cc8ac586a82f3",
+          "bytes": 15299584
+        },
+        "xlc.dll": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-signed-output-full-r35\\source\\release\\win_x64\\xlc.dll",
+          "sha256": "9a93c3bf38baf84de03f7fb9970a22e23e4738cabce640676e330275d7f0c48d",
+          "bytes": 21517824
+        }
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\font-xrf-language-win-r1\\results.json",
+        "sha256": "70c9f7b9239dc20808cced844abc177ba4e7c7e3d89681daa70e34636f7541cc",
+        "commands": 24
+      },
+      "heap": [
+        {
+          "mode": "jit",
+          "rounds": 100,
+          "producerCalls": 100,
+          "counts": {
+            "alloc": 200,
+            "free": 200,
+            "realloc": 0
+          },
+          "nativeAndLanguageEqual": true
+        },
+        {
+          "mode": "dynamic",
+          "rounds": 100,
+          "producerCalls": 100,
+          "counts": {
+            "alloc": 200,
+            "free": 200,
+            "realloc": 0
+          },
+          "nativeAndLanguageEqual": true
+        },
+        {
+          "mode": "static",
+          "rounds": 100,
+          "producerCalls": 100,
+          "counts": {
+            "alloc": 200,
+            "free": 200,
+            "realloc": 0
+          },
+          "nativeAndLanguageEqual": true
+        }
+      ],
+      "programs": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\font-xrf-language-win-r1\\foreign_xge3_font_xrf_bytes-dynamic.exe",
+          "sha256": "f2c0b98dd39d69629c1fefedfdbc89213df4c0de3519ad97b8d12d5a7927f800",
+          "bytes": 4624384,
+          "imports": [
+            "xge3_host.dll",
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\font-xrf-language-win-r1\\foreign_xge3_font_xrf_bytes-static.exe",
+          "sha256": "fe7b84829bc9238b2ca2639841c926c50031a96f959a2cf0d6efad52dcdd318c",
+          "bytes": 4090368,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "USER32.dll",
+            "ole32.dll",
+            "OLEAUT32.dll",
+            "SHELL32.dll",
+            "GDI32.dll",
+            "IMM32.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\font-xrf-language-win-r1\\font_xrf_memory-dynamic.exe",
+          "sha256": "79ec2151013558df866fd223a681df09fbdf64769fd0bc7fde5930fd2b80bbef",
+          "bytes": 1266688,
+          "imports": [
+            "xge3_host.dll",
+            "msvcrt.dll",
+            "kernel32.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\font-xrf-language-win-r1\\font_xrf_memory-static.exe",
+          "sha256": "e278e3c9f9f50d7e8fc96260b17444c31f9900287402667ea5d5f8b7d7a7a6cf",
+          "bytes": 3895808,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "USER32.dll",
+            "ole32.dll",
+            "OLEAUT32.dll",
+            "SHELL32.dll",
+            "GDI32.dll",
+            "IMM32.dll"
+          ]
+        }
+      ],
+      "packageStage": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\signed-output-qualification-win-r1\\results.json",
+        "sha256": "cdfe4b63a126b0b6d599ad0d1f2c09766b03cf35bf3daaf368f6e0ce5ef91459"
+      }
+    },
+    "linux": {
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-signed-output-linux-full-r28\\build.json",
+        "sha256": "f41fc7cf2348efbd0ed73e08035d1accd713d9f537f261d174e6c0e15136cfdf"
+      },
+      "products": {
+        "xl": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-signed-output-linux-full-r28/source/release/linux_x64/xl",
+          "sha256": "faa25e49bdf8c5ce8ccdb084810075b406cc6dd499a59577664616eb2a08265b",
+          "bytes": 47224
+        },
+        "libxl.so": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-signed-output-linux-full-r28/source/release/linux_x64/libxl.so",
+          "sha256": "a84dbc2a0a05536a815b694024c7629b207c4124881bddc3562a57122bd840df",
+          "bytes": 16513616
+        },
+        "libxlc.so": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-signed-output-linux-full-r28/source/release/linux_x64/libxlc.so",
+          "sha256": "1fd0628a8fdaa129ae8e8b44311c35400345ac845ea09b492776169fd8cb125f",
+          "bytes": 22526800
+        }
+      },
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\font-xrf-language-linux-r1\\results.json",
+        "sha256": "56853c22985812762c6f1743f4c2388ace2677ae06153df15b530800b0f4bd69",
+        "commands": 24
+      },
+      "heap": [
+        {
+          "mode": "jit",
+          "rounds": 100,
+          "producerCalls": 100,
+          "counts": {
+            "alloc": 200,
+            "free": 200,
+            "realloc": 0
+          },
+          "nativeAndLanguageEqual": true
+        },
+        {
+          "mode": "dynamic",
+          "rounds": 100,
+          "producerCalls": 100,
+          "counts": {
+            "alloc": 200,
+            "free": 200,
+            "realloc": 0
+          },
+          "nativeAndLanguageEqual": true
+        },
+        {
+          "mode": "static",
+          "rounds": 100,
+          "producerCalls": 100,
+          "counts": {
+            "alloc": 200,
+            "free": 200,
+            "realloc": 0
+          },
+          "nativeAndLanguageEqual": true
+        }
+      ],
+      "programs": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/font-xrf-language-linux-r1/foreign_xge3_font_xrf_bytes-dynamic",
+          "sha256": "76174b3b62ac72199721200efd48cf83193760661e76385360c1acbd87204527",
+          "bytes": 4826200,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/font-xrf-language-linux-r1/foreign_xge3_font_xrf_bytes-static",
+          "sha256": "ed117017599d77cd4634353eb2897fed19bc5cf993e4c3c6f1fd52469b4f26b6",
+          "bytes": 1706719,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/font-xrf-language-linux-r1/font_xrf_memory-dynamic",
+          "sha256": "68ab21031c98bb1dd58ce95eecab472cbad255f7f541dd817118b39dccd3061f",
+          "bytes": 1333807,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/font-xrf-language-linux-r1/font_xrf_memory-static",
+          "sha256": "eaffcc2cd28e0b5893fe9178ae1609263d3280c54fbb383b20eee3ccb8c16dc7",
+          "bytes": 1459089,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ],
+      "packageStage": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\signed-output-qualification-linux-r1\\results.json",
+        "sha256": "4dd1697a3527de3c5399afc38ba04ef7cc9e074858da98e53c9692695760169b"
+      }
+    }
+  },
+  "scope": "Font.encodeXRF directly calls xgeFontBuildXRFMemory, adopting an exact resident-XRT allocation through the generic int-count bytes output contract. Original native serialization/cache semantics, no C business wrapper or native change.",
+  "performanceBoundary": "Native copies atlas pages into each XRF blob. Language admission makes no additional payload copy but creates one byte-value shell. Each warmed 100-call sample in C and language uses 200 allocations/frees and zero reallocations; common checked scopes, ownership, cold caches and CPU time remain separate costs.",
+  "surface": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-font-xrf-r1\\surface.json",
+    "sha256": "5b145785e095bb8f14e75046ef93de8f16d91f63b8bc1a50638d92476baab890"
+  },
+  "unusedWindows": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\font-xrf-unused-win-r1\\results.json",
+    "sha256": "824bfd598c70745c5d3e528b165f1b1a4e8971fc065f1557da7caee450e14b3a",
+    "commands": 6,
+    "fileDeltaBytes": 0,
+    "textDeltaBytes": 0,
+    "sample": "glyph_outline.xl, same compiler/SDK with only unused encodeXRF declaration removed in control; equal-length package paths/blank line preserved"
+  },
+  "originalStaticSdkUnchangedAfterProbe": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\font-xrf-unused-win-r1\\original-inputs-after-probe.json",
+    "sha256": "ef6c5b026116f863071a432d6b160f9b2114155586cf446339fffcf832f3f954"
+  },
+  "unusedLinux": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\font-xrf-unused-linux-r1\\results.json",
+    "sha256": "2ad134429fdbf751396f64066e318be37b589fd50d62ee52d753cd1e0453a1b0",
+    "commands": 6,
+    "fileDeltaBytes": 0,
+    "textDeltaBytes": 0
+  },
+  "originalLinuxStaticSdkUnchangedAfterProbe": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\font-xrf-unused-linux-r1\\original-inputs-after-probe.json",
+    "sha256": "e2ba57d5dc0b83642c2b5f9278b1ba2d69b2fd0c6652e97474f269d1274fbf4b"
+  }
+}

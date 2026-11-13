@@ -1,0 +1,94 @@
+import xge
+extern "fixtureXrfPath" @header("test/cases/foreign_xge3_font_xrf_bytes.h") @no_raise @c_result("cstring") func fixturePath() as string?
+extern "fixtureXrfBudget" @no_raise func budget(c_int allowance)
+extern "fixtureXrfBegin" @no_raise func beginCounter()
+extern "fixtureXrfEnd" @no_raise func endCounter()
+extern "fixtureXrfNativeReference" @no_raise func nativeReference(xge.Font font)
+extern "fixtureXrfLanguageReference" @no_raise func languageReference()
+
+func oneTake(xge.Font font)
+    auto encoded=font.encodeXRF(c_uint(65),c_uint(1))
+    assert encoded.length>0
+end
+func coldBudget(string path,c_int allowance) as bool
+    auto face=xge.loadFontFace(path)
+    auto font=face.createFont(20)
+    face.close()
+    bool succeeded=false
+    budget(allowance)
+    try
+        auto encoded=font.encodeXRF(c_uint(65),c_uint(1))
+        assert encoded.length>0
+        succeeded=true
+    catch error
+        succeeded=false
+    finally
+        budget(-1)
+    end
+    font.close()
+    return succeeded
+end
+func main(...) as int
+    xge.init(4,4,"XRF memory",0,xge.XGE_RUN_MANUAL)
+    string path=fixturePath() as string
+    auto face=xge.loadFontFace(path)
+    auto font=face.createFont(20)
+    face.close()
+    auto sourceMetrics=font.glyph(c_uint(65))
+    auto encoded=font.encodeXRF(c_uint(65),c_uint(1))
+    assert encoded.length>4
+    auto restored=xge.loadFontXRF(encoded)
+    auto loaded=restored.glyph(c_uint(65))
+    assert loaded.fAdvanceX==sourceMetrics.fAdvanceX
+    auto mutable=encoded
+    mutable[0]=uint8(0)
+    assert encoded[0]!=uint8(0) and mutable[0]==uint8(0)
+    auto fromBuffer=xge.loadFontXRF(Buffer(encoded))
+    assert fromBuffer.glyph(c_uint(65)).fAdvanceX==sourceMetrics.fAdvanceX
+    fromBuffer.close()
+    bytes kept=b"keep"
+    bool rejected=false
+    try
+        kept=font.encodeXRF(c_uint(65),c_uint(0))
+    catch error
+        rejected=true
+    end
+    assert rejected and kept==b"keep"
+    int failures=0
+    int successes=0
+    // Each call owns a cold Face/Font and releases every partial cache/output.
+    for allowance in range(64)
+        beginCounter()
+        if coldBudget(path,c_int(allowance)) then
+            successes+=1
+        else
+            failures+=1
+        end
+        endCounter()
+    end
+    assert failures>0 and successes>0
+    oneTake(font)
+    nativeReference(font)
+    beginCounter()
+    for i in range(100)
+        oneTake(font)
+    end
+    languageReference()
+    font.close()
+    // Returned bytes and the restored Font have independent native storage.
+    auto another=xge.loadFontXRF(encoded)
+    assert another.glyph(c_uint(65)).fAdvanceX==loaded.fAdvanceX
+    another.close()
+    assert restored.glyph(c_uint(65)).fAdvanceX==loaded.fAdvanceX
+    restored.close()
+    rejected=false
+    try
+        kept=font.encodeXRF(c_uint(65),c_uint(1))
+    catch error
+        rejected=true
+    end
+    assert rejected and kept==b"keep"
+    xge.unit()
+    println("XRF bytes: roundtrip, independent lifetime, 64 cold budgets and payload admission passed")
+    return 0
+end

@@ -85,6 +85,11 @@ glyph index must belong to the exact Font; shaped fallback text can instead
 use `GlyphRun.appendOutline()`. The Shape owns copied commands and remains
 usable after closing the Font; it is closed before checked engine shutdown.
 
+`font_xrf_memory.xl` bakes A from the same fixture into owned XRF bytes, closes
+the source Font, loads the bytes into another Font and prints the encoded size
+and positive A advance. Run from this examples directory. It creates no file,
+window or graphics device; baking copies native atlas pages into the XRF blob.
+
 `svg_documents.xl` loads `data/vector.svg` through an explicit `SvgCache`, closes
 the cache while keeping its document, prints the 64x32 canvas and content bounds,
 then changes a clone without changing the original. Run beside this examples
