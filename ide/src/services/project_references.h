@@ -123,6 +123,15 @@ xide_reference_query* xideProjectReferencesSubmitFamilyReferences(xide_project_r
  * trigger; no synthetic overlay/editor version is created for a closed file. */
 xide_reference_query* xideProjectReferencesSubmitRenamePlan(xide_project_references*,
  xide_rename_scope*,xide_rename_target*,const xls_analysis_document*,size_t,const char* trigger,xstrview newName);
+/* Open-document cursor entry into that same complete plan pipeline. Selected
+ * context must be an exact ScopeAt and explicitly own path. Resolve the real
+ * checked importer, capture the native target and provider graph once, then
+ * run every scope/family/reference/hypothetical-check gate on the coordinator.
+ * No caller I/O/compiler work, nested submission to its own queue or name
+ * search. All original limits/cancellation/epoch obligations still apply. */
+xide_reference_query* xideProjectReferencesSubmitRenameAt(xide_project_references*,
+ xide_rename_scope*,xls_context* selected,const xls_analysis_document*,size_t,
+ const char* trigger,const char* path,int line,int character,xstrview newName);
 xide_rename_plan* xideProjectReferencesRetainRenamePlan(xide_reference_query*);
 /* Worker-only full candidate envelope: schema1,workspaceEdit,inputGuards,
  * scopeCount. Export EVERY contributing guard, including zero-target scopes,

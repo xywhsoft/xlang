@@ -861,7 +861,13 @@ analysed:
      q->referenceShard=xideSemanticReferenceGraphRetainShard(q->referenceGraph);
     }else q->referenceShard=xideSemanticReferenceShardCreate(xlsWorkerProjectionStore(q->semanticActor),nativeCheck,sources,graph.count,XIDE_REFERENCE_BYTES,e);
     if(!q->referenceShard)goto done;
-    if(q->referencePath){xide_model_error keyError={0};q->referenceKey=xideSemanticReferenceKeyCreate(xlsWorkerProjectionStore(q->semanticActor),nativeCheck,sources,graph.count,q->referencePath,q->referenceLine,q->referenceCharacter,XIDE_REFERENCE_BYTES,&keyError);if(keyError.code){*e=keyError;goto done;}}
+    if(q->renameMode){
+     enum xide_rename_target_error why;
+     q->renameTarget=xideRenameTargetCreate(xlsWorkerProjectionStore(q->semanticActor),nativeCheck,sources,graph.count,q->referencePath,q->referenceLine,q->referenceCharacter,XIDE_REFERENCE_BYTES,symbolsCancelled,q,&why);
+     if(!q->renameTarget){char message[96];snprintf(message,sizeof(message),"Unable to capture native rename cursor (%d).",(int)why);fail(e,message);goto done;}
+     q->referenceKey=xideRenameTargetRetainKey(q->renameTarget);
+     if(!q->referenceKey){fail(e,"Unable to retain native rename declaration.");goto done;}
+    }else if(q->referencePath){xide_model_error keyError={0};q->referenceKey=xideSemanticReferenceKeyCreate(xlsWorkerProjectionStore(q->semanticActor),nativeCheck,sources,graph.count,q->referencePath,q->referenceLine,q->referenceCharacter,XIDE_REFERENCE_BYTES,&keyError);if(keyError.code){*e=keyError;goto done;}}
    }
    } /* Ordinary navigation/reference consumers. */
 #endif

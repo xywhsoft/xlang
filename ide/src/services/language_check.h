@@ -92,6 +92,7 @@ xide_language_check* xideLanguageCheckStartConfigured(xls_context* context,
 /* Immutable context match, without disk work; caller keeps check alive. */
 int xideLanguageCheckMatchesContext(const xide_language_check* check,const xls_context* context);
 #include "services/semantic_reference_shard.h"
+#include "services/semantic_rename.h"
 /* Dedicated project-query capture,never completion or ordinary diagnostics.
  * A NULL keyPath captures only a shard. trigger remains an open document even
  * when context.entry is an unopened member. Uses the original checked source
@@ -115,6 +116,14 @@ xide_language_check* xideLanguageCheckStartFamilyCapture(xls_context* context,
 /* READY/accepted/still guarded only. Independent reference survives check and
  * worker destruction; gate the corresponding detached guard before use. */
 int xideLanguageCheckCaptureReferenceGraph(xide_language_check*,xide_reference_graph**);
+/* Explicit rename selection on the SAME checked provider/source bank as the
+ * family graph. No spelling lookup, second check or diagnostic/typing work.
+ * Missing/unsupported cursor is a failed capture, never a partial candidate.
+ * Target is detached; caller must also capture/validate the original guard. */
+xide_language_check* xideLanguageCheckStartRenameCapture(xls_context*,xide_toolchains*,
+ const char* compiler,xls_worker*,const xls_analysis_document*,size_t,const char* trigger,
+ const char* path,int line,int character,const xide_language_analysis_options*,xide_model_error*);
+int xideLanguageCheckCaptureRenameTarget(xide_language_check*,xide_rename_target**);
 /* Native guarded source rejection only;not infrastructure/quota/cancel. */
 int xideLanguageCheckReferenceSourceRejected(xide_language_check* check);
 /* Read-only work snapshots for the actual successful reference capture.

@@ -24,6 +24,7 @@ struct xide_language_check {
  char* referencePath;int referenceLine,referenceCharacter,referenceMode,declarationMode,familyMode;
  struct xide_reference_shard* referenceShard;struct xide_reference_key* referenceKey;
  struct xide_reference_graph* referenceGraph;
+ int renameMode;struct xide_rename_target* renameTarget;
  xls_projection* navigationProjection;xide_navigation_work navigationWork;
  xide_navigation_snapshot* deferredNavigation;
  xide_navigation_snapshot* symbolNavigation;int symbolState;char symbolError[512];

@@ -1,0 +1,114 @@
+{
+  "schema": 1,
+  "date": "2026-11-13",
+  "stage": "M7b5y",
+  "scope": "Native open-document cursor to existing complete guarded workspace rename candidate pipeline, including genuine standalone scope",
+  "implementationAccepted": true,
+  "goalComplete": false,
+  "performanceQualified": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "6c2f7e39609a784e8a8a02c9defcf315e5e3829a",
+  "ownedSources": {
+    "ide/src/services/language_check.c": "3c4f9cfa4ddab21fbd485b55b3811346ea1d0c0eb75fe07f29accb8bc86aead5",
+    "ide/src/services/language_check.h": "f72511566e08b32ae7ac53fb2c9e1dcf235bb14d74a3f6eef6b89849160b20ca",
+    "ide/src/services/language_check_internal.h": "81b343bae292eb20c2ec8ab5c685d88cad700c95c9bb57c0c0e2fc07790ca203",
+    "ide/src/services/language_snapshot.c": "c00e9bc26666d55dd445675d157bb33a1ad755765c01cf7b2f9c49a9f50d4e3e",
+    "ide/src/services/project_references.c": "3fa28a658512cd3c1588752f74e80452c77f6c47e07ba1c718c5834584a28e9c",
+    "ide/src/services/project_references.h": "67d90a85888bf7bc510ed94f816ad5e50d708d9c23e703ae30bd5202a2cc40f1",
+    "ide/src/services/project_rename_at.inc": "1bb8af0f22c9811ab96efdf7dbcf7df03cf635125f56a9f7ea113a5fbc496d83",
+    "ide/tests/project_rename_at_test.c": "b98073ae2eef76158627bf40fc161e0b8c6e510003473d2c0dcd68d51a8ba59d",
+    "ide/tools/build_lsp_core.py": "e2e3904e183f762566db2e0cd4974504f0358bc7443dfe11c40e44a977aab995",
+    "ide/docs/lsp-rename-cursor-native.md": "e03261bac5641f203d39e3de8e3ed9a5673a779800691a35d3ff4a92a700995b"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-rename-cursor-native-20261113.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-rename-cursor-native-20261113/stage-sources.tar.gz",
+      "sha256": "4c57ebabccff182853e5e5c0e349cf26ded524e4c3c5a7bf36b46e030c217617",
+      "bytes": 86436,
+      "entries": 10,
+      "uniquePayloads": 10
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-rename-cursor-native-20261113/stage-sources.tar.gz.manifest.json",
+      "sha256": "0e339ac9ffc015e81c3860cc34094056377fa65eeb540bd88d4152fabf5e7ddb",
+      "bytes": 2679
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-rename-cursor-native-20261113/actual-builds-and-validation.tar.gz",
+      "sha256": "e767d9b0de3675f23a4d4844c4173475c22185c312860db8031cd41b6a275a1a",
+      "bytes": 245872396,
+      "entries": 11357,
+      "uniquePayloads": 3903
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-rename-cursor-native-20261113/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "d2c765b14d160545d5e490131b034acd387819197fe5978b95fa8ae6e531e42b",
+      "bytes": 5239984
+    }
+  },
+  "externalPaths": {
+    "build": "F:\\codex-builds-xlang-lsp-20261113\\rename-cursor-native",
+    "fixtures": "F:\\xl-rename-cursor-native-20261113",
+    "materials": "F:\\codex-builds-xlang-lsp-20261113\\rename-cursor-native-materials"
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "sdkSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+  "currentDeliverySha256": "dbc9e09ddfaeced7c675d0540589319f20d03e08f5b43abe08dd33354ecaa9fd",
+  "candidate": {
+    "servicePath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-rename-cursor-native-20261113\\native-v3\\xlang-ls.exe",
+    "serviceSha256": "46477167547b5bf995d8889255fe43b426043c773c374ca4ee1665dc1df8e75b",
+    "guiPath": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-rename-cursor-native-20261113\\gui-objects-v2\\xlang_ide.link.exe",
+    "guiSha256": "eb373d8f45d6383df11192bf0304bf9d7d70305edce7587857830c75def1e984"
+  },
+  "verification": {
+    "fullNativeUnits": 109,
+    "finalCoordinatorRecompiled": 1,
+    "fullGuiUnits": 131,
+    "guiSuites": 55,
+    "cursorCombinedAssertions": 207,
+    "actualIdeAssertions": 167,
+    "guardAssertions": 104,
+    "concurrentGuardChecks": 320,
+    "sourceReportAssertions": 4508,
+    "providerAssertions": 732,
+    "recheckAssertions": 418,
+    "protocolCases": 50,
+    "rejectedActualMutants": 5,
+    "actualGuiFramesEach": 24,
+    "productionSourceHeaderParity": true,
+    "actualCompileClosures": 123,
+    "rawArchiveMembers": 72,
+    "allRuntimeAliasesRemoved": true,
+    "existingUserTemporaryDirectoriesPreserved": true,
+    "rawFailuresPreserved": true
+  },
+  "evidenceNotes": [
+    "Full native rebuild changes the private check layout consistently across109 units; final statistics preservation changes only the coordinator include and recompiles its sole consumer. Final linked objects and their current production source/header closures are rebound. All72 raw core archive member payloads match their actual compiled objects; ar stdout is not used as a binary channel.",
+    "Final GUI rebuild uses131 production units and the exact final native candidate. Full55-suite GUI validation plus167 actual acknowledged-service/request checks retain C/xlang input, deletion, undo, IME, focus and barrier behavior. Two bounded24-frame actual GUI captures are visually inspected.",
+    "The native target and graph share the original successful checked provider and navigation projection; no symbol-name lookup or second check is used to select the target. Full existing workspace family/reference/hypothetical-check and input guard export follows on the same coordinator without a nested self-queue wait.",
+    "Original provider guard, overlay topology and dependency ownership are revalidated after whole-workspace checks, and its complete guard is retained for export. Captured texts and scope outlive the submitter; successful drafts and rejected/cancelled work do not write source files.",
+    "Five actual mutants replace native target capture with ordinary capture, bypass selected owner binding, use the wrong cursor source, replace the requested new name, or return a single-scope reference query. Each final-fixture run exits1 at its own project_rename_at_test assertion. Compile failures and crashes are not accepted.",
+    "Initial build-preparation replay accidentally selected a two-command incremental record instead of the complete111-command profile; the missing archive stopped that preliminary attempt. The next attempt rebuilt all109 units and archive. No preliminary artifact is used as final acceptance.",
+    "Initial cancellation fixture incorrectly expected immediate future cancellation. It now waits for the original asynchronous terminal state. The first standalone fixture used the wrong xrtJsonParse arity and failed compilation; the final frozen fixture uses the authoritative one-argument API and passes207 combined checks. Earlier failures are preserved without being counted.",
+    "Some earlier test snapshots precede final standalone/negative coverage. Final native cursor acceptance and all five mutants explicitly use final-fixtures/project_rename_at_test.c and frozen included fixtures, byte-matched to current sources; no unused snapshot is substituted for actual executed code."
+  ],
+  "limits": [
+    "No xlang/renameCandidate RPC dispatch/envelope/export worker is active yet. The native cursor entry is ready for that orchestration; the actual IDE call regression still verifies method-not-found from the real service.",
+    "Candidate source/guard/coverage/static/WorkspaceEdit admission, bounded IDE background controller, protocol cancellation and negotiated activation remain open.",
+    "Full generic/unbound/foreign coverage, physical file/alias policy, owned-write input fences, transaction host, confirmation, recovery and standard rename/applyEdit remain open.",
+    "Known context/target/graph/cache/proof quotas are not process RSS limits. Shared bodies, DOM/codec/allocator/library work and active compiler data are additional; no full internal allocator-failure matrix, end-to-end latency or zero-overhead qualification is inferred.",
+    "Native frontend assets remain the explicit inherited pinned profile. Current engine asset alignment, other synchronous readers, deep unprefixed xlp paths, analysis-configuration cache-count regression and whole-goal performance/resource/longevity qualification remain open.",
+    "C LSP stays disabled. No DAP/debug/runtime completion or Linux/sanitizer qualification in this stage."
+  ],
+  "postCommitReceipt": "dev/release-materials/provenance/lsp-rename-cursor-native-20261113/postcommit.json"
+}
