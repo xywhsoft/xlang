@@ -8,6 +8,14 @@ Start learning with [the examples guide](examples/README.md) and
 [button.xl](examples/button.xl). Lessons use top-level initialization callbacks;
 the shared window loop is ordinary source in `examples/_window.xl`.
 
+`Context.createLanguage()` creates a Context-owned `Language`; `languagePack()`
+returns a watched child or null. Own-slot `Language.text()` preserves unset vs
+empty text; `Context.translate()` applies native fallback. `setLanguageText()`
+copies a translation, while `clearLanguageText()` directly passes typed NULL
+to remove that override. Pack metadata/text results are independent string
+snapshots. Closing Context expires every pack alias; dropping a pack value does
+not unregister it. See `docs/xui-localization.md` for costs and qualification.
+
 The default Document model has seven typed resource classes: `Document`,
 `DocumentSnapshot`, `DocumentChangeSet`, `DocumentPrepare`, `DocumentFragment`,
 `DocumentSourceIndex` and unique `DocumentTransaction`. Use `createDocument()`

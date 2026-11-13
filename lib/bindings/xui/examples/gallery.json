@@ -447,16 +447,75 @@
       "kind": "gui",
       "gallery": false,
       "expected": "Draw to a Surface once, then display it through a normal Image widget."
+    },
+    {
+      "name": "localization",
+      "title": "Localization / custom language pack",
+      "kind": "gui",
+      "gallery": false,
+      "expected": "窗口显示“自定义复制”，来自当前语言包的译文。"
+    },
+    {
+      "name": "asset_names",
+      "title": "asset_names",
+      "kind": "cpu",
+      "gallery": false,
+      "expected": "List built-in atlas assets and icon names without a window."
+    },
+    {
+      "name": "document_exports",
+      "title": "document_exports",
+      "kind": "cpu",
+      "gallery": false,
+      "expected": "Export owning HTML/text snapshots and serialize an independent Document."
+    },
+    {
+      "name": "edit_search",
+      "title": "edit_search",
+      "kind": "cpu",
+      "gallery": false,
+      "expected": "Find and replace real CodeEdit document contents without a window."
+    },
+    {
+      "name": "shared_find",
+      "title": "shared_find",
+      "kind": "cpu",
+      "gallery": false,
+      "expected": "Search two document models through one native CodeFindScope."
+    },
+    {
+      "name": "icon_custom",
+      "title": "icon_custom",
+      "kind": "gui",
+      "gallery": false,
+      "expected": "Draw a custom blue icon through callback-period Painter."
+    },
+    {
+      "name": "icon_file",
+      "title": "icon_file",
+      "kind": "gui",
+      "gallery": false,
+      "expected": "Display the bundled SVG/PNG files and update their native icon category."
+    },
+    {
+      "name": "icon_memory",
+      "title": "icon_memory",
+      "kind": "gui",
+      "gallery": false,
+      "expected": "Create and display an SVG icon directly from memory."
+    },
+    {
+      "name": "icon_picker",
+      "title": "icon_picker",
+      "kind": "gui",
+      "gallery": false,
+      "expected": "Browse a real icon category with owned text formatting."
     }
   ],
   "helper": "_window.xl",
   "interactive": true,
   "frameLimitEnvironment": "XUI_EXAMPLE_FRAMES",
   "pending": [
-    {
-      "name": "iconpicker",
-      "reason": "Requires safe IconCategory/Icon model declarations; no empty placeholder lesson."
-    },
     {
       "name": "flowgraph",
       "reason": "Requires safe graph model ownership and mutation declarations; no empty canvas lesson."

@@ -155,7 +155,7 @@ WebView 范例只加载源码中的本地 HTML。它需要启用 WebView2 的 Wi
 不创建窗口的 [edit_search.xl](edit_search.xl) 演示 CodeEdit 查找、替换、读取结果和
 “没有匹配”的状态检查；直接使用 XGE 文档模型，不需要外部文件或服务。
 
-共 79 个独立入口文件，其中现有综合画廊可浏览 57 个场景。图标专题入口包括
+共 80 个独立入口文件，其中现有综合画廊可浏览 57 个场景。图标专题入口包括
 `icon_picker.xl`（分类与格式化）、`icon_memory.xl`（内存 SVG）、
 `icon_custom.xl`（回调期 Painter 自绘）和 `icon_file.xl`（SVG／PNG 文件与批量更新）。
 文件范例附带两份小型 `assets/icon_file.*` 资源；保留 assets 目录，公共窗口助手会
@@ -177,3 +177,9 @@ WebView 范例只加载源码中的本地 HTML。它需要启用 WebView2 的 Wi
 `shared_find.xl` demonstrates the native multi-document search scope without a
 graphics window. Interactive find/replace uses the same scope in an initialized
 window loop. System fonts are demonstrated in the xge package's `examples/system_font.xl`.
+
+`localization.xl` 在独立窗口创建 Context 持有的语言包，把“复制”译文改为
+“自定义复制”，并显示实际查询结果。关闭窗口时 Context 回收语言包；没有
+额外的库加载、裸指针、手工引用计数或语言包析构。它不加入综合画廊，避免
+修改其他场景共享的 Context 语言。CPU 数据示例可以校验返回值；GUI 教学代码
+继续把模拟输入与验收断言放在独立探针中。

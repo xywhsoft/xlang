@@ -1,0 +1,416 @@
+{
+  "date": "2026-11-14",
+  "qualified": true,
+  "shippingDelivery": false,
+  "networkTests": false,
+  "nativeCommit": "a77ee176c3db4b7f96c54119ffbdda8bd5c8fd6a",
+  "nativePrerequisite": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\localization-20261114.json",
+    "sha256": "08b6fa9b518e7c4a4f098dd27b217878e45c3797b075ffb55b21fdbef2bfd611"
+  },
+  "compilerPrerequisite": {
+    "path": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\foreign-null-cstr-20261114.json",
+    "sha256": "5bac76094d294a2f9b352b78af2076d8d45070bce0fb6998629a5f202dc60fca"
+  },
+  "scope": "Context-owned language packs, direct declarations, native watch/status factory/rollback, safe string snapshots, native fallback semantics and matched learning window. Not a whole-ecosystem completion receipt.",
+  "sources": {
+    "lib/bindings/_xge_native/include/xge3_runtime.h": "91a9a404b0b7ae0a3b4165749775660dc1a61ea142f1e750e01ec8058c29ec95",
+    "lib/bindings/_xge_native/src/runtime.c": "5677ecccc7c6d9eb7c42f40f6b429e25040666fcabbccdb13d75039f70759299",
+    "lib/bindings/xui/src/localization.xl": "bd53b89f11f3718233fc4275ca449056230eca87d3ea4939f7ba98585eac783b",
+    "lib/bindings/xui/src/managed.xl": "15ac45feb4358a4ef9b459a56133b4deee93bcde17c5f4f76283c17e9513f224",
+    "lib/bindings/xui/xlang.package.json": "173c3709cd6a2915048087184ef3c16a7a3fafdb4e75fc153e1851fc629e642d",
+    "lib/bindings/xui/README.md": "6604928084eedd357474317c70a377c8d443cc5ebe73b920977885c42f9e3b2b",
+    "lib/bindings/xui/examples/README.md": "9362ba83b2c6201ee706986261e01939cc6e35ac546f0d76d51f1de64d6b1300",
+    "lib/bindings/xui/examples/_window.xl": "4155fcb065b971481133f6498a496b1d2e17100267de22aa50144155563c1657",
+    "lib/bindings/xui/examples/localization.xl": "347c764608484c47afb7faae90601320f155ba33e0964a79cb9a133fc93e8785",
+    "lib/bindings/xui/examples/gallery.json": "b9ba810e6133f368523864f92caacc9d4a97389a4e4734a6aa3f802d697c153d",
+    "lib/bindings/xui/examples/all_controls.xl": "993469fb3fc77c96100def0521bd58e7f666a66a52f4e08ef7c612322e466a09",
+    "test/cases/foreign_xui_localization.xl": "88da8be9e1bc7091e6a02132ee3e75659bd09ee70c9af2a4f0cbff1b57f7e255",
+    "test/cases/foreign_xui_localization.h": "0b25169bc7e9c5e5cca3f599fd0400df0feb949fc2f5f2cdeff646c02c7705a9",
+    "test/cases/foreign_xui_localization.c": "5be462cb8f4b2aaa40306393285ece3ab3e2ac9d4711737e22ab4a7007919d78",
+    "tools/check_xui_localization.py": "579b3b80d8ee7a0651017bad185bd79e4708898df1bb9bbcac7faa6b215267a1",
+    "tools/check_xui_lessons.py": "d7408f622ade5dd42363adf54698bc0fd17ede9edb71bd283991b07d913fb56a",
+    "docs/xui-localization.md": "f967ef991977bd788379cd5d59869bd83d66fc8ff0ebbfa3792940c49d09df94",
+    "docs/xge3-xui3-example-status.md": "e773c09e08f0ba172c3878f79f7b6bf67324cc1a5a3fb24de04533427d50e5e1",
+    "docs/xge3-xui3-full-coverage-plan.md": "c598caa9804977bfa56a391e81985773df6eb38053678a31fd173907cfa70c40"
+  },
+  "platforms": {
+    "win": {
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\localization-language-win-r2\\results.json",
+        "sha256": "cbb534479f8a1b39570e773a1147994eb47b99eb63a896a4f369e6638e67578c",
+        "commands": 24
+      },
+      "heap": [
+        {
+          "mode": "jit",
+          "rounds": 1000,
+          "nativeCalls": 2000,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        },
+        {
+          "mode": "dynamic",
+          "rounds": 1000,
+          "nativeCalls": 2000,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        },
+        {
+          "mode": "static",
+          "rounds": 1000,
+          "nativeCalls": 2000,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        }
+      ],
+      "programs": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\localization-language-win-r2\\foreign_xui_localization-dynamic.exe",
+          "sha256": "8a70263fc212711291801e1dd65dbc88087805d064615c0a1c5d279aabf436b5",
+          "bytes": 5108224,
+          "imports": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\localization-language-win-r2\\foreign_xui_localization-static.exe",
+          "sha256": "b2ce484b965e7727126691dc4077561c8a38dbd85b095f23cc7af8fdad089b50",
+          "bytes": 1476096,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "ole32.dll",
+            "SHELL32.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\localization-language-win-r2\\localization-dynamic.exe",
+          "sha256": "610a16a346ad70041e717e2d84a208b1186c4a74e49cb770482790d8b54678a2",
+          "bytes": 2066432,
+          "imports": [
+            "xge3_host.dll",
+            "msvcrt.dll",
+            "kernel32.dll",
+            "Ole32.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\localization-language-win-r2\\localization-static.exe",
+          "sha256": "c9fbc9e2d1f7bac26eed45213d48a78eb821aea848d0c66093f0a6055f70a3b9",
+          "bytes": 7751168,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "USER32.dll",
+            "GDI32.dll",
+            "ole32.dll",
+            "OLEAUT32.dll",
+            "SHELL32.dll",
+            "IMM32.dll",
+            "DWrite.dll"
+          ]
+        }
+      ],
+      "readbacks": [
+        {
+          "mode": "jit",
+          "width": 800,
+          "height": 600,
+          "path": "F:\\xlang-validation\\xge-full-20261110\\localization-language-win-r2\\localization-jit.rgba",
+          "sha256": "d77c26fdd96c17016c5ff54398e39841e0b43ca9a941484c5fb41a9977f6e911"
+        },
+        {
+          "mode": "dynamic",
+          "width": 800,
+          "height": 600,
+          "path": "F:\\xlang-validation\\xge-full-20261110\\localization-language-win-r2\\localization-dynamic-execute.rgba",
+          "sha256": "d77c26fdd96c17016c5ff54398e39841e0b43ca9a941484c5fb41a9977f6e911"
+        },
+        {
+          "mode": "static",
+          "width": 800,
+          "height": 600,
+          "path": "F:\\xlang-validation\\xge-full-20261110\\localization-language-win-r2\\localization-static-execute.rgba",
+          "sha256": "d77c26fdd96c17016c5ff54398e39841e0b43ca9a941484c5fb41a9977f6e911"
+        }
+      ],
+      "visualReview": "Chinese label verified from PNG views of raw RGBA; no tofu boxes. Same-platform three-mode pixels are byte-identical.",
+      "font": {
+        "path": "D:\\GIT\\x-lang\\release\\win_x64\\data\\fonts\\Consolas-with-Yahei_Nerd_Font.ttf",
+        "sha256": "35a7074585fe4af3763db2aaa7635aabffb8995b6f52e61cd46c0a53e560b16b"
+      },
+      "stages": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\localization-api-win-r4\\packages-host.json",
+          "sha256": "bee817c5dd744b6be497b243ffd1676cbc59521a8bbcb523bc0b8d2d64a4b373"
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\localization-api-win-r4\\packages-static.json",
+          "sha256": "b7c67d6d1d9906a98dfb5bdd597c9f9eb67b4dba3d9c47b78430698d3d11b6d5"
+        }
+      },
+      "gallery": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\localization-gallery-win-r1\\results.json",
+        "sha256": "7fe7fd2c557d43fd802e0d249f43dbc8b039f980933c02670d4d09ef86c0d12e",
+        "commands": 4,
+        "scope": "Regenerated 57-scene gallery organization, full C generation and bounded two-frame JIT of its initial scene. Does not exercise every scene or interaction.",
+        "readback": {
+          "width": 800,
+          "height": 600,
+          "path": "F:\\xlang-validation\\xge-full-20261110\\localization-gallery-win-r1\\gallery.rgba",
+          "sha256": "c18d452b2825acdbe9b2c0ea7bf07cfbaff4267fbcb95f931b5518f9350fb566"
+        }
+      },
+      "display": {
+        "kind": "Native Windows window",
+        "allBackendAcceptance": false
+      }
+    },
+    "linux": {
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\localization-language-linux-r2\\results.json",
+        "sha256": "40227147f2149ec1f290c27a89cc27e280cf47935c48595c80b5b1ead89e5974",
+        "commands": 24
+      },
+      "heap": [
+        {
+          "mode": "jit",
+          "rounds": 1000,
+          "nativeCalls": 2000,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        },
+        {
+          "mode": "dynamic",
+          "rounds": 1000,
+          "nativeCalls": 2000,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        },
+        {
+          "mode": "static",
+          "rounds": 1000,
+          "nativeCalls": 2000,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        }
+      ],
+      "programs": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/localization-language-linux-r2/foreign_xui_localization-dynamic",
+          "sha256": "a651cccefa3dfdcc1f6111703b31de1fdd25675f86bb99eeee1c95de2337020c",
+          "bytes": 5302115,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/localization-language-linux-r2/foreign_xui_localization-static",
+          "sha256": "22f3c798a72137c8882d16687c865033fc9a0c21b23c730c35bb1aaf94713ab4",
+          "bytes": 1876247,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/localization-language-linux-r2/localization-dynamic",
+          "sha256": "64bd04d165bcdf58cc001975674201024bc0b0790045ab850914d94065b53f39",
+          "bytes": 2120351,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/localization-language-linux-r2/localization-static",
+          "sha256": "ff1162d79644c2d04bf8bc12f2da6f234670f1116d9279618719d2fbc13d4612",
+          "bytes": 8840107,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ],
+      "readbacks": [
+        {
+          "mode": "jit",
+          "width": 800,
+          "height": 600,
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/localization-language-linux-r2/localization-jit.rgba",
+          "sha256": "d4c903d604e8c19f27a76cf4c1455e7aedc1bc672982aaf341c0c065cbdc208c"
+        },
+        {
+          "mode": "dynamic",
+          "width": 800,
+          "height": 600,
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/localization-language-linux-r2/localization-dynamic-execute.rgba",
+          "sha256": "d4c903d604e8c19f27a76cf4c1455e7aedc1bc672982aaf341c0c065cbdc208c"
+        },
+        {
+          "mode": "static",
+          "width": 800,
+          "height": 600,
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/localization-language-linux-r2/localization-static-execute.rgba",
+          "sha256": "d4c903d604e8c19f27a76cf4c1455e7aedc1bc672982aaf341c0c065cbdc208c"
+        }
+      ],
+      "visualReview": "Chinese label verified from PNG views of raw RGBA; no tofu boxes. Same-platform three-mode pixels are byte-identical.",
+      "font": {
+        "path": "/mnt/d/GIT/x-lang/release/win_x64/data/fonts/Consolas-with-Yahei_Nerd_Font.ttf",
+        "sha256": "35a7074585fe4af3763db2aaa7635aabffb8995b6f52e61cd46c0a53e560b16b"
+      },
+      "stages": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\localization-api-linux-r3\\packages-host.json",
+          "sha256": "9345a5d58577612c40f9c0e3645371eb689dc7b3a41134f1f3baf107c8080e44"
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\localization-api-linux-r3\\packages-static.json",
+          "sha256": "dfcd6505bafcf97450bda8fbfc423b32eb5be8e54f87fdc7f1dcf7570d995fac"
+        }
+      },
+      "gallery": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\localization-gallery-linux-r2\\results.json",
+        "sha256": "262b2b56535773af0b5b2d5436492bba176579b3aa16a1ea0bfa996b2d55a5e7",
+        "commands": 4,
+        "scope": "Regenerated 57-scene gallery organization, full C generation and bounded two-frame JIT of its initial scene. Does not exercise every scene or interaction.",
+        "readback": {
+          "width": 800,
+          "height": 600,
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/localization-gallery-linux-r2/gallery.rgba",
+          "sha256": "015ab4efae3e0d14bfaa8b945c2b3cc4154e05c8173d457daea781adcaf1ad1c"
+        }
+      },
+      "display": {
+        "kind": "Xvfb virtual X11",
+        "renderer": "Mesa llvmpipe software OpenGL",
+        "probe": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\localization-language-linux-r2\\display-renderer.log",
+          "sha256": "867ea10e64c5c55d81cf5811746a18d66be5a6d3c2386e87555dec53a50d3a19"
+        },
+        "hardwareGpuAcceptance": false
+      }
+    }
+  },
+  "consumerAndGalleryCommands": 56,
+  "nativeAllocationBudgets": 48,
+  "managedAllocationBudgets": 64,
+  "exampleCatalogue": {
+    "programs": 80,
+    "galleryScenes": 57,
+    "previouslyOmittedRegistrations": 8,
+    "newLocalizationLesson": true
+  },
+  "priorAttempts": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\localization-language-win-r1\\results.json",
+      "sha256": "f2bcb9963ddf4af8800f81c2c846ddfc589142bb4b1afe70921b3cef4f68aeb9",
+      "reason": "Program/readback checks passed but visual review found missing CJK font; old helper/tool bytes preserved beside report. Superseded by pinned-font r2."
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\localization-language-linux-r1\\results.json",
+      "sha256": "fbf853fbb7d0f23ac623e48a2996cbc39553012cb38362b0b9ba8c6008d9c7f4",
+      "reason": "No DISPLAY: XOpenDisplay failed, native fatal logger returned and process received SIGSEGV. GDB trace retained."
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\localization-gallery-linux-r1\\results.json",
+      "sha256": "dc9c6235ecdf51e007a39f855906d0b1a473d9ab956e2887d0e94717986218d3",
+      "reason": "Same missing DISPLAY failure. Superseded by separately recorded Xvfb run, not a fix to native fatal unwind."
+    }
+  ],
+  "limitations": [
+    "No equal CPU cost or whole-binding zero overhead claim: scoped admission, owner/code/epoch bookkeeping, cold allocations and C-string scan/copy remain.",
+    "Native no-display/fatal backend initialization can still crash; checked platform failure unwind remains open.",
+    "Linux software rendering only; no hardware GPU, complete backend, interaction, browser, network or security acceptance.",
+    "Gallery validates whole-source generation and initial scene only, not all 57 scenes. Registration is not runtime acceptance of all 80 examples.",
+    "No final runtime/SDK/compiler/IDE/help installation or push; full XGE/XUI/Document goal remains active."
+  ]
+}

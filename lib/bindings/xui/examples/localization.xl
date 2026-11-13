@@ -1,0 +1,13 @@
+// 自定义 XUI 的“复制”译文，并把实际翻译结果显示在窗口中。
+import xui
+from "./_window.xl" import Window
+
+Window.show("自定义语言", func(xui.Context ui, xui.Widget root)
+ auto language=ui.createLanguage("sample","示例语言")
+ ui.setLanguageText(language,xui.XUI_TR_EDIT_COPY,"自定义复制")
+ ui.setLanguage(language.id)
+
+ auto label=ui.labelNative()
+ label.setText(ui.translate(xui.XUI_TR_EDIT_COPY) as string)
+ Window.place(root,label,24,24,260,44)
+end)

@@ -89,6 +89,21 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3WidgetPolicyGet(void)
         sizeof(xui_lifetime_link_t),_Alignof(xui_lifetime_link_t),watch_widget,unwatch,destroy_widget,0,1,NULL,NULL,NULL,NULL,0,NULL,NULL};
     return &value;
 }
+/* Packs have no language-owned native reference: their Context registry owns
+ * them. Child controls retain that Context, and native watches expire before
+ * strings/slots are freed. Destroy is used only for explicit control cleanup;
+ * normal child Release does not unregister a pack. No extra traced edge. */
+static bool watch_language(void* raw,void* storage,void(*invalidate)(void*),void* user)
+{int status=xuiLanguageLifetimeWatch(raw,storage,invalidate,user);if(status!=XUI_OK)report_resource_failure(status,"xuiLanguageLifetimeWatch");return status==XUI_OK;}
+static bool destroy_language(void* raw)
+{bool removed=false;int status=xuiLanguageRollbackCreate(raw,&removed);if(status!=XUI_OK)report_resource_failure(status,"xuiLanguageRollbackCreate");return removed;}
+const XL6_ForeignViewDescriptorV1* xl6Xui3LanguagePolicyGet(void)
+{
+    static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui.language",
+        sizeof(xui_lifetime_link_t),_Alignof(xui_lifetime_link_t),watch_language,unwatch,destroy_language,
+        0,1,NULL,NULL,NULL,NULL,0,NULL,NULL};return &value;
+}
+void xl6Xui3RollbackLanguage(xui_language raw){(void)destroy_language(raw);}
 /* Registry-owned children share their Context's real ownership directory.
  * The adapter is lifetime bookkeeping, not a business-method forwarding layer.
  * Rollback removes the registry owner and separately reports callback errors. */

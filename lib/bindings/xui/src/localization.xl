@@ -1,0 +1,12 @@
+// Context registry owns every pack; child values retain that Context.
+// Text getters copy borrowed C text before the managed call scope ends.
+export extern "xui_language_t*" class Language @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3LanguagePolicy") @watch("xui_lifetime_link_t")
+ native point handle
+ extern "xuiGetLanguageId" @no_raise get id() as c_int
+ extern "xuiGetLanguageCode" @no_raise @c_result("cstring") get code() as string
+ extern "xuiGetLanguageName" @no_raise @c_result("cstring") get name() as string
+ extern "xuiLanguageGetTextCount" @no_raise get textCount() as uint64
+ extern "xuiLanguageGetText" @no_raise @c_result("cstring") func text(c_int id) as string?
+ extern "xuiLanguageGetContext" @no_raise @c_result("owner_view",0) func context() as Context
+end
+extern "xl6Xui3RollbackLanguage" @header("xge3_runtime.h") @no_raise func rollbackLanguage(Language language)

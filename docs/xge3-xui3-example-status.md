@@ -6,9 +6,16 @@ under `release/<platform>/examples/xge` and `examples/xui` together with the
 matching `xge`, `xui` and `_xge_native` packages. Each README gives commands,
 prerequisites, assertions and cleanup.
 
-## November 6 beginner tutorial successor
+The current XUI catalogue registers 80 public programs. It includes the
+previously omitted CPU data/search and icon lessons, plus `localization.xl`.
+Registration does not imply a new whole-catalogue runtime pass. The language
+pack lesson has its own matched compiler/SDK receipt; see
+[XUI localization](xui-localization.md). CPU lessons may assert returned data;
+GUI teaching code keeps synthetic input and test assertions in separate probes.
 
-The current XUI directory contains 71 public programs. Standalone lessons use
+## November 6 beginner tutorial successor (historical cohort)
+
+The initial XUI cohort contained 71 public programs. Standalone lessons use
 top-level initialization callbacks, descriptive control names, direct native
 methods and short observable-behavior comments. Their common window loop is in
 `_window.xl`; no standalone lesson defines an Example class or embeds assertions
@@ -16,8 +23,9 @@ and synthetic input. Original acceptance cases are in `test/fixtures/xui_learnin
 
 Fifteen additional programs cover previously missing basic controls, visible
 DocumentEditor and composite dialogs/notifications. The generated gallery has
-57 scenes. IconPicker, FlowGraphWidget and WorkflowWidget remain without complete
-safe model bindings, so they do not get empty placeholder lessons. WebView shows
+57 scenes. At that time IconPicker, FlowGraphWidget and WorkflowWidget lacked
+complete safe model bindings and had no empty placeholder lessons. FlowGraph
+and Workflow still await their model bindings. WebView shows
 its actual unsupported-backend result on this cohort; webpage rendering is not
 claimed as accepted.
 

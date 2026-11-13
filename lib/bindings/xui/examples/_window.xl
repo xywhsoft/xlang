@@ -88,7 +88,8 @@ export class Window
         auto overridePath=env.get("XUI_EXAMPLE_FONT")
         if overridePath!=null then fontPath=overridePath as string end
         if overridePath==null and not file.exists(fontPath) then
-         for candidate in ["/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf","/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf","C:/Windows/Fonts/segoeui.ttf"]
+         // Bundled CJK font, including runs from the example/source folder.
+         for candidate in ["../../data/fonts/Consolas-with-Yahei_Nerd_Font.ttf","release/win_x64/data/fonts/Consolas-with-Yahei_Nerd_Font.ttf","release/linux_x64/data/fonts/Consolas-with-Yahei_Nerd_Font.ttf","../../../../release/win_x64/data/fonts/Consolas-with-Yahei_Nerd_Font.ttf","../../../../release/linux_x64/data/fonts/Consolas-with-Yahei_Nerd_Font.ttf","C:/Windows/Fonts/msyh.ttc","/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc","/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc","/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf","/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf","C:/Windows/Fonts/segoeui.ttf"]
           if file.exists(candidate) then
            fontPath=candidate
            break

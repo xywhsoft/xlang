@@ -25,7 +25,8 @@ def main():
     for row in catalog['examples']:
         text = (source / (row['name'] + '.xl')).read_text(encoding='utf-8')
         assert not re.search(r'^\s*(?:export )?class\s', text, re.M), row['name']
-        assert row['name'] == 'all_controls' or not re.search(r'\bassert\b|XUI_EXAMPLE_', text), row['name']
+        # CPU data examples may verify returned values; GUI lessons keep test drives separate.
+        assert row['name'] == 'all_controls' or row.get('kind') == 'cpu' or not re.search(r'\bassert\b|XUI_EXAMPLE_', text), row['name']
         assert row['name'] == 'all_controls' or text.startswith('// '), row['name']
         if row['name'] != 'all_controls' and row.get('kind') != 'cpu':
             lesson_body(text)

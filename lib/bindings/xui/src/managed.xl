@@ -1014,6 +1014,12 @@ export extern "xui_context_t*" class Context @header("xge3_runtime.h") @lifetime
 
  extern "xuiGetLanguageRevision" @no_raise func getLanguageRevision() as c_uint
 
+ extern "xuiGetLanguagePack" @no_raise @c_result("owner_view",0) func languagePack(c_int id) as Language?
+ extern "xuiCreateLanguageOwned" @no_raise @c_cstr(0) @c_cstr(1) @c_result("owner_view",0) @factory(4,0,rollbackLanguage) func createLanguage(string code,string name,c_int fallback=0) as Language
+ extern "xuiLanguageSetText" @no_raise @c_cstr(2) @c_result("status",0) func setLanguageText(Language language,c_int id,string text)
+ extern "xuiLanguageSetText" @no_raise @c_null(3,"const char*") @c_result("status",0) func clearLanguageText(Language language,c_int id)
+ extern "xuiLanguageTouch" @no_raise func touchLanguage(Language language)
+
  extern "xuiTranslate" @no_raise @c_result("cstring") func translate(c_int iTextId) as string?
 
 

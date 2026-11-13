@@ -43,6 +43,8 @@ int xl6Xge3CopyToClipboard(xge_data_object,const XL6_CodeOwner*);
 int xl6Xui3CopyToClipboard(xui_context,xui_data_object,const XL6_CodeOwner*);
 
 const XL6_ForeignViewDescriptorV1* xl6Xui3ContextPolicyGet(void);
+const XL6_ForeignViewDescriptorV1* xl6Xui3LanguagePolicyGet(void);
+void xl6Xui3RollbackLanguage(xui_language value);
 const XL6_ForeignViewDescriptorV1* xl6Xui3WidgetPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3IconCategoryPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3IconPolicyGet(void);
@@ -93,6 +95,7 @@ const XL6_ForeignViewDescriptorV1* xl6Xge3AudioClipPolicyGet(void);
 /* Getter expressions also work when a C provider lives in another PE image;
  * importing a data symbol through a function-only registry is not portable. */
 #define xl6Xui3ContextPolicy (*xl6Xui3ContextPolicyGet())
+#define xl6Xui3LanguagePolicy (*xl6Xui3LanguagePolicyGet())
 #define xl6Xui3WidgetPolicy (*xl6Xui3WidgetPolicyGet())
 #define xl6Xui3IconCategoryPolicy (*xl6Xui3IconCategoryPolicyGet())
 #define xl6Xui3IconPolicy (*xl6Xui3IconPolicyGet())

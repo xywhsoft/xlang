@@ -1,0 +1,121 @@
+// Real CPU Context registry, generic owner-view factory and text snapshots.
+import xui
+from xui import Language
+extern "fixtureIconProxy" @header("test/cases/foreign_xui_icon_models.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
+extern "fixtureIconBudget" @no_raise func budget(c_int allowance)
+extern "fixtureIconHostReferences" @no_raise func hostReferences() as c_int
+extern "fixtureLocaleRemove" @header("test/cases/foreign_xui_localization.h") @no_raise @c_result("status",0) func remove(xui.Language language)
+extern "fixtureLocalePackCount" @no_raise func packCount(xui.Context context) as c_uint
+extern "fixtureLocaleBegin" @no_raise func beginHeap()
+extern "fixtureLocaleLiveUnchanged" @no_raise func liveUnchanged() as c_int
+extern "fixtureLocaleReport" @no_raise func reportHeap(c_int native)
+extern "fixtureLocaleNativeHot" @no_raise func nativeHot(xui.Language language)
+
+func attempt(xui.Context context,string code,string name,c_int allowance) as bool
+    bool success=false
+    budget(allowance)
+    try
+        auto language=context.createLanguage(code,name)
+        success=true
+        budget(-1)
+        remove(language)
+    catch error
+        success=false
+    finally
+        budget(-1)
+    end
+    return success
+end
+func retainedContext(xui.Proxy proxy) as Language
+    auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    return context.createLanguage("retained","Retained Context")
+end
+func main(...) as int
+    auto proxy=cpuProxy()
+    auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto english=context.languagePack(xui.XUI_LANGUAGE_EN) as Language
+    assert english.code=="en" and english.textCount==uint64(xui.XUI_TR_COUNT-1)
+    assert context.languagePack(-1)==null and english.text(0)==null
+    auto language=context.createLanguage("sample","示例语言")
+    auto id=language.id
+    auto alias=context.languagePack(id) as Language
+    assert alias.id==id and alias.name=="示例语言" and language.context().getLanguage()==context.getLanguage()
+    assert language.text(xui.XUI_TR_EDIT_COPY)==null
+    string expected=english.text(xui.XUI_TR_EDIT_COPY) as string
+    context.setLanguage(id)
+    assert (context.translate(xui.XUI_TR_EDIT_COPY) as string)==expected
+    context.setLanguageText(language,xui.XUI_TR_EDIT_COPY,"")
+    // Native translation treats an empty custom slot as missing, too.
+    assert (language.text(xui.XUI_TR_EDIT_COPY) as string)=="" and (context.translate(xui.XUI_TR_EDIT_COPY) as string)==expected
+    context.setLanguageText(language,xui.XUI_TR_EDIT_COPY,"知道了")
+    string snapshot=language.text(xui.XUI_TR_EDIT_COPY) as string
+    context.setLanguageText(language,xui.XUI_TR_EDIT_COPY,"Ready")
+    assert snapshot=="知道了" and (alias.text(xui.XUI_TR_EDIT_COPY) as string)=="Ready"
+    context.clearLanguageText(language,xui.XUI_TR_EDIT_COPY)
+    assert language.text(xui.XUI_TR_EDIT_COPY)==null and (context.translate(xui.XUI_TR_EDIT_COPY) as string)==expected
+    auto revision=context.getLanguageRevision()
+    context.touchLanguage(language)
+    assert context.getLanguageRevision()!=revision
+    bool rejected=false
+    try
+        auto invalid=context.createLanguage("a\0b","invalid")
+    catch error
+        rejected=true
+    end
+    assert rejected
+    auto retained=retainedContext(proxy)
+    assert retained.code=="retained"
+    rejected=false
+    try
+        context.setLanguageText(retained,xui.XUI_TR_EDIT_COPY,"wrong Context")
+    catch error
+        rejected=true
+    end
+    assert rejected
+    retained.context().close()
+    auto worker=thread(func() as int
+        try
+            auto value=language.id
+        catch StateError
+            return 1
+        end
+        return 0
+    end)
+    assert worker.waitTimeout(30000) and worker.exitCode()==1
+    string code="candidate"
+    string name="Candidate"
+    assert attempt(context,code,name,-1)
+    auto count=packCount(context)
+    int failures=0
+    int successes=0
+    for allowance in range(64)
+        beginHeap()
+        bool ok=attempt(context,code,name,c_int(allowance))
+        assert liveUnchanged()==1 and packCount(context)==count
+        if ok then successes+=1 else failures+=1 end
+    end
+    assert failures>0 and successes>0
+    beginHeap()
+    for i in range(1000)
+        auto current=language.id
+        auto size=language.textCount
+        assert current==id and size>uint64(0)
+    end
+    reportHeap(0)
+    beginHeap()
+    nativeHot(language)
+    reportHeap(1)
+    context.close()
+    rejected=false
+    try
+        auto expired=alias.name
+    catch StateError
+        rejected=true
+    end
+    assert rejected and snapshot=="知道了"
+    proxy.close()
+    assert hostReferences()==1
+    println("Localization: registry lifetime, fallback, snapshots, checked errors and 64 managed allocation budgets passed")
+    return 0
+end
