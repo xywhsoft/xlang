@@ -1,0 +1,156 @@
+{
+  "schema": 1,
+  "date": "2026-11-13",
+  "stage": "M7b5w",
+  "scope": "Capture complete workspace file paths with immutable edit requests and prepare all project/standalone roles on workers",
+  "implementationAccepted": true,
+  "goalComplete": false,
+  "performanceQualified": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "5df7f2f4ff81069bf6ca8f507332de6d774f1d43",
+  "ownedSources": {
+    "ide/src/services/edit_request.h": "e7e0a4f4f5917b0a3857693fedc0b40ccaa0ca8eda5e5724e7b009bfa5cd0fb9",
+    "ide/src/services/edit_request.c": "c250a3b04e7e2c6abeece64d859f731503bb43989c899dc5501965420e5e698b",
+    "ide/src/services/edit_request_scope.c": "086ffe94e3bef85ec668859e63936b423d0a3137b2b7641cf0e914cdae637cd3",
+    "ide/src/ui/edit_request_view.inc": "79f160e02771d68c0a8f907696d2f35265d8f3bdc197ecde1f459ba0c1e9d587",
+    "ide/src/ui/edit_request_view.h": "693fca7fc4f96ab5c60d2e41204325511cf0b4c18ebe6f77e09a99424c43b35f",
+    "ide/src/ui/language_view.c": "49cd66e44125760b0ea647de10659a52600325dc6c6c34515ab490ef885548b0",
+    "ide/tests/edit_request_scope_test.c": "cfbcc3a7006ecab1997c1c3da84c2a446df2750b46b6236cddc1857bba85c75c",
+    "ide/tests/edit_request_test.c": "ae32c30c97add2c5d5f7d0d8cccf1ede28a41eff2197af8d00cc176ce70a5c45",
+    "ide/tests/edit_request_view_test.c": "eba01bfa7d84e7967eaec271883d317194bb3bfdc91f48fbe6e606922a2489a1",
+    "ide/tools/build.ps1": "bc9350b4e30b6793f2c03d2a932170057547ce7c38c61b282c24df4a9869e93a",
+    "ide/docs/lsp-edit-workspace-scope.md": "7816df3af07062ff0878489ae861e55455c97feea6fab7fe66a528689fcee545"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-edit-workspace-scope-20261113.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-edit-workspace-scope-20261113/stage-sources.tar.gz",
+      "sha256": "9219e5173d93734dbe66b22aad06688fee3482d71bf38b83ef833aa2e46a262d",
+      "bytes": 64285,
+      "entries": 12,
+      "uniquePayloads": 12,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-edit-workspace-scope-20261113/stage-sources.tar.gz.manifest.json",
+      "sha256": "a53add5898c3455bc8acf157ea931612fc999ec47ccfd835e58eea4946b92d46",
+      "bytes": 2718
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-edit-workspace-scope-20261113/actual-builds-and-validation.tar.gz",
+      "sha256": "0425edb2f07cbe938ed059ca823b7b05cb48a8c3fb72120b2c5c73af14006374",
+      "bytes": 192916635,
+      "entries": 7484,
+      "uniquePayloads": 3486,
+      "identicalBytesStoredAsTarHardlinks": true
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-edit-workspace-scope-20261113/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "18ca8cd08d97b1b6a4f8d045a122f0e615285a4f1b2034e97a06ad881552f2a3",
+      "bytes": 2833407
+    }
+  },
+  "currentBindings": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-edit-workspace-scope-20261113\\final-bindings.json",
+    "sha256": "e11be08940859b7561cd8e8b00c0d7068874bd4471e10069070c35062f1e8b16"
+  },
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "sdkInherited": {
+    "index": "dev/release-materials/provenance/lsp-dpi-startup-20261112.json",
+    "indexSha256": "727ae55e191b104683a756dbe85a03f0add12ed40e60c4d6166face2f50f4e5d",
+    "dllSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "compiledUnitsThisStage": 0,
+    "matchedSetPreserved": true
+  },
+  "nativeService": {
+    "path": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-edit-workspace-scope-20261113\\native-v1\\xlang-ls.exe",
+    "sha256": "266128ea502c3979ef595c25244523e7d6b4dfd153dabca09fe7e1d0838faa3f",
+    "unitsRebuiltThisStage": 0,
+    "inheritedQualification": {
+      "index": "dev/release-materials/provenance/lsp-provider-scope-binding-20261113.json",
+      "indexSha256": "1c0b557b24c9223fa903788d9f9e25c1d7667e97685983e40d9f4db3ac3dc270",
+      "bindingsSha256": "3f8d6bd7126af39a06a286d574d3fd59e20fba5e52f493a2fc7e21457e955566",
+      "buildReceipt": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-provider-scope-binding-20261113\\native-v4\\result.json",
+      "buildReceiptSha256": "3b4d0c31b3e12adff368f890270b46a40ebcc914fda7b9380266e65d39bd900d",
+      "protocolCasesPreviouslyPassed": 50,
+      "protocolCasesRerunThisStage": 0
+    },
+    "nativeExistingConsumersRechecked": 299,
+    "sharedPublicHeadersUnchangedForInheritedNativeConsumers": true,
+    "newStandaloneFixtureUnits": 5
+  },
+  "correctness": {
+    "nativeScopeAssertions": 78,
+    "guiScopeAssertions": 69,
+    "observedNativeExternalXrtAllocationRefusals": 8,
+    "requestAssertions": 58,
+    "requestViewAssertions": 140,
+    "guiProductionUnitsFinal": 130,
+    "guiRegressionSuitesFinal": 55,
+    "rejectedMutants": 10,
+    "protocolCasesPreviouslyQualified": 50,
+    "protocolCasesRerunThisStage": 0,
+    "actualGuiFramesEach": 24,
+    "workspaceFileSlotsActual": 65536,
+    "modelSlotsActual": 4096,
+    "workspacePathMetadataExactBytes": 2097152,
+    "oneMoreByteRefused": true,
+    "scopeRolesActual": 64,
+    "cancellationPositions": 23,
+    "unopenedAndPhysicallyMissingWorkspaceRoot": true,
+    "namedOpenUnownedXlangModels": true,
+    "projectOwnersPreservedWithoutImplicitStandalone": true,
+    "lexicalAliasesDeduplicated": true,
+    "noPartialCapacityOrCancelledResult": true,
+    "workspaceMutationAndNormalRefreshAbaInvalidation": true,
+    "body8MiBSharedWithoutNewTextConstruction": true,
+    "fourReadersAfterOriginalOwnersExit": true,
+    "actualCAndXlangTypingDeleteUndoImeFocus": true,
+    "currentProductionAndActualDependenciesBound": true,
+    "allRuntimeTestAliasesRemoved": true,
+    "userTemporaryDirectoriesPreserved": true,
+    "rawFailuresPreserved": true,
+    "shortPathFixtureFilesRetained": 4
+  },
+  "externalHelper": {
+    "proxy": {
+      "archive": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\lsp-completion-error-isolation-20261112\\actual-builds-and-validation.tar.gz",
+      "entry": "bound-inputs/20c68dabd23c25637a08/xui_test_proxy.c",
+      "sha256": "740c86aee90b1373324909c74d3ae6c9f446b0c52c84c3ea84cea141c53bdc48"
+    },
+    "header": {
+      "repository": "D:/GIT/xge",
+      "commit": "1ba93e6b3ea49e80d9d821894811caef599634f3",
+      "path": "tests/xui/xui_test_proxy.h",
+      "sha256": "b42cd48cd68966d969575f717ade56f357dacbcabce746730c9bfb275dd0a80a"
+    },
+    "liveXgeUnmodified": true
+  },
+  "evidenceNotes": [
+    "Full GUI production cohort recompiles130 units after the request API change and additional worker module. It is paired with the exact preceding accepted service and SDK bytes. No native server unit is changed;299 actual prior native source/header consumers and all109 linked native objects are rechecked before reuse. Five standalone fixture units build the current request/scope and existing sync/input-state implementations against that exact inherited core.",
+    "Native-test-v1 retains a real link failure from missing client synchronization units. Native-test-v2 adds the existing sync/input-state units and passes69 checks; native-test-v3 adds observed external XRT allocation-refusal seams and passes78, including8 refusals. This is not exhaustive XRT internal OOM or measured leak qualification.",
+    "GUI-targeted-v1 passes the scope/request programs but preserves a real view-fixture compile failure: its private service-basename adapter omitted the UI include search path. GUI-targeted-v2 corrects that fixture-only path and passes all three final fixtures,69/58/140 checks. No compile failure counts as a mutant rejection.",
+    "Final native-only allocation probes were appended after the production GUI snapshot; the exact final fixtures are separately frozen and bound to the actual native and GUI test programs. Earlier unused test snapshot copies are not substituted for final fixtures.",
+    "Ten actual separately compiled implementation variants exit1 at scope fixture assertions, covering unopened/open roots, project roles, lexical deduplication, partial capacity, invalidation, budget, borrowed path storage, workspace comparison and model access. No baseline, compile error or crash is counted.",
+    "The GUI owner copies bounded path/model metadata and shares existing immutable text/catalog. It does not build contexts, inspect aliases or read source bodies for the new list. Worker preparation and release still cost metadata allocation, path conversion, comparison and context construction. No whole-IDE latency/RSS improvement is inferred.",
+    "The inherited service is byte-identical to the prior qualified service; its50 protocol cases are inherited evidence, not freshly executed cases in this stage. All55 GUI regression suites, three targeted GUI programs and actual C/xlang24-frame windows use the final130-unit GUI cohort."
+  ],
+  "limits": [
+    "A complete metadata roster and provider configuration do not establish complete source/member analysis, request method/ID/token/connection binding, physical identity, writability, consent or transaction authority.",
+    "Sending the captured standalone roots to the service, full reply decoding and binding, source coverage, transaction host/controller, physical alias/owned-target policy, consent/recovery/startup replay and standard rename/applyEdit activation remain open.",
+    "Model metadata is at most1MiB and workspace pointer/string metadata2MiB in one allocation. Shared sync/text/catalog, allocator overhead, temporary catalog/contexts/keys and OS resources are additional. Existing retained scope128MiB/context16MiB limits do not bound process RSS.",
+    "The caller keeps callback models and workspace paths stable during both capture passes. Current/normal notifications detect supported mutations. Unobservable external changes that bypass all notifications and restore before comparison are outside the host contract.",
+    "Other synchronous readers, latest engine/native-asset alignment, deep unprefixed xlp compiler paths, analysis-configuration cache-count regression, full performance/resource/longevity qualification and final delivery remain open.",
+    "C LSP stays disabled. No DAP/debug/runtime completion or Linux/sanitizer qualification in this stage."
+  ],
+  "postCommitReceipt": "dev/release-materials/provenance/lsp-edit-workspace-scope-20261113/postcommit.json"
+}

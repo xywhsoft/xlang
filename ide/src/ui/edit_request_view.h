@@ -9,7 +9,8 @@
  * Keep app/view lifetime stable through explicit End and barrier release. */
 xide_edit_request* xideLanguageEditRequestCapture(xide_app*,xide_model_error*);
 /* Owner-only full local fence: complete model metadata and canonical current
- * analysis catalog/package/compiler. No body scan; bounded config preparation
+ * workspace file paths and analysis catalog/package/compiler. No body scan;
+ * bounded config preparation
  * still has allocation/path costs. Call at admission/Arm/Publish, not per key. */
 int xideLanguageEditRequestCurrent(xide_app*,xide_edit_request*);
 /* Constant-time owner identity and irreversible flag check, no disk/model scan.

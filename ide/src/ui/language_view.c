@@ -243,6 +243,7 @@ void xideLanguageViewConfigurationChanged(xide_app* app)
     any semantic configuration. Compare the complete canonical catalog,not
     an epoch/hash or display metadata,before discarding a live client. Disk
     sources and import probes continue through their original guards. */
+ if(v->editRequest&&!xideEditRequestWorkspaceMatches(v->editRequest,&app->workspaceModel.files))xideEditRequestInvalidate(v->editRequest,XIDE_EDIT_REQUEST_CONFIGURATION);
  if(v->analysisCatalog){char* package=NULL;xide_model_error error={0};xvalue* packet=xideLanguageCheckPackagePath(&package,&error) ? xideExecutionAnalysisPacket(app,package,1,&error) : NULL;free(package);int same=packet && xrtValueEqual(v->analysisCatalog,get(packet,"catalog"));xrtValueRelease(packet);if(same)return;}
  xideEditRequestInvalidate(v->editRequest,XIDE_EDIT_REQUEST_CONFIGURATION);
  if(v->client || v->snapshotResult || v->autoProbed) reset(app);

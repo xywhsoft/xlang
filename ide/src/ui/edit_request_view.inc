@@ -23,6 +23,7 @@ int xideLanguageEditRequestCurrent(xide_app* app,xide_edit_request* request)
  if(xideLanguageClientState(v->client,NULL,0)>=XIDE_LS_STOPPED){xideEditRequestInvalidate(request,XIDE_EDIT_REQUEST_CONNECTION);return 0;}
  if(app->documents.count!=xideEditRequestModelCount(request)){xideEditRequestInvalidate(request,XIDE_EDIT_REQUEST_DOCUMENT);return 0;}
  for(size_t i=0;i<app->documents.count;++i){xide_edit_request_model m={0};if(!editModelAt(&app->documents,i,&m)||!xideEditRequestModelMatches(request,i,&m)){xideEditRequestInvalidate(request,XIDE_EDIT_REQUEST_DOCUMENT);return 0;}}
+ if(!xideEditRequestWorkspaceMatches(request,&app->workspaceModel.files)){xideEditRequestInvalidate(request,XIDE_EDIT_REQUEST_CONFIGURATION);return 0;}
  if(!editConfigurationCurrent(v,xideEditRequestCatalog(request))){xideEditRequestInvalidate(request,XIDE_EDIT_REQUEST_CONFIGURATION);return 0;}
  return !xideEditRequestInvalidated(request);
 }
@@ -35,7 +36,7 @@ xide_edit_request* xideLanguageEditRequestCapture(xide_app* app,xide_model_error
  for(size_t i=0;okay&&i<count;++i){xls_sync_binding b={0};document_binding* d=i<v->inputCount?v->inputs+i:NULL;okay=d&&xlsSyncBindingAt(v->sync,i,&b)&&b.identity==d->id&&b.revision==d->revision&&b.version==d->wireVersion&&!strcmp(b.uri,d->uri);}
  if(okay)okay=editConfigurationCurrent(v,v->analysisCatalog);
  if(!okay){if(error){error->code=XIDE_MODEL_CONFLICT;snprintf(error->message,sizeof(error->message),"Edit request requires an unused ID and the current acknowledged native input scope.");}return NULL;}
- xide_edit_request* request=xideEditRequestCreate(v->editSerial+1,v->nextId+1,v->sync,v->analysisCatalog,app->documents.count,editModelAt,&app->documents,error);
+ xide_edit_request* request=xideEditRequestCreate(v->editSerial+1,v->nextId+1,v->sync,v->analysisCatalog,&app->workspaceModel.files,app->documents.count,editModelAt,&app->documents,error);
  if(!request)return NULL;
  v->editRequest=xideEditRequestRetain(request);if(!v->editRequest){xideEditRequestRelease(request);return NULL;}
  ++v->editSerial;++v->nextId;v->editClient=v->client;return request;
