@@ -492,3 +492,13 @@ including all sixteen combining codepoints. See `examples/widget_measure.xl`,
 with native trimming, copy ownership and atomic preparation failure. The
 [tag-input lesson](examples/taginput.xl) and its generated gallery scene now
 use it; see [batch semantics and costs](../../../docs/xui-tag-batch.md).
+
+`RadioGroup.addOption(text=null,font=null,textColor=0,disabledTextColor=0,
+textFlags=0,checked=0,indicatorSize=0,gap=0,useBuiltinAtlas=0)` creates and
+attaches a Radio in one native call. Zero descriptor fields retain native
+defaults. The returned view belongs to the same Context; explicit parent
+destruction invalidates it. Selection observers receive `Widget?`, with NULL
+and index -1 when cleared. See `examples/radiogroup.xl` and
+[descriptor, ownership and failure contracts](../../../docs/xui-radio-option.md).
+This requires the matched Radio initialization/cache-fix SDK; it adds no
+per-method C forwarding function.

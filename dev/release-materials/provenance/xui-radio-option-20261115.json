@@ -1,0 +1,241 @@
+{
+  "schema": 1,
+  "date": "2026-11-15",
+  "status": "qualified-increment",
+  "shippingDelivery": false,
+  "scope": "Full RadioGroup option descriptor and nullable cleared-selection callback; direct declarations, no business forwarding.",
+  "sourceSha256": {
+    "lib/bindings/xui/README.md": "8c1b454a3f7a6a78a61ac59da67f926c9110a92d9f07fddd6cd5494efacf4054",
+    "lib/bindings/xui/src/managed.xl": "a932d0b84395bac9ec2cd53262ea318132d4e47b1d0f8f29b1be056c549f1f9f",
+    "lib/bindings/xui/examples/radiogroup.xl": "7cd4126f44f7f000600ea4786e6bb65ac7d15c9365940ed2575dcba2b7a3d352",
+    "lib/bindings/xui/examples/all_controls.xl": "ed5e941b61906907530473391f79c709b980705d689e9386f8bbc3a43373cd84",
+    "docs/xui-radio-option.md": "c4782e34703af66b244c1caee7c18c3dbc62c4826e1c2b438bc106a243dc7e2a",
+    "docs/xge3-xui3-full-coverage-plan.md": "5c5c5186fad51f9ce0e91ec6b59025b496e2dabd320ec6bae9ad4ff686e9c55b",
+    "tools/check_xui_radio_option.py": "15873ee86b25b2df2d00d1b89f3f7ff3ec587d687f68c96180724ab9d1867bea",
+    "test/cases/foreign_xui_radio_option.h": "f4f1f33da84428bcc62542e1e2563ae6dd7d71d183f3c199425bd9e1a0755925",
+    "test/cases/foreign_xui_radio_option.c": "57634553bdd3198885905f4471cf51e685580fc716ce3995ac1c2021f597b475",
+    "test/cases/foreign_xui_radio_option.xl": "c5b571dc95e85d8dffadc2c636e7fe0113b28bf3a344d5232215a92d372690a1",
+    "test/cases/foreign_xui_radio_option_native.c": "8d367448f02eea11f98a4b1f99ce8a42620b7c09ac9288e0b1d438b8eabf0bd5"
+  },
+  "native": {
+    "revision": "3c5573fe5e09d7f106093464528db851ac4ac8d4",
+    "receipt": {
+      "path": "D:/GIT/xge/docs/validation/radio-init-failure-20261115.json",
+      "sha256": "5a8198c8461d9a9448ec5e13a3bbb78b04064d006958aaeb7b30fa2365cb4ca1"
+    }
+  },
+  "contracts": {
+    "descriptor": "All nine fields packed on stack, iSize set to native sizeof, direct native factory, native text copy and Font ownership/Proxy identity.",
+    "callback": "Cleared selection is Widget? NULL and index -1; no synthetic create notification.",
+    "ownership": "Existing factory rollback, Context creator-thread/epoch and child invalidation; failed assignment preserves old value.",
+    "cost": "Prepared 100 creations: language alloc/free700 vs C400, realloc0. 1000 rounds of four queries: both zero heap operations. Managed view/lease/directory work and checks remain, no CPU equivalence claim."
+  },
+  "qualification": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\radio-option-evidence-win-r2.json",
+      "sha256": "184a7d3c9698dcd706c9cf7fc9cd7f4ad17af53f19e8dd13037032649ed155e4",
+      "complete": true,
+      "passed": true,
+      "shippingDelivery": false,
+      "verifierSha256": "9502e2e849903fd37a293fe1183d285cd384f4a028e7ef6b143b25e081028f10",
+      "scope": "Live rehash of exact acceptance inputs, commands/logs, executables and pixel readbacks; not another execution.",
+      "commands": 57,
+      "acceptance": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\radio-option-language-win-r3\\results.json",
+          "sha256": "6f0671091d332b2eee2f029ba1d0a5407fb2defadf480af02b6cc58eef8695f4",
+          "commands": 30,
+          "verifiedInputs": 2135
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\radio-option-trim-win-r1\\results.json",
+          "sha256": "5202867b0318d4607e180735cf08ed107e83970c710bade334d5fbfd7cd14cf6",
+          "commands": 8,
+          "verifiedInputs": 580
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\radio-option-cjk-win-r1\\results.json",
+          "sha256": "992909ae73639589109ab34ca0661bc88b9a42c84440c6cd71c982ad33dc7a4a",
+          "commands": 3,
+          "verifiedInputs": 0
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\radio-native-win-r3\\results.json",
+          "sha256": "d8c3f1780ec3ed7e92c27f13ee991becbde599ebfb7e88a6a018f68d3e2fbce2",
+          "commands": 16,
+          "verifiedInputs": 36
+        }
+      ],
+      "executables": {
+        "F:\\xlang-validation\\xge-full-20261110\\radio-option-language-win-r3\\native-host-O0.exe": "9fe6d159f3f34e596bf3ea95dc920c5984b3aa81cf38352993001c62e7539314",
+        "F:\\xlang-validation\\xge-full-20261110\\radio-option-language-win-r3\\native-host-O2.exe": "ccc8cc9896fdd465f76cd148edca47681c304c68e81a5f2e657a434875c83810",
+        "F:\\xlang-validation\\xge-full-20261110\\radio-option-language-win-r3\\native-static-O0.exe": "49a9009c98caa0da3af7d71a91408e2c90dd949e7bdbf21e7b96016f46a96459",
+        "F:\\xlang-validation\\xge-full-20261110\\radio-option-language-win-r3\\native-static-O2.exe": "c5ea61a72abfb4888b4f5702c4e76939d99968462c8ceeb572d965d330141329",
+        "F:\\xlang-validation\\xge-full-20261110\\radio-option-language-win-r3\\foreign_xui_radio_option-dynamic.exe": "58a95f9d523e26f698940dd16b06f6f18b4ee081f176aa153bfc3961ffe91315",
+        "F:\\xlang-validation\\xge-full-20261110\\radio-option-language-win-r3\\foreign_xui_radio_option-static.exe": "3aa57f8ddb1894b4b34613a388aee7c1df0c97eff21167b56b826fdfc0ec5657",
+        "F:\\xlang-validation\\xge-full-20261110\\radio-option-language-win-r3\\radiogroup-dynamic.exe": "dbd7dee048d62fd8c80ae9887cc39b91a6e68e1a8b58416f0e8bc4b2ff6843b2",
+        "F:\\xlang-validation\\xge-full-20261110\\radio-option-language-win-r3\\radiogroup-static.exe": "26b09a2095ca6207c4b1aed6a304f076e42298bb48141365d9b119bde6564034",
+        "F:\\xlang-validation\\xge-full-20261110\\radio-option-trim-win-r1\\enabled\\program.exe": "c3ac44d3aa997cffff46b03a2f0f25777b527e7755074e1f47fb253bc7e8986a",
+        "F:\\xlang-validation\\xge-full-20261110\\radio-option-trim-win-r1\\disabled\\program.exe": "c3ac44d3aa997cffff46b03a2f0f25777b527e7755074e1f47fb253bc7e8986a",
+        "F:\\xlang-validation\\xge-full-20261110\\radio-native-win-r3\\host-O0-owned.exe": "b4232689f89ec2abaa6c49c4444506677186ee928023b995ea40ed17ba224f2d",
+        "F:\\xlang-validation\\xge-full-20261110\\radio-native-win-r3\\host-O0-legacy.exe": "c6ac8304b1396ed5370baeb7fb3766c6a809f482ec972b4603dcb1e872d645fa",
+        "F:\\xlang-validation\\xge-full-20261110\\radio-native-win-r3\\host-O2-owned.exe": "61d621b1224fe3d0f48819ca5753bfc8e02c8e688911e5557377065c326d464e",
+        "F:\\xlang-validation\\xge-full-20261110\\radio-native-win-r3\\host-O2-legacy.exe": "4806164e98ca6488e39443443228af80eb5ceff12715dbf512da6605662f1e9b",
+        "F:\\xlang-validation\\xge-full-20261110\\radio-native-win-r3\\static-O0-owned.exe": "9fa97fcaabec6e2513f7d711e5dd64f66998cc2fe5b5d5d6020984dbc6172715",
+        "F:\\xlang-validation\\xge-full-20261110\\radio-native-win-r3\\static-O0-legacy.exe": "5bf144536e6eb9d289be3b608051f8eeb1c2b56aaca84e45c3030f69cc78d533",
+        "F:\\xlang-validation\\xge-full-20261110\\radio-native-win-r3\\static-O2-owned.exe": "d94ffa05587d115eab37cc60d29e6a1767c50345b8e989b65023c4eadb3122ec",
+        "F:\\xlang-validation\\xge-full-20261110\\radio-native-win-r3\\static-O2-legacy.exe": "1254682cf86acda302ce78c73a18fe9093e6d0ec71324b8dc20ecffc793a373b"
+      },
+      "packages": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\radio-option-packages-win-r3-host.json",
+          "sha256": "087dd6df66b0313cf9c523be48e9d5e2042962e92150e07099d7b096e530ab6a"
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\radio-option-packages-win-r3-static.json",
+          "sha256": "645aaac065d6515b0be49c0305ae6dcabb1af4c74f64eb987bad2e4ca5517f36"
+        }
+      },
+      "packedFields": [
+        "iSize",
+        "sText",
+        "pFont",
+        "iTextColor",
+        "iDisabledTextColor",
+        "iTextFlags",
+        "bChecked",
+        "fIndicatorSize",
+        "fGap",
+        "bUseBuiltinAtlas"
+      ],
+      "trimDeltas": {
+        "bytes": 0,
+        "text": 0,
+        "bss": 0
+      },
+      "visual": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\radio-option-cjk-win-r1\\jit.png",
+        "sha256": "3dbb0c5985161632317da491a08c2736779b1605139881db92aa8ae095ec5d9f",
+        "review": "Chinese labels and two radio indicators inspected; first checked, second unchecked. All three modes match per platform."
+      }
+    },
+    "linux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\radio-option-evidence-linux-r2.json",
+      "sha256": "36e2f990e50a31429ac803d7282cd2aa87bafc7211658851cabc3efb237f4337",
+      "complete": true,
+      "passed": true,
+      "shippingDelivery": false,
+      "verifierSha256": "9502e2e849903fd37a293fe1183d285cd384f4a028e7ef6b143b25e081028f10",
+      "scope": "Live rehash of exact acceptance inputs, commands/logs, executables and pixel readbacks; not another execution.",
+      "commands": 57,
+      "acceptance": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/radio-option-language-linux-r3/results.json",
+          "sha256": "bbcfa97d237875142e85aa9732d04de34701a2e6a08cf2803d72e8c5f886f5b8",
+          "commands": 30,
+          "verifiedInputs": 2117
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/radio-option-trim-linux-r1/results.json",
+          "sha256": "969c665d4776d9e5a6a8b0bbc482d927c5fe90a5f43a457400f5c530eaae47da",
+          "commands": 8,
+          "verifiedInputs": 546
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/radio-option-cjk-linux-r2/results.json",
+          "sha256": "b0b026508b1ab860020743f464e4327d4183a00152c1f3a503dced42a785ff39",
+          "commands": 3,
+          "verifiedInputs": 0
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/radio-native-linux-r3/results.json",
+          "sha256": "e10293c17dbb14851f3c3589b78c0c29aa790665c5f3156419cdfee226f1dfcc",
+          "commands": 16,
+          "verifiedInputs": 35
+        }
+      ],
+      "executables": {
+        "/mnt/f/xlang-validation/xge-full-20261110/radio-option-language-linux-r3/native-host-O0": "6130b56579a21110fc475b36a67183367e0dca34ef749ac3b3e9240fbf0b7042",
+        "/mnt/f/xlang-validation/xge-full-20261110/radio-option-language-linux-r3/native-host-O2": "25b2120979aaa29148129593828cc17d19bc201141cc76fc94f7fc7197369084",
+        "/mnt/f/xlang-validation/xge-full-20261110/radio-option-language-linux-r3/native-static-O0": "8fb2e32f3d47e2d160912da06143010f55acbbfeeba69495ca6c4e35493afb52",
+        "/mnt/f/xlang-validation/xge-full-20261110/radio-option-language-linux-r3/native-static-O2": "557a65c0982112807048904a1e940fa641bd5caa11df042e7096608b44fd31a9",
+        "/mnt/f/xlang-validation/xge-full-20261110/radio-option-language-linux-r3/foreign_xui_radio_option-dynamic": "a223f74568bc6cc867d13031e19f35cc155c08f38893d66dd2ddf59a335498e7",
+        "/mnt/f/xlang-validation/xge-full-20261110/radio-option-language-linux-r3/foreign_xui_radio_option-static": "0d0b49a4ba13f8dcf3452c4821ec2745b395d21bb7c8d7e40260d4d922d96573",
+        "/mnt/f/xlang-validation/xge-full-20261110/radio-option-language-linux-r3/radiogroup-dynamic": "5c74af672eb50d7de59646ccaa9bee46675f1e11e34034bd0d06a25132a91e66",
+        "/mnt/f/xlang-validation/xge-full-20261110/radio-option-language-linux-r3/radiogroup-static": "67f856498cbe4c9c28a03a7ebb136a8b45eaeb8c795307043679bedd58dfeac7",
+        "/mnt/f/xlang-validation/xge-full-20261110/radio-option-trim-linux-r1/enabled/program": "0a825daa209d3bf04012b1b7bc7b53aa6367ead7383512f7ce035bfbfc3a7193",
+        "/mnt/f/xlang-validation/xge-full-20261110/radio-option-trim-linux-r1/disabled/program": "98142d1e4308efbacef4606ee3945a8e6304e5007b4d23e628de59acd76c1d00",
+        "/mnt/f/xlang-validation/xge-full-20261110/radio-native-linux-r3/host-O0-owned": "2579fb4be9b2f56fa8c2bc805869456f724b029494513c151fcd2493484b243e",
+        "/mnt/f/xlang-validation/xge-full-20261110/radio-native-linux-r3/host-O0-legacy": "1ab1a701d5b6c90a6ed09424b1a7756b713525fdd894d1fac1f31ca0bb1acaa1",
+        "/mnt/f/xlang-validation/xge-full-20261110/radio-native-linux-r3/host-O2-owned": "1d24d030493bd71c1ad7ff5337133653096350d5eb6906ca639b3019d1922ab4",
+        "/mnt/f/xlang-validation/xge-full-20261110/radio-native-linux-r3/host-O2-legacy": "1443a95380d6493930767b0cc60374988b8b5e373305ea28ffe806c0b3d451e9",
+        "/mnt/f/xlang-validation/xge-full-20261110/radio-native-linux-r3/static-O0-owned": "70e1cbc5d96d1b5e533e0d0c62bb17ed7b3e755def33ca1fac239a68993b061c",
+        "/mnt/f/xlang-validation/xge-full-20261110/radio-native-linux-r3/static-O0-legacy": "6c5c5793c2fb5188ec64d382819eb5e9c3a403e57a652099a6c7c845a3e1dfd6",
+        "/mnt/f/xlang-validation/xge-full-20261110/radio-native-linux-r3/static-O2-owned": "0fff788933941471b3ac3041e3fff2b961cd1772f5de01665553ea29f2073459",
+        "/mnt/f/xlang-validation/xge-full-20261110/radio-native-linux-r3/static-O2-legacy": "e3e18487489a1dd090c1eb51be0fa51bc7b514dbddb313521bdd81a4dabae016"
+      },
+      "packages": {
+        "host": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/radio-option-packages-linux-r3-host.json",
+          "sha256": "aa76bf773fe1be1c6f4aab23221f9d89e89544e325867c9daaddf9f3eeb755df"
+        },
+        "static": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/radio-option-packages-linux-r3-static.json",
+          "sha256": "82d42624a973deca8589b2a46f9bb29d5ce82c3e309f7e7d569c1ede22069ea0"
+        }
+      },
+      "packedFields": [
+        "iSize",
+        "sText",
+        "pFont",
+        "iTextColor",
+        "iDisabledTextColor",
+        "iTextFlags",
+        "bChecked",
+        "fIndicatorSize",
+        "fGap",
+        "bUseBuiltinAtlas"
+      ],
+      "trimDeltas": {
+        "bytes": 0,
+        "text": 0,
+        "bss": 0
+      },
+      "visual": {
+        "path": "/mnt/f/xlang-validation/xge-full-20261110/radio-option-cjk-linux-r2/jit.png",
+        "sha256": "d78ba9ee01e8e9f7f1ceb24035e440e3461218c1dd59df7d1d015be57055f7c5",
+        "review": "Chinese labels and two radio indicators inspected; first checked, second unchecked. All three modes match per platform."
+      }
+    }
+  },
+  "totalExecutedCommands": 114,
+  "inventory": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-radio-option-r2\\surface.json",
+    "sha256": "b57fa5383659814b40b2bd29f3df8dd4fa6fc6dffe370f7d855ceb4a8d98e125",
+    "nativeFunctions": 5193,
+    "declarationsPresent": 3829,
+    "notCompletionRate": true,
+    "lessonPrograms": 95,
+    "independentLessons": 94,
+    "galleryScenes": 57
+  },
+  "gallerySource": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\radio-gallery-source-r1.json",
+    "sha256": "a6c9b179379c97020cdec9167f1b883e29c9c7725d9fcbbb11843350688c2607",
+    "fullSlideshowClaim": false
+  },
+  "openNativeFindings": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\choice-followup-audit-20261115.json",
+    "sha256": "912be0ba3104222aca21ac24d63ab73e87275a05fe7d84f15ee039e32193c3bc",
+    "fixed": false
+  },
+  "limits": [
+    "Main tiny-font gate does not cover Chinese glyph rendering; separate installed CJK font reruns inspected without redistributing font bytes.",
+    "A failed Linux CJK diagnostic used an incomplete library path and selected a different runtime; explicit qualified-cohort paths corrected the launcher only. Failed evidence preserved.",
+    "Native O2 relink from original full164/0 SDK compiled2/reused162; static compiled3/reused163. Existing complete O2 compiler reused, no new compiler/core change.",
+    "Legacy cache regression tests unchanged cache reuse then borrowed-surface generation update. This adds Radio clean-frame probes, not CPU-equivalence certification.",
+    "Linux real windows are Xvfb/Mesa, not physical GPU/driver certification.",
+    "CheckBox/Toggle partial-init leaks and Toggle cache regression remain independently reproduced, not covered by this Radio fix.",
+    "No release/current-delivery installation, push or version change. Full integration/delivery, original15 and pending16 decisions remain open."
+  ]
+}

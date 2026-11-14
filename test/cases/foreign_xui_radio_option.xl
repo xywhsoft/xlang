@@ -1,0 +1,168 @@
+import xui
+from xui import Widget,Radio,Font
+extern "fixtureLayoutProxy" @header("test/cases/foreign_xui_radio_option.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
+extern "fixtureLayoutFont" @no_raise @c_result("owned_view") @factory(1,0,dropFont) func cpuFont(xui.Proxy proxy) as xui.Font
+extern "xuiFontReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropFont(xui.Font value)
+extern "fixtureOptionBudget" @no_raise func budget(c_int n)
+extern "fixtureOptionCheckFont" @no_raise func checkFont(xui.Radio radio,xui.Font font)
+extern "fixtureOptionCleanup" @no_raise func cleanup()
+extern "fixtureOptionPrefixBegin" @no_raise func prefixBegin()
+extern "fixtureOptionPrefixEnd" @no_raise func prefixEnd()
+extern "fixtureOptionHeapEqual" @no_raise func heapEqual()
+extern "fixtureOptionHeapBegin" @no_raise func heapBegin()
+extern "fixtureOptionHeapReport" @no_raise func heapReport(c_int kind)
+extern "fixtureOptionNativeCreate" @no_raise func nativeCreate(xui.RadioGroup group)
+extern "fixtureOptionNativeQueries" @no_raise func nativeQueries(xui.RadioGroup group,xui.Radio radio)
+func main(...) as int
+ auto proxy=cpuProxy()
+ auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ auto font=cpuFont(proxy)
+ ui.setDefaultFont(font)
+ auto other=cpuProxy()
+ auto wrongFont=cpuFont(other)
+ auto group=ui.radioGroup()
+ int calls=0
+ int nulls=0
+ group.setChange(func(xui.Widget sender,xui.Widget? selected,c_int index)
+  calls+=1
+  if selected==null then
+   nulls+=1
+   assert index==-1
+  else
+   auto chosen=selected as Widget
+   assert chosen.getParent()!=null and index>=0
+  end
+ end)
+ auto first=group.addOption("第一项",font,c_uint(0x81223344),c_uint(0x55667788),c_uint(xui.XUI_TEXT_ALIGN_RIGHT),1,c_float(19.5),c_float(7.25),1)
+ assert calls==0 and group.getChildCount()==1 and group.getSelectedIndex()==0
+ assert (first.getText() ?? "")=="第一项" and first.getChecked()==1
+ assert first.getTextColor()==c_uint(0x81223344) and first.getDisabledTextColor()==c_uint(0x55667788)
+ assert (first.getTextFlags() & c_uint(xui.XUI_TEXT_ALIGN_RIGHT))!=0
+ assert first.getIndicatorSize()==c_float(19.5) and first.getGap()==c_float(7.25) and first.getUseBuiltinAtlas()==1
+ checkFont(first,font)
+ auto second=group.addOption()
+ assert (second.getText() ?? "sentinel")=="" and second.getParent()!=null
+ assert group.setSelectedIndex(1)==0 and calls==1
+ assert group.setSelectedIndex(-1)==0 and calls==2 and nulls==1
+ group.setChange(null)
+ second.close()
+ assert group.setSelectedIndex(0)==0
+ int errors=0
+ try
+  auto invalid=group.addOption("bad\0text")
+ catch Error
+  errors+=1
+ end
+ try
+  auto invalid=group.addOption("",null,0,0,0,0,-1)
+ catch Error
+  errors+=1
+ end
+ try
+  auto invalid=group.addOption("wrong backend",wrongFont)
+ catch Error
+  errors+=1
+ end
+ assert errors==3 and group.getChildCount()==1
+ auto held=first.getFont() as Font
+ font.close()
+ checkFont(first,held)
+ auto metrics=proxy.fontMetrics(held)
+ assert metrics.fSize==16
+ int failures=0
+ int successes=0
+ string temporary="temporary"
+ for allowance in range(64)
+  prefixBegin()
+  try
+   auto target=first
+   bool rejected=false
+   budget(c_int(allowance))
+   try
+    target=group.addOption(temporary)
+   catch Error
+    rejected=true
+   finally
+    budget(-1)
+   end
+   if rejected then
+    failures+=1
+    assert target==first
+   else
+    successes+=1
+    assert (target.getText() ?? "")=="temporary"
+    target.close()
+   end
+   assert group.getChildCount()==1 and group.getSelectedIndex()==0
+  finally
+   prefixEnd()
+  end
+  heapEqual()
+ end
+ assert failures>0 and successes>0
+ // Warm the native allocator/type/layout caches before measuring both paths.
+ auto warm=group.addOption(temporary)
+ warm.close()
+ nativeCreate(group)
+ heapBegin()
+ for i in range(100)
+  auto child=group.addOption(temporary)
+  child.close()
+ end
+ heapReport(0)
+ heapBegin()
+ nativeCreate(group)
+ heapReport(1)
+ heapBegin()
+ budget(0)
+ try
+  for i in range(1000)
+   assert group.getChildCount()==1 and first.getIndicatorSize()==c_float(19.5)
+   assert first.getGap()==c_float(7.25) and first.getUseBuiltinAtlas()==1
+  end
+ finally
+  budget(-1)
+ end
+ heapReport(2)
+ heapBegin()
+ budget(0)
+ try
+  nativeQueries(group,first)
+ finally
+  budget(-1)
+ end
+ heapReport(3)
+ auto worker=thread(func() as int
+  try
+   auto invalid=group.addOption("foreign")
+  catch StateError
+   return 1
+  end
+  return 0
+ end)
+ assert worker.waitTimeout(30000) and worker.exitCode()==1
+ group.close()
+ bool rejected=false
+ try
+  auto invalid=first.getText()
+ catch StateError
+  rejected=true
+ end
+ assert rejected
+ rejected=false
+ try
+  auto invalid=group.addOption("closed")
+ catch StateError
+  rejected=true
+ end
+ assert rejected
+ held.close()
+ ui.close()
+ wrongFont.close()
+ other.close()
+ proxy.close()
+ cleanup()
+ println("RadioOption: complete descriptor, NULL selection callback, font ownership, OOM rollback, parent/thread expiry passed")
+ return 0
+end

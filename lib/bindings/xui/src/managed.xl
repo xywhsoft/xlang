@@ -416,7 +416,7 @@ export typedef CheckCardChangeProc = func(Widget,c_int)
 
 export typedef RadioChangeProc = func(Widget,c_int)
 
-export typedef RadioGroupChangeProc = func(Widget,Widget,c_int)
+export typedef RadioGroupChangeProc = func(Widget,Widget?,c_int)
 
 export typedef ToggleChangeProc = func(Widget,c_int)
 
@@ -2992,6 +2992,8 @@ end
 export extern "xui_widget_t*" class RadioGroup @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
 
  extern "xuiRadioGroupSetChangeOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setChange(RadioGroupChangeProc? onChange)
+
+ extern "xuiRadioGroupAddOption" @no_raise @c_result("owner_view",0) @factory(1,0,rollbackRadio) @c_pack(2,"xui_radio_desc_t",0,9) @c_pack_size(2,"iSize","uint32_t") @c_pack_field(2,"sText",0,"c_string") @c_pack_field(2,"pFont",1,"view_raw") @c_pack_field(2,"iTextColor",2,"value") @c_pack_field(2,"iDisabledTextColor",3,"value") @c_pack_field(2,"iTextFlags",4,"value") @c_pack_field(2,"bChecked",5,"value") @c_pack_field(2,"fIndicatorSize",6,"value") @c_pack_field(2,"fGap",7,"value") @c_pack_field(2,"bUseBuiltinAtlas",8,"value") func addOption(string? text=null,Font? font=null,c_uint textColor=0,c_uint disabledTextColor=0,c_uint textFlags=0,c_int checked=0,c_float indicatorSize=0,c_float gap=0,c_int useBuiltinAtlas=0) as Radio
 
  extern "xuiRadioGroupAddRadio" @no_raise @c_result("status",0) func addRadio(Widget pRadio)
 

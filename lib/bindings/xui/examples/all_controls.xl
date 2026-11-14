@@ -588,13 +588,8 @@ func scene_radiogroup(xui.Context ui,xui.Widget root,xui.Proxy proxy) as xui.Wid
  group.setOrientation(xui.XUI_RADIO_GROUP_VERTICAL)
  group.setGap(12)
 
- auto light = ui.radioNative()
- light.setText("浅色主题")
- group.addRadio(light)
-
- auto dark = ui.radioNative()
- dark.setText("深色主题")
- group.addRadio(dark)
+ group.addOption("浅色主题")
+ group.addOption("深色主题")
  group.setSelectedIndex(0)
  return null
 end
