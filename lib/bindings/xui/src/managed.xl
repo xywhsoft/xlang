@@ -1372,6 +1372,10 @@ export extern "xui_widget_t*" class Widget @header("xge3_runtime.h") @lifetime("
 
  extern "xuiWidgetSetContentMeasureCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setContentMeasureCallback(WidgetContentMeasureProc? onMeasure)
 
+ extern "xuiWidgetMeasureContent" @no_raise @c_output(2,0) func measureContent(Vec2 constraint) as Vec2
+
+ extern "xuiWidgetMeasure" @no_raise @c_output(2,0) func measure(Vec2 constraint) as Vec2
+
  extern "xuiWidgetSetLayoutPrepareCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setLayoutPrepareCallback(WidgetLayoutPrepareProc? onPrepare)
 
  extern "xuiWidgetSetLayoutChildrenCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setLayoutChildrenCallback(WidgetLayoutChildrenProc? onChildren)
@@ -3559,6 +3563,8 @@ export extern "xui_widget_t*" class Terminal @header("xge3_runtime.h") @lifetime
  extern "xuiTerminalGetRows" @no_raise func getRows() as c_int
 
  extern "xuiTerminalGetCursor" @no_raise @c_outputs(1,2) @c_status(0) func getCursor() as (c_int,c_int)
+
+ extern "xuiTerminalGetCell" @no_raise @c_output(3,0) func getCell(c_int column,c_int row) as TerminalCell
 
  extern "xuiTerminalSetInputCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_callback_span(0,1,"const uint8_t*","int") @c_result("status",0) func setInputCallback(TerminalDataProc? onData)
 

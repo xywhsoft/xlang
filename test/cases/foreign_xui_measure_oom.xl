@@ -1,0 +1,52 @@
+// Cold native layout allocation failure must not publish a partial Vec2.
+import xui
+extern "fixtureLayoutProxy" @header("test/cases/foreign_xui_widget_queries.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
+extern "fixtureLayoutFont" @no_raise @c_result("owned_view") @factory(1,0,dropFont) func cpuFont(xui.Proxy proxy) as xui.Font
+extern "xuiFontReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropFont(xui.Font value)
+extern "fixtureQueryBudget" @no_raise func budget(c_int n)
+extern "fixtureQueryCleanup" @no_raise func cleanup()
+func main(...) as int
+ auto proxy=cpuProxy()
+ auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ auto font=cpuFont(proxy)
+ ui.setDefaultFont(font)
+ auto constraint=xui.Vec2()
+ constraint.fX=500
+ constraint.fY=300
+ int failures=0
+ int successes=0
+ for allowance in range(32)
+  auto widget=ui.labelNative()
+  widget.setText("layout allocation")
+  widget.setSizeMode(xui.XUI_SIZE_CONTENT,xui.XUI_SIZE_CONTENT)
+  auto measured=xui.Vec2()
+  measured.fX=99
+  measured.fY=77
+  bool rejected=false
+  budget(c_int(allowance))
+  try
+   measured=widget.measure(constraint)
+  catch Error
+   rejected=true
+  finally
+   budget(-1)
+  end
+  if rejected then
+   failures+=1
+   assert measured.fX==99 and measured.fY==77, "failed destination changed"
+  else
+   successes+=1
+   assert measured.fX>0 and measured.fY>0, "unexpected successful content size"
+  end
+  widget.close()
+ end
+ println("Measure prefixes:",failures,successes)
+ assert failures>0 and successes>0, "both allocation outcomes required"
+ ui.close()
+ font.close()
+ proxy.close()
+ cleanup()
+ println("Widget measure OOM: 32 cold-layout prefixes preserve failed destinations and recover")
+ return 0
+end

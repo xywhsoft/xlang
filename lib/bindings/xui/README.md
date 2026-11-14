@@ -481,3 +481,9 @@ native defaults, exact key/modifier binding, lookup and copied `CodeKeyBinding`
 records. Missing lookup/removal remains checked UNSUPPORTED. See
 [the command-map lesson](examples/code_commands.xl) and
 [its contracts and costs](../../../docs/xui-code-commands.md).
+
+`Widget.measureContent(constraint)` and `Widget.measure(constraint)` return
+independent `Vec2` values through the existing checked native-output contract.
+`Terminal.getCell(column,row)` returns the complete pointer-free `TerminalCell`,
+including all sixteen combining codepoints. See `examples/widget_measure.xl`,
+`examples/terminal_cells.xl` and [query contracts](../../../docs/xui-widget-queries.md).

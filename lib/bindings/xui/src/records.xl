@@ -1,4 +1,19 @@
 // Exact, pointer-free native value records. Generated from the authoritative header.
+// A complete independent terminal snapshot, including all sixteen combining slots.
+export extern "xui_terminal_cell_t" struct TerminalCell @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iCodepoint
+ c_uint iFgColor
+ c_uint iBgColor
+ c_uint iFlags
+ c_ushort iStyle
+ c_uchar iWidth
+ c_ushort iLinkId
+ c_uchar iCombiningCount
+ c_uchar arrReserved[3]
+ c_uint arrCombining[16]
+end
+
 export extern "xui_vec2_t" struct Vec2 @header("xge3_runtime.h")
  c_float fX
  c_float fY

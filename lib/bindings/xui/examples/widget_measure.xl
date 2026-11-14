@@ -1,0 +1,17 @@
+// Measure the label before positioning it; the result is an independent value.
+import xui
+from "./_window.xl" import Window
+
+Window.show("控件测量",func(xui.Context ui,xui.Widget root)
+ auto label=ui.labelNative()
+ label.setText("按内容测量的标签")
+ auto constraint=xui.Vec2()
+ constraint.fX=640
+ constraint.fY=100
+ auto content=label.measureContent(constraint)
+ Window.place(root,label,24,24,int(content.fX)+16,int(content.fY)+16)
+
+ auto result=ui.labelNative()
+ result.setText(f"内容宽度：{float(content.fX)}，高度：{float(content.fY)}")
+ Window.place(root,result,24,100,640,40)
+end)

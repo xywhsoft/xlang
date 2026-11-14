@@ -598,6 +598,18 @@
       "kind": "cpu",
       "gallery": false,
       "expected": "打印默认键位数量，绑定并查询 Ctrl+F2，再恢复原生默认键位。"
+    },
+    {
+      "name": "widget_measure",
+      "title": "控件测量",
+      "gallery": false,
+      "expected": "测量标签内容，并用返回尺寸安排标签。"
+    },
+    {
+      "name": "terminal_cells",
+      "title": "终端单元格快照",
+      "gallery": false,
+      "expected": "显示终端字符，并读取组合符、宽度和颜色记录。"
     }
   ],
   "helper": "_window.xl",

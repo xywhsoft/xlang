@@ -1,0 +1,155 @@
+{
+  "schema": 1,
+  "date": "2026-11-15",
+  "status": "qualified-for-integration",
+  "shippingDelivery": false,
+  "scope": "Direct Widget own-content/full-layout measurements and complete pointer-free TerminalCell values, including fixed arrays.",
+  "sourceSha256": {
+    "lib/bindings/xui/src/managed.xl": "5b057fc484a43855633cc4123ccaf658953706683fd817c47d69d015549768ec",
+    "lib/bindings/xui/src/records.xl": "81410cc45e7f222641641552fbc9fc624f7d91e8f3273bf54e01b6efc75e4116",
+    "lib/bindings/xui/README.md": "74924e4b275bdda4c54370d103527ccad029945f6ace3cfadec00a69c22eaadf",
+    "lib/bindings/xui/examples/gallery.json": "4d59d9baf8779a06d663f2a1f6693ab0935bdeca6fe6d7a702c77465ca8862d9",
+    "lib/bindings/xui/examples/widget_measure.xl": "6b6672204a3a55e65ef74fa97357670829ccdc6e6965d24808c31a822c35f424",
+    "lib/bindings/xui/examples/terminal_cells.xl": "197d7ba8a5aa31cdd6000edb91038622e9dd140e700d975d5efb215fc4582ea5",
+    "test/cases/foreign_xui_widget_queries.xl": "96bf139d9a2f76d6bf4f7e54c55239ca529226859062c5bca7f04b90a61955d6",
+    "test/cases/foreign_xui_widget_queries.h": "2b72396c6c38a2123960f4b72eb1041e2f84a7dbde28faa15b40b8add6f12f7b",
+    "test/cases/foreign_xui_widget_queries.c": "a556aad0b2783e4c65a03c16b02556b10cacef928fb23a74c378d5e0402a6d1d",
+    "test/cases/foreign_xui_widget_queries_native.c": "aa6cb071296581d88c7191221532bc40bb2fd23296a3d8def072f20f6499412b",
+    "tools/check_xui_widget_queries.py": "e3a72d0d99884168edf5e43a5c4f187ff76f9ecfbbf8b7582329fd628a41ada5",
+    "test/cases/foreign_xui_measure_oom.xl": "0ec785a215fcc665a340dd9118b3701b8f9cdcf95bf6ca0eba313b02e0d05447",
+    "test/cases/foreign_xui_measure_oom.c": "87cac0613ede783edae60803067b51325e999a4d01c0d0bc3c415eb41b144251",
+    "tools/check_xui_measure_oom.py": "5d753bf0832c895ed443a6239e6b4e0f5544cce2d3e7b95331ec0e621a3dae35",
+    "docs/xui-widget-queries.md": "432d1a53ea1514d24158051599feb98a529966d438f1b12df020b7530ffe65fe",
+    "docs/xge3-xui3-full-coverage-plan.md": "7bbc4cec1489b50c2187712a717e85aeeb15b463df52d3e5d0242767e8b546a6"
+  },
+  "dependency": {
+    "nativeCommit": "5c116cfda8ccda52fe98e5553405fff403665821",
+    "nativeChanged": false,
+    "compilerChanged": false,
+    "nativeSource": "F:/xlang-validation/xge-full-20261110/native-accessibility-owner-{tag}-source-r3",
+    "sdk": "F:/xlang-validation/xge-full-20261110/accessibility-owner-sdk-{tag}-r3/{host,static}",
+    "compiler": "Unchanged qualified full O2 Windows r37/Linux r30; no new runtime contract."
+  },
+  "contract": {
+    "calls": "Three direct native business targets; independent output storage via existing exact-record/fixed-array rules, no business C wrappers.",
+    "snapshot": "Complete 96-byte cell, including reserved bytes and 16 combining codepoint slots. Value copies are independent; continuation cell width0 retained.",
+    "measurement": "Own content versus full native layout; callback-period Vec2 expires, checked callback errors/self-close/invalid arguments/owner expiry preserve old result. Native measurement caches and side effects are not rolled back.",
+    "costs": "Prepared1000 rounds of3operations have zero XRT alloc/free/realloc in language and equivalent C. Record/value copies, layout/style work and ownership/error/epoch checks remain. No CPU equivalence claim.",
+    "oom": "Separate32 cold label-text layout budgets per mode:8failures/24successes; old destinations preserved, successful recovery and resource close. This is distinct from prepared zero-heap plain-widget queries."
+  },
+  "qualification": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\widget-query-evidence-win-r1.json",
+      "sha256": "a76219b4b0818a5d8bdede734b386b5afb623cd13f2e74407606a5c195452fc3",
+      "commands": 54,
+      "acceptance": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\widget-query-language-win-r3\\results.json",
+          "sha256": "469da3a85c50b88192a5617866ca9f1dbaecf15cc02ba09707af2555ddb91054",
+          "commands": 41,
+          "verifiedInputs": 2139
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\widget-measure-oom-win-r2\\results.json",
+          "sha256": "a0081f01a176213054fb8253c8ddecf6e50942414906ad99cddc0c744d1deb4a",
+          "commands": 5,
+          "verifiedInputs": 2120
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\widget-query-trim-win-r1\\results.json",
+          "sha256": "c77fd5cd9a0578acf6a32c36862c305d7efa4835c1907dc3ca96b686cc473e49",
+          "commands": 8,
+          "verifiedInputs": 580
+        }
+      ],
+      "packages": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\widget-query-packages-win-r3-host.json",
+          "sha256": "0f6717badfdeedf73708c8ec14f191b1ef894ca2cab1de144e51359777199ca9"
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\widget-query-packages-win-r3-static.json",
+          "sha256": "d0890429ee2cb6ac41897f854da6d155ea58222f48a73c8732b1b39e96ce1bea"
+        }
+      },
+      "visual": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\widget-query-language-win-r3\\widget_measure-jit.png",
+          "sha256": "e8fb013ff3206f5a621946c93fef6aaefd1f58b70b2fe2c7ddbd8576b0df1c7c",
+          "review": "Rendered image inspected: complete label/terminal and copied cell metadata visible."
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\widget-query-language-win-r3\\terminal_cells-jit.png",
+          "sha256": "61320446d72704f2cddae4b1de1bfe0b87c0dc26f0eb8d0efe3eb6b992bcf934",
+          "review": "Rendered image inspected: complete label/terminal and copied cell metadata visible."
+        }
+      ],
+      "backend": "Windows real engine"
+    },
+    "linux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\widget-query-evidence-linux-r1.json",
+      "sha256": "b03071c230649f866387dfde5660ffdf23ded58600cb8b4f194dd7a2bb46b478",
+      "commands": 54,
+      "acceptance": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/widget-query-language-linux-r3/results.json",
+          "sha256": "2b0ad66ffde2f6dba06c1dd63d2c7389a09ec8029ea32dfbe559906c1db17184",
+          "commands": 41,
+          "verifiedInputs": 2121
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/widget-measure-oom-linux-r2/results.json",
+          "sha256": "8fed5b4dad3f32cadda53dd0d147dc85edebde2df62bd34c1a7dcfcaac07ddfc",
+          "commands": 5,
+          "verifiedInputs": 2103
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/widget-query-trim-linux-r1/results.json",
+          "sha256": "0ec3397baa3cff75f67021e19fc188e072c89dd93f849912d2d2cc953b719ddc",
+          "commands": 8,
+          "verifiedInputs": 546
+        }
+      ],
+      "packages": {
+        "host": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/widget-query-packages-linux-r3-host.json",
+          "sha256": "a2feabe202a9433cd0ccd399e6f24521e6531b143bbfce7ce6176a9259eaaded"
+        },
+        "static": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/widget-query-packages-linux-r3-static.json",
+          "sha256": "182e4dd86d15f8f03ca8138ed609aaa0224c73acf6815dae43f39a0d98977b86"
+        }
+      },
+      "visual": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/widget-query-language-linux-r3/widget_measure-jit.png",
+          "sha256": "e8be1368c1bed29142a9d9332c74da5409bd852e1008f7dde9de60a4565b7c12",
+          "review": "Rendered image inspected: complete label/terminal and copied cell metadata visible."
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/widget-query-language-linux-r3/terminal_cells-jit.png",
+          "sha256": "189304cb09552565178a44b3a1d88109b2ec9bbd822b8c8bbe49a5abaebee46f",
+          "review": "Rendered image inspected: complete label/terminal and copied cell metadata visible."
+        }
+      ],
+      "backend": "Xvfb/Mesa software OpenGL; not a physical display-driver claim"
+    }
+  },
+  "totalExecutedCommands": 108,
+  "inventory": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-widget-query-r1\\surface.json",
+    "sha256": "f452a34b2901bda17b472fb9e544fea22e5c4414404a7523ae6a59a833f87307",
+    "nativeFunctions": 5193,
+    "declarationsPresent": 3827,
+    "notCompletionRate": true,
+    "lessonPrograms": 95,
+    "independentLessons": 94,
+    "galleryScenes": 57
+  },
+  "limits": [
+    "Linux rendering uses Xvfb/Mesa software OpenGL, not physical-driver certification.",
+    "Failed diagnostic attempts are retained outside Git and excluded from108steps.",
+    "Original15 questions and borrowed output-record string snapshot question16 remain pending; generic CString field question17 is completed.",
+    "No release/current-delivery installation, push, version change or full-goal completion."
+  ]
+}

@@ -1,0 +1,15 @@
+// Read terminal cells without starting a process or interpreting raw pointers.
+import xui
+from "./_window.xl" import Window
+
+Window.show("终端单元格快照",func(xui.Context ui,xui.Widget root)
+ auto terminal=ui.terminalNative()
+ Window.place(root,terminal,24,24,640,200)
+ terminal.writeText("A\u0301 中\n每个格子都有字符、宽度和颜色。")
+ terminal.flush()
+
+ auto cell=terminal.getCell(0,0)
+ auto status=ui.labelNative()
+ status.setText(f"第一个格子：码点 {int(cell.iCodepoint)}，组合符 {int(cell.arrCombining[0])}")
+ Window.place(root,status,24,248,640,40)
+end)
