@@ -1,0 +1,359 @@
+{
+  "schema": 1,
+  "date": "2026-11-14",
+  "scope": "Consume actual checked Linux GLX startup failure and same-process healthy windows with full compiler; matching Windows regression.",
+  "shippingDelivery": false,
+  "fullGoalComplete": false,
+  "networkTests": false,
+  "languageCompilerChange": false,
+  "publicAbiChange": false,
+  "parentCommit": "135d4fecbeab04417d822ba766c55db4d83a099e",
+  "nativeRevision": "dc7857c2fe84a0aa54d9c2ca2b05f694000cdb4b",
+  "sources": {
+    "docs/xge3-platform-startup.md": "b71c7c2f82ec7e0215722cd5efbaaf49c6d7f1a102139e3405f112dc04f6a3fc",
+    "docs/xge3-xui3-full-coverage-plan.md": "3ed7ab0e143eef9c6f6952eb93e139b567b4e597d8e75dbb8e3bc29c79dd09ee",
+    "test/cases/foreign_xge3_glx_failure.xl": "00e0c7589a1a812b68a4f83158b55c79cc9c66a0efbf72930dcb45df120452c9",
+    "tools/check_xge3_glx_failure.py": "c70b038711b9d3c7cc703a39869e63632252dfded3bc6c4dc15de68604554493"
+  },
+  "platforms": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\linux-unwind-sdk-win-r2\\results.json",
+        "sha256": "f7437a1bde98d47dad61e0359d36ef45fce101e8f7178b1b7bf77939e3d7e285",
+        "commands": 4
+      },
+      "freeze": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\native-linux-unwind-win-freeze-r1.json",
+        "sha256": "2046a1b828fcdfb3b78388fb40b401b9fec020ef6b1d3d2f8de5d5c8d6673bfc"
+      },
+      "sizeComparison": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\linux-unwind-sizes-win-r1.json",
+        "sha256": "914a305c634ee1bae81c7f0b602228d23ec6070745c2199574aa39215f2b912a"
+      },
+      "fileDelta": 0,
+      "codeDelta": 0,
+      "bssDelta": 0,
+      "packages": {
+        "host": {
+          "report": {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\linux-unwind-sdk-win-r2\\packages-host.json",
+            "sha256": "0fba1204ea2bac5714715cdffd2d6b75c68fc9029d5bc1a61b9d12d230a14c7e"
+          },
+          "path": "F:\\xlang-validation\\xge-full-20261110\\linux-unwind-sdk-win-r2\\packages-host",
+          "nativeAbiFingerprint": "0394ac9a2b53b73d"
+        },
+        "static": {
+          "report": {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\linux-unwind-sdk-win-r2\\packages-static.json",
+            "sha256": "a1cf505c13d26f870272e65fd5250ac400e0e74c91ebf87369d31538eaf24875"
+          },
+          "path": "F:\\xlang-validation\\xge-full-20261110\\linux-unwind-sdk-win-r2\\packages-static"
+        }
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\linux-unwind-sdk-linux-r2\\results.json",
+        "sha256": "2fd74271b2909ef3a246650d2d90a79d14fad7d60586a3eca1356ee181e3039a",
+        "commands": 4
+      },
+      "freeze": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\native-linux-unwind-linux-freeze-r1.json",
+        "sha256": "0bcc4fa236a7aaddf217d3aac3ae79bf321ed3c9c68db3ba91b361197689991f"
+      },
+      "sizeComparison": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\linux-unwind-sizes-linux-r1.json",
+        "sha256": "7bc0ef66c6b72c70758390891b2bb8d1a30bd7a78158fc394983dbe9be745665"
+      },
+      "fileDelta": 0,
+      "codeDelta": 832,
+      "bssDelta": 32,
+      "packages": {
+        "host": {
+          "report": {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\linux-unwind-sdk-linux-r2\\packages-host.json",
+            "sha256": "125ef8bbabac910c2ed82928659cecffc3ea320b03dc3160d8564b142d358e9a"
+          },
+          "path": "F:\\xlang-validation\\xge-full-20261110\\linux-unwind-sdk-linux-r2\\packages-host",
+          "nativeAbiFingerprint": "785e3c6822dcc2b5"
+        },
+        "static": {
+          "report": {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\linux-unwind-sdk-linux-r2\\packages-static.json",
+            "sha256": "52255492654199fe3b73e3febb6471c9719cbf52a35dfbd16871bd061de18478"
+          },
+          "path": "F:\\xlang-validation\\xge-full-20261110\\linux-unwind-sdk-linux-r2\\packages-static"
+        }
+      }
+    }
+  },
+  "nativeReceipt": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\linux-startup-unwind-20261114.json",
+    "sha256": "1705a58e2d01d85b4d7464293d9b0ff6d9df346781432d8d7571565b1e4d7b4d"
+  },
+  "linux": {
+    "language": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\linux-glx-unwind-language-r3\\results.json",
+      "sha256": "92f47695391f31f61182bb92301447bb8f5013c051669411799ea2b2468af891",
+      "commands": 11,
+      "selectedRows": [
+        "emit",
+        "header-c11",
+        "header-c++11",
+        "header-c++17",
+        "jit",
+        "dynamic-build",
+        "dynamic-execute",
+        "dynamic-imports",
+        "static-build",
+        "static-execute",
+        "static-imports"
+      ]
+    },
+    "programs": [
+      {
+        "path": "/mnt/f/xlang-validation/xge-full-20261110/linux-glx-unwind-language-r3/dynamic",
+        "sha256": "182f9688058b70687a6bc8945d3397b220eb344097c899cd37c0c6f4ee61f5ba",
+        "bytes": 1480992,
+        "imports": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libxge3_host.so",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ]
+      },
+      {
+        "path": "/mnt/f/xlang-validation/xge-full-20261110/linux-glx-unwind-language-r3/static",
+        "sha256": "48dbdbe6efc26e754027836f8251ba36f7ca54a3c5eb97a35c254a3b4b0581d8",
+        "bytes": 1597696,
+        "imports": [
+          "libm.so.6",
+          "libmvec.so.1",
+          "libX11.so.6",
+          "libXi.so.6",
+          "libXcursor.so.1",
+          "libGL.so.1",
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ]
+      }
+    ]
+  },
+  "win": {
+    "regression": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\linux-unwind-model-regression-win-r1\\results.json",
+      "sha256": "01409e40f72b78a46bc56342c06f4a7c933d69ff11a4ea472125c1b9157bb96e",
+      "commands": 24,
+      "selectedRows": [
+        "foreign_xui_code_models-emit",
+        "provider-O0",
+        "provider-O2",
+        "foreign_xui_code_models-header-c11",
+        "foreign_xui_code_models-header-c++11",
+        "foreign_xui_code_models-header-c++17",
+        "foreign_xui_code_models-jit",
+        "foreign_xui_code_models-dynamic-build",
+        "foreign_xui_code_models-dynamic-execute",
+        "foreign_xui_code_models-dynamic-imports",
+        "foreign_xui_code_models-static-build",
+        "foreign_xui_code_models-static-execute",
+        "foreign_xui_code_models-static-imports",
+        "code_models-emit",
+        "code_models-header-c11",
+        "code_models-header-c++11",
+        "code_models-header-c++17",
+        "code_models-jit",
+        "code_models-dynamic-build",
+        "code_models-dynamic-execute",
+        "code_models-dynamic-imports",
+        "code_models-static-build",
+        "code_models-static-execute",
+        "code_models-static-imports"
+      ]
+    },
+    "programs": [
+      {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\linux-unwind-model-regression-win-r1\\foreign_xui_code_models-dynamic.exe",
+        "sha256": "9738d55c4515348718c1047ea3282689af924e7f253011f91e9c8077de91f53a",
+        "bytes": 5026816,
+        "imports": [
+          "msvcrt.dll",
+          "xge3_host.dll",
+          "kernel32.dll",
+          "SHELL32.dll",
+          "ws2_32.dll",
+          "IPHLPAPI.dll",
+          "ucrtbase.dll"
+        ]
+      },
+      {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\linux-unwind-model-regression-win-r1\\foreign_xui_code_models-static.exe",
+        "sha256": "4e83b97fcf4feed195f6eac39d3cc100d99a4ccda601854b0858dde1b1146804",
+        "bytes": 7323136,
+        "imports": [
+          "msvcrt.dll",
+          "kernel32.dll",
+          "USER32.dll",
+          "ole32.dll",
+          "OLEAUT32.dll",
+          "SHELL32.dll",
+          "GDI32.dll",
+          "IMM32.dll",
+          "DWrite.dll"
+        ]
+      },
+      {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\linux-unwind-model-regression-win-r1\\code_models-dynamic.exe",
+        "sha256": "03c962dfb4fa146ac3ee88bcf8fab8103341410fb880b2116d36b84dbac1f9e0",
+        "bytes": 1513984,
+        "imports": [
+          "msvcrt.dll",
+          "xge3_host.dll",
+          "kernel32.dll",
+          "SHELL32.dll",
+          "ucrtbase.dll"
+        ]
+      },
+      {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\linux-unwind-model-regression-win-r1\\code_models-static.exe",
+        "sha256": "aa3f0eb9be730732ef228d50b7fcd4d835c2b1a5f61015760fe2f1965b5b3fb2",
+        "bytes": 1080320,
+        "imports": [
+          "msvcrt.dll",
+          "kernel32.dll",
+          "ole32.dll",
+          "SHELL32.dll"
+        ]
+      }
+    ],
+    "hotModelCounts": [
+      {
+        "mode": "jit",
+        "rounds": 1000,
+        "preparedPayload": true,
+        "counts": {
+          "language": {
+            "alloc": 0,
+            "free": 0,
+            "realloc": 0
+          },
+          "native": {
+            "alloc": 0,
+            "free": 0,
+            "realloc": 0
+          }
+        },
+        "cpuEquivalenceClaim": false
+      },
+      {
+        "mode": "dynamic",
+        "rounds": 1000,
+        "preparedPayload": true,
+        "counts": {
+          "language": {
+            "alloc": 0,
+            "free": 0,
+            "realloc": 0
+          },
+          "native": {
+            "alloc": 0,
+            "free": 0,
+            "realloc": 0
+          }
+        },
+        "cpuEquivalenceClaim": false
+      },
+      {
+        "mode": "static",
+        "rounds": 1000,
+        "preparedPayload": true,
+        "counts": {
+          "language": {
+            "alloc": 0,
+            "free": 0,
+            "realloc": 0
+          },
+          "native": {
+            "alloc": 0,
+            "free": 0,
+            "realloc": 0
+          }
+        },
+        "cpuEquivalenceClaim": false
+      }
+    ]
+  },
+  "nativeProfiles": {
+    "glx": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\linux-glx-unwind-native-r8\\results.json",
+      "sha256": "cac261ac27ac4f3af43a9da61dd814d2077df3a60819314a812345f95d2f5006",
+      "commands": 44,
+      "legacyCommands": 4
+    },
+    "egl-desktop": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\linux-egl-unwind-native-r6\\results.json",
+      "sha256": "209347a0f356da40a196aa470396108a6d3f1c28f63f8348d0123a332ed9ee4c",
+      "commands": 40,
+      "legacyCommands": 4
+    },
+    "egl-gles3": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\linux-gles-unwind-native-r1\\results.json",
+      "sha256": "c94f3f0d046d765463fb32e21d27c9e2053780807d8695dff9c829e2e435c690",
+      "commands": 40,
+      "legacyCommands": 4
+    },
+    "actual-static-engine": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\linux-glx-unwind-engine-r5\\results.json",
+      "sha256": "79e06598f001b4ab10990de9851b4137a27698165d07732a1ee4f39829a4cf6f",
+      "commands": 38,
+      "legacyCommands": 0
+    }
+  },
+  "nativeRegressions": {
+    "x11": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\linux-unwind-native-regressions-r1\\x11\\results.json",
+      "sha256": "b3482463b96c53e30719175d5410a8bbf04870cff8d725dc27def8730e2e29e5",
+      "commands": 12,
+      "legacyCommands": 0
+    },
+    "glLoad": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\linux-unwind-native-regressions-r1\\gl-load\\results.json",
+      "sha256": "a020f1bdb0d89729bddb675a9d1783fa76663f2791f4d38f52031ba7824a37fd",
+      "commands": 6,
+      "legacyCommands": 0
+    }
+  },
+  "nativeCounts": {
+    "corePositiveNativeCommands": 150,
+    "legacyBuildAndRejectionCommands": 12,
+    "otherNativeRegressionCommands": 18
+  },
+  "environmentInvestigation": {
+    "probe": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\egl-display-reset-probe-r1\\results.json",
+      "sha256": "6e1f27ef7d71706f29e9859ed47e4b117c3951d87e7d0f333926b8dd990b6828"
+    },
+    "originalFailure": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\linux-egl-unwind-native-r1\\results.json",
+      "sha256": "2e76a896e8502f2751e24f040f02bfd4f48871f8f35646195fd93aa898e3ae62"
+    },
+    "result": "Reset allowed: one XOpenDisplay failure before selected EGL stage in 50 runs; noreset: zero in 50. Final matrices use noreset, no suppressed or automatically retried stage."
+  },
+  "repositoryBudget": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\linux-unwind-repository-budget-r1.json",
+    "sha256": "8c620bd1762f12c0de16b83c6c5497a39d763eae2aad80a887da6774aed92618",
+    "packMiB": 167.58
+  },
+  "costs": {
+    "native": "Startup/teardown checks and actual resource release; O2, no added per-frame source operation/allocation.",
+    "language": "Existing checked Run/ownership/error boundary; no new per-method wrapper or compiler adaptation.",
+    "cpuEquivalenceClaim": false
+  },
+  "remaining": [
+    "OpenGL resolver cache backend-switch and module-retirement ownership",
+    "Later display-disconnection/non-GL startup branches",
+    "Pending fold/token output-array and other full-goal contracts",
+    "Final same-mainline compiler/SDK/runtime/IDE/help delivery"
+  ]
+}

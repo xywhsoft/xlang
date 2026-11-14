@@ -1,0 +1,50 @@
+// Linux-only: the harness supplies a real display without GLX and a healthy one.
+import xge
+int frames=0
+func frame() as c_int
+ frames+=1
+ return c_int(1)
+end
+func main(...) as int
+ string unavailable=env.get("XGE_BAD_DISPLAY") as string
+ string available=env.get("XGE_GOOD_DISPLAY") as string
+ for cycle in range(3)
+  xge.initNative()
+  try
+   env.set("DISPLAY",unavailable)
+   for attempt in range(4)
+    bool rejected=false
+    try
+     xge.run(frame)
+    catch Error failure
+     rejected=true
+     assert failure.code==-8 and failure.domain=="xlang.foreign"
+     assert failure.operation=="xl6Xge3RunOwned"
+    finally
+     xge.setFrameCallback(null)
+    end
+    assert rejected and frames==cycle
+   end
+   env.set("DISPLAY",available)
+   try
+    xge.run(frame)
+   finally
+    xge.setFrameCallback(null)
+   end
+   assert frames==cycle+1
+  finally
+   xge.unit()
+  end
+ end
+ env.set("DISPLAY",unavailable)
+ xge.init(128,96,"Manual CPU engine",runMode=xge.XGE_RUN_MANUAL)
+ try
+  xge.run(frame)
+  assert frames==3
+ finally
+  xge.setFrameCallback(null)
+  xge.unit()
+ end
+ println("GLX startup: 12 checked failures, 3 same-process actual window recoveries and manual mode passed")
+ return 0
+end

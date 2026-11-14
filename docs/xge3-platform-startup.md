@@ -46,11 +46,12 @@ lock/error reference, and adds a source-level level-zero check; no equal-CPU
 claim is made. The matched host files keep their lengths despite small text
 and unwind-section growth. The detailed size comparison is in the receipt.
 
-Later GLX/EGL/window failures, allocator panics and display disconnects still
-need their own stage-aware unwind. A blanket longjmp from Sokol would skip
-native cleanup and is not introduced. The default Sokol behavior without a
-custom logger is unchanged. Final runtime/SDK/IDE delivery and the complete
-XGE/XUI/Document integration remain separate outstanding work.
+The GLX/EGL/window startup branches now have the stage-aware unwind described
+below. Later display disconnects and non-GL backend branches still need their
+own acceptance. A blanket longjmp from Sokol would skip native cleanup and is
+not introduced. The default Sokol behavior without a custom logger is unchanged.
+Final runtime/SDK/IDE delivery and the complete XGE/XUI/Document integration
+remain separate outstanding work.
 
 ## Pre-window allocation failure
 
@@ -88,5 +89,58 @@ and Linux text -192 bytes. The checks run during startup/allocation and fatal
 logging; there is no new per-frame allocation or forwarding layer, and no
 CPU-time equivalence claim. Qualified object reuse rebuilds the changed aggregate
 and generated static contract; this is not a complete source rebuild. Final
-runtime/SDK/IDE installation and all later platform-fatal branches remain
-separate work.
+runtime/SDK/IDE installation and later platform-fatal branches remain separate
+work; the following subsection completes the listed GLX/EGL startup paths.
+
+## GLX, EGL and X11 window startup
+
+Native `dc7857c2` makes the private initializers return failure after a fatal
+log and unwind their actual acquired resources. It covers library/entry-point
+and version admission, FBConfig choice/allocation, visual/colormap/window,
+drawable/context/current binding, plus EGL initialization/configuration/
+surface/context stages. X11 asynchronous errors are synchronized; the previous
+application handler is restored before error delivery. Custom cursor resources
+are released before XCloseDisplay, including on normal completion. Existing
+Sokol log-item numbers are preserved by appending the new MakeCurrent item.
+
+Standalone O0/O2 clients exercise 18 GLX stages and 16 each for EGL desktop GL
+and EGL GLES 3, with three failures followed by a real healthy window in each
+case. C++11/C++17 implementation syntax checks also pass. The old header's
+visual-failure SIGSEGV is reproduced separately for all three profiles and both
+optimizations. Actual O2 static XGE clients add the 18 GLX stages at O0/O2,
+native XRT live-storage checks, exact checked status and three healthy engine
+lifetimes after each failure sequence. The core native checks total 150 process
+rows; missing-display/GL-load regressions add 18. Twelve old-header build/
+rejection rows and the environment experiment are not counted as positive tests.
+
+The full Linux compiler consumes the real no-GLX Xvfb display in JIT and
+independent dynamic/static AOT: 12 errors retain code -8, domain
+`xlang.foreign`, operation `xl6Xge3RunOwned`, and suppress frames. Three actual
+healthy windows recover in the same process; the manual engine still needs no
+GLX. Its 11 header/build/run/import commands pass. The matched Windows SDK also
+passes 24 existing CodeSelection/CodeTheme fixture and lesson commands in all
+three execution modes. No language/compiler/ABI adaptation was needed.
+
+A completed graphics Run retains the existing ENDED lifecycle; Unit/Init is
+required before a further healthy Run. Pre-startup failures allow direct retry.
+XGE's separate OpenGL resolver currently keeps a process-wide library cache.
+Native tests count that existing owner explicitly and show no accumulating
+Sokol owner. Resolver backend-switch and module-retirement ownership remains
+an independent open audit, not a completed cleanup claim.
+
+One earlier EGL O2 check encountered XOpenDisplay failure before the selected
+stage. In 50 comparisons per policy, Xvfb reset allowed one such failure and
+`-noreset` allowed none. Final gates use a persistent local Xvfb server with TCP
+disabled, without suppressing failures or automatic retries. Historical logs
+remain archived; graphics uses Mesa software rendering, not hardware acceptance.
+
+Both SDKs keep O2. Host builds use the original full parent and compile the
+aggregate plus the already-qualified Document TU (162 reused); static builds
+compile the aggregate/generated contract (164 reused). Whole host file lengths
+add zero bytes on both platforms; text adds Windows 0/Linux 832 and BSS 0/32.
+Checks/releases occur at startup/teardown; the modified source adds no per-frame
+operation or allocation. This does not prove CPU-time equivalence. Exact source,
+SDK, compiler, test and size hashes are indexed in
+`dev/release-materials/provenance/xge-linux-startup-unwind-20261114.json`.
+Final mainline runtime/SDK/IDE installation and full-ecosystem acceptance remain
+outstanding; these are isolated qualified candidates.

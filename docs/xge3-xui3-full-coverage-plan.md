@@ -1008,3 +1008,21 @@ xui-code-document-20261114.json。完整目标及最终配套发布继续，rele
 83 个，综合画廊仍为 57 场景。内部编辑器模型的借用视图仍未虚构为独立 owner；
 详见 xui-code-models.md 与 xui-code-models-20261114.json。完整接入与最终配套
 发布继续，release 未安装本批候选。
+
+继续修复原生 Linux 图形启动展开：dc7857c2 将 GLX／X11／EGL 的私有初始化
+改为逐级返回失败，按实际取得资源清理，不执行尚未开始的应用回调；保护异步
+X11 错误并恢复原处理器，先释放自定义光标再关闭 Display，补齐 Sokol 自身
+libGL 句柄释放。旧日志枚举 125 项不变，末尾新增 1 项；公开 ABI／语言声明
+未变。原生 GLX 18 类、EGL 桌面 GL 与 GLES3 各 16 类故障，O0／O2 连续失败
+与同进程窗口恢复、C++11／17 及实际静态引擎共 150 步通过，旧版本构建／
+崩溃拒绝的 12 步另列。既有缺失 Display 与 GL 加载失败回归再通过 18 步。
+Xvfb 重置对照确认一次非目标阶段失败来自 XOpenDisplay，固定 -noreset 后完整
+矩阵通过，不吞错或自动重试。实际引擎正常 Run 的 ENDED 规则不变；后续健康
+窗口按 Unit／Init 新生命周期测试。完整编译器 Linux JIT／独立动态／静态
+11 步验证真实无 GLX 显示、12 次 checked 错误和 3 次实际窗口恢复；Windows
+匹配 SDK 的原有模型／范例 24 步通过。O2 主机各重编 2／复用 162，静态各
+重编 2／复用 164；文件两端 +0，代码 Windows +0／Linux +832、BSS +0／+32。
+无新增帧内操作，不声称 CPU 等价。XGE 自身解析器仍有独立进程级 OpenGL 库
+缓存，其后端切换／模块退役仍需审计；后续断连／其他后端故障、折叠和 Token
+批量输出合同及最终完整配套发布继续。详见 xge3-platform-startup.md 和
+xge-linux-startup-unwind-20261114.json，release 未安装本批候选。
