@@ -16,6 +16,13 @@ to remove that override. Pack metadata/text results are independent string
 snapshots. Closing Context expires every pack alias; dropping a pack value does
 not unregister it. See `docs/xui-localization.md` for costs and qualification.
 
+Geometry queries such as `slider.getMetrics()`, `scrollView.getOffset()` and
+`chart.pixelToData(x,y)` directly project native scalar/record outputs into
+ordinary values. Native failure publishes no partial result. See
+`docs/xui-geometry-queries.md` and `examples/geometry_queries.xl`. Chart state
+queries that return both 0/1 and pointer outputs require a separate contract;
+they are not silently treated as zero-success status producers.
+
 The default Document model has seven typed resource classes: `Document`,
 `DocumentSnapshot`, `DocumentChangeSet`, `DocumentPrepare`, `DocumentFragment`,
 `DocumentSourceIndex` and unique `DocumentTransaction`. Use `createDocument()`

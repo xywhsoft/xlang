@@ -1,0 +1,152 @@
+// All 27 direct geometry outputs; CPU backend plus ordinary owner/thread rules.
+import xui
+extern "fixtureIconProxy" @header("test/cases/foreign_xui_icon_models.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
+extern "fixtureIconBudget" @no_raise func budget(c_int allowance)
+extern "fixtureIconHostReferences" @no_raise func hostReferences() as c_int
+extern "fixtureGeometryHeapBegin" @header("test/cases/foreign_xui_geometry.h") @no_raise func beginHeap()
+extern "fixtureGeometryHeapReport" @no_raise func reportHeap(c_int native)
+extern "fixtureGeometryNativeHot" @no_raise func nativeHot(xui.Slider slider)
+func main(...) as int
+    auto proxy=cpuProxy()
+    auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto button=context.buttonNative()
+    button.setIconLayout(1,24,6)
+    auto placement,iconSize,iconGap=button.getIconLayout()
+    assert placement==1 and iconSize==24 and iconGap==6
+    auto card=context.checkCardNative()
+    card.setMetrics(1,3,18,2)
+    auto border,checkedBorder,corner,focus=card.getMetrics()
+    assert border==1 and checkedBorder==3 and corner==18 and focus==2
+    auto bar=context.scrollBar()
+    bar.setMetrics(6,22,8)
+    auto thickness,thumb,barButton=bar.getMetrics()
+    assert thickness==6 and thumb==22 and barButton==8
+    auto slider=context.slider()
+    slider.setMetrics(6,18,3)
+    auto track,knob,radius=slider.getMetrics()
+    assert track==6 and knob==18 and radius==3
+    auto rangeSlider=context.rangeSlider()
+    rangeSlider.setMetrics(6,20)
+    auto rangeTrack,rangeKnob=rangeSlider.getMetrics()
+    assert rangeTrack==6 and rangeKnob==20
+    auto carousel=context.carouselNative()
+    carousel.setMetrics(28,8,12,10)
+    auto arrow,indicator,gap,bottom=carousel.getMetrics()
+    assert arrow==28 and indicator==8 and gap==12 and bottom==10
+    auto joystick=context.virtualJoystickNative()
+    joystick.setMetrics(50,20,0.25)
+    auto joystickRadius,joystickKnob,deadZone=joystick.getMetrics()
+    assert joystickRadius==50 and joystickKnob==20 and deadZone==0.25
+    auto split=context.splitLayout()
+    split.setDividerMetrics(6,2,8)
+    auto layout,visual,hit=split.getDividerMetrics()
+    assert layout==6 and visual==2 and hit==8
+    auto window=context.windowNative()
+    window.setChrome(30,1,6,24)
+    auto titleBar,windowBorder,grip,windowButton=window.getChrome()
+    assert titleBar==30 and windowBorder==1 and grip==6 and windowButton==24
+    auto frame=context.scrollFrame()
+    frame.setContentSize(1200,900)
+    frame.setMetrics(6,24,8)
+    auto frameWidth,frameHeight=frame.getContentSize()
+    auto frameX,frameY=frame.getOffset()
+    auto frameBar,frameThumb,frameButton=frame.getMetrics()
+    assert frameWidth==1200 and frameHeight==900 and frameX==0 and frameY==0
+    assert frameBar==6 and frameThumb==24 and frameButton==8
+    auto view=context.scrollView()
+    assert view.setContentSize(1200,900)==0
+    view.setViewportHint(320,240)
+    assert view.setScrollbarPolicy(0,1)==0 and view.setMetrics(6,24,8)==0
+    assert view.setColors(1,2,3,4,5,6)==0
+    assert view.setButtonColors(7,8)==0 and view.setCornerColors(9,10)==0
+    auto viewWidth,viewHeight=view.getContentSize()
+    auto hintWidth,hintHeight=view.getViewportHint()
+    auto viewX,viewY=view.getOffset()
+    auto policyX,policyY=view.getScrollbarPolicy()
+    auto viewBar,viewThumb,viewButton=view.getMetrics()
+    auto trackColor,thumbColor,hoverColor,activeColor,focusColor,disabledColor=view.getColors()
+    auto buttonColor,iconColor=view.getButtonColors()
+    auto cornerColor,gripColor=view.getCornerColors()
+    assert viewWidth==1200 and viewHeight==900 and hintWidth==320 and hintHeight==240
+    assert viewX==0 and viewY==0 and policyX==0 and policyY==1
+    assert viewBar==6 and viewThumb==24 and viewButton==8
+    assert trackColor==1 and thumbColor==2 and hoverColor==3 and activeColor==4 and focusColor==5 and disabledColor==6
+    assert buttonColor==7 and iconColor==8 and cornerColor==9 and gripColor==10
+    auto canvas=context.canvas()
+    canvas.setViewportHint(320,240)
+    auto canvasHintWidth,canvasHintHeight=canvas.getViewportHint()
+    auto canvasX,canvasY=canvas.getOffset()
+    assert canvasHintWidth==320 and canvasHintHeight==240 and canvasX==0 and canvasY==0
+    auto popup=context.popupNative()
+    popup.setMetrics(12,1,4)
+    popup.setScrollbarStyle(xui.XUI_SCROLLBAR_MODE_FULL,14)
+    auto popupX,popupY=popup.getScroll()
+    auto mode,scrollbarSize=popup.getScrollbarStyle()
+    auto padding,popupBorder,shadow=popup.getMetrics()
+    assert popupX==0 and popupY==0 and mode==xui.XUI_SCROLLBAR_MODE_FULL and scrollbarSize==14
+    assert padding==12 and popupBorder==1 and shadow==4
+    auto chart=context.chartNative()
+    auto rect=xui.Rect()
+    rect.fW=640
+    rect.fH=320
+    assert chart.setRect(rect)==0
+    chart.setViewRange(0,100,0,50)
+    auto point=chart.dataToPixel(25,10)
+    auto dataX,dataY=chart.pixelToData(point.fX,point.fY)
+    assert math.abs(float(dataX)-25)<0.001 and math.abs(float(dataY)-10)<0.001
+    bool rejected=false
+    try
+        dataX,dataY=chart.pixelToData(c_float(math.nan),0)
+    catch Error failure
+        rejected=true
+        assert failure.code==xui.XUI_ERROR_INVALID_ARGUMENT
+    end
+    assert rejected and math.abs(float(dataX)-25)<0.001 and math.abs(float(dataY)-10)<0.001
+    auto previous=point
+    rejected=false
+    try
+        point=chart.dataToPixel(math.nan,10)
+    catch Error failure
+        rejected=true
+        assert failure.code==xui.XUI_ERROR_INVALID_ARGUMENT
+    end
+    assert rejected and point.fX==previous.fX and point.fY==previous.fY
+    auto worker=thread(func() as int
+        try
+            auto invalidTrack,invalidKnob,invalidRadius=slider.getMetrics()
+        catch StateError
+            return 1
+        end
+        return 0
+    end)
+    assert worker.waitTimeout(30000) and worker.exitCode()==1
+    beginHeap()
+    for i in range(1000)
+        auto currentTrack,currentKnob,currentRadius=slider.getMetrics()
+        assert currentTrack==6 and currentKnob==18 and currentRadius==3
+    end
+    reportHeap(0)
+    beginHeap()
+    nativeHot(slider)
+    reportHeap(1)
+    budget(0)
+    try
+        auto currentTrack,currentKnob,currentRadius=slider.getMetrics()
+        assert currentTrack==6 and currentKnob==18 and currentRadius==3
+    finally
+        budget(-1)
+    end
+    context.close()
+    rejected=false
+    try
+        auto invalidTrack,invalidKnob,invalidRadius=slider.getMetrics()
+    catch StateError
+        rejected=true
+    end
+    assert rejected
+    proxy.close()
+    assert hostReferences()==1
+    println("XUI geometry: 27 direct queries, rollback, OOM, thread and owner checks passed")
+    return 0
+end

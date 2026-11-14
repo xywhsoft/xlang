@@ -1,0 +1,31 @@
+// 读取控件尺寸；把图表上的数据坐标转换成像素，再还原。
+import xui
+from "./_window.xl" import Window
+
+Window.show("Geometry queries / size and coordinates",func(xui.Context ui,xui.Widget root)
+ auto slider=ui.slider()
+ Window.place(root,slider,24,24,640,40)
+ slider.setMetrics(6,18,3)
+ slider.setRange(0,100)
+ slider.setValue(35)
+ auto track,knob,radius=slider.getMetrics()
+ auto dimensions=ui.labelNative()
+ dimensions.setText("轨道宽度："+string(float(track))+"，滑块尺寸："+string(float(knob))+"，圆角："+string(float(radius)))
+ Window.place(root,dimensions,24,76,640,32)
+
+ auto chart=ui.chartNative()
+ chart.setFont(ui.getDefaultFont())
+ Window.place(root,chart,24,128,640,280)
+ chart.setTitle("数据坐标与像素坐标")
+ chart.setXAxis(xui.XUI_CHART_AXIS_VALUE)
+ auto line=chart.addSeries(xui.XUI_CHART_SERIES_LINE,"数值")
+ chart.setSeriesData(line,[c_double(0),c_double(25),c_double(50),c_double(100)],[c_double(0),c_double(10),c_double(30),c_double(50)])
+ chart.setViewRange(0,100,0,50)
+ auto pixel=chart.dataToPixel(25,10)
+ auto x,y=chart.pixelToData(pixel.fX,pixel.fY)
+ string pixelText=string.format(float(pixel.fX),".1f")+", "+string.format(float(pixel.fY),".1f")
+ string dataText=string.format(float(x),".1f")+", "+string.format(float(y),".1f")
+ auto coordinates=ui.labelNative()
+ coordinates.setText("数据 (25, 10) → 像素 ("+pixelText+") → 数据 ("+dataText+")")
+ Window.place(root,coordinates,24,432,640,40)
+end)

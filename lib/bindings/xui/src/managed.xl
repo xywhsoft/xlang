@@ -2158,6 +2158,11 @@ export extern "xui_widget_t*" class Chart @header("xge3_runtime.h") @lifetime("o
  extern "xuiChartHitTest" @no_raise @c_output(3,0) func hitTest(c_float fX,c_float fY) as ChartHit
  extern "xuiChartAddSeries" @no_raise @c_cstr(1) @c_output(3,0) func addSeries(c_int type,string name) as c_int
  extern "xuiChartSetSeriesData" @no_raise @c_result("status",0) @c_array_group(2,1,2,"int",3) @c_array_record(2,"xui_chart_point_t") @c_array_field(2,"x",0,"value") @c_array_field(2,"y",1,"value") func setSeriesData(c_int series,array<c_double> xs,array<c_double> ys,int size=-1)
+
+ extern "xuiChartDataToPixel" @no_raise @c_output(3,0) func dataToPixel(c_double x,c_double y) as Vec2
+
+ extern "xuiChartPixelToData" @no_raise @c_outputs(3,4) @c_status(0) func pixelToData(c_float x,c_float y) as (c_double,c_double)
+
 end
 
 export extern "xui_widget_t*" class CodeEdit @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
@@ -2779,6 +2784,9 @@ export extern "xui_widget_t*" class Button @header("xge3_runtime.h") @lifetime("
  extern "xuiButtonGetIconSurface" @no_raise @c_result("retained_view") @c_retain(retainSurface,"zero",rollbackSurface) func getIconSurface() as Surface?
  extern "xuiButtonSetBadgeSurface" @no_raise @c_result("status",0) func setBadgeSurface(Surface? pSurface,Rect tSrc)
  extern "xuiButtonGetBadgeSurface" @no_raise @c_output_retain(1,retainSurface,"zero",rollbackSurface) @c_outputs(1,2) @c_status(0) func getBadgeSurface() as (Surface?,Rect)
+
+ extern "xuiButtonGetIconLayout" @no_raise @c_outputs(1,2,3) @c_status(0) func getIconLayout() as (c_int,c_float,c_float)
+
 end
 
 export extern "xui_widget_t*" class CheckBox @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
@@ -2874,6 +2882,8 @@ export extern "xui_widget_t*" class CheckCard @header("xge3_runtime.h") @lifetim
  extern "xuiCheckCardGetState" @no_raise func getState() as c_uint
 
  extern "xuiCheckCardGetChangeCount" @no_raise func getChangeCount() as c_int
+
+ extern "xuiCheckCardGetMetrics" @no_raise @c_outputs(1,2,3,4) @c_status(0) func getMetrics() as (c_float,c_float,c_float,c_float)
 
 end
 
@@ -3095,6 +3105,8 @@ export extern "xui_widget_t*" class ScrollBar @header("xge3_runtime.h") @lifetim
 
  extern "xuiScrollBarGetChangeCount" @no_raise func getChangeCount() as c_int
 
+ extern "xuiScrollBarGetMetrics" @no_raise @c_outputs(1,2,3) @c_status(0) func getMetrics() as (c_float,c_float,c_float)
+
 end
 
 export extern "xui_widget_t*" class Slider @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
@@ -3138,6 +3150,8 @@ export extern "xui_widget_t*" class Slider @header("xge3_runtime.h") @lifetime("
  extern "xuiSliderGetState" @no_raise func getState() as c_uint
 
  extern "xuiSliderGetChangeCount" @no_raise func getChangeCount() as c_int
+
+ extern "xuiSliderGetMetrics" @no_raise @c_outputs(1,2,3) @c_status(0) func getMetrics() as (c_float,c_float,c_float)
 
 end
 
@@ -3196,6 +3210,8 @@ export extern "xui_widget_t*" class RangeSlider @header("xge3_runtime.h") @lifet
  extern "xuiRangeSliderGetState" @no_raise func getState() as c_uint
 
  extern "xuiRangeSliderGetChangeCount" @no_raise func getChangeCount() as c_int
+
+ extern "xuiRangeSliderGetMetrics" @no_raise @c_outputs(1,2) @c_status(0) func getMetrics() as (c_float,c_float)
 
 end
 
@@ -3305,6 +3321,8 @@ export extern "xui_widget_t*" class Carousel @header("xge3_runtime.h") @lifetime
 
  extern "xuiCarouselGetChangeCount" @no_raise func getChangeCount() as c_int
 
+ extern "xuiCarouselGetMetrics" @no_raise @c_outputs(1,2,3,4) @c_status(0) func getMetrics() as (c_float,c_float,c_float,c_float)
+
 end
 
 export extern "xui_widget_t*" class VirtualJoystick @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
@@ -3349,6 +3367,9 @@ export extern "xui_widget_t*" class VirtualJoystick @header("xge3_runtime.h") @l
 
  extern "xuiVirtualJoystickSetSurface" @no_raise @c_result("status",0) func setSurface(c_int iPart,Surface? pSurface,Rect tSrc)
  extern "xuiVirtualJoystickGetSurface" @no_raise @c_output_retain(2,retainSurface,"zero",rollbackSurface) @c_outputs(2,3) @c_status(0) func getSurface(c_int iPart) as (Surface?,Rect)
+
+ extern "xuiVirtualJoystickGetMetrics" @no_raise @c_outputs(1,2,3) @c_status(0) func getMetrics() as (c_float,c_float,c_float)
+
 end
 
 export extern "xui_widget_t*" class InventoryGrid @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
@@ -3618,6 +3639,8 @@ export extern "xui_widget_t*" class SplitLayout @header("xge3_runtime.h") @lifet
  extern "xuiSplitLayoutGetActiveDivider" @no_raise func getActiveDivider() as c_int
 
  extern "xuiSplitLayoutGetChangeCount" @no_raise func getChangeCount() as c_int
+
+ extern "xuiSplitLayoutGetDividerMetrics" @no_raise @c_outputs(1,2,3) @c_status(0) func getDividerMetrics() as (c_float,c_float,c_float)
 
 end
 
@@ -3935,6 +3958,9 @@ export extern "xui_widget_t*" class Window @header("xge3_runtime.h") @lifetime("
 
  extern "xuiWindowSetIcon" @no_raise @c_result("status",0) func setIcon(Surface? pSurface,Rect tSrc)
  extern "xuiWindowGetIconSurface" @no_raise @c_result("retained_view") @c_retain(retainSurface,"zero",rollbackSurface) func getIconSurface() as Surface?
+
+ extern "xuiWindowGetChrome" @no_raise @c_outputs(1,2,3,4) @c_status(0) func getChrome() as (c_float,c_float,c_float,c_float)
+
 end
 
 export extern "xui_widget_t*" class DockPanel @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
@@ -4154,6 +4180,12 @@ export extern "xui_widget_t*" class ScrollFrame @header("xge3_runtime.h") @lifet
 
  extern "xuiScrollFrameGetChangeCount" @no_raise func getChangeCount() as c_int
 
+ extern "xuiScrollFrameGetContentSize" @no_raise @c_outputs(1,2) @c_status(0) func getContentSize() as (c_float,c_float)
+
+ extern "xuiScrollFrameGetOffset" @no_raise @c_outputs(1,2) @c_status(0) func getOffset() as (c_float,c_float)
+
+ extern "xuiScrollFrameGetMetrics" @no_raise @c_outputs(1,2,3) @c_status(0) func getMetrics() as (c_float,c_float,c_float)
+
 end
 
 export extern "xui_widget_t*" class ScrollView @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
@@ -4215,6 +4247,22 @@ export extern "xui_widget_t*" class ScrollView @header("xge3_runtime.h") @lifeti
  extern "xuiScrollViewGetViewportRect" @no_raise func getViewportRect() as Rect
 
  extern "xuiScrollViewGetChangeCount" @no_raise func getChangeCount() as c_int
+
+ extern "xuiScrollViewGetContentSize" @no_raise @c_outputs(1,2) @c_status(0) func getContentSize() as (c_float,c_float)
+
+ extern "xuiScrollViewGetViewportHint" @no_raise @c_outputs(1,2) @c_status(0) func getViewportHint() as (c_float,c_float)
+
+ extern "xuiScrollViewGetOffset" @no_raise @c_outputs(1,2) @c_status(0) func getOffset() as (c_float,c_float)
+
+ extern "xuiScrollViewGetScrollbarPolicy" @no_raise @c_outputs(1,2) @c_status(0) func getScrollbarPolicy() as (c_int,c_int)
+
+ extern "xuiScrollViewGetMetrics" @no_raise @c_outputs(1,2,3) @c_status(0) func getMetrics() as (c_float,c_float,c_float)
+
+ extern "xuiScrollViewGetColors" @no_raise @c_outputs(1,2,3,4,5,6) @c_status(0) func getColors() as (c_uint,c_uint,c_uint,c_uint,c_uint,c_uint)
+
+ extern "xuiScrollViewGetButtonColors" @no_raise @c_outputs(1,2) @c_status(0) func getButtonColors() as (c_uint,c_uint)
+
+ extern "xuiScrollViewGetCornerColors" @no_raise @c_outputs(1,2) @c_status(0) func getCornerColors() as (c_uint,c_uint)
 
 end
 
@@ -4279,6 +4327,11 @@ export extern "xui_widget_t*" class Canvas @header("xge3_runtime.h") @lifetime("
  extern "xuiCanvasGetSurface" @no_raise @c_result("retained_view") @c_retain(retainSurface,"zero",rollbackSurface) func getSurface() as Surface
  extern "xuiCanvasDrawSurface" @no_raise func drawSurface(Surface pSurface,Rect tSrc,Rect tDst,c_uint iColor,c_uint iFlags) as c_int
  extern "xuiCanvasDrawSurfaceQuad" @no_raise @c_ref(1) func drawSurfaceQuad(Surface pSurface,SurfaceVertex[4] pVertices,c_uint iFlags) as c_int
+
+ extern "xuiCanvasGetViewportHint" @no_raise @c_outputs(1,2) @c_status(0) func getViewportHint() as (c_float,c_float)
+
+ extern "xuiCanvasGetOffset" @no_raise @c_outputs(1,2) @c_status(0) func getOffset() as (c_float,c_float)
+
 end
 
 export extern "xui_widget_t*" class ListView @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
@@ -5047,6 +5100,12 @@ export extern "xui_widget_t*" class Popup @header("xge3_runtime.h") @lifetime("o
  extern "xuiPopupSetMetrics" @no_raise @c_result("status",0) func setMetrics(c_float fPadding,c_float fBorderWidth,c_float fShadowSize)
 
  extern "xuiPopupGetChangeCount" @no_raise func getChangeCount() as c_int
+
+ extern "xuiPopupGetScroll" @no_raise @c_outputs(1,2) @c_status(0) func getScroll() as (c_float,c_float)
+
+ extern "xuiPopupGetScrollbarStyle" @no_raise @c_outputs(1,2) @c_status(0) func getScrollbarStyle() as (c_int,c_float)
+
+ extern "xuiPopupGetMetrics" @no_raise @c_outputs(1,2,3) @c_status(0) func getMetrics() as (c_float,c_float,c_float)
 
 end
 

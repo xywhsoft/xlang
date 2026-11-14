@@ -510,6 +510,13 @@
       "kind": "gui",
       "gallery": false,
       "expected": "Browse a real icon category with owned text formatting."
+    },
+    {
+      "name": "geometry_queries",
+      "title": "Geometry queries",
+      "kind": "gui",
+      "gallery": false,
+      "expected": "Read slider dimensions and round-trip chart data/pixel coordinates through direct native outputs."
     }
   ],
   "helper": "_window.xl",

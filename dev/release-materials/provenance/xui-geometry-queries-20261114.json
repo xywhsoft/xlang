@@ -1,0 +1,863 @@
+{
+  "date": "2026-11-14",
+  "qualified": true,
+  "shippingDelivery": false,
+  "networkTests": false,
+  "compilerRebuilt": false,
+  "nativeEngineRebuilt": false,
+  "nativeRevision": "c22608d678c70d843c1485b64dc0be4e751a09f9",
+  "scope": "27 direct zero-status XUI geometry queries with existing multi-output/record semantics and matched unchanged native libraries. Includes final readable lesson; not full XGE/XUI/Document completion.",
+  "sources": {
+    "tools/xui_geometry_contracts.py": "8ec053ea884f0734ec9bc0334d5b3990c543213d1f85e0e091ceb9cfc3bc6691",
+    "tools/check_xge3_bindings.py": "6e2e2e1c09934035c77966c1d5c3f555de3f77f69a91856f9de2f47e6ed99003",
+    "tools/check_xui_geometry.py": "a1a867653d0d31102644c6bfcf20d372e8ff7c0dbe2114b58454e906a9e11e92",
+    "lib/bindings/xui/src/managed.xl": "3690d43fcbef999a4c3a325794dd399f43e18b8755fb321265fe7b8f646dbb1a",
+    "test/cases/foreign_xui_geometry.xl": "691a6c921639c3b206f6018caebc539dd76419276074e534381cfab346a36c13",
+    "test/cases/foreign_xui_geometry.h": "81507f4bca60b556ebd14ccd6f6db7090022f576492c4ba4c50ed56b27d4f175",
+    "test/cases/foreign_xui_geometry.c": "f18b4c3267e12646b9e716e80b848d3ecef01d068894f8c65acd3c21b849e4e8",
+    "lib/bindings/xui/examples/geometry_queries.xl": "ce02b04fa5b0b5823f68e6eeff26a22f5b11345d941db68e394823cb701e3282",
+    "lib/bindings/xui/examples/gallery.json": "aa98cfe1a18a77991384fca0bbf2931d1716568044fca27359c790acc3211202",
+    "lib/bindings/xui/examples/README.md": "ceb5ee16b0dfdafabec46e1a09d4265bc816d02debc79c78f838c1111a3a7088",
+    "lib/bindings/xui/README.md": "fb9cb490394c573cb986b3f0770bdab6462f89d7d01fb2628b45a1731018e609",
+    "docs/xui-geometry-queries.md": "ffb8a99beee70521bbc5cce18e132d402e2615063c66385c07d3273fad9b1dfe",
+    "docs/xge3-xui3-full-coverage-plan.md": "71d03bac5252393831b214d23334886b0089da98e95a5487dd1981a6e49d28e6"
+  },
+  "queries": [
+    {
+      "native": "xuiButtonGetIconLayout",
+      "language": "xui.Button.getIconLayout",
+      "successStatus": 0,
+      "physicalOutputs": [
+        1,
+        2,
+        3
+      ],
+      "logicalOutputs": [
+        "c_int",
+        "c_float",
+        "c_float"
+      ]
+    },
+    {
+      "native": "xuiCheckCardGetMetrics",
+      "language": "xui.CheckCard.getMetrics",
+      "successStatus": 0,
+      "physicalOutputs": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "logicalOutputs": [
+        "c_float",
+        "c_float",
+        "c_float",
+        "c_float"
+      ]
+    },
+    {
+      "native": "xuiScrollBarGetMetrics",
+      "language": "xui.ScrollBar.getMetrics",
+      "successStatus": 0,
+      "physicalOutputs": [
+        1,
+        2,
+        3
+      ],
+      "logicalOutputs": [
+        "c_float",
+        "c_float",
+        "c_float"
+      ]
+    },
+    {
+      "native": "xuiSliderGetMetrics",
+      "language": "xui.Slider.getMetrics",
+      "successStatus": 0,
+      "physicalOutputs": [
+        1,
+        2,
+        3
+      ],
+      "logicalOutputs": [
+        "c_float",
+        "c_float",
+        "c_float"
+      ]
+    },
+    {
+      "native": "xuiRangeSliderGetMetrics",
+      "language": "xui.RangeSlider.getMetrics",
+      "successStatus": 0,
+      "physicalOutputs": [
+        1,
+        2
+      ],
+      "logicalOutputs": [
+        "c_float",
+        "c_float"
+      ]
+    },
+    {
+      "native": "xuiCarouselGetMetrics",
+      "language": "xui.Carousel.getMetrics",
+      "successStatus": 0,
+      "physicalOutputs": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "logicalOutputs": [
+        "c_float",
+        "c_float",
+        "c_float",
+        "c_float"
+      ]
+    },
+    {
+      "native": "xuiVirtualJoystickGetMetrics",
+      "language": "xui.VirtualJoystick.getMetrics",
+      "successStatus": 0,
+      "physicalOutputs": [
+        1,
+        2,
+        3
+      ],
+      "logicalOutputs": [
+        "c_float",
+        "c_float",
+        "c_float"
+      ]
+    },
+    {
+      "native": "xuiSplitLayoutGetDividerMetrics",
+      "language": "xui.SplitLayout.getDividerMetrics",
+      "successStatus": 0,
+      "physicalOutputs": [
+        1,
+        2,
+        3
+      ],
+      "logicalOutputs": [
+        "c_float",
+        "c_float",
+        "c_float"
+      ]
+    },
+    {
+      "native": "xuiWindowGetChrome",
+      "language": "xui.Window.getChrome",
+      "successStatus": 0,
+      "physicalOutputs": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "logicalOutputs": [
+        "c_float",
+        "c_float",
+        "c_float",
+        "c_float"
+      ]
+    },
+    {
+      "native": "xuiScrollFrameGetContentSize",
+      "language": "xui.ScrollFrame.getContentSize",
+      "successStatus": 0,
+      "physicalOutputs": [
+        1,
+        2
+      ],
+      "logicalOutputs": [
+        "c_float",
+        "c_float"
+      ]
+    },
+    {
+      "native": "xuiScrollFrameGetOffset",
+      "language": "xui.ScrollFrame.getOffset",
+      "successStatus": 0,
+      "physicalOutputs": [
+        1,
+        2
+      ],
+      "logicalOutputs": [
+        "c_float",
+        "c_float"
+      ]
+    },
+    {
+      "native": "xuiScrollFrameGetMetrics",
+      "language": "xui.ScrollFrame.getMetrics",
+      "successStatus": 0,
+      "physicalOutputs": [
+        1,
+        2,
+        3
+      ],
+      "logicalOutputs": [
+        "c_float",
+        "c_float",
+        "c_float"
+      ]
+    },
+    {
+      "native": "xuiScrollViewGetContentSize",
+      "language": "xui.ScrollView.getContentSize",
+      "successStatus": 0,
+      "physicalOutputs": [
+        1,
+        2
+      ],
+      "logicalOutputs": [
+        "c_float",
+        "c_float"
+      ]
+    },
+    {
+      "native": "xuiScrollViewGetViewportHint",
+      "language": "xui.ScrollView.getViewportHint",
+      "successStatus": 0,
+      "physicalOutputs": [
+        1,
+        2
+      ],
+      "logicalOutputs": [
+        "c_float",
+        "c_float"
+      ]
+    },
+    {
+      "native": "xuiScrollViewGetOffset",
+      "language": "xui.ScrollView.getOffset",
+      "successStatus": 0,
+      "physicalOutputs": [
+        1,
+        2
+      ],
+      "logicalOutputs": [
+        "c_float",
+        "c_float"
+      ]
+    },
+    {
+      "native": "xuiScrollViewGetScrollbarPolicy",
+      "language": "xui.ScrollView.getScrollbarPolicy",
+      "successStatus": 0,
+      "physicalOutputs": [
+        1,
+        2
+      ],
+      "logicalOutputs": [
+        "c_int",
+        "c_int"
+      ]
+    },
+    {
+      "native": "xuiScrollViewGetMetrics",
+      "language": "xui.ScrollView.getMetrics",
+      "successStatus": 0,
+      "physicalOutputs": [
+        1,
+        2,
+        3
+      ],
+      "logicalOutputs": [
+        "c_float",
+        "c_float",
+        "c_float"
+      ]
+    },
+    {
+      "native": "xuiScrollViewGetColors",
+      "language": "xui.ScrollView.getColors",
+      "successStatus": 0,
+      "physicalOutputs": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "logicalOutputs": [
+        "c_uint",
+        "c_uint",
+        "c_uint",
+        "c_uint",
+        "c_uint",
+        "c_uint"
+      ]
+    },
+    {
+      "native": "xuiScrollViewGetButtonColors",
+      "language": "xui.ScrollView.getButtonColors",
+      "successStatus": 0,
+      "physicalOutputs": [
+        1,
+        2
+      ],
+      "logicalOutputs": [
+        "c_uint",
+        "c_uint"
+      ]
+    },
+    {
+      "native": "xuiScrollViewGetCornerColors",
+      "language": "xui.ScrollView.getCornerColors",
+      "successStatus": 0,
+      "physicalOutputs": [
+        1,
+        2
+      ],
+      "logicalOutputs": [
+        "c_uint",
+        "c_uint"
+      ]
+    },
+    {
+      "native": "xuiCanvasGetViewportHint",
+      "language": "xui.Canvas.getViewportHint",
+      "successStatus": 0,
+      "physicalOutputs": [
+        1,
+        2
+      ],
+      "logicalOutputs": [
+        "c_float",
+        "c_float"
+      ]
+    },
+    {
+      "native": "xuiCanvasGetOffset",
+      "language": "xui.Canvas.getOffset",
+      "successStatus": 0,
+      "physicalOutputs": [
+        1,
+        2
+      ],
+      "logicalOutputs": [
+        "c_float",
+        "c_float"
+      ]
+    },
+    {
+      "native": "xuiPopupGetScroll",
+      "language": "xui.Popup.getScroll",
+      "successStatus": 0,
+      "physicalOutputs": [
+        1,
+        2
+      ],
+      "logicalOutputs": [
+        "c_float",
+        "c_float"
+      ]
+    },
+    {
+      "native": "xuiPopupGetScrollbarStyle",
+      "language": "xui.Popup.getScrollbarStyle",
+      "successStatus": 0,
+      "physicalOutputs": [
+        1,
+        2
+      ],
+      "logicalOutputs": [
+        "c_int",
+        "c_float"
+      ]
+    },
+    {
+      "native": "xuiPopupGetMetrics",
+      "language": "xui.Popup.getMetrics",
+      "successStatus": 0,
+      "physicalOutputs": [
+        1,
+        2,
+        3
+      ],
+      "logicalOutputs": [
+        "c_float",
+        "c_float",
+        "c_float"
+      ]
+    },
+    {
+      "native": "xuiChartDataToPixel",
+      "language": "xui.Chart.dataToPixel",
+      "successStatus": 0,
+      "physicalOutputs": [
+        3
+      ],
+      "logicalOutputs": [
+        "Vec2"
+      ]
+    },
+    {
+      "native": "xuiChartPixelToData",
+      "language": "xui.Chart.pixelToData",
+      "successStatus": 0,
+      "physicalOutputs": [
+        3,
+        4
+      ],
+      "logicalOutputs": [
+        "c_double",
+        "c_double"
+      ]
+    }
+  ],
+  "cpu": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xui-geometry-language-win-r1\\results.json",
+      "sha256": "389d38426064e72d9d3426b12eb7d951170df80da3686480c3578c6646fc9401",
+      "selectedCommands": [
+        "foreign_xui_geometry-emit",
+        "provider-O0",
+        "provider-O2",
+        "foreign_xui_geometry-header-c11",
+        "foreign_xui_geometry-header-c++11",
+        "foreign_xui_geometry-header-c++17",
+        "foreign_xui_geometry-jit",
+        "foreign_xui_geometry-dynamic-build",
+        "foreign_xui_geometry-dynamic-execute",
+        "foreign_xui_geometry-dynamic-imports",
+        "foreign_xui_geometry-static-build",
+        "foreign_xui_geometry-static-execute",
+        "foreign_xui_geometry-static-imports"
+      ],
+      "selectedCount": 13,
+      "heap": [
+        {
+          "mode": "jit",
+          "rounds": 1000,
+          "nativeCallsPerRound": 1,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          },
+          "cpuEquivalenceClaim": false
+        },
+        {
+          "mode": "dynamic",
+          "rounds": 1000,
+          "nativeCallsPerRound": 1,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          },
+          "cpuEquivalenceClaim": false
+        },
+        {
+          "mode": "static",
+          "rounds": 1000,
+          "nativeCallsPerRound": 1,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          },
+          "cpuEquivalenceClaim": false
+        }
+      ],
+      "toolSnapshot": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-geometry-language-win-r1\\check_xui_geometry.py",
+        "sha256": "011aa7f5fd8af67fbfd3ad570ca4e1f858d991b86fef7bce15518f6cc1562f3a"
+      },
+      "reusedFromExactUnchangedCaseAndPackageCode": true
+    },
+    "linux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xui-geometry-language-linux-r1\\results.json",
+      "sha256": "c377071c1fd41d910fe71cd65ce538a78023f0664929969b170e38febbf8c8cd",
+      "selectedCommands": [
+        "foreign_xui_geometry-emit",
+        "provider-O0",
+        "provider-O2",
+        "foreign_xui_geometry-header-c11",
+        "foreign_xui_geometry-header-c++11",
+        "foreign_xui_geometry-header-c++17",
+        "foreign_xui_geometry-jit",
+        "foreign_xui_geometry-dynamic-build",
+        "foreign_xui_geometry-dynamic-execute",
+        "foreign_xui_geometry-dynamic-imports",
+        "foreign_xui_geometry-static-build",
+        "foreign_xui_geometry-static-execute",
+        "foreign_xui_geometry-static-imports"
+      ],
+      "selectedCount": 13,
+      "heap": [
+        {
+          "mode": "jit",
+          "rounds": 1000,
+          "nativeCallsPerRound": 1,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          },
+          "cpuEquivalenceClaim": false
+        },
+        {
+          "mode": "dynamic",
+          "rounds": 1000,
+          "nativeCallsPerRound": 1,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          },
+          "cpuEquivalenceClaim": false
+        },
+        {
+          "mode": "static",
+          "rounds": 1000,
+          "nativeCallsPerRound": 1,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          },
+          "cpuEquivalenceClaim": false
+        }
+      ],
+      "toolSnapshot": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-geometry-language-linux-r1\\check_xui_geometry.py",
+        "sha256": "011aa7f5fd8af67fbfd3ad570ca4e1f858d991b86fef7bce15518f6cc1562f3a"
+      },
+      "reusedFromExactUnchangedCaseAndPackageCode": true
+    }
+  },
+  "lessons": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xui-geometry-example-win-r3\\results.json",
+      "sha256": "2ccf2c0c45ab7e6af2d45308f2991ec69885c901ba3d22f88e3d7272ae186e92",
+      "commands": 11,
+      "readbacks": [
+        {
+          "mode": "jit",
+          "path": "F:\\xlang-validation\\xge-full-20261110\\xui-geometry-example-win-r3\\geometry_queries-jit.rgba",
+          "width": 800,
+          "height": 600,
+          "sha256": "9ee62d8e42c73ccf10d6bc93a988f23d1c0de8360ec3afc31f7fb83ad4f0ab27"
+        },
+        {
+          "mode": "dynamic",
+          "path": "F:\\xlang-validation\\xge-full-20261110\\xui-geometry-example-win-r3\\geometry_queries-dynamic-execute.rgba",
+          "width": 800,
+          "height": 600,
+          "sha256": "9ee62d8e42c73ccf10d6bc93a988f23d1c0de8360ec3afc31f7fb83ad4f0ab27"
+        },
+        {
+          "mode": "static",
+          "path": "F:\\xlang-validation\\xge-full-20261110\\xui-geometry-example-win-r3\\geometry_queries-static-execute.rgba",
+          "width": 800,
+          "height": 600,
+          "sha256": "9ee62d8e42c73ccf10d6bc93a988f23d1c0de8360ec3afc31f7fb83ad4f0ab27"
+        }
+      ]
+    },
+    "linux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xui-geometry-example-linux-r3\\results.json",
+      "sha256": "92e04312c623a43dd3f9268233a97ff7c507c1a4d499678952b2b9d7bc8c3d70",
+      "commands": 11,
+      "readbacks": [
+        {
+          "mode": "jit",
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/xui-geometry-example-linux-r3/geometry_queries-jit.rgba",
+          "width": 800,
+          "height": 600,
+          "sha256": "21106c868c284399c808550bb89422bf3a7e2591c878e95499304e79e406d957"
+        },
+        {
+          "mode": "dynamic",
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/xui-geometry-example-linux-r3/geometry_queries-dynamic-execute.rgba",
+          "width": 800,
+          "height": 600,
+          "sha256": "21106c868c284399c808550bb89422bf3a7e2591c878e95499304e79e406d957"
+        },
+        {
+          "mode": "static",
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/xui-geometry-example-linux-r3/geometry_queries-static-execute.rgba",
+          "width": 800,
+          "height": 600,
+          "sha256": "21106c868c284399c808550bb89422bf3a7e2591c878e95499304e79e406d957"
+        }
+      ]
+    }
+  },
+  "textRegressions": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xui-geometry-text-regression-win-r1\\results.json",
+      "sha256": "2f4419653f98b4b5498cf3a1fa55823a242a4b9921fbe86eea99bdb5fee20fe0",
+      "commands": 29,
+      "scope": "Real representative CString/NUL reads and generic output status/OOM/rollback; catalog linking is ABI coverage, not execution of all getters."
+    },
+    "linux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xui-geometry-text-regression-linux-r1\\results.json",
+      "sha256": "1baa14cdc0e4472e61aac85a86658a680d9b170b43f0bafbd11765b730cc07f8",
+      "commands": 29,
+      "scope": "Real representative CString/NUL reads and generic output status/OOM/rollback; catalog linking is ABI coverage, not execution of all getters."
+    }
+  },
+  "unusedDeclarations": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xui-geometry-unused-win-r1\\results.json",
+      "sha256": "9759d64600df3681adc1a1d26ba83569c25d58fb07409692258060c15c3c3f77",
+      "commands": 6,
+      "deltaBytes": 0,
+      "deltaText": 0,
+      "programs": {
+        "old": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\xui-geometry-unused-win-r1\\old.exe",
+          "sha256": "82b3021da0d6e178bec8aedbb76e05f21b96845de16ecd51c31ec6ef7d95ccc7",
+          "bytes": 7765504,
+          "textBytes": 5278390,
+          "sectionCount": 6,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "USER32.dll",
+            "GDI32.dll",
+            "ole32.dll",
+            "OLEAUT32.dll",
+            "SHELL32.dll",
+            "IMM32.dll",
+            "DWrite.dll"
+          ]
+        },
+        "new": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\xui-geometry-unused-win-r1\\new.exe",
+          "sha256": "82b3021da0d6e178bec8aedbb76e05f21b96845de16ecd51c31ec6ef7d95ccc7",
+          "bytes": 7765504,
+          "textBytes": 5278390,
+          "sectionCount": 6,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "USER32.dll",
+            "GDI32.dll",
+            "ole32.dll",
+            "OLEAUT32.dll",
+            "SHELL32.dll",
+            "IMM32.dll",
+            "DWrite.dll"
+          ]
+        }
+      }
+    },
+    "linux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xui-geometry-unused-linux-r1\\results.json",
+      "sha256": "c1789275bf131007606880ed087502171f15371863f4e55a66371959f97faf43",
+      "commands": 6,
+      "deltaBytes": 0,
+      "deltaText": 0,
+      "programs": {
+        "old": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/xui-geometry-unused-linux-r1/old",
+          "sha256": "cbe0e39bd9399fe1cd50de848f73170dfbcf698408b982f6629d29cf551b9b94",
+          "bytes": 8858744,
+          "textBytes": 4764467,
+          "sectionCount": 13181,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        "new": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/xui-geometry-unused-linux-r1/new",
+          "sha256": "11323ca9df5e15b44b26c7f48148d343c6d6edbb38353f540c68e2b81b7bab26",
+          "bytes": 8858744,
+          "textBytes": 4764467,
+          "sectionCount": 13181,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      }
+    }
+  },
+  "staging": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xui-geometry-sdk-win-r3\\results.json",
+      "sha256": "f119e79a7a241b49f2137ca151c5678090fa1edd2b580c58dbdf9abf879ea080",
+      "engineRebuilt": false,
+      "nativeBuildParent": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\state-oom-sdk-win-r1\\results.json",
+        "sha256": "920f60323bbafd5d48f0fe00b7c9f044eb1988b37b0c757a0a94df6178d2e5c6"
+      },
+      "host": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-geometry-sdk-win-r3\\packages-host\\_xge_native\\native\\xge3_host.dll",
+        "sha256": "afb00d36c09a7f56cf42fc8662ebc8dc715bcd634c9c5be6b15a807141fc71c1",
+        "bytes": 9596463,
+        "nativeBuildReport": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\state-oom-sdk-win-r1\\host\\build-report.json",
+          "sha256": "33c1d43ca459fe85ebdf108363b037129c22fee5a8aaa4852345113595b9b5bd"
+        }
+      },
+      "static": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-geometry-sdk-win-r3\\packages-static\\_xge_native\\native\\libxge3_static.a",
+        "sha256": "99431520f73cdd4a94990a1cdab579f90cbb8f58c683e821844adaeb27b7614c",
+        "bytes": 19636418,
+        "nativeBuildReport": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\state-oom-sdk-win-r1\\static\\build-report.json",
+          "sha256": "2aca678e9e497042666c536dd3ee9169287be6acd4a239534de9a66ac6b8dffc"
+        }
+      }
+    },
+    "linux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xui-geometry-sdk-linux-r3\\results.json",
+      "sha256": "1124856a973958f456c5b6ad3c397cb3b7c268d76bfbf02b271bfa28bcf425c3",
+      "engineRebuilt": false,
+      "nativeBuildParent": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\state-oom-sdk-linux-r1\\results.json",
+        "sha256": "db78ea288ec117ac24476b5ba9bc119988625d0057b11518709ed9db93ee8f4a"
+      },
+      "host": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-geometry-sdk-linux-r3\\packages-host\\_xge_native\\native\\libxge3_host.so",
+        "sha256": "3db96933a1a7756c40d6c517ba55628ce18fd5417a49471aa58664be451f6045",
+        "bytes": 10453744,
+        "nativeBuildReport": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\state-oom-sdk-linux-r1\\host\\build-report.json",
+          "sha256": "ca8e25e6aedc65f6fe4f271e916f65f0e3c456764b727690ad5f567dd88913b3"
+        }
+      },
+      "static": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\xui-geometry-sdk-linux-r3\\packages-static\\_xge_native\\native\\libxge3_static.a",
+        "sha256": "667f08ebb92679d09075473eaaa2f9b1ccb1c4e6db11939a673046b3ada5fa43",
+        "bytes": 17861676,
+        "nativeBuildReport": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\state-oom-sdk-linux-r1\\static\\build-report.json",
+          "sha256": "7cde5c0a0985fdba5ea1074699f4843d2c4323526b2fc8db244188b38517f2d2"
+        }
+      }
+    }
+  },
+  "compilerCohorts": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-null-cstr-full-r36\\build.json",
+      "sha256": "85dc294b283f3b774172a0de877ad86d34398689de17a6260f08900db030d931"
+    },
+    "linux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-null-cstr-linux-full-r29\\build.json",
+      "sha256": "3fb08e3ed8b6166e39bdb66955cea42c0db45d648697ce0e74914bac4adaf723"
+    }
+  },
+  "visualAndPackageReuse": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\xui-geometry-final-qa-r1.json",
+    "sha256": "14b00f0552a973af72898e6ef1456611428f5d8a3cfe33a3239d42f09d559fe1"
+  },
+  "declarationInventory": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-xui-geometry-r1\\surface.json",
+    "sha256": "4df24aa32375d96cec8236e148f804f1fd010df48551abcfeb8fdd4c145d1bba",
+    "population": {
+      "functions": 5171,
+      "types": 980,
+      "constants": 1838,
+      "functionMacros": 7,
+      "callableFields": 184,
+      "enums": 40,
+      "enumConstants": 316
+    },
+    "declarationPresent": {
+      "functions": 3679,
+      "types": 369,
+      "constants": 1820,
+      "callableFields": 66,
+      "enumConstants": 316
+    },
+    "notCompletionRate": true
+  },
+  "examples": {
+    "entries": 81,
+    "sharedGalleryScenes": 57
+  },
+  "qualifiedGeometryProcessRows": 48,
+  "textRegressionProcessRows": 58,
+  "unusedDeclarationMeasurementRows": 12,
+  "finalPackageStagingRows": 4,
+  "repositoryBudget": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\xui-geometry-repository-budget-r1.json",
+    "sha256": "ff5ba5a5eb800eb8fc7b71fced80a9e458732a08b79a0a96afa07cb0648fe4d1"
+  },
+  "earlierVisualCandidates": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xui-geometry-language-win-r1\\results.json",
+      "sha256": "389d38426064e72d9d3426b12eb7d951170df80da3686480c3578c6646fc9401"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xui-geometry-language-linux-r1\\results.json",
+      "sha256": "c377071c1fd41d910fe71cd65ce538a78023f0664929969b170e38febbf8c8cd"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xui-geometry-example-win-r2\\results.json",
+      "sha256": "e96c41b34d96b83b453110f51c5342a21acbf310ade560443248981cc907d584"
+    }
+  ],
+  "visualRevisionReason": "Initial rendered lesson lacked explicit chart font and used categorical x values. Final lesson uses a numeric x axis, font, one-decimal labels and explicit Slider 0-100 range. Earlier functional/CPU reports remain unchanged; final lesson rerun separately.",
+  "limitations": [
+    "Chart 0/1 plus output state queries remain unadapted pending their general projection contract.",
+    "Hot scalar getter heap comparison and one unchanged program size comparison do not prove CPU or cold-start equivalence.",
+    "Linux windows use Xvfb/software OpenGL; no hardware/all-backend claim.",
+    "No final runtime/SDK/compiler/IDE installation or publication; full integration goal remains active."
+  ],
+  "snapshotCorrection": "Initial gate copied provider .c/.h into names later used for generated output. Actual CLI case/provider inputs and results were unaffected. Their original input hashes are verified against unchanged current sources and final lesson source snapshots; those directories did not emit the CPU case. Future gates use input-snapshots/ to prevent collisions. Original reports and generated outputs remain unchanged."
+}
