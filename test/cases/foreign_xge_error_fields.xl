@@ -1,0 +1,122 @@
+import xge
+from xge import ErrorInfo
+extern "fixtureXgeErrorMutable" @header("test/cases/foreign_xge_error_fields.h") @no_raise @c_result("status",0) func mutableEvent(c_int mode)
+extern "fixtureXgeErrorBudget" @no_raise func budget(c_int allowance)
+extern "fixtureXgeErrorHeapBegin" @no_raise func heapBegin()
+extern "fixtureXgeErrorHeapReport" @no_raise func heapReport(c_int native)
+extern "fixtureXgeErrorNativeHot" @no_raise func nativeHot()
+func main(...) as int
+ ErrorInfo? saved=null
+ string? subsystem=null
+ string? operation=null
+ string? message=null
+ int calls=0
+ xge.setErrorCallback(func(xge.ErrorInfo info)
+  assert info.code==xge.XGE_ERROR_INVALID_ARGUMENT and info.recoverable==1
+  subsystem=info.subsystem
+  operation=info.operation
+  message=info.message
+  saved=info
+  calls+=1
+ end)
+ mutableEvent(0)
+ assert calls==1 and (subsystem as string)=="engine" and (operation as string)=="draw" and (message as string)=="mutable UTF-8 你"
+ for field in range(3)
+  bool rejected=false
+  try
+   auto expired=saved as ErrorInfo
+   if field==0 then subsystem=expired.subsystem end
+   if field==1 then operation=expired.operation end
+   if field==2 then message=expired.message end
+  catch StateError
+   rejected=true
+  end
+  assert rejected
+ end
+ assert (subsystem as string)=="engine" and (operation as string)=="draw" and (message as string)=="mutable UTF-8 你"
+ mutableEvent(1)
+ assert subsystem==null and operation==null and message==null
+ mutableEvent(2)
+ assert subsystem!=null and operation!=null and message!=null
+ assert (subsystem as string)=="" and (operation as string)=="" and (message as string)==""
+ mutableEvent(3)
+ assert (subsystem as string)=="prefix" and (operation as string)=="prefix" and (message as string)=="prefix"
+ // Native producer validation is separate from the error being reported.
+ xge.reportError(xge.XGE_ERROR_INVALID_ARGUMENT,1,"public","report","copied")
+ assert calls==5 and (subsystem as string)=="public" and (message as string)=="copied"
+ bool rejected=false
+ try
+  xge.reportError(0)
+ catch Error
+  rejected=true
+ end
+ assert rejected and calls==5
+ xge.reportError(xge.XGE_ERROR_INVALID_ARGUMENT)
+ assert calls==6 and subsystem==null and operation==null and message==null
+ rejected=false
+ try
+  xge.reportError(xge.XGE_ERROR_INVALID_ARGUMENT,1,"sub\0tail","draw","text")
+ catch Error
+  rejected=true
+ end
+ assert rejected and calls==6
+ // Each copy failure preserves the assignment's previous owned string.
+ for field in range(3)
+  message="kept"
+  xge.setErrorCallback(func(xge.ErrorInfo info)
+   budget(0)
+   try
+    if field==0 then message=info.subsystem end
+    if field==1 then message=info.operation end
+    if field==2 then message=info.message end
+   finally
+    budget(-1)
+   end
+  end)
+  rejected=false
+  try
+   mutableEvent(0)
+  catch Error
+   rejected=true
+  end
+  assert rejected and (message as string)=="kept"
+ end
+ xge.setErrorCallback(func(xge.ErrorInfo info)
+  budget(0)
+  try
+   message=info.message
+  finally
+   budget(-1)
+  end
+ end)
+ mutableEvent(1)
+ assert message==null
+ // Snapshot pin remains valid after self-removal; its epoch ends on return.
+ xge.setErrorCallback(func(xge.ErrorInfo info)
+  xge.setErrorCallback(null)
+  message=info.message
+ end)
+ mutableEvent(0)
+ assert (message as string)=="mutable UTF-8 你"
+ // Compare three copied fields, same text and 1000 native dispatches.
+ xge.setErrorCallback(func(xge.ErrorInfo info)
+  auto a=info.subsystem
+  auto b=info.operation
+  auto c=info.message
+  assert a!=null and b!=null and c!=null
+ end)
+ string a="bench"
+ string b="draw"
+ string c="text"
+ xge.reportError(xge.XGE_ERROR_INVALID_ARGUMENT,1,a,b,c)
+ heapBegin()
+ for i in range(1000)
+  xge.reportError(xge.XGE_ERROR_INVALID_ARGUMENT,1,a,b,c)
+ end
+ heapReport(0)
+ xge.setErrorCallback(null)
+ nativeHot()
+ xge.reportError(xge.XGE_ERROR_INVALID_ARGUMENT)
+ println("XgeErrorFields: public packed report, independent snapshots, NULL/empty/NUL, expiry, copy OOM and self-removal passed")
+ return 0
+end

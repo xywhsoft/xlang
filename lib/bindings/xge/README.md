@@ -166,3 +166,18 @@ creator thread. The copy survives `setTitle()` and engine shutdown.
 one allocation and a copy; keep a snapshot when reading repeatedly. See
 `examples/window_title.xl` and `docs/foreign-cstring-results.md`. No forwarding
 C wrapper or borrowed pointer escapes into language code.
+
+## Error reports and text snapshots
+
+`setErrorCallback(callback)` retains the typed observer until explicitly cleared.
+`ErrorInfo.subsystem`, `.operation` and `.message` return independent `string?`
+snapshots; the event itself is valid only during the callback. A present field
+read scans and copies its C string, and can fail with a checked allocation error.
+NULL and an empty string remain distinct. A copied message survives the callback.
+
+`reportError(code,recoverable=1,subsystem=null,operation=null,message=null)`
+uses a sized stack record and one direct native call. Code zero and embedded
+NUL inputs are rejected; producer/observer failures use the existing checked
+boundary. See `examples/error_callback.xl` and `docs/xge-error-fields.md` for
+scope, cleanup and measured costs. This does not settle other lifetime contracts
+or install a new shipping runtime.

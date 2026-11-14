@@ -1,0 +1,29 @@
+import xge
+// The callback changes the very strings borrowed by its producer's input pack.
+// Evaluated input owners must remain alive until the native call returns.
+string? subsystem="original subsystem"
+string operation="original operation"
+string? message="original message"
+string? copiedSubsystem=null
+string? copiedOperation=null
+string? copiedMessage=null
+xge.setErrorCallback(func(xge.ErrorInfo info)
+ subsystem="replacement subsystem"
+ operation="replacement operation"
+ message="replacement message"
+ copiedSubsystem=info.subsystem
+ copiedOperation=info.operation
+ copiedMessage=info.message
+end)
+try
+ xge.reportError(xge.XGE_ERROR_INVALID_ARGUMENT,1,subsystem,operation,message)
+finally
+ xge.setErrorCallback(null)
+end
+assert (copiedSubsystem as string)=="original subsystem"
+assert (copiedOperation as string)=="original operation"
+assert (copiedMessage as string)=="original message"
+assert (subsystem as string)=="replacement subsystem"
+assert operation=="replacement operation"
+assert (message as string)=="replacement message"
+println("XgeErrorFieldsAlias: input owners survive callback mutation")

@@ -1,0 +1,14 @@
+// No window is needed. A copied message remains readable after the callback.
+import xge
+
+string? lastMessage=null
+xge.setErrorCallback(func(xge.ErrorInfo info)
+ lastMessage=info.message
+end)
+try
+ xge.reportError(xge.XGE_ERROR_INVALID_ARGUMENT,1,"example","load","Resource unavailable")
+finally
+ xge.setErrorCallback(null)
+end
+assert lastMessage!=null
+println(lastMessage as string)

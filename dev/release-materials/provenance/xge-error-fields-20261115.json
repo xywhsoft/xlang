@@ -1,0 +1,301 @@
+{
+  "schema": 1,
+  "date": "2026-11-15",
+  "status": "qualified-xge-error-field-snapshots-and-direct-report",
+  "shippingDelivery": false,
+  "sourceParent": "365a67cc0fd43b7f6ada263300e11f0c9aa87070",
+  "sourceSha256": {
+    "lib/bindings/xge/src/callbacks.xl": "ccf3d67e89a636bff933aad6a0560e44a3aa8aa745a2b1b9ebd80a4c29ec9d35",
+    "lib/bindings/xge/README.md": "173dca796f20ef23105ddaa5c5f8dc1a7fcf0ac55fc20f676797754c779661b2",
+    "lib/bindings/xge/examples/README.md": "d7425ba9b93e080afb5df821c16e5238d18ee95fe60926f3de045e6d8d4898ec",
+    "lib/bindings/xge/examples/error_callback.xl": "573c861c9a8482e9480f6c4e5cb4205fe581d23e0214df2b882120d6d7d52f85",
+    "docs/xge-error-fields.md": "5bcac6860444f86c3034200b248c8199cf6e3e835fae5478e066f693c731e965",
+    "docs/xge3-xui3-full-coverage-plan.md": "5971326619616103ab42b791190190bf7b5650371be65c38696e8ea142397287",
+    "tools/check_xge_error_fields.py": "818c565665855c5feb9369ed36972f85bce3257d51e3176242b0b90a49d3bdcb",
+    "test/cases/foreign_xge_error_fields.h": "59f5fba61a7ece56cc11efccb6f5b11e32563a2bf23d904f8f4cf1c249000a62",
+    "test/cases/foreign_xge_error_fields.c": "577c2e68a10f1075ccafcb2900fef10d29a4421f7513d58a8d52c9c450f224cd",
+    "test/cases/foreign_xge_error_fields.xl": "3a84ee1bc6545cbc03bef31c3661e19294a8fa1e93f4ed73a71c84072725ee40",
+    "test/cases/foreign_xge_error_fields_alias.xl": "4f9cd1d14d9eee002cc2b6867bebe5cde824e77ddf2dab36f2d0bb2a7c367983"
+  },
+  "scope": "Apply the approved existing CString field snapshot contract to XGE ErrorInfo and declare direct packed xgeReportError. No new language/runtime/native rule or product C forwarding.",
+  "qualification": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\error-fields-evidence-win-r1.json",
+      "sha256": "0a29bdbea3baf3e712e11d296600d5299351e7955c6c0dcf7df665e587141475",
+      "complete": true,
+      "passed": true,
+      "shippingDelivery": false,
+      "scope": "Live exact input/output/log and staged-to-live source rehash; not another execution.",
+      "acceptance": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\error-fields-language-win-r4\\results.json",
+        "sha256": "4234b3385f7e7e3f38354802b174004fb0174e821e72011926cf1743ada77750",
+        "commands": 33,
+        "verifiedInputs": 2122
+      },
+      "trim": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\error-fields-trim-win-r2\\results.json",
+        "sha256": "12998f9e9dc7a30d8dc474e32b3bcdd2362e6f3b66c710e888b257adc40f55d2",
+        "commands": 8,
+        "deltas": {
+          "bytes": 0,
+          "text": 0,
+          "bss": 0
+        }
+      },
+      "heap": [
+        {
+          "mode": "jit",
+          "rounds": 1000,
+          "counts": [
+            [
+              "language",
+              [
+                3000,
+                3000,
+                0
+              ]
+            ],
+            [
+              "native",
+              [
+                3000,
+                3000,
+                0
+              ]
+            ]
+          ],
+          "cpuEquivalenceClaim": false
+        },
+        {
+          "mode": "dynamic",
+          "rounds": 1000,
+          "counts": [
+            [
+              "language",
+              [
+                3000,
+                3000,
+                0
+              ]
+            ],
+            [
+              "native",
+              [
+                3000,
+                3000,
+                0
+              ]
+            ]
+          ],
+          "cpuEquivalenceClaim": false
+        },
+        {
+          "mode": "static",
+          "rounds": 1000,
+          "counts": [
+            [
+              "language",
+              [
+                3000,
+                3000,
+                0
+              ]
+            ],
+            [
+              "native",
+              [
+                3000,
+                3000,
+                0
+              ]
+            ]
+          ],
+          "cpuEquivalenceClaim": false
+        }
+      ],
+      "totalCommands": 41,
+      "packages": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\error-fields-packages-win-r2-host.json",
+          "sha256": "d9885625afbe15f326e8309206b492a96ffbadb410cacda3a0bffd7018dd95d8"
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\error-fields-packages-win-r2-static.json",
+          "sha256": "1a7d568415b7105fe3bc72e3c571b8cdb7bede3820cb57fea7a7058cfb9c6291"
+        }
+      },
+      "coreCompilerRebuilt": false,
+      "nativeRebuilt": false,
+      "remaining": "Other lifetime/output contracts and full matched release remain open; this gate uses the approved existing field/pack contracts only."
+    },
+    "linux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\error-fields-evidence-linux-r1.json",
+      "sha256": "949f9982e6cbadb0c8c4a2967a076ae95ca6a1ad284f1aeb18d36b85ff2ada94",
+      "complete": true,
+      "passed": true,
+      "shippingDelivery": false,
+      "scope": "Live exact input/output/log and staged-to-live source rehash; not another execution.",
+      "acceptance": {
+        "path": "/mnt/f/xlang-validation/xge-full-20261110/error-fields-language-linux-r4/results.json",
+        "sha256": "79bc07cd2b2a10d5fe103bcfa1b2506ffcd842e110de4b38080c4471d8c6e2b3",
+        "commands": 33,
+        "verifiedInputs": 2105
+      },
+      "trim": {
+        "path": "/mnt/f/xlang-validation/xge-full-20261110/error-fields-trim-linux-r2/results.json",
+        "sha256": "959873b7f6ba3ecfc4dffcbee67aac106a3528e7254b23356878c66e0a96c442",
+        "commands": 8,
+        "deltas": {
+          "bytes": 0,
+          "text": 0,
+          "bss": 0
+        }
+      },
+      "heap": [
+        {
+          "mode": "jit",
+          "rounds": 1000,
+          "counts": [
+            [
+              "language",
+              [
+                3000,
+                3000,
+                0
+              ]
+            ],
+            [
+              "native",
+              [
+                3000,
+                3000,
+                0
+              ]
+            ]
+          ],
+          "cpuEquivalenceClaim": false
+        },
+        {
+          "mode": "dynamic",
+          "rounds": 1000,
+          "counts": [
+            [
+              "language",
+              [
+                3000,
+                3000,
+                0
+              ]
+            ],
+            [
+              "native",
+              [
+                3000,
+                3000,
+                0
+              ]
+            ]
+          ],
+          "cpuEquivalenceClaim": false
+        },
+        {
+          "mode": "static",
+          "rounds": 1000,
+          "counts": [
+            [
+              "language",
+              [
+                3000,
+                3000,
+                0
+              ]
+            ],
+            [
+              "native",
+              [
+                3000,
+                3000,
+                0
+              ]
+            ]
+          ],
+          "cpuEquivalenceClaim": false
+        }
+      ],
+      "totalCommands": 41,
+      "packages": {
+        "host": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/error-fields-packages-linux-r2-host.json",
+          "sha256": "68c2e6bc7b1b57e9168bdb153d26a26acf4670b248c0c819f1f74509929dcd24"
+        },
+        "static": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/error-fields-packages-linux-r2-static.json",
+          "sha256": "f366b0d023b09537c765e517c546c8be213290c49a1a828c35bf61e265a58bde"
+        }
+      },
+      "coreCompilerRebuilt": false,
+      "nativeRebuilt": false,
+      "remaining": "Other lifetime/output contracts and full matched release remain open; this gate uses the approved existing field/pack contracts only."
+    }
+  },
+  "acceptanceCommandTotal": 82,
+  "contracts": {
+    "fields": [
+      "ErrorInfo.subsystem:string?",
+      "ErrorInfo.operation:string?",
+      "ErrorInfo.message:string?"
+    ],
+    "input": "Existing sized stack c_pack with nullable c_string fields, one xgeReportError invocation; embedded NUL refused before producer.",
+    "result": "Reported error code separate from producer status. Code0 invalid; status0 normal; existing checked callback errors retained. No observer valid report succeeds.",
+    "lifetime": "Callback event epoch expires on return; independent copied strings survive source mutation/self-unregister. Failed copy preserves old assignment. Prior user callback effects are not rolled back.",
+    "alias": "Captured nullable/nonnullable input mutation does not invalidate the producer arguments. Generated alias fixture emits three input xlir_string_copy calls; their allocations/copies are distinct from stable-local hot comparison."
+  },
+  "costs": {
+    "nativeCallsPerReport": 1,
+    "recordStorage": "stack",
+    "fieldCopy": "Each present read scans, allocates and copies. NULL remains absent; present empty remains present. Packed inputs have existing NUL validation.",
+    "hot": "Same three stable strings,1000 dispatches/copies: language/C each3000alloc3000free0realloc per platform and mode. No assertion literal/unwrap construction in timed allocation population.",
+    "additional": "Closure/environment, native registration node, code/owner lifetime and callback epoch/checked-boundary maintenance remain; captured/global input protection can copy; cold costs not included in hot population.",
+    "cpuEquivalenceClaim": false,
+    "zeroCostCallbackClaim": false
+  },
+  "inventory": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-error-fields-r1\\surface.json",
+    "sha256": "10af8f3b678f4e1fe32b0ac3d9b7a95bb9c1a6048e48a46906bc2a3e224fece0",
+    "declarations": 3831,
+    "population": 5193,
+    "notCompletionRate": true
+  },
+  "oldPackageNegativeControl": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\xge-error-fields-old-baseline-r1\\results.json",
+    "sha256": "aab2364a37735cd8b0219a5f84baa33d17f12d771384ad645e146fc734b9d192",
+    "countedIn82": false
+  },
+  "historicalUnequalHotDiagnostic": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\error-fields-language-win-r1\\results.json",
+    "sha256": "bcd4bc6aaa4b19ff9f1b7afe5103369574f5d680991fc794affa947937ccbaab",
+    "languageAllocationCount": 9000,
+    "comparisonNotEqual": true,
+    "finalQualification": false,
+    "reason": "Assertion text literals and nullable unwrap copies were extra language work. Historical source snapshots retained, not rehashed as current source."
+  },
+  "nextChartAudit": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\chart-query-contract-audit-r1.json",
+    "sha256": "8d58bc6ab22153d43bf24918241082a279065c0052e32c2980e1d74545b6863e",
+    "nativeCommands": 16,
+    "countedIn82": false,
+    "languageImplemented": false,
+    "decision": "Separate generic return value plus output slots question remains pending; not inferred from approved field snapshots."
+  },
+  "approvedGenericPredecessor": {
+    "path": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\foreign-cstring-fields-20261114.json",
+    "sha256": "b6df5c977f783ff41471895d006552a3291179226682c65838d78485068d0002"
+  },
+  "limits": [
+    "Full O2 compiler Winr40/Linuxr33 and exact constructor/menu-fix native SDK reused, neither rebuilt in this source batch.",
+    "CPU-only error reporting and console example, no engine init/window/device/network or whole-module retirement claim.",
+    "Generic scoped CString type retained unchanged; only ErrorInfo field return contract migrated.",
+    "Earlier15 and16 contracts remain open, as does separate Chart value-plus-output question. No full XGE/XUI/Document completion or matched release/IDE installation claim.",
+    "No release/current-delivery installation, version change, publication or push. Unrelated xlang/IDE and native geometry edits preserved."
+  ]
+}

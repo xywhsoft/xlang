@@ -1,5 +1,5 @@
 // Typed native callbacks retain the language closure until explicitly cleared.
-// Callback views expire when this invocation returns; CString.copy owns text.
+// Callback views expire on return. ErrorInfo text fields copy independent strings.
 export extern "const char*" class CString @header("xge3_runtime.h") @lifetime("callback")
  native point handle
  extern "strlen" @no_raise get length() as c_size
@@ -9,9 +9,9 @@ export extern "const xge_error_info_t*" class ErrorInfo @header("xge3_runtime.h"
  native point handle
  extern "iCode" @c_field get code() as c_int
  extern "bRecoverable" @c_field get recoverable() as c_int
- extern "sSubsystem" @c_field @c_result("scope_view",0) get subsystem() as CString?
- extern "sOperation" @c_field @c_result("scope_view",0) get operation() as CString?
- extern "sMessage" @c_field @c_result("scope_view",0) get message() as CString?
+ extern "sSubsystem" @c_field @c_result("cstring") get subsystem() as string?
+ extern "sOperation" @c_field @c_result("cstring") get operation() as string?
+ extern "sMessage" @c_field @c_result("cstring") get message() as string?
 end
 export extern "const xge_drag_event_t*" class DragEvent @header("xge3_runtime.h") @lifetime("callback")
  native point handle
@@ -38,6 +38,7 @@ end
 export typedef CheckedDragHandler = func(DragEvent,DragEffectOutput) as c_int
 export typedef FrameHandler = func() as c_int
 export extern "xgeSetErrorCallbackOwned" @header("xge3_runtime.h") @no_raise @c_owned_callback(0,-1,"xge_callback_owner_t",0) @c_result("status",0) func setErrorCallback(ErrorHandler? callback)
+export extern "xgeReportError" @header("xge3_runtime.h") @no_raise @c_result("status",0) @c_pack(0,"xge_error_info_t",0,5) @c_pack_size(0,"iSize","uint32_t") @c_pack_field(0,"iCode",0,"value") @c_pack_field(0,"bRecoverable",1,"value") @c_pack_field(0,"sSubsystem",2,"c_string") @c_pack_field(0,"sOperation",3,"c_string") @c_pack_field(0,"sMessage",4,"c_string") func reportError(c_int code,c_int recoverable=1,string? subsystem=null,string? operation=null,string? message=null)
 export extern "xgeSetQuitRequestCallbackOwned" @header("xge3_runtime.h") @no_raise @c_owned_callback(0,-1,"xge_callback_owner_t",0) @c_result("status",0) func setQuitRequestCallback(QuitRequestHandler? callback)
 export extern "xgeDragEventCallbackSetOwned" @header("xge3_runtime.h") @no_raise @c_owned_callback(0,-1,"xge_callback_owner_t",0) @c_result("status",0) func setDragCallback(DragHandler? callback)
 export extern "xgeDragEventCallbackSetCheckedOwned" @header("xge3_runtime.h") @no_raise @c_owned_callback(0,-1,"xge_callback_owner_t",-16) @c_result("status",0) func setDragCallbackChecked(CheckedDragHandler? callback)
