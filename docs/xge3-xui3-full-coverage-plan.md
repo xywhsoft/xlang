@@ -1,5 +1,10 @@
 # XGE / XUI / Document 全量接入
 
+当前进度（2026-11-15）：通用 C 字符串指针字段快照、受管热键／错误观察者和
+受管无障碍事件观察者已补齐。第 17 项字段快照已经批准并验收；此前十五项
+待决合同以及第 16 项输出记录字符串快照仍未获得答复，不能混同。完整范围和
+最终匹配的 SDK／编译器／运行时／IDE／帮助发布尚未结项。以下保留各阶段记录。
+
 阶段 3 已补入 [FontFace／FontFamily 与字体查询](xge3-font-resources.md)，连同原生
 数值边界、后备替换、缓存探测、XRF 失败和排队图集寿命修复。本批通过 330 项
 构建／运行检查，含真实离屏文本与内存归零；完整文本排版和音频仍待完成。
@@ -1199,3 +1204,35 @@ SDK／编译器／IDE／帮助交付仍属于长期目标，本批不安装 rele
 画廊 JSON 的原始 CRLF，与已执行 r1 的所有可执行输入逐字节相同；此等价检查
 不计作重复运行。借用文本状态／长度输出已由既有 c_output_view 实现并验收，
 本次用户确认不会触发重复语言语法或运行时底座。
+
+
+2026-11-14 至 2026-11-15 落地第 17 项通用 C 字符串指针字段快照：复用
+c_field/c_result(cstring)、已有作用域和独立字符串复制，不增加运行时 schema
+或 XGE 转发函数。只读无参数字段 getter 保留 NULL／空串区别、OOM 及赋值回滚；
+C/C++ 字段地址证明拒绝数组衰减和不匹配指针。完整 O2 编译器与独立 IR 对象
+门两端各 93 步通过，IR 对象门明确不算完整编译器重建。见
+foreign-cstring-results.md 与 foreign-cstring-fields-20261114.json。
+
+随后接入 Context.hotKeyRegister/setErrorCallback 和回调期 Context／ErrorInfo／
+Widget 视图；operation/message 是独立 string? 快照。XGE 原生新增真正的拥有
+记录、活动快照、图遍历和 consuming Drop 检查；先独立复现并修复错误观察者
+关闭 Context 后事件泵仍继续派发后续命令的问题。复用既有 Widget.hotKeyClearWidget，
+不增加同义方法。两端各 80 个语言、裁剪及原生验收步骤通过；预热热键计数
+回调的语言／C 各 1000 次均零 XRT 堆操作。注册、作用域、代码租约及字符串
+扫描／复制成本仍在，未宣称 CPU 等价。见 xui-input-owned.md 与对应索引。
+
+2026-11-15 接入 Context.setAccessibilityEventCallback：三个回调期视图及
+完整 uint64 节点 ID／修订号，复用既有 Widget.notifyAccessibility 的同步语义。
+原生记录保证自注销／替换和关闭安全，保留自动通知合并及同类递归抑制，
+未注册观察者时跳过快照变更门。两端各 59 步通过；节点 ID 覆盖 2^32 和
+2^63 以上，C／语言预热 1000 次通知均零 XRT 堆操作。Context 仅增加一个
+8 字节指针；注册仍有 48 字节原生记录及语言闭包／代码成本。自定义 provider
+回调和借用字符串的节点输出仍有独立待决合同，不以观察者替代完整无障碍能力。
+见 xui-accessibility-events.md 与 xui-accessibility-events-20261115.json。
+
+以上三个增量共 464 个验收命令步骤。两组回调声明的未使用裁剪均为文件／
+text／BSS 增量零；各平台三个链接模式的真实两帧回读一致并已检查画面。
+新增 input_callbacks.xl 和 accessibility_events.xl，教学程序共 92 个，
+独立入口 91 个，综合画廊仍为 57 场景。最新清单 5193 个原生函数中 3817 个
+存在语言声明，仅作为清单，仍不代表完整运行／生命周期验收。本批候选未安装
+到 release，也未更新交付索引、版本号或推送线上；原有并行修改继续保留。
