@@ -5212,7 +5212,8 @@ export extern "xui_widget_t*" class Menu @header("xge3_runtime.h") @lifetime("ow
  extern "xuiMenuGetContentWidget" @no_raise @c_result("owner_view",0) func getContentWidget() as Widget?
 
  extern "xuiMenuGetOwner" @no_raise @c_result("owner_view",0) func getOwner() as Widget?
- extern "xuiMenuAddItem" @no_raise @c_result("status",0) @c_pack(1,"xui_menu_item_t",0,6) @c_pack_field(1,"sText",0,"c_string") @c_pack_field(1,"sShortcut",1,"c_string") @c_pack_field(1,"iType",2,"value") @c_pack_field(1,"iState",3,"value") @c_pack_field(1,"iValue",4,"value") @c_pack_field(1,"iIcon",5,"value") func addItem(string text,string? shortcut=null,c_int type=0,c_uint state=1,c_int value=0,c_int icon=0)
+ extern "xuiMenuSetItems" @no_raise @c_result("status",0) @c_array_group(1,0,7,"int",7) @c_array_record(1,"xui_menu_item_t") @c_array_field(1,"sText",0,"c_string") @c_array_field(1,"sShortcut",1,"c_string") @c_array_field(1,"iType",2,"value") @c_array_field(1,"iState",3,"value") @c_array_field(1,"iValue",4,"value") @c_array_field(1,"iIcon",5,"value") @c_array_field(1,"pSubmenu",6,"view_raw") func setItemsColumns(array<string?> texts,array<string?> shortcuts,array<c_int> types,array<c_uint> states,array<c_int> values,array<c_int> icons,array<Menu?> submenus,int size=-1)
+ extern "xuiMenuAddItem" @no_raise @c_result("status",0) @c_pack(1,"xui_menu_item_t",0,7) @c_pack_field(1,"sText",0,"c_string") @c_pack_field(1,"sShortcut",1,"c_string") @c_pack_field(1,"iType",2,"value") @c_pack_field(1,"iState",3,"value") @c_pack_field(1,"iValue",4,"value") @c_pack_field(1,"iIcon",5,"value") @c_pack_field(1,"pSubmenu",6,"view_raw") func addItem(string text,string? shortcut=null,c_int type=0,c_uint state=1,c_int value=0,c_int icon=0,Menu? submenu=null)
 end
 
 export extern "xui_widget_t*" class MenuBar @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget

@@ -1,0 +1,282 @@
+import xui
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_menu_items.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
+extern "fixtureRenderFont" @no_raise @c_result("owned_view") @factory(1,0,dropFont) func cpuFont(xui.Proxy proxy) as xui.Font
+extern "xuiFontReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropFont(xui.Font value)
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "fixtureRenderBudget" @no_raise func budget(c_int n)
+extern "fixtureMenuBoundBegin" @no_raise func boundBegin()
+extern "fixtureMenuBoundEnd" @no_raise func boundEnd() as c_int
+extern "fixtureMenuHeapBegin" @no_raise func heapBegin()
+extern "fixtureMenuHeapEqual" @no_raise func heapEqual()
+extern "fixtureMenuCheck" @no_raise func checkMenu(xui.Menu menu,c_int kind,xui.Menu? child=null)
+extern "fixtureMenuNullCheck" @no_raise func checkNull(xui.Menu menu)
+extern "fixtureMenuSelfCheck" @no_raise func checkSelf(xui.Menu menu)
+extern "fixtureMenuNativeHot" @no_raise func nativeHot(xui.Menu menu,xui.Menu child,c_int changing)
+extern "fixtureMenuHotReport" @no_raise func hotReport(c_int native)
+func exercise(int kind,int allowance) as int
+ auto proxy=cpuProxy()
+ auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ auto font=cpuFont(proxy)
+ ui.setDefaultFont(font)
+ auto child=ui.menuNative()
+ child.addItem("child")
+ auto menu=ui.menuNative()
+ menu.addItem("kept","Ctrl+K",value=1)
+ array<string?> texts=["Run","More",""]
+ array<string?> shortcuts=["Ctrl+R",null,""]
+ array<c_int> types=[c_int(xui.XUI_MENU_ITEM_CHECK),c_int(xui.XUI_MENU_ITEM_SUBMENU),c_int(xui.XUI_MENU_ITEM_RADIO)]
+ array<c_uint> states=[7,1,9]
+ array<c_int> values=[11,22,33]
+ array<c_int> icons=[7,9,0]
+ array<xui.Menu?> children=[null,child,null]
+ int result=0
+ if allowance<0 then boundBegin() else budget(c_int(allowance)) end
+ try
+  if kind==0 then
+   menu.setItemsColumns(texts,shortcuts,types,states,values,icons,children)
+  else
+   menu.addItem("More",type=c_int(xui.XUI_MENU_ITEM_SUBMENU),value=22,icon=9,submenu=child)
+  end
+ catch Error
+  result=1
+ finally
+  budget(-1)
+ end
+ if allowance<0 then result=int(boundEnd()) end
+ if allowance>=0 and result==1 then checkMenu(menu,0) else checkMenu(menu,c_int(2-kind),child) end
+ xui.Menu? expected=child
+ assert (texts[0]??"")=="Run" and (shortcuts[0]??"")=="Ctrl+R" and children[1]==expected
+ ui.close()
+ font.close()
+ proxy.close()
+ return result
+end
+func functional()
+ auto proxy=cpuProxy()
+ auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ auto font=cpuFont(proxy)
+ ui.setDefaultFont(font)
+ auto child=ui.menuNative()
+ child.addItem("child")
+ auto menu=ui.menuNative()
+ array<string?> texts=["Run","More",""]
+ array<string?> shortcuts=["Ctrl+R",null,""]
+ array<c_int> types=[2,4,3]
+ array<c_uint> states=[7,1,9]
+ array<c_int> values=[11,22,33]
+ array<c_int> icons=[7,9,0]
+ array<xui.Menu?> children=[null,child,null]
+ menu.setItemsColumns(texts,shortcuts,types,states,values,icons,children)
+ checkMenu(menu,2,child)
+ texts[0]="mutated"
+ shortcuts[0]="changed"
+ checkMenu(menu,2,child)
+ texts[0]="Run"
+ shortcuts[0]="Ctrl+R"
+ // Equal-size columns are required only for the default whole-array call.
+ array<c_int> shortIcons=[7]
+ bool rejected=false
+ try
+  menu.setItemsColumns(texts,shortcuts,types,states,values,shortIcons,children)
+ catch Error
+  rejected=true
+ end
+ assert rejected
+ checkMenu(menu,2,child)
+ menu.setItemsColumns(texts,shortcuts,types,states,values,shortIcons,children,999)
+ assert menu.getItemCount()==1
+ checkSelf(menu)
+ // Identical backing can be read by more than one input column.
+ menu.setItemsColumns(texts,texts,types,states,values,values,children,1)
+ assert menu.getItemCount()==1
+ menu.setItemsColumns(texts,shortcuts,types,states,values,icons,children,0)
+ assert menu.getItemCount()==0
+ array<string?> nullable=[null,""]
+ array<c_int> nullTypes=[1,0]
+ array<c_uint> nullStates=[0,1]
+ array<c_int> zero=[0,0]
+ array<xui.Menu?> noChildren=[null,null]
+ menu.setItemsColumns(nullable,nullable,nullTypes,nullStates,zero,zero,noChildren)
+ checkNull(menu)
+ int errors=0
+ try
+  menu.setItemsColumns(texts,shortcuts,types,states,values,icons,children,-2)
+ catch Error
+  errors+=1
+ end
+ texts[0]="bad\0suffix"
+ try
+  menu.setItemsColumns(texts,shortcuts,types,states,values,icons,children)
+ catch Error
+  errors+=1
+ end
+ texts[0]="Run"
+ shortcuts[0]="bad\0suffix"
+ try
+  menu.setItemsColumns(texts,shortcuts,types,states,values,icons,children)
+ catch Error
+  errors+=1
+ end
+ shortcuts[0]="Ctrl+R"
+ types[0]=99
+ try
+  menu.setItemsColumns(texts,shortcuts,types,states,values,icons,children)
+ catch Error
+  errors+=1
+ end
+ types[0]=2
+ states[0]=c_uint(0x80000000)
+ try
+  menu.setItemsColumns(texts,shortcuts,types,states,values,icons,children)
+ catch Error
+  errors+=1
+ end
+ states[0]=7
+ children[1]=null
+ try
+  menu.setItemsColumns(texts,shortcuts,types,states,values,icons,children)
+ catch Error
+  errors+=1
+ end
+ children[1]=menu
+ try
+  menu.setItemsColumns(texts,shortcuts,types,states,values,icons,children)
+ catch Error
+  errors+=1
+ end
+ auto other=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ other.setDefaultFont(font)
+ auto foreign=other.menuNative()
+ children[1]=foreign
+ try
+  menu.setItemsColumns(texts,shortcuts,types,states,values,icons,children)
+ catch Error
+  errors+=1
+ end
+ assert errors==8
+ checkNull(menu)
+ array<string?> excessiveTexts=[]
+ array<c_int> excessiveInts=[]
+ array<c_uint> excessiveStates=[]
+ array<xui.Menu?> excessiveChildren=[]
+ xui.Menu? absent=null
+ for i in range(int(xui.XUI_MENU_ITEM_CAPACITY)+1)
+  assert excessiveTexts.push("x") and excessiveInts.push(c_int(0))
+  assert excessiveStates.push(c_uint(1)) and excessiveChildren.push(absent)
+ end
+ rejected=false
+ try
+  menu.setItemsColumns(excessiveTexts,excessiveTexts,excessiveInts,excessiveStates,excessiveInts,excessiveInts,excessiveChildren)
+ catch Error
+  rejected=true
+ end
+ assert rejected
+ checkNull(menu)
+ children[1]=child
+ menu.setItemsColumns(texts,shortcuts,types,states,values,icons,children)
+ checkMenu(menu,2,child)
+ // Inspect warmed steady-state and changing calls independently of C.
+ boundBegin()
+ for i in range(1000)
+  menu.setItemsColumns(texts,shortcuts,types,states,values,icons,children)
+ end
+ hotReport(0)
+ boundBegin()
+ nativeHot(menu,child,0)
+ hotReport(1)
+ boundBegin()
+ for i in range(1000)
+  values[0]=c_int(i & 1)
+ end
+ hotReport(2)
+ boundBegin()
+ for i in range(1000)
+  values[0]=c_int(i & 1)
+  menu.setItemsColumns(texts,shortcuts,types,states,values,icons,children)
+ end
+ hotReport(0)
+ boundBegin()
+ nativeHot(menu,child,1)
+ hotReport(1)
+ int selected=0
+ menu.setSelect(func(xui.Widget sender,c_int index,c_int value)
+  selected+=1
+  assert index==0 and value==1
+ end)
+ assert menu.setHoverIndex(0)==0 and menu.commitHover()==xui.XUI_EVENT_DISPATCH_STOP and selected==1
+ menu.setSelect(null)
+ child.close()
+ assert (menu.getItemState(1)&c_uint(xui.XUI_MENU_ITEM_ENABLED))==0
+ rejected=false
+ try
+  menu.setItemsColumns(texts,shortcuts,types,states,values,icons,children)
+ catch StateError
+  rejected=true
+ end
+ assert rejected
+ rejected=false
+ try
+  menu.addItem("closed",type=4,submenu=child)
+ catch StateError
+  rejected=true
+ end
+ assert rejected
+ auto independent=ui.menuNative()
+ auto parent=ui.menuNative()
+ parent.addItem("child",type=4,submenu=independent)
+ parent.close()
+ independent.addItem("still live")
+ assert independent.getItemCount()==1
+ // Repeated submenu pointers are legal; every weak slot is invalidated.
+ menu.setItemsColumns(["A","B"],[null,null],[c_int(4),c_int(4)],[c_uint(1),c_uint(1)],[c_int(0),c_int(0)],[c_int(0),c_int(0)],[independent,independent])
+ independent.close()
+ assert menu.getItemState(0)==0 and menu.getItemState(1)==0
+ array<string?> emptyTexts=[]
+ array<c_int> emptyInts=[]
+ array<c_uint> emptyStates=[]
+ array<xui.Menu?> emptyChildren=[]
+ menu.setItemsColumns(emptyTexts,emptyTexts,emptyInts,emptyStates,emptyInts,emptyInts,emptyChildren)
+ assert menu.getItemCount()==0
+ auto worker=thread(func() as int
+  try
+   menu.setItemsColumns(emptyTexts,emptyTexts,emptyInts,emptyStates,emptyInts,emptyInts,emptyChildren)
+  catch StateError
+   return 1
+  end
+  return 0
+ end)
+ assert worker.waitTimeout(30000) and worker.exitCode()==1
+ ui.close()
+ rejected=false
+ try
+  menu.setItemsColumns(emptyTexts,emptyTexts,emptyInts,emptyStates,emptyInts,emptyInts,emptyChildren)
+ catch StateError
+  rejected=true
+ end
+ assert rejected
+ other.close()
+ font.close()
+ proxy.close()
+end
+func main(...) as int
+ functional()
+ assert balanced()==1
+ for kind in range(2)
+  int count=exercise(kind,-1)
+  assert exercise(kind,0)==1 and balanced()==1
+  int failures=0
+  int successes=0
+  for allowance in range(count)
+   heapBegin()
+   int result=exercise(kind,allowance)
+   assert balanced()==1
+   heapEqual()
+   if result==1 then failures+=1 else successes+=1 end
+  end
+  assert failures>0 and successes>0
+  println("Menu allocation kind="+string(kind)+" prefixes="+string(count))
+ end
+ println("MenuItems: full fields, nullable strings, bounds, OOM, weak submenus, callbacks, thread and expiry passed")
+ return 0
+end

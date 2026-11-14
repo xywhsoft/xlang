@@ -1,0 +1,448 @@
+{
+  "schema": 1,
+  "date": "2026-11-15",
+  "status": "qualified-menu-record-input-and-weak-submenus",
+  "shippingDelivery": false,
+  "scope": "Seven-column Menu.SetItems record projection and optional AddItem submenu using existing generic direct contracts. Native/compiler implementation unchanged; test-only C readers do not add a public string output-record getter.",
+  "sourceSha256": {
+    "lib/bindings/xui/README.md": "6eb99a0ad99854d769df7a639d5042f2c25927f53de5bac86fcca642913ff6a1",
+    "lib/bindings/xui/src/managed.xl": "a431147bc3fbb9558879ac450f7eceac9e3b3889155b16eeef5a9d56990743c4",
+    "lib/bindings/xui/examples/menu_items.xl": "23b7f40bd2236e0caf4ec64f2489cd906be1bf6570cb2fe3fa51f3428828a2a6",
+    "lib/bindings/xui/examples/gallery.json": "fe889ef022a9d9d98bc5d21871ae97aca9a4a7771a17f93173fb340d797d884e",
+    "docs/xui-menu-items.md": "0d54af4e22eb13710d13fe9622f1146d6897a9d94d1797da13588cfa734c9e93",
+    "docs/xge3-xui3-full-coverage-plan.md": "e88ed3fba242509ee5acad6c37ffc01fa94b2fd6c666829e247e613f036d8114",
+    "tools/check_xui_menu_items.py": "8520cb7725a59d9c0d38af84707d106f36cf6cfee90225b874c9e584b80fad0e",
+    "test/cases/foreign_xui_menu_items.h": "b58fed2d21ff87bc6dc60541bb8aebcdba3fb49dc0c5c6e221491f1de7d329d6",
+    "test/cases/foreign_xui_menu_items.c": "8ff3f516348aaa1ffef582d2a2eed638389cf6bed93c1226aa20b9f2b1d591bc",
+    "test/cases/foreign_xui_menu_items.xl": "367cbd424735d43c320f5d3d372de22d1dedf3ea21ac061f865d37bc8bc6b75a",
+    "test/cases/foreign_xui_menu_items_native.c": "d75b09be7f065a7dd1fbe6f96d8d586c2ba285484b54dd5f3e6cbab7a8287776"
+  },
+  "qualification": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\menu-items-evidence-win-r1.json",
+      "sha256": "da1a44f51a42decda6b49be322f3bb0b7b81047efb5dc5533f6587f155bb23ec",
+      "complete": true,
+      "passed": true,
+      "shippingDelivery": false,
+      "scope": "Live input/output/log rehash; not another execution.",
+      "acceptance": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\menu-items-language-win-r1\\results.json",
+        "sha256": "a37402c8b5efe62afac7b72f23fd45537713ca6c57f4e7e5318ebef243fec0b0",
+        "commands": 30,
+        "verifiedInputs": 2139
+      },
+      "trim": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\menu-items-trim-win-r1\\results.json",
+        "sha256": "a669ededa5bab32eb3109128f2dfb1f5d63e1a1144f4b0e7520638f4de4caba9",
+        "commands": 8,
+        "deltas": {
+          "bytes": 0,
+          "text": 0,
+          "bss": 0
+        }
+      },
+      "heap": [
+        {
+          "mode": "jit",
+          "rounds": 1000,
+          "callsPerRound": 1,
+          "allocationPrefixes": 25,
+          "counts": [
+            [
+              "language",
+              [
+                2000,
+                2000,
+                0
+              ]
+            ],
+            [
+              "native",
+              [
+                0,
+                0,
+                0
+              ]
+            ],
+            [
+              "array-mutation",
+              [
+                1000,
+                1000,
+                0
+              ]
+            ],
+            [
+              "language",
+              [
+                8000,
+                8000,
+                0
+              ]
+            ],
+            [
+              "native",
+              [
+                5000,
+                5000,
+                0
+              ]
+            ]
+          ],
+          "cpuEquivalenceClaim": false
+        },
+        {
+          "mode": "dynamic",
+          "rounds": 1000,
+          "callsPerRound": 1,
+          "allocationPrefixes": 25,
+          "counts": [
+            [
+              "language",
+              [
+                2000,
+                2000,
+                0
+              ]
+            ],
+            [
+              "native",
+              [
+                0,
+                0,
+                0
+              ]
+            ],
+            [
+              "array-mutation",
+              [
+                1000,
+                1000,
+                0
+              ]
+            ],
+            [
+              "language",
+              [
+                8000,
+                8000,
+                0
+              ]
+            ],
+            [
+              "native",
+              [
+                5000,
+                5000,
+                0
+              ]
+            ]
+          ],
+          "cpuEquivalenceClaim": false
+        },
+        {
+          "mode": "static",
+          "rounds": 1000,
+          "callsPerRound": 1,
+          "allocationPrefixes": 25,
+          "counts": [
+            [
+              "language",
+              [
+                2000,
+                2000,
+                0
+              ]
+            ],
+            [
+              "native",
+              [
+                0,
+                0,
+                0
+              ]
+            ],
+            [
+              "array-mutation",
+              [
+                1000,
+                1000,
+                0
+              ]
+            ],
+            [
+              "language",
+              [
+                8000,
+                8000,
+                0
+              ]
+            ],
+            [
+              "native",
+              [
+                5000,
+                5000,
+                0
+              ]
+            ]
+          ],
+          "cpuEquivalenceClaim": false
+        }
+      ],
+      "totalCommands": 38,
+      "matchedNativeQualification": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\constructor-retirement-evidence-win-r1.json",
+        "sha256": "3cc7e8c7687457847db13e808c7db2407ddef943535bb9f93e2c689c695d4ad5",
+        "countedAgain": false
+      },
+      "packages": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\menu-items-packages-win-r1-host.json",
+          "sha256": "616bf6df38034539d9940c7d8aaae814f207cd4deed8495c6ff6922ec3703488"
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\menu-items-packages-win-r1-static.json",
+          "sha256": "c6447d1ddd385014adc495f1749db72cf464169c36d7e0b9c526ac4109854198"
+        }
+      },
+      "visual": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\menu-items-language-win-r1\\menu_items-jit.png",
+        "sha256": "cc82dfc6bd7f5b0ffea992eb9e71e6373ec399bfa2958b4d6cfdf9227f5b4dc8",
+        "review": "Inspected readable caption and button; popup shows Run/Ctrl+R, Recent submenu arrow and checked Show details. Same-platform JIT/dynamic/static pixels equal; installed CJK font not redistributed."
+      }
+    },
+    "linux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\menu-items-evidence-linux-r1.json",
+      "sha256": "e623ea744a53596790ea7298509d1a363842b3f2b604c5e8bef7454d7510ae34",
+      "complete": true,
+      "passed": true,
+      "shippingDelivery": false,
+      "scope": "Live input/output/log rehash; not another execution.",
+      "acceptance": {
+        "path": "/mnt/f/xlang-validation/xge-full-20261110/menu-items-language-linux-r1/results.json",
+        "sha256": "03d73982b032e1c68bda78f01b1534b767bfcf99d126e7736e625bcb9a24cc84",
+        "commands": 30,
+        "verifiedInputs": 2121
+      },
+      "trim": {
+        "path": "/mnt/f/xlang-validation/xge-full-20261110/menu-items-trim-linux-r1/results.json",
+        "sha256": "189231b259be5269e3de3ab081d7ef3444c10259c836ec5eafa64c969fa745e6",
+        "commands": 8,
+        "deltas": {
+          "bytes": 0,
+          "text": 0,
+          "bss": 0
+        }
+      },
+      "heap": [
+        {
+          "mode": "jit",
+          "rounds": 1000,
+          "callsPerRound": 1,
+          "allocationPrefixes": 25,
+          "counts": [
+            [
+              "language",
+              [
+                2000,
+                2000,
+                0
+              ]
+            ],
+            [
+              "native",
+              [
+                0,
+                0,
+                0
+              ]
+            ],
+            [
+              "array-mutation",
+              [
+                1000,
+                1000,
+                0
+              ]
+            ],
+            [
+              "language",
+              [
+                8000,
+                8000,
+                0
+              ]
+            ],
+            [
+              "native",
+              [
+                5000,
+                5000,
+                0
+              ]
+            ]
+          ],
+          "cpuEquivalenceClaim": false
+        },
+        {
+          "mode": "dynamic",
+          "rounds": 1000,
+          "callsPerRound": 1,
+          "allocationPrefixes": 25,
+          "counts": [
+            [
+              "language",
+              [
+                2000,
+                2000,
+                0
+              ]
+            ],
+            [
+              "native",
+              [
+                0,
+                0,
+                0
+              ]
+            ],
+            [
+              "array-mutation",
+              [
+                1000,
+                1000,
+                0
+              ]
+            ],
+            [
+              "language",
+              [
+                8000,
+                8000,
+                0
+              ]
+            ],
+            [
+              "native",
+              [
+                5000,
+                5000,
+                0
+              ]
+            ]
+          ],
+          "cpuEquivalenceClaim": false
+        },
+        {
+          "mode": "static",
+          "rounds": 1000,
+          "callsPerRound": 1,
+          "allocationPrefixes": 25,
+          "counts": [
+            [
+              "language",
+              [
+                2000,
+                2000,
+                0
+              ]
+            ],
+            [
+              "native",
+              [
+                0,
+                0,
+                0
+              ]
+            ],
+            [
+              "array-mutation",
+              [
+                1000,
+                1000,
+                0
+              ]
+            ],
+            [
+              "language",
+              [
+                8000,
+                8000,
+                0
+              ]
+            ],
+            [
+              "native",
+              [
+                5000,
+                5000,
+                0
+              ]
+            ]
+          ],
+          "cpuEquivalenceClaim": false
+        }
+      ],
+      "totalCommands": 38,
+      "matchedNativeQualification": {
+        "path": "/mnt/f/xlang-validation/xge-full-20261110/constructor-retirement-evidence-linux-r1.json",
+        "sha256": "cf418d4ce9b3e963633ab429fc24618882bac5d1db370f0267d8a57f878ab32f",
+        "countedAgain": false
+      },
+      "packages": {
+        "host": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/menu-items-packages-linux-r1-host.json",
+          "sha256": "c178b3307e57c93404588e29efb546a5bc67ae2632d39f13e2ec2a31fa87e938"
+        },
+        "static": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/menu-items-packages-linux-r1-static.json",
+          "sha256": "4e55011495d1d1190e28c9ae831b210bad7f8c41ce01ac4c822afb587922b43a"
+        }
+      },
+      "visual": {
+        "path": "/mnt/f/xlang-validation/xge-full-20261110/menu-items-language-linux-r1/menu_items-jit.png",
+        "sha256": "c5d6a5afbeebb9cd0f03e5c3772512a57f01bd056613d755d093bacdc37f00b1",
+        "review": "Inspected readable caption and button; popup shows Run/Ctrl+R, Recent submenu arrow and checked Show details. Same-platform JIT/dynamic/static pixels equal; installed CJK font not redistributed."
+      }
+    }
+  },
+  "contracts": {
+    "input": "Seven read-pinned equal-length columns for size=-1; explicit nonnegative size clamps to shortest input, other negatives reject. Nullable strings distinguish NULL/empty; embedded NUL and native capacity/type/state errors checked. pUser zero-initialized; managed pointer escape not permitted.",
+    "ownership": "Submenus are native weak links within one Context. Native child destruction clears all referring slots and disables items; parent destruction leaves children usable. Generic array/pack view pins retain and validate for the synchronous call only.",
+    "failure": "Calibrated native22 prefixes/program, O0/O2 host/static. Language25 prefixes/mode. Old items/caller bytes preserved on failed preparation; full retirement heap bytes/count/invalid/double-free and backend balance checked. No general rollback promise for layout or callback side effects.",
+    "cost": "Nonempty bulk call:7 read-only column pins, O(n) native record projection and submenu owner snapshots/call pins, two temporary arrays, C-string NUL scans.1000 identical language/native replacements:2000/0 alloc/free; changing value:8000/5000, including1000 typed-array update allocations independently measured. Realloc0. Native string copies/comparisons and owning-call checks remain; not CPU equivalence or zero bridge cost."
+  },
+  "inventory": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-menu-items-r1\\surface.json",
+    "sha256": "113b2bca8bfb1bd9353d3911e24d1c1f0dd48980b203f0a315a23c8bd413e452",
+    "declarationsPresent": 3830,
+    "notCompletionRate": true,
+    "lessonPrograms": 96,
+    "independentLessons": 95,
+    "galleryScenes": 57,
+    "sourceOrganizationChecked": true,
+    "galleryGeneratedSourceUnchanged": true
+  },
+  "totalExecutedCommands": 76,
+  "compilerGap": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\menu-null-push-probe-r1\\results.json",
+    "sha256": "b2b0a60847e2cea4b349524a87353ddcf8b51b37cce380a3f4f9741e8c0051ff",
+    "resolved": false,
+    "scope": "Literal null rejected by collection lowering for array<Menu?>.push; explicitly typed nullable local accepted and used for capacity test. Nullable entries in Menu record-array input work. Independent minimal repro retained; no compiler fix claimed."
+  },
+  "coldSingleItemFixture": {
+    "nativeSuccessfulAllocations": 1,
+    "languageSuccessfulAllocations": 2,
+    "calibratedNativePrefixes": 9,
+    "calibratedLanguagePrefixes": 10,
+    "margin": 8,
+    "difference": "Inline More literal materialized by xlir_string_from_utf8 before stack packing; native fixture uses a static C string. Includes a managed string allocation/copy, not a native record heap allocation."
+  },
+  "limits": [
+    "Matched fee86e5d native SDK and complete O2 f37/r30 compiler cohorts reused, not rebuilt. Prior constructor/menu qualification excluded from new command totals.",
+    "Window validation uses installed CJK font, Linux Xvfb/Mesa; no font redistribution or physical-driver certification.",
+    "Input-only Menu enhancement. Output-record borrowed string snapshots remain pending16, separate from approved17 C-string callback-field snapshots.",
+    "Prior15+16 contracts, complete integration and matched shipping delivery remain open; no release/current-delivery installation, version update or push."
+  ]
+}

@@ -512,3 +512,10 @@ The constructor-retirement SDK fixes partial initialization cleanup in
 Hyperlink/Input/TagInput/TextEdit/Terminal and borrowed-string rollback in Menu.
 The latter also corrects CodeEdit and composite input-constructor failures.
 See [allocation-failure contracts](../../../docs/xui-constructor-retirement.md).
+
+`Menu.setItemsColumns(texts,shortcuts,types,states,values,icons,submenus,size=-1)`
+replaces complete item records in one native call. `Menu.addItem` also accepts
+an optional final `submenu`. Native submenu links are weak within one Context;
+closing a child disables referring items, while closing a parent leaves the
+child usable. See `examples/menu_items.xl` and
+[input, ownership and measured projection costs](../../../docs/xui-menu-items.md).

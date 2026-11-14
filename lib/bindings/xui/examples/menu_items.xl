@@ -1,0 +1,35 @@
+// Menu / replace item columns and attach a submenu
+import xui
+from "./_window.xl" import Window
+
+Window.show("Menu / item columns and submenu", func(xui.Context ui, xui.Widget root)
+ auto recent = ui.menuNative()
+ recent.addItem("Recent project", value = 20)
+ recent.addItem("Recent script", value = 21)
+ auto menu = ui.menuNative()
+ // Each position describes one row: label, shortcut, type, state, value, icon, submenu.
+ menu.setItemsColumns(
+  ["Run", "Recent", "Show details"],
+  ["Ctrl+R", null, null],
+  [c_int(xui.XUI_MENU_ITEM_NORMAL), c_int(xui.XUI_MENU_ITEM_SUBMENU), c_int(xui.XUI_MENU_ITEM_CHECK)],
+  [c_uint(xui.XUI_MENU_ITEM_ENABLED), c_uint(xui.XUI_MENU_ITEM_ENABLED), c_uint(xui.XUI_MENU_ITEM_ENABLED | xui.XUI_MENU_ITEM_CHECKED)],
+  [c_int(10), c_int(0), c_int(30)],
+  [c_int(0), c_int(0), c_int(0)],
+  [null, recent, null])
+ auto result = ui.labelNative()
+ result.setText("选择菜单或子菜单中的命令；这里显示其编号")
+ Window.place(root, result, 24, 24, 720, 32)
+ auto owner = ui.buttonNative()
+ owner.setText("Open menu")
+ Window.place(root, owner, 24, 64, 240, 40)
+ auto select = func(xui.Widget source, c_int index, c_int value)
+  result.setText("命令编号：" + string(int(value)))
+ end
+ menu.setSelect(select)
+ recent.setSelect(select)
+ owner.setClick(func(xui.Widget source)
+  menu.openForOwner(source)
+ end)
+ // Show the initial items immediately; the button reopens the same menu.
+ menu.openAt(root, c_float(24), c_float(112))
+end)
