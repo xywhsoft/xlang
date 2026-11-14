@@ -1,0 +1,230 @@
+{
+  "schema": 1,
+  "date": "2026-11-14",
+  "scope": "Qualified native ParticleWorld ownership prerequisite; additive native API and matched SDK regressions. No language World public surface yet.",
+  "parentCommit": "1b9c115b61f9cbda2684a5e55087198882a726a0",
+  "nativeRevision": "11c995bd7a98f3501da3781f442345aed4da09d1",
+  "nativeReceipt": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\particle-world-ownership-20261114.json",
+    "sha256": "8d79b13c8e5fcd2c738b089edb44fc5744d002d4d978fcfcad2e3d3cfa37e895"
+  },
+  "shippingDelivery": false,
+  "fullGoalComplete": false,
+  "networkTests": false,
+  "languageCompilerChange": false,
+  "languageWorldQualified": false,
+  "persistentOwnedCollisionQualified": false,
+  "sources": {
+    "docs/xge3-particle-world-ownership.md": "e9fa89c3c66ac4b28cdd20c3a3ad9ce0ccd08b113ff06d1b7b8b5181160a7c62",
+    "docs/xge3-xui3-full-coverage-plan.md": "e76cfd00367d8b576d821a721e0359172b3927a5e92f00f4592f408d4fd2250c"
+  },
+  "platforms": {
+    "win": {
+      "source": "F:\\xlang-validation\\xge-full-20261110\\native-particle-world-owned-win-source-r3",
+      "freeze": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\native-particle-world-owned-win-freeze-r3.json",
+        "sha256": "cb28d68ec9a4b33bac2f0a2dd6c57203b675ce639f070cda19aaaa875c3ced18"
+      },
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-world-owned-sdk-win-r4\\results.json",
+        "sha256": "249a71925aac7b499ae6fea7db41d40a709d4bf29c6d90d52ffa105b8fe05a03"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-world-owned-native-win-r2\\results.json",
+        "sha256": "09304666406dcf0863b7c785864a39148feda2514e6f4d39d0552b7d6491c0fd"
+      },
+      "definitionRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-world-owned-definition-regression-win-r2\\results.json",
+        "sha256": "e061537f05e75ae5c35a0af1daf19cb18a1e0fa64d84bbfa8123161890487493"
+      },
+      "cost": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-world-owned-cost-win-r2\\results.json",
+        "sha256": "a8a806e2df49c779becbf1646f06996f649a13fce10221d9e80062fc49703e8b"
+      },
+      "builds": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\particle-world-owned-sdk-win-r4\\host\\build-report.json",
+          "sha256": "af8cc2a9e31afc19ca74867221458d4728f8c7aea7cc3d0cd8e1708eceefab43",
+          "compiled": [
+            "single/xge.c"
+          ],
+          "reused": 163
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\particle-world-owned-sdk-win-r4\\static\\build-report.json",
+          "sha256": "a0d2dd01cfb0c53ca7df0f60cfe1d2a83c586109429e911e7666fab743096149",
+          "compiled": [
+            "single\\xge.c",
+            "F:\\xlang-validation\\xge-full-20261110\\particle-world-owned-sdk-win-r4\\static\\xge_static_contract.c"
+          ],
+          "reused": 164
+        }
+      },
+      "qualifiedFullParents": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\particle-world-owned-sdk-win-r1\\host\\build-report.json",
+          "sha256": "b5f24709a1827875628a92fe78826931a8b47ae8df3ea8843d424baa31c9564d",
+          "compiled": 164,
+          "reused": 0
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\particle-world-owned-sdk-win-r1\\static\\build-report.json",
+          "sha256": "3a220b6f1a9f80bb55eb90ac757b7fe60913c5635f2500854f22e3c2a8e14381",
+          "compiled": 165,
+          "reused": 1
+        }
+      },
+      "initialGeneratedCacheChanges": [
+        "build/shared/obj/extlibs_harfbuzz_src_harfbuzz.cc.d",
+        "build/shared/obj/extlibs_harfbuzz_src_harfbuzz.cc.json"
+      ]
+    },
+    "linux": {
+      "source": "F:\\xlang-validation\\xge-full-20261110\\native-particle-world-owned-linux-source-r3",
+      "freeze": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\native-particle-world-owned-linux-freeze-r3.json",
+        "sha256": "36a3a122fd628c7c927af1c30ecafd2b888c609b1df5fcdcbd458f99aea04732"
+      },
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-world-owned-sdk-linux-r4\\results.json",
+        "sha256": "86ff0cec396714b6f0a42f5e2f33aa8fca98ec1b1bc2f3da5bc9e18b7d6a53f4"
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-world-owned-native-linux-r2\\results.json",
+        "sha256": "8012b0ec94d33192f065a648a01ba65ae4b131ae4bf2da002e83811fa4829bdc"
+      },
+      "definitionRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-world-owned-definition-regression-linux-r2\\results.json",
+        "sha256": "e3af6e492dec65ea59a17c26a069465b37f589be83fe665052c568e25268ae8a"
+      },
+      "cost": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-world-owned-cost-linux-r2\\results.json",
+        "sha256": "a18427f9fc5af9b5440e4174e8030e4507b55091ca00e072f3ea65b1cf4cb2fd"
+      },
+      "builds": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\particle-world-owned-sdk-linux-r4\\host\\build-report.json",
+          "sha256": "d785c2a251e87fe47b6848a6a87675ee43692c093668739a0c485d3d1d5ca33a",
+          "compiled": [
+            "single/xge.c"
+          ],
+          "reused": 163
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\particle-world-owned-sdk-linux-r4\\static\\build-report.json",
+          "sha256": "3e0085da1f663188d5fb9536f5b95fb6b9126c7a2d0da32200ee1bbb191b253f",
+          "compiled": [
+            "single/xge.c",
+            "/mnt/f/xlang-validation/xge-full-20261110/particle-world-owned-sdk-linux-r4/static/xge_static_contract.c"
+          ],
+          "reused": 164
+        }
+      },
+      "qualifiedFullParents": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\particle-world-owned-sdk-linux-r1\\host\\build-report.json",
+          "sha256": "6343678945c404a7d3bde460a56ea6630e0f77873b4af58080cd5ec8979c747a",
+          "compiled": 164,
+          "reused": 0
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\particle-world-owned-sdk-linux-r1\\static\\build-report.json",
+          "sha256": "589cc3ae18d02954886b702d247255bb97a5655fd77a3eca57d78aea882716fd",
+          "compiled": 165,
+          "reused": 1
+        }
+      },
+      "initialGeneratedCacheChanges": [
+        "build/shared/obj/extlibs_harfbuzz_src_harfbuzz.cc.d",
+        "build/shared/obj/extlibs_harfbuzz_src_harfbuzz.cc.json"
+      ]
+    }
+  },
+  "coverage": {
+    "currentNativeProcessRows": 32,
+    "definitionRegressionRows": 60,
+    "priorCandidateControlBuildRows": 2,
+    "priorCandidateRejectedRows": 2,
+    "oldKernelAssertionsPerNativeRun": 10237,
+    "kernelProfiles": [
+      "raw",
+      "managed except explicitly raw borrowed-collision cases"
+    ],
+    "clients": [
+      "GCC O0/O2 actual hosted/static native SDKs"
+    ],
+    "compilerModes": [
+      "full JIT",
+      "dynamic AOT",
+      "static AOT"
+    ]
+  },
+  "costs": {
+    "cpuEquivalenceClaim": false,
+    "rawRecordBytes": 496,
+    "priorRawRecordBytes": 496,
+    "managedRecordBytes": 568,
+    "managedExtraRequestedBytes": 72,
+    "allocationCountForSameSmallConfig": {
+      "raw": 5,
+      "managed": 5
+    },
+    "liveRequestedBytesForSameSmallConfig": {
+      "raw": 1232,
+      "managed": 1304
+    },
+    "shareAdditionalAllocations": 0,
+    "preparedHot": {
+      "pairs": 1000,
+      "operations": [
+        "Update(0)",
+        "Stats"
+      ],
+      "rawHeapOperations": 0,
+      "managedHeapOperations": 0
+    },
+    "otherCosts": [
+      "raw mode-admission check",
+      "managed creator/state/claim checks",
+      "atomic reference/activity and ownership transitions",
+      "checked outcomes and code-owner Hold/Drop",
+      "small descriptor/owner stack snapshots before Hold",
+      "nested public auto-release admission",
+      "shared private cold constructor kernel"
+    ],
+    "perParticleLifetimeBookkeepingAdded": false
+  },
+  "preparation": {
+    "initialFullSdkWrapperReportsPassed": false,
+    "initialFailure": "Original source freeze accidentally included generated HarfBuzz .d/.json records. Actual full component builds linked/passed; final source manifests exclude build/. Historical bytes/reports retained.",
+    "rejectedRelink": "r2 correctly refused non-independent particle TUs. Native particles are included in single/xge.c, so final r4 explicitly rebuilds that qualified aggregate.",
+    "finalSdk": "r4 uses final source-r3, original full r1 component parent; no failed or stale binary substituted."
+  },
+  "remaining": [
+    "native persistent owned collision callback protocol",
+    "language ParticleWorld, snapshot and conditional results",
+    "renderer/GPU ownership",
+    "existing whole-goal decisions and final matched delivery"
+  ],
+  "surface": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-particle-world-ownership-r1\\surface.json",
+    "sha256": "cab2673be57ce18b48a1494c25f5f13d5fced7cdd014ae91a64d8b4e518105db",
+    "population": {
+      "functions": 5189,
+      "types": 981,
+      "constants": 1838,
+      "functionMacros": 7,
+      "callableFields": 184,
+      "enums": 40,
+      "enumConstants": 316
+    },
+    "declarationPresent": {
+      "functions": 3752,
+      "types": 374,
+      "constants": 1820,
+      "callableFields": 66,
+      "enumConstants": 316
+    },
+    "note": "Native ownership prerequisites newly present; no added language World declaration and no completion percentage."
+  }
+}
