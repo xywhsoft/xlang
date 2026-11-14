@@ -1,0 +1,53 @@
+// Public checked Run under a zero-allocation budget, followed by real recovery.
+// Native C separately identifies every Sokol buffer stage. This language budget
+// can also fail an earlier code-lease admission; it does not identify that stage.
+import xge
+extern "fixtureStateOomBudget" @header("test/cases/foreign_xge3_state_oom.h") @no_raise func budget(c_int allowance)
+int frames=0
+func frame() as c_int
+    frames+=1
+    return c_int(1)
+end
+func main(...) as int
+    for cycle in range(3)
+        xge.init(128,96,"Checked startup recovery")
+        try
+            for attempt in range(4)
+                bool rejected=false
+                budget(0)
+                try
+                    xge.run(null)
+                catch Error failure
+                    // Disable injection before allocating diagnostic property strings.
+                    budget(-1)
+                    rejected=true
+                    println("OOM checked: ",failure.code," ",failure.domain," ",failure.operation)
+                    // Preserve XRT's actual allocation diagnostic rather than
+                    // replacing it with the fallback native status (-5).
+                    assert failure.code==1 and failure.domain=="xrt.memory"
+                    assert failure.operation=="allocate"
+                finally
+                    budget(-1)
+                    xge.setFrameCallback(null)
+                end
+                assert rejected and frames==cycle
+            end
+            xge.run(frame)
+            assert frames==cycle+1
+        finally
+            budget(-1)
+            xge.setFrameCallback(null)
+            xge.unit()
+        end
+    end
+    xge.init(128,96,"Manual CPU recovery",runMode=xge.XGE_RUN_MANUAL)
+    try
+        xge.run(frame)
+        assert frames==3
+    finally
+        xge.setFrameCallback(null)
+        xge.unit()
+    end
+    println("Startup OOM: 12 checked failures, 3 real recoveries, reinitialize and manual mode passed")
+    return 0
+end

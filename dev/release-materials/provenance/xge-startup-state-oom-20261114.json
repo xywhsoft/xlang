@@ -1,0 +1,233 @@
+{
+  "date": "2026-11-14",
+  "qualified": true,
+  "shippingDelivery": false,
+  "networkTests": false,
+  "compilerChanges": false,
+  "bindingChanges": false,
+  "scope": "Consume native pre-window OOM with checked diagnostics, real same-process recovery and existing XUI/helper failure cleanup. Not all platform failure paths or full XGE integration.",
+  "nativeCommit": "c22608d678c70d843c1485b64dc0be4e751a09f9",
+  "nativePrerequisite": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\startup-state-oom-20261114.json",
+    "sha256": "e7a363c91c8b2aba1f1beaea52034f42b82c5d414218abfa821ad4a163b27474"
+  },
+  "sources": {
+    "test/cases/foreign_xge3_state_oom.xl": "6c426a4120379bdd7b80b1e25dd992558f5b666f7cd32321a97861dd19ee30f8",
+    "test/cases/foreign_xge3_state_oom.c": "ee1102e0cd6defc6528ad76351aa14c534337ee68b8b6d61871e528f92eea84d",
+    "test/cases/foreign_xge3_state_oom.h": "f74b9b37be46046c3214f0a89d6ecd2aeee9b20c00ea65fbf486066cb2cef77e",
+    "tools/check_xge3_state_oom.py": "b371b753327216ceaeb55b492cf998e823cbe6e04c126efa9dbfe5a2dec75a63",
+    "docs/xge3-platform-startup.md": "d4d390181238f63cfc802e06947005bb192d81b7967dd926c983c719c7d10982",
+    "docs/xge3-xui3-full-coverage-plan.md": "0e388940c9f81197fe5b4a5cd0f421b74ffc6348e2259148b13cb8e91c4dfa83"
+  },
+  "language": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\state-oom-language-win-r3\\results.json",
+      "sha256": "889c58c39d2c08d3668d393e7d07decb6ea3c07858ecfb2b54bf324199b972e4",
+      "commands": 13,
+      "programs": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\state-oom-language-win-r3\\dynamic.exe",
+          "sha256": "de4eef097e9a194aa22115e7a5b1b2dc9f35db30c568f8a0a1fd30705f47bef9",
+          "bytes": 4543488,
+          "imports": [
+            "xge3_host.dll",
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "Ole32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\state-oom-language-win-r3\\static.exe",
+          "sha256": "5cdf307720f05b517b14be5699b30299190ccb4ad58c2627b0d8c888a80a41c6",
+          "bytes": 4128256,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "USER32.dll",
+            "GDI32.dll",
+            "ole32.dll",
+            "OLEAUT32.dll",
+            "SHELL32.dll",
+            "IMM32.dll"
+          ]
+        }
+      ]
+    },
+    "linux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\state-oom-language-linux-r2\\results.json",
+      "sha256": "4e8db86209fbf9848e9ec91803080e9f1081d0b0313a19900c9a63be968f3db5",
+      "commands": 13,
+      "programs": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/state-oom-language-linux-r2/dynamic",
+          "sha256": "07326b2d21faff80b606651ce4a866a37ad15f1ab5cf383919f397a67427e55a",
+          "bytes": 4743870,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/state-oom-language-linux-r2/static",
+          "sha256": "589298ac752b7820f3ca51675b89976130efa99bb55ac93ef74889795c92c9a3",
+          "bytes": 1683330,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ]
+    }
+  },
+  "regressions": {
+    "x11": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\state-oom-x11-language-regression-linux-r1\\results.json",
+      "sha256": "e513df70d50b4d155f460842d6d2f59790c86cf40b252f354a9f83c406eff797",
+      "commands": 11,
+      "programs": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/state-oom-x11-language-regression-linux-r1/dynamic",
+          "sha256": "aec3ddbeda22496be2baaa1411593ac05030591bb8b6ca40d946992549d20df9",
+          "bytes": 1447134,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/state-oom-x11-language-regression-linux-r1/static",
+          "sha256": "a665ef91cbfa6469baae2395692cf11504154d35714ba70f61933813037459ed",
+          "bytes": 1562507,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ]
+    },
+    "ui-helper": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\state-oom-ui-helper-regression-linux-r1\\results.json",
+      "sha256": "5edd738fa67ab79b714e4a94d0ff4734b2dff6edd437d5192ea805600d7d1f9f",
+      "commands": 11,
+      "programs": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/state-oom-ui-helper-regression-linux-r1/dynamic",
+          "sha256": "d01c94d4f18112c368ce1f1d33de4680a0cbdbde3e0c7999c315972ebda8161d",
+          "bytes": 2137515,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/state-oom-ui-helper-regression-linux-r1/static",
+          "sha256": "51355ae0f6df553fabf0d313aded6e8f10806909175ef3645748d3f96ed70f25",
+          "bytes": 8849442,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ]
+    }
+  },
+  "compilerBuilds": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-null-cstr-full-r36\\build.json",
+      "sha256": "85dc294b283f3b774172a0de877ad86d34398689de17a6260f08900db030d931"
+    },
+    "linux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-null-cstr-linux-full-r29\\build.json",
+      "sha256": "3fb08e3ed8b6166e39bdb66955cea42c0db45d648697ce0e74914bac4adaf723"
+    }
+  },
+  "positiveLanguageProcessRows": 48,
+  "diagnostic": {
+    "nativeRunStatus": -5,
+    "preservedLanguageDiagnostic": {
+      "code": 1,
+      "domain": "xrt.memory",
+      "operation": "allocate"
+    },
+    "fallbackStatus": "Synthesized xlang.foreign status only when no native diagnostic exists."
+  },
+  "costs": {
+    "optimization": "O2",
+    "newPerFrameAllocation": false,
+    "newForwardingLayer": false,
+    "cpuEquivalenceClaim": false,
+    "sizes": {
+      "win": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\state-oom-binary-sizes-win-r1.json",
+        "sha256": "38c64003585a68e14b3b3a7a771476f76e506b53cdd271bf234963df8dc308c2",
+        "fileDelta": 0,
+        "textDelta": 128
+      },
+      "linux": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\state-oom-binary-sizes-linux-r1.json",
+        "sha256": "f2de6f0469575d99ad97947cf7393eb69b40947b5a8c68b8586b1d175d7803f3",
+        "fileDelta": 0,
+        "textDelta": -192
+      }
+    }
+  },
+  "limitations": [
+    "Public zero-budget Run may fail earlier code-lease admission; exact Sokol stages are proven separately by native C.",
+    "No final compiler/SDK/runtime/IDE installation or publication; release tree unchanged.",
+    "Later window/GLX/EGL/default-icon allocations and display disconnects need stage-aware work.",
+    "Linux windows use Xvfb/software OpenGL; no hardware/all-backend claim.",
+    "Source reviewed only for Apple/Android/web initializer callers."
+  ],
+  "fixtureCorrections": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\state-oom-language-win-r1\\results.json",
+      "sha256": "90f952132ca33daf223b9ae42e5281b4c8ef2775addb467a71b7ab7fc12c95d4",
+      "reason": "Original fixture expected fallback -5; actual existing contract preserves XRT code 1/memory allocation diagnostic. Injection now disabled before diagnostic string access. Original fixture and gate bytes retained beside report; no runtime error-contract change."
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\state-oom-language-win-r2\\results.json",
+      "sha256": "aa286f67a950a9f1c13b35449fdc98f397ddeb7b068a658ff83787c33df44c40",
+      "reason": "Original fixture expected fallback -5; actual existing contract preserves XRT code 1/memory allocation diagnostic. Injection now disabled before diagnostic string access. Original fixture and gate bytes retained beside report; no runtime error-contract change."
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\state-oom-language-linux-r1\\results.json",
+      "sha256": "2646ee8d345aaa469ba6c937f54ae5656121cd1a63cd268739a60b09669ce30e",
+      "reason": "Original fixture expected fallback -5; actual existing contract preserves XRT code 1/memory allocation diagnostic. Injection now disabled before diagnostic string access. Original fixture and gate bytes retained beside report; no runtime error-contract change."
+    }
+  ],
+  "repositoryBudget": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\state-oom-repository-budget-r1.json",
+    "sha256": "a6762c0c23c3889208c05b8c297b2dff3c925a9ed2cb928d0f48ead0d7cbad1f"
+  }
+}

@@ -925,3 +925,17 @@ Image 继续补入只读字节快照 pixels() 和直接读入 Buffer 的 readPix
 成员不用 XRT／解码器／图形库。详情见 xge3-image-pixels.md 与
 xge-image-pixels-20261114.json。独立零复制像素视图仍需决定共享底层存储／Busy
 或绑定 Image 失效的寿命规则；该项未结，最终主线配套交付与全量范围继续。
+
+原生 c22608d6 继续修复窗口创建前 Sokol 状态缓冲区 OOM：部分分配平衡释放、
+阻止空指针清零、拒绝拖放缓冲乘法溢出，并允许同进程重试。原生状态为 -5，
+语言边界保留实际 XRT 分配诊断（xrt.memory／allocate），不覆盖已有错误。
+两端各 12 项原生 O0／O2 步骤含重复故障与实际窗口恢复；Linux 加入缺失显示
+12 项、GL 加载失败 6 项及独立 Sokol ASan／UBSan／泄漏 2 项，共 44 项。
+两端完整编译器各 13 项 JIT／独立动态／静态、公共 C/C++ 头、导入与重试检查；
+Linux 原有 Run／真实 XUI Window 清理各 11 项，共 48 项语言步骤。语言零预算
+可能先失败于代码租约准入，不混算为精确 Sokol 阶段。SDK 保持 O2，host 各
+重编 1 单元／复用 163，static 重编 2／复用 164，公开 ABI／声明未变。
+相同宿主文件大小均不增加，代码节 Windows +128／Linux -192 字节；无每帧
+新增分配／转发，不声称 CPU 等价。其他平台仅源码核对，后续 GLX／EGL／窗口
+等错误分支仍需各自展开；详见 xge3-platform-startup.md 与
+xge-startup-state-oom-20261114.json。全量生态与最终配套交付继续，release 未安装。
