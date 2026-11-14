@@ -133,9 +133,27 @@ already have their desired logical length. Close the creator-thread owner in
 
 Typed creation adds O(n) record projection and one temporary allocation;
 the native immutable copy is still required. Owned serialization adopts the
-native allocation; string output validates UTF-8. World/renderer ownership,
-persistent collision callbacks and simulation remain unfinished. Neither the
-value nor definition examples certify those paths or whole-engine performance.
+native allocation; string output validates UTF-8. Neither definition examples
+nor allocation measurements certify whole-engine performance.
+
+`examples/particle_world.xl` runs the CPU simulation without a window. An owned
+`ParticleWorld` supports reserve/play, effect mutation, emit, update/prewarm,
+bounds/stats and synchronous visit. `share()` retains the same native world;
+`close()` releases that language owner. Calls require the creating thread.
+`onCollision(callback)` retains a traced closure until replaced or cleared;
+`onCollision()` clears it. Return 0 for no hit, 1 for a valid hit; exceptions
+stop the update and surface as checked errors. Updates may already have changed
+particles before an error; they do not roll back committed simulation work.
+
+Collision `ParticleHitOutput` is writable only during that callback. Visitor
+`ParticleSnapshot` and its `CallbackParticleDefinition` are readonly views of
+the same invocation scope. Saving them does not extend the scope: later
+access throws. Copy scalar/POD fields or serialized text when data must survive.
+Prepared hot calls measured no heap operations; scope/owner checks, native
+reference/activity bookkeeping and typed closure calls still have costs.
+Renderer/GPU ownership, conditional event outputs and some value/error results
+remain separate work. See `docs/xge3-particle-world.md` for exact coverage,
+failure semantics and measured limits; this is not a whole-engine completion.
 
 ## Window title snapshots
 

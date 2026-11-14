@@ -24,7 +24,9 @@
     "cSourceGroups": [
       {
         "source": "src/graphics_context.c",
-        "providedSymbols": ["xl6Xge3GraphicsContextCreateEglOwned"],
+        "providedSymbols": [
+          "xl6Xge3GraphicsContextCreateEglOwned"
+        ],
         "requiredSymbols": [
           "xl6CodeLeaseAcquireScoped",
           "xl6CodeLeaseRelease",
@@ -82,6 +84,19 @@
           "xl6Xge3AsyncTextureCreateOwned",
           "xl6Xge3AsyncFontCreateOwned",
           "xl6Xge3AsyncSoundCreateOwned"
+        ],
+        "requiredSymbols": [
+          "xl6CodeLeaseAcquireScoped",
+          "xl6CodeLeaseRelease",
+          "xl6CodeLeaseOwnership",
+          "xl6CodeLeaseHoldNativeV1",
+          "xl6CodeLeaseDropNativeV1"
+        ]
+      },
+      {
+        "source": "src/particle_world.c",
+        "providedSymbols": [
+          "xl6Xge3ParticleWorldCreateOwned"
         ],
         "requiredSymbols": [
           "xl6CodeLeaseAcquireScoped",

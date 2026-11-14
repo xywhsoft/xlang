@@ -1,0 +1,221 @@
+import xge
+from xge import ParticleSnapshot,CallbackParticleDefinition,ParticleHitOutput
+extern "fixtureWorldBudget" @header("test/cases/foreign_xge3_particle_world.h") @no_raise func budget(c_int value)
+extern "fixtureWorldBegin" @no_raise func prefixBegin(c_int value)
+extern "fixtureWorldEnd" @no_raise func prefixEnd()
+extern "fixtureWorldEqual" @no_raise func heapEqual()
+extern "fixtureWorldHotBegin" @no_raise func hotBegin()
+extern "fixtureWorldHotReport" @no_raise func hotReport(c_int kind)
+extern "fixtureWorldNativeHot" @no_raise func nativeHot(xge.ParticleWorld world)
+extern "fixtureWorldNativeCollision" @no_raise func nativeCollision(xge.ParticleWorld world,c_int install)
+extern "fixtureWorldNativeCollisionHot" @no_raise func nativeCollisionHot(xge.ParticleWorld world)
+extern "fixtureWorldNativeCollisionCalls" @no_raise func nativeCalls() as c_int
+extern "fixtureWorldRefs" @no_raise func nativeRefs(xge.ParticleWorld world) as c_int
+func main(...) as int
+ auto emitter=xge.particleEmitterInit()
+ emitter.bAutomatic=0
+ emitter.fRate=c_float(0)
+ emitter.iMaxParticles=4
+ emitter.iCollision=xge.XGE_PARTICLE_COLLISION_KILL
+ emitter.tLife.fMin=c_float(3600)
+ emitter.tLife.fMax=c_float(3600)
+ array<xge.ParticleEmitter> inputs=[emitter]
+ auto definition=xge.createParticleDefinition(inputs)
+ auto world=xge.createParticleWorld(4,16,8,8,8,c_float(0.015625))
+ auto alias=world.share()
+ assert nativeRefs(world)==2
+ auto effect=world.play(definition)
+ world.reserve(definition,2)
+ assert world.emit(effect,0,1)==1
+ int visited=0
+ xge.ParticleSnapshot? saved=null
+ xge.CallbackParticleDefinition? savedDefinition=null
+ world.visit(func(xge.ParticleSnapshot item) as c_int
+  assert item.effect==effect and item.emitter==0 and item.life==c_float(3600)
+  assert item.particle>0 and item.age==c_float(0)
+  assert item.position.fX==c_float(0) and item.position.fY==c_float(0)
+  assert item.velocity.fY<c_float(0)
+  assert item.size.fX>=c_float(8) and item.size.fX<=c_float(12)
+  assert item.size.fX==item.size.fY
+  assert item.rotation==c_float(0) and item.frame==c_float(0)
+  assert item.color==c_uint(4294967295)
+  assert item.definition.count()==1 and item.definition.get(0).iMaxParticles==4
+  saved=item
+  savedDefinition=item.definition
+  visited+=1
+  return c_int(1)
+ end)
+ assert visited==1
+ int rejected=0
+ try
+  auto value=(saved as ParticleSnapshot).position
+ catch StateError
+  rejected+=1
+ end
+ try
+  auto value=(savedDefinition as CallbackParticleDefinition).count()
+ catch StateError
+  rejected+=1
+ end
+ assert rejected==2
+ xge.ParticleHitOutput? savedHit=null
+ world.onCollision(func(xge.Vec2 start,xge.Vec2 finish,c_float radius,xge.ParticleHitOutput hit) as c_int
+  savedHit=hit
+  hit.position=finish
+  auto normal=xge.Vec2()
+  normal.fY=c_float(-1)
+  hit.normal=normal
+  hit.fraction=c_float(0.5)
+  return c_int(1)
+ end)
+ alias.update(0.015625)
+ assert world.stats().iCollisions==1 and world.stats().iLiveParticles==0
+ rejected=0
+ try
+  auto value=(savedHit as ParticleHitOutput).fraction
+ catch StateError
+  rejected+=1
+ end
+ assert rejected==1
+ world.restart(effect,9)
+ world.emit(effect,0,1)
+ world.onCollision(func(xge.Vec2 start,xge.Vec2 finish,c_float radius,xge.ParticleHitOutput hit) as c_int
+  assert false,"collision language failure"
+  return c_int(0)
+ end)
+ rejected=0
+ try
+  world.prewarm(effect,c_float(0.015625))
+ catch AssertionError
+  rejected+=1
+ end
+ assert rejected==1
+ world.onCollision()
+ assert world.stats().iLiveParticles==1
+ world.pause(effect)
+ world.pause(effect,0)
+ world.stop(effect,1)
+ world.restart(effect,3)
+ auto transform=xge.ParticleTransform()
+ transform.tScale.fX=c_float(1)
+ transform.tScale.fY=c_float(1)
+ transform.tPosition.fX=c_float(7)
+ transform.tPosition.fY=c_float(9)
+ world.setTransform(effect,transform)
+ auto options=xge.particlePlayInit()
+ world.setParameters(effect,options.tParameters)
+ world.setVisible(effect,0)
+ world.setVisible(effect)
+ auto bounds=world.bounds(effect)
+ assert bounds.fW==c_float(0)
+ world.release(effect)
+ auto second=world.play(definition,options)
+ world.release(second)
+ // Prepared zero-step reads compare the same managed native body in C.
+ hotBegin()
+ budget(0)
+ try
+  for i in range(1000)
+   world.update(0)
+   assert world.stats().iLiveParticles==0
+  end
+ finally
+  budget(-1)
+ end
+ hotReport(0)
+ hotBegin()
+ nativeHot(world)
+ hotReport(1)
+ auto hotEffect=world.play(definition)
+ world.emit(hotEffect,0,1)
+ int calls=0
+ xge.ParticleCollisionProc miss=func(xge.Vec2 start,xge.Vec2 finish,c_float radius,xge.ParticleHitOutput hit) as c_int
+  assert hit.fraction==c_float(0)
+  hit.position=finish
+  calls+=1
+  return c_int(0)
+ end
+ world.onCollision(miss)
+ hotBegin()
+ for i in range(1000)
+  world.update(0.015625)
+ end
+ hotReport(2)
+ assert calls==1000
+ nativeCollision(world,1)
+ hotBegin()
+ nativeCollisionHot(world)
+ hotReport(3)
+ assert nativeCalls()==1000
+ nativeCollision(world,0)
+ world.release(hotEffect)
+ int failures=0
+ int successes=0
+ for operation in range(3)
+  for allowance in range(32)
+   prefixBegin(c_int(allowance))
+   try
+    if operation==0 then
+     auto value=xge.createParticleWorld(4,16,8,8,8,c_float(0.015625))
+     value.close()
+    elseif operation==1 then
+     auto value=world.share()
+     value.close()
+    else
+     world.onCollision(miss)
+    end
+    successes+=1
+   catch Error
+    failures+=1
+   finally
+    prefixEnd()
+   end
+   world.onCollision()
+   heapEqual()
+   assert nativeRefs(world)==2
+  end
+ end
+ assert failures>0 and successes>0
+ // A callback can close its own view; the native call and code still finish.
+ auto closing=xge.createParticleWorld(2,8,0,8,8,c_float(0.015625))
+ auto closingEffect=closing.play(definition)
+ closing.emit(closingEffect,0,1)
+ closing.onCollision(func(xge.Vec2 start,xge.Vec2 finish,c_float radius,xge.ParticleHitOutput hit) as c_int
+  closing.close()
+  return c_int(0)
+ end)
+ closing.update(0.015625)
+ rejected=0
+ try
+  auto value=closing.stats()
+ catch StateError
+  rejected+=1
+ end
+ assert rejected==1
+ func(c_double) updateValue=world.update
+ func() as xge.ParticleStats statsValue=world.stats
+ updateValue(0)
+ assert statsValue().iLiveParticles==0
+ auto worker=thread(func() as int
+  try
+   auto value=world.stats()
+  catch StateError
+   return 1
+  end
+  return 0
+ end)
+ assert worker.waitTimeout(30000) and worker.exitCode()==1
+ world.close()
+ rejected=0
+ try
+  updateValue(0)
+ catch StateError
+  rejected+=1
+ end
+ assert rejected==1
+ assert alias.stats().iLiveParticles==0
+ alias.close()
+ definition.close()
+ println("ParticleWorld: direct simulation, owned collision, scoped hit/snapshot/definition, checked failure, sharing and thread passed")
+ return 0
+end

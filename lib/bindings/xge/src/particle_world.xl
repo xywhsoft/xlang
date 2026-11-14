@@ -1,0 +1,62 @@
+// Hit is initialized by native code and is writable only during this callback.
+export extern "xge_particle_hit_t*" class ParticleHitOutput @header("xge3_particle_world.h") @lifetime("callback")
+ native point handle
+ extern "tPosition" @c_field get position() as Vec2
+ extern "tPosition" @c_field let position(Vec2 value)
+ extern "tNormal" @c_field get normal() as Vec2
+ extern "tNormal" @c_field let normal(Vec2 value)
+ extern "fFraction" @c_field get fraction() as c_float
+ extern "fFraction" @c_field let fraction(c_float value)
+end
+export typedef ParticleCollisionProc=func(Vec2,Vec2,c_float,ParticleHitOutput) as c_int
+// Native snapshots never grant ownership of their embedded pointer. This
+// read-only definition view shares the invocation scope, not a raw pointer.
+export extern "xge_particle_definition" class CallbackParticleDefinition @header("xge3_particle_world.h") @lifetime("callback")
+ native point handle
+ extern "xgeParticleDefinitionCount" @no_raise func count() as c_int
+ extern "xgeParticleDefinitionGet" @no_raise @c_output(2,0) func get(c_int index) as ParticleEmitter
+ extern "xgeParticleDefinitionStringify" @no_raise @c_output_text(2,3,"char*","size_t","xrt",0) func stringify(c_int xlon=0) as string
+end
+export extern "const xge_particle_snapshot_t*" class ParticleSnapshot @header("xge3_particle_world.h") @lifetime("callback")
+ native point handle
+ extern "iEffect" @c_field get effect() as uint64
+ extern "iParticle" @c_field get particle() as uint64
+ extern "iEmitter" @c_field get emitter() as c_int
+ extern "pDefinition" @c_field @c_result("scope_view",0) get definition() as CallbackParticleDefinition
+ extern "tPosition" @c_field get position() as Vec2
+ extern "tVelocity" @c_field get velocity() as Vec2
+ extern "tSize" @c_field get size() as Vec2
+ extern "fAge" @c_field get age() as c_float
+ extern "fLife" @c_field get life() as c_float
+ extern "fRotation" @c_field get rotation() as c_float
+ extern "fFrame" @c_field get frame() as c_float
+ extern "iColor" @c_field get color() as c_uint
+end
+export typedef ParticleVisitor=func(ParticleSnapshot) as c_int
+
+export extern "xge_particle_world" class ParticleWorld @header("xge3_particle_world.h") @lifetime("owned") @policy("xl6Xge3ParticleWorldPolicy") @domain("xl6Xge3ParticleWorldDomainV1")
+ native point handle
+ extern "xgeParticleWorldShareOwned" @no_raise @c_result("owned_view") @factory(1,0,releaseParticleWorld) func share() as ParticleWorld
+ extern "xgeParticleWorldReserve" @no_raise @c_result("status",0) func reserve(ParticleDefinition definition,c_uint count)
+ extern "xgeParticlePlay" @no_raise @c_null(2,"const xge_particle_play_t*") @c_output(3,0) func play(ParticleDefinition definition) as uint64
+ extern "xgeParticlePlay" @no_raise @c_ref(1) @c_output(3,0) func play(ParticleDefinition definition,ParticlePlay options) as uint64
+ extern "xgeParticleRelease" @no_raise @c_result("status",0) func release(uint64 effect)
+ extern "xgeParticleRestart" @no_raise @c_result("status",0) func restart(uint64 effect,uint64 seed=1)
+ extern "xgeParticlePause" @no_raise @c_result("status",0) func pause(uint64 effect,c_int paused=1)
+ extern "xgeParticleStop" @no_raise @c_result("status",0) func stop(uint64 effect,c_int clear=0)
+ extern "xgeParticleSetTransform" @no_raise @c_ref(1) @c_result("status",0) func setTransform(uint64 effect,ParticleTransform value)
+ extern "xgeParticleSetParameters" @no_raise @c_ref(1) @c_result("status",0) func setParameters(uint64 effect,ParticleParameters value)
+ extern "xgeParticleSetVisible" @no_raise @c_result("status",0) func setVisible(uint64 effect,c_int visible=1)
+ extern "xgeParticleBounds" @no_raise @c_output(2,0) func bounds(uint64 effect) as Rect
+ extern "xgeParticleEmit" @no_raise @c_output(4,0) func emit(uint64 effect,c_int emitter,c_uint count) as c_uint
+ extern "xgeParticleUpdate" @no_raise @c_result("status",0) func update(c_double seconds)
+ extern "xgeParticlePrewarm" @no_raise @c_result("status",0) func prewarm(uint64 effect,c_float seconds)
+ extern "xgeParticleStats" @no_raise func stats() as ParticleStats
+ // Return 0 to stop visiting, nonzero to continue. Failed language callbacks
+ // return 0 through the generic checked bridge and deliver their first error.
+ extern "xgeParticleVisit" @no_raise @c_sync_callback(0,-1,0) @c_result("status",0) func visit(ParticleVisitor visitor)
+ extern "xgeParticleWorldSetCollisionOwned" @no_raise @c_owned_callback(0,-1,"xge_callback_owner_t",-16) @c_result("status",0) func onCollision(ParticleCollisionProc? callback=null)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xgeParticleWorldFreeChecked" @header("xge3_particle_world.h") @no_raise @c_result("status",0) func releaseParticleWorld(ParticleWorld value)
+export extern "xl6Xge3ParticleWorldCreateOwned" @header("xge3_particle_world.h") @no_raise @c_code_owner(2) @c_result("owned_view") @factory(0,0,releaseParticleWorld) @c_pack(1,"xge_particle_world_desc_t",0,6) @c_pack_field(1,"iMaxEffects",0,"value") @c_pack_field(1,"iMaxParticles",1,"value") @c_pack_field(1,"iMaxEvents",2,"value") @c_pack_field(1,"iMaxSpawnPerStep",3,"value") @c_pack_field(1,"iMaxSubsteps",4,"value") @c_pack_field(1,"fFixedStep",5,"value") func createParticleWorld(c_uint maxEffects=128,c_uint maxParticles=32768,c_uint maxEvents=4096,c_uint maxSpawnPerStep=4096,c_uint maxSubsteps=64,c_float fixedStep=0.008333333333333333) as ParticleWorld

@@ -112,7 +112,7 @@ neither that image nor compiler/TCC DLLs/DSOs.
 Run `examples/particle_definition.xl` for a short, linear create/read/JSON-roundtrip
 lesson with explicit `finally` cleanup. The receipt is
 `dev/release-materials/provenance/xge-particle-definitions-20261114.json`.
-Particle World, persistent collision callbacks, snapshots/events, renderer/GPU
-ownership and final matched release installation remain separate unfinished work.
-This batch does not certify simulation, rendering, network behavior or complete
-XGE/XUI/Document coverage.
+The later [ParticleWorld batch](xge3-particle-world.md) qualifies CPU simulation,
+owned collision callbacks and scoped snapshots. Conditional events, renderer/GPU
+ownership and final matched release installation remain unfinished. Definition
+tests do not certify simulation, rendering, networking or complete coverage.

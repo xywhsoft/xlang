@@ -28,6 +28,7 @@ extern "C" {
 int xl6Xge3RuntimeBindV1(void);
 int xl6Xge3InitWithCode(const xge_desc_t*,const XL6_CodeOwner*);
 int xl6Xge3SceneCreateOwned(xge_scene_owned*,const XL6_CodeOwner*);
+int xl6Xge3ParticleWorldCreateOwned(xge_particle_world*,const xge_particle_world_desc_t*,const XL6_CodeOwner*);
 int xl6Xge3AsyncImageCreateOwned(xge_async_owned*,const XL6_CodeOwner*);
 int xl6Xge3AsyncTextureCreateOwned(xge_async_owned*,const XL6_CodeOwner*);
 #if XGE_ENABLE_TEXT

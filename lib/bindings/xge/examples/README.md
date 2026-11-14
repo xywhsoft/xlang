@@ -117,3 +117,11 @@ Run `xl run examples/xge/particle_definition.xl` from a matched runtime. Expect
 `JSON round trip passed`. No engine, window, GPU, file or service is needed.
 Both definitions close in `finally`. Typed array creation projects/copies the
 records; this lesson does not yet create a simulation world or renderer.
+
+`particle_world.xl` creates one CPU simulation world, registers a typed collision
+callback, emits one particle and checks that a collision removes it. Run
+`xl run examples/xge/particle_world.xl` with a matched owned-collision SDK.
+Expect `Collision removed the particle`. No window, engine Init, GPU, file or
+service is needed. Hit fields are writable during the callback only. The World
+and immutable definition close in `finally`; the lesson uses a lexical main
+and does not require classes, manual DLL loading or a renderer.

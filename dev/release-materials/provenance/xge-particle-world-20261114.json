@@ -1,0 +1,467 @@
+{
+  "date": "2026-11-14",
+  "qualified": true,
+  "shippingDelivery": false,
+  "fullGoalComplete": false,
+  "networkTests": false,
+  "nativeCommit": "de19f702815d5da5a510ee04865bf61bbd879fec",
+  "dependency": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\particle-collision-ownership-20261114.json",
+    "sha256": "2b681bea675012db46ede0188014cdff186276cebbaf67286fc63bdba6a15d72"
+  },
+  "scope": "Declarative CPU ParticleWorld, true owned collision registration and callback-period Hit/Snapshot/Definition views; existing generic contracts, no compiler core modification.",
+  "sources": {
+    "lib/bindings/_xge_native/include/xge3_runtime.h": "4744ed57e62f064ca51357f0af6e11b9e47489159e6860009df2fdfd69e6b315",
+    "lib/bindings/_xge_native/xlang.package.json": "0b7eb5cf2d84ba88548ba7a571512bb03fb1fd8ac52940fb715a367c67a0ff63",
+    "lib/bindings/_xge_native/src/particle_world.c": "a076d954c4088e09d6e321d86e13bcf224aa15960146765e1f11a90214c29ee3",
+    "lib/bindings/xge/xlang.package.json": "e3a6409fd9bd45225c801af05aae4180430c11da0c38a1082fdfe947005f79d0",
+    "lib/bindings/xge/src/particle_world.xl": "3286f9a4b315320615d85ea1f9dcb01ebed30d9c7a4f09d8d78383190fcd454a",
+    "lib/bindings/xge/include/xge3_particle_world.h": "7cd899bae899e47f427030db21da74af083464928bd7677ebd5defd830d8f062",
+    "lib/bindings/xge/examples/particle_world.xl": "40f667febaab9ad11b6aa5cf1cf203eeb86c10a17c60e862924502e94bc09e80",
+    "lib/bindings/xge/README.md": "bbf4be098bc76e618a683775d6737235ebdd596d0e7370983fb6cc50652c8913",
+    "lib/bindings/xge/examples/README.md": "634265d3f8224f2d3c55a2fef3220d65795e75aadb0a04a92d125303522c3688",
+    "test/cases/foreign_xge3_particle_world.c": "3868d51f394051b9b88725516d63a7a8000155d8104bd1c23424dd32809dbd9d",
+    "test/cases/foreign_xge3_particle_world.h": "187033423dbebcfab6d7a48a866f76fcd682efa7a0195250c79a6e2953d612cc",
+    "test/cases/foreign_xge3_particle_world.xl": "1feda04477aa74c36b7d916f1a7b409d17831acf875935a284fe5b700460d5ea",
+    "tools/check_xge3_particle_world.py": "1df110e6cdc9e7d82cc39ff1efd73eb04e0a9f8e0761964905ff0ce787f4d7e3",
+    "docs/xge3-particle-world.md": "cdf211f6a28419663b5b9f08f749fb150eb2c33fc05005158a3bf9bb1be74076",
+    "docs/xge3-particle-world-ownership.md": "4d7b25ea7df2c7d362010c2e5229cfe290cbabd04bbcd548463781212282b81e",
+    "docs/xge3-particle-definitions.md": "33d296b003c9a619ba80c5889661b1dd122d91684ecaabec3a78ee70f82f3640",
+    "docs/xge3-xui3-full-coverage-plan.md": "03ab5ee7ddf9414624c9ab50af356311281ec5805f7f09f473c20c59e5fdd811"
+  },
+  "platforms": {
+    "win": {
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-world-language-win-r2\\results.json",
+        "sha256": "519458912ecfd77bcab2f930699a2ba701a88f7a11c10df64f4b13f1dafbf05e"
+      },
+      "commands": 24,
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-collision-native-win-r2\\results.json",
+        "sha256": "1039395dd05afacf55255e1e898d6bfe4ecef3bcc00a733de6e205dc438c0ff6"
+      },
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-collision-sdk-win-r1\\results.json",
+        "sha256": "952f34bdaf3251ba01cd4cf8a567718c8c7bb73c6af6b79f1cb9a4967212e4b9"
+      },
+      "packageReports": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\particle-collision-packages-win-r4\\host.json",
+          "sha256": "5f8c00be8c05e1aace4487d4b710ca20ae6ebe8ffad57b6063157fe737a5c27a"
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\particle-collision-packages-win-r4\\static.json",
+          "sha256": "86156dc07192902c332dcb2a4b6f4bb67511cdb3000987f67f57d296fd012574"
+        }
+      },
+      "borrowedTextRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-world-text-regression-win-r1\\results.json",
+        "sha256": "924a7845cb88c4559c008241222f95db9d50a5d004cddd3b840f2fbc2984bca6"
+      },
+      "borrowedTextCommands": 29,
+      "trim": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-world-trim-win-r4\\results.json",
+        "sha256": "a94cb6060858d764d7eacb5d2f9001dce1b592ee259e765c269082497c959d7b"
+      },
+      "trimDeltas": {
+        "bytes": 0,
+        "text": 0,
+        "bss": 0
+      },
+      "cost": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-collision-cost-win-r1\\results.json",
+        "sha256": "da40069b5b6e39115cfa44d4c5b975bd1d28f20cf4d373e6497141ff53816022"
+      },
+      "programs": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\particle-world-language-win-r2\\foreign_xge3_particle_world-dynamic.exe",
+          "sha256": "61454c2c3903d8972324dda98dbd6a97143c0142ac6c72d727ce1ed35c7b2aa4",
+          "bytes": 4978688,
+          "imports": [
+            "xge3_host.dll",
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\particle-world-language-win-r2\\foreign_xge3_particle_world-static.exe",
+          "sha256": "11f78cf4f6978ba8b016855add70bdaacccbcfdcc4af2180db6dda84d9eb06b0",
+          "bytes": 4228608,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "USER32.dll",
+            "ole32.dll",
+            "OLEAUT32.dll",
+            "SHELL32.dll",
+            "GDI32.dll",
+            "IMM32.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\particle-world-language-win-r2\\particle_world-dynamic.exe",
+          "sha256": "d0357e7ba8cf994e3d985783a354ebff4e0470cf4c0c5d8bba78e73554dd709a",
+          "bytes": 1394688,
+          "imports": [
+            "xge3_host.dll",
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\particle-world-language-win-r2\\particle_world-static.exe",
+          "sha256": "d50104d13e55ebf7252435d6c60ce9b7913379f292ee14d31631d7bd1cb182c4",
+          "bytes": 3759616,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "USER32.dll",
+            "ole32.dll",
+            "OLEAUT32.dll",
+            "SHELL32.dll",
+            "GDI32.dll",
+            "IMM32.dll"
+          ]
+        }
+      ],
+      "heap": [
+        {
+          "mode": "jit",
+          "rounds": 1000,
+          "allocationPrefixes": 96,
+          "counts": {
+            "0": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "1": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "2": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "3": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        },
+        {
+          "mode": "dynamic",
+          "rounds": 1000,
+          "allocationPrefixes": 96,
+          "counts": {
+            "0": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "1": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "2": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "3": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        },
+        {
+          "mode": "static",
+          "rounds": 1000,
+          "allocationPrefixes": 96,
+          "counts": {
+            "0": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "1": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "2": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "3": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        }
+      ],
+      "generatedC": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-world-language-win-r2\\foreign_xge3_particle_world.c",
+        "sha256": "2adcbd123ee16c6013005d6ebbe5a4dea0f22fe7150f749fc0fcc55e5aabafd2",
+        "directCalls": {
+          "xgeParticlePlay": 4,
+          "xgeParticleEmit": 4,
+          "xgeParticleUpdate": 5,
+          "xgeParticleStats": 8,
+          "xgeParticleWorldSetCollisionOwned": 7,
+          "xgeParticleVisit": 1,
+          "xgeParticlePrewarm": 1,
+          "xgeParticleWorldShareOwned": 2,
+          "xgeParticleWorldReserve": 1
+        },
+        "callbackLifetimeViews": true,
+        "ownedCollisionRegistration": true,
+        "zeroBridgeOverheadClaim": false
+      }
+    },
+    "linux": {
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-world-language-linux-r2\\results.json",
+        "sha256": "796b216d91a7ed3a95bcc155557e44c5f28057e506aed764629fcc8907a32dd3"
+      },
+      "commands": 24,
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-collision-native-linux-r2\\results.json",
+        "sha256": "7585ac69eaf57831c5d240cecf18be05332d5eade772b4a5592fd2c0694dd882"
+      },
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-collision-sdk-linux-r1\\results.json",
+        "sha256": "8d9b11d10942cbf6660010a726397d13c302b2b6b7e1ade097896cd3167d3270"
+      },
+      "packageReports": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\particle-collision-packages-linux-r4\\host.json",
+          "sha256": "2d220630f2d502209de0f72ae55c720f48863b12070678cf070f011f0b06361e"
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\particle-collision-packages-linux-r4\\static.json",
+          "sha256": "f3205a5732b6cdfcf77da39cde1aa08fce4404d7eb7a6d80061a45f2645a1bf2"
+        }
+      },
+      "borrowedTextRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-world-text-regression-linux-r1\\results.json",
+        "sha256": "01de5b9da7d67285c95c1d2ba4faeb7fcc54b9ca686b6b9166dfdde8c79ac44f"
+      },
+      "borrowedTextCommands": 29,
+      "trim": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-world-trim-linux-r4\\results.json",
+        "sha256": "73a327cd4a459a833a8841fa958453b825a11509b3aedf4d510fc835d5acb378"
+      },
+      "trimDeltas": {
+        "bytes": 1,
+        "text": 0,
+        "bss": 0
+      },
+      "cost": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-collision-cost-linux-r1\\results.json",
+        "sha256": "cecc154066a370468a3360c5b27818e6325b38548708ec959405f713d252070e"
+      },
+      "programs": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/particle-world-language-linux-r2/foreign_xge3_particle_world-dynamic",
+          "sha256": "c9b66098c3588d6d8d588eebf9370cbb59bb1263987366ca3c8eb468656869e0",
+          "bytes": 5178370,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/particle-world-language-linux-r2/foreign_xge3_particle_world-static",
+          "sha256": "3c351000a00fd5071a4552f1de7fecf73b91d743a79e53557d0ab7382c77427e",
+          "bytes": 1464088,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/particle-world-language-linux-r2/particle_world-dynamic",
+          "sha256": "1146c3d305361f4dd2698e31d4f772ae4464400d7486c0c3f403aae936296096",
+          "bytes": 1474377,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/particle-world-language-linux-r2/particle_world-static",
+          "sha256": "4ba0d90c5269a72c92afc4d504791af14ba329abdffa374c452bf53017e9797b",
+          "bytes": 911374,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ],
+      "heap": [
+        {
+          "mode": "jit",
+          "rounds": 1000,
+          "allocationPrefixes": 96,
+          "counts": {
+            "0": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "1": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "2": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "3": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        },
+        {
+          "mode": "dynamic",
+          "rounds": 1000,
+          "allocationPrefixes": 96,
+          "counts": {
+            "0": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "1": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "2": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "3": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        },
+        {
+          "mode": "static",
+          "rounds": 1000,
+          "allocationPrefixes": 96,
+          "counts": {
+            "0": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "1": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "2": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "3": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        }
+      ],
+      "generatedC": {
+        "path": "/mnt/f/xlang-validation/xge-full-20261110/particle-world-language-linux-r2/foreign_xge3_particle_world.c",
+        "sha256": "2adcbd123ee16c6013005d6ebbe5a4dea0f22fe7150f749fc0fcc55e5aabafd2",
+        "directCalls": {
+          "xgeParticlePlay": 4,
+          "xgeParticleEmit": 4,
+          "xgeParticleUpdate": 5,
+          "xgeParticleStats": 8,
+          "xgeParticleWorldSetCollisionOwned": 7,
+          "xgeParticleVisit": 1,
+          "xgeParticlePrewarm": 1,
+          "xgeParticleWorldShareOwned": 2,
+          "xgeParticleWorldReserve": 1
+        },
+        "callbackLifetimeViews": true,
+        "ownedCollisionRegistration": true,
+        "zeroBridgeOverheadClaim": false
+      }
+    }
+  },
+  "publicSurface": {
+    "world": "create/share/reserve/play/release/restart/pause/stop/transform/parameters/visibility/bounds/emit/update/prewarm/stats/visit/onCollision/close",
+    "views": "Writable scoped Hit; readonly scoped Snapshot and derived Definition. No long-lived borrowed alias claim."
+  },
+  "costs": {
+    "managedNativeBytes": 600,
+    "rawNativeBytes": 496,
+    "smallManagedAllocations": 5,
+    "smallManagedLiveBytes": 1336,
+    "hot": "1000 prepared Update(0)/Stats pairs and 1000 actual collisions: language and C all zero alloc/free/realloc in each runtime mode.",
+    "perCollision": "Native independent callback-owner Hold/Drop; language callback/receiver/scope/error checks and typed closure call. POD values copied.",
+    "cold": "Factory CodeLease admission plus managed view; share language view; closure construction/registration records may allocate. Native registration itself does not allocate.",
+    "cpuEquivalenceClaim": false,
+    "zeroBridgeOverheadClaim": false
+  },
+  "borrowedText": {
+    "implementationCommit": "b0c7bb496",
+    "contract": "Existing c_output + c_output_view text: status plus xstrview, one native call, exact-byte copy in active scope, nullable result, checked native/copy failure.",
+    "regression": "New matching SDK executes embedded NUL, NULL/empty, failed native snapshot and copy OOM, preserving old destinations; generic malformed extent/status fixture included."
+  },
+  "evidenceNotes": [
+    "Staged r4 contains exact code/example bytes and records exact source manifests; its private manifest has intentional SDK link/metadata projection. Example catalogue and repository-only documentation were added after execution; no runtime bytes installed.",
+    "Linux first trim assertion incorrectly required zero file-size change; actual +1 byte is exclusively section-name metadata. Original failed report retained; r4 audits parent inputs/logs and ELF sections without recompiling.",
+    "No final release tree, current delivery index, IDE or push/version changed."
+  ],
+  "limitations": [
+    "Renderer/GPU owner graph and engine shutdown remain separate.",
+    "Conditional EventPoll/collision output and mixed State value/error result await their general contracts.",
+    "No independent Definition retention from callback-period view.",
+    "No module/global CodeLease cycle solution or complete XGE/XUI/Document claim."
+  ]
+}
