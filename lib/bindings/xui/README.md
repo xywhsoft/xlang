@@ -502,3 +502,8 @@ and index -1 when cleared. See `examples/radiogroup.xl` and
 [descriptor, ownership and failure contracts](../../../docs/xui-radio-option.md).
 This requires the matched Radio initialization/cache-fix SDK; it adds no
 per-method C forwarding function.
+
+The matched choice-cache SDK also fixes CheckBox/Toggle partial initialization
+cleanup and clean-frame external image refresh for Button/CheckBox/Toggle.
+Unchanged image generations reuse caches; clean-frame dependency probes remain
+real native work. See [cache and failure evidence](../../../docs/xui-choice-cache.md).

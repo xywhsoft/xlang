@@ -1,0 +1,134 @@
+import xui
+from xui import Widget
+extern "fixtureCacheProxy" @header("test/cases/foreign_xui_choice_cache.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
+extern "fixtureRenderFont" @no_raise @c_result("owned_view") @factory(1,0,dropFont) func cpuFont(xui.Proxy proxy) as xui.Font
+extern "xuiFontReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropFont(xui.Font value)
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "fixtureRenderBudget" @no_raise func budget(c_int n)
+extern "fixtureCacheAtlas" @no_raise func observe(xui.Surface atlas)
+extern "fixtureCacheMutate" @no_raise func mutate(xui.Surface atlas)
+extern "fixtureCacheBegin" @no_raise func beginCount()
+extern "fixtureCacheReport" @no_raise func report(c_int kind,c_int native)
+extern "fixtureCacheNativeIdle" @no_raise func nativeIdle(xui.Context ui)
+extern "fixtureCacheExpectDraw" @no_raise func expectDraw()
+extern "fixtureCachePrefixBegin" @no_raise func prefixBegin()
+extern "fixtureCachePrefixEnd" @no_raise func prefixEnd()
+extern "fixtureCacheHeapEqual" @no_raise func heapEqual()
+func rect(int x,int y,int w,int h) as xui.Rect
+ auto result=xui.Rect()
+ result.fX=c_int(x)
+ result.fY=c_int(y)
+ result.fW=c_int(w)
+ result.fH=c_int(h)
+ return result
+end
+func probe(int kind)
+ auto proxy=cpuProxy()
+ auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ auto font=cpuFont(proxy)
+ ui.setDefaultFont(font)
+ auto root=ui.widget()
+ assert root.setRect(rect(0,0,220,80))==0 and ui.setRootWidget(root)==0
+ auto atlas=proxy.createSurfaceRGBA(32,32)
+ auto target=proxy.createSurfaceRGBA(220,80,flags=c_uint(xui.XUI_SURFACE_USAGE_TARGET))
+ observe(atlas)
+ auto source=rect(0,0,16,16)
+ xui.Widget? item=null
+ if kind==0 then
+  auto button=ui.buttonNative()
+  button.setIcon(atlas,source)
+  item=button
+ elseif kind==1 then
+  auto checkbox=ui.checkBoxNative()
+  checkbox.setIndicatorSurface(atlas,source,atlas,source)
+  item=checkbox
+ elseif kind==2 then
+  auto toggle=ui.toggleNative()
+  toggle.setIndicatorSurface(atlas,source,atlas,source)
+  item=toggle
+ else
+  auto radio=ui.radioNative()
+  radio.setIndicatorSurface(atlas,source,atlas,source)
+  item=radio
+ end
+ auto child=item as Widget
+ assert root.addChild(child)==0 and child.setRect(rect(0,0,160,32))==0
+ assert ui.layout()==0
+ ui.render(target)
+ assert ui.renderPrepare()==0
+ ui.render(target)
+ child.clearDirty(c_uint(xui.XUI_WIDGET_DIRTY_ALL))
+ root.clearDirty(c_uint(xui.XUI_WIDGET_DIRTY_ALL))
+ beginCount()
+ budget(0)
+ try
+  for i in range(1000)
+   assert ui.renderPrepare()==0
+  end
+ finally
+  budget(-1)
+ end
+ report(c_int(kind),0)
+ beginCount()
+ budget(0)
+ try
+  nativeIdle(ui)
+ finally
+  budget(-1)
+ end
+ report(c_int(kind),1)
+ mutate(atlas)
+ assert ui.renderPrepare()==0
+ expectDraw()
+ int failures=0
+ int successes=0
+ for allowance in range(64)
+  prefixBegin()
+  try
+   auto previous=child
+   bool rejected=false
+   budget(c_int(allowance))
+   try
+    if kind==0 then
+     previous=ui.buttonNative()
+    elseif kind==1 then
+     previous=ui.checkBoxNative()
+    elseif kind==2 then
+     previous=ui.toggleNative()
+    else
+     previous=ui.radioNative()
+    end
+   catch Error
+    rejected=true
+   finally
+    budget(-1)
+   end
+   if rejected then
+    failures+=1
+    assert previous==child
+   else
+    successes+=1
+    previous.close()
+   end
+   assert root.getChildCount()==1
+  finally
+   prefixEnd()
+  end
+  heapEqual()
+ end
+ assert failures>0 and successes>0
+ ui.close()
+ target.close()
+ atlas.close()
+ font.close()
+ proxy.close()
+end
+func main(...) as int
+ for kind in range(4)
+  probe(kind)
+  assert balanced()==1
+ end
+ println("ChoiceCache: isolated generations, owned resources, 256 OOM prefixes and exact cleanup passed")
+ return 0
+end

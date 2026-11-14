@@ -1,0 +1,219 @@
+{
+  "schema": 1,
+  "date": "2026-11-15",
+  "status": "qualified-native-correction-integration",
+  "shippingDelivery": false,
+  "scope": "Existing declarative Button/CheckBox/Toggle/Radio against native choice initialization/cache fixes, owned CPU resource and bounded window validation. No public declarations or compiler rule changes.",
+  "sourceSha256": {
+    "lib/bindings/xui/README.md": "19a024898f8675690903f8abfa0d0d89a0b7aad94cc440456b506e679965c779",
+    "docs/xui-choice-cache.md": "c7c6b9a762798996c141ea0e33ab6c912d42a32b34a0bc3cedac76b3c4f88fa6",
+    "docs/xge3-xui3-full-coverage-plan.md": "a413cb55c478a235ee8ffbb3bb0b959942c7386ed5de15f2b135fa60830da97f",
+    "tools/check_xui_choice_cache.py": "15ac7691c4427f2c967102a23cb0f54cd1ea5c47c091ca81056e067f53d55fa3",
+    "test/cases/foreign_xui_choice_cache.h": "f46c662bae7d9545b32d2f4d94804c072247edc102d9a4d25da551f50948e48b",
+    "test/cases/foreign_xui_choice_cache.c": "1d53790454da7e960870026167f23e7bf074b86cc7dbdd1ddded8c1fae164227",
+    "test/cases/foreign_xui_choice_cache.xl": "dc72d45f12188d8fc2bd8fb739c5ad9d08ccf206a45c0e1c23c17aaee111505d"
+  },
+  "native": {
+    "codeRevision": "d1104c8e",
+    "reviewRevision": "e9f19e534ee19abc480fba72c33e561232865228",
+    "receipts": [
+      {
+        "path": "D:\\GIT\\xge\\docs\\validation\\choice-init-and-cache-20261115.json",
+        "sha256": "235065b5f12d66513e9c29518dc9bb667b7efdbfa8b9e97f37fa69555ce1c208"
+      },
+      {
+        "path": "D:\\GIT\\xge\\docs\\validation\\widget-constructor-audit-review-20261115.json",
+        "sha256": "e4531e1d3370dc9b2740509912bcfb4a18621f0fa2572b530b855f5dc2e5b3ca"
+      }
+    ]
+  },
+  "contracts": {
+    "initialization": "Only failed stages clean their partial own buffers; generic successful-stage-only destructor rule retained. Font admission and base Widget cache/event ownership unchanged.",
+    "cache": "Existing per-frame dependency probes enabled for clean Button/CheckBox/Toggle; independent per-control trees prevent sibling masking; unchanged images reuse cached draws.",
+    "managed": "Real owned native CPU Proxy/Font/Surface/Draw, correct creator-thread/lifetime factory handling, 256 language budgets per mode, exact heap cleanup and balanced backend resources.",
+    "cost": "One shared atlas across slots is deduplicated: C and language1000 idle preparations each observe1000 generation queries and zero XRT heap operations. Native slot scans/tree traversal and foreign call/check bookkeeping remain; no CPU-equivalence claim."
+  },
+  "qualification": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\choice-cache-evidence-win-r1.json",
+      "sha256": "37f3e1e8d0b850c668ca5acf611b2cb3010ebefc5a685823985abb3e5bef5e12",
+      "complete": true,
+      "passed": true,
+      "shippingDelivery": false,
+      "scope": "Live exact input/output/log rehash plus already-executed native proof; not another execution.",
+      "acceptance": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\choice-cache-language-win-r1\\results.json",
+        "sha256": "5a73546a544187d049cfbbfe3f42684536da38da1c9c4134408d4bc752d5f19e",
+        "commands": 44,
+        "verifiedInputs": 2142
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\choice-fixes-native-evidence-win-r1.json",
+        "sha256": "e6385261bb8fbbf802eced6c93d6a9125fcaade41ac37af483e81b262d8d3a49",
+        "passed": true,
+        "commands": 52,
+        "acceptance": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\choice-fixes-native-win-r1\\results.json",
+          "sha256": "f753ca0c713d8e16b1d89ee139e4253c5d32f471f094483e36b654c1ece82171",
+          "verifiedInputs": 39
+        },
+        "sdk": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\choice-fixes-sdk-win-r1\\results.json",
+          "sha256": "6ad50c4759495533f4d0c1cf3ef3e374bc107738166515c9dfa68576b021f725",
+          "counts": {
+            "host": {
+              "compiled": 5,
+              "reused": 159
+            },
+            "static": {
+              "compiled": 6,
+              "reused": 160
+            }
+          }
+        },
+        "freeze": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\native-choice-fixes-win-freeze-r1.json",
+          "sha256": "6edcad3cff4e92bd8c3621a710995ea66b7d67810d54286d557556b712b49949"
+        }
+      },
+      "totalCommands": 96,
+      "packages": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\choice-fixes-packages-win-r2-host.json",
+          "sha256": "21e2567e34124ae498c887efeb1b70cb310e76f8b500f394bc233267a7b145a5"
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\choice-fixes-packages-win-r2-static.json",
+          "sha256": "ffb8f039e5c65d1fa0f0f03089fc6b21e0b5c7d81200c1dffd68cf5949e75b4b"
+        }
+      },
+      "visual": [
+        {
+          "lesson": "button",
+          "path": "F:\\xlang-validation\\xge-full-20261110\\choice-cache-language-win-r1\\button-jit.png",
+          "sha256": "285c4d48f809a2787efbe040f03f3bf20886ae089a0af4f0c6d50ea8df2d4166",
+          "review": "Inspected readable labels and normal button, checked checkbox or enabled toggle."
+        },
+        {
+          "lesson": "checkbox",
+          "path": "F:\\xlang-validation\\xge-full-20261110\\choice-cache-language-win-r1\\checkbox-jit.png",
+          "sha256": "2ff4baca910c17a2aca3d3367a001de21dd65e1942fee886c9d6d5a5af627755",
+          "review": "Inspected readable labels and normal button, checked checkbox or enabled toggle."
+        },
+        {
+          "lesson": "toggle",
+          "path": "F:\\xlang-validation\\xge-full-20261110\\choice-cache-language-win-r1\\toggle-jit.png",
+          "sha256": "87062de23a12f239d3e7c93f05bf6548e3d466d6930e83aac3e16bfdd5108c71",
+          "review": "Inspected readable labels and normal button, checked checkbox or enabled toggle."
+        }
+      ]
+    },
+    "linux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\choice-cache-evidence-linux-r1.json",
+      "sha256": "7e260669627e0545e73e8b123a05344193edc3368f76572ef0e08dc887790ede",
+      "complete": true,
+      "passed": true,
+      "shippingDelivery": false,
+      "scope": "Live exact input/output/log rehash plus already-executed native proof; not another execution.",
+      "acceptance": {
+        "path": "/mnt/f/xlang-validation/xge-full-20261110/choice-cache-language-linux-r1/results.json",
+        "sha256": "cad11f9a2b8bfbc4bc9a71ee0bb63c0843391e7ad56e3887f9424838173537cc",
+        "commands": 44,
+        "verifiedInputs": 2124
+      },
+      "native": {
+        "path": "/mnt/f/xlang-validation/xge-full-20261110/choice-fixes-native-evidence-linux-r1.json",
+        "sha256": "047f7097eeb0e740d1706575d15011291b5507b8d71a86c33aebb2148df6e948",
+        "passed": true,
+        "commands": 52,
+        "acceptance": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/choice-fixes-native-linux-r1/results.json",
+          "sha256": "236714afe3f30e5914845f2a85bd0e40036ff351441a6b4c1bf78338ad454847",
+          "verifiedInputs": 38
+        },
+        "sdk": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/choice-fixes-sdk-linux-r1/results.json",
+          "sha256": "4037b5f2672dd46598d93077a65b845597523a114493a0e142d4683f20185328",
+          "counts": {
+            "host": {
+              "compiled": 5,
+              "reused": 159
+            },
+            "static": {
+              "compiled": 6,
+              "reused": 160
+            }
+          }
+        },
+        "freeze": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/native-choice-fixes-linux-freeze-r1.json",
+          "sha256": "f2d126f3d8e93826dff479a064ddfaf2a7308343c41e53e5d0de618a97db8a9d"
+        }
+      },
+      "totalCommands": 96,
+      "packages": {
+        "host": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/choice-fixes-packages-linux-r2-host.json",
+          "sha256": "05f49888f71966de821d4ac7735c75a6955dfcf0348b08e47e84e6c39d263316"
+        },
+        "static": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/choice-fixes-packages-linux-r2-static.json",
+          "sha256": "bda6e009aa3d8e10496784a8a2a3af967248cad9a5f1597c8f289ec7a247bb2a"
+        }
+      },
+      "visual": [
+        {
+          "lesson": "button",
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/choice-cache-language-linux-r1/button-jit.png",
+          "sha256": "2bb9ff667d78ad03f44d8ef4a64a129faf0bc26f2d4ee5772ac89dbab976b1fa",
+          "review": "Inspected readable labels and normal button, checked checkbox or enabled toggle."
+        },
+        {
+          "lesson": "checkbox",
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/choice-cache-language-linux-r1/checkbox-jit.png",
+          "sha256": "0ed65af67292f313b4c5dd1708dacd33da3470e527c6459c4b0b5094f4220c74",
+          "review": "Inspected readable labels and normal button, checked checkbox or enabled toggle."
+        },
+        {
+          "lesson": "toggle",
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/choice-cache-language-linux-r1/toggle-jit.png",
+          "sha256": "2ca813ba5250bebcb6e37882d3442494995c43f3e42bc08650b32af388842fba",
+          "review": "Inspected readable labels and normal button, checked checkbox or enabled toggle."
+        }
+      ]
+    }
+  },
+  "inventory": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\choice-cache-inventory-equivalence-r1.json",
+    "sha256": "1bedf06cf040fcd60ef5ca5fc04f0cf3ae3925e017dd15044d7cfa5181f6e04d",
+    "declarationsPresent": 3829,
+    "notCompletionRate": true,
+    "lessonPrograms": 95,
+    "independentLessons": 94,
+    "galleryScenes": 57
+  },
+  "totalExecutedCommands": 192,
+  "diagnostics": {
+    "firstSameContext": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\widget-default-constructor-audit-win-r1\\results.json",
+      "sha256": "838d1c35752d6b382e6080bdeed9272da5ce510d5891964b496fba4317eddf21"
+    },
+    "reviewedRetirement": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\widget-constructor-retirement-audit-win-r1\\results.json",
+      "sha256": "b7d8dbf97cad1d39cb202194ef4e9723dc21da3c1fb560bf0ddec1a8704eecc1"
+    },
+    "codeEdit99": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\widget-codeedit-boundary-win-r2\\results.json",
+      "sha256": "3585d9f9a78024bfd29c1fd290eb8b33f299ea22b683df6ec5a3fe6d45279840"
+    },
+    "status": "Window retained queue allocation reclaimed at full retirement. Ten other leaking constructors and CodeEdit invalid-free99 remain open; no full constructor or XUI safety certification."
+  },
+  "limits": [
+    "Two-stage native qualification plus language proof share exact SDK input hashes. Native O2 hosted compiled5/reused159; static compiled6/reused160 from original full164/0 cohort, not a fresh full native/compiler build.",
+    "Linux window validation uses Xvfb/Mesa; no physical GPU/driver certification. Installed CJK font not redistributed.",
+    "Button older full native suite needs unrelated newer test-proxy geometry fields; independent Button constructor/cache, language and window tests run.",
+    "Declaration/header inventory reused after live byte equality checks; not another surface scan or completion-rate claim.",
+    "Historical failed and corrected diagnostic bytes preserved; interpretations superseded in a separate native review receipt.",
+    "No release/current-delivery installation, push or version update. Original15 and pending16 contracts, complete integration and matched delivery remain open."
+  ]
+}
