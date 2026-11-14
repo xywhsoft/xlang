@@ -498,9 +498,7 @@ end
 func scene_taginput(xui.Context ui,xui.Widget root,xui.Proxy proxy) as xui.Widget?
  auto taginput = ui.tagInputNative()
  Window.place(root, taginput, 24, 24, 640, 60)
- taginput.addTag("xlang")
- taginput.addTag("native")
- taginput.addTag("UTF-8")
+ taginput.setTags(["xlang","native","UTF-8"])
  return null
 end
 

@@ -1,0 +1,156 @@
+{
+  "schema": 1,
+  "date": "2026-11-15",
+  "status": "qualified-for-integration",
+  "shippingDelivery": false,
+  "scope": "TagInput.setTags direct typed string-array projection and native batch semantics; standalone lesson and generated gallery initializer simplified.",
+  "sourceSha256": {
+    "lib/bindings/xui/src/managed.xl": "3db02c3a5796b5eb2f2d3d5df95d914c458aca7a40534abbbf37233fafc34937",
+    "lib/bindings/xui/README.md": "ffcc7fc0bb4c61362a4f2a16a9f2e2b82740dfd42b67a13cf60d14577dfd7e40",
+    "lib/bindings/xui/examples/taginput.xl": "4dd1e356fc4c63dfaba4caa44585f3bef754e23f7b9e685fc1d262598ecb86a2",
+    "lib/bindings/xui/examples/all_controls.xl": "da7ea70f77b1ac9bb87efdebd82a7b6d497e0dc5286444ffa785ed655b8a3c16",
+    "test/cases/foreign_xui_tag_batch.xl": "a3fd5106f6b13d95768984dbe9be0b477c483790aa9f84f0a39ca05b06429373",
+    "test/cases/foreign_xui_tag_batch.h": "8a729d8f5baeb0b056e4bace8632bfa3490369713bad4e2b659f4f16488a5096",
+    "test/cases/foreign_xui_tag_batch.c": "c863df3abcd1d0d4d7197e24b6ac921c8fd463c222b3862c4d373ea9226c9b0e",
+    "test/cases/foreign_xui_tag_batch_native.c": "5ec4601ba0bd095f92baa4c73109ac13fc817b5c9d41ac08fc6a2be5d11a463a",
+    "tools/check_xui_tag_batch.py": "ce8db4e197a44106d787afcb5da528430728b7349311856e1d2d559b16aadd52",
+    "docs/xui-tag-batch.md": "f19457f417893f2a4923454df4297dd9848c07d79cf97af0004e9ef88a1cc748",
+    "docs/xge3-xui3-full-coverage-plan.md": "c1a27c2a3ea28ec04c10164385ee2a180d3d8133173b2df9eb3e03e5737038bd"
+  },
+  "dependency": {
+    "nativeCommit": "5c116cfda8ccda52fe98e5553405fff403665821",
+    "nativeChanged": false,
+    "compilerChanged": false,
+    "nativeSource": "F:/xlang-validation/xge-full-20261110/native-accessibility-owner-{tag}-source-r3",
+    "sdk": "F:/xlang-validation/xge-full-20261110/accessibility-owner-sdk-{tag}-r3/{host,static}",
+    "compiler": "Qualified full O2 Windows r37/Linux r30, unchanged."
+  },
+  "contract": {
+    "api": "setTags(array<string>,int size=-1); native NULL and empty items both skip, empty strings express the same behavior. Nullable arrays are not silently converted; multiple string-array profiles on same C symbol remain unsupported.",
+    "native": "Native order/duplicates, trim delimiters, grapheme byte clamp and capacities preserved. Preparation failure atomic; observer error after publication does not roll back.",
+    "ownership": "Real native text copies; source read pin through cleanup, callback mutations rejected. Owned observers/receiver scopes retain close/error/thread checks.",
+    "cost": "1000 prepared three-tag calls: language alloc/free4000 vs C3000; realloc0. One pointer-table allocation per call is extra, string bytes not copied by projection; C still clones three strings even for equal content. No CPU-equivalence claim."
+  },
+  "qualification": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tag-batch-evidence-win-r1.json",
+      "sha256": "dabf7d34244c6546be36cc221bc0a81decc69be1fc1a3f14491586cc83170984",
+      "commands": 38,
+      "acceptance": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\tag-batch-language-win-r3\\results.json",
+          "sha256": "c2863397eba30cacb97abd4d52fe98af5a92b7b9dfffdf944fecc58d5bb1eb0e",
+          "commands": 30,
+          "verifiedInputs": 2136
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\tag-batch-trim-win-r1\\results.json",
+          "sha256": "28d202a25101e1d9077d93a6c5037f30d9bc403277e34c096f71089095a3b834",
+          "commands": 8,
+          "verifiedInputs": 580
+        }
+      ],
+      "packages": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\tag-batch-packages-win-r3-host.json",
+          "sha256": "53df6f2bf80bb5e12eabd3fb70a11539b5653514e407af4adb6c287d6c604acc"
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\tag-batch-packages-win-r3-static.json",
+          "sha256": "c4c561ea617af96843c0539a6b841e99ed9fe7b650841733b909c9caaf43d2b1"
+        }
+      },
+      "equivalence": {
+        "host": {
+          "identicalExecutableInputs": true,
+          "onlyChanged": [
+            "xui/README.md"
+          ],
+          "fileCount": 271
+        },
+        "static": {
+          "identicalExecutableInputs": true,
+          "onlyChanged": [
+            "xui/README.md"
+          ],
+          "fileCount": 287
+        }
+      },
+      "visual": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\tag-batch-language-win-r3\\taginput-jit.png",
+        "sha256": "e46be65e9eb8c91a132c694fec178043ff315a99d9b1f0d660ff5266b3215ff2",
+        "review": "Image inspected: all three copied tags visible with close affordances."
+      },
+      "checkerMetadataOnlyCorrection": "copiedNumericRecord=True -> stringPointerArrayInput=True; frozen executable test script retained; commands/assertions/runtime inputs unchanged"
+    },
+    "linux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\tag-batch-evidence-linux-r1.json",
+      "sha256": "457fac8c60c436c709e07a010839afdb6e62efa88f9a2fe95c5d0011ad0ca936",
+      "commands": 38,
+      "acceptance": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/tag-batch-language-linux-r3/results.json",
+          "sha256": "3325cefa1444dc6f490be763453adba8766fd3ab239cfbc55dc922a38332d38a",
+          "commands": 30,
+          "verifiedInputs": 2118
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/tag-batch-trim-linux-r1/results.json",
+          "sha256": "119c6058699f76eceb9dff622c96374d8f5b3be1851e2b647b4dad71b7bdafdf",
+          "commands": 8,
+          "verifiedInputs": 546
+        }
+      ],
+      "packages": {
+        "host": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/tag-batch-packages-linux-r3-host.json",
+          "sha256": "b753421be0a910445aaf2741f8394319367f31d105cd3e2b2c8b07d38e7f9008"
+        },
+        "static": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/tag-batch-packages-linux-r3-static.json",
+          "sha256": "72f016a812660a3930db8e735c0fef19a39e3255249c7655b935a2117f842a0a"
+        }
+      },
+      "equivalence": {
+        "host": {
+          "identicalExecutableInputs": true,
+          "onlyChanged": [
+            "xui/README.md"
+          ],
+          "fileCount": 271
+        },
+        "static": {
+          "identicalExecutableInputs": true,
+          "onlyChanged": [
+            "xui/README.md"
+          ],
+          "fileCount": 270
+        }
+      },
+      "visual": {
+        "path": "/mnt/f/xlang-validation/xge-full-20261110/tag-batch-language-linux-r3/taginput-jit.png",
+        "sha256": "d4475aba0225a45211af30c19861d761c984e40b38d2e2f17351c196fb2b83c2",
+        "review": "Image inspected: all three copied tags visible with close affordances."
+      },
+      "checkerMetadataOnlyCorrection": "copiedNumericRecord=True -> stringPointerArrayInput=True; frozen executable test script retained; commands/assertions/runtime inputs unchanged"
+    }
+  },
+  "totalExecutedCommands": 76,
+  "inventory": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-tag-batch-r1\\surface.json",
+    "sha256": "8568a39667cdc6c3868ebf0ddde2a9bf97ef46fd2e1e22a0d9025a1907e1348f",
+    "nativeFunctions": 5193,
+    "declarationsPresent": 3828,
+    "notCompletionRate": true,
+    "lessonPrograms": 95,
+    "independentLessons": 94,
+    "galleryScenes": 57
+  },
+  "limits": [
+    "Final package3 differs from executed2 only in README; equivalence not another execution.",
+    "One checker descriptive metadata key corrected with exact frozen-source comparison; commands, assertions and runtime input bytes unchanged; historical reports preserved.",
+    "Generated gallery matches the revised standalone initializer; no new full-gallery slideshow claim.",
+    "Linux real-window gate uses Xvfb/Mesa software OpenGL, not physical-driver certification.",
+    "No release/current-delivery installation, push or version change; original15+16 pending decisions and full integration/delivery remain open."
+  ]
+}

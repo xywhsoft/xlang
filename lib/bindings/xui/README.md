@@ -487,3 +487,8 @@ independent `Vec2` values through the existing checked native-output contract.
 `Terminal.getCell(column,row)` returns the complete pointer-free `TerminalCell`,
 including all sixteen combining codepoints. See `examples/widget_measure.xl`,
 `examples/terminal_cells.xl` and [query contracts](../../../docs/xui-widget-queries.md).
+
+`TagInput.setTags(tags,size=-1)` replaces a list of strings in one native call,
+with native trimming, copy ownership and atomic preparation failure. The
+[tag-input lesson](examples/taginput.xl) and its generated gallery scene now
+use it; see [batch semantics and costs](../../../docs/xui-tag-batch.md).

@@ -1,0 +1,179 @@
+import xui
+extern "fixtureLayoutProxy" @header("test/cases/foreign_xui_tag_batch.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
+extern "fixtureLayoutFont" @no_raise @c_result("owned_view") @factory(1,0,dropFont) func cpuFont(xui.Proxy proxy) as xui.Font
+extern "xuiFontReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropFont(xui.Font value)
+extern "fixtureTagBudget" @no_raise func budget(c_int n)
+extern "fixtureTagCleanup" @no_raise func cleanup()
+extern "fixtureTagPrefixBegin" @no_raise func prefixBegin()
+extern "fixtureTagPrefixEnd" @no_raise func prefixEnd()
+extern "fixtureTagHeapEqual" @no_raise func heapEqual()
+extern "fixtureTagHotBegin" @no_raise func hotBegin()
+extern "fixtureTagHotReport" @no_raise func hotReport(c_int kind)
+extern "fixtureTagNativeHot" @no_raise func nativeHot(xui.TagInput tags)
+func main(...) as int
+ auto proxy=cpuProxy()
+ auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ auto font=cpuFont(proxy)
+ ui.setDefaultFont(font)
+ auto tags=ui.tagInputNative()
+ array<string> labels=[" a ","b","a"]
+ int calls=0
+ tags.setChange(func(xui.Widget sender,c_int count)
+  calls+=1
+  assert count==3
+ end)
+ tags.setTags(labels)
+ assert calls==1 and tags.getTagCount()==3
+ assert (tags.getTag(0) ?? "")=="a" and (tags.getTag(1) ?? "")=="b" and (tags.getTag(2) ?? "")=="a"
+ tags.setTags(labels)
+ assert calls==1 and tags.getTag(-1)==null
+ tags.setChange(null)
+ labels[0]="changed"
+ assert (tags.getTag(0) ?? "")=="a"
+ // Native NULL and empty entries have identical skip semantics.
+ array<string> optional=["",""," ; "," c "]
+ tags.setTags(optional)
+ assert tags.getTagCount()==1 and (tags.getTag(0) ?? "")=="c"
+ tags.setTags(labels,1)
+ assert tags.getTagCount()==1 and (tags.getTag(0) ?? "")=="changed"
+ tags.setTags(labels,999)
+ assert tags.getTagCount()==3
+ tags.setTags(labels,0)
+ assert tags.getTagCount()==0
+ tags.setTags(labels)
+ int errors=0
+ try
+  tags.setTags(labels,-2)
+ catch Error
+  errors+=1
+ end
+ array<string> nul=["bad\0suffix"]
+ try
+  tags.setTags(nul)
+ catch Error
+  errors+=1
+ end
+ tags.setTags(labels,1)
+ tags.setMaxTags(2)
+ try
+  tags.setTags(labels)
+ catch Error
+  errors+=1
+ end
+ assert errors==3 and tags.getTagCount()==1 and (tags.getTag(0) ?? "")=="changed"
+ tags.setMaxTags(0)
+ tags.setTags(labels)
+ array<string> excessive=[]
+ for i in range(int(xui.XUI_TAG_INPUT_TAG_CAPACITY)+1)
+  assert excessive.push("x")
+ end
+ try
+  tags.setTags(excessive)
+ catch Error
+  errors+=1
+ end
+ assert errors==4 and tags.getTagCount()==3
+ tags.clearTags()
+ tags.setMaxLength(3)
+ tags.setTags(["中a","A\u0301B"])
+ assert (tags.getTag(0) ?? "")=="中" and (tags.getTag(1) ?? "")=="A\u0301"
+ tags.setMaxLength(0)
+ array<string> empty=[]
+ tags.setTags(empty)
+ assert tags.getTagCount()==0
+ array<string> original=["old"]
+ array<string> replacement=["one","two","three"]
+ tags.setTags(original)
+ int failures=0
+ int successes=0
+ for allowance in range(32)
+  prefixBegin()
+  bool rejected=false
+  budget(c_int(allowance))
+  try
+   tags.setTags(replacement)
+  catch Error
+   rejected=true
+  finally
+   budget(-1)
+  end
+  if rejected then
+   failures+=1
+   assert tags.getTagCount()==1 and (tags.getTag(0) ?? "")=="old"
+  else
+   successes+=1
+   assert tags.getTagCount()==3 and (tags.getTag(2) ?? "")=="three"
+  end
+  tags.setTags(original)
+  prefixEnd()
+  heapEqual()
+ end
+ assert failures>0 and successes>0
+ bool mutationRejected=false
+ tags.setChange(func(xui.Widget sender,c_int count)
+  try
+   replacement[0]="mutated"
+  catch StateError
+   mutationRejected=true
+  end
+ end)
+ tags.setTags(replacement)
+ assert mutationRejected and replacement[0]=="one"
+ tags.setChange(func(xui.Widget sender,c_int count)
+  throw "tag observer failure"
+ end)
+ bool rejected=false
+ try
+  tags.setTags(original)
+ catch Error
+  rejected=true
+ end
+ assert rejected and tags.getTagCount()==1 and (tags.getTag(0) ?? "")=="old"
+ tags.setChange(null)
+ array<string> warm=["a","b","c"]
+ tags.setTags(warm)
+ hotBegin()
+ for i in range(1000)
+  tags.setTags(warm)
+ end
+ hotReport(0)
+ hotBegin()
+ nativeHot(tags)
+ hotReport(1)
+ auto closing=ui.tagInputNative()
+ closing.setChange(func(xui.Widget sender,c_int count)
+  sender.close()
+ end)
+ closing.setTags(warm)
+ rejected=false
+ try
+  auto invalid=closing.getTagCount()
+ catch StateError
+  rejected=true
+ end
+ assert rejected
+ auto worker=thread(func() as int
+  try
+   tags.setTags(warm)
+  catch StateError
+   return 1
+  end
+  return 0
+ end)
+ assert worker.waitTimeout(30000) and worker.exitCode()==1
+ func(array<string>,int) update=tags.setTags
+ ui.close()
+ rejected=false
+ try
+  update(warm,-1)
+ catch StateError
+  rejected=true
+ end
+ assert rejected
+ font.close()
+ proxy.close()
+ cleanup()
+ println("TagBatch: native trim/copy/duplicates, empty entries, limits, NUL/OOM, callbacks, pins, thread and expiry passed")
+ return 0
+end
