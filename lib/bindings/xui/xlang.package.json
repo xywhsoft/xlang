@@ -23,6 +23,7 @@
       "src/text_layout.xl",
       "src/code_document.xl",
       "src/code_models.xl",
+      "src/code_fold_state.xl",
       "src/managers.xl",
       "src/document_records.xl",
       "src/document.xl",

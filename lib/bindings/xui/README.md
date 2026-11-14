@@ -415,3 +415,13 @@ independent `CodeSelectionModel` and native undo grouping. C-string arguments
 reject embedded NUL; existing counted document bytes are retained. A callback
 failure can follow committed edits and does not imply rollback. See
 `examples/code_editing.xl` and `docs/xui-code-editing.md` in the development tree.
+
+`createCodeFoldState()` creates an independent numeric folding model. Use
+`setRanges(array<CodeFoldRange>)`, `toggleLine`/`foldAll`/`unfoldAll`, `trackEdit`,
+and checked visibility/row queries. Collapsed headers remain visible; indices
+are zero-based lines/rows. Range input and returned records are independent
+copies. Calls require the creating thread; close in `finally`. No window,
+Context or document is required. See `examples/code_folding.xl` and the source
+repository's `docs/xui-code-folding.md` for exact behavior, costs and remaining
+bulk-output/internal-model alias work. Array projection costs O(n) and one
+temporary allocation; warmed queries add no heap operations but retain checks.

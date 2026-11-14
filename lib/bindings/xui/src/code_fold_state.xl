@@ -1,0 +1,20 @@
+// Independent numeric fold ranges; this owner does not retain a Document or UI.
+export extern "xui_code_fold_state" class CodeFoldState @header("xui3_code_fold_state.h") @lifetime("owned") @policy("xl6Xui3CodeFoldStatePolicy")
+ native point handle
+ extern "xuiCodeFoldStateClear" @no_raise func clear()
+ // Projection copies typed records once; Native validates and keeps its copy.
+ extern "xuiCodeFoldStateSetRanges" @no_raise @c_array_group(1,0,1,"int",1) @c_array_input(1,0,"const xui_code_fold_range_t*","value") @c_result("status",0) func setRanges(array<CodeFoldRange> ranges,int size=-1)
+ extern "xuiCodeFoldStateTrackEdit" @no_raise @c_result("status",0) func trackEdit(c_int startLine,c_int endLine,c_int newEndLine)
+ extern "xuiCodeFoldStateGetCount" @no_raise func getCount() as c_int
+ extern "xuiCodeFoldStateGetRange" @no_raise @c_output(2,0) func getRange(c_int index) as CodeFoldRange
+ extern "xuiCodeFoldStateToggleLine" @no_raise @c_result("status",0) func toggleLine(c_int line)
+ extern "xuiCodeFoldStateFoldAll" @no_raise @c_result("status",0) func foldAll()
+ extern "xuiCodeFoldStateUnfoldAll" @no_raise @c_result("status",0) func unfoldAll()
+ extern "xuiCodeFoldStateIsLineVisible" @no_raise @c_output(2,0) func isLineVisible(c_int line) as c_int
+ extern "xuiCodeFoldStateGetVisibleLineCount" @no_raise @c_output(2,0) func visibleLineCount(c_int lineCount) as c_int
+ extern "xuiCodeFoldStateLineToVisibleRow" @no_raise @c_output(2,0) func lineToVisibleRow(c_int line) as c_int
+ extern "xuiCodeFoldStateVisibleRowToLine" @no_raise @c_output(3,0) func visibleRowToLine(c_int lineCount,c_int row) as c_int
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xuiCodeFoldStateDestroy" @header("xui3_code_fold_state.h") @no_raise func rollbackCodeFoldState(CodeFoldState state)
+export extern "xuiCodeFoldStateCreate" @header("xui3_code_fold_state.h") @no_raise @c_result("owned_view") @factory(0,0,rollbackCodeFoldState) func createCodeFoldState() as CodeFoldState

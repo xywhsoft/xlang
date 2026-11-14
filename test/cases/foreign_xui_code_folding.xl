@@ -1,0 +1,226 @@
+import xui
+extern "fixtureFoldBudget" @header("test/cases/foreign_xui_code_folding.h") @no_raise func budget(c_int allowance)
+extern "fixtureFoldPrefixBegin" @no_raise func prefixBegin()
+extern "fixtureFoldPrefixEnd" @no_raise func prefixEnd()
+extern "fixtureFoldHeapEqual" @no_raise func heapEqual()
+extern "fixtureFoldHotBegin" @no_raise func hotBegin()
+extern "fixtureFoldHotReport" @no_raise func hotReport(c_int kind)
+extern "fixtureFoldNativeHot" @no_raise func nativeHot(xui.CodeFoldState state)
+extern "fixtureFoldNativeCreate" @no_raise func nativeCreate()
+extern "fixtureFoldNativeSet" @no_raise func nativeSet(xui.CodeFoldState state)
+extern "fixtureFoldDuringCall" @no_raise @c_sync_callback(1,0,0) @c_result("status",0) func duringCall(xui.CodeFoldState state,func() callback)
+
+func createAndClose()
+ auto value=xui.createCodeFoldState()
+ value.close()
+end
+
+func main(...) as int
+ auto first=xui.CodeFoldRange()
+ first.iStartLine=0
+ first.iEndLine=2
+ auto second=first
+ second.iStartLine=4
+ second.iEndLine=6
+ array<xui.CodeFoldRange> ranges=[first,second]
+ auto folds=xui.createCodeFoldState()
+ assert folds.getCount()==0 and folds.visibleLineCount(7)==7
+ folds.setRanges(ranges)
+ assert folds.getCount()==2 and folds.getRange(0).iSize>0
+ assert (folds.getRange(0).iFlags & c_uint(xui.XUI_CODE_FOLD_HEADER))!=c_uint(0)
+ first.iEndLine=99
+ assert folds.getRange(0).iEndLine==2
+ auto changed=ranges[0]
+ changed.iEndLine=99
+ ranges[0]=changed
+ assert folds.getRange(0).iEndLine==2
+ changed.iEndLine=2
+ ranges[0]=changed
+ auto copy=folds.getRange(0)
+ copy.iEndLine=77
+ assert folds.getRange(0).iEndLine==2
+ folds.toggleLine(0)
+ assert folds.isLineVisible(0)==1 and folds.isLineVisible(1)==0
+ assert folds.visibleLineCount(7)==5
+ assert folds.lineToVisibleRow(4)==2 and folds.visibleRowToLine(7,2)==4
+ folds.foldAll()
+ assert folds.visibleLineCount(7)==3 and folds.visibleRowToLine(7,1)==3
+ assert folds.visibleRowToLine(7,-1)==0 and folds.visibleRowToLine(7,2147483647)==4
+ assert folds.visibleRowToLine(0,1)==0
+ folds.unfoldAll()
+ assert folds.visibleLineCount(7)==7
+ int rejected=0
+ try
+  copy=folds.getRange(2)
+ catch Error
+  rejected+=1
+ end
+ try
+  folds.toggleLine(99)
+ catch Error
+  rejected+=1
+ end
+ try
+  folds.setRanges(ranges,-2)
+ catch Error
+  rejected+=1
+ end
+ auto bad=xui.CodeFoldRange()
+ bad.iSize=1
+ bad.iEndLine=3
+ array<xui.CodeFoldRange> invalid=[bad]
+ try
+  folds.setRanges(invalid)
+ catch Error
+  rejected+=1
+ end
+ assert rejected==4 and folds.getCount()==2 and copy.iEndLine==77
+ folds.setRanges(ranges,1)
+ assert folds.getCount()==1
+ folds.setRanges(ranges,99)
+ assert folds.getCount()==2
+ folds.setRanges(ranges,0)
+ assert folds.getCount()==0
+ folds.setRanges(ranges)
+ // A strict interior edit shifts a fold; editing its header removes it.
+ folds.trackEdit(1,1,2)
+ assert folds.getRange(0).iEndLine==3 and folds.getRange(1).iStartLine==5
+ folds.trackEdit(0,0,0)
+ assert folds.getCount()==1 and folds.getRange(0).iStartLine==5
+ folds.clear()
+ assert folds.getCount()==0 and folds.isLineVisible(5)==1
+ // TrackEdit rejects overflow before it changes any previously valid range.
+ auto huge=xui.CodeFoldRange()
+ huge.iStartLine=2147483645
+ huge.iEndLine=2147483646
+ array<xui.CodeFoldRange> hugeRanges=[huge]
+ folds.setRanges(hugeRanges)
+ rejected=0
+ try
+  folds.trackEdit(0,0,10)
+ catch Error
+  rejected+=1
+ end
+ assert rejected==1 and folds.getRange(0).iStartLine==2147483645
+ folds.setRanges(ranges)
+ // Native lazy-cache failure writes its local output; no failed language value
+ // may replace this destination. The next allocation-enabled read succeeds.
+ auto cold=xui.createCodeFoldState()
+ cold.setRanges(ranges)
+ cold.foldAll()
+ c_int visible=37
+ budget(0)
+ try
+  visible=cold.isLineVisible(1)
+ catch Error
+  rejected+=1
+ finally
+  budget(-1)
+ end
+ assert rejected==2 and visible==37 and cold.isLineVisible(1)==0
+ cold.close()
+ int failures=0
+ int successes=0
+ for operation in range(3)
+  for allowance in range(32)
+   prefixBegin()
+   try
+    if operation==0 then
+     budget(c_int(allowance))
+     auto candidate=xui.createCodeFoldState()
+     candidate.close()
+    else
+     auto candidate=xui.createCodeFoldState()
+     try
+      if operation==1 then
+       budget(c_int(allowance))
+       candidate.setRanges(ranges)
+      else
+       candidate.setRanges(ranges)
+       candidate.foldAll()
+       budget(c_int(allowance))
+       assert candidate.isLineVisible(1)==0
+      end
+     finally
+      budget(-1)
+      candidate.close()
+     end
+    end
+    successes+=1
+   catch Error
+    failures+=1
+   finally
+    prefixEnd()
+   end
+   heapEqual()
+  end
+ end
+ assert failures>0 and successes>0
+ func(array<xui.CodeFoldRange>,int) setValue=folds.setRanges
+ setValue(ranges,-1)
+ func(c_int) as xui.CodeFoldRange getValue=folds.getRange
+ assert getValue(1).iEndLine==6
+ folds.foldAll()
+ assert folds.visibleLineCount(7)==3
+ hotBegin()
+ budget(0)
+ try
+  for i in range(1000)
+   assert folds.getCount()==2 and folds.getRange(0).iEndLine==2
+   assert folds.isLineVisible(1)==0 and folds.visibleLineCount(7)==3
+   assert folds.lineToVisibleRow(4)==2 and folds.visibleRowToLine(7,1)==3
+  end
+ finally
+  budget(-1)
+ end
+ hotReport(0)
+ hotBegin()
+ budget(0)
+ try
+  nativeHot(folds)
+ finally
+  budget(-1)
+ end
+ hotReport(1)
+ hotBegin()
+ createAndClose()
+ hotReport(2)
+ hotBegin()
+ nativeCreate()
+ hotReport(3)
+ hotBegin()
+ folds.setRanges(ranges)
+ hotReport(4)
+ hotBegin()
+ nativeSet(folds)
+ hotReport(5)
+ auto active=xui.createCodeFoldState()
+ active.setRanges(ranges)
+ duringCall(active,func()
+  active.close()
+ end)
+ auto worker=thread(func() as int
+  try
+   auto count=folds.getCount()
+  catch StateError
+   return 1
+  end
+  return 0
+ end)
+ assert worker.waitTimeout(30000) and worker.exitCode()==1
+ folds.close()
+ rejected=0
+ try
+  auto value=getValue(0)
+ catch StateError
+  rejected+=1
+ end
+ try
+  setValue(ranges,-1)
+ catch StateError
+  rejected+=1
+ end
+ assert rejected==2
+ println("CodeFold: typed ranges, edits, visible mapping, failure atomicity, OOM, active close, thread and expiry passed")
+ return 0
+end

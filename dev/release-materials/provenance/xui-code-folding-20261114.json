@@ -1,0 +1,529 @@
+{
+  "schema": 1,
+  "date": "2026-11-14",
+  "qualified": true,
+  "shippingDelivery": false,
+  "fullGoalComplete": false,
+  "nativeRebuilt": false,
+  "compilerRebuilt": false,
+  "networkTests": false,
+  "nativeRevision": "de19f702815d5da5a510ee04865bf61bbd879fec",
+  "scope": "Independent unique numeric CodeFoldState: thirteen business native functions plus Destroy supplied by ownership; no internal-model alias or bulk writable output claim.",
+  "sources": {
+    "lib/bindings/_xge_native/include/xui3_code_fold_state.h": "b94881427dd42c93ec715e19905d6ccbaa7160f5d7ef2e5e5be40dfb77dcc410",
+    "lib/bindings/xui/src/code_fold_state.xl": "a54f2d786369ff0f28f62c3bee2e2faeddb876edc997217dbfcdbb46cc9a8e6d",
+    "lib/bindings/xui/xlang.package.json": "405a61ca4a51f2fdaa1e06b6cf2be5be97a62640c580d98734af8c899c62da1e",
+    "lib/bindings/xui/examples/code_folding.xl": "a887c4c4af9d28553114633a657f48388e237c549f794bca3a7a6f2e22941df3",
+    "lib/bindings/xui/README.md": "615ea7a2fddf1df0850f9a21b84e7753721f4e9e686e2890a127d8acd014f5bc",
+    "lib/bindings/xui/examples/README.md": "eb5245044bc6eb88d5eee73570b3e5d7e5555cd9de56e73ff1b5dd7530c99b9c",
+    "test/cases/foreign_xui_code_folding.xl": "df0fe444a2d507417641830539b33c20474ebf3ca3d65d9fd8cbff0fcbbd7cb5",
+    "test/cases/foreign_xui_code_folding.h": "afe2c5bd096851f5aebe66992986a418769c1990427dcbb536ec2f3da3196da5",
+    "test/cases/foreign_xui_code_folding.c": "fb509e9f39afd0fa2c40720bb3f17a2445d7b46109f01c1de59f7894dc4b48e8",
+    "test/cases/foreign_xui_code_folding_native.c": "8d43e1a3cb283ff153fba28a4092d71af734efa92479d41dc86c026120cbc961",
+    "tools/check_xui_code_folding.py": "e0aa3285479b4f9c553f8ed8dc12afbb8a18726a2a6c65480a323155eed85d8f",
+    "docs/xui-code-folding.md": "4244b7a05f60911ee53102250822c0c4a341608de331f03e275b28909eb7db8e",
+    "docs/xge3-xui3-full-coverage-plan.md": "07b65693408ed883e7962b006da7e0198dea2dcab0f47daa40b41cbd4c7469ba"
+  },
+  "platforms": {
+    "win": {
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-fold-language-win-r3\\results.json",
+        "sha256": "19ac391db55cf7fd144995afc3d0cce69233e1b6a4c1c0b067c81813efb8bf29"
+      },
+      "commands": 30,
+      "packageReports": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-fold-packages-win-r2\\host.json",
+          "sha256": "e5a023cf86638301e691b43752fe6a6e04d9d9b70793b0893281d3dcc5839591"
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-fold-packages-win-r2\\static.json",
+          "sha256": "af01d4f03a49a6505833d56002ef309ef057367737d446dd985a1c83b00d0548"
+        }
+      },
+      "unchangedSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-collision-sdk-win-r1\\results.json",
+        "sha256": "952f34bdaf3251ba01cd4cf8a567718c8c7bb73c6af6b79f1cb9a4967212e4b9"
+      },
+      "programs": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-fold-language-win-r3\\foreign_xui_code_folding-dynamic.exe",
+          "sha256": "7aca92a3baa225f32526b2421bbbcc236c1238a01b7136fd200032b09b937dd2",
+          "bytes": 5064192,
+          "imports": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-fold-language-win-r3\\foreign_xui_code_folding-static.exe",
+          "sha256": "d3deda26abf8c7c73a15e40462bb9962611fec866972defba83709bff0fc3611",
+          "bytes": 1233920,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-fold-language-win-r3\\code_folding-dynamic.exe",
+          "sha256": "aeb64ffeb06158724ef284b679b7326cbe86082f5163ff50bb2b322926205279",
+          "bytes": 1511936,
+          "imports": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-fold-language-win-r3\\code_folding-static.exe",
+          "sha256": "85e02f6bc8f9e62e6829f324f24aaf4f568add756480b3dc973c02c693cde8a1",
+          "bytes": 779776,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll"
+          ]
+        }
+      ],
+      "heap": [
+        {
+          "mode": "jit",
+          "rounds": 1000,
+          "callsPerRound": 6,
+          "allocationPrefixes": 96,
+          "counts": {
+            "0": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "1": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "2": {
+              "alloc": 3,
+              "free": 3,
+              "realloc": 0
+            },
+            "3": {
+              "alloc": 1,
+              "free": 1,
+              "realloc": 0
+            },
+            "4": {
+              "alloc": 1,
+              "free": 1,
+              "realloc": 0
+            },
+            "5": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        },
+        {
+          "mode": "dynamic",
+          "rounds": 1000,
+          "callsPerRound": 6,
+          "allocationPrefixes": 96,
+          "counts": {
+            "0": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "1": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "2": {
+              "alloc": 3,
+              "free": 3,
+              "realloc": 0
+            },
+            "3": {
+              "alloc": 1,
+              "free": 1,
+              "realloc": 0
+            },
+            "4": {
+              "alloc": 1,
+              "free": 1,
+              "realloc": 0
+            },
+            "5": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        },
+        {
+          "mode": "static",
+          "rounds": 1000,
+          "callsPerRound": 6,
+          "allocationPrefixes": 96,
+          "counts": {
+            "0": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "1": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "2": {
+              "alloc": 3,
+              "free": 3,
+              "realloc": 0
+            },
+            "3": {
+              "alloc": 1,
+              "free": 1,
+              "realloc": 0
+            },
+            "4": {
+              "alloc": 1,
+              "free": 1,
+              "realloc": 0
+            },
+            "5": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        }
+      ],
+      "generatedC": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-fold-language-win-r3\\foreign_xui_code_folding.c",
+        "sha256": "0f459b0bbb19e653cc25a008e35c0ee68fce2330bf44b78742a8917cf6999136",
+        "directCalls": {
+          "xuiCodeFoldStateCreate": 6,
+          "xuiCodeFoldStateSetRanges": 15,
+          "xuiCodeFoldStateToggleLine": 2,
+          "xuiCodeFoldStateIsLineVisible": 7,
+          "xuiCodeFoldStateGetVisibleLineCount": 6,
+          "xuiCodeFoldStateVisibleRowToLine": 6,
+          "xuiCodeFoldStateUnfoldAll": 1,
+          "xuiCodeFoldStateGetCount": 10,
+          "xuiCodeFoldStateGetRange": 13,
+          "xuiCodeFoldStateTrackEdit": 3,
+          "xuiCodeFoldStateClear": 1,
+          "xuiCodeFoldStateFoldAll": 4,
+          "xuiCodeFoldStateLineToVisibleRow": 2
+        },
+        "typedInputProjection": true,
+        "zeroBridgeOverheadClaim": false
+      },
+      "trim": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-fold-trim-win-r1\\results.json",
+        "sha256": "7e77e237d33594809eb299333852d6d567d33e03adf587d5cac51f7e0a6da757"
+      },
+      "trimCommands": 8,
+      "trimDeltas": {
+        "bytes": 0,
+        "text": 0,
+        "bss": 0
+      }
+    },
+    "linux": {
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-fold-language-linux-r3\\results.json",
+        "sha256": "6bb4fd4fb507b6d09d77cc787b198d610e69615a722fa52bf8fcc406db33c0f1"
+      },
+      "commands": 30,
+      "packageReports": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-fold-packages-linux-r2\\host.json",
+          "sha256": "c389fa4104bcc02415a4ffe0c9af3a6be7a77f998eacbd5c3e9224b779e56021"
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-fold-packages-linux-r2\\static.json",
+          "sha256": "80dc8503db5737421e3a0fd92b440033246c96ef77b1bc9ae5c6cfb89e2d9591"
+        }
+      },
+      "unchangedSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-collision-sdk-linux-r1\\results.json",
+        "sha256": "8d9b11d10942cbf6660010a726397d13c302b2b6b7e1ade097896cd3167d3270"
+      },
+      "programs": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/code-fold-language-linux-r3/foreign_xui_code_folding-dynamic",
+          "sha256": "0bf50d3593573a32b27052e050f776a56169d2b90632255b479c7d92487d1dea",
+          "bytes": 5257434,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/code-fold-language-linux-r3/foreign_xui_code_folding-static",
+          "sha256": "e18f57b8ce3af91b8090667568a5f22aaa9b9deb25379d34cdf00969ff764de6",
+          "bytes": 1601262,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/code-fold-language-linux-r3/code_folding-dynamic",
+          "sha256": "7d4733bddc996268f46fe8825b09c02a8bb4d81a1a6f9bc29ae3106dc4b1da4d",
+          "bytes": 1574167,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/code-fold-language-linux-r3/code_folding-static",
+          "sha256": "22069ccc684740cdf1357d3daece3efc6d101975fca36478d727dbe541256f61",
+          "bytes": 1050051,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ],
+      "heap": [
+        {
+          "mode": "jit",
+          "rounds": 1000,
+          "callsPerRound": 6,
+          "allocationPrefixes": 96,
+          "counts": {
+            "0": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "1": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "2": {
+              "alloc": 3,
+              "free": 3,
+              "realloc": 0
+            },
+            "3": {
+              "alloc": 1,
+              "free": 1,
+              "realloc": 0
+            },
+            "4": {
+              "alloc": 1,
+              "free": 1,
+              "realloc": 0
+            },
+            "5": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        },
+        {
+          "mode": "dynamic",
+          "rounds": 1000,
+          "callsPerRound": 6,
+          "allocationPrefixes": 96,
+          "counts": {
+            "0": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "1": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "2": {
+              "alloc": 3,
+              "free": 3,
+              "realloc": 0
+            },
+            "3": {
+              "alloc": 1,
+              "free": 1,
+              "realloc": 0
+            },
+            "4": {
+              "alloc": 1,
+              "free": 1,
+              "realloc": 0
+            },
+            "5": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        },
+        {
+          "mode": "static",
+          "rounds": 1000,
+          "callsPerRound": 6,
+          "allocationPrefixes": 96,
+          "counts": {
+            "0": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "1": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "2": {
+              "alloc": 3,
+              "free": 3,
+              "realloc": 0
+            },
+            "3": {
+              "alloc": 1,
+              "free": 1,
+              "realloc": 0
+            },
+            "4": {
+              "alloc": 1,
+              "free": 1,
+              "realloc": 0
+            },
+            "5": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        }
+      ],
+      "generatedC": {
+        "path": "/mnt/f/xlang-validation/xge-full-20261110/code-fold-language-linux-r3/foreign_xui_code_folding.c",
+        "sha256": "0f459b0bbb19e653cc25a008e35c0ee68fce2330bf44b78742a8917cf6999136",
+        "directCalls": {
+          "xuiCodeFoldStateCreate": 6,
+          "xuiCodeFoldStateSetRanges": 15,
+          "xuiCodeFoldStateToggleLine": 2,
+          "xuiCodeFoldStateIsLineVisible": 7,
+          "xuiCodeFoldStateGetVisibleLineCount": 6,
+          "xuiCodeFoldStateVisibleRowToLine": 6,
+          "xuiCodeFoldStateUnfoldAll": 1,
+          "xuiCodeFoldStateGetCount": 10,
+          "xuiCodeFoldStateGetRange": 13,
+          "xuiCodeFoldStateTrackEdit": 3,
+          "xuiCodeFoldStateClear": 1,
+          "xuiCodeFoldStateFoldAll": 4,
+          "xuiCodeFoldStateLineToVisibleRow": 2
+        },
+        "typedInputProjection": true,
+        "zeroBridgeOverheadClaim": false
+      },
+      "trim": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-fold-trim-linux-r1\\results.json",
+        "sha256": "55055e8b47db4cf819f724f3581164ac45d909b8e6c0c64614037401377c0ef0"
+      },
+      "trimCommands": 8,
+      "trimDeltas": {
+        "bytes": 0,
+        "text": 0,
+        "bss": 0
+      }
+    }
+  },
+  "surfaceInventory": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-code-fold-r1\\surface.json",
+    "sha256": "124cf875db524c42e64bacd8ec7f4190476a6a6db3c0d069c1d9cf0f87444de5"
+  },
+  "inventoryOnly": true,
+  "nativeSources": {
+    "include/xui.h": "f2c883cf98e23e388b162a81f41f72bcf6d4d1aedf167260b5ab1e96b381731d",
+    "src/xui/code/xui_code_fold_state.c": "b0f01e47d6e9d5110dff9aa67ef3d8d440a5857e9c8625d2abd9f94988e8ce5b",
+    "tests/xui/xui_code_fold_state_test.c": "d1b80790bc84bfc4a251ce4c1a85ab34eb2cb6ddec445df772b022e73e348756"
+  },
+  "semantics": {
+    "owner": "Unique independent numeric leaf. Generic creator-thread admission, active close and ordinary alias expiry; no native RC or stored document/callback.",
+    "array": "Typed O(n) input projection followed by native validation/copy. Size prefix -1/all, oversized clamp, other negative checked.",
+    "output": "Status checked before assigning POD/scalar outputs; native provisional output on OOM does not replace language destination.",
+    "edits": "Native validation before TrackEdit overflow mutation; strict interior shift, touched header/end invalidated."
+  },
+  "costs": {
+    "preparedRuntime": true,
+    "startupMeasured": false,
+    "cpuEquivalenceClaim": false,
+    "zeroBridgeOverheadClaim": false,
+    "nativeSourceOrImageGrowth": 0,
+    "hot": "1000 rounds x 6 calls; language/C alloc=free=realloc=0 under zero allocation budget.",
+    "createClose": {
+      "language": {
+        "alloc": 3,
+        "free": 3,
+        "realloc": 0
+      },
+      "native": {
+        "alloc": 1,
+        "free": 1,
+        "realloc": 0
+      }
+    },
+    "preparedSet": {
+      "language": {
+        "alloc": 1,
+        "free": 1,
+        "realloc": 0
+      },
+      "native": {
+        "alloc": 0,
+        "free": 0,
+        "realloc": 0
+      }
+    },
+    "extra": "Managed view and CodeLease; typed projection allocation and 20-byte copy per record; native range copy, cache maintenance, checked scopes, calls, thread/owner/error work remain."
+  },
+  "historyNotes": [
+    "Win r1 native C fixture loaded a reduced declaration header before full XRT declarations; include order fixed in fixture only.",
+    "r2 native hosted client omitted mandatory XRT binding and failed before model testing. Fixture now binds the exact contract/sole full runtime, as other independent SDK clients do. r3 all O0/O2 hosted/static clients pass. Historical failed reports preserved.",
+    "Staged r2 contains exact binding/policy/example/README bytes. Repository-only explanatory docs were finalized after acceptance; no shipping files installed."
+  ],
+  "limitations": [
+    "Native bulk GetRanges/BuildVisibleLines and writable provider callback await general writable-array/output contracts.",
+    "CodeEdit internal FoldState alias awaits general long-lived existing-owner alias contract.",
+    "No module/global CodeLease cycle, graphics backend, final SDK/IDE delivery or complete XGE/XUI/Document claim.",
+    "Native and compiler reused exact qualified cohorts; unrelated worktree edits not included."
+  ]
+}

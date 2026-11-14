@@ -200,3 +200,8 @@ window loop. System fonts are demonstrated in the xge package's `examples/system
 `code_document.xl` 不创建窗口，在终端展示合并编辑“你好, xlang! 欢迎！”、
 撤销回“Hello, xlang!”和重新应用。变更回调只在调用期间读取文档，输出的是
 独立文本快照；`finally` 关闭模型。无需外部资源、文件写入或网络服务。
+
+`code_folding.xl` 在终端演示一个数值折叠范围：标题行保留可见，内部行折叠，
+然后将可见行号映射回原始行号。预期输出 `Visible lines: 3` 和
+`Row 2 maps to line: 5`。所有行号从 0 开始；不创建窗口、Context、文档或
+字体，也不需要文件／服务。`finally` 关闭独立折叠模型。

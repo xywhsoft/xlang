@@ -1,0 +1,26 @@
+// A fold keeps its header visible and hides the following lines through its end.
+import xui
+
+func main(...) as int
+ auto block=xui.CodeFoldRange()
+ block.iStartLine=1
+ block.iEndLine=4
+ array<xui.CodeFoldRange> ranges=[block]
+ auto folds=xui.createCodeFoldState()
+ try
+  folds.setRanges(ranges)
+  folds.toggleLine(1)
+  assert folds.isLineVisible(1)==1 and folds.isLineVisible(2)==0
+  assert folds.visibleLineCount(6)==3
+  println("Visible lines:",folds.visibleLineCount(6))
+
+  // Row 2 now corresponds to original line 5 (all indices are zero-based).
+  assert folds.visibleRowToLine(6,2)==5
+  println("Row 2 maps to line:",folds.visibleRowToLine(6,2))
+  folds.unfoldAll()
+  assert folds.visibleLineCount(6)==6
+ finally
+  folds.close()
+ end
+ return 0
+end
