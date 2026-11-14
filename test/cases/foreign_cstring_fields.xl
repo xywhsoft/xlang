@@ -1,0 +1,81 @@
+extern "CStringFields*" class Fields @header("test/cases/foreign_cstring_fields.h") @lifetime("caller")
+ native point handle
+ extern "text" @c_field @c_result("cstring") get optional() as string?
+ extern "text" @c_field @c_result("cstring") get required() as string
+ extern "mutableText" @c_field @c_result("cstring") get mutableCopy() as string
+end
+extern "const CStringFields*" class Event @header("test/cases/foreign_cstring_fields.h") @lifetime("callback")
+ native point handle
+ extern "text" @c_field @c_result("cstring") get optional() as string?
+ extern "text" @c_field @c_result("cstring") get required() as string
+ extern "mutableText" @c_field @c_result("cstring") get mutableCopy() as string
+end
+extern "cstringFieldsGet" @no_raise func fields(c_int mode) as Fields
+extern "cstringFieldsChange" @no_raise func change()
+extern "cstringFieldsWith" @no_raise @c_sync_callback(1,-1,-19,"last","test/cases/foreign_cstring_fields.h") func withFields(c_int mode,func(Event) as c_int callback) as c_int
+extern "cstringFieldsBudget" @no_raise func budget(c_int n)
+extern "cstringFieldsBegin" @no_raise func beginCheck()
+extern "cstringFieldsAllocations" @no_raise func allocations() as c_int
+extern "cstringFieldsCalls" @no_raise func calls() as c_int
+func main(...) as int
+ auto value=fields(0)
+ beginCheck()
+ string snapshot=value.required
+ assert allocations()==1 and calls()==0
+ assert snapshot=="borrowed 你"
+ string mutableSnapshot=value.mutableCopy
+ change()
+ assert mutableSnapshot=="original" and value.mutableCopy=="changed"
+ assert fields(1).required==""
+ auto empty=fields(1).optional
+ assert empty!=null and (empty as string)==""
+ assert fields(2).optional==null
+ assert fields(3).required=="a"
+ bool rejected=false
+ try
+  snapshot=fields(2).required
+ catch Error failure
+  rejected=true
+ end
+ assert rejected and snapshot=="borrowed 你"
+ Event? saved=null
+ string callbackText="old"
+ assert withFields(0,func(Event event) as c_int
+  saved=event
+  callbackText=event.required
+  return c_int(7)
+ end)==7
+ assert callbackText=="borrowed 你"
+ rejected=false
+ try
+  auto expired=saved as Event
+  callbackText=expired.required
+ catch StateError
+  rejected=true
+ end
+ assert rejected and callbackText=="borrowed 你"
+ assert withFields(2,func(Event event) as c_int
+  assert event.optional==null
+  return c_int(3)
+ end)==3
+ for mode in [0,1]
+  rejected=false
+  try
+   withFields(c_int(mode),func(Event event) as c_int
+    budget(0)
+    try
+     callbackText=event.required
+    finally
+     budget(-1)
+    end
+    return c_int(0)
+   end)
+  catch Error failure
+   rejected=true
+  end
+  // Empty may use an allocation too; its presence is checked separately.
+  if mode==0 then assert rejected and callbackText=="borrowed 你" end
+ end
+ println("CString fields: pointer reads, NULL/empty, snapshots, callback expiry and copy OOM passed")
+ return 0
+end

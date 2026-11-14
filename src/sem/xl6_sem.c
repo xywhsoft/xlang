@@ -21684,7 +21684,7 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
         if (!inner || inner->childCount || !xl6TextEquals(inner->text, expected) ||
             (node->flags & XL6_AST_FLAG_FOREIGN_OWNED_STRING) ||
             (facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_CSTRING &&
-             ((node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || facts.outputIndexPlusOne || facts.receiverDereference))) {
+             (((node->flags&XL6_AST_FLAG_FOREIGN_FIELD) && (node->kind!=XL6_AST_GET || count!=0 || (node->flags&XL6_AST_FLAG_STATIC))) || facts.outputIndexPlusOne || facts.receiverDereference))) {
             xl6SemErrorNode(ctx, node, "C borrowed view result must match its declared string/bytes kind and nullability"); return 0;
         }
     }

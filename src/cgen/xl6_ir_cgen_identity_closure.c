@@ -388,6 +388,13 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
                 receiver->cName,length->field,length->countAbi==XL6_FOREIGN_SPAN_COUNT_INT ? "int" : "size_t");
             return !xl6OutputHasFailed(out);
         }
+        if(target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_CONST_CHAR_POINTER){
+            /* Inspect the field's address: an array expression would decay
+             * under C _Generic and disagree with the C++ ABI witness. */
+            xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(&((%s)0)->%s,const char**) || XLIR_NATIVE_IS_TYPE(&((%s)0)->%s,const char* const*) || XLIR_NATIVE_IS_TYPE(&((%s)0)->%s,char**) || XLIR_NATIVE_IS_TYPE(&((%s)0)->%s,char* const*), \"native C-string pointer field type\");\n",
+                receiver->cName,target->cName,receiver->cName,target->cName,receiver->cName,target->cName,receiver->cName,target->cName);
+            return !xl6OutputHasFailed(out);
+        }
         if(target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_DEREF_READ || target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_DEREF_WRITE){
             xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(*((%s)0), %s), \"native pointee type\");\n",receiver->cName,physical);
             return !xl6OutputHasFailed(out);

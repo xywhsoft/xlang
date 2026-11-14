@@ -23499,9 +23499,11 @@ int xl6IrCallResultCAbiMatches(const XL6_IrModule* module, const XL6_IrCallTarge
     if(target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_CONST_CHAR_POINTER){
         result=xl6IrTypeGet(&module->types,target->returnType);
         return source && source->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_CSTRING &&
-            !(source->flags&(XL6_AST_FLAG_FOREIGN_FIELD|XL6_AST_FLAG_FOREIGN_OWNED_STRING)) &&
+            !(source->flags&XL6_AST_FLAG_FOREIGN_OWNED_STRING) &&
+            (!(source->flags&XL6_AST_FLAG_FOREIGN_FIELD) ||
+             (source->sourceKind==XL6_AST_GET && target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_FIELD_READ && target->parameterCount==1)) &&
             !source->foreignCall.outputIndexPlusOne && !source->foreignCall.receiverDereference &&
-            xl6IrForeignOperationInvokesFunction(target->foreignOperationAbi) &&
+            (xl6IrForeignOperationInvokesFunction(target->foreignOperationAbi) || target->foreignOperationAbi==XL6_IR_FOREIGN_OPERATION_FIELD_READ) &&
             target->kind==XL6_IR_CALL_TARGET_EXTERN_C && !target->runtimeBridge &&
             result && result->cAbi==XL6_IR_C_ABI_MANAGED_STRING &&
             result->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED &&
@@ -41715,7 +41717,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 !params || params->kind != XL6_IR_NODE_LIST ||
                 node->foreignCall.borrowedViewResult>XL6_FOREIGN_VIEW_RESULT_CSTRING ||
                 (node->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_CSTRING &&
-                 ((node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || node->foreignCall.outputIndexPlusOne || node->foreignCall.receiverDereference)) ||
+                 (((node->flags&XL6_AST_FLAG_FOREIGN_FIELD) && (node->sourceKind!=XL6_AST_GET || params->childCount!=0 || (node->flags&XL6_AST_FLAG_STATIC))) || node->foreignCall.outputIndexPlusOne || node->foreignCall.receiverDereference)) ||
                 (node->foreignCall.physicalPairs & node->foreignCall.retainedCallbacks) ||
                 ((node->foreignCall.physicalPairs|node->foreignCall.retainedCallbacks) & (node->foreignCall.terminatedStrings|node->foreignCall.textViews|node->foreignCall.bytesViews|node->foreignCall.constAggregateAddresses|node->foreignCall.staticCallbackAddresses)) ||
                 (node->foreignCall.terminatedStrings & (node->foreignCall.textViews | node->foreignCall.bytesViews | node->foreignCall.constAggregateAddresses | node->foreignCall.staticCallbackAddresses)) ||

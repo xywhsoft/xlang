@@ -1,0 +1,192 @@
+{
+  "schema": 1,
+  "date": "2026-11-14",
+  "status": "qualified-for-integration",
+  "shippingDelivery": false,
+  "scope": "Approved general C string pointer-field snapshots; no XGE forwarding functions, runtime schema or new declaration syntax.",
+  "contract": {
+    "declaration": "@c_field @c_result(\"cstring\") on an argument-free non-static getter returning string or string?",
+    "physical": "char* or const char* field; pointer constness allowed. Field-address witnesses reject arrays/void/wide/unsigned/function/double pointers identically in C/C++.",
+    "lifetime": "Check receiver scope before read; copy during scope. Saved callback views expire; copied strings remain owned.",
+    "nullAndErrors": "NULL -> absent only for string?; non-NULL empty stays present. Nonnullable NULL/copy OOM are checked and preserve assignment target. NUL terminates; bytes copied without new Unicode validation."
+  },
+  "sourceSha256": {
+    "src/sem/xl6_sem.c": "487be484b0de2b1bd89938c9901c94ffa5cc141ec1ba44828a8e8b1a84d7bb8d",
+    "src/ir/xl6_ir.c": "740d6dfd0c905f89dbe91f06e58dd49ffedd3135b940c7037642e763668d701c",
+    "src/cgen/xl6_ir_cgen_identity_closure.c": "b83b0ed398a0ee961d66650a29f4d029373d96ca70f829f25f15999af29707d8",
+    "test/cases/foreign_cstring_fields.xl": "8b590bb92bb5b6174c3b329af7d72f37e186b1d73ae994e3ba617c782f55d706",
+    "test/cases/foreign_cstring_fields.h": "3900863e6f80d9e849c37e21770161103e7cef4918327ec57b938fc5e038da9c",
+    "test/cases/foreign_cstring_fields_native.c": "8ab816a995ba8f2d15b5e777e21cef223d5288743180f8136f6a5ffc4314dd40",
+    "test/cases/foreign_cstring_fields_ir.c": "f4b34effe3c8c1521a344064345169d91f4cbe7bd0403c00ee4b39010d459e84",
+    "tools/check_foreign_cstring_fields.py": "2afedd508bff75e5ea7ce19de94287926cc1bc00163b74ab3cfbb6107bfa1941",
+    "tools/check_foreign_cstring_fields_ir.py": "a113b08067a5c2aa5079249d7e9f36388463f5d102069510f94fd0dcc2847680",
+    "docs/foreign-cstring-results.md": "87b2170d16b0f2b564e19f5ca340ecffa1acd2a172c4bafc102ba4eb70971e0d"
+  },
+  "qualification": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\cstring-field-evidence-win-r1.json",
+      "sha256": "9cdb11f6c42df843bec07dc2b7edb32e20125ccc3df92e57d57a8c399f1933df",
+      "commands": 93,
+      "acceptance": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\cstring-field-full-win-r3\\results.json",
+          "sha256": "771d4ec9912842b84f534707de22edfa8e7693eba801dad8f8637e6292453592",
+          "commands": 59,
+          "verifiedInputs": 1555
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\cstring-function-regression-win-r1\\results.json",
+          "sha256": "d60ca46147967494e1687d3089e5c5eb6d6ad121ecf9357a242d8533bd3428a8",
+          "commands": 17,
+          "verifiedInputs": 1554
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\cstring-field-regression-win-r1\\results.json",
+          "sha256": "c0a21fb9e1175fc09003f521f7365b9f5324f631ba1df813605b56eb1dac3fea",
+          "commands": 9,
+          "verifiedInputs": 13
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\cstring-field-ir-win-r1\\results.json",
+          "sha256": "97acee3ba75201b1bd86a9628b255cdf53fd6dd42f94fba1529f75b252846765",
+          "commands": 8,
+          "verifiedInputs": 1430
+        }
+      ],
+      "fullBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-cstring-field-full-r37\\build.json",
+        "sha256": "8b3184991605bcad4bc2ea0aca3c359dbc600b340adf4b1008149f0169dae923",
+        "freezeSha256": "46e04c8e29cb3fee9b883b4744a12c3fa9a0bbca9a5b585eca7d698049badb09",
+        "frozenInputs": 13633,
+        "products": {
+          "xl.exe": {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-cstring-field-full-r37\\source\\release\\win_x64\\xl.exe",
+            "sha256": "b06ecff88b5b9f438820a93f7ec7c8be5d605c5e55c8d6e6c58c8d2c2641ed80",
+            "bytes": 72704
+          },
+          "xl.dll": {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-cstring-field-full-r37\\source\\release\\win_x64\\xl.dll",
+            "sha256": "52bdb2b95342a09143cdabedc562a1c8b70777f1c75bfb8c29a7c57f14d3184d",
+            "bytes": 15306752
+          },
+          "xlc.dll": {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-cstring-field-full-r37\\source\\release\\win_x64\\xlc.dll",
+            "sha256": "cc62a3820746ba37800cc52a0c093845909f21c601c75fbe3e5ed51f67f48f52",
+            "bytes": 21522944
+          }
+        }
+      },
+      "cohortSizes": {
+        "xl.exe": {
+          "before": 72704,
+          "after": 72704,
+          "delta": 0
+        },
+        "xl.dll": {
+          "before": 15300608,
+          "after": 15306752,
+          "delta": 6144
+        },
+        "xlc.dll": {
+          "before": 21516800,
+          "after": 21522944,
+          "delta": 6144
+        }
+      }
+    },
+    "linux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\cstring-field-evidence-linux-r1.json",
+      "sha256": "2e28b7203af7ce2b2555cb9c322fa993318c443220578fac49f22c97ed6cbdb6",
+      "commands": 93,
+      "acceptance": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/cstring-field-full-linux-r1/results.json",
+          "sha256": "3f9ef7dfc57b742372d9ae04f00207a67d9f5b53313116e3def8bef3355453d2",
+          "commands": 59,
+          "verifiedInputs": 1555
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/cstring-function-regression-linux-r1/results.json",
+          "sha256": "54a1c549916c1ad91529cfc521cc0f94056ff6fbf883c4b80854b494f751794f",
+          "commands": 17,
+          "verifiedInputs": 1554
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/cstring-field-regression-linux-r1/results.json",
+          "sha256": "3c19b8a4c544273c74c28d67980154d679ab6b16c5d4a3f4b00d1c4fca4a7744",
+          "commands": 9,
+          "verifiedInputs": 13
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/cstring-field-ir-linux-r1/results.json",
+          "sha256": "d27cae976b50a5ac3275084a47ed46f844a0f57615f07cac6ac77b404305b1ab",
+          "commands": 8,
+          "verifiedInputs": 1429
+        }
+      ],
+      "fullBuild": {
+        "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-cstring-field-linux-full-r30/build.json",
+        "sha256": "45012449ec23082eb1a308dc00525010ac1f7a783f9fb3ff8f946c3074442270",
+        "freezeSha256": "c5ddc37923eb1dfb5d225e8050f851500edf0b82fb4959718ad59d6896d489d2",
+        "frozenInputs": 15192,
+        "products": {
+          "xl": {
+            "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-cstring-field-linux-full-r30/source/release/linux_x64/xl",
+            "sha256": "faa25e49bdf8c5ce8ccdb084810075b406cc6dd499a59577664616eb2a08265b",
+            "bytes": 47224
+          },
+          "libxl.so": {
+            "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-cstring-field-linux-full-r30/source/release/linux_x64/libxl.so",
+            "sha256": "da95037ccea4a54d5ca7f7de57423de007066b41b586dfee9e0446f8b091fecf",
+            "bytes": 16513616
+          },
+          "libxlc.so": {
+            "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-cstring-field-linux-full-r30/source/release/linux_x64/libxlc.so",
+            "sha256": "d6d637c6b0a13c947df8f6027d02282c93c68932ef4c4f23438bef3af827a29d",
+            "bytes": 22530896
+          }
+        }
+      },
+      "cohortSizes": {
+        "xl": {
+          "before": 47224,
+          "after": 47224,
+          "delta": 0
+        },
+        "libxl.so": {
+          "before": 16513616,
+          "after": 16513616,
+          "delta": 0
+        },
+        "libxlc.so": {
+          "before": 22530896,
+          "after": 22530896,
+          "delta": 0
+        }
+      }
+    }
+  },
+  "counts": {
+    "perPlatformCommands": 93,
+    "totalCommands": 186,
+    "fieldGetters": 6,
+    "fieldIrMutationsPerOptimization": 84,
+    "legacyReturnIrMutationsPerOptimization": 55,
+    "irOptimizations": [
+      "O0",
+      "O2"
+    ],
+    "fullCompilerOptimization": "O2"
+  },
+  "costs": {
+    "normalNonemptyFieldSnapshot": "One measured language allocation, one NUL scan and byte copy; zero native producer invocations. Existing receiver/code/scope/error bookkeeping remains.",
+    "zeroCopy": false,
+    "sizeAttribution": "Recorded size deltas describe the whole frozen compiler cohort including owned-input declarations, not an isolated field optimization."
+  },
+  "evidenceNotes": [
+    "IR mutation tests explicitly use recorded partial frontend object cohorts; actual JIT/AOT/shared/nested consumer checks use separately rebuilt complete O2/TCC/XRT/VFS compilers.",
+    "The generic native provider was renamed to *_native.c in the fixture tree to avoid duplicate automatic same-base C discovery. Its bytes equal the earlier provider retained in immutable build snapshots.",
+    "Failed diagnostic attempts remain at their original external paths; successor reports above are authoritative for this batch."
+  ],
+  "remaining": "Full XGE/XUI/Document goal and final matched SDK/compiler/runtime/IDE/help installation remain. No release/current-delivery, push or version update in this batch."
+}

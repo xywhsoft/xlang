@@ -22,9 +22,10 @@ validation. If the producer reports an XRT error, admission checks that error
 before reading the pointer. The compiler neither frees nor retains the
 borrowed native pointer.
 
-This is a direct function-return contract, including methods, property getters
-and callable values. It cannot be combined with `@owned`, field reads, receiver
-dereferencing, output slots or counted-field annotations. IR records the
+This supports direct function returns, including methods, property getters
+and callable values, and the pointer-field getters described below. It cannot
+be combined with `@owned`, receiver dereferencing, output slots or counted-field
+annotations. IR records the
 physical `const char*` result separately from its managed logical type and
 rejects mismatched contracts before emitting any C or public-header bytes.
 
@@ -60,3 +61,40 @@ library sizes equal Linux r24. See `foreign-cstring-linux-20261113.json`.
 Both-platform CPU/compiler qualification for this contract is complete;
 package shared initialization, graphics and final installation retain their
 separate gates.
+
+## C string pointer fields
+
+A borrowed pointer field uses the same explicit copying contract:
+
+```xlang
+extern "const ErrorInfo*" class ErrorInfo @header("native.h") @lifetime("callback")
+ native point handle
+ extern "message" @c_field @c_result("cstring") get message() as string?
+end
+```
+
+Only a non-static, argument-free field getter is admitted. The authority header
+must declare a `char*` or `const char*` field; a constant pointer is also valid.
+An array, wide string, function pointer, `void*`, pointer-to-pointer or unsigned
+byte pointer does not satisfy this contract. C and C++ header witnesses inspect
+the address of the field, so an array cannot pass through implicit decay.
+
+The getter checks its receiver scope before reading the pointer. During a
+callback, the source view expires when that callback returns, while its copied
+string remains independent. NULL/empty, NUL termination, byte-copy semantics,
+checked allocation failure and assignment rollback follow the return rules
+above. Use a counted-field contract for a fixed character array or text with
+embedded NUL; this contract neither infers an array's capacity nor reads its
+length field.
+
+The generated expression reads the field directly and uses the existing scoped
+string-copy path. It adds no native producer call, native wrapper, runtime
+schema or operation dispatcher. A nonempty snapshot still scans for NUL,
+allocates and copies its bytes. It is not a zero-copy view.
+
+`tools/check_foreign_cstring_fields.py` qualifies a full O2/VFS compiler through
+JIT, independent/shared and nested compiler hosts, GCC O0/O2, three C/C++ header
+modes, pointer-shape refusals, NULL/empty, callback expiry and OOM rollback.
+`tools/check_foreign_cstring_fields_ir.py` separately damages sealed field and
+function-return contracts over a hash-recorded compiler object cohort; it does
+not present that partial frontend cohort as another full compiler rebuild.
