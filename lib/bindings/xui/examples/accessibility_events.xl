@@ -1,0 +1,27 @@
+// 记录原生无障碍状态通知，点击按钮后显示累计次数和最新版本。
+import xui
+from "./_window.xl" import Window
+
+Window.show("无障碍事件通知",func(xui.Context ui,xui.Widget root)
+ auto status=ui.labelNative()
+ status.setText("点击按钮，查看收到的状态通知")
+ Window.place(root,status,24,84,640,36)
+
+ int notifications=0
+ int revision=0
+ ui.setAccessibilityEventCallback(func(xui.CallbackContext current,xui.CallbackWidget sender,xui.CallbackConstAccessibilityEvent event)
+  if event.eventType==xui.XUI_ACCESSIBLE_EVENT_STATE_CHANGED then
+   notifications+=1
+   revision=int(event.revision)
+  end
+ end)
+
+ auto button=ui.buttonNative()
+ button.setText("报告状态变化")
+ Window.place(root,button,24,24,200,36)
+ button.setClick(func(xui.Widget sender)
+  // 节点 0 表示控件本身；原生通知同步调用上面的观察器。
+  sender.notifyAccessibility(xui.XUI_ACCESSIBLE_EVENT_STATE_CHANGED,uint64(0))
+  status.setText("累计通知："+string(notifications)+"，最新版本："+string(revision))
+ end)
+end)

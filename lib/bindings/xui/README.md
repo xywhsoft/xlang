@@ -469,3 +469,9 @@ nullable string snapshots. Saving a view does not extend its callback epoch.
 These methods require the matched owned-input SDK. See
 [the callback lesson](examples/input_callbacks.xl) and
 [owned input contracts](../../../docs/xui-input-owned.md).
+
+`Context.setAccessibilityEventCallback` retains a creator-thread observer.
+Its Context, Widget and numeric event views expire after each callback;
+`Widget.notifyAccessibility(type,nodeId)` dispatches synchronously. See
+[the notification lesson](examples/accessibility_events.xl) and
+[accessibility event contracts](../../../docs/xui-accessibility-events.md).

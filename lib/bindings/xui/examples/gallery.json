@@ -559,6 +559,12 @@
       "expected": "编辑文字，点击按钮或按 Ctrl+F2，状态文字显示快捷键触发次数。"
     },
     {
+      "name": "accessibility_events",
+      "title": "无障碍事件通知",
+      "gallery": false,
+      "expected": "点击按钮报告控件状态变化，查看累计状态通知和原生版本号。"
+    },
+    {
       "name": "code_annotations",
       "title": "标记与诊断",
       "kind": "cpu",

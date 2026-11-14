@@ -1,0 +1,175 @@
+{
+  "schema": 1,
+  "date": "2026-11-15",
+  "status": "qualified-for-integration",
+  "shippingDelivery": false,
+  "scope": "Owned accessibility event observer with three callback-period views and direct numeric metadata getters; existing Widget notification calls retained.",
+  "sourceSha256": {
+    "lib/bindings/xui/src/managed.xl": "169faae8e448e9c863d9f70944dc37d3b92074940e8db3f39f12a8360ac92181",
+    "lib/bindings/xui/README.md": "4eba124eda80c60899b7c8f7d1b5a0cfa00de49dcd85d6bb2aa8bd80cb98f095",
+    "lib/bindings/xui/examples/gallery.json": "e0a46ca40f70984caa9ae0473efe75c92943caf2197d80aeed9dd09cc8ef7370",
+    "lib/bindings/xui/examples/accessibility_events.xl": "d4f80bb247ef438f6f3e31c3202405c83bd5ff225f921ebcc3a075d386fe23ce",
+    "docs/xui-accessibility-events.md": "23397732705eeb66e08e57762ac766e5215cca8cd45b5af9fb93e6d1ffe4fd08",
+    "test/cases/foreign_xui_accessibility_observer.xl": "2d64ec7d467c46f1d20f1d7fdcac64cc6fe8375fac252c88f41578ed878fcc79",
+    "test/cases/foreign_xui_accessibility_observer.h": "a19b3bce60f3ef865b0ab17d4742b0ced838098394f065ffcff2f82ebe607f94",
+    "test/cases/foreign_xui_accessibility_observer.c": "cd9c303bed6d17a87cbb5e2c8f440795eb6e7926b2cf7ed3bb6a88a49573bb5a",
+    "tools/check_xui_accessibility_observer.py": "01dc722d3d8bba66abf2fb0f38e870805c5cd727183357123aeef9151832c803"
+  },
+  "dependency": {
+    "nativeCommit": "5c116cfda8ccda52fe98e5553405fff403665821",
+    "nativeReceipt": "D:/GIT/xge/docs/validation/owned-accessibility-observer-20261115.json",
+    "nativeSource": "F:/xlang-validation/xge-full-20261110/native-accessibility-owner-{tag}-source-r3",
+    "sdk": "F:/xlang-validation/xge-full-20261110/accessibility-owner-sdk-{tag}-r3/{host,static}",
+    "hostedParent": "Original full164-TU accessibility-owner-sdk-tag-r2; r3 recompiles only accessibility TU, never a derived-host relink.",
+    "compiler": "Unchanged qualified full O2 Windows r37/Linux r30; no compiler/runtime contract change."
+  },
+  "contract": {
+    "api": "Context.setAccessibilityEventCallback(AccessibilityEventProc?); NULL unregisters.",
+    "callback": "CallbackContext, CallbackWidget, CallbackConstAccessibilityEvent; views expire at return, numeric copies persist.",
+    "metadata": "eventType c_int; nodeId uint64 (tested above2^32 and2^63); revision c_uint.",
+    "ownership": "Native record holds closure and graph reference; snapshot survives self-removal/replacement. Publication failure retains old observer; creator-thread required.",
+    "error": "Synchronous Widget.notifyAccessibility is checked, including callback and consuming cleanup failure. Automatic native semantic notifications coalesce at outer update; same-kind recursion is suppressed. Notification does not roll back its preceding change."
+  },
+  "qualification": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\accessibility-evidence-win-r1.json",
+      "sha256": "30124da9a272b5d8d50b2a687492915c36a6256bbee4ceff81c5b7a8fe5f7117",
+      "commands": 59,
+      "acceptance": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\accessibility-owner-language-win-r1\\results.json",
+          "sha256": "67332d8e1239063258f9840331a8231889c609c47ae7c403e58615345e9b1885",
+          "commands": 19,
+          "verifiedInputs": 2112
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\accessibility-owner-trim-win-r1\\results.json",
+          "sha256": "115ee96ade43094641ff1e580b028a7768e745c9debad79e54dc2f6da468221b",
+          "commands": 8,
+          "verifiedInputs": 570
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\accessibility-owner-native-win-r3\\results.json",
+          "sha256": "bdc4678d3fffceedeeacced5dcb480c55fa10edab2bd4c3a29644dec1b86ba81",
+          "commands": 16,
+          "verifiedInputs": 37
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\accessibility-input-regression-win-r2\\results.json",
+          "sha256": "6c6a1110ee25511a3291ed3d6280055b4932dc029a8759ee5219035f69009385",
+          "commands": 16,
+          "verifiedInputs": 35
+        }
+      ],
+      "packages": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\accessibility-owner-packages-win-r2-host.json",
+          "sha256": "71a32f010dce85030599ada7d33d4cecdbd61897272598bd24006c730c0bb41b"
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\accessibility-owner-packages-win-r2-static.json",
+          "sha256": "ef84d4a0cd3bd55db41120893e9c74eb8e88931fa07193ec13ba9fbe06722b2a"
+        }
+      },
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\accessibility-owner-sdk-win-r3\\results.json",
+        "sha256": "1b886201fbe600ad7c01cc331ef3ac7c76c618c7b3a1c5439070e3d2577d84c5"
+      },
+      "freeze": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\native-accessibility-owner-win-freeze-r3.json",
+        "sha256": "80ca7f15292a96b6e211cd409a0f2961f62005b77d1b8294c9f47327fb40a283"
+      }
+    },
+    "linux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\accessibility-evidence-linux-r1.json",
+      "sha256": "375bb6b4f2f075fe5a77e01fbbeba967b87a8b60f9d77bd88f7b60bbe3e19405",
+      "commands": 59,
+      "acceptance": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/accessibility-owner-language-linux-r1/results.json",
+          "sha256": "fd80ee857cdadfbc4eee3a0180f569813a5c93098e4746a3ff09cf3759f5d045",
+          "commands": 19,
+          "verifiedInputs": 2095
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/accessibility-owner-trim-linux-r1/results.json",
+          "sha256": "3989dc502b985ac15bcd7503e62c04a9ff6194dca374a592075adcb98eecbcf4",
+          "commands": 8,
+          "verifiedInputs": 536
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/accessibility-owner-native-linux-r1/results.json",
+          "sha256": "d6b92902c83141421543826b90718858cac0609cb3dfada3269e622199d9147d",
+          "commands": 16,
+          "verifiedInputs": 36
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/accessibility-input-regression-linux-r1/results.json",
+          "sha256": "f85ec9f00ba94ebe73aaaf8daef3a3c61eea2a2574c4aa8c6fd430d4f7f154ff",
+          "commands": 16,
+          "verifiedInputs": 34
+        }
+      ],
+      "packages": {
+        "host": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/accessibility-owner-packages-linux-r2-host.json",
+          "sha256": "758cd0d3fbb5af000eceea9548632d6ca9554999a352cbbc593475585e1b19fd"
+        },
+        "static": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/accessibility-owner-packages-linux-r2-static.json",
+          "sha256": "2874116f1b0624b6afdc4d34cfac9b173d76c4b3905a6d77c7113794b74763fc"
+        }
+      },
+      "sdk": {
+        "path": "/mnt/f/xlang-validation/xge-full-20261110/accessibility-owner-sdk-linux-r3/results.json",
+        "sha256": "e95fe73c34da3c83a51cb9b5d581905bafcedffb81932f2518ae630d64a2692b"
+      },
+      "freeze": {
+        "path": "/mnt/f/xlang-validation/xge-full-20261110/native-accessibility-owner-linux-freeze-r3.json",
+        "sha256": "8c02b15e7806a4015cd04c6c6bd90cde2da606194e78ac0c8c8fc0cbfa5808c5"
+      }
+    }
+  },
+  "counts": {
+    "languagePerPlatform": 19,
+    "trimPerPlatform": 8,
+    "nativePerPlatform": 32,
+    "totalPerPlatform": 59,
+    "total": 118
+  },
+  "costs": {
+    "register": "Existing48-byte native record, one native allocation/Hold plus general language closure/code admission.",
+    "context": "x64 sizeof147840->147848 (+8) verified by native C static assertions; record still48.",
+    "invocation": "Prepared1000 C/language counter notifications all0 XRT alloc/free/realloc in all3 link modes. Native record pin, receiver/code/epoch/graph/error work remains; no CPU equivalence claim.",
+    "unused": "Same compiler/SDK CodeModels executable file/text/BSS delta0 on both platforms.",
+    "nativeFastPath": "No observer skips snapshot mutation gate; r3 runtime tests qualify that exact production body."
+  },
+  "examples": {
+    "lesson": "lib/bindings/xui/examples/accessibility_events.xl",
+    "programs": 92,
+    "organization": "check_xui_lessons passed; gallery:false, originalCRLFJSON preserved.",
+    "readback": "Two actual frames in JIT/dynamic/static. Same-platform hashes identical and visually reviewed; no cross-platform pixel, physical input or screen-reader certification."
+  },
+  "inventory": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-accessibility-owner-r1\\surface.json",
+    "sha256": "11cbad71a2b8af5fbea1c508ba61640fc27df5377a3e0e17607afa53438c878d",
+    "population": {
+      "functions": 5193,
+      "types": 981,
+      "constants": 1838,
+      "functionMacros": 7,
+      "callableFields": 184,
+      "enums": 40,
+      "enumConstants": 316
+    },
+    "declarationPresent": {
+      "functions": 3817,
+      "types": 380,
+      "constants": 1820,
+      "callableFields": 66,
+      "enumConstants": 316
+    },
+    "meaning": "Declaration inventory only, not runtime completeness."
+  },
+  "remaining": "Safe custom accessibility provider callbacks and borrowed-string node outputs remain separate; decisions15+16 pending. Full XGE/XUI/Document and final matched SDK/compiler/runtime/IDE/help delivery continue. No release/current-delivery install, push or version change."
+}

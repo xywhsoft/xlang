@@ -1,0 +1,152 @@
+import xui
+from xui import CallbackContext,CallbackWidget,CallbackConstAccessibilityEvent
+extern "fixtureInputProxy" @header("test/cases/foreign_xui_accessibility_observer.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
+extern "fixtureLayoutFont" @no_raise @c_result("owned_view") @factory(1,0,dropFont) func cpuFont(xui.Proxy proxy) as xui.Font
+extern "xuiFontReleaseChecked" @no_raise @c_result("status",0) func dropFont(xui.Font value)
+extern "fixtureInputCleanupCheck" @no_raise func checkCleanup()
+extern "fixtureInputBudget" @no_raise func budget(c_int count)
+extern "fixtureInputHeapBegin" @no_raise func heapBegin()
+extern "fixtureInputHeapReport" @no_raise func heapReport(c_int kind)
+extern "fixtureAccessNativeInstall" @no_raise @c_result("status",0) func nativeInstall(xui.Context ui)
+extern "fixtureAccessNativeHot" @no_raise func nativeHot(xui.Widget widget)
+extern "fixtureAccessNativeCount" @no_raise func nativeCount() as c_int
+func main(...) as int
+ auto proxy=cpuProxy()
+ auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ auto font=cpuFont(proxy)
+ ui.setDefaultFont(font)
+ auto root=ui.widget()
+ auto widget=ui.widget()
+ assert ui.setRootWidget(root)==0 and root.addChild(widget)==0
+ CallbackContext? savedContext=null
+ CallbackWidget? savedWidget=null
+ CallbackConstAccessibilityEvent? savedEvent=null
+ int calls=0
+ ui.setAccessibilityEventCallback(func(xui.CallbackContext current,xui.CallbackWidget sender,xui.CallbackConstAccessibilityEvent info)
+  assert current.getLanguage()==ui.getLanguage() and sender.rect().fW>=0
+  assert info.eventType==xui.XUI_ACCESSIBLE_EVENT_STATE_CHANGED and info.nodeId==uint64(4294967297) and info.revision>0
+  savedContext=current
+  savedWidget=sender
+  savedEvent=info
+  calls+=1
+  ui.setAccessibilityEventCallback(null)
+  assert info.nodeId==uint64(4294967297)
+ end)
+ widget.notifyAccessibility(xui.XUI_ACCESSIBLE_EVENT_STATE_CHANGED,uint64(4294967297))
+ assert calls==1
+ bool rejected=false
+ try
+  auto invalid=(savedEvent as CallbackConstAccessibilityEvent).nodeId
+ catch StateError
+  rejected=true
+ end
+ assert rejected
+ rejected=false
+ try
+  auto invalid=(savedWidget as CallbackWidget).rect()
+ catch StateError
+  rejected=true
+ end
+ assert rejected
+ rejected=false
+ try
+  auto invalid=(savedContext as CallbackContext).getLanguage()
+ catch StateError
+  rejected=true
+ end
+ assert rejected
+ uint64 wide=uint64(0xfedcba9876543210)
+ ui.setAccessibilityEventCallback(func(xui.CallbackContext current,xui.CallbackWidget sender,xui.CallbackConstAccessibilityEvent info)
+  assert info.nodeId==wide
+ end)
+ widget.notifyAccessibility(xui.XUI_ACCESSIBLE_EVENT_STATE_CHANGED,wide)
+ ui.setAccessibilityEventCallback(null)
+ int version=0
+ xui.AccessibilityEventProc previous=func(xui.CallbackContext current,xui.CallbackWidget sender,xui.CallbackConstAccessibilityEvent info)
+  version=1
+ end
+ xui.AccessibilityEventProc next=func(xui.CallbackContext current,xui.CallbackWidget sender,xui.CallbackConstAccessibilityEvent info)
+  version=2
+ end
+ int failures=0
+ int successes=0
+ for allowance in range(32)
+  ui.setAccessibilityEventCallback(previous)
+  rejected=false
+  budget(c_int(allowance))
+  try
+   ui.setAccessibilityEventCallback(next)
+  catch Error failure
+   rejected=true
+  finally
+   budget(-1)
+  end
+  widget.notifyAccessibility(xui.XUI_ACCESSIBLE_EVENT_STATE_CHANGED,uint64(4294967297))
+  if rejected then
+   failures+=1
+   assert version==1
+  else
+   successes+=1
+   assert version==2
+  end
+ end
+ assert failures>0 and successes>0
+ ui.setAccessibilityEventCallback(func(xui.CallbackContext current,xui.CallbackWidget sender,xui.CallbackConstAccessibilityEvent info)
+  throw "accessibility observer failure"
+ end)
+ rejected=false
+ try
+  widget.notifyAccessibility(xui.XUI_ACCESSIBLE_EVENT_STATE_CHANGED,uint64(4294967297))
+ catch Error failure
+  rejected=true
+ end
+ assert rejected
+ ui.setAccessibilityEventCallback(null)
+ auto worker=thread(func() as int
+  try
+   ui.setAccessibilityEventCallback(null)
+  catch StateError
+   return 1
+  end
+  return 0
+ end)
+ assert worker.waitTimeout(30000) and worker.exitCode()==1
+ calls=0
+ ui.setAccessibilityEventCallback(func(xui.CallbackContext current,xui.CallbackWidget sender,xui.CallbackConstAccessibilityEvent info)
+  calls+=1
+ end)
+ widget.notifyAccessibility(xui.XUI_ACCESSIBLE_EVENT_STATE_CHANGED,uint64(4294967297))
+ calls=0
+ heapBegin()
+ budget(0)
+ try
+  for i in range(1000)
+   widget.notifyAccessibility(xui.XUI_ACCESSIBLE_EVENT_STATE_CHANGED,uint64(4294967297))
+  end
+ finally
+  budget(-1)
+ end
+ heapReport(0)
+ assert calls==1000
+ nativeInstall(ui)
+ heapBegin()
+ budget(0)
+ try
+  nativeHot(widget)
+ finally
+  budget(-1)
+ end
+ heapReport(1)
+ assert nativeCount()==1000
+ ui.setAccessibilityEventCallback(func(xui.CallbackContext current,xui.CallbackWidget sender,xui.CallbackConstAccessibilityEvent info)
+  current.requestClose()
+ end)
+ widget.notifyAccessibility(xui.XUI_ACCESSIBLE_EVENT_STATE_CHANGED,uint64(4294967297))
+ ui.close()
+ font.close()
+ proxy.close()
+ checkCleanup()
+ println("Accessibility language: three scoped views, uint64 metadata, registration OOM, failure, thread, close and zero-heap notifications passed")
+ return 0
+end
