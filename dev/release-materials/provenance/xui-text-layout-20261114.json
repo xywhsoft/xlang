@@ -1,0 +1,730 @@
+{
+  "schema": 1,
+  "date": "2026-11-14",
+  "scope": "Direct uniquely owned TextLayout with counted text, checked state/lines, packing, measurement and drawing.",
+  "shippingDelivery": false,
+  "fullGoalComplete": false,
+  "networkTests": false,
+  "parentCommit": "cb34af4f858b934c1165b875eb9b72a8dd6e4efd",
+  "nativeRevision": "cea3671e04be51e73b48c57513822504669e5978",
+  "platforms": {
+    "win": {
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\text-layout-native-win-r1\\results.json",
+        "sha256": "988ecda85030bb8cfb8af431f5d17076babeea6c47b19bebd4403d95e73b57a6",
+        "commands": 4,
+        "selectedRows": [
+          "O0-build",
+          "O0-run",
+          "O2-build",
+          "O2-run"
+        ]
+      },
+      "nativeSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\text-layout-sdk-win-r1\\results.json",
+        "sha256": "2f24d8355f6fa272202e6b32932fdef7c7834631a50de9e86018f60864b44fdd",
+        "commands": 4,
+        "selectedRows": [
+          "host",
+          "static",
+          "stage-host",
+          "stage-static"
+        ]
+      },
+      "finalPackages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\text-layout-packages-win-r7\\results.json",
+        "sha256": "1db5ac47afae4215630eb9842052e9b509b746e53fd715dc6c69bef4e8ee5fbf",
+        "commands": 2,
+        "selectedRows": [
+          "host",
+          "static"
+        ]
+      },
+      "cpu": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\text-layout-language-win-r4\\results.json",
+        "sha256": "e180ea9b1078464ff78427e309a7763f7f62e579d05fc466b53962bc5b0793d5",
+        "commands": 13,
+        "selectedRows": [
+          "foreign_xui_text_layout-emit",
+          "provider-O0",
+          "provider-O2",
+          "foreign_xui_text_layout-header-c11",
+          "foreign_xui_text_layout-header-c++11",
+          "foreign_xui_text_layout-header-c++17",
+          "foreign_xui_text_layout-jit",
+          "foreign_xui_text_layout-dynamic-build",
+          "foreign_xui_text_layout-dynamic-execute",
+          "foreign_xui_text_layout-dynamic-imports",
+          "foreign_xui_text_layout-static-build",
+          "foreign_xui_text_layout-static-execute",
+          "foreign_xui_text_layout-static-imports"
+        ]
+      },
+      "hotQueries": [
+        {
+          "mode": "jit",
+          "rounds": 1000,
+          "nativeCallsPerRound": 1,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          },
+          "cpuEquivalenceClaim": false
+        },
+        {
+          "mode": "dynamic",
+          "rounds": 1000,
+          "nativeCallsPerRound": 1,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          },
+          "cpuEquivalenceClaim": false
+        },
+        {
+          "mode": "static",
+          "rounds": 1000,
+          "nativeCallsPerRound": 1,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          },
+          "cpuEquivalenceClaim": false
+        }
+      ],
+      "lesson": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\text-layout-example-win-r1\\results.json",
+        "sha256": "7312099e250a0c10297e265359c80a8f0224c1c9fa23cc5bb2ae9813e6837079",
+        "commands": 11,
+        "selectedRows": [
+          "text_layout-emit",
+          "text_layout-header-c11",
+          "text_layout-header-c++11",
+          "text_layout-header-c++17",
+          "text_layout-jit",
+          "text_layout-dynamic-build",
+          "text_layout-dynamic-execute",
+          "text_layout-dynamic-imports",
+          "text_layout-static-build",
+          "text_layout-static-execute",
+          "text_layout-static-imports"
+        ]
+      },
+      "readbacks": [
+        {
+          "mode": "jit",
+          "path": "F:\\xlang-validation\\xge-full-20261110\\text-layout-example-win-r1\\text_layout-jit.rgba",
+          "width": 800,
+          "height": 600,
+          "sha256": "536446a16dd39b01069aff1bd3faceff4878c4ff9739e5cd5b00f9ea5720acc4"
+        },
+        {
+          "mode": "dynamic",
+          "path": "F:\\xlang-validation\\xge-full-20261110\\text-layout-example-win-r1\\text_layout-dynamic-execute.rgba",
+          "width": 800,
+          "height": 600,
+          "sha256": "536446a16dd39b01069aff1bd3faceff4878c4ff9739e5cd5b00f9ea5720acc4"
+        },
+        {
+          "mode": "static",
+          "path": "F:\\xlang-validation\\xge-full-20261110\\text-layout-example-win-r1\\text_layout-static-execute.rgba",
+          "width": 800,
+          "height": 600,
+          "sha256": "536446a16dd39b01069aff1bd3faceff4878c4ff9739e5cd5b00f9ea5720acc4"
+        }
+      ],
+      "programs": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\text-layout-example-win-r1\\text_layout-dynamic.exe",
+          "sha256": "38057b42f8407b8ab66b68450b4012ce5daf2fc4301c92ebb2ac1ba1b9a7a54b",
+          "bytes": 2136064,
+          "imports": [
+            "xge3_host.dll",
+            "msvcrt.dll",
+            "kernel32.dll",
+            "Ole32.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\text-layout-example-win-r1\\text_layout-static.exe",
+          "sha256": "b01a026b927cc7f5ed4e61a0449b9e451062bfc319511a9fa2c1684aab1b33ee",
+          "bytes": 7824384,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "USER32.dll",
+            "GDI32.dll",
+            "ole32.dll",
+            "OLEAUT32.dll",
+            "SHELL32.dll",
+            "IMM32.dll",
+            "DWrite.dll"
+          ]
+        }
+      ],
+      "textRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\text-layout-text-regression-win-r2\\results.json",
+        "sha256": "0fcdd8cdafcaf64c4504503ed4aedea5b6ed7c15eb97bac86a005e857e388207",
+        "commands": 29,
+        "selectedRows": [
+          "declared_getters-emit",
+          "declared_getters-link",
+          "declared_getters-imports",
+          "declared_getters-bootstrap",
+          "declared_getters-public-header-c11",
+          "declared_getters-public-header-c++11",
+          "declared_getters-public-header-c++17",
+          "foreign_xui_text_reads-emit",
+          "foreign_xui_text_reads-jit",
+          "foreign_xui_text_reads-dynamic-build",
+          "foreign_xui_text_reads-dynamic-execute",
+          "foreign_xui_text_reads-dynamic-imports",
+          "foreign_xui_text_reads-static-build",
+          "foreign_xui_text_reads-static-execute",
+          "foreign_xui_text_reads-static-imports",
+          "foreign_xui_text_reads-public-header-c11",
+          "foreign_xui_text_reads-public-header-c++11",
+          "foreign_xui_text_reads-public-header-c++17",
+          "foreign_xge3_binding_output_view-emit",
+          "foreign_xge3_binding_output_view-jit",
+          "foreign_xge3_binding_output_view-dynamic-build",
+          "foreign_xge3_binding_output_view-dynamic-execute",
+          "foreign_xge3_binding_output_view-dynamic-imports",
+          "foreign_xge3_binding_output_view-static-build",
+          "foreign_xge3_binding_output_view-static-execute",
+          "foreign_xge3_binding_output_view-static-imports",
+          "foreign_xge3_binding_output_view-public-header-c11",
+          "foreign_xge3_binding_output_view-public-header-c++11",
+          "foreign_xge3_binding_output_view-public-header-c++17"
+        ]
+      },
+      "unused": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\text-layout-unused-win-r1\\results.json",
+        "sha256": "76d66c047e14bf8e075ee2282e73662b5e7ff7174d4bb830fc6a3ad720d53dc0",
+        "commands": 6,
+        "selectedRows": [
+          "old-build",
+          "old-sections",
+          "old-imports",
+          "new-build",
+          "new-sections",
+          "new-imports"
+        ]
+      },
+      "unusedDelta": {
+        "fileBytes": 0,
+        "textBytes": 0
+      },
+      "nativeArtifacts": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\text-layout-sdk-win-r1\\host\\xge3_host.dll",
+          "sha256": "83f17f240971e17ec9a9d4bb365995efb951c77efcd95931949be834a1c4c4bf",
+          "bytes": 9596975,
+          "report": "F:\\xlang-validation\\xge-full-20261110\\text-layout-sdk-win-r1\\host\\build-report.json",
+          "reportSha256": "7e30186031350be14b3e68fa01f1b0160932f7ae0f46ee6a6afa054e07d20154",
+          "compiled": 164,
+          "reused": 0
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\text-layout-sdk-win-r1\\static\\libxge3_static.a",
+          "sha256": "8ad172f87680a69c494233ff9291c5443bf2230f52b31850ad932faabd602e37",
+          "bytes": 19637734,
+          "report": "F:\\xlang-validation\\xge-full-20261110\\text-layout-sdk-win-r1\\static\\build-report.json",
+          "reportSha256": "08cce0db0628947dac7b3287ee45049a4b19ac58b88745fee2a50342063f7fdb",
+          "compiled": 166,
+          "reused": 0
+        }
+      }
+    },
+    "linux": {
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\text-layout-native-linux-r1\\results.json",
+        "sha256": "d1634d95a1758a0a74c817d52ab72b45664b31f53d3552834ee94286e61cf269",
+        "commands": 4,
+        "selectedRows": [
+          "O0-build",
+          "O0-run",
+          "O2-build",
+          "O2-run"
+        ]
+      },
+      "nativeSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\text-layout-sdk-linux-r1\\results.json",
+        "sha256": "5e6fc6bfa315c2a813afbe5c3479e18f4fd57b61b10f0ce59328812f868188bd",
+        "commands": 4,
+        "selectedRows": [
+          "host",
+          "static",
+          "stage-host",
+          "stage-static"
+        ]
+      },
+      "finalPackages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\text-layout-packages-linux-r7\\results.json",
+        "sha256": "aea70e46ed0b96d4077b17344d77e5a5ecfe929ae75020f2531c4a00ae6002bc",
+        "commands": 2,
+        "selectedRows": [
+          "host",
+          "static"
+        ]
+      },
+      "cpu": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\text-layout-language-linux-r3\\results.json",
+        "sha256": "e20e2fb3d0024429ac0edafcdbc715f620ee24dda61a83cddfabf9b070d2cd3d",
+        "commands": 13,
+        "selectedRows": [
+          "foreign_xui_text_layout-emit",
+          "provider-O0",
+          "provider-O2",
+          "foreign_xui_text_layout-header-c11",
+          "foreign_xui_text_layout-header-c++11",
+          "foreign_xui_text_layout-header-c++17",
+          "foreign_xui_text_layout-jit",
+          "foreign_xui_text_layout-dynamic-build",
+          "foreign_xui_text_layout-dynamic-execute",
+          "foreign_xui_text_layout-dynamic-imports",
+          "foreign_xui_text_layout-static-build",
+          "foreign_xui_text_layout-static-execute",
+          "foreign_xui_text_layout-static-imports"
+        ]
+      },
+      "hotQueries": [
+        {
+          "mode": "jit",
+          "rounds": 1000,
+          "nativeCallsPerRound": 1,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          },
+          "cpuEquivalenceClaim": false
+        },
+        {
+          "mode": "dynamic",
+          "rounds": 1000,
+          "nativeCallsPerRound": 1,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          },
+          "cpuEquivalenceClaim": false
+        },
+        {
+          "mode": "static",
+          "rounds": 1000,
+          "nativeCallsPerRound": 1,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          },
+          "cpuEquivalenceClaim": false
+        }
+      ],
+      "lesson": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\text-layout-example-linux-r1\\results.json",
+        "sha256": "93fa6148086e6bb8a3cd92c4eaaec12aeda0a6abc9a6a71ddc2b808704e86d66",
+        "commands": 11,
+        "selectedRows": [
+          "text_layout-emit",
+          "text_layout-header-c11",
+          "text_layout-header-c++11",
+          "text_layout-header-c++17",
+          "text_layout-jit",
+          "text_layout-dynamic-build",
+          "text_layout-dynamic-execute",
+          "text_layout-dynamic-imports",
+          "text_layout-static-build",
+          "text_layout-static-execute",
+          "text_layout-static-imports"
+        ]
+      },
+      "readbacks": [
+        {
+          "mode": "jit",
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/text-layout-example-linux-r1/text_layout-jit.rgba",
+          "width": 800,
+          "height": 600,
+          "sha256": "a3bf671ca63cd6069afae2b30a1d577ba9fda26804cd1bb986fc1cd34d8d0ad4"
+        },
+        {
+          "mode": "dynamic",
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/text-layout-example-linux-r1/text_layout-dynamic-execute.rgba",
+          "width": 800,
+          "height": 600,
+          "sha256": "a3bf671ca63cd6069afae2b30a1d577ba9fda26804cd1bb986fc1cd34d8d0ad4"
+        },
+        {
+          "mode": "static",
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/text-layout-example-linux-r1/text_layout-static-execute.rgba",
+          "width": 800,
+          "height": 600,
+          "sha256": "a3bf671ca63cd6069afae2b30a1d577ba9fda26804cd1bb986fc1cd34d8d0ad4"
+        }
+      ],
+      "programs": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/text-layout-example-linux-r1/text_layout-dynamic",
+          "sha256": "9626b11df12f9fcfad0007f63c9a853eba0d2d3e238ec87853c7b2e9c9233486",
+          "bytes": 2187095,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/text-layout-example-linux-r1/text_layout-static",
+          "sha256": "3f451959550c89fce20efa647ff982d823cc4368ce6767d8df72435695f2ff45",
+          "bytes": 8912452,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ],
+      "textRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\text-layout-text-regression-linux-r2\\results.json",
+        "sha256": "5cb2f24ef1338cdc53c5499164e244cb5984bcfda69b4c2e8b4e3a9f8f7c1959",
+        "commands": 29,
+        "selectedRows": [
+          "declared_getters-emit",
+          "declared_getters-link",
+          "declared_getters-imports",
+          "declared_getters-bootstrap",
+          "declared_getters-public-header-c11",
+          "declared_getters-public-header-c++11",
+          "declared_getters-public-header-c++17",
+          "foreign_xui_text_reads-emit",
+          "foreign_xui_text_reads-jit",
+          "foreign_xui_text_reads-dynamic-build",
+          "foreign_xui_text_reads-dynamic-execute",
+          "foreign_xui_text_reads-dynamic-imports",
+          "foreign_xui_text_reads-static-build",
+          "foreign_xui_text_reads-static-execute",
+          "foreign_xui_text_reads-static-imports",
+          "foreign_xui_text_reads-public-header-c11",
+          "foreign_xui_text_reads-public-header-c++11",
+          "foreign_xui_text_reads-public-header-c++17",
+          "foreign_xge3_binding_output_view-emit",
+          "foreign_xge3_binding_output_view-jit",
+          "foreign_xge3_binding_output_view-dynamic-build",
+          "foreign_xge3_binding_output_view-dynamic-execute",
+          "foreign_xge3_binding_output_view-dynamic-imports",
+          "foreign_xge3_binding_output_view-static-build",
+          "foreign_xge3_binding_output_view-static-execute",
+          "foreign_xge3_binding_output_view-static-imports",
+          "foreign_xge3_binding_output_view-public-header-c11",
+          "foreign_xge3_binding_output_view-public-header-c++11",
+          "foreign_xge3_binding_output_view-public-header-c++17"
+        ]
+      },
+      "unused": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\text-layout-unused-linux-r1\\results.json",
+        "sha256": "1158253619ce3cbbbea69c942dabb1dc6c2fc20c7ad0250cef95ea8451f7a9ea",
+        "commands": 6,
+        "selectedRows": [
+          "old-build",
+          "old-sections",
+          "old-imports",
+          "new-build",
+          "new-sections",
+          "new-imports"
+        ]
+      },
+      "unusedDelta": {
+        "fileBytes": 0,
+        "textBytes": 0
+      },
+      "nativeArtifacts": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\text-layout-sdk-linux-r1\\host\\libxge3_host.so",
+          "sha256": "6afd7ad8a6e2278407e80fb74554c3f731c4d4e6a0feace6f06c155543d4ef9b",
+          "bytes": 10453744,
+          "report": "F:\\xlang-validation\\xge-full-20261110\\text-layout-sdk-linux-r1\\host\\build-report.json",
+          "reportSha256": "c64db8817fefcbb474b7793e5b8c40f4732ba9eccba4f19d115af66d28edc02e",
+          "compiled": 164,
+          "reused": 0
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\text-layout-sdk-linux-r1\\static\\libxge3_static.a",
+          "sha256": "c82028a0449d80b870ae7bab39cbdced5e476d0ffc44721fea903c64532b9960",
+          "bytes": 17862612,
+          "report": "F:\\xlang-validation\\xge-full-20261110\\text-layout-sdk-linux-r1\\static\\build-report.json",
+          "reportSha256": "bd3816a8f5a3f772c9a9ce505dd54363c3d94ae59a956ab22802a0c9fb9442fe",
+          "compiled": 166,
+          "reused": 0
+        }
+      }
+    }
+  },
+  "sources": {
+    "docs/xui-text-layout.md": "6c61f707d2ed6f018212520aa53edada800ccd2cb272844fa2d2e6f09a62dd69",
+    "docs/xge3-xui3-full-coverage-plan.md": "816de11149bccdfaaf391754b6fb16eb6efa8767089e8e9898da12cdc9cf829e",
+    "lib/bindings/_xge_native/include/xge3_runtime.h": "c3c1197a23d88a0c1f05adbbe27ea3b882150034ac75e77f1537cd043951faae",
+    "lib/bindings/_xge_native/src/runtime.c": "e99059c04e42bb73ace384bd7dbc7437be87054665e320e069082926992c505e",
+    "lib/bindings/xui/src/text_layout.xl": "e865d9cdd7e10dbc6b6771533bd701a09380d7bea0db3aee24f01769f402c889",
+    "lib/bindings/xui/xlang.package.json": "ab4a1d42555c995307fd5cec4478268c4cb83d1d491c46f8aab20008a282ffd1",
+    "lib/bindings/xui/README.md": "0d2122ba81eb3ef616941104e11403dbe5a8a1f0001b442bc862866b796cde66",
+    "lib/bindings/xui/examples/README.md": "e7d9c5ed2ec094f7821c4271a45beca54625f6d4d4b6028337a1b92a6b47ed34",
+    "lib/bindings/xui/examples/gallery.json": "c130572fb294c81cd1cce6a3a759a116251410d77bc299d182d41b70cb750830",
+    "lib/bindings/xui/examples/text_layout.xl": "bf789f9eb750083c7a38af42fafcd30e2aa1860ac2150a5f9c7ae31a06652c5b",
+    "tools/check_xge3_bindings.py": "0deb032df66326a8dcb77ed97546043d7cf72f1aea5a45554032dfa9a8363b97",
+    "tools/check_xui_text_layout.py": "d6c34992e53ec82b35c1733b23e0b602340323fc08a3bc336e0cbce318de9988",
+    "test/cases/foreign_xui_text_layout.xl": "e9de1dbf23614f2a29ea87e468db34ef37a303cc46deeaee94019ef105a02d23",
+    "test/cases/foreign_xui_text_layout.c": "92666a4192e4ecafcdc8c9b70649112b03a13a712e671b90fca2ed255cd7a7c9",
+    "test/cases/foreign_xui_text_layout.h": "cfc28b0715e82c407df9dc7fbf28c71d7d66a190b2f6eb8b8b7fd7fee9569ae1"
+  },
+  "visualQa": [
+    {
+      "platform": "win",
+      "mode": "jit",
+      "raw": "F:\\xlang-validation\\xge-full-20261110\\text-layout-example-win-r1\\text_layout-jit.rgba",
+      "png": "F:\\xlang-validation\\xge-full-20261110\\text-layout-example-win-r1\\text_layout-jit.png",
+      "pngSha256": "df6669e4bc96d6b3caff4ac66a9778097950e345e9e718e14032c4a886ec0ab1",
+      "pixelRoundTrip": true
+    },
+    {
+      "platform": "win",
+      "mode": "dynamic",
+      "raw": "F:\\xlang-validation\\xge-full-20261110\\text-layout-example-win-r1\\text_layout-dynamic-execute.rgba",
+      "png": "F:\\xlang-validation\\xge-full-20261110\\text-layout-example-win-r1\\text_layout-dynamic-execute.png",
+      "pngSha256": "df6669e4bc96d6b3caff4ac66a9778097950e345e9e718e14032c4a886ec0ab1",
+      "pixelRoundTrip": true
+    },
+    {
+      "platform": "win",
+      "mode": "static",
+      "raw": "F:\\xlang-validation\\xge-full-20261110\\text-layout-example-win-r1\\text_layout-static-execute.rgba",
+      "png": "F:\\xlang-validation\\xge-full-20261110\\text-layout-example-win-r1\\text_layout-static-execute.png",
+      "pngSha256": "df6669e4bc96d6b3caff4ac66a9778097950e345e9e718e14032c4a886ec0ab1",
+      "pixelRoundTrip": true
+    },
+    {
+      "platform": "linux",
+      "mode": "jit",
+      "raw": "F:\\xlang-validation\\xge-full-20261110\\text-layout-example-linux-r1\\text_layout-jit.rgba",
+      "png": "F:\\xlang-validation\\xge-full-20261110\\text-layout-example-linux-r1\\text_layout-jit.png",
+      "pngSha256": "4cda89643fa3680feef07e79052669587d159aaa364d540f7fd336adb94f1bb3",
+      "pixelRoundTrip": true
+    },
+    {
+      "platform": "linux",
+      "mode": "dynamic",
+      "raw": "F:\\xlang-validation\\xge-full-20261110\\text-layout-example-linux-r1\\text_layout-dynamic-execute.rgba",
+      "png": "F:\\xlang-validation\\xge-full-20261110\\text-layout-example-linux-r1\\text_layout-dynamic-execute.png",
+      "pngSha256": "4cda89643fa3680feef07e79052669587d159aaa364d540f7fd336adb94f1bb3",
+      "pixelRoundTrip": true
+    },
+    {
+      "platform": "linux",
+      "mode": "static",
+      "raw": "F:\\xlang-validation\\xge-full-20261110\\text-layout-example-linux-r1\\text_layout-static-execute.rgba",
+      "png": "F:\\xlang-validation\\xge-full-20261110\\text-layout-example-linux-r1\\text_layout-static-execute.png",
+      "pngSha256": "4cda89643fa3680feef07e79052669587d159aaa364d540f7fd336adb94f1bb3",
+      "pixelRoundTrip": true
+    }
+  ],
+  "remaining": [
+    "Existing managed-owner alias result for weak getContext is pending user decision.",
+    "Full XGE/XUI/Document families and matched compiler/SDK/runtime/IDE/help shipping delivery remain active."
+  ],
+  "costs": {
+    "input": "General stack descriptor, counted source; native algorithm owns/copies/shapes its text.",
+    "output": "One native call; status checked before a scoped independent text copy. Required Layout text rejects null; CodeEdit retains nullable contract.",
+    "scopes": "Existing receiver/thread/code-lease/ownership bookkeeping still applies. No no-op native call scope, invented RC or per-method C wrapper.",
+    "equalCpuClaim": false
+  },
+  "unsuccessfulDevelopmentReports": [
+    "text-layout-language-win-r1",
+    "text-layout-language-win-r2",
+    "text-layout-language-win-r3",
+    "text-layout-language-linux-r1",
+    "text-layout-language-linux-r2"
+  ],
+  "note": "Early policy was correctly rejected by descriptor validation; later interim lesson needed an explicit Font? cast. All earlier evidence preserved. Final acceptance selects only unchanged CPU rows and final lesson rows.",
+  "packageReuse": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\text-layout-package-reuse-r1.json",
+    "sha256": "793d7290d95e7e19cc632354e480a86dfd2ca22a270ec25f2f928324df0a520e",
+    "comparisons": [
+      {
+        "platform": "win",
+        "kind": "host",
+        "old": "F:\\xlang-validation\\xge-full-20261110\\text-layout-packages-win-r5\\host",
+        "new": "F:\\xlang-validation\\xge-full-20261110\\text-layout-packages-win-r7\\host",
+        "files": 241,
+        "changed": [
+          "xui/examples/text_layout.xl"
+        ],
+        "oldTreeSha256": "d8bdcf70b0bf8d7b27be9d380edf86de760a487a810ff07ffc6a620505ffd6f9",
+        "newTreeSha256": "4799428318e909553d2e7ffebae817dc1c59e07ae7fd0d143088913193d397cf"
+      },
+      {
+        "platform": "win",
+        "kind": "static",
+        "old": "F:\\xlang-validation\\xge-full-20261110\\text-layout-packages-win-r5\\static",
+        "new": "F:\\xlang-validation\\xge-full-20261110\\text-layout-packages-win-r7\\static",
+        "files": 257,
+        "changed": [
+          "xui/examples/text_layout.xl"
+        ],
+        "oldTreeSha256": "b08eae11be32bae8c2b44d2d48cd78d9bbaec7147905232e9f21181f0112619c",
+        "newTreeSha256": "75d75cad4967adc4fe21dc35c46e8800d903f9a8d48ca916c23bf268178bc78d"
+      },
+      {
+        "platform": "win",
+        "kind": "host",
+        "old": "F:\\xlang-validation\\xge-full-20261110\\text-layout-packages-win-r6\\host",
+        "new": "F:\\xlang-validation\\xge-full-20261110\\text-layout-packages-win-r7\\host",
+        "files": 241,
+        "changed": [
+          "xui/examples/text_layout.xl"
+        ],
+        "oldTreeSha256": "e485f8b905e4730746a59cea357478e1adab5ed2c2fa0ae481744d7ae91e3a15",
+        "newTreeSha256": "4799428318e909553d2e7ffebae817dc1c59e07ae7fd0d143088913193d397cf"
+      },
+      {
+        "platform": "win",
+        "kind": "static",
+        "old": "F:\\xlang-validation\\xge-full-20261110\\text-layout-packages-win-r6\\static",
+        "new": "F:\\xlang-validation\\xge-full-20261110\\text-layout-packages-win-r7\\static",
+        "files": 257,
+        "changed": [
+          "xui/examples/text_layout.xl"
+        ],
+        "oldTreeSha256": "4582df223e51b0d5e8cf2a23825bcf4b5adfd7c47b545a51ce9c15ad953daa4d",
+        "newTreeSha256": "75d75cad4967adc4fe21dc35c46e8800d903f9a8d48ca916c23bf268178bc78d"
+      },
+      {
+        "platform": "linux",
+        "kind": "host",
+        "old": "F:\\xlang-validation\\xge-full-20261110\\text-layout-packages-linux-r5\\host",
+        "new": "F:\\xlang-validation\\xge-full-20261110\\text-layout-packages-linux-r7\\host",
+        "files": 241,
+        "changed": [
+          "xui/examples/text_layout.xl"
+        ],
+        "oldTreeSha256": "343de74f53711940258fec59c8a1ebfb2a3fbd00648c6dc6a1328b62ce3f81d7",
+        "newTreeSha256": "08bfebf51c7be8c7adbb73dfcd879096a3ee77b4b7036412d2da8e0b8499e83b"
+      },
+      {
+        "platform": "linux",
+        "kind": "static",
+        "old": "F:\\xlang-validation\\xge-full-20261110\\text-layout-packages-linux-r5\\static",
+        "new": "F:\\xlang-validation\\xge-full-20261110\\text-layout-packages-linux-r7\\static",
+        "files": 240,
+        "changed": [
+          "xui/examples/text_layout.xl"
+        ],
+        "oldTreeSha256": "9bd5c1d01af64d0138b7742b5245f2b9fcfb4b621251e50b2cded147cf678bbb",
+        "newTreeSha256": "c8a0be81d6a9537a86c76cc26315e819ba7e2a542adb950c6a955c8cd8c802aa"
+      },
+      {
+        "platform": "linux",
+        "kind": "host",
+        "old": "F:\\xlang-validation\\xge-full-20261110\\text-layout-packages-linux-r6\\host",
+        "new": "F:\\xlang-validation\\xge-full-20261110\\text-layout-packages-linux-r7\\host",
+        "files": 241,
+        "changed": [
+          "xui/examples/text_layout.xl"
+        ],
+        "oldTreeSha256": "b95f5e2b71304f3b5d007947a6108942b834b4ab848d3b006f1b0870ecfeedaa",
+        "newTreeSha256": "08bfebf51c7be8c7adbb73dfcd879096a3ee77b4b7036412d2da8e0b8499e83b"
+      },
+      {
+        "platform": "linux",
+        "kind": "static",
+        "old": "F:\\xlang-validation\\xge-full-20261110\\text-layout-packages-linux-r6\\static",
+        "new": "F:\\xlang-validation\\xge-full-20261110\\text-layout-packages-linux-r7\\static",
+        "files": 240,
+        "changed": [
+          "xui/examples/text_layout.xl"
+        ],
+        "oldTreeSha256": "3e6eed2e5547518e77bc74ee765f7b33dffb72f178bb6850bc428aa05a8dfc4a",
+        "newTreeSha256": "c8a0be81d6a9537a86c76cc26315e819ba7e2a542adb950c6a955c8cd8c802aa"
+      }
+    ]
+  },
+  "inventory": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-text-layout-r1\\surface.json",
+    "sha256": "11392a7fd221d2f60f39ba6cba1871a114e94399dfbf53cada41d525038dc869",
+    "population": {
+      "functions": 5173,
+      "types": 980,
+      "constants": 1838,
+      "functionMacros": 7,
+      "callableFields": 184,
+      "enums": 40,
+      "enumConstants": 316
+    },
+    "declarationPresent": {
+      "functions": 3686,
+      "types": 370,
+      "constants": 1820,
+      "callableFields": 66,
+      "enumConstants": 316
+    },
+    "notCompletionRate": true
+  },
+  "repositoryBudget": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\text-layout-repository-budget-r1.json",
+    "sha256": "c36558715dca64cceb80fbcd153a7eba6972e99b4f3dbbd613333f32f22175eb",
+    "packMiB": 167.53
+  }
+}

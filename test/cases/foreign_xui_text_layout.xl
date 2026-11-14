@@ -1,0 +1,157 @@
+// Unique Layout owns Font/paint while Context remains a weak dependency.
+import xui
+extern "fixtureLayoutProxy" @header("test/cases/foreign_xui_text_layout.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
+extern "fixtureLayoutFont" @no_raise @c_result("owned_view") @factory(1,0,dropFont) func cpuFont(xui.Proxy proxy) as xui.Font
+extern "xuiFontReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropFont(xui.Font value)
+extern "fixtureLayoutSurface" @no_raise @c_result("owned_view") @factory(1,0,dropSurface) func cpuSurface(xui.Proxy proxy) as xui.Surface
+extern "xuiSurfaceReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropSurface(xui.Surface value)
+extern "fixtureLayoutReady" @no_raise func ready(c_int value)
+extern "fixtureLayoutBudget" @no_raise func budget(c_int allowance)
+extern "fixtureLayoutArmPartialFailure" @no_raise func armPartialFailure()
+extern "fixtureLayoutCheck" @no_raise func checkCleanup()
+extern "fixtureLayoutHeapBegin" @no_raise func beginHeap()
+extern "fixtureLayoutHeapReport" @no_raise func reportHeap(c_int native)
+extern "fixtureLayoutNativeHot" @no_raise func nativeHot(xui.TextLayout layout)
+func main(...) as int
+    println("Layout phase: backend resources")
+    auto proxy=cpuProxy()
+    auto context=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+    auto font=cpuFont(proxy)
+    auto surface=cpuSurface(proxy)
+    println("Layout phase: packed creation and reads")
+    auto layout=xui.createTextLayout(context,font,"a\0b",1000,1000)
+    println("Layout phase: state")
+    auto size,lines,truncated=layout.getState()
+    assert size.fX==24 and size.fY==16 and lines==1 and truncated==0
+    println("Layout phase: line")
+    auto line=layout.getLine(0)
+    assert line.iTextOffset==0 and line.iTextSize==3 and line.fW==24
+    println("Layout phase: counted text")
+    string original=layout.getText()
+    assert original=="a\0b"
+    println("Layout phase: cached measurement and draw")
+    auto measurement=xui.measureTextLayout(context,font,"a\0b",1000,1000)
+    assert measurement.fX==24 and measurement.fY==16
+    auto targetRect=xui.Rect()
+    targetRect.fW=200
+    targetRect.fH=40
+    layout.draw(surface,targetRect)
+    beginHeap()
+    for i in range(1000)
+        auto currentSize,currentLines,currentTruncated=layout.getState()
+        assert currentSize.fX==24 and currentSize.fY==16 and currentLines==1 and currentTruncated==0
+    end
+    reportHeap(0)
+    beginHeap()
+    nativeHot(layout)
+    reportHeap(1)
+    bool rejected=false
+    context.setVirtualDpi(1.5)
+    budget(0)
+    try
+        size,lines,truncated=layout.getState()
+    catch Error failure
+        rejected=true
+    finally
+        budget(-1)
+    end
+    assert rejected and size.fX==24 and size.fY==16 and lines==1 and truncated==0
+    context.setVirtualDpi(1)
+    size,lines,truncated=layout.getState()
+    rejected=false
+    try
+        line=layout.getLine(-1)
+    catch Error failure
+        rejected=true
+    end
+    assert rejected and line.iTextOffset==0 and line.iTextSize==3 and line.fW==24
+    rejected=false
+    budget(0)
+    try
+        original=layout.getText()
+    catch Error failure
+        rejected=true
+    finally
+        budget(-1)
+    end
+    assert rejected and original=="a\0b" and layout.getText()==original
+    println("Layout phase: factory OOM rollback")
+    int failures=0
+    int successes=0
+    for allowance in range(32)
+        budget(c_int(allowance))
+        try
+            auto temporary=xui.createTextLayout(context,font,"factory rollback",1000,1000)
+            temporary.close()
+            successes+=1
+        catch Error failure
+            failures+=1
+        finally
+            budget(-1)
+        end
+    end
+    assert failures>0 and successes>0
+    armPartialFailure()
+    rejected=false
+    try
+        auto unpublished=xui.createTextLayout(context,font,"partially built",1000,1000)
+    catch Error failure
+        rejected=true
+    finally
+        budget(-1)
+    end
+    assert rejected
+    ready(1)
+    rejected=false
+    budget(0)
+    try
+        layout.reset(font,"replacement",1000,1000)
+    catch Error failure
+        rejected=true
+    finally
+        budget(-1)
+    end
+    assert rejected and layout.getText()==original
+    println("Layout phase: reset and thread rejection")
+    layout.reset(font,"",1000,1000)
+    assert layout.getText()=="" and original=="a\0b"
+    layout.reset(font,"a\0b",1000,1000)
+    auto worker=thread(func() as int
+        try
+            auto invalid=layout.getText()
+        catch StateError
+            return 1
+        end
+        return 0
+    end)
+    assert worker.waitTimeout(30000) and worker.exitCode()==1
+    println("Layout phase: Busy close and Context expiry")
+    ready(0)
+    layout.close()
+    rejected=false
+    try
+        auto expired=layout.getText()
+    catch StateError
+        rejected=true
+    end
+    assert rejected
+    ready(1)
+    layout.close()
+    auto survivor=xui.createTextLayout(context,font,"survives Context storage",1000,1000)
+    context.close()
+    rejected=false
+    try
+        original=survivor.getText()
+    catch Error failure
+        rejected=true
+    end
+    assert rejected and original=="a\0b"
+    survivor.close()
+    surface.close()
+    font.close()
+    proxy.close()
+    checkCleanup()
+    println("TextLayout: packed factory/reset, sized text, checked queries, OOM, thread and unique lifetime passed")
+    return 0
+end

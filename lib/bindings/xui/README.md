@@ -385,3 +385,11 @@ See `examples/icon_file.xl` and its two bundled assets. The shared asset helper
 accepts the lesson, runtime or source working directory. Metadata updates and
 Surface/resource-source factories still need their complete safe contracts;
 the current language entry does not overwrite opaque host user data.
+
+`createTextLayout(context,font,text,...)` creates an independent, uniquely owned
+`TextLayout`. `reset`, `getState`, `getLine`, `getText` and `draw` call native
+entries directly. Counted strings preserve embedded NUL; `getText` returns an
+independent snapshot. Context expiry rejects reads but still permits layout
+cleanup. Close retains deferred native cleanup until its paint is ready.
+See `examples/text_layout.xl` and `docs/xui-text-layout.md` for ownership,
+measurement, byte offsets, checked failures, costs and remaining alias work.

@@ -188,3 +188,8 @@ window loop. System fonts are demonstrated in the xge package's `examples/system
 像素后再还原。图表显式使用数值横轴，坐标只在界面中保留一位小数；底层仍以
 原生 float／double 精度计算。更多控件的尺寸、滚动状态读取见
 `docs/xui-geometry-queries.md`，教学源码不混入故障注入和生命周期测试。
+
+`text_layout.xl` 创建一份独立文本布局，读取行数、尺寸、每行字节范围，并把
+同一份布局绘制到 Surface 后交给 Image 显示。布局与 Surface 的局部拥有引用
+在初始化结束时关闭；Image 保留其 Surface，后续帧无需重新排版。字体和图形
+初始化仍由共享 Window 处理。这里的字节范围不是 Unicode 字符索引。

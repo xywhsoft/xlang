@@ -519,6 +519,24 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3TextShapePolicyGet(void)
     return &value;
 }
 static bool destroy_path(void* raw){xuiPathDestroy(raw);return true;}
+static bool destroy_text_layout(void* raw)
+{bool consumed=false;int status=xuiTextLayoutDestroyOwnerChecked(raw,&consumed);if(status!=XUI_STATUS_DEFERRED)report_resource_failure(status,"xuiTextLayoutDestroyOwnerChecked");return consumed;}
+static bool request_text_layout(void* raw)
+{int status=xuiTextLayoutRequestClose(raw);report_resource_failure(status,"xuiTextLayoutRequestClose");return status==XUI_OK;}
+static bool trace_text_layout(const void* raw,XL6_ModuleOwnershipVisit visit,void* user)
+{return xuiTextLayoutTraceOwnership((xui_text_layout)raw,visit,user);}
+static bool busy_text_layout(const void* raw)
+{return xuiTextLayoutOwnershipBusy((xui_text_layout)raw);}
+const XL6_ForeignViewDescriptorV1* xl6Xui3TextLayoutPolicyGet(void)
+{
+    /* Unique owner with weak Context, not a Context child or an invented RC
+     * node. Native status/consumption and partial cleanup progress are separate.
+     * Resident active pins defer destruction through the complete call tail. */
+    static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui.textLayout",
+        0,1,NULL,NULL,destroy_text_layout,
+        0,1,NULL,NULL,trace_text_layout,busy_text_layout,
+        XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE|XL6_FOREIGN_VIEW_CONTINUABLE_FINALIZE,NULL,request_text_layout};return &value;
+}
 /* Scope members are native borrowed editors. XGE removes destroyed editors
  * and detaches all remaining members when the scope closes. No language
  * callback is installed here, so this independent root has no owning edges. */

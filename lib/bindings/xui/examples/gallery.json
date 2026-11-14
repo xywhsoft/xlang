@@ -517,6 +517,13 @@
       "kind": "gui",
       "gallery": false,
       "expected": "Read slider dimensions and round-trip chart data/pixel coordinates through direct native outputs."
+    },
+    {
+      "name": "text_layout",
+      "title": "Text layout",
+      "kind": "gui",
+      "gallery": false,
+      "expected": "Measure, inspect lines and draw one owned text layout to an Image surface."
     }
   ],
   "helper": "_window.xl",

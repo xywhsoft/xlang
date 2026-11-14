@@ -953,3 +953,23 @@ XUI 再补入 14 类控件的 27 个原生几何查询，包括尺寸、滚动�
 1000 次尺寸查询在语言／原生 C 两边均零堆操作，不声称 CPU 或冷路径等价。
 详见 xui-geometry-queries.md 和 xui-geometry-queries-20261114.json；完整生态、
 待选寿命合同与最终配套发布交付继续，release 未安装。
+
+
+独立 TextLayout 继续接入：直接创建／重置、一次 checked 状态查询、逐行记录、
+带长度文本快照、Surface 绘制和 Context 原生测量缓存。Context 为弱父关系，
+Font／paint 则为真实拥有；关闭后先拒绝调用，原生 Deferred 清理保留精确拥有者，
+资源就绪后继续退役。没有虚构引用计数、空 CallBegin 或逐方法 C 转发。三个旧的
+静默零标量查询合并为一次 getState；getContext 仍待通用已有拥有者别名合同。
+原生 cea3671e 增加 GetState／GetTextView，两端完整 O2 host／static 各编译
+164／166 单元且无复用；原生 O0／O2 共 8 步通过。完整编译器两端 CPU 26 步
+与最终真实窗口范例 22 步通过，含 JIT／独立动态／静态及公开 C/C++ 头。覆盖
+32 档工厂 OOM、工厂已生成 busy paint 后的失败与后续清理、DPI 输出回滚、NUL／
+空串、线程拒绝和 Context 失效。1000 次热状态查询在原生 C／语言端均零堆操作，
+不等于 CPU 或冷路径无成本；文本快照仍需要独立分配和复制。
+CodeEdit／通用文本输出另外完成两端 58 步回归，保留 NULL／空串、带长度 NUL、
+失败状态与旧赋值的正确区分。最终范例展示实际自动换行、每行字节范围和一位小数
+尺寸；同平台三种运行方式 RGBA 一致。仅范例变化后的 CPU 复用由全包字节对比
+及原始测试源码哈希证明。未使用 TextLayout 的 Slider 使用同一静态库比较，两端
+文件／全部代码节均增加 0 字节，共 12 个构建／检查步骤，不泛化为所有程序结论。
+详见 xui-text-layout.md 与 xui-text-layout-20261114.json；完整生态及最终配套
+compiler／SDK／runtime／IDE／帮助交付继续，release 尚未安装本批候选。

@@ -1,0 +1,32 @@
+// 一次排版，查询每行，再把相同布局绘制到 Surface。
+import xui
+from xui import Font
+from "./_window.xl" import Window
+
+Window.showWithProxy("Text layout / measure, lines and draw",func(xui.Context ui,xui.Widget root,xui.Proxy proxy)
+ auto font=ui.getDefaultFont() as Font
+ auto layout=xui.createTextLayout(ui,font,"独立文本布局会自动换行；查询每一行的字节范围，再将同一份结果绘制到图像。改变布局宽度，可以直接观察行数和位置的变化。\nThe same layout supplies measurements and pixels.",520,240,xui.XUI_TEXT_WRAP_WORD)
+ auto surface=proxy.createSurfaceRGBA(560,280,flags=c_uint(xui.XUI_SURFACE_USAGE_TARGET))
+ try
+  proxy.clearSurface(surface,0xF4F8FFFF)
+  layout.draw(surface,Window.rect(20,20,520,240),0x203040FF)
+  auto image=ui.imageNative()
+  image.setSurface(surface)
+  image.setMode(xui.XUI_IMAGE_FIT)
+  image.setSource(Window.rect(0,0,560,280))
+  Window.place(root,image,24,24,560,280)
+  auto size,lines,truncated=layout.getState()
+  auto summary=ui.labelNative()
+  summary.setText("行数："+string(int(lines))+"，宽度："+string.format(float(size.fX),".1f")+"，高度："+string.format(float(size.fY),".1f")+"，截断："+string(int(truncated)))
+  Window.place(root,summary,24,328,720,32)
+  for index in range(int(lines))
+   auto line=layout.getLine(c_int(index))
+   auto details=ui.labelNative()
+   details.setText("第 "+string(index+1)+" 行：字节偏移 "+string(int(line.iTextOffset))+"，字节数 "+string(int(line.iTextSize)))
+   Window.place(root,details,24,372+index*30,720,28)
+  end
+ finally
+  layout.close()
+  surface.close()
+ end
+end)

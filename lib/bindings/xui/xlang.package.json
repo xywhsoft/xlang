@@ -20,6 +20,7 @@
       "src/draw.xl",
       "src/painter.xl",
       "src/text_shape.xl",
+      "src/text_layout.xl",
       "src/managers.xl",
       "src/document_records.xl",
       "src/document.xl",
