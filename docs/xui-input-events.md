@@ -40,9 +40,10 @@ the native `XUI_EVENT_HOTKEY` route rather than `XUI_EVENT_COMMAND`.
 
 These two APIs pass an exact typed NULL for native `pData`; they store no raw
 language pointers. Language handlers use the existing owned Widget callback
-protocol. The raw arbitrary `xuiHotKeyRegister` callback is not exposed as an
-unowned language closure. Supporting that and Context's raw error observer
-requires a native owned-registration contract before safe language admission.
+protocol. Direct hotkey callbacks and Context error observers now have separate
+native owned-registration APIs and safe language declarations; see
+[owned input callbacks](xui-input-owned.md). Raw arbitrary callbacks are not
+admitted as unowned language closures.
 
 `CallbackConstEvent.text` copies exactly `iTextSize` bytes from the native
 fixed-size `sText` field while the callback view is active. The compiled field

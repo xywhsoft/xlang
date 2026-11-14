@@ -459,3 +459,13 @@ and queued commands use owned Widget handlers, and callback `event.text` is an
 independent counted snapshot. See [input contracts](../../../docs/xui-input-events.md)
 and [the input lesson](examples/input_events.xl). Native queue delivery and
 synchronous input-result calls keep their different timing contracts.
+
+`Context.hotKeyRegister(target,key,modifiers,callback)` and
+`Context.setErrorCallback(callback)` retain owned language closures through
+native registration and active invocation. `Widget.hotKeyClearWidget()` removes
+its registrations. An error callback receives callback-scoped Context,
+Widget and ErrorInfo views; `info.operation` and `info.message` are independent
+nullable string snapshots. Saving a view does not extend its callback epoch.
+These methods require the matched owned-input SDK. See
+[the callback lesson](examples/input_callbacks.xl) and
+[owned input contracts](../../../docs/xui-input-owned.md).

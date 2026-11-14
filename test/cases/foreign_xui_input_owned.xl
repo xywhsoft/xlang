@@ -1,0 +1,244 @@
+import xui
+from xui import CallbackConstErrorInfo,CallbackContext,CallbackWidget
+extern "fixtureInputProxy" @header("test/cases/foreign_xui_input_extended.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
+extern "fixtureLayoutFont" @no_raise @c_result("owned_view") @factory(1,0,dropFont) func cpuFont(xui.Proxy proxy) as xui.Font
+extern "xuiFontReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropFont(xui.Font value)
+extern "fixtureInputCleanupCheck" @no_raise func checkCleanup()
+extern "fixtureInputBudget" @no_raise func budget(c_int count)
+extern "fixtureInputHeapBegin" @no_raise func heapBegin()
+extern "fixtureInputHeapReport" @no_raise func heapReport(c_int kind)
+extern "fixtureOwnedNativeInstall" @header("test/cases/foreign_xui_input_owned.h") @no_raise @c_result("status",0) func nativeInstall(xui.Context ui,xui.Widget target)
+extern "fixtureOwnedNativeHot" @no_raise func nativeHot(xui.Context ui)
+extern "fixtureOwnedNativeCount" @no_raise func nativeCount() as c_int
+func main(...) as int
+ auto proxy=cpuProxy()
+ auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ auto font=cpuFont(proxy)
+ ui.setDefaultFont(font)
+ auto root=ui.widget()
+ auto input=ui.inputNative()
+ assert ui.setRootWidget(root)==0 and root.addChild(input)==0 and ui.setFocusWidget(input)==0
+ CallbackConstErrorInfo? saved=null
+ CallbackContext? savedContext=null
+ CallbackWidget? savedWidget=null
+ string? operation=null
+ string? message=null
+ int errors=0
+ ui.setErrorCallback(func(xui.CallbackContext current,xui.CallbackConstErrorInfo info)
+  assert info.code==xui.XUI_ERROR_INVALID_ARGUMENT and info.stage==xui.XUI_ERROR_STAGE_INPUT and info.recoverable==1
+  assert current.getLanguage()==ui.getLanguage()
+  operation=info.operation
+  message=info.message
+  saved=info
+  savedContext=current
+  savedWidget=info.widget
+  auto rectangle=info.rectangle
+  assert rectangle.fW>=0 and rectangle.fH>=0
+  errors+=1
+ end)
+ ui.inputImeCompositionEx("a\0b",0)
+ assert ui.dispatchPendingEvents()==0 and errors==1 and operation!=null and message!=null and savedWidget!=null
+ assert (operation as string)=="event.dispatch"
+ assert (message as string)!=""
+ bool rejected=false
+ try
+  auto expired=saved as CallbackConstErrorInfo
+  operation=expired.operation
+ catch StateError
+  rejected=true
+ end
+ assert rejected and (operation as string)=="event.dispatch"
+ rejected=false
+ try
+  auto expired=savedContext as CallbackContext
+  auto invalid=expired.getLanguage()
+ catch StateError
+  rejected=true
+ end
+ assert rejected
+ rejected=false
+ try
+  auto expired=savedWidget as CallbackWidget
+  auto invalid=expired.rect()
+ catch StateError
+  rejected=true
+ end
+ assert rejected
+ int keys=0
+ ui.hotKeyRegister(input,xui.XUI_KEY_F2,0,func(xui.Widget sender,xui.CallbackConstEvent info) as c_int
+  keys+=1
+  input.hotKeyClearWidget()
+  return c_int(xui.XUI_EVENT_DISPATCH_STOP)
+ end)
+ assert ui.inputKeyDownEx(xui.XUI_KEY_F2)==5 and keys==1
+ assert ui.inputKeyDownEx(xui.XUI_KEY_F2)==0 and keys==1
+ ui.setErrorCallback(null)
+ // Replacement is transactional across both language and native allocations.
+ int version=0
+ xui.WidgetEventProc previous=func(xui.Widget sender,xui.CallbackConstEvent event) as c_int
+  version=1
+  return c_int(xui.XUI_EVENT_DISPATCH_STOP)
+ end
+ xui.WidgetEventProc next=func(xui.Widget sender,xui.CallbackConstEvent event) as c_int
+  version=2
+  return c_int(xui.XUI_EVENT_DISPATCH_STOP)
+ end
+ int failures=0
+ int successes=0
+ for allowance in range(32)
+  ui.hotKeyRegister(input,xui.XUI_KEY_F3,0,previous)
+  rejected=false
+  budget(c_int(allowance))
+  try
+   ui.hotKeyRegister(input,xui.XUI_KEY_F3,0,next)
+  catch Error failure
+   rejected=true
+  finally
+   budget(-1)
+  end
+  assert ui.inputKeyDownEx(xui.XUI_KEY_F3)==5
+  if rejected then
+   failures+=1
+   assert version==1
+  else
+   successes+=1
+   assert version==2
+  end
+  input.hotKeyClearWidget()
+ end
+ assert failures>0 and successes>0
+ // The active native snapshot retains a closure that replaces itself.
+ version=0
+ ui.hotKeyRegister(input,xui.XUI_KEY_F4,0,func(xui.Widget sender,xui.CallbackConstEvent event) as c_int
+  version=3
+  ui.hotKeyRegister(input,xui.XUI_KEY_F4,0,next)
+  assert event.iType==xui.XUI_EVENT_HOTKEY
+  return c_int(xui.XUI_EVENT_DISPATCH_STOP)
+ end)
+ assert ui.inputKeyDownEx(xui.XUI_KEY_F4)==5 and version==3
+ assert ui.inputKeyDownEx(xui.XUI_KEY_F4)==5 and version==2
+ input.hotKeyClearWidget()
+ // Native callback failures cross the synchronous checked boundary.
+ ui.hotKeyRegister(input,xui.XUI_KEY_F5,0,func(xui.Widget sender,xui.CallbackConstEvent event) as c_int
+  throw "owned hotkey failure"
+ end)
+ rejected=false
+ try
+  auto invalid=ui.inputKeyDownEx(xui.XUI_KEY_F5)
+ catch Error failure
+  rejected=true
+ end
+ assert rejected
+ input.hotKeyClearWidget()
+ // Self-unregistering an error observer leaves its callback views usable now.
+ errors=0
+ ui.setErrorCallback(func(xui.CallbackContext current,xui.CallbackConstErrorInfo info)
+  ui.setErrorCallback(null)
+  assert (info.operation as string)=="event.dispatch" and current.getLanguage()==ui.getLanguage()
+  errors+=1
+ end)
+ ui.inputImeCompositionEx("a\0b",0)
+ assert ui.dispatchPendingEvents()==0 and errors==1
+ ui.inputImeCompositionEx("a\0b",0)
+ assert ui.dispatchPendingEvents()==0 and errors==1
+ // Error observers use the same transactional closure publication contract.
+ xui.ErrorProc previousObserver=func(xui.CallbackContext current,xui.CallbackConstErrorInfo info)
+  version=1
+ end
+ xui.ErrorProc nextObserver=func(xui.CallbackContext current,xui.CallbackConstErrorInfo info)
+  version=2
+ end
+ failures=0
+ successes=0
+ for allowance in range(32)
+  ui.setErrorCallback(previousObserver)
+  rejected=false
+  budget(c_int(allowance))
+  try
+   ui.setErrorCallback(nextObserver)
+  catch Error failure
+   rejected=true
+  finally
+   budget(-1)
+  end
+  ui.inputImeCompositionEx("a\0b",0)
+  assert ui.dispatchPendingEvents()==0
+  if rejected then
+   failures+=1
+   assert version==1
+  else
+   successes+=1
+   assert version==2
+  end
+ end
+ assert failures>0 and successes>0
+ ui.setErrorCallback(func(xui.CallbackContext current,xui.CallbackConstErrorInfo info)
+  throw "owned error observer failure"
+ end)
+ ui.inputImeCompositionEx("a\0b",0)
+ rejected=false
+ try
+  auto invalid=ui.dispatchPendingEvents()
+ catch Error failure
+  rejected=true
+ end
+ assert rejected
+ ui.setErrorCallback(null)
+ auto worker=thread(func() as int
+  int refused=0
+  try
+   ui.hotKeyRegister(input,xui.XUI_KEY_F2,0,null)
+  catch StateError
+   refused+=1
+  end
+  try
+   ui.setErrorCallback(null)
+  catch StateError
+   refused+=1
+  end
+  try
+   input.hotKeyClearWidget()
+  catch StateError
+   refused+=1
+  end
+  return refused
+ end)
+ assert worker.waitTimeout(30000) and worker.exitCode()==3
+ // Match the same prepared owned hotkey path against a handwritten C callback.
+ keys=0
+ ui.hotKeyRegister(input,xui.XUI_KEY_F6,0,func(xui.Widget sender,xui.CallbackConstEvent event) as c_int
+  keys+=1
+  return c_int(xui.XUI_EVENT_DISPATCH_STOP)
+ end)
+ assert ui.inputKeyDownEx(xui.XUI_KEY_F6)==5
+ keys=0
+ heapBegin()
+ budget(0)
+ try
+  for i in range(1000)
+   assert ui.inputKeyDownEx(xui.XUI_KEY_F6)==5
+  end
+ finally
+  budget(-1)
+ end
+ heapReport(0)
+ assert keys==1000
+ nativeInstall(ui,input)
+ heapBegin()
+ budget(0)
+ try
+  nativeHot(ui)
+ finally
+  budget(-1)
+ end
+ heapReport(1)
+ assert nativeCount()==1000
+ input.hotKeyClearWidget()
+ ui.close()
+ font.close()
+ proxy.close()
+ checkCleanup()
+ println("InputOwners language: direct owned callbacks, error metadata, string fields, expiry, replacement OOM, reentry, failure and thread checks passed")
+ return 0
+end

@@ -553,6 +553,12 @@
       "expected": "编辑文字，点击按钮或按 Ctrl+F2 插入 ♥，并显示消费结果。"
     },
     {
+      "name": "input_callbacks",
+      "title": "快捷键回调与错误通知",
+      "gallery": false,
+      "expected": "编辑文字，点击按钮或按 Ctrl+F2，状态文字显示快捷键触发次数。"
+    },
+    {
       "name": "code_annotations",
       "title": "标记与诊断",
       "kind": "cpu",

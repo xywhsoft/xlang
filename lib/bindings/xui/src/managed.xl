@@ -853,6 +853,25 @@ export extern "const xui_event_t*" class CallbackConstEvent @header("xge3_runtim
  extern "iCompositionAttribute" @c_field get iCompositionAttribute() as c_int
 end
 
+export extern "xui_context_t*" class CallbackContext @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "xuiGetLanguage" @no_raise func getLanguage() as c_int
+ extern "xuiRequestClose" @no_raise @c_result("status",0) func requestClose()
+end
+
+export extern "const xui_error_info_t*" class CallbackConstErrorInfo @header("xge3_runtime.h") @lifetime("callback")
+ native point handle
+ extern "iCode" @c_field get code() as c_int
+ extern "iStage" @c_field get stage() as c_int
+ extern "bRecoverable" @c_field get recoverable() as c_int
+ extern "tRect" @c_field get rectangle() as Rect
+ extern "pWidget" @c_field @c_result("scope_view",0) get widget() as CallbackWidget?
+ extern "sOperation" @c_field @c_result("cstring") get operation() as string?
+ extern "sMessage" @c_field @c_result("cstring") get message() as string?
+end
+
+export typedef ErrorProc = func(CallbackContext,CallbackConstErrorInfo)
+
 export typedef WidgetEventProc = func(Widget,CallbackConstEvent) as c_int
 
 export typedef WidgetCursorProc = func(Widget,c_int,c_int) as c_int
@@ -1163,6 +1182,8 @@ export extern "xui_context_t*" class Context @header("xge3_runtime.h") @lifetime
  // Counted UTF-8 composition, with byte offsets and an explicit active state.
  extern "xuiInputImeCompositionEx" @no_raise @c_result("status",0) @c_span(0,"const char*","int") @c_pack(1,"xui_ime_composition_t",0,9) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sText",0,"span_data") @c_pack_field(1,"iTextSize",0,"span_count") @c_pack_field(1,"bActive",1,"value") @c_pack_field(1,"iCursor",2,"value") @c_pack_field(1,"iSelectionStart",3,"value") @c_pack_field(1,"iSelectionEnd",4,"value") @c_pack_field(1,"bReplacementRange",5,"value") @c_pack_field(1,"iReplacementStart",6,"value") @c_pack_field(1,"iReplacementEnd",7,"value") @c_pack_field(1,"iAttribute",8,"value") func inputImeCompositionEx(string text,c_int active=1,c_int cursor=0,c_int selectionStart=0,c_int selectionEnd=0,c_int hasReplacement=0,c_int replacementStart=0,c_int replacementEnd=0,c_int attribute=0)
  // Command payload is copied by native storage; arbitrary user pointers stay private.
+ extern "xuiHotKeyRegisterOwned" @no_raise @c_result("status",0) @c_owned_callback(3,0,"xui_callback_owner_t",-16) func hotKeyRegister(Widget target,c_int key,c_uint modifiers,WidgetEventProc? callback)
+ extern "xuiSetErrorCallbackOwned" @no_raise @c_result("status",0) @c_owned_callback(0,0,"xui_callback_owner_t",0) func setErrorCallback(ErrorProc? callback)
  extern "xuiHotKeyRegisterCommand" @no_raise @c_result("status",0) @c_cstr(4) @c_null(6,"void*") func hotKeyRegisterCommand(Widget target,c_int key,c_uint modifiers,c_int command,string name)
  extern "xuiCommandDispatch" @no_raise @c_result("status",0) @c_cstr(2) @c_null(4,"void*") func dispatchCommand(Widget? target,c_int command,string name)
 

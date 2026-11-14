@@ -1,0 +1,248 @@
+{
+  "schema": 1,
+  "date": "2026-11-14",
+  "status": "qualified-for-integration",
+  "shippingDelivery": false,
+  "scope": "Direct owned hotkey/error observer callbacks, nullable copied error string fields. Reuse existing Widget.hotKeyClearWidget; no redundant clear alias.",
+  "dependency": {
+    "compilerCommit": "5f152dd4eeb8fe935bbddfc34612c2e1b46a6394",
+    "compilerReceipt": "dev/release-materials/provenance/foreign-cstring-fields-20261114.json",
+    "nativeFixCommit": "af126edc082b242a465275321158cc7ca723df00",
+    "nativeOwnedApiCommit": "25410b4c059d8a6cb838c2aec57eb71d132dc8e8",
+    "nativeFixReceipt": "D:/GIT/xge/docs/validation/error-observer-close-20261114.json",
+    "nativeOwnedReceipt": "D:/GIT/xge/docs/validation/owned-input-callbacks-20261114.json",
+    "source": "F:/xlang-validation/xge-full-20261110/native-input-owner-{win,linux}-source-r3",
+    "sdk": "F:/xlang-validation/xge-full-20261110/input-owner-sdk-{win,linux}-r3/{host,static}",
+    "hostedReuse": "Derived r3 recompiles input TU from original full164-TU hosted r2; no derived-host relink chain."
+  },
+  "sourceSha256": {
+    "lib/bindings/xui/src/managed.xl": "627794e556404bb8a65b937a4643e35b19c76dfd88506b6474490ff2cfdaacda",
+    "lib/bindings/xui/README.md": "fb91ddda1dbd683449514ba99d1b83a62d8eb4904763a73fae3f545da314cf48",
+    "lib/bindings/xui/examples/input_callbacks.xl": "43e1888778ecd22a243eb195a2a32a884c7b961dbf63db18b3ed4b165cfa7c01",
+    "lib/bindings/xui/examples/gallery.json": "7043aae0f31eebdabf83bc184b9bfbe2ba0fa4f00ea03660d41eff21e3b2fa83",
+    "docs/xui-input-events.md": "16c5114eed4c726335cb8972ab4482df59e992ecaffc94188d653691c63a1689",
+    "docs/xui-input-owned.md": "505037c0adf684278ae7312a036d5d48a0a776685010f4b74c0c47d730bc0c56",
+    "test/cases/foreign_xui_input_owned.xl": "48a28944b4a4076c9f8daf4b67561b2c3f652d00edb8281748ba204c74dfcebb",
+    "test/cases/foreign_xui_input_owned.c": "2a4d6fd08ae6bf35cef5d42c88fcdb3b9840e61444f7cf8294dfd20b6b541981",
+    "test/cases/foreign_xui_input_owned.h": "ff390d362fb17323dec6c3431e302d70411130627dda64c46c1f5fa8e8fdeea7",
+    "test/cases/foreign_xui_error_close.xl": "8a1ba438707556e420ead3ef11c3829f1dc62ed1302e63c0949bae5a8abe0d76",
+    "test/cases/foreign_xui_error_close.c": "9286590ba3d2190067e0c0eb41fb74b6042bd94c8b0e583e8598fda786850414",
+    "tools/check_xui_input_owned.py": "54050c97c4ae4604153682b17757f7049bfd1557e19ec91f7a86e3a2e2354694",
+    "tools/check_xui_error_close.py": "85032e5a0f30f0e215b035bddf3d13f699a9b858014214028288f2574016454f"
+  },
+  "contract": {
+    "api": [
+      "Context.hotKeyRegister(target,key,modifiers,WidgetEventProc?)",
+      "Context.setErrorCallback(ErrorProc?)",
+      "existing Widget.hotKeyClearWidget()"
+    ],
+    "lifetime": "Native registration holds closure; active record survives self-removal/replacement. Callback Context/ErrorInfo/Widget views expire; copied operation/message string? snapshots survive.",
+    "errors": "Framework notifications differ from checked API exceptions. Hotkey/observer exceptions checked.32 OOM prefixes for each registration family retain old callback. Observer requestClose stops following queued command.",
+    "threads": "Creator-thread only; wrong-thread registration/removal checked."
+  },
+  "qualification": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\input-owner-evidence-win-r1.json",
+      "sha256": "9ec54bd9492d00b5e37425485ff215fb1d96556cc6a389d9f73c87cd874769fb",
+      "commands": 80,
+      "acceptance": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\input-owned-language-win-r5\\results.json",
+          "sha256": "0d4cc1ebb1ff8ac250e31d6acfa145ceeed6d111d5c66a0dee23030a8463711f",
+          "kind": "language",
+          "commands": 19,
+          "verifiedInputs": 2110
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\input-error-close-language-win-r2\\results.json",
+          "sha256": "94f4e15b121e2eec3482415f9305f8530f4a06e82e617deb9e858f014e2e83da",
+          "kind": "language-close",
+          "commands": 9,
+          "verifiedInputs": 2102
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\input-owner-trim-win-r2\\results.json",
+          "sha256": "1e6004d2bbe3ab1900c7c5e974f54901c3dbca7ba7593d3f9d6869756f88d59c",
+          "kind": "language-trim",
+          "commands": 8,
+          "verifiedInputs": 568
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\input-owner-native-win-r4\\results.json",
+          "sha256": "6c1049367eddd3e03d73622c030ebf411d34b1f0e4ca8502e58f4fa557a53cc9",
+          "kind": "native",
+          "commands": 16,
+          "verifiedInputs": 35
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\input-owner-edit-win-r1\\results.json",
+          "sha256": "575e6cb13172092aeb73aafe48c5502ee4d5074c1580101182c00e2815f999d2",
+          "kind": "native-edit-regression",
+          "commands": 16,
+          "verifiedInputs": 30
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\input-owner-cost-win-r1\\results.json",
+          "sha256": "4a3b8012060087fcf4f1916726a719c736b23da1e992e57fa2391c6fc41a3c9f",
+          "kind": "native-cost",
+          "commands": 8,
+          "verifiedInputs": 2
+        },
+        {
+          "kind": "standalone-native-close-fix",
+          "path": "F:\\xlang-validation\\xge-full-20261110\\input-close-fixed-win-r1\\results.json",
+          "sha256": "c23c73f90e052770fc7ba9143a51b52de2cd2629243dcec63fd90fc5f02571ef",
+          "commands": 4
+        }
+      ],
+      "packages": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\input-owner-packages-win-r4-host.json",
+          "sha256": "9cb84d7e6734a98ac066616032c798a913a02b1e25920ded7a402db07286a9a2"
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\input-owner-packages-win-r4-static.json",
+          "sha256": "ebea71c529e0178c899b8cfa16c6f5ab8a0b0f43acd40c85a6d6ecc7ed706c41"
+        }
+      },
+      "nativeBuilds": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\input-owner-sdk-win-r3\\host\\build-report.json",
+          "sha256": "25b9e9de06610f2387da8e59ee6a2533daa39688d4f9c761a53263f505255895"
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\input-owner-sdk-win-r3\\static\\build-report.json",
+          "sha256": "786d9fa8057bcf55e79b555b0fb53d672c800d8f2d33efbe137fbd98d6e1832e"
+        },
+        "orchestration": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\input-owner-sdk-win-r3\\results.json",
+          "sha256": "5da0deeece0c2e37e9165cf81ed2791e13e1c34f1839cfecafc238d8877bac90"
+        }
+      }
+    },
+    "linux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\input-owner-evidence-linux-r1.json",
+      "sha256": "acb7ff7f2d6c6fde8ee5d5e96848a517fc76feb93bba3e885a9f506b112db439",
+      "commands": 80,
+      "acceptance": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/input-owned-language-linux-r3/results.json",
+          "sha256": "d36f58f15367999497e401c9412f3fa41b93232e31f2f3bc6708a6dab8ef10ef",
+          "kind": "language",
+          "commands": 19,
+          "verifiedInputs": 2093
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/input-error-close-language-linux-r2/results.json",
+          "sha256": "ca051ed5ef9c60227f18d81ace01644e66cda7e45ff4d674ddecbbe22e284922",
+          "kind": "language-close",
+          "commands": 9,
+          "verifiedInputs": 2085
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/input-owner-trim-linux-r2/results.json",
+          "sha256": "524148336cb337c9ff0f95a9701173bd2feedb45e1e7daed247d6c7b1cedf2c5",
+          "kind": "language-trim",
+          "commands": 8,
+          "verifiedInputs": 534
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/input-owner-native-linux-r4/results.json",
+          "sha256": "f0639fa84144462e40e8accfebfadc0270017e05c3feb8a25bacb1b3167cd5c0",
+          "kind": "native",
+          "commands": 16,
+          "verifiedInputs": 34
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/input-owner-edit-linux-r1/results.json",
+          "sha256": "60c1808adeb65042856f90b4f9661495bba712bacf2a0189657f0d00bed3b56c",
+          "kind": "native-edit-regression",
+          "commands": 16,
+          "verifiedInputs": 29
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/input-owner-cost-linux-r1/results.json",
+          "sha256": "11dc85726c5267cc557564692982b4572ab78078bce43f1759bc5e7a860fb1ef",
+          "kind": "native-cost",
+          "commands": 8,
+          "verifiedInputs": 2
+        },
+        {
+          "kind": "standalone-native-close-fix",
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/input-close-fixed-linux-r1/results.json",
+          "sha256": "b97247b2e905b14fea3328573820e23f842096b80e6ba7e85b1ca592ccc514da",
+          "commands": 4
+        }
+      ],
+      "packages": {
+        "host": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/input-owner-packages-linux-r4-host.json",
+          "sha256": "36124e70b0b2d24ea83a1a86ccf2a6993b8fbb1147b7c3d8b6067d13174b82ed"
+        },
+        "static": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/input-owner-packages-linux-r4-static.json",
+          "sha256": "fc38218c7580d1be686678404f8978721e643d2ff2629cb652b08fd81ab6048d"
+        }
+      },
+      "nativeBuilds": {
+        "host": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/input-owner-sdk-linux-r3/host/build-report.json",
+          "sha256": "34f896d8706defe98b15d8b72441b88eec63ea9f7cd8c661f9473696a8eb5e6f"
+        },
+        "static": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/input-owner-sdk-linux-r3/static/build-report.json",
+          "sha256": "e9a749f77d48fe253b9d92ee700ccd31bcac292ec7d7499b051794a7796fd1ed"
+        },
+        "orchestration": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/input-owner-sdk-linux-r3/results.json",
+          "sha256": "fd4799f12aa91ad1a2077c77b08eba2575f42061e27d47136de84b0c8bffcbd2"
+        }
+      }
+    }
+  },
+  "counts": {
+    "perPlatformLanguage": 19,
+    "perPlatformCallbackClose": 9,
+    "perPlatformTrim": 8,
+    "perPlatformNative": 40,
+    "perPlatformStandaloneCloseFix": 4,
+    "perPlatformTotal": 80,
+    "total": 160
+  },
+  "costs": {
+    "registration": "One 48-byte native record and one owner Hold per publication; generic closure/code/capture admission remains.",
+    "layout": "Hotkey row56->64bytes; Context147704->147840 (+136) in measured x64 builds.",
+    "invocation": "1000 prepared C/language owned hotkey calls: all0 XRT alloc/free/realloc. Native record pin and receiver/code/epoch/error checks still execute; no CPU equivalence claim.",
+    "stringFields": "Scoped pointer read, NUL scan and allocation/copy for nonempty text; no native forwarder.",
+    "unusedDeclarations": "Same compiler/SDK CodeModels static executable file/text/BSS delta0 on both platforms."
+  },
+  "examples": {
+    "lesson": "lib/bindings/xui/examples/input_callbacks.xl",
+    "programs": 91,
+    "check": "python -B tools/check_xui_lessons.py",
+    "galleryJson": "Original CRLF preserved; gallery:false.",
+    "readbacks": "Two actual frames in JIT/dynamic/static, same-platform hashes identical and visually reviewed; no physical keyboard/OS IME certification."
+  },
+  "inventory": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-input-owner-r1\\surface.json",
+    "sha256": "89c212c44f2871e17d8b06cda360befe66bdd4125cb4ee0b77c04bbf9704013e",
+    "population": {
+      "functions": 5192,
+      "types": 981,
+      "constants": 1838,
+      "functionMacros": 7,
+      "callableFields": 184,
+      "enums": 40,
+      "enumConstants": 316
+    },
+    "declarationPresent": {
+      "functions": 3816,
+      "types": 380,
+      "constants": 1820,
+      "callableFields": 66,
+      "enumConstants": 316
+    },
+    "meaning": "Inventory only, not runtime completeness certification."
+  },
+  "remaining": "Full XGE/XUI/Document and matched SDK/compiler/runtime/IDE/help final delivery remain. Decisions15+16 unapproved; approved17 implemented. No release/current-delivery install, push or version change."
+}

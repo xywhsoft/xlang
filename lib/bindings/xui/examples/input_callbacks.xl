@@ -1,0 +1,34 @@
+// Ctrl+F2 和按钮触发同一个受管快捷键回调。
+import xui
+from "./_window.xl" import Window
+
+Window.show("快捷键回调与错误通知",func(xui.Context ui,xui.Widget root)
+ auto input=ui.inputNative()
+ input.setText("先输入文字，再按 Ctrl+F2")
+ Window.place(root,input,24,24,640,44)
+
+ auto status=ui.labelNative()
+ status.setText("尚未触发快捷键")
+ Window.place(root,status,24,136,640,32)
+
+ int count=0
+ ui.hotKeyRegister(input,xui.XUI_KEY_F2,c_uint(xui.XUI_MOD_CTRL),func(xui.Widget sender,xui.CallbackConstEvent event) as c_int
+  count+=1
+  status.setText("快捷键已触发 "+string(count)+" 次")
+  return c_int(xui.XUI_EVENT_DISPATCH_STOP)
+ end)
+
+ // 这里只接收原生框架错误通知；普通 checked 调用仍通过异常报告失败。
+ ui.setErrorCallback(func(xui.CallbackContext current,xui.CallbackConstErrorInfo info)
+  auto message=info.message
+  if message!=null then status.setText(message as string) end
+ end)
+
+ auto button=ui.buttonNative()
+ button.setText("触发 Ctrl+F2")
+ Window.place(root,button,24,84,180,36)
+ button.setClick(func(xui.Widget sender)
+  ui.inputKeyDownEx(xui.XUI_KEY_F2,c_uint(xui.XUI_MOD_CTRL))
+ end)
+ ui.setFocusWidget(input)
+end)
