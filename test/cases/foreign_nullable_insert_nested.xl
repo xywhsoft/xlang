@@ -1,0 +1,30 @@
+// The embedded compiler used by standalone AOT must contain the same fix.
+import xlang
+func main(...) as int
+ auto context=xlang.Context()
+ auto work=env.get("XLANG_NULLABLE_NESTED_WORK")
+ if work!=null then assert context.setWorkDir(work as string) end
+ string source=r"""
+array<int?> numbers=[]
+assert numbers.push(null)
+for flag in [true,false]
+ assert numbers.push(flag ? null : null)
+end
+assert numbers.length==3
+for value in numbers
+ assert value==null
+end
+array<var> any=[]
+assert any.push(null) and any[0]==null
+set<string?> texts=set{}
+assert texts.add(null) and texts.add("") and texts.length==2
+set<var> keys=set{}
+assert keys.add(null) and keys.add(null) and keys.length==1
+"""
+ assert context.run(source),context.lastError
+ assert not context.run("array<int> values=[]\nvalues.push(null)")
+ assert context.lastError!=""
+ assert context.run(source),context.lastError
+ println("NullableInsertNested: embedded compiler, null domains and recovery passed")
+ return 0
+end

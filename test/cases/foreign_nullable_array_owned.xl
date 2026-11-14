@@ -1,0 +1,121 @@
+import xui
+from xui import Menu
+from xui import Font
+extern "fixtureRenderProxy" @header("test/cases/foreign_nullable_array_owned.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
+extern "fixtureRenderFont" @no_raise @c_result("owned_view") @factory(1,0,dropFont) func cpuFont(xui.Proxy proxy) as xui.Font
+extern "xuiFontReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropFont(xui.Font value)
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "fixtureRenderBudget" @no_raise func budget(c_int n)
+extern "fixtureNullableArrayBoundBegin" @no_raise func boundBegin()
+extern "fixtureNullableArrayBoundEnd" @no_raise func boundEnd() as c_int
+extern "fixtureNullableArrayHeapBegin" @no_raise func heapBegin()
+extern "fixtureNullableArrayHeapEqual" @no_raise func heapEqual()
+func returnedMenus() as array<xui.Menu?>
+ auto proxy=cpuProxy()
+ auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ auto font=cpuFont(proxy)
+ ui.setDefaultFont(font)
+ auto menu=ui.menuNative()
+ menu.addItem("retained")
+ array<xui.Menu?> result=[]
+ assert result.push(null) and result.push(menu) and result.push(null)
+ return result
+end
+func lifetime()
+ auto values=returnedMenus()
+ assert balanced()==0 and values.length==3
+ auto retained=values[1] as Menu
+ assert retained.getItemCount()==1
+ set<xui.Menu?> keys=set{}
+ assert keys.add(null) and keys.add(retained) and keys.length==2
+ assert keys.contains(retained) and keys.contains(null)
+ values.clear()
+ assert retained.getItemCount()==1
+ keys.clear()
+ retained.addItem("after clear")
+ assert retained.getItemCount()==2
+ retained.close()
+end
+func expiry()
+ auto proxy=cpuProxy()
+ auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ auto font=cpuFont(proxy)
+ ui.setDefaultFont(font)
+ auto menu=ui.menuNative()
+ array<xui.Menu?> values=[]
+ assert values.push(null) and values.push(menu)
+ array<xui.Font?> fonts=[]
+ assert fonts.push(null) and fonts.push(font)
+ auto selectedFont=fonts[1] as Font
+ auto retainedProxy=selectedFont.proxy()
+ ui.close()
+ bool rejected=false
+ try
+  auto closed=values[1] as Menu
+  auto ignored=closed.getItemCount()
+ catch StateError
+  rejected=true
+ end
+ assert rejected and values[0]==null
+ values.clear()
+ fonts.clear()
+ font.close()
+ proxy.close()
+ retainedProxy.close()
+end
+func exercise(int allowance) as int
+ auto proxy=cpuProxy()
+ auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ auto font=cpuFont(proxy)
+ ui.setDefaultFont(font)
+ auto menu=ui.menuNative()
+ menu.addItem("kept")
+ array<xui.Menu?> values=[null,menu]
+ int before=values.length
+ int result=0
+ if allowance<0 then boundBegin() else budget(c_int(allowance)) end
+ try
+  for i in range(128)
+   before=values.length
+   assert values.push(null)
+  end
+ catch Error
+  result=1
+ finally
+  budget(-1)
+ end
+ if allowance<0 then result=int(boundEnd()) end
+ if allowance>=0 and result==1 then assert values.length==before else assert values.length==130 end
+ assert values[0]==null
+ auto first=values[1] as Menu
+ assert first.getItemCount()==1
+ for i in range(2,values.length)
+  assert values[i]==null
+ end
+ ui.close()
+ font.close()
+ proxy.close()
+ return result
+end
+func main(...) as int
+ lifetime()
+ assert balanced()==1
+ expiry()
+ assert balanced()==1
+ int count=exercise(-1)
+ assert exercise(0)==1 and balanced()==1
+ int failures=0
+ int successes=0
+ for allowance in range(count)
+  heapBegin()
+  int result=exercise(allowance)
+  assert balanced()==1
+  heapEqual()
+  if result==1 then failures+=1 else successes+=1 end
+ end
+ assert failures>0 and successes>0
+ println("Nullable array prefixes="+string(count))
+ println("NullableArrayOwned: mixed null/views, return ownership, clear, expiry and atomic append OOM passed")
+ return 0
+end

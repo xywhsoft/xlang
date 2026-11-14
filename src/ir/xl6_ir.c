@@ -11859,10 +11859,15 @@ int xl6IrCollectionElementCompatible(
 {
     XL6_IrTypeId elementType = xl6IrCollectionElementType(module, receiverType);
     if ( elementType == XL6_IR_TYPE_INVALID ) return 0;
-    if ( xl6IrTypeIsDynamicXValueBuiltin(module, elementType) )
-        return xl6IrTypeCanBoxRuntimeXValue(module, itemType);
     const XL6_IrType* element=xl6IrTypeGet(&module->types,elementType);
     const XL6_IrType* item=xl6IrTypeGet(&module->types,itemType);
+    int canonicalNull=item && item->kind==XL6_IR_TYPE_BUILTIN && item->paramCount==0 &&
+        item->cAbi==XL6_IR_C_ABI_UNSUPPORTED && module->runtimeTypeMap.nullTypeValueId &&
+        item->typeValueId==module->runtimeTypeMap.nullTypeValueId;
+    if ( xl6IrTypeIsDynamicXValueBuiltin(module, elementType) )
+        /* Canonical null is materialized by contextual lowering, not boxed
+         * from a nonexistent standalone C value. Other domains need recipes. */
+        return canonicalNull || xl6IrTypeCanBoxRuntimeXValue(module, itemType);
     if (element && item && element->kind==XL6_IR_TYPE_NULLABLE &&
         element->paramCount==1 && element->params &&
         xl6IrTypeGet(&module->types,element->params[0])) {
@@ -11870,9 +11875,7 @@ int xl6IrCollectionElementCompatible(
          * subtypes) and the canonical null value. No numeric widening, nullable
          * unwrapping or spelling-based exception is granted here. */
         if (xl6IrBuildClassAssignableTo(module,element->params[0],itemType)) return 1;
-        if (item->kind==XL6_IR_TYPE_BUILTIN && item->paramCount==0 &&
-            item->cAbi==XL6_IR_C_ABI_UNSUPPORTED && module->runtimeTypeMap.nullTypeValueId &&
-            item->typeValueId==module->runtimeTypeMap.nullTypeValueId) return 1;
+        if (canonicalNull) return 1;
     }
     return xl6IrBuildClassAssignableTo(module, elementType, itemType);
 }

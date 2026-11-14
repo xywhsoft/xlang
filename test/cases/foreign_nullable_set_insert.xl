@@ -1,0 +1,27 @@
+// Array and Set share the contextual insertion boundary in XLIR.
+import xui
+func main(...) as int
+ set<xui.Menu?> menus=set{}
+ assert menus.add(null) and menus.add(null) and menus.length==1
+ xui.Menu? missing=null
+ for flag in [true,false]
+  assert menus.add(flag ? null : null)
+  assert menus.add(flag ? missing : null)
+ end
+ assert menus.length==1 and menus.contains(null)
+ for value in menus
+  assert value==null
+ end
+ set<int?> numbers=set{}
+ assert numbers.add(null) and numbers.add(7) and numbers.length==2
+ assert numbers.contains(null) and numbers.contains(7)
+ set<string?> texts=set{}
+ assert texts.add(null) and texts.add("") and texts.add("a\0你")
+ assert texts.length==3 and texts.contains(null) and texts.contains("")
+ set<bytes?> buffers=set{}
+ assert buffers.add(null) and buffers.length==1
+ set<var> erased=set{}
+ assert erased.add(null) and erased.length==1
+ println("NullableSetInsert: literal and conditional null, typed domains and duplicate preservation passed")
+ return 0
+end

@@ -1,0 +1,450 @@
+{
+  "schema": 1,
+  "date": "2026-11-15",
+  "status": "qualified-contextual-null-collection-insertion",
+  "shippingDelivery": false,
+  "scope": "Existing semantic nullable/var insertion rules correctly materialized in XLIR for Array and Set, including canonical null and all-null conditionals. No native implementation, public ABI, runtime helper or new language rule.",
+  "sourceSha256": {
+    "src/ir/xl6_ir.c": "94ae14c507f3360dc704d119daff03f4a5ff3d212be1de0c7432f7b878266ad3",
+    "src/ir/xl6_ir_lower.c": "70456fd79c65303be724f3743a9dc7c384b1e9eb2b4e213ed7dca1425a4145f2",
+    "tools/check_foreign_nullable_insert.py": "52ee6167a722ea8a52caa55c7a1d0fa7cdedf01c13abd0218638c533b3e78774",
+    "docs/foreign-nullable-insertion.md": "56ce674ac9e3c6d49d1964728ec7bbe133cf83161f704655ce99d9df66031ce8",
+    "docs/xge3-xui3-full-coverage-plan.md": "a60b26999e8c8f882901c04b65580c8a8789805f51003f83f2d212d3a569e859",
+    "docs/xui-menu-items.md": "8631fe00f49ec40c17e920684bc7cceae08c82f0f7d5f5c0b88f672f2a80728b",
+    "test/cases/foreign_nullable_array_append.xl": "e49e02f8d8e574cbadb6aadf7dbbf92e1337de483aa7f97aba5eefd9c377378f",
+    "test/cases/foreign_nullable_set_insert.xl": "8b10198f3af4cd2d43c6d0f72e826e783f00785dc649fb78525a1e08370a13e9",
+    "test/cases/foreign_nullable_array_owned.h": "f6b583bc85b17483323c642e39a104a33925205b9c8bbabe88d25207932e1188",
+    "test/cases/foreign_nullable_array_owned.c": "496ad53936ecaad995b71fe9992458c6df88649dc3d88cabc2253d1f9f73dd67",
+    "test/cases/foreign_nullable_array_owned.xl": "05c0fbfae3f1698ab9d89fe80ebfcba6960df82eadba2ada2d8b13aafb7768d0",
+    "test/cases/foreign_nullable_insert_nested.xl": "f3dfcd9c5d51962c80a97043c79231039baae5cb85d5840d781df29b8a98c115",
+    "test/cases/bad_nullable_append_nonnullable_number.xl": "1628089b9cd182c24ae9e6980625e647be231e2cc1e8a4d9ed071bffa979ba89",
+    "test/cases/bad_nullable_append_nonnullable_view.xl": "9f682392beb0383c70c7e16e54bb3a3bf262128e71b8c170d6b81d1c480ea8c4",
+    "test/cases/bad_nullable_append_wrong_view.xl": "a1cd32ce248f223398ecf24e46e5a79762b01bde0e173a4c9a6c1258033ba980"
+  },
+  "qualification": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\nullable-insert-evidence-win-r1.json",
+      "sha256": "6993a53a756010b9a1cdd4d3ba5a6a2172a37084add81f1ccc8f02b4485b8eb1",
+      "complete": true,
+      "passed": true,
+      "shippingDelivery": false,
+      "scope": "Live exact input/output/log rehash after complete O2/TCC/XRT/VFS acceptance; not another execution.",
+      "acceptance": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\nullable-insert-language-win-r1\\results.json",
+        "sha256": "5fbdedde656a83b875f9527d3fbf2287ea171a38c916c8bdbb8c1abe0b978b74",
+        "commands": 58,
+        "verifiedInputs": 2131,
+        "negativeSemanticRejections": 3
+      },
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-nullable-insert-full-r40\\build.json",
+        "sha256": "c5fb4453894cf222e61fa6ca1b00f8afb5aa3a9114234ffdf3b2f76e1582b397",
+        "sourceFreeze": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-nullable-insert-full-r40\\freeze.json",
+          "sha256": "f249c476c6c7e7de81b97110b42a4320211e6b9bf9b5163f0e73eba8c4afaf07"
+        },
+        "seconds": 850.4529999999795,
+        "cacheCopied": true,
+        "notFrontendOverlay": true
+      },
+      "calibration": [
+        {
+          "mode": "jit",
+          "prefixes": 18,
+          "individualAppendAtomic": true,
+          "completeRetirementHeapChecked": true
+        },
+        {
+          "mode": "dynamic",
+          "prefixes": 18,
+          "individualAppendAtomic": true,
+          "completeRetirementHeapChecked": true
+        },
+        {
+          "mode": "static",
+          "prefixes": 18,
+          "individualAppendAtomic": true,
+          "completeRetirementHeapChecked": true
+        }
+      ],
+      "nested": {
+        "modes": [
+          "jit",
+          "dynamic",
+          "static"
+        ],
+        "standaloneCompilerDllImportsAbsent": true,
+        "recoveryAfterTypeError": true
+      },
+      "programs": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\nullable-insert-language-win-r1\\foreign_nullable_array_append-dynamic.exe",
+          "sha256": "f231c791489e2bf534c443832bf0aaf4cad9bde45546030ba96b753a55973cc0",
+          "bytes": 1851904,
+          "imports": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\nullable-insert-language-win-r1\\foreign_nullable_array_append-static.exe",
+          "sha256": "061d44e8112806cf3bffbbc8e07f63b2b119fca74c97e719f5a531ad6a66709c",
+          "bytes": 1066496,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\nullable-insert-language-win-r1\\foreign_nullable_set_insert-dynamic.exe",
+          "sha256": "5b0d9518cc156cb10970cc07228cbd6b4c9ae5dc5e635d5a09f973c8aebf0b73",
+          "bytes": 1738752,
+          "imports": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\nullable-insert-language-win-r1\\foreign_nullable_set_insert-static.exe",
+          "sha256": "135c3efab3d9862823f92dca050e0a498f3883fe02bce9742c200df1e3670c39",
+          "bytes": 919040,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\nullable-insert-language-win-r1\\foreign_nullable_array_owned-dynamic.exe",
+          "sha256": "f2beb7b54964a5cb9aeb94f692b1b132929e7b77bc0fe9e43cede197ac28555d",
+          "bytes": 5072896,
+          "imports": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\nullable-insert-language-win-r1\\foreign_nullable_array_owned-static.exe",
+          "sha256": "b1586e0d97b6af542dafd735a82bfec000297c0df2d1c2e6d7e8881819f46011",
+          "bytes": 1610752,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "USER32.dll",
+            "OLEAUT32.dll",
+            "ole32.dll",
+            "SHELL32.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\nullable-insert-language-win-r1\\typed_nullable_container_matrix-dynamic.exe",
+          "sha256": "79b00810eb807fe8f159edfb5c92ae97db65abce6b8a7de407902e9eaa7da730",
+          "bytes": 1820160,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\nullable-insert-language-win-r1\\typed_nullable_container_matrix-static.exe",
+          "sha256": "79b00810eb807fe8f159edfb5c92ae97db65abce6b8a7de407902e9eaa7da730",
+          "bytes": 1820160,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\nullable-insert-language-win-r1\\foreign_nullable_insert_nested-dynamic.exe",
+          "sha256": "d8e7c24e31b15c74f4cc70c394d9e0c0682befb71d23cfb653463f47f82c6733",
+          "bytes": 18790400,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ucrtbase.dll",
+            "Ole32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\nullable-insert-language-win-r1\\foreign_nullable_insert_nested-static.exe",
+          "sha256": "d8e7c24e31b15c74f4cc70c394d9e0c0682befb71d23cfb653463f47f82c6733",
+          "bytes": 18790400,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ucrtbase.dll",
+            "Ole32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll"
+          ]
+        }
+      ]
+    },
+    "linux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\nullable-insert-evidence-linux-r1.json",
+      "sha256": "75d7bee51f89e58f77afdb615e63926ad33bf058642b9b2a6b1b6ede14b5d2ba",
+      "complete": true,
+      "passed": true,
+      "shippingDelivery": false,
+      "scope": "Live exact input/output/log rehash after complete O2/TCC/XRT/VFS acceptance; not another execution.",
+      "acceptance": {
+        "path": "/mnt/f/xlang-validation/xge-full-20261110/nullable-insert-language-linux-r1/results.json",
+        "sha256": "b15f6b0b1767f2b1b4ba6a74f1f33c161347cfa56a9be3141254fdd8abca1542",
+        "commands": 58,
+        "verifiedInputs": 2114,
+        "negativeSemanticRejections": 3
+      },
+      "compiler": {
+        "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-nullable-insert-linux-full-r33/build.json",
+        "sha256": "b136a2d6d0fd9b161e7a6dd9e79db29a4ffe22fb8eeb4c61c3cc30cd5fb40c0c",
+        "sourceFreeze": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-nullable-insert-linux-full-r33/freeze.json",
+          "sha256": "e46933135e7b24532ebf693445a46c69795a858b0a3e7db203c8d45f3bd40552"
+        },
+        "seconds": 2437.3285469009998,
+        "cacheCopied": true,
+        "notFrontendOverlay": true
+      },
+      "calibration": [
+        {
+          "mode": "jit",
+          "prefixes": 18,
+          "individualAppendAtomic": true,
+          "completeRetirementHeapChecked": true
+        },
+        {
+          "mode": "dynamic",
+          "prefixes": 18,
+          "individualAppendAtomic": true,
+          "completeRetirementHeapChecked": true
+        },
+        {
+          "mode": "static",
+          "prefixes": 18,
+          "individualAppendAtomic": true,
+          "completeRetirementHeapChecked": true
+        }
+      ],
+      "nested": {
+        "modes": [
+          "jit",
+          "dynamic",
+          "static"
+        ],
+        "standaloneCompilerDllImportsAbsent": true,
+        "recoveryAfterTypeError": true
+      },
+      "programs": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/nullable-insert-language-linux-r1/foreign_nullable_array_append-dynamic",
+          "sha256": "ac0420e62f8304429e65e80b3b322ddb29cb07eabbbbb105bf99ea5a30d1cbc2",
+          "bytes": 1915219,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/nullable-insert-language-linux-r1/foreign_nullable_array_append-static",
+          "sha256": "170dd73044318a7d42d99b6880136e7815814c90368c87ebe9b297704f2ea540",
+          "bytes": 1342299,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/nullable-insert-language-linux-r1/foreign_nullable_set_insert-dynamic",
+          "sha256": "a50c39cc424d5d02d963acb1f245d3b4ccba5da25aa49190e25011f0a5cf0042",
+          "bytes": 1809651,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/nullable-insert-language-linux-r1/foreign_nullable_set_insert-static",
+          "sha256": "2eaad67332096333f18f074cb2d6ad58629307907c1ea452fd0bf0dbe282efa6",
+          "bytes": 1205384,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/nullable-insert-language-linux-r1/foreign_nullable_array_owned-dynamic",
+          "sha256": "07fc8be363faa1c018328a6874fd7f68ef09a1d02403a9e8c6581e3c7a2d093c",
+          "bytes": 5271953,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/nullable-insert-language-linux-r1/foreign_nullable_array_owned-static",
+          "sha256": "4b1cf70900dc0df3172a8538a24ce367eb5fb222e60cac37d16fa86f7107a05c",
+          "bytes": 2044526,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/nullable-insert-language-linux-r1/typed_nullable_container_matrix-dynamic",
+          "sha256": "9a98a414081b6a639ba67336bb89934b39bf73cabbbbf57b5e4f18095b1ac56c",
+          "bytes": 1848534,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/nullable-insert-language-linux-r1/typed_nullable_container_matrix-static",
+          "sha256": "9a98a414081b6a639ba67336bb89934b39bf73cabbbbf57b5e4f18095b1ac56c",
+          "bytes": 1848534,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/nullable-insert-language-linux-r1/foreign_nullable_insert_nested-dynamic",
+          "sha256": "24bb7758a484348f18f6580efc1c14fce225d706999700cb1ba7b194572fe336",
+          "bytes": 18107578,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/nullable-insert-language-linux-r1/foreign_nullable_insert_nested-static",
+          "sha256": "24bb7758a484348f18f6580efc1c14fce225d706999700cb1ba7b194572fe336",
+          "bytes": 18107578,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ]
+    }
+  },
+  "contracts": {
+    "admission": "Canonical null identified by RuntimeTypeMap null TypeId, builtin kind, zero parameters and unsupported standalone ABI; admitted to existing var domain. Other boxing recipes and exact nullable base/subtype admission remain.",
+    "lowering": "Preserve intrinsic kind, receiver/operand/result ABI, element compatibility and Set key recipe. Verify materialized xvalue carrier after contextual conversion. Unsupported-storage conditional uses target ABI, condition once/selected branch only; throwing condition never appends.",
+    "ownership": "Existing Array/Set owning-value transfer path; real native CPU Proxy/Font and Context-owned Menu views preserved across container return/clear. Context close invalidates native access.18 calibrated individual-append allocation prefixes per mode, precise count/bytes/invalid/double-free and backend balance after complete retirement.",
+    "cost": "Compile-time admission/lowering repair. Existing xvalue boxing, owner/call checks, hash/key operations and container storage costs remain; no zero-allocation or CPU-equivalence claim."
+  },
+  "diagnostics": {
+    "originalLiteral": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\menu-null-push-probe-r1\\results.json",
+      "sha256": "b2b0a60847e2cea4b349524a87353ddcf8b51b37cce380a3f4f9741e8c0051ff"
+    },
+    "conditional": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\nullable-append-expression-probes-r1\\results.json",
+      "sha256": "9d7d8180539cf2579b6fcb74b71703134ddd7482eea277c295e3508a9dd2f33e"
+    },
+    "firstIncomplete": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\nullable-append-first-candidate-win-r1\\results.json",
+      "sha256": "e23a6162c661abb8a9739aeef5ed3e984646e548296a3222e7f1a5e6b40c8c94"
+    },
+    "erasedDump": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\nullable-erased-append-dump-r1\\results.json",
+      "sha256": "257d9d41e44b65cf5c5b9003d3b4844ce1f9e7e71720e4959a811b09aa1706d3"
+    },
+    "partialFrontend": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\nullable-append-frontend-win-r2\\build.json",
+      "sha256": "f7f0c3de37924e7a58231de0f428d4d9c089c911a64740838e299393d3dc15f4"
+    },
+    "partialChecks": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\nullable-insert-diagnostic-win-r2\\results.json",
+      "sha256": "aa5b92834454c54ca51feacfdd3a2e3157dd13b4098b8af2eeebf556f325cb62"
+    },
+    "conditionEffects": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\nullable-condition-effects-win-r1\\results.json",
+      "sha256": "c71aefa45af474dce44aaa8bb6ebc2c8c9fa6c847a5bbc1fd5ee8258c90e7499"
+    },
+    "oldStandaloneNested": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\nullable-insert-nested-old-cohort-win-r1\\results.json",
+      "sha256": "f085e4bd28c856cbaf5443ff8ec6e85cfe7a41f1e393154538dd487d99a26bc3"
+    },
+    "oldStandaloneImports": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\nullable-insert-nested-old-cohort-win-r1\\imports-evidence.json",
+      "sha256": "a55f009bf3f2c2c459db2a664344a09cfa55828c873a3d0106315ff46b673dc6"
+    }
+  },
+  "totalExecutedAcceptanceCommands": 116,
+  "inventory": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\nullable-insert-inventory-equivalence-r1.json",
+    "sha256": "bd6d6e47c771203653c54b8ab7df0e0dfefd1ff2175438ef647312aa67829427",
+    "declarationsPresent": 3830,
+    "notCompletionRate": true,
+    "lessonPrograms": 96,
+    "independentLessons": 95,
+    "galleryScenes": 57,
+    "verifiedBindingFiles": 61,
+    "verifiedLessonFiles": 102,
+    "source": "Live byte equality with qualified Menu inventory/staging; not another surface scan or gallery execution."
+  },
+  "limits": [
+    "Complete O2/TCC/XRT/VFS builds from immutable full-cohort parents; normal build rebuilt1544 Win /1542 Linux precompiled objects,0 unchanged despite copied cache. No incremental-reuse or partial-frontend qualification claim.",
+    "QA test/checker inputs evolved after source freeze; separately pinned acceptance bytes. Both production IR files exactly match the final compiler source freeze. Frozen build inputs not rewritten.",
+    "No XGE native changes or graphic/device claims; exact constructor/menu-fix SDK and staged Menu packages reused. Earlier constructor/Menu receipt bytes preserved; mutable docs point to this successor.",
+    "Earlier AST_NULL-only and target-carrier-only candidates were incomplete and are not final qualification. All failure logs and old standalone expected-failure control preserved.",
+    "Prior15+16 foreign lifetime/output/alias contracts, remaining XGE/XUI/Document integration and matched SDK/IDE/help delivery remain open. No release/current-delivery install, push or version change."
+  ]
+}

@@ -4711,6 +4711,11 @@ static XL6_IrValueId xl6IrLowerNodeAsType(
                               0, NULL, 0, &result)
             ? result : XL6_IR_VALUE_INVALID;
     }
+    /* An all-null conditional also needs the boundary's physical carrier.
+     * Evaluate its condition once and materialize only the selected branch. */
+    if (source->kind==XL6_IR_NODE_CONDITIONAL && source->storageType!=targetType &&
+        cSource && cSource->cAbi==XL6_IR_C_ABI_UNSUPPORTED)
+        return xl6IrLowerConditionalAsType(ctx,origin,source,targetType);
     {
         const XL6_IrNode* conversionOwner =
             xl6IrNodeGet(ctx->module, origin);
@@ -5308,8 +5313,13 @@ static int xl6IrLowerIntrinsicCollectionInsert(
     operands[1] = xl6IrLowerContextualCollectionItemAsRuntimeXValue(
         ctx, origin, itemId, item, intrinsic->receiverType);
     boolType = xl6IrLowerFindTypeByCAbi(ctx->module, XL6_IR_C_ABI_BOOL);
+    /* Contextual items such as literal/all-null conditional expressions have
+     * no standalone C storage. Verify their materialized erased carrier after
+     * the element compatibility and contextual conversion checks above. */
     if ( operands[0] == XL6_IR_VALUE_INVALID || operands[1] == XL6_IR_VALUE_INVALID ||
-         boolType == XL6_IR_TYPE_INVALID || itemType->cAbi == XL6_IR_C_ABI_UNSUPPORTED ) return -1;
+         boolType == XL6_IR_TYPE_INVALID ||
+         !xl6IrLowerTypeIsRuntimeXValue(ctx->module,
+             xl6IrLowerValueType(ctx, operands[1])) ) return -1;
     appended = xl6IrLowerEmitRuntimeCall(
         ctx, origin, boolType, runtimeOp, operands, 2);
     if ( appended == XL6_IR_VALUE_INVALID ||

@@ -1,0 +1,6 @@
+import xui
+func main(...) as int
+ array<xui.Menu> values=[]
+ values.push(null)
+ return 0
+end

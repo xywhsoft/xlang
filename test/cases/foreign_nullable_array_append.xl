@@ -1,0 +1,52 @@
+// Literal null must use the collection element ABI, not standalone C storage.
+import xui
+func main(...) as int
+ array<xui.Menu?> menus=[]
+ assert menus.push(null)
+ xui.Menu? missing=null
+ assert menus.push(missing)
+ assert menus.length==2 and menus[0]==null and menus[1]==null
+ menus[0]=null
+ assert menus.pop()==null and menus.length==1 and menus[0]==null
+ for flag in [true,false]
+  assert menus.push(flag ? null : null)
+  assert menus.push(flag ? missing : null)
+ end
+ assert menus.length==5
+ int evaluations=0
+ auto decide=func() as bool
+  evaluations+=1
+  return true
+ end
+ assert menus.push(decide() ? null : null)
+ assert evaluations==1 and menus.length==6
+ auto failCondition=func() as bool
+  throw "condition failure"
+ end
+ bool rejected=false
+ try
+  menus.push(failCondition() ? null : null)
+ catch Error
+  rejected=true
+ end
+ assert rejected and menus.length==6
+ for value in menus
+  assert value==null
+ end
+ array<xui.Font?> fonts=[]
+ assert fonts.push(null) and fonts[0]==null
+ array<int?> numbers=[]
+ assert numbers.push(null) and numbers.push(7)
+ assert numbers[0]==null and (numbers[1]??0)==7
+ bool choose=arg.length==0
+ assert numbers.push(choose ? null : null) and numbers[2]==null
+ array<string?> texts=[]
+ assert texts.push(null) and texts.push("") and texts.push("a\0你")
+ assert texts[0]==null and texts[1]!=null and (texts[2]??"")=="a\0你"
+ array<bytes?> buffers=[]
+ assert buffers.push(null) and buffers[0]==null
+ array<var> erased=[]
+ assert erased.push(null) and erased[0]==null
+ println("NullableArrayAppend: foreign owner/refcount views, primitive/string/bytes and erased null passed")
+ return 0
+end

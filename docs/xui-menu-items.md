@@ -64,9 +64,11 @@ strings, and compare complete retirement heap/resource counters. Raw output
 record string getters remain outside this batch's input-only declarations.
 See `dev/release-materials/provenance/xui-menu-items-20261115.json`.
 
-The current compiler baseline separately rejects a literal `null` passed to
-`array<Menu?>.push`, although an explicitly typed nullable local is accepted.
-The capacity test uses that accepted form; its minimal failing compiler probe
-is retained separately in the receipt. Nullable entries in the record-array
-input itself are covered and work. This batch does not claim to fix that
-general collection-lowering defect.
+The original Menu input qualification used an older compiler that rejected
+literal `null` in `array<Menu?>.push`; its capacity test used an explicitly
+typed nullable local. That immutable receipt retains the original limitation
+and failing probe. The successor compiler repair covers literal/conditional
+null and the `var` domain; see
+[contextual insertion](foreign-nullable-insertion.md) and
+`dev/release-materials/provenance/foreign-nullable-insertion-20261115.json`.
+Nullable entries passed directly to the record-array input already worked.
