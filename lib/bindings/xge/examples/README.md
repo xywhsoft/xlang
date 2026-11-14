@@ -103,3 +103,9 @@ directory's `data/` folder with the matched SVG-enabled SDK. No window, graphics
 device or engine initialization is required. Each owned document closes before
 exit. Documents from one cache share mutable state; use `clone()` for independent
 editing, and create a separate cache on each language thread.
+
+`image_pixels.xl` decodes two in-memory RGBA pixels. `Image.pixels()` creates an
+independent bytes snapshot; `readPixels(output)` copies directly into an already
+sized Buffer. Both results remain usable after `image.close()`. The example
+needs no engine initialization, window, file or service. Snapshot creation
+allocates/copies its byte payload; the Buffer path adds no temporary Buffer.

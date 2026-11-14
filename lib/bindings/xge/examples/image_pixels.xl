@@ -1,0 +1,15 @@
+// CPU-only: inspect decoded RGBA bytes, then read into a reusable Buffer.
+import xge
+
+bytes rgba=b"\xff\0\0\xff\0\xff\0\xff"
+auto png=xge.encodeImagePng(2,1,rgba)
+auto image=xge.loadImage(png,c_uint(xge.XGE_IMAGE_STRAIGHT_ALPHA))
+
+bytes snapshot=image.pixels()
+auto output=Buffer()
+assert output.resize(8)
+image.readPixels(output)
+image.close()
+
+assert snapshot==rgba and output.toBytes()==snapshot
+println("Image pixels: snapshot and Buffer contain the same 8 RGBA bytes")

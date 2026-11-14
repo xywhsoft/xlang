@@ -1,0 +1,450 @@
+{
+  "date": "2026-11-14",
+  "qualified": true,
+  "shippingDelivery": false,
+  "networkTests": false,
+  "compilerChanges": false,
+  "nativeCommit": "a8713eda1885981750a9555536b3f3409a52dcec",
+  "nativePrerequisite": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\image-pixels-20261114.json",
+    "sha256": "be737e0ed872ef44dbe9b85f1b54362f0cf3635c66cacf16f515ae4c778a44d7"
+  },
+  "scope": "Image readonly bytes snapshot and caller Buffer copy through existing generic output-view/span contracts, not an independent zero-copy owning pixel view.",
+  "sources": {
+    "lib/bindings/xge/src/resources.xl": "67e4bd4a30a600dd3a5f78c31d8d9e0dae57dccc401550f42081c4b9e76669a1",
+    "lib/bindings/xge/examples/image_pixels.xl": "77cf738ed28924cf3b48b3b83a38a630fa58d9ede619c78ff3aee5b1d3267188",
+    "lib/bindings/xge/examples/README.md": "fab0e2b983b56e4caddb1a75c7196c7ea314f5f8ae5029ea310944351df2b04e",
+    "test/cases/foreign_xge3_image_pixels.xl": "b8b9209bfa2c5892299b3c0be7c141567b4c51ca43fdf69567d9ef0045e96158",
+    "test/cases/foreign_xge3_image_pixels.h": "3376d08ef84c21863765a5303642f2c9809854e251176ead3dcc2958ddcb88dc",
+    "test/cases/foreign_xge3_image_pixels.c": "d92e369e8d2656b41e0935590333cf3fad7856b6111a56ad9ce5d19307245366",
+    "tools/check_xge3_image_pixels.py": "02067862e5f1d95d9bca821836672e7b8fdc0b4486684ea9f240769623c49b28",
+    "docs/xge3-image-pixels.md": "454c29085b425e910cbec2023594295a57f61176ea63254c7563ef45cd21753d",
+    "docs/xge3-xui3-full-coverage-plan.md": "020ed865d65e39ba4bbb304e6466616fb3f52846e295cda8dacca35b5e98a0d0"
+  },
+  "platforms": {
+    "win": {
+      "pixelAccess": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\image-pixels-language-win-r1\\results.json",
+        "sha256": "057bf92f4916f7f3ccd6e101533e7b1f20fcf5912e50e0d7263a68b7a02c7c2f",
+        "commands": 24
+      },
+      "heap": [
+        {
+          "mode": "jit",
+          "rounds": 1000,
+          "nativePublicCalls": 1000,
+          "bytesPerSpan": 16,
+          "snapshotPayloadBytesCopied": 16000,
+          "counts": {
+            "language-copy": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native-copy": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "language-snapshot": {
+              "alloc": 1000,
+              "free": 1000,
+              "realloc": 0
+            },
+            "native-borrow": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          },
+          "comparison": "Buffer copy uses the same C operation; native borrow does not create an owned snapshot. No CPU equivalence claim."
+        },
+        {
+          "mode": "dynamic",
+          "rounds": 1000,
+          "nativePublicCalls": 1000,
+          "bytesPerSpan": 16,
+          "snapshotPayloadBytesCopied": 16000,
+          "counts": {
+            "language-copy": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native-copy": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "language-snapshot": {
+              "alloc": 1000,
+              "free": 1000,
+              "realloc": 0
+            },
+            "native-borrow": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          },
+          "comparison": "Buffer copy uses the same C operation; native borrow does not create an owned snapshot. No CPU equivalence claim."
+        },
+        {
+          "mode": "static",
+          "rounds": 1000,
+          "nativePublicCalls": 1000,
+          "bytesPerSpan": 16,
+          "snapshotPayloadBytesCopied": 16000,
+          "counts": {
+            "language-copy": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native-copy": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "language-snapshot": {
+              "alloc": 1000,
+              "free": 1000,
+              "realloc": 0
+            },
+            "native-borrow": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          },
+          "comparison": "Buffer copy uses the same C operation; native borrow does not create an owned snapshot. No CPU equivalence claim."
+        }
+      ],
+      "programs": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\image-pixels-language-win-r1\\foreign_xge3_image_pixels-dynamic.exe",
+          "sha256": "0a24e6f3fc73ca44e9a1f0ef4b1f8de69893c0be9b51bcd78316009705f6278d",
+          "bytes": 4746240,
+          "imports": [
+            "xge3_host.dll",
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\image-pixels-language-win-r1\\foreign_xge3_image_pixels-static.exe",
+          "sha256": "927856a106f6bbef9fc2f5507d0ea354c4f3a179c403dd9fdaae1233197a8e60",
+          "bytes": 4025344,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "USER32.dll",
+            "ole32.dll",
+            "OLEAUT32.dll",
+            "SHELL32.dll",
+            "GDI32.dll",
+            "IMM32.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\image-pixels-language-win-r1\\image_pixels-dynamic.exe",
+          "sha256": "f2df37290ff789e68cf543df8ef17b4d3c7a5e7a49714a591f9a75786149c306",
+          "bytes": 1274368,
+          "imports": [
+            "xge3_host.dll",
+            "msvcrt.dll",
+            "kernel32.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\image-pixels-language-win-r1\\image_pixels-static.exe",
+          "sha256": "a288a98a2b158ce6fe1e58156bdecb0940bdf10733f94ae4d08103cd50c02c52",
+          "bytes": 3722240,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "USER32.dll",
+            "ole32.dll",
+            "OLEAUT32.dll",
+            "SHELL32.dll",
+            "GDI32.dll",
+            "IMM32.dll"
+          ]
+        }
+      ],
+      "existingImageIo": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\image-pixels-io-regression-win-r1\\results.json",
+        "sha256": "8de00c4e55a8d0c07b1dc7a896e5f798e1de540102cd02676ff69ec6eec3e702",
+        "commands": 27
+      },
+      "unusedPixelApis": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\image-pixels-unused-win-r1\\results.json",
+        "sha256": "87878a6708e587d5b63c1f9ab73cd0070c30f146c368c59dc0e285c230a5d8f4",
+        "commands": 6,
+        "deltaBytes": 0,
+        "deltaText": 0,
+        "programs": {
+          "old": {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\image-pixels-unused-win-r1\\old.exe",
+            "sha256": "1175c809c5c1621e3ea1edd45af83c7311d7dd9ec07edc1ec34432a6ce74f3b5",
+            "bytes": 3697152,
+            "textSectionsBytes": 1980870,
+            "otherSelectedSections": {
+              ".rdata": 1631616,
+              ".data": 36864
+            }
+          },
+          "new": {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\image-pixels-unused-win-r1\\new.exe",
+            "sha256": "a7c2b7bb6a3a1efb1f32f3843b19696d176bad901e6e5ceb8eabc311e7bd973d",
+            "bytes": 3697152,
+            "textSectionsBytes": 1980870,
+            "otherSelectedSections": {
+              ".rdata": 1631616,
+              ".data": 36864
+            }
+          }
+        },
+        "deltaAllTextSections": 0
+      }
+    },
+    "linux": {
+      "pixelAccess": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\image-pixels-language-linux-r1\\results.json",
+        "sha256": "30b9e6803c0242c4b8ec6ab066db221be2d451756221a96e2ea12c78af1bdcb2",
+        "commands": 24
+      },
+      "heap": [
+        {
+          "mode": "jit",
+          "rounds": 1000,
+          "nativePublicCalls": 1000,
+          "bytesPerSpan": 16,
+          "snapshotPayloadBytesCopied": 16000,
+          "counts": {
+            "language-copy": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native-copy": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "language-snapshot": {
+              "alloc": 1000,
+              "free": 1000,
+              "realloc": 0
+            },
+            "native-borrow": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          },
+          "comparison": "Buffer copy uses the same C operation; native borrow does not create an owned snapshot. No CPU equivalence claim."
+        },
+        {
+          "mode": "dynamic",
+          "rounds": 1000,
+          "nativePublicCalls": 1000,
+          "bytesPerSpan": 16,
+          "snapshotPayloadBytesCopied": 16000,
+          "counts": {
+            "language-copy": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native-copy": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "language-snapshot": {
+              "alloc": 1000,
+              "free": 1000,
+              "realloc": 0
+            },
+            "native-borrow": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          },
+          "comparison": "Buffer copy uses the same C operation; native borrow does not create an owned snapshot. No CPU equivalence claim."
+        },
+        {
+          "mode": "static",
+          "rounds": 1000,
+          "nativePublicCalls": 1000,
+          "bytesPerSpan": 16,
+          "snapshotPayloadBytesCopied": 16000,
+          "counts": {
+            "language-copy": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native-copy": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "language-snapshot": {
+              "alloc": 1000,
+              "free": 1000,
+              "realloc": 0
+            },
+            "native-borrow": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          },
+          "comparison": "Buffer copy uses the same C operation; native borrow does not create an owned snapshot. No CPU equivalence claim."
+        }
+      ],
+      "programs": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/image-pixels-language-linux-r1/foreign_xge3_image_pixels-dynamic",
+          "sha256": "bea836b9225c144cda243bad24a3489c100edfad38020c8b5a34176e0758d7d2",
+          "bytes": 4951822,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/image-pixels-language-linux-r1/foreign_xge3_image_pixels-static",
+          "sha256": "1ba4897fbf7904d44adab7bdcf9b8c66c5c45236f065424f14e64dc1851f0e37",
+          "bytes": 1482140,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/image-pixels-language-linux-r1/image_pixels-dynamic",
+          "sha256": "148e142deed6f1d606100af026a853e238a861d3167ca1284912b76b2e5c1927",
+          "bytes": 1344566,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/image-pixels-language-linux-r1/image_pixels-static",
+          "sha256": "e712b58f0b729183f81744b65faea46b4a8fc50d2186c3fb7ce16e94286dbe19",
+          "bytes": 1111703,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ],
+      "existingImageIo": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\image-pixels-io-regression-linux-r1\\results.json",
+        "sha256": "dc04b609aab15dafee69ad372c7eddbcea75d91545297b60557e8d93b836e4ce",
+        "commands": 27
+      },
+      "unusedPixelApis": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\image-pixels-unused-linux-r1\\results.json",
+        "sha256": "292418cc0bcb4365dc70ea56033383e83b4fc1e10c030799dfb586763f7da1b1",
+        "commands": 6,
+        "deltaBytes": 0,
+        "deltaText": 0,
+        "programs": {
+          "old": {
+            "path": "/mnt/f/xlang-validation/xge-full-20261110/image-pixels-unused-linux-r1/old",
+            "sha256": "9fdf35ca120755ad6cd740a9d0bb13c0034827b1fe9cf7e7dae0aa1759940fbb",
+            "bytes": 1081362,
+            "textSectionsBytes": 621533,
+            "otherSelectedSections": {
+              ".eh_frame": 70312,
+              ".bss": 24
+            }
+          },
+          "new": {
+            "path": "/mnt/f/xlang-validation/xge-full-20261110/image-pixels-unused-linux-r1/new",
+            "sha256": "5ab62ef7656e8fec4790bbfd68190c87c3bb11c7e93ba49121330ae7bff3364f",
+            "bytes": 1081362,
+            "textSectionsBytes": 621533,
+            "otherSelectedSections": {
+              ".eh_frame": 70312,
+              ".bss": 24
+            }
+          }
+        },
+        "deltaAllTextSections": 0
+      }
+    }
+  },
+  "languageCommands": 102,
+  "unusedComparisonCommands": 12,
+  "legacyReadOnlyPointer": {
+    "native": "xgeImageGetPixels",
+    "safeCopyingOperations": [
+      "Image.pixels",
+      "Image.readPixels"
+    ],
+    "checkedNativeReplacements": [
+      "xgeImageGetPixelView",
+      "xgeImageCopyPixels"
+    ],
+    "independentZeroCopyOwningView": "pending lifetime decision"
+  },
+  "declarationInventory": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-image-pixels-r2\\surface.json",
+    "sha256": "3c8293b208d8ba89f340f5fe046f78e66d675923a4983b06f784c88059c157ee",
+    "population": {
+      "functions": 5171,
+      "types": 980,
+      "constants": 1838,
+      "functionMacros": 7,
+      "callableFields": 184,
+      "enums": 40,
+      "enumConstants": 316
+    },
+    "declarationPresent": {
+      "functions": 3652,
+      "types": 369,
+      "constants": 1820,
+      "callableFields": 66,
+      "enumConstants": 316
+    },
+    "runtimeCertification": false
+  },
+  "limitations": [
+    "Snapshot/copy paths do not provide the missing independent owning zero-copy view; shared backing/Busy versus Image-bound invalidation is still pending.",
+    "Raw C caller backing capacity/initialization remains caller discipline; no planar extent or allocator provenance guessed.",
+    "No equal-CPU claim. Buffer copy compares the same Native API; raw borrow baseline does not materialize an owned snapshot.",
+    "Selected unchanged alpha lesson has zero file/text growth; this does not prove all unreferenced APIs or all programs cost zero.",
+    "Native host/static complete O2 builds 164/166 TUs each platform, no reuse. Compiler uses existing fully qualified O2 cohorts unchanged.",
+    "No full graphical/audio-backend, network/security acceptance or final runtime/SDK/compiler/IDE/help installation. Full goal remains active."
+  ]
+}
