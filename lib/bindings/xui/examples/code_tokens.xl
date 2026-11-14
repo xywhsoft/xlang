@@ -1,0 +1,22 @@
+// A token describes a UTF-8 byte range and its lexical kind.
+import xui
+
+func main(...) as int
+ auto keyword=xui.CodeToken()
+ keyword.iStartOffset=0
+ keyword.iEndOffset=4
+ keyword.iKind=c_int(xui.XUI_CODE_TOKEN_KEYWORD)
+ array<xui.CodeToken> tokens=[keyword]
+
+ auto cache=xui.createCodeTokenBuffer()
+ try
+  cache.setRange(tokens,1,1,0,4)
+  auto version,start,endOffset=cache.getRange()
+  assert cache.getCount()==1 and version==1 and start==0 and endOffset==4
+  println("Cached tokens:",cache.getCount())
+  println("Version and byte range:",version,start,endOffset)
+ finally
+  cache.close()
+ end
+ return 0
+end

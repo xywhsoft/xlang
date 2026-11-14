@@ -1,0 +1,519 @@
+{
+  "schema": 1,
+  "date": "2026-11-14",
+  "qualified": true,
+  "shippingDelivery": false,
+  "fullGoalComplete": false,
+  "nativeRebuilt": false,
+  "compilerRebuilt": false,
+  "networkTests": false,
+  "nativeFunctionsCovered": 8,
+  "nativeFunctionsTotal": 10,
+  "nativeDestructorViaPolicy": true,
+  "nativeRevision": "1b15f370cbeec7cfecc2cc8ef8ec4012fca7a9bc",
+  "scope": "Independent numeric CodeTokenBuffer: factory/Destroy and six input/metadata methods; bulk token output and internal aliases remain pending.",
+  "sources": {
+    "lib/bindings/_xge_native/include/xui3_code_token_buffer.h": "34bdedf2fc218359a9691d72149b1b0c1100496fdbf9a6ab59d8d61fad9c7c73",
+    "lib/bindings/xui/src/code_token_buffer.xl": "9d4c2f21044f0d27d0c4bb952cfc23ff42c6a8991733fe38c89ad2089fa639a4",
+    "lib/bindings/xui/xlang.package.json": "695d9a4639bf1d6b5f0bba98377ddedb6dc68b22e6ab84522eb9cad784ef70e4",
+    "lib/bindings/xui/examples/code_tokens.xl": "9510d34ef2f04850e926bd44f24cb068a2a00af592a0596fa727e0356e4288b4",
+    "lib/bindings/xui/README.md": "07d415924c1a23b3aecd58104a34fee5d727499cdb6dc1280c16a72851b95c45",
+    "lib/bindings/xui/examples/README.md": "44b03cb440f3321b94686e97b9baa9bbbe2b79a722bf404d9d79a4b61ee7498d",
+    "test/cases/foreign_xui_code_tokens.xl": "76d532994cdc058f188c2338b402cf0e2a7c4197f65d6b5bd2e8f4bb62e43286",
+    "test/cases/foreign_xui_code_tokens.h": "d7633bcafd85063cd59186abb3441519969d863bca13f77d901c26d1f26a047b",
+    "test/cases/foreign_xui_code_tokens.c": "1d6d64b97fbcd6d273316cb75654b8c78a30ea88e8a6bd06d2ec8cd22eda973f",
+    "test/cases/foreign_xui_code_tokens_native.c": "33df8b11e601ad26dd4fe7807d844f9cb9a330ade6abb16add42cd7a6417caa8",
+    "tools/check_xui_code_tokens.py": "e0b78721f4e0e13328f92c441c39af32128951d9d1a2529a9052c92375746549",
+    "docs/xui-code-tokens.md": "3dfbcb54359d6d7f2d790ac6bc225698dd637304ea8694212e57291969cc185e",
+    "docs/xge3-xui3-full-coverage-plan.md": "4bc314643d0ca9cf88b16aab22cf3afbd6acc75ee078673094df2f7c574870e7"
+  },
+  "platforms": {
+    "win": {
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-token-language-win-r2\\results.json",
+        "sha256": "a9316b3c167304d4ba8c007f9272e743d1fe6f68facf70832a539d0276bf4f86"
+      },
+      "commands": 30,
+      "packageReports": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-token-packages-win-r2\\host.json",
+          "sha256": "c9103d47406f2ff96b30d72d8041b7cb5a6b914fd775cf17870e61c390ee232f"
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-token-packages-win-r2\\static.json",
+          "sha256": "bb4483461301cfd284e942a3ef42c2ad5e2486b558be6eb032cdffe70fbdac9b"
+        }
+      },
+      "unchangedSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-search-sdk-win-r2\\results.json",
+        "sha256": "14657c09ee9653cd2867696d998bbc7c848581260e9ef90e3918ec6d50149393"
+      },
+      "programs": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-token-language-win-r2\\foreign_xui_code_tokens-dynamic.exe",
+          "sha256": "d3afb401619e787ecb425006ba1b8443b4631c2d61d093562568730d2bff1b95",
+          "bytes": 4969984,
+          "imports": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-token-language-win-r2\\foreign_xui_code_tokens-static.exe",
+          "sha256": "4e92202734831f561b5d30d5c36ea7b73fada9e3eac22e5d6f7603e064d2552c",
+          "bytes": 1137664,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-token-language-win-r2\\code_tokens-dynamic.exe",
+          "sha256": "f63144c34a06c0f4d097326f3baf8c1f3e9d2f6d9dd32a7a43776abcbf3c081e",
+          "bytes": 1511424,
+          "imports": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-token-language-win-r2\\code_tokens-static.exe",
+          "sha256": "199ea00ed0e0b056dd33ca08c38b1c437183dd599ef58694a4a54a73e050ae5e",
+          "bytes": 832000,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "SHELL32.dll"
+          ]
+        }
+      ],
+      "heap": [
+        {
+          "mode": "jit",
+          "rounds": 1000,
+          "callsPerRound": 3,
+          "allocationPrefixes": 96,
+          "counts": {
+            "0": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "1": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "2": {
+              "alloc": 3,
+              "free": 3,
+              "realloc": 0
+            },
+            "3": {
+              "alloc": 1,
+              "free": 1,
+              "realloc": 0
+            },
+            "4": {
+              "alloc": 1,
+              "free": 1,
+              "realloc": 0
+            },
+            "5": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        },
+        {
+          "mode": "dynamic",
+          "rounds": 1000,
+          "callsPerRound": 3,
+          "allocationPrefixes": 96,
+          "counts": {
+            "0": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "1": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "2": {
+              "alloc": 3,
+              "free": 3,
+              "realloc": 0
+            },
+            "3": {
+              "alloc": 1,
+              "free": 1,
+              "realloc": 0
+            },
+            "4": {
+              "alloc": 1,
+              "free": 1,
+              "realloc": 0
+            },
+            "5": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        },
+        {
+          "mode": "static",
+          "rounds": 1000,
+          "callsPerRound": 3,
+          "allocationPrefixes": 96,
+          "counts": {
+            "0": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "1": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "2": {
+              "alloc": 3,
+              "free": 3,
+              "realloc": 0
+            },
+            "3": {
+              "alloc": 1,
+              "free": 1,
+              "realloc": 0
+            },
+            "4": {
+              "alloc": 1,
+              "free": 1,
+              "realloc": 0
+            },
+            "5": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        }
+      ],
+      "generatedC": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-token-language-win-r2\\foreign_xui_code_tokens.c",
+        "sha256": "8adf9f00389a541357a43ef65e9591731261b8b1ccd96229bc3323a9f846c185",
+        "directCalls": {
+          "xuiCodeTokenBufferCreate": 5,
+          "xuiCodeTokenBufferSetRange": 5,
+          "xuiCodeTokenBufferGetCount": 11,
+          "xuiCodeTokenBufferGetRange": 4,
+          "xuiCodeTokenBufferSet": 10,
+          "xuiCodeTokenBufferClear": 1,
+          "xuiCodeTokenBufferGetVersion": 4
+        },
+        "typedInputProjection": true,
+        "zeroBridgeOverheadClaim": false
+      },
+      "trim": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-token-trim-win-r1\\results.json",
+        "sha256": "e68f3dba8ffa8f06ed6cc919ed6b1b54b78ee73ade7b09460fe746a32b85fab6"
+      },
+      "trimCommands": 8,
+      "trimDeltas": {
+        "bytes": 0,
+        "text": 0,
+        "bss": 0
+      }
+    },
+    "linux": {
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-token-language-linux-r2\\results.json",
+        "sha256": "9e5c8f6fc6c6a013527d8094a867d6f5891e475a7f3dc47c921dab89f700ced3"
+      },
+      "commands": 30,
+      "packageReports": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-token-packages-linux-r2\\host.json",
+          "sha256": "bd9b23a3d111d78dda98adc96ac641f80974f230af31f64020a935efd432da95"
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-token-packages-linux-r2\\static.json",
+          "sha256": "9a91221ae66fc95926a6437e45a9fd95537c4509d4f2fd45100e59cf4caf62f8"
+        }
+      },
+      "unchangedSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-search-sdk-linux-r2\\results.json",
+        "sha256": "0e1cb6b4aeb23869694a153c0b5d657e6a41cfdf4ac9dc2aaace8e8258715905"
+      },
+      "programs": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/code-token-language-linux-r2/foreign_xui_code_tokens-dynamic",
+          "sha256": "c6b6568ff523f59789a5142a424c045b48d830975a3fdfbd5fdc6a7531277132",
+          "bytes": 5167930,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/code-token-language-linux-r2/foreign_xui_code_tokens-static",
+          "sha256": "acac7656e64df703c4dc45fff8b57149593aa672cac496986746ca48d6f84690",
+          "bytes": 1508992,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/code-token-language-linux-r2/code_tokens-dynamic",
+          "sha256": "8a2ceb943cbff929b6f06e59701fa99a238063af89351d556403fee723946921",
+          "bytes": 1571415,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/code-token-language-linux-r2/code_tokens-static",
+          "sha256": "56b08ae1906e3cf9f5195129b85b09905e12fee37cde73bb3ab28a984982c8ee",
+          "bytes": 1112476,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ],
+      "heap": [
+        {
+          "mode": "jit",
+          "rounds": 1000,
+          "callsPerRound": 3,
+          "allocationPrefixes": 96,
+          "counts": {
+            "0": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "1": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "2": {
+              "alloc": 3,
+              "free": 3,
+              "realloc": 0
+            },
+            "3": {
+              "alloc": 1,
+              "free": 1,
+              "realloc": 0
+            },
+            "4": {
+              "alloc": 1,
+              "free": 1,
+              "realloc": 0
+            },
+            "5": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        },
+        {
+          "mode": "dynamic",
+          "rounds": 1000,
+          "callsPerRound": 3,
+          "allocationPrefixes": 96,
+          "counts": {
+            "0": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "1": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "2": {
+              "alloc": 3,
+              "free": 3,
+              "realloc": 0
+            },
+            "3": {
+              "alloc": 1,
+              "free": 1,
+              "realloc": 0
+            },
+            "4": {
+              "alloc": 1,
+              "free": 1,
+              "realloc": 0
+            },
+            "5": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        },
+        {
+          "mode": "static",
+          "rounds": 1000,
+          "callsPerRound": 3,
+          "allocationPrefixes": 96,
+          "counts": {
+            "0": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "1": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "2": {
+              "alloc": 3,
+              "free": 3,
+              "realloc": 0
+            },
+            "3": {
+              "alloc": 1,
+              "free": 1,
+              "realloc": 0
+            },
+            "4": {
+              "alloc": 1,
+              "free": 1,
+              "realloc": 0
+            },
+            "5": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        }
+      ],
+      "generatedC": {
+        "path": "/mnt/f/xlang-validation/xge-full-20261110/code-token-language-linux-r2/foreign_xui_code_tokens.c",
+        "sha256": "8adf9f00389a541357a43ef65e9591731261b8b1ccd96229bc3323a9f846c185",
+        "directCalls": {
+          "xuiCodeTokenBufferCreate": 5,
+          "xuiCodeTokenBufferSetRange": 5,
+          "xuiCodeTokenBufferGetCount": 11,
+          "xuiCodeTokenBufferGetRange": 4,
+          "xuiCodeTokenBufferSet": 10,
+          "xuiCodeTokenBufferClear": 1,
+          "xuiCodeTokenBufferGetVersion": 4
+        },
+        "typedInputProjection": true,
+        "zeroBridgeOverheadClaim": false
+      },
+      "trim": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-token-trim-linux-r1\\results.json",
+        "sha256": "a27919df2b54034f20dd95c50d044cd283e8201dcc1ed52f875651a3084b22ab"
+      },
+      "trimCommands": 8,
+      "trimDeltas": {
+        "bytes": 0,
+        "text": 0,
+        "bss": 0
+      }
+    }
+  },
+  "surfaceInventory": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-code-token-r2\\surface.json",
+    "sha256": "a0c65ba5ddc5971c52acaa0b6fd62026227866efbddf3e083e12cbbdede543cb"
+  },
+  "inventoryOnly": true,
+  "nativeSources": {
+    "include/xui.h": "f2c883cf98e23e388b162a81f41f72bcf6d4d1aedf167260b5ab1e96b381731d",
+    "src/xui/code/xui_code_token_buffer.c": "d83db992ed7612d4fc9f80856adebea370b88d2382ab08f9ef311f04a3756c93"
+  },
+  "semantics": {
+    "owner": "Unique independent numeric leaf. Generic creator-thread admission, active close and ordinary alias expiry; no native RC or stored document/callback.",
+    "array": "Typed O(n) input projection followed by native validation/copy. Size prefix -1/all, oversized clamp, other negative checked.",
+    "output": "Typed UINT32_MAX version and three-scalar tuple; validation/reserve failure preserves stored records and metadata.",
+    "edits": "Native clear resets version/range/count while retaining capacity."
+  },
+  "costs": {
+    "preparedRuntime": true,
+    "startupMeasured": false,
+    "cpuEquivalenceClaim": false,
+    "zeroBridgeOverheadClaim": false,
+    "nativeSourceOrImageGrowth": 0,
+    "hot": "1000 rounds x 3 calls; language/C alloc=free=realloc=0 under zero allocation budget.",
+    "createClose": {
+      "language": {
+        "alloc": 3,
+        "free": 3,
+        "realloc": 0
+      },
+      "native": {
+        "alloc": 1,
+        "free": 1,
+        "realloc": 0
+      }
+    },
+    "preparedSet": {
+      "language": {
+        "alloc": 1,
+        "free": 1,
+        "realloc": 0
+      },
+      "native": {
+        "alloc": 0,
+        "free": 0,
+        "realloc": 0
+      }
+    },
+    "extra": "Managed owner allocation and CodeLease bookkeeping; typed projection allocation and 20-byte copy per record; native token copy, reserve, checked scopes, calls, thread/owner/error work remain."
+  },
+  "historyNotes": [
+    "r1 used invalid array group positional metadata; the existing contract requires size immediately after its column. r2 keeps original native array/count/version/range order; no compiler/language rule changed.",
+    "Surface r1 required a Destroy declaration; the inventory omits lifecycle-policy C calls. r2 requires the seven visible declaration symbols; policy/native active-close acceptance covers Destroy.",
+    "Actual native clients do not compile an inline copy of the original source-including token test. They link the qualified hosted/static SDK and check payload via its public getters."
+  ],
+  "limitations": [
+    "Native bulk GetTokens/GetTokensInRange await general typed writable-array/output contracts.",
+    "CodeEdit internal token-buffer alias awaits general long-lived existing-owner alias contract.",
+    "No module/global CodeLease cycle, graphics backend, final SDK/IDE delivery or complete XGE/XUI/Document claim.",
+    "Native and compiler reused exact qualified cohorts; unrelated worktree edits not included."
+  ]
+}

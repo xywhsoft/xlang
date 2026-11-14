@@ -1,0 +1,177 @@
+import xui
+extern "fixtureTokenBudget" @header("test/cases/foreign_xui_code_tokens.h") @no_raise func budget(c_int allowance)
+extern "fixtureTokenPrefixBegin" @no_raise func prefixBegin()
+extern "fixtureTokenPrefixEnd" @no_raise func prefixEnd()
+extern "fixtureTokenHeapEqual" @no_raise func heapEqual()
+extern "fixtureTokenHotBegin" @no_raise func hotBegin()
+extern "fixtureTokenHotReport" @no_raise func hotReport(c_int kind)
+extern "fixtureTokenCheck" @no_raise func nativeCheck(xui.CodeTokenBuffer buffer)
+extern "fixtureTokenNativeHot" @no_raise func nativeHot(xui.CodeTokenBuffer buffer)
+extern "fixtureTokenNativeCreate" @no_raise func nativeCreate()
+extern "fixtureTokenNativeSet" @no_raise func nativeSet(xui.CodeTokenBuffer buffer)
+extern "fixtureTokenDuringCall" @no_raise @c_sync_callback(1,0,0) @c_result("status",0) func duringCall(xui.CodeTokenBuffer buffer,func() callback)
+
+func createAndClose()
+ auto value=xui.createCodeTokenBuffer()
+ value.close()
+end
+
+func main(...) as int
+ auto first=xui.CodeToken()
+ first.iStartOffset=0
+ first.iEndOffset=3
+ first.iStyle=1
+ first.iKind=2
+ auto second=first
+ second.iStartOffset=4
+ second.iEndOffset=8
+ array<xui.CodeToken> tokens=[first,second]
+ auto cache=xui.createCodeTokenBuffer()
+ assert cache.getCount()==0 and cache.getVersion()==0
+ cache.set(tokens,-1,42)
+ nativeCheck(cache)
+ auto version,start,endOffset=cache.getRange()
+ assert version==42 and start==0 and endOffset==2147483647
+ auto changed=tokens[0]
+ changed.iEndOffset=99
+ tokens[0]=changed
+ nativeCheck(cache)
+ changed.iEndOffset=3
+ tokens[0]=changed
+ cache.setRange(tokens,-1,4294967295,0,8)
+ version,start,endOffset=cache.getRange()
+ assert version==c_uint(4294967295) and start==0 and endOffset==8 and cache.getCount()==2
+ int rejected=0
+ try
+  cache.setRange(tokens,-1,43,4,8)
+ catch Error
+  rejected+=1
+ end
+ try
+  cache.setRange(tokens,-1,43,8,0)
+ catch Error
+  rejected+=1
+ end
+ try
+  cache.set(tokens,-2,43)
+ catch Error
+  rejected+=1
+ end
+ assert rejected==3 and cache.getVersion()==c_uint(4294967295) and cache.getCount()==2
+ array<xui.CodeToken> invalid=[second,first]
+ try
+  cache.set(invalid,-1,43)
+ catch Error
+  rejected+=1
+ end
+ assert rejected==4 and cache.getCount()==2
+ cache.set(tokens,1,42)
+ assert cache.getCount()==1
+ cache.set(tokens,99,42)
+ assert cache.getCount()==2
+ cache.set(tokens,0,42)
+ assert cache.getCount()==0 and cache.getVersion()==42
+ cache.clear()
+ version,start,endOffset=cache.getRange()
+ assert cache.getCount()==0 and version==0 and start==0 and endOffset==0
+ int failures=0
+ int successes=0
+ for operation in range(3)
+  for allowance in range(32)
+   prefixBegin()
+   try
+    if operation==0 then
+     budget(c_int(allowance))
+     auto candidate=xui.createCodeTokenBuffer()
+     candidate.close()
+    else
+     auto candidate=xui.createCodeTokenBuffer()
+     try
+      budget(c_int(allowance))
+      if operation==1 then
+       candidate.set(tokens,-1,42)
+      else
+       candidate.setRange(tokens,-1,42,0,8)
+      end
+      assert candidate.getCount()==2
+     finally
+      budget(-1)
+      candidate.close()
+     end
+    end
+    successes+=1
+   catch Error
+    failures+=1
+   finally
+    prefixEnd()
+   end
+   heapEqual()
+  end
+ end
+ assert failures>0 and successes>0
+ func(array<xui.CodeToken>,int,c_uint) setValue=cache.set
+ func(array<xui.CodeToken>,int,c_uint,c_int,c_int) setRangeValue=cache.setRange
+ setRangeValue(tokens,-1,42,0,8)
+ setValue(tokens,-1,42)
+ hotBegin()
+ budget(0)
+ try
+  for i in range(1000)
+   assert cache.getCount()==2 and cache.getVersion()==42
+   auto current,low,high=cache.getRange()
+   assert current==42 and low==0 and high==2147483647
+  end
+ finally
+  budget(-1)
+ end
+ hotReport(0)
+ hotBegin()
+ budget(0)
+ try
+  nativeHot(cache)
+ finally
+  budget(-1)
+ end
+ hotReport(1)
+ hotBegin()
+ createAndClose()
+ hotReport(2)
+ hotBegin()
+ nativeCreate()
+ hotReport(3)
+ hotBegin()
+ cache.set(tokens,-1,42)
+ hotReport(4)
+ hotBegin()
+ nativeSet(cache)
+ hotReport(5)
+ auto active=xui.createCodeTokenBuffer()
+ active.set(tokens,-1,42)
+ duringCall(active,func()
+  active.close()
+ end)
+ auto worker=thread(func() as int
+  try
+   auto count=cache.getCount()
+  catch StateError
+   return 1
+  end
+  return 0
+ end)
+ assert worker.waitTimeout(30000) and worker.exitCode()==1
+ cache.close()
+ rejected=0
+ try
+  setValue(tokens,-1,42)
+ catch StateError
+  rejected+=1
+ end
+ try
+  setRangeValue(tokens,-1,42,0,8)
+ catch StateError
+  rejected+=1
+ end
+ assert rejected==2
+ println("CodeTokens: typed input, version, ranges, failure atomicity, OOM, active close, thread and expiry passed")
+ return 0
+end

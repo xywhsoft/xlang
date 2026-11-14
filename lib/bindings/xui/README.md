@@ -435,3 +435,11 @@ Buffer is write-pinned across the native call and callbacks. See
 `examples/code_replace.xl` and `docs/xui-code-replace.md`. Prepared string inputs
 add no string mirror; literal construction and native regex compilation retain
 their own allocations. This requires the matched counted-search SDK.
+
+`createCodeTokenBuffer()` creates an independent creator-thread token cache.
+`set(tokens,size,version)` and `setRange(tokens,size,version,start,end)`
+project typed `CodeToken` records and let native storage keep its own copy.
+`getVersion`, `getRange` and `getCount` return checked metadata. Tokens describe
+UTF-8 byte positions, not characters. See `examples/code_tokens.xl`; close in
+`finally`. Bulk token output and aliases of CodeEdit's internal cache still
+require their general contracts and are not exposed by this numeric owner.

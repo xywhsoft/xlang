@@ -1,0 +1,13 @@
+// Independent versioned numeric token cache; input records are copied.
+export extern "xui_code_token_buffer" class CodeTokenBuffer @header("xui3_code_token_buffer.h") @lifetime("owned") @policy("xl6Xui3CodeTokenBufferPolicy")
+ native point handle
+ extern "xuiCodeTokenBufferClear" @no_raise func clear()
+ extern "xuiCodeTokenBufferSet" @no_raise @c_array_group(1,0,1,"int",1) @c_array_input(1,0,"const xui_code_token_t*","value") @c_result("status",0) func set(array<CodeToken> tokens,int size,c_uint textVersion)
+ extern "xuiCodeTokenBufferSetRange" @no_raise @c_array_group(1,0,1,"int",1) @c_array_input(1,0,"const xui_code_token_t*","value") @c_result("status",0) func setRange(array<CodeToken> tokens,int size,c_uint textVersion,c_int start,c_int endOffset)
+ extern "xuiCodeTokenBufferGetVersion" @no_raise @c_output(1,0) func getVersion() as c_uint
+ extern "xuiCodeTokenBufferGetRange" @no_raise @c_outputs(1,2,3) @c_status(0) func getRange() as (c_uint,c_int,c_int)
+ extern "xuiCodeTokenBufferGetCount" @no_raise func getCount() as c_int
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xuiCodeTokenBufferDestroy" @header("xui3_code_token_buffer.h") @no_raise func rollbackCodeTokenBuffer(CodeTokenBuffer buffer)
+export extern "xuiCodeTokenBufferCreate" @header("xui3_code_token_buffer.h") @no_raise @c_result("owned_view") @factory(0,0,rollbackCodeTokenBuffer) func createCodeTokenBuffer() as CodeTokenBuffer
