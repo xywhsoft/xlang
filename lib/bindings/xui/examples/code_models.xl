@@ -1,0 +1,24 @@
+// 选区模型保存字节位置；主题模型把词法种类映射到样式，不需要窗口。
+import xui
+
+func main(...) as int
+ auto document=xui.createCodeDocument()
+ auto selection=xui.createCodeSelection()
+ auto theme=xui.createCodeTheme()
+ try
+  document.setText("Hello xlang")
+  selection.selectWord(document,7)
+  auto start,endOffset=selection.getRange()
+  println("xlang 的字节范围："+string(int(start))+"—"+string(int(endOffset)))
+  auto style=theme.getStyle(c_int(xui.XUI_CODE_STYLE_KEYWORD))
+  style.iForeground=c_uint(0xFF336699)
+  theme.setStyle(c_int(xui.XUI_CODE_STYLE_KEYWORD),style)
+  auto keyword=theme.getTokenStyle(c_int(xui.XUI_CODE_TOKEN_KEYWORD))
+  println("关键字颜色已保存："+string(keyword.iForeground==style.iForeground))
+ finally
+  theme.close()
+  selection.close()
+  document.close()
+ end
+ return 0
+end

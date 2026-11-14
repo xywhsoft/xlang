@@ -531,6 +531,13 @@
       "kind": "cpu",
       "gallery": false,
       "expected": "Group edits in a uniquely owned text model, observe changes, undo and redo without a window."
+    },
+    {
+      "name": "code_models",
+      "title": "Selection and theme models",
+      "kind": "cpu",
+      "gallery": false,
+      "expected": "Select a word by byte range and edit the keyword style in independent numeric models."
     }
   ],
   "helper": "_window.xl",

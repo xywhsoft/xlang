@@ -15,6 +15,13 @@ The callback document view expires on return; copy its text for later use.
 See [CodeDocument contracts](../../../docs/xui-code-document.md) and
 [the console lesson](examples/code_document.xl).
 
+`createCodeSelection()` and `createCodeTheme()` own independent numeric models.
+Selection movement uses native grapheme boundaries and UTF-8 byte positions;
+theme styles are typed records. `CodeEdit.setTheme()` copies the native theme,
+so its source can be closed afterward. These models retain no Document or
+language closure. See [model contracts](../../../docs/xui-code-models.md) and
+[the small console lesson](examples/code_models.xl).
+
 `Context.createLanguage()` creates a Context-owned `Language`; `languagePack()`
 returns a watched child or null. Own-slot `Language.text()` preserves unset vs
 empty text; `Context.translate()` applies native fallback. `setLanguageText()`

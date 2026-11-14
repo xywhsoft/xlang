@@ -1,0 +1,184 @@
+import xui
+extern "fixtureCodeModelsBudget" @header("test/cases/foreign_xui_code_models.h") @no_raise func budget(c_int allowance)
+extern "fixtureCodeModelsBegin" @no_raise func beginHeap()
+extern "fixtureCodeModelsReport" @no_raise func reportHeap(c_int native)
+extern "fixtureCodeModelsHot" @no_raise func nativeHot(xui.CodeSelectionModel selection,xui.CodeDocument document,xui.CodeTheme theme)
+extern "fixtureCodeModelsEditorStyle" @no_raise func editorStyle(xui.CodeEdit editor,c_int styleId) as c_uint
+func main(...) as int
+ auto document=xui.createCodeDocument()
+ auto selection=xui.createCodeSelection()
+ auto theme=xui.createCodeTheme()
+ assert selection.getCount()==1 and selection.hasSelection()==0
+ document.setText("one two\nthree")
+ selection.selectWord(document,5)
+ auto start,endOffset=selection.getRange()
+ assert start==4 and endOffset==7
+ selection.selectLine(document,0,1)
+ start,endOffset=selection.getRange()
+ assert start==0 and endOffset==8
+ selection.selectAll(document)
+ start,endOffset=selection.getRange()
+ assert start==0 and endOffset==document.getLength()
+ selection.setRange(document,7,1)
+ start,endOffset=selection.getRange()
+ assert start==1 and endOffset==7 and selection.hasSelection()!=0
+ auto state=selection.getState()
+ assert state.iSize>0 and state.iAnchorOffset==7 and state.iCaretOffset==1 and state.iFlags!=0
+ state.iAnchorOffset=2
+ state.iCaretOffset=4
+ selection.setState(document,state)
+ auto copy=selection.getState()
+ assert copy.iAnchorOffset==2 and copy.iCaretOffset==4
+ selection.add(state)
+ assert selection.getCount()==2 and selection.getAt(1).iCaretOffset==4
+ bool rejected=false
+ try
+  copy=selection.getAt(2)
+ catch Error failure
+  rejected=true
+ end
+ assert rejected and copy.iCaretOffset==4
+ selection.clear()
+ assert selection.getCount()==1 and selection.hasSelection()==0
+ selection.gotoLineColumn(document,1,2)
+ assert selection.getState().iCaretOffset==10
+ selection.gotoOffset(document,4,1)
+ assert selection.getState().iAnchorOffset==10
+ document.setText("A你é\nlast")
+ selection.gotoOffset(document,4)
+ selection.move(document,c_int(xui.XUI_CODE_COMMAND_MOVE_RIGHT))
+ assert selection.getState().iCaretOffset==7
+ selection.move(document,c_int(xui.XUI_CODE_COMMAND_MOVE_LEFT))
+ assert selection.getState().iCaretOffset==4
+ selection.gotoOffset(document,2)
+ assert selection.getState().iCaretOffset==1
+ auto style=theme.getStyle(c_int(xui.XUI_CODE_STYLE_KEYWORD))
+ assert style.iSize>0
+ style.iForeground=c_uint(0x12345678)
+ theme.setStyle(c_int(xui.XUI_CODE_STYLE_KEYWORD),style)
+ assert theme.getTokenStyle(c_int(xui.XUI_CODE_TOKEN_KEYWORD)).iForeground==c_uint(0x12345678)
+ theme.setStyle(c_int(xui.XUI_CODE_STYLE_CUSTOM_BASE),style)
+ theme.mapTokenKind(c_int(xui.XUI_CODE_TOKEN_CUSTOM_BASE),c_int(xui.XUI_CODE_STYLE_CUSTOM_BASE))
+ assert theme.getTokenStyle(c_int(xui.XUI_CODE_TOKEN_CUSTOM_BASE)).iForeground==style.iForeground
+ auto other=xui.createCodeTheme()
+ other.copyFrom(theme)
+ theme.setDefault()
+ assert other.getTokenStyle(c_int(xui.XUI_CODE_TOKEN_CUSTOM_BASE)).iForeground==style.iForeground
+ other.copyFrom(other)
+ rejected=false
+ try
+  style=theme.getStyle(c_int(xui.XUI_CODE_STYLE_CUSTOM_BASE))
+ catch Error failure
+  rejected=true
+ end
+ assert rejected and style.iForeground==c_uint(0x12345678)
+ auto zero=xui.CodeStyle()
+ rejected=false
+ try
+  theme.setStyle(c_int(xui.XUI_CODE_STYLE_KEYWORD),zero)
+ catch Error failure
+  rejected=true
+ end
+ assert rejected
+ // Both native custom-style arrays must be prepared before either is published.
+ rejected=false
+ budget(1)
+ try
+  theme.copyFrom(other)
+ catch Error failure
+  rejected=true
+ finally
+  budget(-1)
+ end
+ assert rejected
+ rejected=false
+ try
+  auto missing=theme.getStyle(c_int(xui.XUI_CODE_STYLE_CUSTOM_BASE))
+ catch Error failure
+  rejected=true
+ end
+ assert rejected
+ auto proxy=xui.createProxy()
+ auto ui=xui.create(proxy,c_int(xui.XUI_SYSTEM_FONT_DISABLED))
+ auto editor=ui.codeEditNative()
+ editor.setTheme(other)
+ other.close()
+ assert editorStyle(editor,c_int(xui.XUI_CODE_STYLE_CUSTOM_BASE))==c_uint(0x12345678)
+ ui.close()
+ proxy.close()
+ // Factory failures must roll back both the native unique object and language root.
+ int selectionFailures=0
+ int themeFailures=0
+ for allowance in range(12)
+  budget(c_int(allowance))
+  try
+   auto candidate=xui.createCodeSelection()
+   candidate.close()
+  catch Error failure
+   selectionFailures+=1
+  finally
+   budget(-1)
+  end
+  budget(c_int(allowance))
+  try
+   auto candidate=xui.createCodeTheme()
+   candidate.close()
+  catch Error failure
+   themeFailures+=1
+  finally
+   budget(-1)
+  end
+ end
+ assert selectionFailures>0 and themeFailures>0
+ auto worker=thread(func() as int
+  int failures=0
+  try
+   auto invalid=selection.getState()
+  catch StateError
+   failures+=1
+  end
+  try
+   auto invalid=theme.getStyle(0)
+  catch StateError
+   failures+=1
+  end
+  return failures
+ end)
+ assert worker.waitTimeout(30000) and worker.exitCode()==2
+ document.setText("abc")
+ selection.setRange(document,0,3)
+ style=theme.getStyle(c_int(xui.XUI_CODE_STYLE_KEYWORD))
+ beginHeap()
+ budget(0)
+ try
+  for i in range(1000)
+   selection.setRange(document,0,3)
+   auto low,high=selection.getRange()
+   auto current=selection.getState()
+   auto color=theme.getStyle(c_int(xui.XUI_CODE_STYLE_KEYWORD))
+   theme.setStyle(c_int(xui.XUI_CODE_STYLE_KEYWORD),color)
+   assert low==0 and high==3 and current.iCaretOffset==3
+  end
+ finally
+  budget(-1)
+ end
+ reportHeap(0)
+ beginHeap()
+ nativeHot(selection,document,theme)
+ reportHeap(1)
+ auto expired=selection
+ selection.close()
+ selection.close()
+ rejected=false
+ try
+  auto invalid=expired.getState()
+ catch StateError
+  rejected=true
+ end
+ assert rejected
+ other.close()
+ theme.close()
+ document.close()
+ println("CodeModels: selection, graphemes, themes, custom style copy, checked outputs, OOM, thread and expiry passed")
+ return 0
+end

@@ -1,0 +1,35 @@
+// Independent numeric models. Neither keeps a Document nor a language callback.
+export extern "xui_code_selection_model_t*" class CodeSelectionModel @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3CodeSelectionPolicy")
+ native point handle
+ extern "xuiCodeSelectionClear" @no_raise func clear()
+ extern "xuiCodeSelectionSetRange" @no_raise @c_result("status",0) func setRange(CodeDocument document,c_int anchor,c_int caret)
+ extern "xuiCodeSelectionSetState" @no_raise @c_ref(1) @c_result("status",0) func setState(CodeDocument document,CodeSelection state)
+ extern "xuiCodeSelectionGetRange" @no_raise @c_outputs(1,2) @c_status(0) func getRange() as (c_int,c_int)
+ extern "xuiCodeSelectionGetState" @no_raise @c_output(1,0) func getState() as CodeSelection
+ extern "xuiCodeSelectionHasSelection" @no_raise func hasSelection() as c_int
+ extern "xuiCodeSelectionGetCount" @no_raise func getCount() as c_int
+ extern "xuiCodeSelectionGetAt" @no_raise @c_output(2,0) func getAt(c_int index) as CodeSelection
+ extern "xuiCodeSelectionAdd" @no_raise @c_ref(0) @c_result("status",0) func add(CodeSelection state)
+ extern "xuiCodeSelectionSelectAll" @no_raise @c_result("status",0) func selectAll(CodeDocument document)
+ extern "xuiCodeSelectionSelectWord" @no_raise @c_result("status",0) func selectWord(CodeDocument document,c_int offset)
+ extern "xuiCodeSelectionSelectLine" @no_raise @c_result("status",0) func selectLine(CodeDocument document,c_int line,c_int includeLineBreak=0)
+ extern "xuiCodeSelectionGotoOffset" @no_raise @c_result("status",0) func gotoOffset(CodeDocument document,c_int offset,c_int extend=0)
+ extern "xuiCodeSelectionGotoLineColumn" @no_raise @c_result("status",0) func gotoLineColumn(CodeDocument document,c_int line,c_int column,c_int extend=0)
+ extern "xuiCodeSelectionMove" @no_raise @c_result("status",0) func move(CodeDocument document,c_int command)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xuiCodeSelectionDestroy" @header("xge3_runtime.h") @no_raise func rollbackCodeSelection(CodeSelectionModel selection)
+export extern "xuiCodeSelectionCreate" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(0,0,rollbackCodeSelection) func createCodeSelection() as CodeSelectionModel
+
+export extern "xui_code_theme_t*" class CodeTheme @header("xge3_runtime.h") @lifetime("owned") @policy("xl6Xui3CodeThemePolicy")
+ native point handle
+ extern "xuiCodeThemeSetDefault" @no_raise @c_result("status",0) func setDefault()
+ extern "xuiCodeThemeSetStyle" @no_raise @c_ref(1) @c_result("status",0) func setStyle(c_int styleId,CodeStyle style)
+ extern "xuiCodeThemeGetStyle" @no_raise @c_output(2,0) func getStyle(c_int styleId) as CodeStyle
+ extern "xuiCodeThemeMapTokenKind" @no_raise @c_result("status",0) func mapTokenKind(c_int tokenKind,c_int styleId)
+ extern "xuiCodeThemeGetTokenStyle" @no_raise @c_output(2,0) func getTokenStyle(c_int tokenKind) as CodeStyle
+ extern "xuiCodeThemeCopy" @no_raise @c_result("status",0) func copyFrom(CodeTheme source)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xuiCodeThemeDestroy" @header("xge3_runtime.h") @no_raise func rollbackCodeTheme(CodeTheme theme)
+export extern "xuiCodeThemeCreate" @header("xge3_runtime.h") @no_raise @c_result("owned_view") @factory(0,0,rollbackCodeTheme) func createCodeTheme() as CodeTheme

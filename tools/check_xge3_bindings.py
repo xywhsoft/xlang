@@ -466,7 +466,7 @@ def generate(root,data):
         for f in header['functions']:
             if f['name'] in mapped:f.update(state='direct-declaration',language=mapped[f['name']])
         (src/'bootstrap.xl').write_text('// Normal module import executes the shared native initializer once.\nimport "_xge_native"\n',encoding='utf8')
-        manifest={'format':'xlang-package-1','name':package,'version':'3.0.0','abiVersion':'2','kind':'xlang-extlib','artifact':{'kind':'source','cSources':[],'xlSources':['src/bootstrap.xl','src/records.xl','src/constants.xl']+(['src/functions.xl','src/resources.xl','src/audio_resources.xl','src/callbacks.xl','src/shapes.xl','src/data_object.xl'] if package=='xge' else ['src/managed.xl','src/cell.xl','src/proxy.xl','src/draw.xl','src/text_shape.xl','src/text_layout.xl','src/code_document.xl','src/managers.xl','src/document_records.xl','src/document.xl','src/document_ui_records.xl','src/document_ui.xl'])},'links':[],'loadlibs':[],'dependencies':[{'name':'_xge_native','version':'3.0.0','abiVersion':'2'}],'native':{'singleton':False,'loadName':'','version':''}}
+        manifest={'format':'xlang-package-1','name':package,'version':'3.0.0','abiVersion':'2','kind':'xlang-extlib','artifact':{'kind':'source','cSources':[],'xlSources':['src/bootstrap.xl','src/records.xl','src/constants.xl']+(['src/functions.xl','src/resources.xl','src/audio_resources.xl','src/callbacks.xl','src/shapes.xl','src/data_object.xl'] if package=='xge' else ['src/managed.xl','src/cell.xl','src/proxy.xl','src/draw.xl','src/text_shape.xl','src/text_layout.xl','src/code_document.xl','src/code_models.xl','src/managers.xl','src/document_records.xl','src/document.xl','src/document_ui_records.xl','src/document_ui.xl'])},'links':[],'loadlibs':[],'dependencies':[{'name':'_xge_native','version':'3.0.0','abiVersion':'2'}],'native':{'singleton':False,'loadName':'','version':''}}
         if package=='xge':manifest['artifact']['includeDirs']=['include']
         (folder/'xlang.package.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf8')
     annotate_existing_bindings(root,data,strict_storage=True,generated=True)
@@ -980,6 +980,10 @@ def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_spa
     extend_gallery(context,classes,mapped)
     from xui_geometry_contracts import extend as extend_geometry
     extend_geometry(context,classes,mapped)
+    # Native SetTheme copies both numeric arrays; no borrowed root is retained.
+    classes['CodeEdit']=[v for v in classes['CodeEdit'] if 'extern "xuiCodeEditSetTheme"' not in v]
+    classes['CodeEdit'].append(' extern "xuiCodeEditSetTheme" @no_raise @c_result("status",0) func setTheme(CodeTheme theme)')
+    mapped['xuiCodeEditSetTheme']='xui.CodeEdit.setTheme'
     lines=['// Managed owner graph and direct native methods. Generated; no per-method C wrappers.']
     for c,n in sorted(raw.items()):lines+=['// Explicit C-interop-only descriptor pointer; this does not own the pointed-to data.','export extern "'+c+'" class '+n+' @header("xge3_runtime.h") @lifetime("caller")',' native point handle','end']
     lines+=callback_declarations

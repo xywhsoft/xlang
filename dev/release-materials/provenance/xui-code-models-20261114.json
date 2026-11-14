@@ -1,0 +1,536 @@
+{
+  "schema": 1,
+  "date": "2026-11-14",
+  "scope": "Direct pure numeric CodeSelection/CodeTheme unique models; CodeEdit copies theme.",
+  "shippingDelivery": false,
+  "fullGoalComplete": false,
+  "networkTests": false,
+  "compilerChange": false,
+  "nativeImplementationChange": false,
+  "parentCommit": "030e7ef552f9b6ee6934ff6e02aa8ef4f8f9d42c",
+  "nativeRevision": "c083fa3fc0b2c41d087909cfcea8927377422dc4",
+  "sources": {
+    "docs/xui-code-models.md": "73be7bad4aaa02f920bf646977555b0a0d2c9ecbad3285041cec4a693c1ec0aa",
+    "docs/xge3-xui3-full-coverage-plan.md": "6bb80c90d306a4d03f4007c5696b1544e4689b45da100943faa89f52f59a55ca",
+    "lib/bindings/_xge_native/include/xge3_runtime.h": "d0f171b97882147b5334dbff89982b45c8a718dbeca454c2e049010d7f230959",
+    "lib/bindings/_xge_native/src/runtime.c": "0a877014bfac244a6c0dfae6f9fe379ad33568ec195e316e755e2b0a682ca169",
+    "lib/bindings/xui/src/code_models.xl": "694baad2b03429f01cca8e0ce76cae6481b5f9c39512dd2ba6ddc56195275e95",
+    "lib/bindings/xui/src/managed.xl": "2068dcc67268c8b4538b43c44a5916f47d580e52f57333538839095b16819283",
+    "lib/bindings/xui/xlang.package.json": "90b0bfe82cda5bfdcc43ced0c495bfb40714ccc515dd3ce9f9751b1e6b15b7a3",
+    "lib/bindings/xui/README.md": "3a4082003367fc83976757a078a7de1d5e6105c861c2bd37dd69cd02e96e0147",
+    "lib/bindings/xui/examples/code_models.xl": "315fbdae6c2e89df53f3f92ba0175ce1e0f0f71fe1c0d290280ac72572c4604a",
+    "lib/bindings/xui/examples/gallery.json": "e421fa05e8e419c6d6631f95a74bfc36d0a183dc8d5109bd368d3928f622f546",
+    "lib/bindings/xui/examples/README.md": "a143a240b139e7e30b3da6be67baab2ea5406ce888ebc2dddbcaa4d78ceb8207",
+    "test/cases/foreign_xui_code_models.h": "525ddaf4881bf2c57c17bcda5f64db58ef2094ebf104dcda2b9ec3ab54d4f0ed",
+    "test/cases/foreign_xui_code_models.c": "a572f58a4890604aaaf2e8b16f494fd73333c4164702f2c927395d42e6217c1e",
+    "test/cases/foreign_xui_code_models.xl": "222bac1217838eac5caa9cadd393fd92f2ed622c144ac1e2a16eb035cda7408b",
+    "tools/check_xui_code_models.py": "281770db9da5fdfad06ec7fbe7f9d77d2cff60a3ad099d296d71d9cf18b75002",
+    "tools/check_xge3_bindings.py": "0c965272843dfcee914943b8a85bf758005334d4cfac3d889219c8687b296b8a"
+  },
+  "platforms": {
+    "win": {
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-models-language-win-r1\\results.json",
+        "sha256": "81d577a277d07ea3cedc2e626074ac98353f1dfe71cdd5466ddd9c369768c8f2",
+        "commands": 24,
+        "selectedRows": [
+          "foreign_xui_code_models-emit",
+          "provider-O0",
+          "provider-O2",
+          "foreign_xui_code_models-header-c11",
+          "foreign_xui_code_models-header-c++11",
+          "foreign_xui_code_models-header-c++17",
+          "foreign_xui_code_models-jit",
+          "foreign_xui_code_models-dynamic-build",
+          "foreign_xui_code_models-dynamic-execute",
+          "foreign_xui_code_models-dynamic-imports",
+          "foreign_xui_code_models-static-build",
+          "foreign_xui_code_models-static-execute",
+          "foreign_xui_code_models-static-imports",
+          "code_models-emit",
+          "code_models-header-c11",
+          "code_models-header-c++11",
+          "code_models-header-c++17",
+          "code_models-jit",
+          "code_models-dynamic-build",
+          "code_models-dynamic-execute",
+          "code_models-dynamic-imports",
+          "code_models-static-build",
+          "code_models-static-execute",
+          "code_models-static-imports"
+        ]
+      },
+      "hotModelCalls": [
+        {
+          "mode": "jit",
+          "rounds": 1000,
+          "preparedPayload": true,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          },
+          "cpuEquivalenceClaim": false
+        },
+        {
+          "mode": "dynamic",
+          "rounds": 1000,
+          "preparedPayload": true,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          },
+          "cpuEquivalenceClaim": false
+        },
+        {
+          "mode": "static",
+          "rounds": 1000,
+          "preparedPayload": true,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          },
+          "cpuEquivalenceClaim": false
+        }
+      ],
+      "programs": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-models-language-win-r1\\foreign_xui_code_models-dynamic.exe",
+          "sha256": "9738d55c4515348718c1047ea3282689af924e7f253011f91e9c8077de91f53a",
+          "bytes": 5026816,
+          "imports": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-models-language-win-r1\\foreign_xui_code_models-static.exe",
+          "sha256": "f66db932a7e9d182c17d1f1dd17d7a64c2ba846ec7a6bc0659fcb33981a05c53",
+          "bytes": 7322624,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "USER32.dll",
+            "ole32.dll",
+            "OLEAUT32.dll",
+            "SHELL32.dll",
+            "GDI32.dll",
+            "IMM32.dll",
+            "DWrite.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-models-language-win-r1\\code_models-dynamic.exe",
+          "sha256": "03c962dfb4fa146ac3ee88bcf8fab8103341410fb880b2116d36b84dbac1f9e0",
+          "bytes": 1513984,
+          "imports": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-models-language-win-r1\\code_models-static.exe",
+          "sha256": "aa3f0eb9be730732ef228d50b7fcd4d835c2b1a5f61015760fe2f1965b5b3fb2",
+          "bytes": 1080320,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "ole32.dll",
+            "SHELL32.dll"
+          ]
+        }
+      ],
+      "finalStaging": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-models-packages-win-r2\\results.json",
+        "sha256": "7eabf467d37953cd3fac2a76320eeb20baed7932c5be0a72d0ca923e1a6f6f28"
+      },
+      "nativeSdkReuse": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-document-sdk-win-r2\\results.json",
+        "sha256": "52eca020a7b9d272308ac05b43438fd95d693001d9851326a481964c4d246145",
+        "commands": 4,
+        "selectedRows": [
+          "host",
+          "static",
+          "stage-host",
+          "stage-static"
+        ]
+      },
+      "unused": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-models-unused-win-r1\\results.json",
+        "sha256": "32009ab9806ad24bcbe952e3b14b7351760d9a23cc6c54e3f053c0462b8a5f6c",
+        "commands": 6,
+        "selectedRows": [
+          "old-build",
+          "old-sections",
+          "old-imports",
+          "new-build",
+          "new-sections",
+          "new-imports"
+        ],
+        "deltaBytes": 0,
+        "deltaCodeBytes": 0,
+        "programs": {
+          "old": {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\code-models-unused-win-r1\\old.exe",
+            "sha256": "62e957c93766cd3dec7f19a59a6d062679b847346c88ce36ce58d84e86902e24",
+            "bytes": 7767552,
+            "textBytes": 5279782,
+            "sectionCount": 6,
+            "imports": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "USER32.dll",
+              "GDI32.dll",
+              "ole32.dll",
+              "OLEAUT32.dll",
+              "SHELL32.dll",
+              "IMM32.dll",
+              "DWrite.dll"
+            ]
+          },
+          "new": {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\code-models-unused-win-r1\\new.exe",
+            "sha256": "3ec447114530ad5204c7c819815b7182f8d37009784f125736e66e989a15a3a9",
+            "bytes": 7767552,
+            "textBytes": 5279782,
+            "sectionCount": 6,
+            "imports": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "USER32.dll",
+              "GDI32.dll",
+              "ole32.dll",
+              "OLEAUT32.dll",
+              "SHELL32.dll",
+              "IMM32.dll",
+              "DWrite.dll"
+            ]
+          }
+        }
+      }
+    },
+    "linux": {
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-models-language-linux-r1\\results.json",
+        "sha256": "bbf544f51a744f898e607192fe42fa16e2173ec6052d7135af8b645e26f6d556",
+        "commands": 24,
+        "selectedRows": [
+          "foreign_xui_code_models-emit",
+          "provider-O0",
+          "provider-O2",
+          "foreign_xui_code_models-header-c11",
+          "foreign_xui_code_models-header-c++11",
+          "foreign_xui_code_models-header-c++17",
+          "foreign_xui_code_models-jit",
+          "foreign_xui_code_models-dynamic-build",
+          "foreign_xui_code_models-dynamic-execute",
+          "foreign_xui_code_models-dynamic-imports",
+          "foreign_xui_code_models-static-build",
+          "foreign_xui_code_models-static-execute",
+          "foreign_xui_code_models-static-imports",
+          "code_models-emit",
+          "code_models-header-c11",
+          "code_models-header-c++11",
+          "code_models-header-c++17",
+          "code_models-jit",
+          "code_models-dynamic-build",
+          "code_models-dynamic-execute",
+          "code_models-dynamic-imports",
+          "code_models-static-build",
+          "code_models-static-execute",
+          "code_models-static-imports"
+        ]
+      },
+      "hotModelCalls": [
+        {
+          "mode": "jit",
+          "rounds": 1000,
+          "preparedPayload": true,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          },
+          "cpuEquivalenceClaim": false
+        },
+        {
+          "mode": "dynamic",
+          "rounds": 1000,
+          "preparedPayload": true,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          },
+          "cpuEquivalenceClaim": false
+        },
+        {
+          "mode": "static",
+          "rounds": 1000,
+          "preparedPayload": true,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          },
+          "cpuEquivalenceClaim": false
+        }
+      ],
+      "programs": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/code-models-language-linux-r1/foreign_xui_code_models-dynamic",
+          "sha256": "4e7c2251146c0bbd861bef57db0868c07514b783dab13425dcb74f8401575d0b",
+          "bytes": 5222307,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/code-models-language-linux-r1/foreign_xui_code_models-static",
+          "sha256": "573a47f458d0bb338425954cbf6c8cee95736054b412966a20dd6c7acf21ed47",
+          "bytes": 6442415,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/code-models-language-linux-r1/code_models-dynamic",
+          "sha256": "d88b5a52bfa970c6d9b9691c385138985f74a54c638a9ccb55db6f04fc6eb5ed",
+          "bytes": 1573780,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/code-models-language-linux-r1/code_models-static",
+          "sha256": "d367fdc702deb336b0110befb6fc193f965d31b39e20713cdca65e6cd304e5d4",
+          "bytes": 1366937,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ],
+      "finalStaging": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-models-packages-linux-r2\\results.json",
+        "sha256": "4a733fc9663562cc166f2101ef4771cd10dc72e406dd6c5efdffde364dad335d"
+      },
+      "nativeSdkReuse": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-document-sdk-linux-r2\\results.json",
+        "sha256": "60b6108d11d04666bd33e4ca545a50de4b2da99f3b652933ce7a72ad922f23f8",
+        "commands": 4,
+        "selectedRows": [
+          "host",
+          "static",
+          "stage-host",
+          "stage-static"
+        ]
+      },
+      "unused": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-models-unused-linux-r1\\results.json",
+        "sha256": "8a103e8da70d5f5dad0773496f31986e0a7b5a007cfdde36b95b1e9cfb632c9a",
+        "commands": 6,
+        "selectedRows": [
+          "old-build",
+          "old-sections",
+          "old-imports",
+          "new-build",
+          "new-sections",
+          "new-imports"
+        ],
+        "deltaBytes": -32,
+        "deltaCodeBytes": 0,
+        "programs": {
+          "old": {
+            "path": "/mnt/f/xlang-validation/xge-full-20261110/code-models-unused-linux-r1/old",
+            "sha256": "eb7664b07dc895f7c004546101ce62fa5403bea5ed9f02bf77d04faccf99967b",
+            "bytes": 8861263,
+            "textBytes": 4765954,
+            "sectionCount": 13187,
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libX11.so.6",
+              "libXi.so.6",
+              "libXcursor.so.1",
+              "libGL.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "new": {
+            "path": "/mnt/f/xlang-validation/xge-full-20261110/code-models-unused-linux-r1/new",
+            "sha256": "e38820e2a666854be1c6ad8ab96b3256e533e65b1c8001c916e90d635be622a9",
+            "bytes": 8861231,
+            "textBytes": 4765954,
+            "sectionCount": 13187,
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libX11.so.6",
+              "libXi.so.6",
+              "libXcursor.so.1",
+              "libGL.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        },
+        "layoutAttribution": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-models-unused-linux-r1\\layout-attribution.json",
+          "sha256": "7b526eceed394a193c16f23de3bb8e32d7dbc51f8e3084a1c3be0893f54e0695"
+        }
+      }
+    }
+  },
+  "qualifiedReuse": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\code-models-final-qualified-reuse-r1.json",
+    "sha256": "3e23e7e43f69d004efba983826d53da7c3baf783b282beb4ec96d89b2cfe0bbf"
+  },
+  "inventory": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-code-models-r1\\surface.json",
+    "sha256": "9a88de09669d344ffa1ea79613714a61795399b5845f8283b08062569392a7b1",
+    "population": {
+      "functions": 5177,
+      "types": 981,
+      "constants": 1838,
+      "functionMacros": 7,
+      "callableFields": 184,
+      "enums": 40,
+      "enumConstants": 316
+    },
+    "declarationPresent": {
+      "functions": 3738,
+      "types": 373,
+      "constants": 1820,
+      "callableFields": 66,
+      "enumConstants": 316
+    },
+    "notCompletionRate": true,
+    "nativeTrackedTreeDirty": true,
+    "note": "Unrelated native input/text/geometry work retained; existing frozen canonical engine used."
+  },
+  "staticChecks": [
+    {
+      "name": "lesson-organization",
+      "command": [
+        "python",
+        "-B",
+        "tools/check_xui_lessons.py"
+      ],
+      "exitCode": 0,
+      "log": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-models-lesson-organization-r1.log",
+        "sha256": "81f50b1034899e04de3e3a7acb46570fc280f3d88482fd9529ed3162e2485ed4"
+      }
+    },
+    {
+      "name": "inventory-tests",
+      "command": [
+        "python",
+        "-B",
+        "tools/test_xge3_inventory.py"
+      ],
+      "exitCode": 0,
+      "log": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-models-inventory-tests-r1.log",
+        "sha256": "45f9eff500276d5f54b97829bdfc267ce1d5c61ddc5c3c8b1b3b7817be27c615"
+      }
+    }
+  ],
+  "examples": {
+    "programs": 84,
+    "independentWithoutGallery": 83,
+    "galleryScenes": 57
+  },
+  "repositoryBudget": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\code-models-repository-budget-r1.json",
+    "sha256": "c2d6e1fc76c05618a6240d06d2dbe6cbc980d25e68afe92d418c5ec9e4cf37fd",
+    "packMiB": 167.57
+  },
+  "costs": {
+    "hot1000": "Five model calls per iteration; C and language each zero alloc/free/realloc in all modes/platforms.",
+    "copies": "Native copyFrom/CodeEdit.setTheme deep-copy both custom numeric arrays. Record/tuple delivery uses stack values/assignments, not native references.",
+    "guards": "Generic view/error scopes, code leases, creator-thread checks and CodeDocument argument pins remain.",
+    "policy": "Two void-destructor adapters only; no per-method forwarding, fake RC, native watch or no-op call scope.",
+    "cpuOrColdPathEqualityClaim": false
+  },
+  "remaining": [
+    "Safe borrowed internal editor model views",
+    "Other pending full-goal APIs/contracts",
+    "Final matched compiler/SDK/runtime/IDE/help delivery"
+  ]
+}

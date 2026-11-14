@@ -561,6 +561,25 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3CodeDocumentPolicyGet(void)
 #else
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeDocumentPolicyGet(void){return NULL;}
 #endif
+/* Pure numeric leaf models: unique language roots, no callbacks, native
+ * watches, retained language edges or borrowed child roots. No fake scopes. */
+#if XUI_ENABLE_CODE_EDIT
+static bool destroy_code_selection(void* raw){xuiCodeSelectionDestroy(raw);return true;}
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeSelectionPolicyGet(void)
+{
+    static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui.codeSelection",
+        0,1,NULL,NULL,destroy_code_selection,0,1,NULL,NULL,NULL,NULL,0,NULL,NULL};return &value;
+}
+static bool destroy_code_theme(void* raw){xuiCodeThemeDestroy(raw);return true;}
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeThemePolicyGet(void)
+{
+    static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui.codeTheme",
+        0,1,NULL,NULL,destroy_code_theme,0,1,NULL,NULL,NULL,NULL,0,NULL,NULL};return &value;
+}
+#else
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeSelectionPolicyGet(void){return NULL;}
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeThemePolicyGet(void){return NULL;}
+#endif
 /* Scope members are native borrowed editors. XGE removes destroyed editors
  * and detaches all remaining members when the scope closes. No language
  * callback is installed here, so this independent root has no owning edges. */
