@@ -1,0 +1,188 @@
+{
+  "schema": 1,
+  "date": "2026-11-14",
+  "scope": "Qualified private XGE resolver library retirement with matching hosted/static SDKs and existing full compilers; renew borrowed text output acceptance.",
+  "shippingDelivery": false,
+  "fullGoalComplete": false,
+  "networkTests": false,
+  "publicAbiChange": false,
+  "languageCompilerChange": false,
+  "parentCommit": "59bca19378307bee89f2d772e0706dbdbd46856c",
+  "nativeRevision": "0214760c3244237035e0b1da650e219fb5eef999",
+  "sources": {
+    "docs/xge3-platform-startup.md": "559f54009f72dde46e6c82a7225d785fed8544ef60ddbb5bbf8b107208a6a881",
+    "docs/xge3-xui3-full-coverage-plan.md": "c4f47cf248966e61b62a06c3006cfa0ddf7baeed064bd9a7372c3e140d7d15df"
+  },
+  "platforms": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\gl-library-sdk-win-r1\\results.json",
+        "sha256": "8dc7640711f0c62186863835026d313f7aa06f98c08f683a55d714a91f615e7a"
+      },
+      "freeze": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\native-gl-library-win-freeze-r1.json",
+        "sha256": "9ec4d706a6265c2a154e4539691f9f77bbfed570ab545d0e81fba6a26fd9fe23"
+      },
+      "source": "F:\\xlang-validation\\xge-full-20261110\\native-gl-library-win-source-r1",
+      "packages": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\gl-library-sdk-win-r1\\packages-host.json",
+          "sha256": "1ae085fb50330f7e952968c77856974ac39dd1ec59928c9b40df1d4fbbc0fef0",
+          "root": "F:\\xlang-validation\\xge-full-20261110\\gl-library-sdk-win-r1\\packages-host",
+          "build": {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\gl-library-sdk-win-r1\\host\\build-report.json",
+            "sha256": "a3c53b680641f6f1fe3f29c0d4975ea5fdaa44229fdad7e175556066a747641d"
+          }
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\gl-library-sdk-win-r1\\packages-static.json",
+          "sha256": "69d4f6e008ee4a90e7aef702b99167cbe5d218de3e031f6107ed455bce3ffb1d",
+          "root": "F:\\xlang-validation\\xge-full-20261110\\gl-library-sdk-win-r1\\packages-static",
+          "build": {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\gl-library-sdk-win-r1\\static\\build-report.json",
+            "sha256": "ff209398157553b71b2c7a57160ba458da14309f9ff904fddf2af858e3f45bde"
+          }
+        }
+      },
+      "size": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\gl-library-sizes-win-r1.json",
+        "sha256": "7295f977d1323b897327dbaa4badcdab94652854709370ea35750618e7447a60",
+        "fileDelta": 512,
+        "textDelta": 640,
+        "bssDelta": 32
+      },
+      "compiler": {
+        "report": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-null-cstr-full-r36\\build.json",
+          "sha256": "85dc294b283f3b774172a0de877ad86d34398689de17a6260f08900db030d931"
+        },
+        "program": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-null-cstr-full-r36\\source\\release\\win_x64\\xl.exe",
+          "sha256": "b06ecff88b5b9f438820a93f7ec7c8be5d605c5e55c8d6e6c58c8d2c2641ed80"
+        }
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\gl-library-sdk-linux-r1\\results.json",
+        "sha256": "e98a7b385cd0c95d882f24ebf7e29926464dbef491ca863eb95ba04077326e77"
+      },
+      "freeze": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\native-gl-library-linux-freeze-r1.json",
+        "sha256": "bf88e03178134bd286af1863fcbc5f5d4a1d6b7d8abe9926288bf207098d039a"
+      },
+      "source": "F:\\xlang-validation\\xge-full-20261110\\native-gl-library-linux-source-r1",
+      "packages": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\gl-library-sdk-linux-r1\\packages-host.json",
+          "sha256": "38e592e343f6d8b25a874ea2361507123d161408093efc81bcf721493e473407",
+          "root": "F:\\xlang-validation\\xge-full-20261110\\gl-library-sdk-linux-r1\\packages-host",
+          "build": {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\gl-library-sdk-linux-r1\\host\\build-report.json",
+            "sha256": "f456c65b1581c57ed2ba4a27b53a44bb78876a503b723b7a595c4a0150e1a8fc"
+          }
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\gl-library-sdk-linux-r1\\packages-static.json",
+          "sha256": "4cbb0f75819b2dca0c134314c49609bec5f984bda9bf2ff0861bf7c0b1eb3c44",
+          "root": "F:\\xlang-validation\\xge-full-20261110\\gl-library-sdk-linux-r1\\packages-static",
+          "build": {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\gl-library-sdk-linux-r1\\static\\build-report.json",
+            "sha256": "7ba3dacb6bc7157f7830880bc9e33eaa97404082c966133745632bc515d3ab9d"
+          }
+        }
+      },
+      "size": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\gl-library-sizes-linux-r1.json",
+        "sha256": "1337b95883dff29d640747fdd617613755574c0392c75c16af9ad86c1a0a669f",
+        "fileDelta": 0,
+        "textDelta": 960,
+        "bssDelta": 32
+      },
+      "compiler": {
+        "report": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-null-cstr-linux-full-r29\\build.json",
+          "sha256": "3fb08e3ed8b6166e39bdb66955cea42c0db45d648697ce0e74914bac4adaf723"
+        },
+        "program": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-null-cstr-linux-full-r29\\source\\release\\linux_x64\\xl",
+          "sha256": "faa25e49bdf8c5ce8ccdb084810075b406cc6dd499a59577664616eb2a08265b"
+        }
+      }
+    }
+  },
+  "reports": {
+    "textWin": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\gl-library-text-reads-win-r1\\results.json",
+      "sha256": "2eaf5bd907feea3baaff49062904bf96a0c6d413991c8ea14ae9b1f354128112",
+      "commands": 29,
+      "fullCompilerBuild": true
+    },
+    "textLinux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\gl-library-text-reads-linux-r1\\results.json",
+      "sha256": "de3b0e9c9cfc134466d782664966d73523c64acd36f65e6c7fe07eced2cab5a9",
+      "commands": 29,
+      "fullCompilerBuild": true
+    },
+    "glxLinux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\gl-library-glx-language-linux-r1\\results.json",
+      "sha256": "2f726f1c8d5af21731cf28cfa779d1305d4ae4957af3a319476df6d65facc850",
+      "commands": 11,
+      "fullCompilerBuild": true
+    },
+    "renderWin": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\gl-library-render-language-win-r1\\results.json",
+      "sha256": "a3d8f7ce06743cc7420251781e26dd6138cf1e361a81442d4c3415ca1e7a5545",
+      "commands": 25,
+      "fullCompilerBuild": false
+    }
+  },
+  "positiveLanguageProcessSteps": 94,
+  "nativeReceipt": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\gl-library-lifetime-20261114.json",
+    "sha256": "a5c0cfc04e912aefb142a3d9f0230491d8f70df69dfd1c0ba1fad71ebd30a5b9"
+  },
+  "nativePositiveProcessSteps": 174,
+  "nativeLegacyBuilds": 4,
+  "nativeLegacyDefectRejections": 4,
+  "borrowedText": {
+    "implementationCommit": "b0c7bb496",
+    "declaration": "@no_raise @c_output(1,0) @c_output_view(1,\"text\")",
+    "nativeProducer": "xuiCodeEditGetTextView",
+    "languageResult": "string?",
+    "calls": 1,
+    "copyWithinReceiverScope": true,
+    "preserves": [
+      "embedded NUL",
+      "NULL versus present empty",
+      "native failed status before output observation",
+      "checked snapshot/copy allocation failure",
+      "unchanged assignment on failed copy",
+      "independently owned snapshot after mutation/close"
+    ],
+    "cost": "One exact-length allocation/copy for nonempty language snapshots; a cold native document view may also flatten. No zero-copy or whole-ecosystem claim.",
+    "docs": {
+      "path": "D:\\GIT\\x-lang\\docs\\xui-text-snapshots.md",
+      "sha256": "5c29d9adf4e04fcfa2b6d9a91bc96f7a1c0fa4d17b8137f03b43f4cdd599c70b"
+    }
+  },
+  "costs": {
+    "optimization": "O2",
+    "newDrawOperations": 0,
+    "newWrapperLayer": false,
+    "staticLibraryOwnerSlots": 2,
+    "stackCandidate": true,
+    "closeFailureRetainsCodeOwner": true,
+    "globalBusyRulePreserved": true,
+    "cpuEquivalenceClaim": false
+  },
+  "limitations": [
+    "Isolated source snapshots exclude unrelated XUI user changes; exact new core sources match native working tree and committed change.",
+    "Host builds reuse original full build, 2 compiled / 162 reused; static 2 compiled / 164 reused. Not full rebuild.",
+    "Full compilers unchanged; each text acceptance tool verifies qualified compiler cohort. Render tool uses the same hash-pinned compiler/SDK.",
+    "Windows render language gate covers JIT/static AOT; Linux GLX and both text gates also cover independent dynamic AOT.",
+    "Native close failures injected on actual PE/ELF loader entry without executing a fake GL pointer.",
+    "macOS/Android/WebAssembly device behavior and other backend/disconnect paths remain unqualified.",
+    "No release/runtime/IDE installation, delivery-index modification, online push or whole-goal completion."
+  ]
+}

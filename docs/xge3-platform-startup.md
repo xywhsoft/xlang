@@ -123,10 +123,9 @@ three execution modes. No language/compiler/ABI adaptation was needed.
 
 A completed graphics Run retains the existing ENDED lifecycle; Unit/Init is
 required before a further healthy Run. Pre-startup failures allow direct retry.
-XGE's separate OpenGL resolver currently keeps a process-wide library cache.
-Native tests count that existing owner explicitly and show no accumulating
-Sokol owner. Resolver backend-switch and module-retirement ownership remains
-an independent open audit, not a completed cleanup claim.
+At that checkpoint, XGE's separate resolver still retained a process-wide
+library owner. Those historical tests count it explicitly; the resolver
+retirement follow-up below removes it after checked Unit.
 
 One earlier EGL O2 check encountered XOpenDisplay failure before the selected
 stage. In 50 comparisons per policy, Xvfb reset allowed one such failure and
@@ -144,3 +143,37 @@ SDK, compiler, test and size hashes are indexed in
 `dev/release-materials/provenance/xge-linux-startup-unwind-20261114.json`.
 Final mainline runtime/SDK/IDE installation and full-ecosystem acceptance remain
 outstanding; these are isolated qualified candidates.
+
+## Resolver library retirement
+
+The native resolver now commits its library reference with the complete typed
+function table. Backend changes no longer erase an outstanding handle. Failed
+candidate loading leaves the old table/library intact; a failed library close
+retains the exact retry duty. One deferred owner bounds failed rollback and
+postcommit retirement. Windows resolves WGL entries from the current candidate,
+never a previous backend's cached entry.
+
+Unit still reports Busy before touching live graphics resources. After resource
+admission and joining render workers, it unloads slots and closes the libraries.
+A failed close keeps the engine code owner and blocks reinitialization until
+checked cleanup succeeds. Logical Unit inside a native loop defers those owners
+to Sokol cleanup; Sokol's own reference protects the remaining OS teardown.
+Normal Run clears the expired context's slots; its initialized engine keeps
+one resolver reference until Unit and zero afterwards. The ENDED/Unit/Init rule
+is preserved.
+
+The actual typed loader passes C11/C++11/C++17, O0/O2, all required omissions,
+backend switching and failed-close retention on both desktop platforms. Actual
+static engine windows separately verify OS-close retry, code retention, GPU
+Busy, reentrant logical Unit and restart. Old static libraries reproduce the
+remaining-reference defect. Linux's 18-stage GLX engine gate now verifies zero
+references after Unit. Full-compiler text snapshots and real window acceptance
+use matching new hosted/static SDKs; no compiler or public ABI change is needed.
+
+The same O2 whole-host comparison adds Windows 512 file bytes / 640 text bytes;
+Linux file length is unchanged / text adds 960 bytes. BSS adds 32 bytes on each.
+Host builds compile two units and reuse 162; static builds compile two and reuse
+164. There are no new frame/draw operations, but no CPU-equivalence or hardware
+performance claim. Platform-specific and full ecosystem/IDE delivery gaps remain.
+See `dev/release-materials/provenance/xge-gl-library-lifetime-20261114.json` for
+exact reports, frozen sources and candidate SDKs. release/ is not installed.
