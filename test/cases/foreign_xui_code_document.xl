@@ -1,0 +1,173 @@
+import xui
+from xui import CallbackCodeDocument
+extern "fixtureDocumentBudget" @header("test/cases/foreign_xui_code_document.h") @no_raise func budget(c_int allowance)
+extern "fixtureDocumentHeapBegin" @no_raise func beginHeap()
+extern "fixtureDocumentHeapReport" @no_raise func reportHeap(c_int native)
+extern "fixtureDocumentNativeSetup" @no_raise func nativeSetup(xui.CodeDocument document)
+extern "fixtureDocumentNativeHot" @no_raise func nativeHot(xui.CodeDocument document)
+extern "fixtureDocumentNativeClear" @no_raise func nativeClear(xui.CodeDocument document)
+extern "fixtureDocumentUtf8" @no_raise func utf8() as c_int
+func main(...) as int
+    auto document=xui.createCodeDocument()
+    assert document.getText()=="" and document.getLength()==0 and document.getLineCount()==1
+    document.setText("A\0你B")
+    string snapshot=document.getText()
+    assert snapshot=="A\0你B" and document.getLength()==6
+    func() as string read=document.getText
+    assert read()==snapshot
+    bool rejected=false
+    budget(0)
+    try
+        snapshot=document.getText()
+    catch Error failure
+        rejected=true
+    finally
+        budget(-1)
+    end
+    assert rejected and snapshot=="A\0你B"
+    document.setText("one\r\ntwo")
+    assert document.getText()=="one\ntwo" and document.getLength()==7 and document.getLineCount()==2
+    auto start,endOffset=document.getLineRange(1)
+    assert start==4 and endOffset==7
+    auto line,column=document.offsetToLineColumn(5)
+    assert line==1 and column==1 and document.lineColumnToOffset(1,1)==5
+    assert document.getByte(3)==c_char(10)
+    auto output=Buffer()
+    assert output.resize(8)
+    assert document.copyRange(4,7,output)==3
+    assert output.__item__(0)==uint8(116) and output.__item__(1)==uint8(119) and output.__item__(2)==uint8(111) and output.__item__(3)==uint8(0)
+    rejected=false
+    try
+        start,endOffset=document.getLineRange(50)
+    catch Error failure
+        rejected=true
+    end
+    assert rejected and start==4 and endOffset==7
+    document.setText("abc")
+    document.beginEdit()
+    document.insert(3,"!")
+    document.replace(0,1,"A")
+    document.endEdit()
+    assert document.getText()=="Abc!" and document.canUndo()!=0
+    document.undo()
+    assert document.getText()=="abc" and document.canRedo()!=0
+    document.redo()
+    assert document.getText()=="Abc!"
+    document.delete(3,4)
+    assert document.getText()=="Abc" and document.getDirty()!=0
+    document.setDirty(0)
+    assert document.getDirty()==0 and document.getVersion()>0 and document.getChangeVersion()>0
+    auto changed=document.getLastEditRange()
+    assert changed.iStart>=0 and changed.iEnd<=document.getLength()
+    auto version=document.getVersion()
+    rejected=false
+    try
+        document.insert(0,"x\0y")
+    catch Error failure
+        rejected=true
+    end
+    assert rejected and document.getText()=="Abc" and document.getVersion()==version
+    rejected=false
+    budget(0)
+    try
+        document.setText("allocation rollback")
+    catch Error failure
+        rejected=true
+    finally
+        budget(-1)
+    end
+    assert rejected and document.getText()=="Abc"
+    CallbackCodeDocument? saved=null
+    string notified=""
+    int calls=0
+    document.setChangeCallback(func(xui.CallbackCodeDocument current,xui.CodeRange range,c_uint currentVersion)
+        saved=current
+        notified=current.getText()
+        calls+=1
+    end)
+    document.setText("callback\0source")
+    assert calls==1 and notified=="callback\0source"
+    rejected=false
+    try
+        auto expired=saved as CallbackCodeDocument
+        auto invalid=expired.getText()
+    catch StateError
+        rejected=true
+    end
+    assert rejected
+    int secondCalls=0
+    document.setChangeCallback(func(xui.CallbackCodeDocument current,xui.CodeRange range,c_uint currentVersion)
+        calls+=1
+        document.setChangeCallback(func(xui.CallbackCodeDocument next,xui.CodeRange nextRange,c_uint nextVersion)
+            secondCalls+=1
+        end)
+    end)
+    document.setText("replace callback")
+    document.setText("new callback")
+    assert calls==2 and secondCalls==1
+    document.setChangeCallback(func(xui.CallbackCodeDocument current,xui.CodeRange range,c_uint currentVersion)
+        throw "document callback failure"
+    end)
+    rejected=false
+    try
+        document.setText("published before error")
+    catch error
+        rejected=error.message=="document callback failure"
+    end
+    assert rejected
+    document.setChangeCallback(null)
+    assert document.getText()=="published before error"
+    auto worker=thread(func() as int
+        try
+            auto invalid=document.getText()
+        catch StateError
+            return 1
+        end
+        return 0
+    end)
+    assert worker.waitTimeout(30000) and worker.exitCode()==1
+    string filePath=env.get("XUI_CODE_DOCUMENT_PATH") as string
+    document.setChangeCallback(func(xui.CallbackCodeDocument current,xui.CodeRange range,c_uint currentVersion)
+        document.saveTextFile(filePath,utf8())
+    end)
+    document.setText("自动保存\0source")
+    document.setChangeCallback(null)
+    assert document.getDirty()==0
+    auto loaded=xui.createCodeDocument()
+    loaded.loadTextFile(filePath,utf8())
+    assert loaded.getText()=="自动保存\0source" and loaded.getDirty()==0
+    loaded.close()
+    int hotCalls=0
+    auto hotCallback=func(xui.CallbackCodeDocument current,xui.CodeRange range,c_uint currentVersion)
+        hotCalls+=1
+    end
+    document.setChangeCallback(hotCallback)
+    string hotText="hot"
+    document.setText(hotText)
+    hotCalls=0
+    beginHeap()
+    for i in range(1000)
+        document.setText(hotText)
+    end
+    reportHeap(0)
+    assert hotCalls==1000
+    nativeSetup(document)
+    beginHeap()
+    nativeHot(document)
+    reportHeap(1)
+    nativeClear(document)
+    document.setChangeCallback(func(xui.CallbackCodeDocument current,xui.CodeRange range,c_uint currentVersion)
+        document.close()
+    end)
+    rejected=false
+    try
+        document.setText("close during callback")
+    catch Error failure
+        rejected=true
+    end
+    assert rejected
+    document.close()
+    assert snapshot=="A\0你B" and notified=="callback\0source"
+    println("CodeDocument: counted text, history, typed outputs, owned callback reentry/error/expiry, OOM and thread checks passed")
+    return 0
+end

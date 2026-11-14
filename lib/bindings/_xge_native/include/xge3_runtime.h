@@ -80,6 +80,7 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3PathPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeFindScopePolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3TextShapePolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xui3TextLayoutPolicyGet(void);
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeDocumentPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xge3FontPolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xge3TexturePolicyGet(void);
 const XL6_ForeignViewDescriptorV1* xl6Xge3ImagePolicyGet(void);
@@ -130,6 +131,7 @@ const XL6_ForeignViewDescriptorV1* xl6Xge3AudioClipPolicyGet(void);
 #define xl6Xui3PathPolicy (*xl6Xui3PathPolicyGet())
 #define xl6Xui3TextShapePolicy (*xl6Xui3TextShapePolicyGet())
 #define xl6Xui3TextLayoutPolicy (*xl6Xui3TextLayoutPolicyGet())
+#define xl6Xui3CodeDocumentPolicy (*xl6Xui3CodeDocumentPolicyGet())
 #define xl6Xge3FontPolicy (*xl6Xge3FontPolicyGet())
 #define xl6Xge3TexturePolicy (*xl6Xge3TexturePolicyGet())
 #define xl6Xge3ImagePolicy (*xl6Xge3ImagePolicyGet())

@@ -1,0 +1,709 @@
+{
+  "schema": 1,
+  "date": "2026-11-14",
+  "scope": "Direct unique CodeDocument, counted text/history/file I/O and owned callback with expiring argument view.",
+  "shippingDelivery": false,
+  "fullGoalComplete": false,
+  "networkTests": false,
+  "parentCommit": "2a2b833772f94ee1074cf4a15cb96c90d011ff67",
+  "nativeRevision": "c083fa3fc0b2c41d087909cfcea8927377422dc4",
+  "nativeReceipt": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\code-document-owned-20261114.json",
+    "sha256": "0c1546251bdd5aa4a9bcf8a3d77bc9152bd4e644c4415961145e1d64ac7d770d"
+  },
+  "sources": {
+    "docs/xui-code-document.md": "5e963fddc5dd05b58766a197f35fbfc39aa197f3abf4f64ba22b8f2fa3a53af6",
+    "docs/xge3-xui3-full-coverage-plan.md": "3779addc95d30d4696c54dc50e9a6a6659dd81f40b6d69c01a054c94909d6f97",
+    "lib/bindings/_xge_native/include/xge3_runtime.h": "214d7cca38fd56ed9654a47e483d34f7586ddcd820a4c31f0de8aade252b398d",
+    "lib/bindings/_xge_native/src/runtime.c": "b01cc12e288a8c1c84e71c5ccdc669e2992a2966e432ba4e3fc2bd8be7db4fce",
+    "lib/bindings/xui/src/code_document.xl": "5365d65a98a3ad7907fe55dba3046e41552ba1209aad0810a66f65acd67c2c05",
+    "lib/bindings/xui/xlang.package.json": "b5a51268f7cf2ba827184e1222c911a84990b761e66e1fae57c9269867f4338a",
+    "lib/bindings/xui/README.md": "3889a8202d4c32cf0604e00dcc9b83131fc35057e25700a02883dc8e61378040",
+    "lib/bindings/xui/examples/code_document.xl": "9762926b1fc7168e262de6f4fd3b47483c1d7b1243fd1e12974d7d3f203c9dfd",
+    "lib/bindings/xui/examples/gallery.json": "8d28f75ad5b5f67729aeaac4d8760e75a8e5d07c8a4ba4e2313c24da2017bb03",
+    "lib/bindings/xui/examples/README.md": "0500e90c879a4926bf475933e887d590d70bd7a41c026ecf49b40cb1f9e2e80e",
+    "test/cases/foreign_xui_code_document.h": "d22eb72461fd642290b8c338472d40cca12fb8931d9c941ddd3e368902dbe03c",
+    "test/cases/foreign_xui_code_document.c": "542a41f8b26c5893d715ed81a561641fb1c343d93ca57e85737c7573eea6831e",
+    "test/cases/foreign_xui_code_document.xl": "c979803beb7c16fee77d3f8168c34638f1ff9374f56263375bb2169d3e87d045",
+    "tools/check_xui_code_document.py": "6d54181515edab745769b89e960b4075c9535787ac847bc375558ed425a61228",
+    "tools/check_xge3_bindings.py": "9f4397858af55d0415ab38b669f9eab57d07874931d75b33d23bbb158f1d5ab5"
+  },
+  "platforms": {
+    "win": {
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-document-language-win-r1\\results.json",
+        "sha256": "ad62b6848a45b30f2754735750ce2e215df622e8747a6f41e144f68347b23cd9",
+        "commands": 24,
+        "selectedRows": [
+          "foreign_xui_code_document-emit",
+          "provider-O0",
+          "provider-O2",
+          "foreign_xui_code_document-header-c11",
+          "foreign_xui_code_document-header-c++11",
+          "foreign_xui_code_document-header-c++17",
+          "foreign_xui_code_document-jit",
+          "foreign_xui_code_document-dynamic-build",
+          "foreign_xui_code_document-dynamic-execute",
+          "foreign_xui_code_document-dynamic-imports",
+          "foreign_xui_code_document-static-build",
+          "foreign_xui_code_document-static-execute",
+          "foreign_xui_code_document-static-imports",
+          "code_document-emit",
+          "code_document-header-c11",
+          "code_document-header-c++11",
+          "code_document-header-c++17",
+          "code_document-jit",
+          "code_document-dynamic-build",
+          "code_document-dynamic-execute",
+          "code_document-dynamic-imports",
+          "code_document-static-build",
+          "code_document-static-execute",
+          "code_document-static-imports"
+        ]
+      },
+      "hotEdits": [
+        {
+          "mode": "jit",
+          "rounds": 1000,
+          "preparedPayload": true,
+          "counts": {
+            "language": {
+              "alloc": 2000,
+              "free": 2000,
+              "realloc": 1000
+            },
+            "native": {
+              "alloc": 2000,
+              "free": 2000,
+              "realloc": 1000
+            }
+          },
+          "cpuEquivalenceClaim": false
+        },
+        {
+          "mode": "dynamic",
+          "rounds": 1000,
+          "preparedPayload": true,
+          "counts": {
+            "language": {
+              "alloc": 2000,
+              "free": 2000,
+              "realloc": 1000
+            },
+            "native": {
+              "alloc": 2000,
+              "free": 2000,
+              "realloc": 1000
+            }
+          },
+          "cpuEquivalenceClaim": false
+        },
+        {
+          "mode": "static",
+          "rounds": 1000,
+          "preparedPayload": true,
+          "counts": {
+            "language": {
+              "alloc": 2000,
+              "free": 2000,
+              "realloc": 1000
+            },
+            "native": {
+              "alloc": 2000,
+              "free": 2000,
+              "realloc": 1000
+            }
+          },
+          "cpuEquivalenceClaim": false
+        }
+      ],
+      "programs": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-document-language-win-r1\\foreign_xui_code_document-dynamic.exe",
+          "sha256": "59dbdcb84bb4a8abcc8743a15940e44fda502f92f994cb844b76fda6b7ef9ef5",
+          "bytes": 5295616,
+          "imports": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-document-language-win-r1\\foreign_xui_code_document-static.exe",
+          "sha256": "ffee7b235f6b1244b5281a7da4850c337ab7a66cd064e3c75837cb3e6673682d",
+          "bytes": 1747456,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "ole32.dll",
+            "SHELL32.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-document-language-win-r1\\code_document-dynamic.exe",
+          "sha256": "ec28682923ef88f82c1abeae01129d1c9cad8fc432e97ca971800f06113260bf",
+          "bytes": 1607680,
+          "imports": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-document-language-win-r1\\code_document-static.exe",
+          "sha256": "102b8b70c5395a60b8f183d52e7021691341f3abd70d58b568a6b18061b706ce",
+          "bytes": 1049600,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "ole32.dll",
+            "SHELL32.dll"
+          ]
+        }
+      ],
+      "finalPackages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-document-packages-win-r4\\results.json",
+        "sha256": "eaa17e8b7517dec402d8ef1a894587410f268f4f4df709a2840fc551fbabea83",
+        "commands": 2,
+        "selectedRows": [
+          "host",
+          "static"
+        ]
+      },
+      "qualifiedCodeBytesReuse": {
+        "host": {
+          "before": "F:\\xlang-validation\\xge-full-20261110\\code-document-sdk-win-r2\\packages-host",
+          "after": "F:\\xlang-validation\\xge-full-20261110\\code-document-packages-win-r4\\host",
+          "fileCount": 243,
+          "changed": [
+            "xui/README.md",
+            "xui/examples/gallery.json",
+            "xui/examples/README.md"
+          ],
+          "codeAndNativeBytesEqual": true,
+          "qualification": "F:\\xlang-validation\\xge-full-20261110\\code-document-language-win-r1\\results.json",
+          "qualificationSha256": "ad62b6848a45b30f2754735750ce2e215df622e8747a6f41e144f68347b23cd9"
+        },
+        "static": {
+          "before": "F:\\xlang-validation\\xge-full-20261110\\code-document-sdk-win-r2\\packages-static",
+          "after": "F:\\xlang-validation\\xge-full-20261110\\code-document-packages-win-r4\\static",
+          "fileCount": 259,
+          "changed": [
+            "xui/README.md",
+            "xui/examples/gallery.json",
+            "xui/examples/README.md"
+          ],
+          "codeAndNativeBytesEqual": true,
+          "qualification": "F:\\xlang-validation\\xge-full-20261110\\code-document-language-win-r1\\results.json",
+          "qualificationSha256": "ad62b6848a45b30f2754735750ce2e215df622e8747a6f41e144f68347b23cd9"
+        }
+      },
+      "nativeCallbackHost": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-document-native-host-win-r6\\results.json",
+        "sha256": "f83b63990222867e725c9aef516adc328f3d73340a7c499a764eee7f7040bde2",
+        "commands": 4,
+        "selectedRows": [
+          "O0-build",
+          "O0-run",
+          "O2-build",
+          "O2-run"
+        ]
+      },
+      "nativeCallbackStatic": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-document-native-static-win-r6\\results.json",
+        "sha256": "f4c8a442eacddc1c4b2149931e8c1e00c9963a9d3895a9c09c970a5efd86d730",
+        "commands": 4,
+        "selectedRows": [
+          "O0-build",
+          "O0-run",
+          "O2-build",
+          "O2-run"
+        ]
+      },
+      "editorRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-document-editor-regression-win-r1\\results.json",
+        "sha256": "08c2778943526bb6027d5f8adf5982659c3c25eadcf9aa69e1b0407dd5eeca5d",
+        "commands": 16,
+        "selectedRows": [
+          "xui_text_read_view_test-O0-build",
+          "xui_text_read_view_test-O0-run",
+          "xui_text_read_view_test-O2-build",
+          "xui_text_read_view_test-O2-run",
+          "xui_edit_contract_test-O0-build",
+          "xui_edit_contract_test-O0-run",
+          "xui_edit_contract_test-O2-build",
+          "xui_edit_contract_test-O2-run",
+          "xui_code_edit_test-O0-build",
+          "xui_code_edit_test-O0-run",
+          "xui_code_edit_test-O2-build",
+          "xui_code_edit_test-O2-run",
+          "xui_text_edit_test-O0-build",
+          "xui_text_edit_test-O0-run",
+          "xui_text_edit_test-O2-build",
+          "xui_text_edit_test-O2-run"
+        ]
+      },
+      "fullNativeSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-document-sdk-win-r1\\results.json",
+        "sha256": "a2352fbe7b5e1de4d17ce2d188edf1dc5403e3ef2a92d9677a932a9583ceef08",
+        "commands": 4,
+        "selectedRows": [
+          "host",
+          "static",
+          "stage-host",
+          "stage-static"
+        ]
+      },
+      "finalNativeSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-document-sdk-win-r2\\results.json",
+        "sha256": "52eca020a7b9d272308ac05b43438fd95d693001d9851326a481964c4d246145",
+        "commands": 4,
+        "selectedRows": [
+          "host",
+          "static",
+          "stage-host",
+          "stage-static"
+        ]
+      },
+      "unused": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-document-unused-win-r1\\results.json",
+        "sha256": "2aa2f386fcf3fb9c5ac0f32b44b669c7ed8d08ffb28d8443cb3ebf68cf7b8108",
+        "commands": 6,
+        "selectedRows": [
+          "old-build",
+          "old-sections",
+          "old-imports",
+          "new-build",
+          "new-sections",
+          "new-imports"
+        ],
+        "deltaBytes": 0,
+        "deltaCodeBytes": 0,
+        "programs": {
+          "old": {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\code-document-unused-win-r1\\old.exe",
+            "sha256": "c9802461fc377b9518f1ff9dcf25019ad17cca1f172ffd627e1b4e0caf22e722",
+            "bytes": 7767552,
+            "textBytes": 5279782,
+            "sectionCount": 6,
+            "imports": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "USER32.dll",
+              "GDI32.dll",
+              "ole32.dll",
+              "OLEAUT32.dll",
+              "SHELL32.dll",
+              "IMM32.dll",
+              "DWrite.dll"
+            ]
+          },
+          "new": {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\code-document-unused-win-r1\\new.exe",
+            "sha256": "62e957c93766cd3dec7f19a59a6d062679b847346c88ce36ce58d84e86902e24",
+            "bytes": 7767552,
+            "textBytes": 5279782,
+            "sectionCount": 6,
+            "imports": [
+              "msvcrt.dll",
+              "kernel32.dll",
+              "USER32.dll",
+              "GDI32.dll",
+              "ole32.dll",
+              "OLEAUT32.dll",
+              "SHELL32.dll",
+              "IMM32.dll",
+              "DWrite.dll"
+            ]
+          }
+        }
+      }
+    },
+    "linux": {
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-document-language-linux-r1\\results.json",
+        "sha256": "b44ce7dc05d0c539dac54a6fac7af5ec81d67d8b15a15a7329f005784917b788",
+        "commands": 24,
+        "selectedRows": [
+          "foreign_xui_code_document-emit",
+          "provider-O0",
+          "provider-O2",
+          "foreign_xui_code_document-header-c11",
+          "foreign_xui_code_document-header-c++11",
+          "foreign_xui_code_document-header-c++17",
+          "foreign_xui_code_document-jit",
+          "foreign_xui_code_document-dynamic-build",
+          "foreign_xui_code_document-dynamic-execute",
+          "foreign_xui_code_document-dynamic-imports",
+          "foreign_xui_code_document-static-build",
+          "foreign_xui_code_document-static-execute",
+          "foreign_xui_code_document-static-imports",
+          "code_document-emit",
+          "code_document-header-c11",
+          "code_document-header-c++11",
+          "code_document-header-c++17",
+          "code_document-jit",
+          "code_document-dynamic-build",
+          "code_document-dynamic-execute",
+          "code_document-dynamic-imports",
+          "code_document-static-build",
+          "code_document-static-execute",
+          "code_document-static-imports"
+        ]
+      },
+      "hotEdits": [
+        {
+          "mode": "jit",
+          "rounds": 1000,
+          "preparedPayload": true,
+          "counts": {
+            "language": {
+              "alloc": 2000,
+              "free": 2000,
+              "realloc": 1000
+            },
+            "native": {
+              "alloc": 2000,
+              "free": 2000,
+              "realloc": 1000
+            }
+          },
+          "cpuEquivalenceClaim": false
+        },
+        {
+          "mode": "dynamic",
+          "rounds": 1000,
+          "preparedPayload": true,
+          "counts": {
+            "language": {
+              "alloc": 2000,
+              "free": 2000,
+              "realloc": 1000
+            },
+            "native": {
+              "alloc": 2000,
+              "free": 2000,
+              "realloc": 1000
+            }
+          },
+          "cpuEquivalenceClaim": false
+        },
+        {
+          "mode": "static",
+          "rounds": 1000,
+          "preparedPayload": true,
+          "counts": {
+            "language": {
+              "alloc": 2000,
+              "free": 2000,
+              "realloc": 1000
+            },
+            "native": {
+              "alloc": 2000,
+              "free": 2000,
+              "realloc": 1000
+            }
+          },
+          "cpuEquivalenceClaim": false
+        }
+      ],
+      "programs": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/code-document-language-linux-r1/foreign_xui_code_document-dynamic",
+          "sha256": "70442d584e5e918b788f925ef490e67a6bba13570a0281873649d5e593d63f42",
+          "bytes": 5485583,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/code-document-language-linux-r1/foreign_xui_code_document-static",
+          "sha256": "c2de66df3a804448d0f0d8ccf08892bde077a850149df6f4ea1346c3003b5e5c",
+          "bytes": 2097778,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/code-document-language-linux-r1/code_document-dynamic",
+          "sha256": "909c0f1b6e1b06a422faa577d5635fe276fb99ef0397b7e7b907784c2738f8e1",
+          "bytes": 1681065,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/code-document-language-linux-r1/code_document-static",
+          "sha256": "aaff933bece0e0cee5f0c8c9723b91348c7e49292ece6c366865c606d1be6694",
+          "bytes": 1334089,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ],
+      "finalPackages": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-document-packages-linux-r4\\results.json",
+        "sha256": "c1e01c56a8f804fbbe88bf4d6431f6e3e88d43ed1409b5c0aaa156fa5598dd04",
+        "commands": 2,
+        "selectedRows": [
+          "host",
+          "static"
+        ]
+      },
+      "qualifiedCodeBytesReuse": {
+        "host": {
+          "before": "/mnt/f/xlang-validation/xge-full-20261110/code-document-sdk-linux-r2/packages-host",
+          "after": "/mnt/f/xlang-validation/xge-full-20261110/code-document-packages-linux-r4/host",
+          "fileCount": 243,
+          "changed": [
+            "xui/README.md",
+            "xui/examples/gallery.json",
+            "xui/examples/README.md"
+          ],
+          "codeAndNativeBytesEqual": true,
+          "qualification": "/mnt/f/xlang-validation/xge-full-20261110/code-document-language-linux-r1/results.json",
+          "qualificationSha256": "b44ce7dc05d0c539dac54a6fac7af5ec81d67d8b15a15a7329f005784917b788"
+        },
+        "static": {
+          "before": "/mnt/f/xlang-validation/xge-full-20261110/code-document-sdk-linux-r2/packages-static",
+          "after": "/mnt/f/xlang-validation/xge-full-20261110/code-document-packages-linux-r4/static",
+          "fileCount": 242,
+          "changed": [
+            "xui/README.md",
+            "xui/examples/gallery.json",
+            "xui/examples/README.md"
+          ],
+          "codeAndNativeBytesEqual": true,
+          "qualification": "/mnt/f/xlang-validation/xge-full-20261110/code-document-language-linux-r1/results.json",
+          "qualificationSha256": "b44ce7dc05d0c539dac54a6fac7af5ec81d67d8b15a15a7329f005784917b788"
+        }
+      },
+      "nativeCallbackHost": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-document-native-host-linux-r6\\results.json",
+        "sha256": "4f48af4c51ee1e886fbfa140cfe7af2fe18eea0d90eadffe5777fbf3e1e4de7e",
+        "commands": 4,
+        "selectedRows": [
+          "O0-build",
+          "O0-run",
+          "O2-build",
+          "O2-run"
+        ]
+      },
+      "nativeCallbackStatic": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-document-native-static-linux-r6\\results.json",
+        "sha256": "ca910eaa266bc2a4c11c08cb15f6df10843458c62b786be2c2b0370ed70b8b87",
+        "commands": 4,
+        "selectedRows": [
+          "O0-build",
+          "O0-run",
+          "O2-build",
+          "O2-run"
+        ]
+      },
+      "editorRegression": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-document-editor-regression-linux-r1\\results.json",
+        "sha256": "452bc529e2d23e5558a02f9233752a4342fcb5e6c5c4683e8c03706c461a6255",
+        "commands": 16,
+        "selectedRows": [
+          "xui_text_read_view_test-O0-build",
+          "xui_text_read_view_test-O0-run",
+          "xui_text_read_view_test-O2-build",
+          "xui_text_read_view_test-O2-run",
+          "xui_edit_contract_test-O0-build",
+          "xui_edit_contract_test-O0-run",
+          "xui_edit_contract_test-O2-build",
+          "xui_edit_contract_test-O2-run",
+          "xui_code_edit_test-O0-build",
+          "xui_code_edit_test-O0-run",
+          "xui_code_edit_test-O2-build",
+          "xui_code_edit_test-O2-run",
+          "xui_text_edit_test-O0-build",
+          "xui_text_edit_test-O0-run",
+          "xui_text_edit_test-O2-build",
+          "xui_text_edit_test-O2-run"
+        ]
+      },
+      "fullNativeSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-document-sdk-linux-r1\\results.json",
+        "sha256": "3e5b24792178491d00fb71dc38f119381d3bc9e4a57fcc4d6cb1a65b07c42f6e",
+        "commands": 4,
+        "selectedRows": [
+          "host",
+          "static",
+          "stage-host",
+          "stage-static"
+        ]
+      },
+      "finalNativeSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-document-sdk-linux-r2\\results.json",
+        "sha256": "60b6108d11d04666bd33e4ca545a50de4b2da99f3b652933ce7a72ad922f23f8",
+        "commands": 4,
+        "selectedRows": [
+          "host",
+          "static",
+          "stage-host",
+          "stage-static"
+        ]
+      },
+      "unused": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-document-unused-linux-r1\\results.json",
+        "sha256": "4338184da72e3695b8ec47a1dd334b3490b207469189e79d227196fe6b836dd0",
+        "commands": 6,
+        "selectedRows": [
+          "old-build",
+          "old-sections",
+          "old-imports",
+          "new-build",
+          "new-sections",
+          "new-imports"
+        ],
+        "deltaBytes": 32,
+        "deltaCodeBytes": 0,
+        "programs": {
+          "old": {
+            "path": "/mnt/f/xlang-validation/xge-full-20261110/code-document-unused-linux-r1/old",
+            "sha256": "32ff9b349ec2aa10fa59180a35bbf48886e00606d727c327890adb264041742d",
+            "bytes": 8861231,
+            "textBytes": 4765954,
+            "sectionCount": 13187,
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libX11.so.6",
+              "libXi.so.6",
+              "libXcursor.so.1",
+              "libGL.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "new": {
+            "path": "/mnt/f/xlang-validation/xge-full-20261110/code-document-unused-linux-r1/new",
+            "sha256": "eb7664b07dc895f7c004546101ce62fa5403bea5ed9f02bf77d04faccf99967b",
+            "bytes": 8861263,
+            "textBytes": 4765954,
+            "sectionCount": 13187,
+            "imports": [
+              "libm.so.6",
+              "libmvec.so.1",
+              "libX11.so.6",
+              "libXi.so.6",
+              "libXcursor.so.1",
+              "libGL.so.1",
+              "libc.so.6",
+              "ld-linux-x86-64.so.2"
+            ]
+          }
+        },
+        "layoutAttribution": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-document-unused-linux-r1\\layout-attribution.json",
+          "sha256": "d6fd233b3da38c4670f6c64b1b49a340eb3f018e8c57b5939d0e2552b0bbabd4"
+        }
+      }
+    }
+  },
+  "inventory": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-code-document-r2\\surface.json",
+    "sha256": "ee693c42a757db3240ffe13c9e409e3420394eb4bdaa0e34d3912534f3fd14d2",
+    "population": {
+      "functions": 5177,
+      "types": 981,
+      "constants": 1838,
+      "functionMacros": 7,
+      "callableFields": 184,
+      "enums": 40,
+      "enumConstants": 316
+    },
+    "declarationPresent": {
+      "functions": 3714,
+      "types": 371,
+      "constants": 1820,
+      "callableFields": 66,
+      "enumConstants": 316
+    },
+    "notCompletionRate": true,
+    "nativeTrackedTreeDirty": true,
+    "note": "Unrelated native geometry/input/text work retained; qualification uses frozen canonical source."
+  },
+  "staticChecks": [
+    {
+      "name": "lesson-organization",
+      "command": [
+        "python",
+        "-B",
+        "tools/check_xui_lessons.py"
+      ],
+      "exitCode": 0,
+      "log": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-document-lesson-organization-r1.log",
+        "sha256": "a80a3cb0bfcc74db6a412569a8779e3b32877206ea78ecd6be672fe00c85c961"
+      }
+    },
+    {
+      "name": "inventory-tests",
+      "command": [
+        "python",
+        "-B",
+        "tools/test_xge3_inventory.py"
+      ],
+      "exitCode": 0,
+      "log": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-document-inventory-tests-r1.log",
+        "sha256": "3759cee2e417c50fca65da9d571a97787f0a6a330557a226d9780e64bfa4d80d"
+      }
+    }
+  ],
+  "examples": {
+    "programs": 83,
+    "independentWithoutGallery": 82,
+    "galleryScenes": 57
+  },
+  "repositoryBudget": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\code-document-repository-budget-r1.json",
+    "sha256": "4175659aca53fca8308a5f840aef93b530c84131fc685e9eb9de9c9ffe45b41d",
+    "packMiB": 167.55
+  },
+  "costs": {
+    "nativeRecord": "One callback-owner record per document (32 bytes on tested x64).",
+    "text": "One counted copy/allocation for an independent nonempty snapshot; no NUL scan.",
+    "hotPrepared1000": "Both C and language: 2000 alloc, 2000 free, 1000 realloc, each execution mode/platform.",
+    "guards": "Real native read/context pins, thread checks, ownership mutation gates, language scope/code leases, epoch validation and selected-owner Hold/Drop.",
+    "unused": "Same static library/compiler/Slider: zero code-size delta; file Windows +0/Linux +32 bytes (section reordering/padding); selected build-only comparison.",
+    "zeroCpuOrColdPathClaim": false
+  },
+  "remaining": [
+    "CodeEdit internal document safe view",
+    "Transferable worker batch payload lifecycle",
+    "Partial-commit/error result carrier pending user decision",
+    "Other full-goal capabilities and pending contracts",
+    "Final matched compiler/SDK/runtime/IDE/help delivery"
+  ]
+}

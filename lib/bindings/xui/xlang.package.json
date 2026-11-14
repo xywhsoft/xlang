@@ -21,6 +21,7 @@
       "src/painter.xl",
       "src/text_shape.xl",
       "src/text_layout.xl",
+      "src/code_document.xl",
       "src/managers.xl",
       "src/document_records.xl",
       "src/document.xl",

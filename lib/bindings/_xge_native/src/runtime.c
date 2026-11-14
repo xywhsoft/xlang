@@ -537,6 +537,30 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3TextLayoutPolicyGet(void)
         0,1,NULL,NULL,trace_text_layout,busy_text_layout,
         XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE|XL6_FOREIGN_VIEW_CONTINUABLE_FINALIZE,NULL,request_text_layout};return &value;
 }
+#if XUI_ENABLE_CODE_EDIT
+static bool watch_code_document(void* raw,void* storage,void(*invalidate)(void*),void* user)
+{int status=xuiCodeDocumentLifetimeWatch(raw,storage,invalidate,user);if(status!=XUI_OK)report_resource_failure(status,"xuiCodeDocumentLifetimeWatch");return status==XUI_OK;}
+static bool begin_code_document(void* raw,void* storage)
+{int status=xuiCodeDocumentCallBegin(raw,storage);if(status!=XUI_OK)report_resource_failure(status,"xuiCodeDocumentCallBegin");return status==XUI_OK;}
+static bool end_code_document(void* storage)
+{int status=xuiCodeDocumentCallEnd(storage);if(status!=XUI_OK)report_resource_failure(status,"xuiCodeDocumentCallEnd");return status==XUI_OK;}
+static bool destroy_code_document(void* raw)
+{bool consumed=false;int status=xuiCodeDocumentDestroyOwnerChecked(raw,&consumed);report_resource_failure(status,"xuiCodeDocumentDestroyOwnerChecked");return consumed;}
+static bool trace_code_document(const void* raw,XL6_ModuleOwnershipVisit visit,void* user)
+{return xuiCodeDocumentTraceOwnership((xui_code_document)raw,visit,user);}
+static bool busy_code_document(const void* raw)
+{return xuiCodeDocumentOwnershipBusy((xui_code_document)raw);}
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeDocumentPolicyGet(void)
+{
+    static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui.codeDocument",
+        sizeof(xui_lifetime_link_t),_Alignof(xui_lifetime_link_t),watch_code_document,unwatch,destroy_code_document,
+        sizeof(xui_code_document_scope_t),_Alignof(xui_code_document_scope_t),begin_code_document,end_code_document,
+        trace_code_document,busy_code_document,XL6_FOREIGN_VIEW_RELIABLE_OWNED_WATCH|
+        XL6_FOREIGN_VIEW_DESTROY_OWNS_NATIVE_SCOPE|XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE,NULL,NULL};return &value;
+}
+#else
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeDocumentPolicyGet(void){return NULL;}
+#endif
 /* Scope members are native borrowed editors. XGE removes destroyed editors
  * and detaches all remaining members when the scope closes. No language
  * callback is installed here, so this independent root has no owning edges. */

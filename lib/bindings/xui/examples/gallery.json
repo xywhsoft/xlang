@@ -524,6 +524,13 @@
       "kind": "gui",
       "gallery": false,
       "expected": "Measure, inspect lines and draw one owned text layout to an Image surface."
+    },
+    {
+      "name": "code_document",
+      "title": "Code document",
+      "kind": "cpu",
+      "gallery": false,
+      "expected": "Group edits in a uniquely owned text model, observe changes, undo and redo without a window."
     }
   ],
   "helper": "_window.xl",

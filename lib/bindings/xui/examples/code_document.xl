@@ -1,0 +1,24 @@
+// CodeDocument 是不依赖窗口的文本模型；编辑组把两次修改合为一步撤销。
+import xui
+
+func main(...) as int
+ auto document=xui.createCodeDocument()
+ try
+  document.setText("Hello, xlang!")
+  document.setChangeCallback(func(xui.CallbackCodeDocument current,xui.CodeRange range,c_uint version)
+   println("版本 "+string(int(version))+"："+current.getText())
+  end)
+  document.beginEdit()
+  document.replace(0,5,"你好")
+  document.insert(document.getLength()," 欢迎！")
+  document.endEdit()
+  println("合并编辑："+document.getText())
+  document.undo()
+  println("撤销一步："+document.getText())
+  document.redo()
+  println("重新应用："+document.getText())
+ finally
+  document.close()
+ end
+ return 0
+end

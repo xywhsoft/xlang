@@ -8,6 +8,13 @@ Start learning with [the examples guide](examples/README.md) and
 [button.xl](examples/button.xl). Lessons use top-level initialization callbacks;
 the shared window loop is ordinary source in `examples/_window.xl`.
 
+`createCodeDocument()` creates an independent text model without a window.
+Its counted `getText()` preserves NUL, history methods use native byte offsets,
+and `setChangeCallback()` owns the selected closure through callback reentry.
+The callback document view expires on return; copy its text for later use.
+See [CodeDocument contracts](../../../docs/xui-code-document.md) and
+[the console lesson](examples/code_document.xl).
+
 `Context.createLanguage()` creates a Context-owned `Language`; `languagePack()`
 returns a watched child or null. Own-slot `Language.text()` preserves unset vs
 empty text; `Context.translate()` applies native fallback. `setLanguageText()`
