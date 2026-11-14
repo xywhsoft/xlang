@@ -1,0 +1,366 @@
+{
+  "schema": 1,
+  "date": "2026-11-15",
+  "status": "qualified-native-constructor-and-menu-correction-integration",
+  "shippingDelivery": false,
+  "scope": "Native partial-initialization retirement and borrowed menu-string copy rollback; existing direct language factories, owned CPU resource and six bounded-window lessons. No public ABI, declarations or compiler rule change.",
+  "sourceSha256": {
+    "lib/bindings/xui/README.md": "9452a02f2d3a40079ba1d5ed174c380dd5fdc14ca62d9f701d192d8b8bff12e3",
+    "docs/xui-constructor-retirement.md": "2d4b339b47c4a5ca5fa60c621a77e882c4984a1fc55bc96170c075a999189f8d",
+    "docs/xge3-xui3-full-coverage-plan.md": "7ae5a8a777e6b6dd6d95504fd94488b2084b7bbf4bbd80d863248f9e210fc189",
+    "tools/check_xui_constructor_retirement.py": "9fb671bf855547f0b96c72eb8ab528ff66f125fa45219e4837272512e17977a3",
+    "test/cases/foreign_xui_constructor_retirement.h": "3082512c44fe01214dbc02669c5419c95e66195c1b4b2c1a3e48d0a327c0e8ca",
+    "test/cases/foreign_xui_constructor_retirement.c": "0930ce6908ef0b5f98c7a0d36b7533a44f8fc79f533cf89f4279474a5d1e2d4f",
+    "test/cases/foreign_xui_constructor_retirement.xl": "04db12b5182baa21c8cd0b0e046e16801ce99097aa03230f0a96829402ab566a"
+  },
+  "native": {
+    "codeRevision": "fee86e5df73d414e49286c1b54cd0c0d7f4885be",
+    "receipt": {
+      "path": "D:\\GIT\\xge\\docs\\validation\\constructor-retirement-20261115.json",
+      "sha256": "de3f2a02c59d810888b3a8b0f769c33cb0ab42627b82b6c15a527b8d45cb42db"
+    },
+    "sourceIsolation": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\constructor-retirement-isolation-r1.json",
+      "sha256": "10e3654e58a7ac01c1a313f465bec3ab0765feac89e4d87d55dc9d956be2beb0"
+    }
+  },
+  "qualification": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\constructor-retirement-evidence-win-r1.json",
+      "sha256": "3cc7e8c7687457847db13e808c7db2407ddef943535bb9f93e2c689c695d4ad5",
+      "complete": true,
+      "passed": true,
+      "shippingDelivery": false,
+      "scope": "Live exact input/output/log rehash plus already-executed native proof; not another execution.",
+      "acceptance": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\constructor-retirement-language-win-r1\\results.json",
+        "sha256": "1a3c7f11da22479b24f1403a00d9e0a8050039cd5f30378808b26d89845288ce",
+        "commands": 77,
+        "verifiedInputs": 2148
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\constructor-retirement-native-evidence-win-r1.json",
+        "sha256": "ba409de140a6cd7796a5dacb95ef87b9b5c49971289b21b642b4147e362ab164",
+        "passed": true,
+        "commands": 276,
+        "acceptance": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\constructor-retirement-native-win-r1\\results.json",
+          "sha256": "571c691130d936cd3db0f5772bf97431a2d2ace3e932a89cb2b32f307a773e8e",
+          "verifiedInputs": 27,
+          "calibratedPrefixes": 8388
+        },
+        "sdk": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\partial-init-sdk-win-r2\\results.json",
+          "sha256": "a2c327f7a96c4ea4d44cb16fb24f4bcad87c5d33ec6727907a96046577dd6fe3",
+          "counts": {
+            "host": {
+              "compiled": 11,
+              "reused": 153
+            },
+            "static": {
+              "compiled": 12,
+              "reused": 154
+            }
+          }
+        },
+        "freeze": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\native-partial-init-win-freeze-r2.json",
+          "sha256": "9717d1e98618354aa3db745251009e78f010faddc134e0a38d516bb978bf6668"
+        }
+      },
+      "totalCommands": 353,
+      "packages": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\constructor-retirement-packages-win-r1-host.json",
+          "sha256": "6a69b48046ce452575a00f4b8388254182748916d29508494aeb121656dd3e70"
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\constructor-retirement-packages-win-r1-static.json",
+          "sha256": "3923e147b7aa8b8e4ce87853e11461306250fde161d2ecc0187f8abab2200bbd"
+        }
+      },
+      "faultInjection": [
+        {
+          "mode": "jit",
+          "calibratedPrefixes": {
+            "0": 15,
+            "1": 47,
+            "2": 51,
+            "3": 49,
+            "4": 53,
+            "5": 79,
+            "6": 48,
+            "7": 267,
+            "8": 271,
+            "9": 70,
+            "10": 135,
+            "11": 10
+          },
+          "totalPrefixes": 1095,
+          "cpuEquivalenceClaim": false
+        },
+        {
+          "mode": "dynamic",
+          "calibratedPrefixes": {
+            "0": 15,
+            "1": 47,
+            "2": 51,
+            "3": 49,
+            "4": 53,
+            "5": 79,
+            "6": 48,
+            "7": 267,
+            "8": 271,
+            "9": 70,
+            "10": 135,
+            "11": 10
+          },
+          "totalPrefixes": 1095,
+          "cpuEquivalenceClaim": false
+        },
+        {
+          "mode": "static",
+          "calibratedPrefixes": {
+            "0": 15,
+            "1": 47,
+            "2": 51,
+            "3": 49,
+            "4": 53,
+            "5": 79,
+            "6": 48,
+            "7": 267,
+            "8": 271,
+            "9": 70,
+            "10": 135,
+            "11": 10
+          },
+          "totalPrefixes": 1095,
+          "cpuEquivalenceClaim": false
+        }
+      ],
+      "visual": [
+        {
+          "lesson": "hyperlink",
+          "path": "F:\\xlang-validation\\xge-full-20261110\\constructor-retirement-language-win-r1\\hyperlink-jit.png",
+          "sha256": "2aa665bd2f580f50f0c996a262e1d4de56dd89398a652afd88ca7121eaf10848",
+          "review": "Inspected text/link, editable fields/tags, multiline UTF-8, ANSI terminal and CodeEdit with minimap; installed CJK font, no font redistribution."
+        },
+        {
+          "lesson": "input",
+          "path": "F:\\xlang-validation\\xge-full-20261110\\constructor-retirement-language-win-r1\\input-jit.png",
+          "sha256": "3a66771baeec9a09999276c3364ae7e2e06e37d86c63c6d93611d283adcfafa7",
+          "review": "Inspected text/link, editable fields/tags, multiline UTF-8, ANSI terminal and CodeEdit with minimap; installed CJK font, no font redistribution."
+        },
+        {
+          "lesson": "taginput",
+          "path": "F:\\xlang-validation\\xge-full-20261110\\constructor-retirement-language-win-r1\\taginput-jit.png",
+          "sha256": "e46be65e9eb8c91a132c694fec178043ff315a99d9b1f0d660ff5266b3215ff2",
+          "review": "Inspected text/link, editable fields/tags, multiline UTF-8, ANSI terminal and CodeEdit with minimap; installed CJK font, no font redistribution."
+        },
+        {
+          "lesson": "textedit",
+          "path": "F:\\xlang-validation\\xge-full-20261110\\constructor-retirement-language-win-r1\\textedit-jit.png",
+          "sha256": "6aa0736932206df2212e5712f0cb8699ad325f3c1ffeda81af82628ab41e64f5",
+          "review": "Inspected text/link, editable fields/tags, multiline UTF-8, ANSI terminal and CodeEdit with minimap; installed CJK font, no font redistribution."
+        },
+        {
+          "lesson": "terminal",
+          "path": "F:\\xlang-validation\\xge-full-20261110\\constructor-retirement-language-win-r1\\terminal-jit.png",
+          "sha256": "b6cac2a07b5ec94eb16891e8533402dfc8a14126c5071e00811456cd4bd6a3db",
+          "review": "Inspected text/link, editable fields/tags, multiline UTF-8, ANSI terminal and CodeEdit with minimap; installed CJK font, no font redistribution."
+        },
+        {
+          "lesson": "codeedit",
+          "path": "F:\\xlang-validation\\xge-full-20261110\\constructor-retirement-language-win-r1\\codeedit-jit.png",
+          "sha256": "925398be6418e8110f52749ea33f626abb457979203c5bf83a048e31d7349271",
+          "review": "Inspected text/link, editable fields/tags, multiline UTF-8, ANSI terminal and CodeEdit with minimap; installed CJK font, no font redistribution."
+        }
+      ]
+    },
+    "linux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\constructor-retirement-evidence-linux-r1.json",
+      "sha256": "cf418d4ce9b3e963633ab429fc24618882bac5d1db370f0267d8a57f878ab32f",
+      "complete": true,
+      "passed": true,
+      "shippingDelivery": false,
+      "scope": "Live exact input/output/log rehash plus already-executed native proof; not another execution.",
+      "acceptance": {
+        "path": "/mnt/f/xlang-validation/xge-full-20261110/constructor-retirement-language-linux-r1/results.json",
+        "sha256": "17ad21bf877a0d65f905f5cae913eed2d20bcc34f8ebcd670d7c3aa8eb5f060e",
+        "commands": 77,
+        "verifiedInputs": 2130
+      },
+      "native": {
+        "path": "/mnt/f/xlang-validation/xge-full-20261110/constructor-retirement-native-evidence-linux-r1.json",
+        "sha256": "5a9f0be4286133b5e1c790cd3d887161e346d8a10367f610f1aeec6741ee77ac",
+        "passed": true,
+        "commands": 276,
+        "acceptance": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/constructor-retirement-native-linux-r1/results.json",
+          "sha256": "3aa696207714af74d236377167110ff896bc7ba15062f9f1dc2cf685e82902b1",
+          "verifiedInputs": 26,
+          "calibratedPrefixes": 8388
+        },
+        "sdk": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/partial-init-sdk-linux-r2/results.json",
+          "sha256": "56de62a0290a74b7790c1055cc51dc22242b80e60bf4a8fe30a9dc542282ef31",
+          "counts": {
+            "host": {
+              "compiled": 11,
+              "reused": 153
+            },
+            "static": {
+              "compiled": 12,
+              "reused": 154
+            }
+          }
+        },
+        "freeze": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/native-partial-init-linux-freeze-r2.json",
+          "sha256": "30f727ecdd177514fb14e784bd8db2076ed895af3df280844b0c53864731cccf"
+        }
+      },
+      "totalCommands": 353,
+      "packages": {
+        "host": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/constructor-retirement-packages-linux-r1-host.json",
+          "sha256": "e873517012f2250081b7c1712f180561160eb3d21f457d5483522ee3ac7fb1cc"
+        },
+        "static": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/constructor-retirement-packages-linux-r1-static.json",
+          "sha256": "6eefa824f971073163a6af323d3f9955ea04207f363369014de85c0630db12ff"
+        }
+      },
+      "faultInjection": [
+        {
+          "mode": "jit",
+          "calibratedPrefixes": {
+            "0": 15,
+            "1": 47,
+            "2": 51,
+            "3": 49,
+            "4": 53,
+            "5": 79,
+            "6": 48,
+            "7": 267,
+            "8": 271,
+            "9": 70,
+            "10": 135,
+            "11": 10
+          },
+          "totalPrefixes": 1095,
+          "cpuEquivalenceClaim": false
+        },
+        {
+          "mode": "dynamic",
+          "calibratedPrefixes": {
+            "0": 15,
+            "1": 47,
+            "2": 51,
+            "3": 49,
+            "4": 53,
+            "5": 79,
+            "6": 48,
+            "7": 267,
+            "8": 271,
+            "9": 70,
+            "10": 135,
+            "11": 10
+          },
+          "totalPrefixes": 1095,
+          "cpuEquivalenceClaim": false
+        },
+        {
+          "mode": "static",
+          "calibratedPrefixes": {
+            "0": 15,
+            "1": 47,
+            "2": 51,
+            "3": 49,
+            "4": 53,
+            "5": 79,
+            "6": 48,
+            "7": 267,
+            "8": 271,
+            "9": 70,
+            "10": 135,
+            "11": 10
+          },
+          "totalPrefixes": 1095,
+          "cpuEquivalenceClaim": false
+        }
+      ],
+      "visual": [
+        {
+          "lesson": "hyperlink",
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/constructor-retirement-language-linux-r1/hyperlink-jit.png",
+          "sha256": "0f449cfe6061a6ededb2e732fd269e8c3ffaef31e27d88e8c931f8206b016c75",
+          "review": "Inspected text/link, editable fields/tags, multiline UTF-8, ANSI terminal and CodeEdit with minimap; installed CJK font, no font redistribution."
+        },
+        {
+          "lesson": "input",
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/constructor-retirement-language-linux-r1/input-jit.png",
+          "sha256": "4c567f352e1dabdded4a905372cb4be59d3d38028faf98705ac081149083099b",
+          "review": "Inspected text/link, editable fields/tags, multiline UTF-8, ANSI terminal and CodeEdit with minimap; installed CJK font, no font redistribution."
+        },
+        {
+          "lesson": "taginput",
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/constructor-retirement-language-linux-r1/taginput-jit.png",
+          "sha256": "d4475aba0225a45211af30c19861d761c984e40b38d2e2f17351c196fb2b83c2",
+          "review": "Inspected text/link, editable fields/tags, multiline UTF-8, ANSI terminal and CodeEdit with minimap; installed CJK font, no font redistribution."
+        },
+        {
+          "lesson": "textedit",
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/constructor-retirement-language-linux-r1/textedit-jit.png",
+          "sha256": "ba6559dc3668129576a022110c025a959557f96cf4db2dd5979b2a7ca467cd57",
+          "review": "Inspected text/link, editable fields/tags, multiline UTF-8, ANSI terminal and CodeEdit with minimap; installed CJK font, no font redistribution."
+        },
+        {
+          "lesson": "terminal",
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/constructor-retirement-language-linux-r1/terminal-jit.png",
+          "sha256": "0c23de72b6414ee363b476771d1a74ccc11f04f205f8b18c2e10724db7193509",
+          "review": "Inspected text/link, editable fields/tags, multiline UTF-8, ANSI terminal and CodeEdit with minimap; installed CJK font, no font redistribution."
+        },
+        {
+          "lesson": "codeedit",
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/constructor-retirement-language-linux-r1/codeedit-jit.png",
+          "sha256": "f30fb947aefe3e47a70f241f3d964f33f276d08963994165113f25fad2da3d99",
+          "review": "Inspected text/link, editable fields/tags, multiline UTF-8, ANSI terminal and CodeEdit with minimap; installed CJK font, no font redistribution."
+        }
+      ]
+    }
+  },
+  "contracts": {
+    "initialization": "Each failed stage releases only its partial owned resources; generic successful-stage-only destructor contract unchanged.",
+    "menuCopies": "Temporary fields start NULL; label and shortcut become owned separately. Preparation failure preserves caller storage and previous menu. No change to native submenu/user-pointer borrowing.",
+    "calibration": "56 default exported Widget triads, five nonempty descriptors and six menu mutations. 8388 prefixes/platform across independent O0/O2 host/static clients. Language eleven factories and Menu.addItem:1095 prefixes/mode. Every measured budget plus margin runs; complete Context retirement distinguishes retained event capacity from leaks.",
+    "cost": "Native allocations/copies and checked owning-view operations remain. Failure cleanup and temporary pointer ownership corrected; no zero-allocation or CPU-equivalence claim."
+  },
+  "inventory": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\constructor-retirement-inventory-equivalence-r1.json",
+    "sha256": "fa9ef77edcf79c1938ec910e1b2bdf6bb29371c7840197a802aecd9a5aa661aa",
+    "declarationsPresent": 3829,
+    "notCompletionRate": true,
+    "lessonPrograms": 95,
+    "independentLessons": 94,
+    "galleryScenes": 57
+  },
+  "diagnostics": {
+    "oldMenu": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\menu-copy-oom-old-win-r1\\results.json",
+      "sha256": "df9d4684cea9745e909fb9b1500f2210d2f0dbcd45a05916679cdf40e54fb332"
+    },
+    "partialInitializerOnly": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\widget-retirement-partial-win-r1\\results.json",
+      "sha256": "bab7b358accfc343ad25309852c9a136520c5fbc829b4a4472585a920331b5cb"
+    }
+  },
+  "totalExecutedCommands": 706,
+  "limits": [
+    "Hosted O2 compiled11/reused153; static12/reused154, from original full164/0 native cohort; qualified complete O2 compilers reused. Not another fresh full build.",
+    "Input/TextEdit unrelated geometry dirt preserved; canonical candidates exclude it. All six staged native source blobs matched tested candidates.",
+    "Same-platform three-mode RGBA equality and visual review; Linux Xvfb/Mesa, no physical GPU/driver certification. Installed CJK font not redistributed.",
+    "Declaration/header inventory reused only after live hash equality, not another full surface scan. Existing failed reports preserved.",
+    "No release/current-delivery installation, push or version update. Prior15+16 contracts, remaining integration and matched delivery still open."
+  ]
+}

@@ -507,3 +507,8 @@ The matched choice-cache SDK also fixes CheckBox/Toggle partial initialization
 cleanup and clean-frame external image refresh for Button/CheckBox/Toggle.
 Unchanged image generations reuse caches; clean-frame dependency probes remain
 real native work. See [cache and failure evidence](../../../docs/xui-choice-cache.md).
+
+The constructor-retirement SDK fixes partial initialization cleanup in
+Hyperlink/Input/TagInput/TextEdit/Terminal and borrowed-string rollback in Menu.
+The latter also corrects CodeEdit and composite input-constructor failures.
+See [allocation-failure contracts](../../../docs/xui-constructor-retirement.md).

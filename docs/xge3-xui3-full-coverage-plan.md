@@ -1354,3 +1354,28 @@ invalid-free，继续处理，不由当前四控件验收代替。原始报告�
 XGE 的 widget-constructor-audit-review-20261115.json 更正早期分类。
 原十五项及第十六项待决合同、完整能力接入和最终匹配交付仍未完成；本批
 没有安装 release、更新当前交付索引、改版本或推送线上。
+
+2026-11-15 在 XGE 提交 fee86e5d 修复 Hyperlink／Input／TagInput／TextEdit／
+Terminal 失败初始化的局部资源清理，连带修复创建 Input 子控件的 NumericInput、
+InventoryGrid、TableGrid、PropertyGrid、ComboBox。Menu 复制项目时先清空临时
+字符串拥有字段，逐个复制成功后才接管，避免标签复制失败时误释放调用者的
+借用快捷键；这也修复 CodeEdit 第 99 档和内置编辑菜单的 invalid-free。
+
+两平台各 276 个原生命令通过：O0/O2 host/static 调用方，56 个默认构造器、
+5 个非空描述和 6 类菜单变更，共 8388 档预算。校准完整操作分配数量并加余量，
+不在出现早期成功时停止；每档完整退役 Context 后比较 live count/bytes、
+invalid-free 和 double-free，避免误判活事件队列保留容量。原始失败报告保留。
+
+两端各 77 个语言／C/C++ 头／JIT／动态／静态与六个中文真实窗口范例步骤通过，
+每模式 1095 档语言预算，验证十一类工厂、Menu.addItem、旧值和原生资源精确清理。
+六个范例同平台三模式像素分别一致并已检查；Linux 为 Xvfb/Mesa，已安装中文
+字体不分发。合计 706 个验收命令，未将测试步数或声明数量等同完整接入率。
+
+本批没有公开声明或编译器规则变化。O2 hosted 从原始完整构建编译 11、复用
+153 个单元；static 编译 12（含生成合同）、复用 154 个；完整 O2 编译器复用。
+Input/TextEdit 未提交的几何修改独立保留；测试与提交使用仅含本批修复的快照，
+分阶段失败清理不改变通用构造链仅析构成功阶段的规则，不声称 CPU 零开销。
+见 xui-constructor-retirement.md 和 xui-constructor-retirement-20261115.json。
+清单保持 3829 函数声明、95 个教学程序、94 个独立入口、57 个画廊场景。
+原十五项及第十六项合同、剩余接入和最终配套交付仍开放；release／交付索引／
+版本／线上未改动。
