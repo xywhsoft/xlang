@@ -1,0 +1,134 @@
+{
+  "schema": 1,
+  "date": "2026-11-15",
+  "status": "qualified-for-integration",
+  "shippingDelivery": false,
+  "scope": "Independent numeric CodeCommandMap; default loading, exact key bindings and copied records. Internal CodeEdit aliases and execution contexts remain separate.",
+  "sourceSha256": {
+    "lib/bindings/_xge_native/include/xui3_code_command_map.h": "6f6b97ea57ca1ff67649ab4e0d2b9abde7b8370d578a6be63a168a3c9addf0d3",
+    "lib/bindings/xui/src/code_command_map.xl": "b6fe3299e4845bd767023bd21ba2a01929f55e2e21ca93625ec87adf3b196589",
+    "lib/bindings/xui/examples/code_commands.xl": "eeae403aa014e816ddf79f66c9f037482bf26ea828474e16366339693aa74120",
+    "lib/bindings/xui/xlang.package.json": "9ce603a878c7eec24501431de2bca039582b4aee8d326b561344e3e8274f1a32",
+    "lib/bindings/xui/examples/gallery.json": "5d825780c19da788c5184a04d81b7fe7bf3e4eae9ad6bc1d59d030862b0bf5ad",
+    "lib/bindings/xui/README.md": "af0f1840ff580b40809ad9f480088a570417a06115741bb473e155867bd4fcaa",
+    "test/cases/foreign_xui_code_commands.h": "5ff1f371810edf564674a3c4fae9a8fdd88ae539b2d7db4e67d61f1218ea3571",
+    "test/cases/foreign_xui_code_commands.c": "0e380430b33b922cbcbf6b089c404567d1fa494b2a3b99e82f224c2c5b7b01d4",
+    "test/cases/foreign_xui_code_commands.xl": "0100bd08fa8d2495609efedea7ced1e6626b122cfc099dffd4bd3dcb89f1cb79",
+    "test/cases/foreign_xui_code_commands_native.c": "372b69af0eeeb0befeda0c298f12890c716bf25351bda4ba10efa66e3a643413",
+    "tools/check_xui_code_commands.py": "a6f7751909509ebcda3b42a6b14c907edd9f4de47743503040a2ab33bd9eab60",
+    "docs/xui-code-commands.md": "d7d88c19f63b536779c2bd4bd4c393eabf3c2eb4660a98ad2a0efda10bb75cbd",
+    "docs/xge3-xui3-full-coverage-plan.md": "9db44ff19d404e993de4b43001c24e2076e667d85e2adea46835643b0572ab6a"
+  },
+  "dependency": {
+    "nativeCommit": "5c116cfda8ccda52fe98e5553405fff403665821",
+    "nativeChanged": false,
+    "compilerChanged": false,
+    "nativeSource": "F:/xlang-validation/xge-full-20261110/native-accessibility-owner-{tag}-source-r3",
+    "sdk": "F:/xlang-validation/xge-full-20261110/accessibility-owner-sdk-{tag}-r3/{host,static}",
+    "compiler": "Qualified full O2 Windows r37/Linux r30, unchanged; existing hosted/static SDK reused."
+  },
+  "contract": {
+    "ownership": "Independent numeric leaf: creator thread, checked expiry, active-call deferred destruction; no document or callback edges.",
+    "errors": "Native zero-success statuses; missing find/unbind is checked UNSUPPORTED. Failed outputs retain the old destination; loadDefaults atomically replaces its table.",
+    "calls": "Seven native business/factory targets directly declared; lifecycle-only destroy hook. Returned numeric binding remains a 20-byte copy.",
+    "cost": "1000 prepared rounds of four operations have zero XRT heap operations for C and language. Creation/close allocate/free 4 objects versus native 2. No CPU equivalence claim."
+  },
+  "qualification": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\code-command-evidence-win-r1.json",
+      "sha256": "fa585848585e8b4306ea2760536cfa95a4f9ca288c9d954cfe07f5594eb0f7f4",
+      "commands": 38,
+      "acceptance": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-command-language-win-r1\\results.json",
+          "sha256": "509616d1ff5314eaaeb2b241921e73aa95b7583307280b18a915d11f2bd21e7c",
+          "commands": 30,
+          "verifiedInputs": 2126
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-command-trim-win-r1\\results.json",
+          "sha256": "47c10abaa1b0b857b8e1884b8851533d42bd50178f366c37e27ff8d62c2c0c77",
+          "commands": 8,
+          "verifiedInputs": 576
+        }
+      ],
+      "packages": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-command-packages-win-r2-host.json",
+          "sha256": "c686218f8324f318e3f971b0e8789924f7bb134b47fb62d824a9456568651708"
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-command-packages-win-r2-static.json",
+          "sha256": "73a74bf130f2ea9c481cd83747ff334c7ea9d4dc4e4cc97113598ba89814fb93"
+        }
+      },
+      "equivalence": {
+        "host": {
+          "identicalExecutableInputs": true,
+          "onlyChanged": [
+            "xui/README.md"
+          ],
+          "fileCount": 269
+        },
+        "static": {
+          "identicalExecutableInputs": true,
+          "onlyChanged": [
+            "xui/README.md"
+          ],
+          "fileCount": 285
+        }
+      }
+    },
+    "linux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\code-command-evidence-linux-r1.json",
+      "sha256": "3a0c68a6a87c2e39417b648e56736c5cf48bbd796c827decc0357060805b96c9",
+      "commands": 38,
+      "acceptance": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/code-command-language-linux-r1/results.json",
+          "sha256": "495752194fb1e4076af2bbc8dc85718f8a005f00855ce0212ff32df5e8dee278",
+          "commands": 30,
+          "verifiedInputs": 2108
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/code-command-trim-linux-r1/results.json",
+          "sha256": "85b21d402b1eb680b8ab189dd0d2dca27f5865ed049feefba8a961feb211a6c2",
+          "commands": 8,
+          "verifiedInputs": 542
+        }
+      ],
+      "packages": {
+        "host": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/code-command-packages-linux-r2-host.json",
+          "sha256": "747be15b8dc6e23a2f422fd34dacdfc07adb46d208ce04301b37cbe2140bc34a"
+        },
+        "static": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/code-command-packages-linux-r2-static.json",
+          "sha256": "aaaf5d46313d71a5ad58e1e3f40c7c219118b4e7875dbdb7d773918252b44031"
+        }
+      },
+      "equivalence": {
+        "host": {
+          "identicalExecutableInputs": true,
+          "onlyChanged": [
+            "xui/README.md"
+          ],
+          "fileCount": 269
+        },
+        "static": {
+          "identicalExecutableInputs": true,
+          "onlyChanged": [
+            "xui/README.md"
+          ],
+          "fileCount": 268
+        }
+      }
+    }
+  },
+  "totalExecutedCommands": 76,
+  "limits": [
+    "No release/current-delivery installation, push or version change.",
+    "CodeEdit internal owner aliases, command contexts/execution and other pending contracts remain part of the active goal.",
+    "Final packages r2 differ from executed r1 only in README; byte equivalence is not another execution."
+  ]
+}

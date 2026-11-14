@@ -475,3 +475,9 @@ Its Context, Widget and numeric event views expire after each callback;
 `Widget.notifyAccessibility(type,nodeId)` dispatches synchronously. See
 [the notification lesson](examples/accessibility_events.xl) and
 [accessibility event contracts](../../../docs/xui-accessibility-events.md).
+
+`createCodeCommandMap()` creates an independent numeric editor key map with
+native defaults, exact key/modifier binding, lookup and copied `CodeKeyBinding`
+records. Missing lookup/removal remains checked UNSUPPORTED. See
+[the command-map lesson](examples/code_commands.xl) and
+[its contracts and costs](../../../docs/xui-code-commands.md).

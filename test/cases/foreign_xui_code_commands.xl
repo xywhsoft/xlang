@@ -1,0 +1,172 @@
+import xui
+extern "fixtureCommandBudget" @header("test/cases/foreign_xui_code_commands.h") @no_raise func budget(c_int count)
+extern "fixtureCommandPrefixBegin" @no_raise func prefixBegin()
+extern "fixtureCommandPrefixEnd" @no_raise func prefixEnd()
+extern "fixtureCommandHeapEqual" @no_raise func heapEqual()
+extern "fixtureCommandHotBegin" @no_raise func hotBegin()
+extern "fixtureCommandHotReport" @no_raise func hotReport(c_int kind)
+extern "fixtureCommandNativeHot" @no_raise func nativeHot(xui.CodeCommandMap map)
+extern "fixtureCommandNativeCreate" @no_raise func nativeCreate()
+extern "fixtureCommandDuringCall" @no_raise @c_sync_callback(1,0,0) @c_result("status",0) func duringCall(xui.CodeCommandMap map,func() callback)
+func createAndClose()
+ auto map=xui.createCodeCommandMap()
+ map.close()
+end
+func main(...) as int
+ auto keys=xui.createCodeCommandMap()
+ auto defaults=keys.getCount()
+ assert defaults>0 and keys.find(65,c_uint(xui.XUI_MOD_CTRL))==xui.XUI_CODE_COMMAND_SELECT_ALL
+ auto first=keys.getBinding(0)
+ assert first.iSize==20 and first.iKey==xui.XUI_KEY_LEFT and first.iCommand==xui.XUI_CODE_COMMAND_MOVE_LEFT and first.iWhen==0
+ first.iCommand=99
+ assert keys.getBinding(0).iCommand==xui.XUI_CODE_COMMAND_MOVE_LEFT
+ keys.bind(xui.XUI_KEY_F2,0,7777)
+ assert keys.getCount()==defaults+1 and keys.find(xui.XUI_KEY_F2,0)==7777
+ keys.bind(xui.XUI_KEY_F2,0,8888)
+ assert keys.getCount()==defaults+1 and keys.find(xui.XUI_KEY_F2,0)==8888
+ keys.bind(97,c_uint(xui.XUI_MOD_CTRL),7777)
+ assert keys.find(97,c_uint(xui.XUI_MOD_CTRL))==7777 and keys.find(65,c_uint(xui.XUI_MOD_CTRL))==xui.XUI_CODE_COMMAND_SELECT_ALL
+ keys.unbind(xui.XUI_KEY_F2,0)
+ c_int previous=99
+ bool rejected=false
+ try
+  previous=keys.find(xui.XUI_KEY_F2,0)
+ catch Error
+  rejected=true
+ end
+ assert rejected and previous==99
+ rejected=false
+ try
+  first=keys.getBinding(-1)
+ catch Error
+  rejected=true
+ end
+ assert rejected and first.iCommand==99
+ int errors=0
+ try
+  keys.unbind(xui.XUI_KEY_F2,0)
+ catch Error
+  errors+=1
+ end
+ try
+  keys.bind(0,0,1)
+ catch Error
+  errors+=1
+ end
+ try
+  keys.bind(xui.XUI_KEY_F2,c_uint(2147483648),1)
+ catch Error
+  errors+=1
+ end
+ try
+  keys.bind(xui.XUI_KEY_F2,0,0)
+ catch Error
+  errors+=1
+ end
+ assert errors==4
+ keys.loadDefaults()
+ assert keys.getCount()==defaults
+ for operation in range(3)
+  int failures=0
+  int successes=0
+  for allowance in range(32)
+   prefixBegin()
+   try
+    if operation==0 then
+     rejected=false
+     budget(c_int(allowance))
+     try
+      createAndClose()
+     catch Error
+      rejected=true
+     finally
+      budget(-1)
+     end
+     if rejected then failures+=1 else successes+=1 end
+    else
+     auto candidate=xui.createCodeCommandMap()
+     try
+      if operation==1 then candidate.bind(xui.XUI_KEY_F2,0,7777) end
+      rejected=false
+      budget(c_int(allowance))
+      try
+       if operation==1 then candidate.loadDefaults() else candidate.bind(xui.XUI_KEY_F2,0,7777) end
+      catch Error
+       rejected=true
+      finally
+       budget(-1)
+      end
+      if rejected then
+       failures+=1
+       if operation==1 then assert candidate.find(xui.XUI_KEY_F2,0)==7777 else assert candidate.getCount()==defaults end
+      else
+       successes+=1
+       assert candidate.getCount()==defaults+(operation-1)
+      end
+     finally
+      budget(-1)
+      candidate.close()
+     end
+    end
+   finally
+    prefixEnd()
+   end
+   heapEqual()
+  end
+  assert failures>0 and successes>0
+ end
+ keys.bind(xui.XUI_KEY_F2,c_uint(xui.XUI_MOD_CTRL),7777)
+ hotBegin()
+ budget(0)
+ try
+  for i in range(1000)
+   assert keys.getCount()>0
+   assert keys.find(xui.XUI_KEY_F2,c_uint(xui.XUI_MOD_CTRL))==7777
+   auto binding=keys.getBinding(0)
+   assert binding.iSize==20
+   keys.bind(xui.XUI_KEY_F2,c_uint(xui.XUI_MOD_CTRL),7777)
+  end
+ finally
+  budget(-1)
+ end
+ hotReport(0)
+ hotBegin()
+ budget(0)
+ try
+  nativeHot(keys)
+ finally
+  budget(-1)
+ end
+ hotReport(1)
+ hotBegin()
+ createAndClose()
+ hotReport(2)
+ hotBegin()
+ nativeCreate()
+ hotReport(3)
+ auto active=xui.createCodeCommandMap()
+ duringCall(active,func()
+  active.close()
+ end)
+ auto worker=thread(func() as int
+  try
+   auto invalid=keys.getCount()
+  catch StateError
+   return 1
+  end
+  return 0
+ end)
+ assert worker.waitTimeout(30000) and worker.exitCode()==1
+ func(c_int,c_uint) as c_int lookup=keys.find
+ keys.close()
+ rejected=false
+ try
+  auto invalid=lookup(xui.XUI_KEY_F2,c_uint(xui.XUI_MOD_CTRL))
+ catch StateError
+  rejected=true
+ end
+ assert rejected
+ keys.close()
+ println("CodeCommands: defaults, exact keys, copied records, checked failure, OOM, active close, thread and expiry passed")
+ return 0
+end

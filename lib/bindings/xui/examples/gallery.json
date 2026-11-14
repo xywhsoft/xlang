@@ -591,6 +591,13 @@
       "kind": "cpu",
       "gallery": false,
       "expected": "写入词法记录并检查缓存的版本与区间。"
+    },
+    {
+      "name": "code_commands",
+      "title": "代码编辑器键位映射",
+      "kind": "cpu",
+      "gallery": false,
+      "expected": "打印默认键位数量，绑定并查询 Ctrl+F2，再恢复原生默认键位。"
     }
   ],
   "helper": "_window.xl",

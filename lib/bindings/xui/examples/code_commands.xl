@@ -1,0 +1,21 @@
+// A command map associates an exact key and modifier set with a command ID.
+import xui
+
+func main(...) as int
+ auto keys=xui.createCodeCommandMap()
+ try
+  println("Default bindings:",keys.getCount())
+  auto modifiers=c_uint(xui.XUI_MOD_CTRL)
+  keys.bind(xui.XUI_KEY_F2,modifiers,xui.XUI_CODE_COMMAND_OPEN_FIND)
+  auto command=keys.find(xui.XUI_KEY_F2,modifiers)
+  assert command==xui.XUI_CODE_COMMAND_OPEN_FIND
+  println("Ctrl+F2 command:",command)
+  keys.unbind(xui.XUI_KEY_F2,modifiers)
+  keys.loadDefaults()
+  auto first=keys.getBinding(0)
+  println("First key and command:",first.iKey,first.iCommand)
+ finally
+  keys.close()
+ end
+ return 0
+end

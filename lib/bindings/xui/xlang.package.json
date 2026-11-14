@@ -26,6 +26,7 @@
       "src/code_models.xl",
       "src/code_fold_state.xl",
       "src/code_token_buffer.xl",
+      "src/code_command_map.xl",
       "src/managers.xl",
       "src/document_records.xl",
       "src/document.xl",
