@@ -1,0 +1,22 @@
+// Run: xl run particle_definition.xl
+// Pure CPU: no window, graphics context, texture, or network is required.
+import xge
+
+auto emitter=xge.particleEmitterInit()
+emitter.fRate=c_float(60)
+array<xge.ParticleEmitter> emitters=[emitter]
+auto definition=xge.createParticleDefinition(emitters)
+try
+ println("Emitter count: ",definition.count())
+ println("Emission rate: ",definition.get(0).fRate)
+ auto json=definition.stringify()
+ auto restored=xge.parseParticleDefinition(json)
+ try
+  assert restored.count()==1 and restored.get(0).fRate==c_float(60)
+  println("JSON round trip passed")
+ finally
+  restored.close()
+ end
+finally
+ definition.close()
+end

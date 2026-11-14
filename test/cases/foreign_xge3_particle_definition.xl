@@ -1,0 +1,233 @@
+import xge
+extern "fixtureDefinitionNativeValidation" @header("test/cases/foreign_xge3_particle_definition.h") @no_raise func nativeValidation()
+extern "fixtureDefinitionBudget" @no_raise func budget(c_int allowance)
+extern "fixtureDefinitionPrefixBegin" @no_raise func prefixBegin(c_int allowance)
+extern "fixtureDefinitionPrefixEnd" @no_raise func prefixEnd()
+extern "fixtureDefinitionHeapEqual" @no_raise func heapEqual()
+extern "fixtureDefinitionHotBegin" @no_raise func hotBegin()
+extern "fixtureDefinitionHotEnd" @no_raise func hotEnd(c_int native)
+extern "fixtureDefinitionNativeHot" @no_raise func nativeHot(xge.ParticleDefinition definition) as float
+extern "fixtureDefinitionKeep" @no_raise func keep(xge.ParticleDefinition definition)
+extern "fixtureDefinitionCheckKept" @no_raise func checkKept()
+extern "fixtureDefinitionReleaseKept" @no_raise func releaseKept()
+extern "fixtureDefinitionSerializationOperations" @no_raise func serializationOperations(xge.ParticleDefinition definition,c_int xlon) as c_int
+extern "fixtureDefinitionColdEnd" @no_raise func coldEnd(c_int operation)
+extern "fixtureDefinitionNativeCreate" @no_raise func nativeCreate()
+extern "fixtureDefinitionNativeSerialization" @no_raise func nativeSerialization(xge.ParticleDefinition definition,c_int xlon)
+
+func main(...) as int
+ nativeValidation()
+ auto first=xge.particleEmitterInit()
+ first.fRate=c_float(11)
+ auto second=first
+ second.fRate=c_float(17)
+ array<xge.ParticleEmitter> emitters=[first,second]
+ auto definition=xge.createParticleDefinition(emitters)
+ assert definition.count()==2,"initial count"
+ first.fRate=c_float(99)
+ emitters[0]=first
+ auto copy=definition.get(0)
+ copy.fRate=c_float(101)
+ assert definition.get(0).fRate==c_float(11),"input and output copy isolation"
+ auto one=xge.createParticleDefinition(emitters,1)
+ assert one.count()==1 and one.get(0).fRate==c_float(99),"prefix size"
+ one.close()
+ auto all=xge.createParticleDefinition(emitters,100)
+ assert all.count()==2,"clamped size"
+ all.close()
+ int rejected=0
+ for index in [-1,2]
+  try
+   auto value=definition.get(c_int(index))
+  catch Error
+   rejected+=1
+  end
+ end
+ for size in [-2,0]
+  try
+   auto value=xge.createParticleDefinition(emitters,size)
+  catch Error
+   rejected+=1
+  end
+ end
+ assert rejected==4,"index and size rejection"
+ auto json=definition.stringify()
+ for xlon in range(2)
+  auto text=definition.stringify(c_int(xlon))
+  auto bytesText=definition.stringifyBytes(c_int(xlon))
+  assert encoding.decodeUtf8(bytesText)==text
+  auto parsed=xge.parseParticleDefinition(text,c_int(xlon))
+  assert parsed.count()==2 and parsed.get(1).fRate==c_float(17)
+  parsed.close()
+  parsed=xge.parseParticleDefinition(bytesText,c_int(xlon))
+  assert parsed.get(0).fRate==c_float(11)
+  parsed.close()
+  parsed=xge.parseParticleDefinition(Buffer(bytesText),c_int(xlon))
+  assert parsed.count()==2
+  parsed.close()
+  parsed=xge.parseParticleDefinition(text+"garbage",c_int(xlon),null,text.length)
+  assert parsed.count()==2
+  parsed.close()
+ end
+ auto diagnostic=Buffer("................................................................")
+ rejected=0
+ for invalid in ["", "{", "{\"version\":2,\"emitters\":[{}]}"]
+  try
+   auto bad=xge.parseParticleDefinition(invalid,0,diagnostic)
+  catch Error
+   rejected+=1
+  end
+ end
+ assert rejected==3 and diagnostic.length==64 and diagnostic[0]!=uint8(46),"bounded native diagnostic"
+ xge.addResourceProvider("particlefixture",func(xge.ResourcePath path,xge.ResourceOutput output) as c_int
+  assert path.text=="particlefixture://definition","provider path"
+  output.set(json)
+  return c_int(0)
+ end)
+ try
+  auto loaded=xge.loadParticleDefinition("particlefixture://definition")
+  assert loaded.get(1).fRate==c_float(17)
+  loaded.close()
+ finally
+  xge.resourceProviderClear()
+ end
+ xge.addResourceProvider("particlefailure",func(xge.ResourcePath path,xge.ResourceOutput output) as c_int
+  assert false,"particle provider failure"
+  return c_int(0)
+ end)
+ rejected=0
+ try
+  auto bad=xge.loadParticleDefinition("particlefailure://definition",0,diagnostic)
+ catch AssertionError
+  rejected+=1
+ finally
+  xge.resourceProviderClear()
+ end
+ assert rejected==1,"provider exception must cross load boundary"
+ rejected=0
+ try
+  auto bad=xge.loadParticleDefinition("unused\0suffix")
+ catch Error
+  rejected+=1
+ end
+ assert rejected==1
+ int failures=0
+ int successes=0
+ for operation in range(4)
+  for allowance in range(48)
+   prefixBegin(c_int(allowance))
+   try
+    if operation==0 then
+     auto value=xge.createParticleDefinition(emitters)
+     value.close()
+    elseif operation==1 then
+     auto value=xge.parseParticleDefinition(json)
+     value.close()
+    elseif operation==2 then
+     auto value=definition.stringify()
+     assert value==json
+    else
+     auto value=definition.stringifyBytes()
+     assert encoding.decodeUtf8(value)==json
+    end
+    successes+=1
+   catch Error
+    failures+=1
+   finally
+    prefixEnd()
+   end
+   heapEqual()
+  end
+ end
+ assert failures>0 and successes>0
+ // Cover the final native allocation and the language's output admission tail.
+ for xlon in range(2)
+  int required=int(serializationOperations(definition,c_int(xlon)))
+  auto expected=definition.stringify(c_int(xlon))
+  for allowance in range(required-5,required+17)
+   prefixBegin(c_int(allowance))
+   try
+    auto text=definition.stringify(c_int(xlon))
+    assert text==expected
+   catch Error
+    failures+=1
+   finally
+    prefixEnd()
+   end
+   heapEqual()
+   prefixBegin(c_int(allowance))
+   try
+    auto data=definition.stringifyBytes(c_int(xlon))
+    assert data.length==expected.length
+   catch Error
+    failures+=1
+   finally
+    prefixEnd()
+   end
+   heapEqual()
+  end
+ end
+ hotBegin()
+ if true then
+  auto value=xge.createParticleDefinition(emitters)
+  value.close()
+ end
+ coldEnd(0)
+ hotBegin()
+ nativeCreate()
+ coldEnd(1)
+ hotBegin()
+ if true then
+  auto text=definition.stringify()
+  assert text.length==json.length
+ end
+ coldEnd(2)
+ hotBegin()
+ nativeSerialization(definition,0)
+ coldEnd(3)
+ auto worker=thread(func() as int
+  try
+   auto value=definition.count()
+  catch StateError
+   return 1
+  end
+  return 0
+ end)
+ assert worker.waitTimeout(30000) and worker.exitCode()==1
+ hotBegin()
+ budget(0)
+ float result=0
+ try
+  for i in range(1000)
+   assert definition.count()==2
+   auto value=definition.get(c_int(i%2))
+   result+=float(value.fRate)
+  end
+ finally
+  budget(-1)
+ end
+ hotEnd(0)
+ assert result==14000.0
+ hotBegin()
+ assert nativeHot(definition)==result
+ hotEnd(1)
+ func() as c_int count=definition.count
+ func(c_int) as xge.ParticleEmitter readEmitter=definition.get
+ func(c_int) as string stringify=definition.stringify
+ func(c_int) as bytes stringifyBytes=definition.stringifyBytes
+ assert count()==2 and readEmitter(1).fRate==c_float(17)
+ assert stringify(0)==json and encoding.decodeUtf8(stringifyBytes(0))==json
+ keep(definition)
+ definition.close()
+ checkKept()
+ releaseKept()
+ rejected=0
+ try
+  auto value=readEmitter(0)
+ catch StateError
+  rejected+=1
+ end
+ assert rejected==1 and json.length>0
+ println("ParticleDefinition: typed arrays, JSON/XLON, counted inputs, provider, OOM, thread, native refs and expiry passed")
+ return 0
+end

@@ -1,0 +1,536 @@
+{
+  "schema": 1,
+  "date": "2026-11-14",
+  "scope": "Complete immutable CPU particle-definition family via direct declarations, exact native references and qualified unchanged SDKs.",
+  "parentCommit": "8867a9a09257652edf4263e67266acdd7d218be0",
+  "nativeRevision": "73d106427bdaf3b4813ff9278c5b33c3c8b7566b",
+  "shippingDelivery": false,
+  "fullGoalComplete": false,
+  "networkTests": false,
+  "languageCompilerChange": false,
+  "nativeSourceChange": false,
+  "publicNativeAbiChange": false,
+  "sources": {
+    "docs/xge3-particle-definitions.md": "86bd9b54f9a3692dbb171194c8e257a9e9653bc42cbe0f34b1933a893aebb5e5",
+    "docs/xge3-xui3-full-coverage-plan.md": "50d8cfcf1d4ef26224009870d2d67e02fa1c73eb717c5ce913d07ecc8862ab28",
+    "lib/bindings/xge/README.md": "601d2f936203f8685b887ad8d85cd2470f8e76f08e0a626224e8e7e5346cd070",
+    "lib/bindings/xge/examples/README.md": "f935589d5274f16614df2544a2f954ddcc65bd928ad3b1d82eb0e281923cfbfe",
+    "lib/bindings/xge/examples/particle_definition.xl": "a4c14345b82dbbed2953d74c6a0dc0fe188427ede40d4d0b0091a95b3719d478",
+    "lib/bindings/xge/xlang.package.json": "6e3f501b8365cf6a1a44aee8663ccfcf84ec062abce8d581dc02785834ee591f",
+    "lib/bindings/xge/src/particle_definition.xl": "289eea888ca187e9d2a265fdd20da32365e00c342f171b01c7a709b0418da830",
+    "lib/bindings/xge/include/xge3_particle_definition.h": "94d46b99888f6b8b50d8c207251a89c6cd4c4a686d3fc04ba9d77cb40e0af62d",
+    "test/cases/foreign_xge3_particle_definition.c": "7bd682704b12a63479b0992210b21453eafad8c91dd4da2923b788f8825bcf0b",
+    "test/cases/foreign_xge3_particle_definition.h": "c4f96ab4b489fb96a57dd34c1ff1fd29b9d32a6f57194f85bfca238885574789",
+    "test/cases/foreign_xge3_particle_definition.xl": "4d76b1e83b37fea258d4f712ea55b7322d688e589dbfc808fc9e4c920aca830d",
+    "test/cases/foreign_xge3_particle_definition_native.c": "95732f9147a916e2cd8a3572f15f7ff666449f96c1f580a33d0fa3110e6153c9",
+    "tools/check_xge3_particle_definition.py": "07fc2b482dbb40ab042fbf0d2b4055003a2c54fab244e4f599607ceaddd87955"
+  },
+  "platforms": {
+    "win": {
+      "acceptance": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-definition-validation-win-r2\\results.json",
+        "sha256": "3f5acc18b600dac4dd5a697f313d1a2dfaaf401f590f913fc86b08393ed2681b"
+      },
+      "unused": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-definition-unused-win-r1\\results.json",
+        "sha256": "bf93312afc3659dc19a291af4ee32ffaa30fe7c04d0243db8885274705bd0420"
+      },
+      "packages": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\particle-definition-packages-win-r2\\host.json",
+          "sha256": "57bf63b0edfb63a5b2782feeb5c74bbaff55899b43ca7db4e95374776798d6d0"
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\particle-definition-packages-win-r2\\static.json",
+          "sha256": "4a5ad09bb4530779c25596ac52dd441480b97c7cd76314dca3f6cd43b96e8f3b"
+        }
+      },
+      "nativeSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-editing-sdk-win-r1\\results.json",
+        "sha256": "0147030fd05a3d393238344318d227deec5bce22a71948a56ac86bff5d3a5656"
+      },
+      "nativeSource": "F:\\xlang-validation\\xge-full-20261110\\native-code-editing-win-source-r1",
+      "nativeProductMatchesCommittedWorktree": {
+        "include/xge.h": "9870ecec95da30e090761bb4b30399b88e932dea2ba324aaad844d6b9c41edfa",
+        "src/xge/particle/xge_particle.c": "feb60d1d5825f28430609fc503e277e2fca991124dd84e5c01fb0bc2bc8b86fa",
+        "src/xge/particle/xge_particle_io.c": "d7a003cb604df78344aa8d8c2a1651d1a7cddfbe0c5a79878967b3a2a574ba3e",
+        "src/xge/particle/xge_particle_resource.c": "c31d979588d5d3885518d2f857f5bf192c08b1b2642bfd7f040dcccafaada4dd",
+        "src/xge/particle/xge_particle_internal.h": "e18602727a51199c1d8234aa732963713201c3662e3dd280a4617f99d9067805"
+      },
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-null-cstr-full-r36\\build.json",
+        "sha256": "85dc294b283f3b774172a0de877ad86d34398689de17a6260f08900db030d931"
+      },
+      "unusedSize": {
+        "fileDelta": 0,
+        "textDelta": 0
+      },
+      "heap": [
+        {
+          "mode": "jit",
+          "rounds": 1000,
+          "preparedDefinition": true,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        },
+        {
+          "mode": "dynamic",
+          "rounds": 1000,
+          "preparedDefinition": true,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        },
+        {
+          "mode": "static",
+          "rounds": 1000,
+          "preparedDefinition": true,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        }
+      ],
+      "cold": [
+        {
+          "mode": "jit",
+          "preparedArray": true,
+          "counts": {
+            "0": {
+              "alloc": 5,
+              "free": 5,
+              "realloc": 0
+            },
+            "1": {
+              "alloc": 2,
+              "free": 2,
+              "realloc": 0
+            },
+            "2": {
+              "alloc": 464,
+              "free": 464,
+              "realloc": 16
+            },
+            "3": {
+              "alloc": 464,
+              "free": 464,
+              "realloc": 16
+            }
+          }
+        },
+        {
+          "mode": "dynamic",
+          "preparedArray": true,
+          "counts": {
+            "0": {
+              "alloc": 5,
+              "free": 5,
+              "realloc": 0
+            },
+            "1": {
+              "alloc": 2,
+              "free": 2,
+              "realloc": 0
+            },
+            "2": {
+              "alloc": 464,
+              "free": 464,
+              "realloc": 16
+            },
+            "3": {
+              "alloc": 464,
+              "free": 464,
+              "realloc": 16
+            }
+          }
+        },
+        {
+          "mode": "static",
+          "preparedArray": true,
+          "counts": {
+            "0": {
+              "alloc": 5,
+              "free": 5,
+              "realloc": 0
+            },
+            "1": {
+              "alloc": 2,
+              "free": 2,
+              "realloc": 0
+            },
+            "2": {
+              "alloc": 464,
+              "free": 464,
+              "realloc": 16
+            },
+            "3": {
+              "alloc": 464,
+              "free": 464,
+              "realloc": 16
+            }
+          }
+        }
+      ],
+      "generatedC": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-definition-validation-win-r2\\foreign_xge3_particle_definition.c",
+        "sha256": "7602dc2cede288e994625b04b4b8f453f766b422ab5006185ee3f78f05360ebd",
+        "directCalls": {
+          "xgeParticleDefinitionCreate": 6,
+          "xgeParticleDefinitionGet": 9,
+          "xgeParticleDefinitionCount": 9,
+          "xgeParticleDefinitionParse": 6,
+          "xgeParticleDefinitionStringify": 11,
+          "xgeParticleDefinitionLoad": 3
+        },
+        "typedInputProjection": true,
+        "ownedOutputAdoption": true,
+        "zeroBridgeOverheadClaim": false
+      }
+    },
+    "linux": {
+      "acceptance": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-definition-validation-linux-r2\\results.json",
+        "sha256": "af776f2b81b4181757170645148fece695cea977abf17c065ddb66ab7cc4f659"
+      },
+      "unused": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\particle-definition-unused-linux-r1\\results.json",
+        "sha256": "95220fbe02c0e64a615d288c771fea0fe7ec36344a8b5995b8753a10829f559f"
+      },
+      "packages": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\particle-definition-packages-linux-r2\\host.json",
+          "sha256": "8bc7becd28bdca051ff7b3bbfe27422183c0baaad3ca086350d40d1ba2c0d1b7"
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\particle-definition-packages-linux-r2\\static.json",
+          "sha256": "7c18fc103d5292bddd999765f25702ca75002a48639c9b7b1ae937affe7fda4f"
+        }
+      },
+      "nativeSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-editing-sdk-linux-r1\\results.json",
+        "sha256": "cde4f78c7c43bc10058d5533473e5e892bf79aeeba9e85c32f0f440c7262a78b"
+      },
+      "nativeSource": "F:\\xlang-validation\\xge-full-20261110\\native-code-editing-linux-source-r1",
+      "nativeProductMatchesCommittedWorktree": {
+        "include/xge.h": "9870ecec95da30e090761bb4b30399b88e932dea2ba324aaad844d6b9c41edfa",
+        "src/xge/particle/xge_particle.c": "feb60d1d5825f28430609fc503e277e2fca991124dd84e5c01fb0bc2bc8b86fa",
+        "src/xge/particle/xge_particle_io.c": "d7a003cb604df78344aa8d8c2a1651d1a7cddfbe0c5a79878967b3a2a574ba3e",
+        "src/xge/particle/xge_particle_resource.c": "c31d979588d5d3885518d2f857f5bf192c08b1b2642bfd7f040dcccafaada4dd",
+        "src/xge/particle/xge_particle_internal.h": "e18602727a51199c1d8234aa732963713201c3662e3dd280a4617f99d9067805"
+      },
+      "compiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-null-cstr-linux-full-r29\\build.json",
+        "sha256": "3fb08e3ed8b6166e39bdb66955cea42c0db45d648697ce0e74914bac4adaf723"
+      },
+      "unusedSize": {
+        "fileDelta": 0,
+        "textDelta": 0
+      },
+      "heap": [
+        {
+          "mode": "jit",
+          "rounds": 1000,
+          "preparedDefinition": true,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        },
+        {
+          "mode": "dynamic",
+          "rounds": 1000,
+          "preparedDefinition": true,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        },
+        {
+          "mode": "static",
+          "rounds": 1000,
+          "preparedDefinition": true,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        }
+      ],
+      "cold": [
+        {
+          "mode": "jit",
+          "preparedArray": true,
+          "counts": {
+            "0": {
+              "alloc": 5,
+              "free": 5,
+              "realloc": 0
+            },
+            "1": {
+              "alloc": 2,
+              "free": 2,
+              "realloc": 0
+            },
+            "2": {
+              "alloc": 464,
+              "free": 464,
+              "realloc": 16
+            },
+            "3": {
+              "alloc": 464,
+              "free": 464,
+              "realloc": 16
+            }
+          }
+        },
+        {
+          "mode": "dynamic",
+          "preparedArray": true,
+          "counts": {
+            "0": {
+              "alloc": 5,
+              "free": 5,
+              "realloc": 0
+            },
+            "1": {
+              "alloc": 2,
+              "free": 2,
+              "realloc": 0
+            },
+            "2": {
+              "alloc": 464,
+              "free": 464,
+              "realloc": 16
+            },
+            "3": {
+              "alloc": 464,
+              "free": 464,
+              "realloc": 16
+            }
+          }
+        },
+        {
+          "mode": "static",
+          "preparedArray": true,
+          "counts": {
+            "0": {
+              "alloc": 5,
+              "free": 5,
+              "realloc": 0
+            },
+            "1": {
+              "alloc": 2,
+              "free": 2,
+              "realloc": 0
+            },
+            "2": {
+              "alloc": 464,
+              "free": 464,
+              "realloc": 16
+            },
+            "3": {
+              "alloc": 464,
+              "free": 464,
+              "realloc": 16
+            }
+          }
+        }
+      ],
+      "generatedC": {
+        "path": "/mnt/f/xlang-validation/xge-full-20261110/particle-definition-validation-linux-r2/foreign_xge3_particle_definition.c",
+        "sha256": "7602dc2cede288e994625b04b4b8f453f766b422ab5006185ee3f78f05360ebd",
+        "directCalls": {
+          "xgeParticleDefinitionCreate": 6,
+          "xgeParticleDefinitionGet": 9,
+          "xgeParticleDefinitionCount": 9,
+          "xgeParticleDefinitionParse": 6,
+          "xgeParticleDefinitionStringify": 11,
+          "xgeParticleDefinitionLoad": 3
+        },
+        "typedInputProjection": true,
+        "ownedOutputAdoption": true,
+        "zeroBridgeOverheadClaim": false
+      }
+    }
+  },
+  "packageReuse": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\particle-definition-final-package-reuse-r1.json",
+    "sha256": "f9b2d93cf02ac9417edb0f677e506f31fa8adf6902280c71606b579eedba4c29"
+  },
+  "implementation": {
+    "nativeFunctions": [
+      "xgeParticleDefinitionCreate",
+      "xgeParticleDefinitionCount",
+      "xgeParticleDefinitionGet",
+      "xgeParticleDefinitionParse",
+      "xgeParticleDefinitionLoad",
+      "xgeParticleDefinitionStringify"
+    ],
+    "nativeLifecycle": [
+      "xgeParticleDefinitionAddRef",
+      "xgeParticleDefinitionFree"
+    ],
+    "businessForwarders": 0,
+    "newRuntimeProtocols": 0,
+    "lifetime": "One creator-thread owned leaf, one actual native reference; independent native retained users survive language close.",
+    "inputs": "Typed POD array projection; counted string/bytes/Buffer; optional bounded nullable diagnostic Buffer; C-string URI.",
+    "outputs": "Independent emitter value; resident-XRT owned UTF-8 or bytes adoption. No escaped native pointers."
+  },
+  "coverage": {
+    "finalPrimaryProcessRows": 60,
+    "unusedProcessRows": 12,
+    "exploratoryReportsIncludedInTotals": false,
+    "nativeAllocationPrefixesPerRun": {
+      "formats": 2,
+      "stringifyPerFormat": 509,
+      "parsePerFormat": 454,
+      "create": 6,
+      "total": 1932
+    },
+    "languageAllocationPrefixesPerMode": {
+      "early": 192,
+      "outputTail": 88,
+      "total": 280
+    },
+    "nativeClientsPerPlatform": [
+      "GCC-O0-host",
+      "GCC-O2-host",
+      "GCC-O0-static",
+      "GCC-O2-static"
+    ],
+    "languageModes": [
+      "full-JIT",
+      "dynamic-AOT",
+      "static-AOT"
+    ],
+    "publicHeaders": [
+      "C11",
+      "C++11",
+      "C++17"
+    ]
+  },
+  "costs": {
+    "cpuEquivalenceClaim": false,
+    "zeroBridgeOverheadClaim": false,
+    "preparedRead": {
+      "rounds": 1000,
+      "native": {
+        "alloc": 0,
+        "free": 0,
+        "realloc": 0
+      },
+      "language": {
+        "alloc": 0,
+        "free": 0,
+        "realloc": 0
+      }
+    },
+    "twoEmitterCreate": {
+      "nativeAlloc": 2,
+      "languageAlloc": 5,
+      "extraAllocations": [
+        "typed-record projection",
+        "foreign view",
+        "CodeLease"
+      ],
+      "additionalCopy": "n*sizeof(xge_particle_emitter_t) input projection; boxed language array preparation excluded; native immutable copy remains."
+    },
+    "jsonTextSerialization": {
+      "nativeAlloc": 464,
+      "languageAlloc": 464,
+      "nativeFree": 464,
+      "languageFree": 464,
+      "nativeRealloc": 16,
+      "languageRealloc": 16,
+      "interval": "Result adoption, length validation and release; excludes allocating language string-equality assertion.",
+      "textValidation": "UTF-8 scan and terminator check; payload allocation transferred, not copied."
+    },
+    "otherCosts": [
+      "root admission and code ownership",
+      "creator-thread/alive/active scopes",
+      "sequence read pin and per-element type/size checks",
+      "whole emitter value copies, including fixed arrays",
+      "native parser, schema, graph validation and immutable emitter copy",
+      "native value-graph serialization allocations",
+      "checked failure rollback/cleanup",
+      "bound-method closure/environment, retained view/code and indirect call"
+    ]
+  },
+  "remaining": [
+    "Particle World ownership and persistent collision callbacks",
+    "snapshot/event conditional results and renderer/GPU ownership",
+    "existing outstanding whole-goal ownership/interop decisions",
+    "whole-requirement final audit and matched release delivery"
+  ],
+  "surface": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-particle-definition-r1\\surface.json",
+    "sha256": "cf4a32aff703f1c11d777a86b14552fcf547d5c908b3468e319bd050f87cc730",
+    "population": {
+      "functions": 5177,
+      "types": 981,
+      "constants": 1838,
+      "functionMacros": 7,
+      "callableFields": 184,
+      "enums": 40,
+      "enumConstants": 316
+    },
+    "declarationPresent": {
+      "functions": 3752,
+      "types": 374,
+      "constants": 1820,
+      "callableFields": 66,
+      "enumConstants": 316
+    },
+    "note": "Declaration presence, not ABI/lifetime/runtime/whole-goal completion percentage."
+  }
+}

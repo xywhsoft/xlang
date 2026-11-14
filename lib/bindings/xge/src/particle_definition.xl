@@ -1,0 +1,20 @@
+// CPU definitions own immutable copies of emitter records. No engine is needed.
+export extern "xge_particle_definition" class ParticleDefinition @header("xge3_particle_definition.h") @lifetime("owned") @policy("xl6Xge3ParticleDefinitionPolicy")
+ native point handle
+ extern "xgeParticleDefinitionCount" @no_raise func count() as c_int
+ extern "xgeParticleDefinitionGet" @no_raise @c_output(2,0) func get(c_int index) as ParticleEmitter
+ // The exact resident XRT allocation is adopted; no serialized-payload copy.
+ extern "xgeParticleDefinitionStringify" @no_raise @c_output_text(2,3,"char*","size_t","xrt",0) func stringify(c_int xlon=0) as string
+ extern "xgeParticleDefinitionStringify" @no_raise @c_output_bytes(2,3,"char*","size_t","xrt",0) func stringifyBytes(c_int xlon=0) as bytes
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xgeParticleDefinitionFree" @header("xge3_particle_definition.h") @no_raise func freeParticleDefinition(ParticleDefinition value)
+// Typed arrays require one O(n) synchronous record projection. Native Create
+// then copies these records into the immutable definition, just as in C.
+export extern "xgeParticleDefinitionCreate" @header("xge3_particle_definition.h") @no_raise @c_array_group(1,0,1,"int",1) @c_array_input(1,0,"const xge_particle_emitter_t*","value") @c_result("owned_view") @factory(0,0,freeParticleDefinition) func createParticleDefinition(array<ParticleEmitter> emitters,int size=-1) as ParticleDefinition
+// Optional bounded diagnostic output uses the caller's existing Buffer. Counted
+// input preserves NUL; it does not perform the unrelated C-string admission scan.
+export extern "xgeParticleDefinitionParse" @header("xge3_particle_definition.h") @no_raise @c_span(0,"const char*","size_t",3) @c_span(2,"char*","size_t") @c_result("owned_view") @factory(0,0,freeParticleDefinition) func parseParticleDefinition(string text,c_int xlon=0,Buffer? error=null,int size=-1) as ParticleDefinition
+export extern "xgeParticleDefinitionParse" @header("xge3_particle_definition.h") @no_raise @c_span(0,"const char*","size_t",3) @c_span(2,"char*","size_t") @c_result("owned_view") @factory(0,0,freeParticleDefinition) func parseParticleDefinition(bytes text,c_int xlon=0,Buffer? error=null,int size=-1) as ParticleDefinition
+export extern "xgeParticleDefinitionParse" @header("xge3_particle_definition.h") @no_raise @c_span(0,"const char*","size_t",3) @c_span(2,"char*","size_t") @c_result("owned_view") @factory(0,0,freeParticleDefinition) func parseParticleDefinition(Buffer text,c_int xlon=0,Buffer? error=null,int size=-1) as ParticleDefinition
+export extern "xgeParticleDefinitionLoad" @header("xge3_particle_definition.h") @no_raise @c_cstr(0) @c_span(2,"char*","size_t") @c_result("owned_view") @factory(0,0,freeParticleDefinition) func loadParticleDefinition(string uri,c_int xlon=0,Buffer? error=null) as ParticleDefinition

@@ -109,3 +109,11 @@ independent bytes snapshot; `readPixels(output)` copies directly into an already
 sized Buffer. Both results remain usable after `image.close()`. The example
 needs no engine initialization, window, file or service. Snapshot creation
 allocates/copies its byte payload; the Buffer path adds no temporary Buffer.
+
+`particle_definition.xl` starts from native emitter defaults, sets the emission
+rate, creates an immutable CPU definition and restores its serialized JSON.
+Run `xl run examples/xge/particle_definition.xl` from a matched runtime. Expect
+`Emitter count: 1`, `Emission rate: 60.0` (spacing may vary), and
+`JSON round trip passed`. No engine, window, GPU, file or service is needed.
+Both definitions close in `finally`. Typed array creation projects/copies the
+records; this lesson does not yet create a simulation world or renderer.

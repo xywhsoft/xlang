@@ -122,10 +122,20 @@ only constructs a zero value. Names remain fixed UTF-8 C byte arrays and must
 contain a NUL terminator before passing a description to a native definition.
 `ParticleEvent.iEffect` is a world-scoped numeric identity, not an owned resource.
 
-These declarations require `XGE_ENABLE_PARTICLES`. World/definition/renderer
-ownership, persistent collision callbacks and simulation operations are a
-separate unfinished integration. The value helper example does not certify
-those paths or whole-engine performance.
+These declarations require `XGE_ENABLE_PARTICLES`. `ParticleDefinition` now
+owns an immutable native emitter copy: create it from `array<ParticleEmitter>`,
+read with `count()` / `get(index)`, and use `stringify()` / `stringifyBytes()`
+or `parseParticleDefinition()` for JSON/XLON. `loadParticleDefinition()` uses
+the existing native URI/resource providers. Optional diagnostic Buffers must
+already have their desired logical length. Close the creator-thread owner in
+`finally`; independent native references remain valid. See
+`examples/particle_definition.xl` and `docs/xge3-particle-definitions.md`.
+
+Typed creation adds O(n) record projection and one temporary allocation;
+the native immutable copy is still required. Owned serialization adopts the
+native allocation; string output validates UTF-8. World/renderer ownership,
+persistent collision callbacks and simulation remain unfinished. Neither the
+value nor definition examples certify those paths or whole-engine performance.
 
 ## Window title snapshots
 

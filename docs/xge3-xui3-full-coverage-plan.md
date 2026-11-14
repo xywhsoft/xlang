@@ -1056,3 +1056,15 @@ Busy、重入关闭和重启，旧静态库独立复现残留引用；私有完�
 回调拥有规则。新增 code_editing.xl 无窗口教学入口，独立入口 84 个，综合画廊
 仍为 57 场景。详见 xui-code-editing.md 与 xui-code-editing-20261114.json；
 全量目标和最终配套发布继续，release 未安装本批候选。
+
+继续补齐 ParticleDefinition 的完整 CPU 定义族：原生不可变记录的创建、计数、
+逐项值读取、JSON／XLON 解析、URI 资源加载和 string／bytes 序列化。复用现有
+类型安全数组投影、计数输入、可空诊断 Buffer、拥有输出与 creator-thread 视图；
+没有新增语言规则、业务转发、原生数据副本或引擎补丁。定义拥有一个真实原生
+引用，独立 C 持有者在语言 close 后仍可使用。两端完整编译器 JIT／动态／静态、
+独立 GCC O0／O2、公开 C/C++ 头和逐分配点原生失败验收见
+xge3-particle-definitions.md。1000 对预备定义 count／get 在语言与 C 中均零堆；
+两记录创建语言 5 次分配、C 2 次，差额为数组投影、视图与代码驻留记录，且有
+记录拷贝；不声称全路径零开销或 CPU 等价。未使用该族的同一 ShapeMatrix 静态
+程序两端文件／代码增量为 0。新增短控制台范例 particle_definition.xl。粒子世界、
+碰撞回调、快照／事件与渲染拥有图仍需继续，全量目标和最终配套发布没有结项。
