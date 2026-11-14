@@ -1,0 +1,377 @@
+{
+  "schema": 1,
+  "date": "2026-11-14",
+  "scope": "Direct CodeDocument selection editing, exact native EndEdit completion repair, complete compiler/SDK acceptance and readable lesson.",
+  "parentCommit": "dec760482d97017a204a69a070d635cf2de3209e",
+  "nativeRevision": "73d106427bdaf3b4813ff9278c5b33c3c8b7566b",
+  "shippingDelivery": false,
+  "fullGoalComplete": false,
+  "networkTests": false,
+  "languageCompilerChange": false,
+  "publicNativeAbiChange": false,
+  "sources": {
+    "docs/xui-code-editing.md": "b3a13c99c2e6b6623c615a117c7f36ad2fb1f9c651111c3619a0c3b396cebfd8",
+    "docs/xge3-xui3-full-coverage-plan.md": "026154a2ac3f6d89329d05699ddf28e0dbd50cad50c43358145531192b3c1c0a",
+    "lib/bindings/xui/README.md": "af2e7bdceaceef0d099f07153ec350626318f7e569f05613c6a8b28453177025",
+    "lib/bindings/xui/src/code_document.xl": "bdb8babf11e5d9f9cdf4f7538b57ae8c8302869908cb989d8939359cc2d6af7d",
+    "lib/bindings/xui/examples/code_editing.xl": "7402e70963211f6901c1aa545c05954ff2d5a137cb0418dfcfeffd4363476a93",
+    "lib/bindings/xui/examples/gallery.json": "c3ce353353eb6d315cc2ae79c3559efed4dd898041fcbfcd8834a53f5a863710",
+    "lib/bindings/xui/examples/README.md": "d35bcfc801a1b9fd8cf2e7fdcae99088e411ace9ef4cba227f6e90c221935925",
+    "test/cases/foreign_xui_code_editing.xl": "1891fd23cafd69a8e56ee48b12bcb798b0c03d71dc2b80d99613151c78ded069",
+    "test/cases/foreign_xui_code_editing.c": "ec1daadb1fc484cf3b978153f0599b7e657632ce033c1a7c9f936aedd75c5a33",
+    "test/cases/foreign_xui_code_editing.h": "8d090b0b54b560fc5d91ba585f794422a1e3e93d92a2498d8aaf8b345fafe7c5",
+    "test/cases/foreign_xui_code_editing_values.xl": "aa8255141bc8a07eace029c7f7eb61c7293bbee1a7908473443d8d3f53378418",
+    "tools/check_xui_code_editing.py": "85bef0354595bc9e9b0d16ce104dca593f6f2b6de0ebb5a664b33f8a84928c73"
+  },
+  "platforms": {
+    "win": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-editing-sdk-win-r1\\results.json",
+        "sha256": "0147030fd05a3d393238344318d227deec5bce22a71948a56ac86bff5d3a5656"
+      },
+      "freeze": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\native-code-editing-win-freeze-r1.json",
+        "sha256": "8c9356f71d8cc883c97b64ca7242b66d5220cd0169d10b7dbdefb145221fb8b3"
+      },
+      "source": "F:\\xlang-validation\\xge-full-20261110\\native-code-editing-win-source-r1",
+      "host": {
+        "compiled": [
+          "single/xge.c",
+          "src/xui/code/xui_code_document.c",
+          "src/xui/code/xui_code_editing.c"
+        ],
+        "reusedCount": 161
+      },
+      "static": {
+        "compiled": [
+          "src\\xui\\code\\xui_code_editing.c",
+          "F:\\xlang-validation\\xge-full-20261110\\code-editing-sdk-win-r1\\static\\xge_static_contract.c"
+        ],
+        "reusedCount": 164
+      },
+      "finalPackages": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-editing-packages-win-r2\\host.json",
+          "sha256": "a85c23c9285cd73153127f2eefbabef31779422e789dab9653a4ccad92cf962c",
+          "root": "F:\\xlang-validation\\xge-full-20261110\\code-editing-packages-win-r2\\host"
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-editing-packages-win-r2\\static.json",
+          "sha256": "d8e27ab7d4b51b16699bb498a0a593f292caef4f2de57281db80a5a83d9273df",
+          "root": "F:\\xlang-validation\\xge-full-20261110\\code-editing-packages-win-r2\\static"
+        }
+      },
+      "compiler": {
+        "report": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-null-cstr-full-r36\\build.json",
+          "sha256": "85dc294b283f3b774172a0de877ad86d34398689de17a6260f08900db030d931"
+        },
+        "program": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-null-cstr-full-r36\\source\\release\\win_x64\\xl.exe",
+          "sha256": "b06ecff88b5b9f438820a93f7ec7c8be5d605c5e55c8d6e6c58c8d2c2641ed80"
+        }
+      },
+      "primary": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-editing-language-win-r2\\results.json",
+        "sha256": "7d35133951cec3cf0f0e2146eefbe1b52039b69b42719692944b5c3e4d0e52b1",
+        "commands": 24,
+        "fullCompilerBuild": true
+      },
+      "methodValues": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-editing-values-win-r1\\results.json",
+        "sha256": "36359ab811740d832a77a9537881d191b71543918a223fc22a69b079e43439fe",
+        "commands": 11,
+        "fullCompilerBuild": true
+      },
+      "unused": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-editing-unused-win-r1\\results.json",
+        "sha256": "8bd870abbee111c0c92f090fa9b2139aae28c1c27918c114892c527e876fec00",
+        "commands": 6,
+        "fullCompilerBuild": false
+      },
+      "generatedMethodValues": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-editing-values-win-r1\\generated.c",
+        "sha256": "86efac38182dde9e30e4abe5fe5f972f20949607cab30ff7768a4da1e840dc3a",
+        "nativeCallSites": {
+          "xuiCodeEditingInsertText": 1,
+          "xuiCodeEditingDeleteBackward": 1,
+          "xuiCodeEditingDeleteForward": 1,
+          "xuiCodeEditingDeleteWordBackward": 1,
+          "xuiCodeEditingDeleteWordForward": 1,
+          "xuiCodeEditingIndentSelection": 1,
+          "xuiCodeEditingOutdentSelection": 1,
+          "xuiCodeEditingToggleLineComment": 1
+        }
+      },
+      "heap": [
+        {
+          "mode": "jit",
+          "rounds": 1000,
+          "preparedPayload": true,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          },
+          "cpuEquivalenceClaim": false
+        },
+        {
+          "mode": "dynamic",
+          "rounds": 1000,
+          "preparedPayload": true,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          },
+          "cpuEquivalenceClaim": false
+        },
+        {
+          "mode": "static",
+          "rounds": 1000,
+          "preparedPayload": true,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          },
+          "cpuEquivalenceClaim": false
+        }
+      ],
+      "hostSize": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-editing-sizes-win-r1.json",
+        "sha256": "f6f79ffc75bcaaf9231aa00c167dc74187ecb4e5bb390afdd1b5da01edb2978c",
+        "fileDelta": 0,
+        "textDelta": 128,
+        "bssDelta": 0
+      }
+    },
+    "linux": {
+      "sdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-editing-sdk-linux-r1\\results.json",
+        "sha256": "cde4f78c7c43bc10058d5533473e5e892bf79aeeba9e85c32f0f440c7262a78b"
+      },
+      "freeze": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\native-code-editing-linux-freeze-r1.json",
+        "sha256": "cfd6bafa3c6879877b4541cf24a2abe666d8e5b0a31e23db0adb7bb369c406f2"
+      },
+      "source": "F:\\xlang-validation\\xge-full-20261110\\native-code-editing-linux-source-r1",
+      "host": {
+        "compiled": [
+          "single/xge.c",
+          "src/xui/code/xui_code_document.c",
+          "src/xui/code/xui_code_editing.c"
+        ],
+        "reusedCount": 161
+      },
+      "static": {
+        "compiled": [
+          "src/xui/code/xui_code_editing.c",
+          "/mnt/f/xlang-validation/xge-full-20261110/code-editing-sdk-linux-r1/static/xge_static_contract.c"
+        ],
+        "reusedCount": 164
+      },
+      "finalPackages": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-editing-packages-linux-r2\\host.json",
+          "sha256": "9f1545be0e689d839bd6b3a73e7993509921a217b9372baa5468a769a88a7b4f",
+          "root": "F:\\xlang-validation\\xge-full-20261110\\code-editing-packages-linux-r2\\host"
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-editing-packages-linux-r2\\static.json",
+          "sha256": "5de83e51fd32753cd43b3091b7a4dc4e4d39c0ddbf65c7181fab48efcaf46e87",
+          "root": "F:\\xlang-validation\\xge-full-20261110\\code-editing-packages-linux-r2\\static"
+        }
+      },
+      "compiler": {
+        "report": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-null-cstr-linux-full-r29\\build.json",
+          "sha256": "3fb08e3ed8b6166e39bdb66955cea42c0db45d648697ce0e74914bac4adaf723"
+        },
+        "program": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-null-cstr-linux-full-r29\\source\\release\\linux_x64\\xl",
+          "sha256": "faa25e49bdf8c5ce8ccdb084810075b406cc6dd499a59577664616eb2a08265b"
+        }
+      },
+      "primary": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-editing-language-linux-r1\\results.json",
+        "sha256": "bfedc07ce078a819529a0c533db82ae602817493705a95152c0d903027d0f560",
+        "commands": 24,
+        "fullCompilerBuild": true
+      },
+      "methodValues": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-editing-values-linux-r1\\results.json",
+        "sha256": "2a0aeacbb3e5a1ab923ef4a02bf48e1f4dade0d304f7a0f2942043b58b3737a7",
+        "commands": 11,
+        "fullCompilerBuild": true
+      },
+      "unused": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-editing-unused-linux-r1\\results.json",
+        "sha256": "d853f3be6a3739cc8c524e1493eed485672d483e34eec7e4ac8361d9e4eb9bb9",
+        "commands": 6,
+        "fullCompilerBuild": false
+      },
+      "generatedMethodValues": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-editing-values-linux-r1\\generated.c",
+        "sha256": "86efac38182dde9e30e4abe5fe5f972f20949607cab30ff7768a4da1e840dc3a",
+        "nativeCallSites": {
+          "xuiCodeEditingInsertText": 1,
+          "xuiCodeEditingDeleteBackward": 1,
+          "xuiCodeEditingDeleteForward": 1,
+          "xuiCodeEditingDeleteWordBackward": 1,
+          "xuiCodeEditingDeleteWordForward": 1,
+          "xuiCodeEditingIndentSelection": 1,
+          "xuiCodeEditingOutdentSelection": 1,
+          "xuiCodeEditingToggleLineComment": 1
+        }
+      },
+      "heap": [
+        {
+          "mode": "jit",
+          "rounds": 1000,
+          "preparedPayload": true,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          },
+          "cpuEquivalenceClaim": false
+        },
+        {
+          "mode": "dynamic",
+          "rounds": 1000,
+          "preparedPayload": true,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          },
+          "cpuEquivalenceClaim": false
+        },
+        {
+          "mode": "static",
+          "rounds": 1000,
+          "preparedPayload": true,
+          "counts": {
+            "language": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "native": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          },
+          "cpuEquivalenceClaim": false
+        }
+      ],
+      "hostSize": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-editing-sizes-linux-r1.json",
+        "sha256": "3fb7da5cff8ec2f1fffb566efbf7f4e4aa89f69a9a4574d29cb76d893c79ba1d",
+        "fileDelta": 0,
+        "textDelta": 128,
+        "bssDelta": 0
+      }
+    }
+  },
+  "nativeReceipt": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\code-editing-outcomes-20261114.json",
+    "sha256": "68ca65eab3ae924b3f6394680f2e333417611de5ae599183a4324ebdc0093224"
+  },
+  "nativePositiveProcessSteps": 64,
+  "nativeLegacyBuilds": 4,
+  "nativeLegacyDefectRejections": 4,
+  "languagePositiveProcessSteps": 70,
+  "unusedBuildCheckSteps": 12,
+  "packageReuse": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\code-editing-final-package-reuse-r1.json",
+    "sha256": "097084cd6d4228231fb6e3c071d78b76b8c6da6f4235f2fe4ad32f7fb6eb64c1"
+  },
+  "surface": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-code-editing-r1\\surface.json",
+    "sha256": "14feaf430f16a4149cf5e95d6367467f5d9712a253c77bc58134551bd3e137a2",
+    "functions": 5177,
+    "types": 981,
+    "declaredFunctions": 3746,
+    "declaredTypes": 373,
+    "completionRateClaim": false
+  },
+  "methods": [
+    "xuiCodeEditingInsertText",
+    "xuiCodeEditingDeleteBackward",
+    "xuiCodeEditingDeleteForward",
+    "xuiCodeEditingDeleteWordBackward",
+    "xuiCodeEditingDeleteWordForward",
+    "xuiCodeEditingIndentSelection",
+    "xuiCodeEditingOutdentSelection",
+    "xuiCodeEditingToggleLineComment"
+  ],
+  "costs": {
+    "directNativeCall": true,
+    "extraForwardingImplementation": false,
+    "cStringCopies": 0,
+    "cStringCheckScan": true,
+    "nativeStringScans": true,
+    "rootAndNativeScopes": true,
+    "mutationGates": true,
+    "codeLeases": true,
+    "boundCallableCaptureAndClosureCreation": true,
+    "boundCallableIndirectAdapter": true,
+    "emptyPreparedCommandsPerMode": 5000,
+    "cpuEquivalenceClaim": false
+  },
+  "historicalFailure": {
+    "report": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\code-editing-language-win-r1\\results.json",
+      "sha256": "c367843646f60211862cdb61348f464816097b8b38118d2c8cd75644a06fe430"
+    },
+    "reason": "Initial fixture put multiline elseif after a single-line if without the required block form. Expanded the fixture blocks; no compiler/product change."
+  },
+  "limits": [
+    "Source snapshots exclude unrelated native XUI working changes.",
+    "The raw native test/tool overlays add body/OOM coverage after SDK freeze; their exact final bytes are pinned by native reports.",
+    "Qualified primary/method-value/unused runs use packages-r1. Final r2 differs ONLY in two README newline encodings; complete package byte comparison proves all code/native/header/manifest/lesson/asset bytes unchanged.",
+    "Empty-document hot counts do not describe mutating edits, C-string preparation, payloads, callbacks, cold setup or CPU time.",
+    "Existing counted bytes preserve NUL; C-string insertion/indent/comment inputs reject embedded NUL.",
+    "Errors after commit do not promise rollback or an updated selection; explicit checked partial-commit carrier remains pending.",
+    "CommandMap optional lookup, callback-bearing MarginModel, bulk arrays, existing-owner aliases and other pending contracts not bypassed.",
+    "No real editor UI interaction, final runtime/compiler/SDK/IDE/help installation, delivery-index modification or online push."
+  ]
+}

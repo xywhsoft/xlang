@@ -538,6 +538,13 @@
       "kind": "cpu",
       "gallery": false,
       "expected": "Select a word by byte range and edit the keyword style in independent numeric models."
+    },
+    {
+      "name": "code_editing",
+      "title": "Selection editing commands",
+      "kind": "cpu",
+      "gallery": false,
+      "expected": "Replace a selected word, indent, undo and toggle a line comment with native editing commands."
     }
   ],
   "helper": "_window.xl",

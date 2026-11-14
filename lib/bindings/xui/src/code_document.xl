@@ -36,6 +36,16 @@ export extern "xui_code_document_t*" class CodeDocument @header("xge3_runtime.h"
  extern "xuiCodeDocumentLoadTextFile" @no_raise @c_cstr(0) @c_result("status",0) func loadTextFile(string path,c_int charset)
  extern "xuiCodeDocumentSaveTextFile" @no_raise @c_cstr(0) @c_result("status",0) func saveTextFile(string path,c_int charset)
  extern "xuiCodeDocumentSetChangeCallbackOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setChangeCallback(CodeDocumentChangeProc? callback)
+ // Composite editing commands use the native selection model and undo groups.
+ // A callback error may follow committed text; it does not imply rollback.
+ extern "xuiCodeEditingInsertText" @no_raise @c_cstr(1) @c_result("status",0) func insertSelectedText(CodeSelectionModel selection,string text,c_int readonly=0)
+ extern "xuiCodeEditingDeleteBackward" @no_raise @c_result("status",0) func deleteBackward(CodeSelectionModel selection,c_int readonly=0)
+ extern "xuiCodeEditingDeleteForward" @no_raise @c_result("status",0) func deleteForward(CodeSelectionModel selection,c_int readonly=0)
+ extern "xuiCodeEditingDeleteWordBackward" @no_raise @c_result("status",0) func deleteWordBackward(CodeSelectionModel selection,c_int readonly=0)
+ extern "xuiCodeEditingDeleteWordForward" @no_raise @c_result("status",0) func deleteWordForward(CodeSelectionModel selection,c_int readonly=0)
+ extern "xuiCodeEditingIndentSelection" @no_raise @c_cstr(1) @c_result("status",0) func indent(CodeSelectionModel selection,string indent="\t",c_int readonly=0)
+ extern "xuiCodeEditingOutdentSelection" @no_raise @c_result("status",0) func outdent(CodeSelectionModel selection,c_int columns=4,c_int readonly=0)
+ extern "xuiCodeEditingToggleLineComment" @no_raise @c_cstr(1) @c_result("status",0) func toggleLineComment(CodeSelectionModel selection,string marker="//",c_int readonly=0)
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
 extern "xuiCodeDocumentDestroyChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func rollbackCodeDocument(CodeDocument document)

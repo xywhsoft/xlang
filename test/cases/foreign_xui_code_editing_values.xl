@@ -1,0 +1,61 @@
+// Bound command values retain the receiver and still enforce expiry/status.
+import xui
+func main(...) as int
+ auto document=xui.createCodeDocument()
+ auto selection=xui.createCodeSelection()
+ func(xui.CodeSelectionModel,string,c_int) insert=document.insertSelectedText
+ func(xui.CodeSelectionModel,c_int) backward=document.deleteBackward
+ func(xui.CodeSelectionModel,c_int) forward=document.deleteForward
+ func(xui.CodeSelectionModel,c_int) wordBackward=document.deleteWordBackward
+ func(xui.CodeSelectionModel,c_int) wordForward=document.deleteWordForward
+ func(xui.CodeSelectionModel,string,c_int) indent=document.indent
+ func(xui.CodeSelectionModel,c_int,c_int) outdent=document.outdent
+ func(xui.CodeSelectionModel,string,c_int) comment=document.toggleLineComment
+ document.setText("ab")
+ selection.gotoOffset(document,1)
+ insert(selection,"X",0)
+ assert document.getText()=="aXb"
+ backward(selection,0)
+ assert document.getText()=="ab"
+ forward(selection,0)
+ assert document.getText()=="a"
+ document.setText("one two")
+ selection.selectWord(document,5)
+ wordBackward(selection,0)
+ assert document.getText()=="one "
+ document.setText("one two")
+ selection.selectWord(document,5)
+ wordForward(selection,0)
+ assert document.getText()=="one "
+ document.setText("a")
+ selection.selectAll(document)
+ indent(selection,"  ",0)
+ assert document.getText()=="  a"
+ selection.selectAll(document)
+ outdent(selection,2,0)
+ assert document.getText()=="a"
+ selection.selectAll(document)
+ document.setChangeCallback(func(xui.CallbackCodeDocument source,xui.CodeRange range,c_uint version)
+  assert false,"notification failure after committed edit"
+ end)
+ bool rejected=false
+ try
+  comment(selection,"//",0)
+ catch Error failure
+  rejected=true
+ finally
+  document.setChangeCallback(null)
+ end
+ assert rejected and document.getText()=="//a"
+ document.close()
+ rejected=false
+ try
+  insert(selection,"expired",0)
+ catch StateError
+  rejected=true
+ end
+ assert rejected
+ selection.close()
+ println("CodeEditing values: all eight bound calls, callback failure and expired receiver passed")
+ return 0
+end

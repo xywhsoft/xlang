@@ -1,0 +1,182 @@
+import xui
+extern "fixtureEditingBudget" @header("test/cases/foreign_xui_code_editing.h") @no_raise func budget(c_int allowance)
+extern "fixtureEditingBegin" @no_raise func beginHeap()
+extern "fixtureEditingReport" @no_raise func reportHeap(c_int native)
+extern "fixtureEditingHot" @no_raise func nativeHot(xui.CodeDocument document,xui.CodeSelectionModel selection)
+extern "fixtureEditingFailEnd" @no_raise @c_result("status",0) func failEnd(xui.CodeDocument document)
+extern "fixtureEditingClearFailure" @no_raise @c_result("status",0) func clearFailure(xui.CodeDocument document)
+extern "fixtureEditingReferences" @no_raise func references() as c_int
+
+func edit(xui.CodeDocument document,xui.CodeSelectionModel selection,int operation,c_int readonly=0)
+ if operation==0 then
+  document.insertSelectedText(selection,"X",readonly)
+ elseif operation==1 then
+  document.deleteBackward(selection,readonly)
+ elseif operation==2 then
+  document.deleteForward(selection,readonly)
+ elseif operation==3 then
+  document.deleteWordBackward(selection,readonly)
+ elseif operation==4 then
+  document.deleteWordForward(selection,readonly)
+ elseif operation==5 then
+  document.indent(selection,"  ",readonly)
+ elseif operation==6 then
+  document.outdent(selection,2,readonly)
+ else
+  document.toggleLineComment(selection,"//",readonly)
+ end
+end
+
+func main(...) as int
+ auto document=xui.createCodeDocument()
+ auto selection=xui.createCodeSelection()
+ document.setText("Hello world")
+ selection.selectWord(document,7)
+ document.insertSelectedText(selection,"xlang")
+ assert document.getText()=="Hello xlang" and selection.getState().iCaretOffset==11
+ document.undo()
+ assert document.getText()=="Hello world"
+ // Backspace/Delete operate on complete graphemes, including combining marks.
+ document.setText("A你éZ")
+ selection.gotoOffset(document,7)
+ document.deleteBackward(selection)
+ assert document.getText()=="A你Z" and selection.getState().iCaretOffset==4
+ selection.gotoOffset(document,1)
+ document.deleteForward(selection)
+ assert document.getText()=="AZ" and selection.getState().iCaretOffset==1
+ document.setText("one two three")
+ selection.gotoOffset(document,7)
+ document.deleteWordBackward(selection)
+ assert document.getText()=="one  three"
+ selection.gotoOffset(document,5)
+ document.deleteWordForward(selection)
+ assert document.getText()=="one  "
+ // Existing counted document data is retained, even though inserted strings
+ // use the native C-string contract and therefore reject embedded NUL.
+ document.setText("A\0B")
+ selection.gotoOffset(document,2)
+ document.insertSelectedText(selection,"X")
+ assert document.getText()=="A\0XB"
+ document.setText("a\nb")
+ selection.selectAll(document)
+ document.indent(selection,"  ")
+ assert document.getText()=="  a\n  b"
+ document.undo()
+ assert document.getText()=="a\nb"
+ document.redo()
+ selection.selectAll(document)
+ document.outdent(selection,2)
+ assert document.getText()=="a\nb"
+ selection.selectAll(document)
+ document.toggleLineComment(selection)
+ assert document.getText()=="//a\n//b"
+ selection.selectAll(document)
+ document.toggleLineComment(selection)
+ assert document.getText()=="a\nb"
+ for operation in range(8)
+  bool rejected=false
+  try
+   edit(document,selection,operation,c_int(1))
+  catch Error failure
+   rejected=true
+   assert failure.code==xui.XUI_ERROR_UNSUPPORTED
+  end
+  assert rejected and document.getText()=="a\nb"
+ end
+ bool rejected=false
+ try
+  document.insertSelectedText(selection,"bad\0text")
+ catch Error failure
+  rejected=true
+ end
+ assert rejected and document.getText()=="a\nb"
+ rejected=false
+ try
+  document.toggleLineComment(selection,"bad\nmarker")
+ catch Error failure
+  rejected=true
+ end
+ assert rejected and document.getText()=="a\nb"
+ // Native no-diagnostic Drop failure must not disappear in compound EndEdit.
+ for operation in [5,6,7]
+  document.setText(operation==6 ? "  a\n  b":"a\nb")
+  selection.selectAll(document)
+  failEnd(document)
+  rejected=false
+  try
+   edit(document,selection,operation)
+  catch Error failure
+   rejected=true
+   assert failure.code==xui.XUI_ERROR_CALLBACK_FAILED
+  finally
+   clearFailure(document)
+  end
+  assert rejected and references()==1
+  assert document.getText()==(operation==5 ? "  a\n  b":operation==6 ? "a\nb":"//a\n//b")
+ end
+ // Failure need not roll back earlier committed lines. Models must remain usable.
+ int failures=0
+ for operation in range(8)
+  for allowance in range(16)
+   document.setText(operation==6 ? "  one\n  two":"one\ntwo")
+   selection.selectAll(document)
+   budget(c_int(allowance))
+   try
+    edit(document,selection,operation)
+   catch Error failure
+    failures+=1
+   finally
+    budget(-1)
+   end
+   assert document.getLineCount()>=1
+   auto text=document.getText()
+  end
+ end
+ assert failures>0
+ auto worker=thread(func() as int
+  try
+   document.deleteBackward(selection)
+  catch StateError
+   return 1
+  end
+  return 0
+ end)
+ assert worker.waitTimeout(30000) and worker.exitCode()==1
+ document.setText("")
+ selection.setRange(document,0,0)
+ beginHeap()
+ budget(0)
+ try
+  for i in range(1000)
+   document.deleteBackward(selection)
+   document.deleteForward(selection)
+   document.deleteWordBackward(selection)
+   document.deleteWordForward(selection)
+   document.outdent(selection)
+  end
+ finally
+  budget(-1)
+ end
+ reportHeap(0)
+ beginHeap()
+ nativeHot(document,selection)
+ reportHeap(1)
+ selection.close()
+ rejected=false
+ try
+  document.deleteBackward(selection)
+ catch StateError
+  rejected=true
+ end
+ assert rejected
+ document.close()
+ rejected=false
+ try
+  document.deleteForward(selection)
+ catch StateError
+  rejected=true
+ end
+ assert rejected
+ println("CodeEditing: graphemes, NUL, grouped undo, readonly, EndEdit failures, OOM, thread and expiry passed")
+ return 0
+end

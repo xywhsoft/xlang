@@ -1,0 +1,25 @@
+// 用同一份选区替换单词、缩进和注释；每个复合操作是一个撤销步骤。
+import xui
+
+func main(...) as int
+ auto document=xui.createCodeDocument()
+ auto selection=xui.createCodeSelection()
+ try
+  document.setText("Hello world")
+  selection.selectWord(document,7)
+  document.insertSelectedText(selection,"xlang")
+  println(document.getText())
+  selection.selectAll(document)
+  document.indent(selection,"  ")
+  println("缩进后："+document.getText())
+  document.undo()
+  println("撤销后："+document.getText())
+  selection.selectAll(document)
+  document.toggleLineComment(selection)
+  println("注释后："+document.getText())
+ finally
+  selection.close()
+  document.close()
+ end
+ return 0
+end

@@ -407,3 +407,11 @@ independent snapshot. Context expiry rejects reads but still permits layout
 cleanup. Close retains deferred native cleanup until its paint is ready.
 See `examples/text_layout.xl` and `docs/xui-text-layout.md` for ownership,
 measurement, byte offsets, checked failures, costs and remaining alias work.
+
+`CodeDocument` also exposes the eight native selection editing commands:
+`insertSelectedText`, `deleteBackward`, `deleteForward`, `deleteWordBackward`,
+`deleteWordForward`, `indent`, `outdent`, and `toggleLineComment`. They use an
+independent `CodeSelectionModel` and native undo grouping. C-string arguments
+reject embedded NUL; existing counted document bytes are retained. A callback
+failure can follow committed edits and does not imply rollback. See
+`examples/code_editing.xl` and `docs/xui-code-editing.md` in the development tree.

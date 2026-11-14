@@ -1,0 +1,9 @@
+#pragma once
+#include "xge3_runtime.h"
+void fixtureEditingBudget(int);
+void fixtureEditingBegin(void);
+void fixtureEditingReport(int);
+void fixtureEditingHot(xui_code_document,xui_code_selection_model);
+int fixtureEditingFailEnd(xui_code_document);
+int fixtureEditingClearFailure(xui_code_document);
+int fixtureEditingReferences(void);
