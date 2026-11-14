@@ -425,3 +425,13 @@ Context or document is required. See `examples/code_folding.xl` and the source
 repository's `docs/xui-code-folding.md` for exact behavior, costs and remaining
 bulk-output/internal-model alias work. Array projection costs O(n) and one
 temporary allocation; warmed queries add no heap operations but retain checks.
+
+`CodeDocument.replaceAllPlain(pattern,replacement,flags=0)` and
+`replaceAllRegex(pattern,replacement,flags=0,error=null)` return the native
+replacement count after checked success. Patterns/replacements are C strings;
+existing document NUL bytes are preserved. Native replacement is grouped for
+undo; failures can follow partial or committed edits. The optional diagnostic
+Buffer is write-pinned across the native call and callbacks. See
+`examples/code_replace.xl` and `docs/xui-code-replace.md`. Prepared string inputs
+add no string mirror; literal construction and native regex compilation retain
+their own allocations. This requires the matched counted-search SDK.

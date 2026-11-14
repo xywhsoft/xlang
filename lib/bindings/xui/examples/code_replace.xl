@@ -1,0 +1,22 @@
+// Replacing all matches is one native document operation with undo support.
+import xui
+
+func main(...) as int
+ auto document=xui.createCodeDocument()
+ try
+  document.setText("red red blue")
+  auto count=document.replaceAllPlain("red","green")
+  assert count==2 and document.getText()=="green green blue"
+  println("Literal replacements:",count)
+  document.undo()
+  assert document.getText()=="red red blue"
+
+  document.setText("item 12, item 34")
+  count=document.replaceAllRegex("item ([0-9]+)","#$1")
+  assert count==2 and document.getText()=="#12, #34"
+  println(document.getText())
+ finally
+  document.close()
+ end
+ return 0
+end

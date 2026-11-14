@@ -158,7 +158,7 @@ WebView 范例只加载源码中的本地 HTML。它需要启用 WebView2 的 Wi
 不创建窗口的 [edit_search.xl](edit_search.xl) 演示 CodeEdit 查找、替换、读取结果和
 “没有匹配”的状态检查；直接使用 XGE 文档模型，不需要外部文件或服务。
 
-共 84 个独立入口文件，其中现有综合画廊可浏览 57 个场景。图标专题入口包括
+共 86 个独立入口文件，其中现有综合画廊可浏览 57 个场景。图标专题入口包括
 `icon_picker.xl`（分类与格式化）、`icon_memory.xl`（内存 SVG）、
 `icon_custom.xl`（回调期 Painter 自绘）和 `icon_file.xl`（SVG／PNG 文件与批量更新）。
 文件范例附带两份小型 `assets/icon_file.*` 资源；保留 assets 目录，公共窗口助手会
@@ -205,3 +205,7 @@ window loop. System fonts are demonstrated in the xge package's `examples/system
 然后将可见行号映射回原始行号。预期输出 `Visible lines: 3` 和
 `Row 2 maps to line: 5`。所有行号从 0 开始；不创建窗口、Context、文档或
 字体，也不需要文件／服务。`finally` 关闭独立折叠模型。
+
+`code_replace.xl` 不创建窗口，先把所有 `red` 替换为 `green` 并撤销，再用正则
+把 `item 12, item 34` 转成 `#12, #34`。预期输出 `Literal replacements: 2`
+和 `#12, #34`；每一步都能从源码和输出核对，`finally` 关闭独立文档。

@@ -1,0 +1,211 @@
+import xui
+extern "fixtureSearchBudget" @header("test/cases/foreign_xui_code_replace.h") @no_raise func budget(c_int allowance)
+extern "fixtureSearchPrefixBegin" @no_raise func prefixBegin()
+extern "fixtureSearchPrefixEnd" @no_raise func prefixEnd()
+extern "fixtureSearchHeapEqual" @no_raise func heapEqual()
+extern "fixtureSearchBegin" @no_raise func hotBegin()
+extern "fixtureSearchReport" @no_raise func hotReport(c_int kind)
+extern "fixtureSearchNativeHot" @no_raise func nativeHot(xui.CodeDocument document,c_int regex)
+
+func main(...) as int
+ auto document=xui.createCodeDocument()
+ document.setText("a\0foo foo")
+ assert document.replaceAllRegex("foo","bar")==2 and document.getText()=="a\0bar bar"
+ document.undo()
+ assert document.getText()=="a\0foo foo"
+ document.redo()
+ assert document.getText()=="a\0bar bar"
+ document.undo()
+ assert document.replaceAllPlain("foo","bar")==2 and document.getText()=="a\0bar bar"
+ document.setText("xx")
+ assert document.replaceAllPlain("x","\r\n")==2 and document.getText()=="\n\n"
+ document.undo()
+ assert document.getText()=="xx"
+ document.redo()
+ assert document.getText()=="\n\n"
+ document.setText("é")
+ assert document.replaceAllPlain("e","X")==1 and document.getText()=="X́"
+ document.undo()
+ assert document.getText()=="é"
+ document.redo()
+ assert document.getText()=="X́"
+ document.setText("xx")
+ auto version=document.getVersion()
+ assert document.replaceAllPlain("x","x")==2 and document.getVersion()==version and document.canUndo()==0
+ document.setText("Foo foo")
+ assert document.replaceAllPlain("foo","X",c_uint(xui.XUI_CODE_SEARCH_CASE_SENSITIVE))==1 and document.getText()=="Foo X"
+ document.setText("foo foobar")
+ assert document.replaceAllPlain("foo","X",c_uint(xui.XUI_CODE_SEARCH_WHOLE_WORD))==1 and document.getText()=="X foobar"
+ document.setText("item 12, item 34")
+ assert document.replaceAllRegex("item ([0-9]+)","#$1")==2 and document.getText()=="#12, #34"
+ document.undo()
+ assert document.getText()=="item 12, item 34"
+ document.setText("你A")
+ assert document.replaceAllRegex("^",">")==1 and document.getText()==">你A"
+ auto diagnostic=Buffer("................................................................")
+ c_int number=37
+ int rejected=0
+ try
+  number=document.replaceAllRegex("[","x",0,diagnostic)
+ catch Error
+  rejected+=1
+ end
+ assert rejected==1 and number==37 and diagnostic.length==64 and diagnostic[0]!=uint8(0)
+ for value in ["", "x\0y"]
+  try
+   number=document.replaceAllPlain(value,"x")
+  catch Error
+   rejected+=1
+  end
+ end
+ assert rejected==3 and number==37 and document.getText()==">你A"
+ try
+  number=document.replaceAllRegex("A","x\0y")
+ catch Error
+  rejected+=1
+ end
+ assert rejected==4 and number==37
+ document.setText("foo foo")
+ int calls=0
+ document.setChangeCallback(func(xui.CallbackCodeDocument sender,xui.CodeRange range,c_uint changed)
+  calls+=1
+  assert sender.getText()=="bar bar"
+  assert false,"replacement callback failed"
+ end)
+ try
+  number=document.replaceAllPlain("foo","bar")
+ catch AssertionError
+  rejected+=1
+ end
+ assert rejected==5 and calls==1 and number==37 and document.getText()=="bar bar"
+ document.setChangeCallback(null)
+ document.undo()
+ assert document.getText()=="foo foo"
+ document.setChangeCallback(func(xui.CallbackCodeDocument sender,xui.CodeRange range,c_uint changed)
+  assert false,"regex callback failed"
+ end)
+ try
+  number=document.replaceAllRegex("foo","bar")
+ catch AssertionError
+  rejected+=1
+ end
+ assert rejected==6 and number==37 and document.getText()=="bar bar"
+ document.setChangeCallback(null)
+ // The diagnostic Buffer remains write-pinned while change callbacks run.
+ document.setText("foo")
+ int pinned=0
+ document.setChangeCallback(func(xui.CallbackCodeDocument sender,xui.CodeRange range,c_uint changed)
+  try
+   diagnostic.resize(1)
+  catch Error
+   pinned+=1
+  end
+ end)
+ assert document.replaceAllRegex("foo","bar",0,diagnostic)==1 and pinned==1 and diagnostic.length==64
+ document.setChangeCallback(null)
+ for operation in range(2)
+  int failures=0
+  int successes=0
+  for allowance in range(96)
+   prefixBegin()
+   c_int result=37
+   try
+    auto candidate=xui.createCodeDocument()
+    try
+     candidate.setText("foo foo")
+     budget(c_int(allowance))
+     if operation==0 then
+      result=candidate.replaceAllPlain("foo","bar")
+     else
+      result=candidate.replaceAllRegex("(foo)","$1!")
+     end
+     assert result==2
+    finally
+     budget(-1)
+     candidate.close()
+    end
+    successes+=1
+   catch Error
+    assert result==37
+    failures+=1
+   finally
+    prefixEnd()
+   end
+   heapEqual()
+  end
+  assert failures>0 and successes>0
+ end
+ auto closing=xui.createCodeDocument()
+ closing.setText("foo")
+ closing.setChangeCallback(func(xui.CallbackCodeDocument sender,xui.CodeRange range,c_uint changed)
+  closing.close()
+ end)
+ bool closed=false
+ try
+  closing.replaceAllRegex("foo","bar")
+ catch StateError
+  closed=true
+ end
+ assert closed
+ auto worker=thread(func() as int
+  try
+   document.replaceAllPlain("foo","bar")
+  catch StateError
+   return 1
+  end
+  return 0
+ end)
+ assert worker.waitTimeout(30000) and worker.exitCode()==1
+ func(string,string,c_uint) as c_int plain=document.replaceAllPlain
+ func(string,string,c_uint,Buffer?) as c_int regex=document.replaceAllRegex
+ document.setText("")
+ assert plain("absent","x",0)==0 and regex("absent","x",0,null)==0
+ hotBegin()
+ for i in range(1000)
+  assert document.replaceAllPlain("absent","x")==0
+ end
+ hotReport(0)
+ hotBegin()
+ nativeHot(document,0)
+ hotReport(1)
+ hotBegin()
+ for i in range(100)
+  assert document.replaceAllRegex("absent","x")==0
+ end
+ hotReport(2)
+ hotBegin()
+ nativeHot(document,1)
+ hotReport(3)
+ string pattern="absent"
+ string replacement="x"
+ hotBegin()
+ budget(0)
+ try
+  for i in range(1000)
+   assert document.replaceAllPlain(pattern,replacement)==0
+  end
+ finally
+  budget(-1)
+ end
+ hotReport(4)
+ hotBegin()
+ for i in range(100)
+  assert document.replaceAllRegex(pattern,replacement)==0
+ end
+ hotReport(5)
+ document.close()
+ rejected=0
+ try
+  plain("foo","bar",0)
+ catch StateError
+  rejected+=1
+ end
+ try
+  regex("foo","bar",0,null)
+ catch StateError
+  rejected+=1
+ end
+ assert rejected==2
+ println("CodeReplace: NUL, CRLF, undo, captures, callbacks, pinned diagnostics, OOM, thread and expiry passed")
+ return 0
+end

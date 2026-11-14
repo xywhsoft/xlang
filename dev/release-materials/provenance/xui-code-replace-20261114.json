@@ -1,0 +1,528 @@
+{
+  "schema": 1,
+  "date": "2026-11-14",
+  "qualified": true,
+  "shippingDelivery": false,
+  "fullGoalComplete": false,
+  "nativeRebuilt": true,
+  "compilerRebuilt": false,
+  "networkTests": false,
+  "nativeRevision": "1b15f370cbeec7cfecc2cc8ef8ec4012fca7a9bc",
+  "scope": "Two direct whole-document replace methods, checked scalar outputs and writable diagnostic Buffer. Counted native search repairs separately committed.",
+  "sources": {
+    "lib/bindings/xui/src/code_document.xl": "67f6238062695446423099396949c2556def4b435767a21bcb40d93a5c10c022",
+    "lib/bindings/xui/examples/code_replace.xl": "36d5d84b7aa088a8eb364c7f54a1ff4266673c3d24df59decdcc0adef4dd6f54",
+    "lib/bindings/xui/README.md": "0ec0537342f88ebf386d072084c7db7c2558cbe920a323247024d9177ada54d9",
+    "lib/bindings/xui/examples/README.md": "e2eb4da0ca343d39447b79719e3b78795f1e30f9e8b826a6267f041534ef39d1",
+    "test/cases/foreign_xui_code_replace.xl": "18def00089a29382f11a728e9e4f292ae1043b7222f760acedee406e6f870d1b",
+    "test/cases/foreign_xui_code_replace.h": "0bb34ad355684c39b69e34dfa5bc2670cbc0d94c8de283f497ac2b0fc3c89774",
+    "test/cases/foreign_xui_code_replace.c": "df977ca5bc3d13537cdb8a8b03690d90436ee494803e9bc5aa005f0c14cf8588",
+    "tools/check_xui_code_replace.py": "f79acbc02f27110153cacdeada00ef2625bd31909cc37caccbf0dbec15912d96",
+    "docs/xui-code-replace.md": "588cfadc10e859c40fb2b4680bf97a421ddb1c047a8480b7d7ff855828792c05",
+    "docs/xge3-xui3-full-coverage-plan.md": "790250dd1b879f405e6259f0fe530919277124e75a18ceb98fa9a4776a0b83c4"
+  },
+  "platforms": {
+    "win": {
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-replace-language-win-r1\\results.json",
+        "sha256": "a410aa01f75c123c7e4585102f962afe4bea8d3fdf3df7fbc152901658cfbd6c"
+      },
+      "commands": 24,
+      "programs": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-replace-language-win-r1\\foreign_xui_code_replace-dynamic.exe",
+          "sha256": "8767ff8179f65af59b12773de8a3a82de40e68720f5c3c8996879003beabc3f0",
+          "bytes": 5285376,
+          "imports": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-replace-language-win-r1\\foreign_xui_code_replace-static.exe",
+          "sha256": "d69470281722d1b344dfe1da7853b0de94ee4d55e7f575a69786aaf3cc292e66",
+          "bytes": 1842176,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "ole32.dll",
+            "SHELL32.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-replace-language-win-r1\\code_replace-dynamic.exe",
+          "sha256": "ce0d7c6dd108ad4161fe13e6ff999ca9ac66c2f8ee68ad1e36bbe64c342aeadd",
+          "bytes": 1525248,
+          "imports": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-replace-language-win-r1\\code_replace-static.exe",
+          "sha256": "6d3e2200050e083e1d1ae08aa6e956c69ed3ecf2ed42eac681c44fa3c28156e8",
+          "bytes": 1193472,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "ole32.dll",
+            "SHELL32.dll"
+          ]
+        }
+      ],
+      "heap": [
+        {
+          "mode": "jit",
+          "plainCalls": 1000,
+          "regexCalls": 100,
+          "allocationPrefixes": 96,
+          "literalExtraAllocationsPerCall": 2,
+          "preparedLanguageEqualsNativeHeap": true,
+          "counts": {
+            "0": {
+              "alloc": 2000,
+              "free": 2000,
+              "realloc": 0
+            },
+            "1": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "2": {
+              "alloc": 6000,
+              "free": 6000,
+              "realloc": 3800
+            },
+            "3": {
+              "alloc": 5800,
+              "free": 5800,
+              "realloc": 3800
+            },
+            "4": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "5": {
+              "alloc": 5800,
+              "free": 5800,
+              "realloc": 3800
+            }
+          }
+        },
+        {
+          "mode": "dynamic",
+          "plainCalls": 1000,
+          "regexCalls": 100,
+          "allocationPrefixes": 96,
+          "literalExtraAllocationsPerCall": 2,
+          "preparedLanguageEqualsNativeHeap": true,
+          "counts": {
+            "0": {
+              "alloc": 2000,
+              "free": 2000,
+              "realloc": 0
+            },
+            "1": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "2": {
+              "alloc": 6000,
+              "free": 6000,
+              "realloc": 3800
+            },
+            "3": {
+              "alloc": 5800,
+              "free": 5800,
+              "realloc": 3800
+            },
+            "4": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "5": {
+              "alloc": 5800,
+              "free": 5800,
+              "realloc": 3800
+            }
+          }
+        },
+        {
+          "mode": "static",
+          "plainCalls": 1000,
+          "regexCalls": 100,
+          "allocationPrefixes": 96,
+          "literalExtraAllocationsPerCall": 2,
+          "preparedLanguageEqualsNativeHeap": true,
+          "counts": {
+            "0": {
+              "alloc": 2000,
+              "free": 2000,
+              "realloc": 0
+            },
+            "1": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "2": {
+              "alloc": 6000,
+              "free": 6000,
+              "realloc": 3800
+            },
+            "3": {
+              "alloc": 5800,
+              "free": 5800,
+              "realloc": 3800
+            },
+            "4": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "5": {
+              "alloc": 5800,
+              "free": 5800,
+              "realloc": 3800
+            }
+          }
+        }
+      ],
+      "generatedC": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-replace-language-win-r1\\foreign_xui_code_replace.c",
+        "sha256": "49eee631b3e12a94913c0252b9b37b1b2a0b95e35fe8376cadeac6563817d164",
+        "directCalls": {
+          "xuiCodeSearchReplaceAllPlain": 13,
+          "xuiCodeSearchReplaceAllRegex": 12
+        },
+        "checkedCStringInput": true,
+        "writableBufferPin": true,
+        "zeroBridgeOverheadClaim": false
+      },
+      "testedPackageReports": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-replace-packages-win-r2\\host.json",
+          "sha256": "b5a16d1fc8ca052f33cf5d41e722840f43c895b735180bb67262b4c77e4df6cf"
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-replace-packages-win-r2\\static.json",
+          "sha256": "d3fdf213b51dbd5c2e9d9a7787983d99ec7b9b5b806483ffbfd7afb0b83d554e"
+        }
+      },
+      "finalPackageReports": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-replace-packages-win-r3\\host.json",
+          "sha256": "4611083fcff9739f00ed6eab7ff607a78f66c6de3af5fcf8ab901f0ce08666a3"
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-replace-packages-win-r3\\static.json",
+          "sha256": "51f919e67b3605e9a7908b54f96a2b61a85e2baa5f672b3129a71021356ac187"
+        }
+      },
+      "nativeBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-search-sdk-win-r2\\results.json",
+        "sha256": "14657c09ee9653cd2867696d998bbc7c848581260e9ef90e3918ec6d50149393"
+      },
+      "trim": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-replace-trim-win-r1\\results.json",
+        "sha256": "cc2171bbf489f9d2c8cdcfd7a0dfc8ce87d950f1a39296e551d6f7e2bdd2779a"
+      },
+      "trimCommands": 8,
+      "trimDeltas": {
+        "bytes": 0,
+        "text": 0,
+        "bss": 0
+      },
+      "nativeCost": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-search-cost-win-r2\\results.json",
+        "sha256": "c559d20df93eb52c356d7b4fb10b11f4c3e6458b2d85dd718c138d821eb2c1cc"
+      }
+    },
+    "linux": {
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-replace-language-linux-r1\\results.json",
+        "sha256": "8bc722cb58a009b0d45cd3f8d2d44d4f1e23cfec913893e40802a7e15b0af5bf"
+      },
+      "commands": 24,
+      "programs": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/code-replace-language-linux-r1/foreign_xui_code_replace-dynamic",
+          "sha256": "8b79bf14030ec54d21015f568362dc9be71dfcb68364467efa2f030b3af4a8a3",
+          "bytes": 5473320,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/code-replace-language-linux-r1/foreign_xui_code_replace-static",
+          "sha256": "d09b09b2c0abb46b5804efbd42cdd1c3bc9b6a7628db2d1970168db292599c6a",
+          "bytes": 2179832,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/code-replace-language-linux-r1/code_replace-dynamic",
+          "sha256": "a7d816aaefbdf161e51b1b866b970c2f7f3f2ee79b31807ea59813f2d747ce86",
+          "bytes": 1587759,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/code-replace-language-linux-r1/code_replace-static",
+          "sha256": "8d8eceaa6e6c84e9dcc7b64f593b102f130bc11dae6486bed4f941bd775f21c4",
+          "bytes": 1471733,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ],
+      "heap": [
+        {
+          "mode": "jit",
+          "plainCalls": 1000,
+          "regexCalls": 100,
+          "allocationPrefixes": 96,
+          "literalExtraAllocationsPerCall": 2,
+          "preparedLanguageEqualsNativeHeap": true,
+          "counts": {
+            "0": {
+              "alloc": 2000,
+              "free": 2000,
+              "realloc": 0
+            },
+            "1": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "2": {
+              "alloc": 6000,
+              "free": 6000,
+              "realloc": 3800
+            },
+            "3": {
+              "alloc": 5800,
+              "free": 5800,
+              "realloc": 3800
+            },
+            "4": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "5": {
+              "alloc": 5800,
+              "free": 5800,
+              "realloc": 3800
+            }
+          }
+        },
+        {
+          "mode": "dynamic",
+          "plainCalls": 1000,
+          "regexCalls": 100,
+          "allocationPrefixes": 96,
+          "literalExtraAllocationsPerCall": 2,
+          "preparedLanguageEqualsNativeHeap": true,
+          "counts": {
+            "0": {
+              "alloc": 2000,
+              "free": 2000,
+              "realloc": 0
+            },
+            "1": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "2": {
+              "alloc": 6000,
+              "free": 6000,
+              "realloc": 3800
+            },
+            "3": {
+              "alloc": 5800,
+              "free": 5800,
+              "realloc": 3800
+            },
+            "4": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "5": {
+              "alloc": 5800,
+              "free": 5800,
+              "realloc": 3800
+            }
+          }
+        },
+        {
+          "mode": "static",
+          "plainCalls": 1000,
+          "regexCalls": 100,
+          "allocationPrefixes": 96,
+          "literalExtraAllocationsPerCall": 2,
+          "preparedLanguageEqualsNativeHeap": true,
+          "counts": {
+            "0": {
+              "alloc": 2000,
+              "free": 2000,
+              "realloc": 0
+            },
+            "1": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "2": {
+              "alloc": 6000,
+              "free": 6000,
+              "realloc": 3800
+            },
+            "3": {
+              "alloc": 5800,
+              "free": 5800,
+              "realloc": 3800
+            },
+            "4": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "5": {
+              "alloc": 5800,
+              "free": 5800,
+              "realloc": 3800
+            }
+          }
+        }
+      ],
+      "generatedC": {
+        "path": "/mnt/f/xlang-validation/xge-full-20261110/code-replace-language-linux-r1/foreign_xui_code_replace.c",
+        "sha256": "49eee631b3e12a94913c0252b9b37b1b2a0b95e35fe8376cadeac6563817d164",
+        "directCalls": {
+          "xuiCodeSearchReplaceAllPlain": 13,
+          "xuiCodeSearchReplaceAllRegex": 12
+        },
+        "checkedCStringInput": true,
+        "writableBufferPin": true,
+        "zeroBridgeOverheadClaim": false
+      },
+      "testedPackageReports": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-replace-packages-linux-r2\\host.json",
+          "sha256": "4002b34b9476751f8265c8f36ac28a6146a72932fdbb56efcf7b9b5e122a9363"
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-replace-packages-linux-r2\\static.json",
+          "sha256": "668130951230a3193ae87dfc82450e33c3aeb86b2e374e8116881d9879509c16"
+        }
+      },
+      "finalPackageReports": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-replace-packages-linux-r3\\host.json",
+          "sha256": "adec6941f778d05b20d412b891e63e20c0d269f721f99a4f60cf772f9930cf3c"
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\code-replace-packages-linux-r3\\static.json",
+          "sha256": "2a96d9f7f772142fdb1b52192cc445af6d15612e4b482023539ae701b4f62f20"
+        }
+      },
+      "nativeBuild": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-search-sdk-linux-r2\\results.json",
+        "sha256": "0e1cb6b4aeb23869694a153c0b5d657e6a41cfdf4ac9dc2aaace8e8258715905"
+      },
+      "trim": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-replace-trim-linux-r1\\results.json",
+        "sha256": "75d7745c3cb58c5ed851a8aeac06406de6d0494b9c74f10fedc0423180ddba02"
+      },
+      "trimCommands": 8,
+      "trimDeltas": {
+        "bytes": 0,
+        "text": 0,
+        "bss": 0
+      },
+      "nativeCost": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\code-search-cost-linux-r2\\results.json",
+        "sha256": "cf81e347d5b3c69e5bebd5be2f6ecd4eaec56cc322ecf2a7f024a5afdeddea69"
+      }
+    }
+  },
+  "surfaceInventory": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-code-replace-r1\\surface.json",
+    "sha256": "8742d2e837f9e836d65419b209465bc08c570138c5fdc10327e35c639c01bbbc"
+  },
+  "inventoryOnly": true,
+  "nativeAcceptance": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\code-search-counted-replacement-20261114.json",
+    "sha256": "dd13ab39e2696c64ca9f9f6f1f7d99993f57e8cd59a472a767856361207d77c9"
+  },
+  "packageReadmeEquivalence": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\code-replace-package-equivalence-r1.json",
+    "sha256": "0b6478ca3d8819b699b24b460dc3890fb8df3fd9fb4da9b64e1c5b787dbe8a41"
+  },
+  "semantics": {
+    "inputs": "Checked C strings reject interior NUL; counted document text is preserved. Native CRLF normalization and exact UTF-8 match ranges.",
+    "output": "Checked native success before scalar destination assignment; failure can follow partial/committed edits.",
+    "ownership": "Existing independent document creator-thread/native whole-call pin; owned callback failure/close, expired receiver and callable values.",
+    "diagnostic": "Optional Buffer write span remains pinned across callbacks; native bounded terminated diagnostic does not resize it."
+  },
+  "costs": {
+    "cpuEquivalenceClaim": false,
+    "zeroBridgeOverheadClaim": false,
+    "coldMeasured": false,
+    "preparedPlain": "1000 no-match calls, C and language alloc/free/realloc=0; language allocation budget zero passes.",
+    "preparedRegex": "100 no-match calls, C and language heap counts equal. Native regex compilation and temporary text/output remain.",
+    "literals": "Two literals per invocation add two language string allocations/frees; not a C-string mirror.",
+    "extra": "C-string/NUL and native scans, checked owner/thread/error scopes, code leases, native document pins, conditional diagnostic Buffer pin, callable formation/indirection and native edit/history costs remain."
+  },
+  "historyNotes": [
+    "Original SDK reproduces NUL truncation and CRLF skipped match; bounded r1 candidate reproduces partial-grapheme range mismatch. Earlier-error control passes original SDK.",
+    "Win editing r2 attempted newer runner with older frozen fixture and rejected unsupported mode 4; final r3 uses explicitly pinned current test overlay.",
+    "Exploratory Win literal zero-budget failure was language parameter construction. Final gate measures literals and prepared inputs separately.",
+    "Final r3 restaging changes only two README line endings; every executable/declaration/asset byte equals tested r2. Text-equivalence report pins both report sets; no executable rerun inferred."
+  ],
+  "limits": [
+    "Full compiler cohorts reused; O2 native SDKs use dependency-qualified partial rebuild/relink, not a whole source rebuild.",
+    "No interactive window, security/network test, startup/CPU equivalence, general array outputs or internal model aliases certified.",
+    "No final release/IDE/help installation, current delivery update, push or complete XGE/XUI/Document claim.",
+    "Unrelated root compiler/IDE/tool/report worktree changes preserved."
+  ]
+}
