@@ -217,3 +217,6 @@ window loop. System fonts are demonstrated in the xge package's `examples/system
 `code_annotations.xl` 不创建窗口，先标记两处 `todo`，再用平行列发布一条诊断。
 预期输出 `Marked matches: 2` 和 `Diagnostics: 1`。源码中的范围、级别、编号、
 说明、来源和用户 ID 六列对应原生诊断字段；存储复制文本，最后分别关闭模型。
+
+`input_events.xl` demonstrates a shared command for a button and Ctrl+F2. It
+inserts a Unicode heart through the input-result API and updates a status label.

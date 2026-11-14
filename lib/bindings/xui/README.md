@@ -452,3 +452,10 @@ callback. `CodeDocument.markAllPlain/markAllRegex` write search indicators and
 return the checked match count. Native missing-marker/indicator clears report
 checked unsupported; `clear()` clears all storage. See `examples/code_annotations.xl`.
 Bulk output, string record snapshots and internal CodeEdit aliases remain pending.
+
+`Context.inputKeyDownEx`/`inputKeyUpEx`/`inputTextEx` return native input flags;
+`inputImeCompositionEx` packs the complete counted descriptor. Command hotkeys
+and queued commands use owned Widget handlers, and callback `event.text` is an
+independent counted snapshot. See [input contracts](../../../docs/xui-input-events.md)
+and [the input lesson](examples/input_events.xl). Native queue delivery and
+synchronous input-result calls keep their different timing contracts.

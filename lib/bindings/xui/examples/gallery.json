@@ -545,6 +545,40 @@
       "kind": "cpu",
       "gallery": false,
       "expected": "Replace a selected word, indent, undo and toggle a line comment with native editing commands."
+    },
+    {
+      "name": "input_events",
+      "title": "输入事件与命令快捷键",
+      "gallery": false,
+      "expected": "编辑文字，点击按钮或按 Ctrl+F2 插入 ♥，并显示消费结果。"
+    },
+    {
+      "name": "code_annotations",
+      "title": "标记与诊断",
+      "kind": "cpu",
+      "gallery": false,
+      "expected": "设置诊断并为匹配结果添加指示器。"
+    },
+    {
+      "name": "code_folding",
+      "title": "代码折叠模型",
+      "kind": "cpu",
+      "gallery": false,
+      "expected": "折叠嵌套区间并查询可见行映射。"
+    },
+    {
+      "name": "code_replace",
+      "title": "文档替换",
+      "kind": "cpu",
+      "gallery": false,
+      "expected": "使用明确的大小写和正则规则替换文档文本。"
+    },
+    {
+      "name": "code_tokens",
+      "title": "词法缓存",
+      "kind": "cpu",
+      "gallery": false,
+      "expected": "写入词法记录并检查缓存的版本与区间。"
     }
   ],
   "helper": "_window.xl",

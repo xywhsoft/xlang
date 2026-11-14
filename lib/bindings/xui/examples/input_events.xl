@@ -1,0 +1,34 @@
+// 输入文字；点击按钮或按 Ctrl+F2，向输入框插入一颗心。
+import xui
+from "./_window.xl" import Window
+
+Window.show("输入事件与命令快捷键",func(xui.Context ui,xui.Widget root)
+ auto input=ui.inputNative()
+ input.setText("Hello, xlang")
+ Window.place(root,input,24,24,640,44)
+
+ auto status=ui.labelNative()
+ status.setText("点击按钮或按 Ctrl+F2")
+ Window.place(root,status,24,136,640,32)
+
+ // 命令名称保存在事件内；只在回调期间读取事件。
+ input.setEventHandler(xui.XUI_EVENT_COMMAND,func(xui.Widget sender,xui.CallbackConstEvent event) as c_int
+  if event.iCommand!=1 then return c_int(0) end
+  ui.setFocusWidget(input)
+  auto flags=ui.inputTextEx(0x2665)
+  if (flags & c_uint(xui.XUI_INPUT_RESULT_CONSUMED))!=0 then
+   status.setText("已插入：♥")
+  end
+  return c_int(xui.XUI_EVENT_DISPATCH_STOP)
+ end)
+ ui.hotKeyRegisterCommand(input,xui.XUI_KEY_F2,c_uint(xui.XUI_MOD_CTRL),1,"insert-heart")
+
+ auto button=ui.buttonNative()
+ button.setText("插入 ♥")
+ Window.place(root,button,24,84,180,36)
+ button.setClick(func(xui.Widget sender)
+  // 和快捷键使用同一条命令；窗口循环负责派发队列。
+  ui.dispatchCommand(input,1,"insert-heart")
+ end)
+ ui.setFocusWidget(input)
+end)

@@ -1,0 +1,195 @@
+{
+  "schema": 1,
+  "date": "2026-11-14",
+  "complete": true,
+  "passed": true,
+  "shippingDelivery": false,
+  "fullGoalComplete": false,
+  "scope": "Six direct checked input/command methods plus counted CallbackConstEvent.text; native/IR/runtime implementations unchanged.",
+  "preCommitHead": "0ce0aa5d04c2b93cc901727bd7b49e84c0f57e46",
+  "nativeRevision": "458338755e3c492431305f9cffdd0e48c50da68d",
+  "compilers": {
+    "win": "F:\\xlang-validation\\xge-full-20261110\\compiler-null-cstr-full-r36\\build.json",
+    "linux": "F:\\xlang-validation\\xge-full-20261110\\compiler-null-cstr-linux-full-r29\\build.json",
+    "rebuilt": false
+  },
+  "nativeSdk": {
+    "source": "native-annotation-{platform}-source-r1",
+    "build": "annotation-sdk-{platform}-r1/{host,static}",
+    "rebuilt": false,
+    "unrelatedNativeWorktreeChangesImported": false
+  },
+  "candidates": {
+    "executed": "input-ex-packages-{platform}-r1/{host,static}",
+    "final": "input-ex-packages-{platform}-r2/{host,static}",
+    "difference": "Only xui/examples/gallery.json CRLF restoration; every executable input byte-identical and parsed JSON equal. Equivalence is not a repeated runtime execution."
+  },
+  "validation": {
+    "mainCommands": 60,
+    "trimCommands": 16,
+    "platforms": [
+      "Windows x64",
+      "Linux x64"
+    ],
+    "languageModes": [
+      "JIT",
+      "dynamic AOT",
+      "static AOT"
+    ],
+    "nativeClients": [
+      "host O0",
+      "host O2",
+      "static O0",
+      "static O2"
+    ],
+    "headers": [
+      "C11",
+      "C++11",
+      "C++17"
+    ],
+    "behaviors": [
+      "consumed/focus/hotkey flags",
+      "Unicode Input/CodeEdit preedit and explicit replacement",
+      "full queued IME descriptor metadata",
+      "queued versus synchronous timing",
+      "NULL target remains NULL",
+      "command string snapshot and event expiry",
+      "bounded callback text with NUL and exact capacity",
+      "malformed extent rejection before read",
+      "OOM copy preserves destination",
+      "native/callback failure preserves flags",
+      "bound method values",
+      "cross-Context and cross-thread refusal",
+      "Context close inside active input callback",
+      "native ownership cleanup"
+    ],
+    "window": "Real bounded two-frame lesson rendering/readback, all three modes; same-platform pixels identical and manually inspected. No physical keyboard/OS IME certification.",
+    "networkTests": false,
+    "securityTests": false
+  },
+  "costs": {
+    "imeDescriptor": "Stack record and borrowed pinned input span; native called once. Native event/queue copies remain.",
+    "commands": "Exact typed NULL pData; C-string validation scans, native name storage and owned handler checks remain.",
+    "eventText": "Independent copied counted string, not zero-copy; checked callback epoch and allocation failure.",
+    "preparedHeap": "1000 rounds: four input calls + queue clear, language and C alloc/free/realloc all zero. Generic focused Widget without text mutation/handlers; warmed queue.",
+    "unusedDeclarations": {
+      "win": {
+        "bytes": 0,
+        "text": 0,
+        "bss": 0
+      },
+      "linux": {
+        "bytes": 0,
+        "text": 0,
+        "bss": 0
+      }
+    },
+    "cpuEquivalenceClaim": false,
+    "wholeBindingZeroOverheadClaim": false
+  },
+  "behaviorLimits": [
+    "Pending event pump reports malformed events and continues; success is not a delivery acknowledgement.",
+    "Raw hotkey callback and Context raw error observer need owned registration before language closure exposure.",
+    "CPU shaper is codepoint-only, not complex text/GPU certification."
+  ],
+  "tutorial": {
+    "programs": 90,
+    "independentLessons": 89,
+    "galleryScenes": 57,
+    "repairedMissingEntries": [
+      "code_folding",
+      "code_replace",
+      "code_tokens",
+      "code_annotations"
+    ]
+  },
+  "inventory": {
+    "publicFunctions": 5190,
+    "declaredFunctions": 3813,
+    "completionProof": false
+  },
+  "latestApproval": "Checked status-plus-extent borrowed text already implemented/qualified through c_output_view in b0c7bb496; no duplicate syntax/runtime added.",
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\input-ex-language-win-r1\\results.json",
+      "sha256": "ba041b6e5cec7a4e5a483e2ba70bfb1a7c35ad6956b860f5dc7bde7405d1a63a",
+      "commands": 30
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\input-ex-trim-win-r1\\results.json",
+      "sha256": "c9cf0a15f3761aa233befe92810c1b277e8613bd457de29c33732ff46d505ed5",
+      "commands": 8
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\input-ex-packages-win-r2\\equivalence.json",
+      "sha256": "d76e704586e8c14b1cea03fb22d2cf4340d377fa3397f76949e3ab8b96e6ffee",
+      "commands": 2
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\input-ex-packages-win-r2\\host.json",
+      "sha256": "3e4f00138f55daa2b1047a028c5bc456b6de041eef9fbbfce2a699f547d655e3",
+      "commands": 0
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\input-ex-packages-win-r2\\static.json",
+      "sha256": "5a9bd3451643c67a145dd7943f76d6ed5440d06402db63386a70d4a4c74932e5",
+      "commands": 0
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\input-ex-language-linux-r1\\results.json",
+      "sha256": "889db7c7a55f138f13cfe0acce1fa28bf68d2ad75296d84e39684a754ab40b3b",
+      "commands": 30
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\input-ex-trim-linux-r1\\results.json",
+      "sha256": "c8ef2ffcc6af1521a2979a1cba6ee1f4af1ca298e6216f40ee680d47533f1b78",
+      "commands": 8
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\input-ex-packages-linux-r2\\equivalence.json",
+      "sha256": "6481888e36eeeefc24b13bb0de681f3eac4d292f5e9b664a82f3f5c4bf4bf781",
+      "commands": 2
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\input-ex-packages-linux-r2\\host.json",
+      "sha256": "c1f08e582d64fb8d6f9c9a33f911007945a4ff5050f1f60948417bf514906d49",
+      "commands": 0
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\input-ex-packages-linux-r2\\static.json",
+      "sha256": "0a588642352efc1052b53e5d408e2469d9a2655e6ce4c8e086dc4bfef2df3e7b",
+      "commands": 0
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\input-ex-codegen-r2.json",
+      "sha256": "91f49869a4610832392023bb8efe230cd6d5fc235838a8afcc300ce79b0cd2e0"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\surface-input-ex-r1\\surface.json",
+      "sha256": "de1d4bbaadb76df8126183683eab06c3874f6290cc5680f46f97bafb9832f631"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\input-ex-verify-win-r1.json",
+      "sha256": "0d4658812cd8d1c23901ea5137af5f2214f621813509b8e22f8c53c2057580b2"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\input-ex-verify-linux-r1.json",
+      "sha256": "dcafa81d34fc8d084bd03ffeb0b2995439972a4f6ea7e09dcb72e2838749e6b2"
+    }
+  ],
+  "sourceSha256": {
+    "docs/xui-input-events.md": "b92b41f304e1e08724af4aac55b229ae0c7c695af788151c9d804d9b959bb7da",
+    "docs/xge3-xui3-full-coverage-plan.md": "5869869c151a0615e0380659ef95643f6a9f7391f517db78ab3b6f27d2a306db",
+    "lib/bindings/xui/src/managed.xl": "fa95332e1e0fac68533152caa47ae2459a3d41c20474882b623a5f561d1c610a",
+    "lib/bindings/xui/README.md": "c3eccd76ff229d0444b8e72c864afe748539ec6eec68760209a8049fa8d278a9",
+    "lib/bindings/xui/examples/README.md": "1a2e8408403591a99116ebb7ef08b340729d927aee4667ad4caa2c932b81f8ad",
+    "lib/bindings/xui/examples/gallery.json": "2f30017aec0ea8f24869e5e423206306ff28cb8297dfa7788bbae8e54439f976",
+    "lib/bindings/xui/examples/input_events.xl": "65c1b72423c1063d1dbb2bc5a5fe552a4f21629e846d1733e121b1efb4a3e9c5",
+    "test/cases/foreign_xui_input_extended.xl": "1dca46d59fe956efae0bdabcc2936750bd8c7c980b411857d33074f38ed40097",
+    "test/cases/foreign_xui_input_extended.c": "3c81aa07c97262d148bb56983cd41be4c14f07db69fa67be1b3088663f928ef4",
+    "test/cases/foreign_xui_input_extended.h": "62b7ddb54e8a61661e463b83d68b21fa098e8fc116786ece2e4abbedbc29f957",
+    "test/cases/foreign_xui_input_extended_native.c": "ab3bdcf999dcb82747683ad82cdd77521939c334deea410df6141d39b8b3ce17",
+    "tools/check_xui_input_extended.py": "1e26912cf15febaddb9bc2cb09153c73973b9383da38071974bbe80685190509"
+  },
+  "remaining": "Full XGE/XUI/Document goal, pending ownership/output/language decisions and final matched SDK/compiler/runtime/IDE/help delivery remain active. No release installation, push or version change."
+}

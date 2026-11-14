@@ -1,0 +1,278 @@
+// Real SDK input routing, CPU-only backend; fault/ownership checks are not lessons.
+import xui
+from xui import CallbackConstEvent
+extern "fixtureInputProxy" @header("test/cases/foreign_xui_input_extended.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
+extern "fixtureLayoutFont" @no_raise @c_result("owned_view") @factory(1,0,dropFont) func cpuFont(xui.Proxy proxy) as xui.Font
+extern "xuiFontReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropFont(xui.Font value)
+extern "fixtureInputObserveErrors" @no_raise func observeErrors(xui.Context ui)
+extern "fixtureInputErrorCount" @no_raise func errorCount() as c_int
+extern "fixtureInputCleanupCheck" @no_raise func checkCleanup()
+extern "fixtureInputBudget" @no_raise func budget(c_int n)
+extern "fixtureInputHeapBegin" @no_raise func beginHeap()
+extern "fixtureInputHeapReport" @no_raise func reportHeap(c_int kind)
+extern "fixtureInputNativeHot" @no_raise func nativeHot(xui.Context ui)
+extern "fixtureInputTextCapacity" @no_raise func textCapacity() as c_int
+extern "fixtureInputField" @no_raise @c_sync_callback(1,-1,0,"last","test/cases/foreign_xui_input_extended.h") func field(c_int size,func(xui.CallbackConstEvent) as c_int callback)
+func place(xui.Widget root,xui.Widget child,c_int y)
+ auto rect=xui.Rect()
+ rect.fY=y
+ rect.fW=400
+ rect.fH=40
+ assert child.setRect(rect)==0 and root.addChild(child)==0,"InputEx assertion 20"
+end
+func required(string? value) as string
+ assert value!=null,"InputEx assertion 23"
+ return value as string
+end
+func main(...) as int
+ auto proxy=cpuProxy()
+ auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ auto font=cpuFont(proxy)
+ ui.setDefaultFont(font)
+ auto root=ui.widget()
+ assert ui.setRootWidget(root)==0,"InputEx assertion 32"
+ auto input=ui.inputNative()
+ auto editor=ui.codeEditNative()
+ auto target=ui.widget()
+ place(root,input,0)
+ place(root,editor,50)
+ place(root,target,100)
+ assert target.setFocusable(1)==0,"InputEx assertion 39"
+ target.setImeMode(xui.XUI_IME_ENABLED)
+ println("InputEx phase: flags and synchronous text")
+ assert ui.setFocusWidget(input)==0,"InputEx assertion 42"
+ assert input.setText("ab")==0,"InputEx assertion 43"
+ input.setSelection(1,1)
+ auto flags=ui.inputTextEx(0x4F60)
+ assert (flags & c_uint(xui.XUI_INPUT_RESULT_CONSUMED))!=0,"InputEx assertion 46"
+ assert required(input.getText())=="a你b","InputEx assertion 47"
+ assert ui.setFocusWidget(target)==0,"InputEx assertion 48"
+ assert ui.inputKeyDownEx(65)==0 and ui.inputKeyUpEx(65)==0 and ui.inputTextEx(65)==0,"InputEx assertion 49"
+ assert ui.inputKeyDownEx(xui.XUI_KEY_TAB)==3,"InputEx assertion 50"
+ bool rejected=false
+ flags=37
+ try
+  flags=ui.inputKeyDownEx(-1)
+ catch Error failure
+  rejected=true
+ end
+ assert rejected and flags==37,"InputEx assertion 58"
+ for codepoint in [0,0xD800,0x110000]
+  rejected=false
+  try
+   flags=ui.inputTextEx(c_uint(codepoint))
+  catch Error failure
+   rejected=true
+  end
+  assert rejected and flags==37,"InputEx assertion 66"
+ end
+ println("InputEx phase: hotkey command, copied text and callback expiry")
+ int commands=0
+ string commandText="before"
+ xui.CallbackConstEvent? saved=null
+ target.setEventHandler(xui.XUI_EVENT_COMMAND,func(xui.Widget sender,xui.CallbackConstEvent event) as c_int
+  assert event.iCommand==71,"InputEx assertion 73"
+  commandText=event.text
+  saved=event
+  commands+=1
+  return c_int(xui.XUI_EVENT_DISPATCH_STOP)
+ end)
+ ui.hotKeyRegisterCommand(target,xui.XUI_KEY_F2,c_uint(xui.XUI_MOD_CTRL),71,"测试命令")
+ assert ui.setFocusWidget(target)==0,"InputEx assertion 80"
+ assert ui.inputKeyDownEx(xui.XUI_KEY_F2,c_uint(xui.XUI_MOD_CTRL))==5,"InputEx assertion 81"
+ assert commands==1 and commandText=="测试命令","InputEx assertion 82"
+ ui.hotKeyUnregister(target,xui.XUI_KEY_F2,c_uint(xui.XUI_MOD_CTRL))
+ ui.hotKeyUnregister(target,xui.XUI_KEY_F2,c_uint(xui.XUI_MOD_CTRL))
+ assert ui.inputKeyDownEx(xui.XUI_KEY_F2,c_uint(xui.XUI_MOD_CTRL))==0,"InputEx assertion 85"
+ ui.dispatchCommand(target,71,"queued")
+ assert commands==1 and ui.dispatchPendingEvents()==0 and commands==2 and commandText=="queued","InputEx assertion 87"
+ rejected=false
+ try
+  auto expired=saved as CallbackConstEvent
+  commandText=expired.text
+ catch StateError
+  rejected=true
+ end
+ assert rejected and commandText=="queued","InputEx assertion 95"
+ target.setEventHandler(xui.XUI_EVENT_KEY_UP,func(xui.Widget sender,xui.CallbackConstEvent event) as c_int
+  assert event.iModifiers==c_uint(xui.XUI_MOD_SHIFT),"InputEx assertion 97"
+  return c_int(xui.XUI_EVENT_DISPATCH_STOP)
+ end)
+ assert ui.inputKeyUpEx(65,0x80000001)==1,"InputEx assertion 100"
+ target.setEventHandler(xui.XUI_EVENT_KEY_UP,null)
+ func(xui.Widget,c_int,c_uint,c_int,string) register=ui.hotKeyRegisterCommand
+ func(xui.Widget?,c_int,string) dispatch=ui.dispatchCommand
+ register(target,xui.XUI_KEY_F2,0,71,"bound")
+ dispatch(target,71,"bound queued")
+ assert ui.dispatchPendingEvents()==0 and commands==3 and commandText=="bound queued","InputEx check 108"
+ dispatch(null,71,"no target")
+ assert ui.dispatchPendingEvents()==0 and commands==3
+ ui.hotKeyUnregister(target,xui.XUI_KEY_F2,0)
+ auto other=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ auto foreign=other.widget()
+ rejected=false
+ try
+  ui.hotKeyRegisterCommand(foreign,xui.XUI_KEY_F2,0,71,"foreign")
+ catch Error failure
+  rejected=true
+ end
+ assert rejected,"InputEx check 118"
+ other.close()
+ println("InputEx phase: checked callback failure")
+ target.setEventHandler(xui.XUI_EVENT_TEXT,func(xui.Widget sender,xui.CallbackConstEvent event) as c_int
+  throw "input callback failure"
+ end)
+ rejected=false
+ try
+  flags=ui.inputTextEx(65)
+ catch Error failure
+  rejected=true
+ end
+ assert rejected and flags==37,"InputEx assertion 112"
+ target.setEventHandler(xui.XUI_EVENT_TEXT,null)
+ println("InputEx phase: IME descriptor, UTF-8 and replacement")
+ assert ui.setFocusWidget(input)==0 and input.setText("abc")==0,"InputEx assertion 115"
+ input.setSelection(1,2)
+ ui.inputImeCompositionEx("你",1,3,0,3)
+ assert required(input.getText())=="abc","InputEx assertion 118"
+ assert ui.dispatchPendingEvents()==0 and required(input.getText())=="abc","InputEx assertion 119"
+ ui.inputImeCompositionEx("好",0,3,0,3,1,1,2,7)
+ assert ui.dispatchPendingEvents()==0 and required(input.getText())=="a好c","InputEx assertion 121"
+ ui.inputImeCompositionEx("",1)
+ assert ui.dispatchPendingEvents()==0 and required(input.getText())=="a好c","InputEx assertion 123"
+ ui.inputImeCompositionEx("",0)
+ assert ui.dispatchPendingEvents()==0 and required(input.getText())=="a好c","InputEx assertion 125"
+ assert ui.setFocusWidget(editor)==0 and editor.setTextLength("abc")==0,"InputEx assertion 126"
+ ui.inputImeCompositionEx("你",0,3,0,3,1,1,2)
+ assert ui.dispatchPendingEvents()==0 and required(editor.getText())=="a你c","InputEx assertion 128"
+ for mode in range(3)
+  rejected=false
+  try
+   if mode==0 then ui.inputImeCompositionEx("x",1,2) end
+   if mode==1 then ui.inputImeCompositionEx("x",1,0,1,0) end
+   if mode==2 then ui.inputImeCompositionEx("x",1,0,0,0,1,2,1) end
+  catch Error failure
+   rejected=true
+  end
+  assert rejected,"InputEx assertion 138"
+ end
+ // Native pump reports malformed events to its error observer and continues.
+ observeErrors(ui)
+ ui.inputImeCompositionEx("a\0b",0)
+ assert ui.dispatchPendingEvents()==0 and errorCount()==1,"malformed IME is reported and skipped"
+ ui.clearEvents()
+ assert required(editor.getText())=="a你c","InputEx assertion 144"
+ println("InputEx phase: bounded callback field and independent string")
+ assert ui.setFocusWidget(target)==0,"InputEx check 165"
+ int compositions=0
+ target.setEventHandler(xui.XUI_EVENT_IME_COMPOSITION,func(xui.Widget sender,xui.CallbackConstEvent event) as c_int
+  assert event.text=="你" and event.iTextSize==3 and event.bCompositionActive==1,"InputEx check 168"
+  assert event.iCompositionCursor==3 and event.iCompositionSelectionStart==0 and event.iCompositionSelectionEnd==3,"InputEx check 169"
+  assert event.bCompositionReplacementRange==1 and event.iCompositionReplacementStart==2 and event.iCompositionReplacementEnd==4 and event.iCompositionAttribute==7,"InputEx check 170"
+  compositions+=1
+  return c_int(xui.XUI_EVENT_DISPATCH_STOP)
+ end)
+ ui.inputImeCompositionEx("你",1,3,0,3,1,2,4,7)
+ assert compositions==0 and ui.dispatchPendingEvents()==0 and compositions==1,"InputEx check 175"
+ target.setEventHandler(xui.XUI_EVENT_IME_COMPOSITION,null)
+ string copied="old"
+ string full=""
+ field(3,func(xui.CallbackConstEvent event) as c_int
+  copied=event.text
+  saved=event
+  return c_int(0)
+ end)
+ assert copied=="a\0b","InputEx assertion 152"
+ field(textCapacity(),func(xui.CallbackConstEvent event) as c_int
+  full=event.text
+  assert full.length==int(textCapacity()),"InputEx check 187"
+  return c_int(0)
+ end)
+ rejected=false
+ try
+  ui.inputImeCompositionEx(full)
+ catch Error failure
+  rejected=true
+ end
+ assert rejected,"InputEx check 196"
+ for size in [-1,int(textCapacity())+1]
+  rejected=false
+  try
+   field(c_int(size),func(xui.CallbackConstEvent event) as c_int
+    copied=event.text
+    return c_int(0)
+   end)
+  catch Error failure
+   rejected=true
+  end
+  assert rejected and copied=="a\0b","InputEx assertion 167"
+ end
+ rejected=false
+ try
+  field(3,func(xui.CallbackConstEvent event) as c_int
+   budget(0)
+   try
+    copied=event.text
+   finally
+    budget(-1)
+   end
+   return c_int(0)
+  end)
+ catch Error failure
+  rejected=true
+ end
+ assert rejected and copied=="a\0b","InputEx assertion 183"
+ println("InputEx phase: thread and bound values")
+ auto worker=thread(func() as int
+  try
+   auto invalid=ui.inputKeyUpEx(65)
+  catch StateError
+   return 1
+  end
+  return 0
+ end)
+ assert worker.waitTimeout(30000) and worker.exitCode()==1,"InputEx assertion 193"
+ assert ui.setFocusWidget(target)==0,"InputEx assertion 194"
+ func(c_int,c_uint) as c_uint keyDown=ui.inputKeyDownEx
+ func(c_int,c_uint) as c_uint keyUp=ui.inputKeyUpEx
+ func(c_uint) as c_uint text=ui.inputTextEx
+ func(string,c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_int) ime=ui.inputImeCompositionEx
+ assert keyDown(65,0)==0 and keyUp(65,0)==0 and text(65)==0,"InputEx assertion 199"
+ ime("ab",1,2,0,2,0,0,0,0)
+ ui.clearEvents()
+ println("InputEx phase: warmed allocation comparison")
+ string preedit="ab"
+ beginHeap()
+ for i in range(1000)
+  assert ui.inputKeyDownEx(65)==0 and ui.inputKeyUpEx(65)==0 and ui.inputTextEx(65)==0,"InputEx assertion 206"
+  ui.inputImeCompositionEx(preedit,1,2,0,2)
+  ui.clearEvents()
+ end
+ reportHeap(0)
+ beginHeap()
+ nativeHot(ui)
+ reportHeap(1)
+ target.setEventHandler(xui.XUI_EVENT_COMMAND,null)
+ bool closed=false
+ target.setEventHandler(xui.XUI_EVENT_KEY_DOWN,func(xui.Widget sender,xui.CallbackConstEvent event) as c_int
+  ui.close()
+  closed=true
+  return c_int(xui.XUI_EVENT_DISPATCH_STOP)
+ end)
+ auto closingFlags=ui.inputKeyDownEx(65)
+ assert closed,"InputEx check 262"
+ ui.close()
+ rejected=false
+ try
+  flags=keyUp(65,0)
+ catch StateError
+  rejected=true
+ end
+ assert rejected and flags==37,"InputEx assertion 222"
+ font.close()
+ proxy.close()
+ checkCleanup()
+ println("InputEx: flags, commands, IME, bounded snapshots, OOM, thread and lifetime passed")
+ return 0
+end
