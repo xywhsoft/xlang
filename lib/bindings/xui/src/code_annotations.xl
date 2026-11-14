@@ -1,0 +1,22 @@
+// Independent native annotation storage; tooltip/diagnostic strings are copied.
+export extern "xui_code_annotation_store" class CodeAnnotationStore @header("xui3_code_annotations.h") @lifetime("owned") @policy("xl6Xui3CodeAnnotationStorePolicy")
+ native point handle
+ extern "xuiCodeAnnotationStoreClear" @no_raise func clear()
+ extern "xuiCodeAnnotationSetMarker" @no_raise @c_cstr(3) @c_result("status",0) func setMarker(c_int line,c_int marker,c_uint flags,string tooltip,c_uintptr userData=0)
+ extern "xuiCodeAnnotationSetMarker" @no_raise @c_null(4,"const char*") @c_result("status",0) func setMarker(c_int line,c_int marker,c_uint flags=0,c_uintptr userData=0)
+ extern "xuiCodeAnnotationClearMarker" @no_raise @c_result("status",0) func clearMarker(c_int line,c_int marker)
+ extern "xuiCodeAnnotationClearMarkers" @no_raise @c_result("status",0) func clearMarkers(c_int line=-1)
+ extern "xuiCodeAnnotationSetIndicator" @no_raise @c_result("status",0) func setIndicator(c_int indicator,c_int style,c_int start,c_int endOffset,c_uint flags=0,c_uintptr userData=0)
+ extern "xuiCodeAnnotationClearIndicator" @no_raise @c_result("status",0) func clearIndicator(c_int indicator,c_int start,c_int endOffset)
+ extern "xuiCodeAnnotationClearIndicators" @no_raise @c_result("status",0) func clearIndicators(c_int indicator=0)
+ extern "xuiCodeSearchClearResultIndicators" @no_raise @c_result("status",0) func clearSearchIndicators(c_int indicator=0)
+ // Strict parallel columns; missing native size member stays zero (accepted by XUI).
+ extern "xuiCodeAnnotationSetDiagnostics" @no_raise @c_result("status",0) @c_array_group(1,0,6,"int",6) @c_array_record(1,"xui_code_diagnostic_t") @c_array_field(1,"tRange",0,"value") @c_array_field(1,"iSeverity",1,"value") @c_array_field(1,"sCode",2,"c_string") @c_array_field(1,"sMessage",3,"c_string") @c_array_field(1,"sSource",4,"c_string") @c_array_field(1,"iUserData",5,"value") func setDiagnosticsColumns(array<CodeRange> ranges,array<c_int> severities,array<string?> codes,array<string?> messages,array<string?> sources,array<c_uintptr> userData,int size=-1)
+ extern "xuiCodeAnnotationClearDiagnostics" @no_raise @c_result("status",0) func clearDiagnostics()
+ extern "xuiCodeAnnotationGetDiagnosticCount" @no_raise func getDiagnosticCount() as c_int
+ extern "xuiCodeAnnotationGetDiagnosticVersion" @no_raise func getDiagnosticVersion() as c_uint
+ extern "xuiCodeAnnotationTrackEdit" @no_raise @c_result("status",0) func trackEdit(c_int start,c_int endOffset,c_int newEnd,c_int startLine,c_int endLine,c_int newEndLine)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xuiCodeAnnotationStoreDestroy" @header("xui3_code_annotations.h") @no_raise func rollbackCodeAnnotationStore(CodeAnnotationStore store)
+export extern "xuiCodeAnnotationStoreCreate" @header("xui3_code_annotations.h") @no_raise @c_result("owned_view") @factory(0,0,rollbackCodeAnnotationStore) func createCodeAnnotationStore() as CodeAnnotationStore

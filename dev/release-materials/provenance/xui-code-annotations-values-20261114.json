@@ -1,0 +1,133 @@
+{
+  "schema": 1,
+  "date": "2026-11-14",
+  "qualified": true,
+  "shippingDelivery": false,
+  "fullGoalComplete": false,
+  "scope": "Callable-value annotation checks against exact core SDK packages; no separate native O0/O2 client run in this companion.",
+  "coreReceipt": {
+    "path": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\xui-code-annotations-20261114.json",
+    "sha256": "b7c5212c0e52abeee7c47b28da2b4844df3c9721798b5e51cae99c7187b555f6"
+  },
+  "descriptionOnlyCorrection": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\annotation-values-tool-doc-r1.json",
+    "sha256": "67f99a6499afb25fe1650c8834bea9db2cd7b5e7341f888dad9918b12381f0c0"
+  },
+  "sources": {
+    "test/cases/foreign_xui_code_annotations_values.xl": "e3e43304e726883306ca9f209f0d18ddcc63fff056c1469e42afb7faa6d65b27",
+    "test/cases/foreign_xui_code_annotations_values.c": "1ef93ccd8bcef247a8b3988c70285c1775d62dfecc9dca4dcb3b00e19a9b8289",
+    "tools/check_xui_code_annotations_values.py": "dedb2820ca3c9dd72741cb7d62ff9ed02dc24be071c994540460884ae5d19be6",
+    "docs/xui-code-annotations-values.md": "7b502b87d9544a118521e8b64690822e8fc83a661a4e8131210854b64e42a7ae"
+  },
+  "platforms": {
+    "win": {
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\annotation-values-win-r1\\results.json",
+        "sha256": "463aada7d7e0ddba8c186b64465c958551cfa14f39ba2fc425f9cebd2dbe2b1c"
+      },
+      "commands": 11,
+      "programs": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\annotation-values-win-r1\\foreign_xui_code_annotations_values-dynamic.exe",
+          "sha256": "149eaefdd78878a0820d4e7375cfaaa84344bcdd2e2811a9002d547c7c1f54c5",
+          "bytes": 4972032,
+          "imports": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\annotation-values-win-r1\\foreign_xui_code_annotations_values-static.exe",
+          "sha256": "34e0ac4dfa3355e5a5224bd32faa9e0bc948af7af50d09c2469fe141ea550b3f",
+          "bytes": 1507328,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "ole32.dll",
+            "SHELL32.dll"
+          ]
+        }
+      ],
+      "generatedC": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\annotation-values-win-r1\\foreign_xui_code_annotations_values.c",
+        "sha256": "e315915fdf9c0a664bc2b09398920b92e55d8a1a7ebe90e2498d1b941711a9cd",
+        "directCalls": {
+          "xuiCodeAnnotationSetMarker": 2,
+          "xuiCodeAnnotationSetDiagnostics": 1,
+          "xuiCodeSearchMarkAllPlain": 1,
+          "xuiCodeSearchMarkAllRegex": 1
+        },
+        "typedInputProjection": true,
+        "zeroBridgeOverheadClaim": false
+      },
+      "qualifiedToolSnapshot": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\annotation-values-win-r1\\input-snapshots\\check_xui_code_annotations_values.py",
+        "sha256": "c638514221b809064caeae3c7960e4127cfc676a890a086db1e6cf5e2e464a7f"
+      },
+      "currentTool": "D:/GIT/x-lang/tools/check_xui_code_annotations_values.py"
+    },
+    "linux": {
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\annotation-values-linux-r1\\results.json",
+        "sha256": "6ddff283ec141642a694863cde4277da0c7cceb8dfd7a4af3bcf16fdeeb82ab1"
+      },
+      "commands": 11,
+      "programs": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/annotation-values-linux-r1/foreign_xui_code_annotations_values-dynamic",
+          "sha256": "635415adea1abe53682a53aebdd59f9c69d2d743af15fc283745afa561de755b",
+          "bytes": 5175629,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/annotation-values-linux-r1/foreign_xui_code_annotations_values-static",
+          "sha256": "56ffe5aace39bf04a9bb7946be3d3571f3bc88b48d67888b52d224536668ef3e",
+          "bytes": 1854746,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ],
+      "generatedC": {
+        "path": "/mnt/f/xlang-validation/xge-full-20261110/annotation-values-linux-r1/foreign_xui_code_annotations_values.c",
+        "sha256": "e315915fdf9c0a664bc2b09398920b92e55d8a1a7ebe90e2498d1b941711a9cd",
+        "directCalls": {
+          "xuiCodeAnnotationSetMarker": 2,
+          "xuiCodeAnnotationSetDiagnostics": 1,
+          "xuiCodeSearchMarkAllPlain": 1,
+          "xuiCodeSearchMarkAllRegex": 1
+        },
+        "typedInputProjection": true,
+        "zeroBridgeOverheadClaim": false
+      },
+      "qualifiedToolSnapshot": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\annotation-values-linux-r1\\input-snapshots\\check_xui_code_annotations_values.py",
+        "sha256": "c638514221b809064caeae3c7960e4127cfc676a890a086db1e6cf5e2e464a7f"
+      },
+      "currentTool": "D:/GIT/x-lang/tools/check_xui_code_annotations_values.py"
+    }
+  },
+  "cost": "Ordinary bound receiver/code-lifetime retention and indirect callable adapter; excluded from direct hot heap samples.",
+  "limits": [
+    "Only tool documentation/report description changed after successful gates; no executable AST, program, package or image change.",
+    "Source/inventory ABI claims do not replace graphics, output-array, borrowed-record-string, internal-alias or final delivery gates."
+  ]
+}

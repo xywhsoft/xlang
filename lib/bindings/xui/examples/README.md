@@ -158,7 +158,7 @@ WebView 范例只加载源码中的本地 HTML。它需要启用 WebView2 的 Wi
 不创建窗口的 [edit_search.xl](edit_search.xl) 演示 CodeEdit 查找、替换、读取结果和
 “没有匹配”的状态检查；直接使用 XGE 文档模型，不需要外部文件或服务。
 
-共 87 个独立入口文件，其中现有综合画廊可浏览 57 个场景。图标专题入口包括
+共 88 个独立入口文件，其中现有综合画廊可浏览 57 个场景。图标专题入口包括
 `icon_picker.xl`（分类与格式化）、`icon_memory.xl`（内存 SVG）、
 `icon_custom.xl`（回调期 Painter 自绘）和 `icon_file.xl`（SVG／PNG 文件与批量更新）。
 文件范例附带两份小型 `assets/icon_file.*` 资源；保留 assets 目录，公共窗口助手会
@@ -213,3 +213,7 @@ window loop. System fonts are demonstrated in the xge package's `examples/system
 `code_tokens.xl` 用一个关键词的 UTF-8 字节范围创建带版本的词法缓存，打印
 `Cached tokens: 1` 和 `Version and byte range: 1 0 4`。不创建窗口或文档；
 缓存复制输入记录，`finally` 释放独立模型。它不演示尚未公开的批量 token 读取。
+
+`code_annotations.xl` 不创建窗口，先标记两处 `todo`，再用平行列发布一条诊断。
+预期输出 `Marked matches: 2` 和 `Diagnostics: 1`。源码中的范围、级别、编号、
+说明、来源和用户 ID 六列对应原生诊断字段；存储复制文本，最后分别关闭模型。

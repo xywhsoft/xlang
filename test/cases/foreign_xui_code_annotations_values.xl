@@ -1,0 +1,57 @@
+import xui
+extern "fixtureAnnCheck" @header("test/cases/foreign_xui_code_annotations.h") @no_raise func nativeCheck(xui.CodeAnnotationStore store,c_int mode)
+func main(...) as int
+ auto store=xui.createCodeAnnotationStore()
+ func(c_int,c_int,c_uint,c_uintptr) markNull=store.setMarker
+ func(c_int,c_int,c_uint,string,c_uintptr) markText=store.setMarker
+ markNull(1,4,7,4294967296)
+ nativeCheck(store,1)
+ markText(1,4,7,"",4294967296)
+ nativeCheck(store,2)
+ auto first=xui.CodeRange()
+ first.iEnd=3
+ auto second=xui.CodeRange()
+ second.iStart=4
+ second.iEnd=8
+ array<xui.CodeRange> ranges=[first,second]
+ array<c_int> severities=[c_int(1),c_int(2)]
+ array<string?> codes=[null,"W"]
+ array<string?> messages=["one",""]
+ array<string?> sources=["test",null]
+ array<c_uintptr> ids=[c_uintptr(4294967296),c_uintptr(2)]
+ func(array<xui.CodeRange>,array<c_int>,array<string?>,array<string?>,array<string?>,array<c_uintptr>,int) publish=store.setDiagnosticsColumns
+ publish(ranges,severities,codes,messages,sources,ids,-1)
+ nativeCheck(store,0)
+ auto document=xui.createCodeDocument()
+ document.setText("foo foo")
+ func(xui.CodeAnnotationStore,string,c_uint,c_int) as c_int plain=document.markAllPlain
+ func(xui.CodeAnnotationStore,string,c_uint,c_int,Buffer?) as c_int regex=document.markAllRegex
+ assert plain(store,"foo",0,123)==2
+ assert regex(store,"foo",0,123,null)==2
+ int rejected=0
+ try
+  regex(store,"x\0y",0,123,null)
+ catch Error
+  rejected+=1
+ end
+ store.close()
+ try
+  markNull(1,4,7,4294967296)
+ catch StateError
+  rejected+=1
+ end
+ try
+  publish(ranges,severities,codes,messages,sources,ids,-1)
+ catch StateError
+  rejected+=1
+ end
+ document.close()
+ try
+  plain(store,"foo",0,123)
+ catch StateError
+  rejected+=1
+ end
+ assert rejected==4
+ println("CodeAnnotations values: exact NULL/text overloads, typed columns, mark calls and closed receivers passed")
+ return 0
+end

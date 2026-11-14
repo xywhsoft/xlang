@@ -443,3 +443,12 @@ project typed `CodeToken` records and let native storage keep its own copy.
 UTF-8 byte positions, not characters. See `examples/code_tokens.xl`; close in
 `finally`. Bulk token output and aliases of CodeEdit's internal cache still
 require their general contracts and are not exposed by this numeric owner.
+
+`createCodeAnnotationStore()` creates independent native marker, indicator and
+diagnostic storage. Set/clear markers and intervals, publish strict diagnostic
+columns with `setDiagnosticsColumns`, query count/version and `trackEdit` after
+byte/line edits. The store copies text and retains no Document or language
+callback. `CodeDocument.markAllPlain/markAllRegex` write search indicators and
+return the checked match count. Native missing-marker/indicator clears report
+checked unsupported; `clear()` clears all storage. See `examples/code_annotations.xl`.
+Bulk output, string record snapshots and internal CodeEdit aliases remain pending.

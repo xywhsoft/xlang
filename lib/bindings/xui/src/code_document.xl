@@ -50,6 +50,8 @@ export extern "xui_code_document_t*" class CodeDocument @header("xge3_runtime.h"
  // A callback error can follow committed edits; failed counts are not assigned.
  extern "xuiCodeSearchReplaceAllPlain" @no_raise @c_cstr(0) @c_cstr(1) @c_output(4,0) func replaceAllPlain(string pattern,string replacement,c_uint flags=0) as c_int
  extern "xuiCodeSearchReplaceAllRegex" @no_raise @c_cstr(0) @c_cstr(1) @c_output(4,0) @c_span(3,"char*","int") func replaceAllRegex(string pattern,string replacement,c_uint flags=0,Buffer? error=null) as c_int
+ extern "xuiCodeSearchMarkAllPlain" @no_raise @c_cstr(1) @c_output(5,0) func markAllPlain(CodeAnnotationStore annotations,string pattern,c_uint flags=0,c_int indicator=0) as c_int
+ extern "xuiCodeSearchMarkAllRegex" @no_raise @c_cstr(1) @c_output(5,0) @c_span(4,"char*","int") func markAllRegex(CodeAnnotationStore annotations,string pattern,c_uint flags=0,c_int indicator=0,Buffer? error=null) as c_int
  extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
 end
 extern "xuiCodeDocumentDestroyChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func rollbackCodeDocument(CodeDocument document)

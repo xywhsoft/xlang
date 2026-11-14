@@ -1,0 +1,29 @@
+// Mark search matches and publish one diagnostic without creating a window.
+import xui
+
+func main(...) as int
+ auto document=xui.createCodeDocument()
+ auto annotations=xui.createCodeAnnotationStore()
+ try
+  document.setText("todo: check todo")
+  auto matches=document.markAllRegex(annotations,"todo")
+  assert matches==2
+  println("Marked matches:",matches)
+
+  auto location=xui.CodeRange()
+  location.iEnd=4
+  array<xui.CodeRange> ranges=[location]
+  array<c_int> severities=[c_int(xui.XUI_CODE_DIAGNOSTIC_WARNING)]
+  array<string?> codes=["W001"]
+  array<string?> messages=["Complete this task"]
+  array<string?> sources=["lesson"]
+  array<c_uintptr> ids=[c_uintptr(1)]
+  annotations.setDiagnosticsColumns(ranges,severities,codes,messages,sources,ids)
+  assert annotations.getDiagnosticCount()==1
+  println("Diagnostics:",annotations.getDiagnosticCount())
+ finally
+  annotations.close()
+  document.close()
+ end
+ return 0
+end

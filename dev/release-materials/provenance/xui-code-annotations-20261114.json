@@ -1,0 +1,559 @@
+{
+  "schema": 1,
+  "date": "2026-11-14",
+  "qualified": true,
+  "shippingDelivery": false,
+  "fullGoalComplete": false,
+  "nativeRebuilt": true,
+  "compilerRebuilt": false,
+  "networkTests": false,
+  "nativeFunctionsCovered": 17,
+  "nativeFunctionsTotal": 22,
+  "nativeDestructorViaPolicy": true,
+  "nativeRevision": "458338755e3c492431305f9cffdd0e48c50da68d",
+  "scope": "Independent CodeAnnotationStore and all three mark-all search helpers; annotation output arrays, borrowed text fields and internal aliases remain pending.",
+  "sources": {
+    "lib/bindings/_xge_native/include/xui3_code_annotations.h": "30e4f80a909eaa2eb7b10a4664bfb21516724fc6d36b5123a28387f03cd48f59",
+    "lib/bindings/xui/src/code_annotations.xl": "bcaf49eb42eccee9e6debe8b88db20f8bf14ad9bf301d19133490da0af7d61ab",
+    "lib/bindings/xui/xlang.package.json": "9cc0cfb033d7f1dfee4ee95eaefaca8ff5df47281514c540ad10a2f29718430d",
+    "lib/bindings/xui/examples/code_annotations.xl": "69957dae3f39c97b9674a04b75d91f8f812ee1d12a203ad65f1df53461c5dd2c",
+    "lib/bindings/xui/README.md": "40e87fb7c89cab83f1b62e4ecf8f4ed251975c417d141f40973d55e36975e256",
+    "lib/bindings/xui/examples/README.md": "08683a5e879417f75be1a2e9c59f8515f4ef6910be28cb793a3798ab673ceb25",
+    "test/cases/foreign_xui_code_annotations.xl": "975d48a6c5ad354b91fa410fcd8482ba762df195c56aa21d32a4e0f62d1c742e",
+    "test/cases/foreign_xui_code_annotations.h": "4acce0561843e5806774ce3d76bcebaf6572ea3c795885ce6d2527de9b685919",
+    "test/cases/foreign_xui_code_annotations.c": "f245aa2fa301178787d6ac0a782330e3ab53049acd819a01961e63eae7a127ec",
+    "test/cases/foreign_xui_code_annotations_native.c": "15f4ac81a8f4284726ef83abdea391d2349ddf73a11729cf46e228b2e65a9180",
+    "tools/check_xui_code_annotations.py": "5944f770a9eea2ea0ab4d41980239f7e6e7372d49c49d8e9b9e4874e47b1204a",
+    "docs/xui-code-annotations.md": "0b28ac5d940542690abcdb3f94d1c424688d484fe5624c5fe378cdf1c9d9a237",
+    "docs/xge3-xui3-full-coverage-plan.md": "e276952be142f93310c6ac12283d408f52c2e790952d26d2401017e9782c260d",
+    "lib/bindings/xui/src/code_document.xl": "3a041547c794721a7b60859aef29489f771665f7fcadaea30e16ab20c71e53fa"
+  },
+  "platforms": {
+    "win": {
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\annotation-language-win-r2\\results.json",
+        "sha256": "559db601655050b4026b374a94e06863aa2dafddb7ad45b4537d267397db34d3"
+      },
+      "commands": 30,
+      "packageReports": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\annotation-packages-win-r2\\host.json",
+          "sha256": "c34f4ab6461827380340e40111000f715bcc2185e470df1729ee39ea9103f087"
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\annotation-packages-win-r2\\static.json",
+          "sha256": "788d067b7448e4eb66cb6c7a4add6fef42b5937456a5912b5e6320bd3d5360e4"
+        }
+      },
+      "nativeSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\annotation-sdk-win-r1\\results.json",
+        "sha256": "d8399c9be9ab4b3b678f1b711c67ffb0b894262e165d21ff04b2b39de2c8604b"
+      },
+      "programs": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\annotation-language-win-r2\\foreign_xui_code_annotations-dynamic.exe",
+          "sha256": "9894857c80817670c041ec65245333de08f81f031ad8f16bb3d8166c180bebb6",
+          "bytes": 5344256,
+          "imports": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ws2_32.dll",
+            "IPHLPAPI.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\annotation-language-win-r2\\foreign_xui_code_annotations-static.exe",
+          "sha256": "aa7d4c3d8bf0061ceb60e5463795edfd08bfa139285740aea81ed9fd5e4380b4",
+          "bytes": 1905664,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "ole32.dll",
+            "SHELL32.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\annotation-language-win-r2\\code_annotations-dynamic.exe",
+          "sha256": "a9f5674058f7618ff05529d6c4ac78a0d494633c780ad359212b435bfaeff8e1",
+          "bytes": 1577984,
+          "imports": [
+            "msvcrt.dll",
+            "xge3_host.dll",
+            "kernel32.dll",
+            "SHELL32.dll",
+            "ucrtbase.dll"
+          ]
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\annotation-language-win-r2\\code_annotations-static.exe",
+          "sha256": "8d76f427e95ae38eb8cee5f282f38272fe96ddfa7473ba2162ff8900656ee752",
+          "bytes": 1293824,
+          "imports": [
+            "msvcrt.dll",
+            "kernel32.dll",
+            "ole32.dll",
+            "SHELL32.dll"
+          ]
+        }
+      ],
+      "heap": [
+        {
+          "mode": "jit",
+          "rounds": 1000,
+          "callsPerRound": 2,
+          "allocationPrefixes": 96,
+          "counts": {
+            "0": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "1": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "2": {
+              "alloc": 3,
+              "free": 3,
+              "realloc": 0
+            },
+            "3": {
+              "alloc": 1,
+              "free": 1,
+              "realloc": 0
+            },
+            "4": {
+              "alloc": 1,
+              "free": 1,
+              "realloc": 0
+            },
+            "5": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        },
+        {
+          "mode": "dynamic",
+          "rounds": 1000,
+          "callsPerRound": 2,
+          "allocationPrefixes": 96,
+          "counts": {
+            "0": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "1": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "2": {
+              "alloc": 3,
+              "free": 3,
+              "realloc": 0
+            },
+            "3": {
+              "alloc": 1,
+              "free": 1,
+              "realloc": 0
+            },
+            "4": {
+              "alloc": 1,
+              "free": 1,
+              "realloc": 0
+            },
+            "5": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        },
+        {
+          "mode": "static",
+          "rounds": 1000,
+          "callsPerRound": 2,
+          "allocationPrefixes": 96,
+          "counts": {
+            "0": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "1": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "2": {
+              "alloc": 3,
+              "free": 3,
+              "realloc": 0
+            },
+            "3": {
+              "alloc": 1,
+              "free": 1,
+              "realloc": 0
+            },
+            "4": {
+              "alloc": 1,
+              "free": 1,
+              "realloc": 0
+            },
+            "5": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        }
+      ],
+      "generatedC": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\annotation-language-win-r2\\foreign_xui_code_annotations.c",
+        "sha256": "120110ded4ff82de3807cd1975123c8ed12e1aaf1ad5e262ebad0433ac0f66eb",
+        "directCalls": {
+          "xuiCodeAnnotationStoreCreate": 5,
+          "xuiCodeAnnotationSetDiagnostics": 12,
+          "xuiCodeAnnotationGetDiagnosticCount": 7,
+          "xuiCodeSearchMarkAllRegex": 2,
+          "xuiCodeAnnotationStoreClear": 1,
+          "xuiCodeAnnotationSetMarker": 6,
+          "xuiCodeAnnotationClearMarker": 2,
+          "xuiCodeAnnotationClearMarkers": 2,
+          "xuiCodeAnnotationSetIndicator": 1,
+          "xuiCodeAnnotationClearIndicator": 1,
+          "xuiCodeAnnotationClearIndicators": 1,
+          "xuiCodeSearchClearResultIndicators": 2,
+          "xuiCodeAnnotationClearDiagnostics": 2,
+          "xuiCodeAnnotationGetDiagnosticVersion": 9,
+          "xuiCodeAnnotationTrackEdit": 2,
+          "xuiCodeSearchMarkAllPlain": 2
+        },
+        "typedInputProjection": true,
+        "zeroBridgeOverheadClaim": false
+      },
+      "trim": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\annotation-trim-win-r1\\results.json",
+        "sha256": "9466770ba848d95913361ec42d28192a17f9b30fc0052202fb135338c514e457"
+      },
+      "trimCommands": 8,
+      "trimDeltas": {
+        "bytes": 0,
+        "text": 0,
+        "bss": 0
+      },
+      "layout": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\annotation-layout-win-r1\\results.json",
+        "sha256": "5adfc0c9b7023e7c6fed53a830d98f995835cd90813e0c83b5f86e790da6c268"
+      },
+      "nativeCost": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\annotation-cost-win-r1\\results.json",
+        "sha256": "2dad1ad4cdc40caadb0843afad19a1b9d01ddba7c20c7f20809726d76f33b360"
+      }
+    },
+    "linux": {
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\annotation-language-linux-r2\\results.json",
+        "sha256": "318609cb0f55bd279d1f10a40bd0d60bf10b588573cb2878d9467d09bc58a114"
+      },
+      "commands": 30,
+      "packageReports": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\annotation-packages-linux-r2\\host.json",
+          "sha256": "37a19c43b2dc2c4723a1821c9e9d1a3f9729f7be55978aec3922427155729102"
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\annotation-packages-linux-r2\\static.json",
+          "sha256": "c008f1e3e1fb9e3978c9bfe70a692f66f3a296951960b2c7ebecb1f1cc71d8a1"
+        }
+      },
+      "nativeSdk": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\annotation-sdk-linux-r1\\results.json",
+        "sha256": "3414815e1e27249e1517a3b4a62e6f0b41e8708b04ab8df03e2435047b38ac02"
+      },
+      "programs": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/annotation-language-linux-r2/foreign_xui_code_annotations-dynamic",
+          "sha256": "79b55ba24ed193847d051a3505c678f9b8033d34cd6289b3a38f471b87b43a48",
+          "bytes": 5529716,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/annotation-language-linux-r2/foreign_xui_code_annotations-static",
+          "sha256": "0940072f36ee3db6dd994b8a8cc13e8105411594fcb204a94edf8d36c3974484",
+          "bytes": 2236885,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/annotation-language-linux-r2/code_annotations-dynamic",
+          "sha256": "5fc464f583788c5f9dd30a79030ecf2d99ae68727038e9c6d747c260ab8caf8d",
+          "bytes": 1637806,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libxge3_host.so",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/annotation-language-linux-r2/code_annotations-static",
+          "sha256": "74d86bcecd38cbd7b010ff68fed85c89e1adac80e865c89cdaef6e245617c6e6",
+          "bytes": 1582050,
+          "imports": [
+            "libm.so.6",
+            "libmvec.so.1",
+            "libX11.so.6",
+            "libXi.so.6",
+            "libXcursor.so.1",
+            "libGL.so.1",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ],
+      "heap": [
+        {
+          "mode": "jit",
+          "rounds": 1000,
+          "callsPerRound": 2,
+          "allocationPrefixes": 96,
+          "counts": {
+            "0": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "1": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "2": {
+              "alloc": 3,
+              "free": 3,
+              "realloc": 0
+            },
+            "3": {
+              "alloc": 1,
+              "free": 1,
+              "realloc": 0
+            },
+            "4": {
+              "alloc": 1,
+              "free": 1,
+              "realloc": 0
+            },
+            "5": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        },
+        {
+          "mode": "dynamic",
+          "rounds": 1000,
+          "callsPerRound": 2,
+          "allocationPrefixes": 96,
+          "counts": {
+            "0": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "1": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "2": {
+              "alloc": 3,
+              "free": 3,
+              "realloc": 0
+            },
+            "3": {
+              "alloc": 1,
+              "free": 1,
+              "realloc": 0
+            },
+            "4": {
+              "alloc": 1,
+              "free": 1,
+              "realloc": 0
+            },
+            "5": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        },
+        {
+          "mode": "static",
+          "rounds": 1000,
+          "callsPerRound": 2,
+          "allocationPrefixes": 96,
+          "counts": {
+            "0": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "1": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            },
+            "2": {
+              "alloc": 3,
+              "free": 3,
+              "realloc": 0
+            },
+            "3": {
+              "alloc": 1,
+              "free": 1,
+              "realloc": 0
+            },
+            "4": {
+              "alloc": 1,
+              "free": 1,
+              "realloc": 0
+            },
+            "5": {
+              "alloc": 0,
+              "free": 0,
+              "realloc": 0
+            }
+          }
+        }
+      ],
+      "generatedC": {
+        "path": "/mnt/f/xlang-validation/xge-full-20261110/annotation-language-linux-r2/foreign_xui_code_annotations.c",
+        "sha256": "120110ded4ff82de3807cd1975123c8ed12e1aaf1ad5e262ebad0433ac0f66eb",
+        "directCalls": {
+          "xuiCodeAnnotationStoreCreate": 5,
+          "xuiCodeAnnotationSetDiagnostics": 12,
+          "xuiCodeAnnotationGetDiagnosticCount": 7,
+          "xuiCodeSearchMarkAllRegex": 2,
+          "xuiCodeAnnotationStoreClear": 1,
+          "xuiCodeAnnotationSetMarker": 6,
+          "xuiCodeAnnotationClearMarker": 2,
+          "xuiCodeAnnotationClearMarkers": 2,
+          "xuiCodeAnnotationSetIndicator": 1,
+          "xuiCodeAnnotationClearIndicator": 1,
+          "xuiCodeAnnotationClearIndicators": 1,
+          "xuiCodeSearchClearResultIndicators": 2,
+          "xuiCodeAnnotationClearDiagnostics": 2,
+          "xuiCodeAnnotationGetDiagnosticVersion": 9,
+          "xuiCodeAnnotationTrackEdit": 2,
+          "xuiCodeSearchMarkAllPlain": 2
+        },
+        "typedInputProjection": true,
+        "zeroBridgeOverheadClaim": false
+      },
+      "trim": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\annotation-trim-linux-r1\\results.json",
+        "sha256": "455f4451219b0347c95247ed95ac0ff62385bc566bc702e1100d94ccc01353c1"
+      },
+      "trimCommands": 8,
+      "trimDeltas": {
+        "bytes": 0,
+        "text": 0,
+        "bss": 0
+      },
+      "layout": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\annotation-layout-linux-r1\\results.json",
+        "sha256": "9faaff11edfbe70d7143e3fbbd864fa9729a2c6ef65d43dac8ebddeca9c916a6"
+      },
+      "nativeCost": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\annotation-cost-linux-r1\\results.json",
+        "sha256": "1ccca7abdcb1e2e2bd88d8df940484ea2f494070352f34602922806503d5904b"
+      }
+    }
+  },
+  "nativeAcceptance": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\code-search-mark-all-20261114.json",
+    "sha256": "422feeadc93652c715dc8a3ae58000075190ab36e69e860e020a521890ead3fa"
+  },
+  "surfaceInventory": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-annotation-r1\\surface.json",
+    "sha256": "7f1f6e2faac35fde5823ca3ee3ca8b8b6f9b684e646d88e3ef11617144ae95bf"
+  },
+  "inventoryOnly": true,
+  "nativeSources": {
+    "include/xui.h": "f2c883cf98e23e388b162a81f41f72bcf6d4d1aedf167260b5ab1e96b381731d",
+    "src/xui/code/xui_code_annotation.c": "5479801a7a1a1d426618705b6536bfc25bba857262a71af91a36c91f5b811b3c",
+    "src/xui/code/xui_code_search.c": "afda3bdf765a4186fc3e2bd8c7488ab0e02ec03db47b688c65e12636630b3f23"
+  },
+  "semantics": {
+    "owner": "Independent copied numeric/string store; no retained Document, UI resource or language callback. Creator-thread/active-close/expiry use the existing leaf protocol.",
+    "array": "Six strict typed columns, one zeroed native descriptor array; source text backing pins and native independent string clones. Default equal lengths, prefix/clamp, other negative checked.",
+    "output": "Checked metadata/match counts; borrowed diagnostic strings and bulk outputs are not yet exposed.",
+    "edits": "Native markers/indicator splits, diagnostic no-op version, preflighted byte/line edit tracking and partial mark-all side effects retained."
+  },
+  "costs": {
+    "preparedRuntime": true,
+    "startupMeasured": false,
+    "cpuEquivalenceClaim": false,
+    "zeroBridgeOverheadClaim": false,
+    "hot": "1000 rounds x 2 calls; language/C alloc=free=realloc=0 under zero allocation budget.",
+    "createClose": {
+      "language": {
+        "alloc": 3,
+        "free": 3,
+        "realloc": 0
+      },
+      "native": {
+        "alloc": 1,
+        "free": 1,
+        "realloc": 0
+      }
+    },
+    "preparedSet": {
+      "language": {
+        "alloc": 1,
+        "free": 1,
+        "realloc": 0
+      },
+      "native": {
+        "alloc": 0,
+        "free": 0,
+        "realloc": 0
+      }
+    },
+    "extra": "Managed owner allocation and CodeLease bookkeeping; typed projection allocation and 48-byte descriptor per record on qualified x64 ABI; native string/array/index clones and equality scans, checked scopes, calls, thread/owner/error work remain."
+  },
+  "historyNotes": [
+    "Language r1 attempted nullable c_cstr, which existing semantics reject. r2 uses two exact native-signature declarations: nonnullable c_cstr and typed c_null; no compiler rule changed.",
+    "Native mark-all optimization and replacement limit cleanup are separately qualified and committed as 45833875. Earlier bad-work/limit controls and fixture-attempt logs preserved."
+  ],
+  "limitations": [
+    "Five annotation output methods await general typed writable arrays and borrowed text fields in output records.",
+    "CodeEdit internal annotation-store alias awaits general long-lived existing-owner alias contract.",
+    "No module/global CodeLease cycle, graphics backend, final SDK/IDE delivery or complete XGE/XUI/Document claim.",
+    "Matched O2 native partial rebuild; complete compiler cohorts reused; unrelated worktree edits not included."
+  ]
+}

@@ -1,0 +1,214 @@
+import xui
+extern "fixtureAnnBudget" @header("test/cases/foreign_xui_code_annotations.h") @no_raise func budget(c_int allowance)
+extern "fixtureAnnPrefixBegin" @no_raise func prefixBegin()
+extern "fixtureAnnPrefixEnd" @no_raise func prefixEnd()
+extern "fixtureAnnHeapEqual" @no_raise func heapEqual()
+extern "fixtureAnnHotBegin" @no_raise func hotBegin()
+extern "fixtureAnnHotReport" @no_raise func hotReport(c_int kind)
+extern "fixtureAnnCheck" @no_raise func nativeCheck(xui.CodeAnnotationStore store,c_int mode)
+extern "fixtureAnnNativeHot" @no_raise func nativeHot(xui.CodeAnnotationStore store,c_uint version)
+extern "fixtureAnnNativeCreate" @no_raise func nativeCreate()
+extern "fixtureAnnNativeSet" @no_raise func nativeSet(xui.CodeAnnotationStore store)
+extern "fixtureAnnDuringCall" @no_raise @c_sync_callback(1,0,0) @c_result("status",0) func duringCall(xui.CodeAnnotationStore store,func() callback)
+func createAndClose()
+ auto value=xui.createCodeAnnotationStore()
+ value.close()
+end
+func main(...) as int
+ auto first=xui.CodeRange()
+ first.iEnd=3
+ auto second=xui.CodeRange()
+ second.iStart=4
+ second.iEnd=8
+ array<xui.CodeRange> ranges=[first,second]
+ array<c_int> severities=[c_int(1),c_int(2)]
+ array<string?> codes=[null,"W"]
+ array<string?> messages=["one",""]
+ array<string?> sources=["test",null]
+ array<c_uintptr> ids=[c_uintptr(4294967296),c_uintptr(2)]
+ auto store=xui.createCodeAnnotationStore()
+ assert store.getDiagnosticCount()==0 and store.getDiagnosticVersion()==0
+ store.setMarker(1,4,7,"tip",4294967296)
+ nativeCheck(store,6)
+ store.setMarker(1,4,7,4294967296)
+ nativeCheck(store,1)
+ store.setMarker(1,4,7,"",4294967296)
+ nativeCheck(store,2)
+ store.clearMarker(1,4)
+ int rejected=0
+ try
+  store.clearMarker(1,4)
+ catch Error
+  rejected+=1
+ end
+ store.setMarker(1,4)
+ store.setMarker(2,4)
+ store.clearMarkers(1)
+ store.clearMarkers()
+ store.setIndicator(5,c_int(xui.XUI_CODE_INDICATOR_BACKGROUND),2,10)
+ store.clearIndicator(5,4,6)
+ nativeCheck(store,3)
+ store.clearIndicators(5)
+ nativeCheck(store,5)
+ store.setDiagnosticsColumns(ranges,severities,codes,messages,sources,ids)
+ nativeCheck(store,0)
+ auto version=store.getDiagnosticVersion()
+ assert version!=0
+ messages[0]="changed"
+ nativeCheck(store,0)
+ messages[0]="one"
+ store.setDiagnosticsColumns(ranges,severities,codes,messages,sources,ids)
+ assert store.getDiagnosticVersion()==version
+ messages[0]="x\0y"
+ try
+  store.setDiagnosticsColumns(ranges,severities,codes,messages,sources,ids)
+ catch Error
+  rejected+=1
+ end
+ messages[0]="one"
+ array<string?> shortCodes=[null]
+ try
+  store.setDiagnosticsColumns(ranges,severities,shortCodes,messages,sources,ids)
+ catch Error
+  rejected+=1
+ end
+ try
+  store.setDiagnosticsColumns(ranges,severities,codes,messages,sources,ids,-2)
+ catch Error
+  rejected+=1
+ end
+ assert rejected==4 and store.getDiagnosticVersion()==version
+ nativeCheck(store,0)
+ store.setDiagnosticsColumns(ranges,severities,codes,messages,sources,ids,1)
+ assert store.getDiagnosticCount()==1
+ store.setDiagnosticsColumns(ranges,severities,codes,messages,sources,ids,99)
+ assert store.getDiagnosticCount()==2
+ version=store.getDiagnosticVersion()
+ store.trackEdit(0,0,1,0,0,2)
+ assert store.getDiagnosticVersion()!=version
+ nativeCheck(store,4)
+ try
+  store.trackEdit(4,1,2,0,0,0)
+ catch Error
+  rejected+=1
+ end
+ assert rejected==5
+ store.clearDiagnostics()
+ assert store.getDiagnosticCount()==0
+ store.clearDiagnostics()
+ store.setDiagnosticsColumns(ranges,severities,codes,messages,sources,ids,0)
+ assert store.getDiagnosticCount()==0
+ auto document=xui.createCodeDocument()
+ document.setText("a\0foo foo")
+ assert document.markAllPlain(store,"foo")==2
+ store.clearSearchIndicators()
+ auto diagnostic=Buffer("................................................................")
+ assert document.markAllRegex(store,"foo",0,123,diagnostic)==2
+ store.clearSearchIndicators(123)
+ c_int matches=37
+ try
+  matches=document.markAllRegex(store,"[",0,123,diagnostic)
+ catch Error
+  rejected+=1
+ end
+ assert rejected==6 and matches==37 and diagnostic[0]!=uint8(0)
+ try
+  document.markAllPlain(store,"x\0y")
+ catch Error
+  rejected+=1
+ end
+ assert rejected==7
+ document.close()
+ int failures=0
+ int successes=0
+ for operation in range(3)
+  for allowance in range(32)
+   prefixBegin()
+   try
+    if operation==0 then
+     budget(c_int(allowance))
+     auto candidate=xui.createCodeAnnotationStore()
+     candidate.close()
+    else
+     auto candidate=xui.createCodeAnnotationStore()
+     try
+      budget(c_int(allowance))
+      if operation==1 then
+       candidate.setMarker(1,4,0,"tip")
+      else
+       candidate.setDiagnosticsColumns(ranges,severities,codes,messages,sources,ids)
+      end
+     finally
+      budget(-1)
+      candidate.close()
+     end
+    end
+    successes+=1
+   catch Error
+    failures+=1
+   finally
+    prefixEnd()
+   end
+   heapEqual()
+  end
+ end
+ assert failures>0 and successes>0
+ store.clear()
+ store.setDiagnosticsColumns(ranges,severities,codes,messages,sources,ids)
+ version=store.getDiagnosticVersion()
+ hotBegin()
+ budget(0)
+ try
+  for i in range(1000)
+   assert store.getDiagnosticCount()==2 and store.getDiagnosticVersion()==version
+  end
+ finally
+  budget(-1)
+ end
+ hotReport(0)
+ hotBegin()
+ budget(0)
+ try
+  nativeHot(store,version)
+ finally
+  budget(-1)
+ end
+ hotReport(1)
+ hotBegin()
+ createAndClose()
+ hotReport(2)
+ hotBegin()
+ nativeCreate()
+ hotReport(3)
+ hotBegin()
+ store.setDiagnosticsColumns(ranges,severities,codes,messages,sources,ids)
+ hotReport(4)
+ hotBegin()
+ nativeSet(store)
+ hotReport(5)
+ auto active=xui.createCodeAnnotationStore()
+ active.setDiagnosticsColumns(ranges,severities,codes,messages,sources,ids)
+ duringCall(active,func()
+  active.close()
+ end)
+ func() as c_uint query=store.getDiagnosticVersion
+ assert query()==version
+ auto worker=thread(func() as int
+  try
+   auto count=store.getDiagnosticCount()
+  catch StateError
+   return 1
+  end
+  return 0
+ end)
+ assert worker.waitTimeout(30000) and worker.exitCode()==1
+ store.close()
+ try
+  query()
+ catch StateError
+  rejected+=1
+ end
+ assert rejected==8
+ println("CodeAnnotations: copied text, columns, versions, ranges, marking, OOM, active close, thread and expiry passed")
+ return 0
+end

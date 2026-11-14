@@ -22,6 +22,7 @@
       "src/text_shape.xl",
       "src/text_layout.xl",
       "src/code_document.xl",
+      "src/code_annotations.xl",
       "src/code_models.xl",
       "src/code_fold_state.xl",
       "src/code_token_buffer.xl",
