@@ -1,5 +1,9 @@
 # Code provider native prerequisite
 
+This is the lifetime-only baseline. The successor
+`xui-provider-owned-foundation.md` adds five owned native registrations and
+result-owner pinning, with a larger matched model/scope ABI.
+
 The native XUI provider set now has one destroy right, checked consumed
 destruction/clear, lifetime watches, address-stable call scopes and quiescent
 ownership inspection. CodeEdit claims its internal set; `GetProviders` is a

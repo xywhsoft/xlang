@@ -1642,3 +1642,19 @@ DockPanel.dockWindowToPaneSide 和 findDropTarget 复用已有 c_output，直接
 XGE3D_ENABLE_PARTICLES 配套功能宏已核对；Billboard安全输出数组／纹理提交、其余
 3D资源／渲染与此前待定合同仍开放。人口5212、公开直接声明3862仅作存在盘点，
 不以该数值代替能力审查或全量完成率。
+
+2026-11-15 后继原生 ProviderSet 增加五类 typed Owned 注册。不可变节点真实持有
+回调所有者，静止时输出拥有图边；活动作用域只 pin 原生节点，不重复 owner Hold。
+拥有式补全／悬停／签名请求必须有外层 Provider 作用域，消费结束后再释放；
+CodeEdit 内部补全和签名路径已覆盖该边界。自清空不使正在消费的结果悬空；
+scope generation 拒绝清理时结束／重用调用者作用域后继续交付。
+
+配套宿主／静态 O2 SDK 重新构建，使用同一 XRT；原生和既有语言客户端专项验收
+见 xui-provider-owned-foundation.md 及 xui-provider-owned-20261115.json。
+原生模型176字节一次分配，拥有节点56字节一次分配，scope136栈字节；5000次
+五类请求无堆操作且无逐次 owner Hold，仍有引用、线程、错误和Context维护成本。
+已批准的字符串字段快照一并回归；字段快照不等同于回调返回字符串／数组拥有化。
+安全语言 ProviderSet、内部长期别名及其他未决合同和最终配套发布仍开放。
+本批不替换 release、当前交付索引，不改版本或推送；直接声明盘点不因原生前置增加。
+更新盘点人口5217、直接声明3862，仅证明声明存在；新增五个原生拥有支撑入口
+不冒充五个已完成的语言 API。
