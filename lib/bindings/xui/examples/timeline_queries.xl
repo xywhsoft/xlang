@@ -1,0 +1,29 @@
+// Query a timeline without opening a window. Coordinates are local to it.
+import xui
+
+auto proxy=xui.createProxy()
+auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+try
+ auto timeline=ui.timeLineViewNative()
+ auto bounds=xui.Rect()
+ bounds.fW=240
+ bounds.fH=100
+ timeline.setRect(bounds)
+ timeline.setMetrics(40,10,20,20)
+ timeline.setFrameCount(100)
+ auto layer=timeline.addLayer("Animation")
+ timeline.addSpan(layer,5,25,0,"Move")
+ ui.inputViewport(240,100)
+ ui.setRootWidget(timeline)
+ ui.layout()
+
+ // Header = 40 px; each frame = 10 px. Point (141,21) is frame 10.
+ auto hit=timeline.hitTest(141,21)
+ println("Hit frame: ",hit.iFrame)
+ println("Inside span: ",hit.iType==xui.XUI_TIMELINE_HIT_SPAN)
+ auto x,y=timeline.getOffset()
+ println("Scroll offset: ",x,", ",y)
+finally
+ ui.close()
+ proxy.close()
+end

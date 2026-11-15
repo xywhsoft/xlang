@@ -536,3 +536,9 @@ overload adds `Widget?` and `Rect` after `recoverable`. Both directly pack the
 native sized record on the stack; error text getters return independent
 nullable snapshots. See `examples/error_report.xl` and
 [notification, failure and copy costs](../../../docs/xui-error-report.md).
+
+`TimeLineView.hitTest(x,y)` returns a copied `TimelineHit` in local coordinates;
+an ordinary miss has type `XUI_TIMELINE_HIT_NONE` and -1 IDs/indexes.
+`getOffset()` returns the actual native scroll offsets. See
+`examples/timeline_queries.xl` and
+[coordinates, checked outputs and costs](../../../docs/xui-timeline-queries.md).

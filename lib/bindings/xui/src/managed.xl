@@ -4947,7 +4947,11 @@ export extern "xui_widget_t*" class TimeLineView @header("xge3_runtime.h") @life
 
  extern "xuiTimeLineViewEnsureFrameVisible" @no_raise func ensureFrameVisible(c_int iLayer,c_int iFrame) as c_int
 
+ extern "xuiTimeLineViewHitTest" @no_raise @c_output(3,0) func hitTest(c_float x,c_float y) as TimelineHit
+
  extern "xuiTimeLineViewSetOffset" @no_raise func setOffset(c_float fOffsetX,c_float fOffsetY) as c_int
+
+ extern "xuiTimeLineViewGetOffset" @no_raise @c_outputs(1,2) @c_status(0) func getOffset() as (c_float,c_float)
 
  extern "xuiTimeLineViewGetChangeCount" @no_raise func getChangeCount() as c_int
 

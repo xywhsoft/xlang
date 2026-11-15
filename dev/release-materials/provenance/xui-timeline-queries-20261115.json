@@ -1,0 +1,110 @@
+{
+  "date": "2026-11-15",
+  "complete": true,
+  "passed": true,
+  "scope": "TimeLineView local hit and scroll-offset numeric queries; not the complete ecosystem",
+  "xlangBase": "81df7461650a8b8330874b0f1a633b8ec92d317f",
+  "nativeCommit": "076964b2067b9fa7cf48af11228cf032083f45b2",
+  "shippingDelivery": false,
+  "versionChanged": false,
+  "pushed": false,
+  "networkTests": false,
+  "nativeRebuilt": false,
+  "compilerRebuilt": false,
+  "commands": 44,
+  "evidence": [
+    {
+      "platform": "win",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\timeline-queries-verified-win-r1.json",
+      "sha256": "71776bf76453ff48f5c5d5f4752ea5a724f1b03cc8ae13781bfc4aa46a84aa6b",
+      "commands": 22
+    },
+    {
+      "platform": "linux",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\timeline-queries-verified-linux-r1.json",
+      "sha256": "4bf4d88091c5928f3ff0b3136cfcc615747209c6af9ae3c6eb832c9507b9ce2a",
+      "commands": 22
+    }
+  ],
+  "productionBindings": [
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\src\\managed.xl",
+      "staged": "F:\\xlang-validation\\xge-full-20261110\\timeline-queries-packages-win-r1\\host\\xui\\src\\managed.xl",
+      "sha256": "9112719dc9beb4dd19eb251218de3cb57f18858ea480bfbbb407e4107097259e"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\src\\managed.xl",
+      "staged": "F:\\xlang-validation\\xge-full-20261110\\timeline-queries-packages-win-r1\\static\\xui\\src\\managed.xl",
+      "sha256": "9112719dc9beb4dd19eb251218de3cb57f18858ea480bfbbb407e4107097259e"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\src\\managed.xl",
+      "staged": "F:\\xlang-validation\\xge-full-20261110\\timeline-queries-packages-linux-r1\\host\\xui\\src\\managed.xl",
+      "sha256": "9112719dc9beb4dd19eb251218de3cb57f18858ea480bfbbb407e4107097259e"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\src\\managed.xl",
+      "staged": "F:\\xlang-validation\\xge-full-20261110\\timeline-queries-packages-linux-r1\\static\\xui\\src\\managed.xl",
+      "sha256": "9112719dc9beb4dd19eb251218de3cb57f18858ea480bfbbb407e4107097259e"
+    }
+  ],
+  "inventory": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-timeline-queries-r1\\surface.json",
+    "sha256": "5f3a515371a90b503b31dc13288507eceb2ffafba4e70d6484286d461a3c2a90",
+    "population": {
+      "functions": 5204,
+      "types": 983,
+      "constants": 1838,
+      "functionMacros": 7,
+      "callableFields": 184,
+      "enums": 40,
+      "enumConstants": 316
+    },
+    "declarationPresent": {
+      "functions": 3853,
+      "types": 385,
+      "constants": 1820,
+      "callableFields": 66,
+      "enumConstants": 316
+    },
+    "meaning": "Presence only"
+  },
+  "compilerCohorts": [
+    "compiler-nullable-insert-full-r40",
+    "compiler-nullable-insert-linux-full-r33"
+  ],
+  "nativeSdk": [
+    "margin-owned-sdk-win-r2",
+    "margin-owned-sdk-linux-r2"
+  ],
+  "nativeFullBuildParents": [
+    "margin-owned-sdk-win-r1",
+    "margin-owned-sdk-linux-r1"
+  ],
+  "costs": {
+    "hitTemporaryBytes": 36,
+    "offsetPairBytes": 8,
+    "hotRounds": 1000,
+    "languageHeapOperations": 0,
+    "nativeHeapOperations": 0,
+    "zeroBudgetLanguage": true,
+    "cpuEquivalenceClaim": false,
+    "scope": "Prepared offset/span/miss queries; setup, output formatting and GUI rendering excluded",
+    "remaining": "Scalar/thread/epoch/status checks, Context/Widget scopes, checked commit copies and native layer/span/selection searches; no constant-time claim"
+  },
+  "coverage": [
+    "local coordinates include existing native scroll offsets",
+    "span/selection/frame/playhead/ruler/corner/layer-name/miss",
+    "distinct layer index/stable ID and per-frame span hit rectangle",
+    "NaN/positive infinity/negative infinity/layout-bound rejection with old output preservation",
+    "independent numeric value copies",
+    "closed and foreign-thread refusal",
+    "JIT/dynamic/static programs and lesson; C11/C++11/C++17 headers; independent imports"
+  ],
+  "guiRenderingTested": false,
+  "open": [
+    "Pointer-bearing layer/frame/span records, user data and render callbacks",
+    "Previously pending general contracts and other remaining XGE/XUI/Document families",
+    "Final matched SDK/compiler/runtime/IDE/help release"
+  ]
+}

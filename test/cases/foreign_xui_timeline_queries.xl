@@ -1,0 +1,92 @@
+import xui
+extern "fixtureTimelinePrepare" @header("test/cases/foreign_xui_timeline_queries.h") @no_raise func prepare(xui.TimeLineView timeline) as c_int
+extern "fixtureTimelineInvalid" @no_raise func invalidCoordinate(c_int kind) as c_float
+extern "fixtureTimelineBudget" @no_raise func budget(c_int n)
+extern "fixtureTimelineBegin" @no_raise func beginHeap()
+extern "fixtureTimelineReport" @no_raise func reportHeap(c_int native)
+extern "fixtureTimelineNativeHot" @no_raise func nativeHot(xui.TimeLineView timeline)
+
+func main(...) as int
+ auto proxy=xui.createProxy()
+ auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ auto timeline=ui.timeLineViewNative()
+ auto span=prepare(timeline)
+ auto x,y=timeline.getOffset()
+ assert x==c_float(40) and y==c_float(20)
+ auto hit=timeline.hitTest(61,21)
+ assert hit.iType==xui.XUI_TIMELINE_HIT_SPAN and hit.iLayer==1 and hit.iFrame==6 and hit.iSpanId==span
+ assert hit.iLayerId>0 and hit.tRect.fX==60 and hit.tRect.fY==20 and hit.tRect.fW==10 and hit.tRect.fH==20
+ // A value snapshot can be changed without changing the native timeline.
+ hit.iSpanId=-123
+ assert timeline.hitTest(61,21).iSpanId==span
+ hit=timeline.hitTest(91,21)
+ assert hit.iType==xui.XUI_TIMELINE_HIT_SELECTION and hit.iLayer==1 and hit.iFrame==9 and hit.iSpanId==-1
+ hit=timeline.hitTest(101,21)
+ assert hit.iType==xui.XUI_TIMELINE_HIT_FRAME and hit.iFrame==10
+ hit=timeline.hitTest(62,5)
+ assert hit.iType==xui.XUI_TIMELINE_HIT_PLAYHEAD and hit.iFrame==6
+ hit=timeline.hitTest(82,5)
+ assert hit.iType==xui.XUI_TIMELINE_HIT_RULER and hit.iFrame==8
+ hit=timeline.hitTest(5,5)
+ assert hit.iType==xui.XUI_TIMELINE_HIT_CORNER and hit.tRect.fW==40 and hit.tRect.fH==20
+ hit=timeline.hitTest(5,25)
+ assert hit.iType==xui.XUI_TIMELINE_HIT_LAYER_NAME and hit.iLayer==1
+ hit=timeline.hitTest(-1,-1)
+ assert hit.iType==xui.XUI_TIMELINE_HIT_NONE and hit.iLayer==-1 and hit.iLayerId==-1 and hit.iFrame==-1 and hit.iSpanId==-1
+ assert hit.tRect.fW==0 and hit.tRect.fH==0
+ for kind in range(4)
+  bool rejected=false
+  try
+   hit=timeline.hitTest(invalidCoordinate(c_int(kind)),0)
+  catch Error
+   rejected=true
+  end
+  assert rejected and hit.iType==xui.XUI_TIMELINE_HIT_NONE and hit.iFrame==-1
+ end
+ beginHeap()
+ budget(0)
+ try
+  for i in range(1000)
+   x,y=timeline.getOffset()
+   hit=timeline.hitTest(61,21)
+   assert x==c_float(40) and y==c_float(20) and hit.iType==xui.XUI_TIMELINE_HIT_SPAN and hit.iFrame==6
+   hit=timeline.hitTest(-1,-1)
+   assert hit.iType==xui.XUI_TIMELINE_HIT_NONE and hit.iFrame==-1
+  end
+ finally
+  budget(-1)
+ end
+ reportHeap(0)
+ beginHeap()
+ nativeHot(timeline)
+ reportHeap(1)
+ auto worker=thread(func() as int
+  try
+   auto outside=timeline.hitTest(0,0)
+  catch StateError
+   return 1
+  end
+  return 0
+ end)
+ assert worker.waitTimeout(30000) and worker.exitCode()==1
+ auto closed=timeline
+ timeline.close()
+ bool rejected=false
+ try
+  x,y=closed.getOffset()
+ catch StateError
+  rejected=true
+ end
+ assert rejected and x==c_float(40) and y==c_float(20)
+ rejected=false
+ try
+  hit=closed.hitTest(0,0)
+ catch StateError
+  rejected=true
+ end
+ assert rejected and hit.iType==xui.XUI_TIMELINE_HIT_NONE and hit.iFrame==-1
+ ui.close()
+ proxy.close()
+ println("Timeline queries: local hit records, offsets, no-hit, checked rollback, epochs, thread and numeric costs passed")
+ return 0
+end
