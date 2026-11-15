@@ -80,11 +80,14 @@ static int stillRequired(const semantic_session* s,const xls_input_batch* curren
 {
     xls_session_state state=semanticState(s);const xls_analysis_document* entry=xlsInputBatchTarget(state.inputs);
     if(entry && !sameRequired(entry,xlsInputBatchFind(current,entry->key)))return 0;
-    /* A configured disk entry has no target key. Its old disk-only session
-     * becomes obsolete when that same path is overlaid (or the overlay's
-     * identity changes), just as a closed named target is already obsolete.
-     * Unrelated closed project roots remain live. No filesystem/body work. */
-    if(!entry){
+    /* Keep a closed-entry cursor role while its query document remains live.
+     * semanticMatches routes open/closed cursor entries separately; a return
+     * to disk still validates the saved session's source/probe guards. Opening
+     * the entry must not discard that independently bounded disk baseline.
+     * Check/dependency roles retain their representation-change pruning. All
+     * roles remain subject to the original LRU count and input-byte limits.
+     * No filesystem/body work is added here. */
+    if(!entry && s->kind!=QUERY_COMPLETION && s->kind!=QUERY_SIGNATURE){
         const char* path=xlsInputBatchEntry(state.inputs);
         const xls_analysis_document *before=NULL,*after=NULL,*document;
         if(path){

@@ -201,6 +201,42 @@ static int closedEntries(void)
  }
  xlsContextRelease(a);xlsContextRelease(b);xlsTextRelease(text);xrtFree(dep);xrtFree(project);clear(&f);return 1;
 }
+static int cursorRootRoundtrip(void)
+{
+ fixture f={0};CHECK(setup(&f));char *dep=xrtPathJoin(f.root,"cursor_dep.xl"),*project=xrtPathJoin(f.root,"roundtrip.xlp");CHECK(dep && project);
+ const char *disk="import cursor_dep\nfunc main(...) as int\n return cursor_dep.value()\nend\n",
+  *overlay="import cursor_dep\nfunc main(...) as int\n return cursor_dep.value()+42\nend\n",
+  *changed="import cursor_dep\nfunc main(...) as int\n return cursor_dep.value()+99\nend\n",
+  *body="func pick_dep(int left,string right) as int\n return left\nend\nexport func value() as int\n int unique_dep=pick_dep(7,\"hi\")\n return unique_dep\nend\n";
+ xls_text *text=xlsTextCreate(body,strlen(body),1024*1024,NULL),*openText=xlsTextCreate(overlay,strlen(overlay),1024*1024,NULL);CHECK(text && openText);
+ xls_analysis_document docs[]={{"dep",dep,text,99,1},{"root",f.paths[0],openText,501,1}};
+ xls_context_spec spec={.kind=XLS_CONTEXT_PROJECT,.project=project,.configuration="debug",.entry=f.paths[0],.directory=f.root,.analysisProfile="worker-cursor-roundtrip",.targetKind="exe"};
+ xls_context* context=xlsContextCreate(&spec,1024*1024,NULL);CHECK(context);
+ for(unsigned kind=COMPLETION_KIND;kind<=SIGNATURE_KIND;++kind){
+  CHECK(writeSource(f.paths[0],disk));xls_worker* w=xlsWorkerCreate(NULL,4);CHECK(w);
+  fixture_result first=query(w,kind,context,docs,1,NULL,"dep");CHECK(first.state==1 && builds(&first,kind)==1 && first.cache.sessions==1);
+  fixture_result opened=query(w,kind,context,docs,2,"root","dep");CHECK(opened.state==1 && builds(&opened,kind)==2 && !sameResult(&first,&opened,kind));
+  CHECK(parity(&opened,kind,context,docs,2,"root","dep"));
+  fixture_result r=query(w,kind,context,docs,1,NULL,"dep");
+  CHECK(r.state==1 && builds(&r,kind)==2 && hits(&r,kind)==1 && sameResult(&first,&r,kind));
+  CHECK(r.cache.sessions==1 && r.cache.pruned>=1 && parity(&r,kind,context,docs,1,NULL,"dep"));releaseResult(&r);
+  /* Retention is not freshness: disk changes while the entry is overlaid
+     must invalidate the saved disk result on its next actual use. */
+  r=query(w,kind,context,docs,2,"root","dep");CHECK(r.state==1 && builds(&r,kind)==3);releaseResult(&r);
+  CHECK(writeSource(f.paths[0],changed));r=query(w,kind,context,docs,1,NULL,"dep");
+  CHECK(r.state==1 && builds(&r,kind)==4 && !sameResult(&first,&r,kind));
+  CHECK(parity(&r,kind,context,docs,1,NULL,"dep"));uint64_t invalidations=kind==COMPLETION_KIND?r.completions.invalidations:r.signatures.invalidations;CHECK(invalidations==1);releaseResult(&r);
+  CHECK(writeSource(f.paths[0],changed));r=query(w,kind,context,docs,1,NULL,"dep");
+  CHECK(r.state==1 && builds(&r,kind)==5 && (kind==COMPLETION_KIND?r.completions.invalidations:r.signatures.invalidations)==invalidations+1);releaseResult(&r);
+  ++docs[0].identity;r=query(w,kind,context,docs,1,NULL,"dep");CHECK(r.state==1 && builds(&r,kind)==6 && r.cache.sessions==1 && parity(&r,kind,context,docs,1,NULL,"dep"));releaseResult(&r);
+  xlsWorkerDestroy(w);releaseResult(&first);releaseResult(&opened);
+  /* A one-slot cache remains bounded and may legitimately rebuild. */
+  w=xlsWorkerCreateWithCache(NULL,4,&(xls_worker_cache_limits){1,64u*1024u*1024u});CHECK(w);
+  first=query(w,kind,context,docs,1,NULL,"dep");opened=query(w,kind,context,docs,2,"root","dep");r=query(w,kind,context,docs,1,NULL,"dep");
+  CHECK(first.state==1 && opened.state==1 && r.state==1 && builds(&r,kind)==3 && r.cache.sessions==1 && r.cache.sessionLimit==1);releaseResult(&first);releaseResult(&opened);releaseResult(&r);xlsWorkerDestroy(w);
+ }
+ xlsContextRelease(context);xlsTextRelease(text);xlsTextRelease(openText);xrtFree(dep);xrtFree(project);clear(&f);return 1;
+}
 static int zeroOpenedChecks(void)
 {
  fixture f={0};CHECK(setup(&f));char* dep=xrtPathJoin(f.root,"closedmod.xl");CHECK(dep);
@@ -218,6 +254,6 @@ static int zeroOpenedChecks(void)
 }
 int main(void)
 {
- if(!switching() || !evictionAndBudget() || !history() || !contexts() || !diskGuards() || !closedEntries() || !zeroOpenedChecks())return 1;
+ if(!switching() || !evictionAndBudget() || !history() || !contexts() || !diskGuards() || !closedEntries() || !cursorRootRoundtrip() || !zeroOpenedChecks())return 1;
  printf("analysis_worker_cache_test passed: %u checks;three semantic kinds,full fresh AST/typed IR and JSON parity,switching/LRU/budget/current-stream versions,close/reopen,context equality and held lifetime.\n",checks);return 0;
 }

@@ -1,0 +1,223 @@
+{
+  "schema": 1,
+  "date": "2026-11-15",
+  "stage": "M7b6j",
+  "scope": "Retain bounded closed-entry completion/signature sessions across editor root open/close",
+  "implementationAccepted": true,
+  "goalComplete": false,
+  "performanceQualified": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "17c6367b854098b1224cf301c3a51c3ed4648240",
+  "buildBase": "17c6367b854098b1224cf301c3a51c3ed4648240",
+  "publicationRebase": {
+    "verifiedNoIdeOrIgnoreChanges": true,
+    "fromCommit": "17c6367b854098b1224cf301c3a51c3ed4648240",
+    "toCommit": "17c6367b854098b1224cf301c3a51c3ed4648240"
+  },
+  "ownedSources": {
+    "ide/docs/lsp-cursor-root-cache.md": "b32acb83c9cdb0bb5b98ad9e01ed55ed9f5e1eac0911123745871552a5c1e41d",
+    "ide/docs/lsp-development.md": "6bc704c0b78ba8e97e1489893ba978012ce296319c3fd4375094934e4171b06a",
+    "ide/src/analysis/worker_cache.inc": "7671ccf29b57927a59264d8317ba9b46b575e7550e7642b7cda4eae59d37c65c",
+    "ide/tests/analysis_worker_cache_fault_test.c": "30519c831e3b246bf74e4248271d2017fd7e653b1ad71515ef7a45b4a4c8015e",
+    "ide/tests/analysis_worker_cache_test.c": "164fd7ee0e6f4eb01641204d2777d0bc66b60b6b22e3e09de346b30e57ae5739"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-cursor-root-cache-20261115.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-cursor-root-cache-20261115/stage-sources.tar.gz",
+      "sha256": "5a8176404eab2ab7e4b9de6b64d6c154624865b139f7c7f8c1d5bb62700c7bf9",
+      "bytes": 300726,
+      "entries": 5,
+      "uniquePayloads": 5
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-cursor-root-cache-20261115/stage-sources.tar.gz.manifest.json",
+      "sha256": "a4f6d10668c4b316ba7ac42d0643322ad8ddd53c6b7c2712c065c60459dfa849",
+      "bytes": 1383
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-cursor-root-cache-20261115/actual-builds-and-validation.tar.gz",
+      "sha256": "2a93d74ddf31d54baa7c732e7687edf72300ff5213aa5b1f571d9bd501c3b49a",
+      "bytes": 212454076,
+      "entries": 9517,
+      "uniquePayloads": 4074
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-cursor-root-cache-20261115/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "52fccdd0a00801c7f1a5eb3c9e37663d0584a1189b01598279bc7d30d63e53f4",
+      "bytes": 4243973
+    }
+  },
+  "materialDependencies": [
+    {
+      "index": "dev/release-materials/provenance/lsp-workspace-file-scope-20261115.json",
+      "sha256": "da092d15c0bbfe23f61c9123b6a9dfafc0f66ab8a9ba07ec328ff2114a937cb0",
+      "purpose": "Previous native scope/frontend/XRT cohort and actual red configuration-cache transcript"
+    }
+  ],
+  "externalPaths": [
+    "F:\\codex-builds-xlang-lsp-20261115\\cursor-root-cache",
+    "F:\\codex-builds-xlang-lsp-20261115\\cursor-root-cache-materials",
+    "F:\\xl-cursor-root-cache-20261115"
+  ],
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "sdkSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+  "currentDeliverySha256": "dbc9e09ddfaeced7c675d0540589319f20d03e08f5b43abe08dd33354ecaa9fd",
+  "candidate": {
+    "languageServer": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-cursor-root-cache-20261115\\native-v1\\xlang-ls.exe",
+    "languageServerSha256": "bf6949e1b14ae72d790f618e8f5b0c2991e7d09b851a1d9a9fa31ea548bba7f1",
+    "gui": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-cursor-root-cache-20261115\\gui-objects-v1\\xlang_ide.link.exe",
+    "guiSha256": "b71f68e04778be455877f55cedba6b90a6b7fb174ed5d6a1764f4c3c2941af8d"
+  },
+  "verification": {
+    "nativeDistinctUnits": 118,
+    "fullGuiUnits": 137,
+    "nativeFixtureChecks": {
+      "analysis_worker_cache_test": 943,
+      "analysis_worker_cache_fault_test": 20561,
+      "analysis_worker_entry_mode_test": 73,
+      "workspace_file_scope_test": 37,
+      "analysis_catalog_test": 1054,
+      "rename_scope_test": 1121,
+      "rename_plan_test": 3130,
+      "rename_candidate_test": 103,
+      "project_prepare_rename_test": 31
+    },
+    "nativeFixtureTotal": 27053,
+    "protocolCases": 209,
+    "protocolTools": 11,
+    "configuredAnalysisCases": 37,
+    "pairedGuiSuites": 55,
+    "actualIdeModes": 29,
+    "actualGuiLanguages": [
+      "c",
+      "xlang"
+    ],
+    "rejectedCompiledMutants": 5,
+    "actualInputs": 2666,
+    "actualObjects": 255,
+    "actualLinkedInputs": 354,
+    "configuredCompletionCounters": [
+      {
+        "id": 118,
+        "entryOpen": false,
+        "builds": 2,
+        "hits": 1,
+        "invalidations": 0,
+        "sessions": 2,
+        "pruned": 0
+      },
+      {
+        "id": 119,
+        "entryOpen": true,
+        "builds": 3,
+        "hits": 1,
+        "invalidations": 0,
+        "sessions": 3,
+        "pruned": 0
+      },
+      {
+        "id": 120,
+        "entryOpen": true,
+        "builds": 3,
+        "hits": 2,
+        "invalidations": 0,
+        "sessions": 3,
+        "pruned": 0
+      },
+      {
+        "id": 121,
+        "entryOpen": false,
+        "builds": 3,
+        "hits": 3,
+        "invalidations": 0,
+        "sessions": 2,
+        "pruned": 1
+      },
+      {
+        "id": 122,
+        "entryOpen": false,
+        "builds": 4,
+        "hits": 3,
+        "invalidations": 1,
+        "sessions": 2,
+        "pruned": 1
+      },
+      {
+        "id": 123,
+        "entryOpen": false,
+        "builds": 5,
+        "hits": 3,
+        "invalidations": 2,
+        "sessions": 2,
+        "pruned": 1
+      },
+      {
+        "id": 124,
+        "entryOpen": false,
+        "builds": 6,
+        "hits": 3,
+        "invalidations": 3,
+        "sessions": 2,
+        "pruned": 1
+      }
+    ],
+    "baselineCounters": {
+      "commit": "17c6367b854098b1224cf301c3a51c3ed4648240",
+      "serviceSha256": "44c7879042076d8ae6906ac8ab725bf96caf92e41adb9039a78722e2c5dadc24",
+      "path": "F:\\codex-builds-xlang-lsp-20261114\\workspace-file-scope\\protocol-v2\\check_lsp_analysis_configuration\\result.json",
+      "sha256": "577b60fa2719c28a39c9c35ad7f283760c0af8d3414885d124084b4f06733272",
+      "rows": [
+        {
+          "id": 118,
+          "entryOpen": false,
+          "builds": 2,
+          "hits": 1
+        },
+        {
+          "id": 119,
+          "entryOpen": true,
+          "builds": 3,
+          "hits": 1
+        },
+        {
+          "id": 120,
+          "entryOpen": true,
+          "builds": 3,
+          "hits": 2
+        },
+        {
+          "id": 121,
+          "entryOpen": false,
+          "builds": 4,
+          "hits": 2
+        }
+      ]
+    },
+    "repositoryBudgetPassed": true
+  },
+  "evidenceNotes": [
+    "A new real native cursor roundtrip test fails on the previous44c7879 service at the expected warm-return assertion. No relaxation of the original configuration protocol assertions. Full configuration driver now passes all37 cases instead of stopping at line184.",
+    "Preserve the closed-entry completion/signature role while its query document identity remains live. Open/closed cursor routing and session source/probe validation still apply; check/dependency representation pruning is unchanged. Reuse existing worker, sessions, LRU8 default and64MiB input budget with no added filesystem/body work in pruning.",
+    "Native independent AST/JSON/signature facts agree for different unsaved root text, returning to disk, disk modification during overlay, same-byte atomic replacement and query identity change. The one-slot cache legitimately rebuilds and remains bounded. Configured protocol counters show2 ->3 ->3 builds for closed/open/closed and a restored warm hit, compared with2 ->3 ->4 in the previous transcript. These are actual work counts, not whole-goal latency/RSS acceptance.",
+    "Pass production cache and entry-mode tests plus session-allocation fallback and1590 calibrated cancellation gates. Restore the private fault fixture namespace for4 newer worker exports; preserve its initial duplicate-symbol link failure and all raw red/green runs.",
+    "Five actually compiled bad implementations are rejected: early disk-cursor discard, ignored query lifetime, ignored cache bounds and omitted completion or signature disk validation. Their exact inputs, artifacts and failing assertions are bound.",
+    "Full118 native and137 paired GUI units;209 protocol cases,55 GUI suites,29 real IDE modes and24-frame actual C/xlang renders. Inspect new images and preserve working runtime/SDK/delivery, all unrelated staged/worktree changes and existing user temporary directories. Validation uses owned aliases inside root release/win_x64 and scoped F compiler temporary paths.",
+    "Bind actual source/header/link inputs,72 raw core archive members, private basename-only GUI adapters, local Python protocol imports, selected SDK and pinned external frontend/XRT bytes. Reconstructed GUI dependency scans do not count as extra test executions."
+  ],
+  "limits": [
+    "No whole-goal cold/incremental latency, RSS/endurance, Linux or sanitizer qualification. Native/cache/allocator memory beyond input payload quotas remains additional. Owner blocking stdout and broader performance admission remain open.",
+    "IDE semantic name prefill, standard-client automatic workspace bootstrap, engine/native asset alignment, generic workspace/applyEdit, full generic/unbound/generated/foreign qualification and other applicable LSP capabilities remain open.",
+    "The previous3 legacy dialog failures are not fixed/rerun/counted as passing here. No DAP/runtime/debug completion. Default runtime, SDK, active delivery and online channel are not replaced or published. Long-term goal stays active."
+  ],
+  "postCommitReceipt": "dev/release-materials/provenance/lsp-cursor-root-cache-20261115/postcommit.json"
+}
