@@ -30235,6 +30235,19 @@ static XL6_IrValueId xl6IrLowerProjectedValueAsType(
 {
     XL6_IrTypeId sourceType = xl6IrLowerValueType(ctx, value);
     if (sourceType == targetType) return value;
+    const XL6_IrType* target = xl6IrTypeGet(&ctx->module->types, targetType);
+    if (target && target->kind == XL6_IR_TYPE_NULLABLE &&
+        target->paramCount == 1 && target->params && target->params[0] == sourceType) {
+        /* The projection is borrowed from a protected product field. Give
+         * the lifted result an independent owner before its source anchor is
+         * cleaned up; wrapping must never reevaluate the product expression.
+         * The existing nullable instruction verifier seals the element ABI. */
+        XL6_IrValueId wrapped;
+        value = xl6IrLowerAcquireValueOwner(ctx, origin, value);
+        return value != XL6_IR_VALUE_INVALID && xl6IrLowerEmit(ctx,
+            XL6_IR_INSTR_NULLABLE_WRAP, origin, targetType, 0, &value, 1, &wrapped)
+            ? wrapped : XL6_IR_VALUE_INVALID;
+    }
     if (xl6IrTypeIsCOwned(xl6IrTypeGet(&ctx->module->types,sourceType)))
         return xl6IrLowerCOwnedCopy(ctx,origin,targetType,value);
     if (xl6IrLowerTypeIsRuntimeXValue(ctx->module, targetType))

@@ -218,8 +218,9 @@ static int xl6IrCgenOutputValuesAdmit(XL6_Output* out,const XL6_IrModule* module
         }
         if(row && row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_OWNED_VALUE){
             xl6OutputPrintf(out,"    if(!%s.failed && !xrtGetError()) { %s=%s; %s=NULL; }\n"
-                "    { xerror* output_value_error=xrtTakeError(); xrtValueRelease(%s); %s=NULL; if(xrtGetError())xl6ErrorScopeCaptureFailure(&%s); xrtSetErrorTake(output_value_error); }\n",
-                scope,admitted,raw,raw,raw,raw,scope);
+                "    else { if(!%s.failed)xl6ErrorScopeCaptureFailure(&%s);\n"
+                "        if(%s) { xerror* output_value_error=xrtTakeError(); xrtValueRelease(%s); %s=NULL; if(xrtGetError())xl6ErrorScopeCaptureFailure(&%s); xrtSetErrorTake(output_value_error); }\n    }\n",
+                scope,admitted,raw,raw,scope,scope,raw,raw,raw,scope);
         }else if(row && row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_RETAINED_NATIVE){
             XL6_ForeignRetainContract retain={0};retain.retainSymbol=row->retainSymbol;retain.rollbackSymbol=row->rollbackSymbol;retain.success=row->retainSuccess;
             char probe[48];snprintf(probe,sizeof(probe),"native_output_probe_%lu",(unsigned long)ordinal);

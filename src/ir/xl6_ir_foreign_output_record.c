@@ -115,7 +115,7 @@ static int xl6IrVerifyOutputRecords(const XL6_IrModule* m,XL6_DiagList* diags)
         }else if(records || fields)goto invalid;
     }
     return 1;
-invalid:return xl6IrDiag(diags,NULL,"borrowed output records need one physical group, unique direct fields, exact POD or retained results and closed declaration/type/ownership contracts");
+invalid:return xl6IrDiag(diags,NULL,"borrowed output records need one physical group, unique direct fields, exact POD, scoped C-string snapshots or retained results and closed declaration/type/ownership contracts");
 }
 int xl6IrForeignOutputRecordsMatch(const XL6_IrModule* m,const XL6_IrCallTarget* target)
 {

@@ -1,0 +1,47 @@
+extern "OutputValueRoot*" class Root @header("test/cases/foreign_owned_error_priority.h") @lifetime("owned") @policy("outputValuePolicy") @scope("OutputValueScope")
+ native point handle
+ extern "priorityProduceScoped" @no_raise @c_output(1,0) @c_output_view(1,"owned_value") func produce() as var
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "outputValueCreate" @header("test/cases/foreign_owned_error_priority.h") @no_raise @c_result("owned_view") @factory(1,0,drop) func create(c_int mode=0) as Root
+extern "outputValueDrop" @no_raise @c_result("status",0) func drop(Root root)
+extern "priorityProduce" @no_raise @c_output(1,0) @c_output_view(1,"owned_value") func produce(c_int status) as var
+extern "priorityCode" @no_raise func code(error failure) as c_int
+extern "priorityReleaseCount" @no_raise func releases() as c_int
+extern "outputValueHeapBegin" @no_raise func heapBegin()
+extern "outputValueHeapEqual" @no_raise func heapEqual()
+extern "outputValueLive" @no_raise func live() as c_int
+func check()
+ for status in [0,1,2]
+  bool refused=false
+  var value=null
+  try
+   value=produce(c_int(status))
+  catch Error failure
+   assert code(failure)==73
+   refused=true
+  end
+  assert refused and value==null
+ end
+ auto root=create()
+ bool refused=false
+ var value=null
+ try
+  value=root.produce()
+ catch Error failure
+  assert code(failure)==73
+  refused=true
+ end
+ assert refused and value==null
+ root.close()
+ assert live()==0
+end
+func main(...) as int
+ check()
+ heapBegin()
+ check()
+ heapEqual()
+ assert releases()==4
+ println("Owned priority: producer error survives non-NULL result finalizer and NULL result input-scope failure; destinations unchanged and heap balanced")
+ return 0
+end

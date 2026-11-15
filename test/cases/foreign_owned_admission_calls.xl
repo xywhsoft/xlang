@@ -1,0 +1,11 @@
+extern "outputOwnedValue" @header("test/cases/foreign_owned_admission_calls.h") @no_raise @c_output(1,0) @c_output_view(1,"owned_value") func owned(c_int mode=0) as var
+extern "admissionCountReset" @no_raise func resetCounts()
+extern "admissionCountReport" @no_raise func reportCounts()
+func main(...) as int
+ resetCounts()
+ for i in range(1000)
+  var value=owned()
+ end
+ reportCounts()
+ return 0
+end

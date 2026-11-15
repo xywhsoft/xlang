@@ -1,0 +1,154 @@
+extern "OutputValueRoot*" class Root @header("test/cases/foreign_product_nullable_lift.h") @lifetime("owned") @policy("outputValuePolicy") @scope("OutputValueScope")
+ native point handle
+ extern "nullableProductRead" @no_raise @c_output_record(2,"OutputValueRecord","borrowed") @c_status(0) @c_output_size(2,"iSize") @c_output_field(0,"number") @c_output_field(1,"first","cstring") @c_output_field(2,"optional","cstring") @c_output_field(3,"same","retain",hold,"zero",drop) func read(c_int mode=0) as (c_int,string,string?,Root)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "outputValueCreate" @header("test/cases/foreign_product_nullable_lift.h") @no_raise @c_result("owned_view") @factory(1,0,drop) func create(c_int mode=0) as Root
+extern "outputValueHold" @header("test/cases/foreign_product_nullable_lift.h") @no_raise func hold(Root root) as c_int
+extern "outputValueDrop" @header("test/cases/foreign_product_nullable_lift.h") @no_raise @c_result("status",0) func drop(Root root)
+extern "outputValueHeapBegin" @no_raise func heapBegin()
+extern "outputValueHeapEqual" @no_raise func heapEqual()
+extern "outputValueBudget" @no_raise func budget(c_int count)
+extern "outputValueReset" @no_raise func reset()
+extern "outputValueLive" @no_raise func live() as c_int
+extern "nullableProductReadCalls" @no_raise func calls() as c_int
+
+protocol Reader
+ func read(c_int mode) as (c_int,string,string?,Root)
+end
+
+class Receiver
+ string? text=null
+ Root? peer=null
+end
+
+func ordinary() as (int,float,bool,string,bytes,array<int>)
+ return 42,1.25,true,"owned text",b"A\0B",[7,11]
+end
+
+func scalarAndManaged()
+ int? number=null
+ float? real=null
+ bool? flag=null
+ string? text=null
+ bytes? binary=null
+ array<int>? values=null
+ number,real,flag,text,binary,values=ordinary()
+ assert number!=null and real!=null and flag!=null and text!=null and binary!=null and values!=null
+ assert (number as int)==42 and (real as float)==1.25 and (flag as bool)
+ assert (text as string)=="owned text" and (binary as bytes)==b"A\0B"
+ auto items=values as array<int>
+ assert items[0]==7 and items[1]==11
+end
+
+func resource(int allowance) as int
+ auto root=create()
+ c_int? number=c_int(19)
+ string? text="kept"
+ string? optional="old"
+ Root? peer=null
+ c_int before=calls()
+ int failure=0
+ budget(c_int(allowance))
+ try
+  number,text,optional,peer=root.read()
+ catch Error
+  reset()
+  failure=1
+ finally
+  reset()
+ end
+ // A failed output reservation may reject before entering the native producer.
+ assert calls()==before+1 or (failure==1 and calls()==before)
+ assert number!=null and text!=null and optional!=null
+ // Destination conversion keeps the existing left-to-right commit rule.
+ assert (number as c_int)==19 or (number as c_int)==73
+ assert (text as string)=="kept" or (text as string)=="A你好"
+ assert (optional as string)=="old" or (optional as string)==""
+ if peer!=null then
+  auto retained=peer as Root
+  retained.close()
+ end
+ root.close()
+ assert live()==0
+ return failure
+end
+
+func boundAndProtocol()
+ auto root=create()
+ c_int? number=null
+ string? text=null
+ string? optional=null
+ Root? peer=null
+ func(c_int) as (c_int,string,string?,Root) read=root.read
+ c_int before=calls()
+ number,text,optional,peer=read(0)
+ assert calls()==before+1 and peer!=null and text!=null and (text as string)=="A你好"
+ auto first=peer as Root
+ first.close()
+ peer=null
+ Reader reader=root
+ before=calls()
+ number,text,optional,peer=reader.read(2)
+ assert calls()==before+1 and peer!=null and optional==null
+ auto second=peer as Root
+ second.close()
+ peer=null
+ for mode in [1,3,99]
+  number=c_int(19)
+  text="kept"
+  optional="old"
+  bool refused=false
+  try
+   number,text,optional,peer=root.read(c_int(mode))
+  catch Error
+   refused=true
+  end
+  assert refused and number!=null and (number as c_int)==19 and text!=null and (text as string)=="kept" and optional!=null and (optional as string)=="old" and peer==null
+ end
+ root.close()
+end
+
+func targetKinds()
+ auto root=create()
+ auto receiver=Receiver()
+ c_int? number=null
+ string? text=null
+ string? optional=null
+ c_int before=calls()
+ number,receiver.text,optional,receiver.peer=root.read()
+ assert calls()==before+1 and receiver.text!=null and (receiver.text as string)=="A你好" and receiver.peer!=null
+ auto fieldPeer=receiver.peer as Root
+ fieldPeer.close()
+ receiver.peer=null
+ array<Root?> peers=[null]
+ before=calls()
+ number,text,optional,peers[0]=root.read()
+ assert calls()==before+1 and text!=null and (text as string)=="A你好" and peers[0]!=null
+ auto indexPeer=peers[0] as Root
+ indexPeer.close()
+ peers[0]=null
+ root.close()
+end
+
+func main(...) as int
+ scalarAndManaged()
+ boundAndProtocol()
+ targetKinds()
+ resource(0)
+ int failures=0
+ for allowance in range(64)
+  heapBegin()
+  failures+=resource(allowance)
+  scalarAndManaged()
+  heapEqual()
+ end
+ assert failures>0 and failures<64
+ heapBegin()
+ boundAndProtocol()
+ targetKinds()
+ heapEqual()
+ println("Product nullable OOM: prefixes=64 failures=",failures)
+ println("Product nullable: scalar, text, bytes, array and retained-root lifts; single evaluation, bound/protocol calls and cleanup passed")
+ return 0
+end

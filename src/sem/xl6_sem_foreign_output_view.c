@@ -48,5 +48,5 @@ static int xl6SemForeignOutputViews(XL6_SemContext* ctx,XL6_AstNode* node,
         if(!inner || inner->childCount || !xl6TextEquals(inner->text,name))goto invalid;
     }
     return 1;
-invalid:xl6SemErrorNode(ctx,node,"native output conversion requires an exact string/bytes result or independent owned root with typed retain/release helpers at one complete physical output slot");return 0;
+invalid:xl6SemErrorNode(ctx,node,"native output conversion requires exact string/bytes snapshots, a nonnullable var owning a transferred resident-XRT value, or an independent owned root with typed retain/release helpers at one complete physical output slot");return 0;
 }

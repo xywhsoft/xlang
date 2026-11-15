@@ -1,0 +1,135 @@
+{
+  "schema": 1,
+  "date": "2026-11-16",
+  "status": "qualified-exact-nullable-products-and-owned-error-priority",
+  "shippingDelivery": false,
+  "goalComplete": false,
+  "sourceHeadBefore": "c4966d43ae344ea01146b2c16b558ad5280adbfa",
+  "nativeRevision": "766c039e9fc3c7a1ddd9702140befcb8c931f168",
+  "compilerRebuilt": true,
+  "nativeRebuilt": false,
+  "sourceSha256": {
+    "src/cgen/xl6_ir_cgen_foreign_output_view.c": "decec4338e5d57d59618e4ea622868815dd183c571d2f20994d53a937c8318f1",
+    "src/ir/xl6_ir_lower.c": "3a68b0037bb43a943f9bfa03b99d6d0063bbaf0baa2b3e11155a530c6dfbb981",
+    "src/ir/xl6_ir_foreign_output_record.c": "264a19085518a1e26786b007a9c210899363996ecdac0f2058e8476daf731673",
+    "src/sem/xl6_sem_foreign_output_view.c": "98a4d70e693435805794e011ddac6028e10946378e251f2d0739836e41c583ae",
+    "tools/check_product_nullable_lift.py": "178fa9a6d19031deaaac3f68663ad1d34dbfafae1a96283bcaf3b5afca6052e5",
+    "docs/product-nullable-projections.md": "af0ff0efbc24bc56922d3310857eae4f54f81e5a65cc2a79cf9b440a5a0abab9",
+    "test/cases/foreign_product_nullable_lift.xl": "c97b07ce948098183cbfc40d1ac4b1080f94946ffe02e1371c2bcdf1276e81b5",
+    "test/cases/foreign_product_nullable_lift.h": "93d4bfd0c2a2521c2eeb703920a0a47e4b6c63ec862a0f7091fe53044c890619",
+    "test/cases/foreign_product_nullable_lift.c": "0bd8aebf04f8871339719e64b35b82600ecc0eee1a8765452b3e83d42a7f5216",
+    "test/cases/foreign_owned_admission_calls.xl": "e3dc7faba2ddde95b652ee38fe7087d791e8d79b7e9ed441ef02d707720b2e61",
+    "test/cases/foreign_owned_admission_calls.h": "6e066d352160afc97cfb7409016d653ed2f7c07621d8d201f898d27c90d5f2c4",
+    "test/cases/foreign_owned_admission_calls.c": "a629e3136b34194fc5fe3ec184492ad829794a39641a1b58709155da99fa4cb1",
+    "test/cases/foreign_owned_error_priority.xl": "2e6c7e80bd83255027dfa0309bc45cd2aa366e4c853b646fb412d6ed2aaf4749",
+    "test/cases/foreign_owned_error_priority.h": "ec587bec4ca207006123cb83334e98d6a7b9c25699e8c78d601206102bde1261",
+    "test/cases/foreign_owned_error_priority.c": "28f62d8ef6613787f353ee4a7336366a246051802bb170fa07f34e20bd0a97d8",
+    "docs/xge3-xui3-full-coverage-plan.md": "2a7af3de5471759dcb4940b0d96834acc116497cf1b48e78a64540be10fc55bb"
+  },
+  "reports": {
+    "product-lift-final-verified-win-r3.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\product-lift-final-verified-win-r3.json",
+      "sha256": "31688465e9bf62432c2acaee17aa20ebef622bd0b591c30da130a645598bcbcc"
+    },
+    "compiler-product-lift-full-r45\\build.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-product-lift-full-r45\\build.json",
+      "sha256": "3dcfea639e496579545d48b7672104c4c1cfd2ecec72eadeb412ccf9f9e0f5c6"
+    },
+    "product-lift-positive-win-r3\\results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\product-lift-positive-win-r3\\results.json",
+      "sha256": "4a2f3cb9a4c7f83509bb1a98ea4a0a243e9bebe9c62403d9e6e3a88cdbc07aee"
+    },
+    "product-lift-output-regression-win-r2\\results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\product-lift-output-regression-win-r2\\results.json",
+      "sha256": "c4028d4aa4fca857713a95d60609b752983d96cea4a88baa8f415b8eea8bc735"
+    },
+    "product-lift-state-regression-win-r2\\results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\product-lift-state-regression-win-r2\\results.json",
+      "sha256": "b344ceee23626d8744c18d4888eb6fe159ebdd1b1ea7572ffd3de814f0e02bed"
+    },
+    "product-lift-final-verified-linux-r3.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\product-lift-final-verified-linux-r3.json",
+      "sha256": "53acc8840f3a7d4e855b602eec8415893ceeb3ad81de4018aa0694df05b35d8c"
+    },
+    "compiler-product-lift-linux-full-r38\\build.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-product-lift-linux-full-r38\\build.json",
+      "sha256": "0238b4df150b19731693a4c649a5fdd39e21ccdf6c4e974abc970cbff0f30824"
+    },
+    "product-lift-positive-linux-r3\\results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\product-lift-positive-linux-r3\\results.json",
+      "sha256": "7c4fc17d2c48a2443a337cce8e417944ec845d9879ccd40bcefd5d5ec1aa86b9"
+    },
+    "product-lift-output-regression-linux-r2\\results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\product-lift-output-regression-linux-r2\\results.json",
+      "sha256": "0799b9f0abfbf2d92e3baaba90b9ac20afadbc37374b76d034b8d187536cf467"
+    },
+    "product-lift-state-regression-linux-r2\\results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\product-lift-state-regression-linux-r2\\results.json",
+      "sha256": "14e49bee05325637d6f6aba148ed9270ca8f98d61a26d4262f93c380345fd900"
+    },
+    "owned-error-priority-before-r3.log": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\owned-error-priority-before-r3.log",
+      "sha256": "36ddd99009e931644fed1fe19b6cbd04a9da1c0d79eb2e0e057feb50e3ba9e4c"
+    },
+    "flow-graph-proto-win-r4.log": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-graph-proto-win-r4.log",
+      "sha256": "dab62b557bdf5487b068714e2cb40221974d27c00526195604cf8ba8793a587a"
+    },
+    "product-priority-follow-linux-product-r2.log": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\product-priority-follow-linux-product-r2.log",
+      "sha256": "71ca4ea3e3d8783a170072ac3ec8b7e3d1e016bbfa35262bbfc9b5a85e791656"
+    }
+  },
+  "totalQualifiedSteps": 188,
+  "stepsPerPlatform": 94,
+  "contracts": [
+    "Existing exact T to T? product projection acquires an independent owner, wraps once and drops its source anchor without reevaluating the producer or relaxing TypeId/ABI validation.",
+    "Left-to-right destination commits remain. Native output admission failures deliver no fields; a later destination conversion can leave prior committed writes.",
+    "Owning resident-XRT xvalue output success transfers the reference without another clone, retain or value shell; its raw cleanup is failure-only.",
+    "Latch producer diagnostic before rejected result destruction and input scope teardown, preserving code73 over cleanup91 even for status success and NULL result."
+  ],
+  "qualification": [
+    "Two isolated complete O2 source compiler/runtime/TinyCC/XRT/VFS builds, Windows r45 and Linux r38; subsequent unrelated LSP commits preserved and outside this frozen compiler-core batch.",
+    "37 core product/priority/call-count checks,27 output-snapshot regressions and30 real Document/Dock integration checks per OS; all188 steps and input hashes verified under their native OS.",
+    "C/C++ public headers, CLI JIT and standalone AOT, generated C GCC O0/O2; real integration additionally dynamic/static XGE and equivalent C producers, OOM/lifecycle/identity/heap checks.",
+    "64 allocation prefixes yield6 actual product failures per mode; exact-once producer, NULL/nonNULL rejection, retained-resource destinations and producer/finalizer diagnostic precedence.",
+    "All516 private runtime headers staged from each complete source manifest for QA. Shipping private headers still need matching refresh."
+  ],
+  "costs": {
+    "rounds": 1000,
+    "instrumentation": "Explicit emitted C calls only; excludes included runtime-header and independently compiled native producer internals.",
+    "before": {
+      "getError": 4000,
+      "takeError": 1000,
+      "release": 2000,
+      "setErrorTake": 1000,
+      "nullRelease": 1000
+    },
+    "after": {
+      "getError": 3000,
+      "takeError": 0,
+      "release": 1000,
+      "setErrorTake": 0,
+      "nullRelease": 0
+    },
+    "removedCallsPerSuccess": 4,
+    "optimizations": [
+      "O0",
+      "O2"
+    ],
+    "nullableLift": "Protected string borrows can copy/allocate; bytes/arrays/views retain an independent owner. Ordinary member/index boxing remains.",
+    "cpuEquivalenceClaim": false,
+    "overallZeroBridgeOverheadClaim": false
+  },
+  "diagnostics": [
+    "Original producer-status-success regression delivered cleanup code91 instead of producer73; original log preserved.",
+    "Linux first baseline-reject accidentally loaded new libxlc through the inherited current-runtime path. Gate now selects each compiler own loader path and hashes both cohorts libraries. Only affected37-check gate repeated on both OS; unchanged27+30 gates retained.",
+    "External FlowGraph unique-root explicit self-cycle close prototype passed with heap balance, but reentry/collector/complete API qualification remains separate; it is not shipped by this commit."
+  ],
+  "limits": [
+    "Full XGE/XUI/Document goal and matching final SDK/compiler/runtime/IDE/help delivery remain active.",
+    "No shipping binaries installed, release files staged, current-delivery/version edits, publication or sensitive network tests.",
+    "No native XGE source changes;13 preexisting geometry-related dirty paths preserved.",
+    "Pending ownership, array, alias, returned-scalar/partial-result and other policy contracts remain open."
+  ]
+}
