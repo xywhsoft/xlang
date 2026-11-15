@@ -1,0 +1,153 @@
+{
+  "date": "2026-11-15",
+  "complete": true,
+  "passed": true,
+  "scope": "Complete gamepad state values and four TableView geometry queries, not the complete ecosystem",
+  "xlangBase": "d89dbcd4d979a6efd60608192712e3fb6aaedd8d",
+  "nativeCommit": "076964b2067b9fa7cf48af11228cf032083f45b2",
+  "shippingDelivery": false,
+  "versionChanged": false,
+  "pushed": false,
+  "networkTests": false,
+  "nativeRebuilt": false,
+  "compilerRebuilt": false,
+  "commands": 69,
+  "evidence": [
+    {
+      "platform": "win",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\input-table-verified-win-r1.json",
+      "sha256": "04b575780cf40502db4a4a3d71a5c00f74d7f39591a2ee12c071f0a5f4ca8eec",
+      "commands": 35,
+      "guiQualified": true,
+      "guiScope": "Windows bounded JIT table rendering/cleanup only; no automated selection/hardware gamepad test"
+    },
+    {
+      "platform": "linux",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\input-table-verified-linux-r1.json",
+      "sha256": "0c2c25f15edcfd16ab45bc9dbbfb052b36cb97a3c146f17fe1c490995f665b8d",
+      "commands": 34,
+      "guiQualified": false,
+      "guiScope": "CPU execution and GUI example compilation/imports only"
+    }
+  ],
+  "productionBindings": [
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xge\\src\\records.xl",
+      "staged": "F:\\xlang-validation\\xge-full-20261110\\input-table-packages-win-r1\\host\\xge\\src\\records.xl",
+      "sha256": "cfebbcb945804ed55aa387102d0b1518f642f88dd79ddb229ff35f1ecd37b9fd"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xge\\src\\functions.xl",
+      "staged": "F:\\xlang-validation\\xge-full-20261110\\input-table-packages-win-r1\\host\\xge\\src\\functions.xl",
+      "sha256": "d6d920ea2f943a523288b0c522432921cd08d91bca6198a76d04bebb18453616"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\src\\managed.xl",
+      "staged": "F:\\xlang-validation\\xge-full-20261110\\input-table-packages-win-r1\\host\\xui\\src\\managed.xl",
+      "sha256": "4eb4792cb77a3c7bcf503f253790143f4bf162ce813c55f7676677630757e5e7"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xge\\src\\records.xl",
+      "staged": "F:\\xlang-validation\\xge-full-20261110\\input-table-packages-win-r1\\static\\xge\\src\\records.xl",
+      "sha256": "cfebbcb945804ed55aa387102d0b1518f642f88dd79ddb229ff35f1ecd37b9fd"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xge\\src\\functions.xl",
+      "staged": "F:\\xlang-validation\\xge-full-20261110\\input-table-packages-win-r1\\static\\xge\\src\\functions.xl",
+      "sha256": "d6d920ea2f943a523288b0c522432921cd08d91bca6198a76d04bebb18453616"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\src\\managed.xl",
+      "staged": "F:\\xlang-validation\\xge-full-20261110\\input-table-packages-win-r1\\static\\xui\\src\\managed.xl",
+      "sha256": "4eb4792cb77a3c7bcf503f253790143f4bf162ce813c55f7676677630757e5e7"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xge\\src\\records.xl",
+      "staged": "F:\\xlang-validation\\xge-full-20261110\\input-table-packages-linux-r1\\host\\xge\\src\\records.xl",
+      "sha256": "cfebbcb945804ed55aa387102d0b1518f642f88dd79ddb229ff35f1ecd37b9fd"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xge\\src\\functions.xl",
+      "staged": "F:\\xlang-validation\\xge-full-20261110\\input-table-packages-linux-r1\\host\\xge\\src\\functions.xl",
+      "sha256": "d6d920ea2f943a523288b0c522432921cd08d91bca6198a76d04bebb18453616"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\src\\managed.xl",
+      "staged": "F:\\xlang-validation\\xge-full-20261110\\input-table-packages-linux-r1\\host\\xui\\src\\managed.xl",
+      "sha256": "4eb4792cb77a3c7bcf503f253790143f4bf162ce813c55f7676677630757e5e7"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xge\\src\\records.xl",
+      "staged": "F:\\xlang-validation\\xge-full-20261110\\input-table-packages-linux-r1\\static\\xge\\src\\records.xl",
+      "sha256": "cfebbcb945804ed55aa387102d0b1518f642f88dd79ddb229ff35f1ecd37b9fd"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xge\\src\\functions.xl",
+      "staged": "F:\\xlang-validation\\xge-full-20261110\\input-table-packages-linux-r1\\static\\xge\\src\\functions.xl",
+      "sha256": "d6d920ea2f943a523288b0c522432921cd08d91bca6198a76d04bebb18453616"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\src\\managed.xl",
+      "staged": "F:\\xlang-validation\\xge-full-20261110\\input-table-packages-linux-r1\\static\\xui\\src\\managed.xl",
+      "sha256": "4eb4792cb77a3c7bcf503f253790143f4bf162ce813c55f7676677630757e5e7"
+    }
+  ],
+  "inventory": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-input-table-r1\\surface.json",
+    "sha256": "2162adc858d3231fe7af57306e7266b17c8320baccf5a7ead25ab9160bfaaa19",
+    "population": {
+      "functions": 5204,
+      "types": 983,
+      "constants": 1838,
+      "functionMacros": 7,
+      "callableFields": 184,
+      "enums": 40,
+      "enumConstants": 316
+    },
+    "declarationPresent": {
+      "functions": 3850,
+      "types": 385,
+      "constants": 1820,
+      "callableFields": 66,
+      "enumConstants": 316
+    },
+    "semantics": "Declaration presence only"
+  },
+  "gui": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\input-table-examples-win-r1\\table-jit-bounded.png",
+    "sha256": "19a6faffbb01ca0f2be7e2aee2ba522d3f3a90e71a1cd7bacead125997aba098",
+    "width": 800,
+    "height": 600,
+    "frames": 2,
+    "visualInspection": "Table header, Alpha/Beta/Gamma rows and inspection label rendered; natural orientation and no cache recovery errors",
+    "limitations": "No automated click; Linux window rendering/hardware gamepad not tested; no DISPLAY or WAYLAND_DISPLAY configured in this environment"
+  },
+  "costs": {
+    "gamepadStateBytes": 48,
+    "axes": 8,
+    "inputValueSnapshotBytes": 48,
+    "outputTemporaryBytes": 48,
+    "rectOutputBytes": 16,
+    "offsetPairBytes": 8,
+    "hitPairBytes": 8,
+    "hotRounds": 1000,
+    "languageHeapOperations": 0,
+    "nativeHeapOperations": 0,
+    "cpuEquivalenceClaim": false,
+    "scope": "Warm state injection/read and static-row geometry; excludes cold setup, adapter callbacks and GPU rendering",
+    "remaining": "Scalar/index/error checks, Widget/Context scopes, value and checked-commit copies, native geometry/provider scanning"
+  },
+  "diagnostics": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\input-table-work-r1\\table-jit-preflight.log",
+      "reason": "Test scalar flag was captured by value; replaced with explicit shared bool array so the provider actually throws; then verified original message and output preservation"
+    }
+  ],
+  "open": [
+    "Input/IME borrowed text output and missing-touch projection",
+    "Table sort value plus direction output, pointer-bearing column records, internal model aliases and output arrays",
+    "Engine-thread/global initialization and previously pending contracts",
+    "Actual hardware gamepad and broader display/backend qualification",
+    "Remaining XGE/XUI/Document integration and matched compiler/runtime/SDK/IDE/help release"
+  ]
+}

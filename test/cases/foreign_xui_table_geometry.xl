@@ -1,0 +1,83 @@
+import xui
+extern "fixtureTableGeometryPrepare" @header("test/cases/foreign_xui_table_geometry.h") @no_raise func prepare(xui.TableView table)
+extern "fixtureTableGeometryBegin" @no_raise func beginHeap()
+extern "fixtureTableGeometryReport" @no_raise func reportHeap(c_int native)
+extern "fixtureTableGeometryNativeHot" @no_raise func nativeHot(xui.TableView table)
+extern "fixtureTableGeometryBudget" @no_raise func budget(c_int n)
+func main(...) as int
+ auto proxy=xui.createProxy()
+ auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ auto table=ui.tableViewNative()
+ prepare(table)
+ auto x,y=table.getOffset()
+ assert x==c_float(40) and y==c_float(60)
+ auto viewport=table.getViewportRect()
+ auto content=table.getCellContentRect(3,1)
+ auto visible=table.getCellRect(3,1)
+ assert content.fX==100 and content.fY==60 and content.fW==100 and content.fH==20
+ assert visible.fX==viewport.fX+60 and visible.fY==viewport.fY and visible.fW==100 and visible.fH==20
+ auto row,column=table.getItemAt(c_float(visible.fX+1),c_float(visible.fY+1))
+ assert row==3 and column==1
+ row,column=table.getItemAt(-1,-1)
+ assert row==-1 and column==-1
+ bool rejected=false
+ try
+  content=table.getCellContentRect(50,0)
+ catch Error failure
+  rejected=true
+ end
+ assert rejected and content.fX==100 and content.fY==60
+ rejected=false
+ try
+  visible=table.getCellRect(0,-1)
+ catch Error failure
+  rejected=true
+ end
+ assert rejected and visible.fW==100
+ beginHeap()
+ budget(0)
+ try
+  for i in range(1000)
+   x,y=table.getOffset()
+   content=table.getCellContentRect(3,1)
+   visible=table.getCellRect(3,1)
+   row,column=table.getItemAt(-1,-1)
+   assert x==c_float(40) and y==c_float(60) and content.fX==100 and row==-1 and column==-1
+  end
+ finally
+  budget(-1)
+ end
+ reportHeap(0)
+ beginHeap()
+ nativeHot(table)
+ reportHeap(1)
+ // Count providers are arbitrary callbacks; errors must prevent assignment.
+ array<bool> failProvider=[false]
+ table.setAdapter(func(xui.Widget current) as c_int
+  if failProvider[0] then throw "table geometry provider failure" end
+  return 50
+ end,null)
+ failProvider[0]=true
+ rejected=false
+ try
+  row,column=table.getItemAt(-1,-1)
+ catch Error failure
+  rejected=failure.message=="table geometry provider failure"
+ end
+ assert rejected and row==-1 and column==-1
+ failProvider[0]=false
+ table.setAdapter(null,null)
+ auto closed=table
+ table.close()
+ rejected=false
+ try
+  x,y=closed.getOffset()
+ catch StateError
+  rejected=true
+ end
+ assert rejected and x==c_float(40) and y==c_float(60)
+ ui.close()
+ proxy.close()
+ println("Table geometry: offsets, content/view coordinates, no-hit, output rollback, provider errors and numeric costs passed")
+ return 0
+end

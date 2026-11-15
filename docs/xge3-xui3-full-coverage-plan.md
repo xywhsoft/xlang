@@ -1512,3 +1512,30 @@ O0/O2 host/static 调用方、1040 档 CodeEdit 构造预算、真实绘制／�
 编辑器内部模型长期别名、布局输出数组、正常命中状态投影、语言边栏回调实际
 执行与 UI 范例、此前待定合同及最终配套交付仍开放。release／当前交付索引／版本／
 线上均未改动；本批结项不代表长期完整接入目标结项。
+
+
+2026-11-15 补齐 GamepadState 的完整 8 轴、当前／按下／释放按钮位、连接状态，
+以及 gamepadGetState／gamepadSetState 的直接记录声明。输入按原生规则派生并累计
+边沿，忽略输入边沿位；断开返回成功的清零状态，非法索引 checked 拒绝。值副本
+互不影响，可直接供 Actions 默认读取。新增独立线性 gamepad_state.xl。
+
+TableView 新增 getOffset、getCellContentRect、getCellRect、getItemAt。后者未命中
+保留成功的 (-1,-1)；内容坐标与滚动后的局部坐标分开。真实 provider 抛错时保留
+原始语言信息和旧输出，已关闭视图 checked 拒绝。tableview 课程选择后显示内容矩形。
+
+本批复用已完整资格化的 O2 r40/r33 编译器及 Margin-owned 原生 SDK；无编译器／
+原生实现重建。两端各22个专项步骤，Windows35／Linux34个含范例步骤共69通过。
+包含 C11/C++11/C++17 公共头、JIT／动态／静态、独立导入表和状态／几何 C 对照。
+Windows 真实表格 JIT 限2帧渲染并正常退出，800x600 画面人工检查表头／三行／说明
+均正常，native recovered errors 为0。未自动点击；Linux GUI仅构建，环境未配置
+DISPLAY／WAYLAND_DISPLAY；真实手柄未测，不把这些范围误计为通过。
+
+1000轮准备后的状态和静态行几何查询，语言／C均alloc/free/realloc为0；零预算
+持续有效。记录48字节、8轴；Cgen输入有48字节值快照，输出48字节临时，Rect16、
+两个坐标／命中对各8字节，成功后提交。检查、作用域、复制和原生扫描仍有成本，
+不宣称CPU等价或完整安全零成本。表格开关测试改用共享布尔数组以实际触发错误，
+不是修改语言捕获规则或放宽期望。见 xge-input-table-queries.md 和对应 provenance。
+
+声明人口仍5204，直接声明增至3850，仅作存在盘点。输入／IME借用文字、touch
+缺失结果、表格带指针记录／内部别名／排序返回值与输出槽等仍受先前合同约束，
+其他待定项与最终配套交付继续开放。release／当前交付索引／版本／线上未改动。

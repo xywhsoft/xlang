@@ -1,0 +1,84 @@
+import xge
+extern "fixtureGamepadHeapBegin" @header("test/cases/foreign_xge_gamepad_state.h") @no_raise func beginHeap()
+extern "fixtureGamepadHeapReport" @no_raise func reportHeap(c_int native)
+extern "fixtureGamepadNativeHot" @no_raise @c_ref(0) func nativeHot(xge.GamepadState state)
+extern "fixtureGamepadBudget" @no_raise func budget(c_int n)
+func main(...) as int
+ assert xge.gamepadSetConnected(0,0)==0
+ auto state=xge.GamepadState()
+ assert state.bConnected==0 and state.iButtons==c_uint(0) and state.arrAxes[7]==c_float(0)
+ state.bConnected=7
+ state.iButtons=c_uint(0x80000001)
+ state.iButtonsPressed=c_uint(0x40000000)
+ state.iButtonsReleased=c_uint(0x20000000)
+ for i in range(8)
+  state.arrAxes[i]=c_float(float(i)/8.0-0.5)
+ end
+ try
+  xge.gamepadSetState(0,state)
+  auto snapshot=xge.gamepadGetState(0)
+  assert snapshot.bConnected==1 and snapshot.iButtons==c_uint(0x80000001)
+  assert snapshot.iButtonsPressed==c_uint(0x80000001) and snapshot.iButtonsReleased==c_uint(0)
+  for i in range(8)
+   assert snapshot.arrAxes[i]==state.arrAxes[i]
+  end
+  auto other=snapshot
+  other.arrAxes[0]=c_float(1)
+  assert snapshot.arrAxes[0]==c_float(-0.5) and other.arrAxes[0]==c_float(1)
+  state.iButtons=c_uint(2)
+  xge.gamepadSetState(0,state)
+  auto changed=xge.gamepadGetState(0)
+  assert changed.iButtonsPressed==c_uint(0x80000003) and changed.iButtonsReleased==c_uint(0x80000001)
+  assert xge.gamepadButtonDown(0,c_uint(2))==1 and xge.gamepadButtonDown(0,c_uint(1))==0
+  assert xge.gamepadAxis(0,7)==state.arrAxes[7]
+  bool rejected=false
+  try
+   snapshot=xge.gamepadGetState(-1)
+  catch Error failure
+   rejected=true
+  end
+  assert rejected and snapshot.iButtons==c_uint(0x80000001)
+  rejected=false
+  try
+   xge.gamepadSetState(4,state)
+  catch Error failure
+   rejected=true
+  end
+  assert rejected and xge.gamepadGetState(0).iButtons==c_uint(2)
+  beginHeap()
+  budget(0)
+  try
+   for i in range(1000)
+    xge.gamepadSetState(0,state)
+    auto current=xge.gamepadGetState(0)
+    assert current.iButtons==state.iButtons and current.arrAxes[0]==state.arrAxes[0]
+   end
+  finally
+   budget(-1)
+  end
+  reportHeap(0)
+  beginHeap()
+  nativeHot(state)
+  reportHeap(1)
+  auto actions=xge.createActions(1,1)
+  try
+   auto binding=xge.ActionBinding()
+   binding.type=xge.XGE_ACTION_GAMEPAD_AXIS
+   binding.device=0
+   binding.code=c_uint(0)
+   binding.scale=c_float(1)
+   actions.bind(0,binding)
+   actions.setDeadzone(0,0)
+   actions.update()
+   assert actions.state(0).value==state.arrAxes[0]
+  finally
+   actions.close()
+  end
+ finally
+  assert xge.gamepadSetConnected(0,0)==0
+ end
+ auto disconnected=xge.gamepadGetState(0)
+ assert disconnected.bConnected==0 and disconnected.iButtons==c_uint(0) and disconnected.arrAxes[7]==c_float(0)
+ println("Gamepad state: all axes, independent records, accumulated edges, checked outputs and numeric costs passed")
+ return 0
+end

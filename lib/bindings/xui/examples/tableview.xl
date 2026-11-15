@@ -1,4 +1,4 @@
-// 每个单元格从 rows 的对应行列读取文字。
+// 每个单元格从 rows 读取文字；点击单元格可查看它的内容坐标矩形。
 import xui
 from "./_window.xl" import Window
 
@@ -12,5 +12,15 @@ Window.show("Tableview / columns and cells", func(xui.Context ui, xui.Widget roo
  end, func(xui.Widget table, c_int row, c_int column, xui.CallbackTableViewCellOutput cell) as c_int
   cell.setText(rows[int(row)][int(column)])
   return 0
+ end)
+ auto details=ui.labelNative()
+ details.setText("Click a cell to inspect its content rectangle.")
+ Window.place(root,details,24,336,640,32)
+ table.setSelectionMode(xui.XUI_TABLE_VIEW_SELECTION_CELL)
+ table.setSelect(func(xui.Widget sender,c_int row,c_int column,c_int selected)
+  if selected!=0 and row>=0 and column>=0 then
+   auto rectangle=table.getCellContentRect(row,column)
+   details.setText("Content: x="+string(int(rectangle.fX))+", y="+string(int(rectangle.fY))+", width="+string(int(rectangle.fW))+", height="+string(int(rectangle.fH)))
+  end
  end)
 end)

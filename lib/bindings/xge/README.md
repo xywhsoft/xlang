@@ -181,3 +181,9 @@ NUL inputs are rejected; producer/observer failures use the existing checked
 boundary. See `examples/error_callback.xl` and `docs/xge-error-fields.md` for
 scope, cleanup and measured costs. This does not settle other lifetime contracts
 or install a new shipping runtime.
+
+## Complete gamepad values
+
+`gamepadGetState(index)` and `gamepadSetState(index,state)` expose the complete
+eight-axis GamepadState value. See `examples/gamepad_state.xl` and
+[input semantics, table queries and measured costs](../../../docs/xge-input-table-queries.md).

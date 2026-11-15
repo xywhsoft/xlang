@@ -179,6 +179,8 @@ export extern "xgeImeCandidateFinalize" @header("xge3_runtime.h") func imeCandid
 export extern "xgeTouchGetCount" @header("xge3_runtime.h") func touchGetCount() as c_int
 export extern "xgeTouchGet" @header("xge3_runtime.h") @no_raise @c_output(1,0) func touchGet(c_int iIndex) as TouchPoint
 export extern "xgeGamepadConnected" @header("xge3_runtime.h") func gamepadConnected(c_int iGamepad) as c_int
+export extern "xgeGamepadGetState" @header("xge3_runtime.h") @no_raise @c_output(1,0) func gamepadGetState(c_int iGamepad) as GamepadState
+export extern "xgeGamepadSetState" @header("xge3_runtime.h") @no_raise @c_ref(1) @c_result("status",0) func gamepadSetState(c_int iGamepad,GamepadState state)
 export extern "xgeGamepadButtonDown" @header("xge3_runtime.h") func gamepadButtonDown(c_int iGamepad,c_uint iButton) as c_int
 export extern "xgeGamepadButtonPressed" @header("xge3_runtime.h") func gamepadButtonPressed(c_int iGamepad,c_uint iButton) as c_int
 export extern "xgeGamepadButtonReleased" @header("xge3_runtime.h") func gamepadButtonReleased(c_int iGamepad,c_uint iButton) as c_int

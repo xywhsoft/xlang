@@ -4700,6 +4700,15 @@ export extern "xui_widget_t*" class TableView @header("xge3_runtime.h") @lifetim
 
  extern "xuiTableViewSetOffset" @no_raise func setOffset(c_float fOffsetX,c_float fOffsetY) as c_int
 
+ extern "xuiTableViewGetOffset" @no_raise @c_outputs(1,2) @c_status(0) func getOffset() as (c_float,c_float)
+
+ extern "xuiTableViewGetCellContentRect" @no_raise @c_output(3,0) func getCellContentRect(c_int row,c_int column) as Rect
+
+ extern "xuiTableViewGetCellRect" @no_raise @c_output(3,0) func getCellRect(c_int row,c_int column) as Rect
+
+ // No hit is (-1,-1), a successful native result rather than an exception.
+ extern "xuiTableViewGetItemAt" @no_raise @c_outputs(3,4) @c_status(0) func getItemAt(c_float x,c_float y) as (c_int,c_int)
+
  extern "xuiTableViewSetScrollbarMode" @no_raise func setScrollbarMode(c_int iMode) as c_int
 
  extern "xuiTableViewGetScrollbarMode" @no_raise func getScrollbarMode() as c_int

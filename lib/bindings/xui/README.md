@@ -524,3 +524,8 @@ child usable. See `examples/menu_items.xl` and
 metadata, geometry and owned callback declarations. It does not adopt the model
 already owned by a CodeEdit. See `examples/code_margin.xl` and
 [native ownership, current qualification and remaining aliases](../../../docs/xui-code-margin.md).
+
+`TableView.getOffset`, `getCellContentRect`, `getCellRect` and `getItemAt` expose
+native geometry directly. No hit remains `(-1,-1)`. The tableview lesson displays
+the clicked cell's content rectangle; see
+[coordinates, provider failures and measured costs](../../../docs/xge-input-table-queries.md).

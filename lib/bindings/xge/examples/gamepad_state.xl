@@ -1,0 +1,17 @@
+// Deterministic input bridge example: no physical gamepad or window is needed.
+import xge
+
+auto injected=xge.GamepadState()
+injected.bConnected=1
+injected.iButtons=c_uint(1)
+injected.arrAxes[0]=c_float(0.5)
+
+try
+ xge.gamepadSetState(0,injected)
+ auto snapshot=xge.gamepadGetState(0)
+ assert snapshot.bConnected==1 and snapshot.iButtons==c_uint(1)
+ assert snapshot.arrAxes[0]==c_float(0.5)
+ println("Simulated horizontal axis: ",snapshot.arrAxes[0])
+finally
+ assert xge.gamepadSetConnected(0,0)==0
+end
