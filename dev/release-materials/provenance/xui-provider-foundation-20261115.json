@@ -1,0 +1,111 @@
+{
+  "date": "2026-11-15",
+  "complete": true,
+  "passed": true,
+  "scope": "Native ProviderSet lifetime prerequisite and existing language client integration; not full XGE ecosystem completion",
+  "xlangBase": "985fa4f26dc624a32d815e267045bf1f524ac2fa",
+  "nativeCommit": "57bbfbcdc8b22e6e7d95b77745893124605c26d7",
+  "shippingDelivery": false,
+  "versionChanged": false,
+  "pushed": false,
+  "networkTests": false,
+  "compilerRebuilt": false,
+  "nativeRebuilt": true,
+  "commands": 164,
+  "nativeCommands": 76,
+  "languageCommands": 88,
+  "evidence": [
+    {
+      "platform": "win",
+      "part": "native",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\provider-lifetime-native-verified-win-r1.json",
+      "sha256": "38cffa9ab8127262b2d2d506bc776ed2da38b3c6c68cb8dcb6a1a069cf40a1ee",
+      "commands": 38
+    },
+    {
+      "platform": "win",
+      "part": "language",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\provider-lifetime-language-verified-win-r1.json",
+      "sha256": "974672d9516b262bf10329b2eca676ba1cec9acdf5bd1a03d99f3b0070bada76",
+      "commands": 44
+    },
+    {
+      "platform": "linux",
+      "part": "native",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\provider-lifetime-native-verified-linux-r1.json",
+      "sha256": "596b08c022887ae6e9201a643ea3155ca48cab1c9c3eb32cc3c9a3fdaf0a7b95",
+      "commands": 38
+    },
+    {
+      "platform": "linux",
+      "part": "language",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\provider-lifetime-language-verified-linux-r1.json",
+      "sha256": "e892b15c50e89660f988072fce506e87209ab9a4dd70066382706c554a81d766",
+      "commands": 44
+    }
+  ],
+  "docSha256": "cf876c930ffea13dcfab2c8c0e09b0d131396291f8f65e5714451c2f71c191b5",
+  "nativeReceipt": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\code-provider-lifetime-20261115.json",
+    "sha256": "452f17328c5b1140d0199ca205190d5a05a20fba51752dc84003e72f89972f62"
+  },
+  "compilerCohorts": [
+    "compiler-nullable-insert-full-r40",
+    "compiler-nullable-insert-linux-full-r33"
+  ],
+  "stagedProductionBindings": [
+    {
+      "platform": "win",
+      "kind": "host",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\provider-lifetime-packages-win-r2\\host\\xui\\src\\managed.xl",
+      "sha256": "fabff9e575d3a6b1a6b108b79fbb748d5b30a7346fdada930dcd4e07177dc773"
+    },
+    {
+      "platform": "win",
+      "kind": "static",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\provider-lifetime-packages-win-r2\\static\\xui\\src\\managed.xl",
+      "sha256": "fabff9e575d3a6b1a6b108b79fbb748d5b30a7346fdada930dcd4e07177dc773"
+    },
+    {
+      "platform": "linux",
+      "kind": "host",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\provider-lifetime-packages-linux-r2\\host\\xui\\src\\managed.xl",
+      "sha256": "fabff9e575d3a6b1a6b108b79fbb748d5b30a7346fdada930dcd4e07177dc773"
+    },
+    {
+      "platform": "linux",
+      "kind": "static",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\provider-lifetime-packages-linux-r2\\static\\xui\\src\\managed.xl",
+      "sha256": "fabff9e575d3a6b1a6b108b79fbb748d5b30a7346fdada930dcd4e07177dc773"
+    }
+  ],
+  "inventory": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-provider-lifetime-r2\\surface.json",
+    "sha256": "49be2866f171e5dec423fe88b6605fa24fc9924a13ef0ff852e3711c0c8a48ce",
+    "population": 5212,
+    "declarationsPresent": 3855,
+    "meaning": "Declaration presence only; eight new native lifecycle support APIs are not owning provider language coverage"
+  },
+  "costs": {
+    "modelBytes": 120,
+    "baselineWindowsBytes": 80,
+    "modelAllocations": 1,
+    "scopeStackBytes": 72,
+    "warm1000ScopesAndRequestsHeapOperations": 0,
+    "cpuEquivalenceClaim": false,
+    "remaining": "Thread checks, mutation admission, diagnostics references, native/Context scopes and state checks"
+  },
+  "preserved": {
+    "nativePixelGeometry": true,
+    "unrelatedXlangAndIDEWork": true,
+    "releaseNotInstalled": true,
+    "currentDeliveryNotUpdated": true
+  },
+  "open": [
+    "Owning typed provider callbacks and result publication",
+    "Borrowed output record strings, owning arrays and internal alias contracts",
+    "Remaining ecosystem groups including 3D/debug functional qualification",
+    "Final matched SDK/compiler/runtime/IDE/help delivery",
+    "Separate CLI failure-exit policy remains unanswered and unchanged"
+  ]
+}
