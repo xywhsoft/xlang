@@ -42,3 +42,7 @@ upstream `docs/code-margin-lifetime.md` for exact evidence and costs. Unrelated
 native pixel geometry edits remain outside the snapshots and commits. No
 shipping release/IDE installation, version change, push, device, graphics or
 network qualification is claimed.
+
+The following owned-slot phase is now qualified separately; see [standalone
+Margin declarations and remaining aliases](xui-code-margin.md). The figures
+and open work above describe the preceding 488d0126 foundation.

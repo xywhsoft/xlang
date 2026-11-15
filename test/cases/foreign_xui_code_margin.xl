@@ -1,0 +1,93 @@
+import xui
+extern "fixtureMarginBudget" @header("test/cases/foreign_xui_code_margin.h") @no_raise func budget(c_int n)
+extern "fixtureMarginBegin" @no_raise func beginHeap()
+extern "fixtureMarginReport" @no_raise func reportHeap(c_int native)
+extern "fixtureMarginHot" @no_raise func nativeHot(xui.CodeMarginModel model)
+func main(...) as int
+ auto model=xui.createCodeMargin()
+ assert model.getCount()==0 and model.getTotalWidth()==c_float(0)
+ model.loadDefaults()
+ assert model.getCount()==5 and model.getTotalWidth()>c_float(0)
+ model.clear()
+ model.add(10,c_int(xui.XUI_CODE_MARGIN_CUSTOM),20)
+ model.add(20,c_int(xui.XUI_CODE_MARGIN_LINE_NUMBER),40)
+ auto state=model.getState(0)
+ assert state.iSize>0 and state.iId==10 and state.fWidth==c_float(20)
+ assert model.getTotalWidth()==c_float(60)
+ model.setVisible(20,0)
+ assert model.getTotalWidth()==c_float(20)
+ model.setVisible(20,1)
+ auto viewport=xui.Rect()
+ viewport.fW=300
+ viewport.fH=100
+ auto rect=model.getRect(20,viewport)
+ assert rect.fX==20 and rect.fW==40 and rect.fH==100
+ bool rejected=false
+ try
+  state=model.getState(9)
+ catch Error failure
+  rejected=true
+ end
+ assert rejected and state.iId==10
+ rejected=false
+ try
+  model.setWidth(10,-1)
+ catch Error failure
+  rejected=true
+ end
+ assert rejected and model.getState(0).fWidth==c_float(20)
+ // Separate slots retain closures; clearing one preserves the other.
+ int calls=0
+ xui.CodeMarginRenderProc render=func(xui.CallbackWidget widget,c_int id,c_int line,xui.CallbackDrawContext draw,xui.Rect area) as c_int
+  calls+=1
+  return 0
+ end
+ xui.CodeMarginEventProc event=func(xui.CallbackWidget widget,c_int id,c_int line,c_int kind,xui.Rect area) as c_int
+  calls+=1
+  return 0
+ end
+ model.setRenderCallback(10,render)
+ model.setEventCallback(10,event)
+ rejected=false
+ budget(0)
+ try
+  model.setRenderCallback(10,render)
+ catch Error failure
+  rejected=true
+ finally
+  budget(-1)
+ end
+ assert rejected and model.getState(0).iId==10
+ model.setRenderCallback(10,null)
+ model.setEventCallback(10,null)
+ model.remove(20)
+ // The callback cycle must be visible to the native owner graph. Explicit
+ // close consumes it once; the saved language handle then becomes invalid.
+ model.setRenderCallback(10,func(xui.CallbackWidget widget,c_int id,c_int line,xui.CallbackDrawContext draw,xui.Rect area) as c_int
+  return model.getCount()
+ end)
+ model.clear()
+ assert model.getCount()==0 and calls==0
+ model.add(10,c_int(xui.XUI_CODE_MARGIN_CUSTOM),20)
+ beginHeap()
+ for i in range(1000)
+  model.setWidth(10,20)
+  state=model.getState(0)
+  assert state.iId==10 and state.fWidth==c_float(20)
+  assert model.getTotalWidth()==c_float(20)
+ end
+ reportHeap(0)
+ beginHeap()
+ nativeHot(model)
+ reportHeap(1)
+ model.close()
+ rejected=false
+ try
+  auto invalid=model.getCount()
+ catch StateError
+  rejected=true
+ end
+ assert rejected
+ println("CodeMargin: standalone metadata, packing, owned callback publication, OOM, cleanup and numeric costs passed")
+ return 0
+end

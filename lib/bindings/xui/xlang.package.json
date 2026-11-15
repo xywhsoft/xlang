@@ -24,6 +24,7 @@
       "src/code_document.xl",
       "src/code_annotations.xl",
       "src/code_models.xl",
+      "src/code_margin.xl",
       "src/code_fold_state.xl",
       "src/code_token_buffer.xl",
       "src/code_command_map.xl",

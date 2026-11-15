@@ -1,0 +1,21 @@
+// A standalone margin model computes widths and rectangles without a window.
+// Run: xl run code_margin.xl
+import xui
+
+func main(...) as int
+ auto margins=xui.createCodeMargin()
+ margins.add(1,xui.XUI_CODE_MARGIN_LINE_NUMBER,44)
+ margins.add(2,xui.XUI_CODE_MARGIN_CUSTOM,16)
+
+ auto viewport=xui.Rect()
+ viewport.fW=640
+ viewport.fH=480
+ auto custom=margins.getRect(2,viewport)
+ assert custom.fX==44 and custom.fW==16
+ println("Visible margin width: ",margins.getTotalWidth())
+
+ margins.setVisible(2,0)
+ assert margins.getTotalWidth()==c_float(44)
+ margins.close()
+ return 0
+end

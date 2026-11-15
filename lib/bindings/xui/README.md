@@ -519,3 +519,8 @@ an optional final `submenu`. Native submenu links are weak within one Context;
 closing a child disables referring items, while closing a parent leaves the
 child usable. See `examples/menu_items.xl` and
 [input, ownership and measured projection costs](../../../docs/xui-menu-items.md).
+
+`createCodeMargin()` creates a standalone, watched margin model with direct
+metadata, geometry and owned callback declarations. It does not adopt the model
+already owned by a CodeEdit. See `examples/code_margin.xl` and
+[native ownership, current qualification and remaining aliases](../../../docs/xui-code-margin.md).

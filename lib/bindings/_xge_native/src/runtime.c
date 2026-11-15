@@ -560,6 +560,31 @@ const XL6_ForeignViewDescriptorV1* xl6Xui3CodeDocumentPolicyGet(void)
 }
 #else
 const XL6_ForeignViewDescriptorV1* xl6Xui3CodeDocumentPolicyGet(void){return NULL;}
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeMarginPolicyGet(void){return NULL;}
+#endif
+/* The standalone Margin owner participates in the real native callback graph.
+ * CodeEdit's internal borrowed model is deliberately not exposed as a root. */
+#if XUI_ENABLE_CODE_EDIT
+static bool watch_code_margin(void* raw,void* storage,void(*invalidate)(void*),void* user)
+{int status=xuiCodeMarginModelLifetimeWatch(raw,storage,invalidate,user);if(status!=XUI_OK)report_resource_failure(status,"xuiCodeMarginModelLifetimeWatch");return status==XUI_OK;}
+static bool begin_code_margin(void* raw,void* storage)
+{int status=xuiCodeMarginModelCallBegin(raw,storage);if(status!=XUI_OK)report_resource_failure(status,"xuiCodeMarginModelCallBegin");return status==XUI_OK;}
+static bool end_code_margin(void* storage)
+{int status=xuiCodeMarginModelCallEnd(storage);if(status!=XUI_OK)report_resource_failure(status,"xuiCodeMarginModelCallEnd");return status==XUI_OK;}
+static bool destroy_code_margin(void* raw)
+{bool consumed=false;int status=xuiCodeMarginModelDestroyOwnerChecked(raw,&consumed);report_resource_failure(status,"xuiCodeMarginModelDestroyOwnerChecked");return consumed;}
+static bool trace_code_margin(const void* raw,XL6_ModuleOwnershipVisit visit,void* user)
+{return xuiCodeMarginModelTraceOwnership((xui_code_margin_model)raw,visit,user);}
+static bool busy_code_margin(const void* raw)
+{return xuiCodeMarginModelOwnershipBusy((xui_code_margin_model)raw);}
+const XL6_ForeignViewDescriptorV1* xl6Xui3CodeMarginPolicyGet(void)
+{
+    static const XL6_ForeignViewDescriptorV1 value={sizeof(value),XL6_FOREIGN_VIEW_V1_TAG,"xui.codeMargin",
+        sizeof(xui_lifetime_link_t),_Alignof(xui_lifetime_link_t),watch_code_margin,unwatch,destroy_code_margin,
+        sizeof(xui_code_margin_scope_t),_Alignof(xui_code_margin_scope_t),begin_code_margin,end_code_margin,
+        trace_code_margin,busy_code_margin,XL6_FOREIGN_VIEW_RELIABLE_OWNED_WATCH|
+        XL6_FOREIGN_VIEW_DESTROY_OWNS_NATIVE_SCOPE|XL6_FOREIGN_VIEW_DESTROY_REPORTS_FAILURE,NULL,NULL};return &value;
+}
 #endif
 /* Pure numeric leaf models: unique language roots, no callbacks, native
  * watches, retained language edges or borrowed child roots. No fake scopes. */

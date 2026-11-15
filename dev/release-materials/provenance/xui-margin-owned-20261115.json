@@ -1,0 +1,121 @@
+{
+  "date": "2026-11-15",
+  "complete": true,
+  "passed": true,
+  "scope": "Owned Margin native consumers and standalone xlang owner; not full XGE/XUI/Document completion",
+  "nativeCommit": "076964b2067b9fa7cf48af11228cf032083f45b2",
+  "xlangBase": "b81140b2e94393d9962f7f37caffbd811c7ab4d3",
+  "shippingDelivery": false,
+  "versionChanged": false,
+  "pushed": false,
+  "networkTests": false,
+  "commands": 172,
+  "evidence": [
+    {
+      "platform": "win",
+      "family": "native",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\margin-owned-native-verified-win-r1.json",
+      "sha256": "9cddb46e2fa2873efa8fb7c45129390e94505e75e7da551c3ca796da8508825a",
+      "commands": 46
+    },
+    {
+      "platform": "win",
+      "family": "language",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\margin-owned-language-verified-win-r1.json",
+      "sha256": "88328baa33801063b9a79e63ec8c4812302f26d6a13b5f4285eb1de5998d0dc5",
+      "commands": 40
+    },
+    {
+      "platform": "linux",
+      "family": "native",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\margin-owned-native-verified-linux-r1.json",
+      "sha256": "07cc471c0e92c911e8f379124f6331d841203ee274a84c2001a2661e11a803b4",
+      "commands": 46
+    },
+    {
+      "platform": "linux",
+      "family": "language",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\margin-owned-language-verified-linux-r1.json",
+      "sha256": "16a0dbb849cb78aeb9aa9bc461bc776708e4e9e0679619aa13e2d73d4a9f803b",
+      "commands": 40
+    }
+  ],
+  "nativeReceipt": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\code-margin-owned-20261115.json",
+    "sha256": "e00d5737d1eea4739cc634a2996ed6f356757813033d63cbbbf700866a01fdc3"
+  },
+  "inventory": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-margin-owned-r2\\surface.json",
+    "sha256": "3cd85db43fbf07298f0e8d9600f38998e28e6d94fc0b325ced070a3fbdd5394a",
+    "population": {
+      "functions": 5204,
+      "types": 983,
+      "constants": 1838,
+      "functionMacros": 7,
+      "callableFields": 184,
+      "enums": 40,
+      "enumConstants": 316
+    },
+    "declarationPresent": {
+      "functions": 3844,
+      "types": 384,
+      "constants": 1820,
+      "callableFields": 66,
+      "enumConstants": 316
+    },
+    "semantics": "Presence only, not runtime coverage"
+  },
+  "bindingIdentities": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\margin-owned-work-r1\\binding-identities.json",
+    "sha256": "f5a98d1da412d1f6acbc9be5c0ee506b34338da2e550211a5714b077c8dd1fb6"
+  },
+  "compilers": [
+    "compiler-nullable-insert-full-r40",
+    "compiler-nullable-insert-linux-full-r33"
+  ],
+  "fullO2CompilerRebuilt": false,
+  "nativeBuilds": {
+    "fullParents": "margin-owned-sdk-{win,linux}-r1: host164/static166, zero reuse",
+    "fastPathSuccessors": "margin-owned-sdk-{win,linux}-r2: host1/static2 compiled,163/164 reused"
+  },
+  "costs": {
+    "modelBytes": 64,
+    "previousLifetimeModelBytes": 56,
+    "oldUnprotectedModelBytes": 16,
+    "slotBytes": 72,
+    "layoutEntryBytes": 72,
+    "previousLayoutEntryBytes": 64,
+    "frameBytes": 96,
+    "scopeBytes": 72,
+    "modelAllocations": 1,
+    "slotAllocations": 1,
+    "nativeHotRounds": 1000,
+    "nativeHotHeapOperations": 0,
+    "nativeHotExternalHoldDrop": 0,
+    "numericLanguageNativeRounds": 1000,
+    "numericLanguageNativeHeapOperations": 0,
+    "cpuEquivalenceClaim": false
+  },
+  "diagnostics": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\margin-owned-native-win-r1",
+      "reason": "QA private-header include path omission; preserved, not final qualification"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\margin-owned-language-win-r1",
+      "reason": "New fixture used unsupported .. syntax; changed to range, production unchanged"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\margin-owned-language-linux-r1",
+      "reason": "All commands passed but the fixture changed after initial hashing; rerun against stable range input, not counted"
+    }
+  ],
+  "open": [
+    "CodeEdit internal model long-lived alias",
+    "Writable layout arrays",
+    "Normal hit-test/status plus output carrier",
+    "Language Margin callback execution, callback expiry and UI examples",
+    "Other pending contracts and complete XGE/XUI/Document integration",
+    "Matched final compiler/runtime/SDK/IDE/help release"
+  ]
+}
