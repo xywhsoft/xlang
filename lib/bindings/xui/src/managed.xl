@@ -1729,6 +1729,8 @@ end
 
 export extern "xui_widget_t*" class Breadcrumb @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
 
+ extern "xuiBreadcrumbSetItems" @no_raise @c_result("status",0) @c_array_group(1,0,3,"int",3) @c_array_record(1,"xui_breadcrumb_item_t") @c_array_field(1,"sText",0,"c_string") @c_array_field(1,"bClickable",1,"value") @c_array_field(1,"iValue",2,"value") func setItemsColumns(array<string?> texts,array<c_int> clickable,array<c_int> values,int size=-1)
+
  extern "xuiBreadcrumbSetClickOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setClick(BreadcrumbClickProc? onClick)
 
  extern "xuiBreadcrumbSetContextMenuOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",-16) @c_result("status",0) func setContextMenu(BreadcrumbContextProc? onContext)
@@ -5246,6 +5248,8 @@ end
 
 export extern "xui_widget_t*" class MenuBar @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
 
+ extern "xuiMenuBarSetItems" @no_raise @c_result("status",0) @c_array_group(1,0,5,"int",5) @c_array_record(1,"xui_menubar_item_t") @c_array_field(1,"sText",0,"c_string") @c_array_field(1,"iState",1,"value") @c_array_field(1,"iValue",2,"value") @c_array_field(1,"iMnemonic",3,"value") @c_array_field(1,"pMenu",4,"view_raw") func setItemsColumns(array<string?> texts,array<c_int> states,array<c_int> values,array<c_int> mnemonics,array<Menu?> menus,int size=-1)
+
  extern "xuiMenuBarAddItem" @no_raise @c_cstr(0) func addItem(string sText,Widget pMenu,c_int iValue) as c_int
 
  extern "xuiMenuBarClear" @no_raise func clear() as c_int
@@ -5382,6 +5386,8 @@ export extern "xui_widget_t*" class Toolbar @header("xge3_runtime.h") @lifetime(
 end
 
 export extern "xui_widget_t*" class StatusBar @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
+
+ extern "xuiStatusBarSetItems" @no_raise @c_result("status",0) @c_array_group(1,0,10,"int",10) @c_array_record(1,"xui_statusbar_item_t") @c_array_field(1,"sText",0,"c_string") @c_array_field(1,"iType",1,"value") @c_array_field(1,"iSection",2,"value") @c_array_field(1,"iState",3,"value") @c_array_field(1,"iValue",4,"value") @c_array_field(1,"fWidth",5,"value") @c_array_field(1,"fFlex",6,"value") @c_array_field(1,"fMin",7,"value") @c_array_field(1,"fMax",8,"value") @c_array_field(1,"fValue",9,"value") func setItemsColumns(array<string?> texts,array<c_int> types,array<c_int> sections,array<c_uint> states,array<c_int> values,array<c_float> widths,array<c_float> flex,array<c_float> minimum,array<c_float> maximum,array<c_float> progress,int size=-1)
 
  extern "xuiStatusBarSetSelectOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setSelect(StatusbarSelectProc? onSelect)
 

@@ -230,3 +230,7 @@ inserts a Unicode heart through the input-result API and updates a status label.
 `document_source_patches.xl` 不创建窗口，以 UTF-8 字节范围替换 `world` 和 `Hello`，
 一次发布后输出 `你好, xlang!`。首次预备采用具名的起点、终点、文本三列，续接
 继承首次配置；范例展示源码编辑，不是对可视节点或字符编号的编辑。
+
+`control_items.xl` 在一个窗口中批量创建面包屑、菜单栏和状态栏条目。同一下标的
+列组成同一条目；状态栏用具名参数标明宽度、分区和进度范围。菜单由同一 Context
+管理；显式关闭被引用菜单时，原生菜单栏会清除弱引用并禁用对应项。

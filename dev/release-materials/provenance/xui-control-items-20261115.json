@@ -1,0 +1,194 @@
+{
+  "schema": 1,
+  "date": "2026-11-15",
+  "status": "qualified-bulk-control-item-columns",
+  "shippingDelivery": false,
+  "goalComplete": false,
+  "sourceHeadBefore": "c5baf82ab2526947ffb9cfcebc9a065db745ac12",
+  "nativeRevision": "766c039e9fc3c7a1ddd9702140befcb8c931f168",
+  "nativeRebuilt": false,
+  "compilerRebuilt": false,
+  "compilerQualification": "Reuse verified actual full O2 compiler r42/r35; no compiler ABI/runtime or native implementation changed in this batch.",
+  "sourceSha256": {
+    "lib/bindings/xui/src/managed.xl": "a7457e24139a362b91a10b215f85bf91b34a87615ec935531a0d827c4eb02e55",
+    "lib/bindings/xui/examples/README.md": "b3fc1a5811f474516f4f14c19aaaefd1163986a2f8224c5ed3076521196199c7",
+    "lib/bindings/xui/examples/control_items.xl": "124b6c81c8410931ea412d46bb4d8649e14124c0ec2b519ce2dd8bae6f031840",
+    "tools/check_xge3_bindings.py": "89fd52ffc8739d683ccf51096def8208d9858bdd966ec73f0bfc175d6fa63294",
+    "tools/check_xui_control_items.py": "b0db7d35c6c42c275d818247927f9ec7f8a1cc88ff480d19ad99a933240402e2",
+    "test/cases/foreign_xui_control_items.xl": "a8e22fbc9863ff07560472ee8a35df7a9e9fc3cbc2161fe2028bef817fb36f36",
+    "test/cases/foreign_xui_control_items.h": "8a751515778260b23a5bc0f4287f09de79ae91907e075e5f10cca8f4213eb859",
+    "test/cases/foreign_xui_control_items.c": "1a57fb2f29fcd179d1d6b525faae1d4c3eef6bdf1a183a429a3a4b7512b047c8",
+    "test/cases/foreign_xui_control_items_native.c": "1a9901c7a92da3082ee18618773a79a475f3cb298500a519ad81d33d380d503c",
+    "docs/xui-control-items.md": "64a26f77c4dc23f59b0150246b00ead113cf4395db7fe23ef4ac05879dc72674",
+    "docs/xge3-xui3-full-coverage-plan.md": "e9fd094623510fa454bd083d84b306e7e827086c0ed189328da8ba0191814ffa"
+  },
+  "qualification": {
+    "win": {
+      "verification": "F:\\xlang-validation\\xge-full-20261110\\control-items-verified-win-r1.json",
+      "sha256": "620ae0f48137fbf31be45336ff61ace262bc3592e5568c46aae33ac45f1e1e96",
+      "steps": 32,
+      "compilerReport": "F:\\xlang-validation\\xge-full-20261110\\compiler-array-slices-full-r42\\build.json",
+      "compilerReportSha256": "8692e6241974fede290c5fac9767312c7f12280d0486bfe60838622448b16953",
+      "reports": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\control-items-positive-win-r1\\results.json",
+          "sha256": "1400cf4305ca237e461d1562300b41bb883b4efdcc04b197305910da349cc16b",
+          "steps": 30
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\control-items-layout-win-r1\\results.json",
+          "sha256": "d442704db95f33367eaa11400114d6d695ebcdfbf94639fca6a1e5d48ce65501",
+          "steps": 2
+        }
+      ],
+      "packageParityReport": "F:\\xlang-validation\\xge-full-20261110\\control-items-package-parity-win-r1.json",
+      "packageParityReportSha256": "62060a0eb4faedc2f6a9ff26e6855de8a6c5cdaf42aa7917773352c2b87afa43",
+      "preview": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\control-items-positive-win-r1\\lesson-preview.png",
+        "sha256": "876214db31434550ba6730b588ead3ed8bad1871ac73e04df3c455df4aa2ddcd"
+      }
+    },
+    "linux": {
+      "verification": "F:\\xlang-validation\\xge-full-20261110\\control-items-verified-linux-r1.json",
+      "sha256": "41a41509cdb49af2ff58b41ed04a3b3212cb0d09caed7bd0280776de0579d77b",
+      "steps": 32,
+      "compilerReport": "/mnt/f/xlang-validation/xge-full-20261110/compiler-array-slices-linux-full-r35/build.json",
+      "compilerReportSha256": "f4b77a7c9ba33e286a764a1d5d770e21b51243860c519feba3a0e2022d3d548c",
+      "reports": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/control-items-positive-linux-r1/results.json",
+          "sha256": "f42b652dfb35df3f5effc1a348d251a418c9baf0f2ef8f5fb2ffcb0d6ade0c08",
+          "steps": 30
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/control-items-layout-linux-r1/results.json",
+          "sha256": "5e490180062762b88ad4ea2be8971c82a67cf08d9e096ac2aa9434b8a1cd5872",
+          "steps": 2
+        }
+      ],
+      "packageParityReport": "/mnt/f/xlang-validation/xge-full-20261110/control-items-package-parity-linux-r1.json",
+      "packageParityReportSha256": "e795ebbbacf83c57c1b99f8246f0b1a6cfd2af58bbaac24fd810ed35158ba983",
+      "preview": {
+        "path": "/mnt/f/xlang-validation/xge-full-20261110/control-items-positive-linux-r1/lesson-preview.png",
+        "sha256": "f414a08f9c51770fe4236ca7bc34595b9c5e93729f0000c3753fe123c5a792b0"
+      }
+    },
+    "surface": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\control-items-surface-verified-r1.json",
+      "sha256": "e6184776abe23b0d11467cf615b4d0e806f0aa0e6c243fbaece13a8d643ea788",
+      "steps": 1
+    }
+  },
+  "qualifiedProcessSteps": 65,
+  "newNativeDeclarations": [
+    "xuiBreadcrumbSetItems",
+    "xuiMenuBarSetItems",
+    "xuiStatusBarSetItems"
+  ],
+  "languageMethods": [
+    "Breadcrumb.setItemsColumns",
+    "MenuBar.setItemsColumns",
+    "StatusBar.setItemsColumns"
+  ],
+  "population": 5217,
+  "declarationsPresent": 3867,
+  "inventoryMeaning": "Presence only; not full API/ownership/runtime completion.",
+  "semantics": [
+    "One direct producer call using existing typed input-record arrays. Nullable C-string labels copied by native code; embedded NUL rejected before entry.",
+    "All ordinary input fields exposed; native layout-cache fields ignored and pUser zero. Language callbacks capture typed state and item values instead of an untracked user pointer.",
+    "Native flag, ASCII-mnemonic and progress normalization preserved; arrays are scoped readonly inputs.",
+    "Menu slots remain same-Context weak references; close clears/disables repeated slots, reverse MenuBar close does not destroy menus.",
+    "Checked shape/length/NUL/native validation, OOM rollback in the exercised allocation prefixes, thread and expiry gates; no new universal transaction policy."
+  ],
+  "costs": {
+    "nativeForwardingFunctionsAdded": 0,
+    "recordRowBytes": [
+      16,
+      56,
+      72
+    ],
+    "menuCarrierBytes": 128,
+    "nativeScopeBytes": 48,
+    "threeItemRequestedPayloadBytes": [
+      48,
+      552,
+      216
+    ],
+    "threeItemMenuBreakdown": {
+      "records": 168,
+      "carriers": 384
+    },
+    "warm": {
+      "rounds": 1000,
+      "languageAllocations": [
+        1000,
+        2000,
+        1000
+      ],
+      "languageFrees": [
+        1000,
+        2000,
+        1000
+      ],
+      "nativeStackBaselineAllocations": [
+        0,
+        0,
+        0
+      ],
+      "reallocations": 0
+    },
+    "work": "O(n) record/field materialization, C-string scans, array backing pins, Menu control snapshots/real scoped calls, Context/thread/error checks and cleanup. Changed-data native label copies remain native algorithm costs.",
+    "exclusions": "XRT-only warm counters exclude allocator headers/rounding, input setup, native CRT and CPU time; no zero-overhead/cold-path equality claim.",
+    "wholeProgramZeroOverheadClaim": false
+  },
+  "allocationEvidence": {
+    "languagePrefixesPerExecution": [
+      12,
+      16,
+      10
+    ],
+    "languageModesPerPlatform": 3,
+    "languagePrefixesBothPlatforms": 228,
+    "nativePrefixesPerExecution": [
+      11,
+      14,
+      9
+    ],
+    "nativeActualFailuresPerExecution": [
+      3,
+      6,
+      1
+    ],
+    "nativeExecutionsBothPlatforms": 8,
+    "nativeActualFailuresBothPlatforms": 80,
+    "balanced": "Every tested prefix checks full XRT live bytes/count and invalid/double-free balance; independent native programs finish at zero."
+  },
+  "rendering": {
+    "windowSize": [
+      800,
+      600
+    ],
+    "platforms": [
+      "Windows",
+      "Linux Xvfb"
+    ],
+    "modes": [
+      "JIT",
+      "dynamic AOT",
+      "static AOT"
+    ],
+    "framesMatchWithinEachPlatform": true,
+    "previewsVisuallyInspected": true,
+    "scope": "Visible three-control lesson; not full interactive input or whole-engine GPU certification."
+  },
+  "verifier": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\verify_control_items_r1.py",
+    "sha256": "05ae462ce8ee082a6b1643c959e18bd07705b2d166c52062e1464357d0d48885"
+  },
+  "runtimeInstalled": false,
+  "currentDeliveryModified": false,
+  "versionChanged": false,
+  "pushed": false,
+  "networkTests": false,
+  "remaining": "Other XGE/XUI/Document ownership/interop contracts, actual backend coverage and final matched SDK/compiler/runtime/IDE/help delivery remain active."
+}

@@ -1,0 +1,207 @@
+import xui
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_control_items.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
+extern "fixtureRenderFont" @no_raise @c_result("owned_view") @factory(1,0,dropFont) func cpuFont(xui.Proxy proxy) as xui.Font
+extern "xuiFontReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropFont(xui.Font value)
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "fixtureRenderBudget" @no_raise func budget(c_int n)
+extern "fixtureControlBoundBegin" @no_raise func boundBegin()
+extern "fixtureControlBoundEnd" @no_raise func boundEnd() as c_int
+extern "fixtureControlHeapBegin" @no_raise func heapBegin()
+extern "fixtureControlHeapEqual" @no_raise func heapEqual()
+extern "fixtureControlReport" @no_raise func report(c_int kind,c_int native)
+extern "fixtureControlSeed" @no_raise func seed(c_int kind,xui.Widget widget,xui.Menu child)
+extern "fixtureControlCheck" @no_raise func check(c_int kind,xui.Widget widget,xui.Menu? child,c_int state)
+extern "fixtureControlNativeHot" @no_raise func nativeHot(c_int kind,xui.Widget widget,xui.Menu child)
+
+func exercise(int kind,int allowance) as int
+ auto proxy=cpuProxy()
+ auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ auto font=cpuFont(proxy)
+ ui.setDefaultFont(font)
+ auto crumb=ui.breadcrumbNative()
+ auto bar=ui.menuBarNative()
+ auto status=ui.statusBarNative()
+ auto child=ui.menuNative()
+ xui.Widget widget=crumb
+ if kind==1 then widget=bar end
+ if kind==2 then widget=status end
+ seed(c_int(kind),widget,child)
+ array<string?> crumbText=["Home",null,"项目"]
+ array<string?> barText=["&File",null,"Help"]
+ array<string?> statusText=["Ready",null,""]
+ array<c_int> clickable=[1,0,-1]
+ array<c_int> values=[11,22,33]
+ array<c_int> states=[1,0,1]
+ array<c_int> mnemonics=[102,0,104]
+ array<xui.Menu?> menus=[child,null,child]
+ array<c_int> types=[0,1,2]
+ array<c_int> sections=[0,2,1]
+ array<c_uint> statusStates=[3,1,3]
+ array<c_float> widths=[c_float(100),c_float(200),c_float(0)]
+ array<c_float> flex=[c_float(0),c_float(1),c_float(2)]
+ array<c_float> minimum=[c_float(0),c_float(10),c_float(0)]
+ array<c_float> maximum=[c_float(0),c_float(20),c_float(1)]
+ array<c_float> progress=[c_float(0),c_float(99),c_float(0)]
+ int failed=0
+ if allowance<0 then boundBegin() else budget(c_int(allowance)) end
+ try
+  if kind==0 then crumb.setItemsColumns(crumbText,clickable,values) end
+  if kind==1 then bar.setItemsColumns(barText,states,values,mnemonics,menus) end
+  if kind==2 then status.setItemsColumns(statusText,types,sections,statusStates,values,widths,flex,minimum,maximum,progress) end
+ catch Error
+  failed=1
+ finally
+  budget(-1)
+ end
+ int result=failed
+ if allowance<0 then result=int(boundEnd()) end
+ check(c_int(kind),widget,child,c_int(1-failed))
+ if allowance<0 then
+  // Matched warmed calls: all language input containers already exist.
+  boundBegin()
+  for iteration in range(1000)
+   if kind==0 then crumb.setItemsColumns(crumbText,clickable,values) end
+   if kind==1 then bar.setItemsColumns(barText,states,values,mnemonics,menus) end
+   if kind==2 then status.setItemsColumns(statusText,types,sections,statusStates,values,widths,flex,minimum,maximum,progress) end
+  end
+  report(c_int(kind),0)
+  boundBegin()
+  nativeHot(c_int(kind),widget,child)
+  report(c_int(kind),1)
+ end
+ // The native controls copied their labels; input-array edits cannot alter them.
+ crumbText[0]="changed"
+ barText[0]="changed"
+ statusText[0]="changed"
+ check(c_int(kind),widget,child,c_int(1-failed))
+ ui.close()
+ font.close()
+ proxy.close()
+ return result
+end
+
+func functional()
+ auto proxy=cpuProxy()
+ auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ auto font=cpuFont(proxy)
+ ui.setDefaultFont(font)
+ auto crumb=ui.breadcrumbNative()
+ auto bar=ui.menuBarNative()
+ auto status=ui.statusBarNative()
+ auto child=ui.menuNative()
+ crumb.setItemsColumns(["Home",null,"项目"],[c_int(1),c_int(0),c_int(-1)],[c_int(11),c_int(22),c_int(33)])
+ bar.setItemsColumns(["&File",null,"Help"],[c_int(1),c_int(0),c_int(1)],[c_int(11),c_int(22),c_int(33)],[c_int(102),c_int(0),c_int(104)],[child,null,child])
+ check(0,crumb,child,1)
+ check(1,bar,child,1)
+ bool rejected=false
+ try
+  crumb.setItemsColumns(["bad\0text"],[c_int(1)],[c_int(0)])
+ catch Error
+  rejected=true
+ end
+ assert rejected
+ check(0,crumb,child,1)
+ rejected=false
+ try
+  bar.setItemsColumns(["bad"],[c_int(1)],[c_int(0)],[c_int(-1)],[child])
+ catch Error
+  rejected=true
+ end
+ assert rejected
+ check(1,bar,child,1)
+ auto other=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ other.setDefaultFont(font)
+ auto foreignMenu=other.menuNative()
+ rejected=false
+ try
+  bar.setItemsColumns(["foreign"],[c_int(1)],[c_int(0)],[c_int(0)],[foreignMenu])
+ catch Error
+  rejected=true
+ end
+ assert rejected
+ check(1,bar,child,1)
+ other.close()
+ rejected=false
+ try
+  crumb.setItemsColumns(["x","y"],[c_int(1)],[c_int(0),c_int(0)])
+ catch Error
+  rejected=true
+ end
+ assert rejected
+ crumb.setItemsColumns(["x","y"],[c_int(1)],[c_int(7),c_int(8)],999)
+ assert crumb.getItemCount()==1 and crumb.getItemValue(0)==7
+ auto independent=ui.menuNative()
+ auto parent=ui.menuBarNative()
+ parent.setItemsColumns(["independent"],[c_int(1)],[c_int(0)],[c_int(0)],[independent])
+ parent.close()
+ independent.addItem("still live")
+ assert independent.getItemCount()==1
+ child.close()
+ check(1,bar,null,2)
+ rejected=false
+ try
+  bar.setItemsColumns(["expired"],[c_int(1)],[c_int(0)],[c_int(0)],[child])
+ catch StateError
+  rejected=true
+ end
+ assert rejected
+ bar.setItemsColumns(["ignored"],[c_int(1)],[c_int(0)],[c_int(0)],[child],0)
+ assert bar.getItemCount()==0
+ array<string?> emptyText=[]
+ array<c_int> emptyInt=[]
+ array<c_uint> emptyUint=[]
+ array<c_float> emptyFloat=[]
+ crumb.setItemsColumns(emptyText,emptyInt,emptyInt)
+ status.setItemsColumns(emptyText,emptyInt,emptyInt,emptyUint,emptyInt,emptyFloat,emptyFloat,emptyFloat,emptyFloat,emptyFloat)
+ assert crumb.getItemCount()==0 and status.getItemCount()==0
+ rejected=false
+ try
+  status.setItemsColumns(["bad"],[c_int(99)],[c_int(0)],[c_uint(1)],[c_int(0)],[c_float(100)],[c_float(0)],[c_float(0)],[c_float(100)],[c_float(50)])
+ catch Error
+  rejected=true
+ end
+ assert rejected and status.getItemCount()==0
+ auto worker=thread(func() as int
+  try
+   crumb.setItemsColumns(emptyText,emptyInt,emptyInt)
+  catch StateError
+   return 1
+  end
+  return 0
+ end)
+ assert worker.waitTimeout(30000) and worker.exitCode()==1
+ ui.close()
+ rejected=false
+ try
+  crumb.setItemsColumns(emptyText,emptyInt,emptyInt)
+ catch StateError
+  rejected=true
+ end
+ assert rejected
+ font.close()
+ proxy.close()
+end
+
+func main(...) as int
+ functional()
+ assert balanced()==1
+ for kind in range(3)
+  int count=exercise(kind,-1)
+  exercise(kind,0)
+  int failures=0
+  int successes=0
+  for allowance in range(count)
+   heapBegin()
+   int result=exercise(kind,allowance)
+   heapEqual()
+   assert balanced()==1
+   failures+=result
+   successes+=1-result
+  end
+  assert failures>0 and successes>0
+  println("Control item allocation kind="+string(kind)+" prefixes="+string(count))
+ end
+ println("ControlItems: exact columns, copied text, native normalization, failures, weak menus, thread and expiry passed")
+ return 0
+end

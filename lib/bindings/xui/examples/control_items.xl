@@ -1,0 +1,26 @@
+// 三组数组按同一下标组成一个条目；每组只调用一次原生批量设置。
+import xui
+from "./_window.xl" import Window
+
+Window.show("批量条目：导航、菜单和状态",func(xui.Context ui,xui.Widget root)
+ auto breadcrumb=ui.breadcrumbNative()
+ Window.place(root,breadcrumb,24,24,640,40)
+ breadcrumb.setItemsColumns(["首页","工程","xlang"],[1,1,0],[1,2,3])
+
+ auto fileMenu=ui.menuNative()
+ fileMenu.addItem("新建",value=1)
+ fileMenu.addItem("打开",value=2)
+ auto helpMenu=ui.menuNative()
+ helpMenu.addItem("帮助",value=3)
+ auto menuBar=ui.menuBarNative()
+ Window.place(root,menuBar,24,88,640,40)
+ menuBar.setItemsColumns(["文件","帮助"],[1,1],[10,20],[0,0],[fileMenu,helpMenu])
+
+ auto statusBar=ui.statusBarNative()
+ Window.place(root,statusBar,24,160,640,40)
+ // 左侧文本宽 220，右侧进度宽 180，进度为 65/100。
+ statusBar.setItemsColumns(
+  texts=["就绪",""],types=[0,1],sections=[0,2],states=[1,1],values=[0,0],
+  widths=[220.0,180.0],flex=[0.0,0.0],minimum=[0.0,0.0],
+  maximum=[0.0,100.0],progress=[0.0,65.0])
+end)
