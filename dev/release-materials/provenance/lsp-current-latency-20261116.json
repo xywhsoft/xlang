@@ -1,0 +1,163 @@
+{
+  "schema": 1,
+  "date": "2026-11-16",
+  "stage": "M7b6t",
+  "scope": "Measure current native0.106 and repair exact recipe selection in lifecycle self-tests",
+  "base": "28a610deef5269993a00bb360acff187e60a2607",
+  "buildBase": "28a610deef5269993a00bb360acff187e60a2607",
+  "implementationAccepted": true,
+  "goalComplete": false,
+  "performanceQualified": false,
+  "defaultRuntimeReplaced": false,
+  "engineRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "formalRelease": false,
+  "ownedSources": {
+    "ide/tools/check_lsp_lifecycle_profile.py": "7a558a89d4ea68c29692f29b9312bd9f205f66e3662e2fc8fb4d58eb086283fa",
+    "ide/docs/lsp-current-latency.md": "48f4e4d1e17438f8939ad1e5bf7be0eeca546370ead567a6dc18eced74a329b6",
+    "ide/docs/lsp-development.md": "1bba310543564314603f4a5cf08dfbf6ad29a8b0ee0b62bedc4352550ed0f800"
+  },
+  "sharedIgnoreEdit": {
+    "anchor": "!/dev/release-materials/provenance/lsp-automatic-workspace-20261116.json",
+    "line": "!/dev/release-materials/provenance/lsp-current-latency-20261116.json",
+    "beforeSha256": "c9064be474d7362e1cfcd0b29fe999bbc911ded401ea3a6dfd8c239e8f90c51c",
+    "afterSha256": "e308dd160d37d272ae8e62fa5665af32218411762158565f4e23dbd227dae52d"
+  },
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-current-latency-20261116/stage-sources.tar.gz",
+      "sha256": "93ad344d2c32f4634237ed8a373831e8010b453e2a75b1d988104704803ba023",
+      "bytes": 296435,
+      "entries": 3,
+      "uniquePayloads": 3
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-current-latency-20261116/stage-sources.tar.gz.manifest.json",
+      "sha256": "580efc39aa86bada5375ab5b2ac2a83d20ee3cdc37164a7ab9d4546292925170",
+      "bytes": 823
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-current-latency-20261116/current-profiles-and-calibration.tar.gz",
+      "sha256": "317f6ff850b686bbe007cf1c9b9fb07b286cae1a6fa82554eebb1882980704e7",
+      "bytes": 47527985,
+      "entries": 589,
+      "uniquePayloads": 267
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-current-latency-20261116/current-profiles-and-calibration.tar.gz.manifest.json",
+      "sha256": "59e066b354e481cf6cf625f861637626d904f12c60b84549445fd3ba198b8587",
+      "bytes": 212811
+    }
+  },
+  "externalPaths": [
+    "F:\\codex-builds-xlang-lsp-20261116\\latency-current",
+    "F:\\codex-builds-xlang-lsp-20261116\\current-latency-materials"
+  ],
+  "materialDependencies": [
+    {
+      "index": "dev/release-materials/provenance/lsp-automatic-workspace-20261116.json",
+      "sha256": "b919a6893e1d8aa08b5ba98e06d21e04c6b8e2b94cd7a929440a00e90068c1f4",
+      "purpose": "Installed native0.106,qualified full native220 and GUI acceptance,465-input frontend cohort,matched SDK and actual final links;these previous executions are not new runs"
+    }
+  ],
+  "runtime": {
+    "xlang_ide.exe": "038f370c000ce6ca2c4d7de5331ffa0b7734df9e32a9359e7c45aa585b4cfc8b",
+    "xlang-ls.exe": "3b47b0572b1dc5ad91cbfda183c1b44a1b71938e2eee088da42f16769a6a0b57",
+    "xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3",
+    "update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2"
+  },
+  "runtimePreserved": {
+    "status": "passed",
+    "files": 7094,
+    "runtime": {
+      "xlang_ide.exe": "038f370c000ce6ca2c4d7de5331ffa0b7734df9e32a9359e7c45aa585b4cfc8b",
+      "xlang-ls.exe": "3b47b0572b1dc5ad91cbfda183c1b44a1b71938e2eee088da42f16769a6a0b57",
+      "xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+      "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+      "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+      "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+      "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3",
+      "update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2"
+    },
+    "temporaryUserEntries": [
+      "xl6_run_12896_3542316922_0",
+      "xl6_run_19628_3542315168_0",
+      "xl6_run_28188_3542313674_0"
+    ],
+    "runtimeBuildAbsent": true,
+    "testAliasesAbsent": true
+  },
+  "verification": {
+    "profileUnits": 10,
+    "normalDiagnosticQueries": 120,
+    "normalDiagnosticProcesses": 8,
+    "profileChecks": 11,
+    "exactRecipeCases": 6,
+    "calibrationQueries": 4608,
+    "calibrationProcesses": 64,
+    "calibrationGates": 80,
+    "calibrationFailedGates": 5,
+    "calibrationAccepted": false,
+    "minimumMemoryCommitGiB": 14.9947509765625,
+    "allMeasuredProcessesExited": true,
+    "rawArchivesReadBackVerified": true,
+    "repositoryBudgetPassed": true
+  },
+  "failedGates": [
+    {
+      "name": "32-single-literal/cold/wireP50",
+      "actual": 45.4295,
+      "limit": 45.305925,
+      "passed": false,
+      "baseline": 43.1485,
+      "ratio": 1.05
+    },
+    {
+      "name": "32-single-literal/hot/wireP95",
+      "actual": 12.6104,
+      "limit": 12.407325,
+      "passed": false,
+      "baseline": 11.8165
+    },
+    {
+      "name": "32-single-declaration/hot/wireP95",
+      "actual": 16.8071,
+      "limit": 16.276785,
+      "passed": false,
+      "baseline": 15.5017
+    },
+    {
+      "name": "512-single-declaration/hot/wireP50",
+      "actual": 233.7266,
+      "limit": 229.083015,
+      "passed": false,
+      "baseline": 218.1743,
+      "ratio": 1.05
+    },
+    {
+      "name": "512-imported-literal/cold/wireP50",
+      "actual": 1034.1755,
+      "limit": 988.15626,
+      "passed": false,
+      "baseline": 941.1012,
+      "ratio": 1.05
+    }
+  ],
+  "evidenceNotes": [
+    "Aggregate final native-v6/private component-v4 links and existing220native acceptance without changing the original build receipts or claiming new native tests. Validate all actual source/header/object/archive identities before selecting profiler recipes.",
+    "Compile10private instrumentation TUs with the exact normal core and host. Execute actual normal/diagnostic stdio from hash-owned aliases under root release.120queries preserve standard results,analysis counts,versions,cleanup and runtime identities. Inclusive timers overlap and do not qualify product speed.",
+    "Retain self-test StopIteration before compile and the first external test fixture wrong-last-link expectation. Correct exact recipe selection by actual recorded compiler command,archivedcheckobject,normal image and every linked object/archive hash;five independent corruptions are rejected.11actual timer runtime/cancellation/signature cases pass.",
+    "Register one isolated-process A/A plan on current0.106 with32-function128-generation CPU interaction chains,512-function14-generation chains,fourpairs,eightcases and exact repeats. Complete4608queries and64processes. Resource floors and CPU precision pass;5of80original/precision gates fail. Do not rerun,discard slow samples or claim implementation speed change from a same-image difference.",
+    "Preserve7094runtime files,engine,SDK,GUI,updater,display/update metadata,settings and existing usertmp. No product source changes,IDE rebuild/replacement or online publication this stage."
+  ],
+  "limits": [
+    "Large-edit full analysis remains roughly187-234ms hotP50 in this run. CurrentIR production/final verification,index and retirement are not solved. Continue proven persistent per-function finalIR and verifier work;keep complete native oracle.",
+    "No new A/B acceleration or whole-goal qualification. Synthetic checks do not establish completion,signature/navigation,GUI frame,100k-line,peakRSS,endurance,Linux,sanitizer orphysicalWin7 acceptance. NoDAP/debug/runtimecompletion."
+  ],
+  "postCommitReceipt": "dev/release-materials/provenance/lsp-current-latency-20261116/postcommit.json"
+}

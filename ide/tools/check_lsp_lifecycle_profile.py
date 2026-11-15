@@ -16,6 +16,28 @@ from check_lsp_automatic_diagnostics import AutomaticClient
 from check_language_definitions import position
 
 
+def normal_recipe(baseline, profile):
+    """Select the exact profiled link, including derived builds with copied EXEs."""
+    selection=profile['profileSelection']['check']
+    command=selection['command']
+    obj=Path(selection['object'])
+    if (command not in baseline['commands'] or '-c' not in command or '-o' not in command or
+            Path(command[command.index('-o')+1]).resolve()!=obj.resolve() or
+            Path(command[command.index('-c')+1]).stem!='check' or
+            sha(obj)!=selection['sha256'] or
+            profile['originalCoreMemberHashes'].get(obj.name)!=selection['sha256']):
+        raise ValueError('Profile check recipe or archived object changed')
+    expected={str(Path(p).resolve()):h for p,h in profile['linkedInputs'].items()}
+    for link in reversed(baseline['commands']):
+        if '-c' in link or '-MM' in link or '-o' not in link:continue
+        output=Path(link[link.index('-o')+1])
+        if output.name!='xlang-ls.exe' or not output.is_file():continue
+        if sha(output)!=profile['programs']['normal']['sha256']:continue
+        actual={str(Path(p).resolve()):sha(p) for p in link if p.endswith(('.o','.a'))}
+        if actual==expected:return command,link
+    raise ValueError('No link matches the profiled normal image and all linked objects')
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--profile',type=Path,required=True)
@@ -33,9 +55,8 @@ def main():
         (out/(name+'-stdout.log')).write_bytes(value.stdout);(out/(name+'-stderr.log')).write_bytes(value.stderr)
         if value.returncode:raise ValueError('fixture failed: '+name+' exit '+str(value.returncode))
         return value
-    command=next(c for c in baseline['commands'] if '-c' in c and Path(c[c.index('-c')+1]).stem=='check')
+    command,link=normal_recipe(baseline,build)
     flags=command[:command.index('-c')]+['-I'+str(profile)]
-    link=next(c for c in baseline['commands'] if '-c' not in c and str(Path(build['normalBuild'])/'xlang-ls.exe') in c)
     libraries=[arg for arg in link if arg.startswith('-l') or arg=='-Wl,--gc-sections']
     def compile_file(source,name,extra=()):
         path=out/(name+'.c');path.write_text(source,encoding='utf8',newline='\n');obj=out/(name+'.o')
