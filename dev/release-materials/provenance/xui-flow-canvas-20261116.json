@@ -1,0 +1,250 @@
+{
+  "schema": 1,
+  "date": "2026-11-16",
+  "status": "canvas-retirement-and-direct-default-factories-qualified",
+  "goalComplete": false,
+  "shippingDelivery": false,
+  "releasePromoted": false,
+  "sourceHeadBefore": "28df58e1ebd2fd70a19d84eac6719bebaf8289b2",
+  "nativeCommit": "85f1223ad7b99ed24c82aae7e90ecbc231f1cf8a",
+  "sourceSha256": {
+    "docs/xui-flow-canvas.md": "1bcf8339f165cccf08d8da98a3bc6feefff0ab4881f0befb3b83c809d17b7835",
+    "docs/xge3-xui3-full-coverage-plan.md": "b63c1957958787db13ae3e1f91e24d56eee1784dd2df3d10eb4de1451cd82715",
+    "lib/bindings/xui/src/managed.xl": "546d0a977a959bc4f0a8062f5a6694cb50516b097234313803d17bb1cd002574",
+    "tools/xui_gallery_contracts.py": "39b109ef4bcc18d22faa9ba70318aa19c8d013b3f8ce579337e2f34887d9945f",
+    "lib/bindings/xui/examples/README.md": "3f0311bf3044dc9103de000abd47c2ac155b68be19129c3966b25f31ed9dd3c6",
+    "lib/bindings/xui/examples/flow_canvas.xl": "c0a650f63ac9fad47100dc90361c57f886357df586bdef6b4c79d7da30a06ab9",
+    "lib/bindings/xui/examples/workflow_canvas.xl": "472183417aa1b185b9aebd289a7972c44c4ebddf5fa385bb3909de3b3fc8efaf",
+    "test/cases/foreign_xui_flow_canvas.xl": "d55af5780d2657d6b0cda3a8d4ad14691c25e28a475f3a489ad7b6579f816a5e",
+    "test/cases/foreign_xui_flow_canvas.c": "ca2dcfa5e8e2072f0fc908f0709b0c0a022120bfe3f43e3862fbcd6daeea49ce",
+    "test/cases/foreign_xui_flow_canvas.h": "9c9c2a21f5223c14a1ab5cb4aa03da13d89647af9333334c096ce0517b256a9f",
+    "tools/check_xui_flow_canvas_sdk.py": "1845d446d1b4c7e8057ff2a7467a0660e54d0228b60e0607b981c1bd3da9fa46"
+  },
+  "nativeSourceSha256": {
+    "docs/flow-canvas-lifetime.md": "041e998c1dc39fae0afe7c67812fbba2474e7903825f90b3b56ad21efa04b995",
+    "src/xui/workflow/xui_flow_graph_widget.c": "6f95abe9f1e007c8bbcd5f1b7883a85f20874bece74e16d5b418573672bd4578",
+    "src/xui/workflow/xui_workflow_widget.c": "0cd1f4fbab46dbfe8036b1d57ac524902e7460cf3f597f7112e2f90a72e07ac7",
+    "src/xui/workflow/xui_flow_graph_widget_internal.h": "029d5577f62531cbb1c16cf150a6f96a982c1f46dce742e9520df2b72fab91aa",
+    "tests/xui/xui_flow_canvas_lifetime_test.c": "35987d462c0fbf6342d22336dc42aee360d477e27a4ee58dfee7929c1c885caa"
+  },
+  "reports": {
+    "flow-canvas-verified-win-r3.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-canvas-verified-win-r3.json",
+      "sha256": "3eb5fa95c75c73efe22180f99777a6febb61c04bdbeca2069af0a5892cd7298c"
+    },
+    "flow-canvas-native-win-freeze-r3.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-canvas-native-win-freeze-r3.json",
+      "sha256": "bb7444362e7a891025754b0d374744553fca1a388d24bd184741604d1dafd328"
+    },
+    "native-flow-canvas-win-overlays-r3.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-flow-canvas-win-overlays-r3.json",
+      "sha256": "bfc2ad7e26686a41a7036c0308c6f2703bd3eb8ff9d1289c7412c838d58b851b"
+    },
+    "flow-canvas-sdk-positive-win-r2/results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-canvas-sdk-positive-win-r2\\results.json",
+      "sha256": "77c917234c1525a4f8c26f9423ce14f428b99903a0c9aa5345d24f6a8900b631"
+    },
+    "flow-canvas-replay-win-r1/results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-canvas-replay-win-r1\\results.json",
+      "sha256": "ac1468946e8bcd7f31c422a74b28ca129db2d64327152f4f0f1466505b7518c5"
+    },
+    "flow-canvas-packages-win-r3-host.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-canvas-packages-win-r3-host.json",
+      "sha256": "a328c45f84c8e619facea1d5a85bda9946f8ee6e0a8192152748d5265536a4f1"
+    },
+    "flow-canvas-packages-win-r3-static.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-canvas-packages-win-r3-static.json",
+      "sha256": "2954ee98fcb6aea06234d09bc79f80ae7e574c2c111637edc7605c76a5aa1cb8"
+    },
+    "flow-canvas-layout-win-r2/results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-canvas-layout-win-r2\\results.json",
+      "sha256": "ec2311527dc985676def156b5f04e7955b157579279af2162f1946c2b19d8994"
+    },
+    "flow-canvas-owner-repro-win-r1/results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-canvas-owner-repro-win-r1\\results.json",
+      "sha256": "739d63d7b473c29029bf53c8dc61bd9eef3800773eeb44a7a3fc9a03496cbfbe"
+    },
+    "flow-canvas-owner-positive-win-r1/results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-canvas-owner-positive-win-r1\\results.json",
+      "sha256": "ae8bde1e0f3e5623afcd286d88c8a66590c187b320648d420f37a9b1b0e72006"
+    },
+    "flow-canvas-sdk-win-r4/results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-canvas-sdk-win-r4\\results.json",
+      "sha256": "ca56fbacc3a984370dfe1e42d7f3454b421caf5e046c269a7f6ca14cfde7a7d7"
+    },
+    "flow-canvas-sdk-win-r4/host/build-report.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-canvas-sdk-win-r4\\host\\build-report.json",
+      "sha256": "5879c5765d417442a973aa872f32d67e82ed4ec4e77b818c208a4134bfc2601a"
+    },
+    "flow-canvas-sdk-win-r4/static/build-report.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-canvas-sdk-win-r4\\static\\build-report.json",
+      "sha256": "8e62ac7ef412941875a520efbd6a3aa80bc872f4b716e14f7016f679c0983547"
+    },
+    "flow-canvas-verified-linux-r4.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-canvas-verified-linux-r4.json",
+      "sha256": "bae55b9489a9826eb52b19d40214a91017d958b9cb097874913a1b0a824193a0"
+    },
+    "flow-canvas-native-linux-freeze-r4.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-canvas-native-linux-freeze-r4.json",
+      "sha256": "cd25fb64c5a6b6627871ce4aa57a74723e15d396b759acf7808b1cce89640be8"
+    },
+    "native-flow-canvas-linux-overlays-r3.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-flow-canvas-linux-overlays-r3.json",
+      "sha256": "087766560ccec489fd0078a297d1f8d20dfd18b0278efd8f8a1885d3b3024ab5"
+    },
+    "flow-canvas-sdk-positive-linux-r2/results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-canvas-sdk-positive-linux-r2\\results.json",
+      "sha256": "dd5a09474e51d430cf4f5f5b6466f74c2608c4f799da63ead55c0984270bad6e"
+    },
+    "flow-canvas-replay-linux-r1/results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-canvas-replay-linux-r1\\results.json",
+      "sha256": "97668b19420151bcf5b3f6068836faafb74c547b224a0f8e81c111703cb8c7f6"
+    },
+    "flow-canvas-packages-linux-r3-host.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-canvas-packages-linux-r3-host.json",
+      "sha256": "edeb1bda8dc409072c4c4a5e10feb8bed09e28d2c90469f331dca23a54153fc7"
+    },
+    "flow-canvas-packages-linux-r3-static.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-canvas-packages-linux-r3-static.json",
+      "sha256": "d9d65b33c7e0aa11f7b0acb0fe1b4510ea6dd9b769675a906ca85f75583c7bce"
+    },
+    "flow-canvas-layout-linux-r2/results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-canvas-layout-linux-r2\\results.json",
+      "sha256": "4d394c136e54081416e06ef6dfe21c51f8ea4ee263d10a6e5f1ff62642c5491d"
+    },
+    "flow-canvas-owner-repro-linux-r1/results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-canvas-owner-repro-linux-r1\\results.json",
+      "sha256": "251b56adb8d7f28c74641d48477ece3f0fa055c5bc2e57560428d883f1543a4e"
+    },
+    "flow-canvas-owner-positive-linux-r1/results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-canvas-owner-positive-linux-r1\\results.json",
+      "sha256": "a6eb2340ac8dc238f153ba72362ef73dfc2cad647fceae6bee778ff403409e34"
+    },
+    "flow-canvas-sdk-linux-r3/results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-canvas-sdk-linux-r3\\results.json",
+      "sha256": "92191c022abcff9406c58dc3f37ab6e8bf4435568868dfa243cee1c6805fb783"
+    },
+    "flow-canvas-sdk-linux-r3/host/build-report.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-canvas-sdk-linux-r3\\host\\build-report.json",
+      "sha256": "40cec20f34b8efa52a70d36cbe675e5cc75ff2bfd3d181367a4daa154ea2d2e0"
+    },
+    "flow-canvas-sdk-linux-r3/static/build-report.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-canvas-sdk-linux-r3\\static\\build-report.json",
+      "sha256": "244978e254138e0f916d1e4b25d3500f80b86a4fab88c419a139359ca378a468"
+    },
+    "verify_flow_canvas_r3.py": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\verify_flow_canvas_r3.py",
+      "sha256": "6c9a2388646cffc36052f0f502334b27760a6ae49cceec279b4d6575a8bd39f9"
+    },
+    "verify_flow_canvas_r4.py": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\verify_flow_canvas_r4.py",
+      "sha256": "6fa68c9c0f8a155c55c6d5fc90cbe6721ab8f997a2b0094dcdfaaacfecc8c975"
+    },
+    "build_flow_canvas_sdk_r3.py": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\build_flow_canvas_sdk_r3.py",
+      "sha256": "16a57c485f867b2be85ac5ae95ffcbc13c55989a5f2d4793323157446a1b2f21"
+    },
+    "measure_flow_canvas_layout_r2.py": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\measure_flow_canvas_layout_r2.py",
+      "sha256": "845930e054dc0111735b427296e604759c030447c47cf4d4e7459c259789b401"
+    },
+    "run_flow_canvas_repro_r1.py": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\run_flow_canvas_repro_r1.py",
+      "sha256": "52d4188c5a5ea5bbf8b119737b15563490e63986fb2b0960fef9a85c80b791d8"
+    },
+    "run_flow_canvas_repro_r2.py": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\run_flow_canvas_repro_r2.py",
+      "sha256": "cfbfa84f5282820a5cb24c2e5edc71b0434174c19193e76b29ccdf8362af85d3"
+    },
+    "flow-canvas-font-r1.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-canvas-font-r1.json",
+      "sha256": "5dfaa8ddc854da949e524b46e2e7b171814b75f92a0abfd4aee34fb7f5cefc1b"
+    },
+    "flow-canvas-repo-budget-before.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-canvas-repo-budget-before.json",
+      "sha256": "a9dae82c65948ec40d10be3d2aa412a7466a53a2978780c245d3a56af5ba733f"
+    }
+  },
+  "acceptance": {
+    "sdkSteps": 188,
+    "sourceSteps": 301,
+    "totalSteps": 489,
+    "nativeSuites": 6,
+    "nativeOptimizations": [
+      "O0",
+      "O2"
+    ],
+    "languageModes": [
+      "JIT",
+      "dynamic AOT",
+      "static AOT"
+    ],
+    "nativeFailurePrefixesPerFixture": 64,
+    "languageFailurePrefixesPerMode": 128,
+    "readbacks": 12,
+    "samePlatformPerExamplePixelsMatch": true,
+    "generatedNormalizedChangedFiles": [
+      "lib/bindings/xui/src/managed.xl"
+    ]
+  },
+  "cost": {
+    "warmHoverRounds": 1000,
+    "languageHeap": [
+      0,
+      0,
+      0
+    ],
+    "nativeCHeap": [
+      0,
+      0,
+      0
+    ],
+    "countOrder": [
+      "alloc",
+      "free",
+      "realloc"
+    ],
+    "privateWidgetBytes": {
+      "FlowGraphWidget": 872,
+      "WorkflowWidget": 40
+    },
+    "extraPrivateWidgetBytes": 0,
+    "newConfigCopies": 0,
+    "newGlobalLocks": 0,
+    "cpuZeroOverheadClaim": false,
+    "extraWork": [
+      "native readiness/mutation checks",
+      "existing Context call scope during successful model replacement",
+      "existing language factory rollback, view validation and callback lifetime bookkeeping"
+    ]
+  },
+  "nativeBuild": {
+    "fullRebuild": false,
+    "qualifiedFullParent": "flow-busy-sdk-{win,linux}-r2",
+    "qualifiedParentObjects": {
+      "host": 164,
+      "static": 166
+    },
+    "compiled": {
+      "host": 2,
+      "static": 3
+    },
+    "reused": {
+      "host": 162,
+      "static": 163
+    },
+    "canonicalXrtSha256": "41bc24579f4b3207b0434755ca23dd06481af90c05f71e9b365848cf9a7c12d1",
+    "latestUpstreamXrtSynced": false
+  },
+  "nativeUserGeometryPathsPreserved": 13,
+  "limitations": [
+    "Standalone safe Graph/Workflow models, shared ownership, long-lived aliases and implicit cycle retirement remain incomplete.",
+    "Legacy borrowed model setter can commit before a later logical-close status; test keeps caller input owner. Safe owning-transfer consumption still needs its own contract.",
+    "General Workflow schema/variable/validation/dynamic-port callback reentry remains outside this graph-config batch; follow-up same-Workflow Busy proposal is pending.",
+    "Two examples show empty canvases and right-click callbacks, not a full node editor.",
+    "Five private assertions of the older Busy suite remain source-only, explicitly omitted for public SDK clients.",
+    "Only the legacy Schema suite compares/clears its preexisting invalid-argument; new lifetime and language tests require clean errors.",
+    "Complete managed generator candidate is not promoted over maintained callback/snapshot/nullability contracts.",
+    "Latest XRT synchronization, final matching compiler/SDK/runtime/IDE/help installation and overall ecosystem acceptance remain unfinished."
+  ]
+}

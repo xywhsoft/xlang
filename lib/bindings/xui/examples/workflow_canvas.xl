@@ -1,0 +1,16 @@
+// 工作流画布：原生工作流、模型和内部画布随 Context 一起管理。
+import xui
+from "./_window.xl" import Window
+
+Window.show("工作流画布", func(xui.Context ui,xui.Widget root)
+ auto status=ui.labelNative()
+ status.setText("在工作流画布中右键单击，查看坐标。")
+ Window.place(root,status,24,16,720,28)
+
+ auto workflow=ui.workflowWidget()
+ Window.place(root,workflow,24,56,720,420)
+ workflow.setContextMenu(func(xui.Widget sender,xui.CallbackConstFlowHit hit,c_float x,c_float y) as c_int
+  status.setText(f"右键位置：{int(x)}, {int(y)}")
+  return c_int(xui.XUI_EVENT_DISPATCH_STOP)
+ end)
+end)

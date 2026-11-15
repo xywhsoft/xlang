@@ -1,5 +1,11 @@
 # XUI 入门范例
 
+[flow_canvas.xl](flow_canvas.xl) 和 [workflow_canvas.xl](workflow_canvas.xl)
+使用直接声明的默认构造器创建画布，右键后在标签中显示坐标。原生模型由画布拥有，
+不需要裸指针或手工销毁。运行命令分别为 `xl run extlibs/xui/examples/flow_canvas.xl`
+和 `xl run extlibs/xui/examples/workflow_canvas.xl`；其余准备同本页的窗口范例。
+这两个入门例仅展示画布创建与事件；独立模型、节点编辑和模型长期别名仍在继续接入。
+
 不创建窗口的数据模型范例见 [document_exports.xl](document_exports.xl)：加载 Markdown，
 导出 HTML／纯文本和 bytes，并将序列化结果恢复为独立的 Document。
 

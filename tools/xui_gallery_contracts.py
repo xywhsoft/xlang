@@ -29,6 +29,11 @@ METHODS["Context"] += ['extern "xuiSliderCreate" @no_raise @c_null(2,"const xui_
 for native,method,kind in [('xuiRadioGroupCreate','radioGroup','RadioGroup'),('xuiScrollFrameCreate','scrollFrame','ScrollFrame')]:
  METHODS['Context'].append('extern "'+native+'" @no_raise @c_null(2,"const '+('xui_radio_group_desc_t'if kind=='RadioGroup'else'xui_scroll_frame_desc_t')+'*") @c_result("owner_view",0) @factory(1,0,rollback'+kind+') func '+method+'() as '+kind)
 METHODS['Context'].append('extern "xuiWebViewCreate" @no_raise @c_pack(2,"xui_webview_desc_t",0,1) @c_pack_size(2,"iSize","uint32_t") @c_pack_field(2,"sUserDataFolder",0,"c_string") @c_result("owner_view",0) @factory(1,0,rollbackWebView) func webView(string? userDataFolder=null) as WebView')
+for native,method,kind,descriptor in (
+ ('xuiFlowGraphWidgetCreate','flowGraphWidget','FlowGraphWidget','NativeConstXuiFlowGraphDescTPointer'),
+ ('xuiWorkflowWidgetCreate','workflowWidget','WorkflowWidget','NativeConstXuiWorkflowDescTPointer'),
+):
+ METHODS['Context'].append('extern "'+native+'" @no_raise @c_result("owner_view",0) @factory(1,0,rollback'+kind+') func '+method+'('+descriptor+'? descriptor=null) as '+kind)
 METHODS['Cascader']=['extern "xuiCascaderSetItems" @no_raise @c_result("status",0) @c_array_group(1,0,4,"int",4) @c_array_record(1,"xui_cascader_item_t") @c_array_field(1,"sText",0,"c_string") @c_array_field(1,"iValue",1,"value") @c_array_field(1,"iParent",2,"value") @c_array_field(1,"iFlags",3,"value") func setItems(array<string> titles,array<c_int> values,array<c_int> parents,array<c_uint> flags,int size=-1)']
 METHODS['DockPanel'].append('extern "xuiDockPanelDockWindow" @no_raise @c_output(5,0) func dockWindow(c_int window,c_int region,c_int side,c_float ratio=0) as c_int')
 
@@ -39,8 +44,8 @@ def extend(context,classes,mapped):
    native=row.split('"')[1]
    # Default overloads supplement the full typed descriptor constructors.
    # Preserve those existing declarations when regenerating the binding.
-   if native=='xuiWebViewCreate':
-    # A packed safe constructor replaces the opaque caller descriptor entry.
+   if native in ('xuiWebViewCreate','xuiFlowGraphWidgetCreate','xuiWorkflowWidgetCreate'):
+    # Reviewed constructors replace the generator's opaque raw entry names.
     target[:]=[value for value in target if 'extern "'+native+'"'not in value]
    elif native.endswith('Create'):
     target[:]=[value for value in target if value.strip()!=row]

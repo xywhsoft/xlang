@@ -1817,3 +1817,17 @@ Undo／Redo、历史裁剪、销毁、独立模型嵌套、输出保持和 176 �
 逐条记录。旧 Schema 负例留下 invalid-argument，与冻结前版及四种 SDK 客户端一致；
 只对该旧套件比较并清理错误，新 Busy 夹具仍要求无遗留错误。配套候选和完整源码
 再次复核哈希；详情由 xui-flow-busy-20261116.json 小型验收记录索引，未安装到 release。
+
+2026-11-16 后继补齐默认 FlowGraph／Workflow 画布构造和拥有槽清理。真实前版 SDK
+复现配置回调期间替换／关闭画布或 Context 丢失原生模型拥有指针；两种画布现接入
+既有纯 destroy-readiness，逻辑关闭后保留物理拥有槽，Context checked 退役明确返回
+deferred／consumed=false，回调结束后可重试。替换使用既有调用作用域及局部变更标记，
+内部 Workflow 画布禁止由公开 Graph setter 独立重绑，Busy 输出保持及独立模型可用。
+不增加语言专用 C 包装；Context.flowGraphWidget()／workflowWidget() 直接传 NULL
+使用原生默认值，并替代旧的两个 *Native 名称。两个短范例展示创建和右键坐标反馈。
+两端真实 SDK 各94步及源审查150／151步通过；每例三种运行方式的两帧像素在同平台
+一致。1000次暖态 hover 查询语言／C均0次XRT堆操作；新增标记填充原有对齐空隙，
+私有画布结构仍872／40字节，但准入检查与调用作用域仍有CPU成本。头指纹不变，
+SDK经依赖校验定点重编2／3个对象，复用完整O2父构建的162／163个对象。
+独立安全模型、共享引用／长期别名、模型转移后的晚失败合同及通用Workflow回调仍
+开放；未替换最终release／IDE。细节与完整边界见 xui-flow-canvas.md 及专项验收记录。

@@ -1,0 +1,134 @@
+import xui
+from xui import CallbackConstFlowHit
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_flow_canvas.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy proxy)
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "fixtureFlowCanvasBegin" @no_raise func heapBegin()
+extern "fixtureFlowCanvasEqual" @no_raise func heapEqual()
+extern "fixtureFlowCanvasBudget" @no_raise func budget(c_int allowance)
+extern "fixtureFlowCanvasReset" @no_raise func reset()
+extern "fixtureFlowCanvasDefaults" @no_raise @c_result("status",0) func defaults(xui.FlowGraphWidget graph,xui.WorkflowWidget workflow)
+extern "fixtureFlowCanvasContextMenu" @no_raise @c_result("status",0) func contextMenu(xui.Widget target)
+extern "fixtureFlowCanvasReport" @no_raise func report(c_int native)
+extern "fixtureFlowCanvasNativeHot" @no_raise func nativeHot(xui.FlowGraphWidget graph)
+
+protocol CanvasFactory
+ func flowGraphWidget(xui.NativeConstXuiFlowGraphDescTPointer? descriptor) as xui.FlowGraphWidget
+ func workflowWidget(xui.NativeConstXuiWorkflowDescTPointer? descriptor) as xui.WorkflowWidget
+end
+
+func createPrefix(xui.Context ui,int allowance,bool workflow) as int
+ budget(c_int(allowance))
+ try
+  if workflow
+   auto item=ui.workflowWidget()
+   item.close()
+  else
+   auto item=ui.flowGraphWidget()
+   item.close()
+  end
+ catch Error
+  reset()
+  return 1
+ finally
+  reset()
+ end
+ return 0
+end
+
+func main(...) as int
+ auto proxy=cpuProxy()
+ auto ui=xui.create(proxy,c_int(xui.XUI_SYSTEM_FONT_DISABLED))
+ auto graph=ui.flowGraphWidget()
+ auto workflow=ui.workflowWidget()
+ defaults(graph,workflow)
+ auto hit=graph.getHoverHit()
+ assert hit.iType==c_int(xui.XUI_FLOW_HIT_NONE) and hit.iNode==c_int(-1)
+ int menus=0
+ xui.CallbackConstFlowHit? saved=null
+ graph.setContextMenu(func(xui.Widget sender,xui.CallbackConstFlowHit view,c_float x,c_float y) as c_int
+  assert view.iType==c_int(xui.XUI_FLOW_HIT_BACKGROUND)
+  assert int(x)==8 and int(y)==8
+  saved=view
+  menus+=1
+  return c_int(xui.XUI_EVENT_DISPATCH_STOP)
+ end)
+ contextMenu(graph)
+ assert menus==1
+ bool callbackExpired=false
+ try
+  auto oldView=saved as CallbackConstFlowHit
+  auto oldHit=oldView.iType
+ catch StateError
+  callbackExpired=true
+ end
+ assert callbackExpired
+ graph.setContextMenu(null)
+ workflow.setContextMenu(func(xui.Widget sender,xui.CallbackConstFlowHit view,c_float x,c_float y) as c_int
+  assert view.iType==c_int(xui.XUI_FLOW_HIT_BACKGROUND)
+  menus+=1
+  return c_int(xui.XUI_EVENT_DISPATCH_STOP)
+ end)
+ contextMenu(workflow)
+ assert menus==2
+ workflow.setContextMenu(null)
+ func(xui.NativeConstXuiFlowGraphDescTPointer?) as xui.FlowGraphWidget makeGraph=ui.flowGraphWidget
+ auto bound=makeGraph(null)
+ CanvasFactory factory=ui
+ auto projected=factory.workflowWidget(null)
+ defaults(bound,projected)
+ bound.close()
+ projected.close()
+ heapBegin()
+ int failures=0
+ for allowance in range(64)
+  failures+=createPrefix(ui,allowance,false)
+  failures+=createPrefix(ui,allowance,true)
+ end
+ heapEqual()
+ assert failures>0 and failures<128
+ println("Flow canvas constructor OOM: prefixes=128 failures=",failures)
+ heapBegin()
+ int observed=0
+ for round in range(1000)
+  auto snapshot=graph.getHoverHit()
+  observed+=int(snapshot.iNode)
+ end
+ report(0)
+ heapEqual()
+ assert observed==-1000
+ heapBegin()
+ nativeHot(graph)
+ report(1)
+ heapEqual()
+ auto worker=thread(func() as int
+  try
+   auto wrong=ui.flowGraphWidget()
+  catch StateError
+   return 1
+  end
+  return 0
+ end)
+ assert worker.waitTimeout(30000) and worker.exitCode()==1
+ func() as xui.FlowHit read=graph.getHoverHit
+ graph.close()
+ bool expired=false
+ try
+  auto stale=read()
+ catch StateError
+  expired=true
+ end
+ assert expired
+ ui.close()
+ expired=false
+ try
+  auto stale=workflow.getCanvas()
+ catch StateError
+  expired=true
+ end
+ assert expired
+ proxy.close()
+ assert balanced()==1
+ println("Flow canvas OOP: direct defaults, bound/protocol factories, thread/expiry, OOM and heap balance passed")
+ return 0
+end

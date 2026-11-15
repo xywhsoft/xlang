@@ -1,0 +1,16 @@
+// 流程画布：右键单击，在上方显示坐标。
+import xui
+from "./_window.xl" import Window
+
+Window.show("流程画布", func(xui.Context ui,xui.Widget root)
+ auto status=ui.labelNative()
+ status.setText("在画布中右键单击，查看坐标。")
+ Window.place(root,status,24,16,720,28)
+
+ auto canvas=ui.flowGraphWidget()
+ Window.place(root,canvas,24,56,720,420)
+ canvas.setContextMenu(func(xui.Widget sender,xui.CallbackConstFlowHit hit,c_float x,c_float y) as c_int
+  status.setText(f"右键位置：{int(x)}, {int(y)}")
+  return c_int(xui.XUI_EVENT_DISPATCH_STOP)
+ end)
+end)
