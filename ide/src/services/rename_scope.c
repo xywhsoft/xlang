@@ -34,19 +34,28 @@ xide_rename_scope* xideRenameScopeCreate(xide_analysis_catalog* catalog,xls_cont
  size_t count,size_t budget,int (*cancelled)(void*),void* user,enum xide_rename_scope_error* output)
 {
  enum xide_rename_scope_error error=XIDE_RENAME_SCOPE_ARGUMENT;xide_rename_scope* s=NULL;
- size_t projects=xideAnalysisCatalogCount(catalog),bytes=sizeof(*s);budget=budget ? budget : XIDE_RENAME_SCOPE_BYTES;
- if(!catalog || (count && !files) || count>64 || projects>64-count)goto done;
+ size_t projects=xideAnalysisCatalogCount(catalog),builtins=xideAnalysisCatalogFileCount(catalog),bytes=sizeof(*s);budget=budget ? budget : XIDE_RENAME_SCOPE_BYTES;
+ if(!xideAnalysisCatalogComplete(catalog) || (count && !files) || count>64 || projects>64-builtins || (!builtins && projects>64-count))goto done;
  error=XIDE_RENAME_SCOPE_LIMIT;
  if(budget>XIDE_RENAME_SCOPE_BYTES || !charge(&bytes,xideAnalysisCatalogBytes(catalog),budget))goto done;
  if(stopped(cancelled,user)){error=XIDE_RENAME_SCOPE_CANCELLED;goto done;}
  s=XIDE_RENAME_SCOPE_ALLOC(sizeof(*s));if(!s){error=XIDE_RENAME_SCOPE_MEMORY;goto done;}
  xrtAtomic32Init(&s->references,1);s->catalog=xideAnalysisCatalogRetain(catalog);s->projects=projects;
- for(size_t i=0;i<count;++i){
+ for(size_t i=0;i<builtins+count;++i){
   if(stopped(cancelled,user)){error=XIDE_RENAME_SCOPE_CANCELLED;goto done;}
-  const xls_context_spec* spec=xlsContextSpec(files[i]);error=XIDE_RENAME_SCOPE_ARGUMENT;
+  xls_context* context=i<builtins ? (xls_context*)xideAnalysisCatalogFileAt(catalog,i) : files[i-builtins];
+  const xls_context_spec* spec=xlsContextSpec(context);error=XIDE_RENAME_SCOPE_ARGUMENT;
   if(!spec || spec->kind!=XLS_CONTEXT_XLANG || !xrtPathIsAbs(spec->entry) || !xrtPathIsAbs(spec->directory) ||
      !xidePathHasExtension(spec->entry,".xl") || strcmp(spec->analysisProfile,XIDE_ANALYSIS_PROFILE))goto done;
   wchar_t* key=xidePathNativeWide(spec->entry);if(!key){error=XIDE_RENAME_SCOPE_MEMORY;goto done;}
+  /* An open/explicit root may repeat a catalog root. Keep exactly one role
+     with the authoritative context; different options are an error. Legacy
+     schema1 caller role ordering/duplicate behavior remains unchanged. */
+  int duplicate=0;
+  if(i>=builtins)for(size_t j=0;j<builtins;++j)if(!xidePathNativeKeyCompare(key,s->index[j].key)){
+   if(!xlsContextEqual(context,s->contexts[j])){free(key);goto done;}duplicate=1;break;
+  }
+  if(duplicate){free(key);continue;}
   /* A file context must not smuggle unrelated members into a standalone role.
      Duplicate entry bindings are harmless; imported sources remain unowned. */
   int valid=1;
@@ -59,8 +68,8 @@ xide_rename_scope* xideRenameScopeCreate(xide_analysis_catalog* catalog,xls_cont
   }
   if(!valid){free(key);goto done;}
   error=XIDE_RENAME_SCOPE_LIMIT;
-  if(!charge(&bytes,xlsContextBytes(files[i]),budget) || !charge(&bytes,(wcslen(key)+1)*sizeof(wchar_t),budget)){free(key);goto done;}
-  s->contexts[i]=xlsContextRetain(files[i]);s->index[i]=(file_owner){key,projects+i};++s->files;
+  if(projects+s->files==64 || (i>=builtins && !charge(&bytes,xlsContextBytes(context),budget)) || !charge(&bytes,(wcslen(key)+1)*sizeof(wchar_t),budget)){free(key);goto done;}
+  s->contexts[s->files]=xlsContextRetain(context);s->index[s->files]=(file_owner){key,projects+s->files};++s->files;
  }
  qsort(s->index,s->files,sizeof(*s->index),order);s->bytes=bytes;
  error=stopped(cancelled,user) ? XIDE_RENAME_SCOPE_CANCELLED : XIDE_RENAME_SCOPE_OK;

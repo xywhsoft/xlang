@@ -8,7 +8,9 @@ enum xide_rename_scope_error {
  XIDE_RENAME_SCOPE_MEMORY,XIDE_RENAME_SCOPE_CANCELLED
 };
 /* Immutable whole-workspace membership. Reuse the existing catalog's sorted
- * project index; retain explicit standalone xlang file contexts alongside it.
+ * project index; retain catalog standalone roots, then extra standalone xlang
+ * file contexts alongside it. Incomplete catalogs are rejected. Repeated
+ * catalog roots require equal contexts and do not consume another role.
  * At most64 total scopes. A standalone contributes its entry only, never its
  * directory/imports. A selected project does not hide other owners of a shared
  * file. No filesystem/environment/CWD access or manifest/compiler work.

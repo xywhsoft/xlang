@@ -359,7 +359,8 @@ static int connectClientPath(xide_app* app,const char* path)
   xvalue* configuration=xideExecutionAnalysisPacket(app,v->packagePath,1,&e);
   if(!configuration) {snprintf(v->message,sizeof(v->message),"%s",*e.message ? e.message : "无法准备工程分析配置。");reset(app);free(directory);return 0;}
   v->analysisCatalog=xrtValueRetain(get(configuration,"catalog"));
-  v->analysisRequired=xideMetaCount(get(get(configuration,"catalog"),"projects"))>0;
+  int catalogSchema=1;number(get(v->analysisCatalog,"schema"),&catalogSchema);
+  v->analysisRequired=catalogSchema==2 ? 2 : xideMetaCount(get(v->analysisCatalog,"projects"))>0;
   xvalue *p=xrtValueObject(),*options=xrtValueObject(),*capabilities=xrtValueObject(),*experimental=xrtValueObject();
   if(!p || !options || !capabilities || !experimental) {xrtValueRelease(configuration);xrtValueRelease(p);xrtValueRelease(options);xrtValueRelease(capabilities);xrtValueRelease(experimental);reset(app);free(directory);return 0;}
   put(options,"analysisConfiguration",configuration);
@@ -848,11 +849,12 @@ void xideLanguageViewPoll(xide_app* app)
   else if(number(get(m,"id"),&id)) {
    const xvalue* result=get(m,"result"),*error=get(m,"error"); const char* reason=boundedString(get(error,"message"),4096);
    if(id==1 && !v->initialized) {
-    const xvalue* cap=get(result,"capabilities"); const char* encoding=string(get(cap,"positionEncoding")); bool supported=false;int configurationSchema=0,leaseSchema=0;
+    const xvalue* cap=get(result,"capabilities"); const char* encoding=string(get(cap,"positionEncoding")); bool supported=false;int configurationSchema=0,catalogSchema=0,leaseSchema=0;
     xideLanguageClientSetAnalysisLease(v->client,number(get(get(cap,"experimental"),"analysisLease"),&leaseSchema) && leaseSchema==1 && !error);
     if(error || !encoding || strcmp(encoding,"utf-16") || !xideMetaBool(get(get(cap,"experimental"),"savedEntryDiagnostics"),&supported) || !supported) { snprintf(v->message,sizeof(v->message),"语言服务初始化失败：%s",reason ? reason : "诊断能力不兼容"); reset(app);automaticPause(v); }
-    else if(v->analysisRequired && (!number(get(get(cap,"experimental"),"analysisConfiguration"),&configurationSchema) || configurationSchema!=1)) {
-     automaticFault(v,"当前语言服务不支持工程分析配置，请更新语言服务。");
+    else if(v->analysisRequired && ((!number(get(get(cap,"experimental"),"analysisConfiguration"),&configurationSchema) || configurationSchema!=1) ||
+      (v->analysisRequired==2 && (!number(get(get(cap,"experimental"),"analysisCatalog"),&catalogSchema) || catalogSchema!=2)))) {
+     automaticFault(v,"当前语言服务不支持工作区分析配置，请更新语言服务。");
     }
     else {
      int64 kind=1; const xvalue* sync=get(cap,"textDocumentSync");

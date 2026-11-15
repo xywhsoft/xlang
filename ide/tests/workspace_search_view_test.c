@@ -67,7 +67,21 @@ static int verify(void* user)
  CHECK(xuiSetFocusWidget(app.context,input)==XUI_OK && key(&app,XUI_KEY_ESCAPE,0) && !xideLanguageViewWorkspaceSymbolsIsOpen(&app));CHECK(xideEditorOpen(&app,native,&error) && settle(&app));xide_document* c=app.activeDocument;CHECK(!strcmp(c->language,"c") && key(&app,'T',XUI_MOD_CTRL) && query(&app,"orphanWork",2) && key(&app,XUI_KEY_ESCAPE,0) && app.activeDocument==c);
  CHECK(xideEditorClose(&app,target,1,&error) && xideEditorClose(&app,c,1,&error) && settle(&app));CHECK(xideActionExecute(&app,XIDE_ACTION_WORKSPACE_SYMBOLS)==XIDE_ACTION_DISPATCHED && query(&app,"计值",0));CHECK(xuiSetFocusWidget(app.context,input)==XUI_OK && key(&app,XUI_KEY_ESCAPE,0));
  CHECK(xideProjectAddFile(app.workspaceModel.projects,native,"c",&error));xideLanguageViewConfigurationChanged(&app);CHECK(waitFiles(&app) && xideActionExecute(&app,XIDE_ACTION_WORKSPACE_SYMBOLS)==XIDE_ACTION_DISPATCHED && waitError(&app,"additional frontend support") && !xideLanguageViewWorkspaceSymbolCount(&app));CHECK(xuiSetFocusWidget(app.context,input)==XUI_OK && key(&app,XUI_KEY_ESCAPE,0));
- CHECK(!app.frameError);printf("workspace_search_view_test passed: real zero-open multi-project search,XUI window,Ctrl+T,keyboard/double-click navigation,BOM/CRLF/Unicode prepared baseline,dirty overlay/undo,IME,late disk/edit proof rejection,C-active search and cancellation;renders in %s.\n",root);
+ /* A workspace is also allowed to contain loose files without any project or
+    editor. Changing that roster must invalidate the canonical configuration. */
+ size_t editorsBefore=app.documents.count;
+ for(size_t i=0;i<editorsBefore;++i)CHECK(!namedXlang(app.documents.items[i]));
+ xideWorkspaceClear(&app.workspaceModel);
+ CHECK(xideWorkspaceCreate(&app.workspaceModel,"独立文件",&error) && xideWorkspaceAddFile(&app.workspaceModel,orphan,&error));
+ xideLanguageViewConfigurationChanged(&app);xideFileSyncRefresh(&app);CHECK(waitFiles(&app));
+ CHECK(xideActionExecute(&app,XIDE_ACTION_WORKSPACE_SYMBOLS)==XIDE_ACTION_DISPATCHED && query(&app,"orphanWork",1) && app.documents.count==editorsBefore);
+ int schema=0;CHECK(number(get(app.languageView->analysisCatalog,"schema"),&schema) && schema==2 && app.languageView->analysisRequired==2);
+ CHECK(xuiSetFocusWidget(app.context,xideLanguageViewWorkspaceSymbolsControl(&app,XIDE_WORKSPACE_SYMBOL_QUERY))==XUI_OK && key(&app,XUI_KEY_ESCAPE,0));
+ CHECK(xideWorkspaceRemoveFile(&app.workspaceModel,app.workspaceModel.files.items[0].id,&error));
+ xideLanguageViewConfigurationChanged(&app);xideFileSyncRefresh(&app);CHECK(!app.languageView->analysisCatalog && waitFiles(&app));
+ CHECK(xideActionExecute(&app,XIDE_ACTION_WORKSPACE_SYMBOLS)==XIDE_ACTION_DISPATCHED && query(&app,"orphanWork",0) && app.documents.count==editorsBefore);
+ CHECK(xuiSetFocusWidget(app.context,xideLanguageViewWorkspaceSymbolsControl(&app,XIDE_WORKSPACE_SYMBOL_QUERY))==XUI_OK && key(&app,XUI_KEY_ESCAPE,0));
+ CHECK(!app.frameError);printf("workspace_search_view_test passed: real zero-open multi-project/loose-file search,closed-root roster invalidation,XUI window,Ctrl+T,keyboard/double-click navigation,BOM/CRLF/Unicode prepared baseline,dirty overlay/undo,IME,late disk/edit proof rejection,C-active search and cancellation;renders in %s.\n",root);
 cleanup:
  if(held)xideWorkspaceSearchResultRelease(held);
  if(began)xgeEnd();

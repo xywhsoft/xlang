@@ -1,0 +1,137 @@
+{
+  "schema": 1,
+  "date": "2026-11-15",
+  "stage": "M7b6i",
+  "scope": "Explicit closed workspace xlang roots in shared native scope",
+  "implementationAccepted": true,
+  "goalComplete": false,
+  "performanceQualified": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "e9a9264103f04eb5aa782bf627d8b0fdc513dc96",
+  "buildBase": "3a29905e27390e8b934f68c640bc2bdeb3d56d07",
+  "publicationRebase": {
+    "verifiedNoIdeOrIgnoreChanges": true,
+    "fromCommit": "3a29905e27390e8b934f68c640bc2bdeb3d56d07",
+    "toCommit": "e9a9264103f04eb5aa782bf627d8b0fdc513dc96"
+  },
+  "ownedSources": {
+    "ide/docs/lsp-development.md": "4762f98aeafbf20fffc9c8f9499ccbce70b8663d2a99e4ee185644921e590ae8",
+    "ide/docs/lsp-workspace-file-scope.md": "3f23a514f3a6a9e5f18bccb69e53a38307a0a9f8e50f4d12b817f1ae9fad4c6b",
+    "ide/src/server/rename_candidate.inc": "500e46842877ae8b2a8ccf177e432d1da1e30f24f95051c0ad89a19dcd5e225c",
+    "ide/src/server/workspace_symbols.inc": "840bed90ee4dd09b03ea7185cfdbaffe49609ccb88678881c5c057a730db7e24",
+    "ide/src/server/xlang_ls.c": "dc567c042d16628dfdcae4d938252aed73b84599e1bd0c4aa8d8e0c741e99b23",
+    "ide/src/services/analysis_catalog.c": "a7399717e19138558dc74ce8a8acc298ae62ba6ce5bcdad097ab99d9f894b749",
+    "ide/src/services/analysis_catalog.h": "3753bfe1a7f7056eab555fa88ed072068f51973751002375e43e66c18dfd2a93",
+    "ide/src/services/analysis_configuration.c": "41b680ca03df65f404bf2754a650a56e54da6c0ef91e1bfacd8a9e9c613fe03e",
+    "ide/src/services/analysis_configuration.h": "d607a0317c6e632c244d6e9694bedc8079d4df373c2b7fad949e8fd6b1f8cb9f",
+    "ide/src/services/rename_candidate.c": "0bfed599cafcc60c32ecdfc9c5c4b5b52f2793cce35d9651bf57fb4b0b9a2c2a",
+    "ide/src/services/rename_scope.c": "06fd2f03c2df497a4fe8eb1287beee3ae45ea288fed31c964ae1a6789f12cbf8",
+    "ide/src/services/rename_scope.h": "6f6364a6234e6b09c926e20e56d4a2ebc37a9f8b235b55ee641aa3a900531826",
+    "ide/src/ui/language_view.c": "2181ec373231da4efd382945f892c3ea1e8fa4e25737f421fb7d3df3152571ed",
+    "ide/tests/workspace_file_scope_test.c": "4ce5a19e4a0aedf7b895af1bb2479e6c451001e6881ed5d9b79d3824f62c4619",
+    "ide/tests/workspace_search_view_test.c": "1e251205ee7b89fda98a42fa0af429323d953b402710eaa6ca8773c1aa3d4067",
+    "ide/tools/build.ps1": "1ba7a538b72b99e925807428af5eaff7ed1b747a4c0d5616265e3877beffa0ef",
+    "ide/tools/check_lsp_workspace_files.py": "48fa0a88f40d151bbea28372cb8e560c0a9d87c0ddcafa2f32e7ba7840a110c6"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-workspace-file-scope-20261115.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-workspace-file-scope-20261115/stage-sources.tar.gz",
+      "sha256": "8df2915620471c45f74e4628b39dd2a6155c869ac3bf8d1d567b025bbb3f17b1",
+      "bytes": 371443,
+      "entries": 17,
+      "uniquePayloads": 17
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-workspace-file-scope-20261115/stage-sources.tar.gz.manifest.json",
+      "sha256": "c219d1311d8057cefc6f12f8df36d3e0b68cd9ae6e0c3be0167f3280c77eca55",
+      "bytes": 4413
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-workspace-file-scope-20261115/actual-builds-and-validation.tar.gz",
+      "sha256": "64aa71f741be8e0546a6b9338f02765e6c86236a99674bb94aeedba533ae4ebb",
+      "bytes": 215934335,
+      "entries": 11616,
+      "uniquePayloads": 4190
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-workspace-file-scope-20261115/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "5c6788c66145dd1227b9d5b2cab2e342d185816ff6036185a9a5e63ce1f59938",
+      "bytes": 5277925
+    }
+  },
+  "materialDependencies": [
+    {
+      "index": "dev/release-materials/provenance/lsp-prepare-rename-20261114.json",
+      "sha256": "050b69a9e94816c996d8fab2b31e7e13e8d252a7646064ecd7cac44f20eeafdb",
+      "purpose": "Prepared semantic rename, previous native/frontend/XRT cohort and inherited known dialog/cache limitations"
+    }
+  ],
+  "externalPaths": [
+    "F:\\codex-builds-xlang-lsp-20261114\\workspace-file-scope",
+    "F:\\codex-builds-xlang-lsp-20261114\\workspace-file-scope-materials",
+    "F:\\xl-workspace-file-scope-20261114"
+  ],
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "sdkSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+  "currentDeliverySha256": "dbc9e09ddfaeced7c675d0540589319f20d03e08f5b43abe08dd33354ecaa9fd",
+  "candidate": {
+    "languageServer": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-file-scope-20261114\\native-v3\\xlang-ls.exe",
+    "languageServerSha256": "44c7879042076d8ae6906ac8ab725bf96caf92e41adb9039a78722e2c5dadc24",
+    "gui": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-file-scope-20261114\\gui-objects-v1\\xlang_ide.link.exe",
+    "guiSha256": "1d5d7eb54607d1f3914629bb8936dac7738ae6cefaee95d21fa32dc0c5eb6b4f"
+  },
+  "verification": {
+    "nativeDistinctUnits": 118,
+    "incrementalUnits": 2,
+    "fullGuiUnits": 137,
+    "nativeFixtureChecks": {
+      "workspace_file_scope_test": 37,
+      "analysis_catalog_test": 1054,
+      "rename_scope_test": 1121,
+      "rename_plan_test": 3132,
+      "rename_candidate_test": 103,
+      "project_prepare_rename_test": 31
+    },
+    "nativeFixtureTotal": 5478,
+    "protocolCases": 172,
+    "protocolTools": 10,
+    "pairedGuiSuites": 55,
+    "actualIdeModes": 29,
+    "actualGuiLanguages": [
+      "c",
+      "xlang"
+    ],
+    "rejectedCompiledMutants": 8,
+    "actualInputs": 2718,
+    "actualObjects": 255,
+    "actualLinkedInputs": 354,
+    "visualReview": "actual-gui-smoke-v1 and visual-review.json",
+    "repositoryBudgetPassed": true
+  },
+  "evidenceNotes": [
+    "Schema2 extends the existing immutable catalog with explicit loose xlang roots and a strict completeness boolean; schema1 remains accepted and is still emitted without additional roots/missing projects. Reuse original native lexical path index and XRT contexts, no filesystem scans or new parser/worker.",
+    "Union project members with closed loose files before the64-role limit. Skip project-owned roots and compact native aliases. Retain canonical standalone contexts; extra open roots merge only with equal contexts. Preserve project-only Count/Find/selection and legacy schema1 scope role semantics.",
+    "Standard prepare/rename, native candidate requests and workspace symbols share the declared domain; incomplete project catalogs refuse global results but per-file analysis remains available. Configuration changes retire closed-root results. The actual IDE fixture searches a never-opened loose file, removes it and observes catalog reset/result withdrawal without opening a document or removing the existing blank editor.",
+    "All final native/GUI programs execute from owned root release/win_x64 aliases with the selected matched SDK, then hashes are checked and aliases removed. Preserve the working default runtime/SDK/delivery and all existing user temporary paths. C LSP remains disabled.",
+    "Keep failed attempts: strict warning formatting, test RPC typo, missing public UI function typo and default-blank-editor assumption. C disk exhaustion affected two rechecks; subsequent compiler TEMP/TMP is scoped to F for these child processes only. No system environment or unrelated user files are changed.",
+    "Final native fixtures use the latest frozen headers consistently. Bind exact source/header/link inputs, static core archive members, local protocol Python imports, private basename-only GUI adapters, matched developer SDK and pinned external frontend/XRT bytes. Dependency scans reconstructed for the large GUI helper are coverage, not extra observed test runs.",
+    "Configuration-cache counter check at check_lsp_analysis_configuration.py:184 fails on both this candidate and previous prepared-rename service62cb58d1. Preserve both red runs, do not count the configuration tool as passing or performance qualification. Previous three dialog failures are inherited and not rerun/counted as passing."
+  ],
+  "limits": [
+    "IDE semantic name prefill and preparation admission remain pending. Standard-client automatic workspace bootstrap still requires implementation; this phase uses explicitly acknowledged project/file metadata, not inferred folder membership.",
+    "No whole-goal latency/RSS/endurance, Linux or sanitizer acceptance; known payload quotas are not total RSS. Config-switch cache counter regression and owner blocking stdout remain open.",
+    "Complete generic/unbound/generated/foreign qualification, engine/native asset alignment, generic workspace/applyEdit and remaining applicable LSP capabilities remain open. No DAP/runtime/debug completion.",
+    "Working release executables, DLLs, SDK, active delivery and online update channel are not replaced or published. Long-term goal stays active."
+  ],
+  "postCommitReceipt": "dev/release-materials/provenance/lsp-workspace-file-scope-20261115/postcommit.json"
+}

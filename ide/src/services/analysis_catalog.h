@@ -3,7 +3,7 @@
 #include "protocol/analysis_context_wire.h"
 typedef struct xide_analysis_catalog xide_analysis_catalog;
 enum xide_analysis_binding { XIDE_ANALYSIS_UNOWNED, XIDE_ANALYSIS_PROJECT, XIDE_ANALYSIS_AMBIGUOUS=-1, XIDE_ANALYSIS_ERROR=-2 };
-/* Prepared schema1 client configuration: up to64 projects,65536 entry/member
+/* Prepared schema1/2 client configuration: up to64 project/standalone roles,65536 entry/member
    bindings and16MiB of immutable contexts. No project manifest parsing or
    file/alias I/O. Owns contexts and a sorted native lexical-path index. */
 xide_analysis_catalog* xideAnalysisCatalogCreate(const xvalue* value,char* error,size_t capacity);
@@ -28,7 +28,16 @@ const char* xideAnalysisCatalogPackagePath(const xide_analysis_catalog* catalog)
 size_t xideAnalysisCatalogCount(const xide_analysis_catalog* catalog);
 /* Borrowed complete project scope in prepared order;NULL out of range. */
 const xls_context* xideAnalysisCatalogAt(const xide_analysis_catalog* catalog,size_t index);
+/* Schema2 explicitly declares workspace standalone roots, including closed
+   files. Project-owned and native-lexical duplicate roots are compacted. These
+   do not change project membership/selection. Borrowed immutable contexts. */
+size_t xideAnalysisCatalogFileCount(const xide_analysis_catalog* catalog);
+const xls_context* xideAnalysisCatalogFileAt(const xide_analysis_catalog* catalog,size_t index);
+/* False when a workspace project was unavailable. Ordinary per-file analysis
+   may proceed, but a whole-workspace result must not claim complete coverage. */
+int xideAnalysisCatalogComplete(const xide_analysis_catalog* catalog);
 /* No matching project: capture a standalone .xl context from the file's own
-   directory and this catalog's explicit package input, without alias I/O. */
+   directory and this catalog's explicit package input, without alias I/O.
+   An explicitly registered standalone root returns its retained exact context. */
 xls_context* xideAnalysisCatalogFile(const xide_analysis_catalog* catalog,const char* path);
 #endif

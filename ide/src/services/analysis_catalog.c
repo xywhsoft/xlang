@@ -5,7 +5,8 @@
 #include <string.h>
 #include <wchar.h>
 typedef struct binding { wchar_t* key;size_t owner; } binding;
-struct xide_analysis_catalog {xatomic32 references;xls_context* projects[64];size_t count,bindingCount,selectedOwner,bytes;binding* bindings;char* package;};
+struct xide_analysis_catalog {xatomic32 references;xls_context* projects[64];size_t count,bindingCount,selectedOwner,bytes;binding* bindings;char* package;
+ xls_context* files[64];wchar_t* fileKeys[64];size_t fileCount;int complete;};
 static xstrview sv(const char* s) {return (xstrview){s,strlen(s)};}
 static const xvalue* get(const xvalue* v,const char* key) {return v && xrtValueType(v)==XVALUE_OBJECT ? xrtValueObjectGet(v,sv(key)) : NULL;}
 static const char* text(const xvalue* v) {xstrview s={0};return xrtValueGetString(v,&s) && s.Size<=32767 && (!s.Size || (s.Data && !memchr(s.Data,0,s.Size))) ? (s.Data ? s.Data : "") : NULL;}
@@ -17,19 +18,22 @@ void xideAnalysisCatalogDestroy(xide_analysis_catalog* c)
  if(!c || xrtAtomic32FetchSub(&c->references,1,XMEMORY_ACQ_REL)!=1) return;
  for(size_t i=0;i<c->bindingCount;++i) free(c->bindings[i].key);
  for(size_t i=0;i<c->count;++i) xlsContextRelease(c->projects[i]);
+ for(size_t i=0;i<c->fileCount;++i){xlsContextRelease(c->files[i]);free(c->fileKeys[i]);}
  xrtFree(c->bindings);xrtFree(c->package);xrtFree(c);
 }
 xide_analysis_catalog* xideAnalysisCatalogRetain(xide_analysis_catalog* c) {if(c) xrtAtomic32FetchAdd(&c->references,1,XMEMORY_RELAXED);return c;}
 xide_analysis_catalog* xideAnalysisCatalogCreate(const xvalue* value,char* error,size_t capacity)
 {
  if(error && capacity) *error=0;
- int64 schema=0;const xvalue *projects=get(value,"projects"),*package=get(value,"packagePath");const char *selected=text(get(value,"selectedProject")),*raw=xrtValueType(package)==XVALUE_NULL ? NULL : text(package);
- if(xrtValueType(value)!=XVALUE_OBJECT || xrtValueCount(value)!=4 || !xrtValueGetInt(get(value,"schema"),&schema) || schema!=1 ||
+ int64 schema=0;bool complete=true;const xvalue *projects=get(value,"projects"),*package=get(value,"packagePath"),*roots=get(value,"standaloneRoots");const char *selected=text(get(value,"selectedProject")),*raw=xrtValueType(package)==XVALUE_NULL ? NULL : text(package);
+ if(xrtValueType(value)!=XVALUE_OBJECT || !xrtValueGetInt(get(value,"schema"),&schema) ||
+    !((schema==1 && xrtValueCount(value)==4) || (schema==2 && xrtValueCount(value)==6 &&
+      xrtValueType(roots)==XVALUE_ARRAY && xrtValueCount(roots)<=65536 && xrtValueType(get(value,"complete"))==XVALUE_BOOL && xrtValueGetBool(get(value,"complete"),&complete))) ||
     xrtValueType(projects)!=XVALUE_ARRAY || xrtValueCount(projects)>64 || !selected || !package || (xrtValueType(package)!=XVALUE_NULL && !raw)) {
   fail(error,capacity,"Invalid analysis catalog schema or capacity.");return NULL;
  }
  xide_analysis_catalog* c=xrtCalloc(1,sizeof(*c));if(!c) goto memory;
- xrtAtomic32Init(&c->references,1);c->selectedOwner=SIZE_MAX;c->package=raw ? xrtStrDup(raw) : NULL;if(raw && !c->package) goto memory;
+ xrtAtomic32Init(&c->references,1);c->selectedOwner=SIZE_MAX;c->complete=complete;c->package=raw ? xrtStrDup(raw) : NULL;if(raw && !c->package) goto memory;
  size_t count=xrtValueCount(projects),bindings=0,bytes=0;int selectedFound=!*selected;
  for(size_t i=0;i<count;++i) {
   xls_context* context=xideAnalysisContextRead(xrtValueArrayGet(projects,i),error,capacity);if(!context) goto failed;
@@ -63,6 +67,27 @@ xide_analysis_catalog* xideAnalysisCatalogCreate(const xvalue* value,char* error
  c->bytes=sizeof(*c)+bindings*sizeof(*c->bindings)+(c->package ? strlen(c->package)+1 : 0);
  for(size_t i=0;i<c->count;++i)c->bytes+=xlsContextBytes(c->projects[i]);
  for(size_t i=0;i<c->bindingCount;++i)c->bytes+=(wcslen(c->bindings[i].key)+1)*sizeof(wchar_t);
+ /* Metadata only: never infer roots by walking directories or opening files.
+    Validate even redundant input, then union by the existing native path key. */
+ size_t labels=0,contextBytes=0;
+ for(size_t i=0;i<c->count;++i)contextBytes+=xlsContextBytes(c->projects[i]);
+ for(size_t i=0;schema==2 && i<xrtValueCount(roots);++i){
+  const char* path=text(xrtValueArrayGet(roots,i));uint64_t owners=0;
+  if(!path || !xrtPathIsAbs(path) || !xidePathHasExtension(path,".xl") || !xrtUtf8Valid(sv(path),NULL) ||
+     strlen(path)+1>16u*1024u*1024u-labels)goto invalid;
+  labels+=strlen(path)+1;
+  wchar_t* key=xidePathNativeWide(path);if(!key)goto memory;
+  if(!xideAnalysisCatalogOwnersNative(c,key,&owners)){free(key);goto invalid;}
+  int duplicate=owners!=0;
+  for(size_t j=0;j<c->fileCount && !duplicate;++j)duplicate=!xidePathNativeKeyCompare(key,c->fileKeys[j]);
+  if(duplicate){free(key);continue;}
+  if(c->count+c->fileCount==64){free(key);goto invalid;}
+  xls_context* file=xideAnalysisCatalogFile(c,path);if(!file){free(key);goto memory;}
+  size_t add=xlsContextBytes(file),keyBytes=(wcslen(key)+1)*sizeof(wchar_t);
+  if(add>16u*1024u*1024u-contextBytes || keyBytes>64u*1024u*1024u-bytes){free(key);xlsContextRelease(file);goto invalid;}
+  contextBytes+=add;bytes+=keyBytes;c->bytes+=add+keyBytes;
+  c->files[c->fileCount]=file;c->fileKeys[c->fileCount++]=key;
+ }
  return c;
 invalid:fail(error,capacity,"Invalid project analysis identity, selection, paths or capacity.");goto failed;
 memory:fail(error,capacity,"Cannot allocate prepared analysis catalog.");
@@ -107,9 +132,15 @@ int xideAnalysisCatalogPrefers(const xide_analysis_catalog* c,const xls_context*
 const char* xideAnalysisCatalogPackagePath(const xide_analysis_catalog* c) {return c ? c->package : NULL;}
 size_t xideAnalysisCatalogCount(const xide_analysis_catalog* c) {return c ? c->count : 0;}
 const xls_context* xideAnalysisCatalogAt(const xide_analysis_catalog* c,size_t index) {return c && index<c->count ? c->projects[index] : NULL;}
+size_t xideAnalysisCatalogFileCount(const xide_analysis_catalog* c){return c ? c->fileCount : 0;}
+const xls_context* xideAnalysisCatalogFileAt(const xide_analysis_catalog* c,size_t i){return c && i<c->fileCount ? c->files[i] : NULL;}
+int xideAnalysisCatalogComplete(const xide_analysis_catalog* c){return c && c->complete;}
 xls_context* xideAnalysisCatalogFile(const xide_analysis_catalog* c,const char* path)
 {
  if(!c || !path || !xrtPathIsAbs(path) || !xidePathHasExtension(path,".xl")) return NULL;
+ if(c->fileCount){wchar_t* key=xidePathNativeWide(path);if(!key)return NULL;
+  for(size_t i=0;i<c->fileCount;++i)if(!xidePathNativeKeyCompare(key,c->fileKeys[i])){free(key);return xlsContextRetain(c->files[i]);}
+  free(key);}
  char* directory=xidePathDirectory(path);if(!directory) return NULL;
  xls_context_spec spec={.kind=XLS_CONTEXT_XLANG,.entry=path,.directory=directory,.analysisProfile=XIDE_ANALYSIS_PROFILE,.targetKind="exe",.packagePath=c->package};
  spec.lists[XLS_CONTEXT_MEMBERS]=(xls_context_strings){&path,1};xls_context* result=xlsContextCreate(&spec,16u*1024u*1024u,NULL);free(directory);return result;

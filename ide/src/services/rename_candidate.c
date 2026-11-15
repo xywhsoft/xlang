@@ -50,7 +50,8 @@ static xide_rename_scope* prepareScope(candidate_input* in,const xvalue* extensi
 invalid:xideRenameScopeRelease(scope);scope=NULL;
 done:for(size_t i=0;i<count;++i)xlsContextRelease(files[i]);return scope;
 }
-/* Standard requests use the captured server catalog and open standalone files,
+/* Standard requests use the captured catalog (including closed standalone
+ * roots) and additional open standalone files,
  * never a client-supplied receipt or an inferred directory traversal. */
 static int standardCatalog(candidate_input* in,candidate_output* out)
 {

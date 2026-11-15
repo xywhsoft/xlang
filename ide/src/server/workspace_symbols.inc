@@ -20,8 +20,9 @@ static int appendWorkspaceScope(xls_context** scopes,size_t* count,xls_context* 
 }
 static int captureWorkspaceInputs(server* s,xls_context** contexts,size_t* contextCount,xls_analysis_document* documents,size_t* documentCount)
 {
- int okay=1;char* package=NULL;xide_model_error error={0};
+ int okay=!s->catalog || xideAnalysisCatalogComplete(s->catalog);char* package=NULL;xide_model_error error={0};
  for(size_t i=0;i<xideAnalysisCatalogCount(s->catalog) && okay;++i)okay=appendWorkspaceScope(contexts,contextCount,(xls_context*)xideAnalysisCatalogAt(s->catalog,i));
+ for(size_t i=0;i<xideAnalysisCatalogFileCount(s->catalog) && okay;++i)okay=appendWorkspaceScope(contexts,contextCount,(xls_context*)xideAnalysisCatalogFileAt(s->catalog,i));
  if(!s->catalog)okay=okay && xideLanguageCheckPackagePath(&package,&error);
  for(size_t i=0;i<DOC_LIMIT && okay;++i){document* d=s->docs+i;if(!d->uri)continue;documents[(*documentCount)++]=(xls_analysis_document){d->uri,d->path,d->content,d->identity,(uint64_t)((int64_t)d->version-INT_MIN)};
   if(s->catalog && d->binding!=XIDE_ANALYSIS_UNOWNED)continue;
@@ -35,6 +36,7 @@ static int captureWorkspaceInputs(server* s,xls_context** contexts,size_t* conte
 static void requestWorkspaceSymbols(server* s,const xvalue* id,const xvalue* params,int navigation)
 {
  if(s->cliCompletion || s->cliDiagnostics){response(s,id,NULL,-32601,"Workspace symbols require native analysis.");return;}
+ if(s->catalog && !xideAnalysisCatalogComplete(s->catalog)){response(s,id,NULL,-32803,"Workspace symbols require a complete analysisConfiguration; a workspace project is unavailable.");return;}
  const char *query=string(get(params,"query")),*namedId=string(id);int limit=200;const xvalue *supplied=get(params,"xlangLimit"),*selection=navigation?get(params,"symbol"):NULL;
  if(!query || !xideWorkspaceSymbolQueryValid(query) || (navigation && !xideWorkspaceSymbolSelectionValid(selection)) || (namedId && strlen(namedId)>65535) || (supplied && (!integer(supplied,&limit) || limit<1 || limit>4096))){response(s,id,NULL,-32602,"Workspace query/selection invalid;query within512 bytes/128 scalars/16 terms;limit must be1..4096.");return;}
  size_t slot=8;for(size_t i=0;i<8;++i){if(s->workspaceSymbolRequests[i].query && sameId(id,s->workspaceSymbolRequests[i].id)){cancelWorkspaceSymbols(s,id,-32600,"Workspace symbol request ID is already active.");return;}if(!s->workspaceSymbolRequests[i].query && slot==8)slot=i;}
