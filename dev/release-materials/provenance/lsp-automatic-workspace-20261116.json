@@ -1,0 +1,167 @@
+{
+  "schema": 1,
+  "date": "2026-11-16",
+  "stage": "M7b6s",
+  "scope": "Standard-client automatic workspace discovery with XRT workers,complete metadata proofs and physical source leases",
+  "base": "ae6c58e4386611a7262143c63358cc56553be396",
+  "buildBase": "cfd656616b8df3b32ae3bcc34d8f1ef8f23456b0",
+  "implementationAccepted": true,
+  "goalComplete": false,
+  "performanceQualified": false,
+  "defaultRuntimeReplaced": true,
+  "engineRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "formalRelease": false,
+  "ownedSources": {
+    "ide/docs/lsp-development.md": "ec259433ba04b50e3f91e3cf4dff2e1597feb5a9169057c6273b07b98b37aa24",
+    "ide/src/server/analysis_lease.inc": "ff0348ca8fc9cba2740cb5ee8a38a6ddbe28f62fa41f2375d3b8436a48a074ac",
+    "ide/src/server/automatic_diagnostics.inc": "43831afb6382d63396a1db78c94d68c21296b24c001293aa0db561705eea2d8e",
+    "ide/src/server/workspace_symbol_refresh.inc": "3ef49a3f15414072b7c55fe314caed874923049a03e9f02259df029cd7095349",
+    "ide/src/server/workspace_symbols.inc": "6831ed5cf7aac3fb967d26a123ff0baee497119466ea0bd77cf25236f9438fcc",
+    "ide/src/server/xlang_ls.c": "e69279b716125531c63da8e6cc9001d38a5c831ba6220044b6726a757e5c4a36",
+    "ide/src/services/workspace_discovery.c": "a39d7ed930ff07a3b262758313d03dd68bfd6c692e0276a3480d7176e0343673",
+    "ide/src/services/workspace_discovery.h": "57796ec3ecc27ab3498b8c0dbeb0f1267ab876910d89b5a4a052aa7ac21f2c29",
+    "ide/tests/workspace_discovery_test.c": "13b16eea2fd63b751c6938cbf2d623e592d64cf3d1a578dfb964447fb95aa578",
+    "ide/tools/check_lsp_prepare_rename.py": "d6ccdb0f86ad4d3a8771fa8e95c677b4d7f8522bbfdf0124090ee14c041d6f3f",
+    "ide/tools/check_lsp_standard_rename.py": "64f32c7fb9f7aa76ce83dfb670f6e2b67b85882e8b297f0ee54409f98b3d33d3",
+    "ide/tools/check_lsp_workspace_folders.py": "d79fd272fb85b57309983abe855783e363e2a11b6ceb1a245d48d4d9621798a4",
+    "ide/docs/lsp-automatic-workspace.md": "43d6e89e444bc28b94ad059bba1292ca8cc9027c37e06ba4d4cf9d7bef26def9",
+    "ide/src/server/automatic_workspace.inc": "78f07b873cea3b67d245b26908d73a62de56bee14d9adaea7376cae653a4f449",
+    "ide/tests/lsp_discovery_gate.c": "90e990caa70bb312505c15bd6960076ef8692429121b61ee9b9e6bc599c51c3d",
+    "ide/tools/check_lsp_automatic_workspace.py": "07ba8be825e3125c40621b1a9a471dcf4a4b7a366b2c282f3e7fc8612d060d46",
+    "ide/tools/check_lsp_discovery_barriers.py": "067e2047e890e1066a711079b2fd867a41a3dbfaaea9eefb6889e7b3c7d1591b"
+  },
+  "sharedFileEdits": {
+    "deliveryBeforeSha256": "746846739e276031515f0060d794fe9f51be5eebbc0dcd82866540216e73f1b3",
+    "deliveryAfterSha256": "8e096cb96737096582a018e55909a84a5f737c9c90e1a32a9326beb1782b1914",
+    "ignoreBeforeSha256": "6b3e6a5bcd4ad114d450af6b18aed61574bd7a4486de9dfd2cf286f5b01ec321",
+    "ignoreAfterSha256": "c9064be474d7362e1cfcd0b29fe999bbc911ded401ea3a6dfd8c239e8f90c51c",
+    "deliveryProperty": {
+      "schema": 1,
+      "stage": "M7b6s",
+      "directory": "release/win_x64",
+      "provenance": "dev/release-materials/provenance/lsp-automatic-workspace-20261116.json",
+      "languageServerVersion": "0.106",
+      "displayVersion": "0.6.2",
+      "ideRuntimeLibrary": "xlang_ide_xge.dll",
+      "runtime": {
+        "update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2",
+        "xlang-ls.exe": "3b47b0572b1dc5ad91cbfda183c1b44a1b71938e2eee088da42f16769a6a0b57",
+        "xlang_ide.exe": "038f370c000ce6ca2c4d7de5331ffa0b7734df9e32a9359e7c45aa585b4cfc8b",
+        "xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418"
+      },
+      "preservedEngine": {
+        "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+        "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+        "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+        "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+      },
+      "formalRelease": false,
+      "externalPublishPerformed": false
+    },
+    "ignoreAnchor": "!/dev/release-materials/provenance/lsp-private-runtime-20261116.json",
+    "ignoreRule": "!/dev/release-materials/provenance/lsp-automatic-workspace-20261116.json",
+    "unrelatedPropertiesPreserved": true
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-automatic-workspace-20261116.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-automatic-workspace-20261116/stage-sources.tar.gz",
+      "sha256": "6beab496b1a7be273a2c71a8dfa076947095d1fa045d11450c027153d1d8e515",
+      "bytes": 363183,
+      "entries": 17,
+      "uniquePayloads": 17
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-automatic-workspace-20261116/stage-sources.tar.gz.manifest.json",
+      "sha256": "55f7f847b1d68e72e6e7cb615a265a290dfe9b46c358ace1256c7a31aa54bf52",
+      "bytes": 4482
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-automatic-workspace-20261116/actual-builds-and-validation.tar.gz",
+      "sha256": "6a68eba74970dd63f69724f07adf0a4b617499fadeef8c6cef8d605be78e31cf",
+      "bytes": 1416278339,
+      "entries": 37152,
+      "uniquePayloads": 6729
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-automatic-workspace-20261116/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "20ec4447d83cf1e53c7037d8efb15b3c9e72ab5e38d6094e43f23fda90d56a89",
+      "bytes": 17477501
+    }
+  },
+  "externalPaths": [
+    "F:\\codex-builds-xlang-lsp-20261116\\auto-workspace",
+    "F:\\codex-builds-xlang-lsp-20261116\\automatic-workspace-materials",
+    "F:\\xl-auto-workspace-20261116\\gui-async-view-v1"
+  ],
+  "materialDependencies": [
+    {
+      "index": "dev/release-materials/provenance/lsp-current-ownership-20261116.json",
+      "sha256": "a96fceb2e5a79bf428cf2a7c687ea78ea6464ab4faddca979af1e71fb4f37afe",
+      "purpose": "Unmodified465-input native frontend cohort and previous compiler alignment;previous runs are not new executions"
+    },
+    {
+      "index": "dev/release-materials/provenance/lsp-private-runtime-20261116.json",
+      "sha256": "f7166687d57d050b0ba86b77cd46b76df4bbf72e7158728558689c89d0b26788",
+      "purpose": "Matched private SDK runtime and previous startup,portable packaging,rollback and updater qualification"
+    }
+  ],
+  "runtime": {
+    "xlang_ide.exe": "038f370c000ce6ca2c4d7de5331ffa0b7734df9e32a9359e7c45aa585b4cfc8b",
+    "xlang-ls.exe": "3b47b0572b1dc5ad91cbfda183c1b44a1b71938e2eee088da42f16769a6a0b57",
+    "xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3",
+    "update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2"
+  },
+  "sdkDllSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+  "verification": {
+    "nativePrograms": 220,
+    "fullNativeObjectCohort": 357,
+    "sameCohortReusedObjects": 206,
+    "sameCohortFreshObjects": 152,
+    "guiUnits": 140,
+    "guiSuites": 55,
+    "actualIdeModes": 47,
+    "protocolDrivers": 21,
+    "autoWorkspaceCases": 26,
+    "physicalBarrierCases": 6,
+    "currentOwnershipCases": 19,
+    "installedProtocolCases": 26,
+    "protectedRuntimeFiles": 7092,
+    "userTmpPreserved": [
+      "xl6_run_12896_3542316922_0",
+      "xl6_run_19628_3542315168_0",
+      "xl6_run_28188_3542313674_0"
+    ],
+    "runtimeBuildAbsent": true,
+    "testAliasesAbsent": true,
+    "protocolRegressionCases": 374,
+    "actualGuiLanguages": [
+      "c",
+      "xlang"
+    ],
+    "guiFramesPerLanguage": 24,
+    "rawArchivesReadBackVerified": true,
+    "repositoryBudgetPassed": true
+  },
+  "evidenceNotes": [
+    "Default native stdio clients discover roots only after initialized. Valid explicit IDE analysis configurations win and cancel auto requests. Internal epoch0 never consumes positive client epochs. All directory,manifest and membership I/O runs on the existing XRT worker;owner adopts bounded metadata.",
+    "Ordinary source edits do not scan directories. Lexical watcher filtering preserves explicit nested roots and catalog-declared projects below ignored directories. Full-result workers validate shared proof identities;owner observes only an atomic invalidation marker before rediscovery. No filesystem polling loop.",
+    "Retained immutable requests are bounded to16slots,128KiB each and1MiB known transport bytes;DOM overhead separate. Cancellation,source serial,root revision,explicit configuration,lease and shutdown never return partial stale workspace scope.",
+    "Test-only --wrap=xrtDirOpen first opens a real directory then holds its worker. Six stdio cases prove responsiveness,physical idle before source lease,held-lease deferral,latest-root adoption and joined shutdown. The instrumented link variant is never installed.",
+    "Retain missing corpus/SDK overlay setup failures,initial fixture compile collision,path separator bug and incorrect fixture path expectation. Resume only206 exact-command bound objects after full-input/header guards;execute152 compiles. Private host and component fixes are freshly recompiled with unchanged public headers. Final fixture is the native-v6 program;earlier broken fixtures are not counted as qualified.",
+    "Existing21protocol drivers retain manual-fence semantics with explicit auto opt-out where appropriate;new26cases exercise default automatic mode. Re-run all21drivers,19current ownership cases,55paired GUI suites and47actual IDE modes against final native0.106.",
+    "Publish final native-v6 and140-unit rebuilt GUI locally using matched private XGE,backups and verified rollback support. Re-run26installed auto cases and realC/xlang24-frame renders. Preserve all other runtime files,engine,SDK,standalone updater,metadata and usertmp. No online publication.",
+    "Historical raw source bytes and paths remain preserved. LF/CRLF conversions are explicit;final source/full-header/object/link identity guards pass. The localIdeLspRuntime property and one ignore exception are updated independently of unrelated shared-file edits."
+  ],
+  "limits": [
+    "Formal performance,RSS/endurance,Linux,sanitizer and physicalWindows7 acceptance remain open. The64-role catalog and bounded discovery limits are unchanged;large-workspace incremental discovery,shared source capture,editing tail latency and remaining applicable LSP features continue.",
+    "External service only;no xlc.dll merge,engine rebuild,DAP,debug or runtime completion. Display0.6.2/update iteration and online channel are unchanged. Whole long-term goal remains active."
+  ],
+  "postCommitReceipt": "dev/release-materials/provenance/lsp-automatic-workspace-20261116/postcommit.json"
+}

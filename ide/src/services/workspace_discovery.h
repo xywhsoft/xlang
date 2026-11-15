@@ -29,6 +29,10 @@ void xideWorkspaceDiscoveryDestroy(xide_workspace_discovery*);
 /* Host excludes submissions;native private idle predicate includes finalizers.
  * This module belongs to the compiler-XRT service,not the GUI's XGE runtime. */
 int xideWorkspaceDiscoveryIdle(xide_workspace_discovery*);
+/* Pure lexical watcher filter. Explicit nested roots override ignored parent
+ * children; paths outside roots stay relevant for external manifest references.
+ * No filesystem, alias or directory-type probes. Allocation failure is relevant. */
+int xideWorkspaceDiscoveryRelevantPath(const xide_workspace_folders*,const char*);
 xide_discovery_query* xideWorkspaceDiscoverySubmit(xide_workspace_discovery*,xide_workspace_folders*,const char* packagePath);
 int xideWorkspaceDiscoveryResult(xide_discovery_query*,const xide_discovery_snapshot**,xide_discovery_work*,char*,size_t);
 xide_discovery_snapshot* xideWorkspaceDiscoveryTake(xide_discovery_query*);
@@ -45,6 +49,9 @@ const xvalue* xideDiscoverySnapshotValue(const xide_discovery_snapshot*);
 /* Analysis metadata digest only:canonical project order,not raw manifests,
  * current source bytes,membership freshness or publication authority. */
 const unsigned char* xideDiscoverySnapshotFingerprint(const xide_discovery_snapshot*);
+/* Scalar observation only. Worker proof failures permanently set this flag;
+ * observing it performs no filesystem work and does not validate freshness. */
+int xideDiscoverySnapshotInvalidated(const xide_discovery_snapshot*);
 /* Worker-only. Re-enumerate relevant names/types and rehash original manifest
  * bytes with exact file identities;directory timestamps are not membership
  * proof. Source content edits are left to existing native source guards. A

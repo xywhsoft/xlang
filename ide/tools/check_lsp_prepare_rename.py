@@ -52,7 +52,8 @@ def main():
         clients.append(c)
         rename = {} if support is None else dict(prepareSupport=support)
         options = dict(automaticDiagnostics=False, checkOnSave=False,
-                       backgroundWorkspaceSymbols=False, diagnosticsBackend=backend)
+                       backgroundWorkspaceSymbols=False, diagnosticsBackend=backend,
+                       automaticWorkspaceDiscovery=False)
         if config is not None:
             options['analysisConfiguration'] = dict(epoch=1, catalog=config)
         c.send('initialize', dict(capabilities=dict(textDocument=dict(rename=rename)),

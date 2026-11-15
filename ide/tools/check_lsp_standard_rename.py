@@ -76,7 +76,8 @@ def main():
         c = Client(server, out/'missing-xl.exe', root)
         clients.append(c)
         options = dict(checkOnSave=False, automaticDiagnostics=False,
-                       backgroundWorkspaceSymbols=False, diagnosticsBackend=backend)
+                       backgroundWorkspaceSymbols=False, diagnosticsBackend=backend,
+                       automaticWorkspaceDiscovery=False)
         if config is not None:
             options['analysisConfiguration'] = dict(epoch=1, catalog=config)
         params = dict(capabilities=dict(workspace=dict(workspaceEdit=dict(documentChanges=modern)),

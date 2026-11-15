@@ -30,7 +30,7 @@ static int captureWorkspaceInputs(server* s,xls_context** contexts,size_t* conte
   if(!context){char* directory=xidePathDirectory(d->path);xls_context_spec spec={.kind=XLS_CONTEXT_XLANG,.entry=d->path,.directory=directory,.analysisProfile=XIDE_ANALYSIS_PROFILE,.targetKind="exe",.packagePath=package};context=directory?xlsContextCreate(&spec,16u*1024u*1024u,NULL):NULL;free(directory);}
   okay=appendWorkspaceScope(contexts,contextCount,context);xlsContextRelease(context);
  }
- xrtFree(package);return okay;
+ free(package);return okay;
 }
 #include "workspace_symbol_refresh.inc"
 static void requestWorkspaceSymbols(server* s,const xvalue* id,const xvalue* params,int navigation)

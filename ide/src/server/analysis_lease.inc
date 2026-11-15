@@ -9,6 +9,7 @@ static int analysisLeaseQuiet(server* s)
  for(size_t i=0;i<4;++i)if(s->tokenJobs[i])return 0;
  if(!xideProjectReferencesIdle(s->references) || !xideWorkspaceSymbolsIdle(s->workspaceSymbols))return 0;
  if(!xideRenameCandidatesIdle(s->renames))return 0;
+ if(!xideWorkspaceDiscoveryIdle(s->discovery.service))return 0;
 #endif
  return xlsWorkerIdle(s->analysis) && xlsWorkerIdle(s->semanticAnalysis) &&
   xlsWorkerIdle(s->cursorAnalysis) && xlsWorkerIdle(s->signatureAnalysis) && xideDiagnosticStoreIdle(s->diagnostics);
@@ -73,6 +74,7 @@ static void analysisLeaseRelease(server* s)
  s->diagnosticSweepAt=GetTickCount64()+1;
 #ifdef XLS_COMPILER_XRT
  s->workspaceRefresh.seen=0;
+ if(automaticWorkspaceMode(s) && (s->catalog || xideWorkspaceFoldersCount(s->folders)))automaticWorkspaceChanged(s,0,"Analysis resumed after a source-reader lease.");
 #endif
 }
 static int analysisLeaseDispatch(server* s,const char* method,const xvalue* id,const xvalue* params)
@@ -99,6 +101,8 @@ static int analysisLeaseDispatch(server* s,const char* method,const xvalue* id,c
 #ifdef XLS_COMPILER_XRT
   cancelReferences(s,NULL,-32800,"Analysis suspended.");cancelWorkspaceSymbols(s,NULL,-32800,"Analysis suspended.");workspaceRefreshCancel(s,0);
   cancelRenames(s,NULL,-32800,"Analysis suspended.");
+  automaticWorkspaceCancel(s,s->discovery.pending || s->discovery.query!=NULL);
+  automaticWorkspaceCancelRequests(s,NULL,-32800,"Analysis suspended.");
   for(size_t i=0;i<4;++i)xideSemanticTokenJobCancel(s->tokenJobs[i]);
 #endif
   diagnosticStop(s);cancelNative(s,-1,-32800,"Analysis suspended.");clearPublished(s);cancel(s,-32800,"Analysis suspended.");
@@ -120,7 +124,7 @@ static int analysisLeaseDispatch(server* s,const char* method,const xvalue* id,c
  /* These only serialize immutable owner state/counters and do not submit
     actor work, validate source proofs or resolve project/configuration files. */
  if(!strcmp(method,"xlang/inputState") || !strcmp(method,"xlang/analysisStats") || !strcmp(method,"xlang/diagnosticStats") ||
-    !strcmp(method,"xlang/workspaceSymbolStats") || !strcmp(method,"xlang/referenceStats"))return 0;
+    !strcmp(method,"xlang/workspaceSymbolStats") || !strcmp(method,"xlang/referenceStats") || !strcmp(method,"xlang/workspaceDiscoveryState"))return 0;
  if(id)response(s,id,NULL,-32001,"Analysis is suspended; retry after the lease resumes.");
  return 1;
 }

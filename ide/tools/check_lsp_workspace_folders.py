@@ -27,7 +27,7 @@ def main():
                    analysisProfile=PROFILE, targetKind='exe', packagePath=None, lists=lists)
     catalog = dict(schema=1, selectedProject=context['project'], packagePath=None, projects=[context])
     clients, cases, expected_logs = [], [], set()
-    report = dict(status='failed', cases=cases, automaticDiscoveryImplemented=False,
+    report = dict(status='failed', cases=cases, automaticDiscoveryCovered=False,
                   performanceQualified=False, fullGoalComplete=False)
     protected = {str(f): hashlib.sha256(f.read_bytes()).hexdigest() for f in (server, source, Path(__file__))}
     serial = 100
@@ -48,7 +48,10 @@ def main():
         return reply.get('result')
 
     def params(config=None, **roots):
-        options = dict(checkOnSave=False, automaticDiagnostics=False, backgroundWorkspaceSymbols=False)
+        # This driver isolates acknowledged/manual root-configuration fences.
+        # Default automatic discovery has its own real stdio/disk-change driver.
+        options = dict(checkOnSave=False, automaticDiagnostics=False, backgroundWorkspaceSymbols=False,
+                       automaticWorkspaceDiscovery=False)
         if config is not None:
             options['analysisConfiguration'] = dict(epoch=1, catalog=config)
         return dict(capabilities=dict(workspace=dict(workspaceEdit=dict(documentChanges=True)),

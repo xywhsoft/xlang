@@ -8,6 +8,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <wchar.h>
+#include <windows.h>
 #define DISCOVERY_LABELS (16u*1024u*1024u)
 #define DISCOVERY_MANIFESTS 256u
 typedef struct discovery_dir {char* path;wchar_t* key;xfileinfo identity;unsigned char hash[32];} discovery_dir;
@@ -45,6 +46,22 @@ static int ignored(xstrview name)
 }
 static int sourceName(xstrview n)
 {return (n.Size>=3&&!_strnicmp(n.Data+n.Size-3,".xl",3)) || (n.Size>=4&&(!_strnicmp(n.Data+n.Size-4,".xlp",4)||!_strnicmp(n.Data+n.Size-4,".xlw",4)));}
+int xideWorkspaceDiscoveryRelevantPath(const xide_workspace_folders* roots,const char* path)
+{
+ wchar_t* key=xidePathLexicalWide(path);if(!key)return 1;size_t length=wcslen(key);int matched=0;
+ for(size_t i=0;i<xideWorkspaceFoldersCount(roots);++i){const char* root=NULL;
+  if(!xideWorkspaceFoldersAt(roots,i,NULL,NULL,&root)){free(key);return 1;}
+  wchar_t* base=xidePathLexicalWide(root);if(!base){free(key);return 1;}size_t n=wcslen(base);
+  int within=length>=n && CompareStringOrdinal(key,(int)n,base,(int)n,TRUE)==CSTR_EQUAL && (length==n || base[n-1]==L'/' || key[n]==L'/');free(base);if(!within)continue;
+  matched=1;int excluded=0;const wchar_t* at=key+n;if(*at==L'/')++at;
+  while(*at){const wchar_t* end=wcschr(at,L'/');if(!end)end=at+wcslen(at);size_t size=(size_t)(end-at);char ascii[32];int plain=size<sizeof(ascii);
+   for(size_t j=0;plain && j<size;++j){plain=at[j]<128;if(plain)ascii[j]=(char)at[j];}
+   if(plain && ignored((xstrview){ascii,size})){excluded=1;break;}at=*end?end+1:end;
+  }
+  if(!excluded){free(key);return 1;}
+ }
+ free(key);return !matched;
+}
 static void namesClear(xarray* a)
 {for(size_t i=0;i<a->Count;++i)xrtFree(((discovery_name*)a->Data)[i].name);xrtArrayUnit(a);}
 static int nameOrder(const void* a,const void* b){return strcmp(((const discovery_name*)a)->name,((const discovery_name*)b)->name);}
@@ -241,6 +258,8 @@ void xideDiscoverySnapshotRelease(xide_discovery_snapshot* s)
 xide_analysis_catalog* xideDiscoverySnapshotCatalog(const xide_discovery_snapshot* s){return s?s->catalog:NULL;}
 const xvalue* xideDiscoverySnapshotValue(const xide_discovery_snapshot* s){return s?s->value:NULL;}
 const unsigned char* xideDiscoverySnapshotFingerprint(const xide_discovery_snapshot* s){return s?s->fingerprint:NULL;}
+int xideDiscoverySnapshotInvalidated(const xide_discovery_snapshot* s)
+{return s && xrtAtomic32Load(&s->proof->invalid,XMEMORY_ACQUIRE)!=0;}
 static int proofValidate(discovery_proof* s,const xide_discovery_limits* limits,int (*stop)(void*),void* user,xide_model_error* e)
 {
  if(xrtAtomic32Load(&s->invalid,XMEMORY_ACQUIRE)){fail(e,"Workspace discovery snapshot was already invalidated.");return XIDE_DISCOVERY_STALE;}

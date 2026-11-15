@@ -113,6 +113,9 @@ static void diagnosticCheckFailed(server* s,int index,int code,const char* reaso
 static void diagnosticInput(server* s,int index,const char* path,int bindingsChanged)
 {
  if(!s->automaticDiagnostics || s->shutdown || s->analysisLeaseToken) return;
+#ifdef XLS_COMPILER_XRT
+ if(automaticWorkspaceBlocked(s))return;
+#endif
  s->diagnosticBindingsChanged|=bindingsChanged; s->diagnosticNeedsSnapshot=1;
  if(s->diagnosticResult) {
   int root=s->diagnosticResultRoot;

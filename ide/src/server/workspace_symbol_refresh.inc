@@ -14,7 +14,7 @@ static void workspaceRefreshSatisfied(server* s)
 }
 static void workspaceRefreshActivity(server* s,const char* method,const xvalue* id)
 {
- if(!id || !strcmp(method,"initialize") || !strcmp(method,"xlang/workspaceSymbolStats") || !strcmp(method,"xlang/referenceStats") || !strcmp(method,"xlang/analysisStats") || !strcmp(method,"xlang/diagnosticStats") || !strcmp(method,"xlang/inputState"))return;
+ if(!id || !strcmp(method,"initialize") || !strcmp(method,"xlang/workspaceSymbolStats") || !strcmp(method,"xlang/referenceStats") || !strcmp(method,"xlang/analysisStats") || !strcmp(method,"xlang/diagnosticStats") || !strcmp(method,"xlang/inputState") || !strcmp(method,"xlang/workspaceDiscoveryState"))return;
  workspaceRefreshCancel(s,1);
 }
 static int workspaceRefreshBusy(server* s)
