@@ -1024,6 +1024,8 @@ def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_spa
     extend_gallery(context,classes,mapped)
     from xui_geometry_contracts import extend as extend_geometry
     extend_geometry(context,classes,mapped)
+    from xui_snapshot_contracts import extend as extend_snapshots
+    extend_snapshots(context,classes,mapped)
     # Native SetTheme copies both numeric arrays; no borrowed root is retained.
     classes['DockPanel'] += [
         ' extern "xuiDockPanelSaveState" @no_raise @c_output(1,0) @c_output_view(1,"owned_value") func saveState() as var',

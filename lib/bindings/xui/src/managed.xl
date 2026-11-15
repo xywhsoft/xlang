@@ -1294,6 +1294,10 @@ export extern "xui_context_t*" class Context @header("xge3_runtime.h") @lifetime
  extern "xuiWebViewCreate" @no_raise @c_pack(2,"xui_webview_desc_t",0,1) @c_pack_size(2,"iSize","uint32_t") @c_pack_field(2,"sUserDataFolder",0,"c_string") @c_result("owner_view",0) @factory(1,0,rollbackWebView) func webView(string? userDataFolder=null) as WebView
  extern "xuiEnsureDefaultFont" @no_raise @c_result("status",0) func ensureDefaultFont()
 
+ extern "xuiStyleGetToken" @no_raise @c_output_record(2,"xui_style_value_t","borrowed") @c_output_size(2,"iSize") @c_status(0) @c_cstr(0) @c_output_field(0,"iType") @c_output_field(1,"iInt") @c_output_field(2,"fFloat") @c_output_field(3,"iColor") @c_output_field(4,"sText","cstring") func styleGetToken(string name) as (c_int,c_int,c_float,c_uint,string?)
+
+ extern "xuiStyleSetToken" @no_raise @c_cstr(0) @c_pack(2,"xui_style_value_t",1,5) @c_pack_size(2,"iSize","uint32_t") @c_pack_field(2,"iType",1,"value") @c_pack_field(2,"iInt",2,"value") @c_pack_field(2,"fFloat",3,"value") @c_pack_field(2,"iColor",4,"value") @c_pack_field(2,"sText",5,"c_string") @c_result("status",0) func styleSetToken(string name,c_int valueType,c_int integer=0,c_float number=0,c_uint color=0,string? text=null)
+
 end
 
 export extern "xui_widget_t*" class Widget @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t")
@@ -1625,6 +1629,8 @@ export extern "xui_widget_t*" class Widget @header("xge3_runtime.h") @lifetime("
  extern "xuiWidgetUpdateEnd" @no_raise func updateEnd(c_uint iStateId,DrawContext pDraw) as c_int
  extern "xuiWidgetRenderCache" @no_raise @c_result("status",0) func renderCache(Surface pTarget)
  extern "xuiWidgetRenderTree" @no_raise func renderTree(Surface pTarget) as c_int
+ extern "xuiWidgetGetAccessibleNode" @no_raise @c_output_record(2,"xui_accessible_node_t","borrowed") @c_output_size(2,"iSize") @c_status(0) @c_output_field(0,"iId") @c_output_field(1,"iParentId") @c_output_field(2,"iRole") @c_output_field(3,"iState") @c_output_field(4,"sName","cstring") @c_output_field(5,"sValue","cstring") @c_output_field(6,"sDescription","cstring") @c_output_field(7,"tBounds") @c_output_field(8,"iTextStart") @c_output_field(9,"iTextEnd") @c_output_field(10,"iLevel") @c_output_field(11,"iRow") @c_output_field(12,"iColumn") @c_output_field(13,"iRowCount") @c_output_field(14,"iColumnCount") @c_output_field(15,"iActions") @c_output_field(16,"tRange") func getAccessibleNode(c_int index=0) as (uint64,uint64,c_int,c_uint,string?,string?,string?,Rect,c_int,c_int,c_int,c_int,c_int,c_int,c_int,c_uint,AccessibleRange)
+
 end
 
 export extern "xui_widget_t*" class Label @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
@@ -2375,6 +2381,10 @@ export extern "xui_widget_t*" class CodeEdit @header("xge3_runtime.h") @lifetime
  extern "xuiCodeEditOpenMenu" @no_raise func openMenu(c_float fX,c_float fY) as c_int
 
  extern "xuiCodeEditGetLastError" @no_raise @c_result("cstring") func getLastError() as string?
+
+ extern "xuiCodeEditGetVirtualText" @no_raise @c_output_record(1,"xui_code_virtual_text_t","borrowed") @c_output_size(1,"iSize") @c_status(0) @c_output_field(0,"iKind") @c_output_field(1,"iOffset") @c_output_field(2,"sText","cstring") @c_output_field(3,"iFlags") @c_output_field(4,"iUserData") func getVirtualText() as (c_int,c_int,string?,c_uint,c_uintptr)
+
+ extern "xuiCodeEditSetVirtualText" @no_raise @c_pack(1,"xui_code_virtual_text_t",0,5) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"iKind",0,"value") @c_pack_field(1,"iOffset",1,"value") @c_pack_field(1,"sText",2,"c_string") @c_pack_field(1,"iFlags",3,"value") @c_pack_field(1,"iUserData",4,"value") @c_result("status",0) func setVirtualText(c_int kind,c_int offset,string text,c_uint flags=0,c_uintptr userData=0)
 
 end
 

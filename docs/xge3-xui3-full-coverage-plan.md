@@ -7,7 +7,8 @@
 以及独立 3D CPU Particles 的创建、位置、发射、更新和统计。Billboard 数组／纹理
 提交、拥有式 Provider 回调和其余全量能力仍未结项；详细验收见各专项记录。
 第 17 项字段快照已经批准并验收；此前十五项
-待决合同以及第 16 项输出记录字符串快照仍未获得答复，不能混同。完整范围和
+待决合同仍未全部获得答复。第 16 项输出记录字符串快照和拥有值接管已在
+24f318efb 批次获批准并通过两端验收；不能继续列为未答复。完整范围和
 最终匹配的 SDK／编译器／运行时／IDE／帮助发布尚未结项。以下保留各阶段记录。
 
 阶段 3 已补入 [FontFace／FontFamily 与字体查询](xge3-font-resources.md)，连同原生
@@ -1713,3 +1714,11 @@ NUL；记录数组仍有一次分配和 O(n) 字段填写，原生源码处理�
 效果合同；相同逻辑结果的重复声明仍严格保留字段映射。字符串在输入作用域内
 复制，拥有值直接接管原指针；生产者已经完成的操作不会因结果转换失败而撤销。
 细节及验收入口见 foreign-output-snapshots.md。最终发布与其他未决合同继续开放。
+
+后继批次复用已批准的输出记录快照，直接补入 CodeAnnotationStore.getDiagnostic、
+CodeEdit.getVirtualText／setVirtualText、Widget.getAccessibleNode 和 Context 的
+styleGetToken／styleSetToken。输出覆盖各记录全部普通字段，不暴露借用字符串。
+17 字段可访问性结果仍是单次原生查询；线程、失效与整组转换回滚沿用已有合同。
+范围、原生虚拟文本限制、输入名称转换和输出快照的实测成本见 xui-record-queries.md。
+这些接口不代表批量输出、嵌套样式记录、Provider 回调或完整可访问性已完成；
+全量接入和最终匹配交付继续开放。

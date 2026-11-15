@@ -1,0 +1,313 @@
+import xui
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_record_queries.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy proxy)
+extern "fixtureRenderFont" @no_raise @c_result("owned_view") @factory(1,0,dropFont) func cpuFont(xui.Proxy proxy) as xui.Font
+extern "xuiFontReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropFont(xui.Font font)
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "fixtureQueryBegin" @no_raise func heapBegin()
+extern "fixtureQueryEqual" @no_raise func heapEqual()
+extern "fixtureQueryBudget" @no_raise func budget(c_int n)
+extern "fixtureQueryReset" @no_raise func reset()
+extern "fixtureQueryReport" @no_raise func report(c_int kind,c_int native)
+extern "fixtureQueryNativeHot" @no_raise func nativeHot(c_int kind,xui.Context ui,xui.Widget widget,xui.CodeAnnotationStore store)
+extern "fixtureQueryAccessibleText" @no_raise @c_cstr(2) func nativeText(xui.Widget widget,c_int field,string text,bool absent)
+extern "QueryAccessibleScalars" struct NativeAccessibleScalars @header("test/cases/foreign_xui_record_queries.h")
+ uint64 id
+ uint64 parent
+ c_int role
+ c_uint state
+ xui.Rect bounds
+ c_int start
+ c_int endOffset
+ c_int level
+ c_int row
+ c_int column
+ c_int rows
+ c_int columns
+ c_uint actions
+ xui.AccessibleRange range
+end
+extern "fixtureQueryAccessible" @header("test/cases/foreign_xui_record_queries.h") @no_raise @c_output(1,0) func nativeScalars(xui.Widget widget) as NativeAccessibleScalars
+
+protocol DiagnosticReader
+ func getDiagnostic(c_int index) as (xui.CodeRange,c_int,string?,string?,string?,c_uintptr)
+end
+
+func seed(xui.CodeAnnotationStore store)
+ xui.CodeRange location
+ location.iStart=c_int(2)
+ location.iEnd=c_int(5)
+ store.setDiagnosticsColumns([location],[c_int(2)],["E42"],["错误信息"],["checker"],[c_uintptr(1234567890123456789)])
+end
+
+func annotationBudget(xui.CodeAnnotationStore store,int allowance) as int
+ xui.CodeRange location
+ location.iStart=c_int(7)
+ location.iEnd=c_int(8)
+ c_int severity=19
+ string? code="kept"
+ string? message="kept"
+ string? source="kept"
+ c_uintptr tag=17
+ int failure=0
+ budget(c_int(allowance))
+ try
+  location,severity,code,message,source,tag=store.getDiagnostic(0)
+ catch Error
+  reset()
+  assert location.iStart==7 and location.iEnd==8 and severity==19 and tag==17
+  assert code!=null and message!=null and source!=null
+  assert (code as string)=="kept" and (message as string)=="kept" and (source as string)=="kept"
+  failure=1
+ finally
+  reset()
+ end
+ return failure
+end
+
+func tokenBudget(xui.Context ui,int allowance) as int
+ c_int kind=19
+ c_int integer=23
+ c_float number=29
+ c_uint color=31
+ string? text="kept"
+ int failure=0
+ budget(c_int(allowance))
+ try
+  kind,integer,number,color,text=ui.styleGetToken("text")
+ catch Error
+  reset()
+  assert kind==19 and integer==23 and number==c_float(29) and color==31
+  assert text!=null and (text as string)=="kept"
+  failure=1
+ finally
+  reset()
+ end
+ return failure
+end
+
+func virtualBudget(xui.CodeEdit editor,int allowance) as int
+ c_int kind=19
+ c_int offset=23
+ string? text="kept"
+ c_uint flags=29
+ c_uintptr user=31
+ int failure=0
+ budget(c_int(allowance))
+ try
+  kind,offset,text,flags,user=editor.getVirtualText()
+ catch Error
+  reset()
+  assert kind==19 and offset==23 and flags==29 and user==31
+  assert text!=null and (text as string)=="kept"
+  failure=1
+ finally
+  reset()
+ end
+ return failure
+end
+
+func accessibleBudget(xui.Widget widget,int allowance) as int
+ uint64 id=19
+ uint64 parent=23
+ c_int role=29
+ c_uint state=31
+ string? name="kept"
+ string? value="kept"
+ string? description="kept"
+ xui.Rect bounds
+ bounds.fX=c_int(37)
+ c_int start=41
+ c_int endOffset=43
+ c_int level=47
+ c_int row=53
+ c_int column=59
+ c_int rows=61
+ c_int columns=67
+ c_uint actions=71
+ xui.AccessibleRange accessibleRange
+ accessibleRange.fValue=73.0
+ int failure=0
+ budget(c_int(allowance))
+ try
+  id,parent,role,state,name,value,description,bounds,start,endOffset,level,row,column,rows,columns,actions,accessibleRange=widget.getAccessibleNode()
+ catch Error
+  reset()
+  assert id==19 and parent==23 and role==29 and state==31 and bounds.fX==37
+  assert bounds.fY==0 and bounds.fW==0 and bounds.fH==0
+  assert name!=null and value!=null and description!=null
+  assert (name as string)=="kept" and (value as string)=="kept" and (description as string)=="kept"
+  assert start==41 and endOffset==43 and level==47 and row==53 and column==59 and rows==61 and columns==67 and actions==71 and accessibleRange.fValue==73.0
+  assert accessibleRange.iSize==0 and accessibleRange.fMin==0.0 and accessibleRange.fMax==0.0 and accessibleRange.fStep==0.0 and accessibleRange.fPageStep==0.0
+  failure=1
+ finally
+  reset()
+ end
+ return failure
+end
+
+func main(...) as int
+ auto proxy=cpuProxy()
+ auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ auto font=cpuFont(proxy)
+ ui.setDefaultFont(font)
+ auto editor=ui.codeEditNative()
+ auto button=ui.buttonNative()
+ auto store=xui.createCodeAnnotationStore()
+ seed(store)
+ auto location,severity,code,message,source,tag=store.getDiagnostic(0)
+ assert location.iStart==2 and location.iEnd==5 and severity==2 and tag==c_uintptr(1234567890123456789)
+ assert code!=null and message!=null and source!=null and (code as string)=="E42" and (message as string)=="错误信息"
+ DiagnosticReader reader=store
+ auto a,b,c,d,e,f=reader.getDiagnostic(0)
+ assert c==code and d==message and e==source and f==tag
+ func(c_int) as (xui.CodeRange,c_int,string?,string?,string?,c_uintptr) read=store.getDiagnostic
+ auto aa,bb,cc,dd,ee,ff=read(0)
+ assert cc==code and dd==message and ee==source and ff==tag
+ editor.setText("abc")
+ assert editor.editSetSelection(1,1)==0
+ editor.setVirtualText(xui.XUI_CODE_VIRTUAL_TEXT_INLINE_COMPLETION,1,"补全文本",c_uint(5),c_uintptr(7))
+ auto vKind,vOffset,vText,vFlags,vUser=editor.getVirtualText()
+ assert vKind==xui.XUI_CODE_VIRTUAL_TEXT_INLINE_COMPLETION and vOffset==1 and vFlags==0 and vUser==0
+ assert vText!=null and (vText as string)=="补全文本"
+ button.setText("Run")
+ button.setAccessibleName("执行按钮")
+ button.setAccessibleDescription("运行程序")
+ auto id,parent,role,state,name,value,description,bounds,start,endOffset,level,row,column,rows,columns,actions,accessibleRange=button.getAccessibleNode()
+ auto expected=nativeScalars(button)
+ assert id==expected.id and parent==expected.parent and role==expected.role and state==expected.state
+ assert bounds.fX==expected.bounds.fX and bounds.fY==expected.bounds.fY and bounds.fW==expected.bounds.fW and bounds.fH==expected.bounds.fH
+ assert start==expected.start and endOffset==expected.endOffset and level==expected.level and row==expected.row and column==expected.column and rows==expected.rows and columns==expected.columns and actions==expected.actions
+ assert accessibleRange.iSize==expected.range.iSize and accessibleRange.fValue==expected.range.fValue and accessibleRange.fMin==expected.range.fMin and accessibleRange.fMax==expected.range.fMax and accessibleRange.fStep==expected.range.fStep and accessibleRange.fPageStep==expected.range.fPageStep
+ nativeText(button,0,name??"",name==null)
+ nativeText(button,1,value??"",value==null)
+ nativeText(button,2,description??"",description==null)
+ assert name!=null and description!=null and (name as string)=="执行按钮" and (description as string)=="运行程序"
+ ui.styleSetToken("text",xui.XUI_STYLE_VALUE_STRING,text="主题文本")
+ auto tKind,tInt,tFloat,tColor,tText=ui.styleGetToken("text")
+ assert tKind==xui.XUI_STYLE_VALUE_STRING and tText!=null and (tText as string)=="主题文本"
+ ui.styleSetToken("integer",xui.XUI_STYLE_VALUE_INT,integer=42)
+ auto iKind,iValue,iFloat,iColor,iText=ui.styleGetToken("integer")
+ assert iKind==xui.XUI_STYLE_VALUE_INT and iValue==42 and iText==null
+ ui.styleSetToken("float",xui.XUI_STYLE_VALUE_FLOAT,number=c_float(1.25))
+ auto fKind,fInt,fValue,fColor,fText=ui.styleGetToken("float")
+ assert fKind==xui.XUI_STYLE_VALUE_FLOAT and fValue==c_float(1.25)
+ ui.styleSetToken("color",xui.XUI_STYLE_VALUE_COLOR,color=c_uint(0x12345678))
+ auto cKind,cInt,cFloat,cValue,cText=ui.styleGetToken("color")
+ assert cKind==xui.XUI_STYLE_VALUE_COLOR and cValue==c_uint(0x12345678)
+ int annotationFailures=0
+ int tokenFailures=0
+ int virtualFailures=0
+ int accessibleFailures=0
+ annotationBudget(store,0)
+ tokenBudget(ui,0)
+ virtualBudget(editor,0)
+ accessibleBudget(button,0)
+ for allowance in range(32)
+  heapBegin()
+  annotationFailures+=annotationBudget(store,allowance)
+  tokenFailures+=tokenBudget(ui,allowance)
+  virtualFailures+=virtualBudget(editor,allowance)
+  accessibleFailures+=accessibleBudget(button,allowance)
+  heapEqual()
+ end
+ assert annotationFailures>0 and annotationFailures<32 and tokenFailures>0 and tokenFailures<32
+ assert virtualFailures>0 and virtualFailures<32 and accessibleFailures>0 and accessibleFailures<32
+ println("Record query OOM: prefixes=32 annotation=",annotationFailures," token=",tokenFailures," virtual=",virtualFailures," accessible=",accessibleFailures)
+ for kind in range(4)
+  heapBegin()
+  for i in range(1000)
+   if kind==0 then
+    auto x0,x1,x2,x3,x4,x5=store.getDiagnostic(0)
+   elseif kind==1 then
+    auto x0,x1,x2,x3,x4=editor.getVirtualText()
+   elseif kind==2 then
+    auto x0,x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13,x14,x15,x16=button.getAccessibleNode()
+   else
+    auto x0,x1,x2,x3,x4=ui.styleGetToken("text")
+   end
+  end
+  report(c_int(kind),0)
+  heapEqual()
+  heapBegin()
+  xui.Widget measured=button
+  if kind==1 then measured=editor end
+  nativeHot(c_int(kind),ui,measured,store)
+  report(c_int(kind),1)
+  heapEqual()
+ end
+ // NULL and an empty string remain distinct; old snapshots survive mutation.
+ store.setDiagnosticsColumns([location],[c_int(1)],[null],[""],[null],[c_uintptr(0)])
+ auto nr,ns,nc,nm,no,nu=store.getDiagnostic(0)
+ assert nc==null and no==null and nm!=null and (nm as string)=="" and nu==0
+ int rejected=0
+ try
+  auto z0,z1,z2,z3,z4,z5=store.getDiagnostic(-1)
+ catch Error
+  rejected+=1
+ end
+ try
+  auto z0,z1,z2,z3,z4=ui.styleGetToken("missing")
+ catch Error
+  rejected+=1
+ end
+ try
+  ui.styleSetToken("bad",xui.XUI_STYLE_VALUE_TOKEN,text="text")
+ catch Error
+  rejected+=1
+ end
+ try
+  auto z0,z1,z2,z3,z4=ui.styleGetToken("te\0xt")
+ catch Error
+  rejected+=1
+ end
+ assert rejected==4
+ store.clear()
+ ui.styleRemoveToken("text")
+ editor.clearVirtualText(0)
+ try
+  auto z0,z1,z2,z3,z4=editor.getVirtualText()
+ catch Error
+  rejected+=1
+ end
+ assert rejected==5
+ assert (message as string)=="错误信息" and (tText as string)=="主题文本" and (vText as string)=="补全文本"
+ auto worker=thread(func() as int
+  int failures=0
+  try
+   auto a0,a1,a2,a3,a4=ui.styleGetToken("integer")
+  catch StateError
+   failures+=1
+  end
+  try
+   auto a0,a1,a2,a3,a4,a5=store.getDiagnostic(0)
+  catch StateError
+   failures+=1
+  end
+  try
+   auto a0,a1,a2,a3,a4=editor.getVirtualText()
+  catch StateError
+   failures+=1
+  end
+  return failures
+ end)
+ assert worker.waitTimeout(30000) and worker.exitCode()==3
+ store.close()
+ try
+  auto z0,z1,z2,z3,z4,z5=store.getDiagnostic(0)
+ catch StateError
+  rejected+=1
+ end
+ ui.close()
+ try
+  auto z0,z1,z2,z3,z4=editor.getVirtualText()
+ catch StateError
+  rejected+=1
+ end
+ assert rejected==7
+ font.close()
+ proxy.close()
+ assert balanced()==1 and (name as string)=="执行按钮" and (description as string)=="运行程序"
+ println("Record queries: exact fields, text snapshots, owned model and Context lifetimes, thread rejection and transactional OOM passed")
+ return 0
+end

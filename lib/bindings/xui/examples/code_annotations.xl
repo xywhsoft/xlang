@@ -20,7 +20,10 @@ func main(...) as int
   array<c_uintptr> ids=[c_uintptr(1)]
   annotations.setDiagnosticsColumns(ranges,severities,codes,messages,sources,ids)
   assert annotations.getDiagnosticCount()==1
-  println("Diagnostics:",annotations.getDiagnosticCount())
+  auto markedRange,severity,code,message,source,id=annotations.getDiagnostic(0)
+  assert markedRange.iStart==0 and markedRange.iEnd==4 and severity==xui.XUI_CODE_DIAGNOSTIC_WARNING and id==1
+  assert code!=null and message!=null and source!=null
+  println(code,":",message,"; source:",source)
  finally
   annotations.close()
   document.close()

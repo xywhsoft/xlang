@@ -221,8 +221,9 @@ window loop. System fonts are demonstrated in the xge package's `examples/system
 缓存复制输入记录，`finally` 释放独立模型。它不演示尚未公开的批量 token 读取。
 
 `code_annotations.xl` 不创建窗口，先标记两处 `todo`，再用平行列发布一条诊断。
-预期输出 `Marked matches: 2` 和 `Diagnostics: 1`。源码中的范围、级别、编号、
-说明、来源和用户 ID 六列对应原生诊断字段；存储复制文本，最后分别关闭模型。
+预期输出 `Marked matches: 2` 和 `W001 : Complete this task ; source: lesson`。
+随后用 `getDiagnostic(0)` 读回范围、级别、编号、说明、来源和用户 ID，断言数值、
+打印文本；它们直接对应输入的六列。返回文本是独立快照，最后分别关闭模型。
 
 `input_events.xl` demonstrates a shared command for a button and Ctrl+F2. It
 inserts a Unicode heart through the input-result API and updates a status label.

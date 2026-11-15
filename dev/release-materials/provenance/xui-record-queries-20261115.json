@@ -1,0 +1,261 @@
+{
+  "schema": 1,
+  "date": "2026-11-15",
+  "status": "qualified-direct-xui-record-queries",
+  "shippingDelivery": false,
+  "goalComplete": false,
+  "sourceHeadBefore": "24f318efb8f051515542785f2e37bb45aa2b7c02",
+  "nativeRevision": "766c039e9fc3c7a1ddd9702140befcb8c931f168",
+  "nativeRebuilt": false,
+  "compilerRebuilt": false,
+  "fullO2CompilerCohortsReused": true,
+  "publicDeclarations": [
+    "CodeAnnotationStore.getDiagnostic",
+    "CodeEdit.getVirtualText",
+    "CodeEdit.setVirtualText",
+    "Widget.getAccessibleNode",
+    "Context.styleGetToken",
+    "Context.styleSetToken"
+  ],
+  "contracts": [
+    "Reuse approved direct C-string output-field snapshots; copy inside input scope, distinguish NULL/empty and rollback all outputs together.",
+    "Reuse sized stack input packs and native success statuses. No dedicated C forwarding layer or new language/runtime policy."
+  ],
+  "sourceSha256": {
+    "docs/xui-record-queries.md": "5a6a32ff75d69535946e779b6a44b706f533de2d17b9197a163330e5071ec65c",
+    "docs/xge3-xui3-full-coverage-plan.md": "2ea6c65f148047366ed2986adf82eb74d1a8b0a7bc225bce53f868d7d78dc23d",
+    "lib/bindings/xui/src/managed.xl": "7f64dd0cfd0c714e444e167805647503aa08a4b3a2dbdc53e0537f2196367db1",
+    "lib/bindings/xui/src/code_annotations.xl": "d21d44147fa268639ee859ed93e488b4483c0e60c1066a8fa445c3b6b0788b76",
+    "lib/bindings/xui/examples/code_annotations.xl": "cb9a52d5bb8ddb8da6e303527f261a7689555e2caf753ce450d6dc3b6a885572",
+    "lib/bindings/xui/examples/README.md": "8aa2b92357bd842a602ad3c4605ece9bb19be2b74ba742735ee8a26571f70088",
+    "tools/check_xge3_bindings.py": "1ebcbc1fbe9822ed15939a387c160556e267bc7c7390e78194d51e41b803bd94",
+    "tools/xui_snapshot_contracts.py": "42babbd6d41e2fc9543591fc29d6b6f417398ec8ca85ee3c57cc49cb67442783",
+    "tools/check_xui_record_queries.py": "f13be3e0669f521ef1cccd0e7bb628742ff8389e86e8207c30b33ab4e0126ccf",
+    "test/cases/foreign_xui_record_queries.c": "348b765e1445397001ed0dc89ad0c1807dfb98f454a73019964015f6906327e0",
+    "test/cases/foreign_xui_record_queries.h": "52a973c5b43fa0d838771f600e8ab193685c5de151525d166d7a30ad63fc2e87",
+    "test/cases/foreign_xui_record_queries.xl": "0baaa94a263aa804e969ed06458df978786c0fa12e1e71d55adab8139699c0fd",
+    "test/cases/foreign_xui_record_queries_native.c": "a0a9bff3781f6e6b1fb293135e6be2cc3f465ac94a88897058eb8d4457c6f535"
+  },
+  "reports": {
+    "record-queries-verified-r1.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\record-queries-verified-r1.json",
+      "sha256": "cd1b737d5054f1bbee905ed5952db343171f8156bbd93fc5fe7b0228fa275da9"
+    },
+    "record-queries-linux-all-inputs-r1.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\record-queries-linux-all-inputs-r1.json",
+      "sha256": "d423dc7ca6b299920aae90cf3170fa83cce75a2a4c8786344c40822d16168e02"
+    },
+    "record-queries-package-parity-win-r4.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\record-queries-package-parity-win-r4.json",
+      "sha256": "99974ceb6ea65c120a601db64262ec805854e3f2acb3bb9be61a46834e06ea26"
+    },
+    "record-queries-package-parity-linux-r4.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\record-queries-package-parity-linux-r4.json",
+      "sha256": "d8e071f4b0bcd5b8314a1d9d29facbeb27d6cd38985f3231bfd71542674b3595"
+    },
+    "record-queries-surface-r1/surface.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\record-queries-surface-r1\\surface.json",
+      "sha256": "67ead3b55f62a1b5ecd974ad4aae7fde3844909bd858a838bf7b16783d3381a5"
+    },
+    "record-queries-repo-budget-before.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\record-queries-repo-budget-before.json",
+      "sha256": "66d9dcbe991a68328f1efcfde910331759681a33f94ad501ceda1bdaa5a468d0"
+    },
+    "compiler-output-values-full-r43/build.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-output-values-full-r43\\build.json",
+      "sha256": "dff29bf0d4955354ba13fbd8172dcc94e4889ca790305e71abc23f8620f9508e"
+    },
+    "compiler-output-values-linux-full-r36/build.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-output-values-linux-full-r36\\build.json",
+      "sha256": "f06601a63449d54fc3dc9ada8e1ee6a37b56d7938df9cf5081050638c766cc3a"
+    },
+    "record-queries-positive-win-r3/results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\record-queries-positive-win-r3\\results.json",
+      "sha256": "fe642f0a9ac886f8c88515f15b150d86ededd5026f37fda3b0bcd4414f413840"
+    },
+    "record-queries-positive-linux-r2/results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\record-queries-positive-linux-r2\\results.json",
+      "sha256": "77adc40ecdc200f7752b2c21e3c9cbd4de463e7a492764dec5de4e544f40047e"
+    },
+    "record-queries-packages-win-r4-host.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\record-queries-packages-win-r4-host.json",
+      "sha256": "819ebf3a2e3075b95e56ad4ef012955be8cd4076373df673ab5dcde8703084d2"
+    },
+    "provider-owned-sdk-win-r2/host/build-report.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\provider-owned-sdk-win-r2\\host\\build-report.json",
+      "sha256": "88c221d94aea1e6ec740e9654b73eb9ba198370ee6891a75fb7d5c963d8550cd"
+    },
+    "record-queries-packages-win-r4-static.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\record-queries-packages-win-r4-static.json",
+      "sha256": "356eaf9615bbb54e2151779c7379af080e964c67511ea6890ecf2081aa89e214"
+    },
+    "provider-owned-sdk-win-r2/static/build-report.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\provider-owned-sdk-win-r2\\static\\build-report.json",
+      "sha256": "d1e8cfd3b73fe04ab448025819483d96a28b74d48e656a0ba81c813828d87fb0"
+    },
+    "record-queries-packages-linux-r4-host.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\record-queries-packages-linux-r4-host.json",
+      "sha256": "0b8461a2f76af0000427522a743d0d9bececb206dc2ea2b28cda11433a7fb711"
+    },
+    "provider-owned-sdk-linux-r2/host/build-report.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\provider-owned-sdk-linux-r2\\host\\build-report.json",
+      "sha256": "0f5ac55bf15410ab54281a2dddeb3e3146a722ba02b08a0eec52740af3284f49"
+    },
+    "record-queries-packages-linux-r4-static.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\record-queries-packages-linux-r4-static.json",
+      "sha256": "d7082a327de3ed719c35e1e00fde24bd72647258099aedfca19753502cdf0a21"
+    },
+    "provider-owned-sdk-linux-r2/static/build-report.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\provider-owned-sdk-linux-r2\\static\\build-report.json",
+      "sha256": "c989be2565e89824d41431d5218e84046a30fba28184cdd3daa968210bbdb200"
+    }
+  },
+  "tests": {
+    "platforms": [
+      "win_x64",
+      "linux_x64"
+    ],
+    "stepsPerPlatform": 30,
+    "totalSteps": 60,
+    "modes": [
+      "CLI JIT",
+      "dynamic AOT",
+      "static AOT"
+    ],
+    "nativeOracle": [
+      "host O0",
+      "host O2",
+      "static O0",
+      "static O2"
+    ],
+    "publicHeaders": [
+      "C11",
+      "C++11",
+      "C++17"
+    ],
+    "oomPrefixesPerFamilyPerMode": 32,
+    "actualFailuresPerMode": {
+      "annotation": 3,
+      "styleToken": 2,
+      "virtualText": 1,
+      "accessibleNode": 2
+    },
+    "boundaries": [
+      "all scalar/POD/string fields",
+      "diagnostic bound/protocol calls",
+      "Chinese strings",
+      "NULL versus empty",
+      "invalid index",
+      "missing token",
+      "invalid token tag",
+      "embedded NUL rejection",
+      "missing virtual text",
+      "three wrong-thread query families",
+      "closed model and expired widget",
+      "retained text after mutation and close"
+    ],
+    "networkTests": false,
+    "securityTests": false,
+    "graphicsTests": false,
+    "finalInputsVerified": true,
+    "linuxAllInputsVerified": 2666
+  },
+  "costs": {
+    "roundsPerQuery": 1000,
+    "equivalentOwnedTextBaseline": true,
+    "allocationFreePairs": {
+      "diagnostic": [
+        3000,
+        3000
+      ],
+      "virtualText": [
+        1000,
+        1000
+      ],
+      "accessibleNode": [
+        2000,
+        2000
+      ],
+      "styleLanguage": [
+        2000,
+        2000
+      ],
+      "styleNative": [
+        1000,
+        1000
+      ]
+    },
+    "reallocations": 0,
+    "extraStyleInputNameAllocationsPerCall": 1,
+    "otherCosts": [
+      "one native query per invocation",
+      "strlen and independent copy for each non-NULL output string",
+      "stack record and tuple/POD copies",
+      "native input/resource/code scopes",
+      "status/error and transactional destination checks"
+    ],
+    "cpuEquivalenceClaim": false,
+    "wholeApiZeroOverheadClaim": false
+  },
+  "nativePublicBodyParity": [
+    {
+      "symbol": "xuiCodeAnnotationGetDiagnostic",
+      "source": "src/xui/code/xui_code_annotation.c",
+      "functionSha256": "c5c07e8be1276cad93712cbba419e74dd513b95daf99caf4d2a1109753b3049c"
+    },
+    {
+      "symbol": "xuiCodeEditGetVirtualText",
+      "source": "src/xui/code/xui_code_edit.c",
+      "functionSha256": "616be2e8588b4ff46f26afe8df11d54255a4d0740469cd610b792f90400bbca5"
+    },
+    {
+      "symbol": "xuiCodeEditSetVirtualText",
+      "source": "src/xui/code/xui_code_edit.c",
+      "functionSha256": "7393753458a35f7fe51f9a9907e3681b64e32b38e91f86c99aa04b5f55be48d6"
+    },
+    {
+      "symbol": "xuiWidgetGetAccessibleNode",
+      "source": "src/xui/accessibility/xui_accessibility.c",
+      "functionSha256": "2fcc44932148ad0a0c3a2e106c4d4ac39c018e7ad681e1644f9786fb7139fdb1"
+    },
+    {
+      "symbol": "xuiStyleGetToken",
+      "source": "src/xui/core/xui_widget.c",
+      "functionSha256": "c72e6c5cb222b8e0446d3bd6d88dc30b2d6df884d5704912bd28e7cb59cdde38"
+    },
+    {
+      "symbol": "xuiStyleSetToken",
+      "source": "src/xui/core/xui_widget.c",
+      "functionSha256": "2b815c394165ec27cb9c8b88dcf60aef16b8ca5bd56f9a8fc75941d98f58a848"
+    }
+  ],
+  "nativeHeaderSha256": "827b97a8b44e72ac9337986f98e0ead6c32a8d0cf122473d77d571e28ab5501d",
+  "generatorReplay": true,
+  "qualifiedPackageR4MatchesCurrentBindingsAndLesson": true,
+  "windowsR4DocumentationOnlyDeltaFromExecutedR3": [
+    "xui/examples/README.md"
+  ],
+  "declarationInventory": {
+    "population": 5217,
+    "declarationPresent": 3876,
+    "abiRuntimeCompletion": false
+  },
+  "failedEvidenceRetained": [
+    "record-queries-positive-win-r1: test Rect coordinate used wrong scalar type; corrected before qualification.",
+    "record-queries-positive-win-r2 and record-queries-positive-linux-r1: all execution rows passed, final input-stability guard rejected an in-flight strengthening of POD rollback assertions; final frozen reruns passed."
+  ],
+  "nativeUserDirtUntouched": true,
+  "unrelatedWorktreeChangesPreserved": true,
+  "remaining": [
+    "bulk writable/output arrays",
+    "nested style record projection",
+    "owned Provider language callbacks",
+    "other pending integration contracts",
+    "full remaining XGE/XUI/Document capability acceptance",
+    "matched SDK/compiler/runtime/IDE/help delivery"
+  ],
+  "releaseUpdated": false,
+  "currentDeliveryIndexUpdated": false,
+  "versionChanged": false,
+  "pushed": false
+}
