@@ -1,0 +1,94 @@
+{
+  "schema": 1,
+  "date": "2026-11-16",
+  "status": "native-targeted-fix-qualified-safe-binding-pending",
+  "shippingDelivery": false,
+  "goalComplete": false,
+  "compilerRebuilt": false,
+  "nativeSdkRebuilt": false,
+  "sourceHeadBefore": "09dec0627d6fce8cae01f7ae1b49223139cd7eb7",
+  "nativeCommit": "df03691f1bde54e83b4baac93ff08cba7bac77dd",
+  "nativeSourceSha256": {
+    "src/xui/workflow/xui_flow_graph.c": "3a5827a292c4db8c4397a5ed6adf8cdccb4e18f15827058d5ebc0f273feabe52",
+    "tests/xui/xui_flow_graph_config_reentry_test.c": "e663c2fe25d5191a0040926960de365b90a9557f7706a66fc7f1d967acaccb0e",
+    "tests/xui/build_flow_graph_config_reentry_test.bat": "9f751e54cb741d96806577f0045d468db9d9bbc824499f4747ed993b9e74a1da",
+    "docs/xui-flow-config-reentry.md": "f0c8ef4803a717f81b0eb89ee93b65321a12ada1e5776a06c365a3866f70ba2a"
+  },
+  "sourceSha256": {
+    "docs/xge3-xui3-full-coverage-plan.md": "19c5abe0e7a765ffd3d1549fab8162a0dba98fb4dc0152fd0cc811891a3e8474"
+  },
+  "reports": {
+    "flow-config-native-verified-win-r5.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-config-native-verified-win-r5.json",
+      "sha256": "e6004024e530171aed22d4a26cc761bb6fd4601e7133585c4fc40c4321f21717"
+    },
+    "flow-config-native-win-r5\\results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-config-native-win-r5\\results.json",
+      "sha256": "f491fc6d31c54d520df8f997bc8609abc48e4b55c7f8cc703525106898203d43"
+    },
+    "flow-config-native-verified-linux-r5.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-config-native-verified-linux-r5.json",
+      "sha256": "a942cd9afb99d49c0d5d6f8d7a09c5c63fa75149cb493417b3658ed4d884065e"
+    },
+    "flow-config-native-linux-r5\\results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-config-native-linux-r5\\results.json",
+      "sha256": "35494a35663af5e3122eeceb5ee32e843affb6db51471d1fcaa75ef94998e391"
+    },
+    "flow-graph-clone-reentry-linux-r1.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-graph-clone-reentry-linux-r1.json",
+      "sha256": "02c33477d0c68c78dc85287c468e310b5c83790046bb25fc4f5cd686d7d7cb59"
+    },
+    "flow-graph-clone-reentry-linux-r1.log": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-graph-clone-reentry-linux-r1.log",
+      "sha256": "75b489bc7035ae80dae9c6a02fe2352898738c5e938f828c42818ad51bcb499c"
+    },
+    "flow-config-native-commit-r1.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-config-native-commit-r1.json",
+      "sha256": "ebcadd81ab4df195e3662a33aa17f67615fe2be4d3eb96e85462753941b79842"
+    },
+    "flow-graph-proto-win-r4.log": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-graph-proto-win-r4.log",
+      "sha256": "dab62b557bdf5487b068714e2cb40221974d27c00526195604cf8ba8793a587a"
+    },
+    "check_flow_config_native_r5.py": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\check_flow_config_native_r5.py",
+      "sha256": "451e9db2e9b91ffd41a60087eb01305e7e9136e4b8470b423858e563bc9c60aa"
+    },
+    "verify_flow_config_native_r5.py": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\verify_flow_config_native_r5.py",
+      "sha256": "e75b7f5d4b5763023b7c472d9cf7c439485aaf1364a308a707312ff237be0d2a"
+    }
+  },
+  "reproduction": "Exact current qualified SDK, complete Linux source compiler and direct generic FlowGraph prototype: custom XRT handle Clone removed node one; native status0/count0 then process SIGSEGV (-11). No product binding was installed.",
+  "fix": [
+    "Capture native graph revision before deep clone, reject revision change with existing INVALID_STATE and release the new clone exactly once. Same-id recreation is not mistaken for the original node.",
+    "Install new config and bump revision before releasing prior config; do not touch the node or graph after the potentially reentrant Drop."
+  ],
+  "qualification": {
+    "totalSteps": 16,
+    "platforms": [
+      "Windows x64",
+      "Linux x64"
+    ],
+    "optimizations": [
+      "O0",
+      "O2"
+    ],
+    "tests": [
+      "new config Clone/Drop invalidation, same-id recreation, exactly-once cleanup and repeated heap balance",
+      "existing native xui_flow_graph_test model suite"
+    ],
+    "method": "Compile frozen modified FlowGraph source unit and test clients directly against canonical resident XRT from complete qualified O2 compiler. No SDK rebuild or generated language business wrapper.",
+    "exactRuntimeHeader": "41bc24579f4b3207b0434755ca23dd06481af90c05f71e9b365848cf9a7c12d1",
+    "headerSelection": "Matched frozen native SDK root first in include search; public XGE headers byte-equal to current upstream. Current upstream extlibs/xrt header is an older additive view-API predecessor and is not silently treated as byte-identical.",
+    "finalReports": "r5 both OS and independent hash verifications; prior setup failures preserved externally"
+  },
+  "costs": "One saved native revision and a conditional after Clone; no new persistent fields or happy-path allocations/clones. Old Drop remains one call, reordered after commit. Rejected new config is released. No CPU equivalence claim.",
+  "limits": [
+    "Uniform graph callback reentry admission remains pending user choice; arbitrary graph reentry/destruction is not promised.",
+    "Other configuration consumers, command/undo/redo paths, trace/cycles and long-lived widget/Workflow aliases still require qualification.",
+    "Standalone FlowGraph prototype remains outside the default xui library. Existing host/static SDK r2 does not contain this fix; rebuild from complete provider-owned source-r1 parent plus qualified deltas when complete policy is ready.",
+    "No release installation, current-delivery/version change, publication or sensitive network testing.",
+    "13 preexisting Native geometry dirty paths preserved."
+  ]
+}
