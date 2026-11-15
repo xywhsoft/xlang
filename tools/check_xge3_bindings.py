@@ -406,11 +406,37 @@ def write_binding_manifest(path,generated):
             if value not in values:values.append(value);changed=True
     if changed:path.write_text(json.dumps(existing,indent=2)+'\n',encoding='utf8')
 
+def reviewed_fixed_output_count(native_root,function,review,parameter,element,expected_count):
+    """A C pointer does not encode the size of an output array."""
+    if not isinstance(review,dict) or review.get('storage')!='bounded-synchronous-output':
+        raise ValueError('missing fixed output review: '+function['name'])
+    count=review.get('count')
+    if type(count)is not int or not 0<count<=0x7fffffff:
+        raise ValueError('invalid fixed output count: '+function['name'])
+    if count!=expected_count or type(review.get('parameter'))is not int or review['parameter']!=parameter or review.get('elementCType')!=element or review.get('nativeDeclaration')!=function['declaration']:
+        raise ValueError('fixed output signature review is stale: '+function['name'])
+    if not review.get('dependencies'):raise ValueError('fixed output review requires implementation dependencies: '+function['name'])
+    parameters=function['type']['parameters']
+    pointer=parameters[parameter]['type']if parameter<len(parameters)else{}
+    if pointer.get('kind')!='pointer' or pointer.get('to',{}).get('kind')!='named' or pointer['to'].get('names')!=[element] or 'const'in pointer['to'].get('qualifiers',[]):
+        raise ValueError('fixed output requires matching writable element pointer: '+function['name'])
+    matching,reason=storage_review_match(native_root,review,function['name'])
+    if not matching:raise ValueError('fixed output storage review is stale: '+function['name']+' ('+str(reason)+')')
+    return count
+
 def generate(root,data):
     reserved=set(re.findall(r'\{\"([A-Za-z_]\w*)\", XL6_KW_', (root/'src/lexer/xl6_lexer_gen.c').read_text(encoding='utf8')))
     storage_path=root/'docs/xge3-xui3-api-map-storage.json'
     storage_inventory=json.loads(storage_path.read_text(encoding='utf8'));storage=storage_inventory['entries']
     field_storage=storage_inventory.get('fieldEntries',{})
+    # These previously qualified APIs write exactly four corners. Their C
+    # signatures are plain pointers: never infer a one-element output or infer
+    # cardinality from parameter spelling. Missing/stale evidence is fatal.
+    native_functions={f['name']:f for h in data['headers']for f in h['functions']}
+    fixed_outputs={}
+    for name in('xgeShapeExGetOBB','xgeShapeExSceneGetOBB'):
+        if name not in native_functions:raise ValueError('missing reviewed fixed output API: '+name)
+        fixed_outputs[name,2]=reviewed_fixed_output_count(Path(data['headers'][0]['header']).parents[1],native_functions[name],storage_inventory.get('fixedOutputEntries',{}).get(name),2,'xge_vec2_t',4)
     def reviewed_span(f,pointer,count):
         # A matching C shape proves ABI, never non-escape. New signatures must
         # receive an explicit native storage review before an implicit span.
@@ -566,7 +592,7 @@ def generate(root,data):
             debug_manifest=dict(optional_manifest,name='xgeDebug',requiresNativeFeatures=['XGE_HAS_DEBUGMODE'])
             write_binding_manifest(debug/'xlang.package.json',debug_manifest)
             for extension in (optional,debug):(extension/'src/bootstrap.xl').write_text('// Normal module import executes the shared native initializer once.\nimport "xge"\n',encoding='utf8')
-            object_mapping=generate_xge_objects(root,header,records,types,primitive,param,reserved,reviewed_span)
+            object_mapping=generate_xge_objects(root,header,records,types,primitive,param,reserved,reviewed_span,fixed_outputs)
             mapped.update(object_mapping)
         if package=='xui':
             managed,mapping=generate_xui(root,header,records,types,primitive,param,reserved,reviewed_span)
@@ -648,7 +674,7 @@ def annotate_existing_bindings(root,data,strict_storage=False,generated=False):
     data['existingBindingAnnotation']=dict(declarationOnly=True,abiAccepted=False,runtimeAccepted=False,sourceFilesModified=False,inputsUnchanged=unchanged,generatorWroteSourcesBeforeAnnotation=generated,sourceSha256=pins)
 
 
-def generate_xge_objects(root,header,records,types,primitive,param,reserved,reviewed_span):
+def generate_xge_objects(root,header,records,types,primitive,param,reserved,reviewed_span,fixed_outputs):
     families={'xge_shape_ex':('Shape','xl6Xge3ShapePolicy','xgeShapeEx','xgeShapeExDestroy'),
               'xge_shape_ex_scene':('ShapeScene','xl6Xge3ShapeScenePolicy','xgeShapeExScene','xgeShapeExSceneDestroy'),
               'xge_shape_ex_path_measure':('PathMeasure','xl6Xge3PathMeasurePolicy','xgeShapeExPathMeasure','xgeShapeExPathMeasureDestroy')}
@@ -686,6 +712,7 @@ def generate_xge_objects(root,header,records,types,primitive,param,reserved,revi
                 if t['kind']=='pointer' and 'const' not in t['to'].get('qualifiers',[]):
                     pt=primitive(t['to'])
                     if not pt:raise ValueError('opaque output')
+                    if (f['name'],i)in fixed_outputs:pt+='['+str(fixed_outputs[f['name'],i])+']'
                     outputs.append(i);values.append(pt);i+=1;continue
                 pt,at=param(t,logical);attrs+=at;params.append(pt+' '+('arg'+str(i) if a['name'] in reserved else a['name']));i+=1
             if result!='c_int':raise ValueError('family methods must retain reviewed status semantics')

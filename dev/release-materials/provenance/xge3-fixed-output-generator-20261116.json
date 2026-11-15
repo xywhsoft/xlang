@@ -1,0 +1,159 @@
+{
+  "date": "2026-11-16",
+  "scope": "Preserve two already qualified four-corner OBB output contracts in full declaration generation; no current public binding/runtime semantic change.",
+  "complete": true,
+  "passed": true,
+  "goal": "active, not complete",
+  "parentCommit": "8195ad9c3b80958f54fccc1b43f17b931dc8f42c",
+  "shippingDelivery": false,
+  "sourceFiles": {
+    "tools/check_xge3_bindings.py": "d338edfd625ef3bf87224d77b9082ac0db0aba7456a2a2cf067f8c1b0d61c555",
+    "tools/check_xge3_storage_reviews.py": "d8fa045e23d965cf7985ae0324dc22fc0097083469466b251720a1dcb5783ca0",
+    "docs/xge3-xui3-api-map-storage.json": "549933f898702dda98d093a50f57512f35e3065185326698713e6ee8f4b83f34",
+    "docs/xge3-storage-reviews.md": "c8cac2945a676aaaf336c74b289bd1b8ac9918c3e34578283abde22e84c1b46e",
+    "docs/xge3-xui3-full-coverage-plan.md": "532318c6bda5fe9fc791cf65706b97c58e3e740c051336a65642d4cb7a15c4ac"
+  },
+  "qualification": {
+    "win": {
+      "storage-fixed": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\storage-fixed-verified-win-r1.json",
+        "sha256": "87d4b781849be2e839d22a0af508b435b430f506ac1083c371edddf89044f4de",
+        "complete": true,
+        "passed": true,
+        "os": "nt",
+        "gate": "F:\\xlang-validation\\xge-full-20261110\\storage-fixed-win-r2",
+        "reportSha256": "58569487437e0a07afccb203a4a18ee69d4e453e6df61fa0a470576f1cbca045",
+        "inputFiles": 341,
+        "checks": 110,
+        "skipped": [
+          {
+            "name": "reject-external-symlink",
+            "reason": "[WinError 1314] \u5ba2\u6237\u7aef\u6ca1\u6709\u6240\u9700\u7684\u7279\u6743\u3002: 'F:\\\\xlang-validation\\\\xge-full-20261110\\\\storage-fixed-win-r2\\\\external.inl' -> 'F:\\\\xlang-validation\\\\xge-full-20261110\\\\storage-fixed-win-r2\\\\fixture\\\\src\\\\external.inl'"
+          }
+        ],
+        "sourceSnapshot": "F:\\xlang-validation\\xge-full-20261110\\storage-fixed-win-r2\\accepted-source",
+        "fieldReviews": 20,
+        "dependencyWitnessesPerNewReview": 14,
+        "reviewedFixedOutputs": 2,
+        "generatedSourceDifferences": 9,
+        "generatedOutputsPromoted": false,
+        "runtimeQualification": false,
+        "checkerSha256": "d8fa045e23d965cf7985ae0324dc22fc0097083469466b251720a1dcb5783ca0",
+        "catalogSha256": "549933f898702dda98d093a50f57512f35e3065185326698713e6ee8f4b83f34"
+      },
+      "fixed-output-latest": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\fixed-output-latest-verified-win-r1.json",
+        "sha256": "0e123ee62a93a46b2b3e9b21d1c6d72cc99977773e3e739fe41b6cdab3b0f8c6",
+        "complete": true,
+        "passed": true,
+        "os": "nt",
+        "gate": "F:\\xlang-validation\\xge-full-20261110\\fixed-output-latest-win-r1",
+        "checks": 14,
+        "inputFiles": 602,
+        "reportSha256": "2c6249f3973677d92830922b5a6d31696af2a8383de3bfb1deab91ba6662f519",
+        "sourceSnapshot": "F:\\xlang-validation\\xge-full-20261110\\fixed-output-latest-win-r1\\accepted-source",
+        "sourceGeneratorReport": "F:\\xlang-validation\\xge-full-20261110\\storage-fixed-win-r2\\results.json",
+        "sourceGeneratorReportSha256": "58569487437e0a07afccb203a4a18ee69d4e453e6df61fa0a470576f1cbca045",
+        "shapeNormalizedSha256": "b223efec5b283c0131075411468da207ac2aca3591dd2e8cf5e09a7995a882a4",
+        "generatedShapeMatchesBothTestedPackages": true,
+        "programs": {
+          "F:\\xlang-validation\\xge-full-20261110\\fixed-output-latest-win-r1\\obb.c": "249c441efbd0a5a44a89be3cfe612fe29ce95f3d066d0160afabe997a2c3bdb6",
+          "F:\\xlang-validation\\xge-full-20261110\\fixed-output-latest-win-r1\\obb-dynamic.exe": "dc6dddc1848d51e6ab2d02736d22a4062f6017d318156b09a6bf8be44c62f7ec",
+          "F:\\xlang-validation\\xge-full-20261110\\fixed-output-latest-win-r1\\obb-static.exe": "a2eeabf6a3225a82df2a88a4f4a22c00d06d634f3fdb3c36b07420ca92ea446f",
+          "F:\\xlang-validation\\xge-full-20261110\\fixed-output-latest-win-r1\\example.c": "786bcfa04cfc498ca9a5befceb0272b3f0e25e5f63bc23015edab788a5a2083d",
+          "F:\\xlang-validation\\xge-full-20261110\\fixed-output-latest-win-r1\\example-dynamic.exe": "b3cdf33eb732a02d80feed8578920d000ece66aa1140d64998a4626e2ff1aea7",
+          "F:\\xlang-validation\\xge-full-20261110\\fixed-output-latest-win-r1\\example-static.exe": "04bbda0a49bf5d764b5802ec4639ad57f60a9ce2d6d7c887ba9e25522a6f6c72"
+        },
+        "shippingDelivery": false,
+        "networkTests": false,
+        "compilerRebuilt": false,
+        "nativeRebuilt": false
+      }
+    },
+    "linux": {
+      "storage-fixed": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\storage-fixed-verified-linux-r1.json",
+        "sha256": "f8eac25dd2b4168bf629e959be6c36278d3f1900e62db844ad5cffe5d5db90a3",
+        "complete": true,
+        "passed": true,
+        "os": "posix",
+        "gate": "/mnt/f/xlang-validation/xge-full-20261110/storage-fixed-linux-r2",
+        "reportSha256": "f0dbc43e81c8b5726fea16c256f5ac7b2c4b68ac7e6455e5bc0fd3132e03ca4f",
+        "inputFiles": 341,
+        "checks": 111,
+        "skipped": [],
+        "sourceSnapshot": "/mnt/f/xlang-validation/xge-full-20261110/storage-fixed-linux-r2/accepted-source",
+        "fieldReviews": 20,
+        "dependencyWitnessesPerNewReview": 14,
+        "reviewedFixedOutputs": 2,
+        "generatedSourceDifferences": 9,
+        "generatedOutputsPromoted": false,
+        "runtimeQualification": false,
+        "checkerSha256": "d8fa045e23d965cf7985ae0324dc22fc0097083469466b251720a1dcb5783ca0",
+        "catalogSha256": "549933f898702dda98d093a50f57512f35e3065185326698713e6ee8f4b83f34"
+      },
+      "fixed-output-latest": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\fixed-output-latest-verified-linux-r1.json",
+        "sha256": "5b06b80d8c2dfa4c5e0fd2fbb91063af751c2c1b4a1f1df5433667def40da085",
+        "complete": true,
+        "passed": true,
+        "os": "posix",
+        "gate": "/mnt/f/xlang-validation/xge-full-20261110/fixed-output-latest-linux-r1",
+        "checks": 14,
+        "inputFiles": 585,
+        "reportSha256": "c7f3e599ac06b8d1ab3a34ed86c5430f79eb372bad250cc54a90e58dcfae7e51",
+        "sourceSnapshot": "/mnt/f/xlang-validation/xge-full-20261110/fixed-output-latest-linux-r1/accepted-source",
+        "sourceGeneratorReport": "/mnt/f/xlang-validation/xge-full-20261110/storage-fixed-linux-r2/results.json",
+        "sourceGeneratorReportSha256": "f0dbc43e81c8b5726fea16c256f5ac7b2c4b68ac7e6455e5bc0fd3132e03ca4f",
+        "shapeNormalizedSha256": "b223efec5b283c0131075411468da207ac2aca3591dd2e8cf5e09a7995a882a4",
+        "generatedShapeMatchesBothTestedPackages": true,
+        "programs": {
+          "/mnt/f/xlang-validation/xge-full-20261110/fixed-output-latest-linux-r1/obb.c": "249c441efbd0a5a44a89be3cfe612fe29ce95f3d066d0160afabe997a2c3bdb6",
+          "/mnt/f/xlang-validation/xge-full-20261110/fixed-output-latest-linux-r1/obb-dynamic": "3af4b190495c92c6e6efdf1244344bdd5b90d0d446c2d4e620536e27a001f786",
+          "/mnt/f/xlang-validation/xge-full-20261110/fixed-output-latest-linux-r1/obb-static": "2bf2b7b7b663206f27f802c5cf8b0f339e9eabf0dbf45b6ad1b426c943e60b6c",
+          "/mnt/f/xlang-validation/xge-full-20261110/fixed-output-latest-linux-r1/example.c": "786bcfa04cfc498ca9a5befceb0272b3f0e25e5f63bc23015edab788a5a2083d",
+          "/mnt/f/xlang-validation/xge-full-20261110/fixed-output-latest-linux-r1/example-dynamic": "88d1b963769051895d2584a46114d5479ad57c5cd46685620fdaac866f96fa20",
+          "/mnt/f/xlang-validation/xge-full-20261110/fixed-output-latest-linux-r1/example-static": "4343e61413a62bbf8d0192fe0082e0f6f0e673f71e036a767939b9f6ebdde61c"
+        },
+        "shippingDelivery": false,
+        "networkTests": false,
+        "compilerRebuilt": false,
+        "nativeRebuilt": false
+      }
+    }
+  },
+  "sourceChecks": 221,
+  "realProductSteps": 28,
+  "totalChecks": 249,
+  "outputs": {
+    "functions": [
+      "xgeShapeExGetOBB",
+      "xgeShapeExSceneGetOBB"
+    ],
+    "physicalPointer": "xge_vec2_t*",
+    "physicalOutputIndex": 2,
+    "requiredCount": 4,
+    "languageResult": "Vec2[4]",
+    "sourceAndHeaderDependencyPinsPerFunction": 2,
+    "fullGeneratedShapeFileMatchesCurrentAndBothTestedPackagesAfterNewlineNormalization": true
+  },
+  "coverage": [
+    "Missing/zero/negative/bool/scalar/oversized output count and stale parameter/type/declaration/body/dependency/storage rejected.",
+    "Two deterministic strict generator replays; original four manifests preserved byte-exact.",
+    "Current complete O2 compiler cohorts, matched host/static SDKs; emitted C requires direct contiguous Elements output.",
+    "Both OS JIT/dynamic/static AOT; all four corners, typed bound/protocol calls, retained scene child, readable shape_bounds lesson; static import checks.",
+    "All gate input bytes, logs and program hashes reverified on native OS; accepted source snapshots retained."
+  ],
+  "evidence": {
+    "base": "F:\\xlang-validation\\xge-full-20261110",
+    "initialLinuxEolMismatch": "F:\\xlang-validation\\xge-full-20261110\\storage-fixed-linux-r1\\results.json",
+    "remainingGeneratorDifferences": "F:\\xlang-validation\\xge-full-20261110\\generator-output-drift-fixed-r1.json"
+  },
+  "limitations": [
+    "Source comparison normalizes UTF-8 CRLF/LF; exact native dependency and package-manifest bytes remain enforced.",
+    "Nine regenerated source files still differ in other contracts; generated packages were not promoted to the library or release.",
+    "This batch reuses unchanged current language declarations, compiler and Native SDK binaries. It does not certify unrelated API paths or claim CPU equivalence.",
+    "Windows symlink creation remained privilege-limited; Linux rejection passed.",
+    "No release/IDE/shipping index update; no network/security tests; unrelated work preserved."
+  ]
+}

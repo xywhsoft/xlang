@@ -69,9 +69,34 @@ may lack permission to create symlinks; that individual case is reported as
 skipped and is exercised on Linux instead.
 
 Passing this source gate **does not make the generated package deliverable**.
-The isolated replay still differs in ten binding source files. Differences
-include checked title/provider APIs, fixed-array OBB output, callback views,
-snapshot records and explicit constants. Those candidates remain external;
+The initial isolated replay differed in ten binding source files. The fixed
+OBB output follow-up below removes that regression; nine files still differ,
+including checked title/provider APIs, callback views, snapshot records and
+explicit constants. Those candidates remain external;
 none is copied over the existing bindings or into `release/`. The next step
 is to preserve and qualify these independently reviewed contracts in the
 generator before any regenerated package can replace the current library.
+
+## Fixed output cardinality
+
+`xgeShapeExGetOBB` and `xgeShapeExSceneGetOBB` both take a plain
+`xge_vec2_t*` but synchronously write four contiguous corners. The generator
+previously inferred a single `Vec2`, which could underallocate a native output.
+Current library declarations already correctly use `Vec2[4]`.
+
+The `fixedOutputEntries` catalog now records parameter index, element C type,
+count, full native declaration, function body and implementation/header pins.
+Generation requires these two established four-corner contracts before it
+writes sources. Missing, changed or scalarized evidence fails; cardinality is
+never guessed from `pPoints4` spelling. The regenerated complete `shapes.xl`
+matches the existing correct file after UTF-8 line-ending normalization.
+The gate records raw byte differences separately; Linux emits LF while an
+existing Windows checkout may contain CRLF. Native dependency fingerprints
+and unchanged package manifests still compare exact bytes.
+
+The source gate checks both valid contracts and malformed/missing signature,
+count, body, dependency and element metadata. The existing real-SDK OBB gate
+also exercises all four corners, typed bound and protocol calls, retained
+scene children and the readable bounds lesson through JIT/dynamic/static AOT
+on both operating systems. Its emitted-C check requires contiguous `.Elements`
+output; static import checks reject runtime/host DLL dependencies.

@@ -6,7 +6,7 @@ No generated package is installed or copied back into the repository.
 """
 from pathlib import Path
 import argparse,copy,hashlib,json,os,shutil,sys,time
-from check_xge3_bindings import storage_review_match,native_function_sha,annotate_existing_bindings,write_binding_manifest,inventory,generate
+from check_xge3_bindings import storage_review_match,native_function_sha,annotate_existing_bindings,write_binding_manifest,reviewed_fixed_output_count,inventory,generate
 
 
 def main():
@@ -26,6 +26,8 @@ def main():
     files.extend(f for f in(root/'lib/bindings').rglob('*')if f.is_file())
     files.extend(p for p in(native/'include').rglob('*')if p.is_file())
     files.extend(native/r['sourceFile']for r in reviews['entries'].values())
+    for item in reviews.get('fixedOutputEntries',{}).values():
+        files.append(native/item['sourceFile']);files.extend(native/d['sourceFile']for d in item.get('dependencies',[]))
     for review in reviews['fieldEntries'].values():
         files.append(native/review['sourceFile']);files.extend(native/d['sourceFile']for d in review.get('dependencies',[]))
     inputs={str(path):sha(path)for path in files}
@@ -131,6 +133,18 @@ def main():
         shutil.copytree(root/'lib/bindings',generated/'lib/bindings')
         rows=inventory(native,out/'native-inventory.json')
         check('primary-header-inventory-no-parse-errors',lambda:require(rows['counts']['parseErrors']==0))
+        by_name={f['name']:f for h in rows['headers']for f in h['functions']}
+        for name in('xgeShapeExGetOBB','xgeShapeExSceneGetOBB'):
+            function=by_name[name];fixed=reviews['fixedOutputEntries'][name]
+            check('fixed-output-matching-'+name,lambda f=function,v=fixed:require(reviewed_fixed_output_count(native,f,v,2,'xge_vec2_t',4)==4))
+            def invalid_fixed(candidate,f=function):
+                try:reviewed_fixed_output_count(native,f,candidate,2,'xge_vec2_t',4)
+                except ValueError:pass
+                else:raise AssertionError('invalid fixed output review accepted')
+            for label,patch in{'missing':None,'zero':dict(count=0),'boolean':dict(count=True),'negative':dict(count=-1),'scalar':dict(count=1),'oversized':dict(count=0x80000000),'wrong-parameter':dict(parameter=1),'float-parameter':dict(parameter=2.0),'wrong-element':dict(elementCType='xge_vec3_t'),'changed-declaration':dict(nativeDeclaration='changed'),'stale-body':dict(functionSha256='0'*64),'no-dependencies':dict(dependencies=[]),'wrong-storage':dict(storage='native-copy-or-synchronous-read')}.items():
+                candidate=None if patch is None else dict(fixed,**patch)
+                check('fixed-output-reject-'+name+'-'+label,lambda c=candidate,fail=invalid_fixed:fail(c))
+        report['reviewedFixedOutputs']=2
         check('full-generator-strict-replay',lambda:generate(generated,rows))
         first={str(p):sha(p)for p in(generated/'lib/bindings').rglob('*')if p.is_file()}
         def stable_replay():
@@ -144,7 +158,13 @@ def main():
         import re
         block=lambda text:re.search(r'export extern "xui_widget_t\*" class Page .*?\nend',text,re.S).group()
         check('page-block-replay-stable',lambda:require(block((generated/'lib/bindings/xui/src/managed.xl').read_text())==block((root/'lib/bindings/xui/src/managed.xl').read_text())))
-        report['generatedChanges']=[p.relative_to(generated).as_posix()for p in(generated/'lib/bindings').rglob('*')if p.is_file()and (not(root/p.relative_to(generated)).is_file()or sha(p)!=sha(root/p.relative_to(generated)))]
+        shape_generated=generated/'lib/bindings/xge/src/shapes.xl';shape_current=root/'lib/bindings/xge/src/shapes.xl'
+        check('shape-fixed-output-replay-text-stable',lambda:require(shape_generated.read_text(encoding='utf-8-sig')==shape_current.read_text(encoding='utf-8-sig')))
+        report['shapeNormalizedSha256']=hashlib.sha256(shape_generated.read_text(encoding='utf-8-sig').encode()).hexdigest()
+        changed=[p for p in(generated/'lib/bindings').rglob('*')if p.is_file()and (not(root/p.relative_to(generated)).is_file()or sha(p)!=sha(root/p.relative_to(generated)))]
+        report['generatedByteChanges']=[p.relative_to(generated).as_posix()for p in changed]
+        report['generatedChanges']=[p.relative_to(generated).as_posix()for p in changed if not(root/p.relative_to(generated)).is_file()or p.suffix not in('.xl','.json')or p.read_text(encoding='utf-8-sig')!=(root/p.relative_to(generated)).read_text(encoding='utf-8-sig')]
+        report['sourceComparison']='UTF-8 with normalized line endings for .xl/.json; byte changes recorded separately. Dependency witnesses and package preservation remain byte-exact.'
         report['inventoryCounts']=rows['counts'];report['dependencyCount']=len(actual['dependencies'])
         report['inputsUnchanged']=all(Path(p).is_file()and sha(p)==digest for p,digest in inputs.items());require(report['inputsUnchanged'])
         report.update(complete=True,passed=True);save()

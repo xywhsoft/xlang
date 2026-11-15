@@ -801,5 +801,47 @@
         }
       ]
     }
+  },
+  "fixedOutputEntries": {
+    "xgeShapeExGetOBB": {
+      "storage": "bounded-synchronous-output",
+      "parameter": 2,
+      "elementCType": "xge_vec2_t",
+      "count": 4,
+      "nativeDeclaration": "int xgeShapeExGetOBB(xge_shape_ex pShape, float fTolerance, xge_vec2_t* pPoints4)",
+      "sourceFile": "src/xge/render/xge_shape_ex.c",
+      "functionSha256": "06de5f2b94e3c854fbf5137ac7daea83a3c1c52bc26e84274c9fcbb38e3c37f1",
+      "dependencies": [
+        {
+          "sourceFile": "include/xge.h",
+          "sha256": "19ded70d5f9fd756332983bc640e717770c0a7b6b25adbd69134b34e0cc1f9c2"
+        },
+        {
+          "sourceFile": "src/xge/render/xge_shape_ex.c",
+          "sha256": "401f258da07027d2e13c69488b22b0822799fd61bc7db5134b336ef241a43bd1"
+        }
+      ],
+      "note": "Exactly four contiguous corners written synchronously through RectToOBB; failure may leave temporary output partial/zero but checked language result is not published. Pointer syntax alone does not encode cardinality. Existing qualified language result remains Vec2[4]."
+    },
+    "xgeShapeExSceneGetOBB": {
+      "storage": "bounded-synchronous-output",
+      "parameter": 2,
+      "elementCType": "xge_vec2_t",
+      "count": 4,
+      "nativeDeclaration": "int xgeShapeExSceneGetOBB(xge_shape_ex_scene pScene, float fTolerance, xge_vec2_t* pPoints4)",
+      "sourceFile": "src/xge/render/xge_shape_ex.c",
+      "functionSha256": "5dbcb0af57fc2ae92f9a03fab5d4c51a98c5a440a348914b7ea9676b22b7fbac",
+      "dependencies": [
+        {
+          "sourceFile": "include/xge.h",
+          "sha256": "19ded70d5f9fd756332983bc640e717770c0a7b6b25adbd69134b34e0cc1f9c2"
+        },
+        {
+          "sourceFile": "src/xge/render/xge_shape_ex.c",
+          "sha256": "401f258da07027d2e13c69488b22b0822799fd61bc7db5134b336ef241a43bd1"
+        }
+      ],
+      "note": "Exactly four contiguous corners written synchronously through RectToOBB; failure may leave temporary output partial/zero but checked language result is not published. Pointer syntax alone does not encode cardinality. Existing qualified language result remains Vec2[4]."
+    }
   }
 }
