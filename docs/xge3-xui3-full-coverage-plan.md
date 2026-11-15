@@ -1780,3 +1780,24 @@ drawTextShapeRangeSpans 的缺失记录。两个审查项各固定14个相关实
 绑定在归一化换行后完全一致，原始字节差异另记。其余9份生成源码的合同差异
 仍留在隔离副本继续处理，未覆盖
 现有库。实际JIT／动态／静态产品的OBB专项与可读范例另行复验。
+
+2026-11-16 继续将16项既有 checked／快照／3D／调试声明纳入可重放合同，
+并按清单识别专用模块的声明归属，避免重建重复类型或退回旧全局入口。
+数组边界先解析公开整数常量，保留 GamepadState／TerminalCell 的完整槽位，
+同时补入六个纯值记录：TouchEvent、PropertyGridCategory、CodeSearchResult、
+FindResult、CodeDocumentBatchLayout、CodeDocumentBatchSource。最后两个只是
+数据描述，批处理操作和拥有／提交合同仍须继续接入。专项与可读范例见
+xge3-replay-contracts.md，整份 XUI managed 候选仍不直接覆盖当前库。
+
+用户已确认 FlowGraph 配置 Clone／Drop 回调期间，同一模型的普通操作统一
+checked Busy，其他模型可操作。这项不再待决。后继实现须覆盖配置查询／设置、
+命令快照、Undo／Redo、历史裁剪、节点释放及销毁，不能只加在 SetNodeConfig。
+当前 df03691f 的修复仍只是节点失效防护；不能称为上述 Busy 合同已经落地。
+
+本批八份源码已在两端候选通过后接入：最新源码复核150／151步，实际产品各119步，
+共539步；预接线的同范围301步另存，不重复计入。六个值记录的 C／C++17 O0／O2
+ABI、末槽位、独立复制、越界和失败输出回滚通过，1000次暖态 FindResult 输出查询
+语言／C均0次XRT堆操作，不宣称CPU或冷路径零开销。两端完整重放在归一化换行后
+现在仅剩 XUI managed 一份源码不同，候选没有覆盖现有的回调、快照和空值合同。
+调试后端执行、特性元数据的加载器强制检查、FlowGraph Busy 全路径实现及最终
+配套发布仍未因此完成；原有其他待决生命周期／输入输出能力继续保留。

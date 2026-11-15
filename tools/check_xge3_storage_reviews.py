@@ -6,7 +6,9 @@ No generated package is installed or copied back into the repository.
 """
 from pathlib import Path
 import argparse,copy,hashlib,json,os,shutil,sys,time
-from check_xge3_bindings import storage_review_match,native_function_sha,annotate_existing_bindings,write_binding_manifest,reviewed_fixed_output_count,inventory,generate
+from check_xge3_bindings import storage_review_match,native_function_sha,annotate_existing_bindings,write_binding_manifest,reviewed_fixed_output_count,authored_binding_index,record_extent_constants,inventory,generate
+from xge_replay_contracts import CONTRACTS,validate as validate_xge_contracts
+from stage_xge3_replay_contracts import compare_selected
 
 
 def main():
@@ -20,7 +22,7 @@ def main():
     sha=lambda path:hashlib.sha256(Path(path).read_bytes()).hexdigest()
     catalog=root/'docs/xge3-xui3-api-map-storage.json';reviews=json.loads(catalog.read_text(encoding='utf8'))
     files=[Path(__file__).resolve(),Path(__file__).with_name('check_xge3_bindings.py'),catalog,root/'src/lexer/xl6_lexer_gen.c']
-    files.extend(Path(__file__).with_name(name+'.py')for name in('xui_gallery_contracts','xui_geometry_contracts','xui_snapshot_contracts'))
+    files.extend(Path(__file__).with_name(name+'.py')for name in('xui_gallery_contracts','xui_geometry_contracts','xui_snapshot_contracts','xge_replay_contracts','stage_xge3_replay_contracts'))
     import pycparser
     files.extend(Path(pycparser.__file__).parent.rglob('*.py'));files.append(Path(sys.executable))
     files.extend(f for f in(root/'lib/bindings').rglob('*')if f.is_file())
@@ -113,6 +115,25 @@ def main():
                 else:raise AssertionError('invalid manifest accepted')
                 require(manifest_path.read_bytes()==old,'rejected manifest was modified')
             check('manifest-rejects-'+label,reject_manifest)
+        registry=out/'registry/xge';(registry/'src').mkdir(parents=True)
+        manifest=registry/'xlang.package.json';manifest.write_text(json.dumps(dict(artifact=dict(xlSources=['src/records.xl','src/authored.xl']))))
+        (registry/'src/records.xl').write_text('export extern "generated_t" struct Generated\nend\n')
+        (registry/'src/authored.xl').write_text('export extern "authored_t" struct Authored\nend\nexport extern "nativeRead" func read() as c_int\n')
+        (registry/'src/unpublished.xl').write_text('export extern "hidden_t" struct Hidden\nend\n')
+        def registry_check():
+            records,functions=authored_binding_index(registry)
+            require(records=={'authored_t':'Authored'}and set(functions)=={'nativeRead'})
+        check('authored-registry-respects-published-and-generated-boundaries',registry_check)
+        def reject_registry():
+            try:authored_binding_index(registry)
+            except ValueError:pass
+            else:raise AssertionError('invalid authored registry accepted')
+        authored=registry/'src/authored.xl';old=authored.read_bytes();authored.write_bytes(old+b'export extern "authored_t" struct Other\nend\n')
+        check('authored-registry-rejects-conflicting-alias',reject_registry);authored.write_bytes(old)
+        old=manifest.read_bytes();manifest.write_text(json.dumps(dict(artifact=dict(xlSources=['../external.xl']))))
+        check('authored-registry-rejects-source-escape',reject_registry);manifest.write_bytes(old)
+        synthetic=dict(functionMacros=[],constants=[dict(name='AXES',expression='8'),dict(name='AXES_ALIAS',expression='AXES'),dict(name='TEXT',expression='"8"'),dict(name='CYCLE1',expression='CYCLE2'),dict(name='CYCLE2',expression='CYCLE1')])
+        check('record-extents-resolve-integers-not-text-or-cycles',lambda:require(record_extent_constants(synthetic)=={'AXES':8,'AXES_ALIAS':8}))
         # The current reviewed entry, all 14 dependencies and each independent
         # mutation are tested against the exact native source cohort.
         actual=reviews['fieldEntries']['xui_proxy_t.textDraw']
@@ -134,6 +155,17 @@ def main():
         rows=inventory(native,out/'native-inventory.json')
         check('primary-header-inventory-no-parse-errors',lambda:require(rows['counts']['parseErrors']==0))
         by_name={f['name']:f for h in rows['headers']for f in h['functions']}
+        check('all-reviewed-direct-declarations-match-native',lambda:require(validate_xge_contracts(by_name)=={k:v[1]for k,v in CONTRACTS.items()}))
+        for name in CONTRACTS:
+            for label in('missing','changed'):
+                changed=dict(by_name)
+                if label=='missing':changed.pop(name)
+                else:changed[name]=dict(changed[name],declaration=changed[name]['declaration']+' changed')
+                def reject_override(candidate=changed):
+                    try:validate_xge_contracts(candidate)
+                    except ValueError:pass
+                    else:raise AssertionError('stale reviewed declaration accepted')
+                check('reviewed-direct-reject-'+name+'-'+label,reject_override)
         for name in('xgeShapeExGetOBB','xgeShapeExSceneGetOBB'):
             function=by_name[name];fixed=reviews['fixedOutputEntries'][name]
             check('fixed-output-matching-'+name,lambda f=function,v=fixed:require(reviewed_fixed_output_count(native,f,v,2,'xge_vec2_t',4)==4))
@@ -160,6 +192,12 @@ def main():
         check('page-block-replay-stable',lambda:require(block((generated/'lib/bindings/xui/src/managed.xl').read_text())==block((root/'lib/bindings/xui/src/managed.xl').read_text())))
         shape_generated=generated/'lib/bindings/xge/src/shapes.xl';shape_current=root/'lib/bindings/xge/src/shapes.xl'
         check('shape-fixed-output-replay-text-stable',lambda:require(shape_generated.read_text(encoding='utf-8-sig')==shape_current.read_text(encoding='utf-8-sig')))
+        check('eight-selected-files-preserve-complete-declaration-units',lambda:report.update(selectedDeclarationUnits=compare_selected(root,generated)))
+        def record_block(path,native):
+            return re.search(r'export extern "'+re.escape(native)+r'" struct .*?\nend',path.read_text(encoding='utf-8-sig'),re.S).group()
+        for package,native_record in(('xge','xge_gamepad_state_t'),('xui','xui_terminal_cell_t')):
+            rel=Path('lib/bindings')/package/'src/records.xl'
+            check('complete-symbolic-array-record-'+native_record,lambda rel=rel,n=native_record:require(record_block(generated/rel,n)==record_block(root/rel,n)))
         report['shapeNormalizedSha256']=hashlib.sha256(shape_generated.read_text(encoding='utf-8-sig').encode()).hexdigest()
         changed=[p for p in(generated/'lib/bindings').rglob('*')if p.is_file()and (not(root/p.relative_to(generated)).is_file()or sha(p)!=sha(root/p.relative_to(generated)))]
         report['generatedByteChanges']=[p.relative_to(generated).as_posix()for p in changed]

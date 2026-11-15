@@ -1,19 +1,4 @@
 // Exact, pointer-free native value records. Generated from the authoritative header.
-// A complete independent terminal snapshot, including all sixteen combining slots.
-export extern "xui_terminal_cell_t" struct TerminalCell @header("xge3_runtime.h")
- c_uint iSize
- c_uint iCodepoint
- c_uint iFgColor
- c_uint iBgColor
- c_uint iFlags
- c_ushort iStyle
- c_uchar iWidth
- c_ushort iLinkId
- c_uchar iCombiningCount
- c_uchar arrReserved[3]
- c_uint arrCombining[16]
-end
-
 export extern "xui_vec2_t" struct Vec2 @header("xge3_runtime.h")
  c_float fX
  c_float fY
@@ -394,6 +379,13 @@ export extern "xui_property_grid_style_t" struct PropertyGridStyle @header("xge3
  c_uint iDirtyColor
 end
 
+export extern "xui_property_grid_category_t" struct PropertyGridCategory @header("xge3_runtime.h")
+ c_char sId[64]
+ c_char sName[96]
+ c_int bExpanded
+ c_int iPropertyCount
+end
+
 export extern "xui_chart_hit_t" struct ChartHit @header("xge3_runtime.h")
  c_uint iSize
  c_int iPart
@@ -469,6 +461,22 @@ export extern "xui_code_edit_text_hit_t" struct CodeEditTextHit @header("xge3_ru
  Rect tLineRect
  c_int bInsideText
  c_int bTrailing
+end
+
+export extern "xui_code_search_result_t" struct CodeSearchResult @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iStart
+ c_int iEnd
+ c_int iCaptureCount
+ CodeRange arrCaptures[10]
+end
+
+export extern "xui_find_result_t" struct FindResult @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iStart
+ c_int iEnd
+ c_int iCaptureCount
+ CodeRange arrCaptures[10]
 end
 
 export extern "xui_code_indicator_t" struct CodeIndicator @header("xge3_runtime.h")
@@ -707,6 +715,20 @@ export extern "xui_inventory_gamepad_profile_t" struct InventoryGamepadProfile @
  c_int iPageDownButton
  c_int iHomeButton
  c_int iEndButton
+end
+
+export extern "xui_terminal_cell_t" struct TerminalCell @header("xge3_runtime.h")
+ c_uint iSize
+ c_uint iCodepoint
+ c_uint iFgColor
+ c_uint iBgColor
+ c_uint iFlags
+ c_ushort iStyle
+ c_uchar iWidth
+ c_ushort iLinkId
+ c_uchar iCombiningCount
+ c_uchar arrReserved[3]
+ c_uint arrCombining[16]
 end
 
 export extern "xui_terminal_stats_t" struct TerminalStats @header("xge3_runtime.h")
@@ -1148,14 +1170,28 @@ export extern "xui_chrome_style_t" struct ChromeStyle @header("xge3_runtime.h")
  c_float fShadowSize
 end
 
+export extern "xui_system_font_desc_t" struct SystemFontDesc @header("xge3_runtime.h")
+ c_uint iSize
+ c_float fSize
+ c_uint iFlags
+end
+
 export extern "xui_context_desc_t" struct ContextDesc @header("xge3_runtime.h")
  c_uint iSize
  c_int iSystemFontPolicy
  c_float fSystemFontSize
  c_uint iFlags
 end
-export extern "xui_system_font_desc_t" struct SystemFontDesc @header("xge3_runtime.h")
+
+export extern "xui_code_document_batch_layout_t" struct CodeDocumentBatchLayout @header("xge3_runtime.h")
  c_uint iSize
- c_float fSize
- c_uint iFlags
+ uint64 iCapture
+ c_size iDocuments
+ c_size iCaptureBytes
+end
+
+export extern "xui_code_document_batch_source_t" struct CodeDocumentBatchSource @header("xge3_runtime.h")
+ c_uint iSize
+ c_int iLength
+ c_int iUndoCount
 end

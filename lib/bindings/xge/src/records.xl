@@ -502,8 +502,12 @@ export extern "xge_touch_point_t" struct TouchPoint @header("xge3_runtime.h")
  c_int bDown
 end
 
-// Complete independent snapshot; setters consume connected/buttons/axes.
-// Pressed/released are native accumulated outputs, not injected edge flags.
+export extern "xge_touch_event_t" struct TouchEvent @header("xge3_runtime.h")
+ c_int iPhase
+ c_int iCount
+ TouchPoint arrPoints[8]
+end
+
 export extern "xge_gamepad_state_t" struct GamepadState @header("xge3_runtime.h")
  c_int bConnected
  c_uint iButtons

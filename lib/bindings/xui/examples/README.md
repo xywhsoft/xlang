@@ -246,3 +246,11 @@ text snapshot passed`。示例中的网址仅是文档数据，不会发起网�
 
 `page.xl` 显示 20 页中的第 3 页，并把四个导航文字设为首页、末页、上一页和
 下一页。初始化时用一次 `getText()` 核对四个结果；查询不放在逐帧绘制路径中。
+# Search result value lesson
+
+`search_value.xl` shows independent capture-array storage in a FindResult value.
+Run `xl run search_value.xl`; assertions verify the original range and the
+output displays the original/copied end offsets. It needs no window, backend,
+or actual search operation. CodeSearchResult has the same ten-slot native
+capture capacity. Batch layout/source records are descriptors; this lesson
+does not imply that the batch transaction API is integrated.

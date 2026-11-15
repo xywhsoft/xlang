@@ -1,0 +1,185 @@
+{
+  "date": "2026-11-16",
+  "scope": "Replay sixteen existing direct contracts, resolve public macro array extents, avoid duplicate authored declarations, add six POD values and promote eight qualified library sources.",
+  "complete": true,
+  "passed": true,
+  "goal": "active, not complete",
+  "parentCommit": "10f85a2498affca2eefc6d69851dfaf6265f7024",
+  "nativeHead": "df03691f1bde54e83b4baac93ff08cba7bac77dd",
+  "sourceFiles": {
+    "tools/check_xge3_bindings.py": "7c0cce18eca737440b6bd6779eb981be8c6adcf88c6632e8f74715123054a36a",
+    "tools/check_xge3_storage_reviews.py": "08e27eb24cdd097f8a8e245074b6d5c22576c0ad8154604fd4b2dc111f47eaab",
+    "tools/xge_replay_contracts.py": "80a0320999c03dc96feebbe09b1eccff2a5f1b08bbe7548b0fe842a24cfa3634",
+    "tools/stage_xge3_replay_contracts.py": "eb11e5da1db1b7ff0b0b2bc6bda5ccca410c7cf20597d11288d7eeafed147516",
+    "tools/check_xge3_replay_values.py": "86ef8fd730b591c532840b67deda9fe3aa879e69831697581471712de98a7ead",
+    "docs/xge3-xui3-api-map-storage.json": "238e7419969c082dbba84b49d8e888fd8127c68b45f868e23d2bee0d49b603fb",
+    "docs/xge3-replay-contracts.md": "5dcfea712771765ec09f6f1a6d833b371d6cd01edb7109aa112a47db3816a31a",
+    "docs/xge3-xui3-full-coverage-plan.md": "8ab124947b3ecf0469a21596cfecc7f81fcda5660efc3e8b8b18110064a5e762",
+    "test/cases/foreign_xge3_replay_values.h": "00f311ba093b15c7fdecb884b010fb75826cefd34a46500f91d0edf6de67ba6d",
+    "test/cases/foreign_xge3_replay_values.c": "657c41ee0684af8234daf0d55d8bc95e564eac99a7194012b8e84a6937963b76",
+    "test/cases/foreign_xge3_replay_values.xl": "0668b3614ac467b07bb4f4c4ef84c7ffed2378975f02decace46b3175537b37c",
+    "test/cases/foreign_xge3_replay_values_oracle.cpp": "9a2fbc109650f08c3ccc81d95bc14431f952484611ae715977a37df0f07e344f",
+    "lib/bindings/xge/examples/touch_value.xl": "2f4ed30b87f3ce9cc5c6f0969bb0b151bf9c4c1dba9c7090971d0add6c29c2cc",
+    "lib/bindings/xui/examples/search_value.xl": "619b400871b07e5b7c5ba0d9ec252a4089917fde4d9a20fb177d60d089f69c1e",
+    "lib/bindings/xge/examples/README.md": "7c1c99777cb0f6bf560299f987e8caa1f878de7239bd07929d2ebc33f736fd01",
+    "lib/bindings/xui/examples/README.md": "e884324ce2f4f679662a34b7e67458e944971d74285b19f6d43ec81c4b53eb26",
+    "lib/bindings/xge/src/constants.xl": "f9d18058fe244a8a6d458ca49cfc5a0f5f7d21b1c2db955e28fc10e05f06fbbe",
+    "lib/bindings/xge/src/functions.xl": "61606c84f24a85afc1e71f0752389622ed6e8b8280584f724d4cd10fe430aa43",
+    "lib/bindings/xge/src/records.xl": "4cafb14080d71830f52f398d52279fe240c26f812e7bbedb6ad65c745f24212a",
+    "lib/bindings/xge/debug/src/functions.xl": "bb7db25ff0620d63a2ab056fd251cbfc4b255c0195b7bea5f8e1c3db35c1a849",
+    "lib/bindings/xge/three_d/src/functions.xl": "6161aa5274717022feb663ef2dcf41fa50de77e4c145a55acb337d6fbfa99038",
+    "lib/bindings/xge/three_d/src/records.xl": "5afc26002f8b0bf00f289c26c83c3dd2ad1cef75dec290a3f01343ce2e586e77",
+    "lib/bindings/xui/src/constants.xl": "0224f3b7c5c7a89d1ce469618e3eb0b20b88346655e0f33a1c5fa15023cd3361",
+    "lib/bindings/xui/src/records.xl": "867e4b1ce0b9faa1429e0ed50ce8b747111c8c348217e931420b1b177d757af5"
+  },
+  "qualification": {
+    "win": {
+      "source": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\replay-canonical-verified-win-r1.json",
+        "sha256": "cbb14284cf677a6df3be2d71267c9d634b89ab6215252781609449389ca32ae9",
+        "steps": 150,
+        "snapshot": "F:\\xlang-validation\\xge-full-20261110\\replay-canonical-win-r1\\accepted-source"
+      },
+      "products": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\replay-products-verified-win-r1.json",
+        "sha256": "bdeb188099686afdb951365d30d748b37932783f973ced7f2dfb206b796f7704",
+        "steps": 119,
+        "gates": [
+          {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\replay-values-win-r1",
+            "sha256": "b7e701c1604096b70d83f38ba29badeb4ce78bf0c19894250a852dc57b160ca3",
+            "steps": 36
+          },
+          {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\replay-title-win-r2",
+            "sha256": "e7582d93c2f81bb53df7e717f89e11b6710382c64ab337e74e21d3b01d535459",
+            "steps": 19
+          },
+          {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\replay-camera-win-final-r1",
+            "sha256": "5a9fa02627de11adbea7f6da806b1c1d42adc519fbcc757081767eeb090992fa",
+            "steps": 21
+          },
+          {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\replay-spatial-win-final-r1",
+            "sha256": "f60daafd215bf8e729e78afcf8b1eebea70219eb31b471dc8640fb0b808f7a07",
+            "steps": 21
+          },
+          {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\replay-input-win-final-r1",
+            "sha256": "6b68dff649ba7683cb6893bfcb0c518918987bc93fffa4858e5e806127f5912b",
+            "steps": 22
+          }
+        ]
+      }
+    },
+    "linux": {
+      "source": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\replay-canonical-verified-linux-r1.json",
+        "sha256": "e84b185577370889cce2e8b64bcc7f49cec501ddaf4f40ca4b16e2f4d3a1d0b0",
+        "steps": 151,
+        "snapshot": "/mnt/f/xlang-validation/xge-full-20261110/replay-canonical-linux-r1/accepted-source"
+      },
+      "products": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\replay-products-verified-linux-r1.json",
+        "sha256": "59a3cc97880209376e5847e796ffdc40de2841868b925d53a37977ad468519e3",
+        "steps": 119,
+        "gates": [
+          {
+            "path": "/mnt/f/xlang-validation/xge-full-20261110/replay-values-linux-final-r1",
+            "sha256": "4b046e83d233f4d31524ccd68ed99ea128209f46bc84e1cbdb9aa5a063f5bcf9",
+            "steps": 36
+          },
+          {
+            "path": "/mnt/f/xlang-validation/xge-full-20261110/replay-title-linux-final-r1",
+            "sha256": "ab72e359d20817c221cdaba1974f1e09d6072019d3920a6658f173d8e4701ef5",
+            "steps": 19
+          },
+          {
+            "path": "/mnt/f/xlang-validation/xge-full-20261110/replay-camera-linux-final-r1",
+            "sha256": "012aef0e0349a4afd3f585b85c954890d80416fe64757c111fa32dd21c771957",
+            "steps": 21
+          },
+          {
+            "path": "/mnt/f/xlang-validation/xge-full-20261110/replay-spatial-linux-final-r1",
+            "sha256": "72e55cdd10cc908ff017f1f9019c2d8d6fb86a05b2039b99c945fe771e092010",
+            "steps": 21
+          },
+          {
+            "path": "/mnt/f/xlang-validation/xge-full-20261110/replay-input-linux-final-r1",
+            "sha256": "0579c4a8f46bcefbe994db8aa97542822d90a027c3130bb52c701cbb2b883e94",
+            "steps": 22
+          }
+        ]
+      }
+    }
+  },
+  "prePromotionSourceSteps": 301,
+  "latestSourceSteps": 301,
+  "realProductSteps": 238,
+  "latestChecks": 539,
+  "executedIncludingPreReplay": 840,
+  "addedRecords": [
+    "xge.TouchEvent",
+    "xui.PropertyGridCategory",
+    "xui.CodeSearchResult",
+    "xui.FindResult",
+    "xui.CodeDocumentBatchLayout",
+    "xui.CodeDocumentBatchSource"
+  ],
+  "preservedDirectContracts": 16,
+  "promotedSources": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\replay-source-promotion-r1\\promotion.json",
+    "sha256": "e957a4e44d60a33ea7d6a14469c2f36b48f5d27bb040ff92a1657098f4ee70d2",
+    "count": 8,
+    "fullManagedCandidatePromoted": false
+  },
+  "nativeImplementationChanged": false,
+  "compilerRebuilt": false,
+  "nativeBinariesRebuilt": false,
+  "shippingDelivery": false,
+  "networkTests": false,
+  "debugRuntimeQualified": false,
+  "performance": {
+    "workload": "1000 warm FindResult outputs plus last-capture consumption; C/C++ and language value copies remain.",
+    "languageXrtHeap": {
+      "alloc": 0,
+      "free": 0,
+      "realloc": 0
+    },
+    "equivalentCXrtHeap": {
+      "alloc": 0,
+      "free": 0,
+      "realloc": 0
+    },
+    "zeroAllocationBudgetPassed": true,
+    "cpuEquivalenceClaim": false,
+    "coldPathClaim": false
+  },
+  "deferred": {
+    "fullGeneratedXuiManaged": "Callbacks, snapshots, nullability and ordinary controls still have unqualified generation differences. Existing library untouched.",
+    "packageFeatureMetadata": "requiresNativeFeatures was found in tooling but not C loader; enforcement not established. Matching debug-enabled runtime profile remains necessary.",
+    "flowGraphReentry": {
+      "approved": "Same-model ordinary operations during custom config Clone/Drop checked Busy; other models allowed.",
+      "implemented": false,
+      "audit": "F:\\xlang-validation\\xge-full-20261110\\flow-busy-policy-audit-r1.json",
+      "auditSha256": "f7208f0ec0228b5ba1f7e3fd1f372f770e3ccfb18be34c97882cf8d85d6b06df"
+    },
+    "finalDelivery": "No release/IDE/catalog/current-delivery replacement; all other pending lifecycle decisions and XRT/latest-version alignment remain."
+  },
+  "evidence": {
+    "base": "F:\\xlang-validation\\xge-full-20261110",
+    "preSourceWin": "F:\\xlang-validation\\xge-full-20261110\\replay-contracts-win-r4",
+    "preSourceLinux": "F:\\xlang-validation\\xge-full-20261110\\replay-contracts-linux-r2",
+    "canonicalWin": "F:\\xlang-validation\\xge-full-20261110\\replay-canonical-win-r1",
+    "canonicalLinux": "F:\\xlang-validation\\xge-full-20261110\\replay-canonical-linux-r1",
+    "budget": "F:\\xlang-validation\\xge-full-20261110\\replay-contracts-repo-budget-before.json"
+  },
+  "notes": [
+    "No prior declaration unit was removed/changed in selected files; only six explicitly reviewed plain records were added. Declaration order/comments canonicalized.",
+    "Default native SDK is debug-disabled. The unchanged debug declaration ABI and storage were reviewed, not executed as a new default runtime feature.",
+    "System clipboard bytes were not read or modified. Existing bounded output API integer semantics retained; storage paths audited and sealed.",
+    "Accepted snapshots preserve pre-promotion source bytes and current post-promotion bytes. Cross-OS source comparison normalizes line endings; native dependencies and manifests remain byte-exact.",
+    "Native13 unrelated dirty geometry paths and all unrelated xlang work preserved; no agents used."
+  ]
+}

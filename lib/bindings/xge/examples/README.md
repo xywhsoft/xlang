@@ -127,3 +127,10 @@ Expect `Collision removed the particle`. No window, engine Init, GPU, file or
 service is needed. Hit fields are writable during the callback only. The World
 and immutable definition close in `finally`; the lesson uses a lexical main
 and does not require classes, manual DLL loading or a renderer.
+# Native value lesson
+
+`touch_value.xl` constructs an eight-slot TouchEvent value and demonstrates an
+independent inline-array copy. It reads no device. Run it with `xl run
+touch_value.xl`; assertions check the original coordinate and the output shows
+the two X coordinates. See `docs/xge3-replay-contracts.md` in the source bundle
+for the record/ABI qualification scope.

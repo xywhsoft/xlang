@@ -1,0 +1,11 @@
+// A local value snapshot; this example does not start an input device.
+import xge
+auto event=xge.TouchEvent()
+event.iCount=1
+event.arrPoints[0].iId=uint64(7)
+event.arrPoints[0].fX=c_float(120)
+event.arrPoints[0].fY=c_float(80)
+auto moved=event
+moved.arrPoints[0].fX=c_float(140)
+assert event.arrPoints[0].fX==c_float(120)
+println("Original X:",event.arrPoints[0].fX,"Copied X:",moved.arrPoints[0].fX)

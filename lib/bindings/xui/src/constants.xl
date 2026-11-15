@@ -52,6 +52,9 @@ export const c_int XUI_PROXY_CAP_TEXT_RANGE = 1048576
 export const c_int XUI_PROXY_CAP_TEXT_RTL = 524288
 export const c_int XUI_FONT_FORMAT_TTF = 1
 export const c_int XUI_FONT_FORMAT_XRF = 2
+export const c_int XUI_SYSTEM_FONT_AUTO = 0
+export const c_int XUI_SYSTEM_FONT_DISABLED = 1
+export const c_int XUI_SYSTEM_FONT_EAGER = 2
 export const c_int XUI_TEXT_ALIGN_LEFT = 0
 export const c_int XUI_TEXT_ALIGN_CENTER = 1
 export const c_int XUI_TEXT_ALIGN_RIGHT = 2
@@ -1315,6 +1318,7 @@ export const c_int XUI_WORKFLOW_CONFIG_FIELD_TABS = 14
 export const c_int XUI_WORKFLOW_CONFIG_FIELD_CONDITION_BUILDER = 15
 export const c_int XUI_WORKFLOW_CONFIG_FIELD_MAPPING_BUILDER = 16
 export const c_int XUI_CODE_VIRTUAL_TEXT_INLINE_COMPLETION = 1
+export const c_int XUI_CODE_TOKEN_STYLE_RESOLVER = 1
 export const c_int XUI_FILE_DIALOG_MODE_OPEN_FILE = 1
 export const c_int XUI_FILE_DIALOG_MODE_SAVE_FILE = 2
 export const c_int XUI_FILE_DIALOG_MODE_SELECT_FOLDER = 3
@@ -1335,6 +1339,7 @@ export const string XUI_CLIPBOARD_FORMAT_HTML = "text/html"
 export const string XUI_CLIPBOARD_FORMAT_IMAGE_PNG = "image/png"
 export const string XUI_CLIPBOARD_FORMAT_RICH_DOCUMENT = "application/x-xui-rich-document+json;version=1"
 export const string XUI_CLIPBOARD_FORMAT_DOCUMENT_FRAGMENT = "application/x-xui-document-fragment;version=1"
+export const c_int XUI_CODE_DOCUMENT_BATCH = 2
 export const c_int XUI_RANGE_SLIDER_THUMB_NONE = 0
 export const c_int XUI_RANGE_SLIDER_THUMB_START = 1
 export const c_int XUI_RANGE_SLIDER_THUMB_END = 2
@@ -1497,10 +1502,3 @@ export const c_int XUI_WEBVIEW_EVENT_CLOSED = 5
 export const c_int XUI_WEB_LOCAL_ACCESS_SAME_ORIGIN = 0
 export const c_int XUI_WEB_LOCAL_ACCESS_SUBRESOURCE = 1
 export const c_int XUI_WEB_LOCAL_ACCESS_ALL = 2
-
-export const c_int XUI_SYSTEM_FONT_AUTO = 0
-export const c_int XUI_SYSTEM_FONT_DISABLED = 1
-export const c_int XUI_SYSTEM_FONT_EAGER = 2
-// Public header protocol revisions; these do not install a resolver or batch.
-export const c_int XUI_CODE_TOKEN_STYLE_RESOLVER = 1
-export const c_int XUI_CODE_DOCUMENT_BATCH = 2

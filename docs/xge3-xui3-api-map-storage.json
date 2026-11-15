@@ -90,7 +90,18 @@
       "storage": "bounded-synchronous-output",
       "sourceFile": "src/xge/render/xge_render.c",
       "line": 1540,
-      "functionSha256": "faded33156b0dae104ddd2dd51d42bd083da4f16e192d772effd261dd1721789"
+      "functionSha256": "ed6c10adfb867213ef8d529bb97cd5b664c66207952ef39622e77e828a709775",
+      "dependencies": [
+        {
+          "sourceFile": "include/xge.h",
+          "sha256": "19ded70d5f9fd756332983bc640e717770c0a7b6b25adbd69134b34e0cc1f9c2"
+        },
+        {
+          "sourceFile": "src/xge/render/xge_render.c",
+          "sha256": "ee82351a3d6da5e1bc01fdd2ac60bb38802dd76b5339a2b70b70642780db77c1"
+        }
+      ],
+      "note": "Re-reviewed current Win32 UTF-8/binary/HTML/DIB-PNG and X11 format branches plus fallback. Destination is consumed synchronously; all copies use min(capacity,available bytes). Backend-owned clipboard/cache storage is independent of destination. Query/full-size integer return is preserved even for partial writes; caller decides resizing. This storage review does not certify live platform clipboard behavior. No system clipboard contents were read or changed for this gate."
     },
     "xgeImeCandidateGetText": {
       "bindingFile": "lib\\bindings\\xge\\src\\functions.xl",
@@ -522,6 +533,24 @@
       "sourceFile": "src/xui/controls/xui_list_view.c",
       "line": 2502,
       "functionSha256": "9862045505ce3d15a9304b38f5592564d499b092942f30144b04082d13be3c25"
+    },
+    "xgeDebugDumpCaps": {
+      "bindingFile": "lib/bindings/xge/debug/src/functions.xl",
+      "declaration": "export extern \"xgeDebugDumpCaps\" @header(\"xge3_runtime.h\") @no_raise @c_span(0,\"char*\",\"int\") func debugDumpCaps(Buffer output) as c_int",
+      "storage": "bounded-synchronous-output",
+      "sourceFile": "src/xge/core/xge_debug.c",
+      "functionSha256": "19f92c3a363f448bcbbf8e656946aeae81c87cdfdf08485b70c4b8158946f02a",
+      "dependencies": [
+        {
+          "sourceFile": "include/xge.h",
+          "sha256": "19ded70d5f9fd756332983bc640e717770c0a7b6b25adbd69134b34e0cc1f9c2"
+        },
+        {
+          "sourceFile": "src/xge/core/xge_debug.c",
+          "sha256": "295a964352aa36e21bc83c174a530d1dc5ac77d5d2e7a2280ef477e268752ab0"
+        }
+      ],
+      "note": "Validates a non-NULL positive-size destination and writes with snprintf bounded by iSize. No destination pointer retained. Preserve BUFFER_TOO_SMALL as an integer result for caller-managed resizing. Availability still requires a matching debug-enabled SDK; no default feature macro is forced."
     }
   },
   "fieldEntries": {

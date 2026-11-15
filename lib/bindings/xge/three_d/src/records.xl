@@ -303,14 +303,6 @@ export extern "xge3d_resource_info_t" struct Xge3dResourceInfo @header("xge3_run
  c_uint references
 end
 
-export extern "xge3d_asset_memory_t" struct Xge3dAssetMemory @header("xge3_runtime.h")
- c_size size
- uint64 cpu_storage_bytes
- uint64 gpu_required_bytes
- uint64 source_bytes
- uint64 parser_bytes
-end
-
 export extern "xge3d_decode_budget_info_t" struct Xge3dDecodeBudgetInfo @header("xge3_runtime.h")
  c_size size
  uint64 limit
@@ -318,6 +310,14 @@ export extern "xge3d_decode_budget_info_t" struct Xge3dDecodeBudgetInfo @header(
  uint64 peak_bytes
  uint64 live_allocations
  uint64 rejections
+end
+
+export extern "xge3d_asset_memory_t" struct Xge3dAssetMemory @header("xge3_runtime.h")
+ c_size size
+ uint64 cpu_storage_bytes
+ uint64 gpu_required_bytes
+ uint64 source_bytes
+ uint64 parser_bytes
 end
 
 export extern "xge3d_cache_stats_t" struct Xge3dCacheStats @header("xge3_runtime.h")

@@ -1,0 +1,98 @@
+import xge
+import xui
+extern "fixtureReplayTouch" @header("test/cases/foreign_xge3_replay_values.h") @no_raise func touch(xge.TouchEvent value) as xge.TouchEvent
+extern "fixtureReplayCategory" @no_raise @c_ref(0) @c_output(1,0) func category(xui.PropertyGridCategory value) as xui.PropertyGridCategory
+extern "fixtureReplaySearch" @no_raise @c_ref(0) @c_output(1,0) func search(xui.CodeSearchResult value) as xui.CodeSearchResult
+extern "fixtureReplayFind" @no_raise @c_ref(0) @c_output(1,0) func find(xui.FindResult value) as xui.FindResult
+extern "fixtureReplayLayout" @no_raise func layout(xui.CodeDocumentBatchLayout value) as xui.CodeDocumentBatchLayout
+extern "fixtureReplaySource" @no_raise @c_ref(0) @c_output(1,0) func source(xui.CodeDocumentBatchSource value) as xui.CodeDocumentBatchSource
+extern "fixtureReplayBegin" @no_raise func beginHeap()
+extern "fixtureReplayReport" @no_raise func reportHeap(c_int native)
+extern "fixtureReplayNativeLoop" @no_raise func nativeLoop()
+extern "fixtureReplayConsume" @no_raise func consume(c_int value)
+extern "fixtureReplayBudget" @no_raise func budget(c_int value)
+extern "fixtureReplayCppTouch" @no_raise func cppTouch(xge.TouchEvent value) as xge.TouchEvent
+extern "fixtureReplayCppCategory" @no_raise func cppCategory(xui.PropertyGridCategory value) as xui.PropertyGridCategory
+extern "fixtureReplayCppSearch" @no_raise func cppSearch(xui.CodeSearchResult value) as xui.CodeSearchResult
+extern "fixtureReplayCppFind" @no_raise func cppFind(xui.FindResult value) as xui.FindResult
+extern "fixtureReplayCppLayout" @no_raise func cppLayout(xui.CodeDocumentBatchLayout value) as xui.CodeDocumentBatchLayout
+extern "fixtureReplayCppSource" @no_raise func cppSource(xui.CodeDocumentBatchSource value) as xui.CodeDocumentBatchSource
+func main(...) as int
+ auto event=xge.TouchEvent()
+ event.iCount=8
+ event.arrPoints[7].iId=uint64(7)
+ event.arrPoints[7].fX=c_float(7.5)
+ auto copied=touch(event)
+ assert event.arrPoints[7].fX==c_float(7.5) and copied.arrPoints[7].fX==c_float(8.5)
+ bool rejected=false
+ int outside=8
+ try
+  auto invalid=event.arrPoints[outside]
+ catch Error failure
+  rejected=true
+ end
+ assert rejected
+ auto group=xui.PropertyGridCategory()
+ group.sId[0]=c_char(65)
+ group.sId[1]=c_char(0)
+ group.sId[63]=c_char(90)
+ group.sName[95]=c_char(89)
+ group.iPropertyCount=4
+ auto groupCopy=category(group)
+ assert groupCopy.sId[1]==c_char(0) and groupCopy.sId[63]==c_char(90) and groupCopy.iPropertyCount==c_int(5)
+ assert group.iPropertyCount==c_int(4)
+ auto hits=xui.CodeSearchResult()
+ hits.iCaptureCount=10
+ hits.arrCaptures[9].iEnd=19
+ auto hitsCopy=search(hits)
+ assert hitsCopy.iSize>c_uint(0) and hitsCopy.arrCaptures[9].iEnd==c_int(20) and hits.arrCaptures[9].iEnd==c_int(19)
+ auto result=xui.FindResult()
+ result.iStart=10
+ result.iEnd=20
+ result.iCaptureCount=10
+ result.arrCaptures[9].iEnd=19
+ auto next=find(result)
+ assert next.iEnd==c_int(21) and next.arrCaptures[9].iEnd==c_int(20)
+ result.iStart=-1
+ rejected=false
+ try
+  next=find(result)
+ catch Error failure
+  rejected=true
+ end
+ assert rejected and next.iEnd==c_int(21) and next.arrCaptures[9].iEnd==c_int(20)
+ result.iStart=10
+ auto batch=xui.CodeDocumentBatchLayout()
+ batch.iCapture=uint64(0x100000001)
+ batch.iDocuments=c_size(3)
+ batch.iCaptureBytes=c_size(1234)
+ auto batchCopy=layout(batch)
+ assert batchCopy.iCapture==batch.iCapture and batchCopy.iDocuments==c_size(4) and batch.iDocuments==c_size(3)
+ auto before=xui.CodeDocumentBatchSource()
+ before.iLength=12
+ before.iUndoCount=4
+ auto after=source(before)
+ assert after.iSize>c_uint(0) and after.iLength==c_int(13) and before.iLength==c_int(12)
+ assert cppTouch(event).arrPoints[7].fY==c_float(2) and event.arrPoints[7].fY==c_float(0)
+ assert cppCategory(group).bExpanded==c_int(1) and group.bExpanded==c_int(0)
+ assert cppSearch(hits).arrCaptures[9].iStart==c_int(1) and hits.arrCaptures[9].iStart==c_int(0)
+ assert cppFind(result).arrCaptures[9].iEnd==c_int(22) and result.arrCaptures[9].iEnd==c_int(19)
+ assert cppLayout(batch).iCapture==uint64(0x100000002) and batch.iCapture==uint64(0x100000001)
+ assert cppSource(before).iUndoCount==c_int(5) and before.iUndoCount==c_int(4)
+ beginHeap()
+ budget(0)
+ try
+  for i in range(1000)
+   auto current=find(result)
+   consume(current.arrCaptures[9].iEnd)
+  end
+ finally
+  budget(-1)
+ end
+ reportHeap(0)
+ beginHeap()
+ nativeLoop()
+ reportHeap(1)
+ println("Six native value records: arrays, copies, checked rollback and ABI passed")
+ return 0
+end

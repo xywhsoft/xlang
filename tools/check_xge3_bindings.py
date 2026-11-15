@@ -424,6 +424,42 @@ def reviewed_fixed_output_count(native_root,function,review,parameter,element,ex
     if not matching:raise ValueError('fixed output storage review is stale: '+function['name']+' ('+str(reason)+')')
     return count
 
+def authored_binding_index(folder):
+    """Find declarations owned by separately maintained, published modules."""
+    records={};functions={}
+    generated={'src/bootstrap.xl','src/records.xl','src/constants.xl','src/functions.xl','src/managed.xl','src/shapes.xl'}
+    folders=[folder]+([folder/'three_d',folder/'debug']if folder.name=='xge'else[])
+    for package in folders:
+        manifest=package/'xlang.package.json'
+        if not manifest.is_file():continue
+        data=json.loads(manifest.read_text(encoding='utf-8-sig'))
+        for relative in data['artifact']['xlSources']:
+            if relative in generated:continue
+            path=(package/relative).resolve()
+            if not path.is_relative_to(package.resolve()):raise ValueError('external binding source path')
+            for line in path.read_text(encoding='utf-8-sig').splitlines():
+                record=re.match(r'export extern "([A-Za-z_]\w*)" struct (\w+)\b',line)
+                if record:
+                    if record[1]in records and records[record[1]]!=record[2]:raise ValueError('conflicting authored record aliases: '+record[1])
+                    records[record[1]]=record[2]
+                declaration=foreign_method_declaration(line)
+                if declaration:functions.setdefault(declaration[0],str(path))
+    return records,functions
+
+def record_extent_constants(header):
+    """Resolve public integer macros before inspecting C array extents."""
+    known={};macros={m['name']:m for m in header['functionMacros']}
+    pending=[c for c in header['constants']if not is_build_macro(c['name'])]
+    for _ in range(20):
+        remaining=[]
+        for item in pending:
+            try:value=constant_value(item['expression'],known,macros)
+            except (ValueError,SyntaxError,NameError,ZeroDivisionError):remaining.append(item);continue
+            if isinstance(value,int):known[item['name']]=value
+        if len(remaining)==len(pending):break
+        pending=remaining
+    return known
+
 def generate(root,data):
     reserved=set(re.findall(r'\{\"([A-Za-z_]\w*)\", XL6_KW_', (root/'src/lexer/xl6_lexer_gen.c').read_text(encoding='utf8')))
     storage_path=root/'docs/xge3-xui3-api-map-storage.json'
@@ -433,6 +469,8 @@ def generate(root,data):
     # signatures are plain pointers: never infer a one-element output or infer
     # cardinality from parameter spelling. Missing/stale evidence is fatal.
     native_functions={f['name']:f for h in data['headers']for f in h['functions']}
+    from xge_replay_contracts import validate as validate_xge_contracts,REPLACED,SPANS
+    xge_contracts=validate_xge_contracts(native_functions)
     fixed_outputs={}
     for name in('xgeShapeExGetOBB','xgeShapeExSceneGetOBB'):
         if name not in native_functions:raise ValueError('missing reviewed fixed output API: '+name)
@@ -454,6 +492,8 @@ def generate(root,data):
         if 'dependencies' in review:f['storageContract']['dependencies']=review['dependencies']
     for header in data['headers']:
         package=Path(header['header']).stem;folder=root/'lib/bindings'/package;src=folder/'src';src.mkdir(parents=True,exist_ok=True)
+        authored_records,authored_functions=authored_binding_index(folder)
+        extent_constants=record_extent_constants(header)
         types={t['name']:t['type'] for t in header['types']};records={};pending={n:t for n,t in types.items() if t['kind']=='struct' and t.get('fields') is not None}
         def primitive(t):
             if t['kind']=='named':
@@ -465,7 +505,7 @@ def generate(root,data):
             raise ValueError(t['kind'])
         def field(t):
             if t['kind']=='array':
-                base,extent=field(t['of']);size=integer(t['extent'],{})
+                base,extent=field(t['of']);size=integer(t['extent'],extent_constants)
                 if not isinstance(size,int) or size<=0:raise ValueError('array extent')
                 return base,extent+'['+str(size)+']'
             return primitive(t),''
@@ -480,8 +520,8 @@ def generate(root,data):
                         ft,extent=field(f['type']);fields.append(' '+ft+' '+(f['name']+'Value' if f['name'] in reserved else f['name'])+extent+(' @c_name(\"'+f['name']+'\")' if f['name'] in reserved else ''))
                     if not fields:raise ValueError('opaque')
                 except (ValueError,TypeError):continue
-                language=pascal(name);records[name]=language
-                declarations.append('export extern "'+name+'" struct '+language+' @header("xge3_runtime.h")\n'+'\n'.join(fields)+'\nend\n')
+                language=authored_records.get(name,pascal(name));records[name]=language
+                if name not in authored_records:declarations.append('export extern "'+name+'" struct '+language+' @header("xge3_runtime.h")\n'+'\n'.join(fields)+'\nend\n')
                 del pending[name];progress=True
             if not progress:break
         debug_types={t['name'] for t in header['types'] if any('XGE_HAS_DEBUGMODE' in c for c in t.get('conditions',[]))}
@@ -542,6 +582,16 @@ def generate(root,data):
             return primitive(t),[]
         if package=='xge':
             for f in header['functions']:
+                if f['name']in REPLACED:
+                    language,replacement=REPLACED[f['name']];f.update(state='replaced-managed-entry',language=language,replacement=replacement);continue
+                if f['name']in authored_functions:
+                    f.update(state='declared-in-authored-module',bindingSource=authored_functions[f['name']]);continue
+                if f['name']in xge_contracts:
+                    if f['name']in SPANS:reviewed_span(f,*SPANS[f['name']])
+                    line=xge_contracts[f['name']];name=re.search(r'\bfunc (\w+)\(',line)[1]
+                    functions.append(line);special.add(name)
+                    mapped[f['name']]=('xge3d.'if f['name'].startswith('xge3d')else'xgeDebug.'if any('XGE_HAS_DEBUGMODE'in c for c in f.get('conditions',[]))else'xge.')+name
+                    continue
                 if f['name'] in ('xgeUnit','xgeRequestQuit'):
                     f.update(state='replaced-checked-entry',language='xge.unit' if f['name']=='xgeUnit' else 'xge.requestQuit',replacement='xgeUnitChecked' if f['name']=='xgeUnit' else 'xgeRequestQuitChecked');continue
                 sig=f['type'];attrs=[];params=[];outputs=[];out_types=[];consumed=set()

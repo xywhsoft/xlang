@@ -1,0 +1,72 @@
+"""Reviewed direct declarations which cannot be inferred from pointer/status syntax.
+
+These reproduce already qualified public APIs. They generate direct calls,
+not C adapters. Physical declarations must still match the native header.
+"""
+
+CONTRACTS = {
+    'xgeGetTitle': (
+        'const char* xgeGetTitle(void)',
+        'export extern "xgeGetTitle" @header("xge3_runtime.h") @no_raise @c_result("cstring") func getTitle() as string?'),
+    'xgeSetTitleChecked': (
+        'int xgeSetTitleChecked(const char* sTitle)',
+        'export extern "xgeSetTitleChecked" @header("xge3_runtime.h") @no_raise @c_cstr(0) @c_result("status",0) func setTitle(string title)'),
+    'xgeResourceProviderClearChecked': (
+        'int xgeResourceProviderClearChecked(void)',
+        'export extern "xgeResourceProviderClearChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func resourceProviderClear()'),
+    'xgeEGLCapsGet': (
+        'int xgeEGLCapsGet(xge_egl_caps_t* pCaps)',
+        'export extern "xgeEGLCapsGet" @header("xge3_runtime.h") @no_raise @c_output(0,0) func eglCapsGet() as EglCaps'),
+    'xgeAudioUnitChecked': (
+        'int xgeAudioUnitChecked(void)',
+        'export extern "xgeAudioUnitChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func audioUnit()'),
+    'xgeSoundFallbackSet': (
+        'int xgeSoundFallbackSet(const char* sPath)',
+        'export extern "xgeSoundFallbackSet" @header("xge3_runtime.h") @no_raise @c_cstr(0) @c_result("status",0) func soundFallbackSet(string path)'),
+    'xgeSoundFallbackClear': (
+        'void xgeSoundFallbackClear(void)',
+        'export extern "xgeSoundFallbackClear" @header("xge3_runtime.h") @no_raise func soundFallbackClear()'),
+    'xgeClipboardGetData': (
+        'int xgeClipboardGetData(const char* sFormat, void* pData, size_t iCapacity)',
+        'export extern "xgeClipboardGetData" @header("xge3_runtime.h") @c_cstr(0) @c_span(1,"void*","size_t") func clipboardGetData(string sFormat,Buffer pData) as c_int'),
+    'xgeGamepadGetState': (
+        'int xgeGamepadGetState(int iGamepad, xge_gamepad_state_t* pState)',
+        'export extern "xgeGamepadGetState" @header("xge3_runtime.h") @no_raise @c_output(1,0) func gamepadGetState(c_int iGamepad) as GamepadState'),
+    'xgeGamepadSetState': (
+        'int xgeGamepadSetState(int iGamepad, const xge_gamepad_state_t* pState)',
+        'export extern "xgeGamepadSetState" @header("xge3_runtime.h") @no_raise @c_ref(1) @c_result("status",0) func gamepadSetState(c_int iGamepad,GamepadState state)'),
+    'xge3dTransformMatrix': (
+        'int xge3dTransformMatrix(const xge3d_transform_t *transform, xge3d_mat4_t *out)',
+        'export extern "xge3dTransformMatrix" @header("xge3_runtime.h") @no_raise @c_ref(0) @c_output(1,0) func transformMatrix(Xge3dTransform transform) as Xge3dMat4'),
+    'xge3dCameraPerspective': (
+        'int xge3dCameraPerspective(xge3d_camera_t *out, float fov_y, float aspect, float near_z, float far_z)',
+        'export extern "xge3dCameraPerspective" @header("xge3_runtime.h") @no_raise @c_output(0,0) func perspectiveCamera(c_float verticalFov,c_float aspect,c_float nearPlane,c_float farPlane) as Xge3dCamera'),
+    'xge3dCameraOrthographic': (
+        'int xge3dCameraOrthographic(xge3d_camera_t *out, float width, float height, float near_z, float far_z)',
+        'export extern "xge3dCameraOrthographic" @header("xge3_runtime.h") @no_raise @c_output(0,0) func orthographicCamera(c_float width,c_float height,c_float nearPlane,c_float farPlane) as Xge3dCamera'),
+    'xge3dRelativePosition': (
+        'int xge3dRelativePosition(xge3d_dvec3_t origin, xge3d_dvec3_t global, xge3d_vec3_t *out)',
+        'export extern "xge3dRelativePosition" @header("xge3_runtime.h") @no_raise @c_output(2,0) func relativePosition(Xge3dDvec3 origin,Xge3dDvec3 globalPosition) as Xge3dVec3'),
+    'xge3dCameraScreenRay': (
+        'int xge3dCameraScreenRay(const xge3d_camera_t *camera, float x, float y, float width, float height, xge3d_ray_t *out)',
+        'export extern "xge3dCameraScreenRay" @header("xge3_runtime.h") @no_raise @c_ref(0) @c_output(5,0) func screenRay(Xge3dCamera camera,c_float x,c_float y,c_float width,c_float height) as Xge3dRay'),
+    'xgeDebugDumpCaps': (
+        'int xgeDebugDumpCaps(char* sBuffer, int iSize)',
+        'export extern "xgeDebugDumpCaps" @header("xge3_runtime.h") @no_raise @c_span(0,"char*","int") func debugDumpCaps(Buffer output) as c_int'),
+}
+
+REPLACED = {
+    'xgeSetTitle': ('xge.setTitle', 'xgeSetTitleChecked'),
+    'xgeResourceProviderClear': ('xge.resourceProviderClear', 'xgeResourceProviderClearChecked'),
+    'xgeAudioUnit': ('xge.audioUnit', 'xgeAudioUnitChecked'),
+    'xgeSvgCacheInvalidate': ('xge.SvgCache.remove', 'xgeSvgCacheRemove'),
+    'xgeSvgCacheClear': ('xge.SvgCache.reset', 'xgeSvgCacheReset'),
+}
+
+SPANS = {'xgeClipboardGetData': ('void*', 'size_t'), 'xgeDebugDumpCaps': ('char*', 'int')}
+
+def validate(functions):
+    for name,(native,_) in CONTRACTS.items():
+        if name not in functions or functions[name]['declaration']!=native:
+            raise ValueError('reviewed direct declaration changed: '+name)
+    return {name:logical for name,(_,logical) in CONTRACTS.items()}

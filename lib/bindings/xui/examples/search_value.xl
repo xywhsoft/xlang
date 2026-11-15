@@ -1,0 +1,12 @@
+// Search-result values keep all ten capture slots in the copied record.
+import xui
+auto result=xui.FindResult()
+result.iStart=4
+result.iEnd=9
+result.iCaptureCount=1
+result.arrCaptures[0].iStart=4
+result.arrCaptures[0].iEnd=9
+auto copy=result
+copy.arrCaptures[0].iEnd=12
+assert result.arrCaptures[0].iEnd==c_int(9)
+println("Original capture:",result.arrCaptures[0].iEnd,"Copied capture:",copy.arrCaptures[0].iEnd)
