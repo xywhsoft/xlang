@@ -1,0 +1,12 @@
+import xge
+
+// Place the native UV helpers after the shader's version/precision lines.
+// The helpers map primary UVs to each sampler's independent orientation.
+// This example prints source only; it does not create a window or GPU device.
+func main(...) as int
+ string fragment = "#version 330 core\n" + xge.XGE_GLSL_MATERIAL_UV
+ fragment += "in vec2 uv;\nuniform sampler2D uTexture2;\nout vec4 color;\n"
+ fragment += "void main(){color=texture(uTexture2,xgeMaterialUV2(uv));}\n"
+ print(fragment)
+ return 0
+end

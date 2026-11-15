@@ -14,6 +14,7 @@ $env:XLANG_PACKAGE_PATH = "$runtime\extlibs"
 
 | Example | Prerequisites and expected assertions | Cleanup |
 | --- | --- | --- |
+| `shader_preamble.xl` | Matched headers; prints a complete fragment-shader source using the exact native UV preamble. No window, device or shader compilation. | No resources created. |
 | `headless_frame.xl` | Owned native callback support; no window or device. Explicit dispatch returns 1, then 2, and the captured counter changes. | Clears the callback and calls checked `unit()`. |
 | `error_callback.xl` | No engine/window/device. Reports one typed error and prints `Resource unavailable` from an independent message snapshot. | Explicitly clears the global observer. |
 | `headless_shape.xl` | Native Shape feature; no engine initialization or device. Clone has an independent ID after modification. | Both owners close in `finally`. |

@@ -293,7 +293,48 @@ def expand_constant_macros(expression,macros):
     raise ValueError('recursive constant macro')
 
 def is_build_macro(name):
-    return name in ('XGE_DEBUG','XGE_RELEASE','XGE_DEBUGMODE','XGE_XRT_HOST') or name.endswith('_API') or bool(re.match(r'^X(?:GE|UI)(?:3D)?_(?:ENABLE|HAS|BUILD)_',name))
+    # CLOSE_API is a public reason code, not an import/export decoration.
+    return name in ('XGE_API','XUI_API','XGE_DEBUG','XGE_RELEASE','XGE_DEBUGMODE','XGE_XRT_HOST') or bool(re.match(r'^X(?:GE|UI)(?:3D)?_(?:ENABLE|HAS|BUILD)_',name))
+
+def c_text_constant(expression):
+    """Decode adjacent ordinary UTF-8 C literals, not Python escape syntax.
+
+    In particular C consumes every hex digit after \\x, whereas Python only
+    consumes two. Reject non-byte escapes, wide literals and nonliteral tails
+    rather than silently exporting a different string from the native header.
+    """
+    tokens=list(re.finditer(r'"(?:\\.|[^"\\])*"',expression))
+    if not tokens:raise ValueError('not ordinary C text')
+    end=0;result=bytearray();simple={'a':7,'b':8,'f':12,'n':10,'r':13,'t':9,'v':11,'\\':92,'"':34,"'":39,'?':63}
+    for token in tokens:
+        if expression[end:token.start()].strip():raise ValueError('nonliteral C text')
+        end=token.end();s=token[0][1:-1];i=0
+        if '\n' in s or '\r' in s:raise ValueError('unescaped C text newline')
+        while i<len(s):
+            c=s[i];i+=1
+            if c!='\\':result.extend(c.encode('utf-8'));continue
+            if i==len(s):raise ValueError('unfinished C escape')
+            c=s[i];i+=1
+            if c in simple:result.append(simple[c]);continue
+            if c in '01234567':
+                start=i-1
+                while i<len(s) and i-start<3 and s[i]in '01234567':i+=1
+                value=int(s[start:i],8)
+            elif c=='x':
+                start=i
+                while i<len(s)and s[i]in '0123456789abcdefABCDEF':i+=1
+                if i==start:raise ValueError('empty C hex escape')
+                value=int(s[start:i],16)
+            else:raise ValueError('unsupported C escape: '+c)
+            if value>255:raise ValueError('non-byte C escape')
+            result.append(value)
+    if expression[end:].strip():raise ValueError('nonliteral C text tail')
+    return result.decode('utf-8')
+
+def constant_value(expression,known,macros):
+    if expression.lstrip().startswith('"'):return c_text_constant(expression)
+    expression=expand_constant_macros(expression,macros)
+    return known[expression] if expression in known else integer(expression,known)
 
 def generate(root,data):
     reserved=set(re.findall(r'\{\"([A-Za-z_]\w*)\", XL6_KW_', (root/'src/lexer/xl6_lexer_gen.c').read_text(encoding='utf8')))
@@ -381,7 +422,7 @@ def generate(root,data):
                 if c['name'] in seen:continue
                 try:
                     expression=expand_constant_macros(c['expression'],constant_macros)
-                    value=ast.literal_eval(expression) if re.fullmatch(r'"(?:\\.|[^"\\])*"',expression) else known[expression] if expression in known else integer(expression,known)
+                    value=constant_value(expression,known,constant_macros)
                 except (ValueError,SyntaxError,NameError,ZeroDivisionError):next_remaining.append(c);continue
                 known[c['name']]=value;seen.add(c['name'])
                 if isinstance(value,str):typ='string';literal=json.dumps(value,ensure_ascii=False)

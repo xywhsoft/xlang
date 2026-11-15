@@ -1,0 +1,213 @@
+{
+  "date": "2026-11-15",
+  "complete": true,
+  "passed": true,
+  "scope": "Full scalar/text macro and enum parity on the selected full-feature SDK; seven missing values plus stale proxy version fixed",
+  "fullGoalComplete": false,
+  "shippingDelivery": false,
+  "versionChanged": false,
+  "pushed": false,
+  "networkTests": false,
+  "nativeRebuilt": false,
+  "compilerRebuilt": false,
+  "xlangBase": "c479b0faa2bac837407afce055493d7d537ae94b",
+  "nativeCommit": "766c039e9fc3c7a1ddd9702140befcb8c931f168",
+  "sourceFiles": {
+    "tools/check_xge3_bindings.py": "739956654aa465ee6529b97a82bc06c6f0230cb6ee33bb2c79ff3260e0a6ee39",
+    "tools/check_xge3_constants.py": "7c7c7f6aba8ba3ac4642e7bdae7a5f4e739904713c2ef43f8d54e23bb32b5b5d",
+    "lib/bindings/xge/src/constants.xl": "8380464e3c75bfefacd3b137789f5b643809a591fcfa556bb3e887c441f4edd3",
+    "lib/bindings/xui/src/constants.xl": "05395c4fb34a2326ef510d50b0bd829d4d3c8e4369af07b4af554daf747ed6f5",
+    "lib/bindings/xge/examples/shader_preamble.xl": "a1cab71d0967183c0e8a22c1d873031d7e85f26d42efb7cf3c9cb4e93dc09274",
+    "lib/bindings/xge/examples/README.md": "85689ab0454ddab7336359bacfa5a51fa4704ed62f351d726da4486db442ab36",
+    "docs/xge3-constant-parity.md": "d8a8c96e08478a077701731c93937978e3bee9fd407373f08408597b5c12c591",
+    "docs/xge3-xui3-full-coverage-plan.md": "24f2fcc4167264ffcb69e1fd6b33bfd890bc0a1824297c2fd1d99a02ce07579c"
+  },
+  "qualifiedSourceSnapshot": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\constants-qualified-source-r1",
+    "files": {
+      "tools/check_xge3_bindings.py": "739956654aa465ee6529b97a82bc06c6f0230cb6ee33bb2c79ff3260e0a6ee39",
+      "tools/check_xge3_constants.py": "7c7c7f6aba8ba3ac4642e7bdae7a5f4e739904713c2ef43f8d54e23bb32b5b5d",
+      "lib/bindings/xge/src/constants.xl": "8380464e3c75bfefacd3b137789f5b643809a591fcfa556bb3e887c441f4edd3",
+      "lib/bindings/xui/src/constants.xl": "05395c4fb34a2326ef510d50b0bd829d4d3c8e4369af07b4af554daf747ed6f5",
+      "lib/bindings/xge/examples/shader_preamble.xl": "a1cab71d0967183c0e8a22c1d873031d7e85f26d42efb7cf3c9cb4e93dc09274",
+      "lib/bindings/xge/examples/README.md": "85689ab0454ddab7336359bacfa5a51fa4704ed62f351d726da4486db442ab36",
+      "docs/xge3-constant-parity.md": "d8a8c96e08478a077701731c93937978e3bee9fd407373f08408597b5c12c591",
+      "docs/xge3-xui3-full-coverage-plan.md": "24f2fcc4167264ffcb69e1fd6b33bfd890bc0a1824297c2fd1d99a02ce07579c"
+    }
+  },
+  "evidence": [
+    {
+      "platform": "win",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\constants-verified-win-r1.json",
+      "sha256": "4639b4aac503b55cf4acd415520870429e08b016e995917759a6c1e662738677",
+      "steps": 29
+    },
+    {
+      "platform": "linux",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\constants-verified-linux-r1.json",
+      "sha256": "1f8c175c15a13fcb4d92fdd6882717121c806cd7220cf5c9fd871026a2b36c62",
+      "steps": 29
+    }
+  ],
+  "qualifiedProcessSteps": 59,
+  "constantAndLessonSteps": 58,
+  "constantValues": 2319,
+  "comparisonsAcrossLanguageModesAndPlatforms": 13914,
+  "publicNames": 2330,
+  "publicDefinitions": 2333,
+  "groups": {
+    "signed": 2234,
+    "unsigned": 67,
+    "text": 17,
+    "floating": 1
+  },
+  "nativeOnlyNameCount": 11,
+  "added": [
+    "XGE_GLSL_MATERIAL_UV",
+    "XGE_STATUS_DEFERRED",
+    "XGE_ERROR_BUSY",
+    "XUI_TOAST_CLOSE_API",
+    "XUI_CODE_TOKEN_STYLE_RESOLVER",
+    "XUI_CODE_DOCUMENT_BATCH",
+    "XUI_STATUS_DEFERRED"
+  ],
+  "corrected": {
+    "XUI_PROXY_VERSION": {
+      "old": 17,
+      "matchedNative": 18
+    }
+  },
+  "compilerCohorts": [
+    "compiler-nullable-insert-full-r40",
+    "compiler-nullable-insert-linux-full-r33"
+  ],
+  "nativeSdk": [
+    "provider-owned-sdk-win-r2",
+    "provider-owned-sdk-linux-r2"
+  ],
+  "qualifiedPackages": [
+    "constants-packages-win-r3",
+    "constants-packages-linux-r3"
+  ],
+  "parserChecks": {
+    "positive": 7,
+    "negative": 10,
+    "buildMacroClassifications": 3,
+    "repairedDeclarationsReplayed": 8
+  },
+  "oracleSelftests": {
+    "optimizations": [
+      "O0",
+      "O2"
+    ],
+    "rejectedCorruptValueOrTextCasesPerRun": 20,
+    "note": "Three numeric groups and seventeen strings; bounds/length probes are also asserted"
+  },
+  "inventory": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-constants-r1\\surface.json",
+    "sha256": "0382283e78da2025d0f61c2bb06fa46f40a2a43d2b38e6fcc4c311690b145620",
+    "population": {
+      "functions": 5217,
+      "types": 984,
+      "constants": 1838,
+      "functionMacros": 7,
+      "callableFields": 184,
+      "enums": 40,
+      "enumConstants": 316
+    },
+    "declarationPresent": {
+      "functions": 3862,
+      "types": 386,
+      "constants": 1824,
+      "callableFields": 66,
+      "enumConstants": 316
+    },
+    "meaning": "Presence only; typedef-enum member values are additionally audited by the constant gate"
+  },
+  "costs": {
+    "mapping": "compile-time values; no C forwarding wrappers or dispatch",
+    "importAndStringConstruction": "Existing costs remain; no heap or CPU equivalence claim",
+    "qaNumericBatchLimit": 128
+  },
+  "knownLimitations": [
+    "Only selected full-feature hosted/static SDK configuration is qualified, not every feature-disabled/debug configuration",
+    "C aggregate XGE3D_TRANSFORM_IDENTITY still requires language value-construction support",
+    "Original monolithic Windows AOT fixture overflows 1 MiB default reserved stack; bounded fixture does not fix compiler stack policy",
+    "Full XGE/XUI/Document functions, callbacks and final installed delivery remain incomplete"
+  ],
+  "originalFailures": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\constants-positive-win-r1\\results.json",
+      "reason": "New inventory detected three omitted typedef enum members",
+      "sha256": "cd99c4835add6895de23f0b0dcc9dee389d76af64a93785c3efb352f3afa955c"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\constants-positive-win-r2\\results.json",
+      "reason": "QA header pragma-once main-file warning; replaced with include guard",
+      "sha256": "d1bc9603bce26cf1374f0f70fc09a026c933fa950fda6c739c846e758c69bb95"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\constants-positive-win-r3\\results.json",
+      "reason": "QA used float instead of exact c_double array projection; corrected fixture",
+      "sha256": "ca0a22da65322218f5d266e0ede163008a8b6004aef08651761ce3fc3fc1fd5e"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\constants-positive-win-r4\\results.json",
+      "reason": "Real XUI_PROXY_VERSION 17/18 drift",
+      "sha256": "efb87bf49922bb29fd1b2f6a35fce05cccc107d0d642877cc5e6895192c9302d"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\constants-positive-linux-r4\\results.json",
+      "reason": "Same real version drift",
+      "sha256": "5e709592b2a969cc4f6ba187ce14451ee4f52a80001a71b5dbf3101e61ef6038"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\constants-positive-win-r5\\results.json",
+      "reason": "Default Windows stack overflow in monolithic QA function",
+      "sha256": "adc82f111de13a5ee0dbdabdf0294a1b46eac8ac0c22e912575540589954f022"
+    }
+  ],
+  "stackDiagnostic": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\constants-stack-diagnostic-win-r1\\diagnostic.json",
+    "sha256": "cd29909d84ec21a4dd1661a7575402129c30dea829580721504551b455fbfacb",
+    "diagnosticOnly": true,
+    "compilerStackPolicyFixed": false
+  },
+  "historicalMonolithicLinux": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\constants-positive-linux-r5\\results.json",
+    "sha256": "c45a7abb6f770f6059aacc2767aeef9427aa113199f95f28699ceabea2cc295a",
+    "passed": true,
+    "note": "Original complete large-function fixture also passed on Linux; bounded r6 is the final common gate",
+    "toolSnapshot": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\constants-tool-r5-original.py",
+      "sha256": "cab3a11c0babf9db25c5a99a3d7ae4204f61410c0ca18b7c9b76386143a315e8"
+    }
+  },
+  "approvedNext": "General array record string/bytes data-plus-length projection for Document PrepareSource/ContinueSource. Base c_pack/typed NULL compatibility already exists and is reused, not reimplemented.",
+  "externalTools": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\verify_constants_r1.py",
+      "sha256": "aac3dbf155db96bfcfaea1b09a956738ca702a3db2bed50fc8be1ab9bc023d3c"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\check_constants_lesson_r1.py",
+      "sha256": "aa807d4032c1f4d38dae57bfa5e74dcbe62d2e53ee8023089e35a378b8a74cf4"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\stage_constants_r3.py",
+      "sha256": "267fe95355cde2b52fd2bc3a5940ecd09dd4dacbf6cdcf1427a5fc47856efea3"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\run_constants_r6.py",
+      "sha256": "d880c194927ca87ffc56e3718d7435238ee0266b08edab0c4afaa7546ed676fc"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native_literal_audit_r2.py",
+      "sha256": "0f36149951a19181d9b50bb753eb6de25eb685d3b00bc283c9dee20bc09c815c"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\diagnose_constants_stack_r1.py",
+      "sha256": "a77ea77599a4193ea0ea12ba7300e296a4bf4dd52e04cb9425546b41bb64737c"
+    }
+  ]
+}
