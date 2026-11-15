@@ -1,0 +1,112 @@
+import xui
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_page_text.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy proxy)
+extern "fixtureRenderFont" @no_raise @c_result("owned_view") @factory(1,0,dropFont) func cpuFont(xui.Proxy proxy) as xui.Font
+extern "xuiFontReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropFont(xui.Font font)
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "fixturePageTextBegin" @no_raise func heapBegin()
+extern "fixturePageTextEqual" @no_raise func heapEqual()
+extern "fixturePageTextBudget" @no_raise func budget(c_int n)
+extern "fixturePageTextReset" @no_raise func reset()
+extern "fixturePageTextReport" @no_raise func report(c_int native)
+extern "fixturePageTextNativeHot" @no_raise func nativeHot(xui.Page page)
+
+protocol PageTextReader
+ func getText() as (string,string,string,string)
+end
+
+func allocationPrefix(xui.Page page,int allowance) as int
+ string first="kept first"
+ string last="kept last"
+ string previous="kept previous"
+ string following="kept next"
+ int failed=0
+ budget(c_int(allowance))
+ try
+  first,last,previous,following=page.getText()
+ catch Error
+  reset()
+  assert first=="kept first" and last=="kept last"
+  assert previous=="kept previous" and following=="kept next"
+  failed=1
+ finally
+  reset()
+ end
+ return failed
+end
+
+func main(...) as int
+ auto proxy=cpuProxy()
+ auto font=cpuFont(proxy)
+ auto ui=xui.create(proxy)
+ ui.setDefaultFont(font)
+ auto page=ui.pageNative()
+ auto first,last,previous,following=page.getText()
+ assert first=="First" and last=="Last" and previous=="<" and following==">"
+ page.setText("首页","","前一页","Next")
+ first,last,previous,following=page.getText()
+ assert first=="首页" and last=="" and previous=="前一页" and following=="Next"
+ func() as (string,string,string,string) read=page.getText
+ auto boundFirst,boundLast,boundPrevious,boundNext=read()
+ PageTextReader reader=page
+ auto protocolFirst,protocolLast,protocolPrevious,protocolNext=reader.getText()
+ assert boundFirst==first and boundLast==last and boundPrevious==previous and boundNext==following
+ assert protocolFirst==first and protocolLast==last and protocolPrevious==previous and protocolNext==following
+ page.setText("一二三四五六","éééééé","🇨🇳🇺🇸","Changed")
+ auto clipped,combining,flag,changed=page.getText()
+ assert clipped=="一二三四五" and combining=="ééééé" and flag=="🇨🇳" and changed=="Changed"
+ assert first=="首页" and previous=="前一页" and last==""
+ page.setText("First","Last","Previous","Next")
+ int failures=0
+ heapBegin()
+ for allowance in range(32)
+  failures+=allocationPrefix(page,allowance)
+ end
+ heapEqual()
+ assert failures>0 and failures<32
+ println("Page text OOM: prefixes=32 failures=",failures)
+ int observedBytes=0
+ heapBegin()
+ for round in range(1000)
+  auto a,b,c,d=page.getText()
+  observedBytes+=a.length+b.length+c.length+d.length
+ end
+ report(0)
+ heapEqual()
+ assert observedBytes==21000
+ heapBegin()
+ nativeHot(page)
+ report(1)
+ heapEqual()
+ auto worker=thread(func() as int
+  try
+   auto a,b,c,d=page.getText()
+  catch StateError
+   return 1
+  end
+  return 0
+ end)
+ assert worker.waitTimeout(30000) and worker.exitCode()==1
+ page.close()
+ bool rejected=false
+ try
+  auto a,b,c,d=page.getText()
+ catch StateError
+  rejected=true
+ end
+ assert rejected
+ auto other=ui.pageNative()
+ ui.close()
+ rejected=false
+ try
+  auto a,b,c,d=other.getText()
+ catch StateError
+  rejected=true
+ end
+ assert rejected and first=="首页" and boundFirst==first and protocolFirst==first
+ font.close()
+ proxy.close()
+ assert balanced()==1
+ println("Page text: direct, bound/protocol, empty, grapheme limits, snapshots, transactional OOM, thread and close passed")
+ return 0
+end

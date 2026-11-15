@@ -44,6 +44,12 @@ VIRTUAL_TEXT_SET = (' extern "xuiCodeEditSetVirtualText" @no_raise '
     '@c_pack_field(1,"iUserData",4,"value") @c_result("status",0) '
     'func setVirtualText(c_int kind,c_int offset,string text,c_uint flags=0,c_uintptr userData=0)')
 
+# Native Page stores four char[16] arrays: successful outputs are never NULL.
+PAGE_TEXT_GET = (' extern "xuiPageGetText" @no_raise @c_outputs(1,2,3,4) '
+    '@c_status(0) @c_output_view(1,"cstring") @c_output_view(2,"cstring") '
+    '@c_output_view(3,"cstring") @c_output_view(4,"cstring") '
+    'func getText() as (string,string,string,string)')
+
 
 def declaration(native):
     _,name,record,slot,parameters,fields=RECORD_OUTPUTS[native]
@@ -67,3 +73,5 @@ def extend(context,classes,mapped):
     context.append(STYLE_TOKEN_SET);mapped['xuiStyleSetToken']='xui.Context.styleSetToken'
     classes['CodeEdit'][:] = [line for line in classes['CodeEdit'] if 'extern "xuiCodeEditSetVirtualText"'not in line]
     classes['CodeEdit'].append(VIRTUAL_TEXT_SET);mapped['xuiCodeEditSetVirtualText']='xui.CodeEdit.setVirtualText'
+    classes['Page'][:] = [line for line in classes['Page'] if 'extern "xuiPageGetText"'not in line]
+    classes['Page'].append(PAGE_TEXT_GET);mapped['xuiPageGetText']='xui.Page.getText'

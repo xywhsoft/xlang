@@ -1,0 +1,180 @@
+{
+  "schema": 1,
+  "date": "2026-11-16",
+  "status": "qualified-direct-page-text-snapshots",
+  "shippingDelivery": false,
+  "goalComplete": false,
+  "sourceHeadBefore": "870b5ca3ecbe1bad57960071f9a4dec4eae57cad",
+  "nativeRevision": "df03691f1bde54e83b4baac93ff08cba7bac77dd",
+  "compilerRebuilt": false,
+  "nativeRebuilt": false,
+  "publicDeclarations": [
+    "xui.Page.getText() as (string,string,string,string)"
+  ],
+  "contracts": [
+    "Single direct xuiPageGetText call with four const char** outputs, existing cstring snapshots within live input scope, checked status and all-output rollback before delivery. No C forwarding shim or new language/runtime contract.",
+    "Successful native outputs are four embedded char[16] buffers, always nonNULL. Empty strings remain empty. Existing native whole-grapheme truncation to15 UTF8 payload bytes remains authoritative.",
+    "Independent text survives Page/Context closure and mutation. Bound calls use explicit function type; protocol and direct calls qualify. Native conversion failure leaves old destinations intact in32 allocation prefixes, without adding broader whole-assignment rollback semantics."
+  ],
+  "sourceSha256": {
+    "lib/bindings/xui/src/managed.xl": "49d0dbfef1a5b9b089c5bd3858206c3d3c7ad5d18fff244085108cf116df1a69",
+    "tools/xui_snapshot_contracts.py": "9b5687ab0e551504b942649b7e7b124bc1e624fdc2f2b8c96077ac85bc5d8b19",
+    "lib/bindings/xui/examples/page.xl": "cd1415b2041621c198dd333eec816fd8f1f9b9299acd17a44d3b524539d33718",
+    "lib/bindings/xui/README.md": "bc20705c04a8cd2cf571dcac154e4af7e29c20489b343c1e6c4aa10a4bdaa582",
+    "lib/bindings/xui/examples/README.md": "a69ac24a1b9a855919044cb1be1fc985249c9bb56cca1233c0c17ac76163eeca",
+    "docs/xui-page-text.md": "67a4d4bfd7510fa012aa0a06618406e222ddb4352580f5d9367462d40ce04ce5",
+    "docs/xge3-xui3-full-coverage-plan.md": "17d1d1e8ed5204b822a8fa331be428e47ab34c639510de7a915d46e5374d3602",
+    "tools/check_xui_page_text.py": "51b01da6ab5864b3e11968f1f85ecbe2351e93860c6e2e342e0403ae3960755f",
+    "test/cases/foreign_xui_page_text.xl": "8577bb59a1ffca837b2c9fcdb7e19be3c7b5def7fc146aeb74e0210114252ad8",
+    "test/cases/foreign_xui_page_text.h": "f2f755c3b2cc7804abb545e1bea0fed6ca617e5dbbd6f5d5663635cc447679ed",
+    "test/cases/foreign_xui_page_text.c": "1fb7f7ae83a198c4b3352aa33d69fb398341358c688e304dd02d887a8d3ba82d",
+    "test/cases/foreign_xui_page_text_native.c": "f5992f21b46a6b8bed80c755c208813a8a8f1733f2c4e51601829fbcc0375fde"
+  },
+  "reports": {
+    "page-text-verified-win-r1.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\page-text-verified-win-r1.json",
+      "sha256": "8c227a167a32656dcf155f07f18966be7a906e76a3044150385e0e4775a5a75f"
+    },
+    "page-text-positive-win-r1\\results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\page-text-positive-win-r1\\results.json",
+      "sha256": "0ab2e258fac1b980629afe82aac983cc4fbc74b0b7eee6d9a30a12d092701f8b"
+    },
+    "page-text-packages-win-r2-host.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\page-text-packages-win-r2-host.json",
+      "sha256": "dc2a177edb288b6f3e6f06b1c115d0e515836038d590cdaf3d1c715eea541db2"
+    },
+    "page-text-packages-win-r2-static.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\page-text-packages-win-r2-static.json",
+      "sha256": "7888359a268043fa83e80b4e2a93f87c8cb7699246e16c70733989e10e077cdb"
+    },
+    "flow-config-sdk-verified-win-r1.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-config-sdk-verified-win-r1.json",
+      "sha256": "c48a881d24093c61aa3e12d935173904a7f491ec3a34c9af829025ee61ffa5b0"
+    },
+    "page-text-verified-linux-r1.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\page-text-verified-linux-r1.json",
+      "sha256": "25371942cc1b698731c2818a74a3a212ce7194a50d109f82c7a62190cd9149f7"
+    },
+    "page-text-positive-linux-r1\\results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\page-text-positive-linux-r1\\results.json",
+      "sha256": "9ca72ada5ad9919d71114b713acc137af3ab5ab8e10ab0bcece87a246f5c34f0"
+    },
+    "page-text-packages-linux-r2-host.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\page-text-packages-linux-r2-host.json",
+      "sha256": "29b767d85b5a2d9036e59d961ca43ec197fd20f9e5a43be7649d8027fe879781"
+    },
+    "page-text-packages-linux-r2-static.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\page-text-packages-linux-r2-static.json",
+      "sha256": "0da64a00fbd17af2513fcb23946a0b1548e955858ec96c383ecac1a1dd7bfcdb"
+    },
+    "flow-config-sdk-verified-linux-r1.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-config-sdk-verified-linux-r1.json",
+      "sha256": "92d38b56a15d85927d6b5e37a275b4f3cf05885db5c33bb27427448a575b6bb2"
+    },
+    "page-text-surface-r1\\surface.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\page-text-surface-r1\\surface.json",
+      "sha256": "86455da856e814af98102075c7f77d897af045c92a0dc75895eaf727c4625188"
+    },
+    "page-text-surface-r1\\native-inventory.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\page-text-surface-r1\\native-inventory.json",
+      "sha256": "35c16535f6521e769c9126fa55b20345be559dafd20e701fc5a41c5cf67a2a8b"
+    },
+    "page-text-generator-r1\\results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\page-text-generator-r1\\results.json",
+      "sha256": "dd16ec5874898bdefa6d02635dd8c9c86cd707133ae8e7b317c737bbc540de64"
+    },
+    "page-text-probe-win-r1.log": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\page-text-probe-win-r1.log",
+      "sha256": "bf8622f3d944a5a20bd11fbc47afb62ce474aab1e6b275cb0cc7d7f4cfca62ae"
+    },
+    "page-text-probe-win-r2.log": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\page-text-probe-win-r2.log",
+      "sha256": "aa34e0753090e5c040605dcea80833ed83f8992743d61b652f6138883414e7be"
+    },
+    "page-text-probe-win-r3.log": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\page-text-probe-win-r3.log",
+      "sha256": "adf3f05177904099278c8a4f38b9916510274048b2d62afc5364c670ee7fe949"
+    },
+    "page-text-with-comparisons-before-r1.xl": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\page-text-with-comparisons-before-r1.xl",
+      "sha256": "b9d5de4c68ab32bb41855578009f6b7bb380fdb31371aef8b4aba4f0b13a5876"
+    },
+    "page-text-generated-r1.c": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\page-text-generated-r1.c",
+      "sha256": "e6815be12d2ca386fd02f68769eddad795360814e688a577de9c4d9b4001e219"
+    },
+    "replay_page_generator_r1.py": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\replay_page_generator_r1.py",
+      "sha256": "212abbe3cbc7fb85146b24ae2b4dfec2a2713bbabc832eeb8225b622ca2a1c55"
+    },
+    "verify_page_text_r1.py": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\verify_page_text_r1.py",
+      "sha256": "9d84bba2fbebbfc2d11ce509e7765dae3b7a097f3c82fe98093e07b86c5c4bf6"
+    },
+    "stage_page_text_r2.py": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\stage_page_text_r2.py",
+      "sha256": "9e5adbafc2b9e66caa22c23c07b843dd7f0d8f29182c897e05fef0a202def58f"
+    },
+    "page-text-positive-win-r1\\page-preview.png": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\page-text-positive-win-r1\\page-preview.png",
+      "sha256": "4f7645a4b02d8501ea2c9b3cdc664aedc2d8e05ef96745efce8ffc6fb2035128"
+    }
+  },
+  "totalQualifiedSteps": 60,
+  "stepsPerPlatform": 30,
+  "candidates": {
+    "win": {
+      "source": "F:\\xlang-validation\\xge-full-20261110\\native-flow-config-win-source-r1",
+      "sdk": "F:\\xlang-validation\\xge-full-20261110\\flow-config-sdk-win-r1",
+      "packages": "F:\\xlang-validation\\xge-full-20261110\\page-text-packages-win-r2",
+      "compiler": "F:\\xlang-validation\\xge-full-20261110\\compiler-product-lift-full-r45\\build.json"
+    },
+    "linux": {
+      "source": "F:\\xlang-validation\\xge-full-20261110\\native-flow-config-linux-source-r1",
+      "sdk": "F:\\xlang-validation\\xge-full-20261110\\flow-config-sdk-linux-r1",
+      "packages": "F:\\xlang-validation\\xge-full-20261110\\page-text-packages-linux-r2",
+      "compiler": "F:\\xlang-validation\\xge-full-20261110\\compiler-product-lift-linux-full-r38\\build.json"
+    }
+  },
+  "qualification": [
+    "C O0/O2 host/static clients use real SDK and canonical resident XRT. Native invalid widget/null widget checked, defaults/empty/owning baseline tested.",
+    "Full O2 compiler: C11/C++11/C++17 headers; JIT and dynamic/static AOT; exact checked lifecycle/thread refusal; ordinary text, combining accents and paired regional indicators clipped on grapheme boundaries.",
+    "Four actual OOM failures in32 prefixes per mode, rollback and heap balance. Each OS rendered Page lesson2 real frames per mode, with all3 raw RGBA hashes equal; Windows PNG visually inspected, Chinese navigation and current page correct.",
+    "Every input rehashed under its actual OS. Matching516 private runtime headers staged from full compiler source manifest. AOT imports engine only in dynamic; xlang/TinyCC runtime libraries absent."
+  ],
+  "costs": {
+    "rounds": 1000,
+    "nativeQueries": 1000,
+    "outputsPerQuery": 4,
+    "consumer": "Sum21 byte lengths per round; correctness assertions outside heap counter window.",
+    "language": {
+      "alloc": 4000,
+      "free": 4000,
+      "realloc": 0
+    },
+    "equivalentOwningC": {
+      "alloc": 4000,
+      "free": 4000,
+      "realloc": 0
+    },
+    "scope": "Four bounded strlen scans and independent UTF8 byte copies; tuple field moves, input resource/code/thread scopes, statuses/error scopes and cleanup remain.",
+    "cpuEquivalenceClaim": false,
+    "overallZeroBridgeOverheadClaim": false
+  },
+  "declarationInventory": {
+    "population": 5217,
+    "directPresence": 3877,
+    "meaning": "Declaration presence only; no global ABI/runtime completion rate inferred."
+  },
+  "diagnostics": [
+    "Initial bound-method probe used auto and failed IR dynamic-member lowering; explicit function type matches existing native method-value usage and passed. No compiler semantics changed.",
+    "Initial hot loop included4 string equality assertions, observed12000 allocations versus4000 C. Generated C isolates4 LHS copies and4 literal constructions per round; tuple delivery had only its4 required snapshots. Original source/log/generated C preserved. Revised equivalent query+length loops both4000; generic comparison overhead remains a separate follow-up.",
+    "Full generator replay emitted an identical complete Page block, then strict unrelated xui_proxy_t.textDraw storage review failed. Both helper body and whole public-header fingerprints differ from the stored review. No bypass, silent refresh or full-generator pass claimed."
+  ],
+  "limits": [
+    "Full XGE/XUI/Document capability and matched final release/IDE/help delivery remain active.",
+    "Other pending ownership, reentry, arrays, aliases and output contracts remain pending.",
+    "No release bytes staged/installed, current-delivery/version changes, publication or sensitive network tests.",
+    "Concurrent LSP commit870b5ca3e and unrelated dirty workspace/native geometry changes preserved."
+  ]
+}

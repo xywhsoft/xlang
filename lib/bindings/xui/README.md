@@ -551,3 +551,9 @@ from `getLastPaintRange()`. See `examples/inventory_queries.xl` and
 `CodeEdit.getOffsetRect(byteOffset)` also covers the native spelling alias
 `xuiCodeEditGetTextOffsetRect`; it returns caret geometry in world coordinates.
 See [the exact alias mapping and focused qualification](../../../docs/xui-code-offset-queries.md).
+
+`Page.getText()` returns `(first,last,previous,next)` as four independent,
+nonnullable strings. Empty labels stay empty; the native 15-byte payload and
+complete-grapheme truncation remain authoritative. Text snapshots survive Page
+or Context closure. See `examples/page.xl` and
+[the output, lifetime and measured-cost contract](../../../docs/xui-page-text.md).

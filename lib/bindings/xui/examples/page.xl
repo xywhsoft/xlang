@@ -7,4 +7,8 @@ Window.show("Pagination / page count", func(xui.Context ui, xui.Widget root)
  Window.place(root, page, 24, 24, 640, 54)
  page.setPageCount(20)
  page.setCurrent(3, 0)
+ page.setText("首页", "末页", "上一页", "下一页")
+ auto first,last,previous,following = page.getText()
+ assert first=="首页" and last=="末页"
+ assert previous=="上一页" and following=="下一页"
 end)
