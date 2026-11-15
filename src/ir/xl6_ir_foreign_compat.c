@@ -41,7 +41,7 @@ static int xl6IrForeignPackFieldsEqual(const XL6_IrModule* m,const XL6_IrCallTar
     }
     return left==right;
 }
-static int xl6IrForeignOverloadMetadataEqual(const XL6_IrModule* m,const XL6_IrCallTarget* left,const XL6_IrCallTarget* right)
+static int xl6IrForeignOverloadMetadataEqualMode(const XL6_IrModule* m,const XL6_IrCallTarget* left,const XL6_IrCallTarget* right,int recordProjection)
 {
     uint32 a=left->declaration,b=right->declaration;
 #define XL6_EQUAL_ROWS(field,count) if(!xl6IrForeignRowsEqual(m->field,m->count,sizeof(*m->field),a,b))return 0
@@ -55,9 +55,9 @@ static int xl6IrForeignOverloadMetadataEqual(const XL6_IrModule* m,const XL6_IrC
         if(memcmp(&x,&y,sizeof(x)))return 0;
     }
     XL6_EQUAL_ROWS(foreignOutputSizes,foreignOutputSizeCount);
-    XL6_EQUAL_ROWS(foreignOutputViews,foreignOutputViewCount);
+    if(!recordProjection){XL6_EQUAL_ROWS(foreignOutputViews,foreignOutputViewCount);}
     XL6_EQUAL_ROWS(foreignOutputRecords,foreignOutputRecordCount);
-    XL6_EQUAL_ROWS(foreignOutputFields,foreignOutputFieldCount);
+    if(!recordProjection){XL6_EQUAL_ROWS(foreignOutputFields,foreignOutputFieldCount);}
     XL6_EQUAL_ROWS(foreignPacks,foreignPackCount);
     XL6_EQUAL_ROWS(foreignArrayGroups,foreignArrayGroupCount);
     XL6_EQUAL_ROWS(foreignArrayInputs,foreignArrayInputCount);
@@ -87,6 +87,8 @@ static int xl6IrForeignOverloadMetadataEqual(const XL6_IrModule* m,const XL6_IrC
 #undef XL6_EQUAL_ROWS
     return 1;
 }
+static int xl6IrForeignOverloadMetadataEqual(const XL6_IrModule* m,const XL6_IrCallTarget* left,const XL6_IrCallTarget* right)
+{return xl6IrForeignOverloadMetadataEqualMode(m,left,right,0);}
 static int xl6IrForeignRegionEqual(const XL6_ForeignRegionContract* a,const XL6_ForeignRegionContract* b)
 {
     return a && b && a->physicalIndex==b->physicalIndex && a->parameter==b->parameter && a->unitBytes==b->unitBytes &&
@@ -126,7 +128,10 @@ static int xl6IrForeignOverloadsCompatible(const XL6_IrModule* module,const XL6_
     const XL6_ForeignOwnedOutputContract* ao=xl6IrForeignOwnedOutputGet(module,a);
     const XL6_ForeignOwnedOutputContract* bo=xl6IrForeignOwnedOutputGet(module,b);
     int ownedAdmissions=ao && bo && ao->kind!=bo->kind;
-    if(!ownedAdmissions){
+    const XL6_ForeignOutputRecordContract* ar=xl6IrForeignOutputRecordGet(module,a);
+    const XL6_ForeignOutputRecordContract* br=xl6IrForeignOutputRecordGet(module,b);
+    int recordProjection=ar && br && a->returnType!=b->returnType;
+    if(!ownedAdmissions && !recordProjection){
     int nullCompatibility=xl6IrForeignNullPhysicalCompatible(module,a,b);
     if(nullCompatibility>=0)return nullCompatibility;
     int projectionCompatibility=xl6IrForeignProjectionCompatible(module,a,b);
@@ -136,16 +141,23 @@ static int xl6IrForeignOverloadsCompatible(const XL6_IrModule* module,const XL6_
     if(!left || !right)return 0;
     XL6_ForeignCallFacts af=left->foreignCall,bf=right->foreignCall;
     if(ownedAdmissions)af.valueOutput=bf.valueOutput=XL6_FOREIGN_VALUE_OUTPUT_OWNED_BYTES_STATUS;
+    if(recordProjection){
+        const char* ah=xl6IrNullHeader(module,left,a->declaration);const char* bh=xl6IrNullHeader(module,right,b->declaration);
+        if(left->sourceKind!=right->sourceKind || left->declarationOwnerType!=right->declarationOwnerType ||
+            !ah || !bh || strcmp(ah,bh) || !(left->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE))return 0;
+        af.valueOutput&=~XL6_FOREIGN_VALUE_OUTPUT_VIEW_CONVERTED;
+        bf.valueOutput&=~XL6_FOREIGN_VALUE_OUTPUT_VIEW_CONVERTED;
+    }
     if(!xl6ForeignCallFactsEqual(&af,&bf) ||
         ((left->flags^right->flags)&(XL6_AST_FLAG_STATIC|XL6_AST_FLAG_FOREIGN_OWNED_STRING|XL6_AST_FLAG_FOREIGN_PURE|
             XL6_AST_FLAG_FOREIGN_NO_RAISE|XL6_AST_FLAG_FOREIGN_NONBLOCKING)) ||
-        a->foreignOperationAbi!=b->foreignOperationAbi || (!ownedAdmissions && a->returnType!=b->returnType) || a->resultPhysicalAbi!=b->resultPhysicalAbi ||
+        a->foreignOperationAbi!=b->foreignOperationAbi || (!ownedAdmissions && !recordProjection && a->returnType!=b->returnType) || a->resultPhysicalAbi!=b->resultPhysicalAbi ||
         a->resultConversionAbi!=b->resultConversionAbi || a->resultCAbi!=b->resultCAbi || a->outputResultAbi!=b->outputResultAbi ||
         a->nativeSuccessCode!=b->nativeSuccessCode || a->resultPhysicalFieldDeclaration!=b->resultPhysicalFieldDeclaration ||
         a->resultPhysicalDestroySymbol!=b->resultPhysicalDestroySymbol || a->errorAbi!=b->errorAbi || a->effectAbi!=b->effectAbi ||
         a->parameterCount!=b->parameterCount || a->variadicAbi!=b->variadicAbi || a->nativeContextAbi!=b->nativeContextAbi ||
         a->nativeServicesRequired!=b->nativeServicesRequired || a->nativeResultAbi!=b->nativeResultAbi ||
-        !xl6IrForeignOverloadMetadataEqual(module,a,b))return 0;
+        !xl6IrForeignOverloadMetadataEqualMode(module,a,b,recordProjection))return 0;
     for(size_t p=0;p<a->parameterCount;++p){
         const XL6_ForeignRegionContract* x=xl6IrForeignRegionGet(module,a,p);const XL6_ForeignRegionContract* y=xl6IrForeignRegionGet(module,b,p);
         if((x!=NULL)!=(y!=NULL) || (x && !xl6IrForeignRegionEqual(x,y)) ||
@@ -196,7 +208,8 @@ static int xl6IrVerifyForeignOverloads(const XL6_IrModule* module,XL6_DiagList* 
             int retainedOutputs=0;
             for(size_t o=0;o<module->foreignOutputViewCount;++o)
                 if((module->foreignOutputViews[o].declaration==a->declaration || module->foreignOutputViews[o].declaration==b->declaration) &&
-                    module->foreignOutputViews[o].conversion==XL6_FOREIGN_OUTPUT_CONVERSION_RETAINED_NATIVE)retainedOutputs=1;
+                    (module->foreignOutputViews[o].conversion==XL6_FOREIGN_OUTPUT_CONVERSION_RETAINED_NATIVE ||
+                     module->foreignOutputViews[o].conversion==XL6_FOREIGN_OUTPUT_CONVERSION_OWNED_VALUE))retainedOutputs=1;
             int spans=0;
             for(size_t p=0;p<module->foreignParameterCount;++p)
                 if((module->foreignParameters[p].declaration==a->declaration || module->foreignParameters[p].declaration==b->declaration) &&

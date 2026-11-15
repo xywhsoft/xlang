@@ -2,8 +2,12 @@ static int xl6SemForeignSpanType(XL6_SemContext*,const XL6_AstNode*,const XL6_Fo
 static int xl6SemForeignHasRetainedOutputs(const XL6_AstNode* node)
 {
     const XL6_AstNode* attrs=xl6ForeignFunctionAttributes(node);
-    for(size_t i=0;attrs && i<attrs->childCount;++i)
+    for(size_t i=0;attrs && i<attrs->childCount;++i){
+        XL6_ForeignOutputViewContract output={0};
         if(attrs->children[i] && xl6TextEquals(attrs->children[i]->text,"c_output_retain"))return 1;
+        if(xl6ForeignOutputViewRead(attrs->children[i],&output) &&
+            output.conversion==XL6_FOREIGN_OUTPUT_CONVERSION_OWNED_VALUE)return 1;
+    }
     return 0;
 }
 /* Compare attribute trees as an unordered multiset. Logical names/defaults

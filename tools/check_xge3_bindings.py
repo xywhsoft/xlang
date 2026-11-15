@@ -1025,6 +1025,11 @@ def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_spa
     from xui_geometry_contracts import extend as extend_geometry
     extend_geometry(context,classes,mapped)
     # Native SetTheme copies both numeric arrays; no borrowed root is retained.
+    classes['DockPanel'] += [
+        ' extern "xuiDockPanelSaveState" @no_raise @c_output(1,0) @c_output_view(1,"owned_value") func saveState() as var',
+        ' extern "xuiDockPanelLoadState" @no_raise @c_result("status",0) func loadState(var state)']
+    free.append('export extern "xuiDockPanelStateGetCounts" @header("xge3_runtime.h") @no_raise @c_outputs(1,2,3) @c_status(0) func dockStateCounts(var state) as (c_int,c_int,c_int)')
+    mapped.update(xuiDockPanelSaveState='xui.DockPanel.saveState',xuiDockPanelLoadState='xui.DockPanel.loadState',xuiDockPanelStateGetCounts='xui.dockStateCounts')
     classes['CodeEdit']=[v for v in classes['CodeEdit'] if 'extern "xuiCodeEditSetTheme"' not in v]
     classes['CodeEdit'].append(' extern "xuiCodeEditSetTheme" @no_raise @c_result("status",0) func setTheme(CodeTheme theme)')
     mapped['xuiCodeEditSetTheme']='xui.CodeEdit.setTheme'

@@ -1,0 +1,22 @@
+// 将 Dock 布局保存在普通 var 中，再恢复隐藏前的布局。
+import xui
+from "./_window.xl" import Window
+
+Window.show("Dock state / save and restore",func(xui.Context ui,xui.Widget root)
+ auto dock=ui.dockPanelNative()
+ dock.setFont(ui.getDefaultFont())
+ Window.place(root,dock,24,24,640,360)
+ auto editor=ui.panelNative()
+ auto inspector=ui.panelNative()
+ c_int document=dock.addWindow("编辑区",editor)
+ c_int properties=dock.addWindow("属性",inspector)
+ dock.dockWindow(document,xui.XUI_DOCK_PANEL_REGION_DOCUMENT,xui.XUI_DOCK_PANEL_SIDE_FILL)
+ dock.dockWindow(properties,xui.XUI_DOCK_PANEL_REGION_RIGHT,xui.XUI_DOCK_PANEL_SIDE_FILL)
+
+ var saved=dock.saveState()
+ dock.hideWindow(properties)
+ dock.loadState(saved)
+ auto regions,windows,floating=xui.dockStateCounts(saved)
+ assert windows==2 and floating==0
+ println("Dock state: ",regions," 个区域，",windows," 个窗口，",floating," 个浮动窗口")
+end)

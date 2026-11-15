@@ -207,10 +207,13 @@ typedef enum XL6_ForeignOutputConversion {
     XL6_FOREIGN_OUTPUT_CONVERSION_TEXT,
     XL6_FOREIGN_OUTPUT_CONVERSION_BYTES,
     XL6_FOREIGN_OUTPUT_CONVERSION_RETAINED_NATIVE,
-    XL6_FOREIGN_OUTPUT_CONVERSION_CSTRING
+    XL6_FOREIGN_OUTPUT_CONVERSION_CSTRING,
+    XL6_FOREIGN_OUTPUT_CONVERSION_OWNED_VALUE
 } XL6_ForeignOutputConversion;
-/* Physical xstrview/xbytesview/const char* outputs become owned logical values before
- * native input/callback scopes end. Ordinary outputs occupy no row. */
+/* Physical borrowed text/bytes outputs become owned logical values before
+ * input/callback scopes end. OWNED_VALUE instead consumes one resident-XRT
+ * xvalue reference, including all of its native resource/code responsibilities.
+ * Ordinary outputs occupy no row. */
 typedef struct XL6_ForeignOutputViewContract {
     uint32 declaration,physicalIndex,ordinal,logicalType;
     XL6_ForeignOutputConversion conversion;

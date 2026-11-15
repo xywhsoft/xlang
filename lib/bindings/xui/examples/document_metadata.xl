@@ -1,0 +1,25 @@
+// 从 Markdown 的语义快照读取链接与节点信息；这里不会访问网络。
+import xui
+
+auto document=xui.createDocument(profile=c_uint(xui.XUI_DOCUMENT_MARKDOWN))
+document.loadMarkdown("[xlang](https://example.test \"在线教程\")\n")
+auto snapshot=document.snapshot()
+
+// 将源码中链接文字的位置转换为语义位置，无需手填原生结构大小。
+auto position,quality=snapshot.sourceToPosition(uint64(2))
+xui.DocumentRange selection
+selection.tAnchor=position
+selection.tCaret=position
+auto linked,mixed,uri,title=snapshot.linkInfo(selection)
+assert linked==1 and mixed==0 and uri!=null
+println("链接：",uri,"；标题：",title,"；位置映射：",quality)
+
+auto resource,info,caption,target,tip=snapshot.nodeTextInfo(position.iNodeId)
+println("节点资源：",resource,"；信息：",info,"；标题：",caption)
+println("图像外链：",target,"；外链标题：",tip)
+snapshot.close()
+document.close()
+
+// 返回的字符串是独立快照，关闭 Document 后仍可使用。
+assert (uri as string)=="https://example.test"
+println("Document metadata: independent text snapshot passed")

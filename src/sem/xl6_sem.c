@@ -9224,6 +9224,7 @@ static int xl6SemExternParameterListsCompatible(XL6_SemContext* ctx,const XL6_As
 #include "src/sem/xl6_sem_foreign_null_compat.c"
 #include "src/sem/xl6_sem_foreign_projection_compat.c"
 #include "src/sem/xl6_sem_foreign_owned_output_compat.c"
+#include "src/sem/xl6_sem_foreign_record_projection_compat.c"
 static int xl6SemExternCDeclsCompatible(XL6_SemContext* ctx, const XL6_AstNode* a, const XL6_AstNode* b,const XL6_AstNode* ownerClass)
 {
     if ( a == NULL || b == NULL ) {
@@ -9232,6 +9233,8 @@ static int xl6SemExternCDeclsCompatible(XL6_SemContext* ctx, const XL6_AstNode* 
     if ( a->kind == XL6_AST_EXTERN_FUNC || a->kind == XL6_AST_NATIVE_EXTERN_FUNC ) {
         XL6_ForeignCallFacts left, right;
         if (!xl6ForeignFunctionRead(a, &left) || !xl6ForeignFunctionRead(b, &right))return 0;
+        int recordCompatibility=xl6SemForeignRecordProjectionCompatible(ctx,a,b,ownerClass);
+        if(recordCompatibility>=0)return recordCompatibility;
         int ownedCompatibility=xl6SemForeignOwnedOutputCompatible(ctx,a,b,ownerClass);
         if(ownedCompatibility>=0)return ownedCompatibility;
         int nullCompatibility=xl6SemForeignNullPhysicalCompatible(ctx,a,b,ownerClass);

@@ -1,0 +1,150 @@
+extern "OutputValueRoot*" class Root @header("test/cases/foreign_output_snapshots.h") @lifetime("owned") @policy("outputValuePolicy") @scope("OutputValueScope")
+ native point handle
+ extern "outputValueRead" @no_raise @c_output_record(2,"OutputValueRecord","borrowed") @c_status(0) @c_output_size(2,"iSize") @c_output_field(0,"number") @c_output_field(1,"first","cstring") @c_output_field(2,"optional","cstring") @c_output_field(3,"same","retain",hold,"zero",drop) func read(c_int mode=0) as (c_int,string,string?,Root)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+ extern "outputValueRead" @no_raise @c_output_record(2,"OutputValueRecord","borrowed") @c_status(0) @c_output_size(2,"iSize") @c_output_field(0,"first","cstring") @c_output_field(1,"optional","cstring") func textInfo(c_int mode=0) as (string,string?)
+end
+extern "outputValueCreate" @header("test/cases/foreign_output_snapshots.h") @no_raise @c_result("owned_view") @factory(1,0,drop) func create(c_int mode=0) as Root
+extern "outputValueHold" @header("test/cases/foreign_output_snapshots.h") @no_raise func hold(Root root) as c_int
+extern "outputValueDrop" @header("test/cases/foreign_output_snapshots.h") @no_raise @c_result("status",0) func drop(Root root)
+extern "outputOwnedValue" @header("test/cases/foreign_output_snapshots.h") @no_raise @c_output(1,0) @c_output_view(1,"owned_value") func owned(c_int mode=0) as var
+extern "outputMixedValue" @header("test/cases/foreign_output_snapshots.h") @no_raise @c_outputs(0,1,2) @c_status(0) @c_output_view(0,"owned_value") @c_output_view(1,"cstring") @c_output_view(2,"cstring") func mixed(c_int mode=0) as (var,string,string?)
+extern "outputValueIdentity" @header("test/cases/foreign_output_snapshots.h") @no_raise @c_const(0) func identity(var value) as c_int
+extern "outputValueHeapBegin" @header("test/cases/foreign_output_snapshots.h") @no_raise func heapBegin()
+extern "outputValueHeapEqual" @header("test/cases/foreign_output_snapshots.h") @no_raise func heapEqual()
+extern "outputValueBudget" @header("test/cases/foreign_output_snapshots.h") @no_raise func budget(c_int count)
+extern "outputValueReset" @header("test/cases/foreign_output_snapshots.h") @no_raise func reset()
+extern "outputValueLive" @header("test/cases/foreign_output_snapshots.h") @no_raise func live() as c_int
+extern "outputValueReleaseCalls" @header("test/cases/foreign_output_snapshots.h") @no_raise func releaseCalls() as c_int
+extern "outputValueHotReport" @header("test/cases/foreign_output_snapshots.h") @no_raise func hotReport(c_int native)
+extern "outputValueNativeHot" @header("test/cases/foreign_output_snapshots.h") @no_raise func nativeHot()
+protocol Reader
+ func read(c_int mode) as (c_int,string,string?,Root)
+end
+func functional()
+ c_int released=releaseCalls()
+ auto root=create()
+ auto number,text,optional,same=root.read()
+ auto snapshot,maybe=root.textInfo()
+ assert snapshot==text and maybe!=null and (maybe as string)==""
+ assert number==73 and text=="A你好" and optional!=null and (optional as string)==""
+ same.close()
+ auto n2,t2,o2,s2=root.read(2)
+ assert o2==null and text=="A你好" and t2==text
+ s2.close()
+ func(c_int) as (c_int,string,string?,Root) bound=root.read
+ auto n3,t3,o3,s3=bound(0)
+ s3.close()
+ Reader reader=root
+ auto n4,t4,o4,s4=reader.read(0)
+ s4.close()
+ assert t3==text and t4==text
+ for mode in [1,3,99]
+  bool rejected=false
+  try
+   auto n,t,o,s=root.read(c_int(mode))
+   s.close()
+  catch Error
+   rejected=true
+  end
+  assert rejected
+ end
+ root.close()
+ assert text=="A你好"
+ var value=owned()
+ assert value as int==9876543210 and identity(value)==1
+ value=null
+ assert owned(5)==null
+ for mode in [1,2,6,7]
+  bool rejected=false
+  try
+   value=owned(c_int(mode))
+  catch Error
+   rejected=true
+  end
+  assert rejected and value==null
+ end
+ auto v,a,b=mixed()
+ assert identity(v)==1 and v as int==9876543210 and a=="first" and b!=null and (b as string)==""
+ auto v2,a2,b2=mixed(3)
+ assert identity(v2)==1 and b2==null
+ for mode in [1,2,4]
+  bool rejected=false
+  try
+   auto refused,first,last=mixed(c_int(mode))
+  catch Error
+   rejected=true
+  end
+  assert rejected
+ end
+ assert releaseCalls()==released+3
+end
+func oneBudget(c_int count) as (int,int)
+ int recordFailure=0
+ int mixedFailure=0
+ auto root=create()
+ c_int number=19
+ string text="kept"
+ string? optional="old"
+ Root same=root
+ bool received=false
+ budget(count)
+ try
+  number,text,optional,same=root.read()
+  received=true
+ catch Error
+  reset()
+  recordFailure=1
+  assert number==19 and text=="kept" and optional!=null and (optional as string)=="old" and same==root
+ finally
+  reset()
+ end
+ if received then same.close() end
+ root.close()
+ var value=null
+ text="kept"
+ optional="old"
+ budget(count)
+ try
+  value,text,optional=mixed()
+ catch Error
+  reset()
+  mixedFailure=1
+  assert value==null and text=="kept" and optional!=null and (optional as string)=="old"
+ finally
+  reset()
+ end
+ return recordFailure,mixedFailure
+end
+func main(...) as int
+ functional()
+ heapBegin()
+ functional()
+ heapEqual()
+ oneBudget(0)
+ int recordFailures=0
+ int mixedFailures=0
+ for count in range(64)
+  heapBegin()
+  auto r,m=oneBudget(c_int(count))
+  recordFailures+=r
+  mixedFailures+=m
+  heapEqual()
+  assert live()==0
+ end
+ assert recordFailures>0 and recordFailures<64 and mixedFailures>0 and mixedFailures<64
+ println("Output snapshot OOM: prefixes=64 record=",recordFailures," mixed=",mixedFailures)
+ heapBegin()
+ for i in range(1000)
+  var hot=owned()
+  assert identity(hot)==1
+ end
+ hotReport(0)
+ heapEqual()
+ heapBegin()
+ nativeHot()
+ hotReport(1)
+ heapEqual()
+ println("Output values: scoped C-string record snapshots, nullable/empty, retained peers, identity, owned values, checked failure and tuple OOM rollback passed")
+ return 0
+end

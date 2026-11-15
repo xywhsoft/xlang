@@ -38,6 +38,12 @@ static int xl6SemForeignOutputViews(XL6_SemContext* ctx,XL6_AstNode* node,
             attr->children[3]->semanticSymbolId=rollback->semanticSymbolId;
             continue;
         }
+        if(row.conversion==XL6_FOREIGN_OUTPUT_CONVERSION_OWNED_VALUE){
+            if(!result || result!=inner || result->childCount || !xl6TextEquals(result->text,"var") ||
+                !(node->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) ||
+                (node->flags&XL6_AST_FLAG_FOREIGN_PURE))goto invalid;
+            continue;
+        }
         const char* name=row.conversion==XL6_FOREIGN_OUTPUT_CONVERSION_BYTES ? "bytes":"string";
         if(!inner || inner->childCount || !xl6TextEquals(inner->text,name))goto invalid;
     }

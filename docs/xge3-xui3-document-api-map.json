@@ -507,7 +507,7 @@
       "native": "xuiDocumentSnapshotGetNode",
       "declaration": "int xuiDocumentSnapshotGetNode(xui_document_snapshot snapshot, xui_doc_node_id id, xui_doc_node_info_t* out)",
       "line": 723,
-      "logical": "DocumentSnapshot.nodeInfo",
+      "logical": "DocumentSnapshot.nodeInfo / DocumentSnapshot.nodeTextInfo",
       "state": "declared-needs-ABI",
       "reason": null
     },
@@ -939,7 +939,7 @@
       "native": "xuiDocumentTxnGetNode",
       "declaration": "int xuiDocumentTxnGetNode(xui_document_transaction transaction, xui_doc_node_id id, xui_doc_node_info_t* out)",
       "line": 913,
-      "logical": "DocumentTransaction.nodeInfo",
+      "logical": "DocumentTransaction.nodeInfo / DocumentTransaction.nodeTextInfo",
       "state": "declared-needs-ABI",
       "reason": null
     },
@@ -1243,7 +1243,7 @@
       "native": "xuiDocumentSnapshotQueryLink",
       "declaration": "int xuiDocumentSnapshotQueryLink(xui_document_snapshot snapshot, const xui_doc_range_t* range, xui_doc_link_info_t* out)",
       "line": 1139,
-      "logical": "DocumentSnapshot.linkState",
+      "logical": "DocumentSnapshot.linkState / DocumentSnapshot.linkInfo",
       "state": "declared-needs-ABI",
       "reason": null
     },
@@ -1849,13 +1849,15 @@
         "iExtensionVersion",
         "bExtensionRequired"
       ],
+      "projectedText": [
+        "sResource",
+        "sInfo",
+        "sTitle",
+        "sLinkTarget",
+        "sLinkTitle"
+      ],
       "notProjected": {
-        "tAttributes": "Contains borrowed sLanguage plus fixed font-family bytes; not pointer-free POD.",
-        "sResource": "Borrowed NUL text, unsupported output-record field conversion.",
-        "sInfo": "Borrowed NUL text.",
-        "sTitle": "Borrowed NUL text.",
-        "sLinkTarget": "Borrowed NUL text.",
-        "sLinkTitle": "Borrowed NUL text."
+        "tAttributes": "Contains nested borrowed sLanguage plus fixed font-family bytes; not a direct output-record member projection."
       },
       "safeTextAlternative": "copyText/readText and copySource/readSource write into scoped Buffer storage."
     },
@@ -1879,10 +1881,11 @@
         "bLinked",
         "bMixed"
       ],
-      "notProjected": {
-        "sUri": "Borrowed NUL text; no output-record string-field conversion.",
-        "sTitle": "Borrowed NUL text; no output-record string-field conversion."
-      }
+      "projectedText": [
+        "sUri",
+        "sTitle"
+      ],
+      "notProjected": {}
     },
     "xui_doc_attributes_t": {
       "input": "setAttributesColumns packs 13 scalar fields and nullable language; replaces the complete attributes value.",

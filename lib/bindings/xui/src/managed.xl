@@ -4032,6 +4032,10 @@ export extern "xui_widget_t*" class DockPanel @header("xge3_runtime.h") @lifetim
 
  extern "xuiDockPanelClear" @no_raise func clear() as c_int
 
+ extern "xuiDockPanelSaveState" @no_raise @c_output(1,0) @c_output_view(1,"owned_value") func saveState() as var
+
+ extern "xuiDockPanelLoadState" @no_raise @c_result("status",0) func loadState(var state)
+
  extern "xuiDockPanelSetWindowClient" @no_raise @c_result("status",0) func setWindowClient(c_int iWindow,Widget pClient)
 
  extern "xuiDockPanelGetWindowClient" @no_raise @c_result("owner_view",0) func getWindowClient(c_int iWindow) as Widget?
@@ -6232,3 +6236,5 @@ export extern "xuiScrollModelScreenToContent" @header("xge3_runtime.h") @no_rais
 export extern "xuiScrollModelContentToViewport" @header("xge3_runtime.h") @no_raise @c_ref(0) func scrollModelContentToViewport(ScrollModel pModel,c_float fX,c_float fY) as Vec2
 
 export extern "xuiScrollModelContentToScreen" @header("xge3_runtime.h") @no_raise @c_ref(0) func scrollModelContentToScreen(ScrollModel pModel,c_float fX,c_float fY) as Vec2
+
+export extern "xuiDockPanelStateGetCounts" @header("xge3_runtime.h") @no_raise @c_outputs(1,2,3) @c_status(0) func dockStateCounts(var state) as (c_int,c_int,c_int)

@@ -1,0 +1,229 @@
+{
+  "schema": 1,
+  "date": "2026-11-15",
+  "status": "qualified-output-record-text-and-owned-values",
+  "shippingDelivery": false,
+  "goalComplete": false,
+  "sourceHeadBefore": "12f5770e342f1401dac48a29000e4edac7450bf5",
+  "sourceHeadAtStart": "15249bf3b39a133a12f2126a3419ec2a3fb3de54",
+  "concurrentCommitPreserved": "12f5770e342f1401dac48a29000e4edac7450bf5",
+  "nativeRevision": "766c039e9fc3c7a1ddd9702140befcb8c931f168",
+  "nativeRebuilt": false,
+  "compilerRebuilt": true,
+  "approvedContracts": {
+    "outputRecordStrings": "Borrowed direct const char* fields copied inside native input scope to independent string/string?; preserve NULL/empty, all result fields rollback together on conversion/cleanup failure.",
+    "ownedValue": "Exact resident-XRT xvalue** transfers one owning reference to var without clone/retain or a new value shell; raw/partial delivery failures release it; result tree must already own all resource/code responsibilities."
+  },
+  "publicDeclarations": [
+    "DocumentSnapshot.nodeTextInfo",
+    "DocumentTransaction.nodeTextInfo",
+    "DocumentSnapshot.linkInfo",
+    "DockPanel.saveState",
+    "DockPanel.loadState",
+    "xui.dockStateCounts"
+  ],
+  "examples": [
+    "lib/bindings/xui/examples/document_metadata.xl",
+    "lib/bindings/xui/examples/dock_state.xl"
+  ],
+  "sourceSha256": {
+    "src/type/xl6_foreign_call_contract.h": "51b99fb315781a026b9d158c9f75cf5e66b9ba8a741627aa5fda19132547c6f5",
+    "src/type/xl6_foreign_decl.h": "4e8b4618927c6dbbe283cd7fb0d6676e8f08b51c2a96ce532fa4bc32020d4365",
+    "src/type/xl6_foreign_output_record_decl.h": "0db89943c13d7b2024dc120f138c0b84f4f53be1de3e742d0e06d63415d1cbc8",
+    "src/sem/xl6_sem_foreign_output_record.c": "420aa390621c7c7a772f2821b00cabe7f194fa80d64c2f85335032247855fa97",
+    "src/sem/xl6_sem_foreign_output_view.c": "92dfab80c79b03d09bfbd30d1e7b7799ce14b19273404e9462fdc49cd8335acb",
+    "src/sem/xl6_sem_foreign_compat.c": "f91bd0a8551eaa8bcc4908781d326f1209122d0292a0daee30e01668cda51d6a",
+    "src/sem/xl6_sem_foreign_record_projection_compat.c": "ef3246504566dd73175251c7109fb4a74fa8519859ae80677459d80935b43799",
+    "src/sem/xl6_sem.c": "8dc9c7e83118ca09a5916266c40018adced69c557bf3cd081a87c9c8743dc7e5",
+    "src/ir/xl6_ir_foreign_output_record.c": "d61827cf9a883d4258480a99c467e75080dad438f92d9847d25662c89c5c2e73",
+    "src/ir/xl6_ir_foreign_output_view.c": "e9abc50e6426c93888467c28fd80caec0bb690c013c8c3f1c2ae3eea377db2ec",
+    "src/ir/xl6_ir_foreign_compat.c": "642e097317c7ed9a4083b4e96b9b695482744370b20c6878f9acd2bc20ddfded",
+    "src/cgen/xl6_ir_cgen_foreign_output_view.c": "a9088905aee69c78743e9a2731ac5d47006980d5029c203d227b1e0865181930",
+    "lib/bindings/xui/src/document.xl": "6a93bedf976e1de011933006256700eb612b29bf40721f5a500273ada9c20234",
+    "lib/bindings/xui/src/managed.xl": "b61ffa9e8541787012a3460c0b545893c1544757d965eb347dfcaea9e06ef35a",
+    "tools/gen_xge3_document_bindings.py": "1ce6853a34fbd40e751bf1978fcfaf9bc4b5408f71b576d981f51ac6f7e9f32b",
+    "tools/check_xge3_bindings.py": "306e94bda2bdf6611fe9a2f3fc0f778be8ab833da2d44577eca85f3e65116ab2",
+    "docs/xge3-xui3-document-api-map.json": "f866fcb9fa0abe2be10abc1a63a35acbb51b2adb9bb0bc2be906f3c311a50201",
+    "docs/foreign-output-snapshots.md": "010aa60b56d2c3a6ea6a5ef42e9ec3834bdca965590a546e116baf11d4f29f86",
+    "docs/xge3-xui3-full-coverage-plan.md": "aa15f4374bf8452a84b7f4d12ead18fb5a35f21fb45191954a9fdc0ee21ca97b",
+    "lib/bindings/xui/examples/README.md": "88ef9757a7c643c41e6616569fc7792bb7ff696b0f5ca702cc872c706545b3fa",
+    "lib/bindings/xui/examples/document_metadata.xl": "c49f15a28b325c1fed77af0ab2fcb547dd592b4541f5ddde3e0a2e9ade494a05",
+    "lib/bindings/xui/examples/dock_state.xl": "d3b098953e2c60ea583857097b811a50cc175428c210603c244124b2f3f40d56",
+    "test/cases/foreign_output_snapshots.h": "108c5a65051187f3fa091947354ce4b51113e4415f354e20008da3e95586bfac",
+    "test/cases/foreign_output_snapshots.c": "5e3801a54caea24e845b4593b9cd869d2f95c40619946a84a1bc0bf6a3bae148",
+    "test/cases/foreign_output_snapshots.xl": "b39f209f1f3ddd536b7d567be4b091b5130ffe4ce87df6dc215d0cabdcf1cfe3",
+    "test/cases/foreign_output_snapshots_ir.c": "43755fce52d317de64bdb8768307ffa4ef5983cc4f0012ba02eedfe62c066f90",
+    "test/cases/foreign_xui_state_outputs.h": "32f797f7e318ed84a21b2478d60a3e8edcb866d2cf8779e30235e84d1892b038",
+    "test/cases/foreign_xui_state_outputs.c": "cec46747936e67c9f8914f6f1ebe820d775fc645c679908385db53ed7dd17cbc",
+    "test/cases/foreign_xui_state_outputs.xl": "c72caa87aaa5576c0c550553034b0771bb550c8f51728405b767545518a72707",
+    "test/cases/foreign_xui_state_outputs_native.c": "1f44c42a5f847ac6fb6e81c3b99c82d058f6829bcef1cf5d5070234163012c19",
+    "tools/check_foreign_output_snapshots.py": "e9dfd06af616943d37a4d82865707a1e2106d656c1510449619e1068bcb62a8b",
+    "tools/check_xui_state_outputs.py": "66453285516bad7659245c2f025040f95c6ea5d54111f969338ae669a25d7c0e"
+  },
+  "reports": {
+    "output-values-verified-win-r1.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\output-values-verified-win-r1.json",
+      "sha256": "6d9342195977203ae39389f267799bb0c0a87037e5b926d37781f0928ca24e40",
+      "steps": 64
+    },
+    "output-values-verified-linux-r1.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\output-values-verified-linux-r1.json",
+      "sha256": "84e12c5daeff1243a85e2e9b5356ca79f1df9be663ad6b22039bdeb2a762823f",
+      "steps": 64
+    },
+    "output-snapshots-ir-final-win-r1/results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\output-snapshots-ir-final-win-r1\\results.json",
+      "sha256": "24b64363f6ffddabbebddb4201e179072b33937b0fea8b42166cf332df0e46a3",
+      "steps": 0
+    },
+    "output-snapshot-regressions-win-r1/results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\output-snapshot-regressions-win-r1\\results.json",
+      "sha256": "dfda360c5fedb0c36aebe9eb578997d6bf417c260f49a73b7ff06bf06d366826",
+      "steps": 6
+    },
+    "output-values-generator-replay-win-r1.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\output-values-generator-replay-win-r1.json",
+      "sha256": "5d61e945642c75da4b541be5b668013c529f45ddda5889a81dee3d87addee719",
+      "steps": 0
+    }
+  },
+  "compilerReports": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-output-values-full-r43\\build.json",
+      "sha256": "dff29bf0d4955354ba13fbd8172dcc94e4889ca790305e71abc23f8620f9508e",
+      "sourceFreeze": "F:\\xlang-validation\\xge-full-20261110\\compiler-output-values-full-r43\\freeze.json",
+      "sourceFreezeSha256": "b4aab67e458838df0c07b695e2d62b0a0fc71b7c91f47352984795af89677982",
+      "optimization": "O2",
+      "fullCompilerTccXrtVfs": true
+    },
+    "linux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-output-values-linux-full-r36\\build.json",
+      "sha256": "f06601a63449d54fc3dc9ada8e1ee6a37b56d7938df9cf5081050638c766cc3a",
+      "sourceFreeze": "F:\\xlang-validation\\xge-full-20261110\\compiler-output-values-linux-full-r36\\freeze.json",
+      "sourceFreezeSha256": "3358c2993a2ee5b7d82d8032f961b221c09c5015031491692a5314834a0b72b2",
+      "optimization": "O2",
+      "fullCompilerTccXrtVfs": true
+    }
+  },
+  "packages": {
+    "win": {
+      "host": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\output-values-packages-win-r2\\host",
+        "report": "F:\\xlang-validation\\xge-full-20261110\\output-values-packages-win-r2-host.json",
+        "sha256": "a324c77c611cfb7c3f26b05e2b635162ccce8d4e9660f252492f581f0bf828f2"
+      },
+      "static": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\output-values-packages-win-r2\\static",
+        "report": "F:\\xlang-validation\\xge-full-20261110\\output-values-packages-win-r2-static.json",
+        "sha256": "2b67deedbfdccbf1a1f9342ef3724b428bdbe79b0109b603b28463ff3252195d"
+      }
+    },
+    "linux": {
+      "host": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\output-values-packages-linux-r2\\host",
+        "report": "F:\\xlang-validation\\xge-full-20261110\\output-values-packages-linux-r2-host.json",
+        "sha256": "0c209aea0b80172668c8fdd53c8b077bb075a34a6e67e7218c8e5bdbec29b4df"
+      },
+      "static": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\output-values-packages-linux-r2\\static",
+        "report": "F:\\xlang-validation\\xge-full-20261110\\output-values-packages-linux-r2-static.json",
+        "sha256": "ed214186d47d19df188a109b25725e2406ad239cd90cd7b3edeacb8adf1650e0"
+      }
+    }
+  },
+  "nativeAuthoritySha256": {
+    "include/xui.h": "827b97a8b44e72ac9337986f98e0ead6c32a8d0cf122473d77d571e28ab5501d",
+    "include/xui_document.h": "b163fa5448dc811926c28edf9001319b10148b07407882b72ecbacee14a02a38",
+    "src/xui/controls/xui_dock_panel.c": "5ef869a6dd4dbdc808833ccd99492810cbf92a2dba08e46a700554e03bbd4a24",
+    "src/xui/document/xui_document.c": "a8712c6144c650769150bc97d8c7b57974e3828e88db1af2304905a654504c4a",
+    "src/xui/document/xui_document_range.c": "a55f8227c3afd2655e16f4d3c58c36cade15468a3ff75a209b84ee2395441fd7"
+  },
+  "surface": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\output-values-surface-r1\\surface.json",
+    "sha256": "0a465fd1274c26fc6a0aebf96b32812906cedfffcef874cb495f5d81e1762eff",
+    "population": 5217,
+    "declarationsPresent": 3870,
+    "meaning": "Declaration presence only; not all-API lifetime/ABI/runtime completion."
+  },
+  "checks": {
+    "stepsPerPlatform": 64,
+    "genericPerPlatform": 27,
+    "realApiPerPlatform": 30,
+    "boundedWindowPerPlatform": 7,
+    "irMutationsWindows": 462,
+    "existingRuntimeRegressionWindows": 6,
+    "headerStandards": [
+      "C11",
+      "C++11",
+      "C++17"
+    ],
+    "networkTests": false,
+    "allInputHashesRechecked": true,
+    "scopeExpiry": true,
+    "nativeStatusAndError": true,
+    "NULLVsEmpty": true,
+    "ownedPointerIdentity": true,
+    "releaseCallbackErrors": true,
+    "wholeResultRollback": true
+  },
+  "costs": {
+    "overallZeroBridgeOverheadClaim": false,
+    "cpuEquivalenceClaim": false,
+    "ownedValue": {
+      "rounds": 1000,
+      "language": {
+        "alloc": 1000,
+        "free": 1000,
+        "realloc": 0
+      },
+      "native": {
+        "alloc": 1000,
+        "free": 1000,
+        "realloc": 0
+      },
+      "copies": 0,
+      "clones": 0,
+      "extraValueShells": 0
+    },
+    "dock": {
+      "rounds": 100,
+      "language": {
+        "alloc": 19900,
+        "free": 19900,
+        "realloc": 0
+      },
+      "native": {
+        "alloc": 19900,
+        "free": 19900,
+        "realloc": 0
+      }
+    },
+    "cstring": "NUL scan and independent text copy before native scope teardown; nullable tags and owning group cleanup remain.",
+    "ownedAdmissionCalls": "Current generated successful admission segment still calls xrtGetError three times, xrtTakeError once, xrtValueRelease(NULL) once and xrtSetErrorTake once; native status, input scopes/thread/code leases and final assignment add their ordinary checks. Allocation counts do not measure these costs."
+  },
+  "limits": [
+    "Final matched runtime/compiler/SDK/IDE/help delivery is still pending; nothing installed, versioned or pushed.",
+    "Dock load follows native partial-failure semantics; whole-result rollback is not undo of producer side effects.",
+    "Only direct const char* fields; nested pointer records and fixed C string arrays are not projected.",
+    "Owned-value trees from another XRT or with missing resource/code lifetime are invalid producer contracts; adoption does not scan or repair them.",
+    "IR damage gate is Windows O0 over exact full O2 r43 source; no Linux IR mutation binary was built.",
+    "Copied cohort private SDK headers predated c_integer_arithmetic; generic GCC gate stages the exact 516 VFS-selected headers. Final delivery must stage fresh headers.",
+    "Backend execution budgets differ: record outputs fail 5 JIT/TCC prefixes and 4 GCC-host prefixes; all 64 prefixes per family are checked and balanced.",
+    "Known CLI unhandled-error drain/exit and large-function default Windows stack policy remain outside this batch."
+  ],
+  "runtimeInstalled": false,
+  "currentDeliveryModified": false,
+  "versionChanged": false,
+  "pushed": false,
+  "repositoryBudget": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\output-values-git-budget-r1.json",
+    "sha256": "fbd21995b1b872dc459eaded45f4f714b0474d47b716fd1ae360d4dbe77f833a",
+    "hardGatePassed": true,
+    "standalonePackMiB": 168.17
+  },
+  "followUps": [
+    "Optimize the current successful owned-admission empty-raw cleanup/error calls while retaining the same checked cleanup contract; no overall zero-cost call claim in this batch.",
+    "Refresh owned-value/output-record IR diagnostics in the next compiler-core batch.",
+    "Existing implicit tuple assignment from an owned resource field to a nullable destination is rejected by the exact protected-field transaction; current record tests intentionally use exact destination types. Generic nullable widening lowering remains a separate integration follow-up."
+  ]
+}

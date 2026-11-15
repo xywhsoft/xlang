@@ -92,7 +92,8 @@ static inline int xl6ForeignOutputViewRead(const XL6_AstNode* attr,XL6_ForeignOu
         !xl6ForeignQuotedText(attr->children[1],kind,sizeof(kind)))return 0;
     row.conversion=!strcmp(kind,"text") ? XL6_FOREIGN_OUTPUT_CONVERSION_TEXT :
         !strcmp(kind,"bytes") ? XL6_FOREIGN_OUTPUT_CONVERSION_BYTES :
-        !strcmp(kind,"cstring") ? XL6_FOREIGN_OUTPUT_CONVERSION_CSTRING : XL6_FOREIGN_OUTPUT_CONVERSION_INVALID;
+        !strcmp(kind,"cstring") ? XL6_FOREIGN_OUTPUT_CONVERSION_CSTRING :
+        !strcmp(kind,"owned_value") ? XL6_FOREIGN_OUTPUT_CONVERSION_OWNED_VALUE : XL6_FOREIGN_OUTPUT_CONVERSION_INVALID;
     if(!row.conversion)return 0;
     row.physicalIndex=(uint32)index;if(output)*output=row;return 1;
 }

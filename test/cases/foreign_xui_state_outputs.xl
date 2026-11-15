@@ -1,0 +1,189 @@
+import xui
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_state_outputs.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy proxy)
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "fixtureStateBegin" @no_raise func heapBegin()
+extern "fixtureStateEqual" @no_raise func heapEqual()
+extern "fixtureStateBudget" @no_raise func budget(c_int n)
+extern "fixtureStateReset" @no_raise func reset()
+extern "fixtureStateBound" @no_raise func bound() as c_int
+extern "fixtureStateHotReport" @no_raise func report(c_int native)
+extern "fixtureStateNativeHot" @no_raise func nativeHot(xui.DockPanel dock)
+extern "fixtureStateRange" @no_raise func nodeRange(xui.DocumentSnapshot snapshot,uint64 paragraph) as xui.DocumentRange
+extern "fixtureStateDocRange" @no_raise func documentRange(xui.Document document,uint64 paragraph) as xui.DocumentRange
+extern "fixtureStateNodeCheck" @no_raise @c_cstr(2) @c_cstr(3) @c_cstr(4) @c_cstr(5) @c_cstr(6) func checkNode(xui.DocumentSnapshot snapshot,uint64 node,string resource,string info,string title,string target,string tip)
+extern "fixtureStateLinkCheck" @no_raise @c_ref(1) @c_cstr(4) @c_cstr(5) func checkLink(xui.DocumentSnapshot snapshot,xui.DocumentRange range,c_int linked,c_int mixed,string uri,string title)
+extern "fixtureStateDockCheck" @no_raise func checkDock(xui.DockPanel dock,var state)
+extern "fixtureStateWindowCheck" @no_raise func checkWindow(xui.DockPanel dock,c_int window,c_int expected)
+
+protocol NodeTextReader
+ func nodeTextInfo(uint64 node) as (string?,string?,string?,string?,string?)
+end
+
+func metadataBudget(xui.DocumentSnapshot snapshot,uint64 node,int count) as int
+ string? a="kept"
+ string? b="kept"
+ string? c="kept"
+ string? d="kept"
+ string? e="kept"
+ int failure=0
+ budget(c_int(count))
+ try
+  a,b,c,d,e=snapshot.nodeTextInfo(node)
+ catch Error
+  reset()
+  failure=1
+  assert a!=null and b!=null and c!=null and d!=null and e!=null
+  assert (a as string)=="kept" and (b as string)=="kept" and (c as string)=="kept" and (d as string)=="kept" and (e as string)=="kept"
+ finally
+  reset()
+ end
+ return failure
+end
+
+func documentMetadata()
+ auto document=xui.createDocument()
+ auto edit=document.beginTransaction()
+ uint64 paragraph=edit.insertNode(xui.XUI_DOCUMENT_ROOT,xui.XUI_DOCUMENT_APPEND,c_uint(xui.XUI_DOC_PARAGRAPH))
+ uint64 image=edit.insertNode(paragraph,xui.XUI_DOCUMENT_APPEND,c_uint(xui.XUI_DOC_IMAGE),text="图片",resource="asset.png",info="image-kind",title="")
+ edit.setLink(documentRange(document,paragraph),"https://example.test","说明")
+ uint64 plain=edit.insertNode(xui.XUI_DOCUMENT_ROOT,xui.XUI_DOCUMENT_APPEND,c_uint(xui.XUI_DOC_PARAGRAPH))
+ edit.insertNode(plain,xui.XUI_DOCUMENT_APPEND,c_uint(xui.XUI_DOC_TEXT),text="unlinked")
+ auto tr,ti,tt,tu,tl=edit.nodeTextInfo(image)
+ assert tr!=null and (tr as string)=="asset.png"
+ auto changes=edit.commit()
+ edit.close()
+ changes.close()
+ auto snapshot=document.snapshot()
+ auto r,i,t,u,l=snapshot.nodeTextInfo(image)
+ assert r!=null and i!=null and t!=null and u!=null and l!=null
+ checkNode(snapshot,image,r as string,i as string,t as string,u as string,l as string)
+ assert r!=null and u!=null and (u as string)=="https://example.test"
+ NodeTextReader reader=snapshot
+ auto pr,pi,pt,pu,pl=reader.nodeTextInfo(image)
+ assert pr==r and pi==i and pt==t and pu==u and pl==l
+ func(uint64) as (string?,string?,string?,string?,string?) read=snapshot.nodeTextInfo
+ auto br,bi,bt,bu,bl=read(image)
+ assert br==r and bi==i and bt==t and bu==u and bl==l
+ auto selection=nodeRange(snapshot,paragraph)
+ auto linked,mixed,uri,title=snapshot.linkInfo(selection)
+ assert linked==1 and mixed==0 and uri!=null and title!=null and (uri as string)=="https://example.test"
+ checkLink(snapshot,selection,linked,mixed,uri as string,title as string)
+ auto unlinked,mixedPlain,noUri,noTitle=snapshot.linkInfo(nodeRange(snapshot,plain))
+ assert unlinked==0 and mixedPlain==0 and noUri==null and noTitle==null
+ int failures=0
+ metadataBudget(snapshot,image,0)
+ for count in range(64)
+  heapBegin()
+  failures+=metadataBudget(snapshot,image,count)
+  heapEqual()
+ end
+ assert failures>0 and failures<64
+ bool rejected=false
+ try
+  auto a,b,c,d,e=snapshot.nodeTextInfo(uint64(99999))
+ catch Error
+  rejected=true
+ end
+ assert rejected
+ snapshot.close()
+ rejected=false
+ try
+  auto a,b,c,d,e=snapshot.nodeTextInfo(image)
+ catch Error
+  rejected=true
+ end
+ assert rejected
+ document.close()
+ assert (r as string)=="asset.png" and (u as string)=="https://example.test" and (tr as string)=="asset.png"
+ println("Document metadata OOM: prefixes=64 failures=",failures)
+end
+
+func saveBudget(xui.DockPanel dock,int count) as int
+ var state=null
+ int failure=0
+ budget(c_int(count))
+ try
+  state=dock.saveState()
+ catch Error
+  reset()
+  assert state==null
+  failure=1
+ finally
+  reset()
+ end
+ return failure
+end
+
+func dockState()
+ auto proxy=cpuProxy()
+ auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ auto dock=ui.dockPanelNative()
+ auto one=ui.panelNative()
+ auto two=ui.panelNative()
+ c_int first=dock.addWindow("One",one)
+ c_int second=dock.addWindow("Two",two)
+ dock.dockWindow(first,xui.XUI_DOCK_PANEL_REGION_DOCUMENT,xui.XUI_DOCK_PANEL_SIDE_FILL)
+ xui.Rect rectangle
+ rectangle.fX=c_int(10)
+ rectangle.fY=c_int(20)
+ rectangle.fW=c_int(200)
+ rectangle.fH=c_int(160)
+ assert dock.floatWindow(second,rectangle)==0
+ heapBegin()
+ var state=dock.saveState()
+ int prefixes=int(bound())
+ state=null
+ heapEqual()
+ int failures=0
+ for count in range(prefixes)
+  heapBegin()
+  failures+=saveBudget(dock,count)
+  heapEqual()
+ end
+ assert failures>0 and failures<prefixes
+ state=dock.saveState()
+ auto regions,windows,floating=xui.dockStateCounts(state)
+ assert regions==xui.XUI_DOCK_PANEL_REGION_COUNT and windows==2 and floating==1
+ checkDock(dock,state)
+ assert dock.hideWindow(first)==0
+ dock.loadState(state)
+ checkWindow(dock,first,xui.XUI_DOCK_PANEL_WINDOW_DOCKED)
+ bool rejected=false
+ try
+  dock.loadState(null)
+ catch Error
+  rejected=true
+ end
+ assert rejected
+ heapBegin()
+ for i in range(100)
+  var current=dock.saveState()
+ end
+ report(0)
+ heapEqual()
+ heapBegin()
+ nativeHot(dock)
+ report(1)
+ heapEqual()
+ dock.close()
+ rejected=false
+ try
+  var refused=dock.saveState()
+ catch Error
+  rejected=true
+ end
+ assert rejected
+ ui.close()
+ proxy.close()
+ auto r,w,f=xui.dockStateCounts(state)
+ assert w==2 and f==1 and balanced()==1
+ println("Dock state OOM: prefixes=",prefixes," failures=",failures)
+end
+
+func main(...) as int
+ documentMetadata()
+ dockState()
+ println("State outputs: Document snapshots, tuple rollback, Dock owned values, load/counts and independent lifetime passed")
+ return 0
+end

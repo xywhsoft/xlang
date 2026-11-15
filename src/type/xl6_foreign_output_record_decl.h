@@ -13,10 +13,14 @@ static inline int xl6ForeignOutputFieldRead(const XL6_AstNode* attr,XL6_ForeignO
     XL6_ForeignOutputViewContract* conversion)
 {
     XL6_ForeignOutputFieldContract row={0};XL6_ForeignOutputViewContract view={0};int32 ordinal;
-    if(!attr || !attr->text || strcmp(attr->text,"c_output_field") || (attr->childCount!=2 && attr->childCount!=6) ||
+    if(!attr || !attr->text || strcmp(attr->text,"c_output_field") || (attr->childCount!=2 && attr->childCount!=3 && attr->childCount!=6) ||
         !xl6ForeignDecimalInt(attr->children[0],&ordinal) || ordinal<0 || ordinal>=64 ||
         !xl6ForeignQuotedText(attr->children[1],row.field,sizeof(row.field)) || !xl6ForeignIdentifier(row.field) || row.field[0]=='_')return 0;
     row.ordinal=(uint32)ordinal;
+    if(attr->childCount==3){char kind[16];
+        if(!xl6ForeignQuotedText(attr->children[2],kind,sizeof(kind)) || strcmp(kind,"cstring"))return 0;
+        view.ordinal=row.ordinal;view.conversion=XL6_FOREIGN_OUTPUT_CONVERSION_CSTRING;
+    }
     if(attr->childCount==6){
         char kind[16],success[16];
         if(!xl6ForeignQuotedText(attr->children[2],kind,sizeof(kind)) || strcmp(kind,"retain") ||

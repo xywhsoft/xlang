@@ -234,3 +234,11 @@ inserts a Unicode heart through the input-result API and updates a status label.
 `control_items.xl` 在一个窗口中批量创建面包屑、菜单栏和状态栏条目。同一下标的
 列组成同一条目；状态栏用具名参数标明宽度、分区和进度范围。菜单由同一 Context
 管理；显式关闭被引用菜单时，原生菜单栏会清除弱引用并禁用对应项。
+
+`document_metadata.xl` 不创建窗口，从 Markdown 快照读取链接和节点文本信息。
+关闭模型后仍可使用返回的字符串；预期输出 `Document metadata: independent
+text snapshot passed`。示例中的网址仅是文档数据，不会发起网络请求。
+
+`dock_state.xl` 创建编辑区和属性两个窗口，用 `var` 保存布局、隐藏属性窗口、
+再载入保存的布局。最终窗口数为 2，浮动窗口数为 0。布局值可以独立于 Dock
+存活；`loadState` 遵循原生载入语义，不承诺原生操作失败后的布局整体回滚。

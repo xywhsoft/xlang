@@ -16,7 +16,8 @@ static const char* xl6IrCgenOutputRawType(const XL6_IrModule* module,
     const XL6_ForeignOutputViewContract* row=xl6IrForeignOutputViewGet(module,target,ordinal);
     return row ? row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_TEXT ? "xstrview":
         row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_BYTES ? "xbytesview":
-        row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_CSTRING ? "const char*":xl6IrTypeGet(&module->types,row->logicalType)->cName:
+        row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_CSTRING ? "const char*":
+        row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_OWNED_VALUE ? "xvalue*":xl6IrTypeGet(&module->types,row->logicalType)->cName:
         xl6IrCgenType(module,xl6IrForeignOutputType(module,target,ordinal));
 }
 /* Consume only the verified output type. Fixed values retain their complete
@@ -93,7 +94,7 @@ static int xl6IrCgenOutputRecordProof(XL6_Output* out,const XL6_IrModule* module
         const XL6_ForeignOutputViewContract* view=xl6IrForeignOutputViewGet(module,target,o);
         const XL6_IrType* type=field ? xl6IrTypeGet(&module->types,field->logicalType):NULL;
         if(!field || !type)return 0;
-        const char* physical=view ? type->cName:xl6IrCgenType(module,field->logicalType);
+        const char* physical=view ? (view->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_CSTRING ? "const char*":type->cName):xl6IrCgenType(module,field->logicalType);
         xl6OutputPrintf(out,"XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(((%s*)0)->%s,%s), \"borrowed output record field type\");\n",
             record->recordCName,field->field,physical);
     }
@@ -215,7 +216,11 @@ static int xl6IrCgenOutputValuesAdmit(XL6_Output* out,const XL6_IrModule* module
             if(!field)return 0;
             snprintf(raw,sizeof(raw),"native_raw.%s",field->field);
         }
-        if(row && row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_RETAINED_NATIVE){
+        if(row && row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_OWNED_VALUE){
+            xl6OutputPrintf(out,"    if(!%s.failed && !xrtGetError()) { %s=%s; %s=NULL; }\n"
+                "    { xerror* output_value_error=xrtTakeError(); xrtValueRelease(%s); %s=NULL; if(xrtGetError())xl6ErrorScopeCaptureFailure(&%s); xrtSetErrorTake(output_value_error); }\n",
+                scope,admitted,raw,raw,raw,raw,scope);
+        }else if(row && row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_RETAINED_NATIVE){
             XL6_ForeignRetainContract retain={0};retain.retainSymbol=row->retainSymbol;retain.rollbackSymbol=row->rollbackSymbol;retain.success=row->retainSuccess;
             char probe[48];snprintf(probe,sizeof(probe),"native_output_probe_%lu",(unsigned long)ordinal);
             xl6OutputPuts("    {\n",out);
@@ -238,9 +243,11 @@ static int xl6IrCgenOutputValuesAdmit(XL6_Output* out,const XL6_IrModule* module
             xl6OutputPrintf(out,"        if (%s && !xl6ForeignViewReleaseV1(%s)) xl6ErrorScopeCaptureFailure(&%s);\n",admitted,admitted,scope);
             continue;
         }
-        const char* drop=row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_BYTES ? "xrtValueRelease":"xlir_string_drop";
+        const char* drop=(row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_BYTES || row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_OWNED_VALUE) ? "xrtValueRelease":"xlir_string_drop";
         if(count>1)xl6OutputPrintf(out,"        %s(native_admitted.e%lu);\n",drop,(unsigned long)ordinal);
         else xl6OutputPrintf(out,"        %s(native_admitted);\n",drop);
+        if(row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_OWNED_VALUE)
+            xl6OutputPrintf(out,"        if(xrtGetError())xl6ErrorScopeCaptureFailure(&%s);\n",scope);
     }
     xl6OutputPuts("        xrtSetErrorTake(output_view_error);\n    }\n",out);return !xl6OutputHasFailed(out);
 }

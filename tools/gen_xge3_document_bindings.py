@@ -163,6 +163,18 @@ for nativeName,cl,mn,ct,slot,params,fields in [
  attrs+=['@c_output_field('+str(i)+',"'+field+'")' for i,field in enumerate(fields)]
  classes[cl].append(' extern "'+nativeName+'" '+' '.join(attrs)+' func '+mn+'('+params+') as ('+','.join(fieldTypes[f] for f in fields)+')')
  mapped[nativeName]=cl+'.'+mn;reasons.pop(nativeName,None)
+# Borrowed strings are copied before the native input scope ends. Keep scalar
+# projections intact and offer explicitly named text companions.
+for nativeName,cl,mn,ct,params,fields in [
+ ('xuiDocumentSnapshotGetNode','DocumentSnapshot','nodeTextInfo','xui_doc_node_info_t','uint64 node',['sResource','sInfo','sTitle','sLinkTarget','sLinkTitle']),
+ ('xuiDocumentTxnGetNode','DocumentTransaction','nodeTextInfo','xui_doc_node_info_t','uint64 node',['sResource','sInfo','sTitle','sLinkTarget','sLinkTitle']),
+ ('xuiDocumentSnapshotQueryLink','DocumentSnapshot','linkInfo','xui_doc_link_info_t','DocumentRange range',['bLinked','bMixed','sUri','sTitle'])]:
+ attrs=['@no_raise','@c_output_record(2,"'+ct+'","borrowed")','@c_output_size(2,"iSize")','@c_status(0)']
+ if 'DocumentRange' in params:attrs+=['@c_ref(0)']
+ attrs+=['@c_output_field('+str(i)+',"'+field+'"'+(',"cstring"' if field.startswith('s') else '')+')' for i,field in enumerate(fields)]
+ returns=['string?' if field.startswith('s') else 'c_int' for field in fields]
+ classes[cl].append(' extern "'+nativeName+'" '+' '.join(attrs)+' func '+mn+'('+params+') as ('+','.join(returns)+')')
+ mapped[nativeName]+=' / '+cl+'.'+mn
 # Simple node/image descriptors copy all named inputs before returning. Native attributes default to zero.
 for nativeName,mn,slot,outSlot,params,fields,outputs in [
  ('xuiDocumentTxnInsertNode','insertNode',3,[4],'uint64 parent,uint64 childIndex,c_uint kind,string text="",string? resource=null,string? info=null,string? title=null,string? linkTarget=null,string? linkTitle=null', [('iKind',2,'value'),('sText',3,'text_data'),('iTextBytes',3,'text_size'),('sResource',4,'c_string'),('sInfo',5,'c_string'),('sTitle',6,'c_string'),('sLinkTarget',7,'c_string'),('sLinkTitle',8,'c_string')], ['uint64']),
@@ -243,9 +255,9 @@ for entry in report['entries']:
   entry['reason']='Owned resident-XRT export; ordinary paired byte/text declarations consume exact length. FreeBuffer remains internal to language cleanup.'if entry['native']!='xuiDocumentFreeBuffer'else'Resident-XRT release is handled by language value cleanup; no public raw output pointer.'
  if name in replacements:entry['reason']=replacements[name]
 report['fields']={
- 'xui_doc_node_info_t':dict(projectedPOD=['iKind','iId','iParentId','iChildCount','iTextBytes','iSourceStart','iSourceEnd','bSourceExact','iSyntaxStart','iSyntaxEnd','iSourceSegmentCount','iExtensionPayloadBytes','iExtensionVersion','bExtensionRequired'],notProjected=dict(tAttributes='Contains borrowed sLanguage plus fixed font-family bytes; not pointer-free POD.',sResource='Borrowed NUL text, unsupported output-record field conversion.',sInfo='Borrowed NUL text.',sTitle='Borrowed NUL text.',sLinkTarget='Borrowed NUL text.',sLinkTitle='Borrowed NUL text.'),safeTextAlternative='copyText/readText and copySource/readSource write into scoped Buffer storage.'),
+ 'xui_doc_node_info_t':dict(projectedPOD=['iKind','iId','iParentId','iChildCount','iTextBytes','iSourceStart','iSourceEnd','bSourceExact','iSyntaxStart','iSyntaxEnd','iSourceSegmentCount','iExtensionPayloadBytes','iExtensionVersion','bExtensionRequired'],projectedText=['sResource','sInfo','sTitle','sLinkTarget','sLinkTitle'],notProjected=dict(tAttributes='Contains nested borrowed sLanguage plus fixed font-family bytes; not a direct output-record member projection.'),safeTextAlternative='copyText/readText and copySource/readSource write into scoped Buffer storage.'),
  'xui_doc_change_info_t':dict(projectedPOD=['iFlags','iBeforeRevision','iAfterRevision','iOrigin','iInputGeneration','iOperationCount','bUndo','iDomain'],notProjected=dict(pOperations='Borrowed counted POD array; no implicit raw pointer exposure. NativeSequence currently requires distinct data/count output slots.')),
- 'xui_doc_link_info_t':dict(projectedPOD=['bLinked','bMixed'],notProjected=dict(sUri='Borrowed NUL text; no output-record string-field conversion.',sTitle='Borrowed NUL text; no output-record string-field conversion.')),
+ 'xui_doc_link_info_t':dict(projectedPOD=['bLinked','bMixed'],projectedText=['sUri','sTitle'],notProjected={}),
  'xui_doc_attributes_t':dict(input='setAttributesColumns packs 13 scalar fields and nullable language; replaces the complete attributes value.',notProjected=dict(sFontFamily='Fixed char[64] is zeroed by this basic pack. Use range setTextStyle with a real DocumentTextStyle POD for a font family.')),
  'xui_doc_node_desc_t':dict(input='insertNode packs kind, counted text, resource/info/title/link fields; Native copies them before return.',notProjected=dict(tAttributes='Zero-initialized default attributes; adjust the inserted node with transaction methods.',pExtensionPayload='Use setExtensionPayload with checked bytes; no opaque pointer field.')),
  'xui_doc_image_desc_t':dict(input='insertImage/updateImage pack all public fields with counted alt text and nullable NUL strings.'),

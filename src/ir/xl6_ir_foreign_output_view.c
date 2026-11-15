@@ -6,6 +6,9 @@ static int xl6IrOutputViewType(const XL6_IrModule* module,XL6_IrTypeId id,
     const XL6_IrType* type=xl6IrTypeGet(&module->types,id);
     const XL6_IrType* inner=type && type->kind==XL6_IR_TYPE_NULLABLE && type->paramCount==1 && type->params ?
         xl6IrTypeGet(&module->types,type->params[0]):type;
+    if(conversion==XL6_FOREIGN_OUTPUT_CONVERSION_OWNED_VALUE)
+        return type && type==inner && type->kind==XL6_IR_TYPE_BUILTIN && !type->paramCount &&
+            type->cAbi==XL6_IR_C_ABI_RUNTIME_XVALUE_PTR && type->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED;
     if(conversion==XL6_FOREIGN_OUTPUT_CONVERSION_RETAINED_NATIVE)
         return type && inner && inner->kind==XL6_IR_TYPE_CLASS && inner->foreignHeader && inner->foreignPolicy &&
             inner->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNED && !inner->foreignWatch &&
@@ -31,6 +34,8 @@ static int xl6IrOutputViewExpected(const XL6_IrModule* module,const XL6_ForeignO
             !(node->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) ||
             (node->flags&(XL6_AST_FLAG_FOREIGN_PURE|XL6_AST_FLAG_FOREIGN_OWNED_STRING)))return 0;
     }else if(row->retainSymbol || row->rollbackSymbol || row->retainSuccess)return 0;
+    if(row->conversion==XL6_FOREIGN_OUTPUT_CONVERSION_OWNED_VALUE &&
+        (!(node->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) || (node->flags&XL6_AST_FLAG_FOREIGN_PURE)))return 0;
     const XL6_IrNode* returns=xl6IrNodeGet(module,module->children[node->firstChild+2]);
     if(!returns || returns->kind!=XL6_IR_NODE_LIST || returns->firstChild>module->childCount ||
         returns->childCount>module->childCount-returns->firstChild || returns->childCount>64)return 0;
@@ -39,7 +44,8 @@ static int xl6IrOutputViewExpected(const XL6_IrModule* module,const XL6_ForeignO
         XL6_IrCallTarget target={0};target.declaration=row->declaration;
         const XL6_ForeignOutputRecordContract* record=xl6IrForeignOutputRecordGet(module,&target);
         const XL6_ForeignOutputFieldContract* field=xl6IrForeignOutputFieldGet(module,&target,row->ordinal);
-        if(!record || !field || row->physicalIndex!=record->physicalIndex || row->conversion!=XL6_FOREIGN_OUTPUT_CONVERSION_RETAINED_NATIVE)return 0;
+        if(!record || !field || row->physicalIndex!=record->physicalIndex ||
+            (row->conversion!=XL6_FOREIGN_OUTPUT_CONVERSION_RETAINED_NATIVE && row->conversion!=XL6_FOREIGN_OUTPUT_CONVERSION_CSTRING))return 0;
         ordinal=row->ordinal;
     }else if(mode==XL6_FOREIGN_VALUE_OUTPUT_STATUS || mode==XL6_FOREIGN_VALUE_OUTPUT_VOID){
         if(returns->childCount!=1 || row->physicalIndex+1!=node->foreignCall.outputIndexPlusOne)return 0;
