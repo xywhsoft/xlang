@@ -13,6 +13,10 @@ int xideLspStreamFeed(xide_lsp_stream* stream,const void* bytes,size_t length,xi
 int xideLspStreamFeedOwned(xide_lsp_stream* stream,const void* bytes,size_t length,xide_lsp_owned_message_proc receive,void* user,xide_model_error* error);
 int xideLspStreamEnd(xide_lsp_stream* stream,xide_model_error* error);
 char* xideLspFrame(const xvalue* message,size_t* length,xide_model_error* error);
+/* Shared bounded request identity for native coordinators:integer or UTF8
+ * string <=65535 bytes,including empty strings,without embedded NUL. Metadata
+ * validation only;no cloning,allocation or transport publication. */
+int xideLspRequestIdValid(const xvalue* id);
 char* xideLspPathToUri(const char* absolutePath,xide_model_error* error);
 char* xideLspUriToPath(const char* uri,xide_model_error* error);
 /* Strict UTF-16 positions; reject malformed UTF-8, out-of-range positions and

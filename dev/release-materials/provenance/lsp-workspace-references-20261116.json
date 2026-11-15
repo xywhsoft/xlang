@@ -1,0 +1,141 @@
+{
+  "schema": 1,
+  "date": "2026-11-16",
+  "stage": "M7b6p",
+  "scope": "Complete read-only workspace references,closed cursor overlays and worker response framing",
+  "implementationAccepted": true,
+  "automaticProtocolDiscoveryIntegrated": false,
+  "goalComplete": false,
+  "performanceQualified": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "54b0bc5cb08b0e8694262ff405264f8473d9a2b1",
+  "buildBase": "e87202e62e11c6694ded3d03095208b46ea2d4d9",
+  "publicationRebase": {
+    "verifiedNoIdeOrIgnoreChanges": true,
+    "fromCommit": "e87202e62e11c6694ded3d03095208b46ea2d4d9",
+    "toCommit": "54b0bc5cb08b0e8694262ff405264f8473d9a2b1"
+  },
+  "ownedSources": {
+    "ide/docs/lsp-development.md": "c7f5e7d8496f544c155d892105ae1ced6877a750bbb0fdd95341e13bd06bdbc9",
+    "ide/docs/lsp-workspace-references.md": "7e9a42907c21de2f10927dfb8487df8438298915d6f19f1403cc49003b954f4a",
+    "ide/src/protocol/lsp_wire.c": "4411138769f0602bc6f076b484c8e0964653836ebd51f65f4556f6ebc44bd8f0",
+    "ide/src/protocol/lsp_wire.h": "54d54ff2777cc7632c9d95533c3b7244740203b8e93983ae9ad523be1f147fe6",
+    "ide/src/server/reference_requests.inc": "2640237414217e224376e409a279f0cc587cb4fbc0157e9cc3e604b5a76ce685",
+    "ide/src/server/xlang_ls.c": "fc345a7844afa917ed800f81db6d6b6093774c384657ef3c146c1f8296e8d572",
+    "ide/src/services/analysis_catalog.c": "50671f9a4785ec740945ffcbab2985074dc47c1ba6b71bed6c7005ea2b02295e",
+    "ide/src/services/analysis_catalog.h": "ada2cc28893ae52dfbff5ff6c8aaead0e4282d81cbb32a2c5fc5ef57acd271d0",
+    "ide/src/services/language_check.c": "726063bba5e78af3e6cc69325201002551389a6a5e998b7137018478fb42bb3e",
+    "ide/src/services/project_reference_frame.inc": "7838653340d6ee5f71ea8ecc63fef3667d0c2be3970102c006b0faf3f4dbf828",
+    "ide/src/services/project_references.c": "f682b813bb11a64179c2ca8f9bd2fc91907364612530c8f67997626f5ca06cd6",
+    "ide/src/services/project_references.h": "cfa1fd544bf1ad5b3bab9181091dec00a3cf24160e77dd410f034c080a0b262e",
+    "ide/src/services/project_rename_at.inc": "f2e28aa795930f9c6dcc8aacbeb5cd982c3aa684e977bd5341db8dce5d07280f",
+    "ide/src/services/project_rename_workspace.inc": "f0de165b8d7a6da446492f6ec570a4593e65dc363bc8c663d93dd096db955334",
+    "ide/src/services/rename_candidate.c": "0e5f5e79124096e37e3f5e9b9a76b328574ebecc1c160e941263c759eff648c7",
+    "ide/src/services/workspace_symbols.c": "183544f4e30682821ab586b6360a4c7167251c4788a291d44303f78ff4b3b569",
+    "ide/tests/workspace_reference_frame_test.c": "d205708d59d5cc7dfcded10d0d09a18e006913b19026f1f8affbaf26521a4d80",
+    "ide/tools/build_lsp_core.py": "5a8ed6da43c02c067bbb90dc72ab225870a4a78f939807d2867734d835af411a",
+    "ide/tools/check_lsp_references.py": "67c193a5f9e9b4772352a63eadc57ff9a1dbb692e57a7815b8e2faeb80af8e3e",
+    "ide/tools/check_lsp_workspace_references.py": "60b0bd6631e2cbccbae84978638f51113902bdfd8c7b00501c33f98abcdede16",
+    "ide/tools/check_lsp_workspace_symbol_frames.py": "75f68dc8bd7e5252e94fcaae280654791fe5db99ad9aa7d3595e5671e9cac08e"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-workspace-references-20261116.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-workspace-references-20261116/stage-sources.tar.gz",
+      "sha256": "0f4898c72b5a0387d62ff7803f355c651fb14237404c676c51523f20a48aeb57",
+      "bytes": 411897,
+      "entries": 21,
+      "uniquePayloads": 21
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-workspace-references-20261116/stage-sources.tar.gz.manifest.json",
+      "sha256": "95f088fec93f48131dc2a41ebfef7a27315d81b7a2080a00585c1c68a33020cb",
+      "bytes": 5525
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-workspace-references-20261116/actual-builds-and-validation.tar.gz",
+      "sha256": "4262c46cf9d4987fb461feb35fe163d6c3dfc1ddcd82c3171322cda589914fe3",
+      "bytes": 317466909,
+      "entries": 21452,
+      "uniquePayloads": 4805
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-workspace-references-20261116/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "e722dd7fa48c8e13acc8ddc2171b1f2e6ec08c0eff32ad499d0eef1d6fd0fe71",
+      "bytes": 9697778
+    }
+  },
+  "materialDependencies": [
+    {
+      "index": "dev/release-materials/provenance/lsp-workspace-symbol-frames-20261116.json",
+      "sha256": "c5bb5b1736bcbe8306953400d598dea1e301bb9970447e386765c10434fc2478",
+      "purpose": "Prior catalog discovery proof,matched SDK and frozen native frontend/XRT input identities;prior executions are not counted again"
+    }
+  ],
+  "externalPaths": [
+    "F:\\codex-builds-xlang-lsp-20261116\\workspace-references",
+    "F:\\codex-builds-xlang-lsp-20261116\\workspace-references-materials",
+    "F:\\xl-workspace-references-20261116",
+    "F:/xl-wref-1116",
+    "F:/xl-wref-tail2-1116"
+  ],
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "sdkSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+  "currentDeliverySha256": "dbc9e09ddfaeced7c675d0540589319f20d03e08f5b43abe08dd33354ecaa9fd",
+  "candidate": {
+    "languageServer": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-references-20261116\\native-v2\\xlang-ls.exe",
+    "languageServerSha256": "630f3b40b3cc3188a7c7c55e7ee9c0cafd9ed28e979bdbc9fa2e4ec48adb8d07",
+    "serviceInfoVersion": "0.104",
+    "gui": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-references-20261116\\gui-objects-v1\\xlang_ide.link.exe",
+    "guiSha256": "e36e0def4b8462d215e1981385b17f36297cc62a60453ed39a61cd20f1f58306"
+  },
+  "verification": {
+    "nativeDistinctUnits": 122,
+    "fullGuiUnits": 140,
+    "coreArchiveMembers": 72,
+    "nativeReferenceSuites": 13,
+    "nativeReferenceChecks": 9598,
+    "newNativeFrameCases": 19,
+    "newNativeFrameChecks": 1123,
+    "protocolCases": 374,
+    "protocolTools": 21,
+    "newProtocolReferenceCases": 24,
+    "pairedGuiSuites": 55,
+    "actualModernIdeModes": 47,
+    "actualGuiLanguages": [
+      "c",
+      "xlang"
+    ],
+    "rejectedCompiledMutants": 10,
+    "actualInputs": 3052,
+    "actualObjects": 262,
+    "actualLinkedInputs": 378,
+    "uncompiledFixtureCopiesExcludedByDependencyClosure": 1,
+    "repositoryBudgetPassed": true
+  },
+  "evidenceNotes": [
+    "Resolve cursor once with original native semantic key;reuse checked shards in all catalog project/closed/standalone roles and unowned open overlays. Keep exact native declaration identity and includeDeclaration without rename-family or write-policy filters. Source proofs merge internally;Location.xlang remains negotiated. Closed cursor and other open overlays require no synthetic trigger/version.",
+    "Reuse existing member/key actors,scope metadata,XRT text,map and caches. No submit filesystem/body hashing. Validate closed/native cursor position on retained checked source including BOM/UTF16;valid no-symbol returns guarded empty locations. Invalid unowned open scopes fail rather than publish partial workspace results. Share existing bounded ID policy and empty catalog factory with rename/symbol code.",
+    "Encode full JSON-RPC reply on coordinator,then revalidate complete source guards,positive/negative compilation-owner evidence and catalog discovery scope. Keep zero-target scopes and no-symbol cursor evidence. Free heavy DOM/row/proof/graph payload on worker. Owner retains queued-input/request/document/config epoch fences,including closed cursors without document slots,and sends immutable bytes.",
+    "Fresh19-case native fixture/1123checks uses3projects,closed/loose/virtual files,unconfigured readonly library declaration,same-name unrelated binding,includeDeclaration,typed/long/invalid IDs,admission,no-symbol,invalid position,early/post-frame source/raw manifest/new member mutations,negative owner route mutation and actual paused manifest reader cancellation. Pending/false physical Idle persists until native handle closes.",
+    "Fresh13native suites/9598checks retain legacy project members,parallel workers,path index,wire budgets,family closure,rename plans/cursor/results,32MiB unrelated capture and1069catalog checks. Only successful runs count;legacy harness prototypes exposed longer F-path truncation,missing duplicate snapshot omit and alias collision. Preserve raw attempts;short fixture-only paths and proper source omission correct harness without changing production semantics.",
+    "Fresh21actual protocol drivers/374cases include24new complete reference scenes and26source-proof/34updated original reference scenes;all18previous drivers run again. Update original reference counters for one retained selected key plus shared primary reuse;unowned open files now form complete scopes,invalid body rejects partial results,and missing closed files fail onworker. Hardcoded old protocol service version assertion becomes optional,without removing feature/semantic checks.",
+    "Fresh122native/140GUI units and72raw core archive members,55GUI suites,47actual modern IDE modes and C/xlang24-frame renders.10actually compiled bad implementations are rejected:selected-scope only,skip initial/final scope,skip post-frame source/negative routing,misapply rename membership,ignore includeDeclaration,coerce ID,fake Idle and accept invalid cursor. Prove each mutated source/inc appears in actual compiler dependency closure.",
+    "Bind actual source/header/SDK/objects/link bytes,private service-name adapters and local Python imports;retain all raw prototype bytes. A copied unused18-case GUI native fixture is explicitly absent from actual GUI dependency closure after19-case fixture addition. Root release hash-owned aliases are removed;no runtime replacement or release/build test data. Compiler TEMP/TMP stay on F. Preserve runtime,SDK,delivery,user tmp,online channel and unrelated staging."
+  ],
+  "limits": [
+    "Default runtime DLL and current matched SDK still differ;root compiler versus frozen native frontend/XRT alignment remains required before installation. No default binary/SDK/online publish performed. Automatic protocol discovery/invalidation state machine remains unintegrated;ordinary supplied client catalogs rely on client completeness/config epochs and do not independently discover new files.",
+    "Retain64scope/document,65536binding,16MiBcontext,32MiBmerged rows/proofs,128MiBknown guards,7MiBresult/8MiBframe and65535UTF8-byte/no-NUL ID policies. XRT map scratch,allocator,AST/IR,concurrent snapshots,caches and caller values are additional,not whole-process RSS bound. Validation is not an atomic filesystem snapshot or write authority. Lexical D/F junction alias consistency remains unqualified;use consistent URIs in canonical fixtures.",
+    "No full-goal latency/RSS/endurance/Linux/sanitizer or exhaustive whole-frame allocator qualification. Pipe writes,stop waits,config retirement and changed body capture remain work. Remaining applicable LSP/static recovery/edit completion capabilities and performance regressions remain active. No DAP/runtime/debug completion. Long-term goal is not complete."
+  ],
+  "postCommitReceipt": "dev/release-materials/provenance/lsp-workspace-references-20261116/postcommit.json"
+}

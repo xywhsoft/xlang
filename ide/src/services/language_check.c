@@ -614,8 +614,9 @@ static xide_language_check* startRetained(xls_context* context,int configured,in
  const xide_language_analysis_options* options,xide_model_error* e)
 {
  int declarations=captureMode==RETAIN_DECLARATIONS || captureMode==RETAIN_CACHED_DECLARATIONS;
- int closedCapture=configured && actor && !target && !queryPath && !keyPath && !count &&
-  (captureMode==RETAIN_REFERENCES || captureMode==RETAIN_FAMILIES);
+ int closedCapture=configured && actor && !target && !queryPath &&
+  ((captureMode==RETAIN_REFERENCES&&(!keyPath||(retainedLabel(keyPath)&&xrtPathIsAbs(keyPath)&&xidePathHasExtension(keyPath,".xl")&&line>=0&&character>=0))) ||
+   (captureMode==RETAIN_FAMILIES&&!keyPath));
  if((configured && !context) || !cache || !compiler || !directory || (count && !documents) || count>64 ||
     (!declarations && !closedCapture && (!documents || !count || !retainedLabel(target))) || (declarations && (!configured || target || queryPath)) ||
     (!queryPath && !actor) || (queryPath && (line<0 || character<0)) || (options && !options->nativeBackend)) {

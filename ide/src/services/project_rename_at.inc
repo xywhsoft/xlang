@@ -7,7 +7,8 @@ static xtaskoutcome executeRenameAt(xcancel* cancel,void* data,xtaskvalue* value
  xarray roots={0};size_t bytes=0,requested=SIZE_MAX;owner_proof proof={0};
  reference_job job={0};reference_record* record=NULL;xide_reference_key* key=NULL;
  seed->stats.thread=xrtThreadCurrentId();seed->stats.memberWorkers=in->store->memberCount;
- if(in->renameAt==2 && (!xrtArrayInit(&seed->guards,sizeof(xide_language_input_guard*)) || !xrtArrayInit(&seed->prepareDependencies,sizeof(xls_dependency_capture*))))goto failed;
+ if((in->renameAt==2||in->referencesAt) && (!xrtArrayInit(&seed->guards,sizeof(xide_language_input_guard*)) || !xrtArrayInit(&seed->prepareDependencies,sizeof(xls_dependency_capture*))))goto failed;
+ if(in->referencesAt&&!referenceScopeCurrent(in,seed,cancel))goto done;
  const xls_context_spec* spec=xlsContextSpec(in->scope);
  if(!xrtArrayInit(&roots,sizeof(root)) || !addRoot(&roots,spec->directory,spec->entry,&bytes))goto failed;
  for(size_t i=0;i<spec->lists[XLS_CONTEXT_MEMBERS].count;++i){
@@ -24,12 +25,17 @@ static xtaskoutcome executeRenameAt(xcancel* cancel,void* data,xtaskvalue* value
  if(stopped(cancel))goto done;
  beginAnalysis(in,all[requested].path,1,in->store->keys,&job);
  record=finishAnalysis(in,&job,1,cancel,&key,seed);
- if(!record || !in->renameTarget)goto done;
+ if(!record || (!in->referencesAt&&!in->renameTarget))goto done;
  if(ownsSource(record,in->path)!=1){fail(seed,"Selected checked provider does not contain the rename cursor source.");goto done;}
  uint64_t owners=0;
- if(!xideRenameScopeTarget(in->renameScope,in->renameTarget,&owners) || !owners){fail(seed,"Rename declaration is outside explicitly configured membership.");goto done;}
+ if(!in->referencesAt&&(!xideRenameScopeTarget(in->renameScope,in->renameTarget,&owners) || !owners)){fail(seed,"Rename declaration is outside explicitly configured membership.");goto done;}
  cacheRecord(in->store,record);++seed->stats.roots;
  if(stopped(cancel))goto done;
+ if(in->referencesAt){
+  if(!referenceCursorPosition(in,record,seed))goto done;
+  if(!key){seed->locations=xrtValueArray();seed->stats.noSymbol=1;if(!seed->locations||!referenceCursorProofs(seed,seed,record,cancel))goto done;*value=(xtaskvalue){seed,freeOutput,NULL};seed=NULL;goto done;}
+  in->queryKey=xideSemanticReferenceKeyRetain(key);
+ }
  if(in->renameAt==2){
   if(completePrepare(in,seed,record,key,cancel)){*value=(xtaskvalue){seed,freeOutput,NULL};seed=NULL;}
   goto done;
@@ -39,10 +45,11 @@ static xtaskoutcome executeRenameAt(xcancel* cancel,void* data,xtaskvalue* value
  xtaskoutcome state=executeWorkspace(cancel,in,value);
  reference_output* out=value->Value;
  if(state==XTASK_SUCCESS && out && !*out->error){
+  if(in->referencesAt){if(!referenceCursorProofs(out,seed,record,cancel)&&!*out->error)fail(out,"Reference cursor/routing evidence could not be retained.");}
   xide_model_error error={0};
   if(!ownerProofValid(&proof,cancel) || !overlayCurrent(record,in,cancel) || !xideLanguageInputGuardValidate(record->guard,stopped,cancel,&error))fail(out,"Rename cursor provider changed before candidate publication.");
-  else if(!charge(&out->guardBytes,xideLanguageInputGuardReportBytes(record->guard),PROOF_BYTES))fail(out,"Rename cursor guard budget exceeded.");
-  else{
+  else if(!in->referencesAt&&!charge(&out->guardBytes,xideLanguageInputGuardReportBytes(record->guard),PROOF_BYTES))fail(out,"Rename cursor guard budget exceeded.");
+  else if(!in->referencesAt){
    xide_language_input_guard* guard=xideLanguageInputGuardRetain(record->guard);
    if(!xrtArrayPush(&out->guards,&guard)){xideLanguageInputGuardRelease(guard);fail(out,"Cannot retain rename cursor guard.");}
    else if(out->guards.Capacity>PROOF_BYTES/sizeof(guard) || out->guardBytes>PROOF_BYTES-out->guards.Capacity*sizeof(guard))fail(out,"Rename cursor guard storage budget exceeded.");
@@ -50,6 +57,7 @@ static xtaskoutcome executeRenameAt(xcancel* cancel,void* data,xtaskvalue* value
   }
   out->stats.roots+=seed->stats.roots;out->stats.captured+=seed->stats.captured;
   out->stats.ownerProbes+=seed->stats.ownerProbes;out->stats.ownerRouteHits+=seed->stats.ownerRouteHits;
+  if(in->referencesAt)out->stats.scopeValidations+=seed->stats.scopeValidations;
 #define CURSOR_TOTAL(field) if(out->stats.field<seed->stats.field)out->stats.field=seed->stats.field
   CURSOR_TOTAL(keyActorBuilds);CURSOR_TOTAL(keyActorHits);CURSOR_TOTAL(keyActorSessions);
   CURSOR_TOTAL(keyNavigationBuilds);CURSOR_TOTAL(keyNavigationHits);
@@ -64,6 +72,7 @@ done:
  for(size_t i=0;i<roots.Count;++i){root* r=(root*)roots.Data+i;free(r->path);free(r->key);xrtFree(r->rejection);releaseRecord(r->cached);}
  xrtArrayUnit(&roots);
  if(!value->Value && !stopped(cancel)){if(!*seed->error)fail(seed,"Native rename cursor analysis did not complete.");*value=(xtaskvalue){seed,freeOutput,NULL};seed=NULL;}
+ if(in->referencesAt&&value->Value){reference_output* out=value->Value;if(!*out->error&&!stopped(cancel)&&!referenceFrame(in,out,cancel)&&!*out->error)fail(out,"Reference response validation failed.");if(*out->error||stopped(cancel)){free(out->frame);out->frame=NULL;out->frameBytes=0;}clearOutputFacts(out);}
  if(seed)freeOutput(seed,NULL);
  if(stopped(cancel)){if(value->Destroy)value->Destroy(value->Value,value->DestroyData);*value=(xtaskvalue){0};return XTASK_CANCELLED;}
  return value->Value ? XTASK_SUCCESS : XTASK_FAILED;

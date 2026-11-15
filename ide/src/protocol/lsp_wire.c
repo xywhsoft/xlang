@@ -9,6 +9,10 @@
 #define HEADER_LIMIT 8192u
 #define BODY_LIMIT XIDE_LSP_BODY_BYTES
 #define BUFFER_LIMIT (2u*BODY_LIMIT+HEADER_LIMIT)
+int xideLspRequestIdValid(const xvalue* id)
+{
+ xstrview value={0};return xrtValueType(id)==XVALUE_INT || (xrtValueGetString(id,&value)&&value.Size<=65535&&(!value.Size||(value.Data&&!memchr(value.Data,0,value.Size)))&&xrtUtf8Valid(value,NULL));
+}
 static int fail(xide_model_error* e,const char* s) { if(e) { e->code=XIDE_MODEL_INVALID; snprintf(e->message,sizeof(e->message),"%s",s); } return 0; }
 static int utf8(const char* s,size_t n) { return s && n<=INT_MAX && !memchr(s,0,n) && (!n || MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,s,(int)n,NULL,0)); }
 void xideLspStreamClear(xide_lsp_stream* s) { if(s) { free(s->bytes); memset(s,0,sizeof(*s)); } }

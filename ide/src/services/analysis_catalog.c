@@ -93,6 +93,11 @@ invalid:fail(error,capacity,"Invalid project analysis identity, selection, paths
 memory:fail(error,capacity,"Cannot allocate prepared analysis catalog.");
 failed:xideAnalysisCatalogDestroy(c);return NULL;
 }
+xide_analysis_catalog* xideAnalysisCatalogEmpty(const char* package,char* error,size_t capacity)
+{
+ xvalue* value=xrtValueObject();int okay=value&&xrtValueObjectSetNew(value,sv("schema"),xrtValueInt(1))&&xrtValueObjectSetNew(value,sv("selectedProject"),xrtValueString(sv("")))&&xrtValueObjectSetNew(value,sv("packagePath"),package?xrtValueString(sv(package)):xrtValueNull())&&xrtValueObjectSetNew(value,sv("projects"),xrtValueArray());
+ xide_analysis_catalog* c=okay?xideAnalysisCatalogCreate(value,error,capacity):NULL;xrtValueRelease(value);if(!okay)fail(error,capacity,"Cannot allocate empty analysis catalog.");return c;
+}
 xide_analysis_catalog* xideAnalysisCatalogCreateGuarded(const xvalue* value,const xide_analysis_catalog_guard* guard,char* error,size_t capacity)
 {
  if(!guard || !guard->value || !guard->retain || !guard->release || !guard->validate){fail(error,capacity,"Invalid external analysis catalog evidence.");return NULL;}

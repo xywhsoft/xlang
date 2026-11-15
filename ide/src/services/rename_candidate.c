@@ -56,9 +56,7 @@ done:for(size_t i=0;i<count;++i)xlsContextRelease(files[i]);return scope;
 static int standardCatalog(candidate_input* in,candidate_output* out)
 {
  if(in->catalog)return 1;
- xvalue* value=xrtValueObject();char* package=xrtEnvGet("XLANG_PACKAGE_PATH");
- int okay=value && put(value,"schema",xrtValueInt(1)) && put(value,"selectedProject",xrtValueString(xrtStrView(""))) && put(value,"packagePath",package ? xrtValueString(xrtStrView(package)) : xrtValueNull()) && put(value,"projects",xrtValueArray());
- xrtFree(package);char error[512]={0};if(okay)in->catalog=xideAnalysisCatalogCreate(value,error,sizeof(error));xrtValueRelease(value);
+ char* package=xrtEnvGet("XLANG_PACKAGE_PATH");char error[512]={0};in->catalog=xideAnalysisCatalogEmpty(package,error,sizeof(error));xrtFree(package);
  return in->catalog ? 1 : fail(out,-32603,*error ? error : "Cannot prepare standalone analysis catalog.");
 }
 static xide_rename_scope* standardScope(candidate_input* in,xcancel* cancel,candidate_output* out)
@@ -160,7 +158,7 @@ int xideRenameCandidatesIdle(xide_rename_candidates* s){return !s || xlsRuntimeT
 static xide_rename_candidate_query* submit(xide_rename_candidates* s,int id,const xvalue* requestId,int documentChanges,int prepare,const xvalue* params,const xvalue* catalogValue,xide_analysis_catalog* catalog,const xls_analysis_document* docs,size_t count)
 {
  int standard=requestId!=NULL;if(!s || (!standard && (id<=0 || !catalogValue || !catalog)) || !params || !docs || !count || count>64 || (documentChanges!=0 && documentChanges!=1) || (prepare!=0 && prepare!=1) || (prepare && !standard))return NULL;
- if(standard && xrtValueType(requestId)!=XVALUE_INT && !text(requestId,65535))return NULL;
+ if(standard && !xideLspRequestIdValid(requestId))return NULL;
  candidate_input* in=xrtCalloc(1,sizeof(*in));xide_rename_candidate_query* q=xrtCalloc(1,sizeof(*q));if(!in || !q){xrtFree(in);xrtFree(q);return NULL;}
  in->service=s;in->id=id;in->standard=standard;in->documentChanges=documentChanges;in->prepare=prepare;in->requestId=xrtValueRetain(requestId);in->params=xrtValueRetain(params);in->catalogValue=xrtValueRetain(catalogValue);in->catalog=xideAnalysisCatalogRetain(catalog);size_t bytes=0;int okay=in->params && (standard ? in->requestId && (!catalog || in->catalog) : in->catalogValue && in->catalog);
  for(size_t i=0;okay && i<count;++i){

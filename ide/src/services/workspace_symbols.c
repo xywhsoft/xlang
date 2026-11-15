@@ -275,13 +275,9 @@ xide_workspace_symbol_query* xideWorkspaceSymbolsRefresh(xide_workspace_symbols*
 {return submit(store,contexts,contextCount,docs,count,"",1,0,0,NULL,1,NULL,NULL);}
 xide_workspace_symbol_query* xideWorkspaceSymbolsSubmitNavigation(xide_workspace_symbols* store,xls_context* const* contexts,size_t contextCount,const xls_analysis_document* docs,size_t count,const char* query,size_t limit,uint32_t kindMask,const xvalue* selection)
 {return xideWorkspaceSymbolSelectionValid(selection)?submit(store,contexts,contextCount,docs,count,query,limit,1,kindMask,selection,0,NULL,NULL):NULL;}
-static int frameId(const xvalue* id)
-{
- xstrview value={0};return xrtValueType(id)==XVALUE_INT || (xrtValueGetString(id,&value)&&value.Size<=65535&&(!value.Size||(value.Data&&!memchr(value.Data,0,value.Size)))&&xrtUtf8Valid(value,NULL));
-}
 static xide_workspace_symbol_query* submitCatalog(xide_workspace_symbols* store,xide_analysis_catalog* catalog,xls_context* const* contexts,size_t contextCount,const xls_analysis_document* docs,size_t count,const char* query,size_t limit,uint32_t kindMask,const xvalue* requestId,const xvalue* selection,int refresh)
 {
- if(contextCount>64 || (contextCount&&!contexts) || (!refresh&&!frameId(requestId)) || (selection&&!xideWorkspaceSymbolSelectionValid(selection)))return NULL;
+ if(contextCount>64 || (contextCount&&!contexts) || (!refresh&&!xideLspRequestIdValid(requestId)) || (selection&&!xideWorkspaceSymbolSelectionValid(selection)))return NULL;
  xls_context* files[64];size_t fileCount=0;
  for(size_t i=0;i<contextCount;++i){const xls_context_spec* spec=xlsContextSpec(contexts[i]);if(!spec||strcmp(spec->analysisProfile,XIDE_ANALYSIS_PROFILE)||!xrtPathIsAbs(spec->entry)||!xrtPathIsAbs(spec->directory)||!xidePathHasExtension(spec->entry,".xl"))return NULL;
   if(spec->kind==XLS_CONTEXT_PROJECT){int found=0;for(size_t j=0;j<xideAnalysisCatalogCount(catalog);++j)if(xlsContextEqual(contexts[i],xideAnalysisCatalogAt(catalog,j))){found=1;break;}if(!found)return NULL;}

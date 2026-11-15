@@ -158,6 +158,7 @@ HOST_TESTS += ("semantic_field_binding_test",)
 HOST_TESTS += ("rename_scope_test", "rename_provider_test")
 HOST_TESTS += ("project_rename_scope_test",)
 HOST_TESTS += ("project_rename_workspace_test",)
+HOST_TESTS += ("workspace_reference_frame_test",)
 HOST_TESTS += ("semantic_rename_identifier_test",)
 HOST_TESTS += ("project_rename_identifier_test",)
 HOST_TESTS += ("semantic_generic_navigation_test",)
@@ -1117,7 +1118,7 @@ def main() -> None:
                 if name == "analysis_typed_module_fault_test":extra.append("-Wl,--wrap=xl6AstFree")
             if name=='navigation_function_reuse_test':extra+=['-Wl,--wrap=xlsProjectionAcquirePrevious','-Wl,--wrap=xlsProjectionRelease']
             if name=='workspace_discovery_publish_test':extra+=['-Wl,--wrap=xideIoOpen','-Wl,--wrap=xrtClose']
-            if name=='workspace_symbol_frame_test':extra+=['-Wl,--wrap=xideIoOpen','-Wl,--wrap=xrtClose','-Wl,--wrap=xideIoStat','-Wl,--wrap=xideIoReceiptStat']
+            if name in ('workspace_symbol_frame_test','workspace_reference_frame_test'):extra+=['-Wl,--wrap=xideIoOpen','-Wl,--wrap=xrtClose','-Wl,--wrap=xideIoStat','-Wl,--wrap=xideIoReceiptStat']
             if name in HOST_TESTS:
                 extra += [str(objects[Path(source).stem]) for source in SERVER_SOURCES
                           if Path(source).stem != "xlang_ls" and
@@ -1133,7 +1134,7 @@ def main() -> None:
                           not (name in ("workspace_symbols_test", "workspace_symbol_refresh_test", "workspace_symbols_shared_test", "workspace_symbol_frame_test") and Path(source).stem == "workspace_symbols") and
                           not (name == "workspace_symbol_wire_test" and Path(source).stem == "workspace_symbol_wire") and
                           not (name in ("semantic_dispatch_family_test", "semantic_callable_family_test", "semantic_reference_graph_test", "semantic_reference_merge_test", "semantic_family_references_test", "semantic_binding_check_test", "semantic_lookup_test", "semantic_reference_shard_test", "declaration_symbols_test", "navigation_function_budget_test") and Path(source).stem == "semantic_definition") and
-                          not (name in ("project_reference_budget_test", "reference_path_index_test", "project_reference_parallel_test", "project_reference_owner_fault_test", "project_rename_workspace_test", "project_reference_family_test", "project_family_references_test", "project_rename_plan_test", "project_rename_at_test", "project_rename_recheck_test", "project_rename_result_test", "project_rename_input_import_test", "project_rename_provider_test") and Path(source).stem == "project_references")]
+                          not (name in ("workspace_reference_frame_test", "project_reference_budget_test", "reference_path_index_test", "project_reference_parallel_test", "project_reference_owner_fault_test", "project_rename_workspace_test", "project_reference_family_test", "project_family_references_test", "project_rename_plan_test", "project_rename_at_test", "project_rename_recheck_test", "project_rename_result_test", "project_rename_input_import_test", "project_rename_provider_test") and Path(source).stem == "project_references")]
             if name in ("project_rename_result_test", "project_rename_input_import_test", "project_rename_provider_test"):
                 extra.extend(("-Wl,--wrap=xrtValueDeepClone", "-Wl,--wrap=xrtValueObjectSetNew"))
             if name == "project_reference_owner_fault_test":
@@ -1173,7 +1174,7 @@ def main() -> None:
                     fixture_directory = output / (name + "-fixtures")
                     fixture_directory.mkdir()
                     test_arguments = [str(fixture_directory), str(output / (name + "-report.json"))]
-                if name in ("workspace_discovery_test", "workspace_discovery_publish_test", "workspace_symbol_frame_test", "file_watch_test", "file_watch_lease_test", "workspace_edit_journal_test", "workspace_edit_journal_fault_test", "workspace_edit_write_test", "workspace_edit_write_fault_test", "workspace_edit_file_export_test", "workspace_edit_spool_test", "workspace_edit_spool_guard_test", "workspace_edit_spool_fault_test"):
+                if name in ("workspace_discovery_test", "workspace_discovery_publish_test", "workspace_symbol_frame_test", "workspace_reference_frame_test", "file_watch_test", "file_watch_lease_test", "workspace_edit_journal_test", "workspace_edit_journal_fault_test", "workspace_edit_write_test", "workspace_edit_write_fault_test", "workspace_edit_file_export_test", "workspace_edit_spool_test", "workspace_edit_spool_guard_test", "workspace_edit_spool_fault_test"):
                     fixture_directory = output / (name + "-fixtures")
                     fixture_directory.mkdir()
                     test_arguments = [str(fixture_directory)]

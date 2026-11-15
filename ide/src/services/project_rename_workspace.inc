@@ -128,7 +128,7 @@ static xtaskoutcome executeWorkspace(xcancel* cancel,void* data,xtaskvalue* valu
    * final sweep of every scope's guard, including zero-target scopes. */
   XIDE_REFERENCE_WORKSPACE_FENCE(SIZE_MAX);
   for(size_t i=0;i<out->guards.Count;++i){xide_model_error error={0};if(!xideLanguageInputGuardValidate(((xide_language_input_guard**)out->guards.Data)[i],stopped,cancel,&error)){if(!stopped(cancel))fail(out,"Workspace source/resolution inputs changed after declaration composition.");goto done;}}
- }else if(!locations(&out->rows,out))goto failed;
+ }else if(!(in->referencesAt?sortedLocationsWithProof(&out->rows,out,in->emitProof):locations(&out->rows,out)))goto failed;
  out->stats.workspaceGuardBytes=out->guardBytes+out->guards.Capacity*sizeof(xide_language_input_guard*);
  goto done;
 failed:fail(out,"Workspace reference allocation or query budget failed.");

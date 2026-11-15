@@ -18,6 +18,9 @@ enum xide_analysis_binding { XIDE_ANALYSIS_UNOWNED, XIDE_ANALYSIS_PROJECT, XIDE_
    bindings and16MiB of immutable contexts. No project manifest parsing or
    file/alias I/O. Owns contexts and a sorted native lexical-path index. */
 xide_analysis_catalog* xideAnalysisCatalogCreate(const xvalue* value,char* error,size_t capacity);
+/* Empty complete metadata scope,with explicit NULL-vs-empty package input.
+ * No environment/filesystem reads;uses the same validated catalog builder. */
+xide_analysis_catalog* xideAnalysisCatalogEmpty(const char* package,char*,size_t);
 xide_analysis_catalog* xideAnalysisCatalogCreateGuarded(const xvalue*,const xide_analysis_catalog_guard*,char*,size_t);
 /* Worker-only for guarded catalogs. NULL/ordinary client catalogs have no
  * external evidence and only check cancellation. Never call this on owner as

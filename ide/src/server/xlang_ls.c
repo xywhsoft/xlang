@@ -795,37 +795,12 @@ static void referenceWatched(server* s,const xvalue* params)
  for(size_t i=0;i<xrtValueCount(changes);++i){const xvalue* row=xrtValueArrayGet(changes,i);const char* uri=string(get(row,"uri"));int type=0;char* path=uri ? xideLspUriToPath(uri,NULL) : NULL;int okay=path && integer(get(row,"type"),&type) && type>=1 && type<=3;free(path);if(!okay)return;}
  if(s->inputSerial==ULLONG_MAX)s->writeFailed=1;else ++s->inputSerial;
 }
-static void requestReferences(server* s,const xvalue* id,const xvalue* params)
-{
- if(s->renameWorkspaceDirty){response(s,id,NULL,-32803,"Workspace folders changed; refresh analysisConfiguration before references.");return;}
- int i=find(s,string(get(get(params,"textDocument"),"uri"))),line=0,character=0,version=i>=0?s->docs[i].version:0;bool include=false;const xvalue* supplied=get(params,"version");const char* namedId=string(id);
- if(s->cliCompletion || s->cliDiagnostics){response(s,id,NULL,-32601,"References require the native analysis backend.");return;}
- if(i<0 || (namedId && strlen(namedId)>65535) || (supplied && !integer(supplied,&version)) || version!=s->docs[i].version || !integer(get(get(params,"position"),"line"),&line) || !integer(get(get(params,"position"),"character"),&character) || !validPosition(&s->docs[i],line,character) || !xrtValueGetBool(get(get(params,"context"),"includeDeclaration"),&include)){response(s,id,NULL,-32602,"References require an open current xlang document,valid UTF16 position and boolean includeDeclaration.");return;}
- if(s->catalog && s->docs[i].binding<0){response(s,id,NULL,-32602,"References need an unambiguous configured project.");return;}
- size_t slot=8;for(size_t j=0;j<8;++j){if(s->referenceRequests[j].query && sameId(id,s->referenceRequests[j].id)){cancelReferences(s,id,-32600,"Reference request ID is already active.");return;}if(!s->referenceRequests[j].query && slot==8)slot=j;}if(slot==8){response(s,id,NULL,-32603,"Reference request queue is full.");return;}
- xls_context* context=xlsContextRetain(s->docs[i].context);char* package=NULL;
- if(!context){package=xrtEnvGet("XLANG_PACKAGE_PATH");xls_context_spec spec={.kind=XLS_CONTEXT_XLANG,.entry=s->docs[i].path,.directory=s->directory,.analysisProfile="xlang-ls/compiler-xrt-v1",.targetKind="exe",.packagePath=package};context=xlsContextCreate(&spec,16u*1024u*1024u,NULL);}xrtFree(package);
- xls_analysis_document docs[DOC_LIMIT];size_t count=0;for(size_t j=0;j<DOC_LIMIT;++j)if(s->docs[j].uri){document* d=s->docs+j;docs[count++]=(xls_analysis_document){d->uri,d->path,d->content,d->identity,(uint64_t)((int64_t)d->version-INT_MIN)};}
- if(!s->references)s->references=xideProjectReferencesCreate(s->cache,s->compiler,s->modules);
- xvalue* captured=xrtValueDeepClone(id);xide_reference_query* query=context && captured ? xideProjectReferencesSubmitWithProof(s->references,context,docs,count,s->docs[i].uri,s->docs[i].path,line,character,include,s->referenceInputProof) : NULL;xlsContextRelease(context);
- if(!query || !xideProjectReferencesSetWake(query,nativeWake,s)){xideProjectReferencesCancel(query);xideProjectReferencesQueryDestroy(query);xrtValueRelease(captured);response(s,id,NULL,-32603,"Cannot start background project references.");return;}
- s->referenceRequests[slot].query=query;s->referenceRequests[slot].id=captured;s->referenceRequests[slot].document=i;s->referenceRequests[slot].version=version;s->referenceRequests[slot].identity=s->docs[i].identity;s->referenceRequests[slot].serial=s->inputSerial;s->referenceRequests[slot].epoch=s->configurationEpoch;
-}
-static void pollReferences(server* s)
-{
- for(size_t i=0;i<8;++i){xide_reference_query* q=s->referenceRequests[i].query;if(!q)continue;document* d=s->docs+s->referenceRequests[i].document;
-  if(!d->uri || d->identity!=s->referenceRequests[i].identity || d->version!=s->referenceRequests[i].version || s->inputSerial!=s->referenceRequests[i].serial || s->configurationEpoch!=s->referenceRequests[i].epoch){cancelReferences(s,s->referenceRequests[i].id,-32801,"Project reference input/configuration snapshot changed.");continue;}
-  EnterCriticalSection(&s->lock);size_t waiting=s->queueInputs;LeaveCriticalSection(&s->lock);if(waiting)continue;
-  char error[512]={0};xide_project_reference_stats stats={0};enum xide_reference_query_state state=xideProjectReferencesResult(q,NULL,&stats,error,sizeof(error));if(state==XIDE_REFERENCES_PENDING)continue;
-  s->referenceStats=stats;
-  if(state==XIDE_REFERENCES_READY)response(s,s->referenceRequests[i].id,xideProjectReferencesTake(q),0,NULL);else response(s,s->referenceRequests[i].id,NULL,state==XIDE_REFERENCES_CANCELLED?-32800:-32803,*error?error:"Project reference request cancelled.");
-  xideProjectReferencesQueryDestroy(q);xrtValueRelease(s->referenceRequests[i].id);memset(s->referenceRequests+i,0,sizeof(s->referenceRequests[i]));
- }
-}
+#include "server/reference_requests.inc"
 static void referenceStats(server* s,const xvalue* id)
 {
  xide_project_reference_stats* stats=&s->referenceStats;xvalue* out=xrtValueObject();int okay=out!=NULL;
 #define REF_STAT(field) okay=okay && put(out,#field,xrtValueInt((int64)stats->field))
+ REF_STAT(scopeValidations);REF_STAT(encodedFrameBytes);REF_STAT(noSymbol);REF_STAT(workspaceScopes);REF_STAT(workspaceCompleted);
  REF_STAT(roots);REF_STAT(captured);REF_STAT(reused);REF_STAT(locations);REF_STAT(records);REF_STAT(chargedBytes);REF_STAT(thread);
  REF_STAT(keyActorBuilds);REF_STAT(keyActorHits);REF_STAT(keyActorSessions);REF_STAT(keyNavigationBuilds);REF_STAT(keyNavigationHits);
  REF_STAT(memberWorkers);REF_STAT(memberTasks);REF_STAT(memberPeak);REF_STAT(memberThreads);REF_STAT(ownerProbes);REF_STAT(ownerRouteHits);REF_STAT(ownerActorBuilds);REF_STAT(ownerActorHits);REF_STAT(coveredRoots);REF_STAT(sourceRejections);REF_STAT(coverageCacheRoots);
@@ -956,7 +931,7 @@ static void dispatch(server* s,const xvalue* message)
   put(scope,"referenceCompilationOwners",xrtValueBool(!s->cliCompletion && !s->cliDiagnostics));
   put(scope,"renameCandidate",xrtValueInt(!s->cliCompletion && !s->cliDiagnostics?1:0));
 #endif
-  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.103"))); put(result,"serverInfo",info); s->hierarchicalSymbols=hierarchical;s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
+  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.104"))); put(result,"serverInfo",info); s->hierarchicalSymbols=hierarchical;s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
  }
  if(!s->initialized) { if(id) response(s,id,NULL,-32002,"Server not initialized."); return; }
  if(s->shutdown) { if(id) response(s,id,NULL,-32600,"Server has shut down."); return; }

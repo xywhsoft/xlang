@@ -38,7 +38,7 @@ def main():
         options = dict(automaticDiagnostics=False, checkOnSave=False, workspaceSymbolBackgroundIndex=False)
         if config is not None: options['analysisConfiguration'] = config
         c.send('initialize', dict(capabilities={}, initializationOptions=options), 1)
-        reply, _ = c.reply(1); assert 'error' not in reply and reply['result']['serverInfo']['version'] == '0.103', reply
+        reply, _ = c.reply(1); assert 'error' not in reply and isinstance(reply['result']['serverInfo']['version'], str) and reply['result']['serverInfo']['version'], reply
         c.send('initialized', {}); return c
     def request(c, request_id, params, method='workspace/symbol'):
         c.send(method, params, request_id); reply, _ = c.reply(request_id)

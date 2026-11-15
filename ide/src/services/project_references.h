@@ -23,6 +23,7 @@ typedef struct xide_project_reference_stats {size_t roots,captured,reused,locati
  /* Candidate-only complete native checks versus unchanged guarded owners.
   * Counters are query work, not ordinary worker-history/cache mutations. */
  size_t renameRechecks,renameUnchanged,renameSources,renameReferences;
+ size_t scopeValidations,encodedFrameBytes,noSymbol;
 } xide_project_reference_stats;
 enum xide_reference_query_state {XIDE_REFERENCES_FAILED=-1,XIDE_REFERENCES_PENDING=0,XIDE_REFERENCES_READY=1,XIDE_REFERENCES_CANCELLED=2};
 /* One independent XRT actor with separate retained key/member workers;borrowed toolchain cache outlives
@@ -65,6 +66,23 @@ xide_reference_query* xideProjectReferencesSubmit(xide_project_references* store
 xide_reference_query* xideProjectReferencesSubmitWithProof(xide_project_references* store,xls_context* context,
  const xls_analysis_document* documents,size_t count,const char* trigger,
  const char* path,int line,int character,int includeDeclaration,int inputProof);
+/* Read-only full-workspace references for the original native semantic key.
+ * Preserve overload/binding identity;do not apply rename-family/edit policy.
+ * Derive all catalog roles plus unowned open files;NULL catalog supports
+ * standalone context. Capture immutable inputs without disk/body work. A
+ * closed cursor uses trigger=NULL and may coexist with other open overlays.
+ * Resolve the cursor once, reuse checked shards across ALL scopes, merge by
+ * complete source proofs and honor includeDeclaration. Unknown cursor returns
+ * guarded empty locations. Whole JSON-RPC framing and final source/routing/
+ * catalog validation run on the existing coordinator. Existing native scope,
+ * shard/proof/overlay/queue budgets apply. Caller fences request/input/config
+ * publication epochs. Transfers one malloc frame,not edit authority. */
+xide_reference_query* xideProjectReferencesSubmitFramed(xide_project_references* store,
+ xide_analysis_catalog* catalog,xls_context* selected,const xls_analysis_document* documents,
+ size_t count,const char* trigger,const char* path,int line,int character,
+ int includeDeclaration,int inputProof,const xvalue* requestId);
+char* xideProjectReferencesTakeFrame(xide_reference_query*,size_t*);
+int xideProjectReferencesErrorCode(xide_reference_query*);
 /* Collect the supplied immutable declaration key in one exact configured
  * scope, including scopes that do not own/import the original query document.
  * Reuse the same complete member scheduler, checked shards and final guards.
