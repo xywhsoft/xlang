@@ -1,0 +1,451 @@
+{
+  "date": "2026-11-15",
+  "complete": true,
+  "passed": true,
+  "scope": "Owned bounded CPU Particles simulation and lesson; Billboard language output, texture and GPU integration remain open",
+  "xlangBase": "bdc7417d5ac1d20753dd11374eaddacb4ac2467e",
+  "nativeCommit": "57bbfbcdc8b22e6e7d95b77745893124605c26d7",
+  "shippingDelivery": false,
+  "versionChanged": false,
+  "pushed": false,
+  "networkTests": false,
+  "nativeRebuilt": false,
+  "compilerRebuilt": false,
+  "commands": 48,
+  "evidence": [
+    {
+      "platform": "win",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\particles-verified-win-r1.json",
+      "sha256": "b0dd4f5b019968192425d415e49f7cf0d5319dce75a7333673db4121ea8328bc",
+      "commands": 24,
+      "heap": [
+        {
+          "mode": "jit",
+          "rounds": 1000,
+          "callsPerRound": 4,
+          "counts": [
+            [
+              "language",
+              [
+                0,
+                0,
+                0
+              ]
+            ],
+            [
+              "native",
+              [
+                0,
+                0,
+                0
+              ]
+            ]
+          ],
+          "cpuEquivalenceClaim": false
+        },
+        {
+          "mode": "dynamic",
+          "rounds": 1000,
+          "callsPerRound": 4,
+          "counts": [
+            [
+              "language",
+              [
+                0,
+                0,
+                0
+              ]
+            ],
+            [
+              "native",
+              [
+                0,
+                0,
+                0
+              ]
+            ]
+          ],
+          "cpuEquivalenceClaim": false
+        },
+        {
+          "mode": "static",
+          "rounds": 1000,
+          "callsPerRound": 4,
+          "counts": [
+            [
+              "language",
+              [
+                0,
+                0,
+                0
+              ]
+            ],
+            [
+              "native",
+              [
+                0,
+                0,
+                0
+              ]
+            ]
+          ],
+          "cpuEquivalenceClaim": false
+        }
+      ],
+      "cold": [
+        {
+          "mode": "jit",
+          "counts": {
+            "language": {
+              "allocations": 4,
+              "bytes": 1024
+            },
+            "native": {
+              "allocations": 2,
+              "bytes": 496
+            }
+          }
+        },
+        {
+          "mode": "dynamic",
+          "counts": {
+            "language": {
+              "allocations": 4,
+              "bytes": 1024
+            },
+            "native": {
+              "allocations": 2,
+              "bytes": 496
+            }
+          }
+        },
+        {
+          "mode": "static",
+          "counts": {
+            "language": {
+              "allocations": 4,
+              "bytes": 1024
+            },
+            "native": {
+              "allocations": 2,
+              "bytes": 496
+            }
+          }
+        }
+      ]
+    },
+    {
+      "platform": "linux",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\particles-verified-linux-r1.json",
+      "sha256": "7f9edd4c188af41d412f92179e6531da610375215b5363fc2b10822e213d4119",
+      "commands": 24,
+      "heap": [
+        {
+          "mode": "jit",
+          "rounds": 1000,
+          "callsPerRound": 4,
+          "counts": [
+            [
+              "language",
+              [
+                0,
+                0,
+                0
+              ]
+            ],
+            [
+              "native",
+              [
+                0,
+                0,
+                0
+              ]
+            ]
+          ],
+          "cpuEquivalenceClaim": false
+        },
+        {
+          "mode": "dynamic",
+          "rounds": 1000,
+          "callsPerRound": 4,
+          "counts": [
+            [
+              "language",
+              [
+                0,
+                0,
+                0
+              ]
+            ],
+            [
+              "native",
+              [
+                0,
+                0,
+                0
+              ]
+            ]
+          ],
+          "cpuEquivalenceClaim": false
+        },
+        {
+          "mode": "static",
+          "rounds": 1000,
+          "callsPerRound": 4,
+          "counts": [
+            [
+              "language",
+              [
+                0,
+                0,
+                0
+              ]
+            ],
+            [
+              "native",
+              [
+                0,
+                0,
+                0
+              ]
+            ]
+          ],
+          "cpuEquivalenceClaim": false
+        }
+      ],
+      "cold": [
+        {
+          "mode": "jit",
+          "counts": {
+            "language": {
+              "allocations": 4,
+              "bytes": 1024
+            },
+            "native": {
+              "allocations": 2,
+              "bytes": 496
+            }
+          }
+        },
+        {
+          "mode": "dynamic",
+          "counts": {
+            "language": {
+              "allocations": 4,
+              "bytes": 1024
+            },
+            "native": {
+              "allocations": 2,
+              "bytes": 496
+            }
+          }
+        },
+        {
+          "mode": "static",
+          "counts": {
+            "language": {
+              "allocations": 4,
+              "bytes": 1024
+            },
+            "native": {
+              "allocations": 2,
+              "bytes": 496
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "productionBindings": [
+    {
+      "platform": "win",
+      "kind": "host",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\particles-packages-win-r3\\host\\xge3d\\src\\particles.xl",
+      "sha256": "132fa8040bca2a30ace7f577cc4a98e60e3b847533ac95d13434f8db9737e39e"
+    },
+    {
+      "platform": "win",
+      "kind": "host",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\particles-packages-win-r3\\host\\xge3d\\include\\xge3d_particles.h",
+      "sha256": "11a79f73157de4f004766b10e3b52bb35c31c01a8d9fae2d94cc49420ea69716"
+    },
+    {
+      "platform": "win",
+      "kind": "host",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\particles-packages-win-r3\\host\\xge3d\\examples\\particles.xl",
+      "sha256": "17b31a4b45729f5c545dca479e9b2234e447d665f85e42c0898b64727bd83cb1"
+    },
+    {
+      "platform": "win",
+      "kind": "host",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\particles-packages-win-r3\\host\\xge3d\\xlang.package.json",
+      "sha256": "03d1d304929375a808e62ee7f60191e45c1713030a31b87ed735d397a313903a"
+    },
+    {
+      "platform": "win",
+      "kind": "static",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\particles-packages-win-r3\\static\\xge3d\\src\\particles.xl",
+      "sha256": "132fa8040bca2a30ace7f577cc4a98e60e3b847533ac95d13434f8db9737e39e"
+    },
+    {
+      "platform": "win",
+      "kind": "static",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\particles-packages-win-r3\\static\\xge3d\\include\\xge3d_particles.h",
+      "sha256": "11a79f73157de4f004766b10e3b52bb35c31c01a8d9fae2d94cc49420ea69716"
+    },
+    {
+      "platform": "win",
+      "kind": "static",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\particles-packages-win-r3\\static\\xge3d\\examples\\particles.xl",
+      "sha256": "17b31a4b45729f5c545dca479e9b2234e447d665f85e42c0898b64727bd83cb1"
+    },
+    {
+      "platform": "win",
+      "kind": "static",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\particles-packages-win-r3\\static\\xge3d\\xlang.package.json",
+      "sha256": "03d1d304929375a808e62ee7f60191e45c1713030a31b87ed735d397a313903a"
+    },
+    {
+      "platform": "linux",
+      "kind": "host",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\particles-packages-linux-r3\\host\\xge3d\\src\\particles.xl",
+      "sha256": "132fa8040bca2a30ace7f577cc4a98e60e3b847533ac95d13434f8db9737e39e"
+    },
+    {
+      "platform": "linux",
+      "kind": "host",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\particles-packages-linux-r3\\host\\xge3d\\include\\xge3d_particles.h",
+      "sha256": "11a79f73157de4f004766b10e3b52bb35c31c01a8d9fae2d94cc49420ea69716"
+    },
+    {
+      "platform": "linux",
+      "kind": "host",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\particles-packages-linux-r3\\host\\xge3d\\examples\\particles.xl",
+      "sha256": "17b31a4b45729f5c545dca479e9b2234e447d665f85e42c0898b64727bd83cb1"
+    },
+    {
+      "platform": "linux",
+      "kind": "host",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\particles-packages-linux-r3\\host\\xge3d\\xlang.package.json",
+      "sha256": "03d1d304929375a808e62ee7f60191e45c1713030a31b87ed735d397a313903a"
+    },
+    {
+      "platform": "linux",
+      "kind": "static",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\particles-packages-linux-r3\\static\\xge3d\\src\\particles.xl",
+      "sha256": "132fa8040bca2a30ace7f577cc4a98e60e3b847533ac95d13434f8db9737e39e"
+    },
+    {
+      "platform": "linux",
+      "kind": "static",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\particles-packages-linux-r3\\static\\xge3d\\include\\xge3d_particles.h",
+      "sha256": "11a79f73157de4f004766b10e3b52bb35c31c01a8d9fae2d94cc49420ea69716"
+    },
+    {
+      "platform": "linux",
+      "kind": "static",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\particles-packages-linux-r3\\static\\xge3d\\examples\\particles.xl",
+      "sha256": "17b31a4b45729f5c545dca479e9b2234e447d665f85e42c0898b64727bd83cb1"
+    },
+    {
+      "platform": "linux",
+      "kind": "static",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\particles-packages-linux-r3\\static\\xge3d\\xlang.package.json",
+      "sha256": "03d1d304929375a808e62ee7f60191e45c1713030a31b87ed735d397a313903a"
+    }
+  ],
+  "files": {
+    "lib/bindings/xge/three_d/include/xge3d_particles.h": "11a79f73157de4f004766b10e3b52bb35c31c01a8d9fae2d94cc49420ea69716",
+    "lib/bindings/xge/three_d/src/particles.xl": "132fa8040bca2a30ace7f577cc4a98e60e3b847533ac95d13434f8db9737e39e",
+    "lib/bindings/xge/three_d/xlang.package.json": "03d1d304929375a808e62ee7f60191e45c1713030a31b87ed735d397a313903a",
+    "lib/bindings/xge/three_d/examples/particles.xl": "17b31a4b45729f5c545dca479e9b2234e447d665f85e42c0898b64727bd83cb1",
+    "lib/bindings/xge/three_d/examples/README.md": "995dfd898ebd233b5c20cf9604ae1d105a63f607191e7a477997f408b0aa9d74",
+    "lib/bindings/xge/three_d/README.md": "bc1b31f0d8f0519c74739394f41e1941bdf3ca5b5418343d03d7d533b65e3c8c",
+    "test/cases/foreign_xge3_particles.h": "117c80777bc84c68393ab9497b4ddeaa2312380c87c004aec982b1ab0db37583",
+    "test/cases/foreign_xge3_particles.c": "f5c76743e48b1b622d982537dad3dbfdc44e28cce1686d7f7e92e2cd671ace2f",
+    "test/cases/foreign_xge3_particles.xl": "a9632c55241f5f2ef5b59d1605ff5f471db6ebdbf61afd028c12b9e81060258d",
+    "tools/check_xge3_particles.py": "9aaa20161cb6e2b2890a74d4e306b243b8455181f9e0dd5d938ab003e8f11160",
+    "docs/xge3-particles.md": "eaea5f47f1acf56426839832c951b738619d0fbf43ae583d85bed1d8964ac410",
+    "docs/xge3-xui3-full-coverage-plan.md": "e0b01d71e7d064f4610eac8f8f26ff16e1f0cc6c37435c1168fa096c294c75bc"
+  },
+  "normalizedLfSourceSha256": {
+    "lib/bindings/xge/three_d/include/xge3d_particles.h": "11a79f73157de4f004766b10e3b52bb35c31c01a8d9fae2d94cc49420ea69716",
+    "lib/bindings/xge/three_d/src/particles.xl": "132fa8040bca2a30ace7f577cc4a98e60e3b847533ac95d13434f8db9737e39e",
+    "lib/bindings/xge/three_d/xlang.package.json": "8d497eb09fcbfa49c565a95f656605db4e45ef3a82e56ea40519181eddcc3361",
+    "lib/bindings/xge/three_d/examples/particles.xl": "17b31a4b45729f5c545dca479e9b2234e447d665f85e42c0898b64727bd83cb1",
+    "lib/bindings/xge/three_d/examples/README.md": "995dfd898ebd233b5c20cf9604ae1d105a63f607191e7a477997f408b0aa9d74",
+    "lib/bindings/xge/three_d/README.md": "bc1b31f0d8f0519c74739394f41e1941bdf3ca5b5418343d03d7d533b65e3c8c",
+    "test/cases/foreign_xge3_particles.h": "117c80777bc84c68393ab9497b4ddeaa2312380c87c004aec982b1ab0db37583",
+    "test/cases/foreign_xge3_particles.c": "f5c76743e48b1b622d982537dad3dbfdc44e28cce1686d7f7e92e2cd671ace2f",
+    "test/cases/foreign_xge3_particles.xl": "a9632c55241f5f2ef5b59d1605ff5f471db6ebdbf61afd028c12b9e81060258d",
+    "tools/check_xge3_particles.py": "92784e9bfcba1335c588cd754347971200098f1b5bb4fd8971ff50ca6cd1be31",
+    "docs/xge3-particles.md": "eaea5f47f1acf56426839832c951b738619d0fbf43ae583d85bed1d8964ac410",
+    "docs/xge3-xui3-full-coverage-plan.md": "c8fc6d1046d0b4ebdb12f9e5c027351a0447070e6dd48cf21f3629423fa03f21"
+  },
+  "newPublicTargets": [
+    "xge3dParticlesCreate",
+    "xge3dParticlesSetPosition",
+    "xge3dParticlesEmit",
+    "xge3dParticlesUpdate",
+    "xge3dParticlesInfo"
+  ],
+  "lifecycleReplacement": {
+    "native": "xge3dParticlesFree",
+    "language": "Particles.close plus failed-factory rollback",
+    "header": "lib/bindings/xge/three_d/include/xge3d_particles.h",
+    "mechanism": "Existing independent-owned-leaf policy; real free after active generic scopes; no raw public free or invented native refcount",
+    "tests": "Memory visitor proves native object live inside closed active callback and retired afterward, including throw; native and managed constructor failures balance full heap"
+  },
+  "nativeSdk": [
+    "provider-lifetime-sdk-win-r4",
+    "provider-lifetime-sdk-linux-r4"
+  ],
+  "compilerCohorts": [
+    "compiler-nullable-insert-full-r40",
+    "compiler-nullable-insert-linux-full-r33"
+  ],
+  "inventory": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-particles-r2\\surface.json",
+    "sha256": "5b178dfb5a48c3953875b9508f6a729dab7f96c070d953d10654db7ed529c773",
+    "population": 5212,
+    "declarationsPresent": 3862,
+    "meaning": "Public declaration presence only; native free is an explicit lifecycle replacement"
+  },
+  "costs": {
+    "descriptorBytes": 128,
+    "infoOutputStackBytes": 24,
+    "warmCallsPerPath": 4000,
+    "warmHeapOperations": 0,
+    "languageColdAllocations": 4,
+    "languageColdBytes": 1024,
+    "nativeColdAllocations": 2,
+    "nativeColdBytes": 496,
+    "extraColdAllocations": 2,
+    "extraColdBytes": 528,
+    "cpuEquivalenceClaim": false,
+    "remaining": "Numeric input/output copies; control/code lease creation; native simulation math/arrays; thread, scopes, status and error checks; bound-call closure costs"
+  },
+  "diagnostics": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\particles-work-r1\\run.log",
+      "sha256": "612a4d062edabbfcc19edcd87c7708295a3172d56b6348e1cd5435c7e1a768f1",
+      "qualification": false
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\particles-work-r3\\run.log",
+      "sha256": "2b8bad7c0fdba5a28fb2091b425df9145aa6c5337fe6becb5e3233491a5b66e0",
+      "qualification": false
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\particles-work-r4\\run.log",
+      "sha256": "3d9610599a5b2c6bdcfb4f494bd62de823980cecf5f1db33dd0d91ddd2767c79",
+      "qualification": false
+    }
+  ],
+  "open": [
+    "ParticlesBillboards safe writable output arrays and owned 3D texture handling",
+    "3D scene/model/renderer/material and other families",
+    "Prior unresolved generic contracts, CodeLease/global cycle and package initialization",
+    "Final matched runtime/compiler/SDK/IDE/help delivery"
+  ]
+}

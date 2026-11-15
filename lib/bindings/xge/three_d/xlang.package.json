@@ -11,7 +11,8 @@
       "src/bootstrap.xl",
       "src/records.xl",
       "src/functions.xl",
-      "src/decode_budget.xl"
+      "src/decode_budget.xl",
+      "src/particles.xl"
     ],
     "includeDirs": [
       "include"

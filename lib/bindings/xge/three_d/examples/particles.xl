@@ -1,0 +1,20 @@
+// CPU-only simulation: no window, graphics context, texture or model file.
+import xge3d
+
+auto settings=xge3d.threeDParticlesDefault()
+settings.capacity=8
+settings.rate=0
+settings.life_min=1
+settings.life_max=1
+auto particles=xge3d.createParticles(settings)
+try
+ particles.emit(12)
+ auto count=particles.info()
+ println("Alive: ",count.alive,"; dropped: ",count.dropped)
+ // With automatic emission disabled, existing particles drain naturally.
+ particles.update(0.5,0)
+ particles.update(0.6,0)
+ println("After draining: ",particles.info().alive)
+finally
+ particles.close()
+end

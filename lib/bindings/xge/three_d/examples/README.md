@@ -7,6 +7,7 @@ context, window, model file or network service.
 | --- | --- |
 | `camera_values.xl` | Checks transform matrices and perspective/orthographic cameras. |
 | `screen_ray.xl` | Preserves a 0.25-unit offset near a world origin of 10^12 and checks the centre screen ray points along negative Z. |
+| `particles.xl` | Emits into an eight-particle CPU capacity, reports four dropped particles, then drains to zero. Requires `XGE3D_ENABLE_PARTICLES=1`. |
 
 ```text
 xl run screen_ray.xl

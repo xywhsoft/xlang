@@ -1,0 +1,11 @@
+// Bounded CPU simulation. Billboard output/render integration is separate.
+export extern "xge3d_particles*" class Particles @header("xge3d_particles.h") @lifetime("owned") @policy("xl6Xge3dParticlesPolicy")
+ native point handle
+ extern "xge3dParticlesSetPosition" @no_raise @c_result("status",0) func setPosition(Xge3dVec3 position)
+ extern "xge3dParticlesEmit" @no_raise @c_result("status",0) func emit(c_uint count)
+ extern "xge3dParticlesUpdate" @no_raise @c_result("status",0) func update(c_float seconds,c_int emitAutomatically=1)
+ extern "xge3dParticlesInfo" @no_raise @c_const(0) @c_output(1,0) @c_output_size(1,"size") func info() as Xge3dParticleInfo
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xge3dParticlesFree" @header("xge3d_particles.h") @no_raise func freeParticles(Particles value)
+export extern "xge3dParticlesCreate" @header("xge3d_particles.h") @no_raise @c_ref(0) @c_result("owned_view") @factory(1,0,freeParticles) func createParticles(Xge3dParticleDesc descriptor) as Particles

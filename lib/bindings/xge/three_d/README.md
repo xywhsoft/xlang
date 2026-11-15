@@ -2,7 +2,7 @@
 
 Use a matching _xge_native SDK with XGE_ENABLE_3D=1. Current safe CPU value
 entries cover defaults, transform/perspective/orthographic values, large-world
-relative positions and screen rays. Native POD names retain the Xge3d prefix.
+relative positions, screen rays and bounded CPU particle simulation. Native POD names retain the Xge3d prefix.
 The full scene/model/GPU/resource and query families remain in development.
 
 createDecodeBudget(uint64 bytes) creates one real shared XRT quota.
@@ -40,3 +40,16 @@ paths. The generic optimization is documented in
 [direct output storage](../../../../docs/foreign-direct-output-storage.md).
 Language thread transfer, model/GPU integration, package DLL initialization and final
 matched delivery are separate remaining work.
+
+`createParticles(threeDParticlesDefault())` creates an independent CPU emitter.
+Its `setPosition`, `emit`, `update` and sized `info` methods call the native
+functions directly. Closing it invalidates its language aliases; generic call
+scopes defer the native free during active calls. This family has no GPU,
+callback or other native resource references. Prepared simulation/statistics
+loops need no heap operation, while creation allocates native storage plus
+language controls. See [particles.xl](examples/particles.xl) and
+[the simulation contract](../../../../docs/xge3-particles.md).
+
+Particles require `XGE3D_ENABLE_PARTICLES=1` in the matching SDK. Billboard
+array output, texture ownership and rendering remain separate unfinished
+integration; the CPU emitter is not a substitute for those APIs.

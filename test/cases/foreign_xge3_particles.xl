@@ -1,0 +1,258 @@
+import xge3d
+from xge3d import Particles
+extern "fixtureParticlesBudget" @header("test/cases/foreign_xge3_particles.h") @no_raise func budget(c_int n)
+extern "fixtureParticlesMark" @no_raise func mark()
+extern "fixtureParticlesBalanced" @no_raise func balanced()
+extern "fixtureParticlesNativeFailures" @no_raise @c_ref(0) func nativeFailures(xge3d.Xge3dParticleDesc settings)
+extern "fixtureParticlesCompare" @no_raise @c_ref(1) func compare(Particles value,xge3d.Xge3dParticleDesc settings)
+extern "fixtureParticlesPair" @no_raise func comparePair(Particles a,Particles b)
+extern "fixtureParticlesInvalid" @no_raise func invalidFloat(c_int kind) as c_float
+extern "fixtureParticlesHeapBegin" @no_raise func beginHeap()
+extern "fixtureParticlesHeapReport" @no_raise func reportHeap(c_int native)
+extern "fixtureParticlesNativeHot" @no_raise func nativeHot(Particles value)
+extern "fixtureParticlesNativeCold" @no_raise @c_ref(0) func nativeCold(xge3d.Xge3dParticleDesc settings)
+extern "fixtureParticlesColdReport" @no_raise func coldReport()
+extern "fixtureParticlesDuringCall" @no_raise @c_sync_callback(1,0,0) @c_result("status",0) func duringCall(Particles value,func() callback)
+extern "fixtureParticlesRetired" @no_raise func retired()
+
+func invalidSettings(xge3d.Xge3dParticleDesc settings)
+ bool rejected=false
+ try
+  auto invalid=xge3d.createParticles(settings)
+ catch Error failure
+  rejected=true
+ end
+ assert rejected, "invalid descriptor rejected"
+end
+
+func oneBudget(xge3d.Xge3dParticleDesc settings,c_int allowance)
+ Particles? created=null
+ budget(allowance)
+ try
+  created=xge3d.createParticles(settings)
+ catch Error failure
+  assert created==null, "failed factory preserves destination"
+ finally
+  budget(-1)
+ end
+ if created!=null
+  assert (created as Particles).info().alive==0
+  (created as Particles).close()
+ end
+end
+
+func activeClose(xge3d.Xge3dParticleDesc settings)
+ auto value=xge3d.createParticles(settings)
+ duringCall(value,func()
+  value.close()
+ end)
+ retired()
+ bool rejected=false
+ try
+  auto invalid=value.info()
+ catch StateError
+  rejected=true
+ end
+ assert rejected, "active close invalidates the language view"
+ value=xge3d.createParticles(settings)
+ rejected=false
+ try
+  duringCall(value,func()
+   value.close()
+   throw Error("particle callback failure")
+  end)
+ catch Error failure
+  rejected=failure.message=="particle callback failure"
+ end
+ assert rejected, "callback error survives active close"
+ retired()
+end
+
+func main(...) as int
+ auto settings=xge3d.threeDParticlesDefault()
+ assert settings.size==128 and settings.capacity==256 and settings.color_start[0]==c_float(1)
+ settings.capacity=8
+ settings.rate=0
+ settings.life_min=1
+ settings.life_max=1
+ settings.seed=7
+ auto original=settings
+ auto value=xge3d.createParticles(settings)
+ auto initial=value.info()
+ assert initial.size==24 and initial.alive==0 and initial.emitted==0 and initial.dropped==0
+ // The native model copied its numeric descriptor, including its color arrays.
+ settings.life_min=0.01
+ settings.life_max=0.01
+ settings.color_start[0]=c_float(0.25)
+ value.emit(5)
+ auto position=xge3d.Xge3dVec3()
+ position.x=3
+ position.y=4
+ position.z=5
+ value.setPosition(position)
+ value.emit(3)
+ value.update(0.125,0)
+ value.emit(10)
+ value.update(0.125,0)
+ auto usage=value.info()
+ assert usage.alive==8 and usage.emitted==8 and usage.dropped==10
+ compare(value,original)
+ usage.alive=0
+ assert value.info().alive==8 and initial.alive==0, "independent statistics values"
+ bool rejected=false
+ try
+  value.update(-1,0)
+ catch Error failure
+  rejected=true
+ end
+ assert rejected and value.info().alive==8
+ rejected=false
+ try
+  value.update(1.1,0)
+ catch Error failure
+  rejected=true
+ end
+ assert rejected and value.info().alive==8
+ for kind in range(3)
+  rejected=false
+  try
+   value.update(invalidFloat(c_int(kind)),0)
+  catch Error failure
+   rejected=true
+  end
+  assert rejected and value.info().alive==8
+  auto badPosition=position
+  badPosition.x=invalidFloat(c_int(kind))
+  rejected=false
+  try
+   value.setPosition(badPosition)
+  catch Error failure
+   rejected=true
+  end
+  assert rejected and value.info().alive==8
+ end
+ rejected=false
+ try
+  value.update(0,2)
+ catch Error failure
+  rejected=true
+ end
+ assert rejected and value.info().alive==8
+ auto worker=thread(func() as int
+  int failures=0
+  try
+   auto invalid=value.info()
+  catch StateError
+   failures+=1
+  end
+  try
+   value.emit(0)
+  catch StateError
+   failures+=1
+  end
+  return failures
+ end)
+ assert worker.waitTimeout(30000) and worker.exitCode()==2
+ beginHeap()
+ budget(0)
+ try
+  for i in range(1000)
+   value.setPosition(position)
+   value.emit(0)
+   value.update(0,0)
+   auto now=value.info()
+   assert now.alive==8 and now.emitted==8 and now.dropped==10
+  end
+ finally
+  budget(-1)
+ end
+ reportHeap(0)
+ beginHeap()
+ budget(0)
+ try
+  nativeHot(value)
+ finally
+  budget(-1)
+ end
+ reportHeap(1)
+ func() as xge3d.Xge3dParticleInfo stored=value.info
+ value.close()
+ value.close()
+ rejected=false
+ try
+  auto invalid=stored()
+ catch StateError
+  rejected=true
+ end
+ assert rejected, "expired bound call refused"
+ rejected=false
+ try
+  usage=value.info()
+ catch StateError
+  rejected=true
+ end
+ assert rejected and usage.alive==0, "expired method preserves output"
+ auto invalid=original
+ invalid.capacity=0
+ invalidSettings(invalid)
+ invalid=original
+ invalid.capacity=1048577
+ invalidSettings(invalid)
+ invalid=original
+ invalid.size=0
+ invalidSettings(invalid)
+ invalid=original
+ invalid.direction.y=0
+ invalidSettings(invalid)
+ invalid=original
+ invalid.color_start[3]=c_float(2)
+ invalidSettings(invalid)
+ invalid=original
+ invalid.life_max=0.5
+ invalidSettings(invalid)
+ // Warm root admission, memory-visitor and error paths before whole-heap checks.
+ activeClose(original)
+ auto warm=xge3d.createParticles(original)
+ warm.close()
+ nativeFailures(original)
+ for allowance in range(32)
+  mark()
+  oneBudget(original,c_int(allowance))
+  balanced()
+ end
+ println("Particles publication: 32 constructor budgets balanced")
+ beginHeap()
+ auto cold=xge3d.createParticles(original)
+ coldReport()
+ cold.close()
+ nativeCold(original)
+ auto draining=xge3d.createParticles(original)
+ draining.emit(8)
+ draining.update(0.5,0)
+ assert draining.info().alive==8
+ draining.update(0.6,0)
+ assert draining.info().alive==0 and draining.info().emitted==8
+ draining.close()
+ auto automatic=original
+ automatic.rate=8
+ auto scheduled=xge3d.createParticles(automatic)
+ scheduled.update(0.5,1)
+ assert scheduled.info().alive==4 and scheduled.info().emitted==4
+ scheduled.close()
+ auto normalized=original
+ normalized.seed=0
+ auto zeroSeed=xge3d.createParticles(normalized)
+ normalized.seed=1
+ auto oneSeed=xge3d.createParticles(normalized)
+ zeroSeed.emit(3)
+ oneSeed.emit(3)
+ comparePair(zeroSeed,oneSeed)
+ zeroSeed.close()
+ oneSeed.close()
+ auto saturated=xge3d.createParticles(original)
+ saturated.emit(c_uint(0xFFFFFFFF))
+ assert saturated.info().alive==8 and saturated.info().emitted==8 and saturated.info().dropped==uint64(4294967287)
+ saturated.close()
+ println("3D Particles: deterministic CPU simulation, copied settings, bounds, capacity, lifecycle, thread and costs passed")
+ return 0
+end
