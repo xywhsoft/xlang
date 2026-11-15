@@ -59,7 +59,7 @@ static void pollWorkspaceRefresh(server* s)
  xls_context* contexts[64]={0};size_t contextCount=0,documentCount=0;xls_analysis_document documents[DOC_LIMIT];int okay=captureWorkspaceInputs(s,contexts,&contextCount,documents,&documentCount);
  if(okay && (contextCount || documentCount || s->workspaceSymbols)){
   if(!s->workspaceSymbols)s->workspaceSymbols=xideWorkspaceSymbolsCreateWithActor(s->cache,s->compiler,s->modules,s->semanticAnalysis);
-  s->workspaceRefresh.query=xideWorkspaceSymbolsRefresh(s->workspaceSymbols,contexts,contextCount,documents,documentCount);
+  s->workspaceRefresh.query=xideWorkspaceSymbolsRefreshCatalog(s->workspaceSymbols,s->catalog,contexts,contextCount,documents,documentCount);
   if(s->workspaceRefresh.query && !xideWorkspaceSymbolsSetWake(s->workspaceRefresh.query,nativeWake,s)){workspaceRefreshCancel(s,0);okay=0;}
   else if(!s->workspaceRefresh.query)okay=0;
   if(okay){s->workspaceRefresh.serial=s->inputSerial;s->workspaceRefresh.epoch=s->configurationEpoch;workspaceRefreshIncrement(&s->workspaceRefresh.started);}

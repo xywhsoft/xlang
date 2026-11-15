@@ -43,7 +43,7 @@ static void requestWorkspaceSymbols(server* s,const xvalue* id,const xvalue* par
  if(slot==8){response(s,id,NULL,-32603,"Workspace symbol request queue is full.");return;}
  xls_context* contexts[64]={0};size_t contextCount=0,documentCount=0;xls_analysis_document documents[DOC_LIMIT];int okay=captureWorkspaceInputs(s,contexts,&contextCount,documents,&documentCount);xvalue* captured=okay?xrtValueDeepClone(id):NULL;
  if(okay && !s->workspaceSymbols)s->workspaceSymbols=xideWorkspaceSymbolsCreateWithActor(s->cache,s->compiler,s->modules,s->semanticAnalysis);
- xide_workspace_symbol_query* work=NULL;if(okay && captured)work=navigation?xideWorkspaceSymbolsSubmitNavigation(s->workspaceSymbols,contexts,contextCount,documents,documentCount,query,(size_t)limit,s->workspaceSymbolKinds,selection):xideWorkspaceSymbolsSubmitLsp(s->workspaceSymbols,contexts,contextCount,documents,documentCount,query,(size_t)limit,s->workspaceSymbolKinds);
+ xide_workspace_symbol_query* work=NULL;if(okay && captured)work=xideWorkspaceSymbolsSubmitFramed(s->workspaceSymbols,s->catalog,contexts,contextCount,documents,documentCount,query,(size_t)limit,s->workspaceSymbolKinds,captured,selection);
  for(size_t i=0;i<contextCount;++i)xlsContextRelease(contexts[i]);
  if(!work || !xideWorkspaceSymbolsSetWake(work,nativeWake,s)){xideWorkspaceSymbolsCancel(work);xideWorkspaceSymbolsQueryDestroy(work);xrtValueRelease(captured);response(s,id,NULL,okay?-32603:-32602,okay?"Cannot start background workspace symbol query.":"Workspace analysis scope/input limits exceeded.");return;}
  s->workspaceSymbolRequests[slot].query=work;s->workspaceSymbolRequests[slot].id=captured;s->workspaceSymbolRequests[slot].serial=s->inputSerial;s->workspaceSymbolRequests[slot].epoch=s->configurationEpoch;
@@ -54,8 +54,8 @@ static void pollWorkspaceSymbols(server* s)
   if(s->inputSerial!=s->workspaceSymbolRequests[i].serial || s->configurationEpoch!=s->workspaceSymbolRequests[i].epoch){cancelWorkspaceSymbols(s,s->workspaceSymbolRequests[i].id,-32801,"Workspace input/configuration snapshot changed.");continue;}
   EnterCriticalSection(&s->lock);size_t waiting=s->queueInputs;LeaveCriticalSection(&s->lock);if(waiting)continue;
   char error[512]={0};xide_workspace_symbol_work work={0};enum xide_workspace_symbol_state state=xideWorkspaceSymbolsResult(query,NULL,&work,error,sizeof(error));if(state==XIDE_WORKSPACE_SYMBOL_PENDING)continue;s->workspaceSymbolWork=work;
-  xvalue* result=state==XIDE_WORKSPACE_SYMBOL_READY?xideWorkspaceSymbolsTakeLsp(query):NULL;
-  if(result){workspaceRefreshSatisfied(s);response(s,s->workspaceSymbolRequests[i].id,result,0,NULL);}else response(s,s->workspaceSymbolRequests[i].id,NULL,state==XIDE_WORKSPACE_SYMBOL_CANCELLED?-32800:-32803,*error?error:"Workspace symbol query cancelled or unavailable.");
+  if(state==XIDE_WORKSPACE_SYMBOL_READY){size_t bytes=0;char* frame=xideWorkspaceSymbolsTakeFrame(query,&bytes);if(frame&&bytes){workspaceRefreshSatisfied(s);sendFrame(s,frame,bytes);}else response(s,s->workspaceSymbolRequests[i].id,NULL,-32603,"Workspace symbol response frame is unavailable.");free(frame);}
+  else response(s,s->workspaceSymbolRequests[i].id,NULL,xideWorkspaceSymbolsErrorCode(query),*error?error:"Workspace symbol query cancelled or unavailable.");
   xideWorkspaceSymbolsQueryDestroy(query);xrtValueRelease(s->workspaceSymbolRequests[i].id);memset(s->workspaceSymbolRequests+i,0,sizeof(s->workspaceSymbolRequests[i]));
  }
 }
@@ -65,6 +65,7 @@ static void workspaceSymbolStats(server* s,const xvalue* id)
 #define WS_STAT(field) okay=okay && put(out,#field,xrtValueInt((int64)work->field))
  WS_STAT(roots);WS_STAT(captured);WS_STAT(reused);WS_STAT(covered);WS_STAT(sourceRejections);WS_STAT(guardBytes);WS_STAT(overlayHashBytes);WS_STAT(coordinatorThread);WS_STAT(analysisThread);WS_STAT(analysisBuilds);WS_STAT(analysisHits);WS_STAT(analysisSnapshots);WS_STAT(primaryFallbacks);
  WS_STAT(index.generation);WS_STAT(index.rows);WS_STAT(index.parts);WS_STAT(index.scopes);WS_STAT(index.bytes);
+ WS_STAT(scopeValidations);WS_STAT(encodedFrameBytes);
 #undef WS_STAT
  if(okay)okay=workspaceRefreshStats(s,out);
  if(okay)response(s,id,out,0,NULL);else{xrtValueRelease(out);response(s,id,NULL,-32603,"Cannot encode workspace symbol counters.");}

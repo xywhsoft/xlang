@@ -5,6 +5,8 @@
 #include "analysis/worker_modules.h"
 #include "analysis/input_batch.h"
 #include "protocol/workspace_symbol_wire.h"
+#include "protocol/lsp_wire.h"
+#include "services/rename_scope.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -26,9 +28,9 @@ typedef struct symbol_input {
  xide_workspace_symbols* store;xls_context* contexts[64];size_t contextCount,count;
  xls_analysis_document docs[64];overlay_names* names;char query[513];size_t limit;
  char hashes[64][65];unsigned char hashed[64];
- int wire,refresh;uint32_t kindMask;const xvalue* selection;
+ int wire,refresh;uint32_t kindMask;const xvalue* selection;xide_rename_scope* scope;xvalue* requestId;
 } symbol_input;
-typedef struct symbol_output {xide_workspace_symbol_result* result;xvalue* wire;int refreshed;xide_workspace_symbol_work work;char error[512];} symbol_output;
+typedef struct symbol_output {xide_workspace_symbol_result* result;xvalue* wire;int refreshed,code;char* frame;size_t frameBytes;xide_workspace_symbol_work work;char error[512];} symbol_output;
 static xstrview view(const char* p){return (xstrview){p,strlen(p)};}
 static const xvalue* field(const xvalue* v,const char* key){return v && xrtValueType(v)==XVALUE_OBJECT ? xrtValueObjectGet(v,view(key)) : NULL;}
 static const char* string(const xvalue* v){xstrview s={0};return v && xrtValueGetString(v,&s) && !memchr(s.Data,0,s.Size) ? s.Data : NULL;}
@@ -45,8 +47,21 @@ static void recordRelease(symbol_record* p)
 {if(!p || xrtAtomic32FetchSub(&p->refs,1,XMEMORY_ACQ_REL)!=1)return;xrtFree(p->owner);free(p->entry);xlsContextRelease(p->scope);xideSemanticSymbolsDestroy(p->symbols);xideLanguageInputGuardRelease(p->guard);namesRelease(p->overlays);xrtFree(p);}
 static void recordsUnit(xarray* a){for(size_t i=0;i<a->Count;++i)recordRelease(((symbol_record**)a->Data)[i]);xrtArrayUnit(a);}
 static void inputFree(void* p,void* user)
-{(void)user;symbol_input* in=p;for(size_t i=0;i<in->contextCount;++i)xlsContextRelease(in->contexts[i]);for(size_t i=0;i<in->count;++i){xrtFree((char*)in->docs[i].key);xlsTextRelease(in->docs[i].text);}namesRelease(in->names);xrtValueRelease((xvalue*)in->selection);xrtFree(in);}
-static void outputFree(void* p,void* user){(void)user;symbol_output* out=p;xideWorkspaceSymbolResultDestroy(out->result);xrtValueRelease(out->wire);xrtFree(out);}
+{(void)user;symbol_input* in=p;for(size_t i=0;i<in->contextCount;++i)xlsContextRelease(in->contexts[i]);for(size_t i=0;i<in->count;++i){xrtFree((char*)in->docs[i].key);xlsTextRelease(in->docs[i].text);}namesRelease(in->names);xrtValueRelease((xvalue*)in->selection);xrtValueRelease(in->requestId);xideRenameScopeRelease(in->scope);xrtFree(in);}
+static void outputFree(void* p,void* user){(void)user;symbol_output* out=p;xideWorkspaceSymbolResultDestroy(out->result);xrtValueRelease(out->wire);free(out->frame);xrtFree(out);}
+static int scopeCurrent(symbol_input* in,symbol_output* out,xcancel* cancel)
+{
+ if(stopped(cancel))return 0;
+ if(in->scope)++out->work.scopeValidations;
+ if(in->scope&&!xideRenameScopeValidate(in->scope,stopped,cancel,out->error,sizeof(out->error))){out->code=-32801;if(!*out->error)fail(out,"Workspace catalog evidence changed.");return 0;}
+ return 1;
+}
+static int frameReply(symbol_input* in,symbol_output* out,xide_model_error* error)
+{
+ xvalue* reply=xrtValueObject();int okay=reply&&xrtValueObjectSetNew(reply,view("jsonrpc"),xrtValueString(view("2.0")))&&xrtValueObjectSetNew(reply,view("id"),xrtValueRetain(in->requestId))&&xrtValueObjectSetNew(reply,view("result"),xrtValueRetain(out->wire));
+ if(okay)out->frame=xideLspFrame(reply,&out->frameBytes,error);
+ xrtValueRelease(reply);if(!out->frame){out->code=-32603;return fail(out,"Cannot encode bounded workspace symbol response.");}out->work.encodedFrameBytes=out->frameBytes;return 1;
+}
 static int findName(const overlay_names* p,const wchar_t* key)
 {for(size_t i=0;i<p->count;++i)if(!xidePathNativeKeyCompare(p->entries[i].key,key))return (int)i;return -1;}
 static const char* overlayHash(symbol_input* in,size_t at,symbol_output* out)
@@ -181,6 +196,7 @@ static xtaskoutcome execute(xcancel* cancel,void* data,xtaskvalue* value)
 {
  symbol_input* in=data;symbol_output* out=xrtCalloc(1,sizeof(*out));if(!out)return XTASK_FAILED;out->work.coordinatorThread=xrtThreadCurrentId();xarray roots={0},next={0};xmap seen={0};size_t bytes=0;xide_workspace_symbol_update* update=NULL;xide_workspace_symbol_snapshot* snapshot=NULL;xide_model_error e={0};
  if(!xrtArrayInit(&roots,sizeof(symbol_root)) || !xrtArrayInit(&next,sizeof(symbol_record*)) || !xrtMapInit(&seen,1))goto done;
+ if(!scopeCurrent(in,out,cancel))goto done;
  if(in->contextCount){xls_session_limits limits={0};xlsInputLimits(NULL,&limits);xls_input_batch* history=xlsInputBatchCreateClosedInContext(in->contexts[0],&limits,in->store->history,in->docs,in->count,NULL,stopped,cancel,out->error,sizeof(out->error));if(!history)goto done;if(xlsInputBatchStorageBytes(history)>64u*1024u*1024u){xlsInputBatchDestroy(history);fail(out,"Workspace input history exceeds its storage budget.");goto done;}xlsInputBatchDestroy(in->store->history);in->store->history=history;}
  else{xlsInputBatchDestroy(in->store->history);in->store->history=NULL;}
  if(!rootsBuild(in,&roots,cancel,out))goto done;
@@ -206,12 +222,16 @@ static xtaskoutcome execute(xcancel* cancel,void* data,xtaskvalue* value)
  else{out->result=xideWorkspaceSymbolSnapshotQuery(snapshot,in->query,in->limit,stopped,cancel,&e);if(!out->result){fail(out,e.message);goto done;}}
  if(in->wire){out->wire=xideWorkspaceSymbolWire(out->result,in->kindMask,stopped,cancel,&e);if(!out->wire){fail(out,e.message);goto done;}}
  if(in->selection){xvalue* navigation=navigationProof(in,out,cancel);xrtValueRelease(out->wire);out->wire=navigation;if(!navigation)goto done;}
+ if(in->requestId&&!frameReply(in,out,&e))goto done;
  for(size_t i=0;i<in->store->records.Count;++i)if(!current(((symbol_record**)in->store->records.Data)[i],in,cancel,out)){fail(out,"Workspace inputs changed before query publication.");xideWorkspaceSymbolResultDestroy(out->result);out->result=NULL;out->refreshed=0;break;}
+ if(!*out->error&&!scopeCurrent(in,out,cancel))goto done;
 done:
  xideWorkspaceSymbolIndexAbort(update);xideWorkspaceSymbolSnapshotRelease(snapshot);recordsUnit(&next);xrtMapUnit(&seen);
  for(size_t i=0;i<roots.Count;++i){symbol_root* root=(symbol_root*)roots.Data+i;free(root->path);free(root->key);}xrtArrayUnit(&roots);
  if(stopped(cancel)){outputFree(out,NULL);return XTASK_CANCELLED;}
- if(!out->result && !out->refreshed && !*out->error)fail(out,"Workspace indexing allocation or analysis failed.");
+ if(*out->error){free(out->frame);out->frame=NULL;out->frameBytes=0;}
+ if(in->requestId){xideWorkspaceSymbolResultDestroy(out->result);out->result=NULL;xrtValueRelease(out->wire);out->wire=NULL;}
+ if(!out->result && !out->refreshed && !out->frame && !*out->error)fail(out,"Workspace indexing allocation or analysis failed.");
  *value=(xtaskvalue){out,outputFree,NULL};return XTASK_SUCCESS;
 }
 static xide_workspace_symbols* create(xide_toolchains* cache,const char* compiler,xls_module_store* modules,xls_worker* foreground)
@@ -234,11 +254,12 @@ int xideWorkspaceSymbolsIdle(xide_workspace_symbols* store)
 }
 void xideWorkspaceSymbolsDestroy(xide_workspace_symbols* store)
 {if(!store)return;if(store->pool){xrtTaskPoolCancel(store->pool);xrtTaskPoolDestroy(store->pool);}recordsUnit(&store->records);xlsInputBatchDestroy(store->history);xlsWorkerDestroy(store->actor);xlsModuleStoreRelease(store->modules);xideWorkspaceSymbolIndexDestroy(store->index);xrtFree(store->compiler);xrtFree(store);}
-static xide_workspace_symbol_query* submit(xide_workspace_symbols* store,xls_context* const* contexts,size_t contextCount,const xls_analysis_document* docs,size_t count,const char* query,size_t limit,int wire,uint32_t kindMask,const xvalue* selection,int refresh)
+static xide_workspace_symbol_query* submit(xide_workspace_symbols* store,xls_context* const* contexts,size_t contextCount,const xls_analysis_document* docs,size_t count,const char* query,size_t limit,int wire,uint32_t kindMask,const xvalue* selection,int refresh,xide_rename_scope* scope,const xvalue* requestId)
 {
  size_t querySize=0;if(query)while(querySize<=512 && query[querySize])++querySize;else querySize=513;
  if(!store || contextCount>64 || (contextCount && !contexts) || (!contextCount && count) || count>64 || (count && !docs) || querySize>512 || !xideWorkspaceSymbolQueryValid(query) || !limit || limit>4096)return NULL;
- symbol_input* in=xrtCalloc(1,sizeof(*in));xide_workspace_symbol_query* q=xrtCalloc(1,sizeof(*q));if(!in || !q){xrtFree(in);xrtFree(q);return NULL;}in->store=store;in->limit=limit;in->wire=wire;in->refresh=refresh;in->kindMask=kindMask;in->selection=xrtValueRetain((xvalue*)selection);memcpy(in->query,query,querySize+1);in->names=xrtCalloc(1,sizeof(*in->names));if(!in->names){inputFree(in,NULL);xrtFree(q);return NULL;}xrtAtomic32Init(&in->names->refs,1);in->names->bytes=sizeof(*in->names);int okay=1;size_t bindings=0,contextBytes=0,textBytes=0,labelBytes=0;
+ symbol_input* in=xrtCalloc(1,sizeof(*in));xide_workspace_symbol_query* q=xrtCalloc(1,sizeof(*q));if(!in || !q){xrtFree(in);xrtFree(q);return NULL;}in->store=store;in->limit=limit;in->wire=wire;in->refresh=refresh;in->kindMask=kindMask;in->selection=xrtValueRetain((xvalue*)selection);in->scope=xideRenameScopeRetain(scope);in->requestId=requestId?xrtValueDeepClone(requestId):NULL;if(requestId&&!in->requestId){inputFree(in,NULL);xrtFree(q);return NULL;}memcpy(in->query,query,querySize+1);in->names=xrtCalloc(1,sizeof(*in->names));if(!in->names){inputFree(in,NULL);xrtFree(q);return NULL;}xrtAtomic32Init(&in->names->refs,1);in->names->bytes=sizeof(*in->names);int okay=1;size_t bindings=0,contextBytes=0,textBytes=0,labelBytes=0;
+ if(requestId){xstrview id={0};labelBytes=xrtValueGetString(requestId,&id)?id.Size+1:sizeof(int64);}
  for(size_t i=0;okay && i<contextCount;++i){const xls_context_spec* spec=xlsContextSpec(contexts[i]);okay=spec && (spec->kind==XLS_CONTEXT_XLANG || spec->kind==XLS_CONTEXT_PROJECT) && xrtPathIsAbs(spec->entry) && xrtPathIsAbs(spec->directory) && xidePathHasExtension(spec->entry,".xl") && spec->lists[XLS_CONTEXT_MEMBERS].count<ROOT_LIMIT-bindings && charge(&contextBytes,xlsContextBytes(contexts[i]),16u*1024u*1024u);if(!okay)break;bindings+=1+spec->lists[XLS_CONTEXT_MEMBERS].count;in->contexts[in->contextCount++]=xlsContextRetain(contexts[i]);}
  for(size_t i=0;okay && i<count;++i){okay=label(docs[i].key) && label(docs[i].path) && xrtPathIsAbs(docs[i].path) && docs[i].text && charge(&textBytes,xlsTextStorageBytes(docs[i].text),64u*1024u*1024u) && charge(&labelBytes,strlen(docs[i].key)+strlen(docs[i].path)+2,LABEL_BYTES);if(!okay)break;
   overlay_name* name=in->names->entries+i;name->path=xrtStrDup(docs[i].path);name->key=xidePathLexicalWide(docs[i].path);name->bom=bom(docs[i].text);++in->names->count;in->docs[i]=docs[i];in->docs[i].key=xrtStrDup(docs[i].key);in->docs[i].path=name->path;in->docs[i].text=xlsTextRetain(docs[i].text);++in->count;okay=name->path && name->key && in->docs[i].key && charge(&in->names->bytes,strlen(name->path)+1+(wcslen(name->key)+1)*sizeof(wchar_t),LABEL_BYTES);
@@ -247,13 +268,50 @@ static xide_workspace_symbol_query* submit(xide_workspace_symbols* store,xls_con
  xtaskargs args={.Destroy=inputFree};if(okay)q->future=xrtTaskSubmit(store->pool,execute,in,&args);if(!q->future){inputFree(in,NULL);xrtFree(q);return NULL;}return q;
 }
 xide_workspace_symbol_query* xideWorkspaceSymbolsSubmit(xide_workspace_symbols* store,xls_context* const* contexts,size_t contextCount,const xls_analysis_document* docs,size_t count,const char* query,size_t limit)
-{return submit(store,contexts,contextCount,docs,count,query,limit,0,0,NULL,0);}
+{return submit(store,contexts,contextCount,docs,count,query,limit,0,0,NULL,0,NULL,NULL);}
 xide_workspace_symbol_query* xideWorkspaceSymbolsSubmitLsp(xide_workspace_symbols* store,xls_context* const* contexts,size_t contextCount,const xls_analysis_document* docs,size_t count,const char* query,size_t limit,uint32_t kindMask)
-{return submit(store,contexts,contextCount,docs,count,query,limit,1,kindMask,NULL,0);}
+{return submit(store,contexts,contextCount,docs,count,query,limit,1,kindMask,NULL,0,NULL,NULL);}
 xide_workspace_symbol_query* xideWorkspaceSymbolsRefresh(xide_workspace_symbols* store,xls_context* const* contexts,size_t contextCount,const xls_analysis_document* docs,size_t count)
-{return submit(store,contexts,contextCount,docs,count,"",1,0,0,NULL,1);}
+{return submit(store,contexts,contextCount,docs,count,"",1,0,0,NULL,1,NULL,NULL);}
 xide_workspace_symbol_query* xideWorkspaceSymbolsSubmitNavigation(xide_workspace_symbols* store,xls_context* const* contexts,size_t contextCount,const xls_analysis_document* docs,size_t count,const char* query,size_t limit,uint32_t kindMask,const xvalue* selection)
-{return xideWorkspaceSymbolSelectionValid(selection)?submit(store,contexts,contextCount,docs,count,query,limit,1,kindMask,selection,0):NULL;}
+{return xideWorkspaceSymbolSelectionValid(selection)?submit(store,contexts,contextCount,docs,count,query,limit,1,kindMask,selection,0,NULL,NULL):NULL;}
+static int frameId(const xvalue* id)
+{
+ xstrview value={0};return xrtValueType(id)==XVALUE_INT || (xrtValueGetString(id,&value)&&value.Size<=65535&&(!value.Size||(value.Data&&!memchr(value.Data,0,value.Size)))&&xrtUtf8Valid(value,NULL));
+}
+static xide_workspace_symbol_query* submitCatalog(xide_workspace_symbols* store,xide_analysis_catalog* catalog,xls_context* const* contexts,size_t contextCount,const xls_analysis_document* docs,size_t count,const char* query,size_t limit,uint32_t kindMask,const xvalue* requestId,const xvalue* selection,int refresh)
+{
+ if(contextCount>64 || (contextCount&&!contexts) || (!refresh&&!frameId(requestId)) || (selection&&!xideWorkspaceSymbolSelectionValid(selection)))return NULL;
+ xls_context* files[64];size_t fileCount=0;
+ for(size_t i=0;i<contextCount;++i){const xls_context_spec* spec=xlsContextSpec(contexts[i]);if(!spec||strcmp(spec->analysisProfile,XIDE_ANALYSIS_PROFILE)||!xrtPathIsAbs(spec->entry)||!xrtPathIsAbs(spec->directory)||!xidePathHasExtension(spec->entry,".xl"))return NULL;
+  if(spec->kind==XLS_CONTEXT_PROJECT){int found=0;for(size_t j=0;j<xideAnalysisCatalogCount(catalog);++j)if(xlsContextEqual(contexts[i],xideAnalysisCatalogAt(catalog,j))){found=1;break;}if(!found)return NULL;}
+  else if(spec->kind==XLS_CONTEXT_XLANG){
+   if(catalog){uint64_t owners=0;wchar_t* key=xidePathNativeWide(spec->entry);int okay=key&&xideAnalysisCatalogOwnersNative(catalog,key,&owners)&&!owners;free(key);if(!okay)return NULL;}
+   else if(spec->lists[XLS_CONTEXT_MEMBERS].count>1 || (spec->lists[XLS_CONTEXT_MEMBERS].count&&!xidePathLexicalEqual(spec->entry,spec->lists[XLS_CONTEXT_MEMBERS].items[0])))return NULL;
+   files[fileCount++]=contexts[i];
+  }else return NULL;
+ }
+ if(!catalog)return submit(store,files,fileCount,docs,count,query,limit,!refresh,kindMask,selection,refresh,NULL,requestId);
+ xide_rename_scope* scope=xideRenameScopeCreate(catalog,files,fileCount,0,NULL,NULL,NULL);if(!scope)return NULL;
+ size_t scopes=xideRenameScopeCount(scope);xls_context* all[64];for(size_t i=0;i<scopes;++i)all[i]=(xls_context*)xideRenameScopeAt(scope,i);
+ xide_workspace_symbol_query* result=submit(store,all,scopes,docs,count,query,limit,!refresh,kindMask,selection,refresh,scope,requestId);xideRenameScopeRelease(scope);return result;
+}
+xide_workspace_symbol_query* xideWorkspaceSymbolsSubmitFramed(xide_workspace_symbols* store,xide_analysis_catalog* catalog,xls_context* const* contexts,size_t contextCount,const xls_analysis_document* docs,size_t count,const char* query,size_t limit,uint32_t kindMask,const xvalue* requestId,const xvalue* selection)
+{return submitCatalog(store,catalog,contexts,contextCount,docs,count,query,limit,kindMask,requestId,selection,0);}
+xide_workspace_symbol_query* xideWorkspaceSymbolsRefreshCatalog(xide_workspace_symbols* store,xide_analysis_catalog* catalog,xls_context* const* contexts,size_t contextCount,const xls_analysis_document* docs,size_t count)
+{return submitCatalog(store,catalog,contexts,contextCount,docs,count,"",1,0,NULL,NULL,1);}
+char* xideWorkspaceSymbolsTakeFrame(xide_workspace_symbol_query* q,size_t* bytes)
+{
+ if(bytes)*bytes=0;
+ if(xideWorkspaceSymbolsResult(q,NULL,NULL,NULL,0)!=XIDE_WORKSPACE_SYMBOL_READY)return NULL;
+ symbol_output* out=xrtFutureValue(q->future);char* frame=out->frame;if(bytes)*bytes=out->frameBytes;out->frame=NULL;out->frameBytes=0;return frame;
+}
+int xideWorkspaceSymbolsErrorCode(xide_workspace_symbol_query* q)
+{
+ if(!q)return -32603;
+ xfuturestate state=xrtFutureState(q->future);if(state==XFUTURE_CANCELLED)return -32800;if(state==XFUTURE_PENDING)return 0;
+ const symbol_output* out=state==XFUTURE_RESOLVED?xrtFutureValue(q->future):NULL;return out?(out->code?out->code:*out->error?-32803:0):-32803;
+}
 enum xide_workspace_symbol_state xideWorkspaceSymbolsResult(xide_workspace_symbol_query* q,const xide_workspace_symbol_result** result,xide_workspace_symbol_work* work,char* error,size_t capacity)
 {
  if(result)*result=NULL;
@@ -262,7 +320,7 @@ enum xide_workspace_symbol_state xideWorkspaceSymbolsResult(xide_workspace_symbo
  if(!q)return XIDE_WORKSPACE_SYMBOL_FAILED;
  xfuturestate state=xrtFutureState(q->future);if(state==XFUTURE_PENDING)return XIDE_WORKSPACE_SYMBOL_PENDING;if(state==XFUTURE_CANCELLED)return XIDE_WORKSPACE_SYMBOL_CANCELLED;
  const symbol_output* out=state==XFUTURE_RESOLVED?xrtFutureValue(q->future):NULL;if(out && work)*work=out->work;
- if(!out || *out->error || (!out->result && !out->refreshed)){if(error && capacity)snprintf(error,capacity,"%s",out && *out->error?out->error:"Workspace symbol task failed.");return XIDE_WORKSPACE_SYMBOL_FAILED;}if(result)*result=out->result;return XIDE_WORKSPACE_SYMBOL_READY;
+ if(!out || *out->error || (!out->result && !out->refreshed && !out->frame)){if(error && capacity)snprintf(error,capacity,"%s",out && *out->error?out->error:"Workspace symbol task failed.");return XIDE_WORKSPACE_SYMBOL_FAILED;}if(result)*result=out->result;return XIDE_WORKSPACE_SYMBOL_READY;
 }
 xide_workspace_symbol_result* xideWorkspaceSymbolsTake(xide_workspace_symbol_query* q)
 {if(xideWorkspaceSymbolsResult(q,NULL,NULL,NULL,0)!=XIDE_WORKSPACE_SYMBOL_READY)return NULL;symbol_output* out=xrtFutureValue(q->future);xide_workspace_symbol_result* result=out->result;out->result=NULL;return result;}

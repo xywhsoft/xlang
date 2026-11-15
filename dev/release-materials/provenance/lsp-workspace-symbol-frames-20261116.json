@@ -1,0 +1,128 @@
+{
+  "schema": 1,
+  "date": "2026-11-16",
+  "stage": "M7b6o",
+  "scope": "Worker-framed complete workspace symbols and navigation with post-frame source/catalog guards",
+  "implementationAccepted": true,
+  "automaticProtocolDiscoveryIntegrated": false,
+  "goalComplete": false,
+  "performanceQualified": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "930695446bd1c8f2d0266132cb4c51470f35804e",
+  "buildBase": "930695446bd1c8f2d0266132cb4c51470f35804e",
+  "publicationRebase": {
+    "verifiedNoIdeOrIgnoreChanges": true,
+    "fromCommit": "930695446bd1c8f2d0266132cb4c51470f35804e",
+    "toCommit": "930695446bd1c8f2d0266132cb4c51470f35804e"
+  },
+  "ownedSources": {
+    "ide/docs/lsp-development.md": "0ddec3103c86cee14730978794205c7ff6b284cfdd072e5ce9b4e9efd6c1d75f",
+    "ide/docs/lsp-workspace-symbol-frames.md": "4c04668f2e6e80747cd8cf62becf39753727a6b7dd1ac36f28f948c26016535b",
+    "ide/src/server/workspace_symbol_refresh.inc": "e92234c207ad3c3aad2e12dd941bf7205881c978d4755f64c70a4eb429f40c91",
+    "ide/src/server/workspace_symbols.inc": "5ce3a1c957b3567fa5dcd5a1cf133d195889d24f41ce7b1a915e971b036f303a",
+    "ide/src/server/xlang_ls.c": "0e22ab158c6ffada67fb38361d4931fcf9f34ff8b94cdccaa156b98170de80eb",
+    "ide/src/services/workspace_symbols.c": "2f99b73c85d2b930f90afa30d38efd5af4c88ebbd4c37eea25aa15155cf96584",
+    "ide/src/services/workspace_symbols.h": "b285e1b11459fd637ac7f4e81cec1de4edbde1f4a70a865ba8d2986f3aa91cdc",
+    "ide/tests/workspace_symbol_frame_test.c": "67a0a4801a5ef4f57c1e905d04a4170ae2fcffe0d80f87eec8dc2b52dc9a8428",
+    "ide/tools/build_lsp_core.py": "5916eaba74e8366bb0563e4f761fca6d7d5f30b22a0b04e3f6cf0487ca46d25a",
+    "ide/tools/check_lsp_workspace_symbol_frames.py": "357333e09abecf384ba5aa2edd07cc78e0c14af51eb4360d028070786709e80d"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-workspace-symbol-frames-20261116.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-workspace-symbol-frames-20261116/stage-sources.tar.gz",
+      "sha256": "9e9e73bf1e06405d89f851f1ff1538631d6db6580274778d37ca0083df1f37c6",
+      "bytes": 358105,
+      "entries": 10,
+      "uniquePayloads": 10
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-workspace-symbol-frames-20261116/stage-sources.tar.gz.manifest.json",
+      "sha256": "4af898e7a2c34d123d17d0a5621c438aa7a009e12c23dfc61ea435de7589e2a3",
+      "bytes": 2679
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-workspace-symbol-frames-20261116/actual-builds-and-validation.tar.gz",
+      "sha256": "a72e27a3410b7d22aaebaa4d32a5903c11d97f4b202d38931c344fc78c812133",
+      "bytes": 219543397,
+      "entries": 9008,
+      "uniquePayloads": 4292
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-workspace-symbol-frames-20261116/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "19e8208e3a42da254384a7ac81acde34156592fe7783ee73b8245ae60319edee",
+      "bytes": 4118984
+    }
+  },
+  "materialDependencies": [
+    {
+      "index": "dev/release-materials/provenance/lsp-workspace-proof-20261115.json",
+      "sha256": "7305892df58119c4664f1cb89ddab0ec7ca6c883eb9128a9a6a9be47b716bb2c",
+      "purpose": "Prior independently owned discovery proof and pinned matched SDK/frontend/XRT dependencies;previous executions are not counted as new tests"
+    }
+  ],
+  "externalPaths": [
+    "F:\\codex-builds-xlang-lsp-20261116\\workspace-symbol-frames",
+    "F:\\codex-builds-xlang-lsp-20261116\\workspace-symbol-frames-materials",
+    "F:\\xl-workspace-symbol-frames-20261116"
+  ],
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "sdkSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+  "currentDeliverySha256": "dbc9e09ddfaeced7c675d0540589319f20d03e08f5b43abe08dd33354ecaa9fd",
+  "candidate": {
+    "languageServer": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-symbol-frames-20261116\\native-v1\\xlang-ls.exe",
+    "languageServerSha256": "2c45055c46fb419e7510e6982fb3f6b2cb8a2117767899fe2011386cd11bf557",
+    "serviceInfoVersion": "0.103",
+    "gui": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-symbol-frames-20261116\\gui-objects-v1\\xlang_ide.link.exe",
+    "guiSha256": "df5702127b4be4ade42ae45024225ec9f0f3cfe5f14d93b9e8c5fd36f12ee160"
+  },
+  "verification": {
+    "nativeDistinctUnits": 122,
+    "fullGuiUnits": 140,
+    "coreArchiveMembers": 72,
+    "nativeSymbolSuites": 6,
+    "nativeSymbolChecks": 1958,
+    "newNativeFrameCases": 15,
+    "newNativeFrameChecks": 654,
+    "protocolCases": 290,
+    "protocolTools": 18,
+    "newProtocolFrameCases": 9,
+    "pairedGuiSuites": 55,
+    "actualModernIdeModes": 47,
+    "actualGuiLanguages": [
+      "c",
+      "xlang"
+    ],
+    "rejectedCompiledMutants": 8,
+    "actualInputs": 2779,
+    "actualObjects": 262,
+    "actualLinkedInputs": 360,
+    "uncompiledFixtureCopiesExcludedByDependencyClosure": 0,
+    "repositoryBudgetPassed": true
+  },
+  "evidenceNotes": [
+    "Move full JSON-RPC workspace/symbol and workspaceSymbolNavigation response framing to the existing coordinator. Reuse original wire/navigation encoders and retain result node for envelope rather than deep-cloning the full result. Independently clone bounded request ID;free ranking rows and DOM on worker. Owner retains request/queued-input/config epoch fences and sends the already encoded bytes. Internal serverInfo0.103;IDE/update display versions unchanged.",
+    "Derive all project and registered file roles from authoritative complete catalog with the existing rename scope;merge only unowned standalone extras and exact duplicate project contexts. Missing caller project arrays do not truncate scope. Reject foreign project metadata,project-owned file smuggling,incomplete catalogs and invalid ID metadata. NULL catalog continues standalone files. No submit file IO or body hashing;retain/copy bounded metadata only.",
+    "Initial scope validation rejects obsolete metadata before analysis;final validation follows full frame encoding and all existing per-source guards. Preserve catalog proof with captured scope. Idle refresh also retains authoritative complete scope and validates at completion. Internal cache generation may advance before later validation fails;it is not publication authority. No repeated whole-tree metadata validation inserted into per-keystroke completion.",
+    "Fresh15-case actual native frame fixture covers independent catalog lifetime,2projects/closed members/registered and extra loose roots,source/raw manifest/member/identity mutations after framing,early metadata rejection,navigation,typed and long IDs,framing failure,refresh final validation and cancellation while an actual manifest reader is paused. Pending future/false physical Idle persist until close. File IO wrappers and frame/index observer hooks are test-only;real native semantic bodies are used.",
+    "Fresh6native suites total1958checks include654new frame checks,981symbols,30shared foreground,25refresh,34navigation and234synthetic wire checks. Original symbols fixture includes52roots,51warm reused shards despite8-session LRU,local API boundary refusals and constructor gates. Wire fixture includes55writer refusals and161cancellation gates;these do not establish exhaustive allocator OOM/leak or whole-frame allocation qualification.",
+    "Fresh18actual protocol drivers total290cases include9new frame cases for empty/zero/int64-extreme/escaped-Unicode/max-length IDs,selected+unselected projects,closed+loose files,navigation source proof,empty result and no-workspace standalone operation. Also rerun symbols/navigation/idle refresh/foreground analysis reuse/analysis lease and all previous12drivers. Fresh122native/140GUI units and72raw core archive members,55GUI suites,47actual IDE modes and24-frame C/xlang renders pass.",
+    "Reject8actually compiled mutants:skip early/post-frame scope validation,partial roster,coerced ID,fake physical Idle,missing refresh final validation,source validation before framing,and owner response framing. Preserve raw missing-include and incorrect include-priority prototype attempts;only final mutants-v3 qualify and every changed module/inc must appear in actual compile dependency closure. Correct initial test-only workspace format and navigation path-vs-uri expectation without changing production formats/contracts.",
+    "Legacy native test-only build literals are redirected to F in exact private fixtures;original bytes and hashes are retained and compared. Execute programs through hash-owned aliases in root release/win_x64 and remove them;no release/build directory created. Bind actual source/header/SDK/link inputs,private adapters and local Python imports. Preserve default runtime,SDK,delivery,online channel,user temp entries and unrelated staging;compiler TEMP/TMP stay on F."
+  ],
+  "limits": [
+    "No automatic protocol folder bootstrap or completed global references scope integration yet. Continue async discovery/invalidation/replacement/retirement,reference full-workspace coverage and post-frame guards,asset alignment and remaining LSP/static/completion capabilities. Root/input/config/request publication epochs remain required;source/catalog validation is not an atomic filesystem snapshot or write approval.",
+    "Current request IDs retain existing65535UTF8-byte/no-NUL metadata constraints. Native scope64roles/65536bindings/16MiB contexts/128MiB retained payload and input/queue budgets do not bound full allocator/process RSS or simultaneous snapshots. Ordinary client catalogs have no external filesystem validator. Source framing failures return an error but exhaustive whole-frame OOM is not qualified.",
+    "No full-goal latency/RSS/endurance/Linux/sanitizer qualification. Large JSON encoding moved off owner,but pipe writes,client-stop waits,configuration retirement and shared changed-body capture remain work. No DAP/runtime/debug completion. Previous3legacy dialog failures are not fixed/rerun/countedas passing. Default runtime not installed and online channel not published;long-term goal stays active."
+  ],
+  "postCommitReceipt": "dev/release-materials/provenance/lsp-workspace-symbol-frames-20261116/postcommit.json"
+}

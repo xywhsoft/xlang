@@ -4,12 +4,14 @@
 #include "services/workspace_symbol_index.h"
 #ifdef XLS_COMPILER_XRT
 #include "analysis/module_store.h"
+#include "services/analysis_catalog.h"
 typedef struct xide_workspace_symbols xide_workspace_symbols;
 typedef struct xide_workspace_symbol_query xide_workspace_symbol_query;
 typedef struct xide_workspace_symbol_work {
  size_t roots,captured,reused,covered,sourceRejections,guardBytes,overlayHashBytes;
  uint64_t coordinatorThread,analysisThread;size_t analysisBuilds,analysisHits,analysisSnapshots,primaryFallbacks;
  xide_workspace_symbol_stats index;
+ size_t scopeValidations,encodedFrameBytes;
 } xide_workspace_symbol_work;
 enum xide_workspace_symbol_state {XIDE_WORKSPACE_SYMBOL_FAILED=-1,XIDE_WORKSPACE_SYMBOL_PENDING=0,
  XIDE_WORKSPACE_SYMBOL_READY=1,XIDE_WORKSPACE_SYMBOL_CANCELLED=2};
@@ -72,6 +74,24 @@ xvalue* xideWorkspaceSymbolsTakeLsp(xide_workspace_symbol_query* query);
 xide_workspace_symbol_query* xideWorkspaceSymbolsSubmitNavigation(xide_workspace_symbols* store,
  xls_context* const* contexts,size_t contextCount,const xls_analysis_document* documents,size_t documentCount,
  const char* query,size_t limit,uint32_t kindMask,const xvalue* selection);
+/* Full JSON-RPC response encoding on the coordinator, followed by source and
+ * external catalog evidence validation. A catalog supplies ALL configured
+ * project/file roles;contexts may add only unowned standalone files and exact
+ * duplicates of catalog project contexts. Incomplete/foreign project metadata
+ * is rejected. NULL catalog permits standalone contexts only. No submit IO or
+ * body hashing. Existing64-role/128MiB scope,16MiB context and input limits
+ * apply;request IDs must be integer/string with at most65535 UTF8 bytes.
+ * selection=NULL means search;otherwise use the original navigation contract.
+ * Captures ID/context owners independently. TakeFrame transfers malloc bytes;
+ * caller still gates request,input/catalog epochs and transport publication. */
+xide_workspace_symbol_query* xideWorkspaceSymbolsSubmitFramed(xide_workspace_symbols*,
+ xide_analysis_catalog*,xls_context* const*,size_t,const xls_analysis_document*,size_t,
+ const char*,size_t,uint32_t,const xvalue* requestId,const xvalue* selection);
+/* Same complete catalog roster/evidence for idle refresh;no response frame. */
+xide_workspace_symbol_query* xideWorkspaceSymbolsRefreshCatalog(xide_workspace_symbols*,
+ xide_analysis_catalog*,xls_context* const*,size_t,const xls_analysis_document*,size_t);
+char* xideWorkspaceSymbolsTakeFrame(xide_workspace_symbol_query*,size_t*);
+int xideWorkspaceSymbolsErrorCode(xide_workspace_symbol_query*);
 enum xide_workspace_symbol_state xideWorkspaceSymbolsResult(xide_workspace_symbol_query* query,
  const xide_workspace_symbol_result** result,xide_workspace_symbol_work* work,char* error,size_t capacity);
 /* Transfers once;destroy with xideWorkspaceSymbolResultDestroy. */

@@ -127,12 +127,15 @@ static int validPosition(const document* d,int line,int character)
 static int validId(const xvalue* id) { return id && (xrtValueType(id)==XVALUE_INT || string(id)!=NULL); }
 static int sameId(const xvalue* a,const xvalue* b) { int64 x=0,y=0; const char *s=string(a),*t=string(b); return s && t ? !strcmp(s,t) : xrtValueGetInt(a,&x) && xrtValueGetInt(b,&y) && x==y; }
 static int integer(const xvalue* v,int* n) { int64 x=0; if(!v || !xrtValueGetInt(v,&x) || x<INT_MIN || x>INT_MAX) return 0; *n=(int)x; return 1; }
+static int sendFrame(server* s,const char* bytes,size_t length)
+{
+ if(!bytes||!length) { s->writeFailed=1; return 0; } size_t offset=0;
+ while(offset<length) { DWORD written=0; size_t n=length-offset; if(n>16384) n=16384; if(!WriteFile(GetStdHandle(STD_OUTPUT_HANDLE),bytes+offset,(DWORD)n,&written,NULL) || !written) { s->writeFailed=1; break; } offset+=written; }
+ return !s->writeFailed;
+}
 static int sendMessage(server* s,xvalue* value)
 {
- size_t length=0; xide_model_error e={0}; char* bytes=xideLspFrame(value,&length,&e); xrtValueRelease(value);
- if(!bytes) { s->writeFailed=1; return 0; } size_t offset=0;
- while(offset<length) { DWORD written=0; size_t n=length-offset; if(n>16384) n=16384; if(!WriteFile(GetStdHandle(STD_OUTPUT_HANDLE),bytes+offset,(DWORD)n,&written,NULL) || !written) { s->writeFailed=1; break; } offset+=written; }
- free(bytes); return !s->writeFailed;
+ size_t length=0;xide_model_error e={0};char* bytes=xideLspFrame(value,&length,&e);xrtValueRelease(value);int okay=sendFrame(s,bytes,length);free(bytes);return okay;
 }
 static void response(server* s,const xvalue* id,xvalue* result,int code,const char* text)
 {
@@ -953,7 +956,7 @@ static void dispatch(server* s,const xvalue* message)
   put(scope,"referenceCompilationOwners",xrtValueBool(!s->cliCompletion && !s->cliDiagnostics));
   put(scope,"renameCandidate",xrtValueInt(!s->cliCompletion && !s->cliDiagnostics?1:0));
 #endif
-  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.102"))); put(result,"serverInfo",info); s->hierarchicalSymbols=hierarchical;s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
+  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.103"))); put(result,"serverInfo",info); s->hierarchicalSymbols=hierarchical;s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
  }
  if(!s->initialized) { if(id) response(s,id,NULL,-32002,"Server not initialized."); return; }
  if(s->shutdown) { if(id) response(s,id,NULL,-32600,"Server has shut down."); return; }
