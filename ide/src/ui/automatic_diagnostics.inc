@@ -199,7 +199,7 @@ static xide_document* automaticRoot(xide_language_view* v)
 }
 static int automaticPrepare(xide_app* app,int manual)
 {
- xide_language_view* v=app->languageView;xide_automatic_diagnostics* a=v->autoView;if(!a || !v->autoEnabled || !v->initialized) return 0;
+ xide_language_view* v=app->languageView;xide_automatic_diagnostics* a=v->autoView;if(!a || !v->autoEnabled || !v->initialized || v->syncMode==7) return 0;
  if(!automaticModels(v)) return 0;
  xide_document* root=manual ? app->activeDocument : automaticRoot(v);
  if(manual && !(manual==1 ? canSnapshot(app,root) : eligible(root))) return 0;

@@ -35,7 +35,9 @@ static void symbolUiScenario(xide_app* a,xide_document* xl,xide_document* c,char
  const char* original=xuiCodeDocumentGetText(xuiCodeEditGetDocument(xl->editor));char* kept=copy(original);CHECK(kept);const char* name=strstr(original,"amount");CHECK(name&&xuiCodeSelectionGotoOffset(xuiCodeEditGetSelection(xl->editor),xuiCodeEditGetDocument(xl->editor),(int)(name-original)+2,0)==XUI_OK&&xuiSetFocusWidget(a->context,xl->editor)==XUI_OK);
  if(mode==27){xide_model_error e={0};CHECK(xideUiFontApply(a,a->uiFontPath,40,&e)&&frame(a));}
  if(mode==21){unsigned before=rootChildren(a);failSymbolTree=1;CHECK(!xideSymbolRenameOpen(a)&&!failSymbolTree&&!a->languageView->renameSymbol&&rootChildren(a)==before&&xideSymbolRenameCanOpen(a));}
- CHECK(xideActionFind(XIDE_ACTION_RENAME_SYMBOL)&&!strcmp(xideActionNamed("file.rename")->shortcut,"F2")&&key(a,XUI_KEY_F2,XUI_MOD_CTRL)&&xideSymbolRenamePhase(a)==XIDE_SYMBOL_INPUT&&xideSymbolRenameIsModal(a));
+ CHECK(xideActionFind(XIDE_ACTION_RENAME_SYMBOL)&&!strcmp(xideActionNamed("file.rename")->shortcut,"F2")&&key(a,XUI_KEY_F2,XUI_MOD_CTRL));
+ CHECK(xideSymbolRenamePhase(a)==XIDE_SYMBOL_PREPARING&&!xideSymbolRenameIsModal(a));symbolWait(a,XIDE_SYMBOL_INPUT);
+ CHECK(!strcmp(xuiEditGetText(xideSymbolRenameControl(a,XIDE_SYMBOL_NAME)),strstr(kept,"next_amount")?"next_amount":"amount")&&xideSymbolRenameIsModal(a));
  xui_widget window=xideSymbolRenameWindow(a);CHECK(window&&xideDialogIsModal(window)&&xideDialogSetModal(window,0)==XUI_ERROR_INVALID_STATE&&!xideActionQuery(a,XIDE_ACTION_SAVE_FILE).enabled);
  prepareCalls=applyCalls=finishCalls=ownerReads=ownerWaits=0;normalApi=1;
  CHECK(xuiEditSetText(xideSymbolRenameControl(a,XIDE_SYMBOL_NAME),mode==25?"not-valid!":nextSymbolName)==XUI_OK);

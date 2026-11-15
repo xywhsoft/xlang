@@ -106,5 +106,8 @@ closed:
 }
 static DWORD WINAPI asyncGui(void* raw)
 {async_view_fixture* f=raw;if(!SetThreadDesktop(f->desktop))return 1;xge_desc_t desc={.iWidth=1280,.iHeight=800,.sTitle="Native edit async",.iFlags=XGE_INIT_WINDOW|XGE_INIT_HIGHDPI,.iRunMode=XGE_RUN_GAME_LOOP};int result=xgeInit(&desc);if(result==XGE_OK)result=xgeRun(asyncVerify,f);xgeUnit();return result==XGE_OK&&f->started?0:1;}
-int main(int argc,char** argv)
+#ifndef XIDE_NATIVE_EDIT_MAIN
+#define XIDE_NATIVE_EDIT_MAIN main
+#endif
+int XIDE_NATIVE_EDIT_MAIN(int argc,char** argv)
 {if(argc!=4||!xideIoCreateDirectories(argv[1]))return 2;sourceEntered=CreateEventW(NULL,TRUE,FALSE,NULL);sourceRelease=CreateEventW(NULL,TRUE,FALSE,NULL);CHECK(sourceEntered&&sourceRelease);async_view_fixture f={.directory=argv[1],.compiler=argv[2],.mode=atoi(argv[3])};CHECK(f.mode>=0&&f.mode<29);wchar_t name[80];swprintf(name,80,L"NativeEdit-%lu",GetCurrentProcessId());f.desktop=CreateDesktopW(name,NULL,NULL,0,DESKTOP_CREATEWINDOW|DESKTOP_READOBJECTS|DESKTOP_WRITEOBJECTS|DESKTOP_ENUMERATE,NULL);CHECK(f.desktop);HANDLE thread=CreateThread(NULL,0,asyncGui,&f,0,NULL);CHECK(thread&&WaitForSingleObject(thread,180000)==WAIT_OBJECT_0);DWORD code=1;CHECK(GetExitCodeThread(thread,&code)&&!code&&CloseHandle(thread));CloseHandle(sourceEntered);CloseHandle(sourceRelease);if(!CloseDesktop(f.desktop))CHECK(GetLastError()==ERROR_BUSY);printf("PASS native edit IDE mode %d: %u checks; actual candidate, explicit consent, six-reader barrier, asynchronous mixed transaction and reader-safe teardown\n",f.mode,checks);return 0;}

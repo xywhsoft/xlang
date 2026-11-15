@@ -1,0 +1,126 @@
+{
+  "schema": 1,
+  "date": "2026-11-15",
+  "stage": "M7b6k",
+  "scope": "IDE asynchronous semantic rename prefill via standard prepareRename",
+  "implementationAccepted": true,
+  "goalComplete": false,
+  "performanceQualified": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "ba2940dec0249d678e13e5f9aa52a79cf8b0c44d",
+  "buildBase": "34a998d3861b7f727b92c26812e4048e2f7edcec",
+  "publicationRebase": {
+    "verifiedNoIdeOrIgnoreChanges": true,
+    "fromCommit": "34a998d3861b7f727b92c26812e4048e2f7edcec",
+    "toCommit": "ba2940dec0249d678e13e5f9aa52a79cf8b0c44d"
+  },
+  "ownedSources": {
+    "ide/docs/lsp-development.md": "51297e13d8df1553aa699fe00835da9b76b8afb9c43aae3832a1e721f4da39f2",
+    "ide/docs/lsp-rename-prefill.md": "da8c991da6ba455aa4658a284f448e39881200a63c6adca0b19bd579f939ea55",
+    "ide/src/services/rename_prepare.c": "e94e83be7125fd89b47b4139a1b673fcbcf65024536bf976c6e305a010e7c5bd",
+    "ide/src/services/rename_prepare.h": "ff2fc22c13d6c877081fde0ad03c8d5e6ee58721b2c66473b8f387f77060eb1f",
+    "ide/src/ui/automatic_diagnostics.inc": "2dd94260d1ba7c0a1f32b41d9ecedfcea4a1733e80c5224e1a9a5ea64f435271",
+    "ide/src/ui/language_view.c": "48e08eedeb610e2b48e945e0b1be6e226cdb3cafd55a87c30482877629f02748",
+    "ide/src/ui/symbol_rename_view.h": "e0d8ab0f0ccfcdd10607fb6aad8c0630894759076d19d90271117217696ac7d2",
+    "ide/src/ui/symbol_rename_view.inc": "202740a6fadfcc5ba66954bc69553af8567aa5606ccb94a062081fff2af7471b",
+    "ide/src/ui/workspace_search_view.inc": "2d92d78f3ac9dbeb597fabd43c74cd90fa6af053ae488392b10735093a25bc41",
+    "ide/tests/native_edit_view_test.c": "4129f11158b4e5893c46779483dc90e500fca7bcad5887b81ed283dddbd59b19",
+    "ide/tests/rename_prepare_test.c": "414c19ac0045ecee8a5ea57e636b456eacf14e0e93326249afad5e475226f6ed",
+    "ide/tests/rename_prepare_view_test.c": "5d0641ec6f36a10af118829f50d06c142172c1da68edfb8d1c41ead745e3e8b2",
+    "ide/tests/symbol_rename_ui_test.inc": "2c6fb73f7249f900b72bc8abe7ee19f7679040e80752797349b2a3106df771d7",
+    "ide/tools/build.ps1": "b24f8a45d77f9c485e1d1347afc2ddba2f3d270c98f63ff7a06337c87e97e63b"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-rename-prefill-20261115.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-rename-prefill-20261115/stage-sources.tar.gz",
+      "sha256": "01cd8fb0eb9f45d33bf44ad2f319cb2902505298b0317c5ee415fdbfb46c8781",
+      "bytes": 361833,
+      "entries": 14,
+      "uniquePayloads": 14
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-rename-prefill-20261115/stage-sources.tar.gz.manifest.json",
+      "sha256": "3bf33675e5c0e55073d1a8389864cb22cfeba6a0a9156f5df85edbc5fcaeed0d",
+      "bytes": 3600
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-rename-prefill-20261115/actual-builds-and-validation.tar.gz",
+      "sha256": "20cd8f059c4c0ffe744199ca4878b461727bd5753452f584695ae0b00bab3184",
+      "bytes": 196546777,
+      "entries": 21698,
+      "uniquePayloads": 3903
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-rename-prefill-20261115/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "507798f961bf210c4d13c7ec5ba1725ce447b830da25e180dcb3340e3253053e",
+      "bytes": 10024122
+    }
+  },
+  "materialDependencies": [
+    {
+      "index": "dev/release-materials/provenance/lsp-cursor-root-cache-20261115.json",
+      "sha256": "abf82011bfe7e29923c666050f8fa543b78838d1aa5716b858f50ca45e564a8d",
+      "purpose": "Unchanged native118 build, core archive and209 protocol acceptance; explicitly reused, not rerun"
+    }
+  ],
+  "externalPaths": [
+    "F:\\codex-builds-xlang-lsp-20261115\\rename-prefill",
+    "F:\\codex-builds-xlang-lsp-20261115\\rename-prefill-materials",
+    "F:\\xl-rename-prefill-20261115"
+  ],
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "sdkSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+  "currentDeliverySha256": "dbc9e09ddfaeced7c675d0540589319f20d03e08f5b43abe08dd33354ecaa9fd",
+  "candidate": {
+    "languageServer": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-cursor-root-cache-20261115\\native-v1\\xlang-ls.exe",
+    "languageServerSha256": "bf6949e1b14ae72d790f618e8f5b0c2991e7d09b851a1d9a9fa31ea548bba7f1",
+    "gui": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-rename-prefill-20261115\\gui-objects-v4\\xlang_ide.link.exe",
+    "guiSha256": "e4e51788e202b9d76cfe38fcdb7e12f4af2efdf1ca7f602feb5f920593dd7f0f"
+  },
+  "verification": {
+    "nativeDistinctUnitsReused": 118,
+    "nativeUnitsRecompiled": 0,
+    "protocolCasesReused": 209,
+    "protocolCasesExecuted": 0,
+    "fullGuiUnits": 138,
+    "pairedGuiSuites": 55,
+    "actualModernIdeModes": 47,
+    "actualLegacyIdeModes": 1,
+    "legacyServiceSha256": "3d08d2b5d7fb55dd60d832f02c1764d146b32b0b3953c323a8df65eb5f38e6eb",
+    "mailboxUnitChecks": 186,
+    "actualGuiLanguages": [
+      "c",
+      "xlang"
+    ],
+    "rejectedCompiledMutants": 9,
+    "actualInputs": 3178,
+    "actualObjects": 256,
+    "actualLinkedInputs": 344,
+    "repositoryBudgetPassed": true
+  },
+  "evidenceNotes": [
+    "Standard prepareRename fills the precise semantic name and source range. Existing shared source synchronization, watch receipt and standard capability negotiation are used, including disabled automatic diagnostics. Manual empty-name fallback stays available for an actual archived boolean-provider service. Full candidate, preview, explicit confirmation and asynchronous mixed transaction validation remain independent.",
+    "One small XRT mailbox reuses the existing transport worker. Distinct string IDs reject duplicate, old, cancelled and concurrent rearm replies. Large100000-node response DOM retirement and wake occur off owner; only a retained bounded immutable string leaf reaches UI. Reverse requests with a matching ID prefix remain unclaimed.",
+    "Pending is nonmodal and cancelable. Validate document/caret/version/path/readonly, source epoch, full open XL metadata cohort, config/client identity and watch revision before filling or preview. Delayed name reply must not steal editor focus. UTF8/UTF16 and surrogate boundaries are checked; anchor the range to the sent point and compare only that bounded source span.",
+    "Fresh138 GUI units,55 GUI suites,47 modern IDE modes plus1 real legacy peer,186 mailbox checks and actual24-frame C/xlang renders pass. Verify typing/deletion/undo/Unicode/IME/click focus and full rename transaction/recovery. Inspect the actual Unicode-prefill image; preparation does not create or apply write plans.",
+    "Seven mailbox and two GUI compiled bad implementations are rejected. The first forged-name fixture changed both bytes and length, so a byte-compare mutant survived; replace it with equal-width tampering and rerun all47 modern cases. An omitted-epoch-only mutant also survived other source guards and is not counted as rejected. Preserve all prototype failures and raw runs.",
+    "Revalidate the inherited118 native objects/archive and native source/header closure against current sources, with the same bf6949e1 service. Reuse the previous209 protocol and9 native fixture evidence without claiming new executions. Bind actual compiler/test inputs, private basename-only adapters, objects/link inputs and matched SDK metadata.",
+    "Default runtime, developer SDK, current delivery, online channel, existing user temporary directories and unrelated staging/worktree remain untouched. Validation aliases live only inside root release/win_x64 and are hash-checked and removed. Compiler temporary paths are scoped to F for this run."
+  ],
+  "limits": [
+    "No whole-goal cold/incremental latency, RSS, endurance, Linux or sanitizer qualification. Shared capture still scans/copies changed full document bodies and initial LSP point conversion may scan a long line. Existing client stop/join and owner blocking stdout are broader remaining costs.",
+    "Standard-client automatic workspace bootstrap, native/engine asset alignment, generic workspace/applyEdit, full generic/unbound/generated/foreign qualification and remaining applicable LSP/static/completion capabilities remain open. First3 legacy dialog failures are not fixed/rerun/counted as passing here.",
+    "No DAP, runtime or debug completion. No installation or online publishing in this phase. Long-term goal remains active."
+  ],
+  "postCommitReceipt": "dev/release-materials/provenance/lsp-rename-prefill-20261115/postcommit.json"
+}
