@@ -134,6 +134,17 @@ for nativeName,cl,mn,ct,slot,output,fields,params,result in manual:
  classes[cl]=[line for line in classes[cl] if not ('extern "'+nativeName+'"' in line)]
  attrs='@no_raise @c_result("owned_view") @factory('+str(output)+',0,rollback'+result+') @c_pack('+str(slot)+',"'+ct+'",0,'+str(len(fields))+') @c_pack_size('+str(slot)+',"iSize","uint32_t") '+' '.join('@c_pack_field('+str(slot)+',"'+field+'",'+str(i)+',"value")' for i,field in enumerate(fields))
  classes[cl].append(' extern "'+nativeName+'" '+attrs+' func '+mn+'('+params+') as '+result);mapped[nativeName]=cl+'.'+mn;reasons.pop(nativeName,None)
+# Counted source patches keep one column pin for data and its true byte length.
+# Named arguments allow the descriptor defaults before the patch columns.
+for kind,suffix in [('string',''),('bytes','Bytes')]:
+ name='xuiDocumentPrepareSource'
+ attrs='@no_raise @c_result("owned_view") @factory(4,0,rollbackDocumentPrepare) @c_pack(1,"xui_doc_txn_desc_t",0,4) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"iDomain",0,"value") @c_pack_field(1,"iBaseRevision",1,"value") @c_pack_field(1,"iOrigin",2,"value") @c_pack_field(1,"iGroup",3,"value") @c_array_group(2,4,3,"uint64_t",7) @c_array_record(2,"xui_doc_source_patch_t","iSize","uint32_t") @c_array_field(2,"iStart",0,"value") @c_array_field(2,"iEnd",1,"value") @c_array_span_field(2,"sText","iTextBytes",2,"const char*","uint64_t")'
+ classes['Document'].append(' extern "'+name+'" '+attrs+' func prepareSource'+suffix+'(c_uint domain=2,uint64 baseRevision=0,uint64 origin=0,uint64 group=0,array<uint64> starts=[],array<uint64> ends=[],array<'+kind+'> text=[],int size=-1) as DocumentPrepare')
+ name='xuiDocumentPrepareContinueSource'
+ attrs='@no_raise @c_result("owned_view") @factory(4,0,rollbackDocumentPrepare) @c_array_group(2,1,3,"uint64_t",4) @c_array_record(2,"xui_doc_source_patch_t","iSize","uint32_t") @c_array_field(2,"iStart",0,"value") @c_array_field(2,"iEnd",1,"value") @c_array_span_field(2,"sText","iTextBytes",2,"const char*","uint64_t")'
+ classes['Document'].append(' extern "'+name+'" '+attrs+' func continueSource'+suffix+'(DocumentPrepare previous,array<uint64> starts,array<uint64> ends,array<'+kind+'> text,int size=-1) as DocumentPrepare')
+mapped['xuiDocumentPrepareSource']='Document.prepareSource / Document.prepareSourceBytes';reasons.pop('xuiDocumentPrepareSource',None)
+mapped['xuiDocumentPrepareContinueSource']='Document.continueSource / Document.continueSourceBytes';reasons.pop('xuiDocumentPrepareContinueSource',None)
 # The streaming descriptor is packed, so callers never guess native sizeof.
 classes['Document']=[line for line in classes['Document'] if 'extern "xuiDocumentPrepareStreamSource"' not in line]
 classes['Document'].append(' extern "xuiDocumentPrepareStreamSource" @no_raise @c_result("owned_view") @factory(6,0,rollbackDocumentPrepare) @c_pack(2,"xui_doc_txn_desc_t",1,4) @c_pack_size(2,"iSize","uint32_t") @c_pack_field(2,"iDomain",1,"value") @c_pack_field(2,"iBaseRevision",2,"value") @c_pack_field(2,"iOrigin",3,"value") @c_pack_field(2,"iGroup",4,"value") @c_span(5,"const char*","size_t") func prepareStreamSource(DocumentPrepare? previous,c_uint domain=2,uint64 baseRevision=0,uint64 origin=0,uint64 group=0,string utf8="",c_int finalChunk=1) as DocumentPrepare')
@@ -216,8 +227,6 @@ replacements={
  'xuiDocumentSnapshotAnalyzeMarkdownConversion':'Writable caller output array; a single POD plus arbitrary capacity is unsafe. A checked typed-array output contract is not declared.',
  'xuiDocumentSnapshotFind':'Writable matches array plus capacity; nullable scope and complete array capacity must be represented together, not a single output record.',
  'xuiDocumentSnapshotFindEx':'Writable matches array plus capacity; same boundary as Find, with native regex flags.',
- 'xuiDocumentPrepareSource':'Array of size-prefixed patch records with counted text pointers. Existing column packs do not initialize each iSize or map per-element text byte lengths.',
- 'xuiDocumentPrepareContinueSource':'Same counted patch-array boundary. prepareStreamSource provides safe incremental UTF-8 append but does not replace arbitrary patches.',
  'xuiDocumentCreate':'Legacy raw/custom-allocator provenance; createDocument maps CreateOwned with default allocator only.',
  'xuiDocumentOpenFile':'Legacy raw/custom-allocator provenance; openDocument maps OpenFileOwned with default allocator only.',
  'xuiDocumentDeserialize':'Legacy raw/custom-allocator provenance; deserializeDocument maps DeserializeOwned with default allocator only.',
@@ -242,10 +251,11 @@ report['fields']={
  'xui_doc_image_desc_t':dict(input='insertImage/updateImage pack all public fields with counted alt text and nullable NUL strings.'),
  'xui_doc_source_index_desc_t':dict(input='createSourceIndex packs default allocator settings and maxWorkingBytes.',notProjected=dict(onCancel='Callback nested inside a packed descriptor is not synthesized as a persistent raw callback.',pCancelUser='No user pointer exposed.')),
  'xui_doc_desc_t':dict(input='Owned constructors pack size and all eight ordinary settings.',notProjected=dict(onAlloc='Custom allocator callback lifetime is C-only.',onFree='Must be paired with allocator, outlives all handles.',pAllocatorUser='No raw userdata exposed.')),
- 'xui_doc_source_patch_t':dict(notProjected=dict(iSize='Per-element sizeof initialization needs a checked array-record field contract.',sText='Per-element counted string lifetime/byte length cannot be replaced by NUL scanning.',iTextBytes='Must be paired with its actual element text source.'))}
+ 'xui_doc_source_patch_t':dict(input='prepareSource/continueSource and their Bytes variants project parallel start/end/text columns. Each temporary record receives exact sizeof, data pointer and actual byte length; readonly pins retain the original string/bytes backing for the synchronous call. Native copies accepted source text before return.',notProjected=dict(writableOutput='Input-only record projection; no writable language array or raw pointer is exposed.'))}
 report['costs']=dict(nativeForwardingFunctions=0,descriptorPacks='Stack initialization and field assignments; counted inputs are pinned; NUL strings require validation/scans.',owningRoots='One resident control/code lease and real native owner per independent root; share/factories reserve before producer.',POD='Exact native values or stack output-record field copies; no arbitrary pointer projection.',buffers='Scope/pin/length checks; Native Copy performs its documented bytes copy; lengths remain unchanged.',callbacks='Native Owned capture ownership plus checked epoch admission; explicit share acquires a real separate owner.',overallZeroOverheadClaim=False)
 report['externalTypeAuthority']=dict(header=ui['header'],sha256=ui['sha256'])
 report['costs']['ownedExports']='Text adopts the actual resident-XRT allocation after one UTF-8 scan; bytes adds its ordinary owning value carrier. No payload copy or strlen.'
+report['costs']['sourcePatchInputs']='One zero-initialized O(n) native record array plus column read pins and checked field writes. No text copy or NUL scan in the projection; native source processing retains its own documented copies. Default empty array arguments may allocate ordinary input containers.'
 previous=r/'docs/xge3-xui3-document-api-map.json'
 if previous.is_file():
  old=json.loads(previous.read_text(encoding='utf-8'))

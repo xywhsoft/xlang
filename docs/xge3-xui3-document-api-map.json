@@ -1,6 +1,6 @@
 {
   "scope": "Default-provenance Model A direct declaration coverage; declarations are not ABI/runtime qualification",
-  "authority": "F:\\xlang-validation\\xge-full-20261110\\native-document-export-source-r6\\include\\xui_document.h",
+  "authority": "F:\\xlang-validation\\xge-full-20261110\\native-provider-owned-win-source-r2\\include\\xui_document.h",
   "authoritySha256": "b163fa5448dc811926c28edf9001319b10148b07407882b72ecbacee14a02a38",
   "roots": {
     "xui_document": {
@@ -1571,17 +1571,17 @@
       "native": "xuiDocumentPrepareSource",
       "declaration": "int xuiDocumentPrepareSource(xui_document document, const xui_doc_txn_desc_t* desc, const xui_doc_source_patch_t* patches, uint64_t count, xui_document_prepare* out)",
       "line": 1349,
-      "logical": null,
-      "state": "explicit-C-interoperability",
-      "reason": "Array of size-prefixed patch records with counted text pointers. Existing column packs do not initialize each iSize or map per-element text byte lengths."
+      "logical": "Document.prepareSource / Document.prepareSourceBytes",
+      "state": "declared-needs-ABI",
+      "reason": null
     },
     {
       "native": "xuiDocumentPrepareContinueSource",
       "declaration": "int xuiDocumentPrepareContinueSource(xui_document document, xui_document_prepare previous, const xui_doc_source_patch_t* patches, uint64_t count, xui_document_prepare* out)",
       "line": 1359,
-      "logical": null,
-      "state": "explicit-C-interoperability",
-      "reason": "Same counted patch-array boundary. prepareStreamSource provides safe incremental UTF-8 append but does not replace arbitrary patches."
+      "logical": "Document.continueSource / Document.continueSourceBytes",
+      "state": "declared-needs-ABI",
+      "reason": null
     },
     {
       "native": "xuiDocumentPrepareStreamSource",
@@ -1826,7 +1826,7 @@
   ],
   "counts": {
     "publicFunctions": 218,
-    "declared": 159,
+    "declared": 161,
     "ownedRoots": 7,
     "pointerFreeRecords": 26,
     "constants": 255
@@ -1916,10 +1916,9 @@
       }
     },
     "xui_doc_source_patch_t": {
+      "input": "prepareSource/continueSource and their Bytes variants project parallel start/end/text columns. Each temporary record receives exact sizeof, data pointer and actual byte length; readonly pins retain the original string/bytes backing for the synchronous call. Native copies accepted source text before return.",
       "notProjected": {
-        "iSize": "Per-element sizeof initialization needs a checked array-record field contract.",
-        "sText": "Per-element counted string lifetime/byte length cannot be replaced by NUL scanning.",
-        "iTextBytes": "Must be paired with its actual element text source."
+        "writableOutput": "Input-only record projection; no writable language array or raw pointer is exposed."
       }
     }
   },
@@ -1931,11 +1930,12 @@
     "buffers": "Scope/pin/length checks; Native Copy performs its documented bytes copy; lengths remain unchanged.",
     "callbacks": "Native Owned capture ownership plus checked epoch admission; explicit share acquires a real separate owner.",
     "overallZeroOverheadClaim": false,
-    "ownedExports": "Text adopts the actual resident-XRT allocation after one UTF-8 scan; bytes adds its ordinary owning value carrier. No payload copy or strlen."
+    "ownedExports": "Text adopts the actual resident-XRT allocation after one UTF-8 scan; bytes adds its ordinary owning value carrier. No payload copy or strlen.",
+    "sourcePatchInputs": "One zero-initialized O(n) native record array plus column read pins and checked field writes. No text copy or NUL scan in the projection; native source processing retains its own documented copies. Default empty array arguments may allocate ordinary input containers."
   },
   "externalTypeAuthority": {
-    "header": "F:\\xlang-validation\\xge-full-20261110\\native-document-export-source-r6\\include\\xui.h",
-    "sha256": "8dcc7efb904092779f185318f11dfd13ca8f5da5b64fdbe22f10efebd2e31ffc"
+    "header": "F:\\xlang-validation\\xge-full-20261110\\native-provider-owned-win-source-r2\\include\\xui.h",
+    "sha256": "827b97a8b44e72ac9337986f98e0ead6c32a8d0cf122473d77d571e28ab5501d"
   },
   "previousQualification": {
     "scope": "C11/C++11/C++17 exact Native ABI, 255 constants, 26 PODs and separate actual seven-model CPU script; no GUI/filesystem/network/shipping qualification",

@@ -3,7 +3,7 @@
 static int xl6SemProjectionInputAttr(const XL6_AstNode* attr)
 {
     static const char* const names[]={"c_pack","c_pack_field","c_pack_record","c_pack_size",
-        "c_span","c_array_group","c_array_input","c_array_record","c_array_field"};
+        "c_span","c_array_group","c_array_input","c_array_record","c_array_field","c_array_span_field"};
     for(size_t i=0;attr && attr->text && i<sizeof(names)/sizeof(*names);++i)
         if(!strcmp(attr->text,names[i]))return 1;
     return 0;

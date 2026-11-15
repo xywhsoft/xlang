@@ -1,0 +1,125 @@
+extern "fixtureArraySlices" @header("test/cases/foreign_array_slices.h") @no_raise @c_result("status",0) @c_array_group(0,0,2,"uint64_t",2) @c_array_record(0,"FixtureArraySlice","iSize","uint32_t") @c_array_span_field(0,"data","length",0,"const uint8_t*","uint64_t") @c_array_field(0,"tag",1,"value") func textSlices(array<string> values,array<uint64> tags,int size=-1)
+extern "fixtureArraySlices" @header("test/cases/foreign_array_slices.h") @no_raise @c_result("status",0) @c_array_group(0,0,2,"uint64_t",2) @c_array_record(0,"FixtureArraySlice","iSize","uint32_t") @c_array_span_field(0,"data","length",0,"const uint8_t*","uint64_t") @c_array_field(0,"tag",1,"value") func byteSlices(array<bytes> values,array<uint64> tags,int size=-1)
+extern "fixtureArraySlicesPacked" @header("test/cases/foreign_array_slices.h") @no_raise @c_result("status",0) @c_pack(0,"FixtureSliceOptions",0,1) @c_pack_size(0,"iSize","uint32_t") @c_pack_field(0,"value",0,"value") @c_array_group(1,1,2,"uint64_t",3) @c_array_record(1,"FixtureArraySlice","iSize","uint32_t") @c_array_span_field(1,"data","length",0,"const uint8_t*","uint64_t") @c_array_field(1,"tag",1,"value") func packed(c_int option,array<string> values,array<uint64> tags,int size=-1)
+extern "fixtureArraySlicesReenter" @header("test/cases/foreign_array_slices.h") @no_raise @c_result("status",0) @c_sync_callback(3,-1,-16) @c_array_group(0,0,2,"uint64_t",2) @c_array_record(0,"FixtureArraySlice","iSize","uint32_t") @c_array_span_field(0,"data","length",0,"const uint8_t*","uint64_t") @c_array_field(0,"tag",1,"value") func reenter(array<string> values,array<uint64> tags,int size,func() as c_int callback)
+extern "fixtureSliceRemember" @header("test/cases/foreign_array_slices.h") @no_raise @c_span(1,"const uint8_t*","size_t") func rememberText(c_int index,string data)
+extern "fixtureSliceRemember" @header("test/cases/foreign_array_slices.h") @no_raise @c_span(1,"const uint8_t*","size_t") func rememberBytes(c_int index,bytes data)
+extern "fixtureSliceRememberStorage" @header("test/cases/foreign_array_slices.h") @no_raise @c_const(0) func rememberStorage(var values,c_int binary)
+extern "fixtureSliceCalls" @header("test/cases/foreign_array_slices.h") @no_raise func calls() as c_int
+extern "fixtureSliceFailure" @header("test/cases/foreign_array_slices.h") @no_raise func failNative(c_int enabled)
+extern "fixtureSliceHeapBegin" @header("test/cases/foreign_array_slices.h") @no_raise func beginHeap()
+extern "fixtureSliceBudget" @header("test/cases/foreign_array_slices.h") @no_raise func budget(c_int count)
+extern "fixtureSliceEndBudget" @header("test/cases/foreign_array_slices.h") @no_raise func endBudget()
+extern "fixtureSliceHeapBalanced" @header("test/cases/foreign_array_slices.h") @no_raise func balanced()
+extern "fixtureSliceReport" @header("test/cases/foreign_array_slices.h") @no_raise func reportHeap(c_int native)
+extern "fixtureSliceNativeHot" @header("test/cases/foreign_array_slices.h") @no_raise func nativeHot()
+
+func oneBudget(array<string> values,array<uint64> tags,c_int allowance) as int
+ int success=0
+ int before=calls()
+ budget(allowance)
+ try
+  textSlices(values,tags)
+  success=1
+ catch error
+  endBudget()
+  assert calls()==before
+  success=0
+ finally
+  endBudget()
+ end
+ return success
+end
+
+func main(...) as int
+ string first="a\0b"
+ string second="你好"
+ string last=""
+ array<string> texts=[first,second,last]
+ array<uint64> tags=[uint64(18446744073709551615),uint64(2),uint64(3)]
+ rememberStorage(texts,c_int(0))
+ textSlices(texts,tags)
+ packed(c_int(7),texts,tags)
+ textSlices(texts,tags,0)
+ textSlices(texts,tags,99)
+ array<uint64> shortTags=[uint64(18446744073709551615)]
+ int before=calls()
+ bool rejected=false
+ try
+  textSlices(texts,shortTags)
+ catch error
+  rejected=true
+ end
+ assert rejected and calls()==before
+ textSlices(texts,shortTags,99)
+ before=calls()
+ rejected=false
+ try
+  textSlices(texts,tags,-2)
+ catch error
+  rejected=true
+ end
+ assert rejected and calls()==before
+ auto callback=func() as c_int
+  bool blocked=false
+  try
+   texts[0]="changed"
+  catch error
+   blocked=true
+  end
+  assert blocked
+  assert texts[0]==first
+  return c_int(0)
+ end
+ reenter(texts,tags,-1,callback)
+ auto failedCallback=func() as c_int
+  throw "array slice callback failure"
+  return c_int(0)
+ end
+ rejected=false
+ try
+  reenter(texts,tags,-1,failedCallback)
+ catch error
+  rejected=true
+ end
+ assert rejected
+ texts[0]=first
+ rememberStorage(texts,c_int(0))
+ failNative(c_int(1))
+ rejected=false
+ try
+  textSlices(texts,tags)
+ catch error
+  rejected=true
+ finally
+  endBudget()
+ end
+ assert rejected
+ assert oneBudget(texts,tags,c_int(-1))==1
+ oneBudget(texts,tags,c_int(0))
+ int failures=0
+ int successes=0
+ for allowance in range(32)
+  beginHeap()
+  int success=oneBudget(texts,tags,c_int(allowance))
+  balanced()
+  successes+=success
+  failures+=1-success
+ end
+ assert failures>0 and successes>0
+ beginHeap()
+ for iteration in range(1000)
+  textSlices(texts,tags)
+ end
+ reportHeap(c_int(0))
+ balanced()
+ nativeHot()
+ bytes binary=b"\0\xffz"
+ bytes other=b"\x80"
+ bytes empty=b""
+ array<bytes> data=[binary,other,empty]
+ rememberStorage(data,c_int(1))
+ byteSlices(data,tags)
+ println("Array slices: exact bytes/length/sizeof, original pointers, uint64 count, scoped pins, checked errors and OOM passed")
+ return 0
+end

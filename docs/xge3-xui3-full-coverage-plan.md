@@ -1687,3 +1687,15 @@ Code 协议版本及三个结果枚举成员；修正 XUI_PROXY_VERSION 17 与�
 字节长度，同步调用期保活，不扫描NUL、不复制文本，精确校验字段长度ABI。
 接下来用于 Document PrepareSource／ContinueSource。用户亦确认 pack／typed NULL
 兼容方向；该基础规则已经存在并用于流式续接，后续复核组合边界，不重复建设。
+
+2026-11-15 第19项已落地：`c_array_span_field` 将同一个 string／bytes 列投影为
+记录内数据指针和实际字节长度；`c_array_record` 可初始化每个元素的 sizeof 字段。
+补齐 uint64_t 原生数量和互不重叠的 pack／array 组合，保留精确字段 ABI、只读
+保活及失败清理。Document 补入 prepareSource／continueSource 及 Bytes 形式，
+直接调用两个既有原生函数；线性范例演示两次替换后一次发布。基础 pack／typed
+NULL 仍复用原规则，旧记录、数组、NULL 和投影重载分别做完整编译器运行回归。
+全量盘点人口仍5217，已声明函数增至3864；只说明这两个入口增加了语言投影，
+不代表其他接口的拥有、线程、错误或运行验收完成。片段本身不复制文本或扫描
+NUL；记录数组仍有一次分配和 O(n) 字段填写，原生源码处理自己的复制另计。
+专项范围、实际平台结果及哈希见 xui-document-source-patches.md 和本批 provenance。
+输出数组、输出记录字符串、其他未决合同及最终配套发布继续开放。

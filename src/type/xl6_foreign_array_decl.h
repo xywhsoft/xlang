@@ -25,6 +25,21 @@ static inline XL6_ForeignArrayElementKind xl6ForeignArrayElementKind(const char*
         !strcmp(name,"view_raw") ? XL6_FOREIGN_ARRAY_ELEMENT_VIEW_RAW :
         !strcmp(name,"c_string") ? XL6_FOREIGN_ARRAY_ELEMENT_C_STRING : XL6_FOREIGN_ARRAY_ELEMENT_INVALID;
 }
+static inline int xl6ForeignArrayLengthSpelling(const char* text)
+{return text && (!strcmp(text,"int") || !strcmp(text,"size_t") || !strcmp(text,"uint32_t") || !strcmp(text,"uint64_t"));}
+static inline int xl6ForeignArraySpanPointerSpelling(const char* text)
+{return text && (!strcmp(text,"const char*") || !strcmp(text,"const uint8_t*") || !strcmp(text,"const void*"));}
+static inline int xl6ForeignArrayFieldNamesOverlap(const XL6_ForeignArrayFieldContract* a,const XL6_ForeignArrayFieldContract* b)
+{return !strcmp(a->field,b->field) || (a->lengthField[0] && !strcmp(a->lengthField,b->field)) ||
+    (b->lengthField[0] && !strcmp(a->field,b->lengthField)) || (a->lengthField[0] && b->lengthField[0] && !strcmp(a->lengthField,b->lengthField));}
+static inline int xl6ForeignArrayFieldShape(const XL6_ForeignArrayFieldContract* row)
+{
+    if(!memchr(row->field,0,sizeof(row->field)) || !xl6ForeignIdentifier(row->field) ||
+        !memchr(row->lengthField,0,sizeof(row->lengthField)) || !memchr(row->lengthCName,0,sizeof(row->lengthCName)))return 0;
+    if(row->kind!=XL6_FOREIGN_ARRAY_ELEMENT_SPAN)return !row->lengthField[0] && !row->lengthCName[0];
+    return memchr(row->physicalCName,0,sizeof(row->physicalCName)) && xl6ForeignArraySpanPointerSpelling(row->physicalCName) &&
+        xl6ForeignIdentifier(row->lengthField) && strcmp(row->field,row->lengthField) && xl6ForeignArrayLengthSpelling(row->lengthCName);
+}
 static inline int xl6ForeignArrayGroupRead(const XL6_AstNode* attr,XL6_ForeignArrayGroupContract* output)
 {
     int32 physical,first,count,size;char countName[24];XL6_ForeignArrayGroupContract row={0};
@@ -33,11 +48,11 @@ static inline int xl6ForeignArrayGroupRead(const XL6_AstNode* attr,XL6_ForeignAr
         !xl6ForeignDecimalInt(attr->children[1],&first) || first<0 || first>=64 ||
         !xl6ForeignDecimalInt(attr->children[2],&count) || count<1 || count>63 || first>63-count ||
         !xl6ForeignQuotedText(attr->children[3],countName,sizeof(countName)) ||
-        (strcmp(countName,"int") && strcmp(countName,"size_t")) ||
+        (strcmp(countName,"int") && strcmp(countName,"size_t") && strcmp(countName,"uint64_t")) ||
         !xl6ForeignDecimalInt(attr->children[4],&size) || size!=first+count)return 0;
     row.physicalIndex=(uint32)physical;row.firstParameter=(uint32)first;
     row.arrayCount=(uint32)count;row.sizeParameter=(uint32)size;
-    row.countAbi=!strcmp(countName,"int") ? XL6_FOREIGN_SPAN_COUNT_INT:XL6_FOREIGN_SPAN_COUNT_SIZE;
+    row.countAbi=!strcmp(countName,"int") ? XL6_FOREIGN_SPAN_COUNT_INT:!strcmp(countName,"size_t") ? XL6_FOREIGN_SPAN_COUNT_SIZE:XL6_FOREIGN_SPAN_COUNT_U64;
     if(output)*output=row;
     return 1;
 }
@@ -58,15 +73,38 @@ static inline int xl6ForeignArrayInputRead(const XL6_AstNode* attr,XL6_ForeignAr
 static inline int xl6ForeignArrayRecordRead(const XL6_AstNode* attr,uint32* physical,char* name,size_t capacity)
 {
     int32 slot;
-    if(!attr || !attr->text || strcmp(attr->text,"c_array_record") || attr->childCount!=2 ||
+    if(!attr || !attr->text || strcmp(attr->text,"c_array_record") || (attr->childCount!=2 && attr->childCount!=4) ||
         !xl6ForeignDecimalInt(attr->children[0],&slot) || slot<0 || slot>=64 ||
         !xl6ForeignQuotedText(attr->children[1],name,capacity) || !xl6ForeignIdentifier(name))return 0;
+    if(attr->childCount==4){char field[64],ctype[24];
+        if(!xl6ForeignQuotedText(attr->children[2],field,sizeof(field)) || !xl6ForeignIdentifier(field) ||
+            !xl6ForeignQuotedText(attr->children[3],ctype,sizeof(ctype)) || !xl6ForeignArrayLengthSpelling(ctype))return 0;}
     if(physical)*physical=(uint32)slot;
+    return 1;
+}
+static inline int xl6ForeignArrayRecordSizeRead(const XL6_AstNode* attr,XL6_ForeignArrayGroupContract* output)
+{
+    uint32 slot;char name[64];
+    if(!xl6ForeignArrayRecordRead(attr,&slot,name,sizeof(name)) || attr->childCount!=4)return 0;
+    if(output){strcpy(output->recordCName,name);
+        if(!xl6ForeignQuotedText(attr->children[2],output->sizeField,sizeof(output->sizeField)) ||
+            !xl6ForeignQuotedText(attr->children[3],output->sizeCName,sizeof(output->sizeCName)))return 0;}
     return 1;
 }
 static inline int xl6ForeignArrayFieldRead(const XL6_AstNode* attr,XL6_ForeignArrayFieldContract* output)
 {
     int32 physical,column;char mode[24];XL6_ForeignArrayFieldContract row={0};
+    if(attr && attr->text && !strcmp(attr->text,"c_array_span_field")){
+        if(attr->childCount!=6 || !xl6ForeignDecimalInt(attr->children[0],&physical) || physical<0 || physical>=64 ||
+            !xl6ForeignQuotedText(attr->children[1],row.field,sizeof(row.field)) || !xl6ForeignIdentifier(row.field) ||
+            !xl6ForeignQuotedText(attr->children[2],row.lengthField,sizeof(row.lengthField)) || !xl6ForeignIdentifier(row.lengthField) ||
+            !strcmp(row.field,row.lengthField) || !xl6ForeignDecimalInt(attr->children[3],&column) || column<0 || column>=64 ||
+            !xl6ForeignQuotedText(attr->children[4],row.physicalCName,sizeof(row.physicalCName)) || !xl6ForeignArraySpanPointerSpelling(row.physicalCName) ||
+            !xl6ForeignQuotedText(attr->children[5],row.lengthCName,sizeof(row.lengthCName)) || !xl6ForeignArrayLengthSpelling(row.lengthCName))return 0;
+        row.groupPhysicalIndex=(uint32)physical;row.column=(uint32)column;row.kind=XL6_FOREIGN_ARRAY_ELEMENT_SPAN;
+        if(output)*output=row;
+        return 1;
+    }
     if(!attr || !attr->text || strcmp(attr->text,"c_array_field") || attr->childCount!=4 ||
         !xl6ForeignDecimalInt(attr->children[0],&physical) || physical<0 || physical>=64 ||
         !xl6ForeignQuotedText(attr->children[1],row.field,sizeof(row.field)) || !xl6ForeignIdentifier(row.field) ||

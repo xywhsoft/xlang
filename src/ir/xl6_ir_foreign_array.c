@@ -29,14 +29,20 @@ static int xl6IrArrayGroupExpected(const XL6_IrModule* m,const XL6_ForeignArrayG
     const XL6_IrNode* params;size_t receiver,outputs;uint32 slots[64]={0};
     const XL6_IrNode* node=xl6IrRegionSignature(m,row->declaration,&params,&receiver,slots,&outputs);
     if(!node || !xl6ForeignInputHasArrayGroups(node->foreignCall.inputMappingFacts) ||
-        xl6ForeignInputHasPacks(node->foreignCall.inputMappingFacts) || xl6ForeignInputHasRegions(node->foreignCall.inputMappingFacts) ||
+        xl6ForeignInputHasRegions(node->foreignCall.inputMappingFacts) ||
         !(node->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) || (node->flags&(XL6_AST_FLAG_FOREIGN_FIELD|XL6_AST_FLAG_FOREIGN_OWNED_STRING)) ||
         row->physicalIndex>=64 || row->firstParameter<receiver || row->firstParameter>=64 || !row->arrayCount ||
         row->arrayCount>63 || row->sizeParameter!=row->firstParameter+row->arrayCount || row->sizeParameter>=64 || row->sizeParameter>=params->childCount+receiver ||
-        (row->countAbi!=XL6_FOREIGN_SPAN_COUNT_INT && row->countAbi!=XL6_FOREIGN_SPAN_COUNT_SIZE) ||
-        !memchr(row->recordCName,0,sizeof(row->recordCName)) || (row->recordCName[0] && !xl6ForeignIdentifier(row->recordCName)))return 0;
+        (row->countAbi!=XL6_FOREIGN_SPAN_COUNT_INT && row->countAbi!=XL6_FOREIGN_SPAN_COUNT_SIZE && row->countAbi!=XL6_FOREIGN_SPAN_COUNT_U64) ||
+        !memchr(row->recordCName,0,sizeof(row->recordCName)) || (row->recordCName[0] && !xl6ForeignIdentifier(row->recordCName)) ||
+        !memchr(row->sizeField,0,sizeof(row->sizeField)) || !memchr(row->sizeCName,0,sizeof(row->sizeCName)) ||
+        (row->sizeField[0] ? (!row->recordCName[0] || !xl6ForeignIdentifier(row->sizeField) || !xl6ForeignArrayLengthSpelling(row->sizeCName)):row->sizeCName[0]!=0))return 0;
     const XL6_IrType* size=xl6IrTypeGet(&m->types,xl6IrRegionInputType(m,node,params,receiver,row->sizeParameter));
     if(!size || size->kind!=XL6_IR_TYPE_BUILTIN || size->cAbi!=XL6_IR_C_ABI_I64 || size->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_TRIVIAL)return 0;
+    for(size_t i=0;i<m->foreignPackCount;++i){const XL6_ForeignPackContract* pack=&m->foreignPacks[i];
+        if(pack->declaration==row->declaration && (pack->physicalIndex==row->physicalIndex ||
+            pack->firstParameter>params->childCount+receiver || pack->parameterCount>params->childCount+receiver-pack->firstParameter ||
+            (pack->parameterCount && pack->firstParameter<=row->sizeParameter && row->firstParameter<pack->firstParameter+pack->parameterCount)))return 0;}
     uint64 mask=row->arrayCount==63 ? UINT64_MAX:((UINT64_C(1)<<(row->arrayCount+1))-1)<<(row->firstParameter-receiver);
     if(mask&(node->foreignCall.constAggregateAddresses|node->foreignCall.staticCallbackAddresses|node->foreignCall.textViews|
         node->foreignCall.bytesViews|node->foreignCall.terminatedStrings|node->foreignCall.physicalPairs|node->foreignCall.retainedCallbacks))return 0;
@@ -76,6 +82,12 @@ static int xl6IrArrayColumnTypes(const XL6_IrModule* m,const XL6_ForeignArrayGro
             element->cAbi!=base->cAbi || element->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED ||
             array->sequenceLayout.transferAbi!=XL6_IR_RUNTIME_RESOURCE_PAYLOAD_STRING_COPY)return 0;
         name="const char*";
+    }else if(kind==XL6_FOREIGN_ARRAY_ELEMENT_SPAN){
+        if(!element || base!=element || base->kind!=XL6_IR_TYPE_BUILTIN || base->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED)return 0;
+        if(base->cAbi==XL6_IR_C_ABI_MANAGED_STRING && array->sequenceLayout.slotAbi==XL6_IR_NATIVE_SLOT_STRING &&
+            array->sequenceLayout.transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_STRING_COPY)name="const char*";
+        else if(base->cAbi==XL6_IR_C_ABI_MANAGED_BYTES && array->sequenceLayout.slotAbi==XL6_IR_NATIVE_SLOT_XVALUE_CARRIER &&
+            array->sequenceLayout.transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN)name="const uint8_t*";
     }
     if(!name || !name[0])return 0;
     for(size_t q=0;q<m->foreignPointerQualifierCount;++q)if(m->foreignPointerQualifiers[q].declaration==group->declaration && m->foreignPointerQualifiers[q].parameter==p)return 0;
@@ -87,6 +99,8 @@ static XL6_ForeignArrayProfile xl6IrArrayProfile(const XL6_IrModule* m,const XL6
 {
     if(row->kind==XL6_FOREIGN_ARRAY_ELEMENT_VIEW_RAW)return XL6_FOREIGN_ARRAY_PROFILE_VIEW_CALL_PIN;
     if(row->kind==XL6_FOREIGN_ARRAY_ELEMENT_C_STRING)return XL6_FOREIGN_ARRAY_PROFILE_STRING_READ_PIN;
+    if(row->kind==XL6_FOREIGN_ARRAY_ELEMENT_SPAN){const XL6_IrType* element=xl6IrTypeGet(&m->types,row->elementType);
+        return element && element->cAbi==XL6_IR_C_ABI_MANAGED_BYTES ? XL6_FOREIGN_ARRAY_PROFILE_BYTES_READ_PIN:XL6_FOREIGN_ARRAY_PROFILE_STRING_READ_PIN;}
     const XL6_IrType* element=xl6IrTypeGet(&m->types,row->elementType);
     const XL6_IrType* array=xl6IrTypeGet(&m->types,row->arrayType);
     if(!element || !array || row->kind!=XL6_FOREIGN_ARRAY_ELEMENT_VALUE)return XL6_FOREIGN_ARRAY_PROFILE_INVALID;
@@ -121,14 +135,14 @@ static int xl6IrCloseArrayGroups(XL6_IrModule* m)
         m->foreignArrayGroups[i]=expected;}
     for(size_t i=0;i<m->foreignArrayInputCount;++i){XL6_ForeignArrayInputContract* row=&m->foreignArrayInputs[i];XL6_IrCallTarget t={.declaration=row->declaration};
         const XL6_ForeignArrayGroupContract* group=xl6IrForeignArrayGroupGet(m,&t,row->groupPhysicalIndex);const char* name=NULL;
-        if(!group || group->recordCName[0] || !memchr(row->pointerCName,0,sizeof(row->pointerCName)) || !xl6ForeignArrayPointerSpelling(row->pointerCName) ||
+        if(!group || group->recordCName[0] || row->kind==XL6_FOREIGN_ARRAY_ELEMENT_SPAN || !memchr(row->pointerCName,0,sizeof(row->pointerCName)) || !xl6ForeignArrayPointerSpelling(row->pointerCName) ||
             !xl6IrArrayColumnTypes(m,group,row->column,row->kind,&row->arrayType,&row->elementType,&name) || strlen(name)>=sizeof(row->elementCName))return 0;
         strcpy(row->elementCName,name);row->profile=xl6IrArrayProfile(m,group,row);if(!row->profile)return 0;}
     for(size_t i=0;i<m->foreignArrayFieldCount;++i){XL6_ForeignArrayFieldContract* row=&m->foreignArrayFields[i];XL6_IrCallTarget t={.declaration=row->declaration};const char* name=NULL;
         const XL6_ForeignArrayGroupContract* group=xl6IrForeignArrayGroupGet(m,&t,row->groupPhysicalIndex);
-        if(!group || !group->recordCName[0] || !memchr(row->field,0,sizeof(row->field)) || !xl6ForeignIdentifier(row->field) ||
+        if(!group || !group->recordCName[0] || !xl6ForeignArrayFieldShape(row) ||
             !xl6IrArrayColumnTypes(m,group,row->column,row->kind,&row->arrayType,&row->elementType,&name) || strlen(name)>=sizeof(row->physicalCName))return 0;
-        strcpy(row->physicalCName,name);
+        if(row->kind!=XL6_FOREIGN_ARRAY_ELEMENT_SPAN)strcpy(row->physicalCName,name);
         XL6_ForeignArrayInputContract column={.arrayType=row->arrayType,.elementType=row->elementType,.kind=row->kind};
         row->profile=xl6IrArrayProfile(m,group,&column);if(!row->profile)return 0;}
     return 1;
@@ -144,8 +158,9 @@ static int xl6IrVerifyArrayGroups(const XL6_IrModule* m,XL6_DiagList* diags)
         for(size_t col=0;col<group->arrayCount;++col){XL6_ForeignArrayInputContract input;const XL6_ForeignArrayFieldContract* field;uint32 arrayType,elementType;const char* name;
             if(!xl6IrForeignArrayColumn(m,group,col,&input,&field) || !xl6IrArrayColumnTypes(m,group,col,input.kind,&arrayType,&elementType,&name) ||
                 input.arrayType!=arrayType || input.elementType!=elementType || input.profile!=xl6IrArrayProfile(m,group,&input) ||
-                !memchr(input.elementCName,0,sizeof(input.elementCName)) || strcmp(input.elementCName,name) ||
-                (field && (!memchr(field->physicalCName,0,sizeof(field->physicalCName)) || strcmp(field->physicalCName,name))))goto invalid;}
+                !memchr(input.elementCName,0,sizeof(input.elementCName)) ||
+                (input.kind==XL6_FOREIGN_ARRAY_ELEMENT_SPAN ? (!field || !xl6ForeignArrayFieldShape(field)):strcmp(input.elementCName,name)) ||
+                (field && (input.kind!=XL6_FOREIGN_ARRAY_ELEMENT_SPAN && (!memchr(field->physicalCName,0,sizeof(field->physicalCName)) || strcmp(field->physicalCName,name)))))goto invalid;}
     }
     for(size_t i=0;i<m->foreignArrayInputCount+m->foreignArrayFieldCount;++i){
         int field=i>=m->foreignArrayInputCount;size_t at=field ? i-m->foreignArrayInputCount:i;
@@ -156,9 +171,10 @@ static int xl6IrVerifyArrayGroups(const XL6_IrModule* m,XL6_DiagList* diags)
         if(!group || field!=(group->recordCName[0]!=0) || col>=group->arrayCount)goto invalid;
         if(!field && (!memchr(m->foreignArrayInputs[at].pointerCName,0,sizeof(m->foreignArrayInputs[at].pointerCName)) || !xl6ForeignArrayPointerSpelling(m->foreignArrayInputs[at].pointerCName)))goto invalid;
         if(field){const XL6_ForeignArrayFieldContract* row=&m->foreignArrayFields[at];
-            if(!memchr(row->field,0,sizeof(row->field)) || !xl6ForeignIdentifier(row->field))goto invalid;
+            if(!xl6ForeignArrayFieldShape(row) || (group->sizeField[0] &&
+                (!strcmp(group->sizeField,row->field) || !strcmp(group->sizeField,row->lengthField))))goto invalid;
             for(size_t j=0;j<at;++j){const XL6_ForeignArrayFieldContract* old=&m->foreignArrayFields[j];
-                if(old->declaration==decl && old->groupPhysicalIndex==slot && !strcmp(old->field,row->field))goto invalid;}}
+                if(old->declaration==decl && old->groupPhysicalIndex==slot && xl6ForeignArrayFieldNamesOverlap(old,row))goto invalid;}}
     }
     for(size_t n=0;n<m->nodeCount;++n){size_t groups=0;
         for(size_t g=0;g<m->foreignArrayGroupCount;++g)groups+=m->foreignArrayGroups[g].declaration==n+1;

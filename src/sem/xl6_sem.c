@@ -9216,7 +9216,7 @@ static int xl6SemExternParameterListsCompatible(XL6_SemContext* ctx,const XL6_As
         }
         if((!xl6SemExternCTypeCompatible(ctx,lt,rt) && !xl6SemExternOwnedPolicyInputCompatible(ctx,lt,rt) &&
             !xl6SemForeignRegionInputCompatible(ctx,a,b,p,lt,rt) &&
-            !xl6SemForeignManagedInputCompatible(ctx,lt,rt)) ||
+            !xl6SemForeignManagedInputCompatible(ctx,lt,rt) && !xl6SemForeignArraySpanInputCompatible(ctx,a,b,p,lt,rt)) ||
             xl6SemParamMode(left->children[p])!=xl6SemParamMode(right->children[p]))return 0;
     }
     return 1;

@@ -61,7 +61,19 @@ static int xl6IrForeignOverloadMetadataEqual(const XL6_IrModule* m,const XL6_IrC
     XL6_EQUAL_ROWS(foreignPacks,foreignPackCount);
     XL6_EQUAL_ROWS(foreignArrayGroups,foreignArrayGroupCount);
     XL6_EQUAL_ROWS(foreignArrayInputs,foreignArrayInputCount);
-    XL6_EQUAL_ROWS(foreignArrayFields,foreignArrayFieldCount);
+    {
+        size_t lc=0,rc=0;
+        for(size_t i=0;i<m->foreignArrayFieldCount;++i){const XL6_ForeignArrayFieldContract* row=&m->foreignArrayFields[i];
+            rc+=row->declaration==b;if(row->declaration!=a)continue;
+            ++lc;size_t matches=0;
+            for(size_t j=0;j<m->foreignArrayFieldCount;++j){const XL6_ForeignArrayFieldContract* other=&m->foreignArrayFields[j];if(other->declaration!=b)continue;
+                XL6_ForeignArrayFieldContract x=*row,y=*other;x.declaration=y.declaration=0;
+                if(x.kind==XL6_FOREIGN_ARRAY_ELEMENT_SPAN && y.kind==x.kind){x.arrayType=y.arrayType=x.elementType=y.elementType=0;x.profile=y.profile=0;}
+                matches+=!memcmp(&x,&y,sizeof(x));}
+            if(matches!=1)return 0;
+        }
+        if(lc!=rc)return 0;
+    }
     XL6_EQUAL_ROWS(foreignFixedInputs,foreignFixedInputCount);
     if(!xl6IrForeignPackFieldsEqual(m,left,right))return 0;
     XL6_EQUAL_ROWS(foreignPointerQualifiers,foreignPointerQualifierCount);
@@ -98,6 +110,15 @@ static int xl6IrForeignManagedInputCompatible(const XL6_IrModule* module,const X
          (right->foreignLifetime==XL6_FOREIGN_LIFETIME_OWNED && left->foreignLifetime==XL6_FOREIGN_LIFETIME_CALLBACK) || ownedAliases) &&
         left->foreignHeader && right->foreignHeader && !strcmp(left->cName,right->cName) && !strcmp(left->foreignHeader,right->foreignHeader);
 }
+static int xl6IrForeignArraySpanInputCompatible(const XL6_IrModule* m,const XL6_IrCallTarget* a,const XL6_IrCallTarget* b,size_t p)
+{
+    const XL6_ForeignArrayGroupContract* x=xl6IrForeignArrayParameter(m,a,p);const XL6_ForeignArrayGroupContract* y=xl6IrForeignArrayParameter(m,b,p);
+    if(!x || !y || p>=x->sizeParameter || p>=y->sizeParameter || x->firstParameter!=y->firstParameter ||
+        !xl6IrForeignArrayGroupsMatch(m,a) || !xl6IrForeignArrayGroupsMatch(m,b))return 0;
+    XL6_ForeignArrayInputContract u,v;
+    return xl6IrForeignArrayColumn(m,x,p-x->firstParameter,&u,NULL) && xl6IrForeignArrayColumn(m,y,p-y->firstParameter,&v,NULL) &&
+        u.kind==XL6_FOREIGN_ARRAY_ELEMENT_SPAN && v.kind==u.kind && !strcmp(u.elementCName,v.elementCName);
+}
 #include "src/ir/xl6_ir_foreign_null_compat.c"
 #include "src/ir/xl6_ir_foreign_projection_compat.c"
 static int xl6IrForeignOverloadsCompatible(const XL6_IrModule* module,const XL6_IrCallTarget* a,const XL6_IrCallTarget* b)
@@ -132,7 +153,7 @@ static int xl6IrForeignOverloadsCompatible(const XL6_IrModule* module,const XL6_
             a->parameterConstraintAbis[p]!=b->parameterConstraintAbis[p])return 0;
         if(a->parameterTypes[p]!=b->parameterTypes[p]){
             const XL6_IrType* lt=xl6IrTypeGet(&module->types,a->parameterTypes[p]);const XL6_IrType* rt=xl6IrTypeGet(&module->types,b->parameterTypes[p]);
-            if(!xl6IrForeignManagedInputCompatible(module,a,b,p) && !xl6IrForeignReadonlySpanInputCompatible(module,a,b,p) && (!x || x->access!=XL6_FOREIGN_REGION_ACCESS_READ || !lt || !rt ||
+            if(!xl6IrForeignManagedInputCompatible(module,a,b,p) && !xl6IrForeignReadonlySpanInputCompatible(module,a,b,p) && !xl6IrForeignArraySpanInputCompatible(module,a,b,p) && (!x || x->access!=XL6_FOREIGN_REGION_ACCESS_READ || !lt || !rt ||
                 !((lt->cAbi==XL6_IR_C_ABI_MANAGED_BYTES && xl6IrForeignRegionBufferField(module,b,p)) ||
                   (rt->cAbi==XL6_IR_C_ABI_MANAGED_BYTES && xl6IrForeignRegionBufferField(module,a,p)))))return 0;
         }else if(a->parameterPhysicalFieldDeclarations[p]!=b->parameterPhysicalFieldDeclarations[p])return 0;

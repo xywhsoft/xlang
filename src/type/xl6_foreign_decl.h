@@ -333,7 +333,7 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             if(!xl6ForeignArrayRecordRead(attr,&slot,name,sizeof(name)) || (arrayRecords&(UINT64_C(1)<<slot)))return 0;
             arrayRecords|=UINT64_C(1)<<slot;continue;
         }
-        if(attr && attr->text && !strcmp(attr->text,"c_array_field")){
+        if(attr && attr->text && (!strcmp(attr->text,"c_array_field") || !strcmp(attr->text,"c_array_span_field"))){
             XL6_ForeignArrayFieldContract row;if(!xl6ForeignArrayFieldRead(attr,&row))return 0;
             ++arrayFields;continue;
         }
@@ -581,7 +581,7 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
         (packs && (regions || (node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || facts.receiverDereference)) ||
         !xl6ForeignInputMappingsSet(callbackSpanCount,regions!=0,packs!=0,&facts.inputMappingFacts))return 0;
     if((arrayRecords&~arrayGroups) || (!arrayGroups && (arrayInputs || arrayFields)) ||
-        (arrayGroups && (packs || regions || (node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || facts.receiverDereference)))return 0;
+        (arrayGroups && (regions || (node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || facts.receiverDereference)))return 0;
     if(arrayGroups)facts.inputMappingFacts|=XL6_FOREIGN_INPUT_ARRAY_GROUPS_PRESENT;
     if(nulls)facts.inputMappingFacts|=XL6_FOREIGN_INPUT_FIXED_PRESENT;
     if(spanLimits){

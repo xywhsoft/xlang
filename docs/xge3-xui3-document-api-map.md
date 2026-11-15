@@ -1,6 +1,6 @@
 # Default Document model bindings
 
-The authoritative machine map is [xge3-xui3-document-api-map.json](xge3-xui3-document-api-map.json). It pins `xui_document.h`, all 218 functions, 26 pointer-free C records and 255 language constants. The allocator marker is compiler/provider ABI metadata. The map distinguishes declarations from compiled or executed paths. The default package declares 159 native business entries, seven resource `close` controls and callback-view methods. No per-method C forwarding functions are added.
+The authoritative machine map is [xge3-xui3-document-api-map.json](xge3-xui3-document-api-map.json). It pins `xui_document.h`, all 218 functions, 26 pointer-free C records and 255 language constants. The allocator marker is compiler/provider ABI metadata. The map distinguishes declarations from compiled or executed paths. The default package declares 161 native business entries, seven resource `close` controls and callback-view methods. No per-method C forwarding functions are added.
 
 The classes are `Document`, `DocumentSnapshot`, `DocumentChangeSet`, `DocumentPrepare`, `DocumentFragment`, `DocumentSourceIndex` and `DocumentTransaction`. The first six share actual native references; `share()` calls the native status/output factory once and reserves its language owner before that call. The transaction has one unique owner. `commit()` and `abort()` end its writer but do not consume its shell; `close()` releases that owner. Default-provenance Owned factories are required. Raw custom-allocator objects cannot be promoted to managed roots.
 
@@ -19,12 +19,12 @@ still require `xuiDocumentFreeBuffer`; the binding does not adopt them with
 
 `copyText`, `copySource`, `copyExtensionPayload`, and `Read` methods write directly into initialized `Buffer` storage. The buffer's logical byte length is the capacity supplied to native code and stays unchanged on success or failure. Text Copy methods require the reported byte length plus one terminator byte. Binary Read and extension methods follow their exact native byte limits. Explicit decoding or `Buffer.text(size)` turns copied text into an independent language string. Native status and UTF-8 validation remain authoritative.
 
-Some native capabilities remain explicit C interoperability:
+Capability boundaries and available safe paths:
 
 | Native functions/fields | Boundary and available safe path |
 |---|---|
 | `SnapshotAnalyzeMarkdownConversion`, `SnapshotFind`, `SnapshotFindEx` | Caller output arrays plus capacity. A single result record would be unsafe when capacity exceeds one; no writable typed-array output declaration is fabricated. |
-| `PrepareSource`, `PrepareContinueSource` | Arrays of size-prefixed patches with per-element counted text. Existing column projection cannot initialize each size and pair each text with its byte length. `prepareStreamSource` supports safe append/chunk input, with different semantics. |
+| `PrepareSource`, `PrepareContinueSource` | Now mapped by `prepareSource` / `continueSource` and `Bytes` variants. Parallel start/end/text columns form size-prefixed records with exact byte lengths and scoped backing pins. See [source-patch qualification](xui-document-source-patches.md). |
 | `FragmentSerialize`, `FragmentExportHtml`, `SnapshotCopyRange`, `SnapshotCopyTableMatrix`, `SnapshotCopyPlainText`, `DocumentSerialize`, `DocumentExportHtml` | Direct owned bytes outputs; HTML/plain/range/matrix also have UTF-8 string outputs. The actual resident-XRT allocation is transferred with its explicit byte count. The matched SDK allocator marker is required. Native `DocumentFreeBuffer` stays internal to language cleanup. |
 | Node-info resource/info/title/link strings; nested attributes language | Borrowed pointers require explicit output-record text conversion, which this contract does not declare. No pointer is disguised as POD. Copy/Read methods expose node text/source safely; pointer metadata remains C-only. |
 | Change-info `pOperations` | A borrowed array behind a record field. `operationCount` is available, but no raw pointer is exposed and no zero-copy sequence is invented. |

@@ -1,0 +1,213 @@
+{
+  "schema": 1,
+  "date": "2026-11-15",
+  "status": "qualified-array-record-slices-and-Document-source-patches",
+  "shippingDelivery": false,
+  "goalComplete": false,
+  "sourceHeadBefore": "34a998d3861b7f727b92c26812e4048e2f7edcec",
+  "qualifiedCompilerBaseline": "e9a9264103f04eb5aa782bf627d8b0fdc513dc96",
+  "concurrentCommitsPreserved": [
+    "34a998d3861b7f727b92c26812e4048e2f7edcec",
+    "17c6367b854098b1224cf301c3a51c3ed4648240"
+  ],
+  "concurrentChangeScope": "IDE/LSP-only changes outside this batch files; not qualified by these compiler/Document gates. Final IDE delivery remains pending.",
+  "nativeRevision": "766c039e9fc3c7a1ddd9702140befcb8c931f168",
+  "nativeImplementationRebuilt": false,
+  "nativeSdkReused": "Matched provider-owned SDK r2 hosted/direct-external static; per-report inputs pin all bytes.",
+  "sourceSha256": {
+    "src/type/xl6_foreign_array_contract.h": "a3075143cc9a5c8145c1b2c3ea978560e049bee834f318ea782d4325a9e92848",
+    "src/type/xl6_foreign_array_decl.h": "ebd3847701b7cf06cf6e86bdd9e77f6398463c98625615b1efadaa2294726684",
+    "src/type/xl6_foreign_decl.h": "1b6aab5ad481f017bbc03bac6c23e39feec487838745f5c5f7fee0f6d0e6b534",
+    "src/sem/xl6_sem_foreign_array.c": "8d3bedff8fdd807ce85f99911f42d90c50935de2e24a703a2f109226aa78ac35",
+    "src/sem/xl6_sem_foreign_compat.c": "cb4cd3ecbc2f59c1ea83e5e1117b71531cfa89cafc5ccabe8842c666daba0f4a",
+    "src/sem/xl6_sem_foreign_projection_compat.c": "173cf3444063f55f122c30eb07c37fc44c8f8863155ac9805b3e312223b3c9a0",
+    "src/sem/xl6_sem.c": "fcb1655810ddf2455c8d98decab7c33caeeb8bae87f002e3b2d65b7576ca16c7",
+    "src/ir/xl6_ir.c": "a9d5fe5e0cdc4fbcd76422633b6491d4be80891fabc9a7c59391c8c50cdf7205",
+    "src/ir/xl6_ir_foreign_array.c": "3665905eb5efcb31a7581e79e863cecdfdd3dd63ad55e83024223f825cf18671",
+    "src/ir/xl6_ir_foreign_compat.c": "317dfff90de71f7ef060729c723d4e964a4ddbf5c59244687ea65850e7f71ed9",
+    "src/cgen/xl6_ir_cgen_foreign_array.c": "9e5db702a30fc63a01225b6d22243ef8b22ad208abc5acd9291f717b3f35365b",
+    "src/cgen/xl6_ir_cgen_identity_closure.c": "de932dd8619ad6283e8cc389b468d14db07e7148e776897cbcfef871f8da8701",
+    "lib/bindings/xui/src/document.xl": "02630757a0d6a9d93ba987667aa918a85d39df0b9d6dfc665e3cb397eb9f58de",
+    "lib/bindings/xui/examples/README.md": "f5e20a095e1b4ecfecbe8628cea2aa9afd2e448521a667142a3f8148ebce0711",
+    "lib/bindings/xui/examples/document_source_patches.xl": "3e0941efce83a99579f38a48f4647425d7a4f7c91806e806c700afacb1128ded",
+    "tools/gen_xge3_document_bindings.py": "d68c98727bf06c4c3d0561f4b193f6f40ca0ae7b4772d82c718285a090694eda",
+    "docs/foreign-array-projections.md": "da6f402f8c785e37b28d5dcd3ec8a90c6d242abd792c82ead6e7f0e27d26e777",
+    "docs/xge3-xui3-document-api-map.md": "06b9e9e78470e0b5b21e00f76c3606f5ef77a052f45f2a36ffb84ee876ec169d",
+    "docs/xge3-xui3-document-api-map.json": "68311f875724d123e11669afb3d5d8d29ebc29b1a490b6c7ca0b908a411eaae5",
+    "docs/xge3-xui3-full-coverage-plan.md": "2b9df8fd0bc264fc4678fc36b04b8a1dc6a619ebca7072d8f31686903cedaa6d",
+    "docs/xui-document-source-patches.md": "9c28d12b5ece63c67c29b671908a267955795c746f57a3ef4b18f3130079ba6e",
+    "test/cases/foreign_array_slices.xl": "204a513f56987923bfb67e5b0f160adb6088632fe8fce9ab14e9997f9f56bba8",
+    "test/cases/foreign_array_slices.h": "cff43d85d3d959e1c51c55d57cd4470ce1fa444848ec17ec4681d210de5b40dd",
+    "test/cases/foreign_array_slices.c": "d22d0fdbe11e6a503bc35c68bcceff96ae3edfcac47ee2d519f70ded10af33b2",
+    "test/cases/foreign_xui_document_source_patches.xl": "c174d3458d98c417d740dd62827522c8ac1a818488a0e19cb055bab0b20ce785",
+    "test/cases/foreign_xui_document_source_patches.h": "97f4095175e8f80866adee49a80f48089e9e0979b8cea9f131d663fd97364879",
+    "test/cases/foreign_xui_document_source_patches.c": "8bd1e79329edd6b84af2f3c6105daa95ba57be8a52add5d6e3e993170e256e9b",
+    "test/cases/foreign_xui_document_source_native.c": "e56627d8b469240a1ba2c5a82f5256815859a110b9f1cdddefa092052925957c",
+    "tools/check_foreign_array_slices.py": "5d79e40005150c098a2506791a466e43678a45f6a5732345075ad8ddb8b21d8e",
+    "tools/check_xui_document_source_patches.py": "75aaed28d74396314fd5786c71a1a396d40fcc969b1033a309067131b6903bd1",
+    "tools/check_xui_document_source_native.py": "0a1414e51fd79eba1c3a62e9aa96c4ea5c31d74d54b2f7a5341ba73ca19e4773"
+  },
+  "qualification": {
+    "win": {
+      "verification": "F:\\xlang-validation\\xge-full-20261110\\array-slices-verified-win-r1.json",
+      "sha256": "655a765fd8750a95cdc25c227f62eeb779a2558e82c1b1cbd2f270b48080abe1",
+      "steps": 82,
+      "compilerReport": "F:\\xlang-validation\\xge-full-20261110\\compiler-array-slices-full-r42\\build.json",
+      "compilerReportSha256": "8692e6241974fede290c5fac9767312c7f12280d0486bfe60838622448b16953",
+      "reports": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\array-slices-positive-win-r10\\results.json",
+          "sha256": "4fa2d501597f128c412bdc4320a7e07b9e1e3d44a23aaa5ee634a878b602b001",
+          "steps": 34
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\document-source-positive-win-r1\\results.json",
+          "sha256": "1e84df48f9cfceb36d794b233bce849b27b6f7bb2cfc93b176ef54d9dca7570f",
+          "steps": 22
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\document-source-native-win-r2\\results.json",
+          "sha256": "8cdeb4c96a991fd628b127245d9fb40478811ced8f10842c856778e0d277e438",
+          "steps": 8
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\array-slices-regression-win-r2\\results.json",
+          "sha256": "ca2ccc1931ff3a98b9e47b510dfaf4d41fc107022147faf9d34c809845384c97",
+          "steps": 16
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\array-slices-source-audit-win-r1\\results.json",
+          "sha256": "fe9abc4aa892adf99d610b636f1f5785e8d0a403b910ab624d3c0ee1efbac0e4",
+          "steps": 2
+        }
+      ],
+      "packageParityReport": "F:\\xlang-validation\\xge-full-20261110\\array-slices-package-parity-win-r1.json",
+      "packageParityReportSha256": "06a7542b33d88ceb3e73e80d292b4f947d9e7f89a226201e854f8e5d2fa3b944"
+    },
+    "linux": {
+      "verification": "F:\\xlang-validation\\xge-full-20261110\\array-slices-verified-linux-r1.json",
+      "sha256": "080e98128e7019a4b596911b0be4f2656c84c8ba94832c871a58766a27077e2a",
+      "steps": 81,
+      "compilerReport": "/mnt/f/xlang-validation/xge-full-20261110/compiler-array-slices-linux-full-r35/build.json",
+      "compilerReportSha256": "f4b77a7c9ba33e286a764a1d5d770e21b51243860c519feba3a0e2022d3d548c",
+      "reports": [
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/array-slices-positive-linux-r1/results.json",
+          "sha256": "af0808d1d2a6a7e8cc39a95021fd9e5394fce58f1f5ec670fd63cfb90ade1556",
+          "steps": 34
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/document-source-positive-linux-r1/results.json",
+          "sha256": "77ec88fe68fdb4c1314e411d247aaaa703db2373318268f5eb170795466671ca",
+          "steps": 22
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/document-source-native-linux-r1/results.json",
+          "sha256": "762c3d0b17d22038cce701110663e00335452a7fb97070e716e1dfe81336df7c",
+          "steps": 8
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/array-slices-regression-linux-r2/results.json",
+          "sha256": "e4aecb07bf14dc265d4617c2476fbb71208951078728dfe382f2af7d9596fb4d",
+          "steps": 16
+        },
+        {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/array-slices-source-audit-linux-r1/results.json",
+          "sha256": "e38ce85bd29781ddbe98cb8b0119c46e9867f6f71e9425bd08a85da10aa33f61",
+          "steps": 1
+        }
+      ],
+      "packageParityReport": "/mnt/f/xlang-validation/xge-full-20261110/array-slices-package-parity-linux-r1.json",
+      "packageParityReportSha256": "a9dff5cfef222cdb0205eadba781bae02ef7240120a437ec15a36ddbe3c33e55"
+    },
+    "surface": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\array-slices-surface-verified-r1.json",
+      "sha256": "21a15cd98f40d9a4098db1d49e64bd3116bdb492163da051245b4c6f7334593d",
+      "steps": 1
+    }
+  },
+  "qualifiedProcessSteps": 164,
+  "fullCompilerBuilds": 2,
+  "optimization": "O2",
+  "verifier": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\verify_array_slices_r1.py",
+    "sha256": "ab1f1a64cf788de50b839237f171ac7a0c44a7b4f21d370509044e49e3cdd1c7"
+  },
+  "surface": {
+    "population": {
+      "functions": 5217,
+      "types": 984,
+      "constants": 1838,
+      "functionMacros": 7,
+      "callableFields": 184,
+      "enums": 40,
+      "enumConstants": 316
+    },
+    "declarationPresent": {
+      "functions": 3864,
+      "types": 386,
+      "constants": 1824,
+      "callableFields": 66,
+      "enumConstants": 316
+    },
+    "newNativeFunctions": [
+      "xuiDocumentPrepareSource",
+      "xuiDocumentPrepareContinueSource"
+    ],
+    "meaning": "Declaration presence only; actual qualification here is limited to the batch and focused regressions."
+  },
+  "capabilities": {
+    "arraySpanField": "Same nonnullable string/bytes column to exact readonly pointer plus byte length; backing read pin through synchronous cleanup, no text copy or NUL scan.",
+    "arrayRecordSize": "Optional exact iSize-type/sizeof field, native-header proof and checked length narrowing.",
+    "count": "int/size_t/uint64_t exact native count",
+    "composition": "Disjoint pack and array logical ranges/physical schedule; overlaps rejected.",
+    "readonlyAliases": "Same native record slice schema may have string and bytes language declarations; other ABI/ownership/effect facts remain exact.",
+    "Document": [
+      "prepareSource",
+      "prepareSourceBytes",
+      "continueSource",
+      "continueSourceBytes"
+    ],
+    "packTypedNull": "Existing base rule reused, not reimplemented; old Null/pack/projection overload cases execute JIT and standalone on both OS."
+  },
+  "safety": [
+    "Embedded NUL, empty and non-UTF8 byte slices preserve exact sizes and original pointers.",
+    "Read-pin mutation rejection, callback/native failure cleanup and 32 language RT allocation budgets.",
+    "Document retains source; options, stale/invalid/cancelled/expired handles, thread admission, undo/redo and 32 language allocation budgets.",
+    "Independent hosted/static C oracle O0/O2: 31 native allocator prefixes, 30 actual failures per mode, retry and payload/XRT balance.",
+    "Public C11/C++11/C++17 ABI and invalid declaration/header rejection; actual CLI JIT, TCC AOT, GCC O0/O2 plus Document hosted/static imports."
+  ],
+  "costs": {
+    "nativeForwardingFunctionsAdded": 0,
+    "arrayTextCopies": 0,
+    "arrayNulScans": 0,
+    "recordMaterialization": "One checked calloc and O(n) field writes for a nonempty record group, plus scoped column pins.",
+    "measuredGenericLoop": {
+      "rounds": 1000,
+      "rows": 3,
+      "rowBytes": 32,
+      "recordPayloadBytesPerCall": 96,
+      "language": {
+        "allocations": 1000,
+        "frees": 1000,
+        "reallocations": 0
+      },
+      "handwrittenStackC": {
+        "allocations": 0,
+        "frees": 0,
+        "reallocations": 0
+      },
+      "counterScope": "XRT-only warmed loop on both platforms and all generic execution modes; setup/native CRT and CPU time excluded."
+    },
+    "other": "Default empty input arrays may allocate containers; native Document source processing makes its own copies; owner reservations, scopes and status checks remain work.",
+    "wholeProgramZeroOverheadClaim": false
+  },
+  "retainedDiagnostics": "Earlier harness setup, pointer-oracle refresh and experimental raw XRT resident-owner dependency failures remain under external r1-r9 directories; only final r42/r35 and final positive gates above qualify.",
+  "runtimeInstalled": false,
+  "currentDeliveryModified": false,
+  "versionChanged": false,
+  "pushed": false,
+  "networkTests": false,
+  "graphicsTests": false,
+  "remaining": "Other approved/pending XGE/XUI/Document capabilities and final matched runtime/SDK/compiler/IDE/help delivery remain active. No writable/output array or output-record string-field completion is implied."
+}

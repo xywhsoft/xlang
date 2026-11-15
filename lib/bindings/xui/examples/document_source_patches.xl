@@ -1,0 +1,19 @@
+import xui
+
+auto document=xui.createDocument(profile=c_uint(xui.XUI_DOCUMENT_MARKDOWN))
+document.loadMarkdown("Hello, world!\n")
+
+// Offsets are UTF-8 byte offsets in the current candidate, not character counts.
+auto first=document.prepareSource(starts=[uint64(7)],ends=[uint64(12)],text=["xlang"])
+auto ready=document.continueSource(first,[uint64(0)],[uint64(5)],["你好"])
+first.close()
+ready.run()
+
+// Publication applies both replacements together as one undo step.
+auto changes=document.preparePublish(ready)
+changes.close()
+ready.close()
+auto snapshot=document.snapshot()
+println(snapshot.plainText()) // 你好, xlang!
+snapshot.close()
+document.close()

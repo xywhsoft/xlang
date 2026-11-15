@@ -1,0 +1,176 @@
+import xui
+extern "fixtureDocPatchBegin" @header("test/cases/foreign_xui_document_source_patches.h") @no_raise func beginHeap()
+extern "fixtureDocPatchBudget" @header("test/cases/foreign_xui_document_source_patches.h") @no_raise func budget(c_int count)
+extern "fixtureDocPatchEndBudget" @header("test/cases/foreign_xui_document_source_patches.h") @no_raise func endBudget()
+extern "fixtureDocPatchBalanced" @header("test/cases/foreign_xui_document_source_patches.h") @no_raise func balanced()
+
+func source(xui.DocumentSnapshot snapshot) as string
+ auto buffer=Buffer()
+ uint64 count=snapshot.copySource(buffer)
+ assert buffer.resize(int(count)+1)
+ snapshot.copySource(buffer)
+ return buffer.text(int(count))
+end
+
+func oneBudget(c_int allowance) as int
+ auto document=xui.createDocument(profile=c_uint(xui.XUI_DOCUMENT_MARKDOWN))
+ document.loadMarkdown("abc\n")
+ auto previous=document.prepareSource(starts=[uint64(0)],ends=[uint64(1)],text=["A"])
+ array<uint64> starts=[uint64(1)]
+ array<uint64> ends=[uint64(2)]
+ array<string> text=["B"]
+ int success=0
+ budget(allowance)
+ try
+  auto next=document.continueSource(previous,starts,ends,text)
+  endBudget()
+  assert next.info().iPatchCount==uint64(2)
+  next.close()
+  success=1
+ catch error
+  endBudget()
+  assert previous.info().iPatchCount==uint64(1) and previous.info().bCancellationRequested==c_int(0)
+  previous.run()
+  auto changes=document.preparePublish(previous)
+  changes.close()
+  auto snapshot=document.snapshot()
+  assert source(snapshot)=="Abc\n"
+  snapshot.close()
+ finally
+  endBudget()
+ end
+ document.cancelPrepare()
+ previous.close()
+ document.close()
+ return success
+end
+
+func main(...) as int
+ auto document=xui.createDocument(profile=c_uint(xui.XUI_DOCUMENT_MARKDOWN))
+ document.loadMarkdown("alpha beta\n")
+ uint64 revision=document.revision()
+ auto empty=document.prepareSource()
+ assert empty.info().iPatchCount==uint64(0)
+ document.cancelPrepare()
+ empty.close()
+ array<uint64> starts=[uint64(0),uint64(6)]
+ array<uint64> ends=[uint64(5),uint64(10)]
+ array<string> replacements=["ALPHA","BETA"]
+ auto first=document.prepareSource(starts=starts,ends=ends,text=replacements,origin=uint64(73),group=uint64(19))
+ replacements[0]="overwritten"
+ starts[0]=uint64(99)
+ assert first.info().iPatchCount==uint64(2)
+ first.run()
+ auto ready=document.continueSourceBytes(first,[uint64(6)],[uint64(10)],[b"\xe6\xb1\x89\xe5\xad\x97"])
+ uint64 generation=ready.info().iGeneration
+ bool rejected=false
+ try
+  auto refused=document.continueSource(first,[uint64(0)],[uint64(0)],["bad"])
+  refused.close()
+ catch error
+  rejected=true
+ end
+ assert rejected and ready.info().iPatchCount==uint64(3)
+ first.close()
+ rejected=false
+ try
+  auto refused=document.continueSource(ready,[uint64(9)],[uint64(2)],["bad"])
+  refused.close()
+ catch error
+  rejected=true
+ end
+ assert rejected and ready.info().iGeneration==generation and ready.info().bCancellationRequested==c_int(0)
+ rejected=false
+ try
+  auto refused=document.continueSourceBytes(ready,[uint64(0)],[uint64(0)],[b"\xff"])
+  refused.close()
+ catch error
+  rejected=true
+ end
+ assert rejected and ready.info().iPatchCount==uint64(3)
+ rejected=false
+ try
+  auto refused=document.prepareSource(baseRevision=revision+uint64(1))
+  refused.close()
+ catch error
+  rejected=true
+ end
+ assert rejected and document.revision()==revision and ready.info().iSourceBytes==uint64(13)
+ auto worker=thread(func() as int
+  try
+   auto refused=document.continueSource(ready,[uint64(0)],[uint64(0)],["bad"])
+   refused.close()
+  catch StateError
+   return 1
+  end
+  return 0
+ end)
+ assert worker.waitTimeout(30000) and worker.exitCode()==1
+ ready.run()
+ auto changes=document.preparePublish(ready)
+ auto flags,before,after,origin,inputGeneration,operations,undo,domain=changes.info()
+ assert before==revision and after>before and origin==uint64(73) and operations==uint64(3) and domain==c_uint(2)
+ changes.close()
+ ready.close()
+ auto snapshot=document.snapshot()
+ assert source(snapshot)=="ALPHA 汉字\n"
+ snapshot.close()
+ changes=document.undo()
+ changes.close()
+ snapshot=document.snapshot()
+ assert source(snapshot)=="alpha beta\n"
+ snapshot.close()
+ changes=document.redo()
+ changes.close()
+ snapshot=document.snapshot()
+ assert source(snapshot)=="ALPHA 汉字\n"
+ snapshot.close()
+ auto cancelled=document.prepareSource(starts=[uint64(0)],ends=[uint64(0)],text=["new"])
+ cancelled.cancel()
+ rejected=false
+ try
+  auto refused=document.continueSource(cancelled,[uint64(0)],[uint64(0)],["bad"])
+  refused.close()
+ catch error
+  rejected=true
+ end
+ assert rejected
+ document.cancelPrepare()
+ cancelled.close()
+ document.close()
+ rejected=false
+ try
+  auto refused=document.prepareSource()
+  refused.close()
+ catch StateError
+  rejected=true
+ end
+ assert rejected
+ auto binary=xui.createDocument(profile=c_uint(xui.XUI_DOCUMENT_MARKDOWN))
+ binary.loadMarkdown("one\n")
+ auto bytesFirst=binary.prepareSourceBytes(starts=[uint64(0)],ends=[uint64(3)],text=[b"two"])
+ auto textLast=binary.continueSource(bytesFirst,[uint64(0)],[uint64(3)],["THREE"])
+ bytesFirst.close()
+ textLast.run()
+ changes=binary.preparePublish(textLast)
+ changes.close()
+ textLast.close()
+ snapshot=binary.snapshot()
+ assert source(snapshot)=="THREE\n"
+ snapshot.close()
+ binary.close()
+ oneBudget(c_int(-1))
+ oneBudget(c_int(0))
+ int failures=0
+ int successes=0
+ for allowance in range(32)
+  beginHeap()
+  int success=oneBudget(c_int(allowance))
+  balanced()
+  successes+=success
+  failures+=1-success
+ end
+ assert failures>0 and successes>0
+ println("Document source patches: text/bytes, retained inputs, exact metadata, stale/invalid/cancelled/expired rejection, thread rules, undo and OOM passed")
+ return 0
+end

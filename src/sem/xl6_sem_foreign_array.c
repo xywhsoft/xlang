@@ -12,6 +12,8 @@ static int xl6SemForeignArrayElementValid(XL6_SemContext* ctx,const XL6_AstNode*
     if(!element)return 0;
     const XL6_AstNode* base=xl6SemTypeIsNullable(element) ? xl6SemResolveAliasType(ctx,xl6SemNullableInnerType(element)):element;
     if(kind==XL6_FOREIGN_ARRAY_ELEMENT_VALUE)return xl6SemForeignTrivialCValue(ctx,element,0);
+    if(kind==XL6_FOREIGN_ARRAY_ELEMENT_SPAN)return base==element && !base->childCount &&
+        (xl6TextEquals(base->text,"string") || xl6TextEquals(base->text,"bytes"));
     if(kind==XL6_FOREIGN_ARRAY_ELEMENT_C_STRING)return base && !base->childCount && xl6TextEquals(base->text,"string");
     XL6_ForeignClassDecl view={0};
     return kind==XL6_FOREIGN_ARRAY_ELEMENT_VIEW_RAW && xl6SemForeignViewDeclaration(ctx,element,&view) &&
@@ -27,10 +29,13 @@ static int xl6SemForeignArrayGroups(XL6_SemContext* ctx,XL6_AstNode* node,const 
     for(size_t a=0;attrs && a<attrs->childCount;++a)if(xl6ForeignFunctionHeaderRead(attrs->children[a],header,sizeof(header)))break;
     if(!header[0] || !params || (node->kind!=XL6_AST_EXTERN_FUNC && node->kind!=XL6_AST_NATIVE_EXTERN_FUNC) ||
         !(node->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) || (node->flags&XL6_AST_FLAG_FOREIGN_FIELD) || facts->receiverDereference ||
-        xl6ForeignInputHasPacks(facts->inputMappingFacts) || xl6ForeignInputHasRegions(facts->inputMappingFacts))goto invalid;
+        xl6ForeignInputHasRegions(facts->inputMappingFacts))goto invalid;
     for(size_t a=0;attrs && a<attrs->childCount;++a){XL6_ForeignArrayGroupContract group;
         if(!xl6ForeignArrayGroupRead(attrs->children[a],&group))continue;
         ++groups;if(group.sizeParameter>=count)goto invalid;
+        for(size_t r=0;r<attrs->childCount;++r){XL6_ForeignPackContract pack;
+            if(xl6ForeignPackRead(attrs->children[r],&pack) && (pack.physicalIndex==group.physicalIndex ||
+                (pack.parameterCount && pack.firstParameter<=group.sizeParameter && group.firstParameter<pack.firstParameter+pack.parameterCount)))goto invalid;}
         for(size_t p=group.firstParameter;p<=group.sizeParameter;++p){
             if(p>=64 || (consumed&(UINT64_C(1)<<p)) || !params->children[p] ||
                 params->children[p]->childCount<1 || params->children[p]->childCount>2)goto invalid;
@@ -40,7 +45,8 @@ static int xl6SemForeignArrayGroups(XL6_SemContext* ctx,XL6_AstNode* node,const 
         if(!size || size->childCount || (!xl6TextEquals(size->text,"int") && !xl6TextEquals(size->text,"int64")))goto invalid;
         char record[64]={0};size_t records=0;uint64 used=0;
         for(size_t r=0;r<attrs->childCount;++r){uint32 slot;char name[64];
-            if(xl6ForeignArrayRecordRead(attrs->children[r],&slot,name,sizeof(name)) && slot==group.physicalIndex){++records;strcpy(record,name);}}
+            if(xl6ForeignArrayRecordRead(attrs->children[r],&slot,name,sizeof(name)) && slot==group.physicalIndex){
+                ++records;strcpy(record,name);xl6ForeignArrayRecordSizeRead(attrs->children[r],&group);}}
         if(records>1)goto invalid;
         for(size_t column=0;column<group.arrayCount;++column){
             size_t p=group.firstParameter+column;
@@ -53,9 +59,10 @@ static int xl6SemForeignArrayGroups(XL6_SemContext* ctx,XL6_AstNode* node,const 
                     ++matches;++inputs;
                 }
                 if(xl6ForeignArrayFieldRead(attrs->children[f],&field) && field.groupPhysicalIndex==group.physicalIndex && field.column==column){
-                    if(!records || !xl6SemForeignArrayElementValid(ctx,element,field.kind))goto invalid;
+                    if(!records || !xl6SemForeignArrayElementValid(ctx,element,field.kind) ||
+                        (group.sizeField[0] && (!strcmp(group.sizeField,field.field) || !strcmp(group.sizeField,field.lengthField))))goto invalid;
                     for(size_t previous=0;previous<f;++previous){XL6_ForeignArrayFieldContract old;
-                        if(xl6ForeignArrayFieldRead(attrs->children[previous],&old) && old.groupPhysicalIndex==field.groupPhysicalIndex && !strcmp(old.field,field.field))goto invalid;}
+                        if(xl6ForeignArrayFieldRead(attrs->children[previous],&old) && old.groupPhysicalIndex==field.groupPhysicalIndex && xl6ForeignArrayFieldNamesOverlap(&old,&field))goto invalid;}
                     ++matches;++fields;
                 }
             }

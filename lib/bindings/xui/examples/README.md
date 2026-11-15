@@ -226,3 +226,7 @@ window loop. System fonts are demonstrated in the xge package's `examples/system
 
 `input_events.xl` demonstrates a shared command for a button and Ctrl+F2. It
 inserts a Unicode heart through the input-result API and updates a status label.
+
+`document_source_patches.xl` 不创建窗口，以 UTF-8 字节范围替换 `world` 和 `Hello`，
+一次发布后输出 `你好, xlang!`。首次预备采用具名的起点、终点、文本三列，续接
+继承首次配置；范例展示源码编辑，不是对可视节点或字符编号的编辑。

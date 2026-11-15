@@ -477,7 +477,7 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
             else for(size_t c=0;c<group->arrayCount;++c){XL6_ForeignArrayInputContract col;if(!xl6IrForeignArrayColumn(module,group,c,&col,NULL))return 0;
                 if(c)xl6OutputPuts(", ",out);
                 xl6OutputPuts(col.pointerCName,out);}
-            xl6OutputPrintf(out,", %s",group->countAbi==XL6_FOREIGN_SPAN_COUNT_INT ? "int":"size_t");continue;
+            xl6OutputPrintf(out,", %s",xl6ForeignSpanCountCName(group->countAbi));continue;
         }
         if(step.kind==XL6_FOREIGN_PHYSICAL_STEP_PACK){
             const XL6_ForeignPackContract* pack=xl6IrForeignPackGet(module,target,step.physicalIndex);if(!pack)return 0;

@@ -117,3 +117,25 @@ static int xl6SemForeignReadonlySpanInputCompatible(XL6_SemContext* ctx,
     if(!rk && rd && rd->kind==XL6_AST_CLASS)rk=3;
     return lk && rk && (lk!=rk || ln!=rn);
 }
+static int xl6SemForeignArraySpanInputCompatible(XL6_SemContext* ctx,const XL6_AstNode* a,const XL6_AstNode* b,
+    size_t parameter,const XL6_AstNode* left,const XL6_AstNode* right)
+{
+    XL6_ForeignArrayGroupContract x,y;
+    if(!xl6ForeignArrayForParameter(a,parameter,&x) || !xl6ForeignArrayForParameter(b,parameter,&y) ||
+        parameter>=x.sizeParameter || parameter>=y.sizeParameter || memcmp(&x,&y,sizeof(x)))return 0;
+    const XL6_AstNode* aa=xl6ForeignFunctionAttributes(a);const XL6_AstNode* bb=xl6ForeignFunctionAttributes(b);
+    XL6_ForeignArrayFieldContract u={0},v={0};size_t ux=0,vy=0;
+    for(size_t i=0;aa && i<aa->childCount;++i){XL6_ForeignArrayFieldContract f;
+        if(xl6ForeignArrayFieldRead(aa->children[i],&f) && f.groupPhysicalIndex==x.physicalIndex && f.column==parameter-x.firstParameter){u=f;++ux;}}
+    for(size_t i=0;bb && i<bb->childCount;++i){XL6_ForeignArrayFieldContract f;
+        if(xl6ForeignArrayFieldRead(bb->children[i],&f) && f.groupPhysicalIndex==y.physicalIndex && f.column==parameter-y.firstParameter){v=f;++vy;}}
+    if(ux!=1 || vy!=1 || u.kind!=XL6_FOREIGN_ARRAY_ELEMENT_SPAN || memcmp(&u,&v,sizeof(u)))return 0;
+    const XL6_AstNode* types[2]={left,right};
+    for(size_t i=0;i<2;++i){const XL6_AstNode* t=xl6SemResolveAliasType(ctx,types[i]);
+        if(!t || xl6SemTypeIsNullable(t) || !xl6TextEquals(t->text,"array") || t->childCount!=1 ||
+            t->children[0]->kind!=XL6_AST_LIST || t->children[0]->childCount!=1)return 0;
+        t=xl6SemResolveAliasType(ctx,t->children[0]->children[0]);
+        if(!t || t->childCount || (!xl6TextEquals(t->text,"string") && !xl6TextEquals(t->text,"bytes")))return 0;
+    }
+    return 1;
+}
