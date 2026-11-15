@@ -1,0 +1,104 @@
+// Validate the existing safe method and its native spelling alias.
+import xui
+extern "fixtureInputProxy" @header("test/cases/foreign_xui_offset_queries.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy value)
+extern "fixtureInputCleanupCheck" @no_raise func checkCleanup()
+extern "fixtureLayoutFont" @no_raise @c_result("owned_view") @factory(1,0,dropFont) func cpuFont(xui.Proxy proxy) as xui.Font
+extern "xuiFontReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropFont(xui.Font value)
+extern "fixtureInputBudget" @no_raise func budget(c_int n)
+extern "fixtureOffsetPrepare" @no_raise func prepare(xui.CodeEdit editor)
+extern "fixtureOffsetAlias" @no_raise @c_ref(2) @c_result("status",0) func aliasMatches(xui.CodeEdit editor,c_int offset,xui.Rect result)
+extern "fixtureOffsetBegin" @no_raise func beginHeap()
+extern "fixtureOffsetReport" @no_raise func reportHeap(c_int native)
+extern "fixtureOffsetNativeHot" @no_raise func nativeHot(xui.CodeEdit editor)
+
+func main(...) as int
+ auto proxy=cpuProxy()
+ auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ auto font=cpuFont(proxy)
+ ui.setDefaultFont(font)
+ auto editor=ui.codeEditNative()
+ editor.setTextLength("ab你cd\n1234")
+ prepare(editor)
+ auto first=editor.getOffsetRect(0)
+ auto next=editor.getOffsetRect(1)
+ auto secondLine=editor.getOffsetRect(8)
+ assert first.fW==2 and first.fH>0 and next.fX>first.fX and next.fY==first.fY
+ assert secondLine.fX==first.fX and secondLine.fY>first.fY
+ for offset in range(13)
+  auto result=editor.getOffsetRect(c_int(offset))
+  aliasMatches(editor,c_int(offset),result)
+ end
+ bool rejected=false
+ try
+  first=editor.getOffsetRect(-1)
+ catch Error
+  rejected=true
+ end
+ assert rejected and first.fW==2 and first.fX<next.fX
+ rejected=false
+ try
+  first=editor.getOffsetRect(13)
+ catch Error
+  rejected=true
+ end
+ assert rejected and first.fW==2 and first.fX<next.fX
+ // Query geometry again after wrapping at a narrower width.
+ auto bounds=editor.getRect()
+ bounds.fW=95
+ editor.setRect(bounds)
+ editor.setWordWrap(1)
+ ui.layout()
+ auto wrapStart=editor.getOffsetRect(0)
+ auto wrapEnd=editor.getOffsetRect(6)
+ assert wrapEnd.fY>wrapStart.fY
+ for offset in range(13)
+  auto result=editor.getOffsetRect(c_int(offset))
+  aliasMatches(editor,c_int(offset),result)
+ end
+ bounds.fW=160
+ editor.setRect(bounds)
+ editor.setWordWrap(0)
+ ui.layout()
+ first=editor.getOffsetRect(0)
+ next=editor.getOffsetRect(1)
+ beginHeap()
+ budget(0)
+ try
+  for i in range(1000)
+   first=editor.getOffsetRect(0)
+   next=editor.getOffsetRect(1)
+   assert next.fX>first.fX and next.fY==first.fY and first.fW==2
+  end
+ finally
+  budget(-1)
+ end
+ reportHeap(0)
+ beginHeap()
+ nativeHot(editor)
+ reportHeap(1)
+ auto worker=thread(func() as int
+  try
+   auto refused=editor.getOffsetRect(0)
+  catch StateError
+   return 1
+  end
+  return 0
+ end)
+ assert worker.waitTimeout(30000) and worker.exitCode()==1
+ auto closed=editor
+ editor.close()
+ rejected=false
+ try
+  first=closed.getOffsetRect(0)
+ catch StateError
+  rejected=true
+ end
+ assert rejected and first.fW==2 and first.fX<next.fX
+ ui.close()
+ font.close()
+ proxy.close()
+ checkCleanup()
+ println("Offset queries: existing safe projection, native alias, byte offsets, wrap, invalid output preservation, thread, close and costs passed")
+ return 0
+end

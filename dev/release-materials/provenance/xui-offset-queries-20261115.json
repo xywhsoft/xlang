@@ -1,0 +1,126 @@
+{
+  "date": "2026-11-15",
+  "complete": true,
+  "passed": true,
+  "scope": "Existing CodeEdit safe offset projection and exact native spelling replacement; not the complete ecosystem",
+  "xlangBase": "c73716f41c63d22840a76d73f8567681abea66d4",
+  "nativeCommit": "076964b2067b9fa7cf48af11228cf032083f45b2",
+  "shippingDelivery": false,
+  "versionChanged": false,
+  "pushed": false,
+  "networkTests": false,
+  "nativeRebuilt": false,
+  "compilerRebuilt": false,
+  "commands": 22,
+  "evidence": [
+    {
+      "platform": "win",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\offset-queries-verified-win-r1.json",
+      "sha256": "ec5127a9ba76e9a85de49258966f30bedf60976584886a996fbbc36ab4788c00",
+      "commands": 11
+    },
+    {
+      "platform": "linux",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\offset-queries-verified-linux-r1.json",
+      "sha256": "67d00bdc5bff0ff02c11dbc403cacfba636f1580470e4c8778cc689847e4d750",
+      "commands": 11
+    }
+  ],
+  "productionBindings": [
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\src\\managed.xl",
+      "staged": "F:\\xlang-validation\\xge-full-20261110\\inventory-queries-packages-win-r1\\host\\xui\\src\\managed.xl",
+      "sha256": "fabff9e575d3a6b1a6b108b79fbb748d5b30a7346fdada930dcd4e07177dc773"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\src\\managed.xl",
+      "staged": "F:\\xlang-validation\\xge-full-20261110\\inventory-queries-packages-win-r1\\static\\xui\\src\\managed.xl",
+      "sha256": "fabff9e575d3a6b1a6b108b79fbb748d5b30a7346fdada930dcd4e07177dc773"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\src\\managed.xl",
+      "staged": "F:\\xlang-validation\\xge-full-20261110\\inventory-queries-packages-linux-r1\\host\\xui\\src\\managed.xl",
+      "sha256": "fabff9e575d3a6b1a6b108b79fbb748d5b30a7346fdada930dcd4e07177dc773"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\src\\managed.xl",
+      "staged": "F:\\xlang-validation\\xge-full-20261110\\inventory-queries-packages-linux-r1\\static\\xui\\src\\managed.xl",
+      "sha256": "fabff9e575d3a6b1a6b108b79fbb748d5b30a7346fdada930dcd4e07177dc773"
+    }
+  ],
+  "inventory": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-inventory-queries-r1\\surface.json",
+    "sha256": "e7487cde16a54e7717a164bc7adcc098ee5b9dccdd56e8cf2bd00e9e8ffb0e3d",
+    "population": {
+      "functions": 5204,
+      "types": 983,
+      "constants": 1838,
+      "functionMacros": 7,
+      "callableFields": 184,
+      "enums": 40,
+      "enumConstants": 316
+    },
+    "declarationPresent": {
+      "functions": 3855,
+      "types": 385,
+      "constants": 1820,
+      "callableFields": 66,
+      "enumConstants": 316
+    },
+    "meaning": "Direct declarations remain 3855; this checked semantic replacement does not add a duplicate declaration"
+  },
+  "compilerCohorts": [
+    "compiler-nullable-insert-full-r40",
+    "compiler-nullable-insert-linux-full-r33"
+  ],
+  "nativeSdk": [
+    "margin-owned-sdk-win-r2",
+    "margin-owned-sdk-linux-r2"
+  ],
+  "nativeFullBuildParents": [
+    "margin-owned-sdk-win-r1",
+    "margin-owned-sdk-linux-r1"
+  ],
+  "costs": {
+    "rectTemporaryBytes": 16,
+    "hotRounds": 1000,
+    "queriesPerRound": 2,
+    "languageHeapOperations": 0,
+    "nativeHeapOperations": 0,
+    "zeroBudgetLanguage": true,
+    "cpuEquivalenceClaim": false,
+    "scope": "Prepared two offset queries, fake owned CPU text provider; excludes cold layout/shaping, font setup and actual graphics",
+    "remaining": "Thread/status/epoch checks, scopes, code activity, checked copies and native line/cache/geometry work"
+  },
+  "coverage": [
+    "native alias signature/body exact forwarding witness",
+    "all 13 byte positions in multiline UTF-8 text before and after wrapping",
+    "negative/past-end error preserves old result",
+    "creator-thread/closed refusal",
+    "font/shaping/host-reference cleanup balance",
+    "C/C++ public headers, JIT/dynamic/static, independent imports"
+  ],
+  "guiRenderingTested": false,
+  "open": [
+    "CLI failure-exit policy question remains pending; no forced release/unload and no general CodeLease policy inferred",
+    "Previously pending contracts and other remaining full ecosystem integration",
+    "Final matched compiler/runtime/SDK/IDE/help delivery"
+  ],
+  "diagnostics": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\offset-queries-work-r1\\legacy-font-livelock-audit.json",
+      "sha256": "0479e9aedf2fdbe704d4af8380dd3b5d0158c268f3d77150980c730a23c14c02",
+      "scope": "Separate unresolved failed-retirement diagnostic, not a passing test",
+      "fixed": false
+    }
+  ],
+  "semanticReplacement": {
+    "native": "xuiCodeEditGetTextOffsetRect",
+    "targetNative": "xuiCodeEditGetOffsetRect",
+    "language": "xui.CodeEdit.getOffsetRect",
+    "source": "F:\\xlang-validation\\xge-full-20261110\\native-margin-owned-win-source-r2\\src\\xui\\code\\xui_code_edit.c",
+    "sourceSha256": "d68ffa8d19053635b1eb7e88c5458316deafb59177b796d539630b16e43c01ab",
+    "line": 8056,
+    "exactForwarder": "XUI_API int xuiCodeEditGetTextOffsetRect(xui_widget pWidget, int iByteOffset,\n\txui_rect_t* pRect)\n{\n\treturn xuiCodeEditGetOffsetRect(pWidget, iByteOffset, pRect);\n}"
+  }
+}

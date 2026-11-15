@@ -547,3 +547,7 @@ an ordinary miss has type `XUI_TIMELINE_HIT_NONE` and -1 IDs/indexes.
 local output geometry. `getVisibleRange()` reports current visibility, distinct
 from `getLastPaintRange()`. See `examples/inventory_queries.xl` and
 [world/local coordinates, empty results and costs](../../../docs/xui-inventory-queries.md).
+
+`CodeEdit.getOffsetRect(byteOffset)` also covers the native spelling alias
+`xuiCodeEditGetTextOffsetRect`; it returns caret geometry in world coordinates.
+See [the exact alias mapping and focused qualification](../../../docs/xui-code-offset-queries.md).
