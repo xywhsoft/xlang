@@ -1,0 +1,17 @@
+// Error observers also work without a window. Text fields are owned snapshots.
+import xui
+
+auto proxy=xui.createProxy()
+auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+try
+ ui.setErrorCallback(func(xui.CallbackContext context,xui.CallbackConstErrorInfo error)
+  println("Reported code: ",error.code)
+  auto message=error.message
+  if message!=null then println(message as string) end
+ end)
+ ui.reportError(xui.XUI_ERROR_INVALID_ARGUMENT,xui.XUI_ERROR_STAGE_USER,message="Example notification")
+finally
+ ui.setErrorCallback(null)
+ ui.close()
+ proxy.close()
+end

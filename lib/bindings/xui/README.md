@@ -529,3 +529,10 @@ already owned by a CodeEdit. See `examples/code_margin.xl` and
 native geometry directly. No hit remains `(-1,-1)`. The tableview lesson displays
 the clicked cell's content rectangle; see
 [coordinates, provider failures and measured costs](../../../docs/xge-input-table-queries.md).
+
+`Context.reportError(code,stage,recoverable=1,operation=null,message=null)`
+publishes an application notification to the owned error observer. A second
+overload adds `Widget?` and `Rect` after `recoverable`. Both directly pack the
+native sized record on the stack; error text getters return independent
+nullable snapshots. See `examples/error_report.xl` and
+[notification, failure and copy costs](../../../docs/xui-error-report.md).

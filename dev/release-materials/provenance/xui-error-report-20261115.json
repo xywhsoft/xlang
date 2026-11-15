@@ -1,0 +1,123 @@
+{
+  "date": "2026-11-15",
+  "complete": true,
+  "passed": true,
+  "scope": "XUI direct packed error notifications and existing C string field snapshots; not the complete ecosystem",
+  "xlangBase": "e3e499e6e79041020f53a684e3d894fd2b5557f0",
+  "nativeCommit": "076964b2067b9fa7cf48af11228cf032083f45b2",
+  "shippingDelivery": false,
+  "versionChanged": false,
+  "pushed": false,
+  "networkTests": false,
+  "nativeRebuilt": false,
+  "compilerRebuilt": false,
+  "commands": 44,
+  "evidence": [
+    {
+      "platform": "win",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xui-error-verified-win-r2.json",
+      "sha256": "1197343522ff6c5a79ac833fa739bfee12b4a86403199a0786ec072a48a5befe",
+      "commands": 22
+    },
+    {
+      "platform": "linux",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xui-error-verified-linux-r2.json",
+      "sha256": "7567418e03c76b2634cb04082ae01c70ae556eb9f25710cbe117dba1f2639b87",
+      "commands": 22
+    }
+  ],
+  "productionBindings": [
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\src\\managed.xl",
+      "staged": "F:\\xlang-validation\\xge-full-20261110\\xui-error-packages-win-r1\\host\\xui\\src\\managed.xl",
+      "sha256": "5815604e02413cbd9fa8f87302990cc1c44fd5edb1cdaede2d004c57ccb7fba9"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\src\\managed.xl",
+      "staged": "F:\\xlang-validation\\xge-full-20261110\\xui-error-packages-win-r1\\static\\xui\\src\\managed.xl",
+      "sha256": "5815604e02413cbd9fa8f87302990cc1c44fd5edb1cdaede2d004c57ccb7fba9"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\src\\managed.xl",
+      "staged": "F:\\xlang-validation\\xge-full-20261110\\xui-error-packages-linux-r1\\host\\xui\\src\\managed.xl",
+      "sha256": "5815604e02413cbd9fa8f87302990cc1c44fd5edb1cdaede2d004c57ccb7fba9"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\src\\managed.xl",
+      "staged": "F:\\xlang-validation\\xge-full-20261110\\xui-error-packages-linux-r1\\static\\xui\\src\\managed.xl",
+      "sha256": "5815604e02413cbd9fa8f87302990cc1c44fd5edb1cdaede2d004c57ccb7fba9"
+    }
+  ],
+  "inventory": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-xui-error-r1\\surface.json",
+    "sha256": "55bee74c0084d6d9826cc23192fc80d938a28462f43992151c2305fd2bdbf000",
+    "population": {
+      "functions": 5204,
+      "types": 983,
+      "constants": 1838,
+      "functionMacros": 7,
+      "callableFields": 184,
+      "enums": 40,
+      "enumConstants": 316
+    },
+    "declarationPresent": {
+      "functions": 3851,
+      "types": 385,
+      "constants": 1820,
+      "callableFields": 66,
+      "enumConstants": 316
+    },
+    "meaning": "Presence only"
+  },
+  "compilerCohorts": [
+    "compiler-nullable-insert-full-r40",
+    "compiler-nullable-insert-linux-full-r33"
+  ],
+  "nativeSdk": [
+    "margin-owned-sdk-win-r2",
+    "margin-owned-sdk-linux-r2"
+  ],
+  "nativeFullBuildParents": [
+    "margin-owned-sdk-win-r1",
+    "margin-owned-sdk-linux-r1"
+  ],
+  "costs": {
+    "recordBytes": 56,
+    "hotRounds": 1000,
+    "fieldsCopiedPerCallback": 2,
+    "languageAllocFree": [
+      2000,
+      2000
+    ],
+    "nativeOwnedAllocFree": [
+      2000,
+      2000
+    ],
+    "reallocations": 0,
+    "cpuEquivalenceClaim": false,
+    "scope": "Prepared stable local inputs, observer and closure setup excluded; C control uses the same native owned callback protocol",
+    "remaining": "Input NUL validation, output scans/copies, callback epochs, Context/Widget scopes, reference pins and checked errors; alias mutation may require input snapshots"
+  },
+  "coverage": [
+    "mutable stack text copied before overwrite",
+    "NULL vs empty; native embedded NUL terminates; language embedded NUL rejected",
+    "short/full record packing and supplied Widget/rectangle/stage/recoverable",
+    "expired ErrorInfo/Widget views checked; owned Widget survives",
+    "operation/message OOM preserves assignment; NULL getter under zero budget",
+    "ambient first error preserved while observer runs",
+    "self-removal and recursion suppression",
+    "observer exception checked; foreign-thread refusal",
+    "JIT/dynamic/static execution, C11/C++11/C++17 headers, independent imports, window-free example"
+  ],
+  "diagnostics": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xui-error-work-r1\\report-jit-preflight.log",
+      "sha256": "cc8045a87af80a90af5dfb366e1223f3e7563d0ac2160f8e2a727fec6cb3bf65",
+      "reason": "Initial test incorrectly expected no exception despite a preserved ambient IO diagnostic; corrected test to require original business error and callback text, without changing production code"
+    }
+  ],
+  "open": [
+    "Previously pending generic contracts and remaining XGE/XUI/Document families",
+    "Final matched SDK/compiler/runtime/IDE/help release"
+  ]
+}
