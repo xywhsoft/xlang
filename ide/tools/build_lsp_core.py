@@ -45,6 +45,7 @@ FRONTEND_SOURCES = (
     "src/sem/xl6_sem_index.c", "src/ir/xl6_ir.c", "src/ir/xl6_ir_class_identity.c",
 )
 SERVER_SOURCES = (
+    "src/model/workspace.c", "src/services/analysis_context.c", "src/services/workspace_discovery.c",
     "src/protocol/workspace_edit.c",
     "src/services/rename_plan.c",
     "src/services/rename_candidate.c",
@@ -60,7 +61,7 @@ SERVER_SOURCES = (
 )
 CORE_TESTS = ("analysis_context_fault_test", "analysis_context_resolution_test", "analysis_input_view_test", "analysis_context_test", "analysis_check_test", "analysis_check_session_test", "analysis_incremental_check_test", "analysis_semantic_memo_test", "analysis_check_worker_test", "analysis_index_test", "analysis_index_limit_test", "analysis_ir_scan_test", "analysis_stdlib_scan_test", "analysis_overload_scan_test", "analysis_completion_candidates_test", "analysis_ast_clone_test", "analysis_semantic_test", "analysis_completion_session_test", "analysis_folding_test", "analysis_worker_test", "analysis_session_test", "analysis_incremental_syntax_test", "analysis_cursor_syntax_test", "analysis_text_test", "document_sync_test")
 CORE_TESTS = ("analysis_completion_import_errors_test", "analysis_native_borrow_test", "analysis_final_annotations_test", "analysis_final_environment_test", *CORE_TESTS)
-HOST_TESTS = ("signature_help_test", "analysis_catalog_test", "language_context_test", "semantic_lookup_test", "analysis_index_view_test", "language_input_guard_test", "language_input_import_test", "diagnostic_store_test", "language_definition_proof_test", "snapshot_report_test")
+HOST_TESTS = ("workspace_discovery_test", "model_decode_batch_test", "signature_help_test", "analysis_catalog_test", "language_context_test", "semantic_lookup_test", "analysis_index_view_test", "language_input_guard_test", "language_input_import_test", "diagnostic_store_test", "language_definition_proof_test", "snapshot_report_test")
 CLIENT_TESTS = ("diagnostic_dependencies_test", "diagnostic_notice_test", "diagnostic_stream_test", "reference_results_test", "workspace_search_result_test")
 CLIENT_TEST_SOURCES = ("src/services/diagnostic_dependencies.c", "src/services/diagnostic_notice.c", "src/services/diagnostic_stream.c", "src/services/reference_results.c", "src/services/language_client.c", "src/services/workspace_search_result.c")
 CLIENT_TEST_SOURCES += ("src/platform/workspace_edit_files.c",)
@@ -1118,6 +1119,8 @@ def main() -> None:
             if name in HOST_TESTS:
                 extra += [str(objects[Path(source).stem]) for source in SERVER_SOURCES
                           if Path(source).stem != "xlang_ls" and
+                          not (name == "workspace_discovery_test" and Path(source).stem == "workspace_discovery") and
+                          not (name == "model_decode_batch_test" and Path(source).stem == "workspace") and
                           not (name == "semantic_rename_target_test" and Path(source).stem == "semantic_rename") and
                           not (name == "rename_plan_test" and Path(source).stem == "rename_plan") and
                           not (name in ("rename_scope_test", "rename_provider_test") and Path(source).stem == "rename_scope") and
@@ -1163,7 +1166,11 @@ def main() -> None:
             # fixture duration is separate from per-request performance gates.
             if not args.build_only:
                 test_arguments = []
-                if name in ("file_watch_test", "file_watch_lease_test", "workspace_edit_journal_test", "workspace_edit_journal_fault_test", "workspace_edit_write_test", "workspace_edit_write_fault_test", "workspace_edit_file_export_test", "workspace_edit_spool_test", "workspace_edit_spool_guard_test", "workspace_edit_spool_fault_test"):
+                if name == "model_decode_batch_test":
+                    fixture_directory = output / (name + "-fixtures")
+                    fixture_directory.mkdir()
+                    test_arguments = [str(fixture_directory), str(output / (name + "-report.json"))]
+                if name in ("workspace_discovery_test", "file_watch_test", "file_watch_lease_test", "workspace_edit_journal_test", "workspace_edit_journal_fault_test", "workspace_edit_write_test", "workspace_edit_write_fault_test", "workspace_edit_file_export_test", "workspace_edit_spool_test", "workspace_edit_spool_guard_test", "workspace_edit_spool_fault_test"):
                     fixture_directory = output / (name + "-fixtures")
                     fixture_directory.mkdir()
                     test_arguments = [str(fixture_directory)]

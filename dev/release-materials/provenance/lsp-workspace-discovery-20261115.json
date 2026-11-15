@@ -1,0 +1,134 @@
+{
+  "schema": 1,
+  "date": "2026-11-15",
+  "stage": "M7b6m",
+  "scope": "Background workspace metadata discovery and indexed shared manifest decoding",
+  "implementationAccepted": true,
+  "automaticProtocolDiscoveryIntegrated": false,
+  "goalComplete": false,
+  "performanceQualified": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "a8e78267f798f653a4d60e1db7e067680a99c27a",
+  "buildBase": "12f5770e342f1401dac48a29000e4edac7450bf5",
+  "publicationRebase": {
+    "verifiedNoIdeOrIgnoreChanges": true,
+    "fromCommit": "12f5770e342f1401dac48a29000e4edac7450bf5",
+    "toCommit": "a8e78267f798f653a4d60e1db7e067680a99c27a"
+  },
+  "ownedSources": {
+    "ide/docs/lsp-development.md": "dff16dbd9250337a9541add7e36b38a6dc90f0086cec4b05913d0dec0b8e03a2",
+    "ide/docs/lsp-workspace-discovery.md": "01012b54e0d6ab515e8ed7877aa1d0bc94f1915313f72fa515bed3f24ac4a01d",
+    "ide/src/model/workspace.c": "fa2fb0d35154bfa7b934ebf2f0f48bf7f18ea8f897139503c09bde70d0196737",
+    "ide/src/model/workspace.h": "90777b5a75b3c35f0160c88998bc585da4227083e42901c709bbef6b22c4fc2d",
+    "ide/src/services/workspace_discovery.c": "97c3cf8aae3ef7ca9cbcdec9e10e05b27c1451ba3ad290d2b04d82f2aed05b30",
+    "ide/src/services/workspace_discovery.h": "9ec496f1b101001c9015d53b21f6481452e7fe0b3e5dea3c5ae97eb92f6f4521",
+    "ide/tests/model_decode_batch_test.c": "c0e9833d55b509fc70ceaf0700b0c7e5b6dea1971b1e048fec2264773fe3bc83",
+    "ide/tests/workspace_discovery_test.c": "9ad94539cdc4aaf211a0b3a20966498f9ed92aef988c76f118b3171b1754088a",
+    "ide/tools/build.ps1": "2927edf0fc07ea98a235012e3422cfebc0a03beee694297a0e905e86a2788431",
+    "ide/tools/build_lsp_core.py": "87b0a248260cc1873e9749744f7355b3643e5a47924991e87c5ccaddc1cf7ab3"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-workspace-discovery-20261115.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-workspace-discovery-20261115/stage-sources.tar.gz",
+      "sha256": "d51b1e78ba603220aa62b29af579967a76bcaa395e75296ea883d2b18bc68fe5",
+      "bytes": 354373,
+      "entries": 10,
+      "uniquePayloads": 10
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-workspace-discovery-20261115/stage-sources.tar.gz.manifest.json",
+      "sha256": "dcb6187db982ee9adefe392583fc6ade3077f26f9f05a4094ecfbb488e4dc33e",
+      "bytes": 2582
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-workspace-discovery-20261115/actual-builds-and-validation.tar.gz",
+      "sha256": "a632855cb08842ecb12f8e1ce556a6815006599ba7faff6b49255cc4d3c90301",
+      "bytes": 254697765,
+      "entries": 10652,
+      "uniquePayloads": 4246
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-workspace-discovery-20261115/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "e80d676b9c329e85c4ca605069fb91f9859d68b4620f99c5d32bd9863ca009c2",
+      "bytes": 4911282
+    }
+  },
+  "materialDependencies": [
+    {
+      "index": "dev/release-materials/provenance/lsp-workspace-roots-20261115.json",
+      "sha256": "57f1179edf964f1601dc7437c0f3bf70fc21bfdb5e233bbb250bf97c04351112",
+      "purpose": "Prior root registry and pinned matched SDK/frontend/XRT dependencies;prior executions are not counted as new tests"
+    }
+  ],
+  "externalPaths": [
+    "F:\\codex-builds-xlang-lsp-20261115\\workspace-discovery",
+    "F:\\codex-builds-xlang-lsp-20261115\\workspace-discovery-materials",
+    "F:\\xl-workspace-discovery-20261115"
+  ],
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "sdkSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+  "currentDeliverySha256": "dbc9e09ddfaeced7c675d0540589319f20d03e08f5b43abe08dd33354ecaa9fd",
+  "candidate": {
+    "languageServer": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-discovery-20261115\\native-v1\\xlang-ls.exe",
+    "languageServerSha256": "bacbdce19ec2317abb46c01e61d1ec526f7cf5148af73b1e9f2d154dd5b12514",
+    "serviceInfoVersion": "0.102",
+    "gui": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-discovery-20261115\\gui-objects-v1\\xlang_ide.link.exe",
+    "guiSha256": "168bf4aad11b1c57864bbe19caf07e8917cdd1185d40480ec9d84fc497bf581d"
+  },
+  "verification": {
+    "nativeDistinctUnits": 122,
+    "fullGuiUnits": 140,
+    "coreArchiveMembers": 72,
+    "protocolCases": 237,
+    "protocolTools": 12,
+    "discoveryUnitChecks": 538,
+    "discoveryLocalFaultGates": 74,
+    "modelFunctionalParityCasesPerRuntime": 8,
+    "modelLocalIndexedApiFaultGates": 37,
+    "modelRuntimes": [
+      "compiler-XRT",
+      "matched-GUI-SDK"
+    ],
+    "ordinaryFileCount": 256,
+    "referencePairwiseComparisons": 32640,
+    "optimizedPairwiseComparisons": 0,
+    "optimizedStatCalls": 512,
+    "optimizedAttributeCalls": 512,
+    "pairedGuiSuites": 55,
+    "actualModernIdeModes": 47,
+    "actualGuiLanguages": [
+      "c",
+      "xlang"
+    ],
+    "rejectedCompiledMutants": 11,
+    "actualInputs": 2759,
+    "actualObjects": 262,
+    "actualLinkedInputs": 368,
+    "repositoryBudgetPassed": true
+  },
+  "evidenceNotes": [
+    "Native-XRT discovery uses1worker/1queue,retains roots/copies package metadata on submit,keeps directory/manifest IO off owner and reads no source bodies. Reuse existing IDE model decoders,analysis context factory and catalog. Explicit workspace references include outside/ignored-directory projects. Canonical project ordering excludes display/run/order noise from analysis digest.",
+    "Retain exact relevant directory names/types and raw original manifest SHA256 plus identity,including BOM. Validate from guarded file handles and revalidate after decoding. Re-enumeration and raw-byte/identity mismatch poison snapshot;cancel does not. Source-body freshness and root/config/overlay publication revisions remain caller obligations.",
+    "Explicit limits:4096directories,131072entries,16MiB labels/aggregate raw manifest bytes,256manifests;existing64catalog roles/65536bindings/16MiB context capacity. Retained custom limits apply on revalidation. Ignore known generated/package children,fail closed on unexcluded links and physical directory aliases;single explicit junction metadata is tested without claiming native alias semantics.",
+    "Shared decoder indexes IDs/exact paths/known physical identities with XRT maps;opaque identities retain old pairwise rules. Capture/verify ordinary metadata,transactional options for counts/labels/cancel. Native and GUI standalone old-source/current-header comparisons pass8full normalized model/context cases. Ordinary256files:32640old pairwise calls to0new,512stat+512attribute calls;this is probe-work evidence,not timing or whole-goal performance qualification.",
+    "Fresh538 discovery checks include real native closed-file rename,Unicode/BOM,external projects,raw manifest guards,member changes,source-body edit exclusion,queue/cancel and physical idle cleanup. Calibrated74local discovery gates and37local model indexed API gates are not comprehensive allocator OOM/leak proofs. Model race/cancel/capacity failure retains old state.",
+    "Fresh122native/140GUI units and72raw archive members,237protocol cases,55GUI suites,47actual IDE modes and24-frame C/xlang renders pass. Include C/xlang typing/deletion/undo/Unicode/IME/click focus. Reject11actually compiled mutants for directory/manifest bytes/identity,canonical order,idle,stored limits,model identity/ID/race/path-limit/cancel. Preserve raw prototype and harness failures;compile failures do not count as rejected mutants.",
+    "Bind actual source/header/SDK/link inputs and generated test adapters. Matched SDK vs default runtime DLL mismatch is protected with hash-owned temporary aliases in root release/win_x64. Preserve default runtime,SDK,current-delivery index,online channel,user temporary entries and unrelated staging;compiler TEMP/TMP scoped to F."
+  ],
+  "limits": [
+    "Not yet wired into standard server automatic folder loading. No capability advertised or implicit catalog publication. Next phase must integrate async discovery and immutable directory/manifest proofs with global post-encoding fences,root/config/overlay revisions and analysis-lease physical quiescence.",
+    "Opaque filesystem fallback can remain quadratic. Limits do not bound total DOM/allocator/RSS or concurrent snapshots. Metadata read/revalidation is not an atomic filesystem snapshot,source semantic proof or write authority. Complete alias/case-sensitive volume qualification remains open.",
+    "No full-goal latency/RSS/endurance/Linux/sanitizer qualification. Shared source capture,owner transport waits,asset alignment,remaining LSP/static analysis/completion and generic applyEdit continue. No DAP or runtime/debug completion. Previous3legacy dialog failures are not fixed/rerun/countedas passing. Long-term goal stays active."
+  ],
+  "postCommitReceipt": "dev/release-materials/provenance/lsp-workspace-discovery-20261115/postcommit.json"
+}

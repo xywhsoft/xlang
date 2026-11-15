@@ -103,6 +103,15 @@ static const char* fileKind(const char* path)
     if(xidePathHasExtension(path,".h")) return "header";
     return "text";
 }
+static int filesAppend(xide_files* files,const char* id,const char* path,const char* kind,const xvalue* source,xide_model_error* error)
+{
+    xide_file file={0}; file.id=id ? copy(id) : makeId("file"); file.path=copy(path);
+    file.kind=copy(kind ? kind : fileKind(path)); file.source=source ? xrtValueClone(source) : xrtValueObject();
+    if(!file.id || !file.path || !file.kind || !file.source || !reserve((void**)&files->items,&files->capacity,files->count+1,sizeof(file))) {
+        fileClear(&file); return fail(error,XIDE_MODEL_MEMORY,"Out of memory adding file.");
+    }
+    files->items[files->count++]=file; return 1;
+}
 static int filesAdd(xide_files* files,const char* id,const char* path,const char* kind,const xvalue* source,xide_model_error* error)
 {
     int exists=xidePathExists(path);
@@ -110,12 +119,7 @@ static int filesAdd(xide_files* files,const char* id,const char* path,const char
         if(id && !strcmp(id,files->items[i].id)) return fail(error,XIDE_MODEL_CONFLICT,"Duplicate file ID: %s",id);
         if(!strcmp(path,files->items[i].path) || (exists && xidePathEqual(path,files->items[i].path))) return fail(error,XIDE_MODEL_CONFLICT,"Duplicate file path: %s",path);
     }
-    xide_file file={0}; file.id=id ? copy(id) : makeId("file"); file.path=copy(path);
-    file.kind=copy(kind ? kind : fileKind(path)); file.source=source ? xrtValueClone(source) : xrtValueObject();
-    if(!file.id || !file.path || !file.kind || !file.source || !reserve((void**)&files->items,&files->capacity,files->count+1,sizeof(file))) {
-        fileClear(&file); return fail(error,XIDE_MODEL_MEMORY,"Out of memory adding file.");
-    }
-    files->items[files->count++]=file; return 1;
+    return filesAppend(files,id,path,kind,source,error);
 }
 static int ensureFile(xide_files* files,const char* path,const char* kind,xide_model_error* error)
 {
@@ -125,6 +129,79 @@ static int ensureFile(xide_files* files,const char* path,const char* kind,xide_m
         free(existing->kind); existing->kind=changed; return 1;
     }
     return filesAdd(files,NULL,path,kind,NULL,error);
+}
+/* Decoder-local indexes,not persistent filesystem facts. Stable ordinary and
+ * missing paths need O(n) metadata probes;opaque filesystem identities keep
+ * the previous pairwise policy. Interactive single-item APIs remain unchanged. */
+typedef struct decode_file_state {char* path;uint64_t device,identity;size_t file;int kind,present;} decode_file_state;
+typedef struct decode_files {
+    xmap ids,paths,identities;xarray states,opaque;xide_model_decode_options options;size_t labels;
+} decode_files;
+static int decodeContinue(const decode_files* index,xide_model_error* error)
+{return index->options.cancelled && index->options.cancelled(index->options.user) ? fail(error,XIDE_MODEL_IO,"File metadata decoding cancelled.") : 1;}
+static void decodeFilesClear(decode_files* index)
+{
+    for(size_t i=0;i<index->states.Count;++i)free(((decode_file_state*)index->states.Data)[i].path);
+    xrtArrayUnit(&index->states);xrtArrayUnit(&index->opaque);xrtMapUnit(&index->ids);xrtMapUnit(&index->paths);xrtMapUnit(&index->identities);
+}
+static int decodeFilesInit(decode_files* index,const xide_model_decode_options* options,xide_model_error* error)
+{
+    if(options)index->options=*options;
+    return decodeContinue(index,error) && ((xrtMapInit(&index->ids,1)&&xrtMapInit(&index->paths,sizeof(size_t))&&xrtMapInit(&index->identities,sizeof(size_t))&&
+      xrtArrayInit(&index->states,sizeof(decode_file_state))&&xrtArrayInit(&index->opaque,sizeof(size_t))) || fail(error,XIDE_MODEL_MEMORY,"Cannot allocate file metadata indexes."));
+}
+static int decodeFileCapture(const char* path,decode_file_state* state,xide_model_error* error)
+{
+    wchar_t* native=xidePathNativeWide(path);if(!native)return fail(error,XIDE_MODEL_MEMORY,"Cannot normalize file metadata path.");
+    DWORD attributes=GetFileAttributesW(native),problem=attributes==INVALID_FILE_ATTRIBUTES ? GetLastError() : 0;free(native);
+    state->present=attributes!=INVALID_FILE_ATTRIBUTES;
+    if(!state->present && (problem==ERROR_FILE_NOT_FOUND||problem==ERROR_PATH_NOT_FOUND||problem==ERROR_INVALID_DRIVE)){state->kind=0;return 1;}
+    xfileinfo info={0};state->kind=2;
+    if(state->present && xideIoStat(path,1,&info) && (info.Available&XFILE_INFO_IDENTITY)){state->kind=1;state->device=info.Device;state->identity=info.Identity;}
+    return 1;
+}
+static int decodeFilesVerify(decode_files* index,xide_model_error* error)
+{
+    for(size_t i=0;i<index->states.Count;++i){if(!decodeContinue(index,error))return 0;decode_file_state* first=(decode_file_state*)index->states.Data+i,current={0};
+        if(!decodeFileCapture(first->path,&current,error))return 0;
+        if(first->kind!=current.kind || first->present!=current.present || (first->kind==1 && (first->device!=current.device||first->identity!=current.identity)))
+            return fail(error,XIDE_MODEL_IO,"File metadata changed while decoding;retry the manifest.");
+    }
+    return 1;
+}
+static int decodeFileKind(xide_files* files,size_t at,const char* kind,xide_model_error* error)
+{char* value=copy(kind);if(!value)return fail(error,XIDE_MODEL_MEMORY,"Out of memory updating file kind.");free(files->items[at].kind);files->items[at].kind=value;return 1;}
+static int decodeFilesAdd(decode_files* index,xide_files* files,const char* id,const char* path,const char* kind,const xvalue* source,int ensure,xide_model_error* error)
+{
+    if(!decodeContinue(index,error))return 0;
+    if(id){bool added=false;void* slot=xrtMapGetOrAdd(&index->ids,(xbytesview){(const unsigned char*)id,strlen(id)},&added);
+        if(!slot)return fail(error,XIDE_MODEL_MEMORY,"Cannot index file IDs.");
+        if(!added)return fail(error,XIDE_MODEL_CONFLICT,"Duplicate file ID: %s",id);}
+    size_t* prior=xrtMapGet(&index->paths,(xbytesview){(const unsigned char*)path,strlen(path)});
+    if(prior){decode_file_state* row=(decode_file_state*)index->states.Data+*prior;
+        return ensure ? decodeFileKind(files,row->file,kind,error) : fail(error,XIDE_MODEL_CONFLICT,"Duplicate file path: %s",path);}
+    if(index->options.paths && index->states.Count>=index->options.paths)return fail(error,XIDE_MODEL_INVALID,"Decoded file metadata exceeds its path limit.");
+    size_t amount=sizeof(decode_file_state);const char* labels[]={path,id,kind};
+    for(size_t i=0;i<3;++i)if(labels[i]){size_t bytes=strlen(labels[i])+1;if(bytes>SIZE_MAX-amount)return fail(error,XIDE_MODEL_MEMORY,"File metadata label size overflow.");amount+=bytes;}
+    if(amount>SIZE_MAX-index->labels || (index->options.labels && (index->labels>index->options.labels || amount>index->options.labels-index->labels)))return fail(error,XIDE_MODEL_INVALID,"Decoded file metadata exceeds its label limit.");
+    decode_file_state row={0};if(!decodeFileCapture(path,&row,error))return 0;size_t found=SIZE_MAX;
+    uint64_t identityKey[2]={row.device,row.identity};size_t* physical=row.kind==1 ? xrtMapGet(&index->identities,(xbytesview){(const unsigned char*)identityKey,sizeof(identityKey)}) : NULL;
+    if(physical)found=*physical;
+    if(row.present && row.kind==2){for(size_t i=0;i<files->count;++i){if(!decodeContinue(index,error))return 0;if(xidePathEqual(files->items[i].path,path)){found=i;break;}}}
+    else if(row.present){for(size_t i=0;i<index->opaque.Count;++i){if(!decodeContinue(index,error))return 0;size_t at=((size_t*)index->opaque.Data)[i];decode_file_state* old=(decode_file_state*)index->states.Data+at;
+        if(old->file<found && xidePathEqual(files->items[old->file].path,path))found=old->file;}}
+    if(found!=SIZE_MAX && !ensure)return fail(error,XIDE_MODEL_CONFLICT,"Duplicate file path: %s",path);
+    row.path=copy(path);if(!row.path)return fail(error,XIDE_MODEL_MEMORY,"Cannot retain a file metadata path.");
+    if(found==SIZE_MAX){found=files->count;if(!filesAppend(files,id,path,kind,source,error)){free(row.path);return 0;}}
+    else if(!decodeFileKind(files,found,kind,error)){free(row.path);return 0;}
+    row.file=found;size_t at=index->states.Count;
+    if(!xrtArrayPush(&index->states,&row)){free(row.path);return fail(error,XIDE_MODEL_MEMORY,"Cannot retain file metadata state.");}
+    bool added=false;size_t* slot=xrtMapGetOrAdd(&index->paths,(xbytesview){(const unsigned char*)path,strlen(path)},&added);
+    if(!slot)return fail(error,XIDE_MODEL_MEMORY,"Cannot index file paths.");
+    *slot=at;
+    if(row.kind==1){slot=xrtMapGetOrAdd(&index->identities,(xbytesview){(const unsigned char*)identityKey,sizeof(identityKey)},&added);if(!slot)return fail(error,XIDE_MODEL_MEMORY,"Cannot index file identities.");if(added)*slot=found;}
+    if(row.kind==2&&!xrtArrayPush(&index->opaque,&at))return fail(error,XIDE_MODEL_MEMORY,"Cannot retain opaque file metadata.");
+    index->labels+=amount;return 1;
 }
 static void configurationClear(xide_configuration* config)
 {
@@ -182,19 +259,25 @@ static int readList(const xvalue* object,const char* key,const char* base,const 
     }
     return 1;
 }
-static int readFiles(const xvalue* object,const char* base,xide_files* files,xide_model_error* error)
+static int readFilesIndexed(const xvalue* object,const char* base,xide_files* files,decode_files* index,xide_model_error* error)
 {
     xvalue* array=get(object,"files"); if(!array) return 1;
     if(!isArray(array)) return fail(error,XIDE_MODEL_INVALID,"Expected files array.");
     for(size_t i=0;i<xrtValueCount(array);++i) {
         xvalue* entry=xrtValueArrayGet(array,i); char *id=NULL,*path=NULL,*kind=NULL,*absolutePath=NULL;
         int ok=isObject(entry) && readString(entry,"id",NULL,1,&id,error) && readString(entry,"path",NULL,1,&path,error) && readString(entry,"kind","text",1,&kind,error);
-        if(ok) { absolutePath=xidePathResolve(base,path); ok=absolutePath && filesAdd(files,id,absolutePath,kind,entry,error); }
+        if(ok) { absolutePath=xidePathResolve(base,path); ok=absolutePath && decodeFilesAdd(index,files,id,absolutePath,kind,entry,0,error); }
         free(id); free(path); free(kind); free(absolutePath);
         if(!ok) { if(error && !error->code) fail(error,XIDE_MODEL_INVALID,"Invalid files entry."); return 0; }
     }
     return 1;
 }
+static int readFilesWithOptions(const xvalue* object,const char* base,xide_files* files,const xide_model_decode_options* options,xide_model_error* error)
+{
+    decode_files index={0};int okay=decodeFilesInit(&index,options,error)&&readFilesIndexed(object,base,files,&index,error)&&decodeFilesVerify(&index,error);decodeFilesClear(&index);return okay;
+}
+static int readFiles(const xvalue* object,const char* base,xide_files* files,xide_model_error* error)
+{return readFilesWithOptions(object,base,files,NULL,error);}
 int xideCAnalysisMacroValid(const char* value,int define)
 {
     size_t n=value ? strlen(value) : 0; if(!n || n>4096 || strpbrk(value,"\r\n") || !MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,value,(int)n,NULL,0)) return 0;
@@ -267,10 +350,10 @@ static int readConfiguration(const xvalue* root,const char* base,xide_configurat
     config->source=xrtValueClone(root); config->runSource=run ? xrtValueClone(run) : xrtValueObject();
     return config->environment && config->source && config->runSource;
 }
-static int projectFromJson(xide_project* project,const char* path,const xvalue* root,xide_model_error* error)
+static int projectFromJson(xide_project* project,const char* path,const xvalue* root,const xide_model_decode_options* options,xide_model_error* error)
 {
     if(!get(root,"format") && (get(root,"Version") || get(root,"Project"))) return fail(error,XIDE_MODEL_LEGACY,"Legacy project requires explicit import.");
-    char *format=NULL,*entry=NULL,*base=xidePathDirectory(path);
+    char *format=NULL,*entry=NULL,*base=xidePathDirectory(path);decode_files index={0};
     int ok=base && readString(root,"format",NULL,1,&format,error);
     if(ok && strcmp(format,"xlang-project-1")) { fail(error,get(root,"Version") || get(root,"Project") ? XIDE_MODEL_LEGACY : XIDE_MODEL_INVALID,"Unsupported project format. Import legacy projects explicitly."); ok=0; }
     if(ok) ok=readString(root,"kind","exe",1,&project->kind,error) && readString(root,"entry",NULL,1,&entry,error);
@@ -284,10 +367,10 @@ static int projectFromJson(xide_project* project,const char* path,const xvalue* 
         ok=readString(ide,"format","xlang-ide-project-1",1,&ideFormat,error);
         if(ok && strcmp(ideFormat,"xlang-ide-project-1")) { fail(error,XIDE_MODEL_INVALID,"Unsupported IDE project metadata format."); ok=0; }
     }
-    if(ok) ok=readString(ide,"name",xidePathFilename(path),1,&project->name,error) && readString(ide,"description","",0,&project->description,error) && readFiles(ide,base,&project->files,error);
-    if(ok) ok=ensureFile(&project->files,project->entry,"xlang",error);
-    for(size_t i=0;ok && i<project->cSources.count;++i) ok=ensureFile(&project->files,project->cSources.items[i],"c",error);
-    for(size_t i=0;ok && i<project->resources.count;++i) ok=ensureFile(&project->files,project->resources.items[i],"resource-config",error);
+    if(ok) ok=readString(ide,"name",xidePathFilename(path),1,&project->name,error) && readString(ide,"description","",0,&project->description,error) && decodeFilesInit(&index,options,error) && readFilesIndexed(ide,base,&project->files,&index,error);
+    if(ok) ok=decodeFilesAdd(&index,&project->files,NULL,project->entry,"xlang",NULL,1,error);
+    for(size_t i=0;ok && i<project->cSources.count;++i) ok=decodeFilesAdd(&index,&project->files,NULL,project->cSources.items[i],"c",NULL,1,error);
+    for(size_t i=0;ok && i<project->resources.count;++i) ok=decodeFilesAdd(&index,&project->files,NULL,project->resources.items[i],"resource-config",NULL,1,error);
     xvalue* configs=get(ide,"configurations"); if(ok && configs && !isArray(configs)) { fail(error,XIDE_MODEL_INVALID,"Expected configurations array."); ok=0; }
     for(size_t i=0;ok && configs && i<xrtValueCount(configs);++i) {
         xide_configuration config={0}; ok=readConfiguration(xrtValueArrayGet(configs,i),base,&config,error);
@@ -305,18 +388,22 @@ static int projectFromJson(xide_project* project,const char* path,const xvalue* 
         if(!ok && error && !error->code) fail(error,XIDE_MODEL_INVALID,"Invalid library metadata.");
     }
     if(ok) { project->libraries=libraries ? xrtValueClone(libraries) : xrtValueArray(); project->source=xrtValueClone(root); project->manifest=copy(path); project->available=1; ok=project->libraries && project->source && project->manifest; }
+    if(ok) ok=decodeFilesVerify(&index,error);
+    decodeFilesClear(&index);
     free(format); free(entry); free(ideFormat); free(base);
     if(!ok && error && !error->code) fail(error,XIDE_MODEL_MEMORY,"Cannot allocate project data.");
     return ok;
 }
-int xideProjectDecode(xide_project* project,const char* path,const xvalue* root,xide_model_error* error)
+int xideProjectDecodeWithOptions(xide_project* project,const char* path,const xvalue* root,const xide_model_decode_options* options,xide_model_error* error)
 {
     success(error); if(!project || !path || !isObject(root)) return fail(error,XIDE_MODEL_INVALID,"Invalid project snapshot.");
     char* absolutePath=xidePathResolve(NULL,path); if(!absolutePath) return fail(error,XIDE_MODEL_INVALID,"Invalid project path.");
-    xide_project temporary={0}; int ok=projectFromJson(&temporary,absolutePath,root,error); free(absolutePath);
+    xide_project temporary={0}; int ok=projectFromJson(&temporary,absolutePath,root,options,error); free(absolutePath);
     if(!ok) { xideProjectClear(&temporary); return 0; }
     xideProjectClear(project); *project=temporary; return 1;
 }
+int xideProjectDecode(xide_project* project,const char* path,const xvalue* root,xide_model_error* error)
+{return xideProjectDecodeWithOptions(project,path,root,NULL,error);}
 int xideProjectLoad(xide_project* project,const char* path,xide_model_error* error)
 {
     success(error); if(!project || !path) return fail(error,XIDE_MODEL_INVALID,"Invalid project load arguments.");
@@ -349,7 +436,7 @@ static int addReference(xide_workspace* workspace,const char* id,const char* pat
     }
     workspace->projects[workspace->projectCount++]=project; return 1;
 }
-static int workspaceDecode(xide_workspace* workspace,const char* path,const xvalue* root,int loadProjects,xide_model_error* error)
+static int workspaceDecode(xide_workspace* workspace,const char* path,const xvalue* root,int loadProjects,const xide_model_decode_options* options,xide_model_error* error)
 {
     success(error); if(!workspace || !path || !isObject(root)) return fail(error,XIDE_MODEL_INVALID,"Invalid workspace load arguments.");
     char* absolutePath=xidePathResolve(NULL,path); if(!absolutePath) return fail(error,XIDE_MODEL_INVALID,"Invalid workspace path.");
@@ -361,26 +448,30 @@ static int workspaceDecode(xide_workspace* workspace,const char* path,const xval
     if(ok && strcmp(format,"xlang-workspace-1")) { fail(error,get(root,"Version") || get(root,"Projects") ? XIDE_MODEL_LEGACY : XIDE_MODEL_INVALID,"Unsupported workspace format. Import legacy workspaces explicitly."); ok=0; }
     if(ok) ok=readString(root,"name",NULL,1,&temporary.name,error) && readString(root,"startupProject","",0,&temporary.startupProject,error);
     xvalue* projects=get(root,"projects"); if(ok && projects && !isArray(projects)) { fail(error,XIDE_MODEL_INVALID,"Expected projects array."); ok=0; }
+    if(ok && options && options->projects && xrtValueCount(projects)>options->projects)ok=fail(error,XIDE_MODEL_INVALID,"Workspace project references exceed the decode limit.");
     for(size_t i=0;ok && projects && i<xrtValueCount(projects);++i) {
+        if(options && options->cancelled && options->cancelled(options->user)){ok=fail(error,XIDE_MODEL_IO,"Workspace decoding cancelled.");break;}
         xvalue* reference=xrtValueArrayGet(projects,i); char *id=NULL,*relativePath=NULL,*projectPath=NULL;
         ok=isObject(reference) && readString(reference,"id",NULL,1,&id,error) && readString(reference,"path",NULL,1,&relativePath,error);
         if(ok) { projectPath=xidePathResolve(base,relativePath); ok=projectPath && addReference(&temporary,id,projectPath,reference,1,loadProjects,error); }
         free(id); free(relativePath); free(projectPath);
     }
     if(ok && *temporary.startupProject && !xideWorkspaceFindProject(&temporary,temporary.startupProject)) { fail(error,XIDE_MODEL_INVALID,"startupProject must reference an existing project ID."); ok=0; }
-    if(ok) ok=readFiles(root,base,&temporary.files,error);
+    if(ok) ok=readFilesWithOptions(root,base,&temporary.files,options,error);
     if(ok) { temporary.source=xrtValueClone(root); temporary.manifest=copy(absolutePath); ok=temporary.source && temporary.manifest; }
     free(format); free(base); free(absolutePath);
     if(!ok) { xideWorkspaceClear(&temporary); if(error && !error->code) fail(error,XIDE_MODEL_INVALID,"Invalid workspace data."); return 0; }
     xideWorkspaceClear(workspace); *workspace=temporary; return 1;
 }
 int xideWorkspaceDecode(xide_workspace* workspace,const char* path,const xvalue* root,xide_model_error* error)
-{ return workspaceDecode(workspace,path,root,0,error); }
+{ return workspaceDecode(workspace,path,root,0,NULL,error); }
+int xideWorkspaceDecodeWithOptions(xide_workspace* workspace,const char* path,const xvalue* root,const xide_model_decode_options* options,xide_model_error* error)
+{return workspaceDecode(workspace,path,root,0,options,error);}
 int xideWorkspaceLoad(xide_workspace* workspace,const char* path,xide_model_error* error)
 {
     success(error); if(!workspace || !path) return fail(error,XIDE_MODEL_INVALID,"Invalid workspace load arguments.");
     char* absolutePath=xidePathResolve(NULL,path); if(!absolutePath) return fail(error,XIDE_MODEL_INVALID,"Invalid workspace path.");
-    xvalue* root=readManifest(absolutePath,error); int ok=root && workspaceDecode(workspace,absolutePath,root,1,error);
+    xvalue* root=readManifest(absolutePath,error); int ok=root && workspaceDecode(workspace,absolutePath,root,1,NULL,error);
     xrtValueRelease(root); free(absolutePath); return ok;
 }
 static xvalue* listJson(const xide_strings* list,const char* base)

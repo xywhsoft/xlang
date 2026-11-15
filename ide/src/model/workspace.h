@@ -50,6 +50,16 @@ xide_project* xideWorkspaceFindProject(xide_workspace* workspace,const char* id)
 int xideWorkspaceCreate(xide_workspace* workspace,const char* name,xide_model_error* error);
 /* Transactional decoding of an owned background snapshot. Workspace decoding retains references without reading project bodies. */
 int xideWorkspaceDecode(xide_workspace* workspace,const char* path,const xvalue* root,xide_model_error* error);
+/* Same transactional decoder with optional background admission/cancellation.
+ * Zero limits are unrestricted. paths counts distinct supplied metadata paths,
+ * including implicit entry/C/resource references;labels bounds normalized path/ID/kind metadata,
+ * not complete DOM/model/allocator storage. No source-body reads. */
+typedef struct xide_model_decode_options {
+    size_t paths,projects,labels;
+    int (*cancelled)(void*);
+    void* user;
+} xide_model_decode_options;
+int xideWorkspaceDecodeWithOptions(xide_workspace*,const char*,const xvalue*,const xide_model_decode_options*,xide_model_error*);
 int xideWorkspaceLoad(xide_workspace* workspace,const char* path,xide_model_error* error);
 xvalue* xideWorkspaceExport(const xide_workspace* workspace,xide_model_error* error);
 int xideWorkspaceSave(xide_workspace* workspace,const char* path,xide_model_error* error);
@@ -58,6 +68,7 @@ int xideWorkspaceRemoveProject(xide_workspace* workspace,const char* id,xide_mod
 int xideWorkspaceSetStartup(xide_workspace* workspace,const char* id,xide_model_error* error);
 int xideProjectCreate(xide_project* project,const char* manifest,const char* name,const char* entry,xide_model_error* error);
 int xideProjectDecode(xide_project* project,const char* path,const xvalue* root,xide_model_error* error);
+int xideProjectDecodeWithOptions(xide_project*,const char*,const xvalue*,const xide_model_decode_options*,xide_model_error*);
 int xideProjectLoad(xide_project* project,const char* path,xide_model_error* error);
 xvalue* xideProjectExport(const xide_project* project,xide_model_error* error);
 int xideProjectSave(xide_project* project,const char* path,xide_model_error* error);
