@@ -1,0 +1,99 @@
+{
+  "date": "2026-11-16",
+  "scope": "Native range drawing storage re-review, dependency-aware fail-closed tooling, preservation of authored package manifests; source/tooling qualification only.",
+  "complete": true,
+  "passed": true,
+  "goal": "active, not complete",
+  "sourceHeadBefore": "4a8e0d4e8b5358642f84ce6c45e918e366ae75f5",
+  "nativeHead": "df03691f1bde54e83b4baac93ff08cba7bac77dd",
+  "runtimeChanged": false,
+  "compilerRebuilt": false,
+  "nativeImplementationChanged": false,
+  "shippingDelivery": false,
+  "networkTests": false,
+  "sourceFiles": {
+    "tools/check_xge3_bindings.py": "36ab9d7752ee7860c3defb76f4be7afaadaaacf61fe446c857449bc95cb09f77",
+    "tools/check_xge3_storage_reviews.py": "c3a2068c34cf371c58036cc3b38ee010945dd96c54158051fb80f59584004ee8",
+    "docs/xge3-xui3-api-map-storage.json": "7e03925b063fdfcb7a48c39b388d95e7f2e39da9fdb37da9351498adaf9f7c9b",
+    "docs/xge3-storage-reviews.md": "df977dc96e95fede86e03351521f422a26fbe0c009849d1d68e5d0619bf9fc71",
+    "docs/xge3-xui3-full-coverage-plan.md": "fe392a9a702c4c229ec2c70e958bccfcbfc63cc22eaa332000b274167f9cbfc5"
+  },
+  "qualification": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\storage-review-verified-win-r1.json",
+      "sha256": "a4084f2146514ea2c4ba9b92099d0f1cde4846874c8bef53b1da2987259ac02a",
+      "complete": true,
+      "passed": true,
+      "os": "nt",
+      "gate": "F:\\xlang-validation\\xge-full-20261110\\storage-review-win-r5",
+      "reportSha256": "1441fb2d480a926ee7c978a32669b031e862f22c91e11aad19f5d259e0e54d73",
+      "inputFiles": 341,
+      "checks": 81,
+      "skipped": [
+        {
+          "name": "reject-external-symlink",
+          "reason": "[WinError 1314] \u5ba2\u6237\u7aef\u6ca1\u6709\u6240\u9700\u7684\u7279\u6743\u3002: 'F:\\\\xlang-validation\\\\xge-full-20261110\\\\storage-review-win-r5\\\\external.inl' -> 'F:\\\\xlang-validation\\\\xge-full-20261110\\\\storage-review-win-r5\\\\fixture\\\\src\\\\external.inl'"
+        }
+      ],
+      "sourceSnapshot": "F:\\xlang-validation\\xge-full-20261110\\storage-review-win-r5\\accepted-source",
+      "fieldReviews": 20,
+      "dependencyWitnessesPerNewReview": 14,
+      "generatedSourceDifferences": 10,
+      "generatedOutputsPromoted": false,
+      "runtimeQualification": false,
+      "checkerSha256": "c3a2068c34cf371c58036cc3b38ee010945dd96c54158051fb80f59584004ee8",
+      "catalogSha256": "7e03925b063fdfcb7a48c39b388d95e7f2e39da9fdb37da9351498adaf9f7c9b"
+    },
+    "linux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\storage-review-verified-linux-r1.json",
+      "sha256": "88a96473bc63b4beb7a035352ed642a7095660c389ee912e5900d84ff58b9ded",
+      "complete": true,
+      "passed": true,
+      "os": "posix",
+      "gate": "/mnt/f/xlang-validation/xge-full-20261110/storage-review-linux-r4",
+      "reportSha256": "38dce4ca25cf6a74b6c2011b686bb9eda7535fd13e475ee69165095ff9ef0e42",
+      "inputFiles": 341,
+      "checks": 82,
+      "skipped": [],
+      "sourceSnapshot": "/mnt/f/xlang-validation/xge-full-20261110/storage-review-linux-r4/accepted-source",
+      "fieldReviews": 20,
+      "dependencyWitnessesPerNewReview": 14,
+      "generatedSourceDifferences": 15,
+      "generatedOutputsPromoted": false,
+      "runtimeQualification": false,
+      "checkerSha256": "c3a2068c34cf371c58036cc3b38ee010945dd96c54158051fb80f59584004ee8",
+      "catalogSha256": "7e03925b063fdfcb7a48c39b388d95e7f2e39da9fdb37da9351498adaf9f7c9b"
+    }
+  },
+  "checks": 163,
+  "windowsSkipped": [
+    "Creating external symlink requires unavailable Windows privilege; corresponding rejection exercised on Linux."
+  ],
+  "reviews": {
+    "totalCallableFields": 20,
+    "entryBodyOnlyLegacy": 18,
+    "updated": "xui_proxy_t.textDraw",
+    "added": "xui_proxy_t.drawTextShapeRangeSpans",
+    "newDependencyFilesPerReview": 14,
+    "dependencyBytesEqualAcrossFrozenSDKsAndNativeTree": true,
+    "headerMetadataOnlyOnLegacyReviews": true
+  },
+  "sourceCohorts": {
+    "win": "F:\\xlang-validation\\xge-full-20261110\\native-flow-config-win-source-r1",
+    "linux": "F:\\xlang-validation\\xge-full-20261110\\native-flow-config-linux-source-r1"
+  },
+  "limitations": [
+    "Fingerprints detect changes to manually reviewed sources; no inferred ownership or automatic complete dependency-graph proof.",
+    "A successful generator replay is not ABI/runtime/complete-coverage acceptance. Ten generated binding source files still differ, including fixed OBB arrays, checked APIs and callback/snapshot contracts. No generated binding output was promoted.",
+    "This batch adds no runtime copying, adapters or bookkeeping; it does not make a new CPU performance claim.",
+    "No release/IDE/SDK binary, shipping index or upstream XRT version was changed; all unrelated Native geometry and xlang work preserved."
+  ],
+  "externalEvidence": {
+    "base": "F:\\xlang-validation\\xge-full-20261110",
+    "initialStaleRangeSpansReview": "F:\\xlang-validation\\xge-full-20261110\\storage-review-win-r1\\results.json",
+    "missingLinuxPycparser": "F:\\xlang-validation\\xge-full-20261110\\storage-review-linux-r1\\results.json",
+    "inspectedGeneratedDifferences": "F:\\xlang-validation\\xge-full-20261110\\generator-output-drift-r1.json",
+    "isolatedPycparser": "F:\\xlang-validation\\xge-full-20261110\\python-dependencies-r1",
+    "budget": "F:\\xlang-validation\\xge-full-20261110\\storage-review-repo-budget-before.json"
+  }
+}

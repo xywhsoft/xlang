@@ -94,6 +94,52 @@ def native_function_sha(text,name):
         elif c=='}':depth-=1
         i+=1
     return hashlib.sha256(text[m.start():i].encode()).hexdigest() if depth==0 else None
+def storage_review_match(native_root,review,helper=None):
+    """Check an explicit review and its optional, byte-exact implementation pins.
+
+    These witnesses detect change; they do not infer a non-escape contract or
+    certify ABI/runtime behavior. Legacy reviews retain their body-only scope.
+    """
+    root=Path(native_root).resolve()
+    def source(relative):
+        # Resolve also rejects symlinks/junctions escaping the reviewed tree.
+        if not isinstance(relative,str) or not relative or '\\' in relative or ':' in relative:
+            raise ValueError('invalid source path')
+        if any(part in ('','.', '..') for part in relative.split('/')):
+            raise ValueError('invalid source path')
+        path=(root/relative).resolve()
+        if not path.is_relative_to(root) or not path.is_file():
+            raise ValueError('missing or external source: '+relative)
+        return path
+    def digest(value):
+        return isinstance(value,str) and re.fullmatch(r'[0-9a-f]{64}',value) is not None
+    try:
+        if not isinstance(review,dict):raise ValueError('missing review')
+        entry=source(review.get('sourceFile'))
+        name=review.get('nativeHelper',helper)
+        if not isinstance(name,str) or not re.fullmatch(r'[A-Za-z_]\w*',name):
+            raise ValueError('invalid native helper')
+        if not digest(review.get('functionSha256')):
+            raise ValueError('invalid function digest')
+        if native_function_sha(entry.read_text(encoding='utf-8-sig'),name)!=review['functionSha256']:
+            raise ValueError('native helper changed: '+name)
+        if 'dependencies' in review:
+            dependencies=review['dependencies'];seen=set()
+            if not isinstance(dependencies,list) or not dependencies:
+                raise ValueError('empty or invalid dependencies')
+            for dependency in dependencies:
+                if not isinstance(dependency,dict) or set(dependency)!={'sourceFile','sha256'}:
+                    raise ValueError('invalid dependency record')
+                path=source(dependency['sourceFile'])
+                if path in seen:raise ValueError('duplicate dependency: '+dependency['sourceFile'])
+                seen.add(path)
+                if not digest(dependency['sha256']):raise ValueError('invalid dependency digest')
+                if hashlib.sha256(path.read_bytes()).hexdigest()!=dependency['sha256']:
+                    raise ValueError('native dependency changed: '+dependency['sourceFile'])
+        return True,None
+    except (OSError,ValueError,UnicodeError) as error:
+        return False,str(error)
+
 def typedefs(text):
     out=[];position=0
     while True:
@@ -336,12 +382,35 @@ def constant_value(expression,known,macros):
     expression=expand_constant_macros(expression,macros)
     return known[expression] if expression in known else integer(expression,known)
 
+def write_binding_manifest(path,generated):
+    """Add generated units without discarding separately maintained bindings.
+
+    Existing manifests own source order, optional modules, SDK feature gates
+    and package metadata. A replay must not replace them with an old seed.
+    """
+    if not path.exists():
+        path.write_text(json.dumps(generated,indent=2)+'\n',encoding='utf8');return
+    existing=json.loads(path.read_text(encoding='utf-8-sig'))
+    for key in('format','name','abiVersion','kind'):
+        if existing.get(key)!=generated[key]:raise ValueError('incompatible binding manifest '+str(path)+': '+key)
+    artifact=existing.get('artifact')
+    if not isinstance(artifact,dict) or artifact.get('kind')!='source':
+        raise ValueError('binding manifest requires source artifact: '+str(path))
+    changed=False
+    for key in('xlSources','includeDirs'):
+        if key not in generated['artifact']:continue
+        values=artifact.setdefault(key,[])
+        if not isinstance(values,list) or any(not isinstance(v,str)for v in values) or len(set(values))!=len(values):
+            raise ValueError('invalid binding manifest '+key+': '+str(path))
+        for value in generated['artifact'][key]:
+            if value not in values:values.append(value);changed=True
+    if changed:path.write_text(json.dumps(existing,indent=2)+'\n',encoding='utf8')
+
 def generate(root,data):
     reserved=set(re.findall(r'\{\"([A-Za-z_]\w*)\", XL6_KW_', (root/'src/lexer/xl6_lexer_gen.c').read_text(encoding='utf8')))
     storage_path=root/'docs/xge3-xui3-api-map-storage.json'
     storage_inventory=json.loads(storage_path.read_text(encoding='utf8'));storage=storage_inventory['entries']
     field_storage=storage_inventory.get('fieldEntries',{})
-    storage_sources={}
     def reviewed_span(f,pointer,count):
         # A matching C shape proves ABI, never non-escape. New signatures must
         # receive an explicit native storage review before an implicit span.
@@ -351,12 +420,12 @@ def generate(root,data):
             f.update(state='requires-pointer-storage-review',reason='Counted native pointer lacks a matching reviewed non-escape contract')
             raise ValueError('unreviewed pointer storage')
         native_root=Path(data['headers'][0]['header']).parents[1]
-        source=native_root/review['sourceFile']
-        if source not in storage_sources:storage_sources[source]=source.read_text(encoding='utf-8-sig')
-        if native_function_sha(storage_sources[source],f['name'])!=review['functionSha256']:
-            f.update(state='requires-pointer-storage-review',reason='Native pointer consumer changed after the recorded storage review')
+        matching,reason=storage_review_match(native_root,review,f['name'])
+        if not matching:
+            f.update(state='requires-pointer-storage-review',reason=reason)
             raise ValueError('native pointer storage review is stale')
         f['storageContract']=dict(inventory=str(storage_path.relative_to(root)).replace('\\','/'),storage=review['storage'],sourceFile=review['sourceFile'],functionSha256=review['functionSha256'])
+        if 'dependencies' in review:f['storageContract']['dependencies']=review['dependencies']
     for header in data['headers']:
         package=Path(header['header']).stem;folder=root/'lib/bindings'/package;src=folder/'src';src.mkdir(parents=True,exist_ok=True)
         types={t['name']:t['type'] for t in header['types']};records={};pending={n:t for n,t in types.items() if t['kind']=='struct' and t.get('fields') is not None}
@@ -493,9 +562,9 @@ def generate(root,data):
             (optional/'src/functions.xl').write_text('\n'.join(functions3d)+'\n',encoding='utf8')
             (debug/'src/functions.xl').write_text('\n'.join(map(qualify_base_records,functions_debug))+'\n',encoding='utf8')
             optional_manifest={'format':'xlang-package-1','name':'xge3d','version':'3.0.0','abiVersion':'2','kind':'xlang-extlib','artifact':{'kind':'source','cSources':[],'xlSources':['src/bootstrap.xl','src/records.xl','src/functions.xl']},'links':[],'loadlibs':[],'dependencies':[{'name':'xge','version':'3.0.0','abiVersion':'2'}],'requiresNativeFeatures':['XGE_ENABLE_3D'],'native':{'singleton':False,'loadName':'','version':''}}
-            (optional/'xlang.package.json').write_text(json.dumps(optional_manifest,indent=2)+'\n',encoding='utf8')
+            write_binding_manifest(optional/'xlang.package.json',optional_manifest)
             debug_manifest=dict(optional_manifest,name='xgeDebug',requiresNativeFeatures=['XGE_HAS_DEBUGMODE'])
-            (debug/'xlang.package.json').write_text(json.dumps(debug_manifest,indent=2)+'\n',encoding='utf8')
+            write_binding_manifest(debug/'xlang.package.json',debug_manifest)
             for extension in (optional,debug):(extension/'src/bootstrap.xl').write_text('// Normal module import executes the shared native initializer once.\nimport "xge"\n',encoding='utf8')
             object_mapping=generate_xge_objects(root,header,records,types,primitive,param,reserved,reviewed_span)
             mapped.update(object_mapping)
@@ -509,7 +578,7 @@ def generate(root,data):
         (src/'bootstrap.xl').write_text('// Normal module import executes the shared native initializer once.\nimport "_xge_native"\n',encoding='utf8')
         manifest={'format':'xlang-package-1','name':package,'version':'3.0.0','abiVersion':'2','kind':'xlang-extlib','artifact':{'kind':'source','cSources':[],'xlSources':['src/bootstrap.xl','src/records.xl','src/constants.xl']+(['src/functions.xl','src/resources.xl','src/audio_resources.xl','src/callbacks.xl','src/shapes.xl','src/data_object.xl'] if package=='xge' else ['src/managed.xl','src/cell.xl','src/proxy.xl','src/draw.xl','src/text_shape.xl','src/text_layout.xl','src/code_document.xl','src/code_models.xl','src/managers.xl','src/document_records.xl','src/document.xl','src/document_ui_records.xl','src/document_ui.xl'])},'links':[],'loadlibs':[],'dependencies':[{'name':'_xge_native','version':'3.0.0','abiVersion':'2'}],'native':{'singleton':False,'loadName':'','version':''}}
         if package=='xge':manifest['artifact']['includeDirs']=['include']
-        (folder/'xlang.package.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf8')
+        write_binding_manifest(folder/'xlang.package.json',manifest)
     annotate_existing_bindings(root,data,strict_storage=True,generated=True)
 
 
@@ -556,12 +625,11 @@ def annotate_existing_bindings(root,data,strict_storage=False,generated=False):
                         if field is None:
                             unresolved.append(dict(native=declaration[1],owner=native_owner,**binding));continue
                         if '@c_span(' in line or '@c_region(' in line or re.search(r'\[[1-9][0-9]*\]',line):
-                            review=field_storage.get(native_owner+'.'+declaration[1]);matching=False
-                            if review:
-                                source_file=Path(header['header']).parents[1]/review['sourceFile']
-                                matching=source_file.is_file() and native_function_sha(source_file.read_text(encoding='utf-8-sig'),review['nativeHelper'])==review['functionSha256']
-                            binding['storageReview']=dict(state='matching' if matching else 'changed' if review else 'missing',inventory=str(storage_path.relative_to(root)).replace('\\','/'))
-                            if strict_storage and not matching:raise ValueError('callable-field pointer storage requires matching native review: '+native_owner+'.'+declaration[1])
+                            review=field_storage.get(native_owner+'.'+declaration[1])
+                            matching,reason=storage_review_match(Path(header['header']).parents[1],review)
+                            if not matching:field.pop('storageContract',None)
+                            binding['storageReview']=dict(state='matching' if matching else 'changed' if review else 'missing',inventory=str(storage_path.relative_to(root)).replace('\\','/'),reason=reason)
+                            if strict_storage and not matching:raise ValueError('callable-field pointer storage requires matching native review: '+native_owner+'.'+declaration[1]+' ('+str(reason)+')')
                             if matching:field['storageContract']=dict(inventory=str(storage_path.relative_to(root)).replace('\\','/'),**review)
                         field.update(state='direct-callable-field-declaration' if generated else 'callable-field-declaration-present')
                         field.setdefault('bindings',[]).append(binding)

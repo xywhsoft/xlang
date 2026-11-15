@@ -640,10 +640,68 @@
     "xui_proxy_t.textDraw": {
       "sourceFile": "src/xui/core/xui_proxy_xge.c",
       "nativeHelper": "__xuiProxyXgeTextDraw",
-      "functionSha256": "3b55028e3fb1c832d69d55a804b07320fa34fe77aaadb120aab4eaab96d664f0",
-      "sourceHeaderSha256": "c49a12c58faf79592ef22081f773ae635f58f35c0646625473f219e11d1f833d",
+      "functionSha256": "d518c2d14bd35a0140ba3b188a5736e15e2e165866d11a90cd463c0337f8003d",
+      "sourceHeaderSha256": "827b97a8b44e72ac9337986f98e0ead6c32a8d0cf122473d77d571e28ab5501d",
       "storage": "native-copy-or-synchronous-read",
-      "note": "Descriptor and text/context/language/spans consumed synchronously; managed Font pinned through the call. Deferred backend resources require Native owning references."
+      "note": "Text, context, language and span buffers are consumed synchronously in both ordinary and RANGE branches. Managed Font/Surface/optional TextShape remain scoped through the call. RANGE either borrows a retained Shape or frees a local owned Shape before return. Shaping clears source-pointer caches before publishing; renderer commands copy draw records and retain real texture references, never input text/span pointers. Whole-file dependency witnesses seal the reviewed helper paths; they are change detection, not ABI/runtime qualification.",
+      "dependencies": [
+        {
+          "sourceFile": "include/xui.h",
+          "sha256": "827b97a8b44e72ac9337986f98e0ead6c32a8d0cf122473d77d571e28ab5501d"
+        },
+        {
+          "sourceFile": "src/xui/core/xui_proxy_xge.c",
+          "sha256": "8657ab88375c7f7f833a067023ac67dc22fd1b388ba6e72c51484dca511de21d"
+        },
+        {
+          "sourceFile": "src/xui/core/xui_text_item_internal.h",
+          "sha256": "7e32bc471a541a8bb5a8634b40b1487bf5ebb66d14931a7cb517a86fee7a598c"
+        },
+        {
+          "sourceFile": "src/xui/core/xui_proxy_xge_text_range.inl",
+          "sha256": "f26042c7183f9bb98708e59ce751780ab062b59c5aeeec8fda7a1f098b0d5570"
+        },
+        {
+          "sourceFile": "src/xui/core/xui_proxy_xge_shape_paint.inl",
+          "sha256": "0908441dda122388f8194f72f20c165c1c7619b9097131d32389e081dd974e4c"
+        },
+        {
+          "sourceFile": "src/xge/text/xge_text_run.c",
+          "sha256": "d89407ad6625d8e5e7e86c0d631929cd4654c2242f25cf2274e429a8ce7ce3b4"
+        },
+        {
+          "sourceFile": "src/xge/text/xge_text_context.h",
+          "sha256": "17760e8342bbc6ca384e20424715216213751dc3bde042c41e303a1595ad36b7"
+        },
+        {
+          "sourceFile": "src/xge/text/xge_text_input.h",
+          "sha256": "bbc47d2de71ebe39892252fbfdad0bb1bd37e46c047f35f0934166b715b572d7"
+        },
+        {
+          "sourceFile": "src/xge/text/xge_text_opentype.c",
+          "sha256": "d5e474f7b5f388655ab2468216bb2c6daae0a0609be13f17d2efeca4beb5e5af"
+        },
+        {
+          "sourceFile": "src/xge/text/xge_text_opentype_fallback.inl",
+          "sha256": "49ef91a2a4c6eee0695305f00ffe435405732917f1bbe60c1e20beac2e617e34"
+        },
+        {
+          "sourceFile": "src/xge/text/xge_text_opentype_caret_validation.inl",
+          "sha256": "cf969661406d5f54abd8383d73a5b02c455b9717e82476a83e3c2b4ffb9e778c"
+        },
+        {
+          "sourceFile": "src/xge/text/xge_text_opentype_carets.inl",
+          "sha256": "f5a4e27d023b3a29298ad163563b36cb3ceadbf68d74ef729c2b86bf2cd77f40"
+        },
+        {
+          "sourceFile": "src/xge/core/xge_command.c",
+          "sha256": "8862c82247c4027ef21f28e418bfa5b41ec83865917596d14e0834d8c1a3c514"
+        },
+        {
+          "sourceFile": "src/xge/render/xge_render.c",
+          "sha256": "ee82351a3d6da5e1bc01fdd2ac60bb38802dd76b5339a2b70b70642780db77c1"
+        }
+      ]
     },
     "xui_proxy_t.drawText": {
       "sourceFile": "src/xui/core/xui_proxy_xge.c",
@@ -676,6 +734,72 @@
       "sourceHeaderSha256": "c49a12c58faf79592ef22081f773ae635f58f35c0646625473f219e11d1f833d",
       "storage": "native-copy-or-synchronous-read",
       "note": "Explicit paint spans borrowed only during synchronous Native draw; managed Font pinned through the call. Native backend owns any deferred drawing resources."
+    },
+    "xui_proxy_t.drawTextShapeRangeSpans": {
+      "sourceFile": "src/xui/core/xui_proxy_xge_shape_paint.inl",
+      "nativeHelper": "__xuiProxyXgeDrawTextShapeRangeSpans",
+      "functionSha256": "503f3a405baf88c0c140b35292eb8e8730b48e5e405cbecb214b721cd8c9bbc6",
+      "sourceHeaderSha256": "827b97a8b44e72ac9337986f98e0ead6c32a8d0cf122473d77d571e28ab5501d",
+      "storage": "native-copy-or-synchronous-read",
+      "note": "Retained TextShape and DrawContext are scoped through the call. The range helper borrows glyphs/carets, copies spans to stack or temporary storage, restores clip and frees temporary spans before return. Render commands own texture references and contain copied quads, not Shape, span or input text pointers. This entry and shared implementation dependency witnesses record a manual storage review, not ABI/runtime qualification.",
+      "dependencies": [
+        {
+          "sourceFile": "include/xui.h",
+          "sha256": "827b97a8b44e72ac9337986f98e0ead6c32a8d0cf122473d77d571e28ab5501d"
+        },
+        {
+          "sourceFile": "src/xui/core/xui_proxy_xge.c",
+          "sha256": "8657ab88375c7f7f833a067023ac67dc22fd1b388ba6e72c51484dca511de21d"
+        },
+        {
+          "sourceFile": "src/xui/core/xui_text_item_internal.h",
+          "sha256": "7e32bc471a541a8bb5a8634b40b1487bf5ebb66d14931a7cb517a86fee7a598c"
+        },
+        {
+          "sourceFile": "src/xui/core/xui_proxy_xge_text_range.inl",
+          "sha256": "f26042c7183f9bb98708e59ce751780ab062b59c5aeeec8fda7a1f098b0d5570"
+        },
+        {
+          "sourceFile": "src/xui/core/xui_proxy_xge_shape_paint.inl",
+          "sha256": "0908441dda122388f8194f72f20c165c1c7619b9097131d32389e081dd974e4c"
+        },
+        {
+          "sourceFile": "src/xge/text/xge_text_run.c",
+          "sha256": "d89407ad6625d8e5e7e86c0d631929cd4654c2242f25cf2274e429a8ce7ce3b4"
+        },
+        {
+          "sourceFile": "src/xge/text/xge_text_context.h",
+          "sha256": "17760e8342bbc6ca384e20424715216213751dc3bde042c41e303a1595ad36b7"
+        },
+        {
+          "sourceFile": "src/xge/text/xge_text_input.h",
+          "sha256": "bbc47d2de71ebe39892252fbfdad0bb1bd37e46c047f35f0934166b715b572d7"
+        },
+        {
+          "sourceFile": "src/xge/text/xge_text_opentype.c",
+          "sha256": "d5e474f7b5f388655ab2468216bb2c6daae0a0609be13f17d2efeca4beb5e5af"
+        },
+        {
+          "sourceFile": "src/xge/text/xge_text_opentype_fallback.inl",
+          "sha256": "49ef91a2a4c6eee0695305f00ffe435405732917f1bbe60c1e20beac2e617e34"
+        },
+        {
+          "sourceFile": "src/xge/text/xge_text_opentype_caret_validation.inl",
+          "sha256": "cf969661406d5f54abd8383d73a5b02c455b9717e82476a83e3c2b4ffb9e778c"
+        },
+        {
+          "sourceFile": "src/xge/text/xge_text_opentype_carets.inl",
+          "sha256": "f5a4e27d023b3a29298ad163563b36cb3ceadbf68d74ef729c2b86bf2cd77f40"
+        },
+        {
+          "sourceFile": "src/xge/core/xge_command.c",
+          "sha256": "8862c82247c4027ef21f28e418bfa5b41ec83865917596d14e0834d8c1a3c514"
+        },
+        {
+          "sourceFile": "src/xge/render/xge_render.c",
+          "sha256": "ee82351a3d6da5e1bc01fdd2ac60bb38802dd76b5339a2b70b70642780db77c1"
+        }
+      ]
     }
   }
 }
