@@ -1,0 +1,133 @@
+{
+  "date": "2026-11-15",
+  "complete": true,
+  "passed": true,
+  "scope": "DockPanel numeric output and pointer-free drop target declarations with readable console lesson; not full ecosystem completion",
+  "xlangBase": "6185fdfa537157e5a9dcedc8cafe9a8426463d30",
+  "nativeCommit": "57bbfbcdc8b22e6e7d95b77745893124605c26d7",
+  "shippingDelivery": false,
+  "versionChanged": false,
+  "pushed": false,
+  "networkTests": false,
+  "nativeRebuilt": false,
+  "compilerRebuilt": false,
+  "commands": 44,
+  "evidence": [
+    {
+      "platform": "win",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\dock-queries-verified-win-r1.json",
+      "sha256": "cfafb5ed3e82c95b5057c73701cce73f7764a98f857791ee2de7bbdbd7934e33",
+      "commands": 22
+    },
+    {
+      "platform": "linux",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\dock-queries-verified-linux-r1.json",
+      "sha256": "50088bf16acb7e4c971497d0f54a5413babebf905479c4ed2d4cc09797848f2f",
+      "commands": 22
+    }
+  ],
+  "productionBindings": [
+    {
+      "platform": "win",
+      "kind": "host",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\dock-queries-packages-win-r2\\host\\xui\\src\\managed.xl",
+      "sha256": "1eaf20a4e9b6ec21d0dc5786e97b555f8f66a0255e5d1afe9a5bcf1f37a01eb7"
+    },
+    {
+      "platform": "win",
+      "kind": "host",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\dock-queries-packages-win-r2\\host\\xui\\examples\\dock_queries.xl",
+      "sha256": "b81d48932ee41edbcf6263ecfd36714464401c032c0202a943d540fdbf022173"
+    },
+    {
+      "platform": "win",
+      "kind": "static",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\dock-queries-packages-win-r2\\static\\xui\\src\\managed.xl",
+      "sha256": "1eaf20a4e9b6ec21d0dc5786e97b555f8f66a0255e5d1afe9a5bcf1f37a01eb7"
+    },
+    {
+      "platform": "win",
+      "kind": "static",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\dock-queries-packages-win-r2\\static\\xui\\examples\\dock_queries.xl",
+      "sha256": "b81d48932ee41edbcf6263ecfd36714464401c032c0202a943d540fdbf022173"
+    },
+    {
+      "platform": "linux",
+      "kind": "host",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\dock-queries-packages-linux-r2\\host\\xui\\src\\managed.xl",
+      "sha256": "1eaf20a4e9b6ec21d0dc5786e97b555f8f66a0255e5d1afe9a5bcf1f37a01eb7"
+    },
+    {
+      "platform": "linux",
+      "kind": "host",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\dock-queries-packages-linux-r2\\host\\xui\\examples\\dock_queries.xl",
+      "sha256": "b81d48932ee41edbcf6263ecfd36714464401c032c0202a943d540fdbf022173"
+    },
+    {
+      "platform": "linux",
+      "kind": "static",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\dock-queries-packages-linux-r2\\static\\xui\\src\\managed.xl",
+      "sha256": "1eaf20a4e9b6ec21d0dc5786e97b555f8f66a0255e5d1afe9a5bcf1f37a01eb7"
+    },
+    {
+      "platform": "linux",
+      "kind": "static",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\dock-queries-packages-linux-r2\\static\\xui\\examples\\dock_queries.xl",
+      "sha256": "b81d48932ee41edbcf6263ecfd36714464401c032c0202a943d540fdbf022173"
+    }
+  ],
+  "files": {
+    "lib/bindings/xui/src/managed.xl": "1eaf20a4e9b6ec21d0dc5786e97b555f8f66a0255e5d1afe9a5bcf1f37a01eb7",
+    "lib/bindings/xui/examples/README.md": "6c3605511fc44dac417c920e7036dcb2e20f5449e1eebb0d06cc07c1098ebfc0",
+    "lib/bindings/xui/examples/dock_queries.xl": "b81d48932ee41edbcf6263ecfd36714464401c032c0202a943d540fdbf022173",
+    "test/cases/foreign_xui_dock_queries.h": "00f35d8de905dfa68c25f97ebe2271a3c11bd66dd35d69b80c5ba93384160ea4",
+    "test/cases/foreign_xui_dock_queries.c": "3ccab48b23f59605f3e24d955c886d2a5a79c4ff3f9d4d7db5bde84e5d27542c",
+    "test/cases/foreign_xui_dock_queries.xl": "4bb23fdacc922daa2f7f4ea53d7ffdaded7aca5c8658981b2465415b1aae5ab3",
+    "tools/check_xui_dock_queries.py": "754c082bd781c6d3813a19ffbd77d4226ff7b997150d0a60c5c9e240c8989962",
+    "docs/xui-dock-queries.md": "8bcfc051c13b637a6349fa55a1ea804d1ae2226373490c15fb460d1eaafcf6fe"
+  },
+  "bindingIsolation": {
+    "previousNormalizedLfSha256": "874fb56bec9cb7ba57612a1a681b8cb03a0c324711dd62f2bdc498877cb90ad6",
+    "onlyTwoDirectMethodsAdded": true
+  },
+  "nativeSdk": [
+    "provider-lifetime-sdk-win-r4",
+    "provider-lifetime-sdk-linux-r4"
+  ],
+  "compilerCohorts": [
+    "compiler-nullable-insert-full-r40",
+    "compiler-nullable-insert-linux-full-r33"
+  ],
+  "inventory": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-dock-queries-r1\\surface.json",
+    "sha256": "6b544345e0cbd1ecac3fa29cc017805dd7eec1f0b3d0fd602c7b2d551f846c52",
+    "population": 5212,
+    "declarationsPresent": 3857,
+    "meaning": "Presence only"
+  },
+  "costs": {
+    "nativeCallsPerMethod": 1,
+    "dropRecordStackBytes": 40,
+    "heapPer1000WarmHitAndMissPairs": 0,
+    "cpuEquivalenceClaim": false,
+    "mutationAllocationClaim": false,
+    "remaining": "Native docking/layout operations, validation, output copies and generic resource scopes"
+  },
+  "diagnostics": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\dock-queries-win-r1\\results.json",
+      "sha256": "245344a0538aaeda5e9580f63009cced4f09c17f1cadf03ddb59e8bc012131e0",
+      "qualification": false
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\dock-case-work-r5\\run.log",
+      "sha256": "15b534b8263f5a0a624c0737da6320dff6212b92c332bad691142268bd40aaea",
+      "qualification": false
+    }
+  ],
+  "open": [
+    "Pointer-bearing DockWindowInfo and raw userdata need separate safe projections",
+    "Interactive drag/GPU and final matched IDE delivery are not this CPU batch",
+    "Remaining full ecosystem capabilities and pending generic contracts"
+  ]
+}

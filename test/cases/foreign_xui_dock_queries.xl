@@ -1,0 +1,139 @@
+import xui
+extern "fixtureDockBudget" @header("test/cases/foreign_xui_dock_queries.h") @no_raise func budget(c_int n)
+extern "fixtureDockBegin" @no_raise func beginHeap()
+extern "fixtureDockReport" @no_raise func reportHeap(c_int native)
+extern "fixtureDockInvalid" @no_raise func invalidFloat(c_int kind) as c_float
+extern "fixtureDockCompare" @no_raise @c_ref(4) func compare(xui.DockPanel panel,c_int window,c_float x,c_float y,xui.DockDropInfo value)
+extern "fixtureDockNativeHot" @no_raise func nativeHot(xui.DockPanel panel,c_int window,c_float x,c_float y)
+
+func main(...) as int
+ auto proxy=xui.createProxy()
+ auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ auto panel=ui.dockPanelNative()
+ auto first=panel.addWindow("First",ui.labelNative())
+ auto second=panel.addWindow("Second",ui.labelNative())
+ auto pane=panel.dockWindow(first,xui.XUI_DOCK_PANEL_REGION_DOCUMENT,xui.XUI_DOCK_PANEL_SIDE_NONE)
+ auto split=panel.dockWindowToPaneSide(second,pane,xui.XUI_DOCK_PANEL_SIDE_RIGHT,0.5)
+ assert split>=0 and split!=pane and panel.getPaneWindow(split,0)==second, "Dock queries line 17"
+ // A single window already in its target pane is a native successful no-op.
+ assert panel.dockWindowToPaneSide(first,pane,xui.XUI_DOCK_PANEL_SIDE_LEFT)==-1, "Dock queries line 19"
+ auto root=ui.widget()
+ auto bounds=xui.Rect()
+ bounds.fW=800
+ bounds.fH=600
+ root.setRect(bounds)
+ bounds.fX=20
+ bounds.fY=30
+ bounds.fW=600
+ bounds.fH=400
+ panel.setRect(bounds)
+ root.addChild(panel)
+ ui.inputViewport(800,600)
+ ui.setRootWidget(root)
+ ui.layout()
+ assert panel.getWorldRect().fX==20 and panel.getWorldRect().fY==30, "Dock queries line 34"
+ for direction in range(4)
+  assert panel.dockWindowToPane(second,pane)==0, "Dock queries line 36"
+  split=panel.dockWindowToPaneSide(second,pane,c_int(direction+1),0.5)
+  ui.layout()
+  assert split>=0 and split!=pane and panel.getPaneWindow(split,0)==second, "Dock queries line 39"
+  assert panel.getPaneInfo(split).tRect.fW>0 and panel.getPaneInfo(split).tRect.fH>0, "Dock queries line 40"
+ end
+ auto target=panel.getPaneInfo(pane)
+ c_float x=c_float(target.tRect.fX+1)
+ c_float y=c_float(target.tRect.fY+target.tRect.fH/2)
+ auto hit=panel.findDropTarget(second,x,y)
+ assert hit.iSize==40 and hit.bValid==1 and hit.iWindow==second and hit.iPane==pane, "Dock queries line 46"
+ assert hit.iSide==xui.XUI_DOCK_PANEL_SIDE_LEFT and hit.iRegion==xui.XUI_DOCK_PANEL_REGION_DOCUMENT, "Dock queries line 47"
+ compare(panel,second,x,y,hit)
+ hit.bValid=-1
+ assert panel.findDropTarget(second,x,y).bValid==1, "Dock queries line 50"
+ auto miss=panel.findDropTarget(second,-1,-1)
+ assert miss.bValid==0 and miss.iPane==-1 and miss.iWindow==-1, "Dock queries line 52"
+ compare(panel,second,-1,-1,miss)
+ assert panel.findDropTarget(-1,x,y).bValid==0, "Dock queries line 54"
+ for kind in range(3)
+  auto special=invalidFloat(c_int(kind))
+  auto query=panel.findDropTarget(second,special,y)
+  compare(panel,second,special,y,query)
+  bool rejected=false
+  try
+   split=panel.dockWindowToPaneSide(second,pane,xui.XUI_DOCK_PANEL_SIDE_LEFT,special)
+  catch Error failure
+   rejected=true
+  end
+  assert rejected and split>=0, "Dock queries line 65"
+ end
+ c_int unchanged=123
+ bool rejected=false
+ try
+  unchanged=panel.dockWindowToPaneSide(second,-1,xui.XUI_DOCK_PANEL_SIDE_LEFT)
+ catch Error failure
+  rejected=true
+ end
+ assert rejected and unchanged==123, "Dock queries line 74"
+ rejected=false
+ try
+  unchanged=panel.dockWindowToPaneSide(-1,pane,xui.XUI_DOCK_PANEL_SIDE_LEFT)
+ catch Error failure
+  rejected=true
+ end
+ assert rejected and unchanged==123, "Dock queries line 81"
+ rejected=false
+ try
+  unchanged=panel.dockWindowToPaneSide(second,pane,99)
+ catch Error failure
+  rejected=true
+ end
+ assert rejected and unchanged==123, "Dock queries line 88"
+ auto worker=thread(func() as int
+  int failures=0
+  try
+   auto value=panel.findDropTarget(second,x,y)
+  catch StateError
+   failures+=1
+  end
+  try
+   auto value=panel.dockWindowToPaneSide(second,pane,xui.XUI_DOCK_PANEL_SIDE_LEFT)
+  catch StateError
+   failures+=1
+  end
+  return failures
+ end)
+ assert worker.waitTimeout(30000) and worker.exitCode()==2, "Dock queries line 103"
+ beginHeap()
+ budget(0)
+ try
+  for i in range(1000)
+   auto value=panel.findDropTarget(second,x,y)
+   auto outside=panel.findDropTarget(second,-1,-1)
+   assert value.bValid==1 and value.iPane==pane and outside.bValid==0, "Dock queries line 110"
+  end
+ finally
+  budget(-1)
+ end
+ reportHeap(0)
+ beginHeap()
+ nativeHot(panel,second,x,y)
+ reportHeap(1)
+ auto expired=panel
+ panel.close()
+ rejected=false
+ try
+  hit=expired.findDropTarget(second,x,y)
+ catch StateError
+  rejected=true
+ end
+ assert rejected and hit.bValid==-1, "Dock queries line 127"
+ rejected=false
+ try
+  unchanged=expired.dockWindowToPaneSide(second,pane,xui.XUI_DOCK_PANEL_SIDE_RIGHT)
+ catch StateError
+  rejected=true
+ end
+ assert rejected and unchanged==123, "Dock queries line 134"
+ ui.close()
+ proxy.close()
+ println("Dock queries: split sides, local hit/miss records, native parity, checked outputs, thread, expiry and costs passed")
+ return 0
+end

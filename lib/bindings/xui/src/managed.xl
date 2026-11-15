@@ -4126,6 +4126,8 @@ export extern "xui_widget_t*" class DockPanel @header("xge3_runtime.h") @lifetim
 
  extern "xuiDockPanelHitTest" @no_raise @c_output(3,0) func hitTest(c_float fX,c_float fY) as DockHit
 
+ extern "xuiDockPanelFindDropTarget" @no_raise @c_output(4,0) func findDropTarget(c_int window,c_float x,c_float y) as DockDropInfo
+
  extern "xuiDockPanelGetDragPreview" @no_raise @c_output(1,0) func getDragPreview() as DockDropInfo
 
  extern "xuiDockPanelGetOptionMenu" @no_raise @c_result("owner_view",0) func getOptionMenu() as Widget?
@@ -4158,6 +4160,8 @@ export extern "xui_widget_t*" class DockPanel @header("xge3_runtime.h") @lifetim
  extern "xuiDockPanelGetWindowIconSurface" @no_raise @c_result("retained_view") @c_retain(retainSurface,"zero",rollbackSurface) func getWindowIconSurface(c_int iWindow) as Surface?
  extern "xuiDockPanelAddWindow" @no_raise @c_cstr(0) @c_output(3,0) func addWindow(string title,Widget client) as c_int
  extern "xuiDockPanelDockWindow" @no_raise @c_output(5,0) func dockWindow(c_int window,c_int region,c_int side,c_float ratio=0) as c_int
+
+ extern "xuiDockPanelDockWindowToPaneSide" @no_raise @c_output(5,0) func dockWindowToPaneSide(c_int window,c_int pane,c_int side,c_float ratio=0) as c_int
 
 end
 

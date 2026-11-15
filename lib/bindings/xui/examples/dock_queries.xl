@@ -1,0 +1,27 @@
+// Dock geometry can be inspected without creating a window or rendering.
+import xui
+
+auto proxy=xui.createProxy()
+auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+try
+ auto dock=ui.dockPanelNative()
+ auto editor=dock.addWindow("Editor",ui.labelNative())
+ auto tools=dock.addWindow("Tools",ui.labelNative())
+ auto mainPane=dock.dockWindow(editor,xui.XUI_DOCK_PANEL_REGION_DOCUMENT,xui.XUI_DOCK_PANEL_SIDE_NONE)
+ auto toolsPane=dock.dockWindowToPaneSide(tools,mainPane,xui.XUI_DOCK_PANEL_SIDE_RIGHT,0.3)
+ auto bounds=xui.Rect()
+ bounds.fW=800
+ bounds.fH=500
+ dock.setRect(bounds)
+ ui.inputViewport(800,500)
+ ui.setRootWidget(dock)
+ ui.layout()
+
+ println("Tool pane: ",toolsPane)
+ // Coordinates are local to the DockPanel; bValid distinguishes a miss.
+ auto target=dock.findDropTarget(tools,1,250)
+ println("Drop target: ",target.bValid,"; pane: ",target.iPane)
+finally
+ ui.close()
+ proxy.close()
+end
