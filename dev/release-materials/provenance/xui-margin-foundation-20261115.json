@@ -1,0 +1,114 @@
+{
+  "schema": 1,
+  "date": "2026-11-15",
+  "status": "qualified-margin-native-foundation-and-existing-language-consumers",
+  "shippingDelivery": false,
+  "nativeRevision": "488d01264cdfc9399c0f6af6bac00579880ba2b4",
+  "nativeReceipt": {
+    "path": "D:\\GIT\\xge\\docs\\validation\\code-margin-lifetime-20261115.json",
+    "sha256": "af1126cd4eac3e633c9a3ccae3c14aa5d265cc885356b2fe2bdc48c0e3904b34"
+  },
+  "sourceSha256": {
+    "tools/check_xui_margin_cohort.py": "7adc5c9d8f94f499e61df0e542f9d8aee73de7a54a9586ca929bb569b960f1fa",
+    "docs/xui-margin-foundation.md": "a1967491bdd8bbadf85b29d8779003b917545ba4b68ec032e44980f4bdaf77e9",
+    "docs/xge3-xui3-full-coverage-plan.md": "1908f3f0937fbb95eb9c58fb1ecf508df4eccf0dbae2ae2350c24a91972c1023"
+  },
+  "qualification": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\margin-language-evidence-win-r1.json",
+      "sha256": "2117d51e0b4c3f5636b897d69c8e7f94b92bec2f4de2e52316faa97d66857551",
+      "complete": true,
+      "passed": true,
+      "shippingDelivery": false,
+      "scope": "Live platform-native input/log/output/package rehash. Existing CodeEdit/model/text consumption only; no new Margin language API.",
+      "acceptance": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\margin-lifetime-language-win-r2\\results.json",
+        "sha256": "9f0b0620b5d5256c505034d627db73444803d6ba3de10c0b9d9dd343cd8980ef",
+        "commands": 22
+      },
+      "packages": {
+        "host": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\margin-lifetime-packages-win-r1-host.json",
+          "sha256": "02405d770ec9288f0b52dbd8a3351b084a5f068508b8cc7c15faaed16e1d9e8d"
+        },
+        "static": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\margin-lifetime-packages-win-r1-static.json",
+          "sha256": "ca8cd329dc5edde4b4bd4570ba21176ccabc3b053b784efa0de1d753af3d76d6"
+        }
+      },
+      "native": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\margin-native-evidence-win-r1.json",
+        "sha256": "19c3a2d769b52a64f6bfc6d1ff5d5e4104eb55c0c690acf98e7e2f197a56780f",
+        "commands": 36
+      },
+      "totalCommands": 58
+    },
+    "linux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\margin-language-evidence-linux-r1.json",
+      "sha256": "8ef030fdd739c7faae25af837d18499f865669c4e5eed579de8f7c8145425e41",
+      "complete": true,
+      "passed": true,
+      "shippingDelivery": false,
+      "scope": "Live platform-native input/log/output/package rehash. Existing CodeEdit/model/text consumption only; no new Margin language API.",
+      "acceptance": {
+        "path": "/mnt/f/xlang-validation/xge-full-20261110/margin-lifetime-language-linux-r2/results.json",
+        "sha256": "abf726822fdce6fe242e995044c851fcab31d0e23f4135ffe024004983a13220",
+        "commands": 22
+      },
+      "packages": {
+        "host": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/margin-lifetime-packages-linux-r1-host.json",
+          "sha256": "4c0b8e6d37fc12c8fe5ff9e0aa649a239d22ae6ec79e9f7dc2a6527d6e84d44c"
+        },
+        "static": {
+          "path": "/mnt/f/xlang-validation/xge-full-20261110/margin-lifetime-packages-linux-r1-static.json",
+          "sha256": "6bce02e7db50a33fe82162a9e136085bfaef843bca905afe00dec73b03464371"
+        }
+      },
+      "native": {
+        "path": "/mnt/f/xlang-validation/xge-full-20261110/margin-native-evidence-linux-r1.json",
+        "sha256": "ce36e559eb981e20e88a3ef277d240f587900da8c2ca5a7c6d46bbebeaa0c943",
+        "commands": 36
+      },
+      "totalCommands": 58
+    }
+  },
+  "scope": "Synchronize/qualify native unique Margin owner, call scopes and safe CodeEdit teardown as a prerequisite; existing language consumers and matched staged SDK/packages. No Margin callback-free leaf class or full mapping claim.",
+  "totalAcceptanceCommands": 116,
+  "calibratedConstructorPrefixes": 1040,
+  "costs": {
+    "nativeModelRequestedBytesBefore": 16,
+    "initialCandidate": 64,
+    "final": 56,
+    "packingSaves": 8,
+    "newSafetyBytesAboveBefore": 40,
+    "modelAllocations": 1,
+    "nativeScopeBytes": 72,
+    "hot": "1000 native scope+width rounds,0 heap,all O0/O2 host/static platform modes. Thread/graph/Context/cleanup costs remain. No CPU equivalence or new-language-Margin performance claim."
+  },
+  "surface": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-margin-foundation-r1\\surface.json",
+    "sha256": "913538abf3fa8ce6fefb7cf83c99aaeb614f729c13b2a05e4d009494e8ea1f68",
+    "population": 5201,
+    "declarationPresent": 3831,
+    "notCompletionRate": true
+  },
+  "initialLanguageHarnessDiagnostics": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\margin-lifetime-language-win-r1\\results.json",
+      "sha256": "955793b5c0391ce3655cb1a7291a3d08cf6c811c41254b6305225568e4ac508c"
+    },
+    "linux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\margin-lifetime-language-linux-r1\\results.json",
+      "sha256": "f477430c2dbfc6512f35cde3d6c2d3a576cca50eb9f00ee40594d843e04ded32"
+    }
+  },
+  "limits": [
+    "Native owned callback slots, immutable invocation/layout snapshots and their real ownership edges remain next; current onRender/onEvent/pUser C contracts still borrowed. No safe language leaf substitution.",
+    "Native full O2 baseline164host/166static units each,0reuse; packing successor1/163host and2/164static compile/reuse. No partial/relink-as-full claim. Compiler fullr40/r33 reused.",
+    "Final QA sources/checker separately pinned after immutable build freezes; earlier incorrect freeze/Context expectations and test include/provider omissions preserved.",
+    "Native geometry dirt preserved and excluded; existing declarations/examples unchanged, new8 native support APIs are not language method completion.",
+    "Original15/16 contracts and separate Chart value+outputs question still unanswered; full XGE/XUI/Document and matched shipping IDE/release remain open.",
+    "No release/current-delivery install, version change, push, network/device/graphics qualification."
+  ]
+}
