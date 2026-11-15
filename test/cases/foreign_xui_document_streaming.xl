@@ -1,0 +1,131 @@
+import xui
+extern "fixtureStreamBegin" @header("test/cases/foreign_xui_document_streaming.h") @no_raise func beginHeap()
+extern "fixtureStreamBudget" @no_raise func budget(c_int count)
+extern "fixtureStreamEndBudget" @no_raise func endBudget()
+extern "fixtureStreamBalanced" @no_raise func balanced()
+extern "fixtureStreamReport" @no_raise func reportHeap(c_int native)
+extern "fixtureStreamNativeHot" @no_raise func nativeHot(xui.DocumentPrepare prepare)
+
+func source(xui.DocumentSnapshot snapshot) as string
+ auto buffer=Buffer()
+ uint64 count=snapshot.copySource(buffer)
+ assert buffer.resize(int(count)+1)
+ snapshot.copySource(buffer)
+ return buffer.text(int(count))
+end
+func oneBudget(c_int count) as int
+ auto d=xui.createDocument(profile=c_uint(2))
+ d.loadMarkdown("start\n")
+ auto p=d.prepareStreamSource(null,utf8="first\n")
+ int result=0
+ budget(count)
+ try
+  auto q=d.continueStreamSource(p,"second\n")
+  endBudget()
+  assert q.info().iSourceBytes==uint64(19)
+  q.close()
+  result=1
+ catch error
+  endBudget()
+  // All language adoption storage must be reserved before native publication.
+  assert p.info().bCancellationRequested==c_int(0)
+ finally
+  endBudget()
+ end
+ d.cancelPrepare()
+ p.close()
+ d.close()
+ return result
+end
+func main(...) as int
+ auto d=xui.createDocument(profile=c_uint(xui.XUI_DOCUMENT_MARKDOWN))
+ d.loadMarkdown("start\n")
+ uint64 before=d.revision()
+ string chunk="first\n"
+ auto first=d.prepareStreamSource(null,utf8=chunk,origin=uint64(73),group=uint64(19))
+ chunk="overwritten"
+ first.run()
+ auto ready=d.continueStreamSource(first,"second\n")
+ bool rejected=false
+ try
+  auto stale=d.continueStreamSource(first,"bad\n")
+  stale.close()
+ catch error
+  rejected=true
+ end
+ assert rejected and d.revision()==before and ready.info().iSourceBytes==uint64(19)
+ first.close()
+ ready.run()
+ beginHeap()
+ budget(c_int(0))
+ for i in range(1000)
+  auto current=ready.info()
+  assert current.iSourceBytes==uint64(19) and current.iBufferedUtf8Bytes==c_uint(0)
+ end
+ endBudget()
+ reportHeap(c_int(0))
+ beginHeap()
+ nativeHot(ready)
+ reportHeap(c_int(1))
+ auto worker=thread(func() as int
+  try
+   auto refused=ready.info()
+  catch StateError
+   return 1
+  end
+  return 0
+ end)
+ assert worker.waitTimeout(30000) and worker.exitCode()==1
+ auto changes=d.preparePublish(ready)
+ auto flags,oldRevision,newRevision,origin,generation,operations,undo,domain=changes.info()
+ assert origin==uint64(73) and newRevision>oldRevision and operations==uint64(2)
+ changes.close()
+ ready.close()
+ auto snapshot=d.snapshot()
+ assert source(snapshot)=="start\nfirst\nsecond\n"
+ snapshot.close()
+ changes=d.undo()
+ changes.close()
+ snapshot=d.snapshot()
+ assert source(snapshot)=="start\n"
+ snapshot.close()
+ changes=d.redo()
+ changes.close()
+ snapshot=d.snapshot()
+ assert source(snapshot)=="start\nfirst\nsecond\n"
+ snapshot.close()
+ auto cancelled=d.prepareStreamSource(null,utf8="cancelled\n")
+ cancelled.cancel()
+ rejected=false
+ try
+  auto refused=d.continueStreamSource(cancelled,"bad\n")
+  refused.close()
+ catch error
+  rejected=true
+ end
+ assert rejected and cancelled.info().bCancellationRequested!=c_int(0)
+ d.cancelPrepare()
+ cancelled.close()
+ d.close()
+ rejected=false
+ try
+  auto expired=d.continueStreamSource(null,"")
+ catch StateError
+  rejected=true
+ end
+ assert rejected
+ oneBudget(c_int(-1))
+ oneBudget(c_int(0))
+ int failures=0
+ int successes=0
+ for allowance in range(32)
+  beginHeap()
+  int success=oneBudget(c_int(allowance))
+  balanced()
+  successes+=success
+  failures+=1-success
+ end
+ assert failures>0 and successes>0
+ println("Document streaming: string continuation, retained source, origin, stale/cancelled/expired rejection, thread rules, undo and 32 allocation budgets passed")
+ return 0
+end

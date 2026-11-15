@@ -1,0 +1,133 @@
+{
+  "date": "2026-11-15",
+  "complete": true,
+  "passed": true,
+  "scope": "String continuation companion and real native stream conformance; full XGE ecosystem remains incomplete",
+  "xlangBase": "5e40b528dcbf472675ed7fda2fd9f05e96294bdc",
+  "nativeCommit": "766c039e9fc3c7a1ddd9702140befcb8c931f168",
+  "shippingDelivery": false,
+  "versionChanged": false,
+  "pushed": false,
+  "networkTests": false,
+  "nativeRebuilt": false,
+  "compilerRebuilt": false,
+  "positiveLanguageCommands": 44,
+  "nativeConformanceCommands": 16,
+  "historicalGapLanguageCommands": 22,
+  "generatorCommands": 2,
+  "inventoryCommands": 1,
+  "qualifiedProcessSteps": 85,
+  "fullGoalComplete": false,
+  "sourceFiles": {
+    "lib/bindings/xui/src/document.xl": "3a136aaa9e8c8e4601272e7cd0b76d2fafb61a73577f02f5ac8cc582b90ebeeb",
+    "tools/gen_xge3_document_bindings.py": "827f6e21da634945d7b7e3778ab68aaa47b7e1f6df66d75761c7c5c32fe24a12",
+    "lib/bindings/xui/examples/document_streaming.xl": "317fae6ce52544002858cf9462df5208ebdd8b3715c82bcf4ccc9a2aad00d6cc",
+    "lib/bindings/xui/examples/README.md": "160eb0c8d7f57cc9eb561546eb3373e49289c03eb13da541f4c08e941477cb71",
+    "test/cases/foreign_xui_document_stream_native.c": "16d1ede5968397ce7de7862434b29c562254357f29a76c3378cbba4b3ed9bf61",
+    "test/cases/foreign_xui_document_stream_gap.xl": "12c42b3b1d7a299d110eca4949d507e87b6530e987770bba96d41254068a8337",
+    "tools/check_xui_document_stream_gap.py": "dfa2ba4796a390c56b89f58411f831f0fabea9850147411d463d3f29db86c8a1",
+    "test/cases/foreign_xui_document_streaming.xl": "a77784783308786b8f894bf8fcd898fbcd40d76cbf9a23fa7c5473db607de594",
+    "test/cases/foreign_xui_document_streaming.h": "3e79c7f30bd426dae611710be20e9916fdf5dfddcf4cbf877cb80f5337f1b7cd",
+    "test/cases/foreign_xui_document_streaming.c": "79e7f94d963526c62a2bac6629f9fb2a29a3f9326f575b89d0b5a79684834807",
+    "tools/check_xui_document_streaming.py": "c7a399e38dee92033d3ef2f1cb99e0316eeb534a96493d350545d7dd16b64d22",
+    "docs/xui-document-streaming.md": "c2ed7fc2034606068c91e0027a45823267bf57b7dbad62b3727b19e8fe163dbf",
+    "docs/xge3-xui3-document-api-map.md": "c2e36f794001519b6e7d1aa097658df640851feb1a8d1a5847bd1e63f56e845f",
+    "docs/xge3-xui3-full-coverage-plan.md": "137f6fea2a73416724b6632e8f7255f4631f7cb21f4f150bd512a0a448c296b7"
+  },
+  "evidence": [
+    {
+      "platform": "win",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\document-stream-verified-win-r2.json",
+      "sha256": "67bb469eff344ccc566dcca9b756285e166a5eba2f6ae28b446b0cbc8c774a7d",
+      "positiveCommands": 22,
+      "nativeConformanceCommands": 8,
+      "historicalGapLanguageCommands": 11,
+      "generatorCommands": 1
+    },
+    {
+      "platform": "linux",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\document-stream-verified-linux-r2.json",
+      "sha256": "001d61134ed1b7b85e7631d780cc56ff32d17ee309394d734668764213c78fdb",
+      "positiveCommands": 22,
+      "nativeConformanceCommands": 8,
+      "historicalGapLanguageCommands": 11,
+      "generatorCommands": 1
+    }
+  ],
+  "docSha256": "c2ed7fc2034606068c91e0027a45823267bf57b7dbad62b3727b19e8fe163dbf",
+  "inventory": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-document-stream-r1\\surface.json",
+    "sha256": "4143f308318cbf021e7b3dd7746fd84f6087b53031083600e1be3ca5d3546e7c",
+    "population": 5217,
+    "declarationPresent": 3862,
+    "meaning": "Two language forms of one existing C target; declaration counts do not imply completion"
+  },
+  "compilerCohorts": [
+    "compiler-nullable-insert-full-r40",
+    "compiler-nullable-insert-linux-full-r33"
+  ],
+  "nativeSdk": [
+    "provider-owned-sdk-win-r2",
+    "provider-owned-sdk-linux-r2"
+  ],
+  "qualifiedPackages": [
+    "document-stream-packages-win-r4",
+    "document-stream-packages-linux-r4"
+  ],
+  "finalPackages": [
+    "document-stream-packages-win-r5",
+    "document-stream-packages-linux-r5"
+  ],
+  "packageParity": "Only xui/examples/README.md changed after behavioral qualification; executable/source/manifest payloads byte-identical",
+  "costs": {
+    "infoRecordBytes": 72,
+    "firstDescriptorBytes": 32,
+    "continuationDescriptor": "typed NULL",
+    "warmInfoQueriesPerRun": 1000,
+    "warmXrtHeapOperations": 0,
+    "languageAllocationBudgets": 192,
+    "nativeCustomAllocatorPrefixes": 136,
+    "nativeCustomAllocatorInjectedFailures": 128,
+    "cpuEquivalenceClaim": false,
+    "defaultNativeColdHeapParityClaim": false,
+    "nativeAllocator": "Document default internals use CRT malloc; diagnostic custom allocator is separate raw provenance"
+  },
+  "fixed": "continueStreamSource(previous,text,finalChunk) supplies NULL descriptor and inherits first origin/group; actual native function called once",
+  "pending": [
+    "No bytes/Buffer stream input claim; NULL projection/read-only-span-family composition still separate",
+    "Patch arrays need per-record sizeof plus counted text/bytes columns (question19 pending)",
+    "Language handles retain creator-thread rule; native worker Run was tested independently",
+    "Previous pending1-16/18 and CLI failure-exit decision remain; full matched compiler/SDK/IDE/help delivery incomplete"
+  ],
+  "correctedQuestion": "Extra question about base pack/typed NULL support withdrawn: it already exists; no new language rule introduced",
+  "diagnostics": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\document-stream-experiment-r1",
+      "note": "Uninstalled bytes/Buffer exploration; not part of source delivery"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\document-stream-native-probe-win-r1",
+      "note": "XRT-only budget did not cover default CRT allocator; not accepted as payload OOM proof"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\document-stream-native-probe-win-r2",
+      "note": "Guard correctly rejected absent payload OOM coverage; replaced by diagnostic allocator"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\document-stream-positive-win-r1",
+      "note": "C++ QA header aggregate initialization warning; corrected"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\document-stream-positive-win-r2",
+      "note": "Header-only QA implementation hid XRT debug dependency from AOT trimming; moved to companion C source"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\document-stream-gap-win-r1",
+      "note": "Historical wrong projection reproduced; productFixed=false deliberately retained"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\document-stream-gap-linux-r1",
+      "note": "Historical counterpart; not the positive qualification"
+    }
+  ]
+}

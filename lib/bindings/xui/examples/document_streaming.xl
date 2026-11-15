@@ -1,0 +1,21 @@
+// Prepare text without changing the live Markdown document until publish.
+import xui
+
+auto document=xui.createDocument(profile=c_uint(xui.XUI_DOCUMENT_MARKDOWN))
+document.loadMarkdown("# Notes\n\n")
+
+// Start with NULL; options belong to this first candidate.
+auto first=document.prepareStreamSource(null,utf8="第一段\n",origin=uint64(42))
+// Continuation inherits the first candidate's options and source.
+auto ready=document.continueStreamSource(first,"第二段\n")
+first.close()
+ready.run()
+
+// Only publication changes the live document and adds one undo step.
+auto changes=document.preparePublish(ready)
+changes.close()
+ready.close()
+auto snapshot=document.snapshot()
+println(snapshot.plainText())
+snapshot.close()
+document.close()

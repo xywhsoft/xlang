@@ -3,6 +3,9 @@
 不创建窗口的数据模型范例见 [document_exports.xl](document_exports.xl)：加载 Markdown，
 导出 HTML／纯文本和 bytes，并将序列化结果恢复为独立的 Document。
 
+[document_streaming.xl](document_streaming.xl) 演示分块预备、续接、解析和发布；
+需要包含 `continueStreamSource` 的匹配源包。它不创建窗口，不隐式启动工作线程。
+
 [dock_queries.xl](dock_queries.xl) 不创建图形窗口，演示两个窗口的窗格拆分，
 以及使用局部坐标查询拖放目标。
 

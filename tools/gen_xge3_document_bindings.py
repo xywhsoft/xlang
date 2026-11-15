@@ -137,6 +137,8 @@ for nativeName,cl,mn,ct,slot,output,fields,params,result in manual:
 # The streaming descriptor is packed, so callers never guess native sizeof.
 classes['Document']=[line for line in classes['Document'] if 'extern "xuiDocumentPrepareStreamSource"' not in line]
 classes['Document'].append(' extern "xuiDocumentPrepareStreamSource" @no_raise @c_result("owned_view") @factory(6,0,rollbackDocumentPrepare) @c_pack(2,"xui_doc_txn_desc_t",1,4) @c_pack_size(2,"iSize","uint32_t") @c_pack_field(2,"iDomain",1,"value") @c_pack_field(2,"iBaseRevision",2,"value") @c_pack_field(2,"iOrigin",3,"value") @c_pack_field(2,"iGroup",4,"value") @c_span(5,"const char*","size_t") func prepareStreamSource(DocumentPrepare? previous,c_uint domain=2,uint64 baseRevision=0,uint64 origin=0,uint64 group=0,string utf8="",c_int finalChunk=1) as DocumentPrepare')
+classes['Document'].append(' // Continuation inherits the first descriptor. Native requires NULL here.')
+classes['Document'].append(' extern "xuiDocumentPrepareStreamSource" @no_raise @c_result("owned_view") @factory(6,0,rollbackDocumentPrepare) @c_null(2,"const xui_doc_txn_desc_t*") @c_span(1,"const char*","size_t") func continueStreamSource(DocumentPrepare? previous,string utf8="",c_int finalChunk=1) as DocumentPrepare')
 
 # Pointer-bearing native records project only their direct POD members.
 for nativeName,cl,mn,ct,slot,params,fields in [

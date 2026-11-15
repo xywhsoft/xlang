@@ -1,0 +1,33 @@
+// Known regression witness, not an assertion that continuation is implemented.
+import xui
+
+func main(...) as int
+ auto document=xui.createDocument(profile=c_uint(xui.XUI_DOCUMENT_MARKDOWN))
+ document.loadMarkdown("start\n")
+ uint64 revision=document.revision()
+ auto first=document.prepareStreamSource(null,utf8="first\n",finalChunk=c_int(0))
+ auto previous=first.info()
+ bool rejected=false
+ try
+  auto next=document.prepareStreamSource(first,utf8="second\n")
+  next.close()
+ catch error
+  rejected=true
+ end
+ assert rejected and document.revision()==revision
+ assert first.info().iGeneration==previous.iGeneration
+ assert first.info().iSourceBytes==uint64(12)
+ first.run()
+ auto changes=document.preparePublish(first)
+ changes.close()
+ first.close()
+ auto snapshot=document.snapshot()
+ auto text=Buffer()
+ text.resize(13)
+ assert snapshot.copySource(text)==uint64(12)
+ assert text.text(12)=="start\nfirst\n"
+ snapshot.close()
+ document.close()
+ println("Document stream gap reproduced: continuation rejects non-NULL descriptor; original candidate remains publishable")
+ return 0
+end
