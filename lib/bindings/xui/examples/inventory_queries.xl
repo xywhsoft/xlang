@@ -1,0 +1,34 @@
+// Geometry queries need no window or rendered frame.
+import xui
+
+auto proxy=xui.createProxy()
+auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+try
+ auto inventory=ui.inventoryGridNative()
+ auto layout=inventory.getLayout()
+ layout.iColumns=4
+ inventory.setLayout(layout)
+ inventory.setMetrics(20,4,0,1,1)
+ inventory.setSlotCount(40)
+ auto bounds=xui.Rect()
+ bounds.fW=80
+ bounds.fH=50
+ inventory.setRect(bounds)
+ ui.inputViewport(80,50)
+ ui.setRootWidget(inventory)
+ ui.layout()
+
+ auto visible=inventory.getVisibleRange()
+ println("Visible slots: ",visible.iFirstSlot," .. ",visible.iLastSlot)
+ // Slot rectangles are local; hitTest accepts world coordinates.
+ auto slot=inventory.getSlotRect(0)
+ auto world=inventory.getWorldRect()
+ auto hit=inventory.hitTest(c_float(world.fX+slot.fX+1),c_float(world.fY+slot.fY+1))
+ println("Hit slot: ",hit.iSlot)
+ inventory.ensureSlotVisible(39)
+ visible=inventory.getVisibleRange()
+ println("After scrolling: ",visible.iFirstSlot," .. ",visible.iLastSlot)
+finally
+ ui.close()
+ proxy.close()
+end

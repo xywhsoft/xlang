@@ -1,0 +1,105 @@
+import xui
+extern "fixtureInventoryPrepare" @header("test/cases/foreign_xui_inventory_queries.h") @no_raise func prepare(xui.InventoryGrid grid)
+extern "fixtureInventoryInvalid" @no_raise func invalidCoordinate(c_int kind) as c_float
+extern "fixtureInventoryBudget" @no_raise func budget(c_int n)
+extern "fixtureInventoryBegin" @no_raise func beginHeap()
+extern "fixtureInventoryReport" @no_raise func reportHeap(c_int native)
+extern "fixtureInventoryNativeHot" @no_raise func nativeHot(xui.InventoryGrid grid)
+
+func main(...) as int
+ auto proxy=xui.createProxy()
+ auto ui=xui.create(proxy,xui.XUI_SYSTEM_FONT_DISABLED)
+ auto grid=ui.inventoryGridNative()
+ prepare(grid)
+ auto visible=grid.getVisibleRange()
+ assert visible.iSize==52 and visible.iFirstSlot==0 and visible.iLastSlot==11 and visible.iSlotCount==12, "Inventory: initial slot range"
+ assert visible.iFirstRow==0 and visible.iLastRow==2 and visible.iRowCount==3, "Inventory: visible rows"
+ assert visible.iFirstColumn==0 and visible.iLastColumn==3 and visible.iColumnCount==4, "Inventory: visible columns"
+ assert visible.iTotalRows==10 and visible.iTotalColumns==4 and visible.iPaintSlotCount==12, "Inventory: total and paint counts"
+ // Visible range is a current geometry query, distinct from the last paint.
+ auto painted=grid.getLastPaintRange()
+ assert painted.iSlotCount==0, "Inventory: no previous paint"
+ auto hit=grid.hitTest(20.5,30.5)
+ assert hit.iSize==36 and hit.iPart==xui.XUI_INVENTORY_HIT_SLOT and hit.iSlot==0, "Inventory: slot hit record"
+ assert hit.fX==c_float(0.5) and hit.fY==c_float(0.5) and hit.tRect.fX==0 and hit.tRect.fY==0 and hit.tRect.fW==20, "Inventory: world-to-local hit coordinates"
+ assert grid.hitTest(22,32).iPart==xui.XUI_INVENTORY_HIT_ICON, "Inventory: icon hit region"
+ assert grid.hitTest(30,40).iPart==xui.XUI_INVENTORY_HIT_COUNT, "Inventory: count hit region"
+ assert grid.hitTest(25,34).iPart==xui.XUI_INVENTORY_HIT_HOTKEY, "Inventory: hotkey hit region"
+ // Four-pixel spacing is a successful miss, even within the Widget.
+ hit=grid.hitTest(41,31)
+ assert hit.iPart==xui.XUI_INVENTORY_HIT_NONE and hit.iSlot==-1, "Inventory: spacing miss"
+ hit=grid.hitTest(-1,-1)
+ assert hit.iPart==xui.XUI_INVENTORY_HIT_NONE and hit.iSlot==-1 and hit.tRect.fW==0 and hit.tRect.fH==0, "Inventory: outside miss"
+ for kind in range(3)
+  bool rejected=false
+  try
+   hit=grid.hitTest(invalidCoordinate(c_int(kind)),0)
+  catch Error
+   rejected=true
+  end
+  assert rejected and hit.iPart==xui.XUI_INVENTORY_HIT_NONE and hit.iSlot==-1, "Inventory preflight line 40"
+ end
+ visible.iFirstSlot=-123
+ assert grid.getVisibleRange().iFirstSlot==0, "Inventory preflight line 43"
+ visible=grid.getVisibleRange()
+ beginHeap()
+ budget(0)
+ try
+  for i in range(1000)
+   visible=grid.getVisibleRange()
+   hit=grid.hitTest(20.5,30.5)
+   assert visible.iFirstSlot==0 and visible.iSlotCount==12 and hit.iSlot==0 and hit.fX==c_float(0.5)
+   hit=grid.hitTest(-1,-1)
+   assert hit.iPart==xui.XUI_INVENTORY_HIT_NONE and hit.iSlot==-1
+  end
+ finally
+  budget(-1)
+ end
+ reportHeap(0)
+ beginHeap()
+ nativeHot(grid)
+ reportHeap(1)
+ grid.ensureSlotVisible(39)
+ auto scrolled=grid.getVisibleRange()
+ assert scrolled.iFirstSlot==28 and scrolled.iLastSlot==39 and scrolled.iSlotCount==12
+ assert scrolled.iFirstRow==7 and scrolled.iLastRow==9 and scrolled.iTotalRows==10
+ assert visible.iFirstSlot==0
+ auto last=grid.getSlotRect(39)
+ auto world=grid.getWorldRect()
+ hit=grid.hitTest(c_float(world.fX+last.fX+1),c_float(world.fY+last.fY+1))
+ assert hit.iSlot==39 and hit.tRect.fX==last.fX and hit.tRect.fY==last.fY
+ grid.setSlotCount(0)
+ visible=grid.getVisibleRange()
+ assert visible.iSlotCount==0 and visible.iFirstSlot==-1 and visible.iLastSlot==-1 and visible.iTotalRows==0
+ hit=grid.hitTest(21,31)
+ assert hit.iPart==xui.XUI_INVENTORY_HIT_NONE and hit.iSlot==-1
+ auto worker=thread(func() as int
+  try
+   auto refused=grid.getVisibleRange()
+  catch StateError
+   return 1
+  end
+  return 0
+ end)
+ assert worker.waitTimeout(30000) and worker.exitCode()==1
+ auto closed=grid
+ grid.close()
+ bool rejected=false
+ try
+  visible=closed.getVisibleRange()
+ catch StateError
+  rejected=true
+ end
+ assert rejected and visible.iSlotCount==0 and visible.iFirstSlot==-1
+ rejected=false
+ try
+  hit=closed.hitTest(0,0)
+ catch StateError
+  rejected=true
+ end
+ assert rejected and hit.iPart==xui.XUI_INVENTORY_HIT_NONE and hit.iSlot==-1
+ ui.close()
+ proxy.close()
+ println("Inventory queries: world/local coordinates, parts, visible/paint ranges, scrolling, empty, checked rollback, epochs and costs passed")
+ return 0
+end

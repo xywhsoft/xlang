@@ -542,3 +542,8 @@ an ordinary miss has type `XUI_TIMELINE_HIT_NONE` and -1 IDs/indexes.
 `getOffset()` returns the actual native scroll offsets. See
 `examples/timeline_queries.xl` and
 [coordinates, checked outputs and costs](../../../docs/xui-timeline-queries.md).
+
+`InventoryGrid.hitTest(worldX,worldY)` returns a numeric `InventoryHit` with
+local output geometry. `getVisibleRange()` reports current visibility, distinct
+from `getLastPaintRange()`. See `examples/inventory_queries.xl` and
+[world/local coordinates, empty results and costs](../../../docs/xui-inventory-queries.md).

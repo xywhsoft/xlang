@@ -1,0 +1,116 @@
+{
+  "date": "2026-11-15",
+  "complete": true,
+  "passed": true,
+  "scope": "InventoryGrid world hit records and current visible-range queries; not the complete ecosystem",
+  "xlangBase": "5c74daa4eb89a5088a4c97d597d084fef192e577",
+  "nativeCommit": "076964b2067b9fa7cf48af11228cf032083f45b2",
+  "shippingDelivery": false,
+  "versionChanged": false,
+  "pushed": false,
+  "networkTests": false,
+  "nativeRebuilt": false,
+  "compilerRebuilt": false,
+  "commands": 44,
+  "evidence": [
+    {
+      "platform": "win",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\inventory-queries-verified-win-r1.json",
+      "sha256": "38c9cfabf2897ee9df60f68c35e965ce1ae0f6280a708942eb944461b2975a63",
+      "commands": 22
+    },
+    {
+      "platform": "linux",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\inventory-queries-verified-linux-r1.json",
+      "sha256": "af3a2f698384616bc87737b1785ee905dface77f229b6484486c9bc83f1fa5da",
+      "commands": 22
+    }
+  ],
+  "productionBindings": [
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\src\\managed.xl",
+      "staged": "F:\\xlang-validation\\xge-full-20261110\\inventory-queries-packages-win-r1\\host\\xui\\src\\managed.xl",
+      "sha256": "fabff9e575d3a6b1a6b108b79fbb748d5b30a7346fdada930dcd4e07177dc773"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\src\\managed.xl",
+      "staged": "F:\\xlang-validation\\xge-full-20261110\\inventory-queries-packages-win-r1\\static\\xui\\src\\managed.xl",
+      "sha256": "fabff9e575d3a6b1a6b108b79fbb748d5b30a7346fdada930dcd4e07177dc773"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\src\\managed.xl",
+      "staged": "F:\\xlang-validation\\xge-full-20261110\\inventory-queries-packages-linux-r1\\host\\xui\\src\\managed.xl",
+      "sha256": "fabff9e575d3a6b1a6b108b79fbb748d5b30a7346fdada930dcd4e07177dc773"
+    },
+    {
+      "source": "D:\\GIT\\x-lang\\lib\\bindings\\xui\\src\\managed.xl",
+      "staged": "F:\\xlang-validation\\xge-full-20261110\\inventory-queries-packages-linux-r1\\static\\xui\\src\\managed.xl",
+      "sha256": "fabff9e575d3a6b1a6b108b79fbb748d5b30a7346fdada930dcd4e07177dc773"
+    }
+  ],
+  "inventory": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-inventory-queries-r1\\surface.json",
+    "sha256": "e7487cde16a54e7717a164bc7adcc098ee5b9dccdd56e8cf2bd00e9e8ffb0e3d",
+    "population": {
+      "functions": 5204,
+      "types": 983,
+      "constants": 1838,
+      "functionMacros": 7,
+      "callableFields": 184,
+      "enums": 40,
+      "enumConstants": 316
+    },
+    "declarationPresent": {
+      "functions": 3855,
+      "types": 385,
+      "constants": 1820,
+      "callableFields": 66,
+      "enumConstants": 316
+    },
+    "meaning": "Presence only"
+  },
+  "compilerCohorts": [
+    "compiler-nullable-insert-full-r40",
+    "compiler-nullable-insert-linux-full-r33"
+  ],
+  "nativeSdk": [
+    "margin-owned-sdk-win-r2",
+    "margin-owned-sdk-linux-r2"
+  ],
+  "nativeFullBuildParents": [
+    "margin-owned-sdk-win-r1",
+    "margin-owned-sdk-linux-r1"
+  ],
+  "costs": {
+    "hitTemporaryBytes": 36,
+    "rangeTemporaryBytes": 52,
+    "hotRounds": 1000,
+    "languageHeapOperations": 0,
+    "nativeHeapOperations": 0,
+    "zeroBudgetLanguage": true,
+    "cpuEquivalenceClaim": false,
+    "scope": "Prepared visible/slot-hit/miss queries; setup, output formatting and GUI rendering excluded",
+    "remaining": "Scalar/thread/epoch/status checks, Context/Widget scopes, checked commit copies, native layout sync and visible-row counting; no constant-time claim"
+  },
+  "coverage": [
+    "world input and local output with nonzero Widget origin",
+    "slot/icon/count/hotkey geometry; spacing and outside misses",
+    "current visible versus last painted range",
+    "scroll then empty range; independent copies",
+    "NaN/positive and negative infinity preserve old result",
+    "closed/foreign-thread refusal",
+    "two cases per OS, C11/C++11/C++17, JIT/dynamic/static and independent imports"
+  ],
+  "guiRenderingTested": false,
+  "open": [
+    "Pointer-bearing slot records, queries/output arrays, animation ownership and return-plus-output rules",
+    "Remaining full ecosystem and final matched delivery"
+  ],
+  "diagnostics": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\inventory-queries-work-r1\\jit-preflight-r2.log",
+      "sha256": "0ee92ca93cad0c390566a85dd9590882d1bd75eb78999d3e16738b8d8fb19322",
+      "reason": "Fixture treated descriptor padding=0 as explicit zero; native source defines default inheritance. Fixture now uses SetMetrics with explicit zero like lesson; no assertion weakened or production change."
+    }
+  ]
+}
