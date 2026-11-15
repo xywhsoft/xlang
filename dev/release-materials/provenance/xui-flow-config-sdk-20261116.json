@@ -1,0 +1,156 @@
+{
+  "schema": 1,
+  "date": "2026-11-16",
+  "status": "qualified-isolated-host-static-sdk-with-flow-config-fix",
+  "shippingDelivery": false,
+  "goalComplete": false,
+  "sourceHeadBefore": "e87202e62e11c6694ded3d03095208b46ea2d4d9",
+  "nativeFixRevision": "df03691f1bde54e83b4baac93ff08cba7bac77dd",
+  "fullNativeHeadCheckout": false,
+  "nativeGeometryWorkExcluded": true,
+  "compilerRebuilt": false,
+  "fullO2CompilerCohortsReused": true,
+  "compilerCohorts": {
+    "win": "F:\\xlang-validation\\xge-full-20261110\\compiler-product-lift-full-r45\\build.json",
+    "linux": "F:\\xlang-validation\\xge-full-20261110\\compiler-product-lift-linux-full-r38\\build.json"
+  },
+  "nativeSdkRebuilt": true,
+  "fullNativeBuild": false,
+  "qualifiedFullNativeParents": {
+    "win": "F:\\xlang-validation\\xge-full-20261110\\provider-owned-sdk-win-r1",
+    "linux": "F:\\xlang-validation\\xge-full-20261110\\provider-owned-sdk-linux-r1"
+  },
+  "sourceUnitRecompile": {
+    "host": {
+      "compiled": 2,
+      "reused": 162
+    },
+    "static": {
+      "compiled": 3,
+      "reused": 163
+    }
+  },
+  "compiledDelta": "Provider CodeEdit successor and FlowGraph source from complete original parent; generated static contract also rebuilt. CodeEdit host/static objects byte-identical to previous qualified r2 on both OS.",
+  "sourceSha256": {
+    "tools/check_xui_flow_config_sdk.py": "a0e7eb3b60885b117933f630556dd28ceb2bdcdc7abc985023e879c9b686250d",
+    "test/cases/foreign_xui_flow_config_probe.h": "300e9ebf030e729f6f58b11e4588edf584c5607a58dd28580c1a29a11c91c015",
+    "test/cases/foreign_xui_flow_config_probe.c": "c35199f652935025519ec48d14f9324d3caeca6b354711b3185d661891071fe4",
+    "test/cases/foreign_xui_flow_config_probe.xl": "b1eb2c3b430e4fa4234faf963984a557823daabc9544a7244991cf61f83e9d93",
+    "docs/xui-flow-config-sdk.md": "5e6828365cf1c94eb389715d90908aa212fced2c8a31ecbc586239601f20bb36",
+    "docs/xge3-xui3-full-coverage-plan.md": "0dd541ea57d3a03d4fca220356d4bc669ff84a1a4f8d17a1e0f6cf0955e4cdd1"
+  },
+  "reports": {
+    "flow-config-sdk-verified-win-r1.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-config-sdk-verified-win-r1.json",
+      "sha256": "c48a881d24093c61aa3e12d935173904a7f491ec3a34c9af829025ee61ffa5b0"
+    },
+    "flow-config-sdk-positive-win-r1\\results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-config-sdk-positive-win-r1\\results.json",
+      "sha256": "263e9c745338688fc6c75dc29f52e474f2420bad49c1656f360e1150114ff73e"
+    },
+    "flow-config-sdk-win-r1\\results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-config-sdk-win-r1\\results.json",
+      "sha256": "91f520794cb2a2b6cf60556d952fd6e8076e0ba37cf83e28bbbc6660d01e7075"
+    },
+    "flow-config-sdk-win-r1\\host\\build-report.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-config-sdk-win-r1\\host\\build-report.json",
+      "sha256": "2e90cd63fca65ca38c13370c6d28a3ee8cd7eb2db28cfb488c3ab26daa037f03"
+    },
+    "flow-config-packages-win-r1-host.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-config-packages-win-r1-host.json",
+      "sha256": "394b660691dba8ed26f33585aee57624025a284a6c2c9851fc306f6615a1bc01"
+    },
+    "flow-config-sdk-win-r1\\static\\build-report.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-config-sdk-win-r1\\static\\build-report.json",
+      "sha256": "16b69ef5f511e43f5dac6ba7112ef44f9fbfc42ea9bb591fd64a2196ab6f416f"
+    },
+    "flow-config-packages-win-r1-static.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-config-packages-win-r1-static.json",
+      "sha256": "2b4b532d5a9a012ce7291636082326329efdb7205f54642d1994fe9713d8bca4"
+    },
+    "native-flow-config-win-freeze-r1.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-flow-config-win-freeze-r1.json",
+      "sha256": "98026d0749e84d2855dae0bbc552c636683c3070a4d28e81674cb31ff332767f"
+    },
+    "flow-config-sdk-verified-linux-r1.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-config-sdk-verified-linux-r1.json",
+      "sha256": "92d38b56a15d85927d6b5e37a275b4f3cf05885db5c33bb27427448a575b6bb2"
+    },
+    "flow-config-sdk-positive-linux-r1\\results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-config-sdk-positive-linux-r1\\results.json",
+      "sha256": "41cd3255bdb72fd727c36cf5dbd5cd7e711dad9041feaec584127c922493e28c"
+    },
+    "flow-config-sdk-linux-r1\\results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-config-sdk-linux-r1\\results.json",
+      "sha256": "3c2e9e1d430c13c3c608d52a8ca9ef9427c7b64c97a64c8ae741e5b473564acc"
+    },
+    "flow-config-sdk-linux-r1\\host\\build-report.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-config-sdk-linux-r1\\host\\build-report.json",
+      "sha256": "24e19f70b0aeba1c57b1a7750f66b8458bdf613b5ebb85ecabf9a957dace7230"
+    },
+    "flow-config-packages-linux-r1-host.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-config-packages-linux-r1-host.json",
+      "sha256": "dc445226d8d5f11accc3d9275336f17b6317f374e5dd0c36d0a5b746f0fafee7"
+    },
+    "flow-config-sdk-linux-r1\\static\\build-report.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-config-sdk-linux-r1\\static\\build-report.json",
+      "sha256": "4a82d20c034141bd1b563d1c6667944061c661bb52b3b9f692969786db89089c"
+    },
+    "flow-config-packages-linux-r1-static.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-config-packages-linux-r1-static.json",
+      "sha256": "e258fcaf5b2867ff84763f58d14c648bd196224357ac98d85a5426eced184a17"
+    },
+    "native-flow-config-linux-freeze-r1.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-flow-config-linux-freeze-r1.json",
+      "sha256": "0e5155473f923def71fb7f0aa238ca2a8d5741c35553f717a4e6d61dec53eb4c"
+    },
+    "flow-config-codeedit-object-parity-r1.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-config-codeedit-object-parity-r1.json",
+      "sha256": "a2c8788bc3693eeb661a071c460419ee10abf61998ff57e96936abe64e00657e"
+    },
+    "freeze_flow_config_sdk_r1.py": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\freeze_flow_config_sdk_r1.py",
+      "sha256": "bcd7c200b95630df74749ee67390d7639369d66c9d228adcd76962d90d382655"
+    },
+    "build_flow_config_sdk_r1.py": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\build_flow_config_sdk_r1.py",
+      "sha256": "d7b6c059b834d97560ded178630ccacd166bbb524e0e7c0cf2442177af2b6250"
+    },
+    "stage_flow_config_sdk_r1.py": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\stage_flow_config_sdk_r1.py",
+      "sha256": "97e6db48d803d225ea9bc4e61a869d3e10047cd93939bf7c395e1143e9863845"
+    },
+    "verify_flow_config_sdk_r1.py": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\verify_flow_config_sdk_r1.py",
+      "sha256": "663cbe36147f718985b2c22e012c40227933639b11b13481d1c3672e4e5e8ffa"
+    }
+  },
+  "totalQualifiedSteps": 54,
+  "stepsPerPlatform": 27,
+  "candidates": {
+    "win": {
+      "source": "F:\\xlang-validation\\xge-full-20261110\\native-flow-config-win-source-r1",
+      "sdk": "F:\\xlang-validation\\xge-full-20261110\\flow-config-sdk-win-r1",
+      "packages": "F:\\xlang-validation\\xge-full-20261110\\flow-config-packages-win-r1"
+    },
+    "linux": {
+      "source": "F:\\xlang-validation\\xge-full-20261110\\native-flow-config-linux-source-r1",
+      "sdk": "F:\\xlang-validation\\xge-full-20261110\\flow-config-sdk-linux-r1",
+      "packages": "F:\\xlang-validation\\xge-full-20261110\\flow-config-packages-linux-r1"
+    }
+  },
+  "qualification": [
+    "Two real native clients per host/static linkage and O0/O2: configuration Clone/Drop invalidation plus existing model suite, live heap/invalid-free/double-free checks.",
+    "Controlled language unique-root prototype: direct sized node input, owned config result, explicit self-cycle close, native INVALID_STATE delivered unchanged as checked error, one Clone and one rejected-copy Drop, balanced heap.",
+    "C11/C++11/C++17 public headers, CLI JIT, dynamic and static AOT. Imported engine only for dynamic; neither variant imports xlang/TinyCC runtime libraries.",
+    "All inputs and12148 frozen source files independently reverified on each actual OS. Every gate stages516 matching private runtime headers from its complete source compiler manifest."
+  ],
+  "caveats": [
+    "No public Graph class added to the default xui package. Prototype is regression scaffolding, not finished Graph ownership/reentry/history/alias support.",
+    "Test-only adversarial C value borrows the real outer model while synchronously scoped; it is not a public constructor or proof of arbitrary retained callback resource/code trees.",
+    "Native getter still deep-clones. Owning output adopts the resulting reference without an additional clone. Scope, thread, code, status and heap work remain; no CPU equivalence or zero-bridge-overhead claim.",
+    "Candidates retain the exact canonical resident-XRT snapshot from the qualified compiler; this is not a wholesale upgrade of the current upstream XRT repository or current Native dirty geometry work.",
+    "Uniform same-model callback reentry admission remains unanswered; no dependent Busy/readonly policy implemented. Other pending contracts and final matching release/IDE/help delivery remain open.",
+    "No release files staged or installed, current-delivery/version edits, online publication, or sensitive network tests."
+  ]
+}
