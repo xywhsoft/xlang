@@ -26,6 +26,9 @@ xide_rename_scope* xideRenameScopeRetain(xide_rename_scope*);
 void xideRenameScopeRelease(xide_rename_scope*);
 size_t xideRenameScopeBytes(const xide_rename_scope*);
 size_t xideRenameScopeCount(const xide_rename_scope*);
+/* Worker-only external scope evidence;source/request/overlay guards remain
+ * separate. Retained catalog evidence survives the discovery snapshot. */
+int xideRenameScopeValidate(const xide_rename_scope*,int (*cancelled)(void*),void*,char*,size_t);
 const xls_context* xideRenameScopeAt(const xide_rename_scope*,size_t);
 /* Success with zero bits means unconfigured. Native lookup allocates nothing;
  * path lookup requires an absolute path and prepares a temporary lexical native

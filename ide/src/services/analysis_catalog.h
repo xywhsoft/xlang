@@ -2,11 +2,27 @@
 #define XIDE_ANALYSIS_CATALOG_H
 #include "protocol/analysis_context_wire.h"
 typedef struct xide_analysis_catalog xide_analysis_catalog;
+/* Optional immutable external membership/configuration evidence. Installed
+ * only while constructing a private catalog. Retain/release do not perform IO;
+ * validate is a worker-only, thread-safe, cancellable operation. bytes charges
+ * the complete known retained evidence payload, not allocator overhead. The
+ * evidence must not retain its catalog or any owner that retains the catalog.
+ * This does not replace source, overlay, request or publication epoch guards. */
+typedef struct xide_analysis_catalog_guard {
+ void* value;void* (*retain)(void*);void (*release)(void*);
+ int (*validate)(void*,int (*cancelled)(void*),void*,char*,size_t);
+ size_t bytes;
+} xide_analysis_catalog_guard;
 enum xide_analysis_binding { XIDE_ANALYSIS_UNOWNED, XIDE_ANALYSIS_PROJECT, XIDE_ANALYSIS_AMBIGUOUS=-1, XIDE_ANALYSIS_ERROR=-2 };
 /* Prepared schema1/2 client configuration: up to64 project/standalone roles,65536 entry/member
    bindings and16MiB of immutable contexts. No project manifest parsing or
    file/alias I/O. Owns contexts and a sorted native lexical-path index. */
 xide_analysis_catalog* xideAnalysisCatalogCreate(const xvalue* value,char* error,size_t capacity);
+xide_analysis_catalog* xideAnalysisCatalogCreateGuarded(const xvalue*,const xide_analysis_catalog_guard*,char*,size_t);
+/* Worker-only for guarded catalogs. NULL/ordinary client catalogs have no
+ * external evidence and only check cancellation. Never call this on owner as
+ * a substitute for a background validation/publication fence. */
+int xideAnalysisCatalogValidate(const xide_analysis_catalog*,int (*cancelled)(void*),void*,char*,size_t);
 xide_analysis_catalog* xideAnalysisCatalogRetain(xide_analysis_catalog* catalog);
 void xideAnalysisCatalogDestroy(xide_analysis_catalog* catalog);
 /* Borrowed context. Ambiguous membership needs an explicit selected project;

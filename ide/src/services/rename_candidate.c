@@ -112,6 +112,7 @@ static xtaskoutcome execute(xcancel* cancel,void* data,xtaskvalue* value)
  if(selected==SIZE_MAX || (!in->standard && (int64_t)in->docs[selected].revision+INT_MIN!=version)){fail(out,-32801,"Rename needs the exact current open document version.");goto done;}
  size_t offset=0;if(!xlsTextOffset(in->docs[selected].text,(xls_position){(size_t)line,(size_t)character},&offset)){fail(out,-32602,"Rename cursor is not a scalar UTF16 position.");goto done;}
  if(in->standard && !standardCatalog(in,out))goto done;
+ {char error[512]={0};if(!xideAnalysisCatalogValidate(in->catalog,stopped,cancel,error,sizeof(error))){fail(out,-32801,*error?error:"Workspace evidence is no longer current.");goto done;}}
  scope=in->standard ? standardScope(in,cancel,out) : prepareScope(in,extension,cancel,out);if(!scope)goto done;
  const xls_context* context=NULL;xls_context* standalone=NULL;int state=xideAnalysisCatalogFind(in->catalog,in->docs[selected].path,&context);
  if(state==XIDE_ANALYSIS_UNOWNED){standalone=xideAnalysisCatalogFile(in->catalog,in->docs[selected].path);context=standalone;}
@@ -131,7 +132,7 @@ static xtaskoutcome execute(xcancel* cancel,void* data,xtaskvalue* value)
   if(okay){okay=put(reply,"result",result);result=NULL;}
   if(okay && !stopped(cancel))out->frame=xideLspFrame(reply,&out->bytes,&why);
   if(!out->frame)fail(out,-32603,"Cannot frame the bounded standard rename reply.");
-  else if(!(in->prepare ? xideProjectReferencesPrepareRenameValidate(query,stopped,cancel,&why) : xideProjectReferencesRenameValidate(query,stopped,cancel,&why))){free(out->frame);out->frame=NULL;out->bytes=0;fail(out,-32801,"Rename inputs changed after response framing.");}
+  else if(!(in->prepare ? xideProjectReferencesPrepareRenameValidate(query,stopped,cancel,&why) : xideProjectReferencesRenameValidate(query,stopped,cancel,&why)) || !xideRenameScopeValidate(scope,stopped,cancel,why.message,sizeof(why.message))){free(out->frame);out->frame=NULL;out->bytes=0;fail(out,-32801,"Rename inputs or workspace evidence changed after response framing.");}
   goto done;
  }
  candidate=xideProjectReferencesRenameResult(query,0,stopped,cancel,&why);
@@ -143,7 +144,7 @@ static xtaskoutcome execute(xcancel* cancel,void* data,xtaskvalue* value)
  if(okay){okay=put(reply,"result",result);result=NULL;}
  if(okay && !stopped(cancel))out->frame=xideLspFrame(reply,&out->bytes,&why);
  if(!out->frame)fail(out,-32603,"Cannot frame the bounded native rename reply.");
- else if(!xideProjectReferencesRenameValidate(query,stopped,cancel,&why)){free(out->frame);out->frame=NULL;out->bytes=0;fail(out,-32801,"Native rename inputs changed after response framing.");}
+ else if(!xideProjectReferencesRenameValidate(query,stopped,cancel,&why) || !xideRenameScopeValidate(scope,stopped,cancel,why.message,sizeof(why.message))){free(out->frame);out->frame=NULL;out->bytes=0;fail(out,-32801,"Native rename inputs or workspace evidence changed after response framing.");}
 done:
  if(watch)xrtCancelUnwatch(watch);
  if(query){if(out->code || stopped(cancel))xideProjectReferencesCancel(query);xideProjectReferencesQueryDestroy(query);}if(event)xrtEventDestroy(event);

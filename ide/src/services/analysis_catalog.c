@@ -6,7 +6,7 @@
 #include <wchar.h>
 typedef struct binding { wchar_t* key;size_t owner; } binding;
 struct xide_analysis_catalog {xatomic32 references;xls_context* projects[64];size_t count,bindingCount,selectedOwner,bytes;binding* bindings;char* package;
- xls_context* files[64];wchar_t* fileKeys[64];size_t fileCount;int complete;};
+ xls_context* files[64];wchar_t* fileKeys[64];size_t fileCount;int complete;xide_analysis_catalog_guard guard;};
 static xstrview sv(const char* s) {return (xstrview){s,strlen(s)};}
 static const xvalue* get(const xvalue* v,const char* key) {return v && xrtValueType(v)==XVALUE_OBJECT ? xrtValueObjectGet(v,sv(key)) : NULL;}
 static const char* text(const xvalue* v) {xstrview s={0};return xrtValueGetString(v,&s) && s.Size<=32767 && (!s.Size || (s.Data && !memchr(s.Data,0,s.Size))) ? (s.Data ? s.Data : "") : NULL;}
@@ -19,7 +19,7 @@ void xideAnalysisCatalogDestroy(xide_analysis_catalog* c)
  for(size_t i=0;i<c->bindingCount;++i) free(c->bindings[i].key);
  for(size_t i=0;i<c->count;++i) xlsContextRelease(c->projects[i]);
  for(size_t i=0;i<c->fileCount;++i){xlsContextRelease(c->files[i]);free(c->fileKeys[i]);}
- xrtFree(c->bindings);xrtFree(c->package);xrtFree(c);
+ xrtFree(c->bindings);xrtFree(c->package);if(c->guard.value)c->guard.release(c->guard.value);xrtFree(c);
 }
 xide_analysis_catalog* xideAnalysisCatalogRetain(xide_analysis_catalog* c) {if(c) xrtAtomic32FetchAdd(&c->references,1,XMEMORY_RELAXED);return c;}
 xide_analysis_catalog* xideAnalysisCatalogCreate(const xvalue* value,char* error,size_t capacity)
@@ -92,6 +92,20 @@ xide_analysis_catalog* xideAnalysisCatalogCreate(const xvalue* value,char* error
 invalid:fail(error,capacity,"Invalid project analysis identity, selection, paths or capacity.");goto failed;
 memory:fail(error,capacity,"Cannot allocate prepared analysis catalog.");
 failed:xideAnalysisCatalogDestroy(c);return NULL;
+}
+xide_analysis_catalog* xideAnalysisCatalogCreateGuarded(const xvalue* value,const xide_analysis_catalog_guard* guard,char* error,size_t capacity)
+{
+ if(!guard || !guard->value || !guard->retain || !guard->release || !guard->validate){fail(error,capacity,"Invalid external analysis catalog evidence.");return NULL;}
+ xide_analysis_catalog* c=xideAnalysisCatalogCreate(value,error,capacity);if(!c)return NULL;
+ if(guard->bytes>SIZE_MAX-c->bytes){fail(error,capacity,"Analysis catalog evidence accounting overflow.");xideAnalysisCatalogDestroy(c);return NULL;}
+ void* retained=guard->retain(guard->value);if(!retained){fail(error,capacity,"Cannot retain analysis catalog evidence.");xideAnalysisCatalogDestroy(c);return NULL;}
+ c->guard=*guard;c->guard.value=retained;c->bytes+=guard->bytes;return c;
+}
+int xideAnalysisCatalogValidate(const xide_analysis_catalog* c,int (*cancelled)(void*),void* user,char* error,size_t capacity)
+{
+ if(error&&capacity)*error=0;
+ if(cancelled&&cancelled(user)){fail(error,capacity,"Analysis catalog evidence validation cancelled.");return 0;}
+ return !c || !c->guard.value || c->guard.validate(c->guard.value,cancelled,user,error,capacity);
 }
 enum xide_analysis_binding xideAnalysisCatalogFindNative(const xide_analysis_catalog* c,const wchar_t* key,const xls_context** context)
 {

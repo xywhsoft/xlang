@@ -80,4 +80,22 @@ static int run(void)
 #endif
  return 1;
 }
-int main(void) {if(!run()) return 1;printf("analysis_catalog_test passed: %u checks; exact wire identity, schema rejection, prepared native membership, ambiguity, selection, bounded lists and independent lifetimes.\n",checks);return 0;}
+typedef struct evidence {unsigned references,retains,releases,validations;int valid,failRetain;} evidence;
+static void* retainEvidence(void* p){evidence* e=p;++e->retains;if(e->failRetain)return NULL;++e->references;return e;}
+static void releaseEvidence(void* p){evidence* e=p;--e->references;++e->releases;}
+static int validateEvidence(void* p,int (*cancelled)(void*),void* user,char* error,size_t capacity)
+{evidence* e=p;++e->validations;if((cancelled&&cancelled(user))||!e->valid){if(error&&capacity)snprintf(error,capacity,"stale evidence");return 0;}return 1;}
+static int cancelledEvidence(void* p){return *(int*)p;}
+static int guarded(void)
+{
+ char error[512];xvalue* wire=catalog(NULL,0,"",NULL);CHECK(wire);evidence e={.references=1,.valid=1};xide_analysis_catalog_guard guard={&e,retainEvidence,releaseEvidence,validateEvidence,12345};
+ xide_analysis_catalog* plain=xideAnalysisCatalogCreate(wire,error,sizeof(error));CHECK(plain);size_t ordinary=xideAnalysisCatalogBytes(plain);xideAnalysisCatalogDestroy(plain);
+ CHECK(!xideAnalysisCatalogCreateGuarded(wire,NULL,error,sizeof(error)));xide_analysis_catalog_guard bad=guard;bad.release=NULL;CHECK(!xideAnalysisCatalogCreateGuarded(wire,&bad,error,sizeof(error))&&!e.retains);
+ bad=guard;bad.bytes=SIZE_MAX;CHECK(!xideAnalysisCatalogCreateGuarded(wire,&bad,error,sizeof(error))&&!e.retains);e.failRetain=1;CHECK(!xideAnalysisCatalogCreateGuarded(wire,&guard,error,sizeof(error))&&e.references==1&&e.retains==1&&!e.releases);e.failRetain=0;
+ xide_analysis_catalog* a=xideAnalysisCatalogCreateGuarded(wire,&guard,error,sizeof(error));CHECK(a&&e.references==2&&e.retains==2&&xideAnalysisCatalogBytes(a)==ordinary+guard.bytes&&!e.validations);
+ guard=(xide_analysis_catalog_guard){0}; /* Construction owns its descriptor. */
+ xide_analysis_catalog* b=xideAnalysisCatalogRetain(a);xideAnalysisCatalogDestroy(a);CHECK(e.references==2&&!e.releases);CHECK(xideAnalysisCatalogValidate(b,NULL,NULL,error,sizeof(error))&&e.validations==1&&!*error);
+ int stop=1;CHECK(!xideAnalysisCatalogValidate(b,cancelledEvidence,&stop,error,sizeof(error))&&e.validations==1&&*error);e.valid=0;CHECK(!xideAnalysisCatalogValidate(b,NULL,NULL,error,sizeof(error))&&e.validations==2&&!strcmp(error,"stale evidence"));CHECK(!xideAnalysisCatalogValidate(b,NULL,NULL,NULL,0)&&e.validations==3);
+ xideAnalysisCatalogDestroy(b);CHECK(e.references==1&&e.releases==1);CHECK(xideAnalysisCatalogValidate(NULL,NULL,NULL,error,sizeof(error))&&!*error);CHECK(!xideAnalysisCatalogValidate(NULL,cancelledEvidence,&stop,error,sizeof(error)));xrtValueRelease(wire);return 1;
+}
+int main(void) {if(!run()||!guarded()) return 1;printf("analysis_catalog_test passed: %u checks; exact wire identity, schema rejection, prepared native membership, ambiguity, selection, bounded lists, independent lifetimes and retained external evidence.\n",checks);return 0;}

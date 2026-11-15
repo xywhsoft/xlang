@@ -1,0 +1,129 @@
+{
+  "schema": 1,
+  "date": "2026-11-15",
+  "stage": "M7b6n",
+  "scope": "Independent workspace evidence ownership and pre-analysis/post-frame rename guards",
+  "implementationAccepted": true,
+  "automaticProtocolDiscoveryIntegrated": false,
+  "goalComplete": false,
+  "performanceQualified": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "2e3aa4a7e50a2692ce5a8de5a9efc6d3f95fef17",
+  "buildBase": "2e3aa4a7e50a2692ce5a8de5a9efc6d3f95fef17",
+  "publicationRebase": {
+    "verifiedNoIdeOrIgnoreChanges": true,
+    "fromCommit": "2e3aa4a7e50a2692ce5a8de5a9efc6d3f95fef17",
+    "toCommit": "2e3aa4a7e50a2692ce5a8de5a9efc6d3f95fef17"
+  },
+  "ownedSources": {
+    "ide/docs/lsp-development.md": "b26b373dee4d37f34565c8176fe7d95d14d5be39b5570503550f48211857cc9a",
+    "ide/docs/lsp-workspace-proof.md": "1dcb55b914fdf41efd97e5fa045a4514c0e2603037657c5f6c17143d4d9217d3",
+    "ide/src/services/analysis_catalog.c": "9e00393086e4a8c549ac2f79b513377acfbfe3bfebc5fc5ddb36fbce98266207",
+    "ide/src/services/analysis_catalog.h": "4d3523ce15fe566fa50e0abab087b481ab232ff3aebe0bcd60c3e77b69404fc6",
+    "ide/src/services/rename_candidate.c": "cb7fc5d3bfb0ebb421283707f70458e616b8f43b15f7f6beee9fc3adc724e8b5",
+    "ide/src/services/rename_scope.c": "18b78715f33f520a61307ae532694b19007c9b275c20411f674048c7dee777c9",
+    "ide/src/services/rename_scope.h": "425d0095f84ef00f0ec103a0335d3b6a461090cc5e7398947360ee428feb0b1e",
+    "ide/src/services/workspace_discovery.c": "ad2a3a09e9c044786032e3344b0742943aacee52f8c3656708392335fff181fb",
+    "ide/tests/analysis_catalog_test.c": "6d212e6c69a113411ac4a2c8c5f3a76cf336b76fe801273af122e140a2ff9f83",
+    "ide/tests/workspace_discovery_publish_test.c": "a1ad2d1c3258909b89506cf6ba54e3831b792b3dba98c437acf795e611a24193",
+    "ide/tests/workspace_discovery_test.c": "d79dbaffd35d57565d3d84728a3db5632f3516c0a00641c00dc37f27654e67d7",
+    "ide/tools/build_lsp_core.py": "21b823ba91852133388e9b7003dcd2cfa7c76f55e9f4779ba368067282bee9b8"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-workspace-proof-20261115.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-workspace-proof-20261115/stage-sources.tar.gz",
+      "sha256": "757ac9964de24882313101638fb598642585b2fff22b9d9eb2799835a7b6d64d",
+      "bytes": 346160,
+      "entries": 12,
+      "uniquePayloads": 12
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-workspace-proof-20261115/stage-sources.tar.gz.manifest.json",
+      "sha256": "c4bb3ca272a719a74579dd36bac39c6c2b8786ee42d627edf0247691847d5307",
+      "bytes": 3152
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-workspace-proof-20261115/actual-builds-and-validation.tar.gz",
+      "sha256": "739d56fd63b1970e6e702ead5356e5924ed9bf0b5dd371c3ad8db08be1906311",
+      "bytes": 215209686,
+      "entries": 7980,
+      "uniquePayloads": 4154
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-workspace-proof-20261115/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "6da5777f53b15376a395e5fa22dadc8165b6528d2a686586be758bec303f7087",
+      "bytes": 3608384
+    }
+  },
+  "materialDependencies": [
+    {
+      "index": "dev/release-materials/provenance/lsp-workspace-discovery-20261115.json",
+      "sha256": "915e6e9b2296eec8e6c2af4475228df349816074539f8dd246ce54c846a75e20",
+      "purpose": "Previous discovery/model component and pinned matched SDK/frontend/XRT dependencies;previous executions are not counted as new tests"
+    }
+  ],
+  "externalPaths": [
+    "F:\\codex-builds-xlang-lsp-20261115\\workspace-proof",
+    "F:\\codex-builds-xlang-lsp-20261115\\workspace-proof-materials",
+    "F:\\xl-workspace-proof-20261115"
+  ],
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "sdkSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+  "currentDeliverySha256": "dbc9e09ddfaeced7c675d0540589319f20d03e08f5b43abe08dd33354ecaa9fd",
+  "candidate": {
+    "languageServer": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-proof-20261115\\native-v1\\xlang-ls.exe",
+    "languageServerSha256": "481e50e5a8bdd667cdb4dbee09059290af103bb626afe12dd7a2fd07f3b7615a",
+    "serviceInfoVersion": "0.102",
+    "gui": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-proof-20261115\\gui-objects-v1\\xlang_ide.link.exe",
+    "guiSha256": "94dec6cf1bac33eb877a4914da57bd91d9ec6879738cd8cf7aa145dc19609812"
+  },
+  "verification": {
+    "nativeDistinctUnits": 122,
+    "fullGuiUnits": 140,
+    "coreArchiveMembers": 72,
+    "protocolCases": 237,
+    "protocolTools": 12,
+    "discoveryUnitChecks": 536,
+    "discoveryLocalFaultGates": 75,
+    "publishCases": 9,
+    "publishChecks": 337,
+    "nativeCatalogChecks": 1069,
+    "pairedGuiSuites": 55,
+    "actualModernIdeModes": 47,
+    "actualGuiLanguages": [
+      "c",
+      "xlang"
+    ],
+    "rejectedCompiledMutants": 7,
+    "actualInputs": 2730,
+    "actualObjects": 262,
+    "actualLinkedInputs": 356,
+    "uncompiledFixtureCopiesExcludedByDependencyClosure": 1,
+    "repositoryBudgetPassed": true
+  },
+  "evidenceNotes": [
+    "Optional immutable catalog guard descriptor retains independent external evidence,validator and known payload bytes. Reject invalid callbacks,retain failure and accounting overflow;descriptor is copied. Ordinary client catalogs keep no extra filesystem validator. Catalog retains evidence once,shared catalog references do not create extra evidence ownership.",
+    "Separate discovery proof owns directories,raw manifest identities/hashes,limits and atomic invalidation. Snapshot and catalog retain proof;proof retains neither catalog,snapshot nor service. Ready catalog survives snapshot/query/discovery service destruction. Charge retained directory/manifest vector capacities and string/key payloads through CatalogBytes;allocator/transient/RSS remain extra.",
+    "Rename candidate coordinator validates captured catalog before expensive analysis. Standard rename/prepareRename and native candidate revalidate scope evidence after full response framing alongside existing source guards. Metadata failure drops the owned frame and returns stale-input error. Request/root/config/overlay publication epochs remain separate obligations.",
+    "Fresh9-case real native fixture destroys snapshot/service before query and releases caller catalog/params/text after submit. Cover successful4-file rename,post-frame new source,same-byte atomic manifest replacement,runtime-only raw-manifest change,prepare membership change,post-frame cancel,pre-analysis member/identity changes and cancellation during an actually open manifest reader. Pending future and false physical Idle persist until reader resumes/closes;real linked file IO wrappers are test observers only.",
+    "Fresh536 discovery checks with75calibrated local failure gates,1069native catalog checks,122native/140GUI units and72raw archive members pass. Run237protocol cases,55GUI suites,47actual IDE modes and24-frame C/xlang renders,including typing/deletion/undo/Unicode/IME/click focus. Scope metadata probe/performance tests from previous phase are not claimed as fresh runs.",
+    "Reject7compiled mutants:fake physical idle,skipped early/post-frame validation,ignored validation result,unaccounted evidence,missing final release and skipped early cancel. Retain raw successive coverage-extension runs;only final native-tests-v4 and mutants-v3 qualify. Bind actual production/header/SDK/link inputs,private basename adapters and local Python driver imports. One earlier unused GUI fixture copy of the new native-only publish test differs after coverage extension;verify it is absent from every actual compile/dependency closure,retain its bytes/hash separately,and bind the current native test source to its final execution receipt.",
+    "Protect selected SDK/default runtime DLL mismatch with hash-owned temporary aliases inside root release/win_x64. Preserve default binaries,SDK,active delivery,online channel,user temporary entries and unrelated staging. Compiler TEMP/TMP remain scoped to F;large evidence archives remain external and only the small index is committed."
+  ],
+  "limits": [
+    "Automatic protocol bootstrap is not integrated or advertised. References and workspace-symbol result scope guards still require integration,followed by async discovery scheduling,invalidation/config replacement/retirement and analysis-lease quiescence. Do not enable automatic catalogs for unguarded global result paths.",
+    "Validation is worker-only and reads metadata;it is not an atomic filesystem snapshot,source proof or write authority. Per-keystroke completion must not re-enumerate the workspace. Catalog evidence destruction does no IO but may free many labels;owner retirement latency remains to be handled during server integration.",
+    "No whole-goal latency/RSS/endurance/Linux/sanitizer qualification or exhaustive allocator OOM/leak claim. Shared body capture,owner transport waits,asset alignment,generic applyEdit and remaining LSP/static/completion capabilities continue. No DAP/runtime/debug completion. Previous3legacy dialog failures are not fixed/rerun/countedas passing. Long-term goal stays active."
+  ],
+  "postCommitReceipt": "dev/release-materials/provenance/lsp-workspace-proof-20261115/postcommit.json"
+}

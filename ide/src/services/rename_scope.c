@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#include <stdio.h>
 #ifndef XIDE_RENAME_SCOPE_ALLOC
 #define XIDE_RENAME_SCOPE_ALLOC(bytes) xrtCalloc(1,(bytes))
 #endif
@@ -24,6 +25,11 @@ static int order(const void* a,const void* b)
 {const file_owner *x=a,*y=b;int n=xidePathNativeKeyCompare(x->key,y->key);return n ? n : (x->owner>y->owner)-(x->owner<y->owner);}
 xide_rename_scope* xideRenameScopeRetain(xide_rename_scope* s)
 {if(s)xrtAtomic32FetchAdd(&s->references,1,XMEMORY_RELAXED);return s;}
+int xideRenameScopeValidate(const xide_rename_scope* s,int (*cancelled)(void*),void* user,char* error,size_t capacity)
+{
+ if(!s){if(error&&capacity)snprintf(error,capacity,"Missing rename scope evidence.");return 0;}
+ return xideAnalysisCatalogValidate(s->catalog,cancelled,user,error,capacity);
+}
 void xideRenameScopeRelease(xide_rename_scope* s)
 {
  if(!s || xrtAtomic32FetchSub(&s->references,1,XMEMORY_ACQ_REL)!=1)return;

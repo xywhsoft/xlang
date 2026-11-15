@@ -15,7 +15,11 @@ typedef struct discovery_manifest {char* path;wchar_t* key;xfileinfo identity;un
 typedef struct discovery_path {char* path;wchar_t* key;} discovery_path;
 typedef struct discovery_name {char* name;size_t size;xfiletype type;} discovery_name;
 typedef struct discovery_context {const wchar_t* key;xvalue* value;} discovery_context;
-struct xide_discovery_snapshot {xatomic32 refs,invalid;xide_discovery_limits limits;xarray directories,manifests;xvalue* value;xide_analysis_catalog* catalog;unsigned char fingerprint[32];};
+typedef struct discovery_proof {xatomic32 refs,invalid;xide_discovery_limits limits;xarray directories,manifests;} discovery_proof;
+struct xide_discovery_snapshot {xatomic32 refs;discovery_proof* proof;xvalue* value;xide_analysis_catalog* catalog;unsigned char fingerprint[32];};
+static void* proofRetain(void*);static void proofRelease(void*);
+static int catalogProof(void*,int (*)(void*),void*,char*,size_t);
+static size_t proofBytes(const discovery_proof*);
 struct xide_workspace_discovery {xtaskpool* pool;xide_discovery_limits limits;};
 struct xide_discovery_query {xfuture* future;xfuturewatch watch;int initialized,linked;void (*wake)(void*);void* user;};
 typedef struct discovery_input {xide_workspace_folders* roots;char* package;xide_discovery_limits limits;} discovery_input;
@@ -94,13 +98,13 @@ static int addDirectory(discovery_build* b,const char* path,int root,xide_model_
  xfileinfo info={0};if(!xideIoStat(path,root,&info) || info.Type!=XFILE_TYPE_DIRECTORY || !(info.Available&XFILE_INFO_IDENTITY))return fail(e,"Workspace root or directory is missing,linked or has no stable identity.");
  uint64_t key[2]={info.Device,info.Identity};bool added=false;size_t* index=xrtMapGetOrAdd(&b->directories,(xbytesview){(const unsigned char*)key,sizeof(key)},&added);
  if(!index)return fail(e,"Cannot index workspace directory identities.");
- if(!added){discovery_dir* prior=(discovery_dir*)b->snapshot->directories.Data+*index;return xidePathLexicalEqual(prior->path,path) || fail(e,"Workspace directory aliases need explicit configuration.");}
- if(b->snapshot->directories.Count==b->input->limits.directories)return fail(e,"Workspace discovery directory limit exceeded.");
+ if(!added){discovery_dir* prior=(discovery_dir*)b->snapshot->proof->directories.Data+*index;return xidePathLexicalEqual(prior->path,path) || fail(e,"Workspace directory aliases need explicit configuration.");}
+ if(b->snapshot->proof->directories.Count==b->input->limits.directories)return fail(e,"Workspace discovery directory limit exceeded.");
  discovery_dir dir={.identity=info};dir.path=copy(path);dir.key=xidePathLexicalWide(path);
- if(!dir.path || !dir.key || strlen(path)>32767 || !charge(&b->labels,strlen(path)+1+(wcslen(dir.key)+1)*sizeof(wchar_t)+sizeof(dir),b->input->limits.labels) || !xrtArrayPush(&b->snapshot->directories,&dir)){
+ if(!dir.path || !dir.key || strlen(path)>32767 || !charge(&b->labels,strlen(path)+1+(wcslen(dir.key)+1)*sizeof(wchar_t)+sizeof(dir),b->input->limits.labels) || !xrtArrayPush(&b->snapshot->proof->directories,&dir)){
   free(dir.path);free(dir.key);return fail(e,"Workspace directory metadata exceeded its allocation or byte limit.");
  }
- *index=b->snapshot->directories.Count-1;return 1;
+ *index=b->snapshot->proof->directories.Count-1;return 1;
 }
 static int addPath(discovery_build* b,const char* path,xide_model_error* e)
 {
@@ -112,20 +116,20 @@ static int addPath(discovery_build* b,const char* path,xide_model_error* e)
 static int scan(discovery_build* b,xide_model_error* e)
 {
  for(size_t i=0;i<xideWorkspaceFoldersCount(b->input->roots);++i){const char* path=NULL;if(stopped(b->cancel) || !xideWorkspaceFoldersAt(b->input->roots,i,NULL,NULL,&path) || !addDirectory(b,path,1,e))return 0;}
- for(size_t i=0;i<b->snapshot->directories.Count;++i){
+ for(size_t i=0;i<b->snapshot->proof->directories.Count;++i){
   if(stopped(b->cancel))return 0;
   /* AddDirectory can reallocate the vector;retain only this stable path. */
-  const char* path=((discovery_dir*)b->snapshot->directories.Data)[i].path;xarray names={0};unsigned char hash[32];xfileinfo before={0},after={0};
-  int okay=xideIoStat(path,1,&before)&&identity(&before,&((discovery_dir*)b->snapshot->directories.Data)[i].identity,XFILE_TYPE_DIRECTORY) &&
+  const char* path=((discovery_dir*)b->snapshot->proof->directories.Data)[i].path;xarray names={0};unsigned char hash[32];xfileinfo before={0},after={0};
+  int okay=xideIoStat(path,1,&before)&&identity(&before,&((discovery_dir*)b->snapshot->proof->directories.Data)[i].identity,XFILE_TYPE_DIRECTORY) &&
    enumerate(path,&names,hash,&b->input->limits,&b->output->work.entries,stopped,b->cancel,e);
   for(size_t j=0;okay&&j<names.Count;++j){discovery_name* name=(discovery_name*)names.Data+j;char* child=xidePathResolveLexical(path,name->name);
    okay=child && (name->type==XFILE_TYPE_DIRECTORY ? addDirectory(b,child,0,e) : addPath(b,child,e));free(child);
   }
   if(okay)okay=xideIoStat(path,1,&after)&&identity(&before,&after,XFILE_TYPE_DIRECTORY);
-  if(okay)memcpy(((discovery_dir*)b->snapshot->directories.Data)[i].hash,hash,32);
+  if(okay)memcpy(((discovery_dir*)b->snapshot->proof->directories.Data)[i].hash,hash,32);
   namesClear(&names);if(!okay)return fail(e,*e->message ? e->message : "Workspace directory changed during discovery.");
  }
- b->output->work.directories=b->snapshot->directories.Count;
+ b->output->work.directories=b->snapshot->proof->directories.Count;
  if(b->paths.Count>1)qsort(b->paths.Data,b->paths.Count,sizeof(discovery_path),pathOrder);
  return 1;
 }
@@ -153,14 +157,14 @@ static int loadManifest(discovery_build* b,const char* path,int kind,xide_model_
 {
  if(stopped(b->cancel))return 0;
  wchar_t* key=xidePathLexicalWide(path);if(!key)return fail(e,"Cannot normalize a workspace manifest.");
- for(size_t i=0;i<b->snapshot->manifests.Count;++i){discovery_manifest* old=(discovery_manifest*)b->snapshot->manifests.Data+i;if(!xidePathNativeKeyCompare(key,old->key)){
+ for(size_t i=0;i<b->snapshot->proof->manifests.Count;++i){discovery_manifest* old=(discovery_manifest*)b->snapshot->proof->manifests.Data+i;if(!xidePathNativeKeyCompare(key,old->key)){
    free(key);xfileinfo info={0};if(strcmp(path,old->path) && (!xideIoReceiptStat(path,&info)||!identity(&info,&old->identity,XFILE_TYPE_FILE)))return fail(e,"Manifest paths collide under native lexical comparison.");
    return old->kind==kind || fail(e,"A manifest has conflicting workspace/project roles.");
   }}
- if(b->snapshot->manifests.Count==DISCOVERY_MANIFESTS){free(key);return fail(e,"Workspace manifest count exceeded its limit.");}
+ if(b->snapshot->proof->manifests.Count==DISCOVERY_MANIFESTS){free(key);return fail(e,"Workspace manifest count exceeded its limit.");}
  discovery_manifest record={.key=key,.path=copy(path),.kind=kind};xvalue* root=NULL;int okay=record.path && charge(&b->labels,strlen(path)+1+(wcslen(key)+1)*sizeof(wchar_t)+sizeof(record),b->input->limits.labels) &&
   readManifest(path,&b->input->limits,&b->output->work.manifestBytes,&record.identity,record.hash,&root,stopped,b->cancel,e);
- if(okay)okay=xrtArrayPush(&b->snapshot->manifests,&record);
+ if(okay)okay=xrtArrayPush(&b->snapshot->proof->manifests,&record);
  if(!okay){free(record.path);free(key);xrtValueRelease(root);return fail(e,*e->message ? e->message : "Cannot retain workspace manifest provenance.");}
  xide_model_decode_options options={.paths=65536,.projects=64,.labels=b->input->limits.labels,.cancelled=stopped,.user=b->cancel};
  if(kind==1){xide_workspace model={0};okay=xideWorkspaceDecodeWithOptions(&model,path,root,&options,e);
@@ -199,7 +203,8 @@ static int prepareCatalog(discovery_build* b,xide_model_error* e)
  if(okay)okay=put(value,"schema",xrtValueInt(2))&&put(value,"selectedProject",xrtValueString(xrtStrView("")))&&put(value,"packagePath",b->input->package?xrtValueString(xrtStrView(b->input->package)):xrtValueNull())&&put(value,"complete",xrtValueBool(true));
  if(okay){okay=put(value,"projects",b->projects);b->projects=NULL;}
  if(okay){okay=put(value,"standaloneRoots",roots);roots=NULL;}
- if(okay)b->snapshot->catalog=xideAnalysisCatalogCreate(value,e->message,sizeof(e->message));
+ if(okay){size_t bytes=proofBytes(b->snapshot->proof);xide_analysis_catalog_guard guard={b->snapshot->proof,proofRetain,proofRelease,catalogProof,bytes};
+  if(bytes)b->snapshot->catalog=xideAnalysisCatalogCreateGuarded(value,&guard,e->message,sizeof(e->message));}
  if(okay)okay=b->snapshot->catalog!=NULL;
  size_t size=0;char* encoded=okay?xrtJsonStringify(value,false,&size):NULL;
  if(okay)okay=encoded && size<=16u*1024u*1024u && xrtSha256(encoded,size,b->snapshot->fingerprint);
@@ -208,17 +213,35 @@ static int prepareCatalog(discovery_build* b,xide_model_error* e)
  return okay || fail(e,*e->message ? e->message : "Workspace catalog allocation or capacity failed.");
 }
 xide_discovery_snapshot* xideDiscoverySnapshotRetain(xide_discovery_snapshot* s){if(s)xrtAtomic32FetchAdd(&s->refs,1,XMEMORY_RELAXED);return s;}
+static void* proofRetain(void* raw)
+{discovery_proof* s=raw;if(s)xrtAtomic32FetchAdd(&s->refs,1,XMEMORY_RELAXED);return s;}
+static void proofRelease(void* raw)
+{
+ discovery_proof* s=raw;if(!s || xrtAtomic32FetchSub(&s->refs,1,XMEMORY_ACQ_REL)!=1)return;
+ for(size_t i=0;i<s->directories.Count;++i){discovery_dir* d=(discovery_dir*)s->directories.Data+i;free(d->path);free(d->key);}
+ for(size_t i=0;i<s->manifests.Count;++i){discovery_manifest* m=(discovery_manifest*)s->manifests.Data+i;free(m->path);free(m->key);}
+ xrtArrayUnit(&s->directories);xrtArrayUnit(&s->manifests);xrtFree(s);
+}
+static size_t proofBytes(const discovery_proof* s)
+{
+ size_t bytes=sizeof(*s);
+ if(s->directories.Capacity>SIZE_MAX/sizeof(discovery_dir) || s->manifests.Capacity>SIZE_MAX/sizeof(discovery_manifest) ||
+  !charge(&bytes,s->directories.Capacity*sizeof(discovery_dir),SIZE_MAX) || !charge(&bytes,s->manifests.Capacity*sizeof(discovery_manifest),SIZE_MAX))return 0;
+ for(size_t i=0;i<s->directories.Count;++i){discovery_dir* d=(discovery_dir*)s->directories.Data+i;
+  if(!charge(&bytes,strlen(d->path)+1,SIZE_MAX) || !charge(&bytes,(wcslen(d->key)+1)*sizeof(wchar_t),SIZE_MAX))return 0;}
+ for(size_t i=0;i<s->manifests.Count;++i){discovery_manifest* m=(discovery_manifest*)s->manifests.Data+i;
+  if(!charge(&bytes,strlen(m->path)+1,SIZE_MAX) || !charge(&bytes,(wcslen(m->key)+1)*sizeof(wchar_t),SIZE_MAX))return 0;}
+ return bytes;
+}
 void xideDiscoverySnapshotRelease(xide_discovery_snapshot* s)
 {
  if(!s || xrtAtomic32FetchSub(&s->refs,1,XMEMORY_ACQ_REL)!=1)return;
- for(size_t i=0;i<s->directories.Count;++i){discovery_dir* d=(discovery_dir*)s->directories.Data+i;free(d->path);free(d->key);}
- for(size_t i=0;i<s->manifests.Count;++i){discovery_manifest* m=(discovery_manifest*)s->manifests.Data+i;free(m->path);free(m->key);}
- xrtArrayUnit(&s->directories);xrtArrayUnit(&s->manifests);xrtValueRelease(s->value);xideAnalysisCatalogDestroy(s->catalog);xrtFree(s);
+ xrtValueRelease(s->value);xideAnalysisCatalogDestroy(s->catalog);proofRelease(s->proof);xrtFree(s);
 }
 xide_analysis_catalog* xideDiscoverySnapshotCatalog(const xide_discovery_snapshot* s){return s?s->catalog:NULL;}
 const xvalue* xideDiscoverySnapshotValue(const xide_discovery_snapshot* s){return s?s->value:NULL;}
 const unsigned char* xideDiscoverySnapshotFingerprint(const xide_discovery_snapshot* s){return s?s->fingerprint:NULL;}
-static int validate(xide_discovery_snapshot* s,const xide_discovery_limits* limits,int (*stop)(void*),void* user,xide_model_error* e)
+static int proofValidate(discovery_proof* s,const xide_discovery_limits* limits,int (*stop)(void*),void* user,xide_model_error* e)
 {
  if(xrtAtomic32Load(&s->invalid,XMEMORY_ACQUIRE)){fail(e,"Workspace discovery snapshot was already invalidated.");return XIDE_DISCOVERY_STALE;}
  size_t entries=0,bytes=0;
@@ -233,22 +256,28 @@ static int validate(xide_discovery_snapshot* s,const xide_discovery_limits* limi
  return XIDE_DISCOVERY_READY;
 stale:xrtAtomic32Store(&s->invalid,1,XMEMORY_RELEASE);fail(e,*e->message ? e->message : "Workspace membership or manifest changed.");return XIDE_DISCOVERY_STALE;
 }
+static int catalogProof(void* raw,int (*stop)(void*),void* user,char* error,size_t capacity)
+{
+ discovery_proof* s=raw;xide_model_error e={0};int okay=proofValidate(s,&s->limits,stop,user,&e)==XIDE_DISCOVERY_READY;
+ if(!okay&&error&&capacity)snprintf(error,capacity,"%s",*e.message?e.message:"Workspace discovery evidence validation cancelled.");
+ return okay;
+}
 int xideDiscoverySnapshotValidate(xide_discovery_snapshot* s,int (*stop)(void*),void* user,xide_model_error* e)
-{xide_model_error local={0};if(!e)e=&local;memset(e,0,sizeof(*e));if(!s){fail(e,"No discovery snapshot.");return XIDE_DISCOVERY_FAILED;}return validate(s,&s->limits,stop,user,e);}
+{xide_model_error local={0};if(!e)e=&local;memset(e,0,sizeof(*e));if(!s){fail(e,"No discovery snapshot.");return XIDE_DISCOVERY_FAILED;}return proofValidate(s->proof,&s->proof->limits,stop,user,e);}
 static void outputFree(void* p,void* unused){(void)unused;discovery_output* out=p;if(out){xideDiscoverySnapshotRelease(out->snapshot);xrtFree(out);}}
 static void inputFree(void* p,void* unused){(void)unused;discovery_input* in=p;if(in){xideWorkspaceFoldersRelease(in->roots);xrtFree(in->package);xrtFree(in);}}
 static xtaskoutcome execute(xcancel* cancel,void* raw,xtaskvalue* value)
 {
  discovery_input* in=raw;discovery_output* out=xrtCalloc(1,sizeof(*out));if(!out)return XTASK_FAILED;
  out->work.workerThread=xrtThreadCurrentId();xide_discovery_snapshot* s=xrtCalloc(1,sizeof(*s));xide_model_error e={0};discovery_build b={.input=in,.output=out,.snapshot=s,.cancel=cancel};
- if(s){xrtAtomic32Init(&s->refs,1);xrtAtomic32Init(&s->invalid,0);s->limits=in->limits;}
- int okay=s && xrtArrayInit(&s->directories,sizeof(discovery_dir)) && xrtArrayInit(&s->manifests,sizeof(discovery_manifest)) && xrtArrayInit(&b.paths,sizeof(discovery_path)) && xrtArrayInit(&b.contexts,sizeof(discovery_context)) && xrtMapInit(&b.directories,sizeof(size_t)) && (b.projects=xrtValueArray())!=NULL;
- if(okay)okay=scan(&b,&e)&&prepareCatalog(&b,&e)&&validate(s,&in->limits,stopped,cancel,&e)==XIDE_DISCOVERY_READY;
+ if(s){xrtAtomic32Init(&s->refs,1);s->proof=xrtCalloc(1,sizeof(*s->proof));if(s->proof){xrtAtomic32Init(&s->proof->refs,1);xrtAtomic32Init(&s->proof->invalid,0);s->proof->limits=in->limits;}}
+ int okay=s && s->proof && xrtArrayInit(&s->proof->directories,sizeof(discovery_dir)) && xrtArrayInit(&s->proof->manifests,sizeof(discovery_manifest)) && xrtArrayInit(&b.paths,sizeof(discovery_path)) && xrtArrayInit(&b.contexts,sizeof(discovery_context)) && xrtMapInit(&b.directories,sizeof(size_t)) && (b.projects=xrtValueArray())!=NULL;
+ if(okay)okay=scan(&b,&e)&&prepareCatalog(&b,&e)&&proofValidate(s->proof,&in->limits,stopped,cancel,&e)==XIDE_DISCOVERY_READY;
  for(size_t i=0;i<b.paths.Count;++i){discovery_path* path=(discovery_path*)b.paths.Data+i;free(path->path);free(path->key);}xrtArrayUnit(&b.paths);
  for(size_t i=0;i<b.contexts.Count;++i)xrtValueRelease(((discovery_context*)b.contexts.Data)[i].value);
  xrtArrayUnit(&b.contexts);xrtMapUnit(&b.directories);xrtValueRelease(b.projects);
  if(stopped(cancel)){xideDiscoverySnapshotRelease(s);outputFree(out,NULL);return XTASK_CANCELLED;}
- if(okay){out->snapshot=s;out->work.manifests=s->manifests.Count;out->work.labelBytes=b.labels;}else{xideDiscoverySnapshotRelease(s);snprintf(out->error,sizeof(out->error),"%s",*e.message?e.message:"Workspace discovery allocation failed.");}
+ if(okay){out->snapshot=s;out->work.manifests=s->proof->manifests.Count;out->work.labelBytes=b.labels;}else{xideDiscoverySnapshotRelease(s);snprintf(out->error,sizeof(out->error),"%s",*e.message?e.message:"Workspace discovery allocation failed.");}
  *value=(xtaskvalue){out,outputFree,NULL};return XTASK_SUCCESS;
 }
 xide_workspace_discovery* xideWorkspaceDiscoveryCreate(const xide_discovery_limits* requested,xide_model_error* e)
