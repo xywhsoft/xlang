@@ -205,7 +205,7 @@ def main():
             ('open-document-change', 'textDocument/didChange', dict(textDocument=dict(uri=paths['main'].as_uri(), version=1), contentChanges=[dict(text=bodies['main']+'\n')]), -32801),
             ('close-document', 'textDocument/didClose', dict(textDocument=dict(uri=paths['main'].as_uri())), -32801),
             ('configuration-change', 'workspace/didChangeConfiguration', dict(settings=dict(xlang=dict(analysisConfiguration=dict(epoch=2, catalog=catalog)))), -32801),
-            ('workspace-roster-change', 'workspace/didChangeWorkspaceFolders', dict(event=dict(added=[], removed=[])), -32801),
+            ('workspace-roster-change', 'workspace/didChangeWorkspaceFolders', dict(event=dict(added=[dict(uri=root.as_uri(), name=root.name)], removed=[])), -32801),
         ]:
             c = start()
             batch(c, [('textDocument/rename', p, 'active'), (method, payload, None)])
@@ -214,7 +214,7 @@ def main():
             done(name+'-discards-pending-response')
             c.stop()
         c = start()
-        c.send('workspace/didChangeWorkspaceFolders', dict(event=dict(added=[], removed=[])))
+        c.send('workspace/didChangeWorkspaceFolders', dict(event=dict(added=[dict(uri=root.as_uri(), name=root.name)], removed=[])))
         call(c, 'textDocument/rename', p, -32803)
         c.send('workspace/didChangeConfiguration', dict(settings=dict(xlang=dict(
             analysisConfiguration=dict(epoch=2, catalog=catalog)))))
@@ -224,7 +224,7 @@ def main():
         c = start()
         state = call(c, 'xlang/suspendAnalysis', dict(token=1))
         assert state['held'] and not state['invalidated'] and not state['deferred'], state
-        c.send('workspace/didChangeWorkspaceFolders', dict(event=dict(added=[], removed=[])))
+        c.send('workspace/didChangeWorkspaceFolders', dict(event=dict(added=[dict(uri=root.as_uri(), name=root.name)], removed=[])))
         state = call(c, 'xlang/analysisLeaseState', {})
         assert state['held'] and state['invalidated'] and state['deferred'] == 1 and state['epoch'] == 1, state
         call(c, 'xlang/resumeAnalysis', dict(token=1))

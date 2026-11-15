@@ -1,0 +1,126 @@
+{
+  "schema": 1,
+  "date": "2026-11-15",
+  "stage": "M7b6l",
+  "scope": "Standard workspace root identities, precedence and transactional folder lifecycle",
+  "implementationAccepted": true,
+  "automaticDiscoveryImplemented": false,
+  "goalComplete": false,
+  "performanceQualified": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "15249bf3b39a133a12f2126a3419ec2a3fb3de54",
+  "buildBase": "15249bf3b39a133a12f2126a3419ec2a3fb3de54",
+  "publicationRebase": {
+    "verifiedNoIdeOrIgnoreChanges": true,
+    "fromCommit": "15249bf3b39a133a12f2126a3419ec2a3fb3de54",
+    "toCommit": "15249bf3b39a133a12f2126a3419ec2a3fb3de54"
+  },
+  "ownedSources": {
+    "ide/docs/lsp-development.md": "1c856ae46ccac84960c889fed31092f8d5f5da0e4d5c61a38eaf67581ebd413d",
+    "ide/docs/lsp-workspace-folders.md": "03c7d7f908362d951e0f49ef83f671c206fff32d3bf04d034d007693ee7e9ff3",
+    "ide/src/protocol/workspace_folders.c": "74a7a0bcbc2c4ba475a4531762976d311b8b610ee7c661bd46cc4b05c5fc636d",
+    "ide/src/protocol/workspace_folders.h": "dfd1b095e7d7d7edbfe02f6fa8872aa4f29b71024b9d448f8c8e0a0b47e0602f",
+    "ide/src/server/rename_candidate.inc": "fefef7d64bbed639c811e56f6e4231dc5975193e1ee52df466f2301f274e7816",
+    "ide/src/server/workspace_symbol_refresh.inc": "04d8f01f109a2c5f729fc19ef6a1f139c76234f9254cdd407738d67fc79363d4",
+    "ide/src/server/workspace_symbols.inc": "d659151015fc034af31af6579273f3acec2f746e310d34df87f052e159f1cb60",
+    "ide/src/server/xlang_ls.c": "ced68178e48c7695753f708c9eca6647b3ffd8965570976f2c895ef4a4acf682",
+    "ide/tests/workspace_folders_test.c": "b3e7deb92eb4f69994b8a54693998cc0e8f16a9a13cf244d6321b93fc9656a97",
+    "ide/tools/build.ps1": "45b9214ba948c9f0bc44fb9084218d2f00c6aa0b9f8ae01aa45bfea1a4adf36a",
+    "ide/tools/build_lsp_core.py": "29b372310777f0f0f824acae0fedb3e8e87e83eec3c9f9464657e44bf3378027",
+    "ide/tools/check_lsp_prepare_rename.py": "8b357ec3c9d17e91976413453604802e12a1baf80b6fcc4e0c73de7ac89900e2",
+    "ide/tools/check_lsp_standard_rename.py": "00963500612fc39f8ce52448d52149db62343bdb848bb8712ae59e456ff84550",
+    "ide/tools/check_lsp_workspace_folders.py": "7a9670e9ab97fbe86343335999198bed72893fcc821c82af4d250ed583a72f7a"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-workspace-roots-20261115.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-workspace-roots-20261115/stage-sources.tar.gz",
+      "sha256": "2ac43665cbb61a1fd6dec32e1bccea145baec3608b8bc417bdf4da6da811e68e",
+      "bytes": 362241,
+      "entries": 14,
+      "uniquePayloads": 14
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-workspace-roots-20261115/stage-sources.tar.gz.manifest.json",
+      "sha256": "df1a9e00fd7667cfeb70ac316f081702f1f0698285ceb5eb51bda55a9fb463aa",
+      "bytes": 3650
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-workspace-roots-20261115/actual-builds-and-validation.tar.gz",
+      "sha256": "7b097d92e01af49a6c48b6399cd4ad98c0ee6ad5cd4e9b0cc760695d51e15999",
+      "bytes": 171886619,
+      "entries": 8340,
+      "uniquePayloads": 4129
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-workspace-roots-20261115/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "d260ca766d9834760c0bf4a3b219049cf02aa6d8902bdc4890ca4446ec14964e",
+      "bytes": 3703050
+    }
+  },
+  "materialDependencies": [
+    {
+      "index": "dev/release-materials/provenance/lsp-rename-prefill-20261115.json",
+      "sha256": "6b93595c63679c2b061306477f4a2b5f1af613d66d707978599a485452c871c6",
+      "purpose": "Previous IDE rename prefill cohort and pinned external frontend/XRT dependencies; previous tests are not counted as executions in this phase"
+    }
+  ],
+  "externalPaths": [
+    "F:\\codex-builds-xlang-lsp-20261115\\workspace-roots",
+    "F:\\codex-builds-xlang-lsp-20261115\\workspace-roots-materials",
+    "F:\\xl-workspace-roots-20261115"
+  ],
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "sdkSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+  "currentDeliverySha256": "dbc9e09ddfaeced7c675d0540589319f20d03e08f5b43abe08dd33354ecaa9fd",
+  "candidate": {
+    "languageServer": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-roots-20261115\\native-v2\\xlang-ls.exe",
+    "languageServerSha256": "04a159fb99f78589069989bf128fc85d89b93186cbf52b86a3dbf8d9f59a6630",
+    "serviceInfoVersion": "0.102",
+    "gui": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-workspace-roots-20261115\\gui-objects-v1\\xlang_ide.link.exe",
+    "guiSha256": "605e5099b175e281b56bd52cd4f44b14c74f313b830c69fab6dea0b011c3eb9f"
+  },
+  "verification": {
+    "nativeDistinctUnits": 119,
+    "fullGuiUnits": 139,
+    "protocolCases": 237,
+    "protocolTools": 12,
+    "workspaceFolderProtocolCases": 28,
+    "metadataUnitChecks": 661,
+    "pairedGuiSuites": 55,
+    "actualModernIdeModes": 47,
+    "actualGuiLanguages": [
+      "c",
+      "xlang"
+    ],
+    "rejectedCompiledMutants": 8,
+    "actualInputs": 2684,
+    "actualObjects": 258,
+    "actualLinkedInputs": 342,
+    "repositoryBudgetPassed": true
+  },
+  "evidenceNotes": [
+    "Replace the boolean-only root heuristic with retained immutable root snapshots. A present workspaceFolders null/empty list overrides legacy fields; a present rootUri null overrides rootPath. Strict absolute file URI/UTF8/name/duplicate and64-root/2MiB known-metadata bounds. No manifest/directory reads, source scans or cwd changes. Reuse XRT values, reference counts and lexical path APIs.",
+    "Validate both folder arrays before replacing state. Apply removals then additions; reject malformed/oversized metadata atomically. Existing additions and unknown removals are idempotent, labels/escaping/case/trailing separators preserve semantic identity. Empty notifications retain the existing snapshot without decoding all old paths. Retained old roots survive new snapshots.",
+    "Real root-set changes alone increment folder revision and input generations, cancel old analysis/reference/rename/workspace-symbol work and pause stale background workspace refresh. Global queries require a new complete configuration. Removing the last root without a catalog restores independent-file standard rename; an existing catalog remains invalid until refreshed.",
+    "Existing standard rename/prepare invalidation fixtures now perform actual root additions instead of treating empty events as changes. Preserve the exact cancellation and full-configuration assertions. New28-case real-native driver covers precedence, pending cancellations, no-op pending rename, invalid event rollback, capacity, initialization retry and lease notification replay. All237 protocol cases pass.",
+    "Fresh119-unit native and139-unit GUI builds,661 root metadata checks,55 GUI suites,47 actual IDE modes and24-frame C/xlang application renders pass. Check C/xlang typing/deletion/undo/Unicode/IME/click focus and existing asynchronous full rename/consent/transaction/recovery. No previous native-specific fixtures or legacy-peer cases are counted as fresh runs.",
+    "Five unit and three server actually compiled bad implementations are rejected: null-root fallback, duplicate paths, skipped metadata capacity, label-only invalidation, ignored removal, empty-event invalidation and stale reference/symbol results. Retain the prototype warning failure, first-driver expected-stderr/cleanup failure and countermodel include-path failure; only final successful executions qualify.",
+    "Bind actual source/header/SDK and link inputs,119 native and139 GUI objects,72 raw core archive members, private basename-only GUI adapters and local Python protocol imports. Default runtime, selected SDK, active delivery and online channel remain unchanged; preserve unrelated staging/worktree and original user temporary directories. Test aliases are hash-checked and removed from root release/win_x64; compiler temporary paths stay scoped to F."
+  ],
+  "limits": [
+    "This is a prerequisite for asynchronous manifest/member discovery, not automatic workspace loading. No directory membership/source freshness proof or capability declaration for a completed automatic folder service. Full project discovery and validation across closed-file membership changes remain required.",
+    "No whole-goal latency/RSS/endurance/Linux/sanitizer qualification. Root metadata is bounded but temporary snapshots/DOMs/allocator overhead are additional. Shared changed-body capture, owner transport waits, client-stop waits, native/engine asset alignment, generic applyEdit and remaining LSP/static/completion capabilities continue.",
+    "No DAP or runtime/debug completion. The previous3 legacy dialog failures are not fixed/rerun/counted as passing. No default installation or online publishing in this phase; long-term goal stays active."
+  ],
+  "postCommitReceipt": "dev/release-materials/provenance/lsp-workspace-roots-20261115/postcommit.json"
+}

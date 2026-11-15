@@ -1,6 +1,7 @@
 /* stdio server. Native analysis and compatibility processes run off-owner. */
 #include "protocol/lsp_wire.h"
 #include "protocol/input_state.h"
+#include "protocol/workspace_folders.h"
 #include "services/language_check.h"
 #include "services/diagnostic_store.h"
 #include "services/analysis_catalog.h"
@@ -81,6 +82,7 @@ typedef struct server {
  xide_project_references* references;
  xide_rename_candidates* renames;
  int renameDocumentChanges,renameWorkspaceScope,renameWorkspaceDirty;
+ xide_workspace_folders* folders;uint64_t folderRevision;
  struct {xide_rename_candidate_query* query;xvalue* id;int document,version;unsigned long long identity,serial;int64 epoch;} renameRequests[4];
  struct {xide_reference_query* query;xvalue* id;int document,version;unsigned long long identity,serial;int64 epoch;} referenceRequests[8];
  xide_project_reference_stats referenceStats;
@@ -792,6 +794,7 @@ static void referenceWatched(server* s,const xvalue* params)
 }
 static void requestReferences(server* s,const xvalue* id,const xvalue* params)
 {
+ if(s->renameWorkspaceDirty){response(s,id,NULL,-32803,"Workspace folders changed; refresh analysisConfiguration before references.");return;}
  int i=find(s,string(get(get(params,"textDocument"),"uri"))),line=0,character=0,version=i>=0?s->docs[i].version:0;bool include=false;const xvalue* supplied=get(params,"version");const char* namedId=string(id);
  if(s->cliCompletion || s->cliDiagnostics){response(s,id,NULL,-32601,"References require the native analysis backend.");return;}
  if(i<0 || (namedId && strlen(namedId)>65535) || (supplied && !integer(supplied,&version)) || version!=s->docs[i].version || !integer(get(get(params,"position"),"line"),&line) || !integer(get(get(params,"position"),"character"),&character) || !validPosition(&s->docs[i],line,character) || !xrtValueGetBool(get(get(params,"context"),"includeDeclaration"),&include)){response(s,id,NULL,-32602,"References require an open current xlang document,valid UTF16 position and boolean includeDeclaration.");return;}
@@ -857,10 +860,10 @@ static void dispatch(server* s,const xvalue* message)
   if(prepareCapability && (xrtValueType(prepareCapability)!=XVALUE_BOOL || !xrtValueGetBool(prepareCapability,&prepareSupport))){response(s,id,NULL,-32602,"rename.prepareSupport must be boolean.");return;}
   bool documentChanges=false;const xvalue* editCapability=get(get(get(params,"capabilities"),"workspace"),"workspaceEdit");const xvalue* documentChangesValue=get(editCapability,"documentChanges");
   if(documentChangesValue && (xrtValueType(documentChangesValue)!=XVALUE_BOOL || !xrtValueGetBool(documentChangesValue,&documentChanges))){response(s,id,NULL,-32602,"workspaceEdit.documentChanges must be boolean.");return;}
-  const xvalue *folders=get(params,"workspaceFolders"),*rootUri=get(params,"rootUri"),*rootPath=get(params,"rootPath");
-  if((folders && xrtValueType(folders)!=XVALUE_NULL && xrtValueType(folders)!=XVALUE_ARRAY) || (rootUri && xrtValueType(rootUri)!=XVALUE_NULL && !string(rootUri)) || (rootPath && xrtValueType(rootPath)!=XVALUE_NULL && !string(rootPath))){response(s,id,NULL,-32602,"Invalid workspace folder/root metadata.");return;}
-  for(size_t i=0;xrtValueType(folders)==XVALUE_ARRAY && i<xrtValueCount(folders);++i)if(!string(get(xrtValueArrayGet(folders,i),"uri")) || !*string(get(xrtValueArrayGet(folders,i),"uri"))){response(s,id,NULL,-32602,"Workspace folders require nonempty URIs.");return;}
-  s->renameDocumentChanges=documentChanges;s->renameWorkspaceScope=(xrtValueType(folders)==XVALUE_ARRAY && xrtValueCount(folders)) || (string(rootUri) && *string(rootUri)) || (string(rootPath) && *string(rootPath));
+  xide_model_error rootsError={0};xide_workspace_folders* roots=xideWorkspaceFoldersRead(params,&rootsError);
+  if(!roots){response(s,id,NULL,-32602,rootsError.message);return;}
+  xideWorkspaceFoldersRelease(s->folders);s->folders=roots;s->folderRevision=1;
+  s->renameDocumentChanges=documentChanges;s->renameWorkspaceScope=xideWorkspaceFoldersCount(roots)!=0;
   xide_token_legend tokenLegend={0};
   if(!xideTokenLegendParse(get(params,"capabilities"),&tokenLegend)){response(s,id,NULL,-32602,"Invalid semantic token capabilities.");return;}
   if(s->cliDiagnostics)tokenLegend.enabled=0;
@@ -950,7 +953,7 @@ static void dispatch(server* s,const xvalue* message)
   put(scope,"referenceCompilationOwners",xrtValueBool(!s->cliCompletion && !s->cliDiagnostics));
   put(scope,"renameCandidate",xrtValueInt(!s->cliCompletion && !s->cliDiagnostics?1:0));
 #endif
-  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.101"))); put(result,"serverInfo",info); s->hierarchicalSymbols=hierarchical;s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
+  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.102"))); put(result,"serverInfo",info); s->hierarchicalSymbols=hierarchical;s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
  }
  if(!s->initialized) { if(id) response(s,id,NULL,-32002,"Server not initialized."); return; }
  if(s->shutdown) { if(id) response(s,id,NULL,-32600,"Server has shut down."); return; }
@@ -1015,7 +1018,23 @@ static void dispatch(server* s,const xvalue* message)
  if(!strcmp(method,XIDE_NATIVE_RENAME_METHOD)){if(id)requestRename(s,id,params,0);return;}
  if(!strcmp(method,"textDocument/prepareRename")){if(id)requestRename(s,id,params,2);return;}
  if(!strcmp(method,"textDocument/rename")){if(id)requestRename(s,id,params,1);return;}
- if(!strcmp(method,"workspace/didChangeWorkspaceFolders")){if(id){response(s,id,NULL,-32600,"Workspace folder changes are notifications.");return;}s->renameWorkspaceScope=1;s->renameWorkspaceDirty=1;cancelRenames(s,NULL,-32801,"Workspace folder membership changed; refresh analysisConfiguration.");return;}
+ if(!strcmp(method,"workspace/didChangeWorkspaceFolders")){
+  if(id){response(s,id,NULL,-32600,"Workspace folder changes are notifications.");return;}
+  xide_model_error error={0};int changed=0;xide_workspace_folders* roots=xideWorkspaceFoldersChange(s->folders,params,&changed,&error);
+  if(!roots){diagnosticLog(s,error.message);return;}
+  if(changed && (s->folderRevision==UINT64_MAX || s->generation==ULLONG_MAX || s->inputSerial==ULLONG_MAX)){xideWorkspaceFoldersRelease(roots);s->writeFailed=1;return;}
+  xideWorkspaceFoldersRelease(s->folders);s->folders=roots;
+  if(!changed)return;
+  ++s->folderRevision;++s->generation;++s->inputSerial;s->pending=-1;
+  s->renameWorkspaceScope=xideWorkspaceFoldersCount(roots)!=0;
+  s->renameWorkspaceDirty=s->renameWorkspaceScope || s->catalog!=NULL;
+  cancel(s,-32801,"Workspace folders changed.");cancelSemantic(s,-1,-32801,"Workspace folders changed.");
+  cancelCompletion(s,-32801,"Workspace folders changed.",1);cancelSignature(s,-32801,"Workspace folders changed.",1);
+  cancelReferences(s,NULL,-32801,"Workspace folders changed.");cancelRenames(s,NULL,-32801,"Workspace folders changed.");
+  cancelWorkspaceSymbols(s,NULL,-32801,"Workspace folders changed.");workspaceRefreshCancel(s,0);clearPublished(s);
+  if(s->automaticDiagnostics)diagnosticResetState(s,NULL);
+  return;
+ }
  if(!strcmp(method,"workspace/symbol")){if(id)requestWorkspaceSymbols(s,id,params,0);return;}
  if(!strcmp(method,"xlang/workspaceSymbolNavigation")){if(id)requestWorkspaceSymbols(s,id,params,1);return;}
  if(!strcmp(method,"xlang/workspaceSymbolStats")){if(id)workspaceSymbolStats(s,id);return;}
@@ -1098,7 +1117,7 @@ int main(void)
  xideLanguageCheckDestroy(s.signature);xrtValueRelease(s.signatureId);xrtValueRelease(s.signaturePendingId);free(s.signatureUri);xlsWorkerDestroy(s.signatureAnalysis);
  xideLanguageCheckDestroy(s.completion); xrtValueRelease(s.completionId); xrtValueRelease(s.completionPendingId); free(s.completionUri); xideLanguageCheckDestroy(s.check); xideLanguageCheckDestroy(s.guard); xlsWorkerDestroy(s.semanticAnalysis); xlsWorkerDestroy(s.cursorAnalysis); xrtValueRelease(s.guardId); free(s.guardUri); xrtValueRelease(s.checkId); xrtValueRelease(s.publishedGroups); xideToolchainsDestroy(s.cache);
 #ifdef XLS_COMPILER_XRT
- xlsModuleStoreRelease(s.modules);
+ xlsModuleStoreRelease(s.modules);xideWorkspaceFoldersRelease(s.folders);
 #endif
  while(s.head) { message* m=s.head; s.head=m->next; xrtValueRelease(m->value); free(m); }
  while(s.deferredHead) {message* m=s.deferredHead;s.deferredHead=m->next;xrtValueRelease(m->value);free(m);}

@@ -15,7 +15,7 @@ static void requestRename(server* s,const xvalue* id,const xvalue* params,int st
  int number=0,i=find(s,string(get(get(params,"textDocument"),"uri")));
  if(s->cliCompletion || s->cliDiagnostics){response(s,id,NULL,-32601,"Rename candidates require native analysis.");return;}
  if((!standard && (xrtValueType(id)!=XVALUE_INT || !integer(id,&number) || number<=0 || !s->catalog || !s->catalogValue || (i>=0 && s->docs[i].binding<0))) || (standard && xrtValueType(id)!=XVALUE_INT && (!string(id) || strlen(string(id))>65535)) || i<0){response(s,id,NULL,-32602,"Rename needs a valid request ID and current open document; native candidate requests also require an acknowledged unambiguous configuration.");return;}
- if((s->catalog && !xideAnalysisCatalogComplete(s->catalog)) || (standard && (s->renameWorkspaceDirty || (s->renameWorkspaceScope && !s->catalog)))){response(s,id,NULL,-32803,"Workspace rename requires a current complete analysisConfiguration; open documents alone do not establish workspace membership.");return;}
+ if((s->catalog && !xideAnalysisCatalogComplete(s->catalog)) || (s->renameWorkspaceDirty || (standard && s->renameWorkspaceScope && !s->catalog))){response(s,id,NULL,-32803,"Workspace rename requires a current complete analysisConfiguration; open documents alone do not establish workspace membership.");return;}
  size_t slot=4;for(size_t j=0;j<4;++j){if(s->renameRequests[j].query && sameId(id,s->renameRequests[j].id)){cancelRenames(s,id,-32600,"Rename request ID is already active.");return;}if(!s->renameRequests[j].query && slot==4)slot=j;}
  if(slot==4){response(s,id,NULL,-32603,"Rename request queue is full.");return;}
  if(!s->references)s->references=xideProjectReferencesCreate(s->cache,s->compiler,s->modules);

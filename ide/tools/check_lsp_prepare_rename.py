@@ -178,7 +178,7 @@ def main():
             ('document-change', 'textDocument/didChange', dict(textDocument=dict(uri=paths['main'].as_uri(), version=2), contentChanges=[dict(text=bodies['main']+'\n')]), -32801),
             ('close-reopen', 'textDocument/didClose', dict(textDocument=dict(uri=paths['main'].as_uri())), -32801),
             ('configuration', 'workspace/didChangeConfiguration', dict(settings=dict(xlang=dict(analysisConfiguration=dict(epoch=2, catalog=catalog)))), -32801),
-            ('folder-roster', 'workspace/didChangeWorkspaceFolders', dict(event=dict(added=[], removed=[])), -32801),
+            ('folder-roster', 'workspace/didChangeWorkspaceFolders', dict(event=dict(added=[dict(uri=root.as_uri(), name=root.name)], removed=[])), -32801),
         ]:
             c = start()
             batch(c, [('textDocument/prepareRename', intent, 'active'), (method, payload, None)])
@@ -203,7 +203,7 @@ def main():
         c = start()
         call(c, dict(token=1), method='xlang/suspendAnalysis')
         call(c, intent, -32001)
-        c.send('workspace/didChangeWorkspaceFolders', dict(event=dict(added=[], removed=[])))
+        c.send('workspace/didChangeWorkspaceFolders', dict(event=dict(added=[dict(uri=root.as_uri(), name=root.name)], removed=[])))
         lease = call(c, {}, method='xlang/analysisLeaseState')
         assert lease['held'] and lease['invalidated'] and lease['deferred'] == 1, lease
         call(c, dict(token=1), method='xlang/resumeAnalysis')

@@ -52,7 +52,7 @@ SERVER_SOURCES = (
     "src/services/rename_scope.c",
     "src/services/semantic_token_positions.c", "src/protocol/semantic_tokens_wire.c", "src/services/semantic_token_job.c",
     "src/protocol/analysis_context_wire.c", "src/protocol/signature_help.c", "src/services/analysis_catalog.c",
-    "src/protocol/lsp_wire.c", "src/protocol/workspace_symbol_selection.c", "src/protocol/workspace_symbol_wire.c", "src/services/language_check.c", "src/services/language_snapshot.c", "src/services/diagnostic_store.c",
+    "src/protocol/lsp_wire.c", "src/protocol/workspace_folders.c", "src/protocol/workspace_symbol_selection.c", "src/protocol/workspace_symbol_wire.c", "src/services/language_check.c", "src/services/language_snapshot.c", "src/services/diagnostic_store.c",
     "src/services/semantic_definition.c", "src/services/project_references.c", "src/services/workspace_symbol_index.c", "src/services/workspace_symbols.c", "src/services/semantic_completion.c", "src/services/c_bridge_map.c",
     "src/services/toolchain.c", "src/platform/file_rename.c", "src/platform/file_io.c",
     "src/platform/text_file.c", "src/platform/process.c", "src/platform/path.c", "src/editor/coordinates.c",
