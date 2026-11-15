@@ -160,6 +160,9 @@ static int xlsFinalIrTablesEmpty(const XL6_IrModule* module)
     !module->foreignFunctionHeaderCount &&
     !module->foreignOutputSizeCount &&
     !module->foreignNativeSequenceCount &&
+#ifdef XLS_NATIVE_IR_OWNED_OUTPUT
+    !module->foreignOwnedOutputsCount &&
+#endif
     !module->foreignOutputViewCount &&
     !module->foreignOutputRecordCount &&
     !module->foreignOutputFieldCount &&

@@ -30,6 +30,7 @@ static int faultGraphUpdate(xls_dependency_graph* graph,const xls_dependency_upd
 #define xideDiagnosticStoreCreateWithDependencies faultStoreCreateWithDependencies
 #define xideDiagnosticStoreCreate faultStoreCreate
 #define xideDiagnosticStoreDestroy faultStoreDestroy
+#define xideDiagnosticStoreIdle faultStoreIdle
 #define xideDiagnosticStoreLoad faultStoreLoad
 #define xideDiagnosticStorePutTake faultStorePutTake
 #define xideDiagnosticStorePutConfigured faultStorePutConfigured

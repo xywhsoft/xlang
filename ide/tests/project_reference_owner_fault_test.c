@@ -71,7 +71,12 @@ static int cancelAndMutation(void)
   fenceReached=xrtEventCreate(false,false);fenceResume=xrtEventCreate(false,false);CHECK(fenceReached && fenceResume);fenceFired=0;xrtAtomic32Store(&fenceMode,mode,XMEMORY_RELEASE);
   xide_reference_query* q=xideProjectReferencesSubmit(f.store,f.context,&f.doc,1,"query",f.lib,line,col,1);CHECK(q && xrtEventWaitFor(fenceReached,10000000)==XWAIT_OK);
   if(mode<=3)xideProjectReferencesCancel(q);else CHECK(faultWrite(f.entry,"func main(...) as int\n return 0\nend\n"));
-  xrtEventSet(fenceResume);enum xide_reference_query_state state=collectFault(q,&locations,&stats,error);CHECK(state==(mode<=3?XIDE_REFERENCES_CANCELLED:XIDE_REFERENCES_FAILED) && !locations && !stats.roots && !xideProjectReferencesTake(q));const reference_output* internal=xrtFutureValue(q->future);if(empty)CHECK(internal && !internal->stats.memberTasks && !f.store->records.Count);xideProjectReferencesQueryDestroy(q);CHECK(waitIdle(f.store));
+  xrtEventSet(fenceResume);enum xide_reference_query_state state=collectFault(q,&locations,&stats,error);CHECK(state==(mode<=3?XIDE_REFERENCES_CANCELLED:XIDE_REFERENCES_FAILED) && !locations && !xideProjectReferencesTake(q));
+  /* Failed results now expose actual work counters. A late input rejection
+     may follow completed roots; it must still publish no locations. */
+  if(mode<=3)CHECK(!stats.roots);else CHECK(*error);
+  if(mode>=5)CHECK(strstr(error,"Compilation owner inputs changed before publication."));
+  const reference_output* internal=xrtFutureValue(q->future);if(empty)CHECK(internal && !internal->stats.memberTasks && !f.store->records.Count);xideProjectReferencesQueryDestroy(q);CHECK(waitIdle(f.store));
   for(size_t i=0;i<f.store->memberCount;++i){xls_worker_load load;CHECK(xlsWorkerLoad(f.store->members[i],&load) && !load.queued && !load.running);}xls_worker_load load;CHECK(xlsWorkerLoad(f.store->keys,&load) && !load.queued && !load.running);
   xrtAtomic32Store(&fenceMode,0,XMEMORY_RELEASE);xrtEventDestroy(fenceReached);xrtEventDestroy(fenceResume);fenceReached=fenceResume=NULL;CHECK(faultWrite(f.entry,f.main));
   q=xideProjectReferencesSubmit(f.store,f.context,&f.doc,1,"query",f.lib,0,13,1);CHECK(q && collectFault(q,&locations,&stats,error)==XIDE_REFERENCES_READY && xrtValueCount(locations)==3);xideProjectReferencesQueryDestroy(q);CHECK(waitIdle(f.store));faultClear(&f);

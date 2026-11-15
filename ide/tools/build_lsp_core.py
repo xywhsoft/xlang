@@ -754,7 +754,7 @@ def main() -> None:
     except ValueError as error:
         parser.error(str(error))
     c_interop = c_interop_selected(frontend)
-    current_core = frontend_materials.get('sourceRevision') in ('current-core-20261108','current-projection-20261111')
+    current_core = frontend_materials.get('sourceRevision') in ('current-core-20261108','current-projection-20261111','current-ownership-20261116')
     if current_core and not args.skip_tests:tests=('analysis_native_selection_test','analysis_current_core_test',*tests)
     unified = c_interop or ((frontend/'src/sem/xl6_sem.c').is_file() and sha(frontend/'src/sem/xl6_sem.c')==UNIFIED_PINS['src/sem/xl6_sem.c'])
     if completion_facts(frontend) and not args.skip_tests:tests=('analysis_completion_visibility_test',*tests)
@@ -883,6 +883,10 @@ def main() -> None:
     # Debug keeps the diagnostic allocator. This does not change analysis or
     # source/provenance validation and does not touch the XGE-owned GUI runtime.
     common += ["-O2", "-DXRT_EXCLUDE_MEMORY_DEBUG="] if args.configuration == "Release" else ["-O0", "-g"]
+    # Set the supported Windows API floor before the forced XRT/CRT headers.
+    # Otherwise MinGW selects its newer default before Win7 adapters can
+    # declare their target, mixing configurations or failing strict fixtures.
+    if os.name == "nt":common += ["-D_WIN32_WINNT=0x0601", "-DWINVER=0x0601"]
     if ir_overlay.get('irDependencyCohort') in ('current-ed78373d',UNIFIED_COHORT,C_INTEROP_COHORT,FINAL_COHORT):common+=['-DXLS_NATIVE_IR_PROVIDER_FIELDS=1']
     if ir_overlay.get('irDependencyCohort') in (C_INTEROP_COHORT,FINAL_COHORT):common+=['-DXLS_NATIVE_IR_FOREIGN_FIELDS=1']
     if async_corpus(frontend):common+=['-DXLS_NATIVE_ASYNC_RESULTS=1']
@@ -1061,7 +1065,7 @@ def main() -> None:
             if name == "analysis_source_text_test":extra.append("-Wl,--wrap=xlsInputBatchAt")
             if name == "analysis_ast_replacement_test":extra.append("-Wl,--wrap=xrtPoolFree")
             if name == "semantic_token_guards_test":extra.append("-Wl,--wrap=xlsSemanticTokensData")
-            if name == "analysis_ir_projection_test" and frontend_materials.get('sourceRevision')=='current-projection-20261111':extra+=['-Wl,--wrap=xrtFree','-Wl,--wrap=xrtStrDup']
+            if name == "analysis_ir_projection_test" and frontend_materials.get('sourceRevision') in ('current-projection-20261111','current-ownership-20261116'):extra+=['-Wl,--wrap=xrtFree','-Wl,--wrap=xrtStrDup']
             if name=='analysis_current_provider_test' and ir_overlay.get('irDependencyCohort') in ('current-ed78373d',UNIFIED_COHORT,C_INTEROP_COHORT,FINAL_COHORT):extra+=[str(objects['xl6_ir_lower'])]
             if name=='analysis_current_loader_test' and loader_references:
                 extra += [str(objects[p.stem]) for p in loader_references]+['-Wl,--wrap=xrtMalloc']
@@ -1152,6 +1156,8 @@ def main() -> None:
                           if Path(source).stem != "diagnostic_stream" and
                           not (name == "reference_results_test" and Path(source).stem == "reference_results") and
                           not (name == "workspace_search_result_test" and Path(source).stem == "workspace_search_result")]
+                sync_object = str(objects["document_sync"])
+                if sync_object not in extra:extra.append(sync_object)
             if name in ("analysis_dependency_capture_test", "analysis_dependency_session_test", "analysis_dependency_worker_test"):
                 # Observe real original semantic/IR entry calls in this fixture
                 # only;the dependency snapshot must invoke neither stage.
@@ -1180,7 +1186,7 @@ def main() -> None:
                     test_arguments = [str(fixture_directory)]
                     if name in ("workspace_edit_journal_fault_test", "workspace_edit_spool_fault_test", "workspace_edit_write_fault_test"):test_arguments.append("0")
                 result = run([str(program), *test_arguments], name + "-run", 180 if name == "analysis_ir_persistent_fault_test" else 120 if name in ("analysis_ir_scan_test", "analysis_index_canonical_test", "workspace_edit_spool_guard_test") else 30, working_directory=output)
-                if b"passed:" not in result.stdout:
+                if b"passed:" not in result.stdout and not re.search(rb"(?m)^PASS\b",result.stdout):
                     raise RuntimeError(f"missing test completion receipt: {name}")
                 runs.append(dict(name=name,stdout=result.stdout.decode("utf-8")))
             outputs[program.name] = sha(program)
@@ -1204,6 +1210,7 @@ def main() -> None:
         report = dict(schema=1,status=status,scope="standalone native C/XRT shared analysis with private AST ownership; full LSP/performance/delivery goal remains incomplete",
                       frontendRoot=str(frontend),compiler=str(cc),compilerSha256=sha(cc),inputs=inputs,outputs=outputs,
                       configuration=args.configuration,serverBuilt=args.server,testsBuilt=not args.skip_tests,
+                      windowsApiTarget="0x0601" if os.name == "nt" else None,
                       testsRun=not args.skip_tests and not args.build_only,compilerJobs=args.jobs,
                       commands=commands,runs=runs,imports=imports,elapsedSeconds=time.monotonic()-started)
         report["sourceOverlays"] = source_overlays

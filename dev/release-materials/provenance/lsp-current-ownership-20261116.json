@@ -1,0 +1,213 @@
+{
+  "schema": 1,
+  "date": "2026-11-16",
+  "stage": "M7b6q",
+  "scope": "Current compiler ownership/native-arithmetic frontend integration and coherent Win7-targeted native LSP build",
+  "implementationAccepted": true,
+  "goalComplete": false,
+  "performanceQualified": false,
+  "runtimeAlignmentComplete": false,
+  "defaultRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "base": "fe7a15f8268e6d6ae4dd53188c8f66071b3abdec",
+  "buildBase": "870b5ca3ecbe1bad57960071f9a4dec4eae57cad",
+  "publicationRebase": {
+    "verifiedNoIdeOrIgnoreChanges": true,
+    "fromCommit": "870b5ca3ecbe1bad57960071f9a4dec4eae57cad",
+    "toCommit": "fe7a15f8268e6d6ae4dd53188c8f66071b3abdec"
+  },
+  "ownedSources": {
+    "ide/docs/lsp-current-ownership.md": "982a9e14bffc738f9e0afc2131f3c76d0f0b3482ce7834753bb457872943a6d8",
+    "ide/docs/lsp-development.md": "3148c936f9972ba5cb84a86a75e96a3851bd478ce3aebe5bd0bffc62141132a4",
+    "ide/src/analysis/frontend_ir_memo.inc": "cd87a8cbddbd005c0bed198fdc9493090624603598d485ecbdf0a2a98f64d354",
+    "ide/src/server/xlang_ls.c": "4bfe36b914677b90b8d6a41cca5b13743de2bfeae8f0a63fb814e13cff6c73dc",
+    "ide/tests/analysis_ir_sparse_decode_test.c": "fc240e55dd4c9d31f69b24dbc67869b0b104203b2fca0c6b6b9d24f76b2200a4",
+    "ide/tests/diagnostic_reverse_fault_test.c": "487f3ba91c35e0fba538c795b76d863f66cf29d24bf9c65c8bf49128d24d5fde",
+    "ide/tests/project_reference_owner_fault_test.c": "1c258ed34438ff9b6c8c6b8b012705427697ad4103668749dba465ce8bda3217",
+    "ide/tools/build_lsp_core.py": "688c633602e144e4f15eee745cea585fc4f52bcbfb339824a5d0b27295484cfa",
+    "ide/tools/check_current_ownership_inputs.py": "e5b289b5408ad3044193f5cee2bc46b0640fe03916c18c96dfdd7cc0b22699ae",
+    "ide/tools/check_lsp_current_ownership.py": "9feaa537dca0753fb7c061563a7476f8ac81160ff6353d9ad68b5de63a89b533",
+    "ide/tools/native_aggregate_completion_overlay.py": "174933da91cbb1630db0e0ec714a5e12e87ab90a3092ffd1792a49661e11eff8",
+    "ide/tools/native_current_ir_overlay.py": "34f5668699d915f1918897214cdf267f16bcaf1aeadd04465bca92954adbd72f",
+    "ide/tools/native_current_ownership_pins_20261116.json": "762606a6bf4ce2546282f84da7e780061015b5e6e92968def997c0f9746354ad",
+    "ide/tools/native_final_c_interop_profile.py": "6a5687a85d4d5393e2831445351d32d6f106520f4cdedee8965a7f235c8b6b04",
+    "ide/tools/native_ir_derived_overlay.py": "8ddab7a8105891db0c5f0cf8516acc7c42af252deaa39dc0e7e33506cadca175",
+    "ide/tools/native_ir_topology_overlay.py": "10f5390faefb9e883d4eaf7e09d1eef0217e9376638991f9754ba1543c3ba584"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-current-ownership-20261116.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-current-ownership-20261116/stage-sources.tar.gz",
+      "sha256": "863ffc2d3a89b00935849011077a9f7b3c2bf5c1796232804339f03842281bb3",
+      "bytes": 398549,
+      "entries": 16,
+      "uniquePayloads": 16
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-current-ownership-20261116/stage-sources.tar.gz.manifest.json",
+      "sha256": "e561605a451388b2b9551bc6574bd5b48b7abe42a3c5963502e178e399ac2903",
+      "bytes": 4326
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-current-ownership-20261116/actual-builds-and-validation.tar.gz",
+      "sha256": "acae1ab9d18fef8446501ee1dd8328d2c8f49fc82ef58404f98e60819d12a213",
+      "bytes": 1181551497,
+      "entries": 43125,
+      "uniquePayloads": 13237
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-current-ownership-20261116/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "02d0f110751868b03ca8ca1ac435c34b1e330a89c0b3eeb72c6780fa3c11ffb9",
+      "bytes": 18916955
+    }
+  },
+  "materialDependencies": [
+    {
+      "index": "dev/release-materials/provenance/lsp-workspace-references-20261116.json",
+      "sha256": "1d3a409c5ae7064ee847df3397ae642adeb0ce9f60e1e09da8e70db7e9962ec3",
+      "purpose": "Previous complete-reference integration,matched SDK and prior native0.104 baseline;previous executions are not counted as new tests"
+    }
+  ],
+  "externalPaths": [
+    "F:\\codex-builds-xlang-lsp-20261116\\runtime-alignment",
+    "F:\\codex-builds-xlang-lsp-20261116\\current-ownership-materials",
+    "F:\\xl-runtime-alignment-20261116"
+  ],
+  "runtime": {
+    "xlang_ide.exe": "f115aa6baa63e204805e711770c26bdeeb653111380fced0016151e90c6f1b97",
+    "xlang-ls.exe": "2ed3bd2eb158bab6d807d10299c7c3aa256b012c050ba2397741da057246f232",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "sdkSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+  "currentDeliverySha256": "dbc9e09ddfaeced7c675d0540589319f20d03e08f5b43abe08dd33354ecaa9fd",
+  "candidate": {
+    "languageServer": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-runtime-alignment-20261116\\current-native-v5\\xlang-ls.exe",
+    "languageServerSha256": "49398b87135e3a40c11ccac8ea75a5523d4d7b0b2d45c5a7be5db95d467a2cdc",
+    "serviceInfoVersion": "0.105",
+    "windowsApiTarget": "0x0601",
+    "gui": "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-runtime-alignment-20261116\\gui-objects-v1\\xlang_ide.link.exe",
+    "guiSha256": "d912975f6e528ba01c934c8cad07fee814f7fde8dedf84d8f235097219257781"
+  },
+  "verification": {
+    "baseNativeObjects": 357,
+    "extraLimitObject": 1,
+    "repairedTestObjects": 2,
+    "nativeObjectArtifacts": 360,
+    "fullGuiUnits": 140,
+    "coreArchiveMembers": 72,
+    "nativeSuites": 220,
+    "protocolTools": 22,
+    "protocolCases": 403,
+    "newCurrentOwnershipProtocolCases": 19,
+    "legacyProjectionControls": 10,
+    "strictInputMutationsRejected": 465,
+    "knownEolModesVerified": [
+      "LF",
+      "CRLF"
+    ],
+    "pairedGuiSuites": 55,
+    "actualModernIdeModes": 47,
+    "actualGuiLanguages": [
+      "c",
+      "xlang"
+    ],
+    "ownedTableCompiledMutantsRejected": 1,
+    "actualInputs": 4644,
+    "actualObjects": 500,
+    "actualLinkedInputs": 936,
+    "uncompiledFixtureCopiesExcludedByDependencyClosure": 0,
+    "repositoryBudgetPassed": true
+  },
+  "sourceAlignment": {
+    "parentRevision": "current-projection-20261111",
+    "sourceRevision": "current-ownership-20261116",
+    "changedParentFiles": 32,
+    "addedDependencyFiles": 6,
+    "sourceInputs": 465,
+    "astAndXrtAnchorsUnchanged": true,
+    "record": "ide/tools/native_current_ownership_pins_20261116.json",
+    "recordSha256": "762606a6bf4ce2546282f84da7e780061015b5e6e92968def997c0f9746354ad"
+  },
+  "xgeAudit": {
+    "status": "passed",
+    "compile": [
+      "E:/software/w64devkit/bin/gcc.exe",
+      "-std=c11",
+      "-O2",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-Wno-misleading-indentation",
+      "-D_WIN32_WINNT=0x0601",
+      "-DWINVER=0x0601",
+      "-DXGE_DLL",
+      "-DXUI_DLL",
+      "-ID:\\GIT\\x-lang\\ide\\third_party\\xge_sdk",
+      "-ID:\\GIT\\x-lang\\ide\\third_party\\xge_sdk\\extlibs\\xrt",
+      "-include",
+      "D:\\GIT\\x-lang\\ide\\third_party\\xge_sdk\\xge_build_config.h",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-runtime-alignment-20261116\\xge-abi-probe-v2.c",
+      "-o",
+      "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-runtime-alignment-20261116\\xge-abi-probe-v2.exe"
+    ],
+    "sourceSha256": "f4f9fb086d8fb6c05b9f0014499a205f18f575011a74a9038c1bd9c8255c2e2f",
+    "programSha256": "3eb6c57b1ba20ac1f4eeff64b40683e37c141c8fb29466987ba05215cf49e271",
+    "runs": [
+      {
+        "label": "runtime",
+        "dll": "D:\\GIT\\x-lang\\release\\win_x64\\xge.dll",
+        "dllSha256": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xge-abi-probe-v2.exe",
+          "D:\\GIT\\x-lang\\release\\win_x64\\xge.dll"
+        ],
+        "result": {
+          "fingerprint": "0x9e6e84f348182bf8",
+          "consumerFingerprint": "0xcb44b468900ed7c0",
+          "features": 1021,
+          "major": 3,
+          "minor": 0,
+          "patch": 0,
+          "compatibleWithSelectedSdk": -7
+        }
+      },
+      {
+        "label": "sdk",
+        "dll": "D:\\GIT\\x-lang\\ide\\third_party\\xge_sdk\\xge.dll",
+        "dllSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+        "command": [
+          "D:\\GIT\\x-lang\\release\\win_x64\\.xge-abi-probe-v2.exe",
+          "D:\\GIT\\x-lang\\ide\\third_party\\xge_sdk\\xge.dll"
+        ],
+        "result": {
+          "fingerprint": "0xcb44b468900ed7c0",
+          "consumerFingerprint": "0xcb44b468900ed7c0",
+          "features": 1021,
+          "major": 3,
+          "minor": 0,
+          "patch": 0,
+          "compatibleWithSelectedSdk": 0
+        }
+      }
+    ]
+  },
+  "evidenceNotes": [
+    "Admit a separate strict465-input successor to the459-input projection cohort,changing32actual compiler files and adding6owned-output/projection dependencies. Preserve historical record bytes,AST and XRT anchors,known exact EOL recovery,all aggregate completion/IR pure phase/parameter/classifier features. No duplicated language rules or new parser/runtime implementation.",
+    "Reuse current root native integer arithmetic,cstring/owned/borrowed outputs,array-span-prefix and nullable product rules.10current compiler fixtures pass real native full checks;old0.104 baseline rejects9and preserves1known compatible fixture.19new current scenarios plus10legacy controls include actual typed-IR verification,definition,reference frames,bad allocator/slot/physical types,edit recovery and incomplete completion with absent CLI. No native C provider execution claim.",
+    "Extend final IR table admission for foreignOwnedOutputsCount under the exact new cohort;the sparse test uses an independent upstream header guard so a missing adapter feature cannot silently skip coverage. Reject an actually compiled omitted-table mutant with the exact empty-table assertion. Retain the entire new original verifier including owned/cstring/native-integer checks;the existing observer remains after successful original topology validation.",
+    "Uniform Windows API target0x0601 is set before forced XRT/CRT headers. All357base objects plus the separately compiled small-index object and2repaired fixture objects share unchanged public headers and configuration. Source-level target is not physical Win7/driver/complete API certification. Standalone PE imports exclude XGE and xlc.",
+    "Complete canonical build exposed old test-maintenance gaps:Win32 macro default conflict,missing client document_sync linkage,duplicate sync dependency for stream fixture,missing private diagnostic Idle alias,alternate PASS receipt format,and obsolete zero-failed-work assertions. Correct linking/receipts,keep original raw failures and immutable inputs,reuse verified C objects when only link/fixture logic changes. Current owner fault tests retain exact failure/cancellation,no output,original owner error,empty query task/cache checks and recovery.",
+    "Run all220native fixtures,22protocol drivers/403cases,55paired GUI suites,47actual modern IDE modes and C/xlang24-frame renders. The403scenes include all374previous protocol cases and29new/control scenes;465input mutation refusals and the owned-table mutant are independent gates. Source/header/SDK/object/link closure and72archive payload members are checked directly.",
+    "Archive the actual link-controller bytes before a later receipt-only canonical tool change. Verify compilation/source/header/flags did not change;the canonical link/runtime producer AST remains the original generator. Retain superseded raw fixture objects and use repaired objects only for qualified tests. Copied unused old native fixtures in GUI trees are excluded only after proving absence from actual dependency closure.",
+    "Execute through hash-owned aliases in root release/win_x64,remove aliases,keep compiler TEMP/TMP and fixture data on F,preserve user tmp and avoid runtime/build. Preserve the default runtime,SDK,current delivery,online channel and unrelated staging. Actual XGE probe first used zero features incorrectly;finalv2uses reported feature mask and exact ABI comparison."
+  ],
+  "limits": [
+    "Default XGE3.0.0 ABI0x9e6e84f348182bf8 and current SDK3.0.0 ABI0xcb44b468900ed7c0 differ;the actual compatibility call rejects the default DLL with selected SDK expectations and accepts the matching SDK DLL. No DLL/binary/default runtime replacement performed. Runtime engine/IDE/framework/package boundaries and local promotion remain required.",
+    "No full-goal performance/RSS/endurance/Linux/sanitizer or exhaustive allocation qualification. Existing foreign-table conservative incremental path remains;new native semantics are full-checked. Remaining applicable LSP/static recovery/editing completion,automatic discovery and known performance regressions remain open. No DAP/runtime/debug completion. Whole goal stays active."
+  ],
+  "postCommitReceipt": "dev/release-materials/provenance/lsp-current-ownership-20261116/postcommit.json"
+}

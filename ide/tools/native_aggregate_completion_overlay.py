@@ -1,10 +1,10 @@
 """Expose current aggregate fields through the original native completion API."""
 from native_c_interop_profile import pins_for
-from native_final_c_interop_profile import PROJECTION_PINS
+from native_final_c_interop_profile import projection_family
 
 
 def derive(source,frontend):
- if pins_for(frontend)is not PROJECTION_PINS:return source,dict(enabled=False,scope='Historical completion behavior retained')
+ if not projection_family(pins_for(frontend)):return source,dict(enabled=False,scope='Historical completion behavior retained')
  signature='static void xl6SemCompletionMembers(XL6_SemContext* ctx,XL6_AstNode* queryNode)\n{'
  guard=' if (!decl||decl->kind!=XL6_AST_CLASS) {q->error="receiver member completion is not supported for this semantic type";goto done;}'
  if source.count(signature)!=1 or source.count(guard)!=1:raise ValueError('native aggregate completion boundary changed')

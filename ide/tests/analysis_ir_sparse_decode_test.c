@@ -241,6 +241,9 @@ static int finalSchema(void)
  module.foreignFunctionHeaderCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignFunctionHeaderCount=0;
  module.foreignOutputSizeCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignOutputSizeCount=0;
  module.foreignNativeSequenceCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignNativeSequenceCount=0;
+#ifdef XL6_FOREIGN_OWNED_OUTPUT_CONTRACT_H
+ module.foreignOwnedOutputsCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignOwnedOutputsCount=0;
+#endif
  module.foreignOutputViewCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignOutputViewCount=0;
  module.foreignOutputRecordCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignOutputRecordCount=0;
  module.foreignOutputFieldCount=1;CHECK(!xlsFinalIrTablesEmpty(&module));module.foreignOutputFieldCount=0;

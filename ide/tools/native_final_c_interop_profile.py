@@ -19,6 +19,16 @@ PROJECTION_RECORD_PATH = Path(__file__).with_name('native_current_projection_pin
 PROJECTION_RECORD = json.loads(PROJECTION_RECORD_PATH.read_text(encoding='utf-8'))
 PROJECTION_PINS = PROJECTION_RECORD['pins']
 PROJECTION_RECORD_SHA256 = hashlib.sha256(PROJECTION_RECORD_PATH.read_bytes()).hexdigest()
+OWNERSHIP_RECORD_PATH = Path(__file__).with_name('native_current_ownership_pins_20261116.json')
+OWNERSHIP_RECORD = json.loads(OWNERSHIP_RECORD_PATH.read_text(encoding='utf-8'))
+OWNERSHIP_PINS = OWNERSHIP_RECORD['pins']
+OWNERSHIP_RECORD_SHA256 = hashlib.sha256(OWNERSHIP_RECORD_PATH.read_bytes()).hexdigest()
+_ownership_parent_lf = PROJECTION_RECORD_PATH.read_bytes().replace(b'\r\n',b'\n')
+if (OWNERSHIP_RECORD['parentRecordSha256'] not in {hashlib.sha256(data).hexdigest() for data in (_ownership_parent_lf,_ownership_parent_lf.replace(b'\n',b'\r\n'))} or
+    set(OWNERSHIP_PINS) != set(PROJECTION_PINS) | set(OWNERSHIP_RECORD['addedPaths']) or
+    sorted(name for name in PROJECTION_PINS if OWNERSHIP_PINS[name] != PROJECTION_PINS[name]) != OWNERSHIP_RECORD['changedPaths'] or
+    any(OWNERSHIP_PINS[name] != PROJECTION_PINS[name] for name in ('src/ast/xl6_ast.h','lib/xrt/xrt.h'))):
+    raise ValueError('ownership frontend changes its reviewed source/AST/XRT family')
 _projection_parent_lf = PRODUCT_RECORD_PATH.read_bytes().replace(b'\r\n',b'\n')
 if (PROJECTION_RECORD['parentRecordSha256'] not in {hashlib.sha256(data).hexdigest() for data in (_projection_parent_lf,_projection_parent_lf.replace(b'\n',b'\r\n'))} or
     set(PROJECTION_PINS) != set(PRODUCT_PINS) | {'src/sem/xl6_sem_foreign_projection_compat.c','src/ir/xl6_ir_foreign_projection_compat.c'}):
@@ -55,6 +65,8 @@ def _current_runtime(frontend):
 
 def pins_for(frontend):
     header=source_path(frontend,'src/ir/xl6_ir.h')
+    if header.is_file() and _recover_current(header.read_bytes(),'src/ir/xl6_ir.h',OWNERSHIP_PINS) is not None:
+        return OWNERSHIP_PINS
     if header.is_file() and _recover_current(header.read_bytes(),'src/ir/xl6_ir.h',PROJECTION_PINS) is not None:
         return PROJECTION_PINS
     if _current_runtime(frontend):
@@ -72,6 +84,7 @@ def completion_facts(frontend):
 
 def source_revision(frontend):
     pins=pins_for(frontend)
+    if pins is OWNERSHIP_PINS:return OWNERSHIP_RECORD['sourceRevision']
     if pins is PROJECTION_PINS:return PROJECTION_RECORD['sourceRevision']
     return CURRENT_RECORD['sourceRevision'] if pins is CURRENT_PINS or pins is PRODUCT_PINS else 'final-completion-facts-20261108' if pins is COMPLETION_PINS else 'final-core-r2-20261105'
 
@@ -90,6 +103,10 @@ def source_path(frontend, name):
     return frontend/PROJECTION_RECORD['sourcePaths'].get(name,CURRENT_RECORD['sourcePaths'].get(name,name))
 
 
+def projection_family(pins):
+    return pins is PROJECTION_PINS or pins is OWNERSHIP_PINS
+
+
 def profile(frontend):
     if not selected(frontend):
         raise ValueError('final frontend AST/XRT anchors differ')
@@ -98,7 +115,7 @@ def profile(frontend):
         path=source_path(frontend,name)
         if not path.is_file():raise ValueError('final frontend contract dependency missing: '+name)
         data=path.read_bytes();actual=hashlib.sha256(data).hexdigest()
-        if actual!=expected and (all(pins is not p for p in (CURRENT_PINS,PRODUCT_PINS,PROJECTION_PINS)) or _recover_current(data,name,pins) is None):
+        if actual!=expected and (all(pins is not p for p in (CURRENT_PINS,PRODUCT_PINS,PROJECTION_PINS,OWNERSHIP_PINS)) or _recover_current(data,name,pins) is None):
             raise ValueError('final frontend contract dependency changed: '+name)
         inputs[str(path)]=actual
     return inputs
@@ -113,12 +130,16 @@ def prepare(frontend,destination):
     if pins is PROJECTION_PINS:
         original[str(PROJECTION_RECORD_PATH.resolve())]=PROJECTION_RECORD_SHA256
         original[str(PRODUCT_RECORD_PATH.resolve())]=PRODUCT_RECORD_SHA256
+    if pins is OWNERSHIP_PINS:
+        original[str(OWNERSHIP_RECORD_PATH.resolve())]=OWNERSHIP_RECORD_SHA256
+        original[str(PROJECTION_RECORD_PATH.resolve())]=PROJECTION_RECORD_SHA256
+        original[str(PRODUCT_RECORD_PATH.resolve())]=PRODUCT_RECORD_SHA256
     destination=destination.resolve();destination.mkdir(parents=True,exist_ok=False)
     projected=[]
     for name,expected in pins.items():
         source=source_path(frontend,name);target=destination/name;data=source.read_bytes()
         operation='SDK-layout-projection'
-        if any(pins is p for p in (CURRENT_PINS,PRODUCT_PINS,PROJECTION_PINS)):
+        if any(pins is p for p in (CURRENT_PINS,PRODUCT_PINS,PROJECTION_PINS,OWNERSHIP_PINS)):
             recovered=_recover_current(data,name,pins)
             if recovered is None:raise ValueError('final frontend changed during source projection: '+name)
             data,operation=recovered
@@ -130,6 +151,6 @@ def prepare(frontend,destination):
     if any(sha(path)!=expected for path,expected in original.items()):
         raise ValueError('final frontend changed during source projection')
     return destination,dict(status='final-cohort-layout-projection',cohort=COHORT,
-        productVersion=PROJECTION_RECORD['productVersion'] if pins is PROJECTION_PINS else PRODUCT_RECORD['productVersion'] if pins is PRODUCT_PINS else None,
+        productVersion=OWNERSHIP_RECORD['productVersion'] if pins is OWNERSHIP_PINS else PROJECTION_RECORD['productVersion'] if pins is PROJECTION_PINS else PRODUCT_RECORD['productVersion'] if pins is PRODUCT_PINS else None,
         sourceRevision=revision,sourceRoot=str(frontend),frontendRoot=str(destination),
         originalInputs=original,transformations=projected)
