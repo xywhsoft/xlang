@@ -24,9 +24,11 @@ FORMAT = "xlang-ide-portable-1"
 MAX_FILES = 10000
 MAX_FILE = 256 * 1024 * 1024
 MAX_TOTAL = 1024 * 1024 * 1024
-CORE = ("xlang_ide.exe", "xlang-ls.exe", "xge.dll",
-        "xl.exe", "xl.dll", "xlc.dll")
-SYSTEM_DLLS = set("advapi32.dll bcrypt.dll comdlg32.dll dbghelp.dll gdi32.dll imm32.dll iphlpapi.dll kernel32.dll msvcrt.dll ntdll.dll ole32.dll oleaut32.dll shell32.dll user32.dll version.dll winhttp.dll winmm.dll ws2_32.dll wsock32.dll".split())
+from ide_runtime_library import runtime_basename
+IDE_RUNTIME = runtime_basename(Path(__file__).resolve().parents[1])
+CORE = ("xlang_ide.exe", "xlang-ls.exe", IDE_RUNTIME,
+        "xl.exe", "xl.dll", "xlc.dll", "xge.dll")
+SYSTEM_DLLS = set("advapi32.dll bcrypt.dll comdlg32.dll dbghelp.dll dwrite.dll gdi32.dll imm32.dll iphlpapi.dll kernel32.dll msvcrt.dll ntdll.dll ole32.dll oleaut32.dll shell32.dll user32.dll version.dll winhttp.dll winmm.dll ws2_32.dll wsock32.dll".split())
 RESERVED = {"con", "prn", "aux", "nul", *(f"com{i}" for i in range(10)), *(f"lpt{i}" for i in range(10))}
 
 class PackageError(ValueError):
@@ -388,7 +390,7 @@ def assemble(args):
     sdk_info = load_json(sdk / "sdk_manifest.json")
     sdk_dll_hash = next(p["sha256"] for p in sdk_info["files"] if p["path"] == "xge.dll")
     for name in CORE[:3]:
-        add(release/name, name, sdk_dll_hash if name == "xge.dll" else None)
+        add(release/name, name, sdk_dll_hash if name == IDE_RUNTIME else None)
     add(ide / "data/commands.json", "data/commands.json")
     require(sha(release / "data/commands.json") == sha(ide / "data/commands.json"), "Release command catalog is stale")
     catalog_sources = verify_catalog_sources(ide / 'data/catalog-sources', ide / 'data/commands.json')
@@ -405,7 +407,7 @@ def assemble(args):
     require(verify_font_resources(release / "data/fonts") == font_materials, "Release offline fonts are stale")
     for row in font_materials["files"]:
         add(ide / row["path"], row["path"], row["sha256"])
-    compiler_files = [compiler/name for name in ("xl.exe", "xl.dll", "xlc.dll")]
+    compiler_files = [compiler/name for name in ("xl.exe", "xl.dll", "xlc.dll", "xge.dll")]
     for directory in ("include", "extlibs"):
         compiler_files += tree(compiler/directory)
     for source in compiler_files:

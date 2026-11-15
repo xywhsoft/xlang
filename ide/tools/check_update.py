@@ -59,6 +59,20 @@ class UpdateTests(unittest.TestCase):
         self.assertEqual(manager.main(args),0);self.assertEqual(manager.current(self.store),0)
         self.assertFalse((self.store/'version.txt').exists());self.prepare(1,'init')
         self.assertEqual(manager.current(self.store),1)
+    def test_private_ide_runtime_is_independent_of_engine_runtime(self):
+        name=manager.IDE_RUNTIME
+        (self.source/name).write_bytes(b'IDE-SDK-v1')
+        (self.source/'xge.dll').write_bytes(b'ENGINE-SDK')
+        self.prepare(2);self.update()
+        self.assertEqual((self.install/name).read_bytes(),b'IDE-SDK-v1')
+        self.assertEqual((self.install/'xge.dll').read_bytes(),b'ENGINE-SDK')
+        (self.source/name).write_bytes(b'IDE-SDK-v2')
+        self.prepare(3);self.update(online=True)
+        self.assertEqual((self.install/name).read_bytes(),b'IDE-SDK-v2')
+        self.assertEqual((self.install/'xge.dll').read_bytes(),b'ENGINE-SDK')
+        (self.source/name).unlink();self.prepare(4);self.update()
+        self.assertFalse((self.install/name).exists())
+        self.assertEqual((self.install/'xge.dll').read_bytes(),b'ENGINE-SDK')
     def test_bundled_portable_identity(self):
         self.update('--check-version',expected=2)
         (self.install/'data').mkdir(exist_ok=True)

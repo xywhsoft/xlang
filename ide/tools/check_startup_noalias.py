@@ -6,6 +6,9 @@ import hashlib
 import json
 import os
 from pathlib import Path
+from gui_render_receipt import rendered_at_least, runtime_font, preferences_with_recent_only
+from ide_runtime_library import runtime_basename
+IDE_RUNTIME = runtime_basename(Path(__file__).resolve().parents[1])
 import shutil
 import subprocess
 import uuid
@@ -16,7 +19,7 @@ from check_startup_alias import native, logical, sha
 def check(fixture, output, compiler=None):
     fixture=Path(fixture).absolute();release=fixture.parent
     proof=Path(output).absolute()/('startup-noalias-'+uuid.uuid4().hex);proof.mkdir(parents=True)
-    sources=[fixture,release/'xlang_ide.exe',release/'xlang-ls.exe',release/'xge.dll',release/'data/commands.json',*sorted((release/'data/fonts').iterdir())]
+    sources=[fixture,release/'xlang_ide.exe',release/'xlang-ls.exe',release/IDE_RUNTIME,release/'data/commands.json',*sorted((release/'data/fonts').iterdir())]
     inputs={str(p):sha(p) for p in sources};directory=proof/'deep-program'
     k=ctypes.WinDLL('kernel32',use_last_error=True)
     k.CreateFileW.restype=ctypes.c_void_p;k.CreateFileW.argtypes=[ctypes.c_wchar_p,ctypes.c_ulong,ctypes.c_ulong,ctypes.c_void_p,ctypes.c_ulong,ctypes.c_ulong,ctypes.c_void_p]
@@ -80,17 +83,17 @@ def check(fixture, output, compiler=None):
     _,row=invoke('partial-context',[str(native(directory/fixture.name))],5,env={'XLANG_IDE_STARTUP_ORIGIN':str(native(directory/fixture.name))})
     assert 'startup alias failed:' in Path(row['stderr']).read_text();checks+=2
     settings=directory/'option/settings.json';native(settings).parent.mkdir(parents=True)
-    font=str(directory/'data/fonts/NotoSansMonoCJKsc-Regular.otf')
+    fontName=runtime_font(release);font=str(directory/'data/fonts'/fontName)
     preferences={'format':'xlang-ide-settings-1','editor':{'font':{'path':font,'size':20}},'ui':{'font':{'path':font,'size':16}}}
     if compiler:preferences['toolchain']={'compiler':str(Path(compiler).absolute())};inputs[str(Path(compiler).absolute())]=sha(compiler)
     native(settings).write_text(json.dumps(preferences,ensure_ascii=False),encoding='utf8')
-    protected={str(settings):sha(settings)}
+    settingsBeforeSha=sha(settings);protected={}
     for kind,text in {'c':'// 中文注释\nint main(void) { return 0; }\n','xlang':'#doc\n描述：无可用短名启动\n#end\nfunc main(...) as int\n    var 值 as int = 1\n    return 值 - 1\nend\n'}.items():
         p=directory/('编辑文件.'+('c' if kind=='c' else 'xl'));native(p).write_text(text,encoding='utf8');protected[str(p)]=sha(p)
     for name,program,kind in [('gui-c','xlang_ide.exe','c'),('gui-xl-primary','xlang_ide.exe','xlang'),('gui-xl','xlang_ide.exe','xlang')]:
         image=proof/(name+'.png');source=directory/('编辑文件.'+('c' if kind=='c' else 'xl'))
         text,row=invoke(name,[str(native(directory/program)),'--frames','3','--no-session','--open-file',str(source),'--command','c:keyword:inline' if kind=='c' else 'language:func','--screenshot',str(image)])
-        assert 'rendered 3 frames' in text and 'C and xlang registered' in text
+        assert rendered_at_least(text,3)
         assert 'preferences:' not in Path(row['stderr']).read_text(encoding='utf8')
         with Image.open(image) as im:assert im.size==(1280,800) and max(im.convert('L').getextrema())-min(im.convert('L').getextrema())>50
         checks+=5
@@ -105,11 +108,12 @@ def check(fixture, output, compiler=None):
             assert 'built=1' in text and ('ran=1' if task=='run' else 'ran=0') in text and 'code=0' in text
             assert native(projectDirectory/'build/app.exe').is_file()
             checks+=4
+    preferences_with_recent_only(native(settings),preferences,protected)
     for path,digest in {**inputs,**protected}.items():assert sha(path)==digest,path
-    assert not native(directory/'data/fonts/NotoSansMonoCJKsc-Regular.otf').is_symlink()
+    assert not native(directory/'data/fonts'/fontName).is_symlink()
     images=[{'path':str(p),'sha256':sha(p),'width':1280,'height':800} for p in sorted(proof.glob('*.png'))]
     files=[{'path':logical(p),'sha256':sha(p)} for p in sorted(native(proof).rglob('*')) if p.is_file()]
-    result={'status':'passed','utc':datetime.now(timezone.utc).isoformat(),'inputs':inputs,'protectedFiles':protected,'checks':checks,'calls':calls,'stagedPrograms':staged,'images':images,'files':files,'shortDirectoryAcpBytes':acp,'shortProgramPath':short.value,'removedShortNamesOnlyForFreshPrivateDirectories':removed,'volumePolicyChanged':False,'driverOrSystemChanged':False,'wholeNoShortNameVolumeVerified':False,'actualCreateProcessWDesktop':True,'neverSwitchedDesktop':True,'realNoUsableAliasGuiStartupVerified':True,'defaultOriginalSettingsCatalogAndFonts':True,'mixedProjectBuiltAndRanFromOriginalSettings':bool(compiler),'goalStatus':'active','formalRelease':False}
+    result={'status':'passed','utc':datetime.now(timezone.utc).isoformat(),'inputs':inputs,'protectedFiles':protected,'settingsBeforeSha256':settingsBeforeSha,'settingsAfterSha256':sha(settings),'settingsRecentOnlyValidated':True,'checks':checks,'calls':calls,'stagedPrograms':staged,'images':images,'files':files,'shortDirectoryAcpBytes':acp,'shortProgramPath':short.value,'removedShortNamesOnlyForFreshPrivateDirectories':removed,'volumePolicyChanged':False,'driverOrSystemChanged':False,'wholeNoShortNameVolumeVerified':False,'actualCreateProcessWDesktop':True,'neverSwitchedDesktop':True,'realNoUsableAliasGuiStartupVerified':True,'defaultOriginalSettingsCatalogAndFonts':True,'mixedProjectBuiltAndRanFromOriginalSettings':bool(compiler),'goalStatus':'active','formalRelease':False}
     (proof/'evidence.json').write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf8');print(f'Native no-alias startup: {checks} checks; {len(calls)} launches, {len(images)} images; {proof}',flush=True)
     return result
 

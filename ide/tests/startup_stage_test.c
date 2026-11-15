@@ -1,7 +1,9 @@
+#include "platform/runtime_library.h"
 #include "platform/startup_stage.h"
 #include <shellapi.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <wchar.h>
 static int checks;
 #define CHECK(value) do { ++checks; if(!(value)) {fprintf(stderr,"startup_stage_test line=%d error=%lu\n",__LINE__,GetLastError());return 1;} } while(0)
@@ -30,13 +32,16 @@ int main(void)
     CHECK(CreateDirectoryW(root,NULL) || GetLastError()==ERROR_ALREADY_EXISTS);
     for(int i=0;i<3;++i){size_t n=wcslen(root);CHECK(swprintf(root+n,32768-n,L"\\segment-%d-abcdefghijklmnopqrstuvwxyz-abcdefghijklmnopqrstuvwxyz-abcdefghijklmnopqrst",i)>0);CHECK(CreateDirectoryW(root,NULL));}
     CHECK(swprintf(program,32768,L"%ls\\original.exe",root)>0);
-    CHECK(swprintf(library,32768,L"%ls\\xge.dll",root)>0);
+    CHECK(swprintf(library,32768,L"%ls\\" XIDE_RUNTIME_DLL_BASENAME_W,root)>0);
     CHECK(xideStartupDirectoryBytes(program)>=256);
     CHECK(writeBytes(program,"EXE1") && writeBytes(library,"DLL1"));
+    wchar_t engineLibrary[32768];
+    CHECK(swprintf(engineLibrary,32768,L"%ls\\xge.dll",root)>0 && writeBytes(engineLibrary,"USER"));
     xide_startup_stage stage={0};DWORD error=0;
     CHECK(SetEnvironmentVariableW(L"XIDE_STAGE_UNRELATED",L"中文 😀 retained"));
     CHECK(xideStartupStagePrepare(program,&stage,&error));
     CHECK(stage.created[0] && stage.created[1] && stage.directoryCreated);
+    CHECK(!_wcsicmp(wcsrchr(stage.library,L'\\')+1,XIDE_RUNTIME_DLL_BASENAME_W));
     CHECK(xideStartupDirectoryBytes(stage.program)<256);
     CHECK(!wcscmp(value(stage.environment,L"XIDE_STAGE_UNRELATED"),L"中文 😀 retained"));
     CHECK(!wcscmp(value(stage.environment,L"XLANG_IDE_STARTUP_ORIGIN"),program));
@@ -70,7 +75,12 @@ int main(void)
     CHECK(CloseHandle(held));
     CHECK(DeleteFileW(displaced) && DeleteFileW(replacement) && DeleteFileW(foreign) && RemoveDirectoryW(copied));
     CHECK(DeleteFileW(library));
+    /* A global engine DLL must never substitute for the IDE's matched DLL. */
     CHECK(!xideStartupStagePrepare(program,&stage,&error) && error!=0);
+    HANDLE engine=CreateFileW(engineLibrary,GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,0,NULL);
+    char engineBytes[4];DWORD engineRead=0;
+    CHECK(engine!=INVALID_HANDLE_VALUE && ReadFile(engine,engineBytes,4,&engineRead,NULL) && engineRead==4 && !memcmp(engineBytes,"USER",4));
+    CHECK(CloseHandle(engine));
     CHECK(!stage.directory && !stage.program && !stage.environment);
     CHECK(writeBytes(library,"DLL1"));
     CHECK(xideStartupStagePrepare(program,&stage,&error));xideStartupStageClear(&stage);

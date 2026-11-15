@@ -1,0 +1,175 @@
+{
+  "schema": 1,
+  "date": "2026-11-16",
+  "stage": "M7b6r",
+  "scope": "Install qualified native LSP0.105 and matched private IDE runtime without replacing engine XGE",
+  "base": "9ad0aa5c45ee007353985413d9a6f08db37dc2d6",
+  "buildBase": "10f85a2498affca2eefc6d69851dfaf6265f7024",
+  "implementationAccepted": true,
+  "goalComplete": false,
+  "performanceQualified": false,
+  "defaultRuntimeReplaced": true,
+  "engineRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "formalRelease": false,
+  "ownedSources": {
+    "ide/docs/lsp-development.md": "07e4a38dac56cca2605aa5767b9205eaee24f5a92c52ff5065139ca8316106ac",
+    "ide/docs/lsp-private-runtime.md": "a68ecb62a21a470cb6b63507370d2085dc4cb018519c4b13e94831eb1bb71c98",
+    "ide/src/platform/runtime_library.h": "1eb9adb18322f67ce7ecbd2f792d277d6677c2fee3ded49431b2a16571478bdf",
+    "ide/src/platform/startup_cache.c": "6cabf979f54ba66c268e25c849ea15d0816177c62148d5fbea2c62c489306674",
+    "ide/src/platform/startup_cache.h": "96814d4cedb08bb28c2bd5886d467cde805bf0928b893174bb24de25c3593f75",
+    "ide/src/platform/startup_stage.c": "9c8126108b12b992c8a49aa90b6b128a26dbf07fda26d98a0bd3bb4e93f7f1cb",
+    "ide/src/services/native_edit_protection.c": "e8e50cd36b8f41af1023bdb0537ecc63739901f89a2edc1a25be0b9b2d72aa96",
+    "ide/tests/native_edit_protection_test.c": "416b9a9d93f980dafe45fcde4c00f77858a8a09b043798f7e3c253cba99c75e8",
+    "ide/tests/startup_cache_test.c": "3218d494a21a5c8ffe6b32c5348b1ed823e9ea98a554ee475a5b44cfed9ca462",
+    "ide/tests/startup_stage_test.c": "aa125a655acb5553824014b83e8157a587525598e45876930d5a8e186d893801",
+    "ide/tools/build.ps1": "9b880d66009f2398ca2765f472fd3836963ffce29d5b5a5bd690c80e3d769515",
+    "ide/tools/build_update.py": "ad4644e2e9315ad76165c2f4612c7e6e5922c9a335aa3607a2a890460e4a56c8",
+    "ide/tools/check_gui_startup.py": "9a318635666e09ce0ccc9dfa1fab0330a5fdcb15f6ca5343d5959ae9b9f72615",
+    "ide/tools/check_startup_alias.py": "e35a2a849e0080254f34db9f8db64ae793d75b1b8939564f7b415f322f9d6bed",
+    "ide/tools/check_startup_cache.py": "2064e8e8611924b457a61930a65538b6f581df0c124b57aacae03a5c0bf2c599",
+    "ide/tools/check_startup_cache_gui.py": "67108f0638fdcb7307b5ec3c6b3c4a39d15a3d90285858c89b702694036d65e3",
+    "ide/tools/check_startup_noalias.py": "09d46cacc1075bfa16a5583b2b789dad44ca57aa2bc51c9573faaa8508521de1",
+    "ide/tools/check_update.py": "4db344698c0f569c435afdd984b427618b0bf865cc38375a05de1c8a5601f59a",
+    "ide/tools/check_update_ide.py": "fcfc3754c4498202d6459ec57384cef3a52f683ff5191a81f3ffe64cb51e7df1",
+    "ide/tools/gui_render_receipt.py": "3e0032e657d06e1fb3a7868af44e82bf0ce4e7051b0b0b8ea5fe22636fc1d052",
+    "ide/tools/ide_runtime_library.py": "0d17eef5883a2171e56c7d18c3716ca25c5f174e994091b7f3438132d04f5c44",
+    "ide/tools/merge_release.py": "8af3fcdc272981a77e3d6ff9a56f4120cfa3307ebc6dc4effaba66163b0d15eb",
+    "ide/tools/package_portable.py": "c80a3e5d06b73f14429272a62e9940db78cdde765cfcfa96074d91ada408ad51",
+    "ide/tools/publish_ide_runtime.py": "c6458058d6e8a32db83e499d9bdeed50416a1d6dee3f8a11763bec7f77e837aa",
+    "ide/tools/test_ide_runtime.py": "7057807e29436d42ad4f72f9c760f5e595d5546f1d8810d963d5aace94cfebcd",
+    "ide/tools/update/update_manager.py": "9de4514f5a76b39368b6633fd32d773bf94a4925b843e2d944345578403d0ee0",
+    "ide/update/platform.c": "604c75c5aa227baed514d33d2ca091d761fa1c2b1fda4994ab8cb112b84a0b53"
+  },
+  "sharedFileEdits": {
+    "deliveryProperty": {
+      "schema": 1,
+      "stage": "M7b6r",
+      "directory": "release/win_x64",
+      "provenance": "dev/release-materials/provenance/lsp-private-runtime-20261116.json",
+      "languageServerVersion": "0.105",
+      "displayVersion": "0.6.2",
+      "ideRuntimeLibrary": "xlang_ide_xge.dll",
+      "runtime": {
+        "update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2",
+        "xlang-ls.exe": "49398b87135e3a40c11ccac8ea75a5523d4d7b0b2d45c5a7be5db95d467a2cdc",
+        "xlang_ide.exe": "128ae78ddfab000b10454a0821eaa4eb706d15aec0657016bc893281babd99bc",
+        "xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418"
+      },
+      "preservedEngine": {
+        "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+        "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+        "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+        "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+      },
+      "formalRelease": false,
+      "externalPublishPerformed": false
+    },
+    "deliveryBeforeSha256": "dbc9e09ddfaeced7c675d0540589319f20d03e08f5b43abe08dd33354ecaa9fd",
+    "deliveryAfterSha256": "746846739e276031515f0060d794fe9f51be5eebbc0dcd82866540216e73f1b3",
+    "ignoreRule": "!/dev/release-materials/provenance/lsp-private-runtime-20261116.json",
+    "ignoreAnchor": "!/dev/release-materials/provenance/lsp-current-ownership-20261116.json"
+  },
+  "ignoreRule": "!/dev/release-materials/provenance/lsp-private-runtime-20261116.json",
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-private-runtime-20261116/stage-sources.tar.gz",
+      "sha256": "4255e017cf8b50fe862ba7dd7ac741a40ff09a28b24e58c29c22071aec4c18b8",
+      "bytes": 374444,
+      "entries": 27,
+      "uniquePayloads": 27
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-private-runtime-20261116/stage-sources.tar.gz.manifest.json",
+      "sha256": "f6cab7eac36d6dd47a894b8a69ca193b7f47ffa4ef5f52606350a01170a20de4",
+      "bytes": 6755
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-private-runtime-20261116/actual-builds-and-validation.tar.gz",
+      "sha256": "70f8550ce1f400f493b52e0be89024c6eb7df8432ab3af530016396f12551a56",
+      "bytes": 164316520,
+      "entries": 7516,
+      "uniquePayloads": 3747
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-private-runtime-20261116/actual-builds-and-validation.tar.gz.manifest.json",
+      "sha256": "fb0372c9c51fe8e4ad950e9f59853295af09b39dd26c2c49e56ec8ab2f7b1bb6",
+      "bytes": 3463808
+    }
+  },
+  "externalPaths": [
+    "F:\\codex-builds-xlang-lsp-20261116\\ide-runtime",
+    "F:\\codex-builds-xlang-lsp-20261116\\ide-runtime-materials",
+    "F:\\xl-ide-runtime-20261116\\gui-async-view-v1"
+  ],
+  "materialDependencies": [
+    {
+      "index": "dev/release-materials/provenance/lsp-current-ownership-20261116.json",
+      "sha256": "a96fceb2e5a79bf428cf2a7c687ea78ea6464ab4faddca979af1e71fb4f37afe",
+      "purpose": "Unmodified qualified native0.105 service,465-input frontend cohort,complete native and protocol acceptance;previous tests are not new executions"
+    }
+  ],
+  "runtime": {
+    "update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2",
+    "xlang-ls.exe": "49398b87135e3a40c11ccac8ea75a5523d4d7b0b2d45c5a7be5db95d467a2cdc",
+    "xlang_ide.exe": "128ae78ddfab000b10454a0821eaa4eb706d15aec0657016bc893281babd99bc",
+    "xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418"
+  },
+  "preservedEngine": {
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+  },
+  "sdkDllSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+  "verification": {
+    "fullGuiUnits": 140,
+    "pairedGuiSuites": 55,
+    "actualModernIdeModes": 47,
+    "signedUpdaterCases": 45,
+    "installedOwnershipProtocolCases": 19,
+    "defaultStartupCases": 4,
+    "protectedRuntimeFiles": 7090,
+    "nativeStartupAndProtectionFixtures": 3,
+    "actualGuiLanguages": [
+      "c",
+      "xlang"
+    ],
+    "guiFramesPerLanguage": 24,
+    "actualGuiInterruptedParentLanguages": [
+      "c",
+      "xlang"
+    ],
+    "actualGuiInterruptedFramesPerLanguage": 600,
+    "publicationSuccessAndFaultCases": 8,
+    "unchangedImportMembers": 7069,
+    "changedImportMembers": 1,
+    "nativeServiceRecompiledThisStage": false,
+    "rawArchivesReadBackVerified": true,
+    "runtimeAliasesRemoved": true,
+    "userTmpPreserved": [
+      "xl6_run_12896_3542316922_0",
+      "xl6_run_19628_3542315168_0",
+      "xl6_run_28188_3542313674_0"
+    ],
+    "repositoryBudgetPassed": true
+  },
+  "startupEvidence": [
+    "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ide-runtime-20261116\\startup-actual-v3\\alias\\startup-alias-fcae1710166c4cf09e4166ac703775ae\\evidence.json",
+    "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ide-runtime-20261116\\startup-actual-v3\\noalias\\startup-noalias-f603d7903566444d9aa503aa1400e6de\\evidence.json",
+    "D:\\GIT\\x-lang\\ide\\build\\Release\\lsp-ide-runtime-20261116\\startup-actual-cache-v4\\cache-gui\\startup-gui-8510a1af7969473bb5c9a92b4e24f17a\\evidence.json"
+  ],
+  "evidenceNotes": [
+    "The actual default and SDK XGE ABI differ despite identical3.0.0 labels. Derive one DLL-name member from the original import archive,keep7069other objects identical,and execute the production import name in all GUI tests. SDK bytes and metadata remain untouched;IDE compiler/LS calls are separate processes.",
+    "Install GUI,native0.105,private matched DLL and standalone updater locally. Preserve7090non-cohort runtime files byte-for-byte including engine/extensions/help/settings. Refresh the local maintenance manager only;keep version stores,display/iteration metadata and online channel unchanged.",
+    "Retain the initial missing-test-proxy failure;restore exact previous proxy bytes and pass55GUI suites. Retain the package DirectWrite allowlist failure and a real verified full rollback;fix explicit system dependency classification and pass a fresh full promotion with19native protocol cases and realC/xlang renders.",
+    "Startup tools select actual bundled fonts,validate every non-history preference unchanged and restrict recent metadata to fixture inputs. Final bounded frame receipts permit documented asynchronous catalog/file-sync settling;exit deadlines,screenshots and resource checks remain. Canonicalize cache directory comparison across the development-material junction;all source/DLL/marker identity,hash,lease and parent/child checks remain.",
+    "Pass short-alias startup,no-usable-short-name mixed C/xlang build/run,and realGUI600-frame interrupted-parent cases for both languages. Keep all failed raw attempts and validated success receipts separately. Known LF/CRLF source conversions are recorded;actual frozen compiler input/object/link identities remain guarded."
+  ],
+  "limits": [
+    "No online update published and no change to display0.6.2 or update iteration. Formal delivery fields retain their separate history;current-delivery adds a localIdeLspRuntime record only.",
+    "No physical Windows7/GPU certification,full-goal performance/RSS/endurance/Linux/sanitizer qualification,or engine rebuild. Automatic discovery integration,remaining applicableLSP/static recovery/editing completion and known tail-latency regressions remain open. NoDAP/runtime/debug completion;whole goal remains active."
+  ],
+  "postCommitReceipt": "dev/release-materials/provenance/lsp-private-runtime-20261116/postcommit.json"
+}

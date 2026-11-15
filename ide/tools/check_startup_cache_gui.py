@@ -6,6 +6,9 @@ from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
+from gui_render_receipt import rendered_at_least, runtime_font, preferences_with_recent_only
+from ide_runtime_library import runtime_basename
+IDE_RUNTIME = runtime_basename(Path(__file__).resolve().parents[1])
 import shutil
 import time
 import uuid
@@ -63,7 +66,7 @@ def check(ide_root,package_root,fixture,output):
         finally:assert close(h)
     def responsive(hwnd):
         result=c.c_size_t();return bool(send(hwnd,0,0,0,2,1000,c.byref(result)))
-    calls=[];cases=[];inputs={str(fixture):sha(fixture)};protected={};images=[];status='failed';failure=None
+    settingsChecks=[];calls=[];cases=[];inputs={str(fixture):sha(fixture)};protected={};images=[];status='failed';failure=None
     roots=[('development',ide_root)]
     if package_root:roots.append(('packaged',Path(package_root).absolute()))
     def prune(case_root,desktop_name,cache_root,label):
@@ -82,7 +85,7 @@ def check(ide_root,package_root,fixture,output):
         for origin,source_root in roots:
             for language in ('c','xlang'):
                 label=origin+'-'+language;case_root=proof/label;case_root.mkdir();cache_root=case_root/'cache';cache_root.mkdir()
-                source_files=[source_root/'xlang_ide.exe',source_root/'xge.dll',source_root/'data/commands.json',*sorted((source_root/'data/fonts').iterdir())]
+                source_files=[source_root/'xlang_ide.exe',source_root/IDE_RUNTIME,source_root/'data/commands.json',*sorted((source_root/'data/fonts').iterdir())]
                 original=case_root/'original';removed=[]
                 for i in range(3):
                     original/=f'segment-{i}-'+('abcdefghijklmnop'*6)+'中文'
@@ -99,12 +102,12 @@ def check(ide_root,package_root,fixture,output):
                 program=original/'xlang_ide.exe';short=c.create_unicode_buffer(32768)
                 assert 0<get_short(str(native(program)),short,len(short))<len(short)
                 acp=len((short.value.rsplit('\\',1)[0]+'\\').encode('mbcs'));assert acp>=256,acp
-                font=str(original/'data/fonts/NotoSansMonoCJKsc-Regular.otf')
+                font=str(original/'data/fonts'/runtime_font(source_root))
                 settings=original/'option/settings.json';native(settings).parent.mkdir(parents=True)
                 native(settings).write_text(json.dumps({'format':'xlang-ide-settings-1','editor':{'font':{'path':font,'size':20}},'ui':{'font':{'path':font,'size':16}}},ensure_ascii=False),encoding='utf8')
                 source=original/('编辑文件.c' if language=='c' else '编辑文件.xl')
                 native(source).write_text('// 中文注释\nint main(void) { return 0; }\n' if language=='c' else '#doc\n描述：父进程结束后继续渲染\n#end\nfunc main(...) as int\n var 值 as int = 1\n return 值 - 1\nend\n',encoding='utf8')
-                protected.update({str(settings):sha(settings),str(source):sha(source)})
+                settingsChecks.append((settings,json.loads(native(settings).read_text(encoding='utf8')),source,sha(settings)));protected[str(source)]=sha(source)
                 desktop_name='XlangStartupGui-'+uuid.uuid4().hex;desktop=create_desktop(desktop_name,None,None,0,0x10000000,None);assert desktop,c.get_last_error()
                 env={key:value for key,value in os.environ.items() if not key.upper().startswith('XLANG_IDE_STARTUP_')}
                 env.update({'TEMP':str(cache_root),'TMP':str(cache_root)})
@@ -137,9 +140,9 @@ def check(ide_root,package_root,fixture,output):
                         case.update({'emptyDesktopPolls':empty_polls,'actualWindowEnumerationCompleted':True})
                         hwnd,pid=window;assert parent_pid(pid)==process.pid
                         survivor=open_process(0x1000|0x100000,False,pid);assert survivor,c.get_last_error()
-                        child_identity=identity(survivor);staged=Path(child_identity['image']);assert staged.parent.parent==cache_root and staged.parent.name.startswith('xlang-ide-start-v2-')
+                        child_identity=identity(survivor);staged=Path(child_identity['image']);assert staged.parent.parent.resolve()==cache_root.resolve() and staged.parent.name.startswith('xlang-ide-start-v3-')
                         assert sha(staged)==inputs[str(source_root/'xlang_ide.exe')]
-                        assert sha(staged.parent/'xge.dll')==inputs[str(source_root/'xge.dll')]
+                        assert sha(staged.parent/IDE_RUNTIME)==inputs[str(source_root/IDE_RUNTIME)]
                         marker=staged.parent/'.xide-startup';assert marker.is_file();marker_digest=sha(marker)
                         assert wait(survivor,0)==258 and process.poll() is None
                         assert process.terminate(process.handle,1),c.get_last_error();assert process.wait(timeout=10)==1
@@ -177,7 +180,7 @@ def check(ide_root,package_root,fixture,output):
                         case.update({'childPid':pid,'childIdentity':child_identity,'window':int(hwnd),'windowResponsiveAfterParentTermination':True,'markerDeleteBlockedByIndependentChildLease':True,'markerSha256':marker_digest,'whileChildLive':alive})
                         assert wait(survivor,60000)==0,c.get_last_error();code=w.DWORD();assert exit_code(survivor,c.byref(code));assert code.value==0,(label,code.value,err_path.read_text())
                         survivor_row={'label':label+'-actual-gui-child','pid':pid,'parentPid':process.pid,'identity':child_identity,'exit':code.value,'desktop':desktop_name,'stdout':str(out_path),'stderr':str(err_path),'inheritedOriginalCommandLine':args};calls.append(survivor_row)
-                    text=out_path.read_text(encoding='utf8');assert 'rendered 600 frames' in text and 'C and xlang registered' in text
+                    text=out_path.read_text(encoding='utf8');assert rendered_at_least(text,600)
                     assert 'preferences:' not in err_path.read_text(encoding='utf8',errors='replace')
                     with Image.open(png) as im:assert im.size==(1280,800) and max(im.convert('L').getextrema())-min(im.convert('L').getextrema())>50
                     images.append({'path':str(png),'sha256':sha(png),'width':1280,'height':800,'label':label})
@@ -191,6 +194,7 @@ def check(ide_root,package_root,fixture,output):
                         process.close() # Own job only; failure cleanup also covers its actual child.
                     if survivor:assert close(survivor)
                     assert close_desktop(desktop),c.get_last_error()
+        for settings,prefs,source,_ in settingsChecks:preferences_with_recent_only(native(settings),prefs,[source])
         for path,digest in {**inputs,**protected}.items():assert sha(path)==digest,path
         assert len(cases)==len(roots)*2 and len(images)==len(cases);status='passed'
     except BaseException as e:
@@ -199,7 +203,7 @@ def check(ide_root,package_root,fixture,output):
         for row in calls:
             for stream in ('stdout','stderr'):row[stream+'Sha256']=sha(row[stream])
         files=[{'path':logical(p),'sha256':sha(p)} for p in sorted(native(proof).rglob('*')) if p.is_file()]
-        report={'status':status,'failure':failure,'utc':datetime.now(timezone.utc).isoformat(),'fixture':str(fixture),'fixtureSha256':sha(fixture),'inputs':inputs,'protectedFiles':protected,'cases':cases,'calls':calls,'images':images,'files':files,'actualCreateProcessW':True,'privateDesktopNeverSwitched':True,'actualGuiInterruptedParentSurvivalVerified':status=='passed','onlyOwnedStartupParentsTerminated':status=='passed','systemClockChanged':False,'volumePolicyChanged':False,'driverOrSystemChanged':False,'unrecordedPartialCopiesReclaimed':False,'fullNativeRegressionRepeated':False,'goalStatus':'active','formalRelease':False}
+        report={'status':status,'failure':failure,'utc':datetime.now(timezone.utc).isoformat(),'fixture':str(fixture),'fixtureSha256':sha(fixture),'inputs':inputs,'protectedFiles':protected,'settingsChecks':[{'path':str(p),'beforeSha256':h,'afterSha256':sha(p)}for p,_,_,h in settingsChecks],'settingsRecentOnlyValidated':status=='passed','cases':cases,'calls':calls,'images':images,'files':files,'actualCreateProcessW':True,'privateDesktopNeverSwitched':True,'actualGuiInterruptedParentSurvivalVerified':status=='passed','onlyOwnedStartupParentsTerminated':status=='passed','systemClockChanged':False,'volumePolicyChanged':False,'driverOrSystemChanged':False,'unrecordedPartialCopiesReclaimed':False,'fullNativeRegressionRepeated':False,'goalStatus':'active','formalRelease':False}
         (proof/'evidence.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf8')
         print('Actual GUI startup parent interruption:',status,len(cases),'cases;',proof,flush=True)
     return report

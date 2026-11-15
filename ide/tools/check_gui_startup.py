@@ -3,6 +3,9 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+from gui_render_receipt import rendered_at_least
+from ide_runtime_library import runtime_basename
+IDE_RUNTIME = runtime_basename(Path(__file__).resolve().parents[1])
 import subprocess
 import time
 
@@ -17,7 +20,7 @@ def check(runtime, output):
         raise ValueError('Keep validation artifacts outside the runtime directory')
     output.mkdir(parents=True, exist_ok=False)
     executable = runtime/'xlang_ide.exe'
-    protected = [executable, runtime/'xge.dll', runtime/'xlang-ls.exe']
+    protected = [executable, runtime/IDE_RUNTIME, runtime/'xlang-ls.exe']
     settings = runtime/'option/settings.json'
     if settings.exists():
         protected.append(settings)
@@ -46,7 +49,7 @@ def check(runtime, output):
         process = subprocess.run(command, cwd=runtime, capture_output=True, timeout=60)
         log = output/(name+'.log')
         log.write_bytes(process.stdout+process.stderr)
-        rendered = b'rendered 4 frames' in process.stdout+process.stderr
+        rendered = rendered_at_least((process.stdout+process.stderr).decode('utf-8',errors='replace'),4)
         captured = image.is_file() and image.read_bytes()[:8]==b'\x89PNG\r\n\x1a\n'
         report['rows'].append(dict(name=name, command=command, exitCode=process.returncode,
                                    seconds=round(time.monotonic()-started, 3),

@@ -12,11 +12,12 @@ from pathlib import Path
 import shutil
 import stat
 import uuid
+from ide_runtime_library import runtime_basename
 
 IDE = Path(__file__).resolve().parents[1]
 REPO = IDE.parent
-APPLICATIONS = ('xlang_ide.exe', 'xlang-ls.exe', 'xge.dll')
-ENGINE = ('xl.exe', 'xl.dll', 'xlc.dll')
+APPLICATIONS = ('xlang_ide.exe', 'xlang-ls.exe', runtime_basename(IDE))
+ENGINE = ('xl.exe', 'xl.dll', 'xlc.dll', 'xge.dll')
 
 
 def sha(path):
@@ -98,7 +99,7 @@ def merge(source, application_release, output, language_server=None):
     selected, development = {}, {}
     material_root = REPO / 'dev/release-materials'
     for name, digest in original.items():
-        if name == 'xlang_ide_console.exe':
+        if name in ('xlang_ide_console.exe', 'xge.dll'):
             continue
         if name.startswith(('toolchains/xlang/', 'toolchains/clangd/', 'sources/clangd-adaptation/', 'notices/clangd/', 'provenance/clangd-adaptation/')) or name == 'provenance/clangd-inputs.json':
             continue

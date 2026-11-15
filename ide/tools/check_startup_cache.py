@@ -1,4 +1,6 @@
 from pathlib import Path
+from ide_runtime_library import runtime_basename
+IDE_RUNTIME = runtime_basename(Path(__file__).resolve().parents[1])
 import argparse,ctypes,datetime,hashlib,json,os,sys,time,uuid
 from ctypes import wintypes
 from native_desktop import NativeDesktopProcess
@@ -28,7 +30,7 @@ def waitfile(path):
     raise TimeoutError(str(path))
 try:
     text=run('native-cases',['--cases',root/'cases']);assert 'startup_cache_test passed:' in text
-    temp=root/'parent-cache';temp.mkdir();original=root/'parent-source';original.mkdir();(original/'original.exe').write_bytes(b'EXE1');(original/'xge.dll').write_bytes(b'DLL1')
+    temp=root/'parent-cache';temp.mkdir();original=root/'parent-source';original.mkdir();(original/'original.exe').write_bytes(b'EXE1');(original/IDE_RUNTIME).write_bytes(b'DLL1')
     env=os.environ.copy();env.update({'TEMP':str(temp),'TMP':str(temp)})
     parent=start('live-parent',['--prepare',original/'original.exe',root/'parent.ready',root/'parent.stop'],env)
     staged=Path(waitfile(root/'parent.ready'));assert staged.parent.is_relative_to(temp)
@@ -41,7 +43,7 @@ try:
     assert survivor.poll() is None
     (root/'child.stop').write_bytes(b'stop');assert survivor.wait(timeout=10)==0;calls[-2]['exit']=0
     expired=json.loads(run('prune-after-parent-crash-child-exit',['--prune',temp,expiry]));assert expired['removed']==1 and not staged.parent.exists()
-    assert (original/'original.exe').read_bytes()==b'EXE1' and (original/'xge.dll').read_bytes()==b'DLL1';status='passed'
+    assert (original/'original.exe').read_bytes()==b'EXE1' and (original/IDE_RUNTIME).read_bytes()==b'DLL1';status='passed'
 finally:
     for child,out,err in children:
         if child.poll() is None:child.kill();child.wait(timeout=10)

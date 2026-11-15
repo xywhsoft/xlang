@@ -1,3 +1,4 @@
+#include "platform/runtime_library.h"
 #include "platform/startup_stage.h"
 #include <shellapi.h>
 #include <stdio.h>
@@ -71,9 +72,12 @@ int main(void)
     CHECK(!wcscmp(argv[1],L"--cases") && count==3);
     CHECK(CreateDirectoryW(root,NULL) || GetLastError()==ERROR_ALREADY_EXISTS);
     CHECK(SetEnvironmentVariableW(L"TEMP",root) && SetEnvironmentVariableW(L"TMP",root));
+    wchar_t legacy[32768],legacyFile[32768];
+    CHECK(swprintf(legacy,32768,L"%ls\\xlang-ide-start-v2-00000000000000000000000000000000",root)>0 && CreateDirectoryW(legacy,NULL));
+    CHECK(swprintf(legacyFile,32768,L"%ls\\xge.dll",legacy)>0 && bytes(legacyFile,"USER",CREATE_NEW));
     wchar_t source[32768],program[32768],library[32768],foreign[32768],marker[32768];CHECK(swprintf(source,32768,L"\\\\?\\%ls",root)>0);
     for(int i=0;i<3;++i){size_t n=wcslen(source);CHECK(swprintf(source+n,32768-n,L"\\source-%d-abcdefghijklmnopqrstuvwxyz-abcdefghijklmnopqrstuvwxyz-abcdefghijklmnopqrst",i)>0);CHECK(CreateDirectoryW(source,NULL));}
-    CHECK(swprintf(program,32768,L"%ls\\original.exe",source)>0 && swprintf(library,32768,L"%ls\\xge.dll",source)>0);
+    CHECK(swprintf(program,32768,L"%ls\\original.exe",source)>0 && swprintf(library,32768,L"%ls\\" XIDE_RUNTIME_DLL_BASENAME_W,source)>0);
     CHECK(bytes(program,"EXE1",CREATE_NEW) && bytes(library,"DLL1",CREATE_NEW));
     xide_startup_stage stage={0};xide_startup_cache_stats stats;ULONGLONG expired=now+XIDE_STARTUP_CACHE_GRACE+600000000;
     CHECK(!xideStartupCachePrune(NULL,expired,&stats) && stats.scanned==0);
@@ -117,5 +121,6 @@ int main(void)
     CHECK(xideStartupCachePrune(root,expired,&stats) && stats.scanned==1 && stats.removed==1);
     for(int i=0;i<65;++i)xideStartupStageClear(&many[i]);
     CHECK(hasBytes(program,"EXE1") && hasBytes(library,"DLL1"));
+    CHECK(hasBytes(legacyFile,"USER") && GetFileAttributesW(legacy)!=INVALID_FILE_ATTRIBUTES);
     printf("startup_cache_test passed: %d native assertions; leases, grace, foreign/modified/missing/replaced/corrupt records, hard links, reparse target and bounded sweep\n",checks);LocalFree(argv);return 0;
 }

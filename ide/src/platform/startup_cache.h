@@ -8,7 +8,7 @@ typedef struct xide_startup_cache_stats {
     ULONGLONG hashedBytes;
 } xide_startup_cache_stats;
 #define XIDE_STARTUP_CACHE_GRACE (7ULL*24*60*60*10000000)
-/* New v2 folders only. Old unrecorded folders are never inferred to be owned. */
+/* New v3 folders only. Old unrecorded folders are never inferred to be owned. */
 xide_startup_cache_lease* xideStartupCachePublish(const wchar_t* directory,
     const wchar_t* program,BY_HANDLE_FILE_INFORMATION* markerIdentity,DWORD* error);
 void xideStartupCacheRelease(xide_startup_cache_lease* lease);

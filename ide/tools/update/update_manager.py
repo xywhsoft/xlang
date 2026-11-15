@@ -25,7 +25,8 @@ import prepare_update as maker
 
 ROOT = Path(__file__).resolve().parents[3]
 PLATFORMS = ('win_x64', 'linux_x64', 'linux_arm', 'linux_arm64')
-TOP = {'xlang_ide.exe','xlang-ls.exe','xge.dll','xl.exe','xl.dll','xlc.dll','xl.def','xlc.def','update.exe',
+IDE_RUNTIME = 'xlang_ide_xge.dll' # Matches src/platform/runtime_library.h; manager also runs standalone.
+TOP = {'xlang_ide.exe','xlang-ls.exe',IDE_RUNTIME,'xge.dll','xl.exe','xl.dll','xlc.dll','xl.def','xlc.def','update.exe',
        'xlang_ide','xlang-ls','update','xl','libxl.so','libxlc.so','libxge.so','README.md','QUICKSTART.md'}
 META = ('update.json','update.lzma','version.txt')
 HEX = re.compile(r'[0-9a-f]{64}(?:-[1-9][0-9]*)?\.lzma\Z')
@@ -178,7 +179,7 @@ def runtime_inputs(source,mdo):
 
 def validate_runtime(source):
     if not (source/'xlang_ide.exe').exists(): return
-    for name in ('xge.dll','xlang-ls.exe','xl.exe','xl.dll','xlc.dll','data/commands.json','data/catalog-sources/index.json'):
+    for name in (IDE_RUNTIME,'xge.dll','xlang-ls.exe','xl.exe','xl.dll','xlc.dll','data/commands.json','data/catalog-sources/index.json'):
         if not (source/name).is_file(): raise ValueError('incomplete IDE runtime: '+name)
     catalog=read(source/'data/commands.json')
     bindings=catalog.get('binding',{}).get('compilerFiles',{})

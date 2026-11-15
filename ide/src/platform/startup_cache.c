@@ -1,3 +1,4 @@
+#include "platform/runtime_library.h"
 #include "platform/startup_cache.h"
 #include <aclapi.h>
 #include <xrt.h>
@@ -7,7 +8,7 @@
 #include <wchar.h>
 #include <stdio.h>
 #define MARKER L".xide-startup"
-#define PREFIX L"xlang-ide-start-v2-"
+#define PREFIX L"xlang-ide-start-v3-"
 #define BINARY_LIMIT (64u*1024u*1024u)
 #define HASH_BUDGET (128ULL*1024*1024)
 typedef struct cache_file {
@@ -25,7 +26,7 @@ typedef struct cache_record {
     unsigned char sid[SECURITY_MAX_SID_SIZE];
     cache_file files[2];
 } cache_record;
-static const unsigned char magic[16]={'x','l','a','n','g','-','s','t','a','r','t','-','v','2',0,0};
+static const unsigned char magic[16]={'x','l','a','n','g','-','s','t','a','r','t','-','v','3',0,0};
 struct xide_startup_cache_lease { HANDLE marker,directory,root; };
 static xide_startup_cache_lease* childLease;
 static ULONGLONG ticks(FILETIME value) {return ((ULONGLONG)value.dwHighDateTime<<32)|value.dwLowDateTime;}
@@ -104,7 +105,7 @@ static int inventory(const wchar_t* directory,const wchar_t* program)
     do {
         if(!wcscmp(row.cFileName,L".") || !wcscmp(row.cFileName,L".."))continue;
         if(row.dwFileAttributes&(FILE_ATTRIBUTE_DIRECTORY|FILE_ATTRIBUTE_REPARSE_POINT)){okay=0;break;}
-        int index=!_wcsicmp(row.cFileName,MARKER) ? 0 : (!_wcsicmp(row.cFileName,program) ? 1 : (!_wcsicmp(row.cFileName,L"xge.dll") ? 2 : -1));
+        int index=!_wcsicmp(row.cFileName,MARKER) ? 0 : (!_wcsicmp(row.cFileName,program) ? 1 : (!_wcsicmp(row.cFileName,XIDE_RUNTIME_DLL_BASENAME_W) ? 2 : -1));
         if(index<0 || ++counts[index]!=1){okay=0;break;}
     } while(FindNextFileW(search,&row));
     DWORD error=GetLastError();FindClose(search);return okay && error==ERROR_NO_MORE_FILES && counts[0]==1 && counts[1]==1 && counts[2]==1;
@@ -116,8 +117,8 @@ xide_startup_cache_lease* xideStartupCachePublish(const wchar_t* directory,const
     cache_record record={0};BY_HANDLE_FILE_INFORMATION rootInfo={0},directoryInfo={0};wchar_t* root=parent(directory);wchar_t* marker=join(directory,MARKER);
     xide_startup_cache_lease* lease=calloc(1,sizeof(*lease));const wchar_t* leaf=wcsrchr(program,L'\\');int okay=lease && root && marker && leaf && wcslen(leaf+1)<260 && nameValid(directory) && currentUser(record.sid,&record.sidBytes);
     if(okay){lease->root=ordinary(root,FILE_READ_ATTRIBUTES,1,&rootInfo);lease->directory=ordinary(directory,FILE_READ_ATTRIBUTES,1,&directoryInfo);okay=lease->root!=INVALID_HANDLE_VALUE && lease->directory!=INVALID_HANDLE_VALUE && ownerMatches(lease->directory,record.sid);}
-    if(okay){memcpy(record.magic,magic,sizeof(magic));record.version=2;record.bytes=sizeof(record);wcscpy(record.program,leaf+1);record.rootVolume=rootInfo.dwVolumeSerialNumber;record.rootHigh=rootInfo.nFileIndexHigh;record.rootLow=rootInfo.nFileIndexLow;record.directoryVolume=directoryInfo.dwVolumeSerialNumber;record.directoryHigh=directoryInfo.nFileIndexHigh;record.directoryLow=directoryInfo.nFileIndexLow;record.created=ticks(directoryInfo.ftCreationTime);}
-    for(int i=0;okay && i<2;++i){wchar_t* path=join(directory,i ? L"xge.dll" : leaf+1);BY_HANDLE_FILE_INFORMATION info={0};HANDLE file=path ? ordinary(path,GENERIC_READ,0,&info) : INVALID_HANDLE_VALUE;okay=file!=INVALID_HANDLE_VALUE && ownerMatches(file,record.sid) && digest(file,&info,&record.files[i],NULL);if(file!=INVALID_HANDLE_VALUE)CloseHandle(file);free(path);}
+    if(okay){memcpy(record.magic,magic,sizeof(magic));record.version=3;record.bytes=sizeof(record);wcscpy(record.program,leaf+1);record.rootVolume=rootInfo.dwVolumeSerialNumber;record.rootHigh=rootInfo.nFileIndexHigh;record.rootLow=rootInfo.nFileIndexLow;record.directoryVolume=directoryInfo.dwVolumeSerialNumber;record.directoryHigh=directoryInfo.nFileIndexHigh;record.directoryLow=directoryInfo.nFileIndexLow;record.created=ticks(directoryInfo.ftCreationTime);}
+    for(int i=0;okay && i<2;++i){wchar_t* path=join(directory,i ? XIDE_RUNTIME_DLL_BASENAME_W : leaf+1);BY_HANDLE_FILE_INFORMATION info={0};HANDLE file=path ? ordinary(path,GENERIC_READ,0,&info) : INVALID_HANDLE_VALUE;okay=file!=INVALID_HANDLE_VALUE && ownerMatches(file,record.sid) && digest(file,&info,&record.files[i],NULL);if(file!=INVALID_HANDLE_VALUE)CloseHandle(file);free(path);}
     if(okay){HANDLE output=CreateFileW(marker,GENERIC_WRITE,0,NULL,CREATE_NEW,FILE_ATTRIBUTE_HIDDEN|FILE_FLAG_OPEN_REPARSE_POINT,NULL);DWORD count=0;okay=output!=INVALID_HANDLE_VALUE && GetFileInformationByHandle(output,markerIdentity);if(okay){record.markerVolume=markerIdentity->dwVolumeSerialNumber;record.markerHigh=markerIdentity->nFileIndexHigh;record.markerLow=markerIdentity->nFileIndexLow;}okay=okay && WriteFile(output,&record,sizeof(record),&count,NULL) && count==sizeof(record) && FlushFileBuffers(output);if(output!=INVALID_HANDLE_VALUE)CloseHandle(output);}
     if(okay){BY_HANDLE_FILE_INFORMATION info={0};lease->marker=ordinary(marker,GENERIC_READ,0,&info);okay=lease->marker!=INVALID_HANDLE_VALUE && identity(&info,markerIdentity->dwVolumeSerialNumber,markerIdentity->nFileIndexHigh,markerIdentity->nFileIndexLow) && inventory(directory,record.program);}
     free(root);free(marker);
@@ -127,7 +128,7 @@ static int readRecord(HANDLE marker,cache_record* record,const BY_HANDLE_FILE_IN
 {
     DWORD n=0;unsigned char sid[SECURITY_MAX_SID_SIZE];DWORD length=0;
     if(info->nFileSizeHigh || info->nFileSizeLow!=sizeof(*record) || !ReadFile(marker,record,sizeof(*record),&n,NULL) || n!=sizeof(*record))return 0;
-    if(memcmp(record->magic,magic,sizeof(magic)) || record->version!=2 || record->bytes!=sizeof(*record) || record->reserved || !record->sidBytes || record->sidBytes>SECURITY_MAX_SID_SIZE || !record->program[0] || record->program[259] || wcspbrk(record->program,L"\\/:") || !wcscmp(record->program,L".") || !wcscmp(record->program,L"..") || !_wcsicmp(record->program,MARKER) || !_wcsicmp(record->program,L"xge.dll"))return 0;
+    if(memcmp(record->magic,magic,sizeof(magic)) || record->version!=3 || record->bytes!=sizeof(*record) || record->reserved || !record->sidBytes || record->sidBytes>SECURITY_MAX_SID_SIZE || !record->program[0] || record->program[259] || wcspbrk(record->program,L"\\/:") || !wcscmp(record->program,L".") || !wcscmp(record->program,L"..") || !_wcsicmp(record->program,MARKER) || !_wcsicmp(record->program,XIDE_RUNTIME_DLL_BASENAME_W))return 0;
     return identity(info,record->markerVolume,record->markerHigh,record->markerLow) && currentUser(sid,&length) && length==record->sidBytes && IsValidSid(record->sid) && GetLengthSid(record->sid)==length && EqualSid(sid,record->sid) && ownerMatches(marker,sid);
 }
 static void releaseChild(void) {xideStartupCacheRelease(childLease);childLease=NULL;}
@@ -136,7 +137,7 @@ int xideStartupCacheChildHold(const wchar_t* program,DWORD* error)
     if(!program){if(error)*error=ERROR_INVALID_PARAMETER;return 0;}
     wchar_t* directory=parent(program);wchar_t* root=directory ? parent(directory) : NULL;wchar_t* marker=directory ? join(directory,MARKER) : NULL;xide_startup_cache_lease* lease=calloc(1,sizeof(*lease));cache_record record={0};BY_HANDLE_FILE_INFORMATION a={0},d={0},m={0};int okay=!childLease && lease && root && marker && nameValid(directory);
     if(okay){lease->root=ordinary(root,FILE_READ_ATTRIBUTES,1,&a);lease->directory=ordinary(directory,FILE_READ_ATTRIBUTES,1,&d);lease->marker=ordinary(marker,GENERIC_READ,0,&m);okay=lease->root!=INVALID_HANDLE_VALUE && lease->directory!=INVALID_HANDLE_VALUE && lease->marker!=INVALID_HANDLE_VALUE && readRecord(lease->marker,&record,&m) && identity(&a,record.rootVolume,record.rootHigh,record.rootLow) && identity(&d,record.directoryVolume,record.directoryHigh,record.directoryLow) && record.created==ticks(d.ftCreationTime) && !_wcsicmp(wcsrchr(program,L'\\')+1,record.program) && inventory(directory,record.program);}
-    for(int i=0;okay && i<2;++i){wchar_t* path=join(directory,i ? L"xge.dll" : record.program);BY_HANDLE_FILE_INFORMATION info={0};cache_file value={0};HANDLE file=path ? ordinary(path,GENERIC_READ,0,&info) : INVALID_HANDLE_VALUE;okay=file!=INVALID_HANDLE_VALUE && digest(file,&info,&value,NULL) && !memcmp(&value,&record.files[i],sizeof(value));if(file!=INVALID_HANDLE_VALUE)CloseHandle(file);free(path);}
+    for(int i=0;okay && i<2;++i){wchar_t* path=join(directory,i ? XIDE_RUNTIME_DLL_BASENAME_W : record.program);BY_HANDLE_FILE_INFORMATION info={0};cache_file value={0};HANDLE file=path ? ordinary(path,GENERIC_READ,0,&info) : INVALID_HANDLE_VALUE;okay=file!=INVALID_HANDLE_VALUE && digest(file,&info,&value,NULL) && !memcmp(&value,&record.files[i],sizeof(value));if(file!=INVALID_HANDLE_VALUE)CloseHandle(file);free(path);}
     free(root);free(directory);free(marker);
     if(!okay){xideStartupCacheRelease(lease);if(error)*error=ERROR_FILE_INVALID;return 0;}
     if(atexit(releaseChild)){xideStartupCacheRelease(lease);if(error)*error=ERROR_NOT_ENOUGH_MEMORY;return 0;}
@@ -153,7 +154,7 @@ int xideStartupCachePrune(const wchar_t* root,ULONGLONG now,xide_startup_cache_s
         if(okay){dh=ordinary(directory,DELETE|FILE_READ_ATTRIBUTES,1,&d);mh=ordinary(marker,GENERIC_READ|DELETE,0,&m);okay=dh!=INVALID_HANDLE_VALUE && mh!=INVALID_HANDLE_VALUE && readRecord(mh,&record,&m) && ownerMatches(dh,record.sid) && identity(&rootInfo,record.rootVolume,record.rootHigh,record.rootLow) && identity(&d,record.directoryVolume,record.directoryHigh,record.directoryLow) && record.created==ticks(d.ftCreationTime);}
         int recent=okay && (record.created>now || now-record.created<XIDE_STARTUP_CACHE_GRACE);if(recent)okay=0;
         if(okay)okay=inventory(directory,record.program);
-        for(int i=0;okay && i<2;++i){wchar_t* path=join(directory,i ? L"xge.dll" : record.program);BY_HANDLE_FILE_INFORMATION info={0};cache_file value={0};files[i]=path ? ordinary(path,GENERIC_READ|DELETE,0,&info) : INVALID_HANDLE_VALUE;free(path);okay=files[i]!=INVALID_HANDLE_VALUE && ownerMatches(files[i],record.sid) && digest(files[i],&info,&value,&stats->hashedBytes) && !memcmp(&value,&record.files[i],sizeof(value));}
+        for(int i=0;okay && i<2;++i){wchar_t* path=join(directory,i ? XIDE_RUNTIME_DLL_BASENAME_W : record.program);BY_HANDLE_FILE_INFORMATION info={0};cache_file value={0};files[i]=path ? ordinary(path,GENERIC_READ|DELETE,0,&info) : INVALID_HANDLE_VALUE;free(path);okay=files[i]!=INVALID_HANDLE_VALUE && ownerMatches(files[i],record.sid) && digest(files[i],&info,&value,&stats->hashedBytes) && !memcmp(&value,&record.files[i],sizeof(value));}
         /* Validate every member before any deletion. Handles deny replacement;
            unknown concurrent additions keep the directory nonempty. */
         if(okay)okay=inventory(directory,record.program);

@@ -2,6 +2,7 @@
 #define _XOPEN_SOURCE 700
 #include "update.h"
 #include "platform/update_storage.h"
+#include "platform/runtime_library.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
@@ -121,7 +122,7 @@ int up_managed(const char* p) {
     /* Explicit ownership, identical on every platform and in the maker. */
     const char* prefixes[]={"data/","include/","notices/","option/defaults/"};
     for(size_t i=0;i<sizeof(prefixes)/sizeof(*prefixes);i++)if(!strncmp(p,prefixes[i],strlen(prefixes[i])))return 1;
-    const char* files[]={"xlang_ide.exe","xlang-ls.exe","xge.dll","xl.exe","xl.dll","xlc.dll","xl.def","xlc.def","update.exe","xlang_ide","xlang-ls","update","xl","libxl.so","libxlc.so","libxge.so","README.md","QUICKSTART.md","mdo.exe","mdo"};
+    const char* files[]={"xlang_ide.exe","xlang-ls.exe",XIDE_RUNTIME_DLL_BASENAME,"xge.dll","xl.exe","xl.dll","xlc.dll","xl.def","xlc.def","update.exe","xlang_ide","xlang-ls","update","xl","libxl.so","libxlc.so","libxge.so","README.md","QUICKSTART.md","mdo.exe","mdo"};
     for(size_t i=0;i<sizeof(files)/sizeof(*files);i++)if(!strcmp(p,files[i]))return 1;
     return 0;
 }

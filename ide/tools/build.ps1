@@ -114,6 +114,8 @@ $guardPaths=@(Get-ChildItem -LiteralPath (Join-Path $ideRoot 'src') -Recurse -Fi
 $guardPaths+=Join-Path $sdkRoot 'sdk_manifest.json'
 $guardPaths+=@($sdkManifest.files | ForEach-Object { Join-Path $sdkRoot $_.path })
 $guardPaths+=$PSCommandPath
+$guardPaths+=Join-Path $PSScriptRoot 'ide_runtime_library.py'
+$guardPaths+=Join-Path $PSScriptRoot 'publish_ide_runtime.py'
 $guardPaths+=$versionPath
 $guardPaths+=$versionHeader
 $guardPaths+=Join-Path $ideRoot 'data\xlang_ide.rc'
@@ -143,7 +145,11 @@ foreach ($source in $sources) {
     if ($LASTEXITCODE -ne 0) { throw "Compile failed: $source" }
     $objects += $object
 }
-$libraries = @((Join-Path $sdkRoot 'xge.lib'),'-lm','-lws2_32','-lwinhttp','-liphlpapi','-lgdi32','-luser32','-lshell32','-lopengl32','-lole32','-lwinmm','-lavrt','-lversion','-lbcrypt','-ladvapi32')
+$privateImport = Join-Path $objectRoot 'xide-runtime.lib'
+& python -X utf8 -B (Join-Path $PSScriptRoot 'ide_runtime_library.py') --ide $ideRoot --sdk $sdkRoot --output $privateImport --cc $compiler
+if ($LASTEXITCODE -ne 0) { throw 'Private IDE runtime import derivation failed.' }
+$runtimeLibrary = Get-Content -LiteralPath ([IO.Path]::ChangeExtension($privateImport,'json')) -Raw | ConvertFrom-Json
+$libraries = @($privateImport,'-lm','-lws2_32','-lwinhttp','-liphlpapi','-lgdi32','-luser32','-lshell32','-lopengl32','-lole32','-lwinmm','-lavrt','-lversion','-lbcrypt','-ladvapi32')
 if (-not $FrontendRoot) {
     $portableInputs=Join-Path $ideRoot 'data\portable-build-inputs.json'
     if (Test-Path -LiteralPath $portableInputs) {
@@ -176,7 +182,7 @@ $guiStaging=Join-Path $objectRoot 'xlang_ide.link.exe'
 if ($LASTEXITCODE -ne 0) { throw 'GUI link failed.' }
 Assert-XideBuildInputs $buildInputs
 if ($CandidateOnly) {
-    @{configuration=$Configuration;cLspEnabled=[bool]$EnableCLsp;candidateOnly=$true;inputs=$buildInputs;languageServerSha256=$languageServerHash;compiler=$compiler;flags=$flags;objects=$objects;resources=$appResources;libraries=$libraries;runtime=$releaseRoot;outputs=@{xlang_ide=(Get-XideSha256 $guiStaging)}} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $objectRoot 'gui-candidate-build-inputs.json') -Encoding utf8
+    @{configuration=$Configuration;cLspEnabled=[bool]$EnableCLsp;candidateOnly=$true;inputs=$buildInputs;languageServerSha256=$languageServerHash;compiler=$compiler;flags=$flags;objects=$objects;resources=$appResources;libraries=$libraries;runtime=$releaseRoot;runtimeLibrary=$runtimeLibrary;outputs=@{xlang_ide=(Get-XideSha256 $guiStaging)}} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $objectRoot 'gui-candidate-build-inputs.json') -Encoding utf8
     Write-Host "GUI candidate compiled; no runtime files published: $guiStaging"
     return
 }
@@ -195,21 +201,14 @@ Assert-XideBuildInputs $buildInputs
 Assert-XideCatalog
 if ((Get-XideSha256 $pendingServer) -ne $languageServerHash) { throw 'Qualified language server changed before publication.' }
 $serverTarget=Join-Path $releaseRoot 'xlang-ls.exe'
-if ([IO.Path]::GetFullPath($pendingServer) -ne [IO.Path]::GetFullPath($serverTarget)) {
-    $serverStaging=Join-Path $objectRoot 'xlang-ls.publish.exe'
-    Copy-Item -LiteralPath $pendingServer -Destination $serverStaging -Force
-    if ((Get-XideSha256 $serverStaging) -ne $languageServerHash) { throw 'Staged language server differs from its qualified input.' }
-    if (Test-Path -LiteralPath $serverTarget) { [IO.File]::Replace($serverStaging,$serverTarget,(Join-Path $objectRoot 'xlang-ls.previous.exe')) } else { [IO.File]::Move($serverStaging,$serverTarget) }
-}
 $sdkDll=Join-Path $sdkRoot 'xge.dll'
-$releaseDll=Join-Path $releaseRoot 'xge.dll'
-if (-not (Test-Path -LiteralPath $releaseDll) -or (Get-XideSha256 $sdkDll) -ne (Get-XideSha256 $releaseDll)) {
-    Copy-Item -LiteralPath $sdkDll -Destination $releaseDll -Force
-}
+$releaseDll=Join-Path $releaseRoot $runtimeLibrary.runtimeBasename
 $guiExe=Join-Path $releaseRoot 'xlang_ide.exe'
-if (Test-Path -LiteralPath $guiExe) { [IO.File]::Replace($guiStaging,$guiExe,(Join-Path $objectRoot 'xlang_ide.previous.exe')) } else { [IO.File]::Move($guiStaging,$guiExe) }
+$publicationRoot=Join-Path $objectRoot ('publication-'+[Guid]::NewGuid().ToString('N'))
+& python -X utf8 -B (Join-Path $PSScriptRoot 'publish_ide_runtime.py') --ide $ideRoot --runtime $releaseRoot --gui $guiStaging --server $pendingServer --dll $sdkDll --output $publicationRoot --objdump (Join-Path (Split-Path -Parent $compiler) 'objdump.exe')
+if ($LASTEXITCODE -ne 0) { throw "Matched IDE/LS runtime publication failed; see $publicationRoot" }
 if ($nativeBuildReceipt) { $nativeBuildReceipt | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $objectRoot 'language-server-build.json') -Encoding utf8 }
-@{configuration=$Configuration;cLspEnabled=[bool]$EnableCLsp;compiler=$compiler;resourceCompiler=$resourceCompiler;flags=$flags;libraries=$libraries;objects=$objects;resources=@($appResources);inputs=$buildInputs;release=$releaseRoot;outputs=@{xlang_ide=(Get-XideSha256 $guiExe);xlang_ls=(Get-XideSha256 $serverTarget);xge=(Get-XideSha256 $releaseDll)}} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $objectRoot 'gui-build-inputs.json') -Encoding utf8
+@{configuration=$Configuration;cLspEnabled=[bool]$EnableCLsp;compiler=$compiler;resourceCompiler=$resourceCompiler;flags=$flags;libraries=$libraries;objects=$objects;resources=@($appResources);inputs=$buildInputs;release=$releaseRoot;runtimeLibrary=$runtimeLibrary;outputs=@{xlang_ide=(Get-XideSha256 $guiExe);xlang_ls=(Get-XideSha256 $serverTarget);xge=(Get-XideSha256 $releaseDll)}} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $objectRoot 'gui-build-inputs.json') -Encoding utf8
 if ($Tests) {
     & $compiler @flags (Join-Path $ideRoot 'tests\sha256_test.c') @objects @libraries -o (Join-Path $releaseRoot 'sha256_test.exe')
     if ($LASTEXITCODE -ne 0) { throw 'XRT SHA-256 integration test link failed.' }

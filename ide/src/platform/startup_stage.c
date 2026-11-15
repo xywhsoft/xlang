@@ -1,3 +1,4 @@
+#include "platform/runtime_library.h"
 #include "platform/startup_stage.h"
 #include <bcrypt.h>
 #include <xrt.h>
@@ -59,7 +60,7 @@ int xideStartupStageOrigin(const wchar_t* actual,wchar_t* origin,DWORD* error)
     wchar_t exe[65],dll[65];int okay=lengths[0]>1 && lengths[0]<=32768 && lengths[1]==65 && lengths[2]==65;
     okay=okay && GetEnvironmentVariableW(keys[0],origin,32768)==lengths[0]-1 && GetEnvironmentVariableW(keys[1],exe,65)==64 && GetEnvironmentVariableW(keys[2],dll,65)==64;
     for(int i=0;okay && i<64;++i)okay=((exe[i]>=L'0' && exe[i]<=L'9') || (exe[i]>=L'a' && exe[i]<=L'f')) && ((dll[i]>=L'0' && dll[i]<=L'9') || (dll[i]>=L'a' && dll[i]<=L'f'));
-    wchar_t *sourceLibrary=okay ? sibling(origin,L"xge.dll") : NULL,*actualLibrary=okay ? sibling(actual,L"xge.dll") : NULL;
+    wchar_t *sourceLibrary=okay ? sibling(origin,XIDE_RUNTIME_DLL_BASENAME_W) : NULL,*actualLibrary=okay ? sibling(actual,XIDE_RUNTIME_DLL_BASENAME_W) : NULL;
     okay=okay && sourceLibrary && actualLibrary && xideStartupDirectoryBytes(actual)>0 && xideStartupDirectoryBytes(actual)<256 && xideStartupDirectoryBytes(origin)>=256 && matching(origin,exe) && matching(actual,exe) && matching(sourceLibrary,dll) && matching(actualLibrary,dll);
     free(sourceLibrary);free(actualLibrary);if(okay)return 1;
     origin[0]=0;*error=ERROR_FILE_INVALID;return -1;
@@ -128,13 +129,13 @@ void xideStartupStageClear(xide_startup_stage* stage)
 int xideStartupStagePrepare(const wchar_t* original,xide_startup_stage* stage,DWORD* error)
 {
     wchar_t temporary[32768],directory[32768],exe[65],dll[65];DWORD length=GetTempPathW(32768,temporary);
-    int okay=length && length<32768;wchar_t* sourceLibrary=okay ? sibling(original,L"xge.dll") : NULL;
+    int okay=length && length<32768;wchar_t* sourceLibrary=okay ? sibling(original,XIDE_RUNTIME_DLL_BASENAME_W) : NULL;
     if(okay && sourceLibrary) {stage->originals[0]=readFile(original);stage->originals[1]=readFile(sourceLibrary);okay=stage->originals[0]!=INVALID_HANDLE_VALUE && stage->originals[1]!=INVALID_HANDLE_VALUE;} else okay=0;
     int created=0;
     for(int attempt=0;okay && !created && attempt<8;++attempt) {
         unsigned char random[16];okay=BCryptGenRandom(NULL,random,sizeof(random),BCRYPT_USE_SYSTEM_PREFERRED_RNG)>=0;
         if(!okay)break;
-        wchar_t name[64]=L"xlang-ide-start-v2-";for(int i=0;i<16;++i)swprintf(name+19+2*i,3,L"%02x",random[i]);
+        wchar_t name[64]=L"xlang-ide-start-v3-";for(int i=0;i<16;++i)swprintf(name+19+2*i,3,L"%02x",random[i]);
         int n=swprintf(directory,32768,L"%ls%ls",temporary,name);okay=n>0 && n<32768;
         if(okay) {wchar_t* full=malloc((wcslen(directory)+12)*sizeof(*full));if(full){swprintf(full,wcslen(directory)+12,L"%ls\\ide.exe",directory);okay=xideStartupDirectoryBytes(full)>0 && xideStartupDirectoryBytes(full)<256;if(!okay)SetLastError(ERROR_FILENAME_EXCED_RANGE);free(full);}else {okay=0;SetLastError(ERROR_NOT_ENOUGH_MEMORY);}}
         if(okay) {created=CreateDirectoryW(directory,NULL)!=0;if(!created && GetLastError()!=ERROR_ALREADY_EXISTS)okay=0;}
@@ -147,7 +148,7 @@ int xideStartupStagePrepare(const wchar_t* original,xide_startup_stage* stage,DW
         if(handle!=INVALID_HANDLE_VALUE){stage->directoryCreated=GetFileInformationByHandle(handle,&stage->directoryIdentity)!=0;CloseHandle(handle);}
         okay=okay && stage->directoryCreated;
         wchar_t sentinel[32768];int n=okay ? swprintf(sentinel,32768,L"%ls\\placeholder",directory) : -1;okay=okay && n>0 && n<32768;
-        const wchar_t* leaf=wcsrchr(original,L'\\');stage->program=okay && leaf ? sibling(sentinel,leaf+1) : NULL;stage->library=okay ? sibling(sentinel,L"xge.dll") : NULL;okay=okay && stage->program && stage->library;
+        const wchar_t* leaf=wcsrchr(original,L'\\');stage->program=okay && leaf ? sibling(sentinel,leaf+1) : NULL;stage->library=okay ? sibling(sentinel,XIDE_RUNTIME_DLL_BASENAME_W) : NULL;okay=okay && stage->program && stage->library;
     }
     const wchar_t* destinations[]={stage->program,stage->library};wchar_t* digests[]={exe,dll};
     for(int i=0;okay && i<2;++i) {

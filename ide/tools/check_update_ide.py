@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import shutil
 import subprocess
+from ide_runtime_library import runtime_basename
 ROOT=Path(__file__).resolve().parents[2]
 def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 def main():
@@ -12,7 +13,7 @@ def main():
     for name,digest in record['inputs'].items():
         if sha(name)!=digest:raise ValueError('GUI candidate input changed: '+name)
     runtime=Path(record['runtime']);sdk=ROOT/'ide/third_party/xge_sdk'
-    if sha(runtime/'xge.dll')!=sha(sdk/'xge.dll'):raise ValueError('runtime XGE differs from compiled SDK')
+    if sha(runtime/runtime_basename(ROOT/'ide'))!=sha(sdk/'xge.dll'):raise ValueError('private IDE XGE differs from compiled SDK')
     if sha(runtime/'xlang-ls.exe')!=record['languageServerSha256']:raise ValueError('runtime language server changed')
     evidence=ROOT/'ide/build/Release/update/gui-validation';evidence.mkdir(parents=True,exist_ok=True)
     owned=[]

@@ -1,3 +1,4 @@
+#include "platform/runtime_library.h"
 #include "services/native_edit_protection.h"
 #include "platform/path.h"
 #include <stdlib.h>
@@ -28,7 +29,7 @@ static int add(xide_native_protection* p,const char* base,const char* path,int d
 static int runtime(xide_native_protection* p,const char* directory,xide_model_error* e)
 {
  static const char* dirs[]={"data","extlibs","include","notices","option"};
- static const char* files[]={"xlang_ide.exe","xlang-ls.exe","xl.exe","xl.dll","xlc.dll","xge.dll","update.exe","mdo.exe"};
+ static const char* files[]={"xlang_ide.exe","xlang-ls.exe","xl.exe","xl.dll","xlc.dll","xge.dll",XIDE_RUNTIME_DLL_BASENAME,"update.exe","mdo.exe"};
  if(!bounded(directory))return fail(e,XIDE_MODEL_INVALID,"Missing host runtime directory.");
  for(size_t i=0;i<sizeof(dirs)/sizeof(*dirs);++i)if(!add(p,directory,dirs[i],1,e))return 0;
  for(size_t i=0;i<sizeof(files)/sizeof(*files);++i)if(!add(p,directory,files[i],0,e))return 0;

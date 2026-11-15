@@ -1,6 +1,7 @@
 #define _WIN32_WINNT 0x0601
 #include "services/native_edit_protection.h"
 #include "platform/path.h"
+#include "platform/runtime_library.h"
 #include <windows.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,6 +28,7 @@ int main(void)
  DWORD handles,after;CHECK(GetProcessHandleCount(GetCurrentProcess(),&handles));
  probing=1;xide_native_protection* policy=xideNativeProtectionCreate(&seed,&error);probing=0;CHECK(policy&&calls&&!opens);size_t allocations=calls;
  CHECK(has(policy,"f:/HOST-policy/runtime/extlibs",1)&&has(policy,"F:/host-policy/compiler/include",1)&&has(policy,seed.storageDirectory,1)&&has(policy,seed.preferences,0)&&has(policy,manifests[1],0));
+ CHECK(has(policy,"F:/host-policy/runtime/" XIDE_RUNTIME_DLL_BASENAME,0)&&has(policy,"F:/host-policy/runtime/xge.dll",0));
  CHECK(!has(policy,"F:/host-policy/runtime/examples",1)&&!has(policy,"F:/host-policy/runtime/projects",1)&&!has(policy,"F:/host-policy/runtime",1)&&!has(policy,"F:/host-policy/project",1));
  const char* reversed[]={manifests[1],"f:/HOST-policy/project/一.xlp",manifests[0]};seed.manifests=reversed;seed.projects=3;xide_native_protection* same=xideNativeProtectionCreate(&seed,&error);CHECK(same&&xideNativeProtectionEqual(policy,same));xideNativeProtectionRelease(same);
  seed.preferences="F:/host-policy/other-settings.xl";same=xideNativeProtectionCreate(&seed,&error);CHECK(same&&!xideNativeProtectionEqual(policy,same));xideNativeProtectionRelease(same);seed.preferences="F:/host-policy/settings.xl";seed.manifests=manifests;seed.projects=2;
