@@ -1,0 +1,56 @@
+// Controlled SDK regression prototype; this is not the public xui Graph API.
+import xui
+extern "xui_flow_graph" class ProbeBusyGraph @header("test/cases/foreign_xui_flow_busy_probe.h") @lifetime("owned") @policy("fixtureFlowBusyPolicy")
+ native point handle
+ extern "xuiFlowGraphAddNode" @no_raise @c_pack(1,"xui_flow_node_desc_t",0,8) @c_pack_size(1,"iSize","uint32_t") @c_pack_field(1,"sId",0,"c_string") @c_pack_field(1,"sType",1,"c_string") @c_pack_field(1,"sTitle",2,"c_string") @c_pack_field(1,"fX",3,"value") @c_pack_field(1,"fY",4,"value") @c_pack_field(1,"fW",5,"value") @c_pack_field(1,"fH",6,"value") @c_pack_field(1,"sSummary",7,"c_string") @c_output(2,0) func addNode(string id,string? kind=null,string? title=null,c_float x=0,c_float y=0,c_float width=0,c_float height=0,string? summary=null) as c_int
+ extern "xuiFlowGraphSetNodeConfig" @no_raise @c_cstr(0) @c_result("status",0) func setConfig(string id,var config)
+ extern "xuiFlowGraphGetNodeConfig" @no_raise @c_cstr(0) @c_output(2,0) @c_output_view(2,"owned_value") func getConfig(string id) as var
+ extern "xuiFlowGraphGetNodeCount" @no_raise func count() as c_int
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xuiFlowGraphCreate" @header("test/cases/foreign_xui_flow_busy_probe.h") @no_raise @c_result("owned_view") @factory(0,0,dropGraph) func graph() as ProbeBusyGraph
+extern "xuiFlowGraphDestroyChecked" @header("test/cases/foreign_xui_flow_busy_probe.h") @no_raise @c_result("status",0) func dropGraph(ProbeBusyGraph graph)
+extern "fixtureFlowBusyAdversarialValue" @no_raise @c_output(1,0) @c_output_view(1,"owned_value") func adversarialValue(ProbeBusyGraph graph) as var
+extern "fixtureFlowBusyCloneCount" @no_raise func clones() as c_int
+extern "fixtureFlowBusyDropCount" @no_raise func drops() as c_int
+extern "fixtureFlowBusyResetCounts" @no_raise func resetCounts()
+extern "fixtureFlowBusyErrorCode" @no_raise func errorCode(error failure) as c_int
+extern "fixtureFlowBusyHeapBegin" @no_raise func heapBegin()
+extern "fixtureFlowBusyHeapEqual" @no_raise func heapEqual()
+
+func values()
+ auto model=graph()
+ assert model.addNode("one",title="输入")==0
+ var supplied={"answer":42,"text":"你好","held":model}
+ model.setConfig("one",supplied)
+ var copied=model.getConfig("one")
+ assert copied.answer==42 and copied.text=="你好"
+ model.close()
+ assert copied.answer==42 and copied.text=="你好"
+end
+
+func reentry()
+ auto model=graph()
+ model.addNode("one")
+ var supplied=adversarialValue(model)
+ resetCounts()
+ model.setConfig("one",supplied)
+ assert model.count()==1 and clones()==1 and drops()==0
+ // Replacing the stored config must also protect its custom Drop callback.
+ model.setConfig("one",{"answer":42})
+ assert model.count()==1 and clones()==1 and drops()==1
+ // Drop the test-only borrowed userdata before its real outer owner closes.
+ supplied=null
+ model.close()
+end
+
+func main(...) as int
+ values()
+ reentry()
+ heapBegin()
+ values()
+ reentry()
+ heapEqual()
+ println("Flow config SDK: direct sized input, owned output, explicit self-cycle close and same-model checked Busy passed")
+ return 0
+end

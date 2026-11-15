@@ -1,5 +1,9 @@
 # FlowGraph configuration fix in matched SDK candidates
 
+This records the earlier invalidation-only stage. The subsequently accepted
+same-model Busy rule and its matching candidates are described in
+[xui-flow-busy.md](xui-flow-busy.md); the historical evidence below is retained.
+
 The committed XGE fix `df03691f` is now present in separately staged Windows
 and Linux host/static SDK candidates. A custom XRT handle Clone that removes
 the target node no longer leaves `SetNodeConfig` using the old node position.

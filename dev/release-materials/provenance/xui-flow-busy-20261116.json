@@ -1,0 +1,176 @@
+{
+  "schema": 1,
+  "date": "2026-11-16",
+  "status": "same-model-busy-native-and-matched-sdk-qualified-default-model-api-pending",
+  "shippingDelivery": false,
+  "goalComplete": false,
+  "releasePromoted": false,
+  "sourceHeadBefore": "cfd656616b8df3b32ae3bcc34d8f1ef8f23456b0",
+  "nativeCommit": "9564879c3e34d4467c123ed9d81fc6a9fb401331",
+  "sourceSha256": {
+    "docs/xui-flow-busy.md": "8def468ef526f6d057f7631246742e8b6533017a9c9b7a5c4f148af44b12cb73",
+    "docs/xui-flow-config-sdk.md": "fb8fb2b9462327b7e502004292c21ba2600cd8806efec139ee77c7c9537d0d63",
+    "docs/xge3-xui3-full-coverage-plan.md": "1a097481bcb281b4aeae81a530ae3fc33c29666958c96e99242fbb5b4665d5f9",
+    "docs/xge3-xui3-api-map-storage.json": "eebea1bf999b1008785b9b639de321e750ef121d93ab4f3c4cf69d9e685b91c7",
+    "tools/check_xui_flow_busy_sdk.py": "9ec6cc1ab55c0054a0b18cf447dd6e723c57fc562b2da7601dcb198f678771db",
+    "test/cases/foreign_xui_flow_busy_probe.xl": "08d122c7c142d1f164d69da184dcd6fc70a876433a429c9e364ca507834ebb04",
+    "test/cases/foreign_xui_flow_busy_probe.c": "23f55f0448a0dc922a1b43436c88c0658c79666af46b0b7772bfaddfb249c7a2",
+    "test/cases/foreign_xui_flow_busy_probe.h": "cda3b3c02ff520a0ad712ba4a2e7b28b701d27b38a35a3a19cc1b6b6cd7773da"
+  },
+  "reports": {
+    "flow-busy-verified-win-r1.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-busy-verified-win-r1.json",
+      "sha256": "d15e55a7c0a36649b777b5fe56222b67b95e4fb3e547e9f037c31e6d128b16ec"
+    },
+    "flow-busy-native-win-r9/results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-busy-native-win-r9\\results.json",
+      "sha256": "3476300bc221932666ab46d1d3f3ec986e87195d392ab7c8e0fbc2133074fef6"
+    },
+    "flow-busy-sdk-positive-win-r4/results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-busy-sdk-positive-win-r4\\results.json",
+      "sha256": "744418551fe1ec81a92bd776e44890086f09d8782bd8a06ec3cf947442be93fe"
+    },
+    "flow-busy-storage-replay-win-r1/results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-busy-storage-replay-win-r1\\results.json",
+      "sha256": "918f93ead032717a6d91d60202affa0d239e87a1cecbe4afa166a980a25b8436"
+    },
+    "flow-busy-sdk-win-r2/results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-busy-sdk-win-r2\\results.json",
+      "sha256": "3a984ad890be53928c2fadc64b6e9ecf44c89ac33dc6d7dfe835906c1d6f793e"
+    },
+    "flow-busy-sdk-win-r2/host/build-report.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-busy-sdk-win-r2\\host\\build-report.json",
+      "sha256": "faf1f9af6d10516276de332568430992f06da4c9f17bd495eeb74674ff162d8f"
+    },
+    "flow-busy-sdk-win-r2/static/build-report.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-busy-sdk-win-r2\\static\\build-report.json",
+      "sha256": "8d4f2991c1c243ca590abc74eda7de4f41cba8c5e659f032e2aef4312ef84c24"
+    },
+    "flow-busy-packages-win-r1-host.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-busy-packages-win-r1-host.json",
+      "sha256": "9c0bc56a04a54dba6539e4e2a397bf7d98f0625ef8b5bd31cdcc292cf339c807"
+    },
+    "flow-busy-packages-win-r1-static.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-busy-packages-win-r1-static.json",
+      "sha256": "2e8239287bd1b17d9ec2c0ba5ef402ee0538fb6d7e2958c94c34ce7cbd56acf5"
+    },
+    "flow-busy-native-win-freeze-r1.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-busy-native-win-freeze-r1.json",
+      "sha256": "df2044aaf1e3a9bcaf640f3f4a375a50598e08ee6426db609df898eef4a58510"
+    },
+    "flow-busy-verified-linux-r1.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-busy-verified-linux-r1.json",
+      "sha256": "a17623c2cd5b9f0c15e92b496ca915aab048ef1d09f62f166978ff842f5620c5"
+    },
+    "flow-busy-native-linux-r4/results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-busy-native-linux-r4\\results.json",
+      "sha256": "617369a1d5c0f434759b3cc3c61997b8a9cb389579ae06c3a371c61ae03ac8e0"
+    },
+    "flow-busy-sdk-positive-linux-r2/results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-busy-sdk-positive-linux-r2\\results.json",
+      "sha256": "5c9aa6d1288c24dff963c5612e2d2560bd058586ab0a0968c71847f993308c8d"
+    },
+    "flow-busy-storage-replay-linux-r2/results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-busy-storage-replay-linux-r2\\results.json",
+      "sha256": "f9903e110ebcaad743b7f424527b5fb2a0c25284516d0ac05f2c0b4aeebd4f08"
+    },
+    "flow-busy-sdk-linux-r2/results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-busy-sdk-linux-r2\\results.json",
+      "sha256": "13ebb803db439b3276c8f5355af3dbe10e220751d13b09879a1e507e769d44df"
+    },
+    "flow-busy-sdk-linux-r2/host/build-report.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-busy-sdk-linux-r2\\host\\build-report.json",
+      "sha256": "0fcc7febf18e411733af029c8ac67d348ad6de6bf3d334f91201cbc4ed80bcca"
+    },
+    "flow-busy-sdk-linux-r2/static/build-report.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-busy-sdk-linux-r2\\static\\build-report.json",
+      "sha256": "ac3e18757d45d196a1502637748ff5cb293871aca740b20aeb0301f2049afa7e"
+    },
+    "flow-busy-packages-linux-r1-host.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-busy-packages-linux-r1-host.json",
+      "sha256": "d08d4af3997842c677174151d93de347b9d847bce1c74ae71e0005c8bda9c6a7"
+    },
+    "flow-busy-packages-linux-r1-static.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-busy-packages-linux-r1-static.json",
+      "sha256": "4e9081b1d1329d76ab8d3cf82b45bb761a401d877710bb70cd23c2173b139b40"
+    },
+    "flow-busy-native-linux-freeze-r1.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-busy-native-linux-freeze-r1.json",
+      "sha256": "d775567254e07b794977e1d1d168d406270aa6581d3852f3f163c221d704ba74"
+    },
+    "flow-busy-header-review-r1.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-busy-header-review-r1.json",
+      "sha256": "b69ec29e67721b1721e0132111c3c6c13eb5dfba23636bdb74c5e7991e5bc449"
+    },
+    "flow-busy-model-layout-win-r1/results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-busy-model-layout-win-r1\\results.json",
+      "sha256": "5df72a4215a0a1f62b223139c11dd27410120fa1b08d323ef11064636fc0beac"
+    },
+    "build_flow_busy_sdk_r2.py": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\build_flow_busy_sdk_r2.py",
+      "sha256": "6f317176edf03b6d90b777f17e6ef41de390ca558df389b4f0a4d7dfc90d6072"
+    },
+    "verify_flow_busy_r1.py": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\verify_flow_busy_r1.py",
+      "sha256": "bf7f47e4c8294baef9b783bd3306d323262048e92d13f81f69e64164e16e5729"
+    },
+    "flow-busy-repo-budget-before.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-busy-repo-budget-before.json",
+      "sha256": "9e481dfb796b9cc5f8689c64e60aba309b8def5d5154cefef1dcfefd385c97a5"
+    }
+  },
+  "policy": "Graph-owned config Clone/Drop rejects all ordinary same-model access with checked Busy; independent models remain usable. Workflow staging carries the logical destination identity.",
+  "qualification": {
+    "platforms": [
+      "Windows x64",
+      "Linux x64"
+    ],
+    "optimizations": [
+      "O0",
+      "O2"
+    ],
+    "modelStatusEntries": 63,
+    "workflowIntEntries": 30,
+    "sourceGateSteps": 36,
+    "actualSdkGateSteps": 106,
+    "generatorSourceChecks": 301,
+    "totalGateSteps": 443,
+    "allocationFailurePrefixesPerFixture": 176,
+    "fullO2HostObjectsPerOS": 164,
+    "fullO2StaticObjectsPerOS": 166,
+    "reusedObjects": 0,
+    "compilerCohorts": [
+      "compiler-product-lift-full-r45",
+      "compiler-product-lift-linux-full-r38"
+    ],
+    "canonicalXrtSha256": "41bc24579f4b3207b0434755ca23dd06481af90c05f71e9b365848cf9a7c12d1",
+    "networkTests": false
+  },
+  "fixes": [
+    "Guard configuration copy/release through all model/history/cleanup paths; detach owning slots before release.",
+    "Add three allocation-free checked destroy/revision APIs; legacy errors preserve earlier XRT error.",
+    "Reject all 30 same-workflow int entrypoints and refuse legacy destruction/graph reads during graph callbacks; temporary replacement preserves logical affinity.",
+    "Guard geometry cache reads before mutation and preserve Busy at paint fallbacks.",
+    "Missing/null optional workflow coordinate/route values no longer leave spurious XRT numeric-getter errors.",
+    "Refresh only two storage header witnesses after proving existing physical declarations unchanged."
+  ],
+  "costs": {
+    "measuredNativeLayoutBeforeBytes": 928,
+    "measuredNativeLayoutAfterBytes": 944,
+    "extraBytesPerModel": 16,
+    "platform": "Windows x64 GCC",
+    "extraConfigurationCopies": 0,
+    "extraLocks": 0,
+    "scope": "Native depth/affinity bookkeeping and entry checks have CPU cost; no CPU-zero-overhead claim. Checked Busy rejection allocates nothing; legacy error reporting may allocate."
+  },
+  "limits": [
+    "Standalone graph fixture remains test-only; no default safe graph class, implicit-cycle retirement or long-lived Widget/Workflow aliases are certified.",
+    "Owning canvas destruction/transfer and general Workflow validation/dynamic-port/schema/variable callbacks still need their own integration contracts.",
+    "Five private assertions/checks remain source-only and are explicitly recorded as omitted from public DLL clients.",
+    "Legacy Schema negative-getter suite leaves invalid-argument in both frozen predecessor and all successor SDK variants; this is compared and cleared only for that suite, not claimed fixed.",
+    "One generated managed source still differs; candidates do not overwrite existing callback/snapshot/nullability declarations.",
+    "Native source uses the exact qualified canonical XRT, not an unqualified claim that latest working-tree XRT has been synchronized.",
+    "Full release/IDE/catalog/current-delivery installation remains pending; all runtime/archive/log bytes stay outside Git.",
+    "13 preexisting Native geometry paths and unrelated xlang/IDE work preserved."
+  ]
+}
