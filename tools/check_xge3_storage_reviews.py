@@ -9,6 +9,7 @@ import argparse,copy,hashlib,json,os,shutil,sys,time
 from check_xge3_bindings import storage_review_match,native_function_sha,annotate_existing_bindings,write_binding_manifest,reviewed_fixed_output_count,authored_binding_index,record_extent_constants,inventory,generate
 from xge_replay_contracts import CONTRACTS,validate as validate_xge_contracts
 from stage_xge3_replay_contracts import compare_selected
+from xui_managed_contracts import validate as validate_managed,METHODS,CALLBACKS,RECORDS,TYPE_SHAPES,managed_units
 
 
 def main():
@@ -22,7 +23,7 @@ def main():
     sha=lambda path:hashlib.sha256(Path(path).read_bytes()).hexdigest()
     catalog=root/'docs/xge3-xui3-api-map-storage.json';reviews=json.loads(catalog.read_text(encoding='utf8'))
     files=[Path(__file__).resolve(),Path(__file__).with_name('check_xge3_bindings.py'),catalog,root/'src/lexer/xl6_lexer_gen.c']
-    files.extend(Path(__file__).with_name(name+'.py')for name in('xui_gallery_contracts','xui_geometry_contracts','xui_snapshot_contracts','xge_replay_contracts','stage_xge3_replay_contracts'))
+    files.extend(Path(__file__).with_name(name+'.py')for name in('xui_gallery_contracts','xui_geometry_contracts','xui_snapshot_contracts','xui_managed_contracts','xge_replay_contracts','stage_xge3_replay_contracts'))
     import pycparser
     files.extend(Path(pycparser.__file__).parent.rglob('*.py'));files.append(Path(sys.executable))
     files.extend(f for f in(root/'lib/bindings').rglob('*')if f.is_file())
@@ -154,6 +155,55 @@ def main():
         shutil.copytree(root/'lib/bindings',generated/'lib/bindings')
         rows=inventory(native,out/'native-inventory.json')
         check('primary-header-inventory-no-parse-errors',lambda:require(rows['counts']['parseErrors']==0))
+        ui_header=next(h for h in rows['headers']if Path(h['header']).name=='xui.h')
+        check('reviewed-managed-native-signatures-and-resolved-records',lambda:validate_managed(root,ui_header,native_function_sha))
+        def reject_managed(candidate=ui_header,source=root):
+            try:validate_managed(source,candidate,native_function_sha)
+            except ValueError:return
+            raise AssertionError('stale managed contract accepted')
+        for name in METHODS:
+            if name.startswith('xl6'):continue
+            for label in('missing','changed'):
+                changed=dict(ui_header,functions=[dict(f,declaration=f['declaration']+' changed')if f['name']==name else f for f in ui_header['functions']if label!='missing'or f['name']!=name])
+                check('managed-function-reject-'+name+'-'+label,lambda c=changed:reject_managed(c))
+        for name in RECORDS.keys()|CALLBACKS.keys():
+            for label in('missing','changed'):
+                changed=dict(ui_header,types=[dict(t,declaration=t['declaration']+' changed')if t['name']==name else t for t in ui_header['types']if label!='missing'or t['name']!=name])
+                check('managed-type-reject-'+name+'-'+label,lambda c=changed:reject_managed(c))
+        for name in TYPE_SHAPES:
+            # Keep the forward typedef spelling identical while changing its
+            # resolved shape. A declaration-only pin must not accept this.
+            shape=copy.deepcopy(next(t['type']for t in ui_header['types']if t['name']==name))
+            if shape.get('fields'):shape['fields'][0]['type']=dict(kind='named',names=['double'],qualifiers=[])
+            else:shape['to']['parameters'][0]['type']=dict(kind='named',names=['double'],qualifiers=[])
+            changed=dict(ui_header,types=[dict(t,type=shape)if t['name']==name else t for t in ui_header['types']])
+            check('managed-resolved-layout-reject-'+name,lambda c=changed:reject_managed(c))
+        inline=out/'managed-inline.h';inline.write_text(Path(ui_header['header']).read_text(encoding='utf-8-sig').replace('case XUI_EVENT_DRAG_LEAVE:case XUI_EVENT_DROP:break;','case XUI_EVENT_DRAG_LEAVE:case XUI_EVENT_DROP+1:break;'))
+        check('managed-inline-helper-drift-rejected',lambda:reject_managed(dict(ui_header,header=str(inline))))
+        runtime=out/'managed-runtime/lib/bindings/_xge_native/include/xge3_runtime.h';runtime.parent.mkdir(parents=True)
+        runtime.write_text((root/'lib/bindings/_xge_native/include/xge3_runtime.h').read_text().replace('int xl6Xui3CopyToClipboard(','void xl6Xui3CopyToClipboard('))
+        check('managed-runtime-declaration-drift-rejected',lambda:reject_managed(source=out/'managed-runtime'))
+        unit=out/'managed-units.xl'
+        sample='export extern "a_t*" class A @lifetime("callback")\n native point handle\n extern "read" @no_raise func read(c_int value=1) as string?\nend\nexport extern "b_t*" class B @lifetime("callback")\n native point handle\nend\n'
+        unit.write_text(sample);original_units=managed_units(unit)
+        unit.write_text('// same declarations in a different class order\n'+sample[sample.index('export extern "b_t*"'):]+sample[:sample.index('export extern "b_t*"')])
+        check('managed-unit-class-order-independent',lambda:require(managed_units(unit)==original_units))
+        for label,text in{
+            'class-membership':sample.replace(' extern "read" @no_raise func read(c_int value=1) as string?\n','').replace('class B @lifetime("callback")\n','class B @lifetime("callback")\n extern "read" @no_raise func read(c_int value=1) as string?\n'),
+            'nullable':sample.replace('as string?','as string'),
+            'default':sample.replace('value=1','value=2'),
+            'effect':sample.replace('@no_raise ',''),
+            'duplicate':sample.replace(' extern "read"',' extern "read" @no_raise func read(c_int value=1) as string?\n extern "read"'),
+        }.items():
+            unit.write_text(text)
+            check('managed-unit-detects-'+label,lambda:require(managed_units(unit)!=original_units))
+        for label,text in{'unterminated':sample.rsplit('end',1)[0],'extra-end':sample+'end\n','body':sample.replace(' native point handle',' print("not a declaration")',1),'duplicate-class':sample+sample}.items():
+            unit.write_text(text)
+            def invalid_units():
+                try:managed_units(unit)
+                except ValueError:return
+                raise AssertionError('invalid managed unit accepted')
+            check('managed-unit-rejects-'+label,invalid_units)
         by_name={f['name']:f for h in rows['headers']for f in h['functions']}
         check('all-reviewed-direct-declarations-match-native',lambda:require(validate_xge_contracts(by_name)=={k:v[1]for k,v in CONTRACTS.items()}))
         for name in CONTRACTS:
@@ -192,7 +242,7 @@ def main():
         check('page-block-replay-stable',lambda:require(block((generated/'lib/bindings/xui/src/managed.xl').read_text())==block((root/'lib/bindings/xui/src/managed.xl').read_text())))
         shape_generated=generated/'lib/bindings/xge/src/shapes.xl';shape_current=root/'lib/bindings/xge/src/shapes.xl'
         check('shape-fixed-output-replay-text-stable',lambda:require(shape_generated.read_text(encoding='utf-8-sig')==shape_current.read_text(encoding='utf-8-sig')))
-        check('eight-selected-files-preserve-complete-declaration-units',lambda:report.update(selectedDeclarationUnits=compare_selected(root,generated)))
+        check('nine-selected-files-preserve-complete-declaration-units',lambda:report.update(selectedDeclarationUnits=compare_selected(root,generated)))
         def record_block(path,native):
             return re.search(r'export extern "'+re.escape(native)+r'" struct .*?\nend',path.read_text(encoding='utf-8-sig'),re.S).group()
         for package,native_record in(('xge','xge_gamepad_state_t'),('xui','xui_terminal_cell_t')):

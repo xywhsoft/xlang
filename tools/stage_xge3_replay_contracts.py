@@ -1,18 +1,20 @@
 """Stage preserved declarations and six explicitly reviewed plain value records.
 
-The full generated XUI managed candidate is deliberately excluded. This is a
-local candidate operation, never an installation into release/ or the source
-tree. Existing runtime SDK binaries/configuration are reused unchanged.
+Managed declarations must preserve class membership and all whole contracts.
+This is a local candidate operation, never an installation into release/ or
+the source tree. Existing SDK binaries/configuration are reused unchanged.
 """
 from pathlib import Path
 from collections import Counter
 import argparse,hashlib,json,os,re,shutil
+from xui_managed_contracts import managed_units
 
 
 SELECTED=(
     'xge/src/constants.xl','xge/src/functions.xl','xge/src/records.xl',
     'xge/debug/src/functions.xl','xge/three_d/src/functions.xl',
     'xge/three_d/src/records.xl','xui/src/constants.xl','xui/src/records.xl',
+    'xui/src/managed.xl',
 )
 
 # Plain value records exposed once symbolic native array bounds are resolved.
@@ -31,6 +33,7 @@ ADDITIONS={
 
 def source_units(path):
     """Ignore declaration order/comments, preserve record field order and text."""
+    if Path(path).name=='managed.xl':return managed_units(path)
     lines=Path(path).read_text(encoding='utf-8-sig').splitlines();units=[];record=None
     for line in lines:
         text=line.strip()

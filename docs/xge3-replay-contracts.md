@@ -80,3 +80,10 @@ and the existing matched Flow-config host/static SDKs. Debug declarations are
 preserved, but default debug-disabled SDKs were not reported as debug runtime
 acceptance. No final `release/`, IDE, command catalog or delivery-index update
 was performed by this source batch.
+
+The successor [managed replay batch](xui-managed-replay.md) closes the remaining
+managed declaration reproduction gap. Nine selected files now preserve complete
+units, including all 3,130 managed units with class membership and multiplicity.
+Textual ordering remains different and is recorded separately. Source replay is
+qualified; the generated package's nine runtime suites are still running.
+Final release/IDE installation is still open.

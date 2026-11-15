@@ -1,0 +1,132 @@
+{
+  "schema": 1,
+  "date": "2026-11-16",
+  "status": "managed-source-replay-qualified-runtime-suites-running",
+  "shippingDelivery": false,
+  "goalComplete": false,
+  "releasePromoted": false,
+  "runtimeQualificationComplete": false,
+  "sourceHeadBefore": "1b178576de49afbca5ad13907b03c96818fe9f2c",
+  "nativeCommit": "85f1223ad7b99ed24c82aae7e90ecbc231f1cf8a",
+  "sourceSha256": {
+    "tools/check_xge3_bindings.py": "d5f718f40f800910b8bc668b6dd549ed16d238903ed4b3d9a9f41773d2b77671",
+    "tools/check_xge3_storage_reviews.py": "4f8ab2e9a0a4caa41dc2fb3cdaf3449a6fc5451f97094696b50fe36c32d521f2",
+    "tools/stage_xge3_replay_contracts.py": "e6c891888e34216341964d40787b27b48e45f1459e436b9dd67a89f75d5533c2",
+    "tools/xui_managed_contracts.py": "25b196d405ce6dd7501e981b1a8da688c2d163fa4ee4834aaf8de506a0e5bb44",
+    "docs/xui-managed-replay.md": "0fc06c2e9a5f2eae9d6336e3faedb9760f3559f3e96de4a10d2b639707798e8b",
+    "docs/xge3-replay-contracts.md": "ecf2b4fb9d7fc80e084dc193a1ef59598ecb489ba09a99f9b06b87d2939c940b",
+    "docs/xge3-xui3-full-coverage-plan.md": "c19e808949462d96d4cee2411547fdf8f3ae889143eae1f77f19b014da5a3639"
+  },
+  "reports": {
+    "win": {
+      "verification": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\managed-replay-source-verified-win-r1.json",
+        "sha256": "6bfba346a1c1230e2659bec7d7d3911909ff8b5d8e3c224b321045fb3928c0d9"
+      },
+      "sourceGate": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\managed-replay-win-r1\\results.json",
+        "sha256": "dda5ab14e43a2c95fe09d4f6f55f4308cc351a1f87a36d3488d4380dc6dd27f3"
+      },
+      "staging": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\managed-replay-packages-win-r1\\stage-report.json",
+        "sha256": "3d5494ef87756e329b2711fa8cf7000984c1b7533b7a4ac5b8a044583dc1b41a"
+      },
+      "sourceWitnesses": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\managed-replay-source-witnesses-win-r1\\index.json",
+        "sha256": "2eaae5ce60d132b716b1e8efb1e2a8528eefd3bfa358aed0e81bf0cba02739fd"
+      }
+    },
+    "linux": {
+      "verification": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\managed-replay-source-verified-linux-r1.json",
+        "sha256": "7866e4742a888cc65d3b238af77d7ffa2938fc22a8b3a77f51f12f1c4950ccf6"
+      },
+      "sourceGate": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\managed-replay-linux-r1\\results.json",
+        "sha256": "daf795726c8c607b34319bcdf6c143a35888d6800013c3bdc2652b671939d7ed"
+      },
+      "staging": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\managed-replay-packages-linux-r1\\stage-report.json",
+        "sha256": "115027a32cbbc089ea12df814278e8f0f59c52dc938eca57891805552436a756"
+      },
+      "sourceWitnesses": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\managed-replay-source-witnesses-linux-r1\\index.json",
+        "sha256": "06119c6c7f4b2801d5cc04e80ae854170303c78a3733276da9e47fc24398507b"
+      }
+    }
+  },
+  "sourceAcceptance": {
+    "windowsSteps": 374,
+    "linuxSteps": 375,
+    "totalSteps": 749,
+    "selectedFiles": 9,
+    "managedDeclarationUnits": 3130,
+    "managedSemanticChanges": 0,
+    "managedTextDifferent": true,
+    "logicalDeclarationsRestored": 80,
+    "nativeAndRuntimeEntries": 78,
+    "borrowedCStringReturnsRestored": 61,
+    "callbackTypedefs": 3,
+    "callbackViews": 4,
+    "recordDeclarations": 16,
+    "resolvedTypeShapes": 19
+  },
+  "runtimeInProgress": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\managed-replay-product-win-r1\\results.json",
+      "complete": false,
+      "passed": false,
+      "completedSuites": [
+        {
+          "name": "text_reads",
+          "exitCode": 0,
+          "steps": 29
+        },
+        {
+          "name": "edit_search",
+          "exitCode": 0,
+          "steps": 24
+        }
+      ]
+    },
+    "linux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\managed-replay-product-linux-r1\\results.json",
+      "complete": false,
+      "passed": false,
+      "completedSuites": [
+        {
+          "name": "text_reads",
+          "exitCode": 0,
+          "steps": 29
+        }
+      ]
+    }
+  },
+  "runtimeDriver": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\qualify_managed_replay_r1.py",
+    "sha256": "f5f910987959d5db6885cbb7f4c2ce03407e2657fb5ed1e941b3c76946d5824d"
+  },
+  "sourceVerifier": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\verify_managed_replay_source_r1.py",
+    "sha256": "73e905257114ca912eb8207a7204626a1d8a631a6dc9d432ff41bca447360b59"
+  },
+  "budget": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\managed-replay-repo-budget-before.json",
+    "sha256": "cab8d6cabe2711a0d55607eab4f9da95fe4f1530fc99112f88828113ffd12bbe"
+  },
+  "nativeSdkRebuilt": false,
+  "compilerImplementationChanged": false,
+  "nativeImplementationChanged": false,
+  "publicBindingSourcePromoted": false,
+  "newNativeWrappers": 0,
+  "cpuZeroOverheadClaim": false,
+  "limits": [
+    "This source batch preserves existing public contracts; it is not full API/lifetime/backend qualification.",
+    "Nine runtime suites use staged generated host/static packages. They are still running at source commit; successor receipt will record results.",
+    "Class/method ordering, comments and line endings are ignored by the unit comparator; whole declarations, class membership and multiplicity remain exact.",
+    "Function and type witnesses detect physical signature/layout changes; they do not prove all transitive implementation behavior. Native behavior is tied to the matched SDKs and qualification records.",
+    "WebView event callback is still inventoried as pending native lifecycle/backend acceptance.",
+    "Current source bindings are left unchanged; only tooling and isolated generated candidates are updated.",
+    "Latest XRT alignment, remaining safe Graph/Workflow/shared-reference APIs, general callbacks and final matching SDK/compiler/runtime/IDE/help delivery remain open."
+  ]
+}

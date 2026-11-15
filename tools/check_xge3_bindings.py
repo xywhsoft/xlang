@@ -795,6 +795,8 @@ def generate_xge_objects(root,header,records,types,primitive,param,reserved,revi
 
 def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_span):
     src=root/'lib/bindings/xui/src';functions=header['functions'];mapped={};raw={};callbacks={};views={};classes={'Widget':[]};context=[];free=[]
+    from xui_managed_contracts import validate as validate_managed,extend as extend_managed,DEFERRED,REPLACED
+    validate_managed(root,header,native_function_sha)
     # A resource-shaped C argument is not itself an owning storage proof.
     # These publishers/consumers have separately reviewed native owning slots
     # or synchronous use; do not broaden this list by matching a type name.
@@ -1031,6 +1033,11 @@ def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_spa
         callback_declarations.append('export typedef '+name+' = func('+','.join(params)+')'+(' as '+result if result else ''))
         return name
     for f in functions:
+        if f['name'] in DEFERRED:
+            f.update(state='requires-native-lifecycle-acceptance',reason=DEFERRED[f['name']]);continue
+        if f['name'] in REPLACED:
+            logical,replacement=REPLACED[f['name']]
+            f.update(state='replaced-managed-entry',language=logical,replacement=replacement);continue
         if f['name'] in nine_patch:
             owner,member,declaration=nine_patch[f['name']];p=f['type']['parameters'];setting='Set' in f['name'];state=owner=='Button'
             expected=(['uint32_t'] if state else [])+['const xui_nine_patch_t*' if setting else 'xui_nine_patch_t*']
@@ -1051,6 +1058,7 @@ def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_spa
         if p[0]['type']['kind']=='pointer' and 'const' in p[0]['type']['to'].get('qualifiers',[]):attrs.append('@c_const(0)')
         try:
             ret,at=simple(sig['returns'],0,True);attrs+=at
+            if ret=='string?':attrs.append('@c_result("cstring")')
             if widget(sig['returns']) or same(sig['returns'],'xui_context'):attrs.append('@c_result("owner_view",0)')
             if same(sig['returns'],'xui_font'):attrs+=['@c_result("retained_view")','@c_retain(retainFont,"zero",rollbackFont)']
             if same(sig['returns'],'xui_surface'):attrs+=['@c_result("retained_view")','@c_retain(retainSurface,"zero",rollbackSurface)']
@@ -1180,6 +1188,7 @@ def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_spa
     classes['CodeEdit']=[v for v in classes['CodeEdit'] if 'extern "xuiCodeEditSetTheme"' not in v]
     classes['CodeEdit'].append(' extern "xuiCodeEditSetTheme" @no_raise @c_result("status",0) func setTheme(CodeTheme theme)')
     mapped['xuiCodeEditSetTheme']='xui.CodeEdit.setTheme'
+    extend_managed(context,classes,free,callback_declarations,mapped)
     lines=['// Managed owner graph and direct native methods. Generated; no per-method C wrappers.']
     for c,n in sorted(raw.items()):lines+=['// Explicit C-interop-only descriptor pointer; this does not own the pointed-to data.','export extern "'+c+'" class '+n+' @header("xge3_runtime.h") @lifetime("caller")',' native point handle','end']
     lines+=callback_declarations
