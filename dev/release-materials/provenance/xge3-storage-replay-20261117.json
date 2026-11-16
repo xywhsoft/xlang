@@ -1,0 +1,150 @@
+{
+  "complete": true,
+  "passed": true,
+  "sourceParent": "c017d4ea7f2ef3a7c6b7438aac7451ff0b644bb9",
+  "sourceHashes": {
+    "docs/xge3-xui3-api-map-storage.json": "7c89d41caa5507788ff4bb31143d694be5df90e5b6f65d69a4d4fcd6f7b446ef",
+    "lib/bindings/xge/src/records.xl": "afbf963b4bfeaa49418a9cd4190be9c84d1a710bb597d15d2c1832f81f4fad65",
+    "tools/stage_xge3_replay_contracts.py": "0a2a8262ec0353816e05ce90313043ed3ef264e8682efb59c979ae70c85d3691",
+    "tools/check_xge3_host_value.py": "51b126690f2fc174517c41e65947e28d6e25cd614f837c9b613d813d565d8d07",
+    "test/cases/foreign_xge3_host_value.h": "ef79bdb9bd9b24a3007d736e924e80e0bb91cf266abab2517463dbf1909af92e",
+    "test/cases/foreign_xge3_host_value.c": "9777465a1c94cb077062b78e57b1676ad90e5ff8ecf4b64f08474d5bbb702800",
+    "test/cases/foreign_xge3_host_value.xl": "6271d66609ebb2297c3d7a357ce453b9cac4dd55326f83fc9d363c246d8bf9cf",
+    "test/cases/foreign_xge3_host_value_oracle.cpp": "b974499c6cf0e10513b4fc2e2269e54a1183587bd7e063fc1a9c8e4ec3a7cfcb",
+    "docs/xge3-host-session.md": "7843f70dcec766ed003030718e7881a12c5786fa2b7920388fcc77ab2019125b",
+    "docs/xge3-replay-contracts.md": "6733ec4677a264663cc3f6195207c484b9cc3790053476f4d2b8a076f6a7c80c"
+  },
+  "scope": "Revalidate eight native storage reviews, restore whole declaration generation and expose the pointer-free HostSessionDesc record",
+  "shippingDelivery": false,
+  "canonicalXrtPromoted": false,
+  "nativeBinariesRebuilt": false,
+  "networkTests": false,
+  "fullCompilerBuilds": true,
+  "optimization": "O2",
+  "xrtRevision": "4641cd2e4da09d8b1a66872cabe085c263d8b5ba",
+  "nativeRevision": "466a1b003db896bbeb1dec10d624619ca34a7b45",
+  "qualification": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\storage-qualified-win-r1.json",
+      "sha256": "aa3d0cab2c7d319486b419c03ad089ccf65e0dfd0d8466a2d6b6ecc8981fe16e",
+      "sourceChecks": 393,
+      "commands": 36,
+      "reports": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\storage-reviews-win-r1\\results.json",
+          "sha256": "427898b67350916ee6e851bdecd73b0d96f72cfb18035a5220ad696253cf0822",
+          "sourceChecks": 393,
+          "commands": 0,
+          "inputsUnchanged": true
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\host-value-win-r2\\results.json",
+          "sha256": "278b894e069e1bbf1ffa0767da6cb0b45da3d907a5454949c637d1784bd98f85",
+          "sourceChecks": 0,
+          "commands": 22,
+          "inputsUnchanged": true
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\storage-obb-win-r1\\results.json",
+          "sha256": "4a1c9ec1eabf9ae013b6c4da4d0b0c6fa7e52aeeadd512f6d63eff582161d973",
+          "sourceChecks": 0,
+          "commands": 14,
+          "inputsUnchanged": true
+        }
+      ]
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\storage-qualified-linux-r1.json",
+      "sha256": "ba8e4f758a55481e463cff2c74b91c2742cfb26717622bcbee522424494ee9a3",
+      "sourceChecks": 394,
+      "commands": 36,
+      "reports": [
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/storage-reviews-linux-r2/results.json",
+          "sha256": "8dc9705ea2e807e604f92c3f0912c38c86cc1f52e36320c411a6cbd9d21acf15",
+          "sourceChecks": 394,
+          "commands": 0,
+          "inputsUnchanged": true
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/host-value-linux-r2/results.json",
+          "sha256": "d3293ef75448bb0279d8509cb2fcfd1804bc1a6f46bd6cb3d4240fe7f9947202",
+          "sourceChecks": 0,
+          "commands": 22,
+          "inputsUnchanged": true
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/storage-obb-linux-r1/results.json",
+          "sha256": "59669d550f28829cbb39018cb8e1a0bccc29b0401fe8eacfed851f0d85d024f3",
+          "sourceChecks": 0,
+          "commands": 14,
+          "inputsUnchanged": true
+        }
+      ]
+    }
+  ],
+  "sourceChecks": 787,
+  "runtimeCommands": 72,
+  "admission": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\storage-review-admission-r1.json",
+    "sha256": "00ab1ef944f90b1316df82a3dab4fa8070c030da68bef30afd7392dc5eb8c517",
+    "reviewedEntries": 8,
+    "changedDependencyPins": 10,
+    "storageRulesChanged": false
+  },
+  "sourceDiffs": {
+    "root": "F:\\xlang-validation\\xge-full-20261110\\storage-review-diffs-r1",
+    "oldBytes": "F:\\xlang-validation\\xge-full-20261110\\storage-review-native-before-r2",
+    "oldByteIndexSha256": "042fed796a178b7b3858828b3d3fa741b5821006cc3cbdae7c8303fd906cad2a",
+    "implementationChanges": "Three implementation files are byte-identical after LF normalization",
+    "publicHeaderChanges": "Only independent owned-backend and HostSession declarations inserted; all prior lines preserved"
+  },
+  "replay": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\storage-replay-compare-r3.json",
+    "sha256": "6c674123c5857d3ccdfd399a506fbbba3dc645db25893e193bba63e024df448f",
+    "selectedFiles": 9,
+    "preservedUnits": 5570,
+    "managedXuiUnits": 3139,
+    "secondReplayByteIdentical": true,
+    "stages": [
+      {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\storage-replay-packages-win-r1\\stage-report.json",
+        "sha256": "b9536fd8f8eded07b2cbd2864aad5e9aca053cdf507285f2ceb26edffb0b20da"
+      },
+      {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/storage-replay-packages-linux-r1/stage-report.json",
+        "verifiedBy": "F:\\xlang-validation\\xge-full-20261110\\storage-qualified-linux-r1.json"
+      }
+    ]
+  },
+  "hostSessionDesc": {
+    "nativeBytes": 20,
+    "nativeAlignment": 4,
+    "pointerFree": true,
+    "cppArchives": [
+      "O0",
+      "O2"
+    ],
+    "headers": [
+      "C11",
+      "C++11",
+      "C++17"
+    ],
+    "boxedAndIndependentCopies": true,
+    "failedPointerOutputAssignmentPreserved": true,
+    "heap": {
+      "languageCalls": 1000,
+      "nativeCalls": 1000,
+      "enabledAccounting": true,
+      "alloc": 0,
+      "free": 0,
+      "realloc": 0,
+      "cpuEquivalenceMeasured": false
+    }
+  },
+  "limitations": [
+    "Windows external-symlink guard is skipped because process lacks symlink creation privilege; Linux covers it",
+    "Native libraries and the complete O2 compiler are reused; this source/replay batch is not final runtime/SDK/IDE installation",
+    "Full XGE/XUI/Document completion still requires unresolved lifetime decisions and the remaining delivery audit"
+  ]
+}

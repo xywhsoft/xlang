@@ -600,3 +600,11 @@ export extern "xge_action_state_t" struct ActionState @header("xge3_runtime.h")
  c_int pressed
  c_int released
 end
+
+export extern "xge_host_session_desc_t" struct HostSessionDesc @header("xge3_runtime.h")
+c_uint size
+c_int width
+c_int height
+c_float dpiScale
+c_uint framebuffer
+end

@@ -7,6 +7,22 @@ owned callback-group pack contract and a matching complete native SDK. This is
 a qualified source batch, not a replacement of the installed runtime/IDE or
 completion of the whole XGE integration.
 
+`HostSessionDesc` exposes the pointer-free native configuration as an ordinary
+value: `size` and `framebuffer` are `c_uint`, `width` and `height` are `c_int`,
+and `dpiScale` is `c_float`. Copies are independent. This value holds no callback,
+owner, context or GPU resource. Direct C consumers require `size` initialized
+to their native `sizeof(xge_host_session_desc_t)`; the normal scalar-argument
+`createHostSession` factory initializes that size through its existing pack
+contract. A descriptor value by itself does not initialize a renderer.
+
+`tools/check_xge3_host_value.py` checks C/C++ headers and actual C++17 O0/O2
+archive calls in Windows/Linux JIT and independent dynamic/static AOT. It covers
+20-byte value returns, pointer outputs, independent copies, dynamic boxing,
+failed assignment and high-bit unsigned framebuffer values. The warmed
+1,000-call language/native intervals have enabled XRT accounting and require
+zero allocation/free/reallocation operations. Stack/value copies and checked
+call boundaries still cost work; CPU equivalence is not measured.
+
 ## Direct declarations and ownership
 
 `createPlatformBackend` builds an immutable platform table from kind, name and

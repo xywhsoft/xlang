@@ -1,0 +1,49 @@
+import xge
+from xge import HostSessionDesc
+extern "fixtureHostValueCopy" @header("test/cases/foreign_xge3_host_value.h") @no_raise func copy(xge.HostSessionDesc value) as xge.HostSessionDesc
+extern "fixtureHostValueRead" @no_raise @c_ref(0) @c_output(1,0) func read(xge.HostSessionDesc value,c_int status) as xge.HostSessionDesc
+extern "fixtureHostValueCpp" @no_raise func cppCopy(xge.HostSessionDesc value) as xge.HostSessionDesc
+extern "fixtureHostValueSize" @no_raise func nativeSize() as c_size
+extern "fixtureHostValueHeapBegin" @no_raise func heapBegin()
+extern "fixtureHostValueHeapEqual" @no_raise func heapEqual() as bool
+extern "fixtureHostValueNativeHot" @no_raise func nativeHot() as bool
+
+func main(...) as int
+ auto config=xge.HostSessionDesc()
+ config.size=c_uint(nativeSize())
+ config.width=640
+ config.height=480
+ config.dpiScale=c_float(2.5)
+ config.framebuffer=c_uint(0xf1234567)
+ auto value=copy(config)
+ assert value.width==641 and config.width==640
+ auto viaPointer=read(config,c_int(0))
+ assert viaPointer.height==481 and config.height==480
+ auto indirect=copy
+ auto again=indirect(config)
+ assert again.width==641 and again.framebuffer==config.framebuffer
+ auto fromCpp=cppCopy(config)
+ assert fromCpp.width==640 and fromCpp.height==480 and fromCpp.dpiScale==c_float(3.5)
+ assert fromCpp.framebuffer==c_uint(0x71234567) and config.framebuffer==c_uint(0xf1234567)
+ var boxed=config
+ auto unboxed=boxed as HostSessionDesc
+ assert unboxed.size==config.size and unboxed.width==640 and unboxed.framebuffer==config.framebuffer
+ bool refused=false
+ try
+  viaPointer=read(config,c_int(-7))
+ catch Error
+  refused=true
+ end
+ assert refused and viaPointer.height==481 and viaPointer.framebuffer==config.framebuffer
+ heapBegin()
+ int i=0
+ while i<1000
+  auto output=copy(config)
+  assert output.width==641 and output.height==480 and output.dpiScale==c_float(2.5)
+  assert output.framebuffer==c_uint(0xf1234567)
+  i+=1
+ end
+ assert heapEqual() and nativeHot()
+ println("HOST_SESSION_VALUE_OK: 1000 language/native calls; enabled XRT alloc/free/realloc=0")
+ return 0
+end

@@ -87,3 +87,20 @@ units, including all 3,130 managed units with class membership and multiplicity.
 Textual ordering remains different and is recorded separately. Source replay is
 qualified; the generated package's nine runtime suites are still running.
 Final release/IDE installation is still open.
+
+The 2026-11-17 storage revalidation checks the later HostSession and Chart
+additions. Eight reviews had ten stale dependency pins: three implementation
+files were identical after UTF-8 line-ending normalization, and the public
+header only inserted independent backend/HostSession declarations. Existing
+declarations, reviewed function bodies and pointer-storage rules are unchanged.
+The review preserves raw old/new bytes and the normalized diffs before updating
+the exact dependency hashes; it does not weaken stale-input rejection.
+
+Full generation again preserves all 5,570 declaration units across the nine
+selected files, including all 3,139 XUI managed units. The new pointer-free
+`HostSessionDesc` record has separate native C/C++ value-ABI qualification.
+Real Shape/ShapeScene four-corner output and its console lesson are rechecked
+with the matching latest-XRT complete compiler and native host/static SDKs.
+See `dev/release-materials/provenance/xge3-storage-replay-20261117.json` for the
+source/replay/runtime evidence and its limits. Runtime and IDE installation
+remain separate; native binaries are reused unchanged in this batch.

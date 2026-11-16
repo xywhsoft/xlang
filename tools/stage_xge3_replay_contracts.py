@@ -1,4 +1,4 @@
-"""Stage preserved declarations and six explicitly reviewed plain value records.
+"""Stage preserved declarations and explicitly reviewed plain value records.
 
 Managed declarations must preserve class membership and all whole contracts.
 This is a local candidate operation, never an installation into release/ or
@@ -29,6 +29,12 @@ ADDITIONS={
         'export extern "xui_code_document_batch_layout_t" struct CodeDocumentBatchLayout @header("xge3_runtime.h")\nc_uint iSize\nuint64 iCapture\nc_size iDocuments\nc_size iCaptureBytes\nend',
         'export extern "xui_code_document_batch_source_t" struct CodeDocumentBatchSource @header("xge3_runtime.h")\nc_uint iSize\nc_int iLength\nc_int iUndoCount\nend',),
 }
+
+# Reviewed pointer-free host configuration. Backend callbacks and owners remain
+# separate resources; this record contains no pointer or ownership projection.
+ADDITIONS['xge/src/records.xl'] += (
+    'export extern "xge_host_session_desc_t" struct HostSessionDesc @header("xge3_runtime.h")\nc_uint size\nc_int width\nc_int height\nc_float dpiScale\nc_uint framebuffer\nend',
+)
 
 
 def source_units(path):
