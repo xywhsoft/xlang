@@ -1,0 +1,55 @@
+// Immutable callback tables. HostSession keeps its own native references.
+export typedef BackendStatusCallback=func() as c_int
+export typedef BackendActionCallback=func()
+
+export extern "struct xge_platform_backend_ref_t*" class PlatformBackend @header("xge3_backend.h") @lifetime("owned") @policy("xl6Xge3PlatformBackendPolicy") @domain("xl6Xge3PlatformBackendDomainV1")
+ native point handle
+ extern "xgePlatformBackendShareOwned" @no_raise @c_result("owned_view") @factory(1,0,releasePlatformBackend) func share() as PlatformBackend
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+export extern "struct xge_graphics_backend_ref_t*" class GraphicsBackend @header("xge3_backend.h") @lifetime("owned") @policy("xl6Xge3GraphicsBackendPolicy") @domain("xl6Xge3GraphicsBackendDomainV1")
+ native point handle
+ extern "xgeGraphicsBackendShareOwned" @no_raise @c_result("owned_view") @factory(1,0,releaseGraphicsBackend) func share() as GraphicsBackend
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xgePlatformBackendReleaseChecked" @header("xge3_backend.h") @no_raise @c_result("status",0) func releasePlatformBackend(PlatformBackend value)
+extern "xgeGraphicsBackendReleaseChecked" @header("xge3_backend.h") @no_raise @c_result("status",0) func releaseGraphicsBackend(GraphicsBackend value)
+
+export extern "xgePlatformBackendCreateOwned" @header("xge3_backend.h") @no_raise @c_result("owned_view") @factory(0,0,releasePlatformBackend) @c_pack(1,"xge_platform_backend_t",0,6) @c_pack_callback_group(1,"pUser",2) @c_pack_field(1,"iType",0,"value") @c_pack_field(1,"sName",1,"c_string") @c_pack_field(1,"init",2,"owned_callback") @c_pack_field(1,"unit",3,"owned_callback") @c_pack_field(1,"poll",4,"owned_callback") @c_pack_field(1,"present",5,"owned_callback") @c_owned_callback(2,-1,"xge_callback_owner_t",-16) @c_owned_callback(3,-1,"xge_callback_owner_t",0) @c_owned_callback(4,-1,"xge_callback_owner_t",-16) @c_owned_callback(5,-1,"xge_callback_owner_t",0) func createPlatformBackend(c_int kind,string name,BackendStatusCallback? onInit=null,BackendActionCallback? onUnit=null,BackendStatusCallback? onPoll=null,BackendActionCallback? onPresent=null) as PlatformBackend
+export extern "xgeGraphicsBackendCreateOwned" @header("xge3_backend.h") @no_raise @c_result("owned_view") @factory(0,0,releaseGraphicsBackend) @c_pack(1,"xge_graphics_backend_t",0,6) @c_pack_callback_group(1,"pUser",2) @c_pack_field(1,"iType",0,"value") @c_pack_field(1,"sName",1,"c_string") @c_pack_field(1,"init",2,"owned_callback") @c_pack_field(1,"unit",3,"owned_callback") @c_pack_field(1,"begin",4,"owned_callback") @c_pack_field(1,"end",5,"owned_callback") @c_owned_callback(2,-1,"xge_callback_owner_t",-16) @c_owned_callback(3,-1,"xge_callback_owner_t",0) @c_owned_callback(4,-1,"xge_callback_owner_t",-16) @c_owned_callback(5,-1,"xge_callback_owner_t",-16) func createGraphicsBackend(c_int kind,string name,BackendStatusCallback? onInit=null,BackendActionCallback? onUnit=null,BackendStatusCallback? onBegin=null,BackendStatusCallback? onEnd=null) as GraphicsBackend
+
+export extern "xge_host_release_result_t" struct HostReleaseResult @header("xge3_backend.h")
+ c_int status
+ bool consumed
+end
+export typedef HostReleaseCallback=func() as HostReleaseResult
+export extern "xge_host_session_info_t" struct HostSessionInfo @header("xge3_backend.h")
+ c_uint size
+ c_int width
+ c_int height
+ c_int backend
+ bool graphicsReady
+ bool frameOpen
+ bool presentPending
+ bool running
+ bool closing
+ uint64 otherResources
+end
+export extern "struct xge_host_session_t*" class HostSession @header("xge3_backend.h") @lifetime("owned") @policy("xl6Xge3HostSessionPolicy") @domain("xl6Xge3HostSessionDomainV1")
+ native point handle
+ extern "xgeHostSessionShareOwned" @no_raise @c_result("owned_view") @factory(1,0,releaseHostSession) func share() as HostSession
+ extern "xgeHostSessionInfoGet" @no_raise @c_output(1,0) @c_output_size(1,"size") func info() as HostSessionInfo
+ extern "xgeHostSessionIsCurrent" @no_raise @c_output(1,0) func isCurrent() as bool
+ extern "xgeHostSessionMakeCurrent" @no_raise @c_result("status",0) func makeCurrent()
+ extern "xgeHostSessionResize" @no_raise @c_result("status",0) func resize(c_int width,c_int height,c_float dpiScale=1,c_uint framebuffer=0)
+ extern "xgeHostSessionPoll" @no_raise @c_result("integer_min",0) func poll() as c_int
+ extern "xgeHostSessionBegin" @no_raise @c_result("status",0) func beginFrame()
+ extern "xgeHostSessionEnd" @no_raise @c_result("status",0) func endFrame()
+ extern "xgeHostSessionPresent" @no_raise @c_result("status",0) func present()
+ extern "xgeHostSessionDiscardFrame" @no_raise @c_result("status",0) func discardFrame()
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "xgeHostSessionReleaseChecked" @header("xge3_backend.h") @no_raise @c_result("status",0) func releaseHostSession(HostSession value)
+// Framebuffer pixels and scale are explicit. The native system GL loader is
+// used; custom C resolver hooks remain available in native interoperability.
+export extern "xgeHostSessionCreateOwned" @header("xge3_backend.h") @no_raise @c_result("owned_view") @factory(0,0,releaseHostSession) @c_pack(1,"xge_host_session_desc_t",0,4) @c_pack_size(1,"size","uint32_t") @c_pack_field(1,"width",0,"value") @c_pack_field(1,"height",1,"value") @c_pack_field(1,"dpiScale",2,"value") @c_pack_field(1,"framebuffer",3,"value") @c_pack(4,"xge_host_context_hooks_t",6,3) @c_pack_callback_group(4,"pUser",5) @c_pack_field(4,"makeCurrent",6,"owned_callback") @c_pack_field(4,"isCurrent",7,"owned_callback") @c_pack_field(4,"release",8,"owned_callback") @c_owned_callback(6,-1,"xge_callback_owner_t",-16) @c_owned_callback(7,-1,"xge_callback_owner_t",-16) @c_owned_callback(8,-1,"xge_callback_owner_t",0) func createHostSession(c_int width,c_int height,c_float dpiScale,c_uint framebuffer,PlatformBackend platform,GraphicsBackend graphics,BackendStatusCallback makeCurrent,BackendStatusCallback isCurrent,HostReleaseCallback release) as HostSession

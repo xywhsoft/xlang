@@ -1,0 +1,90 @@
+{
+  "format": 1,
+  "sourceParent": "8240137fc08ef769871a4479563bb8e9f866f559",
+  "nativeCommit": "df7d97caa9011ef0a918647b8b35295188df702b",
+  "completeBatch": true,
+  "goalComplete": false,
+  "shippingDelivery": false,
+  "qualifiedScope": "Public owned backend tables and acyclic explicit HostSession source integration; no claimed callback-cycle qualification",
+  "sourceHashes": {
+    "lib/bindings/xge/src/backend.xl": "9f404498a58abc812ca959bc621bd4f4f05705693074e82d158729201c891dff",
+    "lib/bindings/xge/include/xge3_backend.h": "66f127ee579c41662b1ade20c81b2d77479e38badf5b7220a5d42234a08ac784",
+    "lib/bindings/xge/xlang.package.json": "d2fd3a8095aceb9a3cad178fc19b99f9a4d88fb1756fd44a1e02d407ec2ac7ec",
+    "lib/bindings/xge/README.md": "5a1ab5b9be80deb62ada53f13d3a64c094b4e541aa619ef73f25f3a294c7f965",
+    "test/cases/foreign_xge3_host.xl": "4ba0c47a212ff035ee9c08bb316a4c02d9fa796d41c613f4b407075bc2d0221a",
+    "test/cases/foreign_xge3_host_probe.h": "f22ef9d62fe7de1427035bbf150a60bccb228efc0e202ee068044ea62ee81139",
+    "test/cases/foreign_xge3_host_probe.c": "a7d881f058394e2c19b59b4a980799a3cef6026e97f96712103923e33266e0ef",
+    "test/cases/foreign_xge3_host_shared.py": "b54c4610c85b539dae28817844baa91f1ec3227fd7213456c43e8fa970e58c48",
+    "tools/check_xge3_host_session.py": "30d532b1865c39868dcd039035829a6f752f0b5fd6fd117405d26279c0de016a",
+    "docs/xge3-host-session.md": "b7dd34b185e97a578251ecf7cbc2622c374deb424c56188f57d98d5dc37b132e",
+    "docs/xge3-xui3-api-map.md": "cbd933ae6aa9908744348499f1e3660cf376c2036d046491c96b2041195b86bd"
+  },
+  "sourceSnapshot": "F:\\xlang-validation\\xge-full-20261110\\host-session-language-source-batch-r1",
+  "reports": [
+    {
+      "platform": "win",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\host-session-public-win-r4\\results.json",
+      "sha256": "f7af30bc7fcfa00f4bd6c05f37f77bb48941048ff1599b7e76608e09c075ba64",
+      "commands": 26,
+      "languageChecks": 10,
+      "callbackErrorScenarios": 70,
+      "physicalSharedUnloads": 2,
+      "products": 7
+    },
+    {
+      "platform": "linux",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\host-session-public-linux-evidence-r4\\results.json",
+      "sha256": "d8ed549b5050e9e627ecb42eaf35da678cf1ffccfcad6c93496ff3c20a1aafe9",
+      "commands": 40,
+      "languageChecks": 16,
+      "callbackErrorScenarios": 112,
+      "physicalSharedUnloads": 2,
+      "products": 11
+    }
+  ],
+  "commands": 66,
+  "languageChecks": 26,
+  "callbackErrorScenarios": 182,
+  "fixtureContainsXrt": false,
+  "networkTests": false,
+  "hardwarePerformance": false,
+  "sourceCohortXrtCommit": "09d543a3e29f3113d258b1f58718345de867e06e",
+  "sourceCohortXrtSha256": "4c1dd0e450c20d2ab887e7552cd038e5b394d8659fd1ae6f66211f76d4625c36",
+  "nativeBuildReports": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\host-session-full-sdk-win-r1\\host\\build-report.json",
+      "sha256": "7975ffe0060ce0d2e3a1aab6881497d0d36a3c7cb7b6b646e9abc0b1c21035a4"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\host-session-full-sdk-win-r1\\static\\build-report.json",
+      "sha256": "b7ff6fbe856ed7e9278273df73f37a6e39439333f99fc3397dad46f7382a52f8"
+    }
+  ],
+  "stagingReports": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\host-session-packages-dynamic-win-r1.json",
+      "sha256": "41db233eeea1143fe6b232f5f8ecd9437d7529b8cebede37d61aba8ed5238dc6"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\host-session-packages-static-win-r1.json",
+      "sha256": "a5a8e1615f838aee013b4f611ac1bc89ede50b99e7f33737361cf6686180b81a"
+    }
+  ],
+  "budget": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\host-session-budget-before-r1.json",
+    "sha256": "878f36d0c067c5761c1aaeec5be273a57b7dab266869e5d55a7cff4a0423bed0"
+  },
+  "limits": [
+    "Claimed callback-cycle finalization needs separately approved restricted callback entry semantics",
+    "No cold OS TLS allocation failure or nested compiler qualification in this batch",
+    "Managed custom GL resolver and borrowed Describe table APIs remain explicit native interoperability",
+    "Full latest-XRT compiler/native/SDK/IDE delivery remains open; release unchanged"
+  ],
+  "negativeProbes": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\host-session-shared-unload-gdb-win-r1.log",
+      "sha256": "363925d92529080d19c7521497578c6f824a2cdd8967da6647d8dc572e38a01e",
+      "interpretation": "Test host omitted existing terminal runtime retirement: Windows FLS destructor entered unloaded code at process shutdown; proper terminal call plus actual unload/normal process exit passes in final gates"
+    }
+  ]
+}

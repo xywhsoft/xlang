@@ -7,6 +7,11 @@ callable fields. It also pins the current language declaration files. This is
 an inventory of source contracts, not a claim that every native function needs
 a managed method or has been executed.
 
+The later [explicit host-session batch](xge3-host-session.md) targets native
+`df7d97ca` and adds owning platform/graphics tables and a manual host frame
+driver. It has separate public-package runtime evidence; the older inventory
+counts below have not been relabeled as a full current-SDK acceptance result.
+
 | Surface | Native functions | Types | Callable fields |
 | --- | ---: | ---: | ---: |
 | `xge.h` | 1,037 | 281 | 0 |

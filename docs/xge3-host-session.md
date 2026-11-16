@@ -1,0 +1,90 @@
+# Owning explicit host backends
+
+`lib/bindings/xge/src/backend.xl` targets native XGE
+`df7d97caa9011ef0a918647b8b35295188df702b`. It requires the compiler's generic
+owned callback-group pack contract and a matching complete native SDK. This is
+a qualified source batch, not a replacement of the installed runtime/IDE or
+completion of the whole XGE integration.
+
+## Direct declarations and ownership
+
+`createPlatformBackend` builds an immutable platform table from kind, name and
+init/unit/poll/present callbacks. `createGraphicsBackend` builds an immutable
+graphics table from init/unit/begin/end callbacks. Each table's callbacks share
+one owned environment through `pUser`. Native tables retain its graph edge and
+code lifetime; the compiler generates typed callback entries. There is no XGE
+method forwarding wrapper.
+
+Both backend classes support `share()` and `close()`. Sharing acquires a real
+independent native reference. A session retains its own references, so closing
+the original backend views does not invalidate its tables. These objects and
+the session belong to their creation thread.
+
+`createHostSession(width,height,dpiScale,framebuffer,platform,graphics,
+makeCurrent,isCurrent,release)` uses the system GL loader. Width/height are
+physical framebuffer pixels; scale is separate. Initialize XGE in manual mode
+first. The application supplies real context hooks and an accurate release
+result. This drives an externally provided GL 3.3 or GLES 3 context; it does not
+create an OS window.
+
+| Language entry | Native entry / meaning |
+| --- | --- |
+| `info()` | `xgeHostSessionInfoGet`, sized native POD snapshot |
+| `isCurrent()`, `makeCurrent()` | Corresponding native context-hook operations |
+| `resize(...)` | Queue CPU dimensions for the next begin |
+| `poll()` | `xgeHostSessionPoll`, nonnegative platform result |
+| `beginFrame()` | `xgeHostSessionBegin`, begin one frame |
+| `endFrame()` | `xgeHostSessionEnd`, consume the open frame |
+| `present()`, `discardFrame()` | Consume a completed frame with/without presentation |
+| `share()` | Acquire another native owner |
+| `close()` | Common checked owner control and typed native cleanup policy |
+
+An open frame, pass or active callback makes explicit close fail before logical
+close, keeping `endFrame()` usable. GPU children can delay physical cleanup;
+release them before expecting complete retirement. Destruction never
+synthesizes end/present calls.
+
+## Errors and consumption
+
+Callback exceptions cross the checked boundary with their original language
+error type. End/present operations already consumed by the native state machine
+are not repeated because a callback failed. Each unit callback has one cleanup
+obligation. `HostReleaseResult` carries `c_int status` and `bool consumed`
+independently: false retains the external-context release duty for retry;
+true consumes it even if status reports an error. Common owner cleanup can
+retry at checked boundaries.
+
+A throwing release callback yields the compiler's zero POD result, with
+`consumed=false`, while retaining the language error separately. Do not destroy
+an external context and then throw before returning the consumed result.
+After consuming an OS resource, return its truthful status/consumption record,
+so a later retry cannot destroy it twice.
+
+## Costs and acceptance
+
+Descriptor packs are stack records; methods call their named native entry once.
+Creation still allocates native tables/names, generic callback-group environments
+and closure/code owners. Shared references, checked view admission, ownership
+bookkeeping and callback entry/exit pins are real costs. This is not zero total
+overhead. A previous Windows diagnostic prototype observed no XRT alloc/free/
+realloc over 1,000 warm language frames; it was not a timing comparison or a
+proof about every allocator.
+
+`tools/check_xge3_host_session.py` uses public `import xge`. Its OS-only WGL/EGL
+fixture links neither XRT nor a compiler. Windows GL and Linux GL/GLES cover
+JIT, dynamic/static AOT, pixels, independent shares, Busy-close recovery,
+deferred release and seven callback-error/consumption cases. Dynamic/static
+shared products run twice, clean up, physically unload and let the host exit
+normally. Windows also calls the existing terminal
+`xl_script_runtime_retire_checked()` before unloading embedded XRT code:
+reusable module cleanup alone does not retire OS FLS destructors. Static
+product import tables exclude XGE and compiler libraries.
+
+Receipt: `dev/release-materials/provenance/xge3-host-session-20261117.json`.
+Claimed native/language callback cycles remain unqualified: finalization can
+need a callback whose group is already claimed by the ownership transaction.
+Its proposed restricted entry rule needs a separate runtime contract and tests.
+Do not rely on cycles for automatic HostSession cleanup yet. Safe managed
+custom GL-resolver/borrowed table APIs, cold OS TLS allocation failure, nested
+compilation and latest-XRT/full SDK/IDE delivery also remain separate work.
+No network tests run in this batch.

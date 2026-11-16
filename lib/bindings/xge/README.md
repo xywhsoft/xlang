@@ -36,6 +36,13 @@ boundaries are described in `docs/xge3-xui3-api-map.md` in the source repository
 The source package is under active completion and is not an assertion that every
 native engine subsystem has already passed managed runtime acceptance.
 
+Owning `PlatformBackend`, `GraphicsBackend` and `HostSession` declarations
+support explicit host event/render loops through shared callback environments.
+The public-package gate covers real WGL/EGL rendering, callback errors and
+acyclic shared-library unload. Claimed callback-cycle cleanup and final matched
+delivery remain open; see `docs/xge3-host-session.md` in the source repository
+before using this source candidate.
+
 `examples/egl_context.xl` uses the matched optional EGL SDK for actual headless
 rendering. `GraphicsContext` is a source candidate: local-object JIT/static
 acceptance passes, but module-global/code-residency retirement still blocks
