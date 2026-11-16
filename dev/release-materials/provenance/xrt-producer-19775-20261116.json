@@ -1,0 +1,34 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Immutable producer preparation and additive declaration audit only. Not a runtime/SDK promotion.",
+  "shippingDelivery": false,
+  "runtimeQualification": false,
+  "upstreamCommit": "19775f625df9c8ab220c2893ecc00b54009fd706",
+  "sourceFingerprint": "660fd1f43ada0f9b0312f7033e3bcdce35c1fed306c17e09c130342c7ebe5d74",
+  "newCoreSha256": "50c07140b668a33bcb60db4db4d478d3a880227a847a38ef0b1512cee1114800",
+  "existingDeclarationsUnchanged": 3482,
+  "addedDeclarations": {
+    "xrtTlsClientResumeCapacity": "XRT_API size_t xrtTlsClientResumeCapacity(const xtlssession* pSession);"
+  },
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xrt-latest-committed-19775-r1\\results.json",
+      "sha256": "9b1131c86ef61d944ac8b89218479eaf1f7310afbe5c166d74bb0e20fea6abf2"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xrt-19775-additive-audit-r1.json",
+      "sha256": "fc6afd382c2db08038c443e5452a983b4ecc3c580fdfe3008d3dee042eb3a94c"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\freeze_latest_xrt_19775_r1.py",
+      "sha256": "cd4e46e8aef449f6cb50b6fd670e1a8cd9c04e0859747f4d88bd8acbd07d118a"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\audit_latest_xrt_19775_r1.py",
+      "sha256": "7cd1cb4ec987a2a712759b0ff33608c4f43a7defa5fc6f89743f4a3b4f5f02e4"
+    }
+  ],
+  "nextStep": "Integrate this producer with the remaining native changes and rebuild a matched compiler/host/static SDK at final convergence. Keep qualified 09d reports unchanged.",
+  "networkTests": false
+}
