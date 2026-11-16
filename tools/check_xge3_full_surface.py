@@ -19,6 +19,29 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def native_snapshot_identity(native_root, path):
+    """A frozen source export need not pretend to be a Git working tree."""
+    path = path.resolve()
+    record = json.loads(path.read_text(encoding='utf-8-sig'))
+    if not record.get('complete') or not record.get('passed') or Path(record['source']).resolve() != native_root:
+        raise ValueError('Native source record does not qualify this export')
+    revision = record.get('engineRevision', '')
+    if not re.fullmatch(r'[0-9a-f]{40}', revision):
+        raise ValueError('Native source record needs an explicit engine revision')
+    pins = record.get('sourceInputs', {})
+    required = {p.relative_to(native_root).as_posix() for p in (native_root / 'include').rglob('*.h')}
+    required |= {'extlibs/xrt/xrt.h', 'extlibs/xrt/xrt_decl.h', 'extlibs/xrt/upstream.json'}
+    if not required <= pins.keys():
+        raise ValueError('Native source record omits public header/dependency inputs')
+    for name, expected in pins.items():
+        source = (native_root / name).resolve()
+        if not source.is_relative_to(native_root) or not source.is_file() or digest(source) != expected:
+            raise ValueError('Native snapshot input changed: ' + name)
+    return dict(revision=revision, trackedTreeDirty=None, sourceRecord=str(path),
+        sourceRecordSha256=digest(path), xrtRevision=record.get('xrtRevision'),
+        overlay=record.get('overlay', {}))
+
+
 def source_bindings(root):
     """Read exactly the files selected by each source package manifest."""
     functions = {}
@@ -63,7 +86,7 @@ def source_bindings(root):
     return functions, fields, types, constants, inputs
 
 
-def build_report(root, native_root, data):
+def build_report(root, native_root, data, native_identity=None):
     functions, fields, types, constants, inputs = source_bindings(root)
     headers = data['headers'] + data['supplementaryHeaders'] + data['dependencyHeaders']
     items = []
@@ -124,11 +147,15 @@ def build_report(root, native_root, data):
     if any(digest(native_root / 'include' / name) != row['sha256']
            for row in header_rows for name in [row['header']]):
         raise ValueError('Public headers changed during the audit')
-    revision = subprocess.check_output(['git', '-C', str(native_root), 'rev-parse', 'HEAD'], text=True).strip()
-    dirty = subprocess.check_output(['git', '-C', str(native_root), 'status', '--porcelain', '--untracked-files=no'], text=True)
+    if native_identity is None:
+        revision = subprocess.check_output(['git', '-C', str(native_root), 'rev-parse', 'HEAD'], text=True).strip()
+        dirty = bool(subprocess.check_output(['git', '-C', str(native_root), 'status', '--porcelain', '--untracked-files=no'], text=True))
+    else:
+        revision, dirty = native_identity['revision'], native_identity['trackedTreeDirty']
     population = Counter(item['kind'] for item in items)
     present = Counter(item['kind'] for item in items if item['declarationPresent'])
-    return dict(schema=1, scope=__doc__, nativeRevision=revision, nativeTrackedTreeDirty=bool(dirty),
+    return dict(schema=1, scope=__doc__, nativeRevision=revision, nativeTrackedTreeDirty=dirty,
+                nativeSourceSnapshot=native_identity,
                 publicHeaderSha256=public_headers, bindingInputs=inputs, inputsUnchanged=True,
                 headerRows=header_rows, population=dict(population), declarationPresent=dict(present),
                 limitations=[
@@ -145,16 +172,21 @@ def main():
     parser.add_argument('--root', type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument('--native-root', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
+    parser.add_argument('--native-source-record', type=Path,
+                        help='Explicit engine revision and exact source/dependency hashes for a frozen non-Git export')
     parser.add_argument('--require-declarations', nargs='+', default=[], metavar='NATIVE_FUNCTION',
                         help='Fail if any named function lacks a public declaration; not a runtime completion gate')
     args = parser.parse_args()
     root, native, out = (p.resolve() for p in (args.root, args.native_root, args.out))
+    identity = native_snapshot_identity(native, args.native_source_record) if args.native_source_record else None
     if out.is_relative_to(root / 'release') or out.is_relative_to(root / 'lib') or out.is_relative_to(native):
         parser.error('Reports must not overwrite runtime, binding or upstream source trees')
     out.mkdir(parents=True, exist_ok=False)
     data = inventory(native, out / 'native-inventory.json')
     annotate_existing_bindings(root, data)
-    report = build_report(root, native, data)
+    report = build_report(root, native, data, identity)
+    if identity is not None and native_snapshot_identity(native, args.native_source_record) != identity:
+        raise ValueError('Native source record changed during the audit')
     (out / 'surface.json').write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     selected = {item['symbol'] for item in report['items']
                 if item['kind'] == 'functions' and item['declarationPresent']}

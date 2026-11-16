@@ -1,5 +1,21 @@
 # XGE / XUI / Document 全量接入
 
+2026-11-17 后继：[拥有式后端与显式 HostSession](xge3-host-session.md) 已补入
+公开源包；两端共66项包级检查，包含真实 WGL／EGL／GLES、182个回调异常场景及
+无环共享库实际卸载。[执行上下文 OS 键故障](foreign-context-os-failure.md) 的
+30项检查仅证明原语的分配回滚／重试，不替代完整语言回调准入。
+[平台 SDK 资源来源](runtime-sdk-resources.md) 已修正，避免 Linux 消费另一平台的
+旧声明。已认领回调环的最终清理合同、其余开放能力和最终交付仍未结项。
+
+全量核对现在也可读取没有 `.git` 的冻结导出：传入 `--native-source-record`，
+记录必须明确 `engineRevision`、`source`、已通过状态及全部源码／公开头／XRT
+依赖的 `sourceInputs` 哈希；工具在核对前后检查它们，并单独报告 XRT 版本和显式
+覆盖。冻结导出不伪装为干净 Git 工作树；`nativeTrackedTreeDirty` 为 null。
+正常 Git 模式继续保留。五项错误记录负例在扫描前拒绝。
+本次已提交声明的核对人口为5278个函数／991种类型，找到3894个函数声明；
+源包中未公开的生命周期支撑及安全替代仍需逐项核对，不能据此计算完成率。
+完整证据留在外部验收目录，详见 surface-snapshot-audit-20261117.json 索引。
+
 2026-11-16 后继验收：调试库补齐真实图形上下文、共享模块初始化／checked 退役，
 以及暖态统计查询的 C 对照和正常 SDK 的功能位拒绝。两端各48项检查通过；Linux
 图形路径为 Xvfb／软件 OpenGL。详见 xge3-debug-capabilities.md 的后继章节和

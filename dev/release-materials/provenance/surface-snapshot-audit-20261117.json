@@ -1,0 +1,54 @@
+{
+  "format": 1,
+  "sourceParent": "f2f2ed9889a23b428b3be6e84c8c11c0bcde3b54",
+  "completeBatch": true,
+  "goalComplete": false,
+  "shippingDelivery": false,
+  "sourceHashes": {
+    "tools/check_xge3_full_surface.py": "b2027e403f54ebe355e47fc97b6b75d0a4f1e3c532bb138fe7245c7b19a0655f",
+    "docs/xge3-xui3-full-coverage-plan.md": "afc214bed4261c5ae3d0644d0ac846ddfcd32b0c212e3ebd146816236bffdcf8"
+  },
+  "scope": "Full declaration inventory from exact frozen Native source records; no ABI/lifetime/runtime qualification implied",
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\surface-xrt4641-committed-r3\\surface.json",
+      "sha256": "632a6b170992d6ea935382e53641e48e33e4b11240fa1bb96f59234559968b4d"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\surface-xrt4641-live-git-r1\\surface.json",
+      "sha256": "d559879d8fe7be75f8984e15b42af7a55f0abb5fa441fe0c8f2d0bb3bfd0b213"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\surface-xrt4641-record-negative-r1\\results.json",
+      "sha256": "54ca7f8e80939c5f3b51bdfd0370ae7a142b718e764c5b72a869f6ded23f0a07"
+    }
+  ],
+  "sourceRecord": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-xrt4641-native-source-record-r1.json",
+    "sha256": "92d2cb58f4300ff8e35156d4a0099c8570814ed0f310d20a2ce26eebe280a419"
+  },
+  "population": {
+    "functions": 5278,
+    "types": 991,
+    "constants": 1838,
+    "functionMacros": 7,
+    "callableFields": 188,
+    "enums": 40,
+    "enumConstants": 316
+  },
+  "declarationPresent": {
+    "functions": 3894,
+    "types": 394,
+    "constants": 1824,
+    "callableFields": 66,
+    "enumConstants": 316
+  },
+  "negativeControls": 5,
+  "commands": 7,
+  "networkTests": false,
+  "limits": [
+    "Public declaration presence is not functional completeness",
+    "Frozen engine df7 source has explicit latest-XRT overlay, not a fabricated clean Git tree",
+    "Runtime/ownership review remains pending per item; final SDK/compiler/IDE not installed"
+  ]
+}
