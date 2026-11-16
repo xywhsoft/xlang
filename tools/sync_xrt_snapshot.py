@@ -78,14 +78,15 @@ def _write_if_changed(path: Path, data: bytes) -> bool:
 
 
 
-def _check_snapshot(root: Path) -> bool:
+def _check_snapshot(root: Path, sdk_directory: Path | None = None) -> bool:
     """校验 XRT、xruntime 快照、元数据和运行时符号表。"""
 
     core_header = root / "lib" / "xrt" / "xrt.h"
-    core_declarations = runtime_directory(root) / "include" / "xrt_decl.h"
+    sdk = sdk_directory.resolve() if sdk_directory is not None else runtime_directory(root)
+    core_declarations = sdk / "include" / "xrt_decl.h"
     core_metadata_path = root / "lib" / "xrt" / "xrt.snapshot.json"
     runtime_header = root / "lib" / "xruntime" / "xruntime.h"
-    runtime_declarations = runtime_directory(root) / "include" / "xruntime_decl.h"
+    runtime_declarations = sdk / "include" / "xruntime_decl.h"
     runtime_metadata_path = root / "lib" / "xruntime" / "xruntime.snapshot.json"
     runtime_features = root / "lib" / "xruntime" / "xruntime_features.h"
     symbols_path = root / "src" / "api" / "xl_xrt_symbols.inc"
@@ -372,6 +373,8 @@ def main() -> int:
     modes = parser.add_mutually_exclusive_group(required=True)
     modes.add_argument("--check", action="store_true")
     modes.add_argument("--sync", action="store_true")
+    parser.add_argument("--sdk-directory", type=Path,
+                        help="Read-only --check using declaration headers from an explicit SDK; does not update release/")
     parser.add_argument("--allow-development-source", action="store_true",
                         help="record incomplete upstream release metadata while requiring fresh generated headers")
     parser.add_argument(
@@ -383,8 +386,11 @@ def main() -> int:
     arguments = parser.parse_args()
     root = arguments.root.resolve()
 
+    if arguments.sdk_directory is not None and not arguments.check:
+        parser.error("--sdk-directory is only valid with --check")
+
     if arguments.check:
-        return 0 if _check_snapshot(root) else 1
+        return 0 if _check_snapshot(root, arguments.sdk_directory) else 1
     if arguments.xrt_root is None:
         parser.error("--sync requires --xrt-root or XRT_SOURCE_ROOT")
     try:

@@ -1,0 +1,107 @@
+{
+  "complete": true,
+  "passed": true,
+  "sourceParent": "0cc9343b9d6a8c02838b99dc466f4557d831569c",
+  "sourceHashes": {
+    "lib/xrt/xrt.h": "369f884c1c1fdc9621f654c81bb86850e85d992dc56b9cebf395e20ea03dfe7b",
+    "lib/xrt/upstream.json": "f8ab49de16f698ba489304a8f2dad90162f5c8edd72326bb905fa534c8c8d157",
+    "lib/xrt/xrt.snapshot.json": "4b0360e3a66a088713ecff4acff769db68cabbc604cade13db94e2621e018cc2",
+    "lib/xruntime/xruntime.snapshot.json": "598d2d6bb0f533131c8d5b4b58e36dcab72336577a42d20cedc3b29800fccac5",
+    "src/api/xl_xrt_symbols.inc": "706a2c05710f49043e1c9a5c5794b13466df95a97dd2cedd8cb31eb3aa21e9a5",
+    "src/compile/xl6_artifact_native_symbols.inc": "df99e2ac6397999df002bc383e8450e6d319ad8c1b600ac96bcb9a394a97b714",
+    "src/runtime/xl6_host_xrt_symbols.h": "2402f94db3b225ee13b6505261acb6792790164ee9edf9bcfc31263d6d580b34",
+    "tools/sync_xrt_snapshot.py": "8206c17f2706dbb28d5a7f2883a41d1ab2aab45a6e060c07b857103a9ff560cc",
+    "docs/XRT\u4e0exlang\u80fd\u529b\u77e9\u9635.md": "3a057d521aa0941248bb149e1041c2484153519b79350a63fe8fde16d2c710bf",
+    "docs/xge3-xrt-canonical-transition.md": "00d0ff6a815dc107f3ca48d14cb328f972c79a47d8da7e2c6354ccfcc81ce986"
+  },
+  "scope": "Canonical latest committed XRT source, paired metadata/symbol catalogs and read-only external-SDK verification",
+  "sourceOnlyPromotion": true,
+  "shippingDelivery": false,
+  "canonicalXrtPromoted": true,
+  "xrtRevision": "4641cd2e4da09d8b1a66872cabe085c263d8b5ba",
+  "nativeRevision": "466a1b003db896bbeb1dec10d624619ca34a7b45",
+  "runtimeImplementationChanged": false,
+  "xrtSourceSha256": "369f884c1c1fdc9621f654c81bb86850e85d992dc56b9cebf395e20ea03dfe7b",
+  "qualifiedCompleteO2Cohorts": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\return-output-qualified-win-r1.json",
+      "sha256": "8c51e611d0fc0b8b2e15afd44871a09cde06592190ab4217d9ae2094dffc7b6e",
+      "completeCompiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-return-output-win-full-r1\\build.json",
+        "sha256": "9c9b1f41ede82369b7c8920881e7add4238558a1546d7e70fba63ff064af2857",
+        "commands": 0,
+        "fullCompilerBuild": true,
+        "seconds": 1143.3279999999795,
+        "inputs": 0,
+        "inputsUnchanged": true
+      }
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\return-output-qualified-linux-r1.json",
+      "sha256": "3ded0ef2388c5162a25ef935205417ace6a98b967a959203f66bff9922639b25",
+      "completeCompiler": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/compiler-return-output-linux-full-r1/build.json",
+        "sha256": "279bf0635e3557c4ff2b6fe33aaed09cee187679306c9f4e8ce1e18534d8f658",
+        "commands": 0,
+        "fullCompilerBuild": true,
+        "seconds": 1527.0375139429998,
+        "inputs": 0,
+        "inputsUnchanged": true
+      }
+    }
+  ],
+  "sourceEquivalence": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\canonical-source-cohort-equivalence-r3.json",
+    "sha256": "d3c2746b8cd2fc86a170d90b7f41541ddb930873c76e6918757fdfe67c2f2c42",
+    "compared": 2825,
+    "byteIdentical": 468,
+    "lineEndingOnly": 2357,
+    "binaryInputsExact": true,
+    "newBuildClaimed": false
+  },
+  "publicDeclarators": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\canonical-xrt-public-abi-r1\\results.json",
+    "sha256": "281c8b5f30b30e1bbb2b0eafe66426c7074dc734a580cda5020cd25a0f40a4fa",
+    "preserved": 3482,
+    "added": [
+      "xrtNetAddrTryParse",
+      "xrtTlsClientResumeCapacity",
+      "xrtTrySwapErrorTake"
+    ],
+    "changed": 0,
+    "removed": 0
+  },
+  "sourceChecks": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\canonical-xrt-source-check-win-r1\\results.json",
+      "sha256": "80f38155157080349854722e3a7ad941a22e98d14df5550751ebf188c06e10f9",
+      "commands": 6
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\canonical-xrt-source-check-linux-r1\\results.json",
+      "sha256": "e4958cdc4abcf1defa634653edf34bc9455c51ca6655b0559603f7491e3eadf3",
+      "commands": 1
+    }
+  ],
+  "matrix": {
+    "coreApiCount": 3485,
+    "xruntimeOwnedApiCount": 465,
+    "totalApiCount": 3950,
+    "extensionDeferred": 0
+  },
+  "installedReleaseBytesUnchanged": {
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xlang_ide.exe": "7164c29f45c438f7d788457283ae6404178e0d2b779c3cd151eb374b75a02cf1",
+    "D:\\GIT\\x-lang\\release\\win_x64\\xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3",
+    "D:\\GIT\\x-lang\\release\\win_x64\\include\\xrt_decl.h": "a9dd02dcd9a9f56a741c86ec1cb8df70c0fb59de3edb799de1a6f074ccf7552d",
+    "D:\\GIT\\x-lang\\release\\win_x64\\include\\xruntime_decl.h": "a1f15630834e743d6d629c0cc9a80c5ba882ba6af13c1d1dc3779490e4340bb9"
+  },
+  "limitations": [
+    "Installed SDK/runtime/compiler/IDE remain unchanged and need matched final delivery; default source check against older installed declarations is expected to reject",
+    "The explicit SDK selector only validates declaration/source snapshot consistency, not a newly built binary or SDK installation",
+    "Existing complete O2 compiler/VFS/precompiled products are reused under explicit source equivalence; no duplicate complete build is claimed",
+    "The full XGE/XUI/Document objective remains incomplete while ownership design questions and final installation/acceptance remain open"
+  ]
+}

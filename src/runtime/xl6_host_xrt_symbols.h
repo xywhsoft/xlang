@@ -773,6 +773,12 @@ XL6_HOST_XRT_SYMBOL(xrtEventUnit)
 XL6_HOST_XRT_SYMBOL(xrtEventWait)
 XL6_HOST_XRT_SYMBOL(xrtEventWaitFor)
 #endif
+#if defined(XRT_FEATURE_EVENT_WAITER)
+XL6_HOST_XRT_SYMBOL(xrtEventWaiterGet)
+XL6_HOST_XRT_SYMBOL(xrtEventWaiterInit)
+XL6_HOST_XRT_SYMBOL(xrtEventWaiterUnit)
+XL6_HOST_XRT_SYMBOL(xrtEventWaiterWaitFor)
+#endif
 #if defined(XRT_FEATURE_EXECUTOR)
 XL6_HOST_XRT_SYMBOL(xrtExecutorCancel)
 XL6_HOST_XRT_SYMBOL(xrtExecutorClose)
@@ -780,6 +786,7 @@ XL6_HOST_XRT_SYMBOL(xrtExecutorCreate)
 XL6_HOST_XRT_SYMBOL(xrtExecutorCreateOwnedExitV1)
 XL6_HOST_XRT_SYMBOL(xrtExecutorDestroy)
 XL6_HOST_XRT_SYMBOL(xrtExecutorGet)
+XL6_HOST_XRT_SYMBOL(xrtExecutorIsCurrent)
 XL6_HOST_XRT_SYMBOL(xrtExecutorJobOwnershipAdapterV1)
 XL6_HOST_XRT_SYMBOL(xrtExecutorJobOwnershipQuiescenceV1Get)
 XL6_HOST_XRT_SYMBOL(xrtExecutorOwnership)
@@ -1431,6 +1438,9 @@ XL6_HOST_XRT_SYMBOL(xrtJsonReadConfigInit)
 #if defined(XRT_FEATURE_JSON_FILE)
 XL6_HOST_XRT_SYMBOL(xrtJsonReadFile)
 #endif
+#if defined(XRT_FEATURE_JSON_READ)
+XL6_HOST_XRT_SYMBOL(xrtJsonScan)
+#endif
 #if defined(XRT_FEATURE_JSON_WRITE)
 XL6_HOST_XRT_SYMBOL(xrtJsonStringify)
 #endif
@@ -1844,6 +1854,7 @@ XL6_HOST_XRT_SYMBOL(xrtMutexDestroy)
 XL6_HOST_XRT_SYMBOL(xrtMutexInit)
 XL6_HOST_XRT_SYMBOL(xrtMutexLock)
 XL6_HOST_XRT_SYMBOL(xrtMutexTryLock)
+XL6_HOST_XRT_SYMBOL(xrtMutexTryLockResult)
 XL6_HOST_XRT_SYMBOL(xrtMutexUnit)
 XL6_HOST_XRT_SYMBOL(xrtMutexUnlock)
 #endif
@@ -1879,6 +1890,7 @@ XL6_HOST_XRT_SYMBOL(xrtNetAddrSameIP)
 XL6_HOST_XRT_SYMBOL(xrtNetAddrString)
 XL6_HOST_XRT_SYMBOL(xrtNetAddrText)
 XL6_HOST_XRT_SYMBOL(xrtNetAddrToNative)
+XL6_HOST_XRT_SYMBOL(xrtNetAddrTryParse)
 XL6_HOST_XRT_SYMBOL(xrtNetAddrUnmap)
 #endif
 #if defined(XRT_FEATURE_NET_BUFFER)
@@ -2345,6 +2357,11 @@ XL6_HOST_XRT_SYMBOL(xrtNetStreamOwnershipAdapterV2)
 XL6_HOST_XRT_SYMBOL(xrtNetStreamOwnershipQuiescenceV1Get)
 XL6_HOST_XRT_SYMBOL(xrtNetStreamPause)
 XL6_HOST_XRT_SYMBOL(xrtNetStreamPending)
+#endif
+#if defined(XRT_FEATURE_NET_TCP_RETIRE)
+XL6_HOST_XRT_SYMBOL(xrtNetStreamPollRetired)
+#endif
+#if defined(XRT_FEATURE_NET_TCP)
 XL6_HOST_XRT_SYMBOL(xrtNetStreamRead)
 #endif
 #if defined(XRT_FEATURE_NET_TCP_SYNC)
@@ -2390,6 +2407,9 @@ XL6_HOST_XRT_SYMBOL(xrtNetStreamWaitAvailable)
 #endif
 #if defined(XRT_FEATURE_NET_TCP_FUTURE)
 XL6_HOST_XRT_SYMBOL(xrtNetStreamWaitAvailableAsync)
+#endif
+#if defined(XRT_FEATURE_NET_TCP_RETIRE)
+XL6_HOST_XRT_SYMBOL(xrtNetStreamWaitRetired)
 #endif
 #if defined(XRT_FEATURE_NET_TCP)
 XL6_HOST_XRT_SYMBOL(xrtNetStreamWorker)
@@ -3888,13 +3908,24 @@ XL6_HOST_XRT_SYMBOL(xrtTlsCipherName)
 #if defined(XRT_FEATURE_TLS_NEGOTIATE)
 XL6_HOST_XRT_SYMBOL(xrtTlsCipherSelect)
 #endif
+#if defined(XRT_FEATURE_TLS_CLIENT_AUTH)
+XL6_HOST_XRT_SYMBOL(xrtTlsClientAuthConfigInitV1)
+#endif
 #if defined(XRT_FEATURE_TLS_CLIENT_VERIFY)
 XL6_HOST_XRT_SYMBOL(xrtTlsClientCertificate)
 XL6_HOST_XRT_SYMBOL(xrtTlsClientCertificateCount)
 #endif
+#if defined(XRT_FEATURE_TLS_CLIENT_AUTH)
+XL6_HOST_XRT_SYMBOL(xrtTlsClientCertificateQueuedV1)
+#endif
 #if defined(XRT_FEATURE_TLS_CLIENT)
 XL6_HOST_XRT_SYMBOL(xrtTlsClientConfigInit)
 XL6_HOST_XRT_SYMBOL(xrtTlsClientCreate)
+#endif
+#if defined(XRT_FEATURE_TLS_CLIENT_AUTH)
+XL6_HOST_XRT_SYMBOL(xrtTlsClientCreateAuthV1)
+#endif
+#if defined(XRT_FEATURE_TLS_CLIENT)
 XL6_HOST_XRT_SYMBOL(xrtTlsClientDrive)
 #endif
 #if defined(XRT_FEATURE_TLS_HELLO_WRITE)
@@ -3916,6 +3947,7 @@ XL6_HOST_XRT_SYMBOL(xrtTlsClientKeyUpdate)
 XL6_HOST_XRT_SYMBOL(xrtTlsClientPsks)
 #endif
 #if defined(XRT_FEATURE_TLS_CLIENT_RESUME)
+XL6_HOST_XRT_SYMBOL(xrtTlsClientResumeCapacity)
 XL6_HOST_XRT_SYMBOL(xrtTlsClientResumeCount)
 XL6_HOST_XRT_SYMBOL(xrtTlsClientResumeDropped)
 #endif
@@ -4314,6 +4346,11 @@ XL6_HOST_XRT_SYMBOL(xrtTlsStreamConsume)
 XL6_HOST_XRT_SYMBOL(xrtTlsStreamData)
 XL6_HOST_XRT_SYMBOL(xrtTlsStreamDestroy)
 XL6_HOST_XRT_SYMBOL(xrtTlsStreamError)
+#endif
+#if defined(XRT_FEATURE_TLS_STREAM_EVENT_EXCHANGE)
+XL6_HOST_XRT_SYMBOL(xrtTlsStreamExchangeEventsOwnedV1)
+#endif
+#if defined(XRT_FEATURE_TLS_STREAM)
 XL6_HOST_XRT_SYMBOL(xrtTlsStreamFlush)
 #endif
 #if defined(XRT_FEATURE_TLS_STREAM_FUTURE)
@@ -4328,6 +4365,11 @@ XL6_HOST_XRT_SYMBOL(xrtTlsStreamOwnership)
 XL6_HOST_XRT_SYMBOL(xrtTlsStreamOwnershipAdapterV1)
 XL6_HOST_XRT_SYMBOL(xrtTlsStreamOwnershipQuiescenceV1Get)
 XL6_HOST_XRT_SYMBOL(xrtTlsStreamPending)
+#endif
+#if defined(XRT_FEATURE_TLS_STREAM_RETIRE)
+XL6_HOST_XRT_SYMBOL(xrtTlsStreamPollRetired)
+#endif
+#if defined(XRT_FEATURE_TLS_STREAM)
 XL6_HOST_XRT_SYMBOL(xrtTlsStreamPullup)
 XL6_HOST_XRT_SYMBOL(xrtTlsStreamRead)
 XL6_HOST_XRT_SYMBOL(xrtTlsStreamReadMore)
@@ -4353,12 +4395,23 @@ XL6_HOST_XRT_SYMBOL(xrtTlsStreamSendVecAsync)
 #if defined(XRT_FEATURE_TLS_STREAM)
 XL6_HOST_XRT_SYMBOL(xrtTlsStreamSession)
 XL6_HOST_XRT_SYMBOL(xrtTlsStreamSetEvents)
+#endif
+#if defined(XRT_FEATURE_TLS_STREAM_WRITE_PROGRESS)
+XL6_HOST_XRT_SYMBOL(xrtTlsStreamSetWriteProgress)
+#endif
+#if defined(XRT_FEATURE_TLS_STREAM)
 XL6_HOST_XRT_SYMBOL(xrtTlsStreamState)
 XL6_HOST_XRT_SYMBOL(xrtTlsStreamTransport)
 XL6_HOST_XRT_SYMBOL(xrtTlsStreamTransportOwnershipV1Get)
 #endif
 #if defined(XRT_FEATURE_TLS_STREAM_FUTURE)
 XL6_HOST_XRT_SYMBOL(xrtTlsStreamWaitAsync)
+#endif
+#if defined(XRT_FEATURE_TLS_STREAM_RETIRE)
+XL6_HOST_XRT_SYMBOL(xrtTlsStreamWaitRetired)
+#endif
+#if defined(XRT_FEATURE_TLS_STREAM_WRITE_PROGRESS)
+XL6_HOST_XRT_SYMBOL(xrtTlsStreamWriteProgress)
 #endif
 #if defined(XRT_FEATURE_TLS_VERIFY)
 XL6_HOST_XRT_SYMBOL(xrtTlsVerifierConfigInit)
@@ -4418,6 +4471,7 @@ XL6_HOST_XRT_SYMBOL(xrtTranscode)
 #if defined(XRT_FEATURE_FILE_TREE)
 XL6_HOST_XRT_SYMBOL(xrtTreeCopyOptionsInit)
 #endif
+XL6_HOST_XRT_SYMBOL(xrtTrySwapErrorTake)
 #if defined(XRUNTIME_FEATURE_RUNTIME_TYPE)
 XL6_HOST_XRT_SYMBOL(xrtTypeArgument)
 XL6_HOST_XRT_SYMBOL(xrtTypeBool)
@@ -5520,6 +5574,11 @@ XL6_HOST_XRT_SYMBOL(xrtWsStreamAttachOwnedV1)
 #if defined(XRT_FEATURE_WEBSOCKET_STREAM_TLS)
 XL6_HOST_XRT_SYMBOL(xrtWsStreamAttachTls)
 XL6_HOST_XRT_SYMBOL(xrtWsStreamAttachTlsBuffered)
+#endif
+#if defined(XRT_FEATURE_WEBSOCKET_STREAM_TLS_EXCHANGE)
+XL6_HOST_XRT_SYMBOL(xrtWsStreamAttachTlsExchangeOwnedV1)
+#endif
+#if defined(XRT_FEATURE_WEBSOCKET_STREAM_TLS)
 XL6_HOST_XRT_SYMBOL(xrtWsStreamAttachTlsOwnedV1)
 #endif
 #if defined(XRT_FEATURE_WEBSOCKET_STREAM)
@@ -5551,6 +5610,11 @@ XL6_HOST_XRT_SYMBOL(xrtWsStreamPause)
 XL6_HOST_XRT_SYMBOL(xrtWsStreamPaused)
 XL6_HOST_XRT_SYMBOL(xrtWsStreamPending)
 XL6_HOST_XRT_SYMBOL(xrtWsStreamPing)
+#endif
+#if defined(XRT_FEATURE_WEBSOCKET_STREAM_RETIRE)
+XL6_HOST_XRT_SYMBOL(xrtWsStreamPollRetired)
+#endif
+#if defined(XRT_FEATURE_WEBSOCKET_STREAM)
 XL6_HOST_XRT_SYMBOL(xrtWsStreamPong)
 XL6_HOST_XRT_SYMBOL(xrtWsStreamProtocol)
 XL6_HOST_XRT_SYMBOL(xrtWsStreamRef)
@@ -5574,6 +5638,12 @@ XL6_HOST_XRT_SYMBOL(xrtWsStreamSendSize)
 #if defined(XRT_FEATURE_WEBSOCKET_STREAM_REF)
 XL6_HOST_XRT_SYMBOL(xrtWsStreamSendTake)
 #endif
+#if defined(XRT_FEATURE_WEBSOCKET_STREAM_TLS_TICKET)
+XL6_HOST_XRT_SYMBOL(xrtWsStreamSetTlsTicket)
+#endif
+#if defined(XRT_FEATURE_WEBSOCKET_STREAM_WRITE_PROGRESS)
+XL6_HOST_XRT_SYMBOL(xrtWsStreamSetWriteProgress)
+#endif
 #if defined(XRT_FEATURE_WEBSOCKET_STREAM)
 XL6_HOST_XRT_SYMBOL(xrtWsStreamState)
 XL6_HOST_XRT_SYMBOL(xrtWsStreamTcp)
@@ -5593,10 +5663,16 @@ XL6_HOST_XRT_SYMBOL(xrtWsStreamTls)
 XL6_HOST_XRT_SYMBOL(xrtWsStreamTlsEventsOwnershipV1Get)
 XL6_HOST_XRT_SYMBOL(xrtWsStreamTlsRef)
 #endif
+#if defined(XRT_FEATURE_WEBSOCKET_STREAM_RETIRE)
+XL6_HOST_XRT_SYMBOL(xrtWsStreamWaitRetired)
+#endif
 #if defined(XRT_FEATURE_WEBSOCKET_STREAM)
 XL6_HOST_XRT_SYMBOL(xrtWsStreamWorker)
 XL6_HOST_XRT_SYMBOL(xrtWsStreamWritable)
 XL6_HOST_XRT_SYMBOL(xrtWsStreamWriteLimit)
+#endif
+#if defined(XRT_FEATURE_WEBSOCKET_STREAM_WRITE_PROGRESS)
+XL6_HOST_XRT_SYMBOL(xrtWsStreamWriteProgress)
 #endif
 #if defined(XRT_FEATURE_WEBSOCKET_UPGRADE)
 XL6_HOST_XRT_SYMBOL(xrtWsUpgradeClientConfigInit)
