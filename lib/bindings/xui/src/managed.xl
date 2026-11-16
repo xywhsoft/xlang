@@ -881,6 +881,8 @@ export typedef AccessibilityEventProc = func(CallbackContext,CallbackWidget,Call
 
 export typedef ErrorProc = func(CallbackContext,CallbackConstErrorInfo)
 
+export typedef WebViewEventProc = func(Widget,c_int,c_int)
+
 export typedef WidgetEventProc = func(Widget,CallbackConstEvent) as c_int
 
 export typedef WidgetCursorProc = func(Widget,c_int,c_int) as c_int
@@ -6063,6 +6065,8 @@ end
 
 export extern "xui_widget_t*" class WebView @header("xge3_runtime.h") @lifetime("owner") @owner(Context) @policy("xl6Xui3WidgetPolicy") @watch("xui_lifetime_link_t") extends Widget
 
+ extern "xuiWebViewSetEventOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setEvent(WebViewEventProc? onEvent)
+
  extern "xuiWebViewInitializeAsync" @no_raise func initializeAsync() as c_int
 
  extern "xuiWebViewFocus" @no_raise func focus() as c_int
@@ -6072,6 +6076,8 @@ export extern "xui_widget_t*" class WebView @header("xge3_runtime.h") @lifetime(
  extern "xuiWebViewLoadHtml" @no_raise @c_span(0,"const char*","size_t") func loadHtml(string sHtml) as c_int
 
  extern "xuiWebViewSetZoomFactor" @no_raise func setZoomFactor(c_double fFactor) as c_int
+
+ extern "xuiWebViewGetZoomFactor" @no_raise @c_output(1,0) func getZoomFactor() as c_double
 
  extern "xuiWebViewMapLocalFolder" @no_raise @c_cstr(0) @c_cstr(1) func mapLocalFolder(string sHost,string sAbsoluteFolder,c_int iAccess) as c_int
 

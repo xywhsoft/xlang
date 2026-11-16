@@ -374,6 +374,17 @@ METHODS = {'xl6Xui3CopyToClipboard': ['int xl6Xui3CopyToClipboard(xui_context,xu
                                   ['extern "xuiWidgetNotifyAccessibility" @no_raise @c_result("status",0) func notifyAccessibility(c_int '
                                    'iEventType,uint64 iNodeId)']]}
 
+METHODS.update({
+    'xuiWebViewSetEventOwned': [
+        'int xuiWebViewSetEventOwned(xui_widget pWidget, xui_webview_event_proc onEvent, void* pUser, const xui_callback_owner_t* pOwner)',
+        'WebView',
+        ['extern "xuiWebViewSetEventOwned" @no_raise @c_owned_callback(0,0,"xui_callback_owner_t",0) @c_result("status",0) func setEvent(WebViewEventProc? onEvent)']],
+    'xuiWebViewGetZoomFactor': [
+        'int xuiWebViewGetZoomFactor(xui_widget pWidget, double* pFactor)',
+        'WebView',
+        ['extern "xuiWebViewGetZoomFactor" @no_raise @c_output(1,0) func getZoomFactor() as c_double']],
+})
+
 CALLBACKS = {'xui_accessibility_event_proc': ('typedef void (*xui_accessibility_event_proc)(xui_context_t* pContext, xui_widget_t* pWidget, const '
                                   'xui_accessibility_event_t* pEvent, void* pUser);',
                                   'export typedef AccessibilityEventProc = '
@@ -383,6 +394,12 @@ CALLBACKS = {'xui_accessibility_event_proc': ('typedef void (*xui_accessibility_
  'xui_radio_group_change_proc': ('typedef void (*xui_radio_group_change_proc)(xui_widget_t* pGroup, xui_widget_t* pSelected, int '
                                  'iSelectedIndex, void* pUser);',
                                  'export typedef RadioGroupChangeProc = func(Widget,Widget?,c_int)')}
+
+CALLBACKS.update({
+    'xui_webview_event_proc': (
+        'typedef void (*xui_webview_event_proc)(xui_widget pWidget, int iEvent, int32_t iNativeError, void* pUser);',
+        'export typedef WebViewEventProc = func(Widget,c_int,c_int)'),
+})
 
 VIEWS = {'CallbackConstAccessibilityEvent': 'export extern "const xui_accessibility_event_t*" class CallbackConstAccessibilityEvent '
                                     '@header("xge3_runtime.h") @lifetime("callback")\n'
@@ -496,13 +513,17 @@ TYPE_SHAPES = {'xui_accessibility_event_proc': 'e024773384cabe3acdff878404d4c09f
  'xui_timeline_hit_t': '85a7722fb57db5cef87d1e94fa011f96ec4bf34592116e3791fb1d99751a5df1',
  'xui_vec2_t': 'dba0d1ca7b2f5c1eb244a9eee5d2743563abeeab4f0af14162f52ab3182c4cf0'}
 
+TYPE_SHAPES.update({
+    'xui_webview_event_proc': '4c8d001e4b5001ef70e4347f5955528d82a5fb5237178cdde269a1237d680db1',
+})
+
 VIEW_FUNCTIONS = {'xuiGetLanguage': 'int xuiGetLanguage(xui_context pContext)', 'xuiRequestClose': 'int xuiRequestClose(xui_context pContext)'}
 
 INLINE_FUNCTIONS = {'xuiEventDragData': 'f9bd130d67726da8ae4ca0fa029089b33cb1ed0de3d9918fec59bee9d0ba219c'}
 
-# This asynchronous browser callback has not passed its ownership/backend gate.
-# Keep it in the inventory, not in a callable public candidate by inference.
-DEFERRED = {'xuiWebViewSetEventOwned': 'WebView event callback retention/dispatcher and backend acceptance remain pending'}
+# Owned WebView Close events are qualified independently of browser startup.
+# Platform/browser readiness and successful zoom remain runtime prerequisites.
+DEFERRED = {}
 
 # Sized text views preserve embedded NUL and checked read failure. The legacy
 # C-string producers remain native capabilities, with explicit replacement maps.

@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "scope": "WebView owned Close-event binding and checked zoom output; reviewed callback identity; readable event-driven example",
+  "status": "qualified-isolated-candidate",
+  "shippingDelivery": false,
+  "nativeCodeChanged": false,
+  "compilerRuntimeChanged": false,
+  "hostOptimization": "O2",
+  "xrtRevision": "09d543a3e29f3113d258b1f58718345de867e06e",
+  "sourceParent": "1c9241f1c7025b5d053bda15da25aeed72b4dbd7",
+  "publicAdditions": [
+    "xui.WebViewEventProc",
+    "xui.WebView.setEvent",
+    "xui.WebView.getZoomFactor"
+  ],
+  "reports": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\webview-verified-win-r1\\results.json",
+      "sha256": "bd49d2f2f64e53954b5377752dd4a2917f9f6263b644af8fba589790821da848",
+      "buildRunSteps": 38,
+      "sourceChecks": 381,
+      "verifiedFiles": 2918,
+      "pixelReadbacks": 3
+    },
+    "linux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\webview-verified-linux-r1\\results.json",
+      "sha256": "8dcc7c9250f6e93abca68b6766adf0cdfb4cce00c8c42bc9d055f0b3b20ec5ba",
+      "buildRunSteps": 38,
+      "sourceChecks": 382,
+      "verifiedFiles": 2871,
+      "pixelReadbacks": 3
+    }
+  },
+  "sourceSha256": {
+    "tools/check_foreign_xui_webview.py": "01271e2f4fdd34e2bf03bc6af8b25bea5609a0cbec45dc74cdd8f054af25fe29",
+    "tools/check_xge3_bindings.py": "f59260a27b421bb5ad3759c1bda432144863f9647230d271d22e9c3abacad1dc",
+    "test/cases/foreign_xui_webview.xl": "f9a5fbd453842ef72054c3637763efab31442514b97154ae6a17854fd351981c",
+    "test/cases/foreign_xui_webview_native.c": "ec9bfa57caadb2a9da9bf8318b9d38f9efb49d566f571fd612841068060128f7",
+    "test/cases/foreign_xui_webview_oom.xl": "9d9806b222bff10a73df6957d6f7c74209088849c1f8d4585109dac3fba3c58f",
+    "docs/xui-webview-events.md": "00904db574b295a6c7e75d8dca316dd26a3fa1fb2fef85c2237b9de638f917c6",
+    "lib/bindings/xui/examples/webview.xl": "d94ec44fabdd56b3149d1f0f4263e6b77b438967d2861238dabb1595e2e9ab14",
+    "lib/bindings/xui/examples/README.md": "b1a8c6b03be13c73f5774bccc291fe56eadb1f734fbbb4a4d2c678a2f1d0dcc9"
+  },
+  "hybridSourceSha256": {
+    "lib/bindings/xui/src/managed.xl": "5b4d980dd7d02a587ee86a31fa0b438f6367acfc709a046fa8285ab552804baf",
+    "tools/xui_managed_contracts.py": "f70a443f106c552fcaefb090957cd970794016996d49baa272f3a76bdd3a9f55"
+  },
+  "totals": {
+    "buildRunSteps": 76,
+    "sourceChecks": 763,
+    "exampleReadbacks": 6
+  },
+  "limits": [
+    "CPU Close events use actual native SDKs; no browser initialization or network operation",
+    "SDKs do not enable WebView2: bounded examples qualify the unsupported-backend path, not successful Ready/navigation/zoom",
+    "No arbitrary provider-unload or CPU zero-overhead qualification",
+    "Existing callback/view retention, lifetime checks and error costs remain",
+    "Pending FlowGraph changes excluded from this commit; latest XRT and matched release/IDE convergence remain open",
+    "Original example reports mislabeled raw RGBA as PNG; independent records correct format/dimensions without rewriting historical reports"
+  ]
+}

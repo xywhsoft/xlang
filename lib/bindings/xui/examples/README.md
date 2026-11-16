@@ -260,3 +260,8 @@ output displays the original/copied end offsets. It needs no window, backend,
 or actual search operation. CodeSearchResult has the same ten-slot native
 capture capacity. Batch layout/source records are descriptors; this lesson
 does not imply that the batch transaction API is integrated.
+
+`webview.xl` 在调用 `initializeAsync()` 之前安装拥有事件回调。Ready 事件中
+载入内存 HTML 并查询缩放比例；初始化失败或未启用 Windows WebView2 后端时，
+显示错误码。它不再逐帧轮询浏览器状态。关闭控件会解除回调；回调捕获的对象
+遵循受管拥有图。通用 CPU 回调验收不等于 WebView2 浏览器后端已通过验收。

@@ -1,0 +1,53 @@
+// Prefix failures must leave the previous owned callback intact.
+import xui
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy proxy)
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+extern "fixtureRenderBudget" @no_raise func budget(c_int allowance)
+extern "webviewLiveCount" @no_raise func liveCount() as c_size
+
+func sweep(xui.Context ui)
+    int failures=0
+    int successes=0
+    for i in range(32)
+        auto page=ui.webView()
+        int oldCalls=0
+        int newCalls=0
+        page.setEvent(func(xui.Widget sender,c_int event,c_int nativeError)
+            oldCalls+=1
+        end)
+        xui.WebViewEventProc replacement=func(xui.Widget sender,c_int event,c_int nativeError)
+            newCalls+=1
+        end
+        bool installed=false
+        budget(c_int(i))
+        try
+            page.setEvent(replacement)
+            budget(-1)
+            installed=true
+            successes+=1
+        catch Error
+            budget(-1)
+            failures+=1
+        end
+        page.closeBrowser()
+        assert oldCalls==int(not installed) and newCalls==int(installed)
+        page.setEvent(null)
+        page.close()
+    end
+    assert failures>0 and successes>0
+end
+
+func main(...) as int
+    auto proxy=cpuProxy()
+    auto ui=xui.create(proxy,c_int(xui.XUI_SYSTEM_FONT_DISABLED))
+    sweep(ui)
+    auto before=liveCount()
+    sweep(ui)
+    assert liveCount()==before
+    ui.close()
+    proxy.close()
+    assert balanced()==1
+    println("XUI_WEBVIEW_OOM_OK")
+    return 0
+end

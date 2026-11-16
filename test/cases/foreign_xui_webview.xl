@@ -1,0 +1,91 @@
+// Real native Close events; no browser process, window or network is started.
+import xui
+extern "fixtureRenderProxy" @header("test/cases/foreign_xui_render_backend.h") @no_raise @c_result("owned_view") @factory(0,0,dropProxy) func cpuProxy() as xui.Proxy
+extern "xuiProxyReleaseChecked" @header("xge3_runtime.h") @no_raise @c_result("status",0) func dropProxy(xui.Proxy proxy)
+extern "fixtureRenderBalanced" @no_raise func balanced() as c_int
+
+func callbackCases(xui.Context ui)
+    auto page=ui.webView()
+    int oldCalls=0
+    int newCalls=0
+    array<xui.Widget> saved=[]
+    page.setEvent(func(xui.Widget sender,c_int event,c_int nativeError)
+        oldCalls+=1
+    end)
+    page.setEvent(func(xui.Widget sender,c_int event,c_int nativeError)
+        assert event==c_int(xui.XUI_WEBVIEW_EVENT_CLOSED) and nativeError==0
+        assert sender.getVisible()==1
+        assert saved.push(sender)
+        newCalls+=1
+        page.setEvent(null)
+    end)
+    page.closeBrowser()
+    page.closeBrowser()
+    assert oldCalls==0 and newCalls==1
+    page.close()
+    bool rejected=false
+    try
+        auto retained=saved[0]
+        retained.getVisible()
+    catch Error
+        rejected=true
+    end
+    assert rejected
+
+    auto selfClosing=ui.webView()
+    int closed=0
+    selfClosing.setEvent(func(xui.Widget sender,c_int event,c_int nativeError)
+        closed+=1
+        sender.close()
+    end)
+    selfClosing.closeBrowser()
+    assert closed==1
+
+    auto failing=ui.webView()
+    failing.setEvent(func(xui.Widget sender,c_int event,c_int nativeError)
+        assert false
+    end)
+    rejected=false
+    try
+        failing.closeBrowser()
+    catch AssertionError
+        rejected=true
+    end
+    assert rejected
+    failing.setEvent(null)
+    failing.close()
+end
+
+func zoomFailure(xui.Context ui)
+    auto page=ui.webView()
+    bool delivered=false
+    bool rejected=false
+    try
+        auto zoom=page.getZoomFactor()
+        delivered=true
+    catch Error
+        rejected=true
+    end
+    assert rejected and not delivered
+    func() as c_double bound=page.getZoomFactor
+    page.close()
+    rejected=false
+    try
+        bound()
+    catch Error
+        rejected=true
+    end
+    assert rejected
+end
+
+func main(...) as int
+    auto proxy=cpuProxy()
+    auto ui=xui.create(proxy,c_int(xui.XUI_SYSTEM_FONT_DISABLED))
+    callbackCases(ui)
+    zoomFailure(ui)
+    ui.close()
+    proxy.close()
+    assert balanced()==1
+    println("XUI_WEBVIEW_CALLBACK_OK")
+    return 0
+end

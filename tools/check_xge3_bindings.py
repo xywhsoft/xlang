@@ -795,7 +795,7 @@ def generate_xge_objects(root,header,records,types,primitive,param,reserved,revi
 
 def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_span):
     src=root/'lib/bindings/xui/src';functions=header['functions'];mapped={};raw={};callbacks={};views={};classes={'Widget':[]};context=[];free=[]
-    from xui_managed_contracts import validate as validate_managed,extend as extend_managed,DEFERRED,REPLACED
+    from xui_managed_contracts import validate as validate_managed,extend as extend_managed,DEFERRED,REPLACED,CALLBACKS as REVIEWED_CALLBACKS
     validate_managed(root,header,native_function_sha)
     # A resource-shaped C argument is not itself an owning storage proof.
     # These publishers/consumers have separately reviewed native owning slots
@@ -1028,7 +1028,12 @@ def generate_xui(root,header,records,types,primitive,param,reserved,reviewed_spa
             else:pt=primitive(t)
             if not pt:raise ValueError('callback void argument')
             params.append(pt);i+=1
-        name=pascal(native);callbacks[native]=name
+        # A reviewed callback can preserve API spelling such as WebView. Use
+        # that same identity for signatures and the emitted typedef, rather
+        # than leaving an additional, mechanically capitalized alias behind.
+        name=(re.search(r'typedef (\w+)',REVIEWED_CALLBACKS[native][1]).group(1)
+              if native in REVIEWED_CALLBACKS else pascal(native))
+        callbacks[native]=name
         callback_spans[native]=spans
         callback_declarations.append('export typedef '+name+' = func('+','.join(params)+')'+(' as '+result if result else ''))
         return name
