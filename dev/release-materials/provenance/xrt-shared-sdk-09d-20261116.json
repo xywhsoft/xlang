@@ -1,0 +1,86 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Immutable additive XRT source, full compiler/host/static SDK baseline and CPU regression qualification; later shared-import compiler fix and FlowGraph language bindings remain separately qualified work in progress.",
+  "shippingDelivery": false,
+  "networkTests": false,
+  "upstreamCommit": "09d543a3e29f3113d258b1f58718345de867e06e",
+  "coreSha256": "4c1dd0e450c20d2ab887e7552cd038e5b394d8659fd1ae6f66211f76d4625c36",
+  "sourceSha256": {
+    "docs/XRT\u4e0exlang\u80fd\u529b\u77e9\u9635.md": "c824ed614a701530bd0550c58e74c2f6ea8f08d4101b0d8d60ed72b3b85756c2",
+    "lib/xrt/upstream.json": "8567dfb8fbca09481083a19fb5056c2480ec1569eeedaf7b17afca1e246d293c",
+    "lib/xrt/xrt.h": "4c1dd0e450c20d2ab887e7552cd038e5b394d8659fd1ae6f66211f76d4625c36",
+    "lib/xrt/xrt.snapshot.json": "ac97e88d6d834a925aafd5f2824ae04e7a7d2d4cc0653e8f59d8258d099fdde2",
+    "lib/xruntime/xruntime.snapshot.json": "b5ad0df1cc9218962564cd9b05271e7c48fcbf3bf6a412e2e760d6a70a73fda5",
+    "src/api/xl_xrt_symbols.inc": "4f4d0a88dea176c9e9c580bc7cc9d8759dcc2448049710124aba4b58a0a47b00"
+  },
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xrt-latest-committed-09d-r1\\results.json",
+      "sha256": "6ce6d6d458ea8b0cb544d534879c3f7e46fa1c5b88c90667fdfd6b851e8ad326"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xrt-09d-additive-audit-r1.json",
+      "sha256": "13f73d1930988d4517965a03c382ae691fae7ebb7db9488d43171d912fc398be"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\shared-09d-source-promotion-native-r1.json",
+      "sha256": "d8516323b08360484943722c28be11b54697117a7727a1d42b9d945caae46cc3"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\shared-09d-source-promotion-xlang-r1.json",
+      "sha256": "4653947c999fee2328334d5ba88d9db3bc40712ffcbc8ff2d2a22e54e06eb42d"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-shared-09d-win-full-r1\\build.json",
+      "sha256": "5b2663d64de662e16b7e07ef95ecb7f252bdfd3db4af60798c782ea483a4c668"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\shared-09d-native-sdk-win-r2\\results.json",
+      "sha256": "4e48d316567b336a8adf6530f9af37751746726d17bc4eec0e3e5d513bc373cf"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\shared-09d-model-native-win-r1\\results.json",
+      "sha256": "3725348380b2d17bfd1d4b32a037b0d2a9881a7bcc56ae5dda4242b2cc3a7de0"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\shared-09d-compiler-regression-win-r1.json",
+      "sha256": "5f2669c9fda197c4edd20492aeaaaa6444c556952f4128c8708fdea7fa7a7539"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\shared-09d-host-xl-win-r1\\results.json",
+      "sha256": "7ba24b9ff1e7928d86d2e0421bfa07b95bfafcb35604180b14a1dd31acf2ac64"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\shared-09d-host-xlc-win-r1\\results.json",
+      "sha256": "4660edfca1dcb72071494aa067f2c417d513b91efaa1204ff0f28702284333ea"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-shared-09d-linux-full-r1\\build.json",
+      "sha256": "6dd34a9ca922ca4c19455992f3969e6feaf868b2172c5cf644f54e57a4764686"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\shared-09d-native-sdk-linux-r2\\results.json",
+      "sha256": "e90cf261c25945ee5b32fd5ec85da30871fcef39ac9d50b2aed59ad40a4ed481"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\shared-09d-model-native-linux-r1\\results.json",
+      "sha256": "a34799628a3387f3f04e24fbd6d4e06e580521deb240c4be880554a837e5847e"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\shared-09d-compiler-regression-linux-r1.json",
+      "sha256": "8a81e1aa91559b6ef295a1684ad09071748daa59e01da4cb8ff7e92f163f9ace"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\shared-09d-host-xl-linux-r1\\results.json",
+      "sha256": "6609ae4049fb0c2d59287af8396f7d0e745d50f9af47733d96a5a90fc6e81ff3"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\shared-09d-host-xlc-linux-r1\\results.json",
+      "sha256": "7779258790d951308c3a314466ec8b6a04d9e7155dfe602c1c9383155bcfdb0c"
+    }
+  ],
+  "nativePreexistingDirtyPreserved": 13,
+  "releaseInstalled": false,
+  "excludedConcurrentFile": "ide/tests/analysis_ir_type_link_test.c"
+}

@@ -1,7 +1,40 @@
 {
-  "revision": "93347eb5ae6beba8cf7ee3558708cc4f628fdd07",
+  "revision": "09d543a3e29f3113d258b1f58718345de867e06e",
   "dirty": false,
-  "sourceSha256": "5ca454e42cd6c39288c3a0c15295201f3b9ee89ce8f5599c685a328b656987e1",
+  "sourceSha256": "ab50edaf5f7f4877178e624b8ac0740bb7d3496268ec76dfa17326c39694d4b3",
+  "snapshotMode": "immutable-git-export",
+  "sourceRepository": "D:\\GIT\\xrt",
+  "sourceRepositoryWorktreeDirty": true,
+  "excludedWorktreeChanges": [
+    " M config/modules.json",
+    " M docs/api/tls.md",
+    " M extlibs/xmqtt/config/modules.json",
+    " M extlibs/xmqtt/include/xmqtt.h",
+    " M extlibs/xmqtt/include/xmqtt/client_ws.h",
+    " M extlibs/xmqtt/include/xmqtt/features.h",
+    " M extlibs/xmqtt/src/client/client.c",
+    " M extlibs/xmqtt/tests/interop/reconnect_ws_gateway.py",
+    " M include/xrt/tls_client.h",
+    " M single/extlibs/xmqtt.h",
+    " M single/extlibs/xmqtt_decl.h",
+    " M single/xrt.h",
+    " M single/xrt_decl.h",
+    " M src/tls/client_resume.c",
+    "?? extlibs/xmqtt/docs/client_ws_tls_resume.md",
+    "?? extlibs/xmqtt/examples/ws_tls_resume/",
+    "?? extlibs/xmqtt/tests/single/test_single_xmqtt_client_ws_tls_resume.c",
+    "?? extlibs/xmqtt/tests/single/test_single_xmqtt_client_ws_tls_resume_auth.c",
+    "?? extlibs/xmqtt/tests/single/test_single_xmqtt_client_ws_tls_resume_faults.c",
+    "?? extlibs/xmqtt/tests/single/test_single_xmqtt_client_ws_tls_resume_reconnect.c",
+    "?? extlibs/xmqtt/tests/single/test_single_xmqtt_client_ws_tls_resume_stats_off.c",
+    "?? extlibs/xmqtt/tests/support/ws_resume_peer.h",
+    "?? extlibs/xmqtt/tests/test_client_ws_tls_resume.c",
+    "?? extlibs/xmqtt/tests/test_client_ws_tls_resume_auth.c",
+    "?? extlibs/xmqtt/tests/test_client_ws_tls_resume_faults.c",
+    "?? extlibs/xmqtt/tests/test_reconnect_ws_tls_resume.c",
+    "?? tests/single/test_single_tls_resume_capacity.c",
+    "?? tests/tls/test_tls_resume_capacity.c"
+  ],
   "checks": [
     {
       "tool": "check_release_maturity.py",
@@ -32,75 +65,6 @@
         "extlibs/xruntime/config/modules.json"
       ],
       "exitCode": 0
-    }
-  ],
-  "localPatches": [
-    {
-      "commit": "50bd79a5be18922fdf4f31daf763981ce3654a7b",
-      "kind": "C++ linkage guards only",
-      "modules": [
-        "include/xrt/http1_net.h",
-        "include/xrt/http1_tls.h",
-        "include/xrt/websocket_upgrade.h"
-      ],
-      "abiChanged": false
-    },
-    {
-      "commit": "c6d40f00fff9cf6ec7b818e610a2bdf1c1343964",
-      "kind": "Versioned ownership completion checked-drop declaration only",
-      "modules": [
-        "include/xrt/core.h"
-      ],
-      "abiChanged": false,
-      "protocolExtension": "xrtownershipfinishv2"
-    },
-    {
-      "commit": "031e59a04644701a54fc8af3c7bf5aaf678c9874",
-      "kind": "Unreleased FinishV2 pure snapshot-drop preflight",
-      "modules": [
-        "include/xrt/core.h"
-      ],
-      "abiChanged": false,
-      "protocolExtension": "xrtownershipfinishv2.DropReady",
-      "unreleasedPrototypeBytesBefore": 40,
-      "descriptorBytes": 48
-    },
-    {
-      "commit": "7cecb354dd67aba47eb47cf9c118aea2b0195498",
-      "kind": "Independent resumable semantic finalization declaration only",
-      "modules": [
-        "include/xrt/core.h"
-      ],
-      "abiChanged": false,
-      "protocolExtension": "xrtownershipfinalizationv1",
-      "descriptorBytes": 40
-    },
-    {
-      "commit": "e2a0b36d3092bf7eb667ba565fd2bd7f6e45af4f",
-      "kind": "Permit post-commit field assignment through the authenticated finalizer borrow",
-      "modules": [
-        "include/xrt/value.h",
-        "src/value/value_container.c"
-      ],
-      "abiChanged": false
-    },
-    {
-      "commit": "0e90f84f1a7155ed1c44b715f74bb9e1266baa4b",
-      "kind": "Add allocation-free scoped Array/Object read views",
-      "modules": [
-        "include/xrt/value.h",
-        "src/value/value_container.c"
-      ],
-      "abiChanged": false
-    },
-    {
-      "commit": "0a44e3f80091be178c802c231a37e4f2733fd9fb",
-      "kind": "Refresh versioned scoped view declarations",
-      "modules": [
-        "include/xrt/value.h",
-        "src/value/value_container.c"
-      ],
-      "abiChanged": false
     }
   ]
 }

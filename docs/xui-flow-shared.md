@@ -30,9 +30,13 @@ indexed in `dev/release-materials/provenance/xui-flow-shared-20261116.json`.
 These gates pin XRT `6305aa54`. During evidence review the upstream advanced to
 `09d543a3`, adding optional WebSocket TLS-ticket observation. That later snapshot
 has passed six isolated generation/maturity checks. All 3481 existing function
-declarations compare unchanged and one function is added. This is preparation,
-not runtime qualification; it is not claimed by the existing build reports.
-The next matched SDK/compiler synchronization must account for this addition.
+declarations compare unchanged and one function is added. Subsequent full O2
+compiler, host/static SDK and CPU qualification of that exact snapshot is
+recorded separately in
+`dev/release-materials/provenance/xrt-shared-sdk-09d-20261116.json`.
+Both repositories now use its canonical core source. The earlier reports remain
+unchanged and continue to qualify their recorded 6305 inputs. No shipping
+runtime or IDE has been installed by this source synchronization.
 
 Sharing adds native reference/activity and ownership-domain bookkeeping. There
 is one owner-pointer field and one metadata allocation when a raw owning model
