@@ -1,0 +1,68 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Uncommitted shared FlowGraph language candidate qualification; no resolved default config policy or public API promotion.",
+  "goalComplete": false,
+  "shippingDelivery": false,
+  "releaseInstalled": false,
+  "publicApiCommitted": false,
+  "candidateSourceSha256": {
+    "lib/bindings/_xge_native/include/xge3_runtime.h": "30fe3a74de942c76415f465dd2da021cba5b05de7ef897b3b9f7da83cd198632",
+    "lib/bindings/_xge_native/src/runtime.c": "c2c1f3867e58e13ef7a867fd568e7196ee3f2d0c5f944684067669c795e703ab",
+    "lib/bindings/xui/src/managed.xl": "e4dd85617426a39c3cbf69031f0a274c08b7984bf14870a9130cdee3a4ea6f62",
+    "lib/bindings/xui/src/flow_graph.xl": "0af8f6abaa113f3a2f1a01788f18c0ee891003d1d39c0786573e4921ba727cd6",
+    "lib/bindings/xui/xlang.package.json": "a4d6d28b2a6c3c538309e452839ee8f0ae8143b202e7bbf1f6f0c7b7aa28411a",
+    "tools/check_foreign_xui_flow_graph.py": "a2f4e1df05d5d067616feb42eda537658e41eb4502fde1369a59aa695036e39e",
+    "tools/check_xge3_storage_reviews.py": "16c3d66aafa5174616233aa5c84a4785afff7ddcf2956d3dfa56c952fec2744e",
+    "tools/xui_managed_contracts.py": "b6dd83869f2b68939c3baab4e509e2aac3eded671370c11e0dde6746f043a520",
+    "test/cases/foreign_xui_flow_graph.h": "07bb5ea941289dca3bc4eecf62906cfb268b51bb0b6568fbb364a0eed104ff97",
+    "test/cases/foreign_xui_flow_graph_native.c": "26992daa2dd22d2fbfcaf08e37b7a2e5fbf3efa7563b0e38b95129cc780f5bab",
+    "test/cases/foreign_xui_flow_graph.xl": "844d277c03a28fc8c033682e0a324e41a7cef84381003c296364f74d899b9d6b",
+    "test/cases/foreign_xui_flow_graph_oom.xl": "3aab556b13413da56ee84c4d0fc6419b6a3698bcbc8dc2e310f15047acca897a",
+    "test/cases/foreign_xui_flow_graph_canvas.xl": "23677af09acb3c748ecb0c73b715543c0d9dda95df0fbcdbd90b5d73b10d0b78",
+    "test/cases/foreign_xui_flow_graph_canvas_oom.xl": "1bcd178168edbf66346c155db3b5e81bc22802a882aca4735b4314a5081b2fd3",
+    "lib/bindings/xui/examples/flow_model.xl": "d6c3acbee8b184849d96d2eb30eba5dd132e0c8695773047e3f8330bd6ce1ea9"
+  },
+  "documentationSha256": "181935055f4bcec6a32b81bf4dd8f9f9d436ab9b730a6eeb8f69730c8642b5ce",
+  "qualification": [
+    {
+      "platform": "win",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-model-candidate-verified-win-r1.json",
+      "sha256": "318ad4ddce21743448251a3f307b767a0ea62d4cb11da8b15ea6ad08a766dbd2",
+      "runtimeSteps": 74,
+      "sourceSteps": 384,
+      "verifiedInputs": 2527,
+      "sourceWitnesses": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\flow-model-source-witnesses-win-r1\\index.json",
+        "sha256": "fa15a0836a48441797276d28ee0acf9f26b8ba1fe218b40c123d5787f09593fa"
+      }
+    },
+    {
+      "platform": "linux",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-model-candidate-verified-linux-r1.json",
+      "sha256": "eedcb732057e74a64f7d3ca8a0c8f42ce21bb0eca1d7e51c26241d31f4bf7f9a",
+      "runtimeSteps": 74,
+      "sourceSteps": 385,
+      "verifiedInputs": 2510,
+      "sourceWitnesses": {
+        "path": "/mnt/f/xlang-validation/xge-full-20261110/flow-model-source-witnesses-linux-r1/index.json",
+        "sha256": "c2ef5aef6ed04f7e50d18173e5d1d8d6f02f6b86a07ce48610e911543b09d97d"
+      }
+    }
+  ],
+  "totalRuntimeSteps": 148,
+  "totalSourceChecks": 769,
+  "pendingUserChoices": [
+    "Default independent config data snapshot versus native Clone semantics",
+    "Workflow schema/default Clone/Drop same-model reentry Busy"
+  ],
+  "remaining": [
+    "Workflow native shared owner and safe language class",
+    "Associated Graph aliases during Workflow schema callbacks",
+    "Persistent cross-module/cycle qualification",
+    "Latest XRT19775 matched compiler/SDK convergence",
+    "Final SDK/runtime/IDE/help delivery"
+  ],
+  "zeroCpuOverheadClaim": false,
+  "networkTests": false
+}
