@@ -95,6 +95,10 @@ typedef struct XL6_PackageManifest {
     XL6_PackageNativeInfo nativeInfo;
 } XL6_PackageManifest;
 
+/* Counted, case-sensitive capability token shared by manifests and the
+ * private compiled-interface wire reader. Never scans beyond size. */
+int xl6PackageNativeFeatureKeyValid(const char*, size_t);
+
 void xl6PackageStringListInit(XL6_PackageStringList* list);
 void xl6PackageStringListFree(XL6_PackageStringList* list);
 int xl6PackageStringListAppend(XL6_PackageStringList* list, const char* text);

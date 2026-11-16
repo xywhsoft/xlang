@@ -168,7 +168,7 @@ static int xlCompiledPackageStage(XL_CompiledPackageImport* tx, const XL_Compile
         in->entryCount > XL_COMPILED_PACKAGE_MAX_ENTRIES || (in->entryCount && !in->entries) ||
         in->dependencyCount > XL_COMPILED_PACKAGE_MAX_PACKAGES || (in->dependencyCount && !in->dependencies) ||
         xlCompiledPackageInterfaceHash(in->interfaceData, in->interfaceSize) != in->interfaceHash ||
-        !xl6CompiledPackageInterfaceValid(in->interfaceData, in->interfaceSize)) {
+        !xl6CompiledPackageDescriptorInterfaceValid(in)) {
         xlSetError(tx->ctx, "invalid compiled package descriptor, interface or ABI"); return 0;
     }
     if (!strcmp(in->name,"xlang") || !strcmp(in->name,"tcc") ||

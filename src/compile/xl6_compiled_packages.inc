@@ -7,6 +7,7 @@ static uint64_t xl6CompiledHash(const void* data, size_t size)
 
 static int xl6CompiledOwnsNode(const XL6_ImportPackageInfo* info,const XL6_AstNode* node)
 {
+    if (!info->dir) return 0; /* Registered interface has no filesystem source. */
     const char* source=xl6AstSourcePath(node);
     char* absolute=source?xrtPathAbs(source):NULL;
     if(source && !absolute)return -1;
@@ -43,6 +44,9 @@ static int xl6CompiledSelect(XL6_CompileUnit* unit,const char* name,unsigned dep
         if(!strcmp(unit->importDeps.packageInfos[i].name,name)) {info=&unit->importDeps.packageInfos[i];break;}
     if(!info) {
         xl6DiagAdd(&unit->parse.diags,1,1,"compiledPackage requires a package imported by the host compilation");return 0;
+    }
+    if (!info->dir) {
+        xl6DiagAdd(&unit->parse.diags,1,1,"compiledPackage cannot republish a registered compiled interface");return 0;
     }
     if(info->compiledRoot==2) {
         xl6DiagAdd(&unit->parse.diags,1,1,"compiled package dependency cycle");return 0;
@@ -279,8 +283,20 @@ int xl6CompileUnitPrepareCompiledPackages(XL6_CompileUnit* unit)
         if(!out->name || !out->version || !out->abiVersion)goto failed;
         out->bindingId=xl6CompiledHash(info->name,strlen(info->name));
         XL6_CompiledWriter writer={0};writer.module=&unit->ir;writer.binding=out->bindingId;
-        xl6CompiledWrite(&writer,"XLP1",4);
         XL6_AstNode root={0};root.kind=XL6_AST_MODULE;
+        unsigned char* nativeData = NULL; size_t nativeSize = 0;
+        int extended = info->requiredNativeFeatures.count || info->providedNativeFeatures.count || info->nativeDependencyCount;
+        if (extended) {
+            XL6_CompiledNativeFeatures metadata = {0};
+            metadata.name = info->name; metadata.version = info->version; metadata.abiVersion = info->abiVersion;
+            metadata.required = info->requiredNativeFeatures; metadata.provided = info->providedNativeFeatures;
+            metadata.dependencies = info->dependencies; metadata.dependencies.count = info->nativeDependencyCount;
+            if (info->nativeDependencyCount > info->dependencies.count ||
+                !xl6CompiledNativeFeaturesEncode(&metadata, &nativeData, &nativeSize)) goto failed;
+            root.literalData = nativeData; root.literalSize = nativeSize; root.literalDecoded = 1;
+            root.literalScalar = XL6_COMPILED_NATIVE_FEATURES_TAG;
+        }
+        xl6CompiledWrite(&writer, extended ? "XLP2" : "XLP1", 4);
         for(size_t n=0;n<unit->parse.root->childCount;++n) {
             XL6_AstNode* node=unit->parse.root->children[n];
             int owns=xl6CompiledOwnsNode(info,node);
@@ -324,6 +340,7 @@ int xl6CompileUnitPrepareCompiledPackages(XL6_CompileUnit* unit)
         xl6CompiledNode(&writer,&root,0,0);
         for(size_t d=ownCount;d<root.childCount;++d)xl6AstFree(root.children[d]);
         xrtFree(root.children);
+        xrtFree(nativeData);
         if(writer.failed || !xl6CompiledPackageInterfaceValid(writer.data,writer.size)) {
             xrtFree(writer.data);
             xl6DiagAdd(&unit->parse.diags,1,1,writer.reason?writer.reason:

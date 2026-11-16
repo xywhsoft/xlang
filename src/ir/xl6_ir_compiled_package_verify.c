@@ -62,7 +62,7 @@ static int xl6IrVerifyCompiledPackages(const XL6_IrModule* module,XL6_DiagList* 
         const XL6_IrCompiledPackage* package=&module->compiledPackages[p];
         if(!package->name || !package->version || !package->abiVersion ||
             !package->interfaceData || package->interfaceSize<40 || package->interfaceSize>4u*1024u*1024u ||
-            memcmp(package->interfaceData,"XLP1",4) || package->entryCount>65536 ||
+            (memcmp(package->interfaceData,"XLP1",4) && memcmp(package->interfaceData,"XLP2",4)) || package->entryCount>65536 ||
             (package->entryCount && !package->entries) || package->dependencyCount>64 ||
             (package->dependencyCount && !package->dependencies))
             return xl6IrDiag(diags,NULL,"XLIR compiled package descriptor is malformed");

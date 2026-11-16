@@ -20,6 +20,7 @@ typedef struct XL6_ImportPackageInfo {
     char* abiVersion;
     char* dir;
     XL6_PackageStringList dependencies;
+    size_t nativeDependencyCount; /* Immutable declared prefix; source imports append later. */
     XL6_PackageStringList requiredNativeFeatures;
     XL6_PackageStringList providedNativeFeatures;
     char* featureSource;

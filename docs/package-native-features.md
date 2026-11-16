@@ -47,9 +47,17 @@ binary and package hashes and the source inputs were frozen externally. Exact
 paths are in
 `dev/release-materials/provenance/package-native-features-source-20261116.json`.
 
-This is a qualified source/frontend prerequisite. Compiled-package interfaces
-must also preserve their selected capability metadata and declared closure;
-that wire-path implementation and its full compiler/context-reuse acceptance
-remain pending. No compiler, SDK, IDE or runtime was installed by this batch.
+The source/frontend receipt above is historical. A successor implementation now
+preserves the same contract in the private compiled-package wire format. Its
+source/frontend acceptance passed another 172 steps per OS: the 74 native and
+18 source-import checks, 28 compiled/mixed-import checks and 52 old native-link
+checks. The complete O2 compiler/TCC/XRT/VFS builds and public API gates have
+also passed on both platforms: 19 product steps per OS, including context
+reuse, source-free nested compilation and matched real SDK capability checks.
+Producer/import/wire IR and allocation-failure checks passed separately.
+See `package-compiled-native-features.md` for the format and remaining gates.
+Exact successor reports are indexed by
+`dev/release-materials/provenance/package-compiled-native-features-20261116.json`.
+No compiler, SDK, IDE or runtime has been installed by these candidate batches.
 Debug-enabled runtime/backend qualification and the rest of the full XGE/XUI/
 Document integration remain separate requirements.

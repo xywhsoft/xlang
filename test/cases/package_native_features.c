@@ -40,7 +40,9 @@ static void graph(void)
     assert(strstr(diagnostics.items[0].message, "GPU3D") && strstr(diagnostics.items[0].message, "consumer"));
     xl6DiagFree(&diagnostics); balanced(&before);
     packages[0].dependencies = (XL6_PackageStringList){to_bridge, 1};
+    packages[0].nativeDependencyCount = 1;
     packages[1].dependencies = (XL6_PackageStringList){to_provider, 1};
+    packages[1].nativeDependencyCount = 1;
     assert(!xl6ImportsValidateNativeFeatures(&deps, &diagnostics)); /* Unknown is not enabled. */
     xl6DiagFree(&diagnostics);
     packages[2].providedNativeFeatures = (XL6_PackageStringList){other, 1};
@@ -49,9 +51,11 @@ static void graph(void)
     packages[2].providedNativeFeatures = (XL6_PackageStringList){feature, 1};
     assert(xl6ImportsValidateNativeFeatures(&deps, &diagnostics) && !diagnostics.count);
     packages[1].dependencies = (XL6_PackageStringList){cycle, 2};
+    packages[1].nativeDependencyCount = 2;
     assert(xl6ImportsValidateNativeFeatures(&deps, &diagnostics)); /* Cycle, diamond and transitive provider. */
     packages[0].providedNativeFeatures = (XL6_PackageStringList){feature, 1};
     packages[0].dependencies.count = 0;
+    packages[0].nativeDependencyCount = 0;
     assert(xl6ImportsValidateNativeFeatures(&deps, &diagnostics)); /* A package may provide its own native artifact. */
     for (int prefix = 0; prefix < 4; ++prefix) {
         assert(xrtMemDebugFailAfter(prefix));

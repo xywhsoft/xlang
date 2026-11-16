@@ -16,6 +16,8 @@ def main():
     paths=[root/p for p in ('test/cases/package_native_features.c','src/compile/xl6_import_native_features.inc',
         'src/compile/xl6_imports.h','src/compile/xl6_imports.c','src/package/xl6_package.h','src/package/xl6_package.c',
         'src/package/xl6_package_native_variants.inc','src/package/xl6_package_native_link.inc','src/package/xl6_package_c_source_groups.inc',
+        'src/package/xl6_compiled_package.h','src/package/xl6_compiled_interface.inc','src/package/xl6_compiled_native_features.inc',
+        'src/compile/xl6_import_compiled_features.inc',
         'src/diag/xl6_diag.c','src/diag/xl6_diag.h','src/compile/xl6_source_report.c',
         'src/common/xl6_console.c','src/common/xl6_console.h','src/common/xl6_output.c','src/common/xl6_output.h')]
     files=[Path(__file__).resolve(),runtime,cc,*paths]

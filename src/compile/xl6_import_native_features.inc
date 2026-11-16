@@ -19,8 +19,10 @@ static int xl6ImportsValidateNativeFeatures(const XL6_ImportDeps* deps, XL6_Diag
         memset(seen, 0, count); seen[origin] = 1;
         size_t read = 0, end = 1; queue[0] = origin;
         while (read < end) {
-            const XL6_PackageStringList* dependencies = &deps->packageInfos[queue[read++]].dependencies;
-            for (size_t d = 0; d < dependencies->count; ++d)
+            const XL6_ImportPackageInfo* package = &deps->packageInfos[queue[read++]];
+            const XL6_PackageStringList* dependencies = &package->dependencies;
+            if (package->nativeDependencyCount > dependencies->count) { okay = 0; break; }
+            for (size_t d = 0; d < package->nativeDependencyCount; ++d)
                 for (size_t p = 0; p < count; ++p)
                     if (!seen[p] && !strcmp(dependencies->items[d], deps->packageInfos[p].name)) {
                         seen[p] = 1; queue[end++] = p; break;

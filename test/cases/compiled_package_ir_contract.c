@@ -130,6 +130,7 @@ int main(int argc,char** argv)
     for(size_t p=0;p<count;++p) {
         XL6_IrCompiledPackage* source=&producer.ir.compiledPackages[p];
         records[p].name=source->name;records[p].interfaceData=source->interfaceData;
+        records[p].packageVersion=source->version;records[p].abiVersion=source->abiVersion;
         records[p].interfaceSize=source->interfaceSize;records[p].interfaceHash=source->interfaceHash;
         for(size_t d=0;d<source->dependencyCount;++d)dependencies[p][d]=&records[source->dependencies[d]];
         records[p].dependencies=dependencies[p];records[p].dependencyCount=source->dependencyCount;

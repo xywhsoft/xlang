@@ -1,0 +1,141 @@
+{
+  "schema": 1,
+  "date": "2026-11-16",
+  "status": "compiled-native-capabilities-qualified-both-platforms",
+  "shippingDelivery": false,
+  "goalComplete": false,
+  "releasePromoted": false,
+  "sourceHeadBefore": "dff3887441447463c80f027053b6fe8d3f59defa",
+  "nativeCommit": "85f1223ad7b99ed24c82aae7e90ecbc231f1cf8a",
+  "canonicalXrtSha256": "41bc24579f4b3207b0434755ca23dd06481af90c05f71e9b365848cf9a7c12d1",
+  "latestXrtAlignmentComplete": false,
+  "sourceSha256": {
+    "src/api/xl_compiled_package.inc": "f03b3aeed46f9ae20fef036793acc10bd620524d085eb4e85f2c98d6c457f64a",
+    "src/compile/xl6_compiled_packages.inc": "e77324b36ea8a887956d48ffbe03835a0817de978507f6ecce9ce4f25929cd05",
+    "src/compile/xl6_import_compiled_features.inc": "f930d4681d504d6a4f714ac68fa87aa6fb153eb755ac9dac2bf0b07e020af203",
+    "src/compile/xl6_import_native_features.inc": "c9bf52c166643e7ab524517fc499386517394028695dd2edce39376ed10cb240",
+    "src/compile/xl6_imports.c": "71d09d7092fdebfcebb1be45fb414d2e164f824624ed2c95e43842645ed8c122",
+    "src/compile/xl6_imports.h": "cee44d96dff46e55feb85c5321e32680354f39cbc4f34ee5185d6a3335d81d0b",
+    "src/ir/xl6_ir_compiled_package_verify.c": "da0bd2560121e7bbada87d8e2957d291b455ef0927d2cb7f152a077f61fecd73",
+    "src/package/xl6_compiled_native_features.inc": "f4fe56b5f55ecc8dfa5183e3f1f3b3f727084c5a2e81ddfb6c6f349b8a0b9d91",
+    "src/package/xl6_compiled_interface.inc": "a66e1d7f5e305c1078f89ab2b6d96b489208d4252041e787880f974c2faba12d",
+    "src/package/xl6_compiled_package.h": "78d001f75b1d98bf7e0159468c408e4a8c322a3376ee25351e2e2a1489c6d240",
+    "src/package/xl6_package.c": "52a4f3a7bf5ed701527b0cff6e930e28f4e879bc0ffa9cad693118c6f1701e76",
+    "src/package/xl6_package.h": "815bd8e51b1c3f77d7224d516fca5c2fa047beff31c591aca37b9eed709f0d9f",
+    "test/cases/compiled_package_ir_contract.c": "04b052a45167afc8b70be47bcec8695632188cd60147ed19dae074af7bc76827",
+    "test/cases/package_compiled_native_features.c": "68b0f2c81a111e98ef14531346fcbea190dc594f2bde23980a13f965aea98f67",
+    "test/cases/package_native_features_api.c": "d3447e2c60ef5417a886b5c1ceaba9052647195d05434af916829fa6f81e8e39",
+    "test/cases/package_native_features.c": "8e423098a83a3acd95c803bd71f2472b467a9c4d1cef17373c976367408112c0",
+    "tools/check_package_compiled_native_features.py": "e6337134629c705a691fb4b69e2f94b7dc36eb8ec0b5f534be119ebe8564c316",
+    "tools/check_package_native_features_product.py": "76e531904c6e187fd816c3d37a800cc14fa89d624b67b2d7626a4962aba2086b",
+    "tools/check_package_native_features.py": "4880598df767e2e2e5da81e818b03254c4fa11d2438dc4e5e45b70322d2568ca",
+    "docs/package-native-features.md": "81be095ed333aa101a9b406caeda5fe4d7ae09999c72c7ead5d77ec833fe6670",
+    "docs/package-compiled-native-features.md": "0a77590bf8103ea8274ef34d248f0a1b3ac0a1d900a5bcf7b88e009f1d9bc313",
+    "docs/xge3-xui3-full-coverage-plan.md": "b09589ae7062ab13aab7570e496a83cf3d5f5846e43deffde5573e48cf1ce8ba"
+  },
+  "sourcePrerequisiteReceipt": {
+    "path": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\package-native-features-source-20261116.json",
+    "sha256": "5ef4100f075874878677a8337bed29a22c69bdf9b2b0c02895680322dabdbc2c"
+  },
+  "reports": {
+    "win": {
+      "source": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\native-features-prerequisites-verified-win-r1.json",
+        "sha256": "12386e2039d5478f4e86c509c30da7bf5df3c2d9b0ad617361f87446b6ef24e0"
+      },
+      "product": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\native-features-product-verified-win-r1.json",
+        "sha256": "4e3a68ccf72f7bc50c01148bdd280d485aecdc7f8c905b6e73990a2aa2e7e891"
+      },
+      "ir": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\native-features-ir-verified-win-r1.json",
+        "sha256": "16ee7343a1b8356da3398a5717958929c874fda556e1e45e3fcacca3fe5bd783"
+      }
+    },
+    "linux": {
+      "source": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\native-features-prerequisites-verified-linux-r1.json",
+        "sha256": "7861e934b6756b2075c7e0176fa531e0c4c02ffed0ed2f0cea721bace4f377e5"
+      },
+      "product": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\native-features-product-verified-linux-r1.json",
+        "sha256": "e03b86b26aa57cb508cfdcf5b162d4ef3eee4cca681022b62df25b80fa8e14a7"
+      },
+      "ir": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\native-features-ir-verified-linux-r1.json",
+        "sha256": "20020da86961986978af8fc6e9e05e8483368a09185268c026c5fcd12e5cb67d"
+      }
+    }
+  },
+  "acceptance": {
+    "sourceFrontendStepsPerPlatform": 172,
+    "productStepsPerPlatform": 19,
+    "windowsIrSteps": 4,
+    "linuxIrSteps": 6,
+    "totalOuterSteps": 392,
+    "providerOptimization": "O2",
+    "windowsSourceIrAllocationPrefixes": 4293,
+    "linuxAllocationPrefixesPerClient": 3265,
+    "linuxIrClients": [
+      "O0",
+      "O2"
+    ],
+    "hostBindingMutationsPerProfile": 72,
+    "publicFeatureRegistrationOomPrefixesPerClient": 13
+  },
+  "publicCompiledPackageCAbiChanged": false,
+  "privateWireFormats": [
+    "XLP1",
+    "XLP2"
+  ],
+  "legacyCapabilityClaims": false,
+  "costs": [
+    "Source capability token validation and owned metadata copies are cold compilation work.",
+    "Compiled descriptor/wire validation allocates no scratch; encoding owns one payload and an optional sorting pointer array, and decoding owns identity/list strings.",
+    "Registered import snapshots own their metadata; dependency-closure validation uses two scratch arrays if any requirements exist.",
+    "Registration retains its existing interface-byte copy; cold validation may run more than once.",
+    "No extra operation is added to native drawing/input/audio method calls. This is not a new CPU zero-overhead measurement."
+  ],
+  "limitations": [
+    "Qualified matching SDKs use the previously accepted XRT, not the latest standalone XRT revision.",
+    "Default SDK capability checks cover enabled 3D and missing debug without executing the graphics backend. Debug-enabled backend execution remains separate.",
+    "Windows IR provider is linked from the exact full compiler DLL response with shared/output flags replaced. Linux uses the actual O2 libxlc.so. No ASan/UBSan provider instrumentation.",
+    "All compilers/SDKs remain external candidates; no release/current-delivery/IDE installation.",
+    "Remaining full XGE/XUI/Document APIs, native ownership/callback work, latest XRT and final coordinated delivery remain active."
+  ],
+  "supersededBuilds": {
+    "win": {
+      "report": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-native-features-win-full-r1\\build.json",
+        "sha256": "a41a449705d8da1280a5a8b4d15c8b9b773ef0859e3c3e4d1229608ade7e5796"
+      },
+      "cancellation": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\native-features-win-r1-build-cancelled.json",
+        "sha256": "8db6cc4fad335408aa811f7251211b923b8ea48d8c26a47a22f5fc020badfed3"
+      },
+      "reason": "Stopped owned superseded build descendants before acceptance after finding the additional IR format guard and preserving the missing-dependency diagnostic. All corrected qualification uses r2."
+    },
+    "linux": {
+      "report": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-native-features-linux-full-r1\\build.json",
+        "sha256": "169434569cb5d656f3e712d71d2227fc8c369579c46e9c615301c4998e4f4b30"
+      },
+      "cancellation": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\native-features-linux-r1-build-cancelled.json",
+        "sha256": "ba5ae24c4c2c976d81b8282c55169b57223d64bceff14ae45c120e226798cc23"
+      },
+      "reason": "Stopped owned superseded build descendants before acceptance after finding the additional IR format guard and preserving the missing-dependency diagnostic. All corrected qualification uses r2."
+    }
+  },
+  "initialSyntaxFixtureReports": {
+    "native-features-ir-win-r1": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-features-ir-win-r1\\results.json",
+      "sha256": "bb6de91a3a94d2d901a9cb42878729dd17ec84e6d6162d6bab6ce67fb73981e7"
+    },
+    "native-features-ir-win-r2": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\native-features-ir-win-r2\\results.json",
+      "sha256": "fd3b2599d39c1a5fd77691d7510480e53da451184b4efc82f32c8a7969a3233f"
+    }
+  },
+  "syntaxFixtureResolution": "Standalone syntax needed the actual VFS __xl_runtime SDK/runtime/API header mapping. Product code was unchanged; successful r3 reuses the checked r1 O2 source executable and reruns all IR/OOM plus both strict C syntax profiles."
+}

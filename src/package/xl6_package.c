@@ -269,6 +269,17 @@ static int xl6PackageValueReadStringArray(
 
 /* Feature keys are opaque, case-sensitive capability tokens, never C code.
  * Check the counted string before duplication so NUL cannot truncate a key. */
+int xl6PackageNativeFeatureKeyValid(const char* data, size_t size)
+{
+    if (!data || !size) return 0;
+    for (size_t n = 0; n < size; ++n) {
+        unsigned char c = (unsigned char)data[n];
+        if (!((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
+              (c >= '0' && c <= '9') || c == '_' || c == '.' || c == ':' || c == '-')) return 0;
+    }
+    return 1;
+}
+
 static int xl6PackageValueReadFeatures(const xvalue* object, const char* field,
                                       XL6_PackageStringList* result)
 {
@@ -278,11 +289,7 @@ static int xl6PackageValueReadFeatures(const xvalue* object, const char* field,
     for (size_t i = 0; i < xrtValueCount(values); ++i) {
         xstrview key;
         if (!xrtValueGetString(xrtValueArrayGet(values, i), &key) || !key.Size) return 0;
-        for (size_t n = 0; n < key.Size; ++n) {
-            unsigned char c = (unsigned char)key.Data[n];
-            if (!((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
-                  (c >= '0' && c <= '9') || c == '_' || c == '.' || c == ':' || c == '-')) return 0;
-        }
+        if (!xl6PackageNativeFeatureKeyValid(key.Data, key.Size)) return 0;
         for (size_t n = 0; n < result->count; ++n)
             if (strlen(result->items[n]) == key.Size && !memcmp(result->items[n], key.Data, key.Size)) return 0;
         if (result->count >= SIZE_MAX / sizeof(*result->items)) return 0;

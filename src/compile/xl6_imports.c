@@ -555,6 +555,7 @@ static int xl6ImportsCollectEffectiveManifestDeps(
         int copied = info.name && info.version && info.abiVersion && info.dir;
         for (size_t p = 0; copied && p < manifest->dependencyCount; ++p)
             copied = xl6PackageStringListAppend(&info.dependencies, manifest->dependencies[p].name);
+        info.nativeDependencyCount = info.dependencies.count;
         for (size_t p = 0; copied && p < manifest->requiresNativeFeatures.count; ++p)
             copied = xl6PackageStringListAppend(&info.requiredNativeFeatures, manifest->requiresNativeFeatures.items[p]);
         for (size_t p = 0; copied && p < manifest->nativeInfo.features.count; ++p)
@@ -646,6 +647,7 @@ static int xl6ImportsCollectManifestDeps(XL6_ImportDeps* deps,
 }
 
 #include "xl6_import_native_features.inc"
+#include "xl6_import_compiled_features.inc"
 
 static int xl6ImportsDependencyMatches(
     const XL6_PackageDependency* dep,
@@ -768,6 +770,17 @@ static int xl6ImportsCollectManifestDependencyGraph(
         XL6_PackageResolveResult resolved;
 
         if ( xl6ImportsDepsHasPackageId(deps, dep->packageId) ) {
+            continue;
+        }
+        const XL_CompiledPackage* bound = xl6ImportsFindCompiledPackage(deps, dep->name);
+        if (bound) {
+            if (strcmp(bound->packageVersion, dep->version) || strcmp(bound->abiVersion, dep->abiVersion)) {
+                xl6DiagAddFile(diags, xl6AstSourcePath(importNode), importNode ? importNode->line : 1,
+                    importNode ? importNode->column : 1, "registered compiled dependency version mismatch");
+                return 0;
+            }
+            if (!xl6ImportsCollectCompiledFeatures(deps, bound, importNode, diags, 0) ||
+                (symbols && !xl6ImportsSymbolTableAddNamespace(symbols, dep->name, 1))) return 0;
             continue;
         }
         if ( !xl6ImportsResolveDependency(manifest, dep, &resolved, importNode, diags,
@@ -2379,17 +2392,14 @@ static int xl6ImportsLoadOne(
         return 1;
     }
 
-    const XL_CompiledPackage* boundPackage = NULL;
-    for (size_t p = 0; deps && deps->compiledPackages && p < deps->compiledPackages->count; ++p)
-        if (!strcmp(target, deps->compiledPackages->items[p].name)) {
-            boundPackage = &deps->compiledPackages->items[p]; break;
-        }
+    const XL_CompiledPackage* boundPackage = xl6ImportsFindCompiledPackage(deps, target);
     if (boundPackage) {
         XL6_AstNode* interfaceRoot;
         deps->features |= XL6_IMPORT_FEATURE_COMPILED_PACKAGE_CONSUMER;
         if (outNamespace && !(*outNamespace = xl6ImportsDupText(target))) { xrtFree(target); return 0; }
         wasLoaded = xl6ImportsNamespaceIsLoaded(symbols, target);
-        ok = xl6ImportsSymbolTableAddNamespace(symbols, target, exposeNamespace ? 0 : 1);
+        ok = xl6ImportsCollectCompiledFeatures(deps, boundPackage, importNode, diags, 0) &&
+            xl6ImportsSymbolTableAddNamespace(symbols, target, exposeNamespace ? 0 : 1);
         if (ok && !wasLoaded) {
             interfaceRoot = xl6CompiledPackageDecode(boundPackage->interfaceData, boundPackage->interfaceSize);
             if (!interfaceRoot) ok = 0;
