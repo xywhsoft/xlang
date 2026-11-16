@@ -1032,6 +1032,8 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
         {"XRT_MODULE_MEMORY","XRT_MODULE_ATOMIC","XRT_MODULE_THREAD"}},
     {"src/runtime/xl6_value_read_view.c",D(R(SEQUENCE),R(DICT_NATIVE)),
         {"XRT_MODULE_VALUE_CONTAINER","XRUNTIME_MODULE_RUNTIME_TYPE_STRING"}},
+    {"src/runtime/xl6_native_callback_group.c",D(R(NATIVE_CALLBACK)),
+        {"XRT_MODULE_MEMORY","XRT_MODULE_ATOMIC"}},
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

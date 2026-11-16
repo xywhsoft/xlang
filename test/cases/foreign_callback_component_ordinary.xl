@@ -1,0 +1,9 @@
+extern "const XL6_NativeCallbackRuntimeV1*" class CallbackApi @header("__xl_runtime/xl6_native_callback.h") @lifetime("caller")
+ native point handle
+end
+extern "xl6NativeCallbackRuntimeV1Get" @header("__xl_runtime/xl6_native_callback.h") @no_raise func callbackApi() as CallbackApi
+func main(...) as int
+ auto api=callbackApi()
+ println("ORDINARY_CALLBACK_COMPONENT_OK")
+ return 0
+end

@@ -1,0 +1,163 @@
+{
+  "schema": 1,
+  "sourceParent": "2ac0c39ae65cb9ecb785908685e577b7a0a7de10",
+  "sourceHashes": {
+    "src/runtime/xl6_native_callback.c": "a1b8276f61ccc96658a932f38fde36f890a451b8b37a4fa3e050b03a82e494be",
+    "src/runtime/xl6_native_callback.h": "63dbc8947ecb1ff671892cb804bdb2046131bc1ec3d47b57109d7db87644fe71",
+    "src/runtime/xl6_native_callback_group.c": "2c7adf5a9229de8da30a9c6f5f5458e978fecb0af816c7d6f1d76c0189f03f06",
+    "src/runtime/xl6_native_callback_internal.h": "8212a8336fc3a33fb11bdb3a20c162862295a0acbb8ae8db8d7d6d47daf34a77",
+    "src/runtime/xl6_ownership_domains.h": "9d1989dfa9398a836f15b7d9de887297d9bcadfa29e4cdd948b06dc26508d562",
+    "src/runtime/xl6_ownership_domains.inc": "5bc5aa52821580fe1131a7f96dbd6ce007d5e9baeac7d90ed13108006dc83e0f",
+    "src/api/xl_api_symbols.c": "0daf6381e31f3850345f06a6c808a5ef903b8a17f1056e1967cc33c794ff5a0f",
+    "src/compile/xl6_artifact_runtime.h": "f0b708db28fcee2f071d8d5e1b26ff8579dd358a67275cfdbb0576a34a8c0588",
+    "src/compile/xl6_artifact_runtime_symbols.inc": "f7eae63bf1b4eb26076646388ca8d666cafd90060490dfafa9697f3f79685e43",
+    "src/compile/xl6_compile_unit.c": "00bda6a2aa7515a1368c081af1784e91a3faca2c6fa9b1054ef2e2a44597fb95",
+    "tools/compiler_dll.rsp.in": "54b3c6665a83e77c70471d727658948f83668d27b1869c04c0e7ed3b89e864b6",
+    "tools/runtime_dll.rsp.in": "12184739ab852d98e1873d5c092042239e322d60075e1b60db149e9ed4886eb4",
+    "tools/build_xlir_public_source_driver.ps1": "38d253752cb604aa9a5d7d63349f8873316b983202373047fbd0549b14e77a31",
+    "test/cases/foreign_callback_group_runtime.c": "906825c3cf0b4e53020482da5986b3f875b76d7f50fdb71a904203911485fc45",
+    "test/cases/foreign_callback_group_threads.c": "5fd0b494012a89bbe268ddb7a8c00676549f5848506957878ca46bac4f5ee950",
+    "test/cases/foreign_callback_group_components.c": "dda7df02ce355195fcfcec4a48bfdf28e8c5493218ae06796c57175c3b2d2537",
+    "test/cases/foreign_callback_component_ordinary.xl": "ed8fbc73a3d6f20020c67b83964834ef1b79d10c969bec0ca24c28339c710643",
+    "test/cases/foreign_callback_component_group.xl": "d75a58114bf85fb0ead456f4a943d91df8bcaba90af1c7a5a9502cfb05b4101d",
+    "tools/check_foreign_callback_group_runtime.py": "4d348ebc2b09683554e9630316cf41e081153816e549b25de97012346495efb8",
+    "tools/check_foreign_callback_group_components.py": "fde853f85270e38ff2b15fe46e31fec8c00bf4036bd0f5bc4dfba7a860bde7c6",
+    "tools/check_foreign_callback_group_artifacts.py": "3bb0a15619e7675617c322074588c89a0d7ee993bbff13e79c1a64fa794f5e22",
+    "docs/native-callback-groups.md": "29d3e351512e2c083e2f72cde8c886b7c9aa54b897648356fa93253ecf38591a"
+  },
+  "removedPaths": [
+    "src/runtime/xl6_native_callback_group.inc"
+  ],
+  "scope": "Internal owned callback-group component/domain isolation, real native thread qualification and matching full O2 compiler/TCC/XRT/VFS artifact acceptance. Language pack syntax and HostSession are still pending.",
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\callback-group-split-win-r3\\results.json",
+      "sha256": "1f6acb87178a729077d0aefd6d6264e663cf484562990c90e7b6dc9a2e1a46db",
+      "commands": 17,
+      "passed": true,
+      "scope": "Development proof of owned callback-group runtime over a full source cohort.\n\nThe native-callback and runtime-symbol objects are replaced, and a separate\ngroup component is compiled explicitly. Compiler pack lowering, full VFS products and shipping SDK/IDE\ninstallation are separate work. CPU-only lifecycle/trace/rollback/OOM tests.\n"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\callback-group-components-win-r3\\results.json",
+      "sha256": "aab11c538b1bbc77d3fb4102d8b18a54db0bed90605c6907d3c925b729cb479a",
+      "commands": 6,
+      "passed": true,
+      "scope": "Verify actual callback/group component and ownership-domain selection.\n\nSupplemental source dependency-solver proof only. A full compiler, emitted\nnative artifacts, linker pruning and pack syntax are separate gates.\n"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\callback-group-artifacts-win-r4\\results.json",
+      "sha256": "0547f1033deee5d7a201f7785296cbec7b9a3f64abbe5281d096320179019d18",
+      "commands": 18,
+      "passed": true,
+      "scope": "Qualify ordinary/group source selection with a complete O2/TCC/XRT/VFS build.\n\nCPU-only JIT, standalone and shared artifacts with freshly staged private SDK\nheaders; inspect ownership-domain initializers and immutable VFS object bytes. This verifies component isolation,\nnot byte-for-byte machine-code pruning or language callback-group pack support.\n"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-callback-group-win-full-r1\\build.json",
+      "sha256": "872fea131828425138e88fd4c8e47d77dc2664f8077b5972dc95969e3669d61f",
+      "passed": true,
+      "fullTccXrtAndVfs": true,
+      "seconds": 908.5,
+      "products": {
+        "xl.exe": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-callback-group-win-full-r1\\source\\release\\win_x64\\xl.exe",
+          "sha256": "6bead984d39b435c9ebe26d9e39faf2bb63048035bfa62c46526254b48bbf0b6",
+          "bytes": 72704
+        },
+        "xl.dll": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-callback-group-win-full-r1\\source\\release\\win_x64\\xl.dll",
+          "sha256": "a777fc1cf43a79d5755f9be74915e4121eaaddd9c82e0bbc7fb58522ae31e0d0",
+          "bytes": 15405568
+        },
+        "xlc.dll": {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-callback-group-win-full-r1\\source\\release\\win_x64\\xlc.dll",
+          "sha256": "ddb68fa123d07f478a019067d40e517c96e506a587da2826eacca750396fffe8",
+          "bytes": 21665792
+        }
+      }
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\callback-group-split-linux-r3\\results.json",
+      "sha256": "22ed5174253d1eed05b4444f673aec08fb2a3c4f920db6cc875341bbe9d34a2f",
+      "commands": 17,
+      "passed": true,
+      "scope": "Development proof of owned callback-group runtime over a full source cohort.\n\nThe native-callback and runtime-symbol objects are replaced, and a separate\ngroup component is compiled explicitly. Compiler pack lowering, full VFS products and shipping SDK/IDE\ninstallation are separate work. CPU-only lifecycle/trace/rollback/OOM tests.\n"
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\callback-group-components-linux-r3\\results.json",
+      "sha256": "9f43cf31abaabe0997e459959a9fd36fc3be84106d8dd62b95fad716f21f19c7",
+      "commands": 6,
+      "passed": true,
+      "scope": "Verify actual callback/group component and ownership-domain selection.\n\nSupplemental source dependency-solver proof only. A full compiler, emitted\nnative artifacts, linker pruning and pack syntax are separate gates.\n"
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\callback-group-artifacts-linux-r1\\results.json",
+      "sha256": "4117f0022f57ca0bf61976d99bd7cfd6e60c3d0879d7ea08e5637d96923eb183",
+      "commands": 18,
+      "passed": true,
+      "scope": "Qualify ordinary/group source selection with a complete O2/TCC/XRT/VFS build.\n\nCPU-only JIT, standalone and shared artifacts with freshly staged private SDK\nheaders; inspect ownership-domain initializers and immutable VFS object bytes. This verifies component isolation,\nnot byte-for-byte machine-code pruning or language callback-group pack support.\n"
+    },
+    {
+      "path": "\\\\wsl.localhost\\Ubuntu\\var\\tmp\\xlang-validation\\xge-full-20261110\\compiler-callback-group-linux-full-r1\\build.json",
+      "sha256": "87a29c7f289f1e804627f5d60a6060d0880ee23abc32cec79546af35af88c580",
+      "passed": true,
+      "fullTccXrtAndVfs": true,
+      "seconds": 1079.0234742950001,
+      "products": {
+        "xl": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/compiler-callback-group-linux-full-r1/source/release/linux_x64/xl",
+          "sha256": "faa25e49bdf8c5ce8ccdb084810075b406cc6dd499a59577664616eb2a08265b",
+          "bytes": 47224
+        },
+        "libxl.so": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/compiler-callback-group-linux-full-r1/source/release/linux_x64/libxl.so",
+          "sha256": "c43cea05510bb432bde5b1c1ac1515efa6a0303808fbeb42fabcf5bea05bd178",
+          "bytes": 16624560
+        },
+        "libxlc.so": {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/compiler-callback-group-linux-full-r1/source/release/linux_x64/libxlc.so",
+          "sha256": "8f9ffb73a21470fbe76e0e45ae0bbaa2f834301f212fbc65f001d69a9c072027",
+          "bytes": 22682800
+        }
+      }
+    }
+  ],
+  "commands": 82,
+  "fullBuilds": 2,
+  "networkTests": false,
+  "shippingDelivery": false,
+  "releaseFilesAdded": false,
+  "privateSdkStaging": "Artifact gates assemble private headers from each frozen source beside exact reported binaries. Inherited SDK defaults preceded extra include paths; immutable source/build files and workspace release remain untouched.",
+  "fixedObjectPolicy": "Protected immutable VFS lookup unchanged. Early source-only probes rejected the missing new object; these old reports are retained.",
+  "sourceComponentProof": true,
+  "machineCodePruningMeasured": false,
+  "realModuleUnloadQualified": false,
+  "measuredNativeConstruction": {
+    "slots": 3,
+    "nonNullMembers": 2,
+    "allocations": 4,
+    "liveBytes": 320,
+    "preexistingClosureIncluded": false
+  },
+  "warmCalls": {
+    "calls": 1000,
+    "allocations": 0,
+    "reallocations": 0,
+    "frees": 0,
+    "cpuTimeEquivalenceMeasured": false
+  },
+  "nativeThreads": {
+    "threads": 4,
+    "calls": 4000,
+    "callerRootsRemovedBeforeInvoke": true,
+    "newCodeAdmissionClosed": true,
+    "finalPins": 0,
+    "instrumentedCodeOwner": true
+  },
+  "pending": [
+    "approved language callback-group pack declaration/IR/lowering and generated thunks",
+    "actual module unload and complete cyclic native/language ownership acceptance",
+    "cold native thread OOM",
+    "HostSession GL/renderer integration and checked retry lifecycle",
+    "latest-XRT/native/compiler/SDK/IDE final convergence"
+  ]
+}

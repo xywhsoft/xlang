@@ -542,6 +542,7 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/runtime/xl6_native_com.c',
     'src/runtime/xl6_value_read_view.c',
     'src/runtime/xl6_native_callback.c',
+    'src/runtime/xl6_native_callback_group.c',
     'src/runtime/xl6_sync_callback.c',
     'src/runtime/xl6_callback_failure.c',
     'src/runtime/xl6_native_capture_graph.c',

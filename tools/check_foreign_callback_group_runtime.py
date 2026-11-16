@@ -1,7 +1,7 @@
 """Development proof of owned callback-group runtime over a full source cohort.
 
-Only the native-callback and runtime-symbol objects are replaced, explicitly
-and immutably. Compiler pack lowering, full VFS products and shipping SDK/IDE
+The native-callback and runtime-symbol objects are replaced, and a separate
+group component is compiled explicitly. Compiler pack lowering, full VFS products and shipping SDK/IDE
 installation are separate work. CPU-only lifecycle/trace/rollback/OOM tests.
 """
 from pathlib import Path
@@ -18,12 +18,14 @@ def main():
     cc=Path(shutil.which('gcc')).resolve();cpp=Path(shutil.which('g++')).resolve()
     sha=lambda v:hashlib.sha256(Path(v).read_bytes()).hexdigest()
     overrides=('src/runtime/xl6_native_callback.c','src/runtime/xl6_native_callback.h',
-               'src/runtime/xl6_native_callback_group.inc','src/api/xl_api_symbols.c')
+               'src/runtime/xl6_native_callback_group.c','src/runtime/xl6_native_callback_internal.h',
+               'src/runtime/xl6_ownership_domains.inc','src/api/xl_api_symbols.c')
     files=[Path(__file__),Path(__file__).with_name('foreign_validation_build.py'),
            Path(__file__).with_name('compiler_response.py'),cc,cpp,root/'test/cases/foreign_callback_group_runtime.c',
+           root/'test/cases/foreign_callback_group_threads.c',
            root/'src/compile/xl6_artifact_runtime_symbols.inc']
     assert (root/'src/compile/xl6_artifact_runtime_symbols.inc').read_text().count(
-        'XL6_ARTIFACT_SYMBOL("xl6NativeCallbackGroupRuntimeV1Get", NATIVE_CALLBACK)')==1
+        'XL6_ARTIFACT_SYMBOL("xl6NativeCallbackGroupRuntimeV1Get", NATIVE_CALLBACK_GROUP)')==1
     inputs=dict(base['inputs']);inputs.update((str(v),sha(v)) for v in files)
     out.mkdir(parents=True,exist_ok=False);overlay=out/'source'
     for name in overrides:
@@ -53,16 +55,21 @@ def main():
         records=base['base']['Objects']
         for opt in ('O0','O2'):
             replacement={}
-            for name in ('xl6_native_callback','xl_api_symbols'):
-                row=[v for v in records if Path(v['Source']).stem==name];assert len(row)==1
-                source=overlay/('src/runtime/' if name=='xl6_native_callback' else 'src/api/')/(name+'.c')
+            additional=[]
+            for name in ('xl6_native_callback','xl_api_symbols','xl6_native_callback_group'):
+                row=[v for v in records if Path(v['Source']).stem==name]
+                assert len(row)==1 or (name=='xl6_native_callback_group' and not row)
+                source=overlay/('src/api/' if name=='xl_api_symbols' else 'src/runtime/')/(name+'.c')
                 obj=out/(name+'-'+opt+'.o');run(name+'-'+opt,[cc,*flags,'-'+opt,'-c',source,'-o',obj])
-                replacement[row[0]['Path']]=str(obj);inputs[str(obj)]=sha(obj)
-                report['objectOverrides'].append(dict(parent=row[0]['Path'],path=str(obj),sha256=sha(obj),optimization=opt))
-            objects=[replacement.get(v,v) for v in base['objects']]
-            exe=out/('group-'+opt+('.exe' if win else ''))
-            run(opt+'-build',[cc,*flags,'-'+opt,root/'test/cases/foreign_callback_group_runtime.c',*objects,runtime,*systems,'-o',exe])
-            run(opt+'-run',[exe]);inputs[str(exe)]=sha(exe)
+                if row:replacement[row[0]['Path']]=str(obj)
+                else:additional.append(str(obj))
+                inputs[str(obj)]=sha(obj)
+                report['objectOverrides'].append(dict(parent=row[0]['Path'] if row else None,path=str(obj),sha256=sha(obj),optimization=opt))
+            objects=[replacement.get(v,v) for v in base['objects']]+additional
+            for fixture in ('runtime','threads'):
+                exe=out/('group-'+fixture+'-'+opt+('.exe' if win else ''))
+                run(fixture+'-'+opt+'-build',[cc,*flags,'-'+opt,root/('test/cases/foreign_callback_group_'+fixture+'.c'),*objects,runtime,*systems,'-o',exe])
+                run(fixture+'-'+opt+'-run',[exe]);inputs[str(exe)]=sha(exe)
         report.update(complete=True,inputsUnchanged=all(sha(v)==h for v,h in inputs.items()))
         report['passed']=report['inputsUnchanged'];assert report['passed']
     except Exception as error:

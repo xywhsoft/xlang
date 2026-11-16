@@ -168,7 +168,7 @@
 #include "src/runtime/xl6_foreign_view_value_storage.h"
 #include "src/runtime/xl6_foreign_view_sequence.h"
 #include "src/runtime/xl6_native_sequence.h"
-#include "src/runtime/xl6_native_callback.h"
+#include "src/runtime/xl6_native_callback_internal.h"
 #include "src/runtime/xl6_sync_callback.h"
 #include "src/runtime/xl6_callback_failure.h"
 #include "src/runtime/xl6_host_xrt.h"
@@ -454,6 +454,7 @@ static int xlVisitDefaultTccApiSymbols(XL_ApiSymbolVisit visit, void* user)
     if (!visit(user, "xl6NativeCallbackReportFailureV1", (const void*)xl6NativeCallbackReportFailureV1)) return 0;
     if (!visit(user, "xl6NativeCallbackRuntimeV1Get", (const void*)xl6NativeCallbackRuntimeV1Get)) return 0;
     if (!visit(user, "xl6NativeCallbackGroupRuntimeV1Get", (const void*)xl6NativeCallbackGroupRuntimeV1Get)) return 0;
+    if (!visit(user, "xl6NativeCallbackCreateSharedAdapterV1", (const void*)xl6NativeCallbackCreateSharedAdapterV1)) return 0;
     if (!visit(user, "xl6TransferServicesFromLeaseV1", (const void*)xl6TransferServicesFromLeaseV1)) return 0;
     if (!visit(user, "xl6TransferServicesProcessResidentV1", (const void*)xl6TransferServicesProcessResidentV1)) return 0;
     if (!visit(user, "xl6SyncCallbackBeginV1", (const void*)xl6SyncCallbackBeginV1)) return 0;

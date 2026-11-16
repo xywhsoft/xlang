@@ -1,5 +1,5 @@
 #include "src/common/xl6_xrt.h"
-#include "xl6_native_callback.h"
+#include "xl6_native_callback_internal.h"
 #include "xl6_callback_failure.h"
 #include "src/api/xl_foreign_error.h"
 #include <stdlib.h>
@@ -105,6 +105,29 @@ static XL6_NativeCallback* create(const XL6_CodeOwner* owner,XL6_Closure* closur
     xl6_error_result result=xl6ErrorScopeEnd(&errors);if(!result.ok)xrtSetErrorTake(result.error);
     return record;
 }
+/* All typed thunks in a group belong to the same adapter module. Share its
+ * already accepted lease; acquire no additional native code capability per
+ * member. Ordinary callback creation and its call path remain unchanged. */
+XL6_NativeCallback* xl6NativeCallbackCreateSharedAdapterV1(XL6_CodeLease* adapter,XL6_Closure* closure,
+    XL6_ForeignView* context,uint64_t signature)
+{
+    if(!closure || !signature || !xl6ClosureOwnershipAdapterV1(xl6ClosureRuntimeV1Get()->Ownership(closure))){
+        xrtSetErrorKind(XERR_ARGUMENT);return NULL;
+    }
+    xl6_error_scope errors={0};if(!xl6ErrorScopeBegin(&errors))return NULL;
+    XL6_NativeCallback* record=xrtCalloc(1,sizeof(*record));
+    if(record){
+        record->payload.adapter=xl6CodeLeaseRetain(adapter);
+        if(context && !(record->payload.owner=xl6ForeignViewNativePinV1(context)))xl6ErrorScopeCaptureFailure(&errors);
+        else record->payload.closure=xl6ClosureRuntimeV1Get()->Retain(closure);
+        if(!record->payload.closure || xrtGetError() || errors.failed){
+            xl6ErrorScopeCaptureFailure(&errors);(void)release_payload(record->payload);xrtFree(record);record=NULL;
+        }else{xrtAtomic64Init(&record->refs,1);record->signature=signature;}
+    }else xl6ErrorScopeCaptureFailure(&errors);
+    xl6_error_result result=xl6ErrorScopeEnd(&errors);
+    if(!result.ok)xrtSetErrorTake(result.error);
+    return record;
+}
 static bool count(const void* raw,size_t* output)
 {
     const XL6_NativeCallback* record=raw;
@@ -206,12 +229,10 @@ static bool finish(const void* raw,const void* token)
     if(!record->retired.closure && !record->retired.adapter && !record->retired.owner)return true;
     CallbackPayload payload=record->retired;record->retired=(CallbackPayload){0};return release_payload(payload);
 }
-#include "xl6_native_callback_group.inc"
 static bool resolve(xrtownershipref ref,const XL6_OwnershipPoliciesV1* policies,const xrtownershipadapterv1** adapter,
     const xrtownershippreparationv1** preparation,const XL6_OwnershipFinishV1** completion)
 {
     (void)policies;(void)preparation;(void)completion;
-    if(group_resolve(ref,adapter))return true;
     static const xrtownershipadapterv1 value={sizeof(value),collector_hold,collector_drop,claim,restore,NULL,clear,finish};
     if(ref.Ops!=&ops || !ref.Data)return false;
     const XL6_NativeCallback* record=ref.Data;

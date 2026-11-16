@@ -7,12 +7,15 @@
 #include <string.h>
 static unsigned pins,acquisitions,rejectAt,calls,edges;
 static bool closed,closeOnAcquire;
-static unsigned groupSymbols;
+static unsigned groupSymbols,domainSymbols;
 static int visit_symbol(void* unused,const char* name,const void* address)
 {
     (void)unused;
     if(!strcmp(name,"xl6NativeCallbackGroupRuntimeV1Get")){
         assert(address==(const void*)xl6NativeCallbackGroupRuntimeV1Get);++groupSymbols;
+    }
+    if(!strcmp(name,"xl6OwnershipDomainNativeCallbackGroupV1Get")){
+        assert(address==(const void*)xl6OwnershipDomainNativeCallbackGroupV1Get);++domainSymbols;
     }
     return 1;
 }
@@ -40,12 +43,14 @@ static const xrtownershipadapterv1* adapter_for(xrtownershipref ref)
 {
     const xrtownershipadapterv1* adapter=NULL;const xrtownershippreparationv1* preparation=NULL;
     const XL6_OwnershipFinishV1* completion=NULL;
-    assert(xl6OwnershipDomainNativeCallbackV1Get()->Resolve(ref,NULL,&adapter,&preparation,&completion));
+    assert(xl6OwnershipDomainNativeCallbackGroupV1Get()->Resolve(ref,NULL,&adapter,&preparation,&completion));
+    const xrtownershipadapterv1* wrong=NULL;
+    assert(!xl6OwnershipDomainNativeCallbackV1Get()->Resolve(ref,NULL,&wrong,&preparation,&completion) && !wrong);
     assert(adapter && !preparation && !completion);return adapter;
 }
 int main(void)
 {
-    assert(xlApiVisitDefaultRuntimeSymbols(visit_symbol,NULL) && groupSymbols==1);
+    assert(xlApiVisitDefaultRuntimeSymbols(visit_symbol,NULL) && groupSymbols==1 && domainSymbols==1);
     assert(xrtMemDebugEnable(true));XL6_CodeOwner owner={sizeof(owner),&pins,acquire,release_code};
     const XL6_ClosureRuntimeV1* closure=xl6ClosureRuntimeV1Get();
     const XL6_NativeCallbackGroupRuntimeV1* api=xl6NativeCallbackGroupRuntimeV1Get();

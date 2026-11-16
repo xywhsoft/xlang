@@ -1,0 +1,9 @@
+extern "const XL6_NativeCallbackGroupRuntimeV1*" class CallbackGroupApi @header("__xl_runtime/xl6_native_callback.h") @lifetime("caller")
+ native point handle
+end
+extern "xl6NativeCallbackGroupRuntimeV1Get" @header("__xl_runtime/xl6_native_callback.h") @no_raise func callbackGroupApi() as CallbackGroupApi
+func main(...) as int
+ auto api=callbackGroupApi()
+ println("GROUP_CALLBACK_COMPONENT_OK")
+ return 0
+end

@@ -60,4 +60,5 @@ XL6_CODE_LEASE_API const XL6_NativeCallbackGroupRuntimeV1* xl6NativeCallbackGrou
  * when called by a native publisher outside language execution. */
 XL6_CODE_LEASE_API bool xl6NativeCallbackReportFailureV1(XL6_NativeCallback*,struct xl6_foreign_error_result);
 XL6_CODE_LEASE_API const struct XL6_OwnershipDomainV1* xl6OwnershipDomainNativeCallbackV1Get(void);
+XL6_CODE_LEASE_API const struct XL6_OwnershipDomainV1* xl6OwnershipDomainNativeCallbackGroupV1Get(void);
 #endif
