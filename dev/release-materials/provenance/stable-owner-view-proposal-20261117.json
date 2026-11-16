@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "sourceParent": "5190f1742a5f0d4d0e85c12321247ed2878bfb33",
+  "sourceHashes": {
+    "docs/foreign-stable-owner-views-proposal.md": "30c0495a5f843263c61b1f435b6a016d2a3531fdd7683c5566b876943afa2c3c"
+  },
+  "negativeReproduction": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\backend-describe-win-preflight-r3\\jit.log",
+    "sha256": "9ed3afe039cc8c8c4789dbf1c6ae70aeccc5e4dca22c10ab53446559586d2c73",
+    "expectedFailureAt": "Describe owner-view admission after successful backend construction",
+    "rejectedByCurrentRuntime": true
+  },
+  "candidate": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\backend-describe-proposal-r1\\candidate.json",
+    "sha256": "d0d129c19f81a6d86075b9d1257f3c547944ba50e22c8b2bd6331b9d9650d35d",
+    "applied": false
+  },
+  "currentRuntimeSources": {
+    "src/runtime/xl6_foreign_view.c": "bd4b3912a2e511bbd93278131322c4b42ffe6e3faed367391c3cbca2b00e4b04",
+    "src/runtime/xl6_foreign_view.h": "2d57673fff75f11d3d31376272b5971a042d2d64bc6341ac1d67ef5031fac797"
+  },
+  "decisionRequested": true,
+  "decisionAnswered": false,
+  "publicBindingsRestored": true,
+  "runtimeOrLanguageSemanticsChanged": false,
+  "networkTests": false,
+  "shippingDelivery": false,
+  "releaseFilesAdded": false
+}
