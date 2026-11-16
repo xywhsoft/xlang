@@ -1,0 +1,166 @@
+{
+  "schema": 1,
+  "date": "2026-11-16",
+  "stage": "M7b6x",
+  "scope": "Independent immutable final IR table-record ownership,exact native borrowed-key identity and explicit flat read-only images",
+  "base": "b93a5d57f2d1d16ccf7f20159f99289faafec378",
+  "buildBase": "10d3cbea4f8ceb015ff8fd1579898eecfad91327",
+  "componentImplementationAccepted": true,
+  "componentCorrectnessQualified": true,
+  "normalAnalysisIntegrationEnabled": false,
+  "finalIrIncrementalProductionComplete": false,
+  "performanceQualified": false,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "deliveryIndexUnchanged": true,
+  "engineRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "formalRelease": false,
+  "defaultLanguageServerVersion": "0.106",
+  "heldServiceVersion": "0.107",
+  "ownedSources": {
+    "ide/src/analysis/ir_table_graph.c": "210490bbbcf57ac4c42a544e7d3f2c6e92d61134b08a472e6045cde6e386c47e",
+    "ide/src/analysis/ir_table_graph.h": "a83050d4f96c38d822f10af9604044c48c8c9411f3265523f734928a7f4d2ebb",
+    "ide/tests/analysis_ir_table_graph_test.c": "734dbb2e38375268b278daf59d8f75da79d9461f39dc3996b1b39fbae626b56e",
+    "ide/tools/build_lsp_core.py": "bc065812601eb231ced3de548a102d070dbd58e5f3147c66c3880b4b058f2761",
+    "ide/tools/ir_table_schema.py": "8bc28f458e635a4302ec69ddb3249ac3a944d90a630f86343761e822b2648a52",
+    "ide/tools/check_ir_table_schema.py": "410e4b37608ab3068f81c2d66f7a28442b862aa72610d2d2e2c84083e90eea29",
+    "ide/tools/check_ir_table_graph_lowered.py": "bedd29aa761332ed23623c38babcfe24ed3079c35ca35831e42f3584d921b683",
+    "ide/docs/lsp-ir-table-graph.md": "5bbdf2ef784e1659d1e8425f6718e0bd3ad0ea6eceebd571c34ada63bc17f3e0",
+    "ide/docs/lsp-development.md": "51c4693e0209fa7ac15f46d9aeec4c9d578d439d9bcffc79aa6820fbac4be6af"
+  },
+  "sharedFileEdits": {
+    "ignoreBeforeSha256": "4bd574438dfc7f6ee69b87c3a1889ba54e21f87d55f595e8c9a77a86057385b1",
+    "ignoreAfterSha256": "ea7bfd4f76c8f99c905ad51265cf07c895b9b2af70a6f84b3d68ad1aa8ddc926",
+    "anchor": "!/dev/release-materials/provenance/lsp-ir-node-graph-20261116.json",
+    "line": "!/dev/release-materials/provenance/lsp-ir-table-graph-20261116.json",
+    "deliveryIndexUnchangedSha256": "6784cac89bc4892e872575e15e7ebdd884b196f77291859fe75efb780c2016b7"
+  },
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-ir-table-graph-20261116/stage-sources.tar.gz",
+      "sha256": "a9f37a5bc0141d4656b48708db79c71a09ef44c029a935555d1004b27637162c",
+      "bytes": 362542,
+      "entries": 10,
+      "uniquePayloads": 10
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-ir-table-graph-20261116/stage-sources.tar.gz.manifest.json",
+      "sha256": "3260f5a4895c525cec59d875bc3042fffde8eef8ac56e8463d5b2b0088ec3bab",
+      "bytes": 2541
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-ir-table-graph-20261116/actual-builds-tables-and-native-oracles.tar.gz",
+      "sha256": "d52717f1226bf8576ae4cb7186e518802014d4adc8145f20f578c5065c1a074e",
+      "bytes": 1042853817,
+      "entries": 5933,
+      "uniquePayloads": 4237
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-ir-table-graph-20261116/actual-builds-tables-and-native-oracles.tar.gz.manifest.json",
+      "sha256": "a2d991b5e0c05bfe9ae24b3b45369d1d10fb8efa9fcf59c0c813f69e95dc7ad2",
+      "bytes": 2254826
+    }
+  },
+  "externalPaths": [
+    "F:\\codex-builds-xlang-lsp-20261116\\ir-table-graph",
+    "F:\\codex-builds-xlang-lsp-20261116\\ir-table-graph-materials"
+  ],
+  "materialDependencies": [
+    {
+      "index": "dev/release-materials/provenance/lsp-ir-node-graph-20261116.json",
+      "sha256": "c8585f2cc1d5221e89fe51b775111ad265134c42ab8113a73a7f41ca582586f6",
+      "purpose": "Previous independent node units,matched full frontend/public headers and unchanged0.106runtime inventory"
+    },
+    {
+      "index": "dev/release-materials/provenance/lsp-ir-node-view-20261116.json",
+      "sha256": "86b4cb20feaefaaf136c9dc9fa8504ad40a99e3a27246004030f054bc10625ae",
+      "purpose": "Held0.107production source cohort;prior tail-latency failure remains open"
+    }
+  ],
+  "defaultRuntime": {
+    "xlang_ide.exe": "038f370c000ce6ca2c4d7de5331ffa0b7734df9e32a9359e7c45aa585b4cfc8b",
+    "xlang-ls.exe": "3b47b0572b1dc5ad91cbfda183c1b44a1b71938e2eee088da42f16769a6a0b57",
+    "xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3",
+    "update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2"
+  },
+  "newlyBuiltTestService": {
+    "path": "ide/build/Release/lsp-ir-table-graph-20261116/native-v1/xlang-ls.exe",
+    "sha256": "4dfcf7739d06c82601c0bbd69fcc6054e0b8e66bd79365c690318ac5cb0a4ab1",
+    "componentAndLowererAbsentFromNormalService": true
+  },
+  "verification": {
+    "buildSha256": "b1f15cf3b92e00e508d2dd7b68805fdd60b9a44dda527d78a710ddc976c8cdbe",
+    "builderMappedObjects": 362,
+    "newMemberMatchesRawExtraction": true,
+    "sourceGuardedInputs": 1658,
+    "outputCount": 225,
+    "pePrograms": 224,
+    "newNativeRelatedPrograms": 8,
+    "qualifiedCurrentDefaultAndLoweredControls": 2,
+    "defaultAssertions": 1734,
+    "loweredAssertions": 1744,
+    "normalNativeCloneComparisons": 134,
+    "retiredTypedCompleteModules": 8,
+    "retiredLoweredCompleteModules": 1,
+    "allocationFailureSites": 109,
+    "smallFixtureCancellationPoints": 3,
+    "actualMutants": 4,
+    "actualLoweredNativeVerifierOmissionRejected": true,
+    "oldProductionFilesUnchanged": 586,
+    "onlyCanonicalFixtureUpdatedSinceFullBuild": [
+      "ide/tests/analysis_ir_table_graph_test.c"
+    ],
+    "qualifiedFixturePublicHeadersIdentical": true,
+    "newComponentAndLowererAbsentFromNormalServer": true,
+    "lowererAbsentFromCore": true,
+    "allRuntimeFilesPreserved": 7094,
+    "sdkSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "deliverySha256": "6784cac89bc4892e872575e15e7ebdd884b196f77291859fe75efb780c2016b7",
+    "userTmpPreserved": [
+      "xl6_run_12896_3542316922_0",
+      "xl6_run_19628_3542315168_0",
+      "xl6_run_28188_3542313674_0"
+    ],
+    "allOwnedAliasesRemoved": true,
+    "serverSha256": "4dfcf7739d06c82601c0bbd69fcc6054e0b8e66bd79365c690318ac5cb0a4ab1",
+    "defaultRuntimeReplaced": false,
+    "normalAnalysisIntegrationEnabled": false,
+    "externalPublishPerformed": false,
+    "physicalObjectFiles": 363,
+    "coreMemberCount": 74,
+    "nativeProgramsBuilt": 223,
+    "fullBuildWasBuildOnly": true,
+    "executedRelatedNativePrograms": 8,
+    "qualifiedCurrentFixturePrograms": 2,
+    "coreSchemaTables": 107,
+    "recordTypes": 101,
+    "pointerFields": 70,
+    "compiledNumericTraits": 213,
+    "schemaMutationCases": 16,
+    "corruptPrivateCoreRefusedBeforeCompilation": true,
+    "unmodifiedPositiveLoweredNativeOraclePassed": true,
+    "rawArchivesReadBackVerified": true,
+    "repositoryBudgetPassed": true,
+    "newProtocolOrGuiSuites": 0,
+    "newPerformanceMeasurements": 0
+  },
+  "evidenceNotes": [
+    "Generate107non-node table descriptors and101record packers directly from selected native named declarations;deep-own70explicit pointer fields across25pointer-containing record types. Copy complete actual native structs and primitive vectors without parallel compiler layouts. C supplies sizeof/alignment and213numeric alias checks. Python is build/validation tooling only.",
+    "Each record unit owns one XRT allocation plus a tiny producer token;scalar arenas use one vector unit. Retain no parent graph,AST,old module,sibling or generation chain. Dense symbol range and type hash slots preserve their full logical data;ordinary growth capacity is normalized to active rows in images.",
+    "Preserve exact source integer IDs only. Producer tokens prove provenance,not freshness or semantic reuse. Nodes and child arrays are separately caller-pinned image borrows. NativeModuleFree is forbidden on images. Cross-module relocation,dependency proofs and selective final production remain future work.",
+    "Native project/restore/claim keys require pointer identity with ClassField names or canonical JSON/XLON keys. Capture source pointer-selected aliases;restore them only after all image arenas exist. Standalone units retain independent text values;no name guessing or old-module retention.",
+    "Pass1734default ownership checks,134wrapped complete original typedIR clone comparisons,8retired typed models,4readers,32independent generations,empty/nonempty optional vectors,embeddedNULbytes,all107synthetic tables,109real allocation failures and3small-fixture cancellation points. Requested byte accounting is not allocator overhead or RSS and single bulk copies are not byte-preemptible.",
+    "Fresh standard build produces363physical objects,362main mapped objects plus1semantic-limit fixture,74core members and225outputs/224PEs. Existing586production files/public headers are byte-identical. New table component is absent from the normal linked service;the test-only original lowerer is absent from core and service. Preserve exact raw archive extraction proof.",
+    "After freezing the full build,extend only the C fixture with an optional native-lowering case. Recompile current default and extended fixtures using unchanged matching public headers and verified core;pass1734/1744checks. The extended case uses actual original lowering and an open dynamic class to populate all3borrowed-key table families. Retire all original non-node tables and AST,then pass the complete original verifier and fullIR JSON equality with separately owned nodes.",
+    "Pass16schema cases and4actual C variants corrupting text,vectors,namespace retirement or native key aliasing. The last uses a separately derived lowered-only driver:the unmodified control passes and the alias omission is rejected by the actual full native verifier after source table retirement. A corrupt private core copy is refused before C compilation/execution.",
+    "Run8relevant freshly built native programs. Do not count prior222native/21protocol/GUI results as new or claim a full223program runtime pass. No new timing measurements or performance qualification. Prior held0.107tail failure remains open;default0.106is unchanged.",
+    "Retain the initial strict test-wrapper indentation failure,the initial incorrect typed-stage persistence assertion,and the closed-class claims assertion. Claims require an open dynamic schema;correct the actual fixture,not native rules. Preserve the first Windows path-separator binder failure and all earlier source/program/log bytes.",
+    "Preserve7094runtime files,8protected binaries,matched SDK,3pre-existing temporary entries and mutable delivery index. Remove every owned root-release test alias. Extra archives remain on F with repository material junctions;only source,small documentation/index and a narrow ignore insertion are committed. No default install or online publication."
+  ]
+}
