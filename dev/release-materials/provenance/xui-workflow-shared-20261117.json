@@ -1,0 +1,75 @@
+{
+  "schema": 1,
+  "date": "2026-11-17",
+  "scope": "Workflow native real shared refs and independently shared Graph lifetime; source-unit CPU qualification only",
+  "sourceParent": "3a97ae2cdf7f3f21198cd245fa20c9928fa2d619",
+  "nativeCommit": "95acd2747543808fec323f5f51248675ed02211c",
+  "xrtCommit": "4641cd2e4da09d8b1a66872cabe085c263d8b5ba",
+  "gates": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-shared-native-win-r7\\results.json",
+      "sha256": "9d5fdf4fad330b969b31be6d5c289d0788d78604275558ea58ed797c0b2c6c9a",
+      "commands": 33,
+      "source": "F:\\xlang-validation\\xge-full-20261110\\workflow-shared-native-win-r7\\source",
+      "canonicalXrtSha256": "369f884c1c1fdc9621f654c81bb86850e85d992dc56b9cebf395e20ea03dfe7b"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-shared-native-linux-r4-results.json",
+      "sha256": "a2cbd4c883c5dd927670b30212e5c72d7a55b349e37873b824ebf2444615956a",
+      "commands": 33,
+      "source": "/var/tmp/xlang-validation/xge-full-20261110/workflow-shared-native-linux-r4/source",
+      "canonicalXrtSha256": "369f884c1c1fdc9621f654c81bb86850e85d992dc56b9cebf395e20ea03dfe7b"
+    }
+  ],
+  "commands": 66,
+  "nativeSourceHashes": {
+    "include/xui.h": "92a4e6a59e8892b8e36eb36bbb9a9a2f952f915475e1313613c5136cc1f8833f",
+    "src/xui/workflow/xui_workflow.c": "fd84b779684efe5abf866c170eb1589fff2c275611fd176fec77e52a41f84127",
+    "src/xui/workflow/xui_workflow_owned.inl": "12fb296dfc3b185018fc695435be388618d345ade68384e5524703748ff96d7f",
+    "tests/xui/xui_workflow_owned_test.c": "736b7a3cb8b66258cb6b2cb6a98744331e3e2172d717a4f9adbdad3711aa3f4a",
+    "tests/xui/xui_workflow_schema_test.c": "26b71950d18543f9be695ec80731f92b1af690fd37b856cdd710eb7a1558904e",
+    "tests/xui/xui_workflow_busy_probes.inc": "05d3bfdebaf9bb9bc3c31c26be1148107b90c5cabfefae99dfd05ebb064f769a",
+    "tools/test/check_workflow_shared.py": "0a801d6e117f06abb1fe633243d96d740918a8e8db0f0b1cb61b21c4cb8bd382",
+    "tools/test/check_flow_graph_reentry.py": "7f319e1c3c82e37a45e9355a22b4a24f09c57a6fe3418f90fd8fcf28c126ef3a",
+    "docs/validation/XUI_WORKFLOW_SHARED_20261117.md": "d23bfe22d768cec54b6d825b6fb7436e600916806719e33a5c7a309e21e7c1b8"
+  },
+  "nativeCommitReceipt": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\workflow-shared-native-commit-r1.json",
+    "sha256": "73c8f45ad7de47fd24a6bb1ab78617d2d41362b8793cb6aa0a40815e04dfb524"
+  },
+  "sourceHashes": {
+    "docs/xui-workflow-shared.md": "e5cc80746b2e94e4f3c75b271e60c2240bd0fca8991c12f60af99114e18df6a8"
+  },
+  "protectedExistingOperations": 30,
+  "existingWorkflowIntEntriesIncludingCheckedDestroy": 31,
+  "shippingDelivery": false,
+  "releaseInstalled": false,
+  "nativeSdkRebuilt": false,
+  "safeLanguageModelBindingsComplete": false,
+  "workflowCanvasSharingComplete": false,
+  "ordinarySchemaDefaultReentryQualified": false,
+  "networkTests": false,
+  "graphicsDeviceTests": false,
+  "pendingUserChoices": [
+    "Independent default configuration data snapshot versus native Clone semantics",
+    "Workflow schema/default Clone/Drop same-model reentry Busy",
+    "Claimed callback admission during its current finalization transaction",
+    "Owning Engine controller for module code/context cycles",
+    "Stable parent-owned native record view contract"
+  ],
+  "remaining": [
+    "Workflow canvas shared-reference handoff and checked cleanup",
+    "Owned Workflow schema callback groups and associated Graph mutation safety",
+    "Promote and qualify safe language model declarations after pending semantics",
+    "Persistent cross-module/cyclic resource qualification",
+    "Rebuild matched native SDKs, replay inventory, examples/help and final compiler/IDE/runtime delivery"
+  ],
+  "costs": {
+    "createXrtAllocations": 4,
+    "sharePayloadCopies": 0,
+    "shareXrtAllocations": 0,
+    "warmCountIterations": 1000,
+    "warmCountXrtAllocFreeRealloc": 0,
+    "rawCCpuEquivalenceClaimed": false
+  }
+}
