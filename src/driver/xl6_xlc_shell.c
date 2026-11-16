@@ -23,6 +23,9 @@
 static char xlcShellKeptTempDir[512];
 static char xlcShellProjectKind[16];
 static int xlcShellNativeLinkageSpecified;
+/* A failed entry cannot resume creator-thread manual cleanup. Keep the
+ * runtime's real deferred owners, but never spin forever on this CLI exit. */
+static int xlcShellRunFailed;
 
 static void xlcShellReportKeptTemps(void)
 {
@@ -1548,6 +1551,7 @@ static int xlcShellRunRunCommand(int argc, char** argv)
         return 1;
     }
     ok = xlcShellDoRun(ctx, argc, argv);
+    if (!ok) xlcShellRunFailed = 1;
     rc = ok ? xlcGetLastExitCode(ctx) : 1;
     xlcShellReportKeptTemps();
     if ( !ok ) {
@@ -1593,6 +1597,7 @@ static int xlcShellRunC(int argc, char** argv)
         runArgs[runArgCount++] = argv[i];
     }
     ok = runtime != NULL && xlRunCSourceFiles(runtime, cInputs, cInputCount, runArgCount, runArgs);
+    if (!ok) xlcShellRunFailed = 1;
     rc = ok ? xlGetLastExitCode(runtime) : 1;
     xlcShellReportKeptTemps();
     if ( !ok ) {
@@ -1962,7 +1967,7 @@ int xlcShellMain(int argc, char** argv)
 
 static int xlcShellRetireModules(int code)
 {
-    XL_RuntimeDrainResult drained=xlRuntimeDrainRetiringChecked(-1);
+    XL_RuntimeDrainResult drained=xlRuntimeDrainRetiringChecked(xlcShellRunFailed ? 0 : -1);
     if(!drained.ready || !drained.ok){
         xl6ConsolePrintf(XL6_CONSOLE_STDERR,"runtime retirement incomplete or failed\n");
         if(!code)code=1;

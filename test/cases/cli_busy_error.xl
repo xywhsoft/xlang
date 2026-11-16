@@ -1,0 +1,10 @@
+extern "struct CliBusy*" class Busy @header("test/cases/cli_busy_error.h") @lifetime("owned") @policy("cliBusyPolicy")
+ native point handle
+end
+extern "cliBusyCreate" @header("test/cases/cli_busy_error.h") @no_raise @c_result("owned_view") @factory(0,0,rollback) func createBusy() as Busy
+extern "cliBusyRollback" @header("test/cases/cli_busy_error.h") @no_raise func rollback(Busy value)
+func main(...) as int
+ auto busy=createBusy()
+ throw ValueError "CLI primary failure"
+ return 0
+end

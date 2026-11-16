@@ -1,0 +1,45 @@
+{
+  "format": 1,
+  "sourceParent": "128055d8b895babf8ca5ad65ff4b82e605c42a42",
+  "completeBatch": true,
+  "goalComplete": false,
+  "shippingDelivery": false,
+  "compilerRuntimeVfsRebuilt": false,
+  "sourceHashes": {
+    "src/driver/xl6_xlc_shell.c": "606b51c3cb71044c540d58a797a56e7f25189ab6288f236777c21457e7dbf215",
+    "test/cases/cli_busy_error.xl": "1aa2b55a8f74d020a96b489e430ef4eb7fdb931c838920868be3b4d17f1e7326",
+    "test/cases/cli_busy_error.h": "bfa6d3eb8c6c9a0f9c3ac2114d148568c44c1af6cd2e88334e7b32a0d7a805bd",
+    "test/cases/cli_busy_error_native.c": "da77a1890f0dc01257f02ec4a374d58bdedcee8c8c3316ab223bda68a01355b6",
+    "test/cases/cli_retire_policy.c": "d163b14af1b70bdfa4e402dbd3f167ccc82d3a6b2b058b173fd8ba1db5bf5646",
+    "tools/check_cli_busy_error_exit.py": "b280746b413d109296cdb35c6d507c8ee3ed5910b04ccde6602961265afbfcbf",
+    "docs/cli-retirement.md": "bef7792a08838d833b567d9762d3c9d4ba7e461366ffacafe71660db6279da39"
+  },
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\cli-busy-error-win-r1\\results.json",
+      "sha256": "26d9c4cfd747458aea560cfe46bb72dfddac02e2ea6e697fe4439347ea9c0f87",
+      "commands": 18,
+      "expectedBaselineTimeouts": 1
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\cli-busy-error-linux-evidence-r1.json",
+      "sha256": "dabfc4b9ad94b49c0ad4c2490a56e130a35ef689498dc45d73be81b03bc3a7ab",
+      "commands": 18,
+      "expectedBaselineTimeouts": 1
+    }
+  ],
+  "commands": 36,
+  "budget": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\cli-busy-error-budget-before-r1.json",
+    "sha256": "4384d62427918a005b56ad9dfcc5e8ca110c82fc4d30028dea8a2b4567503edc"
+  },
+  "behavior": "Only a rejected checked CLI entry selects a nonwaiting retirement pass; successful entries including deliberate nonzero exit codes retain the previous wait. No native/code obligation is forcibly released.",
+  "nativeHostCommit": "df7d97caa9011ef0a918647b8b35295188df702b",
+  "limits": [
+    "Only CLI shells rebuilt; full runtime/TCC/XRT/VFS are the verified prior complete O2 cohort",
+    "No preemption of blocking user cleanup callbacks",
+    "Embedding checked resource recovery and explicit drain semantics remain unchanged",
+    "Native backend/HostSession declarations are still a separate uncommitted integration candidate",
+    "No shipping SDK/compiler/IDE or latest XRT convergence in this batch"
+  ]
+}
