@@ -29,7 +29,9 @@ indexed in `dev/release-materials/provenance/xui-flow-shared-20261116.json`.
 
 These gates pin XRT `6305aa54`. During evidence review the upstream advanced to
 `09d543a3`, adding optional WebSocket TLS-ticket observation. That later snapshot
-is being prepared separately; it is not claimed by the existing build reports.
+has passed six isolated generation/maturity checks. All 3481 existing function
+declarations compare unchanged and one function is added. This is preparation,
+not runtime qualification; it is not claimed by the existing build reports.
 The next matched SDK/compiler synchronization must account for this addition.
 
 Sharing adds native reference/activity and ownership-domain bookkeeping. There

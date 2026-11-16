@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "date": "2026-11-16",
+  "scope": "Immutable committed XRT producer preparation after shared model qualification; no runtime/SDK promotion",
+  "upstreamCommit": "09d543a3e29f3113d258b1f58718345de867e06e",
+  "upstreamDirtyChangesExcluded": true,
+  "shippingDelivery": false,
+  "releaseInstalled": false,
+  "nativeSdkRebuilt": false,
+  "runtimeQualified": false,
+  "networkTests": false,
+  "generationSteps": 6,
+  "sourceFingerprint": "ab50edaf5f7f4877178e624b8ac0740bb7d3496268ec76dfa17326c39694d4b3",
+  "producerReport": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\xrt-latest-committed-09d-r1\\results.json",
+    "sha256": "6ce6d6d458ea8b0cb544d534879c3f7e46fa1c5b88c90667fdfd6b851e8ad326"
+  },
+  "declarationAudit": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\xrt-09d-additive-audit-r1.json",
+    "sha256": "13f73d1930988d4517965a03c382ae691fae7ebb7db9488d43171d912fc398be"
+  },
+  "api": {
+    "oldCount": 3481,
+    "newCount": 3482,
+    "added": [
+      "xrtWsStreamSetTlsTicket"
+    ],
+    "removed": [],
+    "unchangedExistingDeclarations": 3481
+  },
+  "artifacts": {
+    "single/xrt.h": {
+      "sha256": "4c1dd0e450c20d2ab887e7552cd038e5b394d8659fd1ae6f66211f76d4625c36",
+      "bytes": 9254903
+    },
+    "single/xrt_decl.h": {
+      "sha256": "a9dd02dcd9a9f56a741c86ec1cb8df70c0fb59de3edb799de1a6f074ccf7552d",
+      "bytes": 1526286
+    },
+    "single/extlibs/xruntime.h": {
+      "sha256": "e202ffb9e81b6a43271aaf149a6c088a24858bcddd295d720957cf84b7eb98e7",
+      "bytes": 682392
+    },
+    "single/extlibs/xruntime_decl.h": {
+      "sha256": "a1f15630834e743d6d629c0cc9a80c5ba882ba6af13c1d1dc3779490e4340bb9",
+      "bytes": 307396
+    }
+  },
+  "nextAction": "Synchronize 09d543a3 into the next matched Native and xlang cohorts; exclude upstream uncommitted TLS/MQTT changes; preserve existing 6305 qualification evidence"
+}
