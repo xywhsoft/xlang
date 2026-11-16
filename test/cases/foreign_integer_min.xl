@@ -1,0 +1,77 @@
+extern "integer_min_count" @header("test/cases/foreign_integer_min.h") @no_raise @nonblocking @c_result("integer_min",0) func count(c_int value) as c_int
+extern "integer_min_find" @no_raise @nonblocking @c_result("integer_min",-1) func find(c_int value) as c_int
+extern "integer_min_positive" @no_raise @nonblocking @c_result("integer_min",17) func positive(c_int value) as c_int
+extern "integer_min_wide" @no_raise @nonblocking @c_result("integer_min",0) func wide(c_longlong value) as c_longlong
+extern "integer_min_failure" @no_raise @nonblocking @c_result("integer_min",0) func failure(c_int mode) as c_int
+extern "integer_min_box*" class Box @header("test/cases/foreign_integer_min.h") @lifetime("caller")
+    native point handle
+    extern "integer_min_box_lookup" @no_raise @nonblocking @c_result("integer_min",-1) func lookup(c_int value) as c_int
+    extern "integer_min_box_count" @no_raise @nonblocking @c_result("integer_min",0) get count() as c_int
+end
+extern "integer_min_box_get" @no_raise @nonblocking func box() as Box
+extern "integer_min_begin" @no_raise @nonblocking func beginCheck()
+extern "integer_min_calls" @no_raise @nonblocking func calls() as c_int
+extern "integer_min_allocations" @no_raise @nonblocking func allocations() as c_int
+extern "integer_min_reset" @no_raise @nonblocking func resetFailures()
+
+func main(...) as int
+    beginCheck()
+    for i in range(1000)
+        assert count(c_int(i)) == i
+    end
+    assert calls() == 1000
+    assert allocations() == 0
+    assert find(-1) == -1
+    assert positive(17) == 17
+    assert wide(c_longlong(9223372036854775807)) == c_longlong(9223372036854775807)
+    auto lookup = find
+    assert lookup(-1) == -1
+    Box item = box()
+    assert item.count == 7
+    func(c_int) as c_int bound = item.lookup
+    assert bound(-1) == -1
+    assert item.lookup(9) == 9
+    for mode in [0,1,2,3]
+        c_int preserved = 71
+        bool rejected = false
+        try
+            preserved = failure(c_int(mode))
+        catch error
+            rejected = true
+        end
+        resetFailures()
+        assert rejected
+        assert preserved == 71
+    end
+    bool rejected = false
+    try
+        auto ignored = lookup(-2)
+    catch error
+        rejected = true
+    end
+    assert rejected
+    rejected = false
+    try
+        auto ignored = bound(-2)
+    catch error
+        rejected = true
+    end
+    assert rejected
+    rejected = false
+    try
+        auto ignored = positive(16)
+    catch error
+        rejected = true
+    end
+    assert rejected
+    rejected = false
+    try
+        auto ignored = wide(c_longlong(-9223372036854775807))
+    catch error
+        rejected = true
+    end
+    assert rejected
+    assert calls() == 1015
+    println("signed C integer lower bounds passed")
+    return 0
+end

@@ -21833,7 +21833,17 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
     XL6_ForeignClassDecl resultContract;
     const XL6_AstNode* resultDecl=viewReturns && viewReturns->childCount==1 ?
         xl6SemForeignViewDeclaration(ctx,viewReturns->children[0],&resultContract) : NULL;
-    if(facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_BOOL_STATUS || facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_INT_STATUS){
+    if(facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_INTEGER_MIN){
+        const XL6_AstNode* result=viewReturns && viewReturns->childCount==1 ?
+            xl6SemResolveAliasType(ctx,viewReturns->children[0]):NULL;
+        XL6_SemIntTypeInfo integer={0};
+        if(!result || result->childCount || !result->text || strncmp(result->text,"c_",2) ||
+            !xl6SemIntTypeInfo(result->text,&integer) || !integer.isSigned || integer.bits>64 ||
+            facts.outputIndexPlusOne || facts.valueOutput || facts.inplaceOutput || facts.receiverDereference ||
+            (node->flags&(XL6_AST_FLAG_FOREIGN_FIELD|XL6_AST_FLAG_FOREIGN_PURE|XL6_AST_FLAG_FOREIGN_OWNED_STRING))){
+            xl6SemErrorNode(ctx,node,"integer_min requires one exact signed C integer result and no output, field, dereference or pure adaptation");return 0;
+        }
+    }else if(facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_BOOL_STATUS || facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_INT_STATUS){
         if(!viewReturns || viewReturns->childCount || facts.outputIndexPlusOne){
             xl6SemErrorNode(ctx,node,"bool_status requires a void language result and no output factory");return 0;
         }

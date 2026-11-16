@@ -22,8 +22,9 @@ static void xl6IrCgenEmitForeignErrorDeclarations(XL6_Output* out, int publicLin
         "%sextern void xl6ErrorScopeCaptureFailure(xl6_error_scope*);\n"
         "%sextern void xl6ErrorScopePropagateFailure(xl6_error_result);\n"
         "%sextern void xl6ForeignCallbackFail(void);\n"
-        "%sextern void xl6ForeignStatusFailureV1(int,const char*);\n",
-        linkage, linkage, linkage, linkage, linkage, linkage, linkage, linkage, linkage, linkage);
+        "%sextern void xl6ForeignStatusFailureV1(int,const char*);\n"
+        "%sextern void xl6ForeignIntegerFailureV1(int64_t,const char*);\n",
+        linkage, linkage, linkage, linkage, linkage, linkage, linkage, linkage, linkage, linkage, linkage);
     if (publicLinkage) xl6OutputPuts("XLIR_C_API extern void xrtErrorFree(xerror*);\n", out);
 }
 

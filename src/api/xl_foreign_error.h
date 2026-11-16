@@ -2,6 +2,7 @@
 #define XL6_FOREIGN_ERROR_ABI
 
 #include <stdbool.h>
+#include <stdint.h>
 typedef struct xerror xerror;
 
 /* Shared runtime ABI, never module-local generated TLS. A synchronous foreign
@@ -99,6 +100,9 @@ XL6_FOREIGN_API void xl6ForeignCallbackFail(void);
  * Preserves an existing native diagnostic; the caller still captures the
  * independent failed status even if diagnostic allocation fails. */
 XL6_FOREIGN_API void xl6ForeignStatusFailureV1(int status,const char* operation);
+/* A wide failing result keeps its full decimal value in the diagnostic.
+ * Code is saturated only below INT32_MIN, because XRT error codes are int32. */
+XL6_FOREIGN_API void xl6ForeignIntegerFailureV1(int64_t result,const char* operation);
 
 #ifdef __cplusplus
 }

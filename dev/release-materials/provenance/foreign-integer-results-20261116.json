@@ -1,0 +1,104 @@
+{
+  "schema": 1,
+  "date": "2026-11-16",
+  "scope": "Approved generic signed C integer result lower bound; development source/frontend qualification",
+  "sourceHeadBeforeCommit": "26716acc2d4278fb704b2a12ef134a2a794dc3c5",
+  "shippingDelivery": false,
+  "fullCompilerQualification": false,
+  "releaseInstalled": false,
+  "nativeSharedModelApisImplemented": false,
+  "networkTests": false,
+  "acceptance": {
+    "languageStepsPerPlatform": 19,
+    "irTargetsPerRun": 7,
+    "irRuns": 3,
+    "mutationsPerRun": 63,
+    "rejectedCAndHeaderOutputsPerRun": 126,
+    "generatedClientOptimizations": [
+      "O0",
+      "O2"
+    ],
+    "headerLanguages": [
+      "C11",
+      "C++11",
+      "C++17"
+    ],
+    "normalRegion": {
+      "calls": 1000,
+      "xrtAllocations": 0,
+      "xrtReallocations": 0,
+      "cpuTimingClaim": false
+    },
+    "nativeCallCountExact": true,
+    "legalResultWithProducerErrorRefused": true,
+    "wideErrorRetainsDecimal": true,
+    "diagnosticOomChecked": true,
+    "heapBalanced": true
+  },
+  "sourceSha256": {
+    "src/type/xl6_foreign_call_contract.h": "4c8616ad92c7002732b036516d0c309cfcdef1e97aef25b68f8c0c01de44683b",
+    "src/type/xl6_foreign_decl.h": "b70cf368fe379028214c5e6e4eb3ea3b51d08c2e65d2364d15aba3f03a43b9ca",
+    "src/sem/xl6_sem.c": "407e80e95821dec86b17a3010863172fa5ed4bf9c33ddc7d77da70076f4b8835",
+    "src/ir/xl6_ir.c": "a4a1203d282c2398b5c17ac6e0072c4e7f5fc40aa6423ba5b9f1475865ddf6e6",
+    "src/ir/xl6_ir.h": "988a26c7287150b34e2b687a1f6d2d3b0312e288ec6f2eeb232b0cd128704c13",
+    "src/cgen/xl6_ir_cgen_type_call.c": "55ac3e2e81bba31b21e0061a8e190d43fa733d1f5c73b81b014a67b8e3ed2305",
+    "src/cgen/xl6_ir_cgen_native_dependencies.c": "4b6b56a4ede526210018ba8b377aefa469011694b53813c9c35b9130fc3a3553",
+    "src/cgen/xl6_ir_cgen_export_callback.c": "7353c3f6789bb61a23b494298fde752ecb2b670f42a522542c196c292da28fea",
+    "src/api/xl_foreign_error.h": "77b1c229455cf77f000a9a090d8d1811ef1242635fff8ef7f99bf168bc94244c",
+    "src/api/xl_foreign_error.c": "5b1601d88caa7f18cc9ff0ec6e6156aca317c7d0f77385ef946a624ca90aec07",
+    "src/api/xl_api_symbols.c": "d8be4da9d2afa0a3e82a66e763513809a8200788edb5d0c26881144ef3c6433e",
+    "src/compile/xl6_artifact_runtime_symbols.inc": "83eb6870cf215de183a195be0e24b2a80d963a021e9c9f7690ae01e4eb332517",
+    "test/cases/foreign_integer_min.xl": "ef74c75d736b82a298bb07a86434e4987c10af9c161c007fe24012376264c874",
+    "test/cases/foreign_integer_min.h": "f817174826db1177a3180220329b4ee4461fceebb077be2c939f4565a774579b",
+    "test/cases/foreign_integer_min_native.c": "89265e27040c4786c0e86a623563508d7a2279fc78944549f740a4dd5d4b0519",
+    "test/cases/foreign_integer_min_errors.c": "e7ff8c5188bd498b6e1edd945b83a1ceec40de2c6c8b25492243905ea262caa3",
+    "test/cases/foreign_integer_min_ir.c": "1d58d4eb664a156132b78d276dae4c6a772db0ddce1becc3ae13ab528b11fb94",
+    "tools/check_foreign_integer_min.py": "6801a3712a294dc52149c203d1d1582396f522595fb78a40ec51aeaed765fc2f",
+    "tools/check_foreign_integer_min_ir.py": "db1e616dc3bf8539939fe3a654be00d4e2d6a46a15230febea0e7760bda8170d",
+    "docs/foreign-integer-results.md": "ee04f918b8c320623d77e83bd74d36ac23fa10476ede6a92b60ca32a4f51f383"
+  },
+  "evidence": {
+    "integer-min-gate-win-r2/results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\integer-min-gate-win-r2\\results.json",
+      "sha256": "9cbed9934f6673ff0dea907eef656278fe7caffc0068ee5c493b3475b5689ae6"
+    },
+    "integer-min-gate-linux-r1/results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\integer-min-gate-linux-r1\\results.json",
+      "sha256": "270131de35b9b2cd346434f12f03a8d70130ecc95ef8335d27fd934802f044ec"
+    },
+    "integer-min-ir-win-r3/results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\integer-min-ir-win-r3\\results.json",
+      "sha256": "afcdb4bd80d773f0ad30f29f1b035b1ed9c360bab53e96294ed8be78ebe504b8"
+    },
+    "integer-min-ir-linux-r1/results.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\integer-min-ir-linux-r1\\results.json",
+      "sha256": "899d05e1e908a964f11ec4ca816c10e1320e33d407263a724383c830200d07c1"
+    },
+    "integer-min-verified-win-r1.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\integer-min-verified-win-r1.json",
+      "sha256": "82d3bedd276809ad9bdde9d8aedc12a28d1c7dc848f208ddb1668577de699d2d"
+    },
+    "integer-min-verified-linux-r1.json": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\integer-min-verified-linux-r1.json",
+      "sha256": "8ad451e4825b7a6988416b6409d0b4552be676b87401432c81028d1ba3bad642"
+    }
+  },
+  "cohorts": {
+    "windows": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\integer-min-frontend-win-r2\\build.json",
+      "sha256": "3af74ea4adec8a9b4f578771108e9261ac7d2a62878c06be173c6f9bb88e42bd",
+      "role": "Explicit partial O0 frontend/runtime over qualified old matched XRT/TCC/VFS; not final embedded inputs"
+    },
+    "linux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\integer-min-source-linux-r1\\public\\build.json",
+      "sha256": "e553c34e293081001670043d94750bab3f80b07f14959e367baedd22c69af121",
+      "role": "1419 actual source-provider translation units; released TCC core only reused dynamically; not shipping library/VFS qualification"
+    }
+  },
+  "remaining": [
+    "Full O2 compiler/TCC/VFS rebuild including this new helper and integer contract",
+    "Matched static AOT and nested compiler acceptance",
+    "Approved shared FlowGraph/Workflow native ownership and canvas handoff",
+    "Complete remaining XGE/XUI/Document coverage and final matched SDK/runtime/IDE/help delivery"
+  ]
+}

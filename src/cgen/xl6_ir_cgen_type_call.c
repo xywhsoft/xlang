@@ -509,6 +509,14 @@ static void xl6IrCgenEmitNativeStatusCheck(XL6_Output* out,const XL6_IrModule* m
     }else xl6OutputPrintf(out,"    if (!native_status) xl6ErrorScopeCaptureFailure(&%s);\n",errors);
 }
 
+static void xl6IrCgenEmitIntegerMinimum(XL6_Output* out,const XL6_IrCallTarget* target,
+    const char* result,const char* errors)
+{
+    if(target->resultConversionAbi!=XL6_IR_CALL_RESULT_CONVERSION_INTEGER_MIN)return;
+    xl6OutputPrintf(out,"    if ((int64_t)(%s) < (int64_t)(%d)) { if (!%s.failed && !xrtGetError()) xl6ForeignIntegerFailureV1((int64_t)(%s),\"%s\"); xl6ErrorScopeCaptureFailure(&%s); }\n",
+        result,target->nativeSuccessCode,errors,result,target->cName,errors);
+}
+
 static int xl6IrCgenPrepareForeignCountedField(XL6_Output* out,const XL6_IrModule* module,
     const XL6_IrCallTarget* target,const XL6_IrValueId* values,const char* errors)
 {
@@ -705,6 +713,7 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
     }
     if(storagePrepared)xl6OutputPuts("    }\n",out);
     xl6IrCgenNativeCallbacksObserve(out,target,scope);
+    xl6IrCgenEmitIntegerMinimum(out,target,result,scope);
     if(target->producerErrorPhysicalAbi==XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT)
         xl6OutputPrintf(out,"    if (%s == NULL) xl6ErrorScopeCaptureFailure(&%s);\n",result,scope);
     if(target->producerErrorPhysicalAbi==XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER) {
@@ -1170,6 +1179,7 @@ static int xl6IrCgenEmitDirectCall(
     }
     if(storagePrepared)xl6OutputPuts("    }\n",out);
     xl6IrCgenNativeCallbacksObserve(out,target,nativeScope);
+    xl6IrCgenEmitIntegerMinimum(out,target,nativeResult,nativeScope);
     if(errorPhysicalAbi==XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE &&
         target->producerErrorPhysicalAbi==XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER) {
         if(target->returnType)xl6OutputPrintf(out,"    v%u = r%lu.value;\n",(unsigned)instruction->result,(unsigned long)instructionIndex);

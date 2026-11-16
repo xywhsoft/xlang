@@ -23438,6 +23438,7 @@ int xl6IrForeignCallAdmissionMayRaise(const XL6_IrModule* module,const XL6_IrCal
     if(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_BORROWED_VALUE_COPY ||
         target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT ||
         target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_STATUS_CHECK ||
+        target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_INTEGER_MIN ||
         target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_NATIVE_OUTPUT_VALUE)return 1;
     for(size_t p=0;p<target->parameterCount;++p)
         if(xl6IrForeignManagedViewParameter(module,target,p) || xl6IrForeignTerminatedStringParameter(module,target,p) ||
@@ -23479,10 +23480,23 @@ int32 xl6IrCallNativeSuccessCodeForTarget(const XL6_IrModule* module,const XL6_I
 {
     const XL6_IrNode* node=target ? xl6IrNodeGet(module,target->declaration):NULL;
     return node && (xl6IrCallOutputResultAbiForTarget(module,target)==XL6_IR_CALL_OUTPUT_RESULT_INT_STATUS ||
-        xl6IrCallResultCAbiForTarget(module,target)==XL6_IR_CALL_RESULT_C_ABI_INT_STATUS) ? node->foreignCall.successCode:0;
+        xl6IrCallResultCAbiForTarget(module,target)==XL6_IR_CALL_RESULT_C_ABI_INT_STATUS ||
+        node->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_INTEGER_MIN) ? node->foreignCall.successCode:0;
 }
 
 static int xl6IrForeignOwnershipHelperMatches(const XL6_IrModule*,XL6_SymbolId,XL6_IrTypeId,int);
+static int xl6IrForeignSignedIntegerResult(const XL6_IrType* type)
+{
+    if(!type || type->kind!=XL6_IR_TYPE_BUILTIN)return 0;
+    switch(type->cAbi){
+    case XL6_IR_C_ABI_C_SCHAR:case XL6_IR_C_ABI_C_SHORT:case XL6_IR_C_ABI_C_INT:
+    case XL6_IR_C_ABI_C_LONG:case XL6_IR_C_ABI_C_LONGLONG:case XL6_IR_C_ABI_C_SSIZE:
+    case XL6_IR_C_ABI_C_PTRDIFF:case XL6_IR_C_ABI_C_INTPTR:return 1;
+    case XL6_IR_C_ABI_C_CHAR:return CHAR_MIN<0;
+    case XL6_IR_C_ABI_C_WCHAR:return (wchar_t)-1<(wchar_t)0;
+    default:return 0;
+    }
+}
 int xl6IrCallResultCAbiMatches(const XL6_IrModule* module, const XL6_IrCallTarget* target)
 {
     const XL6_IrType* result;
@@ -23498,6 +23512,17 @@ int xl6IrCallResultCAbiMatches(const XL6_IrModule* module, const XL6_IrCallTarge
     }
     if(source && (source->foreignCall.textViews || source->foreignCall.bytesViews || source->foreignCall.terminatedStrings || source->foreignCall.borrowedViewResult) &&
         (target->kind!=XL6_IR_CALL_TARGET_EXTERN_C || target->runtimeBridge!=XL6_IR_RUNTIME_BRIDGE_NONE))return 0;
+    if(source && source->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_INTEGER_MIN){
+        return target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_STORAGE &&
+            target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_INTEGER_MIN &&
+            target->resultPhysicalAbi==XL6_IR_CALL_RESULT_PHYSICAL_DIRECT &&
+            xl6IrForeignSignedIntegerResult(xl6IrTypeGet(&module->types,target->returnType)) &&
+            xl6IrForeignOperationInvokesFunction(target->foreignOperationAbi) &&
+            !(source->flags&(XL6_AST_FLAG_FOREIGN_FIELD|XL6_AST_FLAG_FOREIGN_PURE|XL6_AST_FLAG_FOREIGN_OWNED_STRING)) &&
+            !source->foreignCall.outputIndexPlusOne && !source->foreignCall.valueOutput &&
+            !source->foreignCall.inplaceOutput && !source->foreignCall.receiverDereference;
+    }
+    if(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_INTEGER_MIN)return 0;
     if(target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_BOOL_STATUS || target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_INT_STATUS)
         return !target->returnType && target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_STATUS_CHECK;
     if(target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_CONST_CHAR_POINTER){
@@ -23633,6 +23658,8 @@ XL6_IrCallResultConversionAbi xl6IrCallResultConversionForTarget(
         declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNER_NATIVE ||
         declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_SCOPE_NATIVE ||
         declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_RETAINED_NATIVE))return XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT;
+    if(declaration && declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_INTEGER_MIN)
+        return XL6_IR_CALL_RESULT_CONVERSION_INTEGER_MIN;
     if(declaration && (declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_BOOL_STATUS ||
         declaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_INT_STATUS))return XL6_IR_CALL_RESULT_CONVERSION_STATUS_CHECK;
     if (declaration && (declaration->flags & XL6_AST_FLAG_FOREIGN_OWNED_STRING))
@@ -41719,7 +41746,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                    (node->flags&XL6_AST_FLAG_EXTERN) && !node->foreignCall.constAggregateAddresses &&
                    !node->foreignCall.staticCallbackAddresses && (!node->foreignCall.outputIndexPlusOne || node->foreignCall.valueOutput))) ||
                 !params || params->kind != XL6_IR_NODE_LIST ||
-                node->foreignCall.borrowedViewResult>XL6_FOREIGN_VIEW_RESULT_CSTRING ||
+                node->foreignCall.borrowedViewResult>XL6_FOREIGN_VIEW_RESULT_INTEGER_MIN ||
                 (node->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_CSTRING &&
                  (((node->flags&XL6_AST_FLAG_FOREIGN_FIELD) && (node->sourceKind!=XL6_AST_GET || params->childCount!=0 || (node->flags&XL6_AST_FLAG_STATIC))) || node->foreignCall.outputIndexPlusOne || node->foreignCall.receiverDereference)) ||
                 (node->foreignCall.physicalPairs & node->foreignCall.retainedCallbacks) ||
@@ -41749,7 +41776,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     (node->foreignCall.valueOutput ?
                         (xl6ForeignValueOutputBase(node->foreignCall.valueOutput)<=XL6_FOREIGN_VALUE_OUTPUT_VOID && firstOutputLogical==SIZE_MAX) :
                         !node->foreignCall.rollbackSymbol || firstOutputLogical==SIZE_MAX) :
-                    (node->foreignCall.successCode && node->foreignCall.borrowedViewResult!=XL6_FOREIGN_VIEW_RESULT_INT_STATUS) || node->foreignCall.rollbackSymbol))
+                    (node->foreignCall.successCode && node->foreignCall.borrowedViewResult!=XL6_FOREIGN_VIEW_RESULT_INT_STATUS &&
+                     node->foreignCall.borrowedViewResult!=XL6_FOREIGN_VIEW_RESULT_INTEGER_MIN) || node->foreignCall.rollbackSymbol))
                 return xl6IrDiag(diags, node, "declarative C call facts are not attached to one exact source signature");
         }
         XL6_IrTypeId expectedOperatorExecutionType =
@@ -51125,6 +51153,7 @@ static const char* xl6IrCallResultConversionAbiName(
         return "borrowed-value-copy";
     case XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT: return "native-view-admit";
     case XL6_IR_CALL_RESULT_CONVERSION_STATUS_CHECK: return "status-check";
+    case XL6_IR_CALL_RESULT_CONVERSION_INTEGER_MIN: return "integer-min";
     case XL6_IR_CALL_RESULT_CONVERSION_NATIVE_OUTPUT_VALUE: return "native-output-value";
     case XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE:
         return "owned-string-take";

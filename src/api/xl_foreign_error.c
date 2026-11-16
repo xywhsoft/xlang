@@ -3,6 +3,7 @@
 #include "xl_foreign_error.h"
 #include "src/runtime/xl6_deferred_cleanup.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -241,6 +242,19 @@ XL6_FOREIGN_API void xl6ForeignStatusFailureV1(int status,const char* operation)
     xerrordesc description={0};description.Kind=XERR_STATE;
     description.Domain="xlang.foreign";description.Code=status;
     description.Operation=operation;description.Message="Native C operation returned a failing status.";
+    xerror* error=xrtErrorBuild(&description);
+    if(error)xrtSetErrorTake(error);
+}
+
+XL6_FOREIGN_API void xl6ForeignIntegerFailureV1(int64_t result,const char* operation)
+{
+    if(xrtGetError())return;
+    char message[112];
+    snprintf(message,sizeof(message),"Native C integer result %lld is below its declared lower bound.",(long long)result);
+    xerrordesc description={0};description.Kind=XERR_STATE;
+    description.Domain="xlang.foreign";
+    description.Code=result<INT32_MIN ? INT32_MIN:(int32_t)result;
+    description.Operation=operation;description.Message=message;
     xerror* error=xrtErrorBuild(&description);
     if(error)xrtSetErrorTake(error);
 }

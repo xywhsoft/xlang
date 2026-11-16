@@ -469,12 +469,14 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             else if (!strcmp(value->text, "\"bool_status\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_BOOL_STATUS;
             else if (!strcmp(value->text, "\"scope_view\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_SCOPE_NATIVE;
             else if (!strcmp(value->text, "\"status\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_INT_STATUS;
+            else if (!strcmp(value->text, "\"integer_min\"")) facts.borrowedViewResult = XL6_FOREIGN_VIEW_RESULT_INTEGER_MIN;
             else return 0;
             if(facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_OWNER_NATIVE || facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_SCOPE_NATIVE){
                 int32 source;
                 if(attr->childCount!=2 || !xl6ForeignDecimalInt(attr->children[1],&source) || source<0 || source>=64)return 0;
                 facts.resultOwnerIndexPlusOne=(uint32)source+1;
-            }else if(facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_INT_STATUS){
+            }else if(facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_INT_STATUS ||
+                facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_INTEGER_MIN){
                 if(attr->childCount!=2 || !xl6ForeignDecimalInt(attr->children[1],&facts.successCode))return 0;
             }else if(attr->childCount!=1)return 0;
             continue;
