@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "status": "native-source-prerequisite-qualified",
+  "shippingDelivery": false,
+  "nativeSdkRebuilt": false,
+  "languageBindingsPromoted": false,
+  "scope": "Immutable backend descriptor references common to host-session or Run-driven design; no loop/selection claim",
+  "nativeCommit": "38363a6b0358e8be90948fa7c1005e6167538071",
+  "nativeCommitReport": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\backend-owned-native-commit-r1.json",
+    "sha256": "4b981acbb68832619a5838f3c4d307f724ce00b61e4da1f73a26e80ece83e89c"
+  },
+  "xlangParent": "e4dc58b5151bc6d6a8596a45c4c765d943269b39",
+  "xrtRevision": "09d543a3e29f3113d258b1f58718345de867e06e",
+  "reports": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\backend-owned-verified-win-r1\\results.json",
+      "sha256": "a3ba994f170329c8afa54d8be8a693340f415ee44be2ba2f3066dd152208037b",
+      "checks": 8,
+      "verifiedFiles": 1558
+    },
+    "linux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\backend-owned-verified-linux-r1\\results.json",
+      "sha256": "9fb338c6aa8f213c5266eb4fb4a3c2790e70f4e01128a2d42fc4b74212874c80",
+      "checks": 8,
+      "verifiedFiles": 3088
+    }
+  },
+  "nativeSourceSha256": {
+    "include/xge.h": "32b1e60e5b013d1337b8456e09370f1f12c80b90073e76eaf873b642bffc1730",
+    "src/xge/core/xge_impl.c": "0ec68fc4b1749fd80eb7858e3ded69977fdb869d3d8ba304a85f455fe5233200",
+    "src/xge/core/xge_backend_owned.c": "2380bb0065fae3fe9a4ee02d53ecdbd69b2408345c48161322243f89ce741f3e",
+    "src/xge/core/xge_backend_owned.inl": "d6309a08a451bd65f87a8ca6fd4eb727e55fafbcff5497ffe4d497d3479f70d6",
+    "tests/xge/xge_backend_owned_test.c": "f7d8d312a3220917ff55a58956708234596fdc367a2cad2bbf624a240c9e0aa7",
+    "tools/test/check_backend_ownership.py": "4f92d711e09f6bb381a3bd785c71e1fd63fd2115c9edebd949a54a02c279fa8b",
+    "docs/validation/XGE_BACKEND_OWNERSHIP_20261116.md": "769b7f4d29c18f4d9bd1c21ce6c1f780db117ed988d8f00476b6504bd741fb03"
+  },
+  "sourceSha256": {
+    "docs/xge3-backend-ownership.md": "955231288387db2eea31f10de8b5c3dccbccfc8449ef30d67ac9bac91ca8680f",
+    "docs/xge3-host-backends.md": "90918410905c34f09da74b9b6057fea60e5bc2e73754510f06cedba28c753d7e"
+  },
+  "linuxSourceCache": {
+    "archive": "F:\\xlang-validation\\xge-full-20261110\\backend-owned-native-baseline-linux-r2.zip",
+    "sha256": "306477904770db8fccd910a1909458cc3f80dbe83344f260bcddb121e1c677c5",
+    "fileIndex": "F:\\xlang-validation\\xge-full-20261110\\backend-owned-native-baseline-linux-r2.json",
+    "fileIndexSha256": "a2233be9d4646bc361a15ef9696fcf8d4a99f83641709251b76dcd05ac258644",
+    "baseline": "/var/tmp/xlang-validation/xge-full-20261110/backend-owned-baseline-r2",
+    "qualification": "/var/tmp/xlang-validation/xge-full-20261110/backend-owned-native-linux-r3"
+  },
+  "limits": [
+    "Source-unit O0/O2 CPU/lifecycle/OOM/thread/protocol/header/syntax only; not a rebuilt SDK or runtime publication",
+    "Native API header changed; regenerate real SDK fingerprint before language delivery",
+    "HostSession and generic pUser receiver projection are approved but not implemented in this native-foundation batch",
+    "Prior Graph/Workflow questions and final latest-XRT/current-source SDK/compiler/IDE/help convergence remain open",
+    "All 13 unrelated Native working files/fixtures recorded in native commit report were preserved"
+  ],
+  "approvedNextSteps": [
+    "Owning HostSession with explicit creator-thread poll/begin/end/present; retain existing Sokol Run",
+    "Generic function-pointer field receiver projection such as table->fn(table->pUser,...)"
+  ]
+}

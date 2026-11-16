@@ -8,6 +8,11 @@
 
 本文件记录基础修复和剩余合同，不代表完整后端接入已经完成。
 
+2026-11-16 后继先补齐原生不可变后端引用：独立分享、名称复制、真实 payload／
+code owner、拥有图和 checked 释放均通过两端源单元验收。详见
+[后端拥有底座](xge3-backend-ownership.md)。用户随后已确认拥有式 HostSession 和
+通用字段接收参数投影，两者继续实施。本项未更新语言包或 SDK。
+
 已把原生窗口状态与图形上下文就绪拆开。Texture、Font、Buffer、Shader、Mesh、
 RenderTarget、Sprite、Shape、SVG、Particle 等 GPU 路径检查图形状态；原生窗口、
 输入、IME、剪贴板、拖放和 Sokol 唤醒继续检查窗口状态。Sokol 的 GL 加载成功后
