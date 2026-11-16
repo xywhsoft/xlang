@@ -13525,8 +13525,7 @@ static int xl6IrLowerRegisterCallTarget(XL6_IrLowerContext* ctx, XL6_IrNodeId de
                     "XLIR multi-result callable has no verified product ABI");
             if ( target->kind != XL6_IR_CALL_TARGET_INTERNAL &&
                  !(target->kind == XL6_IR_CALL_TARGET_EXTERN_C &&
-                   ((xl6ForeignValueOutputBase(node->foreignCall.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_MULTI_STATUS ||
-                     xl6ForeignValueOutputBase(node->foreignCall.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID ||
+                   ((xl6ForeignValueOutputIsMulti(node->foreignCall.valueOutput) ||
                      xl6ForeignValueOutputIsRecord(node->foreignCall.valueOutput)) ||
                     (product->nativeProductAbi != XL6_IR_NATIVE_PRODUCT_NONE &&
                      product->nativeProductAbi == xl6IrNativeProductAbiForShape(&module->types, product)))) )

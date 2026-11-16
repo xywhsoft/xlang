@@ -23450,6 +23450,9 @@ XL6_IrCallOutputResultAbi xl6IrCallOutputResultAbiForTarget(const XL6_IrModule* 
 {
     const XL6_IrNode* node=target ? xl6IrNodeGet(module,target->declaration):NULL;
     if(!node || !node->foreignCall.outputIndexPlusOne)return XL6_IR_CALL_OUTPUT_RESULT_NONE;
+    if(xl6ForeignValueOutputHasReturn(node->foreignCall.valueOutput))return
+        node->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_INTEGER_MIN ?
+        XL6_IR_CALL_OUTPUT_RESULT_INT_VALUE_MIN:XL6_IR_CALL_OUTPUT_RESULT_INT_VALUE;
     return node->foreignCall.inplaceOutput==XL6_FOREIGN_INPLACE_VOID ||
         xl6ForeignValueOutputIsVoid(node->foreignCall.valueOutput) ?
         XL6_IR_CALL_OUTPUT_RESULT_VOID : XL6_IR_CALL_OUTPUT_RESULT_INT_STATUS;
@@ -23512,7 +23515,8 @@ int xl6IrCallResultCAbiMatches(const XL6_IrModule* module, const XL6_IrCallTarge
     }
     if(source && (source->foreignCall.textViews || source->foreignCall.bytesViews || source->foreignCall.terminatedStrings || source->foreignCall.borrowedViewResult) &&
         (target->kind!=XL6_IR_CALL_TARGET_EXTERN_C || target->runtimeBridge!=XL6_IR_RUNTIME_BRIDGE_NONE))return 0;
-    if(source && source->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_INTEGER_MIN){
+    if(source && source->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_INTEGER_MIN &&
+        !xl6ForeignValueOutputHasReturn(source->foreignCall.valueOutput)){
         return target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_STORAGE &&
             target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_INTEGER_MIN &&
             target->resultPhysicalAbi==XL6_IR_CALL_RESULT_PHYSICAL_DIRECT &&
@@ -41770,7 +41774,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 (!xl6ForeignValueOutputBitsValid(node->foreignCall.valueOutput) ||
                  (xl6ForeignValueOutputIsVoid(node->foreignCall.valueOutput) && node->foreignCall.successCode)) ||
                 (node->foreignCall.valueOutput && (!node->foreignCall.outputIndexPlusOne ||
-                    (node->foreignCall.borrowedViewResult && !xl6ForeignBorrowedOwnerOutput(&node->foreignCall)) ||
+                    (node->foreignCall.borrowedViewResult && !xl6ForeignBorrowedOwnerOutput(&node->foreignCall) &&
+                     !(xl6ForeignValueOutputHasReturn(node->foreignCall.valueOutput) && node->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_INTEGER_MIN)) ||
                     node->foreignCall.rollbackSymbol)) ||
                 (node->foreignCall.outputIndexPlusOne ?
                     (node->foreignCall.valueOutput ?

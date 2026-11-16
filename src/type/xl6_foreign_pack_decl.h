@@ -182,11 +182,16 @@ static inline int xl6ForeignPhysicalOutputSlots(const XL6_AstNode* node,const XL
         if(found!=1 || row.dataIndex>=row.countIndex)return 0;
         slots[0]=row.dataIndex;slots[1]=row.countIndex;*outputCount=2;return 1;
     }
-    if(kind!=XL6_FOREIGN_VALUE_OUTPUT_MULTI_STATUS && kind!=XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID)return 1;
+    if(!xl6ForeignValueOutputIsMulti(kind))return 1;
     const XL6_AstNode* attrs=xl6ForeignFunctionAttributes(node);size_t found=0;
     for(size_t i=0;attrs && i<attrs->childCount;++i)
         found+=xl6ForeignMultiOutputRead(attrs->children[i],slots,outputCount);
-    return found==1;
+    if(found!=1)return 0;
+    if(xl6ForeignValueOutputHasReturn(kind)){
+        if(*outputCount<2 || slots[0]!=UINT32_MAX)return 0;
+        --*outputCount;memmove(slots,slots+1,*outputCount*sizeof(*slots));
+    }
+    return 1;
 }
 static inline size_t xl6ForeignPhysicalStepCount(const XL6_AstNode* node,size_t parameters,size_t outputs)
 {

@@ -41,10 +41,11 @@ static int xl6SemForeignRegionForParameter(const XL6_AstNode* node,size_t parame
     size_t receiver=node->kind==XL6_AST_NATIVE_EXTERN_FUNC && !(node->flags&XL6_AST_FLAG_STATIC) ? 1:0;
     if(facts.outputIndexPlusOne){outputs[0]=facts.outputIndexPlusOne-1;outputCount=1;}
     XL6_ForeignValueOutputKind kind=xl6ForeignValueOutputBase(facts.valueOutput);
-    if(kind==XL6_FOREIGN_VALUE_OUTPUT_MULTI_STATUS || kind==XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID){
+    if(xl6ForeignValueOutputIsMulti(kind)){
         outputCount=0;for(size_t i=0;attrs && i<attrs->childCount;++i)
             if(xl6ForeignMultiOutputRead(attrs->children[i],outputs,&outputCount))break;
         if(!outputCount)return 0;
+        if(xl6ForeignValueOutputHasReturn(kind)){--outputCount;memmove(outputs,outputs+1,outputCount*sizeof(*outputs));}
     }
     for(size_t i=0;attrs && i<attrs->childCount;++i){
         XL6_ForeignRegionContract row;

@@ -277,13 +277,19 @@ static inline int xl6ForeignMultiOutputRead(const XL6_AstNode* attr,uint32 slots
     if(!attr || !attr->text || strcmp(attr->text,"c_outputs") || attr->childCount<2 || attr->childCount>64)return 0;
     for(size_t i=0;i<attr->childCount;++i){
         int32 slot;
-        if(!xl6ForeignDecimalInt(attr->children[i],&slot) || slot<0 || slot>=64 || (i && (uint32)slot<=slots[i-1]))return 0;
+        if(!xl6ForeignDecimalInt(attr->children[i],&slot))return 0;
+        if(!i && slot==-1){slots[i]=UINT32_MAX;continue;}
+        if(slot<0 || slot>=64 || (i && slots[i-1]!=UINT32_MAX && (uint32)slot<=slots[i-1]))return 0;
         slots[i]=(uint32)slot;
     }
     *count=attr->childCount;return 1;
 }
 static inline int xl6ForeignMultiOutputSlotsValid(const XL6_ForeignCallFacts* f,size_t inputs,size_t receiver,const uint32* slots,size_t outputs)
 {
+    if(xl6ForeignValueOutputHasReturn(f->valueOutput)){
+        if(outputs<2 || slots[0]!=UINT32_MAX)return 0;
+        ++slots;--outputs;
+    }else if(outputs && slots[0]==UINT32_MAX)return 0;
     size_t physical=0,p=0,o=0;
     while(p<inputs || o<outputs){
         if(o<outputs && slots[o]==physical){++o;++physical;continue;}
@@ -428,7 +434,9 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
         if(attr && attr->text && !strcmp(attr->text,"c_outputs")){
             uint32 slots[64];size_t outputs;
             if(facts.outputIndexPlusOne || !xl6ForeignMultiOutputRead(attr,slots,&outputs))return 0;
-            facts.outputIndexPlusOne=slots[0]+1;facts.valueOutput=XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID;continue;
+            int returned=slots[0]==UINT32_MAX;
+            facts.outputIndexPlusOne=slots[returned]+1;
+            facts.valueOutput=returned ? XL6_FOREIGN_VALUE_OUTPUT_MULTI_INT_VALUE:XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID;continue;
         }
         if(attr && attr->text && !strcmp(attr->text,"c_output_record")){
             XL6_ForeignOutputRecordContract row;
@@ -605,7 +613,8 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
         (facts.textViews & (facts.constAggregateAddresses | facts.staticCallbackAddresses | facts.bytesViews)) ||
         (facts.bytesViews & (facts.constAggregateAddresses | facts.staticCallbackAddresses)) ||
         (facts.borrowedViewResult && facts.borrowedViewResult<=XL6_FOREIGN_VIEW_RESULT_BYTES && facts.outputIndexPlusOne) ||
-        (facts.valueOutput && facts.borrowedViewResult && !xl6ForeignBorrowedOwnerOutput(&facts))) return 0;
+        (facts.valueOutput && facts.borrowedViewResult && !xl6ForeignBorrowedOwnerOutput(&facts) &&
+         !(xl6ForeignValueOutputHasReturn(facts.valueOutput) && facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_INTEGER_MIN))) return 0;
     if(xl6ForeignBorrowedOwnerOutput(&facts) && (outputSizes || outputViews))return 0;
     if(outputSizes)facts.valueOutput|=XL6_FOREIGN_VALUE_OUTPUT_SIZE_INITIALIZED;
     if(outputViews || recordRetains)facts.valueOutput|=XL6_FOREIGN_VALUE_OUTPUT_VIEW_CONVERTED;

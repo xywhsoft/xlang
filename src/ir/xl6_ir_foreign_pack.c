@@ -145,15 +145,16 @@ int xl6IrForeignPhysicalStepGet(const XL6_IrModule* m,const XL6_IrCallTarget* t,
         !(node->flags&XL6_AST_FLAG_STATIC) ? 1:0;
     uint64 limits;if(!xl6IrForeignSpanLimitMask(m,t,&limits))return 0;
     size_t physical=0,p=0,o=0;
+    size_t returned=xl6ForeignValueOutputHasReturn(node->foreignCall.valueOutput) ? 1:0;
     for(size_t event=0;event<=wanted;++event){
-        const XL6_ForeignOutputContract* outRow=node->foreignCall.valueOutput ? xl6IrForeignOutputGet(m,t,o):NULL;
+        const XL6_ForeignOutputContract* outRow=node->foreignCall.valueOutput ? xl6IrForeignOutputGet(m,t,o+returned):NULL;
         const XL6_ForeignNativeSequenceContract* sequence=xl6IrForeignNativeSequenceGet(m,t);
         const XL6_ForeignOwnedOutputContract* ownedBytes=xl6IrForeignOwnedOutputGet(m,t);
         size_t slot=ownedBytes ? (o==0 ? ownedBytes->dataIndex:ownedBytes->sizeIndex):sequence ? (o==0 ? sequence->dataIndex:sequence->countIndex):outRow ? outRow->physicalIndex:node->foreignCall.outputIndexPlusOne-1;
         XL6_ForeignPhysicalStep step={0};step.physicalIndex=(uint32)physical;
         const XL6_ForeignPackContract* physicalPack=xl6IrForeignPackGet(m,t,physical);
         if(o<outputs && slot==physical){
-            step.kind=XL6_FOREIGN_PHYSICAL_STEP_OUTPUT;step.ordinal=(uint32)o;step.parameter=UINT32_MAX;++o;++physical;
+            step.kind=XL6_FOREIGN_PHYSICAL_STEP_OUTPUT;step.ordinal=(uint32)(o+returned);step.parameter=UINT32_MAX;++o;++physical;
         }else if(xl6IrForeignFixedInputGet(m,t,physical)){
             step.kind=XL6_FOREIGN_PHYSICAL_STEP_FIXED;step.parameter=UINT32_MAX;++physical;
         }else if(xl6IrForeignPackCallbackOwner(m,t,physical)){

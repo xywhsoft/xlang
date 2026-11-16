@@ -1,0 +1,168 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "Exact native int return with trivial output parameters through declarative c_outputs; no per-function bridge or runtime ABI addition",
+  "sourceParent": "43ecaa4434cdff51bef922bcd89bfa5c2dee1944",
+  "sourceHashes": {
+    "src/cgen/xl6_ir_cgen_native_dependencies.c": "e0a856db3335a136850452e388a93742178ea90ec7026ee01948db78caa82347",
+    "src/cgen/xl6_ir_cgen_type_call.c": "55bca57134d94c46a2094e8453730df083db89259b42f9d2c3eb9da16f573984",
+    "src/ir/xl6_ir.c": "4decede81cf678499873e11bf601f8f7112571fd4aee5630354c0abc56383513",
+    "src/ir/xl6_ir.h": "d94005fb514f4e88bc8431d454f65d38f50b07f8197cf4492922b4d662841f35",
+    "src/ir/xl6_ir_foreign_pack.c": "77ec74c5b6c18c3db8bcc39ee75d3c9f4ad74f9a34f595ca9ab4d427b1bbe89a",
+    "src/ir/xl6_ir_foreign_parameter.c": "9a7b0608a586714e662835951702fc603bf431a5c2bd9a803d1543db4574e0f8",
+    "src/ir/xl6_ir_foreign_region.c": "603a4b22921ce7906bd36eedf183766b7c7a9dac7ab8354ea4fd643040031637",
+    "src/ir/xl6_ir_lower.c": "1bb86d318efed13e36ed41e92978483c011a4d7017395905f33954eb9b9f4580",
+    "src/sem/xl6_sem.c": "edfde5c144f268118a4e72ebd3f8a818f883631b40fd4c475c400b38693a02ec",
+    "src/sem/xl6_sem_foreign_compat.c": "179cda46a092f8e2d52d1baec0e1fb6fe8daa7957e134b2a9a3885aec73e7525",
+    "src/sem/xl6_sem_foreign_region.c": "aa3a6ef4de2929a1b9a964e2300e3eef74f6c7f1b1484d6d59ac2ef62bc558a2",
+    "src/type/xl6_foreign_call_contract.h": "8ee5b26c45a36fbb7eec73c68c8ad80c0ef3ec68ee4dff66d5d2743aad63ccbb",
+    "src/type/xl6_foreign_decl.h": "7008611b26631991582240a06bf556e3b996114f2be9389582c9dcadcc37b0f7",
+    "src/type/xl6_foreign_pack_decl.h": "134bba58a9cfce674115c875ecec121a2caf84f62d4dbfee7a4a9edaaf29aa05",
+    "test/cases/foreign_return_outputs.xl": "850632b4512b068e7986cc47eaf68f6343c395b7ee76308e26dea80c4aad7767",
+    "test/cases/foreign_return_outputs.h": "26187c0afff0db7dc49d0f077533f8c6d90dc82bf43a1203f23a49741fdc3480",
+    "test/cases/foreign_return_outputs.c": "4ced308fb1118019db4d493c13aab33553df8e06aaa2a3016b5ca0b6b44c697c",
+    "test/cases/foreign_return_outputs_decl.c": "8fbce780427f593fbef69562aeb1872786ff23d341987ec96fe0fa4f84070183",
+    "test/cases/foreign_return_outputs_ir.c": "c8763ad19aadd5452a33d8f33c778c93974841819b69a4d655c59c70acda9378",
+    "tools/check_foreign_return_outputs.py": "e11e06e5b2d88b0ba897f4e325ebafa83c3a1b92229ccaac81ef82306653ac6c",
+    "tools/check_foreign_return_outputs_ir.py": "843071c67794a2c340f0500b5a802a2273a5004fc471838938aa799cfe6f06e4",
+    "docs/foreign-return-outputs.md": "6e819d15e514235e54b0c641aaf869a42d00df5bf954baee9c2d4071cd9aca4d"
+  },
+  "shippingDelivery": false,
+  "canonicalXrtPromoted": false,
+  "networkTests": false,
+  "fullCompilerBuilds": true,
+  "optimization": "O2",
+  "xrtRevision": "4641cd2e4da09d8b1a66872cabe085c263d8b5ba",
+  "qualification": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\return-output-qualified-win-r1.json",
+      "sha256": "8c51e611d0fc0b8b2e15afd44871a09cde06592190ab4217d9ae2094dffc7b6e",
+      "commands": 57,
+      "rows": [
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-return-output-win-full-r1\\build.json",
+          "sha256": "9c9b1f41ede82369b7c8920881e7add4238558a1546d7e70fba63ff064af2857",
+          "commands": 0,
+          "fullCompilerBuild": true,
+          "seconds": 1143.3279999999795,
+          "inputs": 0,
+          "inputsUnchanged": true
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\return-output-public-win-r6\\results.json",
+          "sha256": "d3a8983417743c9ac22d0f54bbc892f7eefbf2d9d077fc9cef80a13448e73f64",
+          "commands": 44,
+          "fullCompilerBuild": false,
+          "seconds": null,
+          "inputs": 2611,
+          "inputsUnchanged": true
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\return-output-ir-win-r1\\results.json",
+          "sha256": "bc17ba3de06961848b8c86d034e8139371de10eaa5b9b7f9bafaa0be3a9d17dc",
+          "commands": 4,
+          "fullCompilerBuild": false,
+          "seconds": null,
+          "inputs": 9767,
+          "inputsUnchanged": true
+        },
+        {
+          "path": "F:\\xlang-validation\\xge-full-20261110\\return-output-regressions-win-r1\\results.json",
+          "sha256": "a9b778633159edb3a2ba6a7ae737405f8a41153fd5b282854a95442c7bf52eb8",
+          "commands": 9,
+          "fullCompilerBuild": false,
+          "seconds": null,
+          "inputs": 797,
+          "inputsUnchanged": true
+        }
+      ]
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\return-output-qualified-linux-r1.json",
+      "sha256": "3ded0ef2388c5162a25ef935205417ace6a98b967a959203f66bff9922639b25",
+      "commands": 57,
+      "rows": [
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/compiler-return-output-linux-full-r1/build.json",
+          "sha256": "279bf0635e3557c4ff2b6fe33aaed09cee187679306c9f4e8ce1e18534d8f658",
+          "commands": 0,
+          "fullCompilerBuild": true,
+          "seconds": 1527.0375139429998,
+          "inputs": 0,
+          "inputsUnchanged": true
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/return-output-public-linux-r1/results.json",
+          "sha256": "a709b1b0f71378cb1765b224dba55098d72f2da686d827e90bb0b86fc3105007",
+          "commands": 44,
+          "fullCompilerBuild": false,
+          "seconds": null,
+          "inputs": 2611,
+          "inputsUnchanged": true
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/return-output-ir-linux-r2/results.json",
+          "sha256": "4969cd60fabb99073bffc0c8c07feb17a9a432ad2003db1520136ccd7af7c14c",
+          "commands": 4,
+          "fullCompilerBuild": false,
+          "seconds": null,
+          "inputs": 9781,
+          "inputsUnchanged": true
+        },
+        {
+          "path": "/var/tmp/xlang-validation/xge-full-20261110/return-output-regressions-linux-r1/results.json",
+          "sha256": "0eac91b48a7985c56dac5fc521836ebc03851a22a08a2d385bede872061e9498",
+          "commands": 9,
+          "fullCompilerBuild": false,
+          "seconds": null,
+          "inputs": 797,
+          "inputsUnchanged": true
+        }
+      ]
+    }
+  ],
+  "qualifiedCommands": 114,
+  "ir": {
+    "optimizations": [
+      "O0",
+      "O2"
+    ],
+    "platforms": [
+      "Windows",
+      "Linux"
+    ],
+    "targets": 8,
+    "rows": 21,
+    "mutationsPerRun": 135,
+    "totalMutations": 540,
+    "emptyCAndHeaderRefusals": 1080,
+    "objectOverrides": false
+  },
+  "heap": {
+    "languageCalls": 1000,
+    "nativeCalls": 1000,
+    "accountingEnabledAsserted": true,
+    "alloc": 0,
+    "free": 0,
+    "realloc": 0,
+    "liveCountAndBytesUnchanged": true,
+    "cpuEquivalenceMeasured": false,
+    "osAllocatorMeasured": false
+  },
+  "abi": {
+    "sparseRowBytes": 12,
+    "astIrNodeAndCallTargetGrowth": 0,
+    "runtimeAbiGrowth": 0
+  },
+  "limitations": [
+    "Only exact C int return and existing trivial pointer outputs; no managed output conversion or initialized-size outputs in this mode",
+    "Existing auto inference of a native bound multi-result method still rejects; explicit function type is accepted and exercised",
+    "Async multi-return remains disallowed",
+    "Canonical XRT source and normal release/SDK/IDE delivery are not promoted by this batch"
+  ],
+  "developmentEvidence": {
+    "root": "F:\\xlang-validation\\xge-full-20261110",
+    "failedRoundsPreserved": true,
+    "priorDiagnosticObjectOverridesNotQualification": true
+  }
+}

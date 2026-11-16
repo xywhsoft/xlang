@@ -1,0 +1,91 @@
+extern "returnOutputQuery" @header("test/cases/foreign_return_outputs.h") @no_raise @c_outputs(-1,1,2) @c_result("integer_min",0) func query(c_int mode) as (c_int,c_double,c_int)
+extern "returnOutputCount" @header("test/cases/foreign_return_outputs.h") @no_raise func calls() as c_uint
+extern "ReturnOutputReceiver*" class Receiver @header("test/cases/foreign_return_outputs.h") @lifetime("owned") @policy("returnOutputReceiverPolicy")
+ native point handle
+ extern "returnOutputReceiverQuery" @no_raise @c_outputs(-1,2,3) @c_result("integer_min",0) func read(c_int mode) as (c_int,c_double,c_int)
+ extern "query" @c_field_call @no_raise @c_outputs(-1,2,3) @c_result("integer_min",0) func viaField(c_int mode) as (c_int,c_double,c_int)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+protocol QueryProtocol
+ func read(c_int mode) as (c_int,c_double,c_int)
+end
+extern "returnOutputReceiverCreate" @header("test/cases/foreign_return_outputs.h") @no_raise @c_result("owned_view") @factory(0,0,dropReceiver) func receiver() as Receiver
+extern "returnOutputReceiverDestroy" @header("test/cases/foreign_return_outputs.h") @no_raise func dropReceiver(Receiver value)
+extern "returnOutputRawQuery" @header("test/cases/foreign_return_outputs.h") @no_raise @c_outputs(-1,1,2) func rawQuery(c_int mode) as (c_int,c_double,c_int)
+extern "returnOutputMaybeQuery" @header("test/cases/foreign_return_outputs.h") @no_raise @c_outputs(-1,1,2) @c_result("integer_min",-1) func maybeQuery(c_int mode) as (c_int,c_double,c_int)
+extern "returnOutputSpan" @header("test/cases/foreign_return_outputs.h") @no_raise @c_span(0,"const uint8_t*","int") @c_outputs(-1,2) @c_result("integer_min",0) func span(bytes input) as (c_int,c_int)
+extern "returnOutputPacked" @header("test/cases/foreign_return_outputs.h") @no_raise @c_pack(0,"ReturnOutputPack",0,2) @c_pack_field(0,"first",0,"value") @c_pack_field(0,"second",1,"value") @c_outputs(-1,1) func packed(c_int first,c_int second) as (c_int,c_int)
+extern "returnOutputNoInputs" @header("test/cases/foreign_return_outputs.h") @no_raise @c_outputs(-1,0) func noInputs() as (c_int,c_int)
+extern "returnOutputHeapMark" @header("test/cases/foreign_return_outputs.h") @no_raise func heapMark()
+extern "returnOutputHeapCheck" @header("test/cases/foreign_return_outputs.h") @no_raise func heapCheck() as bool
+extern "returnOutputHeapBaseline" @header("test/cases/foreign_return_outputs.h") @no_raise func heapBaseline() as bool
+
+func main(...) as int
+ auto flag,value,count=query(c_int(0))
+ assert flag==c_int(0) and value==c_double(12.5) and count==c_int(7)
+ auto active,other,total=query(c_int(1))
+ assert active==c_int(1) and other==value and total==count
+ auto saved=query
+ auto indirect,x,y=saved(c_int(1))
+ assert indirect==c_int(1) and x==value and y==count
+ bool rejected=false
+ try
+  flag,value,count=query(c_int(-1))
+ catch error
+  rejected=true
+ end
+ assert rejected and flag==c_int(0) and value==c_double(12.5) and count==c_int(7)
+ rejected=false
+ try
+  auto bad,a,b=query(c_int(2))
+ catch error
+  rejected=true
+ end
+ assert rejected and calls()==c_uint(5)
+ auto object=receiver()
+ auto direct,dx,dy=object.read(c_int(1))
+ assert direct==c_int(1) and dx==value and dy==count
+ func(c_int) as (c_int,c_double,c_int) bound=object.read
+ auto boundFlag,bx,by=bound(c_int(0))
+ assert boundFlag==c_int(0) and bx==value and by==count
+ QueryProtocol protocolValue=object
+ auto protocolFlag,px,py=protocolValue.read(c_int(1))
+ assert protocolFlag==c_int(1) and px==value and py==count
+ var dynamicValue=object
+ auto dynamicFlag,vx,vy=dynamicValue.read(c_int(1))
+ assert dynamicFlag==c_int(1) and vx==value and vy==count
+ auto fieldFlag,fx,fy=object.viaField(c_int(1))
+ assert fieldFlag==c_int(1) and fx==value and fy==count
+ auto raw,rx,ry=rawQuery(c_int(-2147483648))
+ assert raw==c_int(-2147483648) and rx==value and ry==count
+ auto missing,mx,my=maybeQuery(c_int(-1))
+ assert missing==c_int(-1) and mx==value and my==count
+ rejected=false
+ try
+  auto bad,a,b=maybeQuery(c_int(-2))
+ catch error
+  rejected=true
+ end
+ assert rejected
+ auto bytesFlag,byteCount=span(b"a\0b")
+ assert bytesFlag==c_int(1) and byteCount==c_int(3)
+ auto emptyFlag,emptyCount=span(b"")
+ assert emptyFlag==c_int(0) and emptyCount==c_int(0)
+ auto packFlag,packCount=packed(c_int(0),c_int(17))
+ assert packFlag==c_int(0) and packCount==c_int(17)
+ auto noFlag,noCount=noInputs()
+ assert noFlag==c_int(0) and noCount==c_int(19)
+ assert calls()==c_uint(17)
+ object.close()
+ heapMark()
+ int turn=0
+ while turn<1000
+  auto state,a,b=query(c_int(0))
+  assert state==c_int(0) and a==c_double(12.5) and b==c_int(7)
+  turn+=1
+ end
+ assert heapCheck() and heapBaseline()
+ assert calls()==c_uint(2017)
+ println("FOREIGN_RETURN_OUTPUTS_OK")
+ return 0
+end

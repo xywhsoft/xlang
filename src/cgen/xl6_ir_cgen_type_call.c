@@ -516,6 +516,15 @@ static void xl6IrCgenEmitIntegerMinimum(XL6_Output* out,const XL6_IrCallTarget* 
     xl6OutputPrintf(out,"    if ((int64_t)(%s) < (int64_t)(%d)) { if (!%s.failed && !xrtGetError()) xl6ForeignIntegerFailureV1((int64_t)(%s),\"%s\"); xl6ErrorScopeCaptureFailure(&%s); }\n",
         result,target->nativeSuccessCode,errors,result,target->cName,errors);
 }
+static void xl6IrCgenEmitOutputIntegerMinimum(XL6_Output* out,const XL6_IrModule* module,
+    const XL6_IrCallTarget* target,const char* raw,const char* errors)
+{
+    const XL6_IrNode* declaration=xl6IrNodeGet(module,target->declaration);
+    if(target->outputResultAbi!=XL6_IR_CALL_OUTPUT_RESULT_INT_VALUE_MIN || !declaration ||
+        declaration->foreignCall.borrowedViewResult!=XL6_FOREIGN_VIEW_RESULT_INTEGER_MIN)return;
+    xl6OutputPrintf(out,"    if ((int64_t)(%s.e0) < (int64_t)(%d)) { if (!%s.failed && !xrtGetError()) xl6ForeignIntegerFailureV1((int64_t)(%s.e0),\"%s\"); xl6ErrorScopeCaptureFailure(&%s); }\n",
+        raw,target->nativeSuccessCode,errors,raw,target->cName,errors);
+}
 
 static int xl6IrCgenPrepareForeignCountedField(XL6_Output* out,const XL6_IrModule* module,
     const XL6_IrCallTarget* target,const XL6_IrValueId* values,const char* errors)
@@ -642,6 +651,7 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
         outputProbes=xl6IrCgenOutputProbesBegin(out,module,target,scope);
         xl6OutputPuts("    ",out);
         if(target->outputResultAbi==XL6_IR_CALL_OUTPUT_RESULT_INT_STATUS)xl6OutputPuts("int native_status = ",out);
+        else if(target->outputResultAbi==XL6_IR_CALL_OUTPUT_RESULT_INT_VALUE || target->outputResultAbi==XL6_IR_CALL_OUTPUT_RESULT_INT_VALUE_MIN)xl6OutputPrintf(out,"%s.e0 = ",rawOutput);
     }
     else if (target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT) {
         const XL6_IrType* type = xl6IrTypeGet(&module->types, target->returnType);
@@ -717,6 +727,7 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
     }
     if(storagePrepared)xl6OutputPuts("    }\n",out);
     xl6IrCgenNativeCallbacksObserve(out,target,scope);
+    if(mappedOutputs)xl6IrCgenEmitOutputIntegerMinimum(out,module,target,rawOutput,scope);
     xl6IrCgenEmitIntegerMinimum(out,target,result,scope);
     if(target->producerErrorPhysicalAbi==XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT)
         xl6OutputPrintf(out,"    if (%s == NULL) xl6ErrorScopeCaptureFailure(&%s);\n",result,scope);
@@ -1090,6 +1101,7 @@ static int xl6IrCgenEmitDirectCall(
         outputProbes=xl6IrCgenOutputProbesBegin(out,module,target,nativeScope);
         xl6OutputPuts("    ",out);
         if(target->outputResultAbi==XL6_IR_CALL_OUTPUT_RESULT_INT_STATUS)xl6OutputPuts("int native_status = ",out);
+        else if(target->outputResultAbi==XL6_IR_CALL_OUTPUT_RESULT_INT_VALUE || target->outputResultAbi==XL6_IR_CALL_OUTPUT_RESULT_INT_VALUE_MIN)xl6OutputPrintf(out,"%s.e0 = ",rawOutput);
     }
     else if(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_NATIVE_VIEW_ADMIT){
         const XL6_IrType* type=xl6IrTypeGet(&module->types,target->returnType);
@@ -1187,6 +1199,7 @@ static int xl6IrCgenEmitDirectCall(
     }
     if(storagePrepared)xl6OutputPuts("    }\n",out);
     xl6IrCgenNativeCallbacksObserve(out,target,nativeScope);
+    if(mappedOutputs)xl6IrCgenEmitOutputIntegerMinimum(out,module,target,rawOutput,nativeScope);
     xl6IrCgenEmitIntegerMinimum(out,target,nativeResult,nativeScope);
     if(errorPhysicalAbi==XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE &&
         target->producerErrorPhysicalAbi==XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER) {

@@ -53,7 +53,9 @@ typedef enum XL6_ForeignValueOutputKind {
     XL6_FOREIGN_VALUE_OUTPUT_RECORD_VOID,
     XL6_FOREIGN_VALUE_OUTPUT_NATIVE_SEQUENCE_STATUS,
     XL6_FOREIGN_VALUE_OUTPUT_OWNED_BYTES_STATUS,
-    XL6_FOREIGN_VALUE_OUTPUT_OWNED_TEXT_STATUS
+    XL6_FOREIGN_VALUE_OUTPUT_OWNED_TEXT_STATUS,
+    /* Logical ordinal zero is the exact C int return, not a pointer slot. */
+    XL6_FOREIGN_VALUE_OUTPUT_MULTI_INT_VALUE
 } XL6_ForeignValueOutputKind;
 
 /* The output-mode byte authenticates sparse sizeof initializers and borrowed
@@ -73,10 +75,14 @@ static inline int xl6ForeignValueOutputIsVoid(uint8 mode)
 {return xl6ForeignValueOutputBase(mode)==XL6_FOREIGN_VALUE_OUTPUT_VOID || xl6ForeignValueOutputBase(mode)==XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID || xl6ForeignValueOutputBase(mode)==XL6_FOREIGN_VALUE_OUTPUT_RECORD_VOID;}
 static inline int xl6ForeignValueOutputIsOwned(uint8 mode)
 {return xl6ForeignValueOutputBase(mode)==XL6_FOREIGN_VALUE_OUTPUT_OWNED_BYTES_STATUS || xl6ForeignValueOutputBase(mode)==XL6_FOREIGN_VALUE_OUTPUT_OWNED_TEXT_STATUS;}
+static inline int xl6ForeignValueOutputHasReturn(uint8 mode)
+{return xl6ForeignValueOutputBase(mode)==XL6_FOREIGN_VALUE_OUTPUT_MULTI_INT_VALUE;}
+static inline int xl6ForeignValueOutputIsMulti(uint8 mode)
+{return xl6ForeignValueOutputBase(mode)==XL6_FOREIGN_VALUE_OUTPUT_MULTI_STATUS || xl6ForeignValueOutputBase(mode)==XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID || xl6ForeignValueOutputHasReturn(mode);}
 static inline int xl6ForeignValueOutputBitsValid(uint8 mode)
 {
     return !(mode&~(XL6_FOREIGN_VALUE_OUTPUT_KIND_MASK|XL6_FOREIGN_VALUE_OUTPUT_SIZE_INITIALIZED|XL6_FOREIGN_VALUE_OUTPUT_VIEW_CONVERTED)) &&
-        xl6ForeignValueOutputBase(mode)<=XL6_FOREIGN_VALUE_OUTPUT_OWNED_TEXT_STATUS &&
+        xl6ForeignValueOutputBase(mode)<=XL6_FOREIGN_VALUE_OUTPUT_MULTI_INT_VALUE &&
         (xl6ForeignValueOutputBase(mode)<XL6_FOREIGN_VALUE_OUTPUT_NATIVE_SEQUENCE_STATUS ||
          !(mode&(XL6_FOREIGN_VALUE_OUTPUT_SIZE_INITIALIZED|XL6_FOREIGN_VALUE_OUTPUT_VIEW_CONVERTED))) &&
         (!(xl6ForeignValueOutputHasSize(mode)||xl6ForeignValueOutputHasView(mode)) || xl6ForeignValueOutputBase(mode)!=XL6_FOREIGN_VALUE_OUTPUT_NONE);
@@ -184,8 +190,8 @@ static inline int xl6ForeignOwnershipHelperFacts(const XL6_ForeignCallFacts* f,i
          !retain && f->borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_INT_STATUS);
 }
 
-/* Each multi-output producer stores only its actual physical output slots.
- * Ordinals follow increasing physical positions and the language return list. */
+/* Ordinals follow the language return list. A preserved C int return occupies
+ * ordinal zero with physicalIndex UINT32_MAX; real output slots still increase. */
 typedef struct XL6_ForeignOutputContract {
     uint32 declaration,ordinal,physicalIndex;
 } XL6_ForeignOutputContract;

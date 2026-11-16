@@ -3,9 +3,12 @@ static size_t xl6SemForeignRegionOutputs(const XL6_AstNode* attrs,const XL6_Fore
     if(!facts->outputIndexPlusOne)return 0;
     size_t count=1;slots[0]=facts->outputIndexPlusOne-1;
     XL6_ForeignValueOutputKind kind=xl6ForeignValueOutputBase(facts->valueOutput);
-    if(kind==XL6_FOREIGN_VALUE_OUTPUT_MULTI_STATUS || kind==XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID){
+    if(xl6ForeignValueOutputIsMulti(kind)){
         for(size_t i=0;attrs && i<attrs->childCount;++i)
-            if(xl6ForeignMultiOutputRead(attrs->children[i],slots,&count))return count;
+            if(xl6ForeignMultiOutputRead(attrs->children[i],slots,&count)){
+                if(xl6ForeignValueOutputHasReturn(kind)){--count;memmove(slots,slots+1,count*sizeof(*slots));}
+                return count;
+            }
         return SIZE_MAX;
     }
     return count;

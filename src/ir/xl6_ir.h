@@ -4280,7 +4280,9 @@ typedef enum XL6_IrCallResultPhysicalAbi {
 typedef enum XL6_IrCallOutputResultAbi {
     XL6_IR_CALL_OUTPUT_RESULT_NONE=0,
     XL6_IR_CALL_OUTPUT_RESULT_INT_STATUS,
-    XL6_IR_CALL_OUTPUT_RESULT_VOID
+    XL6_IR_CALL_OUTPUT_RESULT_VOID,
+    XL6_IR_CALL_OUTPUT_RESULT_INT_VALUE,
+    XL6_IR_CALL_OUTPUT_RESULT_INT_VALUE_MIN
 } XL6_IrCallOutputResultAbi;
 
 typedef enum XL6_IrCallResultCAbi {

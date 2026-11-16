@@ -29,15 +29,17 @@ static const XL6_IrNode* xl6IrRegionSignature(const XL6_IrModule* module,uint32 
     if(node->foreignCall.outputIndexPlusOne){
         outputs[0]=node->foreignCall.outputIndexPlusOne-1;*outputCount=1;
         XL6_ForeignValueOutputKind mode=xl6ForeignValueOutputBase(node->foreignCall.valueOutput);
-        if(mode==XL6_FOREIGN_VALUE_OUTPUT_MULTI_STATUS || mode==XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID){
+        if(xl6ForeignValueOutputIsMulti(mode)){
             if(module->foreignOutputCount>module->foreignOutputCapacity || (module->foreignOutputCount && !module->foreignOutputs))return NULL;
             *outputCount=0;
             for(size_t i=0;i<module->foreignOutputCount;++i){
                 const XL6_ForeignOutputContract* row=&module->foreignOutputs[i];if(row->declaration!=declaration)continue;
+                size_t returned=xl6ForeignValueOutputHasReturn(mode) ? 1:0;
                 if(row->ordinal>=64)return NULL;
-                outputs[row->ordinal]=row->physicalIndex;++*outputCount;
+                if(returned && !row->ordinal){if(row->physicalIndex!=UINT32_MAX)return NULL;continue;}
+                outputs[row->ordinal-returned]=row->physicalIndex;++*outputCount;
             }
-            if(*outputCount<2 || *outputCount>64)return NULL;
+            if(*outputCount<(xl6ForeignValueOutputHasReturn(mode) ? 1u:2u) || *outputCount>64)return NULL;
         }
     }
     return node;

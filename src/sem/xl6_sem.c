@@ -21834,12 +21834,13 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
     const XL6_AstNode* resultDecl=viewReturns && viewReturns->childCount==1 ?
         xl6SemForeignViewDeclaration(ctx,viewReturns->children[0],&resultContract) : NULL;
     if(facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_INTEGER_MIN){
-        const XL6_AstNode* result=viewReturns && viewReturns->childCount==1 ?
+        int returned=xl6ForeignValueOutputHasReturn(facts.valueOutput);
+        const XL6_AstNode* result=viewReturns && (viewReturns->childCount==1 || (returned && viewReturns->childCount>=2)) ?
             xl6SemResolveAliasType(ctx,viewReturns->children[0]):NULL;
         XL6_SemIntTypeInfo integer={0};
         if(!result || result->childCount || !result->text || strncmp(result->text,"c_",2) ||
             !xl6SemIntTypeInfo(result->text,&integer) || !integer.isSigned || integer.bits>64 ||
-            facts.outputIndexPlusOne || facts.valueOutput || facts.inplaceOutput || facts.receiverDereference ||
+            (!returned && (facts.outputIndexPlusOne || facts.valueOutput)) || facts.inplaceOutput || facts.receiverDereference ||
             (node->flags&(XL6_AST_FLAG_FOREIGN_FIELD|XL6_AST_FLAG_FOREIGN_PURE|XL6_AST_FLAG_FOREIGN_OWNED_STRING))){
             xl6SemErrorNode(ctx,node,"integer_min requires one exact signed C integer result and no output, field, dereference or pure adaptation");return 0;
         }
@@ -21915,7 +21916,8 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
         }else{
         size_t outputs=1;uint32 slots[64]={facts.outputIndexPlusOne-1};
         int borrowedOutput=xl6ForeignBorrowedOwnerOutput(&facts);
-        int multi=xl6ForeignValueOutputBase(facts.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_MULTI_STATUS || xl6ForeignValueOutputBase(facts.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID;
+        int multi=xl6ForeignValueOutputIsMulti(facts.valueOutput);
+        int returned=xl6ForeignValueOutputHasReturn(facts.valueOutput);
         if(multi){
             int found=0;
             for(size_t a=0;attrs && a<attrs->childCount;++a)
@@ -21926,11 +21928,18 @@ static int xl6SemCheckForeignFunctionDeclaration(XL6_SemContext* ctx, XL6_AstNod
         }
         if(!viewReturns || viewReturns->childCount!=outputs || !(node->flags&XL6_AST_FLAG_FOREIGN_NO_RAISE) ||
             (node->flags&XL6_AST_FLAG_FOREIGN_OWNED_STRING) ||
-            (facts.borrowedViewResult && !borrowedOutput) || facts.rollbackSymbol ||
+            (facts.borrowedViewResult && !borrowedOutput && !(returned && facts.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_INTEGER_MIN)) || facts.rollbackSymbol ||
             !facts.outputIndexPlusOne || (!multi && xl6ForeignOutputLogicalForDeclaration(node,&facts,count+receiver,receiver)==SIZE_MAX)){
             xl6SemErrorNode(ctx,node,"C value outputs require matching exact trivial C results, explicit @no_raise and complete physical slots");return 0;
         }
         for(size_t o=0;o<outputs;++o){
+            if(returned && !o){
+                const XL6_AstNode* result=xl6SemResolveAliasType(ctx,viewReturns->children[0]);
+                if(!result || result->childCount || !xl6TextEquals(result->text,"c_int")){
+                    xl6SemErrorNode(ctx,node,"C return projection requires c_int at logical ordinal zero");return 0;
+                }
+                continue;
+            }
             if(xl6SemForeignOutputViewAt(attrs,slots[o],NULL))continue;
             const XL6_AstNode* value=xl6SemResolveAliasType(ctx,viewReturns->children[o]);
             XL6_ForeignClassDecl outputContract={0};
@@ -22158,8 +22167,7 @@ static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node,const XL
     }
     XL6_ForeignCallFacts outputFacts={0};
     int hasOutputProduct=xl6ForeignFunctionRead(node,&outputFacts) &&
-        (xl6ForeignValueOutputBase(outputFacts.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_MULTI_STATUS ||
-         xl6ForeignValueOutputBase(outputFacts.valueOutput)==XL6_FOREIGN_VALUE_OUTPUT_MULTI_VOID ||
+        (xl6ForeignValueOutputIsMulti(outputFacts.valueOutput) ||
          xl6ForeignValueOutputIsRecord(outputFacts.valueOutput));
     if ( returns != NULL && returns->childCount > 1 &&
          !hasOutputProduct && !xl6SemIsCAbiProductReturns(ctx, returns) ) {

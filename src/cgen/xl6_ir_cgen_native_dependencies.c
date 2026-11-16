@@ -552,7 +552,10 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
         }
         if((target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_INT_STATUS ||
              target->outputResultAbi==XL6_IR_CALL_OUTPUT_RESULT_INT_STATUS) && !visitor(context,"xl6ForeignStatusFailureV1"))return 0;
-        if(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_INTEGER_MIN &&
+        const XL6_IrNode* outputDeclaration=target->outputResultAbi==XL6_IR_CALL_OUTPUT_RESULT_INT_VALUE_MIN ?
+            xl6IrNodeGet(module,target->declaration):NULL;
+        if((target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_INTEGER_MIN ||
+            (outputDeclaration && outputDeclaration->foreignCall.borrowedViewResult==XL6_FOREIGN_VIEW_RESULT_INTEGER_MIN)) &&
             !visitor(context,"xl6ForeignIntegerFailureV1"))return 0;
         if(xl6IrNativeContextIsClassCallback(target->nativeContextAbi)){
             XL6_IrNativeClassCallbackPlan plan={0};
