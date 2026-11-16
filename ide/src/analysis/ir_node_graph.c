@@ -100,13 +100,13 @@ static int copyText(xls_ir_node_unit* unit,char** target,const char* source,size
     *target=NULL;if(!source)return 1;
     *target=(char*)unit->payload+*used;memcpy(*target,source,bytes);*used+=bytes;return 1;
 }
-static int copyNode(xls_ir_node_unit* unit,size_t local,XL6_IrNodeId id,
-    const XL6_IrModule* source,graph_counts* counts)
+static int copyValue(xls_ir_node_unit* unit,size_t local,XL6_IrNodeId id,
+    const XL6_IrNode* from,const XL6_IrNodeId* children,graph_counts* counts)
 {
-    const XL6_IrNode* from=&source->nodes[(size_t)id-1];XL6_IrNode* to=&unit->nodes[local];
+    XL6_IrNode* to=&unit->nodes[local];
     memcpy(to,from,sizeof(*to));unit->ids[local]=id;unit->first[local]=counts->usedChildren;
     if(from->childCount>unit->childCount-counts->usedChildren)return 0;
-    if(from->childCount)memcpy(unit->children+counts->usedChildren,source->children+from->firstChild,from->childCount*sizeof(*unit->children));
+    if(from->childCount)memcpy(unit->children+counts->usedChildren,children,from->childCount*sizeof(*unit->children));
     counts->usedChildren+=from->childCount;
     if(!copyText(unit,&to->text,from->text,&counts->usedPayload))return 0;
     to->literalData=NULL;
@@ -119,6 +119,123 @@ static int copyNode(xls_ir_node_unit* unit,size_t local,XL6_IrNodeId id,
     if(!copyText(unit,&to->compiledPackageLink,from->compiledPackageLink,&counts->usedPayload))return 0;
 #endif
     return 1;
+}
+static int copyNode(xls_ir_node_unit* unit,size_t local,XL6_IrNodeId id,
+    const XL6_IrModule* source,graph_counts* counts)
+{
+    const XL6_IrNode* from=&source->nodes[(size_t)id-1];
+    return copyValue(unit,local,id,from,from->childCount ? source->children+from->firstChild : NULL,counts);
+}
+static size_t entryFind(const xls_ir_node_capture_input* input,XL6_IrNodeId id)
+{
+    size_t a=0,b=input->count;
+    while(a<b){size_t m=a+(b-a)/2;if(input->entries[m].id<id)a=m+1;else b=m;}
+    return a<input->count && input->entries[a].id==id ? a : SIZE_MAX;
+}
+/* XRT's generic array sort delegates to CRT qsort,whose scratch allocation
+ * and cancellation are not bounded here. Sort these verification-only IDs
+ * in place;each sift has at most32steps in the admitted native ID range. */
+static void siftIds(uint32_t* ids,size_t at,size_t count)
+{
+    uint32_t value=ids[at];
+    while(at<count/2){size_t child=at*2+1;if(child+1<count && ids[child]<ids[child+1])++child;
+        if(value>=ids[child])break;
+        ids[at]=ids[child];at=child;}
+    ids[at]=value;
+}
+static int sortIds(uint32_t* ids,size_t count,int(*cancelled)(void*),void* user)
+{
+    size_t visits=0;
+    for(size_t i=count/2;i;){if(!(visits++%64) && cancelled && cancelled(user))return 0;siftIds(ids,--i,count);}
+    for(size_t end=count;end>1;){if(!(visits++%64) && cancelled && cancelled(user))return 0;
+        uint32_t value=ids[--end];ids[end]=ids[0];ids[0]=value;siftIds(ids,0,end);}
+    return 1;
+}
+xls_ir_node_unit* xlsIrNodeUnitCapture(const xls_ir_node_capture_input* input,
+    const xls_ir_node_unit* cohort,size_t limit,int(*cancelled)(void*),void* user,
+    xls_ir_graph_status* status,size_t* peakBytes)
+{
+    xls_ir_node_unit* unit=NULL;void* scratch=NULL;xls_ir_graph_status error=XLS_IR_GRAPH_INVALID;
+    if(peakBytes)*peakBytes=0;
+    if(!input || !input->entries || !input->count || !input->nodeLimit || input->nodeLimit>UINT32_MAX || input->count>input->nodeLimit ||
+       !input->root || input->root>input->nodeLimit || !input->moduleRoot || input->moduleRoot>input->nodeLimit ||
+       (cohort && !cohort->producer))goto failed;
+    if(cancelled && cancelled(user)){error=XLS_IR_GRAPH_CANCELLED;goto failed;}
+    if(!limit){error=XLS_IR_GRAPH_BUDGET;goto failed;}
+    int module=input->root==input->moduleRoot;graph_counts counts={.nodes=input->count};
+    for(size_t i=0;i<input->count;++i){
+        if(!(i%64) && cancelled && cancelled(user)){error=XLS_IR_GRAPH_CANCELLED;goto failed;}
+        const xls_ir_node_capture_entry* e=&input->entries[i];
+        if(!e->node || !e->id || e->id>input->nodeLimit || (i && e->id<=input->entries[i-1].id) ||
+           (!module && e->id==input->moduleRoot) || (e->node->childCount && !e->children))goto failed;
+        error=XLS_IR_GRAPH_BUDGET;size_t payload;
+        if(!payloadBytes(e->node,limit,&payload) || !add(&counts.payload,payload) || !add(&counts.children,e->node->childCount))goto failed;
+        error=XLS_IR_GRAPH_INVALID;
+    }
+    size_t root=entryFind(input,input->root);if(root==SIZE_MAX)goto failed;
+    const XL6_IrNode* rootNode=input->entries[root].node;
+    if(module){if(input->count!=1 || rootNode->kind!=XL6_IR_NODE_MODULE || rootNode->parent || counts.children>=input->nodeLimit)goto failed;}
+    else if(rootNode->parent!=input->moduleRoot || counts.children!=input->count-1)goto failed;
+    size_t scratchBytes=0,stackOffset=0,marksOffset=0,total,peak;error=XLS_IR_GRAPH_BUDGET;
+    if(module){if(!region(&scratchBytes,counts.children,sizeof(XL6_IrNodeId),_Alignof(XL6_IrNodeId),&stackOffset))goto failed;}
+    else if(!region(&scratchBytes,input->count,sizeof(uint32_t),_Alignof(uint32_t),&stackOffset) ||
+            !region(&scratchBytes,input->count,1,1,&marksOffset))goto failed;
+    total=scratchBytes;if(!add(&total,sizeof(graph_namespace)) || total>limit)goto failed;
+    if(scratchBytes){error=XLS_IR_GRAPH_MEMORY;scratch=xrtCalloc(1,scratchBytes);if(!scratch)goto failed;}
+    error=XLS_IR_GRAPH_INVALID;
+    uint32_t* stack=scratch ? (uint32_t*)((unsigned char*)scratch+stackOffset) : NULL;
+    if(module){
+        const XL6_IrNodeId* children=input->entries[root].children;
+        for(size_t i=0;i<counts.children;++i){
+            if(!(i%64) && cancelled && cancelled(user)){error=XLS_IR_GRAPH_CANCELLED;goto failed;}
+            if(!children[i] || children[i]>input->nodeLimit || children[i]==input->root)goto failed;
+            stack[i]=children[i];
+        }
+        if(!sortIds(stack,counts.children,cancelled,user)){error=XLS_IR_GRAPH_CANCELLED;goto failed;}
+        for(size_t i=1;i<counts.children;++i){
+            if(!(i%64) && cancelled && cancelled(user)){error=XLS_IR_GRAPH_CANCELLED;goto failed;}
+            if(stack[i]==stack[i-1])goto failed;
+        }
+    }else{
+        unsigned char* marks=(unsigned char*)scratch+marksOffset;
+        for(size_t i=0;i<input->count;++i){
+            if(!(i%64) && cancelled && cancelled(user)){error=XLS_IR_GRAPH_CANCELLED;goto failed;}
+            const xls_ir_node_capture_entry* e=&input->entries[i];
+            for(size_t j=0;j<e->node->childCount;++j){
+                if(!(j%64) && cancelled && cancelled(user)){error=XLS_IR_GRAPH_CANCELLED;goto failed;}
+                size_t child=entryFind(input,e->children[j]);
+                if(child==SIZE_MAX || child==root || marks[child] || input->entries[child].node->parent!=e->id)goto failed;
+                marks[child]=1;
+            }
+        }
+        size_t pending=1,seen=0;stack[0]=(uint32_t)root;
+        while(pending){
+            if(!(seen%64) && cancelled && cancelled(user)){error=XLS_IR_GRAPH_CANCELLED;goto failed;}
+            size_t local=stack[--pending];if(marks[local]==2 || seen>=input->count)goto failed;marks[local]=2;++seen;
+            const xls_ir_node_capture_entry* e=&input->entries[local];
+            for(size_t j=0;j<e->node->childCount;++j){
+                if(!(j%64) && cancelled && cancelled(user)){error=XLS_IR_GRAPH_CANCELLED;goto failed;}
+                size_t child=entryFind(input,e->children[j]);if(child==SIZE_MAX || pending>=input->count)goto failed;stack[pending++]=(uint32_t)child;
+            }
+        }
+        if(seen!=input->count)goto failed;
+    }
+    int budget=0;unit=unitCreate(&counts,input->root,NULL,limit-total,&budget);
+    if(!unit){error=budget ? XLS_IR_GRAPH_BUDGET : XLS_IR_GRAPH_MEMORY;goto failed;}
+    peak=total;if(!add(&peak,unit->bytes) || peak>limit){error=XLS_IR_GRAPH_BUDGET;goto failed;}
+    for(size_t i=0;i<input->count;++i){
+        if(!(i%64) && cancelled && cancelled(user)){error=XLS_IR_GRAPH_CANCELLED;goto failed;}
+        const xls_ir_node_capture_entry* e=&input->entries[i];
+        if(!copyValue(unit,i,e->id,e->node,e->children,&counts)){error=XLS_IR_GRAPH_INVALID;goto failed;}
+    }
+    if(counts.usedChildren!=counts.children || counts.usedPayload!=counts.payload){error=XLS_IR_GRAPH_INVALID;goto failed;}
+    if(cancelled && cancelled(user)){error=XLS_IR_GRAPH_CANCELLED;goto failed;}
+    if(cohort)unit->producer=namespaceRetain(cohort->producer);
+    else{unit->producer=xrtCalloc(1,sizeof(*unit->producer));if(!unit->producer){error=XLS_IR_GRAPH_MEMORY;goto failed;}xrtAtomic32Init(&unit->producer->references,1);}
+    if(cancelled && cancelled(user)){error=XLS_IR_GRAPH_CANCELLED;goto failed;}
+    xrtFree(scratch);if(peakBytes)*peakBytes=peak;if(status)*status=XLS_IR_GRAPH_OK;return unit;
+failed:
+    xrtFree(scratch);xlsIrNodeUnitRelease(unit);if(status)*status=error;return NULL;
 }
 xls_ir_node_graph* xlsIrNodeGraphCapture(const XL6_IrModule* source,size_t limit,
     int (*cancelled)(void*),void* user,xls_ir_graph_status* status)

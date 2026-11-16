@@ -1,0 +1,86 @@
+{
+  "schema": 1,
+  "date": "2026-11-16",
+  "stage": "M7b7a",
+  "scope": "Direct selected declaration nodes and native table rows;independent owned payloads and provenance cohorts",
+  "base": "ec8c8b89ebd38d0acbbcbc75d0f726c0a6a5e87b",
+  "ownedSources": {
+    "ide/src/analysis/ir_node_graph.c": "ac80ad11603a0ab2b85278258e2334980b4daebfd935182e6943b60ed3c58482",
+    "ide/src/analysis/ir_node_graph.h": "ad8231f304717a4fafd99fa2d95c1f007697e8dc6a1f04009822127271196395",
+    "ide/src/analysis/ir_table_graph.c": "fc963ad25ed009904367e8704741d106acda2812aeb3e52ef4544955c7d23a26",
+    "ide/src/analysis/ir_table_graph.h": "a42122d828628f747399e4204395a1f8e534a417f72d91ab2dc087f318358025",
+    "ide/tests/analysis_ir_unit_capture_test.c": "e2b7910c47dc36c847060faabb8625ed8dd3bcb203e67bc207dffaa6f2afc797",
+    "ide/tools/build_lsp_core.py": "cdd06b9b7939acf0c21b84a17c2894090514251a33042807187f2aacd1f9d56a",
+    "ide/tools/ir_table_schema.py": "94fb04a066265145aba4ffdbc12cfe343aba529694af7dde1186f00b49664bf3",
+    "ide/tools/check_ir_unit_capture_mutants.py": "d8f42e82b7c795f023d700f09ee19f091c22bf89bcf8498d33f7fe79f79ccd1f",
+    "ide/docs/lsp-ir-unit-capture.md": "4e9e2cd0569799ece5486b92baa418c167f9ee7e1a7845292af1906380fbe5c0",
+    "ide/docs/lsp-development.md": "705d7874f76d77599234936017d9fb87e8c490868e43d42744b3853eae4aaa45"
+  },
+  "build": {
+    "path": "F:\\codex-builds-xlang-lsp-20261116\\ir-unit-capture\\native-v1\\build-result.json",
+    "sha256": "4b053894a90823358f5822d83d41054b9fad983fd362b8771efe8214b6faf8a1",
+    "freshPhysicalObjects": 368,
+    "mappedObjects": 367,
+    "inputs": 1672,
+    "nativeProgramsBuilt": 226,
+    "nativeProgramsRun": 10
+  },
+  "verification": {
+    "componentChecks": 346793,
+    "completeNativeVerifierJsonOracles": 134,
+    "tableKinds": 107,
+    "compiledOmissions": 10,
+    "positiveControls": 1,
+    "normalServiceDoesNotLinkNewEntryPoints": true
+  },
+  "materials": {
+    "source": {
+      "archive": {
+        "path": "dev/release-materials/sources/lsp-ir-unit-capture-20261116/inputs-v2.tar.gz",
+        "sha256": "f4cb62ec43bf8ccaa8a958d377295efe8ec52c64cdd01f00f856110b1a00d319",
+        "bytes": 11236863
+      },
+      "manifest": {
+        "path": "dev/release-materials/sources/lsp-ir-unit-capture-20261116/inputs-v2.tar.gz.manifest.json",
+        "sha256": "0b95b044d53006d080b1ec11e67588964a4ebbc7229e9ec20dc7a3e102e2866d",
+        "bytes": 550220
+      },
+      "entries": 1682,
+      "uniquePayloads": 1176
+    },
+    "validation": {
+      "archive": {
+        "path": "dev/release-materials/provenance/lsp-ir-unit-capture-20261116/validation-v2.tar.gz",
+        "sha256": "748fd3cea8d4764171ed0b5c4d5a7aa92f4927a322ff33e81f5246e51cbcac59",
+        "bytes": 38438988
+      },
+      "manifest": {
+        "path": "dev/release-materials/provenance/lsp-ir-unit-capture-20261116/validation-v2.tar.gz.manifest.json",
+        "sha256": "3823123e13f4e74fa12fa67b70af78f26e2f6f2882f38446b600b1d06aa52ae3",
+        "bytes": 26483
+      },
+      "entries": 87,
+      "uniquePayloads": 65
+    }
+  },
+  "defaultRuntime": {
+    "xlang_ide.exe": "038f370c000ce6ca2c4d7de5331ffa0b7734df9e32a9359e7c45aa585b4cfc8b",
+    "xlang-ls.exe": "3b47b0572b1dc5ad91cbfda183c1b44a1b71938e2eee088da42f16769a6a0b57",
+    "xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3",
+    "update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2"
+  },
+  "runtimeChangesByConcurrentWork": {
+    "changed": [],
+    "added": []
+  },
+  "normalAnalysisIntegrationEnabled": false,
+  "performanceQualified": false,
+  "defaultRuntimeReplaced": false,
+  "externalPublishPerformed": false,
+  "goalComplete": false,
+  "followUp": "Stable0.108 package build and paired IDE acceptance;selective final IR production and eligibility remain separate ongoing work"
+}

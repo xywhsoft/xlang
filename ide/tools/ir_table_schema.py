@@ -282,5 +282,10 @@ def generate_test(headers,path):
          'm->persistenceRestoreFields[0].classField=0;m->persistenceRestoreFields[0].sourceKey=m->classFields[0].jsonPersistenceKeyLiteral;',
          'm->persistenceRestoreClaims[0].classField=0;m->persistenceRestoreClaims[0].key=m->classFields[0].xlonPersistenceKeyLiteral;',
          'return 1;}']
+ lines+=['#ifdef XLS_IR_UNIT_CAPTURE_TEST',
+         'static const void* tableFixtureRows(const XL6_IrModule* m,size_t table,size_t* count,size_t* width,int* scalar){switch(table){']
+ for i,t in enumerate(schema.tables):
+  lines.append('case '+str(i)+':*count=m->'+t['count']+';*width=sizeof('+t['type']+');*scalar='+('1'if t['scalar']else'0')+';return m->'+t['field']+';')
+ lines+=['default:*count=*width=0;*scalar=0;return NULL;}}','#endif']
  path=Path(path);path.parent.mkdir(parents=True,exist_ok=True);path.write_text('\n'.join(lines)+'\n',encoding='utf8')
  return metadata

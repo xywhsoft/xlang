@@ -10,6 +10,29 @@ typedef enum xls_ir_graph_status {
     XLS_IR_GRAPH_MEMORY, XLS_IR_GRAPH_CANCELLED
 } xls_ir_graph_status;
 
+typedef struct xls_ir_node_capture_entry {
+    XL6_IrNodeId id;const XL6_IrNode* node;const XL6_IrNodeId* children;
+} xls_ir_node_capture_entry;
+typedef struct xls_ir_node_capture_input {
+    /* Strictly increasing native IDs;nodes and child lists are call borrows.
+     * firstChild is preserved as a source value,not used to index children. */
+    const xls_ir_node_capture_entry* entries;size_t count,nodeLimit;
+    XL6_IrNodeId root,moduleRoot;
+} xls_ir_node_capture_input;
+/* Capture exactly one root-level declaration subtree,or just the module
+ * root with its external child IDs. No whole-module arrays/index/scan.
+ * Input is a validated immutable native producer fragment. Structural
+ * closure/parent/order/duplicate/reachability checks do not prove semantics.
+ * Optional cohort shares only its provenance token;caller proves the same
+ * immutable source namespace and holds it during capture. No cohort unit,
+ * graph,AST or earlier result is retained. NULL starts a new token.
+ * Budget/peak include unit,scratch and one token (conservatively also when
+ * shared),not input/allocator/RSS. Zero declines;failure leaves peak zero.
+ * A single bulk payload scan/copy is not byte-preemptible. */
+xls_ir_node_unit* xlsIrNodeUnitCapture(const xls_ir_node_capture_input*,
+    const xls_ir_node_unit* cohort,size_t bytes,int (*cancelled)(void*),void*,
+    xls_ir_graph_status*,size_t* peakBytes);
+
 /* Immutable final-node ownership,not a semantic or freshness certificate.
  * Caller holds a validated,immutable native module throughout capture. All
  * referenced nodes and spans are checked as a rooted tree. Native node,

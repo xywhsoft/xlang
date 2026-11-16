@@ -96,7 +96,7 @@ static int keyAlias(const XL6_IrModule* m,const table_descriptor* d,const void* 
     default:return 1;
     }
     if(!key)return 1;
-    if(field>=m->classFieldCount || !m->classFields)return 0;
+    if(!m || field>=m->classFieldCount || !m->classFields)return 0;
     const XL6_IrClassField* target=&m->classFields[field];
     if(key==target->name)*code=1;
     else if(key==target->jsonPersistenceKeyLiteral)*code=2;
@@ -121,6 +121,36 @@ static xls_ir_table_unit* unitCreate(const table_descriptor* d,const void* value
         if(!d->pack(&fill,value) || fill.failed || fill.used!=measure.used){xrtFree(u);return NULL;}
     }else if(count)memcpy((unsigned char*)u+offset,value,count*d->width);
     xrtAtomic32Init(&u->references,1);u->producer=namespaceRetain(producer);return u;
+}
+size_t xlsIrTableSchemaCount(void){return sizeof(tableDescriptors)/sizeof(*tableDescriptors);}
+size_t xlsIrTableSchemaFind(const char* name)
+{if(name)for(size_t i=0;i<xlsIrTableSchemaCount();++i)if(!strcmp(name,tableDescriptors[i].name))return i;return SIZE_MAX;}
+const char* xlsIrTableSchemaName(size_t table){return table<xlsIrTableSchemaCount() ? tableDescriptors[table].name : NULL;}
+size_t xlsIrTableSchemaRowBytes(size_t table){return table<xlsIrTableSchemaCount() ? tableDescriptors[table].width : 0;}
+xls_ir_table_unit* xlsIrTableUnitCapture(const xls_ir_table_capture_input* input,
+    const xls_ir_table_unit* cohort,size_t limit,int(*cancelled)(void*),void* user,
+    xls_ir_graph_status* status,size_t* peakBytes)
+{
+    xls_ir_table_unit* unit=NULL;xls_ir_graph_status error=XLS_IR_GRAPH_INVALID;if(peakBytes)*peakBytes=0;
+    if(!input || input->table>=xlsIrTableSchemaCount() || (cohort && !cohort->producer))goto failed;
+    const table_descriptor* d=&tableDescriptors[input->table];
+    if((d->scalar && input->first) || (!d->scalar && (input->count!=1 || input->first==SIZE_MAX)) ||
+       (input->count && !input->rows))goto failed;
+    if(cancelled && cancelled(user)){error=XLS_IR_GRAPH_CANCELLED;goto failed;}
+    error=XLS_IR_GRAPH_BUDGET;if(limit<sizeof(table_namespace))goto failed;
+    unsigned alias=0;
+    if(!d->scalar && !keyAlias(input->aliases,d,input->rows,&alias)){error=XLS_IR_GRAPH_INVALID;goto failed;}
+    int budget=0;unit=unitCreate(d,input->rows,input->count,input->first,NULL,limit-sizeof(table_namespace),alias,&budget);
+    if(!unit){error=budget ? XLS_IR_GRAPH_BUDGET : XLS_IR_GRAPH_MEMORY;goto failed;}
+    if(cancelled && cancelled(user)){error=XLS_IR_GRAPH_CANCELLED;goto failed;}
+    if(cohort)unit->producer=namespaceRetain(cohort->producer);
+    else{unit->producer=xrtCalloc(1,sizeof(*unit->producer));if(!unit->producer){error=XLS_IR_GRAPH_MEMORY;goto failed;}xrtAtomic32Init(&unit->producer->references,1);}
+    if(cancelled && cancelled(user)){error=XLS_IR_GRAPH_CANCELLED;goto failed;}
+    if(peakBytes)*peakBytes=unit->bytes+sizeof(table_namespace);
+    if(status)*status=XLS_IR_GRAPH_OK;
+    return unit;
+failed:
+    xlsIrTableUnitRelease(unit);if(status)*status=error;return NULL;
 }
 xls_ir_table_graph* xlsIrTablesCapture(const XL6_IrModule* source,size_t limit,
     int(*cancelled)(void*),void* user,xls_ir_graph_status* status)
@@ -180,6 +210,7 @@ const char* xlsIrTableUnitName(const xls_ir_table_unit* u){return u ? u->descrip
 const void* xlsIrTableUnitRow(const xls_ir_table_unit* u,size_t row)
 {return u && row<u->count ? (const unsigned char*)u+u->valueOffset+row*u->descriptor->width : NULL;}
 const void* xlsIrTableUnitProducer(const xls_ir_table_unit* u){return u ? u->producer : NULL;}
+unsigned xlsIrTableUnitKeyAlias(const xls_ir_table_unit* u){return u ? u->keyAlias : 0;}
 static int restoreAlias(XL6_IrModule* m,unsigned kind,void* row,unsigned code)
 {
     if(!code)return 1;
