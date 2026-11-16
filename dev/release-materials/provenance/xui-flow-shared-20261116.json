@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "date": "2026-11-16",
+  "scope": "Native FlowGraph shared ownership foundation and canvas handoff; separate complete Workflow/language/SDK delivery still required",
+  "nativeCommits": [
+    "d2a65458",
+    "719d61a2"
+  ],
+  "nativeHead": "719d61a2b37ad220658bfe2d47357ab7e1ece5ae",
+  "canonicalXrtCommit": "6305aa546828d40a0b081d8d68d21718cc317d51",
+  "canonicalXrtHeaderSha256": "1567b04ec597aa0183ad198c413610dda09075704209edccf515a8c91add5726",
+  "shippingDelivery": false,
+  "releaseInstalled": false,
+  "nativeSdkRebuilt": false,
+  "safeLanguageModelBindingsComplete": false,
+  "workflowSharedOwnershipComplete": false,
+  "networkTests": false,
+  "graphicsDeviceTests": false,
+  "gates": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-shared-native-win-r5\\results.json",
+      "sha256": "1dd5ba56c4670731461354139730024db86c3310869943d3c06e80254def79f0",
+      "steps": 33
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-shared-native-linux-r1\\results.json",
+      "sha256": "a11da55cf725c9839088452ebc495fd75abffddb05815e7b6ced90da4026afd5",
+      "steps": 33
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-shared-canvas-win-r2\\results.json",
+      "sha256": "76f8ffb1408fa22b909d769174531ec25bf21947754cf05927c9b04d1a22f15e",
+      "steps": 8
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\flow-shared-canvas-linux-r1\\results.json",
+      "sha256": "eeec9c24c09edc756709ebd79a640e0ffaab5986563026b0f3d67d407cda3b28",
+      "steps": 8
+    }
+  ],
+  "foundationStepsPerPlatform": 33,
+  "canvasStepsPerPlatform": 8,
+  "nativeValidationDocument": "D:/GIT/xge/docs/validation/XUI_FLOW_GRAPH_SHARED_20261116.md",
+  "nativeValidationDocumentSha256": "261afa38dfec344c31e2264e4daefd38c86446c60927e53a0980e99375ecea68",
+  "upstreamHeadAtEvidenceReview": "09d543a3e29f3113d258b1f58718345de867e06e",
+  "upstreamRepinAndMatchedBuildRequired": true,
+  "upstreamUncommittedChangesExcluded": true
+}
