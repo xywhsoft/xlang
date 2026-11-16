@@ -20,12 +20,13 @@ def main():
     parser.add_argument('--server',type=Path,required=True)
     parser.add_argument('--baseline',type=Path)
     parser.add_argument('--output',type=Path,required=True)
+    parser.add_argument('--experimental-node-views',action='store_true',help='Expect the opt-in sharing profile;default expects independent nodes and full verification.')
     args=parser.parse_args();server=args.server.resolve(strict=True);out=args.output.resolve();out.mkdir(parents=True,exist_ok=False)
     variants=([('baseline',args.baseline.resolve(strict=True))]if args.baseline else[])+[('candidate',server)]
     protected={str(p):sha(p)for _,p in variants}
     for name in ['check_lsp_ir_node_view.py','benchmark_lsp_analysis.py','check_lsp_module_semantics.py','check_lsp_automatic_diagnostics.py']:
         p=Path(__file__).with_name(name).resolve();protected[str(p)]=sha(p)
-    record=dict(status='running',scope=__doc__.strip(),queries=[],processes=[],protected=protected,performanceQualified=False)
+    record=dict(status='running',scope=__doc__.strip(),queries=[],processes=[],protected=protected,performanceQualified=False,experimentalNodeViews=args.experimental_node_views)
     def save():(out/'result.json').write_text(json.dumps(record,indent=2)+'\n',encoding='utf8')
     answers={};save()
     try:
@@ -65,16 +66,21 @@ def main():
                             else:answers[key]=facts
                             work=result['analysis']['lastBuildPersistentIr']
                             if variant=='candidate':
+                                if not args.experimental_node_views:
+                                    assert 'nodesShared'not in work and 'certificatesReused'not in work,work
                                 if step in [1,2,4,6,7,9]:
-                                    assert work['reused']==work['tablesShared']==work['certificatesReused']==1 and work['nodesShared']>count,work
-                                    assert not any(work[k]for k in ['built','verified','nodesCopied']),work
+                                    if args.experimental_node_views:
+                                        assert work['reused']==work['tablesShared']==work['certificatesReused']==1 and work['nodesShared']>count,work
+                                        assert not any(work[k]for k in ['built','verified','nodesCopied']),work
+                                    else:
+                                        assert work['reused']==work['tablesShared']==work['verified']==1 and work['nodesCopied']>count and not work['built'],work
                                 elif step==3:
                                     assert work['reused']==work['verified']==1 and work['nodesCopied']>count,work
-                                    assert not work['nodesShared']and not work['certificatesReused'],work
+                                    assert not work.get('nodesShared',0)and not work.get('certificatesReused',0),work
                                 elif step in [0,5,8]:
-                                    assert work['built']==work['verified']==1 and not work['nodesShared']and not work['certificatesReused'],work
+                                    assert work['built']==work['verified']==1 and not work.get('nodesShared',0)and not work.get('certificatesReused',0),work
                                 elif repeat:assert work==previous,work
-                                elif step==11:assert not work['certificatesReused'],work
+                                elif step==11:assert not work.get('certificatesReused',0),work
                             if valid:previous=work
                             record['queries'].append(dict(case=case,variant=variant,step=step,result=result));save()
                     finally:

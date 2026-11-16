@@ -74,7 +74,12 @@ static int sameViewFailures(void)
  size_t baselineLive=tracked;char* expected=dump(xlsFrontendIrResultModule(before));CHECK(expected);
  faultSeen=0;faultActive=1;
  xls_ir_result* warm=xlsFrontendIrResultBuildPersistent(root,&diags,before,32u*1024u*1024u,128u*1024u,32u*1024u*1024u);faultActive=0;
+#if XLS_EXPERIMENTAL_IR_NODE_VIEWS
  CHECK(warm && !diags.count && xlsFrontendIrResultPersistentWork(warm).certificatesReused==1);
+#else
+ CHECK(warm && !diags.count && xlsFrontendIrResultPersistentWork(warm).reused==1 &&
+       xlsFrontendIrResultPersistentWork(warm).verified==1 && xlsFrontendIrResultPersistentWork(warm).nodesCopied==xlsFrontendIrResultModule(before)->nodeCount);
+#endif
  size_t sites=faultSeen;CHECK(sites>0 && sites<10000);xlsFrontendIrResultDestroy(warm);CHECK(tracked==baselineLive);
  for(size_t i=1;i<=sites;++i){
   faultSeen=faultDenied=0;faultAt=i;faultActive=1;

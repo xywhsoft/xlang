@@ -23,6 +23,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--server', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--expect-server-version', help='Optional exact release identity; capability checks always run.')
     args = parser.parse_args()
     server = args.server.resolve(strict=True)
     output = args.output.resolve()
@@ -48,7 +49,9 @@ def main():
                     automaticDiagnostics=False, checkOnSave=False)), 1)
                 reply, _ = client.reply(1)
                 init = reply['result']
-                assert init['serverInfo']['version'] == '0.101', init
+                assert init['serverInfo']['name']=='xlang-ls' and init['serverInfo']['version'], init
+                if args.expect_server_version:
+                    assert init['serverInfo']['version']==args.expect_server_version, init
                 assert init['capabilities']['signatureHelpProvider'] == dict(
                     triggerCharacters=['(', ','], retriggerCharacters=[')']), init
                 client.send('initialized', {})

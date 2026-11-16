@@ -4,12 +4,14 @@
 #include "analysis/frontend_ir_memo.h"
 typedef struct xls_ir_unit xls_ir_unit;
 typedef struct xls_ir_persistent_storage xls_ir_persistent_storage;
+#if XLS_EXPERIMENTAL_IR_NODE_VIEWS
 typedef struct xls_ir_node_storage {
     xatomic32 references;
     uint32 certified;
     XL6_IrNode* nodes;
     size_t count,capacity;
 } xls_ir_node_storage;
+#endif
 struct xls_ir_result {
     XL6_IrModule module;
     xls_ir_memo* memo;
@@ -18,7 +20,9 @@ struct xls_ir_result {
     uint64_t textNodes,textBytes;
     size_t storageLimit;
     xls_ir_persistent_storage* persistent;
+#if XLS_EXPERIMENTAL_IR_NODE_VIEWS
     xls_ir_node_storage* nodeStorage;
+#endif
     xatomic32 persistentState;
     struct xls_typed_module* input;
     xls_ir_persistent_work persistentWork;

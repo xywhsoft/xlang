@@ -1,0 +1,12 @@
+#ifndef XLANG_ANALYSIS_IR_PROFILE_H
+#define XLANG_ANALYSIS_IR_PROFILE_H
+/*0.107's exact-coordinate sharing did not pass its latency gate. Preserve
+ * the implementation for development;shipping builds use the0.106 path.
+ * This changes private layouts:rebuild every consumer when overriding it. */
+#ifndef XLS_EXPERIMENTAL_IR_NODE_VIEWS
+#define XLS_EXPERIMENTAL_IR_NODE_VIEWS 0
+#endif
+#if XLS_EXPERIMENTAL_IR_NODE_VIEWS != 0 && XLS_EXPERIMENTAL_IR_NODE_VIEWS != 1
+#error XLS_EXPERIMENTAL_IR_NODE_VIEWS must be0or1
+#endif
+#endif

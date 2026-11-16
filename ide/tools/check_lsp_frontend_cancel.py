@@ -41,6 +41,7 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--server', type=Path, required=True)
     p.add_argument('--output', type=Path, required=True)
+    p.add_argument('--expect-server-version', help='Optional exact release identity; cancellation and worker checks always run.')
     args = p.parse_args()
     server = args.server.resolve(strict=True)
     out = args.output.resolve()
@@ -65,7 +66,9 @@ def main():
                 try:
                     c.send('initialize', dict(capabilities={}, initializationOptions=dict(automaticDiagnostics=False, checkOnSave=False)), 1)
                     init, _ = c.reply(1)
-                    assert init['result']['serverInfo']['version'] == '0.101', init
+                    assert init['result']['serverInfo']['name']=='xlang-ls' and init['result']['serverInfo']['version'], init
+                    if args.expect_server_version:
+                        assert init['result']['serverInfo']['version']==args.expect_server_version, init
                     c.send('initialized', {})
                     c.open(path, heavy, 1)
                     c.send(method, params(method, path, heavy, 1), 10)

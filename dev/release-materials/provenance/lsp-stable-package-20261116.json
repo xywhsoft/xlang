@@ -1,0 +1,217 @@
+{
+  "schema": 1,
+  "date": "2026-11-16",
+  "stage": "M7b7b",
+  "scope": "Conservative0.108 independent-node profile with clean native and matched IDE build,full functional acceptance and local delivery",
+  "base": "1c9241f1c7025b5d053bda15da25aeed72b4dbd7",
+  "ownedSources": {
+    "ide/src/analysis/check.c": "416faa7e9ad63ec26ac913d131d3040ace2bb9e372ac63fe9accf2d0928edf20",
+    "ide/src/analysis/check_ir.h": "09b310ad9c457d58c867808aa8ca9e933600f13771cf167a15bfd990a1cf8f82",
+    "ide/src/analysis/frontend_ir_memo.h": "b3852cf5badc30193f9b417eaf6d7436af80799647414f3faf99d48b2118b740",
+    "ide/src/analysis/frontend_ir_memo.inc": "31ac96564fe39aaceff184c5bca2271d14b6c51ab4e7fb72be6be60fccb3faef",
+    "ide/src/analysis/frontend_ir_owner.inc": "4e6513caab1d14f6990ab9527e5352f1531e0c3e23193ea973e7220407e6f37a",
+    "ide/src/analysis/frontend_ir_persistent.inc": "085327cdbfa092d3b468fc0cd04ae395913e111ca247edb927d82164244e93e0",
+    "ide/src/analysis/ir_profile.h": "a8fab318c4f1c787454ed61a27b9bad21ebd53d9f07dc8c893b74f81ed010df1",
+    "ide/src/server/xlang_ls.c": "47ff0630c1a18931fa1a34b834d5e3ae10e6512a145d03c110cdac44fe33a136",
+    "ide/src/services/language_snapshot.c": "d524ab2c246bed35188f2b90977cad37ceed31b3eb092027d280b83e968437b3",
+    "ide/tests/analysis_ir_node_view_test.c": "999d3a48ec51a259a12e6eee46b24335d29bc47fb5f69aa51443a12cdf7e886a",
+    "ide/tests/analysis_ir_persistent_fault_test.c": "61f372ab34bc049c0de150ffc644401bbcc293c3207b04110470d448f5aa1abe",
+    "ide/tests/analysis_typed_module_test.c": "2e82182ce34d2a490256b9de508ea31c5a51e2af2bdc57ae493ba4af2207cbbf",
+    "ide/tools/check_lsp_ir_node_view.py": "87cb3b4b0e78a3ddbc42b0ecdc34a2c323f892cbdba6164aec403445c7faf06b",
+    "ide/tools/check_lsp_signature_help.py": "b16934bb8dafe3921800ed05639f876399a537729e79829fe435d4ab10e55f70",
+    "ide/tools/check_lsp_frontend_cancel.py": "82b5de9e4663d9e7388acd7cb1b0ab9d37da6c4fb055e7a3853610c563626735",
+    "ide/docs/lsp-stable-package.md": "5707826f123a6a720b269b1cc3582e419806114fcd62a2bb20474c9b72010b80",
+    "ide/docs/lsp-development.md": "18fbc4389b3526fad560c6c875ca3eacce6f7a12e28327194c6a9168c01fd96f"
+  },
+  "materials": {
+    "source": {
+      "archive": {
+        "path": "dev/release-materials/sources/lsp-stable-package-20261116/inputs.tar.gz",
+        "sha256": "83156bbb1f7476c1774bdf2aad77a524e3c3c083930afd5f429e2cc749da8bdf",
+        "bytes": 25902635
+      },
+      "manifest": {
+        "path": "dev/release-materials/sources/lsp-stable-package-20261116/inputs.tar.gz.manifest.json",
+        "sha256": "3297420a92fa0d32e769618efa2a1ba2607e670d97ec67daca56e32a9f3aa2c8",
+        "bytes": 888840
+      },
+      "entries": 2629,
+      "uniquePayloads": 1611
+    },
+    "validation": {
+      "archive": {
+        "path": "dev/release-materials/provenance/lsp-stable-package-20261116/validation-and-programs.tar.gz",
+        "sha256": "aab6597ab872289a8c8384797ec6b74616f9f75df3adbc890a6f2a9011f7241b",
+        "bytes": 169201381
+      },
+      "manifest": {
+        "path": "dev/release-materials/provenance/lsp-stable-package-20261116/validation-and-programs.tar.gz.manifest.json",
+        "sha256": "3789206aee8f5517c74570a83f61457bdd98558ac3546f2e1d4f0f8dc6a76ea4",
+        "bytes": 1027212
+      },
+      "entries": 2785,
+      "uniquePayloads": 1863
+    }
+  },
+  "externalPaths": [
+    "F:\\codex-builds-xlang-lsp-20261116\\stable108",
+    "F:/codex-builds-xlang-lsp-20261116/stable-package-materials"
+  ],
+  "materialDependencies": [
+    {
+      "index": "dev/release-materials/provenance/lsp-ir-unit-capture-20261116.json",
+      "sha256": "552fd2ef6f262cdfe2292d5f308b491aca81a1a4da83893be95a7fed601b853e"
+    },
+    {
+      "index": "dev/release-materials/provenance/lsp-automatic-workspace-20261116.json",
+      "sha256": "b919a6893e1d8aa08b5ba98e06d21e04c6b8e2b94cd7a929440a00e90068c1f4"
+    },
+    {
+      "index": "dev/release-materials/provenance/lsp-workspace-symbol-ui-20261109.json",
+      "sha256": "5377f9e77720d0e452aa71674b00b3628f10903448580e5b573c6b4fb46907c7",
+      "purpose": "Original controlled legacy capability recipe/source;new matching fixture keeps its exact two policy/advertisement changes"
+    }
+  ],
+  "runtime": {
+    "xlang_ide.exe": "7164c29f45c438f7d788457283ae6404178e0d2b779c3cd151eb374b75a02cf1",
+    "xlang-ls.exe": "a1ac7527301e48ea114a9016d7a4a7fd15d69f080d7c0c6f57b63569833af972",
+    "xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3",
+    "update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2"
+  },
+  "verification": {
+    "freshPhysicalObjects": 368,
+    "mappedNativeObjects": 367,
+    "nativeInputs": 1673,
+    "nativeProgramsBuilt": 226,
+    "nativeProgramsRun": 226,
+    "protocolSuites": 33,
+    "guiObjects": 140,
+    "guiInputs": 939,
+    "pairedGuiCases": 55,
+    "editorModes": 47,
+    "preprocessedEquivalenceCases": 8,
+    "directUnitChecks": 346793,
+    "directUnitNativeOracles": 134,
+    "originalNamesInputAndRendersPassed": true,
+    "originalNameProtocolQueries": 78,
+    "runtimePaths": 7094,
+    "onlyTwoRuntimeProgramsChanged": true,
+    "obsoleteTestVersionPinsReplacedWithExplicit108": true,
+    "priorDriverFailuresRetained": true,
+    "legacyCapabilityFixtureRebuiltAgainstCurrentCore": true,
+    "historicalFixtureBinaryRestored": false,
+    "completedGuiInvocationsRetainedWithoutReexecution": 54
+  },
+  "defaultRuntimeReplaced": true,
+  "experimentalNodeViews": false,
+  "normalSelectiveFinalIrEnabled": false,
+  "functionalReleaseAcceptancePassed": true,
+  "performance": {
+    "status": "completed",
+    "runs": [
+      {
+        "name": "aa",
+        "command": [
+          "python",
+          "-u",
+          "-X",
+          "utf8",
+          "-B",
+          "D:\\GIT\\x-lang\\ide\\tools\\benchmark_lsp_analysis.py",
+          "--baseline",
+          "D:\\GIT\\x-lang\\release\\win_x64\\.stable108-performance-ls.exe",
+          "--calibrate",
+          "--output",
+          "F:\\codex-builds-xlang-lsp-20261116\\stable108\\performance-aa-v4",
+          "--isolated-processes",
+          "--cpu-interaction-chains",
+          "--small-generations",
+          "128",
+          "--pairs",
+          "4",
+          "--edits",
+          "literal,declaration"
+        ],
+        "exit": 2,
+        "status": "calibration-failed",
+        "queries": 4608,
+        "processes": 64,
+        "failedGates": 2,
+        "error": null
+      }
+    ],
+    "regressionObservationQualified": false,
+    "wholeGoalPerformanceQualified": false
+  },
+  "wholeGoalPerformanceQualified": false,
+  "held107Promotion": false,
+  "frontendRebasedToConcurrentEngine": false,
+  "engineRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "formalRelease": false,
+  "goalComplete": false,
+  "sharedChanges": {
+    "ignoreAnchor": "!/dev/release-materials/provenance/lsp-ir-unit-capture-20261116.json",
+    "ignoreLine": "!/dev/release-materials/provenance/lsp-stable-package-20261116.json",
+    "deliveryProperty": "localIdeLspRuntime",
+    "deliveryBefore": {
+      "schema": 1,
+      "stage": "M7b6s",
+      "directory": "release/win_x64",
+      "provenance": "dev/release-materials/provenance/lsp-automatic-workspace-20261116.json",
+      "languageServerVersion": "0.106",
+      "displayVersion": "0.6.2",
+      "ideRuntimeLibrary": "xlang_ide_xge.dll",
+      "runtime": {
+        "update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2",
+        "xlang-ls.exe": "3b47b0572b1dc5ad91cbfda183c1b44a1b71938e2eee088da42f16769a6a0b57",
+        "xlang_ide.exe": "038f370c000ce6ca2c4d7de5331ffa0b7734df9e32a9359e7c45aa585b4cfc8b",
+        "xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418"
+      },
+      "preservedEngine": {
+        "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+        "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+        "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+        "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+      },
+      "formalRelease": false,
+      "externalPublishPerformed": false
+    },
+    "deliveryAfter": {
+      "schema": 1,
+      "stage": "M7b7b",
+      "directory": "release/win_x64",
+      "provenance": "dev/release-materials/provenance/lsp-stable-package-20261116.json",
+      "languageServerVersion": "0.108",
+      "displayVersion": "0.6.2",
+      "ideRuntimeLibrary": "xlang_ide_xge.dll",
+      "profile": "conservative-independent-nodes",
+      "experimentalNodeViews": false,
+      "normalSelectiveFinalIrEnabled": false,
+      "runtime": {
+        "xlang_ide.exe": "7164c29f45c438f7d788457283ae6404178e0d2b779c3cd151eb374b75a02cf1",
+        "xlang-ls.exe": "a1ac7527301e48ea114a9016d7a4a7fd15d69f080d7c0c6f57b63569833af972",
+        "xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+        "update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2"
+      },
+      "preservedEngine": {
+        "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+        "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+        "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+        "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
+      },
+      "functionalAcceptancePassed": true,
+      "originalProgramNamesPaired": true,
+      "regressionObservationQualified": false,
+      "wholeLspPerformanceQualified": false,
+      "formalRelease": false,
+      "externalPublishPerformed": false
+    }
+  },
+  "nextWork": "Other table relocation,dependency eligibility and selective final IR production;large/endurance/platform and whole-goal performance acceptance"
+}

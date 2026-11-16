@@ -7274,17 +7274,20 @@
   },
   "localIdeLspRuntime": {
     "schema": 1,
-    "stage": "M7b6s",
+    "stage": "M7b7b",
     "directory": "release/win_x64",
-    "provenance": "dev/release-materials/provenance/lsp-automatic-workspace-20261116.json",
-    "languageServerVersion": "0.106",
+    "provenance": "dev/release-materials/provenance/lsp-stable-package-20261116.json",
+    "languageServerVersion": "0.108",
     "displayVersion": "0.6.2",
     "ideRuntimeLibrary": "xlang_ide_xge.dll",
+    "profile": "conservative-independent-nodes",
+    "experimentalNodeViews": false,
+    "normalSelectiveFinalIrEnabled": false,
     "runtime": {
-      "update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2",
-      "xlang-ls.exe": "3b47b0572b1dc5ad91cbfda183c1b44a1b71938e2eee088da42f16769a6a0b57",
-      "xlang_ide.exe": "038f370c000ce6ca2c4d7de5331ffa0b7734df9e32a9359e7c45aa585b4cfc8b",
-      "xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418"
+      "xlang_ide.exe": "7164c29f45c438f7d788457283ae6404178e0d2b779c3cd151eb374b75a02cf1",
+      "xlang-ls.exe": "a1ac7527301e48ea114a9016d7a4a7fd15d69f080d7c0c6f57b63569833af972",
+      "xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+      "update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2"
     },
     "preservedEngine": {
       "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
@@ -7292,6 +7295,10 @@
       "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
       "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3"
     },
+    "functionalAcceptancePassed": true,
+    "originalProgramNamesPaired": true,
+    "regressionObservationQualified": false,
+    "wholeLspPerformanceQualified": false,
     "formalRelease": false,
     "externalPublishPerformed": false
   },

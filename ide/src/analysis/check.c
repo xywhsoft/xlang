@@ -478,9 +478,13 @@ xls_check_ir_derived_work xlsSemanticCheckIrDerivedWork(const xls_semantic_check
 xls_check_ir_persistent_work xlsSemanticCheckIrPersistentWork(const xls_semantic_check* r)
 {
     xls_ir_persistent_work w=xlsFrontendIrResultPersistentWork(r ? r->cachedIr : NULL);
+#if XLS_EXPERIMENTAL_IR_NODE_VIEWS
     return (xls_check_ir_persistent_work){.built=w.built,.reused=w.reused,.captured=w.captured,.verified=w.verified,
         .nodesCopied=w.nodesCopied,.nodesShared=w.nodesShared,.tablesShared=w.tablesShared,.certificatesReused=w.certificatesReused,
         .keyBytes=w.keyBytes,.metadataBytes=w.metadataBytes,.declined=w.declined,.prepared=r ? r->irPrepared : 0};
+#else
+    return (xls_check_ir_persistent_work){w.built,w.reused,w.captured,w.verified,w.nodesCopied,w.tablesShared,w.keyBytes,w.metadataBytes,w.declined,r ? r->irPrepared : 0};
+#endif
 }
 size_t xlsSemanticCheckIrDependencies(const xls_semantic_check* r,uint64_t function)
 {return r && !invalid(r) && r->accepted ? xlsFrontendIrResultDependencies(r->cachedIr,function) : 0;}

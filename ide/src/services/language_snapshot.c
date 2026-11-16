@@ -105,7 +105,11 @@ static int persistentIrStats(xvalue* stats,xls_check_ir_persistent_work work)
  xvalue* value=xrtValueObject();int okay=value!=NULL;
 #define PERSISTENT_IR_FIELD(field) okay=okay && put(value,#field,xrtValueInt((int64)work.field))
  PERSISTENT_IR_FIELD(built);PERSISTENT_IR_FIELD(reused);PERSISTENT_IR_FIELD(captured);PERSISTENT_IR_FIELD(verified);
+#if XLS_EXPERIMENTAL_IR_NODE_VIEWS
  PERSISTENT_IR_FIELD(nodesCopied);PERSISTENT_IR_FIELD(nodesShared);PERSISTENT_IR_FIELD(tablesShared);PERSISTENT_IR_FIELD(certificatesReused);PERSISTENT_IR_FIELD(keyBytes);
+#else
+ PERSISTENT_IR_FIELD(nodesCopied);PERSISTENT_IR_FIELD(tablesShared);PERSISTENT_IR_FIELD(keyBytes);
+#endif
  PERSISTENT_IR_FIELD(metadataBytes);PERSISTENT_IR_FIELD(declined);PERSISTENT_IR_FIELD(prepared);
 #undef PERSISTENT_IR_FIELD
  if(okay){okay=put(stats,"lastBuildPersistentIr",value);value=NULL;}xrtValueRelease(value);return okay;

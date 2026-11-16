@@ -1,5 +1,6 @@
 #ifndef XLANG_ANALYSIS_CHECK_IR_H
 #define XLANG_ANALYSIS_CHECK_IR_H
+#include "analysis/ir_profile.h"
 #include "analysis/check.h"
 /* Creation provenance of optional raw function fragments,not current-query
  * work. Only eligible top-level candidates are counted. Capacities are
@@ -20,7 +21,11 @@ xls_check_ir_derived_work xlsSemanticCheckIrDerivedWork(const xls_semantic_check
  * Exact-result hits retain it. Fresh/non-owner paths report zero. Metadata
  * bounds exclude model/node/raw payload,transients,allocator overhead andRSS. */
 typedef struct xls_check_ir_persistent_work {
+#if XLS_EXPERIMENTAL_IR_NODE_VIEWS
     uint64_t built,reused,captured,verified,nodesCopied,nodesShared,tablesShared,certificatesReused,keyBytes,metadataBytes,declined,prepared;
+#else
+    uint64_t built,reused,captured,verified,nodesCopied,tablesShared,keyBytes,metadataBytes,declined,prepared;
+#endif
 } xls_check_ir_persistent_work;
 xls_check_ir_persistent_work xlsSemanticCheckIrPersistentWork(const xls_semantic_check*);
 typedef struct xls_check_ir_dependency {uint64_t declaration,version;} xls_check_ir_dependency;

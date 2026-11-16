@@ -1,20 +1,25 @@
 #ifndef XLANG_ANALYSIS_FRONTEND_IR_MEMO_H
 #define XLANG_ANALYSIS_FRONTEND_IR_MEMO_H
+#include "analysis/ir_profile.h"
 #include "src/ir/xl6_ir.h"
 typedef struct xls_ir_memo xls_ir_memo;
 typedef struct xls_ir_result xls_ir_result;
 struct xls_entity_view;
-/* Final typed-module storage. Exact complete native non-coordinate input is
- * required;all native IDs remain exact. A certified immutable node arena may
- * share only when every current coordinate matches too. Otherwise current
- * spans are rebuilt and the complete original verifier runs. No AST/result
- * is retained by the independent node/table owners. Explicit opt-in.
- * persistentBytes bounds key/ownership metadata only,max32MiB;it excludes the
- * existing model,raw fragment payloads,transients andRSS,not globalmemory. */
+/* Final typed-module storage requires exact complete native input and IDs.
+ * The default release path copies the node arena,refreshes current spans and
+ * runs the complete native verifier. Experimental certified-node sharing is
+ * compiled only with XLS_EXPERIMENTAL_IR_NODE_VIEWS=1;all consumers must use
+ * the same profile. Neither path retains an AST or a previous result.
+ * persistentBytes bounds key/ownership metadata only,max32MiB;it excludes
+ * model/raw fragment payloads,transients,allocator overhead andRSS. */
 typedef struct xls_ir_persistent_work {
+#if XLS_EXPERIMENTAL_IR_NODE_VIEWS
     /* verified counts native verification;certificatesReused counts an exact
      * immutable verified view. They are separate work counters. */
     uint64_t built,reused,captured,verified,nodesCopied,nodesShared,tablesShared,certificatesReused,keyBytes,metadataBytes,declined;
+#else
+    uint64_t built,reused,captured,verified,nodesCopied,tablesShared,keyBytes,metadataBytes,declined;
+#endif
 } xls_ir_persistent_work;
 xls_ir_result* xlsFrontendIrResultBuildPersistent(const XL6_AstNode*,XL6_DiagList*,
     const xls_ir_result*,size_t rawBytes,size_t ownerBytes,size_t persistentBytes);
