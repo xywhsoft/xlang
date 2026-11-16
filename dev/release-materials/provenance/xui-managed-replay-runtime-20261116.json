@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "date": "2026-11-16",
+  "status": "managed-replay-nine-candidate-runtime-suites-qualified-both-platforms",
+  "shippingDelivery": false,
+  "goalComplete": false,
+  "releasePromoted": false,
+  "sourceHeadBefore": "55bebcb39198f1792b91b50dbea2f161f2d2aa20",
+  "sourceReplayCommit": "b155657159b8d20bfd1131ff324aab4b28f790a3",
+  "nativeCommit": "85f1223ad7b99ed24c82aae7e90ecbc231f1cf8a",
+  "supersedesStatusOf": {
+    "path": "D:\\GIT\\x-lang\\dev\\release-materials\\provenance\\xui-managed-replay-20261116.json",
+    "sha256": "337321d347037b6ba4035c8670f6f3d3359b1738aeb4425b6144afda49a13a8f"
+  },
+  "reports": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\managed-replay-runtime-verified-win-r1.json",
+      "sha256": "0f8833a9a2147a47b2e674cacdb19bfbf3ae6ca6960a54c42e9eecc18c2efa7b"
+    },
+    "linux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\managed-replay-runtime-verified-linux-r1.json",
+      "sha256": "aff8066ffac917f63cea3009fb35a963e20303e03a64e5957584b674d0226aa8"
+    }
+  },
+  "acceptance": {
+    "windowsSourceSteps": 374,
+    "linuxSourceSteps": 375,
+    "runtimeStepsPerPlatform": 222,
+    "totalSteps": 1193,
+    "suitesPerPlatform": 9,
+    "readbacksPerPlatform": 15,
+    "managedDeclarationUnits": 3130,
+    "managedSemanticChanges": 0
+  },
+  "costs": "Source replay adds no new business wrapper or native call. Existing copies, projections, lifetime and callback costs remain; not a new CPU zero-overhead measurement.",
+  "remaining": [
+    "All runtime packages remain candidates; no final SDK/compiler/runtime/IDE/help installation.",
+    "Standalone safe Graph/Workflow ownership, shared references, callback semantics and remaining API/backend coverage.",
+    "Compiled-package feature metadata enforcement, debug-enabled backend and latest XRT alignment."
+  ],
+  "sourceSha256": {
+    "docs/xui-managed-replay.md": "cf5bf804b86cdb70d51376d1e2732bef5663fccfd48bc46db3aef8e402cc6a60",
+    "docs/xge3-xui3-full-coverage-plan.md": "309771fbb527343c24367020d6934b599e18d9e5d6cda70e023a0b8d9186fc4b"
+  }
+}

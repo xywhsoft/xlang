@@ -47,14 +47,19 @@ that difference is not hidden or reported as byte equality.
 
 The regenerated files are staged into separate hosted/static candidates using
 the unchanged, previously qualified Flow-canvas SDKs and full O2 compiler
-cohorts. Nine runtime suites are running; their acceptance is not yet complete.
+cohorts. All nine runtime suites have passed on Windows and Linux.
 They exercise text reads, editor search, extended
 input, error reporting, accessibility observers, icon formatting, menu items,
 RadioGroup options and localization. It includes JIT, independent dynamic/static
 AOT, C/C++ headers, negative/expiry/OOM checks and bounded window lessons where
-supported by those suites. Exact counts, logs, artifacts and per-suite limits
-will be indexed by a successor to the source-only
-`dev/release-materials/provenance/xui-managed-replay-20261116.json` receipt.
+supported by those suites. Each OS passed 222 runtime steps and produced 15
+bounded window readbacks. Including the 749 source checks, this batch has 1,193
+steps. Independent verification checked 3,495 Windows and 3,460 Linux input,
+log, program and package files, including all 30 readbacks. Exact paths and
+per-suite limits are indexed by the successor
+`dev/release-materials/provenance/xui-managed-replay-runtime-20261116.json`.
+The original source-only receipt remains unchanged. These are staged candidate
+packages, not an installed release or acceptance of all 3,130 methods.
 
 This batch changes tooling and declaration reproduction. It adds no native
 business wrapper and changes no compiler/runtime/native implementation. Existing
