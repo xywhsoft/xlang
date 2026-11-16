@@ -1,0 +1,252 @@
+{
+  "schema": 1,
+  "date": "2026-11-16",
+  "stage": "M7b6z",
+  "scope": "Explicit native type-row/reference-vector relocation with exact current semantic comparison and producer-derived ABI/lookup metadata",
+  "base": "a7f97743311292e914899a7f29ec97010148a8b5",
+  "buildBase": "690e07f4872a28fe59e7ca99ba73bf1c39b8b644",
+  "componentImplementationAccepted": true,
+  "componentCorrectnessQualified": true,
+  "normalAnalysisIntegrationEnabled": false,
+  "finalIrIncrementalProductionComplete": false,
+  "performanceQualified": false,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "runtimeBytesReplacedByThisTask": false,
+  "runtimeInventoryByteIdentical": false,
+  "concurrentRuntimeHeaderChanges": {
+    "include/xrt_decl.h": {
+      "before": "6874d0a5d380301ecba05112de0eb3719f667a767dedd6f1cb64c76d56d28772",
+      "after": "a9dd02dcd9a9f56a741c86ec1cb8df70c0fb59de3edb799de1a6f074ccf7552d",
+      "snapshot": "lib/xrt/xrt.snapshot.json",
+      "snapshotSha256": "ac97e88d6d834a925aafd5f2824ae04e7a7d2d4cc0653e8f59d8258d099fdde2"
+    },
+    "include/xruntime_decl.h": {
+      "before": "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd",
+      "after": "a1f15630834e743d6d629c0cc9a80c5ba882ba6af13c1d1dc3779490e4340bb9",
+      "snapshot": "lib/xruntime/xruntime.snapshot.json",
+      "snapshotSha256": "b5ad0df1cc9218962564cd9b05271e7c48fcbf3bf6a412e2e760d6a70a73fda5"
+    }
+  },
+  "deliveryIndexUnchanged": true,
+  "engineRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "formalRelease": false,
+  "defaultLanguageServerVersion": "0.106",
+  "heldServiceVersion": "0.107",
+  "heldFrontendRebasedToConcurrent09d": false,
+  "ownedSources": {
+    "ide/src/analysis/ir_type_link.c": "6d1e1f99b62975509beb5e0430e742e5aad9795acb2aec8e596ee634885de77a",
+    "ide/src/analysis/ir_type_link.h": "ab4aa844165e95ef1e9d9fb0bc6e4af6887afecd41a4a17e508ed1df4b5abb53",
+    "ide/tests/analysis_ir_type_link_test.c": "4abd154329b9d7425265da508a87a9c42f9d2afe46f55b24e520b5225f612721",
+    "ide/tools/build_lsp_core.py": "362bd002ee47c9d55450c4be8852c07126fc81f8206d3378e33ba570f1a81c87",
+    "ide/tools/ir_type_schema.py": "ff05c7bc6f3bb791a1772f82c22da4ea0e75d7000758a289d8122eab7a4eb8fb",
+    "ide/tools/check_ir_type_schema.py": "063148ed205a45748f92e93d41d447949843bf0a92f0876e8432d502438749b3",
+    "ide/tools/check_ir_type_link_mutants.py": "c8eaa547dfe36439263ae029ceef308d58f4581033c9f8d10052cfd3e84c471b",
+    "ide/docs/lsp-ir-type-link.md": "cccf47f9c868f8a98f89205c300081de5ad0a85dd6fb56c6f4d9c5476c5ac5db",
+    "ide/docs/lsp-development.md": "8ac9593b148a184351dde729465021ff2b27107a943c4472fe7e90b180cc9dc0",
+    "tools/git_repository_policy.json": "aa85f689b4840f89b2dc7f2922ca3892ac702472ec47bed02205a37ab7c1b336"
+  },
+  "sharedFileEdits": {
+    "ignoreBeforeSha256": "4b7282bb548e55baafd0195d4b46ce5ba2f1072a1c3aa4d02f9648eb68d5ef78",
+    "ignoreAfterSha256": "372c3b1b3b4e363d83807a2bb7a69b510ad06b52589efc84b398691105a0398e",
+    "anchor": "!/dev/release-materials/provenance/lsp-ir-node-link-20261116.json",
+    "line": "!/dev/release-materials/provenance/lsp-ir-type-link-20261116.json",
+    "deliveryIndexUnchangedSha256": "6784cac89bc4892e872575e15e7ebdd884b196f77291859fe75efb780c2016b7",
+    "exactLargeSourcePin": {
+      "status": "passed",
+      "blob": "85bb55ca8e7847e2d8200bedaa810b66b78e5dbc",
+      "entry": {
+        "bytes": 9254903,
+        "path": "lib/xrt/xrt.h",
+        "reason": "Pinned qualified shared XRT 09d source; source digest verified against dev/release-materials/provenance/xrt-shared-sdk-09d-20261116.json"
+      },
+      "upstreamCommit": "09d543a3e29f3113d258b1f58718345de867e06e",
+      "sourceSha256": "4c1dd0e450c20d2ab887e7552cd038e5b394d8659fd1ae6f66211f76d4625c36",
+      "qualificationIndex": "dev/release-materials/provenance/xrt-shared-sdk-09d-20261116.json",
+      "qualificationIndexSha256": "3ed06b36325db376c8c0e86d17d57d7ded8c84804ab5445e7665b3dc0a93f9c9",
+      "policyBeforeSha256": "1f37053e0646f7a42bdd37d14c1decd3e1c3704afdc295be75d5bc7e473cd20a",
+      "policyAfterSha256": "aa85f689b4840f89b2dc7f2922ca3892ac702472ec47bed02205a37ab7c1b336",
+      "policyLimitsUnchanged": true,
+      "sourceBytesUnmodified": true,
+      "scope": "Exact reviewed retained source blob only;preserve concurrent XRT source commit"
+    }
+  },
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-ir-type-link-20261116/stage-sources-v2.tar.gz",
+      "sha256": "8f5fa14f2d4128c1fbabbb65aed2853e5a665d6581eb9ab91c3050047f1fdf26",
+      "bytes": 402819,
+      "entries": 11,
+      "uniquePayloads": 11
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-ir-type-link-20261116/stage-sources-v2.tar.gz.manifest.json",
+      "sha256": "e997c757061569716ad958940f4dc7ed8762908bddc57555822aa7dbbb994351",
+      "bytes": 2766
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-ir-type-link-20261116/actual-builds-type-links-and-native-oracles.tar.gz",
+      "sha256": "b054a02a0d9507ef87e5c2bfa9383585b66f0b8795c1f95cb7c9351d98039abd",
+      "bytes": 1134292874,
+      "entries": 10850,
+      "uniquePayloads": 4761
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-ir-type-link-20261116/actual-builds-type-links-and-native-oracles.tar.gz.manifest.json",
+      "sha256": "f62361f6cbbf4225fe64aec957c194586931ca15d514f62177b57fb071f0907d",
+      "bytes": 4440825
+    },
+    "qualification": {
+      "path": "dev/release-materials/provenance/lsp-ir-type-link-20261116/canonical-fixture-and-final-identity-addendum.tar.gz",
+      "sha256": "c5f4ff689d3b434c3eb4ab098b620e815b7f8d51a5beca7eb59f3cdacd38aa3d",
+      "bytes": 4526502,
+      "entries": 23,
+      "uniquePayloads": 22
+    },
+    "qualificationManifest": {
+      "path": "dev/release-materials/provenance/lsp-ir-type-link-20261116/canonical-fixture-and-final-identity-addendum.tar.gz.manifest.json",
+      "sha256": "ca979a3e306d4999d0732889aa88d6de401dbf78f32d32d489dae8735182b234",
+      "bytes": 6533
+    }
+  },
+  "externalPaths": [
+    "F:\\codex-builds-xlang-lsp-20261116\\ir-type-link",
+    "F:\\codex-builds-xlang-lsp-20261116\\ir-type-link-materials"
+  ],
+  "materialDependencies": [
+    {
+      "index": "dev/release-materials/provenance/lsp-ir-node-link-20261116.json",
+      "sha256": "727ba3d05cf55e754f4a402c649e0193fe6e52164cd1efb9660fc0711a5b3dc2",
+      "purpose": "Explicit current node ID linking;unchanged held native source/header cohort"
+    },
+    {
+      "index": "dev/release-materials/provenance/lsp-ir-table-graph-20261116.json",
+      "sha256": "fa0b99c44137f6e37e8ac4341abbeb1aa6b45d78789df13025adfca6160a7303",
+      "purpose": "Independent immutable native table units and borrowed-key identity"
+    },
+    {
+      "index": "dev/release-materials/provenance/lsp-ir-node-graph-20261116.json",
+      "sha256": "c8585f2cc1d5221e89fe51b775111ad265134c42ab8113a73a7f41ca582586f6",
+      "purpose": "Independent declaration node ownership;earlier runtime byte inventory"
+    },
+    {
+      "index": "dev/release-materials/provenance/lsp-ir-node-view-20261116.json",
+      "sha256": "86b4cb20feaefaaf136c9dc9fa8504ad40a99e3a27246004030f054bc10625ae",
+      "purpose": "Held0.107cohort;prior performance tail failure remains open"
+    },
+    {
+      "index": "dev/release-materials/provenance/xrt-shared-sdk-09d-20261116.json",
+      "sha256": "3ed06b36325db376c8c0e86d17d57d7ded8c84804ab5445e7665b3dc0a93f9c9",
+      "purpose": "Concurrent qualified shared source commit;exact large-source pin and two runtime declaration-header digests only"
+    }
+  ],
+  "defaultRuntime": {
+    "xlang_ide.exe": "038f370c000ce6ca2c4d7de5331ffa0b7734df9e32a9359e7c45aa585b4cfc8b",
+    "xlang-ls.exe": "3b47b0572b1dc5ad91cbfda183c1b44a1b71938e2eee088da42f16769a6a0b57",
+    "xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3",
+    "update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2"
+  },
+  "newlyBuiltTestService": {
+    "path": "ide/build/Release/lsp-ir-type-link-20261116/native-v2/xlang-ls.exe",
+    "sha256": "229c9131960900d8dd22cc6e7036aaec489671b8bd6f650da24ec7bfbb7234f9",
+    "componentAbsentFromNormalService": true
+  },
+  "verification": {
+    "buildSha256": "4c9ec04e5676e38045ac8a63932f67796a61f165790c70534030c354afba702b",
+    "builderMappedObjects": 366,
+    "newMemberMatchesRawExtraction": true,
+    "sourceGuardedInputs": 1671,
+    "outputCount": 227,
+    "pePrograms": 226,
+    "nativeProgramsBuilt": 225,
+    "newNativeRelatedPrograms": 10,
+    "componentChecks": 8012,
+    "normalNativeCloneComparisons": 134,
+    "retiredTypedCompleteModules": 8,
+    "mixedRetiredCompleteModules": 1,
+    "mixedTypesReused": 16,
+    "mixedTypesRebuilt": 1,
+    "mixedTypeIdsRelocated": 12,
+    "nativeCallbackNamesRebound": true,
+    "allocationFailureSites": 2,
+    "smallFixtureCancellationPoints": 10,
+    "actualMutants": 25,
+    "syntheticMutants": 24,
+    "nativeCombinedDefectMutants": 1,
+    "positiveControls": 2,
+    "sourceSchemaMutationCases": 14,
+    "oldProductionFilesUnchanged": 590,
+    "typeFields": 54,
+    "typeComparisonItems": 67,
+    "typeScalarReferenceRoles": 12,
+    "readThreads": 4,
+    "independentGenerations": 32,
+    "retainedBlocksPerSyntheticGeneration": 6,
+    "newComponentAbsentFromNormalServer": true,
+    "lowererAbsentFromCoreAndServer": true,
+    "runtimePathsPreserved": 7094,
+    "runtimeFilesByteIdentical": 7092,
+    "concurrentRuntimeHeaderChanges": {
+      "include/xrt_decl.h": {
+        "before": "6874d0a5d380301ecba05112de0eb3719f667a767dedd6f1cb64c76d56d28772",
+        "after": "a9dd02dcd9a9f56a741c86ec1cb8df70c0fb59de3edb799de1a6f074ccf7552d",
+        "snapshot": "lib/xrt/xrt.snapshot.json",
+        "snapshotSha256": "ac97e88d6d834a925aafd5f2824ae04e7a7d2d4cc0653e8f59d8258d099fdde2"
+      },
+      "include/xruntime_decl.h": {
+        "before": "1d59ca49004a33027d773b3e5c8f479dbcfae1251a643569171f2f01e621c7dd",
+        "after": "a1f15630834e743d6d629c0cc9a80c5ba882ba6af13c1d1dc3779490e4340bb9",
+        "snapshot": "lib/xruntime/xruntime.snapshot.json",
+        "snapshotSha256": "b5ad0df1cc9218962564cd9b05271e7c48fcbf3bf6a412e2e760d6a70a73fda5"
+      }
+    },
+    "sdkSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "deliverySha256": "6784cac89bc4892e872575e15e7ebdd884b196f77291859fe75efb780c2016b7",
+    "userTmpPreserved": [
+      "xl6_run_12896_3542316922_0",
+      "xl6_run_19628_3542315168_0",
+      "xl6_run_28188_3542313674_0"
+    ],
+    "allOwnedAliasesRemoved": true,
+    "serverSha256": "229c9131960900d8dd22cc6e7036aaec489671b8bd6f650da24ec7bfbb7234f9",
+    "defaultRuntimeReplaced": false,
+    "normalAnalysisIntegrationEnabled": false,
+    "externalPublishPerformed": false,
+    "physicalObjectFiles": 367,
+    "coreMemberCount": 76,
+    "fullBuildWasBuildOnly": true,
+    "executedRelatedNativePrograms": 10,
+    "privateCorruptCoreRefusedBeforeCompilation": true,
+    "rawArchivesReadBackVerified": true,
+    "repositoryBudgetPassed": true,
+    "newProtocolOrGuiSuites": 0,
+    "newPerformanceMeasurements": 0,
+    "qualifiedCurrentFixturePrograms": 1,
+    "onlyCanonicalFixtureEofChangedSinceFullBuild": [
+      "ide/tests/analysis_ir_type_link_test.c"
+    ],
+    "canonicalFixtureSourceRecompiledWithMatchingHeadersAndCore": true,
+    "qualifiedCurrentFixtureProgramSha256": "78bd31cb4885a4b2917bb5a4460f2dfc8039581e66ee5a7f0dd99b005fbe8c3a"
+  },
+  "evidenceNotes": [
+    "Audit54native type fields and14nested sequence fields;generate67complete field/payload comparison items and12scalar references(11type,1symbol). Relocate params/returns vectors separately. TYPE_PARAM sourceTypeId is an explicit source-type reference;concrete-type sourceTypeId is refreshed diagnostic provenance. ABI/type-value identities remain stable values,not indices.",
+    "Use one independently owned types.items unit per current row. Require producer matches,explicit pure maps,zero sentinels,32bit/range bounds and bijective coverage. Compare all relocated semantic values and payloads. Use current producer cName/errorResultCName/hash/opaque lookup metadata;never reimplement native type ABI spelling/hashing. Current full type metadata and semantic/dependency eligibility remain caller-owned prerequisites.",
+    "One XRT result block owns current rows,lookup words and relocated type vectors;read-only text/mode/ABI payloads borrow retained independent units. Never retain graphs,ASTs,modules,current layouts,maps or old result chains. One scratch block is retired before return;budget covers requested image+scratch,not retained inputs,allocator overhead or RSS. Bulk comparisons are not byte-preemptible.",
+    "Pass8012component checks,134complete original typed native verifier/JSON comparisons,8retired typed models and1mixed native model. Cover all domains,permuted placement,opaque lookup words,optional empty vectors,2allocation failures,10small-fixture cancellation points and4097element vectors. Four readers each build/retire16times;32independent generations retain exactly6tracked blocks each and all retire to zero.",
+    "Real edit introduces array<float> before a later callable. Original native interner creates callback pointers in two independent full models. Mix16old types and1current type;12native type IDs and callback backend names change. Retire original modules,AST/checks,graphs and maps,then full original verification and complete JSON equality pass. Controlled full-analysis pairing is a test oracle,not a production type matcher or freshness proof.",
+    "Fresh canonical source-v2/native-v2 build has1671guarded inputs,367physical objects including1semantic-limit fixture,76core members and227outputs/226PEs including225native tests and held0.107service. Build-only is not a full225program runtime pass. Run10related native programs. Existing590production files/public headers are byte-identical;only2new source files. Extracted ar member matches object;type linker and lowerer are absent from normal linked service.",
+    "Pass14actual-header type role guard mutations and24single C defects. Positive full-suite control passes. A separate derived native-only positive control passes;combined omission of current C name refresh and component semantic guard is then rejected by the actual complete native verifier after source retirement. Total25defect cases and2positive controls;do not count synthetic comparator rejection as independent native rejection. Damaged private core is refused before C compilation;original core remains exact.",
+    "Retain initial strict indentation failure,missing explicit callable signature,stale stats after extra native interning,and a string insertion that did not alter type IDs. Correct only controlled fixture construction using an explicit callback signature,actual added type count and generic array. Preserve prototype source/program/log bytes.",
+    "Code review removes an unsupported assumption that native lookup words are type IDs. Preserve them as opaque current metadata,including arbitrary machine words. Intentionally stop the confirmed live source-v1 build,keep partial outputs and cancellation handles/reason,freeze source-v2 and rebuild all inputs. Never present the cancelled first build as accepted canonical compilation.",
+    "Concurrent a7f977433 shared XRT09dsource commit adds a9MBretained single header. Initial repository budget rejects its unpinned blob. Match actual source SHA with its committed qualified snapshot/report and add only exact blob85bb55ca8e7847e2d8200bedaa810b66b78e5dbc to the retained-source allowlist. Keep all size limits and source bytes unchanged. Preserve the first failed budget report and later passing guard;this does not rebase the held LS frontend or ship09dengine binaries.",
+    "Preserve all7094runtime paths and7092file byte identities. Two concurrently updated public declaration headers match committed09dXRT/XRuntime snapshot digests;preserve their bytes and archive copied observations rather than roll them back. All8protected programs/runtime DLLs,matched SDK,3pre-existing temporary entries and delivery index remain exact. Retain first inventory assertion failure and subsequent fresh extraction-directory correction. All owned runtime aliases are removed.",
+    "No production integration,protocol/GUI or new performance qualification,default install or online publication. Other table mapping,entity/dependency certificates,selective final IR production,global memory/endurance and end-to-end performance remain incomplete;prior held0.107tail failure remains unresolved. Large materials stay on F via developer junctions;commit only code,docs,small index and narrow ignore/exact source-pin bookkeeping.",
+    "Final isolated staged whitespace check finds one extra CRLF blank line at C fixture EOF. Preserve failed isolated index/report and original frozen full build;remove only that final blank line,verify exact before/after bytes,and recompile/link/run the current canonical fixture against unchanged matching headers and verified core. Current8012checks/134native oracles pass. Keep original material/source archives unchanged;new source bundle and hashed small addendum carry exact current source/program and final identity receipts."
+  ]
+}

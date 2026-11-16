@@ -4454,6 +4454,11 @@
       "bytes": 11185416,
       "path": "ide/third_party/xge_sdk/xge.dll",
       "reason": "Matched XGE SDK startup/error-boundary fix; full native and GUI qualification in lsp-dpi-startup-20261112"
+    },
+    "85bb55ca8e7847e2d8200bedaa810b66b78e5dbc": {
+      "bytes": 9254903,
+      "path": "lib/xrt/xrt.h",
+      "reason": "Pinned qualified shared XRT 09d source; source digest verified against dev/release-materials/provenance/xrt-shared-sdk-09d-20261116.json"
     }
   }
 }
