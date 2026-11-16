@@ -1,0 +1,18 @@
+// The outer program embeds the compiler; the inner file uses real OS graphics.
+import xlang
+
+func main(...) as int
+ auto root=env.get("XLANG_HOST_NESTED_ROOT")
+ auto source=env.get("XLANG_HOST_NESTED_CASE")
+ auto temporary=env.get("XLANG_HOST_NESTED_TEMP")
+ if root==null or source==null or temporary==null then return 2 end
+ auto compiler=xlang.Context()
+ assert compiler.setWorkDir(root)
+ assert compiler.setTempDir(temporary)
+ assert compiler.runFile(source),compiler.lastError
+ assert not compiler.run("int broken=missingNestedHostResolverSymbol")
+ assert compiler.lastError!=""
+ assert compiler.runFile(source),compiler.lastError
+ println("PUBLIC_HOST_SESSION_NESTED_OK")
+ return 0
+end

@@ -121,6 +121,20 @@ both execute twice and physically unload. The matched latest-XRT full compiler
 and SDK candidate hashes are recorded in
 `dev/release-materials/provenance/xge3-host-resolver-20261117.json`.
 
+`tools/check_xge3_host_nested.py` separately checks the embedded compiler path.
+The outer program imports `xlang`; its inner source imports the XGE source
+package and an OS-only fixture package. Each run executes a successful real
+custom-resolver render, a deliberately invalid compilation, then another
+successful render in the same compiler Context. Windows GL and Linux GL/GLES
+pass through both actual CLI JIT and a standalone outer AOT executable. The
+standalone process receives no added compiler-directory library search path;
+its import table contains no compiler/runtime/engine image. Its work directory
+contains only the explicitly supplied fixture header, with source extension
+packages in a separate directory. This verifies embedded compilation and
+recovery; it does not claim nested native/language cycle collection, physical
+engine unload after each inner run, or a filesystem-denial sandbox.
+Receipt: `dev/release-materials/provenance/xge3-host-nested-20261117.json`.
+
 Receipt: `dev/release-materials/provenance/xge3-host-session-20261117.json`.
 Claimed native/language callback cycles remain unqualified: finalization can
 need a callback whose group is already claimed by the ownership transaction.

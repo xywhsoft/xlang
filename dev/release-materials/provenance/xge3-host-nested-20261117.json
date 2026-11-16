@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "sourceParent": "f03996efe224182256468e5479302280acb8b452",
+  "sourceHashes": {
+    "test/cases/foreign_xge3_host_nested.xl": "808171692c25e5bf5ef35272c8d55b1317ab56e4869d7cb4167a5f35885ede1c",
+    "tools/check_xge3_host_nested.py": "52ab2e055d9e1e41b0ba72fa6b7de019ff5a46d6389388750855c913e00df40c",
+    "docs/xge3-host-session.md": "c649dc76f3e32cc1058d45a5ee67132967d895fc861ab67b7e360c6df38680b2"
+  },
+  "reports": {
+    "F:\\xlang-validation\\xge-full-20261110\\host-resolver-nested-win-r2\\results.json": "e1ee9d8ccbbe7870e049df53bc4d44ac08a5c53f22cbef1ff9a7f0889e2d5802",
+    "F:\\xlang-validation\\xge-full-20261110\\host-resolver-nested-win-verification-r2.json": "79b83f375093b4e46cd7606475f89ea8e5108d72ea4ec2471ac430b29a7280fd",
+    "F:\\xlang-validation\\xge-full-20261110\\host-nested-linux-evidence-r2\\results.json": "8aa9afabb18ee28b661f68bc047fd4be6cda723bca624cf62ce9c7721d0aac96",
+    "F:\\xlang-validation\\xge-full-20261110\\host-nested-linux-evidence-r2\\verification.json": "11d777230b991d640fa9c0cf72861af13e482ea7bcb8e90a5cd046276bcdb8d0"
+  },
+  "commands": {
+    "windows": 4,
+    "linux": 6
+  },
+  "hashesReverified": {
+    "windows": 613,
+    "linux": 616
+  },
+  "successfulInnerRuns": 12,
+  "deliberateCompileFailures": 6,
+  "nestedContextRecovery": true,
+  "standaloneOuterImportsCompiler": false,
+  "standaloneOuterImportsEngine": false,
+  "standaloneCompilerSearchDirectoryAdded": false,
+  "workDirContainsOnlyFixtureHeader": true,
+  "actualGraphics": [
+    "WGL GL",
+    "EGL GL",
+    "EGL GLES"
+  ],
+  "xrtRevision": "4641cd2e4da09d8b1a66872cabe085c263d8b5ba",
+  "notClaimed": [
+    "filesystem sandbox",
+    "nested engine physical unload after each run",
+    "claimed callback-cycle finalization",
+    "full XGE/XUI/Document completion",
+    "final runtime/SDK/IDE install"
+  ],
+  "networkTests": false,
+  "shippingDelivery": false,
+  "releaseFilesAdded": false
+}
