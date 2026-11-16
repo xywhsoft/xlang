@@ -356,8 +356,46 @@ static int foreignBindings(void)
  xrtStrBufFree(&shifted);xrtFree(project);xrtFree(path);xrtFree(directory);return 1;
 }
 #endif
+/* The raw fragment is unpublished until the complete recursive placement
+ * succeeds. Check the actual depth guard and physical rebasing against
+ * independently specified expected values,without a second decoder. */
+static int placementDepth(size_t count,int accepted)
+{
+ XL6_AstNode* tree=xrtCalloc(count,sizeof(*tree));XL6_AstNode** edges=xrtCalloc(count,sizeof(*edges));
+ CHECK(tree && edges);xls_ir_unit unit={.startNode=11,.startChild=7,.nodes=count,.children=count-1};
+ xls_ir_capture capture={.unit=&unit};xstrbuf bytes={0};
+ for(size_t i=0;i<count;++i){
+  tree[i].kind=XL6_AST_LIST;tree[i].line=(int)i+1;tree[i].column=3;
+  if(i+1<count){edges[i]=&tree[i+1];tree[i].children=&edges[i];tree[i].childCount=tree[i].childCapacity=1;}
+  XL6_IrNode node={.kind=XL6_IR_NODE_LIST,.sourceKind=XL6_AST_LIST,.unionField=SIZE_MAX,
+   .parent=i ? (XL6_IrNodeId)(unit.startNode+i) : 0,.firstChild=unit.startChild+i,.childCount=i+1<count};
+  CHECK(xlsIrMemoEncodeNode(&bytes,&node,1024u*1024u,&capture));
+ }
+ for(int borrow=0;borrow<2;++borrow){
+  XL6_IrModule module={.nodeCount=3,.childCount=2};module.nodes=xrtCalloc(count+3,sizeof(*module.nodes));CHECK(module.nodes);
+  xls_ir_reader reader={(const unsigned char*)bytes.Data,0,bytes.Size};size_t at=0,touched=0,expectedCount=accepted ? count : 513;
+  CHECK(xlsIrMemoDecodePlace(&unit,&reader,&module,tree,&at,&touched,0,borrow,NULL,NULL)==accepted);
+  CHECK(at==expectedCount && touched==expectedCount);
+  CHECK(module.nodeCount==3 && module.childCount==2);
+  CHECK(accepted ? reader.at==bytes.Size : reader.at<bytes.Size);
+  for(size_t i=0;i<count+3;++i){
+   XL6_IrNode expected={0};
+   if(i>=3 && i-3<expectedCount){size_t slot=i-3;
+    expected.kind=XL6_IR_NODE_LIST;expected.sourceKind=XL6_AST_LIST;expected.unionField=SIZE_MAX;
+    expected.parent=slot ? (XL6_IrNodeId)(3+slot) : 0;expected.firstChild=2+slot;expected.childCount=slot+1<count;
+    expected.span.line=(int)slot+1;expected.span.column=3;
+   }
+   CHECK(!memcmp(&module.nodes[i],&expected,sizeof(expected)));
+  }
+  xrtFree(module.nodes);
+ }
+ for(size_t i=0;i<count;++i){CHECK(tree[i].line==(int)i+1 && tree[i].column==3);
+  CHECK(tree[i].childCount==(size_t)(i+1<count) && (!tree[i].childCount || tree[i].children==&edges[i]));}
+ xrtStrBufFree(&bytes);xrtFree(edges);xrtFree(tree);return 1;
+}
 int main(void)
 {
+ if(!placementDepth(513,1) || !placementDepth(514,0))return 1;
  if(!bitCases() || !masks() || !payloads())return 1;
 #ifdef XLS_NATIVE_IR_FOREIGN_FIELDS
  if(!foreignTypeKeys() || !foreignPayloads() || !foreignBindings())return 1;

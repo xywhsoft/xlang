@@ -1,0 +1,738 @@
+{
+  "schema": 1,
+  "date": "2026-11-16",
+  "stage": "M7b6v",
+  "scope": "Raw IR restore attribution, rejected direct-decoder screen,and retained independent depth/rebasing/unpublished-count regression",
+  "base": "d5acc6af2513de193f90a23234c357bdae372273",
+  "buildBase": "dff3887441447463c80f027053b6fe8d3f59defa",
+  "retainedRegressionAccepted": true,
+  "candidateImplementationAccepted": false,
+  "candidateStatus": "rejected-performance-screen",
+  "candidateCorrectnessQualified": true,
+  "performanceQualified": false,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "productionIrRestoredExactly": true,
+  "deliveryIndexUnchanged": true,
+  "externalPublishPerformed": false,
+  "formalRelease": false,
+  "ownedSources": {
+    "ide/tests/analysis_ir_sparse_decode_test.c": "1baab6bebfa0eb3159d30aa9713b6f6515c088c748869c7e02d401754d51d2e2",
+    "ide/docs/lsp-ir-direct-decode.md": "770ecbc75f4000d10aa706d687b04ab1d24ee13f14de1b2b38daa8c31f3535c7",
+    "ide/docs/lsp-development.md": "e3d5ae38640fc31844573f001d127bc12443fab0ff1771f1fdea6aced92cad24"
+  },
+  "sharedFileEdits": {
+    "ignoreBeforeSha256": "61f4df15df2c6347840bb68aabacf78247c8be1b43923c1c2da3cf3d95441e38",
+    "ignoreAfterSha256": "39d6bc4b4a976d9da0e8af42b33ad4105d77cd824dbc929a982c026d2c45f6d7",
+    "anchor": "!/dev/release-materials/provenance/lsp-ir-node-view-20261116.json",
+    "line": "!/dev/release-materials/provenance/lsp-ir-direct-decode-20261116.json",
+    "deliveryIndexUnchangedSha256": "6784cac89bc4892e872575e15e7ebdd884b196f77291859fe75efb780c2016b7"
+  },
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-ir-direct-decode-20261116/retained-stage-sources.tar.gz",
+      "sha256": "d8af100f674def8e2e86c0f48e31a156c925de4293a4356f0b0780c7c26e9c59",
+      "bytes": 319308,
+      "entries": 3,
+      "uniquePayloads": 3
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-ir-direct-decode-20261116/retained-stage-sources.tar.gz.manifest.json",
+      "sha256": "1944baca4d8a2e375caa38cdea8c567def0eeb5c6ab6b07d8bc4e5ecc298b8a9",
+      "bytes": 829
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-ir-direct-decode-20261116/actual-controls-and-rejected-decoder.tar.gz",
+      "sha256": "2ac8a582ffb86bd8fc3d60ec35970e9b12d6919474273df256992ab745751c4d",
+      "bytes": 1019143312,
+      "entries": 10494,
+      "uniquePayloads": 4420
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-ir-direct-decode-20261116/actual-controls-and-rejected-decoder.tar.gz.manifest.json",
+      "sha256": "7e352c616ec3c0edd78e5250005a006c38f9ef63f723c6d7405a33cc6fe52988",
+      "bytes": 4711719
+    }
+  },
+  "externalPaths": [
+    "F:\\codex-builds-xlang-lsp-20261116\\ir-lexical",
+    "F:\\codex-builds-xlang-lsp-20261116\\ir-lexical-materials",
+    "F:\\xl-ir-direct-20261116\\gui-async-view-v1"
+  ],
+  "materialDependencies": [
+    {
+      "index": "dev/release-materials/provenance/lsp-ir-node-view-20261116.json",
+      "sha256": "86b4cb20feaefaaf136c9dc9fa8504ad40a99e3a27246004030f054bc10625ae",
+      "purpose": "Complete matched0.107 source/public-header/object/GUI cohort and unchanged held candidate"
+    },
+    {
+      "index": "dev/release-materials/provenance/lsp-current-latency-20261116.json",
+      "sha256": "509cf33ebdee3616627322e4d02513260fb8c8c7c9827537f25c141a1305b8a4",
+      "purpose": "Default0.106 timing identity and retained previous calibration failures"
+    }
+  ],
+  "defaultRuntime": {
+    "xlang_ide.exe": "038f370c000ce6ca2c4d7de5331ffa0b7734df9e32a9359e7c45aa585b4cfc8b",
+    "xlang-ls.exe": "3b47b0572b1dc5ad91cbfda183c1b44a1b71938e2eee088da42f16769a6a0b57",
+    "xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3",
+    "update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2"
+  },
+  "sdkDllSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+  "rejectedCandidateServiceSha256": "8181ca16bdfa5594469da2b9efce8bf01d207b1b881ddd005878162f8fed86b9",
+  "verification": {
+    "diagnosticQueries": 480,
+    "diagnosticProcesses": 32,
+    "candidateNativePrograms": 221,
+    "freshPrivateTuConsumers": 8,
+    "candidateDecoderAssertions": 316979,
+    "candidateMutantCases": 3,
+    "protocolDrivers": 21,
+    "protocolCases": 374,
+    "guiUnits": 140,
+    "guiSuites": 55,
+    "actualIdeModes": 47,
+    "retainedRegressionAssertions": 133006,
+    "retainedRegressionMutantCases": 3,
+    "retainedRegressionUsesUnchangedOriginalCore": true,
+    "coreMembers": 72,
+    "onlyCandidateIrMemberChanged": true,
+    "rawArchiveReadBackVerified": true,
+    "defaultRuntimeFiles": 7094,
+    "matchesPriorCompleteRuntimeInventory": true,
+    "userTmpPreserved": [
+      "xl6_run_12896_3542316922_0",
+      "xl6_run_19628_3542315168_0",
+      "xl6_run_28188_3542313674_0"
+    ],
+    "repositoryBudgetPassed": true
+  },
+  "performance": {
+    "aa-original": {
+      "status": "calibration-failed",
+      "queries": 4608,
+      "processes": 64,
+      "gates": 80,
+      "failed": [
+        {
+          "name": "32-single-literal/baseline/cpuPrecisionFloor",
+          "actual": 984.375,
+          "minimum": 1000,
+          "passed": false
+        }
+      ]
+    },
+    "ab-prior-original": {
+      "status": "gates-failed",
+      "queries": 4608,
+      "processes": 64,
+      "gates": 80,
+      "failed": [
+        {
+          "name": "512-single-literal/hot/wireP95",
+          "actual": 170.925,
+          "limit": 168.588735,
+          "passed": false,
+          "baseline": 160.5607
+        }
+      ]
+    },
+    "ab-default-original": {
+      "status": "gates-failed",
+      "queries": 4608,
+      "processes": 64,
+      "gates": 80,
+      "failed": [
+        {
+          "name": "512-single-literal/first/wireP50",
+          "actual": 177.0226,
+          "limit": 172.107705,
+          "passed": false,
+          "baseline": 163.9121,
+          "ratio": 1.05
+        },
+        {
+          "name": "512-single-literal/hot/wireP95",
+          "actual": 220.3332,
+          "limit": 205.898175,
+          "passed": false,
+          "baseline": 196.0935
+        },
+        {
+          "name": "512-single-literal/interaction/cpuPerChangeP50",
+          "actual": 181.4903846153846,
+          "limit": 175.42067307692307,
+          "passed": false,
+          "baseline": 167.06730769230768
+        },
+        {
+          "name": "512-imported-literal/first/wireP50",
+          "actual": 217.0089,
+          "limit": 211.655745,
+          "passed": false,
+          "baseline": 201.5769,
+          "ratio": 1.05
+        },
+        {
+          "name": "512-imported-literal/interaction/cpuPerChangeP50",
+          "actual": 212.7403846153846,
+          "limit": 209.49519230769232,
+          "passed": false,
+          "baseline": 199.51923076923077
+        }
+      ]
+    },
+    "ab-default-comments": {
+      "status": "passed",
+      "queries": 2304,
+      "processes": 32,
+      "gates": 40,
+      "failed": []
+    }
+  },
+  "hotMeasurements": {
+    "aa-original": {
+      "status": "calibration-failed",
+      "queries": 4608,
+      "processes": 64,
+      "gates": 80,
+      "failed": [
+        {
+          "name": "32-single-literal/baseline/cpuPrecisionFloor",
+          "actual": 984.375,
+          "minimum": 1000,
+          "passed": false
+        }
+      ],
+      "hot": [
+        {
+          "case": "32-single-literal",
+          "p50": [
+            8.36,
+            8.355
+          ],
+          "p95": [
+            9.422,
+            9.427
+          ],
+          "cpuPerQuery": [
+            8.243,
+            8.243
+          ]
+        },
+        {
+          "case": "32-single-declaration",
+          "p50": [
+            10.19,
+            10.137
+          ],
+          "p95": [
+            11.498,
+            11.595
+          ],
+          "cpuPerQuery": [
+            10.089,
+            10.027
+          ]
+        },
+        {
+          "case": "32-imported-literal",
+          "p50": [
+            10.052,
+            10.078
+          ],
+          "p95": [
+            10.893,
+            11.12
+          ],
+          "cpuPerQuery": [
+            9.966,
+            9.904
+          ]
+        },
+        {
+          "case": "32-imported-declaration",
+          "p50": [
+            11.941,
+            11.841
+          ],
+          "p95": [
+            14.434,
+            13.081
+          ],
+          "cpuPerQuery": [
+            12.242,
+            11.873
+          ]
+        },
+        {
+          "case": "512-single-literal",
+          "p50": [
+            153.166,
+            154.229
+          ],
+          "p95": [
+            178.089,
+            175.11
+          ],
+          "cpuPerQuery": [
+            153.846,
+            155.649
+          ]
+        },
+        {
+          "case": "512-single-declaration",
+          "p50": [
+            178.615,
+            178.177
+          ],
+          "p95": [
+            311.946,
+            307.179
+          ],
+          "cpuPerQuery": [
+            200.721,
+            200.721
+          ]
+        },
+        {
+          "case": "512-imported-literal",
+          "p50": [
+            187.817,
+            189.533
+          ],
+          "p95": [
+            194.126,
+            196.97
+          ],
+          "cpuPerQuery": [
+            186.298,
+            186.899
+          ]
+        },
+        {
+          "case": "512-imported-declaration",
+          "p50": [
+            189.232,
+            190.277
+          ],
+          "p95": [
+            308.343,
+            312.568
+          ],
+          "cpuPerQuery": [
+            212.74,
+            213.341
+          ]
+        }
+      ]
+    },
+    "ab-prior-original": {
+      "status": "gates-failed",
+      "queries": 4608,
+      "processes": 64,
+      "gates": 80,
+      "failed": [
+        {
+          "name": "512-single-literal/hot/wireP95",
+          "actual": 170.925,
+          "limit": 168.588735,
+          "passed": false,
+          "baseline": 160.5607
+        }
+      ],
+      "hot": [
+        {
+          "case": "32-single-literal",
+          "p50": [
+            8.469,
+            8.355
+          ],
+          "p95": [
+            9.082,
+            9.164
+          ],
+          "cpuPerQuery": [
+            8.551,
+            8.366
+          ]
+        },
+        {
+          "case": "32-single-declaration",
+          "p50": [
+            10.312,
+            10.234
+          ],
+          "p95": [
+            11.422,
+            11.297
+          ],
+          "cpuPerQuery": [
+            10.396,
+            10.15
+          ]
+        },
+        {
+          "case": "32-imported-literal",
+          "p50": [
+            10.156,
+            10.105
+          ],
+          "p95": [
+            11.211,
+            11.216
+          ],
+          "cpuPerQuery": [
+            10.027,
+            10.212
+          ]
+        },
+        {
+          "case": "32-imported-declaration",
+          "p50": [
+            11.912,
+            11.828
+          ],
+          "p95": [
+            13.5,
+            13.193
+          ],
+          "cpuPerQuery": [
+            12.426,
+            12.119
+          ]
+        },
+        {
+          "case": "512-single-literal",
+          "p50": [
+            152.514,
+            152.097
+          ],
+          "p95": [
+            160.561,
+            170.925
+          ],
+          "cpuPerQuery": [
+            150.841,
+            150.24
+          ]
+        },
+        {
+          "case": "512-single-declaration",
+          "p50": [
+            178.929,
+            180.481
+          ],
+          "p95": [
+            308.532,
+            311.099
+          ],
+          "cpuPerQuery": [
+            200.721,
+            203.125
+          ]
+        },
+        {
+          "case": "512-imported-literal",
+          "p50": [
+            189.172,
+            189.071
+          ],
+          "p95": [
+            194.626,
+            197.758
+          ],
+          "cpuPerQuery": [
+            188.101,
+            186.298
+          ]
+        },
+        {
+          "case": "512-imported-declaration",
+          "p50": [
+            191.093,
+            191.758
+          ],
+          "p95": [
+            310.112,
+            311.201
+          ],
+          "cpuPerQuery": [
+            213.341,
+            212.139
+          ]
+        }
+      ]
+    },
+    "ab-default-original": {
+      "status": "gates-failed",
+      "queries": 4608,
+      "processes": 64,
+      "gates": 80,
+      "failed": [
+        {
+          "name": "512-single-literal/first/wireP50",
+          "actual": 177.0226,
+          "limit": 172.107705,
+          "passed": false,
+          "baseline": 163.9121,
+          "ratio": 1.05
+        },
+        {
+          "name": "512-single-literal/hot/wireP95",
+          "actual": 220.3332,
+          "limit": 205.898175,
+          "passed": false,
+          "baseline": 196.0935
+        },
+        {
+          "name": "512-single-literal/interaction/cpuPerChangeP50",
+          "actual": 181.4903846153846,
+          "limit": 175.42067307692307,
+          "passed": false,
+          "baseline": 167.06730769230768
+        },
+        {
+          "name": "512-imported-literal/first/wireP50",
+          "actual": 217.0089,
+          "limit": 211.655745,
+          "passed": false,
+          "baseline": 201.5769,
+          "ratio": 1.05
+        },
+        {
+          "name": "512-imported-literal/interaction/cpuPerChangeP50",
+          "actual": 212.7403846153846,
+          "limit": 209.49519230769232,
+          "passed": false,
+          "baseline": 199.51923076923077
+        }
+      ],
+      "hot": [
+        {
+          "case": "32-single-literal",
+          "p50": [
+            8.414,
+            8.37
+          ],
+          "p95": [
+            9.18,
+            9.27
+          ],
+          "cpuPerQuery": [
+            8.182,
+            8.366
+          ]
+        },
+        {
+          "case": "32-single-declaration",
+          "p50": [
+            10.25,
+            10.234
+          ],
+          "p95": [
+            11.368,
+            11.543
+          ],
+          "cpuPerQuery": [
+            10.089,
+            10.519
+          ]
+        },
+        {
+          "case": "32-imported-literal",
+          "p50": [
+            10.315,
+            10.129
+          ],
+          "p95": [
+            12.151,
+            11.13
+          ],
+          "cpuPerQuery": [
+            10.273,
+            9.966
+          ]
+        },
+        {
+          "case": "32-imported-declaration",
+          "p50": [
+            11.961,
+            11.842
+          ],
+          "p95": [
+            14.385,
+            13.019
+          ],
+          "cpuPerQuery": [
+            12.365,
+            11.934
+          ]
+        },
+        {
+          "case": "512-single-literal",
+          "p50": [
+            172.658,
+            179.106
+          ],
+          "p95": [
+            196.094,
+            220.333
+          ],
+          "cpuPerQuery": [
+            168.87,
+            182.692
+          ]
+        },
+        {
+          "case": "512-single-declaration",
+          "p50": [
+            206.753,
+            198.549
+          ],
+          "p95": [
+            356.158,
+            339.851
+          ],
+          "cpuPerQuery": [
+            227.163,
+            223.558
+          ]
+        },
+        {
+          "case": "512-imported-literal",
+          "p50": [
+            208.681,
+            210.861
+          ],
+          "p95": [
+            229.138,
+            237.773
+          ],
+          "cpuPerQuery": [
+            206.731,
+            213.341
+          ]
+        },
+        {
+          "case": "512-imported-declaration",
+          "p50": [
+            223.269,
+            223.862
+          ],
+          "p95": [
+            377.861,
+            368.209
+          ],
+          "cpuPerQuery": [
+            251.202,
+            253.005
+          ]
+        }
+      ]
+    },
+    "ab-default-comments": {
+      "status": "passed",
+      "queries": 2304,
+      "processes": 32,
+      "gates": 40,
+      "failed": [],
+      "hot": [
+        {
+          "case": "32-single-trailing-comment",
+          "p50": [
+            23.584,
+            21.244
+          ],
+          "p95": [
+            27.834,
+            25.485
+          ],
+          "cpuPerQuery": [
+            23.622,
+            21.592
+          ]
+        },
+        {
+          "case": "32-imported-trailing-comment",
+          "p50": [
+            27.064,
+            24.622
+          ],
+          "p95": [
+            32.256,
+            31.463
+          ],
+          "cpuPerQuery": [
+            27.559,
+            25.16
+          ]
+        },
+        {
+          "case": "512-single-trailing-comment",
+          "p50": [
+            422.735,
+            372.445
+          ],
+          "p95": [
+            462.266,
+            416.269
+          ],
+          "cpuPerQuery": [
+            423.077,
+            373.197
+          ]
+        },
+        {
+          "case": "512-imported-trailing-comment",
+          "p50": [
+            554.124,
+            500.572
+          ],
+          "p95": [
+            619.259,
+            541.915
+          ],
+          "cpuPerQuery": [
+            548.678,
+            490.385
+          ]
+        }
+      ]
+    }
+  },
+  "resourceQualification": {
+    "aa-original": {
+      "samples": 4673,
+      "minimumAvailableGiB": 18.27634048461914
+    },
+    "ab-prior-original": {
+      "samples": 4673,
+      "minimumAvailableGiB": 18.372703552246094
+    },
+    "ab-default-original": {
+      "samples": 4673,
+      "minimumAvailableGiB": 14.333892822265625
+    },
+    "ab-default-comments": {
+      "samples": 2337,
+      "minimumAvailableGiB": 14.659366607666016
+    }
+  },
+  "evidenceNotes": [
+    "Diagnostic-only four512function topologies/edit cases compare complete standard results over normal/probe images. Lexical construction is3.6-5.6ms;whole-input final key serialization is inactive on ordinary edits;type-prefix encoding is0.53-0.56ms;raw restore is12.1-16.2ms. Per-node verifier timers add material overhead and are not production cost claims.",
+    "Candidate writes sparse packed words directly into unpublished zeroed nodes,keeps checked cursor movement and complete zero rollback,and directly maps exact native IDs. No public header,allocator,lifetime or external dependency change. All original full IR validation remains. A prepared independent function/key-segment draft was not compiled or adopted.",
+    "Candidate full221native programs,316979reference/mask/payload/guard/depth assertions,3actualCcorruptions,21protocol drivers,140freshGUIunits,55paired suites and47actualIDE modes pass. Old/new core archives have72same named members;onlyIRdiffers and its directly extracted binary bytes match the actual compiledIRobject. Windows ar p stdout expandsLFtoCRLF;initial stream hashes are retained separately and are not treated as binary-object hashes.",
+    "Four fixed performance plans retain16128queries/224processes. Same-image80gates fail one1sCPUprecisionfloor at984.375ms;no relative-speed gate fails. Prior0.107comparison fails512singleliteral hotP95 and shows no material large-case hotP50 benefit. Default0.106original comparison fails5gates;comments pass40/40. No rerun replaces these plans. The default comparison includes previous0.107changes and does not isolate this decoder.",
+    "Reject the decoder optimization and restore productIRsource exactly toHEAD. Keep an independently specified expected-value regression fordepth512accept/depth513reject,current spans,parent/child rebasing,untouched records and unpublished counts. Compile/run this retained fixture against the unchanged matched0.107core;pass133006checks and3actualCmutants. Frozen decoder copies and candidate implementations stay only in external materials.",
+    "All7094root-runtime files match the previous complete default inventory. Default0.106,prior held0.107,engine,SDK,updater,user settings,tmp entries and delivery-index bytes remain unchanged. Runtime test aliases are removed. No release binary or payload is added toGit."
+  ],
+  "limits": [
+    "Rejected candidate has no demonstrated ordinary-edit performance benefit;it is not installed or adopted as production.",
+    "Next work targets incremental finalIR/derived tables;large-workspace bounds,globalRSS,completeIDE latency,endurance,Linux and physicalWindows7 remain open. NoDAP,debug/runtime completion orxlc.dllmerge;whole goal remains active."
+  ],
+  "postCommitReceipt": "dev/release-materials/provenance/lsp-ir-direct-decode-20261116/postcommit.json"
+}
