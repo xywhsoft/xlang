@@ -1,0 +1,133 @@
+{
+  "schema": 1,
+  "date": "2026-11-16",
+  "stage": "M7b6w",
+  "scope": "Independent immutable declaration-owned final IR node graph;ownership foundation only,not ordinary-edit integration",
+  "base": "2629b5ac44b7f329b5e772273713fa09ce4d696b",
+  "buildBase": "26716acc2d4278fb704b2a12ef134a2a794dc3c5",
+  "componentImplementationAccepted": true,
+  "componentCorrectnessQualified": true,
+  "normalAnalysisIntegrationEnabled": false,
+  "finalIrIncrementalProductionComplete": false,
+  "performanceQualified": false,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "deliveryIndexUnchanged": true,
+  "engineRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "formalRelease": false,
+  "defaultLanguageServerVersion": "0.106",
+  "heldServiceVersion": "0.107",
+  "ownedSources": {
+    "ide/src/analysis/ir_node_graph.c": "d185445fe940978260de9db86e6f2b3afacddd82ba6fc5a61f731ffa21607de1",
+    "ide/src/analysis/ir_node_graph.h": "cfb2249c1840a71134c6067dbc0049cc9e6df80256bfc9b22abd00e252122988",
+    "ide/tests/analysis_ir_node_graph_test.c": "fd29064c4b3e3c2724ecb590d664dd1ae1b2e5e371d60a57bc47f3ce56626b3e",
+    "ide/tools/build_lsp_core.py": "e84d209a9643d6cdd70faf335a66d02c357ccc3f2b57d84c6c2dc3df1f3fd349",
+    "ide/tools/ir_node_graph_schema.py": "83f479635fcae7ecdcafec1789b72e9521bb3ca5b94f47b16a680072af21fbc9",
+    "ide/tools/check_ir_node_graph_schema.py": "1a3bc1debe443814f74293a9c36028c5f81d975ac0d14f186f23e5a5d3a2c349",
+    "ide/docs/lsp-ir-node-graph.md": "3ecd09c08ea95129d6b1bc9b7e57a5001e679296741b1f67532efd926893f8f9",
+    "ide/docs/lsp-development.md": "17749599db8754605b2973730d5e3118f11caef5d4f6f8f3c3ff3a5154c89234"
+  },
+  "sharedFileEdits": {
+    "ignoreBeforeSha256": "39d6bc4b4a976d9da0e8af42b33ad4105d77cd824dbc929a982c026d2c45f6d7",
+    "ignoreAfterSha256": "4bd574438dfc7f6ee69b87c3a1889ba54e21f87d55f595e8c9a77a86057385b1",
+    "anchor": "!/dev/release-materials/provenance/lsp-ir-direct-decode-20261116.json",
+    "line": "!/dev/release-materials/provenance/lsp-ir-node-graph-20261116.json",
+    "deliveryIndexUnchangedSha256": "6784cac89bc4892e872575e15e7ebdd884b196f77291859fe75efb780c2016b7"
+  },
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-ir-node-graph-20261116/stage-sources.tar.gz",
+      "sha256": "aa68c094d79a89cc0156ba1e1d4ec6086de70994fd784bf9f8345018f63e8eab",
+      "bytes": 355587,
+      "entries": 9,
+      "uniquePayloads": 9
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-ir-node-graph-20261116/stage-sources.tar.gz.manifest.json",
+      "sha256": "a0ae43322ebc7ae9087c3f0f02d65a03bf7c4487cedc95440e83b546d74e0975",
+      "bytes": 2283
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-ir-node-graph-20261116/actual-builds-ownership-and-regression.tar.gz",
+      "sha256": "904efaf54e3e436f892bf692c1a186bcf1b6c4614a4021aa1f05f6626642b7f4",
+      "bytes": 998927183,
+      "entries": 9467,
+      "uniquePayloads": 4893
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-ir-node-graph-20261116/actual-builds-ownership-and-regression.tar.gz.manifest.json",
+      "sha256": "a0a7c46a99cfb6eca6b4ee4d3a088c9da8c65308915489577efd5d819bca5289",
+      "bytes": 3900266
+    }
+  },
+  "externalPaths": [
+    "F:\\codex-builds-xlang-lsp-20261116\\ir-node-graph",
+    "F:\\codex-builds-xlang-lsp-20261116\\ir-node-graph-materials"
+  ],
+  "materialDependencies": [
+    {
+      "index": "dev/release-materials/provenance/lsp-ir-node-view-20261116.json",
+      "sha256": "86b4cb20feaefaaf136c9dc9fa8504ad40a99e3a27246004030f054bc10625ae",
+      "purpose": "Prior held0.107 complete frontend/node owner cohort;tail failure remains unresolved"
+    },
+    {
+      "index": "dev/release-materials/provenance/lsp-ir-direct-decode-20261116.json",
+      "sha256": "f443304fa17e6412957dee22f349849d3c07121740ebb486c4fdf39ae9ddf5e6",
+      "purpose": "Prior restored decoder and independent depth/rebasing regression;not rerun as a new performance claim"
+    }
+  ],
+  "defaultRuntime": {
+    "xlang_ide.exe": "038f370c000ce6ca2c4d7de5331ffa0b7734df9e32a9359e7c45aa585b4cfc8b",
+    "xlang-ls.exe": "3b47b0572b1dc5ad91cbfda183c1b44a1b71938e2eee088da42f16769a6a0b57",
+    "xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3",
+    "update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2"
+  },
+  "newlyBuiltTestService": {
+    "path": "ide/build/Release/lsp-ir-node-graph-20261116/native-v2/xlang-ls.exe",
+    "sha256": "45c15c80ebd1a427d6ce2683948652d39346100519934b7f50ffa1d022125bba",
+    "componentAbsentFromLinkedNormalService": true
+  },
+  "verification": {
+    "buildSha256": "ae1820b5eb5773b40ba1901b5fa2a637e5679e6be683e95cc4b63c19190ec8c4",
+    "allRuntimeFilesPreserved": 7094,
+    "sdkSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "deliverySha256": "6784cac89bc4892e872575e15e7ebdd884b196f77291859fe75efb780c2016b7",
+    "nativePrograms": 222,
+    "protocolDrivers": 21,
+    "componentAssertions": 369,
+    "actualMutants": 3,
+    "aliasCompileRejection": 1,
+    "schemaCases": 14,
+    "physicalObjectFiles": 361,
+    "builderMappedObjectFiles": 360,
+    "additionalBoundaryFixtureObjects": 1,
+    "oldProductionFilesUnchanged": 584,
+    "coreMembers": 73,
+    "allOwnedAliasesRemoved": true,
+    "runtimeBuildAbsent": true,
+    "userTmpPreserved": true,
+    "rawArchivesReadBackVerified": true,
+    "repositoryBudgetPassed": true,
+    "newGuiTests": 0,
+    "newPerformanceMeasurements": 0,
+    "allExecutablesExecutedUnderRootRelease": true,
+    "existingGuiAndReleaseUnchanged": true
+  },
+  "evidenceNotes": [
+    "Copy complete actual native node values,all original integer IDs,child lists and deep-owned text/binary/package payloads. Root unit plus one complete subtree per root declaration;physical ordering may be noncontiguous. Preserve unused native child slots for exact materialization. No parallel compiler node declaration.",
+    "Each independently retained unit owns one aligned XRT allocation plus a tiny independently reference-counted producer token. It retains no graph,AST,check,old result,sibling units or generation chain. Producer identity is provenance only;non-node tables,type/symbol/region IDs and semantic freshness remain caller obligations.",
+    "Iterative rooted-tree validation,checked requested-byte peak budget,zero refusal,OOM/cancellation rollback and periodic wide-edge checks. Peak excludes existing input,allocator overhead and process RSS. Single payload memcpy does not provide byte-level preemption.",
+    "Pass369 component assertions:full normalized-native-byte and payload books,complete originalIR JSON equality,source retirement,4read threads,32generations,2049wide/16385deep/root-only shapes,7actual allocation failures and9small-fixture cancellation points. Track exact requested live bytes;one retained unit leaves exactly2blocks. Pass3actual C omissions and1hidden-node-ID-pointer compile refusal.",
+    "Actual GCC dependency headers supply the74-field schema. Pass14source schema cases;reject unknown pointers,callbacks,arrays and hidden nested references. C11 generic static assertions verify numeric aliases,including native IDs,against disguised pointers. C compilation supplies actual sizes and alignment.",
+    "Freshly compile361physical objects with no old object reuse. Record1650inputs,360main object identities and1separate semantic index-limit object,73core members,224outputs/223PEprograms. Extract archive members as raw files;do not hash ar-p stdout on Windows. Existing584production source/header files remain byte-identical.",
+    "Pass222native programs and21existing stdio drivers in root release aliases. These are correctness checks,not timing measurements. New component is not referenced by normal producers and nm confirms it is absent from the linked test service. No new GUI or performance qualification is claimed;the held0.107tail failure remains open.",
+    "Keep early strict compilation,initial fixture name conflicts and initial frozen build missing SDK patch-directory failure bytes/logs. Corrected component and normal builder use matched immutable headers;copy matching patch dependencies and perform a fresh complete build in native-v2. Failed variants are not presented as successful production cohorts.",
+    "Preserve all7094runtime files,8protected binaries,matched private SDK,3user temporary entries and mutable delivery index exactly. Remove every owned test alias. No default install,release upload or online publication. Continue non-node cross-table ownership/ID relocation and selective final IR production."
+  ]
+}

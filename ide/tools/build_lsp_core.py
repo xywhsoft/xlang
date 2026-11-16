@@ -116,6 +116,7 @@ CORE_TESTS = ("analysis_current_provider_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_selection_test", "analysis_selection_projection_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_semantic_read_front_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_sparse_decode_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_ir_node_graph_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_typed_identity_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_composite_function_test", "analysis_typed_function_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_function_index_asset_test", *CORE_TESTS)
@@ -769,6 +770,7 @@ def main() -> None:
     )]
     sources += [(ide / "src/analysis/frozen_inputs.c", True)]
     sources += [(ide / "src/analysis/report_index.c", True)]
+    sources += [(ide / "src/analysis/ir_node_graph.c", True)]
     if not args.skip_tests:
         sources += [(ide / "src/protocol/document_sync.c", True)]
         # These private fixtures include the exact generated native TUs; use
@@ -1003,6 +1005,15 @@ def main() -> None:
             flags = unit_flags(source, owned)
             result = run([str(cc), *flags, "-MM", "-MT", "xlsObject", str(source)], source.stem + "-deps")
             unit_dependencies = dependencies(result.stdout.decode("utf-8"))
+            if source.stem in ('ir_node_graph', 'analysis_ir_node_graph_test'):
+                from ir_node_graph_schema import validate_dependencies
+                graph_schema = validate_dependencies(unit_dependencies)
+                schema_path = output / 'ir-node-graph-schema.json'
+                if schema_path.exists() and json.loads(schema_path.read_text(encoding='utf8')) != graph_schema:
+                    raise RuntimeError('mixed native node-graph ownership layouts: ' + str(source))
+                schema_path.write_text(json.dumps(graph_schema,indent=2)+'\n',encoding='utf8')
+                graph_guard = ide / 'tools/ir_node_graph_schema.py'
+                inputs[str(graph_guard)] = sha(graph_guard)
             ast_headers = {path for path in unit_dependencies if path.name == 'xl6_ast.h'}
             if ast_headers:
                 if ast_headers != {Path(ast_overlay['compiledHeader']).resolve()}:
@@ -1028,6 +1039,7 @@ def main() -> None:
         core_names = {Path(source).stem for source in FRONTEND_SOURCES} | {"runtime", "frontend_cancel", "frontend_ir_regions","frontend_symbols","frontend_entry_cache","module_store","entity_store","module_graph","input_view", "input_topology", "dependency_graph", "text", "context", "frontend_context", "frontend_raw_body", "ast_size", "ast_storage", "ast_materialize", "ast_clone", "ast_intern", "function_unit", "typed_module", "syntax", "session", "worker", "projection", "folding", "selection", "semantic", "signature", "signature_session", "check", "dispatch", "callable", "xls_native_callables", "input_batch", "frontend_overlay", "check_session", "dependency_session", "completion_session", "input_state", "diagnostic_paths"}
         core_names.add("frozen_inputs")
         core_names.add("report_index")
+        core_names.add("ir_node_graph")
         members = [target for name, target in objects.items() if name in core_names]
         members.append(objects["semantic_tokens"])
         run([str(ar), "rcs", str(core), *map(str, members)], "archive")
@@ -1040,6 +1052,8 @@ def main() -> None:
         for name in (() if args.skip_tests else tests):
             program = output / (name + suffix)
             extra = [str(objects["document_sync"])] if name in ("document_sync_test", "diagnostic_stream_test") else []
+            if name == 'analysis_ir_node_graph_test':
+                extra += ['-Wl,--wrap='+f for f in ('xrtMalloc','xrtCalloc','xrtFree')]
             if name in ("file_watch_test", "file_watch_lease_test"):extra += [str(objects["file_watch"])]
             if name == "file_watch_lease_test":extra += ["-Wl,--wrap="+f for f in ("malloc", "free", "__imp_ReadFile")]
             if name == "workspace_edit_select_test":extra += ["-Wl,--wrap="+f for f in ("malloc","xrtCalloc","xrtArrayResize","xlsTextCreate","xlsTextData")]
