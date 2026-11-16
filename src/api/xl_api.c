@@ -2563,34 +2563,6 @@ static int xlCompileUnitToDebugExe(XL_Context* ctx, XL6_CompileUnit* unit, const
     return xlCompileUnitToExternalOutputEx(ctx, unit, outputExe, TCC_OUTPUT_EXE, "debug exe", &options);
 }
 
-static int xlAstIsTopLevelRuntimeStmt(const XL6_AstNode* node)
-{
-    if ( node == NULL ) {
-        return 0;
-    }
-    switch ( node->kind ) {
-    case XL6_AST_IMPORT:
-    case XL6_AST_FUNC:
-    case XL6_AST_ASYNC_FUNC:
-    case XL6_AST_EXTERN_FUNC:
-    case XL6_AST_EXPORT_FUNC:
-    case XL6_AST_EXTERN_VAR:
-    case XL6_AST_EXPORT_VAR:
-    case XL6_AST_EXPORT_CONST:
-    case XL6_AST_VAR_DECL:
-    case XL6_AST_CONST_DECL:
-    case XL6_AST_TYPE_ALIAS:
-    case XL6_AST_EXTERN_TYPE_ALIAS:
-    case XL6_AST_UNION: case XL6_AST_C_RECORD:
-    case XL6_AST_CLASS:
-    case XL6_AST_PROTOCOL:
-    case XL6_AST_ENUM:
-        return 0;
-    default:
-        return 1;
-    }
-}
-
 static const XL6_AstNode* xlAstFindMainFunc(const XL6_AstNode* root)
 {
     size_t i;
@@ -2620,7 +2592,7 @@ static int xlAstHasTopLevelRuntimeStmt(const XL6_AstNode* root)
         return 0;
     }
     for ( i = 0; i < root->childCount; ++i ) {
-        if ( xlAstIsTopLevelRuntimeStmt(root->children[i]) ) {
+        if ( xl6AstIsTopLevelRuntimeStmt(root->children[i]) ) {
             return 1;
         }
     }
@@ -2636,13 +2608,36 @@ static int xlCompileUnitHasExecutableEntry(XL_Context* ctx, XL6_CompileUnit* uni
            xlAstHasTopLevelRuntimeStmt(unit->parse.root);
 }
 
+static int xlCompileUnitHasUserExecutableEntry(XL_Context* ctx, XL6_CompileUnit* unit)
+{
+    const XL6_AstNode* root;
+    size_t i;
+    if ( ctx == NULL || unit == NULL ) return -1;
+    root = unit->parse.root;
+    if ( root == NULL ) return 0;
+    for ( i = 0; i < root->childCount; ++i ) {
+        const XL6_AstNode* node = root->children[i];
+        /* Import expansion preserves each parsed source's identity. Dependency
+         * initializers belong to checked module initialization, not to the
+         * importing program's executable entry. Unknown origins fail closed. */
+        if ( node == NULL || (root->source != NULL && node->source != NULL &&
+                               node->source != root->source) ) continue;
+        if ( xl6AstIsTopLevelRuntimeStmt(node) ) return 1;
+        if ( node->kind == XL6_AST_FUNC && node->childCount != 0 ) {
+            const XL6_AstNode* name = node->children[0];
+            if ( name != NULL && name->text != NULL && strcmp(name->text, "main") == 0 ) return 1;
+        }
+    }
+    return 0;
+}
+
 static int xlCompileUnitToSharedLibraryWithC(
     XL_Context* ctx, XL6_CompileUnit* unit, const char* outputDll,
     const XL_StringList* cSourceFiles)
 {
     int hasEntry;
 
-    hasEntry = xlCompileUnitHasExecutableEntry(ctx, unit);
+    hasEntry = xlCompileUnitHasUserExecutableEntry(ctx, unit);
     if ( hasEntry < 0 ) {
         return 0;
     }

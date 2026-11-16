@@ -1355,6 +1355,27 @@ static int xl6ImportsModuleHasDeclName(const XL6_AstNode* moduleRoot, const char
 
 static int xl6ImportsIsInternalImportName(const char* name);
 
+static int xl6ImportsHasInitializationStatement(
+    const XL6_AstNode* root, const XL6_AstNode* statement)
+{
+    size_t i;
+    const char* path;
+    if (!statement || !statement->source || !statement->source->importNamespace ||
+        !statement->range.known ||
+        !xl6AstIsTopLevelRuntimeStmt(statement)) return 0;
+    path = xl6AstSourcePath(statement);
+    if (!path || !path[0]) return 0;
+    for (i = 0; i < root->childCount; ++i) {
+        const XL6_AstNode* existing = root->children[i];
+        if (existing && existing->source && existing->kind == statement->kind && existing->range.known &&
+            xl6ImportsTextEquals(existing->source->importNamespace, statement->source->importNamespace) &&
+            existing->range.startOffset == statement->range.startOffset &&
+            existing->range.endOffset == statement->range.endOffset &&
+            xl6ImportsTextEquals(xl6AstSourcePath(existing), path)) return 1;
+    }
+    return 0;
+}
+
 static void xl6ImportsDropDuplicateImportedDecls(XL6_AstNode* dstRoot, XL6_AstNode* srcRoot)
 {
     size_t i;
@@ -1367,8 +1388,13 @@ static void xl6ImportsDropDuplicateImportedDecls(XL6_AstNode* dstRoot, XL6_AstNo
         XL6_AstNode* child = srcRoot->children[i];
         const char* declName = xl6ImportsDeclName(child);
 
-        if ( xl6ImportsIsInternalImportName(declName) &&
-             xl6ImportsModuleHasDeclName(dstRoot, declName) ) {
+        /* The same parsed dependency can enter through several branches.
+         * Its declarations and original initialization statements each occur
+         * once per module instance. Source coordinates distinguish intentionally
+         * repeated code; namespaces distinguish separate imports of one file. */
+        if ( (xl6ImportsIsInternalImportName(declName) &&
+              xl6ImportsModuleHasDeclName(dstRoot, declName)) ||
+             xl6ImportsHasInitializationStatement(dstRoot, child) ) {
             xl6AstFree(child);
             if ( i + 1 < srcRoot->childCount ) {
                 memmove(srcRoot->children + i,
@@ -2262,6 +2288,7 @@ static int xl6ImportsMergeSourceFile(
     initialDiagCount = diags != NULL ? diags->count : 0;
     xl6ParseResultInit(&result);
     ok = xl6SourceOverlayParse(deps ? deps->sourceOverlay : NULL, sourcePath, &result);
+    if ( ok ) ok = xl6AstBindSourceNamespace(result.root, ns);
     if ( ok ) {
         ok = xl6ImportsExpandModule(result.root, sourcePath, diags, deps);
     }
@@ -2316,6 +2343,7 @@ static int xl6ImportsMergeManifestSourcesAsModule(
         initialDiagCount = diags != NULL ? diags->count : 0;
         xl6ParseResultInit(&result);
         ok = xl6SourceOverlayParse(deps ? deps->sourceOverlay : NULL, path, &result);
+        if ( ok ) ok = xl6AstBindSourceNamespace(result.root, ns);
         if ( ok ) {
             ok = xl6ImportsExpandModule(result.root, path, diags, deps);
         }

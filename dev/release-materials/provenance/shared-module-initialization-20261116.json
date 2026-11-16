@@ -1,0 +1,58 @@
+{
+  "complete": true,
+  "passed": true,
+  "scope": "General shared-module entry classification and once-per-import-instance initialization, with owned AST source namespace metadata.",
+  "goalComplete": false,
+  "shippingDelivery": false,
+  "releaseInstalled": false,
+  "sourceSha256": {
+    "src/api/xl_api.c": "c938e6142d84f4d035973c85d4e47896083c47a1b656a0076b26a3d8b7ba7b71",
+    "src/ast/xl6_ast.c": "0a2c625a27e4c6954c52fc3232fb92d3d0fda8906a1f89d1431bca742780e51b",
+    "src/ast/xl6_ast.h": "aaf6845a7c0fda7dfb2936da5fd91833c88626be203275a4e5e95fa4dcf63efe",
+    "src/compile/xl6_imports.c": "1d57574fe69790540cd48e7c6790649cf79afea6113fc4bab747a4b3238a0c8c",
+    "tools/check_shared_dependency_init.py": "cf1aacef79f0f6de6b303be4aa365f2bb6c285d8990318ba66ce36f89eaad51d",
+    "test/cases/ast_source_import_identity_test.c": "710f430b5b95def1c5d897741af6d2a147db35379a925f040fcf91972ef6ccf7",
+    "docs/shared-module-initialization.md": "bfc3a00634ac1375a0d80403010ba2884411c00a55dd42d73767f2f2173d2513"
+  },
+  "qualification": [
+    {
+      "platform": "win",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\shared-import-core-verified-win-r1.json",
+      "sha256": "ab24417991b7aeccf223ca6349d0f05c2a55cc4e922f9bdbbc642c319da6e7f0",
+      "steps": 67,
+      "frozenInputs": 13705,
+      "sourceWitnesses": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\shared-import-core-witnesses-win-r1\\index.json",
+        "sha256": "86d9259d5a569f88eae8581ac47fdeb5faa95129f105a794caae2142700013c1"
+      }
+    },
+    {
+      "platform": "linux",
+      "path": "F:\\xlang-validation\\xge-full-20261110\\shared-import-core-verified-linux-r1.json",
+      "sha256": "04897ee14323cbe91d8756587ca2a711cdb0e82dc9f8c3f5de3bf220ebeb9f03",
+      "steps": 67,
+      "frozenInputs": 15264,
+      "sourceWitnesses": {
+        "path": "/mnt/f/xlang-validation/xge-full-20261110/shared-import-core-witnesses-linux-r1/index.json",
+        "sha256": "8365d963cf548ead2d1f0feaea2b7bffbc6135695ed2ebe841407a8eb4087f62"
+      }
+    }
+  ],
+  "totalSteps": 134,
+  "runtimeOverheadAdded": false,
+  "compileTimeCost": "On tested 64-bit layouts, 8 extra bytes per AST source plus one copied namespace string per imported source parse. Same-identity rebinding allocates nothing.",
+  "preservedRules": [
+    "User main and user top-level executable statements remain rejected in shared builds",
+    "Global declaration initialization remains allowed",
+    "Repeated statements at different source offsets both execute",
+    "Separate import instances/source files retain their state",
+    "Unknown origins/ranges are not deduplicated"
+  ],
+  "compilerCohorts": "Full O2, current TCC/precompiled objects/VFS and sole qualified XRT09d. Latest additive19775 producer is separately prepared for final convergence.",
+  "failedEvidencePreserved": true,
+  "limits": [
+    "No final SDK/IDE/help/runtime installation",
+    "Graph/Workflow default config semantics and remaining native integration are separate work"
+  ],
+  "networkTests": false
+}

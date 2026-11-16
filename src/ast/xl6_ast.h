@@ -155,6 +155,10 @@ static inline int xl6AstKindIsAggregate(XL6_AstKind kind)
 typedef struct XL6_AstSource {
     size_t references;
     char* path;
+    /* Immutable import instance, distinct from its physical source path.
+     * A package and a direct file import may share bytes but own separate
+     * globals. NULL denotes an unbound/root source. */
+    char* importNamespace;
     /* Query-only token metadata, absent from ordinary parses. */
     int completionQuery;
     size_t completionStart, completionEnd;
@@ -230,6 +234,9 @@ typedef struct XL6_AstNode {
 } XL6_AstNode;
 
 const char* xl6AstKindName(XL6_AstKind kind);
+/* Module-level execution, excluding declarations (whose initializers remain
+ * part of normal checked module initialization). */
+int xl6AstIsTopLevelRuntimeStmt(const XL6_AstNode* node);
 XL6_AstNode* xl6AstNew(XL6_AstKind kind, const XL6_Token* token);
 XL6_AstNode* xl6AstNewText(XL6_AstKind kind, const char* text, size_t len, const XL6_Token* token);
 int xl6AstSetLiteralData(XL6_AstNode* node, const void* data, size_t size);
@@ -241,6 +248,7 @@ void xl6AstSetDoc(XL6_AstNode* node, const XL6_Token* token);
 void xl6AstAddChild(XL6_AstNode* parent, XL6_AstNode* child);
 void xl6AstMoveChildren(XL6_AstNode* dst, XL6_AstNode* src);
 int xl6AstSetSourceTree(XL6_AstNode* node, const char* path);
+int xl6AstBindSourceNamespace(XL6_AstNode* root, const char* ns);
 void xl6AstCopySource(XL6_AstNode* dst, const XL6_AstNode* src);
 const char* xl6AstSourcePath(const XL6_AstNode* node);
 void xl6AstFree(XL6_AstNode* node);

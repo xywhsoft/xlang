@@ -1,5 +1,33 @@
 ﻿#include "src/ast/xl6_ast.h"
 
+int xl6AstIsTopLevelRuntimeStmt(const XL6_AstNode* node)
+{
+    if ( node == NULL ) {
+        return 0;
+    }
+    switch ( node->kind ) {
+    case XL6_AST_IMPORT:
+    case XL6_AST_FUNC:
+    case XL6_AST_ASYNC_FUNC:
+    case XL6_AST_EXTERN_FUNC:
+    case XL6_AST_EXPORT_FUNC:
+    case XL6_AST_EXTERN_VAR:
+    case XL6_AST_EXPORT_VAR:
+    case XL6_AST_EXPORT_CONST:
+    case XL6_AST_VAR_DECL:
+    case XL6_AST_CONST_DECL:
+    case XL6_AST_TYPE_ALIAS:
+    case XL6_AST_EXTERN_TYPE_ALIAS:
+    case XL6_AST_UNION: case XL6_AST_C_RECORD:
+    case XL6_AST_CLASS:
+    case XL6_AST_PROTOCOL:
+    case XL6_AST_ENUM:
+        return 0;
+    default:
+        return 1;
+    }
+}
+
 const char* xl6AstKindName(XL6_AstKind kind)
 {
     switch ( kind ) {
@@ -268,10 +296,20 @@ void xl6AstMoveChildren(XL6_AstNode* dst, XL6_AstNode* src)
     src->childCount = 0;
 }
 
+int xl6AstBindSourceNamespace(XL6_AstNode* root, const char* ns)
+{
+    if (!root || !root->source || !ns || !ns[0]) return 0;
+    if (root->source->importNamespace)
+        return strcmp(root->source->importNamespace, ns) == 0;
+    root->source->importNamespace = xrtStrDupN(ns, strlen(ns));
+    return root->source->importNamespace != NULL;
+}
+
 static void xl6AstReleaseSource(XL6_AstSource* source)
 {
     if (source && --source->references == 0) {
         xrtFree(source->path);
+        xrtFree(source->importNamespace);
         xrtFree(source);
     }
 }
