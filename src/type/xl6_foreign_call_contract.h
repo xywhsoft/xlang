@@ -249,6 +249,9 @@ typedef struct XL6_ForeignFunctionHeaderContract {
 typedef struct XL6_ForeignFieldCallContract {
     uint32 declaration;
     char field[64];
+    /* Empty means the native table itself; otherwise pass its pointer field.
+     * The logical receiver and its scope/ownership remain the table. */
+    char receiverField[64],receiverCName[80];
 } XL6_ForeignFieldCallContract;
 
 /* Sparse per-declaration physical expansions, stored only for parameters

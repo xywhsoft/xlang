@@ -689,7 +689,7 @@ $headers = @()
 # Stage the declared package layout, not a generated VFS or a release update.
 foreach ($entry in (Get-Content -LiteralPath tools/tcc_vfs_manifest_win64_xlc.txt -Encoding UTF8)) {
     if ($entry.StartsWith('dir|include/__xl_runtime|')) {
-        $parts = $entry.Split('|'); $directory = $parts[2].Replace('/','\').Replace('%XL6_ROOT%\release\', $runtimePath+'\').Replace('%XL6_ROOT%', $rootPath)
+        $parts = $entry.Split('|'); $directory = $parts[2].Replace('/','\').Replace('%XL6_ROOT%\release\win_x64\', $runtimePath+'\').Replace('%XL6_ROOT%\release\', $runtimePath+'\').Replace('%XL6_ROOT%', $rootPath)
         if ($parts.Count -ne 4 -or $parts[3] -ne '*.h') { throw 'Unsupported private runtime header directory mapping' }
         foreach ($source in (Get-ChildItem -LiteralPath $directory -File -Filter '*.h' | Sort-Object Name)) {
             $target = Join-Path $batchPath ('include/__xl_runtime/' + $source.Name)
@@ -703,7 +703,7 @@ foreach ($entry in (Get-Content -LiteralPath tools/tcc_vfs_manifest_win64_xlc.tx
         continue
     }
     if (!$entry.StartsWith('file|include/__xl_runtime/')) { continue }
-    $parts = $entry.Split('|'); $source = $parts[2].Replace('/','\').Replace('%XL6_ROOT%\release\', $runtimePath+'\').Replace('%XL6_ROOT%', $rootPath)
+    $parts = $entry.Split('|'); $source = $parts[2].Replace('/','\').Replace('%XL6_ROOT%\release\win_x64\', $runtimePath+'\').Replace('%XL6_ROOT%\release\', $runtimePath+'\').Replace('%XL6_ROOT%', $rootPath)
     $target = Join-Path $batchPath $parts[1]
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $target) | Out-Null
     if (Test-Path -LiteralPath $target) { throw "Duplicate header staging target: $target" }
@@ -722,7 +722,7 @@ foreach ($entry in Get-Content -LiteralPath tools/tcc_vfs_manifest_win64_xlc.txt
         $parts[2].StartsWith('%XL6_VFS_OUTPUT_DIR%')
     if(!$parts[2].StartsWith('%XL6_ROOT%') -and !($generatedRuntime -and $runtimeResourcePath)){continue}
     if ($parts[1].Contains('..')) { throw "Unsafe private source target: $entry" }
-    $sourceRoot = if($generatedRuntime){$runtimeResourcePath}else{$parts[2].Replace('/','\').Replace('%XL6_ROOT%\release\', $runtimePath+'\').Replace('%XL6_ROOT%', $rootPath)}
+    $sourceRoot = if($generatedRuntime){$runtimeResourcePath}else{$parts[2].Replace('/','\').Replace('%XL6_ROOT%\release\win_x64\', $runtimePath+'\').Replace('%XL6_ROOT%\release\', $runtimePath+'\').Replace('%XL6_ROOT%', $rootPath)}
     $sourcesToStage = if ($parts[0] -eq 'dir') {
         $patterns = $parts[3].Split(';')
         @(Get-ChildItem -LiteralPath $sourceRoot -Recurse -File | Where-Object {

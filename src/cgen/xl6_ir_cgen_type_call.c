@@ -694,7 +694,10 @@ static int xl6IrCgenEmitWitnessNativeCall(XL6_Output* out, const XL6_IrModule* m
             }else xl6OutputPuts(storagePrepared ? "native_raw":"&native_raw",out);
             continue;
         }
-        if (encoded && valuePlan.inputParameter == p + 1) xl6OutputPuts("&native_value_input", out);
+        const XL6_ForeignFieldCallContract* receiverProjection=fieldCallee && p==0 ? xl6IrForeignFieldCallGet(module,target):NULL;
+        if(receiverProjection && receiverProjection->receiverField[0])
+            xl6OutputPrintf(out,"native_callee_receiver->%s",receiverProjection->receiverField);
+        else if (encoded && valuePlan.inputParameter == p + 1) xl6OutputPuts("&native_value_input", out);
         else {
             char place[40];
             if (target->parameterPhysicalAbis[p] == XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW)
@@ -1155,7 +1158,10 @@ static int xl6IrCgenEmitDirectCall(
             }
         }else argument=target->parameterCount+physical-physicalSteps;
         if ( argument < target->parameterCount ) {
-            if (encoded && nativeValue.inputParameter==argument+1)
+            const XL6_ForeignFieldCallContract* receiverProjection=fieldCallee && argument==0 ? xl6IrForeignFieldCallGet(module,target):NULL;
+            if(receiverProjection && receiverProjection->receiverField[0])
+                xl6OutputPrintf(out,"native_callee_receiver->%s",receiverProjection->receiverField);
+            else if (encoded && nativeValue.inputParameter==argument+1)
                 xl6OutputPuts("&native_value_input",out);
             else if ( !xl6IrCgenEmitCallOperand(
                      out, module, target, argument,

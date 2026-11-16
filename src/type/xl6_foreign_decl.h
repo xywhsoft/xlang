@@ -303,6 +303,28 @@ static inline int xl6ForeignFieldCallName(const XL6_AstNode* node,char* field,si
     XL6_AstNode name={0};name.kind=XL6_AST_STRING;name.text=node ? node->text:NULL;
     return xl6ForeignQuotedText(&name,field,capacity) && xl6ForeignIdentifier(field);
 }
+static inline int xl6ForeignFieldCallReceiverValid(const XL6_ForeignFieldCallContract* row)
+{
+    if(!row || !memchr(row->receiverField,0,sizeof(row->receiverField)) ||
+        !memchr(row->receiverCName,0,sizeof(row->receiverCName)))return 0;
+    if(!row->receiverField[0])return !row->receiverCName[0];
+    return xl6ForeignIdentifier(row->receiverField) && strchr(row->receiverCName,'*') &&
+        xl6ForeignPointerSpelling(row->receiverCName);
+}
+static inline int xl6ForeignFieldCallRead(const XL6_AstNode* node,const XL6_AstNode* attr,
+    XL6_ForeignFieldCallContract* output)
+{
+    XL6_ForeignFieldCallContract row={0};
+    if(!attr || !attr->text || strcmp(attr->text,"c_field_call") ||
+        !xl6ForeignFieldCallName(node,row.field,sizeof(row.field)))return 0;
+    if(attr->childCount && (attr->childCount!=2 ||
+        !xl6ForeignQuotedText(attr->children[0],row.receiverField,sizeof(row.receiverField)) ||
+        !row.receiverField[0] ||
+        !xl6ForeignQuotedText(attr->children[1],row.receiverCName,sizeof(row.receiverCName))))return 0;
+    if(!xl6ForeignFieldCallReceiverValid(&row))return 0;
+    if(output)*output=row;
+    return 1;
+}
 static inline int xl6ForeignFunctionFieldCall(const XL6_AstNode* node)
 {
     const XL6_AstNode* attrs=xl6ForeignFunctionAttributes(node);
@@ -367,8 +389,7 @@ static inline int xl6ForeignFunctionRead(const XL6_AstNode* node,
             regionObservers|=UINT64_C(1)<<row.regionPhysicalIndex;continue;
         }
         if(attr && attr->text && !strcmp(attr->text,"c_field_call")){
-            char field[64];
-            if(fieldCall || attr->childCount || !xl6ForeignFieldCallName(node,field,sizeof(field)))return 0;
+            if(fieldCall || !xl6ForeignFieldCallRead(node,attr,NULL))return 0;
             fieldCall=1;continue;
         }
         if(attr && attr->text && !strcmp(attr->text,"header")){

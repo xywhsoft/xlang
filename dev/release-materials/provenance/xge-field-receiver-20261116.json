@@ -1,0 +1,182 @@
+{
+  "schema": 1,
+  "recordedAt": "2026-11-16T12:07:52.896762+00:00",
+  "scope": "Generic pointer-field receivers for native callable tables; no runtime/SDK/IDE promotion.",
+  "sourceParent": "3bac5455ef068b202cc1e21523830329263ad909",
+  "nativeBackendPrerequisite": "38363a6b0358e8be90948fa7c1005e6167538071",
+  "sourceHashes": {
+    "src/type/xl6_foreign_call_contract.h": "a6f62ed1320184d6b69997418e81a6b4482d361491dd92389bc9844d8c65df1a",
+    "src/type/xl6_foreign_decl.h": "e9d47d112e8f9c5fb15c480bc065fb47200aec5dc288e1bba6df204048cf00d0",
+    "src/ir/xl6_ir.c": "db4e4342fa543c9b4d4a21e8beaa1e526622527d548013e564c3f6970e4a7b0f",
+    "src/ir/xl6_ir_foreign_parameter.c": "600196b72b075f784963fe5c6ed5801aa736b2df543c9eec07f439ae148d5ad6",
+    "src/cgen/xl6_ir_cgen_identity_closure.c": "361434e6fb778b6754a073add870c6e74b206616c4c25292e71a48c3939559f6",
+    "src/cgen/xl6_ir_cgen_type_call.c": "8b680f2b4731b18b0d24628b795169dd2ce73dd4dfc6cf6ed4c72fb780369fd5",
+    "src/cgen/xl6_ir_cgen_foreign_region.c": "e32586a0ae7af4c81cd11a5fe55cf96b0892b74ded81e193dadf30d081d7ab09",
+    "tools/build_xlir_public_source_driver.ps1": "d18d01279fed7eeac2d568ca334b85ef9b49a4edee736d827ba79592718029dd",
+    "tools/check_foreign_field_receiver.py": "119beb86028bf95218e93aa9e944330f4a6b8d257c76a10daf752ef147eec240",
+    "tools/check_foreign_field_receiver_ir.py": "81bb7ac34f4fd5f6086c0c061f2b77f2a30acc3d714f1dc8b42006f07821a5b6",
+    "tools/check_foreign_field_receiver_abi.py": "30a8e82eaf9a3c93bc23f92bcf8e673f1985b4a97cb03f083c5aa8bb9d64e4b9",
+    "test/cases/foreign_field_receiver.h": "c1a68d49d2b3b1b3b86cda9f528649cf9d8e7ba2abdcec507f634eb0dbee0831",
+    "test/cases/foreign_field_receiver_native.c": "9db3fcac284dfa70655fa59f7cd467270151505f50b2f59fd26c48d3d07bcf6c",
+    "test/cases/foreign_field_receiver.xl": "022105b705dff762b3d675238183dca000066cad645a89dc5fc84bca1cd935d2",
+    "test/cases/foreign_field_receiver_ir.c": "db0b8e14b1f45cb3c4111173f3c87d14bc5783005275c6e71791a3cf576dc7e6",
+    "docs/c-field-call-receivers.md": "faab4814fa82464e9be512fb41401cf107d5a285602684ec05cfe76550f35934",
+    "docs/xge3-backend-ownership.md": "41602a5ac3704bacd7a4f476c8635c691487deed2f5f75d86a61780328f22fff"
+  },
+  "qualified": {
+    "win": {
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\field-receiver-language-win-r1\\results.json",
+        "sha256": "25e54c999957c4c46e4758fbb302d574428eee422b6f090bc2963fe0073a89e2",
+        "commands": 29
+      },
+      "abi": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\field-receiver-abi-win-r1\\results.json",
+        "sha256": "d5a16102a06bdc97c28f0b6de84e7fbdd97f3e6b6035d8557f4ccd68bd581dbf",
+        "commands": 3
+      },
+      "verified": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\field-receiver-verified-win-r2\\results.json",
+        "sha256": "419cfbe1b9d850e3404bf8dc0f67777a312506fd70eba58df9d9fcd525ec26c0",
+        "commands": 40,
+        "verifiedFiles": 18917
+      },
+      "ir": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\field-receiver-ir-win-r1\\results.json",
+        "sha256": "65058c1f325219e8b9cf4e3110b922028d87fc02b1cfde239097c432922ffe5e",
+        "commands": 8
+      },
+      "fullCompiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-field-receiver-win-full-r1\\build.json",
+        "sha256": "94e56c52260fbf9c15c8486c3ba56e79503d3ab6ba577c7a694525decd90cbf8",
+        "optimization": "O2",
+        "fullTccXrtAndVfs": true,
+        "products": {
+          "xl.exe": {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-field-receiver-win-full-r1\\source\\release\\win_x64\\xl.exe",
+            "sha256": "b5cff32f9f66e2e9288a1414c0c044fa18618a409f545e911e78655e3257b9a3",
+            "bytes": 72704
+          },
+          "xl.dll": {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-field-receiver-win-full-r1\\source\\release\\win_x64\\xl.dll",
+            "sha256": "ccd9b42ab6c35e0c399d40ce5252b955b421714a51979820cb9b90bdbd36f5f8",
+            "bytes": 15399936
+          },
+          "xlc.dll": {
+            "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-field-receiver-win-full-r1\\source\\release\\win_x64\\xlc.dll",
+            "sha256": "43c62a07240731fa3fd2bf0436814f00ea8e43913c844477e49c8400d5660c64",
+            "bytes": 21655040
+          }
+        }
+      }
+    },
+    "linux": {
+      "language": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\field-receiver-language-linux-r1\\results.json",
+        "sha256": "a36e4713592e477c9dd2dbc184b827a9e7daa6e49e8cee08a68b967dfa559f82",
+        "commands": 29
+      },
+      "abi": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\field-receiver-abi-linux-r1\\results.json",
+        "sha256": "7b22bd8c25b64af2c72aa82137d5e12b2b58c1f399b97be7c9413bba78ea295f",
+        "commands": 3
+      },
+      "verified": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\field-receiver-verified-linux-r2\\results.json",
+        "sha256": "910f74373086ae8e9e3b44a98935e6fb9c210cd105c771fd83bf22e4c43b40e3",
+        "commands": 40,
+        "verifiedFiles": 25144
+      },
+      "ir": {
+        "path": "/var/tmp/xlang-validation/xge-full-20261110/field-receiver-ir-linux-r1/results.json",
+        "sha256": "beee40421c94bc084c303633a1aacd9ffd1c03b39a242226d6c89069408ff2f0",
+        "commands": 8
+      },
+      "fullCompiler": {
+        "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-field-receiver-linux-full-r1\\build.json",
+        "sha256": "4590b2fb65bb8fe24f8cbb9106814b27c5627c6674d31fd12c0e0da6a63b35b4",
+        "optimization": "O2",
+        "fullTccXrtAndVfs": true,
+        "products": {
+          "xl": {
+            "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-field-receiver-linux-full-r1/source/release/linux_x64/xl",
+            "sha256": "faa25e49bdf8c5ce8ccdb084810075b406cc6dd499a59577664616eb2a08265b",
+            "bytes": 47224
+          },
+          "libxl.so": {
+            "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-field-receiver-linux-full-r1/source/release/linux_x64/libxl.so",
+            "sha256": "b68dd911b2fb91295e4b254f903effec3f2ba0fd7b590b504871a47d3de14b4f",
+            "bytes": 16612272
+          },
+          "libxlc.so": {
+            "path": "/mnt/f/xlang-validation/xge-full-20261110/compiler-field-receiver-linux-full-r1/source/release/linux_x64/libxlc.so",
+            "sha256": "d28891da370faea0eb045b94c7da5f0fa4d927d4c3948f60c010f63e1a47ef51",
+            "bytes": 22674608
+          }
+        }
+      }
+    }
+  },
+  "totalBuildAndRunCommands": 80,
+  "irRejections": {
+    "newReceiverMutations": 44,
+    "legacyCallableFieldMutations": 164,
+    "consumers": [
+      "O0",
+      "O2"
+    ],
+    "compilerSourceOptimization": "O0",
+    "emptyCAndHeaderOnFailure": true
+  },
+  "performance": {
+    "repetitions": 1000,
+    "languageAndNativeHeapAllocFreeReallocDeltas": [
+      0,
+      0,
+      0
+    ],
+    "paths": [
+      "JIT",
+      "TCC static executable",
+      "TCC shared module (twice)",
+      "GCC O0 consumer",
+      "GCC O2 consumer"
+    ],
+    "projection": "one field load at the existing receiver slot; no new forwarding function, allocation, boxing, copying or text scan introduced by the receiver projection",
+    "existingForeignViewChecksRemain": true,
+    "cpuThroughputEquivalenceClaim": false
+  },
+  "sourceQualification": {
+    "fullCompiler": "Pre-formatting immutable source freeze, with an independently verified statement-separating newline as the only post-freeze compiler-source edit; supplementary Linux source tests compile the current formatting.",
+    "windowsPublicSourceTool": "Three manifest mappings now handle release/win_x64 before the legacy release prefix; the external copied verifier tool suppresses one frozen pre-formatting indentation warning.",
+    "fullCurrentWorkspaceCompilerRebuild": false
+  },
+  "linuxArchive": {
+    "index": "F:\\xlang-validation\\xge-full-20261110\\field-receiver-source-linux-r1.json",
+    "indexSha256": "a2093fd3139ab17f07f36d0a834528403d938b6ab5223ea2f25fe9fb6bbab906",
+    "archive": "F:\\xlang-validation\\xge-full-20261110\\field-receiver-source-linux-r1.zip",
+    "archiveSha256": "d7381f275fba0ab400fce49476b74917cb4610aeae55b2b1f390e6b24c523fcf",
+    "bytes": 192377612,
+    "sourceFiles": 15264,
+    "nativeVerificationIndex": "/var/tmp/xlang-validation/xge-full-20261110/field-receiver-source-linux-r1.json"
+  },
+  "declarationAudit": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\surface-backend-receiver-r1\\surface.json",
+    "sha256": "1e9f53f2422743854d69e3c732cd41e4853ef8dfa5acaa2a02d2da8433b81a1d",
+    "scope": "Current native working-tree declaration inventory only, not ABI/lifetime/runtime acceptance."
+  },
+  "repositoryBudgetBefore": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\field-receiver-repo-budget-before-r1.json",
+    "sha256": "3873a91c62006d7c56af34247916c59c14bad186f29a125111b2003ff5508955"
+  },
+  "approvedNextWork": [
+    "Owning HostSession with explicit creator-thread poll/begin/end/present and checked cleanup retry, preserving Sokol Run",
+    "Owning callback-group pack projection with shared userdata and retained closures/code; no per-method C forwarding"
+  ],
+  "limitations": [
+    "HostSession and owning callback groups are not implemented by this batch.",
+    "Matched latest-XRT/native SDKs, complete current-root compiler, IDE/help and runtime installation remain pending.",
+    "Generic CPU fixtures do not qualify a working native host renderer.",
+    "Unrelated root/native changes and existing user LSP work are preserved; release remains ignored."
+  ]
+}

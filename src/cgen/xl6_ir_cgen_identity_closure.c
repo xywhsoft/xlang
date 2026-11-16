@@ -489,6 +489,9 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
             const XL6_IrType* result=xl6IrTypeGet(&module->types,target->returnType);
             xl6OutputPrintf(out,"%s%s",target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_FOREIGN_VIEW ? result->cName:xl6IrCgenType(module,target->returnType),storage ? "":"*");continue;
         }
+        if(fieldCall && parameter==0 && fieldCall->receiverField[0]){
+            xl6OutputPuts(fieldCall->receiverCName,out);continue;
+        }
         if ( target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_RAW_C_CALLBACK ||
              target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_STATIC_C_CALLBACK ) {
             xl6OutputPrintf(out, "xlir_raw_callback_t%u",
@@ -516,6 +519,9 @@ static int xl6IrCgenEmitExternPrototypeWithBindings(
         const XL6_IrType* receiverType=xl6IrTypeGet(&module->types,target->parameterTypes[0]);
         xl6OutputPrintf(out,");\nXLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(((%s)0)->%s, xlir_native_callee_s%u), \"native callable field ABI\");\n",
             receiverType->cName,fieldCall->field,(unsigned)target->symbol);
+        if(fieldCall->receiverField[0])xl6OutputPrintf(out,
+            "XLIR_NATIVE_ASSERT(XLIR_NATIVE_IS_TYPE(((%s)0)->%s, %s), \"native callable receiver field ABI\");\n",
+            receiverType->cName,fieldCall->receiverField,fieldCall->receiverCName);
     }else xl6OutputPuts(headerDeclared ? ")), \"declared C function ABI\");\n" : ");\n", out);
     return 1;
 }

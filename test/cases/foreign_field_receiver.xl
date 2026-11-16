@@ -1,0 +1,105 @@
+extern "ReceiverInfo" struct Info @header("test/cases/foreign_field_receiver.h")
+ c_int width
+ c_int height
+end
+extern "ReceiverTable*" class Table @header("test/cases/foreign_field_receiver.h") @lifetime("owned") @policy("receiverPolicy") @scope("ReceiverScope")
+ native point handle
+ extern "add" @c_field_call("pUser","void*") @no_raise func add(c_int value) as c_int
+ extern "read" @c_field_call("constUser","const ReceiverPayload*") @no_raise @c_const(0) func read() as c_int
+ extern "count" @c_field_call("pUser","void*") @no_raise @c_span(0,"const uint8_t*","size_t") func count(bytes value) as c_size
+ extern "pair" @c_field_call("pUser","void*") @no_raise @c_outputs(1,2) func pair() as (c_int,c_float)
+ extern "checked" @c_field_call("pUser","void*") @no_raise @c_result("status",0) func checked(c_int status)
+ extern "echo" @c_field_call("pUser","void*") @no_raise @c_text_view(0) @c_result("text_view") func echo(string value) as string
+ extern "apply" @c_field_call("pUser","void*") @no_raise @c_sync_callback(1,0,-1) func apply(c_int value,func(c_int) as c_int callback) as c_int
+ extern "missing" @c_field_call("pUser","void*") @no_raise func missing() as c_int
+ extern "isNull" @c_field_call("unused","void*") @no_raise func isNull() as bool
+ extern "info" @c_field_call("pUser","void*") @no_raise @c_output(1,0) func info() as Info
+ extern "readPixels" @c_field_call("pUser","void*") @no_raise @c_result("status",0) @c_region(1,"write","observer.width","observer.height","2",1) @c_region_observer(1,info,0) func readPixels(Buffer output,c_int stride)
+ extern "xl6ForeignViewCloseV1" @no_raise @c_control(0) @c_result("bool_status") func close()
+end
+extern "ReceiverTable*" class Caller @header("test/cases/foreign_field_receiver.h") @lifetime("caller")
+ native point handle
+ extern "add" @c_field_call("pUser","void*") @no_raise func add(c_int value) as c_int
+end
+extern "receiver_create" @no_raise @c_result("owned_view") @factory(0,0,rollback) func create() as Table
+extern "receiver_destroy" @no_raise func rollback(Table value)
+extern "receiver_null" @no_raise func nullCaller() as Caller
+extern "receiver_heap_begin" @no_raise func heapBegin()
+extern "receiver_heap_end" @no_raise func heapEnd()
+extern "receiver_native_samples" @no_raise func nativeSamples(Table value,c_int count)
+extern "receiver_live_count" @no_raise func liveCount() as c_int
+protocol Adder
+ func add(c_int value) as c_int
+end
+func main(...) as int
+ assert liveCount()==c_int(0)
+ Table table=create()
+ assert table.add(c_int(4))==c_int(11)
+ assert table.read()==c_int(7)
+ assert table.isNull()
+ Buffer pixels=Buffer(b"0000")
+ table.readPixels(pixels,c_int(2))
+ assert pixels.toBytes()==b"\x01\x02\x03\x04"
+ func(c_int) as c_int bound=table.add
+ assert bound(c_int(5))==c_int(12)
+ Adder adder=table
+ assert adder.add(c_int(6))==c_int(13)
+ assert table.count(b"a\0b")==c_size(3)
+ auto first,second=table.pair()
+ assert first==c_int(7) and second==c_float(3.5)
+ assert table.echo("你\0好")=="你\0好"
+ int bias=9
+ assert table.apply(c_int(3),func(c_int value) as c_int
+  return value+c_int(bias)
+ end)==c_int(12)
+ bool callbackRejected=false
+ try
+  auto bad=table.apply(c_int(3),func(c_int value) as c_int
+   throw RuntimeError "receiver callback failed"
+  end)
+ catch error
+  assert error.message=="receiver callback failed"
+  callbackRejected=true
+ end
+ assert callbackRejected
+ bool statusRejected=false
+ try
+  table.checked(c_int(-7))
+ catch error
+  statusRejected=true
+ end
+ assert statusRejected
+ bool missingRejected=false
+ try
+  auto bad=table.missing()
+ catch error
+  missingRejected=true
+ end
+ assert missingRejected
+ bool nullRejected=false
+ try
+  auto bad=nullCaller().add(c_int(1))
+ catch error
+  nullRejected=true
+ end
+ assert nullRejected
+ heapBegin()
+ for i in range(1000)
+  assert table.add(c_int(3))==c_int(10)
+ end
+ heapEnd()
+ heapBegin()
+ nativeSamples(table,c_int(1000))
+ heapEnd()
+ table.close()
+ assert liveCount()==c_int(0)
+ bool closedRejected=false
+ try
+  auto bad=bound(c_int(1))
+ catch error
+  closedRejected=true
+ end
+ assert closedRejected
+ print("FIELD_RECEIVER_OK")
+ return 0
+end

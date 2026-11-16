@@ -42,3 +42,20 @@ source hashes are indexed by
 The permanent Linux validation source is under `/var/tmp/xlang-validation/`;
 the archive and its per-file hashes remain on F for reconstruction. Runtime
 release/IDE/help delivery and the remaining full-coverage task are still open.
+
+## 2026-11-16 receiver projection update
+
+The generic field receiver is now implemented as
+`@c_field_call("pUser", "void*")`. It preserves the logical table scope while
+passing its field at the existing native receiver slot, including bound,
+protocol and region-observer calls. Windows/Linux each pass 40 build/run gates,
+with actual full O2/TCC/XRT/VFS products and separate public-source mutation
+tests. See [the contract and limits](c-field-call-receivers.md) and
+`dev/release-materials/provenance/xge-field-receiver-20261116.json`.
+
+The user also approved owning callback-group pack projection. Existing pack
+callbacks are synchronous only and cannot retain several language closures
+behind a common userdata field. The new group contract and owning HostSession
+are still to be implemented. Descriptor snapshots and direct field calls alone
+do not activate a native host renderer, and no matched SDK/IDE promotion is
+claimed by this compiler batch.

@@ -4537,7 +4537,7 @@ static XL6_IrNodeId xl6IrBuildAstNode(
         }
         if(declaration && declaration->text && !strcmp(declaration->text,"c_field_call")){
             XL6_ForeignFieldCallContract row={0};
-            if(!xl6ForeignFieldCallName(source,row.field,sizeof(row.field)) ||
+            if(!xl6ForeignFieldCallRead(source,declaration,&row) ||
                 !xl6IrGrow((void**)&module->foreignFieldCalls,&module->foreignFieldCallCapacity,
                     module->foreignFieldCallCount,sizeof(*module->foreignFieldCalls))){*ok=0;return 0;}
             row.declaration=id;module->foreignFieldCalls[module->foreignFieldCallCount++]=row;continue;
@@ -54755,7 +54755,7 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     xl6OutputPuts("  ],\n  \"foreignFieldCalls\": [\n",out);
     for(i=0;i<module->foreignFieldCallCount;++i){
         const XL6_ForeignFieldCallContract* row=&module->foreignFieldCalls[i];
-        xl6OutputPrintf(out,"    {\"declaration\":%u,\"field\":\"%s\"}%s\n",(unsigned)row->declaration,row->field,
+        xl6OutputPrintf(out,"    {\"declaration\":%u,\"field\":\"%s\",\"receiverField\":\"%s\",\"receiverCName\":\"%s\"}%s\n",(unsigned)row->declaration,row->field,row->receiverField,row->receiverCName,
             i+1==module->foreignFieldCallCount ? "":",");
     }
     xl6OutputPuts("  ],\n  \"foreignFunctionHeaders\": [\n",out);

@@ -146,7 +146,8 @@ static int xl6IrVerifyFieldCalls(const XL6_IrModule* module,XL6_DiagList* diags)
         if(!node || node->kind!=XL6_IR_NODE_FUNC_DECL || node->sourceKind!=XL6_AST_NATIVE_EXTERN_FUNC ||
             !node->declarationOwnerType || (node->flags&(XL6_AST_FLAG_STATIC|XL6_AST_FLAG_FOREIGN_FIELD)) ||
             node->foreignCall.receiverDereference || node->foreignCall.controlViews ||
-            node->foreignCall.outputIndexPlusOne==1 || !memchr(row->field,0,sizeof(row->field)) || !xl6ForeignIdentifier(row->field))goto invalid;
+            node->foreignCall.outputIndexPlusOne==1 || !memchr(row->field,0,sizeof(row->field)) || !xl6ForeignIdentifier(row->field) ||
+            !xl6ForeignFieldCallReceiverValid(row))goto invalid;
         for(size_t j=0;j<i;++j)if(module->foreignFieldCalls[j].declaration==row->declaration)goto invalid;
     }
     return 1;
@@ -507,7 +508,7 @@ int xl6IrForeignProjectionMatches(const XL6_IrModule* module,const XL6_IrCallTar
         const XL6_ForeignFieldCallContract* row=xl6IrForeignFieldCallGet(module,target);
         const XL6_IrNode* decl=xl6IrNodeGet(module,target->declaration);
         const XL6_IrType* owner=target->parameterCount && target->parameterTypes ? xl6IrTypeGet(&module->types,target->parameterTypes[0]):NULL;
-        if(!row || !target->cName || !decl || !decl->text)return 0;
+        if(!row || !xl6ForeignFieldCallReceiverValid(row) || !target->cName || !decl || !decl->text)return 0;
         size_t nameBytes=strlen(decl->text),fieldBytes=strlen(row->field);
         if(nameBytes<2 || decl->text[0]!='"' || decl->text[nameBytes-1]!='"' ||
             fieldBytes!=nameBytes-2 || memcmp(decl->text+1,row->field,fieldBytes))return 0;

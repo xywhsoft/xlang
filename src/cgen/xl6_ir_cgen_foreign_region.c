@@ -54,6 +54,8 @@ static int xl6IrCgenRegionObserver(XL6_Output* out,const XL6_IrModule* module,
     for(size_t physical=0;physical<query->parameterCount+1;++physical){
         if(physical)xl6OutputPuts(",",out);
         if(physical==output)xl6OutputPrintf(out,"&native_region_observed_%lu",(unsigned long)p);
+        else if(field && physical==0 && field->receiverField[0])
+            xl6OutputPrintf(out,"native_region_query_receiver_%lu->%s",(unsigned long)p,field->receiverField);
         else{
             size_t source=row->parameters[physical-(physical>output)];char place[40];
             xl6IrCgenRegionPlace(place,sizeof(place),values,source);
