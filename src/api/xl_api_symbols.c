@@ -453,6 +453,7 @@ static int xlVisitDefaultTccApiSymbols(XL_ApiSymbolVisit visit, void* user)
     if (!visit(user, "xl6ForeignViewCallbackFailureCountV1", (const void*)xl6ForeignViewCallbackFailureCountV1)) return 0;
     if (!visit(user, "xl6NativeCallbackReportFailureV1", (const void*)xl6NativeCallbackReportFailureV1)) return 0;
     if (!visit(user, "xl6NativeCallbackRuntimeV1Get", (const void*)xl6NativeCallbackRuntimeV1Get)) return 0;
+    if (!visit(user, "xl6NativeCallbackGroupRuntimeV1Get", (const void*)xl6NativeCallbackGroupRuntimeV1Get)) return 0;
     if (!visit(user, "xl6TransferServicesFromLeaseV1", (const void*)xl6TransferServicesFromLeaseV1)) return 0;
     if (!visit(user, "xl6TransferServicesProcessResidentV1", (const void*)xl6TransferServicesProcessResidentV1)) return 0;
     if (!visit(user, "xl6SyncCallbackBeginV1", (const void*)xl6SyncCallbackBeginV1)) return 0;

@@ -34,6 +34,28 @@ typedef struct XL6_NativeCallbackRuntimeV1 {
     bool (*DropNative)(const void*);
 } XL6_NativeCallbackRuntimeV1;
 XL6_CODE_LEASE_API const XL6_NativeCallbackRuntimeV1* xl6NativeCallbackRuntimeV1Get(void);
+/* Shared userdata for typed callback fields. The published member vector is
+ * read-only. Generated thunks select a constant member and use the ordinary
+ * Enter/Leave above; they add no forwarding function or runtime dispatcher.
+ * A publisher must retain the GROUP (or an enclosing real owner) through the
+ * entire thunk return tail. Retaining an individual member is insufficient.
+ * Create owns one group allocation, one shared adapter lease and one existing
+ * callback record for each non-NULL closure. Input arrays are construction-only
+ * borrows. Member records retain the shared lease without reacquiring code. */
+typedef struct XL6_NativeCallbackGroupV1 {
+    size_t Count;
+    XL6_NativeCallback* const* Members;
+} XL6_NativeCallbackGroupV1;
+typedef struct XL6_NativeCallbackGroupRuntimeV1 {
+    XL6_NativeCallbackGroupV1* (*Create)(const XL6_CodeOwner*,XL6_Closure* const*,
+        XL6_ForeignView* const*,const uint64_t*,size_t);
+    XL6_NativeCallbackGroupV1* (*Retain)(XL6_NativeCallbackGroupV1*);
+    bool (*Release)(XL6_NativeCallbackGroupV1*);
+    struct xrtownershipref (*Ownership)(const XL6_NativeCallbackGroupV1*);
+    bool (*HoldNative)(const void*);
+    bool (*DropNative)(const void*);
+} XL6_NativeCallbackGroupRuntimeV1;
+XL6_CODE_LEASE_API const XL6_NativeCallbackGroupRuntimeV1* xl6NativeCallbackGroupRuntimeV1Get(void);
 /* Consume failure into the immediate checked boundary, or the pinned root
  * when called by a native publisher outside language execution. */
 XL6_CODE_LEASE_API bool xl6NativeCallbackReportFailureV1(XL6_NativeCallback*,struct xl6_foreign_error_result);

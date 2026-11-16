@@ -206,10 +206,12 @@ static bool finish(const void* raw,const void* token)
     if(!record->retired.closure && !record->retired.adapter && !record->retired.owner)return true;
     CallbackPayload payload=record->retired;record->retired=(CallbackPayload){0};return release_payload(payload);
 }
+#include "xl6_native_callback_group.inc"
 static bool resolve(xrtownershipref ref,const XL6_OwnershipPoliciesV1* policies,const xrtownershipadapterv1** adapter,
     const xrtownershippreparationv1** preparation,const XL6_OwnershipFinishV1** completion)
 {
     (void)policies;(void)preparation;(void)completion;
+    if(group_resolve(ref,adapter))return true;
     static const xrtownershipadapterv1 value={sizeof(value),collector_hold,collector_drop,claim,restore,NULL,clear,finish};
     if(ref.Ops!=&ops || !ref.Data)return false;
     const XL6_NativeCallback* record=ref.Data;

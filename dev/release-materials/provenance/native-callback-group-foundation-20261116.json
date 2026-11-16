@@ -1,0 +1,109 @@
+{
+  "schema": 1,
+  "recordedAt": "2026-11-16T13:09:42.303066+00:00",
+  "sourceParent": "a009ff19e54d45fafcbb43ee6292acf77c1702a9",
+  "scope": "Provisional internal owned native callback-group runtime foundation; no compiler pack/lowering/cgen or runtime delivery claim.",
+  "sourceHashes": {
+    "src/runtime/xl6_native_callback.c": "c0e4ab29fb471d2e8f687ac9f5f54a0ddc5dd06768c35d89565652743d130245",
+    "src/runtime/xl6_native_callback.h": "5b2161771d01de4a79eca47e12522e997f2d017796d3751a2e11624b0e3345ac",
+    "src/runtime/xl6_native_callback_group.inc": "bc8c35d6a86da8f537afd38f0fe444d1b7a3486ef914d3d7e5296c6d564bff44",
+    "src/api/xl_api_symbols.c": "a65a619cba1aa20a4b239783a0e693cacea4a7915edd4938d7d5283386cc26f8",
+    "src/compile/xl6_artifact_runtime_symbols.inc": "7de5c29e8ceced070785e814e778e44073f86503c4eae8828671ece88f9d4923",
+    "test/cases/foreign_callback_group_runtime.c": "8d2621df4534bd46503485fede9aeae8ef0081cf3651f981addc03749d7eb69e",
+    "tools/check_foreign_callback_group_runtime.py": "a7fcb10a9776479e75c91f8f387865b69d2e9d83ee5235a07efa1e06006c0924",
+    "docs/native-callback-groups.md": "8b1b24494284c651e300fa99eef17d19e76c5ee7ff02c883b703ced6ab66bb16"
+  },
+  "qualified": {
+    "win": {
+      "verification": "F:\\xlang-validation\\xge-full-20261110\\callback-group-runtime-verified-win-r1\\results.json",
+      "verificationSha256": "b8676ddee64fbf968b92e83d8e9eb7379cf18578943fce5c70e1f170826e267c",
+      "sourceGate": "F:\\xlang-validation\\xge-full-20261110\\callback-group-runtime-win-r7\\results.json",
+      "sourceGateSha256": "1421f12fc10ec4250584af386b23173b860055407233957ec6cc0aacb181b814",
+      "commands": 11,
+      "verifiedFiles": 9275
+    },
+    "linux": {
+      "verification": "F:\\xlang-validation\\xge-full-20261110\\callback-group-runtime-verified-linux-r1\\results.json",
+      "verificationSha256": "ac2026957e83781da957b0c32bc7927595ddc9ba9449d539cfb65864e82618d6",
+      "sourceGate": "/var/tmp/xlang-validation/xge-full-20261110/callback-group-runtime-linux-r5/results.json",
+      "sourceGateSha256": "bfe10668591aa65edadb25cbb30fd6da800667bac447c76abc9911a07709762e",
+      "commands": 11,
+      "verifiedFiles": 9287
+    }
+  },
+  "totalBuildAndRunCommands": 22,
+  "implementation": {
+    "sharedUserdata": true,
+    "memberRecords": "existing independently owned native callbacks",
+    "adapterLease": "one accepted real lease shared with all members; no per-member code reacquisition",
+    "ordinaryCallbackConstructionAndEntryUnchanged": true,
+    "nativePublisherProtectsCompleteThunkTail": true,
+    "allNullGroupKeepsAdapterLease": true,
+    "traceAndManualClaimClearFinish": true,
+    "checkedConsumingDrop": true,
+    "wholeConstructionRollback": true,
+    "runtimeSymbolVisitorAndArtifactDirectory": true
+  },
+  "performance": {
+    "sample": "Three slots, two non-null references to an existing coordinated closure; native caller outside language scope",
+    "currentAllocations": 4,
+    "currentLiveBytes": 320,
+    "prototypeAllocations": 6,
+    "prototypeLiveBytes": 448,
+    "savedAllocations": 2,
+    "savedLiveBytes": 128,
+    "hotCalls": 1000,
+    "hotAllocFreeReallocDeltas": [
+      0,
+      0,
+      0
+    ],
+    "prototypeReplay": {
+      "executable": "F:\\xlang-validation\\xge-full-20261110\\callback-group-runtime-win-r3\\group-O2.exe",
+      "executableSha256": "aee64488f786cd5fa7fc091f6ba3c53459dd8b89a43fb7d11226ae02ae1b3ec0",
+      "sourceReport": "F:\\xlang-validation\\xge-full-20261110\\callback-group-runtime-win-r3\\results.json",
+      "sourceReportSha256": "fe5ebb02826f321072cd93a688423df242d90067f69f2131c3ad0e4c957ec6db",
+      "log": "F:\\xlang-validation\\xge-full-20261110\\callback-group-prototype-replay-win-r1.log",
+      "logSha256": "c79d7f66122b5ee0ededa17cfcde11b219ab7ea72d04972f1806508417f13383"
+    },
+    "cpuTimeEquivalenceClaim": false
+  },
+  "validation": {
+    "cxxHeaders": [
+      "C11",
+      "C++11",
+      "C++17"
+    ],
+    "replacementObjectOptimizations": [
+      "O0",
+      "O2"
+    ],
+    "surroundingPublicSourceCohortOptimization": "O0",
+    "perOsSourceObjectReplacements": [
+      "native callback runtime",
+      "runtime symbol visitor"
+    ],
+    "oomPrefixes": 20,
+    "oomFailures": 4,
+    "oomSuccesses": 16,
+    "ordinaryRetainedCallback": true,
+    "legacyOpaqueClosureRejected": true,
+    "acceptedGroupContinuesAfterCodeCapabilityClose": true
+  },
+  "fullCompilerBuild": false,
+  "compilerPackSupport": false,
+  "nativeSdkRebuilt": false,
+  "shippingDelivery": false,
+  "networkTests": false,
+  "repositoryBudgetBefore": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\field-receiver-repo-budget-after-r1.json",
+    "sha256": "456ea2bb93269db6871fc879fee1f814ead979182b2a7297a5fb6e4dfb36fc11"
+  },
+  "remaining": [
+    "Isolate callback-group runtime component/domain for pruning before language delivery.",
+    "Implement approved owning callback-group pack declarations, closed IR, lowering and direct typed thunks.",
+    "Qualify real module unload, whole cyclic graphs and concurrent/foreign-thread callback entry.",
+    "Build actual full compiler/TCC/XRT/VFS and matched SDK/IDE products with this source, then install runtime.",
+    "Implement owning native HostSession actual renderer and explicit poll/begin/end/present lifecycle."
+  ]
+}
