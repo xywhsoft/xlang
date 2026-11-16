@@ -3,13 +3,15 @@ from pathlib import Path
 import argparse
 import hashlib
 import json
+import os
 import shutil
 from gen_tcc_vfs_resources import load_resources
 
 
 def stage(root, out, manifest=None):
     root, out = Path(root).resolve(), Path(out).resolve()
-    manifest = Path(manifest).resolve() if manifest is not None else root / 'tools/tcc_vfs_manifest_linux_xlc.txt'
+    name = 'tcc_vfs_manifest_win64_xlc.txt' if os.name == 'nt' else 'tcc_vfs_manifest_linux_xlc.txt'
+    manifest = Path(manifest).resolve() if manifest is not None else root / 'tools' / name
     rows = []
     for line in manifest.read_text(encoding='utf-8-sig').splitlines():
         parts = line.strip().split('|')

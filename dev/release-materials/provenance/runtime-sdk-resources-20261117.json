@@ -1,0 +1,57 @@
+{
+  "format": 1,
+  "sourceParent": "0f4cd2ae019c34d002a50b8ddcf1b67bd2081f01",
+  "completeBatch": true,
+  "goalComplete": false,
+  "shippingDelivery": false,
+  "sourceHashes": {
+    "tools/tcc_vfs_manifest_linux_runtime.txt": "c27451a60dea63de125bdf7e9a00470757cb08936fe411394efc7c97e22c8b44",
+    "tools/tcc_vfs_manifest_linux_xlc.txt": "e1570b0bfa945c371d0625c39e2daf337823dbb161b648a71f98c6ebd1233c98",
+    "tools/stage_runtime_headers.py": "000b4b5363082146da1952edb44b0f9a4f29d22654e6aecdf30191c56e29033d",
+    "tools/check_runtime_sdk_resources.py": "9336d0070ab7d875ae23ddce1d721101dc015b6ae48aefafb5d077f7db1b2609",
+    "docs/runtime-sdk-resources.md": "577d6046403532a0c0875aa0ec7e6f7c7689f5180670ae60f95677f877842aa4"
+  },
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\runtime-sdk-resources-win-r3\\results.json",
+      "sha256": "18e754b7c2d742405e6ddab5a54394d8df08e223235b1a30ed0982ad60fcab8c",
+      "platform": "win_x64",
+      "headers": 517,
+      "sdkInputs": 5,
+      "negative": {
+        "exercised": true,
+        "missingInactiveSdk": true,
+        "rejected": true,
+        "manifest": "tcc_vfs_manifest_linux_xlc.txt"
+      }
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\runtime-sdk-resources-linux-evidence-r3.json",
+      "sha256": "b0fcc13b4a154e94697cf11bb3ef1213ee576f885682f4a643ca80a32d38e31c",
+      "platform": "linux_x64",
+      "headers": 517,
+      "sdkInputs": 5,
+      "negative": {
+        "exercised": true,
+        "incorrectSha256": "a9dd02dcd9a9f56a741c86ec1cb8df70c0fb59de3edb799de1a6f074ccf7552d",
+        "requiredSha256": "ae46070e111a172c5482cdaf46196386549e0a3e62c793664924ccc3ed6806ff",
+        "rejected": true,
+        "manifest": "tcc_vfs_manifest_win64_xlc.txt"
+      }
+    }
+  ],
+  "scope": "Active-platform private VFS/SDK header source selection; not completed binary or installed release qualification",
+  "workingOverlap": "Only the two Linux manifests existing SDK-path migration is included as a necessary correction: every Linux SDK reference now targets linux_x64. Other pending changes stay outside this commit.",
+  "budget": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\runtime-sdk-path-budget-before-r1.json",
+    "sha256": "e9c38cfa3b49f50c763c65dcbaf2c47c83e89a8683e3d97fb7c243c5b37b5dae"
+  },
+  "negativeBuild": {
+    "path": "/var/tmp/xlang-validation/xge-full-20261110/compiler-xrt4641-linux-full-r1/build.json",
+    "interpretation": "The inherited Win64 manifest source overwrote fresh Linux declarations; snapshot metadata check stopped the build with changedInputs=[]"
+  },
+  "limits": [
+    "Compiler/runtime/TCC/VFS complete rebuilds and newest-XRT execution gates are separate pending evidence",
+    "No release files installed or staged in Git"
+  ]
+}
