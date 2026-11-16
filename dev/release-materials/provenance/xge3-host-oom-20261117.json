@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "sourceParent": "e542a10e79b31d1bc4ab662ffaef0e7b745cb25c",
+  "sourceHashes": {
+    "test/cases/foreign_xge3_host_oom.xl": "009540588c2247a3554d4c529badbcaa5a7919765cdda0c7c87635f6eb297f31",
+    "test/cases/foreign_xge3_host_memory.h": "20e98ae90d447f76b3823feb00f5dcf7b7bdc380c7e4d2511c42f07d20fb3733",
+    "tools/check_xge3_host_oom.py": "279746a5f0d0cb962d48f78fa5f4047b6b01ff198e73a718fc5a3ae1a49b8f82",
+    "docs/xge3-host-session.md": "6bff37033f18594cc462aafb8d40b9b66b393cc36b5150f2c319f05e02003120"
+  },
+  "reports": {
+    "F:\\xlang-validation\\xge-full-20261110\\host-resolver-oom-win-r2\\results.json": "b83eed53785174070aeeb4ecf996b270e10d06ecc0d4b732cd6a22ea1be38433",
+    "F:\\xlang-validation\\xge-full-20261110\\host-resolver-oom-win-verification-r2.json": "14be33725b3205ec5eace883b091f4c3122d115fe0a1ba3cf156b741c97e03a5",
+    "F:\\xlang-validation\\xge-full-20261110\\host-oom-linux-evidence-r2\\results.json": "c83fb087f63cf4c7fcd21bc08da096f026a0d5846c9515bf9cde5c5bfef12847",
+    "F:\\xlang-validation\\xge-full-20261110\\host-oom-linux-evidence-r2\\verification.json": "9903301902e53d719ed188ec37bf757ac829144776a44fee016c7d2f52e72859"
+  },
+  "commands": {
+    "windows": 10,
+    "linux": 17
+  },
+  "hashesReverified": {
+    "windows": 2694,
+    "linux": 2687
+  },
+  "failedAllocationPrefixes": 153,
+  "failureSweeps": 9,
+  "successfulSentinels": 9,
+  "failedPrefixesPerSweep": 17,
+  "allFailureSitesBeforePlatformInit": true,
+  "exactWarmedLiveHeapBalance": true,
+  "graphicsAndPlatformUnitCountsMatchInit": true,
+  "osContextObligationsConsumed": true,
+  "resolverIntervalXrtHeapOperations": {
+    "allocations": 0,
+    "frees": 0,
+    "reallocations": 0,
+    "fromBoundary": "native graphics-init callback after OS context creation",
+    "toBoundary": "successful managed owning factory return"
+  },
+  "measurementControl": "three managed scalar field writes initially added 3 allocations/frees; private native snapshot removes this instrumentation cost",
+  "xrtRevision": "4641cd2e4da09d8b1a66872cabe085c263d8b5ba",
+  "notClaimed": [
+    "OS/driver allocator failure injection",
+    "OS/driver allocator counts",
+    "CPU zero overhead or hardware timing",
+    "complete construction zero allocations",
+    "claimed callback-cycle finalization",
+    "final runtime/SDK/IDE install"
+  ],
+  "networkTests": false,
+  "shippingDelivery": false,
+  "releaseFilesAdded": false
+}

@@ -135,6 +135,26 @@ recovery; it does not claim nested native/language cycle collection, physical
 engine unload after each inner run, or a filesystem-denial sandbox.
 Receipt: `dev/release-materials/provenance/xge3-host-nested-20261117.json`.
 
+`tools/check_xge3_host_oom.py` covers the same real OS backends through JIT,
+dynamic and static AOT. It arms the program's actual XRT allocation injector
+before the owning factory call and checks every failure prefix up to the first
+successful sentinel. After each attempt, all OS context duties are consumed,
+unit counters match initialization counters, and live XRT count/bytes equal
+the warmed baseline. The observed failing allocations precede platform init;
+this does not simulate an OS/driver allocator failure after context creation.
+The resolver-exception/missing-symbol tests above cover partial OS setup.
+
+A separate test-only native stack snapshot measures from the return of native
+graphics initialization to the owning factory's successful language return.
+The full GL lookup sequence, generated callback entries and scalar name queries
+perform zero XRT allocations/frees/reallocations in that interval. It excludes
+the earlier factory/group/closure allocations and does not observe OS/driver
+allocators or measure CPU time. Initial instrumentation wrote three managed
+class fields inside the interval, adding three allocations/frees; the final
+instrument uses a private native snapshot so those measurement writes are not
+attributed to the binding. No public forwarding layer was added.
+Receipt: `dev/release-materials/provenance/xge3-host-oom-20261117.json`.
+
 Receipt: `dev/release-materials/provenance/xge3-host-session-20261117.json`.
 Claimed native/language callback cycles remain unqualified: finalization can
 need a callback whose group is already claimed by the ownership transaction.

@@ -1,0 +1,117 @@
+// Real local host backend. Its OS-only fixture has no XRT/compiler dependency.
+import xge
+extern "xge_test_host_probe_info" struct ProbeInfo @header("test/cases/foreign_xge3_host_probe.h")
+ c_uint platformInit
+ c_uint graphicsInit
+ c_uint platformUnit
+ c_uint graphicsUnit
+ c_uint begins
+ c_uint ends
+ c_uint polls
+ c_uint presents
+ c_uint releases
+ c_uint makeCurrent
+ c_uint lookups
+ bool contextLive
+ bool platformLive
+end
+extern "xgeTestHostConfigure" @header("test/cases/foreign_xge3_host_probe.h") @no_raise @c_result("status",0) func configure(c_int backend,bool deferRelease)
+extern "xgeTestHostPlatformInit" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func platformInit() as c_int
+extern "xgeTestHostGraphicsInit" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func graphicsInit() as c_int
+extern "xgeTestHostPlatformUnit" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func platformUnit()
+extern "xgeTestHostGraphicsUnit" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func graphicsUnit()
+extern "xgeTestHostMakeCurrent" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func makeCurrent() as c_int
+extern "xgeTestHostIsCurrent" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func isCurrent() as c_int
+extern "xgeTestHostRelease" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func release() as xge.HostReleaseResult
+extern "xgeTestHostBegin" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func beginFrame() as c_int
+extern "xgeTestHostEnd" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func endFrame() as c_int
+extern "xgeTestHostPoll" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func poll() as c_int
+extern "xgeTestHostPresent" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func present()
+extern "xgeTestHostInfo" @header("test/cases/foreign_xge3_host_probe.h") @no_raise @c_output(0,0) func probeInfo() as ProbeInfo
+extern "xgeTestHostGetProc" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func getProc(xge.CallbackProcName name) as point
+
+extern "xrtMemDebugEnabled" @header("xrt_decl.h") @no_raise func debugEnabled() as bool
+extern "xrtMemDebugFailAfter" @header("xrt_decl.h") @no_raise func failAfter(uint64 prefix) as bool
+extern "xrtMemDebugFailClear" @header("xrt_decl.h") @no_raise func failClear()
+extern "xrtMemDebugFailTriggered" @header("xrt_decl.h") @no_raise func failTriggered() as bool
+func attempt(c_int backend,uint64 prefix) as bool
+ configure(backend,false)
+ xge.init(4,4,"Host resolver allocation rollback",0,xge.XGE_RUN_MANUAL)
+ auto platform=xge.createPlatformBackend(xge.XGE_PLATFORM_BACKEND_CUSTOM,"local OS",platformInit,platformUnit,poll,present)
+ auto graphics=xge.createGraphicsBackend(backend,"local GL",graphicsInit,graphicsUnit,beginFrame,endFrame)
+ bool caught=false
+ bool triggered=false
+ assert failAfter(prefix)
+ try
+  auto host=xge.createHostSession(4,4,1,0,platform,graphics,makeCurrent,isCurrent,release,func(xge.CallbackProcName name) as point
+   assert name.length()>c_size(0)
+   return getProc(name)
+  end)
+  triggered=failTriggered()
+  failClear()
+  host.close()
+ catch failure
+  triggered=failTriggered()
+  failClear()
+  caught=true
+ end
+ assert caught==triggered, "caught/triggered"
+ platform.close()
+ graphics.close()
+ auto state=probeInfo()
+ assert not state.contextLive and not state.platformLive,"OS handles"
+ assert state.platformInit<=c_uint(1) and state.graphicsInit<=state.platformInit
+ assert state.platformUnit==state.platformInit and state.graphicsUnit==state.graphicsInit
+ assert state.releases==state.platformInit
+ xge.unit()
+ assert xge.graphicsResourceCount()==uint64(0)
+ return triggered
+end
+extern "xgeTestHostHeap" @header("test/cases/foreign_xge3_host_memory.h") @no_raise @c_outputs(0,1,2,3,4) func heap() as (c_size,c_size,uint64,uint64,uint64)
+extern "xgeTestHostHeapMark" @header("test/cases/foreign_xge3_host_memory.h") @no_raise func heapMark()
+extern "xgeTestHostHeapDelta" @header("test/cases/foreign_xge3_host_memory.h") @no_raise @c_outputs(0,1,2) func heapDelta() as (uint64,uint64,uint64)
+func checkLookupAllocations(c_int backend)
+ configure(backend,false)
+ xge.init(4,4,"Host resolver allocation count",0,xge.XGE_RUN_MANUAL)
+ auto platform=xge.createPlatformBackend(xge.XGE_PLATFORM_BACKEND_CUSTOM,"local OS",platformInit,platformUnit,poll,present)
+ auto graphics=xge.createGraphicsBackend(backend,"local GL",func() as c_int
+  auto result=graphicsInit()
+  heapMark()
+  return result
+ end,graphicsUnit,beginFrame,endFrame)
+ auto host=xge.createHostSession(4,4,1,0,platform,graphics,makeCurrent,isCurrent,release,func(xge.CallbackProcName name) as point
+  assert name.length()>c_size(0)
+  return getProc(name)
+ end)
+ auto allocations,frees,reallocations=heapDelta()
+ bool noHeapOperations=allocations==uint64(0) and frees==uint64(0) and reallocations==uint64(0)
+ assert probeInfo().lookups>c_uint(0)
+ host.close()
+ platform.close()
+ graphics.close()
+ xge.unit()
+ assert not probeInfo().contextLive and not probeInfo().platformLive
+ assert noHeapOperations,"resolver-only XRT heap operations"
+end
+func main(...) as int
+ c_int backend=xge.XGE_GPU_BACKEND_OPENGL33
+ assert debugEnabled(),"debug enabled"
+ checkLookupAllocations(backend)
+ assert not attempt(backend,uint64(999)),"unarmed warm-up"
+ auto live,bytes,allocations,frees,reallocations=heap()
+ int failures=0
+ bool finished=false
+ for step in range(512)
+  bool triggered=attempt(backend,uint64(step))
+  auto liveAfter,bytesAfter,allocationsAfter,freesAfter,reallocationsAfter=heap()
+  assert live==liveAfter and bytes==bytesAfter,"factory heap balance"
+  if not triggered then
+   finished=true
+   break
+  end
+  failures+=1
+ end
+ assert finished and failures>0,"no success prefix"
+ println("PUBLIC_HOST_RESOLVER_OOM_OK prefixes=",failures)
+ return 0
+end
