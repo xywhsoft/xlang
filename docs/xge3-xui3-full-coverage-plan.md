@@ -1,5 +1,11 @@
 # XGE / XUI / Document 全量接入
 
+2026-11-16 后继验收：调试库补齐真实图形上下文、共享模块初始化／checked 退役，
+以及暖态统计查询的 C 对照和正常 SDK 的功能位拒绝。两端各48项检查通过；Linux
+图形路径为 Xvfb／软件 OpenGL。详见 xge3-debug-capabilities.md 的后继章节和
+xge-debug-live-20261116.json。以下保留历史阶段记录；这项不等于其他能力、
+最新 XRT 和最终 SDK／编译器／IDE／帮助交付已经完成。
+
 当前进度（2026-11-16）：通用 C 字符串指针字段快照、受管热键／错误与无障碍
 事件观察者、独立 CodeCommandMap、控件测量、完整终端单元格值输出与 TagInput
 批量字符串输入已补齐。XGE ErrorInfo 三个文本字段的快照迁移与直接 reportError

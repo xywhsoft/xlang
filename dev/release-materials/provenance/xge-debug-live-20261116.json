@@ -1,0 +1,79 @@
+{
+  "schema": 1,
+  "status": "qualified-isolated-candidate",
+  "scope": "Debug calls in actual graphics contexts and initialized/retired hosted/static shared modules; current cold/bounded output regressions and readable lesson",
+  "shippingDelivery": false,
+  "nativeCompilerOrBindingApiChanged": false,
+  "hostOptimization": "O2",
+  "xrtRevision": "09d543a3e29f3113d258b1f58718345de867e06e",
+  "sourceParent": "ef8c146d9c7cc2ce5c2975f1f8e363b086e2c554",
+  "reports": {
+    "win": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\debug-live-verified-win-r2\\results.json",
+      "sha256": "4b30f91e4b2ac3cb3abf89d17ec6897620ddfcb8000042760761fc3010e9ceb4",
+      "checks": 48,
+      "verifiedFiles": 16509,
+      "sdkUnits": {
+        "host": {
+          "compiled": 163,
+          "reused": 1,
+          "reusedSources": [
+            "extlibs/harfbuzz/src/harfbuzz.cc"
+          ]
+        },
+        "static": {
+          "compiled": 166,
+          "reused": 0,
+          "reusedSources": []
+        }
+      }
+    },
+    "linux": {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\debug-live-verified-linux-r2\\results.json",
+      "sha256": "57ec8ae1477f51f4ffb97e1d846fa787ed4dc0d83672edbba9b43843dfbb09ab",
+      "checks": 48,
+      "verifiedFiles": 16419,
+      "sdkUnits": {
+        "host": {
+          "compiled": 163,
+          "reused": 1,
+          "reusedSources": [
+            "extlibs/harfbuzz/src/harfbuzz.cc"
+          ]
+        },
+        "static": {
+          "compiled": 166,
+          "reused": 0,
+          "reusedSources": []
+        }
+      }
+    }
+  },
+  "sourceSha256": {
+    "tools/check_xge3_debug_live.py": "26463e0668a79465d960b7d8361f81c5184837ed22fb2ceac3c3f42f416ee5d1",
+    "test/cases/foreign_xge3_debug_live.xl": "9abfbc9df03d17d1647193a46a22ee5185421dfb2c70bf14e4cea0e8f6c1a1db",
+    "test/cases/foreign_xge3_debug_live_native.c": "ac1f146176ca912a3694e33e07bf5d8b1713befa8ab44e4d058976ff3a2ca4d5",
+    "test/cases/foreign_xge3_debug_live.h": "69cf613519bf1fdf2b758d4757bd15f7c73dd502c07d5eb8bb1bc7593b4f7840",
+    "lib/bindings/xge/debug/examples/live_stats.xl": "7fae9a223b61aefa8b3c688423a1c3cf57547abcf0cb59fbdceeeee2bbdd929f",
+    "lib/bindings/xge/debug/examples/README.md": "06ca0b94aec3a92047391eb095cdbd6f037f9de2e46c7d006ba4801814de8a6b",
+    "docs/xge3-debug-capabilities.md": "f5e58b7c744756be093d42de4a599cd392c97d73a473daf1e6ddc23f7794af46",
+    "docs/xge3-xui3-full-coverage-plan.md": "d44742bb1108d3acc1248be46c49b0d0f5edc7ecb297806bda70aa98f497a68f"
+  },
+  "checks": 96,
+  "coverage": [
+    "Per platform: 18 actual graphics JIT/hosted-static EXE/DLL-DSO/C11-C++ header/import checks",
+    "Per platform: 19 current cold debug and bounded Buffer output checks",
+    "Per platform: 7 readable live-statistics lesson checks",
+    "Per platform: 4 expected feature-absence rejections against real ordinary hosted/static SDKs",
+    "Same native stats function queried 1000 times by language and C, each zero XRT alloc/free/realloc; zero-budget warmed stats output",
+    "Exact clear-color target readback, native GL error zero, independent snapshots and Busy resource retirement/retry"
+  ],
+  "limits": [
+    "Linux graphics uses Xvfb/software OpenGL; no hardware-GPU acceptance claim",
+    "Native creator-thread precondition after initialization; concurrent global debug calls are not qualified",
+    "No driver-allocation/CPU-equivalence/value-copy or arbitrary-provider-unload claim",
+    "No new Native/compiler/public binding API implementation in this batch",
+    "Latest XRT, pending Graph/Workflow semantics and final matched release/IDE/help delivery remain open",
+    "Concurrent Native geometry/text and xlang user working changes are excluded and preserved"
+  ]
+}

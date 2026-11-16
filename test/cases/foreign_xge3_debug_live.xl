@@ -1,0 +1,88 @@
+// One real graphics frame, then checked resource and module retirement.
+import xge
+import xgeDebug
+extern "fixtureDebugHeapBegin" @header("test/cases/foreign_xge3_debug_live.h") @no_raise func heapBegin()
+extern "fixtureDebugHeapEnd" @no_raise func heapEnd(c_int native)
+extern "fixtureDebugNativeSamples" @no_raise func nativeSamples(c_int repetitions)
+extern "fixtureDebugBudget" @no_raise func budget(c_int allowance)
+
+func rectangle(float x,float y,float width,float height) as xge.Rect
+    auto result=xge.Rect()
+    result.fX=c_float(x)
+    result.fY=c_float(y)
+    result.fW=c_float(width)
+    result.fH=c_float(height)
+    return result
+end
+
+func main(...) as int
+    assert xgeDebug.debugGetStats().iTextureCount==0
+    xge.init(160,120,"xlang bounded debug statistics")
+    auto held=xge.createTexture(2,2,Buffer.fromHex("ffffffffffffffffffffffffffffffff"))
+    int frames=0
+    xge.run(func() as c_int
+        frames+=1
+        assert xge.begin()==0
+        auto target=xge.createRenderTarget(2,2)
+        auto pass=xge.createPass(target,c_uint(xge.XGE_PASS_CLEAR_COLOR),xge.colorRGBA(10,20,30,255))
+        pass.begin()
+        pass.finish()
+        auto pixels=Buffer()
+        assert pixels.resize(16)
+        target.readPixels(pixels)
+        assert pixels.hex()=="0a141eff0a141eff0a141eff0a141eff"
+
+        xgeDebug.dbgDirtyRectClear()
+        assert xgeDebug.dbgDirtyRectCount()==0
+        xge.invalidateRect(rectangle(7,9,13,15))
+        assert xgeDebug.dbgDirtyRectCount()==1
+        auto dirty=xgeDebug.dbgDirtyRectGet(0)
+        assert dirty.fX==c_float(7) and dirty.fY==c_float(9)
+        assert dirty.fW==c_float(13) and dirty.fH==c_float(15)
+        xgeDebug.dbgDirtyRectClear()
+        assert dirty.fX==c_float(7) and xgeDebug.dbgDirtyRectCount()==0
+
+        auto report=Buffer()
+        assert report.resize(8192)
+        assert xgeDebug.debugDumpCaps(report)==0
+        assert string.indexOf(report.text(),"Graphics Backend:")>=0
+        auto stats=xgeDebug.debugGetStats()
+        assert stats.iTextureCount>0 and stats.iTextureMemoryBytes>=uint64(16)
+        assert stats.iLastGLError==0 and stats.tFrame.iDirtyRectCount==0
+        assert stats.iFontCount>=0 and stats.iAudioCount>=0
+        heapBegin()
+        for i in range(1000)
+            auto sample=xgeDebug.debugGetStats()
+            assert sample.iTextureCount>0 and sample.iTextureMemoryBytes>=uint64(16)
+        end
+        heapEnd(0)
+        heapBegin()
+        nativeSamples(1000)
+        heapEnd(1)
+
+        budget(0)
+        auto allocationFree=xgeDebug.debugGetStats()
+        budget(-1)
+        assert allocationFree.iTextureCount==stats.iTextureCount
+        pass.close()
+        target.close()
+        assert stats.iTextureCount>0
+        assert xge.nativeEnd()==0
+        return c_int(1)
+    end)
+    xge.setFrameCallback(null)
+    assert frames==1
+    bool busy=false
+    try
+        xge.unit()
+    catch Error
+        busy=true
+    end
+    assert busy
+    held.close()
+    assert xge.graphicsResourceCount()==uint64(0)
+    xge.unit()
+    assert xgeDebug.debugGetStats().iTextureCount==0
+    println("XGE_DEBUG_LIVE_OK")
+    return 0
+end

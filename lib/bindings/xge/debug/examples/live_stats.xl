@@ -1,0 +1,17 @@
+// 使用启用调试功能的配套 SDK，绘制一帧后打印真实纹理统计。
+import xge
+import xgeDebug
+
+xge.init(480,320,"调试统计")
+xge.run(func() as c_int
+    assert xge.begin()==0
+    xge.clear(0x24354BFF)
+    auto texture=xge.createTexture(2,2,Buffer.fromHex("ffffffffffffffffffffffffffffffff"))
+    auto stats=xgeDebug.debugGetStats()
+    println(f"纹理数：{int(stats.iTextureCount)}，纹理字节：{stats.iTextureMemoryBytes}")
+    texture.close()
+    assert xge.nativeEnd()==0
+    return c_int(1)
+end)
+xge.setFrameCallback(null)
+xge.unit()

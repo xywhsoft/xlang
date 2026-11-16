@@ -38,3 +38,40 @@ matched hosted/static SDK, including actual ELF execution and dependency
 inspection. Its successor evidence is
 `xge-debug-capabilities-linux-20261113.json`; the Windows receipt retains its
 historical limits. Live GPU and package shared initialization remain separate.
+
+## Live contexts and shared modules, 2026-11-16
+
+The successor 09d-XRT debug SDKs close those two qualification gaps. Each host
+configuration builds 163 units and reuses the dependency-validated HarfBuzz
+object; each direct-XRT static SDK builds all 166 units. All retain O2 and 3D.
+The frozen native source excludes concurrent geometry/text working changes.
+Headers, configuration, image/archive, package manifests and XRT agree; an
+ordinary SDK is not converted into a debug SDK by changing consumer macros.
+
+On Windows and Linux, the actual JIT, hosted/static EXE and hosted/static
+DLL/DSO execute a bounded OpenGL frame. They verify live texture counts and
+memory, a clean GL error, independent statistics/dirty-rectangle snapshots,
+capability text, exact render-target pixels, and Busy engine shutdown with a
+held texture followed by successful release/retry. Shared modules initialize
+and complete checked retirement after callbacks/resources close. Generated C
+and C11/C++11/C++17 headers pass their checks. Linux uses Xvfb and software
+OpenGL, not a hardware-GPU acceptance claim.
+
+Warm language and handwritten C queries each call the same native stats
+function 1,000 times and both show zero XRT allocation/free/reallocation.
+The warmed stats output also succeeds with a zero XRT allocation budget.
+This does not measure driver allocations, CPU equivalence, stack/value copies,
+all graphics backends, concurrent global calls, or arbitrary provider unloading.
+The native creator-thread precondition remains in effect after initialization.
+
+The existing 19-command cold/bounded-output suite passes on each current SDK.
+The new `examples/live_stats.xl` lesson passes JIT and hosted/static AOT, and
+both normal hosted/static SDKs reject the actual debug package before Cgen or
+linking. Each platform has 48 final checks: 18 live-context/module/header/import,
+19 cold/output-boundary, seven lesson, and four expected feature rejections.
+The pre-existing historical receipts are not rewritten.
+
+The complete input/log/program/package verification is indexed by
+`dev/release-materials/provenance/xge-debug-live-20261116.json`. These are
+isolated candidates. Latest-XRT convergence, remaining XGE/XUI/Document work
+and the final matched release/IDE/help installation are still open.
