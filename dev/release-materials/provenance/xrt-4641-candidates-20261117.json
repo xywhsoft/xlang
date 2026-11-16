@@ -1,0 +1,45 @@
+{
+  "format": 1,
+  "sourceParent": "dafd355995e0e559911c5bd801f3e15e2797b132",
+  "completeBatch": true,
+  "goalComplete": false,
+  "shippingDelivery": false,
+  "sourceHashes": {
+    "test/cases/xrt_snapshot_additions.c": "84c82ace14e6166f30d671b4857f8e0773a8740477d756a99f7694782a32a253",
+    "tools/check_xrt_snapshot_additions.py": "0f0b2b350b9460da0ad0fb8a6111fe43e2d76b9501e6b5fdbaeaf863bb0a3f95",
+    "docs/xrt-4641-convergence.md": "5df7593e4481fdc6db29aa0fddc1eab245417f7ab768fcdfe1e0b255c67d1eae"
+  },
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xrt4641-additions-win-r2\\results.json",
+      "sha256": "85256893807437c4d9018350518194846537b4d58fec9ae128e1ec65ccdaeba8",
+      "commands": 4
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xrt4641-linux-evidence-r1\\xrt4641-additions-linux-r1--results.json",
+      "sha256": "86c82f9d84accee11eeb8014766815b217aa909ff3b6f13823c10f654078b504",
+      "commands": 4
+    }
+  ],
+  "commands": 8,
+  "nativeCommit": "466a1b003db896bbeb1dec10d624619ca34a7b45",
+  "producerCommit": "4641cd2e4da09d8b1a66872cabe085c263d8b5ba",
+  "candidateCoreSha256": "369f884c1c1fdc9621f654c81bb86850e85d992dc56b9cebf395e20ea03dfe7b",
+  "canonicalXlangCorePromoted": false,
+  "networkTests": false,
+  "fullBuildReports": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\compiler-xrt4641-win-full-r3\\build.json",
+      "sha256": "e12f46ed2714c8c34a4e63967d515a5babf76301bd7f173db0442c1b35f7a760"
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\xrt4641-linux-evidence-r1\\compiler-xrt4641-linux-full-r3--build.json",
+      "sha256": "3b6fb7759d8a2867fa408a2472d8711aea1ecde2a1e66f62b4dc6958a1a439de"
+    }
+  ],
+  "remaining": [
+    "Canonical xlang SDK/core and matching runtime/IDE promotion",
+    "Owning Engine controller decision and implementation for initialization/global-context cycles",
+    "Restricted claimed callback finalization contract and remaining full-surface work"
+  ]
+}
