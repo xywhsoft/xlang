@@ -1,7 +1,8 @@
 # Owning explicit host backends
 
 `lib/bindings/xge/src/backend.xl` targets native XGE
-`df7d97caa9011ef0a918647b8b35295188df702b`. It requires the compiler's generic
+`466a1b003db896bbeb1dec10d624619ca34a7b45` and its pinned XRT producer
+`4641cd2e4da09d8b1a66872cabe085c263d8b5ba`. It requires the compiler's generic
 owned callback-group pack contract and a matching complete native SDK. This is
 a qualified source batch, not a replacement of the installed runtime/IDE or
 completion of the whole XGE integration.
@@ -26,6 +27,34 @@ physical framebuffer pixels; scale is separate. Initialize XGE in manual mode
 first. The application supplies real context hooks and an accurate release
 result. This drives an externally provided GL 3.3 or GLES 3 context; it does not
 create an OS window.
+
+The optional last argument is `GlProcResolver? resolver=null`. A custom resolver
+directly enters a generated owned callback, using the same hooks group's
+`pUser` and the native userdata-last ABI. Its `CallbackProcName` argument is
+valid only during that callback. `name.length()` directly calls `strlen` and
+`name.compare(text)` calls `strcmp`; neither copies the symbol name to a
+managed string. Saving this view does not extend the native name's lifetime:
+later access fails checked. The resolver returns a raw procedure `point`, as
+required by the host ABI. The host must provide a compatible current context,
+correct function addresses and retain any library supplying them; arbitrary
+pointer values are not validated by the binding. This is an explicit native
+host integration contract.
+
+```xl
+// Declare your own OS/context lookup function in its matching public header.
+extern "hostFindGlProc" @header("my_host.h") @no_raise func findProc(xge.CallbackProcName name) as point
+
+auto session=xge.createHostSession(width,height,scale,framebuffer,
+ platform,graphics,makeCurrent,isCurrent,release,
+ func(xge.CallbackProcName name) as point
+  return findProc(name)
+ end)
+```
+
+Resolver exceptions preserve their original language type; missing required
+symbols fail checked. A partially initialized session still owes its native
+graphics/platform/context cleanup, including truthful release consumption.
+The public gate verifies both failure paths against real OS contexts.
 
 | Language entry | Native entry / meaning |
 | --- | --- |
@@ -66,7 +95,11 @@ Descriptor packs are stack records; methods call their named native entry once.
 Creation still allocates native tables/names, generic callback-group environments
 and closure/code owners. Shared references, checked view admission, ownership
 bookkeeping and callback entry/exit pins are real costs. This is not zero total
-overhead. A previous Windows diagnostic prototype observed no XRT alloc/free/
+overhead. Custom symbol lookup adds one language callback per native loader
+request, callback-view lifetime bookkeeping, and any explicit `strlen`/`strcmp`
+scans; lookups occur during session creation, not each frame. The binding adds
+no per-method C forwarding function or symbol-name string copy. A previous
+Windows diagnostic prototype observed no XRT alloc/free/
 realloc over 1,000 warm language frames; it was not a timing comparison or a
 proof about every allocator.
 
@@ -80,12 +113,20 @@ normally. Windows also calls the existing terminal
 reusable module cleanup alone does not retire OS FLS destructors. Static
 product import tables exclude XGE and compiler libraries.
 
+The custom-resolver follow-up repeats system/custom GL and deferred release
+variants, including Linux GLES. It also verifies that a saved symbol-name view
+expires, and that throwing or empty-address resolvers release each partially
+created OS context exactly once. System/custom dynamic/static shared products
+both execute twice and physically unload. The matched latest-XRT full compiler
+and SDK candidate hashes are recorded in
+`dev/release-materials/provenance/xge3-host-resolver-20261117.json`.
+
 Receipt: `dev/release-materials/provenance/xge3-host-session-20261117.json`.
 Claimed native/language callback cycles remain unqualified: finalization can
 need a callback whose group is already claimed by the ownership transaction.
 Its proposed restricted entry rule needs a separate runtime contract and tests.
-Do not rely on cycles for automatic HostSession cleanup yet. Safe managed
-custom GL-resolver/borrowed table APIs, complete callback admission under cold
+Do not rely on cycles for automatic HostSession cleanup yet. Borrowed backend
+table APIs, complete callback admission under cold
 OS TLS failure, nested compilation and latest-XRT/full SDK/IDE delivery remain
 separate work. Primitive OS-key rollback is qualified separately in
 [execution-context failure probes](foreign-context-os-failure.md).

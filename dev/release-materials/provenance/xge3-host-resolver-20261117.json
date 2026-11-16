@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "sourceParent": "166de859151427e59d8ea71448e8b987a0c17350",
+  "sourceHashes": {
+    "lib/bindings/xge/src/backend.xl": "aea58f4eb38f2a451f28346e285f4ec0b55af07b51471fedb96d4b2594f07ab2",
+    "lib/bindings/xge/README.md": "c6abc1baca22f36796cd091a0c0843c84964dc33bf601f718c4b9106db542c2c",
+    "test/cases/foreign_xge3_host.xl": "a70a876eb94d167c756b9e118c1d7abea9e1b283eec74f76d46ed1b72db35fac",
+    "test/cases/foreign_xge3_host_probe.c": "7d0cdcbe670fa4e14fc9761ed6f658a0d09986f98a69d726f55a3a5e4e0d8bf9",
+    "test/cases/foreign_xge3_host_probe.h": "e27b9661e4555638190e81f08d585bda2d72f9c0fced204c2eaa58d48b39d450",
+    "tools/check_xge3_host_session.py": "12975b7f1b361ad02465e5570fc554af171be48d94e2926d594671b7d472e948",
+    "docs/xge3-host-session.md": "48863981745219f19a167c79464927bcdb652f12583d93f3887ee9e12caf5d56"
+  },
+  "nativeCommit": "466a1b003db896bbeb1dec10d624619ca34a7b45",
+  "xrtRevision": "4641cd2e4da09d8b1a66872cabe085c263d8b5ba",
+  "reports": {
+    "F:\\xlang-validation\\xge-full-20261110\\host-custom-resolver-public-win-r1\\results.json": "61e751232cc1f57cf4eba5f42b81edce9a8c81331560f1fcf363fa4d81702408",
+    "F:\\xlang-validation\\xge-full-20261110\\host-resolver-verification-win-r1\\results.json": "c51abefa81833b4957c9e81c273ae0745b649bb753d0e02346ebbb72265fe76a",
+    "F:\\xlang-validation\\xge-full-20261110\\host-custom-resolver-orchestration-win-r1\\results.json": "f6a090c4aa1524cfbe9ab5d4a1e9692bcfa4859118909157f8ab2736cc662e1e",
+    "F:\\xlang-validation\\xge-full-20261110\\host-resolver-linux-evidence-r1\\host-custom-resolver-orchestration-linux-r1--results.json": "546048b51767ae8b5833c8b1f9c1e1bac0d04686e44c185c94f61e5f6d8cdbb0",
+    "F:\\xlang-validation\\xge-full-20261110\\host-resolver-linux-evidence-r1\\host-custom-resolver-public-linux-r1--results.json": "dac5876292626a554dc307be7eefd6aa5c96cc6520b6dc39c88fca6cc33bc22e",
+    "F:\\xlang-validation\\xge-full-20261110\\host-resolver-linux-evidence-r1\\host-resolver-verification-linux-r1--results.json": "8a92f3bae4efb4ceafa275865005a3955a8111b06463705d896b7029abecc6e0"
+  },
+  "executionCommands": {
+    "windows": 47,
+    "linux": 75
+  },
+  "generatedCAbiCommands": 8,
+  "hashesReverified": {
+    "windows": 6043,
+    "linux": 6019
+  },
+  "scope": [
+    "WGL and EGL GL/GLES actual pixels",
+    "system/custom resolver and deferred release",
+    "seven existing callback consumption scenarios",
+    "resolver exception and missing-symbol partial construction rollback",
+    "saved callback name view expiration",
+    "actual dynamic/static shared image unload and normal process exit",
+    "unique XRT, no compiler/runtime imports in AOT, no engine import for static programs",
+    "generated callback-group userdata-last ABI and direct strlen/strcmp"
+  ],
+  "costs": [
+    "native and callback-group creation allocations",
+    "closure/code owners and callback admission/epoch bookkeeping",
+    "one language callback per GL symbol lookup",
+    "explicit length and comparison scans",
+    "host-owned compatible procedure/context/library contract"
+  ],
+  "notClaimed": [
+    "arbitrary raw procedure pointer validation",
+    "zero total CPU or allocation overhead",
+    "claimed native/language callback-cycle finalization",
+    "global init/global context retirement",
+    "cold OS-key failure through complete language callback/view path",
+    "nested compiler execution for this resolver batch",
+    "final shipping SDK/runtime/IDE install"
+  ],
+  "runtimeOrLanguageSemanticsChanged": false,
+  "nativeSourceChanged": false,
+  "networkTests": false,
+  "shippingDelivery": false,
+  "releaseFilesAdded": false
+}

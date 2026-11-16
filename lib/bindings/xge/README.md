@@ -39,7 +39,11 @@ native engine subsystem has already passed managed runtime acceptance.
 Owning `PlatformBackend`, `GraphicsBackend` and `HostSession` declarations
 support explicit host event/render loops through shared callback environments.
 The public-package gate covers real WGL/EGL rendering, callback errors and
-acyclic shared-library unload. Claimed callback-cycle cleanup and final matched
+acyclic shared-library unload. The optional final `GlProcResolver` uses a
+callback-period `CallbackProcName` view and one generated callback entry per
+native symbol lookup. Its scalar length/compare methods do not copy the symbol
+name. The host still owns the address/context/library compatibility contract.
+Claimed callback-cycle cleanup and final matched
 delivery remain open; see `docs/xge3-host-session.md` in the source repository
 before using this source candidate.
 

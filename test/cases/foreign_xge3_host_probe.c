@@ -184,3 +184,17 @@ PROBE_API int xgeTestHostPoll(void){++probe.info.polls;return 9;}
 PROBE_API void xgeTestHostPresent(void){++probe.info.presents;}
 PROBE_API int xgeTestHostInfo(xge_test_host_probe_info* out)
 {if(!out)return XGE_ERROR_INVALID_ARGUMENT;*out=probe.info;return XGE_OK;}
+PROBE_API void* xgeTestHostGetProc(const char* name)
+{
+    if(!creator() || !name || !probe.info.contextLive)return NULL;
+    ++probe.info.lookups;
+#if defined(_WIN32)
+    PROC proc=wglGetProcAddress(name);
+    uintptr_t bits=(uintptr_t)proc;
+    if(proc && bits>3 && bits!=UINTPTR_MAX)return (void*)proc;
+    HMODULE library=GetModuleHandleW(L"opengl32.dll");
+    return library ? (void*)GetProcAddress(library,name):NULL;
+#else
+    return (void*)eglGetProcAddress(name);
+#endif
+}

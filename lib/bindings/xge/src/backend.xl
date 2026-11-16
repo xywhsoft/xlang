@@ -23,6 +23,14 @@ export extern "xge_host_release_result_t" struct HostReleaseResult @header("xge3
  bool consumed
 end
 export typedef HostReleaseCallback=func() as HostReleaseResult
+// The native symbol name is borrowed only for this callback. These direct
+// scalar queries do not create a managed string or expose its raw pointer.
+export extern "const char*" class CallbackProcName @header("xge3_backend.h") @lifetime("callback")
+ native point handle
+ extern "strlen" @header("string.h") @no_raise func length() as c_size
+ extern "strcmp" @header("string.h") @no_raise func compare(string value) as c_int
+end
+export typedef GlProcResolver=func(CallbackProcName) as point
 export extern "xge_host_session_info_t" struct HostSessionInfo @header("xge3_backend.h")
  c_uint size
  c_int width
@@ -51,5 +59,5 @@ export extern "struct xge_host_session_t*" class HostSession @header("xge3_backe
 end
 extern "xgeHostSessionReleaseChecked" @header("xge3_backend.h") @no_raise @c_result("status",0) func releaseHostSession(HostSession value)
 // Framebuffer pixels and scale are explicit. The native system GL loader is
-// used; custom C resolver hooks remain available in native interoperability.
-export extern "xgeHostSessionCreateOwned" @header("xge3_backend.h") @no_raise @c_result("owned_view") @factory(0,0,releaseHostSession) @c_pack(1,"xge_host_session_desc_t",0,4) @c_pack_size(1,"size","uint32_t") @c_pack_field(1,"width",0,"value") @c_pack_field(1,"height",1,"value") @c_pack_field(1,"dpiScale",2,"value") @c_pack_field(1,"framebuffer",3,"value") @c_pack(4,"xge_host_context_hooks_t",6,3) @c_pack_callback_group(4,"pUser",5) @c_pack_field(4,"makeCurrent",6,"owned_callback") @c_pack_field(4,"isCurrent",7,"owned_callback") @c_pack_field(4,"release",8,"owned_callback") @c_owned_callback(6,-1,"xge_callback_owner_t",-16) @c_owned_callback(7,-1,"xge_callback_owner_t",-16) @c_owned_callback(8,-1,"xge_callback_owner_t",0) func createHostSession(c_int width,c_int height,c_float dpiScale,c_uint framebuffer,PlatformBackend platform,GraphicsBackend graphics,BackendStatusCallback makeCurrent,BackendStatusCallback isCurrent,HostReleaseCallback release) as HostSession
+// used by default; a typed optional resolver receives a callback-period name.
+export extern "xgeHostSessionCreateOwned" @header("xge3_backend.h") @no_raise @c_result("owned_view") @factory(0,0,releaseHostSession) @c_pack(1,"xge_host_session_desc_t",0,4) @c_pack_size(1,"size","uint32_t") @c_pack_field(1,"width",0,"value") @c_pack_field(1,"height",1,"value") @c_pack_field(1,"dpiScale",2,"value") @c_pack_field(1,"framebuffer",3,"value") @c_pack(4,"xge_host_context_hooks_t",6,4) @c_pack_callback_group(4,"pUser",5) @c_pack_field(4,"makeCurrent",6,"owned_callback") @c_pack_field(4,"isCurrent",7,"owned_callback") @c_pack_field(4,"release",8,"owned_callback") @c_pack_field(4,"getProcAddress",9,"owned_callback") @c_owned_callback(6,-1,"xge_callback_owner_t",-16) @c_owned_callback(7,-1,"xge_callback_owner_t",-16) @c_owned_callback(8,-1,"xge_callback_owner_t",0) @c_owned_callback(9,-1,"xge_callback_owner_t",0,"last") func createHostSession(c_int width,c_int height,c_float dpiScale,c_uint framebuffer,PlatformBackend platform,GraphicsBackend graphics,BackendStatusCallback makeCurrent,BackendStatusCallback isCurrent,HostReleaseCallback release,GlProcResolver? resolver=null) as HostSession

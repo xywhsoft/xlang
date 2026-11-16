@@ -1,6 +1,7 @@
 """Public-package explicit host rendering: unique-XRT JIT/dynamic/static/shared.
 
-Real bounded local WGL/EGL contexts and pixels; no network or hardware benchmark.
+Real bounded local WGL/EGL contexts and pixels, with system/custom GL resolvers;
+no network or hardware benchmark.
 The OS-only fixture imports neither XRT nor a compiler. Acyclic shared products
 undergo checked cleanup, terminal runtime retirement and actual OS unload.
 This gate does not claim native/language cycle collection, cold OS TLS failure
@@ -43,7 +44,7 @@ def main():
     images = ('xl.exe', 'xl.dll', 'xlc.dll') if win else ('xl', 'libxl.so', 'libxlc.so')
     files += [compiler.parent / n for n in images]
     for folder, receipt in ((dynamic, dynamic_report), (static, static_report)):
-        stage = json.loads(receipt.read_text())
+        stage = json.loads(receipt.read_text(encoding='utf8'))
         assert stage['complete'] and not stage['shippingDelivery']
         assert stage['inputs'] and all(sha(n) == h for n, h in stage['inputs'].items())
         assert stage['outputs'] and all(sha(folder / n) == h for n, h in stage['outputs'].items())
@@ -130,19 +131,23 @@ def main():
     variants = [('gl', False, False), ('gl-retry', False, True)]
     if not win:
         variants += [('gles', True, False), ('gles-retry', True, True)]
+    variants += [(name + '-custom', es, defer) for name, es, defer in list(variants)]
     for name, es, defer in variants:
-        text = source.read_text()
+        text = source.read_text(encoding='utf8')
         if es:
             text = text.replace('c_int backend=xge.XGE_GPU_BACKEND_OPENGL33',
                 'c_int backend=xge.XGE_GPU_BACKEND_GLES30')
         if defer:
             text = text.replace('bool deferredRelease=false', 'bool deferredRelease=true')
+        if name.endswith('-custom'):
+            text = text.replace('bool customResolver=false', 'bool customResolver=true')
         case = out / (name + '.xl')
-        case.write_text(text)
+        case.write_text(text, encoding='utf8')
         inputs[str(case)] = sha(case)
-        if name == 'gl':
-            run('public-cgen', [compiler, 'cgen', case, '--emit', out / 'emitted.c', *inc], packages=dynamic)
-            emitted = (out / 'emitted.c').read_text()
+        if name in ('gl', 'gl-custom'):
+            generated = out / (name + '-emitted.c')
+            run(name + '-public-cgen', [compiler, 'cgen', case, '--emit', generated, *inc], packages=dynamic)
+            emitted = generated.read_text(encoding='utf8')
             for symbol in ('xgePlatformBackendCreateOwned', 'xgeGraphicsBackendCreateOwned',
                 'xgeHostSessionCreateOwned', 'xgeHostSessionBegin', 'xgeHostSessionEnd', 'xgeHostSessionPresent'):
                 assert re.search(r'\b' + symbol + r'\(', emitted), symbol
@@ -157,17 +162,23 @@ def main():
             inspect(name + '-' + label, binary, statically_linked=label == 'static')
     # Each shared image runs in its own process/runtime, avoiding cross-binding
     # distinct embedded XRTs to one already-bound hosted engine image.
-    shared_source = out / 'shared-check.xl'
-    shared_source.write_text(source.read_text().replace('func main(...) as int',
-        'export "host_check" func check() as int'))
-    inputs[str(shared_source)] = sha(shared_source)
-    for label, packages in (('dynamic', dynamic), ('static', static)):
-        library = out / ('host-' + label + ('.dll' if win else '.so'))
-        run(label + '-shared-build', [compiler, 'build', shared_source, *inc,
-            '--native-linkage', label, *static_fixture, '--shared', '-o', library], packages=packages)
-        run(label + '-shared-run', [sys.executable, '-B', host, library,
-            dynamic / '_xge_native/native'], b'HOST_SHARED_PHYSICAL_UNLOAD_OK')
-        inspect(label + '-shared', library, statically_linked=label == 'static')
+    for custom in (False, True):
+        suffix = '-custom' if custom else ''
+        shared_source = out / ('shared-check' + suffix + '.xl')
+        text = source.read_text(encoding='utf8').replace('func main(...) as int',
+            'export "host_check" func check() as int')
+        if custom:
+            text = text.replace('bool customResolver=false', 'bool customResolver=true')
+        shared_source.write_text(text, encoding='utf8')
+        inputs[str(shared_source)] = sha(shared_source)
+        for label, packages in (('dynamic', dynamic), ('static', static)):
+            name = label + suffix + '-shared'
+            library = out / ('host-' + label + suffix + ('.dll' if win else '.so'))
+            run(name + '-build', [compiler, 'build', shared_source, *inc,
+                '--native-linkage', label, *static_fixture, '--shared', '-o', library], packages=packages)
+            run(name + '-run', [sys.executable, '-B', host, library,
+                dynamic / '_xge_native/native'], b'HOST_SHARED_PHYSICAL_UNLOAD_OK')
+            inspect(name, library, statically_linked=label == 'static')
     verify_full_compiler(build, compiler)
     report.update(complete=True, passed=True, inputsUnchanged=all(sha(v) == h for v, h in inputs.items()))
     assert report['inputsUnchanged']

@@ -6,6 +6,7 @@
 typedef struct xge_test_host_probe_info {
     unsigned platformInit,graphicsInit,platformUnit,graphicsUnit;
     unsigned begins,ends,polls,presents,releases,makeCurrent;
+    unsigned lookups;
     bool contextLive,platformLive;
 } xge_test_host_probe_info;
 int xgeTestHostConfigure(int backend,bool deferRelease);
@@ -21,4 +22,5 @@ int xgeTestHostEnd(void);
 int xgeTestHostPoll(void);
 void xgeTestHostPresent(void);
 int xgeTestHostInfo(xge_test_host_probe_info*);
+void* xgeTestHostGetProc(const char* name);
 #endif

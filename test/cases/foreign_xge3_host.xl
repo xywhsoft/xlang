@@ -11,6 +11,7 @@ extern "xge_test_host_probe_info" struct ProbeInfo @header("test/cases/foreign_x
  c_uint presents
  c_uint releases
  c_uint makeCurrent
+ c_uint lookups
  bool contextLive
  bool platformLive
 end
@@ -27,6 +28,11 @@ extern "xgeTestHostEnd" @header("test/cases/foreign_xge3_host_probe.h") @no_rais
 extern "xgeTestHostPoll" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func poll() as c_int
 extern "xgeTestHostPresent" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func present()
 extern "xgeTestHostInfo" @header("test/cases/foreign_xge3_host_probe.h") @no_raise @c_output(0,0) func probeInfo() as ProbeInfo
+extern "xgeTestHostGetProc" @header("test/cases/foreign_xge3_host_probe.h") @no_raise func getProc(xge.CallbackProcName name) as point
+
+class ResolverCapture
+ xge.CallbackProcName? name=null
+end
 
 // A callback error and an OS obligation are separate facts. Check both: a
 // consumed end/present must not be replayed, and an unconsumed release must
@@ -142,14 +148,62 @@ func checkCallbackErrors(c_int backend)
  end
 end
 
+// A failing resolver must unwind the partially initialized real context and
+// preserve the language exception. A missing symbol is a checked native error.
+func checkResolverErrors(c_int backend)
+ for mode in range(2)
+  configure(backend,false)
+  xge.init(4,4,"Explicit host resolver errors",0,xge.XGE_RUN_MANUAL)
+  auto platform=xge.createPlatformBackend(xge.XGE_PLATFORM_BACKEND_CUSTOM,"local OS",platformInit,platformUnit,poll,present)
+  auto graphics=xge.createGraphicsBackend(backend,"local GL",graphicsInit,graphicsUnit,beginFrame,endFrame)
+  auto calls=[0]
+  bool caught=false
+  try
+   auto host=xge.createHostSession(4,4,1,0,platform,graphics,makeCurrent,isCurrent,release,func(xge.CallbackProcName name) as point
+    calls[0]+=1
+    assert name.length()>c_size(0)
+    if mode==0 then throw ValueError "host resolver" end
+    return null
+   end)
+   host.close()
+  catch ValueError failure
+   assert mode==0
+   caught=true
+  catch failure
+   assert mode==1
+   caught=true
+  end
+  assert caught and calls[0]>0
+  platform.close()
+  graphics.close()
+  auto state=probeInfo()
+  assert not state.contextLive and not state.platformLive
+  assert state.platformInit==c_uint(1) and state.graphicsInit==c_uint(1)
+  assert state.platformUnit==c_uint(1) and state.graphicsUnit==c_uint(1)
+  assert state.releases==c_uint(1)
+  xge.unit()
+  assert xge.graphicsResourceCount()==uint64(0)
+ end
+end
+
 func main(...) as int
  c_int backend=xge.XGE_GPU_BACKEND_OPENGL33
  bool deferredRelease=false
+ bool customResolver=false
  configure(backend,deferredRelease)
  xge.init(4,4,"Explicit host integration",0,xge.XGE_RUN_MANUAL)
  c_int platformUnits=c_int(0)
  c_int graphicsUnits=c_int(0)
  c_int releaseCalls=c_int(0)
+ auto capture=ResolverCapture()
+ xge.GlProcResolver? resolver=null
+ if customResolver then
+  resolver=func(xge.CallbackProcName name) as point
+   assert name.length()>c_size(0) and name.compare("")>c_int(0)
+   capture.name=name
+   return getProc(name)
+  end
+ end
  auto platform=xge.createPlatformBackend(xge.XGE_PLATFORM_BACKEND_CUSTOM,"local OS",platformInit,func()
   platformUnits+=c_int(1)
   platformUnit()
@@ -161,8 +215,24 @@ func main(...) as int
  auto host=xge.createHostSession(4,4,1,0,platform,graphics,makeCurrent,isCurrent,func() as xge.HostReleaseResult
   releaseCalls+=c_int(1)
   return release()
- end)
+ end,resolver)
  auto shared=host.share()
+ if customResolver then
+  assert capture.name!=null and probeInfo().lookups>c_uint(0)
+  bool expired=false
+  auto saved=capture.name
+  if saved!=null then
+   try
+    saved.length()
+   catch error
+    expired=true
+   end
+  end
+  assert expired
+  capture.name=null
+ else
+  assert probeInfo().lookups==c_uint(0)
+ end
  host.close()
  // The session owns independent native references to both descriptor groups.
  platform.close()
@@ -218,6 +288,7 @@ func main(...) as int
  xge.unit()
  assert xge.graphicsResourceCount()==uint64(0)
  checkCallbackErrors(backend)
+ if customResolver then checkResolverErrors(backend) end
  println("PUBLIC_HOST_SESSION_REAL_GL_OK")
  return 0
 end
