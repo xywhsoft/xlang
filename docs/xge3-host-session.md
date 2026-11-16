@@ -85,6 +85,8 @@ Claimed native/language callback cycles remain unqualified: finalization can
 need a callback whose group is already claimed by the ownership transaction.
 Its proposed restricted entry rule needs a separate runtime contract and tests.
 Do not rely on cycles for automatic HostSession cleanup yet. Safe managed
-custom GL-resolver/borrowed table APIs, cold OS TLS allocation failure, nested
-compilation and latest-XRT/full SDK/IDE delivery also remain separate work.
+custom GL-resolver/borrowed table APIs, complete callback admission under cold
+OS TLS failure, nested compilation and latest-XRT/full SDK/IDE delivery remain
+separate work. Primitive OS-key rollback is qualified separately in
+[execution-context failure probes](foreign-context-os-failure.md).
 No network tests run in this batch.

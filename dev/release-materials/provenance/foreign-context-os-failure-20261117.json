@@ -1,0 +1,41 @@
+{
+  "format": 1,
+  "sourceParent": "965adceeba4159ffdbfbd906b8120eccb25a21e4",
+  "completeBatch": true,
+  "goalComplete": false,
+  "shippingDelivery": false,
+  "sourceHashes": {
+    "test/cases/foreign_context_os_failure.c": "15786b544bbdfdff5c6bbc1e1f69964af46d766b8cd666f347472ac3a1068e96",
+    "tools/check_foreign_context_os_failure.py": "33c0dd80306ad0c26e8aa98bdfae3fb392b85dbf93eb12e9f06aee29b76ec1a7",
+    "docs/foreign-context-os-failure.md": "aaa13127e7ec3ede013250a68d185428945d7a8eb626336bac6809ec6f26fb7f",
+    "docs/xge3-host-session.md": "cc0f299f862d286b9e50766e24ef4c1c79d51ddc56727a5f332728f45b55cbea"
+  },
+  "reports": [
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\foreign-context-os-win-r1\\results.json",
+      "sha256": "435f3063705fd10cc32fb8971ca22d6705448b8069de301a1baa54e226ac98f9",
+      "commands": 15,
+      "slots": 5
+    },
+    {
+      "path": "F:\\xlang-validation\\xge-full-20261110\\foreign-context-os-linux-evidence-r1\\results.json",
+      "sha256": "50a6dd4b968159486112817f9b317f041e4d09058a8a587168b2a33efee6ffcb",
+      "commands": 15,
+      "slots": 5
+    }
+  ],
+  "commands": 30,
+  "runtimeImplementationChanged": false,
+  "networkTests": false,
+  "scope": "Actual context-source OS-key rollback with qualified full XRT; O0/O2, each allocation index, failed publication and non-LIFO chain removal",
+  "budget": {
+    "path": "F:\\xlang-validation\\xge-full-20261110\\host-session-budget-after-r1.json",
+    "sha256": "927e7ced22d6c478baedb240e509c956451bf18ceab8d88ea4c3ce8edc3f2a0c"
+  },
+  "limits": [
+    "Source-probe qualification only; not complete language callback/view cold-OS failure admission",
+    "No concurrency, fibers, physical unload or claimed callback-cycle qualification in this gate",
+    "OS key-free failure and failures while leaving a published scope are not covered",
+    "Latest-XRT/complete compiler-native SDK-IDE delivery remains pending"
+  ]
+}
