@@ -1,5 +1,5 @@
-/* Immutable finalized typed-module assets. Native nodes remain independently
- * owned by each result;only the original readonly tables and payloads share.
+/* Immutable finalized typed-module assets. Native nodes share only when the
+ * complete native input and every current coordinate match a verified view.
  * No previous result,AST,check,memo,or node arena is retained by this asset. */
 #define XLS_IR_PERSISTENT_BYTES (32u*1024u*1024u)
 #include "analysis/typed_module_internal.h"
@@ -48,6 +48,10 @@ static xls_ir_persistent_storage* xlsIrPersistentReady(const xls_ir_result* resu
 {return result && xrtAtomic32Load(&result->persistentState,XMEMORY_ACQUIRE)==2 ? result->persistent : NULL;}
 static xls_ir_persistent_storage* xlsIrPersistentRetain(xls_ir_persistent_storage* value)
 {if(value)xrtAtomic32FetchAdd(&value->references,1,XMEMORY_RELAXED);return value;}
+static xls_ir_node_storage* xlsIrNodesRetain(xls_ir_node_storage* value)
+{if(value)xrtAtomic32FetchAdd(&value->references,1,XMEMORY_RELAXED);return value;}
+static void xlsIrNodesRelease(xls_ir_node_storage* value)
+{if(value && xrtAtomic32FetchSub(&value->references,1,XMEMORY_ACQ_REL)==1){xrtFree(value->nodes);xrtFree(value);}}
 static void xlsIrPersistentRelease(xls_ir_persistent_storage* value)
 {
     if(!value || xrtAtomic32FetchSub(&value->references,1,XMEMORY_ACQ_REL)!=1)return;
@@ -76,12 +80,14 @@ static int xlsIrPersistentCapture(xls_ir_result* result,const XL6_AstNode* root,
 #endif
     /* Lowered instructions have their own sourceSpan mapping and are outside
      * this typed-AST owner. Never reuse their coordinates without that proof. */
-    if(!key->size || !result->module.ready || result->module.instructionCount || result->persistent ||
-       limit<sizeof(xls_ir_persistent_storage) || key->bytes>limit-sizeof(xls_ir_persistent_storage))return 0;
+    if(!key->size || !result->module.ready || !result->persistentWork.verified || result->module.instructionCount || result->persistent ||
+       limit<sizeof(xls_ir_persistent_storage)+sizeof(xls_ir_node_storage) ||
+       key->bytes>limit-sizeof(xls_ir_persistent_storage)-sizeof(xls_ir_node_storage))return 0;
     size_t at=0;
     if(!xlsIrPersistentPositions(&result->module,root,&at,0,0) || at!=result->module.nodeCount)return 0;
     xls_ir_persistent_storage* value=xrtCalloc(1,sizeof(*value));if(!value)return 0;
-    size_t bytes=sizeof(*value)+key->bytes;
+    xls_ir_node_storage* nodes=xrtCalloc(1,sizeof(*nodes));if(!nodes){xrtFree(value);return 0;}
+    size_t bytes=sizeof(*value)+sizeof(*nodes)+key->bytes;
     if(result->fragments.Capacity>(limit-bytes)/sizeof(xls_ir_unit*) || !xrtArrayInit(&value->texts,sizeof(void*)))goto failed;
     bytes+=result->fragments.Capacity*sizeof(xls_ir_unit*);
     for(size_t i=0;i<result->module.nodeCount;++i){
@@ -112,13 +118,16 @@ static int xlsIrPersistentCapture(xls_ir_result* result,const XL6_AstNode* root,
     value->fragments=result->fragments;result->fragments=(xarray){0};
     value->key=*key;*key=(xls_ir_persistent_keys){0};xrtArrayUnit(&result->borrowed);
     result->persistent=value;
+    xrtAtomic32Init(&nodes->references,1);nodes->certified=1;nodes->nodes=result->module.nodes;
+    nodes->count=result->module.nodeCount;nodes->capacity=result->module.nodeCapacity;
+    result->nodeStorage=nodes;
     if(record){result->persistentWork.captured=1;result->persistentWork.metadataBytes=bytes;}
     xls_typed_module* input=result->input;result->input=NULL;xlsTypedModuleRelease(input);
     xrtAtomic32Store(&result->persistentState,2,XMEMORY_RELEASE);
     return 1;
 failed:
     /* Text entries are still borrowed from the ordinary result until commit. */
-    xrtArrayUnit(&value->texts);xrtFree(value);return 0;
+    xrtArrayUnit(&value->texts);xrtFree(nodes);xrtFree(value);return 0;
 }
 static xls_ir_memo* xlsIrPersistentMemo(const xls_ir_memo* previous,const XL6_AstNode* root,size_t bytes)
 {
@@ -156,20 +165,37 @@ static xls_ir_result* xlsIrPersistentClone(const xls_ir_result* previous,const X
     result->persistent=xlsIrPersistentRetain(storage);
     size_t count=previous->module.nodeCount,capacity=previous->module.nodeCapacity;
     if(capacity<count || capacity>SIZE_MAX/sizeof(XL6_IrNode))goto failed;
-    /* Keep the original producer's arena geometry. Alternating exact-sized
-     * views with the native doubling builder creates different large-buffer
-     * allocation sizes. Only live nodes are copied and verified. */
-    if(capacity){result->module.nodes=xrtMalloc(capacity*sizeof(XL6_IrNode));if(!result->module.nodes)goto failed;}
-    if(count)memcpy(result->module.nodes,previous->module.nodes,count*sizeof(XL6_IrNode));
-    result->module.nodeCount=count;result->module.nodeCapacity=capacity;
-    size_t at=0;if(!xlsIrPersistentPositions(&result->module,root,&at,0,1) || at!=count)goto failed;
-    XL6_DiagList attempted;xl6DiagInit(&attempted);
-    int okay=xl6IrVerifyModule(&result->module,&attempted) && !attempted.count;xl6DiagFree(&attempted);
-    if(!okay || xlsFrontendCancelObserved())goto failed;
+    size_t at=0;int shared=previous->nodeStorage && previous->nodeStorage->certified && previous->nodeStorage->nodes==previous->module.nodes &&
+        previous->nodeStorage->count==count && previous->nodeStorage->capacity==capacity &&
+        xlsIrPersistentPositions(&previous->module,root,&at,0,0) && at==count;
+    if(xlsFrontendCancelObserved())goto failed;
+    if(shared){
+        /* The same immutable arena,not a recreated or partly matching IR.
+         * All native-ID input keys and all node coordinates already match.
+         * Keep its complete verification certificate with its independent
+         * owner;neither the previous result nor its AST is retained. */
+        result->nodeStorage=xlsIrNodesRetain(previous->nodeStorage);
+        result->module.nodes=result->nodeStorage->nodes;
+        result->module.nodeCount=count;result->module.nodeCapacity=capacity;
+    }else{
+        result->nodeStorage=xrtCalloc(1,sizeof(*result->nodeStorage));if(!result->nodeStorage)goto failed;
+        xrtAtomic32Init(&result->nodeStorage->references,1);
+        if(capacity){result->nodeStorage->nodes=xrtMalloc(capacity*sizeof(XL6_IrNode));if(!result->nodeStorage->nodes)goto failed;}
+        result->nodeStorage->count=count;result->nodeStorage->capacity=capacity;
+        result->module.nodes=result->nodeStorage->nodes;
+        if(count)memcpy(result->module.nodes,previous->module.nodes,count*sizeof(XL6_IrNode));
+        result->module.nodeCount=count;result->module.nodeCapacity=capacity;
+        at=0;if(!xlsIrPersistentPositions(&result->module,root,&at,0,1) || at!=count)goto failed;
+        XL6_DiagList attempted;xl6DiagInit(&attempted);
+        int okay=xl6IrVerifyModule(&result->module,&attempted) && !attempted.count;xl6DiagFree(&attempted);
+        if(!okay || xlsFrontendCancelObserved())goto failed;
+        result->nodeStorage->certified=1;
+    }
     result->memo=xlsIrPersistentMemo(previous->memo,root,rawBytes);
     result->work.bytes=result->memo ? result->memo->bytes : 0;
     result->work.textNodes=storage->textNodes;result->work.textBytes=storage->textBytes;
-    result->persistentWork=(xls_ir_persistent_work){.reused=1,.verified=1,.nodesCopied=count,.tablesShared=1,
+    result->persistentWork=(xls_ir_persistent_work){.reused=1,.verified=shared ? 0 : 1,.nodesCopied=shared ? 0 : count,
+        .nodesShared=shared ? count : 0,.tablesShared=1,.certificatesReused=shared ? 1 : 0,
         .metadataBytes=storage->metadataBytes,.keyBytes=storage->key.size};
     return result;
 failed:xlsFrontendIrResultDestroy(result);return NULL;

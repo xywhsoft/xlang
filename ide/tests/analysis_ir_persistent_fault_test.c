@@ -63,5 +63,30 @@ static int failures(void)
     xlsFrontendIrResultDestroy(before);xlsSemanticCheckDestroy(source);xl6AstFree(moved);xrtFree(held);xrtFree(expected);xrtFree(text);xrtFree(path);xl6DiagFree(&diags);CHECK(!tracked);
     printf("persistent fault sites=%zu;tracked allocations retired;4concurrent views;cancel andheld source fences passed.\n",sites);return 1;
 }
+static int sameViewFailures(void)
+{
+ char* path=xrtPathAbs("persistent-same-view-中文.xl");char* text=body(0);CHECK(path && text);
+ xls_semantic_check* source=checked(path,text);CHECK(source && xlsSemanticCheckInfo(source).accepted);
+ const XL6_AstNode* root=xlsSemanticCheckAst(source);XL6_DiagList diags;xl6DiagInit(&diags);
+ CHECK(!tracked);faultSeen=faultAt=faultDenied=0;faultActive=1;
+ xls_ir_result* before=xlsFrontendIrResultBuildPersistent(root,&diags,NULL,32u*1024u*1024u,128u*1024u,32u*1024u*1024u);faultActive=0;
+ CHECK(before && !diags.count && xlsFrontendIrResultPersistentWork(before).captured && tracked>0 && tracked<8000);
+ size_t baselineLive=tracked;char* expected=dump(xlsFrontendIrResultModule(before));CHECK(expected);
+ faultSeen=0;faultActive=1;
+ xls_ir_result* warm=xlsFrontendIrResultBuildPersistent(root,&diags,before,32u*1024u*1024u,128u*1024u,32u*1024u*1024u);faultActive=0;
+ CHECK(warm && !diags.count && xlsFrontendIrResultPersistentWork(warm).certificatesReused==1);
+ size_t sites=faultSeen;CHECK(sites>0 && sites<10000);xlsFrontendIrResultDestroy(warm);CHECK(tracked==baselineLive);
+ for(size_t i=1;i<=sites;++i){
+  faultSeen=faultDenied=0;faultAt=i;faultActive=1;
+  xls_ir_result* view=xlsFrontendIrResultBuildPersistent(root,&diags,before,32u*1024u*1024u,128u*1024u,32u*1024u*1024u);faultActive=0;
+  CHECK(faultDenied==1 && view && !diags.count);char* actual=dump(xlsFrontendIrResultModule(view));CHECK(actual && !strcmp(actual,expected));
+  xrtFree(actual);xlsFrontendIrResultDestroy(view);CHECK(tracked==baselineLive);
+ }
+ xls_frontend_cancel_scope scope;xls_frontend_cancel_work work;xlsFrontendCancelBegin(&scope,stopImmediately,NULL);
+ xls_ir_result* stopped=xlsFrontendIrResultBuildPersistent(root,&diags,before,32u*1024u*1024u,128u*1024u,32u*1024u*1024u);
+ xlsFrontendCancelEnd(&scope,&work);CHECK(!stopped && work.cancelled && !diags.count && tracked==baselineLive);
+ xlsFrontendIrResultDestroy(before);CHECK(!tracked);xlsSemanticCheckDestroy(source);xrtFree(expected);xrtFree(text);xrtFree(path);xl6DiagFree(&diags);
+ printf("same-view fault sites=%zu;all baseline/view allocations and last references retired.\n",sites);return 1;
+}
 int main(void)
-{xrtAtomic32Init(&checks,0);if(!failures())return 1;printf("analysis_ir_persistent_fault_test passed: %u checks.\n",xrtAtomic32Load(&checks,XMEMORY_RELAXED));return 0;}
+{xrtAtomic32Init(&checks,0);if(!failures() || !sameViewFailures())return 1;printf("analysis_ir_persistent_fault_test passed: %u checks.\n",xrtAtomic32Load(&checks,XMEMORY_RELAXED));return 0;}

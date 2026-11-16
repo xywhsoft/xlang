@@ -98,7 +98,7 @@ class Counters:
 
 
 def make_body(count, generation, topology, edit):
-    body = source(count, generation, True)
+    body = source(count, 0 if edit == 'trailing-comment' else generation, True)
     if edit == 'declaration' and generation:
         needle = ' int local = value+0\r\n'
         if body.count(needle) != 1:
@@ -107,6 +107,8 @@ def make_body(count, generation, topology, edit):
         body = body.replace(' return local\r\n', ' return local+inserted\r\n', 1)
     if topology == 'single':
         body += '\nfunc main(...) as int\n return compute(3)\nend\n'
+    if edit == 'trailing-comment':
+        body += f'\n// trailing editor comment {generation}\n'
     return body
 
 
@@ -197,8 +199,8 @@ def main():
         parser.error('current fixtures support distinct 32,512 counts')
     if not topologies or len(set(topologies)) != len(topologies) or set(topologies)-{'single', 'imported'}:
         parser.error('use distinct single,imported topologies')
-    if not edits or len(set(edits)) != len(edits) or set(edits)-{'literal', 'declaration'}:
-        parser.error('use distinct literal,declaration edits')
+    if not edits or len(set(edits)) != len(edits) or set(edits)-{'literal', 'declaration', 'trailing-comment'}:
+        parser.error('use distinct literal,declaration,trailing-comment edits')
     ratios = {32: args.declaration_ratio_32, 512: args.declaration_ratio_512}
     if any(not math.isfinite(v) or not 0 < v <= 1.05 for v in ratios.values()):
         parser.error('declaration ratios must be in (0,1.05]')

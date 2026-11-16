@@ -20,7 +20,7 @@ xls_check_ir_derived_work xlsSemanticCheckIrDerivedWork(const xls_semantic_check
  * Exact-result hits retain it. Fresh/non-owner paths report zero. Metadata
  * bounds exclude model/node/raw payload,transients,allocator overhead andRSS. */
 typedef struct xls_check_ir_persistent_work {
-    uint64_t built,reused,captured,verified,nodesCopied,tablesShared,keyBytes,metadataBytes,declined,prepared;
+    uint64_t built,reused,captured,verified,nodesCopied,nodesShared,tablesShared,certificatesReused,keyBytes,metadataBytes,declined,prepared;
 } xls_check_ir_persistent_work;
 xls_check_ir_persistent_work xlsSemanticCheckIrPersistentWork(const xls_semantic_check*);
 typedef struct xls_check_ir_dependency {uint64_t declaration,version;} xls_check_ir_dependency;

@@ -7294,5 +7294,34 @@
     },
     "formalRelease": false,
     "externalPublishPerformed": false
+  },
+  "localIdeLspCandidate": {
+    "schema": 1,
+    "stage": "M7b6u",
+    "status": "held-performance-tail",
+    "provenance": "dev/release-materials/provenance/lsp-ir-node-view-20261116.json",
+    "languageServerVersion": "0.107",
+    "defaultLanguageServerVersion": "0.106",
+    "server": {
+      "path": "ide/build/Release/lsp-ir-node-view-20261116/native-v1/xlang-ls.exe",
+      "sha256": "74fd8f96173c81c72b706bef9f8f198fa41bcdd8c07208339c232f332a4b06cb"
+    },
+    "gui": {
+      "path": "ide/build/Release/lsp-ir-node-view-20261116/gui-objects-v1/xlang_ide.link.exe",
+      "sha256": "33452428105eb62799a206db918c532a19039f693bcd920ac3ffff8b89e2f085"
+    },
+    "sdkDllSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "originalProductionPairValidatedInRootRelease": true,
+    "defaultRestored": true,
+    "performance": {
+      "commentCalibrationPassed": 40,
+      "commentComparisonPassed": 40,
+      "originalComparisonPassed": 79,
+      "originalComparisonGates": 80,
+      "originalFailedCase": "512-imported-literal/hot/wireP95"
+    },
+    "defaultRuntimeReplaced": false,
+    "formalRelease": false,
+    "externalPublishPerformed": false
   }
 }

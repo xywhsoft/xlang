@@ -1,0 +1,335 @@
+{
+  "schema": 1,
+  "date": "2026-11-16",
+  "stage": "M7b6u",
+  "scope": "Independent certified immutable final IR node views under exact complete input and current-coordinate proofs",
+  "base": "3cac1e6f8b8ed9c17ff60201d4041f91113c2a51",
+  "buildBase": "28df58e1ebd2fd70a19d84eac6719bebaf8289b2",
+  "implementationAccepted": true,
+  "correctnessQualified": true,
+  "goalComplete": false,
+  "performanceQualified": false,
+  "defaultRuntimeReplaced": false,
+  "candidateTemporarilyValidatedInRootRelease": true,
+  "defaultRestored": true,
+  "engineRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "formalRelease": false,
+  "candidateStatus": "held-performance-tail",
+  "ownedSources": {
+    "ide/docs/lsp-development.md": "eb95045c0b0d164e857d287accbaa2beedb58665bdd4f50c52c58814a62c399a",
+    "ide/src/analysis/check.c": "b1c5eb395797b1562e6af4455325e5c1d542ad949fa83dafb58c65808a43a27c",
+    "ide/src/analysis/check_ir.h": "b98d40c9f98ce598e4b680d50baee94eeb13318cd03fa95735feb79893427e9c",
+    "ide/src/analysis/frontend_ir_memo.h": "b1e6922620f8d2c8d60c013ac1cff3454a7d73be63d9c40d8b1b7a800acf3a95",
+    "ide/src/analysis/frontend_ir_memo.inc": "cf38ae4afe70ab5ef547ea72ac573b4fccfa2ba295ed0a1c47b540ae74d9fc38",
+    "ide/src/analysis/frontend_ir_owner.inc": "67d32dde2dabd7e5d544f0b162a68c9f2204100788d9e07d316e5443ac371c61",
+    "ide/src/analysis/frontend_ir_persistent.inc": "e29dafc393af09631c522cbb0801aa0ad0c021b1c25924f4ac3ae61543cf7d25",
+    "ide/src/server/xlang_ls.c": "6beea06e9e58ed98d0cf2e5a17e6298252a12c3d6da041241d270185a04225ba",
+    "ide/src/services/language_snapshot.c": "dfdcea9d431aaead7bb9e78a74067b27f942ce9de3c37e9acac5e40df4bde086",
+    "ide/tests/analysis_ir_persistent_fault_test.c": "5b1cf179d45a77f1159ef984fa4de2e4b26d1bdc4f53495010997ba9e6509f86",
+    "ide/tests/analysis_typed_module_test.c": "d7c2f35beb189d7007dae8c064ed6286ba8ee0570013eae238126fb2f541e099",
+    "ide/tools/benchmark_lsp_analysis.py": "f330063b11ab0e53e252c8ec4f52064f593ae4f10a2ae99ec3d1b6d90911d3c4",
+    "ide/tools/build_lsp_core.py": "78dbe3488131cfdf902ba527f36144d0b07f55158f345a344fc363b379d50a56",
+    "ide/docs/lsp-ir-node-view.md": "2a97fa68e8d2d2d54711ad98e2fa29cfa16cfcc90223df8879d704f327c24634",
+    "ide/tests/analysis_ir_node_view_test.c": "aa217758e5e3ba1fae948a4c0c569b9461b26208ab498c937570903d1e2a5554",
+    "ide/tools/check_lsp_ir_node_view.py": "3316b2d200535cc36c7e5e9a3af52f31f7c01431685e252344a98a7bb3d1fa0e"
+  },
+  "sharedFileEdits": {
+    "deliveryBeforeSha256": "8e096cb96737096582a018e55909a84a5f737c9c90e1a32a9326beb1782b1914",
+    "deliveryAfterSha256": "6784cac89bc4892e872575e15e7ebdd884b196f77291859fe75efb780c2016b7",
+    "deliveryProperty": {
+      "schema": 1,
+      "stage": "M7b6u",
+      "status": "held-performance-tail",
+      "provenance": "dev/release-materials/provenance/lsp-ir-node-view-20261116.json",
+      "languageServerVersion": "0.107",
+      "defaultLanguageServerVersion": "0.106",
+      "server": {
+        "path": "ide/build/Release/lsp-ir-node-view-20261116/native-v1/xlang-ls.exe",
+        "sha256": "74fd8f96173c81c72b706bef9f8f198fa41bcdd8c07208339c232f332a4b06cb"
+      },
+      "gui": {
+        "path": "ide/build/Release/lsp-ir-node-view-20261116/gui-objects-v1/xlang_ide.link.exe",
+        "sha256": "33452428105eb62799a206db918c532a19039f693bcd920ac3ffff8b89e2f085"
+      },
+      "sdkDllSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+      "originalProductionPairValidatedInRootRelease": true,
+      "defaultRestored": true,
+      "performance": {
+        "commentCalibrationPassed": 40,
+        "commentComparisonPassed": 40,
+        "originalComparisonPassed": 79,
+        "originalComparisonGates": 80,
+        "originalFailedCase": "512-imported-literal/hot/wireP95"
+      },
+      "defaultRuntimeReplaced": false,
+      "formalRelease": false,
+      "externalPublishPerformed": false
+    },
+    "ignoreBeforeSha256": "e308dd160d37d272ae8e62fa5665af32218411762158565f4e23dbd227dae52d",
+    "ignoreAfterSha256": "61f4df15df2c6347840bb68aabacf78247c8be1b43923c1c2da3cf3d95441e38",
+    "ignoreAnchor": "!/dev/release-materials/provenance/lsp-current-latency-20261116.json",
+    "ignoreRule": "!/dev/release-materials/provenance/lsp-ir-node-view-20261116.json",
+    "previousLocalRuntimeAndUserPropertiesPreserved": true
+  },
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-ir-node-view-20261116/stage-sources.tar.gz",
+      "sha256": "c8233f9d86a89cad69a80d2be9aedf0c015a2aec66718887cf3223a971627eaf",
+      "bytes": 403224,
+      "entries": 16,
+      "uniquePayloads": 16
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-ir-node-view-20261116/stage-sources.tar.gz.manifest.json",
+      "sha256": "0aed4891491501cfc8b049abe034aa9ee565d877e9493f8c1e9aa79038780fa0",
+      "bytes": 4137
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-ir-node-view-20261116/actual-builds-views-and-performance.tar.gz",
+      "sha256": "3bdf604e13588c03131454b3172f76f67e8f75e6797aa25da9db4b04f29f60f7",
+      "bytes": 1103144303,
+      "entries": 21337,
+      "uniquePayloads": 6265
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-ir-node-view-20261116/actual-builds-views-and-performance.tar.gz.manifest.json",
+      "sha256": "d1bb7c2b18f6ea32aabb4cc7078a8cfa4c6a2e8cfed1c97ce9c2b6b5a05a786f",
+      "bytes": 9583280
+    }
+  },
+  "externalPaths": [
+    "F:\\codex-builds-xlang-lsp-20261116\\ir-node-view",
+    "F:\\codex-builds-xlang-lsp-20261116\\ir-node-view-materials",
+    "F:\\xl-ir-node-view-20261116\\gui-async-view-v1"
+  ],
+  "materialDependencies": [
+    {
+      "index": "dev/release-materials/provenance/lsp-automatic-workspace-20261116.json",
+      "sha256": "b919a6893e1d8aa08b5ba98e06d21e04c6b8e2b94cd7a929440a00e90068c1f4",
+      "purpose": "Qualified0.106 frontend465/SDK/runtime,actual old full native and GUI cohorts,and default runtime identity"
+    },
+    {
+      "index": "dev/release-materials/provenance/lsp-current-latency-20261116.json",
+      "sha256": "509cf33ebdee3616627322e4d02513260fb8c8c7c9827537f25c141a1305b8a4",
+      "purpose": "Current0.106 lifecycle attribution and prior full same-image calibration failures;historical runs are not counted as new"
+    }
+  ],
+  "defaultRuntime": {
+    "xlang_ide.exe": "038f370c000ce6ca2c4d7de5331ffa0b7734df9e32a9359e7c45aa585b4cfc8b",
+    "xlang-ls.exe": "3b47b0572b1dc5ad91cbfda183c1b44a1b71938e2eee088da42f16769a6a0b57",
+    "xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3",
+    "update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2"
+  },
+  "candidateRuntime": {
+    "xlang_ide.exe": "33452428105eb62799a206db918c532a19039f693bcd920ac3ffff8b89e2f085",
+    "xlang-ls.exe": "74fd8f96173c81c72b706bef9f8f198fa41bcdd8c07208339c232f332a4b06cb",
+    "xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3",
+    "update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2"
+  },
+  "sdkDllSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+  "verification": {
+    "nativePrograms": 221,
+    "fullNativeObjectFiles": 359,
+    "qualifiedNativeObjectFiles": 359,
+    "guiUnits": 140,
+    "guiSuites": 55,
+    "actualIdeModes": 47,
+    "protocolDrivers": 21,
+    "newProtocolQueries": 156,
+    "newProtocolProcesses": 12,
+    "mutantCases": 3,
+    "originalNameProtocolQueries": 78,
+    "runtimeFilesPreserved": 7094,
+    "testAliasesAbsent": true,
+    "runtimeBuildAbsent": true,
+    "userTmpPreserved": [
+      "xl6_run_12896_3542316922_0",
+      "xl6_run_19628_3542315168_0",
+      "xl6_run_28188_3542313674_0"
+    ],
+    "protocolRegressionCases": 374,
+    "geometryAllocationFailureSites": 515,
+    "sameViewAllocationFailureSites": 265,
+    "currentOwnershipCases": 19,
+    "legacyPersistentProtocolQueries": 72,
+    "automaticWorkspaceCases": 26,
+    "physicalDiscoveryBarrierCases": 6,
+    "actualGuiLanguages": [
+      "c",
+      "xlang"
+    ],
+    "guiFramesPerLanguage": 24,
+    "oldMatchedComponentRefusalPassed": true,
+    "rawArchivesReadBackVerified": true,
+    "repositoryBudgetPassed": true
+  },
+  "performance": {
+    "aa-comments": {
+      "status": "passed",
+      "queries": 2304,
+      "processes": 32,
+      "gates": 40,
+      "failed": []
+    },
+    "ab-comments": {
+      "status": "passed",
+      "queries": 2304,
+      "processes": 32,
+      "gates": 40,
+      "failed": []
+    },
+    "ab-original": {
+      "status": "gates-failed",
+      "queries": 4608,
+      "processes": 64,
+      "gates": 80,
+      "failed": [
+        {
+          "name": "512-imported-literal/hot/wireP95",
+          "actual": 236.5461,
+          "limit": 220.141845,
+          "passed": false,
+          "baseline": 209.6589
+        }
+      ]
+    }
+  },
+  "supplementalBenefit": [
+    {
+      "case": "32-single-trailing-comment",
+      "p50Ratio": 0.8811226975049162,
+      "cpuChainRatio": 0.8544474393530996,
+      "largeBenefitPassed": true
+    },
+    {
+      "case": "32-imported-trailing-comment",
+      "p50Ratio": 0.9168789615746217,
+      "cpuChainRatio": 0.9099307159353349,
+      "largeBenefitPassed": true
+    },
+    {
+      "case": "512-single-trailing-comment",
+      "p50Ratio": 0.9075446770611824,
+      "cpuChainRatio": 0.898843930635838,
+      "largeBenefitPassed": true
+    },
+    {
+      "case": "512-imported-trailing-comment",
+      "p50Ratio": 0.9301374925673512,
+      "cpuChainRatio": 0.9223085460599333,
+      "largeBenefitPassed": true
+    }
+  ],
+  "tailReview": {
+    "status": "reviewed-not-qualified",
+    "originalFailure": [
+      {
+        "name": "512-imported-literal/hot/wireP95",
+        "actual": 236.5461,
+        "limit": 220.141845,
+        "passed": false,
+        "baseline": 209.6589
+      }
+    ],
+    "hotSamplesWithInactiveViewSharing": 48,
+    "slowestCandidate": [
+      {
+        "pair": 0,
+        "generation": 6,
+        "ms": 274.1656,
+        "cpuMs": 250.0,
+        "cycles": 935978785
+      },
+      {
+        "pair": 0,
+        "generation": 8,
+        "ms": 241.0662,
+        "cpuMs": 234.375,
+        "cycles": 833867300
+      },
+      {
+        "pair": 0,
+        "generation": 13,
+        "ms": 236.5461,
+        "cpuMs": 218.75,
+        "cycles": 815687213
+      },
+      {
+        "pair": 0,
+        "generation": 10,
+        "ms": 236.0879,
+        "cpuMs": 234.375,
+        "cycles": 811069105
+      },
+      {
+        "pair": 0,
+        "generation": 12,
+        "ms": 234.5515,
+        "cpuMs": 234.375,
+        "cycles": 799272107
+      },
+      {
+        "pair": 0,
+        "generation": 7,
+        "ms": 234.357,
+        "cpuMs": 234.375,
+        "cycles": 803768245
+      },
+      {
+        "pair": 1,
+        "generation": 13,
+        "ms": 233.7747,
+        "cpuMs": 234.375,
+        "cycles": 807747465
+      },
+      {
+        "pair": 0,
+        "generation": 11,
+        "ms": 225.226,
+        "cpuMs": 218.75,
+        "cycles": 777245453
+      }
+    ],
+    "fixedDiagnostic": {
+      "status": "calibration-failed",
+      "failed": [
+        {
+          "name": "512-imported-literal/first/wireP50",
+          "actual": 238.8467,
+          "limit": 232.12434,
+          "passed": false,
+          "baseline": 221.0708,
+          "ratio": 1.05
+        }
+      ]
+    },
+    "causalRegressionExplained": false,
+    "originalFailureRetained": true,
+    "defaultHeld": true
+  },
+  "evidenceNotes": [
+    "Exact complete native-ID AST keys and every current kind/coordinate/count must match a certified immutable arena. Share the actual original nodes through an independent XRT atomic owner;retain the matching table/text owner separately. No AST,check,module or previous-result chain is retained. Changed geometry still copies/applies coordinates and runs the entire original verifier;changed non-coordinate input follows the original build.",
+    "Add distinct native-verification,certificate and shared-node counters. Charge the new actual owner metadata within the unchanged32MiB metadata cap. All public-header consumers are freshly recompiled as359native object files and140GUI units. Keep the old prototype ABI separate;never link its old-header tests against the new core.",
+    "Pass221native programs including complete independent originalIR equality,16generations,AST/result retirement,4simultaneous view retirements,515geometry and265same-view real allocation failures. Pass3actual C omissions removing coordinates,retirement decrement or exact keys. The old matched0.106component refuses the new optimization contract as expected.",
+    "Retain initial prototype fixture-object binding/link failure,first old-control log matcher mismatch,BOM fixture placing BOM after inserted lines,closed-root private check request,and old typed-module always-copy assertion. Correct each actual fixture with separate raw receipts. Only the updated typed-module C fixture is recompiled after all public headers are proven byte-identical;123prior accepted native runs plus98remaining total221unique passes.",
+    "Run156standard result/version/work-counter comparisons across32/512functions,single/imported/open/closed project entry,unchanged geometry,moved geometry,literal/declaration,repeat,parse error and recovery. Run21existing protocol drivers,19ownership cases,72legacy persistent comparisons,26auto discovery cases and6physical source barriers. Rebuild matched GUI and pass55paired suites plus47actual IDE modes.",
+    "Pre-register and retain prototype A/A and A/B(2304queries/32processes each):1/40A/A failed,40/40A/B passed. Production same-image comment calibration and comment A/B each pass40/40(2304queries/32processes each);original literal/declaration A/B(4608queries/64processes)fails one hotP95 gate. Keep every successful slow sample and failure;no favorable rerun replaces those plans.",
+    "Failed512-imported-literal hotP95 is209.6589to236.5461ms against220.141845limit. Its48candidate hot samples all have zero node/certificate sharing;slowest cluster in pair0. One fixed same-image diagnostic240queries/16processes also fails firstP50(221.0708/238.8467ms). Causality remains unresolved;diagnostic does not replace admission or erase the original failure.",
+    "Temporarily install original production GUI0.107/service with matched private SDK DLL in root release. Pass C/xlang24-frame renders and78original-name stdio checks,then use guarded publication to restore0.106. Verify all7094runtime files including engine,SDK-related runtime,updater,settings and usertmp unchanged. Add a held-candidate delivery property while retaining the separate default-runtime property and all user edits."
+  ],
+  "limits": [
+    "Candidate is functionally verified but held from default delivery by a retained full-matrix tail failure. Specialized comment measurements are not arbitrary-edit or fullIDE acceleration claims. No online update published.",
+    "Complete per-function finalIR/derived-table production and verification,input-key encoding,large workspaces,globalRSS,endurance,Linux,sanitizer,physicalWin7 and complete GUI interaction latency remain open. Noengine rebuild,xlc.dllmerge,DAP,debug orruntime completion;whole goal active."
+  ],
+  "postCommitReceipt": "dev/release-materials/provenance/lsp-ir-node-view-20261116/postcommit.json"
+}

@@ -784,7 +784,7 @@ xls_ir_derived_work xlsFrontendIrResultDerivedWork(const xls_ir_result* result)
 void xlsFrontendIrResultDestroy(xls_ir_result* result)
 {
     if(!result)return;
-    if(result->persistent){xrtFree(result->module.nodes);xlsIrPersistentRelease(result->persistent);}
+    if(result->persistent){xlsIrNodesRelease(result->nodeStorage);xlsIrPersistentRelease(result->persistent);}
     else{xls_ir_result* previous=xlsActiveIrOwner;xlsActiveIrOwner=result;
         xl6IrModuleFree(&result->module);xlsActiveIrOwner=previous;}
     xlsFrontendIrMemoDestroy(result->memo);xlsTypedModuleRelease(result->input);xrtArrayUnit(&result->fragments);xrtArrayUnit(&result->borrowed);xrtFree(result);

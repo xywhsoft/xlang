@@ -69,7 +69,7 @@ static int ownership(const char* path)
     input=xlsTypedModuleTake(moved);CHECK(input);
     xls_ir_result* current=xlsFrontendIrResultBuildTyped(input,&diags,before,32u*1024u*1024u,NULL,32u*1024u*1024u);
     CHECK(current && !diags.count);xls_ir_persistent_work w=xlsFrontendIrResultPersistentWork(current);
-    CHECK(w.reused==1 && w.verified==1 && w.tablesShared==1 && w.nodesCopied>16 && !w.built);
+    CHECK(w.reused==1 && w.verified==1 && w.tablesShared==1 && w.nodesCopied>16 && !w.built && !w.nodesShared && !w.certificatesReused);
     const XL6_IrModule *a=xlsFrontendIrResultModule(before),*b=xlsFrontendIrResultModule(current);
     CHECK(a->nodes!=b->nodes && a->types.items==b->types.items && a->nodeCount==b->nodeCount);
     watchedRoot=moved;xrtAtomic32Store(&rootDrops,0,XMEMORY_RELAXED);xlsTypedModuleRelease(input);
@@ -93,8 +93,11 @@ static int adaptiveSession(const char* path)
         CHECK(result && xlsSemanticCheckInfo(result).accepted);
         xls_check_ir_persistent_work p=xlsSemanticCheckIrPersistentWork(result);xls_check_semantic_work sem=xlsSemanticCheckWork(result);
         printf("adaptive step=%zu checked=%llu reused=%llu context=%llu prepared=%llu persistent=%llu key=%llu\n",i,(unsigned long long)sem.functionsChecked,(unsigned long long)sem.functionsReused,(unsigned long long)sem.contextHits,(unsigned long long)p.prepared,(unsigned long long)p.reused,(unsigned long long)p.keyBytes);
-        if(i%3==0)CHECK(!p.prepared && !p.reused && !p.captured && !p.keyBytes && !p.metadataBytes);
-        else CHECK(p.reused==1 && p.verified==1 && p.tablesShared==1 && p.prepared==(i%3==1) && p.nodesCopied>16);
+        if(i%3==0)CHECK(!p.prepared && !p.reused && !p.captured && !p.keyBytes && !p.metadataBytes && p.built==1 && p.verified==1 && !p.certificatesReused && !p.nodesShared);
+        else {
+            CHECK(p.reused==1 && !p.verified && p.tablesShared==1 && p.prepared==(i%3==1) && !p.nodesCopied && p.nodesShared>16 && p.certificatesReused==1);
+            if(i<3)CHECK(xlsSemanticCheckIr(result)->nodes==xlsSemanticCheckIr(held)->nodes);
+        }
         if(i==9)CHECK(sem.functionsChecked>=1 && sem.functionsReused>=16);
         xls_semantic_check* fresh=checked(path,payload.Data);CHECK(fresh && xlsSemanticCheckInfo(fresh).accepted);
         char* expected=dump(xlsSemanticCheckIr(fresh));char* actual=dump(xlsSemanticCheckIr(result));CHECK(expected && actual && !strcmp(expected,actual));

@@ -5,12 +5,16 @@ typedef struct xls_ir_memo xls_ir_memo;
 typedef struct xls_ir_result xls_ir_result;
 struct xls_entity_view;
 /* Final typed-module storage. Exact complete native non-coordinate input is
- * required;all native IDs remain exact. Current spans are rebuilt and the full
- * original verifier always runs. Explicit opt-in;ordinary APIs stay unchanged.
+ * required;all native IDs remain exact. A certified immutable node arena may
+ * share only when every current coordinate matches too. Otherwise current
+ * spans are rebuilt and the complete original verifier runs. No AST/result
+ * is retained by the independent node/table owners. Explicit opt-in.
  * persistentBytes bounds key/ownership metadata only,max32MiB;it excludes the
  * existing model,raw fragment payloads,transients andRSS,not globalmemory. */
 typedef struct xls_ir_persistent_work {
-    uint64_t built,reused,captured,verified,nodesCopied,tablesShared,keyBytes,metadataBytes,declined;
+    /* verified counts native verification;certificatesReused counts an exact
+     * immutable verified view. They are separate work counters. */
+    uint64_t built,reused,captured,verified,nodesCopied,nodesShared,tablesShared,certificatesReused,keyBytes,metadataBytes,declined;
 } xls_ir_persistent_work;
 xls_ir_result* xlsFrontendIrResultBuildPersistent(const XL6_AstNode*,XL6_DiagList*,
     const xls_ir_result*,size_t rawBytes,size_t ownerBytes,size_t persistentBytes);
