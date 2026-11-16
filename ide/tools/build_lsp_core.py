@@ -118,6 +118,7 @@ CORE_TESTS = ("analysis_semantic_read_front_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_sparse_decode_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_node_graph_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_table_graph_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_ir_node_link_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_typed_identity_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_composite_function_test", "analysis_typed_function_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_function_index_asset_test", *CORE_TESTS)
@@ -773,6 +774,7 @@ def main() -> None:
     sources += [(ide / "src/analysis/report_index.c", True)]
     sources += [(ide / "src/analysis/ir_node_graph.c", True)]
     sources += [(ide / "src/analysis/ir_table_graph.c", True)]
+    sources += [(ide / "src/analysis/ir_node_link.c", True)]
     if not args.skip_tests:
         sources += [(ide / "src/protocol/document_sync.c", True)]
         # These private fixtures include the exact generated native TUs; use
@@ -989,6 +991,8 @@ def main() -> None:
             flags += ['-DXIDE_OWNER_REFERENCE_FIXTURE="' + owner_coordinator.as_posix() + '"']
         if source.stem in ('ir_table_graph','analysis_ir_table_graph_test'):
             flags += ['-I'+str(output/'ir_tables')]
+        if source.stem in ('ir_node_link','analysis_ir_node_link_test'):
+            flags += ['-I'+str(output/'ir_node_link')]
         return flags
 
     objects = {}
@@ -1017,6 +1021,16 @@ def main() -> None:
         table_schema_path=table_directory/'schema.json'
         table_schema_path.write_text(json.dumps(table_metadata,indent=2)+'\n',encoding='utf8')
         for path in (table_probe,table_schema_path,ide/'tools/ir_table_schema.py'):
+            inputs[str(path)]=sha(path)
+        from ir_node_reference_schema import generate as generate_ir_node_references
+        link_directory=output/'ir_node_link';link_directory.mkdir()
+        link_inc=link_directory/'ir-node-reference-schema.inc'
+        link_headers={p:text for p,text in table_headers.items()
+                      if Path(p).name in ('xl6_ir.h','xl6_foreign_call_contract.h')}
+        link_metadata=generate_ir_node_references(link_headers,link_inc)
+        link_schema=link_directory/'schema.json'
+        link_schema.write_text(json.dumps(link_metadata,indent=2)+'\n',encoding='utf8')
+        for path in (link_inc,link_schema,ide/'tools/ir_node_reference_schema.py',ide/'tools/ir_node_graph_schema.py'):
             inputs[str(path)]=sha(path)
         probe_sources = [ide / "src/analysis/runtime.c", frontend / "src/ast/xl6_ast.c"]
         if args.server:
@@ -1070,6 +1084,7 @@ def main() -> None:
         core_names.add("report_index")
         core_names.add("ir_node_graph")
         core_names.add("ir_table_graph")
+        core_names.add("ir_node_link")
         members = [target for name, target in objects.items() if name in core_names]
         members.append(objects["semantic_tokens"])
         run([str(ar), "rcs", str(core), *map(str, members)], "archive")
@@ -1084,7 +1099,7 @@ def main() -> None:
             extra = [str(objects["document_sync"])] if name in ("document_sync_test", "diagnostic_stream_test") else []
             if name == 'analysis_ir_node_graph_test':
                 extra += ['-Wl,--wrap='+f for f in ('xrtMalloc','xrtCalloc','xrtFree')]
-            if name == 'analysis_ir_table_graph_test':
+            if name in ('analysis_ir_table_graph_test','analysis_ir_node_link_test'):
                 extra += ['-Wl,--wrap='+f for f in ('xrtMalloc','xrtCalloc','xrtFree','xl6IrDumpModuleJson')]
             if name in ("file_watch_test", "file_watch_lease_test"):extra += [str(objects["file_watch"])]
             if name == "file_watch_lease_test":extra += ["-Wl,--wrap="+f for f in ("malloc", "free", "__imp_ReadFile")]

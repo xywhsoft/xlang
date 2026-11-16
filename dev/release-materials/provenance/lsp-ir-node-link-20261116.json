@@ -1,0 +1,165 @@
+{
+  "schema": 1,
+  "date": "2026-11-16",
+  "stage": "M7b6y",
+  "scope": "Explicit native node reference relocation and mixed-producer declaration linking into current topology and spans",
+  "base": "964b6e24f97be4b22ed87017da2b240f4e9b8829",
+  "buildBase": "964b6e24f97be4b22ed87017da2b240f4e9b8829",
+  "componentImplementationAccepted": true,
+  "componentCorrectnessQualified": true,
+  "normalAnalysisIntegrationEnabled": false,
+  "finalIrIncrementalProductionComplete": false,
+  "performanceQualified": false,
+  "goalComplete": false,
+  "defaultRuntimeReplaced": false,
+  "deliveryIndexUnchanged": true,
+  "engineRuntimeReplaced": false,
+  "developerSdkReplaced": false,
+  "externalPublishPerformed": false,
+  "formalRelease": false,
+  "defaultLanguageServerVersion": "0.106",
+  "heldServiceVersion": "0.107",
+  "ownedSources": {
+    "ide/src/analysis/ir_node_link.c": "f34b7832ec92fa60627fb6164d2168063c4ca8778a37ad416d04500377257302",
+    "ide/src/analysis/ir_node_link.h": "75f77b0d4a8d150ab16d19f5bd9e9c4db70881f2ec6f364f35ceec23ed815696",
+    "ide/tests/analysis_ir_node_link_test.c": "45e8124dc7bf264169caeeebb03f1a661a5339a1a2571e3b7f22d3d2acd1bbfc",
+    "ide/tools/build_lsp_core.py": "35801e887b3c00b01c3d4cabe620bd1e8a83ea2d528b17599c8ba55ed0e8406a",
+    "ide/tools/ir_node_reference_schema.py": "d4780116195c656f27f2bed459913c2d3117b845db63173f91d01e0ede3cd01c",
+    "ide/tools/check_ir_node_reference_schema.py": "8c2d7a97ea67baaacb494282d82b31239cdf27dd7200b39992ed964f6aa44c74",
+    "ide/tools/check_ir_node_link_mutants.py": "980dc1b4f71e342011026822a24194136eb0379145c736b45d265c6de8ddfada",
+    "ide/docs/lsp-ir-node-link.md": "9bd280015a9999b943fb8add63246724629d20a010f10930ac2aefd5cbe5d4f0",
+    "ide/docs/lsp-development.md": "1b36b1966cae57b7bc91e73b280560ef312fe861dc2f7e5d8f5a00ffeac3d42f"
+  },
+  "sharedFileEdits": {
+    "ignoreBeforeSha256": "ea7bfd4f76c8f99c905ad51265cf07c895b9b2af70a6f84b3d68ad1aa8ddc926",
+    "ignoreAfterSha256": "4b7282bb548e55baafd0195d4b46ce5ba2f1072a1c3aa4d02f9648eb68d5ef78",
+    "anchor": "!/dev/release-materials/provenance/lsp-ir-table-graph-20261116.json",
+    "line": "!/dev/release-materials/provenance/lsp-ir-node-link-20261116.json",
+    "deliveryIndexUnchangedSha256": "6784cac89bc4892e872575e15e7ebdd884b196f77291859fe75efb780c2016b7"
+  },
+  "materials": {
+    "source": {
+      "path": "dev/release-materials/sources/lsp-ir-node-link-20261116/stage-sources.tar.gz",
+      "sha256": "f661955e0e8b4cd38d9e260aff896a04b0a4e0d3d8b104cdfecfe8e29c291649",
+      "bytes": 360467,
+      "entries": 10,
+      "uniquePayloads": 10
+    },
+    "sourceManifest": {
+      "path": "dev/release-materials/sources/lsp-ir-node-link-20261116/stage-sources.tar.gz.manifest.json",
+      "sha256": "b1df80df87254b3121e328f24769151d39b98ce2f381b1cb7f822e47ef7cc9ba",
+      "bytes": 2556
+    },
+    "validation": {
+      "path": "dev/release-materials/provenance/lsp-ir-node-link-20261116/actual-builds-node-links-and-native-oracles.tar.gz",
+      "sha256": "dfcd120e316a2039c2a999293058d5636c18db5aba3141ebab3e732292a80a2a",
+      "bytes": 1118652590,
+      "entries": 6092,
+      "uniquePayloads": 4320
+    },
+    "validationManifest": {
+      "path": "dev/release-materials/provenance/lsp-ir-node-link-20261116/actual-builds-node-links-and-native-oracles.tar.gz.manifest.json",
+      "sha256": "549cb85d55f2b4fc869379ecf9c77242b713d520fa71911e53778e6e5fa36439",
+      "bytes": 2297278
+    }
+  },
+  "externalPaths": [
+    "F:\\codex-builds-xlang-lsp-20261116\\ir-node-link",
+    "F:\\codex-builds-xlang-lsp-20261116\\ir-node-link-materials"
+  ],
+  "materialDependencies": [
+    {
+      "index": "dev/release-materials/provenance/lsp-ir-table-graph-20261116.json",
+      "sha256": "fa0b99c44137f6e37e8ac4341abbeb1aa6b45d78789df13025adfca6160a7303",
+      "purpose": "Independent native table records;matching input ownership and native verifier lifetime"
+    },
+    {
+      "index": "dev/release-materials/provenance/lsp-ir-node-graph-20261116.json",
+      "sha256": "c8585f2cc1d5221e89fe51b775111ad265134c42ab8113a73a7f41ca582586f6",
+      "purpose": "Independent declaration node units and unchanged default0.106runtime inventory"
+    },
+    {
+      "index": "dev/release-materials/provenance/lsp-ir-node-view-20261116.json",
+      "sha256": "86b4cb20feaefaaf136c9dc9fa8504ad40a99e3a27246004030f054bc10625ae",
+      "purpose": "Held0.107production cohort;prior tail-latency failure remains open"
+    }
+  ],
+  "defaultRuntime": {
+    "xlang_ide.exe": "038f370c000ce6ca2c4d7de5331ffa0b7734df9e32a9359e7c45aa585b4cfc8b",
+    "xlang-ls.exe": "3b47b0572b1dc5ad91cbfda183c1b44a1b71938e2eee088da42f16769a6a0b57",
+    "xlang_ide_xge.dll": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "xl.exe": "5288c4e8be9f420ef98caeb11be362017be925f2ad81a0d56946cc6a8c721081",
+    "xl.dll": "f31ddbe973ed48d261014ec64fa6b0ba48791fc0313192a19d59467254c0fcd6",
+    "xlc.dll": "64b2e9830569c84580335b0a2b15a59ce13552ba1ba51933fc82cd75808c0728",
+    "xge.dll": "127db42612e8a27c8b1f7f74e4653c25f09140f8baac38d16fc564eb74892ef3",
+    "update.exe": "4c5266fce0a541b9b96fe92b3d2f7d94598aff3b052e420b08b6d47db5e5c6c2"
+  },
+  "newlyBuiltTestService": {
+    "path": "ide/build/Release/lsp-ir-node-link-20261116/native-v1/xlang-ls.exe",
+    "sha256": "b703ad9fe1c6931eb1ec59177d70c8cc92c5885b6d7c005eeb574f6003123565",
+    "componentAbsentFromNormalService": true
+  },
+  "verification": {
+    "buildSha256": "466d729d5546eedea2456dca5aaf8ab0646d9c192a3e1b7eec89a799aa667b32",
+    "builderMappedObjects": 364,
+    "newMemberMatchesRawExtraction": true,
+    "sourceGuardedInputs": 1664,
+    "outputCount": 226,
+    "pePrograms": 225,
+    "nativeProgramsBuilt": 224,
+    "newNativeRelatedPrograms": 9,
+    "componentChecks": 125010,
+    "normalNativeCloneComparisons": 134,
+    "retiredTypedCompleteModules": 8,
+    "mixedRetiredCompleteModules": 1,
+    "mixedDeclarationsReused": 17,
+    "mixedDeclarationsRebuilt": 1,
+    "realNodeTypeSymbolRegionRelocations": [
+      1456,
+      1,
+      23,
+      46
+    ],
+    "allocationFailureSites": 2,
+    "smallFixtureCancellationPoints": 14,
+    "actualOmissionMutants": 28,
+    "sourceSchemaMutationCases": 12,
+    "oldProductionFilesUnchanged": 588,
+    "newComponentAbsentFromNormalServer": true,
+    "lowererAbsentFromCoreAndServer": true,
+    "allRuntimeFilesPreserved": 7094,
+    "sdkSha256": "7eba677fddada9b605db2d54dd59ee57a9cfc1caf0b574f6cb206ec9de379418",
+    "deliverySha256": "6784cac89bc4892e872575e15e7ebdd884b196f77291859fe75efb780c2016b7",
+    "userTmpPreserved": [
+      "xl6_run_12896_3542316922_0",
+      "xl6_run_19628_3542315168_0",
+      "xl6_run_28188_3542313674_0"
+    ],
+    "allOwnedAliasesRemoved": true,
+    "serverSha256": "b703ad9fe1c6931eb1ec59177d70c8cc92c5885b6d7c005eeb574f6003123565",
+    "defaultRuntimeReplaced": false,
+    "normalAnalysisIntegrationEnabled": false,
+    "externalPublishPerformed": false,
+    "physicalObjectFiles": 365,
+    "coreMemberCount": 75,
+    "fullBuildWasBuildOnly": true,
+    "executedRelatedNativePrograms": 9,
+    "privateCorruptCoreRefusedBeforeCompilation": true,
+    "rawArchivesReadBackVerified": true,
+    "repositoryBudgetPassed": true,
+    "newProtocolOrGuiSuites": 0,
+    "newPerformanceMeasurements": 0
+  },
+  "evidenceNotes": [
+    "Audit all74native node fields and generate27reference roles:14type,8symbol including foreignCall.rollbackSymbol,2node,2region,1zero-based aggregate field. Relocate node placement and children too. Preserve one-based zero sentinels and zero-based SIZE_MAX;no implicit identity fallback.",
+    "Link caller-selected immutable units into exact current rooted topology and coordinates. Validate coverage,source syntax/payloads and mapped parent/child order. Pin only selected independent units in one flat XRT image;never old graphs,ASTs,modules,maps,layouts or result chains. Source and maps are immutable call borrows.",
+    "One result allocation plus one scratch allocation;budget measures peak requested bytes,not retained input units,allocator overhead or RSS. Cooperatively cancel across traversal and before publishing references. Bulk compare/copy is not byte-preemptible. Symbol/region range checks are not semantic identity proofs.",
+    "Pass125010component checks with independently handwritten expected relocation,physical node permutation,27mapped fields,all domain sentinels,current spans,unused child slots,retirement,2real allocation failures,14small-fixture cancellation points,empty/wide2049/deep16385node trees. Pass134complete original typed native verifier/JSON clone comparisons and8retired typed modules.",
+    "A real changed function introduces a local integer,string and conditional. Link current root and1changed declaration with17old declarations. Independently paired full-analysis maps relocate1456node,1type,23symbol and46region references;old payload pointers remain selected-unit borrows. Retire both original AST/checks,graphs and maps,then pass full native verifier and complete JSON equality. Pairing is a test oracle,not production semantic eligibility or reference-map generation.",
+    "Fresh standard build has1664guarded inputs,365physical objects including1semantic-limit fixture,75core members,226outputs/225PEs including224native tests and held0.107service. Build-only is not a full224program execution pass. Run9related freshly built native programs. Existing588production files/public headers remain byte-identical;new2files only. Raw ar extraction matches compiled object;new linker and lowerer are absent from normal service.",
+    "Pass12selected-header role guard mutations. Compile27individual relocation omissions plus old-span omission;all28are rejected by independent synthetic expected values,with unmodified positive control passing the full native suite. Damaged private core archive is refused before C compilation,original core intact. Source and every compiled dependency/artifact are hashed.",
+    "Preserve prototype path-normalization rejection,strict indentation and missing StrBufDetach compile failures,and the first mixed fixture failing to exercise a region change. Correct fixtures by adding real local declarations and conditionals without changing native compiler rules. All logs and source/program attempts remain in external materials.",
+    "No production analysis integration,protocol/GUI or performance qualification,default install or online publication. Current layout and tables still come from a full analysis. Dependency/entity-version eligibility,non-node table relocation,selective final IR production,global memory/endurance and end-to-end performance remain future work;the prior held0.107tail-latency failure remains unresolved.",
+    "Preserve7094runtime files,8protected binaries,matched SDK,3pre-existing temporary entries and mutable delivery index. Remove all owned runtime test aliases. Store large archives on F via developer material junctions;commit only source,small docs/index and narrow ignore insertion."
+  ]
+}
